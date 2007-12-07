@@ -1,0 +1,13 @@
+#summary General Design overview
+
+= Introduction =
+
+Here you will learn the overall design of the framework, some short descriptions of every library and the way it is intended to be used.
+
+
+= Details =
+
+Add your content here.  Format your content with:
+  * Text in *bold* or _italic_
+  * Headings, paragraphs, and lists
+  * Automatic links to other wiki pages
