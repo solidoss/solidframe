@@ -117,6 +117,28 @@ And, you guessed!, back to the second alpha connection to see a new marvel.
 
 Notable is that the last two commands can be test with the test instances on different machines, in which case 'localhost' can be replaced with the name/address of the peer (in this case the test can be started without parameter in which case in the above alpha commands youll need to replace 2222 with 1222).
 
+= The design overview =
+
+The overall design of the framework is based on four concepts: pseudo-active objects, containers of objects (services), thread pools for objects, and a server which holds the services and the pools.
+
+Here is the logical hierarchy within the framework:
+
+  * On top and central to the architecture is the server which holds services and pools. It can be easily accessed from within any thread of it's pools (through thread specific data), and permit asynchronous signaling operations on objects.
+  * The services are passive containers of objects, and have operations like: single object signaling, signal broadcasting and object visiting. Notable is also the fact that the services are also objects and they can therefor be signaled. Also the service is responsible to provide the objects with a locking mechanism (a mutex - which can be shared by multiple objects).
+  * Thread pools (aka WorkPools) are somehow, active containers of objects. They actively hold objects, providing them processor time in response to signals and/or events. There are certain kinds of pools.
+     # Basic Pools which execute input objects, in a queue like fashion. On this pools objects can reside until they are executed.
+     # More complex pools on which objects can reside "as much as they want",  and they are provided with scheduling mechanisms (re-execution after a certain amount of time), and most important of all they can be executed when they receive signals.
+     # And a very special type of pools - the communication ones (for TCP or UDP) which beside re-scheduled object execution, execution on object signaling, they also provide execution based on I/O completion events.
+  * The objects are at the very base of the architecture. They must reside both on a passive container (a service) and an active one (pool) and they usually implement state machines to complete certain tasks. Here are some examples of objects:
+    # Connections for implementing high level TCP protocols like IMAP.
+    # Talkers for implementing high level UDP protocols (like the one used by IPC module).
+    # etc.
+
+*Notes*:
+
+1) A service can have lots of types of objects residing on different pools. For example the IPC service will have both Talkers (for communication over UDP) and Connections for communication over TCP.
+2) There are two types of object signals: a fast, flag like one and a Command like one. The second type means sending a command to an object which on receive, it will execute the command and eventually extract needed data. For example the storage manager will asynchronously signal a stream to the object that requested it using a Command. 
+
 Add your content here.  Format your content with:
   * Text in *bold* or _italic_
   * Headings, paragraphs, and lists
