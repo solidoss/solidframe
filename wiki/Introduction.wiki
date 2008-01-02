@@ -26,20 +26,63 @@ solidgroud/
 
 The system folder contains the system library, which is basically a wrapper library for system API. There are: a thread class, synchronization classes (mutexes, conditions etc.), a thread specific class, wrappers for socket address and for files etc.
 
-== The "utility" ==
+== utility ==
 
 This is also a one library folder containing utility classes for concepts like streams, workpools (thread pools). It also contains utility data structure classes like queue and stack (twice faster than their std equivalents). There are also some interesting goodies which you'll have to discover by yourself.
 
-== The "algorithm" ==
+== algorithm ==
 
 This is a multi-library folder, containing for now only two: a protocol library (containing classes useful for text like protocols - asynchronous reader (parser) and writer (response builder)); and a binary serialization/ deserialization library.
 
-== The "clientserver" ==
+== clientserver ==
 
 It contains four libraries: core, tcp, udp and ipc. Please read the design overview paragraph.
 
-== The "test" ==
+== test ==
 This folder contains the test applications for libraries. The most important test application being the clientserver proof of concept one located at: "test/clientserver/main" (see How to build and test the proof of concept server). The rest of the tests are small applications written purposely for verifying certain libraries/classes.
+
+== How is the framework thought to be used ==
+
+Well, I've designed the structure and the build system of the solidground framework to be used in a multiple repository manner. That means you'll have the solidground repository and your application repository. Your application will reside withing "solidground/application" directory which must contain a CMakeLists.txt file which in turn will integrate your application(s) within solidground's build system. The application folder will be quite similar to the "test" folder, except that it will not reside within the solidground repository. This design MAY impose some restrictions to the build system of your own application(s) but has the big advantage of being easy to use, as the cmake files will be quite similar to those from "solidground/test" directory.
+
+= How to build and test the proof of concept server =
+
+Before anything you must ensure you have all the needed packages installed on you Linux box. You'll need: gcc-c++, boost, boost-devel, cmake, ccache (on a fedora box: "yum install gcc-c++ boost boost-devel cmake ccache" will suffice). Eventually you'll need "subversion" to fetch a copy of solidground repository.
+
+The solidground framework, has a commodity build script which can be used to create certain builds for certain base build systems (make or kdevelop3). 
+So lets build a (debug-)nolog version.
+
+`solidground $ ./build.sh nolog`
+`solidground $ cd build/nolog/test/clientserver/main`
+`main $ make`
+
+The above commands will star building the proof of concept clientserver test application.
+When it's done the application is create within the main directory, and you can start it using 
+
+`main $ ./test`
+
+The application should start printing some information and offering a small CLI on which you can type help to see the commands.
+
+The test application expects a starting port value which will be used for opening listening tcp and udp sockets (defaults is 1000). There are few services offered by test among which are echo and the most important, alpha.
+
+In the following lines to show the capabilities of the framework we'll use the alpha protocol which somehow resembles the IMAP protocol in syntax.
+The alpha service will listen on (x + 114) port, where x is the value given as parameter to test application.
+Next you'll need to start a telnet on localhost 1114 (telnet 0 1114) and you should see the alpha banner.
+
+With alpha you can list folders:
+
+`aa list "/home"
+
+Fetch files:
+
+`ab fetch "/tmp/000001.txt"`
+
+Append a new file to an existing folder:
+
+`ac store "/tmp/000002.txt" {10}
+1234567890
+`
+The above command will create "tmp/000002.txt" and will write the given 10 chars on it.
 
 Add your content here.  Format your content with:
   * Text in *bold* or _italic_
