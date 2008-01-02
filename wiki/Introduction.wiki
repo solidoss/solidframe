@@ -37,7 +37,10 @@ This is a multi-library folder, containing for now only two: a protocol library 
 == The "clientserver" ==
 
 It contains four libraries: core, tcp, udp and ipc. Please read the design overview paragraph.
-   
+
+== The "test" ==
+This folder contains the test applications for libraries. The most important test application being the clientserver proof of concept one located at: "test/clientserver/main" (see How to build and test the proof of concept server). The rest of the tests are small applications written purposely for verifying certain libraries/classes.
+
 Add your content here.  Format your content with:
   * Text in *bold* or _italic_
   * Headings, paragraphs, and lists
