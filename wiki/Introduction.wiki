@@ -1,12 +1,43 @@
-#summary General Design overview
+#summary General overview
 
 = Introduction =
 
-Here you will learn the overall design of the framework, some short descriptions of every library and the way it is intended to be used.
+Here's what you'll learn on this page:
+  * General and structural informations about the framework.
+  * How to build and test the proof of concept server.
+  * The design overview.
+  * Some words about the ipc library.
 
+= General and structural informations about the framework =
 
-= Details =
+Before presenting the structure of the framework, here are some general infos:
+  * The build system used is cmake, and it is designed for out-of-source compilation.
+  * There is no central "include" directory. Every library will be presented as a sub-folder containing the public interface header files and a "src" sub-folder containing the private sources and headers.
 
+Here's the top level directory structure:
+solidgroud/
+   system/
+   utility/
+   algoritm/
+   clientserver/
+   test/
+
+== The "system" ==
+
+The system folder contains the system library, which is basically a wrapper library for system API. There are: a thread class, synchronization classes (mutexes, conditions etc.), a thread specific class, wrappers for socket address and for files etc.
+
+== The "utility" ==
+
+This is also a one library folder containing utility classes for concepts like streams, workpools (thread pools). It also contains utility data structure classes like queue and stack (twice faster than their std equivalents). There are also some interesting goodies which you'll have to discover by yourself.
+
+== The "algorithm" ==
+
+This is a multi-library folder, containing for now only two: a protocol library (containing classes useful for text like protocols - asynchronous reader (parser) and writer (response builder)); and a binary serialization/ deserialization library.
+
+== The "clientserver" ==
+
+It contains four libraries: core, tcp, udp and ipc. Please read the design overview paragraph.
+   
 Add your content here.  Format your content with:
   * Text in *bold* or _italic_
   * Headings, paragraphs, and lists
