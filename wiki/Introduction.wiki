@@ -53,7 +53,9 @@ The solidground framework, has a commodity build script which can be used to cre
 So lets build a (debug-)nolog version.
 
 `solidground $ ./build.sh nolog`
+
 `solidground $ cd build/nolog/test/clientserver/main`
+
 `main $ make`
 
 The above commands will star building the proof of concept clientserver test application.
@@ -71,7 +73,7 @@ Next you'll need to start a telnet on localhost 1114 (telnet 0 1114) and you sho
 
 With alpha you can list folders:
 
-`aa list "/home"
+`aa list "/home"`
 
 Fetch files:
 
