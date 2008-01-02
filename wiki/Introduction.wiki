@@ -81,10 +81,41 @@ Fetch files:
 
 Append a new file to an existing folder:
 
-`ac store "/tmp/000002.txt" {10}
-1234567890
-`
-The above command will create "tmp/000002.txt" and will write the given 10 chars on it.
+`ac store "/tmp/000002.txt" {10}`
+
+`1234567890`
+
+The above command will create "/tmp/000002.txt" and will write the given 10 chars on it.
+
+
+Now lets move forward to two more interesting commands. For that we'll need another instance of test listening on different set of ports:
+
+`main $ ./test 2000`
+
+We'll also need a new telnet alpha session on the new test instance:
+
+`telnet 0 2114`
+
+On this telnet session first copy from the banner what is between brackets (something like "2222 83886081 0" then well issue the idle command:
+`aa idle`
+
+To exit from the idle command type `done`, but for now lets leave the session this way - in idle.
+
+Now go back to the first alpha session opened on the first test instance, and issue:
+
+`ad sendstring localhost 2222 83886081 0 "one nice string"`
+
+(please replace "2222 83886081 0" with what you've copied from the banner of the second alpha connection)
+
+Now go to the second alpha connection to see the marvel.
+
+Now lets send something nicer, a file from the first alpha session:
+
+`ae sendstream localhost 2222 83886081 0 "/tmp/000002.txt" "/tmp/rcvd-000002.txt"`
+
+And, you guessed!, back to the second alpha connection to see a new marvel.
+
+Notable is that the last two commands can be test with the test instances on different machines, in which case 'localhost' can be replaced with the name/address of the peer (in this case the test can be started without parameter in which case in the above alpha commands youll need to replace 2222 with 1222).
 
 Add your content here.  Format your content with:
   * Text in *bold* or _italic_
