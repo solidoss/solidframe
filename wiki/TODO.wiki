@@ -1,0 +1,8 @@
+= A glimpse on the project plan =
+
+Here are the planned additions to the framework:
+
+  # Full featured storage manager.
+  # Doxygen documentation.
+  # Secure TCP communication.
+  
