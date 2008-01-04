@@ -22,34 +22,38 @@ solidgroud/
    clientserver/
    test/
 
-== The "system" ==
+== The "system" directory ==
 
-The system folder contains the system library, which is basically a wrapper library for system API. There are: a thread class, synchronization classes (mutexes, conditions etc.), a thread specific class, wrappers for socket address and for files etc.
+The system folder contains the system library, which is basically a wrapper library for system API. There are: a thread class, synchronization classes (mutexes, conditions etc.), a thread specific wrapper class, wrappers for socket address and for files etc.
 
-== utility ==
+== The "utility" directory ==
 
 This is also a one library folder containing utility classes for concepts like streams, workpools (thread pools). It also contains utility data structure classes like queue and stack (twice faster than their std equivalents). There are also some interesting goodies which you'll have to discover by yourself.
 
-== algorithm ==
+== The "algorithm" directory ==
 
-This is a multi-library folder, containing for now only two: a protocol library (containing classes useful for text like protocols - asynchronous reader (parser) and writer (response builder)); and a binary serialization/ deserialization library.
+This is a multi-library folder, containing for now only two: 
+  * a protocol library (containing classes useful for text protocols - asynchronous reader (parser) and writer (response builder)); 
+  * and a binary serialization library.
 
-== clientserver ==
+== The "clientserver" directory ==
 
 It contains four libraries: core, tcp, udp and ipc. Please read the design overview paragraph.
 
-== test ==
-This folder contains the test applications for libraries. The most important test application being the clientserver proof of concept one located at: "test/clientserver/main" (see How to build and test the proof of concept server). The rest of the tests are small applications written purposely for verifying certain libraries/classes.
+== The "test" directory ==
 
-== How is the framework thought to be used ==
+This folder contains the test applications for libraries. The most important test application being the clientserver proof of concept one located at: "test/clientserver/main" (see "How to build and test the proof of concept server"). The rest of the tests are small applications written purposely for verifying certain libraries/classes.
 
-Well, I've designed the structure and the build system of the solidground framework to be used in a multiple repository manner. That means you'll have the solidground repository and your application repository. Your application will reside withing "solidground/application" directory which must contain a CMakeLists.txt file which in turn will integrate your application(s) within solidground's build system. The application folder will be quite similar to the "test" folder, except that it will not reside within the solidground repository. This design MAY impose some restrictions to the build system of your own application(s) but has the big advantage of being easy to use, as the cmake files will be quite similar to those from "solidground/test" directory.
+== How is the framework thought to be used? ==
+
+Well, I've designed the structure and the build system of the solidground framework to be used in a multiple repository manner. That means you'll have the solidground repository and your application repository. On your local copy of repositories, your application will reside withing "solidground/application" directory which must contain a "CMakeLists.txt" file which in turn will integrate your application(s) into the solidground's build system. The application folder will be quite similar to the "test" folder, except that it will not reside within the solidground repository. This design MAY impose some restrictions to the build system for your own application(s) but has the big advantage of being easy to use (and expecially easy to start using), as the cmake files will be quite similar to those from "solidground/test" directory.
 
 = How to build and test the proof of concept server =
 
-Before anything you must ensure you have all the needed packages installed on you Linux box. You'll need: gcc-c++, boost, boost-devel, cmake, ccache (on a fedora box: "yum install gcc-c++ boost boost-devel cmake ccache" will suffice). Eventually you'll need "subversion" to fetch a copy of solidground repository.
+Before anything you must ensure you have all the needed packages installed on you Linux box. You'll need: gcc-c++, boost, boost-devel, cmake, ccache (on a fedora box: "yum install gcc-c++ boost boost-devel cmake ccache" will suffice). Eventually you'll need "subversion" to fetch a copy of solidground repository (fedora: "yum install subversion").
 
-The solidground framework, has a commodity build script which can be used to create certain builds for certain base build systems (make or kdevelop3). 
+The solidground framework, has a commodity build script which can be used to create certain builds for certain base build systems (make or kdevelop3 - run ./build.sh with no parameters to se the options).
+
 So lets build a (debug-)nolog version.
 
 `solidground $ ./build.sh nolog`
@@ -59,25 +63,21 @@ So lets build a (debug-)nolog version.
 `main $ make`
 
 The above commands will star building the proof of concept clientserver test application.
-When it's done the application is create within the main directory, and you can start it using 
+When it's done the application is create within the main directory, and you can start using it:
 
 `main $ ./test`
 
 The application should start printing some information and offering a small CLI on which you can type help to see the commands.
 
-The test application expects a starting port value which will be used for opening listening tcp and udp sockets (defaults is 1000). There are few services offered by test among which are echo and the most important, alpha.
+The test application expects a starting port value which will be used for opening listening tcp and udp sockets (default is 1000). There are few services offered by test among which are echo and the most important, alpha.
 
-In the following lines to show the capabilities of the framework we'll use the alpha protocol which somehow resembles the IMAP protocol in syntax.
+In the following lines, to show the capabilities of the framework we'll use the alpha protocol which somehow resembles the IMAP protocol in syntax.
 The alpha service will listen on (x + 114) port, where x is the value given as parameter to test application.
-Next you'll need to start a telnet on localhost 1114 (telnet 0 1114) and you should see the alpha banner.
+So, next you'll need to start a telnet on localhost 1114 (telnet 0 1114) and you should see the alpha banner.
 
-With alpha you can list folders:
+With alpha you can list folder content:
 
 `aa list "/home"`
-
-Fetch files:
-
-`ab fetch "/tmp/000001.txt"`
 
 Append a new file to an existing folder:
 
@@ -88,6 +88,11 @@ Append a new file to an existing folder:
 The above command will create "/tmp/000002.txt" and will write the given 10 chars on it.
 
 
+Fetch files:
+
+`ab fetch "/tmp/000002.txt"`
+
+
 Now lets move forward to two more interesting commands. For that we'll need another instance of test listening on different set of ports:
 
 `main $ ./test 2000`
@@ -96,7 +101,8 @@ We'll also need a new telnet alpha session on the new test instance:
 
 `telnet 0 2114`
 
-On this telnet session first copy from the banner what is between brackets (something like "2222 83886081 0" then well issue the idle command:
+On this telnet session first copy from the banner what is between brackets (something like "2222 83886081 0") and then we'll issue the idle command:
+
 `aa idle`
 
 To exit from the idle command type `done`, but for now lets leave the session this way - in idle.
@@ -115,7 +121,7 @@ Now lets send something nicer, a file from the first alpha session:
 
 And, you guessed!, back to the second alpha connection to see a new marvel.
 
-Notable is that the last two commands can be test with the test instances on different machines, in which case 'localhost' can be replaced with the name/address of the peer (in this case the test can be started without parameter in which case in the above alpha commands youll need to replace 2222 with 1222).
+Notable is that the last two commands can be used with the test instances on different machines, in which case 'localhost' can be replaced with the name/address of the peer (this way the test can be started without parameter in which case in the above alpha commands you'll need to replace 2222 with 1222). Also don't forget to add new firewall rules for used ports (on my machine I'm allowing for 1114(tcp) and 1222(udp)).
 
 = The design overview =
 
@@ -129,7 +135,7 @@ Here is the logical hierarchy within the framework:
      # Basic Pools which execute input objects, in a queue like fashion. On this pools objects can reside until they are executed.
      # More complex pools on which objects can reside "as much as they want",  and they are provided with scheduling mechanisms (re-execution after a certain amount of time), and most important of all they can be executed when they receive signals.
      # And a very special type of pools - the communication ones (for TCP or UDP) which beside re-scheduled object execution, execution on object signaling, they also provide execution based on I/O completion events.
-  * The objects are at the very base of the architecture. They must reside both on a passive container (a service) and an active one (pool) and they usually implement state machines to complete certain tasks. Here are some examples of objects:
+  * The objects are at the very base of the architecture. They must reside both on a passive container (a service) and on an active one (pool) and they usually implement state machines to complete certain tasks. Here are some examples of objects:
     # Connections for implementing high level TCP protocols like IMAP.
     # Talkers for implementing high level UDP protocols (like the one used by IPC module).
     # etc.
@@ -137,9 +143,25 @@ Here is the logical hierarchy within the framework:
 *Notes*:
 
 1) A service can have lots of types of objects residing on different pools. For example the IPC service will have both Talkers (for communication over UDP) and Connections for communication over TCP.
-2) There are two types of object signals: a fast, flag like one and a Command like one. The second type means sending a command to an object which on receive, it will execute the command and eventually extract needed data. For example the storage manager will asynchronously signal a stream to the object that requested it using a Command. 
 
-Add your content here.  Format your content with:
-  * Text in *bold* or _italic_
-  * Headings, paragraphs, and lists
-  * Automatic links to other wiki pages
+2) Every object has a unique id (a pair of uint32s) to uniquely identify an object even after its deletion. This way if you'll want to signal some data to an object you don't neet to keep a pointer to it, and make sure it is valid until you'll be able to send the data. You keep the unique id and when the data is available you try to signal the object which can safely been deleted meanwhile.
+
+3) There are two types of object signals: a fast, flag like one and a Command like one. The second type means sending a command to an object which on receive, it will execute the command and eventually extract needed data. For example the storage manager will asynchronously signal a stream to the object that requested it using a Command.
+
+= Some words about the ipc library =
+
+For now the ipc service communicates only over udp and can only send commands (i.e. objects derived from Command). Internally the ipc service uses process connectors that are objects dealing with udp problems (out-of-order buffer receiving, buffers not reaching the destination etc.). Because there is only one process connector for every peer process, and because the commands sent can be quite big (e.g. one can send file streams, like in the case of sendstream alpha command), the commands are multiplexed by the connectors so that no more than X KB are send for a command at a time if other commands are waiting.
+
+Every this process connector has an unique id. So one can send commands to a peer process using two identifiers: either the connector id or the process' base address (the address and port on which the process is listening for udp packets - in the above examples the base addresses were (localhost 1222) and (localhost 2222) - see note 2 below).
+
+The connector id is given to every received command. That is because usually commands are separated on two types: requests and responses. From the ipc's point of view, the difference between those two is that while requests CAN and WILL be sent to a restarted process, the responses MUST not. So when sending a request, one should use the base address while if she/he wants to send a response or more commands to the same (not-restarted) instance of a process the Connector unique id MUST be used.
+
+Also it is the business of the command to signal back the successful arrival and completion of the command if the application logic requests that. Also the objects sending requests should implement logic for situations when responses fail to arrive.
+
+
+*Notes*: 
+
+1) In the future I may add support in ipc for signaling with some error flag the objects waiting for responses, when a peer process restart/failure is detected at ipc level.
+For now I don't think it will simplify things because, as I do not implement any sort of keep alive mechanism, the restart/failure situations will only be detected if there will be activity on that connection or with that process. Also adding keep alive support is imho not so desirable from networking point of view. So considering that it is quite easy for objects to implement waiting/timeout logic I think (for now) that leaving things as they are is the best option.
+2) The number of udp sockets used by ipc will increase proportionaly with the number of peer processes (i.e. a udp talker will be used for more than one process but less than M processes). The first talker added to the ipc service is considered the base talker as it is the one used for creating connection/process-connectors - think of it as a tcp listener socket which can also be used for receiving/sending data.
+
