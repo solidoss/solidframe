@@ -24,6 +24,8 @@
 #include "system/thread.h"
 #include "system/specific.h"
 #include "system/common.h"
+#include "speca.h"
+#include "specb.h"
 
 using namespace std;
 
@@ -64,12 +66,16 @@ void Runner::run(){
 	idbg("runner::run");
 	Specific::prepareThread();
 	idbg("Uncaching some object");
+	testa();
+	testb();
 	CacheableVecTp *pc1 = Specific::uncache<CacheableVecTp>();
-	idbg(pc1);
+	idbg("uncahed vector (should be same as the last cached vector) "<<(void*)pc1);
+	cout<<"uncahed vector (should be same as the last cached vector) "<<(void*)pc1<<endl;
 	CacheableVecTp *pc2 = Specific::uncache<CacheableVecTp>();
 	idbg(pc2);
 	CacheableVecTp *pc3 = Specific::uncache<CacheableVecTp>();
 	idbg(pc3);
+	
 	idbg("alloc two specific objects");
 	A	*pa1 = new B(10);
 	idbg(pa1);
@@ -97,7 +103,6 @@ void Runner::run(){
 	Specific::cache(pc2);
 	Specific::cache(pc3);
 	pc1 = Specific::uncache<CacheableVecTp>();
-	idbg(pc1);
 	
 	idbg("test specific object");
 	delete pa1;

@@ -28,7 +28,7 @@ void StreamPtrBase::clear(Stream *_ps){
 }
 
 int Stream::release(){return -1;}
-bool Stream::isOk()const{return true;}
+//bool Stream::isOk()const{return true;}
 
 int64 Stream::size()const{return -1;}
 

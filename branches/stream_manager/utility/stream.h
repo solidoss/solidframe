@@ -25,14 +25,32 @@
 #include "common.h"
 #include <cstdlib>
 
+struct StreamFlags{
+	enum{
+		IBad  = 1,
+		OBad  = 2,
+		IFail = 4,
+		OFail = 8,
+		IEof  = 16,
+		OEof  = 32,
+	};
+	StreamFlags(uint32 _flags = 0):flags(_flags){}
+	uint32 flags;
+};
+
+
 class Stream{
 public:
 	virtual ~Stream(){}
 	virtual int64 seek(int64, SeekRef _ref = SeekBeg) = 0;
 	virtual int release();
 	virtual int64 size()const;
-	virtual bool isOk()const;
-	//virtual int64 wseek(int64) = 0;
+	bool ok()const{return flags.flags == 0;}
+	bool eof()const{return flags.flags & (StreamFlags::IEof | StreamFlags::OEof);}
+	bool bad()const{return flags.flags & (StreamFlags::IBad | StreamFlags::OBad);}
+	bool fail()const{return bad() | flags.flags & (StreamFlags::IFail | StreamFlags::OFail);}
+protected:
+	StreamFlags	flags;
 };
 
 #endif

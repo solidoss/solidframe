@@ -319,7 +319,7 @@ int Store::reinitReader(Reader &_rr, protocol::Parameter &_rp){
 }
 int Store::execute(Connection &_rc){
 	protocol::Parameter &rp = _rc.writer().push(&Writer::putStatus);
-	if(sp && sp->isOk()){
+	if(sp && sp->ok()){
 		rp = protocol::Parameter(StrDef(" OK Done STORE@"));
 	}else{
 		rp = protocol::Parameter(StrDef(" NO STORE: Failed opening file@"));
