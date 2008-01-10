@@ -169,10 +169,10 @@ For now I don't think it will simplify things because, as I do not implement any
 
 = Some words about socket communication design =
 
-As far as my studies go, there are three main way to handle communication:
+As far as my studies go, there are three main ways to handle communication:
   * Every connection with it own thread - blocking communication.
   * A reactor manager thread and a pool of workers handling the communication either blocking or not.
-  * Handling multiple connection on a single thread using a reactor and nonblocking io or better using a proactor (io completion - in fact the io is handled by multiple kernel threads and the user space thread receives completion events).
+  * Handling multiple connection on a single thread using a reactor and nonblocking io or better using a asynchronous IO / proactor (io completion - in fact the io is handled by multiple kernel threads and the user space thread receives completion events).
 
 The first model has the advantages of being easy to use - easy to write code - when the requests are simple. But think of how complex the code would get (if it's possible in a platform independent manner) if you'd want to implement something like alpha *idle* command!
 
@@ -180,4 +180,10 @@ The second model I dis considered for some reasons:
   * performance related (moving a connection back and forth from manager thread to worker is quite time consuming, also the manager thread will be quite busy when handling thousands of busy connections - consuming lot of processor time).
   * code complexity related (How much should a connection keep a thread? How many worker threads should be created?)
 
-The third model was the chosen one. The idea is that a communication thread will handle at most N connections. New threads being created when connection count increases. For every connection the communication is handled in a proactor/asynchronous manner (well on linux the io completion is emulated using epoll and nonblocking IO, but the interface at connection level remains the same: it issues a send buffer/stream and/or a receive buffer/stream and waits for operation(s) completion, meanwhile the connection being able to receive other signals). Using the design from the _algorithm/protocol_ library, one can quite easily write/implement complex protocols (connection level code) for asynchronous frameworks like solidground.
+The third model was the chosen one. The idea is that a communication thread will handle at most N connections. New threads being created when connection count increases. For every connection the communication is handled in a proactor/asynchronous manner (well on linux the io completion is emulated using epoll and nonblocking IO, but the interface at connection level remains the same: it issues a send buffer/stream and/or a receive buffer/stream and waits for operation(s) completion, meanwhile the connection being able to receive other signals). 
+
+But writing asynchronous code is not easy! The state machine of the connection can become quite complex - see the difference between the state machine of the echo connection and the one of alpha. To deal with such complexity, *SolidGround* contains the _algorithm/protocol_ library (used also by alpha protocol). It offers an easy way to design and implement complex asynchronous state machines specifically for high level protocol (like POP, IMAP etc). Please take a look at test::alpha::Connection::execute(...) (_test/clientserver/alpha/alphaconnection.cpp_) to see the implementation of the alpha connection's state machine - and think that, that state machine (or one with little improvements/additions) will suffice for most text protocols (like POP, IMAP etc).
+
+*Notes*
+
+1) One big advantage of the implementation that I've observed while coding - handling multiple connections on a thread allows for efficiently using thread caching (using thread specific - see _system/specific.h_). Think of how big memory improvement wold be to cache alpha commands objects on thread specific, especially for commands frequently used (as real life example think of IMAPs noop or idle commands).
