@@ -134,13 +134,6 @@ int StorageManager::execute(ulong _evs, TimeSpec &_rtout){
 int64 StorageManager::fileSize(const char *_fn)const{
 }
 	
-int StorageManager::registerController(const FileUidTp &_rfuid, FileController* _pfc){
-}
-int StorageManager::unregisterController(const FileUidTp &_rfuid, FileController* &_rpfc){
-}
-int StorageManager::unregisterController(const FileUidTp &_rfuid){
-}
-
 int StorageManager::setFileTimeout(const FileUidTp &_rfuid, const TimeSpec &_rtout){
 }
 
@@ -155,15 +148,101 @@ void StorageManager::release(File &_rf){
 int StorageManager::doUseFreeQueue(File* &_rpf, const char *_fn){
 }
 
-int StorageManager::doStream(StreamPtr<IStream> &_sptr, FileUidTp *_pfuid, const ObjUidTp &_robjuid, const char *_fn, uint32 _flags){
-
+int StorageManager::stream(
+	StreamPtr<IStream> &_sptr,
+	const ObjUidTp &_robjuid,
+	const char *_fn,
+	uint32 _flags
+){
+	FileUidTp fuid;
+	return stream(_sptr, fuid, _robjuid, fn, _flags);
 }
 
-int StorageManager::doStream(StreamPtr<OStream> &_sptr, FileUidTp *_pfuid, const ObjUidTp &_robjuid, const char *_fn, uint32 _flags){
+int StorageManager::stream(
+	StreamPtr<OStream> &_sptr,
+	const ObjUidTp &_robjuid,
+	const char *_fn,
+	uint32 _flags
+){
+	FileUidTp fuid;
+	return stream(_sptr, fuid, _robjuid, fn, _flags);
 }
 
-int StorageManager::doStream(StreamPtr<IOStream> &_sptr, FileUidTp *_pfuid, const ObjUidTp &_robjuid, const char *_fn, uint32 _flags){
+int StorageManager::stream(
+	StreamPtr<IOStream> &_sptr,
+	const ObjUidTp &_robjuid,
+	const char *_fn,
+	uint32 _flags
+){
+	FileUidTp fuid;
+	return stream(_sptr, fuid, _robjuid, fn, _flags);
+}
 
+int StorageManager::stream(
+	StreamPtr<IStream> &_sptr,
+	FileUidTp &_rfuid,
+	const ObjUidTp &_robjuid,
+	const char *_fn,
+	uint32 _flags
+){
+	FastNameKey fastk(_fn);
+	return stream(_sptr, _rfuid, _robjuid, fastk, _flags);
+}
+
+int StorageManager::stream(
+	StreamPtr<OStream> &_sptr,
+	FileUidTp &_rfuid,
+	const ObjUidTp &_robjuid,
+	const char *_fn,
+	uint32 _flags
+){
+	FastNameKey fastk(_fn);
+	return stream(_sptr, _rfuid, _robjuid, fastk, _flags);
+}
+
+int StorageManager::stream(
+	StreamPtr<IOStream> &_sptr,
+	FileUidTp &_rfuid,
+	const ObjUidTp &_robjuid,
+	const char *_fn,
+	uint32 _flags
+){
+	FastNameKey fastk(_fn);
+	return stream(_sptr, _rfuid, _robjuid, fastk, _flags);
+}
+
+int StorageManager::stream(
+	StreamPtr<IStream> &_sptr,
+	FileUidTp &_rfuid,
+	const ObjUidTp &_robjuid,
+	const StorageKey &_rk,
+	uint32 _flags
+){
+	//TODO:
+}
+int StorageManager::stream(
+	StreamPtr<OStream> &_sptr,
+	FileUidTp &_rfuid,
+	const ObjUidTp &_robjuid,
+	const StorageKey &_rk,
+	uint32 _flags
+){
+	//TODO:
+}
+int StorageManager::stream(
+	StreamPtr<IOStream> &_sptr,
+	FileUidTp &_rfuid,
+	const ObjUidTp &_robjuid,
+	const StorageKey &_rk,
+	uint32 _flags
+){
+	//TODO:
+}
+
+int StorageManager::doRegisterMapper(StorageMapper *_pm){
+}
+
+StorageMapper* StorageManager::doGetMapper(int _id, StorageMapper *_pm){
 }
 
 int StorageManager::execute(){
