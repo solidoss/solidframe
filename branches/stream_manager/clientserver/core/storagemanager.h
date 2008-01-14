@@ -44,6 +44,10 @@ struct FileController{
 
 struct StorageKey;
 struct StorageMapper;
+class FileIStream;
+class FileOStream;
+class FileIOStream;
+class File;
 /*!
 	NOTE:
 	The mapper method is a little bit more complex than it should be (doGetMapper must also register a mapper)
@@ -76,19 +80,23 @@ public:
 	int stream(StreamPtr<OStream> &_sptr, const ObjUidTp &_robjuid, const char *_fn = NULL, uint32 _flags = 0);
 	int stream(StreamPtr<IOStream> &_sptr, const ObjUidTp &_robjuid, const char *_fn = NULL, uint32 _flags = 0);
 	
-	int stream(StreamPtr<IStream> &_sptr, FileUidTp &_rfuid, const ObjUidTp &_robjuid, const char *_fn = NULL, uint32 _flags = 0);
-	int stream(StreamPtr<OStream> &_sptr, FileUidTp &_rfuid, const ObjUidTp &_robjuid, const char *_fn = NULL, uint32 _flags = 0);
-	int stream(StreamPtr<IOStream> &_sptr, FileUidTp &_rfuid, const ObjUidTp &_robjuid, const char *_fn = NULL, uint32 _flags = 0);
+	int stream(StreamPtr<IStream> &_sptr, FileUidTp &_rfuid, const ObjUidTp &_robjuid, const char *_fn, uint32 _flags = 0);
+	int stream(StreamPtr<OStream> &_sptr, FileUidTp &_rfuid, const ObjUidTp &_robjuid, const char *_fn, uint32 _flags = 0);
+	int stream(StreamPtr<IOStream> &_sptr, FileUidTp &_rfuid, const ObjUidTp &_robjuid, const char *_fn, uint32 _flags = 0);
 	
 	int stream(StreamPtr<IStream> &_sptr, FileUidTp &_rfuid, const ObjUidTp &_robjuid, const StorageKey &_rk, uint32 _flags = 0);
 	int stream(StreamPtr<OStream> &_sptr, FileUidTp &_rfuid, const ObjUidTp &_robjuid, const StorageKey &_rk, uint32 _flags = 0);
 	int stream(StreamPtr<IOStream> &_sptr, FileUidTp &_rfuid, const ObjUidTp &_robjuid, const StorageKey &_rk, uint32 _flags = 0);
 	
+	
+	int stream(StreamPtr<IStream> &_sptr, const FileUidTp &_rfuid, const ObjUidTp &_robjuid, uint32 _flags = 0);
+	int stream(StreamPtr<OStream> &_sptr, const FileUidTp &_rfuid, const ObjUidTp &_robjuid, uint32 _flags = 0);
+	int stream(StreamPtr<IOStream> &_sptr, const FileUidTp &_rfuid, const ObjUidTp &_robjuid, uint32 _flags = 0);
+	
 	int setFileTimeout(const FileUidTp &_rfuid, const TimeSpec &_rtout);
 	
 	//overload from object
 	void mutex(Mutex *_pmut);
-	void release(File &_rf);
 	int doUseFreeQueue(File* &_rpf, const char *_fn);
 protected:
 	virtual void sendStream(StreamPtr<IStream> &_sptr, const FileUidTp &_rfuid, const ObjUidTp& _robjuid) = 0;
@@ -96,6 +104,14 @@ protected:
 	virtual void sendStream(StreamPtr<IOStream> &_sptr, const FileUidTp &_rfuid, const ObjUidTp& _robjuid) = 0;
 	virtual void sendError(const ObjUidTp& _robjuid);
 private:
+	friend class FileIStream;
+	friend class FileOStream;
+	friend class FileIOStream;
+	friend class File;
+	void releaseIStream(uint _fileid);
+	void releaseOStream(uint _fileid);
+	void releaseIOStream(uint _fileid);
+	
 	int doRegisterMapper(StorageMapper *_pm);
 	StorageMapper* doGetMapper(int _id, StorageMapper *_pm);
 	int execute();

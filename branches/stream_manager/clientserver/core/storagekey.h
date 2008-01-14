@@ -9,10 +9,12 @@ struct StorageKey{
 	virtual ~StorageKey();
 protected:
 	friend class StorageManager;
-	virtual void fileName(string &_fname)const = 0;
-	virtual int find(const StorageManager &_sm)const = 0;
-	virtual int insert(const StorageManager &_sm, int _val)const = 0;
-	virtual int erase(const StorageManager &_sm)const = 0;
+	//if returns true the object will be deleted - default will return true
+	virtual bool release()const;
+	virtual void fileName(StorageManager &_sm, int _fileid, string &_fname)const = 0;
+	virtual int find(StorageManager &_sm)const = 0;
+	virtual void insert(StorageManager &_sm, int _fileid)const = 0;
+	virtual void erase(StorageManager &_sm, int _fileid)const = 0;
 	virtual StorageKey* clone()const = 0;
 };
 
