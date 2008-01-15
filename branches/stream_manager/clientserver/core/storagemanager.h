@@ -59,7 +59,12 @@ class File;
 class StorageManager: public clientserver::Object{
 	
 public:
-	typedef std::pair<uint32, uint32> ObjUidTp;
+	struct RequestUid{
+		RequestUid(uint32 _objidx = 0, uint32 _objuid = 0, uint32 _requid = 0):objidx(_objidx), objuid(_objuid), requid(_requid){}
+		uint32	objidx;
+		uint32	objuid;
+		uint32	requid;
+	};
 	typedef std::pair<uint32, uint32> FileUidTp;
 	
 	StorageManager(uint32 _maxfcnt = 0);
@@ -76,22 +81,22 @@ public:
 		return static_cast<T*>(doGetMapper(id, static_cast<StorageMapper*>(_pm)));
 	}
 	
-	int stream(StreamPtr<IStream> &_sptr, const ObjUidTp &_robjuid, const char *_fn = NULL, uint32 _flags = 0);
-	int stream(StreamPtr<OStream> &_sptr, const ObjUidTp &_robjuid, const char *_fn = NULL, uint32 _flags = 0);
-	int stream(StreamPtr<IOStream> &_sptr, const ObjUidTp &_robjuid, const char *_fn = NULL, uint32 _flags = 0);
+	int stream(StreamPtr<IStream> &_sptr, const RequestUid &_rrequid, const char *_fn = NULL, uint32 _flags = 0);
+	int stream(StreamPtr<OStream> &_sptr, const RequestUid &_rrequid, const char *_fn = NULL, uint32 _flags = 0);
+	int stream(StreamPtr<IOStream> &_sptr, const RequestUid &_rrequid, const char *_fn = NULL, uint32 _flags = 0);
 	
-	int stream(StreamPtr<IStream> &_sptr, FileUidTp &_rfuid, const ObjUidTp &_robjuid, const char *_fn, uint32 _flags = 0);
-	int stream(StreamPtr<OStream> &_sptr, FileUidTp &_rfuid, const ObjUidTp &_robjuid, const char *_fn, uint32 _flags = 0);
-	int stream(StreamPtr<IOStream> &_sptr, FileUidTp &_rfuid, const ObjUidTp &_robjuid, const char *_fn, uint32 _flags = 0);
+	int stream(StreamPtr<IStream> &_sptr, FileUidTp &_rfuid, const RequestUid &_rrequid, const char *_fn, uint32 _flags = 0);
+	int stream(StreamPtr<OStream> &_sptr, FileUidTp &_rfuid, const RequestUid &_rrequid, const char *_fn, uint32 _flags = 0);
+	int stream(StreamPtr<IOStream> &_sptr, FileUidTp &_rfuid, const RequestUid &_rrequid, const char *_fn, uint32 _flags = 0);
 	
-	int stream(StreamPtr<IStream> &_sptr, FileUidTp &_rfuid, const ObjUidTp &_robjuid, const StorageKey &_rk, uint32 _flags = 0);
-	int stream(StreamPtr<OStream> &_sptr, FileUidTp &_rfuid, const ObjUidTp &_robjuid, const StorageKey &_rk, uint32 _flags = 0);
-	int stream(StreamPtr<IOStream> &_sptr, FileUidTp &_rfuid, const ObjUidTp &_robjuid, const StorageKey &_rk, uint32 _flags = 0);
+	int stream(StreamPtr<IStream> &_sptr, FileUidTp &_rfuid, const RequestUid &_rrequid, const StorageKey &_rk, uint32 _flags = 0);
+	int stream(StreamPtr<OStream> &_sptr, FileUidTp &_rfuid, const RequestUid &_rrequid, const StorageKey &_rk, uint32 _flags = 0);
+	int stream(StreamPtr<IOStream> &_sptr, FileUidTp &_rfuid, const RequestUid &_rrequid, const StorageKey &_rk, uint32 _flags = 0);
 	
 	
-	int stream(StreamPtr<IStream> &_sptr, const FileUidTp &_rfuid, const ObjUidTp &_robjuid, uint32 _flags = 0);
-	int stream(StreamPtr<OStream> &_sptr, const FileUidTp &_rfuid, const ObjUidTp &_robjuid, uint32 _flags = 0);
-	int stream(StreamPtr<IOStream> &_sptr, const FileUidTp &_rfuid, const ObjUidTp &_robjuid, uint32 _flags = 0);
+	int stream(StreamPtr<IStream> &_sptr, const FileUidTp &_rfuid, const RequestUid &_rrequid, uint32 _flags = 0);
+	int stream(StreamPtr<OStream> &_sptr, const FileUidTp &_rfuid, const RequestUid &_rrequid, uint32 _flags = 0);
+	int stream(StreamPtr<IOStream> &_sptr, const FileUidTp &_rfuid, const RequestUid &_rrequid, uint32 _flags = 0);
 	
 	int setFileTimeout(const FileUidTp &_rfuid, const TimeSpec &_rtout);
 	
@@ -99,10 +104,10 @@ public:
 	void mutex(Mutex *_pmut);
 	int doUseFreeQueue(File* &_rpf, const char *_fn);
 protected:
-	virtual void sendStream(StreamPtr<IStream> &_sptr, const FileUidTp &_rfuid, const ObjUidTp& _robjuid) = 0;
-	virtual void sendStream(StreamPtr<OStream> &_sptr, const FileUidTp &_rfuid, const ObjUidTp& _robjuid) = 0;
-	virtual void sendStream(StreamPtr<IOStream> &_sptr, const FileUidTp &_rfuid, const ObjUidTp& _robjuid) = 0;
-	virtual void sendError(const ObjUidTp& _robjuid);
+	virtual void sendStream(StreamPtr<IStream> &_sptr, const FileUidTp &_rfuid, const RequestUid& _rrequid) = 0;
+	virtual void sendStream(StreamPtr<OStream> &_sptr, const FileUidTp &_rfuid, const RequestUid& _rrequid) = 0;
+	virtual void sendStream(StreamPtr<IOStream> &_sptr, const FileUidTp &_rfuid, const RequestUid& _rrequid) = 0;
+	virtual void sendError(const RequestUid& _rrequid);
 private:
 	friend class FileIStream;
 	friend class FileOStream;
