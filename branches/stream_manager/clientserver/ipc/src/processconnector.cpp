@@ -255,7 +255,8 @@ ProcessConnector::ProcessConnector(BinMapper &_rm, const Inet4SockAddrPair &_rad
 ProcessConnector::ProcessConnector(BinMapper &_rm, const Inet4SockAddrPair &_raddr, int _baseport):d(*(new Data(_rm, _raddr, _baseport))){}
 //ProcessConnector::ProcessConnector(BinMapper &_rm, const Inet6SockAddrPair &_raddr, int _baseport):d(*(new Data(_rm, _raddr, _baseport))){}
 	
-	
+//TODO: ensure that really no command is dropped on reconnect
+// not even those from Dropped buffers!!!
 void ProcessConnector::reconnect(ProcessConnector *_ppc){
 	idbg("reconnecting - clearing process data");
 	//first we reset the peer addresses

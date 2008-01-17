@@ -29,7 +29,7 @@
 
 #include "clientserver/ipc/ipcservice.h"
 #include "clientserver/ipc/ipcservice.h"
-#include "clientserver/core/storagemanager.h"
+#include "clientserver/core/filemanager.h"
 
 #include "core/common.h"
 #include "core/tstring.h"
@@ -225,7 +225,7 @@ int Fetch::execute(Connection &_rc){
 int Fetch::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 	switch(_rp.b.i){
 		case Init:{
-			int rv = Server::the().storage().istream(sp, strpth.c_str(), rc.id(), Server::the().uid(rc));
+			int rv = Server::the().fileManager().istream(sp, strpth.c_str(), rc.id(), Server::the().uid(rc));
 			switch(rv){
 				case BAD: 
 					*pp = protocol::Parameter(StrDef(" NO FETCH: Unable to open file@"));
@@ -285,7 +285,7 @@ void Store::initReader(Reader &_rr){
 int Store::reinitReader(Reader &_rr, protocol::Parameter &_rp){
 	switch(_rp.b.i){
 		case Init:{
-			int rv = Server::the().storage().ostream(sp, strpth.c_str(), rc.id(), Server::the().uid(rc));
+			int rv = Server::the().fileManager().ostream(sp, strpth.c_str(), rc.id(), Server::the().uid(rc));
 			switch(rv){
 				case BAD: return Reader::Ok;
 				case OK:
@@ -468,7 +468,7 @@ int SendStreamCommand::createDeserializationStream(
 	idbg("Create deserialization <"<<_id<<"> sz "<<_rps.second);
 	if(dststr.empty()/* || _rps.second < 0*/) return NOK;
 	idbg("File name: "<<this->dststr);
-	int rv = Server::the().storage().iostream(this->iosp, this->dststr.c_str());
+	int rv = Server::the().fileManager().iostream(this->iosp, this->dststr.c_str());
 	if(rv){
 		idbg("Oops, could not open file");
 		return BAD;
@@ -527,7 +527,7 @@ int SendStream::execute(Connection &_rc){
 	uint32	fromobjid(_rc.id());
 	uint32	fromobjuid(rs.uid(_rc));
 	StreamPtr<IOStream>	sp;
-	int rv = Server::the().storage().iostream(sp, srcstr.c_str()/*, _rc.id(), Server::the().uid(_rc)*/);
+	int rv = Server::the().fileManager().iostream(sp, srcstr.c_str()/*, _rc.id(), Server::the().uid(_rc)*/);
 	protocol::Parameter &rp = _rc.writer().push(&Writer::putStatus);
 	switch(rv){
 		case BAD:

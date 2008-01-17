@@ -1,4 +1,4 @@
-/* Declarations file storagemanager.h
+/* Declarations file filemanager.h
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef STORAGE_MANAGER_H
-#define STORAGE_MANAGER_H
+#ifndef CS_FILE_MANAGER_H
+#define CS_FILE_MANAGER_H
 
 #include "utility/streamptr.h"
 
@@ -37,27 +37,27 @@ class Mutex;
 namespace clientserver{
 class File;
 
-struct FileController{
-	virtual int afterRead(int64 _from, uint32 _sz, const StreamFlags &_rff) = 0;
-	virtual int afterWrite(int64 _at, uint32 _sz, const StreamFlags &_rff) = 0;
-};
 
-struct StorageKey;
-struct StorageMapper;
+struct FileKey;
+struct FileMapper;
 class FileIStream;
 class FileOStream;
 class FileIOStream;
 class File;
 /*!
 	NOTE:
-	The mapper method is a little bit more complex than it should be (doGetMapper must also register a mapper)
-	because I want to be able to have more than one instance of StorageManager per process. It is not a really
-	usefull request, but as long as one can have multiple servers per process it is at least nice to be able to
-	have multiple storage managers.
+	1) The mapper method is a little bit more complex than it should be (doGetMapper must also register a mapper) because I want to be able to have more than one instance of FileManager per process. It is not a really usefull request, but as long as one can have multiple servers per process it is at least nice to be able to have multiple file managers.
+	2) Some words about Forced flag:
+		# Forced flag can only be used to request a stream for an existing file, opened (see below the fourth type of stream request methods)
+		# If the file is not opened BAD is the return value.
+		# It will return an io/ostream even if there are readers, or an istream even if there is a writer.
+		# It will return BAD if there already is a writer!
+	The force flag is designed for situations like:
+		# you request an istream for a (temp) file, give the stream id to someone else which will forcedly request an ostream for that id, write data on it, close the ostream and then signal you that you can start reading.
+		# TODO: think of a real-life example of the other situation you writer someone else forced reader
 */
 
-class StorageManager: public clientserver::Object{
-	
+class FileManager: public clientserver::Object{
 public:
 	struct RequestUid{
 		RequestUid(uint32 _objidx = 0, uint32 _objuid = 0, uint32 _requid = 0):objidx(_objidx), objuid(_objuid), requid(_requid){}
@@ -65,10 +65,13 @@ public:
 		uint32	objuid;
 		uint32	requid;
 	};
+	enum {
+		Forced = 1
+	};
 	typedef std::pair<uint32, uint32> FileUidTp;
 	
-	StorageManager(uint32 _maxfcnt = 0);
-	~StorageManager();
+	FileManager(uint32 _maxfcnt = 0);
+	~FileManager();
 	
 	int execute(ulong _evs, TimeSpec &_rtout);
 	
@@ -76,24 +79,26 @@ public:
 	template <class T>
 	T* mapper(T *_pm = NULL){
 		//doRegisterMapper will assert if _pm is NULL
-		static int id(doRegisterMapper(static_cast<StorageMapper*>(_pm)));
+		static int id(doRegisterMapper(static_cast<FileMapper*>(_pm)));
 		//doGetMapper may also register the mapper - this way one can instantiate more managers per process.
-		return static_cast<T*>(doGetMapper(id, static_cast<StorageMapper*>(_pm)));
+		return static_cast<T*>(doGetMapper(id, static_cast<FileMapper*>(_pm)));
 	}
-	
+	//first type of stream request methods
 	int stream(StreamPtr<IStream> &_sptr, const RequestUid &_rrequid, const char *_fn = NULL, uint32 _flags = 0);
 	int stream(StreamPtr<OStream> &_sptr, const RequestUid &_rrequid, const char *_fn = NULL, uint32 _flags = 0);
 	int stream(StreamPtr<IOStream> &_sptr, const RequestUid &_rrequid, const char *_fn = NULL, uint32 _flags = 0);
 	
+	//second type of stream request methods
 	int stream(StreamPtr<IStream> &_sptr, FileUidTp &_rfuid, const RequestUid &_rrequid, const char *_fn, uint32 _flags = 0);
 	int stream(StreamPtr<OStream> &_sptr, FileUidTp &_rfuid, const RequestUid &_rrequid, const char *_fn, uint32 _flags = 0);
 	int stream(StreamPtr<IOStream> &_sptr, FileUidTp &_rfuid, const RequestUid &_rrequid, const char *_fn, uint32 _flags = 0);
 	
-	int stream(StreamPtr<IStream> &_sptr, FileUidTp &_rfuid, const RequestUid &_rrequid, const StorageKey &_rk, uint32 _flags = 0);
-	int stream(StreamPtr<OStream> &_sptr, FileUidTp &_rfuid, const RequestUid &_rrequid, const StorageKey &_rk, uint32 _flags = 0);
-	int stream(StreamPtr<IOStream> &_sptr, FileUidTp &_rfuid, const RequestUid &_rrequid, const StorageKey &_rk, uint32 _flags = 0);
+	//third type of stream request methods
+	int stream(StreamPtr<IStream> &_sptr, FileUidTp &_rfuid, const RequestUid &_rrequid, const FileKey &_rk, uint32 _flags = 0);
+	int stream(StreamPtr<OStream> &_sptr, FileUidTp &_rfuid, const RequestUid &_rrequid, const FileKey &_rk, uint32 _flags = 0);
+	int stream(StreamPtr<IOStream> &_sptr, FileUidTp &_rfuid, const RequestUid &_rrequid, const FileKey &_rk, uint32 _flags = 0);
 	
-	
+	//fourth type of stream request methods
 	int stream(StreamPtr<IStream> &_sptr, const FileUidTp &_rfuid, const RequestUid &_rrequid, uint32 _flags = 0);
 	int stream(StreamPtr<OStream> &_sptr, const FileUidTp &_rfuid, const RequestUid &_rrequid, uint32 _flags = 0);
 	int stream(StreamPtr<IOStream> &_sptr, const FileUidTp &_rfuid, const RequestUid &_rrequid, uint32 _flags = 0);
@@ -117,8 +122,8 @@ private:
 	void releaseOStream(uint _fileid);
 	void releaseIOStream(uint _fileid);
 	
-	int doRegisterMapper(StorageMapper *_pm);
-	StorageMapper* doGetMapper(int _id, StorageMapper *_pm);
+	int doRegisterMapper(FileMapper *_pm);
+	FileMapper* doGetMapper(int _id, FileMapper *_pm);
 	int execute();
 	struct Data;
 	Data	&d;

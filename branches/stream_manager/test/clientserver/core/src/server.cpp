@@ -37,7 +37,7 @@
 
 #include "clientserver/core/selectpool.h"
 #include "clientserver/core/execpool.h"
-#include "clientserver/core/storagemanager.h"
+#include "clientserver/core/filemanager.h"
 #include "clientserver/tcp/connectionselector.h"
 #include "clientserver/tcp/connection.h"
 #include "clientserver/tcp/listenerselector.h"
@@ -75,7 +75,7 @@ typedef clientserver::SelectPool<cs::udp::TalkerSelector>		TkrSelPoolTp;
 typedef std::vector<ConSelPoolTp*>								ConSelPoolVecTp;
 typedef std::vector<ObjSelPoolTp*>								ObjSelPoolVecTp;
 
-//======= StorageManager:==================================================
+//======= FileManager:==================================================
 
 struct IStreamCommand: test::Command{
 	IStreamCommand(StreamPtr<IStream> &_sptr):sptr(_sptr){}
@@ -108,23 +108,23 @@ int IOStreamCommand::execute(Connection &_rcon){
 }
 
 
-class StorageManager: public cs::StorageManager{
+class FileManager: public cs::FileManager{
 public:
-	StorageManager(uint32 _maxfcnt = 256):cs::StorageManager(_maxfcnt){}
+	FileManager(uint32 _maxfcnt = 256):cs::FileManager(_maxfcnt){}
 protected:
 	/*virtual*/ void sendStream(StreamPtr<IStream> &_sptr, uint32 _idx, uint32 _uid);
 	/*virtual*/ void sendStream(StreamPtr<OStream> &_sptr, uint32 _idx, uint32 _uid);
 	/*virtual*/ void sendStream(StreamPtr<IOStream> &_sptr, uint32 _idx, uint32 _uid);
 };
-void StorageManager::sendStream(StreamPtr<IStream> &_sptr, uint32 _idx, uint32 _uid){
+void FileManager::sendStream(StreamPtr<IStream> &_sptr, uint32 _idx, uint32 _uid){
 	cs::CmdPtr<cs::Command>	cp(new IStreamCommand(_sptr));
 	Server::the().signalObject(_idx, _uid, cp);
 }
-void StorageManager::sendStream(StreamPtr<OStream> &_sptr, uint32 _idx, uint32 _uid){
+void FileManager::sendStream(StreamPtr<OStream> &_sptr, uint32 _idx, uint32 _uid){
 	cs::CmdPtr<cs::Command>	cp(new OStreamCommand(_sptr));
 	Server::the().signalObject(_idx, _uid, cp);
 }
-void StorageManager::sendStream(StreamPtr<IOStream> &_sptr, uint32 _idx, uint32 _uid){
+void FileManager::sendStream(StreamPtr<IOStream> &_sptr, uint32 _idx, uint32 _uid){
 	cs::CmdPtr<cs::Command>	cp(new IOStreamCommand(_sptr));
 	Server::the().signalObject(_idx, _uid, cp);
 }
@@ -306,11 +306,9 @@ NOTE:
 Server::Server():d(*(new Data(*this))){
 	//ppools = new PoolContainer(*this);
 	if(true){
-		
-		//d.eovec.push_back(ExtraObjPtr(new StorageManager(50)));
-		this->storage(new StorageManager(50));
-		cs::Server::insertObject(&storage());
-		this->pushJob((cs::Object*)&storage());
+		this->fileManager(new FileManager(50));
+		cs::Server::insertObject(&fileManager());
+		this->pushJob((cs::Object*)&fileManager());
 	}
 	if(true){
 		this->ipc(new IpcService(d.binmapper));
@@ -358,7 +356,6 @@ int Server::stop(const char *_which){
 		for(Data::ServiceIdxMap::iterator it(d.servicemap.begin());it != d.servicemap.end(); ++it){
 			service(it->second).stop(*this, false);//do not wait for stopping
 		}
-		//storage().stop(*this, false);
 	}
 	return OK;
 }

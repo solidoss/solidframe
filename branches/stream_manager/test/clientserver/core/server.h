@@ -35,7 +35,6 @@ namespace test{
 
 class Service;
 class Visitor;
-//class StorageManager;
 
 typedef Service* (*ServiceCreator)();
 typedef std::map<const char*, ServiceCreator, StrLess>	ServiceMap;
@@ -74,7 +73,6 @@ public:
 	
 	int visitService(const char* _nm, Visitor &_roi);
 	
-	//StorageManager& storage();
 	serialization::bin::RTTIMapper &binMapper();
 	template <class J>
 	void pushJob(J *_pj, int _pos = 0);

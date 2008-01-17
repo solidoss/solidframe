@@ -47,7 +47,7 @@ public:
 	virtual ~Command();
 	virtual void initReader(Reader &) = 0;
 	virtual int execute(Connection &) = 0;
-	//received from storage
+	//received from filemanager
 	virtual int receiveIStream(
 		StreamPtr<IStream> &,
 		const FromPairTp&_from,
