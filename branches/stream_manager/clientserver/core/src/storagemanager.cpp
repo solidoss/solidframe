@@ -55,8 +55,8 @@ typedef Storage::RequestUid RequesUidTp;
 //------------------------------------------------------------------------------
 class File: protected FileDevice{
 	enum {
-		NotReady,
-		Ready,//opened
+		NotOpen = 0,
+		Open,//opened
 	};
 public:
 	File(StorageKey &_rk, uint32 _flags = 0):rk(_rk), ousecnt(0), iusecnt(0), flags(_flags & 0xffff), state(NotReady){}
@@ -530,7 +530,7 @@ int File::open(StorageManager &_rsm, uint _fileid){
 int File::stream(StorageManager& _rsm, uint _fileid, StreamPtr<IStream> &_sptr, const StorageManager::RequestUid &_roi, uint32 _flags){
 	{
 		Mutex::Locker lock(_rsm.d.mutpool.object(_fileid));
-		if(!ok() || ousecnt || owq.size()){//no writers and no writers waiting
+		if(!state || ousecnt || owq.size()){//no writers and no writers waiting
 			iwq.push(WaitData(_roi.first, _roi.second, _flags));
 			return NOK;
 		}
@@ -543,7 +543,7 @@ int File::stream(StorageManager& _rsm, uint _fileid, StreamPtr<IStream> &_sptr, 
 int File::stream(StorageManager& _rsm, uint _fileid, StreamPtr<OStream> &_sptr, const StorageManager::RequestUid &_roi, uint32 _flags){
 	{
 		Mutex::Locker lock(_rsm.d.mutpool.object(_fileid));
-		if(!ok() || ousecnt || isusecnt || owq.size()){
+		if(!state || ousecnt || isusecnt || owq.size()){
 			owq.push(WaitData(_roi.first, _roi.second, _flags));
 			return NOK;
 		}
@@ -556,7 +556,7 @@ int File::stream(StorageManager& _rsm, uint _fileid, StreamPtr<OStream> &_sptr, 
 int File::stream(StorageManager& _rsm, uint _fileid, StreamPtr<IOStream> &_sptr, const StorageManager::RequestUid &_roi, uint32 _flags){
 	{
 		Mutex::Locker lock(_rsm.d.mutpool.object(_fileid));
-		if(!ok() || ousecnt || isusecnt || owq.size()){
+		if(!state || ousecnt || isusecnt || owq.size()){
 			owq.push(WaitData(_roi.first, _roi.second, _flags | StorageManager::IOStreamFlag));
 			return NOK;
 		}
@@ -589,7 +589,7 @@ int File::execute(StorageManager &_rsm, const FileUidTp &_fuid, uint32 _flags, T
 	bool inuse = false;
 	Mutex &m(_rsm.d.mutpool.object(_fuid.first));
 	m.lock();
-	if(ok()){//file is open
+	if(state){//file is open
 	}else{//we must still try to open file
 		m.unlock();
 		switch(this->open(_rsm, _fuid.first)){
@@ -597,7 +597,7 @@ int File::execute(StorageManager &_rsm, const FileUidTp &_fuid, uint32 _flags, T
 			case OK:
 				_rtout = 0;//infinite
 				m.lock()
-				state = Ready;
+				state = Open;
 				m.unlock();
 				return OK;//no timeout
 			case NOK:
