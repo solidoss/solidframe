@@ -20,6 +20,9 @@
 */
 
 #include "utility/workpool.h"
+#include "utility/polycontainer.h"
+
+//------	WorkPoolPlugin --------------------------------------------
 
 WorkPoolPlugin::~WorkPoolPlugin(){
 }
@@ -37,4 +40,5 @@ WorkPoolPlugin* basicWorkPoolPlugin(){
 	return &pwp;
 }
 
+//------	PolyContainter --------------------------------------------
 

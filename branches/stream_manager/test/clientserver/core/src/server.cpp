@@ -23,7 +23,7 @@
 #include <vector>
 
 #include "system/debug.h"
-#include "utility/polycontainer.h"
+
 #include "utility/iostream.h"
 
 #include "algorithm/serialization/binary.h"
@@ -52,28 +52,26 @@
 #include <iostream>
 using namespace std;
 
+//some forward declarations
 namespace clientserver{
+
 class ObjectSelector;
+
 namespace tcp{
 class ConnectionSelector;
 class ListenerSelector;
-}
+}//namespace tcp
+
 namespace udp{
 class TalkerSelector;
-}
-}
+}//namespace udp
+
+}//namespace clientserver
 
 namespace cs=clientserver;
 
 
 namespace test{
-
-typedef clientserver::SelectPool<cs::ObjectSelector>			ObjSelPoolTp;
-typedef clientserver::SelectPool<cs::tcp::ConnectionSelector>	ConSelPoolTp;
-typedef clientserver::SelectPool<cs::tcp::ListenerSelector>		LisSelPoolTp;
-typedef clientserver::SelectPool<cs::udp::TalkerSelector>		TkrSelPoolTp;
-typedef std::vector<ConSelPoolTp*>								ConSelPoolVecTp;
-typedef std::vector<ObjSelPoolTp*>								ObjSelPoolVecTp;
 
 //======= FileManager:==================================================
 
@@ -137,154 +135,17 @@ protected:
 	/*virtual*/void pushTalkerInPool(clientserver::Server &_rs, clientserver::udp::Talker *_ptkr);
 };
 
-//=========================================================================
+void IpcService::pushTalkerInPool(clientserver::Server &_rs, clientserver::udp::Talker *_ptkr){
+	static_cast<Server&>(_rs).pushJob(_ptkr);
+}
 
-struct PoolContainer: public CONSTPOLY4(LisSelPoolTp*, ConSelPoolVecTp, TkrSelPoolTp*, ObjSelPoolVecTp) {
-	PoolContainer(Server &_rs);
-	~PoolContainer();
-};
+//=========================================================================
 
 struct ExtraObjPtr: cs::ObjPtr<cs::Object>{
 	ExtraObjPtr(cs::Object *_po);
 	~ExtraObjPtr();
 	ExtraObjPtr& operator=(cs::Object *_pobj);
 };
-
-
-struct Server::Data{
-	typedef std::vector<ExtraObjPtr> ExtraObjectVector;
-	typedef std::map<const char*, int, StrLess> ServiceIdxMap;
-	Data(Server &_rs):pools(_rs){}
-	ExtraObjectVector				eovec;
-	ServiceIdxMap					servicemap;
-	cs::ipc::Service				*pcs;
-	PoolContainer					pools;
-	serialization::bin::RTTIMapper	binmapper;
-};
-
-template <>
-void Server::pushJob(cs::tcp::Listener *_pj, int _pos){
-	d.pools.get<LisSelPoolTp*>()->push(cs::ObjPtr<cs::tcp::Listener>(_pj));
-}
-template <>
-void Server::pushJob(cs::udp::Talker *_pj, int _pos){
-	d.pools.get<TkrSelPoolTp*>()->push(cs::ObjPtr<cs::udp::Talker>(_pj));
-}
-template <>
-void Server::pushJob(cs::tcp::Connection *_pj, int _pos){
-	d.pools.get<ConSelPoolVecTp>()[_pos]->push(cs::ObjPtr<cs::tcp::Connection>(_pj));
-}
-template <>
-void Server::pushJob(cs::Object *_pj, int _pos){
-	d.pools.get<ObjSelPoolVecTp>()[_pos]->push(cs::ObjPtr<cs::Object>(_pj));
-}
-
-//=====================================================================
-void IpcService::pushTalkerInPool(clientserver::Server &_rs, clientserver::udp::Talker *_ptkr){
-	static_cast<Server&>(_rs).pushJob(_ptkr);
-}
-//=====================================================================
-
-PoolContainer::PoolContainer(Server &_rs){
-	if(true){	
-		ConSelPoolTp	*pp = new ConSelPoolTp(	_rs, 
-												10,		//max thread cnt
-												50		//max connections per selector
-												);		//at most 10 * 4 * 1024 connections
-		this->set<ConSelPoolVecTp>().push_back(pp);
-		pp->start(1);//start with one worker
-	}
-	if(true){
-		LisSelPoolTp	*pp = new LisSelPoolTp(	_rs, 
-												2, 	//max thread cnt
-												128	//max listeners per selector 
-												);	//at most 128*2 = 256 listeners
-		this->set<LisSelPoolTp*>() = pp;
-		pp->start(1);//start with one worker
-	}
-	if(true){
-		TkrSelPoolTp	*pp = new TkrSelPoolTp(	_rs, 
-												2, 	//max thread cnt
-												128	//max listeners per selector 
-												);	//at most 128*2 = 256 listeners
-		this->set<TkrSelPoolTp*>() = pp;
-		pp->start(1);//start with one worker
-	}
-	if(true){
-		ObjSelPoolTp	*pp = new ObjSelPoolTp(	_rs, 
-												10,		//max thread cnt
-												1024 * 4//max objects per selector
-												);		//at most 10 * 4 * 1024 connections
-		this->set<ObjSelPoolVecTp>().push_back(pp);
-		pp->start(1);//start with one worker
-	}
-}
-
-PoolContainer::~PoolContainer(){
-	this->get<ConSelPoolVecTp>().front()->stop();
-	delete this->get<ConSelPoolVecTp>().front();
-	this->get<LisSelPoolTp*>()->stop();
-	this->get<TkrSelPoolTp*>()->stop();
-	this->get<ObjSelPoolVecTp>().front()->stop();
-	delete this->get<ObjSelPoolVecTp>().front();
-}
-
-int Command::execute(Connection &){
-	assert(false);
-	return BAD;
-}
-
-int Command::execute(Listener &){
-	assert(false);
-	return BAD;
-}
-
-int Connection::receiveIStream(
-	StreamPtr<IStream> &,
-	const FromPairTp&_from,
-	const clientserver::ipc::ConnectorUid *_conid
-){
-	assert(false);
-	return BAD;
-}
-
-int Connection::receiveOStream(
-	StreamPtr<OStream> &,
-	const FromPairTp&_from,
-	const clientserver::ipc::ConnectorUid *_conid
-){
-	assert(false);
-	return BAD;
-}
-
-int Connection::receiveIOStream(
-	StreamPtr<IOStream> &, 
-	const FromPairTp&_from,
-	const clientserver::ipc::ConnectorUid *_conid
-){
-	assert(false);
-	return BAD;
-}
-
-int Connection::receiveString(
-	const String &_str, 
-	const FromPairTp&_from,
-	const clientserver::ipc::ConnectorUid *_conid
-){
-	assert(false);
-	return BAD;
-}
-
-ServiceMap& getServiceMap(){
-	static ServiceMap sm;
-	return sm;
-}
-
-void registerService(ServiceCreator _psc, const char* _pname){
-	idbg("registering "<<_pname);
-	cout<<"registering "<<_pname<<endl;
-	getServiceMap()[_pname] = _psc;
-}
 
 ExtraObjPtr::ExtraObjPtr(cs::Object *_po):cs::ObjPtr<cs::Object>(_po){}
 
@@ -296,6 +157,92 @@ ExtraObjPtr& ExtraObjPtr::operator=(cs::Object *_pobj){
 	return *this;
 }
 
+//=========================================================================
+
+struct Server::Data{
+	typedef std::vector<ExtraObjPtr>								ExtraObjectVector;
+	typedef std::map<const char*, int, StrLess> 					ServiceIdxMap;
+	typedef clientserver::SelectPool<cs::ObjectSelector>			ObjSelPoolTp;
+	typedef clientserver::SelectPool<cs::tcp::ConnectionSelector>	ConSelPoolTp;
+	typedef clientserver::SelectPool<cs::tcp::ListenerSelector>		LisSelPoolTp;
+	typedef clientserver::SelectPool<cs::udp::TalkerSelector>		TkrSelPoolTp;
+
+	Data(Server &_rs);
+	~Data();
+	ExtraObjectVector				eovec;
+	ServiceIdxMap					servicemap;
+	cs::ipc::Service				*pcs;
+	PoolContainer					pools;
+	serialization::bin::RTTIMapper	binmapper;
+	ObjSelPoolTp					*pobjectpool[2];
+	ConSelPoolTp					*pconnectionpool;
+	LisSelPoolTp					*plistenerpool;
+	TkrSelPoolTp					*ptalkerpool;
+};
+
+//--------------------------------------------------------------------------
+
+Server::Data::Data(Server &_rs):pconnectionpool(NULL), plistenerpool(NULL), ptalkerpool(NULL){
+	pobjectpool[0] = NULL;
+	pobjectpool[1] = NULL;
+	if(true){	
+		pconnectionpool = new ConSelPoolTp(	_rs,
+												10,		//max thread cnt
+												50		//max connections per selector
+												);		//at most 10 * 4 * 1024 connections
+		pconnectionpool->start(1);//start with one worker
+	}
+	if(true){
+		plistenerpool = new LisSelPoolTp(	_rs, 
+												2, 	//max thread cnt
+												128	//max listeners per selector 
+												);	//at most 128*2 = 256 listeners
+		plistenerpool->start(1);//start with one worker
+	}
+	if(true){
+		ptalkerpool = new TkrSelPoolTp(	_rs, 
+												2, 	//max thread cnt
+												128	//max listeners per selector 
+												);	//at most 128*2 = 256 listeners
+		ptalkerpool->start(1);//start with one worker
+	}
+	if(true){
+		pobjectpool[0] = new ObjSelPoolTp(	_rs, 
+												10,		//max thread cnt
+												1024 * 4//max objects per selector
+												);		//at most 10 * 4 * 1024 connections
+		pobjectpool[0]->start(1);//start with one worker
+	}
+}
+
+Server::Data::~Data(){
+	if(pconnectionpool) pconnectionpool->stop();
+	delete pconnectionpool;
+	
+	if(plistenerpool) plistenerpool->stop();
+	delete plistenerpool;
+	
+	if(ptalkerpool) ptalkerpool->stop();
+	delete ptalkerpool;
+	
+	if(pobjectpool[0]) pobjectpool[0]->stop();
+	if(pobjectpool[1]) pobjectpool[1]->stop();
+	delete pobjectpool[0];
+	delete pobjectpool[1];
+}
+
+//----------------------------------------------------------------------------------
+ServiceMap& getServiceMap(){
+	static ServiceMap sm;
+	return sm;
+}
+
+void registerService(ServiceCreator _psc, const char* _pname){
+	idbg("registering "<<_pname);
+	cout<<"registering "<<_pname<<endl;
+	getServiceMap()[_pname] = _psc;
+}
+//----------------------------------------------------------------------------------
 /*
 NOTE:
 	It should be safe to give reference to 'this' to Data constructor, because
@@ -332,6 +279,24 @@ Server::~Server(){
 serialization::bin::RTTIMapper &Server::binMapper(){
 	return d.binmapper;
 }
+
+template <>
+void Server::pushJob(cs::tcp::Listener *_pj, int){
+	d.plisterpool->push(cs::ObjPtr<cs::tcp::Listener>(_pj));
+}
+template <>
+void Server::pushJob(cs::udp::Talker *_pj, int){
+	d.ptalkerpool->push(cs::ObjPtr<cs::udp::Talker>(_pj));
+}
+template <>
+void Server::pushJob(cs::tcp::Connection *_pj, int){
+	d.pconnectionpool->push(cs::ObjPtr<cs::tcp::Connection>(_pj));
+}
+template <>
+void Server::pushJob(cs::Object *_pj, int _pos){
+	d.objectpoolv[_pos]->push(cs::ObjPtr<cs::Object>(_pj));
+}
+
 
 int Server::start(const char *_which){
 	if(_which){
@@ -427,4 +392,54 @@ int Server::visitService(const char* _nm, Visitor &_rov){
 	}
 }
 
+//----------------------------------------------------------------------------------
+
+int Command::execute(Connection &){
+	assert(false);
+	return BAD;
+}
+
+int Command::execute(Listener &){
+	assert(false);
+	return BAD;
+}
+
+//----------------------------------------------------------------------------------
+
+int Connection::receiveIStream(
+	StreamPtr<IStream> &,
+	const FromPairTp&_from,
+	const clientserver::ipc::ConnectorUid *_conid
+){
+	assert(false);
+	return BAD;
+}
+
+int Connection::receiveOStream(
+	StreamPtr<OStream> &,
+	const FromPairTp&_from,
+	const clientserver::ipc::ConnectorUid *_conid
+){
+	assert(false);
+	return BAD;
+}
+
+int Connection::receiveIOStream(
+	StreamPtr<IOStream> &, 
+	const FromPairTp&_from,
+	const clientserver::ipc::ConnectorUid *_conid
+){
+	assert(false);
+	return BAD;
+}
+
+int Connection::receiveString(
+	const String &_str, 
+	const FromPairTp&_from,
+	const clientserver::ipc::ConnectorUid *_conid
+){
+	assert(false);
+	return BAD;
+}
+//----------------------------------------------------------------------------------
 }//namespace test

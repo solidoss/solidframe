@@ -22,31 +22,56 @@
 #ifndef POLYCONTAINERPP_H
 #define POLYCONTAINERPP_H
 
-template <class T>
-struct PolyHolder;
+
+class MultiContainer{	
+	typedef void (*FncTp) (void*);
+public:
+	template <typename T>
+	T* get(T *_p = NULL){
+		static unsigned id(stackid(&MultiContainer::cleaner<T>));
+		if(_p){
+			if(push(_p, id)){ delete _p; _p = NULL;}
+		}else{
+			_p = reinterpret_cast<T*>(get(id));
+		}
+		return _p;
+	}
+private:
+	static unsigned objectid(FncTp _pf);
+	template<class T>
+	static void cleaner(void *_p){
+		delete reinterpret_cast<T*>(_p);
+	}
+	bool push(void *_p, unsigned _id);
+	void* get(unsigned _id);
+};
+
 
 template <class T>
-struct PolyHolder<T*>{
-	PolyHolder():val(NULL){}
-	~PolyHolder(){delete val;}
+struct PolyKeeper;
+
+template <class T>
+struct PolyKeeper<T*>{
+	PolyKeeper():val(NULL){}
+	~PolyKeeper(){delete val;}
 	T	*val;
 };
 
 template <class T>
-struct PolyHolder{
+struct PolyKeeper{
 	T	val;
 };
 template <class H, class T>
 struct PolyLayer;
 
 template <class H, class T>
-struct PolyLayer: PolyHolder<H>, T{};
+struct PolyLayer: PolyKeeper<H>, T{};
 
 template <class L>
 struct PolyContainer: L{
 	template <class T>
 	T &get(){
-		return static_cast<PolyHolder<T>* >(this)->val;
+		return static_cast<PolyKeeper<T>* >(this)->val;
 	}
 };
 
@@ -54,12 +79,12 @@ template <class L>
 struct ConstPolyContainer: L{
 	template <class T>
 	T const &get(){
-		return static_cast<PolyHolder<T>* >(this)->val;
+		return static_cast<PolyKeeper<T>* >(this)->val;
 	}
 protected:
 	template <class T>
 	T &set(){
-		return static_cast<PolyHolder<T>* >(this)->val;
+		return static_cast<PolyKeeper<T>* >(this)->val;
 	}
 };
 

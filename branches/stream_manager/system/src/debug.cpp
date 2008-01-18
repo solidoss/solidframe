@@ -28,11 +28,12 @@
 #include "thread.h"
 
 #ifdef UDEBUG
-const int Gdb::fileoff = (strstr(__FILE__, "system/src") - __FILE__);//sizeof("workspace/") - 1 == 9
+const int Dbg::fileoff = (strstr(__FILE__, "system/src") - __FILE__);//sizeof("workspace/") - 1 == 9
 #endif
 
 void initDebug(const char *_prefix){
 	#ifdef UDEBUG
+	std::ios_base::sync_with_stdio (false);
 	char *name = new char[strlen(_prefix)+50];
 	sprintf(name,"%s%u.dbg",_prefix,getpid());
 	printf("debug file: [%s]\r\n",name);
@@ -46,11 +47,11 @@ void initDebug(const char *_prefix){
 #ifdef UDEBUG
 static Mutex gmut;
 
-void Gdb::lock(TimeSpec &t){
+void Dbg::lock(TimeSpec &t){
 	clock_gettime(CLOCK_MONOTONIC, &t);
 	gmut.lock();
 }
-void Gdb::unlock(){gmut.unlock();}
-int Gdb::crtThrId(){return Thread::currentid();}
+void Dbg::unlock(){gmut.unlock();}
+int Dbg::crtThrId(){return Thread::currentid();}
 #endif
 
