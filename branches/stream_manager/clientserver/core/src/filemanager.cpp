@@ -164,23 +164,20 @@ FileManager::~FileManager(){
 }
 
 int FileManager::execute(ulong _evs, TimeSpec &_rtout){
+	//TODO:
 }
 
 int64 FileManager::fileSize(const char *_fn)const{
+	//TODO:
 }
 	
 int FileManager::setFileTimeout(const FileUidTp &_rfuid, const TimeSpec &_rtout){
+	//TODO:
 }
 
 //overload from object
 void FileManager::mutex(Mutex *_pmut){
 	d.mut = _pmut;
-}
-
-void FileManager::release(File &_rf){
-}
-
-int FileManager::doUseFreeQueue(File* &_rpf, const char *_fn){
 }
 
 int FileManager::stream(
@@ -385,6 +382,7 @@ int FileManager::stream(StreamPtr<IOStream> &_sptr, const FileUidTp &_rfuid, con
 
 
 void FileManager::releaseIStream(uint _fileid){
+	//TODO:
 }
 void FileManager::releaseOStream(uint _fileid){
 }
@@ -646,6 +644,7 @@ int File::execute(FileManager &_rsm, const FileUidTp &_fuid, uint32 _flags, Time
 
 bool File::signalStreams(FileManager &_rsm, Mutex &_rm){
 	if(ousecnt) return true;//can do nothing
+	//TODO:
 	if(this->owq.size()){//we have writers waiting
 	}else while(this->iwq.size()){//send all
 		

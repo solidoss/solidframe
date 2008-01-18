@@ -129,6 +129,6 @@ private:
 	Data	&d;
 };
 
-
 }//namespace clientserver
+
 #endif
