@@ -46,21 +46,31 @@ public:
 	virtual ~Connection(){}
 	virtual int receiveIStream(
 		StreamPtr<IStream> &,
+		uint32 _reqid,
 		const FromPairTp&_from = FromPairTp(),
 		const clientserver::ipc::ConnectorUid *_conid = NULL
 	);
 	virtual int receiveOStream(
 		StreamPtr<OStream> &,
+		uint32 _reqid,
 		const FromPairTp&_from = FromPairTp(),
 		const clientserver::ipc::ConnectorUid *_conid = NULL
 	);
 	virtual int receiveIOStream(
 		StreamPtr<IOStream> &, 
+		uint32 _reqid,
 		const FromPairTp&_from = FromPairTp(),
 		const clientserver::ipc::ConnectorUid *_conid = NULL
 	);
 	virtual int receiveString(
 		const String &_str, 
+		uint32 _reqid,
+		const FromPairTp&_from = FromPairTp(),
+		const clientserver::ipc::ConnectorUid *_conid = NULL
+	);
+	virtual int receiveError(
+		int _errid, 
+		uint32 _reqid,
 		const FromPairTp&_from = FromPairTp(),
 		const clientserver::ipc::ConnectorUid *_conid = NULL
 	);

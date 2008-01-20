@@ -128,7 +128,7 @@ Server::~Server(){
 	delete asv.front();
 	delete &asv;
 	delete &servicev;
-	delete psm.release();
+	delete pfm.release();
 	//delete pipcs;
 }
 
@@ -144,7 +144,7 @@ uint Server::serviceId(const Service &_rs)const{
 	return _rs.index() + 1;//the first service must be the ServiceContainer
 }
 
-void Server::fileManager(FileManager *_psm){
+void Server::fileManager(FileManager *_pfm){
 	assert(!pfm);
 	pfm = _pfm;
 }

@@ -64,25 +64,37 @@ public:
 	Reader& reader(){return rdr;}
 	Writer& writer(){return wtr;}
 	
+	uint32 requestId()const{return reqid;}
+	uint32 newRequestId(){return ++reqid;}
 	
 	//int sendStatusResponse(cmd::Responder &_rr, int _opt);
 	/*virtual*/ int receiveIStream(
 		StreamPtr<IStream> &,
+		uint32 _reqid,
 		const FromPairTp&_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
 	/*virtual*/ int receiveOStream(
 		StreamPtr<OStream> &,
+		uint32 _reqid,
 		const FromPairTp&_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
 	/*virtual*/ int receiveIOStream(
 		StreamPtr<IOStream> &, 
+		uint32 _reqid,
 		const FromPairTp&_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
 	/*virtual*/ int receiveString(
 		const String &_str, 
+		uint32 _reqid,
+		const FromPairTp&_from,
+		const clientserver::ipc::ConnectorUid *_conid
+	);
+	/*virtual*/ int receiveError(
+		int _errid, 
+		uint32 _reqid,
 		const FromPairTp&_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
@@ -106,6 +118,7 @@ private:
 	Reader				rdr;
 	Command				*pcmd;
 	SocketAddress		*paddr;
+	uint32				reqid;
 };
 
 }//namespace alpha

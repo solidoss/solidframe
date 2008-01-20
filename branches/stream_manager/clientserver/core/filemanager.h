@@ -54,7 +54,7 @@ class File;
 		# It will return BAD if there already is a writer!
 	The force flag is designed for situations like:
 		# you request an istream for a (temp) file, give the stream id to someone else which will forcedly request an ostream for that id, write data on it, close the ostream and then signal you that you can start reading.
-		# TODO: think of a real-life example of the other situation you writer someone else forced reader
+		# think of a log file someone has a writer and you want a reader to fetch log records.
 */
 
 class FileManager: public clientserver::Object{
@@ -66,7 +66,10 @@ public:
 		uint32	requid;
 	};
 	enum {
-		Forced = 1
+		Forced = 1,
+		Create = 2,
+		IOStreamRequest = 4,
+		NoWait = 8,
 	};
 	typedef std::pair<uint32, uint32> FileUidTp;
 	
@@ -79,7 +82,7 @@ public:
 	template <class T>
 	T* mapper(T *_pm = NULL){
 		//doRegisterMapper will assert if _pm is NULL
-		static int id(doRegisterMapper(static_cast<FileMapper*>(_pm)));
+		static const int id(doRegisterMapper(static_cast<FileMapper*>(_pm)));
 		//doGetMapper may also register the mapper - this way one can instantiate more managers per process.
 		return static_cast<T*>(doGetMapper(id, static_cast<FileMapper*>(_pm)));
 	}
@@ -103,16 +106,26 @@ public:
 	int stream(StreamPtr<OStream> &_sptr, const FileUidTp &_rfuid, const RequestUid &_rrequid, uint32 _flags = 0);
 	int stream(StreamPtr<IOStream> &_sptr, const FileUidTp &_rfuid, const RequestUid &_rrequid, uint32 _flags = 0);
 	
+	//fifth type of stream request methods
+	int stream(StreamPtr<IStream> &_sptr, const char *_fn = NULL, uint32 _flags = 0);
+	int stream(StreamPtr<OStream> &_sptr, const char *_fn = NULL, uint32 _flags = 0);
+	int stream(StreamPtr<IOStream> &_sptr, const char *_fn = NULL, uint32 _flags = 0);
+	
+	int stream(StreamPtr<IStream> &_sptr, const FileKey &_rk, uint32 _flags = 0);
+	int stream(StreamPtr<OStream> &_sptr, const FileKey &_rk, uint32 _flags = 0);
+	int stream(StreamPtr<IOStream> &_sptr, const FileKey &_rk, uint32 _flags = 0);
+
 	int setFileTimeout(const FileUidTp &_rfuid, const TimeSpec &_rtout);
 	
 	//overload from object
 	void mutex(Mutex *_pmut);
-	int doUseFreeQueue(File* &_rpf, const char *_fn);
+	uint32 fileOpenTimeout()const;
+	
 protected:
 	virtual void sendStream(StreamPtr<IStream> &_sptr, const FileUidTp &_rfuid, const RequestUid& _rrequid) = 0;
 	virtual void sendStream(StreamPtr<OStream> &_sptr, const FileUidTp &_rfuid, const RequestUid& _rrequid) = 0;
 	virtual void sendStream(StreamPtr<IOStream> &_sptr, const FileUidTp &_rfuid, const RequestUid& _rrequid) = 0;
-	virtual void sendError(const RequestUid& _rrequid);
+	virtual void sendError(const RequestUid& _rrequid, int _error) = 0;
 private:
 	friend class FileIStream;
 	friend class FileOStream;
@@ -123,7 +136,7 @@ private:
 	void releaseIOStream(uint _fileid);
 	
 	int doRegisterMapper(FileMapper *_pm);
-	FileMapper* doGetMapper(int _id, FileMapper *_pm);
+	FileMapper* doGetMapper(unsigned _id, FileMapper *_pm);
 	int execute();
 	struct Data;
 	Data	&d;

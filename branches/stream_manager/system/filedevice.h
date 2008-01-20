@@ -40,6 +40,7 @@ public:
 	int open(const char* _fname, int _how);
 	int create(const char* _fname, int _how);
 	int64 size()const;
+	bool canRetryOpen()const;
 };
 
 #endif

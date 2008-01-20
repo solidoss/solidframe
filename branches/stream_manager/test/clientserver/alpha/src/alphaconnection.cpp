@@ -236,6 +236,7 @@ void Connection::prepareReader(){
 
 int Connection::receiveIStream(
 	StreamPtr<IStream> &_ps,
+	uint32 _reqid,
 	const FromPairTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
@@ -246,15 +247,18 @@ int Connection::receiveIStream(
 
 int Connection::receiveOStream(
 	StreamPtr<OStream> &_ps,
+	uint32 _reqid,
 	const FromPairTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
+	//TODO: check reqid
 	if(pcmd) pcmd->receiveOStream(_ps, _from, _conid);
 	return OK;
 }
 
 int Connection::receiveIOStream(
-	StreamPtr<IOStream> &_ps, 
+	StreamPtr<IOStream> &_ps,
+	uint32 _reqid,
 	const FromPairTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
@@ -264,6 +268,7 @@ int Connection::receiveIOStream(
 
 int Connection::receiveString(
 	const String &_str, 
+	uint32 _reqid,
 	const FromPairTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
@@ -271,6 +276,17 @@ int Connection::receiveString(
 		state(IdleExecute);
 	return OK;
 }
+
+int Connection::receiveError(
+	int _errid, 
+	uint32 _reqid,
+	const FromPairTp&_from,
+	const clientserver::ipc::ConnectorUid *_conid
+){
+	//TODO:
+	return OK;
+}
+
 
 int Connection::accept(cs::Visitor &_rov){
 	//static_cast<TestInspector&>(_roi).inspectConnection(*this);

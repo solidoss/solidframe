@@ -22,6 +22,7 @@
 #include <unistd.h>
 #include "filedevice.h"
 #include <cassert>
+#include <cerrno>
 
 Device::Device(const Device &_dev):desc(_dev.descriptor()) {
 	_dev.desc = -1;
@@ -93,5 +94,7 @@ int64 FileDevice::size()const{
 	fstat(descriptor(), &st);
 	return st.st_size;
 }
-
+bool FileDevice::canRetryOpen()const{
+	return (errno == EMFILE) || (errno == ENOMEM);
+}
 //------------------------------------------------

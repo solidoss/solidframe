@@ -64,7 +64,7 @@ class Specific{
 	*/
 	template <typename T>
 	static T* object(T *_p = NULL){
-		static unsigned id(stackid(&Specific::cleaner<T>));
+		static const unsigned id(stackid(&Specific::cleaner<T>));
 		if(_p){
 			if(push(_p, id, T::specificCount())) delete _p;
 		}else{

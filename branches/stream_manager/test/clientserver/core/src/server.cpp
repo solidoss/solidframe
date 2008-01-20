@@ -76,55 +76,73 @@ namespace test{
 //======= FileManager:==================================================
 
 struct IStreamCommand: test::Command{
-	IStreamCommand(StreamPtr<IStream> &_sptr):sptr(_sptr){}
+	IStreamCommand(StreamPtr<IStream> &_sptr, uint32 _reqid):sptr(_sptr), reqid(_reqid){}
 	int execute(Connection &_pcon);
 	StreamPtr<IStream>	sptr;
+	uint32				reqid;
 };
 
 int IStreamCommand::execute(Connection &_rcon){
-	return _rcon.receiveIStream(sptr);
+	return _rcon.receiveIStream(sptr, reqid);
 }
 
 struct OStreamCommand: test::Command{
-	OStreamCommand(StreamPtr<OStream> &_sptr):sptr(_sptr){}
+	OStreamCommand(StreamPtr<OStream> &_sptr, uint32 _reqid):sptr(_sptr), reqid(_reqid){}
 	int execute(Connection &_pcon);
 	StreamPtr<OStream>	sptr;
+	uint32				reqid;
 };
 
 int OStreamCommand::execute(Connection &_rcon){
-	return _rcon.receiveOStream(sptr);
+	return _rcon.receiveOStream(sptr, reqid);
 }
 
 struct IOStreamCommand: test::Command{
-	IOStreamCommand(StreamPtr<IOStream> &_sptr):sptr(_sptr){}
+	IOStreamCommand(StreamPtr<IOStream> &_sptr, uint32 _reqid):sptr(_sptr), reqid(_reqid){}
 	int execute(Connection &_pcon);
 	StreamPtr<IOStream>	sptr;
+	uint32				reqid;
 };
 
 int IOStreamCommand::execute(Connection &_rcon){
-	return _rcon.receiveIOStream(sptr);
+	return _rcon.receiveIOStream(sptr, reqid);
 }
 
+struct StreamErrorCommand: test::Command{
+	StreamErrorCommand(uint32 _reqid, int _errid):reqid(_reqid), errid(_errid){}
+	int execute(Connection &_pcon);
+	uint32		reqid;
+	int			errid;
+};
+
+int StreamErrorCommand::execute(Connection &_rcon){
+	return _rcon.receiveError(errid, reqid);
+}
 
 class FileManager: public cs::FileManager{
 public:
 	FileManager(uint32 _maxfcnt = 256):cs::FileManager(_maxfcnt){}
 protected:
-	/*virtual*/ void sendStream(StreamPtr<IStream> &_sptr, uint32 _idx, uint32 _uid);
-	/*virtual*/ void sendStream(StreamPtr<OStream> &_sptr, uint32 _idx, uint32 _uid);
-	/*virtual*/ void sendStream(StreamPtr<IOStream> &_sptr, uint32 _idx, uint32 _uid);
+	/*virtual*/ void sendStream(StreamPtr<IStream> &_sptr, const FileUidTp &_rfuid, const RequestUid& _rrequid);
+	/*virtual*/ void sendStream(StreamPtr<OStream> &_sptr, const FileUidTp &_rfuid, const RequestUid& _rrequid);
+	/*virtual*/ void sendStream(StreamPtr<IOStream> &_sptr, const FileUidTp &_rfuid, const RequestUid& _rrequid);
+	/*virtual*/ void sendError(const RequestUid& _rrequid, int _errid);
 };
-void FileManager::sendStream(StreamPtr<IStream> &_sptr, uint32 _idx, uint32 _uid){
-	cs::CmdPtr<cs::Command>	cp(new IStreamCommand(_sptr));
-	Server::the().signalObject(_idx, _uid, cp);
+void FileManager::sendStream(StreamPtr<IStream> &_sptr, const FileUidTp &_rfuid, const RequestUid& _rrequid){
+	cs::CmdPtr<cs::Command>	cp(new IStreamCommand(_sptr, _rrequid.requid));
+	Server::the().signalObject(_rrequid.objidx, _rrequid.objuid, cp);
 }
-void FileManager::sendStream(StreamPtr<OStream> &_sptr, uint32 _idx, uint32 _uid){
-	cs::CmdPtr<cs::Command>	cp(new OStreamCommand(_sptr));
-	Server::the().signalObject(_idx, _uid, cp);
+void FileManager::sendStream(StreamPtr<OStream> &_sptr, const FileUidTp &_rfuid, const RequestUid& _rrequid){
+	cs::CmdPtr<cs::Command>	cp(new OStreamCommand(_sptr, _rrequid.requid));
+	Server::the().signalObject(_rrequid.objidx, _rrequid.objuid, cp);
 }
-void FileManager::sendStream(StreamPtr<IOStream> &_sptr, uint32 _idx, uint32 _uid){
-	cs::CmdPtr<cs::Command>	cp(new IOStreamCommand(_sptr));
-	Server::the().signalObject(_idx, _uid, cp);
+void FileManager::sendStream(StreamPtr<IOStream> &_sptr, const FileUidTp &_rfuid, const RequestUid& _rrequid){
+	cs::CmdPtr<cs::Command>	cp(new IOStreamCommand(_sptr, _rrequid.requid));
+	Server::the().signalObject(_rrequid.objidx, _rrequid.objuid, cp);
+}
+void FileManager::sendError(const RequestUid& _rrequid, int _error){
+	assert(false);
+	//TODO:
 }
 
 //======= IpcService ======================================================
@@ -134,10 +152,6 @@ public:
 protected:
 	/*virtual*/void pushTalkerInPool(clientserver::Server &_rs, clientserver::udp::Talker *_ptkr);
 };
-
-void IpcService::pushTalkerInPool(clientserver::Server &_rs, clientserver::udp::Talker *_ptkr){
-	static_cast<Server&>(_rs).pushJob(_ptkr);
-}
 
 //=========================================================================
 
@@ -172,7 +186,6 @@ struct Server::Data{
 	ExtraObjectVector				eovec;
 	ServiceIdxMap					servicemap;
 	cs::ipc::Service				*pcs;
-	PoolContainer					pools;
 	serialization::bin::RTTIMapper	binmapper;
 	ObjSelPoolTp					*pobjectpool[2];
 	ConSelPoolTp					*pconnectionpool;
@@ -243,6 +256,23 @@ void registerService(ServiceCreator _psc, const char* _pname){
 	getServiceMap()[_pname] = _psc;
 }
 //----------------------------------------------------------------------------------
+template <>
+void Server::pushJob(cs::tcp::Listener *_pj, int){
+	d.plistenerpool->push(cs::ObjPtr<cs::tcp::Listener>(_pj));
+}
+template <>
+void Server::pushJob(cs::udp::Talker *_pj, int){
+	d.ptalkerpool->push(cs::ObjPtr<cs::udp::Talker>(_pj));
+}
+template <>
+void Server::pushJob(cs::tcp::Connection *_pj, int){
+	d.pconnectionpool->push(cs::ObjPtr<cs::tcp::Connection>(_pj));
+}
+template <>
+void Server::pushJob(cs::Object *_pj, int _pos){
+	d.pobjectpool[_pos]->push(cs::ObjPtr<cs::Object>(_pj));
+}
+
 /*
 NOTE:
 	It should be safe to give reference to 'this' to Data constructor, because
@@ -279,24 +309,6 @@ Server::~Server(){
 serialization::bin::RTTIMapper &Server::binMapper(){
 	return d.binmapper;
 }
-
-template <>
-void Server::pushJob(cs::tcp::Listener *_pj, int){
-	d.plisterpool->push(cs::ObjPtr<cs::tcp::Listener>(_pj));
-}
-template <>
-void Server::pushJob(cs::udp::Talker *_pj, int){
-	d.ptalkerpool->push(cs::ObjPtr<cs::udp::Talker>(_pj));
-}
-template <>
-void Server::pushJob(cs::tcp::Connection *_pj, int){
-	d.pconnectionpool->push(cs::ObjPtr<cs::tcp::Connection>(_pj));
-}
-template <>
-void Server::pushJob(cs::Object *_pj, int _pos){
-	d.objectpoolv[_pos]->push(cs::ObjPtr<cs::Object>(_pj));
-}
-
 
 int Server::start(const char *_which){
 	if(_which){
@@ -391,7 +403,10 @@ int Server::visitService(const char* _nm, Visitor &_rov){
 		return BAD;
 	}
 }
-
+//----------------------------------------------------------------------------------
+void IpcService::pushTalkerInPool(clientserver::Server &_rs, clientserver::udp::Talker *_ptkr){
+	static_cast<Server&>(_rs).pushJob(_ptkr);
+}
 //----------------------------------------------------------------------------------
 
 int Command::execute(Connection &){
@@ -408,6 +423,7 @@ int Command::execute(Listener &){
 
 int Connection::receiveIStream(
 	StreamPtr<IStream> &,
+	uint32 _reqid,
 	const FromPairTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
@@ -417,6 +433,7 @@ int Connection::receiveIStream(
 
 int Connection::receiveOStream(
 	StreamPtr<OStream> &,
+	uint32 _reqid,
 	const FromPairTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
@@ -425,7 +442,8 @@ int Connection::receiveOStream(
 }
 
 int Connection::receiveIOStream(
-	StreamPtr<IOStream> &, 
+	StreamPtr<IOStream> &,
+	uint32 _reqid,
 	const FromPairTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
@@ -434,12 +452,23 @@ int Connection::receiveIOStream(
 }
 
 int Connection::receiveString(
-	const String &_str, 
+	const String &_str,
+	uint32 _reqid,
 	const FromPairTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
 	assert(false);
 	return BAD;
 }
+int Connection::receiveError(
+	int _errid, 
+	uint32 _reqid,
+	const FromPairTp&_from,
+	const clientserver::ipc::ConnectorUid *_conid
+){
+	assert(false);
+	return BAD;
+}
+
 //----------------------------------------------------------------------------------
 }//namespace test

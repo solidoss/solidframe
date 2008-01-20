@@ -225,7 +225,8 @@ int Fetch::execute(Connection &_rc){
 int Fetch::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 	switch(_rp.b.i){
 		case Init:{
-			int rv = Server::the().fileManager().istream(sp, strpth.c_str(), rc.id(), Server::the().uid(rc));
+			cs::FileManager::RequestUid reqid(rc.id(), Server::the().uid(rc), rc.requestId());
+			int rv = Server::the().fileManager().stream(sp, reqid, strpth.c_str());
 			switch(rv){
 				case BAD: 
 					*pp = protocol::Parameter(StrDef(" NO FETCH: Unable to open file@"));
@@ -285,7 +286,8 @@ void Store::initReader(Reader &_rr){
 int Store::reinitReader(Reader &_rr, protocol::Parameter &_rp){
 	switch(_rp.b.i){
 		case Init:{
-			int rv = Server::the().fileManager().ostream(sp, strpth.c_str(), rc.id(), Server::the().uid(rc));
+			cs::FileManager::RequestUid reqid(rc.id(), Server::the().uid(rc), rc.requestId());
+			int rv = Server::the().fileManager().stream(sp, reqid, strpth.c_str());
 			switch(rv){
 				case BAD: return Reader::Ok;
 				case OK:
@@ -373,7 +375,7 @@ int SendStringCommand::received(const cs::ipc::ConnectorUid &_rconid){
 }
 
 int SendStringCommand::execute(test::Connection &_rcon){
-	return _rcon.receiveString(str, fromv, &conid);
+	return _rcon.receiveString(str, 0, fromv, &conid);
 }
 
 SendString::SendString():port(0), objid(0), objuid(0){}
@@ -468,7 +470,8 @@ int SendStreamCommand::createDeserializationStream(
 	idbg("Create deserialization <"<<_id<<"> sz "<<_rps.second);
 	if(dststr.empty()/* || _rps.second < 0*/) return NOK;
 	idbg("File name: "<<this->dststr);
-	int rv = Server::the().fileManager().iostream(this->iosp, this->dststr.c_str());
+	//TODO:
+	int rv = Server::the().fileManager().stream(this->iosp, this->dststr.c_str());
 	if(rv){
 		idbg("Oops, could not open file");
 		return BAD;
@@ -497,10 +500,10 @@ int SendStreamCommand::execute(test::Connection &_rcon){
 	{
 	//StreamPtr<IOStream>	iosp(static_cast<IOStream*>(iosp.release()));
 	idbg("");
-	_rcon.receiveIOStream(iosp, fromv, &conid);
+	_rcon.receiveIOStream(iosp, 0, fromv, &conid);
 	idbg("");
 	}
-	return _rcon.receiveString(dststr, fromv, &conid);
+	return _rcon.receiveString(dststr, 0, fromv, &conid);
 }
 //-------------------------------------------------------------------------------
 SendStream::SendStream():port(0), objid(0), objuid(0){}
@@ -526,8 +529,9 @@ int SendStream::execute(Connection &_rc){
 	uint32	myprocid(0);
 	uint32	fromobjid(_rc.id());
 	uint32	fromobjuid(rs.uid(_rc));
+	cs::FileManager::RequestUid reqid(_rc.id(), rs.uid(_rc), _rc.requestId()); 
 	StreamPtr<IOStream>	sp;
-	int rv = Server::the().fileManager().iostream(sp, srcstr.c_str()/*, _rc.id(), Server::the().uid(_rc)*/);
+	int rv = Server::the().fileManager().stream(sp, reqid, srcstr.c_str());
 	protocol::Parameter &rp = _rc.writer().push(&Writer::putStatus);
 	switch(rv){
 		case BAD:
@@ -700,6 +704,16 @@ int Command::receiveString(
 ){
 	return BAD;
 }
+
+int Command::receiveError(
+	int _errid,
+	uint32 _reqid,
+	const FromPairTp&_from,
+	const clientserver::ipc::ConnectorUid *_conid
+){
+	return BAD;
+}
+
 /*virtual*/ int Command::receiveError(int){
 	return NOK;
 }

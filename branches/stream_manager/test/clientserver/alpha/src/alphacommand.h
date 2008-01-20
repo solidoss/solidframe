@@ -59,7 +59,7 @@ public:
 		const clientserver::ipc::ConnectorUid *_conid
 	);
 	virtual int receiveIOStream(
-		StreamPtr<IOStream> &, 
+		StreamPtr<IOStream> &,
 		const FromPairTp&_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
@@ -68,6 +68,13 @@ public:
 		const FromPairTp&_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
+	virtual int receiveError(
+		int _errid,
+		uint32 _reqid,
+		const FromPairTp&_from,
+		const clientserver::ipc::ConnectorUid *_conid
+	);
+
 	virtual int receiveError(int);
 };
 

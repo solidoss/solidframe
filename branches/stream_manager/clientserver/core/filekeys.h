@@ -22,7 +22,7 @@
 #ifndef CS_FILE_KEYS_H
 #define CS_FILE_KEYS_H
 
-#include <string>
+#include "clientserver/core/filekey.h"
 
 namespace clientserver{
 
@@ -32,10 +32,10 @@ struct NameFileKey: public FileKey{
 	NameFileKey(const std::string &_fname);
 	std::string 	name;
 private:
-	/*virtual*/ void fileName(FileManager &_fm, int _fileid, string &_fname)const;
+	/*virtual*/ void fileName(FileManager &_fm, int _fileid, std::string &_fname)const;
 	/*virtual*/ int find(FileManager &_fm)const;
-	/*virtual*/ void insert(const FileManager &_fm, int _fileid)const;
-	/*virtual*/ void erase(const FileManager &_fm, int _fileid)const;
+	/*virtual*/ void insert(FileManager &_fm, int _fileid)const;
+	/*virtual*/ void erase(FileManager &_fm, int _fileid)const;
 	/*virtual*/ FileKey* clone()const;
 };
 
@@ -43,7 +43,7 @@ struct FastNameFileKey: public FileKey{
 	FastNameFileKey(const char *_name):name(_name){}
 	const char *name;
 private:
-	/*virtual*/ void fileName(FileManager &_fm, int _fileid, string &_fname)const;
+	/*virtual*/ void fileName(FileManager &_fm, int _fileid, std::string &_fname)const;
 	/*virtual*/ int find(FileManager &_fm)const;
 	/*virtual*/ void insert(FileManager &_fm, int _fileid)const;
 	/*virtual*/ void erase(FileManager &_fm, int _fileid)const;
@@ -55,7 +55,7 @@ struct TempFileKey: public FileKey{
 	TempFileKey(){}
 private:
 	/*virtual*/ bool release()const;
-	/*virtual*/ void fileName(FileManager &_fm, int _fileid, string &_fname)const;
+	/*virtual*/ void fileName(FileManager &_fm, int _fileid, std::string &_fname)const;
 	/*virtual*/ int find(FileManager &_fm)const;
 	/*virtual*/ void insert(FileManager &_fm, int _fileid)const;
 	/*virtual*/ void erase(FileManager &_fm, int _fileid)const;

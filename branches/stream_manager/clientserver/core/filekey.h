@@ -22,17 +22,19 @@
 #ifndef CS_FILE_KEY_H
 #define CS_FILE_KEY_H
 
+#include <string>
+
 namespace clientserver{
 
 class FileManager;
 
 struct FileKey{
 	virtual ~FileKey();
+	virtual bool release()const;
+	virtual void fileName(FileManager &_fm, int _fileid, std::string &_fname)const = 0;
 protected:
 	friend class FileManager;
 	//if returns true the object will be deleted - default will return true
-	virtual bool release()const;
-	virtual void fileName(FileManager &_fm, int _fileid, string &_fname)const = 0;
 	virtual int find(FileManager &_fm)const = 0;
 	virtual void insert(FileManager &_fm, int _fileid)const = 0;
 	virtual void erase(FileManager &_fm, int _fileid)const = 0;
