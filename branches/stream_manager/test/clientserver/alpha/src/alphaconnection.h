@@ -65,23 +65,29 @@ public:
 	Writer& writer(){return wtr;}
 	
 	uint32 requestId()const{return reqid;}
-	uint32 newRequestId(){return ++reqid;}
+	uint32 newRequestId(){
+		if(++reqid) return reqid;
+		return (reqid = 1);
+	}
 	
 	//int sendStatusResponse(cmd::Responder &_rr, int _opt);
 	/*virtual*/ int receiveIStream(
 		StreamPtr<IStream> &,
+		const FileUidTp&,
 		uint32 _reqid,
 		const FromPairTp&_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
 	/*virtual*/ int receiveOStream(
 		StreamPtr<OStream> &,
+		const FileUidTp&,
 		uint32 _reqid,
 		const FromPairTp&_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
 	/*virtual*/ int receiveIOStream(
-		StreamPtr<IOStream> &, 
+		StreamPtr<IOStream> &,
+		const FileUidTp&,
 		uint32 _reqid,
 		const FromPairTp&_from,
 		const clientserver::ipc::ConnectorUid *_conid

@@ -236,33 +236,41 @@ void Connection::prepareReader(){
 
 int Connection::receiveIStream(
 	StreamPtr<IStream> &_ps,
+	const FileUidTp &_fuid,
 	uint32 _reqid,
 	const FromPairTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
-	if(pcmd && pcmd->receiveIStream(_ps, _from, _conid) == OK)
+	if(_reqid && _reqid != reqid) return OK;
+	newRequestId();//prevent multiple responses with the same id
+	if(pcmd && pcmd->receiveIStream(_ps, _fuid, _from, _conid) == OK)
 		state(IdleExecute);
 	return OK;
 }
 
 int Connection::receiveOStream(
 	StreamPtr<OStream> &_ps,
+	const FileUidTp &_fuid,
 	uint32 _reqid,
 	const FromPairTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
-	//TODO: check reqid
-	if(pcmd) pcmd->receiveOStream(_ps, _from, _conid);
+	if(_reqid && _reqid != reqid) return OK;
+	newRequestId();//prevent multiple responses with the same id
+	if(pcmd) pcmd->receiveOStream(_ps, _fuid, _from, _conid);
 	return OK;
 }
 
 int Connection::receiveIOStream(
 	StreamPtr<IOStream> &_ps,
+	const FileUidTp &_fuid,
 	uint32 _reqid,
 	const FromPairTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
-	if(pcmd) pcmd->receiveIOStream(_ps, _from, _conid);
+	if(_reqid && _reqid != reqid) return OK;
+	newRequestId();//prevent multiple responses with the same id
+	if(pcmd) pcmd->receiveIOStream(_ps, _fuid, _from, _conid);
 	return OK;
 }
 
@@ -272,6 +280,8 @@ int Connection::receiveString(
 	const FromPairTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
+	if(_reqid && _reqid != reqid) return OK;
+	newRequestId();//prevent multiple responses with the same id
 	if(pcmd && pcmd->receiveString(_str, _from, _conid) == OK)
 		state(IdleExecute);
 	return OK;
@@ -283,6 +293,8 @@ int Connection::receiveError(
 	const FromPairTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
+	if(_reqid && _reqid != reqid) return OK;
+	newRequestId();//prevent multiple responses with the same id
 	//TODO:
 	return OK;
 }

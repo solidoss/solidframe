@@ -74,38 +74,41 @@ namespace cs=clientserver;
 namespace test{
 
 //======= FileManager:==================================================
-
+typedef cs::FileManager::FileUidTp			FileUidTp;
 struct IStreamCommand: test::Command{
-	IStreamCommand(StreamPtr<IStream> &_sptr, uint32 _reqid):sptr(_sptr), reqid(_reqid){}
+	IStreamCommand(StreamPtr<IStream> &_sptr, const FileUidTp &_rfuid, uint32 _reqid):sptr(_sptr), fileuid(_rfuid), reqid(_reqid){}
 	int execute(Connection &_pcon);
 	StreamPtr<IStream>	sptr;
+	FileUidTp			fileuid;
 	uint32				reqid;
 };
 
 int IStreamCommand::execute(Connection &_rcon){
-	return _rcon.receiveIStream(sptr, reqid);
+	return _rcon.receiveIStream(sptr, fileuid, reqid);
 }
 
 struct OStreamCommand: test::Command{
-	OStreamCommand(StreamPtr<OStream> &_sptr, uint32 _reqid):sptr(_sptr), reqid(_reqid){}
+	OStreamCommand(StreamPtr<OStream> &_sptr, const FileUidTp &_rfuid, uint32 _reqid):sptr(_sptr), fileuid(_rfuid), reqid(_reqid){}
 	int execute(Connection &_pcon);
 	StreamPtr<OStream>	sptr;
+	FileUidTp			fileuid;
 	uint32				reqid;
 };
 
 int OStreamCommand::execute(Connection &_rcon){
-	return _rcon.receiveOStream(sptr, reqid);
+	return _rcon.receiveOStream(sptr, fileuid, reqid);
 }
 
 struct IOStreamCommand: test::Command{
-	IOStreamCommand(StreamPtr<IOStream> &_sptr, uint32 _reqid):sptr(_sptr), reqid(_reqid){}
+	IOStreamCommand(StreamPtr<IOStream> &_sptr, const FileUidTp &_rfuid, uint32 _reqid):sptr(_sptr), fileuid(_rfuid), reqid(_reqid){}
 	int execute(Connection &_pcon);
 	StreamPtr<IOStream>	sptr;
+	FileUidTp			fileuid;
 	uint32				reqid;
 };
 
 int IOStreamCommand::execute(Connection &_rcon){
-	return _rcon.receiveIOStream(sptr, reqid);
+	return _rcon.receiveIOStream(sptr, fileuid, reqid);
 }
 
 struct StreamErrorCommand: test::Command{
@@ -129,15 +132,15 @@ protected:
 	/*virtual*/ void sendError(const RequestUid& _rrequid, int _errid);
 };
 void FileManager::sendStream(StreamPtr<IStream> &_sptr, const FileUidTp &_rfuid, const RequestUid& _rrequid){
-	cs::CmdPtr<cs::Command>	cp(new IStreamCommand(_sptr, _rrequid.requid));
+	cs::CmdPtr<cs::Command>	cp(new IStreamCommand(_sptr, _rfuid, _rrequid.requid));
 	Server::the().signalObject(_rrequid.objidx, _rrequid.objuid, cp);
 }
 void FileManager::sendStream(StreamPtr<OStream> &_sptr, const FileUidTp &_rfuid, const RequestUid& _rrequid){
-	cs::CmdPtr<cs::Command>	cp(new OStreamCommand(_sptr, _rrequid.requid));
+	cs::CmdPtr<cs::Command>	cp(new OStreamCommand(_sptr, _rfuid, _rrequid.requid));
 	Server::the().signalObject(_rrequid.objidx, _rrequid.objuid, cp);
 }
 void FileManager::sendStream(StreamPtr<IOStream> &_sptr, const FileUidTp &_rfuid, const RequestUid& _rrequid){
-	cs::CmdPtr<cs::Command>	cp(new IOStreamCommand(_sptr, _rrequid.requid));
+	cs::CmdPtr<cs::Command>	cp(new IOStreamCommand(_sptr, _rfuid, _rrequid.requid));
 	Server::the().signalObject(_rrequid.objidx, _rrequid.objuid, cp);
 }
 void FileManager::sendError(const RequestUid& _rrequid, int _error){
@@ -423,6 +426,7 @@ int Command::execute(Listener &){
 
 int Connection::receiveIStream(
 	StreamPtr<IStream> &,
+	const FileUidTp	&,
 	uint32 _reqid,
 	const FromPairTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
@@ -433,6 +437,7 @@ int Connection::receiveIStream(
 
 int Connection::receiveOStream(
 	StreamPtr<OStream> &,
+	const FileUidTp	&,
 	uint32 _reqid,
 	const FromPairTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
@@ -443,6 +448,7 @@ int Connection::receiveOStream(
 
 int Connection::receiveIOStream(
 	StreamPtr<IOStream> &,
+	const FileUidTp	&,
 	uint32 _reqid,
 	const FromPairTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid

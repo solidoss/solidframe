@@ -42,28 +42,32 @@ struct Command;
 class Connection: public clientserver::tcp::Connection{
 public:
 	typedef Command	CommandTp;
-	typedef std::pair<uint32, uint32> FromPairTp;
+	typedef std::pair<uint32, uint32>	FromPairTp;
+	typedef std::pair<uint32, uint32>	FileUidTp;
 	virtual ~Connection(){}
 	virtual int receiveIStream(
 		StreamPtr<IStream> &,
+		const FileUidTp	&,
 		uint32 _reqid,
 		const FromPairTp&_from = FromPairTp(),
 		const clientserver::ipc::ConnectorUid *_conid = NULL
 	);
 	virtual int receiveOStream(
 		StreamPtr<OStream> &,
+		const FileUidTp	&,
 		uint32 _reqid,
 		const FromPairTp&_from = FromPairTp(),
 		const clientserver::ipc::ConnectorUid *_conid = NULL
 	);
 	virtual int receiveIOStream(
-		StreamPtr<IOStream> &, 
+		StreamPtr<IOStream> &,
+		const FileUidTp	&,
 		uint32 _reqid,
 		const FromPairTp&_from = FromPairTp(),
 		const clientserver::ipc::ConnectorUid *_conid = NULL
 	);
 	virtual int receiveString(
-		const String &_str, 
+		const String &_str,
 		uint32 _reqid,
 		const FromPairTp&_from = FromPairTp(),
 		const clientserver::ipc::ConnectorUid *_conid = NULL

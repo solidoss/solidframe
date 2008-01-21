@@ -79,16 +79,24 @@ private:
 
 class Fetch: public Command{
 public:
-	enum {Init, Step};
+	enum {InitLocal, StepLocal, InitRemote, StepOneRemote};
 	Fetch(Connection &);
 	~Fetch();
 	void initReader(Reader &);
 	int execute(Connection &);
 	int reinitWriter(Writer &, protocol::Parameter &);
-	void receiveIStream(StreamPtr<IStream> &);
+	int receiveIStream(
+		StreamPtr<IStream> &_sptr,
+		const FileUidTp &_fuid,
+		const FromPairTp&,
+		const clientserver::ipc::ConnectorUid *
+	);
 	int error(int);
 private:
 	String				strpth;
+	String				straddr;
+	FileUidTp			fuid;
+	uint32				port;
 	StreamPtr<IStream>	sp;
 	IStreamIterator		it;
 	Connection			&rc;
@@ -170,6 +178,7 @@ public:
 	int reinitWriter(Writer &, protocol::Parameter &);
 	/*virtual*/ int receiveIOStream(
 		StreamPtr<IOStream> &,
+		const FileUidTp&,
 		const FromPairTp&_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
