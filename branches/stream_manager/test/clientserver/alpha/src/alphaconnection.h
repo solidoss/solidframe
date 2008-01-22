@@ -24,6 +24,7 @@
 
 #include "core/tstring.h"
 #include "core/connection.h"
+#include "core/common.h"
 
 #include "alphareader.h"
 #include "alphawriter.h"
@@ -74,34 +75,34 @@ public:
 	/*virtual*/ int receiveIStream(
 		StreamPtr<IStream> &,
 		const FileUidTp&,
-		uint32 _reqid,
-		const FromPairTp&_from,
+		const RequestUidTp &_requid,
+		const ObjectUidTp &_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
 	/*virtual*/ int receiveOStream(
 		StreamPtr<OStream> &,
 		const FileUidTp&,
-		uint32 _reqid,
-		const FromPairTp&_from,
+		const RequestUidTp &_requid,
+		const ObjectUidTp&_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
 	/*virtual*/ int receiveIOStream(
 		StreamPtr<IOStream> &,
 		const FileUidTp&,
-		uint32 _reqid,
-		const FromPairTp&_from,
+		const RequestUidTp &_requid,
+		const ObjectUidTp &_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
 	/*virtual*/ int receiveString(
 		const String &_str, 
-		uint32 _reqid,
-		const FromPairTp&_from,
+		const RequestUidTp &_requid,
+		const ObjectUidTp &_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
 	/*virtual*/ int receiveError(
 		int _errid, 
-		uint32 _reqid,
-		const FromPairTp&_from,
+		const RequestUidTp &_requid,
+		const ObjectUidTp &_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
 private:

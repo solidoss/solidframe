@@ -43,8 +43,6 @@ protected:
 	Command();
 public:
 	static void initStatic(Server &_rs);
-	typedef std::pair<uint32, uint32> FromPairTp;
-	typedef std::pair<uint32, uint32> FileUidTp;
 	virtual ~Command();
 	virtual void initReader(Reader &) = 0;
 	virtual int execute(Connection &) = 0;
@@ -52,30 +50,30 @@ public:
 	virtual int receiveIStream(
 		StreamPtr<IStream> &,
 		const FileUidTp &,
-		const FromPairTp&_from,
+		const ObjectUidTp&_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
 	virtual int receiveOStream(
 		StreamPtr<OStream> &,
 		const FileUidTp &,
-		const FromPairTp&_from,
+		const ObjectUidTp&_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
 	virtual int receiveIOStream(
 		StreamPtr<IOStream> &,
 		const FileUidTp &,
-		const FromPairTp&_from,
+		const ObjectUidTp&_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
 	virtual int receiveString(
 		const String &_str, 
-		const FromPairTp&_from,
+		const ObjectUidTp&_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
 	virtual int receiveError(
 		int _errid,
 		uint32 _reqid,
-		const FromPairTp&_from,
+		const ObjectUidTp&_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
 

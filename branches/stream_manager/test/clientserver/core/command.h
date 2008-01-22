@@ -28,11 +28,13 @@ namespace test{
 
 class Connection;
 class Listener;
+class Object;
 //extends the interface of command to support test Objects
 //see implementation in server
 struct Command: clientserver::Command{
 	virtual int execute(Connection &);
 	virtual int execute(Listener &);
+	virtual int execute(Object &);
 };
 
 

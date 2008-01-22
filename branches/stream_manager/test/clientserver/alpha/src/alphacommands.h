@@ -88,7 +88,7 @@ public:
 	int receiveIStream(
 		StreamPtr<IStream> &_sptr,
 		const FileUidTp &_fuid,
-		const FromPairTp&,
+		const ObjectUidTp&,
 		const clientserver::ipc::ConnectorUid *
 	);
 	int error(int);
@@ -113,7 +113,12 @@ public:
 	void initReader(Reader &);
 	int reinitReader(Reader &, protocol::Parameter &);
 	int execute(Connection &);
-	void receiveOStream(StreamPtr<OStream> &);
+	int receiveOStream(
+		StreamPtr<OStream> &_sptr,
+		const FileUidTp &_fuid,
+		const ObjectUidTp&,
+		const clientserver::ipc::ConnectorUid *
+	);
 	int error(int);
 	int reinitWriter(Writer &, protocol::Parameter &);
 private:
@@ -179,7 +184,7 @@ public:
 	/*virtual*/ int receiveIOStream(
 		StreamPtr<IOStream> &,
 		const FileUidTp&,
-		const FromPairTp&_from,
+		const ObjectUidTp&_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
 // 	virtual int receiveOStream(
@@ -194,14 +199,14 @@ public:
 // 	);
 	/*virtual*/ int receiveString(
 		const String &_str, 
-		const FromPairTp&_from,
+		const ObjectUidTp&_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
 private:
 	enum Type{LocalStringType, PeerStringType, LocalStreamType, PeerStreamType};
 	Queue<Type>					typeq;
 	Queue<String>				stringq;
-	Queue<FromPairTp>			fromq;
+	Queue<ObjectUidTp>			fromq;
 	Queue<clientserver::ipc::ConnectorUid>	conidq;
 	Queue<StreamPtr<IOStream> >	streamq;
 	Connection					&rc;

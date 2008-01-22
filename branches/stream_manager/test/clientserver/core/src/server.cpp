@@ -33,6 +33,7 @@
 #include "core/visitor.h"
 #include "core/command.h"
 #include "core/connection.h"
+#include "core/object.h"
 
 
 #include "clientserver/core/selectpool.h"
@@ -74,53 +75,78 @@ namespace cs=clientserver;
 namespace test{
 
 //======= FileManager:==================================================
-typedef cs::FileManager::FileUidTp			FileUidTp;
+//typedef cs::FileUidTp			FileUidTp;
+typedef Object::RequestUidTp	RequestUidTp;
+
 struct IStreamCommand: test::Command{
-	IStreamCommand(StreamPtr<IStream> &_sptr, const FileUidTp &_rfuid, uint32 _reqid):sptr(_sptr), fileuid(_rfuid), reqid(_reqid){}
+	IStreamCommand(StreamPtr<IStream> &_sptr, const FileUidTp &_rfuid, const RequestUidTp &_requid):sptr(_sptr), fileuid(_rfuid), requid(_requid){}
 	int execute(Connection &_pcon);
+	int execute(Object &_pobj);
 	StreamPtr<IStream>	sptr;
 	FileUidTp			fileuid;
-	uint32				reqid;
+	RequestUidTp		requid;
 };
 
 int IStreamCommand::execute(Connection &_rcon){
-	return _rcon.receiveIStream(sptr, fileuid, reqid);
+	return _rcon.receiveIStream(sptr, fileuid, requid);
 }
 
+int IStreamCommand::execute(Object &_robj){
+	return _robj.receiveIStream(sptr, fileuid, requid);
+}
+
+
 struct OStreamCommand: test::Command{
-	OStreamCommand(StreamPtr<OStream> &_sptr, const FileUidTp &_rfuid, uint32 _reqid):sptr(_sptr), fileuid(_rfuid), reqid(_reqid){}
+	OStreamCommand(StreamPtr<OStream> &_sptr, const FileUidTp &_rfuid, const RequestUidTp &_requid):sptr(_sptr), fileuid(_rfuid), requid(_requid){}
 	int execute(Connection &_pcon);
+	int execute(Object &_pobj);
 	StreamPtr<OStream>	sptr;
 	FileUidTp			fileuid;
-	uint32				reqid;
+	RequestUidTp		requid;
 };
 
 int OStreamCommand::execute(Connection &_rcon){
-	return _rcon.receiveOStream(sptr, fileuid, reqid);
+	return _rcon.receiveOStream(sptr, fileuid, requid);
 }
 
+int OStreamCommand::execute(Object &_robj){
+	return _robj.receiveOStream(sptr, fileuid, requid);
+}
+
+
 struct IOStreamCommand: test::Command{
-	IOStreamCommand(StreamPtr<IOStream> &_sptr, const FileUidTp &_rfuid, uint32 _reqid):sptr(_sptr), fileuid(_rfuid), reqid(_reqid){}
+	IOStreamCommand(StreamPtr<IOStream> &_sptr, const FileUidTp &_rfuid, const RequestUidTp &_requid):sptr(_sptr), fileuid(_rfuid), requid(_requid){}
 	int execute(Connection &_pcon);
+	int execute(Object &_pobj);
 	StreamPtr<IOStream>	sptr;
 	FileUidTp			fileuid;
-	uint32				reqid;
+	RequestUidTp		requid;
 };
 
 int IOStreamCommand::execute(Connection &_rcon){
-	return _rcon.receiveIOStream(sptr, fileuid, reqid);
+	return _rcon.receiveIOStream(sptr, fileuid, requid);
 }
 
+int IOStreamCommand::execute(Object &_robj){
+	return _robj.receiveIOStream(sptr, fileuid, requid);
+}
+
+
 struct StreamErrorCommand: test::Command{
-	StreamErrorCommand(uint32 _reqid, int _errid):reqid(_reqid), errid(_errid){}
+	StreamErrorCommand(int _errid, const RequestUidTp &_requid):errid(_errid), requid(_requid){}
 	int execute(Connection &_pcon);
-	uint32		reqid;
-	int			errid;
+	int execute(Object &_pobj);
+	int				errid;
+	RequestUidTp	requid;
 };
 
 int StreamErrorCommand::execute(Connection &_rcon){
-	return _rcon.receiveError(errid, reqid);
+	return _rcon.receiveError(errid, requid);
 }
+int StreamErrorCommand::execute(Object &_robj){
+	return _robj.receiveError(errid, requid);
+}
+
 
 class FileManager: public cs::FileManager{
 public:
@@ -129,23 +155,23 @@ protected:
 	/*virtual*/ void sendStream(StreamPtr<IStream> &_sptr, const FileUidTp &_rfuid, const RequestUid& _rrequid);
 	/*virtual*/ void sendStream(StreamPtr<OStream> &_sptr, const FileUidTp &_rfuid, const RequestUid& _rrequid);
 	/*virtual*/ void sendStream(StreamPtr<IOStream> &_sptr, const FileUidTp &_rfuid, const RequestUid& _rrequid);
-	/*virtual*/ void sendError(const RequestUid& _rrequid, int _errid);
+	/*virtual*/ void sendError(int _errid, const RequestUid& _rrequid);
 };
 void FileManager::sendStream(StreamPtr<IStream> &_sptr, const FileUidTp &_rfuid, const RequestUid& _rrequid){
-	cs::CmdPtr<cs::Command>	cp(new IStreamCommand(_sptr, _rfuid, _rrequid.requid));
+	cs::CmdPtr<cs::Command>	cp(new IStreamCommand(_sptr, _rfuid, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
 	Server::the().signalObject(_rrequid.objidx, _rrequid.objuid, cp);
 }
 void FileManager::sendStream(StreamPtr<OStream> &_sptr, const FileUidTp &_rfuid, const RequestUid& _rrequid){
-	cs::CmdPtr<cs::Command>	cp(new OStreamCommand(_sptr, _rfuid, _rrequid.requid));
+	cs::CmdPtr<cs::Command>	cp(new OStreamCommand(_sptr, _rfuid, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
 	Server::the().signalObject(_rrequid.objidx, _rrequid.objuid, cp);
 }
 void FileManager::sendStream(StreamPtr<IOStream> &_sptr, const FileUidTp &_rfuid, const RequestUid& _rrequid){
-	cs::CmdPtr<cs::Command>	cp(new IOStreamCommand(_sptr, _rfuid, _rrequid.requid));
+	cs::CmdPtr<cs::Command>	cp(new IOStreamCommand(_sptr, _rfuid, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
 	Server::the().signalObject(_rrequid.objidx, _rrequid.objuid, cp);
 }
-void FileManager::sendError(const RequestUid& _rrequid, int _error){
-	assert(false);
-	//TODO:
+void FileManager::sendError(int _error, const RequestUid& _rrequid){
+	cs::CmdPtr<cs::Command>	cp(new StreamErrorCommand(_error, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
+	Server::the().signalObject(_rrequid.objidx, _rrequid.objuid, cp);
 }
 
 //======= IpcService ======================================================
@@ -422,13 +448,18 @@ int Command::execute(Listener &){
 	return BAD;
 }
 
+int Command::execute(Object &){
+	assert(false);
+	return BAD;
+}
+
 //----------------------------------------------------------------------------------
 
 int Connection::receiveIStream(
 	StreamPtr<IStream> &,
 	const FileUidTp	&,
-	uint32 _reqid,
-	const FromPairTp&_from,
+	const RequestUidTp &_requid,
+	const ObjectUidTp& _from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
 	assert(false);
@@ -438,8 +469,8 @@ int Connection::receiveIStream(
 int Connection::receiveOStream(
 	StreamPtr<OStream> &,
 	const FileUidTp	&,
-	uint32 _reqid,
-	const FromPairTp&_from,
+	const RequestUidTp &_requid,
+	const ObjectUidTp& _from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
 	assert(false);
@@ -449,8 +480,8 @@ int Connection::receiveOStream(
 int Connection::receiveIOStream(
 	StreamPtr<IOStream> &,
 	const FileUidTp	&,
-	uint32 _reqid,
-	const FromPairTp&_from,
+	const RequestUidTp &_requid,
+	const ObjectUidTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
 	assert(false);
@@ -459,8 +490,8 @@ int Connection::receiveIOStream(
 
 int Connection::receiveString(
 	const String &_str,
-	uint32 _reqid,
-	const FromPairTp&_from,
+	const RequestUidTp &_requid,
+	const ObjectUidTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
 	assert(false);
@@ -468,8 +499,61 @@ int Connection::receiveString(
 }
 int Connection::receiveError(
 	int _errid, 
-	uint32 _reqid,
-	const FromPairTp&_from,
+	const RequestUidTp &_requid,
+	const ObjectUidTp&_from,
+	const clientserver::ipc::ConnectorUid *_conid
+){
+	assert(false);
+	return BAD;
+}
+//----------------------------------------------------------------------------------
+
+int Object::receiveIStream(
+	StreamPtr<IStream> &,
+	const FileUidTp	&,
+	const RequestUidTp &_requid,
+	const ObjectUidTp&_from,
+	const clientserver::ipc::ConnectorUid *_conid
+){
+	assert(false);
+	return BAD;
+}
+
+int Object::receiveOStream(
+	StreamPtr<OStream> &,
+	const FileUidTp	&,
+	const RequestUidTp &_requid,
+	const ObjectUidTp&_from,
+	const clientserver::ipc::ConnectorUid *_conid
+){
+	assert(false);
+	return BAD;
+}
+
+int Object::receiveIOStream(
+	StreamPtr<IOStream> &,
+	const FileUidTp	&,
+	const RequestUidTp &_requid,
+	const ObjectUidTp&_from,
+	const clientserver::ipc::ConnectorUid *_conid
+){
+	assert(false);
+	return BAD;
+}
+
+int Object::receiveString(
+	const String &_str,
+	const RequestUidTp &_requid,
+	const ObjectUidTp&_from,
+	const clientserver::ipc::ConnectorUid *_conid
+){
+	assert(false);
+	return BAD;
+}
+int Object::receiveError(
+	int _errid, 
+	const RequestUidTp &_requid,
+	const ObjectUidTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
 	assert(false);
@@ -478,3 +562,4 @@ int Connection::receiveError(
 
 //----------------------------------------------------------------------------------
 }//namespace test
+

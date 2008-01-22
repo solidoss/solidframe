@@ -400,7 +400,7 @@ int Fetch::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 int Fetch::receiveIStream(
 	StreamPtr<IStream> &_sptr,
 	const FileUidTp &_fuid,
-	const FromPairTp&,
+	const ObjectUidTp&,
 	const clientserver::ipc::ConnectorUid *
 ){
 	sp =_sptr;
@@ -474,8 +474,13 @@ int Store::execute(Connection &_rc){
 	}
 	return OK;
 }
-void Store::receiveOStream(StreamPtr<OStream> &_sp){
-	sp = _sp;
+int Store::receiveOStream(
+		StreamPtr<OStream> &_sptr,
+		const FileUidTp &_fuid,
+		const ObjectUidTp&,
+		const clientserver::ipc::ConnectorUid *
+	){
+	sp = _sptr;
 }
 int Store::error(int _err){
 	st = BAD;
@@ -517,7 +522,7 @@ int SendStringCommand::received(const cs::ipc::ConnectorUid &_rconid){
 }
 
 int SendStringCommand::execute(test::Connection &_rcon){
-	return _rcon.receiveString(str, 0, fromv, &conid);
+	return _rcon.receiveString(str, test::Connection::RequestUidTp(0, 0), fromv, &conid);
 }
 
 SendString::SendString():port(0), objid(0), objuid(0){}
@@ -642,10 +647,10 @@ int SendStreamCommand::execute(test::Connection &_rcon){
 	{
 	//StreamPtr<IOStream>	iosp(static_cast<IOStream*>(iosp.release()));
 	idbg("");
-	_rcon.receiveIOStream(iosp, std::pair<uint32, uint32>(0,0), 0, fromv, &conid);
+	_rcon.receiveIOStream(iosp, test::Connection::FileUidTp(0,0), test::Connection::RequestUidTp(0, 0), fromv, &conid);
 	idbg("");
 	}
-	return _rcon.receiveString(dststr, 0, fromv, &conid);
+	return _rcon.receiveString(dststr, test::Connection::RequestUidTp(0, 0), fromv, &conid);
 }
 //-------------------------------------------------------------------------------
 SendStream::SendStream():port(0), objid(0), objuid(0){}
@@ -768,7 +773,7 @@ int Idle::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 int Idle::receiveIOStream(
 	StreamPtr<IOStream> &_sp,
 	const FileUidTp &,
-	const FromPairTp&_from,
+	const ObjectUidTp&_from,
 	const cs::ipc::ConnectorUid *_conid
 ){
 	if(_conid){
@@ -787,7 +792,7 @@ int Idle::receiveIOStream(
 }
 int Idle::receiveString(
 	const String &_str, 
-	const FromPairTp&_from,
+	const ObjectUidTp&_from,
 	const cs::ipc::ConnectorUid *_conid
 ){
 	if(typeq.size() && typeq.back() == PeerStreamType){
@@ -819,7 +824,7 @@ void Command::initStatic(Server &_rs){
 int Command::receiveIStream(
 	StreamPtr<IStream> &_ps,
 	const FileUidTp &,
-	const FromPairTp&_from,
+	const ObjectUidTp&_from,
 	const cs::ipc::ConnectorUid *_conid
 ){
 	return BAD;
@@ -828,7 +833,7 @@ int Command::receiveIStream(
 int Command::receiveOStream(
 	StreamPtr<OStream> &,
 	const FileUidTp &,
-	const FromPairTp&_from,
+	const ObjectUidTp&_from,
 	const cs::ipc::ConnectorUid *_conid
 ){
 	return BAD;
@@ -837,7 +842,7 @@ int Command::receiveOStream(
 int Command::receiveIOStream(
 	StreamPtr<IOStream> &, 
 	const FileUidTp &,
-	const FromPairTp&_from,
+	const ObjectUidTp&_from,
 	const cs::ipc::ConnectorUid *_conid
 ){
 	return BAD;
@@ -845,7 +850,7 @@ int Command::receiveIOStream(
 
 int Command::receiveString(
 	const String &_str, 
-	const FromPairTp&_from,
+	const ObjectUidTp&_from,
 	const cs::ipc::ConnectorUid *_conid
 ){
 	return BAD;
@@ -854,7 +859,7 @@ int Command::receiveString(
 int Command::receiveError(
 	int _errid,
 	uint32 _reqid,
-	const FromPairTp&_from,
+	const ObjectUidTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
 	return BAD;

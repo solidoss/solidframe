@@ -60,9 +60,10 @@ class File;
 class FileManager: public clientserver::Object{
 public:
 	struct RequestUid{
-		RequestUid(uint32 _objidx = 0, uint32 _objuid = 0, uint32 _requid = 0):objidx(_objidx), objuid(_objuid), requid(_requid){}
+		RequestUid(uint32 _objidx = 0, uint32 _objuid = 0, uint32 _reqidx = 0, uint32 _requid = 0):objidx(_objidx), objuid(_objuid), reqidx(_reqidx), requid(_requid){}
 		uint32	objidx;
 		uint32	objuid;
+		uint32	reqidx;
 		uint32	requid;
 	};
 	enum {
@@ -71,7 +72,7 @@ public:
 		IOStreamRequest = 4,
 		NoWait = 8,
 	};
-	typedef std::pair<uint32, uint32> FileUidTp;
+	//typedef std::pair<uint32, uint32> FileUidTp;
 	
 	FileManager(uint32 _maxfcnt = 0);
 	~FileManager();
@@ -125,7 +126,7 @@ protected:
 	virtual void sendStream(StreamPtr<IStream> &_sptr, const FileUidTp &_rfuid, const RequestUid& _rrequid) = 0;
 	virtual void sendStream(StreamPtr<OStream> &_sptr, const FileUidTp &_rfuid, const RequestUid& _rrequid) = 0;
 	virtual void sendStream(StreamPtr<IOStream> &_sptr, const FileUidTp &_rfuid, const RequestUid& _rrequid) = 0;
-	virtual void sendError(const RequestUid& _rrequid, int _error) = 0;
+	virtual void sendError(int _error, const RequestUid& _rrequid) = 0;
 private:
 	friend class FileIStream;
 	friend class FileOStream;

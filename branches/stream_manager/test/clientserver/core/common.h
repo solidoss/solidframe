@@ -26,6 +26,10 @@
 
 #include <string.h>
 
+typedef std::pair<uint32, uint32>	RequestUidTp;
+typedef clientserver::FileUidTp		FileUidTp;
+typedef clientserver::ObjectUidTp	ObjectUidTp;
+
 struct StrLess{
 	bool operator()(const char* const &_str1, const char* const &_str2)const{
 		return strcasecmp(_str1,_str2) < 0;

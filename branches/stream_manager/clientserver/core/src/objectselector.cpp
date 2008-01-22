@@ -48,6 +48,30 @@ void ObjectSelector::signal(uint _pos){
 	cnd.signal();
 }
 
+/*
+NOTE: TODO:
+	See if this ideea will bring faster timeout scan (see it implemented in FileManager) 
+	- add a new deque<unsigned> toutv
+	- add to SelObject an toutidx int value 
+	
+	When an object waits for tout:
+		- add its index at the end of toutv.
+		- set toutidx to (toutv.size() - 1);
+	When an object doesnt have timeout (waits forever) toutidx = -1;
+	
+	When we have an event on an object:
+		- toutv[toutidx] = toutv.back();
+		- toutv.pop_back();
+		- toutidx = -1;
+		
+	When timeout:
+		for(it=toutv.begin(); it != toutv.end(); ++it){
+			if(timeout(sv[*it])){
+				...
+			}
+		}
+*/
+
 void ObjectSelector::run(){
 	//ulong		crttout;
 	int 		state;

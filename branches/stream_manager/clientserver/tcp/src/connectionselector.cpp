@@ -183,6 +183,11 @@ inline int computePollWait(const TimeSpec &_rntimepos, const TimeSpec &_rctimepo
 	return rv;
 }
 
+/*
+	NOTE: TODO:
+		Look at the note from core/objectselector.cpp
+*/
+
 void ConnectionSelector::run(){
 	TimeSpec	crttout;
 	epoll_event	ev;

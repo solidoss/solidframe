@@ -237,11 +237,11 @@ void Connection::prepareReader(){
 int Connection::receiveIStream(
 	StreamPtr<IStream> &_ps,
 	const FileUidTp &_fuid,
-	uint32 _reqid,
+	const RequestUidTp &_requid,
 	const FromPairTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
-	if(_reqid && _reqid != reqid) return OK;
+	if(_requid.first && _requid.first != reqid) return OK;
 	newRequestId();//prevent multiple responses with the same id
 	if(pcmd && pcmd->receiveIStream(_ps, _fuid, _from, _conid) == OK)
 		state(IdleExecute);
@@ -251,11 +251,11 @@ int Connection::receiveIStream(
 int Connection::receiveOStream(
 	StreamPtr<OStream> &_ps,
 	const FileUidTp &_fuid,
-	uint32 _reqid,
+	const RequestUidTp &_requid,
 	const FromPairTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
-	if(_reqid && _reqid != reqid) return OK;
+	if(_requid.first && _requid.first != reqid) return OK;
 	newRequestId();//prevent multiple responses with the same id
 	if(pcmd) pcmd->receiveOStream(_ps, _fuid, _from, _conid);
 	return OK;
@@ -264,11 +264,11 @@ int Connection::receiveOStream(
 int Connection::receiveIOStream(
 	StreamPtr<IOStream> &_ps,
 	const FileUidTp &_fuid,
-	uint32 _reqid,
+	const RequestUidTp &_requid,
 	const FromPairTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
-	if(_reqid && _reqid != reqid) return OK;
+	if(_requid.first && _requid.first != reqid) return OK;
 	newRequestId();//prevent multiple responses with the same id
 	if(pcmd) pcmd->receiveIOStream(_ps, _fuid, _from, _conid);
 	return OK;
@@ -276,11 +276,11 @@ int Connection::receiveIOStream(
 
 int Connection::receiveString(
 	const String &_str, 
-	uint32 _reqid,
+	const RequestUidTp &_requid,
 	const FromPairTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
-	if(_reqid && _reqid != reqid) return OK;
+	if(_requid.first && _requid.first != reqid) return OK;
 	newRequestId();//prevent multiple responses with the same id
 	if(pcmd && pcmd->receiveString(_str, _from, _conid) == OK)
 		state(IdleExecute);
@@ -289,11 +289,11 @@ int Connection::receiveString(
 
 int Connection::receiveError(
 	int _errid, 
-	uint32 _reqid,
+	const RequestUidTp &_requid,
 	const FromPairTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
-	if(_reqid && _reqid != reqid) return OK;
+	if(_requid.first && _requid.first != reqid) return OK;
 	newRequestId();//prevent multiple responses with the same id
 	//TODO:
 	return OK;

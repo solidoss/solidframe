@@ -55,7 +55,6 @@ struct LessStrCmp{
 };
 
 typedef FileManager::RequestUid RequestUidTp;
-typedef FileManager::FileUidTp	FileUidTp;
 
 //------------------------------------------------------------------------------
 class File: public FileDevice{
@@ -78,6 +77,7 @@ public:
 	bool decreaseOutCount();
 	bool decreaseInCount();
 	int execute(FileManager &_rsm, const FileUidTp &_fuid, uint32 _flags, TimeSpec &_rtout);
+	void clear(FileManager &_rsm, const FileUidTp &_fuid);
 private:
 	bool signalStreams(FileManager &_rsm, const FileUidTp &_fuid);
 	struct WaitData{
@@ -142,12 +142,14 @@ struct FileManager::Data{
 	typedef Queue<uint>					SignalQueueTp;
 	typedef Stack<uint>					FreeStackTp;
 	struct FileData{
-		FileData(File *_pfile = NULL):pfile(_pfile), uid(0){}
+		FileData(File *_pfile = NULL):pfile(_pfile), toutidx(-1), uid(0){}
 		File		*pfile;
+		int32		toutidx;
 		uint32		uid;
 		TimeSpec	tout;
 	};
 	typedef std::deque<FileData>		FileVectorTp;
+	typedef std::deque<int32>			TimeoutVectorTp;
 	typedef std::vector<FileMapper*>	FileMapperVectorTp;
 	Data(uint32 _maxsz):maxsz(_maxsz),sz(0), mut(NULL){}
 	int  fileWrite(uint _fileid, const char *_pb, uint32 _bl, uint32 _flags);
@@ -165,6 +167,7 @@ struct FileManager::Data{
 	SignalQueueTp			oq;//open queue
 	FileMapperVectorTp		mv;
 	FreeStackTp				fs;//free stack
+	TimeoutVectorTp			toutv;
 };
 
 
@@ -176,6 +179,12 @@ FileManager::FileManager(uint32 _maxfcnt):d(*(new Data(_maxfcnt))){
 FileManager::~FileManager(){
 	delete &d;
 }
+
+/*
+NOTE:
+	The algorithm resembles somehow the one from ConnectionSelector. But, while for connections the raport of (total number of connections) / (connections waitin for timeout) is far closer to 1 than it is in case of files i.e. fewer files will wait for timeout.
+	That is why we'll complicate a little the algorithm, using toutv to hold the indexes of files waiting for timeout.
+*/
 
 int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 	d.mut->lock();
@@ -190,6 +199,40 @@ int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 				return BAD;
 			}
 		}
+	}
+	
+	uint sz = 0;
+	uint32	fileids[256];
+	while(sz < 256 && d.sq.size()){
+		fileids[sz] = d.sq.front();
+		d.sq.pop();
+		++sz;
+	}
+	d.mut->unlock();
+	const uint32	*pfid = fileids;
+	while(sz){
+		FileUidTp fuid(*pfid, d.fv[*pfid].uid);
+		Data::FileData &rf(d.fv[*pfid]);
+		Mutex::Locker lock(d.mutpool.object(*pfid));
+		switch(rf.pfile->execute(*this, fuid, 0, rf.tout)){
+		case BAD://delete the file and collect the
+			rf.pfile->clear(*this, fuid);//send errors
+			delete rf.pfile;
+			rf.pfile = NULL;
+			d.mut->lock();
+			d.collectFilePosition(*pfid);
+			d.mut->unlock();
+			break;
+		case NOK:
+			if(rf.tout == 0){
+				rf.tout = 0xffffffff;
+			}
+		}
+		++pfid;
+		--sz;
+	}
+	if(_evs & TIMEOUT){
+		//scan all files for timeout
 	}
 	return NOK;
 }
@@ -787,8 +830,13 @@ int File::execute(FileManager &_rsm, const FileUidTp &_fuid, uint32 _flags, Time
 				_rtout += _rsm.fileOpenTimeout();
 				return NOK;
 		}
-	}	
-	return OK;
+	}
+	assert(false);
+	return BAD;
+}
+
+void File::clear(FileManager &_rsm, const FileUidTp &_fuid){
+	//TODO:
 }
 
 bool File::signalStreams(FileManager &_rsm, const FileUidTp &_fuid){
