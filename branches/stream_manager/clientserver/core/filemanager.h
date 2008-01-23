@@ -80,6 +80,7 @@ public:
 	int execute(ulong _evs, TimeSpec &_rtout);
 	
 	int64 fileSize(const char *_fn)const;
+	int64 fileSize(const FileKey &_rk)const;
 	template <class T>
 	T* mapper(T *_pm = NULL){
 		//doRegisterMapper will assert if _pm is NULL

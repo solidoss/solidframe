@@ -36,7 +36,6 @@ namespace cs = clientserver;
 namespace test{
 
 int Service::execute(ulong _sig, TimeSpec &_rtout){
-	_rtout.set(0);
 	idbg("serviceexec");
 	if(signaled()){
 		ulong sm;

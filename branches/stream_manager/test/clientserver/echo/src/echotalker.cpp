@@ -87,8 +87,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 					case BAD: return BAD;
 					case OK: state(READ_TOUT);break;
 					case NOK:
-						if(pai) _tout.set(20);
-						else _tout.set(0);
+						if(pai) _tout.add(20);
 						state(READ_TOUT); 
 						return NOK;
 				}
@@ -100,8 +99,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 					case BAD: return BAD;
 					case OK: break;
 					case NOK: state(WRITE_TOUT);
-						if(pai) _tout.set(20);
-						else _tout.set(0);
+						if(pai) _tout.add(20);
 						return NOK;
 				}
 			case WRITE_TOUT:
@@ -114,8 +112,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 					case BAD: return BAD;
 					case OK: break;
 					case NOK: state(WRITE_TOUT2);
-						if(pai) _tout.set(20);
-						else _tout.set(0);
+						if(pai) _tout.add(20);
 						return NOK;
 				}
 			case WRITE_TOUT2:

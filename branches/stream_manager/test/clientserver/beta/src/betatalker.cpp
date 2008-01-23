@@ -136,7 +136,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 			}
 			case WRITE_DONE:
 				state(WRITE);
-				_tout.set(0, 500 * 1000000);//X miliseconds
+				_tout.add(0, 500 * 1000000);//X miliseconds
 				//cout<<"write id = "<<(id - 1)<<endl;
 				return NOK;
 		}

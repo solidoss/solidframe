@@ -186,11 +186,17 @@ int ObjectSelector::doExecute(unsigned _i, ulong _evs, TimeSpec _crttout){
 		case OK:
 			idbg("OK: reentering object");
 			if(!sv[_i].state) {objq.push(_i); sv[_i].state = 1;}
+			_crttout.set(0xffffffff);
+			break;
 		case NOK:
 			idbg("TOUT: connection waits for signals");
-			sv[_i].timepos.set(_crttout.seconds() ? ctimepos.seconds() + _crttout.seconds() : (TimeSpec::TimeTp)0xffffffff);
-            if(ntimepos > sv[_i].timepos) ntimepos = sv[_i].timepos;
-            break;
+			//sv[_i].timepos.set(_crttout.seconds() ? ctimepos.seconds() + _crttout.seconds() : (TimeSpec::TimeTp)0xffffffff);
+			if(_crttout == ctimepos){
+				sv[_i].timepos = _crttout;
+			}else{
+				_crttout.set(0xffffffff);
+			}
+			break;
 		case LEAVE:
 			idbg("LEAVE: object leave");
 			fstk.push(_i);

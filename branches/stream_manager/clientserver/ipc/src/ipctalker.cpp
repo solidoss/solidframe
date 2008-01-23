@@ -291,7 +291,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 				mustreenter = dispatchSentBuffer(_tout);
 				break;
 			case NOK:
-				_tout.set(0);
+				//_tout.set(0);
 				idbg("return");
 				return mustreenter ? OK : NOK;
 		}
@@ -302,7 +302,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 		idbg("return");
 		return OK;
 	}
-	_tout.set(0);
+	//_tout.set(0);
 	return NOK;
 }
 //----------------------------------------------------------------------

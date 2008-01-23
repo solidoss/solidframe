@@ -81,7 +81,8 @@ Connection::~Connection(){
 	rs.service(*this).removeConnection(*this);
 }
 int Connection::execute(ulong _sig, TimeSpec &_tout){
-	_tout.set(2400);//allways set it if it's not MAXTIMEOUT
+	//_tout.set(2400);//allways set it if it's not MAXTIMEOUT
+	_tout.add(2400);
 	if(_sig & (cs::TIMEOUT | cs::ERRDONE)){
 		if(state() == ConnectTout){
 			state(Connect);
