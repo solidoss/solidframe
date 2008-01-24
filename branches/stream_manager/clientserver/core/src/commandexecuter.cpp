@@ -88,7 +88,9 @@ int CommandExecuter::execute(ulong _evs, TimeSpec &_rtout){
 	
 	while(d.eq.size()){
 		Data::CommandPairTp &rcp(d.cdq[d.eq.front()]);
-		if(rcp.first->execute(*this, CommandUidTp(d.eq.front(), rcp.second));
+		if(rcp.first->execute(*this, CommandUidTp(d.eq.front(), rcp.second))){
+		
+		}
 		d.eq.pop();
 	}
 }
