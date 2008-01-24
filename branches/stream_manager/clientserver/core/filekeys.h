@@ -32,10 +32,10 @@ struct NameFileKey: public FileKey{
 	NameFileKey(const std::string &_fname);
 	std::string 	name;
 private:
-	/*virtual*/ void fileName(FileManager &_fm, int _fileid, std::string &_fname)const;
-	/*virtual*/ int find(FileManager &_fm)const;
-	/*virtual*/ void insert(FileManager &_fm, int _fileid)const;
-	/*virtual*/ void erase(FileManager &_fm, int _fileid)const;
+	/*virtual*/ void fileName(FileManager &_fm, uint32 _fileid, std::string &_fname)const;
+	/*virtual*/ uint32 find(FileManager &_fm)const;
+	/*virtual*/ void insert(FileManager &_fm, uint32 _fileid)const;
+	/*virtual*/ void erase(FileManager &_fm, uint32 _fileid)const;
 	/*virtual*/ FileKey* clone()const;
 };
 
@@ -43,10 +43,10 @@ struct FastNameFileKey: public FileKey{
 	FastNameFileKey(const char *_name):name(_name){}
 	const char *name;
 private:
-	/*virtual*/ void fileName(FileManager &_fm, int _fileid, std::string &_fname)const;
-	/*virtual*/ int find(FileManager &_fm)const;
-	/*virtual*/ void insert(FileManager &_fm, int _fileid)const;
-	/*virtual*/ void erase(FileManager &_fm, int _fileid)const;
+	/*virtual*/ void fileName(FileManager &_fm, uint32 _fileid, std::string &_fname)const;
+	/*virtual*/ uint32 find(FileManager &_fm)const;
+	/*virtual*/ void insert(FileManager &_fm, uint32 _fileid)const;
+	/*virtual*/ void erase(FileManager &_fm, uint32 _fileid)const;
 	/*virtual*/ FileKey* clone()const;
 };
 
@@ -55,10 +55,10 @@ struct TempFileKey: public FileKey{
 	TempFileKey(){}
 private:
 	/*virtual*/ bool release()const;
-	/*virtual*/ void fileName(FileManager &_fm, int _fileid, std::string &_fname)const;
-	/*virtual*/ int find(FileManager &_fm)const;
-	/*virtual*/ void insert(FileManager &_fm, int _fileid)const;
-	/*virtual*/ void erase(FileManager &_fm, int _fileid)const;
+	/*virtual*/ void fileName(FileManager &_fm, uint32 _fileid, std::string &_fname)const;
+	/*virtual*/ uint32 find(FileManager &_fm)const;
+	/*virtual*/ void insert(FileManager &_fm, uint32 _fileid)const;
+	/*virtual*/ void erase(FileManager &_fm, uint32 _fileid)const;
 	/*virtual*/ FileKey* clone()const;
 };
 

@@ -25,8 +25,8 @@ public:
 			}
 		}
 	}
-	int find(const char *_fname)const;
-	void insert(const char *_fname, int _val);
+	uint32 find(const char *_fname)const;
+	void insert(const char *_fname, uint32 _val);
 	void erase(const char *_fname);
 	const string & prefix()const {return pfx;}
 private:
@@ -38,7 +38,7 @@ private:
 class TempFileMapper: public FileMapper{
 public:
 	TempFileMapper(const char *_prefix);
-	void createFileName(string &_fname, unsigned _fileid);
+	void createFileName(string &_fname, uint32 _fileid);
 private:
 	void initFolders();
 	string pfx;
@@ -61,26 +61,26 @@ NameFileKey::NameFileKey(const char *_fname):name(_fname){}
 
 NameFileKey::NameFileKey(const std::string &_fname):name(_fname){}
 
-void NameFileKey::fileName(FileManager &_fm, int _fileid, string &_fname)const{
+void NameFileKey::fileName(FileManager &_fm, uint32 _fileid, string &_fname)const{
 	const NameFileMapper *pm(_fm.mapper<NameFileMapper>());
 	assert(pm);
 	_fname = pm->prefix();
 	_fname.append(name);
 }
-int NameFileKey::find(FileManager &_fm)const{
+uint32 NameFileKey::find(FileManager &_fm)const{
 	const NameFileMapper *pm(_fm.mapper<NameFileMapper>());
 	assert(pm);
 	return pm->find(name.c_str());
 	
 }
 
-void NameFileKey::insert(FileManager &_fm, int _fileid)const{
+void NameFileKey::insert(FileManager &_fm, uint32 _fileid)const{
 	NameFileMapper *pm(_fm.mapper<NameFileMapper>());
 	assert(pm);
 	pm->insert(name.c_str(), _fileid);
 }
 
-void NameFileKey::erase(FileManager &_fm, int _fileid)const{
+void NameFileKey::erase(FileManager &_fm, uint32 _fileid)const{
 	NameFileMapper *pm(_fm.mapper<NameFileMapper>());
 	assert(pm);
 	pm->erase(name.c_str());
@@ -90,21 +90,21 @@ FileKey* NameFileKey::clone()const{
 	return new NameFileKey(*this);
 }
 //---------------------------------------------------------------
-void FastNameFileKey::fileName(FileManager &, int _fileid, string &)const{
+void FastNameFileKey::fileName(FileManager &, uint32 _fileid, string &)const{
 	assert(false);
 }
 
-int FastNameFileKey::find(FileManager &_fm)const{
+uint32 FastNameFileKey::find(FileManager &_fm)const{
 	const NameFileMapper *pm(_fm.mapper<NameFileMapper>());
 	assert(pm);
 	return pm->find(name);
 }
 
-void FastNameFileKey::insert(FileManager &_fm, int _fileid)const{
+void FastNameFileKey::insert(FileManager &_fm, uint32 _fileid)const{
 	assert(false);
 }
 
-void FastNameFileKey::erase(FileManager &_fm, int _fileid)const{
+void FastNameFileKey::erase(FileManager &_fm, uint32 _fileid)const{
 	assert(false);
 }
 
@@ -112,12 +112,12 @@ FileKey* FastNameFileKey::clone()const{
 	return new NameFileKey(name);
 }
 //---------------------------------------------------------------
-int NameFileMapper::find(const char *_fname)const{
+uint32 NameFileMapper::find(const char *_fname)const{
 	NameMapTp::const_iterator it(nm.find(_fname));
 	if(it != nm.end()) return it->second;
 	return -1;
 }
-void NameFileMapper::insert(const char *_fname, int _fileid){
+void NameFileMapper::insert(const char *_fname, uint32 _fileid){
 	pair<NameMapTp::iterator,bool> rv(nm.insert(NameMapTp::value_type(_fname, _fileid)));
 	assert(rv.second);
 }
@@ -129,18 +129,18 @@ void NameFileMapper::erase(const char *_fname){
 /*static */void TempFileKey::registerMapper(FileManager &_fm, const char *_prefix){
 	_fm.mapper(new TempFileMapper(_prefix));
 }
-void TempFileKey::fileName(FileManager &_fm, int _fileid, string &_fname)const{
+void TempFileKey::fileName(FileManager &_fm, uint32 _fileid, string &_fname)const{
 	TempFileMapper *pm(_fm.mapper<TempFileMapper>());
 	pm->createFileName(_fname, _fileid);
 }
-int TempFileKey::find(FileManager &)const{
+uint32 TempFileKey::find(FileManager &)const{
 	return -1;
 }
-void TempFileKey::insert(FileManager &_fm, int _fileid)const{
+void TempFileKey::insert(FileManager &_fm, uint32 _fileid)const{
 /*	TempFileMapper *pm(_fm.mapper<TempFileMapper>());
 	assert(pm);*/
 }
-void TempFileKey::erase(FileManager &_fm, int _fileid)const{
+void TempFileKey::erase(FileManager &_fm, uint32 _fileid)const{
 	TempFileMapper *pm(_fm.mapper<TempFileMapper>());
 	assert(pm);
 	
@@ -165,7 +165,7 @@ TempFileMapper::TempFileMapper(const char *_prefix){
 	}
 	initFolders();
 }
-void TempFileMapper::createFileName(string &_fname, unsigned _fileid){
+void TempFileMapper::createFileName(string &_fname, uint32 _fileid){
 	char name[32];
 	unsigned int fldid = _fileid & 0xff;
 	unsigned int filid = _fileid >> 8;

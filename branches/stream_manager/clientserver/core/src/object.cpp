@@ -125,6 +125,11 @@ int Command::execute(Object &){
 	return 0;
 }
 
+int Command::execute(CommandExecuter &, const CommandUidTp &){
+	idbg("Unhandled command");
+	return 0;
+}
+
 int Command::release(){
 	idbg("Release command");
 	return BAD;

@@ -22,11 +22,13 @@
 #ifndef CS_COMMAND_H
 #define CS_COMMAND_H
 
+#include "clientserver/core/common.h"
+
 namespace clientserver{
 namespace ipc{
 struct ConnectorUid;
 }
-
+class CommandExecuter;
 class Object;
 
 struct Command{
@@ -35,6 +37,7 @@ struct Command{
 	virtual int received(const ipc::ConnectorUid&);
 	virtual void use();
 	virtual int execute(Object &);
+	virtual int execute(CommandExecuter&, const CommandUidTp &);
 	virtual int release();
 };
 }//namespace clientserver

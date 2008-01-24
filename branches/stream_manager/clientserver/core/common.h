@@ -51,6 +51,7 @@ enum Consts{
 };
 
 typedef std::pair<uint32, uint32> ObjectUidTp;
+typedef std::pair<uint32, uint32> CommandUidTp;
 typedef std::pair<uint32, uint32> FileUidTp;
 
 }

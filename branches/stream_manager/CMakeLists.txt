@@ -1,8 +1,8 @@
 #the workspace project
 project (SOLIDGROUND)
 
-SET(CMAKE_CXX_FLAGS_DEBUG "-g3 -DUDEBUG -DUTHREADS" CACHE STRING "Flags used by the C++ compiler during debug builds." FORCE)
-SET(CMAKE_C_FLAGS_DEBUG "-g3" CACHE STRING "Flags used by the C compiler during debug builds." FORCE)
+SET(CMAKE_CXX_FLAGS_DEBUG "-Wreorder -Wreturn-type -Wunused-variable -Winline -g3 -DUDEBUG -DUTHREADS" CACHE STRING "Flags used by the C++ compiler during debug builds." FORCE)
+SET(CMAKE_C_FLAGS_DEBUG "-g3 " CACHE STRING "Flags used by the C compiler during debug builds." FORCE)
 SET( CMAKE_EXE_LINKER_FLAGS_DEBUG
     "" CACHE STRING
     "Flags used for linking binaries during debug builds."
@@ -25,7 +25,7 @@ SET( CMAKE_SHARED_LINKER_FLAGS_MAINTAIN
 
 
 #overwrite the defaults for release
-SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -DUTHREADS -DURCSID" CACHE STRING "Flags used by the C++ compiler during release builds." FORCE)
+SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -DUTHREADS -Wuninitialized" CACHE STRING "Flags used by the C++ compiler during release builds." FORCE)
 #SET(CMAKE_C_FLAGS_RELEASE "-O3 -DUTHREADS" CACHE STRING "Flags used by the C compiler during release builds." FORCE)
 
 

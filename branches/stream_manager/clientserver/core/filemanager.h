@@ -57,7 +57,7 @@ class File;
 		# think of a log file someone has a writer and you want a reader to fetch log records.
 */
 
-class FileManager: public clientserver::Object{
+class FileManager: public Object{
 public:
 	struct RequestUid{
 		RequestUid(uint32 _objidx = 0, uint32 _objuid = 0, uint32 _reqidx = 0, uint32 _requid = 0):objidx(_objidx), objuid(_objuid), reqidx(_reqidx), requid(_requid){}
@@ -71,6 +71,7 @@ public:
 		Create = 2,
 		IOStreamRequest = 4,
 		NoWait = 8,
+		ForcePending = 16,
 	};
 	//typedef std::pair<uint32, uint32> FileUidTp;
 	

@@ -25,7 +25,6 @@
 #include "clientserver/core/command.h"
 
 namespace test{
-
 class Connection;
 class Listener;
 class Object;

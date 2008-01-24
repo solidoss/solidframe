@@ -145,29 +145,39 @@ struct FileManager::Data{
 	typedef SharedContainer<Mutex>		MutexContainer;
 	typedef Queue<uint>					SignalQueueTp;
 	typedef Stack<uint>					FreeStackTp;
+	struct FileExtData{
+		FileExtData(File *_pfile = NULL):pfile(_pfile){}
+		File	*pfile;
+	};
 	struct FileData{
-		FileData(File *_pfile = NULL):pfile(_pfile), toutidx(-1), uid(0){}
+		FileData(File *_pfile = NULL):pfile(_pfile), toutidx(-1), uid(0), tout(0xffffffff){}
+		FileData(const FileExtData &_rfext):pfile(_rfext.pfile), toutidx(-1), uid(0), tout(0xffffffff){}
 		File		*pfile;
 		int32		toutidx;
 		uint32		uid;
 		TimeSpec	tout;
 	};
 	typedef std::deque<FileData>		FileVectorTp;
+	typedef std::deque<FileExtData>		FileExtVectorTp;
 	typedef std::deque<int32>			TimeoutVectorTp;
 	typedef std::vector<FileMapper*>	FileMapperVectorTp;
-	Data(uint32 _maxsz):maxsz(_maxsz),sz(0), mut(NULL){}
+	Data(uint32 _maxsz):maxsz(_maxsz),sz(0), freeidx(0), mut(NULL){}
 	int  fileWrite(uint _fileid, const char *_pb, uint32 _bl, uint32 _flags);
 	int  fileRead(uint _fileid, char *_pb, uint32 _bl, uint32 _flags);
 	int  fileSize(uint _fileid);
 	unsigned createFilePosition();
 	void collectFilePosition(unsigned _pos);
+	unsigned createFilePositionExt();
+	void collectFilePositionExt(unsigned _pos);
 	void eraseToutPos(unsigned _pos);
 	
 	const uint32			maxsz;
 	uint32					sz;
+	uint32					freeidx;
 	Mutex					*mut;
 	MutexContainer			mutpool;
 	FileVectorTp			fv;//file vector
+	FileExtVectorTp			fextv;
 	SignalQueueTp			sq;//stream queue
 	SignalQueueTp			oq;//open queue
 	FileMapperVectorTp		mv;
@@ -180,6 +190,7 @@ struct FileManager::Data{
 //	FileManager definitions ==================================================
 FileManager::FileManager(uint32 _maxfcnt):d(*(new Data(_maxfcnt))){
 	state(Data::Running);
+	//TODO: add some empty filedatas to fv and to fs
 }
 
 FileManager::~FileManager(){
@@ -194,12 +205,22 @@ NOTE:
 
 int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 	d.mut->lock();
+	//before anything, we move from fextv to fv:
+	if(d.fextv.size()){
+		for(Data::FileExtVectorTp::const_iterator it(d.fextv.begin()); it != d.fextv.end(); ++it){
+			d.fv.push_back(Data::FileData(*it));
+		}
+		d.fextv.clear();
+		d.freeidx = 0;
+		//TODO: add some more empty filedatas to fv and to fs
+	}
 	if(signaled()){
 		ulong sm = grabSignalMask(0);
 		idbg("signalmask "<<sm);
 		if(sm & cs::S_KILL){
 			state(Data::Stopping);
 			if(!d.sz){//no file
+				state(-1);
 				d.mut->unlock();
 				Server::the().removeFileManager();
 				return BAD;
@@ -351,21 +372,23 @@ int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 	if(state() != Data::Running){
 		if(!d.sz){
 			Server::the().removeFileManager();
+			state(-1);//TODO: is there a pb that mut is not locked?!
 			return BAD;
 		}else{
 			return NOK;
 		}
 	}
-	if((_evs & TIMEOUT)){
+	if((_evs & TIMEOUT) && _rtout <= d.tout){
 		//scan all files for timeout
 		//as we change the fv[].tout only in this thread - no need for locking while scanning
+		TimeSpec tout(0xffffffff);
 		for(Data::TimeoutVectorTp::const_iterator it(d.toutv.begin()); it != d.toutv.end();){
 			Data::FileData &rf(d.fv[*it]);
-			if(_rtout > d.fv[*it].tout){
+			if(_rtout > rf.tout){
 				{
 					Mutex &rm(d.mutpool.object(*it));
 					rm.lock();
-				//if(rf.pfile){//pfile is set to null only in this thread - the file will not be in toutv
+					//if(rf.pfile){//pfile is set to null only in this thread - the file will not be in toutv
 					if(!rf.pfile->inUse()){
 						FileUidTp 		fuid(ofront, d.fv[*it].uid);
 						rf.pfile->clear(*this, fuid);
@@ -388,8 +411,12 @@ int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 				d.toutv[it - d.toutv.begin()] = d.toutv.back();
 				d.toutv.pop_back();
 				if(d.toutv.empty()) break;
-			}else ++it;
+			}else{
+				if(rf.tout < tout) tout = rf.tout;
+				++it;
+			}
 		}
+		d.tout = tout;
 	}
 	if(d.toutv.size()) _rtout = d.tout;
 	return NOK;
@@ -556,6 +583,7 @@ int FileManager::stream(
 	uint32 _flags
 ){
 	//TODO:
+	return BAD;
 }
 int FileManager::stream(
 	StreamPtr<OStream> &_sptr,
@@ -565,14 +593,13 @@ int FileManager::stream(
 	uint32 _flags
 ){
 	//TODO:
+	return BAD;
 }
 
 /*
 	NOTE:
-	The tmp file creation will be handled by TempFileKey
-	which:
-		- on find will allways return -1
-		-
+	In order to be able to scan d.fv within the manager's execute without locking,
+	we must ensure that the vector is not resized outside execute.
 */
 int FileManager::stream(
 	StreamPtr<IOStream> &_sptr,
@@ -583,8 +610,8 @@ int FileManager::stream(
 ){	
 	Mutex::Locker	lock(*d.mut);
 	if(state() != Data::Running) return BAD;
-	int fid = _rk.find(*this);
-	if(fid >= 0){//the file is already open
+	uint32 fid = _rk.find(*this);
+	if(fid < d.fv.size()){//the file is already open
 		Mutex::Locker	lock2(d.mutpool.object(fid));
 		if(d.fv[fid].pfile){
 			//try to get a stream from it.
@@ -601,10 +628,24 @@ int FileManager::stream(
 					return NOK;
 			}
 		}
+	}else if(fid != -1){
+		//the file is created but is not on d.fv
+		Mutex::Locker	lock2(d.mutpool.object(fid));
+		switch(d.fextv[fid].pfile->stream(*this, fid, _sptr, _requid, _flags | ForcePending)){
+			case BAD:
+				//we cant get the stream - not now and not ever
+				return BAD;
+			case OK:
+				assert(false);
+				return NOK;
+			case NOK:
+				//we should wait for the stream
+				return NOK;
+		}
 	}
 	//the file is not open
 	//first create the file object:
-	unsigned pos = d.createFilePosition();
+	uint32 pos = d.createFilePositionExt();
 	File *pf = new File(*_rk.clone(), _flags);
 	//now try to open the file:
 	if(d.sz < d.maxsz){
@@ -619,12 +660,28 @@ int FileManager::stream(
 				++d.sz;
 				pf->key().insert(*this, pos);
 				_rfuid.first = pos;
-				_rfuid.second = d.fv[pos].uid;
 				Mutex::Locker	lock2(d.mutpool.object(fid));
-				d.fv[pos].pfile = pf;
-				d.fv[pos].pfile->stream(*this, pos, _sptr, _requid, _flags);//MUST NOT FAIL
-				assert(_sptr.ptr());
-				return OK;
+				if(pos < d.fv.size()){
+					_rfuid.second = d.fv[pos].uid;
+					d.fv[pos].pfile = pf;
+					pf->stream(*this, pos, _sptr, _requid, _flags);//MUST NOT FAIL
+					assert(_sptr.ptr());
+					return OK;
+				}else if(!(_flags & NoWait)){
+					//no stream is given while not in fv
+					_rfuid.second = 0;
+					d.fextv.push_back(Data::FileExtData(pf));
+					pf->stream(*this, pos, _sptr, _requid, _flags | ForcePending);
+					d.sq.push(pos);
+					if(static_cast<cs::Object*>(this)->signal((int)cs::S_RAISE)){
+						Server::the().raiseObject(*this);
+					}
+					return NOK;
+				}else{
+					delete pf;
+					d.collectFilePositionExt(pos);
+					return BAD;
+				}
 			}
 			case NOK:break;
 		}
@@ -632,17 +689,28 @@ int FileManager::stream(
 	//we cant open file for now - no more fds etc
 	if(_flags & NoWait){
 		delete pf;
-		d.collectFilePosition(pos);
+		d.collectFilePositionExt(pos);
 		return BAD;
 	}
 	//register into a mapper
 	pf->key().insert(*this, pos);
 	_rfuid.first = pos;
-	_rfuid.second = d.fv[pos].uid;
 	Mutex::Locker	lock2(d.mutpool.object(fid));
-	d.fv[pos].pfile = pf;
-	d.fv[pos].pfile->stream(*this, pos, _sptr, _requid, _flags);//WILL FAIL
+	if(pos < d.fv.size()){
+		_rfuid.second = d.fv[pos].uid;
+		d.fv[pos].pfile = pf;
+		pf->stream(*this, pos, _sptr, _requid, _flags);//WILL FAIL: NOK
+		assert(_sptr.ptr());
+	}else{
+		//no stream is given while not in fv
+		_rfuid.second = 0;
+		d.fextv.push_back(Data::FileExtData(pf));
+		pf->stream(*this, pos, _sptr, _requid, _flags | ForcePending);
+	}
 	d.oq.push(pos);
+	if(static_cast<cs::Object*>(this)->signal((int)cs::S_RAISE)){
+		Server::the().raiseObject(*this);
+	}
 	return NOK;
 }
 
@@ -722,12 +790,15 @@ FileMapper* FileManager::doGetMapper(unsigned _id, FileMapper *_pm){
 		assert(_id < d.mv.size() && d.mv[_id]);
 		return d.mv[_id];
 	}else{
-		if(_id < d.mv.size()){
+		if(_id >= d.mv.size()){
 			unsigned oldsize = d.mv.size();
 			d.mv.resize(_id + 1);
 			for(unsigned i = oldsize; i < _id; ++i){
 				d.mv[i] = NULL;
 			}
+			d.mv[_id] = _pm;
+			return _pm;
+		}else{
 			d.mv[_id] = _pm;
 			return _pm;
 		}
@@ -773,6 +844,29 @@ void FileManager::Data::collectFilePosition(unsigned _pos){
 	--sz;
 	++fv[_pos].uid;
 }
+//used outside execute
+unsigned FileManager::Data::createFilePositionExt(){
+	if(fs.size()){
+		uint t = fs.top();
+		fs.pop();
+		return t;
+	}else{
+		++freeidx;
+		return fv.size() + freeidx - 1;
+	}
+}
+//used outside execute
+void FileManager::Data::collectFilePositionExt(unsigned _pos){
+	if(_pos < fv.size()){
+		fs.push(_pos);
+		--sz;
+		++fv[_pos].uid;
+	}else{
+		--freeidx;
+		assert((_pos - fv.size()) != freeidx);
+	}
+}
+
 void FileManager::Data::eraseToutPos(unsigned _pos){
 	assert(_pos < toutv.size());
 	toutv[_pos] = toutv.back();
@@ -796,7 +890,7 @@ int64 FileIStream::seek(int64 _off, SeekRef _ref){
 	return off;
 }
 int64 FileIStream::size()const{
-	rd.fileSize(fileid);
+	return rd.fileSize(fileid);
 }
 
 //--------------------------------------------------------------------------
@@ -817,7 +911,7 @@ int64 FileOStream::seek(int64 _off, SeekRef _ref){
 }
 
 int64 FileOStream::size()const{
-	rd.fileSize(fileid);
+	return rd.fileSize(fileid);
 }
 
 //--------------------------------------------------------------------------
@@ -843,7 +937,7 @@ int64 FileIOStream::seek(int64 _off, SeekRef _ref){
 }
 
 int64 FileIOStream::size()const{
-	rd.fileSize(fileid);
+	return rd.fileSize(fileid);
 }
 
 //--------------------------------------------------------------------------
@@ -875,8 +969,9 @@ int File::open(FileManager &_rsm, uint _fileid){
 
 int File::stream(FileManager& _rsm, uint _fileid, StreamPtr<IStream> &_sptr, const FileManager::RequestUid &_roi, uint32 _flags){
 	{
-		//TODO: consider FileManager::Forced 
-		if(!state || ousecnt || owq.size()){//no writers and no writers waiting
+		if(_flags & FileManager::Forced){
+			if(!state || _flags & FileManager::ForcePending) return BAD;
+		}else if(!state || ousecnt || owq.size() || _flags & FileManager::ForcePending){//no writers and no writers waiting
 			iwq.push(WaitData(_roi, _flags));
 			return NOK;
 		}
@@ -890,8 +985,8 @@ int File::stream(FileManager& _rsm, uint _fileid, StreamPtr<OStream> &_sptr, con
 	{
 		if(_flags & FileManager::Forced){
 			//TODO: maybe you dont need owq.size() too
-			if(!state || ousecnt || owq.size()) return BAD;
-		}else if(!state || ousecnt || iusecnt || owq.size()){
+			if(!state || ousecnt || owq.size() || _flags & FileManager::ForcePending) return BAD;
+		}else if(!state || ousecnt || iusecnt || owq.size() || _flags & FileManager::ForcePending){
 			owq.push(WaitData(_roi, _flags));
 			return NOK;
 		}
@@ -905,8 +1000,8 @@ int File::stream(FileManager& _rsm, uint _fileid, StreamPtr<IOStream> &_sptr, co
 	{
 		if(_flags & FileManager::Forced){
 			//TODO: maybe you dont need owq.size() too
-			if(!state || ousecnt || owq.size()) return BAD;
-		}else if(!state || ousecnt || iusecnt || owq.size()){
+			if(!state || ousecnt || owq.size() || _flags & FileManager::ForcePending) return BAD;
+		}else if(!state || ousecnt || iusecnt || owq.size() || _flags & FileManager::ForcePending){
 			owq.push(WaitData(_roi, _flags | FileManager::IOStreamRequest));
 			return NOK;
 		}

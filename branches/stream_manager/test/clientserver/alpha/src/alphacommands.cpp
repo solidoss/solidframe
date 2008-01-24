@@ -481,6 +481,7 @@ int Store::receiveOStream(
 		const clientserver::ipc::ConnectorUid *
 	){
 	sp = _sptr;
+	return OK;
 }
 int Store::error(int _err){
 	st = BAD;
