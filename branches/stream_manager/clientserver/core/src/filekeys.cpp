@@ -144,7 +144,9 @@ void TempFileKey::insert(FileManager &_fm, uint32 _fileid)const{
 void TempFileKey::erase(FileManager &_fm, uint32 _fileid)const{
 	TempFileMapper *pm(_fm.mapper<TempFileMapper>());
 	assert(pm);
-	
+	string fname;
+	pm->createFileName(fname, _fileid);
+	Directory::eraseFile(fname.c_str());
 }
 
 static TempFileKey tempk;

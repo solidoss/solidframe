@@ -103,4 +103,6 @@ bool FileDevice::canRetryOpen()const{
 	return mkdir(_path,  S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 }
 
-
+/*static*/ int Directory::eraseFile(const char *_path){
+	return unlink(_path);
+}

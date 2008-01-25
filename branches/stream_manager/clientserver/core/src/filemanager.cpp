@@ -483,7 +483,7 @@ int FileManager::stream(
 		return stream(_sptr, _rfuid, _rrequid, k, _flags);
 	}else{
 		TempFileKey k;
-		return stream(_sptr, _rfuid, _rrequid, k, _flags);
+		return stream(_sptr, _rfuid, _rrequid, k, _flags | Create);
 	}
 }
 
@@ -499,7 +499,7 @@ int FileManager::stream(
 		return stream(_sptr, _rfuid, _rrequid, k, _flags);
 	}else{
 		TempFileKey k;
-		return stream(_sptr, _rfuid, _rrequid, k, _flags);
+		return stream(_sptr, _rfuid, _rrequid, k, _flags | Create);
 	}
 }
 
@@ -515,7 +515,7 @@ int FileManager::stream(
 		return stream(_sptr, _rfuid, _rrequid, k, _flags);
 	}else{
 		TempFileKey k;
-		return stream(_sptr, _rfuid, _rrequid, k, _flags);
+		return stream(_sptr, _rfuid, _rrequid, k, _flags | Create);
 	}
 }
 //-------------------------------------------------------------------------------------
@@ -527,7 +527,7 @@ int FileManager::stream(StreamPtr<IStream> &_sptr, const char *_fn, uint32 _flag
 		return stream(_sptr, fuid, requid, k, _flags | NoWait);
 	}else{
 		TempFileKey k;
-		return stream(_sptr, fuid, requid, k, _flags | NoWait);
+		return stream(_sptr, fuid, requid, k, _flags | NoWait | Create);
 	}
 }
 
@@ -539,7 +539,7 @@ int FileManager::stream(StreamPtr<OStream> &_sptr, const char *_fn, uint32 _flag
 		return stream(_sptr, fuid, requid, k, _flags | NoWait);
 	}else{
 		TempFileKey k;
-		return stream(_sptr, fuid, requid, k, _flags | NoWait);
+		return stream(_sptr, fuid, requid, k, _flags | NoWait | Create);
 	}
 }
 
@@ -551,7 +551,7 @@ int FileManager::stream(StreamPtr<IOStream> &_sptr, const char *_fn, uint32 _fla
 		return stream(_sptr, fuid, requid, k, _flags | NoWait);
 	}else{
 		TempFileKey k;
-		return stream(_sptr, fuid, requid, k, _flags | NoWait);
+		return stream(_sptr, fuid, requid, k, _flags | NoWait | Create);
 	}
 }
 //-------------------------------------------------------------------------------------
@@ -627,7 +627,7 @@ int FileManager::stream(
 			case BAD:
 				//unable to open file - not now not ever
 				delete pf;
-				d.collectFilePosition(pos);
+				d.collectFilePositionExt(pos);
 				return BAD;
 			case OK:{
 				//register into a mapper
@@ -739,7 +739,7 @@ int FileManager::stream(
 			case BAD:
 				//unable to open file - not now not ever
 				delete pf;
-				d.collectFilePosition(pos);
+				d.collectFilePositionExt(pos);
 				return BAD;
 			case OK:{
 				//register into a mapper
@@ -857,7 +857,7 @@ int FileManager::stream(
 			case BAD:
 				//unable to open file - not now not ever
 				delete pf;
-				d.collectFilePosition(pos);
+				d.collectFilePositionExt(pos);
 				return BAD;
 			case OK:{
 				//register into a mapper
@@ -1067,7 +1067,7 @@ void FileManager::Data::collectFilePositionExt(unsigned _pos){
 		++fv[_pos].uid;
 	}else{
 		--freeidx;
-		assert((_pos - fv.size()) != freeidx);
+		assert((_pos - fv.size()) == freeidx);
 	}
 }
 

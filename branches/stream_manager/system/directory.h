@@ -25,6 +25,7 @@
 class Directory{
 public:
 	static int create(const char *);
+	static int eraseFile(const char *);
 };
 
 #endif

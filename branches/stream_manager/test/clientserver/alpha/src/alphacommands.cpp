@@ -437,7 +437,7 @@ int Store::reinitReader(Reader &_rr, protocol::Parameter &_rp){
 	switch(_rp.b.i){
 		case Init:{
 			cs::FileManager::RequestUid reqid(rc.id(), Server::the().uid(rc), rc.newRequestId());
-			int rv = Server::the().fileManager().stream(sp, reqid, NULL/*strpth.c_str(), cs::FileManager::Create*/);
+			int rv = Server::the().fileManager().stream(sp, reqid, strpth.c_str(), cs::FileManager::Create);
 			switch(rv){
 				case BAD: return Reader::Ok;
 				case OK:

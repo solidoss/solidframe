@@ -20,6 +20,7 @@
 */
 
 #include "debug.h"
+#include "directory.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -34,6 +35,7 @@ const int Dbg::fileoff = (strstr(__FILE__, "system/src") - __FILE__);//sizeof("w
 void initDebug(const char *_prefix){
 	#ifdef UDEBUG
 	std::ios_base::sync_with_stdio (false);
+	Directory::create("dbg");
 	char *name = new char[strlen(_prefix)+50];
 	sprintf(name,"%s%u.dbg",_prefix,getpid());
 	printf("debug file: [%s]\r\n",name);
