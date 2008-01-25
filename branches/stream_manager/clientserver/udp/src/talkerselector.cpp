@@ -251,9 +251,11 @@ int TalkerSelector::doExecute(SelTalker &_rch, ulong _evs, TimeSpec &_rcrttout, 
 					_rev.data.ptr = &_rch;
 					assert(!epoll_ctl(epfd, EPOLL_CTL_MOD, rcon.station().descriptor(), &_rev));
 				}
-				if(_rcrttout == ctimepos){
+				if(_rcrttout != ctimepos){
 					_rch.timepos = _rcrttout;
-					if(ntimepos > _rch.timepos) ntimepos = _rch.timepos;
+					if(ntimepos > _rcrttout){
+						ntimepos = _rcrttout;
+					}
 				}else{
 					_rch.timepos.set(0xFFFFFFFF);
 				}

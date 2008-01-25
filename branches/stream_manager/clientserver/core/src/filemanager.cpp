@@ -54,7 +54,7 @@ struct LessStrCmp{
 	}
 };
 
-typedef FileManager::RequestUid RequestUidTp;
+typedef FileManager::RequestUid FMRequestUidTp;
 
 //------------------------------------------------------------------------------
 class File: public FileDevice{
@@ -70,9 +70,9 @@ public:
 	int open(FileManager &_rsm, uint32 _flags);
 // 	int read(char *, uint32, int64);
 // 	int write(const char *, uint32, int64);
-	int stream(FileManager& _rsm, uint _fileid, StreamPtr<IStream> &_sptr, const RequestUidTp &_roi, uint32 _flags);
-	int stream(FileManager& _rsm, uint _fileid, StreamPtr<OStream> &_sptr, const RequestUidTp &_roi, uint32 _flags);
-	int stream(FileManager& _rsm, uint _fileid, StreamPtr<IOStream> &_sptr, const RequestUidTp &_roi, uint32 _flags);
+	int stream(FileManager& _rsm, uint _fileid, StreamPtr<IStream> &_sptr, const FMRequestUidTp &_roi, uint32 _flags);
+	int stream(FileManager& _rsm, uint _fileid, StreamPtr<OStream> &_sptr, const FMRequestUidTp &_roi, uint32 _flags);
+	int stream(FileManager& _rsm, uint _fileid, StreamPtr<IOStream> &_sptr, const FMRequestUidTp &_roi, uint32 _flags);
 	//int64 size()const;
 	bool decreaseOutCount();
 	bool decreaseInCount();
@@ -85,8 +85,8 @@ public:
 private:
 	bool signalStreams(FileManager &_rsm, const FileUidTp &_fuid);
 	struct WaitData{
-		WaitData(const RequestUidTp &_rrequid, uint32 _flags):requid(_rrequid), flags(_flags){}
-		RequestUidTp	requid;
+		WaitData(const FMRequestUidTp &_rrequid, uint32 _flags):requid(_rrequid), flags(_flags){}
+		FMRequestUidTp	requid;
 		uint32			flags;
 	};
 	typedef Queue<WaitData>		WaitQueueTp;
@@ -582,8 +582,110 @@ int FileManager::stream(
 	const FileKey &_rk,
 	uint32 _flags
 ){
-	//TODO:
-	return BAD;
+	Mutex::Locker	lock(*d.mut);
+	if(state() != Data::Running) return BAD;
+	uint32 fid = _rk.find(*this);
+	if(fid < d.fv.size()){//the file is already open
+		Mutex::Locker	lock2(d.mutpool.object(fid));
+		if(d.fv[fid].pfile){
+			//try to get a stream from it.
+			switch(d.fv[fid].pfile->stream(*this, fid, _sptr, _requid, _flags)){
+				case BAD:
+					//we cant get the stream - not now and not ever
+					return BAD;
+				case OK:
+					_rfuid.first = fid;
+					_rfuid.second = d.fv[fid].uid;
+					return OK;
+				case NOK:
+					//we should wait for the stream
+					return NOK;
+			}
+		}
+	}else if(fid != -1){
+		//the file is created but is not on d.fv
+		Mutex::Locker	lock2(d.mutpool.object(fid));
+		switch(d.fextv[fid].pfile->stream(*this, fid, _sptr, _requid, _flags | ForcePending)){
+			case BAD:
+				//we cant get the stream - not now and not ever
+				return BAD;
+			case OK:
+				assert(false);
+				return NOK;
+			case NOK:
+				//we should wait for the stream
+				return NOK;
+		}
+	}
+	//the file is not open
+	//first create the file object:
+	uint32 pos = d.createFilePositionExt();
+	File *pf = new File(*_rk.clone(), _flags);
+	//now try to open the file:
+	if(d.sz < d.maxsz){
+		switch(pf->open(*this, pos)){
+			case BAD:
+				//unable to open file - not now not ever
+				delete pf;
+				d.collectFilePosition(pos);
+				return BAD;
+			case OK:{
+				//register into a mapper
+				++d.sz;
+				pf->key().insert(*this, pos);
+				_rfuid.first = pos;
+				Mutex::Locker	lock2(d.mutpool.safeObject(pos));
+				if(pos < d.fv.size()){
+					_rfuid.second = d.fv[pos].uid;
+					d.fv[pos].pfile = pf;
+					pf->stream(*this, pos, _sptr, _requid, _flags);//MUST NOT FAIL
+					assert(_sptr.ptr());
+					return OK;
+				}else if(!(_flags & NoWait)){
+					//no stream is given while not in fv
+					_rfuid.second = 0;
+					d.fextv.push_back(Data::FileExtData(pf));
+					pf->stream(*this, pos, _sptr, _requid, _flags | ForcePending);
+					d.sq.push(pos);
+					if(static_cast<cs::Object*>(this)->signal((int)cs::S_RAISE)){
+						Server::the().raiseObject(*this);
+					}
+					return NOK;
+				}else{
+					delete pf;
+					d.collectFilePositionExt(pos);
+					return BAD;
+				}
+			}
+			case NOK:break;
+		}
+	}
+	//we cant open file for now - no more fds etc
+	if(_flags & NoWait){
+		delete pf;
+		d.collectFilePositionExt(pos);
+		return BAD;
+	}
+	//register into a mapper
+	pf->key().insert(*this, pos);
+	_rfuid.first = pos;
+	Mutex::Locker	lock2(d.mutpool.safeObject(pos));
+	if(pos < d.fv.size()){
+		_rfuid.second = d.fv[pos].uid;
+		d.fv[pos].pfile = pf;
+		pf->stream(*this, pos, _sptr, _requid, _flags);//WILL FAIL: NOK
+		assert(_sptr.ptr());
+	}else{
+		//no stream is given while not in fv
+		_rfuid.second = 0;
+		d.fextv.push_back(Data::FileExtData(pf));
+		pf->stream(*this, pos, _sptr, _requid, _flags | ForcePending);
+	}
+	d.oq.push(pos);
+	if(static_cast<cs::Object*>(this)->signal((int)cs::S_RAISE)){
+		Server::the().raiseObject(*this);
+	}
+	return NOK;
 }
 int FileManager::stream(
 	StreamPtr<OStream> &_sptr,
@@ -592,8 +694,110 @@ int FileManager::stream(
 	const FileKey &_rk,
 	uint32 _flags
 ){
-	//TODO:
-	return BAD;
+	Mutex::Locker	lock(*d.mut);
+	if(state() != Data::Running) return BAD;
+	uint32 fid = _rk.find(*this);
+	if(fid < d.fv.size()){//the file is already open
+		Mutex::Locker	lock2(d.mutpool.object(fid));
+		if(d.fv[fid].pfile){
+			//try to get a stream from it.
+			switch(d.fv[fid].pfile->stream(*this, fid, _sptr, _requid, _flags)){
+				case BAD:
+					//we cant get the stream - not now and not ever
+					return BAD;
+				case OK:
+					_rfuid.first = fid;
+					_rfuid.second = d.fv[fid].uid;
+					return OK;
+				case NOK:
+					//we should wait for the stream
+					return NOK;
+			}
+		}
+	}else if(fid != -1){
+		//the file is created but is not on d.fv
+		Mutex::Locker	lock2(d.mutpool.object(fid));
+		switch(d.fextv[fid].pfile->stream(*this, fid, _sptr, _requid, _flags | ForcePending)){
+			case BAD:
+				//we cant get the stream - not now and not ever
+				return BAD;
+			case OK:
+				assert(false);
+				return NOK;
+			case NOK:
+				//we should wait for the stream
+				return NOK;
+		}
+	}
+	//the file is not open
+	//first create the file object:
+	uint32 pos = d.createFilePositionExt();
+	File *pf = new File(*_rk.clone(), _flags);
+	//now try to open the file:
+	if(d.sz < d.maxsz){
+		switch(pf->open(*this, pos)){
+			case BAD:
+				//unable to open file - not now not ever
+				delete pf;
+				d.collectFilePosition(pos);
+				return BAD;
+			case OK:{
+				//register into a mapper
+				++d.sz;
+				pf->key().insert(*this, pos);
+				_rfuid.first = pos;
+				Mutex::Locker	lock2(d.mutpool.safeObject(pos));
+				if(pos < d.fv.size()){
+					_rfuid.second = d.fv[pos].uid;
+					d.fv[pos].pfile = pf;
+					pf->stream(*this, pos, _sptr, _requid, _flags);//MUST NOT FAIL
+					assert(_sptr.ptr());
+					return OK;
+				}else if(!(_flags & NoWait)){
+					//no stream is given while not in fv
+					_rfuid.second = 0;
+					d.fextv.push_back(Data::FileExtData(pf));
+					pf->stream(*this, pos, _sptr, _requid, _flags | ForcePending);
+					d.sq.push(pos);
+					if(static_cast<cs::Object*>(this)->signal((int)cs::S_RAISE)){
+						Server::the().raiseObject(*this);
+					}
+					return NOK;
+				}else{
+					delete pf;
+					d.collectFilePositionExt(pos);
+					return BAD;
+				}
+			}
+			case NOK:break;
+		}
+	}
+	//we cant open file for now - no more fds etc
+	if(_flags & NoWait){
+		delete pf;
+		d.collectFilePositionExt(pos);
+		return BAD;
+	}
+	//register into a mapper
+	pf->key().insert(*this, pos);
+	_rfuid.first = pos;
+	Mutex::Locker	lock2(d.mutpool.safeObject(pos));
+	if(pos < d.fv.size()){
+		_rfuid.second = d.fv[pos].uid;
+		d.fv[pos].pfile = pf;
+		pf->stream(*this, pos, _sptr, _requid, _flags);//WILL FAIL: NOK
+		assert(_sptr.ptr());
+	}else{
+		//no stream is given while not in fv
+		_rfuid.second = 0;
+		d.fextv.push_back(Data::FileExtData(pf));
+		pf->stream(*this, pos, _sptr, _requid, _flags | ForcePending);
+	}
+	d.oq.push(pos);
+	if(static_cast<cs::Object*>(this)->signal((int)cs::S_RAISE)){
+		Server::the().raiseObject(*this);
+	}
+	return NOK;
 }
 
 /*
@@ -660,7 +864,7 @@ int FileManager::stream(
 				++d.sz;
 				pf->key().insert(*this, pos);
 				_rfuid.first = pos;
-				Mutex::Locker	lock2(d.mutpool.object(fid));
+				Mutex::Locker	lock2(d.mutpool.safeObject(pos));
 				if(pos < d.fv.size()){
 					_rfuid.second = d.fv[pos].uid;
 					d.fv[pos].pfile = pf;
@@ -695,7 +899,7 @@ int FileManager::stream(
 	//register into a mapper
 	pf->key().insert(*this, pos);
 	_rfuid.first = pos;
-	Mutex::Locker	lock2(d.mutpool.object(fid));
+	Mutex::Locker	lock2(d.mutpool.safeObject(pos));
 	if(pos < d.fv.size()){
 		_rfuid.second = d.fv[pos].uid;
 		d.fv[pos].pfile = pf;
@@ -960,10 +1164,14 @@ int File::open(FileManager &_rsm, uint _fileid){
 				if(canRetryOpen()) return NOK;//will return true if errno is ENFILE or ENOMEM
 				return BAD;
 			}else{
+				state = Opened;
 				return OK;
 			}
+		}else{
+			return BAD;
 		}
 	}
+	state = Opened;
 	return OK;
 }
 
@@ -1091,10 +1299,10 @@ bool File::signalStreams(FileManager &_rsm, const FileUidTp &_fuid){
 		if(iusecnt) return true;
 		if(owq.front().flags & FileManager::IOStreamRequest){
 			StreamPtr<IOStream> sptr(new FileIOStream(_rsm.d, _fuid.first));
-			_rsm.sendStream(sptr, _fuid, iwq.front().requid);
+			_rsm.sendStream(sptr, _fuid, owq.front().requid);
 		}else{
 			StreamPtr<OStream> sptr(new FileOStream(_rsm.d, _fuid.first));
-			_rsm.sendStream(sptr, _fuid, iwq.front().requid);
+			_rsm.sendStream(sptr, _fuid, owq.front().requid);
 		}
 		++ousecnt;
 		owq.pop();

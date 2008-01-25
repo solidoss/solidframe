@@ -39,6 +39,7 @@
 #include "clientserver/core/selectpool.h"
 #include "clientserver/core/execpool.h"
 #include "clientserver/core/filemanager.h"
+#include "clientserver/core/filekeys.h"
 #include "clientserver/tcp/connectionselector.h"
 #include "clientserver/tcp/connection.h"
 #include "clientserver/tcp/listenerselector.h"
@@ -46,6 +47,7 @@
 #include "clientserver/udp/talkerselector.h"
 #include "clientserver/udp/talker.h"
 #include "clientserver/core/objectselector.h"
+#include "clientserver/core/commandexecuter.h"
 
 #include "clientserver/ipc/ipcservice.h"
 
@@ -82,6 +84,7 @@ struct IStreamCommand: test::Command{
 	IStreamCommand(StreamPtr<IStream> &_sptr, const FileUidTp &_rfuid, const RequestUidTp &_requid):sptr(_sptr), fileuid(_rfuid), requid(_requid){}
 	int execute(Connection &_pcon);
 	int execute(Object &_pobj);
+	int execute(cs::CommandExecuter&, const CommandUidTp &);
 	StreamPtr<IStream>	sptr;
 	FileUidTp			fileuid;
 	RequestUidTp		requid;
@@ -95,11 +98,16 @@ int IStreamCommand::execute(Object &_robj){
 	return _robj.receiveIStream(sptr, fileuid, requid);
 }
 
+int IStreamCommand::execute(cs::CommandExecuter& _rce, const CommandUidTp &){
+	_rce.receiveIStream(sptr, fileuid, requid);
+	return BAD;
+}
 
 struct OStreamCommand: test::Command{
 	OStreamCommand(StreamPtr<OStream> &_sptr, const FileUidTp &_rfuid, const RequestUidTp &_requid):sptr(_sptr), fileuid(_rfuid), requid(_requid){}
 	int execute(Connection &_pcon);
 	int execute(Object &_pobj);
+	int execute(cs::CommandExecuter&, const CommandUidTp &);
 	StreamPtr<OStream>	sptr;
 	FileUidTp			fileuid;
 	RequestUidTp		requid;
@@ -112,12 +120,16 @@ int OStreamCommand::execute(Connection &_rcon){
 int OStreamCommand::execute(Object &_robj){
 	return _robj.receiveOStream(sptr, fileuid, requid);
 }
-
+int OStreamCommand::execute(cs::CommandExecuter& _rce, const CommandUidTp &){
+	_rce.receiveOStream(sptr, fileuid, requid);
+	return BAD;
+}
 
 struct IOStreamCommand: test::Command{
 	IOStreamCommand(StreamPtr<IOStream> &_sptr, const FileUidTp &_rfuid, const RequestUidTp &_requid):sptr(_sptr), fileuid(_rfuid), requid(_requid){}
 	int execute(Connection &_pcon);
 	int execute(Object &_pobj);
+	int execute(cs::CommandExecuter&, const CommandUidTp &);
 	StreamPtr<IOStream>	sptr;
 	FileUidTp			fileuid;
 	RequestUidTp		requid;
@@ -131,11 +143,16 @@ int IOStreamCommand::execute(Object &_robj){
 	return _robj.receiveIOStream(sptr, fileuid, requid);
 }
 
+int IOStreamCommand::execute(cs::CommandExecuter& _rce, const CommandUidTp &){
+	_rce.receiveIOStream(sptr, fileuid, requid);
+	return BAD;
+}
 
 struct StreamErrorCommand: test::Command{
 	StreamErrorCommand(int _errid, const RequestUidTp &_requid):errid(_errid), requid(_requid){}
 	int execute(Connection &_pcon);
 	int execute(Object &_pobj);
+	int execute(cs::CommandExecuter&, const CommandUidTp &);
 	int				errid;
 	RequestUidTp	requid;
 };
@@ -146,7 +163,10 @@ int StreamErrorCommand::execute(Connection &_rcon){
 int StreamErrorCommand::execute(Object &_robj){
 	return _robj.receiveError(errid, requid);
 }
-
+int StreamErrorCommand::execute(cs::CommandExecuter& _rce, const CommandUidTp &){
+	_rce.receiveError(errid, requid);
+	return BAD;
+}
 
 class FileManager: public cs::FileManager{
 public:
@@ -220,6 +240,8 @@ struct Server::Data{
 	ConSelPoolTp					*pconnectionpool;
 	LisSelPoolTp					*plistenerpool;
 	TkrSelPoolTp					*ptalkerpool;
+	cs::ObjPtr<cs::CommandExecuter>	readcmdexec;
+	cs::ObjPtr<cs::CommandExecuter>	writecmdexec;
 };
 
 //--------------------------------------------------------------------------
@@ -271,6 +293,8 @@ Server::Data::~Data(){
 	if(pobjectpool[1]) pobjectpool[1]->stop();
 	delete pobjectpool[0];
 	delete pobjectpool[1];
+	delete readcmdexec.release();
+	delete writecmdexec.release();
 }
 
 //----------------------------------------------------------------------------------
@@ -314,7 +338,19 @@ Server::Server():d(*(new Data(*this))){
 	if(true){
 		this->fileManager(new FileManager(50));
 		cs::Server::insertObject(&fileManager());
+		cs::NameFileKey::registerMapper(fileManager());
+		cs::TempFileKey::registerMapper(fileManager());
 		this->pushJob((cs::Object*)&fileManager());
+	}
+	if(true){
+		d.readcmdexec = new cs::CommandExecuter;
+		cs::Server::insertObject(d.readcmdexec.ptr());
+		this->pushJob((cs::Object*)d.readcmdexec.ptr());
+	}
+	if(true){
+		d.writecmdexec = new cs::CommandExecuter;
+		cs::Server::insertObject(d.writecmdexec.ptr());
+		this->pushJob((cs::Object*)d.writecmdexec.ptr());
 	}
 	if(true){
 		this->ipc(new IpcService(d.binmapper));
@@ -364,6 +400,15 @@ int Server::stop(const char *_which){
 		}
 	}
 	return OK;
+}
+
+void Server::readCommandExecuterUid(ObjectUidTp &_ruid){
+	_ruid.first = d.readcmdexec->id();
+	_ruid.second = uid(*d.readcmdexec);
+}
+void Server::writeCommandExecuterUid(ObjectUidTp &_ruid){
+	_ruid.first = d.writecmdexec->id();
+	_ruid.second = uid(*d.writecmdexec);
 }
 
 int Server::insertService(const char* _nm, Service* _psrvc){
@@ -497,6 +542,17 @@ int Connection::receiveString(
 	assert(false);
 	return BAD;
 }
+
+int Connection::receiveNumber(
+	const int64 &_no,
+	const RequestUidTp &_requid,
+	const ObjectUidTp&_from,
+	const clientserver::ipc::ConnectorUid *_conid
+){
+	assert(false);
+	return BAD;
+}
+
 int Connection::receiveError(
 	int _errid, 
 	const RequestUidTp &_requid,

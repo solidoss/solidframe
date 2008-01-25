@@ -296,9 +296,9 @@ int ConnectionSelector::doExecute(SelChannel &_rch, ulong _evs, TimeSpec &_crtto
 					_rev.data.ptr = &_rch;
 					assert(!epoll_ctl(epfd, EPOLL_CTL_MOD, rcon.channel().descriptor(), &_rev));
 				}
-				if(_crttout == ctimepos){
+				if(_crttout != ctimepos){
 					_rch.timepos = _crttout;
-					if(ntimepos > _rch.timepos) ntimepos = _rch.timepos;
+					if(ntimepos > _crttout) ntimepos = _crttout;
 				}else{
 					_rch.timepos.set(0xFFFFFFFF);
 				}

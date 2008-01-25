@@ -1,4 +1,4 @@
-/* Declarations file common.h
+/* Declarations file directory.h
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
@@ -19,41 +19,12 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CS_COMMON_H
-#define CS_COMMON_H
+#ifndef DIRECTORYPP_H
+#define DIRECTORYPP_H
 
-#include <utility>
-#include "utility/common.h"
-
-namespace clientserver{
-
-enum RetValEx {
-	LEAVE = CONTINUE + 1,
-	REGISTER, UNREGISTER, RTOUT, WTOUT, DONE
+class Directory{
+public:
+	static int create(const char *);
 };
-
-enum Signals{
-	//simple:
-	S_RAISE = 1,
-	S_UPDATE = 2,
-	S_CMD = 4,
-	S_KILL = 1<<8,
-	S_IDLE = 1<<9,
-	S_ERR  = 1<<10
-};
-
-enum Events{
-	OKDONE = 1, ERRDONE = 2, TIMEOUT = 4, INDONE = 8, OUTDONE = 16, SIGNALED = 32
-};
-
-enum Consts{
-	MAXTIMEOUT = (0xffffffff>>1)/1000
-};
-
-typedef std::pair<uint32, uint32> ObjectUidTp;
-typedef std::pair<uint32, uint32> CommandUidTp;
-typedef std::pair<uint32, uint32> FileUidTp;
-typedef std::pair<uint32, uint32> RequestUidTp;
-}
 
 #endif

@@ -99,6 +99,12 @@ public:
 		const ObjectUidTp &_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
+	/*virtual*/ int receiveNumber(
+		const int64 &_no, 
+		const RequestUidTp &_requid,
+		const ObjectUidTp &_from,
+		const clientserver::ipc::ConnectorUid *_conid
+	);
 	/*virtual*/ int receiveError(
 		int _errid, 
 		const RequestUidTp &_requid,

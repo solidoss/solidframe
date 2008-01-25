@@ -70,14 +70,17 @@ public:
 		const ObjectUidTp&_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
+	virtual int receiveNumber(
+		const int64 &_no, 
+		const ObjectUidTp&_from,
+		const clientserver::ipc::ConnectorUid *_conid
+	);
 	virtual int receiveError(
 		int _errid,
-		uint32 _reqid,
 		const ObjectUidTp&_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
 
-	virtual int receiveError(int);
 };
 
 

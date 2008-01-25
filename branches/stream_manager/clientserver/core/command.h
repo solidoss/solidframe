@@ -23,6 +23,13 @@
 #define CS_COMMAND_H
 
 #include "clientserver/core/common.h"
+#include "utility/streamptr.h"
+#include <string>
+
+class IStream;
+class OStream;
+class IOStream;
+
 
 namespace clientserver{
 namespace ipc{
@@ -39,6 +46,39 @@ struct Command{
 	virtual int execute(Object &);
 	virtual int execute(CommandExecuter&, const CommandUidTp &);
 	virtual int release();
+	virtual int receiveIStream(
+		StreamPtr<IStream> &,
+		const FileUidTp	&,
+		const ObjectUidTp&_from = ObjectUidTp(),
+		const ipc::ConnectorUid *_conid = NULL
+	);
+	virtual int receiveOStream(
+		StreamPtr<OStream> &,
+		const FileUidTp	&,
+		const ObjectUidTp&_from = ObjectUidTp(),
+		const ipc::ConnectorUid *_conid = NULL
+	);
+	virtual int receiveIOStream(
+		StreamPtr<IOStream> &,
+		const FileUidTp	&,
+		const ObjectUidTp&_from = ObjectUidTp(),
+		const ipc::ConnectorUid *_conid = NULL
+	);
+	virtual int receiveString(
+		const std::string &_str,
+		const ObjectUidTp&_from = ObjectUidTp(),
+		const ipc::ConnectorUid *_conid = NULL
+	);
+	virtual int receiveNumber(
+		const int64 &_no,
+		const ObjectUidTp&_from = ObjectUidTp(),
+		const ipc::ConnectorUid *_conid = NULL
+	);
+	virtual int receiveError(
+		int _errid, 
+		const ObjectUidTp&_from = ObjectUidTp(),
+		const ipc::ConnectorUid *_conid = NULL
+	);
 };
 }//namespace clientserver
 

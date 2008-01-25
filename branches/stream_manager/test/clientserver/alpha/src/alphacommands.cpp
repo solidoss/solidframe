@@ -409,11 +409,15 @@ int Fetch::receiveIStream(
 	return OK;
 }
 
-int Fetch::error(int _err){
-	//TODO: am I waiting for a command?!
+int Fetch::receiveError(
+	int _errid,
+	const ObjectUidTp&_from,
+	const clientserver::ipc::ConnectorUid *
+){
 	st = BAD;
-	return OK;//for now .. Yes I am!!
+	return OK;
 }
+
 //---------------------------------------------------------------
 Store::Store(Connection &_rc):rc(_rc),st(0){
 }
@@ -432,8 +436,8 @@ void Store::initReader(Reader &_rr){
 int Store::reinitReader(Reader &_rr, protocol::Parameter &_rp){
 	switch(_rp.b.i){
 		case Init:{
-			cs::FileManager::RequestUid reqid(rc.id(), Server::the().uid(rc), rc.requestId());
-			int rv = Server::the().fileManager().stream(sp, reqid, strpth.c_str());
+			cs::FileManager::RequestUid reqid(rc.id(), Server::the().uid(rc), rc.newRequestId());
+			int rv = Server::the().fileManager().stream(sp, reqid, NULL/*strpth.c_str(), cs::FileManager::Create*/);
 			switch(rv){
 				case BAD: return Reader::Ok;
 				case OK:
@@ -448,6 +452,7 @@ int Store::reinitReader(Reader &_rr, protocol::Parameter &_rp){
 		}
 		case SendWait:
 			if(sp){
+				idbg("sending wait and preparing fetch");
 				it.reinit(sp.ptr());
 				rc.writer()<<"* Expecting "<<litsz<<" CHARs\r\n";
 				litsz64 = litsz;
@@ -457,7 +462,9 @@ int Store::reinitReader(Reader &_rr, protocol::Parameter &_rp){
 				_rr.push(&Reader::checkChar, protocol::Parameter('\r'));
 				return Reader::Continue;
 			}else{
+				idbg("no stream");
 				if(st == NOK) return Reader::No;//still waiting
+				idbg("we have a problem");
 				return Reader::Ok;
 			}
 			break;
@@ -474,19 +481,29 @@ int Store::execute(Connection &_rc){
 	}
 	return OK;
 }
+
 int Store::receiveOStream(
-		StreamPtr<OStream> &_sptr,
-		const FileUidTp &_fuid,
-		const ObjectUidTp&,
-		const clientserver::ipc::ConnectorUid *
-	){
+	StreamPtr<OStream> &_sptr,
+	const FileUidTp &_fuid,
+	const ObjectUidTp&,
+	const clientserver::ipc::ConnectorUid *
+){
+	idbg("received stream");
 	sp = _sptr;
+	st = OK;
 	return OK;
 }
-int Store::error(int _err){
+
+int Store::receiveError(
+	int _errid,
+	const ObjectUidTp&_from,
+	const clientserver::ipc::ConnectorUid *
+){
+	idbg("received error");
 	st = BAD;
 	return OK;
 }
+
 int Store::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 	return Writer::Bad;
 }
@@ -619,7 +636,7 @@ int SendStreamCommand::createDeserializationStream(
 	if(dststr.empty()/* || _rps.second < 0*/) return NOK;
 	idbg("File name: "<<this->dststr);
 	//TODO:
-	int rv = Server::the().fileManager().stream(this->iosp, this->dststr.c_str());
+	int rv = Server::the().fileManager().stream(this->iosp, this->dststr.c_str(), cs::FileManager::NoWait);
 	if(rv){
 		idbg("Oops, could not open file");
 		return BAD;
@@ -646,9 +663,9 @@ int SendStreamCommand::createSerializationStream(
 
 int SendStreamCommand::execute(test::Connection &_rcon){
 	{
-	//StreamPtr<IOStream>	iosp(static_cast<IOStream*>(iosp.release()));
+	StreamPtr<IStream>	isp(static_cast<IStream*>(iosp.release()));
 	idbg("");
-	_rcon.receiveIOStream(iosp, test::Connection::FileUidTp(0,0), test::Connection::RequestUidTp(0, 0), fromv, &conid);
+	_rcon.receiveIStream(isp, test::Connection::FileUidTp(0,0), test::Connection::RequestUidTp(0, 0), fromv, &conid);
 	idbg("");
 	}
 	return _rcon.receiveString(dststr, test::Connection::RequestUidTp(0, 0), fromv, &conid);
@@ -771,8 +788,8 @@ int Idle::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 		return Writer::Ok;
 	}
 }
-int Idle::receiveIOStream(
-	StreamPtr<IOStream> &_sp,
+int Idle::receiveIStream(
+	StreamPtr<IStream> &_sp,
 	const FileUidTp &,
 	const ObjectUidTp&_from,
 	const cs::ipc::ConnectorUid *_conid
@@ -809,7 +826,7 @@ int Idle::receiveString(
 	stringq.push(_str);
 	fromq.push(_from);
 	rc.writer().push(&Writer::reinit<Idle>, protocol::Parameter(this, 1));
-	return OK;
+	return NOK;
 }
 //---------------------------------------------------------------
 
@@ -857,18 +874,22 @@ int Command::receiveString(
 	return BAD;
 }
 
+int Command::receiveNumber(
+	const int64 &_no, 
+	const ObjectUidTp&_from,
+	const cs::ipc::ConnectorUid *_conid
+){
+	return BAD;
+}
+
 int Command::receiveError(
 	int _errid,
-	uint32 _reqid,
 	const ObjectUidTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
 	return BAD;
 }
 
-/*virtual*/ int Command::receiveError(int){
-	return NOK;
-}
 }//namespace alpha
 }//namespace test
 

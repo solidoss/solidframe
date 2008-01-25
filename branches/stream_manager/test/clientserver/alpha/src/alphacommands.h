@@ -91,7 +91,11 @@ public:
 		const ObjectUidTp&,
 		const clientserver::ipc::ConnectorUid *
 	);
-	int error(int);
+	int receiveError(
+		int _errid,
+		const ObjectUidTp&_from,
+		const clientserver::ipc::ConnectorUid *
+	);
 private:
 	String				strpth;
 	String				straddr;
@@ -119,7 +123,11 @@ public:
 		const ObjectUidTp&,
 		const clientserver::ipc::ConnectorUid *
 	);
-	int error(int);
+	int receiveError(
+		int _errid,
+		const ObjectUidTp&_from,
+		const clientserver::ipc::ConnectorUid *
+	);
 	int reinitWriter(Writer &, protocol::Parameter &);
 private:
 	String				strpth;//the file path
@@ -181,8 +189,8 @@ public:
 	void initReader(Reader &);
 	int execute(Connection &);
 	int reinitWriter(Writer &, protocol::Parameter &);
-	/*virtual*/ int receiveIOStream(
-		StreamPtr<IOStream> &,
+	/*virtual*/ int receiveIStream(
+		StreamPtr<IStream> &,
 		const FileUidTp&,
 		const ObjectUidTp&_from,
 		const clientserver::ipc::ConnectorUid *_conid
@@ -208,7 +216,7 @@ private:
 	Queue<String>				stringq;
 	Queue<ObjectUidTp>			fromq;
 	Queue<clientserver::ipc::ConnectorUid>	conidq;
-	Queue<StreamPtr<IOStream> >	streamq;
+	Queue<StreamPtr<IStream> >	streamq;
 	Connection					&rc;
 	IStreamIterator				it;
 	uint64						litsz64;

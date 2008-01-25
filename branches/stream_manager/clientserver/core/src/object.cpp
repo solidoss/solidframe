@@ -135,5 +135,57 @@ int Command::release(){
 	return BAD;
 }
 
+int Command::receiveIStream(
+	StreamPtr<IStream> &,
+	const FileUidTp	&,
+	const ObjectUidTp&,
+	const ipc::ConnectorUid *
+){
+	assert(false);
+	return BAD;
+}
+int Command::receiveOStream(
+	StreamPtr<OStream> &,
+	const FileUidTp	&,
+	const ObjectUidTp&,
+	const ipc::ConnectorUid *
+){
+	assert(false);
+	return BAD;
+}
+int Command::receiveIOStream(
+	StreamPtr<IOStream> &,
+	const FileUidTp	&,
+	const ObjectUidTp&,
+	const ipc::ConnectorUid *
+){
+	assert(false);
+	return BAD;
+}
+int Command::receiveString(
+	const std::string &_str,
+	const ObjectUidTp&,
+	const ipc::ConnectorUid *
+){
+	assert(false);
+	return BAD;
+}
+int Command::receiveNumber(
+	const int64 &,
+	const ObjectUidTp&,
+	const ipc::ConnectorUid *
+){
+	assert(false);
+	return BAD;
+}
+int Command::receiveError(
+	int, 
+	const ObjectUidTp&,
+	const ipc::ConnectorUid *
+){
+	assert(false);
+	return BAD;
+}
+
 }//namespace
 

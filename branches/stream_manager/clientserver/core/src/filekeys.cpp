@@ -1,6 +1,7 @@
 #include "clientserver/core/filekeys.h"
 #include "clientserver/core/filemapper.h"
 #include "clientserver/core/filemanager.h"
+#include "system/directory.h"
 #include <map>
 #include <cassert>
 #include <cstring>
@@ -159,17 +160,20 @@ FileKey* TempFileKey::clone()const{
 TempFileMapper::TempFileMapper(const char *_prefix){
 	if(_prefix && _prefix[0]){
 		pfx = _prefix;
-		if(pfx.size() && pfx[pfx.size() - 1] != '\\'){
-			pfx += '\\';
-		}
+	}else{
+		pfx = "/tmp/test";
 	}
+	if(pfx.size() && pfx[pfx.size() - 1] != '/'){
+		pfx += '/';
+	}
+	Directory::create(pfx.c_str());
 	initFolders();
 }
 void TempFileMapper::createFileName(string &_fname, uint32 _fileid){
 	char name[32];
 	unsigned int fldid = _fileid & 0xff;
 	unsigned int filid = _fileid >> 8;
-	sprintf(name, "%X/%x", fldid, filid);
+	sprintf(name, "%2.2X/%6.6x", fldid, filid);
 	_fname = pfx;
 	_fname.append(name);
 }
@@ -178,9 +182,9 @@ void TempFileMapper::initFolders(){
 	char name[32];
 	for(unsigned i(0); i <= 0xff; ++i){
 		path.resize(pfx.size());
-		sprintf(name, "%X", i);
+		sprintf(name, "%2.2X", i);
 		path.append(name);
-		//TODO: createFolder(path);
+		Directory::create(path.c_str());
 	}
 }
 

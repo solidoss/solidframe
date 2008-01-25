@@ -80,6 +80,8 @@ Connection::~Connection(){
 	test::Server &rs = test::Server::the();
 	rs.service(*this).removeConnection(*this);
 }
+
+
 int Connection::execute(ulong _sig, TimeSpec &_tout){
 	//_tout.set(2400);//allways set it if it's not MAXTIMEOUT
 	_tout.add(2400);
@@ -110,12 +112,6 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 					_sig |= cs::OKDONE;
 				case NOK://unexpected command received
 					break;
-			}
-		}
-		if((sm & cs::S_ERR)){
-			//NOTE: was I really expecting a commnad?
-			if(pcmd && !pcmd->receiveError(true)){
-				_sig |= cs::OKDONE;
 			}
 		}
 		//now we determine if we return with NOK or we continue
@@ -239,13 +235,24 @@ int Connection::receiveIStream(
 	StreamPtr<IStream> &_ps,
 	const FileUidTp &_fuid,
 	const RequestUidTp &_requid,
-	const FromPairTp&_from,
+	const ObjectUidTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
 	if(_requid.first && _requid.first != reqid) return OK;
 	newRequestId();//prevent multiple responses with the same id
-	if(pcmd && pcmd->receiveIStream(_ps, _fuid, _from, _conid) == OK)
-		state(IdleExecute);
+	if(pcmd){
+		switch(pcmd->receiveIStream(_ps, _fuid, _from, _conid)){
+			case BAD:break;
+			case OK:
+				if(state() == ParseTout){
+					state(Parse);
+				}
+				break;
+			case NOK:
+				state(IdleExecute);
+				break;
+		}
+	}
 	return OK;
 }
 
@@ -253,12 +260,24 @@ int Connection::receiveOStream(
 	StreamPtr<OStream> &_ps,
 	const FileUidTp &_fuid,
 	const RequestUidTp &_requid,
-	const FromPairTp&_from,
+	const ObjectUidTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
 	if(_requid.first && _requid.first != reqid) return OK;
 	newRequestId();//prevent multiple responses with the same id
-	if(pcmd) pcmd->receiveOStream(_ps, _fuid, _from, _conid);
+	if(pcmd){
+		switch(pcmd->receiveOStream(_ps, _fuid, _from, _conid)){
+			case BAD:break;
+			case OK:
+				if(state() == ParseTout){
+					state(Parse);
+				}
+				break;
+			case NOK:
+				state(IdleExecute);
+				break;
+		}
+	}
 	return OK;
 }
 
@@ -266,37 +285,97 @@ int Connection::receiveIOStream(
 	StreamPtr<IOStream> &_ps,
 	const FileUidTp &_fuid,
 	const RequestUidTp &_requid,
-	const FromPairTp&_from,
+	const ObjectUidTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
 	if(_requid.first && _requid.first != reqid) return OK;
 	newRequestId();//prevent multiple responses with the same id
-	if(pcmd) pcmd->receiveIOStream(_ps, _fuid, _from, _conid);
+	if(pcmd){
+		switch(pcmd->receiveIOStream(_ps, _fuid, _from, _conid)){
+			case BAD:break;
+			case OK:
+				if(state() == ParseTout){
+					state(Parse);
+				}
+				break;
+			case NOK:
+				state(IdleExecute);
+				break;
+		}
+	}
 	return OK;
 }
 
 int Connection::receiveString(
 	const String &_str, 
 	const RequestUidTp &_requid,
-	const FromPairTp&_from,
+	const ObjectUidTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
 	if(_requid.first && _requid.first != reqid) return OK;
 	newRequestId();//prevent multiple responses with the same id
-	if(pcmd && pcmd->receiveString(_str, _from, _conid) == OK)
-		state(IdleExecute);
+	if(pcmd){
+		switch(pcmd->receiveString(_str, _from, _conid)){
+			case BAD:break;
+			case OK:
+				if(state() == ParseTout){
+					state(Parse);
+				}
+				break;
+			case NOK:
+				state(IdleExecute);
+				break;
+		}
+	}
 	return OK;
 }
+
+int Connection::receiveNumber(
+	const int64 &_no, 
+	const RequestUidTp &_requid,
+	const ObjectUidTp&_from,
+	const clientserver::ipc::ConnectorUid *_conid
+){
+	if(_requid.first && _requid.first != reqid) return OK;
+	newRequestId();//prevent multiple responses with the same id
+	if(pcmd){
+		switch(pcmd->receiveNumber(_no, _from, _conid)){
+			case BAD:break;
+			case OK:
+				if(state() == ParseTout){
+					state(Parse);
+				}
+				break;
+			case NOK:
+				state(IdleExecute);
+				break;
+		}
+	}
+	return OK;
+}
+
 
 int Connection::receiveError(
 	int _errid, 
 	const RequestUidTp &_requid,
-	const FromPairTp&_from,
+	const ObjectUidTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
 	if(_requid.first && _requid.first != reqid) return OK;
 	newRequestId();//prevent multiple responses with the same id
-	//TODO:
+	if(pcmd){
+		switch(pcmd->receiveError(_errid, _from, _conid)){
+			case BAD:break;
+			case OK:
+				if(state() == ParseTout){
+					state(Parse);
+				}
+				break;
+			case NOK:
+				state(IdleExecute);
+				break;
+		}
+	}
 	return OK;
 }
 
@@ -305,18 +384,6 @@ int Connection::accept(cs::Visitor &_rov){
 	//static_cast<TestInspector&>(_roi).inspectConnection(*this);
 	return 0;
 }
-
-// int Connection::sendStatusResponse(cmd::Responder &_rr, int _opt){
-//     //hassert_abort(!cmdparser.tag().empty());
-//     if(_opt & 1){
-//         _rr<<rcmdparser.tag()<<rcmdparser.errmsg;
-//         rcmdparser.clearTag();
-// 	}else{
-//         _rr<<'*'<<' '<<rcmdparser.errmsg;
-//     }
-//     if(_opt & 2) _rr<<cmd::crlf;
-//     return OK;
-// }
 
 }//namespace alpha
 }//namespace test

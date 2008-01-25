@@ -21,6 +21,7 @@
 
 #include <unistd.h>
 #include "filedevice.h"
+#include "directory.h"
 #include <cassert>
 #include <cerrno>
 
@@ -97,4 +98,9 @@ int64 FileDevice::size()const{
 bool FileDevice::canRetryOpen()const{
 	return (errno == EMFILE) || (errno == ENOMEM);
 }
-//------------------------------------------------
+//-- Directory -------------------------------------
+/*static*/ int Directory::create(const char *_path){
+	return mkdir(_path,  S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+}
+
+

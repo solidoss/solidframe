@@ -191,8 +191,11 @@ int ObjectSelector::doExecute(unsigned _i, ulong _evs, TimeSpec _crttout){
 		case NOK:
 			idbg("TOUT: connection waits for signals");
 			//sv[_i].timepos.set(_crttout.seconds() ? ctimepos.seconds() + _crttout.seconds() : (TimeSpec::TimeTp)0xffffffff);
-			if(_crttout == ctimepos){
+			if(_crttout != ctimepos){
 				sv[_i].timepos = _crttout;
+				if(ntimepos > _crttout){
+					ntimepos = _crttout;
+				}
 			}else{
 				_crttout.set(0xffffffff);
 			}
