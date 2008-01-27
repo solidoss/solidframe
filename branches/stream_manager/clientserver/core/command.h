@@ -29,7 +29,7 @@
 class IStream;
 class OStream;
 class IOStream;
-
+class TimeSpec;
 
 namespace clientserver{
 namespace ipc{
@@ -44,7 +44,7 @@ struct Command{
 	virtual int received(const ipc::ConnectorUid&);
 	virtual void use();
 	virtual int execute(Object &);
-	virtual int execute(CommandExecuter&, const CommandUidTp &);
+	virtual int execute(CommandExecuter&, const CommandUidTp &, TimeSpec &_rts);
 	virtual int release();
 	virtual int receiveIStream(
 		StreamPtr<IStream> &,

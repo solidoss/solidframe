@@ -384,7 +384,7 @@ int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 		TimeSpec tout(0xffffffff);
 		for(Data::TimeoutVectorTp::const_iterator it(d.toutv.begin()); it != d.toutv.end();){
 			Data::FileData &rf(d.fv[*it]);
-			if(_rtout > rf.tout){
+			if(_rtout >= rf.tout){
 				{
 					Mutex &rm(d.mutpool.object(*it));
 					rm.lock();

@@ -125,7 +125,7 @@ int Command::execute(Object &){
 	return 0;
 }
 
-int Command::execute(CommandExecuter &, const CommandUidTp &){
+int Command::execute(CommandExecuter &, const CommandUidTp &, TimeSpec &_rts){
 	idbg("Unhandled command");
 	return 0;
 }

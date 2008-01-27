@@ -18,8 +18,17 @@ struct CommandExecuter::Data{
 		Running, Stopping
 	};
 	void push(CmdPtr<Command> &_cmd);
-	typedef std::pair<CmdPtr<Command>, uint32>	CommandPairTp;
-	typedef std::deque<CommandPairTp >			CommandDequeTp;
+	void eraseToutPos(uint32 _pos);
+	struct CmdData{
+		CmdData(const CmdPtr<Command>& _rcmd):cmd(_rcmd), toutidx(-1), uid(0),tout(0xffffffff){}
+		CmdData(){}
+		CmdPtr<Command>	cmd;
+		int32			toutidx;
+		uint32			uid;
+		TimeSpec		tout;
+	};
+	typedef std::deque<int32>					TimeoutVectorTp;
+	typedef std::deque<CmdData >				CommandDequeTp;
 	typedef std::deque<CmdPtr<Command> >		CommandExtDequeTp;
 	typedef Queue<uint32>						ExecQueueTp;
 	typedef Stack<uint32>						FreeStackTp;
@@ -32,11 +41,13 @@ struct CommandExecuter::Data{
 	FreeStackTp			fs2;
 	ExecQueueTp			sq;
 	ExecQueueTp			eq;
+	TimeoutVectorTp		toutv;
+	TimeSpec			tout;
 };
 
 void CommandExecuter::Data::push(CmdPtr<Command> &_cmd){
 	if(fs.size()){
-		cdq[fs.top()].first = _cmd;
+		cdq[fs.top()].cmd = _cmd;
 		sq.push(fs.top());
 		fs.pop();
 	}else{
@@ -44,6 +55,12 @@ void CommandExecuter::Data::push(CmdPtr<Command> &_cmd){
 		++extsz;
 		sq.push(cdq.size() + extsz - 1);
 	}
+}
+
+void CommandExecuter::Data::eraseToutPos(uint32 _pos){
+	assert(_pos < toutv.size());
+	toutv[_pos] = toutv.back();
+	toutv.pop_back();
 }
 
 CommandExecuter::CommandExecuter():d(*(new Data)){
@@ -68,7 +85,7 @@ int CommandExecuter::execute(ulong _evs, TimeSpec &_rtout){
 	d.pm->lock();
 	if(d.extsz){
 		for(Data::CommandExtDequeTp::const_iterator it(d.cedq.begin()); it != d.cedq.end(); ++it){
-			d.cdq.push_back(Data::CommandPairTp(*it, 0));
+			d.cdq.push_back(Data::CmdData(*it));
 		}
 		d.sz += d.cedq.size();
 		d.cedq.clear();
@@ -98,17 +115,76 @@ int CommandExecuter::execute(ulong _evs, TimeSpec &_rtout){
 		while(d.eq.size()){
 			uint32 pos = d.eq.front();
 			d.eq.pop();
-			Data::CommandPairTp &rcp(d.cdq[d.eq.front()]);
-			switch(rcp.first->execute(*this, CommandUidTp(d.eq.front(), rcp.second))){
-				case BAD: ++rcp.second;rcp.first.clear(); d.fs2.push(pos);break;
-				case OK: d.eq.push(pos); break;
-				case NOK:break;
+			Data::CmdData &rcp(d.cdq[pos]);
+			TimeSpec ts(_rtout);
+			switch(rcp.cmd->execute(*this, CommandUidTp(d.eq.front(), rcp.uid), ts)){
+				case BAD: 
+					++rcp.uid;
+					rcp.cmd.clear();
+					d.fs2.push(pos);
+					if(rcp.toutidx >= 0){
+						d.eraseToutPos(rcp.toutidx);
+						rcp.toutidx = -1;
+					}
+					break;
+				case OK:
+					d.eq.push(pos);
+					if(rcp.toutidx >= 0){
+						d.eraseToutPos(rcp.toutidx);
+						rcp.toutidx = -1;
+					}
+					break;
+				case NOK:
+					if(ts != _rtout){
+						rcp.tout = ts;
+						if(d.tout > ts){
+							d.tout = ts;
+						}
+						if(rcp.toutidx < 0){
+							d.toutv.push_back(pos);
+							rcp.toutidx = d.toutv.size() - 1;
+						}
+					}else{
+						++rcp.uid;
+						rcp.cmd.clear();
+						d.fs2.push(pos);
+						if(rcp.toutidx >= 0){
+							d.eraseToutPos(rcp.toutidx);
+							rcp.toutidx = -1;
+						}
+					}
+					break;
+				case LEAVE:
+					++rcp.uid;
+					rcp.cmd.release();
+					d.fs2.push(pos);
+					if(rcp.toutidx >= 0){
+						d.eraseToutPos(rcp.toutidx);
+						rcp.toutidx = -1;
+					}
+					break;
+			}
+		}
+		if((_evs & TIMEOUT) && _rtout <= d.tout){
+			TimeSpec tout(0xffffffff);
+			for(Data::TimeoutVectorTp::const_iterator it(d.toutv.begin()); it != d.toutv.end();){
+				Data::CmdData &rcp(d.cdq[*it]);
+				if(_rtout >= rcp.tout){
+					++rcp.uid;
+					rcp.cmd.clear();
+					d.fs2.push(*it);
+					if(rcp.toutidx >= 0){
+						d.eraseToutPos(rcp.toutidx);
+						rcp.toutidx = -1;
+					}
+				}
 			}
 		}
 	}else{
 		for(Data::CommandDequeTp::iterator it(d.cdq.begin()); it != d.cdq.end(); ++it){
-			if(it->first.ptr()){
-				delete it->first.release();
+			if(it->cmd.ptr()){
+				//TODO: should you use clear?!
+				delete it->cmd.release();
 			}
 		}
 		state(-1);
@@ -141,8 +217,8 @@ void CommandExecuter::receiveIStream(
 	const ObjectUidTp&_from,
 	const ipc::ConnectorUid *_conid
 ){
-	if(d.cdq[_requid.first].second == _requid.second){
-		if(d.cdq[_requid.first].first->receiveIStream(_sp, _fuid, _from, _conid) == OK){
+	if(d.cdq[_requid.first].uid == _requid.second){
+		if(d.cdq[_requid.first].cmd->receiveIStream(_sp, _fuid, _from, _conid) == OK){
 			d.eq.push(_requid.first);
 		}
 	}
@@ -154,8 +230,8 @@ void CommandExecuter::receiveOStream(
 	const ObjectUidTp&_from,
 	const ipc::ConnectorUid *_conid
 ){
-	if(d.cdq[_requid.first].second == _requid.second){
-		if(d.cdq[_requid.first].first->receiveOStream(_sp, _fuid, _from, _conid) == OK){
+	if(d.cdq[_requid.first].uid == _requid.second){
+		if(d.cdq[_requid.first].cmd->receiveOStream(_sp, _fuid, _from, _conid) == OK){
 			d.eq.push(_requid.first);
 		}
 	}
@@ -167,8 +243,8 @@ void CommandExecuter::receiveIOStream(
 	const ObjectUidTp&_from,
 	const ipc::ConnectorUid *_conid
 ){
-	if(d.cdq[_requid.first].second == _requid.second){
-		if(d.cdq[_requid.first].first->receiveIOStream(_sp, _fuid, _from, _conid) == OK){
+	if(d.cdq[_requid.first].uid == _requid.second){
+		if(d.cdq[_requid.first].cmd->receiveIOStream(_sp, _fuid, _from, _conid) == OK){
 			d.eq.push(_requid.first);
 		}
 	}
@@ -179,8 +255,8 @@ void CommandExecuter::receiveString(
 	const ObjectUidTp&_from,
 	const ipc::ConnectorUid *_conid
 ){
-	if(d.cdq[_requid.first].second == _requid.second){
-		if(d.cdq[_requid.first].first->receiveString(_str, _from, _conid) == OK){
+	if(d.cdq[_requid.first].uid == _requid.second){
+		if(d.cdq[_requid.first].cmd->receiveString(_str, _from, _conid) == OK){
 			d.eq.push(_requid.first);
 		}
 	}
@@ -191,8 +267,8 @@ void CommandExecuter::receiveNumber(
 	const ObjectUidTp&_from,
 	const ipc::ConnectorUid *_conid
 ){
-	if(d.cdq[_requid.first].second == _requid.second){
-		if(d.cdq[_requid.first].first->receiveNumber(_no, _from, _conid) == OK){
+	if(d.cdq[_requid.first].uid == _requid.second){
+		if(d.cdq[_requid.first].cmd->receiveNumber(_no, _from, _conid) == OK){
 			d.eq.push(_requid.first);
 		}
 	}
@@ -203,8 +279,8 @@ void CommandExecuter::receiveError(
 	const ObjectUidTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
-	if(d.cdq[_requid.first].second == _requid.second){
-		if(d.cdq[_requid.first].first->receiveError(_errid, _from, _conid) == OK){
+	if(d.cdq[_requid.first].uid == _requid.second){
+		if(d.cdq[_requid.first].cmd->receiveError(_errid, _from, _conid) == OK){
 			d.eq.push(_requid.first);
 		}
 	}
