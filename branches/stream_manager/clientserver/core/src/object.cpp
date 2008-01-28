@@ -135,9 +135,20 @@ int Command::release(){
 	return BAD;
 }
 
+int Command::receiveCommand(
+	CmdPtr<Command> &_rcmd,
+	int			_which,
+	const ObjectUidTp&_from,
+	const ipc::ConnectorUid *_conid
+){
+	assert(false);
+	return BAD;
+}
+
 int Command::receiveIStream(
 	StreamPtr<IStream> &,
 	const FileUidTp	&,
+	int			_which,
 	const ObjectUidTp&,
 	const ipc::ConnectorUid *
 ){
@@ -147,6 +158,7 @@ int Command::receiveIStream(
 int Command::receiveOStream(
 	StreamPtr<OStream> &,
 	const FileUidTp	&,
+	int			_which,
 	const ObjectUidTp&,
 	const ipc::ConnectorUid *
 ){
@@ -156,6 +168,7 @@ int Command::receiveOStream(
 int Command::receiveIOStream(
 	StreamPtr<IOStream> &,
 	const FileUidTp	&,
+	int			_which,
 	const ObjectUidTp&,
 	const ipc::ConnectorUid *
 ){
@@ -164,6 +177,7 @@ int Command::receiveIOStream(
 }
 int Command::receiveString(
 	const std::string &_str,
+	int			_which,
 	const ObjectUidTp&,
 	const ipc::ConnectorUid *
 ){
@@ -172,6 +186,7 @@ int Command::receiveString(
 }
 int Command::receiveNumber(
 	const int64 &,
+	int			_which,
 	const ObjectUidTp&,
 	const ipc::ConnectorUid *
 ){

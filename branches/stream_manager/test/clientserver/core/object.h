@@ -50,6 +50,7 @@ public:
 		StreamPtr<IStream> &,
 		const FileUidTp	&,
 		const RequestUidTp &_requid,
+		int			_which = 0,
 		const ObjectUidTp&_from = ObjectUidTp(),
 		const clientserver::ipc::ConnectorUid *_conid = NULL
 	);
@@ -57,6 +58,7 @@ public:
 		StreamPtr<OStream> &,
 		const FileUidTp	&,
 		const RequestUidTp &_requid,
+		int			_which = 0,
 		const ObjectUidTp&_from = ObjectUidTp(),
 		const clientserver::ipc::ConnectorUid *_conid = NULL
 	);
@@ -64,12 +66,14 @@ public:
 		StreamPtr<IOStream> &,
 		const FileUidTp	&,
 		const RequestUidTp &_requid,
+		int			_which = 0,
 		const ObjectUidTp&_from = ObjectUidTp(),
 		const clientserver::ipc::ConnectorUid *_conid = NULL
 	);
 	virtual int receiveString(
 		const String &_str,
 		const RequestUidTp &_requid,
+		int			_which = 0,
 		const ObjectUidTp&_from = ObjectUidTp(),
 		const clientserver::ipc::ConnectorUid *_conid = NULL
 	);

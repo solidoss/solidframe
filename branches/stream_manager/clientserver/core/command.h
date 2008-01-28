@@ -46,31 +46,42 @@ struct Command{
 	virtual int execute(Object &);
 	virtual int execute(CommandExecuter&, const CommandUidTp &, TimeSpec &_rts);
 	virtual int release();
+	virtual int receiveCommand(
+		CmdPtr<Command> &_rcmd,
+		int			_which = 0,
+		const ObjectUidTp&_from = ObjectUidTp(),
+		const ipc::ConnectorUid *_conid = NULL
+	);
 	virtual int receiveIStream(
 		StreamPtr<IStream> &,
 		const FileUidTp	&,
+		int			_which = 0,
 		const ObjectUidTp&_from = ObjectUidTp(),
 		const ipc::ConnectorUid *_conid = NULL
 	);
 	virtual int receiveOStream(
 		StreamPtr<OStream> &,
 		const FileUidTp	&,
+		int			_which = 0,
 		const ObjectUidTp&_from = ObjectUidTp(),
 		const ipc::ConnectorUid *_conid = NULL
 	);
 	virtual int receiveIOStream(
 		StreamPtr<IOStream> &,
 		const FileUidTp	&,
+		int			_which = 0,
 		const ObjectUidTp&_from = ObjectUidTp(),
 		const ipc::ConnectorUid *_conid = NULL
 	);
 	virtual int receiveString(
 		const std::string &_str,
+		int	 _which = 0,
 		const ObjectUidTp&_from = ObjectUidTp(),
 		const ipc::ConnectorUid *_conid = NULL
 	);
 	virtual int receiveNumber(
 		const int64 &_no,
+		int			_which = 0,
 		const ObjectUidTp&_from = ObjectUidTp(),
 		const ipc::ConnectorUid *_conid = NULL
 	);

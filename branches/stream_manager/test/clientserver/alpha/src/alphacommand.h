@@ -50,28 +50,33 @@ public:
 	virtual int receiveIStream(
 		StreamPtr<IStream> &,
 		const FileUidTp &,
+		int			_which,
 		const ObjectUidTp&_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
 	virtual int receiveOStream(
 		StreamPtr<OStream> &,
 		const FileUidTp &,
+		int			_which,
 		const ObjectUidTp&_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
 	virtual int receiveIOStream(
 		StreamPtr<IOStream> &,
 		const FileUidTp &,
+		int			_which,
 		const ObjectUidTp&_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
 	virtual int receiveString(
-		const String &_str, 
+		const String &_str,
+		int			_which, 
 		const ObjectUidTp&_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
 	virtual int receiveNumber(
-		const int64 &_no, 
+		const int64 &_no,
+		int			_which,
 		const ObjectUidTp&_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);

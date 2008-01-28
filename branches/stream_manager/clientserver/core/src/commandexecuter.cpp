@@ -210,15 +210,30 @@ int CommandExecuter::execute(){
 	assert(false);
 }
 
+void CommandExecuter::receiveCommand(
+	CmdPtr<Command> &_rcmd,
+	const RequestUidTp &_requid,
+	int			_which,
+	const ObjectUidTp& _from,
+	const ipc::ConnectorUid *_conid
+){
+	if(d.cdq[_requid.first].uid == _requid.second){
+		if(d.cdq[_requid.first].cmd->receiveCommand(_rcmd, _which, _from, _conid) == OK){
+			d.eq.push(_requid.first);
+		}
+	}
+}
+
 void CommandExecuter::receiveIStream(
 	StreamPtr<IStream> &_sp,
 	const FileUidTp	& _fuid,
 	const RequestUidTp &_requid,
+	int			_which,
 	const ObjectUidTp&_from,
 	const ipc::ConnectorUid *_conid
 ){
 	if(d.cdq[_requid.first].uid == _requid.second){
-		if(d.cdq[_requid.first].cmd->receiveIStream(_sp, _fuid, _from, _conid) == OK){
+		if(d.cdq[_requid.first].cmd->receiveIStream(_sp, _fuid, _which, _from, _conid) == OK){
 			d.eq.push(_requid.first);
 		}
 	}
@@ -227,11 +242,12 @@ void CommandExecuter::receiveOStream(
 	StreamPtr<OStream> &_sp,
 	const FileUidTp	&_fuid,
 	const RequestUidTp &_requid,
+	int			_which,
 	const ObjectUidTp&_from,
 	const ipc::ConnectorUid *_conid
 ){
 	if(d.cdq[_requid.first].uid == _requid.second){
-		if(d.cdq[_requid.first].cmd->receiveOStream(_sp, _fuid, _from, _conid) == OK){
+		if(d.cdq[_requid.first].cmd->receiveOStream(_sp, _fuid, _which, _from, _conid) == OK){
 			d.eq.push(_requid.first);
 		}
 	}
@@ -240,11 +256,12 @@ void CommandExecuter::receiveIOStream(
 	StreamPtr<IOStream> &_sp,
 	const FileUidTp	&_fuid,
 	const RequestUidTp &_requid,
+	int	  _which,
 	const ObjectUidTp&_from,
 	const ipc::ConnectorUid *_conid
 ){
 	if(d.cdq[_requid.first].uid == _requid.second){
-		if(d.cdq[_requid.first].cmd->receiveIOStream(_sp, _fuid, _from, _conid) == OK){
+		if(d.cdq[_requid.first].cmd->receiveIOStream(_sp, _fuid, _which, _from, _conid) == OK){
 			d.eq.push(_requid.first);
 		}
 	}
@@ -252,11 +269,12 @@ void CommandExecuter::receiveIOStream(
 void CommandExecuter::receiveString(
 	const std::string &_str,
 	const RequestUidTp &_requid,
+	int			_which,
 	const ObjectUidTp&_from,
 	const ipc::ConnectorUid *_conid
 ){
 	if(d.cdq[_requid.first].uid == _requid.second){
-		if(d.cdq[_requid.first].cmd->receiveString(_str, _from, _conid) == OK){
+		if(d.cdq[_requid.first].cmd->receiveString(_str, _which, _from, _conid) == OK){
 			d.eq.push(_requid.first);
 		}
 	}
@@ -264,11 +282,12 @@ void CommandExecuter::receiveString(
 void CommandExecuter::receiveNumber(
 	const int64 &_no,
 	const RequestUidTp &_requid,
+	int			_which,
 	const ObjectUidTp&_from,
 	const ipc::ConnectorUid *_conid
 ){
 	if(d.cdq[_requid.first].uid == _requid.second){
-		if(d.cdq[_requid.first].cmd->receiveNumber(_no, _from, _conid) == OK){
+		if(d.cdq[_requid.first].cmd->receiveNumber(_no, _which, _from, _conid) == OK){
 			d.eq.push(_requid.first);
 		}
 	}

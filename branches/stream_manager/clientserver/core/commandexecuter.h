@@ -24,10 +24,18 @@ public:
 	int signal(CmdPtr<Command> &_cmd);
 	int execute(ulong _evs, TimeSpec &_rtout);
 	void mutex(Mutex *_pmut);
+	void receiveCommand(
+		CmdPtr<Command> &_rcmd,
+		const RequestUidTp &_requid,
+		int			_which = 0,
+		const ObjectUidTp&_from = ObjectUidTp(),
+		const ipc::ConnectorUid *_conid = NULL
+	);
 	void receiveIStream(
 		StreamPtr<IStream> &,
 		const FileUidTp	&,
 		const RequestUidTp &_requid,
+		int			_which = 0,
 		const ObjectUidTp&_from = ObjectUidTp(),
 		const ipc::ConnectorUid *_conid = NULL
 	);
@@ -35,6 +43,7 @@ public:
 		StreamPtr<OStream> &,
 		const FileUidTp	&,
 		const RequestUidTp &_requid,
+		int			_which = 0,
 		const ObjectUidTp&_from = ObjectUidTp(),
 		const ipc::ConnectorUid *_conid = NULL
 	);
@@ -42,18 +51,21 @@ public:
 		StreamPtr<IOStream> &,
 		const FileUidTp	&,
 		const RequestUidTp &_requid,
+		int			_which = 0,
 		const ObjectUidTp&_from = ObjectUidTp(),
 		const ipc::ConnectorUid *_conid = NULL
 	);
 	void receiveString(
 		const std::string &_str,
 		const RequestUidTp &_requid,
+		int			_which = 0,
 		const ObjectUidTp&_from = ObjectUidTp(),
 		const ipc::ConnectorUid *_conid = NULL
 	);
 	void receiveNumber(
 		const int64 &_no,
 		const RequestUidTp &_requid,
+		int			_which = 0,
 		const ObjectUidTp&_from = ObjectUidTp(),
 		const ipc::ConnectorUid *_conid = NULL
 	);

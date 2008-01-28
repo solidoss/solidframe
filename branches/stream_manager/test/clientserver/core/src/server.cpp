@@ -504,6 +504,7 @@ int Connection::receiveIStream(
 	StreamPtr<IStream> &,
 	const FileUidTp	&,
 	const RequestUidTp &_requid,
+	int			_which,
 	const ObjectUidTp& _from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
@@ -515,6 +516,7 @@ int Connection::receiveOStream(
 	StreamPtr<OStream> &,
 	const FileUidTp	&,
 	const RequestUidTp &_requid,
+	int			_which,
 	const ObjectUidTp& _from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
@@ -526,6 +528,7 @@ int Connection::receiveIOStream(
 	StreamPtr<IOStream> &,
 	const FileUidTp	&,
 	const RequestUidTp &_requid,
+	int			_which,
 	const ObjectUidTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
@@ -536,6 +539,7 @@ int Connection::receiveIOStream(
 int Connection::receiveString(
 	const String &_str,
 	const RequestUidTp &_requid,
+	int			_which,
 	const ObjectUidTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
@@ -546,6 +550,7 @@ int Connection::receiveString(
 int Connection::receiveNumber(
 	const int64 &_no,
 	const RequestUidTp &_requid,
+	int			_which,
 	const ObjectUidTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
@@ -568,6 +573,7 @@ int Object::receiveIStream(
 	StreamPtr<IStream> &,
 	const FileUidTp	&,
 	const RequestUidTp &_requid,
+	int			_which,
 	const ObjectUidTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
@@ -579,6 +585,7 @@ int Object::receiveOStream(
 	StreamPtr<OStream> &,
 	const FileUidTp	&,
 	const RequestUidTp &_requid,
+	int			_which,
 	const ObjectUidTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
@@ -590,6 +597,7 @@ int Object::receiveIOStream(
 	StreamPtr<IOStream> &,
 	const FileUidTp	&,
 	const RequestUidTp &_requid,
+	int			_which,
 	const ObjectUidTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
@@ -600,6 +608,7 @@ int Object::receiveIOStream(
 int Object::receiveString(
 	const String &_str,
 	const RequestUidTp &_requid,
+	int			_which,
 	const ObjectUidTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){

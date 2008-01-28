@@ -88,6 +88,7 @@ public:
 	int receiveIStream(
 		StreamPtr<IStream> &_sptr,
 		const FileUidTp &_fuid,
+		int			_which,
 		const ObjectUidTp&,
 		const clientserver::ipc::ConnectorUid *
 	);
@@ -120,6 +121,7 @@ public:
 	int receiveOStream(
 		StreamPtr<OStream> &_sptr,
 		const FileUidTp &_fuid,
+		int			_which,
 		const ObjectUidTp&,
 		const clientserver::ipc::ConnectorUid *
 	);
@@ -192,6 +194,7 @@ public:
 	/*virtual*/ int receiveIStream(
 		StreamPtr<IStream> &,
 		const FileUidTp&,
+		int			_which,
 		const ObjectUidTp&_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
@@ -206,7 +209,8 @@ public:
 // 		const ipc::ConnectorUid *_conid
 // 	);
 	/*virtual*/ int receiveString(
-		const String &_str, 
+		const String &_str,
+		int			_which,
 		const ObjectUidTp&_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
