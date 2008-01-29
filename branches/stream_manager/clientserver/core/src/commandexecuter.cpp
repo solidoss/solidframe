@@ -5,6 +5,7 @@
 #include <cassert>
 #include "system/mutex.h"
 #include "system/debug.h"
+#include "system/timespec.h"
 #include "utility/stack.h"
 #include "utility/queue.h"
 
@@ -83,6 +84,7 @@ int CommandExecuter::signal(CmdPtr<Command> &_cmd){
 
 int CommandExecuter::execute(ulong _evs, TimeSpec &_rtout){
 	d.pm->lock();
+	idbg("d.extsz = "<<d.extsz);
 	if(d.extsz){
 		for(Data::CommandExtDequeTp::const_iterator it(d.cedq.begin()); it != d.cedq.end(); ++it){
 			d.cdq.push_back(Data::CmdData(*it));
@@ -99,7 +101,8 @@ int CommandExecuter::execute(ulong _evs, TimeSpec &_rtout){
 			if(!d.sz){//no command
 				state(-1);
 				d.pm->unlock();
-				Server::the().removeFileManager();
+				removeFromServer();
+				idbg("~CommandExecuter");
 				return BAD;
 			}
 		}
@@ -112,12 +115,13 @@ int CommandExecuter::execute(ulong _evs, TimeSpec &_rtout){
 	}
 	d.pm->unlock();
 	if(state() == Data::Running){
+		idbg("d.eq.size = "<<d.eq.size());
 		while(d.eq.size()){
 			uint32 pos = d.eq.front();
 			d.eq.pop();
 			Data::CmdData &rcp(d.cdq[pos]);
 			TimeSpec ts(_rtout);
-			switch(rcp.cmd->execute(*this, CommandUidTp(d.eq.front(), rcp.uid), ts)){
+			switch(rcp.cmd->execute(*this, CommandUidTp(pos, rcp.uid), ts)){
 				case BAD: 
 					++rcp.uid;
 					rcp.cmd.clear();
@@ -145,9 +149,10 @@ int CommandExecuter::execute(ulong _evs, TimeSpec &_rtout){
 							rcp.toutidx = d.toutv.size() - 1;
 						}
 					}else{
-						++rcp.uid;
-						rcp.cmd.clear();
-						d.fs2.push(pos);
+						//++rcp.uid;
+						//rcp.cmd.clear();
+						//d.fs2.push(pos);
+						rcp.tout.set(0xffffffff);
 						if(rcp.toutidx >= 0){
 							d.eraseToutPos(rcp.toutidx);
 							rcp.toutidx = -1;
@@ -187,6 +192,8 @@ int CommandExecuter::execute(ulong _evs, TimeSpec &_rtout){
 				delete it->cmd.release();
 			}
 		}
+		idbg("~CommandExecuter");
+		removeFromServer();
 		state(-1);
 		return BAD;
 	}
@@ -217,8 +224,11 @@ void CommandExecuter::receiveCommand(
 	const ObjectUidTp& _from,
 	const ipc::ConnectorUid *_conid
 ){
-	if(d.cdq[_requid.first].uid == _requid.second){
+	idbg("_requid.first = "<<_requid.first<<" _requid.second = "<<_requid.second<<" uid = "<<d.cdq[_requid.first].uid);
+	if(_requid.first < d.cdq.size() && d.cdq[_requid.first].uid == _requid.second){
+		idbg("");
 		if(d.cdq[_requid.first].cmd->receiveCommand(_rcmd, _which, _from, _conid) == OK){
+			idbg("");
 			d.eq.push(_requid.first);
 		}
 	}
@@ -232,9 +242,12 @@ void CommandExecuter::receiveIStream(
 	const ObjectUidTp&_from,
 	const ipc::ConnectorUid *_conid
 ){
-	if(d.cdq[_requid.first].uid == _requid.second){
+	idbg("_requid.first = "<<_requid.first<<" _requid.second = "<<_requid.second<<" uid = "<<d.cdq[_requid.first].uid);
+	if(_requid.first < d.cdq.size() && d.cdq[_requid.first].uid == _requid.second){
+		idbg("");
 		if(d.cdq[_requid.first].cmd->receiveIStream(_sp, _fuid, _which, _from, _conid) == OK){
 			d.eq.push(_requid.first);
+			idbg("");
 		}
 	}
 }
@@ -246,7 +259,7 @@ void CommandExecuter::receiveOStream(
 	const ObjectUidTp&_from,
 	const ipc::ConnectorUid *_conid
 ){
-	if(d.cdq[_requid.first].uid == _requid.second){
+	if(_requid.first < d.cdq.size() && d.cdq[_requid.first].uid == _requid.second){
 		if(d.cdq[_requid.first].cmd->receiveOStream(_sp, _fuid, _which, _from, _conid) == OK){
 			d.eq.push(_requid.first);
 		}
@@ -260,7 +273,7 @@ void CommandExecuter::receiveIOStream(
 	const ObjectUidTp&_from,
 	const ipc::ConnectorUid *_conid
 ){
-	if(d.cdq[_requid.first].uid == _requid.second){
+	if(_requid.first < d.cdq.size() && d.cdq[_requid.first].uid == _requid.second){
 		if(d.cdq[_requid.first].cmd->receiveIOStream(_sp, _fuid, _which, _from, _conid) == OK){
 			d.eq.push(_requid.first);
 		}
@@ -273,7 +286,7 @@ void CommandExecuter::receiveString(
 	const ObjectUidTp&_from,
 	const ipc::ConnectorUid *_conid
 ){
-	if(d.cdq[_requid.first].uid == _requid.second){
+	if(_requid.first < d.cdq.size() && d.cdq[_requid.first].uid == _requid.second){
 		if(d.cdq[_requid.first].cmd->receiveString(_str, _which, _from, _conid) == OK){
 			d.eq.push(_requid.first);
 		}
@@ -286,7 +299,7 @@ void CommandExecuter::receiveNumber(
 	const ObjectUidTp&_from,
 	const ipc::ConnectorUid *_conid
 ){
-	if(d.cdq[_requid.first].uid == _requid.second){
+	if(_requid.first < d.cdq.size() && d.cdq[_requid.first].uid == _requid.second){
 		if(d.cdq[_requid.first].cmd->receiveNumber(_no, _which, _from, _conid) == OK){
 			d.eq.push(_requid.first);
 		}
@@ -298,7 +311,7 @@ void CommandExecuter::receiveError(
 	const ObjectUidTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
-	if(d.cdq[_requid.first].uid == _requid.second){
+	if(_requid.first < d.cdq.size() && d.cdq[_requid.first].uid == _requid.second){
 		if(d.cdq[_requid.first].cmd->receiveError(_errid, _from, _conid) == OK){
 			d.eq.push(_requid.first);
 		}

@@ -23,6 +23,7 @@ public:
 	~CommandExecuter();
 	int signal(CmdPtr<Command> &_cmd);
 	int execute(ulong _evs, TimeSpec &_rtout);
+	virtual void removeFromServer() = 0;
 	void mutex(Mutex *_pmut);
 	void receiveCommand(
 		CmdPtr<Command> &_rcmd,

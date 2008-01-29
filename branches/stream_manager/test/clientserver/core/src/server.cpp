@@ -219,6 +219,20 @@ ExtraObjPtr& ExtraObjPtr::operator=(cs::Object *_pobj){
 	ptr(_pobj);
 	return *this;
 }
+//=========================================================================
+class CommandExecuter: public cs::CommandExecuter{
+public:
+	void removeFromServer();
+};
+void CommandExecuter::removeFromServer(){
+	Server::the().removeObject(this);
+}
+// class WriteCommandExecuter: public cs::CommandExecuter{
+// public:
+// 	~WriteCommandExecuter(){
+// 		Server::the().removeCommandExecuter(this);
+// 	}
+// };
 
 //=========================================================================
 
@@ -232,16 +246,16 @@ struct Server::Data{
 
 	Data(Server &_rs);
 	~Data();
-	ExtraObjectVector				eovec;
-	ServiceIdxMap					servicemap;
-	cs::ipc::Service				*pcs;
-	serialization::bin::RTTIMapper	binmapper;
-	ObjSelPoolTp					*pobjectpool[2];
-	ConSelPoolTp					*pconnectionpool;
-	LisSelPoolTp					*plistenerpool;
-	TkrSelPoolTp					*ptalkerpool;
-	cs::ObjPtr<cs::CommandExecuter>	readcmdexec;
-	cs::ObjPtr<cs::CommandExecuter>	writecmdexec;
+	ExtraObjectVector					eovec;
+	ServiceIdxMap						servicemap;
+	cs::ipc::Service					*pcs;
+	serialization::bin::RTTIMapper		binmapper;
+	ObjSelPoolTp						*pobjectpool[2];
+	ConSelPoolTp						*pconnectionpool;
+	LisSelPoolTp						*plistenerpool;
+	TkrSelPoolTp						*ptalkerpool;
+	cs::ObjPtr<cs::CommandExecuter>		readcmdexec;
+	cs::ObjPtr<cs::CommandExecuter>		writecmdexec;
 };
 
 //--------------------------------------------------------------------------
@@ -343,12 +357,12 @@ Server::Server():d(*(new Data(*this))){
 		this->pushJob((cs::Object*)&fileManager());
 	}
 	if(true){
-		d.readcmdexec = new cs::CommandExecuter;
+		d.readcmdexec = new CommandExecuter;
 		cs::Server::insertObject(d.readcmdexec.ptr());
 		this->pushJob((cs::Object*)d.readcmdexec.ptr());
 	}
 	if(true){
-		d.writecmdexec = new cs::CommandExecuter;
+		d.writecmdexec = new CommandExecuter;
 		cs::Server::insertObject(d.writecmdexec.ptr());
 		this->pushJob((cs::Object*)d.writecmdexec.ptr());
 	}
@@ -370,7 +384,12 @@ Server::~Server(){
 	service(0).stop(*this, true);//Stop all services
 	delete &d;
 }
-
+/*void Server::removeCommandExecuter(ReadCommandExecuter *_pce){
+	removeObject(_pce);
+}
+void Server::removeCommandExecuter(WriteCommandExecuter *_pce){
+	removeObject(_pce);
+}*/
 serialization::bin::RTTIMapper &Server::binMapper(){
 	return d.binmapper;
 }

@@ -79,7 +79,6 @@ private:
 
 class Fetch: public Command{
 public:
-	enum {InitLocal, StepLocal, InitRemote, StepOneRemote};
 	Fetch(Connection &);
 	~Fetch();
 	void initReader(Reader &);
@@ -97,7 +96,20 @@ public:
 		const ObjectUidTp&_from,
 		const clientserver::ipc::ConnectorUid *
 	);
+	int receiveNumber(
+		const int64 &_no,
+		int			_which,
+		const ObjectUidTp&_from,
+		const clientserver::ipc::ConnectorUid *_conid
+	);
 private:
+	enum {
+		InitLocal, SendLocal, InitRemote,
+		SendMasterRemote, SendFirstRemote, SendNextRemote, 
+		SendError, SendTempError, WaitStreamLocal, WaitStreamRemote, WaitTempRemote,
+		WaitFirstRemote, WaitNextRemote, ReturnBad,
+	};
+
 	String				strpth;
 	String				straddr;
 	FileUidTp			fuid;
@@ -105,9 +117,12 @@ private:
 	StreamPtr<IStream>	sp;
 	IStreamIterator		it;
 	Connection			&rc;
+	CommandUidTp		mastercmduid;
 	int 				st;
 	protocol::Parameter	*pp;
 	uint64				litsz64;
+	uint64				chunksz;
+	clientserver::ipc::ConnectorUid conuid;
 };
 
 class Store: public Command{

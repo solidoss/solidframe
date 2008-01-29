@@ -101,7 +101,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 		if(sm & cs::S_KILL) return BAD;
 		if(sm & cs::S_CMD){
 			grabCommands();
-			channel().send(sigstr, strlen(sigstr));
+			//channel().send(sigstr, strlen(sigstr));
 		}
 		}
 		if(sm & cs::S_CMD){
@@ -244,17 +244,23 @@ int Connection::receiveIStream(
 	const ObjectUidTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
+	idbg("");
 	if(_requid.first && _requid.first != reqid) return OK;
+	idbg("");
 	newRequestId();//prevent multiple responses with the same id
 	if(pcmd){
 		switch(pcmd->receiveIStream(_ps, _fuid, _which, _from, _conid)){
-			case BAD:break;
+			case BAD:
+				idbg("");
+				break;
 			case OK:
+				idbg("");
 				if(state() == ParseTout){
 					state(Parse);
 				}
 				break;
 			case NOK:
+				idbg("");
 				state(IdleExecute);
 				break;
 		}
@@ -270,17 +276,23 @@ int Connection::receiveOStream(
 	const ObjectUidTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
+	idbg("");
 	if(_requid.first && _requid.first != reqid) return OK;
+	idbg("");
 	newRequestId();//prevent multiple responses with the same id
 	if(pcmd){
 		switch(pcmd->receiveOStream(_ps, _fuid, _which, _from, _conid)){
-			case BAD:break;
+			case BAD:
+				idbg("");
+				break;
 			case OK:
+				idbg("");
 				if(state() == ParseTout){
 					state(Parse);
 				}
 				break;
 			case NOK:
+				idbg("");
 				state(IdleExecute);
 				break;
 		}
@@ -296,17 +308,23 @@ int Connection::receiveIOStream(
 	const ObjectUidTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
+	idbg("");
 	if(_requid.first && _requid.first != reqid) return OK;
+	idbg("");
 	newRequestId();//prevent multiple responses with the same id
 	if(pcmd){
 		switch(pcmd->receiveIOStream(_ps, _fuid, _which, _from, _conid)){
-			case BAD:break;
+			case BAD:
+				idbg("");
+				break;
 			case OK:
+				idbg("");
 				if(state() == ParseTout){
 					state(Parse);
 				}
 				break;
 			case NOK:
+				idbg("");
 				state(IdleExecute);
 				break;
 		}
@@ -321,17 +339,23 @@ int Connection::receiveString(
 	const ObjectUidTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
+	idbg("");
 	if(_requid.first && _requid.first != reqid) return OK;
+	idbg("");
 	newRequestId();//prevent multiple responses with the same id
 	if(pcmd){
 		switch(pcmd->receiveString(_str, _which, _from, _conid)){
-			case BAD:break;
+			case BAD:
+				idbg("");
+				break;
 			case OK:
+				idbg("");
 				if(state() == ParseTout){
 					state(Parse);
 				}
 				break;
 			case NOK:
+				idbg("");
 				state(IdleExecute);
 				break;
 		}
@@ -346,17 +370,23 @@ int Connection::receiveNumber(
 	const ObjectUidTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
+	idbg("");
 	if(_requid.first && _requid.first != reqid) return OK;
+	idbg("");
 	newRequestId();//prevent multiple responses with the same id
 	if(pcmd){
 		switch(pcmd->receiveNumber(_no, _which, _from, _conid)){
-			case BAD:break;
+			case BAD:
+				idbg("");
+				break;
 			case OK:
+				idbg("");
 				if(state() == ParseTout){
 					state(Parse);
 				}
 				break;
 			case NOK:
+				idbg("");
 				state(IdleExecute);
 				break;
 		}
@@ -371,17 +401,23 @@ int Connection::receiveError(
 	const ObjectUidTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
+	idbg("");
 	if(_requid.first && _requid.first != reqid) return OK;
+	idbg("");
 	newRequestId();//prevent multiple responses with the same id
 	if(pcmd){
 		switch(pcmd->receiveError(_errid, _from, _conid)){
-			case BAD:break;
+			case BAD:
+				idbg("");
+				break;
 			case OK:
+				idbg("");
 				if(state() == ParseTout){
 					state(Parse);
 				}
 				break;
 			case NOK:
+				idbg("");
 				state(IdleExecute);
 				break;
 		}

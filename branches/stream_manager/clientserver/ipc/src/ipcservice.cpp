@@ -118,6 +118,7 @@ int Service::sendCommand(
 		if(ptkr->signal(cs::S_RAISE)){
 			Server::the().raiseObject(*ptkr);
 		}
+		return OK;
 	}
 	return BAD;
 }

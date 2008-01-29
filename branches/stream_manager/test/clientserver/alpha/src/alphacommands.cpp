@@ -208,6 +208,9 @@ int List::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 
 //---------------------------------------------------------------
 struct FetchSlaveCommand;
+enum{
+	FetchChunkSize = 128,//1024*1024
+};
 /*
 	This request is first sent to a peer's command executer - where 
 	# it tries to get a stream,
@@ -224,18 +227,20 @@ struct FetchMasterCommand: test::Command{
 		SendNextStream,
 		SendError,
 	};
-	FetchMasterCommand():state(NotReceived), insz(-1), requid(0){}
+	FetchMasterCommand():state(NotReceived), insz(-1), inpos(0), requid(0){}
 	~FetchMasterCommand();
 	int received(const cs::ipc::ConnectorUid &_rconid);
 	int execute(cs::CommandExecuter&, const CommandUidTp &, TimeSpec &_rts);
 	int receiveCommand(
-		cs::Command*,
+		cs::CmdPtr<cs::Command> &_rcmd,
+		int			_which,
 		const ObjectUidTp&_from,
 		const cs::ipc::ConnectorUid *
 	);
 	int receiveIStream(
 		StreamPtr<IStream> &,
 		const FileUidTp	&,
+		int			_which,
 		const ObjectUidTp&_from,
 		const cs::ipc::ConnectorUid *
 	);
@@ -250,6 +255,8 @@ struct FetchMasterCommand: test::Command{
 		_s.push(tmpfuid.first, "tmpfileuid_first").push(tmpfuid.second, "tmpfileuid_second");
 		return _s.push(fromv.first, "fromobjectid").push(fromv.second, "fromobjectuid").push(requid, "requestuid");
 	}
+	void print()const;
+//data:
 	String					fname;
 	FetchSlaveCommand		*pcmd;
 	ObjectUidTp				fromv;
@@ -259,11 +266,12 @@ struct FetchMasterCommand: test::Command{
 	StreamPtr<IStream>		ins;
 	int						state;
 	int64					insz;
+	int64					inpos;
 	uint32					requid;
 };
 
 struct FetchSlaveCommand: test::Command{
-	FetchSlaveCommand(): insz(0), sz(0), requid(0){}
+	FetchSlaveCommand(): insz(-1), sz(-10), requid(0){}
 	~FetchSlaveCommand(){
 		idbg("");
 	}
@@ -284,6 +292,7 @@ struct FetchSlaveCommand: test::Command{
 		_s.push(fuid.first,"fileuid_first").push(fuid.second, "fileuid_second");
 		return _s;
 	}
+	void print()const;
 //data:	
 	ObjectUidTp					tov;
 	FileUidTp					fuid;
@@ -299,11 +308,32 @@ struct FetchSlaveCommand: test::Command{
 FetchMasterCommand::~FetchMasterCommand(){
 	delete pcmd;
 }
+
+void FetchMasterCommand::print()const{
+/*	String					fname;
+	FetchSlaveCommand		*pcmd;
+	ObjectUidTp				fromv;
+	FileUidTp				fuid;
+	FileUidTp				tmpfuid;
+	cs::ipc::ConnectorUid	conid;
+	StreamPtr<IStream>		ins;
+	int						state;
+	int64					insz;
+	uint32					requid;*/
+	idbg("FetchMasterCommand:");
+	idbg("state = "<<state<<" insz = "<<insz<<" requid = "<<requid<<" fname = "<<fname);
+	idbg("fromv.first = "<<fromv.first<<" fromv.second = "<<fromv.second);
+	idbg("fuid.first = "<<fuid.first<<" fuid.second = "<<fuid.second);
+	idbg("tmpfuid.first = "<<tmpfuid.first<<" tmpfuid.second = "<<tmpfuid.second);
+}
+
 int FetchMasterCommand::received(const cs::ipc::ConnectorUid &_rconid){
 	cs::CmdPtr<cs::Command> pcmd(this);
 	conid = _rconid;
 	state = Received;
 	ObjectUidTp	tov;
+	idbg("received master command");
+	print();
 	Server::the().readCommandExecuterUid(tov);
 	Server::the().signalObject(tov.first, tov.second, pcmd);
 	return false;
@@ -312,61 +342,80 @@ int FetchMasterCommand::execute(cs::CommandExecuter& _rce, const CommandUidTp &_
 	Server &rs(Server::the());
 	switch(state){
 		case Received:{
+			idbg("try to open file "<<fname<<" _cmduid = "<<_cmduid.first<<","<<_cmduid.second);
 			//try to get a stream for the file:
-			cs::FileManager::RequestUid reqid(_rce.id(), rs.uid(_rce), _cmduid.first, _cmduid.second); 
+			cs::FileManager::RequestUid reqid(_rce.id(), rs.uid(_rce), _cmduid.first, _cmduid.second);
 			switch(rs.fileManager().stream(ins, fuid, reqid, fname.c_str())){
 				case BAD://ouch
 					state = SendError;
+					idbg("open failed");
 					return OK;
 				case OK:
+					idbg("open succeded");
 					state = SendFirstStream;
 					return OK;
-				case NOK: return NOK;//wait the stream - no timeout
+				case NOK:
+					idbg("open wait");
+					return NOK;//wait the stream - no timeout
 			}
 		}break;
 		case SendFirstStream:{
+			idbg("send first stream");
 			FetchSlaveCommand	*pcmd = new FetchSlaveCommand;
 			cs::CmdPtr<cs::Command> cmdptr(pcmd);
 			insz = ins->size();
 			pcmd->tov = fromv;
 			pcmd->insz = insz;
-			pcmd->sz = 1024 * 1024;
+			pcmd->sz = FetchChunkSize;
 			if(pcmd->sz > pcmd->insz){
 				pcmd->sz = pcmd->insz;
 			}
 			pcmd->cmduid = _cmduid;
 			pcmd->requid = requid;
+			pcmd->fuid = tmpfuid;
 			insz -= pcmd->sz;
+			inpos += pcmd->sz;
 			cs::FileManager::RequestUid reqid(_rce.id(), rs.uid(_rce), _cmduid.first, _cmduid.second); 
 			rs.fileManager().stream(pcmd->ins, fuid, requid, cs::FileManager::NoWait);
 			if(rs.ipc().sendCommand(conid, cmdptr) || !insz){
+				idbg("connector was destroyed or insz "<<insz);
 				return BAD;
 			}
+			idbg("wait for streams");
 			//TODO: put here timeout! - wait for commands
 			//_rts.add(30);
 			return NOK;
 		}
 		case SendNextStream:{
+			idbg("send next stream");
 			cs::CmdPtr<cs::Command> cmdptr(pcmd);
-			pcmd = NULL;
 			pcmd->tov = fromv;
-			pcmd->sz = 1024 * 1024;
+			pcmd->sz = FetchChunkSize;
 			if(pcmd->sz > insz){
 				pcmd->sz = insz;
 			}
 			pcmd->cmduid = _cmduid;
+			pcmd->fuid = tmpfuid;
 			insz -= pcmd->sz;
 			cs::FileManager::RequestUid reqid(_rce.id(), rs.uid(_rce), _cmduid.first, _cmduid.second); 
 			rs.fileManager().stream(pcmd->ins, fuid, requid, cs::FileManager::NoWait);
+			pcmd->ins->seek(inpos);
+			inpos += pcmd->sz;
+			assert(pcmd->ins);
+			pcmd = NULL;
 			if(rs.ipc().sendCommand(conid, cmdptr) || !insz){
+				idbg("connector was destroyed or insz "<<insz);
 				return BAD;
 			}
+			idbg("wait for streams");
 			//TODO: put here timeout! - wait for commands
 			//_rts.add(30);
 			return NOK;
 		}
 		case SendError:{
-			cs::CmdPtr<cs::Command> cmdptr(new FetchSlaveCommand);
+			idbg("sending error");
+			FetchSlaveCommand *pcmd = new FetchSlaveCommand;
+			cs::CmdPtr<cs::Command> cmdptr(pcmd);
 			pcmd->tov = fromv;
 			pcmd->sz = -2;
 			rs.ipc().sendCommand(conid, cmdptr);
@@ -376,20 +425,24 @@ int FetchMasterCommand::execute(cs::CommandExecuter& _rce, const CommandUidTp &_
 	return BAD;
 }
 int FetchMasterCommand::receiveCommand(
-	cs::Command* _pcmd,
+	cs::CmdPtr<cs::Command> &_rcmd,
+	int			_which,
 	const ObjectUidTp&_from,
 	const cs::ipc::ConnectorUid *
 ){
-	pcmd = static_cast<FetchSlaveCommand*>(_pcmd);
+	pcmd = static_cast<FetchSlaveCommand*>(_rcmd.release());
+	idbg("");
 	state = SendNextStream;
 	return OK;
 }
 int FetchMasterCommand::receiveIStream(
 	StreamPtr<IStream> &_rins,
 	const FileUidTp	& _fuid,
+	int			_which,
 	const ObjectUidTp&,
 	const cs::ipc::ConnectorUid *
 ){
+	idbg("fuid = "<<_fuid.first<<","<<_fuid.second);
 	ins = _rins;
 	fuid = _fuid;
 	state = SendFirstStream;
@@ -400,37 +453,69 @@ int FetchMasterCommand::receiveError(
 	const ObjectUidTp&_from,
 	const cs::ipc::ConnectorUid *_conid
 ){
+	idbg("");
 	state = SendError;
 	return OK;
 }
 //-------------------------------------------------------------------------------
+void FetchSlaveCommand::print()const{
+/*	ObjectUidTp					tov;
+	FileUidTp					fuid;
+	cs::ipc::ConnectorUid		conid;
+	CommandUidTp				cmduid;
+	StreamPtr<IStream>			ins;
+	//if insz >= 0 -> [0->1M) else -> [1M->2M)
+	int64						insz;
+	int							sz;
+	uint32						requid;*/
+	idbg("FetchSlaveCommand:");
+	idbg("insz = "<<insz<<" sz = "<<sz<<" requid = "<<requid);
+	idbg("fuid.first = "<<fuid.first<<" fuid.second = "<<fuid.second);
+	idbg("cmduid.first = "<<cmduid.first<<" cmduid.second = "<<cmduid.second);
+}
 int FetchSlaveCommand::received(const cs::ipc::ConnectorUid &_rconid){
 	cs::CmdPtr<cs::Command> pcmd(this);
 	conid = _rconid;
-	Server::the().signalObject(tov.first, tov.second, pcmd);
+	if(sz == -10){
+		idbg("Received FetchSlaveCommand on peer");
+		print();
+		ObjectUidTp	ttov;
+		Server::the().readCommandExecuterUid(ttov);
+		Server::the().signalObject(ttov.first, ttov.second, pcmd);
+	}else{
+		idbg("Received FetchSlaveCommand on sender");
+		print();
+		Server::the().signalObject(tov.first, tov.second, pcmd);
+	}
 	return false;
 }
 
 int FetchSlaveCommand::execute(test::Connection &_rcon){
 	if(sz >= 0){
+		idbg("");
 		_rcon.receiveNumber(insz, RequestUidTp(requid, 0), 0, cmduid, &conid);
 	}else{
+		idbg("");
 		_rcon.receiveError(-1, RequestUidTp(requid, 0), cmduid, &conid);
 	}
 	return OK;
 }
 
 int FetchSlaveCommand::execute(cs::CommandExecuter& _rce, const CommandUidTp &, TimeSpec &){
+	idbg("");
 	cs::CmdPtr<cs::Command>	cp(this);
 	_rce.receiveCommand(cp, cmduid);
 	return cs::LEAVE;
 }
 
-
 void FetchSlaveCommand::destroyDeserializationStream(
 	const std::pair<OStream *, int64> &_rps, int _id
 ){
 	idbg("Destroy deserialization <"<<_id<<"> sz "<<_rps.second<<" streamptr "<<(void*)_rps.first);
+	if(_rps.second < 0){
+		//there was an error
+		sz = -1;
+	}
 	delete _rps.first;
 }
 
@@ -444,7 +529,7 @@ int FetchSlaveCommand::createDeserializationStream(
 	Server::the().fileManager().stream(sp, fuid, requid, cs::FileManager::Forced);
 	idbg("Create deserialization <"<<_id<<"> sz "<<_rps.second<<" streamptr "<<(void*)sp.ptr());
 	if(insz < 0){//back 1M
-		sp->seek(1024*1024);
+		sp->seek(FetchChunkSize);
 	}
 	assert(sp);
 	_rps.first = sp.release();
@@ -460,7 +545,7 @@ void FetchSlaveCommand::destroySerializationStream(
 int FetchSlaveCommand::createSerializationStream(
 	std::pair<IStream *, int64> &_rps, int _id
 ){
-	if(_id) return NOK;
+	if(_id || !ins.ptr()) return NOK;
 	idbg("Create serialization <"<<_id<<"> sz "<<_rps.second);
 	_rps.first = ins.ptr();
 	_rps.second = sz;
@@ -494,72 +579,154 @@ int Fetch::execute(Connection &_rc){
 	rp = protocol::Parameter(StrDef(" OK Done FETCH@"));
 	if(port == -1) port = 1222;//default ipc port
 	if(straddr.empty()){
-		_rc.writer().push(&Writer::reinit<Fetch>, protocol::Parameter(this, InitLocal));
+		st = InitLocal;
 	}else{
-		_rc.writer().push(&Writer::reinit<Fetch>, protocol::Parameter(this, InitRemote));
+		st = InitRemote;
 	}
+	_rc.writer().push(&Writer::reinit<Fetch>, protocol::Parameter(this));
 	return OK;
 }
 int Fetch::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
-	switch(_rp.b.i){
+	switch(st){
 		case InitLocal:{
+			idbg("init local");
+			//try to open stream to localfile
 			cs::FileManager::RequestUid reqid(rc.id(), Server::the().uid(rc), rc.newRequestId());
 			int rv = Server::the().fileManager().stream(sp, reqid, strpth.c_str());
 			switch(rv){
 				case BAD: 
 					*pp = protocol::Parameter(StrDef(" NO FETCH: Unable to open file@"));
-					break;
+					return Writer::Ok;
 				case OK: 
-					_rp.b.i = StepLocal;
+					st = SendLocal;
 					return Writer::Continue;
 				case NOK:
-					st = NOK;//waiting
-					_rp.b.i = StepLocal;
+					st = WaitStreamLocal;
 					return Writer::No;
 			}
-			return Writer::No;
-		}
-		case StepLocal:
-			if(sp){
-				litsz64 = sp->size();
-				it.reinit(sp.ptr());
-				_rw<<"* DATA {"<<(uint32)sp->size()<<"}\r\n";
-				_rw.replace(&Writer::putCrlf);
-				_rw.push(&Writer::putStream, protocol::Parameter(&it, &litsz64));
-				return Writer::Continue;
-			}else{
-				if(st == NOK) return NOK;//still waiting
-				//no more waiting
-				*pp = protocol::Parameter(StrDef(" NO FETCH: Unable to open file@"));
-			}
-			return OK;
+		}break;
+		case SendLocal:
+			idbg("send local");
+			//send local stream
+			assert(sp);
+			litsz64 = sp->size();
+			it.reinit(sp.ptr());
+			_rw<<"* DATA {"<<(uint32)sp->size()<<"}\r\n";
+			_rw.replace(&Writer::putCrlf);
+			_rw.push(&Writer::putStream, protocol::Parameter(&it, &litsz64));
+			return Writer::Continue;
 		case InitRemote:{
+			idbg("init remote");
+			//try to open a temp stream
 			cs::FileManager::RequestUid reqid(rc.id(), Server::the().uid(rc), rc.newRequestId());
-			int rv = Server::the().fileManager().stream(sp, fuid, reqid);
+			int rv = Server::the().fileManager().stream(sp, fuid, reqid, NULL, 0);
 			switch(rv){
 				case BAD: 
 					*pp = protocol::Parameter(StrDef(" NO FETCH: Unable to open temp file@"));
-					break;
+					return Writer::No;
 				case OK: 
-					_rp.b.i = StepOneRemote;
+					st = SendMasterRemote;
 					return Writer::Continue;
 				case NOK:
-					st = NOK;//waiting
-					_rp.b.i = StepOneRemote;
+					st = WaitStreamRemote;
 					return Writer::No;
 			}
-			return Writer::No;
-		}
-		case StepOneRemote:
-			if(sp){
-				//we have a temp stream and its id - 
-				return Writer::Continue;
+		}break;
+		case SendMasterRemote:{
+			idbg("send master remote");
+			assert(sp);
+			//send the master remote command
+			FetchMasterCommand *pcmd(new FetchMasterCommand);
+			//TODO: add a convenient init method to fetchmastercommand
+			pcmd->fname = strpth;
+			pcmd->requid = rc.newRequestId();
+			pcmd->fromv.first = rc.id();
+			pcmd->fromv.second = Server::the().uid(rc);
+			pcmd->tmpfuid = fuid;
+			st = WaitFirstRemote;
+			AddrInfo ai(straddr.c_str(), port, 0, AddrInfo::Inet4, AddrInfo::Stream);
+			idbg("addr"<<straddr<<" port = "<<port);
+			if(!ai.empty()){
+				cs::CmdPtr<cs::Command> cmdptr(pcmd);
+				Server::the().ipc().sendCommand(ai.begin(), cmdptr);
+				return Writer::No;
 			}else{
-				if(st == NOK) return NOK;//still waiting
-				//no more waiting
-				*pp = protocol::Parameter(StrDef(" NO FETCH: Unable to open temp file@"));
+				*pp = protocol::Parameter(StrDef(" NO FETCH: no such peer address@"));
+				return Writer::Ok;
 			}
-			return OK;
+		}
+		case SendFirstRemote:{
+			idbg("send first remote");
+			//The first chunk of data was received
+			it.reinit(sp.ptr(), 0);
+			_rw<<"* DATA {"<<(uint32)litsz64<<"}\r\n";
+			chunksz = FetchChunkSize;
+			if(chunksz >= litsz64){
+				_rw.replace(&Writer::putCrlf);
+				chunksz = litsz64;
+				litsz64 = 0;
+			}else{
+				//send another request
+				st = WaitNextRemote;
+				FetchSlaveCommand *pcmd(new FetchSlaveCommand);
+				pcmd->requid = rc.newRequestId();
+				pcmd->cmduid = mastercmduid;
+				pcmd->fuid = fuid;
+				cs::CmdPtr<cs::Command> cmdptr(pcmd);
+				if(Server::the().ipc().sendCommand(conuid, cmdptr) == BAD){
+					return Writer::Bad;
+				}
+				litsz64 -= chunksz;
+			}
+			_rw.push(&Writer::putStream, protocol::Parameter(&it, &chunksz));
+			return Writer::Continue;
+		}
+		case SendNextRemote:{
+			idbg("send next remote "<<(((litsz64/(FetchChunkSize)) & 1) ? FetchChunkSize : 0));
+			it.reinit(sp.ptr(), ((litsz64/(FetchChunkSize)) & 1) ? FetchChunkSize : 0);
+			chunksz = FetchChunkSize;
+			if(chunksz >= litsz64){
+				_rw.replace(&Writer::putCrlf);
+				chunksz = litsz64;
+				litsz64 = 0;
+			}else{
+				//send another request
+				st = WaitNextRemote;
+				FetchSlaveCommand *pcmd(new FetchSlaveCommand);
+				pcmd->requid = rc.newRequestId();
+				pcmd->cmduid = mastercmduid;
+				pcmd->fuid = fuid;
+				pcmd->insz = ((litsz64/(FetchChunkSize)) & 1) ? 0 : -1;
+				cs::CmdPtr<cs::Command> cmdptr(pcmd);
+				if(Server::the().ipc().sendCommand(conuid, cmdptr) == BAD){
+					return Writer::Bad;
+				}
+				litsz64 -= chunksz;
+			}
+			_rw.push(&Writer::putStream, protocol::Parameter(&it, &chunksz));
+			return Writer::Continue;
+		}
+		case SendError:
+			idbg("send error");
+			*pp = protocol::Parameter(StrDef(" NO FETCH: Unable to open file@"));
+			return Writer::Ok;
+		case SendTempError:
+			idbg("send temp error");
+			*pp = protocol::Parameter(StrDef(" NO FETCH: Unable to open temp file@"));
+			return Writer::Ok;
+		case WaitStreamLocal:
+		case WaitTempRemote:
+		case WaitFirstRemote:
+		case WaitStreamRemote:
+			idbg("wait");
+			assert(false);
+		case WaitNextRemote:
+			idbg("wait next remote");
+			return Writer::No;
+		case ReturnBad:
+			idbg("return bad");
+			//most certainly serialization/deserialization problems
+			return Writer::Bad;
 	}
 	assert(false);
 	return BAD;
@@ -571,9 +738,31 @@ int Fetch::receiveIStream(
 	const ObjectUidTp&,
 	const clientserver::ipc::ConnectorUid *
 ){
+	idbg("");
 	sp =_sptr;
 	fuid = _fuid;
-	st = OK;
+	if(st == WaitStreamLocal)
+		st = SendLocal;
+	else st =  SendMasterRemote;
+	return OK;
+}
+
+int Fetch::receiveNumber(
+	const int64 &_no,
+	int			_which,
+	const ObjectUidTp& _objuid,
+	const clientserver::ipc::ConnectorUid *_pconuid
+){
+	idbg("");
+	mastercmduid = _objuid;
+	assert(_pconuid);
+	conuid = *_pconuid;
+	if(st == WaitNextRemote){//continued
+		st = SendNextRemote;
+	}else{
+		litsz64 = _no;
+		st = SendFirstRemote;
+	}
 	return OK;
 }
 
@@ -582,7 +771,17 @@ int Fetch::receiveError(
 	const ObjectUidTp&_from,
 	const clientserver::ipc::ConnectorUid *
 ){
-	st = BAD;
+	idbg("");
+	switch(st){
+		case WaitStreamLocal:
+			st = SendError;
+			break;
+		case WaitTempRemote:
+			st = SendTempError;
+			break;
+		default:
+			st = ReturnBad;
+	}
 	return OK;
 }
 
@@ -1007,6 +1206,8 @@ Command::Command(){}
 void Command::initStatic(Server &_rs){
 	_rs.binMapper().map<SendStringCommand>();
 	_rs.binMapper().map<SendStreamCommand>();
+	_rs.binMapper().map<FetchMasterCommand>();
+	_rs.binMapper().map<FetchSlaveCommand>();
 }
 /*virtual*/ Command::~Command(){}
 

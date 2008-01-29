@@ -103,6 +103,7 @@ private:
 class FileIStream: public IStream{
 public:
 	FileIStream(FileManager::Data &_rd, uint _fileid):rd(_rd), fileid(_fileid), off(0){}
+	~FileIStream();
 	int read(char *, uint32, uint32 _flags = 0);
 	int release();
 	int64 seek(int64, SeekRef);
@@ -116,6 +117,7 @@ private:
 class FileOStream: public OStream{
 public:
 	FileOStream(FileManager::Data &_rd, uint _fileid):rd(_rd), fileid(_fileid), off(0){}
+	~FileOStream();
 	int write(const char *, uint32, uint32 _flags = 0);
 	int release();
 	int64 seek(int64, SeekRef);
@@ -129,6 +131,7 @@ private:
 class FileIOStream: public IOStream{
 public:
 	FileIOStream(FileManager::Data &_rd, uint _fileid):rd(_rd), fileid(_fileid), off(0){}
+	~FileIOStream();
 	int read(char *, uint32, uint32 _flags = 0);
 	int write(const char *, uint32, uint32 _flags = 0);
 	int release();
@@ -162,8 +165,8 @@ struct FileManager::Data{
 	typedef std::deque<int32>			TimeoutVectorTp;
 	typedef std::vector<FileMapper*>	FileMapperVectorTp;
 	Data(uint32 _maxsz):maxsz(_maxsz),sz(0), freeidx(0), mut(NULL){}
-	int  fileWrite(uint _fileid, const char *_pb, uint32 _bl, uint32 _flags);
-	int  fileRead(uint _fileid, char *_pb, uint32 _bl, uint32 _flags);
+	int  fileWrite(uint _fileid, const char *_pb, uint32 _bl, const int64 &_off, uint32 _flags);
+	int  fileRead(uint _fileid, char *_pb, uint32 _bl, const int64 &_off, uint32 _flags);
 	int  fileSize(uint _fileid);
 	unsigned createFilePosition();
 	void collectFilePosition(unsigned _pos);
@@ -223,6 +226,7 @@ int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 				state(-1);
 				d.mut->unlock();
 				Server::the().removeFileManager();
+				idbg("~FileManager");
 				return BAD;
 			}
 		}
@@ -373,6 +377,7 @@ int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 		if(!d.sz){
 			Server::the().removeFileManager();
 			state(-1);//TODO: is there a pb that mut is not locked?!
+			idbg("~FileManager");
 			return BAD;
 		}else{
 			return NOK;
@@ -1018,15 +1023,15 @@ int FileManager::execute(){
 }
 //--------------------------------------------------------------------------
 // FileManager::Data
-int FileManager::Data::fileWrite(uint _fileid, const char *_pb, uint32 _bl, uint32 _flags){
+int FileManager::Data::fileWrite(uint _fileid, const char *_pb, uint32 _bl, const int64 &_off, uint32 _flags){
 	Mutex::Locker lock(mutpool.object(_fileid));
 	//if(d.fv[_fileid].pfile)// the file cannot be deleted because of the usecount!!
-	return fv[_fileid].pfile->write(_pb, _bl, _flags);
+	return fv[_fileid].pfile->write(_pb, _bl, _off);
 }
-int FileManager::Data::fileRead(uint _fileid, char *_pb, uint32 _bl, uint32 _flags){
+int FileManager::Data::fileRead(uint _fileid, char *_pb, uint32 _bl, const int64 &_off, uint32 _flags){
 	Mutex::Locker lock(mutpool.object(_fileid));
 	//if(d.fv[_fileid].pfile)// the file cannot be deleted because of the usecount!!
-	return fv[_fileid].pfile->read(_pb, _bl, _flags);
+	return fv[_fileid].pfile->read(_pb, _bl, _off);
 }
 int FileManager::Data::fileSize(uint _fileid){
 	Mutex::Locker lock(mutpool.object(_fileid));
@@ -1078,13 +1083,15 @@ void FileManager::Data::eraseToutPos(unsigned _pos){
 }
 //--------------------------------------------------------------------------
 // FileIStream
+FileIStream::~FileIStream(){
+	Server::the().fileManager().releaseIStream(fileid);
+}
 
 int FileIStream::read(char * _pb, uint32 _bl, uint32 _flags){
-	return rd.fileRead(fileid, _pb, _bl, _flags);
+	return rd.fileRead(fileid, _pb, _bl, off, _flags);
 }
 
 int FileIStream::release(){	
-	Server::the().fileManager().releaseIStream(fileid);
 	return -1;
 }
 
@@ -1099,12 +1106,14 @@ int64 FileIStream::size()const{
 
 //--------------------------------------------------------------------------
 // FileOStream
+FileOStream::~FileOStream(){
+	Server::the().fileManager().releaseOStream(fileid);
+}
 int  FileOStream::write(const char *_pb, uint32 _bl, uint32 _flags){
-	return rd.fileWrite(fileid, _pb, _bl, _flags);
+	return rd.fileWrite(fileid, _pb, _bl, off, _flags);
 }
 
 int FileOStream::release(){
-	Server::the().fileManager().releaseOStream(fileid);
 	return -1;
 }
 
@@ -1120,17 +1129,19 @@ int64 FileOStream::size()const{
 
 //--------------------------------------------------------------------------
 // FileIOStream
+FileIOStream::~FileIOStream(){
+	Server::the().fileManager().releaseIOStream(fileid);
+}
 
 int FileIOStream::read(char * _pb, uint32 _bl, uint32 _flags){
-	return rd.fileRead(fileid, _pb, _bl, _flags);
+	return rd.fileRead(fileid, _pb, _bl, off, _flags);
 }
 
 int  FileIOStream::write(const char *_pb, uint32 _bl, uint32 _flags){
-	return rd.fileWrite(fileid, _pb, _bl, _flags);
+	return rd.fileWrite(fileid, _pb, _bl, off, _flags);
 }
 
 int FileIOStream::release(){
-	Server::the().fileManager().releaseIOStream(fileid);
 	return -1;
 }
 

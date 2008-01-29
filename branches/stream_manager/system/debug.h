@@ -41,7 +41,7 @@ struct Dbg{
 #define CERR	std::clog
 
 #define pdbg(x) {Dbg::lock();CERR<<x<<std::endl;Dbg::unlock();}
-#define wdbg(x,sz) {Dbg::lock();CERR.write(x,sz);Dbg::unlock();}
+//#define wdbg(x,sz) {Dbg::lock();CERR.write(x,sz);Dbg::unlock();}
 
 #ifndef UTHREADS
 
@@ -58,6 +58,8 @@ inline int  Dbg::crtThrId(){return -1;}
 
 #define idbg(x) {TimeSpec t;Dbg::lock(t); CERR<<"I["<<t.seconds()<<"."<<t.nanoSeconds()/1000<<" "<<(__FILE__ + Dbg::fileoff)<<':'<<__LINE__<<'|'<<__FUNCTION__<<']'<<'('<<Dbg::crtThrId()<<')'<<' '<<x<<std::endl; Dbg::unlock();}
 #define edbg(x) {TimeSpec t;Dbg::lock(t); CERR<<"E["<<t.seconds()<<"."<<t.nanoSeconds()/1000<<" "<<(__FILE__ + Dbg::fileoff)<<':'<<__LINE__<<'|'<<__FUNCTION__<<']'<<'('<<Dbg::crtThrId()<<')'<<' '<<x<<std::endl; Dbg::unlock();}
+#define wdbg(x,sz) {TimeSpec t;Dbg::lock(t);CERR.write(x,sz);Dbg::unlock();}
+
 
 #endif
 

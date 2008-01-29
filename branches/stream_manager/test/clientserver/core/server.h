@@ -35,6 +35,7 @@ namespace test{
 
 class Service;
 class Visitor;
+class CommandExecuter;
 
 typedef Service* (*ServiceCreator)();
 typedef std::map<const char*, ServiceCreator, StrLess>	ServiceMap;
@@ -54,7 +55,6 @@ public:
 	
 	void readCommandExecuterUid(ObjectUidTp &_ruid);
 	void writeCommandExecuterUid(ObjectUidTp &_ruid);
-	
 	void removeService(Service *_psrvc);
 	int insertListener(
 		const char* _nm,
@@ -80,6 +80,9 @@ public:
 	template <class J>
 	void pushJob(J *_pj, int _pos = 0);
 private:
+	friend class CommandExecuter;
+// 	void removeCommandExecuter(ReadCommandExecuter *);
+// 	void removeCommandExecuter(WriteCommandExecuter *);
 	struct Data;
 	Data	&d;
 };
