@@ -64,7 +64,7 @@ class File: public FileDevice{
 		Timeout = 1,
 	};
 public:
-	File(FileKey &_rk, uint32 _flags = 0):rk(_rk), ousecnt(0), iusecnt(0), flags(_flags & 0xffff), state(NotOpened){}
+	File(FileKey &_rk, uint32 _flags = 0):rk(_rk), ousecnt(0), iusecnt(0), msectout(0), flags(_flags & 0xffff), state(NotOpened){}
 	~File();
 	FileKey &key(){return rk;}
 	int open(FileManager &_rsm, uint32 _flags);
@@ -222,6 +222,7 @@ int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 		idbg("signalmask "<<sm);
 		if(sm & cs::S_KILL){
 			state(Data::Stopping);
+			idbg("kill "<<d.sz);
 			if(!d.sz){//no file
 				state(-1);
 				d.mut->unlock();
@@ -254,6 +255,11 @@ int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 		const uint32	*pfid = fileids;
 		while(sz){
 			Data::FileData	&rf(d.fv[*pfid]);
+			if(!rf.pfile){
+				++pfid;
+				--sz;
+				continue;
+			}
 			FileUidTp 		fuid(*pfid, rf.uid);
 			Mutex			&m(d.mutpool.object(*pfid));
 			uint32 			msectout = 0;
@@ -374,14 +380,9 @@ int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 		}
 	}
 	if(state() != Data::Running){
-		if(!d.sz){
-			Server::the().removeFileManager();
-			state(-1);//TODO: is there a pb that mut is not locked?!
-			idbg("~FileManager");
-			return BAD;
-		}else{
-			return NOK;
-		}
+		//simulate a timeout
+		_evs |= TIMEOUT;
+		_rtout.set(0xffffffff);
 	}
 	if((_evs & TIMEOUT) && _rtout <= d.tout){
 		//scan all files for timeout
@@ -422,6 +423,14 @@ int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 			}
 		}
 		d.tout = tout;
+	}
+	if(state() != Data::Running){
+		idbg("kill "<<d.sz);
+		assert(!d.sz);
+		Server::the().removeFileManager();
+		state(-1);//TODO: is there a pb that mut is not locked?!
+		idbg("~FileManager");
+		return BAD;
 	}
 	if(d.toutv.size()) _rtout = d.tout;
 	return NOK;
@@ -961,6 +970,7 @@ void FileManager::releaseIStream(uint _fileid){
 	}
 	if(b){
 		Mutex::Locker	lock(*d.mut);
+		idbg("signal filemanager "<<_fileid);
 		//we must signal the filemanager
 		d.sq.push(_fileid);
 		if(static_cast<cs::Object*>(this)->signal((int)cs::S_RAISE)){
