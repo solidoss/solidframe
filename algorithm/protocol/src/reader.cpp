@@ -34,14 +34,13 @@ void DummyKey::initReader(const Reader &_){
 	//does absolutely nothing
 }
 
-Reader::Reader(Logger *_plog, char *_pb, unsigned _bs):plog(_plog), bbeg(_pb), bend(_pb + _bs), rpos(NULL), wpos(NULL), state(RunState){
-	if(!bbeg){
-		bbeg = new char[2*1024];
-		bend = bbeg + 2*1024;
-	}
+Reader::Reader(Logger *_plog):plog(_plog), bbeg(NULL), bend(NULL), rpos(NULL), wpos(NULL), state(RunState){
+	bbeg = new char[2*1024];
+	bend = bbeg + 2*1024;
 	dolog = isLogActive();
 }
 Reader::~Reader(){
+	delete bbeg;
 }
 
 Parameter& Reader::push(FncTp _pf){

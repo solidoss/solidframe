@@ -23,7 +23,7 @@
 #define PROTOCOL_NAME_MATCHER_H
 
 namespace protocol{
-//!A simple and fast runtime name matcher
+//!A simple and fast runtime case-insensitive name matcher
 /*! Intended usage example:<br>
 	struct Name{
 		const char *name;
@@ -43,6 +43,10 @@ namespace protocol{
 class NameMatcher{
 	class Data;
 public:
+	//! Template constructor giving the table containing the names
+	/*! \see NameMatcher documentation
+		There must be a last NULL name in the given table
+	*/
 	template <typename Name>
 	NameMatcher(const Name *_names):d(createData()){
 		while(_names->name){
@@ -50,7 +54,15 @@ public:
 			++_names;
 		}
 	}
+	//!Destructor
 	~NameMatcher();
+	//! Matching method
+	/*!
+		Returns the position of the matched string or the position of NULL
+		if no match was found.
+		\param _name The name to search
+		\retval int the position in the table given on constructor
+	*/
 	int match(const char *_name)const;
 private:
 	void push(const char *_name);
