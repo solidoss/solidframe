@@ -29,6 +29,10 @@ class IStream: virtual public Stream{
 public:
 	virtual ~IStream(){}
 	virtual int read(char *, uint32, uint32 _flags = 0) = 0;
+	bool iok()const{return flags.flags == 0;}
+	bool ieof()const{return flags.flags & StreamFlags::IEof;}
+	bool ibad()const{return flags.flags & StreamFlags::IBad;}
+	bool ifail()const{return ibad() | flags.flags & StreamFlags::IFail;}
 };
 
 struct IStreamIterator{

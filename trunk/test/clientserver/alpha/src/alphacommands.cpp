@@ -29,7 +29,8 @@
 
 #include "clientserver/ipc/ipcservice.h"
 #include "clientserver/ipc/ipcservice.h"
-#include "clientserver/core/storagemanager.h"
+#include "clientserver/core/filemanager.h"
+#include "clientserver/core/commandexecuter.h"
 
 #include "core/common.h"
 #include "core/tstring.h"
@@ -42,7 +43,7 @@
 #include "alphawriter.h"
 #include "alphareader.h"
 #include "alphaconnection.h"
-
+#include "alphaprotocolfilters.h"
 
 
 #define StrDef(x) (void*)x, sizeof(x) - 1
@@ -204,69 +205,586 @@ int List::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 	return Writer::Ok;
 }
 //---------------------------------------------------------------
-Fetch::Fetch(Connection &_rc):rc(_rc),st(0),pp(NULL){
+
+//---------------------------------------------------------------
+struct FetchSlaveCommand;
+enum{
+	FetchChunkSize = 128,//1024*1024
+};
+/*
+	This request is first sent to a peer's command executer - where 
+	# it tries to get a stream,
+	# sends a respose (FetchSlaveCommand) with the stream size and at most 1MB from the stream
+	# waits for FetchSlaveCommand(s) to give em the rest of stream chunks
+	# when the last stream chunk was sent it dies.
+*/
+
+struct FetchMasterCommand: test::Command{
+	enum{
+		NotReceived,
+		Received,
+		SendFirstStream,
+		SendNextStream,
+		SendError,
+	};
+	FetchMasterCommand():state(NotReceived), insz(-1), inpos(0), requid(0){}
+	~FetchMasterCommand();
+	int received(const cs::ipc::ConnectorUid &_rconid);
+	int execute(cs::CommandExecuter&, const CommandUidTp &, TimeSpec &_rts);
+	int receiveCommand(
+		cs::CmdPtr<cs::Command> &_rcmd,
+		int			_which,
+		const ObjectUidTp&_from,
+		const cs::ipc::ConnectorUid *
+	);
+	int receiveIStream(
+		StreamPtr<IStream> &,
+		const FileUidTp	&,
+		int			_which,
+		const ObjectUidTp&_from,
+		const cs::ipc::ConnectorUid *
+	);
+	int receiveError(
+		int _errid, 
+		const ObjectUidTp&_from,
+		const cs::ipc::ConnectorUid *_conid
+	);
+	template <class S>
+	S& operator&(S &_s){
+		_s.push(fname, "filename");
+		_s.push(tmpfuid.first, "tmpfileuid_first").push(tmpfuid.second, "tmpfileuid_second");
+		return _s.push(fromv.first, "fromobjectid").push(fromv.second, "fromobjectuid").push(requid, "requestuid");
+	}
+	void print()const;
+//data:
+	String					fname;
+	FetchSlaveCommand		*pcmd;
+	ObjectUidTp				fromv;
+	FileUidTp				fuid;
+	FileUidTp				tmpfuid;
+	cs::ipc::ConnectorUid	conid;
+	StreamPtr<IStream>		ins;
+	int						state;
+	int64					insz;
+	int64					inpos;
+	uint32					requid;
+};
+
+struct FetchSlaveCommand: test::Command{
+	FetchSlaveCommand(): insz(-1), sz(-10), requid(0){}
+	~FetchSlaveCommand(){
+		idbg("");
+	}
+	int received(const cs::ipc::ConnectorUid &_rconid);
+	int execute(test::Connection &);
+	int execute(cs::CommandExecuter&, const CommandUidTp &, TimeSpec &_rts);
+	int createDeserializationStream(std::pair<OStream *, int64> &_rps, int _id);
+	void destroyDeserializationStream(const std::pair<OStream *, int64> &_rps, int _id);
+	int createSerializationStream(std::pair<IStream *, int64> &_rps, int _id);
+	void destroySerializationStream(const std::pair<IStream *, int64> &_rps, int _id);
+	
+	template <class S>
+	S& operator&(S &_s){
+		_s.template pushStreammer<FetchSlaveCommand>(this, "FetchStreamResponse::isp");
+		_s.push(tov.first, "toobjectid").push(tov.second, "toobjectuid");
+		_s.push(insz, "inputstreamsize").push(requid, "requestuid");
+		_s.push(sz, "inputsize").push(cmduid.first, "commanduid_first").push(cmduid.second, "commanduid_second");
+		_s.push(fuid.first,"fileuid_first").push(fuid.second, "fileuid_second");
+		return _s;
+	}
+	void print()const;
+//data:	
+	ObjectUidTp					tov;
+	FileUidTp					fuid;
+	cs::ipc::ConnectorUid		conid;
+	CommandUidTp				cmduid;
+	StreamPtr<IStream>			ins;
+	//if insz >= 0 -> [0->1M) else -> [1M->2M)
+	int64						insz;
+	int							sz;
+	uint32						requid;
+};
+//-------------------------------------------------------------------------------
+FetchMasterCommand::~FetchMasterCommand(){
+	delete pcmd;
+}
+
+void FetchMasterCommand::print()const{
+/*	String					fname;
+	FetchSlaveCommand		*pcmd;
+	ObjectUidTp				fromv;
+	FileUidTp				fuid;
+	FileUidTp				tmpfuid;
+	cs::ipc::ConnectorUid	conid;
+	StreamPtr<IStream>		ins;
+	int						state;
+	int64					insz;
+	uint32					requid;*/
+	idbg("FetchMasterCommand:");
+	idbg("state = "<<state<<" insz = "<<insz<<" requid = "<<requid<<" fname = "<<fname);
+	idbg("fromv.first = "<<fromv.first<<" fromv.second = "<<fromv.second);
+	idbg("fuid.first = "<<fuid.first<<" fuid.second = "<<fuid.second);
+	idbg("tmpfuid.first = "<<tmpfuid.first<<" tmpfuid.second = "<<tmpfuid.second);
+}
+
+int FetchMasterCommand::received(const cs::ipc::ConnectorUid &_rconid){
+	cs::CmdPtr<cs::Command> pcmd(this);
+	conid = _rconid;
+	state = Received;
+	ObjectUidTp	tov;
+	idbg("received master command");
+	print();
+	Server::the().readCommandExecuterUid(tov);
+	Server::the().signalObject(tov.first, tov.second, pcmd);
+	return false;
+}
+int FetchMasterCommand::execute(cs::CommandExecuter& _rce, const CommandUidTp &_cmduid, TimeSpec &_rts){
+	Server &rs(Server::the());
+	switch(state){
+		case Received:{
+			idbg("try to open file "<<fname<<" _cmduid = "<<_cmduid.first<<","<<_cmduid.second);
+			//try to get a stream for the file:
+			cs::FileManager::RequestUid reqid(_rce.id(), rs.uid(_rce), _cmduid.first, _cmduid.second);
+			switch(rs.fileManager().stream(ins, fuid, reqid, fname.c_str())){
+				case BAD://ouch
+					state = SendError;
+					idbg("open failed");
+					return OK;
+				case OK:
+					idbg("open succeded");
+					state = SendFirstStream;
+					return OK;
+				case NOK:
+					idbg("open wait");
+					return NOK;//wait the stream - no timeout
+			}
+		}break;
+		case SendFirstStream:{
+			idbg("send first stream");
+			FetchSlaveCommand	*pcmd = new FetchSlaveCommand;
+			cs::CmdPtr<cs::Command> cmdptr(pcmd);
+			insz = ins->size();
+			pcmd->tov = fromv;
+			pcmd->insz = insz;
+			pcmd->sz = FetchChunkSize;
+			if(pcmd->sz > pcmd->insz){
+				pcmd->sz = pcmd->insz;
+			}
+			pcmd->cmduid = _cmduid;
+			pcmd->requid = requid;
+			pcmd->fuid = tmpfuid;
+			insz -= pcmd->sz;
+			inpos += pcmd->sz;
+			cs::FileManager::RequestUid reqid(_rce.id(), rs.uid(_rce), _cmduid.first, _cmduid.second); 
+			rs.fileManager().stream(pcmd->ins, fuid, requid, cs::FileManager::NoWait);
+			if(rs.ipc().sendCommand(conid, cmdptr) || !insz){
+				idbg("connector was destroyed or insz "<<insz);
+				return BAD;
+			}
+			idbg("wait for streams");
+			//TODO: put here timeout! - wait for commands
+			//_rts.add(30);
+			return NOK;
+		}
+		case SendNextStream:{
+			idbg("send next stream");
+			cs::CmdPtr<cs::Command> cmdptr(pcmd);
+			pcmd->tov = fromv;
+			pcmd->sz = FetchChunkSize;
+			if(pcmd->sz > insz){
+				pcmd->sz = insz;
+			}
+			pcmd->cmduid = _cmduid;
+			pcmd->fuid = tmpfuid;
+			insz -= pcmd->sz;
+			cs::FileManager::RequestUid reqid(_rce.id(), rs.uid(_rce), _cmduid.first, _cmduid.second); 
+			rs.fileManager().stream(pcmd->ins, fuid, requid, cs::FileManager::NoWait);
+			pcmd->ins->seek(inpos);
+			inpos += pcmd->sz;
+			assert(pcmd->ins);
+			pcmd = NULL;
+			if(rs.ipc().sendCommand(conid, cmdptr) || !insz){
+				idbg("connector was destroyed or insz "<<insz);
+				return BAD;
+			}
+			idbg("wait for streams");
+			//TODO: put here timeout! - wait for commands
+			//_rts.add(30);
+			return NOK;
+		}
+		case SendError:{
+			idbg("sending error");
+			FetchSlaveCommand *pcmd = new FetchSlaveCommand;
+			cs::CmdPtr<cs::Command> cmdptr(pcmd);
+			pcmd->tov = fromv;
+			pcmd->sz = -2;
+			rs.ipc().sendCommand(conid, cmdptr);
+			return BAD;
+		}
+	}
+	return BAD;
+}
+int FetchMasterCommand::receiveCommand(
+	cs::CmdPtr<cs::Command> &_rcmd,
+	int			_which,
+	const ObjectUidTp&_from,
+	const cs::ipc::ConnectorUid *
+){
+	pcmd = static_cast<FetchSlaveCommand*>(_rcmd.release());
+	idbg("");
+	state = SendNextStream;
+	return OK;
+}
+int FetchMasterCommand::receiveIStream(
+	StreamPtr<IStream> &_rins,
+	const FileUidTp	& _fuid,
+	int			_which,
+	const ObjectUidTp&,
+	const cs::ipc::ConnectorUid *
+){
+	idbg("fuid = "<<_fuid.first<<","<<_fuid.second);
+	ins = _rins;
+	fuid = _fuid;
+	state = SendFirstStream;
+	return OK;
+}
+int FetchMasterCommand::receiveError(
+	int _errid, 
+	const ObjectUidTp&_from,
+	const cs::ipc::ConnectorUid *_conid
+){
+	idbg("");
+	state = SendError;
+	return OK;
+}
+//-------------------------------------------------------------------------------
+void FetchSlaveCommand::print()const{
+/*	ObjectUidTp					tov;
+	FileUidTp					fuid;
+	cs::ipc::ConnectorUid		conid;
+	CommandUidTp				cmduid;
+	StreamPtr<IStream>			ins;
+	//if insz >= 0 -> [0->1M) else -> [1M->2M)
+	int64						insz;
+	int							sz;
+	uint32						requid;*/
+	idbg("FetchSlaveCommand:");
+	idbg("insz = "<<insz<<" sz = "<<sz<<" requid = "<<requid);
+	idbg("fuid.first = "<<fuid.first<<" fuid.second = "<<fuid.second);
+	idbg("cmduid.first = "<<cmduid.first<<" cmduid.second = "<<cmduid.second);
+}
+int FetchSlaveCommand::received(const cs::ipc::ConnectorUid &_rconid){
+	cs::CmdPtr<cs::Command> pcmd(this);
+	conid = _rconid;
+	if(sz == -10){
+		idbg("Received FetchSlaveCommand on peer");
+		print();
+		ObjectUidTp	ttov;
+		Server::the().readCommandExecuterUid(ttov);
+		Server::the().signalObject(ttov.first, ttov.second, pcmd);
+	}else{
+		idbg("Received FetchSlaveCommand on sender");
+		print();
+		Server::the().signalObject(tov.first, tov.second, pcmd);
+	}
+	return false;
+}
+
+int FetchSlaveCommand::execute(test::Connection &_rcon){
+	if(sz >= 0){
+		idbg("");
+		_rcon.receiveNumber(insz, RequestUidTp(requid, 0), 0, cmduid, &conid);
+	}else{
+		idbg("");
+		_rcon.receiveError(-1, RequestUidTp(requid, 0), cmduid, &conid);
+	}
+	return OK;
+}
+
+int FetchSlaveCommand::execute(cs::CommandExecuter& _rce, const CommandUidTp &, TimeSpec &){
+	idbg("");
+	cs::CmdPtr<cs::Command>	cp(this);
+	_rce.receiveCommand(cp, cmduid);
+	return cs::LEAVE;
+}
+
+void FetchSlaveCommand::destroyDeserializationStream(
+	const std::pair<OStream *, int64> &_rps, int _id
+){
+	idbg("Destroy deserialization <"<<_id<<"> sz "<<_rps.second<<" streamptr "<<(void*)_rps.first);
+	if(_rps.second < 0){
+		//there was an error
+		sz = -1;
+	}
+	delete _rps.first;
+}
+
+int FetchSlaveCommand::createDeserializationStream(
+	std::pair<OStream *, int64> &_rps, int _id
+){
+	if(_id) return NOK;
+	if(sz <= 0) return NOK;
+	StreamPtr<OStream>			sp;
+	cs::FileManager::RequestUid	requid;
+	Server::the().fileManager().stream(sp, fuid, requid, cs::FileManager::Forced);
+	idbg("Create deserialization <"<<_id<<"> sz "<<_rps.second<<" streamptr "<<(void*)sp.ptr());
+	if(insz < 0){//back 1M
+		sp->seek(FetchChunkSize);
+	}
+	assert(sp);
+	_rps.first = sp.release();
+	_rps.second = sz;
+	return OK;
+}
+
+void FetchSlaveCommand::destroySerializationStream(
+	const std::pair<IStream *, int64> &_rps, int _id
+){
+	idbg("doing nothing as the stream will be destroied when the command will be destroyed");
+}
+int FetchSlaveCommand::createSerializationStream(
+	std::pair<IStream *, int64> &_rps, int _id
+){
+	if(_id || !ins.ptr()) return NOK;
+	idbg("Create serialization <"<<_id<<"> sz "<<_rps.second);
+	_rps.first = ins.ptr();
+	_rps.second = sz;
+	return OK;
+}
+//-------------------------------------------------------------------------------
+
+Fetch::Fetch(Connection &_rc):port(-1), rc(_rc), st(0), pp(NULL){
 }
 Fetch::~Fetch(){
 	idbg("");
 	sp.clear();
 }
 void Fetch::initReader(Reader &_rr){
+	typedef CharFilter<' '>				SpaceFilterTp;
+	typedef NotFilter<SpaceFilterTp> 	NotSpaceFilterTp;
+	_rr.push(&Reader::fetchUint32, protocol::Parameter(&port));
+	_rr.push(&Reader::dropChar);
+	_rr.push(&Reader::checkIfCharThenPop<NotSpaceFilterTp>, protocol::Parameter(2));
+	_rr.push(&Reader::fetchAString, protocol::Parameter(&straddr));
+	_rr.push(&Reader::dropChar);
+	_rr.push(&Reader::checkIfCharThenPop<NotSpaceFilterTp>, protocol::Parameter(5));
 	_rr.push(&Reader::fetchAString, protocol::Parameter(&strpth));
 	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
+	
 }
 int Fetch::execute(Connection &_rc){
-	idbg("path: "<<strpth);
+	idbg("path "<<strpth<<", address "<<straddr<<", port "<<port);
 	protocol::Parameter &rp = _rc.writer().push(&Writer::putStatus);
 	pp = &rp;
 	rp = protocol::Parameter(StrDef(" OK Done FETCH@"));
-	_rc.writer().push(&Writer::reinit<Fetch>, protocol::Parameter(this, Init));
+	if(port == -1) port = 1222;//default ipc port
+	if(straddr.empty()){
+		st = InitLocal;
+	}else{
+		st = InitRemote;
+	}
+	_rc.writer().push(&Writer::reinit<Fetch>, protocol::Parameter(this));
 	return OK;
 }
 int Fetch::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
-	switch(_rp.b.i){
-		case Init:{
-			int rv = Server::the().storage().istream(sp, strpth.c_str(), rc.id(), Server::the().uid(rc));
+	switch(st){
+		case InitLocal:{
+			idbg("init local");
+			//try to open stream to localfile
+			cs::FileManager::RequestUid reqid(rc.id(), Server::the().uid(rc), rc.newRequestId());
+			int rv = Server::the().fileManager().stream(sp, reqid, strpth.c_str());
 			switch(rv){
 				case BAD: 
 					*pp = protocol::Parameter(StrDef(" NO FETCH: Unable to open file@"));
-					break;
+					return Writer::Ok;
 				case OK: 
-					_rp.b.i = Step;
+					st = SendLocal;
 					return Writer::Continue;
 				case NOK:
-					st = NOK;//waiting
-					_rp.b.i = Step;
+					st = WaitStreamLocal;
 					return Writer::No;
 			}
-			return Writer::No;
-		}
-		case Step:
-			if(sp){
-				litsz64 = sp->size();
-				it.reinit(sp.ptr());
-				_rw<<"* DATA {"<<(uint32)sp->size()<<"}\r\n";
-				_rw.replace(&Writer::putCrlf);
-				_rw.push(&Writer::putStream, protocol::Parameter(&it, &litsz64));
-				return Writer::Continue;
-			}else{
-				if(st == NOK) return NOK;//still waiting
-				//no more waiting
-				*pp = protocol::Parameter(StrDef(" NO FETCH: Unable to open file@"));
+		}break;
+		case SendLocal:
+			idbg("send local");
+			//send local stream
+			assert(sp);
+			litsz64 = sp->size();
+			it.reinit(sp.ptr());
+			_rw<<"* DATA {"<<(uint32)sp->size()<<"}\r\n";
+			_rw.replace(&Writer::putCrlf);
+			_rw.push(&Writer::putStream, protocol::Parameter(&it, &litsz64));
+			return Writer::Continue;
+		case InitRemote:{
+			idbg("init remote");
+			//try to open a temp stream
+			cs::FileManager::RequestUid reqid(rc.id(), Server::the().uid(rc), rc.newRequestId());
+			int rv = Server::the().fileManager().stream(sp, fuid, reqid, NULL, 0);
+			switch(rv){
+				case BAD: 
+					*pp = protocol::Parameter(StrDef(" NO FETCH: Unable to open temp file@"));
+					return Writer::No;
+				case OK: 
+					st = SendMasterRemote;
+					return Writer::Continue;
+				case NOK:
+					st = WaitStreamRemote;
+					return Writer::No;
 			}
-			return OK;
+		}break;
+		case SendMasterRemote:{
+			idbg("send master remote");
+			assert(sp);
+			//send the master remote command
+			FetchMasterCommand *pcmd(new FetchMasterCommand);
+			//TODO: add a convenient init method to fetchmastercommand
+			pcmd->fname = strpth;
+			pcmd->requid = rc.newRequestId();
+			pcmd->fromv.first = rc.id();
+			pcmd->fromv.second = Server::the().uid(rc);
+			pcmd->tmpfuid = fuid;
+			st = WaitFirstRemote;
+			AddrInfo ai(straddr.c_str(), port, 0, AddrInfo::Inet4, AddrInfo::Stream);
+			idbg("addr"<<straddr<<" port = "<<port);
+			if(!ai.empty()){
+				cs::CmdPtr<cs::Command> cmdptr(pcmd);
+				Server::the().ipc().sendCommand(ai.begin(), cmdptr);
+				return Writer::No;
+			}else{
+				*pp = protocol::Parameter(StrDef(" NO FETCH: no such peer address@"));
+				return Writer::Ok;
+			}
+		}
+		case SendFirstRemote:{
+			idbg("send first remote");
+			//The first chunk of data was received
+			it.reinit(sp.ptr(), 0);
+			_rw<<"* DATA {"<<(uint32)litsz64<<"}\r\n";
+			chunksz = FetchChunkSize;
+			if(chunksz >= litsz64){
+				_rw.replace(&Writer::putCrlf);
+				chunksz = litsz64;
+				litsz64 = 0;
+			}else{
+				//send another request
+				st = WaitNextRemote;
+				FetchSlaveCommand *pcmd(new FetchSlaveCommand);
+				pcmd->requid = rc.newRequestId();
+				pcmd->cmduid = mastercmduid;
+				pcmd->fuid = fuid;
+				cs::CmdPtr<cs::Command> cmdptr(pcmd);
+				if(Server::the().ipc().sendCommand(conuid, cmdptr) == BAD){
+					return Writer::Bad;
+				}
+				litsz64 -= chunksz;
+			}
+			_rw.push(&Writer::putStream, protocol::Parameter(&it, &chunksz));
+			return Writer::Continue;
+		}
+		case SendNextRemote:{
+			idbg("send next remote "<<(((litsz64/(FetchChunkSize)) & 1) ? FetchChunkSize : 0));
+			it.reinit(sp.ptr(), ((litsz64/(FetchChunkSize)) & 1) ? FetchChunkSize : 0);
+			chunksz = FetchChunkSize;
+			if(chunksz >= litsz64){
+				_rw.replace(&Writer::putCrlf);
+				chunksz = litsz64;
+				litsz64 = 0;
+			}else{
+				//send another request
+				st = WaitNextRemote;
+				FetchSlaveCommand *pcmd(new FetchSlaveCommand);
+				pcmd->requid = rc.newRequestId();
+				pcmd->cmduid = mastercmduid;
+				pcmd->fuid = fuid;
+				pcmd->insz = ((litsz64/(FetchChunkSize)) & 1) ? 0 : -1;
+				cs::CmdPtr<cs::Command> cmdptr(pcmd);
+				if(Server::the().ipc().sendCommand(conuid, cmdptr) == BAD){
+					return Writer::Bad;
+				}
+				litsz64 -= chunksz;
+			}
+			_rw.push(&Writer::putStream, protocol::Parameter(&it, &chunksz));
+			return Writer::Continue;
+		}
+		case SendError:
+			idbg("send error");
+			*pp = protocol::Parameter(StrDef(" NO FETCH: Unable to open file@"));
+			return Writer::Ok;
+		case SendTempError:
+			idbg("send temp error");
+			*pp = protocol::Parameter(StrDef(" NO FETCH: Unable to open temp file@"));
+			return Writer::Ok;
+		case WaitStreamLocal:
+		case WaitTempRemote:
+		case WaitFirstRemote:
+		case WaitStreamRemote:
+			idbg("wait");
+			assert(false);
+		case WaitNextRemote:
+			idbg("wait next remote");
+			return Writer::No;
+		case ReturnBad:
+			idbg("return bad");
+			//most certainly serialization/deserialization problems
+			return Writer::Bad;
 	}
 	assert(false);
 	return BAD;
 }
-void Fetch::receiveIStream(StreamPtr<IStream> &_sptr){
-	sp = _sptr;
-	st = OK;
+int Fetch::receiveIStream(
+	StreamPtr<IStream> &_sptr,
+	const FileUidTp &_fuid,
+	int			_which,
+	const ObjectUidTp&,
+	const clientserver::ipc::ConnectorUid *
+){
+	idbg("");
+	sp =_sptr;
+	fuid = _fuid;
+	if(st == WaitStreamLocal)
+		st = SendLocal;
+	else st =  SendMasterRemote;
+	return OK;
 }
-int Fetch::error(int _err){
-	//TODO: am I waiting for a command?!
-	st = BAD;
-	return OK;//for now .. Yes I am!!
+
+int Fetch::receiveNumber(
+	const int64 &_no,
+	int			_which,
+	const ObjectUidTp& _objuid,
+	const clientserver::ipc::ConnectorUid *_pconuid
+){
+	idbg("");
+	mastercmduid = _objuid;
+	assert(_pconuid);
+	conuid = *_pconuid;
+	if(st == WaitNextRemote){//continued
+		st = SendNextRemote;
+	}else{
+		litsz64 = _no;
+		st = SendFirstRemote;
+	}
+	return OK;
 }
+
+int Fetch::receiveError(
+	int _errid,
+	const ObjectUidTp&_from,
+	const clientserver::ipc::ConnectorUid *
+){
+	idbg("");
+	switch(st){
+		case WaitStreamLocal:
+			st = SendError;
+			break;
+		case WaitTempRemote:
+			st = SendTempError;
+			break;
+		default:
+			st = ReturnBad;
+	}
+	return OK;
+}
+
 //---------------------------------------------------------------
 Store::Store(Connection &_rc):rc(_rc),st(0){
 }
@@ -285,7 +803,8 @@ void Store::initReader(Reader &_rr){
 int Store::reinitReader(Reader &_rr, protocol::Parameter &_rp){
 	switch(_rp.b.i){
 		case Init:{
-			int rv = Server::the().storage().ostream(sp, strpth.c_str(), rc.id(), Server::the().uid(rc));
+			cs::FileManager::RequestUid reqid(rc.id(), Server::the().uid(rc), rc.newRequestId());
+			int rv = Server::the().fileManager().stream(sp, reqid, strpth.c_str(), cs::FileManager::Create);
 			switch(rv){
 				case BAD: return Reader::Ok;
 				case OK:
@@ -300,6 +819,7 @@ int Store::reinitReader(Reader &_rr, protocol::Parameter &_rp){
 		}
 		case SendWait:
 			if(sp){
+				idbg("sending wait and preparing fetch");
 				it.reinit(sp.ptr());
 				rc.writer()<<"* Expecting "<<litsz<<" CHARs\r\n";
 				litsz64 = litsz;
@@ -309,7 +829,9 @@ int Store::reinitReader(Reader &_rr, protocol::Parameter &_rp){
 				_rr.push(&Reader::checkChar, protocol::Parameter('\r'));
 				return Reader::Continue;
 			}else{
+				idbg("no stream");
 				if(st == NOK) return Reader::No;//still waiting
+				idbg("we have a problem");
 				return Reader::Ok;
 			}
 			break;
@@ -319,49 +841,62 @@ int Store::reinitReader(Reader &_rr, protocol::Parameter &_rp){
 }
 int Store::execute(Connection &_rc){
 	protocol::Parameter &rp = _rc.writer().push(&Writer::putStatus);
-	if(sp && sp->isOk()){
+	if(sp && sp->ok()){
 		rp = protocol::Parameter(StrDef(" OK Done STORE@"));
 	}else{
 		rp = protocol::Parameter(StrDef(" NO STORE: Failed opening file@"));
 	}
 	return OK;
 }
-void Store::receiveOStream(StreamPtr<OStream> &_sp){
-	sp = _sp;
+
+int Store::receiveOStream(
+	StreamPtr<OStream> &_sptr,
+	const FileUidTp &_fuid,
+	int			_which,
+	const ObjectUidTp&,
+	const clientserver::ipc::ConnectorUid *
+){
+	idbg("received stream");
+	sp = _sptr;
+	st = OK;
+	return OK;
 }
-int Store::error(int _err){
+
+int Store::receiveError(
+	int _errid,
+	const ObjectUidTp&_from,
+	const clientserver::ipc::ConnectorUid *
+){
+	idbg("received error");
 	st = BAD;
 	return OK;
 }
+
 int Store::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 	return Writer::Bad;
 }
 //---------------------------------------------------------------
 struct SendStringCommand: test::Command{
-	SendStringCommand():myport(0){}
+	SendStringCommand(){}
 	SendStringCommand(
 		const String &_str,
-		uint32 _myport,
 		uint32 _toobjid,
 		uint32 _toobjuid,
 		uint32 _fromobjid,
 		uint32 _fromobjuid
-	):str(_str), myport(_myport), tov(_toobjid, _toobjuid), fromv(_fromobjid, _fromobjuid){}
+	):str(_str), tov(_toobjid, _toobjuid), fromv(_fromobjid, _fromobjuid){}
 	int received(const cs::ipc::ConnectorUid &_rconid);
-	std::pair<uint32, uint32> to()const{return tov;}
-	std::pair<uint32, uint32> from()const{return fromv;}
 	int execute(test::Connection &);
 	template <class S>
 	S& operator&(S &_s){
-		_s.push(str, "string").push(myport, "myport").push(tov.first, "toobjectid").push(tov.second, "toobjectuid");
+		_s.push(str, "string").push(tov.first, "toobjectid").push(tov.second, "toobjectuid");
 		return _s.push(fromv.first, "fromobjectid").push(fromv.second, "fromobjectuid");
 	}
 private:
-	typedef std::pair<uint32, uint32> FromPairTp;
+	typedef std::pair<uint32, uint32> ObjPairTp;
 	String						str;
-	uint32						myport;
-	FromPairTp					tov;
-	FromPairTp					fromv;
+	ObjPairTp					tov;
+	ObjPairTp					fromv;
 	cs::ipc::ConnectorUid		conid;
 };
 
@@ -373,7 +908,7 @@ int SendStringCommand::received(const cs::ipc::ConnectorUid &_rconid){
 }
 
 int SendStringCommand::execute(test::Connection &_rcon){
-	return _rcon.receiveString(str, fromv, &conid);
+	return _rcon.receiveString(str, test::Connection::RequestUidTp(0, 0), 0, fromv, &conid);
 }
 
 SendString::SendString():port(0), objid(0), objuid(0){}
@@ -400,7 +935,7 @@ int SendString::execute(alpha::Connection &_rc){
 	protocol::Parameter &rp = _rc.writer().push(&Writer::putStatus);
 	if(!ai.empty()){
 		rp = protocol::Parameter(StrDef(" OK Done SENDSTRING@"));
-		cs::CmdPtr<cs::Command> cmdptr(new SendStringCommand(str, port, objid, objuid, fromobjid, fromobjuid));
+		cs::CmdPtr<cs::Command> cmdptr(new SendStringCommand(str, objid, objuid, fromobjid, fromobjuid));
 		rs.ipc().sendCommand(ai.begin(), cmdptr);
 	}else{
 		rp = protocol::Parameter(StrDef(" NO SENDSTRING no such address@"));
@@ -409,7 +944,7 @@ int SendString::execute(alpha::Connection &_rc){
 }
 //---------------------------------------------------------------
 struct SendStreamCommand: test::Command{
-	SendStreamCommand():myprocid(0){}
+	SendStreamCommand(){}
 	SendStreamCommand(
 		StreamPtr<IOStream> &_iosp,
 		const String &_str,
@@ -418,7 +953,7 @@ struct SendStreamCommand: test::Command{
 		uint32 _toobjuid,
 		uint32 _fromobjid,
 		uint32 _fromobjuid
-	):iosp(_iosp), dststr(_str), myprocid(_myprocid), tov(_toobjid, _toobjuid), fromv(_fromobjid, _fromobjuid){}
+	):iosp(_iosp), dststr(_str), tov(_toobjid, _toobjuid), fromv(_fromobjid, _fromobjuid){}
 	~SendStreamCommand(){
 		idbg("");
 	}
@@ -434,16 +969,16 @@ struct SendStreamCommand: test::Command{
 	template <class S>
 	S& operator&(S &_s){
 		_s.template pushStreammer<SendStreamCommand>(this, "SendStreamCommand::iosp").push(dststr, "dststr");
-		_s.push(myprocid, "myprocid").push(tov.first, "toobjectid").push(tov.second, "toobjectuid");
+		_s.push(tov.first, "toobjectid").push(tov.second, "toobjectuid");
 		return _s.push(fromv.first, "fromobjectid").push(fromv.second, "fromobjectuid");
 	}
 private:
-	typedef std::pair<uint32, uint32> 	FromPairTp;
+	typedef std::pair<uint32, uint32> 	ObjPairTp;
+	typedef std::pair<uint32, uint32> 	FileUidTp;
 	StreamPtr<IOStream>			iosp;
 	String						dststr;
-	uint32						myprocid;
-	FromPairTp					tov;
-	FromPairTp					fromv;
+	ObjPairTp					tov;
+	ObjPairTp					fromv;
 	cs::ipc::ConnectorUid		conid;
 };
 
@@ -468,7 +1003,8 @@ int SendStreamCommand::createDeserializationStream(
 	idbg("Create deserialization <"<<_id<<"> sz "<<_rps.second);
 	if(dststr.empty()/* || _rps.second < 0*/) return NOK;
 	idbg("File name: "<<this->dststr);
-	int rv = Server::the().storage().iostream(this->iosp, this->dststr.c_str());
+	//TODO:
+	int rv = Server::the().fileManager().stream(this->iosp, this->dststr.c_str(), cs::FileManager::NoWait);
 	if(rv){
 		idbg("Oops, could not open file");
 		return BAD;
@@ -495,12 +1031,12 @@ int SendStreamCommand::createSerializationStream(
 
 int SendStreamCommand::execute(test::Connection &_rcon){
 	{
-	//StreamPtr<IOStream>	iosp(static_cast<IOStream*>(iosp.release()));
+	StreamPtr<IStream>	isp(static_cast<IStream*>(iosp.release()));
 	idbg("");
-	_rcon.receiveIOStream(iosp, fromv, &conid);
+	_rcon.receiveIStream(isp, test::Connection::FileUidTp(0,0), test::Connection::RequestUidTp(0, 0), 0, fromv, &conid);
 	idbg("");
 	}
-	return _rcon.receiveString(dststr, fromv, &conid);
+	return _rcon.receiveString(dststr, test::Connection::RequestUidTp(0, 0), 0, fromv, &conid);
 }
 //-------------------------------------------------------------------------------
 SendStream::SendStream():port(0), objid(0), objuid(0){}
@@ -526,8 +1062,9 @@ int SendStream::execute(Connection &_rc){
 	uint32	myprocid(0);
 	uint32	fromobjid(_rc.id());
 	uint32	fromobjuid(rs.uid(_rc));
+	cs::FileManager::RequestUid reqid(_rc.id(), rs.uid(_rc), _rc.requestId()); 
 	StreamPtr<IOStream>	sp;
-	int rv = Server::the().storage().iostream(sp, srcstr.c_str()/*, _rc.id(), Server::the().uid(_rc)*/);
+	int rv = Server::the().fileManager().stream(sp, reqid, srcstr.c_str());
 	protocol::Parameter &rp = _rc.writer().push(&Writer::putStatus);
 	switch(rv){
 		case BAD:
@@ -619,9 +1156,11 @@ int Idle::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 		return Writer::Ok;
 	}
 }
-int Idle::receiveIOStream(
-	StreamPtr<IOStream> &_sp,
-	const FromPairTp&_from,
+int Idle::receiveIStream(
+	StreamPtr<IStream> &_sp,
+	const FileUidTp &,
+	int			_which,
+	const ObjectUidTp&_from,
 	const cs::ipc::ConnectorUid *_conid
 ){
 	if(_conid){
@@ -639,8 +1178,9 @@ int Idle::receiveIOStream(
 	return OK;
 }
 int Idle::receiveString(
-	const String &_str, 
-	const FromPairTp&_from,
+	const String &_str,
+	int			_which,
+	const ObjectUidTp&_from,
 	const cs::ipc::ConnectorUid *_conid
 ){
 	if(typeq.size() && typeq.back() == PeerStreamType){
@@ -656,7 +1196,7 @@ int Idle::receiveString(
 	stringq.push(_str);
 	fromq.push(_from);
 	rc.writer().push(&Writer::reinit<Idle>, protocol::Parameter(this, 1));
-	return OK;
+	return NOK;
 }
 //---------------------------------------------------------------
 
@@ -666,12 +1206,16 @@ Command::Command(){}
 void Command::initStatic(Server &_rs){
 	_rs.binMapper().map<SendStringCommand>();
 	_rs.binMapper().map<SendStreamCommand>();
+	_rs.binMapper().map<FetchMasterCommand>();
+	_rs.binMapper().map<FetchSlaveCommand>();
 }
 /*virtual*/ Command::~Command(){}
 
 int Command::receiveIStream(
 	StreamPtr<IStream> &_ps,
-	const FromPairTp&_from,
+	const FileUidTp &,
+	int			_which,
+	const ObjectUidTp&_from,
 	const cs::ipc::ConnectorUid *_conid
 ){
 	return BAD;
@@ -679,7 +1223,9 @@ int Command::receiveIStream(
 
 int Command::receiveOStream(
 	StreamPtr<OStream> &,
-	const FromPairTp&_from,
+	const FileUidTp &,
+	int			_which,
+	const ObjectUidTp&_from,
 	const cs::ipc::ConnectorUid *_conid
 ){
 	return BAD;
@@ -687,22 +1233,40 @@ int Command::receiveOStream(
 
 int Command::receiveIOStream(
 	StreamPtr<IOStream> &, 
-	const FromPairTp&_from,
+	const FileUidTp &,
+	int			_which,
+	const ObjectUidTp&_from,
 	const cs::ipc::ConnectorUid *_conid
 ){
 	return BAD;
 }
 
 int Command::receiveString(
-	const String &_str, 
-	const FromPairTp&_from,
+	const String &_str,
+	int			_which, 
+	const ObjectUidTp&_from,
 	const cs::ipc::ConnectorUid *_conid
 ){
 	return BAD;
 }
-/*virtual*/ int Command::receiveError(int){
-	return NOK;
+
+int Command::receiveNumber(
+	const int64 &_no,
+	int			_which,
+	const ObjectUidTp&_from,
+	const cs::ipc::ConnectorUid *_conid
+){
+	return BAD;
 }
+
+int Command::receiveError(
+	int _errid,
+	const ObjectUidTp&_from,
+	const clientserver::ipc::ConnectorUid *_conid
+){
+	return BAD;
+}
+
 }//namespace alpha
 }//namespace test
 

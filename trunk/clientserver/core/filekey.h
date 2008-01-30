@@ -1,4 +1,4 @@
-/* Implementation file stream.cpp
+/* Declarations file filekey.h
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
@@ -19,17 +19,30 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <cstdlib>
-#include "stream.h"
-#include "streamptr.h"
+#ifndef CS_FILE_KEY_H
+#define CS_FILE_KEY_H
 
-void StreamPtrBase::clear(Stream *_ps){
-	if(_ps->release()) delete _ps;
-}
+#include "system/common.h"
+#include <string>
 
-int Stream::release(){return -1;}
-//bool Stream::isOk()const{return true;}
+namespace clientserver{
 
-int64 Stream::size()const{return -1;}
+class FileManager;
+
+struct FileKey{
+	virtual ~FileKey();
+	virtual bool release()const;
+	virtual void fileName(FileManager &_fm, uint32 _fileid, std::string &_fname)const = 0;
+protected:
+	friend class FileManager;
+	virtual uint32 find(FileManager &_fm)const = 0;
+	virtual void insert(FileManager &_fm, uint32 _fileid)const = 0;
+	virtual void erase(FileManager &_fm, uint32 _fileid)const = 0;
+	virtual FileKey* clone()const = 0;
+};
 
 
+}//namespace clientserver
+
+
+#endif

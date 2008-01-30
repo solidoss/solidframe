@@ -42,26 +42,50 @@ struct Command;
 class Connection: public clientserver::tcp::Connection{
 public:
 	typedef Command	CommandTp;
-	typedef std::pair<uint32, uint32> FromPairTp;
-	virtual ~Connection(){}
+	typedef std::pair<uint32, uint32>	FileUidTp;
+	typedef std::pair<uint32, uint32>	RequestUidTp;
 	virtual int receiveIStream(
 		StreamPtr<IStream> &,
-		const FromPairTp&_from = FromPairTp(),
+		const FileUidTp	&,
+		const RequestUidTp &_requid,
+		int			_which = 0,
+		const ObjectUidTp&_from = ObjectUidTp(),
 		const clientserver::ipc::ConnectorUid *_conid = NULL
 	);
 	virtual int receiveOStream(
 		StreamPtr<OStream> &,
-		const FromPairTp&_from = FromPairTp(),
+		const FileUidTp	&,
+		const RequestUidTp &_requid,
+		int			_which = 0,
+		const ObjectUidTp&_from = ObjectUidTp(),
 		const clientserver::ipc::ConnectorUid *_conid = NULL
 	);
 	virtual int receiveIOStream(
-		StreamPtr<IOStream> &, 
-		const FromPairTp&_from = FromPairTp(),
+		StreamPtr<IOStream> &,
+		const FileUidTp	&,
+		const RequestUidTp &_requid,
+		int			_which = 0,
+		const ObjectUidTp&_from = ObjectUidTp(),
 		const clientserver::ipc::ConnectorUid *_conid = NULL
 	);
 	virtual int receiveString(
-		const String &_str, 
-		const FromPairTp&_from = FromPairTp(),
+		const String &_str,
+		const RequestUidTp &_requid,
+		int			_which = 0,
+		const ObjectUidTp&_from = ObjectUidTp(),
+		const clientserver::ipc::ConnectorUid *_conid = NULL
+	);
+	virtual int receiveNumber(
+		const int64 &_no,
+		const RequestUidTp &_requid,
+		int			_which = 0,
+		const ObjectUidTp&_from = ObjectUidTp(),
+		const clientserver::ipc::ConnectorUid *_conid = NULL
+	);
+	virtual int receiveError(
+		int _errid, 
+		const RequestUidTp &_requid,
+		const ObjectUidTp&_from = ObjectUidTp(),
 		const clientserver::ipc::ConnectorUid *_conid = NULL
 	);
 protected:

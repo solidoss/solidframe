@@ -39,7 +39,7 @@ class	Pool;
 class	Object;
 class	ActiveSet;
 class	Visitor;
-class	StorageManager;
+class	FileManager;
 
 namespace ipc{
 class Service;
@@ -65,8 +65,8 @@ public:
 	Mutex& mutex(Object &_robj)const;
 	ulong  uid(Object &_robj)const;
 	
-	StorageManager& storage(){return *psm;}
-	void removeStorage();
+	FileManager& fileManager(){return *pfm;}
+	void removeFileManager();
 	ipc::Service& ipc(){return *pipcs;}
 	
 	int insertIpcTalker(
@@ -108,8 +108,8 @@ protected:
 	void removeObject(Object *_po);
 	unsigned serviceCount()const;
 	Service& service(uint _i = 0)const;
-	Server(StorageManager *_psm = NULL, ipc::Service *_pipcs = NULL);
-	void storage(StorageManager *_psm);
+	Server(FileManager *_pfm = NULL, ipc::Service *_pipcs = NULL);
+	void fileManager(FileManager *_pfm);
 	void ipc(ipc::Service *_pipcs);
 private:
 	//Server(const Server&){}
@@ -120,7 +120,7 @@ private:
 	
 	ServiceVector			&servicev;
 	ActiveSetVector			&asv;
-	ObjPtr<StorageManager>	psm;
+	ObjPtr<FileManager>		pfm;
 	ipc::Service			*pipcs;
 };
 

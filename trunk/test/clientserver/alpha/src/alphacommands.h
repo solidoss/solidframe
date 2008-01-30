@@ -79,22 +79,50 @@ private:
 
 class Fetch: public Command{
 public:
-	enum {Init, Step};
 	Fetch(Connection &);
 	~Fetch();
 	void initReader(Reader &);
 	int execute(Connection &);
 	int reinitWriter(Writer &, protocol::Parameter &);
-	void receiveIStream(StreamPtr<IStream> &);
-	int error(int);
+	int receiveIStream(
+		StreamPtr<IStream> &_sptr,
+		const FileUidTp &_fuid,
+		int			_which,
+		const ObjectUidTp&,
+		const clientserver::ipc::ConnectorUid *
+	);
+	int receiveError(
+		int _errid,
+		const ObjectUidTp&_from,
+		const clientserver::ipc::ConnectorUid *
+	);
+	int receiveNumber(
+		const int64 &_no,
+		int			_which,
+		const ObjectUidTp&_from,
+		const clientserver::ipc::ConnectorUid *_conid
+	);
 private:
+	enum {
+		InitLocal, SendLocal, InitRemote,
+		SendMasterRemote, SendFirstRemote, SendNextRemote, 
+		SendError, SendTempError, WaitStreamLocal, WaitStreamRemote, WaitTempRemote,
+		WaitFirstRemote, WaitNextRemote, ReturnBad,
+	};
+
 	String				strpth;
+	String				straddr;
+	FileUidTp			fuid;
+	uint32				port;
 	StreamPtr<IStream>	sp;
 	IStreamIterator		it;
 	Connection			&rc;
+	CommandUidTp		mastercmduid;
 	int 				st;
 	protocol::Parameter	*pp;
 	uint64				litsz64;
+	uint64				chunksz;
+	clientserver::ipc::ConnectorUid conuid;
 };
 
 class Store: public Command{
@@ -105,8 +133,18 @@ public:
 	void initReader(Reader &);
 	int reinitReader(Reader &, protocol::Parameter &);
 	int execute(Connection &);
-	void receiveOStream(StreamPtr<OStream> &);
-	int error(int);
+	int receiveOStream(
+		StreamPtr<OStream> &_sptr,
+		const FileUidTp &_fuid,
+		int			_which,
+		const ObjectUidTp&,
+		const clientserver::ipc::ConnectorUid *
+	);
+	int receiveError(
+		int _errid,
+		const ObjectUidTp&_from,
+		const clientserver::ipc::ConnectorUid *
+	);
 	int reinitWriter(Writer &, protocol::Parameter &);
 private:
 	String				strpth;//the file path
@@ -168,9 +206,11 @@ public:
 	void initReader(Reader &);
 	int execute(Connection &);
 	int reinitWriter(Writer &, protocol::Parameter &);
-	/*virtual*/ int receiveIOStream(
-		StreamPtr<IOStream> &,
-		const FromPairTp&_from,
+	/*virtual*/ int receiveIStream(
+		StreamPtr<IStream> &,
+		const FileUidTp&,
+		int			_which,
+		const ObjectUidTp&_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
 // 	virtual int receiveOStream(
@@ -184,17 +224,18 @@ public:
 // 		const ipc::ConnectorUid *_conid
 // 	);
 	/*virtual*/ int receiveString(
-		const String &_str, 
-		const FromPairTp&_from,
+		const String &_str,
+		int			_which,
+		const ObjectUidTp&_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
 private:
 	enum Type{LocalStringType, PeerStringType, LocalStreamType, PeerStreamType};
 	Queue<Type>					typeq;
 	Queue<String>				stringq;
-	Queue<FromPairTp>			fromq;
+	Queue<ObjectUidTp>			fromq;
 	Queue<clientserver::ipc::ConnectorUid>	conidq;
-	Queue<StreamPtr<IOStream> >	streamq;
+	Queue<StreamPtr<IStream> >	streamq;
 	Connection					&rc;
 	IStreamIterator				it;
 	uint64						litsz64;

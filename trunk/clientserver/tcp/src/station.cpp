@@ -103,7 +103,7 @@ int Station::accept(ChannelVecTp &_cv/*, Constrainer &_rcons*/){
 		}
 		//TODO: not so nice so try to change.
 		Channel *pch = new Channel(psd);
-		if(pch->isOk()) _cv.push_back(pch);
+		if(pch->ok()) _cv.push_back(pch);
 		else delete pch;
 	}while(_cv.size() < _cv.capacity());
 	return OK;

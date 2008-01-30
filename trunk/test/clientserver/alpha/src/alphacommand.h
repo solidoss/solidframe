@@ -43,32 +43,49 @@ protected:
 	Command();
 public:
 	static void initStatic(Server &_rs);
-	typedef std::pair<uint32, uint32> FromPairTp;
 	virtual ~Command();
 	virtual void initReader(Reader &) = 0;
 	virtual int execute(Connection &) = 0;
-	//received from storage
+	//received from filemanager
 	virtual int receiveIStream(
 		StreamPtr<IStream> &,
-		const FromPairTp&_from,
+		const FileUidTp &,
+		int			_which,
+		const ObjectUidTp&_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
 	virtual int receiveOStream(
 		StreamPtr<OStream> &,
-		const FromPairTp&_from,
+		const FileUidTp &,
+		int			_which,
+		const ObjectUidTp&_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
 	virtual int receiveIOStream(
-		StreamPtr<IOStream> &, 
-		const FromPairTp&_from,
+		StreamPtr<IOStream> &,
+		const FileUidTp &,
+		int			_which,
+		const ObjectUidTp&_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
 	virtual int receiveString(
-		const String &_str, 
-		const FromPairTp&_from,
+		const String &_str,
+		int			_which, 
+		const ObjectUidTp&_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
-	virtual int receiveError(int);
+	virtual int receiveNumber(
+		const int64 &_no,
+		int			_which,
+		const ObjectUidTp&_from,
+		const clientserver::ipc::ConnectorUid *_conid
+	);
+	virtual int receiveError(
+		int _errid,
+		const ObjectUidTp&_from,
+		const clientserver::ipc::ConnectorUid *_conid
+	);
+
 };
 
 

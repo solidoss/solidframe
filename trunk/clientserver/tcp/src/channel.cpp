@@ -42,7 +42,7 @@ Channel* Channel::create(const AddrInfoIterator &_rai){
 }
 
 Channel::Channel(int _sd):sd(_sd), rcvcnt(0), sndcnt(0), pcd(NULL), psch(NULL){
-	if(isOk() && fcntl(sd, F_SETFL, O_NONBLOCK) < 0){
+	if(ok() && fcntl(sd, F_SETFL, O_NONBLOCK) < 0){
 		close(sd);
 		sd = -1;
 	}
@@ -52,7 +52,7 @@ Channel::Channel(int _sd):sd(_sd), rcvcnt(0), sndcnt(0), pcd(NULL), psch(NULL){
 // }
 
 Channel::~Channel(){
-	if(isOk()) close(sd);
+	if(ok()) close(sd);
 	//delete psch;
 }
 
@@ -82,10 +82,10 @@ int Channel::arePendingSends(){
 // and create the socket, bind it to a certain interface in 'create'
 int Channel::connect(const AddrInfoIterator &_it){
 	//in order to make the selector wait for data out, just add an empty buffer to snddq.
-	if(isOk()){	close(sd);}
+	if(ok()){	close(sd);}
 	
 	sd = socket(_it.family(), _it.type(), _it.protocol());
-	if(!isOk()) return BAD;
+	if(!ok()) return BAD;
 	if(fcntl(sd, F_SETFL, O_NONBLOCK) < 0){
 		close(sd);
 		sd = -1;

@@ -1,19 +1,31 @@
 #the workspace project
 project (SOLIDGROUND)
 
-SET(CMAKE_CXX_FLAGS_DEBUG "-Wall -Wabi -g3 -DUDEBUG -DUTHREADS" CACHE STRING "Flags used by the C++ compiler during debug builds." FORCE)
-SET(CMAKE_C_FLAGS_DEBUG "-Wall -pedantic -g3" CACHE STRING "Flags used by the C compiler during debug builds." FORCE)
+SET(CMAKE_CXX_FLAGS_DEBUG "-Wreorder -Wreturn-type -Wunused-variable -Winline -g3 -DUDEBUG -DUTHREADS" CACHE STRING "Flags used by the C++ compiler during debug builds." FORCE)
+SET(CMAKE_C_FLAGS_DEBUG "-g3 " CACHE STRING "Flags used by the C compiler during debug builds." FORCE)
 SET( CMAKE_EXE_LINKER_FLAGS_DEBUG
-    "-Wl,--warn-unresolved-symbols,--warn-once" CACHE STRING
+    "" CACHE STRING
     "Flags used for linking binaries during debug builds."
     FORCE )
 SET( CMAKE_SHARED_LINKER_FLAGS_DEBUG
-    "-Wl,--warn-unresolved-symbols,--warn-once" CACHE STRING
+    "" CACHE STRING
     "Flags used by the shared libraries linker during debug builds."
     FORCE )
 
+SET(CMAKE_CXX_FLAGS_MAINTAIN "-Wall -Wabi -g3 -DUDEBUG -DUTHREADS" CACHE STRING "Flags used by the C++ compiler during maintain builds." FORCE)
+SET(CMAKE_C_FLAGS_MAINTAIN "-Wall -pedantic -g3" CACHE STRING "Flags used by the C compiler during maintain builds." FORCE)
+SET( CMAKE_EXE_LINKER_FLAGS_MAINTAIN
+    "-Wl,--warn-unresolved-symbols,--warn-once" CACHE STRING
+    "Flags used for linking binaries during maintain builds."
+    FORCE )
+SET( CMAKE_SHARED_LINKER_FLAGS_MAINTAIN
+    "-Wl,--warn-unresolved-symbols,--warn-once" CACHE STRING
+    "Flags used by the shared libraries linker during maintain builds."
+    FORCE )
+
+
 #overwrite the defaults for release
-SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -DUTHREADS -DURCSID" CACHE STRING "Flags used by the C++ compiler during release builds." FORCE)
+SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -DUTHREADS -Wuninitialized" CACHE STRING "Flags used by the C++ compiler during release builds." FORCE)
 #SET(CMAKE_C_FLAGS_RELEASE "-O3 -DUTHREADS" CACHE STRING "Flags used by the C compiler during release builds." FORCE)
 
 
@@ -38,9 +50,16 @@ MARK_AS_ADVANCED(
     CMAKE_C_FLAGS_NOLOG
     CMAKE_EXE_LINKER_FLAGS_NOLOG
     CMAKE_SHARED_LINKER_FLAGS_NOLOG )
+
+MARK_AS_ADVANCED(
+    CMAKE_CXX_FLAGS_MAINTAIN
+    CMAKE_C_FLAGS_MAINTAIN
+    CMAKE_EXE_LINKER_FLAGS_MAINTAIN
+    CMAKE_SHARED_LINKER_FLAGS_MAINTAIN )
+
 # Update the documentation string of CMAKE_BUILD_TYPE for GUIs
 SET( CMAKE_BUILD_TYPE "${CMAKE_BUILD_TYPE}" CACHE STRING
-    "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel nolog:"
+    "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel nolog maintain:"
     FORCE )
 
 #new xscale build
@@ -87,7 +106,7 @@ SET( CMAKE_BUILD_TYPE "${CMAKE_BUILD_TYPE}" CACHE STRING
 
 add_subdirectory (system)
 add_subdirectory (utility)
-add_subdirectory(algorithm)
+add_subdirectory (algorithm)
 add_subdirectory (clientserver)
 add_subdirectory (test)
 add_subdirectory (application)

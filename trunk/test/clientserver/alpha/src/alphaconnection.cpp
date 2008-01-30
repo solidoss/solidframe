@@ -80,8 +80,11 @@ Connection::~Connection(){
 	test::Server &rs = test::Server::the();
 	rs.service(*this).removeConnection(*this);
 }
+
+
 int Connection::execute(ulong _sig, TimeSpec &_tout){
-	_tout.set(2400);//allways set it if it's not MAXTIMEOUT
+	//_tout.set(2400);//allways set it if it's not MAXTIMEOUT
+	_tout.add(2400);
 	if(_sig & (cs::TIMEOUT | cs::ERRDONE)){
 		if(state() == ConnectTout){
 			state(Connect);
@@ -98,7 +101,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 		if(sm & cs::S_KILL) return BAD;
 		if(sm & cs::S_CMD){
 			grabCommands();
-			channel().send(sigstr, strlen(sigstr));
+			//channel().send(sigstr, strlen(sigstr));
 		}
 		}
 		if(sm & cs::S_CMD){
@@ -109,12 +112,6 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 					_sig |= cs::OKDONE;
 				case NOK://unexpected command received
 					break;
-			}
-		}
-		if((sm & cs::S_ERR)){
-			//NOTE: was I really expecting a commnad?
-			if(pcmd && !pcmd->receiveError(true)){
-				_sig |= cs::OKDONE;
 			}
 		}
 		//now we determine if we return with NOK or we continue
@@ -128,6 +125,9 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 	if(_sig & cs::OUTDONE){
 		switch(state()){
 			case IdleExecute:
+			case ExecuteTout:
+				state(Execute);
+				break;
 			case Execute:
 				break;
 			case Connect:
@@ -179,10 +179,9 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			idbg("Execute");
 			switch((rc = writer().run())){
 				case NOK:
-// 					if(state() != IdleExecute){
-// 						state(ExecuteTout);
-// 					}else{
-// 					}
+					if(channel().arePendingSends()){
+						state(ExecuteTout);
+					}
 					return NOK;
 				case OK:
 					if(state() != IdleExecute){
@@ -211,6 +210,9 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 		case ParseTout:
 			idbg("State: ParseTout");
 			return NOK;
+		case ExecuteTout:
+			idbg("State: ExecuteTout");
+			return NOK;
 	}
 	return OK;
 }
@@ -236,58 +238,198 @@ void Connection::prepareReader(){
 
 int Connection::receiveIStream(
 	StreamPtr<IStream> &_ps,
-	const FromPairTp&_from,
+	const FileUidTp &_fuid,
+	const RequestUidTp &_requid,
+	int			_which,
+	const ObjectUidTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
-	if(pcmd && pcmd->receiveIStream(_ps, _from, _conid) == OK)
-		state(IdleExecute);
+	idbg("");
+	if(_requid.first && _requid.first != reqid) return OK;
+	idbg("");
+	newRequestId();//prevent multiple responses with the same id
+	if(pcmd){
+		switch(pcmd->receiveIStream(_ps, _fuid, _which, _from, _conid)){
+			case BAD:
+				idbg("");
+				break;
+			case OK:
+				idbg("");
+				if(state() == ParseTout){
+					state(Parse);
+				}
+				break;
+			case NOK:
+				idbg("");
+				state(IdleExecute);
+				break;
+		}
+	}
 	return OK;
 }
 
 int Connection::receiveOStream(
 	StreamPtr<OStream> &_ps,
-	const FromPairTp&_from,
+	const FileUidTp &_fuid,
+	const RequestUidTp &_requid,
+	int			_which,
+	const ObjectUidTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
-	if(pcmd) pcmd->receiveOStream(_ps, _from, _conid);
+	idbg("");
+	if(_requid.first && _requid.first != reqid) return OK;
+	idbg("");
+	newRequestId();//prevent multiple responses with the same id
+	if(pcmd){
+		switch(pcmd->receiveOStream(_ps, _fuid, _which, _from, _conid)){
+			case BAD:
+				idbg("");
+				break;
+			case OK:
+				idbg("");
+				if(state() == ParseTout){
+					state(Parse);
+				}
+				break;
+			case NOK:
+				idbg("");
+				state(IdleExecute);
+				break;
+		}
+	}
 	return OK;
 }
 
 int Connection::receiveIOStream(
-	StreamPtr<IOStream> &_ps, 
-	const FromPairTp&_from,
+	StreamPtr<IOStream> &_ps,
+	const FileUidTp &_fuid,
+	const RequestUidTp &_requid,
+	int			_which,
+	const ObjectUidTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
-	if(pcmd) pcmd->receiveIOStream(_ps, _from, _conid);
+	idbg("");
+	if(_requid.first && _requid.first != reqid) return OK;
+	idbg("");
+	newRequestId();//prevent multiple responses with the same id
+	if(pcmd){
+		switch(pcmd->receiveIOStream(_ps, _fuid, _which, _from, _conid)){
+			case BAD:
+				idbg("");
+				break;
+			case OK:
+				idbg("");
+				if(state() == ParseTout){
+					state(Parse);
+				}
+				break;
+			case NOK:
+				idbg("");
+				state(IdleExecute);
+				break;
+		}
+	}
 	return OK;
 }
 
 int Connection::receiveString(
 	const String &_str, 
-	const FromPairTp&_from,
+	const RequestUidTp &_requid,
+	int			_which,
+	const ObjectUidTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
-	if(pcmd && pcmd->receiveString(_str, _from, _conid) == OK)
-		state(IdleExecute);
+	idbg("");
+	if(_requid.first && _requid.first != reqid) return OK;
+	idbg("");
+	newRequestId();//prevent multiple responses with the same id
+	if(pcmd){
+		switch(pcmd->receiveString(_str, _which, _from, _conid)){
+			case BAD:
+				idbg("");
+				break;
+			case OK:
+				idbg("");
+				if(state() == ParseTout){
+					state(Parse);
+				}
+				break;
+			case NOK:
+				idbg("");
+				state(IdleExecute);
+				break;
+		}
+	}
 	return OK;
 }
+
+int Connection::receiveNumber(
+	const int64 &_no, 
+	const RequestUidTp &_requid,
+	int			_which,
+	const ObjectUidTp&_from,
+	const clientserver::ipc::ConnectorUid *_conid
+){
+	idbg("");
+	if(_requid.first && _requid.first != reqid) return OK;
+	idbg("");
+	newRequestId();//prevent multiple responses with the same id
+	if(pcmd){
+		switch(pcmd->receiveNumber(_no, _which, _from, _conid)){
+			case BAD:
+				idbg("");
+				break;
+			case OK:
+				idbg("");
+				if(state() == ParseTout){
+					state(Parse);
+				}
+				break;
+			case NOK:
+				idbg("");
+				state(IdleExecute);
+				break;
+		}
+	}
+	return OK;
+}
+
+
+int Connection::receiveError(
+	int _errid, 
+	const RequestUidTp &_requid,
+	const ObjectUidTp&_from,
+	const clientserver::ipc::ConnectorUid *_conid
+){
+	idbg("");
+	if(_requid.first && _requid.first != reqid) return OK;
+	idbg("");
+	newRequestId();//prevent multiple responses with the same id
+	if(pcmd){
+		switch(pcmd->receiveError(_errid, _from, _conid)){
+			case BAD:
+				idbg("");
+				break;
+			case OK:
+				idbg("");
+				if(state() == ParseTout){
+					state(Parse);
+				}
+				break;
+			case NOK:
+				idbg("");
+				state(IdleExecute);
+				break;
+		}
+	}
+	return OK;
+}
+
 
 int Connection::accept(cs::Visitor &_rov){
 	//static_cast<TestInspector&>(_roi).inspectConnection(*this);
 	return 0;
 }
-
-// int Connection::sendStatusResponse(cmd::Responder &_rr, int _opt){
-//     //hassert_abort(!cmdparser.tag().empty());
-//     if(_opt & 1){
-//         _rr<<rcmdparser.tag()<<rcmdparser.errmsg;
-//         rcmdparser.clearTag();
-// 	}else{
-//         _rr<<'*'<<' '<<rcmdparser.errmsg;
-//     }
-//     if(_opt & 2) _rr<<cmd::crlf;
-//     return OK;
-// }
 
 }//namespace alpha
 }//namespace test

@@ -239,6 +239,7 @@ int TalkerSelector::doExecute(SelTalker &_rch, ulong _evs, TimeSpec &_rcrttout, 
 		case OK://
 			idbg("OK: reentering connection");
 			if(!_rch.state) {chq.push(&_rch); _rch.state = 1;}
+			_rch.timepos.set(0xFFFFFFFF);
 			break;
 		case NOK:
 			idbg("TOUT: connection waits for signals");
@@ -250,13 +251,14 @@ int TalkerSelector::doExecute(SelTalker &_rch, ulong _evs, TimeSpec &_rcrttout, 
 					_rev.data.ptr = &_rch;
 					assert(!epoll_ctl(epfd, EPOLL_CTL_MOD, rcon.station().descriptor(), &_rev));
 				}
-				if(_rcrttout){
-					uint32 ns = ctimepos.nanoSeconds() + _rcrttout.nanoSeconds();
-					_rch.timepos.set(ctimepos.seconds() + _rcrttout.seconds() + ns / 1000000000, ns % 1000000000);
+				if(_rcrttout != ctimepos){
+					_rch.timepos = _rcrttout;
+					if(ntimepos > _rcrttout){
+						ntimepos = _rcrttout;
+					}
 				}else{
 					_rch.timepos.set(0xFFFFFFFF);
 				}
-				if(ntimepos > _rch.timepos) ntimepos = _rch.timepos;
 			}
 			break;
 		case LEAVE:

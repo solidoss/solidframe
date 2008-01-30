@@ -24,6 +24,7 @@
 
 #include "core/tstring.h"
 #include "core/connection.h"
+#include "core/common.h"
 
 #include "alphareader.h"
 #include "alphawriter.h"
@@ -64,26 +65,55 @@ public:
 	Reader& reader(){return rdr;}
 	Writer& writer(){return wtr;}
 	
+	uint32 requestId()const{return reqid;}
+	uint32 newRequestId(){
+		if(++reqid) return reqid;
+		return (reqid = 1);
+	}
 	
 	//int sendStatusResponse(cmd::Responder &_rr, int _opt);
 	/*virtual*/ int receiveIStream(
 		StreamPtr<IStream> &,
-		const FromPairTp&_from,
+		const FileUidTp&,
+		const RequestUidTp &_requid,
+		int			_which,
+		const ObjectUidTp &_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
 	/*virtual*/ int receiveOStream(
 		StreamPtr<OStream> &,
-		const FromPairTp&_from,
+		const FileUidTp&,
+		const RequestUidTp &_requid,
+		int			_which,
+		const ObjectUidTp&_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
 	/*virtual*/ int receiveIOStream(
-		StreamPtr<IOStream> &, 
-		const FromPairTp&_from,
+		StreamPtr<IOStream> &,
+		const FileUidTp&,
+		const RequestUidTp &_requid,
+		int			_which,
+		const ObjectUidTp &_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
 	/*virtual*/ int receiveString(
 		const String &_str, 
-		const FromPairTp&_from,
+		const RequestUidTp &_requid,
+		int			_which,
+		const ObjectUidTp &_from,
+		const clientserver::ipc::ConnectorUid *_conid
+	);
+	/*virtual*/ int receiveNumber(
+		const int64 &_no, 
+		const RequestUidTp &_requid,
+		int			_which,
+		const ObjectUidTp &_from,
+		const clientserver::ipc::ConnectorUid *_conid
+	);
+	/*virtual*/ int receiveError(
+		int _errid, 
+		const RequestUidTp &_requid,
+		const ObjectUidTp &_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
 private:
@@ -106,6 +136,7 @@ private:
 	Reader				rdr;
 	Command				*pcmd;
 	SocketAddress		*paddr;
+	uint32				reqid;
 };
 
 }//namespace alpha

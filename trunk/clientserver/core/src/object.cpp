@@ -125,8 +125,80 @@ int Command::execute(Object &){
 	return 0;
 }
 
+int Command::execute(CommandExecuter &, const CommandUidTp &, TimeSpec &_rts){
+	idbg("Unhandled command");
+	return 0;
+}
+
 int Command::release(){
 	idbg("Release command");
+	return BAD;
+}
+
+int Command::receiveCommand(
+	CmdPtr<Command> &_rcmd,
+	int			_which,
+	const ObjectUidTp&_from,
+	const ipc::ConnectorUid *_conid
+){
+	assert(false);
+	return BAD;
+}
+
+int Command::receiveIStream(
+	StreamPtr<IStream> &,
+	const FileUidTp	&,
+	int			_which,
+	const ObjectUidTp&,
+	const ipc::ConnectorUid *
+){
+	assert(false);
+	return BAD;
+}
+int Command::receiveOStream(
+	StreamPtr<OStream> &,
+	const FileUidTp	&,
+	int			_which,
+	const ObjectUidTp&,
+	const ipc::ConnectorUid *
+){
+	assert(false);
+	return BAD;
+}
+int Command::receiveIOStream(
+	StreamPtr<IOStream> &,
+	const FileUidTp	&,
+	int			_which,
+	const ObjectUidTp&,
+	const ipc::ConnectorUid *
+){
+	assert(false);
+	return BAD;
+}
+int Command::receiveString(
+	const std::string &_str,
+	int			_which,
+	const ObjectUidTp&,
+	const ipc::ConnectorUid *
+){
+	assert(false);
+	return BAD;
+}
+int Command::receiveNumber(
+	const int64 &,
+	int			_which,
+	const ObjectUidTp&,
+	const ipc::ConnectorUid *
+){
+	assert(false);
+	return BAD;
+}
+int Command::receiveError(
+	int, 
+	const ObjectUidTp&,
+	const ipc::ConnectorUid *
+){
+	assert(false);
 	return BAD;
 }
 

@@ -35,27 +35,13 @@ struct TimeSpec: public timespec{
 	void seconds(const TimeTp &_s){tv_sec = _s;}
 	void nanoSeconds(long _ns){tv_nsec = _ns;}
 	void set(const TimeTp &_s, long _ns = 0){tv_sec = _s;tv_nsec = _ns;}
-	bool operator >=(const TimeSpec &_ts)const{
-		return (seconds() > _ts.seconds()) || ((seconds() == _ts.seconds()) && (tv_nsec >= _ts.tv_nsec));
-	}
-	bool operator >(const TimeSpec &_ts)const{
-		return (seconds() > _ts.seconds()) || ((seconds() == _ts.seconds()) && (tv_nsec > _ts.tv_nsec));
-	}
-	bool operator <=(const TimeSpec &_ts)const{
-		return (seconds() < _ts.seconds()) || ((seconds() == _ts.seconds()) && (tv_nsec <= _ts.tv_nsec));
-	}
-	bool operator <(const TimeSpec &_ts)const{
-		return (seconds() < _ts.seconds()) || ((seconds() == _ts.seconds()) && (tv_nsec < _ts.tv_nsec));
-	}
-	operator bool () const{
-		return tv_sec | tv_nsec;
-	}
-	TimeSpec& operator += (unsigned _msec){
-		tv_sec += _msec / 1000;
-		tv_nsec += (_msec % 1000) * 1000000;
-		if(tv_nsec >= 1000000000){++tv_sec; tv_nsec %= 1000000000;}
-		return *this;
-	}
+	void add(const TimeTp &_s, long _ns = 0);
+	bool operator >=(const TimeSpec &_ts)const;
+	bool operator >(const TimeSpec &_ts)const;
+	bool operator <=(const TimeSpec &_ts)const;
+	bool operator <(const TimeSpec &_ts)const;
+	operator bool () const{	return tv_sec | tv_nsec;}
+	TimeSpec& operator += (unsigned _msec);
 };
 
 inline TimeSpec operator-(const TimeSpec &_ts1, const TimeSpec &_ts2){
@@ -67,6 +53,37 @@ inline TimeSpec operator-(const TimeSpec &_ts1, const TimeSpec &_ts2){
 		--ts.tv_sec; ts.tv_nsec = 1000000000 + (ts.tv_nsec % 1000000000);
 	}
 	return ts;
+}
+
+inline void TimeSpec::add(const TimeTp &_s, long _ns){
+	tv_sec += _s;
+	tv_nsec += _ns;
+	tv_sec += tv_nsec/1000000000;
+	tv_nsec %= 1000000000;
+}
+
+inline bool TimeSpec::operator >=(const TimeSpec &_ts)const{
+	return (seconds() > _ts.seconds()) || ((seconds() == _ts.seconds()) && (tv_nsec >= _ts.tv_nsec));
+}
+
+inline bool TimeSpec::operator >(const TimeSpec &_ts)const{
+	return (seconds() > _ts.seconds()) || ((seconds() == _ts.seconds()) && (tv_nsec > _ts.tv_nsec));
+}
+
+inline bool TimeSpec::operator <=(const TimeSpec &_ts)const{
+	return (seconds() < _ts.seconds()) || ((seconds() == _ts.seconds()) && (tv_nsec <= _ts.tv_nsec));
+}
+
+inline bool TimeSpec::operator <(const TimeSpec &_ts)const{
+	return (seconds() < _ts.seconds()) || ((seconds() == _ts.seconds()) && (tv_nsec < _ts.tv_nsec));
+}
+
+inline TimeSpec& TimeSpec::operator += (unsigned _msec){
+	tv_sec += _msec / 1000;
+	tv_nsec += (_msec % 1000) * 1000000;
+	tv_sec += tv_nsec/1000000000;
+	tv_nsec %= 1000000000;
+	return *this;
 }
 
 #endif

@@ -29,6 +29,10 @@ class OStream: virtual public Stream{
 public:
 	virtual ~OStream(){}
 	virtual int write(const char *, uint32, uint32 _flags = 0) = 0;
+	bool ook()const{return flags.flags == 0;}
+	bool oeof()const{return flags.flags & StreamFlags::OEof;}
+	bool obad()const{return flags.flags & StreamFlags::OBad;}
+	bool ofail()const{return obad() | flags.flags & StreamFlags::OFail;}
 };
 
 struct OStreamIterator{

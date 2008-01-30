@@ -61,6 +61,13 @@ struct SendBufferData{
 };
 
 //! The data identifying a process	
+/*!
+	Not all commands are guaranteed to still be sent on peer restart. These are the commands already written into discarded buffers.
+	Should I discard sending commands (not responses) after its buffer was successfully sent!?
+	Or should I consider the situation similar to, command successfully sent but peer crashed while processing it?!
+	
+	Considering the complexity of changes i think it is wize to chose the second situation.
+*/
 class ProcessConnector{
 public:
 	enum{

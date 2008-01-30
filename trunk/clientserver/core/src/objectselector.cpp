@@ -48,6 +48,30 @@ void ObjectSelector::signal(uint _pos){
 	cnd.signal();
 }
 
+/*
+NOTE: TODO:
+	See if this ideea will bring faster timeout scan (see it implemented in FileManager) 
+	- add a new deque<unsigned> toutv
+	- add to SelObject an toutidx int value 
+	
+	When an object waits for tout:
+		- add its index at the end of toutv.
+		- set toutidx to (toutv.size() - 1);
+	When an object doesnt have timeout (waits forever) toutidx = -1;
+	
+	When we have an event on an object:
+		- toutv[toutidx] = toutv.back();
+		- toutv.pop_back();
+		- toutidx = -1;
+		
+	When timeout:
+		for(it=toutv.begin(); it != toutv.end(); ++it){
+			if(timeout(sv[*it])){
+				...
+			}
+		}
+*/
+
 void ObjectSelector::run(){
 	//ulong		crttout;
 	int 		state;
@@ -162,11 +186,20 @@ int ObjectSelector::doExecute(unsigned _i, ulong _evs, TimeSpec _crttout){
 		case OK:
 			idbg("OK: reentering object");
 			if(!sv[_i].state) {objq.push(_i); sv[_i].state = 1;}
+			_crttout.set(0xffffffff);
+			break;
 		case NOK:
 			idbg("TOUT: connection waits for signals");
-			sv[_i].timepos.set(_crttout.seconds() ? ctimepos.seconds() + _crttout.seconds() : (TimeSpec::TimeTp)0xffffffff);
-            if(ntimepos > sv[_i].timepos) ntimepos = sv[_i].timepos;
-            break;
+			//sv[_i].timepos.set(_crttout.seconds() ? ctimepos.seconds() + _crttout.seconds() : (TimeSpec::TimeTp)0xffffffff);
+			if(_crttout != ctimepos){
+				sv[_i].timepos = _crttout;
+				if(ntimepos > _crttout){
+					ntimepos = _crttout;
+				}
+			}else{
+				_crttout.set(0xffffffff);
+			}
+			break;
 		case LEAVE:
 			idbg("LEAVE: object leave");
 			fstk.push(_i);
