@@ -236,7 +236,7 @@ int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 	uint32	fileids[256];
 	uint	qsz = d.sq.size();
 	uint	oqsz = d.oq.size();
-	uint	ofront;
+	uint	ofront = 0;
 	uint	dsz = d.sz;
 	if(state() != Data::Running) oqsz = 0;
 	if(oqsz){
