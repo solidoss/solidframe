@@ -30,7 +30,7 @@ void initDebug(const char * _fname);
 #include <iostream>
 #include "timespec.h"
 
-struct Gdb{
+struct Dbg{
 	static const int fileoff;
 
 	static void lock(TimeSpec &);
@@ -40,24 +40,26 @@ struct Gdb{
 
 #define CERR	std::clog
 
-#define pdbg(x) {Gdb::lock();CERR<<x<<std::endl;Gdb::unlock();}
-#define wdbg(x,sz) {Gdb::lock();CERR.write(x,sz);Gdb::unlock();}
+#define pdbg(x) {Dbg::lock();CERR<<x<<std::endl;Dbg::unlock();}
+//#define wdbg(x,sz) {Dbg::lock();CERR.write(x,sz);Dbg::unlock();}
 
 #ifndef UTHREADS
 
-inline void Gdb::lock(){}
-inline void Gdb::unlock(){}
-inline int  Gdb::crtThrId(){return -1;}
+inline void Dbg::lock(){}
+inline void Dbg::unlock(){}
+inline int  Dbg::crtThrId(){return -1;}
 
-#define idbg(x) {Gdb::lock(); CERR<<"I["<<(__FILE__ + Gdb::fileoff)<<':'<<__LINE__<<'|'<<__FUNCTION__<<']'<<' '<<x<<std::endl; Gdb::unlock();}
+#define idbg(x) {Dbg::lock(); CERR<<"I["<<(__FILE__ + Dbg::fileoff)<<':'<<__LINE__<<'|'<<__FUNCTION__<<']'<<' '<<x<<std::endl; Dbg::unlock();}
 
 
-#define edbg(x) {Gdb::lock(); CERR<<"E["<<(__FILE__ + Gdb::fileoff)<<':'<<__LINE__<<'|'<<__FUNCTION__<<']'<<' '<<x<<std::endl; Gdb::unlock();}
+#define edbg(x) {Dbg::lock(); CERR<<"E["<<(__FILE__ + Dbg::fileoff)<<':'<<__LINE__<<'|'<<__FUNCTION__<<']'<<' '<<x<<std::endl; Dbg::unlock();}
 
 #else
 
-#define idbg(x) {TimeSpec t;Gdb::lock(t); CERR<<"I["<<t.seconds()<<"."<<t.nanoSeconds()/1000<<" "<<(__FILE__ + Gdb::fileoff)<<':'<<__LINE__<<'|'<<__FUNCTION__<<']'<<'('<<Gdb::crtThrId()<<')'<<' '<<x<<std::endl; Gdb::unlock();}
-#define edbg(x) {TimeSpec t;Gdb::lock(t); CERR<<"E["<<t.seconds()<<"."<<t.nanoSeconds()/1000<<" "<<(__FILE__ + Gdb::fileoff)<<':'<<__LINE__<<'|'<<__FUNCTION__<<']'<<'('<<Gdb::crtThrId()<<')'<<' '<<x<<std::endl; Gdb::unlock();}
+#define idbg(x) {TimeSpec t;Dbg::lock(t); CERR<<"I["<<t.seconds()<<"."<<t.nanoSeconds()/1000<<" "<<(__FILE__ + Dbg::fileoff)<<':'<<__LINE__<<'|'<<__FUNCTION__<<']'<<'('<<Dbg::crtThrId()<<')'<<' '<<x<<std::endl; Dbg::unlock();}
+#define edbg(x) {TimeSpec t;Dbg::lock(t); CERR<<"E["<<t.seconds()<<"."<<t.nanoSeconds()/1000<<" "<<(__FILE__ + Dbg::fileoff)<<':'<<__LINE__<<'|'<<__FUNCTION__<<']'<<'('<<Dbg::crtThrId()<<')'<<' '<<x<<std::endl; Dbg::unlock();}
+#define wdbg(x,sz) {TimeSpec t;Dbg::lock(t);CERR.write(x,sz);Dbg::unlock();}
+
 
 #endif
 

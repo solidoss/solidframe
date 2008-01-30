@@ -183,6 +183,11 @@ inline int computePollWait(const TimeSpec &_rntimepos, const TimeSpec &_rctimepo
 	return rv;
 }
 
+/*
+	NOTE: TODO:
+		Look at the note from core/objectselector.cpp
+*/
+
 void ConnectionSelector::run(){
 	TimeSpec	crttout;
 	epoll_event	ev;
@@ -277,6 +282,7 @@ int ConnectionSelector::doExecute(SelChannel &_rch, ulong _evs, TimeSpec &_crtto
 		case OK://
 			idbg("OK: reentering connection");
 			if(!_rch.state) {chq.push(&_rch); _rch.state = 1;}
+			_rch.timepos.set(0xFFFFFFFF);
 			break;
 		case NOK:
 			idbg("TOUT: connection waits for signals");
@@ -290,13 +296,12 @@ int ConnectionSelector::doExecute(SelChannel &_rch, ulong _evs, TimeSpec &_crtto
 					_rev.data.ptr = &_rch;
 					assert(!epoll_ctl(epfd, EPOLL_CTL_MOD, rcon.channel().descriptor(), &_rev));
 				}
-				if(_crttout){
-					uint32 ns = ctimepos.nanoSeconds() + _crttout.nanoSeconds();
-					_rch.timepos.set(ctimepos.seconds() + _crttout.seconds() + ns / 1000000000, ns % 1000000000);
+				if(_crttout != ctimepos){
+					_rch.timepos = _crttout;
+					if(ntimepos > _crttout) ntimepos = _crttout;
 				}else{
 					_rch.timepos.set(0xFFFFFFFF);
 				}
-            	if(ntimepos > _rch.timepos) ntimepos = _rch.timepos;
 			}
 			break;
 		case LEAVE:

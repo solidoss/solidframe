@@ -36,7 +36,7 @@ public:
 	typedef SO 				ObjectTp;
 	typedef StreamPtr<SO>	ThisTp;
 	StreamPtr():pobj(NULL){}
-	explicit StreamPtr(ObjectTp *_pobj):pobj(_pobj) {}
+	StreamPtr(ObjectTp *_pobj):pobj(_pobj) {}
 	StreamPtr(const ThisTp &_pobj):pobj(_pobj.release()){}
 	~StreamPtr(){
 		if(pobj){StreamPtrBase::clear(pobj);}

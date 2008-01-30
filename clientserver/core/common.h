@@ -22,6 +22,7 @@
 #ifndef CS_COMMON_H
 #define CS_COMMON_H
 
+#include <utility>
 #include "utility/common.h"
 
 namespace clientserver{
@@ -48,6 +49,11 @@ enum Events{
 enum Consts{
 	MAXTIMEOUT = (0xffffffff>>1)/1000
 };
+
+typedef std::pair<uint32, uint32> ObjectUidTp;
+typedef std::pair<uint32, uint32> CommandUidTp;
+typedef std::pair<uint32, uint32> FileUidTp;
+typedef std::pair<uint32, uint32> RequestUidTp;
 }
 
 #endif

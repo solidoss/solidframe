@@ -206,7 +206,8 @@ class Serializer: private Base{
 		std::pair<IStream*, int64> &rsp(*reinterpret_cast<std::pair<IStream*, int64>*>(estk.top().buf));
 		rsp = sp;
 		FncTp	tpf;
-		fstk.push(FncData(REINTERPRET_FUN(Serializer::template storeStreamDone<T>), _rfd.p, _rfd.n, _rfd.s - 1));//_rfd.s is the id of the stream
+		//_rfd.s is the id of the stream
+		fstk.push(FncData(REINTERPRET_FUN(Serializer::template storeStreamDone<T>), _rfd.p, _rfd.n, _rfd.s - 1));
 		if(sp.first){
 			fstk.push(FncData(REINTERPRET_FUN(Serializer::storeStream), NULL));
 		}

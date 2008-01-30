@@ -35,6 +35,7 @@ public:
 	int write(const char* _pb, uint32 _bl);
 	void close();
 	int flush();
+	bool ok()const{return desc >= 0;}
 	Device& operator&(Device &_dev);
 protected:
 	Device(int _desc = -1);

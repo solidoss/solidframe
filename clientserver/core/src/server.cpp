@@ -30,7 +30,7 @@
 #include "core/service.h"
 #include "core/object.h"
 #include "core/activeset.h"
-#include "core/storagemanager.h"
+#include "core/filemanager.h"
 #include "ipc/ipcservice.h"
 
 /*
@@ -117,7 +117,7 @@ void ServiceContainer::remove(Object *_po){
 	Service::remove(*_po);
 }
 
-Server::Server(StorageManager *_psm, ipc::Service *_pipcs):servicev(*(new ServiceVector)),asv(*(new ActiveSetVector)), psm(_psm), pipcs(_pipcs){
+Server::Server(FileManager *_pfm, ipc::Service *_pipcs):servicev(*(new ServiceVector)),asv(*(new ActiveSetVector)), pfm(_pfm), pipcs(_pipcs){
 	registerActiveSet(*(new DummySet));
 	servicev.push_back(ServicePtr(new ServiceContainer));
 }
@@ -128,7 +128,7 @@ Server::~Server(){
 	delete asv.front();
 	delete &asv;
 	delete &servicev;
-	delete psm.release();
+	delete pfm.release();
 	//delete pipcs;
 }
 
@@ -144,15 +144,16 @@ uint Server::serviceId(const Service &_rs)const{
 	return _rs.index() + 1;//the first service must be the ServiceContainer
 }
 
-void Server::storage(StorageManager *_psm){
-	psm = _psm;
+void Server::fileManager(FileManager *_pfm){
+	assert(!pfm);
+	pfm = _pfm;
 }
 void Server::ipc(ipc::Service *_pipcs){
 	pipcs = _pipcs;
 }
 
-void Server::removeStorage(){
-	removeObject(&storage());
+void Server::removeFileManager(){
+	removeObject(&fileManager());
 	//psm = NULL;
 }
 

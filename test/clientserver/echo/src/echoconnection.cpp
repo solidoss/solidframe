@@ -79,7 +79,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 /*	if(b){
 		_tout.set(0, 1000000 * 500);//allways set it if it's not MAXTIMEOUT
 	}else{*/
-		_tout.set(60);
+		_tout.add(60);
 //	}
 	if(signaled()){
 		test::Server &rs = test::Server::the();

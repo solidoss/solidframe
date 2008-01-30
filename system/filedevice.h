@@ -35,9 +35,12 @@ public:
 		CR = O_CREAT
 	};
 	FileDevice();
+	//!returns the size of a file without opening it - using stat!
+	static int64 size(const char *_fname);
 	int open(const char* _fname, int _how);
 	int create(const char* _fname, int _how);
 	int64 size()const;
+	bool canRetryOpen()const;
 };
 
 #endif

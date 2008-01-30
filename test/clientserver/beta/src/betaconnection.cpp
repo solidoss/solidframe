@@ -65,7 +65,7 @@ Connection::~Connection(){
 }
 
 int Connection::execute(ulong _sig, TimeSpec &_tout){
-	_tout.set(20);//allways set it if it's not MAXTIMEOUT
+	_tout.add(20);//allways set it if it's not MAXTIMEOUT
 	if(_sig & (cs::TIMEOUT | cs::ERRDONE)){
 		idbg("connecton timeout or error");
 		if(state() == CONNECT_TOUT){

@@ -1,4 +1,4 @@
-/* Declarations file command.h
+/* Declarations file object.h
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
@@ -19,78 +19,74 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CS_COMMAND_H
-#define CS_COMMAND_H
+#ifndef TESTOBJECT_H
+#define TESTOBJECT_H
 
-#include "clientserver/core/common.h"
 #include "utility/streamptr.h"
-#include <string>
+#include "clientserver/core/object.h"
+#include "common.h"
+#include "tstring.h"
 
 class IStream;
 class OStream;
 class IOStream;
-class TimeSpec;
 
 namespace clientserver{
 namespace ipc{
 struct ConnectorUid;
 }
-class CommandExecuter;
-class Object;
+}
 
-struct Command{
-	Command(){}
-	virtual ~Command();
-	virtual int received(const ipc::ConnectorUid&);
-	virtual void use();
-	virtual int execute(Object &);
-	virtual int execute(CommandExecuter&, const CommandUidTp &, TimeSpec &_rts);
-	virtual int release();
-	virtual int receiveCommand(
-		CmdPtr<Command> &_rcmd,
-		int			_which = 0,
-		const ObjectUidTp&_from = ObjectUidTp(),
-		const ipc::ConnectorUid *_conid = NULL
-	);
+namespace test{
+struct Command;
+
+class Object: public clientserver::Object{
+public:
+	typedef Command	CommandTp;
+	typedef std::pair<uint32, uint32>	FromPairTp;
+	typedef std::pair<uint32, uint32>	FileUidTp;
+	typedef std::pair<uint32, uint32>	RequestUidTp;
 	virtual int receiveIStream(
 		StreamPtr<IStream> &,
 		const FileUidTp	&,
+		const RequestUidTp &_requid,
 		int			_which = 0,
 		const ObjectUidTp&_from = ObjectUidTp(),
-		const ipc::ConnectorUid *_conid = NULL
+		const clientserver::ipc::ConnectorUid *_conid = NULL
 	);
 	virtual int receiveOStream(
 		StreamPtr<OStream> &,
 		const FileUidTp	&,
+		const RequestUidTp &_requid,
 		int			_which = 0,
 		const ObjectUidTp&_from = ObjectUidTp(),
-		const ipc::ConnectorUid *_conid = NULL
+		const clientserver::ipc::ConnectorUid *_conid = NULL
 	);
 	virtual int receiveIOStream(
 		StreamPtr<IOStream> &,
 		const FileUidTp	&,
+		const RequestUidTp &_requid,
 		int			_which = 0,
 		const ObjectUidTp&_from = ObjectUidTp(),
-		const ipc::ConnectorUid *_conid = NULL
+		const clientserver::ipc::ConnectorUid *_conid = NULL
 	);
 	virtual int receiveString(
-		const std::string &_str,
-		int	 _which = 0,
-		const ObjectUidTp&_from = ObjectUidTp(),
-		const ipc::ConnectorUid *_conid = NULL
-	);
-	virtual int receiveNumber(
-		const int64 &_no,
+		const String &_str,
+		const RequestUidTp &_requid,
 		int			_which = 0,
 		const ObjectUidTp&_from = ObjectUidTp(),
-		const ipc::ConnectorUid *_conid = NULL
+		const clientserver::ipc::ConnectorUid *_conid = NULL
 	);
 	virtual int receiveError(
 		int _errid, 
+		const RequestUidTp &_requid,
 		const ObjectUidTp&_from = ObjectUidTp(),
-		const ipc::ConnectorUid *_conid = NULL
+		const clientserver::ipc::ConnectorUid *_conid = NULL
 	);
+protected:
+	Object(uint32 _fullid = 0):clientserver::Object(_fullid){}
 };
-}//namespace clientserver
+
+}
 
 #endif

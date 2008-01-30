@@ -35,7 +35,7 @@ namespace test{
 
 class Service;
 class Visitor;
-//class StorageManager;
+class CommandExecuter;
 
 typedef Service* (*ServiceCreator)();
 typedef std::map<const char*, ServiceCreator, StrLess>	ServiceMap;
@@ -52,7 +52,9 @@ public:
 	int stop(const char *_which = NULL);
 	
 	int insertService(const char* _nm, Service* _psrvc);
-	int insertCluster(Service *_psrvc);
+	
+	void readCommandExecuterUid(ObjectUidTp &_ruid);
+	void writeCommandExecuterUid(ObjectUidTp &_ruid);
 	void removeService(Service *_psrvc);
 	int insertListener(
 		const char* _nm,
@@ -74,11 +76,13 @@ public:
 	
 	int visitService(const char* _nm, Visitor &_roi);
 	
-	//StorageManager& storage();
 	serialization::bin::RTTIMapper &binMapper();
 	template <class J>
 	void pushJob(J *_pj, int _pos = 0);
 private:
+	friend class CommandExecuter;
+// 	void removeCommandExecuter(ReadCommandExecuter *);
+// 	void removeCommandExecuter(WriteCommandExecuter *);
 	struct Data;
 	Data	&d;
 };

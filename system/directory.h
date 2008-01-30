@@ -1,4 +1,4 @@
-/* Implementation file stream.cpp
+/* Declarations file directory.h
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
@@ -19,17 +19,13 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <cstdlib>
-#include "stream.h"
-#include "streamptr.h"
+#ifndef DIRECTORYPP_H
+#define DIRECTORYPP_H
 
-void StreamPtrBase::clear(Stream *_ps){
-	if(_ps->release()) delete _ps;
-}
+class Directory{
+public:
+	static int create(const char *);
+	static int eraseFile(const char *);
+};
 
-int Stream::release(){return -1;}
-//bool Stream::isOk()const{return true;}
-
-int64 Stream::size()const{return -1;}
-
-
+#endif

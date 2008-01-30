@@ -21,7 +21,9 @@
 
 #include <unistd.h>
 #include "filedevice.h"
+#include "directory.h"
 #include <cassert>
+#include <cerrno>
 
 Device::Device(const Device &_dev):desc(_dev.descriptor()) {
 	_dev.desc = -1;
@@ -93,5 +95,14 @@ int64 FileDevice::size()const{
 	fstat(descriptor(), &st);
 	return st.st_size;
 }
+bool FileDevice::canRetryOpen()const{
+	return (errno == EMFILE) || (errno == ENOMEM);
+}
+//-- Directory -------------------------------------
+/*static*/ int Directory::create(const char *_path){
+	return mkdir(_path,  S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+}
 
-//------------------------------------------------
+/*static*/ int Directory::eraseFile(const char *_path){
+	return unlink(_path);
+}
