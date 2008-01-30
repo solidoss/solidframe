@@ -27,7 +27,10 @@
 namespace protocol{
 
 typedef std::string String;
-
+//! A class for protocol level logging.
+/*!
+	Not implemented yet - the interface is dummy
+*/
 class Logger{
 public:
 	Logger();

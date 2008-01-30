@@ -25,28 +25,38 @@
 #include "system/common.h"
 
 namespace protocol{
+//!Parameter structure for scheduled functions for reader and writer
+/*!
+	It keeps two objects a and b wich are unions of void* / ulong/ int.
+	No type info is kept. The scheduled functions should know the type of data.
+*/
 struct Parameter{
 	union{
 		void 	*p;
 		ulong	u;
 		int		i;
 	} a, b;
+	//!Convenient constructor for two void pointers
 	Parameter(void *_pa = NULL, void *_pb = NULL){
 		a.p = _pa;
 		b.p = _pb;
 	}
+	//!Convenient constructor for a void pointer and an ulong
 	Parameter(void *_p, ulong _u){
 		a.p = _p;
 		b.u = _u;
 	}
+	//!Convenient constructor for an ulong and a void pointer
 	Parameter(ulong _u, void *_p = NULL){
 		a.u = _u;
 		b.p = _p;
 	}
+	//!Convenient constructor for two ulongs
 	Parameter(ulong _ua, ulong _ub){
 		a.u = _ua;
 		b.u = _ub;
 	}
+	//!Convenient constructor for one int - b will be NULL
 	explicit Parameter(int _i){
 		a.i = _i;
 		b.p = NULL;
