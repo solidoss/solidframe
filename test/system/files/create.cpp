@@ -21,7 +21,9 @@
 
 #include <iostream>
 #include <fstream>
-#include "boost/filesystem.hpp"
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/exception.hpp>
+#include <boost/utility.hpp>
 
 using namespace std;
 
