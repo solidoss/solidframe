@@ -25,19 +25,21 @@
 namespace protocol{
 //!A simple and fast runtime case-insensitive name matcher
 /*! Intended usage example:<br>
-	struct Name{
-		const char *name;
-		Command*(*)() pf;
-	} const cmd_tbl[] = {
-		{"login", &create_login},
-		{"delete", &create_delete},
-		{"create", &create_create},
-		{NULL, &create_null}
-	};
-	static const NameMatcher cmdm(cmd_tbl);
-	
-	string s;cin>>s;
-	Command *pcmd = (*cmd_tbl[cmdm.match(s.c_str())].pf)();
+<CODE>
+	struct Name{<br>
+		const char *name;<br>
+		Command*(*)() pf;<br>
+	} const cmd_tbl[] = {<br>
+		{"login", &create_login},<br>
+		{"delete", &create_delete},<br>
+		{"create", &create_create},<br>
+		{NULL, &create_null}<br>
+	};<br>
+	static const NameMatcher cmdm(cmd_tbl);<br>
+	<br>
+	string s;cin>>s;<br>
+	Command *pcmd = (*cmd_tbl[cmdm.match(s.c_str())].pf)();<br>
+</CODE>
 */
 
 class NameMatcher{

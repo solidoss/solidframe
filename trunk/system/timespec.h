@@ -25,7 +25,10 @@
 #include <time.h>
 #include "convertors.h"
 //#include <sys/times.h>
-
+//! A timespec wrapper
+/*!
+	Basicaly it is a pair of seconds and nanoseconds.
+*/
 struct TimeSpec: public timespec{
 	typedef UnsignedConvertor<time_t>::UnsignedType TimeTp;
 	

@@ -26,6 +26,7 @@
 
 class Condition;
 
+//! A simple wrapper for POSIX mutex synchronizatin objects.
 class Mutex{
 public:
 	struct Locker{

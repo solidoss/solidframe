@@ -167,7 +167,7 @@ void Service::doSignalAll(Server &_rsrv, ulong _sigmask){
 	for(ObjectVector::iterator it(objv.begin()); oc && it != objv.end(); ++it, ++i){
 		if(it->first){
 			//if(!(i & objpermutmsk)){
-			if(mutpool.isRangeEnd(i)){
+			if(mutpool.isRangeBegin(i)){
 				if(mi >= 0)	mutpool[mi].unlock();
 				++mi;
 				mutpool[mi].lock();
@@ -189,7 +189,7 @@ void Service::doSignalAll(Server &_rsrv, CmdPtr<Command> &_cmd){
 	for(ObjectVector::iterator it(objv.begin()); oc && it != objv.end(); ++it, ++i){
 		if(it->first){
 			//if(!(i & objpermutmsk)){
-			if(mutpool.isRangeEnd(i)){
+			if(mutpool.isRangeBegin(i)){
 				if(mi >= 0)	mutpool[mi].unlock();
 				++mi;
 				mutpool[mi].lock();
@@ -211,7 +211,7 @@ void Service::visit(Server &_rsrv, Visitor &_rov){
 	int mi = -1;
 	for(ObjectVector::iterator it(objv.begin()); oc && it != objv.end(); ++it, ++i){
 		if(it->first){
-			if(mutpool.isRangeEnd(i)){
+			if(mutpool.isRangeBegin(i)){
 				if(mi >= 0)	mutpool[mi].unlock();
 				++mi;
 				mutpool[mi].lock();

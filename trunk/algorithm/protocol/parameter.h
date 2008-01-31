@@ -25,10 +25,10 @@
 #include "system/common.h"
 
 namespace protocol{
-//!Parameter structure for scheduled functions for reader and writer
+//!Parameter structure for reader and writer callbacks
 /*!
 	It keeps two objects a and b wich are unions of void* / ulong/ int.
-	No type info is kept. The scheduled functions should know the type of data.
+	No type info is kept. The callbacks should know the type of data.
 */
 struct Parameter{
 	union{

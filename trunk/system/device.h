@@ -27,14 +27,20 @@
 #include <sys/stat.h>
 
 #include "common.h"
-
+//! A wrapper for what on POSIX is a descriptor
 class Device{
 public:
+	//! The copy constructor which will grab the desc from the given device (like std::autoptr)
 	Device(const Device &_dev);
+	//! Read call
 	int read(char	*_pb, uint32 _bl);
+	//! Write call
 	int write(const char* _pb, uint32 _bl);
+	//! Close the device
 	void close();
+	//! Flush the device
 	int flush();
+	//! Check if the device is valid
 	bool ok()const{return desc >= 0;}
 	Device& operator&(Device &_dev);
 protected:

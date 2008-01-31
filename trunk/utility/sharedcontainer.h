@@ -25,10 +25,36 @@
 #include "common.h"
 #include "system/convertors.h"
 
+//! A container of shared objects
+/*!
+	Here's the concrete situation for which i've designed this container.
+	
+	Suppose you have lots of objects in a vector. Also suppose that every
+	this object needs an associated mutex. More over such a mutex can be
+	shared by multiple objects, and you dont want all mutexez created at once.
+	
+	SharedContainer does:<br>
+	- associate M ids to a mutex(Obj);
+	- allocates the mutexes by rows of M mutexes
+	- allocates no more than N rows
+	
+	So what happens when the matrix is full but the ids keep increasing?<br>
+	- Then it will start allover with the mutex(0,0)
+	
+	In the end Ive decided that instead of a mutext I should have any type I want,
+	so the template\<Obj\> SharedContainer appeared.
+*/
 template <class Obj>
 class SharedContainer{
 public:
 	typedef Obj ObjectTp;
+	//!Constructor
+	/*!
+		\param _objpermutbts The number of objects associated to a mutex in bitcount 
+		(real count 1<<bitcount)
+		\param _mutrowsbts The number of mutex rows in bitcount (real count 1<<bitcount)
+		\param _mutcolssbts The number of mutexes in a row in bitcount (real count 1<<bitcount)
+	*/
 	SharedContainer(unsigned _objpermutbts = 6, 
 					unsigned _mutrowsbts = 8, 
 					unsigned _mutcolsbts = 8
@@ -49,9 +75,17 @@ public:
 		}
 		delete []objmat;
 	}
+	//! Fast but unsafe get the mutex for a position
+	/*!
+		Use this after calling safeObject once for a certain position.
+	*/
 	inline ObjectTp& object(unsigned i){
 		return doGetObject(i >> objpermutbts);
 	}
+	//! Slower but safe get the mutex for a position
+	/*!
+		It will reallocate new mutexes if needed
+	*/
 	ObjectTp& safeObject(unsigned i){
 		int mrow = getObjectRow(i);
 		if(!objmat[mrow]){
@@ -59,10 +93,12 @@ public:
 		}
 		return object(i);
 	}
+	//! Gets the mutex at pos i (the matrix is seen as a vector)
 	inline ObjectTp& operator[](unsigned i){
 		return doGetObject(i);
 	}
-	inline int isRangeEnd(unsigned i){
+	//! Will return true if i is the first index of a range sharing the same mutex
+	inline int isRangeBegin(unsigned i){
 		return !(i & objpermutmsk);
 	}
 private:

@@ -49,11 +49,25 @@ struct SpecificObject{
 	virtual ~SpecificObject(){}
 };
 
+//! A cache control plugin for Specific.
+/*!
+	It will be used by specific to control how many buffers
+	of a certain capacity should be kept
+*/
 struct SpecificCacheControl{
 	virtual ~SpecificCacheControl(){}
+	//! Must return how many buffers should be kept for a specific capacity
 	virtual unsigned stackCapacity(unsigned _bufid)const = 0;
+	//! If it returns true specific will delete this object
 	virtual bool release() = 0;
 };
+
+//! A thread specific container wrapper
+/*!
+	It can cache:<br>
+	- objects given by pointers uncache/cache/tryUncache
+	- buffers of size power of 2
+*/
 
 class Specific{
 	/*
@@ -74,19 +88,30 @@ class Specific{
 	}
 public:
 	typedef void (*FncTp) (void*);
+	//! call this method to prepare the current thread for caching
 	static void prepareThread(SpecificCacheControl *_pscc = NULL);
 	//object caching
+	//! Uncache an object
+	/*! 
+		If no object was previously cached, a new object will be created
+		using the default constructor.
+	*/
 	template <class T>
 	inline static T* uncache(){
 		T *p = object<T>();
 		if(!p) p = new T; 
 		return p;
 	}
+	//! Tries to uncache an object
+	/*! 
+		If no object was previously cached NULL is returned.
+	*/
 	template <class T>
 	inline static T* tryUncache(){
 		T *p = object<T>();
 		return p;
 	}
+	//! Caches an object
 	template <class T>
 	inline static void cache(T *&_rp){
 		if(!_rp) return;
@@ -96,17 +121,30 @@ public:
 	}
 	enum {Count = BUF_CACHE_CAP};
 	//8,16,32,64,128,256,512,1024,2048,4096
+	//! Returns the maximum capacity of cacheable buffers
 	static unsigned maxCapacity(){return 1 << (Count + 2);}
+	//! Returns the id asociated to the maximum capacity
 	static unsigned maxCapacityToId(){return Count - 1;}
+	//! Returns the id associated to a certain capacity
 	static unsigned capacityToId(unsigned _sz);
+	//! Return the id associated to a certain size
+	/*!
+		A capacity is a power of 2. While a size can have any value.
+		Basicaly it return the id of the first capacity greater then size.
+	*/
 	static unsigned sizeToId(unsigned _sz);
+	//! Returns the capacity associated to an id.
 	static unsigned idToCapacity(unsigned _id){return 4 << _id;}
+	
+	//! pop a buffer given its id
 	static char* popBuffer(unsigned _id);
+	//! pushes a buffer given its id
 	static void pushBuffer(char *&, unsigned _id);
 // 	static char* allocateBuffer(unsigned _sz);
 // 	static void releaseBuffer(char *&, unsigned);
 	
 private:
+	//! One cannot create a Specific object - use prepareThread instead
 	Specific();
 	Specific(const Specific&);
 	~Specific();

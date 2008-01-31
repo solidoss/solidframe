@@ -21,10 +21,12 @@
 
 #ifndef DIRECTORYPP_H
 #define DIRECTORYPP_H
-
+//! A wrapper for filesystem directory opperations
 class Directory{
 public:
+	//! Create a new directory
 	static int create(const char *);
+	//! Erase a file
 	static int eraseFile(const char *);
 };
 

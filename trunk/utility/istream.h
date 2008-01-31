@@ -24,7 +24,7 @@
 
 #include "stream.h"
 #include "common.h"
-
+//! A stream for reading 
 class IStream: virtual public Stream{
 public:
 	virtual ~IStream(){}
@@ -35,6 +35,7 @@ public:
 	bool ifail()const{return ibad() | flags.flags & StreamFlags::IFail;}
 };
 
+//! An IStreamIterator - an offset within the stream: a pointer to an istream
 struct IStreamIterator{
 	IStreamIterator(IStream *_ps = NULL, int64 _off = 0):ps(_ps),off(_off){}
 	void reinit(IStream *_ps = NULL, int64 _off = 0){

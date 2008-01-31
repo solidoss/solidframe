@@ -25,11 +25,12 @@
 #include "istream.h"
 #include "ostream.h"
 
+//! A stream for both input and output
 class IOStream: public IStream, public OStream{
 public:
 	virtual ~IOStream(){}
 };
-
+//! An IOStreamIterator - an offset within the stream: a pointer to an iostream
 struct IOStreamIterator{
 	IOStreamIterator(IOStream *_ps = NULL, int64 _off = 0):ps(_ps),off(_off){}
 	void reinit(IOStream *_ps = NULL, int64 _off = 0){

@@ -25,6 +25,14 @@
 #include "system/convertors.h"
 #include <cassert>
 
+
+//! A simple and fast stack with interface similar to std one
+/*!
+	The advantages are:
+	- twice faster then the std one
+	- while pushing new objects, the allready pushed are not relocated
+	in memory (no reallocation is performed)
+*/
 template <class T, size_t NBits = 5>
 class Stack{
 	enum{

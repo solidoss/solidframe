@@ -28,6 +28,7 @@
 #include "common.h"
 
 struct AddrInfo;
+//! A wrapper for POSIX addrinfo (see man getaddrinfo)
 struct AddrInfoIterator{
 	AddrInfoIterator():paddr(NULL){}
 	AddrInfoIterator& next(){paddr = paddr->ai_next; return *this;}
@@ -43,6 +44,7 @@ private:
 	AddrInfoIterator(addrinfo *_pa):paddr(_pa){}
 	addrinfo	*paddr;
 };
+//! A wrapper for POSIX getaddrinfo (see man getaddrinfo)
 struct AddrInfo{
 	enum Flags{
 		CannonName = AI_CANONNAME,
@@ -114,7 +116,11 @@ private:
 };
 
 struct SocketAddress;
-
+//! A pair of a sockaddr pointer and a size
+/*!
+	It is a commodity structure, it will not allocate data for sockaddr pointer
+	nor it will delete it. Use this structure in with SocketAddress and AddrInfoIterator
+*/
 struct SockAddrPair{
 	SockAddrPair(sockaddr *_pa = NULL, size_t _sz = 0):addr(_pa),size(_sz){}
 	SockAddrPair(const AddrInfoIterator &_it);
@@ -125,6 +131,12 @@ struct SockAddrPair{
 	sockaddr	*addr;
 	socklen_t	size;
 };
+
+//! A pair of a sockaddr_in pointer and a size
+/*!
+	It is a commodity structure, it will not allocate data for sockaddr pointer
+	nor it will delete it. Use this structure in with SocketAddress and AddrInfoIterator
+*/
 
 struct Inet4SockAddrPair{
 	Inet4SockAddrPair(const SockAddrPair &_rsap);
@@ -137,6 +149,11 @@ struct Inet4SockAddrPair{
 	socklen_t	size;
 };
 
+//! A pair of a sockaddr_in6 pointer and a size
+/*!
+	It is a commodity structure, it will not allocate data for sockaddr pointer
+	nor it will delete it. Use this structure in with SocketAddress and AddrInfoIterator
+*/
 struct Inet6SockAddrPair{
 	Inet6SockAddrPair(const SockAddrPair &_rsa);
 	Inet6SockAddrPair(const SocketAddress &_rsa);
@@ -148,7 +165,7 @@ struct Inet6SockAddrPair{
 	socklen_t	size;
 };
 
-
+//! Holds a socket address
 struct SocketAddress{
 	enum {MaxSockAddrSz = sizeof(sockaddr_in)};
 	SocketAddress():sz(0){}

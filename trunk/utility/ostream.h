@@ -25,6 +25,7 @@
 #include "stream.h"
 #include "common.h"
 
+//! A stream for writing
 class OStream: virtual public Stream{
 public:
 	virtual ~OStream(){}
@@ -35,6 +36,7 @@ public:
 	bool ofail()const{return obad() | flags.flags & StreamFlags::OFail;}
 };
 
+//! An OStreamIterator - an offset within the stream: a pointer to an ostream
 struct OStreamIterator{
 	OStreamIterator(OStream *_ps = NULL, int64 _off = 0):ps(_ps),off(_off){}
 	void reinit(OStream *_ps = NULL, int64 _off = 0){
