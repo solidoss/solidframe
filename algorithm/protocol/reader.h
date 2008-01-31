@@ -45,36 +45,38 @@ struct DummyKey{
 //! A nonblocking buffer oriented (not line oriented) protocol parser
 /*!
 	Here are some characteristics of the reader:<br>
-	> it is designed for nonblocking/asynchrounous usage<br>
-	> it is buffer oriented not line oriented<br>
-	> has suport for recovering from parsing errors<br>
-	> it is flexible and easely extensible<br>
+	- it is designed for nonblocking/asynchrounous usage
+	- it is buffer oriented not line oriented
+	- has suport for recovering from parsing errors
+	- it is flexible and easely extensible
 	
-	Overview:<br>
+	<b>Overview:</b><br>
 		Internally it uses a stack of pairs of a function pointer and a parameter 
-		(\see protocol::Parameter) whith wich the function will be called.
+		(see protocol::Parameter) whith wich the function will be called.
+		
 		Every function can in turn push new calls in the stack.
+		
 		There is a very simple and fast state machine based on the return value
 		of scheduled functions. The state machine will exit when, either the buffer is empty
 		and it cannot be filled (wait to be filled asynchrounously), the stack is empty,
 		a function return Reader::Bad.<br>
 		
 	
-	Usage:<br>
+	<b>Usage:</b><br>
 		Inherit, implement the virtual methods and extend the reader with new 
 		parsing functions.<br>
 		In your protocol (connection) execute loop:<br>
 		> push some parsing callbacks and reset the parser state<br>
 		> (repeatedly) call run until BAD or OK is returned<br>
 		<br>
-		BAD usually means that the connection was/must be closed
-		OK means that the stack is empty - it doesnt mean the data was parsed successfully 
-		- an error might have occurred and the parser has successfully recovered 
-		(use \see isError)
+		- BAD usually means that the connection was/must be closed
+		- OK means that the stack is empty - it doesnt mean the data was 
+		parsed successfully - an error might have occurred and the parser has successfully recovered 
+		(use isError)
 		
-	Notes:<br>
-		You can safely use pointers to existing parameters within the stack.<br>
-		For an excelent example see \see test::alpha::Writer (test/clientserver/alpha/src/alpha.(h/cpp)).<br>
+	<b>Notes:</b><br>
+		- You can safely use pointers to existing parameters within the stack.<br>
+		- For an excelent example see test::alpha::Writer (test/clientserver/alpha/src/alpha.(h/cpp)).<br>
 */
 class Reader{
 public:

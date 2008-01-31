@@ -47,26 +47,32 @@ namespace serialization{
 namespace bin{
 
 enum {
-	MAXITSZ = sizeof(int64) + sizeof(int64),//TODO: why??
+	MAXITSZ = sizeof(int64) + sizeof(int64),//!< Max sizeof(iterator) for serialized containers
 	MINSTREAMBUFLEN = 128//if the free space for current buffer is less than this value
 						//storring a stream will end up returning NOK
 };
-
+//! Comparator functor used for std::map
 struct Cmp{
 	bool operator()(const char *const &_s1, const char *const &_s2)const{
 		return strcmp(_s1, _s2) < 0;
 	}
 };
-
+//! Base class for serializer and deserializer
+/*!
+	Among other data it keeps two stacks 
+	- one with callbacks and parameters
+	- and one with extra data - usually iterators for serializing containers
+*/
 struct Base{
 	struct FncData;
 	typedef int (Base::*FncTp)(FncData &);
+	//! Data associated to a callback
 	struct FncData{
 		FncData(FncTp _f, void *_p, const char *_n = NULL, ulong _s = -1):f(_f),p(_p),n(_n),s(_s){}
-		FncTp		f;
-		void		*p;
-		const char 	*n;
-		ulong		s;
+		FncTp		f;//!< Pointer to function
+		void		*p;//!< Pointer to data
+		const char 	*n;//!< Some name - of the item serialized
+		ulong		s;//!< Some size
 	};
 protected:
 	struct ExtData{
@@ -79,12 +85,24 @@ protected:
 		ExtData(uint32 _u32){u32() = _u32;}
 	};
 protected:
+	//! Replace the top callback from the stack
 	void replace(const FncData &_rfd);
+	//! Internal callback for storing binary data
 	int storeBinary(FncData &_rfd);
+	//! Internal callback for storing a stream
 	int storeStream(FncData &_rfd);
+	//! Internal callback for parsing binary data
 	int parseBinary(FncData &_rfd);
+	//! Internal callback for parsing a stream
 	int parseStream(FncData &_rfd);
+	//! Internal callback for parsign a dummy stream
+	/*!
+		This is internally called when a deserialization destionation
+		ostream could not be optained, or there was an error while
+		writing to destination stream.
+	*/
 	int parseDummyStream(FncData &_rfd);
+	//! Pops from extended stack
 	int popEStack(FncData &_rfd);
 protected:
 	typedef Stack<FncData>	FncDataStackTp;
@@ -106,7 +124,29 @@ protected:
 class RTTIMapper;
 #define REINTERPRET_FUN(fun) \
 	reinterpret_cast<Base::FncTp>((tpf = &(fun)))
-
+//! A binary serializer class with a given Mapper
+/*!
+	<b>Overview:</b><br>
+	- It is buffer oriented not stream oriented so it is switable for asynchrounous usage.
+	- It can be used with for serializing structures instrusively or non intrusively 
+		(one can give external functions to specify how a structure can be serialized)
+	- It can serialize (std)containers (with the constraint that 
+		sizeof(container::iterator) <= MAXITSZ).
+	- It  can serialize std strings
+	- It can serialize streams (well not those from std but IStream from solidground 
+		system library)
+	- It uses the mapper to properly serialize a virtual base object, provided the 
+		fact that the actual type of the object was registered into the mapper.
+	<br>
+	<b>Usage:</b><br>
+	\see test/algorithm/serialization/simple.cpp test/algorithm/serialization/fork.cpp
+	
+	<b>Notes:</b><br>
+	- There is one visible shortcomming for scheduling object serialization - one cannot
+	(for now) do serialization time decisions for continuation, based on what was
+	already serialized.
+	
+*/
 template <class Mapper = RTTIMapper>
 class Serializer: private Base{
 	friend class RTTIMapper;
@@ -226,7 +266,20 @@ class Serializer: private Base{
 public:
 	
 	typedef Serializer<Mapper>	SerializerTp;
+	//!Constructor with a Mapper
 	explicit Serializer(Mapper &_rfm):rfm(_rfm){}
+	//! The loop doing the actual serialization
+	/*!
+		The method will try to fill as much of the given buffer with data.
+		It will return the lenght of the written data or < 0 in case of 
+		error (actually this must be an exception because for reliability
+		the serializer should be capable to recover from different errors).
+		
+		Consider using empty() to find out if there are items to serialize.
+		
+		\param _pb Pointer to a buffer the data should be serialized to
+		\param _bl The length of the buffer
+	*/
 	int run(char *_pb, unsigned _bl){
 		cpb.ps = pb.ps = _pb;
 		be.ps = cpb.ps + _bl;
@@ -242,13 +295,24 @@ public:
 		Done:
 		return cpb.ps - pb.ps;
 	}
+	//! Destructor
 	~Serializer(){
 		run(NULL,0);//release the stacks
 		assert(!fstk.size());
 	}
+	//! Clear the stacks
 	void clear(){
 		run(NULL, 0);
 	}
+	//! Schedule a non pointer object for serialization
+	/*!
+		The object is only scheduled for serialization so it must remain in memory
+		up until the serialization will end.
+		
+		The given name is meaningless for binary serialization, it will be usefull for
+		text oriented serialization, and I want a common interface for push, so one
+		can write a single template function for serializing an object.
+	*/
 	template <typename T>
 	Serializer& push(T &_t, const char *_name = NULL){
 		//idbg("push nonptr "<<_name);
@@ -256,6 +320,15 @@ public:
 		fstk.push(FncData(REINTERPRET_FUN(Serializer<Mapper>::template store<T>), (void*)&_t, _name));
 		return *this;
 	}
+	//! Schedule a non pointer object for serialization
+	/*!
+		The object is only scheduled for serialization so it must remain in memory
+		up until the serialization will end.
+		
+		The given name is meaningless for binary serialization, it will be usefull for
+		text oriented serialization, and I want a common interface for push, so one
+		can write a single template function for serializing an object.
+	*/
 	template <typename T>
 	Serializer& push(T* &_t, const char *_name = NULL){
 		//idbg("push ptr "<<_name);
@@ -271,6 +344,7 @@ public:
 		Push a container that follows the stl interface.
 		TODO: put here what interface it needs
 	*/
+	//! Schedules a stl style container for serialization
 	template <typename T>
 	Serializer& pushContainer(T &_t, const char *_name = NULL){
 		//idbg("push nonptr "<<_name);
@@ -278,7 +352,7 @@ public:
 		fstk.push(FncData(REINTERPRET_FUN(Serializer::template storeContainer<T>), (void*)&_t, _name));
 		return *this;
 	}
-	
+	//! Schedules a stl style string for serialization
 	template <typename T>
 	Serializer& pushString(T &_t, const char *_name = NULL){
 		//idbg("push nonptr "<<_name);
@@ -286,7 +360,13 @@ public:
 		fstk.push(FncData(REINTERPRET_FUN(Serializer::template storeString<T>), (void*)&_t, _name));
 		return *this;
 	}
-	
+	//! Schedules the serialization of an object containing streams.
+	/*!
+		Unfortunately this must be intrussive, that is the given streammer object must
+		export a required interface.
+		Please see the test/algorithm/serialization/fork.cpp example or 
+		test::alpha::FetchSlaveCommand.
+	*/
 	template <typename T>
 	Serializer& pushStreammer(T *_p, const char *_name = NULL){
 		//idbg("push stream "<<_name);
@@ -294,17 +374,45 @@ public:
 		fstk.push(FncData(REINTERPRET_FUN(Serializer::template storeStreamBegin<T>), _p, _name, 0));
 		return *this;
 	}
+	//! Schedules flat binary data for serialization.
+	/*!
+		Please use this with care.
+	*/
 	Serializer& pushBinary(void *_pv, size_t _sz, const char *_name = NULL){
 		FncTp	tpf;
 		fstk.push(FncData(REINTERPRET_FUN(Serializer::storeBinary), _pv, _name, _sz));
 		return *this;
 	}
+	//! Checks if there is something scheduled for serialization
 	bool empty()const{return fstk.empty();}
 private:
 	Mapper		&rfm;
 };
 
 //*****************************************************************************************	
+//! A binary deserializer class with a given Mapper
+/*!
+	<b>Overview:</b><br>
+	- It is buffer oriented not stream oriented so it is switable for asynchrounous usage.
+	- It can be used with for deserializing structures instrusively or non intrusively 
+		(one can give external functions to specify how a structure can be deserialized)
+	- It can deserialize (std)containers (with the constraint that 
+		sizeof(container::iterator) <= MAXITSZ).
+	- It  can deserialize std strings
+	- It can deserialize streams (well not those from std but IStream from solidground 
+		system library)
+	- It uses the mapper to properly deserialize a virtual base object, provided the 
+		fact that the actual type of the object was registered into the mapper.
+	<br>
+	<b>Usage:</b><br>
+	\see test/algorithm/serialization/simple.cpp test/algorithm/serialization/fork.cpp
+	
+	<b>Notes:</b><br>
+	- There is one visible shortcomming for scheduling object deserialization - one cannot
+	(for now) do deserialization time decisions for continuation, based on what was
+	already deserialized.
+	
+*/
 template <class Mapper = RTTIMapper>
 class Deserializer: private Base{
 	friend class RTTIMapper;
@@ -451,18 +559,31 @@ class Deserializer: private Base{
 	}
 
 public:
+	//! Constructor with the mapper
 	explicit Deserializer(Mapper &_rfm):rfm(_rfm){
 		slst.push_back("");
 		slstit = slst.begin();
 	}
+	
 	~Deserializer(){
 		run(NULL, 0);
 		assert(!fstk.size());
 	}
+	//! Clears the callback stack
 	void clear(){
 		run(NULL, 0);
 	}
+	//! Check if there are scheduled objects for deserialization
 	bool empty()const {return fstk.empty();}
+	//! Schedule a non pointer object for deserialization
+	/*!
+		The object is only scheduled for deserialization so it must remain in memory
+		up until the serialization will end.
+		
+		The given name is meaningless for binary deserialization, it will be usefull for
+		text oriented serialization, and I want a common interface for push, so one
+		can write a single template function for serializing an object.
+	*/
 	template <typename T>
 	Deserializer& push(T &_t, const char *_name = NULL){
 		//idbg("push nonptr "<<_name);
@@ -470,6 +591,15 @@ public:
 		fstk.push(FncData(REINTERPRET_FUN(Deserializer::template parse<T>), (void*)&_t, _name));
 		return *this;
 	}
+	//! Schedule a pointer object for deserialization
+	/*!
+		A new object will be created using the default constructor (soo it must be available).
+		Also the type of the given pointer may not be the type of the actual constructed object.
+		
+		The given name is meaningless for binary deserialization, it will be usefull for
+		text oriented serialization, and I want a common interface for push, so one
+		can write a single template function for serializing an object.
+	*/
 	template <typename T>
 	Deserializer& push(T* &_t, const char *_name = NULL){
 		//idbg("push ptr "<<_name);
@@ -481,6 +611,7 @@ public:
 		fstk.push(FncData(REINTERPRET_FUN(Deserializer::parsePointerBegin), &_t, _name));
 		return *this;
 	}
+	//! Schedules a std (style) container for deserialization
 	template <typename T>
 	Deserializer& pushContainer(T &_t, const char *_name = NULL){
 		//idbg("push nonptr continer"<<_name);
@@ -488,6 +619,7 @@ public:
 		fstk.push(FncData(REINTERPRET_FUN(Deserializer::template parseContainer<T>), (void*)&_t, _name));
 		return *this;
 	}
+	//! Schedules a std (style) string for deserialization
 	template <typename T>
 	Deserializer& pushString(T &_t, const char *_name = NULL){
 		//idbg("push string"<<_name);
@@ -495,6 +627,13 @@ public:
 		fstk.push(FncData(REINTERPRET_FUN(Deserializer::template parseString<T>), (void*)&_t, _name));
 		return *this;
 	}
+	//! Schedules the deserialization of an object containing streams.
+	/*!
+		Unfortunately this must be intrussive, that is the given streammer object must
+		export a required interface.
+		Please see the test/algorithm/serialization/fork.cpp example and/or 
+		test::alpha::FetchSlaveCommand.
+	*/
 	template <typename T>
 	Deserializer& pushStreammer(T *_p, const char *_name = NULL){
 		//idbg("push special "<<_name);
@@ -502,6 +641,19 @@ public:
 		fstk.push(FncData(REINTERPRET_FUN(Deserializer::template parseStreamBegin<T>), _p, _name, 0));
 		return *this;
 	}
+	
+	//! The loop doing the actual deserialization
+	/*!
+		The method will try to use as much of the given data as it can.
+		It will return the lenght of the consummed data or < 0 in case of 
+		error (actually this must be an exception because for reliability
+		the deserializer should be capable to recover from different errors).
+		
+		Consider using empty to find out if there are items to deserialize.
+		
+		\param _pb Pointer to a buffer the items should be deserialized from
+		\param _bl The length of the buffer
+	*/
 	int run(const char *_pb, unsigned _bl){
 		cpb.pc = pb.pc = _pb;
 		be.pc = pb.pc + _bl;
@@ -517,6 +669,10 @@ public:
 		Done:
 		return cpb.pc - pb.pc;
 	}
+	//! Schedules flat binary data for deserialization.
+	/*!
+		Please use this with care.
+	*/
 	Deserializer& pushBinary(void *_pv, size_t _sz, const char *_name = NULL){
 		FncTp	tpf;
 		fstk.push(FncData(REINTERPRET_FUN(Deserializer::parseBinary), _pv, _name, _sz));
@@ -539,6 +695,7 @@ SIMPLE_DECL(uint32);
 SIMPLE_DECL(int64);
 SIMPLE_DECL(uint64);
 
+//! Nonintrusive string serialization/deserialization specification
 template <class S>
 S& operator&(std::string &_t, S &_s){
 	return _s.pushString(_t, "string");
@@ -555,12 +712,25 @@ S& operator&(std::string &_t, S &_s){
 // 		unlock();
 // 	}
 // };
-
+//! A type mapper for binary serialization usign runtime type identification
+/*!
+	Basically it maps types to the coresponding serialization/deserialization methods
+	of serializer an deserializer. Also provides for internal deserialization usage,
+	way to identify a type by its typeid.name and for serializtion provide a way to
+	identify the real type of a pointer.
+	
+	<b>Usage:</b><br>
+	Usually you only need one per application. Register the types of virtual clases.
+	Then use the serializer and deserializer as explaine above. 
+	\see test/algorithm/serialization/simple.cpp test/algorithm/serialization/fork.cpp
+	
+*/
 struct RTTIMapper{
 	RTTIMapper();
 	~RTTIMapper();
 	void lock();
 	void unlock();
+	//! Register a type
 	template <class T>
 	void map(){
 		Serializer<RTTIMapper>::FncTp	pfi = &Serializer<RTTIMapper>::template storePointer<T>;
@@ -572,6 +742,7 @@ struct RTTIMapper{
 		m[typeid(T).name()] = FncPairTp(fi, fo);
 		unlock();
 	}
+	//! Used by serializer to identify the type and type identifier for a pointer
 	template <class T>
 	Base::FncTp map(T *_p, std::pair<const char*, size_t> *_ps){
 		Serializer<RTTIMapper>::FncTp	pf;
@@ -588,6 +759,7 @@ struct RTTIMapper{
 		unlock();
 		return NULL;
 	}
+	//! Used by deserializer to identify a type.
 	Base::FncTp map(const std::string &_s);
 private:
 	typedef std::pair<Base::FncTp, Base::FncTp>		FncPairTp;

@@ -23,23 +23,36 @@
 #define FILE_DEVICE_H
 #include <fcntl.h>
 #include "seekabledevice.h"
-
+//! Wrapper for a file descriptor
 class FileDevice: public SeekableDevice{
 public:
 	enum OpenMode {
-		RO = O_RDONLY, 
-		WO = O_WRONLY, 
-		RW = O_RDWR,
-		TR = O_TRUNC,
-		AP = O_APPEND,
-		CR = O_CREAT
+		RO = O_RDONLY, //!< Read only
+		WO = O_WRONLY, //!< Write only
+		RW = O_RDWR, //!< Read write
+		TR = O_TRUNC, //!< Truncate
+		AP = O_APPEND,//!< Append
+		CR = O_CREAT //!< Create
 	};
 	FileDevice();
 	//!returns the size of a file without opening it - using stat!
 	static int64 size(const char *_fname);
+	//! Open a file using its name and open mode flags
 	int open(const char* _fname, int _how);
+	//! Create a file using its name and open mode flags
 	int create(const char* _fname, int _how);
+	//! Get the size of an opened file
+	/*!
+		Use FileDevice::size(const char*) to find the size of a file
+		without opening it
+	*/
 	int64 size()const;
+	//! Check if a failed open opperation may succeed on retry
+	/*!
+		It uses errno so, it should be used imediatly after the open call.
+		It returns true in cases when the file could not be opened because
+		there were no available file descriptors or kernel memory.
+	*/
 	bool canRetryOpen()const;
 };
 

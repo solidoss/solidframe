@@ -24,9 +24,12 @@
 
 #include "device.h"
 
+//! A wrapper for devices with random access.
 class SeekableDevice: public Device{
 public:
+	//! Read from a given position
 	int read(char *_pb, uint32 _bl, int64 _off);
+	//! Write at a given position
 	int write(const char *_pb, uint32 _bl, int64 _off);
 	int read(char *_pb, uint32 _bl){
 		return Device::read(_pb, _bl);
@@ -34,7 +37,9 @@ public:
 	int write(const char *_pb, uint32 _bl){
 		return Device::write(_pb, _bl);
 	}
+	//! Move the cursor to a given position
 	int64 seek(int64 _pos, SeekRef _ref = SeekBeg);
+	//! Truncate to a certain length
 	int truncate(int64 _len);
 protected:
 	SeekableDevice(int _desc = -1):Device(_desc){}

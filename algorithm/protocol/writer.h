@@ -31,40 +31,42 @@ struct IStreamIterator;
 namespace protocol{
 //! A nonblocking buffer oriented (not line oriented) protocol response builder
 /*!
-	Here are some characteristics of the writer:
-	> it is designed for nonblocking/asynchrounous usage<br>
-	> it is buffer oriented not line oriented<br>
-	> it is flexible and easely extensible<br>
+	Here are some characteristics of the writer:<br>
+	- it is designed for nonblocking/asynchrounous usage
+	- it is buffer oriented not line oriented
+	- it is flexible and easely extensible
 	
-	Overview:<br>
+	<b>Overview:</b><br>
 		Internally it uses a stack of pairs of a function pointer and a parameter 
-		(\see protocol::Parameter) whith wich the function will be called.
+		(protocol::Parameter) whith wich the function will be called.
+		
 		Every function can in turn push new calls in the stack.
+		
 		There is a very simple and fast state machine based on the return value
 		of scheduled functions. The state machine will exit when, either the buffer must be flushed
 		and this cannot be done imediatly (wait to flushed asynchrounously), the stack is empty,
 		a function return Writer::Bad.<br>
 	
-	Usage:<br>
+	<b>Usage:</b><br>
 		Inherit, implement the virtual methods and extend the writer with new 
 		writing functions.<br>
 		In your protocol (connection) execute loop:<br>
 		> push some writing callbacks<br>
 		> (repeatedly) call run until BAD or OK is returned<br>
 		<br>
-		For writing use the defined operator<<(s) and/or callbacks for sending strings/chars/streams etc.
-		BAD usually means that the connection was/must be closed<br>
-		OK means that the stack is empty - it doesnt mean the data was parsed successfully 
-		- an error might have occurred and the parser has successfully recovered 
-		(use \see isError)<br>
+		For writing use the defined operator<<(s) and/or callbacks for sending strings/chars/streams etc.<br>
+		- BAD usually means that the connection was/must be closed
+		- OK means that the stack is empty - it doesnt mean the data was parsed 
+		successfully - an error might have occurred and the parser has successfully recovered 
+		(use isError)<br>
 		
 		
-	Notes:<br>
-		You can safely use pointers to existing parameters within the stack.<br>
-		For an excelent example see \see test::alpha::Writer (test/clientserver/alpha/src/alpha.(h/cpp)).<br>
-		The << operators must be very carefully used, because althogh the internal buffer will resize accordigly,
+	<b>Notes:</b><br>
+		- You can safely use pointers to existing parameters within the stack.
+		- For an excelent example see test::alpha::Writer (test/clientserver/alpha/src/alpha.(h/cpp)).
+		- The << operators must be very carefully used, because althogh the internal buffer will resize accordigly,
 		this is not desirable when scalability is important. So it is the problem of the protocol implemetor
-		to ensure that the buffer gets flushed before it's filled/resized.<br>
+		to ensure that the buffer gets flushed before it's filled/resized.
 */
 class Writer{
 public:
