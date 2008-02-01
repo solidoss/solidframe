@@ -25,7 +25,7 @@
 #include "clientserver/core/filekey.h"
 
 namespace clientserver{
-
+//! A filekey based on the name/path of the file
 struct NameFileKey: public FileKey{
 	static void registerMapper(FileManager &, const char *_prefix = NULL);
 	NameFileKey(const char *_fname = NULL);
@@ -38,7 +38,10 @@ private:
 	/*virtual*/ void erase(FileManager &_fm, uint32 _fileid)const;
 	/*virtual*/ FileKey* clone()const;
 };
-
+//! A filekey based on the name/path of the file
+/*!
+	For speed/memory allocation purposes use this instead of the above
+*/
 struct FastNameFileKey: public FileKey{
 	FastNameFileKey(const char *_name):name(_name){}
 	const char *name;
@@ -50,6 +53,7 @@ private:
 	/*virtual*/ FileKey* clone()const;
 };
 
+//! A key for temporary files
 struct TempFileKey: public FileKey{
 	static void registerMapper(FileManager &, const char *_prefix = NULL);
 	TempFileKey(){}

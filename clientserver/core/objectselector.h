@@ -35,7 +35,12 @@
 namespace clientserver{
 
 typedef ObjPtr<Object> ObjectPtrTp;
-
+//! An object selector to be used with the template SelectPool
+/*!
+	A selector will help SelectPool to actively hold objects.
+	A selector must export a certain interface requested by the SelectPool,
+	and the pool will have one for its every thread.
+*/
 class ObjectSelector{
 public:
 	typedef ObjectPtrTp		ObjectTp;

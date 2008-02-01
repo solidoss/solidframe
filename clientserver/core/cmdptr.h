@@ -34,7 +34,7 @@ protected:
 	void use(Command *_pcmd);
 
 };
-
+//! An autoptr like smartpointer for commands
 template <class T>
 class CmdPtr:CmdPtrBase{
 public:

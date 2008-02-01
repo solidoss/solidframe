@@ -3,6 +3,7 @@
 
 namespace clientserver{
 
+//! The base class for all file mappers
 class FileMapper{
 public:
 	FileMapper();

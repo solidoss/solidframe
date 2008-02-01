@@ -24,10 +24,6 @@
 
 #include "common.h"
 
-/**
- * Ensures that an object gets signaled when its replicas on other threads
- * is destryed.
- */
 namespace clientserver{
 
 class Object;
@@ -39,6 +35,7 @@ protected:
 	void destroy(Object *_pobj);
 };
 
+//! An autoptr style smartpointer for objects.
 template <class SO>
 class ObjPtr: protected ObjPtrBase{
 public:
