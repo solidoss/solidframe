@@ -44,21 +44,59 @@ class FileIStream;
 class FileOStream;
 class FileIOStream;
 class File;
+//! A manager of files
 /*!
-	NOTE:
-	1) The mapper method is a little bit more complex than it should be (doGetMapper must also register a mapper) because I want to be able to have more than one instance of FileManager per process. It is not a really usefull request, but as long as one can have multiple servers per process it is at least nice to be able to have multiple file managers.
-	2) Some words about Forced flag:
-		# Forced flag can only be used to request a stream for an existing file, opened (see below the fourth type of stream request methods)
-		# If the file is not opened BAD is the return value.
-		# It will return an io/ostream even if there are readers, or an istream even if there is a writer.
-		# It will return BAD if there already is a writer!
-	The force flag is designed for situations like:
-		# you request an istream for a (temp) file, give the stream id to someone else which will forcedly request an ostream for that id, write data on it, close the ostream and then signal you that you can start reading.
-		# think of a log file someone has a writer and you want a reader to fetch log records.
+	<b>Overview:</b><br>
+	It is a manager of open files designed for asynchrounous usage.
+	The base opperation is to request a input/output/io stream for 
+	a file.
+	What manager does is:
+	- limit the number of open filedescriptors
+	- ensures that no istream is given while there is an
+	active ostream.
+	- ensures that no ostream is given while there are active istreams
+	- ensures that no istream is given while there are pending ostreams
+	- ensures that multiple istreams can access the same file.
+	
+	This way a stream request may complete asynchronously with the manager
+	sending the stream or an error to the requesting object - when it will
+	safely can.
+	
+	Also one can set a timeout for idle (not used) files.
+	
+	Another capability offered by the manager is that the files can be
+	identified usign different keys / mapper pairs (e.g. for files that
+	are mail messages within a maibox, you may want to map/identify the
+	files using numbers meaning the messageids (see clientserver::FileKey).
+	
+	<b>Notes:</b><br>
+	- The mapper method is a little bit more complex than it should be 
+	(doGetMapper must also register a mapper) because I want to be able
+	to have more than one instance of FileManager per process. It is 
+	not a really usefull request, but as long as one can have multiple 
+	servers per process it is at least nice to be able to have multiple
+	file managers.<br>
+	
+	- Some words about Forced flag:<br>
+		# Forced flag can only be used to request a stream for an 
+		existing file, opened (see below the fourth type of stream request
+		 methods)<br>
+		# If the file is not opened BAD is the return value.<br>
+		# It will return an io/ostream even if there are readers, or an
+		istream even if there is a writer.<br>
+		# It will return BAD if there already is a writer!<br>
+	- The force flag is designed for situations like:<br>
+		# you request an istream for a (temp) file, give the stream id
+		 to someone else which will forcedly request an ostream for that
+		 id, write data on it, close the ostream and then signal you that
+		 you can start reading.<br>
+		# think of a log file someone has a writer and you want a reader
+		to fetch log records.<br>
 */
 
 class FileManager: public Object{
 public:
+	//! Unique identifier for a request
 	struct RequestUid{
 		RequestUid(uint32 _objidx = 0, uint32 _objuid = 0, uint32 _reqidx = 0, uint32 _requid = 0):objidx(_objidx), objuid(_objuid), reqidx(_reqidx), requid(_requid){}
 		uint32	objidx;
@@ -67,20 +105,25 @@ public:
 		uint32	requid;
 	};
 	enum {
-		Forced = 1,
-		Create = 2,
-		IOStreamRequest = 4,
-		NoWait = 8,
+		Forced = 1, //!< Force the opperation
+		Create = 2, //!< Try create if it doesnt exist
+		IOStreamRequest = 4, 
+		NoWait = 8, //!< Fail if the opperation cannot be completed synchronously
 		ForcePending = 16,
 	};
 	//typedef std::pair<uint32, uint32> FileUidTp;
-	
+	//! Constructor
+	/*!
+		\param _maxfcnt Maximum open file count
+	*/
 	FileManager(uint32 _maxfcnt = 0);
 	~FileManager();
 	
 	int execute(ulong _evs, TimeSpec &_rtout);
 	
+	//! Get the size of a file identified by its name - the file will not be open
 	int64 fileSize(const char *_fn)const;
+	//! Get the size of a file identified by its key - the file will not be open
 	int64 fileSize(const FileKey &_rk)const;
 	template <class T>
 	T* mapper(T *_pm = NULL){
@@ -90,6 +133,7 @@ public:
 		return static_cast<T*>(doGetMapper(id, static_cast<FileMapper*>(_pm)));
 	}
 	//first type of stream request methods
+	
 	int stream(StreamPtr<IStream> &_sptr, const RequestUid &_rrequid, const char *_fn = NULL, uint32 _flags = 0);
 	int stream(StreamPtr<OStream> &_sptr, const RequestUid &_rrequid, const char *_fn = NULL, uint32 _flags = 0);
 	int stream(StreamPtr<IOStream> &_sptr, const RequestUid &_rrequid, const char *_fn = NULL, uint32 _flags = 0);

@@ -37,21 +37,35 @@ struct ConnectorUid;
 }
 class CommandExecuter;
 class Object;
-
+//! A base class for commands to be sent to objects
+/*!
+	Inherit this class if you want so send something to an object.
+	Implement the proper execute method.
+	Also the command can be used with an clientserver::CommandExecuter,
+	in which case the posibilities widen.
+	\see test::alpha::FetchMasterCommand
+*/
 struct Command{
 	Command(){}
 	virtual ~Command();
+	//! Called by ipc module after the command was successfully parsed
 	virtual int received(const ipc::ConnectorUid&);
+	//! Used by CmdPtr - smartpointers
 	virtual void use();
+	//! Execute the command only knowing its for an object
 	virtual int execute(Object &);
+	//! Execute the command knowing its for an CommandExecuter
 	virtual int execute(CommandExecuter&, const CommandUidTp &, TimeSpec &_rts);
+	//! Used by CmdPtr to know if the command must be deleted
 	virtual int release();
+	//! Used with CommandExecuter to receive a command
 	virtual int receiveCommand(
 		CmdPtr<Command> &_rcmd,
 		int			_which = 0,
 		const ObjectUidTp&_from = ObjectUidTp(),
 		const ipc::ConnectorUid *_conid = NULL
 	);
+	//! Used with CommandExecuter to receive an istream
 	virtual int receiveIStream(
 		StreamPtr<IStream> &,
 		const FileUidTp	&,
@@ -59,6 +73,7 @@ struct Command{
 		const ObjectUidTp&_from = ObjectUidTp(),
 		const ipc::ConnectorUid *_conid = NULL
 	);
+	//! Used with CommandExecuter to receive an ostream
 	virtual int receiveOStream(
 		StreamPtr<OStream> &,
 		const FileUidTp	&,
@@ -66,6 +81,7 @@ struct Command{
 		const ObjectUidTp&_from = ObjectUidTp(),
 		const ipc::ConnectorUid *_conid = NULL
 	);
+	//! Used with CommandExecuter to receive an iostream
 	virtual int receiveIOStream(
 		StreamPtr<IOStream> &,
 		const FileUidTp	&,
@@ -73,18 +89,21 @@ struct Command{
 		const ObjectUidTp&_from = ObjectUidTp(),
 		const ipc::ConnectorUid *_conid = NULL
 	);
+	//! Used with CommandExecuter to receive a string
 	virtual int receiveString(
 		const std::string &_str,
 		int	 _which = 0,
 		const ObjectUidTp&_from = ObjectUidTp(),
 		const ipc::ConnectorUid *_conid = NULL
 	);
+	//! Used with CommandExecuter to receive a number
 	virtual int receiveNumber(
 		const int64 &_no,
 		int			_which = 0,
 		const ObjectUidTp&_from = ObjectUidTp(),
 		const ipc::ConnectorUid *_conid = NULL
 	);
+	//! Used with CommandExecuter to receive an error
 	virtual int receiveError(
 		int _errid, 
 		const ObjectUidTp&_from = ObjectUidTp(),

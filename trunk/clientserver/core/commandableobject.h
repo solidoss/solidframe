@@ -28,12 +28,21 @@
 #include "common.h"
 
 namespace clientserver{
-
+//! A class for generic handeling of commands by clientserver::Object(s)
+/*!
+	<b>Usage</b><br>
+	- You must directly inherit from CommandableObject
+	- In your object's execute method, under object mutex's lock, 
+		call grabCommands if you received S_CMD signal
+	- After exiting the lock, call execCommands(*this)
+*/
 template <class B>
 class CommandableObject: public B{
 public:
+	//!Comodity one parameter template constructor - forward to base
 	template <typename T>
 	CommandableObject(T _t):B(_t){}
+	//!Comodity two parameters template constructor - forward to base
 	template <typename T1, typename T2>
 	CommandableObject(T1 _t1, T2 _t2):B(_t1,_t2){}
 	/*virtual*/ int signal(CmdPtr<Command> &_cmd){
@@ -44,15 +53,18 @@ public:
 		cmdv.push_back(_cmd);
 		return B::signal(S_CMD | S_RAISE);
 	}
+	//! Grab the received commands into the run vector
+	/*!
+		Call this in your objects execute method, under object's mutex lock
+	*/
 	void grabCommands(){
 		assert(runv.empty());
 		runv = cmdv; cmdv.clear();
 	}
-	/* TODO:
-		you must return
-		BAD for object detroy
-		OK for expected command
-		NOK for unexpected command
+	
+	//! Execute the commands from the run vector
+	/*!
+		Call this in your objects execute method, outside object's mutex lock
 	*/
 	template <class T>
 	int execCommands(T &_thisobj){
@@ -69,6 +81,7 @@ public:
 		runv.clear();
 		return rv;
 	}
+	//! Clear both input and run vectors
 	void clear(){
 		cmdv.clear();runv.clear();
 	}

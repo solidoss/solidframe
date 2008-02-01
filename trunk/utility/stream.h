@@ -38,7 +38,7 @@ struct StreamFlags{
 	uint32 flags;
 };
 
-
+//! The base class for all streams
 class Stream{
 public:
 	virtual ~Stream(){}

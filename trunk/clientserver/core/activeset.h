@@ -23,13 +23,28 @@
 #define CS_ACTIVESET_H
 
 namespace clientserver{
-
+//! This is the base class for all active containers/sets (i.e. WorkPools)
+/*!
+	It is used by clientserver::Server for signaling a workpool
+	currently holding an object.
+*/
 class ActiveSet{
 public:
 	ActiveSet(){}
 	virtual ~ActiveSet(){}
+	//! Wake a theread given by its index
 	virtual void raise(uint _thridx) = 0;
+	//! Wake an object
+	/*!
+		Wake an object given the thread on which it resides and an index in the 
+		thread.
+	*/
 	virtual void raise(uint _thridx, uint _objid) = 0;
+	//! Sets the pool's id, which in turn will be used for computing the thread id
+	/*!
+		This is called by the clientserver::Server on activeset's registration:
+		clientserver::Server::registerActiveSet
+	*/
 	virtual void poolid(uint _id) =  0;
 };
 
