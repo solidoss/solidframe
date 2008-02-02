@@ -44,72 +44,124 @@ class	FileManager;
 namespace ipc{
 class Service;
 }
-
+//! The central class of solidground system
+/*!
+	<b>Overview:</b><br>
+	- Although usually you don't need more than a server per process,
+	the design allows that.
+	- The server keeps the services and should keep the workpools (it 
+	means that the clientserver::Server does not keep any workpool, but
+	the inheriting server should).
+	- The server object can be easyly accessed from any of the server's
+	thread through thread specific: use Server::the() method.
+	
+	<b>Usage:</b><br>
+	- Inherit, add workpools and extend.
+	
+	<b>Notes:</b><br>
+*/
 class Server{
 public:
 	virtual ~Server();
+	//! Easy access to server using thread specific
 	static Server& the();
-	//void removeObject(Object *_pobj, uint _poolid);
 	
+	//! Signal an object identified by (id,uid) with a sinal mask
 	int signalObject(ulong _fullid, ulong _uid, ulong _sigmask);
-		
+	
+	//! Signal an object with a signal mask, given a reference to the object
 	int signalObject(Object &_robj, ulong _sigmask);
 	
+	//! Signal an object identified by (id,uid) with a command
 	int signalObject(ulong _fullid, ulong _uid, CmdPtr<Command> &_cmd);
 	
+	//! Signal an object with a command, given a reference to the object
 	int signalObject(Object &_robj, CmdPtr<Command> &_cmd);
 	
-	
+	//! Wake an object
 	void raiseObject(Object &_robj);
 	
+	//! Get the mutex associated to the given object
 	Mutex& mutex(Object &_robj)const;
+	//! Get the unique id associated to the given object
 	ulong  uid(Object &_robj)const;
 	
+	//! Get a reference to the filemanager
 	FileManager& fileManager(){return *pfm;}
+	
+	//! Remove the file manager - do not use this
 	void removeFileManager();
+	
+	//! Get a reference to the ipc service
 	ipc::Service& ipc(){return *pipcs;}
 	
+	//! Insert a talker into the ipc service
 	int insertIpcTalker(
 		const AddrInfoIterator &_rai,
 		const char*_node = NULL,
 		const char *_srv = NULL
 	);
 	
+	//! Unsafe - you should not use this
 	template<class T>
 	typename T::ServiceTp& service(const T &_robj){
 		return static_cast<typename T::ServiceTp&>(service(_robj.serviceid()));
 	}
-	/**
-	 * the folowing two methods are called (should be called) from every
-	 * server thread, to initiate thread specific data. In order to extend
-	 * the initialization of specific data, implement the virtual protected methods:
-	 * doPrepareThread and doUnprepareThread.
+	//! Prepare a server thread
+	/*!
+		The method is called (should be called) from every
+		server thread, to initiate thread specific data. In order to extend
+		the initialization of specific data, implement the virtual protected method:
+		doPrepareThread.
 	 */
 	void prepareThread();
+	//! Unprepare a server thread
+	/*!
+		The method is called (should be called) from every
+		server thread, to initiate thread specific data. In order to extend
+		the initialization of specific data, implement the virtual protected method:
+		doUnprepareThread.
+	 */
 	void unprepareThread();
 	virtual SpecificMapper*  specificMapper();
 	virtual GlobalMapper* globalMapper();
+	//! Register an activeset / workpool
 	uint registerActiveSet(ActiveSet &_ras);
+	//! Get the service id for a service
 	uint serviceId(const Service &_rs)const;
+	//! Remove a service
+	/*!
+		The services are also objects so this must be called when
+		receiving S_KILL within service's execute method, outside
+		service's associated mutex lock.
+	*/
 	void removeService(Service *_ps);
 protected:
+	//! Implement this method to exted thread preparation
 	virtual void doPrepareThread(){}
+	//! Implement this method to exted thread unpreparation
 	virtual void doUnprepareThread(){}
-	/** Adds a new special service.
-	 * NOTE: The service MUST be stopped before adding it.
-	 * NOTE: A special service is one that need to have a design time id.
-	 * \return the id of the service
+	//! Adds a new special service.
+	/*! 
+		- The service MUST be stopped before adding it.
+	 	- A special service is one that need to have a design time id.
+	 	
+	 	\return the id of the service
 	 */
 	int insertService(Service *_ps);
-	/** Add objects that are on the same level as the services but are not services
-	 * 
-	 */
+	//! Add objects that are on the same level as the services but are not services
 	void insertObject(Object *_po);
+	//! Remove an object
 	void removeObject(Object *_po);
+	//! Get the number of services
 	unsigned serviceCount()const;
+	//! Get the service at index _i
 	Service& service(uint _i = 0)const;
+	//! Constructor with filemanager pointer and ipc service
 	Server(FileManager *_pfm = NULL, ipc::Service *_pipcs = NULL);
+	//! Set the filemanager
 	void fileManager(FileManager *_pfm);
+	//! Set the ipc service
 	void ipc(ipc::Service *_pipcs);
 private:
 	//Server(const Server&){}

@@ -24,7 +24,7 @@
 
 namespace clientserver{
 class Object;
-
+//! The base class for all object visitors
 class Visitor{
 public:
 	Visitor(){}
