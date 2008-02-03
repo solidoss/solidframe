@@ -209,7 +209,7 @@ int List::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 //---------------------------------------------------------------
 struct FetchSlaveCommand;
 enum{
-	FetchChunkSize = 128,//1024*1024
+	FetchChunkSize = 1024*1024
 };
 /*
 	This request is first sent to a peer's command executer - where 
