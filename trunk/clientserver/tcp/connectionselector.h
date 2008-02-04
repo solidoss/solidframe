@@ -41,6 +41,12 @@ class DataNode;
 class IStreamNode;
 
 typedef ObjPtr<tcp::Connection>	ConnectionPtrTp;
+
+
+//! A selector for tcp::Connection, that uses epoll on linux.
+/*!
+	It is designed to work with clientserver::SelectPool
+*/
 class ConnectionSelector{
 public:
 	static DataNode* popDataNode();

@@ -32,20 +32,45 @@ namespace clientserver{
 namespace udp{
 
 class TalkerSelector;
-
-
+//! Wrapper for asynchronous tcp socket communication
+/*!
+	A class which allows a Talker to asynchronosly talk.
+	
+	<b>Notes:</b><br>
+	- The udp::Station can only be used within a clientserver::udp::TalkerSelector,
+		clientserver::SelectPool
+	- The return values for io methods follows the standard of the solidground:
+		# OK for opperation completion
+		# BAD unrecoverable error
+		# NOK the talker must wait for the opperation to
+		complete asynchronously.
+*/
 class Station{
 public:
 	enum {RAISE_ON_DONE = 2};
+	//! Create a simple non localy bound udp socket
 	static Station *create();
+	//! Create a simple localy bound udp socket
 	static Station *create(const AddrInfoIterator &_rai);
+	//! Another version of the above method
 	static Station *create(const SockAddrPair &_rsa, AddrInfo::Family = AddrInfo::Inet4, int _proto = 0);
+	//! Destructor
 	~Station();
+	//! Asynchrounous recv from call
+	/*!
+		Use recvAddr and recvSize to find the sender address and the size of 
+		the last received data.
+	*/
 	int recvFrom(char *_pb, uint _bl, uint _flags = 0);
+	//! Asynchrounous send to call
 	int sendTo(const char *_pb, uint _bl, const SockAddrPair &_sap, uint _flags = 0);
+	//! The size of the received data
 	uint recvSize()const;
+	//! The sender address for last received data.
 	const SockAddrPair &recvAddr() const;
+	//! The number of pending sends.
 	uint sendPendingCount() const;
+	//! Returns true if there is a pending receive.
 	bool recvPending()const;
 private:
 	friend class TalkerSelector;

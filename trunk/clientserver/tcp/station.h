@@ -32,12 +32,21 @@ namespace tcp{
 class ListenerSelector;
 class Channel;
 
+//! An asynchrounous ready tcp connection listener - accepter - Stations
+/*!
+	The tcp::Station is a wrapper for a TCP listener/server socket. It listens
+	for incomming connections and create communications clientserver::tcp::Channels.
+	Every clientserver::tcp::Listener will use one station.
+*/
 class Station{
 public:
+	//! Create a new station for a localaddress
 	static Station* create(const AddrInfoIterator &_rai, int _listensz = 100);
+	//! Destructor
 	~Station();
 	typedef std::vector<Channel*>	ChannelVecTp;
-	int accept(ChannelVecTp &cv/*, Constrainer &_rcons*/);
+	//! Accept connections, pushing them into cv
+	int accept(ChannelVecTp &_cv);
 private:
 	friend class ListenerSelector;
 	int descriptor()const{return sd;}

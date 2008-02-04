@@ -41,6 +41,10 @@ class Station;
 
 typedef ObjPtr<Talker>	TalkerPtrTp;
 
+//! A selector for tcp::Talker, that uses epoll on linux.
+/*!
+	It is designed to work with clientserver::SelectPool
+*/
 class TalkerSelector{
 public:
 	typedef TalkerPtrTp		ObjectTp;
