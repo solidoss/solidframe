@@ -30,7 +30,10 @@ namespace tcp{
 
 class Connection;
 class Listener;
-
+//!A base visitor for a connections and liteners
+/*!
+	TODO: move vist methods to clientserver::Visitior
+*/
 class Visitor: public clientserver::Visitor{
 public:
 	Visitor(){}

@@ -26,6 +26,18 @@
 
 namespace clientserver{
 namespace udp{
+//! The base class for tcp connections
+/*!
+	<b>Usage:</b><br>
+	- Inherit and implement execute for protocol logic.
+	- Asynchrounously read/write data using given clientserver::udp::Station.
+	- At run time insert created talkers into services and into specific SelectPools
+	using clientserver::udp::TalkerSelector.
+	
+	<b>Notes:</b><br>
+	- For a quite complex usage of the clientserver::udp::Talker see 
+	clientserver::ipc::Talker.
+*/
 
 class Station;
 class Talker: public Object{

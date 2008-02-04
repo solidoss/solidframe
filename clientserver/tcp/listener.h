@@ -33,7 +33,12 @@ namespace tcp{
 
 class Station;
 class Channel;
-
+//! The base class for all tcp::Listener(s)
+/*!
+	<b>Usage:</b><br>
+	- inherit and implement Listener::execute to add channel
+	accept filtering and Connection creation.
+*/
 class Listener: public Object{
 public:
 	~Listener();

@@ -31,10 +31,12 @@ namespace clientserver{
 namespace tcp{
 
 class Listener;
-/**
- * A selector for tcp::Listeners, that uses poll on linux/unix and iocp on windows.
- */
 typedef ObjPtr<Listener>	ListenerPtrTp;
+
+//! A selector for tcp::Listeners, that uses poll on linux/unix.
+/*!
+	It is designed to work with clientserver::SelectPool
+*/
 class ListenerSelector{
 public:
 	typedef ListenerPtrTp		ObjectTp;

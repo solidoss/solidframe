@@ -29,13 +29,19 @@ namespace clientserver{
 namespace tcp{
 
 class Channel;
-/**
- * Why associating Connection and Channel and not inheriting from Channel or 
- * keep a Channel object, and not a reference:
- * 	1)At connections level I do not want to know about some of Channel's interface
- * like that it uses descriptors or something like.
- *	2)A pool of Channels would allow inter protocols Channel objects reuse.
- */
+//! The base class for tcp connections
+/*!
+	<b>Usage:</b><br>
+	- Inherit and implement execute for protocol logic.
+	- Asynchrounously read/write data using given clientserver::tcp::Channel.
+	
+	<b>Notes:</b><br>
+	Why associating Connection and Channel and not inheriting from Channel or 
+	keep a Channel object, and not a reference:<br>
+	- At connections level I do not want to know about some of Channel's interface
+	like that it uses descriptors or something like.
+	- A pool of Channels would allow inter protocols Channel objects reuse.
+*/
 
 class Connection: public Object{
 public:

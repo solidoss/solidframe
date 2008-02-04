@@ -40,7 +40,25 @@ class ConnectionSelector;
 class Station;
 class SecureChannel;
 struct ChannelData;
-
+//! Wrapper for asynchronous tcp socket communication
+/*!
+	Use this in every clientserver::tcp::Connection to do the
+	actual asynchrounous io.
+	
+	<b>Notes:</b><br>
+	- The Channel can only be used within a clientserver::tcp::ConnectionSelector,
+		clientserver::SelectPool
+	- For now there is no secure communication (there is no definition
+	for SecureChannel.
+	- The secure channel may change a litle the initialization interface
+	of the clientserver::tcp::Channel, but the existing communication
+	interface should not change.
+	- The return values for io methods follows the standard of the solidground:
+		# OK for opperation completion
+		# BAD unrecoverable error
+		# NOK the connection must wait for the opperation to
+		complete asynchronously.
+*/
 class Channel{
 public:
 	enum {
@@ -50,24 +68,27 @@ public:
 	static Channel* create(const AddrInfoIterator &_rai);
 	//Channel();
 	~Channel();
-	void prepare();
-	void unprepare();
+	//! Returns true if the socket was successfully created.
 	int ok()const;
+	//! Tries to connect/ initiate connect to a specified address
 	int connect(const AddrInfoIterator&);
+	//! Returns true if the channel is secure - 
 	int isSecure();
-	///send a buffer
+	//! Send a buffer
 	int send(const char* _pb, uint32 _bl, uint32 _flags = 0);
-	///receives data into a buffer
+	//! Receives data into a buffer
 	int recv(char *_pb, uint32 _bl, uint32 _flags = 0);
-	///send a stream using a given buffer
+	//! Send a stream using a given buffer
 	int send(IStreamIterator &_rsi, uint64 _sl, char *_pb, uint32 _bl, uint32 _flags = 0);
-	///recv data into a stream using a given buffer
+	//! Receive data into a stream using a given buffer
 	int recv(OStreamIterator &_rsi, uint64 _sl, char *_pb, uint32 _bl, uint32 _flags = 0);
-	///the size of the buffer received
+	//! The size of the buffer received
 	uint32 recvSize()const;
+	//! The amount of data sent
 	const uint64& sendCount()const;
+	//! The amount of data received.
 	const uint64& recvCount()const;
-	///return != 0 if there are pending sends
+	//! Return true if there are pending send opperations
 	int arePendingSends();
 protected:
 private:
@@ -88,6 +109,8 @@ private:
 	//the private interface is visible to ConnectionSelector
 	friend class ConnectionSelector;
 	friend class Station;
+	void prepare();
+	void unprepare();
 	int doRecv();
 	int doSend();
 	int doRecvPlain();
