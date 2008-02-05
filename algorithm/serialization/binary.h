@@ -22,12 +22,12 @@
 #ifndef SERIALIZATION_BINARY_H
 #define SERIALIZATION_BINARY_H
 
-#include <cassert>
 #include <map>
 #include <list>
 #include <typeinfo>
 #include <string>
 
+#include "system/cassert.h"
 #include "system/debug.h"
 #include "utility/common.h"
 #include "utility/stack.h"
@@ -183,7 +183,7 @@ class Serializer: private Base{
 		idbg("store generic non pointer container sizeof(iterator) = "<<sizeof(typename T::iterator));
 		if(!cpb.ps) return OK;
 		T * c = reinterpret_cast<T*>(_rfd.p);
-		assert(sizeof(typename T::iterator) <= sizeof(ExtData));
+		cassert(sizeof(typename T::iterator) <= sizeof(ExtData));
 		estk.push(ExtData());
 		typename T::iterator *pit(new(estk.top().buf) typename T::iterator(c->begin()));
 		//typename T::const_iterator &pit = *reinterpret_cast<typename T::const_iterator*>(estk.top().buf);
@@ -236,11 +236,11 @@ class Serializer: private Base{
 			case BAD: sp.second = -1;break;//send -1
 			case NOK: return OK;//no more streams
 			case OK:
-				assert(sp.first);
-				assert(sp.second >= 0);
+				cassert(sp.first);
+				cassert(sp.second >= 0);
 				break;
 			default:
-				assert(false);
+				cassert(false);
 		}
 		estk.push(ExtData());
 		std::pair<IStream*, int64> &rsp(*reinterpret_cast<std::pair<IStream*, int64>*>(estk.top().buf));
@@ -298,7 +298,7 @@ public:
 	//! Destructor
 	~Serializer(){
 		run(NULL,0);//release the stacks
-		assert(!fstk.size());
+		cassert(!fstk.size());
 	}
 	//! Clear the stacks
 	void clear(){
@@ -334,7 +334,7 @@ public:
 		//idbg("push ptr "<<_name);
 		std::pair<const char*, size_t> ps;
 		FncTp pf = (FncTp)rfm.template map(_t, &ps);
-		assert(pf);
+		cassert(pf);
 		//TODO: remove the assert!!
 		//pf = &Serializer::template storePointer<T>;
 		fstk.push(FncData((Base::FncTp)pf, &_t, ps.first, ps.second));
@@ -456,7 +456,7 @@ class Deserializer: private Base{
 		_rfd.f = rfm.map(*slstit);
 		idbg("name = "<<nm);
 		--slstit;
-		assert(_rfd.f);
+		cassert(_rfd.f);
 		return CONTINUE;
 	}
 	template <typename T>
@@ -567,7 +567,7 @@ public:
 	
 	~Deserializer(){
 		run(NULL, 0);
-		assert(!fstk.size());
+		cassert(!fstk.size());
 	}
 	//! Clears the callback stack
 	void clear(){
@@ -604,7 +604,7 @@ public:
 	Deserializer& push(T* &_t, const char *_name = NULL){
 		//idbg("push ptr "<<_name);
 		//FncTp pf = (FncTp)rfm.findO(typeid(*_t).name());
-		//assert(pf);
+		//cassert(pf);
 		//NOTE: you can continue with this line instead of assert:
 		//pf = &Deserializer::template parsePointer<T>;
 		FncTp tpf;
@@ -746,7 +746,7 @@ struct RTTIMapper{
 	template <class T>
 	Base::FncTp map(T *_p, std::pair<const char*, size_t> *_ps){
 		Serializer<RTTIMapper>::FncTp	pf;
-		assert(_ps);
+		cassert(_ps);
 		_ps->first = typeid(*_p).name();
 		_ps->second = strlen(_ps->first);
 		lock();

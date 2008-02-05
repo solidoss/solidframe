@@ -22,7 +22,7 @@
 #ifndef IPC_IODATA_H
 #define IPC_IODATA_H
 
-#include <cassert>
+#include "system/cassert.h"
 #include "system/socketaddress.h"
 
 namespace clientserver{
@@ -46,7 +46,7 @@ namespace ipc{
 struct Inet4AddrPtrCmp{
 	bool operator()(const Inet4SockAddrPair*const &_sa1, const Inet4SockAddrPair*const &_sa2)const{
 		//TODO: optimize
-		assert(_sa1 && _sa2); 
+		cassert(_sa1 && _sa2); 
 		if(*_sa1 < *_sa2){
 			return true;
 		}else if(!(*_sa2 < *_sa1)){
@@ -56,8 +56,8 @@ struct Inet4AddrPtrCmp{
 	}
 	typedef std::pair<const Inet4SockAddrPair*, int>	PairProcAddr;
 	bool operator()(const PairProcAddr* const &_sa1, const PairProcAddr* const &_sa2)const{
-		assert(_sa1 && _sa2); 
-		assert(_sa1->first && _sa2->first); 
+		cassert(_sa1 && _sa2); 
+		cassert(_sa1->first && _sa2->first); 
 		if(*_sa1->first < *_sa2->first){
 			return true;
 		}else if(!(*_sa2->first < *_sa1->first)){
@@ -70,7 +70,7 @@ struct Inet4AddrPtrCmp{
 struct Inet6AddrPtrCmp{
 	bool operator()(const Inet6SockAddrPair*const &_sa1, const Inet6SockAddrPair*const &_sa2)const{
 		//TODO: optimize
-		assert(_sa1 && _sa2); 
+		cassert(_sa1 && _sa2); 
 		if(*_sa1 < *_sa2){
 			return true;
 		}else if(!(*_sa2 < *_sa1)){
@@ -80,8 +80,8 @@ struct Inet6AddrPtrCmp{
 	}
 	typedef std::pair<const Inet6SockAddrPair*, int>	PairProcAddr;
 	bool operator()(const PairProcAddr* const &_sa1, const PairProcAddr* const &_sa2)const{
-		assert(_sa1 && _sa2); 
-		assert(_sa1->first && _sa2->first); 
+		cassert(_sa1 && _sa2); 
+		cassert(_sa1->first && _sa2->first); 
 		if(*_sa1->first < *_sa2->first){
 			return true;
 		}else if(!(*_sa2->first < *_sa1->first)){
@@ -143,7 +143,7 @@ struct Buffer{
 	
 	uint32 bufferSize()const{return dl + header().size();}
 	void bufferSize(uint32 _sz){
-		assert(_sz >= header().size());
+		cassert(_sz >= header().size());
 		dl = _sz - header().size();
 	}
 	uint32 bufferCapacity()const{return bc;}

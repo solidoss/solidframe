@@ -88,7 +88,7 @@ int Base::parseStream(FncData &_rfd){
 	std::pair<OStream*, int64> &rsp(*reinterpret_cast<std::pair<OStream*, int64>*>(estk.top().buf));
 	if(rsp.second < 0) return OK;
 	int32 towrite = be.pc - cpb.pc;
-	assert(towrite > 2);
+	cassert(towrite > 2);
 	towrite -= 2;
 	if(towrite > rsp.second) towrite = rsp.second;
 	uint16 &rsz = *((uint16*)cpb.pc);
@@ -111,7 +111,7 @@ int Base::parseDummyStream(FncData &_rfd){
 	std::pair<OStream*, int64> &rsp(*reinterpret_cast<std::pair<OStream*, int64>*>(estk.top().buf));
 	if(rsp.second < 0) return OK;
 	int32 towrite = be.pc - cpb.pc;
-	assert(towrite > 2);
+	cassert(towrite > 2);
 	towrite -= 2;
 	if(towrite > rsp.second) towrite = rsp.second;
 	uint16 &rsz = *((uint16*)cpb.pc);

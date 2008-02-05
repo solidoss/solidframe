@@ -105,7 +105,7 @@ SpecificData::~SpecificData(){
 	//destroy all cached buffers
 	for(int i(0); i < Specific::Count; ++i){
 		idbg(i<<" cps[i].cp = "<<cps[i].cp<<" Specific::sizeToId((1<<i)) = "<<Specific::sizeToId((1<<i)));
-		assert(!(cps[i].cp - cps[i].s.size()));
+		cassert(!(cps[i].cp - cps[i].s.size()));
 		while(cps[i].s.size()){
 			delete cps[i].s.top();
 			cps[i].s.pop();
@@ -116,7 +116,7 @@ SpecificData::~SpecificData(){
 	for(ObjCachePointVecTp::iterator it(ops.begin()); it != ops.end(); ++it){
 		idbg("it->cp = "<<it->cp);
 		if(it->ps){
-			assert(!(it->cp - it->ps->size()));
+			cassert(!(it->cp - it->ps->size()));
 			while(it->ps->size()){
 				(*cv[it - ops.begin()])(it->ps->top());
 				it->ps->pop();
@@ -166,11 +166,11 @@ void destroy(void *_pv){
 		case 1024:	return 8;
 		case 2048:	return 9;
 		case 4096:	return 10;
-		default:{ assert(false);}
+		default:{ cassert(false);}
 	}
 }
 /*static*/ char* Specific::popBuffer(unsigned _id){
-	assert(_id < Count);
+	cassert(_id < Count);
 	SpecificData &rsd(SpecificData::current());
 	SpecificData::CachePoint &rcp(rsd.cps[_id]);
 	idbg("popBuffer "<<_id<<" cp "<<rcp.cp);
@@ -184,8 +184,8 @@ void destroy(void *_pv){
 	}
 }
 /*static*/ void Specific::pushBuffer(char *&_pb, unsigned _id){
-	assert(_pb);
-	assert(_id < Count);
+	cassert(_pb);
+	cassert(_id < Count);
 	SpecificData &rsd(SpecificData::current());
 	SpecificData::CachePoint &rcp(rsd.cps[_id]);
 	idbg("pushBuffer "<<_id<<" cp "<<rcp.cp<<" stackCap "<<rsd.pcc->stackCapacity(_id));
@@ -202,14 +202,14 @@ void destroy(void *_pv){
 /*static*/ unsigned Specific::stackid(FncTp _pf){
 	Mutex::Locker lock(Thread::gmutex());
 	SpecificData &rsd(SpecificData::current());
-	assert(rsd.ops.size() < rsd.ops.capacity());
+	cassert(rsd.ops.size() < rsd.ops.capacity());
 	cv.push_back(_pf);
 	return cv.size() - 1;
 }
 /*static*/ int Specific::push(void *_pv, unsigned _id, unsigned _maxcp){
 	SpecificData &rsd(SpecificData::current());
-	assert(_pv);
-	assert(_id < rsd.ops.size());
+	cassert(_pv);
+	cassert(_id < rsd.ops.size());
 	if(rsd.ops[_id].ps->size() < _maxcp){
 		rsd.ops[_id].ps->push(_pv);
 		return 0;

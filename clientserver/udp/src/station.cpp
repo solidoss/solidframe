@@ -22,8 +22,8 @@
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <cassert>
 
+#include "system/cassert.h"
 #include "system/debug.h"
 #include "system/socketaddress.h"
 
@@ -141,7 +141,7 @@ int Station::doSend(){
 		}
 		if(rv == 0) return ERRDONE;
 		if(rv < 0 && errno == EAGAIN) return rv;
-		assert(!(rv > 0 && rv < (ssize_t)sndd.bl));
+		cassert(!(rv > 0 && rv < (ssize_t)sndd.bl));
 		return ERRDONE;
 	}
 	return OUTDONE;

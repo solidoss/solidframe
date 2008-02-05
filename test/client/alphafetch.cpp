@@ -13,6 +13,7 @@
 
 #include "system/filedevice.h"
 #include "system/debug.h"
+#include "system/cassert.h"
 #include "system/socketaddress.h"
 #include "system/thread.h"
 //#include "common/utils.h"
@@ -24,6 +25,7 @@ using namespace std;
 int main(int argc, char *argv[]){
 	if(argc != 5){
 		cout<<"Usage: alphafetch addr port path"<<endl;
+		cassert(false);
 		return 0;
 	}
 	signal(SIGPIPE, SIG_IGN);

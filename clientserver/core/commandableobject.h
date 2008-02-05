@@ -21,11 +21,13 @@
 
 #ifndef CS_COMMANDABLE_OBJECT_H
 #define CS_COMMANDABLE_OBJECT_H
-#include <cassert>
+
 #include <vector>
 #include "command.h"
 #include "cmdptr.h"
 #include "common.h"
+
+#include "system/cassert.h"
 
 namespace clientserver{
 //! A class for generic handeling of commands by clientserver::Object(s)
@@ -58,7 +60,7 @@ public:
 		Call this in your objects execute method, under object's mutex lock
 	*/
 	void grabCommands(){
-		assert(runv.empty());
+		cassert(runv.empty());
 		runv = cmdv; cmdv.clear();
 	}
 	

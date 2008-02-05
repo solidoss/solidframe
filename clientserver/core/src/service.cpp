@@ -51,7 +51,7 @@ Service::Service(int _objpermutbts, int _mutrowsbts, int _mutcolsbts):
 Service::~Service(){
 	//stop();
 	idbg("here");
-	assert(!objcnt);
+	cassert(!objcnt);
 	delete &objv;
 	delete &inds;
 }

@@ -40,6 +40,7 @@ class	Object;
 class	ActiveSet;
 class	Visitor;
 class	FileManager;
+class	ServiceContainer;
 
 namespace ipc{
 class Service;
@@ -52,7 +53,7 @@ class Service;
 	- The server keeps the services and should keep the workpools (it 
 	means that the clientserver::Server does not keep any workpool, but
 	the inheriting server should).
-	- The server object can be easyly accessed from any of the server's
+	- The server object can be easely accessed from any of the server's
 	thread through thread specific: use Server::the() method.
 	
 	<b>Usage:</b><br>
@@ -128,7 +129,7 @@ public:
 	//! Register an activeset / workpool
 	uint registerActiveSet(ActiveSet &_ras);
 	//! Get the service id for a service
-	uint serviceId(const Service &_rs)const;
+	//uint serviceId(const Service &_rs)const;
 	//! Remove a service
 	/*!
 		The services are also objects so this must be called when
@@ -141,13 +142,16 @@ protected:
 	virtual void doPrepareThread(){}
 	//! Implement this method to exted thread unpreparation
 	virtual void doUnprepareThread(){}
-	//! Adds a new special service.
+	//! Registers a new service.
 	/*! 
 		- The service MUST be stopped before adding it.
-	 	- A special service is one that need to have a design time id.
-	 	
-	 	\return the id of the service
-	 */
+		- All it does is to register the service as an object, into 
+			a service of services which will permit signaling capabilities
+			for services.
+		- You must in case of success, add the service into a ObjectSelector
+			select pool.
+		\return the id of the service
+	*/
 	int insertService(Service *_ps);
 	//! Add objects that are on the same level as the services but are not services
 	void insertObject(Object *_po);
@@ -163,7 +167,9 @@ protected:
 	void fileManager(FileManager *_pfm);
 	//! Set the ipc service
 	void ipc(ipc::Service *_pipcs);
+	void stop(bool _wait = true);
 private:
+	ServiceContainer & serviceContainer();
 	//Server(const Server&){}
 	Server& operator=(const Server&){return *this;}
 	class ServicePtr;

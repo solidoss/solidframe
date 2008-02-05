@@ -50,7 +50,7 @@ int Writer::run(){
 			case No: return NOK;//wait data
 			case Ok: fs.pop();
 			case Continue: break;
-			default: assert(false);
+			default: cassert(false);
 		}
 	}
 	return OK;
@@ -231,7 +231,7 @@ void Writer::putSilent(uint32 _v){
 	uint64			sz = *static_cast<uint64*>(_rp.b.p);
 	if(pit->start() < 0) return Bad;
 	if(sz < FlushLength){
-		assert((_rw.bend - _rw.wpos) >= FlushLength);
+		cassert((_rw.bend - _rw.wpos) >= FlushLength);
 		if(sz != (uint64)(*pit)->read(_rw.wpos, sz)) return Bad;
 		_rw.wpos += sz;
 		int rv = _rw.flush();
@@ -302,7 +302,7 @@ void Writer::clear(){
 }
 
 int Writer::doManage(int _mo){
-	assert(false);
+	cassert(false);
 	return Ok;
 }
 

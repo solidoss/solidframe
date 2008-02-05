@@ -153,7 +153,7 @@ void Talker::disconnectProcesses(){
 	while(d.closes.size()){
 		ProcessConnector *ppc = d.procs[d.closes.top()].first;
 		idbg("disconnecting process "<<(void*)ppc);
-		assert(ppc);
+		cassert(ppc);
 		if(ppc->isDisconnecting()){
 			idbg("deleting process "<<(void*)ppc<<" on pos "<<d.closes.top());
 			d.rservice.disconnectProcess(ppc);
@@ -222,7 +222,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 			}
 			//dispatch commands before deleting processconnectors
 			while(d.cmdq.size()){
-				assert(d.cmdq.front().procid < d.procs.size());
+				cassert(d.cmdq.front().procid < d.procs.size());
 				Data::ProcPairTp	&rpp(d.procs[d.cmdq.front().procid]);
 				uint32				flags(d.cmdq.front().flags);
 				if(rpp.first && (!(flags & Service::SameConnectorFlag) || rpp.second == d.cmdq.front().procuid)){
@@ -251,7 +251,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 			switch(station().recvFrom(d.rcvbuf.buffer(), d.rcvbuf.bufferCapacity())){
 				case BAD:
 					idbg("socket error "<<strerror(errno));
-					assert(false);
+					cassert(false);
 					break;
 				case OK:
 					d.rcvbuf.bufferSize(station().recvSize());
@@ -332,7 +332,7 @@ void Talker::pushProcessConnector(ProcessConnector *_pc, ConnectorUid &_rconid, 
 			_rconid.procuid = d.procfs.top().second;
 			d.procfs.pop();
 		}else{
-			assert(d.nextprocid < (uint16)0xffff);
+			cassert(d.nextprocid < (uint16)0xffff);
 			_rconid.procid = d.nextprocid;
 			_rconid.procuid = 0;
 			++d.nextprocid;
@@ -343,7 +343,7 @@ void Talker::pushProcessConnector(ProcessConnector *_pc, ConnectorUid &_rconid, 
 //----------------------------------------------------------------------
 //dispatch d.rcvbuf
 void Talker::dispatchReceivedBuffer(const SockAddrPair &_rsap){
-	assert(_rsap.family() == AddrInfo::Inet4);
+	cassert(_rsap.family() == AddrInfo::Inet4);
 	idbg("received buffer:");
 	d.rcvbuf.print();
 
@@ -355,7 +355,7 @@ void Talker::dispatchReceivedBuffer(const SockAddrPair &_rsap){
 			if(pit != d.peerpm4.end()){
 				idbg("found process for buffer");
 				Data::ProcPairTp &rpp(d.procs[pit->second]);
-				assert(rpp.first);
+				cassert(rpp.first);
 				ConnectorUid conid(d.tkrid, pit->second, rpp.second);
 				switch(d.procs[pit->second].first->pushReceivedBuffer(d.rcvbuf, conid)){
 					case BAD:
@@ -401,7 +401,7 @@ void Talker::dispatchReceivedBuffer(const SockAddrPair &_rsap){
 			}
 		}break;
 		default:
-			assert(false);
+			cassert(false);
 	}
 }
 //----------------------------------------------------------------------

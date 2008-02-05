@@ -23,7 +23,7 @@
 #define UTILITY_STACK_H
 #include <cstdlib>
 #include "system/convertors.h"
-#include <cassert>
+#include "system/cassert.h"
 
 
 //! A simple and fast stack with interface similar to std one
@@ -87,15 +87,15 @@ private:
 		return (T*)pn->data;
 	}
 	T *popNode(void *_p){
-		//assert(_p);
+		//ccassert(_p);
 		Node *pn = ((Node*)(((char*)_p) - sizeof(Node*)));
 		Node *ppn = pn->prev; 
-		assert(pn != ptn);
+		cassert(pn != ptn);
 		pn->prev = ptn; ptn = pn;//cache the node
 		if(ppn){
 			return (T*)(ppn->data + (NodeSize * sizeof(T) - sizeof(T)));
 		}else{
-			assert(!sz);
+			cassert(!sz);
 			return NULL;
 		}
 	}

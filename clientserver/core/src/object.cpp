@@ -19,7 +19,7 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <cassert>
+#include "system/cassert.h"
 #include "system/synchronization.h"
 
 #include "system/debug.h"
@@ -37,7 +37,7 @@ namespace clientserver{
 //---------------------------------------------------------------------
 
 void ObjPtrBase::clear(Object *_pobj){
-	assert(_pobj);
+	cassert(_pobj);
 	int usecnt = 0;
 	{
 		Mutex::Locker lock(Server::the().mutex(*_pobj));
@@ -58,7 +58,7 @@ void ObjPtrBase::destroy(Object *_pobj){
 //---------------------------------------------------------------------
 
 void CmdPtrBase::clear(Command *_pcmd){
-	assert(_pcmd);
+	cassert(_pcmd);
 	if(_pcmd->release()) delete _pcmd;
 }
 
@@ -141,7 +141,7 @@ int Command::receiveCommand(
 	const ObjectUidTp&_from,
 	const ipc::ConnectorUid *_conid
 ){
-	assert(false);
+	cassert(false);
 	return BAD;
 }
 
@@ -152,7 +152,7 @@ int Command::receiveIStream(
 	const ObjectUidTp&,
 	const ipc::ConnectorUid *
 ){
-	assert(false);
+	cassert(false);
 	return BAD;
 }
 int Command::receiveOStream(
@@ -162,7 +162,7 @@ int Command::receiveOStream(
 	const ObjectUidTp&,
 	const ipc::ConnectorUid *
 ){
-	assert(false);
+	cassert(false);
 	return BAD;
 }
 int Command::receiveIOStream(
@@ -172,7 +172,7 @@ int Command::receiveIOStream(
 	const ObjectUidTp&,
 	const ipc::ConnectorUid *
 ){
-	assert(false);
+	cassert(false);
 	return BAD;
 }
 int Command::receiveString(
@@ -181,7 +181,7 @@ int Command::receiveString(
 	const ObjectUidTp&,
 	const ipc::ConnectorUid *
 ){
-	assert(false);
+	cassert(false);
 	return BAD;
 }
 int Command::receiveNumber(
@@ -190,7 +190,7 @@ int Command::receiveNumber(
 	const ObjectUidTp&,
 	const ipc::ConnectorUid *
 ){
-	assert(false);
+	cassert(false);
 	return BAD;
 }
 int Command::receiveError(
@@ -198,7 +198,7 @@ int Command::receiveError(
 	const ObjectUidTp&,
 	const ipc::ConnectorUid *
 ){
-	assert(false);
+	cassert(false);
 	return BAD;
 }
 

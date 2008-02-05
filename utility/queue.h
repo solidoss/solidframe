@@ -23,7 +23,7 @@
 #define UTILITY_QUEUE_H
 #include <cstdlib>
 #include "system/convertors.h"
-#include <cassert>
+#include "system/cassert.h"
 
 
 //! A simple and fast queue with interface similar to std one
@@ -78,7 +78,7 @@ public:
 	void pop(){
 		pf->~T();
 		--sz;
-		assert(sz < 1000000);
+		cassert(sz < 1000000);
 		if((++popsz) & NodeMask) ++pf;
 		else{ pf = popNode(pf);popsz = 0;}
 	}
@@ -113,15 +113,15 @@ private:
 		}
 	}
 	T* popNode(void *_p){
-		//assert(_p);
-		assert(_p);
+		//cassert(_p);
+		cassert(_p);
 		Node *pn = (Node*)(((char*)_p) - NodeSize * sizeof(T) + sizeof(T) - sizeof(Node*));
 		Node *ppn = pn->next;
 		pn->next = ptn; ptn = pn;//cache the node
 		if(ppn){
 			return (T*)(ppn->data);
 		}else{
-			assert(!sz);
+			cassert(!sz);
 			pb = NULL;
 			return NULL;
 		}

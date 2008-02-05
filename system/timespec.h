@@ -48,7 +48,7 @@ struct TimeSpec: public timespec{
 };
 
 inline TimeSpec operator-(const TimeSpec &_ts1, const TimeSpec &_ts2){
-	//assert(_ts1 > _ts2);
+	//cassert(_ts1 > _ts2);
 	TimeSpec ts = _ts1;
 	ts.tv_sec -= _ts2.tv_sec;
 	ts.tv_nsec -= _ts2.tv_nsec;

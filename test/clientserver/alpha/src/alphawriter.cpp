@@ -36,7 +36,7 @@ Writer::~Writer(){
 void Writer::clear(){
 	tags.clear();
 	msgs.clear();
-	assert(wpos == rpos);
+	cassert(wpos == rpos);
 }
 
 bool isLiteralString(const char *_pb, unsigned _bl){
@@ -106,7 +106,7 @@ int Writer::write(char *_pb, uint32 _bl){
 		case OK: return Ok;
 		case NOK: return No;
 	}
-	assert(false);
+	cassert(false);
 	return Bad;
 }
 
@@ -116,7 +116,7 @@ int Writer::write(IStreamIterator&_rit, uint64 _sz, char *_pb, uint32 _bl){
 		case OK:	return Ok;
 		case NOK:	return No;
 	}
-	assert(false);
+	cassert(false);
 	return Bad;
 }
 

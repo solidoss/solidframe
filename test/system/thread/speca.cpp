@@ -4,7 +4,7 @@
 #include "system/specific.h"
 #include "system/debug.h"
 #include <iostream>
-#include <cassert>
+#include "system/cassert.h"
 
 typedef Cacheable<std::vector<int>, 2> CacheableVecTp;
 typedef Cacheable<std::string, 2> CacheableStringTp;
@@ -12,8 +12,8 @@ typedef Cacheable<std::string, 2> CacheableStringTp;
 void testa(){
 	CacheableVecTp *pcv = new CacheableVecTp;
 	CacheableStringTp *pcs = new CacheableStringTp;
-	assert(!Specific::tryUncache<CacheableVecTp>());
-	assert(!Specific::tryUncache<CacheableStringTp>());
+	cassert(!Specific::tryUncache<CacheableVecTp>());
+	cassert(!Specific::tryUncache<CacheableStringTp>());
 	idbg("cache vector "<<(void*)pcv);
 	std::cout<<"cache vector "<<(void*)pcv<<std::endl;
 	Specific::cache(pcv);

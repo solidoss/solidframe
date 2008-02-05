@@ -22,7 +22,7 @@
 #include "algorithm/protocol/namematcher.h"
 #include <map>
 //#include <tr1/unordered_map>
-#include <cassert>
+#include "system/cassert.h"
 using namespace std;
 
 namespace protocol{
@@ -54,7 +54,7 @@ int NameMatcher::match(const char *_name)const{
 
 void NameMatcher::push(const char *_name){
 	pair<Data::StrMapTp::iterator, bool> r(d.m.insert(Data::StrMapTp::value_type(_name, d.m.size())));
-	assert(r.second);
+	cassert(r.second);
 }
 
 
