@@ -53,11 +53,11 @@ TalkerSelector::TalkerSelector():cp(0),sz(0),
 }
 
 int TalkerSelector::reserve(ulong _cp){
-	assert(_cp);
-	assert(!sz);
+	cassert(_cp);
+	cassert(!sz);
 	if(_cp < cp) return OK;
 	if(cp){
-		assert(false);
+		cassert(false);
 		delete []pevs;delete []pchs;//delete []ph;
 	}
 	cp = _cp;
@@ -90,13 +90,13 @@ int TalkerSelector::reserve(ulong _cp){
 	//chq.reserve(cp);
 	//zero is reserved for pipe
 	if(epfd < 0 && (epfd = epoll_create(cp)) < 0){
-		assert(false);
+		cassert(false);
 		return -1;
 	}
 	//init the pipes:
 	if(pipefds[0] < 0){
 		if(pipe(pipefds)){
-			assert(false);
+			cassert(false);
 			return -1;
 		}
 		fcntl(pipefds[0],F_SETFL, O_NONBLOCK);
@@ -108,7 +108,7 @@ int TalkerSelector::reserve(ulong _cp){
 		ev.events = EPOLLIN | EPOLLPRI;//must be LevelTriggered
 		if(epoll_ctl(epfd, EPOLL_CTL_ADD, pipefds[0], &ev)){
 			idbg("error epollctl");
-			assert(false);
+			cassert(false);
 			return -1;
 		}
 	}
@@ -249,7 +249,7 @@ int TalkerSelector::doExecute(SelTalker &_rch, ulong _evs, TimeSpec &_rcrttout, 
 					idbg("RTOUT: epollctl");
 					_rch.evmsk = _rev.events = t;
 					_rev.data.ptr = &_rch;
-					assert(!epoll_ctl(epfd, EPOLL_CTL_MOD, rcon.station().descriptor(), &_rev));
+					cassert(!epoll_ctl(epfd, EPOLL_CTL_MOD, rcon.station().descriptor(), &_rev));
 				}
 				if(_rcrttout != ctimepos){
 					_rch.timepos = _rcrttout;
@@ -275,18 +275,18 @@ int TalkerSelector::doExecute(SelTalker &_rch, ulong _evs, TimeSpec &_rcrttout, 
 			_rev.data.ptr = &_rch;
 			uint ioreq = rcon.station().ioRequest();
 			_rch.evmsk = _rev.events = (EPOLLERR | EPOLLHUP | EPOLLET) | ioreq;
-			assert(!epoll_ctl(epfd, EPOLL_CTL_ADD, rcon.station().descriptor(), &_rev));
+			cassert(!epoll_ctl(epfd, EPOLL_CTL_ADD, rcon.station().descriptor(), &_rev));
 			if(!ioreq){
 				if(!_rch.state) {chq.push(&_rch); _rch.state = 1;}
 			}
 			}break;
 		case UNREGISTER:
 			idbg("UNREGISTER: unregister connection's descriptor");
-			assert(!epoll_ctl(epfd, EPOLL_CTL_DEL, rcon.station().descriptor(), NULL));
+			cassert(!epoll_ctl(epfd, EPOLL_CTL_DEL, rcon.station().descriptor(), NULL));
 			if(!_rch.state) {chq.push(&_rch); _rch.state = 1;}
 			break;
 		default:
-			assert(false);
+			cassert(false);
 	}
 	idbg("doExecute return "<<rv);
 	return rv;
@@ -340,7 +340,7 @@ int TalkerSelector::doReadPipe(){
 }
 
 void TalkerSelector::push(const TalkerPtrTp &_tkrptr, uint _thid){
-	assert(fstk.size());
+	cassert(fstk.size());
 	SelTalker *pc = fstk.top(); fstk.pop();
 	//pc->fd = _tkrptr->descriptor();
 	pc->state = 0;
@@ -357,7 +357,7 @@ void TalkerSelector::push(const TalkerPtrTp &_tkrptr, uint _thid){
 		idbg("error adding filedesc "<<_tkrptr->station().descriptor());
 		pc->tkrptr.clear();
 		pc->reset(); fstk.push(pc);
-		assert(false);
+		cassert(false);
 	}else{
 		++sz;
 	}
@@ -375,7 +375,7 @@ void TalkerSelector::signal(uint _objid){
 
 void TalkerSelector::SelTalker::reset(){
 	state = 0;
-	assert(!tkrptr.release());
+	cassert(!tkrptr.release());
 	timepos.set(0);
 	evmsk = 0;
 }

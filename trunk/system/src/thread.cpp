@@ -57,7 +57,7 @@ int Mutex::lock(){
 	if(rv){
 		idbg("lock error "<<strerror(errno));
 	}
-	assert(!rv);
+	cassert(!rv);
 	return rv;
 #else
 	return pthread_mutex_lock(&mut);
@@ -70,7 +70,7 @@ int Mutex::unlock(){
 	if(rv){
 		idbg("lock error "<<strerror(errno));
 	}
-	assert(!rv);
+	cassert(!rv);
 	return rv;
 #else
 	return pthread_mutex_unlock(&mut);
@@ -113,7 +113,7 @@ Thread::Thread():dtchd(true),psem(NULL){
 Thread::~Thread(){
 	for(SpecVecTp::iterator it(specvec.begin()); it != specvec.end(); ++it){
 		if(it->first){
-			assert(it->second);
+			cassert(it->second);
 			(*it->second)(it->first);
 		}
 	}
@@ -148,21 +148,21 @@ unsigned Thread::specificId(){
 }
 //-------------------------------------------------------------------------
 unsigned Thread::specific(unsigned _pos, void *_psd, SpecificFncTp _pf){
-	assert(current());
-	//assert(_pos < current()->specvec.size());
+	cassert(current());
+	//cassert(_pos < current()->specvec.size());
 	if(_pos >= current()->specvec.size()) current()->specvec.resize(_pos + 4);
 	current()->specvec[_pos] = SpecPairTp(_psd, _pf);
 	return _pos;
 }
 //-------------------------------------------------------------------------
 // unsigned Thread::specific(void *_psd){
-// 	assert(current());
+// 	cassert(current());
 // 	current()->specvec.push_back(_psd);
 // 	return current()->specvec.size() - 1;
 // }
 //-------------------------------------------------------------------------
 void* Thread::specific(unsigned _pos){
-	assert(current() && _pos < current()->specvec.size());
+	cassert(current() && _pos < current()->specvec.size());
 	return current()->specvec[_pos].first;
 }
 Mutex& Thread::gmutex(){

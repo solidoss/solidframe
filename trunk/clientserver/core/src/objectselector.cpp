@@ -133,7 +133,7 @@ void ObjectSelector::run(){
 }
 
 void ObjectSelector::push(const ObjectPtrTp &_robj, uint _thid){
-	assert(fstk.size());
+	cassert(fstk.size());
 	uint pos = fstk.top(); fstk.pop();
 	_robj->setThread(_thid, pos);
 	sv[pos].objptr = _robj;
@@ -208,7 +208,7 @@ int ObjectSelector::doExecute(unsigned _i, ulong _evs, TimeSpec _crttout){
 			--sz;
 			if(empty()) rv = EXIT_LOOP;
 			break;
-		default: assert(false);
+		default: cassert(false);
 	}
 	return rv;
 }

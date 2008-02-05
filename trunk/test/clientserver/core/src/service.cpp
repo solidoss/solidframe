@@ -82,7 +82,7 @@ int Service::insertConnection(
 	Server &_rs, 
 	cs::tcp::Channel *_pch
 ){	
-	assert(false);
+	cassert(false);
 	delete _pch;
 	return BAD;
 }

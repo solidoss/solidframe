@@ -69,7 +69,7 @@ public:
 	//! Push a new job
 	void push(const Jb& _jb){
 		mut.lock();
-		assert(state != Stopped);
+		cassert(state != Stopped);
 		q.push(_jb);
 		sigcnd.signal();
 		mut.unlock();
@@ -78,7 +78,7 @@ public:
 	void push(const Jb *_pjb, unsigned _cnt){
 		if(!_cnt) return;
 		mut.lock();
-		assert(state != Stopped);
+		cassert(state != Stopped);
 		while(_cnt--){
 			q.push(*_pjb);
 			++_pjb;

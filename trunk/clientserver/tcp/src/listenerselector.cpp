@@ -22,8 +22,8 @@
 #include <sys/poll.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <cassert>
 
+#include "system/cassert.h"
 #include "system/debug.h"
 #include "system/timespec.h"
 
@@ -140,7 +140,7 @@ int ListenerSelector::doFullScan(){
 					++i;
 					break;
 				default:
-					assert(false);
+					cassert(false);
 			}
 		}else ++i;
 	}
@@ -170,7 +170,7 @@ int ListenerSelector::doSimpleScan(int _cnt){
 					++i;
 					break;
 				default:
-					assert(false);
+					cassert(false);
 			}
 		}else ++i;
 	}

@@ -19,9 +19,9 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <cassert>
 #include <vector>
 
+#include "system/cassert.h"
 #include "system/debug.h"
 #include "system/thread.h"
 #include "system/specific.h"
@@ -61,6 +61,8 @@ public:
 	void poolid(uint){}
 };
 
+struct DummyObject: Object{
+};
 //a service which will hold the other services
 //TODO: make it inheritable by users. 
 // for service group signalling.
@@ -68,8 +70,9 @@ public:
 // the server or the service itself == the root for signalling.
 class ServiceContainer: public Service{
 public:
-	ServiceContainer():Service(0, 1, 16){
+	ServiceContainer():Service(0, 1, 16), pdo(new DummyObject){
 		Service::mutex(new Mutex);
+		insert(pdo);
 	}
 	~ServiceContainer(){
 		delete Service::mutex();
@@ -79,7 +82,11 @@ public:
 	int insert(Object *_po);
 	//void remove(Service *_ps);
 	void remove(Object *_po);
+	void clearDummy();
+private:
+	DummyObject *pdo;
 };
+
 
 struct Server::ServicePtr: ObjPtr<Service>{
 	ServicePtr(Service *_ps = NULL);
@@ -117,6 +124,14 @@ void ServiceContainer::remove(Object *_po){
 	Service::remove(*_po);
 }
 
+void ServiceContainer::clearDummy(){
+	if(pdo){
+		Service::remove(*pdo);
+		delete pdo;
+		pdo = NULL;
+	}
+}
+
 Server::Server(FileManager *_pfm, ipc::Service *_pipcs):servicev(*(new ServiceVector)),asv(*(new ActiveSetVector)), pfm(_pfm), pipcs(_pipcs){
 	registerActiveSet(*(new DummySet));
 	servicev.push_back(ServicePtr(new ServiceContainer));
@@ -132,20 +147,29 @@ Server::~Server(){
 	//delete pipcs;
 }
 
+ServiceContainer & Server::serviceContainer(){
+	return static_cast<ServiceContainer&>(*servicev.front());
+}
+
 Service& Server::service(uint _i)const{
 	return *servicev[_i];
+}
+
+void Server::stop(bool _wait){
+	serviceContainer().clearDummy();
+	serviceContainer().stop(*this, _wait);
 }
 
 Server& Server::the(){
 	return *reinterpret_cast<Server*>(Thread::specific(serverspecificid));
 }
 
-uint Server::serviceId(const Service &_rs)const{
-	return _rs.index() + 1;//the first service must be the ServiceContainer
-}
+// uint Server::serviceId(const Service &_rs)const{
+// 	return _rs.index();//the first service must be the ServiceContainer
+// }
 
 void Server::fileManager(FileManager *_pfm){
-	assert(!pfm);
+	cassert(!pfm);
 	pfm = _pfm;
 }
 void Server::ipc(ipc::Service *_pipcs){
@@ -164,9 +188,9 @@ uint Server::registerActiveSet(ActiveSet &_ras){
 }
 int Server::insertService(Service *_ps){
 	//servicev.push_back(ServicePtr(_ps));
-	//assert(_ps->state() == Service::Stopped);
-	static_cast<ServiceContainer&>(*servicev.front()).insert(_ps);
-	uint idx = serviceId(*_ps);
+	//cassert(_ps->state() == Service::Stopped);
+	serviceContainer().insert(_ps);
+	uint idx = _ps->index();//serviceId(*_ps);
 	if(idx >= servicev.size()){
 		servicev.resize(idx + 1);
 	}
@@ -175,19 +199,19 @@ int Server::insertService(Service *_ps){
 }
 
 void Server::insertObject(Object *_po){
-	static_cast<ServiceContainer&>(*servicev.front()).insert(_po);
+	serviceContainer().insert(_po);
 }
 
 void Server::removeService(Service *_ps){
-	static_cast<ServiceContainer&>(*servicev.front()).remove(_ps);
+	serviceContainer().remove(_ps);
 }
 
 void Server::removeObject(Object *_po){
-	static_cast<ServiceContainer&>(*servicev.front()).remove(_po);
+	serviceContainer().remove(_po);
 }
 
 int Server::signalObject(ulong _fullid, ulong _uid, ulong _sigmask){
-	assert(Object::computeServiceId(_fullid) < servicev.size());
+	cassert(Object::computeServiceId(_fullid) < servicev.size());
 	return servicev[Object::computeServiceId(_fullid)]->signal(
 		_fullid,_uid,
 		*this,
@@ -195,12 +219,12 @@ int Server::signalObject(ulong _fullid, ulong _uid, ulong _sigmask){
 }
 		
 int Server::signalObject(Object &_robj, ulong _sigmask){
-	assert(_robj.serviceid() < servicev.size());
+	cassert(_robj.serviceid() < servicev.size());
 	return servicev[_robj.serviceid()]->signal(_robj, *this, _sigmask);
 }
 
 int Server::signalObject(ulong _fullid, ulong _uid, CmdPtr<Command> &_cmd){
-	assert(Object::computeServiceId(_fullid) < servicev.size());
+	cassert(Object::computeServiceId(_fullid) < servicev.size());
 	return servicev[Object::computeServiceId(_fullid)]->signal(
 		_fullid,_uid,
 		*this,
@@ -208,7 +232,7 @@ int Server::signalObject(ulong _fullid, ulong _uid, CmdPtr<Command> &_cmd){
 }
 
 int Server::signalObject(Object &_robj, CmdPtr<Command> &_cmd){
-	assert(_robj.serviceid() < servicev.size());
+	cassert(_robj.serviceid() < servicev.size());
 	return servicev[_robj.serviceid()]->signal(_robj, *this, _cmd);
 }
 
@@ -256,7 +280,7 @@ int Server::insertIpcTalker(
 	const char*_node,
 	const char *_srv
 ){
-	assert(pipcs);
+	cassert(pipcs);
 	return ipc().insertTalker(*this, _rai, _node, _srv);
 }
 

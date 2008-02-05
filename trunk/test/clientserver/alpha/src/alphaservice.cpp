@@ -61,7 +61,7 @@ int Service::insertConnection(
 	clientserver::tcp::Channel *_pch
 ){
 	Connection *pcon = new Connection(_pch, 0);
-	if(this->insert(*pcon, _rs.serviceId(*this))){
+	if(this->insert(*pcon, this->index())){
 		delete pcon;
 		return BAD;
 	}	
@@ -76,7 +76,7 @@ int Service::insertListener(
 	cs::tcp::Station *pst(cs::tcp::Station::create(_rai));
 	if(!pst) return BAD;
 	test::Listener *plis = new test::Listener(pst, 100, 0);
-	if(this->insert(*plis, _rs.serviceId(*this))){
+	if(this->insert(*plis, this->index())){
 		delete plis;
 		return BAD;
 	}	

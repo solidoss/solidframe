@@ -21,7 +21,7 @@
 
 #include "channeldata.h"
 #include "system/specific.h"
-#include <cassert>
+#include "system/cassert.h"
 
 namespace clientserver{
 namespace tcp{
@@ -68,7 +68,7 @@ void ChannelData::pushSend(const IStreamIterator &_rsi, uint64 _sz){
 }
 
 void ChannelData::popSendData(){
-	assert(psdnfirst);
+	cassert(psdnfirst);
 	DataNode	*psdn = psdnfirst->pnext;
 	Specific::cache(psdnfirst);
 	psdnfirst = psdn;
@@ -76,7 +76,7 @@ void ChannelData::popSendData(){
 }
 
 void ChannelData::popSendStream(){
-	assert(pssnfirst);
+	cassert(pssnfirst);
 	IStreamNode	*pssn = pssnfirst->pnext;
 	Specific::cache(pssnfirst);
 	pssnfirst = pssn;

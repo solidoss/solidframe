@@ -22,7 +22,7 @@
 #include <unistd.h>
 #include "filedevice.h"
 #include "directory.h"
-#include <cassert>
+#include "system/cassert.h"
 #include <cerrno>
 
 Device::Device(const Device &_dev):desc(_dev.descriptor()) {
@@ -39,12 +39,12 @@ Device::~Device(){
 }
 
 int Device::read(char	*_pb, uint32 _bl){
-	assert(desc >= 0);
+	cassert(desc >= 0);
 	return ::read(desc, _pb, _bl);
 }
 
 int Device::write(const char* _pb, uint32 _bl){
-	assert(desc >= 0);
+	cassert(desc >= 0);
 	return ::write(desc, _pb, _bl);
 }
 
@@ -53,7 +53,7 @@ void Device::close(){
 }
 
 int Device::flush(){
-	assert(desc >= 0);
+	cassert(desc >= 0);
 	return fsync(desc);
 }
 

@@ -102,14 +102,14 @@ int Reader::run(){
 			case Bad:return BAD;
 			case No: return NOK;//wait data
 			case Error:
-				assert(state != RecoverState);
+				cassert(state != RecoverState);
 				state = RecoverState;
 				while(fs.size())fs.pop();
 				prepareErrorRecovery();
 				break;
 			case Ok: fs.pop();
 			case Continue: break;
-			default: assert(false);
+			default: cassert(false);
 		}
 	}
 	return OK;
@@ -154,7 +154,7 @@ int Reader::run(){
 /*static*/ int Reader::fetchLiteralStream(Reader &_rr, Parameter &_rp){
 	OStreamIterator *osi(static_cast<OStreamIterator*>(_rp.a.p));
 	if(osi->start() < 0){
-		assert(false);
+		cassert(false);
 	}
 	uint64 sz = *static_cast<uint64*>(_rp.b.p);
 	ulong minlen = (ulong)(_rr.wpos - _rr.rpos);
@@ -272,7 +272,7 @@ void Reader::prepareErrorRecovery(){
 	push(&Reader::returnValue, Parameter(Bad));
 }
 int Reader::doManage(int _mo){
-	assert(false);
+	cassert(false);
 	return Ok;
 }
 

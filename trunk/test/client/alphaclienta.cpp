@@ -5,12 +5,13 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <unistd.h>
-#include <errno.h>
+#include <cerrno>
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <deque>
 
+#include "system/cassert.h"
 #include "system/debug.h"
 #include "system/socketaddress.h"
 #include "system/thread.h"
@@ -335,7 +336,7 @@ int AlphaThread::fetch(unsigned _idx, char *_pb){
 					}
 				case ReadLitFinalCR:
 					if(!*bpos){b = false; break;}
-					if(*bpos != '\r'){assert(false); return -4;}
+					if(*bpos != '\r'){cassert(false); return -4;}
 					++bpos;
 					state = ReadFinalLF;
 				case ReadLitFinalLF:

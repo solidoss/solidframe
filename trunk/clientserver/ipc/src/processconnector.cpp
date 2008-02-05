@@ -93,7 +93,7 @@ struct ProcessConnector::Data{
 	struct SendCommand{
 		SendCommand(const cs::CmdPtr<Command>& _rpcmd, uint32 _flags):pcmd(_rpcmd), flags(_flags), pser(NULL){}
 		~SendCommand(){
-			assert(!pser);
+			cassert(!pser);
 		}
 		cs::CmdPtr<Command> pcmd;
 		uint32				flags;
@@ -176,7 +176,7 @@ ProcessConnector::Data::~Data(){
 }
 std::pair<uint16, uint16> ProcessConnector::Data::insertSentBuffer(Buffer &_rbuf){
 	std::pair<uint16, uint16> p;
-	assert(_rbuf.buffer());
+	cassert(_rbuf.buffer());
 	if(outfreestk.size()){
 		p.first = outfreestk.top();
 		outbufs[p.first].first = _rbuf;
@@ -190,7 +190,7 @@ std::pair<uint16, uint16> ProcessConnector::Data::insertSentBuffer(Buffer &_rbuf
 	return p;
 }
 std::pair<uint16, uint16> ProcessConnector::Data::getSentBuffer(int _bufpos){
-	assert(_bufpos < (int)outbufs.size());
+	cassert(_bufpos < (int)outbufs.size());
 	return std::pair<uint16, uint16>(_bufpos, outbufs[_bufpos].second);
 }
 inline void ProcessConnector::Data::incrementExpectedId(){
@@ -210,7 +210,7 @@ ProcessConnector::Data::BinSerializerTp* ProcessConnector::Data::popSerializer()
 	return p;
 }
 void ProcessConnector::Data::pushSerializer(ProcessConnector::Data::BinSerializerTp* _p){
-	assert(_p->empty());
+	cassert(_p->empty());
 	Specific::cache(_p);
 }
 ProcessConnector::Data::BinDeserializerTp* ProcessConnector::Data::popDeserializer(){
@@ -221,7 +221,7 @@ ProcessConnector::Data::BinDeserializerTp* ProcessConnector::Data::popDeserializ
 	return p;
 }
 void ProcessConnector::Data::pushDeserializer(ProcessConnector::Data::BinDeserializerTp* _p){
-	assert(_p->empty());
+	cassert(_p->empty());
 	Specific::cache(_p);
 }
 
@@ -336,7 +336,7 @@ void ProcessConnector::completeConnect(int _pairport){
 	d.state = Data::Connected;
 	d.addr.port(_pairport);
 	//free the connecting buffer
-	assert(d.outbufs[0].first.buffer());
+	cassert(d.outbufs[0].first.buffer());
 	//_rs.collectBuffer(d.outbufs[0].first, _riod);
 	char *pb = d.outbufs[0].first.buffer();
 	Specific::pushBuffer(pb, Specific::capacityToId(d.outbufs[0].first.bufferCapacity()));
@@ -412,7 +412,7 @@ int ProcessConnector::pushReceivedBuffer(Buffer &_rbuf, const ConnectorUid &_rco
 				return OK;
 			}
 		}else{//a buffer containing only updates
-			assert(_rbuf.updatesCount());
+			cassert(_rbuf.updatesCount());
 			idbg("received buffer containing only updates");
 			if(freeSentBuffers(_rbuf)) return NOK;
 			return OK;
@@ -447,7 +447,7 @@ int ProcessConnector::pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpo
 	idbg("");
 	if(_rbuf.b.buffer()){
 		if(_rbuf.b.id() > Data::LastBufferId){
-			assert(_rbuf.b.id() == Data::UpdateBufferId);
+			cassert(_rbuf.b.id() == Data::UpdateBufferId);
 			idbg("sent updates - collecting buffer");
 			char *pb = _rbuf.b.buffer();
 			Specific::pushBuffer(pb, Specific::capacityToId(_rbuf.b.bufferCapacity()));
@@ -457,11 +457,11 @@ int ProcessConnector::pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpo
 			idbg("sent bufpos = "<<_rbuf.bufpos<<" retransmitid "<<_rbuf.b.retransmitId()<<" buf = "<<(void*)_rbuf.b.buffer()<<" buffercap = "<<_rbuf.b.bufferCapacity());
 			std::pair<uint16, uint16>  p;
 			if(!_rbuf.b.retransmitId()){
-				//assert(_rbuf.bufpos < 0);
+				//cassert(_rbuf.bufpos < 0);
 				p = d.insertSentBuffer(_rbuf.b);	//_rbuf.bc will contain the buffer index, and
 												//_rbuf.dl will contain the buffer uid
 			}else{
-				//assert(_rbuf.bufpos >= 0);
+				//cassert(_rbuf.bufpos >= 0);
 				p = d.getSentBuffer(_rbuf.bufpos);
 			}
 			++p.first;
@@ -473,7 +473,7 @@ int ProcessConnector::pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpo
 			_rbuf.b.dl = p.second;
 			_rbuf.bufpos = p.first;
 			idbg("prepare waitbuf b.cap "<<_rbuf.b.bufferCapacity()<<" b.dl "<<_rbuf.b.dl);
-			assert(sizeof(uint32) <= sizeof(size_t));
+			cassert(sizeof(uint32) <= sizeof(size_t));
 			_rbuf.timeout = _tpos;
 			_rbuf.timeout += d.retranstimeout;//miliseconds retransmission timeout
 			_reusebuf = true;
@@ -482,7 +482,7 @@ int ProcessConnector::pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpo
 	}else{//a timeout occured
 		idbg("timeout occured _rbuf.bc "<<_rbuf.b.bc<<" rbuf.dl "<<_rbuf.b.dl<<" d.outbufs.size() = "<<d.outbufs.size());
 		if(_rbuf.b.bc){//for a sent buffer
-			assert(_rbuf.b.bc <= d.outbufs.size());
+			cassert(_rbuf.b.bc <= d.outbufs.size());
 			int bufpos(_rbuf.b.bc - 1);
 			Data::OutBufferPairTp &rob(d.outbufs[bufpos]);
 			idbg("rob.second = "<<rob.second);
@@ -548,7 +548,7 @@ int ProcessConnector::processSendCommands(SendBufferData &_rsb, const TimeSpec &
 			while(d.cq.size() && d.scq.size() < Data::MaxSendCommandQueueSize){
 				uint32 flags = d.cq.front().second;
 				//flags &= ~Data::ContinuedCommand;
-				assert(d.cq.front().first.ptr());
+				cassert(d.cq.front().first.ptr());
 				d.scq.push(Data::SendCommand(d.cq.front().first, flags));
 				d.cq.pop();
 			}
@@ -576,7 +576,7 @@ int ProcessConnector::processSendCommands(SendBufferData &_rsb, const TimeSpec &
 					--d.crtcmdbufcnt;
 					written = true;
 					int rv = d.scq.front().pser->run(rbuf.dataEnd(), rbuf.dataFreeSize());
-					assert(rv >= 0);//TODO: deal with the situation!
+					cassert(rv >= 0);//TODO: deal with the situation!
 					rbuf.dataSize(rbuf.dataSize() + rv);
 					if(d.scq.front().pser->empty()){//finished with this command
 						if(pser) d.pushSerializer(pser);
@@ -673,15 +673,15 @@ void ProcessConnector::parseBuffer(Buffer &_rbuf, const ConnectorUid &_rcodid){
 			d.rcq.front().second->push(d.rcq.front().first);
 		}
 	}else if(_rbuf.flags() & Buffer::SwitchToOld){
-		assert(d.rcq.size() > 1);
+		cassert(d.rcq.size() > 1);
 		d.rcq.push(d.rcq.front());
 		d.rcq.pop();
 	}
-	assert(d.rcq.size());
-	assert(d.rcq.front().second);
+	cassert(d.rcq.size());
+	cassert(d.rcq.front().second);
 	while(blen){
 		rv = d.rcq.front().second->run(bpos, blen);
-		assert(rv >= 0);
+		cassert(rv >= 0);
 		blen -= rv;
 		if(d.rcq.front().second->empty()){//done one command.
 			if(d.rcq.front().first->received(_rcodid)) delete d.rcq.front().first;

@@ -52,7 +52,7 @@ int Service::insertConnection(
 	cs::tcp::Channel *_pch
 ){
 	Connection *pcon = new Connection(_pch, 0);
-	if(this->insert(*pcon, _rs.serviceId(*this))){
+	if(this->insert(*pcon, this->index())){
 		delete pcon;
 		return BAD;
 	}
@@ -67,7 +67,7 @@ int Service::insertListener(
 	cs::tcp::Station *pst(cs::tcp::Station::create(_rai));
 	if(!pst) return BAD;
 	test::Listener *plis = new test::Listener(pst, 100, 0);
-	if(this->insert(*plis, _rs.serviceId(*this))){
+	if(this->insert(*plis, this->index())){
 		delete plis;
 		return BAD;
 	}	
@@ -83,7 +83,7 @@ int Service::insertTalker(
 	cs::udp::Station *pst(cs::udp::Station::create(_rai));
 	if(!pst) return BAD;
 	Talker *ptkr = new Talker(pst, _node, _svc);
-	if(this->insert(*ptkr, _rs.serviceId(*this))){
+	if(this->insert(*ptkr, this->index())){
 		delete ptkr;
 		return BAD;
 	}
@@ -100,7 +100,7 @@ int Service::insertConnection(
 	cs::tcp::Channel *pch(cs::tcp::Channel::create(_rai));
 	if(!pch) return BAD;
 	Connection *pcon = new Connection(pch, _node, _svc);
-	if(this->insert(*pcon, _rs.serviceId(*this))){
+	if(this->insert(*pcon, this->index())){
 		delete pcon;
 		return BAD;
 	}

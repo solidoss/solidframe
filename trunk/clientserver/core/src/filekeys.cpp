@@ -3,7 +3,8 @@
 #include "clientserver/core/filemanager.h"
 #include "system/directory.h"
 #include <map>
-#include <cassert>
+
+#include "system/cassert.h"
 #include <cstring>
 
 using namespace std;
@@ -64,26 +65,26 @@ NameFileKey::NameFileKey(const std::string &_fname):name(_fname){}
 
 void NameFileKey::fileName(FileManager &_fm, uint32 _fileid, string &_fname)const{
 	const NameFileMapper *pm(_fm.mapper<NameFileMapper>());
-	assert(pm);
+	cassert(pm);
 	_fname = pm->prefix();
 	_fname.append(name);
 }
 uint32 NameFileKey::find(FileManager &_fm)const{
 	const NameFileMapper *pm(_fm.mapper<NameFileMapper>());
-	assert(pm);
+	cassert(pm);
 	return pm->find(name.c_str());
 	
 }
 
 void NameFileKey::insert(FileManager &_fm, uint32 _fileid)const{
 	NameFileMapper *pm(_fm.mapper<NameFileMapper>());
-	assert(pm);
+	cassert(pm);
 	pm->insert(name.c_str(), _fileid);
 }
 
 void NameFileKey::erase(FileManager &_fm, uint32 _fileid)const{
 	NameFileMapper *pm(_fm.mapper<NameFileMapper>());
-	assert(pm);
+	cassert(pm);
 	pm->erase(name.c_str());
 }
 
@@ -92,21 +93,21 @@ FileKey* NameFileKey::clone()const{
 }
 //---------------------------------------------------------------
 void FastNameFileKey::fileName(FileManager &, uint32 _fileid, string &)const{
-	assert(false);
+	cassert(false);
 }
 
 uint32 FastNameFileKey::find(FileManager &_fm)const{
 	const NameFileMapper *pm(_fm.mapper<NameFileMapper>());
-	assert(pm);
+	cassert(pm);
 	return pm->find(name);
 }
 
 void FastNameFileKey::insert(FileManager &_fm, uint32 _fileid)const{
-	assert(false);
+	cassert(false);
 }
 
 void FastNameFileKey::erase(FileManager &_fm, uint32 _fileid)const{
-	assert(false);
+	cassert(false);
 }
 
 FileKey* FastNameFileKey::clone()const{
@@ -120,7 +121,7 @@ uint32 NameFileMapper::find(const char *_fname)const{
 }
 void NameFileMapper::insert(const char *_fname, uint32 _fileid){
 	pair<NameMapTp::iterator,bool> rv(nm.insert(NameMapTp::value_type(_fname, _fileid)));
-	assert(rv.second);
+	cassert(rv.second);
 }
 void NameFileMapper::erase(const char *_fname){
 	nm.erase(_fname);
@@ -139,11 +140,11 @@ uint32 TempFileKey::find(FileManager &)const{
 }
 void TempFileKey::insert(FileManager &_fm, uint32 _fileid)const{
 /*	TempFileMapper *pm(_fm.mapper<TempFileMapper>());
-	assert(pm);*/
+	cassert(pm);*/
 }
 void TempFileKey::erase(FileManager &_fm, uint32 _fileid)const{
 	TempFileMapper *pm(_fm.mapper<TempFileMapper>());
-	assert(pm);
+	cassert(pm);
 	string fname;
 	pm->createFileName(fname, _fileid);
 	Directory::eraseFile(fname.c_str());

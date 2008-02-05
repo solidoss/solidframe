@@ -68,11 +68,11 @@ ConnectionSelector::ConnectionSelector():cp(0),sz(0),
 }
 
 int ConnectionSelector::reserve(ulong _cp){
-	assert(_cp);
-	assert(!sz);
+	cassert(_cp);
+	cassert(!sz);
 	if(_cp < cp) return OK;
 	if(cp){
-		assert(false);
+		cassert(false);
 		delete []pevs;delete []pchs;//delete []ph;
 	}
 	cp = _cp;
@@ -105,13 +105,13 @@ int ConnectionSelector::reserve(ulong _cp){
 	//chq.reserve(cp);
 	//zero is reserved for pipe
 	if(epfd < 0 && (epfd = epoll_create(cp)) < 0){
-		assert(false);
+		cassert(false);
 		return -1;
 	}
 	//init the pipes:
 	if(pipefds[0] < 0){
 		if(pipe(pipefds)){
-			assert(false);
+			cassert(false);
 			return -1;
 		}
 		fcntl(pipefds[0],F_SETFL, O_NONBLOCK);
@@ -123,7 +123,7 @@ int ConnectionSelector::reserve(ulong _cp){
 		ev.events = EPOLLIN | EPOLLPRI;//must be LevelTriggered
 		if(epoll_ctl(epfd, EPOLL_CTL_ADD, pipefds[0], &ev)){
 			idbg("error epollctl");
-			assert(false);
+			cassert(false);
 			return -1;
 		}
 	}
@@ -265,7 +265,7 @@ void ConnectionSelector::run(){
 
 int ConnectionSelector::doExecute(SelChannel &_rch, ulong _evs, TimeSpec &_crttout, epoll_event &_rev){
 	//_crttout = MAXTIMEOUT;
-	//assert(_rcrttout <= MAXTIMEOUT);;
+	//cassert(_rcrttout <= MAXTIMEOUT);;
 	int rv = 0;
 	Connection	&rcon = *_rch.conptr;
 	switch(rcon.execute(_evs, _crttout)){
@@ -294,7 +294,7 @@ int ConnectionSelector::doExecute(SelChannel &_rch, ulong _evs, TimeSpec &_crtto
 					if(t & EPOLLIN){idbg("RTOUT");}
 					_rch.evmsk = _rev.events = t;
 					_rev.data.ptr = &_rch;
-					assert(!epoll_ctl(epfd, EPOLL_CTL_MOD, rcon.channel().descriptor(), &_rev));
+					cassert(!epoll_ctl(epfd, EPOLL_CTL_MOD, rcon.channel().descriptor(), &_rev));
 				}
 				if(_crttout != ctimepos){
 					_rch.timepos = _crttout;
@@ -307,7 +307,7 @@ int ConnectionSelector::doExecute(SelChannel &_rch, ulong _evs, TimeSpec &_crtto
 		case LEAVE:
 			idbg("LEAVE: connection leave");
 			fstk.push(&_rch);
-			assert(!epoll_ctl(epfd, EPOLL_CTL_DEL, rcon.channel().descriptor(), NULL));
+			cassert(!epoll_ctl(epfd, EPOLL_CTL_DEL, rcon.channel().descriptor(), NULL));
 			--sz;
 			_rch.conptr.release();
 			_rch.state = 0;
@@ -319,18 +319,18 @@ int ConnectionSelector::doExecute(SelChannel &_rch, ulong _evs, TimeSpec &_crtto
 			_rev.data.ptr = &_rch;
 			uint ioreq = rcon.channel().ioRequest();
 			_rch.evmsk = _rev.events = (EPOLLET) | ioreq;
-			assert(!epoll_ctl(epfd, EPOLL_CTL_ADD, rcon.channel().descriptor(), &_rev));
+			cassert(!epoll_ctl(epfd, EPOLL_CTL_ADD, rcon.channel().descriptor(), &_rev));
 			if(!ioreq){
 				if(!_rch.state) {chq.push(&_rch); _rch.state = 1;}
 			}
 			}break;
 		case UNREGISTER:
 			idbg("UNREGISTER: unregister connection's descriptor");
-			assert(!epoll_ctl(epfd, EPOLL_CTL_DEL, rcon.channel().descriptor(), NULL));
+			cassert(!epoll_ctl(epfd, EPOLL_CTL_DEL, rcon.channel().descriptor(), NULL));
 			if(!_rch.state) {chq.push(&_rch); _rch.state = 1;}
 			break;
 		default:
-			assert(false);
+			cassert(false);
 	}
 	idbg("doExecute return "<<rv);
 	return rv;
@@ -384,7 +384,7 @@ int ConnectionSelector::doReadPipe(){
 }
 
 void ConnectionSelector::push(const ConnectionPtrTp &_conptr, uint _thid){
-	assert(fstk.size());
+	cassert(fstk.size());
 	SelChannel *pc = fstk.top(); fstk.pop();
 	//pc->fd = _conptr->descriptor();
 	//pc->state = 0;
@@ -403,7 +403,7 @@ void ConnectionSelector::push(const ConnectionPtrTp &_conptr, uint _thid){
 		idbg("error adding filedesc "<<_conptr->channel().descriptor());
 		pc->conptr.clear();
 		pc->reset(); fstk.push(pc);
-		assert(false);
+		cassert(false);
 	}else{
 		++sz;
 	}
@@ -422,7 +422,7 @@ void ConnectionSelector::signal(uint _objid){
 
 void ConnectionSelector::SelChannel::reset(){
 	state = 0;
-	assert(!conptr.release());
+	cassert(!conptr.release());
 	timepos.set(0);
 	evmsk = 0;
 }

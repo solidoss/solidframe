@@ -381,7 +381,8 @@ Server::Server():d(*(new Data(*this))){
 }
 
 Server::~Server(){
-	service(0).stop(*this, true);//Stop all services
+	//service(0).stop(*this, true);//Stop all services
+	cs::Server::stop(true);
 	delete &d;
 }
 /*void Server::removeCommandExecuter(ReadCommandExecuter *_pce){
@@ -414,9 +415,10 @@ int Server::stop(const char *_which){
 			service(it->second).stop(*this);
 		}
 	}else{
-		for(Data::ServiceIdxMap::iterator it(d.servicemap.begin());it != d.servicemap.end(); ++it){
-			service(it->second).stop(*this, false);//do not wait for stopping
-		}
+// 		for(Data::ServiceIdxMap::iterator it(d.servicemap.begin());it != d.servicemap.end(); ++it){
+// 			service(it->second).stop(*this, false);//do not wait for stopping
+// 		}
+		cs::Server::stop(false);
 	}
 	return OK;
 }
@@ -503,17 +505,17 @@ void IpcService::pushTalkerInPool(clientserver::Server &_rs, clientserver::udp::
 //----------------------------------------------------------------------------------
 
 int Command::execute(Connection &){
-	assert(false);
+	cassert(false);
 	return BAD;
 }
 
 int Command::execute(Listener &){
-	assert(false);
+	cassert(false);
 	return BAD;
 }
 
 int Command::execute(Object &){
-	assert(false);
+	cassert(false);
 	return BAD;
 }
 
@@ -527,7 +529,7 @@ int Connection::receiveIStream(
 	const ObjectUidTp& _from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
-	assert(false);
+	cassert(false);
 	return BAD;
 }
 
@@ -539,7 +541,7 @@ int Connection::receiveOStream(
 	const ObjectUidTp& _from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
-	assert(false);
+	cassert(false);
 	return BAD;
 }
 
@@ -551,7 +553,7 @@ int Connection::receiveIOStream(
 	const ObjectUidTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
-	assert(false);
+	cassert(false);
 	return BAD;
 }
 
@@ -562,7 +564,7 @@ int Connection::receiveString(
 	const ObjectUidTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
-	assert(false);
+	cassert(false);
 	return BAD;
 }
 
@@ -573,7 +575,7 @@ int Connection::receiveNumber(
 	const ObjectUidTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
-	assert(false);
+	cassert(false);
 	return BAD;
 }
 
@@ -583,7 +585,7 @@ int Connection::receiveError(
 	const ObjectUidTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
-	assert(false);
+	cassert(false);
 	return BAD;
 }
 //----------------------------------------------------------------------------------
@@ -596,7 +598,7 @@ int Object::receiveIStream(
 	const ObjectUidTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
-	assert(false);
+	cassert(false);
 	return BAD;
 }
 
@@ -608,7 +610,7 @@ int Object::receiveOStream(
 	const ObjectUidTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
-	assert(false);
+	cassert(false);
 	return BAD;
 }
 
@@ -620,7 +622,7 @@ int Object::receiveIOStream(
 	const ObjectUidTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
-	assert(false);
+	cassert(false);
 	return BAD;
 }
 
@@ -631,7 +633,7 @@ int Object::receiveString(
 	const ObjectUidTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
-	assert(false);
+	cassert(false);
 	return BAD;
 }
 int Object::receiveError(
@@ -640,7 +642,7 @@ int Object::receiveError(
 	const ObjectUidTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
-	assert(false);
+	cassert(false);
 	return BAD;
 }
 

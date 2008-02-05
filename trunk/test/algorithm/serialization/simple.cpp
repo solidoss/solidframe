@@ -132,7 +132,7 @@ S& operator&(IntegerVector &_iv, S &_s){
 
 template <class S>
 S& operator&(Base &, S &_s){
-	assert(false);
+	cassert(false);
 	return _s;
 }
 

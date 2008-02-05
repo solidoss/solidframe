@@ -75,13 +75,13 @@ public://definition
 	}
 	//! Raise a thread from the pool
 	void raise(uint _thid){
-		assert(_thid < slotvec.size());
+		cassert(_thid < slotvec.size());
 		//attention: slotvec must be a deque so I do not need a gurd
 		slotvec[_thid].first->signal();
 	}
 	//! Raise an object from the pool
 	void raise(uint _thid, uint _thpos){
-		assert(_thid < slotvec.size());
+		cassert(_thid < slotvec.size());
 		slotvec[_thid].first->signal(_thpos);
 	}
 	//! Raise all threads for stopping
@@ -119,7 +119,7 @@ public://definition
 	 */
 	void push(const JobTp &_rjb){
 		Mutex::Locker	lock(this->mut);
-		assert(this->state != WorkPoolTp::Stopped);
+		cassert(this->state != WorkPoolTp::Stopped);
 		this->q.push(_rjb); this->sigcnd.signal();
 		if(sgnlst.size()){
 			//idbg("sgnlst.size = "<<sgnlst.size()<<" sgnlst.back = "<<sgnlst.back());

@@ -37,7 +37,7 @@ namespace clientserver{
 namespace tcp{
 
 Channel* Channel::create(const AddrInfoIterator &_rai){
-	assert(false);
+	cassert(false);
 	return NULL;
 }
 
@@ -204,7 +204,7 @@ It will return when _sl octets were read from the socket.
 */
 int Channel::doRecvPlain(OStreamIterator &_rsi, uint64 _sl, char* _pb, uint32 _bl, uint32 _flags){
 	if(!_sl) return OK;
-	assert(!pcd->rdn.b.pb);
+	cassert(!pcd->rdn.b.pb);
 	int rv;
 	uint toread = _bl;
 	pcd->rcvsz = 0;
@@ -238,7 +238,7 @@ int Channel::doRecvSecure(OStreamIterator &_rsi, uint64 _sl, char* _pb, uint32 _
 //--- Interface used by ConnectionChannel
 
 int Channel::doRecvPlain(){
-	assert(pcd->rdn.b.pb);
+	cassert(pcd->rdn.b.pb);
 	int rv;
 	if(pcd->rdn.flags & IS_BUFFER){
 		//we've got a buffer
@@ -292,12 +292,12 @@ int Channel::doSendPlain(){
 			return retv;
 		}else{
 			//sending a stream
-			assert(pcd->pssnfirst);
+			cassert(pcd->pssnfirst);
 			rv = write(sd, rdn.b.pcb + pcd->wcnt, rdn.bl - pcd->wcnt);
 			if(!rv) return ERRDONE;
 			if(rv < 0){
 				if(errno != EAGAIN){ idbg("ioerrr");return ERRDONE;}
-				assert(false);
+				cassert(false);
 			}
 			if(rv < (int)(rdn.bl - pcd->wcnt)){
 				pcd->wcnt += rv;

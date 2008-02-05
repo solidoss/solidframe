@@ -23,7 +23,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <cassert>
+#include "system/cassert.h"
 
 AddrInfo::~AddrInfo(){
 	if(!empty()){
@@ -93,10 +93,10 @@ void AddrInfo::reinit(
 // }
 
 Inet4SockAddrPair::Inet4SockAddrPair(const SockAddrPair &_rsap):addr((sockaddr_in*)_rsap.addr), size(_rsap.size){
-	assert(_rsap.family() == AddrInfo::Inet4);
+	cassert(_rsap.family() == AddrInfo::Inet4);
 }
 Inet4SockAddrPair::Inet4SockAddrPair(const SocketAddress &_rsa):addr((sockaddr_in*)_rsa.addr()),size(_rsa.size()){
-	assert(_rsa.family() == AddrInfo::Inet4);
+	cassert(_rsa.family() == AddrInfo::Inet4);
 }
 int Inet4SockAddrPair::port()const{
 	return htons(addr->sin_port);
@@ -109,10 +109,10 @@ bool Inet4SockAddrPair::operator<(const Inet4SockAddrPair &_addr)const{
 }
 
 Inet6SockAddrPair::Inet6SockAddrPair(const SockAddrPair &_rsap):addr((sockaddr_in*)_rsap.addr), size(_rsap.size){
-	assert(_rsap.family() == AddrInfo::Inet6);
+	cassert(_rsap.family() == AddrInfo::Inet6);
 }
 Inet6SockAddrPair::Inet6SockAddrPair(const SocketAddress &_rsa):addr((sockaddr_in*)_rsa.addr()),size(_rsa.size()){
-	assert(_rsa.family() == AddrInfo::Inet6);
+	cassert(_rsa.family() == AddrInfo::Inet6);
 }
 bool Inet6SockAddrPair::operator<(const Inet6SockAddrPair &_addr)const{
 	return addr->sin_addr.s_addr < _addr.addr->sin_addr.s_addr;
@@ -137,7 +137,7 @@ bool SocketAddress::operator<(const SocketAddress &_raddr)const{
 	if(sz == sizeof(sockaddr_in)){
 		return addrin()->sin_addr.s_addr < _raddr.addrin()->sin_addr.s_addr;
 	}else{//sockadd_in16
-		assert(false);
+		cassert(false);
 		return false;
 	}
 }
@@ -157,7 +157,7 @@ int SocketAddress::port()const{
 	if(sz == sizeof(sockaddr_in)){
 		return htons(addrin()->sin_port);
 	}else{//sockaddr_in16
-		assert(false);
+		cassert(false);
 		return false;
 	}
 }
@@ -165,7 +165,7 @@ void SocketAddress::port(int _port){
 	if(sz == sizeof(sockaddr_in)){
 		addrin()->sin_port = ntohs(_port);
 	}else{//sockadd_in16
-		assert(false);
+		cassert(false);
 	}
 }
 

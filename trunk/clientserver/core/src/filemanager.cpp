@@ -426,7 +426,7 @@ int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 	}
 	if(state() != Data::Running){
 		idbg("kill "<<d.sz);
-		assert(!d.sz);
+		cassert(!d.sz);
 		Server::the().removeFileManager();
 		state(-1);//TODO: is there a pb that mut is not locked?!
 		idbg("~FileManager");
@@ -624,7 +624,7 @@ int FileManager::stream(
 				//we cant get the stream - not now and not ever
 				return BAD;
 			case OK:
-				assert(false);
+				cassert(false);
 				return NOK;
 			case NOK:
 				//we should wait for the stream
@@ -653,7 +653,7 @@ int FileManager::stream(
 					_rfuid.second = d.fv[pos].uid;
 					d.fv[pos].pfile = pf;
 					pf->stream(*this, pos, _sptr, _requid, _flags);//MUST NOT FAIL
-					assert(_sptr.ptr());
+					cassert(_sptr.ptr());
 					return OK;
 				}else if(!(_flags & NoWait)){
 					//no stream is given while not in fv
@@ -688,7 +688,7 @@ int FileManager::stream(
 		_rfuid.second = d.fv[pos].uid;
 		d.fv[pos].pfile = pf;
 		pf->stream(*this, pos, _sptr, _requid, _flags);//WILL FAIL: NOK
-		assert(_sptr.ptr());
+		cassert(_sptr.ptr());
 	}else{
 		//no stream is given while not in fv
 		_rfuid.second = 0;
@@ -736,7 +736,7 @@ int FileManager::stream(
 				//we cant get the stream - not now and not ever
 				return BAD;
 			case OK:
-				assert(false);
+				cassert(false);
 				return NOK;
 			case NOK:
 				//we should wait for the stream
@@ -765,7 +765,7 @@ int FileManager::stream(
 					_rfuid.second = d.fv[pos].uid;
 					d.fv[pos].pfile = pf;
 					pf->stream(*this, pos, _sptr, _requid, _flags);//MUST NOT FAIL
-					assert(_sptr.ptr());
+					cassert(_sptr.ptr());
 					return OK;
 				}else if(!(_flags & NoWait)){
 					//no stream is given while not in fv
@@ -800,7 +800,7 @@ int FileManager::stream(
 		_rfuid.second = d.fv[pos].uid;
 		d.fv[pos].pfile = pf;
 		pf->stream(*this, pos, _sptr, _requid, _flags);//WILL FAIL: NOK
-		assert(_sptr.ptr());
+		cassert(_sptr.ptr());
 	}else{
 		//no stream is given while not in fv
 		_rfuid.second = 0;
@@ -854,7 +854,7 @@ int FileManager::stream(
 				//we cant get the stream - not now and not ever
 				return BAD;
 			case OK:
-				assert(false);
+				cassert(false);
 				return NOK;
 			case NOK:
 				//we should wait for the stream
@@ -883,7 +883,7 @@ int FileManager::stream(
 					_rfuid.second = d.fv[pos].uid;
 					d.fv[pos].pfile = pf;
 					pf->stream(*this, pos, _sptr, _requid, _flags);//MUST NOT FAIL
-					assert(_sptr.ptr());
+					cassert(_sptr.ptr());
 					return OK;
 				}else if(!(_flags & NoWait)){
 					//no stream is given while not in fv
@@ -918,7 +918,7 @@ int FileManager::stream(
 		_rfuid.second = d.fv[pos].uid;
 		d.fv[pos].pfile = pf;
 		pf->stream(*this, pos, _sptr, _requid, _flags);//WILL FAIL: NOK
-		assert(_sptr.ptr());
+		cassert(_sptr.ptr());
 	}else{
 		//no stream is given while not in fv
 		_rfuid.second = 0;
@@ -1006,7 +1006,7 @@ int FileManager::doRegisterMapper(FileMapper *_pm){
 
 FileMapper* FileManager::doGetMapper(unsigned _id, FileMapper *_pm){
 	if(!_pm){
-		assert(_id < d.mv.size() && d.mv[_id]);
+		cassert(_id < d.mv.size() && d.mv[_id]);
 		return d.mv[_id];
 	}else{
 		if(_id >= d.mv.size()){
@@ -1028,7 +1028,7 @@ uint32 FileManager::fileOpenTimeout()const{
 	return 1000 * 60 * 3;//three minutes
 }
 int FileManager::execute(){
-	assert(false);
+	cassert(false);
 	return BAD;
 }
 //--------------------------------------------------------------------------
@@ -1082,12 +1082,12 @@ void FileManager::Data::collectFilePositionExt(unsigned _pos){
 		++fv[_pos].uid;
 	}else{
 		--freeidx;
-		assert((_pos - fv.size()) == freeidx);
+		cassert((_pos - fv.size()) == freeidx);
 	}
 }
 
 void FileManager::Data::eraseToutPos(unsigned _pos){
-	assert(_pos < toutv.size());
+	cassert(_pos < toutv.size());
 	toutv[_pos] = toutv.back();
 	toutv.pop_back();
 }
@@ -1106,7 +1106,7 @@ int FileIStream::release(){
 }
 
 int64 FileIStream::seek(int64 _off, SeekRef _ref){
-	assert(_ref == SeekBeg);
+	cassert(_ref == SeekBeg);
 	off = _off;
 	return off;
 }
@@ -1128,7 +1128,7 @@ int FileOStream::release(){
 }
 
 int64 FileOStream::seek(int64 _off, SeekRef _ref){
-	assert(_ref == SeekBeg);
+	cassert(_ref == SeekBeg);
 	off = _off;
 	return off;
 }
@@ -1156,7 +1156,7 @@ int FileIOStream::release(){
 }
 
 int64 FileIOStream::seek(int64 _off, SeekRef _ref){
-	assert(_ref == SeekBeg);
+	cassert(_ref == SeekBeg);
 	off = _off;
 	return off;
 }
@@ -1262,10 +1262,10 @@ int File::executeSignal(FileManager &_rsm, const FileUidTp &_fuid, uint32 _flags
 	int		inuse;
 	uint32	ttout;
 	if(_flags & Timeout){
-		assert(!ousecnt && !iusecnt && iwq.empty() && owq.empty());
+		cassert(!ousecnt && !iusecnt && iwq.empty() && owq.empty());
 		return BAD;
 	}
-	assert(state);//file is opened
+	cassert(state);//file is opened
 	inuse = signalStreams(_rsm, _fuid);
 	ttout = msectout;
 
@@ -1281,7 +1281,7 @@ int File::executeSignal(FileManager &_rsm, const FileUidTp &_fuid, uint32 _flags
 
 int File::executeOpen(FileManager &_rsm, const FileUidTp &_fuid, uint32 _flags, uint32 &_rtout, Mutex &_rm){
 	_rm.unlock();
-	assert(!state);
+	cassert(!state);
 	int		inuse;
 	uint32	ttout;
 	switch(this->open(_rsm, _fuid.first)){
@@ -1293,13 +1293,13 @@ int File::executeOpen(FileManager &_rsm, const FileUidTp &_fuid, uint32 _flags, 
 			inuse = signalStreams(_rsm, _fuid);
 			ttout = msectout;
 			_rm.unlock();
-			assert(inuse);//TODO: see if it's ok!!!
+			cassert(inuse);//TODO: see if it's ok!!!
 			return OK;//wait indefinetly
 		case NOK:
 			_rtout += _rsm.fileOpenTimeout();
 			return NOK;
 	}
-	assert(false);
+	cassert(false);
 	return BAD;
 }
 

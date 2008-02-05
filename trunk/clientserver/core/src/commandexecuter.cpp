@@ -2,7 +2,8 @@
 #include "clientserver/core/command.h"
 #include "clientserver/core/server.h"
 #include <deque>
-#include <cassert>
+
+#include "system/cassert.h"
 #include "system/mutex.h"
 #include "system/debug.h"
 #include "system/timespec.h"
@@ -59,7 +60,7 @@ void CommandExecuter::Data::push(CmdPtr<Command> &_cmd){
 }
 
 void CommandExecuter::Data::eraseToutPos(uint32 _pos){
-	assert(_pos < toutv.size());
+	cassert(_pos < toutv.size());
 	toutv[_pos] = toutv.back();
 	toutv.pop_back();
 }
@@ -73,7 +74,7 @@ CommandExecuter::~CommandExecuter(){
 }
 
 int CommandExecuter::signal(CmdPtr<Command> &_cmd){
-	assert(d.pm->locked());
+	cassert(d.pm->locked());
 	if(this->state() != Data::Running){
 		_cmd.clear();
 		return 0;//no reason to raise the pool thread!!
@@ -214,7 +215,7 @@ void CommandExecuter::mutex(Mutex *_pmut){
 }
 
 int CommandExecuter::execute(){
-	assert(false);
+	cassert(false);
 }
 
 void CommandExecuter::receiveCommand(

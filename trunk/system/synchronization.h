@@ -22,7 +22,7 @@
 #ifndef SYNCHROPP_H
 #define SYNCHROPP_H
 
-#include <cassert>
+#include "system/cassert.h"
 #include <semaphore.h>
 #include "mutex.h"
 
@@ -58,10 +58,10 @@ private:
 class Condition{
 public:
 	Condition(){
-		assert(pthread_cond_init(&cond,NULL)==0);
+		cassert(pthread_cond_init(&cond,NULL)==0);
 	}
 	~Condition(){
-		assert(pthread_cond_destroy(&cond)==0);
+		cassert(pthread_cond_destroy(&cond)==0);
 	}
 	int signal(){
 		return pthread_cond_signal(&cond);
@@ -110,7 +110,7 @@ public:
 		return val;
 	}
 	T waitFor(const T &_v){
-		assert(_v != dv);
+		cassert(_v != dv);
 		//this->lock();
 		while(val!=_v){
 			cond.wait(*this);
@@ -121,7 +121,7 @@ public:
 		return v;
 	}
 	T waitFor(const T &_v1, const T &_v2){
-		assert(_v1 != dv && _v2 != dv);
+		cassert(_v1 != dv && _v2 != dv);
 		while(val != _v1 && val != _v2){
 			cond.wait(*this);
 		}
@@ -171,7 +171,7 @@ public:
 		return v;
 	}
 	T waitFor(const T &_v){
-		assert(_v != Dv);
+		cassert(_v != Dv);
 		//this->lock();
 		while(val!=_v){
 			cond.wait(*this);
@@ -182,7 +182,7 @@ public:
 		return v;
 	}
 	T waitFor(const T &_v1, const T &_v2){
-		assert(_v1 != Dv && _v2 != Dv);
+		cassert(_v1 != Dv && _v2 != Dv);
 		while(val != _v1 && val != _v2){
 			cond.wait(*this);
 		}
@@ -232,7 +232,7 @@ public:
 		return v;
 	}
 	T waitFor(const T &_v){
-		assert(_v != Dv);
+		cassert(_v != Dv);
 		//this->lock();
 		while(val!=_v){
 			cond.wait(*this);
@@ -243,7 +243,7 @@ public:
 		return v;
 	}
 	T waitFor(const T &_v1, const T &_v2){
-		assert(_v1 != Dv && _v2 != Dv);
+		cassert(_v1 != Dv && _v2 != Dv);
 		while(val != _v1 && val != _v2){
 			cond.wait(*this);
 		}

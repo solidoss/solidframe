@@ -85,7 +85,7 @@ struct Cmd{
 static const protocol::NameMatcher cmdm(cmds);
 //---------------------------------------------------------------
 Command* Connection::create(const String& _name){
-	assert(!pcmd);
+	cassert(!pcmd);
 	idbg("create command "<<_name);
 	switch(cmds[cmdm.match(_name.c_str())].id){
 		case Cmd::LoginCmd:
@@ -401,7 +401,7 @@ int FetchMasterCommand::execute(cs::CommandExecuter& _rce, const CommandUidTp &_
 			rs.fileManager().stream(pcmd->ins, fuid, requid, cs::FileManager::NoWait);
 			pcmd->ins->seek(inpos);
 			inpos += pcmd->sz;
-			assert(pcmd->ins);
+			cassert(pcmd->ins);
 			pcmd = NULL;
 			if(rs.ipc().sendCommand(conid, cmdptr) || !insz){
 				idbg("connector was destroyed or insz "<<insz);
@@ -531,7 +531,7 @@ int FetchSlaveCommand::createDeserializationStream(
 	if(insz < 0){//back 1M
 		sp->seek(FetchChunkSize);
 	}
-	assert(sp);
+	cassert(sp);
 	_rps.first = sp.release();
 	_rps.second = sz;
 	return OK;
@@ -608,7 +608,7 @@ int Fetch::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 		case SendLocal:
 			idbg("send local");
 			//send local stream
-			assert(sp);
+			cassert(sp);
 			litsz64 = sp->size();
 			it.reinit(sp.ptr());
 			_rw<<"* DATA {"<<(uint32)sp->size()<<"}\r\n";
@@ -634,7 +634,7 @@ int Fetch::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 		}break;
 		case SendMasterRemote:{
 			idbg("send master remote");
-			assert(sp);
+			cassert(sp);
 			//send the master remote command
 			FetchMasterCommand *pcmd(new FetchMasterCommand);
 			//TODO: add a convenient init method to fetchmastercommand
@@ -719,7 +719,7 @@ int Fetch::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 		case WaitFirstRemote:
 		case WaitStreamRemote:
 			idbg("wait");
-			assert(false);
+			cassert(false);
 		case WaitNextRemote:
 			idbg("wait next remote");
 			return Writer::No;
@@ -728,7 +728,7 @@ int Fetch::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 			//most certainly serialization/deserialization problems
 			return Writer::Bad;
 	}
-	assert(false);
+	cassert(false);
 	return BAD;
 }
 int Fetch::receiveIStream(
@@ -755,7 +755,7 @@ int Fetch::receiveNumber(
 ){
 	idbg("");
 	mastercmduid = _objuid;
-	assert(_pconuid);
+	cassert(_pconuid);
 	conuid = *_pconuid;
 	if(st == WaitNextRemote){//continued
 		st = SendNextRemote;
@@ -836,7 +836,7 @@ int Store::reinitReader(Reader &_rr, protocol::Parameter &_rp){
 			}
 			break;
 	}
-	assert(false);
+	cassert(false);
 	return Reader::Bad;
 }
 int Store::execute(Connection &_rc){
@@ -1104,7 +1104,7 @@ int Idle::execute(Connection &_rc){
 }
 int Idle::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 	if(_rp.b.i == 1){//prepare
-		assert(typeq.size());
+		cassert(typeq.size());
 		if(typeq.front() == PeerStringType){
 			_rw<<"* RECEIVED STRING ("<<(uint32)conidq.front().tkrid<<' '<<(uint32)conidq.front().procid<<' '<<(uint32)conidq.front().procuid;
 			_rw<<") ("<<(uint32)fromq.front().first<<' '<<(uint32)fromq.front().second<<") ";
@@ -1124,7 +1124,7 @@ int Idle::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 			_rw.push(&Writer::flushAll);
 			_rw.push(&Writer::putAString, protocol::Parameter((void*)stringq.front().data(), stringq.front().size()));
 		}else{
-			assert(false);
+			cassert(false);
 		}
 		return Writer::Continue;
 	}else if(_rp.b.i == 2){
@@ -1147,7 +1147,7 @@ int Idle::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 			conidq.pop();
 			streamq.pop();
 		}else{
-			assert(false);
+			cassert(false);
 		}
 		if(typeq.size()){
 			_rp.b.i = 1;

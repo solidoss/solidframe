@@ -21,7 +21,7 @@
 
 #ifndef LISTPP_H
 #define LISTPP_H
-#include <cassert>
+#include "system/cassert.h"
 #include <stdlib.h>
 
 typedef unsigned short ushort;

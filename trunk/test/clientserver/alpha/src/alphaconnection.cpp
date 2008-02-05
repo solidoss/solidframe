@@ -118,7 +118,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 		if(!_sig) return NOK;
 	}
 	if(_sig & cs::INDONE){
-		assert(state() == ParseTout);
+		cassert(state() == ParseTout);
 		state(Parse);
 		//rcmdparser.doneRecv();
 	}
@@ -232,7 +232,7 @@ void Connection::prepareReader(){
 }
 
 // int Command::execute(Listener &){
-// 	assert(false);
+// 	cassert(false);
 // 	return BAD;
 // }
 

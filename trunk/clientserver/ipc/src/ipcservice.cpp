@@ -107,12 +107,12 @@ int Service::sendCommand(
 	clientserver::CmdPtr<Command> &_pcmd,//the command to be sent
 	uint32	_flags
 ){
-	assert(_rconid.tkrid < d.tkrvec.size());
+	cassert(_rconid.tkrid < d.tkrvec.size());
 	Mutex::Locker	lock(*mutex());
 	Data::TkrPairTp	&rtp(d.tkrvec[_rconid.tkrid]);
 	Mutex::Locker lock2(this->mutex(rtp.first, rtp.second));
 	Talker *ptkr = static_cast<Talker*>(this->object(rtp.first, rtp.second));
-	assert(ptkr);
+	cassert(ptkr);
 	if(ptkr->pushCommand(_pcmd, _rconid, _flags | SameConnectorFlag)){
 		//the talker must be signaled
 		if(ptkr->signal(cs::S_RAISE)){
@@ -142,11 +142,11 @@ int Service::doSendCommand(
 		if(it != d.basepm4.end()){
 			idbg("");
 			ConnectorUid	conid = it->second;
-			assert(conid.tkrid < d.tkrvec.size());
+			cassert(conid.tkrid < d.tkrvec.size());
 			Data::TkrPairTp	&rtp(d.tkrvec[conid.tkrid]);
 			Mutex::Locker lock2(this->mutex(rtp.first, rtp.second));
 			Talker *ptkr = static_cast<Talker*>(this->object(rtp.first, rtp.second));
-			assert(ptkr);
+			cassert(ptkr);
 			if(ptkr->pushCommand(_pcmd, conid, _flags)){
 				//the talker must be signaled
 				if(ptkr->signal(cs::S_RAISE)){
@@ -170,7 +170,7 @@ int Service::doSendCommand(
 			}
 			Mutex::Locker lock2(this->mutex(tkrpos, tkruid));
 			Talker *ptkr = static_cast<Talker*>(this->object(tkrpos, tkruid));
-			assert(ptkr);
+			cassert(ptkr);
 			ProcessConnector *ppc = new ProcessConnector(d.rbinmapper, inaddr);
 			ConnectorUid conid(tkrid);
 			ptkr->pushProcessConnector(ppc, conid);
@@ -185,7 +185,7 @@ int Service::doSendCommand(
 			return OK;
 		}
 	}else{//inet6
-		assert(false);
+		cassert(false);
 		//TODO:
 	}
 	return OK;
@@ -229,7 +229,7 @@ int Service::acceptProcess(ProcessConnector *_ppc){
 	}
 	Mutex::Locker lock2(this->mutex(tkrpos, tkruid));
 	Talker *ptkr = static_cast<Talker*>(this->object(tkrpos, tkruid));
-	assert(ptkr);
+	cassert(ptkr);
 	ConnectorUid conid(tkrid, 0xffff, 0xffff);
 	ptkr->pushProcessConnector(_ppc, conid);
 	d.basepm4[_ppc->baseAddr4()] = conid;
@@ -258,7 +258,7 @@ int16 Service::createNewTalker(uint32 &_tkrpos, uint32 &_tkruid){
 	d.firstaddr.port(d.firstaddr.port() - tkrid);
 	if(pust){
 		Talker *ptkr = new Talker(pust, *this, d.rbinmapper, tkrid);
-		if(this->doInsert(*ptkr, Server::the().serviceId(*this))){
+		if(this->doInsert(*ptkr, this->index())){
 			delete ptkr;
 			return BAD;
 		}
@@ -305,9 +305,9 @@ int Service::insertTalker(
 	cs::udp::Station *pst(cs::udp::Station::create(_rai));
 	if(!pst) return BAD;
 	Mutex::Locker lock(*mutex());
-	assert(!d.tkrvec.size());//only the first tkr must be inserted from outside
+	cassert(!d.tkrvec.size());//only the first tkr must be inserted from outside
 	Talker *ptkr = new Talker(pst, *this, d.rbinmapper, 0);
-	if(this->doInsert(*ptkr, _rs.serviceId(*this))){
+	if(this->doInsert(*ptkr, this->index())){
 		delete ptkr;
 		return BAD;
 	}
@@ -365,7 +365,7 @@ int Service::execute(ulong _sig, TimeSpec &_rtout){
 
 //=======	Buffer		=============================================
 bool Buffer::check()const{
-	assert(bc >= 32);
+	cassert(bc >= 32);
 	//TODO:
 	if(this->pb){
 		if(header().size() < sizeof(Header)) return false;
