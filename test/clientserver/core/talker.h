@@ -26,7 +26,7 @@
 #include "common.h"
 
 namespace test{
-
+//! The base class for all talkers in the test server
 class Talker: public clientserver::udp::Talker{
 public:
 	virtual ~Talker(){}

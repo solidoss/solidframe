@@ -42,41 +42,85 @@ typedef std::map<const char*, ServiceCreator, StrLess>	ServiceMap;
 
 ServiceMap& getServiceMap();
 void registerService(ServiceCreator _psc, const char* _pname);
-
+//! A proof of concept test server
+/*!
+	This is a proof of concept server and should be taken accordingly.
+	
+	It tries to give an ideea of how the clientserver::Server should be used.
+	
+	To complicate things a little, it allso keeps a map service name to service,
+	so that services can be more naturally accessed by their names.
+*/
 class Server: public clientserver::Server{
 public:
 	Server();
 	~Server();
+	//! Overwrite the clientserver::Server::the to give access to the extended interface
 	static Server& the(){return static_cast<Server&>(clientserver::Server::the());}
+	//! Starts a specific service or all services
+	/*!
+		\param _which If not null it represents the name of the service
+	*/
 	int start(const char *_which = NULL);
+	//! Stops a specific service or all services
+	/*!
+		\param _which If not null it represents the name of the service
+	*/
 	int stop(const char *_which = NULL);
 	
+	//! Registers a service given its name and a pointer to a service.
 	int insertService(const char* _nm, Service* _psrvc);
-	
+	//! Get the id of the command executer specialized for reading
 	void readCommandExecuterUid(ObjectUidTp &_ruid);
+	//! Get the id of the command executer specialized for writing
 	void writeCommandExecuterUid(ObjectUidTp &_ruid);
+	//! Removes a service
 	void removeService(Service *_psrvc);
+	//! Inserts a listener into a service
+	/*!
+		\param _nm The name of the service
+		\param _rai The address the listener should listen on
+	*/
 	int insertListener(
 		const char* _nm,
 		const AddrInfoIterator &_rai
 	);
+	//! Insert a talker into a service
+	/*!
+		\param _nm The name of the service
+		\param _rai The localaddress the talker will bind
+		\param _node The destination address name (for use with AddrInfo)
+		\param _srv The destination address port (for use with AddrInfo)
+	*/
 	int insertTalker(
 		const char* _nm,
 		const AddrInfoIterator &_rai,
 		const char*_node = NULL,
 		const char *_srv = NULL
 	);
-	
+	//! Insert a connection into a service
+	/*!
+		\param _nm The name of the service
+		\param _rai The localaddress the connection will bind
+		\param _node The destination address name (for use with AddrInfo)
+		\param _srv The destination address port (for use with AddrInfo)
+	*/
 	int insertConnection(
 		const char* _nm,
 		const AddrInfoIterator &_rai,
 		const char*_node,
 		const char *_srv
 	);
-	
+	//! Visit all services
 	int visitService(const char* _nm, Visitor &_roi);
 	
+	//! The servers binary mapper for used in binary serializations
+	/*!
+		Anyone who wants to serialize something must register its structures
+		to binMapper
+	*/
 	serialization::bin::RTTIMapper &binMapper();
+	//! Pushes an object into a specific pool.
 	template <class J>
 	void pushJob(J *_pj, int _pos = 0);
 private:

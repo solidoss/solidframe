@@ -79,7 +79,10 @@ namespace test{
 //======= FileManager:==================================================
 //typedef cs::FileUidTp			FileUidTp;
 typedef Object::RequestUidTp	RequestUidTp;
-
+//----------------------------------------------------------------------
+/*
+	A command for sending istreams from the fileManager
+*/
 struct IStreamCommand: test::Command{
 	IStreamCommand(StreamPtr<IStream> &_sptr, const FileUidTp &_rfuid, const RequestUidTp &_requid):sptr(_sptr), fileuid(_rfuid), requid(_requid){}
 	int execute(Connection &_pcon);
@@ -102,7 +105,10 @@ int IStreamCommand::execute(cs::CommandExecuter& _rce, const CommandUidTp &, Tim
 	_rce.receiveIStream(sptr, fileuid, requid);
 	return BAD;
 }
-
+//----------------------------------------------------------------------
+/*
+	A command for sending ostreams from the fileManager
+*/
 struct OStreamCommand: test::Command{
 	OStreamCommand(StreamPtr<OStream> &_sptr, const FileUidTp &_rfuid, const RequestUidTp &_requid):sptr(_sptr), fileuid(_rfuid), requid(_requid){}
 	int execute(Connection &_pcon);
@@ -124,6 +130,10 @@ int OStreamCommand::execute(cs::CommandExecuter& _rce, const CommandUidTp &, Tim
 	_rce.receiveOStream(sptr, fileuid, requid);
 	return BAD;
 }
+//----------------------------------------------------------------------
+/*
+	A command for sending iostreams from the fileManager
+*/
 
 struct IOStreamCommand: test::Command{
 	IOStreamCommand(StreamPtr<IOStream> &_sptr, const FileUidTp &_rfuid, const RequestUidTp &_requid):sptr(_sptr), fileuid(_rfuid), requid(_requid){}
@@ -147,6 +157,10 @@ int IOStreamCommand::execute(cs::CommandExecuter& _rce, const CommandUidTp &, Ti
 	_rce.receiveIOStream(sptr, fileuid, requid);
 	return BAD;
 }
+//----------------------------------------------------------------------
+/*
+	A command for sending errors from the fileManager
+*/
 
 struct StreamErrorCommand: test::Command{
 	StreamErrorCommand(int _errid, const RequestUidTp &_requid):errid(_errid), requid(_requid){}
@@ -167,7 +181,11 @@ int StreamErrorCommand::execute(cs::CommandExecuter& _rce, const CommandUidTp &,
 	_rce.receiveError(errid, requid);
 	return BAD;
 }
-
+//----------------------------------------------------------------------
+/*
+	Local implementation of the clientserver::FileManager wich will now know how
+	to send streams/errors to an object.
+*/
 class FileManager: public cs::FileManager{
 public:
 	FileManager(uint32 _maxfcnt = 256):cs::FileManager(_maxfcnt){}
@@ -195,6 +213,10 @@ void FileManager::sendError(int _error, const RequestUid& _rrequid){
 }
 
 //======= IpcService ======================================================
+/*
+	Local implementation of the ipc service which will know in which 
+	pool to push the ipc talkers.
+*/
 class IpcService: public cs::ipc::Service{
 public:
 	IpcService(serialization::bin::RTTIMapper& _rm):cs::ipc::Service(_rm){}
@@ -220,6 +242,10 @@ ExtraObjPtr& ExtraObjPtr::operator=(cs::Object *_pobj){
 	return *this;
 }
 //=========================================================================
+/*
+	A local command executer who knows how to unregister itself from the 
+	server
+*/
 class CommandExecuter: public cs::CommandExecuter{
 public:
 	void removeFromServer();
@@ -227,15 +253,9 @@ public:
 void CommandExecuter::removeFromServer(){
 	Server::the().removeObject(this);
 }
-// class WriteCommandExecuter: public cs::CommandExecuter{
-// public:
-// 	~WriteCommandExecuter(){
-// 		Server::the().removeCommandExecuter(this);
-// 	}
-// };
 
 //=========================================================================
-
+//The server's localdata
 struct Server::Data{
 	typedef std::vector<ExtraObjPtr>								ExtraObjectVector;
 	typedef std::map<const char*, int, StrLess> 					ServiceIdxMap;
@@ -247,15 +267,15 @@ struct Server::Data{
 	Data(Server &_rs);
 	~Data();
 	ExtraObjectVector					eovec;
-	ServiceIdxMap						servicemap;
-	cs::ipc::Service					*pcs;
-	serialization::bin::RTTIMapper		binmapper;
-	ObjSelPoolTp						*pobjectpool[2];
-	ConSelPoolTp						*pconnectionpool;
-	LisSelPoolTp						*plistenerpool;
-	TkrSelPoolTp						*ptalkerpool;
-	cs::ObjPtr<cs::CommandExecuter>		readcmdexec;
-	cs::ObjPtr<cs::CommandExecuter>		writecmdexec;
+	ServiceIdxMap						servicemap;// map name -> service index
+	//cs::ipc::Service					*pcs; // A pointer to the ipc service
+	serialization::bin::RTTIMapper		binmapper; // A binary serialization mapper
+	ObjSelPoolTp						*pobjectpool[2];//object pools
+	ConSelPoolTp						*pconnectionpool;// connection pool
+	LisSelPoolTp						*plistenerpool;// listener pool
+	TkrSelPoolTp						*ptalkerpool;// talker pool
+	cs::ObjPtr<cs::CommandExecuter>		readcmdexec;// read command executer
+	cs::ObjPtr<cs::CommandExecuter>		writecmdexec;// write command executer
 };
 
 //--------------------------------------------------------------------------
@@ -349,24 +369,24 @@ NOTE:
 
 Server::Server():d(*(new Data(*this))){
 	//ppools = new PoolContainer(*this);
-	if(true){
+	if(true){//create register the file manager
 		this->fileManager(new FileManager(50));
 		cs::Server::insertObject(&fileManager());
 		cs::NameFileKey::registerMapper(fileManager());
 		cs::TempFileKey::registerMapper(fileManager());
 		this->pushJob((cs::Object*)&fileManager());
 	}
-	if(true){
+	if(true){// create register the read command executer
 		d.readcmdexec = new CommandExecuter;
 		cs::Server::insertObject(d.readcmdexec.ptr());
 		this->pushJob((cs::Object*)d.readcmdexec.ptr());
 	}
-	if(true){
+	if(true){// create register the write command executer
 		d.writecmdexec = new CommandExecuter;
 		cs::Server::insertObject(d.writecmdexec.ptr());
 		this->pushJob((cs::Object*)d.writecmdexec.ptr());
 	}
-	if(true){
+	if(true){// create register the ipc service
 		this->ipc(new IpcService(d.binmapper));
 		int pos = cs::Server::insertService(&this->ipc());
 		if(pos < 0){
@@ -381,19 +401,14 @@ Server::Server():d(*(new Data(*this))){
 }
 
 Server::~Server(){
-	//service(0).stop(*this, true);//Stop all services
-	cs::Server::stop(true);
+	cs::Server::stop(true);//wait all services to stop
 	delete &d;
 }
-/*void Server::removeCommandExecuter(ReadCommandExecuter *_pce){
-	removeObject(_pce);
-}
-void Server::removeCommandExecuter(WriteCommandExecuter *_pce){
-	removeObject(_pce);
-}*/
+
 serialization::bin::RTTIMapper &Server::binMapper(){
 	return d.binmapper;
 }
+
 
 int Server::start(const char *_which){
 	if(_which){
@@ -415,9 +430,6 @@ int Server::stop(const char *_which){
 			service(it->second).stop(*this);
 		}
 	}else{
-// 		for(Data::ServiceIdxMap::iterator it(d.servicemap.begin());it != d.servicemap.end(); ++it){
-// 			service(it->second).stop(*this, false);//do not wait for stopping
-// 		}
 		cs::Server::stop(false);
 	}
 	return OK;
@@ -503,7 +515,7 @@ void IpcService::pushTalkerInPool(clientserver::Server &_rs, clientserver::udp::
 	static_cast<Server&>(_rs).pushJob(_ptkr);
 }
 //----------------------------------------------------------------------------------
-
+// Some dummy command methods definitions
 int Command::execute(Connection &){
 	cassert(false);
 	return BAD;
@@ -520,7 +532,7 @@ int Command::execute(Object &){
 }
 
 //----------------------------------------------------------------------------------
-
+// some dummy connection methods definitions
 int Connection::receiveIStream(
 	StreamPtr<IStream> &,
 	const FileUidTp	&,
@@ -589,7 +601,7 @@ int Connection::receiveError(
 	return BAD;
 }
 //----------------------------------------------------------------------------------
-
+//Some dummy object methods definitions
 int Object::receiveIStream(
 	StreamPtr<IStream> &,
 	const FileUidTp	&,

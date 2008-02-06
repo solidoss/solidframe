@@ -66,8 +66,9 @@ struct DummyObject: Object{
 //a service which will hold the other services
 //TODO: make it inheritable by users. 
 // for service group signalling.
-// also on the first position should be either
-// the server or the service itself == the root for signalling.
+// We use the dummy object to ensure that the index within
+// ServiceContainer is the same as the index within the server's
+// service vector (i.e. pservice->index());
 class ServiceContainer: public Service{
 public:
 	ServiceContainer():Service(0, 1, 16), pdo(new DummyObject){

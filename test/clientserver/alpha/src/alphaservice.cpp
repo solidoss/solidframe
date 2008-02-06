@@ -60,11 +60,14 @@ int Service::insertConnection(
 	test::Server &_rs,
 	clientserver::tcp::Channel *_pch
 ){
+	//create a new connection with the given channel
 	Connection *pcon = new Connection(_pch, 0);
+	//register it into the service
 	if(this->insert(*pcon, this->index())){
 		delete pcon;
 		return BAD;
-	}	
+	}
+	// add it into a connection pool
 	_rs.pushJob((cs::tcp::Connection*)pcon);
 	return OK;
 }
@@ -73,19 +76,24 @@ int Service::insertListener(
 	test::Server &_rs,
 	const AddrInfoIterator &_rai
 ){
+	//first create a station
 	cs::tcp::Station *pst(cs::tcp::Station::create(_rai));
 	if(!pst) return BAD;
+	//then a listener using the created station
 	test::Listener *plis = new test::Listener(pst, 100, 0);
+	//register the listener into the service
 	if(this->insert(*plis, this->index())){
 		delete plis;
 		return BAD;
-	}	
+	}
+	// add the listener into a listener pool
 	_rs.pushJob((cs::tcp::Listener*)plis, 0);
 	return OK;
 }
 
 int Service::removeConnection(Connection &_rcon){
 	//TODO:
+	//unregisters the connection from the service.
 	this->remove(_rcon);
 	return OK;
 }

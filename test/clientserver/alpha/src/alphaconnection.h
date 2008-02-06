@@ -48,7 +48,11 @@ namespace alpha{
 class Service;
 class Command;
 
-
+//! Alpha connection implementing the alpha protocol resembling somehow the IMAP protocol
+/*!
+	It uses a reader and a writer to implement a state machine for the 
+	protocol communication. 
+*/
 class Connection: public clientserver::CommandableObject<test::Connection>{
 public:
 	typedef clientserver::CommandableObject<test::Connection> BaseTp;
@@ -56,22 +60,42 @@ public:
 	static void initStatic(Server &_rs);
 	Connection(clientserver::tcp::Channel *_pch, SocketAddress *_paddr = NULL);
 	~Connection();
+	//! The implementation of the protocol's state machine
+	/*!
+		The method will be called within a clientserver::SelectPool by an
+		clientserver::tcp::ConnectionSelector.
+	*/
 	int execute(ulong _sig, TimeSpec &_tout);
+	//! Dummy inmplementation
 	int execute();
+	//! Dummy inmplementation
 	int accept(clientserver::Visitor &);
 	
+	//! creator method for new commands
 	Command* create(const String& _name);
 	
 	Reader& reader(){return rdr;}
 	Writer& writer(){return wtr;}
-	
+	//! Get the current request id.
 	uint32 requestId()const{return reqid;}
+	//! Generate a new request id.
+	/*!
+		Every request has an associated id.
+		We want to prevent receiving unexpected responses.
+		
+		The commands that are not responses - like those received in idle state, come with
+		the request id equal to zero so this must be skiped.
+	*/
 	uint32 newRequestId(){
 		if(++reqid) return reqid;
 		return (reqid = 1);
 	}
 	
 	//int sendStatusResponse(cmd::Responder &_rr, int _opt);
+	//! Receive a stream as a response
+	/*!
+		Filters unexpected responses and forwards the stream to the current alpha command
+	*/
 	/*virtual*/ int receiveIStream(
 		StreamPtr<IStream> &,
 		const FileUidTp&,

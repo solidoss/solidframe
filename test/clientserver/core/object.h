@@ -40,15 +40,28 @@ struct ConnectorUid;
 namespace test{
 struct Command;
 
+//! A test variant of clientserver::Object
+/*!
+	For now all it knows is to receive things.
+*/
 class Object: public clientserver::Object{
 public:
 	typedef Command	CommandTp;
 	typedef std::pair<uint32, uint32>	FromPairTp;
 	typedef std::pair<uint32, uint32>	FileUidTp;
 	typedef std::pair<uint32, uint32>	RequestUidTp;
+	//! Dummy method for receiving istreams
+	/*!
+		\param _sp Stream pointer
+		\param _fuid The file unique id
+		\param _requid The request uid as given by the requester of the stream
+		\param _which Used for receiving more then one stream with a single command
+		\param _from The object who has sent the stream
+		\param _conid The ipc connection on which the stream was received
+	*/
 	virtual int receiveIStream(
-		StreamPtr<IStream> &,
-		const FileUidTp	&,
+		StreamPtr<IStream> &_sp,
+		const FileUidTp	&_fuid,
 		const RequestUidTp &_requid,
 		int			_which = 0,
 		const ObjectUidTp&_from = ObjectUidTp(),

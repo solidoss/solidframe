@@ -34,7 +34,11 @@
 namespace cs = clientserver;
 
 namespace test{
-
+/*
+	A service is also an object and it can do something.
+	Here's what it does by default.
+	
+*/
 int Service::execute(ulong _sig, TimeSpec &_rtout){
 	idbg("serviceexec");
 	if(signaled()){
@@ -55,6 +59,14 @@ int Service::execute(ulong _sig, TimeSpec &_rtout){
 
 Service::~Service(){
 }
+
+int Service::removeListener(Listener &_rlis){
+	this->remove(_rlis);
+	return OK;
+}
+
+// Some dummy insert methods
+
 int Service::insertListener(
 	Server &_rsrv,
 	const AddrInfoIterator &_rai
@@ -85,11 +97,6 @@ int Service::insertConnection(
 	cassert(false);
 	delete _pch;
 	return BAD;
-}
-
-int Service::removeListener(Listener &_rlis){
-	this->remove(_rlis);
-	return OK;
 }
 
 }

@@ -38,12 +38,21 @@ struct ConnectorUid;
 }
 namespace test{
 struct Command;
-
+//! The base class for all connections knowing how to receive things
 class Connection: public clientserver::tcp::Connection{
 public:
 	typedef Command	CommandTp;
 	typedef std::pair<uint32, uint32>	FileUidTp;
 	typedef std::pair<uint32, uint32>	RequestUidTp;
+	//! Dummy method for receiving istreams
+	/*!
+		\param _sp Stream pointer
+		\param _fuid The file unique id
+		\param _requid The request uid as given by the requester of the stream
+		\param _which Used for receiving more then one stream with a single command
+		\param _from The object who has sent the stream
+		\param _conid The ipc connection on which the stream was received
+	*/
 	virtual int receiveIStream(
 		StreamPtr<IStream> &,
 		const FileUidTp	&,
