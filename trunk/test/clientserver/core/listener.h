@@ -27,7 +27,7 @@
 namespace test{
 
 class Service;
-
+//! A simple listener
 class Listener: public clientserver::tcp::Listener{
 public:
 	typedef Service		ServiceTp;

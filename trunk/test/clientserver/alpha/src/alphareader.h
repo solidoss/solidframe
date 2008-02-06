@@ -37,7 +37,11 @@ namespace test{
 namespace alpha{
 
 class Writer;
-
+//! A reader better swited to alpha protocol needs.
+/*!
+	Extends the interface of the protocol::Reader, and implements
+	the requested virtual methods.
+*/
 class Reader: public protocol::Reader{
 public:
 	enum{
@@ -46,13 +50,21 @@ public:
 	Reader(clientserver::tcp::Channel &_rch, Writer &_rw);
 	~Reader();
 	void clear();
+	//! Asynchrounously reads an astring (atom/quoted/literal)
 	static int fetchAString(protocol::Reader &_rr, protocol::Parameter &_rp);
+	//! Asynchrounously reads an qstring
 	static int fetchQString(protocol::Reader &_rr, protocol::Parameter &_rp);
+	//! Asynchrounously flushes the writer
 	static int flushWriter(protocol::Reader &_rr, protocol::Parameter &_rp);
+	//! Asynchrounously copies the temp string to a given location
 	static int copyTmpString(protocol::Reader &_rr, protocol::Parameter &_rp);
+	//! Asynchrounously check for the type of the literal (plus or not)
 	static int checkLiteral(protocol::Reader &_rr, protocol::Parameter &_rp);
+	//! Asynchrounously prepares for error recovery
 	static int errorPrepare(protocol::Reader &_rr, protocol::Parameter &_rp);
+	//! Asynchrounously recovers from an error
 	static int errorRecovery(protocol::Reader &_rr, protocol::Parameter &_rp);
+	//! Local asynchrounous reinit method.
 	template <class C>
 	static int reinit(protocol::Reader &_rr, protocol::Parameter &_rp){
 		return reinterpret_cast<C*>(_rp.a.p)->reinitReader(static_cast<Reader&>(_rr), _rp);

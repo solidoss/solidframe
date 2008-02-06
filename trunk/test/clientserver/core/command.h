@@ -30,6 +30,7 @@ class Listener;
 class Object;
 //extends the interface of command to support test Objects
 //see implementation in server
+//! The base class for all commands in the test server
 struct Command: clientserver::Command{
 	virtual int execute(Connection &);
 	virtual int execute(Listener &);

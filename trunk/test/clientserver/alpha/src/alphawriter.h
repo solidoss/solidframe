@@ -32,15 +32,23 @@ class Channel;
 
 namespace test{
 namespace alpha{
-
+//! A writer better swited to alpha protocol needs.
+/*!
+	Extends the interface of the protocol::Writer, and implements
+	the requested virtual methods.
+*/
 class Writer: public protocol::Writer{
 public:
 	Writer(clientserver::tcp::Channel &rch);
 	~Writer();
 	void clear();
+	//! Asynchrounously writes an astring (atom/quoted/literal)
 	static int putAString(protocol::Writer &_rw, protocol::Parameter &_rp);
+	//! Asynchrounously writes the command's status (the last line of the command
 	static int putStatus(protocol::Writer &_rw, protocol::Parameter &_rp);
+	//! Asynchrounously writes a CRLF
 	static int putCrlf(protocol::Writer &_rw, protocol::Parameter &_rp);
+	//! Asynchrounously clears the writer data
 	static int clear(protocol::Writer &_rw, protocol::Parameter &_rp);
 	template <class C>
 	static int reinit(protocol::Writer &_rw, protocol::Parameter &_rp){
@@ -49,6 +57,7 @@ public:
 	protocol::String &message(){return msgs;}
 	protocol::String &tag(){return tags;}
 private:
+	//! Asynchrounously writes a quoted string
 	static int putQString(protocol::Writer &_rw, protocol::Parameter &_rp);
 	/*virtual*/ int write(char *_pb, uint32 _bl);
 	/*virtual*/ int write(IStreamIterator&_rit, uint64 _sz, char *_pb, uint32 _bl);

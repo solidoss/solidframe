@@ -37,16 +37,21 @@ namespace alpha{
 
 class Connection;
 class Reader;
-
+//! A base class for all alpha protocol commands
 class Command{
 protected:
 	Command();
 public:
+	//! Initiate static data for all commands - like registering serializable structures.
 	static void initStatic(Server &_rs);
+	//! Virtual destructor
 	virtual ~Command();
+	//! Called by the reader to learn how to parse the command
 	virtual void initReader(Reader &) = 0;
+	//! Called by alpha::Connection to prepare the response
 	virtual int execute(Connection &) = 0;
 	//received from filemanager
+	//! Receive an istream
 	virtual int receiveIStream(
 		StreamPtr<IStream> &,
 		const FileUidTp &,
@@ -54,6 +59,7 @@ public:
 		const ObjectUidTp&_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
+	//! Receive an ostream
 	virtual int receiveOStream(
 		StreamPtr<OStream> &,
 		const FileUidTp &,
@@ -61,6 +67,7 @@ public:
 		const ObjectUidTp&_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
+	//! Receive an iostream
 	virtual int receiveIOStream(
 		StreamPtr<IOStream> &,
 		const FileUidTp &,
@@ -68,18 +75,21 @@ public:
 		const ObjectUidTp&_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
+	//! Receive a string
 	virtual int receiveString(
 		const String &_str,
 		int			_which, 
 		const ObjectUidTp&_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
+	//! Receive a number
 	virtual int receiveNumber(
 		const int64 &_no,
 		int			_which,
 		const ObjectUidTp&_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
+	//! Receive an error code
 	virtual int receiveError(
 		int _errid,
 		const ObjectUidTp&_from,

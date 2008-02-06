@@ -38,10 +38,18 @@
 namespace cs = clientserver;
 using namespace std;
 
+/*
+	The proof of concept test application.
+	It instantiate a server, creates some services,
+	registers some listeners talkers on those services
+	and offers a small CLI.
+*/
+// prints the CLI help
 void printHelp();
+// inserts a new talker
 int insertTalker(char *_pc, int _len, test::Server &_rts);
+// inserts a new connection
 int insertConnection(char *_pc, int _len, test::Server &_rts);
-int insertProcess(char *_pc, int _len, test::Server &_rts);
 
 int main(int argc, char* argv[]){
 	signal(SIGPIPE, SIG_IGN);
@@ -59,11 +67,11 @@ int main(int argc, char* argv[]){
 			startport = atoi(argv[1]);
 		}
 		test::Server	ts;
-		if(true){
+		if(true){// create and register the echo service
 			test::Service* psrvc = test::echo::Service::create();
 			ts.insertService("echo", psrvc);
 			
-			{
+			{//add a new listener
 				int port = startport + 111;
 				AddrInfo ai("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Stream);
 				if(!ai.empty()){
@@ -76,7 +84,7 @@ int main(int argc, char* argv[]){
 					cout<<"failed create address for port "<<port<<" listener not created"<<endl;
 				}
 			}
-			{
+			{//add a new talker
 				int port = startport + 112;
 				AddrInfo ai("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Datagram);
 				if(!ai.empty()){
@@ -91,12 +99,12 @@ int main(int argc, char* argv[]){
 				}
 			}
 		}
-		if(true){
+		if(true){//creates and registers a new beta service
 			test::Service* psrvc = test::beta::Service::create();
 			ts.insertService("beta", psrvc);
 			int port = startport + 113;
 			AddrInfo ai("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Datagram);
-			if(!ai.empty()){
+			if(!ai.empty()){//ands a talker
 				if(!ts.insertTalker("beta", ai.begin())){
 					cout<<"added talker to beta "<<port<<endl;
 				}else{
@@ -106,18 +114,18 @@ int main(int argc, char* argv[]){
 				cout<<"empty addr info - no listener talker"<<endl;
 			}
 		}
-		if(true){
+		if(true){//creates and registers a new alpha service
 			test::Service* psrvc = test::alpha::Service::create(ts);
 			ts.insertService("alpha", psrvc);
 			int port = startport + 114;
 			AddrInfo ai("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Stream);
-			if(!ai.empty() && !ts.insertListener("alpha", ai.begin())){
+			if(!ai.empty() && !ts.insertListener("alpha", ai.begin())){//adds a listener
 				cout<<"added listener for service alpha "<<port<<endl;
 			}else{
 				cout<<"failed adding listener for service alpha port "<<port<<endl;
 			}	
 		}
-		if(true){
+		if(true){//adds the base ipc talker
 			int port = startport + 222;
 			AddrInfo ai("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Datagram);
 			if(!ai.empty()){
@@ -132,6 +140,7 @@ int main(int argc, char* argv[]){
 		}
 		char buf[2048];
 		int rc = 0;
+		// the small CLI loop
 		while(true){
 			if(rc == -1){
 				cout<<"Error: Parsing command line"<<endl;

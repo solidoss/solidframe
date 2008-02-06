@@ -49,7 +49,7 @@ namespace alpha{
 class Connection;
 class Reader;
 class Writer;
-
+//! Basic alpha commands - with no parameters.
 class Basic: public Command{
 public:
 	enum Types{
@@ -67,6 +67,7 @@ private:
 	Types tp;
 };
 
+//! Alpha Login command
 class Login: public Command{
 public:
 	Login();
@@ -76,7 +77,7 @@ public:
 private:
 	String user,pass;
 };
-
+//! Alpha (remote) file fetch commad 
 class Fetch: public Command{
 public:
 	Fetch(Connection &);

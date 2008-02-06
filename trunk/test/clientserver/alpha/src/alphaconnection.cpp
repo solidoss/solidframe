@@ -81,9 +81,14 @@ Connection::~Connection(){
 	rs.service(*this).removeConnection(*this);
 }
 
+/*
+	The main loop with the implementation of the alpha protocol's
+	state machine. We dont need a loop, we use the ConnectionSelector's
+	loop - returning OK.
+	The state machine is a simple switch
+*/
 
 int Connection::execute(ulong _sig, TimeSpec &_tout){
-	//_tout.set(2400);//allways set it if it's not MAXTIMEOUT
 	_tout.add(2400);
 	if(_sig & (cs::TIMEOUT | cs::ERRDONE)){
 		if(state() == ConnectTout){
@@ -92,19 +97,18 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 		}else 
 			return BAD;
 	}
-	if(signaled()){
+	if(signaled()){//we've received a signal
 		test::Server &rs = test::Server::the();
 		ulong sm(0);
 		{
-		Mutex::Locker	lock(rs.mutex(*this));
-		sm = grabSignalMask(0);
-		if(sm & cs::S_KILL) return BAD;
-		if(sm & cs::S_CMD){
-			grabCommands();
-			//channel().send(sigstr, strlen(sigstr));
+			Mutex::Locker	lock(rs.mutex(*this));
+			sm = grabSignalMask(0);//grab all bits of the signal mask
+			if(sm & cs::S_KILL) return BAD;
+			if(sm & cs::S_CMD){//we have commands
+				grabCommands();//grab them
+			}
 		}
-		}
-		if(sm & cs::S_CMD){
+		if(sm & cs::S_CMD){//we've grabed commands, execute them
 			switch(execCommands(*this)){
 				case BAD: 
 					return BAD;
@@ -120,7 +124,6 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 	if(_sig & cs::INDONE){
 		cassert(state() == ParseTout);
 		state(Parse);
-		//rcmdparser.doneRecv();
 	}
 	if(_sig & cs::OUTDONE){
 		switch(state()){
@@ -136,14 +139,12 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			default:
 				state(Parse);
 		}
-		//rcmdresponder.doneSend();
 	}
 	int rc;
 	switch(state()){
 		case Init:{
-			//channel().send(hellostr, strlen(hellostr));
 			test::Server	&rs = test::Server::the();
-			uint32			myport(rs.ipc().basePort());//rs.ipcService().myProcessId());
+			uint32			myport(rs.ipc().basePort());
 			uint32			objid(this->id());
 			uint32			objuid(rs.uid(*this));
 			writer()<<"* Hello from alpha server ("<<myport<<" "<<objid<<" "<<objuid<<")\r\n";
@@ -220,7 +221,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 int Connection::execute(){
 	return BAD;
 }
-
+//prepare the reader and the writer for a new command
 void Connection::prepareReader(){
 	writer().clear();
 	reader().clear();
@@ -230,12 +231,7 @@ void Connection::prepareReader(){
 	reader().push(&Reader::checkChar, protocol::Parameter(' '));
 	reader().push(&Reader::fetchFilteredString<TagFilter>, protocol::Parameter(&writer().tag(),64));
 }
-
-// int Command::execute(Listener &){
-// 	cassert(false);
-// 	return BAD;
-// }
-
+//receiving an istream
 int Connection::receiveIStream(
 	StreamPtr<IStream> &_ps,
 	const FileUidTp &_fuid,
@@ -245,11 +241,11 @@ int Connection::receiveIStream(
 	const clientserver::ipc::ConnectorUid *_conid
 ){
 	idbg("");
-	if(_requid.first && _requid.first != reqid) return OK;
+	if(_requid.first && _requid.first != reqid) return OK;//not an expected command/request
 	idbg("");
 	newRequestId();//prevent multiple responses with the same id
 	if(pcmd){
-		switch(pcmd->receiveIStream(_ps, _fuid, _which, _from, _conid)){
+		switch(pcmd->receiveIStream(_ps, _fuid, _which, _from, _conid)){//forward the stream to command
 			case BAD:
 				idbg("");
 				break;
