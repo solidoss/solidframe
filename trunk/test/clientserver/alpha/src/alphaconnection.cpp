@@ -51,7 +51,7 @@ void Connection::initStatic(Server &_rs){
 Connection::Connection(cs::tcp::Channel *_pch, SocketAddress *_paddr):
 						 	BaseTp(_pch),
 						 	wtr(*_pch),
-						 	rdr(*_pch, wtr),
+						 	rdr(*_pch, wtr), pcmd(NULL),
 						 	paddr(_paddr){
 	
 	if(paddr){

@@ -58,7 +58,7 @@ int main(int argc, char *argv[]){
 	FileDevice fd;
 	fd.create(argv[4], FileDevice::WO);
 	Writer wr(sd);
-	wr<<"f1 fetch \""<<argv[3]<<'\"'<<' '<<argv[1]<<' '<<argv[2]<<crlf;
+	wr<<"f1 fetch \""<<argv[3]<<'\"'<<" \""<<argv[1]<<"\" "<<argv[2]<<crlf;
 	wr<<"f2 logout"<<crlf;
 	wr.flush();
 	char buf[4*1024];
