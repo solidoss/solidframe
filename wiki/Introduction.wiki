@@ -8,6 +8,7 @@ Here's what you'll learn on this page:
   * The design overview.
   * Some words about the ipc library.
   * Some words about socket communication design.
+  * Some words about the file manage.
 
 = General and structural informations about the framework =
 
@@ -124,6 +125,24 @@ And, you guessed!, back to the second alpha connection to see a new marvel.
 
 Notable is that the last two commands can be used with the test instances on different machines, in which case 'localhost' can be replaced with the name/address of the peer (this way the test can be started without parameter in which case in the above alpha commands you'll need to replace 2222 with 1222). Also don't forget to add new firewall rules for used ports (on my machine I'm allowing for 1114(tcp) and 1222(udp)).
 
+In the end lets go back to the idle connection and type:
+
+`done`
+ 
+... to end the idle command.
+
+Then lets remotely fetch the file stored above ("/tmp/000002.txt"): 
+
+`bb fetch "/tmp/000002.txt" localhost 1222`
+
+*Notes:*
+
+ To close a connection use: 
+
+`xx logout`
+
+ To close the test application type "quit" in the mini CLI
+
 = The design overview =
 
 The overall design of the framework is based on four concepts: pseudo-active objects, containers of objects (services), thread pools for objects, and a server which holds the services and the pools.
@@ -187,3 +206,26 @@ But writing asynchronous code is not easy! The state machine of the connection c
 *Notes*
 
 1) One big advantage of the implementation that I've observed while coding - handling multiple connections on a thread allows for efficiently using thread caching (using thread specific - see _system/specific.h_). Think of how big memory improvement wold be to cache alpha commands objects on thread specific, especially for commands frequently used (as real life example think of IMAPs noop or idle commands).
+
+= Some words about the file manager =
+
+Lots of servers will need synchronized access to files. By synchronized I mean:
+
+ * only one writer is allowed at a time.
+ * multiple readers are allowed simultaneously.
+ * no reader is allowed if there are pending writers.
+
+Also one my limit the number of files that can be open by the server.
+
+The SolidGround framework tries to deal with this situation, offering an asynchronous file manager. Objects like connections can request streams to a certain file and the file manager will either return the stream immediately or it will signal the stream when it will can (i.e. there are available file descriptors and no existing stream conflicts with the returned one).
+
+More over, such servers will need temporary files and also will mostly identify a file not by its path but by an id with which the path can be computed on the fly when needed.
+
+The file manager deals both those problems using a plugin like mechanism which allows the user to specify the key for searching a file and a mapper which will keep the open files.
+
+For now there are only two such plugins: one for identifying files by their name, and one for temporary files (the beauty of the design comes from the fact that the support for temporary files come at the expense of some small interface changes).
+
+*Notes:*
+1) For now the files are only open in read-write mode, even if all the requested streams are for reading.
+
+2) Also for now the mapping plugins cannot be reconfigured at runtime, but the support can be easily added.
