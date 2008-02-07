@@ -53,6 +53,7 @@ namespace cs=clientserver;
 namespace test{
 namespace alpha{
 
+//The commands and the associated namemather
 struct Cmd{
 	enum CmdId{
 		LoginCmd,
@@ -84,6 +85,12 @@ struct Cmd{
 };
 static const protocol::NameMatcher cmdm(cmds);
 //---------------------------------------------------------------
+/*
+	The creator method called by cs::Reader::fetchKey when the 
+	command name was parsed.
+	All it does is to create the proper command, which in turn,
+	will instruct the reader how to parse itself.
+*/
 Command* Connection::create(const String& _name){
 	cassert(!pcmd);
 	idbg("create command "<<_name);
@@ -111,6 +118,8 @@ Command* Connection::create(const String& _name){
 		default:return NULL;
 	}
 }
+//---------------------------------------------------------------
+// Basic commands
 //---------------------------------------------------------------
 Basic::Basic(Basic::Types _tp):tp(_tp){
 }
@@ -142,6 +151,8 @@ int Basic::execCapability(Connection &_rc){
 	return OK;
 }
 //---------------------------------------------------------------
+// Login command
+//---------------------------------------------------------------
 Login::Login(){
 }
 Login::~Login(){
@@ -158,6 +169,8 @@ int Login::execute(Connection &_rc){
 	_rc.writer().push(&Writer::putStatus, protocol::Parameter(StrDef(" OK Done LOGIN@")));
 	return OK;
 }
+//---------------------------------------------------------------
+// List command
 //---------------------------------------------------------------
 List::List(){
 }
@@ -205,8 +218,9 @@ int List::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 	return Writer::Ok;
 }
 //---------------------------------------------------------------
-
+// Fetch command
 //---------------------------------------------------------------
+
 struct FetchSlaveCommand;
 enum{
 	FetchChunkSize = 1024*1024
@@ -270,6 +284,11 @@ struct FetchMasterCommand: test::Command{
 	uint32					requid;
 };
 
+/*
+	The commands sent from the alpha connection to the remote FetchMasterCommand
+	to request new file chunks, and from FetchMasterCommand to the alpha connection
+	as reponse containing the requested file chunk.
+*/
 struct FetchSlaveCommand: test::Command{
 	FetchSlaveCommand(): insz(-1), sz(-10), requid(0){}
 	~FetchSlaveCommand(){
@@ -310,16 +329,6 @@ FetchMasterCommand::~FetchMasterCommand(){
 }
 
 void FetchMasterCommand::print()const{
-/*	String					fname;
-	FetchSlaveCommand		*pcmd;
-	ObjectUidTp				fromv;
-	FileUidTp				fuid;
-	FileUidTp				tmpfuid;
-	cs::ipc::ConnectorUid	conid;
-	StreamPtr<IStream>		ins;
-	int						state;
-	int64					insz;
-	uint32					requid;*/
 	idbg("FetchMasterCommand:");
 	idbg("state = "<<state<<" insz = "<<insz<<" requid = "<<requid<<" fname = "<<fname);
 	idbg("fromv.first = "<<fromv.first<<" fromv.second = "<<fromv.second);
@@ -338,6 +347,9 @@ int FetchMasterCommand::received(const cs::ipc::ConnectorUid &_rconid){
 	Server::the().signalObject(tov.first, tov.second, pcmd);
 	return false;
 }
+/*
+	The state machine running on peer
+*/
 int FetchMasterCommand::execute(cs::CommandExecuter& _rce, const CommandUidTp &_cmduid, TimeSpec &_rts){
 	Server &rs(Server::the());
 	switch(state){
@@ -459,15 +471,6 @@ int FetchMasterCommand::receiveError(
 }
 //-------------------------------------------------------------------------------
 void FetchSlaveCommand::print()const{
-/*	ObjectUidTp					tov;
-	FileUidTp					fuid;
-	cs::ipc::ConnectorUid		conid;
-	CommandUidTp				cmduid;
-	StreamPtr<IStream>			ins;
-	//if insz >= 0 -> [0->1M) else -> [1M->2M)
-	int64						insz;
-	int							sz;
-	uint32						requid;*/
 	idbg("FetchSlaveCommand:");
 	idbg("insz = "<<insz<<" sz = "<<sz<<" requid = "<<requid);
 	idbg("fuid.first = "<<fuid.first<<" fuid.second = "<<fuid.second);
@@ -489,7 +492,7 @@ int FetchSlaveCommand::received(const cs::ipc::ConnectorUid &_rconid){
 	}
 	return false;
 }
-
+// Executed when received back on the requesting alpha connection
 int FetchSlaveCommand::execute(test::Connection &_rcon){
 	if(sz >= 0){
 		idbg("");
@@ -500,7 +503,7 @@ int FetchSlaveCommand::execute(test::Connection &_rcon){
 	}
 	return OK;
 }
-
+// Executed on peer within the command executer
 int FetchSlaveCommand::execute(cs::CommandExecuter& _rce, const CommandUidTp &, TimeSpec &){
 	idbg("");
 	cs::CmdPtr<cs::Command>	cp(this);
@@ -552,7 +555,7 @@ int FetchSlaveCommand::createSerializationStream(
 	return OK;
 }
 //-------------------------------------------------------------------------------
-
+//-------------------------------------------------------------------------------
 Fetch::Fetch(Connection &_rc):port(-1), rc(_rc), st(0), pp(NULL){
 }
 Fetch::~Fetch(){
@@ -786,6 +789,8 @@ int Fetch::receiveError(
 }
 
 //---------------------------------------------------------------
+// Store Command
+//---------------------------------------------------------------
 Store::Store(Connection &_rc):rc(_rc),st(0){
 }
 Store::~Store(){
@@ -876,6 +881,11 @@ int Store::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 	return Writer::Bad;
 }
 //---------------------------------------------------------------
+// SendString command
+//---------------------------------------------------------------
+/*
+	The command sent to peer with the text
+*/
 struct SendStringCommand: test::Command{
 	SendStringCommand(){}
 	SendStringCommand(
@@ -910,7 +920,8 @@ int SendStringCommand::received(const cs::ipc::ConnectorUid &_rconid){
 int SendStringCommand::execute(test::Connection &_rcon){
 	return _rcon.receiveString(str, test::Connection::RequestUidTp(0, 0), 0, fromv, &conid);
 }
-
+//---------------------------------------------------------------
+//---------------------------------------------------------------
 SendString::SendString():port(0), objid(0), objuid(0){}
 SendString::~SendString(){
 }
@@ -943,6 +954,11 @@ int SendString::execute(alpha::Connection &_rc){
 	return OK;
 }
 //---------------------------------------------------------------
+// SendStream command
+//---------------------------------------------------------------
+/*
+	The command sent to peer with the stream.
+*/
 struct SendStreamCommand: test::Command{
 	SendStreamCommand(){}
 	SendStreamCommand(
@@ -981,9 +997,7 @@ private:
 	ObjPairTp					fromv;
 	cs::ipc::ConnectorUid		conid;
 };
-
 //-------------------------------------------------------------------------------
-
 int SendStreamCommand::received(const cs::ipc::ConnectorUid &_rconid){
 	cs::CmdPtr<cs::Command> pcmd(this);
 	conid = _rconid;
@@ -1038,7 +1052,8 @@ int SendStreamCommand::execute(test::Connection &_rcon){
 	}
 	return _rcon.receiveString(dststr, test::Connection::RequestUidTp(0, 0), 0, fromv, &conid);
 }
-//-------------------------------------------------------------------------------
+//---------------------------------------------------------------
+//---------------------------------------------------------------
 SendStream::SendStream():port(0), objid(0), objuid(0){}
 SendStream::~SendStream(){
 }
@@ -1087,6 +1102,8 @@ int SendStream::execute(Connection &_rc){
 	}
 	return OK;
 }
+//---------------------------------------------------------------
+// Idle command
 //---------------------------------------------------------------
 Idle::~Idle(){
 }
@@ -1199,8 +1216,7 @@ int Idle::receiveString(
 	return NOK;
 }
 //---------------------------------------------------------------
-
-//---------------------------------------------------------------
+// Command Base
 //---------------------------------------------------------------
 Command::Command(){}
 void Command::initStatic(Server &_rs){

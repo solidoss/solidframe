@@ -68,6 +68,10 @@ private:
 };
 
 //! Alpha Login command
+/*!
+	Syntax:<br>
+	tag SP LOGIN SP astring = nume SP astring = password CRLF<br>
+*/
 class Login: public Command{
 public:
 	Login();
@@ -77,13 +81,33 @@ public:
 private:
 	String user,pass;
 };
-//! Alpha (remote) file fetch commad 
+//! Alpha (remote) file fetch commad
+/*!
+	Syntax:<br>
+	tag SP FETCH SP astring = path [SP astring = peer_address [SP number = peer_ipc_base_port]] CRLF<br>
+	Example:<br>
+	aa fetch "/tmp/00001.txt"<br>
+	aa fetch "/tmp/00001.txt" homehost 1222<br>
+*/
 class Fetch: public Command{
 public:
 	Fetch(Connection &);
 	~Fetch();
 	void initReader(Reader &);
 	int execute(Connection &);
+	//! Writer plugin
+	/*!
+		Implements the logic for requesting a file from FileManager, 
+		eventually wait for it, write the file on socket.<br>
+		
+		For remote fetch the things are more complicated as we will
+		use a local temp file as buffer and:<br>
+		- request a temp stream
+		- when we've got the temp stream, reques the size and the first 1MB of file
+		- when we've received the size and the firs 1MB, request for the next 1MB
+			and write the first 1MB on socket
+		- and so forth
+	*/
 	int reinitWriter(Writer &, protocol::Parameter &);
 	int receiveIStream(
 		StreamPtr<IStream> &_sptr,
@@ -125,7 +149,12 @@ private:
 	uint64				chunksz;
 	clientserver::ipc::ConnectorUid conuid;
 };
-
+//! Store a file locally
+/*!
+	Syntax:<br>
+	tag SP STORE SP astring = path SP '{' number = literalsize '}' CRLF literal_data CRLF<br>
+	
+*/
 class Store: public Command{
 public:
 	enum {Init, SendWait, PrepareReceive};
@@ -157,6 +186,14 @@ private:
 	uint64				litsz64;
 };
 
+//! Lists one level of the requested path
+/*!
+	Syntax:<br>
+	tag SP LIST SP astring = path<br>
+	
+	If the path is a directory, the direct cildren are displayed.
+	If the path is a file, the file information is displayed.
+*/
 class List: public Command{
 public:
 	enum {Step, Stop};
@@ -171,6 +208,16 @@ private:
 	fs::directory_iterator 	it,end;
 };
 
+//! Send a string to a remote alpha connection to other test server
+/*!
+	The peer connection must be in idle!<br>
+	Syntax:<br>
+	tag SP SENDSTRING SP astring = peer_address SP number = peer_ipc_base_port SP
+	number = peer_object_id SP number = peer_object_uid SP astring = data_to_send<br>
+	
+	Example:<br>
+	aa sendstring homehost 1222 1111 2222 "some nice string"
+*/
 class SendString: public Command{
 public:
 	SendString();
@@ -184,6 +231,18 @@ private:
 	uint32				objid;
 	uint32				objuid;
 };
+
+//! Send a stream to a remote alpha connection to other test server
+/*!
+	The peer connection must be in idle!<br>
+	Syntax:<br>
+	tag SP SENDSTREAM SP astring = peer_address SP number = peer_ipc_base_port SP
+	number = peer_object_id SP number = peer_object_uid SP astring = src_local_path SP
+	astring = dest_path<br>
+	
+	Example:<br>
+	aa sendsteam homehost 1222 1111 2222 "/data/movie.avi" "/tmp/movie.avi"
+*/
 
 class SendStream: public Command{
 public:
@@ -200,6 +259,17 @@ private:
 	uint32				objuid;
 };
 
+//! Wait for internal server events
+/*!
+	Use in combination with sendstream and sendstring.<br>
+	Syntax:<br>
+	tag SP IDLE CRLF <br>
+	...events are displayed ...<br>
+	done CRLF<br>
+	
+	So the command will both wait for "done" from client and for
+	events.
+*/
 class Idle: public Command{
 public:
 	Idle(Connection &_rc):rc(_rc){}
