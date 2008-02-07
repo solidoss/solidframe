@@ -27,10 +27,15 @@ if [ "$1" = "kdevelop" ] ; then
 	fi
 else 
 	if [ "$1" = "documentation_full" ] ; then
+		rm -rf documentation/html/
+		rm -rf documentation/latex/
 		doxygen
+		tar -cjf documentation/sg_doc_full.tar.bz2 documentation/html/ documentation/index.html
 	else 
 		if [ "$1" = "documentation_fast" ] ; then
+			rm -rf documentation/html/
 			doxygen Doxyfile.fast
+			tar -cjf documentation/sg_doc_fast.tar.bz2 documentation/html/ documentation/index.html
 		else
 			mkdir application
 			mkdir build
