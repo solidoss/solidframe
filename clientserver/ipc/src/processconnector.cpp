@@ -592,6 +592,7 @@ int ProcessConnector::processSendCommands(SendBufferData &_rsb, const TimeSpec &
 					d.crtcmdbufcnt = Data::MaxCommandBufferCount - 1;//small trick so that it wouldnt switchtoold
 				}else{
 					d.scq.push(d.scq.front());
+					d.scq.front().pser = NULL;
 					d.scq.pop();
 					d.crtcmdbufcnt = Data::MaxCommandBufferCount;
 				}
