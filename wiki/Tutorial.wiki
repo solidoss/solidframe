@@ -1,0 +1,19 @@
+#summary A step by step tutorial for starting using SolidGround.
+
+= Introduction =
+
+Below I will present the steps you'll need to do to write your own SolidGround based application. Although in the beginning I will present how to setup the working space within the solidground/applications directory the rest of the text will present the proof of concept server from test/clientserver.
+
+= Preparing the environment =
+
+TODO:
+
+
+
+
+= Details =
+
+Add your content here.  Format your content with:
+  * Text in *bold* or _italic_
+  * Headings, paragraphs, and lists
+  * Automatic links to other wiki pages
