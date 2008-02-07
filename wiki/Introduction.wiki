@@ -215,7 +215,7 @@ Lots of servers will need synchronized access to files. By synchronized I mean:
  * multiple readers are allowed simultaneously.
  * no reader is allowed if there are pending writers.
 
-Also one my limit the number of files that can be open by the server.
+Also one may limit the number of files that can be open by the server.
 
 The SolidGround framework tries to deal with this situation, offering an asynchronous file manager. Objects like connections can request streams to a certain file and the file manager will either return the stream immediately or it will signal the stream when it will can (i.e. there are available file descriptors and no existing stream conflicts with the returned one).
 
@@ -223,9 +223,12 @@ More over, such servers will need temporary files and also will mostly identify 
 
 The file manager deals both those problems using a plugin like mechanism which allows the user to specify the key for searching a file and a mapper which will keep the open files.
 
-For now there are only two such plugins: one for identifying files by their name, and one for temporary files (the beauty of the design comes from the fact that the support for temporary files come at the expense of some small interface changes).
+For now there are only two such plugins: one for identifying files by their path, and one for temporary files (the beauty of the design comes from the fact that the support for temporary files come at the expense of some small interface changes).
 
 *Notes:*
+
 1) For now the files are only open in read-write mode, even if all the requested streams are for reading.
 
 2) Also for now the mapping plugins cannot be reconfigured at runtime, but the support can be easily added.
+
+3) The file manager also deals with the situation when files cannot be opened because the system imposed limit for open file descriptors was reached. The manager will retry to open the file later.
