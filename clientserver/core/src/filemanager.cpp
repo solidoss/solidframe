@@ -424,7 +424,7 @@ int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 		}
 		d.tout = tout;
 	}
-	if(state() != Data::Running){
+	if(state() != Data::Running && !d.sz){
 		idbg("kill "<<d.sz);
 		cassert(!d.sz);
 		Server::the().removeFileManager();

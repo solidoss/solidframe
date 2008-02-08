@@ -83,6 +83,15 @@ int CommandExecuter::signal(CmdPtr<Command> &_cmd){
 	return Object::signal(S_CMD | S_RAISE);
 }
 
+
+/*
+NOTE:
+	- be carefull, some commands may keep stream (filemanager streams) and because
+	the command executer is on the same level as filemanager, you must release/delete
+	the commands before destructor (e.g. when received kill) else the filemanager will
+	wait forever, because the the destructor of the command executer will be called
+	after all services/and managers have stopped - i.e. a mighty deadlock.
+*/
 int CommandExecuter::execute(ulong _evs, TimeSpec &_rtout){
 	d.pm->lock();
 	idbg("d.extsz = "<<d.extsz);
@@ -102,6 +111,7 @@ int CommandExecuter::execute(ulong _evs, TimeSpec &_rtout){
 			if(!d.sz){//no command
 				state(-1);
 				d.pm->unlock();
+				d.cdq.clear();
 				removeFromServer();
 				idbg("~CommandExecuter");
 				return BAD;
@@ -196,6 +206,7 @@ int CommandExecuter::execute(ulong _evs, TimeSpec &_rtout){
 		idbg("~CommandExecuter");
 		removeFromServer();
 		state(-1);
+		d.cdq.clear();
 		return BAD;
 	}
 	if(d.fs2.size()){

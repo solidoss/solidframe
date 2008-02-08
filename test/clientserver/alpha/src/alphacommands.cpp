@@ -241,7 +241,7 @@ struct FetchMasterCommand: test::Command{
 		SendNextStream,
 		SendError,
 	};
-	FetchMasterCommand():state(NotReceived), insz(-1), inpos(0), requid(0){}
+	FetchMasterCommand():state(NotReceived), insz(-1), inpos(0), requid(0),pcmd(NULL){}
 	~FetchMasterCommand();
 	int received(const cs::ipc::ConnectorUid &_rconid);
 	int execute(cs::CommandExecuter&, const CommandUidTp &, TimeSpec &_rts);
@@ -326,6 +326,7 @@ struct FetchSlaveCommand: test::Command{
 //-------------------------------------------------------------------------------
 FetchMasterCommand::~FetchMasterCommand(){
 	delete pcmd;
+	idbg("");
 }
 
 void FetchMasterCommand::print()const{
@@ -337,14 +338,14 @@ void FetchMasterCommand::print()const{
 }
 
 int FetchMasterCommand::received(const cs::ipc::ConnectorUid &_rconid){
-	cs::CmdPtr<cs::Command> pcmd(this);
+	cs::CmdPtr<cs::Command> cmd(this);
 	conid = _rconid;
 	state = Received;
 	ObjectUidTp	tov;
 	idbg("received master command");
 	print();
 	Server::the().readCommandExecuterUid(tov);
-	Server::the().signalObject(tov.first, tov.second, pcmd);
+	Server::the().signalObject(tov.first, tov.second, cmd);
 	return false;
 }
 /*
@@ -389,6 +390,7 @@ int FetchMasterCommand::execute(cs::CommandExecuter& _rce, const CommandUidTp &_
 			inpos += pcmd->sz;
 			cs::FileManager::RequestUid reqid(_rce.id(), rs.uid(_rce), _cmduid.first, _cmduid.second); 
 			rs.fileManager().stream(pcmd->ins, fuid, requid, cs::FileManager::NoWait);
+			pcmd = NULL;
 			if(rs.ipc().sendCommand(conid, cmdptr) || !insz){
 				idbg("connector was destroyed or insz "<<insz);
 				return BAD;
@@ -530,6 +532,7 @@ int FetchSlaveCommand::createDeserializationStream(
 	StreamPtr<OStream>			sp;
 	cs::FileManager::RequestUid	requid;
 	Server::the().fileManager().stream(sp, fuid, requid, cs::FileManager::Forced);
+	if(!sp) return BAD;
 	idbg("Create deserialization <"<<_id<<"> sz "<<_rps.second<<" streamptr "<<(void*)sp.ptr());
 	if(insz < 0){//back 1M
 		sp->seek(FetchChunkSize);

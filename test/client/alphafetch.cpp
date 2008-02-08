@@ -23,9 +23,8 @@ using namespace std;
 
 
 int main(int argc, char *argv[]){
-	if(argc != 5){
-		cout<<"Usage: alphafetch addr port path"<<endl;
-		cassert(false);
+	if(argc != 7){
+		cout<<"Usage: alphafetch alpha_addr alpha_port ipc_addr ipc_port path local_path"<<endl;
 		return 0;
 	}
 	signal(SIGPIPE, SIG_IGN);
@@ -37,7 +36,7 @@ int main(int argc, char *argv[]){
 	//initDebug(s.c_str());
 	}
 #endif
-	AddrInfo    ai("localhost","1114");
+	AddrInfo    ai(argv[1], argv[2]);
 	if(ai.empty()){
 		idbg("No such address");
 		return 0;
@@ -56,9 +55,9 @@ int main(int argc, char *argv[]){
 		return 0;
 	}
 	FileDevice fd;
-	fd.create(argv[4], FileDevice::WO);
+	fd.create(argv[6], FileDevice::WO);
 	Writer wr(sd);
-	wr<<"f1 fetch \""<<argv[3]<<'\"'<<" \""<<argv[1]<<"\" "<<argv[2]<<crlf;
+	wr<<"f1 fetch \""<<argv[5]<<'\"'<<" \""<<argv[3]<<"\" "<<argv[4]<<crlf;
 	wr<<"f2 logout"<<crlf;
 	wr.flush();
 	char buf[4*1024];
