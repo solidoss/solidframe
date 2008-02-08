@@ -135,13 +135,31 @@ Then lets remotely fetch the file stored above ("/tmp/000002.txt"):
 
 `bb fetch "/tmp/000002.txt" localhost 1222`
 
+For the purpose of testing remote fetching files there is a client test application called
+"alphafetch", you can build it this way:
+
+`solidground $ cd build/nolog/test/client`
+`client $ make`
+
+and you can run it this way:
+
+`client $ ./alphafetch localhost 2114 localhost 1222 "/tmp/000002.txt" dest_000002.txt`
+
+or this way:
+
+`client $ time ./alphafetch localhost 2114 localhost 1222 "/tmp/000002.txt" dest_000002.txt`
+
+to test the speed of fetching.
+
 *Notes:*
 
- To close a connection use: 
+1) To close a connection use: 
 
 `xx logout`
 
- To close the test application type "quit" in the mini CLI
+2) To close the test application type "quit" in the mini CLI
+
+3) The remote fething will use a local temporary file (at most 2MB) as buffer for fetching - no matter the size of the fetched file. The temp files are located in /tmp/test/. The best way to test the remote fetching is using two computers - I did it an over a wireless network I got +1MB/s transfer rate. It is not much but it is something.
 
 = The design overview =
 
