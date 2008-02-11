@@ -48,6 +48,64 @@ Below I will present the structure of the proof of concept SG's test application
 
 = ClientServer test =
 
-The SG's clientserver application is a quite complex multi service server, using and testing most of SG's features. The server has three services:
+The SG's test clientserver (test_cs) application is a quite complex multi service server, using and testing most of SG's features. The server has three services:
  * two services *echo* and *beta*, implementing echo and/or echo-like protocols over TCP and UDP.
- * an *alpha* service with a complex IMAP-like text protocol.
+ * an *alpha* service with a complex IMAP-like syntax, text protocol.
+
+The test/clientserver directory structure is as follows:
+
+{{{
+clientserver/
+   alpha/
+   beta/
+   core/
+   echo/
+   main/
+}}}
+
+
+Interesting are the *core* and *main*:
+
+ * The *core* defines things that are used by the services. Here is implemented the server, a service which extends the cs::Service and will be inherited by all test_cs's services, a base talker which extends cs::udp::Talker, a base connection which extends cs::tcp::Connection, a tcp listener extending cs::tcp::Listener and a base object.
+ * The *main* folder contains only one file src/test.cpp implementing the application's main function.
+
+Next I'll present the most interesting libraries of the test_cs.
+
+== The _core_ folder ==
+
+The structure of the _core_ folder follows the SG's standard with the public interface files directly under _core_ and a core/src folder containing the private header and source files.
+
+Within the core library is defined
+ * the server class, used across the test_cs application
+ * intermediate classes between SG's and those used by services.
+
+The core library is actually an intermediate one between the SG framework and the top level libraries dedicated to services.
+
+Here are the most important components of the core library:
+
+=== The server ===
+
+The test::Server inherits and extends cs::Server. Here's what it does:
+ * create and keep the active sets (the thread pools) allowing job insertion (pushJob<T>);
+ * allows insertion of new services given a pointer to a service and its name (insertService);
+ * keep the services in a name to service map;
+ * allows adding different objects to services (insertTalker, insertConnection, insertListener);
+ * keeps server wide global objects (e.g. binMapper);
+ * creates and keeps diferent managers like filemanager and commnadexecuter.
+
+The insert methods are just proxies for test::Service methods.
+
+The pools are simply defined like this:
+{{{
+typedef clientserver::SelectPool<cs::ObjectSelector>			ObjSelPoolTp;
+	typedef clientserver::SelectPool<cs::tcp::ConnectionSelector>	ConSelPoolTp;
+	typedef clientserver::SelectPool<cs::tcp::ListenerSelector>		LisSelPoolTp;
+	typedef clientserver::SelectPool<cs::udp::TalkerSelector>		TkrSelPoolTp;
+}}}
+
+In order to instantiate a cs::FileManager, one need to define some virtual members for asynchronously sending streams or errors to requesting objects.
+
+
+== The _alpha_ folder ==
+
+== The _main_ folder ==
