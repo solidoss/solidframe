@@ -6,14 +6,7 @@ Below I will present the steps you'll need to do to write your own SolidGround b
 
 = Preparing the environment =
 
-TODO:
+SolidGround (SG) is a framework which is also designed as a workspace. This means that your application should integrate into the SG's build system. I don't know if this is a good idea, but I believe it allows someone to easily start writing SG based code.
 
-
-
-
-= Details =
-
-Add your content here.  Format your content with:
-  * Text in *bold* or _italic_
-  * Headings, paragraphs, and lists
-  * Automatic links to other wiki pages
+First of all you'll need to get a copy of the SG repository. See [
+http://code.google.com/p/solidground/wiki/Introduction] (How to build and test the proof of concept server) wiki-page for the steps you need to do to build the SG's test applications.
