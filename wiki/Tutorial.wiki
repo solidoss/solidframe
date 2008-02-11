@@ -232,7 +232,7 @@ int Service::insertConnection(
 	return OK;
 }
 }}}
-and remove methods:
+ and remove methods:
 {{{
 int Service::removeConnection(Connection &_rcon){
 	this->remove(_rcon);
