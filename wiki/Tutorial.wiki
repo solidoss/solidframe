@@ -255,23 +255,18 @@ int Connection::receiveIStream(
 	const ObjectUidTp&_from,
 	const clientserver::ipc::ConnectorUid *_conid
 ){
-	idbg("");
 	if(_requid.first && _requid.first != reqid) return OK;
-	idbg("");
 	newRequestId();//prevent multiple responses with the same id
 	if(pcmd){
 		switch(pcmd->receiveIStream(_ps, _fuid, _which, _from, _conid)){
 			case BAD:
-				idbg("");
 				break;
 			case OK:
-				idbg("");
 				if(state() == ParseTout){
 					state(Parse);
 				}
 				break;
 			case NOK:
-				idbg("");
 				state(IdleExecute);
 				break;
 		}
@@ -332,3 +327,20 @@ int List::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 }}}
 
 == The _main_ folder ==
+The main function will create a new server, add new services to it and talkers / listeners / connections to those services. It will also implement a very simple CLI.
+
+Here's how the alpha service is created:
+{{{
+test::Server	ts;
+if(true){
+	test::Service* psrvc = test::alpha::Service::create(ts);
+	ts.insertService("alpha", psrvc);
+	int port = startport + 114;
+	AddrInfo ai("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Stream);
+	if(!ai.empty() && !ts.insertListener("alpha", ai.begin())){
+		cout<<"added listener for service alpha "<<port<<endl;
+	}else{
+		cout<<"failed adding listener for service alpha port "<<port<<endl;
+	}	
+}
+}}}
