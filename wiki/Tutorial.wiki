@@ -214,4 +214,86 @@ virtual int receiveString(
 
 == The _alpha_ folder ==
 
+Contains the implementation of alpha service/protocol. The only public header file is the _alphaservice.h_, the rest of the source files being in the _src_ sub folder.
+
+Here are the basic steps needed to write the alpha service (and most tcp text protocols):
+ # Inherit test::Service and implement needed insert methods (alpha/src/alphaservice.cpp):
+{{{
+int Service::insertConnection(
+	test::Server &_rs,
+	clientserver::tcp::Channel *_pch
+){
+	Connection *pcon = new Connection(_pch, 0);
+	if(this->insert(*pcon, _rs.serviceId(*this))){
+		delete pcon;
+		return BAD;
+	}	
+	_rs.pushJob((cs::tcp::Connection*)pcon);
+	return OK;
+}
+}}}
+and remove methods:
+{{{
+int Service::removeConnection(Connection &_rcon){
+	this->remove(_rcon);
+	return OK;
+}
+}}}
+ # Implement alpha::Connection (alpha/src/alphaconnection.h/cpp) which inherits and extends the test::Connection. It will implement the protocol state machine in the execute(...) method and the receiveSomething methods. Basically the state machine will mean:
+  * wait for a new data from client;
+  * parse the data until having the current command name;
+  * create a concrete alpha::Command object based on the name, and let the command initiate the alpha::Reader to parse the command parameters;
+  * after the command was successfully parsed, execute it to initiate the alpha::Responder to asynchronously build the reponse;
+  * when done writing start allover again.
+ # Define a base class for all alpha protocol commands (alpha/src/alphacommand.h).
+ # Define an alpha::Reader inheriting and extending the algorithm::protocol::Reader to better fit the alpha syntax (alpha/src/alphareader.h/cpp).
+ # Define an alpha::Writer inheriting and extending the algorithm::protocol::Writer to better fit the alpha syntax (alpha/src/alphawriter.h/cpp). 
+ # Define the alpha commands (alpha/src/alphacommands.h/cpp)
+
+Here's the definitions of the alpha list command methods:
+
+{{{
+void List::initReader(Reader &_rr){
+	_rr.push(&Reader::fetchAString, protocol::Parameter(&strpth));
+	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
+}
+int List::execute(Connection &_rc){
+	idbg("path: "<<strpth);
+	fs::path pth(strpth.c_str(), fs::native);
+	protocol::Parameter &rp = _rc.writer().push(&Writer::putStatus);
+	rp = protocol::Parameter(StrDef(" OK Done LIST@"));
+	if(!is_directory(pth)){
+		rp = protocol::Parameter(StrDef(" NO LIST: Not a directory@"));
+		return OK;
+	}
+	it = fs::directory_iterator(pth);
+	_rc.writer().push(&Writer::reinit<List>, protocol::Parameter(this, Step));
+	if(it != end){
+		_rc.writer().push(&Writer::putCrlf);
+		_rc.writer().push(&Writer::putAString, protocol::Parameter((void*)it->string().data(), it->string().size()));
+		if(is_directory(*it)){
+			_rc.writer()<<"* DIR ";
+		}else{
+			_rc.writer()<<"* FILE "<<(uint32)file_size(*it)<<' ';
+		}
+	}
+	return OK;
+}
+
+int List::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
+	++it;
+	if(it != end){
+		_rw.push(&Writer::putCrlf);
+		_rw.push(&Writer::putAString, protocol::Parameter((void*)it->string().data(), it->string().size()));
+		if(is_directory(*it)){
+			_rw<<"* DIR ";
+		}else{
+			_rw<<"* FILE "<<(uint32)file_size(*it)<<' ';
+		}
+		return Writer::Continue;
+	}
+	return Writer::Ok;
+}
+
+}}}
 == The _main_ folder ==
