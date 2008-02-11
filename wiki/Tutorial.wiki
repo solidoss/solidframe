@@ -245,8 +245,7 @@ int Service::removeConnection(Connection &_rcon){
   * create a concrete alpha::Command object based on the name, and let the command initiate the alpha::Reader to parse the command parameters;
   * after the command was successfully parsed, execute it to initiate the alpha::Responder to asynchronously build the reponse;
   * when done writing start allover again.
-And the receiveSomething methods will just be proxies methods to forward the data to the
-equivalent alpha::Command methods, ensuring that the received data is the one expected:
+  And the receiveSomething methods will just be proxies methods to forward the data to the equivalent alpha::Command methods, ensuring that the received data is the one expected:
 {{{
 int Connection::receiveIStream(
 	StreamPtr<IStream> &_ps,
