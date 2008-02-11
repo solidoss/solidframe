@@ -10,3 +10,32 @@ SolidGround (SG) is a framework which is also designed as a workspace. This mean
 
 First of all you'll need to get a copy of the SG repository. See [
 http://code.google.com/p/solidground/wiki/Introduction] (How to build and test the proof of concept server) wiki-page for the steps you need to do to build the SG's test applications.
+
+Supposing that you successfully built the test applications, let's set up your application.
+
+SG's build.sh creates a folder called "application" within the SG's folder. There's where your application should reside.
+
+So you should do something like:
+{{{
+solidground $ svn co https://foobarsuite.googlecode.com/svn/trunk/ application
+}}}
+
+
+So you'll have a repository copy of your application within solidground/application. With no files and no folders. Lets add some (we suppose the foobarsuite contains: a client, a server and some test applications):
+ # first you'll need to create the folders:
+{{{
+solidground $ mkdir foobar_server && svn add foobar_server
+solidground $ mkdir foobar_client && svn add foobar_client
+solidground $ mkdir test && svn add test
+}}}
+ # next you'll need the file that will integrate the application within SG's build system.
+{{{
+application $ cat > CMakeLists.txt
+add_subdirectory (foobar_server)
+add_subdirectory (foobar_client)
+add_subdirectory (test)
+
+CTRL+C
+}}}
+
+ # then you'll need to add the source files to every foobar folder, along with the CMakeLists.txt files.
