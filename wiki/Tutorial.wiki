@@ -24,9 +24,9 @@ solidground $ svn co https://foobarsuite.googlecode.com/svn/trunk/ application
 So you'll have a repository copy of your application within solidground/application. With no files and no folders. Lets add some (we suppose the foobarsuite contains: a client, a server and some test applications):
  # first you'll need to create the folders:
 {{{
-solidground $ mkdir foobar_server && svn add foobar_server
-solidground $ mkdir foobar_client && svn add foobar_client
-solidground $ mkdir test && svn add test
+application $ mkdir foobar_server && svn add foobar_server
+application $ mkdir foobar_client && svn add foobar_client
+application $ mkdir test && svn add test
 }}}
  # next you'll need the file that will integrate the application within SG's build system.
 {{{
@@ -36,6 +36,18 @@ add_subdirectory (foobar_client)
 add_subdirectory (test)
 
 CTRL+C
+application $ touch foobar_server/CMakeLists.txt
+application $ touch foobar_client/CMakeLists.txt
+application $ touch test/CMakeLists.txt
 }}}
-
  # then you'll need to add the source files to every foobar folder, along with the CMakeLists.txt files.
+
+Because "foobar" is a fictional application/suite, I cannot continue with the structure. All I can point out is that you can have a look at SG's "test" and especially "test/clientserver" folder to get an idea of how the structure should look like.
+
+Below I will present the structure of the proof of concept SG's test application.
+
+= ClientServer test =
+
+The SG's clientserver application is a quite complex multi service server, using and testing most of SG's features. The server has three services:
+ * two services *echo* and *beta*, implementing echo and/or echo-like protocols over TCP and UDP.
+ * an *alpha* service with a complex IMAP-like text protocol.
