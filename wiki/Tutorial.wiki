@@ -97,14 +97,120 @@ The insert methods are just proxies for test::Service methods.
 
 The pools are simply defined like this:
 {{{
-typedef clientserver::SelectPool<cs::ObjectSelector>			ObjSelPoolTp;
+	typedef clientserver::SelectPool<cs::ObjectSelector>			ObjSelPoolTp;
 	typedef clientserver::SelectPool<cs::tcp::ConnectionSelector>	ConSelPoolTp;
 	typedef clientserver::SelectPool<cs::tcp::ListenerSelector>		LisSelPoolTp;
 	typedef clientserver::SelectPool<cs::udp::TalkerSelector>		TkrSelPoolTp;
 }}}
 
+Instantiating a pool is simple:
+{{{
+if(true){	
+	pconnectionpool = new ConSelPoolTp(_rs,
+					10,		//max thread cnt
+					50		//max connections per selector
+					);		//at most 10 * 4 * 1024 connections
+	pconnectionpool->start(1);//start with one worker
+}
+}}}
+
+And adding a job to a pool is also straight forward:
+{{{
+template <>
+void Server::pushJob(cs::Object *_pj, int _pos){
+	d.pobjectpool[_pos]->push(cs::ObjPtr<cs::Object>(_pj));
+}
+}}}
+
 In order to instantiate a cs::FileManager, one need to define some virtual members for asynchronously sending streams or errors to requesting objects.
 
+Because the test::Server also extends the cs::Server interface, it also has to redefine the Server::the() method to access the server object from any thread of the server.
+
+{{{
+static inline Server& Server::the(){
+    return static_cast<Server&>(clientserver::Server::the());
+}
+}}}
+
+=== The Service ===
+
+The test::Service also inherits and extends the cs::Service one, but things are a little more simple here:
+ * implement the execute method so that the service is an active object:
+{{{
+int Service::execute(ulong _sig, TimeSpec &_rtout){
+	idbg("serviceexec");
+	if(signaled()){
+		ulong sm;
+		{
+			Mutex::Locker	lock(*mut);
+			sm = grabSignalMask(1);
+		}
+		if(sm & cs::S_KILL){
+			idbg("killing service "<<this->id());
+			this->stop(test::Server::the(), true);
+			test::Server::the().removeService(this);
+			return BAD;
+		}
+	}
+	return NOK;//just wait
+}
+}}}
+ * define virtual insertion methods for different objects (insertTalker, insertConnection, insertListener) and give them dummy implementation.
+
+=== The Listener ===
+
+The test::Listener inherits the cs::tcp::Listener and implements execute(...) to allow Connection creation. It is used by all services accepting tcp connections. Here is the execute loop:
+{{{
+
+Listener::~Listener(){
+	test::Server &rs = test::Server::the();
+	rs.service(*this).removeListener(*this);
+}
+
+int Listener::execute(ulong, TimeSpec&){
+	idbg("here");
+	Server &rs = Server::the();
+	Service	&rsrvc = rs.service(*this);
+	if(signaled()){
+		{
+		Mutex::Locker	lock(rs.mutex(*this));
+		ulong sm = this->grabSignalMask();
+		if(sm & clientserver::S_KILL) return BAD;
+		}
+	}
+	station().accept(chvec);
+	for(ChannelVecTp::iterator it(chvec.begin()); it != chvec.end(); ++it){
+		if(rsrvc.insertConnection(rs, *it)){
+			delete *it;
+		}
+	}
+	return OK;
+}
+
+}}}
+
+
+=== The Object, Connection ===
+
+These are only meant to extend their cs:: counterparts, and be inherited by the ones from the services. Basically all they do is to extend the interface with methods for receiving different object types (receiveIStream, receiveOStream, receiveIOStream, receiveString, receiveNumber, receiveError). They also gives those methods dummy implementations.
+
+{{{
+virtual int receiveIStream(
+	StreamPtr<IStream> &,
+	const FileUidTp	&,
+	const RequestUidTp &_requid,
+	int			_which = 0,
+	const ObjectUidTp&_from = ObjectUidTp(),
+	const clientserver::ipc::ConnectorUid *_conid = NULL
+);
+virtual int receiveString(
+	const String &_str,
+	const RequestUidTp &_requid,
+	int			_which = 0,
+	const ObjectUidTp&_from = ObjectUidTp(),
+	const clientserver::ipc::ConnectorUid *_conid = NULL
+);
+}}}
 
 == The _alpha_ folder ==
 
