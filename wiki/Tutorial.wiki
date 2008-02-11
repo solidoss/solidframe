@@ -245,6 +245,41 @@ int Service::removeConnection(Connection &_rcon){
   * create a concrete alpha::Command object based on the name, and let the command initiate the alpha::Reader to parse the command parameters;
   * after the command was successfully parsed, execute it to initiate the alpha::Responder to asynchronously build the reponse;
   * when done writing start allover again.
+And the receiveSomething methods will just be proxies methods to forward the data to the
+equivalent alpha::Command methods, ensuring that the received data is the one expected:
+{{{
+int Connection::receiveIStream(
+	StreamPtr<IStream> &_ps,
+	const FileUidTp &_fuid,
+	const RequestUidTp &_requid,
+	int			_which,
+	const ObjectUidTp&_from,
+	const clientserver::ipc::ConnectorUid *_conid
+){
+	idbg("");
+	if(_requid.first && _requid.first != reqid) return OK;
+	idbg("");
+	newRequestId();//prevent multiple responses with the same id
+	if(pcmd){
+		switch(pcmd->receiveIStream(_ps, _fuid, _which, _from, _conid)){
+			case BAD:
+				idbg("");
+				break;
+			case OK:
+				idbg("");
+				if(state() == ParseTout){
+					state(Parse);
+				}
+				break;
+			case NOK:
+				idbg("");
+				state(IdleExecute);
+				break;
+		}
+	}
+	return OK;
+}
+}}}
  # Define a base class for all alpha protocol commands (alpha/src/alphacommand.h).
  # Define an alpha::Reader inheriting and extending the algorithm::protocol::Reader to better fit the alpha syntax (alpha/src/alphareader.h/cpp).
  # Define an alpha::Writer inheriting and extending the algorithm::protocol::Writer to better fit the alpha syntax (alpha/src/alphawriter.h/cpp). 
@@ -296,4 +331,5 @@ int List::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 }
 
 }}}
+
 == The _main_ folder ==
