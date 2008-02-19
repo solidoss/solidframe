@@ -98,7 +98,7 @@ The insert methods are just proxies for test::Service methods.
 The pools are simply defined like this:
 {{{
 	typedef clientserver::SelectPool<cs::ObjectSelector>			ObjSelPoolTp;
-	typedef clientserver::SelectPool<cs::tcp::ConnectionSelector>	ConSelPoolTp;
+	typedef clientserver::SelectPool<cs::tcp::ConnectionSelector>		ConSelPoolTp;
 	typedef clientserver::SelectPool<cs::tcp::ListenerSelector>		LisSelPoolTp;
 	typedef clientserver::SelectPool<cs::udp::TalkerSelector>		TkrSelPoolTp;
 }}}
