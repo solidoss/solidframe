@@ -20,16 +20,38 @@
 */
 
 #include <cstdlib>
-#include "stream.h"
-#include "streamptr.h"
+#include "stream.hpp"
+#include "istream.hpp"
+#include "ostream.hpp"
+#include "iostream.hpp"
+#include "streamptr.hpp"
 
 void StreamPtrBase::clear(Stream *_ps){
 	if(_ps->release()) delete _ps;
+}
+
+Stream::~Stream(){
 }
 
 int Stream::release(){return -1;}
 //bool Stream::isOk()const{return true;}
 
 int64 Stream::size()const{return -1;}
+
+IStream::~IStream(){
+}
+
+OStream::~OStream(){
+}
+
+IOStream::~IOStream(){
+}
+
+#ifndef UINLINES
+#include "stream.ipp"
+#include "istream.ipp"
+#include "ostream.ipp"
+#include "iostream.ipp"
+#endif
 
 

@@ -22,7 +22,7 @@
 #ifndef TESTVISITOR_H
 #define TESTVISITOR_H
 
-#include "clientserver/core/visitor.h"
+#include "clientserver/core/visitor.hpp"
 
 namespace test{
 

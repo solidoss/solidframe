@@ -23,16 +23,19 @@
 #include <errno.h>
 #include <fcntl.h>
 
-#include "system/cassert.h"
-#include "system/debug.h"
-#include "system/socketaddress.h"
+#include "system/cassert.hpp"
+#include "system/debug.hpp"
+#include "system/socketaddress.hpp"
 
-#include "core/common.h"
-#include "udp/station.h"
+#include "core/common.hpp"
+#include "udp/station.hpp"
 #include <new>
 
 namespace clientserver{
 namespace udp{
+#ifndef UINLINES
+#include "station.ipp"
+#endif
 //-----------------------------------------------------------------------------------------
 Station* Station::create(){
 	int sd = socket(AF_INET, SOCK_DGRAM, 0);

@@ -19,14 +19,14 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "system/debug.h"
-#include "system/timespec.h"
+#include "system/debug.hpp"
+#include "system/timespec.hpp"
 
-#include "utility/ostream.h"
-#include "utility/istream.h"
+#include "utility/ostream.hpp"
+#include "utility/istream.hpp"
 
-#include "clientserver/tcp/channel.h"
-#include "clientserver/ipc/ipcservice.h"
+#include "clientserver/tcp/channel.hpp"
+#include "clientserver/ipc/ipcservice.hpp"
 
 #include "core/server.h"
 #include "core/command.h"

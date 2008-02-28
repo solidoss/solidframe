@@ -19,11 +19,11 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "system/debug.h"
-#include "system/synchronization.h"
+#include "system/debug.hpp"
+#include "system/synchronization.hpp"
 
-#include "core/object.h"
-#include "core/objectselector.h"
+#include "core/object.hpp"
+#include "core/objectselector.hpp"
 
 namespace clientserver{
 

@@ -11,10 +11,10 @@
 #include <signal.h>
 #include <deque>
 
-#include "system/cassert.h"
-#include "system/debug.h"
-#include "system/socketaddress.h"
-#include "system/thread.h"
+#include "system/cassert.hpp"
+#include "system/debug.hpp"
+#include "system/socketaddress.hpp"
+#include "system/thread.hpp"
 //#include "common/utils.h"
 #include "writer.h"
 

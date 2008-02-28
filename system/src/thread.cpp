@@ -19,12 +19,12 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "timespec.h"
+#include "timespec.hpp"
 
-#include "thread.h"
-#include "debug.h"
-#include "common.h"
-#include "mutexpool.h"
+#include "thread.hpp"
+#include "debug.hpp"
+#include "common.hpp"
+#include "mutexpool.hpp"
 #include <cerrno>
 
 struct Cleaner{
@@ -51,37 +51,29 @@ int Condition::wait(Mutex &_mut, const TimeSpec &_ts){
 	return pthread_cond_timedwait(&cond,&_mut.mut, &_ts);
 }
 //*************************************************************************
-int Mutex::lock(){
-#ifdef UDEBUG
-	int rv = pthread_mutex_lock(&mut);
-	if(rv){
-		idbg("lock error "<<strerror(errno));
-	}
-	cassert(!rv);
-	return rv;
-#else
-	return pthread_mutex_lock(&mut);
+#ifndef UINLINES
+#include "timespec.ipp"
 #endif
-}
-//-------------------------------------------------------------------------
-int Mutex::unlock(){
-#ifdef UDEBUG
-	int rv = pthread_mutex_unlock(&mut);
-	if(rv){
-		idbg("lock error "<<strerror(errno));
-	}
-	cassert(!rv);
-	return rv;
-#else
-	return pthread_mutex_unlock(&mut);
+//*************************************************************************
+#ifndef UINLINES
+#include "mutex.ipp"
 #endif
-}
 //-------------------------------------------------------------------------
+//TODO: use TimeSpec
 bool Mutex::timedLock(unsigned long _ms){
-	struct timespec lts;
+	timespec lts;
 	lts.tv_sec=_ms/1000;
 	lts.tv_nsec=(_ms%1000)*1000000;
 	return pthread_mutex_timedlock(&mut,&lts)==0;  
+}
+//-------------------------------------------------------------------------
+int Mutex::reinit(TYPES _type){
+	if(locked()) return -1;
+	pthread_mutex_destroy(&mut);
+	pthread_mutexattr_t att;
+	pthread_mutexattr_init(&att);
+	pthread_mutexattr_settype(&att, (int)_type);
+	pthread_mutex_init(&mut,&att);
 }
 //*************************************************************************
 void Thread::init(){

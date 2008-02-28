@@ -22,8 +22,8 @@
 #ifndef TESTOBJECT_H
 #define TESTOBJECT_H
 
-#include "utility/streamptr.h"
-#include "clientserver/core/object.h"
+#include "utility/streamptr.hpp"
+#include "clientserver/core/object.hpp"
 #include "common.h"
 #include "tstring.h"
 

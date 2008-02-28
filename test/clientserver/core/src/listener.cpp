@@ -19,11 +19,11 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "system/debug.h"
-#include "system/synchronization.h"
+#include "system/debug.hpp"
+#include "system/synchronization.hpp"
 
-#include "clientserver/tcp/station.h"
-#include "clientserver/tcp/channel.h"
+#include "clientserver/tcp/station.hpp"
+#include "clientserver/tcp/channel.hpp"
 
 
 #include "core/common.h"

@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "algorithm/protocol/reader.h"
-#include "utility/ostream.h"
+#include "algorithm/protocol/reader.hpp"
+#include "utility/ostream.hpp"
 #include <cerrno>
 
 namespace protocol{

@@ -21,12 +21,15 @@
 
 #include <cstdlib>
 
-#include "udp/talker.h"
-#include "udp/visitor.h"
-#include "udp/station.h"
+#include "udp/talker.hpp"
+#include "udp/visitor.hpp"
+#include "udp/station.hpp"
 
 namespace clientserver{
 namespace udp{
+//--------------------------------------------------------------
+Visitor::Visitor(){}
+Visitor::~Visitor(){}
 //-----------------------------------------------------------------------------------------
 Talker::Talker(Station *pst):rst(*pst){}
 //-----------------------------------------------------------------------------------------

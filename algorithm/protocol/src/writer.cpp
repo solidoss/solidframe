@@ -19,10 +19,10 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "algorithm/protocol/writer.h"
-#include "utility/istream.h"
+#include "algorithm/protocol/writer.hpp"
+#include "utility/istream.hpp"
 
-#include "system/debug.h"
+#include "system/debug.hpp"
 
 namespace protocol{
 

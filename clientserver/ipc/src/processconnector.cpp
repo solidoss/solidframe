@@ -20,16 +20,16 @@
 */
 
 #include <queue>
-#include "system/debug.h"
-#include "system/socketaddress.h"
-#include "system/specific.h"
-#include "utility/queue.h"
-#include "processconnector.h"
-#include "iodata.h"
-#include "algorithm/serialization/binary.h"
-#include "core/command.h"
-#include "core/server.h"
-#include "ipc/ipcservice.h"
+#include "system/debug.hpp"
+#include "system/socketaddress.hpp"
+#include "system/specific.hpp"
+#include "utility/queue.hpp"
+#include "processconnector.hpp"
+#include "iodata.hpp"
+#include "algorithm/serialization/binary.hpp"
+#include "core/command.hpp"
+#include "core/server.hpp"
+#include "ipc/ipcservice.hpp"
 
 namespace cs = clientserver;
 

@@ -22,7 +22,7 @@
 #ifndef ALPHA_COMMAND_H
 #define ALPHA_COMMAND_H
 
-#include "utility/streamptr.h"
+#include "utility/streamptr.hpp"
 #include "core/common.h"
 #include "core/tstring.h"
 

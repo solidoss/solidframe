@@ -19,19 +19,28 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "system/cassert.h"
-#include "system/synchronization.h"
+#include "system/cassert.hpp"
+#include "system/synchronization.hpp"
 
-#include "system/debug.h"
+#include "system/debug.hpp"
 
-#include "core/object.h"
-#include "core/objptr.h"
-#include "core/visitor.h"
-#include "core/command.h"
-#include "core/cmdptr.h"
-#include "core/server.h"
+#include "core/object.hpp"
+#include "core/objptr.hpp"
+#include "core/visitor.hpp"
+#include "core/command.hpp"
+#include "core/cmdptr.hpp"
+#include "core/server.hpp"
 
 namespace clientserver{
+//---------------------------------------------------------------------
+//----	Visitor	----
+//---------------------------------------------------------------------
+
+Visitor::Visitor(){
+}
+
+Visitor::~Visitor(){
+}
 //---------------------------------------------------------------------
 //----	ObjPtr	----
 //---------------------------------------------------------------------
@@ -68,6 +77,10 @@ void CmdPtrBase::use(Command *_pcmd){
 //---------------------------------------------------------------------
 //----	Object	----
 //---------------------------------------------------------------------
+
+#ifndef UINLINES
+#include "object.ipp"
+#endif
 
 Object::Object(ulong _fullid):	fullid(_fullid), smask(0), 
 								thrid(0),thrpos(0),usecnt(0),crtstate(0){

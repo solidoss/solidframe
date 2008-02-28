@@ -29,7 +29,7 @@
 #include "alphareader.h"
 #include "alphawriter.h"
 
-#include "clientserver/core/commandableobject.h"
+#include "clientserver/core/commandableobject.hpp"
 
 class SocketAddress;
 

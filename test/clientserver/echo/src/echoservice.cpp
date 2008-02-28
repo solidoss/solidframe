@@ -19,12 +19,12 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "system/debug.h"
+#include "system/debug.hpp"
 #include "core/server.h"
-#include "clientserver/core/objptr.h"
-#include "clientserver/udp/station.h"
-#include "clientserver/tcp/station.h"
-#include "clientserver/tcp/channel.h"
+#include "clientserver/core/objptr.hpp"
+#include "clientserver/udp/station.hpp"
+#include "clientserver/tcp/station.hpp"
+#include "clientserver/tcp/channel.hpp"
 
 #include "core/listener.h"
 

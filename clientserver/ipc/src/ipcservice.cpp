@@ -19,22 +19,21 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "system/debug.h"
-#include "core/server.h"
-#include "clientserver/core/objptr.h"
-#include "clientserver/core/common.h"
-#include "clientserver/udp/station.h"
-
-// #include "core/listener.h"
-// #include "core/tstring.h"
-
-#include "ipc/ipcservice.h"
 #include <map>
 #include <vector>
-#include "ipctalker.h"
-#include "iodata.h"
-#include "processconnector.h"
-#include "ipc/connectoruid.h"
+
+#include "system/debug.hpp"
+
+#include "clientserver/core/objptr.hpp"
+#include "clientserver/core/common.hpp"
+#include "clientserver/udp/station.hpp"
+
+#include "core/server.hpp"
+#include "ipc/ipcservice.hpp"
+#include "ipc/connectoruid.hpp"
+#include "ipctalker.hpp"
+#include "iodata.hpp"
+#include "processconnector.hpp"
 
 namespace cs = clientserver;
 

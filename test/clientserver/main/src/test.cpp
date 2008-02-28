@@ -21,19 +21,19 @@
 
 #include <iostream>
 #include <signal.h>
-#include "system/debug.h"
-#include "system/thread.h"
-#include "system/socketaddress.h"
+#include "system/debug.hpp"
+#include "system/thread.hpp"
+#include "system/socketaddress.hpp"
 
 #include "core/server.h"
 #include "echo/echoservice.h"
 #include "alpha/alphaservice.h"
 #include "beta/betaservice.h"
 
-#include "clientserver/ipc/ipcservice.h"
-#include "clientserver/tcp/station.h"
-#include "clientserver/tcp/channel.h"
-#include "clientserver/udp/station.h"
+#include "clientserver/ipc/ipcservice.hpp"
+#include "clientserver/tcp/station.hpp"
+#include "clientserver/tcp/channel.hpp"
+#include "clientserver/udp/station.hpp"
 
 namespace cs = clientserver;
 using namespace std;

@@ -19,14 +19,14 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "core/common.h"
+#include "core/common.hpp"
 
-#include "tcp/station.h"
-#include "tcp/listener.h"
+#include "tcp/station.hpp"
+#include "tcp/listener.hpp"
 
 namespace clientserver{
 namespace tcp{
-
+//----------------------------------------------------------------
 Listener::Listener(Station *_pst, uint _res, ulong _fullid):Object(_fullid), rst(*_pst){
 	chvec.reserve(_res);
 }

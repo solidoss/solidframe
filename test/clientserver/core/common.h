@@ -22,7 +22,7 @@
 #ifndef TESTCOMMON_H
 #define TESTCOMMON_H
 
-#include "clientserver/core/common.h"
+#include "clientserver/core/common.hpp"
 
 #include <string.h>
 

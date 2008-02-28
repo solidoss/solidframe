@@ -19,7 +19,7 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "list.h"
+#include "list.hpp"
 
 Link* ListBase::doPushBack(Link *_pl){
 	++sz;

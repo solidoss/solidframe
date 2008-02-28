@@ -21,7 +21,7 @@
 
 #include "alphawriter.h"
 #include "alphaprotocolfilters.h"
-#include "clientserver/tcp/channel.h"
+#include "clientserver/tcp/channel.hpp"
 
 
 namespace test{

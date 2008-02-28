@@ -20,9 +20,9 @@
 */
 
 #include <unistd.h>
-#include "filedevice.h"
-#include "directory.h"
-#include "system/cassert.h"
+#include "system/filedevice.hpp"
+#include "system/directory.hpp"
+#include "system/cassert.hpp"
 #include <cerrno>
 
 Device::Device(const Device &_dev):desc(_dev.descriptor()) {

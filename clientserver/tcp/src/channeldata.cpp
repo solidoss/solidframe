@@ -19,9 +19,9 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "channeldata.h"
-#include "system/specific.h"
-#include "system/cassert.h"
+#include "channeldata.hpp"
+#include "system/specific.hpp"
+#include "system/cassert.hpp"
 
 namespace clientserver{
 namespace tcp{

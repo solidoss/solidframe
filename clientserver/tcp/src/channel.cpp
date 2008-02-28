@@ -23,18 +23,22 @@
 #include <errno.h>
 #include <fcntl.h>
 
-#include "system/debug.h"
-#include "system/socketaddress.h"
+#include "system/debug.hpp"
+#include "system/socketaddress.hpp"
 
-#include "core/common.h"
+#include "core/common.hpp"
 
-#include "tcp/channel.h"
-#include "tcp/connectionselector.h"
+#include "tcp/channel.hpp"
+#include "tcp/connectionselector.hpp"
 
-#include "channeldata.h"
+#include "channeldata.hpp"
 
 namespace clientserver{
 namespace tcp{
+
+#ifndef UINLINES
+#include "channel.ipp"
+#endif
 
 Channel* Channel::create(const AddrInfoIterator &_rai){
 	cassert(false);

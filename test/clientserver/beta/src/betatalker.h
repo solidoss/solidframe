@@ -23,7 +23,7 @@
 #define BETATALKER_H
 
 #include "core/talker.h"
-#include "clientserver/core/readwriteobject.h"
+#include "clientserver/core/readwriteobject.hpp"
 
 namespace clientserver{
 class Visitor;

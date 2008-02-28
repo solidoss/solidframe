@@ -21,17 +21,17 @@
 
 #include <vector>
 
-#include "system/cassert.h"
-#include "system/debug.h"
-#include "system/thread.h"
-#include "system/specific.h"
+#include "system/cassert.hpp"
+#include "system/debug.hpp"
+#include "system/thread.hpp"
+#include "system/specific.hpp"
 
-#include "core/server.h"
-#include "core/service.h"
-#include "core/object.h"
-#include "core/activeset.h"
-#include "core/filemanager.h"
-#include "ipc/ipcservice.h"
+#include "core/server.hpp"
+#include "core/service.hpp"
+#include "core/object.hpp"
+#include "core/activeset.hpp"
+#include "core/filemanager.hpp"
+#include "ipc/ipcservice.hpp"
 
 /*
 Server &ServerThread::server(){
