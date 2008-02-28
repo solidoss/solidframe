@@ -26,8 +26,8 @@
 #include <map>
 #include <list>
 //#undef UDEBUG
-#include "system/thread.h"
-#include "algorithm/serialization/binary.h"
+#include "system/thread.hpp"
+#include "algorithm/serialization/binary.hpp"
 
 using namespace std;
 

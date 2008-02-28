@@ -22,8 +22,8 @@
 #ifndef TESTCONNECTION_H
 #define TESTCONNECTION_H
 
-#include "utility/streamptr.h"
-#include "clientserver/tcp/connection.h"
+#include "utility/streamptr.hpp"
+#include "clientserver/tcp/connection.hpp"
 #include "common.h"
 #include "tstring.h"
 

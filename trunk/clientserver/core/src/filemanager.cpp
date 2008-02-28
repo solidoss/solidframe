@@ -25,22 +25,22 @@
 #include <iostream>
 #include <string>
 
-#include "system/debug.h"
-#include "system/timespec.h"
-#include "system/filedevice.h"
-#include "system/synchronization.h"
-#include "system/timespec.h"
+#include "system/debug.hpp"
+#include "system/timespec.hpp"
+#include "system/filedevice.hpp"
+#include "system/synchronization.hpp"
+#include "system/timespec.hpp"
 
-#include "utility/sharedcontainer.h"
-#include "utility/iostream.h"
-#include "utility/queue.h"
-#include "utility/stack.h"
+#include "utility/sharedcontainer.hpp"
+#include "utility/iostream.hpp"
+#include "utility/queue.hpp"
+#include "utility/stack.hpp"
 
-#include "core/filemanager.h"
-#include "core/server.h"
-#include "core/common.h"
-#include "core/filekeys.h"
-#include "core/filemapper.h"
+#include "core/filemanager.hpp"
+#include "core/server.hpp"
+#include "core/common.hpp"
+#include "core/filekeys.hpp"
+#include "core/filemapper.hpp"
 
 namespace cs = clientserver;
 using namespace std;

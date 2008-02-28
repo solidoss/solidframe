@@ -22,7 +22,7 @@
 #ifndef TESTTALKER_H
 #define TESTTALKER_H
 
-#include "clientserver/udp/talker.h"
+#include "clientserver/udp/talker.hpp"
 #include "common.h"
 
 namespace test{

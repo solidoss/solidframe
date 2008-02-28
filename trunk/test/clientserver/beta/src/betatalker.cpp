@@ -19,14 +19,14 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "clientserver/udp/station.h"
+#include "clientserver/udp/station.hpp"
 
 #include "core/server.h"
 #include "beta/betaservice.h"
 #include "betatalker.h"
-#include "system/socketaddress.h"
-#include "system/debug.h"
-#include "system/timespec.h"
+#include "system/socketaddress.hpp"
+#include "system/debug.hpp"
+#include "system/timespec.hpp"
 #include <map>
 #include <iostream>
 

@@ -22,11 +22,11 @@
 #include <map>
 #include <vector>
 
-#include "system/debug.h"
+#include "system/debug.hpp"
 
-#include "utility/iostream.h"
+#include "utility/iostream.hpp"
 
-#include "algorithm/serialization/binary.h"
+#include "algorithm/serialization/binary.hpp"
 
 #include "core/server.h"
 #include "core/service.h"
@@ -36,20 +36,20 @@
 #include "core/object.h"
 
 
-#include "clientserver/core/selectpool.h"
-#include "clientserver/core/execpool.h"
-#include "clientserver/core/filemanager.h"
-#include "clientserver/core/filekeys.h"
-#include "clientserver/tcp/connectionselector.h"
-#include "clientserver/tcp/connection.h"
-#include "clientserver/tcp/listenerselector.h"
-#include "clientserver/tcp/listener.h"
-#include "clientserver/udp/talkerselector.h"
-#include "clientserver/udp/talker.h"
-#include "clientserver/core/objectselector.h"
-#include "clientserver/core/commandexecuter.h"
+#include "clientserver/core/selectpool.hpp"
+#include "clientserver/core/execpool.hpp"
+#include "clientserver/core/filemanager.hpp"
+#include "clientserver/core/filekeys.hpp"
+#include "clientserver/tcp/connectionselector.hpp"
+#include "clientserver/tcp/connection.hpp"
+#include "clientserver/tcp/listenerselector.hpp"
+#include "clientserver/tcp/listener.hpp"
+#include "clientserver/udp/talkerselector.hpp"
+#include "clientserver/udp/talker.hpp"
+#include "clientserver/core/objectselector.hpp"
+#include "clientserver/core/commandexecuter.hpp"
 
-#include "clientserver/ipc/ipcservice.h"
+#include "clientserver/ipc/ipcservice.hpp"
 
 
 #include <iostream>

@@ -22,7 +22,7 @@
 #ifndef ALPHA_WRITER_H
 #define ALPHA_WRITER_H
 
-#include "algorithm/protocol/writer.h"
+#include "algorithm/protocol/writer.hpp"
 
 namespace clientserver{
 namespace tcp{

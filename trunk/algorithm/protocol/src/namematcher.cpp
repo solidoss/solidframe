@@ -19,10 +19,10 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "algorithm/protocol/namematcher.h"
+#include "algorithm/protocol/namematcher.hpp"
 #include <map>
 //#include <tr1/unordered_map>
-#include "system/cassert.h"
+#include "system/cassert.hpp"
 using namespace std;
 
 namespace protocol{

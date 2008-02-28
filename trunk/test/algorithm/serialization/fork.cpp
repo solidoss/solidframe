@@ -25,11 +25,11 @@
 #include <deque>
 #include <map>
 #include <list>
-#include "system/filedevice.h"
-#include "utility/iostream.h"
+#include "system/filedevice.hpp"
+#include "utility/iostream.hpp"
 #undef UDEBUG
-#include "system/thread.h"
-#include "algorithm/serialization/binary.h"
+#include "system/thread.hpp"
+#include "algorithm/serialization/binary.hpp"
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <cerrno>

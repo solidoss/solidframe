@@ -19,22 +19,22 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "udp/station.h"
 #include <queue>
 #include <map>
-#include "system/timespec.h"
-#include "system/socketaddress.h"
-#include "system/debug.h"
-#include "system/specific.h"
-#include "utility/queue.h"
-#include "utility/stack.h"
-#include "core/server.h"
-#include "ipc/ipcservice.h"
-#include "ipctalker.h"
-#include "processconnector.h"
-#include "ipc/connectoruid.h"
-
 #include <cerrno>
+
+#include "system/timespec.hpp"
+#include "system/socketaddress.hpp"
+#include "system/debug.hpp"
+#include "system/specific.hpp"
+#include "utility/queue.hpp"
+#include "utility/stack.hpp"
+#include "core/server.hpp"
+#include "ipc/ipcservice.hpp"
+#include "ipc/connectoruid.hpp"
+#include "udp/station.hpp"
+#include "ipctalker.hpp"
+#include "processconnector.hpp"
 
 namespace cs = clientserver;
 

@@ -19,13 +19,13 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "system/debug.h"
+#include "system/debug.hpp"
 #include "core/server.h"
 
-#include "algorithm/serialization/binary.h"
+#include "algorithm/serialization/binary.hpp"
 
-#include "clientserver/core/objptr.h"
-#include "clientserver/tcp/station.h"
+#include "clientserver/core/objptr.hpp"
+#include "clientserver/tcp/station.hpp"
 
 #include "core/listener.h"
 

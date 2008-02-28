@@ -22,7 +22,7 @@
 #ifndef TESTSERVER_H
 #define TESTSERVER_H
 #include <map>
-#include "clientserver/core/server.h"
+#include "clientserver/core/server.hpp"
 #include "common.h"
 
 namespace serialization{

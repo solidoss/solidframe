@@ -23,15 +23,15 @@
 #include <vector>
 #include <algorithm>
 
-#include "system/debug.h"
+#include "system/debug.hpp"
 
-#include "utility/queue.h"
+#include "utility/queue.hpp"
 
-#include "core/object.h"
-#include "core/server.h"
-#include "core/command.h"
-#include "core/readwriteservice.h"
-#include "core/common.h"
+#include "core/object.hpp"
+#include "core/server.hpp"
+#include "core/command.hpp"
+#include "core/readwriteservice.hpp"
+#include "core/common.hpp"
 
 namespace clientserver{
 

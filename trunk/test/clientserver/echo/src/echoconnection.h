@@ -23,8 +23,8 @@
 #define ECHOCONNECTION_H
 
 #include "core/connection.h"
-#include "clientserver/core/readwriteobject.h"
-#include "system/socketaddress.h"
+#include "clientserver/core/readwriteobject.hpp"
+#include "system/socketaddress.hpp"
 class SocketAddress;
 
 namespace clientserver{

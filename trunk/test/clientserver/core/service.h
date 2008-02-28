@@ -22,7 +22,7 @@
 #ifndef TESTSERVICE_H
 #define TESTSERVICE_H
 
-#include "clientserver/core/readwriteservice.h"
+#include "clientserver/core/readwriteservice.hpp"
 #include "common.h"
 
 struct AddrInfoIterator;

@@ -22,7 +22,7 @@
 #ifndef TEST_COMMAND_H
 #define TEST_COMMAND_H
 
-#include "clientserver/core/command.h"
+#include "clientserver/core/command.hpp"
 
 namespace test{
 class Connection;

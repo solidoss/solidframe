@@ -21,12 +21,18 @@
 
 #include <cstdlib>
 
-#include "tcp/connection.h"
-#include "tcp/visitor.h"
-#include "tcp/channel.h"
+#include "tcp/connection.hpp"
+#include "tcp/visitor.hpp"
+#include "tcp/channel.hpp"
 
 namespace clientserver{
 namespace tcp{
+
+Visitor::Visitor(){
+}
+Visitor::~Visitor(){
+}
+
 //---------------------------------------------------------------------
 //----	Connection	----
 //---------------------------------------------------------------------

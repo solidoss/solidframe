@@ -28,12 +28,12 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
 
-#include "system/debug.h"
+#include "system/debug.hpp"
 
-#include "core/common.h"
+#include "core/common.hpp"
 
-#include "tcp/station.h"
-#include "tcp/channel.h"
+#include "tcp/station.hpp"
+#include "tcp/channel.hpp"
 
 namespace clientserver{
 namespace tcp{

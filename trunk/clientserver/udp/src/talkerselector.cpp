@@ -23,13 +23,13 @@
 #include <fcntl.h>
 #include <sys/epoll.h>
 
-#include "system/debug.h"
+#include "system/debug.hpp"
 
-#include "core/object.h"
-#include "core/common.h"
-#include "udp/talkerselector.h"
-#include "udp/talker.h"
-#include "udp/station.h"
+#include "core/object.hpp"
+#include "core/common.hpp"
+#include "udp/talkerselector.hpp"
+#include "udp/talker.hpp"
+#include "udp/station.hpp"
 
 // #include <iostream>
 // 
@@ -37,7 +37,6 @@
 
 namespace clientserver{
 namespace udp{
-
 enum{
 	UNROLLSZ = 4, 
 	UNROLLMSK = 3,

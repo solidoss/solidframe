@@ -19,7 +19,7 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "algorithm/protocol/logger.h"
+#include "algorithm/protocol/logger.hpp"
 namespace protocol{
 //----------------------------------------------------------
 Logger::Logger(){
@@ -51,4 +51,9 @@ void Logger::writeLiteral(const char *_pb, unsigned _bl){
 }
 //----------------------------------------------------------
 }//namespace protocol
+
+#ifndef UINLINES
+#include "algorithm/protocol/parameter.hpp"
+#include "parameter.ipp"
+#endif
 

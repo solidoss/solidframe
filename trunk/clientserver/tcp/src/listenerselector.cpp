@@ -23,15 +23,15 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#include "system/cassert.h"
-#include "system/debug.h"
-#include "system/timespec.h"
+#include "system/cassert.hpp"
+#include "system/debug.hpp"
+#include "system/timespec.hpp"
 
-#include "core/common.h"
+#include "core/common.hpp"
 
-#include "tcp/station.h"
-#include "tcp/listenerselector.h"
-#include "tcp/listener.h"
+#include "tcp/station.hpp"
+#include "tcp/listenerselector.hpp"
+#include "tcp/listener.hpp"
 
 namespace clientserver{
 namespace tcp{

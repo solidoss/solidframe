@@ -19,11 +19,11 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "socketaddress.h"
+#include "socketaddress.hpp"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include "system/cassert.h"
+#include "system/cassert.hpp"
 
 AddrInfo::~AddrInfo(){
 	if(!empty()){
@@ -169,3 +169,6 @@ void SocketAddress::port(int _port){
 	}
 }
 
+#ifndef UINLINES
+#include "socketaddress.ipp"
+#endif

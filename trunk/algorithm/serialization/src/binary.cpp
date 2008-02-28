@@ -19,11 +19,11 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "serialization/binary.h"
-#include "utility/ostream.h"
-#include "utility/istream.h"
+#include "serialization/binary.hpp"
+#include "utility/ostream.hpp"
+#include "utility/istream.hpp"
 #ifdef UTHREADS
-#include "system/synchronization.h"
+#include "system/synchronization.hpp"
 #endif
 
 namespace serialization{

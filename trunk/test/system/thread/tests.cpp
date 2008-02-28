@@ -20,10 +20,10 @@
 */
 
 #include <iostream>
-#include "system/debug.h"
-#include "system/thread.h"
-#include "system/specific.h"
-#include "system/common.h"
+#include "system/debug.hpp"
+#include "system/thread.hpp"
+#include "system/specific.hpp"
+#include "system/common.hpp"
 #include "speca.h"
 #include "specb.h"
 

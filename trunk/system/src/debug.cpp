@@ -19,14 +19,14 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "debug.h"
-#include "directory.h"
+#include "debug.hpp"
+#include "directory.hpp"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <cstring>
-#include "thread.h"
+#include "thread.hpp"
 
 #ifdef UDEBUG
 const int Dbg::fileoff = (strstr(__FILE__, "system/src") - __FILE__);//sizeof("workspace/") - 1 == 9

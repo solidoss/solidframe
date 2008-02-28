@@ -23,24 +23,24 @@
 #include <fcntl.h>
 #include <sys/epoll.h>
 
-#include "system/debug.h"
-#include "system/thread.h"
+#include "system/debug.hpp"
+#include "system/thread.hpp"
 
-#include "core/object.h"
-#include "core/common.h"
+#include "core/object.hpp"
+#include "core/common.hpp"
 
-#include "tcp/connectionselector.h"
-#include "tcp/channel.h"
-#include "tcp/connection.h"
+#include "tcp/connectionselector.hpp"
+#include "tcp/channel.hpp"
+#include "tcp/connection.hpp"
+#include "tcp/visitor.hpp"
 
-#include "channeldata.h"
+#include "channeldata.hpp"
 
 //#include <iostream>
 //using namespace std;
 
 namespace clientserver{
 namespace tcp{
-
 enum{
 	UNROLLSZ = 4, 
 	UNROLLMSK = 3,

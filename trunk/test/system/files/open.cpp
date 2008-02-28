@@ -24,7 +24,7 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/exception.hpp>
 #include <boost/utility.hpp>
-#include "system/filedevice.h"
+#include "system/filedevice.hpp"
 #include <deque>
 #include <cstring>
 #include <cerrno>

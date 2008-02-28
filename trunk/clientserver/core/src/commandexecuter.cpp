@@ -1,14 +1,14 @@
-#include "clientserver/core/commandexecuter.h"
-#include "clientserver/core/command.h"
-#include "clientserver/core/server.h"
+#include "clientserver/core/commandexecuter.hpp"
+#include "clientserver/core/command.hpp"
+#include "clientserver/core/server.hpp"
 #include <deque>
 
-#include "system/cassert.h"
-#include "system/mutex.h"
-#include "system/debug.h"
-#include "system/timespec.h"
-#include "utility/stack.h"
-#include "utility/queue.h"
+#include "system/cassert.hpp"
+#include "system/mutex.hpp"
+#include "system/debug.hpp"
+#include "system/timespec.hpp"
+#include "utility/stack.hpp"
+#include "utility/queue.hpp"
 
 
 namespace clientserver{

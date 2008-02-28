@@ -22,7 +22,7 @@
 #ifndef ALPHA_READER_H
 #define ALPHA_READER_H
 
-#include "algorithm/protocol/reader.h"
+#include "algorithm/protocol/reader.hpp"
 #include <string>
 
 

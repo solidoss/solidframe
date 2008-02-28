@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "utility/workpool.h"
-#include "utility/polycontainer.h"
+#include "utility/workpool.hpp"
+#include "utility/polycontainer.hpp"
 
 //------	WorkPoolPlugin --------------------------------------------
 

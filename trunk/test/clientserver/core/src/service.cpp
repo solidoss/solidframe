@@ -21,15 +21,15 @@
 
 #include <cstdlib>
 
-#include "system/debug.h"
-#include "system/timespec.h"
+#include "system/debug.hpp"
+#include "system/timespec.hpp"
 
 #include "core/service.h"
 #include "core/server.h"
 #include "core/listener.h"
-#include "clientserver/tcp/station.h"
-#include "clientserver/tcp/channel.h"
-#include "clientserver/udp/station.h"
+#include "clientserver/tcp/station.hpp"
+#include "clientserver/tcp/channel.hpp"
+#include "clientserver/udp/station.hpp"
 
 namespace cs = clientserver;
 

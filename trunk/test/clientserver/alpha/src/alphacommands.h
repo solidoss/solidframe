@@ -26,10 +26,10 @@
 #include <boost/filesystem/exception.hpp>
 #include <boost/utility.hpp>
 
-#include "utility/queue.h"
-#include "utility/streamptr.h"
-#include "utility/istream.h"
-#include "utility/ostream.h"
+#include "utility/queue.hpp"
+#include "utility/streamptr.hpp"
+#include "utility/istream.hpp"
+#include "utility/ostream.hpp"
 #include "core/common.h"
 #include "alphacommand.h"
 

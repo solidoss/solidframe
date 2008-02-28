@@ -19,18 +19,18 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "system/debug.h"
-#include "system/socketaddress.h"
+#include "system/debug.hpp"
+#include "system/socketaddress.hpp"
 
-#include "utility/iostream.h"
+#include "utility/iostream.hpp"
 
-#include "algorithm/protocol/namematcher.h"
-#include "algorithm/serialization/binary.h"
+#include "algorithm/protocol/namematcher.hpp"
+#include "algorithm/serialization/binary.hpp"
 
-#include "clientserver/ipc/ipcservice.h"
-#include "clientserver/ipc/ipcservice.h"
-#include "clientserver/core/filemanager.h"
-#include "clientserver/core/commandexecuter.h"
+#include "clientserver/ipc/ipcservice.hpp"
+#include "clientserver/ipc/ipcservice.hpp"
+#include "clientserver/core/filemanager.hpp"
+#include "clientserver/core/commandexecuter.hpp"
 
 #include "core/common.h"
 #include "core/tstring.h"

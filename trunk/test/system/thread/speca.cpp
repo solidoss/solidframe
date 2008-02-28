@@ -1,10 +1,10 @@
 #include "speca.h"
 #include <vector>
 #include <string>
-#include "system/specific.h"
-#include "system/debug.h"
+#include "system/specific.hpp"
+#include "system/debug.hpp"
 #include <iostream>
-#include "system/cassert.h"
+#include "system/cassert.hpp"
 
 typedef Cacheable<std::vector<int>, 2> CacheableVecTp;
 typedef Cacheable<std::string, 2> CacheableStringTp;

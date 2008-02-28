@@ -1,7 +1,7 @@
 #include "specb.h"
 #include <string>
-#include "system/specific.h"
-#include "system/debug.h"
+#include "system/specific.hpp"
+#include "system/debug.hpp"
 #include <iostream>
 
 typedef Cacheable<std::string, 2> CacheableStringTp;

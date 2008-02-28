@@ -19,7 +19,7 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "core/execpool.h"
+#include "core/execpool.hpp"
 
 namespace clientserver{
 
