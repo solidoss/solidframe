@@ -1,4 +1,4 @@
-/* Declarations file objectselector.h
+/* Declarations file objectselector.hpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com

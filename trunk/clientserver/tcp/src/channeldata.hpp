@@ -1,4 +1,4 @@
-/* Declarations file channeldata.h
+/* Declarations file channeldata.hpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com

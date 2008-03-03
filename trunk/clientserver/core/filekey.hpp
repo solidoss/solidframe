@@ -1,4 +1,4 @@
-/* Declarations file filekey.h
+/* Declarations file filekey.hpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com

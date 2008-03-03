@@ -1,4 +1,4 @@
-/* Declarations file seekabledevice.h
+/* Declarations file seekabledevice.hpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com

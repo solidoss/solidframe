@@ -1,4 +1,4 @@
-/* Declarations file processconnector.h
+/* Declarations file processconnector.hpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com

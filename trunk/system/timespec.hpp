@@ -1,4 +1,4 @@
-/* Declarations file timespec.h
+/* Declarations file timespec.hpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com

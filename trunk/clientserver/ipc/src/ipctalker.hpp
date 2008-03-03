@@ -1,4 +1,4 @@
-/* Declarations file ipctalker.h
+/* Declarations file ipctalker.hpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
