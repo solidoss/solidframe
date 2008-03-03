@@ -1,5 +1,5 @@
-#ifndef IMAPWRITER_H
-#define IMAPWRITER_H
+#ifndef IMAPWRITER_HPP
+#define IMAPWRITER_HPP
 
 //#include "../utils.h"
 #include <string>

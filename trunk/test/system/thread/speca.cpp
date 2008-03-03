@@ -1,4 +1,4 @@
-#include "speca.h"
+#include "speca.hpp"
 #include <vector>
 #include <string>
 #include "system/specific.hpp"

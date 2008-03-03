@@ -1,4 +1,4 @@
-#include "specb.h"
+#include "specb.hpp"
 #include <string>
 #include "system/specific.hpp"
 #include "system/debug.hpp"
