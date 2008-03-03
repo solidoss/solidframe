@@ -21,9 +21,9 @@
 
 #include "clientserver/udp/station.hpp"
 
-#include "core/server.h"
-#include "echo/echoservice.h"
-#include "echotalker.h"
+#include "core/server.hpp"
+#include "echo/echoservice.hpp"
+#include "echotalker.hpp"
 #include "system/timespec.hpp"
 #include "system/socketaddress.hpp"
 #include "system/debug.hpp"

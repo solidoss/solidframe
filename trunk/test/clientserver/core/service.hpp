@@ -1,4 +1,4 @@
-/* Declarations file echoservice.h
+/* Declarations file service.hpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
@@ -19,60 +19,64 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef ECHOSERVICE_H
-#define ECHOSERVICE_H
+#ifndef TESTSERVICE_H
+#define TESTSERVICE_H
 
-#include "core/service.h"
+#include "clientserver/core/readwriteservice.hpp"
+#include "common.hpp"
+
+struct AddrInfoIterator;
 
 namespace clientserver{
-
 namespace tcp{
-class Channel;
 class Station;
+class Channel;
 }
 
 namespace udp{
 class Station;
-class Talker;
 }
 
-}//namespace clientserver
+}
+
 
 namespace test{
-namespace echo{
 
-class Connection;
+class Server;
+class Visitor;
+
+class Listener;
 class Talker;
 
-class Service: public test::Service{
+class Service: public clientserver::ReadWriteService{
 public:
-	static test::Service* create();
-	Service();
+	Service(){}
 	~Service();
-	int insertConnection(
-		test::Server &_rs,
-		clientserver::tcp::Channel *_pch
-	);
-	int insertListener(
-		test::Server &_rs,
+	virtual int execute(ulong _evs, TimeSpec &_rtout);
+	virtual int insertListener(
+		Server &_rsrv,
 		const AddrInfoIterator &_rai
 	);
-	int insertTalker(
-		Server &_rs, 
+	virtual int insertTalker(
+		Server &_rs,
 		const AddrInfoIterator &_rai,
 		const char *_node,
 		const char *_svc
 	);
-	int insertConnection(
-		Server &_rs, 
+	//this is used by the generic listener
+	virtual int insertConnection(
+		Server &_rs,
+		clientserver::tcp::Channel *_pch
+	);
+	virtual int insertConnection(
+		Server &_rs,
 		const AddrInfoIterator &_rai,
 		const char *_node,
 		const char *_svc
 	);
-	int removeConnection(Connection &);
-	int removeTalker(Talker&);
+	virtual int removeListener(Listener &);
+	
 };
 
-}//namespace echo
 }//namespace test
 #endif

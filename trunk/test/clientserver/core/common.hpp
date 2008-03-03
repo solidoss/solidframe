@@ -1,4 +1,4 @@
-/* Declarations file visitor.h
+/* Declarations file common.hpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
@@ -19,19 +19,23 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef TESTVISITOR_H
-#define TESTVISITOR_H
+#ifndef TESTCOMMON_H
+#define TESTCOMMON_H
 
-#include "clientserver/core/visitor.hpp"
+#include "clientserver/core/common.hpp"
 
-namespace test{
+#include <string.h>
 
-class Visitor: public clientserver::Visitor{
-public:
-	Visitor(){}
-	virtual ~Visitor(){}
+typedef clientserver::RequestUidTp	RequestUidTp;
+typedef clientserver::FileUidTp		FileUidTp;
+typedef clientserver::ObjectUidTp	ObjectUidTp;
+typedef clientserver::CommandUidTp	CommandUidTp;
+
+struct StrLess{
+	bool operator()(const char* const &_str1, const char* const &_str2)const{
+		return strcasecmp(_str1,_str2) < 0;
+	}
 };
 
-}
 
 #endif

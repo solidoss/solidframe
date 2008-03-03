@@ -1,4 +1,4 @@
-/* Declarations file listener.h
+/* Declarations file echotalker.h
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
@@ -19,24 +19,48 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef TESTLISTENER_H
-#define TESTLISTENER_H
+#ifndef ECHOTALKER_H
+#define ECHOTALKER_H
 
-#include "clientserver/tcp/listener.hpp"
+#include "core/talker.hpp"
+#include "clientserver/core/readwriteobject.hpp"
+
+namespace clientserver{
+class Visitor;
+namespace udp{
+class Station;
+}
+}
+
+class AddrInfo;
 
 namespace test{
 
+class Visitor;
+
+namespace echo{
+
 class Service;
-//! A simple listener
-class Listener: public clientserver::tcp::Listener{
+
+class Talker: public clientserver::ReadWriteObject<test::Talker>{
 public:
-	typedef Service		ServiceTp;
-	Listener(clientserver::tcp::Station *_pst, uint _res, ulong _fullid):	
-		clientserver::tcp::Listener(_pst, _res, _fullid){}
-	virtual ~Listener();
-	virtual int execute(ulong, TimeSpec&);
+	typedef Service	ServiceTp;
+	typedef clientserver::ReadWriteObject<test::Talker> BaseTp;
+	
+	Talker(clientserver::udp::Station *_pst, const char *_node, const char *_srv);
+	~Talker();
+	int execute(ulong _sig, TimeSpec &_tout);
+	int execute();
+	int accept(clientserver::Visitor &);
+private:
+	enum {BUFSZ = 1024};
+	enum {INIT,READ, READ_TOUT, WRITE, WRITE_TOUT, WRITE2,WRITE_TOUT2};
+	char			bbeg[BUFSZ];
+	uint			sz;
+	AddrInfo		*pai;
 };
 
+}//namespace echo
 }//namespace test
 
 #endif

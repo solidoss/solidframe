@@ -21,9 +21,9 @@
 
 #include "clientserver/tcp/channel.hpp"
 
-#include "core/server.h"
-#include "beta/betaservice.h"
-#include "betaconnection.h"
+#include "core/server.hpp"
+#include "beta/betaservice.hpp"
+#include "betaconnection.hpp"
 #include "system/socketaddress.hpp"
 #include "system/debug.hpp"
 #include "system/timespec.hpp"

@@ -1,4 +1,4 @@
-/* Declarations file service.h
+/* Declarations file betaservice.hpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
@@ -19,64 +19,60 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef TESTSERVICE_H
-#define TESTSERVICE_H
+#ifndef BETASERVICE_H
+#define BETASERVICE_H
 
-#include "clientserver/core/readwriteservice.hpp"
-#include "common.h"
-
-struct AddrInfoIterator;
+#include "core/service.hpp"
 
 namespace clientserver{
+
 namespace tcp{
-class Station;
 class Channel;
+class Station;
 }
 
 namespace udp{
 class Station;
+class Talker;
 }
 
-}
-
+}//namespace clientserver
 
 namespace test{
+namespace beta{
 
-class Server;
-class Visitor;
-
-class Listener;
+class Connection;
 class Talker;
 
-class Service: public clientserver::ReadWriteService{
+class Service: public test::Service{
 public:
-	Service(){}
+	static test::Service* create();
+	Service();
 	~Service();
-	virtual int execute(ulong _evs, TimeSpec &_rtout);
-	virtual int insertListener(
-		Server &_rsrv,
-		const AddrInfoIterator &_rai
-	);
-	virtual int insertTalker(
-		Server &_rs,
-		const AddrInfoIterator &_rai,
-		const char *_node,
-		const char *_svc
-	);
-	//this is used by the generic listener
-	virtual int insertConnection(
-		Server &_rs,
+	int insertConnection(
+		test::Server &_rs,
 		clientserver::tcp::Channel *_pch
 	);
-	virtual int insertConnection(
-		Server &_rs,
+	int insertListener(
+		test::Server &_rs,
+		const AddrInfoIterator &_rai
+	);
+	int insertTalker(
+		Server &_rs, 
 		const AddrInfoIterator &_rai,
 		const char *_node,
 		const char *_svc
 	);
-	virtual int removeListener(Listener &);
-	
+	int insertConnection(
+		Server &_rs, 
+		const AddrInfoIterator &_rai,
+		const char *_node,
+		const char *_svc
+	);
+	int removeConnection(Connection &);
+	int removeTalker(Talker&);
 };
 
+}//namespace echo
 }//namespace test
 #endif

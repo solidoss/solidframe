@@ -25,10 +25,10 @@
 #include "system/thread.hpp"
 #include "system/socketaddress.hpp"
 
-#include "core/server.h"
-#include "echo/echoservice.h"
-#include "alpha/alphaservice.h"
-#include "beta/betaservice.h"
+#include "core/server.hpp"
+#include "echo/echoservice.hpp"
+#include "alpha/alphaservice.hpp"
+#include "beta/betaservice.hpp"
 
 #include "clientserver/ipc/ipcservice.hpp"
 #include "clientserver/tcp/station.hpp"

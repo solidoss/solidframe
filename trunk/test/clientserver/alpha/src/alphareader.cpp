@@ -19,9 +19,9 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "alphareader.h"
-#include "alphawriter.h"
-#include "alphaprotocolfilters.h"
+#include "alphareader.hpp"
+#include "alphawriter.hpp"
+#include "alphaprotocolfilters.hpp"
 #include "clientserver/tcp/channel.hpp"
 #include <cerrno>
 

@@ -1,4 +1,4 @@
-/* Declarations file betatalker.h
+/* Declarations file echoservice.h
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
@@ -19,50 +19,60 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef BETATALKER_H
-#define BETATALKER_H
+#ifndef ECHOSERVICE_H
+#define ECHOSERVICE_H
 
-#include "core/talker.h"
-#include "clientserver/core/readwriteobject.hpp"
+#include "core/service.hpp"
 
 namespace clientserver{
-class Visitor;
-namespace udp{
+
+namespace tcp{
+class Channel;
 class Station;
 }
+
+namespace udp{
+class Station;
+class Talker;
 }
 
-class AddrInfo;
+}//namespace clientserver
 
 namespace test{
+namespace echo{
 
-class Visitor;
+class Connection;
+class Talker;
 
-namespace beta{
-
-class Service;
-struct AddrMap;
-class Talker: public clientserver::ReadWriteObject<test::Talker>{
+class Service: public test::Service{
 public:
-	typedef Service	ServiceTp;
-	typedef clientserver::ReadWriteObject<test::Talker> BaseTp;
-	
-	Talker(clientserver::udp::Station *_pst, const char *_node, const char *_srv);
-	~Talker();
-	int execute(ulong _sig, TimeSpec &_tout);
-	int execute();
-	int accept(clientserver::Visitor &);
-private:
-	enum {BUFSZ = 4*1024};
-	enum {INIT,READ, READ_DONE, WRITE, WRITE_DONE};
-	char			bbeg[BUFSZ];
-	uint32			sz;
-	uint32			id;
-	AddrInfo		*pai;
-	AddrMap			&addrmap;
+	static test::Service* create();
+	Service();
+	~Service();
+	int insertConnection(
+		test::Server &_rs,
+		clientserver::tcp::Channel *_pch
+	);
+	int insertListener(
+		test::Server &_rs,
+		const AddrInfoIterator &_rai
+	);
+	int insertTalker(
+		Server &_rs, 
+		const AddrInfoIterator &_rai,
+		const char *_node,
+		const char *_svc
+	);
+	int insertConnection(
+		Server &_rs, 
+		const AddrInfoIterator &_rai,
+		const char *_node,
+		const char *_svc
+	);
+	int removeConnection(Connection &);
+	int removeTalker(Talker&);
 };
 
 }//namespace echo
 }//namespace test
-
 #endif

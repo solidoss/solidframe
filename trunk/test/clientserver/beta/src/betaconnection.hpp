@@ -1,4 +1,4 @@
-/* Declarations file betaconnection.h
+/* Declarations file betaconnection.hpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
@@ -22,7 +22,7 @@
 #ifndef BETACONNECTION_H
 #define BETACONNECTION_H
 
-#include "core/connection.h"
+#include "core/connection.hpp"
 #include "clientserver/core/readwriteobject.hpp"
 #include "system/socketaddress.hpp"
 class SocketAddress;

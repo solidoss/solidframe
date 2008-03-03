@@ -21,9 +21,9 @@
 
 #include "clientserver/udp/station.hpp"
 
-#include "core/server.h"
-#include "beta/betaservice.h"
-#include "betatalker.h"
+#include "core/server.hpp"
+#include "beta/betaservice.hpp"
+#include "betatalker.hpp"
 #include "system/socketaddress.hpp"
 #include "system/debug.hpp"
 #include "system/timespec.hpp"

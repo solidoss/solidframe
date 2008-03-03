@@ -1,4 +1,4 @@
-/* Declarations file tstring.h
+/* Declarations file tstring.hpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com

@@ -26,10 +26,10 @@
 #include "clientserver/tcp/channel.hpp"
 
 
-#include "core/common.h"
-#include "core/server.h"
-#include "core/service.h"
-#include "core/listener.h"
+#include "core/common.hpp"
+#include "core/server.hpp"
+#include "core/service.hpp"
+#include "core/listener.hpp"
 
 namespace test{
 

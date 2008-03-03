@@ -1,4 +1,4 @@
-/* Declarations file alphaconnection.h
+/* Declarations file alphaconnection.hpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
@@ -22,12 +22,12 @@
 #ifndef ALPHACONNECTION_H
 #define ALPHACONNECTION_H
 
-#include "core/tstring.h"
-#include "core/connection.h"
-#include "core/common.h"
+#include "core/tstring.hpp"
+#include "core/connection.hpp"
+#include "core/common.hpp"
 
-#include "alphareader.h"
-#include "alphawriter.h"
+#include "alphareader.hpp"
+#include "alphawriter.hpp"
 
 #include "clientserver/core/commandableobject.hpp"
 

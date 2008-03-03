@@ -1,4 +1,4 @@
-/* Declarations file talker.h
+/* Declarations file command.hpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
@@ -19,22 +19,25 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef TESTTALKER_H
-#define TESTTALKER_H
+#ifndef TEST_COMMAND_H
+#define TEST_COMMAND_H
 
-#include "clientserver/udp/talker.hpp"
-#include "common.h"
+#include "clientserver/core/command.hpp"
 
 namespace test{
-//! The base class for all talkers in the test server
-class Talker: public clientserver::udp::Talker{
-public:
-	virtual ~Talker(){}
-protected:
-	Talker(clientserver::udp::Station *_pst):
-			clientserver::udp::Talker(_pst){}
+class Connection;
+class Listener;
+class Object;
+//extends the interface of command to support test Objects
+//see implementation in server
+//! The base class for all commands in the test server
+struct Command: clientserver::Command{
+	virtual int execute(Connection &);
+	virtual int execute(Listener &);
+	virtual int execute(Object &);
 };
 
-}
 
+
+}//namespace test
 #endif
