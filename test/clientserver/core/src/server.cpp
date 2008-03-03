@@ -28,12 +28,12 @@
 
 #include "algorithm/serialization/binary.hpp"
 
-#include "core/server.h"
-#include "core/service.h"
-#include "core/visitor.h"
-#include "core/command.h"
-#include "core/connection.h"
-#include "core/object.h"
+#include "core/server.hpp"
+#include "core/service.hpp"
+#include "core/visitor.hpp"
+#include "core/command.hpp"
+#include "core/connection.hpp"
+#include "core/object.hpp"
 
 
 #include "clientserver/core/selectpool.hpp"

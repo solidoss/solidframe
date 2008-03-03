@@ -19,7 +19,7 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "core/tstring.h"
+#include "core/tstring.hpp"
 
 void append(String &_str, ulong _v){
     if(!_v){

@@ -1,4 +1,4 @@
-/* Declarations file echotalker.h
+/* Declarations file echoconnection.h
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
@@ -19,45 +19,48 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef ECHOTALKER_H
-#define ECHOTALKER_H
+#ifndef ECHOCONNECTION_H
+#define ECHOCONNECTION_H
 
-#include "core/talker.h"
+#include "core/connection.hpp"
 #include "clientserver/core/readwriteobject.hpp"
+#include "system/socketaddress.hpp"
+class SocketAddress;
 
 namespace clientserver{
 class Visitor;
-namespace udp{
-class Station;
+namespace tcp{
+class Channel;
 }
 }
 
 class AddrInfo;
 
 namespace test{
-
 class Visitor;
-
 namespace echo{
-
 class Service;
 
-class Talker: public clientserver::ReadWriteObject<test::Talker>{
+class Connection: public clientserver::ReadWriteObject<test::Connection>{
 public:
 	typedef Service	ServiceTp;
-	typedef clientserver::ReadWriteObject<test::Talker> BaseTp;
+	typedef clientserver::ReadWriteObject<test::Connection> BaseTp;
 	
-	Talker(clientserver::udp::Station *_pst, const char *_node, const char *_srv);
-	~Talker();
+	Connection(clientserver::tcp::Channel *_pch, const char *_node = NULL, const char *_srv = NULL);
+	~Connection();
 	int execute(ulong _sig, TimeSpec &_tout);
 	int execute();
 	int accept(clientserver::Visitor &);
 private:
-	enum {BUFSZ = 1024};
-	enum {INIT,READ, READ_TOUT, WRITE, WRITE_TOUT, WRITE2,WRITE_TOUT2};
-	char			bbeg[BUFSZ];
-	uint			sz;
-	AddrInfo		*pai;
+	enum {BUFSZ = 4*1024};
+	enum {INIT,READ, READ_TOUT, WRITE, WRITE_TOUT, CONNECT,CONNECT_TOUT};
+	char				bbeg[BUFSZ];
+	const char			*bend;
+	char				*brpos;
+	const char			*bwpos;
+	AddrInfo			*pai;
+	AddrInfoIterator	it;
+	bool				b;
 };
 
 }//namespace echo

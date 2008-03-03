@@ -28,14 +28,14 @@
 #include "clientserver/tcp/channel.hpp"
 #include "clientserver/ipc/ipcservice.hpp"
 
-#include "core/server.h"
-#include "core/command.h"
+#include "core/server.hpp"
+#include "core/command.hpp"
 
-#include "alpha/alphaservice.h"
+#include "alpha/alphaservice.hpp"
 
-#include "alphaconnection.h"
-#include "alphacommand.h"
-#include "alphaprotocolfilters.h"
+#include "alphaconnection.hpp"
+#include "alphacommand.hpp"
+#include "alphaprotocolfilters.hpp"
 
 namespace cs=clientserver;
 static char	*hellostr = "Welcome to alpha service!!!\r\n"; 

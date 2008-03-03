@@ -21,9 +21,9 @@
 
 #include "clientserver/tcp/channel.hpp"
 
-#include "core/server.h"
-#include "echo/echoservice.h"
-#include "echoconnection.h"
+#include "core/server.hpp"
+#include "echo/echoservice.hpp"
+#include "echoconnection.hpp"
 #include "system/socketaddress.hpp"
 #include "system/debug.hpp"
 #include "system/timespec.hpp"

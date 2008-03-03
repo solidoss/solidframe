@@ -1,4 +1,4 @@
-/* Declarations file alphaservice.h
+/* Declarations file listener.hpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
@@ -19,41 +19,24 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef ALPHASERVICE_H
-#define ALPHASERVICE_H
+#ifndef TESTLISTENER_H
+#define TESTLISTENER_H
 
-#include "core/service.h"
-
-namespace clientserver{
-namespace tcp{
-class Channel;
-}
-}
-
+#include "clientserver/tcp/listener.hpp"
 
 namespace test{
-class Server;
-namespace alpha{
-class Connection;
 
-class Service: public test::Service{
+class Service;
+//! A simple listener
+class Listener: public clientserver::tcp::Listener{
 public:
-	static test::Service* create(Server &);
-	Service();
-	~Service();
-	int insertConnection(
-		test::Server &_rs,
-		clientserver::tcp::Channel *_pch
-	);
-	int insertListener(
-		test::Server &_rs,
-		const AddrInfoIterator &_rai
-	);
-	int removeConnection(Connection &);
+	typedef Service		ServiceTp;
+	Listener(clientserver::tcp::Station *_pst, uint _res, ulong _fullid):	
+		clientserver::tcp::Listener(_pst, _res, _fullid){}
+	virtual ~Listener();
+	virtual int execute(ulong, TimeSpec&);
 };
 
-}//namespace alpha
 }//namespace test
-
 
 #endif

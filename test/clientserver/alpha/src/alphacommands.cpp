@@ -32,18 +32,18 @@
 #include "clientserver/core/filemanager.hpp"
 #include "clientserver/core/commandexecuter.hpp"
 
-#include "core/common.h"
-#include "core/tstring.h"
-#include "core/server.h"
-#include "core/command.h"
+#include "core/common.hpp"
+#include "core/tstring.hpp"
+#include "core/server.hpp"
+#include "core/command.hpp"
 
 
-#include "alphaconnection.h"
-#include "alphacommands.h"
-#include "alphawriter.h"
-#include "alphareader.h"
-#include "alphaconnection.h"
-#include "alphaprotocolfilters.h"
+#include "alphaconnection.hpp"
+#include "alphacommands.hpp"
+#include "alphawriter.hpp"
+#include "alphareader.hpp"
+#include "alphaconnection.hpp"
+#include "alphaprotocolfilters.hpp"
 
 
 #define StrDef(x) (void*)x, sizeof(x) - 1

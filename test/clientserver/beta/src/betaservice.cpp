@@ -20,17 +20,17 @@
 */
 
 #include "system/debug.hpp"
-#include "core/server.h"
+#include "core/server.hpp"
 #include "clientserver/core/objptr.hpp"
 #include "clientserver/tcp/station.hpp"
 #include "clientserver/tcp/channel.hpp"
 #include "clientserver/udp/station.hpp"
 
-#include "core/listener.h"
+#include "core/listener.hpp"
 
-#include "beta/betaservice.h"
-#include "betaconnection.h"
-#include "betatalker.h"
+#include "beta/betaservice.hpp"
+#include "betaconnection.hpp"
+#include "betatalker.hpp"
 
 namespace cs = clientserver;
 

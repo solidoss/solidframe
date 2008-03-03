@@ -20,17 +20,17 @@
 */
 
 #include "system/debug.hpp"
-#include "core/server.h"
 #include "clientserver/core/objptr.hpp"
 #include "clientserver/udp/station.hpp"
 #include "clientserver/tcp/station.hpp"
 #include "clientserver/tcp/channel.hpp"
 
-#include "core/listener.h"
+#include "core/server.hpp"
+#include "core/listener.hpp"
 
-#include "echo/echoservice.h"
-#include "echoconnection.h"
-#include "echotalker.h"
+#include "echo/echoservice.hpp"
+#include "echoconnection.hpp"
+#include "echotalker.hpp"
 
 namespace cs = clientserver;
 

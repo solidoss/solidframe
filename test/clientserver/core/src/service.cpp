@@ -24,9 +24,9 @@
 #include "system/debug.hpp"
 #include "system/timespec.hpp"
 
-#include "core/service.h"
-#include "core/server.h"
-#include "core/listener.h"
+#include "core/service.hpp"
+#include "core/server.hpp"
+#include "core/listener.hpp"
 #include "clientserver/tcp/station.hpp"
 #include "clientserver/tcp/channel.hpp"
 #include "clientserver/udp/station.hpp"

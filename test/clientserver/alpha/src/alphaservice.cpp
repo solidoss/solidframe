@@ -20,17 +20,17 @@
 */
 
 #include "system/debug.hpp"
-#include "core/server.h"
+#include "core/server.hpp"
 
 #include "algorithm/serialization/binary.hpp"
 
 #include "clientserver/core/objptr.hpp"
 #include "clientserver/tcp/station.hpp"
 
-#include "core/listener.h"
+#include "core/listener.hpp"
 
-#include "alpha/alphaservice.h"
-#include "alphaconnection.h"
+#include "alpha/alphaservice.hpp"
+#include "alphaconnection.hpp"
 
 namespace cs=clientserver;
 

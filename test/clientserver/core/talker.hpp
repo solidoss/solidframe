@@ -1,4 +1,4 @@
-/* Declarations file common.h
+/* Declarations file talker.hpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
@@ -19,23 +19,22 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef TESTCOMMON_H
-#define TESTCOMMON_H
+#ifndef TESTTALKER_H
+#define TESTTALKER_H
 
-#include "clientserver/core/common.hpp"
+#include "clientserver/udp/talker.hpp"
+#include "common.hpp"
 
-#include <string.h>
-
-typedef clientserver::RequestUidTp	RequestUidTp;
-typedef clientserver::FileUidTp		FileUidTp;
-typedef clientserver::ObjectUidTp	ObjectUidTp;
-typedef clientserver::CommandUidTp	CommandUidTp;
-
-struct StrLess{
-	bool operator()(const char* const &_str1, const char* const &_str2)const{
-		return strcasecmp(_str1,_str2) < 0;
-	}
+namespace test{
+//! The base class for all talkers in the test server
+class Talker: public clientserver::udp::Talker{
+public:
+	virtual ~Talker(){}
+protected:
+	Talker(clientserver::udp::Station *_pst):
+			clientserver::udp::Talker(_pst){}
 };
 
+}
 
 #endif

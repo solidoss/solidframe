@@ -1,4 +1,4 @@
-/* Declarations file alphacommand.h
+/* Declarations file alphacommand.hpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
@@ -23,8 +23,8 @@
 #define ALPHA_COMMAND_H
 
 #include "utility/streamptr.hpp"
-#include "core/common.h"
-#include "core/tstring.h"
+#include "core/common.hpp"
+#include "core/tstring.hpp"
 
 class IStream;
 class OStream;

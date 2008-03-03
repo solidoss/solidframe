@@ -1,4 +1,4 @@
-/* Declarations file server.h
+/* Declarations file server.hpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
@@ -23,7 +23,7 @@
 #define TESTSERVER_H
 #include <map>
 #include "clientserver/core/server.hpp"
-#include "common.h"
+#include "common.hpp"
 
 namespace serialization{
 namespace bin{

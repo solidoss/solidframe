@@ -1,4 +1,4 @@
-/* Declarations file betaservice.h
+/* Declarations file alphaservice.hpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
@@ -19,34 +19,26 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef BETASERVICE_H
-#define BETASERVICE_H
+#ifndef ALPHASERVICE_H
+#define ALPHASERVICE_H
 
-#include "core/service.h"
+#include "core/service.hpp"
 
 namespace clientserver{
-
 namespace tcp{
 class Channel;
-class Station;
+}
 }
 
-namespace udp{
-class Station;
-class Talker;
-}
-
-}//namespace clientserver
 
 namespace test{
-namespace beta{
-
+class Server;
+namespace alpha{
 class Connection;
-class Talker;
 
 class Service: public test::Service{
 public:
-	static test::Service* create();
+	static test::Service* create(Server &);
 	Service();
 	~Service();
 	int insertConnection(
@@ -57,22 +49,11 @@ public:
 		test::Server &_rs,
 		const AddrInfoIterator &_rai
 	);
-	int insertTalker(
-		Server &_rs, 
-		const AddrInfoIterator &_rai,
-		const char *_node,
-		const char *_svc
-	);
-	int insertConnection(
-		Server &_rs, 
-		const AddrInfoIterator &_rai,
-		const char *_node,
-		const char *_svc
-	);
 	int removeConnection(Connection &);
-	int removeTalker(Talker&);
 };
 
-}//namespace echo
+}//namespace alpha
 }//namespace test
+
+
 #endif

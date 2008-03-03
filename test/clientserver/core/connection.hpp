@@ -1,4 +1,4 @@
-/* Declarations file object.h
+/* Declarations file connection.hpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
@@ -19,13 +19,13 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef TESTOBJECT_H
-#define TESTOBJECT_H
+#ifndef TESTCONNECTION_H
+#define TESTCONNECTION_H
 
 #include "utility/streamptr.hpp"
-#include "clientserver/core/object.hpp"
-#include "common.h"
-#include "tstring.h"
+#include "clientserver/tcp/connection.hpp"
+#include "common.hpp"
+#include "tstring.hpp"
 
 class IStream;
 class OStream;
@@ -36,18 +36,12 @@ namespace ipc{
 struct ConnectorUid;
 }
 }
-
 namespace test{
 struct Command;
-
-//! A test variant of clientserver::Object
-/*!
-	For now all it knows is to receive things.
-*/
-class Object: public clientserver::Object{
+//! The base class for all connections knowing how to receive things
+class Connection: public clientserver::tcp::Connection{
 public:
 	typedef Command	CommandTp;
-	typedef std::pair<uint32, uint32>	FromPairTp;
 	typedef std::pair<uint32, uint32>	FileUidTp;
 	typedef std::pair<uint32, uint32>	RequestUidTp;
 	//! Dummy method for receiving istreams
@@ -60,8 +54,8 @@ public:
 		\param _conid The ipc connection on which the stream was received
 	*/
 	virtual int receiveIStream(
-		StreamPtr<IStream> &_sp,
-		const FileUidTp	&_fuid,
+		StreamPtr<IStream> &,
+		const FileUidTp	&,
 		const RequestUidTp &_requid,
 		int			_which = 0,
 		const ObjectUidTp&_from = ObjectUidTp(),
@@ -90,6 +84,13 @@ public:
 		const ObjectUidTp&_from = ObjectUidTp(),
 		const clientserver::ipc::ConnectorUid *_conid = NULL
 	);
+	virtual int receiveNumber(
+		const int64 &_no,
+		const RequestUidTp &_requid,
+		int			_which = 0,
+		const ObjectUidTp&_from = ObjectUidTp(),
+		const clientserver::ipc::ConnectorUid *_conid = NULL
+	);
 	virtual int receiveError(
 		int _errid, 
 		const RequestUidTp &_requid,
@@ -97,7 +98,8 @@ public:
 		const clientserver::ipc::ConnectorUid *_conid = NULL
 	);
 protected:
-	Object(uint32 _fullid = 0):clientserver::Object(_fullid){}
+	Connection(clientserver::tcp::Channel *_pch):
+			clientserver::tcp::Connection(_pch){}
 };
 
 }

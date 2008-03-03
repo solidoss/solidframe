@@ -1,4 +1,4 @@
-/* Declarations file alphacommands.h
+/* Declarations file alphacommands.hpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
@@ -30,8 +30,8 @@
 #include "utility/streamptr.hpp"
 #include "utility/istream.hpp"
 #include "utility/ostream.hpp"
-#include "core/common.h"
-#include "alphacommand.h"
+#include "core/common.hpp"
+#include "alphacommand.hpp"
 
 namespace fs = boost::filesystem;
 using boost::filesystem::path;
