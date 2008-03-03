@@ -24,8 +24,8 @@
 #include "system/thread.hpp"
 #include "system/specific.hpp"
 #include "system/common.hpp"
-#include "speca.h"
-#include "specb.h"
+#include "speca.hpp"
+#include "specb.hpp"
 
 using namespace std;
 
