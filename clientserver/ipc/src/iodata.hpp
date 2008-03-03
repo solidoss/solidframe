@@ -1,4 +1,4 @@
-/* Declarations file iodata.h
+/* Declarations file iodata.hpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com

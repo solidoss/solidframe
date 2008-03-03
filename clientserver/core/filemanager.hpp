@@ -1,4 +1,4 @@
-/* Declarations file filemanager.h
+/* Declarations file filemanager.hpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com

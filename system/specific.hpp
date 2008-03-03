@@ -1,4 +1,4 @@
-/* Declarations file specific.h
+/* Declarations file specific.hpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
