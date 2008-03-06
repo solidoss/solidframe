@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef DEVICE_H
-#define DEVICE_H
+#ifndef DEVICE_HPP
+#define DEVICE_HPP
 
 #include <unistd.h>
 #include <sys/types.h>

@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CS_READWRITESERVICE_H
-#define CS_READWRITESERVICE_H
+#ifndef CS_READWRITESERVICE_HPP
+#define CS_READWRITESERVICE_HPP
 #include <vector>
 #include <stack>
 

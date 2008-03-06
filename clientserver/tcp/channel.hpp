@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CS_TCP_CHANNEL_H
-#define CS_TCP_CHANNEL_H
+#ifndef CS_TCP_CHANNEL_HPP
+#define CS_TCP_CHANNEL_HPP
 
 #include <sys/epoll.h>
 

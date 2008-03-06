@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CS_TCP_VISITOR_H
-#define CS_TCP_VISITOR_H
+#ifndef CS_TCP_VISITOR_HPP
+#define CS_TCP_VISITOR_HPP
 
 #include "clientserver/core/visitor.hpp"
 

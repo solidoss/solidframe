@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef ALPHACONNECTION_H
-#define ALPHACONNECTION_H
+#ifndef ALPHACONNECTION_HPP
+#define ALPHACONNECTION_HPP
 
 #include "core/tstring.hpp"
 #include "core/connection.hpp"

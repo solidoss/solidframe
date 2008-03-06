@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef SYSTEM_COMMON_H
-#define SYSTEM_COMMON_H
+#ifndef SYSTEM_COMMON_HPP
+#define SYSTEM_COMMON_HPP
 
 #include <cstdlib>
 

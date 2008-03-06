@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef ALPHA_PROTOCOL_FILTERS_H
-#define ALPHA_PROTOCOL_FILTERS_H
+#ifndef ALPHA_PROTOCOL_FILTERS_HPP
+#define ALPHA_PROTOCOL_FILTERS_HPP
 
 namespace test{
 namespace alpha{

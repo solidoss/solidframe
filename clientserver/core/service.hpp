@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CS_SERVICE_H
-#define CS_SERVICE_H
+#ifndef CS_SERVICE_HPP
+#define CS_SERVICE_HPP
 
 #include "system/synchronization.hpp"
 

@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef ALGORITHM_PROTOCOL_READER_H
-#define ALGORITHM_PROTOCOL_READER_H
+#ifndef ALGORITHM_PROTOCOL_READER_HPP
+#define ALGORITHM_PROTOCOL_READER_HPP
 
 #include "algorithm/protocol/parameter.hpp"
 #include "algorithm/protocol/logger.hpp"

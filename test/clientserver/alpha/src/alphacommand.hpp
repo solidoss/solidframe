@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef ALPHA_COMMAND_H
-#define ALPHA_COMMAND_H
+#ifndef ALPHA_COMMAND_HPP
+#define ALPHA_COMMAND_HPP
 
 #include "utility/streamptr.hpp"
 #include "core/common.hpp"

@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef TESTLISTENER_H
-#define TESTLISTENER_H
+#ifndef TESTLISTENER_HPP
+#define TESTLISTENER_HPP
 
 #include "clientserver/tcp/listener.hpp"
 

@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CS_FILE_KEY_H
-#define CS_FILE_KEY_H
+#ifndef CS_FILE_KEY_HPP
+#define CS_FILE_KEY_HPP
 
 #include "system/common.hpp"
 #include <string>

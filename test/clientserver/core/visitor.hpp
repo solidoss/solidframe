@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef TESTVISITOR_H
-#define TESTVISITOR_H
+#ifndef TESTVISITOR_HPP
+#define TESTVISITOR_HPP
 
 #include "clientserver/core/visitor.hpp"
 

@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef ALPHA_COMMANDS_H
-#define ALPHA_COMMANDS_H
+#ifndef ALPHA_COMMANDS_HPP
+#define ALPHA_COMMANDS_HPP
 
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/exception.hpp>

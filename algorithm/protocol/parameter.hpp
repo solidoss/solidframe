@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef PROTOCOL_PARAMETER_H
-#define PROTOCOL_PARAMETER_H
+#ifndef PROTOCOL_PARAMETER_HPP
+#define PROTOCOL_PARAMETER_HPP
 
 #include "system/common.hpp"
 

@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef IPCSERVICE_H
-#define IPCSERVICE_H
+#ifndef IPCSERVICE_HPP
+#define IPCSERVICE_HPP
 
 #include "clientserver/core/service.hpp"
 #include "clientserver/core/command.hpp"

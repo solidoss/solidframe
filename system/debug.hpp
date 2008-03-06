@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef DEBUGPP_H
-#define DEBUGPP_H
+#ifndef DEBUGPP_HPP
+#define DEBUGPP_HPP
 
 void initDebug(const char * _fname);
 

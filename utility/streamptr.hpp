@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef STREAM_PTR_H
-#define STREAM_PTR_H
+#ifndef STREAM_PTR_HPP
+#define STREAM_PTR_HPP
 
 class Stream;
 

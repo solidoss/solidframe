@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef SYSTEM_TIMESPEC_H
-#define SYSTEM_TIMESPEC_H
+#ifndef SYSTEM_TIMESPEC_HPP
+#define SYSTEM_TIMESPEC_HPP
 
 #include <time.h>
 #include "convertors.hpp"

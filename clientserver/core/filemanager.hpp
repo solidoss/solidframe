@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CS_FILE_MANAGER_H
-#define CS_FILE_MANAGER_H
+#ifndef CS_FILE_MANAGER_HPP
+#define CS_FILE_MANAGER_HPP
 
 #include "utility/streamptr.hpp"
 

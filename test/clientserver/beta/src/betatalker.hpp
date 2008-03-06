@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef BETATALKER_H
-#define BETATALKER_H
+#ifndef BETATALKER_HPP
+#define BETATALKER_HPP
 
 #include "core/talker.hpp"
 #include "clientserver/core/readwriteobject.hpp"

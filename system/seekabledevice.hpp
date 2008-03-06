@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef SEEKABLE_DEVICE_H
-#define SEEKABLE_DEVICE_H
+#ifndef SEEKABLE_DEVICE_HPP
+#define SEEKABLE_DEVICE_HPP
 
 #include "device.hpp"
 

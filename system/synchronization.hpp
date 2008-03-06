@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef SYNCHROPP_H
-#define SYNCHROPP_H
+#ifndef SYNCHROPP_HPP
+#define SYNCHROPP_HPP
 
 #include "system/cassert.hpp"
 #include <semaphore.h>

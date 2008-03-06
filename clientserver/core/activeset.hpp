@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CS_ACTIVESET_H
-#define CS_ACTIVESET_H
+#ifndef CS_ACTIVESET_HPP
+#define CS_ACTIVESET_HPP
 
 namespace clientserver{
 //! This is the base class for all active containers/sets (i.e. WorkPools)

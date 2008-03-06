@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CS_COMMAND_EXECUTER_H
-#define CS_COMMAND_EXECUTER_H
+#ifndef CS_COMMAND_EXECUTER_HPP
+#define CS_COMMAND_EXECUTER_HPP
 
 #include "clientserver/core/object.hpp"
 #include "clientserver/core/common.hpp"

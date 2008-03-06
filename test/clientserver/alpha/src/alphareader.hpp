@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef ALPHA_READER_H
-#define ALPHA_READER_H
+#ifndef ALPHA_READER_HPP
+#define ALPHA_READER_HPP
 
 #include "algorithm/protocol/reader.hpp"
 #include <string>

@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef BETACONNECTION_H
-#define BETACONNECTION_H
+#ifndef BETACONNECTION_HPP
+#define BETACONNECTION_HPP
 
 #include "core/connection.hpp"
 #include "clientserver/core/readwriteobject.hpp"

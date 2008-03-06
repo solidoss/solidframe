@@ -1,5 +1,5 @@
-#ifndef TEST_SPEC_A_H
-#define TEST_SPEC_A_H
+#ifndef TEST_SPEC_A_HPP
+#define TEST_SPEC_A_HPP
 
 void testa();
 

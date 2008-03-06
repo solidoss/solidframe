@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef ALPHA_WRITER_H
-#define ALPHA_WRITER_H
+#ifndef ALPHA_WRITER_HPP
+#define ALPHA_WRITER_HPP
 
 #include "algorithm/protocol/writer.hpp"
 

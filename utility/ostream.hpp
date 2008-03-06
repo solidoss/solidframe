@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef OSTREAMPP_H
-#define OSTREAMPP_H
+#ifndef OSTREAMPP_HPP
+#define OSTREAMPP_HPP
 
 #include "stream.hpp"
 #include "common.hpp"

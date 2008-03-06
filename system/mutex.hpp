@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef MUTEXPP_H
-#define MUTEXPP_H
+#ifndef MUTEXPP_HPP
+#define MUTEXPP_HPP
 
 #include <pthread.h>
 

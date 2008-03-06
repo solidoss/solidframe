@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CS_VISITOR_H
-#define CS_VISITOR_H
+#ifndef CS_VISITOR_HPP
+#define CS_VISITOR_HPP
 
 namespace clientserver{
 class Object;

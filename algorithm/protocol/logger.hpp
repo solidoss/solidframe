@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef PROTOCOL_LOGGER_H
-#define PROTOCOL_LOGGER_H
+#ifndef PROTOCOL_LOGGER_HPP
+#define PROTOCOL_LOGGER_HPP
 
 #include <string>
 

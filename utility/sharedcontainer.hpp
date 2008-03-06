@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef SHAREDCONTAINER_H
-#define SHAREDCONTAINER_H
+#ifndef SHAREDCONTAINER_HPP
+#define SHAREDCONTAINER_HPP
 
 #include "common.hpp"
 #include "system/convertors.hpp"

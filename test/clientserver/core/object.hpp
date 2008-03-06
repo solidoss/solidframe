@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef TESTOBJECT_H
-#define TESTOBJECT_H
+#ifndef TESTOBJECT_HPP
+#define TESTOBJECT_HPP
 
 #include "utility/streamptr.hpp"
 #include "clientserver/core/object.hpp"

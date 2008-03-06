@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef ATOMIC_H
-#define ATOMIC_H
+#ifndef ATOMIC_HPP
+#define ATOMIC_HPP
 
 #include <bits/atomicity.h>
 

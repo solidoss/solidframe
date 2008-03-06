@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CS_READWRITEOBJECT_H
-#define CS_READWRITEOBJECT_H
+#ifndef CS_READWRITEOBJECT_HPP
+#define CS_READWRITEOBJECT_HPP
 
 #include "system/synchronization.hpp"
 
