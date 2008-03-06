@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef PROTOCOL_WRITER_H
-#define PROTOCOL_WRITER_H
+#ifndef PROTOCOL_WRITER_HPP
+#define PROTOCOL_WRITER_HPP
 
 #include "algorithm/protocol/parameter.hpp"
 #include "algorithm/protocol/logger.hpp"

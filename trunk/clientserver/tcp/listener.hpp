@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CS_TCP_LISTENER_H
-#define CS_TCP_LISTENER_H
+#ifndef CS_TCP_LISTENER_HPP
+#define CS_TCP_LISTENER_HPP
 
 #include <vector>
 

@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef SYSTEM_CONVERTORS_H
-#define SYSTEM_CONVERTORS_H
+#ifndef SYSTEM_CONVERTORS_HPP
+#define SYSTEM_CONVERTORS_HPP
 
 #include "common.hpp"
 

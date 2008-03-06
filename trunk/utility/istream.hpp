@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef ISTREAMPP_H
-#define ISTREAMPP_H
+#ifndef ISTREAMPP_HPP
+#define ISTREAMPP_HPP
 
 #include "stream.hpp"
 #include "common.hpp"

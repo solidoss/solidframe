@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef IPC_PROCESS_CONNECTOR_H
-#define IPC_PROCESS_CONNECTOR_H
+#ifndef IPC_PROCESS_CONNECTOR_HPP
+#define IPC_PROCESS_CONNECTOR_HPP
 
 #include "clientserver/core/cmdptr.hpp"
 #include "iodata.hpp"

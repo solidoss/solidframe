@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CS_TCP_CONNECTION_H
-#define CS_TCP_CONNECTION_H
+#ifndef CS_TCP_CONNECTION_HPP
+#define CS_TCP_CONNECTION_HPP
 
 
 #include "clientserver/core/object.hpp"

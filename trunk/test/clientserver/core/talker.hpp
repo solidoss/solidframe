@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef TESTTALKER_H
-#define TESTTALKER_H
+#ifndef TESTTALKER_HPP
+#define TESTTALKER_HPP
 
 #include "clientserver/udp/talker.hpp"
 #include "common.hpp"

@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef TSTRING_H
-#define TSTRING_H
+#ifndef TSTRING_HPP
+#define TSTRING_HPP
 
 #include <string>
 

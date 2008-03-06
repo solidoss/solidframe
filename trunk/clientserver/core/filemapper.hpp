@@ -1,5 +1,5 @@
-#ifndef CS_FILE_MAPPER_H
-#define CS_FILE_MAPPER_H
+#ifndef CS_FILE_MAPPER_HPP
+#define CS_FILE_MAPPER_HPP
 
 namespace clientserver{
 

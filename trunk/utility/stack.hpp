@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef UTILITY_STACK_H
-#define UTILITY_STACK_H
+#ifndef UTILITY_STACK_HPP
+#define UTILITY_STACK_HPP
 #include <cstdlib>
 #include "system/convertors.hpp"
 #include "system/cassert.hpp"

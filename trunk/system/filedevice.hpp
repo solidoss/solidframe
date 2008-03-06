@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef FILE_DEVICE_H
-#define FILE_DEVICE_H
+#ifndef FILE_DEVICE_HPP
+#define FILE_DEVICE_HPP
 #include <fcntl.h>
 #include "seekabledevice.hpp"
 //! Wrapper for a file descriptor

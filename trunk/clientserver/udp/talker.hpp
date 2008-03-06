@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CS_UDP_TALKER_H
-#define CS_UDP_TALKER_H
+#ifndef CS_UDP_TALKER_HPP
+#define CS_UDP_TALKER_HPP
 
 #include "clientserver/core/object.hpp"
 

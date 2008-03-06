@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CLUSTER_TALKER_H
-#define CLUSTER_TALKER_H
+#ifndef CLUSTER_TALKER_HPP
+#define CLUSTER_TALKER_HPP
 
 #include "udp/talker.hpp"
 //#include "clientserver/core/commandableobject.h"

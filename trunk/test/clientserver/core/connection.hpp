@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef TESTCONNECTION_H
-#define TESTCONNECTION_H
+#ifndef TESTCONNECTION_HPP
+#define TESTCONNECTION_HPP
 
 #include "utility/streamptr.hpp"
 #include "clientserver/tcp/connection.hpp"

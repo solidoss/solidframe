@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CLIENT_SERVER_CMDPTR_H
-#define CLIENT_SERVER_CMDPTR_H
+#ifndef CLIENT_SERVER_CMDPTR_HPP
+#define CLIENT_SERVER_CMDPTR_HPP
 
 #include "common.hpp"
 

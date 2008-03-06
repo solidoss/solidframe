@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CS_COMMANDABLE_OBJECT_H
-#define CS_COMMANDABLE_OBJECT_H
+#ifndef CS_COMMANDABLE_OBJECT_HPP
+#define CS_COMMANDABLE_OBJECT_HPP
 
 #include <vector>
 #include "command.hpp"

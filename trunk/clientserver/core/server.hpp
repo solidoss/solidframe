@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CS_SERVER_H
-#define CS_SERVER_H
+#ifndef CS_SERVER_HPP
+#define CS_SERVER_HPP
 
 //#include <vector>
 

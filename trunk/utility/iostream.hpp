@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef IOSTREAMPP_H
-#define IOSTREAMPP_H
+#ifndef IOSTREAMPP_HPP
+#define IOSTREAMPP_HPP
 
 #include "istream.hpp"
 #include "ostream.hpp"

@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef SPECIFIC_H
-#define SPECIFIC_H
+#ifndef SPECIFIC_HPP
+#define SPECIFIC_HPP
 
 #include <cstddef>
 // #include "common.h"

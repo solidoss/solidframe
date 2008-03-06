@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef UTILITY_STREAM_H
-#define UTILITY_STREAM_H
+#ifndef UTILITY_STREAM_HPP
+#define UTILITY_STREAM_HPP
 
 #include "common.hpp"
 #include <cstdlib>

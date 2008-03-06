@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef DIRECTORYPP_H
-#define DIRECTORYPP_H
+#ifndef DIRECTORYPP_HPP
+#define DIRECTORYPP_HPP
 //! A wrapper for filesystem directory opperations
 class Directory{
 public:

@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef ALPHASERVICE_H
-#define ALPHASERVICE_H
+#ifndef ALPHASERVICE_HPP
+#define ALPHASERVICE_HPP
 
 #include "core/service.hpp"
 

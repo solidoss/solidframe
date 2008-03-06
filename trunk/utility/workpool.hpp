@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef WORKPOOL_H
-#define WORKPOOL_H
+#ifndef WORKPOOL_HPP
+#define WORKPOOL_HPP
 
 #include "system/debug.hpp"
 #include "system/thread.hpp"

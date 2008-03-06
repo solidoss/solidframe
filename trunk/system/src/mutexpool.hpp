@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef MUTEXPOOLPP_H
-#define MUTEXPOOLPP_H
+#ifndef MUTEXPOOLPP_HPP
+#define MUTEXPOOLPP_HPP
 
 #include <iostream>
 #include "system/mutex.hpp"

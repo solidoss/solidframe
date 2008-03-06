@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CS_COMMAND_H
-#define CS_COMMAND_H
+#ifndef CS_COMMAND_HPP
+#define CS_COMMAND_HPP
 
 #include "clientserver/core/common.hpp"
 #include "utility/streamptr.hpp"

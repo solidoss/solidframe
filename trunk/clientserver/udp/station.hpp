@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef UDPSTATION_H
-#define UDPSTATION_H
+#ifndef UDPSTATION_HPP
+#define UDPSTATION_HPP
 
 #include <sys/poll.h>
 

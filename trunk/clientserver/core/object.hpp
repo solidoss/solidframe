@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CS_OBJECT_H
-#define CS_OBJECT_H
+#ifndef CS_OBJECT_HPP
+#define CS_OBJECT_HPP
 
 #include "common.hpp"
 #include "cmdptr.hpp"

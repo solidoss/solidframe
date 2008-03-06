@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef TESTSERVICE_H
-#define TESTSERVICE_H
+#ifndef TESTSERVICE_HPP
+#define TESTSERVICE_HPP
 
 #include "clientserver/core/readwriteservice.hpp"
 #include "common.hpp"

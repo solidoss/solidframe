@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef ECHOSERVICE_H
-#define ECHOSERVICE_H
+#ifndef ECHOSERVICE_HPP
+#define ECHOSERVICE_HPP
 
 #include "core/service.hpp"
 

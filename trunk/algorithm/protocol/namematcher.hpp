@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef PROTOCOL_NAME_MATCHER_H
-#define PROTOCOL_NAME_MATCHER_H
+#ifndef PROTOCOL_NAME_MATCHER_HPP
+#define PROTOCOL_NAME_MATCHER_HPP
 
 namespace protocol{
 //!A simple and fast runtime case-insensitive name matcher

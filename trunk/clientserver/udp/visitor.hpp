@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CS_UDP_VISITOR_H
-#define CS_UDP_VISITOR_H
+#ifndef CS_UDP_VISITOR_HPP
+#define CS_UDP_VISITOR_HPP
 
 #include "clientserver/core/visitor.hpp"
 

@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef SERIALIZATION_BINARY_H
-#define SERIALIZATION_BINARY_H
+#ifndef SERIALIZATION_BINARY_HPP
+#define SERIALIZATION_BINARY_HPP
 
 #include <map>
 #include <list>

@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CS_EXECPOOL_H
-#define CS_EXECPOOL_H
+#ifndef CS_EXECPOOL_HPP
+#define CS_EXECPOOL_HPP
 
 #include "utility/workpool.hpp"
 

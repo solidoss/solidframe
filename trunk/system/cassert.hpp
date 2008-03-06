@@ -1,5 +1,5 @@
-#ifndef SYS_CASSERT_H
-#define SYS_CASSERT_H
+#ifndef SYS_CASSERT_HPP
+#define SYS_CASSERT_HPP
 
 #ifdef UASSERT
 #include <cassert>

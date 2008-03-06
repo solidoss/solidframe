@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CS_FILE_KEYS_H
-#define CS_FILE_KEYS_H
+#ifndef CS_FILE_KEYS_HPP
+#define CS_FILE_KEYS_HPP
 
 #include "clientserver/core/filekey.hpp"
 

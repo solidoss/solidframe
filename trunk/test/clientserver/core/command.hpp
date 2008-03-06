@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef TEST_COMMAND_H
-#define TEST_COMMAND_H
+#ifndef TEST_COMMAND_HPP
+#define TEST_COMMAND_HPP
 
 #include "clientserver/core/command.hpp"
 

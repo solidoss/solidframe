@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef IPC_CONNECTOR_UID_H
-#define IPC_CONNECTOR_UID_H
+#ifndef IPC_CONNECTOR_UID_HPP
+#define IPC_CONNECTOR_UID_HPP
 
 #include "system/common.hpp"
 

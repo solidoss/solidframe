@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef THREADPP_H
-#define THREADPP_H
+#ifndef THREADPP_HPP
+#define THREADPP_HPP
 
 #include "synchronization.hpp"
 #include "src/mutexpool.hpp"

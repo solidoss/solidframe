@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef ECHOTALKER_H
-#define ECHOTALKER_H
+#ifndef ECHOTALKER_HPP
+#define ECHOTALKER_HPP
 
 #include "core/talker.hpp"
 #include "clientserver/core/readwriteobject.hpp"

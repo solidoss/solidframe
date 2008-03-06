@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef ECHOCONNECTION_H
-#define ECHOCONNECTION_H
+#ifndef ECHOCONNECTION_HPP
+#define ECHOCONNECTION_HPP
 
 #include "core/connection.hpp"
 #include "clientserver/core/readwriteobject.hpp"

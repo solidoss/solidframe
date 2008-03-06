@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CHANNEL_DATA_H
-#define CHANNEL_DATA_H
+#ifndef CHANNEL_DATA_HPP
+#define CHANNEL_DATA_HPP
 #include <utility>
 #include "utility/istream.hpp"
 #include "utility/ostream.hpp"

@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef BETASERVICE_H
-#define BETASERVICE_H
+#ifndef BETASERVICE_HPP
+#define BETASERVICE_HPP
 
 #include "core/service.hpp"
 

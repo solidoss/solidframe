@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef SOCKETADDRESS_H
-#define SOCKETADDRESS_H
+#ifndef SOCKETADDRESS_HPP
+#define SOCKETADDRESS_HPP
 
 #include <sys/types.h>
 #include <sys/socket.h>

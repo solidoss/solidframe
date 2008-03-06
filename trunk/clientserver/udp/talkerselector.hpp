@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CS_UDP_TALKERSELECTOR_H
-#define CS_UDP_TALKERSELECTOR_H
+#ifndef CS_UDP_TALKERSELECTOR_HPP
+#define CS_UDP_TALKERSELECTOR_HPP
 
 #include <stack>
 #include <vector>

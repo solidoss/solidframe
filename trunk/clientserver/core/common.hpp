@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CS_COMMON_H
-#define CS_COMMON_H
+#ifndef CS_COMMON_HPP
+#define CS_COMMON_HPP
 
 #include <utility>
 #include "utility/common.hpp"
