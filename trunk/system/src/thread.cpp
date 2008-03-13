@@ -74,6 +74,7 @@ int Mutex::reinit(TYPES _type){
 	pthread_mutexattr_init(&att);
 	pthread_mutexattr_settype(&att, (int)_type);
 	pthread_mutex_init(&mut,&att);
+	return 0;
 }
 //*************************************************************************
 void Thread::init(){
