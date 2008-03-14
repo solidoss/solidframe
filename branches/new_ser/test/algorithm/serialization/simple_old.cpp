@@ -1,4 +1,4 @@
-/* Implementation file simple_new.cpp
+/* Implementation file simple.cpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
@@ -27,9 +27,8 @@
 #include <list>
 //#undef UDEBUG
 #include "system/thread.hpp"
-#include "algorithm/serialization/binary_new.hpp"
-#include "algorithm/serialization/typemapper.hpp"
-#include "algorithm/serialization/idtypemap.hpp"
+#include "algorithm/serialization/binary.hpp"
+
 using namespace std;
 
 
@@ -167,57 +166,43 @@ int main(int argc, char *argv[]){
 	int rv = 3;
 	//TestA ta;
 	//cout<<ta<<endl;
-	typedef serialization::TypeMapper					TypeMapper;
-	//typedef serialization::NameTypeMap					NameTypeMap;
-	typedef serialization::IdTypeMap					IdTypeMap;
-	typedef serialization::bin::Serializer				BinSerializer;
-	typedef serialization::bin::Deserializer			BinDeserializer;
-	
-	TypeMapper::registerMap<IdTypeMap>();
-	
-	TypeMapper::registerSerializer<BinSerializer>();
-	
-	TypeMapper::map<String, BinSerializer, BinDeserializer>();
-	TypeMapper::map<UnsignedInteger>();
-	TypeMapper::map<IntegerVector>();
+	typedef serialization::bin::RTTIMapper 				BinMapper;
+	typedef serialization::bin::Serializer<BinMapper>	BinSerializer;
+	typedef serialization::bin::Deserializer<BinMapper>	BinDeserializer;
+	BinMapper	fm;
+	fm.map<String>();
+	fm.map<UnsignedInteger>();
+	fm.map<IntegerVector>();
 	//const char* str = NULL;
 	{	
 		idbg("");
-		BinSerializer 	ser<IdTypeMap>;
-		
-		TestA 			ta;
-		TestB 			tb;// = new TestB;
-		TestC 			tc;
-		StrDeqTp		sdq;
-		string			s("some string");
-		
+		BinSerializer 	ser(fm);
+		TestA 		ta;
+		TestB 		tb;// = new TestB;
+		TestC 		tc;
+		StrDeqTp	sdq;
+		string		s("some string");
 		sdq.push_back("first");
 		sdq.push_back("second");
 		sdq.push_back("third");
 		sdq.push_back("fourth");
-		
-		Base			*b1 = new String("some base string");
-		Base			*b2 = new UnsignedInteger(-2, 10);
-		IntegerVector	*iv;
-		Base			*b3 = iv = new IntegerVector;
-		
+		Base	*b1 = new String("some base string");
+		Base	*b2 = new UnsignedInteger(-2, 10);
+		IntegerVector *iv;
+		Base	*b3 = iv = new IntegerVector;
 		for(int i = 1; i < 20; ++i){
 			iv->iv.push_back(i);
 		}
-		
 		ta.print();
 		tb.print();
 		tc.print();
-		
 		cout<<"string: "<<s<<endl;
 		print(sdq);
-		
 		b1->print();
 		b2->print();
 		b3->print();
-		
-		ser.push(ta, "testa").push(tb, "testb").push(tc, "testc");
-		ser.pushString(s, "string").pushContainer(sdq, "names");
+		//os<<t<<ptb<<ase::ni(tc);//ni = non intrusive
+		ser.push(ta, "testa").push(tb, "testb").push(tc, "testc").pushString(s, "string").pushContainer(sdq, "names");
 		ser.push(b1, "basestring").push(b2, "baseui").push(b3, "baseiv");
 		int v = 0, cnt = 0;
 		idbg("");
@@ -231,20 +216,19 @@ int main(int argc, char *argv[]){
 	}
 	cout<<"Deserialization: =================================== "<<endl;
 	{
-		BinDeserializer des<IdTypeMap>;
-		TestA		ta;
-		TestB		tb;// = new TestB;
-		TestC		tc;
+		BinDeserializer des(fm);
+		TestA 		ta;
+		TestB 		tb;// = new TestB;
+		TestC 		tc;
 		StrDeqTp	sdq;
-		string		s;
-		Base		*b1 = NULL;
-		Base		*b2 = NULL;
-		Base		*b3 = NULL;
-		
-		des.push(ta, "testa").push(tb, "testb").push(tc, "testc");
-		des.pushString(s, "string").pushContainer(sdq, "names");
+		string 		s;
+		Base	*b1 = NULL;
+		Base	*b2 = NULL;
+		Base	*b3 = NULL;
+		//is>>ta>>ptb>>ase::ni(tc);
+		//des.pushContainer(sdq, "names");
+		des.push(ta, "testa").push(tb, "testb").push(tc, "testc").pushString(s, "string").pushContainer(sdq, "names");
 		des.push(b1, "basestring").push(b2, "baseui").push(b3, "baseiv");
-		
 		int v = 0;
 		int cnt = 0;
 		while((rv = des.run(bufs[v], blen)) == blen){
