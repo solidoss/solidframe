@@ -27,11 +27,40 @@
 #include <list>
 //#undef UDEBUG
 #include "system/thread.hpp"
-#include "algorithm/serialization/binary_new.hpp"
+#include "algorithm/serialization/binary.hpp"
 #include "algorithm/serialization/typemapper.hpp"
 #include "algorithm/serialization/idtypemap.hpp"
 using namespace std;
 
+template <class S>
+S& operator&(string &, S &_s){
+	cassert(false);
+	return _s;
+}
+
+template <class S>
+S& operator&(unsigned &, S &_s){
+	cassert(false);
+	return _s;
+}
+
+template <class S>
+S& operator&(ulong &, S &_s){
+	cassert(false);
+	return _s;
+}
+
+template <class S>
+S& operator&(int &, S &_s){
+	cassert(false);
+	return _s;
+}
+
+template <class S>
+S& operator&(short &, S &_s){
+	cassert(false);
+	return _s;
+}
 
 struct TestA{
 	TestA(int _a = 1, short _b = 2, unsigned _c = 3):a(_a), b(_b), c(_c){}
@@ -128,7 +157,7 @@ void IntegerVector::print()const{
 
 template <class S>
 S& operator&(IntegerVector &_iv, S &_s){
-	return _s.pushContainer(_iv.iv, "IntegerVector::iv");
+	//return _s.pushContainer(_iv.iv, "IntegerVector::iv");
 }
 
 template <class S>
@@ -173,17 +202,17 @@ int main(int argc, char *argv[]){
 	typedef serialization::bin::Serializer				BinSerializer;
 	typedef serialization::bin::Deserializer			BinDeserializer;
 	
-	TypeMapper::registerMap<IdTypeMap>();
+	TypeMapper::registerMap<IdTypeMap>(new IdTypeMap);
 	
 	TypeMapper::registerSerializer<BinSerializer>();
 	
 	TypeMapper::map<String, BinSerializer, BinDeserializer>();
-	TypeMapper::map<UnsignedInteger>();
-	TypeMapper::map<IntegerVector>();
+	TypeMapper::map<UnsignedInteger, BinSerializer, BinDeserializer>();
+	TypeMapper::map<IntegerVector, BinSerializer, BinDeserializer>();
 	//const char* str = NULL;
 	{	
 		idbg("");
-		BinSerializer 	ser<IdTypeMap>;
+		BinSerializer 	ser(IdTypeMap::the());
 		
 		TestA 			ta;
 		TestB 			tb;// = new TestB;
@@ -217,7 +246,7 @@ int main(int argc, char *argv[]){
 		b3->print();
 		
 		ser.push(ta, "testa").push(tb, "testb").push(tc, "testc");
-		ser.pushString(s, "string").pushContainer(sdq, "names");
+		//ser.pushString(s, "string").pushContainer(sdq, "names");
 		ser.push(b1, "basestring").push(b2, "baseui").push(b3, "baseiv");
 		int v = 0, cnt = 0;
 		idbg("");
@@ -231,7 +260,7 @@ int main(int argc, char *argv[]){
 	}
 	cout<<"Deserialization: =================================== "<<endl;
 	{
-		BinDeserializer des<IdTypeMap>;
+		BinDeserializer des(IdTypeMap::the());
 		TestA		ta;
 		TestB		tb;// = new TestB;
 		TestC		tc;
@@ -242,7 +271,7 @@ int main(int argc, char *argv[]){
 		Base		*b3 = NULL;
 		
 		des.push(ta, "testa").push(tb, "testb").push(tc, "testc");
-		des.pushString(s, "string").pushContainer(sdq, "names");
+		//des.pushString(s, "string").pushContainer(sdq, "names");
 		des.push(b1, "basestring").push(b2, "baseui").push(b3, "baseiv");
 		
 		int v = 0;

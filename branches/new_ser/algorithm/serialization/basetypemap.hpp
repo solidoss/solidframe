@@ -25,6 +25,8 @@ namespace serialization{
 
 class BaseTypeMap{
 public:
+	typedef void (*FncTp)(void*, void*, void*);
+	virtual void insert(FncTp, unsigned _pos, const char *_name, unsigned _maxpos) = 0;
 	virtual ~BaseTypeMap();
 };
 

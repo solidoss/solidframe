@@ -1,1 +1,1 @@
-add_library(serialization src/binary.cpp)
+add_library(serialization src/binary.cpp src/typemapper.cpp)

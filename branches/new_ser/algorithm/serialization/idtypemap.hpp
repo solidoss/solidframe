@@ -22,6 +22,11 @@
 #ifndef ID_TYPE_MAP_HPP
 #define ID_TYPE_MAP_HPP
 
+#include <string>
+
+#include "system/debug.hpp"
+#include "system/common.hpp"
+
 #include "basetypemap.hpp"
 
 namespace serialization{
@@ -29,7 +34,25 @@ namespace serialization{
 class IdTypeMap: public BaseTypeMap{
 public:
 	IdTypeMap();
+	~IdTypeMap();
+	//its a dummy implementation
+	static IdTypeMap* the(){
+		return NULL;
+	}
+	/*virtual*/ void insert(FncTp, unsigned _pos, const char *, unsigned _maxpos);
+	template <class Ser>
+	FncTp storeTypeId(Ser &_rs, const char *_name, std::string &_rstr, ulong _serid){
+		FncTp pf;
+		getFunction(pf, _name, _rstr, _serid) & _rs;
+		return pf;
+	}
+	template <class Des>
+	void parseTypeIdPrepare(Des &_rd, std::string &_rstr){
+		idbg("");
+	}
+	FncTp parseTypeIdDone(const std::string &_rstr, ulong _serid);
 private:
+	ulong & getFunction(FncTp &_rpf, const char *_name, std::string &_rstr, ulong _serid);
 	struct Data;
 	Data	&d;
 };

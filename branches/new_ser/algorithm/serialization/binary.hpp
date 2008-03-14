@@ -29,6 +29,7 @@
 #include "system/debug.hpp"
 #include "utility/common.hpp"
 #include "utility/stack.hpp"
+#include "typemapper.hpp"
 
 #define NUMBER_DECL(tp) \
 template <class S>\
@@ -53,7 +54,7 @@ enum {
 class Base{
 protected:
 	struct FncData;
-	typedef int (Base::*FncTp)(Base &, FncData &);
+	typedef int (*FncTp)(Base &, FncData &);
 	//! Data associated to a callback
 	struct FncData{
 		FncData(
@@ -100,15 +101,11 @@ class Serializer: public Base{
 		//TypeMapper::getMap<TM>(). template storeTypeId<Serializer>(rs, fd.p);
 		//schedules the store of the typeid
 		//and the data
-		/*TODO:
-			the integer id must be stored somewhere
-			for serialization - think of a way to do that!!
-		*/
-		TypeMapper::map<TM, Serializer>(_rfd.p, &rs, _rfd.n, tmpstr);
+		TypeMapper::map<TM, Serializer>(_rfd.p, rs, _rfd.n, rs.tmpstr);
 		return CONTINUE;
 	}
 	template <typename T>
-	int store(Base &_rs, FncData &_rfd){
+	static int store(Base &_rs, FncData &_rfd){
 		idbg("store generic non pointer");
 		Serializer &rs(static_cast<Serializer&>(_rs));
 		if(!rs.cpb) return OK;
@@ -119,7 +116,8 @@ class Serializer: public Base{
 	}
 public:
 	template <class Map>
-	Serializer():ptypeidf(&storeTypeId), pb(NULL), cpb(NULL), be(NULL){
+	Serializer(Map *p):ptypeidf(&storeTypeId<Map>), pb(NULL), cpb(NULL), be(NULL){
+		tmpstr.reserve(sizeof(ulong));
 	}
 	~Serializer();
 	void clear();
@@ -159,19 +157,20 @@ public:
 	}
 private:
 	friend class TypeMapper;
-	FncTp	ptypeidf;
-	char	*pb;
-	char	*cpb;
-	char	*be;
+	FncTp		ptypeidf;
+	char		*pb;
+	char		*cpb;
+	char		*be;
+	std::string	tmpstr;
 };
 //===============================================================
 class Deserializer: public Base{
 	template <typename T>
-	int parse(Base& _rd, FncData &_rfd){
+	static int parse(Base& _rd, FncData &_rfd){
 		idbg("parse generic non pointer");
-		if(!cpb.ps) return OK;
-		_rd.fstk.pop();
 		Deserializer &rd(static_cast<Deserializer&>(_rd));
+		if(!rd.cpb) return OK;
+		rd.fstk.pop();
 		*reinterpret_cast<T*>(_rfd.p) & rd;
 		return CONTINUE;
 	}
@@ -180,20 +179,21 @@ class Deserializer: public Base{
 		Deserializer &rd(static_cast<Deserializer&>(_rd));
 		void *p = _rfd.p;
 		rd.fstk.pop();
-		TypeMapper::map<TM, Deserializer>(p, &rd, &tmpstr, _rfd.s);
+		TypeMapper::map<TM, Deserializer, Serializer>(p, rd, rd.tmpstr);
 		return CONTINUE;
 	}
 	template <class TM>
-	static int parseTypeId(FncData &_rfd){
+	static int parseTypeId(Base& _rd, FncData &_rfd){
 		Deserializer &rd(static_cast<Deserializer&>(_rd));
 		//TypeMapper::getMap<TM>(). template parseTypeId<Deserializer>(rd, tmpstr, _rfd.p);
-		TypeMapper::parseTypeId<TM, Deserializer>(rd, tmpstr, _rfd.s);
+		TypeMapper::parseTypeId<TM, Deserializer>(rd, rd.tmpstr);
 		_rfd.f = &parseTypeIdDone<TM>;
 		return CONTINUE;
 	}
 public:
 	template <class Map>
-	Deserializer():ptypeidf(&parseTypeId), pb(NULL), cpb(NULL), be(NULL){
+	Deserializer(Map *):ptypeidf(&parseTypeId<Map>), pb(NULL), cpb(NULL), be(NULL){
+		tmpstr.reserve(sizeof(ulong));
 	}
 	~Deserializer();
 	void clear();
@@ -216,10 +216,10 @@ public:
 	}
 private:
 	FncTp		ptypeidf;
-	string		tmpstr;
 	const char	*pb;
 	const char	*cpb;
 	const char	*be;
+	std::string	tmpstr;
 };
 
 }//namespace bin
