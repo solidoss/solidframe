@@ -27,40 +27,40 @@
 #include <list>
 //#undef UDEBUG
 #include "system/thread.hpp"
-#include "algorithm/serialization/binary.hpp"
 #include "algorithm/serialization/typemapper.hpp"
+#include "algorithm/serialization/binary.hpp"
 #include "algorithm/serialization/idtypemap.hpp"
 using namespace std;
 
-template <class S>
-S& operator&(string &, S &_s){
-	cassert(false);
-	return _s;
-}
-
-template <class S>
-S& operator&(unsigned &, S &_s){
-	cassert(false);
-	return _s;
-}
-
-template <class S>
-S& operator&(ulong &, S &_s){
-	cassert(false);
-	return _s;
-}
-
-template <class S>
-S& operator&(int &, S &_s){
-	cassert(false);
-	return _s;
-}
-
-template <class S>
-S& operator&(short &, S &_s){
-	cassert(false);
-	return _s;
-}
+// template <class S>
+// S& operator&(string &, S &_s){
+// 	cassert(false);
+// 	return _s;
+// }
+// 
+// template <class S>
+// S& operator&(unsigned &, S &_s){
+// 	cassert(false);
+// 	return _s;
+// }
+// 
+// template <class S>
+// S& operator&(ulong &, S &_s){
+// 	cassert(false);
+// 	return _s;
+// }
+// 
+// template <class S>
+// S& operator&(int &, S &_s){
+// 	cassert(false);
+// 	return _s;
+// }
+// 
+// template <class S>
+// S& operator&(short &, S &_s){
+// 	cassert(false);
+// 	return _s;
+// }
 
 struct TestA{
 	TestA(int _a = 1, short _b = 2, unsigned _c = 3):a(_a), b(_b), c(_c){}
@@ -142,7 +142,7 @@ private:
 struct IntegerVector: Base{
 	IntegerVector(){}
 	void print()const;
-	typedef vector<int> 	IntVecTp;
+	typedef vector<uint32> 	IntVecTp;
 	IntVecTp	iv;
 };
 
@@ -157,7 +157,8 @@ void IntegerVector::print()const{
 
 template <class S>
 S& operator&(IntegerVector &_iv, S &_s){
-	//return _s.pushContainer(_iv.iv, "IntegerVector::iv");
+	return _s.pushContainer(_iv.iv, "IntegerVector::iv");
+	//return _s;
 }
 
 template <class S>
@@ -246,7 +247,7 @@ int main(int argc, char *argv[]){
 		b3->print();
 		
 		ser.push(ta, "testa").push(tb, "testb").push(tc, "testc");
-		//ser.pushString(s, "string").pushContainer(sdq, "names");
+		ser.push(s, "string").pushContainer(sdq, "names");
 		ser.push(b1, "basestring").push(b2, "baseui").push(b3, "baseiv");
 		int v = 0, cnt = 0;
 		idbg("");
@@ -271,7 +272,7 @@ int main(int argc, char *argv[]){
 		Base		*b3 = NULL;
 		
 		des.push(ta, "testa").push(tb, "testb").push(tc, "testc");
-		//des.pushString(s, "string").pushContainer(sdq, "names");
+		des.push(s, "string").pushContainer(sdq, "names");
 		des.push(b1, "basestring").push(b2, "baseui").push(b3, "baseiv");
 		
 		int v = 0;
@@ -287,8 +288,8 @@ int main(int argc, char *argv[]){
 		tc.print();
 		cout<<"string: "<<s<<endl;
 		print(sdq);
-		b1->print();
-		b2->print();
+		if(b1)b1->print();
+		if(b2)b2->print();
 		b3->print();
 	}
 	

@@ -31,19 +31,21 @@
 #include "utility/stack.hpp"
 #include "typemapper.hpp"
 
-#define NUMBER_DECL(tp) \
-template <class S>\
-S& operator&(tp &_t, S &_s){\
-	return _s.pushNumber(&_t, sizeof(tp), "binary");\
-}
-
 class IStream;
 class OStream;
 
 class Mutex;
 
+
 namespace serialization{
 namespace bin{
+
+BASIC_DECL(int16);
+BASIC_DECL(uint16);
+BASIC_DECL(int32);
+BASIC_DECL(uint32);
+BASIC_DECL(int64);
+BASIC_DECL(uint64);
 
 enum {
 	MAXITSZ = sizeof(int64) + sizeof(int64),//!< Max sizeof(iterator) for serialized containers
@@ -84,6 +86,7 @@ protected:
 protected:
 	//! Replace the top callback from the stack
 	void replace(const FncData &_rfd);
+	static int popEStack(Base &_rs, FncData &_rfd);
 protected:
 	typedef Stack<FncData>	FncDataStackTp;
 	typedef Stack<ExtData>	ExtDataStackTp;
@@ -92,6 +95,7 @@ protected:
 	ExtDataStackTp		estk;
 };
 //===============================================================
+
 class Serializer: public Base{
 	template <class TM>
 	static int storeTypeId(Base &_rs, FncData &_rfd){
@@ -113,6 +117,41 @@ class Serializer: public Base{
 		rs.fstk.pop();
 		rt & rs;
 		return CONTINUE;
+	}
+	static int storeBinary(Base &_rs, FncData &_rfd);
+	template <typename T>
+	static int storeContainer(Base &_rs, FncData &_rfd){
+		idbg("store generic non pointer container sizeof(iterator) = "<<sizeof(typename T::iterator));
+		Serializer &rs(static_cast<Serializer&>(_rs));
+		if(!rs.cpb) return OK;
+		T * c = reinterpret_cast<T*>(_rfd.p);
+		cassert(sizeof(typename T::iterator) <= sizeof(ExtData));
+		rs.estk.push(ExtData());
+		typename T::iterator *pit(new(rs.estk.top().buf) typename T::iterator(c->begin()));
+		//typename T::const_iterator &pit = *reinterpret_cast<typename T::const_iterator*>(estk.top().buf);
+		*pit = c->begin();
+		rs.estk.push(ExtData(c->size()));
+		_rfd.f = &Serializer::storeContainerContinue<T>;
+		rs.fstk.push(FncData(&Base::popEStack, NULL));
+		rs.fstk.push(FncData(&Serializer::template store<uint32>, &rs.estk.top().u32()));
+		return CONTINUE;
+	}
+	
+	template <typename T>
+	static int storeContainerContinue(Base &_rs, FncData &_rfd){
+		Serializer &rs(static_cast<Serializer&>(_rs));
+		typename T::iterator &rit = *reinterpret_cast<typename T::iterator*>(rs.estk.top().buf);
+		T * c = reinterpret_cast<T*>(_rfd.p);
+		if(rs.cpb && rit != c->end()){
+			rs.push(*rit);
+			++rit;
+			return CONTINUE;
+		}else{
+			//TODO:?!how
+			//rit.T::~const_iterator();//only call the destructor
+			rs.estk.pop();
+			return OK;
+		}
 	}
 public:
 	template <class Map>
@@ -136,7 +175,6 @@ public:
 	template <typename T>
 	Serializer& push(T &_t, const char *_name = NULL){
 		idbg("push nonptr "<<_name);
-		FncTp	tpf;
 		fstk.push(FncData(&Serializer::template store<T>, (void*)&_t, _name));
 		return *this;
 	}
@@ -153,6 +191,11 @@ public:
 	Serializer& push(T* _t, const char *_name = NULL){
 		idbg("push ptr "<<_name);
 		fstk.push(FncData(ptypeidf, _t, _t ? TypeMapper::typeName(_t) : NULL));
+		return *this;
+	}
+	template <typename T>
+	Serializer& pushContainer(T &_t, const char *_name = NULL){
+		fstk.push(FncData(&Serializer::template storeContainer<T>, (void*)&_t, _name));
 		return *this;
 	}
 private:
@@ -177,6 +220,8 @@ class Deserializer: public Base{
 	template <class TM>
 	static int parseTypeIdDone(Base& _rd, FncData &_rfd){
 		Deserializer &rd(static_cast<Deserializer&>(_rd));
+		uint32 *pu = reinterpret_cast<uint32*>(const_cast<char*>(rd.tmpstr.data()));
+		idbg("pu = "<<*pu);
 		void *p = _rfd.p;
 		rd.fstk.pop();
 		TypeMapper::map<TM, Deserializer, Serializer>(p, rd, rd.tmpstr);
@@ -185,10 +230,48 @@ class Deserializer: public Base{
 	template <class TM>
 	static int parseTypeId(Base& _rd, FncData &_rfd){
 		Deserializer &rd(static_cast<Deserializer&>(_rd));
-		//TypeMapper::getMap<TM>(). template parseTypeId<Deserializer>(rd, tmpstr, _rfd.p);
+		uint32 *pu = reinterpret_cast<uint32*>(const_cast<char*>(rd.tmpstr.data()));
+		idbg("pu = "<<*pu);
 		TypeMapper::parseTypeId<TM, Deserializer>(rd, rd.tmpstr);
 		_rfd.f = &parseTypeIdDone<TM>;
 		return CONTINUE;
+	}
+	static int parseBinary(Base &_rb, FncData &_rfd);
+	static int parseBinaryString(Base &_rb, FncData &_rfd);
+	template <typename T>
+	static int parseContainer(Base &_rb, FncData &_rfd){
+		idbg("parse generic non pointer container");
+		Deserializer &rd(static_cast<Deserializer&>(_rb));
+		if(!rd.cpb) return OK;
+		_rfd.f = &Deserializer::parseContainerBegin<T>;
+		rd.estk.push(ExtData(0));
+		rd.fstk.push(FncData(&Deserializer::parse<uint32>, &rd.estk.top().u32()));
+		return CONTINUE;
+	}
+	template <typename T>
+	static int parseContainerBegin(Base &_rb, FncData &_rfd){
+		Deserializer &rd(static_cast<Deserializer&>(_rb));
+		if(!rd.cpb) return OK;
+		uint32 ul = rd.estk.top().u32();
+		rd.estk.pop();
+		if(ul){
+			_rfd.f = &Deserializer::parseContainerContinue<T>;
+			_rfd.s = ul;
+			return CONTINUE;
+		}
+		return OK;
+	}
+	template <typename T>
+	static int parseContainerContinue(Base &_rb, FncData &_rfd){
+		Deserializer &rd(static_cast<Deserializer&>(_rb));
+		if(rd.cpb && _rfd.s){
+			T *c = reinterpret_cast<T*>(_rfd.p);
+			c->push_back(typename T::value_type());
+			rd.push(c->back());
+			--_rfd.s;
+			return CONTINUE;	
+		}
+		return OK;
 	}
 public:
 	template <class Map>
@@ -203,7 +286,6 @@ public:
 	template <typename T>
 	Deserializer& push(T &_t, const char *_name = NULL){
 		idbg("push nonptr "<<_name);
-		FncTp tpf;
 		fstk.push(FncData(&Deserializer::parse<T>, (void*)&_t, _name));
 		return *this;
 	}
@@ -214,6 +296,12 @@ public:
 		fstk.push(FncData(ptypeidf, &_t, _name));
 		return *this;
 	}
+	//! Schedules a std (style) container for deserialization
+	template <typename T>
+	Deserializer& pushContainer(T &_t, const char *_name = NULL){
+		fstk.push(FncData(&Deserializer::template parseContainer<T>, (void*)&_t, _name));
+		return *this;
+	}
 private:
 	FncTp		ptypeidf;
 	const char	*pb;
@@ -221,6 +309,13 @@ private:
 	const char	*be;
 	std::string	tmpstr;
 };
+
+//! Nonintrusive string serialization/deserialization specification
+template <class S>
+S& operator&(std::string &_t, S &_s){
+	return _s.push(_t, "string");
+}
+
 
 }//namespace bin
 }//namespace serialization

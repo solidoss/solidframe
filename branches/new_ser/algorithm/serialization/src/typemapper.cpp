@@ -1,3 +1,24 @@
+/* Implementation file binary.cpp
+	
+	Copyright 2007, 2008 Valentin Palade 
+	vipalade@gmail.com
+
+	This file is part of SolidGround framework.
+
+	SolidGround is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	SolidGround is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include <deque>
 #include <vector>
 #include <map>
@@ -5,6 +26,7 @@
 #include "system/cassert.hpp"
 #include "algorithm/serialization/typemapper.hpp"
 #include "algorithm/serialization/idtypemap.hpp"
+
 namespace serialization{
 //================================================================
 struct TypeMapper::Data{
@@ -13,7 +35,7 @@ struct TypeMapper::Data{
 	ulong 			sercnt;
 	TypeMapVectorTp	tmvec;
 };
-
+//================================================================
 TypeMapper::Data::Data():sercnt(0){}
 
 TypeMapper::TypeMapper():d(*(new Data)){
@@ -74,7 +96,7 @@ IdTypeMap::~IdTypeMap(){
 }
 
 BaseTypeMap::FncTp IdTypeMap::parseTypeIdDone(const std::string &_rstr, ulong _serid){
-	const ulong *const pu = reinterpret_cast<const ulong*>(_rstr.data());
+	const uint32 *const pu = reinterpret_cast<const uint32*>(_rstr.data());
 	cassert(*pu < d.fncvec.size());
 	cassert(d.fncvec[*pu]);
 	return d.fncvec[*pu];
@@ -82,20 +104,28 @@ BaseTypeMap::FncTp IdTypeMap::parseTypeIdDone(const std::string &_rstr, ulong _s
 
 /*virtual*/ void IdTypeMap::insert(FncTp _pf, unsigned _pos, const char *_name, unsigned _maxcnt){
 	uint32 sz = d.fncvec.size();
-	//TODO: its a little more complicated than it seems
-	sz += _pos;
-	d.fncvec[sz] = _pf;
-	d.nmap[_name] = sz/_maxcnt;
+	std::pair<Data::NameMapTp::iterator, bool> p(d.nmap.insert(Data::NameMapTp::value_type(_name, sz)));
+	if(p.second){//key inserted
+		d.fncvec.resize(sz + _maxcnt);
+		for(int i = sz; i < d.fncvec.size(); ++i){
+			d.fncvec[i] = NULL;
+		}
+		d.fncvec[sz + _pos] = _pf;
+	}else{//key already mapped
+		d.fncvec[p.first->second + _pos] = _pf;
+	}
 }
 
-ulong &IdTypeMap::getFunction(FncTp &_rpf, const char *_name, std::string &_rstr, ulong _serid){
+uint32 &IdTypeMap::getFunction(FncTp &_rpf, const char *_name, std::string &_rstr, ulong _serid){
 	Data::NameMapTp::const_iterator it(d.nmap.find(_name));
 	cassert(it != d.nmap.end());
-	ulong *pu = reinterpret_cast<ulong*>(const_cast<char*>(_rstr.data()));
+	uint32 *pu = reinterpret_cast<uint32*>(const_cast<char*>(_rstr.data()));
 	*pu = it->second + _serid;
-	_rpf = d.fncvec[it->second + _serid];
+	_rpf = d.fncvec[*pu];
 	cassert(_rpf != NULL);
 	return *pu;
 }
+
 //================================================================
+
 }//namespace serialization

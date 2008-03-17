@@ -31,6 +31,9 @@
 
 namespace serialization{
 
+template <class S>
+S& operator&(uint32 &_t, S &_s);
+
 class IdTypeMap: public BaseTypeMap{
 public:
 	IdTypeMap();
@@ -41,18 +44,25 @@ public:
 	}
 	/*virtual*/ void insert(FncTp, unsigned _pos, const char *, unsigned _maxpos);
 	template <class Ser>
-	FncTp storeTypeId(Ser &_rs, const char *_name, std::string &_rstr, ulong _serid){
+	void storeTypeId(Ser &_rs, const char *_name, std::string &_rstr, ulong _serid, void *_p){
 		FncTp pf;
-		getFunction(pf, _name, _rstr, _serid) & _rs;
-		return pf;
+		uint32 &rul(getFunction(pf, _name, _rstr, _serid));
+		if(pf){
+			(*pf)(_p, &_rs, NULL);
+		}
+		idbg(""<<rul);
+		_rs.push(rul, "type_id");
+		//return pf;
 	}
 	template <class Des>
 	void parseTypeIdPrepare(Des &_rd, std::string &_rstr){
-		idbg("");
+		uint32 *pu = reinterpret_cast<uint32*>(const_cast<char*>(_rstr.data()));
+		idbg(""<<*pu);
+		_rd.push(*pu, "type_id");
 	}
 	FncTp parseTypeIdDone(const std::string &_rstr, ulong _serid);
 private:
-	ulong & getFunction(FncTp &_rpf, const char *_name, std::string &_rstr, ulong _serid);
+	uint32 & getFunction(FncTp &_rpf, const char *_name, std::string &_rstr, ulong _serid);
 	struct Data;
 	Data	&d;
 };

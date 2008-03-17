@@ -23,9 +23,25 @@
 
 #include <string>
 #include <typeinfo>
+#include "utility/common.hpp"
 #include "basetypemap.hpp"
 
+#define BASIC_DECL(tp) \
+template <class S>\
+S& operator&(tp &_t, S &_s){\
+	return _s.push(_t, "basic");\
+}
+
+
 namespace serialization{
+
+BASIC_DECL(int16);
+BASIC_DECL(uint16);
+BASIC_DECL(int32);
+BASIC_DECL(uint32);
+BASIC_DECL(int64);
+BASIC_DECL(uint64);
+
 
 class TypeMapper{
 	typedef BaseTypeMap::FncTp	FncTp;
@@ -47,7 +63,7 @@ public:
 	~TypeMapper();
 	template <class T>
 	static const char* typeName(T *_p){
-		return typeid(_p).name();
+		return typeid(*_p).name();
 	}
 	template <class Map>
 	static void registerMap(Map *_pm){
@@ -64,10 +80,10 @@ public:
 	template <class TM, class Ser>
 	static void map(void *_p, Ser &_rs, const char *_name, std::string &_rstr){
 		TM &tm(static_cast<TM&>(the().getMap(mapId<TM>())));
-		FncTp pf = tm.storeTypeId(_rs, _name, _rstr, serializerId<Ser>());
-		if(pf){
-			(*pf)(_p, &_rs, NULL);
-		}
+		/*FncTp pf = */tm.storeTypeId(_rs, _name, _rstr, serializerId<Ser>(), _p);
+// 		if(pf){
+// 			(*pf)(_p, &_rs, NULL);
+// 		}
 	}
 	template <class TM, class Des>
 	static void parseTypeId(Des &_rd, std::string &_rstr){
@@ -107,6 +123,8 @@ private:
 	struct Data;
 	Data	&d;
 };
+
+
 
 }
 
