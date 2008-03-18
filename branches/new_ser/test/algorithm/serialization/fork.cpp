@@ -30,6 +30,8 @@
 #undef UDEBUG
 #include "system/thread.hpp"
 #include "algorithm/serialization/binary.hpp"
+#include "algorithm/serialization/typemapper.hpp"
+#include "algorithm/serialization/idtypemap.hpp"
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <cerrno>
@@ -79,7 +81,7 @@ struct Test{
 	Test(const char *_fn = NULL);
 	template <class S>
 	S& operator&(S &_s){
-		return _s.template pushStreammer<Test>(this, "Test::fs").push(no, "Test::no").pushString(fn,"Test::fn");
+		return _s.template pushStreammer<Test>(this, "Test::fs").push(no, "Test::no").push(fn,"Test::fn");
 	}
 	int createDeserializationStream(std::pair<OStream *, int64> &_rps, int _id);
 	void destroyDeserializationStream(const std::pair<OStream *, int64> &_rps, int _id);
@@ -151,6 +153,14 @@ void Test::print(){
 
 void parentRun(int _sd, const char *_fn);
 void childRun(int _sd);
+
+
+typedef serialization::TypeMapper					TypeMapper;
+//typedef serialization::NameTypeMap					NameTypeMap;
+typedef serialization::IdTypeMap					IdTypeMap;
+typedef serialization::bin::Serializer				BinSerializer;
+typedef serialization::bin::Deserializer			BinDeserializer;
+	
 int main(int argc, char *argv[]){
 	int sps[2];
 	if(argc != 2){
@@ -163,6 +173,9 @@ int main(int argc, char *argv[]){
 		cout<<"error creating socketpair: "<<strerror(errno)<<endl;
 		return 0;
 	}
+	TypeMapper::registerMap<IdTypeMap>(new IdTypeMap);
+	TypeMapper::registerSerializer<BinSerializer>();
+
 	rv = fork();
 	if(rv){//the parent
 		Thread::init();
@@ -179,8 +192,7 @@ enum {BUFSZ = 4 * 1024};
 void parentRun(int _sd, const char *_fn){
 	char buf[BUFSZ];
 	Test t(_fn);
-	serialization::bin::RTTIMapper		fm;
-	serialization::bin::Serializer<>	ser(fm);
+	BinSerializer	ser(IdTypeMap::the());
 	ser.push(t, "test");
 	t.print();
 	int rv;
@@ -198,8 +210,7 @@ void parentRun(int _sd, const char *_fn){
 void childRun(int _sd){
 	char buf[BUFSZ];
 	Test t;
-	serialization::bin::RTTIMapper		fm;
-	serialization::bin::Deserializer<>	des(fm);
+	BinDeserializer	des(IdTypeMap::the());
 	des.push(t, "test");
 	int rv;
 	cout<<"Client reading"<<endl;

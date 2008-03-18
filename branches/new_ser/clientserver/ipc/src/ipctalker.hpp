@@ -27,19 +27,12 @@
 
 struct TimeSpec;
 
-namespace serialization{
-namespace bin{
-class RTTIMapper;
-}
-}
-
 namespace clientserver{
 
 class Visitor;
 
 namespace ipc{
 
-typedef serialization::bin::RTTIMapper BinMapper;
 class Service;
 struct Buffer;
 struct ConnectorUid;
@@ -50,7 +43,7 @@ public:
 	typedef Service						ServiceTp;
 	typedef clientserver::udp::Talker	BaseTp;
 	
-	Talker(clientserver::udp::Station *_pst, Service &_rservice, BinMapper &_rmapper, uint16 _id);
+	Talker(clientserver::udp::Station *_pst, Service &_rservice, uint16 _id);
 	~Talker();
 	int execute(ulong _sig, TimeSpec &_tout);
 	int execute();

@@ -1221,12 +1221,16 @@ int Idle::receiveString(
 //---------------------------------------------------------------
 // Command Base
 //---------------------------------------------------------------
+typedef serialization::TypeMapper					TypeMapper;
+typedef serialization::bin::Serializer				BinSerializer;
+typedef serialization::bin::Deserializer			BinDeserializer;
+
 Command::Command(){}
 void Command::initStatic(Server &_rs){
-	_rs.binMapper().map<SendStringCommand>();
-	_rs.binMapper().map<SendStreamCommand>();
-	_rs.binMapper().map<FetchMasterCommand>();
-	_rs.binMapper().map<FetchSlaveCommand>();
+	TypeMapper::map<SendStringCommand, BinSerializer, BinDeserializer>();
+	TypeMapper::map<SendStreamCommand, BinSerializer, BinDeserializer>();
+	TypeMapper::map<FetchMasterCommand, BinSerializer, BinDeserializer>();
+	TypeMapper::map<FetchSlaveCommand, BinSerializer, BinDeserializer>();
 }
 /*virtual*/ Command::~Command(){}
 

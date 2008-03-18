@@ -47,6 +47,12 @@ BASIC_DECL(uint32);
 BASIC_DECL(int64);
 BASIC_DECL(uint64);
 
+//! Nonintrusive string serialization/deserialization specification
+template <class S>
+S& operator&(std::string &_t, S &_s){
+	return _s.push(_t, "string");
+}
+
 enum {
 	MAXITSZ = sizeof(int64) + sizeof(int64),//!< Max sizeof(iterator) for serialized containers
 	MINSTREAMBUFLEN = 128//if the free space for current buffer is less than this value
@@ -153,6 +159,49 @@ class Serializer: public Base{
 			return OK;
 		}
 	}
+	template <typename T>
+	static int storeStreamBegin(Base &_rs, FncData &_rfd){
+		idbg("store stream begin");
+		Serializer &rs(static_cast<Serializer&>(_rs));
+		if(!rs.cpb) return OK;
+		T *pt = reinterpret_cast<T*>(_rfd.p);
+		std::pair<IStream*, int64> sp(NULL, -1);
+		int cpidx = _rfd.s;
+		++_rfd.s;
+		switch(pt->createSerializationStream(sp, cpidx)){
+			case BAD: sp.second = -1;break;//send -1
+			case NOK: return OK;//no more streams
+			case OK:
+				cassert(sp.first);
+				cassert(sp.second >= 0);
+				break;
+			default:
+				cassert(false);
+		}
+		rs.estk.push(ExtData());
+		std::pair<IStream*, int64> &rsp(*reinterpret_cast<std::pair<IStream*, int64>*>(rs.estk.top().buf));
+		rsp = sp;
+		FncTp	tpf;
+		//_rfd.s is the id of the stream
+		rs.fstk.push(FncData(&Serializer::storeStreamDone<T>, _rfd.p, _rfd.n, _rfd.s - 1));
+		if(sp.first){
+			rs.fstk.push(FncData(&Serializer::storeStream, NULL));
+		}
+		rs.fstk.push(FncData(&Serializer::storeBinary, &rsp.second, _rfd.n, sizeof(int64)));
+		return CONTINUE;
+	}
+	template <typename T>
+	static int storeStreamDone(Base &_rs, FncData &_rfd){
+		idbg("store stream done");
+		Serializer &rs(static_cast<Serializer&>(_rs));
+		std::pair<IStream*, int64> &rsp(*reinterpret_cast<std::pair<IStream*, int64>*>(rs.estk.top().buf));
+		T *pt = reinterpret_cast<T*>(_rfd.p);
+		pt->destroySerializationStream(rsp, _rfd.s);
+		rs.estk.pop();
+		return OK;
+	}
+	//! Internal callback for storing a stream
+	static int storeStream(Base &_rs, FncData &_rfd);
 public:
 	template <class Map>
 	Serializer(Map *p):ptypeidf(&storeTypeId<Map>), pb(NULL), cpb(NULL), be(NULL){
@@ -193,9 +242,24 @@ public:
 		fstk.push(FncData(ptypeidf, _t, _t ? TypeMapper::typeName(_t) : NULL));
 		return *this;
 	}
+	//! Schedules a stl style container for serialization
 	template <typename T>
 	Serializer& pushContainer(T &_t, const char *_name = NULL){
 		fstk.push(FncData(&Serializer::template storeContainer<T>, (void*)&_t, _name));
+		return *this;
+	}
+	//! Schedules the serialization of an object containing streams.
+	/*!
+		Unfortunately this must be intrussive, that is the given streammer object must
+		export a required interface.
+		Please see the test/algorithm/serialization/fork.cpp example or 
+		test::alpha::FetchSlaveCommand.
+	*/
+	template <typename T>
+	Serializer& pushStreammer(T *_p, const char *_name = NULL){
+		//idbg("push stream "<<_name);
+		FncTp	tpf;
+		fstk.push(FncData(&Serializer::template storeStreamBegin<T>, _p, _name, 0));
 		return *this;
 	}
 private:
@@ -273,6 +337,55 @@ class Deserializer: public Base{
 		}
 		return OK;
 	}
+	template <typename T>
+	static int parseStreamBegin(Base &_rb,FncData &_rfd){
+		idbg("parse stream begin");
+		Deserializer &rd(static_cast<Deserializer&>(_rb));
+		if(!rd.cpb) return OK;
+		
+		int cpidx = _rfd.s;
+		++_rfd.s;
+		std::pair<OStream*, int64> sp(NULL, -1);
+		T	*pt = reinterpret_cast<T*>(_rfd.p);
+		//TODO: createDeserializationStream should be given the size of the stream
+		switch(pt->createDeserializationStream(sp, cpidx)){
+			case BAD:	
+			case OK: 	break;
+			case NOK:	return OK;
+		}
+		rd.estk.push(ExtData());
+		std::pair<OStream*, int64> &rsp(*reinterpret_cast<std::pair<OStream*, int64>*>(rd.estk.top().buf));
+		rsp = sp;
+		FncTp tpf;
+		//_rfd.s is the id of the stream
+		rd.fstk.push(FncData(&Deserializer::template parseStreamDone<T>, _rfd.p, _rfd.n, _rfd.s - 1));
+		if(sp.first)
+			rd.fstk.push(FncData(&Deserializer::parseStream, NULL));
+		else
+			rd.fstk.push(FncData(&Deserializer::parseDummyStream, NULL));
+		//TODO: move this line - so it is called before parseStreamBegin
+		rd.fstk.push(FncData(&Deserializer::parseBinary, &rsp.second, _rfd.n, sizeof(int64)));
+		return CONTINUE;
+	}
+	template <typename T>
+	static int parseStreamDone(Base &_rb,FncData &_rfd){
+		idbg("store stream done");
+		Deserializer &rd(static_cast<Deserializer&>(_rb));
+		std::pair<OStream*, int64> &rsp(*reinterpret_cast<std::pair<OStream*, int64>*>(rd.estk.top().buf));
+		T	*pt = reinterpret_cast<T*>(_rfd.p);
+		pt->destroyDeserializationStream(rsp, _rfd.s);
+		rd.estk.pop();
+		return OK;
+	}
+	//! Internal callback for parsing a stream
+	static int parseStream(Base &_rb, FncData &_rfd);
+	//! Internal callback for parsign a dummy stream
+	/*!
+		This is internally called when a deserialization destionation
+		ostream could not be optained, or there was an error while
+		writing to destination stream.
+	*/
+	static int parseDummyStream(Base &_rb, FncData &_rfd);
 public:
 	template <class Map>
 	Deserializer(Map *):ptypeidf(&parseTypeId<Map>), pb(NULL), cpb(NULL), be(NULL){
@@ -302,6 +415,20 @@ public:
 		fstk.push(FncData(&Deserializer::template parseContainer<T>, (void*)&_t, _name));
 		return *this;
 	}
+	//! Schedules the deserialization of an object containing streams.
+	/*!
+		Unfortunately this must be intrussive, that is the given streammer object must
+		export a required interface.
+		Please see the test/algorithm/serialization/fork.cpp example and/or 
+		test::alpha::FetchSlaveCommand.
+	*/
+	template <typename T>
+	Deserializer& pushStreammer(T *_p, const char *_name = NULL){
+		//idbg("push special "<<_name);
+		FncTp tpf;
+		fstk.push(FncData(&Deserializer::template parseStreamBegin<T>, _p, _name, 0));
+		return *this;
+	}
 private:
 	FncTp		ptypeidf;
 	const char	*pb;
@@ -309,13 +436,6 @@ private:
 	const char	*be;
 	std::string	tmpstr;
 };
-
-//! Nonintrusive string serialization/deserialization specification
-template <class S>
-S& operator&(std::string &_t, S &_s){
-	return _s.push(_t, "string");
-}
-
 
 }//namespace bin
 }//namespace serialization

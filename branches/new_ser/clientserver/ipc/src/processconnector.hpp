@@ -26,12 +26,6 @@
 #include "iodata.hpp"
 #include "system/timespec.hpp"
 
-namespace serialization{
-namespace bin{
-class RTTIMapper;
-}
-}
-
 struct SocketAddress;
 struct Inet4SockAddrPair;
 struct Inet6SockAddrPair;
@@ -49,7 +43,6 @@ struct IOData;
 struct ServiceStubUnlocked;
 class ProcessConnector;
 struct ConnectorUid;
-typedef serialization::bin::RTTIMapper BinMapper;
 
 struct SendBufferData{
 	SendBufferData():procid(0xffff),bufpos(0xffff),paddr(NULL){}
@@ -73,14 +66,12 @@ public:
 	enum{
 		LastPublicFlag = (1 << 16)
 	};
-	static void init(BinMapper &_rm);
+	static void init();
 	static int parseAcceptedBuffer(Buffer &_rbuf);
 	static int parseConnectingBuffer(Buffer &_rbuf);
 	
-	ProcessConnector(BinMapper &_rm, const Inet4SockAddrPair &_raddr);
-	//ProcessConnector(BinMapper &_rm, const Inet6SockAddrPair &_raddr);
-	ProcessConnector(BinMapper &_rm, const Inet4SockAddrPair &_raddr, int _basport);
-	//ProcessConnector(BinMapper &_rm, const Inet6SockAddrPair &_raddr, int _basport);
+	ProcessConnector(const Inet4SockAddrPair &_raddr);
+	ProcessConnector(const Inet4SockAddrPair &_raddr, int _basport);
 	~ProcessConnector();
 	/**
 	 * \retval BAD on error, 
