@@ -241,7 +241,7 @@ struct FetchMasterCommand: test::Command{
 		SendNextStream,
 		SendError,
 	};
-	FetchMasterCommand():state(NotReceived), insz(-1), inpos(0), requid(0),pcmd(NULL){}
+	FetchMasterCommand():pcmd(NULL), state(NotReceived), insz(-1), inpos(0), requid(0){}
 	~FetchMasterCommand();
 	int received(const cs::ipc::ConnectorUid &_rconid);
 	int execute(cs::CommandExecuter&, const CommandUidTp &, TimeSpec &_rts);

@@ -34,9 +34,6 @@
 class IStream;
 class OStream;
 
-class Mutex;
-
-
 namespace serialization{
 namespace bin{
 
@@ -181,7 +178,6 @@ class Serializer: public Base{
 		rs.estk.push(ExtData());
 		std::pair<IStream*, int64> &rsp(*reinterpret_cast<std::pair<IStream*, int64>*>(rs.estk.top().buf));
 		rsp = sp;
-		FncTp	tpf;
 		//_rfd.s is the id of the stream
 		rs.fstk.push(FncData(&Serializer::storeStreamDone<T>, _rfd.p, _rfd.n, _rfd.s - 1));
 		if(sp.first){
@@ -223,7 +219,7 @@ public:
 	*/
 	template <typename T>
 	Serializer& push(T &_t, const char *_name = NULL){
-		idbg("push nonptr "<<_name);
+		//idbg("push nonptr "<<_name);
 		fstk.push(FncData(&Serializer::template store<T>, (void*)&_t, _name));
 		return *this;
 	}
@@ -238,7 +234,7 @@ public:
 	*/
 	template <typename T>
 	Serializer& push(T* _t, const char *_name = NULL){
-		idbg("push ptr "<<_name);
+		//idbg("push ptr "<<_name);
 		fstk.push(FncData(ptypeidf, _t, _t ? TypeMapper::typeName(_t) : NULL));
 		return *this;
 	}
@@ -258,7 +254,6 @@ public:
 	template <typename T>
 	Serializer& pushStreammer(T *_p, const char *_name = NULL){
 		//idbg("push stream "<<_name);
-		FncTp	tpf;
 		fstk.push(FncData(&Serializer::template storeStreamBegin<T>, _p, _name, 0));
 		return *this;
 	}
@@ -284,8 +279,6 @@ class Deserializer: public Base{
 	template <class TM>
 	static int parseTypeIdDone(Base& _rd, FncData &_rfd){
 		Deserializer &rd(static_cast<Deserializer&>(_rd));
-		uint32 *pu = reinterpret_cast<uint32*>(const_cast<char*>(rd.tmpstr.data()));
-		idbg("pu = "<<*pu);
 		void *p = _rfd.p;
 		rd.fstk.pop();
 		TypeMapper::map<TM, Deserializer, Serializer>(p, rd, rd.tmpstr);
@@ -294,8 +287,6 @@ class Deserializer: public Base{
 	template <class TM>
 	static int parseTypeId(Base& _rd, FncData &_rfd){
 		Deserializer &rd(static_cast<Deserializer&>(_rd));
-		uint32 *pu = reinterpret_cast<uint32*>(const_cast<char*>(rd.tmpstr.data()));
-		idbg("pu = "<<*pu);
 		TypeMapper::parseTypeId<TM, Deserializer>(rd, rd.tmpstr);
 		_rfd.f = &parseTypeIdDone<TM>;
 		return CONTINUE;
@@ -356,7 +347,6 @@ class Deserializer: public Base{
 		rd.estk.push(ExtData());
 		std::pair<OStream*, int64> &rsp(*reinterpret_cast<std::pair<OStream*, int64>*>(rd.estk.top().buf));
 		rsp = sp;
-		FncTp tpf;
 		//_rfd.s is the id of the stream
 		rd.fstk.push(FncData(&Deserializer::template parseStreamDone<T>, _rfd.p, _rfd.n, _rfd.s - 1));
 		if(sp.first)
@@ -398,14 +388,14 @@ public:
 	
 	template <typename T>
 	Deserializer& push(T &_t, const char *_name = NULL){
-		idbg("push nonptr "<<_name);
+		//idbg("push nonptr "<<_name);
 		fstk.push(FncData(&Deserializer::parse<T>, (void*)&_t, _name));
 		return *this;
 	}
 	
 	template <typename T>
 	Deserializer& push(T* &_t, const char *_name = NULL){
-		idbg("push ptr "<<_name);
+		//idbg("push ptr "<<_name);
 		fstk.push(FncData(ptypeidf, &_t, _name));
 		return *this;
 	}
@@ -425,7 +415,6 @@ public:
 	template <typename T>
 	Deserializer& pushStreammer(T *_p, const char *_name = NULL){
 		//idbg("push special "<<_name);
-		FncTp tpf;
 		fstk.push(FncData(&Deserializer::template parseStreamBegin<T>, _p, _name, 0));
 		return *this;
 	}

@@ -27,6 +27,7 @@
 #include <list>
 //#undef UDEBUG
 #include "system/thread.hpp"
+#include "system/debug.hpp"
 #include "algorithm/serialization/typemapper.hpp"
 #include "algorithm/serialization/binary.hpp"
 #include "algorithm/serialization/idtypemap.hpp"
@@ -247,7 +248,9 @@ int main(int argc, char *argv[]){
 		b3->print();
 		
 		ser.push(ta, "testa").push(tb, "testb").push(tc, "testc");
+		idbg("");
 		ser.push(s, "string").pushContainer(sdq, "names");
+		idbg("");
 		ser.push(b1, "basestring").push(b2, "baseui").push(b3, "baseiv");
 		int v = 0, cnt = 0;
 		idbg("");
@@ -272,9 +275,11 @@ int main(int argc, char *argv[]){
 		Base		*b3 = NULL;
 		
 		des.push(ta, "testa").push(tb, "testb").push(tc, "testc");
+		idbg("");
 		des.push(s, "string").pushContainer(sdq, "names");
+		idbg("");
 		des.push(b1, "basestring").push(b2, "baseui").push(b3, "baseiv");
-		
+		idbg("");
 		int v = 0;
 		int cnt = 0;
 		while((rv = des.run(bufs[v], blen)) == blen){
@@ -292,7 +297,7 @@ int main(int argc, char *argv[]){
 		if(b2)b2->print();
 		b3->print();
 	}
-	
+	idbg("Done");
 	return 0;
 }
 

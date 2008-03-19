@@ -24,6 +24,7 @@
 #include <map>
 
 #include "system/cassert.hpp"
+#include "system/mutex.hpp"
 #include "algorithm/serialization/typemapper.hpp"
 #include "algorithm/serialization/idtypemap.hpp"
 
@@ -34,6 +35,14 @@ struct TypeMapper::Data{
 	Data();
 	ulong 			sercnt;
 	TypeMapVectorTp	tmvec;
+#ifdef U_SERIALIZATION_MUTEX
+	Mutex			m;
+#else
+#ifdef U_SERIALIZATION_RWMUTEX
+	RWMutex			m;
+#else
+#endif
+#endif
 };
 //================================================================
 TypeMapper::Data::Data():sercnt(0){}
@@ -74,6 +83,16 @@ BaseTypeMap &TypeMapper::getMap(unsigned _id){
 	return *d.tmvec[_id];
 }
 
+void TypeMapper::lock(){
+#ifdef U_SERIALIZATION_MUTEX
+	d.m.lock();
+#endif
+}
+void TypeMapper::unlock(){
+#ifdef U_SERIALIZATION_MUTEX
+	d.m.unlock();
+#endif
+}
 //================================================================
 
 BaseTypeMap::~BaseTypeMap(){

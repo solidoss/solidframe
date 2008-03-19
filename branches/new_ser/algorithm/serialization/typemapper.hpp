@@ -65,14 +65,17 @@ public:
 	static const char* typeName(T *_p){
 		return typeid(*_p).name();
 	}
+	//! Register a type map
 	template <class Map>
 	static void registerMap(Map *_pm){
 		the().doRegisterMap(mapId<Map>(), _pm);
 	}
+	//! Register a serializer
 	template <class Ser>
 	static void registerSerializer(){
 		the().serializerCount(serializerId<Ser>());
 	}
+	//! Register a type for a specific serializer/deserializer pair
 	template <class T, class Ser, class Des>
 	static void map(){
 		the().doMap(&TypeMapper::doMapCallback<T, Ser, Des>, serializerId<Ser>(), typeid(T).name());
@@ -80,10 +83,9 @@ public:
 	template <class TM, class Ser>
 	static void map(void *_p, Ser &_rs, const char *_name, std::string &_rstr){
 		TM &tm(static_cast<TM&>(the().getMap(mapId<TM>())));
-		/*FncTp pf = */tm.storeTypeId(_rs, _name, _rstr, serializerId<Ser>(), _p);
-// 		if(pf){
-// 			(*pf)(_p, &_rs, NULL);
-// 		}
+		the().lock();
+		tm.storeTypeId(_rs, _name, _rstr, serializerId<Ser>(), _p);
+		the().unlock();
 	}
 	template <class TM, class Des>
 	static void parseTypeId(Des &_rd, std::string &_rstr){
@@ -93,7 +95,9 @@ public:
 	template <class TM, class Des, class Ser>
 	static void map(void *_p, Des &_rd, const std::string &_rstr){
 		TM &tm(static_cast<TM&>(the().getMap(mapId<TM>())));
+		the().lock();
 		FncTp pf = tm.parseTypeIdDone(_rstr, serializerId<Ser>());
+		the().unlock();
 		if(pf){
 			(*pf)(_p, NULL, &_rd);
 		}
@@ -119,6 +123,8 @@ private:
 			*rpt & rd;
 		}
 	}
+	void lock();
+	void unlock();
 private:
 	struct Data;
 	Data	&d;
