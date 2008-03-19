@@ -27,6 +27,7 @@
 #include "utility/iostream.hpp"
 
 #include "algorithm/serialization/binary.hpp"
+#include "algorithm/serialization/idtypemap.hpp"
 
 #include "core/server.hpp"
 #include "core/service.hpp"
@@ -219,7 +220,7 @@ void FileManager::sendError(int _error, const RequestUid& _rrequid){
 */
 class IpcService: public cs::ipc::Service{
 public:
-	IpcService(serialization::bin::RTTIMapper& _rm):cs::ipc::Service(_rm){}
+	IpcService():cs::ipc::Service(){}
 protected:
 	/*virtual*/void pushTalkerInPool(clientserver::Server &_rs, clientserver::udp::Talker *_ptkr);
 };
@@ -269,7 +270,6 @@ struct Server::Data{
 	ExtraObjectVector					eovec;
 	ServiceIdxMap						servicemap;// map name -> service index
 	//cs::ipc::Service					*pcs; // A pointer to the ipc service
-	serialization::bin::RTTIMapper		binmapper; // A binary serialization mapper
 	ObjSelPoolTp						*pobjectpool[2];//object pools
 	ConSelPoolTp						*pconnectionpool;// connection pool
 	LisSelPoolTp						*plistenerpool;// listener pool
@@ -279,10 +279,16 @@ struct Server::Data{
 };
 
 //--------------------------------------------------------------------------
-
+typedef serialization::TypeMapper					TypeMapper;
+typedef serialization::IdTypeMap					IdTypeMap;
+typedef serialization::bin::Serializer				BinSerializer;
 Server::Data::Data(Server &_rs):pconnectionpool(NULL), plistenerpool(NULL), ptalkerpool(NULL){
 	pobjectpool[0] = NULL;
 	pobjectpool[1] = NULL;
+	
+	TypeMapper::registerMap<IdTypeMap>(new IdTypeMap);
+	TypeMapper::registerSerializer<BinSerializer>();
+	
 	if(true){	
 		pconnectionpool = new ConSelPoolTp(	_rs,
 												10,		//max thread cnt
@@ -387,7 +393,7 @@ Server::Server():d(*(new Data(*this))){
 		this->pushJob((cs::Object*)d.writecmdexec.ptr());
 	}
 	if(true){// create register the ipc service
-		this->ipc(new IpcService(d.binmapper));
+		this->ipc(new IpcService);
 		int pos = cs::Server::insertService(&this->ipc());
 		if(pos < 0){
 			idbg("unable to register service: "<<"ipc");
@@ -404,11 +410,6 @@ Server::~Server(){
 	cs::Server::stop(true);//wait all services to stop
 	delete &d;
 }
-
-serialization::bin::RTTIMapper &Server::binMapper(){
-	return d.binmapper;
-}
-
 
 int Server::start(const char *_which){
 	if(_which){

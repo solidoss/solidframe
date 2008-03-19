@@ -32,12 +32,6 @@ class Station;
 }
 }
 
-namespace serialization{
-namespace bin{
-class RTTIMapper;
-}
-}
-
 namespace clientserver{
 namespace ipc{
 
@@ -90,8 +84,6 @@ struct Inet6AddrPtrCmp{
 		return false;
 	}
 };
-
-typedef serialization::bin::RTTIMapper BinMapper;
 
 struct Buffer{
 	struct Header{

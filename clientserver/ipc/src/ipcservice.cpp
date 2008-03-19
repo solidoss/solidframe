@@ -67,10 +67,9 @@ struct Service::Data{
 		Inet6AddrPtrCmp
 		>												BaseProcAddr6MapTp;
 	typedef std::vector<TkrPairTp>						TalkerVectorTp;
-	Data(BinMapper &);
+	Data();
 	~Data();	
 	
-	BinMapper				&rbinmapper;
 	int						procpertkrcnt;
 	uint32					proccnt;
 	int						baseport;
@@ -81,20 +80,16 @@ struct Service::Data{
 
 //=======	ServiceData		===========================================
 
-Service::Data::Data(BinMapper &_rbinmapper):rbinmapper(_rbinmapper), procpertkrcnt(10), proccnt(0), baseport(-1){
+Service::Data::Data():procpertkrcnt(10), proccnt(0), baseport(-1){
 }
 Service::Data::~Data(){
 }
 
 //=======	Service		===============================================
 
-// Service* Service::create(BinMapper &_rbinmapper){
-// 	return new Service(_rbinmapper);
-// }
-
-Service::Service(BinMapper &_rbinmapper):d(*(new Data(_rbinmapper))){
+Service::Service():d(*(new Data)){
 	//d.maxtkrcnt = 2;//TODO: make it configurable
-	ProcessConnector::init(_rbinmapper);
+	ProcessConnector::init();
 }
 
 Service::~Service(){
@@ -170,7 +165,7 @@ int Service::doSendCommand(
 			Mutex::Locker lock2(this->mutex(tkrpos, tkruid));
 			Talker *ptkr = static_cast<Talker*>(this->object(tkrpos, tkruid));
 			cassert(ptkr);
-			ProcessConnector *ppc = new ProcessConnector(d.rbinmapper, inaddr);
+			ProcessConnector *ppc = new ProcessConnector(inaddr);
 			ConnectorUid conid(tkrid);
 			ptkr->pushProcessConnector(ppc, conid);
 			d.basepm4[ppc->baseAddr4()] = conid;
@@ -256,7 +251,7 @@ int16 Service::createNewTalker(uint32 &_tkrpos, uint32 &_tkruid){
 	cs::udp::Station *pust = cs::udp::Station::create(SockAddrPair(d.firstaddr));
 	d.firstaddr.port(d.firstaddr.port() - tkrid);
 	if(pust){
-		Talker *ptkr = new Talker(pust, *this, d.rbinmapper, tkrid);
+		Talker *ptkr = new Talker(pust, *this, tkrid);
 		if(this->doInsert(*ptkr, this->index())){
 			delete ptkr;
 			return BAD;
@@ -305,7 +300,7 @@ int Service::insertTalker(
 	if(!pst) return BAD;
 	Mutex::Locker lock(*mutex());
 	cassert(!d.tkrvec.size());//only the first tkr must be inserted from outside
-	Talker *ptkr = new Talker(pst, *this, d.rbinmapper, 0);
+	Talker *ptkr = new Talker(pst, *this, 0);
 	if(this->doInsert(*ptkr, this->index())){
 		delete ptkr;
 		return BAD;

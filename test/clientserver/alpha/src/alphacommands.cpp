@@ -241,7 +241,7 @@ struct FetchMasterCommand: test::Command{
 		SendNextStream,
 		SendError,
 	};
-	FetchMasterCommand():state(NotReceived), insz(-1), inpos(0), requid(0),pcmd(NULL){}
+	FetchMasterCommand():pcmd(NULL), state(NotReceived), insz(-1), inpos(0), requid(0){}
 	~FetchMasterCommand();
 	int received(const cs::ipc::ConnectorUid &_rconid);
 	int execute(cs::CommandExecuter&, const CommandUidTp &, TimeSpec &_rts);
@@ -1221,12 +1221,16 @@ int Idle::receiveString(
 //---------------------------------------------------------------
 // Command Base
 //---------------------------------------------------------------
+typedef serialization::TypeMapper					TypeMapper;
+typedef serialization::bin::Serializer				BinSerializer;
+typedef serialization::bin::Deserializer			BinDeserializer;
+
 Command::Command(){}
 void Command::initStatic(Server &_rs){
-	_rs.binMapper().map<SendStringCommand>();
-	_rs.binMapper().map<SendStreamCommand>();
-	_rs.binMapper().map<FetchMasterCommand>();
-	_rs.binMapper().map<FetchSlaveCommand>();
+	TypeMapper::map<SendStringCommand, BinSerializer, BinDeserializer>();
+	TypeMapper::map<SendStreamCommand, BinSerializer, BinDeserializer>();
+	TypeMapper::map<FetchMasterCommand, BinSerializer, BinDeserializer>();
+	TypeMapper::map<FetchSlaveCommand, BinSerializer, BinDeserializer>();
 }
 /*virtual*/ Command::~Command(){}
 

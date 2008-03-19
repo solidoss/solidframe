@@ -27,6 +27,7 @@
 #include "processconnector.hpp"
 #include "iodata.hpp"
 #include "algorithm/serialization/binary.hpp"
+#include "algorithm/serialization/idtypemap.hpp"
 #include "core/command.hpp"
 #include "core/server.hpp"
 #include "ipc/ipcservice.hpp"
@@ -41,6 +42,8 @@ struct BufCmp{
 		return _rbuf1.id() > _rbuf2.id();
 	}
 };
+
+typedef serialization::IdTypeMap					IdTypeMap;
 
 //========	ProcessConnector	===========================================================
 struct ProcessConnector::Data{
@@ -63,14 +66,14 @@ struct ProcessConnector::Data{
 		DataRetransmitCount = 8,
 		ConnectRetransmitCount = 16
 	};
-	struct BinSerializer:serialization::bin::Serializer<>{
-		BinSerializer(BinMapper &_rbm):serialization::bin::Serializer<>(_rbm){}
+	struct BinSerializer:serialization::bin::Serializer{
+		BinSerializer():serialization::bin::Serializer(IdTypeMap::the()){}
 		static unsigned specificCount(){return MaxSendCommandQueueSize;}
 		void specificRelease(){}
 	};
 
-	struct BinDeserializer:serialization::bin::Deserializer<>{
-		BinDeserializer(BinMapper &_rbm):serialization::bin::Deserializer<>(_rbm){}
+	struct BinDeserializer:serialization::bin::Deserializer{
+		BinDeserializer():serialization::bin::Deserializer(IdTypeMap::the()){}
 		static unsigned specificCount(){return MaxSendCommandQueueSize;}
 		void specificRelease(){}
 	};
@@ -101,10 +104,8 @@ struct ProcessConnector::Data{
 	};
 	typedef Queue<SendCommand>					SendCmdQueueTp;
 	
-	Data(BinMapper &_rm, const Inet4SockAddrPair &_raddr);
-	//Data(BinMapper &_rm, const Inet6SockAddrPair &_raddr);
-	Data(BinMapper &_rm, const Inet4SockAddrPair &_raddr, int _baseport);
-	//Data(BinMapper &_rm, const Inet6SockAddrPair &_raddr, int _baseport);
+	Data(const Inet4SockAddrPair &_raddr);
+	Data(const Inet4SockAddrPair &_raddr, int _baseport);
 	~Data();
 	std::pair<uint16, uint16> insertSentBuffer(Buffer &);
 	std::pair<uint16, uint16> getSentBuffer(int _bufpos);
@@ -115,7 +116,6 @@ struct ProcessConnector::Data{
 	BinDeserializerTp* popDeserializer();
 	void pushDeserializer(BinDeserializerTp*);
 //data:	
-	BinMapper				&rbm;
 	uint32					expectedid;
 	int32					retranstimeout;
 	int16					state;
@@ -138,8 +138,8 @@ struct ProcessConnector::Data{
 };
 
 
-ProcessConnector::Data::Data(BinMapper &_rm, const Inet4SockAddrPair &_raddr):
-	rbm(_rm), expectedid(1), retranstimeout(1000),
+ProcessConnector::Data::Data(const Inet4SockAddrPair &_raddr):
+	expectedid(1), retranstimeout(1000),
 	state(Connecting), flags(0), bufjetons(1), crtcmdbufcnt(MaxCommandBufferCount),sendid(0),
 	addr(_raddr), pairaddr(addr), baseaddr(&pairaddr, addr.port()){
 }
@@ -150,17 +150,12 @@ ProcessConnector::Data::Data(BinMapper &_rm, const Inet4SockAddrPair &_raddr):
 // 	addr(_raddr), pairaddr(addr), baseaddr(&pairaddr, addr.port()){
 // }
 
-ProcessConnector::Data::Data(BinMapper &_rm, const Inet4SockAddrPair &_raddr, int _baseport):
-	rbm(_rm), expectedid(1), retranstimeout(1000),
+ProcessConnector::Data::Data(const Inet4SockAddrPair &_raddr, int _baseport):
+	expectedid(1), retranstimeout(1000),
 	state(Accepting), flags(0), bufjetons(3), crtcmdbufcnt(MaxCommandBufferCount), sendid(0),
 	addr(_raddr), pairaddr(addr), baseaddr(&pairaddr, _baseport){
 }
 
-// ProcessConnector::Data::Data(BinMapper &_rm, const Inet6SockAddrPair &_raddr, int _tkrid, int _procid, int _baseport):
-// 	ser(_rm), des(_rm), pincmd(NULL), expectedid(1), id(_procid), retranstimeout(1000),
-// 	lockcnt(0), state(Connected), flags(0), bufjetons(3), sendid(0), tkrid(_tkrid),
-// 	addr(_raddr), pairaddr(addr), baseaddr(&pairaddr, _baseport){
-// }
 
 ProcessConnector::Data::~Data(){
 	idbg(""<<(void*)this);
@@ -205,7 +200,7 @@ inline void ProcessConnector::Data::incrementSendId(){
 ProcessConnector::Data::BinSerializerTp* ProcessConnector::Data::popSerializer(){
 	BinSerializerTp* p = Specific::tryUncache<BinSerializerTp>();
 	if(!p){
-		p = new BinSerializerTp(rbm);
+		p = new BinSerializerTp;
 	}
 	return p;
 }
@@ -216,7 +211,7 @@ void ProcessConnector::Data::pushSerializer(ProcessConnector::Data::BinSerialize
 ProcessConnector::Data::BinDeserializerTp* ProcessConnector::Data::popDeserializer(){
 	BinDeserializerTp* p = Specific::tryUncache<BinDeserializerTp>();
 	if(!p){
-		p = new BinDeserializerTp(rbm);
+		p = new BinDeserializerTp;
 	}
 	return p;
 }
@@ -231,7 +226,7 @@ ProcessConnector::~ProcessConnector(){
 	delete &d;
 }
 
-void ProcessConnector::init(BinMapper &_rm){
+void ProcessConnector::init(){
 }
 // static
 int ProcessConnector::parseAcceptedBuffer(Buffer &_rbuf){
@@ -250,10 +245,9 @@ int ProcessConnector::parseConnectingBuffer(Buffer &_rbuf){
 	return -1;
 }
 	
-ProcessConnector::ProcessConnector(BinMapper &_rm, const Inet4SockAddrPair &_raddr):d(*(new Data(_rm, _raddr))){}
+ProcessConnector::ProcessConnector(const Inet4SockAddrPair &_raddr):d(*(new Data(_raddr))){}
 //ProcessConnector::ProcessConnector(BinMapper &_rm, const Inet6SockAddrPair &_raddr):d(*(new Data(_rm, _raddr))){}
-ProcessConnector::ProcessConnector(BinMapper &_rm, const Inet4SockAddrPair &_raddr, int _baseport):d(*(new Data(_rm, _raddr, _baseport))){}
-//ProcessConnector::ProcessConnector(BinMapper &_rm, const Inet6SockAddrPair &_raddr, int _baseport):d(*(new Data(_rm, _raddr, _baseport))){}
+ProcessConnector::ProcessConnector(const Inet4SockAddrPair &_raddr, int _baseport):d(*(new Data(_raddr, _baseport))){}
 	
 //TODO: ensure that really no command is dropped on reconnect
 // not even those from Dropped buffers!!!
