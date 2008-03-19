@@ -26,12 +26,6 @@
 #include "clientserver/core/command.hpp"
 #include "clientserver/ipc/connectoruid.hpp"
 
-namespace serialization{
-namespace bin{
-class RTTIMapper;
-}
-}
-
 struct SockAddrPair;
 
 namespace clientserver{
@@ -185,7 +179,7 @@ public:
 	int basePort()const;
 protected:
 	int execute(ulong _sig, TimeSpec &_rtout);
-	Service(serialization::bin::RTTIMapper&);
+	Service();
 	virtual void pushTalkerInPool(clientserver::Server &_rs, clientserver::udp::Talker *_ptkr) = 0;
 private:
 	friend class Talker;

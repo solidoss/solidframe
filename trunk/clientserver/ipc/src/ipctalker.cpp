@@ -82,9 +82,8 @@ struct Talker::Data{
 	typedef Stack<SendBufferData*>						SendFreeStackTp;
 	typedef Stack<NewProcPairTp>						NewProcStackTp;
 
-	Data(Service &_rservice, BinMapper &_rmapper, uint16 _id):rservice(_rservice), rmapper(_rmapper), nextprocid(0), tkrid(_id){}
+	Data(Service &_rservice, uint16 _id):rservice(_rservice), nextprocid(0), tkrid(_id){}
 	Service				&rservice;
-	BinMapper 			&rmapper;
 	uint32				nextprocid;
 	uint16				tkrid;
 	Buffer				rcvbuf;
@@ -103,7 +102,7 @@ struct Talker::Data{
 
 //======================================================================
 
-Talker::Talker(cs::udp::Station *_pst, Service &_rservice, BinMapper &_rmapper, uint16 _id):	BaseTp(_pst), d(*new Data(_rservice, _rmapper, _id)){
+Talker::Talker(cs::udp::Station *_pst, Service &_rservice, uint16 _id):	BaseTp(_pst), d(*new Data(_rservice, _id)){
 }
 //----------------------------------------------------------------------
 Talker::~Talker(){
@@ -379,7 +378,7 @@ void Talker::dispatchReceivedBuffer(const SockAddrPair &_rsap){
 			int baseport = ProcessConnector::parseConnectingBuffer(d.rcvbuf);
 			idbg("connecting buffer with baseport "<<baseport);
 			if(baseport >= 0){
-				ProcessConnector *ppc(new ProcessConnector(d.rmapper, inaddr, baseport));
+				ProcessConnector *ppc(new ProcessConnector(inaddr, baseport));
 				if(d.rservice.acceptProcess(ppc)) delete ppc;
 			}
 		}break;

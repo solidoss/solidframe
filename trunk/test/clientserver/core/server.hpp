@@ -25,12 +25,6 @@
 #include "clientserver/core/server.hpp"
 #include "common.hpp"
 
-namespace serialization{
-namespace bin{
-class RTTIMapper;
-}
-}
-
 namespace test{
 
 class Service;
@@ -114,19 +108,11 @@ public:
 	//! Visit all services
 	int visitService(const char* _nm, Visitor &_roi);
 	
-	//! The servers binary mapper for used in binary serializations
-	/*!
-		Anyone who wants to serialize something must register its structures
-		to binMapper
-	*/
-	serialization::bin::RTTIMapper &binMapper();
 	//! Pushes an object into a specific pool.
 	template <class J>
 	void pushJob(J *_pj, int _pos = 0);
 private:
 	friend class CommandExecuter;
-// 	void removeCommandExecuter(ReadCommandExecuter *);
-// 	void removeCommandExecuter(WriteCommandExecuter *);
 	struct Data;
 	Data	&d;
 };

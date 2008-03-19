@@ -21,51 +21,30 @@
 #ifndef TYPE_MAPPER_HPP
 #define TYPE_MAPPER_HPP
 
+#include <string>
+#include <typeinfo>
+#include "utility/common.hpp"
 #include "basetypemap.hpp"
+
+#define BASIC_DECL(tp) \
+template <class S>\
+S& operator&(tp &_t, S &_s){\
+	return _s.push(_t, "basic");\
+}
+
 
 namespace serialization{
 
+BASIC_DECL(int16);
+BASIC_DECL(uint16);
+BASIC_DECL(int32);
+BASIC_DECL(uint32);
+BASIC_DECL(int64);
+BASIC_DECL(uint64);
+
+
 class TypeMapper{
 	typedef BaseTypeMap::FncTp	FncTp;
-public:
-	static TypeMapper& the(){
-		static TypeMapper tm;
-		return tm;
-	}
-	template <class Map>
-	void registerMap(Map *_pm){
-		the().doRegisterMap(mapId<Map>, _pm);
-	}
-	template <class Ser>
-	void registerSerializer(){
-		the().serializerCount(serializerId<Ser>());
-	}
-	template <class T, class Ser, class Des>
-	static void map(){
-		the().doMap(&TypeMapper::doMapCallback<T, Ser, Des>, serializerId<Ser>());
-	}
-	template <class TM, class Ser>
-	static void map(void *_p, Ser &_rs, const char *_name){
-		TM &tm(static_cast<TM&>(the().getMap(mapId<TM>())));
-		FncTp pf = tm.storeTypeId(_rs, _name);
-		if(pf){
-			(*pf)(_p, &_rs, NULL);
-		}
-	}
-	template <class TM, class Des>
-	static void parseTypeId(Des &_rd, std::string &_str, ulong &_rul){
-		TM &tm(static_cast<TM&>(the().getMap(mapId<TM>())));
-		tm.parseTypeIdPrepare(_rd, _str, _rul);
-	}
-	template <class TM, class Des>
-	static void map(void *_p, Des &_rd, const std::string &_rs, const ulong &_ul){
-		TM &tm(static_cast<TM&>(the().getMap(mapId<TM>())));
-		FncTp pf = tm.parseTypeIdDone(_rs, _ul);
-		if(pf){
-			(*pf)(_p, NULL, &_rd);
-		}
-	}
-private:
 	template <class T>
 	static unsigned mapId(){
 		static unsigned const d(newMapId());
@@ -76,30 +55,82 @@ private:
 		static unsigned const d(newSerializerId());
 		return d;
 	}
+public:
+	static TypeMapper& the(){
+		static TypeMapper tm;
+		return tm;
+	}
+	~TypeMapper();
+	template <class T>
+	static const char* typeName(T *_p){
+		return typeid(*_p).name();
+	}
+	//! Register a type map
+	template <class Map>
+	static void registerMap(Map *_pm){
+		the().doRegisterMap(mapId<Map>(), _pm);
+	}
+	//! Register a serializer
+	template <class Ser>
+	static void registerSerializer(){
+		the().serializerCount(serializerId<Ser>());
+	}
+	//! Register a type for a specific serializer/deserializer pair
+	template <class T, class Ser, class Des>
+	static void map(){
+		the().doMap(&TypeMapper::doMapCallback<T, Ser, Des>, serializerId<Ser>(), typeid(T).name());
+	}
+	template <class TM, class Ser>
+	static void map(void *_p, Ser &_rs, const char *_name, std::string &_rstr){
+		TM &tm(static_cast<TM&>(the().getMap(mapId<TM>())));
+		the().lock();
+		tm.storeTypeId(_rs, _name, _rstr, serializerId<Ser>(), _p);
+		the().unlock();
+	}
+	template <class TM, class Des>
+	static void parseTypeId(Des &_rd, std::string &_rstr){
+		TM &tm(static_cast<TM&>(the().getMap(mapId<TM>())));
+		tm.parseTypeIdPrepare(_rd, _rstr);
+	}
+	template <class TM, class Des, class Ser>
+	static void map(void *_p, Des &_rd, const std::string &_rstr){
+		TM &tm(static_cast<TM&>(the().getMap(mapId<TM>())));
+		the().lock();
+		FncTp pf = tm.parseTypeIdDone(_rstr, serializerId<Ser>());
+		the().unlock();
+		if(pf){
+			(*pf)(_p, NULL, &_rd);
+		}
+	}
+private:
 	TypeMapper();
 	static unsigned newMapId();
 	static unsigned newSerializerId();
 	void doRegisterMap(unsigned _id, BaseTypeMap *_pbm);
-	void doMap(FncTp _pf, unsigned _pos);
+	void doMap(FncTp _pf, unsigned _pos, const char *_name);
 	void serializerCount(unsigned _cnt);
-	BaseMap &getMap(unsigned _id);
+	BaseTypeMap &getMap(unsigned _id);
 	template <class T, class Ser, class Des>
-	void doMapCallback(void *_p, void *_ps, void *_pd){
+	static void doMapCallback(void *_p, void *_ps, void *_pd){
 		if(_ps){
 			Ser &rs(*reinterpret_cast<Ser*>(_ps));
 			T   &rt(*reinterpret_cast<T*>(_p));
-			t & rs;
+			rt & rs;
 		}else{
 			Des &rd(*reinterpret_cast<Des*>(_pd));
 			T*  &rpt(*reinterpret_cast<T**>(_p));
 			rpt = new T;
-			&rpt & rd;
+			*rpt & rd;
 		}
 	}
+	void lock();
+	void unlock();
 private:
 	struct Data;
 	Data	&d;
 };
+
+
 
 }
 
