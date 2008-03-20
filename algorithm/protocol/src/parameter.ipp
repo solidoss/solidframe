@@ -46,6 +46,11 @@ inline Parameter::Parameter(int _i){
 	b.p = NULL;
 }
 
+inline Parameter::Parameter(const Parameter &_rp){
+	a.p = _rp.a.p;
+	b.p = _rp.b.p;
+}
+
 }//namespace protocol
 
 #ifndef UINLINES

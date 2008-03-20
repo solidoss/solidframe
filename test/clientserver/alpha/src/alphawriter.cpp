@@ -41,10 +41,11 @@ void Writer::clear(){
 
 bool isLiteralString(const char *_pb, unsigned _bl){
 	while(_bl--){
-		if(!QuotedFilter::check(*_pb)) return false;
+		//if it's not quoted means its literal
+		if(!QuotedFilter::check(*_pb)) return true;
 		++_pb;
 	}
-	return true;
+	return false;
 }
 
 /*static*/ int Writer::putAString(protocol::Writer &_rw, protocol::Parameter &_rp){
@@ -57,8 +58,10 @@ bool isLiteralString(const char *_pb, unsigned _bl){
 		rw.fs.top().first = &Writer::putAtom;
 	}else{//send quoted
 		rw<<'\"';
+		protocol::Parameter ppp(_rp);
+		
 		rw.replace(&Writer::putChar, protocol::Parameter('\"'));
-		rw.push(&Writer::putAtom, _rp);
+		rw.push(&Writer::putAtom, ppp);
 		rw.push(&Writer::flush);//only try to do a flush
 	}
 	return Continue;

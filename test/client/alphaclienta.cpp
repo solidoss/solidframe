@@ -47,10 +47,10 @@ void Info::print(){
 	uint64 tot = 0;
 	//m.lock();
 	for(vector<ulong>::const_iterator it(v.begin()); it != v.end(); ++it){
-		/*cout<<*it<<' ';*/ tot += *it;
+		cout<<(*it/1024)<<'k'<<' '; tot += *it;
 	}
 	tot /= 1024;
-	cout<<tot<<'k'<<' '<<'\r'<<flush;
+	cout<<"tot = "<<tot<<'k'<<' '<<'\r'<<flush;
 	//m.unlock();
 }
 
@@ -106,15 +106,15 @@ void AlphaThread::run(){
 	int rv = list(buf);
 	idbg("return value "<<rv);
 	inf.update(pos, readc);
-	cout<<"connected "<<pos<<endl;
+	ulong m = sdq.size() - 1;
+	cout<<"connected "<<pos<<" filecnt "<<m<<endl;
 // 	for(StrDqTp::const_iterator it(sdq.begin()); it != sdq.end(); ++it){
 // 		cout<<'['<<*it<<']'<<endl;
 // 	}
 	if(rv) return;
 	ulong ul = pos;
-	ulong m = sdq.size() - 1;
 	while(!(rv = fetch(ul % m, buf))){
-		++ul;inf.update(pos, readc);//Thread::sleep(100);
+		++ul;inf.update(pos, readc);Thread::sleep(100);
 	}
 	idbg("return value "<<rv);
 }
@@ -148,7 +148,7 @@ inline T* findNot(T *_pc){
 //----------------------------------------------------------------------------
 
 int AlphaThread::list(char *_pb){
-	wr<<"s1 list "<<path<<crlf;
+	wr<<"s1 list \""<<path<<'\"'<<crlf;
 	if(wr.flush()) return -1;
 	enum {
 		StartLine,
@@ -268,6 +268,7 @@ int AlphaThread::fetch(unsigned _idx, char *_pb){
 	const char *bp;
 	string lit;
 	ulong litlen;
+	
 	while((rc = read(sd, _pb, BufLen - 1)) > 0){
 		readc += rc;
 		bool b = true;
