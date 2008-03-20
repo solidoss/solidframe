@@ -46,6 +46,7 @@ struct Parameter{
 	Parameter(ulong _ua, ulong _ub);
 	//!Convenient constructor for one int - b will be NULL
 	explicit Parameter(int _i);
+	Parameter(const Parameter &_rp);
 };
 
 }//namespace protocol

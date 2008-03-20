@@ -688,7 +688,7 @@ int FileManager::stream(
 		_rfuid.second = d.fv[pos].uid;
 		d.fv[pos].pfile = pf;
 		pf->stream(*this, pos, _sptr, _requid, _flags);//WILL FAIL: NOK
-		cassert(_sptr.ptr());
+		cassert(!_sptr.ptr());
 	}else{
 		//no stream is given while not in fv
 		_rfuid.second = 0;
