@@ -44,13 +44,20 @@ void Info::update(unsigned _pos, ulong _v){
 }
 
 void Info::print(){
-	uint64 tot = 0;
+	uint64	tot = 0;
+	uint32	mn = 0xffffffff;
+	uint32	mx = 0;
 	//m.lock();
 	for(vector<ulong>::const_iterator it(v.begin()); it != v.end(); ++it){
-		cout<<(*it/1024)<<'k'<<' '; tot += *it;
+		//cout<<(*it/1024)<<'k'<<' ';
+		uint32 t = *it;
+		tot += t;
+		t /= 1024;
+		if(t < mn) mn = t;
+		if(t > mx) mx = t;
 	}
 	tot /= 1024;
-	cout<<"tot = "<<tot<<'k'<<' '<<'\r'<<flush;
+	cout<<"tot = "<<tot<<'k'<<' '<<" avg = "<<tot/v.size()<<"k min = "<<mn<<"k max = "<<mx<<"k \r"<<flush;
 	//m.unlock();
 }
 
@@ -114,7 +121,7 @@ void AlphaThread::run(){
 	if(rv) return;
 	ulong ul = pos;
 	while(!(rv = fetch(ul % m, buf))){
-		++ul;inf.update(pos, readc);Thread::sleep(100);
+		++ul;inf.update(pos, readc);//Thread::sleep(100);
 	}
 	idbg("return value "<<rv);
 }

@@ -189,7 +189,7 @@ int StreamErrorCommand::execute(cs::CommandExecuter& _rce, const CommandUidTp &,
 */
 class FileManager: public cs::FileManager{
 public:
-	FileManager(uint32 _maxfcnt = 256):cs::FileManager(_maxfcnt){}
+	FileManager(uint32 _maxfcnt = 1024 * 20):cs::FileManager(_maxfcnt){}
 protected:
 	/*virtual*/ void sendStream(StreamPtr<IStream> &_sptr, const FileUidTp &_rfuid, const RequestUid& _rrequid);
 	/*virtual*/ void sendStream(StreamPtr<OStream> &_sptr, const FileUidTp &_rfuid, const RequestUid& _rrequid);
@@ -291,9 +291,9 @@ Server::Data::Data(Server &_rs):pconnectionpool(NULL), plistenerpool(NULL), ptal
 	
 	if(true){	
 		pconnectionpool = new ConSelPoolTp(	_rs,
-												10,		//max thread cnt
-												50		//max connections per selector
-												);		//at most 10 * 4 * 1024 connections
+												10,			//max thread cnt
+												1024 * 8	//max connections per selector/thread
+												);			//at most 10 * 4 * 1024 connections
 		pconnectionpool->start(1);//start with one worker
 	}
 	if(true){
