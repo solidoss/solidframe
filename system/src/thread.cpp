@@ -58,6 +58,10 @@ int Condition::wait(Mutex &_mut, const TimeSpec &_ts){
 #ifndef UINLINES
 #include "mutex.ipp"
 #endif
+//*************************************************************************
+#ifndef UINLINES
+#include "synchronization.ipp"
+#endif
 //-------------------------------------------------------------------------
 //TODO: use TimeSpec
 bool Mutex::timedLock(unsigned long _ms){

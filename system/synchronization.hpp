@@ -30,48 +30,23 @@ struct TimeSpec;
 
 class Semaphore{
 public:
-	Semaphore(int _cnt = 0){
-		sem_init(&sem,0,_cnt);
-	}
-	~Semaphore(){
-		sem_destroy(&sem);
-	}
-	void wait(){
-		sem_wait(&sem);
-	}
-	operator int () {	
-		int v;
-		sem_getvalue(&sem,&v);
-		return v;
-	}
-	Semaphore & operator++(){
-		sem_post(&sem);
-		return *this;
-	}
-	int tryWait(){
-		return sem_trywait(&sem);
-	}
+	Semaphore(int _cnt = 0);
+	~Semaphore();
+	void wait();
+	operator int ();
+	Semaphore & operator++();
+	int tryWait();
 private:
 	sem_t sem;
 };
 
 class Condition{
 public:
-	Condition(){
-		cassert(pthread_cond_init(&cond,NULL)==0);
-	}
-	~Condition(){
-		cassert(pthread_cond_destroy(&cond)==0);
-	}
-	int signal(){
-		return pthread_cond_signal(&cond);
-	}
-	int broadcast(){
-		return pthread_cond_broadcast(&cond);
-	}
-	int wait(Mutex &_mut){
-		return pthread_cond_wait(&cond,&_mut.mut);
-	}
+	Condition();
+	~Condition();
+	int signal();
+	int broadcast();
+	int wait(Mutex &_mut);
 	int wait(Mutex &_mut, const TimeSpec &_ts);
 private:
 	pthread_cond_t cond;
@@ -257,6 +232,9 @@ private:
 	Condition		cond;
 };
 
+#ifdef UINLINES
+#include "src/synchronization.ipp"
+#endif
 
 
 #endif

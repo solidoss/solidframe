@@ -248,7 +248,8 @@ int TalkerSelector::doExecute(SelTalker &_rch, ulong _evs, TimeSpec &_rcrttout, 
 					idbg("RTOUT: epollctl");
 					_rch.evmsk = _rev.events = t;
 					_rev.data.ptr = &_rch;
-					cassert(!epoll_ctl(epfd, EPOLL_CTL_MOD, rcon.station().descriptor(), &_rev));
+					int rv = epoll_ctl(epfd, EPOLL_CTL_MOD, rcon.station().descriptor(), &_rev);
+					cassert(!rv);
 				}
 				if(_rcrttout != ctimepos){
 					_rch.timepos = _rcrttout;
@@ -274,16 +275,18 @@ int TalkerSelector::doExecute(SelTalker &_rch, ulong _evs, TimeSpec &_rcrttout, 
 			_rev.data.ptr = &_rch;
 			uint ioreq = rcon.station().ioRequest();
 			_rch.evmsk = _rev.events = (EPOLLERR | EPOLLHUP | EPOLLET) | ioreq;
-			cassert(!epoll_ctl(epfd, EPOLL_CTL_ADD, rcon.station().descriptor(), &_rev));
+			int rv = epoll_ctl(epfd, EPOLL_CTL_ADD, rcon.station().descriptor(), &_rev);
+			cassert(!rv);
 			if(!ioreq){
 				if(!_rch.state) {chq.push(&_rch); _rch.state = 1;}
 			}
 			}break;
-		case UNREGISTER:
+		case UNREGISTER:{
 			idbg("UNREGISTER: unregister connection's descriptor");
-			cassert(!epoll_ctl(epfd, EPOLL_CTL_DEL, rcon.station().descriptor(), NULL));
+			int rv = epoll_ctl(epfd, EPOLL_CTL_DEL, rcon.station().descriptor(), NULL);
+			cassert(!rv);
 			if(!_rch.state) {chq.push(&_rch); _rch.state = 1;}
-			break;
+			}break;
 		default:
 			cassert(false);
 	}
@@ -374,7 +377,7 @@ void TalkerSelector::signal(uint _objid){
 
 void TalkerSelector::SelTalker::reset(){
 	state = 0;
-	cassert(!tkrptr.release());
+	tkrptr.release();
 	timepos.set(0);
 	evmsk = 0;
 }

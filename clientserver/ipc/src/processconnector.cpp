@@ -406,7 +406,7 @@ int ProcessConnector::pushReceivedBuffer(Buffer &_rbuf, const ConnectorUid &_rco
 				return OK;
 			}
 		}else{//a buffer containing only updates
-			cassert(_rbuf.updatesCount());
+			_rbuf.updatesCount();
 			idbg("received buffer containing only updates");
 			if(freeSentBuffers(_rbuf)) return NOK;
 			return OK;

@@ -87,7 +87,7 @@ public://definition
 	//! Raise all threads for stopping
 	void raiseStop(){
 		{
-			Mutex::Locker	lock(this->mut);
+			Mutex::Locker	lock(this->mtx);
 			for(typename SlotVecTp::iterator it(slotvec.begin()); it != slotvec.end(); ++it){
 				it->first->signal();
 			}
@@ -95,7 +95,7 @@ public://definition
 		this->stop();
 	}
 	//! Set the pool id
-	void poolid(uint _pid){Mutex::Locker	lock(this->mut); thrid = _pid << 16; }
+	void poolid(uint _pid){Mutex::Locker	lock(this->mtx); thrid = _pid << 16; }
 	//! Prepare the worker (usually thread specific data) - called internally
 	void prepareWorker(){rsrv.prepareThread(); doPrepareWorker();}
 	//! Prepare the worker (usually thread specific data) - called internally
@@ -118,7 +118,7 @@ public://definition
 		for creating new workers.
 	 */
 	void push(const JobTp &_rjb){
-		Mutex::Locker	lock(this->mut);
+		Mutex::Locker	lock(this->mtx);
 		cassert(this->state != WorkPoolTp::Stopped);
 		this->q.push(_rjb); this->sigcnd.signal();
 		if(sgnlst.size()){
@@ -175,13 +175,13 @@ protected:
 	}
 	//! Unregister the selector of a worker 
 	void unregisterSelector(SelectorTp &_rs, ulong _wkrid){
-		Mutex::Locker	lock(this->mut);
+		Mutex::Locker	lock(this->mtx);
 		cap -= _rs.capacity();
 		slotvec[_wkrid & 0xffff] = VecPairTp(NULL, sgnlst.end());
 	}
 	//! Pop some objects into the selector
 	int pop(SelectorTp &_rsel, uint _wkrid){
-		Mutex::Locker lock(this->mut);
+		Mutex::Locker lock(this->mtx);
 		int tid = _wkrid & 0xffff;
 		if((this->q.empty() && !_rsel.empty())){
 			if(slotvec[tid].second == sgnlst.end()){
@@ -221,7 +221,7 @@ private:
 	//! Wait for a new object
 	int doWaitJob(){
 		while(this->q.empty() && this->state == WorkPoolTp::Running){
-			this->sigcnd.wait(this->mut);
+			this->sigcnd.wait(this->mtx);
 		}
 		return this->q.size();
 	}

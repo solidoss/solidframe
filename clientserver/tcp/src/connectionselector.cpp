@@ -294,7 +294,7 @@ int ConnectionSelector::doExecute(SelChannel &_rch, ulong _evs, TimeSpec &_crtto
 					if(t & EPOLLIN){idbg("RTOUT");}
 					_rch.evmsk = _rev.events = t;
 					_rev.data.ptr = &_rch;
-					cassert(!epoll_ctl(epfd, EPOLL_CTL_MOD, rcon.channel().descriptor(), &_rev));
+					epoll_ctl(epfd, EPOLL_CTL_MOD, rcon.channel().descriptor(), &_rev);
 				}
 				if(_crttout != ctimepos){
 					_rch.timepos = _crttout;
@@ -307,7 +307,7 @@ int ConnectionSelector::doExecute(SelChannel &_rch, ulong _evs, TimeSpec &_crtto
 		case LEAVE:
 			idbg("LEAVE: connection leave");
 			fstk.push(&_rch);
-			cassert(!epoll_ctl(epfd, EPOLL_CTL_DEL, rcon.channel().descriptor(), NULL));
+			epoll_ctl(epfd, EPOLL_CTL_DEL, rcon.channel().descriptor(), NULL);
 			--sz;
 			_rch.conptr.release();
 			_rch.state = 0;
@@ -319,14 +319,14 @@ int ConnectionSelector::doExecute(SelChannel &_rch, ulong _evs, TimeSpec &_crtto
 			_rev.data.ptr = &_rch;
 			uint ioreq = rcon.channel().ioRequest();
 			_rch.evmsk = _rev.events = (EPOLLET) | ioreq;
-			cassert(!epoll_ctl(epfd, EPOLL_CTL_ADD, rcon.channel().descriptor(), &_rev));
+			epoll_ctl(epfd, EPOLL_CTL_ADD, rcon.channel().descriptor(), &_rev);
 			if(!ioreq){
 				if(!_rch.state) {chq.push(&_rch); _rch.state = 1;}
 			}
 			}break;
 		case UNREGISTER:
 			idbg("UNREGISTER: unregister connection's descriptor");
-			cassert(!epoll_ctl(epfd, EPOLL_CTL_DEL, rcon.channel().descriptor(), NULL));
+			epoll_ctl(epfd, EPOLL_CTL_DEL, rcon.channel().descriptor(), NULL);
 			if(!_rch.state) {chq.push(&_rch); _rch.state = 1;}
 			break;
 		default:
