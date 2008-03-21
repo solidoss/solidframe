@@ -42,7 +42,7 @@ public:
 #ifdef UDEBUG	
 	Mutex(TYPES _type = ERRORCHECK);
 #else
-	Mutex(TYPES _type = FAST);
+	Mutex(TYPES _type = ERRORCHECK);
 #endif
 	~Mutex();
 	

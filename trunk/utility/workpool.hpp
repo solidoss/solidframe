@@ -68,23 +68,23 @@ public:
 	typedef WorkPool<Jb>	WorkPoolTp;
 	//! Push a new job
 	void push(const Jb& _jb){
-		mut.lock();
+		mtx.lock();
 		cassert(state != Stopped);
 		q.push(_jb);
 		sigcnd.signal();
-		mut.unlock();
+		mtx.unlock();
 	}
 	//! Push a table of jobs of size _cnt
 	void push(const Jb *_pjb, unsigned _cnt){
 		if(!_cnt) return;
-		mut.lock();
+		mtx.lock();
 		cassert(state != Stopped);
 		while(_cnt--){
 			q.push(*_pjb);
 			++_pjb;
 		}
 		sigcnd.signal();
-		mut.unlock();
+		mtx.unlock();
 	}
 	//! Tries to push a job
 	/*! Will return BAD if the pool is stoped
@@ -106,7 +106,7 @@ public:
 	}
 	//! Starts the workpool, creating _minwkrcnt
 	virtual int start(ushort _minwkrcnt){
-		Mutex::Locker lock(mut);
+		Mutex::Locker lock(mtx);
 		if(state > Stopped) return BAD;
 		_minwkrcnt = (_minwkrcnt)?_minwkrcnt:1;
 		wkrcnt = 0;
@@ -114,7 +114,11 @@ public:
 		idbg("before create workers");
 		createWorkers(_minwkrcnt);
 		idbg("after create");
-		while(wkrcnt != _minwkrcnt) thrcnd.wait(mut);
+		while(wkrcnt != _minwkrcnt){
+			idbg("minwkrcnt = "<<_minwkrcnt<<" wkrcnt = "<<wkrcnt);
+			thrcnd.wait(mtx);
+		}
+		idbg("done start");
 		return OK;
 	}
 	//! Initiate workpool stop
@@ -125,12 +129,12 @@ public:
 		for actual stoping (wp[i].stop(true))
 	*/
 	virtual void stop(bool _wait = true){
-		Mutex::Locker	lock(mut);
+		Mutex::Locker	lock(mtx);
 		if(state == Stopped) return;
 		state = Stopping;
 		sigcnd.broadcast();
 		if(!_wait) return;
-		while(wkrcnt)	thrcnd.wait(mut);
+		while(wkrcnt)	thrcnd.wait(mtx);
 		idbg("workpool::stopped"<<std::flush);
 		state = Stopped;
 	}
@@ -144,10 +148,10 @@ protected:
 		and it must be processed, NOK a job is returned but the workpool is stopping.
 	*/
 	int pop(int _wkrid, Jb &_jb){
-		Mutex::Locker lock(mut);
+		Mutex::Locker lock(mtx);
 		//if(_wkrid >= wkrcnt) return BAD;
 		while(q.empty() && state == Running){
-			sigcnd.wait(mut);
+			sigcnd.wait(mtx);
 		}
 		if(q.size()){
 			_jb = q.front();
@@ -170,7 +174,7 @@ protected:
 		\param _cnt Input - the capacity of the table, Output the number of returned jobs.
 	*/
 	int pop(int _wkrid, Jb *_jb, unsigned &_cnt){
-		Mutex::Locker lock(mut);
+		Mutex::Locker lock(mtx);
 		idbg("enter pop");
 		//if(_wkrid >= wkrcnt) return BAD;
 		if(!_cnt){
@@ -181,7 +185,7 @@ protected:
 		}
 		while(q.empty() && state == Running){
 			idbg("here");
-			sigcnd.wait(mut);
+			sigcnd.wait(mtx);
 		}
 		int i = 0;
 		if(q.size()){
@@ -271,28 +275,28 @@ protected://workers:
 private:
 	void enterWorker(Worker &_rw){
 		idbg("wkrenter");
-		mut.lock();
+		mtx.lock();
 		//_rwb.workerId(wkrcnt);
 		_rw.wkrid = wkrcnt;
 		++wkrcnt;
 		idbg("newwkr "<<wkrcnt);
 		thrcnd.signal();
-		mut.unlock();
+		mtx.unlock();
 	}
 	void exitWorker(){
 		idbg("wkexit");
-		mut.lock();
+		mtx.lock();
 		--wkrcnt;
 		idbg("exitwkr "<<wkrcnt<<std::flush);
 		thrcnd.signal();
-		mut.unlock();
+		mtx.unlock();
 	}
 protected:
 	States						state;
 	int							wkrcnt;
 	Condition					thrcnd;
 	Condition					sigcnd;
-	Mutex						mut;
+	Mutex						mtx;
 	Queue<Jb>					q;
 private:
 	WorkPoolPlugin				*pwp;

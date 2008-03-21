@@ -196,9 +196,8 @@ private:
 	char 		buf[MaxSockAddrSz];
 };
 
-//inlines:
 #ifdef UINLINES
-#include "src/mutex.ipp"
+#include "src/socketaddress.ipp"
 #endif
 
 

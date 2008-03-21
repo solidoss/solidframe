@@ -288,14 +288,7 @@ Server::Data::Data(Server &_rs):pconnectionpool(NULL), plistenerpool(NULL), ptal
 	
 	TypeMapper::registerMap<IdTypeMap>(new IdTypeMap);
 	TypeMapper::registerSerializer<BinSerializer>();
-	
-	if(true){	
-		pconnectionpool = new ConSelPoolTp(	_rs,
-												10,			//max thread cnt
-												1024 * 8	//max connections per selector/thread
-												);			//at most 10 * 4 * 1024 connections
-		pconnectionpool->start(1);//start with one worker
-	}
+	idbg("");
 	if(true){
 		plistenerpool = new LisSelPoolTp(	_rs, 
 												2, 	//max thread cnt
@@ -303,6 +296,7 @@ Server::Data::Data(Server &_rs):pconnectionpool(NULL), plistenerpool(NULL), ptal
 												);	//at most 128*2 = 256 listeners
 		plistenerpool->start(1);//start with one worker
 	}
+	idbg("");
 	if(true){
 		ptalkerpool = new TkrSelPoolTp(	_rs, 
 												2, 	//max thread cnt
@@ -310,6 +304,7 @@ Server::Data::Data(Server &_rs):pconnectionpool(NULL), plistenerpool(NULL), ptal
 												);	//at most 128*2 = 256 listeners
 		ptalkerpool->start(1);//start with one worker
 	}
+	idbg("");
 	if(true){
 		pobjectpool[0] = new ObjSelPoolTp(	_rs, 
 												10,		//max thread cnt
@@ -317,6 +312,15 @@ Server::Data::Data(Server &_rs):pconnectionpool(NULL), plistenerpool(NULL), ptal
 												);		//at most 10 * 4 * 1024 connections
 		pobjectpool[0]->start(1);//start with one worker
 	}
+	idbg("");
+	if(true){	
+		pconnectionpool = new ConSelPoolTp(	_rs,
+												10,			//max thread cnt
+												1024 * 8	//max connections per selector/thread
+												);			//at most 10 * 4 * 1024 connections
+		pconnectionpool->start(1);//start with one worker
+	}
+	idbg("");
 }
 
 Server::Data::~Data(){
