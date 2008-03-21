@@ -36,6 +36,7 @@ Device& Device::operator&(Device &_dev){
 Device::Device(int _desc):desc(_desc){}
 
 Device::~Device(){
+	close();
 }
 
 int Device::read(char	*_pb, uint32 _bl){
@@ -49,7 +50,7 @@ int Device::write(const char* _pb, uint32 _bl){
 }
 
 void Device::close(){
-	if(desc > 0) ::close(desc);
+	if(desc > 0){ ::close(desc); desc = -1;}
 }
 
 int Device::flush(){
