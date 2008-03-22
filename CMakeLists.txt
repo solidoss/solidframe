@@ -25,7 +25,7 @@ SET( CMAKE_SHARED_LINKER_FLAGS_MAINTAIN
 
 
 #overwrite the defaults for release
-SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -g3 -DUTHREADS -DUINLINES -DUDEBUG -DU_SERIALIZATION_MUTEX -Wuninitialized" CACHE STRING "Flags used by the C++ compiler during release builds." FORCE)
+SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -g3 -DUTHREADS -DUINLINES -DU_SERIALIZATION_MUTEX -Wuninitialized" CACHE STRING "Flags used by the C++ compiler during release builds." FORCE)
 #SET(CMAKE_C_FLAGS_RELEASE "-O3 -DUTHREADS" CACHE STRING "Flags used by the C compiler during release builds." FORCE)
 
 
