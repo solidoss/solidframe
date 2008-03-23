@@ -10,6 +10,7 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <deque>
+#include <cerrno>
 
 #include "system/cassert.hpp"
 #include "system/debug.hpp"
@@ -33,7 +34,7 @@ private:
 };
 
 unsigned Info::pushBack(){
-	v.push_back(0);
+	v.push_back(0xffffffff);
 	return v.size() - 1;
 }
 
@@ -46,18 +47,34 @@ void Info::update(unsigned _pos, ulong _v){
 void Info::print(){
 	uint64	tot = 0;
 	uint32	mn = 0xffffffff;
+	uint32	mncnt = 0;
 	uint32	mx = 0;
+	uint32	mxcnt = 0;
+	uint32	notconnected = 0;
 	//m.lock();
 	for(vector<ulong>::const_iterator it(v.begin()); it != v.end(); ++it){
 		//cout<<(*it/1024)<<'k'<<' ';
 		uint32 t = *it;
+		if(t == 0xffffffff){ ++notconnected; continue;}
 		tot += t;
-		t /= 1024;
-		if(t < mn) mn = t;
-		if(t > mx) mx = t;
+		//t /= 1024;
+		if(t < mn){
+			mn = t;
+			mncnt = 1;
+		}else if(t == mn){
+			++mncnt;
+		}
+		if(t > mx){
+			mx = t;
+			mxcnt = 1;
+		}else if(t == mxcnt){
+			++mxcnt;
+		}
 	}
 	tot /= 1024;
-	cout<<"tot = "<<tot<<'k'<<' '<<" avg = "<<tot/v.size()<<"k min = "<<mn<<"k max = "<<mx<<"k \r"<<flush;
+	cout<<"tot = "<<tot<<'k'<<' '<<" avg = "<<tot/v.size()<<"k min = "<<mn<<"k ("<<mncnt<<") max = "<<mx<<"k ("<<mxcnt<<')';
+	if(notconnected) cout<<" notconected = "<<notconnected<<'\r'<<flush;
+	else cout<<'\r'<<flush;
 	//m.unlock();
 }
 
@@ -104,9 +121,14 @@ void AlphaThread::run(){
 	//cout<<"before connect "<<pos<<endl;
 	if(connect(sd, it.addr(), it.size())){
 		idbg("failed connect");
-		cout<<"failed connect "<<pos<<endl;
+		cout<<"failed connect "<<pos<<": "<<strerror(errno)<<endl;
 		return;
 	}
+	timeval tv;
+	memset(&tv, 0, sizeof(timeval));
+	tv.tv_sec = 30;
+	setsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+	setsockopt(sd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
 	readc = 0;
 	wr.reinit(sd);
 	char buf[BufLen];
