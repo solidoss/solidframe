@@ -1098,7 +1098,9 @@ FileIStream::~FileIStream(){
 }
 
 int FileIStream::read(char * _pb, uint32 _bl, uint32 _flags){
-	return rd.fileRead(fileid, _pb, _bl, off, _flags);
+	int rv = rd.fileRead(fileid, _pb, _bl, off, _flags);
+	if(rv > 0) off += rv;
+	return rv;
 }
 
 int FileIStream::release(){	
@@ -1120,7 +1122,9 @@ FileOStream::~FileOStream(){
 	Server::the().fileManager().releaseOStream(fileid);
 }
 int  FileOStream::write(const char *_pb, uint32 _bl, uint32 _flags){
-	return rd.fileWrite(fileid, _pb, _bl, off, _flags);
+	int rv = rd.fileWrite(fileid, _pb, _bl, off, _flags);
+	if(rv > 0) off += rv;
+	return rv;
 }
 
 int FileOStream::release(){
@@ -1144,11 +1148,15 @@ FileIOStream::~FileIOStream(){
 }
 
 int FileIOStream::read(char * _pb, uint32 _bl, uint32 _flags){
-	return rd.fileRead(fileid, _pb, _bl, off, _flags);
+	int rv = rd.fileRead(fileid, _pb, _bl, off, _flags);
+	if(rv > 0) off += rv;
+	return rv;
 }
 
 int  FileIOStream::write(const char *_pb, uint32 _bl, uint32 _flags){
-	return rd.fileWrite(fileid, _pb, _bl, off, _flags);
+	int rv = rd.fileWrite(fileid, _pb, _bl, off, _flags);
+	if(rv > 0) off += rv;
+	return rv;
 }
 
 int FileIOStream::release(){
