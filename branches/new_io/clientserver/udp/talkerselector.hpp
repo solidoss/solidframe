@@ -22,22 +22,13 @@
 #ifndef CS_UDP_TALKERSELECTOR_HPP
 #define CS_UDP_TALKERSELECTOR_HPP
 
-#include <stack>
-#include <vector>
-
 #include "clientserver/core/common.hpp"
 #include "clientserver/core/objptr.hpp"
-#include "system/timespec.hpp"
-#include "utility/queue.hpp"
-
-struct epoll_event;
-struct TimeSpec;
 
 namespace clientserver{
 namespace udp{
 
 class Talker;
-class Station;
 
 typedef ObjPtr<Talker>	TalkerPtrTp;
 
@@ -54,46 +45,18 @@ public:
 	//signal a specific object
 	void signal(uint _pos = 0);
 	void run();
-	uint capacity()const	{return cp - 1;}
-	uint size() const		{return sz;}
-	int  empty()const		{return sz == 1;}
-	int  full()const		{return sz == cp;}
+	uint capacity()const;
+	uint size() const;
+	int  empty()const;
+	int  full()const;
 	
-	void prepare(){}
-	void unprepare(){}
+	void prepare();
+	void unprepare();
 	
 	void push(const TalkerPtrTp &_rcon, uint _thid);
-private:
-	enum {EXIT_LOOP = 1, FULL_SCAN = 2, READ_PIPE = 4};
-	struct SelTalker{
-		SelTalker():timepos(0),evmsk(0),state(0){}
-		void reset();
-		TalkerPtrTp		tkrptr;//4
-		TimeSpec		timepos;//4
-		ulong			evmsk;//4
-		//state: 1 means the object is in queue
-		//or if 0 in chq check loop means the channel was already checked
-		int				state;//4
-	};
-	
-	int doReadPipe();
-	int doExecute(SelTalker &_rch, ulong _evs, TimeSpec &_rcrttout, epoll_event &_rev);
-	int doIo(Station &_rch, ulong _evs);
 private://data
-	typedef std::stack<SelTalker*, std::vector<SelTalker*> > 	FreeStackTp;
-	typedef Queue<SelTalker*>									ChQueueTp;
-	uint			cp;
-	uint			sz;
-	int				selcnt;
-	int				epfd;
-	epoll_event 	*pevs;
-	SelTalker		*pchs;
-	ChQueueTp		chq;
-	FreeStackTp		fstk;
-	int				pipefds[2];
-	//uint64          btimepos;//begin time pos
-	TimeSpec        ntimepos;//next timepos == next timeout
-	TimeSpec        ctimepos;//current time pos
+	struct Data;
+	Data	&d;
 };
 
 

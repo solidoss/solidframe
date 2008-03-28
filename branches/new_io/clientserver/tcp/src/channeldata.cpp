@@ -26,6 +26,10 @@
 namespace clientserver{
 namespace tcp{
 
+#ifndef UINLINES
+#include "channeldata.ipp"
+#endif
+
 ChannelData* ChannelData::pop(){
 	return Specific::uncache<ChannelData>();
 }

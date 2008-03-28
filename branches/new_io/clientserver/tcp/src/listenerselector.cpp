@@ -36,67 +36,108 @@
 namespace clientserver{
 namespace tcp{
 
-ListenerSelector::ListenerSelector():cp(0),sz(0),pss(NULL),pfds(0){
+struct ListenerSelector::Data{
+	enum {EXIT_LOOP = 1, FULL_SCAN = 2, READ_PIPE = 4};
+	struct SelStation{
+		ListenerPtrTp	lisptr;
+	};
+	Data();
+	~Data();
+	uint			cp;
+	uint			sz;
+	SelStation		*pss;
+	pollfd			*pfds;
+	int				pipefds[2];
+};
+
+ListenerSelector::Data::Data():cp(0),sz(0),pss(NULL),pfds(0){
 	pipefds[0] = pipefds[1] = -1;
 }
-ListenerSelector::~ListenerSelector(){
+
+ListenerSelector::Data::~Data(){
+	close(pipefds[0]);
+	close(pipefds[1]);
 	delete []pss;
 	delete []pfds;
 }
+ListenerSelector::ListenerSelector():d(*(new Data)){
+}
+ListenerSelector::~ListenerSelector(){
+	delete &d;
+}
 int ListenerSelector::reserve(ulong _cp){
-	pfds = new pollfd[_cp];
-	pss  = new SelStation[_cp];
-	cp = _cp;
-	if(pipefds[0] < 0){
-		if(pipe(pipefds)) return BAD;
-		fcntl(pipefds[0],F_SETFL, O_NONBLOCK);
-		sz = 1;
-		pfds->fd = pipefds[0];
-		pfds->events = POLLIN;
-		pfds->revents = 0;
+	d.pfds = new pollfd[_cp];
+	d.pss  = new Data::SelStation[_cp];
+	d.cp = _cp;
+	if(d.pipefds[0] < 0){
+		if(pipe(d.pipefds)) return BAD;
+		fcntl(d.pipefds[0],F_SETFL, O_NONBLOCK);
+		d.sz = 1;
+		d.pfds->fd = d.pipefds[0];
+		d.pfds->events = POLLIN;
+		d.pfds->revents = 0;
 	}
 	return OK;
 }
+
+uint ListenerSelector::capacity()const{
+	return d.cp - 1;
+}
+uint ListenerSelector::size() const{
+	return d.sz;
+}
+int  ListenerSelector::empty()const{
+	return d.sz == 1;
+}
+int  ListenerSelector::full()const{
+	return d.sz == d.cp;
+}
+
+void ListenerSelector::prepare(){
+}
+void ListenerSelector::unprepare(){
+}
+
 void ListenerSelector::signal(uint _pos){
 	idbg("signal listener selector "<<_pos);
-	write(pipefds[1], &_pos, sizeof(uint32));
+	write(d.pipefds[1], &_pos, sizeof(uint32));
 }
 
 void ListenerSelector::run(){
 	int state;
 	do{
 		state = 0;
-		int selcnt = poll(pfds, sz, -1);
-		if(pfds->revents) state = doReadPipe();
-		if(state & FULL_SCAN)
+		int selcnt = poll(d.pfds, d.sz, -1);
+		if(d.pfds->revents) state = doReadPipe();
+		if(state & Data::FULL_SCAN)
 			state |= doFullScan();
 		else
 			state |= doSimpleScan(selcnt);
-	}while(!(state & EXIT_LOOP));
+	}while(!(state & Data::EXIT_LOOP));
 }
 
 void ListenerSelector::push(const ListenerPtrTp &_rlis, uint _thid){
-	pfds[sz].fd = _rlis->station().descriptor();
-	_rlis->setThread(_thid, sz);
-	pfds[sz].events = POLLIN;
-	pfds[sz].revents = 0;
-	pss[sz].lisptr = _rlis;
-	++sz;
+	d.pfds[d.sz].fd = _rlis->station().descriptor();
+	_rlis->setThread(_thid, d.sz);
+	d.pfds[d.sz].events = POLLIN;
+	d.pfds[d.sz].revents = 0;
+	d.pss[d.sz].lisptr = _rlis;
+	++d.sz;
 }
 
 int ListenerSelector::doReadPipe(){
 	enum {BUFSZ = 32, BUFLEN = BUFSZ * sizeof(ulong)};
 	uint32	buf[BUFSZ];
 	int rv = 0;//no
-	int rsz = 0;int j = 0;int maxcnt = (cp / BUFSZ) + 1;
+	int rsz = 0;int j = 0;int maxcnt = (d.cp / BUFSZ) + 1;
 	idbg("maxcnt = "<<maxcnt);
-	while((++j < maxcnt) && ((rsz = read(pipefds[0], buf, BUFLEN)) == BUFLEN)){
+	while((++j < maxcnt) && ((rsz = read(d.pipefds[0], buf, BUFLEN)) == BUFLEN)){
 		for(int i = 0; i < BUFSZ; ++i){
 			idbg("buf["<<i<<"]="<<buf[i]);
 			if(buf[i]){
-				rv |= FULL_SCAN;	
+				rv |= Data::FULL_SCAN;	
 			}else{ 
-				rv |= EXIT_LOOP;
+				rv |= Data::EXIT_LOOP;
 			}
 		}
 	}
@@ -105,33 +146,33 @@ int ListenerSelector::doReadPipe(){
 		for(int i = 0; i < rsz; ++i){	
 			idbg("buf["<<i<<"]="<<buf[i]);
 			if(buf[i]){
-				rv |= FULL_SCAN;
-			}else rv = EXIT_LOOP;//must exit
+				rv |= Data::FULL_SCAN;
+			}else rv = Data::EXIT_LOOP;//must exit
 		}
 	}
 	if(j == maxcnt){
 		//dummy read:
-		rv = EXIT_LOOP | FULL_SCAN;//scan all filedescriptors for events
+		rv = Data::EXIT_LOOP | Data::FULL_SCAN;//scan all filedescriptors for events
 		idbg("reading dummy");
-		while((rsz = read(pipefds[0],buf,BUFSZ)) > 0);
+		while((rsz = read(d.pipefds[0], buf, BUFSZ)) > 0);
 	}
 	idbg("readpiperv = "<<rv);
 	return rv;
 }
 //full scan the listeners for io signals and other singnals
 int ListenerSelector::doFullScan(){
-	uint oldsz = sz;
+	uint oldsz = d.sz;
 	TimeSpec ts;
-	for(uint i = 1; i < sz;){
-		if(pfds[i].revents || pss[i].lisptr->signaled(S_RAISE)){
+	for(uint i = 1; i < d.sz;){
+		if(d.pfds[i].revents || d.pss[i].lisptr->signaled(S_RAISE)){
 			//TODO: make it use the exec(uint32, TimeSpec)
-			switch(pss[i].lisptr->execute(0, ts)){
+			switch(d.pss[i].lisptr->execute(0, ts)){
 				case BAD:
 					idbg("BAD: deleting listener");
-					delete pss[i].lisptr.release();
-					pss[i].lisptr = pss[sz - 1].lisptr;
-					pfds[i] = pfds[sz - 1];
-					--sz;
+					delete d.pss[i].lisptr.release();
+					d.pss[i].lisptr = d.pss[d.sz - 1].lisptr;
+					d.pfds[i] = d.pfds[d.sz - 1];
+					--d.sz;
 					break;
 				case OK:
 					idbg("OK: on listener");
@@ -144,24 +185,24 @@ int ListenerSelector::doFullScan(){
 			}
 		}else ++i;
 	}
-	if(empty() || oldsz == cp && sz < oldsz) return EXIT_LOOP;
+	if(empty() || oldsz == d.cp && d.sz < oldsz) return Data::EXIT_LOOP;
 	return 0;
 }
 //scan only for io signals
 int ListenerSelector::doSimpleScan(int _cnt){
-	uint oldsz = sz;
+	uint oldsz = d.sz;
 	TimeSpec ts;
-	for(uint i = 1; i < sz && _cnt;){
-		if(pfds[i].revents){
+	for(uint i = 1; i < d.sz && _cnt;){
+		if(d.pfds[i].revents){
 			--_cnt;
 			//TODO: make it use the execute(uint32, TimeSpec)
-			switch(pss[i].lisptr->execute(0, ts)){
+			switch(d.pss[i].lisptr->execute(0, ts)){
 				case BAD:
 					idbg("BAD: deleting listener");
-					delete pss[i].lisptr.release();
-					pss[i].lisptr = pss[sz - 1].lisptr;
-					pfds[i] = pfds[sz - 1];
-					--sz;
+					delete d.pss[i].lisptr.release();
+					d.pss[i].lisptr = d.pss[d.sz - 1].lisptr;
+					d.pfds[i] = d.pfds[d.sz - 1];
+					--d.sz;
 					break;
 				case OK:
 					idbg("OK: on listener");
@@ -174,7 +215,7 @@ int ListenerSelector::doSimpleScan(int _cnt){
 			}
 		}else ++i;
 	}
-	if(empty() || oldsz == cp && sz < oldsz) return EXIT_LOOP;
+	if(empty() || oldsz == d.cp && d.sz < oldsz) return Data::EXIT_LOOP;
 	return 0;
 }
 

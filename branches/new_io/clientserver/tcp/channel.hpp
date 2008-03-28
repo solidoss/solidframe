@@ -46,12 +46,12 @@ struct ChannelData;
 	actual asynchrounous io.
 	
 	<b>Notes:</b><br>
-	- The Channel can only be used within a clientserver::tcp::ConnectionSelector,
-		clientserver::SelectPool
+	- The Channel can only be used within a <code>clientserver::tcp::ConnectionSelector</code>,
+		<code>clientserver::SelectPool</code>
 	- For now there is no secure communication (there is no definition
 	for SecureChannel.
 	- The secure channel may change a litle the initialization interface
-	of the clientserver::tcp::Channel, but the existing communication
+	of the <code>clientserver::tcp::Channel</code>, but the existing communication
 	interface should not change.
 	- The return values for io methods follows the standard of the solidground:
 		# OK for opperation completion
@@ -95,7 +95,12 @@ private:
 	Channel(int _sd);
 	enum {
 		INTOUT = EPOLLIN, OUTTOUT = EPOLLOUT,
-		MUST_START = 1 << 31
+		INYIELD = OUTTOUT << 1, OUTYIELD = INYIELD << 1,
+		IO_REQUEST_FLAGS = INTOUT + OUTTOUT + INYIELD + OUTYIELD,
+		IO_TOUT_FLAGS = INTOUT + OUTTOUT,
+		MUST_START = 1 << 31,
+		STREAM_MAX_WRITE_ONCE = 1024 * 1024,//
+		STREAM_MAX_READ_ONCE = 1024 * 1024
 	};
 	ulong ioRequest()const;
 	int doSendPlain(const char*, uint32, uint32);
@@ -123,6 +128,7 @@ private:
 	int 				sd;
 	uint64				rcvcnt;
 	uint64				sndcnt;
+	//NOTE: rcvcnt and sndcnt not in pcd because a connection can switch pools
 	ChannelData			*pcd;
 	SecureChannel		*psch;
 };

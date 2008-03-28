@@ -22,25 +22,20 @@
 #ifndef CS_TCP_CONNECTIONSELECTOR_HPP
 #define CS_TCP_CONNECTIONSELECTOR_HPP
 
-#include <stack>
-#include <vector>
 #include "clientserver/core/common.hpp"
 #include "clientserver/core/objptr.hpp"
-#include "system/timespec.hpp"
-#include "utility/queue.hpp"
-
-struct epoll_event;
+// #include "system/timespec.hpp"
+// #include "utility/queue.hpp"
 
 namespace clientserver{
 namespace tcp{
 
 class Connection;
-class Channel;
 class ChannelData;
 class DataNode;
 class IStreamNode;
 
-typedef ObjPtr<tcp::Connection>	ConnectionPtrTp;
+typedef ObjPtr<Connection>	ConnectionPtrTp;
 
 
 //! A selector for tcp::Connection, that uses epoll on linux.
@@ -72,12 +67,6 @@ public:
 	void prepare();
 	void unprepare();
 private:
-	enum {EXIT_LOOP = 1, FULL_SCAN = 2, READ_PIPE = 4};
-	struct SelChannel;
-	
-	int doReadPipe();
-	int doExecute(SelChannel &_rch, ulong _evs, TimeSpec &_crttout, epoll_event &_rev);
-	int doIo(Channel &_rch, ulong _evs);
 	DataNode* doPopDataNode();
 	IStreamNode* doPopIStreamNode();
 	void doPush(DataNode *_pdn);
@@ -85,28 +74,8 @@ private:
 	ChannelData* doPopChannelData();
 	void doPush(ChannelData *);
 private://data
-	typedef std::stack<SelChannel*, std::vector<SelChannel*> > 	FreeStackTp;
-	typedef Queue<SelChannel*>									ChQueueTp;
-	
-	typedef std::stack<DataNode*>				DataNodeStackTp;
-	typedef std::stack<ChannelData*>			ChannelDataStackTp;
-	typedef std::stack<IStreamNode*>			IStreamNodeStackTp;
-	
-	uint				cp;
-	uint				sz;
-	int					selcnt;
-	int					epfd;
-	epoll_event 		*pevs;
-	SelChannel			*pchs;
-	ChQueueTp			chq;
-	FreeStackTp			fstk;
-	int					pipefds[2];
-	//TimeSpec			btimepos;//begin time pos
-	TimeSpec			ntimepos;//next timepos == next timeout
-	TimeSpec			ctimepos;//current time pos
-	DataNodeStackTp		dnstk, dnastk;
-	ChannelDataStackTp	cdstk, cdastk;
-	IStreamNodeStackTp	isnstk, isnastk;
+	struct Data;
+	Data	&d;
 };
 
 
