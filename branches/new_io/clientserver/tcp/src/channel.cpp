@@ -70,7 +70,11 @@ void Channel::unprepare(){
 }
 
 ulong Channel::ioRequest()const{
-	return pcd->flags & IO_REQUEST_FLAGS;
+	return pcd->flags & IO_TOUT_FLAGS;
+}
+
+ulong Channel::yieldRequest()const{
+	return pcd->flags & IO_YIELD_FLAGS;
 }
 
 int Channel::arePendingSends(){

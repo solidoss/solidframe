@@ -58,10 +58,10 @@ public:
 	//signal a specific object
 	void signal(uint _pos = 0);
 	void run();
-	uint capacity()const	{return cp - 1;}
-	uint size() const		{return sz;}
-	int  empty()const		{return sz == 1;}
-	int  full()const		{return sz == cp;}
+	uint capacity()const;
+	uint size() const;
+	int  empty()const;
+	int  full()const;
 	
 	void push(const ConnectionPtrTp &_rcon, uint _thid);
 	void prepare();

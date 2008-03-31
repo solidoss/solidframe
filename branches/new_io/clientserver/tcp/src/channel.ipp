@@ -23,14 +23,27 @@
 #define inline
 #endif
 
-inline const uint64& Channel::recvCount()const{return rcvcnt;}
-inline const uint64& Channel::sendCount()const{return sndcnt;}
-inline int Channel::ok()const{return sd >= 0;}
+inline const uint64& Channel::recvCount()const{
+	return rcvcnt;
+}
+
+inline const uint64& Channel::sendCount()const{
+	return sndcnt;
+}
+
+inline int Channel::ok()const{
+	return sd >= 0;
+}
+
+inline bool Channel::mustYield()const{
+	return yieldRequest();
+}
 
 inline int Channel::send(const char* _pb, uint32 _blen, uint32 _flags){
 	if(psch)return doSendSecure(_pb, _blen, _flags);
 	else	return doSendPlain(_pb, _blen, _flags);
 }
+
 inline int Channel::recv(char* _pb, uint32 _blen, uint32 _flags){
 	if(psch)return doRecvPlain(_pb, _blen, _flags);
 	else	return doRecvPlain(_pb, _blen, _flags);

@@ -94,15 +94,20 @@ protected:
 private:
 	Channel(int _sd);
 	enum {
-		INTOUT = EPOLLIN, OUTTOUT = EPOLLOUT,
-		INYIELD = OUTTOUT << 1, OUTYIELD = INYIELD << 1,
-		IO_REQUEST_FLAGS = INTOUT + OUTTOUT + INYIELD + OUTYIELD,
-		IO_TOUT_FLAGS = INTOUT + OUTTOUT,
+		INTOUT = EPOLLIN,
+		OUTTOUT = EPOLLOUT,
+		INYIELD = OUTTOUT << 1,
+		OUTYIELD = INYIELD << 1,
+		IO_REQUEST_FLAGS = INTOUT | OUTTOUT | INYIELD | OUTYIELD,
+		IO_TOUT_FLAGS = INTOUT | OUTTOUT,
+		IO_YIELD_FLAGS = INYIELD | OUTYIELD,
 		MUST_START = 1 << 31,
 		STREAM_MAX_WRITE_ONCE = 1024 * 1024,//
 		STREAM_MAX_READ_ONCE = 1024 * 1024
 	};
 	ulong ioRequest()const;
+	ulong yieldRequest()const;
+	bool mustYield()const;
 	int doSendPlain(const char*, uint32, uint32);
 	int doSendSecure(const char*, uint32, uint32);
 	int doRecvPlain(char*, uint32, uint32);
