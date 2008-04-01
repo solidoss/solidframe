@@ -102,8 +102,8 @@ private:
 		IO_TOUT_FLAGS = INTOUT | OUTTOUT,
 		IO_YIELD_FLAGS = INYIELD | OUTYIELD,
 		MUST_START = 1 << 31,
-		STREAM_MAX_WRITE_ONCE = 1024 * 1024,//
-		STREAM_MAX_READ_ONCE = 1024 * 1024
+		STREAM_MAX_WRITE_ONCE = 4 * 1024 * 1024,//
+		STREAM_MAX_READ_ONCE = 4 * 1024 * 1024
 	};
 	ulong ioRequest()const;
 	ulong yieldRequest()const;

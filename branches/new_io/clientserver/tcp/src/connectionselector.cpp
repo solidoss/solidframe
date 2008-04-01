@@ -23,6 +23,7 @@
 #include <fcntl.h>
 #include <sys/epoll.h>
 #include <vector>
+#include <cerrno>
 
 #include "system/debug.hpp"
 #include "system/thread.hpp"
@@ -347,6 +348,7 @@ void ConnectionSelector::Data::run(){
         }
 		
 		selcnt = epoll_wait(epfd, pevs, sz, pollwait);
+		idbg("epollwait = "<<selcnt);
 	}while(!(flags & EXIT_LOOP));
 }
 
@@ -355,16 +357,22 @@ uint ConnectionSelector::Data::doAllIo(){
 	TimeSpec	crttout;
 	epoll_event	ev;
 	uint		evs;
+	idbg("selcnt = "<<selcnt);
 	for(int i = 0; i < selcnt; ++i){
 		ChannelStub *pc = reinterpret_cast<ChannelStub*>(pevs[i].data.ptr);
 		if(pc != pchs){
-			if(!pc->state && (evs = doIo(pc->conptr->channel(), pevs[i].events))){
-				crttout = ctimepos;
-				flags |= doExecute(*pc, evs, crttout, ev);
-			}
-			if(pc->conptr->channel().mustYield()){
-				chq.push(pc);
-				pc->state |= ChannelStub::InQIo;
+			if(pc->state != (uint)ChannelStub::Empty){
+				idbg("state = "<<pc->state<<" empty "<<ChannelStub::Empty);
+				assert(pc->conptr);
+				if((evs = doIo(pc->conptr->channel(), pevs[i].events))){
+					crttout = ctimepos;
+					flags |= doExecute(*pc, evs, crttout, ev);
+				}
+				if(pc->state != ChannelStub::Empty && pc->conptr->channel().mustYield()){
+					chq.push(pc);
+					pc->state |= ChannelStub::InQIo;
+					idbg("InQIo set");
+				}
 			}
 		}else{
 			flags |= READ_PIPE;
@@ -396,6 +404,7 @@ uint ConnectionSelector::Data::doFullScan(){
 			doExecute(rcs, evs, crttout, ev);
 		}
 	}
+	return flags;
 }
 uint ConnectionSelector::Data::doExecuteQueue(){
 	TimeSpec	crttout;
@@ -407,12 +416,16 @@ uint ConnectionSelector::Data::doExecuteQueue(){
 	while(qsz){//we only do a single scan:
 		idbg("qsz = "<<qsz<<" queuesz "<<chq.size());
 		ChannelStub &rc = *chq.front();chq.pop(); --qsz;
+		idbg("qsz = "<<qsz<<" queuesz "<<chq.size()<<" state = "<<rc.state);
 		switch(rc.state){
 			case ChannelStub::Empty:
+				idbg("empty");
 			case ChannelStub::NotInQ:
+				idbg("notinq");
 				break;
 			case ChannelStub::InQIo:
-				rc.state -= ChannelStub::InQIo;
+				idbg("InQIo");
+				rc.state &= ~ChannelStub::InQIo;
 				evs = doIo(rc.conptr->channel(), 0);
 				addchq = rc.conptr->channel().mustYield();
 				if(evs){
@@ -420,23 +433,27 @@ uint ConnectionSelector::Data::doExecuteQueue(){
 					flags |= doExecute(rc, evs, crttout, ev);
 				}
 				if(addchq && rc.state != ChannelStub::Empty){
+					idbg("InQIo set");
 					rc.state |= ChannelStub::InQIo;
 					chq.push(&rc);
 				}
 				break;
 			case ChannelStub::InQIoExec:
-				rc.state -= ChannelStub::InQIoExec;
+				idbg("InQIoExec");
+				rc.state &= ~ChannelStub::InQIoExec;
 				evs = doIo(rc.conptr->channel(), 0);
 				addchq = rc.conptr->channel().mustYield();
 				crttout = ctimepos;
 				flags |= doExecute(rc, evs, crttout, ev);
 				if(addchq && rc.state != ChannelStub::Empty){
+					idbg("InQIo set");
 					rc.state |= ChannelStub::InQIo;
 					chq.push(&rc);
 				}
 				break;
 			case ChannelStub::InQExec:
-				rc.state -= ChannelStub::InQExec;
+				idbg("InQExec");
+				rc.state &= ~ChannelStub::InQExec;
 				evs = 0;
 				crttout = ctimepos;
 				flags |= doExecute(rc, evs, crttout, ev);
@@ -560,13 +577,15 @@ int ConnectionSelector::Data::doExecute(ChannelStub &_rch, ulong _evs, TimeSpec 
 				ulong t = (EPOLLET) | rcon.channel().ioRequest();
 				if((_rch.evmsk & EPOLLMASK) != t){
 					idbg("epollctl");
-/*					if(t & EPOLLOUT){idbg("WTOUT");}
-					if(t & EPOLLIN){idbg("RTOUT");}*/
+					if(t & EPOLLOUT){idbg("WTOUT");}
+					if(t & EPOLLIN){idbg("RTOUT");}
 					_rch.evmsk = _rev.events = t;
 					_rev.data.ptr = &_rch;
-					epoll_ctl(epfd, EPOLL_CTL_MOD, rcon.channel().descriptor(), &_rev);
+					int rz = epoll_ctl(epfd, EPOLL_CTL_MOD, rcon.channel().descriptor(), &_rev);
+					if(rz) idbg("epollctl "<<strerror(errno));
 				}
 				if(rcon.channel().mustYield() && !(_rch.state & ChannelStub::InQIo)){
+					idbg("state inqio");
 					_rch.state |= ChannelStub::InQIo;
 					chq.push(&_rch);
 				}
@@ -631,7 +650,7 @@ int ConnectionSelector::Data::doReadPipe(){
 			if(pos){
 				if(pos < cp && (pch = pchs + pos)->conptr && !pch->state && pch->conptr->signaled(S_RAISE)){
 					chq.push(pch);
-					pch->state = 1;
+					pch->state = ChannelStub::InQExec;
 					idbg("pushig "<<pos<<" connection into queue");
 				}
 			}else rv = EXIT_LOOP;
@@ -645,7 +664,7 @@ int ConnectionSelector::Data::doReadPipe(){
 			if(pos){
 				if(pos < cp && (pch = pchs + pos)->conptr && !pch->state && pch->conptr->signaled(S_RAISE)){
 					chq.push(pch);
-					pch->state = 1;
+					pch->state = ChannelStub::InQExec;
 					idbg("pushig "<<pos<<" connection into queue");
 				}
 			}else rv = EXIT_LOOP;

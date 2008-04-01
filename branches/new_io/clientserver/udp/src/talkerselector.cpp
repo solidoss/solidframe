@@ -155,7 +155,7 @@ int TalkerSelector::reserve(ulong _cp){
 			return -1;
 		}
 	}
-	idbg("Pipe fds "<<pipefds[0]<<" "<<pipefds[1]);
+	idbg("Pipe fds "<<d.pipefds[0]<<" "<<d.pipefds[1]);
 	d.ctimepos.set(0);
 	d.ntimepos.set(Data::MAXTIMEPOS);
 	d.selcnt = 0;
