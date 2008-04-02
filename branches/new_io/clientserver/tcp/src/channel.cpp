@@ -20,7 +20,7 @@
 */
 
 #include <unistd.h>
-#include <errno.h>
+#include <cerrno>
 #include <fcntl.h>
 
 #include "system/debug.hpp"
@@ -134,11 +134,11 @@ int Channel::doRecvPlain(char* _pb, uint32 _bl, uint32 _flags){
 		}
 		if(!rv) return BAD;
 		if(rv < 0 && errno != EAGAIN) return BAD;
-		pcd->flags |= INTOUT;
 	}
 	if(!(_flags & TRY_ONLY)){
 		pcd->setRecv(_pb, _bl, _flags | IS_BUFFER);
 		pcd->rcvsz = 0;
+		pcd->flags |= INTOUT;
 	}else{
 		pcd->flags &= ~INTOUT;
 	}
@@ -199,9 +199,9 @@ int Channel::doSendPlain(IStreamIterator &_rsi, uint64 _sl, char* _pb, uint32 _b
 		}
 		if(_sl){
 			//sent only a part of the stream, do a YIELD
-			pcd->wcnt = 0;
+			pcd->wcnt = rv;
 			pcd->flags |= OUTYIELD;
-			pcd->pushSend(_pb, _sl, _flags & (~IS_BUFFER));
+			pcd->pushSend(_pb, _bl, _flags & (~IS_BUFFER));
 			pcd->pushSend(_rsi,_sl);
 		}
 	}else{
@@ -302,15 +302,16 @@ int Channel::doRecvSecure(){
 	return BAD;
 }
 int Channel::doSendPlain(){
-	int rv;
+	int rv = 0;
 	int retv = 0;
+	pcd->flags &= ~OUTYIELD;
 	while(pcd->arePendingSends()){
 		//idbg("another pending send");
 		DataNode	&rdn = *pcd->psdnfirst;
 		
 		pcd->flags &= ~OUTTOUT;
 		
-		if(rdn.flags & IS_BUFFER){	
+		if(rdn.flags & IS_BUFFER){
 			rv = write(sd, rdn.b.pcb, rdn.bl);
 			if(rv == (int)rdn.bl){
 				if(rdn.flags & RAISE_ON_END) retv |= OUTDONE;
@@ -328,23 +329,30 @@ int Channel::doSendPlain(){
 		}else{
 			//sending a stream
 			cassert(pcd->pssnfirst);
-			rv = write(sd, rdn.b.pcb + pcd->wcnt, rdn.bl - pcd->wcnt);
-			
-			if(!rv) return ERRDONE;
-			
-			if(rv < 0){
-				if(errno != EAGAIN){
-					idbg("ioerrr");
-					return ERRDONE;
+			idbg("write ptr "<<(void*)(rdn.b.pcb + pcd->wcnt)<<" wcnt = "<<pcd->wcnt<<" bl = "<<rdn.bl<<" len = "<<rdn.bl - pcd->wcnt);
+			{
+				ulong towrite = rdn.bl - pcd->wcnt;
+				if(towrite){
+					rv = write(sd, rdn.b.pcb + pcd->wcnt, towrite);
+				
+					if(!rv){
+						idbg("ioerr");
+						return ERRDONE;
+					}
 				}
-				cassert(false);
+				if(rv < 0){
+					if(errno != EAGAIN){
+						idbg("ioerr "<<strerror(errno));
+						return ERRDONE;
+					}
+					cassert(false);
+				}
+				
+				if(rv < (int)towrite){
+					pcd->wcnt += rv;
+					return retv;
+				}
 			}
-			
-			if(rv < (int)(rdn.bl - pcd->wcnt)){
-				pcd->wcnt += rv;
-				return retv;
-			}
-			
 			IStreamNode	&rs = *pcd->pssnfirst;
 			
 			if(rdn.flags & MUST_START){
@@ -391,17 +399,18 @@ int Channel::doSendPlain(){
 						return ERRDONE;
 					}
 					rv = 0;
-					pcd->flags |= INTOUT;
+					pcd->flags |= OUTTOUT;
 				}
 				//rv >= 0
-				pcd->wcnt += rv;
+				pcd->wcnt = rv;
 				rdn.bl = toread;
-				//idbg("read stream "<<retv);
+				idbg("otout");
 				rs.sz += sendsize;
 				return retv;
 			}//while
 			if(rs.sz){
 				pcd->flags |= OUTYIELD;
+				pcd->wcnt = rv;
 				return retv;
 			}
 			if(rdn.flags & RAISE_ON_END) retv = OUTDONE;

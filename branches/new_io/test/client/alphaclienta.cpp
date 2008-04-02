@@ -125,10 +125,10 @@ void AlphaThread::run(){
 		return;
 	}
 	timeval tv;
-	memset(&tv, 0, sizeof(timeval));
-	tv.tv_sec = 30;
-	setsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
-	setsockopt(sd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
+// 	memset(&tv, 0, sizeof(timeval));
+// 	tv.tv_sec = 30;
+// 	setsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+// 	setsockopt(sd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
 	readc = 0;
 	wr.reinit(sd);
 	char buf[BufLen];
@@ -146,6 +146,7 @@ void AlphaThread::run(){
 		++ul;inf.update(pos, readc);//Thread::sleep(100);
 	}
 	idbg("return value "<<rv);
+	cout<<endl<<"return value"<<rv<<endl;
 }
 
 //----------------------------------------------------------------------------
@@ -300,6 +301,9 @@ int AlphaThread::fetch(unsigned _idx, char *_pb){
 	
 	while((rc = read(sd, _pb, BufLen - 1)) > 0){
 		readc += rc;
+// 		idbg("-----------------------------");
+// 		wdbg(_pb, rc);
+// 		idbg("=============================");
 		bool b = true;
 		bpos = _pb;
 		bend = bpos + rc;
@@ -409,7 +413,10 @@ int AlphaThread::fetch(unsigned _idx, char *_pb){
 			}
 		}
 	}
-	return -1;
+	cout<<"err "<<strerror(errno)<<endl;
+	cout.write(_pb, BufLen);
+	cout.flush();
+	return -9;
 }
 
 int main(int argc, char *argv[]){

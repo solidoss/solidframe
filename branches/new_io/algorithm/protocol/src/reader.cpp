@@ -21,6 +21,7 @@
 
 #include "algorithm/protocol/reader.hpp"
 #include "utility/ostream.hpp"
+#include "system/debug.hpp"
 #include <cerrno>
 
 namespace protocol{
@@ -182,6 +183,7 @@ int Reader::run(){
 /*static*/ int Reader::refillDone(Reader &_rr, Parameter &_rp){
 	_rr.wpos = _rr.bbeg + _rr.readSize();
 	_rr.rpos = _rr.bbeg;
+	//wdbg(_rr.rpos, _rr.readSize());
 	return Ok;
 }
 
@@ -193,6 +195,7 @@ int Reader::run(){
 	}else if(rv == Ok){
 		_rr.wpos = _rr.bbeg + _rr.readSize();
 		_rr.rpos = _rr.bbeg;
+		//wdbg(_rr.rpos, _rr.readSize());
 		return Ok;
 	}
 	_rr.replace(&Reader::refillDone);
