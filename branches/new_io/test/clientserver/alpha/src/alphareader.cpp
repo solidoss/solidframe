@@ -172,14 +172,6 @@ void Reader::clear(){
     }
     return Bad;
 }
-/*virtual*/ int Reader::read(OStreamIterator &_rosi, uint64 _sz, char *_pb, uint32 _bl){
-	switch(rch.recv(_rosi, _sz, bbeg, bend - bbeg)){
-		case BAD:	return Bad;
-		case OK:	return Ok;
-		case NOK:	return No;
-	}
-	return Bad;
-}
 /*virtual*/ int Reader::readSize()const{
 	return rch.recvSize();
 }

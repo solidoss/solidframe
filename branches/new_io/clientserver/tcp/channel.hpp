@@ -78,10 +78,6 @@ public:
 	int send(const char* _pb, uint32 _bl, uint32 _flags = 0);
 	//! Receives data into a buffer
 	int recv(char *_pb, uint32 _bl, uint32 _flags = 0);
-	//! Send a stream using a given buffer
-	int send(IStreamIterator &_rsi, uint64 _sl, char *_pb, uint32 _bl, uint32 _flags = 0);
-	//! Receive data into a stream using a given buffer
-	int recv(OStreamIterator &_rsi, uint64 _sl, char *_pb, uint32 _bl, uint32 _flags = 0);
 	//! The size of the buffer received
 	uint32 recvSize()const;
 	//! The amount of data sent
@@ -96,26 +92,15 @@ private:
 	enum {
 		INTOUT = EPOLLIN,
 		OUTTOUT = EPOLLOUT,
-		INYIELD = OUTTOUT << 1,
-		OUTYIELD = INYIELD << 1,
-		IO_REQUEST_FLAGS = INTOUT | OUTTOUT | INYIELD | OUTYIELD,
+		IO_REQUEST_FLAGS = INTOUT | OUTTOUT,
 		IO_TOUT_FLAGS = INTOUT | OUTTOUT,
-		IO_YIELD_FLAGS = INYIELD | OUTYIELD,
 		MUST_START = 1 << 31,
-		STREAM_MAX_WRITE_ONCE = 32 * 1024,//
-		STREAM_MAX_READ_ONCE = 32 * 1024
 	};
 	ulong ioRequest()const;
-	ulong yieldRequest()const;
-	bool mustYield()const;
 	int doSendPlain(const char*, uint32, uint32);
 	int doSendSecure(const char*, uint32, uint32);
 	int doRecvPlain(char*, uint32, uint32);
 	int doRecvSecure(char*, uint32, uint32);
-	int doSendPlain(IStreamIterator&, uint64 , char*, uint32, uint32);
-	int doSendSecure(IStreamIterator&, uint64 , char*, uint32, uint32);
-	int doRecvPlain(OStreamIterator&, uint64 , char*, uint32, uint32);
-	int doRecvSecure(OStreamIterator&, uint64 , char*, uint32, uint32);
 	//the private interface is visible to ConnectionSelector
 	friend class ConnectionSelector;
 	friend class Station;
@@ -129,7 +114,6 @@ private:
 	int doSendSecure();
 	int descriptor()const{return sd;}
 private:
-	enum {IS_BUFFER = 1};
 	int 				sd;
 	uint64				rcvcnt;
 	uint64				sndcnt;

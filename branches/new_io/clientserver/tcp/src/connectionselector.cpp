@@ -64,9 +64,7 @@ struct ConnectionSelector::Data{
 		enum State{
 			Empty = -1,
 			NotInQ = 0,
-			InQIo = 1,
-			InQExec = 2,
-			InQIoExec = InQIo + InQExec
+			InQExec = 1,
 		};
 		
 		ChannelStub():timepos(0),evmsk(0),state(Empty){}
@@ -83,7 +81,6 @@ struct ConnectionSelector::Data{
 	
 	typedef Stack<DataNode*>			DataNodeStackTp;
 	typedef Stack<ChannelData*>			ChannelDataStackTp;
-	typedef Stack<IStreamNode*>			IStreamNodeStackTp;
 	
 	Data();
 	~Data();
@@ -112,7 +109,6 @@ struct ConnectionSelector::Data{
 	TimeSpec			ctimepos;//current time pos
 	DataNodeStackTp		dnstk, dnastk;
 	ChannelDataStackTp	cdstk, cdastk;
-	IStreamNodeStackTp	isnstk, isnastk;
 };
 //===================================================================
 ConnectionSelector::ConnectionSelector():d(*(new Data)){
@@ -242,9 +238,6 @@ ConnectionSelector::Data::~Data(){
 	while(cdastk.size()){
 		delete []cdastk.top();cdastk.pop();
 	}
-	while(isnastk.size()){
-		delete []isnastk.top();isnastk.pop();
-	}
 }
 
 inline int ConnectionSelector::Data::computePollWait(const TimeSpec &_rntimepos, const TimeSpec &_rctimepos){
@@ -287,12 +280,10 @@ void ConnectionSelector::Data::push(const ConnectionPtrTp &_conptr, uint _thid){
 uint ConnectionSelector::Data::doIo(Channel &_rch, ulong _evs){
 	if(_evs & (EPOLLERR | EPOLLHUP)) return ERRDONE;
 	int rv = 0;
-	idbg("evs = "<<_evs<<" yieldReq = "<<_rch.yieldRequest());
-	_evs |= _rch.yieldRequest();
-	if(_evs & (Channel::INTOUT | Channel::INYIELD)){
+	if(_evs & Channel::INTOUT){
 		rv = _rch.doRecv();
 	}
-	if(!(rv & ERRDONE) && (_evs & (Channel::OUTTOUT | Channel::OUTYIELD))){
+	if(!(rv & ERRDONE) && (_evs & Channel::OUTTOUT)){
 		rv |= _rch.doSend();
 	}
 	return rv;
@@ -362,18 +353,10 @@ uint ConnectionSelector::Data::doAllIo(){
 	for(int i = 0; i < selcnt; ++i){
 		ChannelStub *pc = reinterpret_cast<ChannelStub*>(pevs[i].data.ptr);
 		if(pc != pchs){
-			if(pc->state == ChannelStub::NotInQ){
-				idbg("state = "<<pc->state<<" empty "<<ChannelStub::Empty);
-				cassert(pc->conptr);
-				if((evs = doIo(pc->conptr->channel(), pevs[i].events))){
-					crttout = ctimepos;
-					flags |= doExecute(*pc, evs, crttout, ev);
-				}
-				if(pc->state != ChannelStub::Empty && pc->conptr->channel().mustYield()){
-					idbg("InQIo set");
-					if(pc->state == ChannelStub::NotInQ) chq.push(pc);
-					pc->state |= ChannelStub::InQIo;
-				}
+			idbg("state = "<<pc->state<<" empty "<<ChannelStub::Empty);
+			if((evs = doIo(pc->conptr->channel(), pevs[i].events))){
+				crttout = ctimepos;
+				flags |= doExecute(*pc, evs, crttout, ev);
 			}
 		}else{
 			flags |= READ_PIPE;
@@ -413,7 +396,6 @@ uint ConnectionSelector::Data::doExecuteQueue(){
 	uint		evs;
 	epoll_event	ev;
 	uint		qsz(chq.size());
-	bool		addchq;
 	while(qsz){//we only do a single scan:
 		idbg("qsz = "<<qsz<<" queuesz "<<chq.size());
 		ChannelStub &rc = *chq.front();chq.pop(); --qsz;
@@ -423,35 +405,6 @@ uint ConnectionSelector::Data::doExecuteQueue(){
 				idbg("empty");
 			case ChannelStub::NotInQ:
 				idbg("notinq");
-				break;
-			case ChannelStub::InQIo:
-				idbg("InQIo");
-				rc.state &= ~ChannelStub::InQIo;
-				evs = doIo(rc.conptr->channel(), 0);
-				addchq = rc.conptr->channel().mustYield();
-				if(evs){
-					crttout = ctimepos;
-					flags |= doExecute(rc, evs, crttout, ev);
-				}
-				if(addchq && rc.state != ChannelStub::Empty){
-					idbg("InQIo set");
-					if(rc.state == ChannelStub::NotInQ)
-						chq.push(&rc);
-					rc.state |= ChannelStub::InQIo;
-				}
-				break;
-			case ChannelStub::InQIoExec:
-				idbg("InQIoExec");
-				rc.state &= ~ChannelStub::InQIoExec;
-				evs = doIo(rc.conptr->channel(), 0);
-				addchq = rc.conptr->channel().mustYield();
-				crttout = ctimepos;
-				flags |= doExecute(rc, evs, crttout, ev);
-				if(addchq && rc.state != ChannelStub::Empty){
-					idbg("InQIo set");
-					if(rc.state == ChannelStub::NotInQ) chq.push(&rc);
-					rc.state |= ChannelStub::InQIo;
-				}
 				break;
 			case ChannelStub::InQExec:
 				idbg("InQExec");
@@ -501,11 +454,6 @@ int ConnectionSelector::Data::doExecute(ChannelStub &_rch, ulong _evs, TimeSpec 
 					int rz = epoll_ctl(epfd, EPOLL_CTL_MOD, rcon.channel().descriptor(), &_rev);
 					//TODO: remove
 					if(rz) idbg("epollctl "<<strerror(errno));
-				}
-				if(rcon.channel().mustYield() && !(_rch.state & ChannelStub::InQIo)){
-					idbg("state inqio");
-					_rch.state |= ChannelStub::InQIo;
-					chq.push(&_rch);
 				}
 				if(_crttout != ctimepos){
 					_rch.timepos = _crttout;

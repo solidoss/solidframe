@@ -33,7 +33,6 @@ namespace tcp{
 class Connection;
 class ChannelData;
 class DataNode;
-class IStreamNode;
 
 typedef ObjPtr<Connection>	ConnectionPtrTp;
 
@@ -45,9 +44,7 @@ typedef ObjPtr<Connection>	ConnectionPtrTp;
 class ConnectionSelector{
 public:
 	static DataNode* popDataNode();
-	static IStreamNode* popIStreamNode();
 	static void push(DataNode *_pdn);
-	static void push(IStreamNode *_psn);
 	static ChannelData* popChannelData();
 	static void push(ChannelData *);
 	
@@ -68,9 +65,7 @@ public:
 	void unprepare();
 private:
 	DataNode* doPopDataNode();
-	IStreamNode* doPopIStreamNode();
 	void doPush(DataNode *_pdn);
-	void doPush(IStreamNode *_psn);
 	ChannelData* doPopChannelData();
 	void doPush(ChannelData *);
 private://data

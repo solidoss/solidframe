@@ -55,33 +55,18 @@ inline void DataNode::specificRelease(){
 }
 	
 
-inline OStreamNode::OStreamNode():sz(0){
-}
-
-
-inline IStreamNode::IStreamNode():sz(0),pnext(NULL){
-}
-
-inline /*static*/ unsigned IStreamNode::specificCount(){
-	return 0xfffffff;
-}
-
-inline void IStreamNode::specificRelease(){
-}
 
 
 inline ChannelData::ChannelData():
-	rcvsz(0), rcvoffset(0),flags(0), wcnt(0),
-	psdnfirst(NULL), psdnlast(NULL), 
-	pssnfirst(NULL), pssnlast(NULL)
+	rcvsz(0), /*rcvoffset(0),*/flags(0), /*wcnt(0),*/
+	psdnfirst(NULL), psdnlast(NULL) 
 {
 }
 
 inline void ChannelData::clear(){
-	rcvsz = 0; rcvoffset = 0; flags = 0;
-	wcnt = 0;
+	rcvsz = 0; /*rcvoffset = 0;*/ flags = 0;
+// 	wcnt = 0;
 	psdnfirst = NULL; psdnlast = NULL;
-	pssnfirst = NULL; pssnlast = NULL;
 }
 
 inline /*static*/ unsigned ChannelData::specificCount(){
@@ -98,10 +83,6 @@ inline long ChannelData::arePendingSends(){
 inline void ChannelData::setRecv(char *_pb, uint32 _sz, uint32 _flags){
 	rdn.b.pb = _pb; rdn.bl = _sz; rdn.flags = _flags;
 }
-inline void ChannelData::setRecv(const OStreamIterator &_rsi, uint64 _sz){
-	rsn.sit = _rsi; rsn.sz = _sz;
-}
-
 
 #ifndef UINLINES
 #undef inline

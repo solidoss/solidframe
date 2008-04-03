@@ -22,8 +22,7 @@
 #ifndef CHANNEL_DATA_HPP
 #define CHANNEL_DATA_HPP
 #include <utility>
-#include "utility/istream.hpp"
-#include "utility/ostream.hpp"
+#include "system/common.hpp"
 
 namespace clientserver{
 namespace tcp{
@@ -44,23 +43,6 @@ struct DataNode{
 	DataNode	*pnext;
 };
 
-struct OStreamNode{
-	OStreamNode();
-	
-	OStreamIterator		sit;
-	uint64				sz;
-};
-
-struct IStreamNode{
-	IStreamNode();
-	static unsigned specificCount();
-	void specificRelease();
-	
-	IStreamIterator		sit;
-	uint64				sz;
-	IStreamNode			*pnext;
-};
-
 struct ChannelData{
 	ChannelData();
 	void clear();
@@ -70,21 +52,15 @@ struct ChannelData{
 	void specificRelease();
 	long arePendingSends();
 	void pushSend(const char *_pb, uint32 _sz, uint32 _flags);
-	void pushSend(const IStreamIterator &_rsi, uint64 _sz);
 	void popSendData();
-	void popSendStream();
 	void setRecv(char *_pb, uint32 _sz, uint32 _flags);
-	void setRecv(const OStreamIterator &_rsi, uint64 _sz);
 	
 	uint32 				rcvsz;
-	uint32				rcvoffset;
+//	uint32				rcvoffset;
 	uint32				flags;
-	uint64				wcnt;
 	
 	DataNode			rdn;//receive channel data
-	OStreamNode			rsn;//receive stream data
 	DataNode			*psdnfirst,*psdnlast;//ptr send channel data 
-	IStreamNode			*pssnfirst,*pssnlast;//ptr send stream data
 };
 
 #ifdef UINLINES

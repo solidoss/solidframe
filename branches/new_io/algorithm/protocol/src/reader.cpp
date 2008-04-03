@@ -164,14 +164,7 @@ int Reader::run(){
 	sz -= minlen;
 	if(sz){
 		_rr.rpos = _rr.wpos = _rr.bbeg;
-		int rv = _rr.read(*osi, sz, _rr.bbeg, _rr.bend - _rr.bbeg);
-		if(rv < Bad){
-			_rr.state = IOError;
-			return Bad;
-		}else if(rv == Ok){
-			_rr.wpos += _rr.readSize();
-			return Ok;
-		}
+		//TODO
 		_rr.replace(&Reader::refillDone);
 		return No;
 	}else{//done

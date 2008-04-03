@@ -251,7 +251,8 @@ void Writer::putSilent(uint32 _v){
 	doneFlush(_rw, _rp);
 	IStreamIterator *pit = reinterpret_cast<IStreamIterator*>(_rp.a.p);
 	uint64			sz = *static_cast<uint64*>(_rp.b.p);
-	int rv = _rw.write(*pit, sz, _rw.bbeg, _rw.bend - _rw.bbeg);
+	int rv = No;
+	//TODO:
 	idbg("rv = "<<rv);
 	if(rv == No){//scheduled for writing
 		_rw.replace(&Writer::returnValue, Parameter(Continue));

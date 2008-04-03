@@ -26,8 +26,6 @@
 #include "algorithm/protocol/logger.hpp"
 #include "utility/stack.hpp"
 
-struct OStreamIterator;
-
 namespace protocol{
 
 class Reader;
@@ -289,8 +287,6 @@ protected:
 	}
 	//! The reader will call this method when refilling its buffer
 	virtual int read(char *_pb, uint32 _bl) = 0;
-	//! The reader will call this method when reading a stream literal
-	virtual int read(OStreamIterator &_rosi, uint64 _sz, char *_pb, uint32 _bl) = 0;
 	//! Used for asynchrounous reading - must return the lenght or read data
 	virtual int readSize()const = 0;
 	//! The reader will call this method on manage callback
