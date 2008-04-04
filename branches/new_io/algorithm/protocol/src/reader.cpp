@@ -151,38 +151,64 @@ int Reader::run(){
 	return Ok;
 }
 
-/*static*/ int Reader::fetchLiteralStreamContinue(Reader &_rr, Parameter &_rp){
-	OStreamIterator *osi(static_cast<OStreamIterator*>(_rp.a.p));
-	if(osi->start() < 0){
-		cassert(false);
-	}
-	uint64 &sz = *static_cast<uint64*>(_rp.b.p);
-	while(sz){
-	}
-	return Bad;
-}
-
 /*static*/ int Reader::fetchLiteralStream(Reader &_rr, Parameter &_rp){
-	OStreamIterator *osi(static_cast<OStreamIterator*>(_rp.a.p));
-	if(osi->start() < 0){
+	OStreamIterator &osi(*static_cast<OStreamIterator*>(_rp.a.p));
+	if(osi.start() < 0){
 		cassert(false);
 	}
-	uint64 &sz = *static_cast<uint64*>(_rp.b.p);
-	ulong minlen = (ulong)(_rr.wpos - _rr.rpos);
-	if((long long)minlen > sz) minlen = sz;
-	//write what we allready have in buffer
-	if(minlen) (*osi)->write(_rr.rpos, minlen);
+	uint64		&sz = *static_cast<uint64*>(_rp.b.p);
+	ulong		minlen = (ulong)(_rr.wpos - _rr.rpos);
+	if(sz < minlen) minlen = sz;
+	//write what we allready have in buffer into the stream
+	if(minlen) osi->write(_rr.rpos, minlen);
 	sz -= minlen;
 	if(sz){
 		_rr.rpos = _rr.wpos = _rr.bbeg;
-		//TODO
+		ulong		toread = _rr.bend - _rr.bbeg;
+		if(sz < toread) toread = sz;
+		int rv = Continue;
+		switch(_rr.read(_rr.bbeg, toread)){
+			case Bad: return Bad;
+			case Ok: break;
+			case No:
+				rv = No;
+				break;
+		}
 		_rr.replace(&Reader::fetchLiteralStreamContinue);
-		return Continue;
+		return rv;
 	}else{//done
 		_rr.rpos += minlen;
 		return Ok;
 	}
 }
+
+/*static*/ int Reader::fetchLiteralStreamContinue(Reader &_rr, Parameter &_rp){
+	OStreamIterator &osi(*static_cast<OStreamIterator*>(_rp.a.p));
+	if(osi.start() < 0){
+		cassert(false);
+	}
+	uint64		&sz = *static_cast<uint64*>(_rp.b.p);
+	const ulong	bufsz = _rr.bend - _rr.bbeg;
+	ulong		toread;
+	ulong		tmpsz = bufsz * 16;
+	if(sz < tmpsz) tmpsz = sz;
+	while(tmpsz){
+		const ulong rdsz = _rr.readSize();
+		tmpsz -= rdsz; 
+		osi->write(_rr.bbeg, _rr.readSize());
+		toread = bufsz;
+		if(tmpsz < toread) toread = tmpsz;
+		switch(_rr.read(_rr.bbeg, toread)){
+			case Bad:	return Bad;
+			case Ok: break;
+			case No:
+				return No;
+			
+		}
+	}
+	return Bad;
+}
+
 
 /*static*/ int Reader::refillDone(Reader &_rr, Parameter &_rp){
 	_rr.wpos = _rr.bbeg + _rr.readSize();

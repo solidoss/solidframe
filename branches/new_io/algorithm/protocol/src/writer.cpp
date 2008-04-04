@@ -228,12 +228,12 @@ void Writer::putSilent(uint32 _v){
 }
 
 /*static*/ int Writer::putStream(Writer &_rw, Parameter &_rp){
-	IStreamIterator *pit = reinterpret_cast<IStreamIterator*>(_rp.a.p);
+	IStreamIterator &isi = *reinterpret_cast<IStreamIterator*>(_rp.a.p);
 	uint64			&sz = *static_cast<uint64*>(_rp.b.p);
-	if(pit->start() < 0) return Bad;
+	if(isi.start() < 0) return Bad;
 	if(sz < FlushLength){
 		cassert((_rw.bend - _rw.wpos) >= FlushLength);
-		if(sz != (uint64)(*pit)->read(_rw.wpos, sz)) return Bad;
+		if(sz != (uint64)isi->read(_rw.wpos, sz)) return Bad;
 		_rw.wpos += sz;
 		int rv = _rw.flush();
 		idbg("rv = "<<rv);
@@ -250,7 +250,7 @@ void Writer::putSilent(uint32 _v){
 
 /*static*/ int Writer::putStreamDone(Writer &_rw, Parameter &_rp){
 	doneFlush(_rw, _rp);
-	IStreamIterator *pit = reinterpret_cast<IStreamIterator*>(_rp.a.p);
+	IStreamIterator &isi = *reinterpret_cast<IStreamIterator*>(_rp.a.p);
 	uint64			&sz = *static_cast<uint64*>(_rp.b.p);
 	ulong 			toread;
 	const ulong		blen = _rw.bend - _rw.bbeg;
@@ -261,7 +261,7 @@ void Writer::putSilent(uint32 _v){
 	while(tmpsz){
 		toread = blen;
 		if(toread > tmpsz) toread = tmpsz;
-		rv = (*pit)->read(_rw.bbeg, toread);
+		rv = isi->read(_rw.bbeg, toread);
 		if(rv != toread) return Bad;
 		tmpsz -= rv;
 		if(rv < FlushLength)
