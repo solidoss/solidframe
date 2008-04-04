@@ -49,6 +49,7 @@ int Writer::run(){
 			case Bad:return BAD;
 			case No: return NOK;//wait data
 			case Ok: fs.pop();
+			case Yield:return YIELD;
 			case Continue: break;
 			default: cassert(false);
 		}
@@ -228,7 +229,7 @@ void Writer::putSilent(uint32 _v){
 
 /*static*/ int Writer::putStream(Writer &_rw, Parameter &_rp){
 	IStreamIterator *pit = reinterpret_cast<IStreamIterator*>(_rp.a.p);
-	uint64			sz = *static_cast<uint64*>(_rp.b.p);
+	uint64			&sz = *static_cast<uint64*>(_rp.b.p);
 	if(pit->start() < 0) return Bad;
 	if(sz < FlushLength){
 		cassert((_rw.bend - _rw.wpos) >= FlushLength);
@@ -250,15 +251,35 @@ void Writer::putSilent(uint32 _v){
 /*static*/ int Writer::putStreamDone(Writer &_rw, Parameter &_rp){
 	doneFlush(_rw, _rp);
 	IStreamIterator *pit = reinterpret_cast<IStreamIterator*>(_rp.a.p);
-	uint64			sz = *static_cast<uint64*>(_rp.b.p);
-	int rv = No;
-	//TODO:
-	idbg("rv = "<<rv);
-	if(rv == No){//scheduled for writing
-		_rw.replace(&Writer::returnValue, Parameter(Continue));
-		return No;
+	uint64			&sz = *static_cast<uint64*>(_rp.b.p);
+	ulong 			toread;
+	const ulong		blen = _rw.bend - _rw.bbeg;
+	ulong 			tmpsz = blen * 16;
+	int				rv = 0;
+	if(tmpsz > sz) tmpsz = sz;
+	sz -= tmpsz;
+	while(tmpsz){
+		toread = blen;
+		if(toread > tmpsz) toread = tmpsz;
+		rv = (*pit)->read(_rw.bbeg, toread);
+		if(rv != toread) return Bad;
+		tmpsz -= rv;
+		if(rv < FlushLength)
+			break;
+		switch(_rw.write(_rw.bbeg, rv)){
+			case Bad: return Bad;
+			case Ok: rv = 0; break;
+			case No:
+				sz += tmpsz;
+				return No;
+		}
 	}
-	return rv;
+	
+	if(sz != 0){
+		return Yield;
+	}
+	_rw.wpos += rv;
+	return Ok;
 }
 
 /*static*/ int Writer::putAtom(Writer &_rw, Parameter &_rp){

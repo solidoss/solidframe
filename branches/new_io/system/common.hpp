@@ -43,7 +43,7 @@ typedef unsigned char		uint8;
 
 
 enum SeekRef {SeekBeg=0, SeekCur=1, SeekEnd=2};
-enum RetVal{BAD = -1, OK = 0, NOK = 1, CONTINUE = 2};
+enum RetVal{BAD = -1, OK = 0, NOK, YIELD , CONTINUE};
 
 template <typename T>
 inline T tMax(T v1,T v2){

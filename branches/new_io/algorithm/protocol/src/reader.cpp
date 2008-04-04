@@ -151,22 +151,33 @@ int Reader::run(){
 	return Ok;
 }
 
+/*static*/ int Reader::fetchLiteralStreamContinue(Reader &_rr, Parameter &_rp){
+	OStreamIterator *osi(static_cast<OStreamIterator*>(_rp.a.p));
+	if(osi->start() < 0){
+		cassert(false);
+	}
+	uint64 &sz = *static_cast<uint64*>(_rp.b.p);
+	while(sz){
+	}
+	return Bad;
+}
 
 /*static*/ int Reader::fetchLiteralStream(Reader &_rr, Parameter &_rp){
 	OStreamIterator *osi(static_cast<OStreamIterator*>(_rp.a.p));
 	if(osi->start() < 0){
 		cassert(false);
 	}
-	uint64 sz = *static_cast<uint64*>(_rp.b.p);
+	uint64 &sz = *static_cast<uint64*>(_rp.b.p);
 	ulong minlen = (ulong)(_rr.wpos - _rr.rpos);
 	if((long long)minlen > sz) minlen = sz;
+	//write what we allready have in buffer
 	if(minlen) (*osi)->write(_rr.rpos, minlen);
 	sz -= minlen;
 	if(sz){
 		_rr.rpos = _rr.wpos = _rr.bbeg;
 		//TODO
-		_rr.replace(&Reader::refillDone);
-		return No;
+		_rr.replace(&Reader::fetchLiteralStreamContinue);
+		return Continue;
 	}else{//done
 		_rr.rpos += minlen;
 		return Ok;

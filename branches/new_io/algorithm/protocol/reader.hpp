@@ -145,6 +145,7 @@ public:
 	static int fetchLiteralDummy(Reader &_rr, Parameter &_rp);
 	//!Callback fetching a literal string
 	static int fetchLiteralString(Reader &_rr, Parameter &_rp);
+	
 	//!Callback fetching a literal string
 	static int fetchLiteralStream(Reader &_rr, Parameter &_rp);
 	//!Callback for refilling the input buffers
@@ -237,6 +238,7 @@ protected:
 		IOErrorState
 	};
 protected:
+	static int fetchLiteralStreamContinue(Reader &_rr, Parameter &_rp);
 	//! Tries to peek the current char
 	int peek(int &_c);
 	//! Get the current char = peek + drop
