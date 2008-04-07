@@ -82,6 +82,7 @@ public:
 		Bad = -1, //!<input closed
 		Ok = 0, //!<everything ok, do a pop
 		No,		//!<Must wait
+		Yield,		//!<Must yield the connection
 		Continue, //!<reexecute the top function - no pop
 		Error,		//!<parser error - must enter error recovery
 	};

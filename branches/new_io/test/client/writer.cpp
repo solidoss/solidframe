@@ -4,6 +4,8 @@
 #include <iostream>
 #include "system/common.hpp"
 #include "system/debug.hpp"
+#include "system/cassert.hpp"
+#include "utility/istream.hpp"
 using namespace std;
 
 bool isquotedspecial(uint8 _c){
@@ -68,4 +70,17 @@ void Writer::put(uint32 _v){
 	}
 }
 
+void Writer::put(IStream *_ps, uint64 sz){
+	const ulong bufsz = bend - bbeg;
+	ulong wr = 0;
+	while(sz){
+		ulong toread = bufsz;
+		if(sz < toread) toread = sz;
+		sz -= toread;
+		int rv = _ps->read(bbeg, toread);
+		cassert(rv == toread);
+		wr += write(sd, bbeg, rv);
+	}
+	cout<<"wr = "<<wr<<endl;
+}
 

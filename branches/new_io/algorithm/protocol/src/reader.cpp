@@ -109,6 +109,7 @@ int Reader::run(){
 				prepareErrorRecovery();
 				break;
 			case Ok: fs.pop();
+			case Yield:return YIELD;
 			case Continue: break;
 			default: cassert(false);
 		}
@@ -161,6 +162,7 @@ int Reader::run(){
 	if(sz < minlen) minlen = sz;
 	//write what we allready have in buffer into the stream
 	if(minlen) osi->write(_rr.rpos, minlen);
+	idbg("stream size = "<<sz<<" minlen = "<<minlen);
 	sz -= minlen;
 	if(sz){
 		_rr.rpos = _rr.wpos = _rr.bbeg;
@@ -174,7 +176,7 @@ int Reader::run(){
 				rv = No;
 				break;
 		}
-		_rr.replace(&Reader::fetchLiteralStreamContinue);
+		_rr.replace(&Reader::fetchLiteralStreamContinue, _rp);
 		return rv;
 	}else{//done
 		_rr.rpos += minlen;
@@ -184,29 +186,44 @@ int Reader::run(){
 
 /*static*/ int Reader::fetchLiteralStreamContinue(Reader &_rr, Parameter &_rp){
 	OStreamIterator &osi(*static_cast<OStreamIterator*>(_rp.a.p));
-	if(osi.start() < 0){
-		cassert(false);
-	}
 	uint64		&sz = *static_cast<uint64*>(_rp.b.p);
 	const ulong	bufsz = _rr.bend - _rr.bbeg;
 	ulong		toread;
 	ulong		tmpsz = bufsz * 16;
 	if(sz < tmpsz) tmpsz = sz;
+	sz -= tmpsz;
 	while(tmpsz){
 		const ulong rdsz = _rr.readSize();
+		osi->write(_rr.bbeg, rdsz);
 		tmpsz -= rdsz; 
-		osi->write(_rr.bbeg, _rr.readSize());
+		if(!tmpsz) break;
 		toread = bufsz;
 		if(tmpsz < toread) toread = tmpsz;
 		switch(_rr.read(_rr.bbeg, toread)){
-			case Bad:	return Bad;
-			case Ok: break;
+			case Bad:
+				return Bad;
+			case Ok:
+				break;
 			case No:
+				sz += tmpsz;
 				return No;
-			
 		}
 	}
-	return Bad;
+	if(sz){
+		toread = bufsz;
+		if(sz < toread) toread = sz;
+		switch(_rr.read(_rr.bbeg, toread)){
+			case Bad:
+				return Bad;
+			case Ok:
+				break;
+			case No:
+				return No;
+		}
+		return Yield;
+	}
+	idbg("fetch stream done "<<sz);
+	return Ok;//Done
 }
 
 
