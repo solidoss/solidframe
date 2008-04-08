@@ -17,16 +17,19 @@ Before presenting the structure of the framework, here are some general infos:
   * There is no central "include" directory. Every library will be presented as a sub-folder containing the public interface header files and a "src" sub-folder containing the private sources and headers.
 
 Here's the top level directory structure:
+
+{{{
 solidgroud/
    system/
    utility/
    algoritm/
    clientserver/
    test/
+}}}
 
 == The "system" directory ==
 
-The system folder contains the system library, which is basically a wrapper library for system API. There are: a thread class, synchronization classes (mutexes, conditions etc.), a thread specific wrapper class, wrappers for socket address and for files etc.
+The *system* folder contains the *system library*, which is basically a wrapper library for system API. There are: a thread class, synchronization classes (mutex-es, conditions etc.), a thread specific wrapper class, wrappers for socket address and for files etc.
 
 == The "utility" directory ==
 
@@ -159,7 +162,7 @@ to test the speed of fetching.
 
 2) To close the test application type "quit" in the mini CLI
 
-3) The remote fething will use a local temporary file (at most 2MB) as buffer for fetching - no matter the size of the fetched file. The temp files are located in /tmp/test/. The best way to test the remote fetching is using two computers - I did it an over a wireless network I got +1MB/s transfer rate. It is not much but it is something.
+3) The remote fetching will use a local temporary file (at most 2MB) as buffer for fetching - no matter the size of the fetched file. The temp files are located in /tmp/test/. The best way to test the remote fetching is using two computers - I did it an over a wireless network I got +1MB/s transfer rate. It is not much but it is something.
 
 = The design overview =
 
@@ -217,7 +220,7 @@ The second model I dis considered for some reasons:
   * performance related (moving a connection back and forth from manager thread to worker is quite time consuming, also the manager thread will be quite busy when handling thousands of busy connections - consuming lot of processor time).
   * code complexity related (How much should a connection keep a thread? How many worker threads should be created?)
 
-The third model was the chosen one. The idea is that a communication thread will handle at most N connections. New threads being created when connection count increases. For every connection the communication is handled in a proactor/asynchronous manner (well on linux the io completion is emulated using epoll and nonblocking IO, but the interface at connection level remains the same: it issues a send buffer/stream and/or a receive buffer/stream and waits for operation(s) completion, meanwhile the connection being able to receive other signals). 
+The third model was the chosen one. The idea is that a communication thread will handle at most N connections. New threads being created when connection count increases. For every connection the communication is handled in a proactor/asynchronous manner (well on Linux the IO-completion is emulated using epoll and nonblocking IO, but the interface at connection level remains the same: it issues a send buffer/stream and/or a receive buffer/stream and waits for operation(s) completion, meanwhile the connection being able to receive other signals). 
 
 But writing asynchronous code is not easy! The state machine of the connection can become quite complex - see the difference between the state machine of the echo connection and the one of alpha. To deal with such complexity, *SolidGround* contains the _algorithm/protocol_ library (used also by alpha protocol). It offers an easy way to design and implement complex asynchronous state machines specifically for high level protocol (like POP, IMAP etc). Please take a look at test::alpha::Connection::execute(...) (_test/clientserver/alpha/alphaconnection.cpp_) to see the implementation of the alpha connection's state machine - and think that, that state machine (or one with little improvements/additions) will suffice for most text protocols (like POP, IMAP etc).
 
