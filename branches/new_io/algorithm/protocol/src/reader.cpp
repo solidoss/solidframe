@@ -189,7 +189,7 @@ int Reader::run(){
 	uint64		&sz = *static_cast<uint64*>(_rp.b.p);
 	const ulong	bufsz = _rr.bend - _rr.bbeg;
 	ulong		toread;
-	ulong		tmpsz = bufsz * 16;
+	ulong		tmpsz = bufsz * 8;
 	if(sz < tmpsz) tmpsz = sz;
 	sz -= tmpsz;
 	while(tmpsz){

@@ -1288,7 +1288,7 @@ int File::executeSignal(FileManager &_rsm, const FileUidTp &_fuid, uint32 _flags
 }
 
 int File::executeOpen(FileManager &_rsm, const FileUidTp &_fuid, uint32 _flags, uint32 &_rtout, Mutex &_rm){
-	_rm.unlock();
+	//_rm.unlock();
 	cassert(!state);
 	int		inuse;
 	uint32	ttout;
