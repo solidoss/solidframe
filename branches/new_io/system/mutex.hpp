@@ -46,8 +46,8 @@ public:
 #endif
 	~Mutex();
 	
-	int lock();
-	int unlock();
+	void lock();
+	void unlock();
 	bool timedLock(unsigned long _ms);
 	bool locked();
 	int reinit(TYPES _type = FAST);
