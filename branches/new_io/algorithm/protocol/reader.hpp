@@ -79,11 +79,11 @@ struct DummyKey{
 class Reader{
 public:
 	enum ReturnValues{
-		Bad = -1, //!<input closed
-		Ok = 0, //!<everything ok, do a pop
-		No,		//!<Must wait
+		Bad = BAD,	//!<input closed
+		Ok = OK,	//!<everything ok, do a pop
+		No = NOK,	//!<Must wait
 		Yield,		//!<Must yield the connection
-		Continue, //!<reexecute the top function - no pop
+		Continue,	//!<reexecute the top function - no pop
 		Error,		//!<parser error - must enter error recovery
 	};
 	enum ManagementOptions{

@@ -31,6 +31,7 @@ static DummyKey dk;
 DummyKey* DummyKey::pointer(){
 	return &dk;
 }
+
 void DummyKey::initReader(const Reader &_){
 	//does absolutely nothing
 }
@@ -40,6 +41,7 @@ Reader::Reader(Logger *_plog):plog(_plog), bbeg(NULL), bend(NULL), rpos(NULL), w
 	bend = bbeg + 2*1024;
 	dolog = isLogActive();
 }
+
 Reader::~Reader(){
 	delete bbeg;
 }
@@ -52,13 +54,16 @@ Parameter& Reader::push(FncTp _pf){
 void Reader::push(FncTp _pf, const Parameter & _rp){
 	fs.push(FncPairTp(_pf, _rp));
 }
+
 void Reader::replace(FncTp _pf, const Parameter & _rp){
 	fs.top().first = _pf;
 	fs.top().second = _rp;
 }
+
 bool Reader::isRecovering()const{
 	return state == RecoverState;
 }
+
 bool Reader::isError()const{
 	return state != RunState;
 }
@@ -71,6 +76,7 @@ int Reader::peek(int &_c){
 	if(rpos != wpos) { _c = *(rpos); return Ok;}
 	return No;
 }
+
 int Reader::get(int &_c){
 	if(rpos != wpos) {
         _c = *(rpos++);
@@ -79,6 +85,7 @@ int Reader::get(int &_c){
     }
     return No;
 }
+
 void Reader::drop(){
 	if(dolog) plog->readChar(*rpos);
 	++rpos;
@@ -226,7 +233,6 @@ int Reader::run(){
 	return Ok;//Done
 }
 
-
 /*static*/ int Reader::refillDone(Reader &_rr, Parameter &_rp){
 	_rr.wpos = _rr.bbeg + _rr.readSize();
 	_rr.rpos = _rr.bbeg;
@@ -300,10 +306,12 @@ struct DigitFilter{
 	_rr.tmp.clear();
 	return Ok;
 }
+
 /*static*/ int Reader::dropChar(Reader &_rr, Parameter &_rp){
 	_rr.drop();
 	return Ok;
 }
+
 /*static*/ int Reader::saveCurrentChar(Reader &_rr, Parameter &_rp){
 	int c;
 	if(_rr.peek(c)){
@@ -321,6 +329,7 @@ struct DigitFilter{
 void Reader::prepareErrorRecovery(){
 	push(&Reader::returnValue, Parameter(Bad));
 }
+
 int Reader::doManage(int _mo){
 	cassert(false);
 	return Ok;
