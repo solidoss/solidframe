@@ -16,6 +16,7 @@
 #include "system/debug.hpp"
 #include "system/socketaddress.hpp"
 #include "system/thread.hpp"
+#include "system/timespec.hpp"
 //#include "common/utils.h"
 #include "writer.hpp"
 
@@ -28,9 +29,11 @@ public:
 	void update(unsigned _pos, ulong _v);
 	unsigned pushBack();
 	void print();
+	TimeSpec		ft;
 private:
 	vector<ulong>   v;
 	Mutex           m;
+	TimeSpec		ct;
 };
 
 unsigned Info::pushBack(){
@@ -74,7 +77,8 @@ void Info::print(){
 	tot >>= 10;
 	mn >>= 10;
 	mx >>= 10;
-	cout<<"tot = "<<tot<<'k'<<' '<<" avg = "<<tot/v.size()<<"k min = "<<mn<<"k ("<<mncnt<<") max = "<<mx<<"k ("<<mxcnt<<')';
+	clock_gettime(CLOCK_MONOTONIC, &ct);
+	cout<<"speed = "<<tot/(ct.seconds() - ft.seconds() + 1)<<"k/s avg = "<<tot/v.size()<<"k min = "<<mn<<"k ("<<mncnt<<") max = "<<mx<<"k ("<<mxcnt<<')';
 	if(notconnected) cout<<" notconected = "<<notconnected<<'\r'<<flush;
 	else cout<<'\r'<<flush;
 	//m.unlock();
@@ -441,6 +445,7 @@ int main(int argc, char *argv[]){
 		AlphaThread *pt = new AlphaThread(argv[2], argv[3], argv[4],inf.pushBack());
 		pt->start(false, true, 24*1024);
 	}
+	clock_gettime(CLOCK_MONOTONIC, &inf.ft);
 	while(true){
 		inf.print();
 		Thread::sleep(500);
