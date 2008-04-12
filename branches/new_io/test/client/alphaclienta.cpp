@@ -54,7 +54,7 @@ void Info::print(){
 	//m.lock();
 	for(vector<ulong>::const_iterator it(v.begin()); it != v.end(); ++it){
 		//cout<<(*it/1024)<<'k'<<' ';
-		uint32 t = *it;
+		const uint32 t = *it;
 		if(t == 0xffffffff){ ++notconnected; continue;}
 		tot += t;
 		//t /= 1024;
@@ -71,7 +71,9 @@ void Info::print(){
 			++mxcnt;
 		}
 	}
-	tot /= 1024;
+	tot >>= 10;
+	mn >>= 10;
+	mx >>= 10;
 	cout<<"tot = "<<tot<<'k'<<' '<<" avg = "<<tot/v.size()<<"k min = "<<mn<<"k ("<<mncnt<<") max = "<<mx<<"k ("<<mxcnt<<')';
 	if(notconnected) cout<<" notconected = "<<notconnected<<'\r'<<flush;
 	else cout<<'\r'<<flush;
@@ -440,7 +442,7 @@ int main(int argc, char *argv[]){
 	}
 	while(true){
 		inf.print();
-		Thread::sleep(200);
+		Thread::sleep(500);
 	}
 	Thread::waitAll();
 	cout<<"done"<<endl;
