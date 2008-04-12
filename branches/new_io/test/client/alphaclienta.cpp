@@ -145,7 +145,7 @@ void AlphaThread::run(){
 	if(rv) return;
 	ulong ul = pos;
 	while(!(rv = fetch(ul % m, buf))){
-		++ul;inf.update(pos, readc);//Thread::sleep(100);
+		++ul;//Thread::sleep(100);
 	}
 	idbg("return value "<<rv);
 	cout<<endl<<"return value"<<rv<<endl;
@@ -303,9 +303,10 @@ int AlphaThread::fetch(unsigned _idx, char *_pb){
 	
 	while((rc = read(sd, _pb, BufLen - 1)) > 0){
 		readc += rc;
-		idbg("-----------------------------");
+		inf.update(pos, readc);
+/*		idbg("-----------------------------");
 		wdbg(_pb, rc);
-		idbg("=============================");
+		idbg("=============================");*/
 		bool b = true;
 		bpos = _pb;
 		bend = bpos + rc;
