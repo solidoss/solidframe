@@ -301,9 +301,9 @@ int AlphaThread::fetch(unsigned _idx, char *_pb){
 	
 	while((rc = read(sd, _pb, BufLen - 1)) > 0){
 		readc += rc;
-// 		idbg("-----------------------------");
-// 		wdbg(_pb, rc);
-// 		idbg("=============================");
+		idbg("-----------------------------");
+		wdbg(_pb, rc);
+		idbg("=============================");
 		bool b = true;
 		bpos = _pb;
 		bend = bpos + rc;

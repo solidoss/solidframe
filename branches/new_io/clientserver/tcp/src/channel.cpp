@@ -110,9 +110,10 @@ int Channel::doSendPlain(const char* _pb, uint32 _bl, uint32 _flags){
 		if(rv < 0){
 			if(errno != EAGAIN) return BAD;
 			rv = 0;
-			pcd->flags |= OUTTOUT;
 		}
+		pcd->flags |= OUTTOUT;
 	}
+	cassert(!pcd->arePendingSends());
 	pcd->pushSend(_pb + rv, _bl - rv, _flags);
 	return NOK;
 }
