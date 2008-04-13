@@ -23,6 +23,7 @@
 using namespace std;
 //typedef unsigned long long uint64;
 enum {BSIZE = 1024};
+static int sleeptout = 0;
 
 class Info{
 public:
@@ -149,7 +150,8 @@ void AlphaThread::run(){
 	if(rv) return;
 	ulong ul = pos;
 	while(!(rv = fetch(ul % m, buf))){
-		++ul;//Thread::sleep(100);
+		++ul;
+		Thread::sleep(sleeptout);
 	}
 	idbg("return value "<<rv);
 	cout<<endl<<"return value"<<rv<<endl;
@@ -427,8 +429,10 @@ int AlphaThread::fetch(unsigned _idx, char *_pb){
 }
 
 int main(int argc, char *argv[]){
-	if(argc != 5){
-		cout<<"Usage: alphaclient thcnt addr port path"<<endl;
+	if(argc != 6){
+		cout<<"Usage: alphaclient thcnt addr port path tout"<<endl;
+		cout<<"Where:"<<endl;
+		cout<<"tout is the amount of time in msec between commands"<<endl;
 		return 0;
 	}
 	signal(SIGPIPE, SIG_IGN);
@@ -440,6 +444,7 @@ int main(int argc, char *argv[]){
 	initDebug(s.c_str());
 	}
 #endif
+	sleeptout = atoi(argv[5]);
 	int cnt = atoi(argv[1]);
 	for(int i = 0; i < cnt; ++i){
 		AlphaThread *pt = new AlphaThread(argv[2], argv[3], argv[4],inf.pushBack());
