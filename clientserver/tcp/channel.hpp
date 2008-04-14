@@ -46,12 +46,12 @@ struct ChannelData;
 	actual asynchrounous io.
 	
 	<b>Notes:</b><br>
-	- The Channel can only be used within a clientserver::tcp::ConnectionSelector,
-		clientserver::SelectPool
+	- The Channel can only be used within a <code>clientserver::tcp::ConnectionSelector</code>,
+		<code>clientserver::SelectPool</code>
 	- For now there is no secure communication (there is no definition
 	for SecureChannel.
 	- The secure channel may change a litle the initialization interface
-	of the clientserver::tcp::Channel, but the existing communication
+	of the <code>clientserver::tcp::Channel</code>, but the existing communication
 	interface should not change.
 	- The return values for io methods follows the standard of the solidground:
 		# OK for opperation completion
@@ -78,10 +78,6 @@ public:
 	int send(const char* _pb, uint32 _bl, uint32 _flags = 0);
 	//! Receives data into a buffer
 	int recv(char *_pb, uint32 _bl, uint32 _flags = 0);
-	//! Send a stream using a given buffer
-	int send(IStreamIterator &_rsi, uint64 _sl, char *_pb, uint32 _bl, uint32 _flags = 0);
-	//! Receive data into a stream using a given buffer
-	int recv(OStreamIterator &_rsi, uint64 _sl, char *_pb, uint32 _bl, uint32 _flags = 0);
 	//! The size of the buffer received
 	uint32 recvSize()const;
 	//! The amount of data sent
@@ -94,18 +90,17 @@ protected:
 private:
 	Channel(int _sd);
 	enum {
-		INTOUT = EPOLLIN, OUTTOUT = EPOLLOUT,
-		MUST_START = 1 << 31
+		INTOUT = EPOLLIN,
+		OUTTOUT = EPOLLOUT,
+		IO_REQUEST_FLAGS = INTOUT | OUTTOUT,
+		IO_TOUT_FLAGS = INTOUT | OUTTOUT,
+		MUST_START = 1 << 31,
 	};
 	ulong ioRequest()const;
 	int doSendPlain(const char*, uint32, uint32);
 	int doSendSecure(const char*, uint32, uint32);
 	int doRecvPlain(char*, uint32, uint32);
 	int doRecvSecure(char*, uint32, uint32);
-	int doSendPlain(IStreamIterator&, uint64 , char*, uint32, uint32);
-	int doSendSecure(IStreamIterator&, uint64 , char*, uint32, uint32);
-	int doRecvPlain(OStreamIterator&, uint64 , char*, uint32, uint32);
-	int doRecvSecure(OStreamIterator&, uint64 , char*, uint32, uint32);
 	//the private interface is visible to ConnectionSelector
 	friend class ConnectionSelector;
 	friend class Station;
@@ -119,10 +114,10 @@ private:
 	int doSendSecure();
 	int descriptor()const{return sd;}
 private:
-	enum {IS_BUFFER = 1};
 	int 				sd;
 	uint64				rcvcnt;
 	uint64				sndcnt;
+	//NOTE: rcvcnt and sndcnt not in pcd because a connection can switch pools
 	ChannelData			*pcd;
 	SecureChannel		*psch;
 };

@@ -119,6 +119,10 @@ Thread::~Thread(){
 void Thread::dummySpecificDestroy(void*){
 }
 //-------------------------------------------------------------------------
+/*static*/ unsigned Thread::processorCount(){
+	return get_nprocs();
+}
+//-------------------------------------------------------------------------
 int Thread::join(){
 	if(pthread_equal(th, pthread_self())) return NOK;
 	if(detached()) return NOK;

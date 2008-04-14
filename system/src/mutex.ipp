@@ -41,7 +41,7 @@ inline Mutex::~Mutex(){
 	pthread_mutex_destroy(&mut);
 }
 
-inline int Mutex::lock(){
+inline void Mutex::lock(){
 #ifdef UDEBUG
 #ifndef UINLINES
 	int rv = pthread_mutex_lock(&mut);
@@ -49,15 +49,14 @@ inline int Mutex::lock(){
 		idbg("lock error "<<strerror(errno));
 	}
 	cassert(!rv);
-	return rv;
 #else
-	return pthread_mutex_lock(&mut);
+	pthread_mutex_lock(&mut);
 #endif
 #else
-	return pthread_mutex_lock(&mut);
+	pthread_mutex_lock(&mut);
 #endif
 }
-inline int Mutex::unlock(){
+inline void Mutex::unlock(){
 #ifdef UDEBUG
 #ifndef UINLINES
 	int rv = pthread_mutex_unlock(&mut);
@@ -65,12 +64,11 @@ inline int Mutex::unlock(){
 		idbg("lock error "<<strerror(errno));
 	}
 	cassert(!rv);
-	return rv;
 #else
-	return pthread_mutex_unlock(&mut);
+	pthread_mutex_unlock(&mut);
 #endif
 #else
-	return pthread_mutex_unlock(&mut);
+	pthread_mutex_unlock(&mut);
 #endif
 }
 inline bool Mutex::locked(){

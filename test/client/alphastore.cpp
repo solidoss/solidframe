@@ -17,14 +17,26 @@
 #include "system/socketaddress.hpp"
 #include "system/thread.hpp"
 //#include "common/utils.h"
+#include "utility/istream.hpp"
 #include "writer.hpp"
 
 using namespace std;
 
+class FileStream: public IStream{
+public:
+	FileStream(FileDevice &_rfd):fd(_rfd){}
+	int read(char *_pb, uint32 _sz, uint32 _flags = 0){
+		return fd.read(_pb, _sz);
+	}
+	int64 seek(int64, SeekRef){
+	}
+private:
+	FileDevice &fd;
+};
 
 int main(int argc, char *argv[]){
-	if(argc != 7){
-		cout<<"Usage: alphafetch alpha_addr alpha_port ipc_addr ipc_port path local_path"<<endl;
+	if(argc != 5){
+		cout<<"Usage: alphastore alpha_addr alpha_port local_path path"<<endl;
 		return 0;
 	}
 	signal(SIGPIPE, SIG_IGN);
@@ -55,22 +67,21 @@ int main(int argc, char *argv[]){
 		return 0;
 	}
 	FileDevice fd;
-	fd.create(argv[6], FileDevice::WO);
+	fd.open(argv[3], FileDevice::RO);
+	FileStream fs(fd);
 	Writer wr(sd);
-	if(*argv[3] && *argv[4]){
-		wr<<"f1 fetch \""<<argv[5]<<'\"'<<" \""<<argv[3]<<"\" "<<argv[4]<<crlf;
-	}else{
-		wr<<"f1 fetch \""<<argv[5]<<'\"'<<crlf;
-	}
-	wr<<"f2 logout"<<crlf;
+	cout<<"file size "<<fd.size()<<endl;
+	//wr<<"f1 fetch \""<<argv[5]<<'\"'<<" \""<<argv[3]<<"\" "<<argv[4]<<crlf;
+	wr<<"s1 store \""<<argv[4]<<'\"'<<' '<<lit(&fs, fd.size())<<crlf;
+	wr<<"s2 logout"<<crlf;
 	wr.flush();
-	char buf[4*1024];
 	int rv;
 	int rc = 0;
-	while((rv = read(sd, buf, 4*1024)) > 0){
-		fd.write(buf, rv);
+	const unsigned bufsz = 1024;
+	char buf[bufsz];
+	while((rv = read(sd, buf, bufsz)) > 0){
 		rc += rv;
-		cout<<rc<<'\r'<<flush;
+		cout.write(buf, rv);
 	}
 	cout<<endl;
 	Thread::waitAll();

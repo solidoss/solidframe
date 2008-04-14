@@ -24,6 +24,11 @@
 #include <sys/epoll.h>
 
 #include "system/debug.hpp"
+#include "system/timespec.hpp"
+
+#include <new>
+#include "utility/stack.hpp"
+#include "utility/queue.hpp"
 
 #include "core/object.hpp"
 #include "core/common.hpp"
@@ -37,101 +42,218 @@
 
 namespace clientserver{
 namespace udp{
-enum{
-	UNROLLSZ = 4, 
-	UNROLLMSK = 3,
-	EPOLLMASK = EPOLLERR | EPOLLHUP | EPOLLET | EPOLLIN | EPOLLOUT,
-};
 
-TalkerSelector::TalkerSelector():cp(0),sz(0),
-					 selcnt(0),epfd(-1), pevs(NULL),
-					 pchs(NULL),//ph(NULL),
-					 //btimepos(0),
-					 ntimepos(0), ctimepos(0){
-	pipefds[0] = pipefds[1] = -1;
+struct TalkerSelector::Data{
+	enum{
+		UNROLLSZ = 4, 
+		UNROLLMSK = 3,
+		EPOLLMASK = EPOLLERR | EPOLLHUP | EPOLLET | EPOLLIN | EPOLLOUT,
+		EXIT_LOOP = 1,
+		FULL_SCAN = 2,
+		READ_PIPE = 4,
+		MAXTIMEPOS = 0xffffffff,
+		MAXPOLLWAIT = 0x7FFFFFFF,
+	};
+	struct SelTalker{
+		SelTalker():timepos(0),evmsk(0),state(0){}
+		void reset();
+		TalkerPtrTp		tkrptr;//4
+		TimeSpec		timepos;//4
+		ulong			evmsk;//4
+		//state: 1 means the object is in queue
+		//or if 0 in chq check loop means the channel was already checked
+		int				state;//4
+	};
+	typedef Stack<SelTalker*> 	FreeStackTp;
+	typedef Queue<SelTalker*>	ChQueueTp;
+	
+	static int computePollWait(const TimeSpec &_rntimepos, const TimeSpec &_rctimepos);
+	
+	Data();
+	~Data();
+	int  empty()const{ return sz == 1;}
+	void run();
+	int doReadPipe();
+	int doIo(Station &_rch, ulong _evs);
+	int doExecute(
+		SelTalker &_rch,
+		ulong _evs,
+		TimeSpec &_rcrttout,
+		epoll_event &_rev
+	);
+	
+	void initFreeStack();
+	void push(SelTalker *_pc){
+		chq.push(_pc);
+	}
+	
+	uint			cp;
+	uint			sz;
+	int				selcnt;
+	int				epfd;
+	epoll_event 	*pevs;
+	SelTalker		*pchs;
+	ChQueueTp		chq;
+	FreeStackTp		fstk;
+	int				pipefds[2];
+	TimeSpec        ntimepos;//next timepos == next timeout
+	TimeSpec        ctimepos;//current time pos
+};
+//===========================================================================
+
+TalkerSelector::TalkerSelector():d(*(new Data)){
 }
 
 int TalkerSelector::reserve(ulong _cp){
 	cassert(_cp);
-	cassert(!sz);
-	if(_cp < cp) return OK;
-	if(cp){
+	cassert(!d.sz);
+	if(_cp < d.cp) return OK;
+	if(d.cp){
 		cassert(false);
-		delete []pevs;delete []pchs;//delete []ph;
+		delete []d.pevs;delete []d.pchs;//delete []ph;
 	}
-	cp = _cp;
+	d.cp = _cp;
 	
 	//The epoll_event table
 	
-	pevs = new epoll_event[cp];
-	for(uint i = 0; i < cp; ++i){
-		pevs[i].events = 0;
-		pevs[i].data.ptr = NULL;
+	d.pevs = new epoll_event[d.cp];
+	for(uint i = 0; i < d.cp; ++i){
+		d.pevs[i].events = 0;
+		d.pevs[i].data.ptr = NULL;
 	}
 	
 	//the SelTalker table:
 	
-	pchs = new SelTalker[cp];
+	d.pchs = new Data::SelTalker[d.cp];
 	//no need for initialization
-	
-	//the station hash table:
-	/*ph = new SelTalker*[cp];
-	for(int i = 0; i < cp; ++i){
-		ph[i] = NULL;
-	}*/
-	
+		
 	//Init the free station stack:
-	for(int i = cp - 1; i > 0; --i){
-		fstk.push(&pchs[i]);
-	}
+	d.initFreeStack();
 	
 	//init the station queue
 	//chq.reserve(cp);
 	//zero is reserved for pipe
-	if(epfd < 0 && (epfd = epoll_create(cp)) < 0){
+	if(d.epfd < 0 && (d.epfd = epoll_create(d.cp)) < 0){
 		cassert(false);
 		return -1;
 	}
 	//init the pipes:
-	if(pipefds[0] < 0){
-		if(pipe(pipefds)){
+	if(d.pipefds[0] < 0){
+		if(pipe(d.pipefds)){
 			cassert(false);
 			return -1;
 		}
-		fcntl(pipefds[0],F_SETFL, O_NONBLOCK);
+		fcntl(d.pipefds[0], F_SETFL, O_NONBLOCK);
 		//fcntl(pipefds[1],F_SETFL, O_NONBLOCK);
+		
 		epoll_event ev;
-		//ev.data.u64 = 0;
-		ev.data.ptr = &pchs[0];
-		//pchs[0].fd = pipefds[0];
+		ev.data.ptr = &d.pchs[0];
 		ev.events = EPOLLIN | EPOLLPRI;//must be LevelTriggered
-		if(epoll_ctl(epfd, EPOLL_CTL_ADD, pipefds[0], &ev)){
+		if(epoll_ctl(d.epfd, EPOLL_CTL_ADD, d.pipefds[0], &ev)){
 			idbg("error epollctl");
 			cassert(false);
 			return -1;
 		}
 	}
-	idbg("Pipe fds "<<pipefds[0]<<" "<<pipefds[1]);
-	//btimepos = time(NULL);
-	ctimepos.set(0);
-	ntimepos.set(0xffffffff);
-	selcnt = 0;
-	sz = 1;
-	//INF3("reinitserlector selcnt = %d, lastpos = %d, cnt = %d", selcnt, lastpos, _cnt);
+	idbg("Pipe fds "<<d.pipefds[0]<<" "<<d.pipefds[1]);
+	d.ctimepos.set(0);
+	d.ntimepos.set(Data::MAXTIMEPOS);
+	d.selcnt = 0;
+	d.sz = 1;
 	return OK;
 }
 
 TalkerSelector::~TalkerSelector(){
+	delete &d;
+	idbg("done");
+}
+
+uint TalkerSelector::capacity()const{
+	return d.cp - 1;
+}
+uint TalkerSelector::size()const{
+	return d.sz;
+}
+int  TalkerSelector::empty()const{
+	return d.sz == 1;
+}
+int  TalkerSelector::full()const{
+	return d.sz == d.cp;
+}
+void TalkerSelector::prepare(){
+}
+void TalkerSelector::unprepare(){
+}
+
+void TalkerSelector::push(const TalkerPtrTp &_tkrptr, uint _thid){
+	cassert(d.fstk.size());
+	Data::SelTalker *pc(d.fstk.top());
+	d.fstk.pop();
+	pc->state = 0;
+	
+	_tkrptr->setThread(_thid, pc - d.pchs);
+	
+	pc->timepos.set(Data::MAXTIMEPOS);
+	pc->evmsk = 0;
+	
+	epoll_event ev;
+	ev.events = 0;
+	ev.data.ptr = pc;
+	
+	if(_tkrptr->station().descriptor() >= 0 && 
+		epoll_ctl(d.epfd, EPOLL_CTL_ADD, _tkrptr->station().descriptor(), &ev)){
+		idbg("error adding filedesc "<<_tkrptr->station().descriptor());
+		pc->tkrptr.clear();
+		pc->reset(); d.fstk.push(pc);
+		cassert(false);
+	}else{
+		++d.sz;
+	}
+	pc->tkrptr = _tkrptr;
+	idbg("pushing "<<&(*(pc->tkrptr))<<" on pos "<<(pc - d.pchs));
+	pc->state = 1;
+	d.push(pc);
+}
+
+void TalkerSelector::signal(uint _objid){
+	idbg("signal connection: "<<_objid);
+	write(d.pipefds[1], &_objid, sizeof(uint));
+}
+
+void TalkerSelector::run(){
+	d.run();
+}
+void TalkerSelector::Data::SelTalker::reset(){
+	state = 0;
+	tkrptr.release();
+	timepos.set(0);
+	evmsk = 0;
+}
+
+//---------------------------------------------------------------------------
+TalkerSelector::Data::Data():
+	cp(0), sz(0), selcnt(0),
+	epfd(-1), pevs(NULL), pchs(NULL),
+	ntimepos(0), ctimepos(0)
+{
+	pipefds[0] = pipefds[1] = -1;
+}
+
+TalkerSelector::Data::~Data(){
 	close(pipefds[0]);
 	close(pipefds[1]);
 	close(epfd);
 	delete []pevs;
 	delete []pchs;
-	//delete []ph;
-	idbg("done");
 }
 
-int TalkerSelector::doIo(Station &_rch, ulong _evs){
+void TalkerSelector::Data::initFreeStack(){
+	for(int i = cp - 1; i > 0; --i){
+		fstk.push(&(pchs[i]));
+	}
+}
+
+int TalkerSelector::Data::doIo(Station &_rch, ulong _evs){
 	int rv = 0;
 	if(_evs & EPOLLIN){
 		rv = _rch.doRecv();
@@ -141,15 +263,16 @@ int TalkerSelector::doIo(Station &_rch, ulong _evs){
 	}
 	return rv;
 }
-inline int computePollWait(const TimeSpec &_rntimepos, const TimeSpec &_rctimepos){
-	if(_rntimepos.seconds() == 0xffffffff) return 0x7FFFFFFF;
+inline int TalkerSelector::Data::computePollWait(const TimeSpec &_rntimepos, const TimeSpec &_rctimepos){
+	if(_rntimepos.seconds() == TalkerSelector::Data::MAXTIMEPOS)
+		return TalkerSelector::Data::MAXPOLLWAIT;
 	int rv = (_rntimepos.seconds() - _rctimepos.seconds()) * 1000;
 	rv += (_rntimepos.nanoSeconds() - _rctimepos.nanoSeconds())/1000000 ; 
-	if(rv < 0) return 0x7FFFFFFF;
+	if(rv < 0) return TalkerSelector::Data::MAXPOLLWAIT;
 	return rv;
 }
 
-void TalkerSelector::run(){
+void TalkerSelector::Data::run(){
 	TimeSpec	crttout;
 	epoll_event	ev;
 	int 		state;
@@ -179,7 +302,7 @@ void TalkerSelector::run(){
 		}
 		if((state & FULL_SCAN) || ctimepos >= ntimepos){
 			idbg("fullscan");
-			ntimepos.set(0xffffffff);
+			ntimepos.set(MAXTIMEPOS);
 			for(uint i = 1; i < cp; ++i){
 				SelTalker &pc = pchs[i];
 				if(!pc.tkrptr) continue;
@@ -222,7 +345,12 @@ void TalkerSelector::run(){
 	idbg("exiting loop");
 }
 
-int TalkerSelector::doExecute(SelTalker &_rch, ulong _evs, TimeSpec &_rcrttout, epoll_event &_rev){
+int TalkerSelector::Data::doExecute(
+	SelTalker &_rch,
+	ulong _evs,
+	TimeSpec &_rcrttout,
+	epoll_event &_rev
+){
 	int rv = 0;
 	Talker &rcon = *_rch.tkrptr;
 	switch(rcon.execute(_evs, _rcrttout)){
@@ -238,7 +366,7 @@ int TalkerSelector::doExecute(SelTalker &_rch, ulong _evs, TimeSpec &_rcrttout, 
 		case OK://
 			idbg("OK: reentering connection");
 			if(!_rch.state) {chq.push(&_rch); _rch.state = 1;}
-			_rch.timepos.set(0xFFFFFFFF);
+			_rch.timepos.set(MAXTIMEPOS);
 			break;
 		case NOK:
 			idbg("TOUT: connection waits for signals");
@@ -257,7 +385,7 @@ int TalkerSelector::doExecute(SelTalker &_rch, ulong _evs, TimeSpec &_rcrttout, 
 						ntimepos = _rcrttout;
 					}
 				}else{
-					_rch.timepos.set(0xFFFFFFFF);
+					_rch.timepos.set(MAXTIMEPOS);
 				}
 			}
 			break;
@@ -294,10 +422,7 @@ int TalkerSelector::doExecute(SelTalker &_rch, ulong _evs, TimeSpec &_rcrttout, 
 	return rv;
 }
 
-/**
- * Returns true if we have to check for new SelTalkers.
- */
-int TalkerSelector::doReadPipe(){
+int TalkerSelector::Data::doReadPipe(){
 	enum {BUFSZ = 128, BUFLEN = BUFSZ * sizeof(uint)};
 	uint	buf[BUFSZ];
 	int rv = 0;//no
@@ -339,47 +464,6 @@ int TalkerSelector::doReadPipe(){
 	}
 	idbg("readpiperv = "<<rv);
 	return rv;
-}
-
-void TalkerSelector::push(const TalkerPtrTp &_tkrptr, uint _thid){
-	cassert(fstk.size());
-	SelTalker *pc = fstk.top(); fstk.pop();
-	//pc->fd = _tkrptr->descriptor();
-	pc->state = 0;
-	_tkrptr->setThread(_thid, pc - pchs);
-	//pc->param = _param;
-	pc->timepos.set(0xffffffff);
-	pc->evmsk = 0;
-	//pc->phprev = pc->phnext = NULL;
-	epoll_event ev;
-	ev.events = 0;
-	ev.data.ptr = pc;
-	if(_tkrptr->station().descriptor() >= 0 && 
-		epoll_ctl(epfd, EPOLL_CTL_ADD, _tkrptr->station().descriptor(), &ev)){
-		idbg("error adding filedesc "<<_tkrptr->station().descriptor());
-		pc->tkrptr.clear();
-		pc->reset(); fstk.push(pc);
-		cassert(false);
-	}else{
-		++sz;
-	}
-	pc->tkrptr = _tkrptr;
-	idbg("pushing "<<&(*(pc->tkrptr))<<" on pos "<<(pc - pchs));
-	pc->state = 1;
-	//insertHash(pc);
-	chq.push(pc);
-}
-
-void TalkerSelector::signal(uint _objid){
-	idbg("signal connection: "<<_objid);
-	write(pipefds[1], &_objid, sizeof(uint));
-}
-
-void TalkerSelector::SelTalker::reset(){
-	state = 0;
-	tkrptr.release();
-	timepos.set(0);
-	evmsk = 0;
 }
 
 }//namespace tcp

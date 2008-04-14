@@ -69,6 +69,13 @@ inline TimeSpec& TimeSpec::operator += (unsigned _msec){
 	tv_nsec %= 1000000000;
 	return *this;
 }
+inline bool TimeSpec::operator !=(const TimeSpec &_ts)const{
+	return tv_sec != _ts.tv_sec || tv_nsec != _ts.tv_nsec;
+}
+
+inline bool TimeSpec::operator ==(const TimeSpec &_ts)const{
+	return tv_sec == _ts.tv_sec && tv_nsec == _ts.tv_nsec;
+}
 
 #ifndef UINLINES
 #undef inline

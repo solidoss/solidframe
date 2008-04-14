@@ -26,15 +26,16 @@
 namespace clientserver{
 namespace tcp{
 
+#ifndef UINLINES
+#include "channeldata.ipp"
+#endif
+
 ChannelData* ChannelData::pop(){
 	return Specific::uncache<ChannelData>();
 }
 void ChannelData::push(ChannelData *&_rpcd){
 	while(_rpcd->psdnfirst){
 		_rpcd->popSendData();
-	}
-	while(_rpcd->pssnfirst){
-		_rpcd->popSendStream();
 	}
 	Specific::cache(_rpcd);
 	_rpcd = NULL;
@@ -54,33 +55,12 @@ void ChannelData::pushSend(const char *_pb, uint32 _sz, uint32 _flags){
 	}
 }
 
-void ChannelData::pushSend(const IStreamIterator &_rsi, uint64 _sz){
-	IStreamNode *psn = Specific::uncache<IStreamNode>();
-	psn->sit = _rsi;
-	psn->sz = _sz;
-	psn->pnext = NULL;
-	if(pssnlast){
-		pssnlast->pnext = psn;
-		pssnlast = psn;
-	}else{
-		pssnfirst = pssnlast = psn;
-	}
-}
-
 void ChannelData::popSendData(){
 	cassert(psdnfirst);
 	DataNode	*psdn = psdnfirst->pnext;
 	Specific::cache(psdnfirst);
 	psdnfirst = psdn;
 	if(!psdnfirst) psdnlast = NULL;
-}
-
-void ChannelData::popSendStream(){
-	cassert(pssnfirst);
-	IStreamNode	*pssn = pssnfirst->pnext;
-	Specific::cache(pssnfirst);
-	pssnfirst = pssn;
-	if(!pssnfirst) pssnlast = NULL;
 }
 
 }//namespace tcp

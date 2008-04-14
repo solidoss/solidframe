@@ -22,10 +22,13 @@
 #ifndef THREADPP_HPP
 #define THREADPP_HPP
 
+#include <sys/sysinfo.h>
+#include <pthread.h>
+
+#include <vector>
+
 #include "synchronization.hpp"
 #include "src/mutexpool.hpp"
-#include <pthread.h>
-#include <vector>
 
 //! A wrapper for system threads
 /*!
@@ -47,6 +50,8 @@ public:
     static void cleanup();
     //! Make the current thread to sleep fo _msec milliseconds
     static void sleep(ulong _msec);
+    //! Returns the number of processors on the running machine
+    static unsigned processorCount();
     
     static void waitAll();
     //! Releases the processor for another thread

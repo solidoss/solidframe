@@ -26,8 +26,6 @@
 #include "algorithm/protocol/logger.hpp"
 #include "utility/stack.hpp"
 
-struct IStreamIterator;
-
 namespace protocol{
 //! A nonblocking buffer oriented (not line oriented) protocol response builder
 /*!
@@ -76,9 +74,10 @@ public:
 		ResetLogging,
 	};
 	enum ReturnValues{
-		Bad = -1,	//!<input closed
-		Ok = 0,		//!<everything ok, do a pop
-		No,			//!<Must wait
+		Bad = BAD,	//!<input closed
+		Ok = OK,	//!<everything ok, do a pop
+		No = NOK,	//!<Must wait
+		Yield,		//!<Must yield the connection
 		Continue,	//!<reexecute the top function - no pop
 	};
 public:
@@ -197,8 +196,6 @@ protected:
 	void clear();
 	//! The writer will call this method when writing data
 	virtual int write(char *_pb, uint32 _bl) = 0;
-	//! The writer will call this method when writing streams
-	virtual int write(IStreamIterator&_rit, uint64 _sz, char *_pb, uint32 _bl) = 0;
 	//! The writer will call this method on manage callback
 	virtual int doManage(int _mo);
 protected:

@@ -29,32 +29,39 @@ namespace protocol{
 Writer::Writer(Logger *_plog):plog(_plog), bbeg(new char[StartLength]), bend(bbeg + StartLength), rpos(bbeg), wpos(bbeg){
 	dolog = isLogActive();
 }
+
 Writer::~Writer(){
 	delete []bbeg;
 }
+
 void Writer::push(FncTp _pf, const Parameter & _rp){
 	fs.push(FncPairTp(_pf, _rp));
 }
+
 void Writer::replace(FncTp _pf, const Parameter & _rp){
 	fs.top().first = _pf;
 	fs.top().second = _rp;
 }
+
 Parameter &Writer::push(FncTp _pf){
 	fs.push(FncPairTp(_pf, Parameter()));
 	return fs.top().second;
 }
+
 int Writer::run(){
 	while(fs.size()){
 		switch((*fs.top().first)(*this, fs.top().second)){
 			case Bad:return BAD;
 			case No: return NOK;//wait data
 			case Ok: fs.pop();
+			case Yield:return YIELD;
 			case Continue: break;
 			default: cassert(false);
 		}
 	}
 	return OK;
 }
+
 int Writer::flush(){
 	int towrite = wpos - rpos;
 	if(towrite < FlushLength)
@@ -68,19 +75,22 @@ int Writer::flush(){
 	}
 	return rv;
 }
+
 int Writer::flushAll(){
 	int towrite = wpos - rpos;
 	if(towrite == 0)
 		return Ok;
 		
 	int rv = write(rpos, towrite);
-	if(dolog) plog->writeFlush();
+	if(dolog)
+		plog->writeFlush();
 	if(rv == Ok){
 		rpos = wpos = bbeg; 
 		return Ok;
 	}
 	return rv;
 }
+
 void Writer::resize(uint32 _len){
 	uint32 clen = bend - bbeg;			//current length
     uint32 rlen = _len + (wpos - bbeg);	//requested length
@@ -103,24 +113,29 @@ void Writer::putChar(char _c1){
 	plog->writeChar(_c1);
 	putSilentChar(_c1);
 }
+
 void Writer::putChar(char _c1, char _c2){
 	plog->writeChar(_c1, _c2);
 	putSilentChar(_c1, _c2);
 }
+
 void Writer::putChar(char _c1, char _c2, char _c3){
 	plog->writeChar(_c1, _c2, _c3);
 	putSilentChar(_c1, _c2, _c3);
 }
+
 void Writer::putChar(char _c1, char _c2, char _c3, char _c4){
 	plog->writeChar(_c1, _c2, _c3, _c4);
 	putSilentChar(_c1, _c2, _c3, _c4);
 }
+
 void Writer::putSilentChar(char _c1){
 	if(wpos != bend){
 	}else resize(1);
 	
 	*(wpos++) = _c1;
 }
+
 void Writer::putSilentChar(char _c1, char _c2){
 	if(2 < (uint32)(bend - wpos)){
 	}else resize(2);
@@ -128,6 +143,7 @@ void Writer::putSilentChar(char _c1, char _c2){
 	*(wpos++) = _c1;
 	*(wpos++) = _c2;
 }
+
 void Writer::putSilentChar(char _c1, char _c2, char _c3){
 	if(3 < (uint32)(bend - wpos)){
 	}else resize(3);
@@ -136,6 +152,7 @@ void Writer::putSilentChar(char _c1, char _c2, char _c3){
 	*(wpos++) = _c2;
 	*(wpos++) = _c3;
 }
+
 void Writer::putSilentChar(char _c1, char _c2, char _c3, char _c4){
 	if(4 < (uint32)(bend - wpos)){
 	}else resize(4);
@@ -145,16 +162,19 @@ void Writer::putSilentChar(char _c1, char _c2, char _c3, char _c4){
 	*(wpos++) = _c3;
 	*(wpos++) = _c4;
 }
+
 void Writer::putString(const char* _s, uint32 _sz){
 	plog->writeAtom(_s, _sz);
 	putSilentString(_s, _sz);
 }
+
 void Writer::putSilentString(const char* _s, uint32 _sz){
 	if(_sz < (uint32)(bend - wpos)){
 	}else resize(_sz);
 	memcpy(wpos, _s, _sz);
 	wpos += _sz;
 }
+
 void Writer::put(uint32 _v){
 	if(!_v){
 		putChar('0');
@@ -171,6 +191,7 @@ void Writer::put(uint32 _v){
 		plog->writeAtom(tmp + pos, 12 - pos);
 	}
 }
+
 void Writer::putSilent(uint32 _v){
 	if(!_v){
 		putSilentChar('0');
@@ -192,20 +213,24 @@ void Writer::putSilent(uint32 _v){
 	_rw.fs.pop();//?!
 	return rv;
 }
+
 /*static*/ int Writer::flush(Writer &_rw, Parameter &_rp){
 	int rv = _rw.flush();
 	if(rv == No) _rw.fs.top().first = &Writer::doneFlush;
 	return rv;
 }
+
 /*static*/ int Writer::flushAll(Writer &_rw, Parameter &_rp){
 	int rv = _rw.flushAll();
 	if(rv == No) _rw.fs.top().first = &Writer::doneFlush;
 	return rv;
 }
+
 /*static*/ int Writer::doneFlush(Writer &_rw, Parameter &_rp){
 	_rw.rpos = _rw.wpos = _rw.bbeg;
 	return Ok;
 }
+
 /*static*/ int Writer::putRawString(Writer &_rw, Parameter &_rp){
 	if(_rp.b.u < FlushLength){
 		//I'm sure that the data in buf is less then FlushLength
@@ -227,16 +252,20 @@ void Writer::putSilent(uint32 _v){
 }
 
 /*static*/ int Writer::putStream(Writer &_rw, Parameter &_rp){
-	IStreamIterator *pit = reinterpret_cast<IStreamIterator*>(_rp.a.p);
-	uint64			sz = *static_cast<uint64*>(_rp.b.p);
-	if(pit->start() < 0) return Bad;
+	IStreamIterator &isi = *reinterpret_cast<IStreamIterator*>(_rp.a.p);
+	uint64			&sz = *static_cast<uint64*>(_rp.b.p);
+	if(isi.start() < 0) return Bad;
 	if(sz < FlushLength){
 		cassert((_rw.bend - _rw.wpos) >= FlushLength);
-		if(sz != (uint64)(*pit)->read(_rw.wpos, sz)) return Bad;
+		if(sz != (uint64)isi->read(_rw.wpos, sz))
+			return Bad;
 		_rw.wpos += sz;
 		int rv = _rw.flush();
 		idbg("rv = "<<rv);
-		if(rv){ _rw.fs.top().first = &Writer::doneFlush; return rv;}
+		if(rv){
+			_rw.fs.top().first = &Writer::doneFlush; 
+			return rv;
+		}
 		return Ok;
 	}else{//flush the buffer
 		_rw.fs.top().first = &putStreamDone;
@@ -249,15 +278,40 @@ void Writer::putSilent(uint32 _v){
 
 /*static*/ int Writer::putStreamDone(Writer &_rw, Parameter &_rp){
 	doneFlush(_rw, _rp);
-	IStreamIterator *pit = reinterpret_cast<IStreamIterator*>(_rp.a.p);
-	uint64			sz = *static_cast<uint64*>(_rp.b.p);
-	int rv = _rw.write(*pit, sz, _rw.bbeg, _rw.bend - _rw.bbeg);
-	idbg("rv = "<<rv);
-	if(rv == No){//scheduled for writing
-		_rw.replace(&Writer::returnValue, Parameter(Continue));
-		return No;
+	IStreamIterator &isi = *reinterpret_cast<IStreamIterator*>(_rp.a.p);
+	uint64			&sz = *static_cast<uint64*>(_rp.b.p);
+	ulong 			toread;
+	const ulong		blen = _rw.bend - _rw.bbeg;
+	ulong 			tmpsz = blen * 8;
+	int				rv = 0;
+	if(tmpsz > sz) tmpsz = sz;
+	sz -= tmpsz;
+	while(tmpsz){
+		toread = blen;
+		if(toread > tmpsz) toread = tmpsz;
+		rv = isi->read(_rw.bbeg, toread);
+		if(rv != toread)
+			return Bad;
+		tmpsz -= rv;
+		if(rv < FlushLength)
+			break;
+		switch(_rw.write(_rw.bbeg, rv)){
+			case Bad:
+				return Bad;
+			case Ok:
+				rv = 0;
+				break;
+			case No:
+				sz += tmpsz;
+				return No;
+		}
 	}
-	return rv;
+	
+	if(sz != 0){
+		return Yield;
+	}
+	_rw.wpos += rv;
+	return Ok;
 }
 
 /*static*/ int Writer::putAtom(Writer &_rw, Parameter &_rp){
@@ -281,6 +335,7 @@ void Writer::putSilent(uint32 _v){
 	_rw.push(flushAll);
 	return Continue;
 }
+
 /*static*/ int Writer::putChar(Writer &_rw, Parameter &_rp){
 	_rw.putSilentChar(_rp.a.i);
 	if(_rw.dolog) _rw.plog->writeChar(_rp.a.i);
@@ -288,6 +343,7 @@ void Writer::putSilent(uint32 _v){
 	if(rv){ _rw.fs.top().first = &Writer::doneFlush; return rv;}
 	return Ok;
 }
+
 /*static*/ int Writer::manage(Writer &_rw, Parameter &_rp){
 	switch(_rp.a.i){
 		case ClearLogging: _rw.dolog = false; return Ok;
@@ -311,16 +367,19 @@ Writer& Writer::operator << (char _c){
 	else putSilentChar(_c); 
 	return *this;
 }
+
 Writer& Writer::operator << (const char* _s){
 	if(dolog) putString(_s, strlen(_s));
 	else putSilentString(_s, strlen(_s));
 	return *this;
 }
+
 Writer& Writer::operator << (const String &_str){
 	if(dolog) putString(_str.data(), _str.size());
 	else putSilentString(_str.data(), _str.size());
 	return *this;
 }
+
 Writer& Writer::operator << (uint32 _v){
 	if(dolog) putSilent(_v);
 	else put(_v);
