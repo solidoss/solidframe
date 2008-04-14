@@ -185,11 +185,16 @@ int List::execute(Connection &_rc){
 	fs::path pth(strpth.c_str(), fs::native);
 	protocol::Parameter &rp = _rc.writer().push(&Writer::putStatus);
 	rp = protocol::Parameter(StrDef(" OK Done LIST@"));
-	if(!is_directory(pth)){
+	if(!exists( pth ) || !is_directory(pth)){
 		rp = protocol::Parameter(StrDef(" NO LIST: Not a directory@"));
 		return OK;
 	}
+	try{
 	it = fs::directory_iterator(pth);
+	}catch ( const std::exception & ex ){
+		idbg("dir_iterator exception :"<<ex.what());
+		return OK;
+	}
 	_rc.writer().push(&Writer::reinit<List>, protocol::Parameter(this, Step));
 	if(it != end){
 		_rc.writer().push(&Writer::putCrlf);

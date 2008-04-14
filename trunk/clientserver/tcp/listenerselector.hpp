@@ -22,7 +22,7 @@
 #ifndef CS_TCP_LISTENERSELECTOR_HPP
 #define CS_TCP_LISTENERSELECTOR_HPP
 
-#include <vector>
+//#include <vector>
 
 #include "clientserver/core/objptr.hpp"
 
@@ -47,26 +47,20 @@ public:
 	//signal a specific object
 	void signal(uint _pos = 0);
 	void run();
-	uint capacity()const	{return cp - 1;}
-	uint size() const		{return sz;}
-	int  empty()const		{return sz == 1;}
-	int  full()const		{return sz == cp;}
-	void prepare(){}
-	void unprepare(){}
+	uint capacity()const;
+	uint size() const;
+	int  empty()const;
+	int  full()const;
+	void prepare();
+	void unprepare();
 	void push(const ListenerPtrTp &_rlis, uint _thid);
 private:
 	int doReadPipe();
 	int doFullScan();
 	int doSimpleScan(int);
-	enum {EXIT_LOOP = 1, FULL_SCAN = 2, READ_PIPE = 4};
-	struct SelStation{
-		ListenerPtrTp	lisptr;
-	};
-	uint			cp;
-	uint			sz;
-	SelStation		*pss;
-	pollfd			*pfds;
-	int				pipefds[2];
+private:
+	struct Data;
+	Data &d;
 };
 
 }//namespace tcp

@@ -9,7 +9,7 @@
 #define APPSTR(str) str, sizeof(str) - 1
 
 typedef std::string String;
-
+class IStream;
 
 class Writer{
 public://nonstatic methods
@@ -37,6 +37,7 @@ public://nonstatic methods
     void put(const char* _str){
         put(_str,strlen(_str));
     }
+    void put(IStream *_ps, uint64 _len);
     uint32 getWriteCount(bool){
         uint32  rc = count;
         count = 0;
@@ -108,17 +109,16 @@ public://nonstatic methods
         return *this;
     }
     struct littp{
-        uint32       litlen;
-        //Stream      *pstream;
+        uint64       len;
+        IStream      *pstream;
     };
     Writer& operator<<(littp _t){
         put('{');
-        put((uint32) _t.litlen);
+        put((uint32) _t.len);
         put(APPSTR("}\r\n"));
         flush();
-        if(_t.litlen == 0) return *this;
-        //INT64 len=_t.litlen;
-        //Stream::copy(os,*_t.pstream,len);
+        if(_t.len == 0) return *this;
+        put(_t.pstream, _t.len);
         return *this;
     }
 private:
@@ -184,6 +184,11 @@ inline Writer::astring astr(const char* _str, ushort _len){
 inline Writer::astring astr(const String &_str){
     Writer::astring qs; qs.str= _str.data(); qs.len = _str.size();
     return qs;
+}
+
+inline Writer::littp lit(IStream* _ps, const uint64 &_len){
+    Writer::littp l; l.pstream = _ps; l.len = _len;
+    return l;
 }
 
 #endif

@@ -26,8 +26,6 @@
 #include "algorithm/protocol/logger.hpp"
 #include "utility/stack.hpp"
 
-struct OStreamIterator;
-
 namespace protocol{
 
 class Reader;
@@ -81,10 +79,11 @@ struct DummyKey{
 class Reader{
 public:
 	enum ReturnValues{
-		Bad = -1, //!<input closed
-		Ok = 0, //!<everything ok, do a pop
-		No,		//!<Must wait
-		Continue, //!<reexecute the top function - no pop
+		Bad = BAD,	//!<input closed
+		Ok = OK,	//!<everything ok, do a pop
+		No = NOK,	//!<Must wait
+		Yield,		//!<Must yield the connection
+		Continue,	//!<reexecute the top function - no pop
 		Error,		//!<parser error - must enter error recovery
 	};
 	enum ManagementOptions{
@@ -147,6 +146,7 @@ public:
 	static int fetchLiteralDummy(Reader &_rr, Parameter &_rp);
 	//!Callback fetching a literal string
 	static int fetchLiteralString(Reader &_rr, Parameter &_rp);
+	
 	//!Callback fetching a literal string
 	static int fetchLiteralStream(Reader &_rr, Parameter &_rp);
 	//!Callback for refilling the input buffers
@@ -239,6 +239,7 @@ protected:
 		IOErrorState
 	};
 protected:
+	static int fetchLiteralStreamContinue(Reader &_rr, Parameter &_rp);
 	//! Tries to peek the current char
 	int peek(int &_c);
 	//! Get the current char = peek + drop
@@ -289,8 +290,6 @@ protected:
 	}
 	//! The reader will call this method when refilling its buffer
 	virtual int read(char *_pb, uint32 _bl) = 0;
-	//! The reader will call this method when reading a stream literal
-	virtual int read(OStreamIterator &_rosi, uint64 _sz, char *_pb, uint32 _bl) = 0;
 	//! Used for asynchrounous reading - must return the lenght or read data
 	virtual int readSize()const = 0;
 	//! The reader will call this method on manage callback

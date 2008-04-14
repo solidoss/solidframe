@@ -16,21 +16,25 @@
 #include "system/debug.hpp"
 #include "system/socketaddress.hpp"
 #include "system/thread.hpp"
+#include "system/timespec.hpp"
 //#include "common/utils.h"
 #include "writer.hpp"
 
 using namespace std;
 //typedef unsigned long long uint64;
 enum {BSIZE = 1024};
+static int sleeptout = 0;
 
 class Info{
 public:
 	void update(unsigned _pos, ulong _v);
 	unsigned pushBack();
 	void print();
+	TimeSpec		ft;
 private:
 	vector<ulong>   v;
 	Mutex           m;
+	TimeSpec		ct;
 };
 
 unsigned Info::pushBack(){
@@ -54,7 +58,7 @@ void Info::print(){
 	//m.lock();
 	for(vector<ulong>::const_iterator it(v.begin()); it != v.end(); ++it){
 		//cout<<(*it/1024)<<'k'<<' ';
-		uint32 t = *it;
+		const uint32 t = *it;
 		if(t == 0xffffffff){ ++notconnected; continue;}
 		tot += t;
 		//t /= 1024;
@@ -71,8 +75,11 @@ void Info::print(){
 			++mxcnt;
 		}
 	}
-	tot /= 1024;
-	cout<<"tot = "<<tot<<'k'<<' '<<" avg = "<<tot/v.size()<<"k min = "<<mn<<"k ("<<mncnt<<") max = "<<mx<<"k ("<<mxcnt<<')';
+	tot >>= 10;
+	mn >>= 10;
+	mx >>= 10;
+	clock_gettime(CLOCK_MONOTONIC, &ct);
+	cout<<"speed = "<<tot/(ct.seconds() - ft.seconds() + 1)<<"k/s avg = "<<tot/v.size()<<"k min = "<<mn<<"k ("<<mncnt<<") max = "<<mx<<"k ("<<mxcnt<<')';
 	if(notconnected) cout<<" notconected = "<<notconnected<<'\r'<<flush;
 	else cout<<'\r'<<flush;
 	//m.unlock();
@@ -125,10 +132,10 @@ void AlphaThread::run(){
 		return;
 	}
 	timeval tv;
-	memset(&tv, 0, sizeof(timeval));
-	tv.tv_sec = 30;
-	setsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
-	setsockopt(sd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
+// 	memset(&tv, 0, sizeof(timeval));
+// 	tv.tv_sec = 30;
+// 	setsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+// 	setsockopt(sd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
 	readc = 0;
 	wr.reinit(sd);
 	char buf[BufLen];
@@ -143,9 +150,11 @@ void AlphaThread::run(){
 	if(rv) return;
 	ulong ul = pos;
 	while(!(rv = fetch(ul % m, buf))){
-		++ul;inf.update(pos, readc);//Thread::sleep(100);
+		++ul;
+		Thread::sleep(sleeptout);
 	}
 	idbg("return value "<<rv);
+	cout<<endl<<"return value"<<rv<<endl;
 }
 
 //----------------------------------------------------------------------------
@@ -300,6 +309,10 @@ int AlphaThread::fetch(unsigned _idx, char *_pb){
 	
 	while((rc = read(sd, _pb, BufLen - 1)) > 0){
 		readc += rc;
+		inf.update(pos, readc);
+/*		idbg("-----------------------------");
+		wdbg(_pb, rc);
+		idbg("=============================");*/
 		bool b = true;
 		bpos = _pb;
 		bend = bpos + rc;
@@ -409,12 +422,17 @@ int AlphaThread::fetch(unsigned _idx, char *_pb){
 			}
 		}
 	}
-	return -1;
+	cout<<"err "<<strerror(errno)<<endl;
+	cout.write(_pb, BufLen);
+	cout.flush();
+	return -9;
 }
 
 int main(int argc, char *argv[]){
-	if(argc != 5){
-		cout<<"Usage: alphaclient thcnt addr port path"<<endl;
+	if(argc != 6){
+		cout<<"Usage: alphaclient thcnt addr port path tout"<<endl;
+		cout<<"Where:"<<endl;
+		cout<<"tout is the amount of time in msec between commands"<<endl;
 		return 0;
 	}
 	signal(SIGPIPE, SIG_IGN);
@@ -426,14 +444,16 @@ int main(int argc, char *argv[]){
 	initDebug(s.c_str());
 	}
 #endif
+	sleeptout = atoi(argv[5]);
 	int cnt = atoi(argv[1]);
 	for(int i = 0; i < cnt; ++i){
 		AlphaThread *pt = new AlphaThread(argv[2], argv[3], argv[4],inf.pushBack());
 		pt->start(false, true, 24*1024);
 	}
+	clock_gettime(CLOCK_MONOTONIC, &inf.ft);
 	while(true){
 		inf.print();
-		Thread::sleep(200);
+		Thread::sleep(500);
 	}
 	Thread::waitAll();
 	cout<<"done"<<endl;

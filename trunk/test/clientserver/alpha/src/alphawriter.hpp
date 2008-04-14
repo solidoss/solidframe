@@ -60,7 +60,6 @@ private:
 	//! Asynchrounously writes a quoted string
 	static int putQString(protocol::Writer &_rw, protocol::Parameter &_rp);
 	/*virtual*/ int write(char *_pb, uint32 _bl);
-	/*virtual*/ int write(IStreamIterator&_rit, uint64 _sz, char *_pb, uint32 _bl);
 	//virtual int doManage(int _mo);
 private:
 	clientserver::tcp::Channel	&rch;

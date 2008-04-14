@@ -104,23 +104,14 @@ bool isLiteralString(const char *_pb, unsigned _bl){
 }
 
 int Writer::write(char *_pb, uint32 _bl){
-	switch(rch.send(_pb, _bl)){
-		case BAD: return Bad;
-		case OK: return Ok;
-		case NOK: return No;
-	}
-	cassert(false);
-	return Bad;
-}
-
-int Writer::write(IStreamIterator&_rit, uint64 _sz, char *_pb, uint32 _bl){
-	switch(rch.send(_rit, _sz, _pb, _bl)){
-		case BAD:	return Bad;
-		case OK:	return Ok;
-		case NOK:	return No;
-	}
-	cassert(false);
-	return Bad;
+// 	switch(rch.send(_pb, _bl)){
+// 		case BAD: return Bad;
+// 		case OK: return Ok;
+// 		case NOK: return No;
+// 	}
+// 	cassert(false);
+// 	return Bad;
+	return rch.send(_pb, _bl);
 }
 
 }//namespace alpha

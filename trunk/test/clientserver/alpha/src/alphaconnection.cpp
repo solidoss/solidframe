@@ -162,7 +162,10 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 				case NOK:
 					state(ParseTout);
 					return NOK;
-				case BAD:return BAD;
+				case BAD:
+					return BAD;
+				case YIELD:
+					return OK;
 			}
 			if(reader().isError()){
 				delete pcmd; pcmd = NULL;
@@ -191,6 +194,8 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 					}else{
 						state(Parse); rc = OK;
 					}
+				case YIELD:
+					return OK;
 				default:
 					idbg("rc = "<<rc);
 					return rc;

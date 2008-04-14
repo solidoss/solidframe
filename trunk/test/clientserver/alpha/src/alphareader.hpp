@@ -71,7 +71,6 @@ public:
 	}
 private:
 	/*virtual*/ int read(char *_pb, uint32 _bl);
-	/*virtual*/ int read(OStreamIterator &_rosi, uint64 _sz, char *_pb, uint32 _bl);
 	/*virtual*/ int readSize()const;
 	//virtual int doManage(int _mo);
 	/*virtual*/ void prepareErrorRecovery();

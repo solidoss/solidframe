@@ -20,7 +20,7 @@
 */
 
 #include <unistd.h>
-#include <errno.h>
+#include <cerrno>
 #include <fcntl.h>
 
 #include "system/debug.hpp"
@@ -52,15 +52,13 @@ Channel::Channel(int _sd):sd(_sd), rcvcnt(0), sndcnt(0), pcd(NULL), psch(NULL){
 	}
 }
 
-// Channel::Channel():sd(-1), rcvcnt(0), sndcnt(0), pcd(NULL), psch(NULL){
-// }
-
 Channel::~Channel(){
 	if(ok()) close(sd);
-	//delete psch;
 }
 
-uint32 Channel::recvSize()const {return pcd->rcvsz;}
+uint32 Channel::recvSize()const {
+	return pcd->rcvsz;
+}
 
 void Channel::prepare(){
 	pcd = ChannelData::pop();
@@ -72,11 +70,7 @@ void Channel::unprepare(){
 }
 
 ulong Channel::ioRequest()const{
-	//TODO: it can be optimezed
-	ulong rv = 0;
-	if(pcd->rdn.b.pcb) rv = INTOUT;
-	if(pcd->arePendingSends()) return rv | OUTTOUT;
-	return rv;
+	return pcd->flags & IO_TOUT_FLAGS;
 }
 
 int Channel::arePendingSends(){
@@ -99,11 +93,12 @@ int Channel::connect(const AddrInfoIterator &_it){
 	if(rv < 0){
 		if(errno != EINPROGRESS) return BAD;
 		rv = NOK;
-		//snddq.push(Data((const char*)NULL, 0, RAISE_ON_END | IS_BUFFER));
-		pcd->pushSend((const char*) NULL, 0, RAISE_ON_END | IS_BUFFER);
+		pcd->pushSend((const char*) NULL, 0, RAISE_ON_END);
+		pcd->flags |= OUTTOUT;
 	}else rv = OK;
 	return rv;
 }
+
 int Channel::doSendPlain(const char* _pb, uint32 _bl, uint32 _flags){
 	if(!_bl) return OK;
 	int rv = 0;
@@ -116,9 +111,10 @@ int Channel::doSendPlain(const char* _pb, uint32 _bl, uint32 _flags){
 			if(errno != EAGAIN) return BAD;
 			rv = 0;
 		}
+		pcd->flags |= OUTTOUT;
 	}
-	//snddq.push(Data(_pb + rv, _bl - rv, _flags | IS_BUFFER));
-	pcd->pushSend(_pb + rv, _bl - rv, _flags | IS_BUFFER);
+	cassert(!pcd->arePendingSends());
+	pcd->pushSend(_pb + rv, _bl - rv, _flags);
 	return NOK;
 }
 int Channel::doSendSecure(const char* _pb, uint32 _bl, uint32 _flags){
@@ -137,136 +133,45 @@ int Channel::doRecvPlain(char* _pb, uint32 _bl, uint32 _flags){
 		if(rv < 0 && errno != EAGAIN) return BAD;
 	}
 	if(!(_flags & TRY_ONLY)){
-		//rcvd.reinit(_pb, _bl, _flags | IS_BUFFER);
-		pcd->setRecv(_pb, _bl, _flags | IS_BUFFER);
+		pcd->setRecv(_pb, _bl, _flags);
 		pcd->rcvsz = 0;
+		pcd->flags |= INTOUT;
+	}else{
+		pcd->flags &= ~INTOUT;
 	}
+	
 	return NOK;
 }
 int Channel::doRecvSecure(char* _pbuf, uint32 _bl, uint32 _flags){
 	//TODO:
 	return BAD;
 }
+
+//--- Interface used by ConnectionSelector
 /*
-The function must be used with great care, it will report a failed read from stream
-as an unrecoverable error and will return BAD.
-Also one cannot schedule the sending of different sections of the same stream.
-TODO: evaluate the need of an StreamIterator
-*/
-int Channel::doSendPlain(IStreamIterator &_rsi, uint64 _sl, char* _pb, uint32 _bl, uint32 _flags){
-	if(!_sl) return OK;
-	if(!pcd->arePendingSends()){
-		idbg("send nopending stream "<<_sl);
-		_rsi.start();
-		_flags &= ~MUST_START;
-		int rv = 0;
-		uint toread = _bl;
-		if(toread > _sl) toread = _sl;
-		while(_sl){
-			rv = _rsi->read(_pb, toread);
-			if(rv != (int)toread){ 
-				idbg("error reading from stream rv = "<<rv<<" toread = "<<toread<<" streamlen = "<<_sl); 
-				return BAD;
-			}
-			_sl -= rv;
-			rv = write(sd, _pb, toread);
-			if(!rv){idbg("error writing to socket"); return BAD;}
-			if(rv == (int)toread){
-				if(_sl < toread) toread = _sl;
-			}else{
-				if(rv < 0){
-					if(errno != EAGAIN){idbg("some other socket error"); return BAD;}
-					rv = 0;
-				}
-				idbg("pending stream send "<<_sl);
-				//snddq.push(Data(_pb, _bl, _flags & (~IS_BUFFER)));
-				//sndsq.push(IStreamPairTp(_rsi, _sl - rv));
-				pcd->pushSend(_pb, _sl ? _bl : toread, _flags & (~IS_BUFFER));
-				pcd->pushSend(_rsi,_sl);
-				pcd->wcnt = rv;
-				return NOK;
-			}
-		}
-	}else{
-		idbg("send pending stream "<<_sl);
-		//snddq.push(Data(_pb, _bl, _flags & (~IS_BUFFER)));
-		//sndsq.push(IStreamPairTp(_rsi, _sl));
-		pcd->pushSend(_pb, _bl, (_flags & (~IS_BUFFER)) | MUST_START);
-		pcd->pushSend(_rsi, _sl);
-		return NOK;
-	}
+NOTE:
+	* Here's the situation when the signal must be ignored:
+	S: tout on read
+	C: send 2k
+	C: send 2k
+	S: read 2k with 4k buf
+	S: process data
+	S: yield (exit with OK from connection::execute)
+	S: epoll, signals ready for reading
+	S: try do a recv, channel not ready for receiving i.e. no buffer is set
 	
-	return OK;
-}
-int Channel::doSendSecure(IStreamIterator &_rsi, uint64 _sl, char* _pb, uint32 _bl, uint32 _flags){
-	//TODO:
-	return BAD;
-}
-/*
-The function must be also used with great care as it will not check for out stream errors.
-It will return when _sl octets were read from the socket.
+	* There should be no problem ignoring the signal from epoll, because
+	the connection doesnt know there was actually a timeout, and will
+	surely do a new non blocking read which will succeed.
 */
-int Channel::doRecvPlain(OStreamIterator &_rsi, uint64 _sl, char* _pb, uint32 _bl, uint32 _flags){
-	if(!_sl) return OK;
-	cassert(!pcd->rdn.b.pb);
-	int rv;
-	uint toread = _bl;
-	pcd->rcvsz = 0;
-	if(!(_flags & PREPARE_ONLY)){
-		if(toread > _sl) toread = _sl;
-		while(_sl){
-			rv = read(sd, _pb, toread);
-			if(!rv) return BAD;
-			if(rv > 0){
-				_rsi->write(_pb, rv);
-				_sl -= rv;
-				if(toread > _sl) toread = _sl;
-			}else break;
-		}
-		if(errno != EAGAIN) return BAD;
-	}
-	if(!(_flags & TRY_ONLY)){
-		//rcvd.reinit(_pb, _bl, _flags & (~IS_BUFFER));
-		//rcvs.first = _rsi;
-		//rcvs.second = _sl;
-		pcd->setRecv(_pb, _bl, _flags & (~IS_BUFFER));
-		pcd->setRecv(_rsi, _sl);
-	}
-	return NOK;
-}
-int Channel::doRecvSecure(OStreamIterator &_rsi, uint64 _sl, char* _pb, uint32 _bl, uint32 _flags){
-	//TODO:
-	return BAD;
-}
-
-//--- Interface used by ConnectionChannel
-
 int Channel::doRecvPlain(){
-	cassert(pcd->rdn.b.pb);
+	if(!pcd->rdn.b.pb) return 0;//Ignore this signal
+	pcd->flags &= ~INTOUT;
 	int rv;
-	if(pcd->rdn.flags & IS_BUFFER){
-		//we've got a buffer
-		rv = read(sd, pcd->rdn.b.pb, pcd->rdn.bl);
-		if(rv <= 0) return ERRDONE;
-		pcd->rcvsz = rv;
-	}else{
-		pcd->rcvsz = 0;
-		//we've got a stream
-		uint toread = pcd->rdn.bl;
-		if(toread > pcd->rsn.sz) toread = pcd->rsn.sz;
-		while(pcd->rsn.sz){
-			rv = read(sd, pcd->rdn.b.pb, toread);
-			if(!rv) return ERRDONE;
-			if(rv > 0){
-				pcd->rsn.sit->write(pcd->rdn.b.pb, rv);
-				pcd->rsn.sz -= rv;
-				if(toread > pcd->rsn.sz) toread = pcd->rsn.sz;
-			}else{
-				if(errno != EAGAIN) return ERRDONE;
-				return 0;
-			}
-		}
-	}
+	//we've got a buffer
+	rv = read(sd, pcd->rdn.b.pb, pcd->rdn.bl);
+	if(rv <= 0) return ERRDONE;
+	pcd->rcvsz = rv;
 	pcd->rdn.b.pb = NULL; //rcvd.flags = 0;
 	return INDONE;
 }
@@ -275,74 +180,28 @@ int Channel::doRecvSecure(){
 	return BAD;
 }
 int Channel::doSendPlain(){
-	int rv;
+	int rv = 0;
 	int retv = 0;
+	if(!pcd->arePendingSends()) return 0;//Ignore this signal
+	pcd->flags &= ~OUTTOUT;
 	while(pcd->arePendingSends()){
 		//idbg("another pending send");
-		DataNode	&rdn = *pcd->psdnfirst; //snddq.front();
-		if(rdn.flags & IS_BUFFER){
-			rv = write(sd, rdn.b.pcb, rdn.bl);
-			if(rv == (int)rdn.bl){
-				if(rdn.flags & RAISE_ON_END) retv = OUTDONE;
-				pcd->popSendData();
-				continue;
-			}
-			if(!rv) return ERRDONE;
-			if(rv > 0){
-				rdn.b.pcb += rv; rdn.bl -= rv;
-			}else{
-				if(errno != EAGAIN) return ERRDONE;
-			}
-			return retv;
-		}else{
-			//sending a stream
-			cassert(pcd->pssnfirst);
-			rv = write(sd, rdn.b.pcb + pcd->wcnt, rdn.bl - pcd->wcnt);
-			if(!rv) return ERRDONE;
-			if(rv < 0){
-				if(errno != EAGAIN){ idbg("ioerrr");return ERRDONE;}
-				cassert(false);
-			}
-			if(rv < (int)(rdn.bl - pcd->wcnt)){
-				pcd->wcnt += rv;
-				return retv;
-			}
-			uint toread = rdn.bl;
-			IStreamNode	&rs = *pcd->pssnfirst;
-			if(rdn.flags & MUST_START){
-				if(rs.sit.start() < 0) return ERRDONE;
-				rdn.flags &= ~MUST_START;
-			}
-			if(toread > rs.sz) toread = rs.sz;
-			pcd->wcnt = 0;
-			while(rs.sz){
-				rv = rs.sit->read(rdn.b.pb, toread);
-				if(rv != (int)toread){ 
-					idbg("ioerrr rv = "<<rv<<" toread = "<<toread<<" wcnt = "<<pcd->wcnt);
-					idbg("rs.sz = "<<rs.sz);
-					return ERRDONE;
-				}
-				rs.sz -= rv;
-				rv = write(sd, rdn.b.pb, toread);
-				if(rv == (int)toread){//written everything
-					if(toread > rs.sz) toread = rs.sz;
-					continue;
-				}
-				if(!rv){ idbg("ioerrr");return ERRDONE;};
-				if(rv < 0){
-					if(errno != EAGAIN){ idbg("ioerrr");return ERRDONE;}
-					rv = 0;
-				}
-				//rv >= 0
-				pcd->wcnt += rv;
-				rdn.bl = toread;
-				//idbg("read stream "<<retv);
-				return retv;
-			}
-			if(rdn.flags & RAISE_ON_END) retv = OUTDONE;
+		DataNode	&rdn = *pcd->psdnfirst;
+		
+		rv = write(sd, rdn.b.pcb, rdn.bl);
+		if(rv == (int)rdn.bl){
+			if(rdn.flags & RAISE_ON_END) retv |= OUTDONE;
 			pcd->popSendData();
-			pcd->popSendStream();
+			continue;
 		}
+		if(!rv) return ERRDONE;
+		if(rv > 0){
+			rdn.b.pcb += rv; rdn.bl -= rv;
+		}else{
+			if(errno != EAGAIN) return ERRDONE;
+			pcd->flags |= OUTTOUT;
+		}
+		return retv;
 	}
 	return OUTDONE;
 }

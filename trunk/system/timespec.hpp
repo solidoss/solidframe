@@ -39,6 +39,8 @@ struct TimeSpec: public timespec{
 	void nanoSeconds(long _ns){tv_nsec = _ns;}
 	void set(const TimeTp &_s, long _ns = 0);
 	void add(const TimeTp &_s, long _ns = 0);
+	bool operator !=(const TimeSpec &_ts)const;
+	bool operator ==(const TimeSpec &_ts)const;
 	bool operator >=(const TimeSpec &_ts)const;
 	bool operator >(const TimeSpec &_ts)const;
 	bool operator <=(const TimeSpec &_ts)const;
