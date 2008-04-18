@@ -30,27 +30,27 @@ class Condition;
 class Mutex{
 public:
 	struct Locker{
-		Locker(Mutex &m_);
+		Locker(Mutex &_m);
 		~Locker();
 		Mutex &m;
 	};
-	enum TYPES{
+	enum Type{
 		FAST = PTHREAD_MUTEX_FAST_NP, 
 		RECURSIVE = PTHREAD_MUTEX_RECURSIVE_NP,
 		ERRORCHECK = PTHREAD_MUTEX_ERRORCHECK_NP
 	};
 #ifdef UDEBUG	
-	Mutex(TYPES _type = ERRORCHECK);
+	Mutex(Type _type = ERRORCHECK);
 #else
-	Mutex(TYPES _type = ERRORCHECK);
+	Mutex(Type _type = FAST);
 #endif
 	~Mutex();
 	
 	void lock();
 	void unlock();
-	bool timedLock(unsigned long _ms);
+	int timedLock(unsigned long _ms);
 	bool locked();
-	int reinit(TYPES _type = FAST);
+	int reinit(Type _type = FAST);
 private:
 	friend class Condition;
 	pthread_mutex_t mut;

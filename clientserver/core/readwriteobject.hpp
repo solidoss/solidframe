@@ -22,7 +22,8 @@
 #ifndef CS_READWRITEOBJECT_HPP
 #define CS_READWRITEOBJECT_HPP
 
-#include "system/synchronization.hpp"
+#include "system/condition.hpp"
+#include "system/mutex.hpp"
 
 #include "common.hpp"
 

@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "system/debug.hpp"
+#include "system/mutex.hpp"
 
 #include "clientserver/core/objptr.hpp"
 #include "clientserver/core/common.hpp"

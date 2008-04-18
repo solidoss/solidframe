@@ -20,7 +20,6 @@
 */
 
 #include "system/debug.hpp"
-#include "system/synchronization.hpp"
 
 #include "core/object.hpp"
 #include "core/objectselector.hpp"

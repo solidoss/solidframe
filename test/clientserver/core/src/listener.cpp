@@ -20,7 +20,7 @@
 */
 
 #include "system/debug.hpp"
-#include "system/synchronization.hpp"
+#include "system/mutex.hpp"
 
 #include "clientserver/tcp/station.hpp"
 #include "clientserver/tcp/channel.hpp"

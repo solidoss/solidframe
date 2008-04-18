@@ -54,6 +54,7 @@ void Dbg::lock(TimeSpec &t){
 	gmut.lock();
 }
 void Dbg::unlock(){gmut.unlock();}
-int Dbg::crtThrId(){return Thread::currentid();}
+
+long Dbg::crtThrId(){return Thread::currentId();}
 #endif
 

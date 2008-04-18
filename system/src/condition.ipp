@@ -21,31 +21,29 @@
 
 #ifndef UINLINES
 #define inline
+#else
+#include "system/mutex.hpp"
+#include "system/cassert.hpp"
 #endif
 
-inline Semaphore::Semaphore(int _cnt){
-	sem_init(&sem,0,_cnt);
+inline Condition::Condition(){
+	int rv = pthread_cond_init(&cond,NULL);
+	cassert(rv == 0);
 }
-inline Semaphore::~Semaphore(){
-	sem_destroy(&sem);
+inline Condition::~Condition(){
+	int rv = pthread_cond_destroy(&cond);
+	cassert(rv==0);
 }
-inline void Semaphore::wait(){
-	sem_wait(&sem);
+inline int Condition::signal(){
+	return pthread_cond_signal(&cond);
 }
-inline Semaphore::operator int () {	
-	int v;
-	sem_getvalue(&sem,&v);
-	return v;
+inline int Condition::broadcast(){
+	return pthread_cond_broadcast(&cond);
 }
-inline Semaphore &Semaphore::operator++(){
-	sem_post(&sem);
-	return *this;
-}
-inline int Semaphore::tryWait(){
-	return sem_trywait(&sem);
+inline int Condition::wait(Mutex &_mut){
+	return pthread_cond_wait(&cond,&_mut.mut);
 }
 
 #ifndef UINLINES
 #undef inline
 #endif
-

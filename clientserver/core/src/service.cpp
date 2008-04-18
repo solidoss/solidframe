@@ -24,6 +24,7 @@
 #include <algorithm>
 
 #include "system/debug.hpp"
+#include "system/mutex.hpp"
 
 #include "utility/queue.hpp"
 
