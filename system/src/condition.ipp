@@ -1,4 +1,4 @@
-/* Inline implementation file mutex.ipp
+/* Inline implementation file condition.ipp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com

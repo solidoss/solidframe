@@ -24,7 +24,6 @@
 
 #include "system/debug.hpp"
 #include "system/thread.hpp"
-#include "system/synchronization.hpp"
 
 #include "common.hpp"
 #include "queue.hpp"

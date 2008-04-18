@@ -22,9 +22,6 @@
 #include "serialization/binary.hpp"
 #include "utility/ostream.hpp"
 #include "utility/istream.hpp"
-#ifdef UTHREADS
-#include "system/synchronization.hpp"
-#endif
 
 namespace serialization{
 namespace bin{
