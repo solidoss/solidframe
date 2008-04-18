@@ -22,7 +22,7 @@
 #ifndef CS_SERVICE_HPP
 #define CS_SERVICE_HPP
 
-#include "system/synchronization.hpp"
+#include "system/condition.hpp"
 
 #include "utility/sharedcontainer.hpp"
 

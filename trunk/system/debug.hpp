@@ -19,14 +19,14 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef DEBUGPP_HPP
-#define DEBUGPP_HPP
+#ifndef SYSTEM_DEBUG_HPP
+#define SYSTEM_DEBUG_HPP
 
 void initDebug(const char * _fname);
 
 #ifdef	UDEBUG
 
-#include <stdio.h>
+#include <cstdio>
 #include <iostream>
 #include "timespec.hpp"
 
@@ -35,7 +35,7 @@ struct Dbg{
 
 	static void lock(TimeSpec &);
 	static void unlock();
-	static int crtThrId();
+	static long crtThrId();
 };
 
 #define CERR	std::clog
@@ -56,8 +56,18 @@ inline int  Dbg::crtThrId(){return -1;}
 
 #else
 
-#define idbg(x) {TimeSpec t;Dbg::lock(t); CERR<<"I["<<t.seconds()<<"."<<t.nanoSeconds()/1000<<" "<<(__FILE__ + Dbg::fileoff)<<':'<<__LINE__<<'|'<<__FUNCTION__<<']'<<'('<<Dbg::crtThrId()<<')'<<' '<<x<<std::endl; Dbg::unlock();}
-#define edbg(x) {TimeSpec t;Dbg::lock(t); CERR<<"E["<<t.seconds()<<"."<<t.nanoSeconds()/1000<<" "<<(__FILE__ + Dbg::fileoff)<<':'<<__LINE__<<'|'<<__FUNCTION__<<']'<<'('<<Dbg::crtThrId()<<')'<<' '<<x<<std::endl; Dbg::unlock();}
+#define idbg(x) {\
+	TimeSpec t;Dbg::lock(t); \
+	CERR<<"I["<<t.seconds()<<"."<<t.nanoSeconds()/1000<<" "<<(__FILE__ + Dbg::fileoff)<<':'<<__LINE__<<'|'<<__FUNCTION__<<']'<<'('<<Dbg::crtThrId()<<')'<<' '<<x<<std::endl;\
+	Dbg::unlock();\
+	}
+
+#define edbg(x) {\
+	TimeSpec t;Dbg::lock(t);\
+	CERR<<"E["<<t.seconds()<<"."<<t.nanoSeconds()/1000<<" "<<(__FILE__ + Dbg::fileoff)<<':'<<__LINE__<<'|'<<__FUNCTION__<<']'<<'('<<Dbg::crtThrId()<<')'<<' '<<x<<std::endl;\
+	Dbg::unlock();\
+	}
+	
 #define wdbg(x,sz) {TimeSpec t;Dbg::lock(t);CERR.write(x,sz);Dbg::unlock();}
 
 

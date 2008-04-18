@@ -28,6 +28,7 @@
 #include <vector>
 
 #include "synchronization.hpp"
+#include "condition.hpp"
 #include "src/mutexpool.hpp"
 
 //! A wrapper for system threads
@@ -41,51 +42,49 @@
 */
 class Thread{
 public:
-    typedef void RunParamTp;
-    typedef void (*SpecificFncTp)(void *_ptr);
-    
-    static void dummySpecificDestroy(void*);
-    
-    static void init(); 
-    static void cleanup();
-    //! Make the current thread to sleep fo _msec milliseconds
-    static void sleep(ulong _msec);
-    //! Returns the number of processors on the running machine
-    static unsigned processorCount();
-    
-    static void waitAll();
-    //! Releases the processor for another thread
-    static void yield();
-    //! Returns a pointer to the current thread
-    static Thread * current();
-    //! Returns the id of the current thread
-    static int currentid();
-    //! Returns a new id for use with specific objects
-    static unsigned specificId();
-    //! Returns the data for a specific id
-    static void* specific(unsigned _pos);
-    //! Sets the data for a specific id, allong with a pointer to a destructor function
-    static unsigned specific(unsigned _pos, void *_psd, SpecificFncTp _pfnc = &dummySpecificDestroy);
-    //static unsigned specific(void *_psd);
-    //! Returns a reference to a global mutex
-    static Mutex& gmutex();
-    //! Starts a new thread
-    /*!
-    	\param _wait If true, the function will return after the the thread was started.
-    	\param _detached If true create the thread in a detached state
-    	\param _stacksz 
-    */
-    int start(int _wait = false,int _detached = true, ulong _stacksz = 0);
-    //! Join the calling thread
-    int join();
-    //! Check if the thread is detached
-    int detached() const;
-    //! Detach the thread
-    int detach();
-    
-    Mutex& mutex()const;
-    //! Returns the id of the thread
-    ulong id()const { return (ulong)th;}
+	typedef void RunParamTp;
+	typedef void (*SpecificFncTp)(void *_ptr);
+	
+	static void dummySpecificDestroy(void*);
+	
+	static void init(); 
+	static void cleanup();
+	//! Make the current thread to sleep fo _msec milliseconds
+	static void sleep(ulong _msec);
+	//! Returns the number of processors on the running machine
+	static unsigned processorCount();
+	
+	static void waitAll();
+	//! Releases the processor for another thread
+	static void yield();
+	//! Returns a pointer to the current thread
+	static Thread * current();
+	//! Returns the id of the current thread
+	static int currentId();
+	//! Returns a new id for use with specific objects
+	static unsigned specificId();
+	//! Returns the data for a specific id
+	static void* specific(unsigned _pos);
+	//! Sets the data for a specific id, allong with a pointer to a destructor function
+	static unsigned specific(unsigned _pos, void *_psd, SpecificFncTp _pfnc = &dummySpecificDestroy);
+	//static unsigned specific(void *_psd);
+	//! Returns a reference to a global mutex
+	static Mutex& gmutex();
+	//! Starts a new thread
+	/*!
+		\param _wait If true, the function will return after the the thread was started.
+		\param _detached If true create the thread in a detached state
+		\param _stacksz 
+	*/
+	int start(int _wait = false,int _detached = true, ulong _stacksz = 0);
+	//! Join the calling thread
+	int join();
+	//! Check if the thread is detached
+	int detached() const;
+	//! Detach the thread
+	int detach();
+	
+	Mutex& mutex()const;
 protected:
 	Thread();
 	virtual ~Thread();
@@ -96,57 +95,56 @@ protected:
 	//! Implement this method to make the thread usefull.
 	virtual void run() = 0;
 protected:
-    enum {MutexPoolSize = 4};
-    typedef void* (*ThFncTp)(void *);
-    
-    static Condition                        gcon;
-    static Mutex                            gmut;
-    static FastMutexPool<MutexPoolSize>     mutexpool;
-    static pthread_key_t                    crtthread_key;  
-    static pthread_key_t                    **static_keys;
-    static pthread_once_t                  	once_key;
-    
-    static ulong getNextId();
-    static void threadEnter();
-    static void threadExit();
-    //a dummy function
-    static int current(Thread *_ptb);
-    
-    typedef std::pair<void*, SpecificFncTp>	SpecPairTp;	
-    typedef std::vector<SpecPairTp>			SpecVecTp;
-    
-    pthread_t       th;
-    int				dtchd;
-    unsigned        thcrtstatid;
-    SpecVecTp       specvec;
-    Semaphore		*psem;
-    void signalWaiter();
-    int waited();
+	enum {MutexPoolSize = 4};
+	typedef void* (*ThFncTp)(void *);
+	
+	static Condition                        gcon;
+	static Mutex                            gmut;
+	static FastMutexPool<MutexPoolSize>     mutexpool;
+	static pthread_key_t                    crtthread_key;  
+	static pthread_key_t                    **static_keys;
+	static pthread_once_t                  	once_key;
+	
+	static void enter();
+	static void exit();
+	//a dummy function
+	static int current(Thread *_ptb);
+	
+	typedef std::pair<void*, SpecificFncTp>	SpecPairTp;	
+	typedef std::vector<SpecPairTp>			SpecVecTp;
+	
+	pthread_t       th;
+	int				dtchd;
+	unsigned        thcrtstatid;
+	SpecVecTp       specvec;
+	Semaphore		*psem;
+	void signalWaiter();
+	int waited();
 private:
 	Thread(const Thread&){}
 	static void* th_run(void*);
-    static ulong    nextid;
-    static ulong    thcnt;
-    
+	static ulong    thcnt;
 };
 
 inline void Thread::sleep(ulong _msec){
-    usleep(_msec*1000);
+	usleep(_msec*1000);
 }
 
 inline void Thread::yield(){
-    pthread_yield();
+	pthread_yield();
 }
+
 inline Thread * Thread::current(){
-    return reinterpret_cast<Thread*>(pthread_getspecific(crtthread_key));
+	return reinterpret_cast<Thread*>(pthread_getspecific(crtthread_key));
 }
-inline int Thread::currentid(){
+
+inline int Thread::currentId(){
 	return pthread_self();
 }
 
 //non static
 inline Mutex& Thread::mutex()const{
-    return mutexpool.getr(this);
+	return mutexpool.getr(this);
 }
 
 #endif

@@ -26,6 +26,9 @@
 #include <stack>
 
 #include "system/timespec.hpp"
+#include "system/condition.hpp"
+#include "system/mutex.hpp"
+
 #include "utility/queue.hpp"
 
 #include "clientserver/core/objptr.hpp"

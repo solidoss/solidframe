@@ -26,13 +26,19 @@
 #include "system/timespec.hpp"
 #include "system/socketaddress.hpp"
 #include "system/debug.hpp"
+#include "system/mutex.hpp"
 #include "system/specific.hpp"
+
 #include "utility/queue.hpp"
 #include "utility/stack.hpp"
+
 #include "core/server.hpp"
+
 #include "ipc/ipcservice.hpp"
 #include "ipc/connectoruid.hpp"
+
 #include "udp/station.hpp"
+
 #include "ipctalker.hpp"
 #include "processconnector.hpp"
 

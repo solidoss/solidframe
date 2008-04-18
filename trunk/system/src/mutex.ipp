@@ -23,21 +23,23 @@
 #define inline
 #endif
 
-inline Mutex::Locker::Locker(Mutex &m_):m(m_){
+inline Mutex::Locker::Locker(Mutex &_m):m(_m){
 	m.lock();
 }
 inline Mutex::Locker::~Locker(){
 	m.unlock();
 }
-inline Mutex::Mutex(TYPES _type){
+inline Mutex::Mutex(Type _type){
 	pthread_mutexattr_t att;
+	
 	pthread_mutexattr_init(&att);
 	pthread_mutexattr_settype(&att, (int)_type);
 	pthread_mutex_init(&mut,&att);
 }
 inline Mutex::~Mutex(){
-	if(locked())
+	if(locked()){
 		pthread_mutex_unlock(&mut);
+	}
 	pthread_mutex_destroy(&mut);
 }
 

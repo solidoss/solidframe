@@ -40,7 +40,6 @@ enum ThreadInfo{
 pthread_key_t                   Thread::crtthread_key = 0;
 Condition                       Thread::gcon;
 Mutex                           Thread::gmut;
-ulong                           Thread::nextid = 1;
 ulong                           Thread::thcnt = 0;
 FastMutexPool<Thread::MutexPoolSize>    Thread::mutexpool;
 pthread_once_t                  Thread::once_key = PTHREAD_ONCE_INIT;
@@ -60,25 +59,29 @@ int Condition::wait(Mutex &_mut, const TimeSpec &_ts){
 #endif
 //*************************************************************************
 #ifndef UINLINES
+#include "condition.ipp"
+#endif
+//*************************************************************************
+#ifndef UINLINES
 #include "synchronization.ipp"
 #endif
 //-------------------------------------------------------------------------
+
 //TODO: use TimeSpec
-bool Mutex::timedLock(unsigned long _ms){
+int Mutex::timedLock(unsigned long _ms){
 	timespec lts;
 	lts.tv_sec=_ms/1000;
 	lts.tv_nsec=(_ms%1000)*1000000;
-	return pthread_mutex_timedlock(&mut,&lts)==0;  
+	return pthread_mutex_timedlock(&mut,&lts);  
 }
 //-------------------------------------------------------------------------
-int Mutex::reinit(TYPES _type){
+int Mutex::reinit(Type _type){
 	if(locked()) return -1;
 	pthread_mutex_destroy(&mut);
 	pthread_mutexattr_t att;
 	pthread_mutexattr_init(&att);
 	pthread_mutexattr_settype(&att, (int)_type);
-	pthread_mutex_init(&mut,&att);
-	return 0;
+	return pthread_mutex_init(&mut,&att);
 }
 //*************************************************************************
 void Thread::init(){
@@ -91,13 +94,13 @@ void Thread::cleanup(){
 	pthread_key_delete(Thread::crtthread_key);
 }
 //-------------------------------------------------------------------------
-inline void Thread::threadEnter(){
+inline void Thread::enter(){
     gmut.lock();
     ++thcnt; gcon.broadcast();
     gmut.unlock();
 }
 //-------------------------------------------------------------------------
-inline void Thread::threadExit(){
+inline void Thread::exit(){
     gmut.lock();
     --thcnt; gcon.broadcast();
     gmut.unlock();
@@ -228,7 +231,7 @@ void Thread::waitAll(){
 void* Thread::th_run(void *pv){
 	idbg("thrun enter"<<pv);
 	Thread	*pth(reinterpret_cast<Thread*>(pv));
-	Thread::threadEnter();
+	Thread::enter();
 	Thread::current(pth);
 	if(pth->waited()){
 		pth->signalWaiter();
@@ -237,7 +240,7 @@ void* Thread::th_run(void *pv){
 	pth->prepare();
 	pth->run();
 	pth->unprepare();
-	Thread::threadExit();
+	Thread::exit();
 	if(pth->detached()) delete pth;
 	idbg("thrun exit");
 	return NULL;

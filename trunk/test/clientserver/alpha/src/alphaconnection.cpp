@@ -21,6 +21,7 @@
 
 #include "system/debug.hpp"
 #include "system/timespec.hpp"
+#include "system/mutex.hpp"
 
 #include "utility/ostream.hpp"
 #include "utility/istream.hpp"

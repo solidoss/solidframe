@@ -20,7 +20,7 @@
 */
 
 #include "system/cassert.hpp"
-#include "system/synchronization.hpp"
+#include "system/mutex.hpp"
 
 #include "system/debug.hpp"
 

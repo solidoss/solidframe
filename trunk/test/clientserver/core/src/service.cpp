@@ -23,6 +23,7 @@
 
 #include "system/debug.hpp"
 #include "system/timespec.hpp"
+#include "system/mutex.hpp"
 
 #include "core/service.hpp"
 #include "core/server.hpp"
