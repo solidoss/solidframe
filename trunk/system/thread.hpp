@@ -27,7 +27,6 @@
 
 #include <vector>
 
-#include "synchronization.hpp"
 #include "condition.hpp"
 #include "src/mutexpool.hpp"
 
@@ -110,14 +109,15 @@ protected:
 	//a dummy function
 	static int current(Thread *_ptb);
 	
-	typedef std::pair<void*, SpecificFncTp>	SpecPairTp;	
+	typedef std::pair<void*, SpecificFncTp>	SpecPairTp;
+	typedef std::pair<Condition, int>		ConditionPairTp;
 	typedef std::vector<SpecPairTp>			SpecVecTp;
 	
 	pthread_t       th;
 	int				dtchd;
 	unsigned        thcrtstatid;
 	SpecVecTp       specvec;
-	Semaphore		*psem;
+	ConditionPairTp	*pcndpair;
 	void signalWaiter();
 	int waited();
 private:

@@ -12,8 +12,8 @@ typedef Cacheable<std::string, 2> CacheableStringTp;
 void testa(){
 	CacheableVecTp *pcv = new CacheableVecTp;
 	CacheableStringTp *pcs = new CacheableStringTp;
-	cassert(!Specific::tryUncache<CacheableVecTp>());
-	cassert(!Specific::tryUncache<CacheableStringTp>());
+	Specific::tryUncache<CacheableVecTp>();
+	Specific::tryUncache<CacheableStringTp>();
 	idbg("cache vector "<<(void*)pcv);
 	std::cout<<"cache vector "<<(void*)pcv<<std::endl;
 	Specific::cache(pcv);

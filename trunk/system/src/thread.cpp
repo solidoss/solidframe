@@ -106,7 +106,7 @@ inline void Thread::exit(){
     gmut.unlock();
 }
 //-------------------------------------------------------------------------
-Thread::Thread():dtchd(true),psem(NULL){
+Thread::Thread():dtchd(true),pcndpair(NULL){
 	th = 0;
 }
 //-------------------------------------------------------------------------
@@ -200,26 +200,37 @@ int Thread::start(int _wait, int _detached, ulong _stacksz){
 			return BAD;
 		}
 	}
-	Semaphore sem;
-	if(_wait) psem = &sem;
+	ConditionPairTp cndpair;
+	cndpair.second = 1;
+	if(_wait){
+		gmutex().lock();
+		pcndpair = &cndpair;
+	}
 	if(pthread_create(&th,&attr,&Thread::th_run,this)){
 		pthread_attr_destroy(&attr);
 		idbg("could not create thread");
 		return BAD;
 	}
-	if(_wait) sem.wait();
+	//NOTE: DO not access any thread member from now - the thread may be detached
+	if(_wait){
+		while(cndpair.second){
+			cndpair.first.wait(gmutex());
+		}
+		gmutex().unlock();
+	}
 	pthread_attr_destroy(&attr);
 	idbg("");
 	return OK;
 }
 //-------------------------------------------------------------------------
 void Thread::signalWaiter(){
-	++(*psem);
-	psem = NULL;
+	pcndpair->second = 0;
+	pcndpair->first.signal();
+	pcndpair = NULL;
 }
 //-------------------------------------------------------------------------
 int Thread::waited(){
-	return psem != NULL;
+	return pcndpair != NULL;
 }
 //-------------------------------------------------------------------------
 void Thread::waitAll(){

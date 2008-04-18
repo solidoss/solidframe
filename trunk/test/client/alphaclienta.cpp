@@ -448,7 +448,7 @@ int main(int argc, char *argv[]){
 	int cnt = atoi(argv[1]);
 	for(int i = 0; i < cnt; ++i){
 		AlphaThread *pt = new AlphaThread(argv[2], argv[3], argv[4],inf.pushBack());
-		pt->start(false, true, 24*1024);
+		pt->start(true, true, 24*1024);
 	}
 	clock_gettime(CLOCK_MONOTONIC, &inf.ft);
 	while(true){
