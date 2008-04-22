@@ -21,6 +21,7 @@
 
 #ifndef UINLINES
 #define inline
+#include "system/synchronization.hpp"
 #endif
 
 inline Semaphore::Semaphore(int _cnt){

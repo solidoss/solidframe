@@ -21,6 +21,7 @@
 
 #ifndef UINLINES
 #define inline
+#include "system/cassert.hpp"
 #endif
 
 inline Mutex::Locker::Locker(Mutex &_m):m(_m){

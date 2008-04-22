@@ -25,6 +25,7 @@
 #include <stack>
 #include <vector>
 #include "common.hpp"
+#include "system/cassert.hpp"
 
 #ifndef OBJ_CACHE_CAP
 #define OBJ_CACHE_CAP 4096*2

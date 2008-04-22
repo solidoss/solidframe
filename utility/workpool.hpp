@@ -104,7 +104,7 @@ public:
 		return OK;
 	}
 	//! Starts the workpool, creating _minwkrcnt
-	virtual int start(ushort _minwkrcnt){
+	virtual int start(ushort _minwkrcnt, bool _wait = false){
 		Mutex::Locker lock(mtx);
 		if(state > Stopped) return BAD;
 		_minwkrcnt = (_minwkrcnt)?_minwkrcnt:1;
@@ -113,9 +113,11 @@ public:
 		idbg("before create workers");
 		createWorkers(_minwkrcnt);
 		idbg("after create");
-		while(wkrcnt != _minwkrcnt){
-			idbg("minwkrcnt = "<<_minwkrcnt<<" wkrcnt = "<<wkrcnt);
-			thrcnd.wait(mtx);
+		if(_wait){
+			while(wkrcnt != _minwkrcnt){
+				idbg("minwkrcnt = "<<_minwkrcnt<<" wkrcnt = "<<wkrcnt);
+				thrcnd.wait(mtx);
+			}
 		}
 		idbg("done start");
 		return OK;
