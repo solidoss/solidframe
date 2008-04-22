@@ -143,10 +143,11 @@ private:
 	IStreamIterator		it;
 	Connection			&rc;
 	CommandUidTp		mastercmduid;
-	int 				st;
+	int16 				st;
 	protocol::Parameter	*pp;
 	uint64				litsz64;
 	uint64				chunksz;
+	uint16				isfirst;
 	clientserver::ipc::ConnectorUid conuid;
 };
 //! Store a file locally

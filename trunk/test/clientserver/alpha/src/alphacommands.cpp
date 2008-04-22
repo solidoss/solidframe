@@ -391,6 +391,7 @@ int FetchMasterCommand::execute(cs::CommandExecuter& _rce, const CommandUidTp &_
 			pcmd->cmduid = _cmduid;
 			pcmd->requid = requid;
 			pcmd->fuid = tmpfuid;
+			idbg("insz = "<<insz<<" inpos = "<<inpos);
 			insz -= pcmd->sz;
 			inpos += pcmd->sz;
 			cs::FileManager::RequestUid reqid(_rce.id(), rs.uid(_rce), _cmduid.first, _cmduid.second); 
@@ -415,6 +416,7 @@ int FetchMasterCommand::execute(cs::CommandExecuter& _rce, const CommandUidTp &_
 			}
 			pcmd->cmduid = _cmduid;
 			pcmd->fuid = tmpfuid;
+			idbg("insz = "<<insz<<" inpos = "<<inpos);
 			insz -= pcmd->sz;
 			cs::FileManager::RequestUid reqid(_rce.id(), rs.uid(_rce), _cmduid.first, _cmduid.second); 
 			rs.fileManager().stream(pcmd->ins, fuid, requid, cs::FileManager::NoWait);
@@ -672,6 +674,7 @@ int Fetch::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 			it.reinit(sp.ptr(), 0);
 			_rw<<"* DATA {"<<(uint32)litsz64<<"}\r\n";
 			chunksz = FetchChunkSize;
+			isfirst = 1;
 			if(chunksz >= litsz64){
 				_rw.replace(&Writer::putCrlf);
 				chunksz = litsz64;
@@ -693,8 +696,10 @@ int Fetch::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 			return Writer::Continue;
 		}
 		case SendNextRemote:{
-			idbg("send next remote "<<(((litsz64/(FetchChunkSize)) & 1) ? FetchChunkSize : 0));
-			it.reinit(sp.ptr(), ((litsz64/(FetchChunkSize)) & 1) ? FetchChunkSize : 0);
+			bool isfrst = isfirst & 1;
+			isfirst = (isfirst + 1) & 1;
+			idbg("send next remote "<<(isfrst ? FetchChunkSize : 0));
+			it.reinit(sp.ptr(), isfrst ? FetchChunkSize : 0);
 			chunksz = FetchChunkSize;
 			if(chunksz >= litsz64){
 				_rw.replace(&Writer::putCrlf);
@@ -707,13 +712,14 @@ int Fetch::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 				pcmd->requid = rc.newRequestId();
 				pcmd->cmduid = mastercmduid;
 				pcmd->fuid = fuid;
-				pcmd->insz = ((litsz64/(FetchChunkSize)) & 1) ? 0 : -1;
+				pcmd->insz = isfrst ? 0 : -1;
 				cs::CmdPtr<cs::Command> cmdptr(pcmd);
 				if(Server::the().ipc().sendCommand(conuid, cmdptr) == BAD){
 					return Writer::Bad;
 				}
 				litsz64 -= chunksz;
 			}
+			//cassert(false);
 			_rw.push(&Writer::putStream, protocol::Parameter(&it, &chunksz));
 			return Writer::Continue;
 		}
