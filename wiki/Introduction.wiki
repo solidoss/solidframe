@@ -206,9 +206,9 @@ This one tests the alpha store command for storing a file on the server. Usage:
 Where: 
 
  * alpha_addr: address of the alpha server
- alpha_port: port of the alpha server
- local_path: the local source file
- path: the path to destination file on the server
+ * alpha_port: port of the alpha server
+ * local_path: the local source file
+ * path: the path to destination file on the server
 
 == alphaclienta ==
  
@@ -239,6 +239,8 @@ While fetching alphaclienta displays certain statistical information like:
  `speed = 20526k/s avg = 30790k min = 29788k (1) max = 31241k (1)`
  
 So we have 20MB/s total transfer rate (localhost), a current average transfer of 30 MB and one connection with a minimum transfer of 29MB and one with a maximum transfer of 31MB. 
+
+
 
 = The design overview =
 
