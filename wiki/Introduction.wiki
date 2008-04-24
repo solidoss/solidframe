@@ -5,6 +5,7 @@
 Here's what you'll learn on this page:
   * General and structural informations about the framework.
   * How to build and test the proof of concept server.
+  * How to build and test the clients for the proof of concept server
   * The design overview.
   * Some words about the ipc library.
   * Some words about socket communication design.
@@ -163,6 +164,79 @@ to test the speed of fetching.
 2) To close the test application type "quit" in the mini CLI
 
 3) The remote fetching will use a local temporary file (at most 2MB) as buffer for fetching - no matter the size of the fetched file. The temp files are located in /tmp/test/. The best way to test the remote fetching is using two computers - I did it an over a wireless network I got +1MB/s transfer rate. It is not much but it is something.
+
+= How to build and test the clients for the proof of concept server =
+
+Some alpha commands are too difficult to be thoroughly tested by hand using telnet. So there are some client applications writen to test some of those commands. They are located in: 
+ 
+`solidground/test/client`
+
+ Lets build em in release mode. If you haven't done so yet do: 
+
+`solidground$ ./build.sh release`
+
+ Then do: 
+`solidground $ cd build/release/test/client`
+
+`client $ make`
+
+ Now you have built three clients: *alphaclienta*, *alphafetch*, *alphastore*.
+
+== alphafetch ==
+
+ As its name says this client tests the alpha fetch command.Usage:
+
+`./alphafetch alpha_addr alpha_port ipc_addr ipc_port path local_path`
+
+Where: 
+
+ * alpha_addr: address of the alpha server
+ * alpha_port: port of the alpha server
+ * ipc_addr: the base ipc address of the remote server (used for remote fetching) - use "" for local fetch
+ * ipc_port: the base ipc port of the remote server (used for remote fetching) - use "" for local fetch
+ * path: the path to requested file
+ * local_path: the local file to write to
+
+== alphastore ==
+
+ This one tests the alpha store command for storing a file on the server. Usage: 
+
+`./alphastore alpha_addr alpha_port local_path path`
+
+Where: 
+
+ * alpha_addr: address of the alpha server
+ alpha_port: port of the alpha server
+ local_path: the local source file
+ path: the path to destination file on the server
+
+== alphaclienta ==
+ 
+ This is a fetch stress test for alpha server. Usage: 
+
+`./alphaclient thcnt addr port path tout`
+
+ Where: 
+ thcnt: thread and client connections count
+ addr: the address of the alpha server
+ port: the port of the alpha server
+ path: the path to the parent folder - see below
+ tout: time out between commands in msec
+ 
+
+Basically it oppens thcnt connections to alpha server, and on every connection it first issues a LIST command to get the list of files located within given parent folder, then it cyclically issues FETCH commands for every file. 
+
+ While fetching alphaclienta displays certain statistical information like: 
+ 
+ * total transfer speed in KB/s,
+ * the average amount of data transfered on connections in KB,
+ * the minimum amount of data in KB transfered on a connection and the count of connection with that minimum,
+ * the maximum amount of data in KB transfered on a connection and the count of connection with that maximum.
+ 
+*Example*: 
+`speed = 20526k/s avg = 30790k min = 29788k (1) max = 31241k (1)`
+ 
+So we have 20MB/s total transfer rate (localhost), a current average transfer of 30 MB and one connection with a minimum transfer of 29MB and one with a maximum transfer of 31MB. 
 
 = The design overview =
 
