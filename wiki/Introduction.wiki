@@ -238,9 +238,7 @@ While fetching alphaclienta displays certain statistical information like:
  
  `speed = 20526k/s avg = 30790k min = 29788k (1) max = 31241k (1)`
  
-So we have 20MB/s total transfer rate (localhost), a current average transfer of 30 MB and one connection with a minimum transfer of 29MB and one with a maximum transfer of 31MB. 
-
-
+So we have 20MB/s total transfer rate (localhost), a current average transfer of 30 MB and one connection with a minimum transfer of 29MB and one with a maximum transfer of 31MB.
 
 = The design overview =
 
