@@ -9,7 +9,7 @@ Here's what you'll learn on this page:
   * The design overview.
   * Some words about the ipc library.
   * Some words about socket communication design.
-  * Some words about the file manage.
+  * Some words about the file manager.
 
 = General and structural informations about the framework =
 
@@ -52,13 +52,13 @@ This folder contains the test applications for libraries. The most important tes
 
 == How is the framework thought to be used? ==
 
-Well, I've designed the structure and the build system of the solidground framework to be used in a multiple repository manner. That means you'll have the solidground repository and your application repository. On your local copy of repositories, your application will reside withing "solidground/application" directory which must contain a "CMakeLists.txt" file which in turn will integrate your application(s) into the solidground's build system. The application folder will be quite similar to the "test" folder, except that it will not reside within the solidground repository. This design MAY impose some restrictions to the build system for your own application(s) but has the big advantage of being easy to use (and expecially easy to start using), as the cmake files will be quite similar to those from "solidground/test" directory.
+Well, I've designed the structure and the build system of the _solidground_ framework to be used in a multiple repository manner. This means you'll have the _solidground_ repository and your application repository. On your local copy of repositories, your application will reside withing "solidground/application" directory which must contain a "CMakeLists.txt" file which in turn will integrate your application(s) into the _solidground_'s build system. The application folder will be quite similar to the "test" folder, except that it will not reside within the _solidground_ repository. This design MAY impose some restrictions to the build system for your own application(s) but has the big advantage of being easy to use (and expecially easy to start using), as the cmake files will be quite similar to those from "solidground/test" directory.
 
 = How to build and test the proof of concept server =
 
-Before anything you must ensure you have all the needed packages installed on you Linux box. You'll need: gcc-c++, boost, boost-devel, cmake, ccache (on a fedora box: "yum install gcc-c++ boost boost-devel cmake ccache" will suffice). Eventually you'll need "subversion" to fetch a copy of solidground repository (fedora: "yum install subversion").
+Before anything you must ensure you have all the needed packages installed on you Linux box. You'll need: gcc-c++, boost, boost-devel, cmake, ccache (on a fedora box: "yum install gcc-c++ boost boost-devel cmake ccache" will suffice). Eventually you'll need "subversion" to fetch a copy of _solidground_ repository (fedora: "yum install subversion").
 
-The solidground framework, has a commodity build script which can be used to create certain builds for certain base build systems (make or kdevelop3 - run ./build.sh with no parameters to se the options).
+The _solidground_ framework, has a commodity build script which can be used to create certain builds for certain base build systems (make or kdevelop3 - run ./build.sh with no parameters to se the options).
 
 So lets build a (debug-)nolog version.
 
@@ -190,12 +190,12 @@ As its name says this client tests the alpha fetch command.Usage:
 
 Where: 
 
- * alpha_addr: address of the alpha server
- * alpha_port: port of the alpha server
- * ipc_addr: the base ipc address of the remote server (used for remote fetching) - use "" for local fetch
- * ipc_port: the base ipc port of the remote server (used for remote fetching) - use "" for local fetch
- * path: the path to requested file
- * local_path: the local file to write to
+ * *alpha_addr*: address of the alpha server
+ * *alpha_port*: port of the alpha server
+ * *ipc_addr*: the base ipc address of the remote server (used for remote fetching) - use "" for local fetch
+ * *ipc_port*: the base ipc port of the remote server (used for remote fetching) - use "" for local fetch
+ * *path*: the path to requested file
+ * *local_path*: the local file to write to
 
 == alphastore ==
 
@@ -205,10 +205,10 @@ This one tests the alpha store command for storing a file on the server. Usage:
 
 Where: 
 
- * alpha_addr: address of the alpha server
- * alpha_port: port of the alpha server
- * local_path: the local source file
- * path: the path to destination file on the server
+ * *alpha_addr*: address of the alpha server
+ * *alpha_port*: port of the alpha server
+ * *local_path*: the local source file
+ * *path*: the path to destination file on the server
 
 == alphaclienta ==
  
@@ -218,11 +218,11 @@ This is a fetch stress test for alpha server. Usage:
 
 Where: 
  
- * thcnt: thread and client connections count
- * addr: the address of the alpha server
- * port: the port of the alpha server
- * path: the path to the parent folder - see below
- * tout: time out between commands in msec
+ * *thcnt*: thread and client connections count
+ * *addr*: the address of the alpha server
+ * *port*: the port of the alpha server
+ * *path*: the path to the parent folder - see below
+ * *tout*: time out between commands in msec
  
 
 Basically it oppens thcnt connections to alpha server, and on every connection it first issues a LIST command to get the list of files located within given parent folder, then it cyclically issues FETCH commands for every file. 
