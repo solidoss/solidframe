@@ -171,22 +171,22 @@ Some alpha commands are too difficult to be thoroughly tested by hand using teln
  
 `solidground/test/client`
 
- Lets build em in release mode. If you haven't done so yet do: 
+Lets build em in release mode. If you haven't done so yet do: 
 
-`solidground$ ./build.sh release`
+ `solidground$ ./build.sh release`
 
- Then do: 
-`solidground $ cd build/release/test/client`
+Then do: 
+ `solidground $ cd build/release/test/client`
 
-`client $ make`
+ `client $ make`
 
- Now you have built three clients: *alphaclienta*, *alphafetch*, *alphastore*.
+Now you have built three clients: *alphaclienta*, *alphafetch*, *alphastore*.
 
 == alphafetch ==
 
- As its name says this client tests the alpha fetch command.Usage:
+As its name says this client tests the alpha fetch command.Usage:
 
-`./alphafetch alpha_addr alpha_port ipc_addr ipc_port path local_path`
+ `./alphafetch alpha_addr alpha_port ipc_addr ipc_port path local_path`
 
 Where: 
 
@@ -199,9 +199,9 @@ Where:
 
 == alphastore ==
 
- This one tests the alpha store command for storing a file on the server. Usage: 
+This one tests the alpha store command for storing a file on the server. Usage: 
 
-`./alphastore alpha_addr alpha_port local_path path`
+ `./alphastore alpha_addr alpha_port local_path path`
 
 Where: 
 
@@ -212,21 +212,22 @@ Where:
 
 == alphaclienta ==
  
- This is a fetch stress test for alpha server. Usage: 
+This is a fetch stress test for alpha server. Usage: 
 
-`./alphaclient thcnt addr port path tout`
+ `./alphaclient thcnt addr port path tout`
 
- Where: 
- thcnt: thread and client connections count
- addr: the address of the alpha server
- port: the port of the alpha server
- path: the path to the parent folder - see below
- tout: time out between commands in msec
+Where: 
+ 
+ * thcnt: thread and client connections count
+ * addr: the address of the alpha server
+ * port: the port of the alpha server
+ * path: the path to the parent folder - see below
+ * tout: time out between commands in msec
  
 
 Basically it oppens thcnt connections to alpha server, and on every connection it first issues a LIST command to get the list of files located within given parent folder, then it cyclically issues FETCH commands for every file. 
 
- While fetching alphaclienta displays certain statistical information like: 
+While fetching alphaclienta displays certain statistical information like: 
  
  * total transfer speed in KB/s,
  * the average amount of data transfered on connections in KB,
@@ -234,7 +235,8 @@ Basically it oppens thcnt connections to alpha server, and on every connection i
  * the maximum amount of data in KB transfered on a connection and the count of connection with that maximum.
  
 *Example*: 
-`speed = 20526k/s avg = 30790k min = 29788k (1) max = 31241k (1)`
+ 
+ `speed = 20526k/s avg = 30790k min = 29788k (1) max = 31241k (1)`
  
 So we have 20MB/s total transfer rate (localhost), a current average transfer of 30 MB and one connection with a minimum transfer of 29MB and one with a maximum transfer of 31MB. 
 
