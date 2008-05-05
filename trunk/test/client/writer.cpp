@@ -22,7 +22,7 @@ void Writer::reinit(int _sd){
 int Writer::flush(){
 	uint32 len = bpos-bbeg;
 	if(len){
-		wdbg(bbeg, len);
+		writedbg(bbeg, len);
 		wrerr = write(sd,bbeg,len);
 		count += wrerr;
 		bpos=bbeg;

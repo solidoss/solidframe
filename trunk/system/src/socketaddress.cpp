@@ -131,6 +131,9 @@ void SocketAddress::addr(const sockaddr* _sa, size_t _sz){
 		sz = _sz;
 	}else sz = 0;
 }
+void SocketAddress::clear(){
+	memset(buf, 0, MaxSockAddrSz);
+}
 
 bool SocketAddress::operator<(const SocketAddress &_raddr)const{
 	//return (*(uint32*)addr()) < (*(uint32*)_raddr.addr());

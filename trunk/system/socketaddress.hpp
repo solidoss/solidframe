@@ -171,8 +171,9 @@ struct Inet6SockAddrPair{
 
 //! Holds a socket address
 struct SocketAddress{
+	//TODO: change to sockaddr_in6 or similar
 	enum {MaxSockAddrSz = sizeof(sockaddr_in)};
-	SocketAddress():sz(0){}
+	SocketAddress():sz(0){clear();}
 	SocketAddress(const AddrInfoIterator &);
 	SocketAddress(const SockAddrPair &);
 	SocketAddress(const Inet4SockAddrPair &);
@@ -189,6 +190,7 @@ struct SocketAddress{
 	bool operator<(const SocketAddress &_raddr)const;
 	int port()const;
 	void port(int _port);
+	void clear();
 private:
 	sockaddr_in* addrin(){return reinterpret_cast<sockaddr_in*>(buf);}
 	const sockaddr_in* addrin()const{return reinterpret_cast<const sockaddr_in*>(buf);}

@@ -311,7 +311,7 @@ int AlphaThread::fetch(unsigned _idx, char *_pb){
 		readc += rc;
 		inf.update(pos, readc);
 /*		idbg("-----------------------------");
-		wdbg(_pb, rc);
+		writedbg(_pb, rc);
 		idbg("=============================");*/
 		bool b = true;
 		bpos = _pb;

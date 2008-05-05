@@ -40,35 +40,53 @@ struct Dbg{
 
 #define CERR	std::clog
 
-#define pdbg(x) {Dbg::lock();CERR<<x<<std::endl;Dbg::unlock();}
-//#define wdbg(x,sz) {Dbg::lock();CERR.write(x,sz);Dbg::unlock();}
-
 #ifndef UTHREADS
 
 inline void Dbg::lock(){}
 inline void Dbg::unlock(){}
 inline int  Dbg::crtThrId(){return -1;}
+//print
+#define pdbg(x) {Dbg::lock();CERR<<x<<std::endl;Dbg::unlock();}
 
+//info
 #define idbg(x) {Dbg::lock(); CERR<<"I["<<(__FILE__ + Dbg::fileoff)<<':'<<__LINE__<<'|'<<__FUNCTION__<<']'<<' '<<x<<std::endl; Dbg::unlock();}
 
-
+//error
 #define edbg(x) {Dbg::lock(); CERR<<"E["<<(__FILE__ + Dbg::fileoff)<<':'<<__LINE__<<'|'<<__FUNCTION__<<']'<<' '<<x<<std::endl; Dbg::unlock();}
+
+//warn
+#define wdbg(x) {Dbg::lock(); CERR<<"W["<<(__FILE__ + Dbg::fileoff)<<':'<<__LINE__<<'|'<<__FUNCTION__<<']'<<' '<<x<<std::endl; Dbg::unlock();}
+
+#define writedbg(x,sz) {Dbg::lock();CERR.write(x,sz);Dbg::unlock();}
 
 #else
 
+//print
+#define pdbg(x) {TimeSpec t;Dbg::lock(t);CERR<<x<<std::endl;Dbg::unlock();}
+
+//info
 #define idbg(x) {\
 	TimeSpec t;Dbg::lock(t); \
 	CERR<<"I["<<t.seconds()<<"."<<t.nanoSeconds()/1000<<" "<<(__FILE__ + Dbg::fileoff)<<':'<<__LINE__<<'|'<<__FUNCTION__<<']'<<'('<<Dbg::crtThrId()<<')'<<' '<<x<<std::endl;\
 	Dbg::unlock();\
 	}
 
+//error
 #define edbg(x) {\
 	TimeSpec t;Dbg::lock(t);\
 	CERR<<"E["<<t.seconds()<<"."<<t.nanoSeconds()/1000<<" "<<(__FILE__ + Dbg::fileoff)<<':'<<__LINE__<<'|'<<__FUNCTION__<<']'<<'('<<Dbg::crtThrId()<<')'<<' '<<x<<std::endl;\
 	Dbg::unlock();\
 	}
-	
-#define wdbg(x,sz) {TimeSpec t;Dbg::lock(t);CERR.write(x,sz);Dbg::unlock();}
+
+//warn
+#define wdbg(x) {\
+	TimeSpec t;Dbg::lock(t);\
+	CERR<<"E["<<t.seconds()<<"."<<t.nanoSeconds()/1000<<" "<<(__FILE__ + Dbg::fileoff)<<':'<<__LINE__<<'|'<<__FUNCTION__<<']'<<'('<<Dbg::crtThrId()<<')'<<' '<<x<<std::endl;\
+	Dbg::unlock();\
+	}
+
+//write
+#define writedbg(x,sz) {TimeSpec t;Dbg::lock(t);CERR.write(x,sz);Dbg::unlock();}
 
 
 #endif
@@ -78,7 +96,8 @@ inline int  Dbg::crtThrId(){return -1;}
 #define pdbg(x) {}
 #define idbg(x) {}
 #define edbg(x)	{}
-#define wdbg(x,sz) {}
+#define wdbg(x)	{}
+#define writedbg(x,sz) {}
 #endif
 
 #endif

@@ -1,4 +1,22 @@
 #!/bin/bash
+
+function make_cmake_list(){
+	rm CMakeLists.txt
+	if [ $1 = "*" ]; then
+		echo "No application directory found!"
+	else
+		for name in $*
+			do
+			if [ $name = "CMakeLists.txt" ]; then
+				echo "Skip CMakeLists.txt"
+			else
+				echo "Adding dir: " $name
+				echo -ne "add_subdirectory("$name")\n" >> CMakeLists.txt
+			fi
+			done
+	fi
+}
+
 if [ "$1" = "" ] ; then
 	echo "Usage:"
 	echo -ne "\n./build.sh [kdevelop] build_type\n\n"
@@ -20,6 +38,9 @@ if [ "$1" = "kdevelop" ] ; then
 		exit
 	else
 		mkdir application
+		cd application
+		make_cmake_list *
+		cd ../
 		mkdir build
 		mkdir "build/$1"
 		cd "build/$1"
@@ -30,14 +51,17 @@ else
 		rm -rf documentation/html/
 		rm -rf documentation/latex/
 		doxygen
-		tar -cjf documentation/sg_doc_full.tar.bz2 documentation/html/ documentation/index.html
+		tar -cjf documentation/full.tar.bz2 documentation/html/ documentation/index.html
 	else 
 		if [ "$1" = "documentation_fast" ] ; then
 			rm -rf documentation/html/
 			doxygen Doxyfile.fast
-			tar -cjf documentation/sg_doc_fast.tar.bz2 documentation/html/ documentation/index.html
+			tar -cjf documentation/fast.tar.bz2 documentation/html/ documentation/index.html
 		else
 			mkdir application
+			cd application
+			make_cmake_list *
+			cd ../
 			mkdir build
 			mkdir "build/$1"
 			cd "build/$1"
