@@ -34,7 +34,7 @@ Here is a list with what the framework is offering for now:
 	<li> a system library which wraps up threads, synchronization objects, thread specific, file access, socket address etc. </li>
 	<li> asynchronous signaling engine </li>
 	<li> asynchronous TCP and UDP communication engine </li>
-	<li> asynchronous multiplexed IPC (inter process communication) engine (for now only over UDP) </li>
+	<li> asynchronous multiplexed IPC (Inter Process Communication)/RPC (Remote Procedure Call) engine (for now only over UDP) </li>
 	<li> asynchronous file manager for non-conflicting file access (multiple reads are allowed, only a single write at a time and no read while there are pending writes)</li>
 	<li> a nice serialization engine (for now only binary, non portable - used by IPC) </li>
 	<li> a nice asynchronous ready, text protocol engine (parser and response builder) for protocols like IMAP, POP, SMTP etc.</li>
@@ -86,7 +86,7 @@ Here is a list with what the framework is offering for now:
   </thead>
 </table>
 
-Before anything you must ensure you have all the needed packages installed on you Linux box. You'll need: gcc-c++, boost, boost-devel, cmake, ccache (on a fedora box: "yum install gcc-c++ boost boost-devel cmake ccache" will suffice). Eventually you'll need "subversion" to fetch a copy of solidground repository (fedora:"yum install subversion").
+Before anything you must ensure you have all the needed packages installed on you Linux box. You'll need: gcc-c++, boost, boost-devel, cmake (on a fedora box: "yum install gcc-c++ boost boost-devel cmake" will suffice). Eventually you'll need "subversion" to fetch a copy of solidground repository (fedora:"yum install subversion").
 <br>
 The solidground framework, has a commodity build script which can be used to create certain builds for certain base build systems (make or kdevelop3 - run <pre>./build.sh</pre> with no parameters to se the options).
 <br>
@@ -99,13 +99,13 @@ solidground $ cd build/nolog/test/clientserver/main
 main $ make
 </pre>
 
-The above commands will star building the proof of concept clientserver test application. When it's done the application is create within the main directory, and you can start using it:
+The above commands will start building the proof of concept clientserver test application. When it's done the application is created within the main directory, and you can start using it:
 
 <pre style="font-family : monospace;">main $ ./test</pre>
 
 The application should start printing some information and offering a small CLI on which you can type help to see the commands.
 
-The test application expects a starting port value which will be used for opening listening tcp and udp sockets (default is 1000). There are few services offered by test among which are echo and the most important, alpha.
+The test application expects a starting port value which will be used for opening listening TCP and UDP sockets (default is 1000). There are few services offered by test among which are echo and the most important, alpha.
 
 In the following lines, to show the capabilities of the framework we'll use the alpha protocol which somehow resembles the IMAP protocol in syntax. The alpha service will listen on (x + 114) port, where x is the value given as parameter to test application. So, next you'll need to start a telnet on localhost 1114 (telnet 0 1114) and you should see the alpha banner.
 
@@ -153,7 +153,7 @@ Now lets send something nicer, a file from the first alpha session:
 
 <p>And, you guessed!, back to the second alpha connection to see a new marvel.</p>
 
-Notable is that the last two commands can be used with the test instances on different machines, in which case 'localhost' can be replaced with the name/address of the peer (this way the test can be started without parameter in which case in the above alpha commands you'll need to replace 2222 with 1222). Also don't forget to add new firewall rules for used ports (on my machine I'm allowing for 1114(tcp) and 1222(udp)).
+Notable is that the last two commands can be used with the test instances on different machines, in which case 'localhost' can be replaced with the name/address of the peer (this way the test can be started without parameter in which case in the above alpha commands you'll need to replace 2222 with 1222). Also don't forget to add new firewall rules for used ports (on my machine I'm allowing for 1114(TCP) and 1222(UDP)).
 
 <p>In the end lets go back to the idle connection and type:</p>
 

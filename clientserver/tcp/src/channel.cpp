@@ -53,7 +53,10 @@ Channel::Channel(int _sd):sd(_sd), rcvcnt(0), sndcnt(0), pcd(NULL), psch(NULL){
 }
 
 Channel::~Channel(){
-	if(ok()) close(sd);
+	if(ok()){
+		shutdown(sd, SHUT_RDWR);
+		close(sd);
+	}
 }
 
 uint32 Channel::recvSize()const {
@@ -76,6 +79,30 @@ ulong Channel::ioRequest()const{
 int Channel::arePendingSends(){
 	return pcd->arePendingSends();
 }
+
+int Channel::localAddress(SocketAddress &_rsa){
+	_rsa.clear();
+	_rsa.size() = SocketAddress::MaxSockAddrSz;
+	int rv = getsockname(sd, _rsa.addr(), &_rsa.size());
+	if(rv){
+		idbg("error getting local socket address: "<<strerror(errno));
+		return BAD;
+	}
+	return OK;
+}
+
+int Channel::remoteAddress(SocketAddress &_rsa){
+	_rsa.clear();
+	_rsa.size() = SocketAddress::MaxSockAddrSz;
+	int rv = getpeername(sd, _rsa.addr(), &_rsa.size());
+	if(rv){
+		idbg("error getting local socket address: "<<strerror(errno));
+		return BAD;
+	}
+	return OK;
+}
+
+
 //TODO: try to only do connect here
 // and create the socket, bind it to a certain interface in 'create'
 int Channel::connect(const AddrInfoIterator &_it){
@@ -84,7 +111,15 @@ int Channel::connect(const AddrInfoIterator &_it){
 	
 	sd = socket(_it.family(), _it.type(), _it.protocol());
 	if(!ok()) return BAD;
-	if(fcntl(sd, F_SETFL, O_NONBLOCK) < 0){
+	int flg = fcntl(sd, F_GETFL);
+	if(flg == -1){
+		idbg("Error fcntl getfl: "<<strerror(errno));
+		close(sd);
+		sd = -1;
+		return BAD;
+	}
+	if(fcntl(sd, F_SETFL, flg | O_NONBLOCK) < 0){
+		idbg("Error fcntl setfl: "<<strerror(errno));
 		close(sd);
 		sd = -1;
 		return BAD;
