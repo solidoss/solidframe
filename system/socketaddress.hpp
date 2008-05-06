@@ -164,15 +164,27 @@ struct Inet6SockAddrPair{
 	int port()const;
 	void port(uint16 _port);
 	bool operator<(const Inet6SockAddrPair &_addr)const;
-	AddrInfo::Family family()const{return (AddrInfo::Family)addr->sin_family;}
-	sockaddr_in	*addr;
-	socklen_t	size;
+	AddrInfo::Family family()const{return (AddrInfo::Family)addr->sin6_family;}
+	sockaddr_in6	*addr;
+	socklen_t		size;
 };
 
 //! Holds a socket address
+/*!
+	The address will be hold within a buffer of size,
+	sizeof(sockaddr_in6).
+*/
 struct SocketAddress{
 	//TODO: change to sockaddr_in6 or similar
-	enum {MaxSockAddrSz = sizeof(sockaddr_in)};
+	enum {MaxSockAddrSz = sizeof(sockaddr_in6)};
+	enum {MaxSockHostSz = NI_MAXHOST};
+	enum {MaxSockServSz = NI_MAXSERV};
+	//! Some request flags
+	enum {
+		NumericHost = NI_NUMERICHOST,	//!< Generate only numeric host
+		NameRequest = NI_NAMEREQD,		//!< Force name lookup - fail if not found
+		NumericService = NI_NUMERICSERV	//!< Generate only the port number
+	};
 	SocketAddress():sz(0){clear();}
 	SocketAddress(const AddrInfoIterator &);
 	SocketAddress(const SockAddrPair &);
@@ -186,8 +198,44 @@ struct SocketAddress{
 	sockaddr* addr(){return reinterpret_cast<sockaddr*>(buf);}
 	const sockaddr* addr()const{return reinterpret_cast<const sockaddr*>(buf);}
 	operator sockaddr*(){return addr();}
+	//! Get the name associated to the address
+	/*!
+		Generates the string name associated to a specific address
+		filling the given buffers. It is a wrapper for POSIX,
+		getnameinfo.
+		Usage:<br>
+		<CODE>
+		char			host[SocketAddress::MaxSockHostSz];<br>
+		char			port[SocketAddress::MaxSockServSz];<br>
+		SocketAddress	addr;<br>
+		channel().localAddress(addr);<br>
+		addr.name(<br>
+			host,<br>
+			SocketAddress::MaxSockHostSz,<br>
+			port,<br>
+			SocketAddress::MaxSockServSz,<br>
+			SocketAddress::NumericService<br>
+		);<br>
+		</CODE>
+		\retval BAD for error, OK for success.
+		\param _host An output buffer to keep the host name.
+		\param _hostcp The capacity of the output host buffer.
+		\param _serv An output buffer to keep the service name/port.
+		\param _servcp The capacity of the output service buffer.
+		\param _flags Some request flags
+	*/
+	int name(
+		char* _host,
+		unsigned _hostcp,
+		char* _serv,
+		unsigned _servcp,
+		uint32	_flags = 0
+	)const;
+	
 	void addr(const sockaddr* _sa, size_t _sz);
+	
 	bool operator<(const SocketAddress &_raddr)const;
+	
 	int port()const;
 	void port(int _port);
 	void clear();

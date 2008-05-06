@@ -148,7 +148,28 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			uint32			myport(rs.ipc().basePort());
 			uint32			objid(this->id());
 			uint32			objuid(rs.uid(*this));
-			writer()<<"* Hello from alpha server ("<<myport<<" "<<objid<<" "<<objuid<<")\r\n";
+			char			host[SocketAddress::MaxSockHostSz];
+			char			port[SocketAddress::MaxSockServSz];
+			SocketAddress	addr;
+			writer()<<"* Hello from alpha server ("<<myport<<" "<<objid<<" "<<objuid<<") [";
+			channel().localAddress(addr);
+			addr.name(
+				host,
+				SocketAddress::MaxSockHostSz,
+				port,
+				SocketAddress::MaxSockServSz,
+				SocketAddress::NumericService
+			);
+			writer()<<host<<':'<<port<<" -> ";
+			channel().remoteAddress(addr);
+			addr.name(
+				host,
+				SocketAddress::MaxSockHostSz,
+				port,
+				SocketAddress::MaxSockServSz,
+				SocketAddress::NumericService | SocketAddress::NumericHost
+			);
+			writer()<<host<<':'<<port<<"]\r\n";
 			writer().push(&Writer::flushAll);
 			state(Execute);
 			}break;

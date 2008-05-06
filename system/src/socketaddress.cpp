@@ -23,7 +23,9 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <cerrno>
 #include "system/cassert.hpp"
+#include "system/debug.hpp"
 
 AddrInfo::~AddrInfo(){
 	if(!empty()){
@@ -108,20 +110,25 @@ bool Inet4SockAddrPair::operator<(const Inet4SockAddrPair &_addr)const{
 	return addr->sin_addr.s_addr < _addr.addr->sin_addr.s_addr;
 }
 
-Inet6SockAddrPair::Inet6SockAddrPair(const SockAddrPair &_rsap):addr((sockaddr_in*)_rsap.addr), size(_rsap.size){
+Inet6SockAddrPair::Inet6SockAddrPair(const SockAddrPair &_rsap):addr((sockaddr_in6*)_rsap.addr), size(_rsap.size){
 	cassert(_rsap.family() == AddrInfo::Inet6);
 }
-Inet6SockAddrPair::Inet6SockAddrPair(const SocketAddress &_rsa):addr((sockaddr_in*)_rsa.addr()),size(_rsa.size()){
+Inet6SockAddrPair::Inet6SockAddrPair(const SocketAddress &_rsa):addr((sockaddr_in6*)_rsa.addr()),size(_rsa.size()){
 	cassert(_rsa.family() == AddrInfo::Inet6);
 }
 bool Inet6SockAddrPair::operator<(const Inet6SockAddrPair &_addr)const{
-	return addr->sin_addr.s_addr < _addr.addr->sin_addr.s_addr;
+	//return addr->sin6_addr.s_addr < _addr.addr->sin6_addr.s_addr;
+	return memcmp(
+		(const void*)addr->sin6_addr.s6_addr,
+		(const void*)_addr.addr->sin6_addr.s6_addr,
+		sizeof(in6_addr)
+	) < 0;
 }
 int Inet6SockAddrPair::port()const{
-	return htons(addr->sin_port);
+	return htons(addr->sin6_port);
 }
 void Inet6SockAddrPair::port(uint16 _port){
-	addr->sin_port = ntohs(_port);
+	addr->sin6_port = ntohs(_port);
 }
 
 
@@ -170,6 +177,25 @@ void SocketAddress::port(int _port){
 	}else{//sockadd_in16
 		cassert(false);
 	}
+}
+
+int SocketAddress::name(
+	char* _host,
+	unsigned _hostcp,
+	char* _serv,
+	unsigned _servcp,
+	unsigned _flags
+)const{
+	if(!_hostcp || !_servcp) return BAD;
+	if(!size()) return BAD;
+	_host[0] = 0;
+	_serv[0] = 0;
+	int rv = getnameinfo(addr(), size(), _host, _hostcp, _serv, _servcp, _flags);
+	if(rv){
+		idbg("error getnameinfo: "<<strerror(errno));
+		return BAD;
+	}
+	return OK;
 }
 
 #ifndef UINLINES
