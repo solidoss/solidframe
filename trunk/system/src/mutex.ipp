@@ -36,6 +36,7 @@ inline Mutex::Mutex(Type _type){
 	pthread_mutexattr_init(&att);
 	pthread_mutexattr_settype(&att, (int)_type);
 	pthread_mutex_init(&mut,&att);
+	pthread_mutexattr_destroy(&att);
 }
 inline Mutex::~Mutex(){
 	if(locked()){
