@@ -31,7 +31,7 @@
 #include "system/mutex.hpp"
 #include "system/timespec.hpp"
 
-#include "utility/sharedcontainer.hpp"
+#include "utility/mutualobjectcontainer.hpp"
 #include "utility/iostream.hpp"
 #include "utility/queue.hpp"
 #include "utility/stack.hpp"
@@ -145,9 +145,9 @@ private:
 //------------------------------------------------------------------------------
 struct FileManager::Data{
 	enum {Running = 1, Stopping, Stopped = -1};
-	typedef SharedContainer<Mutex>		MutexContainer;
-	typedef Queue<uint>					SignalQueueTp;
-	typedef Stack<uint>					FreeStackTp;
+	typedef MutualObjectContainer<Mutex>	MutexContainer;
+	typedef Queue<uint>						SignalQueueTp;
+	typedef Stack<uint>						FreeStackTp;
 	struct FileExtData{
 		FileExtData(File *_pfile = NULL):pfile(_pfile){}
 		File	*pfile;

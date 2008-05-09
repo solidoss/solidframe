@@ -24,7 +24,7 @@
 #include <vector>
 #include <stack>
 
-#include "utility/sharedcontainer.hpp"
+#include "utility/mutualobjectcontainer.hpp"
 
 #include "service.hpp"
 
@@ -39,7 +39,7 @@ protected:
 	virtual int insert(Object &_robj, ulong _srvid);
 private:
 	typedef std::stack<Condition*, std::vector<Condition*> > CondStackTp; 
-	typedef SharedContainer<CondStackTp> ConditionPoolTp;
+	typedef MutualObjectContainer<CondStackTp> ConditionPoolTp;
 	ConditionPoolTp	cndpool;
 };
 }//namespace clientserver

@@ -24,7 +24,7 @@
 
 #include "system/condition.hpp"
 
-#include "utility/sharedcontainer.hpp"
+#include "utility/mutualobjectcontainer.hpp"
 
 #include "object.hpp"
 
@@ -108,7 +108,7 @@ public:
 	virtual int execute();
 	
 protected:
-	typedef SharedContainer<Mutex>	MutexContainer;
+	typedef MutualObjectContainer<Mutex>	MutexContainer;
 	//! Insert an object.
 	int insert(Object &_robj, ulong _srvid);
 	//! Remove an object
@@ -128,7 +128,7 @@ protected:
 	void doSignalAll(Server &_rsrv, CmdPtr<Command> &_cmd);
 	//! Insert an object - the service's mutex must be locked from outside
 	int doInsert(Object &_robj, ulong _srvid);
-	//! Constructor - forwards the parameters to the SharedContainer of mutexes
+	//! Constructor - forwards the parameters to the MutualObjectContainer of mutexes
 	Service(int _objpermutbts = 6, int _mutrowsbts = 8, int _mutcolsbts = 8);
 	//Service(const Service &):state(Stopped),objv(*((ObjectVector*)NULL)),
 	//							indq(*((IndexQueue*)NULL)){}
