@@ -1,4 +1,4 @@
-/* Declarations file sharedcontainer.hpp
+/* Declarations file mutualobjectcontainer.hpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef SHAREDCONTAINER_HPP
-#define SHAREDCONTAINER_HPP
+#ifndef MUTUALOBJECTCONTAINER_HPP
+#define MUTUALOBJECTCONTAINER_HPP
 
 #include "common.hpp"
 #include "system/convertors.hpp"
@@ -33,21 +33,21 @@
 	this object needs an associated mutex. More over such a mutex can be
 	shared by multiple objects, and you dont want all mutexez created at once.
 	
-	SharedContainer does:<br>
-	- associate M ids to a mutex(Obj);
-	- allocates the mutexes by rows of M mutexes
-	- allocates no more than N rows
+	MutualObjectContainer does:<br>
+	- associate M indexes (a range of indexes) to a mutex/an object;
+	- allocates the mutexes by rows of N mutexes/objects
+	- allocates no more than R rows
 	
 	So what happens when the matrix is full but the ids keep increasing?<br>
 	- Then it will start allover with the mutex(0,0)
 	
 	In the end Ive decided that instead of a mutext I should have any type I want,
-	so the template\<Obj\> SharedContainer appeared.
+	so the template\<Obj\> MutualObjectContainer appeared.
 */
 template <class Obj>
-class SharedContainer{
+class MutualObjectContainer{
 public:
-	typedef Obj ObjectTp;
+	typedef Obj MutualObjectTp;
 	//!Constructor
 	/*!
 		\param _objpermutbts The number of objects associated to a mutex in bitcount 
@@ -55,21 +55,23 @@ public:
 		\param _mutrowsbts The number of mutex rows in bitcount (real count 1<<bitcount)
 		\param _mutcolssbts The number of mutexes in a row in bitcount (real count 1<<bitcount)
 	*/
-	SharedContainer(unsigned _objpermutbts = 6, 
-					unsigned _mutrowsbts = 8, 
-					unsigned _mutcolsbts = 8
-				   ):
-					objpermutbts(_objpermutbts),
-					objpermutmsk(bitsToMsk(_objpermutbts)),
-					mutrowsbts(_mutrowsbts),
-					mutrowsmsk(bitsToMsk(_mutrowsbts)),
-					mutrowscnt(bitsToCnt(_mutrowsbts)),
-					mutcolsmsk(bitsToMsk(_mutcolsbts)),
-					mutcolscnt(bitsToCnt(_mutcolsbts)),
-					objmat(new ObjectTp*[mutrowscnt]){
+	MutualObjectContainer(
+		unsigned _objpermutbts = 6, 
+		unsigned _mutrowsbts = 8, 
+		unsigned _mutcolsbts = 8
+	 ):
+		objpermutbts(_objpermutbts),
+		objpermutmsk(bitsToMsk(_objpermutbts)),
+		mutrowsbts(_mutrowsbts),
+		mutrowsmsk(bitsToMsk(_mutrowsbts)),
+		mutrowscnt(bitsToCnt(_mutrowsbts)),
+		mutcolsmsk(bitsToMsk(_mutcolsbts)),
+		mutcolscnt(bitsToCnt(_mutcolsbts)),
+		objmat(new MutualObjectTp*[mutrowscnt])
+	{
 		for(uint i = 0; i < mutrowscnt; ++i) objmat[i] = NULL;
 	}
-	~SharedContainer(){
+	~MutualObjectContainer(){
 		for(uint i(0); i < mutrowscnt; ++i){
 			delete []objmat[i];
 		}
@@ -79,22 +81,22 @@ public:
 	/*!
 		Use this after calling safeObject once for a certain position.
 	*/
-	inline ObjectTp& object(unsigned i){
+	inline MutualObjectTp& object(unsigned i){
 		return doGetObject(i >> objpermutbts);
 	}
 	//! Slower but safe get the mutex for a position
 	/*!
 		It will reallocate new mutexes if needed
 	*/
-	ObjectTp& safeObject(unsigned i){
+	MutualObjectTp& safeObject(unsigned i){
 		int mrow = getObjectRow(i);
 		if(!objmat[mrow]){
-			objmat[mrow] = new ObjectTp[mutcolscnt];
+			objmat[mrow] = new MutualObjectTp[mutcolscnt];
 		}
 		return object(i);
 	}
 	//! Gets the mutex at pos i (the matrix is seen as a vector)
-	inline ObjectTp& operator[](unsigned i){
+	inline MutualObjectTp& operator[](unsigned i){
 		return doGetObject(i);
 	}
 	//! Will return true if i is the first index of a range sharing the same mutex
@@ -102,7 +104,7 @@ public:
 		return !(i & objpermutmsk);
 	}
 private:
-	inline ObjectTp& doGetObject(unsigned i){
+	inline MutualObjectTp& doGetObject(unsigned i){
 		return objmat[(i >> mutrowsbts) & mutrowsmsk][i & mutcolsmsk];
 	}
 	inline unsigned getObjectRow(unsigned i){
@@ -116,7 +118,7 @@ private:
 	const unsigned		mutrowscnt;//mutex rows count
 	const unsigned 		mutcolsmsk;//mutex columns mask
 	const unsigned 		mutcolscnt;//mutex columns count
-	ObjectTp			**objmat;
+	MutualObjectTp		**objmat;
 };
 
 #endif
