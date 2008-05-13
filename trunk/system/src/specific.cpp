@@ -22,6 +22,7 @@
 #include "specific.hpp"
 #include "thread.hpp"
 #include "debug.hpp"
+#include "mutex.hpp"
 #include <stack>
 #include <vector>
 #include "common.hpp"

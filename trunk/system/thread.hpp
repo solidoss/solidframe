@@ -27,8 +27,11 @@
 
 #include <vector>
 
-#include "condition.hpp"
-#include "src/mutexpool.hpp"
+//#include "condition.hpp"
+//#include "src/mutexpool.hpp"
+
+class Mutex;
+class Condition;
 
 //! A wrapper for system threads
 /*!
@@ -93,37 +96,28 @@ protected:
 	virtual void unprepare(){}
 	//! Implement this method to make the thread usefull.
 	virtual void run() = 0;
-protected:
-	enum {MutexPoolSize = 4};
-	typedef void* (*ThFncTp)(void *);
-	
-	static Condition                        gcon;
-	static Mutex                            gmut;
-	static FastMutexPool<MutexPoolSize>     mutexpool;
-	static pthread_key_t                    crtthread_key;  
-	static pthread_key_t                    **static_keys;
-	static pthread_once_t                  	once_key;
-	
-	static void enter();
-	static void exit();
+private:
 	//a dummy function
 	static int current(Thread *_ptb);
+	Thread(const Thread&){}
+	static void* th_run(void*);
+	static void enter();
+	static void exit();
 	
+	void signalWaiter();
+	int waited();
+private:
 	typedef std::pair<void*, SpecificFncTp>	SpecPairTp;
 	typedef std::pair<Condition, int>		ConditionPairTp;
 	typedef std::vector<SpecPairTp>			SpecVecTp;
 	
+
 	pthread_t       th;
 	int				dtchd;
 	unsigned        thcrtstatid;
 	SpecVecTp       specvec;
 	ConditionPairTp	*pcndpair;
-	void signalWaiter();
-	int waited();
-private:
-	Thread(const Thread&){}
-	static void* th_run(void*);
-	static ulong    thcnt;
+
 };
 
 inline void Thread::sleep(ulong _msec){
@@ -134,17 +128,8 @@ inline void Thread::yield(){
 	pthread_yield();
 }
 
-inline Thread * Thread::current(){
-	return reinterpret_cast<Thread*>(pthread_getspecific(crtthread_key));
-}
-
 inline int Thread::currentId(){
 	return pthread_self();
-}
-
-//non static
-inline Mutex& Thread::mutex()const{
-	return mutexpool.getr(this);
 }
 
 #endif

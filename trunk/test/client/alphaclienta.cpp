@@ -16,6 +16,7 @@
 #include "system/debug.hpp"
 #include "system/socketaddress.hpp"
 #include "system/thread.hpp"
+#include "system/mutex.hpp"
 #include "system/timespec.hpp"
 //#include "common/utils.h"
 #include "writer.hpp"
