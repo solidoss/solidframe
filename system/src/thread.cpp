@@ -24,6 +24,7 @@
 #include "thread.hpp"
 #include "debug.hpp"
 #include "common.hpp"
+#include "condition.hpp"
 #include "mutexpool.hpp"
 #include <cerrno>
 
@@ -37,12 +38,23 @@ enum ThreadInfo{
 	FirstSpecificId = 0
 };
 
-pthread_key_t                   Thread::crtthread_key = 0;
-Condition                       Thread::gcon;
-Mutex                           Thread::gmut;
-ulong                           Thread::thcnt = 0;
-FastMutexPool<Thread::MutexPoolSize>    Thread::mutexpool;
-pthread_once_t                  Thread::once_key = PTHREAD_ONCE_INIT;
+
+struct ThreadData{
+	enum {MutexPoolSize = 4};
+	ThreadData():crtthread_key(0), thcnt(0), once_key(PTHREAD_ONCE_INIT){}
+	pthread_key_t					crtthread_key;
+	uint32    						thcnt;
+	pthread_once_t					once_key;
+	Condition						gcon;
+	Mutex							gmut;
+	FastMutexPool<MutexPoolSize>	mutexpool;
+};
+
+static ThreadData& threadData(){
+	static ThreadData td;
+	return td;
+}
+
 Cleaner             			cleaner;
 //static unsigned 				crtspecid = 0;
 //*************************************************************************
@@ -72,7 +84,7 @@ int Mutex::timedLock(unsigned long _ms){
 	timespec lts;
 	lts.tv_sec=_ms/1000;
 	lts.tv_nsec=(_ms%1000)*1000000;
-	return pthread_mutex_timedlock(&mut,&lts);  
+	return pthread_mutex_timedlock(&mut,&lts);
 }
 //-------------------------------------------------------------------------
 int Mutex::reinit(Type _type){
@@ -85,25 +97,31 @@ int Mutex::reinit(Type _type){
 }
 //*************************************************************************
 void Thread::init(){
-	if(pthread_key_create(&Thread::crtthread_key, NULL)) throw -1;
+	if(pthread_key_create(&threadData().crtthread_key, NULL)) throw -1;
 	Thread::current(NULL);
 }
 //-------------------------------------------------------------------------
 void Thread::cleanup(){
 	idbg("");
-	pthread_key_delete(Thread::crtthread_key);
+	pthread_key_delete(threadData().crtthread_key);
 }
 //-------------------------------------------------------------------------
 inline void Thread::enter(){
-    gmut.lock();
-    ++thcnt; gcon.broadcast();
-    gmut.unlock();
+	ThreadData &td(threadData());
+    td.gmut.lock();
+    ++td.thcnt; td.gcon.broadcast();
+    td.gmut.unlock();
 }
 //-------------------------------------------------------------------------
 inline void Thread::exit(){
-    gmut.lock();
-    --thcnt; gcon.broadcast();
-    gmut.unlock();
+	ThreadData &td(threadData());
+    td.gmut.lock();
+    --td.thcnt; td.gcon.broadcast();
+    td.gmut.unlock();
+}
+//-------------------------------------------------------------------------
+Thread * Thread::current(){
+	return reinterpret_cast<Thread*>(pthread_getspecific(threadData().crtthread_key));
 }
 //-------------------------------------------------------------------------
 Thread::Thread():dtchd(true),pcndpair(NULL){
@@ -170,14 +188,17 @@ void* Thread::specific(unsigned _pos){
 	return current()->specvec[_pos].first;
 }
 Mutex& Thread::gmutex(){
-	return gmut;
+	return threadData().gmut;
 }
 //-------------------------------------------------------------------------
 int Thread::current(Thread *_ptb){
-	pthread_setspecific(Thread::crtthread_key, _ptb);
+	pthread_setspecific(threadData().crtthread_key, _ptb);
 	return OK;
 }
-
+//-------------------------------------------------------------------------
+Mutex& Thread::mutex()const{
+	return threadData().mutexpool.getr(this);
+}
 //-------------------------------------------------------------------------
 int Thread::start(int _wait, int _detached, ulong _stacksz){	
 	Mutex::Locker locker(mutex());
@@ -234,9 +255,10 @@ int Thread::waited(){
 }
 //-------------------------------------------------------------------------
 void Thread::waitAll(){
-    gmut.lock();
-    while(thcnt != 0) gcon.wait(gmut);
-    gmut.unlock();
+	ThreadData &td(threadData());
+    td.gmut.lock();
+    while(td.thcnt != 0) td.gcon.wait(td.gmut);
+    td.gmut.unlock();
 }
 //-------------------------------------------------------------------------
 void* Thread::th_run(void *pv){

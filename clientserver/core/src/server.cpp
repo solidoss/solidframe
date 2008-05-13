@@ -24,6 +24,7 @@
 #include "system/cassert.hpp"
 #include "system/debug.hpp"
 #include "system/thread.hpp"
+#include "system/mutex.hpp"
 #include "system/specific.hpp"
 
 #include "core/server.hpp"

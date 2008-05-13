@@ -24,6 +24,8 @@
 
 #include "system/debug.hpp"
 #include "system/thread.hpp"
+#include "system/mutex.hpp"
+#include "system/condition.hpp"
 
 #include "common.hpp"
 #include "queue.hpp"
