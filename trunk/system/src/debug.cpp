@@ -27,6 +27,7 @@
 #include <unistd.h>
 #include <cstring>
 #include "thread.hpp"
+#include "mutex.hpp"
 
 #ifdef UDEBUG
 const int Dbg::fileoff = (strstr(__FILE__, "system/src") - __FILE__);//sizeof("workspace/") - 1 == 9
@@ -47,14 +48,22 @@ void initDebug(const char *_prefix){
 }
 
 #ifdef UDEBUG
-static Mutex gmut;
+Mutex& dbgMutex(){
+	static Mutex gmut;
+	return gmut;
+}
 
 void Dbg::lock(TimeSpec &t){
 	clock_gettime(CLOCK_MONOTONIC, &t);
-	gmut.lock();
+	dbgMutex().lock();
 }
-void Dbg::unlock(){gmut.unlock();}
+void Dbg::unlock(){
+	dbgMutex().unlock();
+}
 
-long Dbg::crtThrId(){return Thread::currentId();}
+long Dbg::crtThrId(){
+	return Thread::currentId();
+}
+
 #endif
 

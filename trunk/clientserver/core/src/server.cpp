@@ -32,6 +32,7 @@
 #include "core/object.hpp"
 #include "core/activeset.hpp"
 #include "core/filemanager.hpp"
+#include "core/requestuid.hpp"
 #include "ipc/ipcservice.hpp"
 
 /*
@@ -257,6 +258,7 @@ void Server::prepareThread(){
 	Thread::specific(serverspecificid, this);
 	//GlobalMapper::prepareThread(globalMapper());
 	Specific::prepareThread();
+	requestuidptr.prepareThread();
 }
 void Server::unprepareThread(){
 	Thread::specific(serverspecificid, NULL);

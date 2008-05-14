@@ -28,6 +28,7 @@
 
 #include "clientserver/tcp/channel.hpp"
 #include "clientserver/ipc/ipcservice.hpp"
+#include "clientserver/core/requestuid.hpp"
 
 #include "core/server.hpp"
 #include "core/command.hpp"
@@ -90,6 +91,8 @@ Connection::~Connection(){
 */
 
 int Connection::execute(ulong _sig, TimeSpec &_tout){
+	test::Server &rs = test::Server::the();
+	cs::requestuidptr->set(this->id(), rs.uid(*this));
 	_tout.add(2400);
 	if(_sig & (cs::TIMEOUT | cs::ERRDONE)){
 		if(state() == ConnectTout){
@@ -98,8 +101,8 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 		}else 
 			return BAD;
 	}
+	
 	if(signaled()){//we've received a signal
-		test::Server &rs = test::Server::the();
 		ulong sm(0);
 		{
 			Mutex::Locker	lock(rs.mutex(*this));

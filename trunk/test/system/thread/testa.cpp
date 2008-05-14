@@ -24,14 +24,14 @@
 #include "threadpp.h"
 using namespace std;
 
-
+///\cond 0
 struct Runner: public Thread{
 	Runner(int _v):v(_v){}
 	void run();
 private:
 	int v;
 };
-
+///\endcond
 void Runner::run(){
 	idbg("runner::run");
 	for(int i = 0; i < v; ++i){

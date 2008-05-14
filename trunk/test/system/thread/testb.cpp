@@ -26,6 +26,7 @@
 #include <string>
 
 using namespace std;
+///\cond 0
 struct MyThreadBase: public ThreadBase{
 	static void initSpecific(){
 		ThreadBase::specific(new string("gigi"));
@@ -57,6 +58,7 @@ struct Runner: public MyThreadBase{
 	typedef int RunParamTp;
 	void run(RunParamTp _v);
 };
+///\endcond
 
 void Runner::run(RunParamTp _v){
 	MyThreadBase::setString2("theone");

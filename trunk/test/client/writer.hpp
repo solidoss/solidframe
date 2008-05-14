@@ -7,7 +7,7 @@
 #include <list>
 
 #define APPSTR(str) str, sizeof(str) - 1
-
+///\cond 0
 typedef std::string String;
 class IStream;
 
@@ -129,6 +129,9 @@ private:
     char            *bpos;
     uint32           count;
 };
+
+///\endcond
+
 inline Writer & flush(Writer & _rout){
     _rout.flush(); return _rout;
 }

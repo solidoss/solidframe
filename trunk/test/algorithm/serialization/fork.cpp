@@ -38,7 +38,7 @@
 #include <cstring>
 
 using namespace std;
-
+///\cond 0
 class FileIOStream: public IOStream{
 public:
 	FileIOStream();
@@ -53,6 +53,7 @@ public:
 private:
 	FileDevice	fd;
 };
+///\endcond
 FileIOStream::FileIOStream(){}
 FileIOStream::~FileIOStream(){}
 int FileIOStream::openRead(const char *_fn){
@@ -77,6 +78,7 @@ void FileIOStream::close(){
 	fd.close();
 }
 
+///\cond 0
 struct Test{
 	Test(const char *_fn = NULL);
 	template <class S>
@@ -93,7 +95,7 @@ private:
 	string			fn;
 	FileIOStream	fs;
 };
-
+///\endcond
 
 Test::Test(const char *_fn):fn(_fn?_fn:""){}
 //-----------------------------------------------------------------------------------
@@ -150,7 +152,7 @@ void Test::print(){
 	cout<<"fn = "<<fn<<endl<<endl;
 }
 
-
+///\cond 0
 void parentRun(int _sd, const char *_fn);
 void childRun(int _sd);
 
@@ -160,7 +162,8 @@ typedef serialization::TypeMapper					TypeMapper;
 typedef serialization::IdTypeMap					IdTypeMap;
 typedef serialization::bin::Serializer				BinSerializer;
 typedef serialization::bin::Deserializer			BinDeserializer;
-	
+///\endcond
+
 int main(int argc, char *argv[]){
 	int sps[2];
 	if(argc != 2){

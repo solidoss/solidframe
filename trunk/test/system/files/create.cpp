@@ -26,8 +26,9 @@
 #include <boost/utility.hpp>
 
 using namespace std;
-
+///\cond 0
 int createFile(const char *_nm, const string &_str, ulong _sz);
+///\endcond
 
 int main(int argc, char *argv[]){
 	if(argc != 6){

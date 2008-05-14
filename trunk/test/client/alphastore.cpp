@@ -21,7 +21,7 @@
 #include "writer.hpp"
 
 using namespace std;
-
+///\cond 0
 class FileStream: public IStream{
 public:
 	FileStream(FileDevice &_rfd):fd(_rfd){}
@@ -29,10 +29,12 @@ public:
 		return fd.read(_pb, _sz);
 	}
 	int64 seek(int64, SeekRef){
+		return -1;
 	}
 private:
 	FileDevice &fd;
 };
+///\endcond
 
 int main(int argc, char *argv[]){
 	if(argc != 5){

@@ -30,8 +30,12 @@
 #include <cerrno>
 using namespace std;
 
+///\cond 0
 typedef std::deque<FileDevice>	FileDeuqeTp;
 typedef std::deque<auto_ptr<FileDevice> >	AutoFileDequeTp;
+///\endcond
+
+
 int main(int argc, char *argv[]){
 
 // 	AutoFileDequeTp aq;
