@@ -227,9 +227,11 @@ int Thread::start(int _wait, int _detached, ulong _stacksz){
 		gmutex().lock();
 		pcndpair = &cndpair;
 	}
+	Thread::enter();
 	if(pthread_create(&th,&attr,&Thread::th_run,this)){
 		pthread_attr_destroy(&attr);
 		idbg("could not create thread");
+		Thread::exit();
 		return BAD;
 	}
 	//NOTE: DO not access any thread member from now - the thread may be detached
@@ -264,7 +266,7 @@ void Thread::waitAll(){
 void* Thread::th_run(void *pv){
 	idbg("thrun enter"<<pv);
 	Thread	*pth(reinterpret_cast<Thread*>(pv));
-	Thread::enter();
+	//Thread::enter();
 	Thread::current(pth);
 	if(pth->waited()){
 		pth->signalWaiter();
