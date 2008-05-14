@@ -31,6 +31,7 @@
 #include "clientserver/ipc/ipcservice.hpp"
 #include "clientserver/core/filemanager.hpp"
 #include "clientserver/core/commandexecuter.hpp"
+#include "clientserver/core/requestuid.hpp"
 
 #include "core/common.hpp"
 #include "core/tstring.hpp"
@@ -362,7 +363,7 @@ int FetchMasterCommand::execute(cs::CommandExecuter& _rce, const CommandUidTp &_
 		case Received:{
 			idbg("try to open file "<<fname<<" _cmduid = "<<_cmduid.first<<","<<_cmduid.second);
 			//try to get a stream for the file:
-			cs::FileManager::RequestUid reqid(_rce.id(), rs.uid(_rce), _cmduid.first, _cmduid.second);
+			cs::RequestUid reqid(_rce.id(), rs.uid(_rce), _cmduid.first, _cmduid.second);
 			switch(rs.fileManager().stream(ins, fuid, reqid, fname.c_str())){
 				case BAD://ouch
 					state = SendError;
@@ -394,7 +395,7 @@ int FetchMasterCommand::execute(cs::CommandExecuter& _rce, const CommandUidTp &_
 			idbg("insz = "<<insz<<" inpos = "<<inpos);
 			insz -= pcmd->sz;
 			inpos += pcmd->sz;
-			cs::FileManager::RequestUid reqid(_rce.id(), rs.uid(_rce), _cmduid.first, _cmduid.second); 
+			cs::RequestUid reqid(_rce.id(), rs.uid(_rce), _cmduid.first, _cmduid.second); 
 			rs.fileManager().stream(pcmd->ins, fuid, requid, cs::FileManager::NoWait);
 			pcmd = NULL;
 			if(rs.ipc().sendCommand(conid, cmdptr) || !insz){
@@ -418,7 +419,7 @@ int FetchMasterCommand::execute(cs::CommandExecuter& _rce, const CommandUidTp &_
 			pcmd->fuid = tmpfuid;
 			idbg("insz = "<<insz<<" inpos = "<<inpos);
 			insz -= pcmd->sz;
-			cs::FileManager::RequestUid reqid(_rce.id(), rs.uid(_rce), _cmduid.first, _cmduid.second); 
+			cs::RequestUid reqid(_rce.id(), rs.uid(_rce), _cmduid.first, _cmduid.second); 
 			rs.fileManager().stream(pcmd->ins, fuid, requid, cs::FileManager::NoWait);
 			pcmd->ins->seek(inpos);
 			inpos += pcmd->sz;
@@ -537,7 +538,7 @@ int FetchSlaveCommand::createDeserializationStream(
 	if(_id) return NOK;
 	if(sz <= 0) return NOK;
 	StreamPtr<OStream>			sp;
-	cs::FileManager::RequestUid	requid;
+	cs::RequestUid	requid;
 	Server::the().fileManager().stream(sp, fuid, requid, cs::FileManager::Forced);
 	if(!sp) return BAD;
 	idbg("Create deserialization <"<<_id<<"> sz "<<_rps.second<<" streamptr "<<(void*)sp.ptr());
@@ -604,7 +605,7 @@ int Fetch::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 		case InitLocal:{
 			idbg("init local");
 			//try to open stream to localfile
-			cs::FileManager::RequestUid reqid(rc.id(), Server::the().uid(rc), rc.newRequestId());
+			cs::RequestUid reqid(rc.id(), Server::the().uid(rc), rc.newRequestId());
 			int rv = Server::the().fileManager().stream(sp, reqid, strpth.c_str());
 			switch(rv){
 				case BAD: 
@@ -631,7 +632,7 @@ int Fetch::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 		case InitRemote:{
 			idbg("init remote");
 			//try to open a temp stream
-			cs::FileManager::RequestUid reqid(rc.id(), Server::the().uid(rc), rc.newRequestId());
+			cs::RequestUid reqid(rc.id(), Server::the().uid(rc), rc.newRequestId());
 			int rv = Server::the().fileManager().stream(sp, fuid, reqid, NULL, 0);
 			switch(rv){
 				case BAD: 
@@ -822,7 +823,7 @@ void Store::initReader(Reader &_rr){
 int Store::reinitReader(Reader &_rr, protocol::Parameter &_rp){
 	switch(_rp.b.i){
 		case Init:{
-			cs::FileManager::RequestUid reqid(rc.id(), Server::the().uid(rc), rc.newRequestId());
+			cs::RequestUid reqid(rc.id(), Server::the().uid(rc), rc.newRequestId());
 			int rv = Server::the().fileManager().stream(sp, reqid, strpth.c_str(), cs::FileManager::Create);
 			switch(rv){
 				case BAD: return Reader::Ok;
@@ -1091,7 +1092,7 @@ int SendStream::execute(Connection &_rc){
 	uint32	myprocid(0);
 	uint32	fromobjid(_rc.id());
 	uint32	fromobjuid(rs.uid(_rc));
-	cs::FileManager::RequestUid reqid(_rc.id(), rs.uid(_rc), _rc.requestId()); 
+	cs::RequestUid reqid(_rc.id(), rs.uid(_rc), _rc.requestId()); 
 	StreamPtr<IOStream>	sp;
 	int rv = Server::the().fileManager().stream(sp, reqid, srcstr.c_str());
 	protocol::Parameter &rp = _rc.writer().push(&Writer::putStatus);

@@ -24,14 +24,14 @@
 
 using namespace std;
 
-
+///\cond 0
 class MyWorkPool: public WorkPool<int>{
 public:
 	void run(Worker &);
 protected:
 	int createWorkers(uint);
 };
-
+///\endcond
 void MyWorkPool::run(Worker &_wk){
 	int k;
 	while(!pop(_wk.wid(),k)){

@@ -29,7 +29,7 @@
 
 using namespace std;
 
-
+///\cond 0
 struct Runner: public Thread{
 	Runner(int _v):v(_v){}
 	void run();
@@ -60,7 +60,7 @@ struct C: A{
 	}
 	int64	d;
 };
-
+///\endcond
 
 void Runner::run(){
 	idbg("runner::run");

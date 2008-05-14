@@ -25,7 +25,7 @@
 #include "utility/queue.h"
 using namespace std;
 
-
+///\cond 0
 struct D{
 	D(int i):data(i){
 		cout<<"D()"<<endl;
@@ -45,10 +45,10 @@ struct D{
 	}
 	int data;
 };
-
 //typedef queue<int, list<int> > QueueTp;
 //typedef queue<int> QueueTp;
 typedef Queue<int>	QueueTp;
+///\endcond
 int main(){
 	ulong sum = 0;
 	cout<<"sizeof queue<int> = "<<sizeof(QueueTp)<<endl;

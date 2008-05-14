@@ -49,6 +49,7 @@
 #include "clientserver/udp/talker.hpp"
 #include "clientserver/core/objectselector.hpp"
 #include "clientserver/core/commandexecuter.hpp"
+#include "clientserver/core/requestuid.hpp"
 
 #include "clientserver/ipc/ipcservice.hpp"
 
@@ -191,24 +192,24 @@ class FileManager: public cs::FileManager{
 public:
 	FileManager(uint32 _maxfcnt = 1024 * 20):cs::FileManager(_maxfcnt){}
 protected:
-	/*virtual*/ void sendStream(StreamPtr<IStream> &_sptr, const FileUidTp &_rfuid, const RequestUid& _rrequid);
-	/*virtual*/ void sendStream(StreamPtr<OStream> &_sptr, const FileUidTp &_rfuid, const RequestUid& _rrequid);
-	/*virtual*/ void sendStream(StreamPtr<IOStream> &_sptr, const FileUidTp &_rfuid, const RequestUid& _rrequid);
-	/*virtual*/ void sendError(int _errid, const RequestUid& _rrequid);
+	/*virtual*/ void sendStream(StreamPtr<IStream> &_sptr, const FileUidTp &_rfuid, const cs::RequestUid& _rrequid);
+	/*virtual*/ void sendStream(StreamPtr<OStream> &_sptr, const FileUidTp &_rfuid, const cs::RequestUid& _rrequid);
+	/*virtual*/ void sendStream(StreamPtr<IOStream> &_sptr, const FileUidTp &_rfuid, const cs::RequestUid& _rrequid);
+	/*virtual*/ void sendError(int _errid, const cs::RequestUid& _rrequid);
 };
-void FileManager::sendStream(StreamPtr<IStream> &_sptr, const FileUidTp &_rfuid, const RequestUid& _rrequid){
+void FileManager::sendStream(StreamPtr<IStream> &_sptr, const FileUidTp &_rfuid, const cs::RequestUid& _rrequid){
 	cs::CmdPtr<cs::Command>	cp(new IStreamCommand(_sptr, _rfuid, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
 	Server::the().signalObject(_rrequid.objidx, _rrequid.objuid, cp);
 }
-void FileManager::sendStream(StreamPtr<OStream> &_sptr, const FileUidTp &_rfuid, const RequestUid& _rrequid){
+void FileManager::sendStream(StreamPtr<OStream> &_sptr, const FileUidTp &_rfuid, const cs::RequestUid& _rrequid){
 	cs::CmdPtr<cs::Command>	cp(new OStreamCommand(_sptr, _rfuid, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
 	Server::the().signalObject(_rrequid.objidx, _rrequid.objuid, cp);
 }
-void FileManager::sendStream(StreamPtr<IOStream> &_sptr, const FileUidTp &_rfuid, const RequestUid& _rrequid){
+void FileManager::sendStream(StreamPtr<IOStream> &_sptr, const FileUidTp &_rfuid, const cs::RequestUid& _rrequid){
 	cs::CmdPtr<cs::Command>	cp(new IOStreamCommand(_sptr, _rfuid, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
 	Server::the().signalObject(_rrequid.objidx, _rrequid.objuid, cp);
 }
-void FileManager::sendError(int _error, const RequestUid& _rrequid){
+void FileManager::sendError(int _error, const cs::RequestUid& _rrequid){
 	cs::CmdPtr<cs::Command>	cp(new StreamErrorCommand(_error, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
 	Server::the().signalObject(_rrequid.objidx, _rrequid.objuid, cp);
 }

@@ -24,7 +24,7 @@
 #include "polycontainerpp.h"
 
 using namespace std;
-
+///\cond 0
 struct A{
 	typedef int J;
 	void set(int i){
@@ -62,6 +62,8 @@ struct MyConstContainer: CONSTPOLY2(B*,std::vector<A*>){
 		set<std::vector<A*> >().push_back(new A);
 	}
 };
+
+///\endcond
 
 int main(){
 	PolyHolder<int>		phi;

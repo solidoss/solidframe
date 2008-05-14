@@ -25,7 +25,7 @@ using namespace std;
 //typedef unsigned long long uint64;
 enum {BSIZE = 1024};
 static int sleeptout = 0;
-
+///\cond 0
 class Info{
 public:
 	void update(unsigned _pos, ulong _v);
@@ -37,6 +37,7 @@ private:
 	Mutex           m;
 	TimeSpec		ct;
 };
+///\endcond
 
 unsigned Info::pushBack(){
 	v.push_back(0xffffffff);
@@ -306,7 +307,7 @@ int AlphaThread::fetch(unsigned _idx, char *_pb){
 	const char *bend;
 	const char *bp;
 	string lit;
-	ulong litlen;
+	ulong litlen = 0;
 	
 	while((rc = read(sd, _pb, BufLen - 1)) > 0){
 		readc += rc;

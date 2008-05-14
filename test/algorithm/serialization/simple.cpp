@@ -62,7 +62,7 @@ using namespace std;
 // 	cassert(false);
 // 	return _s;
 // }
-
+///\cond 0
 struct TestA{
 	TestA(int _a = 1, short _b = 2, unsigned _c = 3):a(_a), b(_b), c(_c){}
 	template <class S>
@@ -176,6 +176,7 @@ S& operator&(TestC &_tb, S &_s){
 typedef std::deque<std::string> StrDeqTp;
 
 void print(StrDeqTp &_rsdq);
+///\endcond
 
 int main(int argc, char *argv[]){
 	Thread::init();
