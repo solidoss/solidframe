@@ -3,6 +3,7 @@
 
 //#include "../utils.h"
 #include <string>
+#include <cstring>
 #include "system/common.hpp"
 #include <list>
 

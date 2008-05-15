@@ -22,6 +22,7 @@
 #include "serialization/binary.hpp"
 #include "utility/ostream.hpp"
 #include "utility/istream.hpp"
+#include <cstring>
 
 namespace serialization{
 namespace bin{

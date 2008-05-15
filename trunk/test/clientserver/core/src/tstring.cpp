@@ -20,6 +20,7 @@
 */
 
 #include "core/tstring.hpp"
+#include <cstring>
 
 void append(String &_str, ulong _v){
     if(!_v){

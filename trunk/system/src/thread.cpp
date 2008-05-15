@@ -27,6 +27,7 @@
 #include "condition.hpp"
 #include "mutexpool.hpp"
 #include <cerrno>
+#include <unistd.h>
 
 struct Cleaner{
 	~Cleaner(){
