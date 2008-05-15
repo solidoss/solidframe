@@ -22,6 +22,7 @@
 #include <queue>
 #include <map>
 #include <cerrno>
+#include <cstring>
 
 #include "system/timespec.hpp"
 #include "system/socketaddress.hpp"

@@ -19,6 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <cstdio>
+
 #include "clientserver/udp/station.hpp"
 
 #include "core/server.hpp"

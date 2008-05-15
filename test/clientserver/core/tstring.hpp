@@ -23,6 +23,7 @@
 #define TSTRING_HPP
 
 #include <string>
+#include "system/common.hpp"
 
 #define APPSTR(str) str,sizeof(str)-1
 

@@ -21,6 +21,7 @@
 
 #include "algorithm/protocol/namematcher.hpp"
 #include <map>
+#include <cstring>
 //#include <tr1/unordered_map>
 #include "system/cassert.hpp"
 using namespace std;

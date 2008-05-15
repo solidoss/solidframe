@@ -24,6 +24,7 @@
 #include <map>
 #include <iostream>
 #include <string>
+#include <cstring>
 
 #include "system/debug.hpp"
 #include "system/timespec.hpp"

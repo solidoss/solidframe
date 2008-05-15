@@ -18,7 +18,7 @@
 	You should have received a copy of the GNU General Public License
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
-
+#include <cstring>
 #include "algorithm/protocol/writer.hpp"
 #include "utility/istream.hpp"
 
