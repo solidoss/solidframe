@@ -26,9 +26,6 @@
 #include <pthread.h>
 #include "system/common.hpp"
 #include <vector>
-#include <unistd.h>
-//#include "condition.hpp"
-//#include "src/mutexpool.hpp"
 
 class Mutex;
 class Condition;
@@ -120,9 +117,6 @@ private:
 
 };
 
-inline void Thread::sleep(ulong _msec){
-	usleep(_msec*1000);
-}
 
 inline void Thread::yield(){
 	pthread_yield();
