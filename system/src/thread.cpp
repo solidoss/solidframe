@@ -107,6 +107,10 @@ void Thread::cleanup(){
 	pthread_key_delete(threadData().crtthread_key);
 }
 //-------------------------------------------------------------------------
+void Thread::sleep(ulong _msec){
+	usleep(_msec*1000);
+}
+//-------------------------------------------------------------------------
 inline void Thread::enter(){
 	ThreadData &td(threadData());
     td.gmut.lock();
@@ -125,8 +129,7 @@ Thread * Thread::current(){
 	return reinterpret_cast<Thread*>(pthread_getspecific(threadData().crtthread_key));
 }
 //-------------------------------------------------------------------------
-Thread::Thread():dtchd(true),pcndpair(NULL){
-	th = 0;
+Thread::Thread():dtchd(true),pcndpair(NULL),th(0){
 }
 //-------------------------------------------------------------------------
 Thread::~Thread(){
