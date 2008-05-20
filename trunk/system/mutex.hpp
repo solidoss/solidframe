@@ -25,6 +25,7 @@
 #include <pthread.h>
 
 class Condition;
+struct TimeSpec;
 
 //! A simple wrapper for POSIX mutex synchronizatin objects.
 class Mutex{
@@ -48,8 +49,8 @@ public:
 	
 	void lock();
 	void unlock();
-	int timedLock(unsigned long _ms);
-	bool locked();
+	int timedLock(const TimeSpec &_rts);
+	bool tryLock();
 	int reinit(Type _type = FAST);
 private:
 	friend class Condition;

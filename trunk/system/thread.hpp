@@ -22,10 +22,12 @@
 #ifndef THREADPP_HPP
 #define THREADPP_HPP
 
-#include <sys/sysinfo.h>
+#ifdef _WIN32
+#else
 #include <pthread.h>
-#include "system/common.hpp"
+#endif
 #include <vector>
+#include "system/common.hpp"
 
 class Mutex;
 class Condition;
@@ -108,8 +110,10 @@ private:
 	typedef std::pair<Condition, int>		ConditionPairTp;
 	typedef std::vector<SpecPairTp>			SpecVecTp;
 	
-
+#ifdef _WIN32
+#else
 	pthread_t       th;
+#endif
 	int				dtchd;
 	unsigned        thcrtstatid;
 	SpecVecTp       specvec;
@@ -117,13 +121,18 @@ private:
 
 };
 
-
 inline void Thread::yield(){
+#ifdef _WIN32
+#else	
 	pthread_yield();
+#endif
 }
 
 inline int Thread::currentId(){
+#ifdef _WIN32
+#else
 	return pthread_self();
+#endif
 }
 
 #endif
