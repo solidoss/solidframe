@@ -74,7 +74,8 @@ CommandExecuter::~CommandExecuter(){
 }
 
 int CommandExecuter::signal(CmdPtr<Command> &_cmd){
-	cassert(d.pm->locked());
+	cassert(!d.pm->tryLock());
+	
 	if(this->state() != Data::Running){
 		_cmd.clear();
 		return 0;//no reason to raise the pool thread!!

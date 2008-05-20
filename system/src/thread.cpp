@@ -19,15 +19,19 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "timespec.hpp"
-
-#include "thread.hpp"
-#include "debug.hpp"
-#include "common.hpp"
-#include "condition.hpp"
+#include "system/timespec.hpp"
+#include "system/thread.hpp"
+#include "system/debug.hpp"
+#include "system/condition.hpp"
 #include "mutexpool.hpp"
+
 #include <cerrno>
+
+#ifdef _WIN32
+#else
+#include <sys/sysinfo.h>
 #include <unistd.h>
+#endif
 
 struct Cleaner{
 	~Cleaner(){
@@ -35,13 +39,24 @@ struct Cleaner{
 	}
 };
 
-enum ThreadInfo{
-	FirstSpecificId = 0
-};
-
-
+#ifdef _WIN32
 struct ThreadData{
-	enum {MutexPoolSize = 4};
+	enum {
+		MutexPoolSize = 4,
+		FirstSpecificId = 0
+	};
+	ThreadData():thcnt(0){}
+	uint32    						thcnt;
+	Condition						gcon;
+	Mutex							gmut;
+	FastMutexPool<MutexPoolSize>	mutexpool;
+};
+#else
+struct ThreadData{
+	enum {
+		MutexPoolSize = 4,
+		FirstSpecificId = 0
+	};
 	ThreadData():crtthread_key(0), thcnt(0), once_key(PTHREAD_ONCE_INIT){}
 	pthread_key_t					crtthread_key;
 	uint32    						thcnt;
@@ -50,7 +65,7 @@ struct ThreadData{
 	Mutex							gmut;
 	FastMutexPool<MutexPoolSize>	mutexpool;
 };
-
+#endif
 static ThreadData& threadData(){
 	static ThreadData td;
 	return td;
@@ -59,9 +74,15 @@ static ThreadData& threadData(){
 Cleaner             			cleaner;
 //static unsigned 				crtspecid = 0;
 //*************************************************************************
+#ifdef _WIN32
+int Condition::wait(Mutex &_mut, const TimeSpec &_ts){
+	return -1;
+}
+#else
 int Condition::wait(Mutex &_mut, const TimeSpec &_ts){
 	return pthread_cond_timedwait(&cond,&_mut.mut, &_ts);
 }
+#endif
 //*************************************************************************
 #ifndef UINLINES
 #include "timespec.ipp"
@@ -79,33 +100,38 @@ int Condition::wait(Mutex &_mut, const TimeSpec &_ts){
 #include "synchronization.ipp"
 #endif
 //-------------------------------------------------------------------------
-
-//TODO: use TimeSpec
-int Mutex::timedLock(unsigned long _ms){
-	timespec lts;
-	lts.tv_sec=_ms/1000;
-	lts.tv_nsec=(_ms%1000)*1000000;
-	return pthread_mutex_timedlock(&mut,&lts);
+#ifdef _WIN32
+#else
+int Mutex::timedLock(const TimeSpec &_rts){
+	return pthread_mutex_timedlock(&mut,&_rts);
 }
+#endif
 //-------------------------------------------------------------------------
+#ifdef _WIN32
+#else
 int Mutex::reinit(Type _type){
-	if(locked()) return -1;
 	pthread_mutex_destroy(&mut);
 	pthread_mutexattr_t att;
 	pthread_mutexattr_init(&att);
 	pthread_mutexattr_settype(&att, (int)_type);
 	return pthread_mutex_init(&mut,&att);
 }
+#endif
 //*************************************************************************
+#ifdef _WIN32
+#else
 void Thread::init(){
 	if(pthread_key_create(&threadData().crtthread_key, NULL)) throw -1;
 	Thread::current(NULL);
 }
+#endif
 //-------------------------------------------------------------------------
+#ifdef _WIN32
+#else
 void Thread::cleanup(){
-	idbg("");
 	pthread_key_delete(threadData().crtthread_key);
 }
+#endif
 //-------------------------------------------------------------------------
 void Thread::sleep(ulong _msec){
 	usleep(_msec*1000);
@@ -129,7 +155,7 @@ Thread * Thread::current(){
 	return reinterpret_cast<Thread*>(pthread_getspecific(threadData().crtthread_key));
 }
 //-------------------------------------------------------------------------
-Thread::Thread():dtchd(true),pcndpair(NULL),th(0){
+Thread::Thread():dtchd(true),th(0),pcndpair(NULL){
 }
 //-------------------------------------------------------------------------
 Thread::~Thread(){
@@ -169,7 +195,7 @@ int Thread::detach(){
 }
 //-------------------------------------------------------------------------
 unsigned Thread::specificId(){
-	static unsigned sid = FirstSpecificId - 1;
+	static unsigned sid = ThreadData::FirstSpecificId - 1;
 	return ++sid;
 }
 //-------------------------------------------------------------------------

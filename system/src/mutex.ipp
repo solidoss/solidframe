@@ -39,9 +39,6 @@ inline Mutex::Mutex(Type _type){
 	pthread_mutexattr_destroy(&att);
 }
 inline Mutex::~Mutex(){
-	if(locked()){
-		pthread_mutex_unlock(&mut);
-	}
 	pthread_mutex_destroy(&mut);
 }
 
@@ -75,9 +72,15 @@ inline void Mutex::unlock(){
 	pthread_mutex_unlock(&mut);
 #endif
 }
-inline bool Mutex::locked(){
-	return pthread_mutex_trylock(&mut) != 0;
+
+#ifdef _WIN32
+inline bool Mutex::tryLock(){
 }
+#else
+inline bool Mutex::tryLock(){
+	return pthread_mutex_trylock(&mut)==0;
+}
+#endif
 
 #ifndef UINLINES
 #undef inline

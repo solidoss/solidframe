@@ -104,9 +104,7 @@ public://definition
 	void run(SelectorWorker &_rwkr){
 		_rwkr.sel.prepare();
 		while(pop(_rwkr.sel,_rwkr.thrid) >= 0){
-			//idbg("before run");
 			_rwkr.sel.run();
-			//idbg("after run");
 		}
 		_rwkr.sel.unprepare();
 		unregisterSelector(_rwkr.sel, _rwkr.thrid);
