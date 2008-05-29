@@ -27,11 +27,8 @@
 
 #include <cerrno>
 
-#ifdef _WIN32
-#else
 #include <sys/sysinfo.h>
 #include <unistd.h>
-#endif
 
 struct Cleaner{
 	~Cleaner(){
@@ -39,19 +36,6 @@ struct Cleaner{
 	}
 };
 
-#ifdef _WIN32
-struct ThreadData{
-	enum {
-		MutexPoolSize = 4,
-		FirstSpecificId = 0
-	};
-	ThreadData():thcnt(0){}
-	uint32    						thcnt;
-	Condition						gcon;
-	Mutex							gmut;
-	FastMutexPool<MutexPoolSize>	mutexpool;
-};
-#else
 struct ThreadData{
 	enum {
 		MutexPoolSize = 4,
@@ -65,7 +49,7 @@ struct ThreadData{
 	Mutex							gmut;
 	FastMutexPool<MutexPoolSize>	mutexpool;
 };
-#endif
+
 static ThreadData& threadData(){
 	static ThreadData td;
 	return td;
@@ -74,15 +58,9 @@ static ThreadData& threadData(){
 Cleaner             			cleaner;
 //static unsigned 				crtspecid = 0;
 //*************************************************************************
-#ifdef _WIN32
-int Condition::wait(Mutex &_mut, const TimeSpec &_ts){
-	return -1;
-}
-#else
 int Condition::wait(Mutex &_mut, const TimeSpec &_ts){
 	return pthread_cond_timedwait(&cond,&_mut.mut, &_ts);
 }
-#endif
 //*************************************************************************
 #ifndef UINLINES
 #include "timespec.ipp"
@@ -100,15 +78,10 @@ int Condition::wait(Mutex &_mut, const TimeSpec &_ts){
 #include "synchronization.ipp"
 #endif
 //-------------------------------------------------------------------------
-#ifdef _WIN32
-#else
 int Mutex::timedLock(const TimeSpec &_rts){
 	return pthread_mutex_timedlock(&mut,&_rts);
 }
-#endif
 //-------------------------------------------------------------------------
-#ifdef _WIN32
-#else
 int Mutex::reinit(Type _type){
 	pthread_mutex_destroy(&mut);
 	pthread_mutexattr_t att;
@@ -116,22 +89,15 @@ int Mutex::reinit(Type _type){
 	pthread_mutexattr_settype(&att, (int)_type);
 	return pthread_mutex_init(&mut,&att);
 }
-#endif
 //*************************************************************************
-#ifdef _WIN32
-#else
 void Thread::init(){
 	if(pthread_key_create(&threadData().crtthread_key, NULL)) throw -1;
 	Thread::current(NULL);
 }
-#endif
 //-------------------------------------------------------------------------
-#ifdef _WIN32
-#else
 void Thread::cleanup(){
 	pthread_key_delete(threadData().crtthread_key);
 }
-#endif
 //-------------------------------------------------------------------------
 void Thread::sleep(ulong _msec){
 	usleep(_msec*1000);
@@ -305,9 +271,9 @@ void* Thread::th_run(void *pv){
 	pth->prepare();
 	pth->run();
 	pth->unprepare();
-	Thread::exit();
 	if(pth->detached()) delete pth;
 	idbg("thrun exit");
+	Thread::exit();
 	return NULL;
 }
 
