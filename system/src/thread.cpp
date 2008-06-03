@@ -105,9 +105,9 @@ void Thread::sleep(ulong _msec){
 //-------------------------------------------------------------------------
 inline void Thread::enter(){
 	ThreadData &td(threadData());
-    td.gmut.lock();
+    //td.gmut.lock();
     ++td.thcnt; td.gcon.broadcast();
-    td.gmut.unlock();
+    //td.gmut.unlock();
 }
 //-------------------------------------------------------------------------
 inline void Thread::exit(){
@@ -121,7 +121,7 @@ Thread * Thread::current(){
 	return reinterpret_cast<Thread*>(pthread_getspecific(threadData().crtthread_key));
 }
 //-------------------------------------------------------------------------
-Thread::Thread():dtchd(true),th(0),pcndpair(NULL){
+Thread::Thread():th(0),dtchd(true),pcndpair(NULL){
 }
 //-------------------------------------------------------------------------
 Thread::~Thread(){
@@ -222,8 +222,12 @@ int Thread::start(int _wait, int _detached, ulong _stacksz){
 	if(_wait){
 		gmutex().lock();
 		pcndpair = &cndpair;
+		Thread::enter();
+	}else{
+		gmutex().lock();
+		Thread::enter();
+		gmutex().unlock();
 	}
-	Thread::enter();
 	if(pthread_create(&th,&attr,&Thread::th_run,this)){
 		pthread_attr_destroy(&attr);
 		idbg("could not create thread");
