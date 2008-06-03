@@ -126,6 +126,7 @@ void Runner::run(){
 }
 
 int main(int argc, char *argv[]){
+	cout<<"Built on SolidGround version "<<SG_MAJOR<<'.'<<SG_MINOR<<'.'<<SG_PATCH<<endl;
 	{
 	string s = "dbg/";
 	s+= argv[0]+2;

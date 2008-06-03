@@ -53,6 +53,7 @@ int insertConnection(char *_pc, int _len, test::Server &_rts);
 
 int main(int argc, char* argv[]){
 	signal(SIGPIPE, SIG_IGN);
+	cout<<"Built on SolidGround version "<<SG_MAJOR<<'.'<<SG_MINOR<<'.'<<SG_PATCH<<endl;
 	Thread::init();
 #ifdef UDEBUG
 	{
@@ -61,6 +62,7 @@ int main(int argc, char* argv[]){
 	initDebug(s.c_str());
 	}
 #endif
+	pdbg("Built on SolidGround version "<<SG_MAJOR<<'.'<<SG_MINOR<<'.'<<SG_PATCH);
 	{
 		int startport = 1000;
 		if(argc >= 2){
