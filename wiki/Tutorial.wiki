@@ -17,33 +17,33 @@ SG's build.sh creates a folder called "application" within the SG's folder. Ther
 
 So you should do something like:
 {{{
-solidground/application $ svn co https://foobarsuite.googlecode.com/svn/trunk/ my_app
+solidground/application $ svn co https://foobarsuite.googlecode.com/svn/trunk/ foobar
 }}}
 
 
-So you'll have a repository copy of your application within "solidground/application/my_app". With no files and no folders. Lets add some (we suppose the foobarsuite contains: a client, a server and some test applications):
+So you'll have a repository copy of your application within "solidground/application/foobar". With no files and no folders. Lets add some (we suppose the foobar contains: a client, a server and some test applications):
  # first you'll need to create the folders:
 {{{
-application/my_app $ mkdir foobar_server && svn add foobar_server
-application/my_app $ mkdir foobar_client && svn add foobar_client
-application/my_app $ mkdir test && svn add test
+application/foobar $ mkdir server && svn add server
+application/foobar $ mkdir client && svn add client
+application/foobar $ mkdir test && svn add test
 }}}
- # next you'll need the CMakeLists.txt file that will look in every my_app's subfolder:
+ # next you'll need the CMakeLists.txt file that will look in every foobar's subfolder:
 {{{
-application/my_app $ cat > CMakeLists.txt
-add_subdirectory (foobar_server)
-add_subdirectory (foobar_client)
+application/foobar $ cat > CMakeLists.txt
+add_subdirectory (server)
+add_subdirectory (client)
 add_subdirectory (test)
 
 CTRL+C
-application/my_app $ touch foobar_server/CMakeLists.txt
-application/my_app $ touch foobar_client/CMakeLists.txt
-application/my_app $ touch test/CMakeLists.txt
+application/foobar $ touch server/CMakeLists.txt
+application/foobar $ touch client/CMakeLists.txt
+application/foobar $ touch test/CMakeLists.txt
 }}}
- # then you'll need to add the source files to every foobar folder, along with the CMakeLists.txt files.
- # last you'll need to integrate "my_app" into _solidground_'s buils system. This is done by running solidground/build.sh again. It will create application/CMakeLists.txt which will include all subfolders of application into cmake build system.
+ # then you'll need to add the source files to every foobar subfolder, along with the CMakeLists.txt files.
+ # last you'll need to integrate "foobar" into _solidground_'s buils system. This is done by running solidground/build.sh again. It will create application/CMakeLists.txt which will include all subfolders of application into cmake build system.
 
-As you can see, you can have multiple solidground based projects within application.
+As you can see, you can have multiple SG based projects within application.
 
 Because "foobar" is a fictional application/suite, I cannot continue with the structure. All I can point out is that you can have a look at SG's "test" and especially "test/clientserver" folder to get an idea of how the structure should look like.
 
