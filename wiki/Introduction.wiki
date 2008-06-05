@@ -52,7 +52,7 @@ This folder contains the test applications for libraries. The most important tes
 
 == How is the framework thought to be used? ==
 
-Well, I've designed the structure and the build system of the _solidground_ framework to be used in a multiple repository manner. This means you'll have the _solidground_ repository and your application repository. On your local copy of repositories, your application will reside withing "solidground/application" directory which must contain a "CMakeLists.txt" file which in turn will integrate your application(s) into the _solidground_'s build system. The application folder will be quite similar to the "test" folder, except that it will not reside within the _solidground_ repository. This design MAY impose some restrictions to the build system for your own application(s) but has the big advantage of being easy to use (and expecially easy to start using), as the cmake files will be quite similar to those from "solidground/test" directory.
+Well, I've designed the structure and the build system of the _solidground_ framework to be used in a multiple repository manner. This means you'll have the _solidground_ repository and your application repository, and the build system of your application will extend the _solidground_s one. So after checking out _solidground_, you should check out your application in a subfolder of "solidground/application". Running build.sh (or on windows build.bat) will prepare the build system, integrating all subfolders of "application" into _solidground_'s build system. This is done by automatically creating the file "application/CMakeLists.txt" which will further instruct cmake to look into all folders within "application".
 
 = How to build and test the proof of concept server =
 
