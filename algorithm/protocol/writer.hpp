@@ -205,7 +205,7 @@ protected:
 	};
 	enum {
 		FlushLength = 1024,//!< If buffer data size is above this value, it will be written.
-		StartLength = 2048, //!< The initial buffer capacity.
+		StartLength = 1024 * 2, //!< The initial buffer capacity.
 		MaxDoubleSizeLength = 4096 //!< the length up to which we can double the size of the buffer.
 	};
 	void resize(uint32 _sz);

@@ -70,9 +70,11 @@ int createFile(const char *_nm, const string &_str, ulong _sz){
 	ofstream ofs(_nm);
 	if(!ofs) return -1;
 	ulong osz = 0;
+	ulong i = 0;
 	while(osz <= _sz){
-			ofs<<_str<<endl;
-			osz += _str.size();
+		ofs<<osz<<' '<<_str<<endl;
+		osz += _str.size();
+		++i;
 	}
 	return 0;
 }

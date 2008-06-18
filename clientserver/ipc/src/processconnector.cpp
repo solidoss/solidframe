@@ -158,7 +158,6 @@ ProcessConnector::Data::Data(const Inet4SockAddrPair &_raddr, int _baseport):
 
 
 ProcessConnector::Data::~Data(){
-	idbg(""<<(void*)this);
 	for(OutBufferVectorTp::iterator it(outbufs.begin()); it != outbufs.end(); ++it){
 		char *pb = it->first.buffer();
 		if(pb){ 
@@ -168,6 +167,14 @@ ProcessConnector::Data::~Data(){
 	}
 	idbg("cq.size = "<<cq.size());
 	while(cq.size()) cq.pop();
+	while(scq.size()){
+		if(scq.front().pser){
+			scq.front().pser->clear();
+			pushSerializer(scq.front().pser);
+			scq.front().pser = NULL;
+		}
+		scq.pop();
+	}
 }
 std::pair<uint16, uint16> ProcessConnector::Data::insertSentBuffer(Buffer &_rbuf){
 	std::pair<uint16, uint16> p;
@@ -382,7 +389,7 @@ bool ProcessConnector::moveToNextInBuffer(){
 }
 
 int ProcessConnector::pushReceivedBuffer(Buffer &_rbuf, const ConnectorUid &_rcodid){
-	idbg("rcvbufid = "<<_rbuf.id()<<" expected id "<<d.expectedid<<" inbufq.size = "<<d.inbufq.size());
+	idbg("rcvbufid = "<<_rbuf.id()<<" expected id "<<d.expectedid<<" inbufq.size = "<<d.inbufq.size()<<" flags = "<<_rbuf.flags());
 	if(_rbuf.id() != d.expectedid){
 		if(_rbuf.id() < d.expectedid){
 			//the peer doesnt know that we've already received the buffer
@@ -438,7 +445,6 @@ Prevent the following situation to occur:
 A buffer is received with updates, buffers for which pushSent was not called
 */
 int ProcessConnector::pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpos, bool &_reusebuf){
-	idbg("");
 	if(_rbuf.b.buffer()){
 		if(_rbuf.b.id() > Data::LastBufferId){
 			cassert(_rbuf.b.id() == Data::UpdateBufferId);
@@ -448,12 +454,12 @@ int ProcessConnector::pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpo
 			++d.bufjetons;
 			return NOK;//maybe we have something to send
 		}else{
-			idbg("sent bufpos = "<<_rbuf.bufpos<<" retransmitid "<<_rbuf.b.retransmitId()<<" buf = "<<(void*)_rbuf.b.buffer()<<" buffercap = "<<_rbuf.b.bufferCapacity());
+			idbg("sent bufid = "<<_rbuf.b.id()<<" bufpos = "<<_rbuf.bufpos<<" retransmitid "<<_rbuf.b.retransmitId()<<" buf = "<<(void*)_rbuf.b.buffer()<<" buffercap = "<<_rbuf.b.bufferCapacity()<<" flags = "<<_rbuf.b.flags());
 			std::pair<uint16, uint16>  p;
 			if(!_rbuf.b.retransmitId()){
 				//cassert(_rbuf.bufpos < 0);
 				p = d.insertSentBuffer(_rbuf.b);	//_rbuf.bc will contain the buffer index, and
-												//_rbuf.dl will contain the buffer uid
+													//_rbuf.dl will contain the buffer uid
 			}else{
 				//cassert(_rbuf.bufpos >= 0);
 				p = d.getSentBuffer(_rbuf.bufpos);
@@ -552,11 +558,15 @@ int ProcessConnector::processSendCommands(SendBufferData &_rsb, const TimeSpec &
 				if(d.crtcmdbufcnt){
 					if(d.scq.front().pser){//a continued command
 						if(d.crtcmdbufcnt == Data::MaxCommandBufferCount){
-							if(rbuf.flags() & (Buffer::SwitchToNew | Buffer::SwitchToOld)) break;//use the next buffer
+							if(rbuf.flags() & (Buffer::SwitchToNew | Buffer::SwitchToOld)){
+								break;//use the next buffer
+							}
 							rbuf.flags(rbuf.flags() | Buffer::SwitchToOld);
 						}
 					}else{//a new commnad
-						if(rbuf.flags() & Buffer::SwitchToOld) break;//use the next buffer
+						if(rbuf.flags() & Buffer::SwitchToOld){
+							break;//use the next buffer
+						}
 						rbuf.flags(rbuf.flags() | Buffer::SwitchToNew);
 						if(pser){
 							d.scq.front().pser = pser;
@@ -568,6 +578,7 @@ int ProcessConnector::processSendCommands(SendBufferData &_rsb, const TimeSpec &
 						d.scq.front().pser->push(pcmd);
 					}
 					--d.crtcmdbufcnt;
+					idbg("d.crtcmdbufcnt = "<<d.crtcmdbufcnt);
 					written = true;
 					int rv = d.scq.front().pser->run(rbuf.dataEnd(), rbuf.dataFreeSize());
 					cassert(rv >= 0);//TODO: deal with the situation!
@@ -578,7 +589,12 @@ int ProcessConnector::processSendCommands(SendBufferData &_rsb, const TimeSpec &
 						d.scq.front().pser = NULL;
 						d.scq.pop();
 						d.crtcmdbufcnt = Data::MaxCommandBufferCount;
-						if(rbuf.dataFreeSize() < 64) break;
+						if(d.scq.size() == 1){
+							d.crtcmdbufcnt = Data::MaxCommandBufferCount - 1;
+						}else{
+							d.crtcmdbufcnt = Data::MaxCommandBufferCount;
+						}
+						break;
 					}else{
 						break;
 					}
@@ -590,7 +606,7 @@ int ProcessConnector::processSendCommands(SendBufferData &_rsb, const TimeSpec &
 					d.scq.pop();
 					d.crtcmdbufcnt = Data::MaxCommandBufferCount;
 				}
-			}
+			}//while
 			if(pser) d.pushSerializer(pser);
 		}else if(d.state == Data::Connecting){
 			rbuf.type(Buffer::ConnectingType);
@@ -623,9 +639,11 @@ int ProcessConnector::processSendCommands(SendBufferData &_rsb, const TimeSpec &
 			}else{
 				rbuf.id(Data::UpdateBufferId);
 			}
+			idbg("sending buffer id = "<<rbuf.id());
 			_rsb.paddr = &d.pairaddr;
 			--d.bufjetons;
-			if(!d.scq.size() && d.rcvidq.size()) return OK;
+			if(!d.scq.size() && d.rcvidq.size())
+				return OK;
 			return NOK;
 		}
 	}
@@ -655,33 +673,35 @@ bool ProcessConnector::freeSentBuffers(Buffer &_rbuf){
 void ProcessConnector::parseBuffer(Buffer &_rbuf, const ConnectorUid &_rcodid){
 	const char *bpos = _rbuf.data();
 	int			blen = _rbuf.dataSize();
-	//Server &srv(Server::the());
 	int rv;
 	if(_rbuf.flags() & Buffer::SwitchToNew){
 		if(d.rcq.size()){
+			idbg("switch to new rcq.size = "<<d.rcq.size());
 			d.rcq.push(d.rcq.front());
 			d.rcq.front().first = NULL;
 			d.rcq.front().second = d.popDeserializer();
 			d.rcq.front().second->push(d.rcq.front().first);
 		}else{
+			idbg("switch to new rcq.size = 0");
 			d.rcq.push(Data::RecvCmdPairTp(NULL, d.popDeserializer()));
 			d.rcq.front().second->push(d.rcq.front().first);
 		}
 	}else if(_rbuf.flags() & Buffer::SwitchToOld){
 		cassert(d.rcq.size() > 1);
+		idbg("switch to old");
 		d.rcq.push(d.rcq.front());
 		d.rcq.pop();
 	}
 	cassert(d.rcq.size());
 	cassert(d.rcq.front().second);
 	while(blen){
+		idbg("blen = "<<blen);
 		rv = d.rcq.front().second->run(bpos, blen);
 		cassert(rv >= 0);
 		blen -= rv;
 		if(d.rcq.front().second->empty()){//done one command.
-			if(d.rcq.front().first->received(_rcodid)) delete d.rcq.front().first;
-// 			std::pair<uint32, uint32> to = d.rcq.front().first->to();
-// 			srv.signalObject(to.first, to.second, d.rcq.front().first);
+			if(d.rcq.front().first->received(_rcodid))
+				delete d.rcq.front().first;
 			d.rcq.front().first = NULL;
 			if(blen){
 				d.rcq.front().second->push(d.rcq.front().first);
