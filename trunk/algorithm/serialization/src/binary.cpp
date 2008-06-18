@@ -56,6 +56,7 @@ int Serializer::run(char *_pb, unsigned _bl){
 	return cpb - pb;
 }
 int Serializer::storeBinary(Base &_rb, FncData &_rfd){
+	idbg("");
 	Serializer &rs(static_cast<Serializer&>(_rb));
 	if(!rs.cpb) return OK;
 	unsigned len = rs.be - rs.cpb;
@@ -69,16 +70,19 @@ int Serializer::storeBinary(Base &_rb, FncData &_rfd){
 }
 template <>
 int Serializer::store<int16>(Base &_rb, FncData &_rfd){
+	idbg("");
 	_rfd.s = sizeof(int16);
 	return storeBinary(_rb, _rfd);
 }
 template <>
 int Serializer::store<uint16>(Base &_rb, FncData &_rfd){
+	idbg("");
 	_rfd.s = sizeof(uint16);
 	return storeBinary(_rb, _rfd);
 }
 template <>
 int Serializer::store<int32>(Base &_rb, FncData &_rfd){
+	idbg("");
 	_rfd.s = sizeof(int32);
 	return storeBinary(_rb, _rfd);
 }
@@ -90,17 +94,20 @@ int Serializer::store<uint32>(Base &_rb, FncData &_rfd){
 }
 template <>
 int Serializer::store<int64>(Base &_rb, FncData &_rfd){
+	idbg("");
 	_rfd.s = sizeof(int64);
 	return storeBinary(_rb, _rfd);
 }
 template <>
 int Serializer::store<uint64>(Base &_rb, FncData &_rfd){
+	idbg("");
 	_rfd.s = sizeof(uint64);
 	return storeBinary(_rb, _rfd);
 }
 template <>
 int Serializer::store<std::string>(Base &_rb, FncData &_rfd){
 	Serializer &rs(static_cast<Serializer&>(_rb));
+	idbg("");
 	if(!rs.cpb) return OK;
 	std::string * c = reinterpret_cast<std::string*>(_rfd.p);
 	rs.estk.push(ExtData(c->size()));
@@ -112,12 +119,14 @@ int Serializer::store<std::string>(Base &_rb, FncData &_rfd){
 
 int Serializer::storeStream(Base &_rb, FncData &_rfd){
 	Serializer &rs(static_cast<Serializer&>(_rb));
+	idbg("");
 	if(!rs.cpb) return OK;
 	std::pair<IStream*, int64> &rsp(*reinterpret_cast<std::pair<IStream*, int64>*>(rs.estk.top().buf));
 	int32 toread = rs.be - rs.cpb;
 	if(toread < MINSTREAMBUFLEN) return NOK;
 	toread -= 2;//the buffsize
 	if(toread > rsp.second) toread = rsp.second;
+	idbg("toread = "<<toread<<" MINSTREAMBUFLEN = "<<MINSTREAMBUFLEN);
 	int rv = rsp.first->read(rs.cpb + 2, toread);
 	if(rv == toread){
 		uint16 &val = *((uint16*)rs.cpb);
@@ -130,6 +139,7 @@ int Serializer::storeStream(Base &_rb, FncData &_rfd){
 		return OK;
 	}
 	rsp.second -= toread;
+	idbg("rsp.second = "<<rsp.second);
 	if(rsp.second) return NOK;
 	return OK;
 }
@@ -156,6 +166,7 @@ int Deserializer::run(const char *_pb, unsigned _bl){
 }
 int Deserializer::parseBinary(Base &_rb, FncData &_rfd){
 	Deserializer &rd(static_cast<Deserializer&>(_rb));
+	idbg("");
 	if(!rd.cpb) return OK;
 	unsigned len = rd.be - rd.cpb;
 	if(len > _rfd.s) len = _rfd.s;
@@ -168,32 +179,38 @@ int Deserializer::parseBinary(Base &_rb, FncData &_rfd){
 }
 template <>
 int Deserializer::parse<int16>(Base &_rb, FncData &_rfd){
+	idbg("");
 	_rfd.s = sizeof(int16);
 	return parseBinary(_rb, _rfd);
 }
 template <>
-int Deserializer::parse<uint16>(Base &_rb, FncData &_rfd){
+int Deserializer::parse<uint16>(Base &_rb, FncData &_rfd){	
+	idbg("");
 	_rfd.s = sizeof(uint16);
 	return parseBinary(_rb, _rfd);
 }
 template <>
 int Deserializer::parse<int32>(Base &_rb, FncData &_rfd){
+	idbg("");
 	_rfd.s = sizeof(int32);
 	return parseBinary(_rb, _rfd);
 }
 template <>
 int Deserializer::parse<uint32>(Base &_rb, FncData &_rfd){
+	idbg("");
 	_rfd.s = sizeof(uint32);
 	return parseBinary(_rb, _rfd);
 }
 
 template <>
 int Deserializer::parse<int64>(Base &_rb, FncData &_rfd){
+	idbg("");
 	_rfd.s = sizeof(int64);
 	return parseBinary(_rb, _rfd);
 }
 template <>
 int Deserializer::parse<uint64>(Base &_rb, FncData &_rfd){
+	idbg("");
 	_rfd.s = sizeof(uint64);
 	return parseBinary(_rb, _rfd);
 }
@@ -209,6 +226,7 @@ int Deserializer::parse<std::string>(Base &_rb, FncData &_rfd){
 }
 int Deserializer::parseBinaryString(Base &_rb, FncData &_rfd){
 	Deserializer &rd(static_cast<Deserializer&>(_rb));
+	idbg("");
 	if(!rd.cpb){
 		rd.estk.pop();
 		return OK;
@@ -227,6 +245,7 @@ int Deserializer::parseBinaryString(Base &_rb, FncData &_rfd){
 
 int Deserializer::parseStream(Base &_rb, FncData &_rfd){
 	Deserializer &rd(static_cast<Deserializer&>(_rb));
+	idbg("");
 	if(!rd.cpb) return OK;
 	std::pair<OStream*, int64> &rsp(*reinterpret_cast<std::pair<OStream*, int64>*>(rd.estk.top().buf));
 	if(rsp.second < 0) return OK;
@@ -236,21 +255,26 @@ int Deserializer::parseStream(Base &_rb, FncData &_rfd){
 	if(towrite > rsp.second) towrite = rsp.second;
 	uint16 &rsz = *((uint16*)rd.cpb);
 	rd.cpb += 2;
+	idbg("rsz = "<<rsz);
 	if(rsz == 0xffff){//error on storing side - the stream is incomplete
+		idbg("error on storing side");
 		rsp.second = -1;
 		return OK;
 	}
+	idbg("towrite = "<<towrite);
 	int rv = rsp.first->write(rd.cpb, towrite);
 	rd.cpb += towrite;
 	rsp.second -= towrite;
 	if(rv != towrite){
 		_rfd.f = &parseDummyStream;
 	}
+	idbg("rsp.second = "<<rsp.second);
 	if(rsp.second) return NOK;
 	return OK;
 }
 int Deserializer::parseDummyStream(Base &_rb, FncData &_rfd){
 	Deserializer &rd(static_cast<Deserializer&>(_rb));
+	idbg("");
 	if(!rd.cpb) return OK;
 	std::pair<OStream*, int64> &rsp(*reinterpret_cast<std::pair<OStream*, int64>*>(rd.estk.top().buf));
 	if(rsp.second < 0) return OK;
