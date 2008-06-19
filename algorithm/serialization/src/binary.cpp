@@ -147,6 +147,7 @@ int Serializer::storeStream(Base &_rb, FncData &_rfd){
 Deserializer::~Deserializer(){
 }
 void Deserializer::clear(){
+	idbg("clear_deser");
 	run(NULL, 0);
 }
 int Deserializer::run(const char *_pb, unsigned _bl){

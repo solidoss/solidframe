@@ -111,6 +111,11 @@ struct Buffer{
 		Connecting = 1 << 30,
 		Accepted = 1 << 31	
 	};
+	enum DataTypes{
+		ContinuedCommand = 0,
+		NewCommand,
+		OldCommand
+	};
 	Buffer(char *_pb = NULL, uint16 _bc = 0, uint16 _dl = 0):pb(_pb), bc(_bc), dl(_dl){
 		if(_pb){
 			reset(_dl);
@@ -146,6 +151,12 @@ struct Buffer{
 	
 	char* dataEnd()const{return data() + dataSize();}
 	uint32 dataFreeSize()const{return dataCapacity() - dataSize();}
+	
+	void dataType(DataTypes _dt){
+		uint8 dt = _dt;
+		*reinterpret_cast<uint8*>(dataEnd()) = dt;
+		++dl;
+	}
 	
 	char *release(uint32 &_cp){
 		char* tmp = pb; pb = NULL; 
