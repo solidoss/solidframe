@@ -175,10 +175,6 @@ ProcessConnector::Data::~Data(){
 		}
 		scq.pop();
 	}
-	if(this->pser){
-		pser->clear();
-		pushSerializer(scq.front().pser);
-	}
 }
 std::pair<uint16, uint16> ProcessConnector::Data::insertSentBuffer(Buffer &_rbuf){
 	std::pair<uint16, uint16> p;

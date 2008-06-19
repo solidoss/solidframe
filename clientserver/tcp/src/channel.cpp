@@ -21,6 +21,7 @@
 
 #include <unistd.h>
 #include <cerrno>
+#include <cstring>
 #include <fcntl.h>
 
 #include "system/debug.hpp"

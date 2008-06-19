@@ -24,6 +24,7 @@
 #include <sys/epoll.h>
 #include <vector>
 #include <cerrno>
+#include <cstring>
 
 #include "system/debug.hpp"
 #include "system/thread.hpp"
