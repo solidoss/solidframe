@@ -19,13 +19,14 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+
+#include <cerrno>
+#include <cstring>
 #include "system/timespec.hpp"
 #include "system/thread.hpp"
 #include "system/debug.hpp"
 #include "system/condition.hpp"
 #include "mutexpool.hpp"
-
-#include <cerrno>
 
 #include <sys/sysinfo.h>
 #include <unistd.h>
