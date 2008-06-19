@@ -175,6 +175,10 @@ ProcessConnector::Data::~Data(){
 		}
 		scq.pop();
 	}
+	if(this->pser){
+		pser->clear();
+		pushSerializer(scq.front().pser);
+	}
 }
 std::pair<uint16, uint16> ProcessConnector::Data::insertSentBuffer(Buffer &_rbuf){
 	std::pair<uint16, uint16> p;
@@ -526,7 +530,6 @@ NOTE: VERY IMPORTANT
 	destroyed if there are buffers pending for sending (outstk.size < outbufs.size)
 */
 
-
 int ProcessConnector::processSendCommands(SendBufferData &_rsb, const TimeSpec &_tpos, int _baseport){
 	idbg("bufjetons = "<<d.bufjetons);
 	if(d.bufjetons || d.state != Data::Connected){
@@ -558,16 +561,12 @@ int ProcessConnector::processSendCommands(SendBufferData &_rsb, const TimeSpec &
 				if(d.crtcmdbufcnt){
 					if(d.scq.front().pser){//a continued command
 						if(d.crtcmdbufcnt == Data::MaxCommandBufferCount){
-							if(rbuf.flags() & (Buffer::SwitchToNew | Buffer::SwitchToOld)){
-								break;//use the next buffer
-							}
-							rbuf.flags(rbuf.flags() | Buffer::SwitchToOld);
+							rbuf.dataType(Buffer::OldCommand);
+						}else{
+							rbuf.dataType(Buffer::ContinuedCommand);
 						}
 					}else{//a new commnad
-						if(rbuf.flags() & Buffer::SwitchToOld){
-							break;//use the next buffer
-						}
-						rbuf.flags(rbuf.flags() | Buffer::SwitchToNew);
+						rbuf.dataType(Buffer::NewCommand);
 						if(pser){
 							d.scq.front().pser = pser;
 							pser = NULL;
@@ -588,18 +587,15 @@ int ProcessConnector::processSendCommands(SendBufferData &_rsb, const TimeSpec &
 						pser = d.scq.front().pser;
 						d.scq.front().pser = NULL;
 						d.scq.pop();
-						d.crtcmdbufcnt = Data::MaxCommandBufferCount;
-						if(d.scq.size() == 1){
-							d.crtcmdbufcnt = Data::MaxCommandBufferCount - 1;
-						}else{
-							d.crtcmdbufcnt = Data::MaxCommandBufferCount;
-						}
+						//we dont want to switch to an old command
+						d.crtcmdbufcnt = Data::MaxCommandBufferCount - 1;
+ 						if(rbuf.dataFreeSize() < 16) break;
 						break;
 					}else{
 						break;
 					}
-				}else if(d.scq.size() == 1){
-					d.crtcmdbufcnt = Data::MaxCommandBufferCount - 1;//small trick so that it wouldnt switchtoold
+				}else if(d.scq.size() == 1){//only one command
+					d.crtcmdbufcnt = Data::MaxCommandBufferCount - 1;
 				}else{
 					d.scq.push(d.scq.front());
 					d.scq.front().pser = NULL;
@@ -674,28 +670,39 @@ void ProcessConnector::parseBuffer(Buffer &_rbuf, const ConnectorUid &_rcodid){
 	const char *bpos = _rbuf.data();
 	int			blen = _rbuf.dataSize();
 	int rv;
-	if(_rbuf.flags() & Buffer::SwitchToNew){
-		if(d.rcq.size()){
-			idbg("switch to new rcq.size = "<<d.rcq.size());
-			d.rcq.push(d.rcq.front());
-			d.rcq.front().first = NULL;
-			d.rcq.front().second = d.popDeserializer();
-			d.rcq.front().second->push(d.rcq.front().first);
-		}else{
-			idbg("switch to new rcq.size = 0");
-			d.rcq.push(Data::RecvCmdPairTp(NULL, d.popDeserializer()));
-			d.rcq.front().second->push(d.rcq.front().first);
-		}
-	}else if(_rbuf.flags() & Buffer::SwitchToOld){
-		cassert(d.rcq.size() > 1);
-		idbg("switch to old");
-		d.rcq.push(d.rcq.front());
-		d.rcq.pop();
-	}
-	cassert(d.rcq.size());
-	cassert(d.rcq.front().second);
-	while(blen){
+// 	cassert(d.rcq.size());
+// 	cassert(d.rcq.front().second);
+	int 		firstblen = blen - 1;
+	while(blen > 2){
 		idbg("blen = "<<blen);
+		uint8	datatype = *bpos;
+		++bpos;
+		--blen;
+		switch(datatype){
+			case Buffer::ContinuedCommand:
+				assert(blen == firstblen);
+				//we cannot have a continued command on the same buffer
+				break;
+			case Buffer::NewCommand:
+				if(d.rcq.size()){
+					idbg("switch to new rcq.size = "<<d.rcq.size());
+					d.rcq.push(d.rcq.front());
+					d.rcq.front().first = NULL;
+					d.rcq.front().second = d.popDeserializer();
+					d.rcq.front().second->push(d.rcq.front().first);
+				}else{
+					idbg("switch to new rcq.size = 0");
+					d.rcq.push(Data::RecvCmdPairTp(NULL, d.popDeserializer()));
+					d.rcq.front().second->push(d.rcq.front().first);
+				}
+				break;
+			case Buffer::OldCommand:
+				cassert(d.rcq.size() > 1);
+				idbg("switch to old");
+				d.rcq.push(d.rcq.front());
+				d.rcq.pop();
+				break;
+		}
 		rv = d.rcq.front().second->run(bpos, blen);
 		cassert(rv >= 0);
 		blen -= rv;
@@ -713,6 +720,7 @@ void ProcessConnector::parseBuffer(Buffer &_rbuf, const ConnectorUid &_rcodid){
 		}
 	}
 }
+
 
 }//namespace ipc
 }//namespace clientserver

@@ -359,7 +359,7 @@ class Deserializer: public Base{
 	}
 	template <typename T>
 	static int parseStreamDone(Base &_rb,FncData &_rfd){
-		idbg("store stream done");
+		idbg("parse stream done");
 		Deserializer &rd(static_cast<Deserializer&>(_rb));
 		std::pair<OStream*, int64> &rsp(*reinterpret_cast<std::pair<OStream*, int64>*>(rd.estk.top().buf));
 		T	*pt = reinterpret_cast<T*>(_rfd.p);
