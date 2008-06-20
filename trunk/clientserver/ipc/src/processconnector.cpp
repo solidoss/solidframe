@@ -165,7 +165,7 @@ ProcessConnector::Data::~Data(){
 			Specific::pushBuffer(pb, Specific::capacityToId(it->first.bufferCapacity()));
 		}
 	}
-	idbg("cq.size = "<<cq.size());
+	idbg("cq.size = "<<cq.size()<<"scq.size = "<<scq.size());
 	while(cq.size()) cq.pop();
 	while(scq.size()){
 		if(scq.front().pser){
@@ -174,6 +174,14 @@ ProcessConnector::Data::~Data(){
 			scq.front().pser = NULL;
 		}
 		scq.pop();
+	}
+	while(rcq.size()){
+		if(rcq.front().second){
+			rcq.front().second->clear();
+			pushDeserializer(rcq.front().second);
+		}
+		delete rcq.front().first;
+		rcq.pop();
 	}
 }
 std::pair<uint16, uint16> ProcessConnector::Data::insertSentBuffer(Buffer &_rbuf){
