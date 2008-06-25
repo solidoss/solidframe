@@ -55,7 +55,7 @@ int main(int argc, char *argv[]){
 		*fname = 0;
 		for(int j = filecnt; j; --j){
 			sprintf(fname, "/%08u.txt", j);
-			ulong sz = (filecnt * minsz + (j * (maxsz - minsz)))/filecnt;
+			ulong sz = minsz + (j * (maxsz - minsz))/filecnt;
 			cout<<"name = "<<name<<" size = "<<sz<<endl;
 			if(createFile(name, line, sz)){
 				cout<<"failed create file"<<endl;

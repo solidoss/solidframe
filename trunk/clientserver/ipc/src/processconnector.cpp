@@ -714,13 +714,8 @@ void ProcessConnector::parseBuffer(Buffer &_rbuf, const ConnectorUid &_rcodid){
 			if(d.rcq.front().first->received(_rcodid))
 				delete d.rcq.front().first;
 			d.rcq.front().first = NULL;
-			if(blen){
-				d.rcq.front().second->push(d.rcq.front().first);
-			}else{
-				d.pushDeserializer(d.rcq.front().second);
-				d.rcq.pop();
-				break;
-			}
+			d.pushDeserializer(d.rcq.front().second);
+			d.rcq.pop();
 		}
 	}
 }

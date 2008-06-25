@@ -1,1 +1,2 @@
 add_subdirectory(binaryseeker)
+add_subdirectory(workpool)
