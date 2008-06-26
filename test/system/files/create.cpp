@@ -49,15 +49,19 @@ int main(int argc, char *argv[]){
 	sprintf(name, "%s", argv[1]);
 	char *fldname = name + strlen(argv[1]);
 	char *fname = name + strlen(argv[1]) + 1 + 8;
+	double maxsize = maxsz;
+	double minsize = minsz;
+	double filecount = filecnt;
 	for(int i = foldercnt; i; --i){
 		sprintf(fldname, "/%08u", i);
 		boost::filesystem::create_directory(name);
 		*fname = 0;
 		for(int j = filecnt; j; --j){
 			sprintf(fname, "/%08u.txt", j);
-			ulong sz = minsz + (j * (maxsz - minsz))/filecnt;
-			cout<<"name = "<<name<<" size = "<<sz<<endl;
-			if(createFile(name, line, sz)){
+			double sz = minsize + ((maxsize - minsize)*(j - 1))/(filecount - 1);
+			ulong size = sz;
+			cout<<"name = "<<name<<" size = "<<size<<" sz "<<sz<<endl;
+			if(createFile(name, line, size)){
 				cout<<"failed create file"<<endl;
 			}
 		}
