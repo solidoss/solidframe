@@ -67,7 +67,7 @@ public:
 	//! Returns the data for a specific id
 	static void* specific(unsigned _pos);
 	//! Sets the data for a specific id, allong with a pointer to a destructor function
-	static unsigned specific(unsigned _pos, void *_psd, SpecificFncTp _pfnc = &dummySpecificDestroy);
+	static void specific(unsigned _pos, void *_psd, SpecificFncTp _pfnc = &dummySpecificDestroy);
 	//static unsigned specific(void *_psd);
 	//! Returns a reference to a global mutex
 	static Mutex& gmutex();
