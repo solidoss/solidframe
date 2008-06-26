@@ -163,15 +163,20 @@ int Thread::detach(){
 //-------------------------------------------------------------------------
 unsigned Thread::specificId(){
 	static unsigned sid = ThreadData::FirstSpecificId - 1;
+	Mutex::Locker lock(gmutex());
 	return ++sid;
 }
 //-------------------------------------------------------------------------
-unsigned Thread::specific(unsigned _pos, void *_psd, SpecificFncTp _pf){
-	cassert(current());
-	//cassert(_pos < current()->specvec.size());
-	if(_pos >= current()->specvec.size()) current()->specvec.resize(_pos + 4);
-	current()->specvec[_pos] = SpecPairTp(_psd, _pf);
-	return _pos;
+void Thread::specific(unsigned _pos, void *_psd, SpecificFncTp _pf){
+	Thread *pct = current();
+	cassert(pct);
+	if(_pos >= pct->specvec.size()) pct->specvec.resize(_pos + 4);
+	//This is safe because pair will initialize with NULL on resize
+	if(pct->specvec[_pos].first){
+		(*pct->specvec[_pos].second)(pct->specvec[_pos].first);
+	}
+	pct->specvec[_pos] = SpecPairTp(_psd, _pf);
+	//return _pos;
 }
 //-------------------------------------------------------------------------
 // unsigned Thread::specific(void *_psd){
