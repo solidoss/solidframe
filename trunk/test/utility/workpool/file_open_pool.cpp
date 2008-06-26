@@ -61,7 +61,7 @@ void MyWorkPool::run(Worker &_wk){
 			cnt += rv;
 			sz -= rv;
 		}
-		cout<<"read count "<<cnt<<endl;
+		//cout<<"read count "<<cnt<<endl;
 		//Thread::sleep(100);
 	}
 }
@@ -76,9 +76,6 @@ int MyWorkPool::createWorkers(uint _cnt){
 
 
 int main(int argc, char *argv[]){
-
-// 	AutoFileDequeTp aq;
-// 	aq.push_back(auto_ptr<FileDevice>());
 	Thread::init();
 	if(argc != 4){
 		cout<<"./file_open_pool /path/to/folder file-count folder-count"<<endl;
@@ -86,45 +83,37 @@ int main(int argc, char *argv[]){
 	}
 	char c;
 	char name[1024];
-	//int minsz = atoi(argv[2]);
-	//int maxsz = atoi(argv[3]);
 	int filecnt   = atoi(argv[2]);
 	int foldercnt   = atoi(argv[3]);
-	string line;
-	for(char c = '0'; c <= '9'; ++c) line += c;
-	for(char c = 'a'; c <= 'z'; ++c) line += c;
-	for(char c = 'A'; c <= 'Z'; ++c) line += c;
-	cout<<"line"<<endl<<line<<endl;
 	sprintf(name, "%s", argv[1]);
 	char *fldname = name + strlen(argv[1]);
 	char *fname = name + strlen(argv[1]) + 1 + 8;
 	FileDeuqeTp	fdq;
 	int cnt = 0;
-	//cout<<"insert a char: ";cin>>c;
+	uint64	totsz = 0;
 	for(int i = foldercnt; i; --i){
 		sprintf(fldname, "/%08u", i);
 		*fname = 0;
 		for(int j = filecnt; j; --j){
 			sprintf(fname, "/%08u.txt", j);
 			++cnt;
-			//ulong sz = (filecnt * minsz + (j * (maxsz - minsz)))/filecnt;
 			fdq.push_back(FileDevice());
 			if(fdq.back().open(name, FileDevice::RW)){
 				cout<<"error "<<strerror(errno)<<" "<<cnt<<endl;
 				cout<<"failed to open file "<<name<<endl;
 				return 0;
 			}else{
-				cout<<"name = "<<name<<" size = "<<fdq.back().size()<<endl;
+				//cout<<"name = "<<name<<" size = "<<fdq.back().size()<<endl;
+				totsz += fdq.back().size();
 			}
 		}
 	}
-	cout<<"fdq size = "<<fdq.size()<<endl;
+	cout<<"fdq size = "<<fdq.size()<<" total size "<<totsz<<endl;
 	MyWorkPool wp;
 	wp.start(4);
 	for(FileDeuqeTp::iterator it(fdq.begin()); it != fdq.end(); ++it){
 		wp.push(&(*it));
 	}
-	//cout<<"insert a char: ";cin>>c;
 	wp.stop(true);
 	Thread::waitAll();
 	return 0;
