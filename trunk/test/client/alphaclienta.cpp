@@ -191,6 +191,7 @@ int AlphaThread::list(char *_pb){
 	wr<<"s1 list \""<<path<<'\"'<<crlf;
 	if(wr.flush()) return -1;
 	enum {
+		SkipFirstLine,
 		StartLine,
 		FirstSpace,
 		SecondSpace,
@@ -203,7 +204,7 @@ int AlphaThread::list(char *_pb){
 		ReadFinalLF
 	};
 	int rc;
-	int state = StartLine;
+	int state = SkipFirstLine;
 	const char *bpos;
 	const char *bend;
 	const char *bp;
@@ -215,6 +216,14 @@ int AlphaThread::list(char *_pb){
 		_pb[rc] = '\0';
 		while(b){
 			switch(state){
+				case SkipFirstLine:
+					bp = find<const char,'\n','\0'>(bpos);
+					if(*bp){
+						bpos = bp + 1;
+						state = StartLine;
+					}else{
+						b = false; break;
+					}
 				case StartLine:
 					if(!*bpos){b = false; break;}
 					if(*bpos != '*'){state = SkipLine; break;}
