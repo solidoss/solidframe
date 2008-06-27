@@ -23,6 +23,13 @@
 #define inline
 #endif
 
+
+
+enum ObjectDefs{
+	SERVICEBITCNT = sizeof(ulong) == 4 ? 5 : 8,
+	INDEXBITCNT	= sizeof(ulong) * 8 - SERVICEBITCNT,
+};
+
 inline void Object::getThread(uint &_rthid, uint &_rthpos){
 	//which is better:
 	//new thread id and old pos, or
@@ -35,7 +42,7 @@ inline void Object::setThread(uint _thrid, uint _thrpos){
 	thrpos = _thrpos;
 }
 inline ulong Object::computeIndex(ulong _fullid){
-	return _fullid & INDEXMASK;
+	return _fullid & (MAX_ULONG >> SERVICEBITCNT);
 }
 inline ulong Object::computeServiceId(ulong _fullid){
 	return _fullid >> INDEXBITCNT;

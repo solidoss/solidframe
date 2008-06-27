@@ -74,11 +74,6 @@ class Command;
 class Object{
 public:
 	typedef Command	CommandTp;
-	enum Defs{
-		SERVICEBITCNT = 8,
-		INDEXBITCNT	= 32 - SERVICEBITCNT,
-		INDEXMASK = 0xffffffff >> SERVICEBITCNT
-	};
 	//! Extracts the object index within service from an objectid
 	static ulong computeIndex(ulong _fullid);
 	//! Extracts the service id from an objectid
@@ -156,8 +151,8 @@ protected:
 private:
 	ulong			fullid;
 	uint			smask;
-	volatile uint	thrid;//the current thread which (may) execute(s) the object
-	volatile uint	thrpos;//
+	volatile uint32	thrid;//the current thread which (may) execute(s) the object
+	volatile uint32	thrpos;//
 	short			usecnt;//
 	short			crtstate;// < 0 -> must die
 };

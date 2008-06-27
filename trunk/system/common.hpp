@@ -35,7 +35,9 @@ typedef signed short		int16;
 #if defined(__arch64__)
 typedef unsigned long		uint32;
 typedef signed long			int32;
+#define MAX_ULONG			0xffffffffffffffffL
 #else
+#define MAX_ULONG			0xfffffff
 typedef unsigned			uint32;
 typedef signed				int32;
 #endif
