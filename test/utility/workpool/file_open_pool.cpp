@@ -31,6 +31,29 @@
 #include <cerrno>
 using namespace std;
 
+template <class T>
+static T align(T _v, ulong _by);
+
+template <class T>
+static T* align(T* _v, const ulong _by){
+    if((size_t)_v % _by){
+        return _v + (_by - ((size_t)_v % _by));
+    }else{
+        return _v;
+    }
+}
+
+template <class T>
+static T align(T _v, const ulong _by){
+    if(_v % _by){
+        return _v + (_by - (_v % _by));
+    }else{
+        return _v;
+    }
+}
+
+const uint32  pagesize = 4 * 1024;
+
 ///\cond 0
 typedef std::deque<FileDevice>	FileDeuqeTp;
 typedef std::deque<auto_ptr<FileDevice> >	AutoFileDequeTp;
@@ -48,7 +71,9 @@ protected:
 ///\endcond
 void MyWorkPool::run(Worker &_wk){
 	FileDevice* pfile;
-	char buf[1024 * 4];
+	char bf[1024 * 4];
+	char *buf(align(bf, pagesize));
+	cassert(buf == bf);
 	while(pop(_wk.wid(), pfile) != BAD){
 		idbg(_wk.wid()<<" is processing");
 		int64 sz = pfile->size();
