@@ -52,7 +52,7 @@ static T align(T _v, const ulong _by){
     }
 }
 
-const uint32  pagesize = 4 * 1024;
+const uint32  pagesize = getpagesize();
 
 ///\cond 0
 typedef std::deque<FileDevice>	FileDeuqeTp;
@@ -71,16 +71,18 @@ protected:
 ///\endcond
 void MyWorkPool::run(Worker &_wk){
 	FileDevice* pfile;
-	char bf[1024 * 4];
+	const ulong readsz = 4* pagesize;
+	char *bf(new char[readsz + pagesize]) ;
 	char *buf(align(bf, pagesize));
-	cassert(buf == bf);
+	//char buf[readsz];
+	//cassert(buf == bf);
 	while(pop(_wk.wid(), pfile) != BAD){
 		idbg(_wk.wid()<<" is processing");
 		int64 sz = pfile->size();
 		int toread;
 		int cnt = 0;
 		while(sz > 0){
-			toread = 4 * 1024;
+			toread = readsz;
 			if(toread > sz) toread = sz;
 			int rv = pfile->read(buf, toread);
 			cnt += rv;
@@ -89,6 +91,7 @@ void MyWorkPool::run(Worker &_wk){
 		//cout<<"read count "<<cnt<<endl;
 		//Thread::sleep(100);
 	}
+	delete []bf;
 }
 
 int MyWorkPool::createWorkers(uint _cnt){
