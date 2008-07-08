@@ -13,7 +13,7 @@ http://code.google.com/p/solidground/wiki/Introduction] (How to build and test t
 
 Supposing that you successfully built the test applications, let's set up your application.
 
-SG's build.sh creates a folder called "application" within the SG's folder. There's where your application(s) should reside.
+SG's repository contains an empty folder called "application". There's where your application(s) should reside.
 
 So you should do something like:
 {{{
@@ -41,7 +41,7 @@ application/foobar $ touch client/CMakeLists.txt
 application/foobar $ touch test/CMakeLists.txt
 }}}
  # then you'll need to add the source files to every foobar subfolder, along with the CMakeLists.txt files.
- # last you'll need to integrate "foobar" into _solidground_'s buils system. This is done by running solidground/build.sh again. It will create application/CMakeLists.txt which will include all subfolders of application into cmake build system.
+ # last you'll need to integrate "foobar" into _solidground_'s buils system. This is done by running solidground/build.sh again. It will create application/CMakeLists.txt which will integrate all subfolders within application into cmake build system.
 
 As you can see, you can have multiple SG based projects within application.
 
