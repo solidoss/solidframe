@@ -41,9 +41,17 @@ application/foobar $ touch client/CMakeLists.txt
 application/foobar $ touch test/CMakeLists.txt
 }}}
  # then you'll need to add the source files to every foobar subfolder, along with the CMakeLists.txt files.
- # last you'll need to integrate "foobar" into _solidground_'s buils system. This is done by running solidground/build.sh again. It will create application/CMakeLists.txt which will integrate all subfolders within application into cmake build system.
+ # last you'll need to integrate "foobar" into _solidground_'s build system. This is done by running solidground/build.sh again. It will create application/CMakeLists.txt which will integrate all subfolders within application into cmake build system.
 
 As you can see, you can have multiple SG based projects within application.
+
+NOTE:
+* I use KDevelop IDE (http://www.kdevelop.org/) for managing the SolidGround project. To do that all you need to do is to run:
+{{{
+build.sh kdevelop nolog
+}}}
+(instead of nolog you can use other target specifications - debug, release etc.)
+Then open the KDevelop project residing within: solidground/build/kdevelop/SOLIDGROUND.kdevelop
 
 Because "foobar" is a fictional application/suite, I cannot continue with the structure. All I can point out is that you can have a look at SG's "test" and especially "test/clientserver" folder to get an idea of how the structure should look like.
 
