@@ -46,7 +46,8 @@ application/foobar $ touch test/CMakeLists.txt
 As you can see, you can have multiple SG based projects within application.
 
 NOTE:
-\* I use KDevelop IDE (http://www.kdevelop.org/) for managing the SolidGround project. To do that all you need to do is to run:
+
+# I use KDevelop IDE (http://www.kdevelop.org/) for managing the SolidGround project. To do that all you need to do is to run:
 {{{
 build.sh kdevelop nolog
 }}}
