@@ -47,11 +47,13 @@ As you can see, you can have multiple SG based projects within application.
 
 NOTE:
 
- # I use KDevelop IDE (http://www.kdevelop.org/) for managing the SolidGround project. To do that all you need to do is to run:
+ # I'm using KDevelop IDE (http://www.kdevelop.org/) for managing the SolidGround project. To do that too, you'll need to run the build script this way:
+
 {{{
 build.sh kdevelop nolog
 }}}
-(instead of nolog you can use other target specifications - debug, release etc.)
+
+(instead of _nolog_ you can use other target specifications - debug, release etc.)
 Then open the KDevelop project residing within: solidground/build/kdevelop/SOLIDGROUND.kdevelop
 
 Because "foobar" is a fictional application/suite, I cannot continue with the structure. All I can point out is that you can have a look at SG's "test" and especially "test/clientserver" folder to get an idea of how the structure should look like.
