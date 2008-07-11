@@ -1,0 +1,185 @@
+=============================================
+1) About SolidGround framework				=
+2) Building the test applications			=
+3) Getting started with your application	=
+=============================================
+
+**********************************
+* 1) About SolidGround framework *
+**********************************
+
+SolidGround is (intends to be) a C++ cross platform framework for building high performance distributed asynchronous server or client applications.
+
+The framework is designed as a workspace that is your applications' code will integrate within SolidGround's build system.
+
+The build system is based on cmake. Please consider reading "Building the test applications".
+
+Here is a list with what the framework is offering for now:
+	* A system library which wraps up threads, synchronization objects, thread specific, file access, socket address etc.
+	* Asynchronous signaling engine.
+	* Asynchronous TCP and UDP communication engine.
+	* Asynchronous multiplexed IPC(Inter Process Communication)/RPC(Remote Procedure Call) engine (for now only over UDP).
+	* A nice serialization engine (for now only binary, non portable - used by IPC)
+	* A nice asynchronous ready, text protocol engine (parser and response builder) for protocols like IMAP, POP, SMTP etc.
+	* A file stream manager for asynchronous usage (e.g. if you want a read-only stream for a file which is locked for writing, the manager will signal you the stream when unlocked)
+	* Doxygen documentation.
+	* Lots of test applications, including a central proof of concept multi service server.
+
+Here are some planned additions:
+	* Secure connections support using (eventually) OpenSSL.
+	* A generic, simple btree implementation.
+	
+
+*************************************
+* 2) Building the test applications *
+*************************************
+
+Before anything, you must ensure you have all the needed packages installed on you Linux box.
+You'll need: 
+	gcc-c++, boost, boost-devel, cmake, ccache 
+(on a fedora box: "yum install gcc-c++ boost boost-devel cmake ccache" will suffice).
+Eventually you'll need "subversion" to fetch a copy of solidground repository (fedora: "yum install subversion").
+
+The solidground framework, has a commodity build script which can be used to create certain builds for certain base build systems (make or kdevelop3 - run ./build.sh with no parameters to se the options).
+
+So lets build a (debug-)nolog version.
+
+solidground $ ./build.sh nolog
+
+solidground $ cd build/nolog/test/clientserver/main
+
+main $ make
+
+The above commands will start building the proof of concept clientserver test application. When it's done the application is create within the main directory, and you can start using it:
+
+main $ ./test
+
+The application should start printing some information and offering a small CLI on which you can type help to see the commands.
+
+The test application expects a starting port value which will be used for opening listening tcp and udp sockets (default is 1000). There are few services offered by test among which are echo and the most important, alpha.
+
+In the following lines, to show the capabilities of the framework we'll use the alpha protocol which somehow resembles the IMAP protocol in syntax. The alpha service will listen on (x + 114) port, where x is the value given as parameter to test application. So, next you'll need to start a telnet on localhost 1114 (telnet 0 1114) and you should see the alpha banner.
+
+With alpha you can list folder content:
+
+aa list "/home"
+
+Append a new file to an existing folder:
+
+ac store "/tmp/000002.txt" {10}
+
+1234567890
+
+The above command will create "/tmp/000002.txt" and will write the given 10 chars on it.
+
+Fetch files:
+
+ab fetch "/tmp/000002.txt"
+
+Now lets move forward to two more interesting commands. For that we'll need another instance of test listening on different set of ports:
+
+main $ ./test 2000
+
+We'll also need a new telnet alpha session on the new test instance:
+
+telnet 0 2114
+
+On this telnet session first copy from the banner what is between brackets (something like "2222 83886081 0") and then we'll issue the idle command:
+
+aa idle
+
+To exit from the idle command type done, but for now lets leave the session this way - in idle.
+
+Now go back to the first alpha session opened on the first test instance, and issue:
+
+ad sendstring localhost 2222 83886081 0 "one nice string"
+
+(please replace "2222 83886081 0" with what you've copied from the banner of the second alpha connection)
+
+Now go to the second alpha connection to see the marvel.
+
+Now lets send something nicer, a file from the first alpha session:
+
+ae sendstream localhost 2222 83886081 0 "/tmp/000002.txt" "/tmp/rcvd-000002.txt"
+
+And, you guessed!, back to the second alpha connection to see a new marvel.
+
+Notable is that the last two commands can be used with the test instances on different machines, in which case 'localhost' can be replaced with the name/address of the peer (this way the test can be started without parameter in which case in the above alpha commands you'll need to replace 2222 with 1222). Also don't forget to add new firewall rules for used ports (on my machine I'm allowing for 1114(tcp) and 1222(udp)).
+
+In the end lets go back to the idle connection and type:
+
+done ... to end the idle command.
+
+Then lets remotely fetch the file stored above ("/tmp/000002.txt"):
+
+bb fetch "/tmp/000002.txt" localhost 1222
+
+For the purpose of testing remote fetching files there is a client test application called "alphafetch", you can build it this way:
+
+solidground $ cd build/nolog/test/client client $ make
+
+and you can run it this way:
+
+client $ ./alphafetch localhost 2114 localhost 1222 "/tmp/000002.txt" dest_000002.txt
+
+or this way:
+
+client $ time ./alphafetch localhost 2114 localhost 1222 "/tmp/000002.txt" dest_000002.txt
+
+to test the speed of fetching.
+
+Notes:
+
+1) To close a connection use:
+
+xx logout
+
+2) To close the test application type "quit" in the mini CLI
+
+3) The remote fetching will use a local temporary file (at most 2MB) as buffer for fetching - no matter the size of the fetched file. The temp files are located in /tmp/test/. The best way to test the remote fetching is using two computers - I did it an over a wireless network I got +1MB/s transfer rate. It is not much but it is something. 
+
+********************************************
+* 3) Getting started with your application *
+********************************************
+
+Supposing that you successfully built the test applications, let's set up your application.
+
+SG's repository contains an empty folder called "application". There's where your application(s) should reside.
+
+So you should do something like:
+
+solidground/application $ svn co https://foobarsuite.googlecode.com/svn/trunk/ foobar
+
+So you'll have a repository copy of your application within "solidground/application/foobar". With no files and no folders. Lets add some (we suppose the foobar contains: a client, a server and some test applications):
+
+   1. first you'll need to create the folders:
+
+      application/foobar $ mkdir server && svn add server
+      application/foobar $ mkdir client && svn add client
+      application/foobar $ mkdir test && svn add test
+
+   2. next you'll need the CMakeLists.txt file that will look in every foobar's subfolder:
+
+      application/foobar $ cat > CMakeLists.txt
+      add_subdirectory (server)
+      add_subdirectory (client)
+      add_subdirectory (test)
+
+      CTRL+C
+      application/foobar $ touch server/CMakeLists.txt
+      application/foobar $ touch client/CMakeLists.txt
+      application/foobar $ touch test/CMakeLists.txt
+
+   3. then you'll need to add the source files to every foobar subfolder, along with the CMakeLists.txt files.
+   4. last you'll need to integrate "foobar" into solidground's build system. This is done by running solidground/build.sh again. It will create application/CMakeLists.txt which will integrate all subfolders within application into cmake build system. 
+
+As you can see, you can have multiple SG based projects within application.
+
+NOTE:
+
+   1. I'm using KDevelop IDE (http://www.kdevelop.org/) for managing the SolidGround project. To do that too, you'll need to run the build script this way: 
+
+build.sh kdevelop nolog
+
+(instead of nolog you can use other target specifications - debug, release etc.) Then open the KDevelop project residing within: solidground/build/kdevelop/SOLIDGROUND.kdevelop
+
