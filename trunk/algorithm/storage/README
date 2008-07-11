@@ -1,0 +1,48 @@
+*****************
+Work in progress
+*****************
+
+Here are some btree design ideas.
+
+Sample usage code:
+
+typedef storage::BTree<MyFirstNode, MyNode::Comparator, storage::File>	MyFirstBTree;
+typedef storage::BTree<MySecondNode, MyNode::Comparator, storage::File>	MySecondBTree;
+
+....
+storage::Manager	mgr(filepath);
+
+MyFirstBTree::Stub	*pfirstbtree(mgr.add<MyFirstBTree>(mrg.firstRootOffset()));
+MySecondBTree::Stub *psecondbtree = NULL;
+storage::TransactionId tid = mgr.newTransaction();
+
+int myfirstkey = rand();
+if(pfirstbtree->find(myfirstkey)){
+	psecondbtree = mgr.add<MySecondBTree>(pfirstbtree->current().secondOffset());
+	for(bool b = psecondbtree.first(); b; b = psecondbtree.next()){
+		psecondbtree->current().print(cout);
+	}
+	int mysecondkey = rand();
+	if(psecondbtree->find(mysecondkey)){
+		psecondbtree->current(tid, MySecondObject(mysecondkey, psecondbtree->current().data() + 1));
+	}
+}else{
+	//create a new second btree, insert some nodes
+	psecondbtree = mgr.add<MySecondBTree>();
+	for(int i = 0; i < 10; ++i){
+		psecondbtree->insert(tid, MySecondObject(rand(), rand()));
+	}
+	pfirstbtree->insert(tid, MyFirstObject(rand(), psecondbtree->rootOffset()));
+}
+
+//first commit the transaction:
+if(mgr.commit(tid)){
+	cout<<"transaction failed"<<endl;
+}else{
+	cout<<"transaction succeded"<<endl;
+}
+
+mgr.release(psecondbtree);
+mgr.release(pfirstbtree);
+
+
