@@ -192,6 +192,8 @@ private:
 	friend class FileOStream;
 	friend class FileIOStream;
 	friend class File;
+	template <typename StreamP>
+	int doGetStream(StreamP &_sptr, FileUidTp &_rfuid, const RequestUid &_rrequid, const FileKey &_rk, uint32 _flags);
 	void releaseIStream(uint _fileid);
 	void releaseOStream(uint _fileid);
 	void releaseIOStream(uint _fileid);

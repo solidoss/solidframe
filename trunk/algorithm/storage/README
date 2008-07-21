@@ -6,6 +6,30 @@ Here are some btree design ideas.
 
 Sample usage code:
 
+1) ------------------------------------------------------------------------------------
+
+struct MyFirstNode{
+	struct Object{
+		Object():key(0), secondoffset(0){}
+		Object(const char* _pd):
+			key(*reinterpret_cast<const int32*>(_pd)),
+			secondoffset(*reinterpret_cast<const uint32>(_pd + sizeof(int32))){
+		}
+		int32	key;
+		uint32	secondoffset;
+	};
+	struct Comparator{
+		int operator()(const Object &_robj1, const Object &_robj2)const{
+			return _robj2.key - _robj1.key;
+		}
+	};
+	MyFirstNode(char *_pdata):pdata(_pdata){}
+	Object operator[](uint _idx){
+		return Object(pdata + _idx * sizeof(Object));
+	}
+	char* pdata;
+};
+
 typedef storage::BTree<MyFirstNode, MyNode::Comparator, storage::File>	MyFirstBTree;
 typedef storage::BTree<MySecondNode, MyNode::Comparator, storage::File>	MySecondBTree;
 
@@ -14,7 +38,10 @@ storage::Manager	mgr(filepath);
 
 MyFirstBTree::Stub	*pfirstbtree(mgr.add<MyFirstBTree>(mrg.firstRootOffset()));
 MySecondBTree::Stub *psecondbtree = NULL;
-storage::TransactionId tid = mgr.newTransaction();
+
+storage::Transaction *ptrans = new SimpleTransaction;//create a new transaction - simple means only one manager
+//register the transaction to the manager - the transaction may be used by multiple managers
+mgr.registerTransaction(ptrans);
 
 int myfirstkey = rand();
 if(pfirstbtree->find(myfirstkey)){
@@ -24,20 +51,20 @@ if(pfirstbtree->find(myfirstkey)){
 	}
 	int mysecondkey = rand();
 	if(psecondbtree->find(mysecondkey)){
-		psecondbtree->current(tid, MySecondObject(mysecondkey, psecondbtree->current().data() + 1));
+		psecondbtree->current(ptrans, MySecondObject(mysecondkey, psecondbtree->current().data() + 1));
 	}
 }else{
 	//create a new second btree, insert some nodes
 	psecondbtree = mgr.add<MySecondBTree>();
 	for(int i = 0; i < 10; ++i){
-		psecondbtree->insert(tid, MySecondObject(rand(), rand()));
+		psecondbtree->insert(ptrans, MySecondObject(rand(), rand()), storage::BTreeBase::Overwrite);
 	}
-	pfirstbtree->insert(tid, MyFirstObject(rand(), psecondbtree->rootOffset()));
+	pfirstbtree->insert(ptrans, MyFirstObject(rand(), psecondbtree->rootOffset()));
 }
 
 //first commit the transaction:
-if(mgr.commit(tid)){
-	cout<<"transaction failed"<<endl;
+if(ptrans->commit()){
+	cout<<"transaction failed - state restored"<<endl;
 }else{
 	cout<<"transaction succeded"<<endl;
 }
@@ -45,4 +72,4 @@ if(mgr.commit(tid)){
 mgr.release(psecondbtree);
 mgr.release(pfirstbtree);
 
-
+2) ------------------------------------------------------------------------------------
