@@ -346,9 +346,9 @@ int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 				case BAD:{//delete the file and collect the position
 					if(state() == Data::Running) rf.pfile->clear(*this, fuid);//send errors only if we're not stopping
 					File *pf(rf.pfile);
-					rf.pfile = NULL;
 					m.unlock();//avoid crosslocking deadlock
 					d.mut->lock();
+					rf.pfile = NULL;
 					pf->key().erase(*this, ofront);
 					d.collectFilePosition(ofront);
 					dsz = d.sz;
@@ -403,9 +403,9 @@ int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 						FileUidTp 		fuid(ofront, d.fv[*it].uid);
 						rf.pfile->clear(*this, fuid);
 						File *pf(rf.pfile);
-						rf.pfile = NULL;
 						rm.unlock();//avoid crosslocking deadlock
 						d.mut->lock();
+						rf.pfile = NULL;
 						pf->key().erase(*this, *it);
 						d.collectFilePosition(*it);
 						dsz = d.sz;
@@ -659,7 +659,10 @@ int FileManager::doGetStream(
 		}else{
 			//search the file within the ext vector
 			for(Data::FileExtVectorTp::const_iterator it(d.fextv.begin()); it != d.fextv.end(); ++it){
-				if(it->pos == fid){pf = it->pfile; break;}
+				if(it->pos == fid){
+					pf = it->pfile;
+					break;
+				}
 			}
 		}
 		cassert(pf);
@@ -713,6 +716,7 @@ int FileManager::doGetStream(
 					return NOK;
 				}else{
 					delete pf;
+					pf->key().erase(*this, pos);
 					d.collectFilePositionExt(pos);
 					return BAD;
 				}
