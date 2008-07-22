@@ -272,10 +272,10 @@ int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 				case BAD:{//delete the file and collect the position
 					if(state() == Data::Running) rf.pfile->clear(*this, fuid);//send errors only if we're not stopping
 					File *pf(rf.pfile);
-					rf.pfile = NULL;
 					m.unlock();//avoid crosslocking deadlock
 					d.mut->lock();
 					pf->key().erase(*this, *pfid);
+					rf.pfile = NULL;
 					d.collectFilePosition(*pfid);
 					dsz = d.sz;
 					d.mut->unlock();
@@ -290,10 +290,10 @@ int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 					if(state() != Data::Running){//the state is only set within this thread!!!
 						//rf.pfile->clear(*this, fuid);//not sending errors when stopping
 						File *pf(rf.pfile);
-						rf.pfile = NULL;
 						m.unlock();//avoid crosslocking deadlock
 						d.mut->lock();
 						pf->key().erase(*this, *pfid);
+						rf.pfile = NULL;
 						d.collectFilePosition(*pfid);
 						dsz = d.sz;
 						d.mut->unlock();
@@ -348,8 +348,8 @@ int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 					File *pf(rf.pfile);
 					m.unlock();//avoid crosslocking deadlock
 					d.mut->lock();
-					rf.pfile = NULL;
 					pf->key().erase(*this, ofront);
+					rf.pfile = NULL;
 					d.collectFilePosition(ofront);
 					dsz = d.sz;
 					d.oq.pop();
@@ -405,8 +405,8 @@ int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 						File *pf(rf.pfile);
 						rm.unlock();//avoid crosslocking deadlock
 						d.mut->lock();
-						rf.pfile = NULL;
 						pf->key().erase(*this, *it);
+						rf.pfile = NULL;
 						d.collectFilePosition(*it);
 						dsz = d.sz;
 						oqsz = d.oq.size();
