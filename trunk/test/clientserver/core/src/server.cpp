@@ -317,7 +317,7 @@ Server::Data::Data(Server &_rs):pconnectionpool(NULL), plistenerpool(NULL), ptal
 	if(true){	
 		pconnectionpool = new ConSelPoolTp(	_rs,
 												10,			//max thread cnt
-												512	//max connections per selector/thread
+												256			//max connections per selector/thread
 												);			//at most 10 * 4 * 1024 connections
 		pconnectionpool->start(1);//start with one worker
 	}

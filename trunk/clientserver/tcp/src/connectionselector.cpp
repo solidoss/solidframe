@@ -117,7 +117,6 @@ ConnectionSelector::ConnectionSelector():d(*(new Data)){
 
 ConnectionSelector::~ConnectionSelector(){
 	delete &d;
-	idbg("done");
 }
 
 int ConnectionSelector::reserve(ulong _cp){
@@ -167,12 +166,12 @@ int ConnectionSelector::reserve(ulong _cp){
 		ev.data.ptr = &d.pchs[0];
 		ev.events = EPOLLIN | EPOLLPRI;//must be LevelTriggered
 		if(epoll_ctl(d.epfd, EPOLL_CTL_ADD, d.pipefds[0], &ev)){
-			idbg("error epollctl");
+			edbg("epollctl");
 			cassert(false);
 			return -1;
 		}
 	}
-	idbg("Pipe fds "<<d.pipefds[0]<<" "<<d.pipefds[1]);
+	idbg("pipe fds "<<d.pipefds[0]<<" "<<d.pipefds[1]);
 	d.ctimepos.set(0);
 	d.ntimepos.set(Data::MAXTIMEPOS);
 	d.selcnt = 0;
@@ -263,7 +262,7 @@ void ConnectionSelector::Data::push(const ConnectionPtrTp &_conptr, uint _thid){
 	ev.data.ptr = pc;
 	if(_conptr->channel().descriptor() >= 0 && 
 		epoll_ctl(epfd, EPOLL_CTL_ADD, _conptr->channel().descriptor(), &ev)){
-		idbg("error adding filedesc "<<_conptr->channel().descriptor());
+		edbg("epoll_ctl adding filedesc "<<_conptr->channel().descriptor());
 		pc->conptr.clear();
 		pc->reset(); fstk.push(pc);
 		cassert(false);
@@ -272,7 +271,7 @@ void ConnectionSelector::Data::push(const ConnectionPtrTp &_conptr, uint _thid){
 	}
 	_conptr->channel().prepare();
 	pc->conptr = _conptr;
-	idbg("pushing "<<&(*(pc->conptr))<<" on pos "<<(pc - pchs));
+	idbg("pushing connection "<<&(*(pc->conptr))<<" on position "<<(pc - pchs));
 	pc->state = ChannelStub::InQExec;
 	chq.push(pc);
 }
@@ -398,17 +397,12 @@ uint ConnectionSelector::Data::doExecuteQueue(){
 	epoll_event	ev;
 	uint		qsz(chq.size());
 	while(qsz){//we only do a single scan:
-		idbg("qsz = "<<qsz<<" queuesz "<<chq.size());
 		ChannelStub &rc = *chq.front();chq.pop(); --qsz;
-		idbg("qsz = "<<qsz<<" queuesz "<<chq.size()<<" state = "<<rc.state);
 		switch(rc.state){
 			case ChannelStub::Empty:
-				idbg("empty");
 			case ChannelStub::NotInQ:
-				idbg("notinq");
 				break;
 			case ChannelStub::InQExec:
-				idbg("InQExec");
 				rc.state &= ~ChannelStub::InQExec;
 				evs = 0;
 				crttout = ctimepos;
@@ -431,7 +425,8 @@ int ConnectionSelector::Data::doExecute(ChannelStub &_rch, ulong _evs, TimeSpec 
 			_rch.conptr.clear();
 			_rch.state = ChannelStub::Empty;
 			--sz;
-			if(empty()) rv = EXIT_LOOP;
+			//if(empty()) 
+			rv = EXIT_LOOP;
 			break;
 		case OK://
 			idbg("OK: reentering connection "<<rcon.channel().ioRequest());
@@ -447,14 +442,9 @@ int ConnectionSelector::Data::doExecute(ChannelStub &_rch, ulong _evs, TimeSpec 
 				ulong t = (EPOLLET) | rcon.channel().ioRequest();
 				if((_rch.evmsk & EPOLLMASK) != t){
 					idbg("epollctl");
-					//TODO: remove
-					if(t & EPOLLOUT){idbg("WTOUT");}
-					if(t & EPOLLIN){idbg("RTOUT");}
 					_rch.evmsk = _rev.events = t;
 					_rev.data.ptr = &_rch;
 					int rz = epoll_ctl(epfd, EPOLL_CTL_MOD, rcon.channel().descriptor(), &_rev);
-					//TODO: remove
-					if(rz) idbg("epollctl "<<strerror(errno));
 				}
 				if(_crttout != ctimepos){
 					_rch.timepos = _crttout;
@@ -472,7 +462,8 @@ int ConnectionSelector::Data::doExecute(ChannelStub &_rch, ulong _evs, TimeSpec 
 			_rch.conptr.release();
 			_rch.state = ChannelStub::Empty;
 			rcon.channel().unprepare();
-			if(empty()) rv = EXIT_LOOP;
+			//if(empty()) 
+			rv = EXIT_LOOP;
 			break;
 		case REGISTER:{//
 			idbg("REGISTER: register connection with new descriptor");
@@ -496,7 +487,7 @@ int ConnectionSelector::Data::doExecute(ChannelStub &_rch, ulong _evs, TimeSpec 
 		default:
 			cassert(false);
 	}
-	idbg("doExecute return "<<rv);
+	idbg("return "<<rv);
 	return rv;
 }
 
@@ -508,17 +499,14 @@ int ConnectionSelector::Data::doReadPipe(){
 	uint32	buf[128];
 	int rv = 0;//no
 	int rsz = 0;int j = 0;int maxcnt = (cp / BUFSZ) + 1;
-	idbg("maxcnt = "<<maxcnt);
 	ChannelStub	*pch = NULL;
 	while((++j <= maxcnt) && ((rsz = read(pipefds[0], buf, BUFLEN)) == BUFLEN)){
 		for(int i = 0; i < BUFSZ; ++i){
-			idbg("buf["<<i<<"]="<<buf[i]);
 			uint pos = buf[i];
 			if(pos){
 				if(pos < cp && (pch = pchs + pos)->conptr && !pch->state && pch->conptr->signaled(S_RAISE)){
 					chq.push(pch);
 					pch->state = ChannelStub::InQExec;
-					idbg("pushig "<<pos<<" connection into queue");
 				}
 			}else rv = EXIT_LOOP;
 		}
@@ -526,13 +514,11 @@ int ConnectionSelector::Data::doReadPipe(){
 	if(rsz){
 		rsz >>= 2;
 		for(int i = 0; i < rsz; ++i){	
-			idbg("buf["<<i<<"]="<<buf[i]);
 			uint pos = buf[i];
 			if(pos){
 				if(pos < cp && (pch = pchs + pos)->conptr && !pch->state && pch->conptr->signaled(S_RAISE)){
 					chq.push(pch);
 					pch->state = ChannelStub::InQExec;
-					idbg("pushig "<<pos<<" connection into queue");
 				}
 			}else rv = EXIT_LOOP;
 		}
@@ -540,10 +526,9 @@ int ConnectionSelector::Data::doReadPipe(){
 	if(j > maxcnt){
 		//dummy read:
 		rv = EXIT_LOOP | FULL_SCAN;//scan all filedescriptors for events
-		idbg("reading dummy");
+		idbg("reading pipe dummy");
 		while((rsz = read(pipefds[0],buf,BUFSZ)) > 0);
 	}
-	idbg("readpiperv = "<<rv);
 	return rv;
 }
 

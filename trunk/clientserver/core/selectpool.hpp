@@ -23,7 +23,6 @@
 #define SELECTPOOL_HPP
 
 #include <deque>
-#include "system/debug.hpp"
 
 #include "utility/workpool.hpp"
 #include "utility/list.hpp"
@@ -53,14 +52,15 @@ public:
 	typedef typename Sel::ObjectTp				JobTp;
 	typedef SelectPool<Sel>						ThisTp;
 	typedef WorkPool<typename Sel::ObjectTp>	WorkPoolTp;
+
 private:
-	//typedef std::pair<ulong, int> 					LstPairTp;
 	typedef List<ulong>								ListTp;
 	typedef std::pair<SelectorTp*,ListTp::iterator>	VecPairTp;
-	//deque because this way raise may not be guarded
-	typedef std::deque<VecPairTp>		 			SlotVecTp;
+	typedef std::vector<VecPairTp>		 			SlotVecTp;
+
 protected:
 	struct SelectorWorker;
+
 public://definition
 	//! Constructor
 	/*!
@@ -72,18 +72,21 @@ public://definition
 	SelectPool(Server &_rsrv, uint _maxthcnt, uint _selcap = 1024):rsrv(_rsrv),selcap(_selcap){
 		thrid = _rsrv.registerActiveSet(*this);
 		thrid <<= 16;
+		slotvec.reserve(_maxthcnt > 1024 ? 1024 : _maxthcnt);
 	}
+	
 	//! Raise a thread from the pool
 	void raise(uint _thid){
 		cassert(_thid < slotvec.size());
-		//attention: slotvec must be a deque so I do not need a gurd
 		slotvec[_thid].first->signal();
 	}
+	
 	//! Raise an object from the pool
 	void raise(uint _thid, uint _thpos){
 		cassert(_thid < slotvec.size());
 		slotvec[_thid].first->signal(_thpos);
 	}
+	
 	//! Raise all threads for stopping
 	void raiseStop(){
 		{
@@ -94,12 +97,25 @@ public://definition
 		}
 		this->stop();
 	}
+	
 	//! Set the pool id
-	void poolid(uint _pid){Mutex::Locker	lock(this->mtx); thrid = _pid << 16; }
+	void poolid(uint _pid){
+		Mutex::Locker	lock(this->mtx);
+		thrid = _pid << 16;
+	}
+	
 	//! Prepare the worker (usually thread specific data) - called internally
-	void prepareWorker(){rsrv.prepareThread(); doPrepareWorker();}
+	void prepareWorker(){
+		rsrv.prepareThread();
+		doPrepareWorker();
+	}
+	
 	//! Prepare the worker (usually thread specific data) - called internally
-	void unprepareWorker(){doUnprepareWorker();	rsrv.unprepareThread();}
+	void unprepareWorker(){
+		doUnprepareWorker();
+		rsrv.unprepareThread();
+	}
+	
 	//! The run loop for every thread
 	void run(SelectorWorker &_rwkr){
 		_rwkr.sel.prepare();
@@ -108,8 +124,8 @@ public://definition
 		}
 		_rwkr.sel.unprepare();
 		unregisterSelector(_rwkr.sel, _rwkr.thrid);
-		idbg("after unregister selector");
 	}
+	
 	//! The method for adding a new object to the pool
 	/*!
 		Method overwritten from WorkPoolTp, to add logic 
@@ -120,18 +136,19 @@ public://definition
 		cassert(this->state != WorkPoolTp::Stopped);
 		this->q.push(_rjb); this->sigcnd.signal();
 		if(sgnlst.size()){
-			//idbg("sgnlst.size = "<<sgnlst.size()<<" sgnlst.back = "<<sgnlst.back());
 			slotvec[sgnlst.back()].first->signal();
 		}else{
-			//idbg("create worker");
 			createWorkers(1);//increase the capacity
 		}
 	}
+
 protected:
 	//! Inherit and add thread preparation - or use workpool plugin
 	virtual void doPrepareWorker(){}
+	
 	//! Inherit and add thread unpreparation - or use workpool plugin
 	virtual void doUnprepareWorker(){}
+
 protected:
 	//! The selector worker
 	struct SelectorWorker: WorkPoolTp::Worker{
@@ -140,6 +157,7 @@ protected:
 		uint 		thrid;
 		SelectorTp	sel;
 	};
+	
 	//! The creator of workers
 	/*!
 		Observe the fact that the created workers type
@@ -155,42 +173,44 @@ protected:
 		}
 		return (int)i;
 	}
+	
 	//! Register the selector of a worker 
 	int registerSelector(SelectorTp &_rs, uint &_wkrid){
-		//Mutex::Locker	lock(mut);
 		if(_rs.reserve(selcap)) return BAD;
 		_wkrid = thrid++;
 		cap += _rs.capacity();
 		uint wid = _wkrid & 0xffff;
-		idbg("wid = "<<wid<<" slotvec.size() = "<<slotvec.size());
 		if(wid >= slotvec.size()){
 			slotvec.push_back(VecPairTp(&_rs, sgnlst.insert(sgnlst.end(),wid)));
 		}else{
 			slotvec[wid] = VecPairTp(&_rs, sgnlst.insert(sgnlst.end(),wid));
 		}
-		idbg("sgnlst.size = "<<sgnlst.size()<<" sgnlst.back = "<<sgnlst.back());
 		return OK;
 	}
+	
 	//! Unregister the selector of a worker 
 	void unregisterSelector(SelectorTp &_rs, ulong _wkrid){
 		Mutex::Locker	lock(this->mtx);
 		cap -= _rs.capacity();
 		slotvec[_wkrid & 0xffff] = VecPairTp(NULL, sgnlst.end());
 	}
+	
 	//! Pop some objects into the selector
 	int pop(SelectorTp &_rsel, uint _wkrid){
 		Mutex::Locker lock(this->mtx);
 		int tid = _wkrid & 0xffff;
-		if((this->q.empty() && !_rsel.empty())){
-			if(slotvec[tid].second == sgnlst.end()){
-				//register that we're not empty
-				slotvec[tid].second = sgnlst.insert(sgnlst.end(), tid);
-			}
-			return OK;
-		}
-		if(_rsel.full()){
+		if(_rsel.full()){//can do nothing but ensure the worker will not be raised again
 			doEnsureWorkerNotRaise(tid);
 			if(this->q.size()) doTrySignalOtherWorker();
+			return OK;
+		}
+		//the selector is not full
+		if(slotvec[tid].second == sgnlst.end()){
+			//register that we're not full so the selector can be signaled
+			slotvec[tid].second = sgnlst.insert(sgnlst.end(), tid);
+		}
+		if((this->q.empty() && !_rsel.empty())){
+			//the selector is busy with its connections
 			return OK;
 		}
 		if(doWaitJob()){
@@ -208,6 +228,7 @@ protected:
 		}
 		return BAD;
 	}
+
 private:
 	//! Make sure that the worker will not be raised again.
 	inline void doEnsureWorkerNotRaise(int _thndx){
@@ -216,6 +237,7 @@ private:
 			slotvec[_thndx].second = sgnlst.end();
 		}
 	}
+	
 	//! Wait for a new object
 	int doWaitJob(){
 		while(this->q.empty() && this->state == WorkPoolTp::Running){
@@ -223,8 +245,8 @@ private:
 		}
 		return this->q.size();
 	}
-	//! Try to signal another worker
 	
+	//! Try to signal another worker
 	inline void doTrySignalOtherWorker(){
 		if(sgnlst.size()){
 			//maybe some other worker can take the job
@@ -234,6 +256,7 @@ private:
 			createWorkers(1);
 		}
 	}
+
 private:
 	ListTp			sgnlst;
 	SlotVecTp		slotvec;
@@ -241,7 +264,6 @@ private:
 	uint			thrid;
 	Server			&rsrv;
 	uint			selcap;
-	
 };
 
 }//namesspace clientserver
