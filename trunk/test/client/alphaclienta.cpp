@@ -32,6 +32,8 @@ public:
 	unsigned pushBack();
 	void print();
 	TimeSpec		ft;
+	void lock(){m.lock();}
+	void unlock(){m.unlock();}
 private:
 	vector<ulong>   v;
 	Mutex           m;
@@ -133,6 +135,9 @@ void AlphaThread::run(){
 		cout<<"failed connect "<<pos<<": "<<strerror(errno)<<endl;
 		return;
 	}
+	inf.lock();
+	cout<<pos<<" connected"<<endl;
+	inf.unlock();
 	timeval tv;
 // 	memset(&tv, 0, sizeof(timeval));
 // 	tv.tv_sec = 30;
@@ -145,7 +150,9 @@ void AlphaThread::run(){
 	idbg("return value "<<rv);
 	inf.update(pos, readc);
 	ulong m = sdq.size() - 1;
-	cout<<"connected "<<pos<<" filecnt "<<m<<endl;
+	inf.lock();
+	cout<<pos<<" fetched file list: "<<m<<" files "<<endl;
+	inf.unlock();
 // 	for(StrDqTp::const_iterator it(sdq.begin()); it != sdq.end(); ++it){
 // 		cout<<'['<<*it<<']'<<endl;
 // 	}
@@ -211,6 +218,7 @@ int AlphaThread::list(char *_pb){
 	while((rc = read(sd, _pb, BufLen - 1)) > 0){
 		bool b = true;
 		readc += rc;
+		inf.update(pos, readc);
 		bpos = _pb;
 		bend = bpos + rc;
 		_pb[rc] = '\0';
