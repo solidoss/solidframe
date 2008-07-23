@@ -28,14 +28,19 @@ static int sleeptout = 0;
 ///\cond 0
 class Info{
 public:
+	Info():concnt(0), liscnt(0){}
 	void update(unsigned _pos, ulong _v);
 	unsigned pushBack();
 	void print();
 	TimeSpec		ft;
 	void lock(){m.lock();}
 	void unlock(){m.unlock();}
+	void doneConnect(){++concnt;}
+	void doneList(){++liscnt;}
 private:
 	vector<ulong>   v;
+	uint32			concnt;
+	uint32			liscnt;
 	Mutex           m;
 	TimeSpec		ct;
 };
@@ -63,7 +68,7 @@ void Info::print(){
 	for(vector<ulong>::const_iterator it(v.begin()); it != v.end(); ++it){
 		//cout<<(*it/1024)<<'k'<<' ';
 		const uint32 t = *it;
-		if(t == 0xffffffff){ ++notconnected; continue;}
+		if(t == 0xffffffff){continue;}
 		tot += t;
 		//t /= 1024;
 		if(t < mn){
@@ -84,8 +89,9 @@ void Info::print(){
 	mx >>= 10;
 	clock_gettime(CLOCK_MONOTONIC, &ct);
 	cout<<"speed = "<<tot/(ct.seconds() - ft.seconds() + 1)<<"k/s avg = "<<tot/v.size()<<"k min = "<<mn<<"k ("<<mncnt<<") max = "<<mx<<"k ("<<mxcnt<<')';
-	if(notconnected) cout<<" notconected = "<<notconnected<<'\r'<<flush;
-	else cout<<'\r'<<flush;
+	if(concnt != v.size()) cout<<" conected = "<<concnt;
+	if(liscnt != v.size()) cout<<" listed = "<<liscnt;
+	cout<<'\r'<<flush;
 	//m.unlock();
 }
 
@@ -137,6 +143,7 @@ void AlphaThread::run(){
 	}
 	inf.lock();
 	cout<<pos<<" connected"<<endl;
+	inf.doneConnect();
 	inf.unlock();
 	timeval tv;
 // 	memset(&tv, 0, sizeof(timeval));
@@ -151,6 +158,7 @@ void AlphaThread::run(){
 	inf.update(pos, readc);
 	ulong m = sdq.size() - 1;
 	inf.lock();
+	inf.doneList();
 	cout<<pos<<" fetched file list: "<<m<<" files "<<endl;
 	inf.unlock();
 // 	for(StrDqTp::const_iterator it(sdq.begin()); it != sdq.end(); ++it){
