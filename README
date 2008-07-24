@@ -1,7 +1,8 @@
 =============================================
 1) About SolidGround framework				=
 2) Building the test applications			=
-3) Getting started with your application	=
+3) A more elaborate performance test		=
+4) Getting started with your application	=
 =============================================
 
 **********************************
@@ -35,12 +36,32 @@ Here are some planned additions:
 *************************************
 
 Before anything, you must ensure you have all the needed packages installed on you Linux box.
-You'll need: 
-	gcc-c++, boost, boost-devel, cmake, ccache 
-(on a fedora box: "yum install gcc-c++ boost boost-devel cmake ccache" will suffice).
-Eventually you'll need "subversion" to fetch a copy of solidground repository (fedora: "yum install subversion").
+You'll need: gcc-c++, boost, boost-devel, cmake, ccache 
 
-The solidground framework, has a commodity build script which can be used to create certain builds for certain base build systems (make or kdevelop3 - run ./build.sh with no parameters to se the options).
+(
+On a Fedora box: 
+
+$ yum install gcc-c++ boost boost-devel cmake ccache
+
+).
+
+Eventually you'll need "subversion" to fetch a copy of solidground repository 
+
+(
+On a Fedora box: 
+
+$ yum install subversion
+
+).
+
+(
+To fetch a new svn copy of the repository:
+
+$ svn checkout http://solidground.googlecode.com/svn/trunk/ solidground-read-only
+
+)
+
+The SolidGround framework, has a commodity build script which can be used to create certain builds for certain base build systems (make or kdevelop3 - run ./build.sh with no parameters to se the options).
 
 So lets build a (debug-)nolog version.
 
@@ -138,8 +159,47 @@ xx logout
 
 3) The remote fetching will use a local temporary file (at most 2MB) as buffer for fetching - no matter the size of the fetched file. The temp files are located in /tmp/test/. The best way to test the remote fetching is using two computers - I did it an over a wireless network I got +1MB/s transfer rate. It is not much but it is something. 
 
+****************************************
+* 4) A more elaborate performance test *
+****************************************
+
+In the following lines I will present a more elaborate test of the framework.
+
+For this well need three test applications:
+
+	1. test/clientserver/main/test
+	2. test/system/files/create
+	3. test/client/alphaclienta
+	
+1. You already know this one - we shall use the alpha protocol. So all you need is a "release" instance:
+
+main $ ulimit -n 100000
+main $ ./test
+
+2. This one is needed to create many files within a directory. We shall create 10000 files within a single folder, with sizes from 3000B to 2000000B:
+
+files $ ./create "/home/tmp" 3000 2000000 10000 1
+
+Carefull, as you may need alot of disk space.
+
+3. This is a stress application for alpha protocol. On a given number of threads it does:
+	- create a connection to server
+	- fetches the list of files within a given folder (LIST command)
+	- then starts fetching the files one by one starting from a certain position in the list (FETCH command).
+
+Lets start an instance with 2000 threads, on localhost, for the folder previously created and with 10 msec sleep time between fetches.
+
+client $ ulimit -n 100000
+client $ ./alphaclienta 2000 localhost 1114 "/home/tmp/00000001/" 10
+
+The client will display certain statistic information.
+
+NOTES:
+1) For now it only work with local storage.
+2) The test is far more conclusive if run on different machines (one for server and at least one for client) and when using gigabit network cards.
+
 ********************************************
-* 3) Getting started with your application *
+* 4) Getting started with your application *
 ********************************************
 
 Supposing that you successfully built the test applications, let's set up your application.
