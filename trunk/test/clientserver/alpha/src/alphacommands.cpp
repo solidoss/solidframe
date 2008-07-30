@@ -327,8 +327,10 @@ int RemoteListCommand::execute(cs::CommandExecuter&, const CommandUidTp &, TimeS
 	}
 	err = 0;
 	if(Server::the().ipc().sendCommand(conid, pcmd)){
-		idbg("connector was destroyed");
+		idbg("connector was destroyed "<<conid.tkrid<<' '<<conid.procid<<' '<<conid.procuid);
 		return BAD;
+	}else{
+		idbg("command sent "<<conid.tkrid<<' '<<conid.procid<<' '<<conid.procuid);
 	}
 	return cs::LEAVE;
 }
