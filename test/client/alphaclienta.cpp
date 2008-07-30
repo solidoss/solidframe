@@ -104,8 +104,10 @@ public:
 		const char* _svice, 
 		const char *_path,
 		unsigned _pos,
+		const char* _addr = NULL,
+		int _port = -1,
 		int _cnt = ((unsigned)(0xfffffff)),
-		int _sleep = 1):wr(-1),sd(-1),ai(_node, _svice), pos(_pos), cnt(_cnt),slp(_sleep),path(_path){}
+		int _sleep = 1):wr(-1),sd(-1),ai(_node, _svice), pos(_pos), cnt(_cnt),slp(_sleep),path(_path),addr(_addr?_addr:""),port(_port){}
 	void run();
 private:
 	enum {BufLen = 2*1024};
@@ -121,6 +123,8 @@ private:
 	StrDqTp     sdq;
 	unsigned    pos;
 	ulong       readc;
+	string		addr;
+	int 		port;
 };
 
 void AlphaThread::run(){
@@ -203,7 +207,13 @@ inline T* findNot(T *_pc){
 //----------------------------------------------------------------------------
 
 int AlphaThread::list(char *_pb){
-	wr<<"s1 list \""<<path<<'\"'<<crlf;
+	if(addr.size()){
+		//remote list
+		wr<<"s1 remotelist \""<<path<<"\" \""<<addr<<"\" "<<(uint32)port<<crlf;
+	}else{
+		//local list
+		wr<<"s1 list \""<<path<<'\"'<<crlf;
+	}
 	if(wr.flush()) return -1;
 	enum {
 		SkipFirstLine,
@@ -318,8 +328,12 @@ int AlphaThread::list(char *_pb){
 }
 
 int AlphaThread::fetch(unsigned _idx, char *_pb){
-	wr<<"s2 fetch "<<sdq[_idx]<<crlf;
+	wr<<"s2 fetch "<<sdq[_idx];
 	//cout<<_idx<<" "<<sdq[_idx]<<endl;
+	if(addr.size()){
+		wr<<" \""<<addr<<"\" "<<(uint32)port;
+	}
+	wr<<crlf;
 	if(wr.flush()) return -1;
 	enum{
 		StartLine, FirstSpace, SecondSpace, LiteralStart,LiteralNumber,
@@ -456,8 +470,8 @@ int AlphaThread::fetch(unsigned _idx, char *_pb){
 }
 
 int main(int argc, char *argv[]){
-	if(argc != 6){
-		cout<<"Usage: alphaclient thcnt addr port path tout"<<endl;
+	if(argc != 6 && argc != 8){
+		cout<<"Usage: alphaclient thcnt addr port path tout [peer_addr peer_port]"<<endl;
 		cout<<"Where:"<<endl;
 		cout<<"tout is the amount of time in msec between commands"<<endl;
 		return 0;
@@ -473,8 +487,14 @@ int main(int argc, char *argv[]){
 #endif
 	sleeptout = atoi(argv[5]);
 	int cnt = atoi(argv[1]);
+	const char* addr = NULL;
+	int port = -1;
+	if(argc == 8){
+		addr = argv[6];
+		port = atoi(argv[7]);
+	}
 	for(int i = 0; i < cnt; ++i){
-		AlphaThread *pt = new AlphaThread(argv[2], argv[3], argv[4],inf.pushBack());
+		AlphaThread *pt = new AlphaThread(argv[2], argv[3], argv[4], inf.pushBack(), addr, port);
 		pt->start(true, true, 24*1024);
 	}
 	clock_gettime(CLOCK_MONOTONIC, &inf.ft);
