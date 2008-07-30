@@ -444,7 +444,7 @@ int ConnectionSelector::Data::doExecute(ChannelStub &_rch, ulong _evs, TimeSpec 
 					idbg("epollctl");
 					_rch.evmsk = _rev.events = t;
 					_rev.data.ptr = &_rch;
-					int rz = epoll_ctl(epfd, EPOLL_CTL_MOD, rcon.channel().descriptor(), &_rev);
+					epoll_ctl(epfd, EPOLL_CTL_MOD, rcon.channel().descriptor(), &_rev);
 				}
 				if(_crttout != ctimepos){
 					_rch.timepos = _crttout;

@@ -22,6 +22,7 @@
 #ifndef ALPHA_COMMANDS_HPP
 #define ALPHA_COMMANDS_HPP
 
+#include <list>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/exception.hpp>
 #include <boost/utility.hpp>
@@ -190,7 +191,7 @@ private:
 //! Lists one level of the requested path
 /*!
 	Syntax:<br>
-	tag SP LIST SP astring = path<br>
+	tag SP LIST SP astring = path [SP astring = peer_ipc_address] [SP number=peer_ipc_port]<br>
 	
 	If the path is a directory, the direct cildren are displayed.
 	If the path is a file, the file information is displayed.
@@ -208,6 +209,47 @@ private:
 	String					strpth;
 	fs::directory_iterator 	it,end;
 };
+
+//! Lists one level of the requested remote path
+/*!
+	Syntax:<br>
+	tag SP REMOTELIST SP astring = path SP astring = peer_ipc_address SP number=peer_ipc_port<br>
+	
+	If the path is a directory, the direct cildren are displayed.
+	If the path is a file, the file information is displayed.
+*/
+class RemoteList: public Command{
+public:
+	enum {Wait, SendList, SendError, SendListContinue};
+	typedef std::list<std::pair<String,int64> > PathListTp;
+	RemoteList();
+	~RemoteList();
+	void initReader(Reader &);
+	int execute(Connection &);
+	
+	int reinitWriter(Writer &, protocol::Parameter &);
+	int receiveData(
+		void *_pdata,
+		int _datasz,
+		int			_which, 
+		const ObjectUidTp&_from,
+		const clientserver::ipc::ConnectorUid *_conid
+	);
+	int receiveError(
+		int _errid, 
+		const ObjectUidTp&_from,
+		const clientserver::ipc::ConnectorUid *_conid
+	);
+private:
+	String					strpth;
+	String					straddr;
+	uint32					port;
+	PathListTp				*ppthlst;
+	PathListTp::const_iterator it;
+	int						state;
+	protocol::Parameter		*pp;
+};
+
 
 //! Send a string to a remote alpha connection to other test server
 /*!

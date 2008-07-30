@@ -141,10 +141,17 @@ private:
 };
 
 struct IntegerVector: Base{
-	IntegerVector(){}
-	void print()const;
 	typedef vector<uint32> 	IntVecTp;
+	IntegerVector():piv1(NULL), piv2(NULL) {
+	}
+	IntegerVector(bool):piv1(new IntVecTp), piv2(NULL) {
+		piv1->push_back(1);
+		piv1->push_back(2);
+	}
+	void print()const;
 	IntVecTp	iv;
+	IntVecTp	*piv1;
+	IntVecTp	*piv2;
 };
 
 
@@ -153,12 +160,16 @@ void IntegerVector::print()const{
 	for(IntVecTp::const_iterator it(iv.begin()); it != iv.end(); ++it){
 		cout<<*it<<',';
 	}
+	cout<<endl;
+	cout<<"piv1 = "<<(void*)piv1<<" piv2 = "<<(void*)piv2<<endl;
+	cout<<"piv1->size = "<<piv1->size()<<endl;
+	cout<<"piv1[0] = "<<(*piv1)[0]<<" piv1[0] = "<<(*piv1)[1]<<endl;
 	cout<<'}'<<endl;
 }
 
 template <class S>
 S& operator&(IntegerVector &_iv, S &_s){
-	return _s.pushContainer(_iv.iv, "IntegerVector::iv");
+	return _s.pushContainer(_iv.iv, "IntegerVector::iv").pushContainer(_iv.piv1,"piv1").pushContainer(_iv.piv2, "piv2");
 	//return _s;
 }
 
@@ -172,8 +183,15 @@ template <class S>
 S& operator&(TestC &_tb, S &_s){
 	return _s.push(_tb.a, "c::a");
 }
+namespace std{
+template <class S>
+S& operator&(pair<int,int> &_tb, S &_s){
+	return _s.push(_tb.first, "first").push(_tb.second, "second");
+}
+}
 
 typedef std::deque<std::string> StrDeqTp;
+typedef std::deque<std::pair<int,int> > PairIntDeqTp;
 
 void print(StrDeqTp &_rsdq);
 ///\endcond
@@ -231,7 +249,7 @@ int main(int argc, char *argv[]){
 		Base			*b1 = new String("some base string");
 		Base			*b2 = new UnsignedInteger(-2, 10);
 		IntegerVector	*iv;
-		Base			*b3 = iv = new IntegerVector;
+		Base			*b3 = iv = new IntegerVector(true);
 		
 		for(int i = 1; i < 20; ++i){
 			iv->iv.push_back(i);
@@ -253,6 +271,18 @@ int main(int argc, char *argv[]){
 		ser.push(s, "string").pushContainer(sdq, "names");
 		idbg("");
 		ser.push(b1, "basestring").push(b2, "baseui").push(b3, "baseiv");
+		
+		PairIntDeqTp pidq;
+		pidq.push_back(pair<int, int>(1,2));
+		pidq.push_back(pair<int, int>(2,3));
+		pidq.push_back(pair<int, int>(3,4));
+		ser.pushContainer(pidq, "pidq");
+		pair<int,int> ppi(1,2);
+		ser.push(ppi, "pi");
+		for(PairIntDeqTp::const_iterator it(pidq.begin()); it != pidq.end(); ++it){
+			cout<<"("<<it->first<<','<<it->second<<')';
+		}
+		cout<<endl;
 		int v = 0, cnt = 0;
 		idbg("");
 		while((rv = ser.run(bufs[v], blen)) == blen){
@@ -283,6 +313,10 @@ int main(int argc, char *argv[]){
 		idbg("");
 		int v = 0;
 		int cnt = 0;
+		PairIntDeqTp pidq;
+		des.pushContainer(pidq, "pidq");
+		pair<int,int> ppi;
+		des.push(ppi, "pi");
 		while((rv = des.run(bufs[v], blen)) == blen){
 			cnt += rv;
 			++v;
@@ -297,6 +331,11 @@ int main(int argc, char *argv[]){
 		if(b1)b1->print();
 		if(b2)b2->print();
 		b3->print();
+		for(PairIntDeqTp::const_iterator it(pidq.begin()); it != pidq.end(); ++it){
+			cout<<"("<<it->first<<','<<it->second<<')';
+		}
+		cout<<endl;
+		cout<<"pi.first "<<ppi.first<<" pi.second "<<ppi.second<<endl;
 	}
 	idbg("Done");
 	return 0;
