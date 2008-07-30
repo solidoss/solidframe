@@ -134,6 +134,14 @@ public:
 		const ObjectUidTp &_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
+	/*virtual*/ int receiveData(
+		void *_pdata,
+		int	_datasz,
+		const RequestUidTp &_requid,
+		int			_which = 0,
+		const ObjectUidTp&_from = ObjectUidTp(),
+		const clientserver::ipc::ConnectorUid *_conid = NULL
+	);
 	/*virtual*/ int receiveError(
 		int _errid, 
 		const RequestUidTp &_requid,

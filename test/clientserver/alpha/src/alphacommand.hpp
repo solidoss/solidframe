@@ -82,6 +82,14 @@ public:
 		const ObjectUidTp&_from,
 		const clientserver::ipc::ConnectorUid *_conid
 	);
+	//! Receive data
+	virtual int receiveData(
+		void *_pdata,
+		int _datasz,
+		int			_which, 
+		const ObjectUidTp&_from,
+		const clientserver::ipc::ConnectorUid *_conid
+	);
 	//! Receive a number
 	virtual int receiveNumber(
 		const int64 &_no,

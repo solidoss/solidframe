@@ -51,6 +51,20 @@
 
 namespace cs=clientserver;
 
+
+namespace std{
+
+template <class S>
+S& operator&(pair<String, int64> &_v, S &_s){
+	return _s.push(_v.first, "first").push(_v.second, "second");
+}
+template <class S>
+S& operator&(pair<unsigned int, unsigned int> &_v, S &_s){
+	return _s.push(_v.first, "first").push(_v.second, "second");
+}
+
+}
+
 namespace test{
 namespace alpha{
 
@@ -61,6 +75,7 @@ struct Cmd{
 		LogoutCmd,
 		CapabilityCmd,
 		ListCmd,
+		RemoteListCmd,
 		NoopCmd,
 		FetchCmd,
 		StoreCmd,
@@ -76,6 +91,7 @@ struct Cmd{
 	{"logout",Cmd::LogoutCmd},
 	{"capability",Cmd::CapabilityCmd},
 	{"list",Cmd::ListCmd},
+	{"remotelist", Cmd::RemoteListCmd},
 	{"noop",Cmd::NoopCmd},
 	{"fetch",Cmd::FetchCmd},
 	{"store",Cmd::StoreCmd},
@@ -106,6 +122,8 @@ Command* Connection::create(const String& _name){
 			return pcmd = new Basic(Basic::Capability);
 		case Cmd::ListCmd:
 			return pcmd = new List;
+		case Cmd::RemoteListCmd:
+			return pcmd = new RemoteList;
 		case Cmd::FetchCmd:
 			return pcmd = new Fetch(*this);
 		case Cmd::StoreCmd:
@@ -222,6 +240,183 @@ int List::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 		return Writer::Continue;
 	}
 	return Writer::Ok;
+}
+//---------------------------------------------------------------
+// RemoteList command
+//---------------------------------------------------------------
+struct RemoteListCommand: test::Command{
+	RemoteListCommand(): ppthlst(NULL),err(-1){}
+	~RemoteListCommand(){
+		idbg("");
+		delete ppthlst;
+	}
+	int received(const cs::ipc::ConnectorUid &_rconid);
+	int execute(test::Connection &);
+	int execute(cs::CommandExecuter&, const CommandUidTp &, TimeSpec &_rts);
+	template <class S>
+	S& operator&(S &_s){
+		return _s.pushContainer(ppthlst, "strlst").push(err, "error").push(requid, "requid").push(strpth, "strpth").push(fromv, "from");
+	}
+//data:
+	RemoteList::PathListTp		*ppthlst;
+	String						strpth;
+	int							err;
+	cs::ipc::ConnectorUid		conid;
+	uint32						requid;
+	ObjectUidTp					fromv;
+};
+int RemoteListCommand::received(const cs::ipc::ConnectorUid &_rconid){
+	cs::CmdPtr<cs::Command> pcmd(this);
+	conid = _rconid;
+	if(!ppthlst){
+		idbg("Received RemoteListCommand on peer");
+		//print();
+		ObjectUidTp	ttov;
+		Server::the().readCommandExecuterUid(ttov);
+		Server::the().signalObject(ttov.first, ttov.second, pcmd);
+	}else{
+		idbg("Received RemoteListCommand back on sender");
+		//print();
+		Server::the().signalObject(fromv.first, fromv.second, pcmd);
+	}
+	return false;
+}
+int RemoteListCommand::execute(test::Connection &_rcon){
+	if(!err){
+		idbg("");
+		_rcon.receiveData((void*)ppthlst, -1, RequestUidTp(requid, 0), 0, CommandUidTp(), &conid);
+	}else{
+		idbg("");
+		_rcon.receiveError(err, RequestUidTp(requid, 0), CommandUidTp(), &conid);
+	}
+	return OK;
+}
+int RemoteListCommand::execute(cs::CommandExecuter&, const CommandUidTp &, TimeSpec &_rts){
+	fs::directory_iterator	it,end;
+	fs::path				pth(strpth.c_str(), fs::native);
+	cs::CmdPtr<cs::Command> pcmd(this);
+	ppthlst = new RemoteList::PathListTp;
+	strpth.clear();
+	if(!exists( pth ) || !is_directory(pth)){
+		err = -1;
+		if(Server::the().ipc().sendCommand(conid, pcmd)){
+			idbg("connector was destroyed");
+			return BAD;
+		}
+		return cs::LEAVE;
+	}
+	try{
+	it = fs::directory_iterator(pth);
+	}catch ( const std::exception & ex ){
+		idbg("dir_iterator exception :"<<ex.what());
+		err = -1;
+		strpth = ex.what();
+		if(Server::the().ipc().sendCommand(conid, pcmd)){
+			idbg("connector was destroyed");
+			return BAD;
+		}
+		return cs::LEAVE;
+	}
+	while(it != end){
+		ppthlst->push_back(std::pair<String, int64>(it->string(), -1));
+		if(is_directory(*it)){
+		}else{
+			ppthlst->back().second = file_size(*it);
+		}
+		++it;
+	}
+	err = 0;
+	if(Server::the().ipc().sendCommand(conid, pcmd)){
+		idbg("connector was destroyed");
+		return BAD;
+	}
+	return cs::LEAVE;
+}
+
+//--------------------------------------------------------------
+RemoteList::RemoteList():ppthlst(NULL),state(SendError){
+}
+RemoteList::~RemoteList(){
+	delete ppthlst;
+}
+void RemoteList::initReader(Reader &_rr){
+	_rr.push(&Reader::fetchUint32, protocol::Parameter(&port));
+	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
+	_rr.push(&Reader::fetchAString, protocol::Parameter(&straddr));
+	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
+	_rr.push(&Reader::fetchAString, protocol::Parameter(&strpth));
+	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
+}
+int RemoteList::execute(Connection &_rc){
+	pp = &_rc.writer().push(&Writer::putStatus);
+	*pp = protocol::Parameter(StrDef(" OK Done REMOTELIST@"));
+	AddrInfo ai(straddr.c_str(), port, 0, AddrInfo::Inet4, AddrInfo::Stream);
+	idbg("addr"<<straddr<<" port = "<<port);
+	if(!ai.empty()){
+		RemoteListCommand *pcmd(new RemoteListCommand);
+		pcmd->strpth = strpth;
+		pcmd->requid = _rc.newRequestId();
+		pcmd->fromv.first = _rc.id();
+		pcmd->fromv.second = Server::the().uid(_rc);
+		state = Wait;
+		cs::CmdPtr<cs::Command> cmdptr(pcmd);
+		Server::the().ipc().sendCommand(ai.begin(), cmdptr);
+		_rc.writer().push(&Writer::reinit<RemoteList>, protocol::Parameter(this));
+	}else{
+		*pp = protocol::Parameter(StrDef(" NO REMOTELIST: no such peer address@"));
+	}
+	return OK;
+}
+int RemoteList::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
+	switch(state){
+		case Wait:
+			return Writer::No;
+		case SendListContinue:
+			++it;
+		case SendList:
+			if(it != ppthlst->end()){
+				_rw.push(&Writer::putCrlf);
+				_rw.push(&Writer::putAString, protocol::Parameter((void*)it->first.data(), it->first.size()));
+				if(it->second < 0){
+					_rw<<"* DIR ";
+				}else{
+					_rw<<"* FILE "<<(uint32)it->second<<' ';
+				}
+				state = SendListContinue;
+				return Writer::Continue;
+			}
+			return Writer::Ok;
+		case SendError:
+			*pp = protocol::Parameter(StrDef(" NO LIST: Not a directory@"));
+			return Writer::Ok;
+	};
+	cassert(false);
+	return BAD;
+}
+int RemoteList::receiveData(
+	void *_pdata,
+	int _datasz,
+	int	_which, 
+	const ObjectUidTp&_from,
+	const clientserver::ipc::ConnectorUid *_conid
+){
+	ppthlst = reinterpret_cast<PathListTp*>(_pdata);
+	if(ppthlst){
+		it = ppthlst->begin();
+		state = SendList;
+	}else{
+		state = SendError;
+	}
+	return OK;
+}
+int RemoteList::receiveError(
+	int _errid, 
+	const ObjectUidTp&_from,
+	const cs::ipc::ConnectorUid *_conid
+){
+	idbg("");
+	state = SendError;
+	return OK;
 }
 //---------------------------------------------------------------
 // Fetch command
@@ -649,18 +844,18 @@ int Fetch::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 		case SendMasterRemote:{
 			idbg("send master remote");
 			cassert(sp);
-			//send the master remote command
-			FetchMasterCommand *pcmd(new FetchMasterCommand);
-			//TODO: add a convenient init method to fetchmastercommand
-			pcmd->fname = strpth;
-			pcmd->requid = rc.newRequestId();
-			pcmd->fromv.first = rc.id();
-			pcmd->fromv.second = Server::the().uid(rc);
-			pcmd->tmpfuid = fuid;
-			st = WaitFirstRemote;
 			AddrInfo ai(straddr.c_str(), port, 0, AddrInfo::Inet4, AddrInfo::Stream);
 			idbg("addr"<<straddr<<" port = "<<port);
 			if(!ai.empty()){
+				//send the master remote command
+				FetchMasterCommand *pcmd(new FetchMasterCommand);
+				//TODO: add a convenient init method to fetchmastercommand
+				pcmd->fname = strpth;
+				pcmd->requid = rc.newRequestId();
+				pcmd->fromv.first = rc.id();
+				pcmd->fromv.second = Server::the().uid(rc);
+				pcmd->tmpfuid = fuid;
+				st = WaitFirstRemote;
 				cs::CmdPtr<cs::Command> cmdptr(pcmd);
 				Server::the().ipc().sendCommand(ai.begin(), cmdptr);
 				return Writer::No;
@@ -1243,6 +1438,7 @@ void Command::initStatic(Server &_rs){
 	TypeMapper::map<SendStreamCommand, BinSerializer, BinDeserializer>();
 	TypeMapper::map<FetchMasterCommand, BinSerializer, BinDeserializer>();
 	TypeMapper::map<FetchSlaveCommand, BinSerializer, BinDeserializer>();
+	TypeMapper::map<RemoteListCommand, BinSerializer, BinDeserializer>();
 }
 /*virtual*/ Command::~Command(){}
 
@@ -1255,7 +1451,6 @@ int Command::receiveIStream(
 ){
 	return BAD;
 }
-
 int Command::receiveOStream(
 	StreamPtr<OStream> &,
 	const FileUidTp &,
@@ -1265,7 +1460,6 @@ int Command::receiveOStream(
 ){
 	return BAD;
 }
-
 int Command::receiveIOStream(
 	StreamPtr<IOStream> &, 
 	const FileUidTp &,
@@ -1275,7 +1469,6 @@ int Command::receiveIOStream(
 ){
 	return BAD;
 }
-
 int Command::receiveString(
 	const String &_str,
 	int			_which, 
@@ -1284,7 +1477,15 @@ int Command::receiveString(
 ){
 	return BAD;
 }
-
+int receiveData(
+	void *_pdata,
+	int _datasz,
+	int			_which, 
+	const ObjectUidTp&_from,
+	const clientserver::ipc::ConnectorUid *_conid
+){
+	return BAD;
+}
 int Command::receiveNumber(
 	const int64 &_no,
 	int			_which,
@@ -1293,7 +1494,15 @@ int Command::receiveNumber(
 ){
 	return BAD;
 }
-
+int Command::receiveData(
+	void *_v,
+	int	_vsz,
+	int			_which,
+	const ObjectUidTp&_from,
+	const cs::ipc::ConnectorUid *_conid
+){
+	return BAD;
+}
 int Command::receiveError(
 	int _errid,
 	const ObjectUidTp&_from,

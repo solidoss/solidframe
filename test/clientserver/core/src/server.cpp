@@ -585,7 +585,17 @@ int Connection::receiveString(
 	cassert(false);
 	return BAD;
 }
-
+int Connection::receiveData(
+	void *_pdata,
+	int	_datasz,
+	const RequestUidTp &_requid,
+	int			_which,
+	const ObjectUidTp&_from,
+	const clientserver::ipc::ConnectorUid *_conid
+){
+	cassert(false);
+	return BAD;
+}
 int Connection::receiveNumber(
 	const int64 &_no,
 	const RequestUidTp &_requid,

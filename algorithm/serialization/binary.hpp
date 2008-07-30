@@ -82,9 +82,12 @@ protected:
 		uint32& u32(){return *reinterpret_cast<uint32*>(buf);}
 		const uint64& u64()const{return *reinterpret_cast<const uint64*>(buf);}
 		uint64& u64(){return *reinterpret_cast<uint64*>(buf);}
+		const int32& i32()const{return *reinterpret_cast<const int32*>(buf);}
+		int32& i32(){return *reinterpret_cast<int32*>(buf);}
 		
 		ExtData(){}
 		ExtData(uint32 _u32){u32() = _u32;}
+		ExtData(int32 _i32){i32() = _i32;}
 	};
 protected:
 	//! Replace the top callback from the stack
@@ -128,15 +131,21 @@ class Serializer: public Base{
 		Serializer &rs(static_cast<Serializer&>(_rs));
 		if(!rs.cpb) return OK;
 		T * c = reinterpret_cast<T*>(_rfd.p);
-		cassert(sizeof(typename T::iterator) <= sizeof(ExtData));
-		rs.estk.push(ExtData());
-		typename T::iterator *pit(new(rs.estk.top().buf) typename T::iterator(c->begin()));
-		//typename T::const_iterator &pit = *reinterpret_cast<typename T::const_iterator*>(estk.top().buf);
-		*pit = c->begin();
-		rs.estk.push(ExtData(c->size()));
-		_rfd.f = &Serializer::storeContainerContinue<T>;
-		rs.fstk.push(FncData(&Base::popEStack, NULL));
-		rs.fstk.push(FncData(&Serializer::template store<uint32>, &rs.estk.top().u32()));
+		if(c){
+			cassert(sizeof(typename T::iterator) <= sizeof(ExtData));
+			rs.estk.push(ExtData());
+			typename T::iterator *pit(new(rs.estk.top().buf) typename T::iterator(c->begin()));
+			//typename T::const_iterator &pit = *reinterpret_cast<typename T::const_iterator*>(estk.top().buf);
+			*pit = c->begin();
+			rs.estk.push(ExtData((int32)c->size()));
+			_rfd.f = &Serializer::storeContainerContinue<T>;
+			rs.fstk.push(FncData(&Base::popEStack, NULL));
+			rs.fstk.push(FncData(&Serializer::template store<int32>, &rs.estk.top().i32()));
+		}else{
+			rs.estk.push(ExtData((int32)(-1)));
+			rs.fstk.pop();
+			rs.fstk.push(FncData(&Serializer::template store<int32>, &rs.estk.top().i32()));
+		}
 		return CONTINUE;
 	}
 	
@@ -199,6 +208,7 @@ class Serializer: public Base{
 	//! Internal callback for storing a stream
 	static int storeStream(Base &_rs, FncData &_rfd);
 public:
+	enum {IsSerializer = true};
 	template <class Map>
 	Serializer(Map *p):ptypeidf(&storeTypeId<Map>), pb(NULL), cpb(NULL), be(NULL){
 		tmpstr.reserve(sizeof(ulong));
@@ -242,6 +252,12 @@ public:
 	template <typename T>
 	Serializer& pushContainer(T &_t, const char *_name = NULL){
 		fstk.push(FncData(&Serializer::template storeContainer<T>, (void*)&_t, _name));
+		return *this;
+	}
+	//! Schedules a pointer to a stl style container for serialization
+	template <typename T>
+	Serializer& pushContainer(T *_t, const char *_name = NULL){
+		fstk.push(FncData(&Serializer::template storeContainer<T>, (void*)_t, _name));
 		return *this;
 	}
 	//! Schedules the serialization of an object containing streams.
@@ -300,18 +316,30 @@ class Deserializer: public Base{
 		if(!rd.cpb) return OK;
 		_rfd.f = &Deserializer::parseContainerBegin<T>;
 		rd.estk.push(ExtData(0));
-		rd.fstk.push(FncData(&Deserializer::parse<uint32>, &rd.estk.top().u32()));
+		rd.fstk.push(FncData(&Deserializer::parse<int32>, &rd.estk.top().i32()));
 		return CONTINUE;
 	}
 	template <typename T>
 	static int parseContainerBegin(Base &_rb, FncData &_rfd){
 		Deserializer &rd(static_cast<Deserializer&>(_rb));
 		if(!rd.cpb) return OK;
-		uint32 ul = rd.estk.top().u32();
+		int32 i = rd.estk.top().i32();
+		idbg("i = "<<i);
 		rd.estk.pop();
-		if(ul){
+		if(i < 0){
+			T **c = reinterpret_cast<T**>(_rfd.p);
+			cassert(!*c);
+			//*c = NULL;
+			return OK;
+		}else if(!_rfd.s){
+			T **c = reinterpret_cast<T**>(_rfd.p);
+			idbg("pass");
+			*c = new T;
+			_rfd.p = *c;
+		}
+		if(i){
 			_rfd.f = &Deserializer::parseContainerContinue<T>;
-			_rfd.s = ul;
+			_rfd.s = (uint32)i;
 			return CONTINUE;
 		}
 		return OK;
@@ -377,6 +405,7 @@ class Deserializer: public Base{
 	*/
 	static int parseDummyStream(Base &_rb, FncData &_rfd);
 public:
+	enum {IsSerializer = false};
 	template <class Map>
 	Deserializer(Map *):ptypeidf(&parseTypeId<Map>), pb(NULL), cpb(NULL), be(NULL){
 		tmpstr.reserve(sizeof(ulong));
@@ -403,6 +432,13 @@ public:
 	template <typename T>
 	Deserializer& pushContainer(T &_t, const char *_name = NULL){
 		fstk.push(FncData(&Deserializer::template parseContainer<T>, (void*)&_t, _name));
+		return *this;
+	}
+	//! Schedules a std (style) container for deserialization
+	template <typename T>
+	Deserializer& pushContainer(T* &_t, const char *_name = NULL){
+		cassert(!_t);//the pointer must be null!!
+		fstk.push(FncData(&Deserializer::template parseContainer<T>, (void*)&_t, _name, 0));
 		return *this;
 	}
 	//! Schedules the deserialization of an object containing streams.

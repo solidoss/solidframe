@@ -420,6 +420,37 @@ int Connection::receiveNumber(
 	return OK;
 }
 
+int Connection::receiveData(
+	void *_pdata,
+	int	_datasz,
+	const RequestUidTp &_requid,
+	int _which,
+	const ObjectUidTp&_from,
+	const clientserver::ipc::ConnectorUid *_conid
+){
+	idbg("");
+	if(_requid.first && _requid.first != reqid) return OK;
+	idbg("");
+	newRequestId();//prevent multiple responses with the same id
+	if(pcmd){
+		switch(pcmd->receiveData(_pdata, _datasz, _which, _from, _conid)){
+			case BAD:
+				idbg("");
+				break;
+			case OK:
+				idbg("");
+				if(state() == ParseTout){
+					state(Parse);
+				}
+				break;
+			case NOK:
+				idbg("");
+				state(IdleExecute);
+				break;
+		}
+	}
+	return OK;
+}
 
 int Connection::receiveError(
 	int _errid, 

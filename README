@@ -165,13 +165,13 @@ xx logout
 
 In the following lines I will present a more elaborate test of the framework.
 
-For this well need three test applications:
+For this we'll need three test applications:
 
 	1. test/clientserver/main/test
 	2. test/system/files/create
 	3. test/client/alphaclienta
 	
-1. You already know this one - we shall use the alpha protocol. So all you need is a "release" instance:
+1. You already know this one. So all you need is a "release" instance:
 
 main $ ulimit -n 100000
 main $ ./test
@@ -195,7 +195,7 @@ client $ ./alphaclienta 2000 localhost 1114 "/home/tmp/00000001/" 10
 The client will display certain statistic information.
 
 NOTES:
-1) For now it only work with local storage.
+1) For now it only works with local storage.
 2) The test is far more conclusive if run on different machines (one for server and at least one for client) and when using gigabit network cards.
 
 ********************************************
