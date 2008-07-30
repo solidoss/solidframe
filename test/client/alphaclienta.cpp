@@ -31,16 +31,19 @@ public:
 	Info():concnt(0), liscnt(0){}
 	void update(unsigned _pos, ulong _v);
 	unsigned pushBack();
-	void print();
+	int print();
 	TimeSpec		ft;
 	void lock(){m.lock();}
 	void unlock(){m.unlock();}
 	void doneConnect(){++concnt;}
 	void doneList(){++liscnt;}
+	void addWait(){lock();++waitcnt;unlock();}
+	void subWait(){lock();--waitcnt;unlock();}
 private:
 	vector<ulong>   v;
 	uint32			concnt;
 	uint32			liscnt;
+	uint32			waitcnt;
 	Mutex           m;
 	TimeSpec		ct;
 };
@@ -57,7 +60,7 @@ void Info::update(unsigned _pos, ulong _v){
 	//m.unlock();
 }
 
-void Info::print(){
+int Info::print(){
 	uint64	tot = 0;
 	uint32	mn = 0xffffffff;
 	uint32	mncnt = 0;
@@ -92,7 +95,7 @@ void Info::print(){
 	if(concnt != v.size()) cout<<" conected = "<<concnt;
 	if(liscnt != v.size()) cout<<" listed = "<<liscnt;
 	cout<<'\r'<<flush;
-	//m.unlock();
+	return waitcnt;
 }
 
 static Info inf;
@@ -106,8 +109,9 @@ public:
 		unsigned _pos,
 		const char* _addr = NULL,
 		int _port = -1,
+		int _repeatcnt= 0,
 		int _cnt = ((unsigned)(0xfffffff)),
-		int _sleep = 1):wr(-1),sd(-1),ai(_node, _svice), pos(_pos), cnt(_cnt),slp(_sleep),path(_path),addr(_addr?_addr:""),port(_port){}
+		int _sleep = 1):wr(-1),sd(-1),ai(_node, _svice), pos(_pos), cnt(_cnt),slp(_sleep),path(_path),addr(_addr?_addr:""),port(_port),repeatcnt(_repeatcnt){}
 	void run();
 private:
 	enum {BufLen = 2*1024};
@@ -125,6 +129,7 @@ private:
 	ulong       readc;
 	string		addr;
 	int 		port;
+	int			repeatcnt;
 };
 
 void AlphaThread::run(){
@@ -160,7 +165,7 @@ void AlphaThread::run(){
 	int rv = list(buf);
 	idbg("return value "<<rv);
 	inf.update(pos, readc);
-	ulong m = sdq.size() - 1;
+	ulong m = sdq.size();
 	inf.lock();
 	inf.doneList();
 	cout<<pos<<" fetched file list: "<<m<<" files "<<endl;
@@ -169,13 +174,19 @@ void AlphaThread::run(){
 // 		cout<<'['<<*it<<']'<<endl;
 // 	}
 	if(rv) return;
+	if(repeatcnt == 0) repeatcnt = -1;
+	//if(repeatcnt > 0) ++repeatcnt;
 	ulong ul = pos;
-	while(!(rv = fetch(ul % m, buf))){
-		++ul;
-		Thread::sleep(sleeptout);
+	while(repeatcnt < 0 || repeatcnt--){
+		ulong cnt = m;
+		while(cnt--  && !(rv = fetch(ul % m, buf))){
+			++ul;
+			Thread::sleep(sleeptout);
+		}
 	}
 	idbg("return value "<<rv);
 	cout<<endl<<"return value"<<rv<<endl;
+	inf.subWait();
 }
 
 //----------------------------------------------------------------------------
@@ -469,9 +480,10 @@ int AlphaThread::fetch(unsigned _idx, char *_pb){
 	return -9;
 }
 
+
 int main(int argc, char *argv[]){
-	if(argc != 6 && argc != 8){
-		cout<<"Usage: alphaclient thcnt addr port path tout [peer_addr peer_port]"<<endl;
+	if(argc != 7 && argc != 9){
+		cout<<"Usage: alphaclient thcnt addr port path tout repeat_count [peer_addr peer_port]"<<endl;
 		cout<<"Where:"<<endl;
 		cout<<"tout is the amount of time in msec between commands"<<endl;
 		return 0;
@@ -487,19 +499,20 @@ int main(int argc, char *argv[]){
 #endif
 	sleeptout = atoi(argv[5]);
 	int cnt = atoi(argv[1]);
+	int repeatcnt = atoi(argv[6]);
 	const char* addr = NULL;
 	int port = -1;
 	if(argc == 8){
-		addr = argv[6];
-		port = atoi(argv[7]);
+		addr = argv[7];
+		port = atoi(argv[8]);
 	}
 	for(int i = 0; i < cnt; ++i){
-		AlphaThread *pt = new AlphaThread(argv[2], argv[3], argv[4], inf.pushBack(), addr, port);
+		AlphaThread *pt = new AlphaThread(argv[2], argv[3], argv[4], inf.pushBack(), addr, port, repeatcnt);
+		inf.addWait();
 		pt->start(true, true, 24*1024);
 	}
 	clock_gettime(CLOCK_MONOTONIC, &inf.ft);
-	while(true){
-		inf.print();
+	while(inf.print()){
 		Thread::sleep(500);
 	}
 	Thread::waitAll();
