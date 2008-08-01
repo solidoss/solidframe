@@ -19,7 +19,7 @@ SET( CMAKE_SHARED_LINKER_FLAGS_DEBUG
     "Flags used by the shared libraries linker during debug builds."
     FORCE )
 
-SET(CMAKE_CXX_FLAGS_MAINTAIN "-Wall -Wabi -g3 -DUDEBUG -DUINLINES -DUTHREADS -DU_SERIALIZATION_MUTEX -DSG_MAJOR=${VERSION_MAJOR} -DSG_MINOR=${VERSION_MINOR} -DSG_PATCH=${VERSION_PATCH}" CACHE STRING "Flags used by the C++ compiler during maintain builds." FORCE)
+SET(CMAKE_CXX_FLAGS_MAINTAIN "-Wall -Wabi -O3 -g3 -DUDEBUG -DUINLINES -DUASSERT -DUTHREADS -DU_SERIALIZATION_MUTEX -DSG_MAJOR=${VERSION_MAJOR} -DSG_MINOR=${VERSION_MINOR} -DSG_PATCH=${VERSION_PATCH}" CACHE STRING "Flags used by the C++ compiler during maintain builds." FORCE)
 SET(CMAKE_C_FLAGS_MAINTAIN "-Wall -pedantic -g3 -DSG_MAJOR=${VERSION_MAJOR} -DSG_MINOR=${VERSION_MINOR} -DSG_PATCH=${VERSION_PATCH}" CACHE STRING "Flags used by the C compiler during maintain builds." FORCE)
 SET( CMAKE_EXE_LINKER_FLAGS_MAINTAIN
     "-Wl,--warn-unresolved-symbols,--warn-once" CACHE STRING
@@ -30,9 +30,20 @@ SET( CMAKE_SHARED_LINKER_FLAGS_MAINTAIN
     "Flags used by the shared libraries linker during maintain builds."
     FORCE )
 
+SET(CMAKE_CXX_FLAGS_OPTIMIZED "-O3 -g3 -DUTHREADS -DU_SERIALIZATION_MUTEX -DUASSERT -DSG_MAJOR=${VERSION_MAJOR} -DSG_MINOR=${VERSION_MINOR} -DSG_PATCH=${VERSION_PATCH}" CACHE STRING "Flags used by the C++ compiler during optimized builds." FORCE)
+SET(CMAKE_C_FLAGS_OPTIMIZED "-O3 -g3 -DSG_MAJOR=${VERSION_MAJOR} -DSG_MINOR=${VERSION_MINOR} -DSG_PATCH=${VERSION_PATCH}" CACHE STRING "Flags used by the C compiler during optimized builds." FORCE)
+SET( CMAKE_EXE_LINKER_FLAGS_OPTIMIZED
+    "" CACHE STRING
+    "Flags used for linking binaries during optimized builds."
+    FORCE )
+SET( CMAKE_SHARED_LINKER_FLAGS_OPTIMIZED
+    "" CACHE STRING
+    "Flags used by the shared libraries linker during optimized builds."
+    FORCE )
+
 
 #overwrite the defaults for release
-SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -g3 -DUTHREADS -DUINLINES -DUASSERT -DU_SERIALIZATION_MUTEX -Wuninitialized -DSG_MAJOR=${VERSION_MAJOR} -DSG_MINOR=${VERSION_MINOR} -DSG_PATCH=${VERSION_PATCH}" CACHE STRING "Flags used by the C++ compiler during release builds." FORCE)
+SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -DUTHREADS -DUINLINES -DUASSERT -DU_SERIALIZATION_MUTEX -Wuninitialized -DSG_MAJOR=${VERSION_MAJOR} -DSG_MINOR=${VERSION_MINOR} -DSG_PATCH=${VERSION_PATCH}" CACHE STRING "Flags used by the C++ compiler during release builds." FORCE)
 #SET(CMAKE_C_FLAGS_RELEASE "-O3 -DUTHREADS" CACHE STRING "Flags used by the C compiler during release builds." FORCE)
 
 
@@ -64,9 +75,15 @@ MARK_AS_ADVANCED(
     CMAKE_EXE_LINKER_FLAGS_MAINTAIN
     CMAKE_SHARED_LINKER_FLAGS_MAINTAIN )
 
+MARK_AS_ADVANCED(
+    CMAKE_CXX_FLAGS_OPTIMIZED
+    CMAKE_C_FLAGS_OPTIMIZED
+    CMAKE_EXE_LINKER_FLAGS_OPTIMIZED
+    CMAKE_SHARED_LINKER_FLAGS_OPTIMIZED )
+
 # Update the documentation string of CMAKE_BUILD_TYPE for GUIs
 SET( CMAKE_BUILD_TYPE "${CMAKE_BUILD_TYPE}" CACHE STRING
-    "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel nolog maintain:"
+    "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel nolog maintain optimized:"
     FORCE )
 
 #new xscale build

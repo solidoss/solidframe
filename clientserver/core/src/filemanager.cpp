@@ -270,15 +270,22 @@ int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 			m.lock();
 			switch(rf.pfile->executeSignal(*this, fuid, 0, msectout)){
 				case BAD:{//delete the file and collect the position
-					if(state() == Data::Running) rf.pfile->clear(*this, fuid);//send errors only if we're not stopping
 					File *pf(rf.pfile);
 					m.unlock();//avoid crosslocking deadlock
-					d.mut->lock();
-					pf->key().erase(*this, *pfid);
-					rf.pfile = NULL;
-					d.collectFilePosition(*pfid);
-					dsz = d.sz;
-					d.mut->unlock();
+					{
+						Mutex::Locker lock0(*d.mut);
+						{
+							Mutex::Locker lock1(m);
+							if(rf.pfile->inUse()) break;//false alarm
+							if(state() == Data::Running){
+								rf.pfile->clear(*this, fuid);//send errors only if we're not stopping
+							}
+						}
+						pf->key().erase(*this, *pfid);
+						rf.pfile = NULL;
+						d.collectFilePosition(*pfid);
+						dsz = d.sz;
+					}
 					rf.tout.set(0xffffffff);
 					if(rf.toutidx >= 0){
 						d.eraseToutPos(rf.toutidx);
@@ -291,12 +298,17 @@ int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 						//rf.pfile->clear(*this, fuid);//not sending errors when stopping
 						File *pf(rf.pfile);
 						m.unlock();//avoid crosslocking deadlock
-						d.mut->lock();
-						pf->key().erase(*this, *pfid);
-						rf.pfile = NULL;
-						d.collectFilePosition(*pfid);
-						dsz = d.sz;
-						d.mut->unlock();
+						{
+							Mutex::Locker lock0(*d.mut);
+							{
+								Mutex::Locker lock1(m);
+								if(rf.pfile->inUse()) break;//false alarm
+							}
+							pf->key().erase(*this, *pfid);
+							rf.pfile = NULL;
+							d.collectFilePosition(*pfid);
+							dsz = d.sz;
+						}
 						rf.tout.set(0xffffffff);
 						if(rf.toutidx >= 0){
 							d.eraseToutPos(rf.toutidx);
@@ -344,18 +356,25 @@ int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 			//so, no locking here too.
 			switch(rf.pfile->executeOpen(*this, fuid, 0, msectout, m)){
 				case BAD:{//delete the file and collect the position
-					if(state() == Data::Running) rf.pfile->clear(*this, fuid);//send errors only if we're not stopping
 					File *pf(rf.pfile);
 					m.unlock();//avoid crosslocking deadlock
-					d.mut->lock();
-					pf->key().erase(*this, ofront);
-					rf.pfile = NULL;
-					d.collectFilePosition(ofront);
-					dsz = d.sz;
-					d.oq.pop();
-					oqsz = d.oq.size();
-					if(oqsz) ofront = d.oq.front();
-					d.mut->unlock();
+					{
+						Mutex::Locker lock0(*d.mut);
+						{
+							Mutex::Locker lock1(m);
+							if(rf.pfile->inUse()) break;//false alarm
+							if(state() == Data::Running){
+								rf.pfile->clear(*this, fuid);//send errors only if we're not stopping
+							}
+						}
+						pf->key().erase(*this, ofront);
+						rf.pfile = NULL;
+						d.collectFilePosition(ofront);
+						dsz = d.sz;
+						d.oq.pop();
+						oqsz = d.oq.size();
+						if(oqsz) ofront = d.oq.front();
+					}
 					rf.tout.set(0xffffffff);
 					if(rf.toutidx >= 0){
 						d.eraseToutPos(rf.toutidx);
@@ -364,13 +383,14 @@ int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 					delete pf;
 					}break;
 				case OK://the file was successfully opened
-					d.mut->lock();
-					++d.sz;
-					dsz = d.sz;
-					d.oq.pop();
-					oqsz = d.oq.size();
-					if(oqsz) ofront = d.oq.front();
-					d.mut->unlock();
+					{
+						Mutex::Locker lock0(*d.mut);
+						++d.sz;
+						dsz = d.sz;
+						d.oq.pop();
+						oqsz = d.oq.size();
+						if(oqsz) ofront = d.oq.front();
+					}
 					rf.tout.set(0xffffffff);
 					if(rf.toutidx >= 0){
 						d.eraseToutPos(rf.toutidx);
@@ -401,16 +421,22 @@ int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 					//if(rf.pfile){//pfile is set to null only in this thread - the file will not be in toutv
 					if(!rf.pfile->inUse()){
 						FileUidTp 		fuid(ofront, d.fv[*it].uid);
-						rf.pfile->clear(*this, fuid);
 						File *pf(rf.pfile);
 						rm.unlock();//avoid crosslocking deadlock
-						d.mut->lock();
-						pf->key().erase(*this, *it);
-						rf.pfile = NULL;
-						d.collectFilePosition(*it);
-						dsz = d.sz;
-						oqsz = d.oq.size();
-						d.mut->unlock();
+						{
+							Mutex::Locker lock0(*d.mut);
+							{
+								Mutex::Locker lock1(rm);
+								if(rf.pfile->inUse()) break;//false alarm
+								rf.pfile->clear(*this, fuid);//send errors only if we're not stopping
+							}
+							pf->key().erase(*this, *it);
+							rf.pfile = NULL;
+							d.collectFilePosition(*it);
+							dsz = d.sz;
+							d.oq.pop();
+							oqsz = d.oq.size();
+						}
 						rf.tout.set(0xffffffff);
 						rf.toutidx = -1;
 						delete pf;
