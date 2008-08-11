@@ -75,7 +75,7 @@ struct AddrInfo{
 		int _type = -1,
 		int _proto = -1
 	){
-		reinit(_node, _service, _family, _type, _proto);
+		reinit(_node, _service, _flags, _family, _type, _proto);
 	}
 	AddrInfo(const char *_node, int _port);
 	AddrInfo(

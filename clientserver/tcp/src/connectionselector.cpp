@@ -278,7 +278,10 @@ void ConnectionSelector::Data::push(const ConnectionPtrTp &_conptr, uint _thid){
 
 
 uint ConnectionSelector::Data::doIo(Channel &_rch, ulong _evs){
-	if(_evs & (EPOLLERR | EPOLLHUP)) return ERRDONE;
+	if(_evs & (EPOLLERR | EPOLLHUP)){
+		_rch.clear();
+		return ERRDONE;
+	}
 	int rv = 0;
 	if(_evs & Channel::INTOUT){
 		rv = _rch.doRecv();

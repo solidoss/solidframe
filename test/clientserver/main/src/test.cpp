@@ -278,6 +278,10 @@ int insertConnection(char *_pc, int _len,test::Server &_rts){
 		srv += *_pc;
 		++_pc;
 	}
+	AddrInfo ai("0.0.0.0","");
+	if(ai.empty() || _rts.insertConnection(srvname.c_str(), ai.begin(), node.c_str(), srv.c_str())){
+		cout<<"Failed adding connection"<<endl;
+	}
 	//TODO:
 // 	if(_rts.insertConnection(srvname.c_str(), new cs::tcp::Channel, node.c_str(), srv.c_str())){
 // 		cout<<"Failed adding connection"<<endl;

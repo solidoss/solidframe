@@ -114,6 +114,7 @@ private:
 	int doRecvSecure();
 	int doSendPlain();
 	int doSendSecure();
+	void clear();
 	int descriptor()const{return sd;}
 private:
 	int 				sd;
