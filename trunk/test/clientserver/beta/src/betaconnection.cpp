@@ -39,7 +39,7 @@ Connection::Connection(cs::tcp::Channel *_pch, const char *_node, const char *_s
 									bend(bbeg + BUFSZ),brpos(bbeg),bwpos(bbeg),
 									pai(NULL){
 	if(_node){
-		pai = new AddrInfo(_node, _srv);
+		pai = new AddrInfo(_node, _srv, 0, AddrInfo::Inet4, AddrInfo::Stream);
 		it = pai->begin();
 		state(CONNECT);
 	}else{
@@ -69,6 +69,8 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 	if(_sig & (cs::TIMEOUT | cs::ERRDONE)){
 		idbg("connecton timeout or error");
 		if(state() == CONNECT_TOUT){
+			cassert(!channel().arePendingSends());
+			idbg("are pending sends = "<<channel().arePendingSends());
 			if(++it){
 				state(CONNECT);
 				return cs::UNREGISTER;
@@ -118,10 +120,22 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 				break;
 			case CONNECT_TOUT:
 				delete pai; pai = NULL;
-			case INIT:
+			case INIT:{
+				char			host[SocketAddress::MaxSockHostSz];
+				char			port[SocketAddress::MaxSockServSz];
+				SocketAddress	addr;
+				channel().remoteAddress(addr);
+				addr.name(
+					host,
+					SocketAddress::MaxSockHostSz,
+					port,
+					SocketAddress::MaxSockServSz,
+					SocketAddress::NumericService
+				);
+				idbg("remote host = "<<host<<" remote port = "<<port);
 				channel().send(hellostr, strlen(hellostr));
 				state(READ);
-				break;
+				}break;
 		}
 		rc -= channel().recvSize();
 	}while(rc > 0);

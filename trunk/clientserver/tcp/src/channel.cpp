@@ -42,8 +42,12 @@ namespace tcp{
 #endif
 
 Channel* Channel::create(const AddrInfoIterator &_rai){
-	cassert(false);
-	return NULL;
+// 	int rv = socket(_rai.family(), _rai.type(), _rai.protocol());
+// 	if(rv < 0){
+// 		edbg("Error creating socket: "<<strerror(errno));
+// 		return NULL;
+// 	}
+	return new Channel(-1);
 }
 
 Channel::Channel(int _sd):sd(_sd), rcvcnt(0), sndcnt(0), pcd(NULL), psch(NULL){
@@ -108,11 +112,16 @@ int Channel::remoteAddress(SocketAddress &_rsa){
 // and create the socket, bind it to a certain interface in 'create'
 int Channel::connect(const AddrInfoIterator &_it){
 	//in order to make the selector wait for data out, just add an empty buffer to snddq.
-	if(ok()){	close(sd);}
+	if(ok()){
+		close(sd);
+	}
 	
 	sd = socket(_it.family(), _it.type(), _it.protocol());
+	
 	if(!ok()) return BAD;
+	
 	int flg = fcntl(sd, F_GETFL);
+	
 	if(flg == -1){
 		idbg("Error fcntl getfl: "<<strerror(errno));
 		close(sd);
@@ -245,7 +254,13 @@ int Channel::doSendSecure(){
 	//TODO:
 	return BAD;
 }
-
+void Channel::clear(){
+	while(pcd->arePendingSends()){
+		pcd->popSendData();
+	}
+	pcd->rcvsz = 0;
+	pcd->rdn.b.pb = NULL; //rcvd.flags = 0;
+}
 
 }//namespace tcp
 }//namespace clientserver
