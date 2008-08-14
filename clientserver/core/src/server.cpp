@@ -73,7 +73,7 @@ struct DummyObject: Object{
 // service vector (i.e. pservice->index());
 class ServiceContainer: public Service{
 public:
-	ServiceContainer():Service(0, 1, 16), pdo(new DummyObject){
+	ServiceContainer():Service(0, 1, 5), pdo(new DummyObject){
 		Service::mutex(new Mutex);
 		insert(pdo);
 	}
