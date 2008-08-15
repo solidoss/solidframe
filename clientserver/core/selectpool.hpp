@@ -69,7 +69,7 @@ public://definition
 		\param _selcap The capacity of a selector - the total number
 		of objects handled would be _maxthcnt * _selcap
 	*/
-	SelectPool(Server &_rsrv, uint _maxthcnt, uint _selcap = 1024):rsrv(_rsrv),selcap(_selcap){
+	SelectPool(Server &_rsrv, uint _maxthcnt, uint _selcap = 1024):rsrv(_rsrv),cap(0),selcap(_selcap){
 		thrid = _rsrv.registerActiveSet(*this);
 		thrid <<= 16;
 		slotvec.reserve(_maxthcnt > 1024 ? 1024 : _maxthcnt);
