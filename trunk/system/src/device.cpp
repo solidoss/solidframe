@@ -93,11 +93,16 @@ int FileDevice::create(const char* _fname, int _how){
 
 int64 FileDevice::size()const{
 	struct stat st;
-	fstat(descriptor(), &st);
+	if(fstat(descriptor(), &st)) return -1;
 	return st.st_size;
 }
 bool FileDevice::canRetryOpen()const{
 	return (errno == EMFILE) || (errno == ENOMEM);
+}
+/*static*/ int64 FileDevice::size(const char *_fname){
+	struct stat st;
+	if(stat(_fname, &st)) return -1;
+	return st.st_size;
 }
 //-- Directory -------------------------------------
 /*static*/ int Directory::create(const char *_path){
