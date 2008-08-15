@@ -21,6 +21,7 @@
 
 #include "system/debug.hpp"
 #include "system/socketaddress.hpp"
+#include "system/filedevice.hpp"
 
 #include "utility/iostream.hpp"
 
@@ -221,7 +222,7 @@ int List::execute(Connection &_rc){
 		if(is_directory(*it)){
 			_rc.writer()<<"* DIR ";
 		}else{
-			_rc.writer()<<"* FILE "<<(uint32)file_size(*it)<<' ';
+			_rc.writer()<<"* FILE "<<(uint32)FileDevice::size(it->string().c_str())<<' ';
 		}
 	}
 	return OK;
@@ -235,7 +236,7 @@ int List::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 		if(is_directory(*it)){
 			_rw<<"* DIR ";
 		}else{
-			_rw<<"* FILE "<<(uint32)file_size(*it)<<' ';
+			_rw<<"* FILE "<<(uint32)FileDevice::size(it->string().c_str())<<' ';
 		}
 		return Writer::Continue;
 	}
@@ -321,7 +322,7 @@ int RemoteListCommand::execute(cs::CommandExecuter&, const CommandUidTp &, TimeS
 		ppthlst->push_back(std::pair<String, int64>(it->string(), -1));
 		if(is_directory(*it)){
 		}else{
-			ppthlst->back().second = file_size(*it);
+			ppthlst->back().second = FileDevice::size(it->string().c_str());
 		}
 		++it;
 	}
