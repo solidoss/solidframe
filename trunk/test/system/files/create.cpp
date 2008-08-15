@@ -49,6 +49,7 @@ int main(int argc, char *argv[]){
 	sprintf(name, "%s", argv[1]);
 	char *fldname = name + strlen(argv[1]);
 	char *fname = name + strlen(argv[1]) + 1 + 8;
+	if(*(fldname - 1) == '/') --fldname;
 	double maxsize = maxsz;
 	double minsize = minsz;
 	double filecount = filecnt;
