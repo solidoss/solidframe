@@ -24,14 +24,17 @@
 
 #include "clientserver/core/common.hpp"
 #include "clientserver/core/objptr.hpp"
-// #include "system/timespec.hpp"
-// #include "utility/queue.hpp"
+
+
+struct TimeSpec;
+struct epoll_event;
 
 namespace clientserver{
 namespace tcp{
 
 class Connection;
 class ChannelData;
+class Channel;
 class DataNode;
 
 typedef ObjPtr<Connection>	ConnectionPtrTp;
@@ -64,10 +67,13 @@ public:
 	void prepare();
 	void unprepare();
 private:
-	DataNode* doPopDataNode();
-	void doPush(DataNode *_pdn);
-	ChannelData* doPopChannelData();
-	void doPush(ChannelData *);
+	struct ChannelStub;
+	int doReadPipe();
+	int doExecute(ChannelStub &_rch, ulong _evs, TimeSpec &_crttout, epoll_event &_rev);
+	uint doIo(Channel &_rch, ulong _evs);
+	uint doAllIo();
+	uint doFullScan();
+	uint doExecuteQueue();
 private://data
 	struct Data;
 	Data	&d;
