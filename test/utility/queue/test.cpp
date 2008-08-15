@@ -19,7 +19,7 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "utility/queue.h"
+#include "utility/queue.hpp"
 #include <iostream>
 
 using namespace std;

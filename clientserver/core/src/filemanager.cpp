@@ -168,6 +168,7 @@ struct FileManager::Data{
 	typedef std::deque<int32>			TimeoutVectorTp;
 	typedef std::vector<FileMapper*>	FileMapperVectorTp;
 	Data(uint32 _maxsz):maxsz(_maxsz),sz(0), freeidx(0), mut(NULL){}
+	~Data();
 	int  fileWrite(uint _fileid, const char *_pb, uint32 _bl, const int64 &_off, uint32 _flags);
 	int  fileRead(uint _fileid, char *_pb, uint32 _bl, const int64 &_off, uint32 _flags);
 	int  fileSize(uint _fileid);
@@ -192,7 +193,11 @@ struct FileManager::Data{
 	TimeSpec				tout;
 };
 
-
+FileManager::Data::~Data(){
+	for(FileMapperVectorTp::const_iterator it(mv.begin()); it != mv.end(); ++it){
+		delete *it;
+	}
+}
 //	FileManager definitions ==================================================
 FileManager::FileManager(uint32 _maxfcnt):d(*(new Data(_maxfcnt))){
 	state(Data::Running);

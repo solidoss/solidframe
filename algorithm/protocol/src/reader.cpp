@@ -43,7 +43,7 @@ Reader::Reader(Logger *_plog):plog(_plog), bbeg(NULL), bend(NULL), rpos(NULL), w
 }
 
 Reader::~Reader(){
-	delete bbeg;
+	delete []bbeg;
 }
 
 Parameter& Reader::push(FncTp _pf){

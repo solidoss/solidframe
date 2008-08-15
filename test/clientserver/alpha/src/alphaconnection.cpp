@@ -54,7 +54,8 @@ Connection::Connection(cs::tcp::Channel *_pch, SocketAddress *_paddr):
 						 	BaseTp(_pch),
 						 	wtr(*_pch),
 						 	rdr(*_pch, wtr), pcmd(NULL),
-						 	paddr(_paddr){
+						 	paddr(_paddr),
+						 	reqid(1){
 	
 	if(paddr){
 		state(Connect);

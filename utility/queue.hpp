@@ -24,6 +24,7 @@
 #include <cstdlib>
 #include "system/convertors.hpp"
 #include "system/cassert.hpp"
+#include "system/debug.hpp"
 
 
 //! A simple and fast queue with interface similar to std one
@@ -57,6 +58,8 @@ public:
 			delete ptn;
 			ptn = tn;
 		}
+		Node *pn = pf ? (Node*)(((char*)pf) - popsz * sizeof(T) - sizeof(Node*)): NULL;
+		delete pn;
 	}
 	bool empty()const	{ return !sz;}
 	size_t size() const	{ return sz;}
