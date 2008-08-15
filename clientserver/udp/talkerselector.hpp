@@ -25,10 +25,14 @@
 #include "clientserver/core/common.hpp"
 #include "clientserver/core/objptr.hpp"
 
+struct TimeSpec;
+struct epoll_event;
+
 namespace clientserver{
 namespace udp{
 
 class Talker;
+class Station;
 
 typedef ObjPtr<Talker>	TalkerPtrTp;
 
@@ -54,6 +58,16 @@ public:
 	void unprepare();
 	
 	void push(const TalkerPtrTp &_rcon, uint _thid);
+private:
+	struct SelTalker;
+	int doReadPipe();
+	int doIo(Station &_rch, ulong _evs);
+	int doExecute(
+		SelTalker &_rch,
+		ulong _evs,
+		TimeSpec &_rcrttout,
+		epoll_event &_rev
+	);
 private://data
 	struct Data;
 	Data	&d;
