@@ -130,6 +130,7 @@ void Writer::putChar(char _c1, char _c2, char _c3, char _c4){
 }
 
 void Writer::putSilentChar(char _c1){
+	cassert(wpos <= bend);
 	if(wpos != bend){
 	}else resize(1);
 	
@@ -137,6 +138,7 @@ void Writer::putSilentChar(char _c1){
 }
 
 void Writer::putSilentChar(char _c1, char _c2){
+	cassert(wpos <= bend);
 	if(2 < (uint32)(bend - wpos)){
 	}else resize(2);
 	
@@ -145,6 +147,7 @@ void Writer::putSilentChar(char _c1, char _c2){
 }
 
 void Writer::putSilentChar(char _c1, char _c2, char _c3){
+	cassert(wpos <= bend);
 	if(3 < (uint32)(bend - wpos)){
 	}else resize(3);
 	
@@ -154,6 +157,7 @@ void Writer::putSilentChar(char _c1, char _c2, char _c3){
 }
 
 void Writer::putSilentChar(char _c1, char _c2, char _c3, char _c4){
+	cassert(wpos <= bend);
 	if(4 < (uint32)(bend - wpos)){
 	}else resize(4);
 	
@@ -169,6 +173,7 @@ void Writer::putString(const char* _s, uint32 _sz){
 }
 
 void Writer::putSilentString(const char* _s, uint32 _sz){
+	cassert(wpos <= bend);
 	if(_sz < (uint32)(bend - wpos)){
 	}else resize(_sz);
 	memcpy(wpos, _s, _sz);
