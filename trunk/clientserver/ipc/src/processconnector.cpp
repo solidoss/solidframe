@@ -357,11 +357,11 @@ void ProcessConnector::completeConnect(int _pairport){
 }
 
 const Inet4SockAddrPair* ProcessConnector::peerAddr4()const{
-	return reinterpret_cast<Inet4SockAddrPair*>(&d.pairaddr);
+	return reinterpret_cast<const Inet4SockAddrPair*>(&d.pairaddr);
 }
 
 const std::pair<const Inet4SockAddrPair*, int>* ProcessConnector::baseAddr4()const{
-	return reinterpret_cast<std::pair<const Inet4SockAddrPair*, int>*>(&d.baseaddr);
+	return reinterpret_cast<const std::pair<const Inet4SockAddrPair*, int>*>(&d.baseaddr);
 }
 
 // const Inet6SockAddrPair* ProcessConnector::pairAddr6()const{
