@@ -33,6 +33,7 @@ namespace serialization{
 struct TypeMapper::Data{
 	typedef std::vector<BaseTypeMap*> TypeMapVectorTp;
 	Data();
+	~Data();
 	ulong 			sercnt;
 	TypeMapVectorTp	tmvec;
 #ifdef U_SERIALIZATION_MUTEX
@@ -46,7 +47,11 @@ struct TypeMapper::Data{
 };
 //================================================================
 TypeMapper::Data::Data():sercnt(0){}
-
+TypeMapper::Data::~Data(){
+	for(TypeMapVectorTp::const_iterator it(tmvec.begin()); it != tmvec.end(); ++it){
+		delete *it;
+	}
+}
 TypeMapper::TypeMapper():d(*(new Data)){
 }
 
