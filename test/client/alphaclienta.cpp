@@ -502,7 +502,7 @@ int main(int argc, char *argv[]){
 	int repeatcnt = atoi(argv[6]);
 	const char* addr = NULL;
 	int port = -1;
-	if(argc == 8){
+	if(argc == 9){
 		addr = argv[7];
 		port = atoi(argv[8]);
 	}

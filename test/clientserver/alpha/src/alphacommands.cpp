@@ -246,7 +246,9 @@ int List::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 // RemoteList command
 //---------------------------------------------------------------
 struct RemoteListCommand: test::Command{
-	RemoteListCommand(): ppthlst(NULL),err(-1){}
+	RemoteListCommand(): ppthlst(NULL),err(-1){
+		idbg("");
+	}
 	~RemoteListCommand(){
 		idbg("");
 		delete ppthlst;
@@ -445,7 +447,9 @@ struct FetchMasterCommand: test::Command{
 		SendNextStream,
 		SendError,
 	};
-	FetchMasterCommand():pcmd(NULL), state(NotReceived), insz(-1), inpos(0), requid(0){}
+	FetchMasterCommand():pcmd(NULL), state(NotReceived), insz(-1), inpos(0), requid(0){
+		idbg("");
+	}
 	~FetchMasterCommand();
 	int received(const cs::ipc::ConnectorUid &_rconid);
 	int execute(cs::CommandExecuter&, const CommandUidTp &, TimeSpec &_rts);
@@ -494,7 +498,9 @@ struct FetchMasterCommand: test::Command{
 	as reponse containing the requested file chunk.
 */
 struct FetchSlaveCommand: test::Command{
-	FetchSlaveCommand(): insz(-1), sz(-10), requid(0){}
+	FetchSlaveCommand(): insz(-1), sz(-10), requid(0){
+		idbg("");
+	}
 	~FetchSlaveCommand(){
 		idbg("");
 	}

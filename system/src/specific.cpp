@@ -109,7 +109,7 @@ SpecificData::~SpecificData(){
 		idbg(i<<" cps[i].cp = "<<cps[i].cp<<" Specific::sizeToId((1<<i)) = "<<Specific::sizeToId((1<<i)));
 		cassert(!(cps[i].cp - cps[i].s.size()));
 		while(cps[i].s.size()){
-			delete cps[i].s.top();
+			delete []cps[i].s.top();
 			cps[i].s.pop();
 		}
 	}
