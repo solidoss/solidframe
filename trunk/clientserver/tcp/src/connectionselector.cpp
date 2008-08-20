@@ -415,7 +415,7 @@ int ConnectionSelector::doExecute(ChannelStub &_rch, ulong _evs, TimeSpec &_crtt
 			rv = Data::EXIT_LOOP;
 			break;
 		case OK://
-			idbg("OK: reentering connection "<<rcon.channel().ioRequest());
+			//idbg("OK: reentering connection "<<rcon.channel().ioRequest());
 			if(!(_rch.state & ChannelStub::InQExec)){
 				d.chq.push(&_rch);
 				_rch.state |= ChannelStub::InQExec;
@@ -473,7 +473,7 @@ int ConnectionSelector::doExecute(ChannelStub &_rch, ulong _evs, TimeSpec &_crtt
 		default:
 			cassert(false);
 	}
-	idbg("return "<<rv);
+	//idbg("return "<<rv);
 	return rv;
 }
 
