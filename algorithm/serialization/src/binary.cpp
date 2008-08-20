@@ -263,13 +263,14 @@ int Deserializer::parseStream(Base &_rb, FncData &_rfd){
 		return OK;
 	}
 	idbg("towrite = "<<towrite);
+	cassert(rsz <= rsp.second);
 	int rv = rsp.first->write(rd.cpb, towrite);
 	rd.cpb += towrite;
 	rsp.second -= towrite;
+	idbg("rsp.second = "<<rsp.second);
 	if(rv != towrite){
 		_rfd.f = &parseDummyStream;
 	}
-	idbg("rsp.second = "<<rsp.second);
 	if(rsp.second) return NOK;
 	return OK;
 }

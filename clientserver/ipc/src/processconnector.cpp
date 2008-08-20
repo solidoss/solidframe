@@ -32,6 +32,9 @@
 #include "core/server.hpp"
 #include "ipc/ipcservice.hpp"
 
+#include <iostream>
+using namespace std;
+
 namespace cs = clientserver;
 
 namespace clientserver{
@@ -459,7 +462,7 @@ int ProcessConnector::pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpo
 			idbg("sent updates - collecting buffer");
 			char *pb = _rbuf.b.buffer();
 			Specific::pushBuffer(pb, Specific::capacityToId(_rbuf.b.bufferCapacity()));
-			++d.bufjetons;
+			//++d.bufjetons;
 			return NOK;//maybe we have something to send
 		}else{
 			idbg("sent bufid = "<<_rbuf.b.id()<<" bufpos = "<<_rbuf.bufpos<<" retransmitid "<<_rbuf.b.retransmitId()<<" buf = "<<(void*)_rbuf.b.buffer()<<" buffercap = "<<_rbuf.b.bufferCapacity()<<" flags = "<<_rbuf.b.flags());
@@ -536,7 +539,7 @@ NOTE: VERY IMPORTANT
 
 int ProcessConnector::processSendCommands(SendBufferData &_rsb, const TimeSpec &_tpos, int _baseport){
 	idbg("bufjetons = "<<d.bufjetons);
-	if(d.bufjetons || d.state != Data::Connected){
+	if(d.bufjetons || d.state != Data::Connected || d.rcvidq.size()){
 		idbg("d.rcvidq.size() = "<<d.rcvidq.size());
 		bool written = false;
 		Buffer &rbuf(_rsb.b);
@@ -549,65 +552,76 @@ int ProcessConnector::processSendCommands(SendBufferData &_rsb, const TimeSpec &
 				written = true;
 				d.rcvidq.pop();
 			}
-			//then push the commands
-			idbg("d.cq.size() = "<<d.cq.size()<<" d.scq.size = "<<d.scq.size());
-			//fill scq
-			while(d.cq.size() && d.scq.size() < Data::MaxSendCommandQueueSize){
-				uint32 flags = d.cq.front().second;
-				//flags &= ~Data::ContinuedCommand;
-				cassert(d.cq.front().first.ptr());
-				d.scq.push(Data::SendCommand(d.cq.front().first, flags));
-				d.cq.pop();
-			}
-			Data::BinSerializerTp	*pser = NULL;
-			//at most we can send Data::MaxSendCommandQueueSize commands within a single buffer
-			while(d.scq.size()){
-				if(d.crtcmdbufcnt){
-					if(d.scq.front().pser){//a continued command
-						if(d.crtcmdbufcnt == Data::MaxCommandBufferCount){
-							rbuf.dataType(Buffer::OldCommand);
-						}else{
-							rbuf.dataType(Buffer::ContinuedCommand);
+			if(d.bufjetons){//send data only if we have jetons
+				//then push the commands
+				idbg("d.cq.size() = "<<d.cq.size()<<" d.scq.size = "<<d.scq.size());
+				//fill scq
+				while(d.cq.size() && d.scq.size() < Data::MaxSendCommandQueueSize){
+					uint32 flags = d.cq.front().second;
+					cassert(d.cq.front().first.ptr());
+					d.scq.push(Data::SendCommand(d.cq.front().first, flags));
+					d.cq.pop();
+				}
+				Data::BinSerializerTp	*pser = NULL;
+				
+				//at most we can send Data::MaxSendCommandQueueSize commands within a single buffer
+				
+				while(d.scq.size()){
+					if(d.crtcmdbufcnt){
+						if(d.scq.front().pser){//a continued command
+							if(d.crtcmdbufcnt == Data::MaxCommandBufferCount){
+								idbg("oldcommand");
+								rbuf.dataType(Buffer::OldCommand);
+							}else{
+								idbg("continuedcommand");
+								rbuf.dataType(Buffer::ContinuedCommand);
+							}
+						}else{//a new commnad
+							idbg("newcommand");
+							rbuf.dataType(Buffer::NewCommand);
+							if(pser){
+								d.scq.front().pser = pser;
+								pser = NULL;
+							}else{
+								d.scq.front().pser = d.popSerializer();
+							}
+							Command *pcmd(d.scq.front().pcmd.ptr());
+							d.scq.front().pser->push(pcmd);
 						}
-					}else{//a new commnad
-						rbuf.dataType(Buffer::NewCommand);
-						if(pser){
-							d.scq.front().pser = pser;
-							pser = NULL;
+						--d.crtcmdbufcnt;
+						idbg("d.crtcmdbufcnt = "<<d.crtcmdbufcnt);
+						written = true;
+						
+						int rv = d.scq.front().pser->run(rbuf.dataEnd(), rbuf.dataFreeSize());
+						
+						cassert(rv >= 0);//TODO: deal with the situation!
+						
+						rbuf.dataSize(rbuf.dataSize() + rv);
+						if(d.scq.front().pser->empty()){//finished with this command
+							idbg("donecommand");
+							if(pser) d.pushSerializer(pser);
+							pser = d.scq.front().pser;
+							pser->clear();
+							d.scq.front().pser = NULL;
+							d.scq.pop();
+							//we dont want to switch to an old command
+							d.crtcmdbufcnt = Data::MaxCommandBufferCount - 1;
+							if(rbuf.dataFreeSize() < 16) break;
+							break;
 						}else{
-							d.scq.front().pser = d.popSerializer();
+							break;
 						}
-						Command *pcmd(d.scq.front().pcmd.ptr());
-						d.scq.front().pser->push(pcmd);
-					}
-					--d.crtcmdbufcnt;
-					idbg("d.crtcmdbufcnt = "<<d.crtcmdbufcnt);
-					written = true;
-					int rv = d.scq.front().pser->run(rbuf.dataEnd(), rbuf.dataFreeSize());
-					cassert(rv >= 0);//TODO: deal with the situation!
-					rbuf.dataSize(rbuf.dataSize() + rv);
-					if(d.scq.front().pser->empty()){//finished with this command
-						if(pser) d.pushSerializer(pser);
-						pser = d.scq.front().pser;
+					}else if(d.scq.size() == 1){//only one command
+						d.crtcmdbufcnt = Data::MaxCommandBufferCount - 1;
+					}else{
+						d.scq.push(d.scq.front());
 						d.scq.front().pser = NULL;
 						d.scq.pop();
-						//we dont want to switch to an old command
-						d.crtcmdbufcnt = Data::MaxCommandBufferCount - 1;
- 						if(rbuf.dataFreeSize() < 16) break;
-						break;
-					}else{
-						break;
+						d.crtcmdbufcnt = Data::MaxCommandBufferCount;
 					}
-				}else if(d.scq.size() == 1){//only one command
-					d.crtcmdbufcnt = Data::MaxCommandBufferCount - 1;
-				}else{
-					d.scq.push(d.scq.front());
-					d.scq.front().pser = NULL;
-					d.scq.pop();
-					d.crtcmdbufcnt = Data::MaxCommandBufferCount;
-				}
-			}//while
-			if(pser) d.pushSerializer(pser);
+				}//while
+				if(pser) d.pushSerializer(pser);
+			}//if bufjetons
 		}else if(d.state == Data::Connecting){
 			rbuf.type(Buffer::ConnectingType);
 			int32 *pi = (int32*)rbuf.dataEnd();
@@ -636,12 +650,12 @@ int ProcessConnector::processSendCommands(SendBufferData &_rsb, const TimeSpec &
 			if(rbuf.dataSize()){
 				rbuf.id(d.sendid);
 				d.incrementSendId();
+				--d.bufjetons;
 			}else{
 				rbuf.id(Data::UpdateBufferId);
 			}
 			idbg("sending buffer id = "<<rbuf.id());
 			_rsb.paddr = &d.pairaddr;
-			--d.bufjetons;
 			if(!d.scq.size() && d.rcvidq.size())
 				return OK;
 			return NOK;
@@ -677,6 +691,7 @@ void ProcessConnector::parseBuffer(Buffer &_rbuf, const ConnectorUid &_rcodid){
 // 	cassert(d.rcq.size());
 // 	cassert(d.rcq.front().second);
 	int 		firstblen = blen - 1;
+	idbg("bufferid = "<<_rbuf.id());
 	while(blen > 2){
 		idbg("blen = "<<blen);
 		uint8	datatype = *bpos;
@@ -684,14 +699,21 @@ void ProcessConnector::parseBuffer(Buffer &_rbuf, const ConnectorUid &_rcodid){
 		--blen;
 		switch(datatype){
 			case Buffer::ContinuedCommand:
+				idbg("continuedcommand");
 				assert(blen == firstblen);
+				if(!d.rcq.front().first){
+					d.rcq.pop();
+				}
 				//we cannot have a continued command on the same buffer
 				break;
 			case Buffer::NewCommand:
+				idbg("newcommand");
 				if(d.rcq.size()){
 					idbg("switch to new rcq.size = "<<d.rcq.size());
-					d.rcq.push(d.rcq.front());
-					d.rcq.front().first = NULL;
+					if(d.rcq.front().first){//the previous command didnt end, we reschedule
+						d.rcq.push(d.rcq.front());
+						d.rcq.front().first = NULL;
+					}
 					d.rcq.front().second = d.popDeserializer();
 					d.rcq.front().second->push(d.rcq.front().first);
 				}else{
@@ -701,21 +723,32 @@ void ProcessConnector::parseBuffer(Buffer &_rbuf, const ConnectorUid &_rcodid){
 				}
 				break;
 			case Buffer::OldCommand:
+				idbg("oldcommand");
 				cassert(d.rcq.size() > 1);
-				idbg("switch to old");
-				d.rcq.push(d.rcq.front());
+				if(d.rcq.front().first){
+					d.rcq.push(d.rcq.front());
+				}
 				d.rcq.pop();
 				break;
+			default:{
+				cassert(false);
+			}
 		}
 		rv = d.rcq.front().second->run(bpos, blen);
 		cassert(rv >= 0);
 		blen -= rv;
 		if(d.rcq.front().second->empty()){//done one command.
+			idbg("donecommand");
+			
 			if(d.rcq.front().first->received(_rcodid))
 				delete d.rcq.front().first;
-			d.rcq.front().first = NULL;
+			
 			d.pushDeserializer(d.rcq.front().second);
-			d.rcq.pop();
+			//we do not pop it because in case of a new command,
+			//we must know if the previous command terminate
+			//so we dont mistakingly reschedule another command!!
+			d.rcq.front().first = NULL;
+			d.rcq.front().second = NULL;
 		}
 	}
 }
