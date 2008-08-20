@@ -206,7 +206,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 		case IdleExecute:
 			idbg("IdleExecute");
 		case Execute:
-			idbg("Execute");
+			//idbg("Execute");
 			switch((rc = writer().run())){
 				case NOK:
 					if(channel().arePendingSends()){

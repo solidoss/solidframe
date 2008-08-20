@@ -142,7 +142,7 @@ struct ProcessConnector::Data{
 
 
 ProcessConnector::Data::Data(const Inet4SockAddrPair &_raddr):
-	expectedid(1), retranstimeout(1000),
+	expectedid(1), retranstimeout(100),
 	state(Connecting), flags(0), bufjetons(1), crtcmdbufcnt(MaxCommandBufferCount),sendid(0),
 	addr(_raddr), pairaddr(addr), baseaddr(&pairaddr, addr.port()){
 }
@@ -154,7 +154,7 @@ ProcessConnector::Data::Data(const Inet4SockAddrPair &_raddr):
 // }
 
 ProcessConnector::Data::Data(const Inet4SockAddrPair &_raddr, int _baseport):
-	expectedid(1), retranstimeout(1000),
+	expectedid(1), retranstimeout(100),
 	state(Accepting), flags(0), bufjetons(3), crtcmdbufcnt(MaxCommandBufferCount), sendid(0),
 	addr(_raddr), pairaddr(addr), baseaddr(&pairaddr, _baseport){
 }
@@ -496,7 +496,7 @@ int ProcessConnector::pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpo
 			cassert(_rbuf.b.bc <= d.outbufs.size());
 			int bufpos(_rbuf.b.bc - 1);
 			Data::OutBufferPairTp &rob(d.outbufs[bufpos]);
-			idbg("rob.second = "<<rob.second);
+			idbg("rob.second = "<<rob.second<<" b.dl = "<<_rbuf.b.dl<<" bufpos = "<<bufpos);
 			if(rob.first.buffer() && rob.second == _rbuf.b.dl){
 				//we must resend this buffer
 				idbg("resending buffer "<<(bufpos)<<" retransmit id = "<<rob.first.retransmitId()<<" buf = "<<(void*)rob.first.buffer());
