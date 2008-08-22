@@ -271,7 +271,7 @@ private:
 	String				str;
 	String 				addr;
 	uint32				port;
-	uint32				objid;
+	ulong				objid;
 	uint32				objuid;
 };
 
@@ -298,7 +298,7 @@ private:
 	String				dststr;
 	String 				addr;
 	uint32				port;
-	uint32				objid;
+	ulong				objid;
 	uint32				objuid;
 };
 

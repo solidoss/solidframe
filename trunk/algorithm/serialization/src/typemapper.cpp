@@ -131,7 +131,7 @@ BaseTypeMap::FncTp IdTypeMap::parseTypeIdDone(const std::string &_rstr, ulong _s
 	std::pair<Data::NameMapTp::iterator, bool> p(d.nmap.insert(Data::NameMapTp::value_type(_name, sz)));
 	if(p.second){//key inserted
 		d.fncvec.resize(sz + _maxcnt);
-		for(int i = sz; i < d.fncvec.size(); ++i){
+		for(uint32 i = sz; i < d.fncvec.size(); ++i){
 			d.fncvec[i] = NULL;
 		}
 		d.fncvec[sz + _pos] = _pf;

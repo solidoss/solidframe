@@ -8,7 +8,7 @@ namespace clientserver{
 //! Unique identifier for a request
 struct RequestUid{
 	RequestUid(
-		uint32 _objidx = 0,
+		ulong  _objidx = 0,
 		uint32 _objuid = 0,
 		uint32 _reqidx = 0,
 		uint32 _requid = 0
@@ -18,7 +18,7 @@ struct RequestUid{
 	requid(_requid){
 	}
 	void set(
-		uint32 _objidx = 0,
+		ulong  _objidx = 0,
 		uint32 _objuid = 0,
 		uint32 _reqidx = 0,
 		uint32 _requid = 0
@@ -28,7 +28,7 @@ struct RequestUid{
 		reqidx = _reqidx;
 		requid = _requid;
 	}
-	uint32	objidx;
+	ulong	objidx;
 	uint32	objuid;
 	uint32	reqidx;
 	uint32	requid;

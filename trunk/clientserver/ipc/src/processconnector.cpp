@@ -142,7 +142,7 @@ struct ProcessConnector::Data{
 
 
 ProcessConnector::Data::Data(const Inet4SockAddrPair &_raddr):
-	expectedid(1), retranstimeout(100),
+	expectedid(1), retranstimeout(300),
 	state(Connecting), flags(0), bufjetons(1), crtcmdbufcnt(MaxCommandBufferCount),sendid(0),
 	addr(_raddr), pairaddr(addr), baseaddr(&pairaddr, addr.port()){
 }
@@ -154,7 +154,7 @@ ProcessConnector::Data::Data(const Inet4SockAddrPair &_raddr):
 // }
 
 ProcessConnector::Data::Data(const Inet4SockAddrPair &_raddr, int _baseport):
-	expectedid(1), retranstimeout(100),
+	expectedid(1), retranstimeout(300),
 	state(Accepting), flags(0), bufjetons(3), crtcmdbufcnt(MaxCommandBufferCount), sendid(0),
 	addr(_raddr), pairaddr(addr), baseaddr(&pairaddr, _baseport){
 }
@@ -284,8 +284,10 @@ void ProcessConnector::reconnect(ProcessConnector *_ppc){
 	//clear the receive queue
 	while(d.rcq.size()){
 		delete d.rcq.front().first;
-		d.rcq.front().second->clear();
-		d.pushDeserializer(d.rcq.front().second);
+		if(d.rcq.front().second){
+			d.rcq.front().second->clear();
+			d.pushDeserializer(d.rcq.front().second);
+		}
 		d.rcq.pop();
 	}
 	//clear the send queue
@@ -360,11 +362,13 @@ void ProcessConnector::completeConnect(int _pairport){
 }
 
 const Inet4SockAddrPair* ProcessConnector::peerAddr4()const{
-	return reinterpret_cast<const Inet4SockAddrPair*>(&d.pairaddr);
+	const SockAddrPair *p = &(d.pairaddr);
+	return reinterpret_cast<const Inet4SockAddrPair*>(p);
 }
 
 const std::pair<const Inet4SockAddrPair*, int>* ProcessConnector::baseAddr4()const{
-	return reinterpret_cast<const std::pair<const Inet4SockAddrPair*, int>*>(&d.baseaddr);
+	const Data::BaseProcAddr *p = &(d.baseaddr);
+	return reinterpret_cast<const std::pair<const Inet4SockAddrPair*, int>*>(p);
 }
 
 // const Inet6SockAddrPair* ProcessConnector::pairAddr6()const{

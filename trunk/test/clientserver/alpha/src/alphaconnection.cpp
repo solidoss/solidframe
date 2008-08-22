@@ -150,12 +150,12 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 		case Init:{
 			test::Server	&rs = test::Server::the();
 			uint32			myport(rs.ipc().basePort());
-			uint32			objid(this->id());
+			ulong			objid(this->id());
 			uint32			objuid(rs.uid(*this));
 			char			host[SocketAddress::MaxSockHostSz];
 			char			port[SocketAddress::MaxSockServSz];
 			SocketAddress	addr;
-			writer()<<"* Hello from alpha server ("<<myport<<" "<<objid<<" "<<objuid<<") [";
+			writer()<<"* Hello from alpha server ("<<myport<<" "<<(uint32)objid<<" "<<objuid<<") [";
 			channel().localAddress(addr);
 			addr.name(
 				host,

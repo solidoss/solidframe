@@ -43,6 +43,7 @@ BASIC_DECL(int32);
 BASIC_DECL(uint32);
 BASIC_DECL(int64);
 BASIC_DECL(uint64);
+BASIC_DECL(ulong);
 
 //! Nonintrusive string serialization/deserialization specification
 template <class S>

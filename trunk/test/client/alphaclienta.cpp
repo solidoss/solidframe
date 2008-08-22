@@ -111,7 +111,7 @@ public:
 		int _port = -1,
 		int _repeatcnt= 0,
 		int _cnt = ((unsigned)(0xfffffff)),
-		int _sleep = 1):wr(-1),sd(-1),ai(_node, _svice), pos(_pos), cnt(_cnt),slp(_sleep),path(_path),addr(_addr?_addr:""),port(_port),repeatcnt(_repeatcnt){}
+		int _sleep = 1):ai(_node, _svice), wr(-1),sd(-1), pos(_pos), cnt(_cnt),slp(_sleep),path(_path),addr(_addr?_addr:""),port(_port),repeatcnt(_repeatcnt){}
 	void run();
 private:
 	enum {BufLen = 2*1024};
@@ -154,7 +154,7 @@ void AlphaThread::run(){
 	cout<<pos<<" connected"<<endl;
 	inf.doneConnect();
 	inf.unlock();
-	timeval tv;
+	//timeval tv;
 // 	memset(&tv, 0, sizeof(timeval));
 // 	tv.tv_sec = 30;
 // 	setsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
@@ -421,7 +421,7 @@ int AlphaThread::fetch(unsigned _idx, char *_pb){
 					if(litlen){
 						if(bpos == bend){b = false; break;}
 						int toread = bend - bpos;
-						if(toread > litlen) toread = litlen;
+						if(toread > (int)litlen) toread = litlen;
 						//cout.write(bpos, toread);
 						bpos += toread;
 						litlen -= toread;

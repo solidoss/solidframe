@@ -295,7 +295,7 @@ void Writer::putSilent(uint32 _v){
 		toread = blen;
 		if(toread > tmpsz) toread = tmpsz;
 		rv = isi->read(_rw.bbeg, toread);
-		if(rv != toread)
+		if((ulong)rv != toread)
 			return Bad;
 		tmpsz -= rv;
 		if(rv < FlushLength)
