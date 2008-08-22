@@ -137,6 +137,7 @@ int main(int argc, char *argv[]){
 		}
 	}
 	cout<<"fdq size = "<<fdq.size()<<" total size "<<totsz<<endl;
+	//return 0;
 	MyWorkPool wp;
 	wp.start(4);
 	for(FileDeuqeTp::iterator it(fdq.begin()); it != fdq.end(); ++it){
