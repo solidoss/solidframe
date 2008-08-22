@@ -150,7 +150,7 @@ protected:
 	virtual ~Object();//only objptr base can destroy an object
 private:
 	ulong			fullid;
-	uint			smask;
+	ulong			smask;
 	volatile uint32	thrid;//the current thread which (may) execute(s) the object
 	volatile uint32	thrpos;//
 	short			usecnt;//

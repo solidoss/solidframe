@@ -78,7 +78,7 @@ void Writer::put(IStream *_ps, uint64 sz){
 		if(sz < toread) toread = sz;
 		sz -= toread;
 		int rv = _ps->read(bbeg, toread);
-		cassert(rv == toread);
+		cassert((ulong)rv == toread);
 		wr += write(sd, bbeg, rv);
 	}
 	cout<<"wr = "<<wr<<endl;

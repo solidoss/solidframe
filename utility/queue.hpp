@@ -53,12 +53,13 @@ public:
 	Queue():sz(0),popsz(0),pb(NULL),pf(NULL),ptn(NULL){}
 	~Queue(){
 		while(sz) pop();
+		Node *pn = pf ? (Node*)(((char*)pf) - popsz * sizeof(T) - sizeof(Node*)): NULL;
 		while(ptn){
 			Node *tn = ptn->next;
+			cassert(ptn != pn);
 			delete ptn;
 			ptn = tn;
 		}
-		Node *pn = pf ? (Node*)(((char*)pf) - popsz * sizeof(T) - sizeof(Node*)): NULL;
 		delete pn;
 	}
 	bool empty()const	{ return !sz;}
@@ -126,6 +127,7 @@ private:
 		}else{
 			cassert(!sz);
 			pb = NULL;
+			//pf = NULL;
 			return NULL;
 		}
 	}

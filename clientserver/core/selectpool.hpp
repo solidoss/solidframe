@@ -258,12 +258,13 @@ private:
 	}
 
 private:
+	Server			&rsrv;
+	ulong			cap;//the total count of objects already in pool
+	uint			selcap;
+	uint			thrid;
 	ListTp			sgnlst;
 	SlotVecTp		slotvec;
-	ulong			cap;//the total count of objects already in pool
-	uint			thrid;
-	Server			&rsrv;
-	uint			selcap;
+	
 };
 
 }//namesspace clientserver

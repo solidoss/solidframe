@@ -282,7 +282,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 	
 	while(d.sendq.size() && !station().sendPendingCount()){
 		if(_tout < d.sendq.top()->timeout){
-			_tout = d.sendq.top()->timeout - _tout;
+			_tout = d.sendq.top()->timeout;
 			idbg("return");
 			return mustreenter ? OK : NOK;
 		}

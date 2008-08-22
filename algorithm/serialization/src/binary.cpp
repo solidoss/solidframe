@@ -105,6 +105,12 @@ int Serializer::store<uint64>(Base &_rb, FncData &_rfd){
 	return storeBinary(_rb, _rfd);
 }
 template <>
+int Serializer::store<ulong>(Base &_rb, FncData &_rfd){
+	idbg("");
+	_rfd.s = sizeof(ulong);
+	return storeBinary(_rb, _rfd);
+}
+template <>
 int Serializer::store<std::string>(Base &_rb, FncData &_rfd){
 	Serializer &rs(static_cast<Serializer&>(_rb));
 	idbg("");
@@ -213,6 +219,12 @@ template <>
 int Deserializer::parse<uint64>(Base &_rb, FncData &_rfd){
 	idbg("");
 	_rfd.s = sizeof(uint64);
+	return parseBinary(_rb, _rfd);
+}
+template <>
+int Deserializer::parse<ulong>(Base &_rb, FncData &_rfd){
+	idbg("");
+	_rfd.s = sizeof(ulong);
 	return parseBinary(_rb, _rfd);
 }
 template <>

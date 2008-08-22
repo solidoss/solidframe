@@ -63,7 +63,10 @@ template <class S>
 S& operator&(pair<unsigned int, unsigned int> &_v, S &_s){
 	return _s.push(_v.first, "first").push(_v.second, "second");
 }
-
+template <class S>
+S& operator&(pair<long unsigned int, unsigned int> &_v, S &_s){
+	return _s.push(_v.first, "first").push(_v.second, "second");
+}
 }
 
 namespace test{
@@ -795,7 +798,7 @@ int Fetch::execute(Connection &_rc){
 	protocol::Parameter &rp = _rc.writer().push(&Writer::putStatus);
 	pp = &rp;
 	rp = protocol::Parameter(StrDef(" OK Done FETCH@"));
-	if(port == -1) port = 1222;//default ipc port
+	if(port == (uint)-1) port = 1222;//default ipc port
 	if(straddr.empty()){
 		st = InitLocal;
 	}else{
@@ -1109,9 +1112,9 @@ struct SendStringCommand: test::Command{
 	SendStringCommand(){}
 	SendStringCommand(
 		const String &_str,
-		uint32 _toobjid,
+		ulong _toobjid,
 		uint32 _toobjuid,
-		uint32 _fromobjid,
+		ulong _fromobjid,
 		uint32 _fromobjuid
 	):str(_str), tov(_toobjid, _toobjuid), fromv(_fromobjid, _fromobjuid){}
 	int received(const cs::ipc::ConnectorUid &_rconid);
@@ -1158,7 +1161,7 @@ void SendString::initReader(Reader &_rr){
 }
 int SendString::execute(alpha::Connection &_rc){
 	Server &rs(Server::the());
-	uint32	fromobjid(_rc.id());//the id of the current connection
+	ulong	fromobjid(_rc.id());//the id of the current connection
 	uint32	fromobjuid(rs.uid(_rc));//the uid of the current connection
 	AddrInfo ai(addr.c_str(), port, 0, AddrInfo::Inet4, AddrInfo::Stream);
 	idbg("addr"<<addr<<"str = "<<str<<" port = "<<port<<" objid = "<<" objuid = "<<objuid);
@@ -1184,9 +1187,9 @@ struct SendStreamCommand: test::Command{
 		StreamPtr<IOStream> &_iosp,
 		const String &_str,
 		uint32 _myprocid,
-		uint32 _toobjid,
+		ulong _toobjid,
 		uint32 _toobjuid,
-		uint32 _fromobjid,
+		ulong _fromobjid,
 		uint32 _fromobjuid
 	):iosp(_iosp), dststr(_str), tov(_toobjid, _toobjuid), fromv(_fromobjid, _fromobjuid){}
 	~SendStreamCommand(){

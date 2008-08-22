@@ -682,7 +682,7 @@ int FileManager::doGetStream(
 	Mutex::Locker	lock(*d.mut);
 	if(state() != Data::Running) return BAD;
 	uint32 fid = _rk.find(*this);
-	if(fid != -1){
+	if(fid != (uint32)-1){
 		Mutex::Locker	lock2(d.mutpool.object(fid));
 		File *pf = NULL;
 		if(fid < d.fv.size() && d.fv[fid].pfile){//we have a file
