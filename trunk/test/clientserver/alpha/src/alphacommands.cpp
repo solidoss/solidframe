@@ -295,7 +295,7 @@ int RemoteListCommand::execute(test::Connection &_rcon){
 		idbg("");
 		_rcon.receiveError(err, RequestUidTp(requid, 0), CommandUidTp(), &conid);
 	}
-	return OK;
+	return NOK;
 }
 int RemoteListCommand::execute(cs::CommandExecuter&, const CommandUidTp &, TimeSpec &_rts){
 	fs::directory_iterator	it,end;
@@ -718,7 +718,7 @@ int FetchSlaveCommand::execute(test::Connection &_rcon){
 		idbg("");
 		_rcon.receiveError(-1, RequestUidTp(requid, 0), cmduid, &conid);
 	}
-	return OK;
+	return NOK;
 }
 // Executed on peer within the command executer
 int FetchSlaveCommand::execute(cs::CommandExecuter& _rce, const CommandUidTp &, TimeSpec &){
@@ -1173,7 +1173,7 @@ int SendString::execute(alpha::Connection &_rc){
 	}else{
 		rp = protocol::Parameter(StrDef(" NO SENDSTRING no such address@"));
 	}
-	return OK;
+	return NOK;
 }
 //---------------------------------------------------------------
 // SendStream command
@@ -1322,7 +1322,7 @@ int SendStream::execute(Connection &_rc){
 			}
 		}break;
 	}
-	return OK;
+	return NOK;
 }
 //---------------------------------------------------------------
 // Idle command

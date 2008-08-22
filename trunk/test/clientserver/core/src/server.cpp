@@ -130,7 +130,7 @@ int OStreamCommand::execute(Object &_robj){
 }
 int OStreamCommand::execute(cs::CommandExecuter& _rce, const CommandUidTp &, TimeSpec &){
 	_rce.receiveOStream(sptr, fileuid, requid);
-	return BAD;
+	return NOK;
 }
 //----------------------------------------------------------------------
 /*
@@ -157,7 +157,7 @@ int IOStreamCommand::execute(Object &_robj){
 
 int IOStreamCommand::execute(cs::CommandExecuter& _rce, const CommandUidTp &, TimeSpec &){
 	_rce.receiveIOStream(sptr, fileuid, requid);
-	return BAD;
+	return NOK;
 }
 //----------------------------------------------------------------------
 /*
@@ -181,7 +181,7 @@ int StreamErrorCommand::execute(Object &_robj){
 }
 int StreamErrorCommand::execute(cs::CommandExecuter& _rce, const CommandUidTp &, TimeSpec &){
 	_rce.receiveError(errid, requid);
-	return BAD;
+	return NOK;
 }
 //----------------------------------------------------------------------
 /*
