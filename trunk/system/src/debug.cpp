@@ -41,6 +41,7 @@ void initDebug(const char *_prefix){
 	sprintf(name,"%s%u.dbg",_prefix,getpid());
 	printf("debug file: [%s]\r\n",name);
 	int fd = open(name, O_CREAT | O_RDWR | O_TRUNC, 0600);
+	delete name;
 	if(dup2(fd,fileno(stderr))<0){
 		printf("error duplicating filedescriptor\n");
 	}
