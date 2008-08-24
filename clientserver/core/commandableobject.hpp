@@ -87,7 +87,7 @@ public:
 	void clear(){
 		cmdv.clear();runv.clear();
 	}
-	virtual ~CommandableObject(){ }
+	~CommandableObject(){ clear();}
 protected:
 	typedef std::vector<CmdPtr<Command> >  CmdVecTp;
 	CommandableObject(){}

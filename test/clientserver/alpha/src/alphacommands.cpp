@@ -291,6 +291,7 @@ int RemoteListCommand::execute(test::Connection &_rcon){
 	if(!err){
 		idbg("");
 		_rcon.receiveData((void*)ppthlst, -1, RequestUidTp(requid, 0), 0, CommandUidTp(), &conid);
+		ppthlst = NULL;
 	}else{
 		idbg("");
 		_rcon.receiveError(err, RequestUidTp(requid, 0), CommandUidTp(), &conid);
