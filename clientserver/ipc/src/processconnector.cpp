@@ -290,7 +290,16 @@ void ProcessConnector::reconnect(ProcessConnector *_ppc){
 		}
 		d.rcq.pop();
 	}
-	//clear the send queue
+	//clear both send queue
+	for(int sz = d.cq.size(); sz; --sz){
+		if(!(d.cq.front().second & Service::SameConnectorFlag)) {
+			idbg("command scheduled for resend");
+			d.cq.push(d.cq.front());
+		}else{
+			idbg("command not scheduled for resend");
+		}
+		d.cq.pop();
+	}
 	for(int sz = d.scq.size(); sz; --sz){
 		if(d.scq.front().pser){
 			d.scq.front().pser->clear();
@@ -299,8 +308,12 @@ void ProcessConnector::reconnect(ProcessConnector *_ppc){
 		}
 		//NOTE: on reconnect the responses, or commands sent using ConnectorUid are dropped
 		if(!(d.scq.front().flags & Service::SameConnectorFlag)){
+			idbg("command scheduled for resend");
 			d.scq.push(d.scq.front());
+		}else{
+			idbg("command not scheduled for resend");
 		}
+		d.scq.pop();
 	}
 	d.crtcmdbufcnt = Data::MaxCommandBufferCount;
 	d.expectedid = 1;
@@ -496,6 +509,7 @@ int ProcessConnector::pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpo
 		}
 	}else{//a timeout occured
 		idbg("timeout occured _rbuf.bc "<<_rbuf.b.bc<<" rbuf.dl "<<_rbuf.b.dl<<" d.outbufs.size() = "<<d.outbufs.size());
+		cassert(d.state != Data::Disconnecting);
 		if(_rbuf.b.bc){//for a sent buffer
 			cassert(_rbuf.b.bc <= d.outbufs.size());
 			int bufpos(_rbuf.b.bc - 1);

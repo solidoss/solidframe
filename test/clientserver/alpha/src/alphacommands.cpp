@@ -57,6 +57,7 @@ namespace std{
 
 template <class S>
 S& operator&(pair<String, int64> &_v, S &_s){
+	idbg("stringint64 "<<(void*)&_v.second);
 	return _s.push(_v.first, "first").push(_v.second, "second");
 }
 template <class S>
@@ -250,11 +251,11 @@ int List::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 //---------------------------------------------------------------
 struct RemoteListCommand: test::Command{
 	RemoteListCommand(): ppthlst(NULL),err(-1){
-		idbg("");
+		idbg(""<<(void*)this);
 	}
 	~RemoteListCommand(){
-		idbg("");
-		delete ppthlst;
+		idbg(""<<(void*)this);
+		//delete ppthlst;
 	}
 	int received(const cs::ipc::ConnectorUid &_rconid);
 	int execute(test::Connection &);
@@ -271,6 +272,7 @@ struct RemoteListCommand: test::Command{
 	uint32						requid;
 	ObjectUidTp					fromv;
 };
+
 int RemoteListCommand::received(const cs::ipc::ConnectorUid &_rconid){
 	cs::CmdPtr<cs::Command> pcmd(this);
 	conid = _rconid;
@@ -343,6 +345,13 @@ int RemoteListCommand::execute(cs::CommandExecuter&, const CommandUidTp &, TimeS
 }
 
 //--------------------------------------------------------------
+RemoteList::PathListTp::PathListTp(){
+	idbg(""<<(void*)this);
+}
+RemoteList::PathListTp::~PathListTp(){
+	idbg(""<<(void*)this);
+}
+
 RemoteList::RemoteList():ppthlst(NULL),state(SendError){
 }
 RemoteList::~RemoteList(){

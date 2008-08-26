@@ -365,13 +365,14 @@ void Talker::dispatchReceivedBuffer(const SockAddrPair &_rsap){
 				ConnectorUid conid(d.tkrid, pit->second, rpp.second);
 				switch(d.procs[pit->second].first->pushReceivedBuffer(d.rcvbuf, conid)){
 					case BAD:
+						cassert(false);
 						idbg("the processconnector wants to close");
-						if((rpp.first->isConnecting())){
-							d.peerpm4.erase(rpp.first->peerAddr4());
-							d.cq.push(pit->second);
-						}else{
-							d.closes.push(pit->second);
-						}
+// 						if((rpp.first->isConnecting())){
+// 							d.peerpm4.erase(rpp.first->peerAddr4());
+// 							d.cq.push(pit->second);
+// 						}else{
+// 							d.closes.push(pit->second);
+// 						}
 					case OK:
 						break;
 					case NOK:
