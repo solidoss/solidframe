@@ -60,6 +60,7 @@ int main(int argc, char* argv[]){
 	string s = "dbg/";
 	s+= argv[0]+2;
 	initDebug(s.c_str());
+	system("ulimit -c unlimited");
 	}
 #endif
 	pdbg("Built on SolidGround version "<<SG_MAJOR<<'.'<<SG_MINOR<<'.'<<SG_PATCH);

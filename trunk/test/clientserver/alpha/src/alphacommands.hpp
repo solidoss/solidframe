@@ -221,7 +221,11 @@ private:
 class RemoteList: public Command{
 public:
 	enum {Wait, SendList, SendError, SendListContinue};
-	typedef std::list<std::pair<String,int64> > PathListTp;
+	//typedef std::list<std::pair<String,int64> > PathListTp;
+	struct PathListTp: std::list<std::pair<String,int64> >{
+		PathListTp();
+		~PathListTp();
+	};
 	RemoteList();
 	~RemoteList();
 	void initReader(Reader &);

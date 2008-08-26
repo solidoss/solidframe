@@ -104,9 +104,11 @@ void Service::remove(Object &_robj){
  * other object than you might want.
  */
 int Service::signal(ulong _fullid, ulong _uid, Server &_rsrv, ulong _sigmask){
-	Mutex::Locker	lock(mutpool.object(Object::computeIndex(_fullid)));
-	if(_uid != objv[Object::computeIndex(_fullid)].second) return BAD;
-	Object *pobj = objv[Object::computeIndex(_fullid)].first;
+	ulong oidx(Object::computeIndex(_fullid));
+	if(oidx >= objv.size()) return BAD;
+	Mutex::Locker	lock(mutpool.object(oidx));
+	if(_uid != objv[oidx].second) return BAD;
+	Object *pobj = objv[oidx].first;
 	if(!pobj) return BAD;
 	if(pobj->signal(_sigmask)){
 		_rsrv.raiseObject(*pobj);
@@ -127,8 +129,10 @@ Mutex& Service::mutex(ulong _fullid, ulong){
 }
 
 Object* Service::object(ulong _fullid, ulong _uid){
-	if(_uid != objv[Object::computeIndex(_fullid)].second) return NULL;
-	return objv[Object::computeIndex(_fullid)].first;
+	ulong oidx(Object::computeIndex(_fullid));
+	if(oidx >= objv.size()) return NULL;
+	if(_uid != objv[oidx].second) return NULL;
+	return objv[oidx].first;
 }
 
 int Service::signal(Object &_robj, Server &_rsrv, CmdPtr<Command> &_cmd){
@@ -140,9 +144,11 @@ int Service::signal(Object &_robj, Server &_rsrv, CmdPtr<Command> &_cmd){
 }
 
 int Service::signal(ulong _fullid, ulong _uid, Server &_rsrv, CmdPtr<Command> &_cmd){
-	Mutex::Locker	lock(mutpool.object(Object::computeIndex(_fullid)));
-	if(_uid != objv[Object::computeIndex(_fullid)].second) return BAD;
-	Object *pobj = objv[Object::computeIndex(_fullid)].first;
+	ulong oidx(Object::computeIndex(_fullid));
+	if(oidx >= objv.size()) return BAD;
+	Mutex::Locker	lock(mutpool.object(oidx));
+	if(_uid != objv[oidx].second) return BAD;
+	Object *pobj = objv[oidx].first;
 	if(!pobj) return BAD;
 	if(pobj->signal(_cmd)){
 		_rsrv.raiseObject(*pobj);
