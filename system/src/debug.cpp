@@ -134,7 +134,7 @@ void setBit(const char *_pbeg, const char *_pend){
 	}else if(!strncasecmp(_pbeg, "none", _pend - _pbeg)){
 		getBitSet().reset();
 	}else for(DebugNameVectorTp::const_iterator it(getNameVector().begin()); it != getNameVector().end(); ++it){
-		if(!strncasecmp(_pbeg, *it, _pend - _pbeg)){
+		if(!strncasecmp(_pbeg, *it, _pend - _pbeg) && strlen(*it) == (_pend - _pbeg)){
 			getBitSet().set(it - getNameVector().begin());
 		}
 	}
