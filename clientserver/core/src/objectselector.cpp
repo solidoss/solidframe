@@ -117,7 +117,7 @@ void ObjectSelector::run(){
 		{	
 			int qsz = objq.size();
 			while(qsz){//we only do a single scan:
-				idbg("qsz = "<<qsz<<" queuesz "<<objq.size());
+				idbgx(Dbg::cs, "qsz = "<<qsz<<" queuesz "<<objq.size());
 				int pos = objq.front();objq.pop(); --qsz;
 				SelObject &ro = sv[pos];
 				if(ro.state){
@@ -126,7 +126,7 @@ void ObjectSelector::run(){
 				}
 			}
 		}
-		idbg("sz = "<<sz);
+		idbgx(Dbg::cs, "sz = "<<sz);
 		if(empty()) state |= EXIT_LOOP;
 	}while(state != EXIT_LOOP);
 }
@@ -161,7 +161,7 @@ int ObjectSelector::doWait(int _wt){
 			if(id){
 				SelObject *pobj;
 				if(id < sv.size() && (pobj = &sv[id])->objptr && !pobj->state && pobj->objptr->signaled(S_RAISE)){
-					idbg("signaling object id = "<<id);
+					idbgx(Dbg::cs, "signaling object id = "<<id);
 					objq.push(id);
 					pobj->state = 1;
 				}
@@ -183,12 +183,12 @@ int ObjectSelector::doExecute(unsigned _i, ulong _evs, TimeSpec _crttout){
 			if(empty()) rv = EXIT_LOOP;
 			break;
 		case OK:
-			idbg("OK: reentering object");
+			idbgx(Dbg::cs, "OK: reentering object");
 			if(!sv[_i].state) {objq.push(_i); sv[_i].state = 1;}
 			_crttout.set(0xffffffff);
 			break;
 		case NOK:
-			idbg("TOUT: connection waits for signals");
+			idbgx(Dbg::cs, "TOUT: connection waits for signals");
 			//sv[_i].timepos.set(_crttout.seconds() ? ctimepos.seconds() + _crttout.seconds() : (TimeSpec::TimeTp)0xffffffff);
 			if(_crttout != ctimepos){
 				sv[_i].timepos = _crttout;
@@ -200,7 +200,7 @@ int ObjectSelector::doExecute(unsigned _i, ulong _evs, TimeSpec _crttout){
 			}
 			break;
 		case LEAVE:
-			idbg("LEAVE: object leave");
+			idbgx(Dbg::cs, "LEAVE: object leave");
 			fstk.push(_i);
 			sv[_i].objptr.release();
 			sv[_i].state = 0;

@@ -381,7 +381,7 @@ NOTE:
 Server::Server():d(*(new Data(*this))){
 	//ppools = new PoolContainer(*this);
 	if(true){//create register the file manager
-		this->fileManager(new FileManager(50));
+		this->fileManager(new FileManager(10));
 		cs::Server::insertObject(&fileManager());
 		cs::NameFileKey::registerMapper(fileManager());
 		cs::TempFileKey::registerMapper(fileManager());

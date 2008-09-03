@@ -44,7 +44,7 @@ namespace tcp{
 Channel* Channel::create(const AddrInfoIterator &_rai){
 // 	int rv = socket(_rai.family(), _rai.type(), _rai.protocol());
 // 	if(rv < 0){
-// 		edbg("Error creating socket: "<<strerror(errno));
+// 		edbgx(Dbg::tcp, "Error creating socket: "<<strerror(errno));
 // 		return NULL;
 // 	}
 	return new Channel(-1);
@@ -90,7 +90,7 @@ int Channel::localAddress(SocketAddress &_rsa){
 	_rsa.size() = SocketAddress::MaxSockAddrSz;
 	int rv = getsockname(sd, _rsa.addr(), &_rsa.size());
 	if(rv){
-		idbg("error getting local socket address: "<<strerror(errno));
+		idbgx(Dbg::tcp, "error getting local socket address: "<<strerror(errno));
 		return BAD;
 	}
 	return OK;
@@ -101,7 +101,7 @@ int Channel::remoteAddress(SocketAddress &_rsa){
 	_rsa.size() = SocketAddress::MaxSockAddrSz;
 	int rv = getpeername(sd, _rsa.addr(), &_rsa.size());
 	if(rv){
-		idbg("error getting local socket address: "<<strerror(errno));
+		idbgx(Dbg::tcp, "error getting local socket address: "<<strerror(errno));
 		return BAD;
 	}
 	return OK;
@@ -123,13 +123,13 @@ int Channel::connect(const AddrInfoIterator &_it){
 	int flg = fcntl(sd, F_GETFL);
 	
 	if(flg == -1){
-		idbg("Error fcntl getfl: "<<strerror(errno));
+		idbgx(Dbg::tcp, "Error fcntl getfl: "<<strerror(errno));
 		close(sd);
 		sd = -1;
 		return BAD;
 	}
 	if(fcntl(sd, F_SETFL, flg | O_NONBLOCK) < 0){
-		idbg("Error fcntl setfl: "<<strerror(errno));
+		idbgx(Dbg::tcp, "Error fcntl setfl: "<<strerror(errno));
 		close(sd);
 		sd = -1;
 		return BAD;
@@ -230,7 +230,7 @@ int Channel::doSendPlain(){
 	if(!pcd->arePendingSends()) return 0;//Ignore this signal
 	pcd->flags &= ~OUTTOUT;
 	while(pcd->arePendingSends()){
-		//idbg("another pending send");
+		//idbgx(Dbg::tcp, "another pending send");
 		DataNode	&rdn = *pcd->psdnfirst;
 		
 		rv = write(sd, rdn.b.pcb, rdn.bl);

@@ -50,14 +50,14 @@ public:
 		if(pf){
 			(*pf)(_p, &_rs, NULL);
 		}
-		idbg(""<<rul);
+		idbgx(Dbg::ser_bin, ""<<rul);
 		_rs.push(rul, "type_id");
 		//return pf;
 	}
 	template <class Des>
 	void parseTypeIdPrepare(Des &_rd, std::string &_rstr){
 		uint32 *pu = reinterpret_cast<uint32*>(const_cast<char*>(_rstr.data()));
-		idbg(""<<*pu);
+		idbgx(Dbg::ser_bin, ""<<*pu);
 		_rd.push(*pu, "type_id");
 	}
 	FncTp parseTypeIdDone(const std::string &_rstr, ulong _serid);

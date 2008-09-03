@@ -250,7 +250,7 @@ ulong  Server::uid(Object &_robj)const{
 void Server::raiseObject(Object &_robj){
 	uint thrid,thrpos;
 	_robj.getThread(thrid, thrpos);
-	idbg("raise thrid "<<thrid<<" thrpos "<<thrpos<<" objid "<<_robj.id());
+	idbgx(Dbg::cs, "raise thrid "<<thrid<<" thrpos "<<thrpos<<" objid "<<_robj.id());
 	asv[thrid>>16]->raise(thrid & 0xffff, thrpos);
 }
 

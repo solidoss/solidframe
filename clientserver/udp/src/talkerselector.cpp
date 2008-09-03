@@ -174,12 +174,12 @@ int TalkerSelector::reserve(ulong _cp){
 		ev.data.ptr = &d.pchs[0];
 		ev.events = EPOLLIN | EPOLLPRI;//must be LevelTriggered
 		if(epoll_ctl(d.epfd, EPOLL_CTL_ADD, d.pipefds[0], &ev)){
-			idbg("error epollctl");
+			idbgx(Dbg::udp, "error epollctl");
 			cassert(false);
 			return -1;
 		}
 	}
-	idbg("Pipe fds "<<d.pipefds[0]<<" "<<d.pipefds[1]);
+	idbgx(Dbg::udp, "Pipe fds "<<d.pipefds[0]<<" "<<d.pipefds[1]);
 	d.ctimepos.set(0);
 	d.ntimepos.set(Data::MAXTIMEPOS);
 	d.selcnt = 0;
@@ -189,7 +189,7 @@ int TalkerSelector::reserve(ulong _cp){
 
 TalkerSelector::~TalkerSelector(){
 	delete &d;
-	idbg("done");
+	idbgx(Dbg::udp, "done");
 }
 
 uint TalkerSelector::capacity()const{
@@ -226,7 +226,7 @@ void TalkerSelector::push(const TalkerPtrTp &_tkrptr, uint _thid){
 	
 	if(_tkrptr->station().descriptor() >= 0 && 
 		epoll_ctl(d.epfd, EPOLL_CTL_ADD, _tkrptr->station().descriptor(), &ev)){
-		idbg("error adding filedesc "<<_tkrptr->station().descriptor());
+		idbgx(Dbg::udp, "error adding filedesc "<<_tkrptr->station().descriptor());
 		pc->tkrptr.clear();
 		pc->reset(); d.fstk.push(pc);
 		cassert(false);
@@ -234,13 +234,13 @@ void TalkerSelector::push(const TalkerPtrTp &_tkrptr, uint _thid){
 		++d.sz;
 	}
 	pc->tkrptr = _tkrptr;
-	idbg("pushing "<<&(*(pc->tkrptr))<<" on pos "<<(pc - d.pchs));
+	idbgx(Dbg::udp, "pushing "<<&(*(pc->tkrptr))<<" on pos "<<(pc - d.pchs));
 	pc->state = 1;
 	d.push(pc);
 }
 
 void TalkerSelector::signal(uint _objid){
-	idbg("signal connection: "<<_objid);
+	idbgx(Dbg::udp, "signal connection: "<<_objid);
 	write(d.pipefds[1], &_objid, sizeof(uint));
 }
 
@@ -292,7 +292,7 @@ void TalkerSelector::run(){
 			state |= doReadPipe();
 		}
 		if((state & Data::FULL_SCAN) || d.ctimepos >= d.ntimepos){
-			idbg("fullscan");
+			idbgx(Dbg::udp, "fullscan");
 			d.ntimepos.set(Data::MAXTIMEPOS);
 			for(uint i = 1; i < d.cp; ++i){
 				SelTalker &pc = d.pchs[i];
@@ -310,7 +310,7 @@ void TalkerSelector::run(){
 		{	
 			int qsz = d.chq.size();
 			while(qsz){//we only do a single scan:
-				idbg("qsz = "<<qsz<<" queuesz "<<d.chq.size());
+				idbgx(Dbg::udp, "qsz = "<<qsz<<" queuesz "<<d.chq.size());
 				SelTalker &rc = *d.chq.front();d.chq.pop(); --qsz;
 				if(rc.state){
 					crttout = d.ctimepos;
@@ -319,21 +319,21 @@ void TalkerSelector::run(){
 				}
 			}
 		}
-		idbg("sz = "<<d.sz);
+		idbgx(Dbg::udp, "sz = "<<d.sz);
 		if(d.empty()) state |= Data::EXIT_LOOP;
 		if(state || d.chq.size()){
 			pollwait = 0;
 			--nbcnt;
 		}else{
 			pollwait = d.computePollWait();
-			idbg("pollwait "<<pollwait<<" ntimepos.s = "<<d.ntimepos.seconds()<<" ntimepos.ns = "<<d.ntimepos.nanoSeconds());
-			idbg("ctimepos.s = "<<d.ctimepos.seconds()<<" ctimepos.ns = "<<d.ctimepos.nanoSeconds());
+			idbgx(Dbg::udp, "pollwait "<<pollwait<<" ntimepos.s = "<<d.ntimepos.seconds()<<" ntimepos.ns = "<<d.ntimepos.nanoSeconds());
+			idbgx(Dbg::udp, "ctimepos.s = "<<d.ctimepos.seconds()<<" ctimepos.ns = "<<d.ctimepos.nanoSeconds());
 			nbcnt = -1;
         }
 		d.selcnt = epoll_wait(d.epfd, d.pevs, d.sz, pollwait);
-		idbg("selcnt = "<<d.selcnt);
+		idbgx(Dbg::udp, "selcnt = "<<d.selcnt);
 	}while(!(state & Data::EXIT_LOOP));
-	idbg("exiting loop");
+	idbgx(Dbg::udp, "exiting loop");
 }
 
 int TalkerSelector::doExecute(
@@ -346,7 +346,7 @@ int TalkerSelector::doExecute(
 	Talker &rcon = *_rch.tkrptr;
 	switch(rcon.execute(_evs, _rcrttout)){
 		case BAD://close
-			idbg("BAD: removing the connection");
+			idbgx(Dbg::udp, "BAD: removing the connection");
 			d.fstk.push(&_rch);
 			epoll_ctl(d.epfd, EPOLL_CTL_DEL, rcon.station().descriptor(), NULL);
 			_rch.tkrptr.clear();
@@ -355,7 +355,7 @@ int TalkerSelector::doExecute(
 			if(d.empty()) rv = Data::EXIT_LOOP;
 			break;
 		case OK://
-			idbg("OK: reentering connection");
+			idbgx(Dbg::udp, "OK: reentering connection");
 			if(!_rch.state){
 				d.chq.push(&_rch);
 				_rch.state = 1;
@@ -363,11 +363,11 @@ int TalkerSelector::doExecute(
 			_rch.timepos.set(Data::MAXTIMEPOS);
 			break;
 		case NOK:
-			idbg("TOUT: connection waits for signals");
+			idbgx(Dbg::udp, "TOUT: connection waits for signals");
 			{	
 				ulong t = (EPOLLERR | EPOLLHUP | EPOLLET) | rcon.station().ioRequest();
 				if((_rch.evmsk & Data::EPOLLMASK) != t){
-					idbg("RTOUT: epollctl");
+					idbgx(Dbg::udp, "RTOUT: epollctl");
 					_rch.evmsk = _rev.events = t;
 					_rev.data.ptr = &_rch;
 					int rv = epoll_ctl(d.epfd, EPOLL_CTL_MOD, rcon.station().descriptor(), &_rev);
@@ -384,7 +384,7 @@ int TalkerSelector::doExecute(
 			}
 			break;
 		case LEAVE:
-			idbg("LEAVE: connection leave");
+			idbgx(Dbg::udp, "LEAVE: connection leave");
 			d.fstk.push(&_rch);
 			//TODO: remove fd from epoll
 			if(d.sz == d.cp) rv = Data::EXIT_LOOP;
@@ -393,7 +393,7 @@ int TalkerSelector::doExecute(
 			--d.sz;
 			break;
 		case REGISTER:{//
-			idbg("REGISTER: register connection with new descriptor");
+			idbgx(Dbg::udp, "REGISTER: register connection with new descriptor");
 			_rev.data.ptr = &_rch;
 			uint ioreq = rcon.station().ioRequest();
 			_rch.evmsk = _rev.events = (EPOLLERR | EPOLLHUP | EPOLLET) | ioreq;
@@ -407,7 +407,7 @@ int TalkerSelector::doExecute(
 			}
 			}break;
 		case UNREGISTER:{
-			idbg("UNREGISTER: unregister connection's descriptor");
+			idbgx(Dbg::udp, "UNREGISTER: unregister connection's descriptor");
 			int rv = epoll_ctl(d.epfd, EPOLL_CTL_DEL, rcon.station().descriptor(), NULL);
 			cassert(!rv);
 			if(!_rch.state){
@@ -418,7 +418,7 @@ int TalkerSelector::doExecute(
 		default:
 			cassert(false);
 	}
-	idbg("doExecute return "<<rv);
+	idbgx(Dbg::udp, "doExecute return "<<rv);
 	return rv;
 }
 
@@ -427,17 +427,17 @@ int TalkerSelector::doReadPipe(){
 	uint	buf[BUFSZ];
 	int rv = 0;//no
 	int rsz = 0;int j = 0;int maxcnt = (d.cp / BUFSZ) + 1;
-	idbg("maxcnt = "<<maxcnt);
+	idbgx(Dbg::udp, "maxcnt = "<<maxcnt);
 	SelTalker	*pch = NULL;
 	while((++j <= maxcnt) && ((rsz = read(d.pipefds[0], buf, BUFLEN)) == BUFLEN)){
 		for(int i = 0; i < BUFSZ; ++i){
-			idbg("buf["<<i<<"]="<<buf[i]);
+			idbgx(Dbg::udp, "buf["<<i<<"]="<<buf[i]);
 			uint pos = buf[i];
 			if(pos){
 				if(pos < d.cp && (pch = d.pchs + pos)->tkrptr && !pch->state && pch->tkrptr->signaled(S_RAISE)){
 					d.chq.push(pch);
 					pch->state = 1;
-					idbg("pushig "<<pos<<" connection into queue");
+					idbgx(Dbg::udp, "pushig "<<pos<<" connection into queue");
 				}
 			}else rv = Data::EXIT_LOOP;
 		}
@@ -445,13 +445,13 @@ int TalkerSelector::doReadPipe(){
 	if(rsz){
 		rsz >>= 2;
 		for(int i = 0; i < rsz; ++i){	
-			idbg("buf["<<i<<"]="<<buf[i]);
+			idbgx(Dbg::udp, "buf["<<i<<"]="<<buf[i]);
 			uint pos = buf[i];
 			if(pos){
 				if(pos < d.cp && (pch = d.pchs + pos)->tkrptr && !pch->state && pch->tkrptr->signaled(S_RAISE)){
 					d.chq.push(pch);
 					pch->state = 1;
-					idbg("pushig "<<pos<<" connection into queue");
+					idbgx(Dbg::udp, "pushig "<<pos<<" connection into queue");
 				}
 			}else rv = Data::EXIT_LOOP;
 		}
@@ -459,10 +459,10 @@ int TalkerSelector::doReadPipe(){
 	if(j > maxcnt){
 		//dummy read:
 		rv = Data::EXIT_LOOP | Data::FULL_SCAN;//scan all filedescriptors for events
-		idbg("reading dummy");
+		idbgx(Dbg::udp, "reading dummy");
 		while((rsz = read(d.pipefds[0], buf, BUFSZ)) > 0);
 	}
-	idbg("readpiperv = "<<rv);
+	idbgx(Dbg::udp, "readpiperv = "<<rv);
 	return rv;
 }
 

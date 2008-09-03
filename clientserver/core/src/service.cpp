@@ -51,7 +51,7 @@ Service::Service(int _objpermutbts, int _mutrowsbts, int _mutcolsbts):
 
 Service::~Service(){
 	//stop();
-	idbg("here");
+	idbgx(Dbg::cs, "here");
 	cassert(!objcnt);
 	delete &objv;
 	delete &inds;
@@ -92,7 +92,7 @@ void Service::remove(Object &_robj){
 	Mutex::Locker lock1(*mut);
 	//obj's mutext should not be locked
 	Mutex::Locker	lock2(mutpool.object(_robj.index()));
-	idbg("removig object with index "<<_robj.index());
+	idbgx(Dbg::cs, "removig object with index "<<_robj.index());
 	objv[_robj.index()].first = NULL;
 	++objv[_robj.index()].second;
 	inds.push(_robj.index());
@@ -170,7 +170,7 @@ void Service::doSignalAll(Server &_rsrv, ulong _sigmask){
 	int oc = objcnt;
 	int i = 0;
 	int mi = -1;
-	idbg("signalling "<<oc<<" objects");
+	idbgx(Dbg::cs, "signalling "<<oc<<" objects");
 	for(ObjectVector::iterator it(objv.begin()); oc && it != objv.end(); ++it, ++i){
 		if(it->first){
 			//if(!(i & objpermutmsk)){
@@ -192,7 +192,7 @@ void Service::doSignalAll(Server &_rsrv, CmdPtr<Command> &_cmd){
 	int oc = objcnt;
 	int i = 0;
 	int mi = -1;
-	idbg("signalling "<<oc<<" objects");
+	idbgx(Dbg::cs, "signalling "<<oc<<" objects");
 	for(ObjectVector::iterator it(objv.begin()); oc && it != objv.end(); ++it, ++i){
 		if(it->first){
 			//if(!(i & objpermutmsk)){
