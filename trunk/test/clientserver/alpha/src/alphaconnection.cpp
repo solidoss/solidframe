@@ -181,7 +181,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			idbg("PrepareReader");
 			prepareReader();
 		case Parse:
-			idbg("Parse");
+			//idbg("Parse");
 			state(Parse);
 			switch((rc = reader().run())){
 				case OK: break;
@@ -204,7 +204,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			pcmd->execute(*this);
 			state(Execute);
 		case IdleExecute:
-			idbg("IdleExecute");
+			//idbg("IdleExecute");
 		case Execute:
 			//idbg("Execute");
 			switch((rc = writer().run())){

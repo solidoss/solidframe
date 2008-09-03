@@ -164,11 +164,11 @@ ProcessConnector::Data::~Data(){
 	for(OutBufferVectorTp::iterator it(outbufs.begin()); it != outbufs.end(); ++it){
 		char *pb = it->first.buffer();
 		if(pb){ 
-			idbg("released buffer");
+			idbgx(Dbg::ipc, "released buffer");
 			Specific::pushBuffer(pb, Specific::capacityToId(it->first.bufferCapacity()));
 		}
 	}
-	idbg("cq.size = "<<cq.size()<<"scq.size = "<<scq.size());
+	idbgx(Dbg::ipc, "cq.size = "<<cq.size()<<"scq.size = "<<scq.size());
 	while(cq.size()) cq.pop();
 	while(scq.size()){
 		if(scq.front().pser){
@@ -270,7 +270,7 @@ ProcessConnector::ProcessConnector(const Inet4SockAddrPair &_raddr, int _basepor
 //TODO: ensure that really no command is dropped on reconnect
 // not even those from Dropped buffers!!!
 void ProcessConnector::reconnect(ProcessConnector *_ppc){
-	idbg("reconnecting - clearing process data");
+	idbgx(Dbg::ipc, "reconnecting - clearing process data");
 	//first we reset the peer addresses
 	if(_ppc){
 		d.addr = _ppc->d.addr;
@@ -293,10 +293,10 @@ void ProcessConnector::reconnect(ProcessConnector *_ppc){
 	//clear both send queue
 	for(int sz = d.cq.size(); sz; --sz){
 		if(!(d.cq.front().second & Service::SameConnectorFlag)) {
-			idbg("command scheduled for resend");
+			idbgx(Dbg::ipc, "command scheduled for resend");
 			d.cq.push(d.cq.front());
 		}else{
-			idbg("command not scheduled for resend");
+			idbgx(Dbg::ipc, "command not scheduled for resend");
 		}
 		d.cq.pop();
 	}
@@ -308,10 +308,10 @@ void ProcessConnector::reconnect(ProcessConnector *_ppc){
 		}
 		//NOTE: on reconnect the responses, or commands sent using ConnectorUid are dropped
 		if(!(d.scq.front().flags & Service::SameConnectorFlag)){
-			idbg("command scheduled for resend");
+			idbgx(Dbg::ipc, "command scheduled for resend");
 			d.scq.push(d.scq.front());
 		}else{
-			idbg("command not scheduled for resend");
+			idbgx(Dbg::ipc, "command not scheduled for resend");
 		}
 		d.scq.pop();
 	}
@@ -402,7 +402,7 @@ int ProcessConnector::pushCommand(clientserver::CmdPtr<Command> &_rcmd, uint32 _
 
 bool ProcessConnector::moveToNextInBuffer(){
 	while(d.inbufq.size() && (d.inbufq.top().id() < d.expectedid)){
-		idbg("inbufq.size() = "<<d.inbufq.size()<<" d.inbufq.top().id() = "<<d.inbufq.top().id()<<" d.expectedid "<<d.expectedid); 
+		idbgx(Dbg::ipc, "inbufq.size() = "<<d.inbufq.size()<<" d.inbufq.top().id() = "<<d.inbufq.top().id()<<" d.expectedid "<<d.expectedid); 
 
 		Buffer b(d.inbufq.top());
 		char *pb = d.inbufq.top().buffer();
@@ -410,20 +410,20 @@ bool ProcessConnector::moveToNextInBuffer(){
 		d.inbufq.pop();
 	}
 	if(d.inbufq.size()){
-		idbg("inbufq.size() = "<<d.inbufq.size()<<" d.inbufq.top().id() = "<<d.inbufq.top().id()<<" d.expectedid "<<d.expectedid);
+		idbgx(Dbg::ipc, "inbufq.size() = "<<d.inbufq.size()<<" d.inbufq.top().id() = "<<d.inbufq.top().id()<<" d.expectedid "<<d.expectedid);
 		return d.inbufq.top().id() == d.expectedid;
 	}
 	return false;
 }
 
 int ProcessConnector::pushReceivedBuffer(Buffer &_rbuf, const ConnectorUid &_rcodid){
-	idbg("rcvbufid = "<<_rbuf.id()<<" expected id "<<d.expectedid<<" inbufq.size = "<<d.inbufq.size()<<" flags = "<<_rbuf.flags());
+	idbgx(Dbg::ipc, "rcvbufid = "<<_rbuf.id()<<" expected id "<<d.expectedid<<" inbufq.size = "<<d.inbufq.size()<<" flags = "<<_rbuf.flags());
 	if(_rbuf.id() != d.expectedid){
 		if(_rbuf.id() < d.expectedid){
 			//the peer doesnt know that we've already received the buffer
 			//add it as update
 			d.rcvidq.push(_rbuf.id());
-			idbg("already received buffer - resend update");
+			idbgx(Dbg::ipc, "already received buffer - resend update");
 			return NOK;//we have to send updates
 		}else if(_rbuf.id() != Data::UpdateBufferId){
 			if(_rbuf.updatesCount()){//we have updates
@@ -434,15 +434,15 @@ int ProcessConnector::pushReceivedBuffer(Buffer &_rbuf, const ConnectorUid &_rco
 				d.rcvidq.push(_rbuf.id());//for peer updates
 				d.inbufq.push(_rbuf);
 				_rbuf.reinit();
-				idbg("keep the buffer for future parsing");
+				idbgx(Dbg::ipc, "keep the buffer for future parsing");
 				return NOK;//we have to send updates
 			}else{
-				idbg("to many buffers out-of-order");
+				idbgx(Dbg::ipc, "to many buffers out-of-order");
 				return OK;
 			}
 		}else{//a buffer containing only updates
 			_rbuf.updatesCount();
-			idbg("received buffer containing only updates");
+			idbgx(Dbg::ipc, "received buffer containing only updates");
 			if(freeSentBuffers(_rbuf)) return NOK;
 			return OK;
 		}
@@ -476,13 +476,13 @@ int ProcessConnector::pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpo
 	if(_rbuf.b.buffer()){
 		if(_rbuf.b.id() > Data::LastBufferId){
 			cassert(_rbuf.b.id() == Data::UpdateBufferId);
-			idbg("sent updates - collecting buffer");
+			idbgx(Dbg::ipc, "sent updates - collecting buffer");
 			char *pb = _rbuf.b.buffer();
 			Specific::pushBuffer(pb, Specific::capacityToId(_rbuf.b.bufferCapacity()));
 			//++d.bufjetons;
 			return NOK;//maybe we have something to send
 		}else{
-			idbg("sent bufid = "<<_rbuf.b.id()<<" bufpos = "<<_rbuf.bufpos<<" retransmitid "<<_rbuf.b.retransmitId()<<" buf = "<<(void*)_rbuf.b.buffer()<<" buffercap = "<<_rbuf.b.bufferCapacity()<<" flags = "<<_rbuf.b.flags());
+			idbgx(Dbg::ipc, "sent bufid = "<<_rbuf.b.id()<<" bufpos = "<<_rbuf.bufpos<<" retransmitid "<<_rbuf.b.retransmitId()<<" buf = "<<(void*)_rbuf.b.buffer()<<" buffercap = "<<_rbuf.b.bufferCapacity()<<" flags = "<<_rbuf.b.flags());
 			std::pair<uint16, uint16>  p;
 			if(!_rbuf.b.retransmitId()){
 				//cassert(_rbuf.bufpos < 0);
@@ -494,13 +494,13 @@ int ProcessConnector::pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpo
 			}
 			++p.first;
 			//_rbuf.b.retransmitId(_rbuf.retransmitId() + 1);
-			idbg("p.first "<<p.first<<" p.second "<<p.second);
+			idbgx(Dbg::ipc, "p.first "<<p.first<<" p.second "<<p.second);
 			//reuse _rbuf for retransmission timeout
 			_rbuf.b.pb = NULL;
 			_rbuf.b.bc = p.first;
 			_rbuf.b.dl = p.second;
 			_rbuf.bufpos = p.first;
-			idbg("prepare waitbuf b.cap "<<_rbuf.b.bufferCapacity()<<" b.dl "<<_rbuf.b.dl);
+			idbgx(Dbg::ipc, "prepare waitbuf b.cap "<<_rbuf.b.bufferCapacity()<<" b.dl "<<_rbuf.b.dl);
 			cassert(sizeof(uint32) <= sizeof(size_t));
 			_rbuf.timeout = _tpos;
 			_rbuf.timeout += d.retranstimeout;//miliseconds retransmission timeout
@@ -508,22 +508,22 @@ int ProcessConnector::pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpo
 			return OK;
 		}
 	}else{//a timeout occured
-		idbg("timeout occured _rbuf.bc "<<_rbuf.b.bc<<" rbuf.dl "<<_rbuf.b.dl<<" d.outbufs.size() = "<<d.outbufs.size());
+		idbgx(Dbg::ipc, "timeout occured _rbuf.bc "<<_rbuf.b.bc<<" rbuf.dl "<<_rbuf.b.dl<<" d.outbufs.size() = "<<d.outbufs.size());
 		cassert(d.state != Data::Disconnecting);
 		if(_rbuf.b.bc){//for a sent buffer
 			cassert(_rbuf.b.bc <= d.outbufs.size());
 			int bufpos(_rbuf.b.bc - 1);
 			Data::OutBufferPairTp &rob(d.outbufs[bufpos]);
-			idbg("rob.second = "<<rob.second<<" b.dl = "<<_rbuf.b.dl<<" bufpos = "<<bufpos);
+			idbgx(Dbg::ipc, "rob.second = "<<rob.second<<" b.dl = "<<_rbuf.b.dl<<" bufpos = "<<bufpos);
 			if(rob.first.buffer() && rob.second == _rbuf.b.dl){
 				//we must resend this buffer
-				idbg("resending buffer "<<(bufpos)<<" retransmit id = "<<rob.first.retransmitId()<<" buf = "<<(void*)rob.first.buffer());
+				idbgx(Dbg::ipc, "resending buffer "<<(bufpos)<<" retransmit id = "<<rob.first.retransmitId()<<" buf = "<<(void*)rob.first.buffer());
 				rob.first.print();
 				rob.first.retransmitId(rob.first.retransmitId() + 1);
 				if(rob.first.retransmitId() > Data::DataRetransmitCount){
 					if(rob.first.type() == Buffer::ConnectingType){
 						if(rob.first.retransmitId() > Data::ConnectRetransmitCount){//too many resends for connect type
-							idbg("preparing to disconnect process");
+							idbgx(Dbg::ipc, "preparing to disconnect process");
 							d.state = Data::Disconnecting;
 							return BAD;//disconnecting
 						}
@@ -540,7 +540,7 @@ int ProcessConnector::pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpo
 				d.lasttimepos = _tpos;
 				_reusebuf = true;
 			}else{
-				idbg("nothing to resend");
+				idbgx(Dbg::ipc, "nothing to resend");
 			}
 		}else{//for something else
 			//TODO: e.g. use it for sending update data with certain timeout
@@ -556,9 +556,9 @@ NOTE: VERY IMPORTANT
 */
 
 int ProcessConnector::processSendCommands(SendBufferData &_rsb, const TimeSpec &_tpos, int _baseport){
-	idbg("bufjetons = "<<d.bufjetons);
+	idbgx(Dbg::ipc, "bufjetons = "<<d.bufjetons);
 	if(d.bufjetons || d.state != Data::Connected || d.rcvidq.size()){
-		idbg("d.rcvidq.size() = "<<d.rcvidq.size());
+		idbgx(Dbg::ipc, "d.rcvidq.size() = "<<d.rcvidq.size());
 		bool written = false;
 		Buffer &rbuf(_rsb.b);
 		rbuf.reset();
@@ -572,7 +572,7 @@ int ProcessConnector::processSendCommands(SendBufferData &_rsb, const TimeSpec &
 			}
 			if(d.bufjetons){//send data only if we have jetons
 				//then push the commands
-				idbg("d.cq.size() = "<<d.cq.size()<<" d.scq.size = "<<d.scq.size());
+				idbgx(Dbg::ipc, "d.cq.size() = "<<d.cq.size()<<" d.scq.size = "<<d.scq.size());
 				//fill scq
 				while(d.cq.size() && d.scq.size() < Data::MaxSendCommandQueueSize){
 					uint32 flags = d.cq.front().second;
@@ -588,14 +588,14 @@ int ProcessConnector::processSendCommands(SendBufferData &_rsb, const TimeSpec &
 					if(d.crtcmdbufcnt){
 						if(d.scq.front().pser){//a continued command
 							if(d.crtcmdbufcnt == Data::MaxCommandBufferCount){
-								idbg("oldcommand");
+								idbgx(Dbg::ipc, "oldcommand");
 								rbuf.dataType(Buffer::OldCommand);
 							}else{
-								idbg("continuedcommand");
+								idbgx(Dbg::ipc, "continuedcommand");
 								rbuf.dataType(Buffer::ContinuedCommand);
 							}
 						}else{//a new commnad
-							idbg("newcommand");
+							idbgx(Dbg::ipc, "newcommand");
 							rbuf.dataType(Buffer::NewCommand);
 							if(pser){
 								d.scq.front().pser = pser;
@@ -607,7 +607,7 @@ int ProcessConnector::processSendCommands(SendBufferData &_rsb, const TimeSpec &
 							d.scq.front().pser->push(pcmd);
 						}
 						--d.crtcmdbufcnt;
-						idbg("d.crtcmdbufcnt = "<<d.crtcmdbufcnt);
+						idbgx(Dbg::ipc, "d.crtcmdbufcnt = "<<d.crtcmdbufcnt);
 						written = true;
 						
 						int rv = d.scq.front().pser->run(rbuf.dataEnd(), rbuf.dataFreeSize());
@@ -616,7 +616,7 @@ int ProcessConnector::processSendCommands(SendBufferData &_rsb, const TimeSpec &
 						
 						rbuf.dataSize(rbuf.dataSize() + rv);
 						if(d.scq.front().pser->empty()){//finished with this command
-							idbg("donecommand");
+							idbgx(Dbg::ipc, "donecommand");
 							if(pser) d.pushSerializer(pser);
 							pser = d.scq.front().pser;
 							pser->clear();
@@ -672,7 +672,7 @@ int ProcessConnector::processSendCommands(SendBufferData &_rsb, const TimeSpec &
 			}else{
 				rbuf.id(Data::UpdateBufferId);
 			}
-			idbg("sending buffer id = "<<rbuf.id());
+			idbgx(Dbg::ipc, "sending buffer id = "<<rbuf.id());
 			_rsb.paddr = &d.pairaddr;
 			if(!d.scq.size() && d.rcvidq.size())
 				return OK;
@@ -686,7 +686,7 @@ int ProcessConnector::processSendCommands(SendBufferData &_rsb, const TimeSpec &
 bool ProcessConnector::freeSentBuffers(Buffer &_rbuf){
 	bool b = false;
 	for(uint32 i(0); i < _rbuf.updatesCount(); ++i){
-		idbg("compare update "<<_rbuf.update(i)<<" out bufs sz = "<<d.outbufs.size());
+		idbgx(Dbg::ipc, "compare update "<<_rbuf.update(i)<<" out bufs sz = "<<d.outbufs.size());
 		for(Data::OutBufferVectorTp::iterator it(d.outbufs.begin()); it != d.outbufs.end(); ++it){
 			if(it->first.buffer() && _rbuf.update(i) == it->first.id()){//done with this one
 				b = true;
@@ -709,15 +709,15 @@ void ProcessConnector::parseBuffer(Buffer &_rbuf, const ConnectorUid &_rcodid){
 // 	cassert(d.rcq.size());
 // 	cassert(d.rcq.front().second);
 	int 		firstblen = blen - 1;
-	idbg("bufferid = "<<_rbuf.id());
+	idbgx(Dbg::ipc, "bufferid = "<<_rbuf.id());
 	while(blen > 2){
-		idbg("blen = "<<blen);
+		idbgx(Dbg::ipc, "blen = "<<blen);
 		uint8	datatype = *bpos;
 		++bpos;
 		--blen;
 		switch(datatype){
 			case Buffer::ContinuedCommand:
-				idbg("continuedcommand");
+				idbgx(Dbg::ipc, "continuedcommand");
 				assert(blen == firstblen);
 				if(!d.rcq.front().first){
 					d.rcq.pop();
@@ -725,9 +725,9 @@ void ProcessConnector::parseBuffer(Buffer &_rbuf, const ConnectorUid &_rcodid){
 				//we cannot have a continued command on the same buffer
 				break;
 			case Buffer::NewCommand:
-				idbg("newcommand");
+				idbgx(Dbg::ipc, "newcommand");
 				if(d.rcq.size()){
-					idbg("switch to new rcq.size = "<<d.rcq.size());
+					idbgx(Dbg::ipc, "switch to new rcq.size = "<<d.rcq.size());
 					if(d.rcq.front().first){//the previous command didnt end, we reschedule
 						d.rcq.push(d.rcq.front());
 						d.rcq.front().first = NULL;
@@ -735,13 +735,13 @@ void ProcessConnector::parseBuffer(Buffer &_rbuf, const ConnectorUid &_rcodid){
 					d.rcq.front().second = d.popDeserializer();
 					d.rcq.front().second->push(d.rcq.front().first);
 				}else{
-					idbg("switch to new rcq.size = 0");
+					idbgx(Dbg::ipc, "switch to new rcq.size = 0");
 					d.rcq.push(Data::RecvCmdPairTp(NULL, d.popDeserializer()));
 					d.rcq.front().second->push(d.rcq.front().first);
 				}
 				break;
 			case Buffer::OldCommand:
-				idbg("oldcommand");
+				idbgx(Dbg::ipc, "oldcommand");
 				cassert(d.rcq.size() > 1);
 				if(d.rcq.front().first){
 					d.rcq.push(d.rcq.front());
@@ -756,7 +756,7 @@ void ProcessConnector::parseBuffer(Buffer &_rbuf, const ConnectorUid &_rcodid){
 		cassert(rv >= 0);
 		blen -= rv;
 		if(d.rcq.front().second->empty()){//done one command.
-			idbg("donecommand");
+			idbgx(Dbg::ipc, "donecommand");
 			
 			if(d.rcq.front().first->received(_rcodid))
 				delete d.rcq.front().first;

@@ -57,7 +57,6 @@ namespace std{
 
 template <class S>
 S& operator&(pair<String, int64> &_v, S &_s){
-	idbg("stringint64 "<<(void*)&_v.second);
 	return _s.push(_v.first, "first").push(_v.second, "second");
 }
 template <class S>

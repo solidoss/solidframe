@@ -169,7 +169,7 @@ int Reader::run(){
 	if(sz < minlen) minlen = sz;
 	//write what we allready have in buffer into the stream
 	if(minlen) osi->write(_rr.rpos, minlen);
-	idbg("stream size = "<<sz<<" minlen = "<<minlen);
+	idbgx(Dbg::protocol, "stream size = "<<sz<<" minlen = "<<minlen);
 	sz -= minlen;
 	if(sz){
 		_rr.rpos = _rr.wpos = _rr.bbeg;
@@ -229,7 +229,7 @@ int Reader::run(){
 		}
 		return Yield;
 	}
-	idbg("fetch stream done "<<sz);
+	idbgx(Dbg::protocol, "fetch stream done "<<sz);
 	return Ok;//Done
 }
 

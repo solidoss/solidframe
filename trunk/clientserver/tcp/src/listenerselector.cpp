@@ -99,7 +99,7 @@ void ListenerSelector::unprepare(){
 }
 
 void ListenerSelector::signal(uint _pos){
-	idbg("signal listener selector "<<_pos);
+	idbgx(Dbg::tcp, "signal listener selector "<<_pos);
 	write(d.pipefds[1], &_pos, sizeof(uint32));
 }
 
@@ -130,10 +130,10 @@ int ListenerSelector::doReadPipe(){
 	uint32	buf[BUFSZ];
 	int rv = 0;//no
 	int rsz = 0;int j = 0;int maxcnt = (d.cp / BUFSZ) + 1;
-	idbg("maxcnt = "<<maxcnt);
+	idbgx(Dbg::tcp, "maxcnt = "<<maxcnt);
 	while((++j < maxcnt) && ((rsz = read(d.pipefds[0], buf, BUFLEN)) == BUFLEN)){
 		for(int i = 0; i < BUFSZ; ++i){
-			idbg("buf["<<i<<"]="<<buf[i]);
+			idbgx(Dbg::tcp, "buf["<<i<<"]="<<buf[i]);
 			if(buf[i]){
 				rv |= Data::FULL_SCAN;	
 			}else{ 
@@ -144,7 +144,7 @@ int ListenerSelector::doReadPipe(){
 	if(rsz){
 		rsz >>= 2;
 		for(int i = 0; i < rsz; ++i){	
-			idbg("buf["<<i<<"]="<<buf[i]);
+			idbgx(Dbg::tcp, "buf["<<i<<"]="<<buf[i]);
 			if(buf[i]){
 				rv |= Data::FULL_SCAN;
 			}else rv = Data::EXIT_LOOP;//must exit
@@ -153,10 +153,10 @@ int ListenerSelector::doReadPipe(){
 	if(j == maxcnt){
 		//dummy read:
 		rv = Data::EXIT_LOOP | Data::FULL_SCAN;//scan all filedescriptors for events
-		idbg("reading dummy");
+		idbgx(Dbg::tcp, "reading dummy");
 		while((rsz = read(d.pipefds[0], buf, BUFSZ)) > 0);
 	}
-	idbg("readpiperv = "<<rv);
+	idbgx(Dbg::tcp, "readpiperv = "<<rv);
 	return rv;
 }
 //full scan the listeners for io signals and other singnals
@@ -168,16 +168,16 @@ int ListenerSelector::doFullScan(){
 			//TODO: make it use the exec(uint32, TimeSpec)
 			switch(d.pss[i].lisptr->execute(0, ts)){
 				case BAD:
-					idbg("BAD: deleting listener");
+					idbgx(Dbg::tcp, "BAD: deleting listener");
 					delete d.pss[i].lisptr.release();
 					d.pss[i].lisptr = d.pss[d.sz - 1].lisptr;
 					d.pfds[i] = d.pfds[d.sz - 1];
 					--d.sz;
 					break;
 				case OK:
-					idbg("OK: on listener");
+					idbgx(Dbg::tcp, "OK: on listener");
 				case NOK:
-					idbg("NOK: on listener");
+					idbgx(Dbg::tcp, "NOK: on listener");
 					++i;
 					break;
 				default:
@@ -198,16 +198,16 @@ int ListenerSelector::doSimpleScan(int _cnt){
 			//TODO: make it use the execute(uint32, TimeSpec)
 			switch(d.pss[i].lisptr->execute(0, ts)){
 				case BAD:
-					idbg("BAD: deleting listener");
+					idbgx(Dbg::tcp, "BAD: deleting listener");
 					delete d.pss[i].lisptr.release();
 					d.pss[i].lisptr = d.pss[d.sz - 1].lisptr;
 					d.pfds[i] = d.pfds[d.sz - 1];
 					--d.sz;
 					break;
 				case OK:
-					idbg("OK: on listener");
+					idbgx(Dbg::tcp, "OK: on listener");
 				case NOK:
-					idbg("NOK: on listener");
+					idbgx(Dbg::tcp, "NOK: on listener");
 					++i;
 					break;
 				default:

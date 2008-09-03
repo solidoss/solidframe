@@ -128,23 +128,23 @@ Command::~Command(){
 }
 
 void Command::use(){
-	idbg("Use command");
+	idbgx(Dbg::cs, "Use command");
 }
 int Command::received(const ipc::ConnectorUid&){
 	return false;
 }
 int Command::execute(Object &){
-	idbg("Unhandled command");
+	idbgx(Dbg::cs, "Unhandled command");
 	return 0;
 }
 
 int Command::execute(CommandExecuter &, const CommandUidTp &, TimeSpec &_rts){
-	idbg("Unhandled command");
+	idbgx(Dbg::cs, "Unhandled command");
 	return 0;
 }
 
 int Command::release(){
-	idbg("Release command");
+	idbgx(Dbg::cs, "Release command");
 	return BAD;
 }
 

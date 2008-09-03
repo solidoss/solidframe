@@ -134,7 +134,7 @@ int Service::doSendCommand(
 		Data::BaseProcAddr4	baddr(&inaddr, inaddr.port());
 		Data::BaseProcAddr4MapTp::iterator	it(d.basepm4.find(&baddr));
 		if(it != d.basepm4.end()){
-			idbg("");
+			idbgx(Dbg::ipc, "");
 			ConnectorUid	conid = it->second;
 			cassert(conid.tkrid < d.tkrvec.size());
 			Data::TkrPairTp	&rtp(d.tkrvec[conid.tkrid]);
@@ -150,7 +150,7 @@ int Service::doSendCommand(
 			if(_pconid) *_pconid = conid;
 			return OK;
 		}else{//the process connector does not exist
-			idbg("");
+			idbgx(Dbg::ipc, "");
 			int16 tkrid = computeTalkerForNewProcess();
 			uint32 tkrpos,tkruid;
 			if(tkrid >= 0){
@@ -339,7 +339,7 @@ int Service::removeConnection(Connection &_rcon){
 }
 
 int Service::execute(ulong _sig, TimeSpec &_rtout){
-	idbg("serviceexec");
+	idbgx(Dbg::ipc, "serviceexec");
 	if(signaled()){
 		ulong sm;
 		{
@@ -347,7 +347,7 @@ int Service::execute(ulong _sig, TimeSpec &_rtout){
 			sm = grabSignalMask(1);
 		}
 		if(sm & cs::S_KILL){
-			idbg("killing service "<<this->id());
+			idbgx(Dbg::ipc, "killing service "<<this->id());
 			this->stop(Server::the(), true);
 			Server::the().removeService(this);
 			return BAD;
@@ -368,9 +368,9 @@ bool Buffer::check()const{
 	return false;
 }
 void Buffer::print()const{
-	idbg("version = "<<header().version<<" id = "<<header().id<<" retransmit = "<<header().retransid<<" flags = "<<header().flags<<" type = "<<header().type<<" updatescnt = "<<header().updatescnt<<" bufcp = "<<bc<<" dl = "<<dl);
+	idbgx(Dbg::ipc, "version = "<<header().version<<" id = "<<header().id<<" retransmit = "<<header().retransid<<" flags = "<<header().flags<<" type = "<<header().type<<" updatescnt = "<<header().updatescnt<<" bufcp = "<<bc<<" dl = "<<dl);
 	for(int i = 0; i < header().updatescnt; ++i){
-		idbg("update = "<<update(i));
+		idbgx(Dbg::ipc, "update = "<<update(i));
 	}
 }
 

@@ -95,7 +95,7 @@ NOTE:
 */
 int CommandExecuter::execute(ulong _evs, TimeSpec &_rtout){
 	d.pm->lock();
-	idbg("d.extsz = "<<d.extsz);
+	idbgx(Dbg::cs, "d.extsz = "<<d.extsz);
 	if(d.extsz){
 		for(Data::CommandExtDequeTp::const_iterator it(d.cedq.begin()); it != d.cedq.end(); ++it){
 			d.cdq.push_back(Data::CmdData(*it));
@@ -106,7 +106,7 @@ int CommandExecuter::execute(ulong _evs, TimeSpec &_rtout){
 	}
 	if(signaled()){
 		ulong sm = grabSignalMask(0);
-		idbg("signalmask "<<sm);
+		idbgx(Dbg::cs, "signalmask "<<sm);
 		if(sm & S_KILL){
 			state(Data::Stopping);
 			if(!d.sz){//no command
@@ -114,7 +114,7 @@ int CommandExecuter::execute(ulong _evs, TimeSpec &_rtout){
 				d.pm->unlock();
 				d.cdq.clear();
 				removeFromServer();
-				idbg("~CommandExecuter");
+				idbgx(Dbg::cs, "~CommandExecuter");
 				return BAD;
 			}
 		}
@@ -127,7 +127,7 @@ int CommandExecuter::execute(ulong _evs, TimeSpec &_rtout){
 	}
 	d.pm->unlock();
 	if(state() == Data::Running){
-		idbg("d.eq.size = "<<d.eq.size());
+		idbgx(Dbg::cs, "d.eq.size = "<<d.eq.size());
 		while(d.eq.size()){
 			uint32 pos = d.eq.front();
 			d.eq.pop();
@@ -204,7 +204,7 @@ int CommandExecuter::execute(ulong _evs, TimeSpec &_rtout){
 				delete it->cmd.release();
 			}
 		}
-		idbg("~CommandExecuter");
+		idbgx(Dbg::cs, "~CommandExecuter");
 		removeFromServer();
 		state(-1);
 		d.cdq.clear();
@@ -237,11 +237,11 @@ void CommandExecuter::receiveCommand(
 	const ObjectUidTp& _from,
 	const ipc::ConnectorUid *_conid
 ){
-	idbg("_requid.first = "<<_requid.first<<" _requid.second = "<<_requid.second<<" uid = "<<d.cdq[_requid.first].uid);
+	idbgx(Dbg::cs, "_requid.first = "<<_requid.first<<" _requid.second = "<<_requid.second<<" uid = "<<d.cdq[_requid.first].uid);
 	if(_requid.first < d.cdq.size() && d.cdq[_requid.first].uid == _requid.second){
-		idbg("");
+		idbgx(Dbg::cs, "");
 		if(d.cdq[_requid.first].cmd->receiveCommand(_rcmd, _which, _from, _conid) == OK){
-			idbg("");
+			idbgx(Dbg::cs, "");
 			d.eq.push(_requid.first);
 		}
 	}
@@ -255,12 +255,12 @@ void CommandExecuter::receiveIStream(
 	const ObjectUidTp&_from,
 	const ipc::ConnectorUid *_conid
 ){
-	idbg("_requid.first = "<<_requid.first<<" _requid.second = "<<_requid.second<<" uid = "<<d.cdq[_requid.first].uid);
+	idbgx(Dbg::cs, "_requid.first = "<<_requid.first<<" _requid.second = "<<_requid.second<<" uid = "<<d.cdq[_requid.first].uid);
 	if(_requid.first < d.cdq.size() && d.cdq[_requid.first].uid == _requid.second){
-		idbg("");
+		idbgx(Dbg::cs, "");
 		if(d.cdq[_requid.first].cmd->receiveIStream(_sp, _fuid, _which, _from, _conid) == OK){
 			d.eq.push(_requid.first);
-			idbg("");
+			idbgx(Dbg::cs, "");
 		}
 	}
 }

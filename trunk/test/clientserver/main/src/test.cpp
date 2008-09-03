@@ -59,15 +59,21 @@ int main(int argc, char* argv[]){
 	{
 	string s = "dbg/";
 	s+= argv[0]+2;
-	initDebug(s.c_str());
-	system("ulimit -c unlimited");
+	if(argc > 1){
+		initDebug(s.c_str(), argv[1]);
+	}else{
+		initDebug(s.c_str());
+	}
+	cout<<"Debug bits: ";
+	printDebugBits();
+	cout<<endl;
 	}
 #endif
 	pdbg("Built on SolidGround version "<<SG_MAJOR<<'.'<<SG_MINOR<<'.'<<SG_PATCH);
 	{
 		int startport = 1000;
-		if(argc >= 2){
-			startport = atoi(argv[1]);
+		if(argc > 2){
+			startport = atoi(argv[2]);
 		}
 		test::Server	ts;
 		if(true){// create and register the echo service

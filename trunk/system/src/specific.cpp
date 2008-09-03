@@ -106,7 +106,7 @@ SpecificData::~SpecificData(){
 	if(pcc->release()) delete pcc;
 	//destroy all cached buffers
 	for(int i(0); i < Specific::Count; ++i){
-		idbg(i<<" cps[i].cp = "<<cps[i].cp<<" Specific::sizeToId((1<<i)) = "<<Specific::sizeToId((1<<i)));
+		idbgx(Dbg::specific,i<<" cps[i].cp = "<<cps[i].cp<<" Specific::sizeToId((1<<i)) = "<<Specific::sizeToId((1<<i)));
 		cassert(!(cps[i].cp - cps[i].s.size()));
 		while(cps[i].s.size()){
 			delete []cps[i].s.top();
@@ -116,7 +116,7 @@ SpecificData::~SpecificData(){
 	//destroy all cached objects
 	Mutex::Locker lock(Thread::gmutex());
 	for(ObjCachePointVecTp::iterator it(ops.begin()); it != ops.end(); ++it){
-		idbg("it->cp = "<<it->cp);
+		idbgx(Dbg::specific,"it->cp = "<<it->cp);
 		if(it->ps){
 			cassert(!(it->cp - it->ps->size()));
 			while(it->ps->size()){
@@ -175,7 +175,7 @@ void destroy(void *_pv){
 	cassert(_id < Count);
 	SpecificData &rsd(SpecificData::current());
 	SpecificData::CachePoint &rcp(rsd.cps[_id]);
-	idbg("popBuffer "<<_id<<" cp "<<rcp.cp);
+	idbgx(Dbg::specific,"popBuffer "<<_id<<" cp "<<rcp.cp);
 	if(rcp.s.size()){
 		char *tb = rcp.s.top();
 		rcp.s.pop();
@@ -190,7 +190,7 @@ void destroy(void *_pv){
 	cassert(_id < Count);
 	SpecificData &rsd(SpecificData::current());
 	SpecificData::CachePoint &rcp(rsd.cps[_id]);
-	idbg("pushBuffer "<<_id<<" cp "<<rcp.cp<<" stackCap "<<rsd.pcc->stackCapacity(_id));
+	idbgx(Dbg::specific,"pushBuffer "<<_id<<" cp "<<rcp.cp<<" stackCap "<<rsd.pcc->stackCapacity(_id));
 	if(rcp.s.size() < rsd.pcc->stackCapacity(_id)){
 		rcp.s.push(_pb);
 	}else{

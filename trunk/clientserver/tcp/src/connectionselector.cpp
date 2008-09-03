@@ -194,12 +194,12 @@ int ConnectionSelector::reserve(ulong _cp){
 		ev.data.ptr = &d.pchs[0];
 		ev.events = EPOLLIN | EPOLLPRI;//must be LevelTriggered
 		if(epoll_ctl(d.epfd, EPOLL_CTL_ADD, d.pipefds[0], &ev)){
-			edbg("epollctl");
+			edbgx(Dbg::tcp, "epollctl");
 			cassert(false);
 			return -1;
 		}
 	}
-	idbg("pipe fds "<<d.pipefds[0]<<" "<<d.pipefds[1]);
+	idbgx(Dbg::tcp, "pipe fds "<<d.pipefds[0]<<" "<<d.pipefds[1]);
 	d.ctimepos.set(0);
 	d.ntimepos.set(Data::MAXTIMEPOS);
 	d.selcnt = 0;
@@ -240,7 +240,7 @@ void ConnectionSelector::push(const ConnectionPtrTp &_conptr, uint _thid){
 	ev.data.ptr = pc;
 	if(_conptr->channel().descriptor() >= 0 && 
 		epoll_ctl(d.epfd, EPOLL_CTL_ADD, _conptr->channel().descriptor(), &ev)){
-		edbg("epoll_ctl adding filedesc "<<_conptr->channel().descriptor());
+		edbgx(Dbg::tcp, "epoll_ctl adding filedesc "<<_conptr->channel().descriptor());
 		pc->conptr.clear();
 		pc->reset();
 		d.fstk.push(pc);
@@ -250,13 +250,13 @@ void ConnectionSelector::push(const ConnectionPtrTp &_conptr, uint _thid){
 	}
 	_conptr->channel().prepare();
 	pc->conptr = _conptr;
-	idbg("pushing connection "<<&(*(pc->conptr))<<" on position "<<(pc - d.pchs));
+	idbgx(Dbg::tcp, "pushing connection "<<&(*(pc->conptr))<<" on position "<<(pc - d.pchs));
 	pc->state = ChannelStub::InQExec;
 	d.chq.push(pc);
 }
 
 void ConnectionSelector::signal(uint _objid){
-	idbg("signal connection: "<<_objid);
+	idbgx(Dbg::tcp, "signal connection: "<<_objid);
 	write(d.pipefds[1], &_objid, sizeof(uint32));
 }
 
@@ -320,13 +320,13 @@ void ConnectionSelector::run(){
 			--nbcnt;
 		}else{
 			pollwait = d.computePollWait();
-			idbg("pollwait "<<pollwait<<" ntimepos.s = "<<d.ntimepos.seconds()<<" ntimepos.ns = "<<d.ntimepos.nanoSeconds());
-			idbg("ctimepos.s = "<<d.ctimepos.seconds()<<" ctimepos.ns = "<<d.ctimepos.nanoSeconds());
+			idbgx(Dbg::tcp, "pollwait "<<pollwait<<" ntimepos.s = "<<d.ntimepos.seconds()<<" ntimepos.ns = "<<d.ntimepos.nanoSeconds());
+			idbgx(Dbg::tcp, "ctimepos.s = "<<d.ctimepos.seconds()<<" ctimepos.ns = "<<d.ctimepos.nanoSeconds());
 			nbcnt = -1;
         }
 		
 		d.selcnt = epoll_wait(d.epfd, d.pevs, d.sz, pollwait);
-		idbg("epollwait = "<<d.selcnt);
+		idbgx(Dbg::tcp, "epollwait = "<<d.selcnt);
 	}while(!(flags & Data::EXIT_LOOP));
 }
 
@@ -335,11 +335,11 @@ uint ConnectionSelector::doAllIo(){
 	TimeSpec	crttout;
 	epoll_event	ev;
 	uint		evs;
-	idbg("selcnt = "<<d.selcnt);
+	idbgx(Dbg::tcp, "selcnt = "<<d.selcnt);
 	for(int i = 0; i < d.selcnt; ++i){
 		ChannelStub *pc = reinterpret_cast<ChannelStub*>(d.pevs[i].data.ptr);
 		if(pc != d.pchs){
-			idbg("state = "<<pc->state<<" empty "<<ChannelStub::Empty);
+			idbgx(Dbg::tcp, "state = "<<pc->state<<" empty "<<ChannelStub::Empty);
 			if((evs = doIo(pc->conptr->channel(), d.pevs[i].events))){
 				crttout = d.ctimepos;
 				flags |= doExecute(*pc, evs, crttout, ev);
@@ -355,7 +355,7 @@ uint ConnectionSelector::doFullScan(){
 	uint		flags = 0;
 	uint		evs;
 	epoll_event	ev;
-	idbg("fullscan");
+	idbgx(Dbg::tcp, "fullscan");
 	d.ntimepos.set(Data::MAXTIMEPOS);
 	for(uint i = 1; i < d.cp; ++i){
 		ChannelStub &rcs = d.pchs[i];
@@ -404,7 +404,7 @@ int ConnectionSelector::doExecute(ChannelStub &_rch, ulong _evs, TimeSpec &_crtt
 	Connection	&rcon = *_rch.conptr;
 	switch(rcon.execute(_evs, _crttout)){
 		case BAD://close
-			idbg("BAD: removing the connection");
+			idbgx(Dbg::tcp, "BAD: removing the connection");
 			d.fstk.push(&_rch);
 			epoll_ctl(d.epfd, EPOLL_CTL_DEL, rcon.channel().descriptor(), NULL);
 			rcon.channel().unprepare();
@@ -415,7 +415,7 @@ int ConnectionSelector::doExecute(ChannelStub &_rch, ulong _evs, TimeSpec &_crtt
 			rv = Data::EXIT_LOOP;
 			break;
 		case OK://
-			//idbg("OK: reentering connection "<<rcon.channel().ioRequest());
+			//idbgx(Dbg::tcp, "OK: reentering connection "<<rcon.channel().ioRequest());
 			if(!(_rch.state & ChannelStub::InQExec)){
 				d.chq.push(&_rch);
 				_rch.state |= ChannelStub::InQExec;
@@ -423,11 +423,11 @@ int ConnectionSelector::doExecute(ChannelStub &_rch, ulong _evs, TimeSpec &_crtt
 			_rch.timepos.set(Data::MAXTIMEPOS);
 			break;
 		case NOK:
-			idbg("TOUT: connection waits for signals");
+			idbgx(Dbg::tcp, "TOUT: connection waits for signals");
 			{	
 				ulong t = (EPOLLET) | rcon.channel().ioRequest();
 				if((_rch.evmsk & Data::EPOLLMASK) != t){
-					idbg("epollctl");
+					idbgx(Dbg::tcp, "epollctl");
 					_rch.evmsk = _rev.events = t;
 					_rev.data.ptr = &_rch;
 					epoll_ctl(d.epfd, EPOLL_CTL_MOD, rcon.channel().descriptor(), &_rev);
@@ -441,7 +441,7 @@ int ConnectionSelector::doExecute(ChannelStub &_rch, ulong _evs, TimeSpec &_crtt
 			}
 			break;
 		case LEAVE:
-			idbg("LEAVE: connection leave");
+			idbgx(Dbg::tcp, "LEAVE: connection leave");
 			d.fstk.push(&_rch);
 			epoll_ctl(d.epfd, EPOLL_CTL_DEL, rcon.channel().descriptor(), NULL);
 			--d.sz;
@@ -452,7 +452,7 @@ int ConnectionSelector::doExecute(ChannelStub &_rch, ulong _evs, TimeSpec &_crtt
 			rv = Data::EXIT_LOOP;
 			break;
 		case REGISTER:{//
-			idbg("REGISTER: register connection with new descriptor");
+			idbgx(Dbg::tcp, "REGISTER: register connection with new descriptor");
 			_rev.data.ptr = &_rch;
 			uint ioreq = rcon.channel().ioRequest();
 			_rch.evmsk = _rev.events = (EPOLLET) | ioreq;
@@ -463,7 +463,7 @@ int ConnectionSelector::doExecute(ChannelStub &_rch, ulong _evs, TimeSpec &_crtt
 			}
 			}break;
 		case UNREGISTER:
-			idbg("UNREGISTER: unregister connection's descriptor");
+			idbgx(Dbg::tcp, "UNREGISTER: unregister connection's descriptor");
 			epoll_ctl(d.epfd, EPOLL_CTL_DEL, rcon.channel().descriptor(), NULL);
 			if(!(_rch.state & ChannelStub::InQExec)){
 				d.chq.push(&_rch);
@@ -473,7 +473,7 @@ int ConnectionSelector::doExecute(ChannelStub &_rch, ulong _evs, TimeSpec &_crtt
 		default:
 			cassert(false);
 	}
-	//idbg("return "<<rv);
+	//idbgx(Dbg::tcp, "return "<<rv);
 	return rv;
 }
 
@@ -515,7 +515,7 @@ int ConnectionSelector::doReadPipe(){
 	if(j > maxcnt){
 		//dummy read:
 		rv = Data::EXIT_LOOP | Data::FULL_SCAN;//scan all filedescriptors for events
-		idbg("reading pipe dummy");
+		idbgx(Dbg::tcp, "reading pipe dummy");
 		while((rsz = read(d.pipefds[0], buf, BUFSZ)) > 0);
 	}
 	return rv;

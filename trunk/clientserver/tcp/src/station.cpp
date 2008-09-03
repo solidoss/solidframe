@@ -42,12 +42,12 @@ Station* Station::create(const AddrInfoIterator &_rai, int _listensz){
 	int sd;
 	if(_rai.type() != AddrInfo::Stream) return NULL;
 	if((sd = socket(_rai.family(), _rai.type(), _rai.protocol())) == -1){
-		edbg("error creating listener socket");
+		edbgx(Dbg::tcp, "error creating listener socket");
 		return NULL;
 	}
 	int yes = 1;
 	if(setsockopt(sd, SOL_SOCKET, SO_REUSEADDR,(char*)&yes,sizeof(yes)) < 0){
-		edbg("error setting sockopt");
+		edbgx(Dbg::tcp, "error setting sockopt");
 		return NULL;
 	}
 // 	struct sockaddr_in      saddr;
@@ -56,18 +56,18 @@ Station* Station::create(const AddrInfoIterator &_rai, int _listensz){
 // 	//saddr.sin_addr.s_addr = htonl(INADDR_ANY);
 // 	saddr.sin_port = htons(_port);
 	if(bind(sd, _rai.addr(), _rai.size()) == -1){
-		edbg("error while binding");
+		edbgx(Dbg::tcp, "error while binding");
 		close(sd);
 		return NULL;
 	}
 	if(listen(sd, _listensz) == -1){//make
-		edbg("error listening");
+		edbgx(Dbg::tcp, "error listening");
 		close(sd);
 		return NULL;
 	}
 	if(fcntl(sd, F_SETFL, O_NONBLOCK) < 0){
 		//TODO: some error message.
-		edbg("error making server socket nonblocking");
+		edbgx(Dbg::tcp, "error making server socket nonblocking");
 		close(sd);
 		return NULL;
 
@@ -95,10 +95,10 @@ int Station::accept(ChannelVecTp &_cv/*, Constrainer &_rcons*/){
 		socklen_t len = sizeof(saddr);
 		if((psd = ::accept(sd,(struct sockaddr*) &saddr, &len)) < 0){
 			if(errno == EAGAIN){
-				idbg("eagain on accept");
+				idbgx(Dbg::tcp, "eagain on accept");
 				return NOK;
 			}
-			edbg("error accepting");
+			edbgx(Dbg::tcp, "error accepting");
 			return BAD;
 		}
 		//TODO: not so nice so try to change.

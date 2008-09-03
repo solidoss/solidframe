@@ -228,15 +228,15 @@ int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 	}
 	if(signaled()){
 		ulong sm = grabSignalMask(0);
-		idbg("signalmask "<<sm);
+		idbgx(Dbg::filemanager, "signalmask "<<sm);
 		if(sm & cs::S_KILL){
 			state(Data::Stopping);
-			idbg("kill "<<d.sz);
+			idbgx(Dbg::filemanager, "kill "<<d.sz);
 			if(!d.sz){//no file
 				state(-1);
 				d.mut->unlock();
 				Server::the().removeFileManager();
-				idbg("~FileManager");
+				idbgx(Dbg::filemanager, "~FileManager");
 				return BAD;
 			}
 		}
@@ -275,6 +275,7 @@ int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 			m.lock();
 			switch(rf.pfile->executeSignal(*this, fuid, 0, msectout)){
 				case BAD:{//delete the file and collect the position
+					idbgx(Dbg::filemanager, "delete file");
 					File *pf(rf.pfile);
 					m.unlock();//avoid crosslocking deadlock
 					{
@@ -301,6 +302,7 @@ int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 				case OK://the file waits for nothing - we can safely delete it
 					if(state() != Data::Running){//the state is only set within this thread!!!
 						//rf.pfile->clear(*this, fuid);//not sending errors when stopping
+						idbgx(Dbg::filemanager, "");
 						File *pf(rf.pfile);
 						m.unlock();//avoid crosslocking deadlock
 						{
@@ -321,6 +323,7 @@ int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 						}
 						delete pf;
 					}else{
+						idbgx(Dbg::filemanager, "");
 						m.unlock();
 						rf.tout = _rtout;
 						rf.tout += msectout;
@@ -335,6 +338,7 @@ int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 					}
 					break;
 				case NOK://the file is in use - wait indefinetly
+					idbgx(Dbg::filemanager, "file in use - wait indefinetly");
 					m.unlock();
 					rf.tout.set(0xffffffff);
 					if(rf.toutidx >= 0){
@@ -460,11 +464,11 @@ int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 		d.tout = tout;
 	}
 	if(state() != Data::Running && !d.sz){
-		idbg("kill "<<d.sz);
+		idbgx(Dbg::filemanager, "kill "<<d.sz);
 		cassert(!d.sz);
 		Server::the().removeFileManager();
 		state(-1);//TODO: is there a pb that mut is not locked?!
-		idbg("~FileManager");
+		idbgx(Dbg::filemanager, "~FileManager");
 		return BAD;
 	}
 	if(d.toutv.size()) _rtout = d.tout;
@@ -741,6 +745,7 @@ int FileManager::doGetStream(
 					d.fextv.push_back(Data::FileExtData(pf, pos));
 					pf->stream(*this, pos, _sptr, _requid, _flags | ForcePending);
 					d.sq.push(pos);
+					idbgx(Dbg::filemanager, "sq.push "<<pos);
 					if(static_cast<cs::Object*>(this)->signal((int)cs::S_RAISE)){
 						Server::the().raiseObject(*this);
 					}
@@ -920,9 +925,10 @@ void FileManager::releaseIStream(uint _fileid){
 	}
 	if(b){
 		Mutex::Locker	lock(*d.mut);
-		idbg("signal filemanager "<<_fileid);
+		idbgx(Dbg::filemanager, "signal filemanager "<<_fileid);
 		//we must signal the filemanager
 		d.sq.push(_fileid);
+		idbgx(Dbg::filemanager, "sq.push "<<_fileid);
 		if(static_cast<cs::Object*>(this)->signal((int)cs::S_RAISE)){
 			Server::the().raiseObject(*this);
 		}
@@ -939,6 +945,7 @@ void FileManager::releaseOStream(uint _fileid){
 		Mutex::Locker	lock(*d.mut);
 		//we must signal the filemanager
 		d.sq.push(_fileid);
+		idbgx(Dbg::filemanager, "sq.push "<<_fileid);
 		if(static_cast<cs::Object*>(this)->signal((int)cs::S_RAISE)){
 			Server::the().raiseObject(*this);
 		}
@@ -1134,6 +1141,7 @@ File::~File(){
 
 int File::open(FileManager &_rsm, uint _fileid){
 	//TODO: do it right/better
+	idbgx(Dbg::filemanager, "open file "<<_fileid);
 	string fn;
 	rk.fileName(_rsm, _fileid, fn);
 	if(FileDevice::open(fn.c_str(), FileDevice::RW) < 0){
@@ -1141,6 +1149,7 @@ int File::open(FileManager &_rsm, uint _fileid){
 		if(flags & FileManager::Create){
 			if(FileDevice::create(fn.c_str(), FileDevice::RW)){
 				if(canRetryOpen()) return NOK;//will return true if errno is ENFILE or ENOMEM
+				idbgx(Dbg::filemanager, "");
 				return BAD;
 			}else{
 				state = Opened;

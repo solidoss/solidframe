@@ -112,16 +112,16 @@ public:
 		_minwkrcnt = (_minwkrcnt)?_minwkrcnt:1;
 		wkrcnt = 0;
 		state = Running;
-		idbg("before create workers");
+		idbgx(Dbg::utility, "before create workers");
 		createWorkers(_minwkrcnt);
-		idbg("after create");
+		idbgx(Dbg::utility, "after create");
 		if(_wait){
 			while(wkrcnt != _minwkrcnt){
-				idbg("minwkrcnt = "<<_minwkrcnt<<" wkrcnt = "<<wkrcnt);
+				idbgx(Dbg::utility, "minwkrcnt = "<<_minwkrcnt<<" wkrcnt = "<<wkrcnt);
 				thrcnd.wait(mtx);
 			}
 		}
-		idbg("done start");
+		idbgx(Dbg::utility, "done start");
 		return OK;
 	}
 	//! Initiate workpool stop
@@ -138,7 +138,7 @@ public:
 		sigcnd.broadcast();
 		if(!_wait) return;
 		while(wkrcnt)	thrcnd.wait(mtx);
-		idbg("workpool::stopped"<<std::flush);
+		idbgx(Dbg::utility, "workpool::stopped"<<std::flush);
 		state = Stopped;
 	}
 protected:
@@ -178,16 +178,16 @@ protected:
 	*/
 	int pop(int _wkrid, Jb *_jb, unsigned &_cnt){
 		Mutex::Locker lock(mtx);
-		idbg("enter pop");
+		idbgx(Dbg::utility, "enter pop");
 		//if(_wkrid >= wkrcnt) return BAD;
 		if(!_cnt){
-			idbg("exit pop1");
+			idbgx(Dbg::utility, "exit pop1");
 			if(state == Running) return OK;
-			idbg("exit pop2");
+			idbgx(Dbg::utility, "exit pop2");
 			return BAD;
 		}
 		while(q.empty() && state == Running){
-			idbg("here");
+			idbgx(Dbg::utility, "here");
 			sigcnd.wait(mtx);
 		}
 		int i = 0;
@@ -198,12 +198,12 @@ protected:
 			}while(q.size() && i < _cnt);
 			_cnt = i;
 			if(q.size()) sigcnd.signal();//wake another worker
-			idbg("exit pop3 cnt = "<<_cnt);
+			idbgx(Dbg::utility, "exit pop3 cnt = "<<_cnt);
 			if(state == Running) return OK;
-			idbg("exit pop4");
+			idbgx(Dbg::utility, "exit pop4");
 			return NOK;
 		}
-		idbg("exit pop5");
+		idbgx(Dbg::utility, "exit pop5");
 		return BAD;//the workpool is about to stop
 	}
 protected:
@@ -239,7 +239,7 @@ protected://workers:
 	class Worker: public Thread{
 	public:
 		virtual ~Worker(){
-			idbg("here");
+			idbgx(Dbg::utility, "here");
 		}
 		int wid(){return wkrid;}
 	protected:
@@ -277,20 +277,20 @@ protected://workers:
 	};
 private:
 	void enterWorker(Worker &_rw){
-		idbg("wkrenter");
+		idbgx(Dbg::utility, "wkrenter");
 		mtx.lock();
 		//_rwb.workerId(wkrcnt);
 		_rw.wkrid = wkrcnt;
 		++wkrcnt;
-		idbg("newwkr "<<wkrcnt);
+		idbgx(Dbg::utility, "newwkr "<<wkrcnt);
 		thrcnd.signal();
 		mtx.unlock();
 	}
 	void exitWorker(){
-		idbg("wkexit");
+		idbgx(Dbg::utility, "wkexit");
 		mtx.lock();
 		--wkrcnt;
-		idbg("exitwkr "<<wkrcnt<<std::flush);
+		idbgx(Dbg::utility, "exitwkr "<<wkrcnt<<std::flush);
 		thrcnd.signal();
 		mtx.unlock();
 	}
