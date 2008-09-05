@@ -94,6 +94,7 @@ private:
 	bool freeSentBuffers(Buffer &_rbuf);
 	void parseBuffer(Buffer &_rbuf, const ConnectorUid &_rcodid);
 	bool moveToNextInBuffer();
+	void freeBufferCommands(uint32 _bufid);//frees the commands associated to a send buffer
 	//void popBuffersConnecting(IOData &_riod, const TimeSpec &_tpos, ServiceStubUnlocked &_rs);
 	//void popBuffersConnected(IOData &_riod, const TimeSpec &_tpos, ServiceStubUnlocked &_rs);
 	struct Data;

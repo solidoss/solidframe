@@ -89,6 +89,35 @@ struct ProcessConnector::Data{
 	typedef std::pair<cs::CmdPtr<Command>, uint32>
 												CmdPairTp;
 	typedef Queue<CmdPairTp>					CmdQueueTp;
+	struct OutWaitCommand{
+		OutWaitCommand(
+			uint32 _bufid,
+			const cs::CmdPtr<Command>& _rcmd,
+			uint32 _flags,
+			uint32 _id
+		):bufid(_bufid), cmd(_rcmd), flags(_flags), id(_id){}
+		bool operator<(const OutWaitCommand &_owc)const{
+			if(cmd.ptr()){
+				if(_owc.cmd.ptr()){
+				}else return true;
+			}else{
+				if(_owc.cmd.ptr()){
+					return false;
+				}else return true;
+			}
+			//TODO: optimize!!			
+			if(id < _owc.id){
+				return (_owc.id - id) < (0xffffffff/2);
+			}else if(id > _owc.id){
+				return (id - _owc.id) >= (0xffffffff/2);
+			}else return false;
+		}
+		uint32				bufid;
+		cs::CmdPtr<Command> cmd;
+		uint32				flags;
+		uint32				id;
+	};
+	typedef std::vector<OutWaitCommand>			OutCmdVectorTp;
 	typedef Queue<uint32>						ReceivedIdsQueueTp;
 	typedef BinSerializer						BinSerializerTp;
 	typedef BinDeserializer						BinDeserializerTp;
@@ -97,12 +126,17 @@ struct ProcessConnector::Data{
 												RecvCmdPairTp;
 	typedef Queue<RecvCmdPairTp>				RecvCmdQueueTp;
 	struct SendCommand{
-		SendCommand(const cs::CmdPtr<Command>& _rpcmd, uint32 _flags):pcmd(_rpcmd), flags(_flags), pser(NULL){}
+		SendCommand(
+			const cs::CmdPtr<Command>& _rpcmd,
+			uint32 _flags,
+			uint32	_id
+		):pcmd(_rpcmd), flags(_flags), id(_id), pser(NULL){}
 		~SendCommand(){
 			cassert(!pser);
 		}
 		cs::CmdPtr<Command> pcmd;
 		uint32				flags;
+		uint32				id;
 		BinSerializerTp		*pser;
 	};
 	typedef Queue<SendCommand>					SendCmdQueueTp;
@@ -118,6 +152,9 @@ struct ProcessConnector::Data{
 	void pushSerializer(BinSerializerTp*);
 	BinDeserializerTp* popDeserializer();
 	void pushDeserializer(BinDeserializerTp*);
+	//save commands to be resent in case of disconnect
+	void pushOutWaitCommand(uint32 _bufid, cs::CmdPtr<Command> &_cmd, uint32 _flags, uint32 _id);
+	void popOutWaitCommands(uint32 _bufid);
 //data:	
 	uint32					expectedid;
 	int32					retranstimeout;
@@ -138,13 +175,18 @@ struct ProcessConnector::Data{
 	SendCmdQueueTp			scq;
 	ReceivedIdsQueueTp		rcvidq;
 	BufferPriorityQueueTp	inbufq;
+	OutCmdVectorTp			outcmdv;
+	OutFreePosStackTp		outfreecmdstk;
+	uint32					sndcmdid;
 };
 
 
 ProcessConnector::Data::Data(const Inet4SockAddrPair &_raddr):
 	expectedid(1), retranstimeout(300),
-	state(Connecting), flags(0), bufjetons(1), crtcmdbufcnt(MaxCommandBufferCount),sendid(0),
-	addr(_raddr), pairaddr(addr), baseaddr(&pairaddr, addr.port()){
+	state(Connecting), flags(0), bufjetons(1), 
+	crtcmdbufcnt(MaxCommandBufferCount),sendid(0),
+	addr(_raddr), pairaddr(addr), 
+	baseaddr(&pairaddr, addr.port()),sndcmdid(0){
 }
 
 // ProcessConnector::Data::Data(BinMapper &_rm, const Inet6SockAddrPair &_raddr, int _tkrid, int _procid):
@@ -238,6 +280,26 @@ void ProcessConnector::Data::pushDeserializer(ProcessConnector::Data::BinDeseria
 	Specific::cache(_p);
 }
 
+void ProcessConnector::Data::pushOutWaitCommand(uint32 _bufid, cs::CmdPtr<Command> &_cmd, uint32 _flags, uint32 _id){
+	if(this->outfreecmdstk.size()){
+		OutWaitCommand &owc = outcmdv[outfreecmdstk.top()];
+		owc.bufid = _bufid;
+		owc.cmd = _cmd;
+		owc.flags = _flags;
+		outfreecmdstk.pop();
+	}else{
+		this->outcmdv.push_back(OutWaitCommand(_bufid, _cmd, _flags, _id));
+	}
+}
+void ProcessConnector::Data::popOutWaitCommands(uint32 _bufid){
+	for(OutCmdVectorTp::iterator it(outcmdv.begin()); it != outcmdv.end(); ++it){
+		if(it->bufid == _bufid && it->cmd.ptr()){
+			it->bufid = 0;
+			it->cmd.clear();
+		}
+	}
+}
+
 //*******************************************************************************
 
 ProcessConnector::~ProcessConnector(){
@@ -290,7 +352,7 @@ void ProcessConnector::reconnect(ProcessConnector *_ppc){
 		}
 		d.rcq.pop();
 	}
-	//clear both send queue
+	//
 	for(int sz = d.cq.size(); sz; --sz){
 		if(!(d.cq.front().second & Service::SameConnectorFlag)) {
 			idbgx(Dbg::ipc, "command scheduled for resend");
@@ -300,6 +362,10 @@ void ProcessConnector::reconnect(ProcessConnector *_ppc){
 		}
 		d.cq.pop();
 	}
+	uint32 cqsz = d.cq.size();
+	//we must put into the cq all command in the exact oreder they were sent
+	//to do so we must push into cq, the commands from scq and waitcmdv 
+	//ordered by their id
 	for(int sz = d.scq.size(); sz; --sz){
 		if(d.scq.front().pser){
 			d.scq.front().pser->clear();
@@ -308,13 +374,33 @@ void ProcessConnector::reconnect(ProcessConnector *_ppc){
 		}
 		//NOTE: on reconnect the responses, or commands sent using ConnectorUid are dropped
 		if(!(d.scq.front().flags & Service::SameConnectorFlag)){
-			idbgx(Dbg::ipc, "command scheduled for resend");
-			d.scq.push(d.scq.front());
+			d.pushOutWaitCommand(0, d.scq.front().pcmd, d.scq.front().flags, d.scq.front().id);
 		}else{
 			idbgx(Dbg::ipc, "command not scheduled for resend");
 		}
 		d.scq.pop();
 	}
+	
+	//now we need to sort d.outcmdv
+	std::sort(d.outcmdv.begin(), d.outcmdv.end());
+	//then we push into cq the commands from outcmv
+	
+	for(Data::OutCmdVectorTp::const_iterator it(d.outcmdv.begin()); it != d.outcmdv.end(); ++it){
+		if(it->cmd.ptr()){
+			d.cq.push(Data::CmdPairTp(it->cmd, it->flags));
+		}
+	}
+	//clear out cmd vector and stack
+	d.outcmdv.clear();
+	while(d.outfreecmdstk.size()){
+		d.outfreecmdstk.pop();
+	}
+	//put the commands already in the cq to the end of cq
+	while(cqsz--){
+		d.cq.push(d.cq.front());
+		d.cq.pop();
+	}
+	
 	d.crtcmdbufcnt = Data::MaxCommandBufferCount;
 	d.expectedid = 1;
 	d.sendid = 0;
@@ -562,6 +648,15 @@ int ProcessConnector::processSendCommands(SendBufferData &_rsb, const TimeSpec &
 		bool written = false;
 		Buffer &rbuf(_rsb.b);
 		rbuf.reset();
+		//here we keep per buffer waiting commands - 
+		//commands that in case of a peer disconnection detection
+		//can safely be resend
+		struct WaitCmd{
+			cs::CmdPtr<Command>	cmd;
+			uint32				flags;
+			uint32				id;
+		}waitcmds[Data::MaxSendCommandQueueSize], *pcrtwaitcmd(waitcmds - 1);
+			
 		if(d.state == Data::Connected){
 			rbuf.type(Buffer::DataType);
 			//first push the updates if any
@@ -577,7 +672,7 @@ int ProcessConnector::processSendCommands(SendBufferData &_rsb, const TimeSpec &
 				while(d.cq.size() && d.scq.size() < Data::MaxSendCommandQueueSize){
 					uint32 flags = d.cq.front().second;
 					cassert(d.cq.front().first.ptr());
-					d.scq.push(Data::SendCommand(d.cq.front().first, flags));
+					d.scq.push(Data::SendCommand(d.cq.front().first, flags, d.sndcmdid++));
 					d.cq.pop();
 				}
 				Data::BinSerializerTp	*pser = NULL;
@@ -621,6 +716,14 @@ int ProcessConnector::processSendCommands(SendBufferData &_rsb, const TimeSpec &
 							pser = d.scq.front().pser;
 							pser->clear();
 							d.scq.front().pser = NULL;
+							if(!(d.scq.front().flags & Service::SameConnectorFlag)){
+								//if the command can be resent, we cache it
+								idbgx(Dbg::ipc, "cached wait command");
+								++pcrtwaitcmd;
+								pcrtwaitcmd->cmd = d.scq.front().pcmd;
+								pcrtwaitcmd->flags = d.scq.front().flags;
+								pcrtwaitcmd->id = d.scq.front().id;
+							}
 							d.scq.pop();
 							//we dont want to switch to an old command
 							d.crtcmdbufcnt = Data::MaxCommandBufferCount - 1;
@@ -669,6 +772,12 @@ int ProcessConnector::processSendCommands(SendBufferData &_rsb, const TimeSpec &
 				rbuf.id(d.sendid);
 				d.incrementSendId();
 				--d.bufjetons;
+				//now cache all waiting commands based on their last buffer id
+				//so that whe this buffer is sent, only then the command can be deleted
+				while(waitcmds <= pcrtwaitcmd){
+					d.pushOutWaitCommand(rbuf.id(), pcrtwaitcmd->cmd, pcrtwaitcmd->flags, pcrtwaitcmd->id);
+					--pcrtwaitcmd;
+				}
 			}else{
 				rbuf.id(Data::UpdateBufferId);
 			}
@@ -689,6 +798,7 @@ bool ProcessConnector::freeSentBuffers(Buffer &_rbuf){
 		idbgx(Dbg::ipc, "compare update "<<_rbuf.update(i)<<" out bufs sz = "<<d.outbufs.size());
 		for(Data::OutBufferVectorTp::iterator it(d.outbufs.begin()); it != d.outbufs.end(); ++it){
 			if(it->first.buffer() && _rbuf.update(i) == it->first.id()){//done with this one
+				d.popOutWaitCommands(it->first.id());
 				b = true;
 				char *pb = it->first.buffer();
 				Specific::pushBuffer(pb, Specific::capacityToId(it->first.bufferCapacity()));
@@ -701,7 +811,6 @@ bool ProcessConnector::freeSentBuffers(Buffer &_rbuf){
 	}
 	return b;
 }
-
 void ProcessConnector::parseBuffer(Buffer &_rbuf, const ConnectorUid &_rcodid){
 	const char *bpos = _rbuf.data();
 	int			blen = _rbuf.dataSize();
