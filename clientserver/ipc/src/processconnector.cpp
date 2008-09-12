@@ -101,11 +101,12 @@ struct ProcessConnector::Data{
 				if(_owc.cmd.ptr()){
 				}else return true;
 			}else{
-				if(_owc.cmd.ptr()){
-					return false;
-				}else return true;
+// 				if(_owc.cmd.ptr()){
+// 					return false;
+// 				}else return true;
+				return false;
 			}
-			//TODO: optimize!!			
+			//TODO: optimize!!
 			if(id < _owc.id){
 				return (_owc.id - id) < (0xffffffff/2);
 			}else if(id > _owc.id){
@@ -383,12 +384,12 @@ void ProcessConnector::reconnect(ProcessConnector *_ppc){
 	
 	//now we need to sort d.outcmdv
 	std::sort(d.outcmdv.begin(), d.outcmdv.end());
-	//then we push into cq the commands from outcmv
 	
+	//then we push into cq the commands from outcmv
 	for(Data::OutCmdVectorTp::const_iterator it(d.outcmdv.begin()); it != d.outcmdv.end(); ++it){
 		if(it->cmd.ptr()){
 			d.cq.push(Data::CmdPairTp(it->cmd, it->flags));
-		}
+		}else break;
 	}
 	//clear out cmd vector and stack
 	d.outcmdv.clear();
@@ -610,6 +611,7 @@ int ProcessConnector::pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpo
 					if(rob.first.type() == Buffer::ConnectingType){
 						if(rob.first.retransmitId() > Data::ConnectRetransmitCount){//too many resends for connect type
 							idbgx(Dbg::ipc, "preparing to disconnect process");
+							cassert(d.state != Data::Disconnecting);
 							d.state = Data::Disconnecting;
 							return BAD;//disconnecting
 						}
