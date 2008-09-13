@@ -163,6 +163,13 @@ void Talker::disconnectProcesses(){
 		if(ppc->isDisconnecting()){
 			idbgx(Dbg::ipc, "deleting process "<<(void*)ppc<<" on pos "<<d.closes.top());
 			d.rservice.disconnectProcess(ppc);
+			//unregister from base and peer:
+			if(ppc->peerAddr4() && ppc->peerAddr4()->addr){
+				d.peerpm4.erase(ppc->peerAddr4());
+			}
+			if(ppc->baseAddr4() && ppc->baseAddr4()->first && ppc->baseAddr4()->first->addr){
+				d.basepm4.erase(ppc->baseAddr4());
+			}
 			delete ppc;
 			d.procs[d.closes.top()].first = NULL;
 			uint16 uidv = ++d.procs[d.closes.top()].second;
@@ -197,35 +204,38 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 			}
 			//insert new processes
 			while(d.newprocs.size()){
-				if((uint32)d.newprocs.top().second >= d.procs.size()){
+				int32 newprocidx(d.newprocs.top().second);
+				ProcessConnector *pnewproc(d.newprocs.top().first);
+				if((uint32)newprocidx >= d.procs.size()){
 					uint32 oldsz = d.procs.size();
-					d.procs.resize(d.newprocs.top().second + 1);
+					d.procs.resize(newprocidx + 1);
 					for(uint32 i = oldsz; i < d.procs.size(); ++i){
 						d.procs[i].first = NULL;
 						d.procs[i].second = 0;
 					}
 				}
-				if(!d.procs[d.newprocs.top().second].first){
-					d.procs[d.newprocs.top().second].first = d.newprocs.top().first;
+				if(!d.procs[newprocidx].first){
+					d.procs[newprocidx].first = pnewproc;
 					//register in base map
-					d.basepm4[d.newprocs.top().first->baseAddr4()] = d.newprocs.top().second;
-					if(d.newprocs.top().first->isConnected()){
+					d.basepm4[pnewproc->baseAddr4()] = newprocidx;
+					if(pnewproc->isConnected()){
 						//register in peer map
-						d.peerpm4[d.newprocs.top().first->peerAddr4()] = d.newprocs.top().second;
+						d.peerpm4[pnewproc->peerAddr4()] = newprocidx;
 					}
 				}else{//a reconnect	
-					Data::ProcPairTp &rpp(d.procs[d.newprocs.top().second]);
+					Data::ProcPairTp &rpp(d.procs[newprocidx]);
 					d.peerpm4.erase(rpp.first->peerAddr4());
-					rpp.first->reconnect(d.newprocs.top().first);
+					rpp.first->reconnect(pnewproc);
 					++rpp.second;
-					d.peerpm4[rpp.first->peerAddr4()] = d.newprocs.top().second;
+					d.peerpm4[rpp.first->peerAddr4()] = newprocidx;
 					//TODO: try use Specific for process connectors!!
 					//TODO: Ensure that there are no pending sends!!!
-					delete d.newprocs.top().first;
+					delete pnewproc;
 				}
-				d.cq.push(d.newprocs.top().second);
+				d.cq.push(newprocidx);
 				d.newprocs.pop();
 			}
+			d.nextprocid = d.procs.size();//TODO: see if its right
 			//dispatch commands before deleting processconnectors
 			while(d.cmdq.size()){
 				cassert(d.cmdq.front().procid < d.procs.size());
@@ -341,7 +351,7 @@ void Talker::pushProcessConnector(ProcessConnector *_pc, ConnectorUid &_rconid, 
 			cassert(d.nextprocid < (uint16)0xffff);
 			_rconid.procid = d.nextprocid;
 			_rconid.procuid = 0;
-			++d.nextprocid;
+			++d.nextprocid;//TODO: it must be reseted somewhere!!!
 		}
 	}
 	d.newprocs.push(Data::NewProcPairTp(_pc, _rconid.procid));
