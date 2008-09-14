@@ -199,7 +199,7 @@ ProcessConnector::Data::Data(const Inet4SockAddrPair &_raddr):
 ProcessConnector::Data::Data(const Inet4SockAddrPair &_raddr, int _baseport):
 	expectedid(1), retranstimeout(300),
 	state(Accepting), flags(0), bufjetons(3), crtcmdbufcnt(MaxCommandBufferCount), sendid(0),
-	addr(_raddr), pairaddr(addr), baseaddr(&pairaddr, _baseport){
+	addr(_raddr), pairaddr(addr), baseaddr(&pairaddr, _baseport),sndcmdid(0){
 }
 
 
