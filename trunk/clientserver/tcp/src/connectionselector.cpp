@@ -285,14 +285,14 @@ connection.
 void ConnectionSelector::run(){
 	uint 		flags;
 	const int	maxnbcnt = 64;
-	int			nbcnt = 0;	//non blocking opperations count,
+	int			nbcnt = -1;	//non blocking opperations count,
 							//used to reduce the number of calls for the system time.
 	int 		pollwait = 0;
 	//int			ioqsz = 0;
 	
 	do{
 		flags = 0;
-		if(!nbcnt){
+		if(nbcnt < 0){
 			clock_gettime(CLOCK_MONOTONIC, &d.ctimepos);
 			nbcnt = maxnbcnt;
 		}

@@ -459,11 +459,12 @@ struct FetchMasterCommand: test::Command{
 		SendNextStream,
 		SendError,
 	};
-	FetchMasterCommand():pcmd(NULL), state(NotReceived), insz(-1), inpos(0), requid(0){
+	FetchMasterCommand():success_sent(true), pcmd(NULL), fromv(0xffffffff, 0xffffffff), state(NotReceived), insz(-1), inpos(0), requid(0){
 		idbg("");
 	}
 	~FetchMasterCommand();
 	int received(const cs::ipc::ConnectorUid &_rconid);
+	int sent(const cs::ipc::ConnectorUid &);
 	int execute(cs::CommandExecuter&, const CommandUidTp &, TimeSpec &_rts);
 	int receiveCommand(
 		cs::CmdPtr<cs::Command> &_rcmd,
@@ -491,6 +492,7 @@ struct FetchMasterCommand: test::Command{
 	}
 	void print()const;
 //data:
+	bool 					success_sent;
 	String					fname;
 	FetchSlaveCommand		*pcmd;
 	ObjectUidTp				fromv;
@@ -510,13 +512,12 @@ struct FetchMasterCommand: test::Command{
 	as reponse containing the requested file chunk.
 */
 struct FetchSlaveCommand: test::Command{
-	FetchSlaveCommand(): insz(-1), sz(-10), requid(0){
+	FetchSlaveCommand(): fromv(0xffffffff, 0xffffffff), insz(-1), sz(-10), requid(0){
 		idbg("");
 	}
-	~FetchSlaveCommand(){
-		idbg("");
-	}
+	~FetchSlaveCommand();
 	int received(const cs::ipc::ConnectorUid &_rconid);
+	int sent(const cs::ipc::ConnectorUid &);
 	int execute(test::Connection &);
 	int execute(cs::CommandExecuter&, const CommandUidTp &, TimeSpec &_rts);
 	int createDeserializationStream(std::pair<OStream *, int64> &_rps, int _id);
@@ -528,6 +529,7 @@ struct FetchSlaveCommand: test::Command{
 	S& operator&(S &_s){
 		_s.template pushStreammer<FetchSlaveCommand>(this, "FetchStreamResponse::isp");
 		_s.push(tov.first, "toobjectid").push(tov.second, "toobjectuid");
+		//_s.push(fromv.first, "fromobjectid").push(fromv.second, "fromobjectuid");
 		_s.push(insz, "inputstreamsize").push(requid, "requestuid");
 		_s.push(sz, "inputsize").push(cmduid.first, "commanduid_first").push(cmduid.second, "commanduid_second");
 		_s.push(fuid.first,"fileuid_first").push(fuid.second, "fileuid_second");
@@ -535,6 +537,7 @@ struct FetchSlaveCommand: test::Command{
 	}
 	void print()const;
 //data:	
+	ObjectUidTp					fromv;
 	ObjectUidTp					tov;
 	FileUidTp					fuid;
 	cs::ipc::ConnectorUid		conid;
@@ -549,6 +552,11 @@ struct FetchSlaveCommand: test::Command{
 FetchMasterCommand::~FetchMasterCommand(){
 	delete pcmd;
 	idbg("");
+	if(!success_sent){
+		idbg("unsuccessfull sent");
+		//signal fromv object to die
+		Server::the().signalObject(fromv.first, fromv.second, cs::S_RAISE | cs::S_KILL);
+	}
 }
 
 void FetchMasterCommand::print()const{
@@ -568,6 +576,11 @@ int FetchMasterCommand::received(const cs::ipc::ConnectorUid &_rconid){
 	print();
 	Server::the().readCommandExecuterUid(tov);
 	Server::the().signalObject(tov.first, tov.second, cmd);
+	return false;
+}
+int FetchMasterCommand::sent(const cs::ipc::ConnectorUid &){
+	idbg("");
+	success_sent = true;
 	return false;
 }
 /*
@@ -696,11 +709,24 @@ int FetchMasterCommand::receiveError(
 	return OK;
 }
 //-------------------------------------------------------------------------------
+FetchSlaveCommand::~FetchSlaveCommand(){
+	idbg("");
+	if(fromv.first != 0xffffffff){
+		idbg("unsuccessfull sent");
+		//signal fromv object to die
+		Server::the().signalObject(fromv.first, fromv.second, cs::S_RAISE | cs::S_KILL);
+	}
+}
 void FetchSlaveCommand::print()const{
 	idbg("FetchSlaveCommand:");
 	idbg("insz = "<<insz<<" sz = "<<sz<<" requid = "<<requid);
 	idbg("fuid.first = "<<fuid.first<<" fuid.second = "<<fuid.second);
 	idbg("cmduid.first = "<<cmduid.first<<" cmduid.second = "<<cmduid.second);
+}
+int FetchSlaveCommand::sent(const cs::ipc::ConnectorUid &_rconid){
+	idbg("");
+	fromv.first = 0xffffffff;
+	return false;
 }
 int FetchSlaveCommand::received(const cs::ipc::ConnectorUid &_rconid){
 	cs::CmdPtr<cs::Command> pcmd(this);
@@ -871,6 +897,7 @@ int Fetch::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 				//send the master remote command
 				FetchMasterCommand *pcmd(new FetchMasterCommand);
 				//TODO: add a convenient init method to fetchmastercommand
+				pcmd->success_sent = false;
 				pcmd->fname = strpth;
 				pcmd->requid = rc.newRequestId();
 				pcmd->fromv.first = rc.id();
@@ -926,6 +953,8 @@ int Fetch::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 				//send another request
 				st = WaitNextRemote;
 				FetchSlaveCommand *pcmd(new FetchSlaveCommand);
+				pcmd->fromv.first = rc.id();
+				pcmd->fromv.second = Server::the().uid(rc);
 				pcmd->requid = rc.newRequestId();
 				pcmd->cmduid = mastercmduid;
 				pcmd->fuid = fuid;

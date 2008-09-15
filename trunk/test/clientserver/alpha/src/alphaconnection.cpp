@@ -211,6 +211,13 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 				case NOK:
 					if(channel().arePendingSends()){
 						state(ExecuteTout);
+					}else if(!channel().arePendingRecvs()){
+						//no waiting for io - no way to detect client disconnection
+						//but to put a rather small timeout
+						//TODO: improve the algorithm so that the connection
+						//dont get closed when no command response come
+						_tout.sub(2400 - 25);//twenty seconds timeout
+						idbg("no pending io - wait twenty seconds");
 					}
 					return NOK;
 				case OK:

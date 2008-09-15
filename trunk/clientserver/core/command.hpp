@@ -50,6 +50,8 @@ struct Command{
 	virtual ~Command();
 	//! Called by ipc module after the command was successfully parsed
 	virtual int received(const ipc::ConnectorUid&);
+	//! Called by ipc module when the command was successfully sent
+	virtual int sent(const ipc::ConnectorUid&);
 	//! Used by CmdPtr - smartpointers
 	virtual void use();
 	//! Execute the command only knowing its for an object

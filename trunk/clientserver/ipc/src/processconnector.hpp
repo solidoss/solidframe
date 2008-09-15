@@ -91,10 +91,10 @@ public:
 	//const Inet6SockAddrPair* pairAddr6()const;
 	//const std::pair<const Inet6SockAddrPair*, int>* baseAddr6()const;
 private:
-	bool freeSentBuffers(Buffer &_rbuf);
-	void parseBuffer(Buffer &_rbuf, const ConnectorUid &_rcodid);
+	bool freeSentBuffers(Buffer &_rbuf, const ConnectorUid &_rconid);
+	void parseBuffer(Buffer &_rbuf, const ConnectorUid &_rconid);
 	bool moveToNextInBuffer();
-	void freeBufferCommands(uint32 _bufid);//frees the commands associated to a send buffer
+	void freeBufferCommands(uint32 _bufid, const ConnectorUid &_rconid);//frees the commands associated to a send buffer
 	//void popBuffersConnecting(IOData &_riod, const TimeSpec &_tpos, ServiceStubUnlocked &_rs);
 	//void popBuffersConnected(IOData &_riod, const TimeSpec &_tpos, ServiceStubUnlocked &_rs);
 	struct Data;

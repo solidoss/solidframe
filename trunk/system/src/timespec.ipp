@@ -46,6 +46,13 @@ inline void TimeSpec::add(const TimeTp &_s, long _ns){
 	tv_nsec %= 1000000000;
 }
 
+inline void TimeSpec::sub(const TimeTp &_s, long _ns){
+	tv_sec -= _s;
+	tv_nsec -= _ns;
+	tv_sec -= tv_nsec/1000000000;
+	tv_nsec %= 1000000000;
+}
+
 inline bool TimeSpec::operator >=(const TimeSpec &_ts)const{
 	return (seconds() > _ts.seconds()) || ((seconds() == _ts.seconds()) && (tv_nsec >= _ts.tv_nsec));
 }

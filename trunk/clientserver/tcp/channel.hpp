@@ -86,6 +86,7 @@ public:
 	const uint64& recvCount()const;
 	//! Return true if there are pending send opperations
 	int arePendingSends();
+	int arePendingRecvs();
 	int localAddress(SocketAddress &_rsa);
 	int remoteAddress(SocketAddress &_rsa);
 protected:
