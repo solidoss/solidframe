@@ -155,7 +155,7 @@ struct ProcessConnector::Data{
 	void pushDeserializer(BinDeserializerTp*);
 	//save commands to be resent in case of disconnect
 	void pushOutWaitCommand(uint32 _bufid, cs::CmdPtr<Command> &_cmd, uint32 _flags, uint32 _id);
-	void popOutWaitCommands(uint32 _bufid);
+	void popOutWaitCommands(uint32 _bufid, const ConnectorUid &_rconid);
 //data:	
 	uint32					expectedid;
 	int32					retranstimeout;
@@ -292,11 +292,15 @@ void ProcessConnector::Data::pushOutWaitCommand(uint32 _bufid, cs::CmdPtr<Comman
 		this->outcmdv.push_back(OutWaitCommand(_bufid, _cmd, _flags, _id));
 	}
 }
-void ProcessConnector::Data::popOutWaitCommands(uint32 _bufid){
+void ProcessConnector::Data::popOutWaitCommands(uint32 _bufid, const ConnectorUid &_rconid){
 	for(OutCmdVectorTp::iterator it(outcmdv.begin()); it != outcmdv.end(); ++it){
 		if(it->bufid == _bufid && it->cmd.ptr()){
 			it->bufid = 0;
-			it->cmd.clear();
+			if(it->cmd->sent(_rconid)){
+				it->cmd.release();
+			}else{
+				it->cmd.clear();
+			}
 		}
 	}
 }
@@ -503,7 +507,7 @@ bool ProcessConnector::moveToNextInBuffer(){
 	return false;
 }
 
-int ProcessConnector::pushReceivedBuffer(Buffer &_rbuf, const ConnectorUid &_rcodid){
+int ProcessConnector::pushReceivedBuffer(Buffer &_rbuf, const ConnectorUid &_rconid){
 	idbgx(Dbg::ipc, "rcvbufid = "<<_rbuf.id()<<" expected id "<<d.expectedid<<" inbufq.size = "<<d.inbufq.size()<<" flags = "<<_rbuf.flags());
 	if(_rbuf.id() != d.expectedid){
 		if(_rbuf.id() < d.expectedid){
@@ -514,7 +518,7 @@ int ProcessConnector::pushReceivedBuffer(Buffer &_rbuf, const ConnectorUid &_rco
 			return NOK;//we have to send updates
 		}else if(_rbuf.id() != Data::UpdateBufferId){
 			if(_rbuf.updatesCount()){//we have updates
-				freeSentBuffers(_rbuf);
+				freeSentBuffers(_rbuf, _rconid);
 			}
 			//try to keep the buffer for future parsing
 			if(d.inbufq.size() < 4){
@@ -530,23 +534,23 @@ int ProcessConnector::pushReceivedBuffer(Buffer &_rbuf, const ConnectorUid &_rco
 		}else{//a buffer containing only updates
 			_rbuf.updatesCount();
 			idbgx(Dbg::ipc, "received buffer containing only updates");
-			if(freeSentBuffers(_rbuf)) return NOK;
+			if(freeSentBuffers(_rbuf, _rconid)) return NOK;
 			return OK;
 		}
 	}else{
 		//the expected buffer
 		d.rcvidq.push(_rbuf.id());
 		if(_rbuf.updatesCount()){
-			freeSentBuffers(_rbuf);
+			freeSentBuffers(_rbuf, _rconid);
 		}
-		parseBuffer(_rbuf, _rcodid);
+		parseBuffer(_rbuf, _rconid);
 		d.incrementExpectedId();//move to the next buffer
 		//while(d.inbufq.top().id() == d.expectedid){
 		while(moveToNextInBuffer()){
 			Buffer b(d.inbufq.top());
 			d.inbufq.pop();
 			//this is already done on receive
-			parseBuffer(b, _rcodid);
+			parseBuffer(b, _rconid);
 			char *pb = b.buffer();
 			Specific::pushBuffer(pb, Specific::capacityToId(b.bufferCapacity()));
 			d.incrementExpectedId();//move to the next buffer
@@ -718,14 +722,11 @@ int ProcessConnector::processSendCommands(SendBufferData &_rsb, const TimeSpec &
 							pser = d.scq.front().pser;
 							pser->clear();
 							d.scq.front().pser = NULL;
-							if(!(d.scq.front().flags & Service::SameConnectorFlag)){
-								//if the command can be resent, we cache it
-								idbgx(Dbg::ipc, "cached wait command");
-								++pcrtwaitcmd;
-								pcrtwaitcmd->cmd = d.scq.front().pcmd;
-								pcrtwaitcmd->flags = d.scq.front().flags;
-								pcrtwaitcmd->id = d.scq.front().id;
-							}
+							idbgx(Dbg::ipc, "cached wait command");
+							++pcrtwaitcmd;
+							pcrtwaitcmd->cmd = d.scq.front().pcmd;
+							pcrtwaitcmd->flags = d.scq.front().flags;
+							pcrtwaitcmd->id = d.scq.front().id;
 							d.scq.pop();
 							//we dont want to switch to an old command
 							d.crtcmdbufcnt = Data::MaxCommandBufferCount - 1;
@@ -794,13 +795,13 @@ int ProcessConnector::processSendCommands(SendBufferData &_rsb, const TimeSpec &
 }
 
 //TODO: optimize!!
-bool ProcessConnector::freeSentBuffers(Buffer &_rbuf){
+bool ProcessConnector::freeSentBuffers(Buffer &_rbuf, const ConnectorUid &_rconid){
 	bool b = false;
 	for(uint32 i(0); i < _rbuf.updatesCount(); ++i){
 		idbgx(Dbg::ipc, "compare update "<<_rbuf.update(i)<<" out bufs sz = "<<d.outbufs.size());
 		for(Data::OutBufferVectorTp::iterator it(d.outbufs.begin()); it != d.outbufs.end(); ++it){
 			if(it->first.buffer() && _rbuf.update(i) == it->first.id()){//done with this one
-				d.popOutWaitCommands(it->first.id());
+				d.popOutWaitCommands(it->first.id(), _rconid);
 				b = true;
 				char *pb = it->first.buffer();
 				Specific::pushBuffer(pb, Specific::capacityToId(it->first.bufferCapacity()));
@@ -813,7 +814,7 @@ bool ProcessConnector::freeSentBuffers(Buffer &_rbuf){
 	}
 	return b;
 }
-void ProcessConnector::parseBuffer(Buffer &_rbuf, const ConnectorUid &_rcodid){
+void ProcessConnector::parseBuffer(Buffer &_rbuf, const ConnectorUid &_rconid){
 	const char *bpos = _rbuf.data();
 	int			blen = _rbuf.dataSize();
 	int rv;
@@ -869,7 +870,7 @@ void ProcessConnector::parseBuffer(Buffer &_rbuf, const ConnectorUid &_rcodid){
 		if(d.rcq.front().second->empty()){//done one command.
 			idbgx(Dbg::ipc, "donecommand");
 			
-			if(d.rcq.front().first->received(_rcodid))
+			if(d.rcq.front().first->received(_rconid))
 				delete d.rcq.front().first;
 			
 			d.pushDeserializer(d.rcq.front().second);

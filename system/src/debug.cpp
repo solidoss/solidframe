@@ -145,6 +145,38 @@ void setBit(const char *_pbeg, const char *_pend){
 
 void initDebug(const char *_prefix, const char *_opt){
 	#ifdef UDEBUG
+	{
+		Mutex::Locker lock(dbgMutex());
+		if(_opt){
+			const char *pbeg = _opt;
+			const char *pcrt = _opt;
+			int state = 0;
+			while(*pcrt){
+				if(state == 0){
+					if(isspace(*pcrt)){
+						++pcrt;
+						pbeg = pcrt;
+					}else{
+						++pcrt;
+						state = 1; 
+					}
+				}else if(state == 1){
+					if(!isspace(*pcrt)){
+						++pcrt;
+					}else{
+						setBit(pbeg, pcrt);
+						pbeg = pcrt;
+						state = 0;
+					}
+				}
+			}
+			if(pcrt != pbeg){
+				setBit(pbeg, pcrt);
+			}
+		}
+		if(getBitSet().none()) return;
+	}
+	
 	std::ios_base::sync_with_stdio (false);
 	Directory::create("dbg");
 	char *name = new char[strlen(_prefix)+50];
@@ -154,34 +186,6 @@ void initDebug(const char *_prefix, const char *_opt){
 	delete []name;
 	if(dup2(fd,fileno(stderr))<0){
 		printf("error duplicating filedescriptor\n");
-	}
-	if(_opt){
-		Mutex::Locker lock(dbgMutex());
-		const char *pbeg = _opt;
-		const char *pcrt = _opt;
-		int state = 0;
-		while(*pcrt){
-			if(state == 0){
-				if(isspace(*pcrt)){
-					++pcrt;
-					pbeg = pcrt;
-				}else{
-					++pcrt;
-					state = 1; 
-				}
-			}else if(state == 1){
-				if(!isspace(*pcrt)){
-					++pcrt;
-				}else{
-					setBit(pbeg, pcrt);
-					pbeg = pcrt;
-					state = 0;
-				}
-			}
-		}
-		if(pcrt != pbeg){
-			setBit(pbeg, pcrt);
-		}
 	}
 	#endif
 }

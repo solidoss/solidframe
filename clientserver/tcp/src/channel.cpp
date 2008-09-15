@@ -84,6 +84,9 @@ ulong Channel::ioRequest()const{
 int Channel::arePendingSends(){
 	return pcd->arePendingSends();
 }
+int Channel::arePendingRecvs(){
+	return pcd->flags & INTOUT;
+}
 
 int Channel::localAddress(SocketAddress &_rsa){
 	_rsa.clear();
