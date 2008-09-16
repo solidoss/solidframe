@@ -50,6 +50,12 @@ struct ConnectorUid{
 	uint16	procuid;
 };
 
+struct CommandUid{
+	CommandUid(uint32 _idx = 0, uint32 _uid = 0):idx(_idx), uid(_uid){}
+	uint32	idx;
+	uint32	uid;
+};
+
 }//namespace ipc
 }//namespace clientserver
 

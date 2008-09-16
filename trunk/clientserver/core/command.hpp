@@ -34,6 +34,7 @@ class TimeSpec;
 namespace clientserver{
 namespace ipc{
 struct ConnectorUid;
+struct CommandUid;
 }
 class CommandExecuter;
 class Object;
@@ -52,6 +53,10 @@ struct Command{
 	virtual int received(const ipc::ConnectorUid&);
 	//! Called by ipc module when the command was successfully sent
 	virtual int sent(const ipc::ConnectorUid&);
+	//! Called by ipc module, before the command begins to be serialized
+	virtual int prepare(const ipc::CommandUid&);
+	//! Called by ipc module on peer failure detection (disconnect,reconnect)
+	virtual int fail();
 	//! Used by CmdPtr - smartpointers
 	virtual void use();
 	//! Execute the command only knowing its for an object
