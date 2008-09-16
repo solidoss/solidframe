@@ -136,6 +136,12 @@ int Command::received(const ipc::ConnectorUid&){
 int Command::sent(const ipc::ConnectorUid&){
 	return false;
 }
+int Command::prepare(const ipc::CommandUid&){
+	return false;
+}
+int Command::fail(){
+	return false;
+}
 int Command::execute(Object &){
 	idbgx(Dbg::cs, "Unhandled command");
 	return 0;
