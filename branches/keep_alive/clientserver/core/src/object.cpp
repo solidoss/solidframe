@@ -131,16 +131,14 @@ void Command::use(){
 	idbgx(Dbg::cs, "Use command");
 }
 int Command::received(const ipc::ConnectorUid&){
-	return false;
+	return BAD;
 }
 int Command::sent(const ipc::ConnectorUid&){
-	return false;
+	return BAD;
 }
-int Command::prepare(const ipc::CommandUid&){
-	return false;
+void Command::prepare(const ipc::CommandUid&){
 }
-int Command::fail(){
-	return false;
+void Command::fail(){
 }
 int Command::execute(Object &){
 	idbgx(Dbg::cs, "Unhandled command");

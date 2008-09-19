@@ -97,7 +97,8 @@ class Service: public clientserver::Service{
 public:
 	enum {
 		SameConnectorFlag = 1, //!< Do not send command to a restarted peer process
-		ResponseFlag	= SameConnectorFlag //!< The sent command is a response
+		ResponseFlag	= SameConnectorFlag, //!< The sent command is a response
+		WaitResponseFlag = 2
 	};
 	//! Destructor
 	~Service();
@@ -179,7 +180,7 @@ public:
 	int basePort()const;
 protected:
 	int execute(ulong _sig, TimeSpec &_rtout);
-	Service();
+	Service(uint32 _keepalivetout = 0/*no keepalive*/);
 	virtual void pushTalkerInPool(clientserver::Server &_rs, clientserver::udp::Talker *_ptkr) = 0;
 private:
 	friend class Talker;
@@ -194,6 +195,7 @@ private:
 	void disconnectTalkerProcesses(Talker &);
 	int16 createNewTalker(uint32 &_tkrpos, uint32 &_tkruid);
 	int16 computeTalkerForNewProcess();
+	uint32 keepAliveTimeout()const;
 private:
 	struct Data;
 	friend struct Data;

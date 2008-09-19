@@ -576,12 +576,12 @@ int FetchMasterCommand::received(const cs::ipc::ConnectorUid &_rconid){
 	print();
 	Server::the().readCommandExecuterUid(tov);
 	Server::the().signalObject(tov.first, tov.second, cmd);
-	return false;
+	return OK;//release the ptr not clear
 }
 int FetchMasterCommand::sent(const cs::ipc::ConnectorUid &){
 	idbg("");
 	success_sent = true;
-	return false;
+	return BAD;//delete the command
 }
 /*
 	The state machine running on peer
@@ -726,7 +726,7 @@ void FetchSlaveCommand::print()const{
 int FetchSlaveCommand::sent(const cs::ipc::ConnectorUid &_rconid){
 	idbg("");
 	fromv.first = 0xffffffff;
-	return false;
+	return BAD;
 }
 int FetchSlaveCommand::received(const cs::ipc::ConnectorUid &_rconid){
 	cs::CmdPtr<cs::Command> pcmd(this);
@@ -742,7 +742,7 @@ int FetchSlaveCommand::received(const cs::ipc::ConnectorUid &_rconid){
 		print();
 		Server::the().signalObject(tov.first, tov.second, pcmd);
 	}
-	return false;
+	return OK;
 }
 // Executed when received back on the requesting alpha connection
 int FetchSlaveCommand::execute(test::Connection &_rcon){

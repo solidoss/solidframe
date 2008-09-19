@@ -396,7 +396,7 @@ void Talker::dispatchReceivedBuffer(const SockAddrPair &_rsap){
 			int baseport = ProcessConnector::parseConnectingBuffer(d.rcvbuf);
 			idbgx(Dbg::ipc, "connecting buffer with baseport "<<baseport);
 			if(baseport >= 0){
-				ProcessConnector *ppc(new ProcessConnector(inaddr, baseport));
+				ProcessConnector *ppc(new ProcessConnector(inaddr, baseport, d.rservice.keepAliveTimeout()));
 				if(d.rservice.acceptProcess(ppc)) delete ppc;
 			}
 		}break;

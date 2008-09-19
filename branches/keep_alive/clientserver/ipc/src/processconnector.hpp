@@ -70,8 +70,8 @@ public:
 	static int parseAcceptedBuffer(Buffer &_rbuf);
 	static int parseConnectingBuffer(Buffer &_rbuf);
 	
-	ProcessConnector(const Inet4SockAddrPair &_raddr);
-	ProcessConnector(const Inet4SockAddrPair &_raddr, int _basport);
+	ProcessConnector(const Inet4SockAddrPair &_raddr, uint32 _keepalivetout);
+	ProcessConnector(const Inet4SockAddrPair &_raddr, int _basport, uint32 _keepalivetout);
 	~ProcessConnector();
 	/**
 	 * \retval BAD on error, 

@@ -77,6 +77,7 @@ struct Service::Data{
 	SocketAddress			firstaddr;
 	TalkerVectorTp			tkrvec;
 	BaseProcAddr4MapTp		basepm4;
+	uint32 					keepalivetout;
 };
 
 //=======	ServiceData		===========================================
@@ -88,15 +89,18 @@ Service::Data::~Data(){
 
 //=======	Service		===============================================
 
-Service::Service():d(*(new Data)){
+Service::Service(uint32 _keepalivetout):d(*(new Data)){
 	//d.maxtkrcnt = 2;//TODO: make it configurable
+	d.keepalivetout = _keepalivetout;
 	ProcessConnector::init();
 }
 
 Service::~Service(){
 	delete &d;
 }
-
+uint32 Service::keepAliveTimeout()const{
+	return d.keepalivetout;
+}
 int Service::sendCommand(
 	const ConnectorUid &_rconid,//the id of the process connector
 	clientserver::CmdPtr<Command> &_pcmd,//the command to be sent
@@ -165,7 +169,7 @@ int Service::doSendCommand(
 			Mutex::Locker lock2(this->mutex(tkrpos, tkruid));
 			Talker *ptkr = static_cast<Talker*>(this->object(tkrpos, tkruid));
 			cassert(ptkr);
-			ProcessConnector *ppc = new ProcessConnector(inaddr);
+			ProcessConnector *ppc = new ProcessConnector(inaddr, d.keepalivetout);
 			ConnectorUid conid(tkrid);
 			ptkr->pushProcessConnector(ppc, conid);
 			d.basepm4[ppc->baseAddr4()] = conid;

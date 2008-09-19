@@ -68,9 +68,9 @@ public:
 	}
 	ObjectTp& operator*()const  {return *pobj;}
 	ObjectTp* operator->()const {return pobj;}
-	ObjectTp* ptr() const  {return pobj;}
-	operator bool () const {return pobj;}
-	bool operator!()const  {return !pobj;}
+	ObjectTp* ptr()	const	{return pobj;}
+	operator bool ()const	{return pobj != NULL;}
+	bool operator!()const	{return pobj == NULL;}
 	void clear(){if(pobj){ObjPtrBase::clear(static_cast<Object*>(pobj));pobj = NULL;}}
 protected:
 	void ptr(ObjectTp *_pobj){
