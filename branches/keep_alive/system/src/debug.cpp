@@ -38,6 +38,8 @@
 
 const unsigned fileoff = (strstr(__FILE__, "system/src") - __FILE__);
 
+#define OUTS std::clog
+
 /*static*/ const unsigned Dbg::any(Dbg::instance().registerModule("ANY"));
 /*static*/ const unsigned Dbg::system(Dbg::instance().registerModule("SYSTEM"));
 /*static*/ const unsigned Dbg::specific(Dbg::instance().registerModule("SPECIFIC"));
@@ -49,6 +51,7 @@ const unsigned fileoff = (strstr(__FILE__, "system/src") - __FILE__);
 /*static*/ const unsigned Dbg::tcp(Dbg::instance().registerModule("CS_TCP"));
 /*static*/ const unsigned Dbg::udp(Dbg::instance().registerModule("CS_UDP"));
 /*static*/ const unsigned Dbg::filemanager(Dbg::instance().registerModule("CS_FILEMANAGER"));
+
 
 struct Dbg::Data{
 	typedef std::bitset<DEBUG_BITSET_SIZE>	BitSetTp;
@@ -189,7 +192,7 @@ std::ostream& Dbg::print(
 		Thread::currentId()
 	);
 
-	return std::cerr<<buf<<'['<<_file + fileoff<<'('<<_line<<')'<<' '<<_fnc<<']'<<' ';
+	return OUTS<<buf<<'['<<_file + fileoff<<'('<<_line<<')'<<' '<<_fnc<<']'<<' ';
 }
 std::ostream& Dbg::print(
 	const char _t,
@@ -220,11 +223,11 @@ std::ostream& Dbg::print(
 		d.nv[_module],
 		Thread::currentId()
 	);
-	return std::cerr<<buf<<'['<<_file + fileoff<<'('<<_line<<')'<<' '<<_fnc<<']'<<' ';
+	return OUTS<<buf<<'['<<_file + fileoff<<'('<<_line<<')'<<' '<<_fnc<<']'<<' ';
 }
 
 void Dbg::done(){
-	std::cerr<<std::endl;
+	OUTS<<std::endl;
 	d.m.unlock();
 }
 bool Dbg::isSet(unsigned _v){
