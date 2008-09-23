@@ -170,14 +170,14 @@ std::ostream& Dbg::print(
 	d.m.lock();
 	char buf[128];
 	TimeSpec ts_now;
-	clock_gettime(CLOCK_MONOTONIC, &d.begts);
+	clock_gettime(CLOCK_MONOTONIC, &ts_now);
 	ts_now = ts_now - d.begts;
 	time_t t_now = d.begt + ts_now.seconds();
 	tm loctm;
 	localtime_r(&t_now, &loctm);
 	sprintf(
 		buf,
-		"%c[%04u-%02u-%02u %02u:%02u:%02u.%04u][ANY][%u]",
+		"%c[%04u-%02u-%02u %02u:%02u:%02u.%03u][ANY][%u]",
 		_t,
 		loctm.tm_year + 1900,
 		loctm.tm_mon, 
@@ -201,14 +201,14 @@ std::ostream& Dbg::print(
 	d.m.lock();
 	char buf[128];
 	TimeSpec ts_now;
-	clock_gettime(CLOCK_MONOTONIC, &d.begts);
+	clock_gettime(CLOCK_MONOTONIC, &ts_now);
 	ts_now = ts_now - d.begts;
 	time_t t_now = d.begt + ts_now.seconds();
 	tm loctm;
 	localtime_r(&t_now, &loctm);
 	sprintf(
 		buf,
-		"%c[%04u-%02u-%02u %02u:%02u:%02u.%04u][%s][%u]",
+		"%c[%04u-%02u-%02u %02u:%02u:%02u.%03u][%s][%u]",
 		_t,
 		loctm.tm_year + 1900,
 		loctm.tm_mon, 
