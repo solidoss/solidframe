@@ -35,6 +35,20 @@
 #include <iostream>
 using namespace std;
 
+/*
+NOTE: Design keep alive:
+* no Keep Alive Buffers (KABs) are sent if there are commands and/or buffer to be sent
+* KAB needs to use incremental buf id and it need to be updated and resent
+*
+ 1) in pushSentBuffer: when there is no command to be sent and/or there are no buffer
+ pending to be sent and there are commands waiting for responses, an null buffer is
+ scheduled for timeout, indicating to a KAB with a static position (0) in outbufs
+ 2) when the null buffer is back, check again if there are commands to be sent
+ and/or pending buffers else sent the KAB
+ 3) when KAB is back, wait for updates with timeout exactly as for the other command buffers
+
+*/
+
 namespace cs = clientserver;
 
 namespace clientserver{
@@ -182,6 +196,7 @@ struct ProcessConnector::Data{
 	OutFreePosStackTp		outfreecmdstk;
 	uint32					sndcmdid;
 	uint32					keepalivetout;
+	uint32					respwaitcmdcnt;
 };
 
 
@@ -190,7 +205,8 @@ ProcessConnector::Data::Data(const Inet4SockAddrPair &_raddr, uint32 _keepalivet
 	state(Connecting), flags(0), bufjetons(1), 
 	crtcmdbufcnt(MaxCommandBufferCount),sendid(0),
 	addr(_raddr), pairaddr(addr), 
-	baseaddr(&pairaddr, addr.port()),sndcmdid(0), keepalivetout(_keepalivetout){
+	baseaddr(&pairaddr, addr.port()),sndcmdid(0), keepalivetout(_keepalivetout),
+	respwaitcmdcnt(0){
 }
 
 // ProcessConnector::Data::Data(BinMapper &_rm, const Inet6SockAddrPair &_raddr, int _tkrid, int _procid):
@@ -203,7 +219,7 @@ ProcessConnector::Data::Data(const Inet4SockAddrPair &_raddr, int _baseport, uin
 	expectedid(1), retranstimeout(300),
 	state(Accepting), flags(0), bufjetons(3), crtcmdbufcnt(MaxCommandBufferCount), sendid(0),
 	addr(_raddr), pairaddr(addr), baseaddr(&pairaddr, _baseport),
-	sndcmdid(0), keepalivetout(_keepalivetout){
+	sndcmdid(0), keepalivetout(_keepalivetout),respwaitcmdcnt(0){
 }
 
 
@@ -342,6 +358,7 @@ void ProcessConnector::Data::popOutWaitCommands(uint32 _bufid, const ConnectorUi
 					it->cmd.release();
 					break;
 				case NOK:
+					++respwaitcmdcnt;
 					it->flags |= Service::WaitResponseFlag;
 					break;
 				default:
@@ -472,6 +489,7 @@ void ProcessConnector::reconnect(ProcessConnector *_ppc){
 	
 	d.crtcmdbufcnt = Data::MaxCommandBufferCount;
 	d.expectedid = 1;
+	d.respwaitcmdcnt = 0;
 	d.sendid = 0;
 	//clear rcvidq - updates
 	while(d.rcvidq.size()){
@@ -630,12 +648,17 @@ A buffer is received with updates, buffers for which pushSent was not called
 int ProcessConnector::pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpos, bool &_reusebuf){
 	if(_rbuf.b.buffer()){
 		if(_rbuf.b.id() > Data::LastBufferId){
-			cassert(_rbuf.b.id() == Data::UpdateBufferId);
-			idbgx(Dbg::ipc, "sent updates - collecting buffer");
-			char *pb = _rbuf.b.buffer();
-			Specific::pushBuffer(pb, Specific::capacityToId(_rbuf.b.bufferCapacity()));
-			//++d.bufjetons;
-			return NOK;//maybe we have something to send
+			//cassert(_rbuf.b.id() == Data::UpdateBufferId);
+			switch(_rbuf.b.id()){
+				case Data::UpdateBufferId:{
+					idbgx(Dbg::ipc, "sent updates - collecting buffer");
+					char *pb = _rbuf.b.buffer();
+					Specific::pushBuffer(pb, Specific::capacityToId(_rbuf.b.bufferCapacity()));
+					//++d.bufjetons;
+					return NOK;//maybe we have something to send
+					}
+			}
+
 		}else{
 			idbgx(Dbg::ipc, "sent bufid = "<<_rbuf.b.id()<<" bufpos = "<<_rbuf.bufpos<<" retransmitid "<<_rbuf.b.retransmitId()<<" buf = "<<(void*)_rbuf.b.buffer()<<" buffercap = "<<_rbuf.b.bufferCapacity()<<" flags = "<<_rbuf.b.flags());
 			std::pair<uint16, uint16>  p;

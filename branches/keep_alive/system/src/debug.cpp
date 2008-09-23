@@ -19,6 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifdef UDEBUG
+
 #include "debug.hpp"
 #include "directory.hpp"
 #include <sys/types.h>
@@ -26,127 +28,63 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <cstring>
+#include <ctime>
+#include <iostream>
+#include <bitset>
+#include "system/timespec.hpp"
 #include "cassert.hpp"
 #include "thread.hpp"
 #include "mutex.hpp"
 
-#ifdef UDEBUG
-const int Dbg::fileoff = (strstr(__FILE__, "system/src") - __FILE__);//sizeof("workspace/") - 1 == 9
-#endif
+const unsigned fileoff = (strstr(__FILE__, "system/src") - __FILE__);
 
-#ifdef UDEBUG
-#include <bitset>
-typedef std::bitset<DEBUG_BITSET_SIZE>	DebugBitSetTp;
-typedef std::vector<const char*>		DebugNameVectorTp;
-static DebugBitSetTp& getBitSet(){
-	static DebugBitSetTp bs;
-	return bs;
+/*static*/ const unsigned Dbg::any(Dbg::instance().registerModule("ANY"));
+/*static*/ const unsigned Dbg::system(Dbg::instance().registerModule("SYSTEM"));
+/*static*/ const unsigned Dbg::specific(Dbg::instance().registerModule("SPECIFIC"));
+/*static*/ const unsigned Dbg::protocol(Dbg::instance().registerModule("PROTOCOL"));
+/*static*/ const unsigned Dbg::ser_bin(Dbg::instance().registerModule("SER_BIN"));
+/*static*/ const unsigned Dbg::utility(Dbg::instance().registerModule("UTILITY"));
+/*static*/ const unsigned Dbg::cs(Dbg::instance().registerModule("CS"));
+/*static*/ const unsigned Dbg::ipc(Dbg::instance().registerModule("CS_IPC"));
+/*static*/ const unsigned Dbg::tcp(Dbg::instance().registerModule("CS_TCP"));
+/*static*/ const unsigned Dbg::udp(Dbg::instance().registerModule("CS_UDP"));
+/*static*/ const unsigned Dbg::filemanager(Dbg::instance().registerModule("CS_FILEMANAGER"));
+
+struct Dbg::Data{
+	typedef std::bitset<DEBUG_BITSET_SIZE>	BitSetTp;
+	typedef std::vector<const char*>		NameVectorTp;
+	void setBit(const char *_pbeg, const char *_pend);
+	Mutex			m;
+	BitSetTp		bs;
+	NameVectorTp	nv;
+	time_t			begt;
+	TimeSpec		begts;
+};
+
+/*static*/ Dbg& Dbg::instance(){
+	static Dbg d;
+	return d;
+}
+	
+Dbg::~Dbg(){
+	delete &d;
 }
 
-static DebugNameVectorTp& getNameVector(){
-	static DebugNameVectorTp nv;
-	return nv;
-}
-
-Mutex& dbgMutex(){
-	static Mutex gmut;
-	return gmut;
-}
-
-unsigned registerDebugModule(const char *_name){
-	Mutex::Locker lock(dbgMutex());
-	getNameVector().push_back(_name);
-	return getNameVector().size() - 1;
-}
-
-/*static*/ const unsigned Dbg::any(registerDebugModule("ANY"));
-/*static*/ const unsigned Dbg::specific(registerDebugModule("SPECIFIC"));
-/*static*/ const unsigned Dbg::system(registerDebugModule("SYSTEM"));
-/*static*/ const unsigned Dbg::protocol(registerDebugModule("PROTOCOL"));
-/*static*/ const unsigned Dbg::ser_bin(registerDebugModule("SER_BIN"));
-/*static*/ const unsigned Dbg::utility(registerDebugModule("UTILITY"));
-/*static*/ const unsigned Dbg::cs(registerDebugModule("CS"));
-/*static*/ const unsigned Dbg::ipc(registerDebugModule("CS_IPC"));
-/*static*/ const unsigned Dbg::tcp(registerDebugModule("CS_TCP"));
-/*static*/ const unsigned Dbg::udp(registerDebugModule("CS_UDP"));
-/*static*/ const unsigned Dbg::filemanager(registerDebugModule("CS_FILEMANAGER"));
-
-
-void setAllDebugBits(){
-	Mutex::Locker lock(dbgMutex());
-	getBitSet().set();
-}
-void resetAllDebugBits(){
-	Mutex::Locker lock(dbgMutex());
-	getBitSet().reset();
-}
-
-void setDebugBit(unsigned _v){
-	Mutex::Locker lock(dbgMutex());
-	getBitSet().set(_v);
-}
-void resetDebugBit(unsigned _v){
-	Mutex::Locker lock(dbgMutex());
-	getBitSet().reset(_v);
-}
-
-bool Dbg::lock(TimeSpec &t){
-	if(getBitSet()[any]){
-		clock_gettime(CLOCK_MONOTONIC, &t);
-		dbgMutex().lock();
-		return true;
-	}else{
-		return false;
-	}
-}
-const char* Dbg::lock(unsigned _v, TimeSpec &t){
-	if(getBitSet()[_v]){
-		clock_gettime(CLOCK_MONOTONIC, &t);
-		dbgMutex().lock();
-		cassert(getNameVector().size() > _v);
-		const char *name = getNameVector()[_v];
-		return name ? name : "UNKNOWN_MODULE";
-	}else{
-		return NULL;
-	}
-}
-
-void Dbg::unlock(){
-	dbgMutex().unlock();
-}
-
-long Dbg::crtThrId(){
-	return Thread::currentId();
-}
-
-void printDebugBits(){
-	using namespace std;
-	Mutex::Locker lock(dbgMutex());
-	cout<<"ALL NONE ";
-	for(DebugNameVectorTp::const_iterator it(getNameVector().begin()); it != getNameVector().end(); ++it){
-		cout<<*it<<' ';
-	}
-}
-
-void setBit(const char *_pbeg, const char *_pend){
+void Dbg::Data::setBit(const char *_pbeg, const char *_pend){
 	if(!strncasecmp(_pbeg, "all", _pend - _pbeg)){
-		getBitSet().set();
+		bs.set();
 	}else if(!strncasecmp(_pbeg, "none", _pend - _pbeg)){
-		getBitSet().reset();
-	}else for(DebugNameVectorTp::const_iterator it(getNameVector().begin()); it != getNameVector().end(); ++it){
+		bs.reset();
+	}else for(NameVectorTp::const_iterator it(nv.begin()); it != nv.end(); ++it){
 		if(!strncasecmp(_pbeg, *it, _pend - _pbeg) && strlen(*it) == (_pend - _pbeg)){
-			getBitSet().set(it - getNameVector().begin());
+			bs.set(it - nv.begin());
 		}
 	}
 }
 
-#endif
-
-
-void initDebug(const char *_prefix, const char *_opt){
-	#ifdef UDEBUG
+void Dbg::init(std::string &_file, const char * _prefix, const char *_opt){
 	{
-		Mutex::Locker lock(dbgMutex());
+		Mutex::Locker lock(d.m);
 		if(_opt){
 			const char *pbeg = _opt;
 			const char *pcrt = _opt;
@@ -164,29 +102,139 @@ void initDebug(const char *_prefix, const char *_opt){
 					if(!isspace(*pcrt)){
 						++pcrt;
 					}else{
-						setBit(pbeg, pcrt);
+						d.setBit(pbeg, pcrt);
 						pbeg = pcrt;
 						state = 0;
 					}
 				}
 			}
 			if(pcrt != pbeg){
-				setBit(pbeg, pcrt);
+				d.setBit(pbeg, pcrt);
 			}
 		}
-		if(getBitSet().none()) return;
+		if(d.bs.none()) return;
 	}
 	
-	std::ios_base::sync_with_stdio (false);
+	std::ios_base::sync_with_stdio(false);
 	Directory::create("dbg");
 	char *name = new char[strlen(_prefix)+50];
-	sprintf(name,"%s%u.dbg",_prefix,getpid());
-	printf("debug file: [%s]\r\n",name);
+	sprintf(name,"dbg/%s_%u.dbg", _prefix, getpid());
+	//printf("Debug file: [%s]\r\n", name);
+	_file = name;
 	int fd = open(name, O_CREAT | O_RDWR | O_TRUNC, 0600);
 	delete []name;
-	if(dup2(fd,fileno(stderr))<0){
+	if(dup2(fd, fileno(stderr))<0){
 		printf("error duplicating filedescriptor\n");
 	}
-	#endif
 }
+void Dbg::bits(std::string &_ros){
+	Mutex::Locker lock(d.m);
+	for(Data::NameVectorTp::const_iterator it(d.nv.begin()); it != d.nv.end(); ++it){
+		_ros += *it;
+		_ros += ' ';
+	}
+}
+void Dbg::setAllBits(){
+	Mutex::Locker lock(d.m);
+	d.bs.set();
+}
+void Dbg::resetAllBits(){
+	Mutex::Locker lock(d.m);
+	d.bs.reset();
+}
+void Dbg::setBit(unsigned _v){
+	Mutex::Locker lock(d.m);
+	d.bs.set(_v);
+}
+void Dbg::resetBit(unsigned _v){
+	Mutex::Locker lock(d.m);
+	d.bs.reset(_v);
+}
+unsigned Dbg::registerModule(const char *_name){
+	Mutex::Locker lock(d.m);
+	d.nv.push_back(_name);
+	return d.nv.size() - 1;
+}
+
+std::ostream& Dbg::print(){
+	d.m.lock();
+	return std::cerr;
+}
+
+std::ostream& Dbg::print(
+	const char _t,
+	const char *_file,
+	const char *_fnc,
+	int _line
+){
+	d.m.lock();
+	char buf[128];
+	TimeSpec ts_now;
+	clock_gettime(CLOCK_MONOTONIC, &d.begts);
+	ts_now = ts_now - d.begts;
+	time_t t_now = d.begt + ts_now.seconds();
+	tm loctm;
+	localtime_r(&t_now, &loctm);
+	sprintf(
+		buf,
+		"%c[%04u-%02u-%02u %02u:%02u:%02u.%04u][ANY][%u]",
+		_t,
+		loctm.tm_year + 1900,
+		loctm.tm_mon, 
+		loctm.tm_mday,
+		loctm.tm_hour,
+		loctm.tm_min,
+		loctm.tm_sec,
+		ts_now.nanoSeconds()/1000000,
+		Thread::currentId()
+	);
+
+	return std::cerr<<buf<<'['<<_file + fileoff<<'('<<_line<<')'<<' '<<_fnc<<']'<<' ';
+}
+std::ostream& Dbg::print(
+	const char _t,
+	unsigned _module,
+	const char *_file,
+	const char *_fnc,
+	int _line
+){
+	d.m.lock();
+	char buf[128];
+	TimeSpec ts_now;
+	clock_gettime(CLOCK_MONOTONIC, &d.begts);
+	ts_now = ts_now - d.begts;
+	time_t t_now = d.begt + ts_now.seconds();
+	tm loctm;
+	localtime_r(&t_now, &loctm);
+	sprintf(
+		buf,
+		"%c[%04u-%02u-%02u %02u:%02u:%02u.%04u][%s][%u]",
+		_t,
+		loctm.tm_year + 1900,
+		loctm.tm_mon, 
+		loctm.tm_mday,
+		loctm.tm_hour,
+		loctm.tm_min,
+		loctm.tm_sec,
+		ts_now.nanoSeconds()/1000000,
+		d.nv[_module],
+		Thread::currentId()
+	);
+	return std::cerr<<buf<<'['<<_file + fileoff<<'('<<_line<<')'<<' '<<_fnc<<']'<<' ';
+}
+
+void Dbg::done(){
+	std::cerr<<std::endl;
+	d.m.unlock();
+}
+bool Dbg::isSet(unsigned _v){
+	return d.bs[_v];
+}
+Dbg::Dbg():d(*(new Data)){
+	d.begt = time(NULL);
+	clock_gettime(CLOCK_MONOTONIC, &d.begts);
+}
+
+#endif
+
 

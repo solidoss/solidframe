@@ -57,19 +57,19 @@ int main(int argc, char* argv[]){
 	Thread::init();
 #ifdef UDEBUG
 	{
-	string s = "dbg/";
-	s+= argv[0]+2;
+	string s;
 	if(argc > 1){
-		initDebug(s.c_str(), argv[1]);
+		Dbg::instance().init(s, argv[0] + 2, argv[1]);
 	}else{
-		initDebug(s.c_str());
+		Dbg::instance().init(s, argv[0] + 2);
 	}
-	cout<<"Debug bits: ";
-	printDebugBits();
-	cout<<endl;
+	cout<<"Debug file: "<<s<<endl;
+	s.clear();
+	Dbg::instance().bits(s);
+	cout<<"Debug bits: "<<s<<endl;
 	}
 #endif
-	pdbg("Built on SolidGround version "<<SG_MAJOR<<'.'<<SG_MINOR<<'.'<<SG_PATCH);
+	idbg("Built on SolidGround version "<<SG_MAJOR<<'.'<<SG_MINOR<<'.'<<SG_PATCH);
 	{
 		int startport = 1000;
 		if(argc > 2){

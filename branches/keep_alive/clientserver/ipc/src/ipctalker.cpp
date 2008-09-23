@@ -377,12 +377,13 @@ void Talker::dispatchReceivedBuffer(const SockAddrPair &_rsap){
 					case BAD:
 						cassert(false);
 						idbgx(Dbg::ipc, "the processconnector wants to close");
-// 						if((rpp.first->isConnecting())){
-// 							d.peerpm4.erase(rpp.first->peerAddr4());
-// 							d.cq.push(pit->second);
-// 						}else{
-// 							d.closes.push(pit->second);
-// 						}
+						//TODO: it may crash if uncommenting the below if
+						if((rpp.first->isConnecting())){
+							d.peerpm4.erase(rpp.first->peerAddr4());
+							d.cq.push(pit->second);
+						}else{
+							d.closes.push(pit->second);
+						}
 					case OK:
 						break;
 					case NOK:
@@ -416,6 +417,9 @@ void Talker::dispatchReceivedBuffer(const SockAddrPair &_rsap){
 					d.cq.push(bit->second);
 				}
 			}
+		}break;
+		case Buffer::KeepAliveType:{
+			
 		}break;
 		default:
 			cassert(false);

@@ -102,6 +102,7 @@ struct Buffer{
 		DataType = 1,
 		ConnectingType,
 		AcceptingType,
+		KeepAliveType,
 		Unknown
 	};
 	enum Flags{
