@@ -99,10 +99,10 @@ struct Buffer{
 		uint32 size()const{return sizeof(Header) + updatescnt * sizeof(uint32);}
 	};
 	enum Types{
-		DataType = 1,
+		KeepAliveType = 1,
+		DataType,
 		ConnectingType,
 		AcceptingType,
-		KeepAliveType,
 		Unknown
 	};
 	enum Flags{

@@ -80,7 +80,7 @@ public:
 	int pushCommand(clientserver::CmdPtr<Command> &_rcmd, uint32 _flags);
 	int pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpos, bool &_reusebuf);
 	int processSendCommands(SendBufferData &_rsb, const TimeSpec &_tpos, int _baseport);
-	int pushReceivedBuffer(Buffer &_rbuf, const ConnectorUid &_rcodid);
+	int pushReceivedBuffer(Buffer &_rbuf, const ConnectorUid &_rcodid, const TimeSpec &_tpos);
 	void completeConnect(int _port);
 	void reconnect(ProcessConnector *_ppc);
 	const Inet4SockAddrPair* peerAddr4()const;

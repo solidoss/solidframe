@@ -41,9 +41,6 @@ namespace cs = clientserver;
 namespace clientserver{
 namespace ipc{
 
-//*******	AddrPtrCmp		******************************************************************
-
-
 //*******	Service::Data	******************************************************************
 
 struct Service::Data{

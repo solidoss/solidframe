@@ -56,7 +56,7 @@ private:
 	bool dispatchSentBuffer(const TimeSpec &_rts);
 	void dispatchReceivedBuffer(const SockAddrPair &_rsap);
 	void optimizeBuffer(Buffer &_rbuf);
-	bool inDone(ulong _sig);
+	bool inDone(ulong _sig, const TimeSpec &_rts);
 	struct Data;
 	Data &d;
 };
