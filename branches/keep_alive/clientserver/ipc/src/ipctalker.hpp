@@ -54,7 +54,7 @@ public:
 private:
 	bool processCommands(const TimeSpec &_rts);
 	bool dispatchSentBuffer(const TimeSpec &_rts);
-	void dispatchReceivedBuffer(const SockAddrPair &_rsap);
+	void dispatchReceivedBuffer(const SockAddrPair &_rsap, const TimeSpec &_rts);
 	void optimizeBuffer(Buffer &_rbuf);
 	bool inDone(ulong _sig, const TimeSpec &_rts);
 	struct Data;

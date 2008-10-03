@@ -88,6 +88,7 @@ public:
 	bool isConnected()const;
 	bool isDisconnecting()const;
 	bool isConnecting()const;
+	void prepare();
 	//const Inet6SockAddrPair* pairAddr6()const;
 	//const std::pair<const Inet6SockAddrPair*, int>* baseAddr6()const;
 private:

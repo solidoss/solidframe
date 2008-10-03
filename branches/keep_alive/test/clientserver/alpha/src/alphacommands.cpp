@@ -22,6 +22,7 @@
 #include "system/debug.hpp"
 #include "system/socketaddress.hpp"
 #include "system/filedevice.hpp"
+#include "system/thread.hpp"
 
 #include "utility/iostream.hpp"
 
@@ -256,23 +257,32 @@ struct RemoteListCommand: test::Command{
 		idbg(""<<(void*)this);
 		//delete ppthlst;
 	}
-	int received(const cs::ipc::ConnectorUid &_rconid);
+	int received(cs::ipc::CommandUid &_rcmduid, const cs::ipc::ConnectorUid &_rconid);
 	int execute(test::Connection &);
 	int execute(cs::CommandExecuter&, const CommandUidTp &, TimeSpec &_rts);
+	void prepare(const cs::ipc::CommandUid &_rcmduid){
+		cmduid = _rcmduid;
+	}
+	void fail();
+	int sent(const cs::ipc::ConnectorUid&);
 	template <class S>
 	S& operator&(S &_s){
-		return _s.pushContainer(ppthlst, "strlst").push(err, "error").push(requid, "requid").push(strpth, "strpth").push(fromv, "from");
+		_s.pushContainer(ppthlst, "strlst").push(err, "error");
+		_s.push(requid, "requid").push(strpth, "strpth").push(fromv, "from");
+		_s.push(cmduid.idx, "cmduid.idx").push(cmduid.uid,"cmduid.uid");
+		return _s;
 	}
 //data:
 	RemoteList::PathListTp		*ppthlst;
 	String						strpth;
 	int							err;
 	cs::ipc::ConnectorUid		conid;
+	cs::ipc::CommandUid			cmduid;
 	uint32						requid;
 	ObjectUidTp					fromv;
 };
 
-int RemoteListCommand::received(const cs::ipc::ConnectorUid &_rconid){
+int RemoteListCommand::received(cs::ipc::CommandUid &_rcmduid, const cs::ipc::ConnectorUid &_rconid){
 	cs::CmdPtr<cs::Command> pcmd(this);
 	conid = _rconid;
 	if(!ppthlst){
@@ -283,10 +293,19 @@ int RemoteListCommand::received(const cs::ipc::ConnectorUid &_rconid){
 		Server::the().signalObject(ttov.first, ttov.second, pcmd);
 	}else{
 		idbg("Received RemoteListCommand back on sender");
-		//print();
+		_rcmduid = cmduid;
 		Server::the().signalObject(fromv.first, fromv.second, pcmd);
 	}
 	return false;
+}
+void RemoteListCommand::fail(){
+	Server::the().signalObject(fromv.first, fromv.second, cs::S_KILL | cs::S_RAISE);
+}
+int RemoteListCommand::sent(const cs::ipc::ConnectorUid&){
+	if(!ppthlst){
+		return NOK;//wait for response
+	}
+	return BAD;
 }
 int RemoteListCommand::execute(test::Connection &_rcon){
 	if(!err){
@@ -334,6 +353,7 @@ int RemoteListCommand::execute(cs::CommandExecuter&, const CommandUidTp &, TimeS
 		++it;
 	}
 	err = 0;
+	//Thread::sleep(1000 * 20);
 	if(Server::the().ipc().sendCommand(conid, pcmd)){
 		idbg("connector was destroyed "<<conid.tkrid<<' '<<conid.procid<<' '<<conid.procuid);
 		return BAD;
@@ -342,7 +362,6 @@ int RemoteListCommand::execute(cs::CommandExecuter&, const CommandUidTp &, TimeS
 	}
 	return cs::LEAVE;
 }
-
 //--------------------------------------------------------------
 RemoteList::PathListTp::PathListTp(){
 	idbg(""<<(void*)this);
@@ -463,7 +482,7 @@ struct FetchMasterCommand: test::Command{
 		idbg("");
 	}
 	~FetchMasterCommand();
-	int received(const cs::ipc::ConnectorUid &_rconid);
+	int received(cs::ipc::CommandUid &_rcmduid, const cs::ipc::ConnectorUid &_rconid);
 	int sent(const cs::ipc::ConnectorUid &);
 	int execute(cs::CommandExecuter&, const CommandUidTp &, TimeSpec &_rts);
 	int receiveCommand(
@@ -516,7 +535,7 @@ struct FetchSlaveCommand: test::Command{
 		idbg("");
 	}
 	~FetchSlaveCommand();
-	int received(const cs::ipc::ConnectorUid &_rconid);
+	int received(cs::ipc::CommandUid &_rcmduid, const cs::ipc::ConnectorUid &_rconid);
 	int sent(const cs::ipc::ConnectorUid &);
 	int execute(test::Connection &);
 	int execute(cs::CommandExecuter&, const CommandUidTp &, TimeSpec &_rts);
@@ -567,7 +586,7 @@ void FetchMasterCommand::print()const{
 	idbg("tmpfuid.first = "<<tmpfuid.first<<" tmpfuid.second = "<<tmpfuid.second);
 }
 
-int FetchMasterCommand::received(const cs::ipc::ConnectorUid &_rconid){
+int FetchMasterCommand::received(cs::ipc::CommandUid &_rcmduid, const cs::ipc::ConnectorUid &_rconid){
 	cs::CmdPtr<cs::Command> cmd(this);
 	conid = _rconid;
 	state = Received;
@@ -728,7 +747,7 @@ int FetchSlaveCommand::sent(const cs::ipc::ConnectorUid &_rconid){
 	fromv.first = 0xffffffff;
 	return BAD;
 }
-int FetchSlaveCommand::received(const cs::ipc::ConnectorUid &_rconid){
+int FetchSlaveCommand::received(cs::ipc::CommandUid &_rcmduid, const cs::ipc::ConnectorUid &_rconid){
 	cs::CmdPtr<cs::Command> pcmd(this);
 	conid = _rconid;
 	if(sz == -10){
@@ -1155,7 +1174,7 @@ struct SendStringCommand: test::Command{
 		ulong _fromobjid,
 		uint32 _fromobjuid
 	):str(_str), tov(_toobjid, _toobjuid), fromv(_fromobjid, _fromobjuid){}
-	int received(const cs::ipc::ConnectorUid &_rconid);
+	int received(cs::ipc::CommandUid &_rcmduid, const cs::ipc::ConnectorUid &_rconid);
 	int execute(test::Connection &);
 	template <class S>
 	S& operator&(S &_s){
@@ -1170,7 +1189,7 @@ private:
 	cs::ipc::ConnectorUid		conid;
 };
 
-int SendStringCommand::received(const cs::ipc::ConnectorUid &_rconid){
+int SendStringCommand::received(cs::ipc::CommandUid &_rcmduid, const cs::ipc::ConnectorUid &_rconid){
 	cs::CmdPtr<cs::Command> pcmd(this);
 	conid = _rconid;
 	Server::the().signalObject(tov.first, tov.second, pcmd);
@@ -1235,7 +1254,7 @@ struct SendStreamCommand: test::Command{
 	}
 	std::pair<uint32, uint32> to()const{return tov;}
 	std::pair<uint32, uint32> from()const{return fromv;}
-	int received(const cs::ipc::ConnectorUid &_rconid);
+	int received(cs::ipc::CommandUid &_rcmduid, const cs::ipc::ConnectorUid &_rconid);
 	int execute(test::Connection &);
 	int createDeserializationStream(std::pair<OStream *, int64> &_rps, int _id);
 	void destroyDeserializationStream(const std::pair<OStream *, int64> &_rps, int _id);
@@ -1258,7 +1277,7 @@ private:
 	cs::ipc::ConnectorUid		conid;
 };
 //-------------------------------------------------------------------------------
-int SendStreamCommand::received(const cs::ipc::ConnectorUid &_rconid){
+int SendStreamCommand::received(cs::ipc::CommandUid &_rcmduid, const cs::ipc::ConnectorUid &_rconid){
 	cs::CmdPtr<cs::Command> pcmd(this);
 	conid = _rconid;
 	Server::the().signalObject(tov.first, tov.second, pcmd);

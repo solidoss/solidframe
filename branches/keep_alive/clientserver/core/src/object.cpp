@@ -130,7 +130,7 @@ Command::~Command(){
 void Command::use(){
 	idbgx(Dbg::cs, "Use command");
 }
-int Command::received(const ipc::ConnectorUid&){
+int Command::received(ipc::CommandUid&, const ipc::ConnectorUid&){
 	return BAD;
 }
 int Command::sent(const ipc::ConnectorUid&){

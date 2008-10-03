@@ -106,7 +106,7 @@ SpecificData::~SpecificData(){
 	if(pcc->release()) delete pcc;
 	//destroy all cached buffers
 	for(int i(0); i < Specific::Count; ++i){
-		idbgx(Dbg::specific,i<<" cps[i].cp = "<<cps[i].cp<<" Specific::sizeToId((1<<i)) = "<<Specific::sizeToId((1<<i)));
+		idbgx(Dbg::specific,i<<" cp = "<<cps[i].cp<<" sz = "<<cps[i].s.size()<<" specific_id = "<<Specific::sizeToId((1<<i)));
 		cassert(!(cps[i].cp - cps[i].s.size()));
 		while(cps[i].s.size()){
 			delete []cps[i].s.top();
@@ -173,24 +173,26 @@ void destroy(void *_pv){
 }
 /*static*/ char* Specific::popBuffer(unsigned _id){
 	cassert(_id < Count);
+	cassert(_id != 0);
 	SpecificData &rsd(SpecificData::current());
 	SpecificData::CachePoint &rcp(rsd.cps[_id]);
-	idbgx(Dbg::specific,"popBuffer "<<_id<<" cp "<<rcp.cp);
+	char *tb;
 	if(rcp.s.size()){
-		char *tb = rcp.s.top();
+		tb = rcp.s.top();
 		rcp.s.pop();
-		return tb;
 	}else{
 		++rcp.cp;
-		return new char[idToCapacity(_id)];
+		tb = new char[idToCapacity(_id)];
 	}
+	idbgx(Dbg::specific,"popBuffer "<<_id<<" cp "<<rcp.cp<<' '<<(void*)tb);
+	return tb;
 }
 /*static*/ void Specific::pushBuffer(char *&_pb, unsigned _id){
 	cassert(_pb);
 	cassert(_id < Count);
 	SpecificData &rsd(SpecificData::current());
 	SpecificData::CachePoint &rcp(rsd.cps[_id]);
-	idbgx(Dbg::specific,"pushBuffer "<<_id<<" cp "<<rcp.cp<<" stackCap "<<rsd.pcc->stackCapacity(_id));
+	idbgx(Dbg::specific,"pushBuffer "<<_id<<" cp "<<rcp.cp<<" stackCap "<<rsd.pcc->stackCapacity(_id)<<' '<<(void*)_pb);
 	if(rcp.s.size() < rsd.pcc->stackCapacity(_id)){
 		rcp.s.push(_pb);
 	}else{

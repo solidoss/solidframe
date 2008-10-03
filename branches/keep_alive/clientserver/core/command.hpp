@@ -53,7 +53,7 @@ struct Command{
 	/*!
 		\retval BAD for deleting the command, OK for not
 	*/
-	virtual int received(const ipc::ConnectorUid&);
+	virtual int received(ipc::CommandUid &, const ipc::ConnectorUid&);
 	//! Called by ipc module when the command was successfully sent
 	/*!
 		\retval BAD for deleting the command, OK for releasing it

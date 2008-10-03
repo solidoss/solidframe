@@ -221,7 +221,7 @@ void FileManager::sendError(int _error, const cs::RequestUid& _rrequid){
 */
 class IpcService: public cs::ipc::Service{
 public:
-	IpcService():cs::ipc::Service(){}
+	IpcService(uint32 _keepalivetout):cs::ipc::Service(_keepalivetout){}
 protected:
 	/*virtual*/void pushTalkerInPool(clientserver::Server &_rs, clientserver::udp::Talker *_ptkr);
 };
@@ -398,7 +398,7 @@ Server::Server():d(*(new Data(*this))){
 		this->pushJob((cs::Object*)d.writecmdexec.ptr());
 	}
 	if(true){// create register the ipc service
-		this->ipc(new IpcService);
+		this->ipc(new IpcService(1000));//one sec keepalive tout
 		int pos = cs::Server::insertService(&this->ipc());
 		if(pos < 0){
 			idbg("unable to register service: "<<"ipc");

@@ -369,7 +369,7 @@ bool Buffer::check()const{
 	return false;
 }
 void Buffer::print()const{
-	idbgx(Dbg::ipc, "version = "<<header().version<<" id = "<<header().id<<" retransmit = "<<header().retransid<<" flags = "<<header().flags<<" type = "<<header().type<<" updatescnt = "<<header().updatescnt<<" bufcp = "<<bc<<" dl = "<<dl);
+	idbgx(Dbg::ipc, "version = "<<(int)header().version<<" id = "<<header().id<<" retransmit = "<<header().retransid<<" flags = "<<header().flags<<" type = "<<(int)header().type<<" updatescnt = "<<header().updatescnt<<" bufcp = "<<bc<<" dl = "<<dl);
 	for(int i = 0; i < header().updatescnt; ++i){
 		idbgx(Dbg::ipc, "update = "<<update(i));
 	}

@@ -216,6 +216,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 				}
 				if(!d.procs[newprocidx].first){
 					d.procs[newprocidx].first = pnewproc;
+					pnewproc->prepare();
 					//register in base map
 					d.basepm4[pnewproc->baseAddr4()] = newprocidx;
 					if(pnewproc->isConnected()){
@@ -358,7 +359,7 @@ void Talker::pushProcessConnector(ProcessConnector *_pc, ConnectorUid &_rconid, 
 }
 //----------------------------------------------------------------------
 //dispatch d.rcvbuf
-void Talker::dispatchReceivedBuffer(const SockAddrPair &_rsap){
+void Talker::dispatchReceivedBuffer(const SockAddrPair &_rsap, const TimeSpec &_rts){
 	cassert(_rsap.family() == AddrInfo::Inet4);
 	idbgx(Dbg::ipc, "received buffer:");
 	d.rcvbuf.print();
@@ -374,7 +375,7 @@ void Talker::dispatchReceivedBuffer(const SockAddrPair &_rsap){
 				Data::ProcPairTp &rpp(d.procs[pit->second]);
 				cassert(rpp.first);
 				ConnectorUid conid(d.tkrid, pit->second, rpp.second);
-				switch(d.procs[pit->second].first->pushReceivedBuffer(d.rcvbuf, conid)){
+				switch(d.procs[pit->second].first->pushReceivedBuffer(d.rcvbuf, conid, _rts)){
 					case BAD:
 						cassert(false);
 						idbgx(Dbg::ipc, "the processconnector wants to close");
@@ -495,10 +496,10 @@ bool Talker::dispatchSentBuffer(const TimeSpec &_rts){
 	d.sendq.pop();
 	if(renqueuebuf){
 		d.sendq.push(psb);
-	}else{
+	}/*else{//TODO:
 		cassert(!psb->b.buffer());
 		d.sendfs.push(psb);
-	}
+	}*/
 	return d.cq.size();
 }
 //----------------------------------------------------------------------
