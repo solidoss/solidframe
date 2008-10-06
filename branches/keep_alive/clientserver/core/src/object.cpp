@@ -31,6 +31,7 @@
 #include "core/cmdptr.hpp"
 #include "core/server.hpp"
 
+#include "utility/memory.hpp"
 namespace clientserver{
 //---------------------------------------------------------------------
 //----	Visitor	----
@@ -123,22 +124,25 @@ void Object::mutex(Mutex *){
 //---------------------------------------------------------------------
 //----	Command	----
 //---------------------------------------------------------------------
-
+Command::Command(){
+	objectCheck<Command>(true, __FUNCTION__);
+	idbgx(Dbg::cs, "memadd "<<(void*)this);
+}
 Command::~Command(){
+	objectCheck<Command>(false, __FUNCTION__);
+	idbgx(Dbg::cs, "memsub "<<(void*)this);
 }
 
 void Command::use(){
 	idbgx(Dbg::cs, "Use command");
 }
-int Command::received(ipc::CommandUid&, const ipc::ConnectorUid&){
+int Command::ipcReceived(ipc::CommandUid&, const ipc::ConnectorUid&){
 	return BAD;
 }
-int Command::sent(const ipc::ConnectorUid&){
-	return BAD;
+int Command::ipcPrepare(const ipc::CommandUid&){
+	return OK;//do nothing - no wait for response
 }
-void Command::prepare(const ipc::CommandUid&){
-}
-void Command::fail(){
+void Command::ipcFail(int _err){
 }
 int Command::execute(Object &){
 	idbgx(Dbg::cs, "Unhandled command");

@@ -86,7 +86,9 @@ typedef Object::RequestUidTp	RequestUidTp;
 	A command for sending istreams from the fileManager
 */
 struct IStreamCommand: test::Command{
-	IStreamCommand(StreamPtr<IStream> &_sptr, const FileUidTp &_rfuid, const RequestUidTp &_requid):sptr(_sptr), fileuid(_rfuid), requid(_requid){}
+	IStreamCommand(StreamPtr<IStream> &_sptr, const FileUidTp &_rfuid, const RequestUidTp &_requid):sptr(_sptr), fileuid(_rfuid), requid(_requid){
+		idbg("");
+	}
 	int execute(Connection &_pcon);
 	int execute(Object &_pobj);
 	int execute(cs::CommandExecuter&, const CommandUidTp &, TimeSpec &);
@@ -96,7 +98,8 @@ struct IStreamCommand: test::Command{
 };
 
 int IStreamCommand::execute(Connection &_rcon){
-	return _rcon.receiveIStream(sptr, fileuid, requid);
+	_rcon.receiveIStream(sptr, fileuid, requid);
+	return NOK;
 }
 
 int IStreamCommand::execute(Object &_robj){
@@ -112,7 +115,9 @@ int IStreamCommand::execute(cs::CommandExecuter& _rce, const CommandUidTp &, Tim
 	A command for sending ostreams from the fileManager
 */
 struct OStreamCommand: test::Command{
-	OStreamCommand(StreamPtr<OStream> &_sptr, const FileUidTp &_rfuid, const RequestUidTp &_requid):sptr(_sptr), fileuid(_rfuid), requid(_requid){}
+	OStreamCommand(StreamPtr<OStream> &_sptr, const FileUidTp &_rfuid, const RequestUidTp &_requid):sptr(_sptr), fileuid(_rfuid), requid(_requid){
+		idbg("");
+	}
 	int execute(Connection &_pcon);
 	int execute(Object &_pobj);
 	int execute(cs::CommandExecuter&, const CommandUidTp &, TimeSpec &);
@@ -122,7 +127,8 @@ struct OStreamCommand: test::Command{
 };
 
 int OStreamCommand::execute(Connection &_rcon){
-	return _rcon.receiveOStream(sptr, fileuid, requid);
+	_rcon.receiveOStream(sptr, fileuid, requid);
+	return NOK;
 }
 
 int OStreamCommand::execute(Object &_robj){
@@ -138,7 +144,9 @@ int OStreamCommand::execute(cs::CommandExecuter& _rce, const CommandUidTp &, Tim
 */
 
 struct IOStreamCommand: test::Command{
-	IOStreamCommand(StreamPtr<IOStream> &_sptr, const FileUidTp &_rfuid, const RequestUidTp &_requid):sptr(_sptr), fileuid(_rfuid), requid(_requid){}
+	IOStreamCommand(StreamPtr<IOStream> &_sptr, const FileUidTp &_rfuid, const RequestUidTp &_requid):sptr(_sptr), fileuid(_rfuid), requid(_requid){
+		idbg("");
+	}
 	int execute(Connection &_pcon);
 	int execute(Object &_pobj);
 	int execute(cs::CommandExecuter&, const CommandUidTp &, TimeSpec &);
@@ -148,7 +156,8 @@ struct IOStreamCommand: test::Command{
 };
 
 int IOStreamCommand::execute(Connection &_rcon){
-	return _rcon.receiveIOStream(sptr, fileuid, requid);
+	_rcon.receiveIOStream(sptr, fileuid, requid);
+	return NOK;
 }
 
 int IOStreamCommand::execute(Object &_robj){
@@ -174,7 +183,8 @@ struct StreamErrorCommand: test::Command{
 };
 
 int StreamErrorCommand::execute(Connection &_rcon){
-	return _rcon.receiveError(errid, requid);
+	_rcon.receiveError(errid, requid);
+	return NOK;
 }
 int StreamErrorCommand::execute(Object &_robj){
 	return _robj.receiveError(errid, requid);

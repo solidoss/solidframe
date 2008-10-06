@@ -98,7 +98,8 @@ public:
 	enum {
 		SameConnectorFlag = 1, //!< Do not send command to a restarted peer process
 		ResponseFlag	= SameConnectorFlag, //!< The sent command is a response
-		WaitResponseFlag = 2
+		WaitResponseFlag = 2,
+		SentFlag = 4,//!< The command was successfully sent
 	};
 	//! Destructor
 	~Service();

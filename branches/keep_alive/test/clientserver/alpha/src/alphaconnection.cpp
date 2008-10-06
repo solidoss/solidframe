@@ -331,7 +331,7 @@ int Connection::receiveOStream(
 				break;
 		}
 	}
-	return OK;
+	return NOK;
 }
 
 int Connection::receiveIOStream(
@@ -363,7 +363,7 @@ int Connection::receiveIOStream(
 				break;
 		}
 	}
-	return OK;
+	return NOK;
 }
 
 int Connection::receiveString(

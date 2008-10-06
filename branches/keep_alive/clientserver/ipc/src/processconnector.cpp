@@ -244,8 +244,14 @@ ProcessConnector::Data::~Data(){
 		}
 	}
 	idbgx(Dbg::ipc, "cq.size = "<<cq.size()<<"scq.size = "<<scq.size());
-	while(cq.size()) cq.pop();
-	while(scq.size()) scq.pop();
+	
+	while(cq.size()){
+		cq.front().first->ipcFail(0);
+		cq.pop();
+	}
+	
+	while(scq.size()){scq.pop();}
+	
 	for(OutCmdVectorTp::iterator it(outcmdv.begin()); it != outcmdv.end(); ++it){
 		if(it->pser){
 			it->pser->clear();
@@ -253,8 +259,15 @@ ProcessConnector::Data::~Data(){
 			it->pser = NULL;
 		}
 		if(it->cmd){
-			//the command was not successfully sent
-			idbgx(Dbg::ipc, "commmand not successfully sent");
+			++it->uid;
+			if(it->flags & Service::WaitResponseFlag && it->flags & Service::SentFlag){
+				//the was successfully sent but the response did not arrive
+				it->cmd->ipcFail(1);
+			}else{
+				//the command was not successfully sent
+				it->cmd->ipcFail(0);
+			}
+			it->cmd.clear();
 		}
 	}
 	while(rcq.size()){
@@ -344,6 +357,8 @@ inline const ProcessConnector::Data::OutWaitCommand& ProcessConnector::Data::wai
 
 
 CommandUid ProcessConnector::Data::pushOutWaitCommand(uint32 _bufid, cs::CmdPtr<Command> &_cmd, uint32 _flags, uint32 _id){
+	_flags &= ~Service::SentFlag;
+	_flags &= ~Service::WaitResponseFlag;
 	if(this->outfreecmdstk.size()){
 		OutWaitCommand &owc = outcmdv[outfreecmdstk.top()];
 		owc.bufid = _bufid;
@@ -362,22 +377,13 @@ void ProcessConnector::Data::popOutWaitCommands(uint32 _bufid, const ConnectorUi
 		if(it->bufid == _bufid && it->cmd.ptr()){
 			it->bufid = 0;
 			cassert(!it->pser);
-			switch(it->cmd->sent(_rconid)){
-				case BAD:
-					++it->uid;
-					it->cmd.clear();
-					break;
-				case OK:
-					++it->uid;
-					it->cmd.release();
-					break;
-				case NOK:
-					idbgx(Dbg::ipc, "command wait for response "<<(it - outcmdv.begin())<<','<<it->uid);
-					++respwaitcmdcnt;
-					it->flags |= Service::WaitResponseFlag;
-					break;
-				default:
-					cassert(false);
+			if(it->flags & Service::WaitResponseFlag){
+				//let it leave a little longer
+				idbgx(Dbg::ipc, "command waits for response "<<(it - outcmdv.begin())<<','<<it->uid);
+				it->flags |= Service::SentFlag;
+			}else{
+				++it->uid;
+				it->cmd.clear();
 			}
 		}
 	}
@@ -423,7 +429,7 @@ int ProcessConnector::parseAcceptedBuffer(Buffer &_rbuf){
 		int32 *pp((int32*)_rbuf.data());
 		return (int)ntohl((uint32)*pp);
 	}
-	return -1;
+	return BAD;
 }
 // static
 int ProcessConnector::parseConnectingBuffer(Buffer &_rbuf){
@@ -431,7 +437,7 @@ int ProcessConnector::parseConnectingBuffer(Buffer &_rbuf){
 		int32 *pp((int32*)_rbuf.data());
 		return (int)ntohl((uint32)*pp);
 	}
-	return -1;
+	return BAD;
 }
 	
 ProcessConnector::ProcessConnector(
@@ -445,6 +451,10 @@ ProcessConnector::ProcessConnector(
 	uint32 _keepalivetout
 ):d(*(new Data(_raddr, _baseport, _keepalivetout))){}
 	
+
+
+
+
 //TODO: ensure that really no command is dropped on reconnect
 // not even those from Dropped buffers!!!
 void ProcessConnector::reconnect(ProcessConnector *_ppc){
@@ -492,22 +502,23 @@ void ProcessConnector::reconnect(ProcessConnector *_ppc){
 		cassert(outcmd.cmd);
 		//NOTE: on reconnect the responses, or commands sent using ConnectorUid are dropped
 		if(!(outcmd.flags & Service::SameConnectorFlag)){
-			//d.pushOutWaitCommand(0, outcmd.cmd, outcmd.flags, outcmd.id);
+			if(outcmd.flags & Service::WaitResponseFlag && outcmd.flags & Service::SentFlag){
+				//if the command was sent and were waiting for response - were not sending twice
+				outcmd.cmd->ipcFail(1);
+				outcmd.cmd.clear();
+			}
+			//we can try resending the command
 		}else{
 			idbgx(Dbg::ipc, "command not scheduled for resend");
+			if(outcmd.flags & Service::WaitResponseFlag && outcmd.flags & Service::SentFlag){
+				outcmd.cmd->ipcFail(1);
+			}else{
+				outcmd.cmd->ipcFail(0);
+			}
 			outcmd.cmd.clear();
 			++outcmd.uid;
 		}
 		d.scq.pop();
-	}
-	//now we scan for commands waiting for incoming responses
-	for(Data::OutCmdVectorTp::iterator it(d.outcmdv.begin()); it != d.outcmdv.end(); ++it){
-		if(it->cmd && it->flags & Service::WaitResponseFlag){
-			//the responses will never come
-			idbgx(Dbg::ipc, "command fail waiting for response");
-			it->cmd->fail();
-			it->cmd.clear();
-		}
 	}
 	//now we need to sort d.outcmdv
 	std::sort(d.outcmdv.begin(), d.outcmdv.end());
@@ -841,7 +852,17 @@ int ProcessConnector::processSendCommands(SendBufferData &_rsb, const TimeSpec &
 					cassert(d.cq.front().first.ptr());
 					d.scq.push(d.pushOutWaitCommand(0, d.cq.front().first, flags, d.sndcmdid++));
 					Data::OutWaitCommand &rocmd(d.waitBackCommand());
-					rocmd.cmd->prepare(d.scq.back());
+					switch(rocmd.cmd->ipcPrepare(d.scq.back())){
+						case OK://command doesnt wait for response
+							rocmd.flags &= ~Service::WaitResponseFlag;
+							break;
+						case NOK://command wait for response
+							++d.respwaitcmdcnt;
+							rocmd.flags |= Service::WaitResponseFlag;
+							break;
+						default:
+							cassert(false);
+					}
 					d.cq.pop();
 				}
 				Data::BinSerializerTp	*pser = NULL;
@@ -1059,7 +1080,7 @@ void ProcessConnector::parseBuffer(Buffer &_rbuf, const ConnectorUid &_rconid){
 		blen -= rv;
 		if(d.rcq.front().second->empty()){//done one command.
 			CommandUid cmduid(0xffffffff, 0xffffffff);
-			if(d.rcq.front().first->received(cmduid, _rconid))
+			if(d.rcq.front().first->ipcReceived(cmduid, _rconid))
 				delete d.rcq.front().first;
 			idbgx(Dbg::ipc, "donecommand "<<cmduid.idx<<','<<cmduid.uid);
 			if(cmduid.idx != 0xffffffff && cmduid.uid != 0xffffffff){//a valid command waiting for response
