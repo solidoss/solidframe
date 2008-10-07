@@ -1,4 +1,4 @@
-/* Declarations file logger.hpp
+/* Declarations file log.hpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
@@ -19,35 +19,14 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef PROTOCOL_LOGGER_HPP
-#define PROTOCOL_LOGGER_HPP
+#ifndef AUDIT_LOG_HPP
+#define AUDIT_LOG_HPP
 
-namespace protocol{
+#include "system/common.hpp"
+#include "log/server/loghead.hpp"
+#include <string>
+#include <ostream>
 
-//! A class for protocol level logging.
-/*!
-	Not implemented yet - the interface is dummy
-*/
-class Logger{
-public:
-	Logger();
-	virtual ~Logger();
-	void readFlush();
-	void readChar(int _c);
-	void readAtom(const char *_pb, unsigned _bl);
-	void readLiteral(const char *_pb, unsigned _bl);
-	void readLocate(const char *_pb, unsigned _bl);
-	
-	void writeFlush();
-	void writeChar(int _c1);
-	void writeChar(int _c1, int _c2);
-	void writeChar(int _c1, int _c2, int _c3);
-	void writeChar(int _c1, int _c2, int _c3, int _c4);
-	void writeAtom(const char *_pb, unsigned _bl);
-	void writeLiteral(const char *_pb, unsigned _bl);
-};
-
-}
+#define LOG_BITSET_SIZE 256
 
 #endif
-
