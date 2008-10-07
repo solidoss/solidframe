@@ -23,6 +23,7 @@
 #include "system/socketaddress.hpp"
 #include "system/filedevice.hpp"
 #include "system/thread.hpp"
+#include "system/timespec.hpp"
 
 #include "utility/iostream.hpp"
 
@@ -250,7 +251,7 @@ int List::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 // RemoteList command
 //---------------------------------------------------------------
 struct RemoteListCommand: test::Command{
-	RemoteListCommand(): ppthlst(NULL),err(-1){
+	RemoteListCommand(uint32 _tout = 0): ppthlst(NULL),err(-1),tout(_tout){
 		idbg(""<<(void*)this);
 	}
 	~RemoteListCommand(){
@@ -259,15 +260,17 @@ struct RemoteListCommand: test::Command{
 	}
 	int ipcReceived(cs::ipc::CommandUid &_rcmduid, const cs::ipc::ConnectorUid &_rconid);
 	int execute(test::Connection &);
-	int execute(cs::CommandExecuter&, const CommandUidTp &, TimeSpec &_rts);
+	int execute(uint32 _evs, cs::CommandExecuter&, const CommandUidTp &, TimeSpec &_rts);
 	int ipcPrepare(const cs::ipc::CommandUid &_rcmduid){
 		cmduid = _rcmduid;
-		return NOK;
+		if(!ppthlst){//on sender
+			return NOK;
+		}else return OK;// on peer
 	}
 	void ipcFail(int _err);
 	template <class S>
 	S& operator&(S &_s){
-		_s.pushContainer(ppthlst, "strlst").push(err, "error");
+		_s.pushContainer(ppthlst, "strlst").push(err, "error").push(tout,"timeout");
 		_s.push(requid, "requid").push(strpth, "strpth").push(fromv, "from");
 		_s.push(cmduid.idx, "cmduid.idx").push(cmduid.uid,"cmduid.uid");
 		return _s;
@@ -276,6 +279,7 @@ struct RemoteListCommand: test::Command{
 	RemoteList::PathListTp		*ppthlst;
 	String						strpth;
 	int							err;
+	uint32						tout;
 	cs::ipc::ConnectorUid		conid;
 	cs::ipc::CommandUid			cmduid;
 	uint32						requid;
@@ -299,7 +303,12 @@ int RemoteListCommand::ipcReceived(cs::ipc::CommandUid &_rcmduid, const cs::ipc:
 	return false;
 }
 void RemoteListCommand::ipcFail(int _err){
-	Server::the().signalObject(fromv.first, fromv.second, cs::S_KILL | cs::S_RAISE);
+	if(!ppthlst){
+		idbg("failed receiving response");
+		Server::the().signalObject(fromv.first, fromv.second, cs::S_KILL | cs::S_RAISE);
+	}else{
+		idbg("failed on peer");
+	}
 }
 int RemoteListCommand::execute(test::Connection &_rcon){
 	if(!err){
@@ -312,7 +321,14 @@ int RemoteListCommand::execute(test::Connection &_rcon){
 	}
 	return NOK;
 }
-int RemoteListCommand::execute(cs::CommandExecuter&, const CommandUidTp &, TimeSpec &_rts){
+int RemoteListCommand::execute(uint32 _evs, cs::CommandExecuter&, const CommandUidTp &, TimeSpec &_rts){
+	if(tout){
+		idbg("sleep for "<<tout<<" mseconds");
+		_rts += tout;
+		tout = 0;
+		return NOK;
+	}
+	idbg("done sleeping");
 	fs::directory_iterator	it,end;
 	fs::path				pth(strpth.c_str(), fs::native);
 	cs::CmdPtr<cs::Command> pcmd(this);
@@ -383,7 +399,8 @@ int RemoteList::execute(Connection &_rc){
 	AddrInfo ai(straddr.c_str(), port, 0, AddrInfo::Inet4, AddrInfo::Stream);
 	idbg("addr"<<straddr<<" port = "<<port);
 	if(!ai.empty()){
-		RemoteListCommand *pcmd(new RemoteListCommand);
+		RemoteListCommand *pcmd(new RemoteListCommand(1000 + (int) (10000.0 * (rand() / (RAND_MAX + 1.0)))));
+		idbg("remotelist with "<<pcmd->tout<<" miliseconds delay");
 		pcmd->strpth = strpth;
 		pcmd->requid = _rc.newRequestId();
 		pcmd->fromv.first = _rc.id();
@@ -480,7 +497,7 @@ struct FetchMasterCommand: test::Command{
 	int ipcReceived(cs::ipc::CommandUid &_rcmduid, const cs::ipc::ConnectorUid &_rconid);
 	void ipcFail(int _err);
 	
-	int execute(cs::CommandExecuter&, const CommandUidTp &, TimeSpec &_rts);
+	int execute(uint32 _evs, cs::CommandExecuter&, const CommandUidTp &, TimeSpec &_rts);
 	int receiveCommand(
 		cs::CmdPtr<cs::Command> &_rcmd,
 		int			_which,
@@ -533,7 +550,7 @@ struct FetchSlaveCommand: test::Command{
 	int ipcReceived(cs::ipc::CommandUid &_rcmduid, const cs::ipc::ConnectorUid &_rconid);
 	int sent(const cs::ipc::ConnectorUid &);
 	int execute(test::Connection &);
-	int execute(cs::CommandExecuter&, const CommandUidTp &, TimeSpec &_rts);
+	int execute(uint32 _evs, cs::CommandExecuter&, const CommandUidTp &, TimeSpec &_rts);
 	int createDeserializationStream(std::pair<OStream *, int64> &_rps, int _id);
 	void destroyDeserializationStream(const std::pair<OStream *, int64> &_rps, int _id);
 	int createSerializationStream(std::pair<IStream *, int64> &_rps, int _id);
@@ -593,8 +610,9 @@ int FetchMasterCommand::ipcReceived(cs::ipc::CommandUid &_rcmduid, const cs::ipc
 /*
 	The state machine running on peer
 */
-int FetchMasterCommand::execute(cs::CommandExecuter& _rce, const CommandUidTp &_cmduid, TimeSpec &_rts){
+int FetchMasterCommand::execute(uint32 _evs, cs::CommandExecuter& _rce, const CommandUidTp &_cmduid, TimeSpec &_rts){
 	Server &rs(Server::the());
+	cassert(!(_evs & cs::TIMEOUT));
 	switch(state){
 		case Received:{
 			idbg("try to open file "<<fname<<" _cmduid = "<<_cmduid.first<<","<<_cmduid.second);
@@ -763,7 +781,7 @@ int FetchSlaveCommand::execute(test::Connection &_rcon){
 	return NOK;
 }
 // Executed on peer within the command executer
-int FetchSlaveCommand::execute(cs::CommandExecuter& _rce, const CommandUidTp &, TimeSpec &){
+int FetchSlaveCommand::execute(uint32 _evs, cs::CommandExecuter& _rce, const CommandUidTp &, TimeSpec &){
 	idbg("");
 	cs::CmdPtr<cs::Command>	cp(this);
 	_rce.receiveCommand(cp, cmduid);

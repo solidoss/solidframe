@@ -149,9 +149,9 @@ int Command::execute(Object &){
 	return 0;
 }
 
-int Command::execute(CommandExecuter &, const CommandUidTp &, TimeSpec &_rts){
+int Command::execute(uint32 _evs, CommandExecuter &, const CommandUidTp &, TimeSpec &_rts){
 	idbgx(Dbg::cs, "Unhandled command");
-	return 0;
+	return BAD;
 }
 
 int Command::release(){

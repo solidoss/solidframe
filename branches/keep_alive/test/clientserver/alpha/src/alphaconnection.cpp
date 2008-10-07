@@ -99,7 +99,8 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 		if(state() == ConnectTout){
 			state(Connect);
 			return cs::UNREGISTER;
-		}else 
+		}else
+			idbg("timeout occured - destroy connection");
 			return BAD;
 	}
 	

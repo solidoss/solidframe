@@ -63,7 +63,7 @@ struct Command{
 	//! Execute the command only knowing its for an object
 	virtual int execute(Object &);
 	//! Execute the command knowing its for an CommandExecuter
-	virtual int execute(CommandExecuter&, const CommandUidTp &, TimeSpec &_rts);
+	virtual int execute(uint32 _evs, CommandExecuter&, const CommandUidTp &, TimeSpec &_rts);
 	//! Used by CmdPtr to know if the command must be deleted
 	virtual int release();
 	//! Used with CommandExecuter to receive a command

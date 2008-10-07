@@ -69,6 +69,13 @@ int main(int argc, char* argv[]){
 	cout<<"Debug bits: "<<s<<endl;
 	}
 #endif
+	int i,stime;
+	long ltime;
+
+	ltime = time(NULL); /* get current calendar time */
+	stime = (unsigned int) ltime/2;
+	srand(stime);
+	
 	idbg("Built on SolidGround version "<<SG_MAJOR<<'.'<<SG_MINOR<<'.'<<SG_PATCH);
 	{
 		int startport = 1000;

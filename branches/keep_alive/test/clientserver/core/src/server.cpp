@@ -91,7 +91,7 @@ struct IStreamCommand: test::Command{
 	}
 	int execute(Connection &_pcon);
 	int execute(Object &_pobj);
-	int execute(cs::CommandExecuter&, const CommandUidTp &, TimeSpec &);
+	int execute(uint32 _evs, cs::CommandExecuter&, const CommandUidTp &, TimeSpec &);
 	StreamPtr<IStream>	sptr;
 	FileUidTp			fileuid;
 	RequestUidTp		requid;
@@ -106,7 +106,7 @@ int IStreamCommand::execute(Object &_robj){
 	return _robj.receiveIStream(sptr, fileuid, requid);
 }
 
-int IStreamCommand::execute(cs::CommandExecuter& _rce, const CommandUidTp &, TimeSpec &){
+int IStreamCommand::execute(uint32 _evs, cs::CommandExecuter& _rce, const CommandUidTp &, TimeSpec &){
 	_rce.receiveIStream(sptr, fileuid, requid);
 	return BAD;
 }
@@ -120,7 +120,7 @@ struct OStreamCommand: test::Command{
 	}
 	int execute(Connection &_pcon);
 	int execute(Object &_pobj);
-	int execute(cs::CommandExecuter&, const CommandUidTp &, TimeSpec &);
+	int execute(uint32 _evs, cs::CommandExecuter&, const CommandUidTp &, TimeSpec &);
 	StreamPtr<OStream>	sptr;
 	FileUidTp			fileuid;
 	RequestUidTp		requid;
@@ -134,7 +134,7 @@ int OStreamCommand::execute(Connection &_rcon){
 int OStreamCommand::execute(Object &_robj){
 	return _robj.receiveOStream(sptr, fileuid, requid);
 }
-int OStreamCommand::execute(cs::CommandExecuter& _rce, const CommandUidTp &, TimeSpec &){
+int OStreamCommand::execute(uint32 _evs, cs::CommandExecuter& _rce, const CommandUidTp &, TimeSpec &){
 	_rce.receiveOStream(sptr, fileuid, requid);
 	return NOK;
 }
@@ -149,7 +149,7 @@ struct IOStreamCommand: test::Command{
 	}
 	int execute(Connection &_pcon);
 	int execute(Object &_pobj);
-	int execute(cs::CommandExecuter&, const CommandUidTp &, TimeSpec &);
+	int execute(uint32 _evs, cs::CommandExecuter&, const CommandUidTp &, TimeSpec &);
 	StreamPtr<IOStream>	sptr;
 	FileUidTp			fileuid;
 	RequestUidTp		requid;
@@ -164,7 +164,7 @@ int IOStreamCommand::execute(Object &_robj){
 	return _robj.receiveIOStream(sptr, fileuid, requid);
 }
 
-int IOStreamCommand::execute(cs::CommandExecuter& _rce, const CommandUidTp &, TimeSpec &){
+int IOStreamCommand::execute(uint32 _evs, cs::CommandExecuter& _rce, const CommandUidTp &, TimeSpec &){
 	_rce.receiveIOStream(sptr, fileuid, requid);
 	return NOK;
 }
@@ -177,7 +177,7 @@ struct StreamErrorCommand: test::Command{
 	StreamErrorCommand(int _errid, const RequestUidTp &_requid):errid(_errid), requid(_requid){}
 	int execute(Connection &_pcon);
 	int execute(Object &_pobj);
-	int execute(cs::CommandExecuter&, const CommandUidTp &, TimeSpec &);
+	int execute(uint32 _evs, cs::CommandExecuter&, const CommandUidTp &, TimeSpec &);
 	int				errid;
 	RequestUidTp	requid;
 };
@@ -189,7 +189,7 @@ int StreamErrorCommand::execute(Connection &_rcon){
 int StreamErrorCommand::execute(Object &_robj){
 	return _robj.receiveError(errid, requid);
 }
-int StreamErrorCommand::execute(cs::CommandExecuter& _rce, const CommandUidTp &, TimeSpec &){
+int StreamErrorCommand::execute(uint32 _evs, cs::CommandExecuter& _rce, const CommandUidTp &, TimeSpec &){
 	_rce.receiveError(errid, requid);
 	return NOK;
 }
