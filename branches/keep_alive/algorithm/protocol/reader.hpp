@@ -25,6 +25,9 @@
 #include "algorithm/protocol/parameter.hpp"
 #include "algorithm/protocol/logger.hpp"
 #include "utility/stack.hpp"
+#include <string>
+
+typedef std::string String;
 
 namespace protocol{
 

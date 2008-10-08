@@ -54,8 +54,8 @@ public:
 	static int reinit(protocol::Writer &_rw, protocol::Parameter &_rp){
 		return reinterpret_cast<C*>(_rp.a.p)->reinitWriter(static_cast<Writer&>(_rw), _rp);
 	}
-	protocol::String &message(){return msgs;}
-	protocol::String &tag(){return tags;}
+	String &message(){return msgs;}
+	String &tag(){return tags;}
 private:
 	//! Asynchrounously writes a quoted string
 	static int putQString(protocol::Writer &_rw, protocol::Parameter &_rp);
@@ -63,8 +63,8 @@ private:
 	//virtual int doManage(int _mo);
 private:
 	clientserver::tcp::Channel	&rch;
-	protocol::String			msgs;
-	protocol::String			tags;
+	String						msgs;
+	String						tags;
 };
 
 }
