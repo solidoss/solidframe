@@ -256,7 +256,7 @@ struct RemoteListCommand: test::Command{
 	}
 	~RemoteListCommand(){
 		idbg(""<<(void*)this);
-		//delete ppthlst;
+		delete ppthlst;
 	}
 	int ipcReceived(cs::ipc::CommandUid &_rcmduid, const cs::ipc::ConnectorUid &_rconid);
 	int execute(test::Connection &);
