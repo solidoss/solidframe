@@ -37,57 +37,42 @@ namespace udp{
 #include "station.ipp"
 #endif
 //-----------------------------------------------------------------------------------------
-Station* Station::create(){
-	int sd = socket(AF_INET, SOCK_DGRAM, 0);
-	if(sd < 0) return NULL;
-	if(fcntl(sd, F_SETFL, O_NONBLOCK) < 0){
-		close(sd);
-		return NULL;
-	}
-	return new Station(sd);
-}
+// Station* Station::create(){
+// 	SocketDevice sd;
+// 	sd.create(AddrInfo::Inet4, AddrInfo::Datagram, 0);
+// 	sd.makeNonBlocking();
+// 	if(sd.ok())	return new Station(sd);
+// 	return NULL;
+// }
 //-----------------------------------------------------------------------------------------
 Station* Station::create(const AddrInfoIterator &_rai){
-	if(_rai.type() != AddrInfo::Datagram) return NULL;
-	int sd = socket(_rai.family(), _rai.type(), _rai.protocol());
-	if(sd < 0) return NULL;
-	
-	if(bind(sd, _rai.addr(), _rai.size()) < 0) {
-		close(sd);
-		return NULL;
-	}
-	if(fcntl(sd, F_SETFL, O_NONBLOCK) < 0){
-		close(sd);
-		return NULL;
-	}
-	return new Station(sd);
+	SocketDevice sd;
+	sd.create(_rai);
+	sd.bind(_rai);
+	sd.makeNonBlocking();
+	if(sd.ok()) return new Station(sd);
+	return NULL;
 }
 //-----------------------------------------------------------------------------------------
 Station *Station::create(const SockAddrPair &_rsa, AddrInfo::Family _fam, int _proto){
-	int sd = socket(_fam, AddrInfo::Datagram, _proto);
-	if(sd < 0) return NULL;
-	if(bind(sd, _rsa.addr, _rsa.size) < 0) {
-		close(sd);
-		return NULL;
-	}
-	if(fcntl(sd, F_SETFL, O_NONBLOCK) < 0){
-		close(sd);
-		return NULL;
-	}
-	return new Station(sd);
+	SocketDevice sd;
+	sd.create(_fam, AddrInfo::Datagram, _proto);
+	sd.makeNonBlocking();
+	sd.bind(_rsa);
+	if(sd.ok())	return new Station(sd);
+	return NULL;
 }
 //-----------------------------------------------------------------------------------------
-Station::Station(int _sd):sd(_sd),rcvsz(0){
+Station::Station(SocketDevice &_sd):sd(_sd),rcvsz(0){
 }
 //-----------------------------------------------------------------------------------------
 Station::~Station(){
-    close(sd);
 }
 //-----------------------------------------------------------------------------------------
 int Station::recvFrom(char *_pb, unsigned _bl, unsigned _flags){
 	if(!_bl) return OK;
 	rcvsa.size() = SocketAddress::MaxSockAddrSz;
-	ssize_t rv = recvfrom(descriptor(), _pb, _bl, 0, rcvsa.addr(), &rcvsa.size());
+	ssize_t rv = sd.recv(_pb, _bl, rcvsa);
 	if(rv > 0){
 		rcvsz = rv;
 		rcvd.sap.addr = rcvsa.addr();
@@ -106,7 +91,7 @@ int Station::recvFrom(char *_pb, unsigned _bl, unsigned _flags){
 int Station::sendTo(const char *_pb, unsigned _bl, const SockAddrPair &_sap, unsigned _flags){
 	if(!_bl) return OK;
 	if(sndq.empty()){
-		ssize_t rv = sendto(descriptor(), _pb, _bl, 0, _sap.addr, _sap.size);
+		ssize_t rv = sd.send(_pb, _bl, _sap);
 		if(rv == (ssize_t)_bl) return OK;
 		if(rv >= 0) return BAD;
 		if(rv < 0 && errno != EAGAIN) return BAD;
@@ -118,7 +103,7 @@ int Station::sendTo(const char *_pb, unsigned _bl, const SockAddrPair &_sap, uns
 int Station::doRecv(){
 	if(rcvd.b.pb){
 		rcvsa.size() = SocketAddress::MaxSockAddrSz;
-		ssize_t rv = recvfrom(descriptor(), rcvd.b.pb, rcvd.bl, 0, rcvsa.addr(), &rcvsa.size());
+		ssize_t rv = sd.recv(rcvd.b.pb, rcvd.bl, rcvsa);
 		if(rv > 0) {
 			rcvd.b.pb = NULL; rcvsz = rv; 
 			rcvd.sap.addr = rcvsa.addr();
@@ -136,7 +121,7 @@ int Station::doRecv(){
 int Station::doSend(){
 	while(sndq.size()){
 		Data &sndd = sndq.front();
-		ssize_t rv = sendto(descriptor(), sndd.b.pcb, sndd.bl, 0, sndd.sap.addr, sndd.sap.size);
+		ssize_t rv = sd.send(sndd.b.pcb, sndd.bl, sndd.sap);
 		if(rv == (ssize_t)sndd.bl){
 			if(sndd.flags & RAISE_ON_DONE) rv = OUTDONE;
 			sndq.pop();

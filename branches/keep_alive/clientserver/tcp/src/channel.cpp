@@ -47,21 +47,17 @@ Channel* Channel::create(const AddrInfoIterator &_rai){
 // 		edbgx(Dbg::tcp, "Error creating socket: "<<strerror(errno));
 // 		return NULL;
 // 	}
-	return new Channel(-1);
+	return new Channel();
 }
 
-Channel::Channel(int _sd):sd(_sd), rcvcnt(0), sndcnt(0), pcd(NULL), psch(NULL){
-	if(ok() && fcntl(sd, F_SETFL, O_NONBLOCK) < 0){
-		close(sd);
-		sd = -1;
-	}
+Channel::Channel():rcvcnt(0), sndcnt(0), pcd(NULL), psch(NULL){
+}
+
+Channel::Channel(SocketDevice &_sd):sd(_sd), rcvcnt(0), sndcnt(0), pcd(NULL), psch(NULL){
+	sd.makeNonBlocking();
 }
 
 Channel::~Channel(){
-	if(ok()){
-		shutdown(sd, SHUT_RDWR);
-		close(sd);
-	}
 }
 
 uint32 Channel::recvSize()const {
@@ -89,61 +85,28 @@ int Channel::arePendingRecvs(){
 }
 
 int Channel::localAddress(SocketAddress &_rsa){
-	_rsa.clear();
-	_rsa.size() = SocketAddress::MaxSockAddrSz;
-	int rv = getsockname(sd, _rsa.addr(), &_rsa.size());
-	if(rv){
-		idbgx(Dbg::tcp, "error getting local socket address: "<<strerror(errno));
-		return BAD;
-	}
-	return OK;
+	return sd.localAddress(_rsa);
 }
 
 int Channel::remoteAddress(SocketAddress &_rsa){
-	_rsa.clear();
-	_rsa.size() = SocketAddress::MaxSockAddrSz;
-	int rv = getpeername(sd, _rsa.addr(), &_rsa.size());
-	if(rv){
-		idbgx(Dbg::tcp, "error getting local socket address: "<<strerror(errno));
-		return BAD;
-	}
-	return OK;
+	return sd.remoteAddress(_rsa);
 }
 
 
 //TODO: try to only do connect here
 // and create the socket, bind it to a certain interface in 'create'
 int Channel::connect(const AddrInfoIterator &_it){
-	//in order to make the selector wait for data out, just add an empty buffer to snddq.
-	if(ok()){
-		close(sd);
+	if(sd.ok()){
+		sd.close();
 	}
 	
-	sd = socket(_it.family(), _it.type(), _it.protocol());
-	
-	if(!ok()) return BAD;
-	
-	int flg = fcntl(sd, F_GETFL);
-	
-	if(flg == -1){
-		idbgx(Dbg::tcp, "Error fcntl getfl: "<<strerror(errno));
-		close(sd);
-		sd = -1;
-		return BAD;
-	}
-	if(fcntl(sd, F_SETFL, flg | O_NONBLOCK) < 0){
-		idbgx(Dbg::tcp, "Error fcntl setfl: "<<strerror(errno));
-		close(sd);
-		sd = -1;
-		return BAD;
-	}
-	int rv = ::connect(sd, _it.addr(), _it.size());
-	if(rv < 0){
-		if(errno != EINPROGRESS) return BAD;
-		rv = NOK;
+	sd.create(_it);
+	sd.makeNonBlocking();
+	int rv = sd.connect(_it);
+	if(rv == NOK){
 		pcd->pushSend((const char*) NULL, 0, RAISE_ON_END);
 		pcd->flags |= OUTTOUT;
-	}else rv = OK;
+	}
 	return rv;
 }
 
@@ -152,7 +115,7 @@ int Channel::doSendPlain(const char* _pb, uint32 _bl, uint32 _flags){
 	int rv = 0;
 	if(!pcd->arePendingSends()){
 		//try to send it
-		rv = write(sd, _pb, _bl);
+		rv = sd.write(_pb, _bl);
 		if(rv == (int)_bl) return OK;
 		if(!rv) return BAD;
 		if(rv < 0){
@@ -172,7 +135,7 @@ int Channel::doSendSecure(const char* _pb, uint32 _bl, uint32 _flags){
 int Channel::doRecvPlain(char* _pb, uint32 _bl, uint32 _flags){
 	if(!_bl) return OK;
 	if(!(_flags & PREPARE_ONLY)){
-		int rv = read(sd, _pb, _bl);
+		int rv = sd.read(_pb, _bl);
 		if(rv > 0){
 			pcd->rcvsz = rv;
 			return OK;
@@ -217,7 +180,7 @@ int Channel::doRecvPlain(){
 	pcd->flags &= ~INTOUT;
 	int rv;
 	//we've got a buffer
-	rv = read(sd, pcd->rdn.b.pb, pcd->rdn.bl);
+	rv = sd.read(pcd->rdn.b.pb, pcd->rdn.bl);
 	if(rv <= 0) return ERRDONE;
 	pcd->rcvsz = rv;
 	pcd->rdn.b.pb = NULL; //rcvd.flags = 0;
@@ -236,7 +199,7 @@ int Channel::doSendPlain(){
 		//idbgx(Dbg::tcp, "another pending send");
 		DataNode	&rdn = *pcd->psdnfirst;
 		
-		rv = write(sd, rdn.b.pcb, rdn.bl);
+		rv = sd.write(rdn.b.pcb, rdn.bl);
 		if(rv == (int)rdn.bl){
 			if(rdn.flags & RAISE_ON_END) retv |= OUTDONE;
 			pcd->popSendData();

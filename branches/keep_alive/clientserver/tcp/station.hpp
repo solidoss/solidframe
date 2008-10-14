@@ -22,6 +22,7 @@
 #ifndef CS_TCP_STATION_HPP
 #define CS_TCP_STATION_HPP
 
+#include "system/socketdevice.hpp"
 #include <vector>
 
 class AddrInfoIterator;
@@ -49,10 +50,10 @@ public:
 	int accept(ChannelVecTp &_cv);
 private:
 	friend class ListenerSelector;
-	int descriptor()const{return sd;}
+	int descriptor()const{return sd.descriptor();}
 private:
-	Station(int sd);
-	int sd;
+	Station(SocketDevice &_sd);
+	SocketDevice sd;
 };
 
 }//namespace tcp

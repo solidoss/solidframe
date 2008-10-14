@@ -25,6 +25,7 @@
 #include <sys/poll.h>
 
 #include "system/socketaddress.hpp"
+#include "system/socketdevice.hpp"
 
 #include "utility/queue.hpp"
 
@@ -99,13 +100,13 @@ private:
 	//TODO: use the same ideea as in tcp::Channel
 	typedef Queue<Data,4>			DataQueueTp;
 	enum {INTOUT = POLLIN, OUTTOUT = POLLOUT};
-	Station(int sd);
+	Station(SocketDevice &_sd);
 	ulong ioRequest()const;
 	int doSend();
 	int doRecv();
 	int descriptor() const;
 private:
-	int 			sd;
+	SocketDevice	sd;
 	uint			rcvsz;
 	Data			rcvd;
 	SocketAddress	rcvsa;

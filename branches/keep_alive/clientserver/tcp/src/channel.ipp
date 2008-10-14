@@ -32,7 +32,7 @@ inline const uint64& Channel::sendCount()const{
 }
 
 inline int Channel::ok()const{
-	return sd >= 0;
+	return sd.ok();
 }
 
 inline int Channel::send(const char* _pb, uint32 _blen, uint32 _flags){

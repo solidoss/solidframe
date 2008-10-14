@@ -33,6 +33,9 @@ void StreamPtrBase::clear(Stream *_ps){
 Stream::~Stream(){
 }
 
+void Stream::close(){
+}
+
 int Stream::release(){return -1;}
 //bool Stream::isOk()const{return true;}
 

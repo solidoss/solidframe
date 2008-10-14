@@ -39,70 +39,33 @@ namespace clientserver{
 namespace tcp{
 
 Station* Station::create(const AddrInfoIterator &_rai, int _listensz){
-	int sd;
+	SocketDevice sd;
 	if(_rai.type() != AddrInfo::Stream) return NULL;
-	if((sd = socket(_rai.family(), _rai.type(), _rai.protocol())) == -1){
-		edbgx(Dbg::tcp, "error creating listener socket");
-		return NULL;
-	}
-	int yes = 1;
-	if(setsockopt(sd, SOL_SOCKET, SO_REUSEADDR,(char*)&yes,sizeof(yes)) < 0){
-		edbgx(Dbg::tcp, "error setting sockopt");
-		return NULL;
-	}
-// 	struct sockaddr_in      saddr;
-// 	memset(&saddr,0,sizeof(saddr));
-// 	saddr.sin_family = AF_INET;
-// 	//saddr.sin_addr.s_addr = htonl(INADDR_ANY);
-// 	saddr.sin_port = htons(_port);
-	if(bind(sd, _rai.addr(), _rai.size()) == -1){
-		edbgx(Dbg::tcp, "error while binding");
-		close(sd);
-		return NULL;
-	}
-	if(listen(sd, _listensz) == -1){//make
-		edbgx(Dbg::tcp, "error listening");
-		close(sd);
-		return NULL;
-	}
-	if(fcntl(sd, F_SETFL, O_NONBLOCK) < 0){
-		//TODO: some error message.
-		edbgx(Dbg::tcp, "error making server socket nonblocking");
-		close(sd);
-		return NULL;
-
-	}
-	/*
-	timeval tv;
-	tv.tv_sec = 0;
-	tv.tv_usec = 2*50;
-	setsockopt(sd,SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
-	setsockopt(sd,SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));*/
-	return new Station(sd);
+	
+	sd.create(_rai);
+	sd.makeNonBlocking();
+	sd.prepareAccept(_rai, _listensz);
+	if(sd.ok())	return new Station(sd);
+	return NULL;
 
 }
-Station::Station(int _sd):sd(_sd){
+Station::Station(SocketDevice &_sd):sd(_sd){
 }
 Station::~Station(){
-	close(sd);
 }
 int Station::accept(ChannelVecTp &_cv/*, Constrainer &_rcons*/){
 	sockaddr_in		saddr;
 	_cv.clear();
 	//struct sockaddr_in      saddr;
 	do{
-		int psd;
-		socklen_t len = sizeof(saddr);
-		if((psd = ::accept(sd,(struct sockaddr*) &saddr, &len)) < 0){
-			if(errno == EAGAIN){
-				idbgx(Dbg::tcp, "eagain on accept");
-				return NOK;
-			}
-			edbgx(Dbg::tcp, "error accepting");
-			return BAD;
+		SocketDevice csd;
+		switch(sd.accept(csd)){
+			case BAD: return BAD;
+			case OK: break;
+			case NOK: return NOK;
 		}
 		//TODO: not so nice so try to change.
-		Channel *pch = new Channel(psd);
+		Channel *pch = new Channel(csd);
 		if(pch->ok()) _cv.push_back(pch);
 		else delete pch;
 	}while(_cv.size() < _cv.capacity());

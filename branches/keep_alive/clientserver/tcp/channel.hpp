@@ -24,7 +24,7 @@
 
 #include <sys/epoll.h>
 
-#include "system/socketaddress.hpp"
+#include "system/socketdevice.hpp"
 #include "utility/queue.hpp"
 #include "clientserver/core/common.hpp"
 
@@ -66,7 +66,7 @@ public:
 		TRY_ONLY = 4, 
 		PREPARE_ONLY = 8};
 	static Channel* create(const AddrInfoIterator &_rai);
-	//Channel();
+	Channel();
 	~Channel();
 	//! Returns true if the socket was successfully created.
 	int ok()const;
@@ -91,7 +91,7 @@ public:
 	int remoteAddress(SocketAddress &_rsa);
 protected:
 private:
-	Channel(int _sd);
+	Channel(SocketDevice &_sd);
 	enum {
 		INTOUT = EPOLLIN,
 		OUTTOUT = EPOLLOUT,
@@ -116,9 +116,9 @@ private:
 	int doSendPlain();
 	int doSendSecure();
 	void clear();
-	int descriptor()const{return sd;}
+	int descriptor()const{return sd.descriptor();}
 private:
-	int 				sd;
+	SocketDevice		sd;
 	uint64				rcvcnt;
 	uint64				sndcnt;
 	//NOTE: rcvcnt and sndcnt not in pcd because a connection can switch pools

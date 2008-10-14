@@ -38,7 +38,7 @@ public:
 		Warn = 4,
 		Debug = 8,
 		Input = 16,
-		Ouput = 32,
+		Output = 32,
 		AllLevels = 0xffff
 	};
 	

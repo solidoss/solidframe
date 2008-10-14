@@ -68,7 +68,7 @@ struct LogHead{
 	uint16	procnamelen;
 	uint32	procid;
 	uint16	modulecnt;
-	uint16	unused;
+	uint16	flags;
 };
 
 }//namespace audit

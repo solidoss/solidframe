@@ -50,7 +50,7 @@ inline const SockAddrPair &Station::recvAddr()const{
 	return rcvd.sap;
 }
 inline int Station::descriptor()const{
-	return sd;
+	return sd.descriptor();
 }
 inline ulong Station::ioRequest()const{
 	ulong rv = rcvd.b.pb ? INTOUT : 0;
