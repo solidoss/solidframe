@@ -1,5 +1,7 @@
-#ifndef AUDIT_LOGCONNECTOR_HPP
-#define AUDIT_LOGCONNECTOR_HPP
+#ifndef AUDIT_LOGCONNECTORS_HPP
+#define AUDIT_LOGCONNECTORS_HPP
+
+#include "audit/log/logconnector.hpp"
 
 namespace audit{
 
@@ -22,3 +24,4 @@ private:
 
 }//namespace audit
 
+#endif

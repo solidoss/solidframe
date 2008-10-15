@@ -7,6 +7,7 @@
 namespace audit{
 
 class LogFileRecorder: public LogRecorder{
+public:
 	LogFileRecorder(const char*_name = NULL, bool _dorespin = false):respin(_dorespin ? 0 : -1){
 		if(_name) name = _name;
 	}
@@ -22,3 +23,5 @@ protected:
 };
 
 }//namespace audit
+
+#endif

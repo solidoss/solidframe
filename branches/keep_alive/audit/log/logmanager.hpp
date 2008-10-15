@@ -1,7 +1,14 @@
 #ifndef AUDIT_LOGMANAGER_HPP
 #define AUDIT_LOGMANAGER_HPP
 
+#include <utility>
+#include "system/common.hpp"
+
+class IStream;
+
 namespace audit{
+
+class LogConnector;
 
 class LogManager{
 public:
@@ -9,8 +16,8 @@ public:
 	LogManager();
 	~LogManager();
 	
-	UidTp addChannel(IStream *_pis);
-	UidTp addListener(const char *_addr, const char *_port);
+	UidTp insertChannel(IStream *_pis);
+	UidTp insertListener(const char *_addr, const char *_port);
 	
 	void eraseClient(const UidTp &_ruid);
 	void eraseListener(const UidTp &_ruid);

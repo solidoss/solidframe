@@ -1,7 +1,10 @@
 #include "audit/log/logrecorders.hpp"
 #include "audit/log/logclientdata.hpp"
 #include "audit/log/logrecord.hpp"
+#include "audit/log.hpp"
 #include <ctime>
+#include <string>
+using namespace std;
 namespace audit{
 
 //--------------------------------------------------------

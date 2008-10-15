@@ -217,7 +217,9 @@ int Thread::start(int _wait, int _detached, ulong _stacksz){
 		}
 	}
 	if(_stacksz){
-		if(pthread_attr_setstacksize(&attr, _stacksz)){
+		int rv = pthread_attr_setstacksize(&attr, _stacksz);
+		if(rv){
+			edbg("pthread_attr_setstacksize " <<strerror(rv)<<" "<<strerror(errno));
 			pthread_attr_destroy(&attr);
 			idbg("could not set staksize");
 			return BAD;

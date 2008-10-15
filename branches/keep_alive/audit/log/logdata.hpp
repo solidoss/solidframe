@@ -46,11 +46,11 @@ struct LogRecordHead{
 
 struct LogHead{
 	LogHead(
-		uint32 _procid,
-		uint16 _procnamelen,
-		uint16 _modulecnt
+		uint32 _procid = 0,
+		uint16 _procnamelen = 0,
+		uint16 _modulecnt = 0
 	):version(1), procnamelen(_procnamelen),
-		procid(_procid), modulecnt(_modulecnt), unused(0xffff){}
+		procid(_procid), modulecnt(_modulecnt), flags(0xffff){}
 	
 	void convertToNetwork(){
 		version = toNetwork(version);

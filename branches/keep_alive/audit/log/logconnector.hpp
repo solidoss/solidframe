@@ -1,13 +1,16 @@
 #ifndef AUDIT_LOGCONNECTOR_HPP
 #define AUDIT_LOGCONNECTOR_HPP
 
+#include "system/common.hpp"
+
 namespace audit{
 
-class RecorderVector;
+class LogRecorderVector;
 class LogRecord;
 class LogClientData;
 
 class LogConnector{
+public:
 	LogConnector();
 	virtual ~LogConnector();
 	bool destroy();
