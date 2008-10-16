@@ -217,6 +217,9 @@ int Thread::start(int _wait, int _detached, ulong _stacksz){
 		}
 	}
 	if(_stacksz){
+		if(_stacksz < PTHREAD_STACK_MIN){
+			_stacksz = PTHREAD_STACK_MIN;
+		}
 		int rv = pthread_attr_setstacksize(&attr, _stacksz);
 		if(rv){
 			edbg("pthread_attr_setstacksize " <<strerror(rv)<<" "<<strerror(errno));

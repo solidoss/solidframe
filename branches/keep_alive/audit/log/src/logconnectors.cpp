@@ -68,7 +68,7 @@ LogBasicConnector::~LogBasicConnector(){
 }
 /*virtual*/ void LogBasicConnector::eraseClient(uint32 _idx, uint32 _uid){
 	if(_idx < d.rv.size()){
-		cassert(d.rv[_idx]);
+		//cassert(d.rv[_idx]);
 		delete d.rv[_idx];
 		d.rv[_idx] = NULL;
 	}
@@ -107,7 +107,9 @@ LogRecorder* LogBasicConnector::createRecorder(const LogClientData &_rcl){
 		_rcl.head.procid
 	);
 	pth += buf;
-	return new LogFileRecorder(pth.c_str());
+	LogFileRecorder* pl = new LogFileRecorder(pth.c_str());
+	pl->open();
+	return pl;
 }
 
 }//namespace audit

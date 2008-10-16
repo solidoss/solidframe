@@ -29,6 +29,7 @@ struct SocketIStream: IStream{
 		return -1;
 	}
 	void close(){
+		sd.shutdownReadWrite();
 		sd.close();
 	}
 	SocketDevice	sd;
@@ -124,15 +125,15 @@ LogManager::UidTp LogManager::insertChannel(IStream *_pins){
 	UidTp	uid;
 	if(d.chns.size()){
 		d.chnv[d.chns.top()].pins = _pins;
-		uid.first = d.chns.top();
-		uid.second = d.chnv[d.chns.top()].uid;
+		uid.first = d.chns.top();d.chns.pop();
+		uid.second = d.chnv[uid.first].uid;
 	}else{
 		d.chnv.push_back(Data::Channel(_pins));
 		uid.first = d.chnv.size() - 1;
 		uid.second = 0;
 	}
 	ChannelWorker *pw = new ChannelWorker(*this, uid.first);
-	pw->start(false, true, 10000);
+	pw->start(false, true, 100000);
 	return uid;
 }
 LogManager::UidTp LogManager::insertListener(const char *_addr, const char *_port){
@@ -140,8 +141,8 @@ LogManager::UidTp LogManager::insertListener(const char *_addr, const char *_por
 	if(d.state != Data::Running){return UidTp(0xffffffff, 0xffffffff);}
 	UidTp	uid;
 	if(d.lsns.size()){
-		uid.first = d.lsns.top();
-		uid.second = d.lsnv[d.lsns.top()].uid;
+		uid.first = d.lsns.top();d.lsns.pop();
+		uid.second = d.lsnv[uid.first].uid;
 	}else{
 		if(d.lsnv.size() == 63){
 			return UidTp(0xffffffff, 0xffffffff);
@@ -151,7 +152,7 @@ LogManager::UidTp LogManager::insertListener(const char *_addr, const char *_por
 		uid.second = 0;
 	}
 	ListenerWorker *pw = new ListenerWorker(*this, _addr, _port, uid.first);
-	pw->start(false, true, 10000);
+	pw->start(false, true, 100000);
 	return uid;
 }
 
@@ -187,12 +188,13 @@ void LogManager::stop(bool _wait){
 			}
 		}
 		for(Data::ListenerVectorTp::iterator it(d.lsnv.begin()); it != d.lsnv.end(); ++it){
+			it->sd.shutdownReadWrite();
 			it->sd.close();
 			it->ready = false;
 		}
 	}
 	if(_wait){
-		while(d.lsnv.size() != d.lsns.size() && d.chnv.size() != d.chns.size()){
+		while(d.lsnv.size() != d.lsns.size() || d.chnv.size() != d.chns.size()){
 			d.statecnd.wait(d.m);
 		}
 		d.state = Data::Stopped;
@@ -227,6 +229,7 @@ void LogManager::runListener(ListenerWorker &_w){
 	{
 		AddrInfo ai(_w.addr.c_str(), _w.port.c_str(), 0, AddrInfo::Inet4, AddrInfo::Stream);
 		if(!ai.empty()){
+			sd.create(ai.begin());
 			sd.prepareAccept(ai.begin(), 10);
 		}else{
 			edbg("create address "<<_w.addr<<'.'<<_w.port);
@@ -250,9 +253,9 @@ void LogManager::runListener(ListenerWorker &_w){
 	}
 	//in the end we unregister the listener
 	Mutex::Locker lock(d.m);
-	
+	++d.lsnv[_w.idx].uid;
 	d.lsns.push(_w.idx);
-	
+	d.statecnd.signal();
 }
 
 void readClientData(LogClientData &_rcd, IStream &_ris){
@@ -263,7 +266,7 @@ void readClientData(LogClientData &_rcd, IStream &_ris){
 	for(uint i = 0; i < _rcd.head.modulecnt; ++i){
 		_rcd.modulenamev.push_back(string());
 		uint32 	sz;
-		if(!_ris.readAll((char*)sz, sizeof(uint32))) return;
+		if(!_ris.readAll((char*)&sz, sizeof(uint32))) return;
 		sz = toHost(sz);
 		_rcd.modulenamev.back().resize(sz);
 		if(!_ris.readAll((char*)_rcd.modulenamev.back().data(), sz)) return;
@@ -289,10 +292,11 @@ void LogManager::runChannel(ChannelWorker &_w){
 		LogRecord			rec;
 		//uint32 sz;
 		while(
-			pis->readAll((char*)&rec.head, sizeof(rec.head)) && 
-			pis->readAll(rec.data(rec.size()), rec.size(rec.head.datalen))
+			pis->readAll((char*)&rec.head, sizeof(rec.head))
 		){
-			
+			rec.head.convertToHost();
+			if(!pis->readAll(rec.data(rec.size()), rec.size(rec.head.datalen))) break;
+			idbg("read: "<<rec.data());
 			//prepare repositories, fetching the list of writers
 			d.m.lock();
 			for(Data::ConnectorVectorTp::const_iterator it(d.conv.begin()); it != d.conv.end(); ++it){
@@ -321,9 +325,16 @@ void LogManager::runChannel(ChannelWorker &_w){
 		}
 	}
 	Mutex::Locker lock(d.m);
+	for(Data::ConnectorVectorTp::const_iterator it(d.conv.begin()); it != d.conv.end(); ++it){
+		if(it->first){
+			it->first->eraseClient(cd.idx, cd.uid);
+		}
+	}
 	delete pis;
 	d.chnv[_w.idx].pins = NULL;
+	++d.chnv[_w.idx].uid;
 	d.chns.push(_w.idx);
+	d.statecnd.signal();
 }
 //==============================================================
 char* LogRecord::data(uint32 _sz){

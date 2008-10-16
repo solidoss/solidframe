@@ -14,7 +14,7 @@ struct LogRecord{
 	//! the record' source file name
 	const char*fileName()const{return d;}
 	//! the record' source function name
-	const char*functionName()const{return d + head.functionnamelen;}
+	const char*functionName()const{return d + head.filenamelen;}
 	//! record's text data
 	const char*data()const{return d + head.filenamelen + head.functionnamelen;}
 	//! record text data size

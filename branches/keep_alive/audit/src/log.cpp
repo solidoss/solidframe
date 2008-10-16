@@ -168,8 +168,8 @@ void stringoutbuf::current(
 	_file += fileoff;
 	clear();
 	audit::LogRecordHead &lh(*((audit::LogRecordHead*)s.data()));
-	uint32	filenamelen = strlen(_file) + 1;
-	uint32	functionnamelen = strlen(_function) + 1;
+	uint32	filenamelen = strlen(_file) + 1;//including the terminal \0
+	uint32	functionnamelen = strlen(_function) + 1;//including the terminal \0
 	TimeSpec tt;
 	clock_gettime(CLOCK_MONOTONIC, &tt);
 	tt -= ct;
