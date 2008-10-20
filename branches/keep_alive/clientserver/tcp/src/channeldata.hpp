@@ -50,7 +50,7 @@ struct ChannelData{
 	static void push(ChannelData *&_rpcd);
 	static unsigned specificCount();
 	void specificRelease();
-	long arePendingSends();
+	bool arePendingSends()const;
 	void pushSend(const char *_pb, uint32 _sz, uint32 _flags);
 	void popSendData();
 	void setRecv(char *_pb, uint32 _sz, uint32 _flags);

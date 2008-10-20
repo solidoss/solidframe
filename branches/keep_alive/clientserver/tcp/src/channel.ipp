@@ -31,7 +31,7 @@ inline const uint64& Channel::sendCount()const{
 	return sndcnt;
 }
 
-inline int Channel::ok()const{
+inline bool Channel::ok()const{
 	return sd.ok();
 }
 

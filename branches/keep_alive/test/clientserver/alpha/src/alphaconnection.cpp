@@ -38,6 +38,7 @@
 #include "alphaconnection.hpp"
 #include "alphacommand.hpp"
 #include "alphaprotocolfilters.hpp"
+#include "audit/log.hpp"
 
 namespace cs=clientserver;
 static char	*hellostr = "Welcome to alpha service!!!\r\n"; 
@@ -46,14 +47,28 @@ static char *sigstr = "Signaled!!!\r\n";
 namespace test{
 namespace alpha{
 
+void Logger::doInFlush(const char *_pb, unsigned _bl){
+	if(Log::instance().isSet(Log::any, Log::Input)){
+		Log::instance().record(Log::Input, Log::any, 0, __FILE__, __FUNCTION__, __LINE__).write(_pb, _bl);
+		Log::instance().done();
+	}
+}
+
+void Logger::doOutFlush(const char *_pb, unsigned _bl){
+	if(Log::instance().isSet(Log::any, Log::Output)){
+		Log::instance().record(Log::Output, Log::any, 0, __FILE__, __FUNCTION__, __LINE__).write(_pb, _bl);
+		Log::instance().done();
+	}
+}
+
 void Connection::initStatic(Server &_rs){
 	Command::initStatic(_rs);
 }
 
 Connection::Connection(cs::tcp::Channel *_pch, SocketAddress *_paddr):
 						 	BaseTp(_pch),
-						 	wtr(*_pch),
-						 	rdr(*_pch, wtr), pcmd(NULL),
+						 	wtr(*_pch, &logger),
+						 	rdr(*_pch, wtr, &logger), pcmd(NULL),
 						 	paddr(_paddr),
 						 	reqid(1){
 	
@@ -174,7 +189,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 				SocketAddress::MaxSockServSz,
 				SocketAddress::NumericService | SocketAddress::NumericHost
 			);
-			writer()<<host<<':'<<port<<"]\r\n";
+			writer()<<host<<':'<<port<<"]"<<'\r'<<'\n';
 			writer().push(&Writer::flushAll);
 			state(Execute);
 			}break;
@@ -196,11 +211,13 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			}
 			if(reader().isError()){
 				delete pcmd; pcmd = NULL;
+				logger.inFlush();
 				state(Execute);
 				writer().push(Writer::putStatus);
 				break;
 			}
 		case ExecutePrepare:
+			logger.inFlush();
 			idbg("PrepareExecute");
 			pcmd->execute(*this);
 			state(Execute);
@@ -264,6 +281,7 @@ int Connection::execute(){
 void Connection::prepareReader(){
 	writer().clear();
 	reader().clear();
+	//logger.outFlush();
 	reader().push(&Reader::checkChar, protocol::Parameter('\n'));
 	reader().push(&Reader::checkChar, protocol::Parameter('\r'));
 	reader().push(&Reader::fetchKey<Reader, Connection, AtomFilter, Command>, protocol::Parameter(this, 64));

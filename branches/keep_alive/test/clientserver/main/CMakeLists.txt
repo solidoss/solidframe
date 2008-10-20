@@ -20,6 +20,8 @@ target_link_libraries (test
 	clientserver_udp
 	clientserver_core
 	protocol
+	audit_log_manager
+	audit_log
 	serialization
 	utility
 	system

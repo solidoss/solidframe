@@ -45,7 +45,11 @@ static const char *char2name[128] = {
 };
 
 
-Reader::Reader(clientserver::tcp::Channel &_rch, Writer &_rw):rch(_rch),rw(_rw){
+Reader::Reader(
+	clientserver::tcp::Channel &_rch,
+	Writer &_rw,
+	protocol::Logger *_plog
+):protocol::Reader(_plog), rch(_rch), rw(_rw){
 }
 Reader::~Reader(){
 }

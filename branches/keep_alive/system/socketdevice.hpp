@@ -23,8 +23,8 @@ public:
 	bool isBlocking();
 	int send(const char* _pb, unsigned _ul, const SockAddrPair &_sap);
 	int recv(char *_pb, unsigned _ul, SocketAddress &_rsa);
-	int remoteAddress(SocketAddress &_rsa);
-	int localAddress(SocketAddress &_rsa);
+	int remoteAddress(SocketAddress &_rsa)const;
+	int localAddress(SocketAddress &_rsa)const;
 	int descriptor()const{return Device::descriptor();}
 };
 

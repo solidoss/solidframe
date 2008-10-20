@@ -47,7 +47,7 @@ public:
 	enum{
 		QuotedString = LastBasicError
 	};
-	Reader(clientserver::tcp::Channel &_rch, Writer &_rw);
+	Reader(clientserver::tcp::Channel &_rch, Writer &_rw, protocol::Logger *_plog = NULL);
 	~Reader();
 	void clear();
 	//! Asynchrounously reads an astring (atom/quoted/literal)

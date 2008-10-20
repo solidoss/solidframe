@@ -48,6 +48,12 @@ namespace alpha{
 class Service;
 class Command;
 
+class Logger: public protocol::Logger{
+protected:
+	virtual void doInFlush(const char*, unsigned);
+	virtual void doOutFlush(const char*, unsigned);
+};
+
 //! Alpha connection implementing the alpha protocol resembling somehow the IMAP protocol
 /*!
 	It uses a reader and a writer to implement a state machine for the 
@@ -163,7 +169,7 @@ private:
 		Connect,
 		ConnectTout
 	};
-	protocol::Logger	logger;
+	Logger				logger;
 	Writer				wtr;
 	Reader				rdr;
 	Command				*pcmd;

@@ -76,8 +76,8 @@ inline /*static*/ unsigned ChannelData::specificCount(){
 inline void ChannelData::specificRelease(){
 }
 
-inline long ChannelData::arePendingSends(){
-	return (long)psdnfirst;
+inline bool ChannelData::arePendingSends()const{
+	return psdnfirst != NULL;
 }
 
 inline void ChannelData::setRecv(char *_pb, uint32 _sz, uint32 _flags){

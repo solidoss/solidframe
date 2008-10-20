@@ -29,6 +29,11 @@
 #include "echo/echoservice.hpp"
 #include "alpha/alphaservice.hpp"
 #include "beta/betaservice.hpp"
+#include "audit/log/logmanager.hpp"
+#include "audit/log/logconnectors.hpp"
+#include "audit/log.hpp"
+#include "utility/iostream.hpp"
+#include "system/directory.hpp"
 
 #include "clientserver/ipc/ipcservice.hpp"
 #include "clientserver/tcp/station.hpp"
@@ -51,8 +56,36 @@ int insertTalker(char *_pc, int _len, test::Server &_rts);
 // inserts a new connection
 int insertConnection(char *_pc, int _len, test::Server &_rts);
 
+
+struct DeviceIOStream: IOStream{
+	DeviceIOStream(int _d, int _pd):d(_d), pd(_pd){}
+	void close(){
+		int tmp = d;
+		d = -1;
+		if(pd > 0){
+			::close(tmp);
+			::close(pd);
+		}
+	}
+	/*virtual*/ int read(char *_pb, uint32 _bl, uint32 _flags = 0){
+		int rv = ::read(d, _pb, _bl);
+		return rv;
+	}
+	/*virtual*/ int write(const char *_pb, uint32 _bl, uint32 _flags = 0){
+		return ::write(d, _pb, _bl);
+	}
+	int64 seek(int64, SeekRef){
+		return -1;
+	}
+	int d;
+	int pd;
+};
+
+int pairfd[2];
+
 int main(int argc, char* argv[]){
 	signal(SIGPIPE, SIG_IGN);
+	pipe(pairfd);
 	cout<<"Built on SolidGround version "<<SG_MAJOR<<'.'<<SG_MINOR<<'.'<<SG_PATCH<<endl;
 	Thread::init();
 #ifdef UDEBUG
@@ -69,6 +102,14 @@ int main(int argc, char* argv[]){
 	cout<<"Debug bits: "<<s<<endl;
 	}
 #endif
+	audit::LogManager lm;
+	lm.start();
+	lm.insertChannel(new DeviceIOStream(pairfd[0], pairfd[1]));
+	lm.insertListener("localhost", "3333");
+	Directory::create("log");
+	lm.insertConnector(new audit::LogBasicConnector("log"));
+	Log::instance().reinit(argv[0], Log::AllLevels, "ALL", new DeviceIOStream(pairfd[1],-1));
+	
 	int i,stime;
 	long ltime;
 
@@ -168,6 +209,7 @@ int main(int argc, char* argv[]){
 			cout<<'>';cin.getline(buf,2048);
 			if(!strncasecmp(buf,"quit",4)){
 				ts.stop();
+				lm.stop();
 				cout<<"signalled to stop"<<endl;
 				break;
 			}

@@ -77,18 +77,18 @@ ulong Channel::ioRequest()const{
 	return pcd->flags & IO_TOUT_FLAGS;
 }
 
-int Channel::arePendingSends(){
+bool Channel::arePendingSends()const{
 	return pcd->arePendingSends();
 }
-int Channel::arePendingRecvs(){
+bool Channel::arePendingRecvs()const{
 	return pcd->flags & INTOUT;
 }
 
-int Channel::localAddress(SocketAddress &_rsa){
+int Channel::localAddress(SocketAddress &_rsa)const{
 	return sd.localAddress(_rsa);
 }
 
-int Channel::remoteAddress(SocketAddress &_rsa){
+int Channel::remoteAddress(SocketAddress &_rsa)const{
 	return sd.remoteAddress(_rsa);
 }
 

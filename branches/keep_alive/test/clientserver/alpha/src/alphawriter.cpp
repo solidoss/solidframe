@@ -27,7 +27,10 @@
 namespace test{
 namespace alpha{
 
-Writer::Writer(clientserver::tcp::Channel &_rch):rch(_rch){
+Writer::Writer(
+	clientserver::tcp::Channel &_rch,
+	protocol::Logger *_plog
+):protocol::Writer(_plog), rch(_rch){
 }
 
 Writer::~Writer(){

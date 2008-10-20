@@ -37,7 +37,6 @@ int pairfd[2];
 
 int main(int _argc, char *argv[]){
 	pipe(pairfd);
-	//socketpair(
 	string ds = argv[0] + 2;
 	Dbg::instance().init(ds, ds.c_str(), "any");
 	audit::LogManager lm;

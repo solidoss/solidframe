@@ -271,7 +271,7 @@ int SocketDevice::recv(char *_pb, unsigned _ul, SocketAddress &_rsa){
 	_rsa.size() = SocketAddress::MaxSockAddrSz;
 	return ::recvfrom(descriptor(), _pb, _ul, 0, _rsa.addr(), &_rsa.size());
 }
-int SocketDevice::remoteAddress(SocketAddress &_rsa){
+int SocketDevice::remoteAddress(SocketAddress &_rsa)const{
 	_rsa.clear();
 	_rsa.size() = SocketAddress::MaxSockAddrSz;
 	int rv = getpeername(descriptor(), _rsa.addr(), &_rsa.size());
@@ -281,7 +281,7 @@ int SocketDevice::remoteAddress(SocketAddress &_rsa){
 	}
 	return OK;
 }
-int SocketDevice::localAddress(SocketAddress &_rsa){
+int SocketDevice::localAddress(SocketAddress &_rsa)const{
 	_rsa.clear();
 	_rsa.size() = SocketAddress::MaxSockAddrSz;
 	int rv = getsockname(descriptor(), _rsa.addr(), &_rsa.size());

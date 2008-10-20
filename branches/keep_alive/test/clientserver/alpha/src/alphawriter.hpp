@@ -39,7 +39,7 @@ namespace alpha{
 */
 class Writer: public protocol::Writer{
 public:
-	Writer(clientserver::tcp::Channel &rch);
+	Writer(clientserver::tcp::Channel &rch, protocol::Logger *_plog = NULL);
 	~Writer();
 	void clear();
 	//! Asynchrounously writes an astring (atom/quoted/literal)

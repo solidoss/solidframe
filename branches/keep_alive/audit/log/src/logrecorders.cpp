@@ -52,9 +52,11 @@ static const char* levelName(unsigned _lvl){
 		loctm.tm_sec,
 		_rrec.head.nsec/1000000
 	);
-
+	
 	ofs<<buf<<'['<<_rcd.modulenamev[_rrec.head.module]<<']';
-	ofs<<'['<<_rrec.fileName()<<'('<<_rrec.head.lineno<<')'<<' '<<_rrec.functionName()<<']'<<'['<<_rrec.head.id<<']'<<' ';
+	if(_rrec.head.level < Log::Input)
+		ofs<<'['<<_rrec.fileName()<<'('<<_rrec.head.lineno<<')'<<' '<<_rrec.functionName()<<']';
+	ofs<<'['<<_rrec.head.id<<']'<<' ';
 	ofs.write(_rrec.data(), _rrec.dataSize())<<endl;
 	//ofs.flush();
 }

@@ -64,16 +64,17 @@ public:
 	enum {
 		RAISE_ON_END = 2, 
 		TRY_ONLY = 4, 
-		PREPARE_ONLY = 8};
+		PREPARE_ONLY = 8
+	};
 	static Channel* create(const AddrInfoIterator &_rai);
 	Channel();
 	~Channel();
 	//! Returns true if the socket was successfully created.
-	int ok()const;
+	bool ok()const;
 	//! Tries to connect/ initiate connect to a specified address
 	int connect(const AddrInfoIterator&);
 	//! Returns true if the channel is secure - 
-	int isSecure();
+	int isSecure()const;
 	//! Send a buffer
 	int send(const char* _pb, uint32 _bl, uint32 _flags = 0);
 	//! Receives data into a buffer
@@ -85,10 +86,10 @@ public:
 	//! The amount of data received.
 	const uint64& recvCount()const;
 	//! Return true if there are pending send opperations
-	int arePendingSends();
-	int arePendingRecvs();
-	int localAddress(SocketAddress &_rsa);
-	int remoteAddress(SocketAddress &_rsa);
+	bool arePendingSends()const;
+	bool arePendingRecvs()const;
+	int localAddress(SocketAddress &_rsa)const;
+	int remoteAddress(SocketAddress &_rsa)const;
 protected:
 private:
 	Channel(SocketDevice &_sd);
