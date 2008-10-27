@@ -42,16 +42,27 @@ struct Dbg{
 	static const unsigned udp;
 	static const unsigned filemanager;
 	static Dbg& instance();
+	enum Level{
+		Info = 1,
+		Error = 2,
+		Warn = 4,
+		AllLevels = 1 + 2 + 4
+	};
 	
 	~Dbg();
 	
-	void init(std::string &_file, const char * _fname, const char *_opt = 0);
+	void init(
+		std::string &_file,
+		const char * _fname,
+		unsigned _lvlopt = 0,
+		const char *_modopt = 0
+	);
 	
-	void bits(std::string &_ros);
-	void setAllBits();
-	void resetAllBits();
-	void setBit(unsigned _v);
-	void resetBit(unsigned _v);
+	void moduleBits(std::string &_ros);
+	void setAllModuleBits();
+	void resetAllModuleBits();
+	void setModuleBit(unsigned _v);
+	void resetModuleBit(unsigned _v);
 	unsigned registerModule(const char *_name);
 	
 	std::ostream& print();
@@ -69,7 +80,7 @@ struct Dbg{
 		int _line
 	);
 	void done();
-	bool isSet(unsigned _v);
+	bool isSet(Level _lvl, unsigned _v)const;
 private:
 	Dbg();
 	struct Data;
@@ -77,22 +88,22 @@ private:
 };
 
 #define idbg(x)\
-	if(Dbg::instance().isSet(Dbg::any)){\
-	Dbg::instance().print('I', __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}
+	if(Dbg::instance().isSet(Dbg::Info, Dbg::any)){\
+	Dbg::instance().print('I', Dbg::any, __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}
 #define idbgx(a,x)\
-	if(Dbg::instance().isSet(a)){\
+	if(Dbg::instance().isSet(Dbg::Info, a)){\
 	Dbg::instance().print('I', a,  __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}
 #define edbg(x)\
-	if(Dbg::instance().isSet(Dbg::any)){\
-	Dbg::instance().print('E', __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}
+	if(Dbg::instance().isSet(Dbg::Error, Dbg::any)){\
+	Dbg::instance().print('E', Dbg::any, __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}
 #define edbgx(a,x)\
-	if(Dbg::instance().isSet(a)){\
+	if(Dbg::instance().isSet(Dbg::Error, a)){\
 	Dbg::instance().print('E', a,  __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}
 #define wdbg(x)\
-	if(Dbg::instance().isSet(Dbg::any)){\
-	Dbg::instance().print('W', __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}
+	if(Dbg::instance().isSet(Dbg::Warn, Dbg::any)){\
+	Dbg::instance().print('W', Dbg::any, __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}
 #define wdbgx(a,x)\
-	if(Dbg::instance().isSet(a)){\
+	if(Dbg::instance().isSet(Dbg::Warn, a)){\
 	Dbg::instance().print('W', a,  __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}
 #define writedbg(x,sz)
 #define writedbgx(a, x, sz)

@@ -20,19 +20,20 @@
 */
 
 #include <queue>
+#include <algorithm>
+#include <iostream>
+
 #include "system/debug.hpp"
 #include "system/socketaddress.hpp"
 #include "system/specific.hpp"
 #include "utility/queue.hpp"
-#include "processconnector.hpp"
-#include "iodata.hpp"
 #include "algorithm/serialization/binary.hpp"
 #include "algorithm/serialization/idtypemap.hpp"
 #include "core/command.hpp"
 #include "core/server.hpp"
 #include "ipc/ipcservice.hpp"
-
-#include <iostream>
+#include "processconnector.hpp"
+#include "iodata.hpp"
 
 using namespace std;
 

@@ -56,9 +56,11 @@ const unsigned fileoff = (strstr(__FILE__, "system/src") - __FILE__);
 struct Dbg::Data{
 	typedef std::bitset<DEBUG_BITSET_SIZE>	BitSetTp;
 	typedef std::vector<const char*>		NameVectorTp;
+	Data():lvlmsk(0){}
 	void setBit(const char *_pbeg, const char *_pend);
 	Mutex			m;
 	BitSetTp		bs;
+	unsigned		lvlmsk;
 	NameVectorTp	nv;
 	time_t			begt;
 	TimeSpec		begts;
@@ -85,9 +87,15 @@ void Dbg::Data::setBit(const char *_pbeg, const char *_pend){
 	}
 }
 
-void Dbg::init(std::string &_file, const char * _prefix, const char *_opt){
+void Dbg::init(
+	std::string &_file,
+	const char * _prefix,
+	uint32	_lvlopt,
+	const char *_opt
+){
 	{
 		Mutex::Locker lock(d.m);
+		d.lvlmsk = _lvlopt;
 		if(_opt){
 			const char *pbeg = _opt;
 			const char *pcrt = _opt;
@@ -119,37 +127,40 @@ void Dbg::init(std::string &_file, const char * _prefix, const char *_opt){
 	}
 	
 	std::ios_base::sync_with_stdio(false);
-	Directory::create("dbg");
-	char *name = new char[strlen(_prefix)+50];
-	sprintf(name,"dbg/%s_%u.dbg", _prefix, getpid());
-	//printf("Debug file: [%s]\r\n", name);
-	_file = name;
-	int fd = open(name, O_CREAT | O_RDWR | O_TRUNC, 0600);
-	delete []name;
-	if(dup2(fd, fileno(stderr))<0){
-		printf("error duplicating filedescriptor\n");
-	}
+	
+	if(_prefix && *_prefix){
+		Directory::create("dbg");
+		char *name = new char[strlen(_prefix)+50];
+		sprintf(name,"dbg/%s_%u.dbg", _prefix, getpid());
+		//printf("Debug file: [%s]\r\n", name);
+		_file = name;
+		int fd = open(name, O_CREAT | O_RDWR | O_TRUNC, 0600);
+		delete []name;
+		if(dup2(fd, fileno(stderr))<0){
+			printf("error duplicating filedescriptor\n");
+		}
+	}//else print to cerr
 }
-void Dbg::bits(std::string &_ros){
+void Dbg::moduleBits(std::string &_ros){
 	Mutex::Locker lock(d.m);
 	for(Data::NameVectorTp::const_iterator it(d.nv.begin()); it != d.nv.end(); ++it){
 		_ros += *it;
 		_ros += ' ';
 	}
 }
-void Dbg::setAllBits(){
+void Dbg::setAllModuleBits(){
 	Mutex::Locker lock(d.m);
 	d.bs.set();
 }
-void Dbg::resetAllBits(){
+void Dbg::resetAllModuleBits(){
 	Mutex::Locker lock(d.m);
 	d.bs.reset();
 }
-void Dbg::setBit(unsigned _v){
+void Dbg::setModuleBit(unsigned _v){
 	Mutex::Locker lock(d.m);
 	d.bs.set(_v);
 }
-void Dbg::resetBit(unsigned _v){
+void Dbg::resetModuleBit(unsigned _v){
 	Mutex::Locker lock(d.m);
 	d.bs.reset(_v);
 }
@@ -164,36 +175,6 @@ std::ostream& Dbg::print(){
 	return std::cerr;
 }
 
-std::ostream& Dbg::print(
-	const char _t,
-	const char *_file,
-	const char *_fnc,
-	int _line
-){
-	d.m.lock();
-	char buf[128];
-	TimeSpec ts_now;
-	clock_gettime(CLOCK_MONOTONIC, &ts_now);
-	ts_now = ts_now - d.begts;
-	time_t t_now = d.begt + ts_now.seconds();
-	tm loctm;
-	localtime_r(&t_now, &loctm);
-	sprintf(
-		buf,
-		"%c[%04u-%02u-%02u %02u:%02u:%02u.%03u][ANY][%u]",
-		_t,
-		loctm.tm_year + 1900,
-		loctm.tm_mon, 
-		loctm.tm_mday,
-		loctm.tm_hour,
-		loctm.tm_min,
-		loctm.tm_sec,
-		ts_now.nanoSeconds()/1000000,
-		Thread::currentId()
-	);
-
-	return OUTS<<buf<<'['<<_file + fileoff<<'('<<_line<<')'<<' '<<_fnc<<']'<<' ';
-}
 std::ostream& Dbg::print(
 	const char _t,
 	unsigned _module,
@@ -211,7 +192,7 @@ std::ostream& Dbg::print(
 	localtime_r(&t_now, &loctm);
 	sprintf(
 		buf,
-		"%c[%04u-%02u-%02u %02u:%02u:%02u.%03u][%s][%u]",
+		"%c[%04u-%02u-%02u %02u:%02u:%02u.%03u][%s][%d]",
 		_t,
 		loctm.tm_year + 1900,
 		loctm.tm_mon, 
@@ -230,8 +211,8 @@ void Dbg::done(){
 	OUTS<<std::endl;
 	d.m.unlock();
 }
-bool Dbg::isSet(unsigned _v){
-	return d.bs[_v];
+bool Dbg::isSet(Level _lvl, unsigned _v)const{
+	return (d.lvlmsk & _lvl) && d.bs[_v];
 }
 Dbg::Dbg():d(*(new Data)){
 	d.begt = time(NULL);

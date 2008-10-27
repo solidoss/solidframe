@@ -92,13 +92,13 @@ int main(int argc, char* argv[]){
 	{
 	string s;
 	if(argc > 1){
-		Dbg::instance().init(s, argv[0] + 2, argv[1]);
+		Dbg::instance().init(s, argv[0] + 2, Dbg::AllLevels, argv[1]);
 	}else{
-		Dbg::instance().init(s, argv[0] + 2);
+		Dbg::instance().init(s, argv[0] + 2, Dbg::AllLevels);
 	}
 	cout<<"Debug file: "<<s<<endl;
 	s.clear();
-	Dbg::instance().bits(s);
+	Dbg::instance().moduleBits(s);
 	cout<<"Debug bits: "<<s<<endl;
 	}
 #endif

@@ -12,7 +12,7 @@
 #include "audit/log/logrecord.hpp"
 #include "audit/log/logrecorder.hpp"
 #include "audit/log/logmanager.hpp"
-#include <stack>
+#include "utility/stack.hpp"
 #include <vector>
 #include <string>
 
@@ -51,7 +51,7 @@ struct LogManager::Data{
 	typedef std::vector<ConnectorPairTp>		ConnectorVectorTp;
 	typedef std::vector<Channel>				ChannelVectorTp;
 	typedef std::vector<Listener>				ListenerVectorTp;
-	typedef std::stack<uint32>					PosStackTp;
+	typedef Stack<uint32>						PosStackTp;
 	Data();
 	~Data();
 	enum State{

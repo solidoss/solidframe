@@ -38,7 +38,7 @@ int pairfd[2];
 int main(int _argc, char *argv[]){
 	pipe(pairfd);
 	string ds = argv[0] + 2;
-	Dbg::instance().init(ds, ds.c_str(), "any");
+	Dbg::instance().init(ds, ds.c_str(), Dbg::AllLevels, "any");
 	audit::LogManager lm;
 	lm.start();
 	lm.insertChannel(new DeviceIOStream(pairfd[0], pairfd[1]));

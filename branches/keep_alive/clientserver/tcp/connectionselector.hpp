@@ -46,12 +46,13 @@ typedef ObjPtr<Connection>	ConnectionPtrTp;
 */
 class ConnectionSelector{
 public:
+	typedef ConnectionPtrTp		ObjectTp;
+	
 	static DataNode* popDataNode();
 	static void push(DataNode *_pdn);
 	static ChannelData* popChannelData();
 	static void push(ChannelData *);
 	
-	typedef ConnectionPtrTp		ObjectTp;
 	ConnectionSelector();
 	~ConnectionSelector();
 	int reserve(ulong _cp);
