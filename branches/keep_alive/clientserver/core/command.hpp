@@ -36,6 +36,8 @@ namespace ipc{
 struct ConnectorUid;
 struct CommandUid;
 }
+template <class T>
+class CmdPtr;
 class CommandExecuter;
 class Object;
 //! A base class for commands to be sent to objects

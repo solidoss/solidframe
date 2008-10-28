@@ -51,12 +51,11 @@ namespace tcp{
 //-------------------------------------------------------------------
 struct ConnectionSelector::ChannelStub{
 	enum State{
-		Empty = -1,
-		NotInQ = 0,
-		InQExec = 1,
+		OutExecQueue = 0,
+		InExecQueue = 1,
 	};
 	
-	ChannelStub():timepos(0),events(0),state(Empty),rep_fullscancount(0){}
+	ChannelStub():timepos(0),events(0),state(OutExecQueue),rep_fullscancount(0){}
 	void reset();
 	MultiConnectionPtrTp	conptr;
 	TimeSpec				timepos;
@@ -97,7 +96,7 @@ struct ConnectionSelector::Data{
 	int					epfd;
 	epoll_event 		*pevs;
 	ChannelStub			*pchs;
-	ChannelQueueTp		chq;
+	ChannelQueueTp		execq;
 	FreeStackTp			fstk;
 	int					pipefds[2];
 	TimeSpec			ntimepos;//next timepos == next timeout
@@ -108,7 +107,7 @@ struct ConnectionSelector::Data{
 
 //-------------------------------------------------------------------
 void ConnectionSelector::ChannelStub::reset(){
-	state = Empty;
+	state = OutExecQueue;
 	cassert(!conptr.release());
 	timepos.set(0);
 	events = 0;
@@ -179,7 +178,7 @@ int ConnectionSelector::reserve(ulong _cp){
 	}
 	
 	//init the channel queue
-	//chq.reserve(cp);
+	//execq.reserve(cp);
 	//zero is reserved for pipe
 	if(d.epfd < 0 && (d.epfd = epoll_create(d.cp)) < 0){
 		cassert(false);
@@ -255,8 +254,8 @@ void ConnectionSelector::push(const ConnectionPtrTp &_conptr, uint _thid){
 		_conptr->channel().prepare();
 		pc->conptr = _conptr;
 		idbgx(Dbg::tcp, "pushing connection "<<&(*(pc->conptr))<<" on position "<<(pc - d.pchs));
-		pc->state = ChannelStub::InQExec;
-		d.chq.push(pc);
+		pc->state = ChannelStub::OutExecQueue;
+		d.execq.push(pc);
 	}
 }
 
@@ -310,7 +309,7 @@ void ConnectionSelector::run(){
 			flags |= doFullScan();
 		}
 		
-		if(d.chq.size()){
+		if(d.execq.size()){
 			flags |= doExecuteQueue();
 		}
 		
@@ -320,7 +319,7 @@ void ConnectionSelector::run(){
 		
 		if(d.empty()) flags |= Data::EXIT_LOOP;
 		
-		if(flags || d.chq.size()){
+		if(flags || d.execq.size()){
 			pollwait = 0;
 			--nbcnt;
 		}else{
@@ -349,9 +348,9 @@ uint ConnectionSelector::doAllIo(){
 				//first mark the channel in connection
 				chn.first->conptr->addDoneChannel(chn.second, evs);
 				//push channel execqueue
-				if(!(_rch.state & ChannelStub::InQExec)){
-					d.chq.push(pc);
-					_rch.state |= ChannelStub::InQExec;
+				if(_rch.state == ChannelStub::OutExecQueue){
+					d.execq.push(pc);
+					_rch.state = ChannelStub::InExecQueue;
 				}
 			}
 		}else{
@@ -392,19 +391,14 @@ uint ConnectionSelector::doExecuteQueue(){
 	uint		flags = 0;
 	uint		evs;
 	epoll_event	ev;
-	uint		qsz(d.chq.size());
+	uint		qsz(d.execq.size());
 	while(qsz){//we only do a single scan:
-		ChannelStub &rc = *d.chq.front();d.chq.pop(); --qsz;
-		switch(rc.state){
-			case ChannelStub::Empty:
-			case ChannelStub::NotInQ:
-				break;
-			case ChannelStub::InQExec:
-				rc.state &= ~ChannelStub::InQExec;
-				evs = 0;
-				crttout = d.ctimepos;
-				flags |= doExecute(rc, evs, crttout, ev);
-				break;
+		ChannelStub &rc = *d.execq.front();d.execq.pop(); --qsz;
+		if(rc.state == ChannelStub::InExecQueue){
+			//rc.state &= ~ChannelStub::InQExec;//moved to doExecute
+			evs = 0;
+			crttout = d.ctimepos;
+			flags |= doExecute(rc, evs, crttout, ev);
 		}
 	}
 	return flags;
@@ -413,6 +407,7 @@ uint ConnectionSelector::doExecuteQueue(){
 int ConnectionSelector::doExecute(ChannelStub &_rch, ulong _evs, TimeSpec &_crttout, epoll_event &_rev){
 	int rv = 0;
 	Connection	&rcon = *_rch.conptr;
+	_rch.state = ChannelStub::OutExecQueue;
 	switch(rcon.execute(_evs, _crttout)){
 		case BAD://close
 			idbgx(Dbg::tcp, "BAD: removing the connection");
@@ -420,17 +415,14 @@ int ConnectionSelector::doExecute(ChannelStub &_rch, ulong _evs, TimeSpec &_crtt
 			epoll_ctl(d.epfd, EPOLL_CTL_DEL, rcon.channel().descriptor(), NULL);
 			rcon.channel().unprepare();
 			_rch.conptr.clear();
-			_rch.state = ChannelStub::Empty;
 			--d.sz;
 			//if(empty()) 
 			rv = Data::EXIT_LOOP;
 			break;
 		case OK://
 			idbgx(Dbg::tcp, "OK: reentering connection "<<rcon.channel().ioRequest());
-			if(!(_rch.state & ChannelStub::InQExec)){
-				d.chq.push(&_rch);
-				_rch.state |= ChannelStub::InQExec;
-			}
+			d.execq.push(&_rch);
+			_rch.state = ChannelStub::InExecQueue;
 			_rch.timepos.set(Data::MAXTIMEPOS);
 			break;
 		case NOK:
@@ -457,7 +449,6 @@ int ConnectionSelector::doExecute(ChannelStub &_rch, ulong _evs, TimeSpec &_crtt
 			epoll_ctl(d.epfd, EPOLL_CTL_DEL, rcon.channel().descriptor(), NULL);
 			--d.sz;
 			_rch.conptr.release();
-			_rch.state = ChannelStub::Empty;
 			rcon.channel().unprepare();
 			//if(empty()) 
 			rv = Data::EXIT_LOOP;
@@ -468,18 +459,16 @@ int ConnectionSelector::doExecute(ChannelStub &_rch, ulong _evs, TimeSpec &_crtt
 			uint ioreq = rcon.channel().ioRequest();
 			_rch.events = _rev.events = (EPOLLET) | ioreq;
 			epoll_ctl(d.epfd, EPOLL_CTL_ADD, rcon.channel().descriptor(), &_rev);
-			if(!ioreq && !(_rch.state & ChannelStub::InQExec)){
-				d.chq.push(&_rch);
-				_rch.state |= ChannelStub::InQExec;
+			if(!ioreq){
+				d.execq.push(&_rch);
+				_rch.state = ChannelStub::InExecQueue;
 			}
 			}break;
 		case UNREGISTER:
 			idbgx(Dbg::tcp, "UNREGISTER: unregister connection's descriptor");
 			epoll_ctl(d.epfd, EPOLL_CTL_DEL, rcon.channel().descriptor(), NULL);
-			if(!(_rch.state & ChannelStub::InQExec)){
-				d.chq.push(&_rch);
-				_rch.state |= ChannelStub::InQExec;
-			}
+			d.execq.push(&_rch);
+			_rch.state = ChannelStub::InExecQueue;
 			break;
 		default:
 			cassert(false);
@@ -504,9 +493,9 @@ int ConnectionSelector::doReadPipe(){
 		for(int i = 0; i < BUFSZ; ++i){
 			uint pos(buf[i]);
 			if(pos){
-				if(pos < d.cp && (pch = d.pchs + pos)->conptr && !pch->state && pch->conptr->signaled(S_RAISE)){
-					d.chq.push(pch);
-					pch->state = ChannelStub::InQExec;
+				if(pos < d.cp && (pch = d.pchs + pos)->conptr && pch->state == ChannelStub::OutExecQueue && pch->conptr->signaled(S_RAISE)){
+					d.execq.push(pch);
+					pch->state = ChannelStub::InExecQueue;
 				}
 			}else rv = Data::EXIT_LOOP;
 		}
@@ -516,9 +505,9 @@ int ConnectionSelector::doReadPipe(){
 		for(int i = 0; i < rsz; ++i){	
 			uint pos(buf[i]);
 			if(pos){
-				if(pos < d.cp && (pch = d.pchs + pos)->conptr && !pch->state && pch->conptr->signaled(S_RAISE)){
-					d.chq.push(pch);
-					pch->state = ChannelStub::InQExec;
+				if(pos < d.cp && (pch = d.pchs + pos)->conptr && pch->state == ChannelStub::OutExecQueue && pch->conptr->signaled(S_RAISE)){
+					d.execq.push(pch);
+					pch->state = ChannelStub::InExecQueue;
 				}
 			}else rv = Data::EXIT_LOOP;
 		}

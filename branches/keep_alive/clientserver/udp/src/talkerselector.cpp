@@ -44,13 +44,17 @@ namespace clientserver{
 namespace udp{
 
 struct TalkerSelector::SelTalker{
-	SelTalker():timepos(0),evmsk(0),state(0){}
+	enum State{
+		OutExecQueue = 0,
+		InExecQueue = 1,
+	};
+	SelTalker():timepos(0),evmsk(0),state(OutExecQueue){}
 	void reset();
 	TalkerPtrTp		tkrptr;//4
 	TimeSpec		timepos;//4
 	ulong			evmsk;//4
 	//state: 1 means the object is in queue
-	//or if 0 in chq check loop means the channel was already checked
+	//or if 0 in execq check loop means the channel was already checked
 	int				state;//4
 };
 
@@ -76,7 +80,7 @@ struct TalkerSelector::Data{
 		
 	void initFreeStack();
 	void push(SelTalker *_pc){
-		chq.push(_pc);
+		execq.push(_pc);
 	}
 	
 	uint			cp;
@@ -85,7 +89,7 @@ struct TalkerSelector::Data{
 	int				epfd;
 	epoll_event 	*pevs;
 	SelTalker		*pchs;
-	ChQueueTp		chq;
+	ChQueueTp		execq;
 	FreeStackTp		fstk;
 	int				pipefds[2];
 	TimeSpec        ntimepos;//next timepos == next timeout
@@ -95,7 +99,7 @@ struct TalkerSelector::Data{
 //---------------------------------------------------------------------------
 
 void TalkerSelector::SelTalker::reset(){
-	state = 0;
+	state = OutExecQueue;
 	tkrptr.release();
 	timepos.set(0);
 	evmsk = 0;
@@ -155,7 +159,7 @@ int TalkerSelector::reserve(ulong _cp){
 	d.initFreeStack();
 	
 	//init the station queue
-	//chq.reserve(cp);
+	//execq.reserve(cp);
 	//zero is reserved for pipe
 	if(d.epfd < 0 && (d.epfd = epoll_create(d.cp)) < 0){
 		cassert(false);
@@ -213,8 +217,6 @@ void TalkerSelector::push(const TalkerPtrTp &_tkrptr, uint _thid){
 	cassert(d.fstk.size());
 	SelTalker *pc(d.fstk.top());
 	d.fstk.pop();
-	pc->state = 0;
-	
 	_tkrptr->setThread(_thid, pc - d.pchs);
 	
 	pc->timepos.set(Data::MAXTIMEPOS);
@@ -232,11 +234,11 @@ void TalkerSelector::push(const TalkerPtrTp &_tkrptr, uint _thid){
 		cassert(false);
 	}else{
 		++d.sz;
+		pc->tkrptr = _tkrptr;
+		idbgx(Dbg::udp, "pushing "<<&(*(pc->tkrptr))<<" on pos "<<(pc - d.pchs));
+		pc->state = SelTalker::InExecQueue;
+		d.push(pc);
 	}
-	pc->tkrptr = _tkrptr;
-	idbgx(Dbg::udp, "pushing "<<&(*(pc->tkrptr))<<" on pos "<<(pc - d.pchs));
-	pc->state = 1;
-	d.push(pc);
 }
 
 void TalkerSelector::signal(uint _objid){
@@ -280,7 +282,7 @@ void TalkerSelector::run(){
 		for(int i = 0; i < d.selcnt; ++i){
 			SelTalker *pc = reinterpret_cast<SelTalker*>(d.pevs[i].data.ptr);
 			if(pc != d.pchs){
-				if(!pc->state && (evs = doIo(pc->tkrptr->station(), d.pevs[i].events))){
+				if(pc->state == SelTalker::OutExecQueue && (evs = doIo(pc->tkrptr->station(), d.pevs[i].events))){
 					crttout = d.ctimepos;
 					state |= doExecute(*pc, evs, crttout, ev);
 				}
@@ -308,20 +310,20 @@ void TalkerSelector::run(){
 			}
 		}
 		{	
-			int qsz = d.chq.size();
+			int qsz = d.execq.size();
 			while(qsz){//we only do a single scan:
-				idbgx(Dbg::udp, "qsz = "<<qsz<<" queuesz "<<d.chq.size());
-				SelTalker &rc = *d.chq.front();d.chq.pop(); --qsz;
-				if(rc.state){
+				idbgx(Dbg::udp, "qsz = "<<qsz<<" queuesz "<<d.execq.size());
+				SelTalker &rc = *d.execq.front();d.execq.pop(); --qsz;
+				if(rc.state == SelTalker::InExecQueue){
 					crttout = d.ctimepos;
-					rc.state = 0;
+					//rc.state = 0;//moved to doExecute
 					doExecute(rc, 0, crttout, ev);
 				}
 			}
 		}
 		idbgx(Dbg::udp, "sz = "<<d.sz);
 		if(d.empty()) state |= Data::EXIT_LOOP;
-		if(state || d.chq.size()){
+		if(state || d.execq.size()){
 			pollwait = 0;
 			--nbcnt;
 		}else{
@@ -344,22 +346,20 @@ int TalkerSelector::doExecute(
 ){
 	int rv = 0;
 	Talker &rcon = *_rch.tkrptr;
+	_rch.state = SelTalker::OutExecQueue;
 	switch(rcon.execute(_evs, _rcrttout)){
 		case BAD://close
 			idbgx(Dbg::udp, "BAD: removing the connection");
 			d.fstk.push(&_rch);
 			epoll_ctl(d.epfd, EPOLL_CTL_DEL, rcon.station().descriptor(), NULL);
 			_rch.tkrptr.clear();
-			_rch.state = 0;
 			--d.sz;
 			if(d.empty()) rv = Data::EXIT_LOOP;
 			break;
 		case OK://
 			idbgx(Dbg::udp, "OK: reentering connection");
-			if(!_rch.state){
-				d.chq.push(&_rch);
-				_rch.state = 1;
-			}
+			d.execq.push(&_rch);
+			_rch.state = SelTalker::InExecQueue;
 			_rch.timepos.set(Data::MAXTIMEPOS);
 			break;
 		case NOK:
@@ -389,7 +389,6 @@ int TalkerSelector::doExecute(
 			//TODO: remove fd from epoll
 			if(d.sz == d.cp) rv = Data::EXIT_LOOP;
 			_rch.tkrptr.release();
-			_rch.state = 0;
 			--d.sz;
 			break;
 		case REGISTER:{//
@@ -400,20 +399,16 @@ int TalkerSelector::doExecute(
 			int rv = epoll_ctl(d.epfd, EPOLL_CTL_ADD, rcon.station().descriptor(), &_rev);
 			cassert(!rv);
 			if(!ioreq){
-				if(!_rch.state){
-					d.chq.push(&_rch);
-					_rch.state = 1;
-				}
+				d.execq.push(&_rch);
+				_rch.state = SelTalker::InExecQueue;
 			}
 			}break;
 		case UNREGISTER:{
 			idbgx(Dbg::udp, "UNREGISTER: unregister connection's descriptor");
 			int rv = epoll_ctl(d.epfd, EPOLL_CTL_DEL, rcon.station().descriptor(), NULL);
 			cassert(!rv);
-			if(!_rch.state){
-				d.chq.push(&_rch);
-				_rch.state = 1;
-			}
+			d.execq.push(&_rch);
+			_rch.state = SelTalker::InExecQueue;
 			}break;
 		default:
 			cassert(false);
@@ -434,9 +429,9 @@ int TalkerSelector::doReadPipe(){
 			idbgx(Dbg::udp, "buf["<<i<<"]="<<buf[i]);
 			uint pos = buf[i];
 			if(pos){
-				if(pos < d.cp && (pch = d.pchs + pos)->tkrptr && !pch->state && pch->tkrptr->signaled(S_RAISE)){
-					d.chq.push(pch);
-					pch->state = 1;
+				if(pos < d.cp && (pch = d.pchs + pos)->tkrptr && pch->state == SelTalker::OutExecQueue && pch->tkrptr->signaled(S_RAISE)){
+					d.execq.push(pch);
+					pch->state = SelTalker::InExecQueue;
 					idbgx(Dbg::udp, "pushig "<<pos<<" connection into queue");
 				}
 			}else rv = Data::EXIT_LOOP;
@@ -448,9 +443,9 @@ int TalkerSelector::doReadPipe(){
 			idbgx(Dbg::udp, "buf["<<i<<"]="<<buf[i]);
 			uint pos = buf[i];
 			if(pos){
-				if(pos < d.cp && (pch = d.pchs + pos)->tkrptr && !pch->state && pch->tkrptr->signaled(S_RAISE)){
-					d.chq.push(pch);
-					pch->state = 1;
+				if(pos < d.cp && (pch = d.pchs + pos)->tkrptr && pch->state == SelTalker::OutExecQueue && pch->tkrptr->signaled(S_RAISE)){
+					d.execq.push(pch);
+					pch->state = SelTalker::InExecQueue;
 					idbgx(Dbg::udp, "pushig "<<pos<<" connection into queue");
 				}
 			}else rv = Data::EXIT_LOOP;
