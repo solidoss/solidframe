@@ -244,7 +244,7 @@ void ConnectionSelector::push(const ObjectTp &_objptr, uint _thid){
 		_objptr->channel().prepare();
 		pc->objptr = _objptr;
 		idbgx(Dbg::tcp, "pushing connection "<<&(*(pc->objptr))<<" on position "<<(pc - d.pstubs));
-		pc->state = Stub::OutExecQueue;
+		pc->state = Stub::InExecQueue;
 		d.execq.push(pc);
 	}
 }

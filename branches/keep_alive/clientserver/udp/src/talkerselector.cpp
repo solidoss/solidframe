@@ -237,7 +237,7 @@ void TalkerSelector::push(const ObjectTp &_objptr, uint _thid){
 		//_objptr->station().prepare();
 		pc->objptr = _objptr;
 		idbgx(Dbg::udp, "pushing connection "<<&(*(pc->objptr))<<" on position "<<(pc - d.pstubs));
-		pc->state = Stub::OutExecQueue;
+		pc->state = Stub::InExecQueue;
 		d.execq.push(pc);
 	}
 }
