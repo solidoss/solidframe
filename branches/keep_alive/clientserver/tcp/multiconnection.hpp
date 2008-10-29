@@ -24,6 +24,7 @@
 
 #include <vector>
 #include "system/timespec.hpp"
+#include "utility/stack.hpp"
 #include "clientserver/core/object.hpp"
 #include "clientserver/tcp/channel.hpp"
 
@@ -60,11 +61,12 @@ public:
 	int channnelLocalAddress(unsigned _pos, SocketAddress &_rsa)const;
 	int channnelRemoteAddress(unsigned _pos, SocketAddress &_rsa)const;
 	void channelTimeout(unsigned _pos, const TimeSpec &_crttime, ulong _addsec, ulong _addnsec);
-	uint32 channelEvents(unsigned _pos);
+	uint32 channelEvents(unsigned _pos)const;
 	void channelErase(unsigned _pos);
 	unsigned channelAdd(Channel *_pch);
 	void channelRegisterRequest(unsigned _pos);
 	void channelUnregisterRequest(unsigned _pos);
+	unsigned channelCount()const;
 	
 	const UIntVectorTp & signelledChannelsVector()const;
 protected:
@@ -72,31 +74,34 @@ protected:
 private:
 	friend class MultiConnectionSelector;
 	void clearRequestVector();
-	void clearDoneVector();
+	void clearResponseVector();
+	void addTimeoutChannels(const TimeSpec &_crttime);
 	void addDoneChannel(unsigned _pos, uint32 _evs);
-	Channel& channel(unsigned _pos);
+	Channel* channel(unsigned _pos);
 private:
 	struct ChannelStub{
 		enum{
 			//Requests from multiconnection to selector
 			Request = 1,
-			IORequest = 2,
-			UnregisterRequest = 4,
-			RegisterRequest = 8,
-			EraseRequest = 16
+			Response = 2,
+			IORequest = 4,
+			UnregisterRequest = 8,
+			RegisterRequest = 16,
+			EraseRequest = 32
 		};
 		ChannelStub(Channel *_pch = NULL):
 			pchannel(_pch),
 			timepos(0xffffffff, 0xffffffff),
 			toutpos(-1),
-			flags(0),events(0){}
+			flags(0),chnevents(0),selevents(0){}
 		~ChannelStub();
 		void reset(){
 			pchannel = NULL;
 			timepos.set(0xffffffff, 0xffffffff);
 			toutpos = -1;
 			flags = 0;
-			events = 0;
+			chnevents = 0;
+			selevents = 0;
 		}
 		Channel		*pchannel;
 		TimeSpec	timepos;
@@ -111,10 +116,12 @@ private:
 	ChannelVectorTp		chnvec;//the channels
 	PositionStackTp		chnstk;//keeps freepositions in chnvec
 	UIntVectorTp		reqvec;//keeps channels with requests - used by channel selector
-	UIntVectorTp		donevec;//keeps the signeld channels
+	UIntVectorTp		resvec;//keeps the signeld channels
 	UIntVectorTp		toutvec;//keeps the channels expecting timeout
 	TimeSpec			nextchntout;
 };
 
 }//namespace tcp
 }//namespace clientserver
+
+#endif

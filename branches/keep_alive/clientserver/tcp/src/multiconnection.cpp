@@ -12,8 +12,9 @@ MultiConnection::ChannelStub::~ChannelStub(){
 	}
 }
 /*virtual*/ int MultiConnection::accept(clientserver::Visitor &_roi){
+	return BAD;
 }
-bool MultiConnection::channelOk(unsigned _pos){
+bool MultiConnection::channelOk(unsigned _pos)const{
 	cassert(_pos < chnvec.size() && chnvec[_pos].pchannel);
 	return chnvec[_pos].pchannel->ok();
 }
@@ -71,26 +72,26 @@ const uint64& MultiConnection::channelRecvCount(unsigned _pos)const{
 	cassert(_pos < chnvec.size() && chnvec[_pos].pchannel);
 	return chnvec[_pos].pchannel->recvCount();
 }
-bool MultiConnection::channnelArePendingSends(unsigned _pos){
+bool MultiConnection::channnelArePendingSends(unsigned _pos)const{
 	cassert(_pos < chnvec.size() && chnvec[_pos].pchannel);
 	return chnvec[_pos].pchannel->arePendingSends();
 }
-int MultiConnection::channnelArePendingRecvs(unsigned _pos){
+bool MultiConnection::channnelArePendingRecvs(unsigned _pos)const{
 	cassert(_pos < chnvec.size() && chnvec[_pos].pchannel);
 	return chnvec[_pos].pchannel->arePendingRecvs();
 }
-int MultiConnection::channnelLocalAddress(unsigned _pos, SocketAddress &_rsa){
+int MultiConnection::channnelLocalAddress(unsigned _pos, SocketAddress &_rsa)const{
 	cassert(_pos < chnvec.size() && chnvec[_pos].pchannel);
 	return chnvec[_pos].pchannel->localAddress(_rsa);
 }
-int MultiConnection::channnelRemoteAddress(unsigned _pos, SocketAddress &_rsa){
+int MultiConnection::channnelRemoteAddress(unsigned _pos, SocketAddress &_rsa)const{
 	cassert(_pos < chnvec.size() && chnvec[_pos].pchannel);
 	return chnvec[_pos].pchannel->remoteAddress(_rsa);
 }
-void MultiConnection::channelErase(unsigned _pos){
-	cassert(_pos < chnvec.size() && chnvec[_pos].pchannel);
-	
-}
+// void MultiConnection::channelErase(unsigned _pos){
+// 	cassert(_pos < chnvec.size() && chnvec[_pos].pchannel);
+// 	
+// }
 unsigned MultiConnection::channelAdd(Channel *_pch){
 	unsigned pos = 0;
 	if(chnstk.size()){
@@ -102,6 +103,7 @@ unsigned MultiConnection::channelAdd(Channel *_pch){
 		pos = chnvec.size() - 1;
 	}
 	channelRegisterRequest(pos);
+	return pos;
 }
 
 void MultiConnection::channelTimeout(
@@ -111,67 +113,108 @@ void MultiConnection::channelTimeout(
 	ulong _addnsec
 ){
 	cassert(_pos < chnvec.size() && chnvec[_pos].pchannel);
-	chnvec[_pos].timeout = _crttime;
-	chnvec[_pos].timeout.add(_addsec, _addnsec);
+	chnvec[_pos].timepos = _crttime;
+	chnvec[_pos].timepos.add(_addsec, _addnsec);
 	if(chnvec[_pos].toutpos < 0){
 		chnvec[_pos].toutpos = toutvec.size();
 		toutvec.push_back(_pos);
 	}
-	if(nextchntout > chnvec[_pos].timeout){
-		nextchntout = chnvec[_pos].timeout;
+	if(nextchntout > chnvec[_pos].timepos){
+		nextchntout = chnvec[_pos].timepos;
 	}
 }
-uint32 MultiConnection::channelEvents(unsigned _pos){
+uint32 MultiConnection::channelEvents(unsigned _pos)const{
 	cassert(_pos < chnvec.size() && chnvec[_pos].pchannel);
-	return chnvec[_pos].flags;
+	return chnvec[_pos].chnevents;
 }
 void MultiConnection::channelErase(unsigned _pos){
 	cassert(_pos < chnvec.size() && chnvec[_pos].pchannel);
-	if(rv == NOK){
-		if(!(chnvec[_pos].flags & ChannelStub::Request)){
-			chnvec[_pos].flags |= ChannelStub::Request;
-			reqvec.push_back(_pos);
-		}
-		chnvec[_pos].flags |= ChannelStub::EraseRequest;
+	if(!(chnvec[_pos].flags & ChannelStub::Request)){
+		chnvec[_pos].flags |= ChannelStub::Request;
+		reqvec.push_back(_pos);
 	}
+	chnvec[_pos].flags |= ChannelStub::EraseRequest;
 }
 void MultiConnection::channelRegisterRequest(unsigned _pos){
-	if(rv == NOK){
-		if(!(chnvec[_pos].flags & ChannelStub::Request)){
-			chnvec[_pos].flags |= ChannelStub::Request;
-			reqvec.push_back(_pos);
-		}
-		chnvec[_pos].flags |= ChannelStub::RegisterRequest;
+	cassert(_pos < chnvec.size() && chnvec[_pos].pchannel);
+	if(!(chnvec[_pos].flags & ChannelStub::Request)){
+		chnvec[_pos].flags |= ChannelStub::Request;
+		reqvec.push_back(_pos);
 	}
+	chnvec[_pos].flags |= ChannelStub::RegisterRequest;
 }
 void MultiConnection::channelUnregisterRequest(unsigned _pos){
-	if(rv == NOK){
-		if(!(chnvec[_pos].flags & ChannelStub::Request)){
-			chnvec[_pos].flags |= ChannelStub::Request;
-			reqvec.push_back(_pos);
-		}
-		chnvec[_pos].flags |= ChannelStub::UnregisterRequest;
+	cassert(_pos < chnvec.size() && chnvec[_pos].pchannel);
+	if(!(chnvec[_pos].flags & ChannelStub::Request)){
+		chnvec[_pos].flags |= ChannelStub::Request;
+		reqvec.push_back(_pos);
 	}
+	chnvec[_pos].flags |= ChannelStub::UnregisterRequest;
+}
+unsigned MultiConnection::channelCount()const{
+	return chnvec.size();
 }
 
-const UIntVectorTp & MultiConnection::signelledChannelsVector()const{
-	return donevec;
+const MultiConnection::UIntVectorTp & MultiConnection::signelledChannelsVector()const{
+	return resvec;
 }
 
 
 void MultiConnection::clearRequestVector(){
 	for(UIntVectorTp::const_iterator it(reqvec.begin()); it != reqvec.end(); ++it){
 		chnvec[*it].flags = 0;
-		chnvec[*it].chnevents = 0;
+		//chnvec[*it].chnevents = 0;
 	}
 	reqvec.clear();
 }
-void MultiConnection::clearDoneVector(){
-	for(UIntVectorTp::const_iterator it(donevec.begin()); it != donevec.end(); ++it){
+void MultiConnection::clearResponseVector(){
+	for(UIntVectorTp::const_iterator it(resvec.begin()); it != resvec.end(); ++it){
 		chnvec[*it].flags = 0;
+		//chnvec[*it].selevents = 0;
 	}
-	donevec.clear();
+	resvec.clear();
 }
 
+Channel* MultiConnection::channel(unsigned _pos){
+	return chnvec[_pos].pchannel;
+}
+
+void MultiConnection::addTimeoutChannels(const TimeSpec &_crttime){
+	nextchntout.set(0xffffffff, 0xffffffff);
+	for(ChannelVectorTp::iterator it(chnvec.begin()); it != chnvec.end(); ++it){
+		if(_crttime <= it->timepos){
+			cassert(it->pchannel);
+			cassert(it->toutpos >= 0);
+			toutvec[it->toutpos] = toutvec.back();
+			toutvec.pop_back();
+			it->toutpos = -1;
+			if(!(it->flags & ChannelStub::Response)){
+				//add the channel to done vec
+				resvec.push_back(it - chnvec.begin());
+				it->flags |= ChannelStub::Response;
+				it->chnevents |= TIMEOUT;//set the event to timeout
+			}
+		}else{
+			if(it->timepos < nextchntout){
+				nextchntout = it->timepos;
+			}
+		}
+	}
+}
+void MultiConnection::addDoneChannel(unsigned _pos, uint32 _evs){
+	cassert(_pos < chnvec.size() && chnvec[_pos].pchannel);
+	chnvec[_pos].chnevents |= _evs;
+	//try erase it from toutvec:
+	if(chnvec[_pos].toutpos >= 0){
+		toutvec[chnvec[_pos].toutpos] = toutvec.back();
+		toutvec.pop_back();
+		chnvec[_pos].toutpos = -1;
+	}
+	//try add it to res vector:
+	if(!(chnvec[_pos].flags & ChannelStub::Response)){
+		resvec.push_back(_pos);
+		chnvec[_pos].flags |= ChannelStub::Response;
+	}
+}
 }//namespace tcp
 }//namespace clientserver

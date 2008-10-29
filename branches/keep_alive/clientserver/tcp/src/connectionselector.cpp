@@ -41,10 +41,6 @@
 #include "tcp/connection.hpp"
 #include "tcp/visitor.hpp"
 
-#include "channeldata.hpp"
-
-//#include <iostream>
-//using namespace std;
 
 namespace clientserver{
 namespace tcp{
@@ -187,7 +183,7 @@ int ConnectionSelector::reserve(ulong _cp){
 		ev.data.ptr = &d.pstubs[0];
 		ev.events = EPOLLIN | EPOLLPRI;//must be LevelTriggered
 		if(epoll_ctl(d.epfd, EPOLL_CTL_ADD, d.pipefds[0], &ev)){
-			edbgx(Dbg::tcp, "epollctl");
+			edbgx(Dbg::tcp, "epollctl "<<strerror(errno));
 			cassert(false);
 			return -1;
 		}
@@ -223,29 +219,28 @@ void ConnectionSelector::unprepare(){
 
 void ConnectionSelector::push(const ObjectTp &_objptr, uint _thid){
 	cassert(d.fstk.size());
-	Stub *pc = d.fstk.top(); d.fstk.pop();
-	_objptr->setThread(_thid, pc - d.pstubs);
-	pc->timepos.set(Data::MAXTIMEPOS);
-	pc->events = 0;
+	Stub *pstub = d.fstk.top(); d.fstk.pop();
+	_objptr->setThread(_thid, pstub - d.pstubs);
+	pstub->timepos.set(Data::MAXTIMEPOS);
+	pstub->events = 0;
 	epoll_event ev;
 	ev.data.ptr = NULL;
 	ev.events = 0;
-	ev.data.ptr = pc;
+	ev.data.ptr = pstub;
 	if(
 		_objptr->channel().descriptor() >= 0 && 
 		epoll_ctl(d.epfd, EPOLL_CTL_ADD, _objptr->channel().descriptor(), &ev)
 	){
 		edbgx(Dbg::tcp, "epoll_ctl adding filedesc "<<_objptr->channel().descriptor()<<" err = "<<strerror(errno));
-		pc->objptr.clear();
-		pc->reset();
-		d.fstk.push(pc);
+		pstub->reset();
+		d.fstk.push(pstub);
 	}else{
 		++d.sz;
 		_objptr->channel().prepare();
-		pc->objptr = _objptr;
-		idbgx(Dbg::tcp, "pushing connection "<<&(*(pc->objptr))<<" on position "<<(pc - d.pstubs));
-		pc->state = Stub::InExecQueue;
-		d.execq.push(pc);
+		pstub->objptr = _objptr;
+		idbgx(Dbg::tcp, "pushing connection "<<&(*(pstub->objptr))<<" on position "<<(pstub - d.pstubs));
+		pstub->state = Stub::InExecQueue;
+		d.execq.push(pstub);
 	}
 }
 

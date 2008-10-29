@@ -37,6 +37,7 @@ namespace clientserver{
 namespace tcp{
 
 class ConnectionSelector;
+class MultiConnectionSelector;
 class Station;
 class SecureChannel;
 struct ChannelData;
@@ -107,6 +108,7 @@ private:
 	int doRecvSecure(char*, uint32, uint32);
 	//the private interface is visible to ConnectionSelector
 	friend class ConnectionSelector;
+	friend class MultiConnectionSelector;
 	friend class Station;
 	void prepare();
 	void unprepare();

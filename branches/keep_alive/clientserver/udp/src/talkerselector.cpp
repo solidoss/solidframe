@@ -37,9 +37,6 @@
 #include "udp/talker.hpp"
 #include "udp/station.hpp"
 
-//#include <iostream>
-//using namespace std;
-
 namespace clientserver{
 namespace udp{
 //-------------------------------------------------------------------
@@ -180,7 +177,7 @@ int TalkerSelector::reserve(ulong _cp){
 		ev.data.ptr = &d.pstubs[0];
 		ev.events = EPOLLIN | EPOLLPRI;//must be LevelTriggered
 		if(epoll_ctl(d.epfd, EPOLL_CTL_ADD, d.pipefds[0], &ev)){
-			edbgx(Dbg::udp, "epollctl");
+			edbgx(Dbg::udp, "epollctl "<<strerror(errno));
 			cassert(false);
 			return -1;
 		}
@@ -216,29 +213,28 @@ void TalkerSelector::unprepare(){
 
 void TalkerSelector::push(const ObjectTp &_objptr, uint _thid){
 	cassert(d.fstk.size());
-	Stub *pc = d.fstk.top(); d.fstk.pop();
-	_objptr->setThread(_thid, pc - d.pstubs);
-	pc->timepos.set(Data::MAXTIMEPOS);
-	pc->events = 0;
+	Stub *pstub = d.fstk.top(); d.fstk.pop();
+	_objptr->setThread(_thid, pstub - d.pstubs);
+	pstub->timepos.set(Data::MAXTIMEPOS);
+	pstub->events = 0;
 	epoll_event ev;
 	ev.data.ptr = NULL;
 	ev.events = 0;
-	ev.data.ptr = pc;
+	ev.data.ptr = pstub;
 	if(
 		_objptr->station().descriptor() >= 0 && 
 		epoll_ctl(d.epfd, EPOLL_CTL_ADD, _objptr->station().descriptor(), &ev)
 	){
 		edbgx(Dbg::udp, "epoll_ctl adding filedesc "<<_objptr->station().descriptor()<<" err = "<<strerror(errno));
-		pc->objptr.clear();
-		pc->reset();
-		d.fstk.push(pc);
+		pstub->reset();
+		d.fstk.push(pstub);
 	}else{
 		++d.sz;
 		//_objptr->station().prepare();
-		pc->objptr = _objptr;
-		idbgx(Dbg::udp, "pushing connection "<<&(*(pc->objptr))<<" on position "<<(pc - d.pstubs));
-		pc->state = Stub::InExecQueue;
-		d.execq.push(pc);
+		pstub->objptr = _objptr;
+		idbgx(Dbg::udp, "pushing connection "<<&(*(pstub->objptr))<<" on position "<<(pstub - d.pstubs));
+		pstub->state = Stub::InExecQueue;
+		d.execq.push(pstub);
 	}
 }
 
@@ -387,7 +383,7 @@ int TalkerSelector::doExecute(Stub &_rstub, ulong _evs, TimeSpec &_crttout, epol
 	_rstub.state = Stub::OutExecQueue;//drop it from exec queue so we limit the exec count
 	switch(robj.execute(_evs, _crttout)){
 		case BAD://close
-			idbgx(Dbg::udp, "BAD: removing the connection");
+			idbgx(Dbg::udp, "BAD: removing the talker");
 			d.fstk.push(&_rstub);
 			epoll_ctl(d.epfd, EPOLL_CTL_DEL, robj.station().descriptor(), NULL);
 			//rcon.station().unprepare();

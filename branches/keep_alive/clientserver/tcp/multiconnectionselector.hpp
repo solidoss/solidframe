@@ -32,7 +32,7 @@ struct epoll_event;
 namespace clientserver{
 namespace tcp{
 
-class Connection;
+class MultiConnection;
 class ChannelData;
 class Channel;
 class DataNode;
@@ -63,13 +63,16 @@ public:
 	void prepare();
 	void unprepare();
 private:
-	struct ChannelStub;
+	struct Stub;
 	int doReadPipe();
-	int doExecute(ChannelStub &_rch, ulong _evs, TimeSpec &_crttout, epoll_event &_rev);
-	uint doIo(Channel &_rch, ulong _evs);
+	int doExecute(Stub &_rstub, ulong _evs, TimeSpec &_crttout, epoll_event &_rev);
+	uint doIo(Channel &_r, ulong _evs);
 	uint doAllIo();
 	uint doFullScan();
 	uint doExecuteQueue();
+	
+	void doUnregisterObject(MultiConnection &_robj);
+	void doPrepareObjectWait(Stub &_rstub, const TimeSpec &_crttout);
 private://data
 	struct Data;
 	Data	&d;

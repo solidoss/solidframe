@@ -7,4 +7,7 @@ add_library(clientserver_tcp
 	src/channel.cpp
 	src/connection.cpp
 	src/connectionselector.cpp
+	
+	src/multiconnection.cpp
+	src/multiconnectionselector.cpp
 )
