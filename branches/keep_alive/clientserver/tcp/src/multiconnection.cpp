@@ -4,11 +4,12 @@
 namespace clientserver{
 namespace tcp{
 MultiConnection::ChannelStub::~ChannelStub(){
-	delete pchannel;
-	pchannel = NULL;
 }
 
 /*virtual*/ MultiConnection::~MultiConnection(){
+	for(ChannelVectorTp::iterator it(chnvec.begin()); it != chnvec.end(); ++it){
+		delete it->pchannel;
+	}
 }
 /*virtual*/ int MultiConnection::accept(clientserver::Visitor &_roi){
 }

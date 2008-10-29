@@ -57,17 +57,15 @@ public:
 	void prepare();
 	void unprepare();
 	
-	void push(const TalkerPtrTp &_rcon, uint _thid);
+	void push(const ObjectTp &_rcon, uint _thid);
 private:
-	struct SelTalker;
+	struct Stub;
 	int doReadPipe();
-	int doIo(Station &_rch, ulong _evs);
-	int doExecute(
-		SelTalker &_rch,
-		ulong _evs,
-		TimeSpec &_rcrttout,
-		epoll_event &_rev
-	);
+	int doExecute(Stub &_rch, ulong _evs, TimeSpec &_crttout, epoll_event &_rev);
+	uint doIo(Station &_rch, ulong _evs);
+	uint doAllIo();
+	uint doFullScan();
+	uint doExecuteQueue();
 private://data
 	struct Data;
 	Data	&d;

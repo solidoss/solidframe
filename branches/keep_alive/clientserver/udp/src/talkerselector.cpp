@@ -27,6 +27,7 @@
 #include "system/timespec.hpp"
 
 #include <new>
+#include <cerrno>
 #include "utility/stack.hpp"
 #include "utility/queue.hpp"
 
@@ -36,100 +37,100 @@
 #include "udp/talker.hpp"
 #include "udp/station.hpp"
 
-// #include <iostream>
-// 
-// using namespace std;
+//#include <iostream>
+//using namespace std;
 
 namespace clientserver{
 namespace udp{
-
-struct TalkerSelector::SelTalker{
+//-------------------------------------------------------------------
+struct TalkerSelector::Stub{
 	enum State{
 		OutExecQueue = 0,
 		InExecQueue = 1,
 	};
-	SelTalker():timepos(0),evmsk(0),state(OutExecQueue){}
+	
+	Stub():timepos(0),events(0),state(OutExecQueue){}
 	void reset();
-	TalkerPtrTp		tkrptr;//4
-	TimeSpec		timepos;//4
-	ulong			evmsk;//4
-	//state: 1 means the object is in queue
-	//or if 0 in execq check loop means the channel was already checked
-	int				state;//4
+	ObjectTp		objptr;
+	TimeSpec		timepos;
+	ulong			events;
+	uint			state;
 };
 
 struct TalkerSelector::Data{
 	enum{
 		UNROLLSZ = 4, 
 		UNROLLMSK = 3,
-		EPOLLMASK = EPOLLERR | EPOLLHUP | EPOLLET | EPOLLIN | EPOLLOUT,
-		EXIT_LOOP = 1,
-		FULL_SCAN = 2,
-		READ_PIPE = 4,
+		EPOLLMASK = EPOLLET | EPOLLIN | EPOLLOUT,
 		MAXTIMEPOS = 0xffffffff,
 		MAXPOLLWAIT = 0x7FFFFFFF,
+		EXIT_LOOP = 1,
+		FULL_SCAN = 2,
+		READ_PIPE = 4
 	};
-	typedef Stack<SelTalker*> 	FreeStackTp;
-	typedef Queue<SelTalker*>	ChQueueTp;
 	
-	int computePollWait();
+	typedef Stack<Stub*> 		FreeStackTp;
+	typedef Queue<Stub*>		StubQueueTp;
+	
 	
 	Data();
 	~Data();
-	int  empty()const{ return sz == 1;}
-		
-	void initFreeStack();
-	void push(SelTalker *_pc){
-		execq.push(_pc);
-	}
 	
-	uint			cp;
-	uint			sz;
-	int				selcnt;
-	int				epfd;
-	epoll_event 	*pevs;
-	SelTalker		*pchs;
-	ChQueueTp		execq;
-	FreeStackTp		fstk;
-	int				pipefds[2];
-	TimeSpec        ntimepos;//next timepos == next timeout
-	TimeSpec        ctimepos;//current time pos
+	int computePollWait();
+	bool empty()const{return sz == 1;}
+	
+	uint				cp;
+	uint				sz;
+	int					selcnt;
+	int					epfd;
+	epoll_event 		*pevs;
+	Stub				*pstubs;
+	StubQueueTp			execq;
+	FreeStackTp			fstk;
+	int					pipefds[2];
+	TimeSpec			ntimepos;//next timepos == next timeout
+	TimeSpec			ctimepos;//current time pos
+	
+//reporting data:
+	uint32				rep_fullscancount;
 };
 
-//---------------------------------------------------------------------------
-
-void TalkerSelector::SelTalker::reset(){
+//-------------------------------------------------------------------
+void TalkerSelector::Stub::reset(){
 	state = OutExecQueue;
-	tkrptr.release();
+	cassert(!objptr.release());
 	timepos.set(0);
-	evmsk = 0;
+	events = 0;
 }
-
-//---------------------------------------------------------------------------
-
+//-------------------------------------------------------------------
 TalkerSelector::Data::Data():
-	cp(0), sz(0), selcnt(0),
-	epfd(-1), pevs(NULL), pchs(NULL),
-	ntimepos(0), ctimepos(0)
+	cp(0),sz(0),selcnt(0),epfd(-1), pevs(NULL),
+	pstubs(NULL),	ntimepos(0), ctimepos(0),rep_fullscancount(0)
 {
 	pipefds[0] = pipefds[1] = -1;
 }
-
 TalkerSelector::Data::~Data(){
 	close(pipefds[0]);
 	close(pipefds[1]);
 	close(epfd);
 	delete []pevs;
-	delete []pchs;
+	delete []pstubs;
 }
 
-void TalkerSelector::Data::initFreeStack(){
-	for(int i = cp - 1; i > 0; --i){
-		fstk.push(&(pchs[i]));
-	}
+inline int TalkerSelector::Data::computePollWait(){
+	//TODO: think of a way to eliminate this if - e.g. MAXTIMEPOS==0?!
+	if(ntimepos.seconds() == MAXTIMEPOS) return -1;//return MAXPOLLWAIT;
+	int rv = (ntimepos.seconds() - ctimepos.seconds()) * 1000;
+	rv += ((long)ntimepos.nanoSeconds() - ctimepos.nanoSeconds()) / 1000000;
+	if(rv < 0) return MAXPOLLWAIT;
+	return rv;
 }
-
+//-------------------------------------------------------------------
 TalkerSelector::TalkerSelector():d(*(new Data)){
+}
+
+TalkerSelector::~TalkerSelector(){
+	delete &d;
 }
 
 int TalkerSelector::reserve(ulong _cp){
@@ -138,7 +139,7 @@ int TalkerSelector::reserve(ulong _cp){
 	if(_cp < d.cp) return OK;
 	if(d.cp){
 		cassert(false);
-		delete []d.pevs;delete []d.pchs;//delete []ph;
+		delete []d.pevs;delete []d.pstubs;
 	}
 	d.cp = _cp;
 	
@@ -150,13 +151,15 @@ int TalkerSelector::reserve(ulong _cp){
 		d.pevs[i].data.ptr = NULL;
 	}
 	
-	//the SelTalker table:
+	//the Stub table:
 	
-	d.pchs = new SelTalker[d.cp];
+	d.pstubs = new Stub[d.cp];
 	//no need for initialization
-		
+	
 	//Init the free station stack:
-	d.initFreeStack();
+	for(int i = d.cp - 1; i; --i){
+		d.fstk.push(&d.pstubs[i]);
+	}
 	
 	//init the station queue
 	//execq.reserve(cp);
@@ -172,18 +175,17 @@ int TalkerSelector::reserve(ulong _cp){
 			return -1;
 		}
 		fcntl(d.pipefds[0], F_SETFL, O_NONBLOCK);
-		//fcntl(pipefds[1],F_SETFL, O_NONBLOCK);
-		
+		fcntl(d.pipefds[1], F_SETFL, O_NONBLOCK);
 		epoll_event ev;
-		ev.data.ptr = &d.pchs[0];
+		ev.data.ptr = &d.pstubs[0];
 		ev.events = EPOLLIN | EPOLLPRI;//must be LevelTriggered
 		if(epoll_ctl(d.epfd, EPOLL_CTL_ADD, d.pipefds[0], &ev)){
-			idbgx(Dbg::udp, "error epollctl");
+			edbgx(Dbg::udp, "epollctl");
 			cassert(false);
 			return -1;
 		}
 	}
-	idbgx(Dbg::udp, "Pipe fds "<<d.pipefds[0]<<" "<<d.pipefds[1]);
+	idbgx(Dbg::udp, "pipe fds "<<d.pipefds[0]<<" "<<d.pipefds[1]);
 	d.ctimepos.set(0);
 	d.ntimepos.set(Data::MAXTIMEPOS);
 	d.selcnt = 0;
@@ -191,139 +193,115 @@ int TalkerSelector::reserve(ulong _cp){
 	return OK;
 }
 
-TalkerSelector::~TalkerSelector(){
-	delete &d;
-	idbgx(Dbg::udp, "done");
-}
-
 uint TalkerSelector::capacity()const{
 	return d.cp - 1;
 }
-uint TalkerSelector::size()const{
+
+uint TalkerSelector::size() const{
 	return d.sz;
 }
 int  TalkerSelector::empty()const{
 	return d.sz == 1;
 }
+
 int  TalkerSelector::full()const{
 	return d.sz == d.cp;
 }
+
 void TalkerSelector::prepare(){
 }
+
 void TalkerSelector::unprepare(){
 }
 
-void TalkerSelector::push(const TalkerPtrTp &_tkrptr, uint _thid){
+void TalkerSelector::push(const ObjectTp &_objptr, uint _thid){
 	cassert(d.fstk.size());
-	SelTalker *pc(d.fstk.top());
-	d.fstk.pop();
-	_tkrptr->setThread(_thid, pc - d.pchs);
-	
+	Stub *pc = d.fstk.top(); d.fstk.pop();
+	_objptr->setThread(_thid, pc - d.pstubs);
 	pc->timepos.set(Data::MAXTIMEPOS);
-	pc->evmsk = 0;
-	
+	pc->events = 0;
 	epoll_event ev;
+	ev.data.ptr = NULL;
 	ev.events = 0;
 	ev.data.ptr = pc;
-	
-	if(_tkrptr->station().descriptor() >= 0 && 
-		epoll_ctl(d.epfd, EPOLL_CTL_ADD, _tkrptr->station().descriptor(), &ev)){
-		idbgx(Dbg::udp, "error adding filedesc "<<_tkrptr->station().descriptor());
-		pc->tkrptr.clear();
-		pc->reset(); d.fstk.push(pc);
-		cassert(false);
+	if(
+		_objptr->station().descriptor() >= 0 && 
+		epoll_ctl(d.epfd, EPOLL_CTL_ADD, _objptr->station().descriptor(), &ev)
+	){
+		edbgx(Dbg::udp, "epoll_ctl adding filedesc "<<_objptr->station().descriptor()<<" err = "<<strerror(errno));
+		pc->objptr.clear();
+		pc->reset();
+		d.fstk.push(pc);
 	}else{
 		++d.sz;
-		pc->tkrptr = _tkrptr;
-		idbgx(Dbg::udp, "pushing "<<&(*(pc->tkrptr))<<" on pos "<<(pc - d.pchs));
-		pc->state = SelTalker::InExecQueue;
-		d.push(pc);
+		//_objptr->station().prepare();
+		pc->objptr = _objptr;
+		idbgx(Dbg::udp, "pushing connection "<<&(*(pc->objptr))<<" on position "<<(pc - d.pstubs));
+		pc->state = Stub::OutExecQueue;
+		d.execq.push(pc);
 	}
 }
 
 void TalkerSelector::signal(uint _objid){
 	idbgx(Dbg::udp, "signal connection: "<<_objid);
-	write(d.pipefds[1], &_objid, sizeof(uint));
+	write(d.pipefds[1], &_objid, sizeof(uint32));
 }
 
-int TalkerSelector::doIo(Station &_rch, ulong _evs){
+uint TalkerSelector::doIo(Station &_r, ulong _evs){
+	if(_evs & (EPOLLERR | EPOLLHUP)){
+		return ERRDONE;
+	}
 	int rv = 0;
 	if(_evs & EPOLLIN){
-		rv = _rch.doRecv();
+		rv = _r.doRecv();
 	}
 	if((_evs & EPOLLOUT) && !(rv & ERRDONE)){
-		rv |= _rch.doSend();
+		rv |= _r.doSend();
 	}
 	return rv;
 }
-inline int TalkerSelector::Data::computePollWait(){
-	if(ntimepos.seconds() == MAXTIMEPOS)
-		return MAXPOLLWAIT;
-	int rv = (ntimepos.seconds() - ctimepos.seconds()) * 1000;
-	rv += (ntimepos.nanoSeconds() - ctimepos.nanoSeconds())/1000000 ; 
-	if(rv < 0) return MAXPOLLWAIT;
-	return rv;
-}
-
+/*
+NOTE:
+1) Because connections can only be added while exiting the loop, and because
+the execqueue is executed at the end of the loop, a connection that has left
+the selector, and set the state to "not in queue", will surely be taken out
+of the queue, before its associated Stub will be reused by a newly added
+connection.
+*/
 void TalkerSelector::run(){
-	TimeSpec	crttout;
-	epoll_event	ev;
-	int 		state;
-	int			evs;
-	const int	maxnbcnt = 256;
-	int			nbcnt = -1;
+	uint 		flags;
+	const int	maxnbcnt = 64;
+	int			nbcnt = -1;	//non blocking opperations count,
+							//used to reduce the number of calls for the system time.
 	int 		pollwait = 0;
+	//int			ioqsz = 0;
+	
 	do{
-		state = 0;
+		flags = 0;
 		if(nbcnt < 0){
 			clock_gettime(CLOCK_MONOTONIC, &d.ctimepos);
 			nbcnt = maxnbcnt;
 		}
-		for(int i = 0; i < d.selcnt; ++i){
-			SelTalker *pc = reinterpret_cast<SelTalker*>(d.pevs[i].data.ptr);
-			if(pc != d.pchs){
-				if(pc->state == SelTalker::OutExecQueue && (evs = doIo(pc->tkrptr->station(), d.pevs[i].events))){
-					crttout = d.ctimepos;
-					state |= doExecute(*pc, evs, crttout, ev);
-				}
-			}else{
-				state |= Data::READ_PIPE;
-			}
+		
+		if(d.selcnt){
+			flags |= doAllIo();
 		}
-		if(state & Data::READ_PIPE){
-			state |= doReadPipe();
+		
+		if((flags & Data::FULL_SCAN) || d.ctimepos >= d.ntimepos){
+			flags |= doFullScan();
 		}
-		if((state & Data::FULL_SCAN) || d.ctimepos >= d.ntimepos){
-			idbgx(Dbg::udp, "fullscan");
-			d.ntimepos.set(Data::MAXTIMEPOS);
-			for(uint i = 1; i < d.cp; ++i){
-				SelTalker &pc = d.pchs[i];
-				if(!pc.tkrptr) continue;
-				evs = 0;
-				if(d.ctimepos >= pc.timepos) evs |= TIMEOUT;
-				else if(d.ntimepos > pc.timepos) d.ntimepos = pc.timepos;
-				if(pc.tkrptr->signaled(S_RAISE)) evs |= SIGNALED;//should not be checked by objs
-				if(evs){
-					crttout = d.ctimepos;
-					doExecute(pc, evs, crttout, ev);
-				}
-			}
+		
+		if(d.execq.size()){
+			flags |= doExecuteQueue();
 		}
-		{	
-			int qsz = d.execq.size();
-			while(qsz){//we only do a single scan:
-				idbgx(Dbg::udp, "qsz = "<<qsz<<" queuesz "<<d.execq.size());
-				SelTalker &rc = *d.execq.front();d.execq.pop(); --qsz;
-				if(rc.state == SelTalker::InExecQueue){
-					crttout = d.ctimepos;
-					//rc.state = 0;//moved to doExecute
-					doExecute(rc, 0, crttout, ev);
-				}
-			}
+		
+		if(flags & Data::READ_PIPE){
+			flags |= doReadPipe();
 		}
-		idbgx(Dbg::udp, "sz = "<<d.sz);
-		if(d.empty()) state |= Data::EXIT_LOOP;
-		if(state || d.execq.size()){
+		
+		if(d.empty()) flags |= Data::EXIT_LOOP;
+		
+		if(flags || d.execq.size()){
 			pollwait = 0;
 			--nbcnt;
 		}else{
@@ -332,107 +310,169 @@ void TalkerSelector::run(){
 			idbgx(Dbg::udp, "ctimepos.s = "<<d.ctimepos.seconds()<<" ctimepos.ns = "<<d.ctimepos.nanoSeconds());
 			nbcnt = -1;
         }
+		
 		d.selcnt = epoll_wait(d.epfd, d.pevs, d.sz, pollwait);
-		idbgx(Dbg::udp, "selcnt = "<<d.selcnt);
-	}while(!(state & Data::EXIT_LOOP));
-	idbgx(Dbg::udp, "exiting loop");
+		idbgx(Dbg::udp, "epollwait = "<<d.selcnt);
+	}while(!(flags & Data::EXIT_LOOP));
 }
 
-int TalkerSelector::doExecute(
-	SelTalker &_rch,
-	ulong _evs,
-	TimeSpec &_rcrttout,
-	epoll_event &_rev
-){
+uint TalkerSelector::doAllIo(){
+	uint		flags = 0;
+	TimeSpec	crttout;
+	epoll_event	ev;
+	uint		evs;
+	idbgx(Dbg::udp, "selcnt = "<<d.selcnt);
+	for(int i = 0; i < d.selcnt; ++i){
+		Stub *pc = reinterpret_cast<Stub*>(d.pevs[i].data.ptr);
+		if(pc != d.pstubs){
+			idbgx(Dbg::udp, "state = "<<pc->state);
+			if((evs = doIo(pc->objptr->station(), d.pevs[i].events))){
+				crttout = d.ctimepos;
+				flags |= doExecute(*pc, evs, crttout, ev);
+			}
+		}else{
+			flags |= Data::READ_PIPE;
+		}
+	}
+	return flags;
+}
+uint TalkerSelector::doFullScan(){
+	TimeSpec	crttout;
+	uint		flags = 0;
+	uint		evs;
+	epoll_event	ev;
+	++d.rep_fullscancount;
+	idbgx(Dbg::udp, "fullscan count "<<d.rep_fullscancount);
+	d.ntimepos.set(Data::MAXTIMEPOS);
+	for(uint i = 1; i < d.cp; ++i){
+		Stub &rcs = d.pstubs[i];
+		if(!rcs.objptr) continue;
+		evs = 0;
+		if(d.ctimepos >= rcs.timepos){
+			evs |= TIMEOUT;
+		}else if(d.ntimepos > rcs.timepos){
+			d.ntimepos = rcs.timepos;
+		}
+		if(rcs.objptr->signaled(S_RAISE)){
+			evs |= SIGNALED;//should not be checked by objs
+		}
+		if(evs){
+			crttout = d.ctimepos;
+			doExecute(rcs, evs, crttout, ev);
+		}
+	}
+	return flags;
+}
+uint TalkerSelector::doExecuteQueue(){
+	TimeSpec	crttout;
+	uint		flags = 0;
+	uint		evs;
+	epoll_event	ev;
+	uint		qsz(d.execq.size());
+	while(qsz){//we only do a single scan:
+		Stub &rc = *d.execq.front();d.execq.pop(); --qsz;
+		if(rc.state == Stub::InExecQueue){
+			//rc.state = Stub::NotInQ;//moved in doExecute
+			evs = 0;
+			crttout = d.ctimepos;
+			flags |= doExecute(rc, evs, crttout, ev);
+		}
+	}
+	return flags;
+}
+
+int TalkerSelector::doExecute(Stub &_rstub, ulong _evs, TimeSpec &_crttout, epoll_event &_rev){
 	int rv = 0;
-	Talker &rcon = *_rch.tkrptr;
-	_rch.state = SelTalker::OutExecQueue;
-	switch(rcon.execute(_evs, _rcrttout)){
+	Talker	&robj = *_rstub.objptr;
+	_rstub.state = Stub::OutExecQueue;//drop it from exec queue so we limit the exec count
+	switch(robj.execute(_evs, _crttout)){
 		case BAD://close
 			idbgx(Dbg::udp, "BAD: removing the connection");
-			d.fstk.push(&_rch);
-			epoll_ctl(d.epfd, EPOLL_CTL_DEL, rcon.station().descriptor(), NULL);
-			_rch.tkrptr.clear();
+			d.fstk.push(&_rstub);
+			epoll_ctl(d.epfd, EPOLL_CTL_DEL, robj.station().descriptor(), NULL);
+			//rcon.station().unprepare();
+			_rstub.objptr.clear();
+			_rstub.state = Stub::OutExecQueue;
 			--d.sz;
-			if(d.empty()) rv = Data::EXIT_LOOP;
+			rv = Data::EXIT_LOOP;
 			break;
 		case OK://
-			idbgx(Dbg::udp, "OK: reentering connection");
-			d.execq.push(&_rch);
-			_rch.state = SelTalker::InExecQueue;
-			_rch.timepos.set(Data::MAXTIMEPOS);
+			idbgx(Dbg::udp, "OK: reentering talker "<<robj.station().ioRequest());
+			d.execq.push(&_rstub);
+			_rstub.state = Stub::InExecQueue;
+			_rstub.timepos.set(Data::MAXTIMEPOS);
 			break;
 		case NOK:
-			idbgx(Dbg::udp, "TOUT: connection waits for signals");
+			idbgx(Dbg::udp, "TOUT: talker waits for signals");
 			{	
-				ulong t = (EPOLLERR | EPOLLHUP | EPOLLET) | rcon.station().ioRequest();
-				if((_rch.evmsk & Data::EPOLLMASK) != t){
-					idbgx(Dbg::udp, "RTOUT: epollctl");
-					_rch.evmsk = _rev.events = t;
-					_rev.data.ptr = &_rch;
-					int rv = epoll_ctl(d.epfd, EPOLL_CTL_MOD, rcon.station().descriptor(), &_rev);
-					cassert(!rv);
+				ulong t = (EPOLLET) | robj.station().ioRequest();
+				if((_rstub.events & Data::EPOLLMASK) != t){
+					idbgx(Dbg::udp, "epollctl");
+					_rstub.events = _rev.events = t;
+					_rev.data.ptr = &_rstub;
+					epoll_ctl(d.epfd, EPOLL_CTL_MOD, robj.station().descriptor(), &_rev);
 				}
-				if(_rcrttout != d.ctimepos){
-					_rch.timepos = _rcrttout;
-					if(d.ntimepos > _rcrttout){
-						d.ntimepos = _rcrttout;
-					}
+				if(_crttout != d.ctimepos){
+					_rstub.timepos = _crttout;
+					if(d.ntimepos > _crttout) d.ntimepos = _crttout;
 				}else{
-					_rch.timepos.set(Data::MAXTIMEPOS);
+					_rstub.timepos.set(Data::MAXTIMEPOS);
 				}
 			}
 			break;
 		case LEAVE:
-			idbgx(Dbg::udp, "LEAVE: connection leave");
-			d.fstk.push(&_rch);
-			//TODO: remove fd from epoll
-			if(d.sz == d.cp) rv = Data::EXIT_LOOP;
-			_rch.tkrptr.release();
+			idbgx(Dbg::udp, "LEAVE: talker leave");
+			d.fstk.push(&_rstub);
+			epoll_ctl(d.epfd, EPOLL_CTL_DEL, robj.station().descriptor(), NULL);
 			--d.sz;
+			_rstub.objptr.release();
+			_rstub.state = Stub::OutExecQueue;
+			//rcon.station().unprepare();
+			rv = Data::EXIT_LOOP;
 			break;
 		case REGISTER:{//
-			idbgx(Dbg::udp, "REGISTER: register connection with new descriptor");
-			_rev.data.ptr = &_rch;
-			uint ioreq = rcon.station().ioRequest();
-			_rch.evmsk = _rev.events = (EPOLLERR | EPOLLHUP | EPOLLET) | ioreq;
-			int rv = epoll_ctl(d.epfd, EPOLL_CTL_ADD, rcon.station().descriptor(), &_rev);
-			cassert(!rv);
+			idbgx(Dbg::udp, "REGISTER: register talker with new descriptor");
+			_rev.data.ptr = &_rstub;
+			uint ioreq = robj.station().ioRequest();
+			_rstub.events = _rev.events = (EPOLLET) | ioreq;
+			epoll_ctl(d.epfd, EPOLL_CTL_ADD, robj.station().descriptor(), &_rev);
 			if(!ioreq){
-				d.execq.push(&_rch);
-				_rch.state = SelTalker::InExecQueue;
+				d.execq.push(&_rstub);
+				_rstub.state = Stub::InExecQueue;
 			}
 			}break;
-		case UNREGISTER:{
-			idbgx(Dbg::udp, "UNREGISTER: unregister connection's descriptor");
-			int rv = epoll_ctl(d.epfd, EPOLL_CTL_DEL, rcon.station().descriptor(), NULL);
-			cassert(!rv);
-			d.execq.push(&_rch);
-			_rch.state = SelTalker::InExecQueue;
-			}break;
+		case UNREGISTER:
+			idbgx(Dbg::udp, "UNREGISTER: unregister talker's descriptor");
+			epoll_ctl(d.epfd, EPOLL_CTL_DEL, robj.station().descriptor(), NULL);
+			d.execq.push(&_rstub);
+			_rstub.state = Stub::InExecQueue;
+			break;
 		default:
 			cassert(false);
 	}
-	idbgx(Dbg::udp, "doExecute return "<<rv);
+	//idbgx(Dbg::udp, "return "<<rv);
 	return rv;
 }
 
+/**
+ * Returns true if we have to check for new Stubs.
+ */
 int TalkerSelector::doReadPipe(){
 	enum {BUFSZ = 128, BUFLEN = BUFSZ * sizeof(uint)};
-	uint	buf[BUFSZ];
-	int rv = 0;//no
-	int rsz = 0;int j = 0;int maxcnt = (d.cp / BUFSZ) + 1;
-	idbgx(Dbg::udp, "maxcnt = "<<maxcnt);
-	SelTalker	*pch = NULL;
+	uint32		buf[128];
+	int			rv(0);//no
+	int			rsz(0);
+	int			j(0);
+	int			maxcnt((d.cp / BUFSZ) + 1);
+	Stub		*pstub(NULL);
+	
 	while((++j <= maxcnt) && ((rsz = read(d.pipefds[0], buf, BUFLEN)) == BUFLEN)){
 		for(int i = 0; i < BUFSZ; ++i){
-			idbgx(Dbg::udp, "buf["<<i<<"]="<<buf[i]);
-			uint pos = buf[i];
+			uint pos(buf[i]);
 			if(pos){
-				if(pos < d.cp && (pch = d.pchs + pos)->tkrptr && pch->state == SelTalker::OutExecQueue && pch->tkrptr->signaled(S_RAISE)){
-					d.execq.push(pch);
-					pch->state = SelTalker::InExecQueue;
-					idbgx(Dbg::udp, "pushig "<<pos<<" connection into queue");
+				if(pos < d.cp && (pstub = d.pstubs + pos)->objptr && pstub->state == Stub::OutExecQueue && pstub->objptr->signaled(S_RAISE)){
+					d.execq.push(pstub);
+					pstub->state = Stub::InExecQueue;
 				}
 			}else rv = Data::EXIT_LOOP;
 		}
@@ -440,13 +480,11 @@ int TalkerSelector::doReadPipe(){
 	if(rsz){
 		rsz >>= 2;
 		for(int i = 0; i < rsz; ++i){	
-			idbgx(Dbg::udp, "buf["<<i<<"]="<<buf[i]);
-			uint pos = buf[i];
+			uint pos(buf[i]);
 			if(pos){
-				if(pos < d.cp && (pch = d.pchs + pos)->tkrptr && pch->state == SelTalker::OutExecQueue && pch->tkrptr->signaled(S_RAISE)){
-					d.execq.push(pch);
-					pch->state = SelTalker::InExecQueue;
-					idbgx(Dbg::udp, "pushig "<<pos<<" connection into queue");
+				if(pos < d.cp && (pstub = d.pstubs + pos)->objptr && pstub->state == Stub::OutExecQueue && pstub->objptr->signaled(S_RAISE)){
+					d.execq.push(pstub);
+ 					pstub->state = Stub::InExecQueue;
 				}
 			}else rv = Data::EXIT_LOOP;
 		}
@@ -454,13 +492,12 @@ int TalkerSelector::doReadPipe(){
 	if(j > maxcnt){
 		//dummy read:
 		rv = Data::EXIT_LOOP | Data::FULL_SCAN;//scan all filedescriptors for events
-		idbgx(Dbg::udp, "reading dummy");
+		idbgx(Dbg::udp, "reading pipe dummy");
 		while((rsz = read(d.pipefds[0], buf, BUFSZ)) > 0);
 	}
-	idbgx(Dbg::udp, "readpiperv = "<<rv);
 	return rv;
 }
 
-}//namespace tcp
+}//namespace udp
 }//namespace clientserver
 

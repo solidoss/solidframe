@@ -48,11 +48,6 @@ class ConnectionSelector{
 public:
 	typedef ConnectionPtrTp		ObjectTp;
 	
-	static DataNode* popDataNode();
-	static void push(DataNode *_pdn);
-	static ChannelData* popChannelData();
-	static void push(ChannelData *);
-	
 	ConnectionSelector();
 	~ConnectionSelector();
 	int reserve(ulong _cp);
@@ -64,13 +59,13 @@ public:
 	int  empty()const;
 	int  full()const;
 	
-	void push(const ConnectionPtrTp &_rcon, uint _thid);
+	void push(const ObjectTp &_rcon, uint _thid);
 	void prepare();
 	void unprepare();
 private:
-	struct ChannelStub;
+	struct Stub;
 	int doReadPipe();
-	int doExecute(ChannelStub &_rch, ulong _evs, TimeSpec &_crttout, epoll_event &_rev);
+	int doExecute(Stub &_rch, ulong _evs, TimeSpec &_crttout, epoll_event &_rev);
 	uint doIo(Channel &_rch, ulong _evs);
 	uint doAllIo();
 	uint doFullScan();

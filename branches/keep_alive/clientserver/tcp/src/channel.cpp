@@ -30,7 +30,6 @@
 #include "core/common.hpp"
 
 #include "tcp/channel.hpp"
-#include "tcp/connectionselector.hpp"
 
 #include "channeldata.hpp"
 

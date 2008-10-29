@@ -49,15 +49,15 @@
 namespace clientserver{
 namespace tcp{
 //-------------------------------------------------------------------
-struct ConnectionSelector::ChannelStub{
+struct ConnectionSelector::Stub{
 	enum State{
 		OutExecQueue = 0,
 		InExecQueue = 1,
 	};
 	
-	ChannelStub():timepos(0),events(0),state(OutExecQueue),rep_fullscancount(0){}
+	Stub():timepos(0),events(0),state(OutExecQueue),rep_fullscancount(0){}
 	void reset();
-	MultiConnectionPtrTp	conptr;
+	ObjectTp				objptr;
 	TimeSpec				timepos;
 	ulong					events;
 	uint					state;
@@ -77,11 +77,10 @@ struct ConnectionSelector::Data{
 		READ_PIPE = 4
 	};
 	
-	typedef Stack<ChannelStub*> 		FreeStackTp;
-	typedef Queue<ChannelStub*>			ChannelQueueTp;
+	typedef Stack<Stub*> 				FreeStackTp;
+	typedef Queue<Stub*>				StubQueueTp;
 	
 	typedef Stack<DataNode*>			DataNodeStackTp;
-	typedef Stack<ChannelData*>			ChannelDataStackTp;
 	
 	Data();
 	~Data();
@@ -92,30 +91,29 @@ struct ConnectionSelector::Data{
 	uint				cp;
 	uint				sz;
 	uint				chncp;
+	uint				chnsz;
 	int					selcnt;
 	int					epfd;
 	epoll_event 		*pevs;
-	ChannelStub			*pchs;
+	Stub				*pstubs;
 	ChannelQueueTp		execq;
 	FreeStackTp			fstk;
 	int					pipefds[2];
 	TimeSpec			ntimepos;//next timepos == next timeout
 	TimeSpec			ctimepos;//current time pos
-	DataNodeStackTp		dnstk, dnastk;
-	ChannelDataStackTp	cdstk, cdastk;
 };
 
 //-------------------------------------------------------------------
-void ConnectionSelector::ChannelStub::reset(){
+void ConnectionSelector::Stub::reset(){
 	state = OutExecQueue;
-	cassert(!conptr.release());
+	cassert(!objptr.release());
 	timepos.set(0);
 	events = 0;
 }
 //-------------------------------------------------------------------
 ConnectionSelector::Data::Data():
-	cp(0),sz(0),chncp(0),selcnt(0),epfd(-1), pevs(NULL),
-	pchs(NULL),	ntimepos(0), ctimepos(0)
+	cp(0),sz(0),chncp(0),chnsz(0),selcnt(0),epfd(-1), pevs(NULL),
+	pstubs(NULL),	ntimepos(0), ctimepos(0)
 {
 	pipefds[0] = pipefds[1] = -1;
 }
@@ -124,13 +122,7 @@ ConnectionSelector::Data::~Data(){
 	close(pipefds[1]);
 	close(epfd);
 	delete []pevs;
-	delete []pchs;
-	while(dnastk.size()){
-		delete []dnastk.top();dnastk.pop();
-	}
-	while(cdastk.size()){
-		delete []cdastk.top();cdastk.pop();
-	}
+	delete []pstubs;
 }
 
 inline int ConnectionSelector::Data::computePollWait(){
@@ -140,6 +132,18 @@ inline int ConnectionSelector::Data::computePollWait(){
 	rv += ((long)ntimepos.nanoSeconds() - ctimepos.nanoSeconds()) / 1000000;
 	if(rv < 0) return MAXPOLLWAIT;
 	return rv;
+}
+void ConnectionSelector::Data::addNewChannel(){
+	++chnsz;
+	if(chnsz > chncp){
+		chncp += 64;//TODO: improve!!
+		delete []d.pevs;
+		d.pevs = new epoll_event[d.chncp];
+		for(uint i = 0; i < d.chncp; ++i){
+			d.pevs[i].events = 0;
+			d.pevs[i].data.ptr = NULL;
+		}
+	}
 }
 //-------------------------------------------------------------------
 ConnectionSelector::ConnectionSelector():d(*(new Data)){
@@ -155,7 +159,7 @@ int ConnectionSelector::reserve(ulong _cp){
 	if(_cp < d.cp) return OK;
 	if(d.cp){
 		cassert(false);
-		delete []d.pevs;delete []d.pchs;
+		delete []d.pevs;delete []d.pstubs;
 	}
 	d.cp = _cp;
 	
@@ -167,14 +171,14 @@ int ConnectionSelector::reserve(ulong _cp){
 		d.pevs[i].data.ptr = NULL;
 	}
 	
-	//the ChannelStub table:
+	//the Stub table:
 	
-	d.pchs = new ChannelStub[d.cp];
+	d.pstubs = new Stub[d.cp];
 	//no need for initialization
 	
 	//Init the free channel stack:
 	for(int i = d.cp - 1; i; --i){
-		d.fstk.push(&d.pchs[i]);
+		d.fstk.push(&d.pstubs[i]);
 	}
 	
 	//init the channel queue
@@ -193,7 +197,7 @@ int ConnectionSelector::reserve(ulong _cp){
 		fcntl(d.pipefds[0], F_SETFL, O_NONBLOCK);
 		fcntl(d.pipefds[1], F_SETFL, O_NONBLOCK);
 		epoll_event ev;
-		ev.data.ptr = &d.pchs[0];
+		ev.data.ptr = &d.pstubs[0];
 		ev.events = EPOLLIN | EPOLLPRI;//must be LevelTriggered
 		if(epoll_ctl(d.epfd, EPOLL_CTL_ADD, d.pipefds[0], &ev)){
 			edbgx(Dbg::tcp, "epollctl");
@@ -230,10 +234,10 @@ void ConnectionSelector::prepare(){
 void ConnectionSelector::unprepare(){
 }
 
-void ConnectionSelector::push(const ConnectionPtrTp &_conptr, uint _thid){
+void ConnectionSelector::push(const ObjectTp &_objptr, uint _thid){
 	cassert(d.fstk.size());
-	ChannelStub *pc = d.fstk.top(); d.fstk.pop();
-	_conptr->setThread(_thid, pc - d.pchs);
+	Stub *pc = d.fstk.top(); d.fstk.pop();
+	_objptr->setThread(_thid, pc - d.pstubs);
 	pc->timepos.set(Data::MAXTIMEPOS);
 	pc->events = 0;
 	epoll_event ev;
@@ -241,20 +245,20 @@ void ConnectionSelector::push(const ConnectionPtrTp &_conptr, uint _thid){
 	ev.events = 0;
 	ev.data.ptr = pc;
 	if(
-		_conptr->channel().descriptor() >= 0 && 
-		epoll_ctl(d.epfd, EPOLL_CTL_ADD, _conptr->channel().descriptor(), &ev)
+		_objptr->channel().descriptor() >= 0 && 
+		epoll_ctl(d.epfd, EPOLL_CTL_ADD, _objptr->channel().descriptor(), &ev)
 	){
-		edbgx(Dbg::tcp, "epoll_ctl adding filedesc "<<_conptr->channel().descriptor()<<" err = "<<strerror(errno));
-		pc->conptr.clear();
+		edbgx(Dbg::tcp, "epoll_ctl adding filedesc "<<_objptr->channel().descriptor()<<" err = "<<strerror(errno));
+		pc->objptr.clear();
 		pc->reset();
 		d.fstk.push(pc);
 	}else{
 		++d.sz;
 		d.addNewChannel();
-		_conptr->channel().prepare();
-		pc->conptr = _conptr;
-		idbgx(Dbg::tcp, "pushing connection "<<&(*(pc->conptr))<<" on position "<<(pc - d.pchs));
-		pc->state = ChannelStub::OutExecQueue;
+		_objptr->channel().prepare();
+		pc->objptr = _objptr;
+		idbgx(Dbg::tcp, "pushing connection "<<&(*(pc->objptr))<<" on position "<<(pc - d.pstubs));
+		pc->state = Stub::OutExecQueue;
 		d.execq.push(pc);
 	}
 }
@@ -264,17 +268,17 @@ void ConnectionSelector::signal(uint _objid){
 	write(d.pipefds[1], &_objid, sizeof(uint32));
 }
 
-uint ConnectionSelector::doIo(Channel &_rch, ulong _evs){
+uint ConnectionSelector::doIo(Channel &_r, ulong _evs){
 	if(_evs & (EPOLLERR | EPOLLHUP)){
-		_rch.clear();
+		_r.clear();
 		return ERRDONE;
 	}
 	int rv = 0;
 	if(_evs & Channel::INTOUT){
-		rv = _rch.doRecv();
+		rv = _r.doRecv();
 	}
 	if(!(rv & ERRDONE) && (_evs & Channel::OUTTOUT)){
-		rv |= _rch.doSend();
+		rv |= _r.doSend();
 	}
 	return rv;
 }
@@ -283,7 +287,7 @@ NOTE:
 1) Because connections can only be added while exiting the loop, and because
 the execqueue is executed at the end of the loop, a connection that has left
 the selector, and set the state to "not in queue", will surely be taken out
-of the queue, before its associated ChannelStub will be reused by a newly added
+of the queue, before its associated Stub will be reused by a newly added
 connection.
 */
 void ConnectionSelector::run(){
@@ -341,16 +345,16 @@ uint ConnectionSelector::doAllIo(){
 	uint		evs;
 	idbgx(Dbg::tcp, "selcnt = "<<d.selcnt);
 	for(int i = 0; i < d.selcnt; ++i){
-		pair<ChannelStub*, uint32> chn= d.channelStub(d.pevs[i]);//reinterpret_cast<ChannelStub*>(d.pevs[i].data.ptr);
-		if(chn.first != d.pchs){
-			idbgx(Dbg::tcp, "state = "<<chn.first->state<<" empty "<<ChannelStub::Empty);
-			if((evs = doIo(chn.first->conptr->channel(chn.second), d.pevs[i].events))){
+		pair<Stub*, uint32> chn= d.channelStub(d.pevs[i]);//reinterpret_cast<Stub*>(d.pevs[i].data.ptr);
+		if(chn.first != d.pstubs){
+			idbgx(Dbg::tcp, "state = "<<chn.first->state<<" empty "<<Stub::Empty);
+			if((evs = doIo(chn.first->objptr->channel(chn.second), d.pevs[i].events))){
 				//first mark the channel in connection
-				chn.first->conptr->addDoneChannel(chn.second, evs);
+				chn.first->objptr->addDoneChannel(chn.second, evs);
 				//push channel execqueue
-				if(_rch.state == ChannelStub::OutExecQueue){
+				if(_rch.state == Stub::OutExecQueue){
 					d.execq.push(pc);
-					_rch.state = ChannelStub::InExecQueue;
+					_rch.state = Stub::InExecQueue;
 				}
 			}
 		}else{
@@ -368,15 +372,16 @@ uint ConnectionSelector::doFullScan(){
 	idbgx(Dbg::tcp, "fullscan count "<<rep_fullscancount);
 	d.ntimepos.set(Data::MAXTIMEPOS);
 	for(uint i = 1; i < d.cp; ++i){
-		ChannelStub &rcs = d.pchs[i];
-		if(!rcs.conptr) continue;
+		Stub &rcs = d.pstubs[i];
+		if(!rcs.objptr) continue;
 		evs = 0;
 		if(d.ctimepos >= rcs.timepos){
 			evs |= TIMEOUT;
+			rcs.objptr->addTimeoutChannels(d.ctimepos);
 		}else if(d.ntimepos > rcs.timepos){
 			d.ntimepos = rcs.timepos;
 		}
-		if(rcs.conptr->signaled(S_RAISE)){
+		if(rcs.objptr->signaled(S_RAISE)){
 			evs |= SIGNALED;//should not be checked by objs
 		}
 		if(evs){
@@ -393,9 +398,9 @@ uint ConnectionSelector::doExecuteQueue(){
 	epoll_event	ev;
 	uint		qsz(d.execq.size());
 	while(qsz){//we only do a single scan:
-		ChannelStub &rc = *d.execq.front();d.execq.pop(); --qsz;
-		if(rc.state == ChannelStub::InExecQueue){
-			//rc.state &= ~ChannelStub::InQExec;//moved to doExecute
+		Stub &rc = *d.execq.front();d.execq.pop(); --qsz;
+		if(rc.state == Stub::InExecQueue){
+			//rc.state &= ~Stub::InQExec;//moved to doExecute
 			evs = 0;
 			crttout = d.ctimepos;
 			flags |= doExecute(rc, evs, crttout, ev);
@@ -404,72 +409,79 @@ uint ConnectionSelector::doExecuteQueue(){
 	return flags;
 }
 
-int ConnectionSelector::doExecute(ChannelStub &_rch, ulong _evs, TimeSpec &_crttout, epoll_event &_rev){
+int ConnectionSelector::doExecute(Stub &_rstub, ulong _evs, TimeSpec &_crttout, epoll_event &_rev){
 	int rv = 0;
-	Connection	&rcon = *_rch.conptr;
-	_rch.state = ChannelStub::OutExecQueue;
+	MultiConnection	&rcon = *_rstub.objptr;
+	_rstub.state = Stub::OutExecQueue;
 	switch(rcon.execute(_evs, _crttout)){
 		case BAD://close
 			idbgx(Dbg::tcp, "BAD: removing the connection");
-			d.fstk.push(&_rch);
-			epoll_ctl(d.epfd, EPOLL_CTL_DEL, rcon.channel().descriptor(), NULL);
+			d.fstk.push(&_rstub);
+			//epoll_ctl(d.epfd, EPOLL_CTL_DEL, rcon.channel().descriptor(), NULL);
+			//unregister all channels
+			d.unregisterConnection(rcon);
+// 			for(MultiConnection::ChannelVectorTp::iterator it(rcon.chnvec.begin()); it != rcon.chnvec.end(); ++it){
+// 				if(it->pchannel->ok()){
+// 					epoll_ctl(d.epfd, EPOLL_CTL_DEL, it->pchannel->descriptor(), NULL);
+// 					--d.chnsz;
+// 				}
+// 			}
 			rcon.channel().unprepare();
-			_rch.conptr.clear();
+			_rstub.objptr.clear();
 			--d.sz;
-			//if(empty()) 
 			rv = Data::EXIT_LOOP;
 			break;
 		case OK://
 			idbgx(Dbg::tcp, "OK: reentering connection "<<rcon.channel().ioRequest());
-			d.execq.push(&_rch);
-			_rch.state = ChannelStub::InExecQueue;
-			_rch.timepos.set(Data::MAXTIMEPOS);
+			d.execq.push(&_rstub);
+			_rstub.state = Stub::InExecQueue;
+			_rstub.timepos.set(Data::MAXTIMEPOS);
 			break;
 		case NOK:
 			idbgx(Dbg::tcp, "TOUT: connection waits for signals");
 			{	
 				ulong t = (EPOLLET) | rcon.channel().ioRequest();
-				if((_rch.events & Data::EPOLLMASK) != t){
+				if((_rstub.events & Data::EPOLLMASK) != t){
 					idbgx(Dbg::tcp, "epollctl");
-					_rch.events = _rev.events = t;
-					_rev.data.ptr = &_rch;
+					_rstub.events = _rev.events = t;
+					_rev.data.ptr = &_rstub;
 					epoll_ctl(d.epfd, EPOLL_CTL_MOD, rcon.channel().descriptor(), &_rev);
 				}
 				if(_crttout != d.ctimepos){
-					_rch.timepos = _crttout;
+					_rstub.timepos = _crttout;
 					if(d.ntimepos > _crttout) d.ntimepos = _crttout;
 				}else{
-					_rch.timepos.set(Data::MAXTIMEPOS);
+					_rstub.timepos.set(Data::MAXTIMEPOS);
 				}
 			}
 			break;
 		case LEAVE:
 			idbgx(Dbg::tcp, "LEAVE: connection leave");
-			d.fstk.push(&_rch);
-			epoll_ctl(d.epfd, EPOLL_CTL_DEL, rcon.channel().descriptor(), NULL);
+			d.fstk.push(&_rstub);
+			d.unregisterConnection(rcon);
 			--d.sz;
-			_rch.conptr.release();
+			_rstub.objptr.release();
 			rcon.channel().unprepare();
 			//if(empty()) 
 			rv = Data::EXIT_LOOP;
 			break;
-		case REGISTER:{//
-			idbgx(Dbg::tcp, "REGISTER: register connection with new descriptor");
-			_rev.data.ptr = &_rch;
-			uint ioreq = rcon.channel().ioRequest();
-			_rch.events = _rev.events = (EPOLLET) | ioreq;
-			epoll_ctl(d.epfd, EPOLL_CTL_ADD, rcon.channel().descriptor(), &_rev);
-			if(!ioreq){
-				d.execq.push(&_rch);
-				_rch.state = ChannelStub::InExecQueue;
-			}
-			}break;
-		case UNREGISTER:
-			idbgx(Dbg::tcp, "UNREGISTER: unregister connection's descriptor");
-			epoll_ctl(d.epfd, EPOLL_CTL_DEL, rcon.channel().descriptor(), NULL);
-			d.execq.push(&_rch);
-			_rch.state = ChannelStub::InExecQueue;
-			break;
+// 		case REGISTER:{//
+// 			idbgx(Dbg::tcp, "REGISTER: register connection with new descriptor");
+// 			_rev.data.ptr = &_rstub;
+// 			uint ioreq = rcon.channel().ioRequest();
+// 			_rstub.events = _rev.events = (EPOLLET) | ioreq;
+// 			epoll_ctl(d.epfd, EPOLL_CTL_ADD, rcon.channel().descriptor(), &_rev);
+// 			if(!ioreq){
+// 				d.execq.push(&_rstub);
+// 				_rstub.state = Stub::InExecQueue;
+// 			}
+// 			}break;
+// 		case UNREGISTER:
+// 			idbgx(Dbg::tcp, "UNREGISTER: unregister connection's descriptor");
+// 			epoll_ctl(d.epfd, EPOLL_CTL_DEL, rcon.channel().descriptor(), NULL);
+// 			d.execq.push(&_rstub);
+// 			_rstub.state = Stub::InExecQueue;
+// 			break;
 		default:
 			cassert(false);
 	}
@@ -478,7 +490,7 @@ int ConnectionSelector::doExecute(ChannelStub &_rch, ulong _evs, TimeSpec &_crtt
 }
 
 /**
- * Returns true if we have to check for new ChannelStubs.
+ * Returns true if we have to check for new Stubs.
  */
 int ConnectionSelector::doReadPipe(){
 	enum {BUFSZ = 128, BUFLEN = BUFSZ * sizeof(uint)};
@@ -487,15 +499,15 @@ int ConnectionSelector::doReadPipe(){
 	int			rsz(0);
 	int			j(0);
 	int			maxcnt((d.cp / BUFSZ) + 1);
-	ChannelStub	*pch(NULL);
+	Stub		*pstub(NULL);
 	
 	while((++j <= maxcnt) && ((rsz = read(d.pipefds[0], buf, BUFLEN)) == BUFLEN)){
 		for(int i = 0; i < BUFSZ; ++i){
 			uint pos(buf[i]);
 			if(pos){
-				if(pos < d.cp && (pch = d.pchs + pos)->conptr && pch->state == ChannelStub::OutExecQueue && pch->conptr->signaled(S_RAISE)){
-					d.execq.push(pch);
-					pch->state = ChannelStub::InExecQueue;
+				if(pos < d.cp && (pstub = d.pstubs + pos)->objptr && pstub->state == Stub::OutExecQueue && pstub->objptr->signaled(S_RAISE)){
+					d.execq.push(pstub);
+					pstub->state = Stub::InExecQueue;
 				}
 			}else rv = Data::EXIT_LOOP;
 		}
@@ -505,9 +517,9 @@ int ConnectionSelector::doReadPipe(){
 		for(int i = 0; i < rsz; ++i){	
 			uint pos(buf[i]);
 			if(pos){
-				if(pos < d.cp && (pch = d.pchs + pos)->conptr && pch->state == ChannelStub::OutExecQueue && pch->conptr->signaled(S_RAISE)){
-					d.execq.push(pch);
-					pch->state = ChannelStub::InExecQueue;
+				if(pos < d.cp && (pstub = d.pstubs + pos)->objptr && pstub->state == Stub::OutExecQueue && pstub->objptr->signaled(S_RAISE)){
+					d.execq.push(pstub);
+					pstub->state = Stub::InExecQueue;
 				}
 			}else rv = Data::EXIT_LOOP;
 		}
