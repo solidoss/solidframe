@@ -35,6 +35,10 @@ inline bool Channel::ok()const{
 	return sd.ok();
 }
 
+inline bool Channel::isSecure()const{
+	return psch != NULL;
+}
+
 inline int Channel::send(const char* _pb, uint32 _blen, uint32 _flags){
 	if(psch)return doSendSecure(_pb, _blen, _flags);
 	else	return doSendPlain(_pb, _blen, _flags);

@@ -70,6 +70,7 @@ public:
 	
 	const UIntVectorTp & signelledChannelsVector()const;
 protected:
+	//TODO: make it possible to add more channels into the multiconnection before registering the latter to a selector
 	MultiConnection(Channel *_pch = NULL);
 private:
 	friend class MultiConnectionSelector;
@@ -87,7 +88,6 @@ private:
 			IORequest = 4,
 			UnregisterRequest = 8,
 			RegisterRequest = 16,
-			EraseRequest = 32
 		};
 		ChannelStub(Channel *_pch = NULL):
 			pchannel(_pch),
@@ -113,12 +113,12 @@ private:
 	};
 	typedef std::vector<ChannelStub>	ChannelVectorTp;
 	typedef Stack<uint>					PositionStackTp;
+	TimeSpec			nextchntout;
 	ChannelVectorTp		chnvec;//the channels
 	PositionStackTp		chnstk;//keeps freepositions in chnvec
 	UIntVectorTp		reqvec;//keeps channels with requests - used by channel selector
 	UIntVectorTp		resvec;//keeps the signeld channels
 	UIntVectorTp		toutvec;//keeps the channels expecting timeout
-	TimeSpec			nextchntout;
 };
 
 }//namespace tcp

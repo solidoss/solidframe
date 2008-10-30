@@ -75,7 +75,7 @@ public:
 	//! Tries to connect/ initiate connect to a specified address
 	int connect(const AddrInfoIterator&);
 	//! Returns true if the channel is secure - 
-	int isSecure()const;
+	bool isSecure()const;
 	//! Send a buffer
 	int send(const char* _pb, uint32 _bl, uint32 _flags = 0);
 	//! Receives data into a buffer

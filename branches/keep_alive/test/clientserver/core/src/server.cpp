@@ -42,7 +42,9 @@
 #include "clientserver/core/filemanager.hpp"
 #include "clientserver/core/filekeys.hpp"
 #include "clientserver/tcp/connectionselector.hpp"
+#include "clientserver/tcp/multiconnectionselector.hpp"
 #include "clientserver/tcp/connection.hpp"
+#include "clientserver/tcp/multiconnection.hpp"
 #include "clientserver/tcp/listenerselector.hpp"
 #include "clientserver/tcp/listener.hpp"
 #include "clientserver/udp/talkerselector.hpp"
@@ -269,12 +271,13 @@ void CommandExecuter::removeFromServer(){
 //=========================================================================
 //The server's localdata
 struct Server::Data{
-	typedef std::vector<ExtraObjPtr>								ExtraObjectVector;
-	typedef std::map<const char*, int, StrLess> 					ServiceIdxMap;
-	typedef clientserver::SelectPool<cs::ObjectSelector>			ObjSelPoolTp;
-	typedef clientserver::SelectPool<cs::tcp::ConnectionSelector>	ConSelPoolTp;
-	typedef clientserver::SelectPool<cs::tcp::ListenerSelector>		LisSelPoolTp;
-	typedef clientserver::SelectPool<cs::udp::TalkerSelector>		TkrSelPoolTp;
+	typedef std::vector<ExtraObjPtr>									ExtraObjectVector;
+	typedef std::map<const char*, int, StrLess> 						ServiceIdxMap;
+	typedef clientserver::SelectPool<cs::ObjectSelector>				ObjSelPoolTp;
+	typedef clientserver::SelectPool<cs::tcp::ConnectionSelector>		ConSelPoolTp;
+	typedef clientserver::SelectPool<cs::tcp::ListenerSelector>			LisSelPoolTp;
+	typedef clientserver::SelectPool<cs::udp::TalkerSelector>			TkrSelPoolTp;
+	typedef clientserver::SelectPool<cs::tcp::MultiConnectionSelector>	MultiConSelPoolTp;
 
 	Data(Server &_rs);
 	~Data();
@@ -285,6 +288,7 @@ struct Server::Data{
 	ConSelPoolTp						*pconnectionpool;// connection pool
 	LisSelPoolTp						*plistenerpool;// listener pool
 	TkrSelPoolTp						*ptalkerpool;// talker pool
+	MultiConSelPoolTp					*pmulticonnectionpool;
 	cs::ObjPtr<cs::CommandExecuter>		readcmdexec;// read command executer
 	cs::ObjPtr<cs::CommandExecuter>		writecmdexec;// write command executer
 };
@@ -330,6 +334,10 @@ Server::Data::Data(Server &_rs):pconnectionpool(NULL), plistenerpool(NULL), ptal
 												256			//max connections per selector/thread
 												);			//at most 10 * 4 * 1024 connections
 		pconnectionpool->start(1);//start with one worker
+	}
+	if(true){
+		pmulticonnectionpool = new MultiConSelPoolTp(_rs, 2, 100);
+		pmulticonnectionpool->start(1);
 	}
 	idbg("");
 }

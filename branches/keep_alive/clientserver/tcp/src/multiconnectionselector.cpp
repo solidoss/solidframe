@@ -139,18 +139,25 @@ void MultiConnectionSelector::Data::addNewChannel(){
 		pevs = new epoll_event[chncp];
 		for(uint i = 0; i < chncp; ++i){
 			pevs[i].events = 0;
-			pevs[i].data.ptr = NULL;
+			pevs[i].data.u64 = 0;
 		}
 	}
 }
 epoll_event* MultiConnectionSelector::Data::eventPrepare(
 	epoll_event &_ev, unsigned _objpos, unsigned _pos
 ){
-	//TODO:
+	_ev.data.u64 = _objpos;
+	_ev.data.u64 <<= 32;
+	_ev.data.u64 |= _pos;
 	return &_ev;
 }
-std::pair<MultiConnectionSelector::Stub*, unsigned> MultiConnectionSelector::Data::stub(const epoll_event &_ev){
-	//TODO:
+
+inline std::pair<MultiConnectionSelector::Stub*, unsigned> 
+MultiConnectionSelector::Data::stub(const epoll_event &_ev){
+	uint32	objpos = (_ev.data.u64 >> 32);
+	uint32	pos = (_ev.data.u64 & 0xffffffff);
+	cassert(objpos && objpos < sz);
+	return std::pair<MultiConnectionSelector::Stub*, unsigned>(pstubs + objpos, pos);
 }
 //-------------------------------------------------------------------
 MultiConnectionSelector::MultiConnectionSelector():d(*(new Data)){
@@ -192,24 +199,25 @@ int MultiConnectionSelector::reserve(ulong _cp){
 	//execq.reserve(cp);
 	//zero is reserved for pipe
 	if(d.epfd < 0 && (d.epfd = epoll_create(d.cp)) < 0){
+		edbgx(Dbg::tcp, "epoll_create "<<strerror(errno));
 		cassert(false);
-		return -1;
+		return BAD;
 	}
 	//init the pipes:
 	if(d.pipefds[0] < 0){
 		if(pipe(d.pipefds)){
 			cassert(false);
-			return -1;
+			return BAD;
 		}
 		fcntl(d.pipefds[0], F_SETFL, O_NONBLOCK);
 		fcntl(d.pipefds[1], F_SETFL, O_NONBLOCK);
 		epoll_event ev;
-		ev.data.ptr = &d.pstubs[0];
+		ev.data.u64 = 0;
 		ev.events = EPOLLIN | EPOLLPRI;//must be LevelTriggered
 		if(epoll_ctl(d.epfd, EPOLL_CTL_ADD, d.pipefds[0], &ev)){
-			edbgx(Dbg::tcp, "epollctl");
+			edbgx(Dbg::tcp, "epoll_ctl "<<strerror(errno));
 			cassert(false);
-			return -1;
+			return BAD;
 		}
 	}
 	idbgx(Dbg::tcp, "pipe fds "<<d.pipefds[0]<<" "<<d.pipefds[1]);
@@ -350,6 +358,10 @@ void MultiConnectionSelector::run(){
         }
 		
 		d.selcnt = epoll_wait(d.epfd, d.pevs, d.sz, pollwait);
+		if(d.selcnt < 0){
+			edbgx(Dbg::tcp, "epoll_create "<<strerror(errno));
+			cassert(false);
+		}
 		idbgx(Dbg::tcp, "epollwait = "<<d.selcnt);
 	}while(!(flags & Data::EXIT_LOOP));
 }
@@ -548,9 +560,11 @@ int MultiConnectionSelector::doReadPipe(){
 void MultiConnectionSelector::doUnregisterObject(MultiConnection &_robj){
 	for(MultiConnection::ChannelVectorTp::iterator it(_robj.chnvec.begin()); it != _robj.chnvec.end(); ++it){
 		if(it->pchannel && it->pchannel->ok()){
-			if(epoll_ctl(d.epfd, EPOLL_CTL_DEL, it->pchannel->descriptor(), NULL)){
+			if(!epoll_ctl(d.epfd, EPOLL_CTL_DEL, it->pchannel->descriptor(), NULL)){
 				--d.chnsz;
 				it->pchannel->unprepare();
+			}else{
+				edbgx(Dbg::tcp, "epoll_ctl "<<strerror(errno));
 			}
 		}
 	}
@@ -563,22 +577,74 @@ void MultiConnectionSelector::doUnregisterObject(MultiConnection &_robj){
 void MultiConnectionSelector::doPrepareObjectWait(Stub &_rstub, const TimeSpec &_crttout){
 	_rstub.objptr->clearResponseVector();
 	MultiConnection &ro = *_rstub.objptr;
+	bool mustwait = true;
 	for(MultiConnection::UIntVectorTp::iterator it(ro.reqvec.begin()); it != ro.reqvec.end(); ++it){
 		cassert(ro.chnvec[*it].pchannel);
+		Channel &rs = *ro.chnvec[*it].pchannel;
 		int flags = ro.chnvec[*it].flags & ~(MultiConnection::ChannelStub::Request);
-		//TODO:
 		switch(flags){
-			case MultiConnection::ChannelStub::IORequest:
-				break;
-			case MultiConnection::ChannelStub::RegisterRequest:
-				break;
-			case MultiConnection::ChannelStub::EraseRequest:
-				break;
+			case MultiConnection::ChannelStub::IORequest:{
+				epoll_event ev;
+				uint t = (EPOLLET) | rs.ioRequest();
+				if((ro.chnvec[*it].selevents & Data::EPOLLMASK) != t){
+					idbgx(Dbg::tcp, "epollctl");
+					ro.chnvec[*it].selevents = ev.events = t;
+					if(epoll_ctl(d.epfd, EPOLL_CTL_MOD, rs.descriptor(), d.eventPrepare(ev, &_rstub - d.pstubs,*it))){
+						edbgx(Dbg::tcp, "epoll_ctl "<<strerror(errno));
+						cassert(false);
+					}
+				}
+				}break;
+			case MultiConnection::ChannelStub::RegisterRequest:{
+				epoll_event ev;
+				uint ioreq = rs.ioRequest();
+				 ro.chnvec[*it].selevents = ev.events = (EPOLLET) | ioreq;
+				if(epoll_ctl(d.epfd, EPOLL_CTL_ADD, rs.descriptor(), d.eventPrepare(ev, &_rstub - d.pstubs,*it))){
+					edbgx(Dbg::tcp, "epoll_ctl "<<strerror(errno));
+					cassert(false);
+				}else{
+					ro.addDoneChannel(*it, OKDONE);
+					if(!ioreq){
+						d.execq.push(&_rstub);
+						_rstub.state = Stub::InExecQueue;
+					}else{
+						mustwait = false;
+					}
+				}
+				}break;
 			case MultiConnection::ChannelStub::UnregisterRequest:
+				if(rs.ok()){
+					if(!epoll_ctl(d.epfd, EPOLL_CTL_DEL, rs.descriptor(), NULL)){
+						--d.chnsz;
+						rs.unprepare();
+						ro.addDoneChannel(*it, OKDONE);
+					}else{
+						edbgx(Dbg::tcp, "epoll_ctl: desc "<<rs.descriptor()<<" err "<<strerror(errno));
+					}
+				}
+				mustwait = false;
 				break;
 			default:
 				cassert(false);
+		}//switch
+	}//for
+	//ok done with all channels
+	ro.clearRequestVector();//done with the request
+	if(mustwait){
+		//we must set the timeout - which will be min(the returned one, channel's or the internal one)
+		const TimeSpec *pts = &_crttout;//the returned time
+		if(*pts > ro.nextchntout){
+			pts = &ro.nextchntout;
 		}
+		if(*pts != d.ctimepos){
+			_rstub.timepos = *pts;
+			if(d.ntimepos > *pts) d.ntimepos = *pts;
+		}else{
+			_rstub.timepos.set(Data::MAXTIMEPOS);
+		}
+	}else{
+		d.execq.push(&_rstub);
+		_rstub.state = Stub::InExecQueue;
 	}
 }
 

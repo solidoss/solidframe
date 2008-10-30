@@ -162,14 +162,15 @@ int TalkerSelector::reserve(ulong _cp){
 	//execq.reserve(cp);
 	//zero is reserved for pipe
 	if(d.epfd < 0 && (d.epfd = epoll_create(d.cp)) < 0){
+		edbgx(Dbg::udp, "epoll_create "<<strerror(errno));
 		cassert(false);
-		return -1;
+		return BAD;
 	}
 	//init the pipes:
 	if(d.pipefds[0] < 0){
 		if(pipe(d.pipefds)){
 			cassert(false);
-			return -1;
+			return BAD;
 		}
 		fcntl(d.pipefds[0], F_SETFL, O_NONBLOCK);
 		fcntl(d.pipefds[1], F_SETFL, O_NONBLOCK);
@@ -177,9 +178,9 @@ int TalkerSelector::reserve(ulong _cp){
 		ev.data.ptr = &d.pstubs[0];
 		ev.events = EPOLLIN | EPOLLPRI;//must be LevelTriggered
 		if(epoll_ctl(d.epfd, EPOLL_CTL_ADD, d.pipefds[0], &ev)){
-			edbgx(Dbg::udp, "epollctl "<<strerror(errno));
+			edbgx(Dbg::udp, "epoll_ctl "<<strerror(errno));
 			cassert(false);
-			return -1;
+			return BAD;
 		}
 	}
 	idbgx(Dbg::udp, "pipe fds "<<d.pipefds[0]<<" "<<d.pipefds[1]);
@@ -226,6 +227,7 @@ void TalkerSelector::push(const ObjectTp &_objptr, uint _thid){
 		epoll_ctl(d.epfd, EPOLL_CTL_ADD, _objptr->station().descriptor(), &ev)
 	){
 		edbgx(Dbg::udp, "epoll_ctl adding filedesc "<<_objptr->station().descriptor()<<" err = "<<strerror(errno));
+		cassert(false);
 		pstub->reset();
 		d.fstk.push(pstub);
 	}else{
@@ -308,6 +310,9 @@ void TalkerSelector::run(){
         }
 		
 		d.selcnt = epoll_wait(d.epfd, d.pevs, d.sz, pollwait);
+		if(d.selcnt < 0){
+			edbgx(Dbg::udp, "epoll_wait "<<strerror(errno));
+		}
 		idbgx(Dbg::udp, "epollwait = "<<d.selcnt);
 	}while(!(flags & Data::EXIT_LOOP));
 }
@@ -385,7 +390,10 @@ int TalkerSelector::doExecute(Stub &_rstub, ulong _evs, TimeSpec &_crttout, epol
 		case BAD://close
 			idbgx(Dbg::udp, "BAD: removing the talker");
 			d.fstk.push(&_rstub);
-			epoll_ctl(d.epfd, EPOLL_CTL_DEL, robj.station().descriptor(), NULL);
+			if(epoll_ctl(d.epfd, EPOLL_CTL_DEL, robj.station().descriptor(), NULL)){
+				edbgx(Dbg::udp, "epoll_ctl "<<strerror(errno));
+				cassert(false);
+			}
 			//rcon.station().unprepare();
 			_rstub.objptr.clear();
 			_rstub.state = Stub::OutExecQueue;
@@ -403,10 +411,12 @@ int TalkerSelector::doExecute(Stub &_rstub, ulong _evs, TimeSpec &_crttout, epol
 			{	
 				ulong t = (EPOLLET) | robj.station().ioRequest();
 				if((_rstub.events & Data::EPOLLMASK) != t){
-					idbgx(Dbg::udp, "epollctl");
 					_rstub.events = _rev.events = t;
 					_rev.data.ptr = &_rstub;
-					epoll_ctl(d.epfd, EPOLL_CTL_MOD, robj.station().descriptor(), &_rev);
+					if(epoll_ctl(d.epfd, EPOLL_CTL_MOD, robj.station().descriptor(), &_rev)){
+						edbgx(Dbg::udp, "epoll_ctl "<<strerror(errno));
+						cassert(false);
+					}
 				}
 				if(_crttout != d.ctimepos){
 					_rstub.timepos = _crttout;
@@ -419,7 +429,10 @@ int TalkerSelector::doExecute(Stub &_rstub, ulong _evs, TimeSpec &_crttout, epol
 		case LEAVE:
 			idbgx(Dbg::udp, "LEAVE: talker leave");
 			d.fstk.push(&_rstub);
-			epoll_ctl(d.epfd, EPOLL_CTL_DEL, robj.station().descriptor(), NULL);
+			if(epoll_ctl(d.epfd, EPOLL_CTL_DEL, robj.station().descriptor(), NULL)){
+				edbgx(Dbg::udp, "epoll_ctl "<<strerror(errno));
+				cassert(false);
+			}
 			--d.sz;
 			_rstub.objptr.release();
 			_rstub.state = Stub::OutExecQueue;
@@ -431,7 +444,10 @@ int TalkerSelector::doExecute(Stub &_rstub, ulong _evs, TimeSpec &_crttout, epol
 			_rev.data.ptr = &_rstub;
 			uint ioreq = robj.station().ioRequest();
 			_rstub.events = _rev.events = (EPOLLET) | ioreq;
-			epoll_ctl(d.epfd, EPOLL_CTL_ADD, robj.station().descriptor(), &_rev);
+			if(epoll_ctl(d.epfd, EPOLL_CTL_ADD, robj.station().descriptor(), &_rev)){
+				edbgx(Dbg::udp, "epoll_ctl "<<strerror(errno));
+				cassert(false);
+			}
 			if(!ioreq){
 				d.execq.push(&_rstub);
 				_rstub.state = Stub::InExecQueue;
@@ -439,7 +455,10 @@ int TalkerSelector::doExecute(Stub &_rstub, ulong _evs, TimeSpec &_crttout, epol
 			}break;
 		case UNREGISTER:
 			idbgx(Dbg::udp, "UNREGISTER: unregister talker's descriptor");
-			epoll_ctl(d.epfd, EPOLL_CTL_DEL, robj.station().descriptor(), NULL);
+			if(epoll_ctl(d.epfd, EPOLL_CTL_DEL, robj.station().descriptor(), NULL)){
+				edbgx(Dbg::udp, "epoll_ctl "<<strerror(errno));
+				cassert(false);
+			}
 			d.execq.push(&_rstub);
 			_rstub.state = Stub::InExecQueue;
 			break;

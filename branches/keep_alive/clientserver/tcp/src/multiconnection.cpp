@@ -3,6 +3,11 @@
 
 namespace clientserver{
 namespace tcp{
+MultiConnection::MultiConnection(Channel *_pch):nextchntout(0xffffffff,0xffffffff){
+	if(_pch){
+		chnvec.push_back(ChannelStub(_pch));
+	}
+}
 MultiConnection::ChannelStub::~ChannelStub(){
 }
 
@@ -127,14 +132,6 @@ uint32 MultiConnection::channelEvents(unsigned _pos)const{
 	cassert(_pos < chnvec.size() && chnvec[_pos].pchannel);
 	return chnvec[_pos].chnevents;
 }
-void MultiConnection::channelErase(unsigned _pos){
-	cassert(_pos < chnvec.size() && chnvec[_pos].pchannel);
-	if(!(chnvec[_pos].flags & ChannelStub::Request)){
-		chnvec[_pos].flags |= ChannelStub::Request;
-		reqvec.push_back(_pos);
-	}
-	chnvec[_pos].flags |= ChannelStub::EraseRequest;
-}
 void MultiConnection::channelRegisterRequest(unsigned _pos){
 	cassert(_pos < chnvec.size() && chnvec[_pos].pchannel);
 	if(!(chnvec[_pos].flags & ChannelStub::Request)){
@@ -216,5 +213,13 @@ void MultiConnection::addDoneChannel(unsigned _pos, uint32 _evs){
 		chnvec[_pos].flags |= ChannelStub::Response;
 	}
 }
+
+void MultiConnection::channelErase(unsigned _pos){
+	cassert(_pos < chnvec.size() && chnvec[_pos].pchannel);
+	delete chnvec[_pos].pchannel;
+	chnvec[_pos].reset();
+	chnstk.push(_pos);
+}
+
 }//namespace tcp
 }//namespace clientserver
