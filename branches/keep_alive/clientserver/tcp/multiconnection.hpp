@@ -67,6 +67,8 @@ public:
 	void channelRegisterRequest(unsigned _pos);
 	void channelUnregisterRequest(unsigned _pos);
 	unsigned channelCount()const;
+	int channelState(int _pos)const;
+	void channelState(int _pos, int _st)const;
 	
 	const UIntVectorTp & signelledChannelsVector()const;
 protected:
@@ -77,7 +79,8 @@ private:
 	void clearRequestVector();
 	void clearResponseVector();
 	void addTimeoutChannels(const TimeSpec &_crttime);
-	void addDoneChannel(unsigned _pos, uint32 _evs);
+	void addDoneChannelFirst(unsigned _pos, uint32 _evs);
+	void addDoneChannelNext(unsigned _pos, uint32 _evs);
 	Channel* channel(unsigned _pos);
 private:
 	struct ChannelStub{
@@ -88,6 +91,8 @@ private:
 			IORequest = 4,
 			UnregisterRequest = 8,
 			RegisterRequest = 16,
+			AllRequests = 1 + 4 + 8 + 16,
+			AllResponses = 2
 		};
 		ChannelStub(Channel *_pch = NULL):
 			pchannel(_pch),
@@ -106,7 +111,8 @@ private:
 		Channel		*pchannel;
 		TimeSpec	timepos;
 		int			toutpos;	//-1 or position in toutvec
-		uint32		flags;		//Requests from connection to selector
+		uint16		flags;		//Requests from connection to selector
+		int16		state;
 		uint32		chnevents;	//the event from selector to connection:
 								//INDONE, OUTDONE, TIMEOUT, ERRDONE
 		uint32		selevents;	//used by selector - current io requests

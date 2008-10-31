@@ -156,7 +156,7 @@ inline std::pair<MultiConnectionSelector::Stub*, unsigned>
 MultiConnectionSelector::Data::stub(const epoll_event &_ev){
 	uint32	objpos = (_ev.data.u64 >> 32);
 	uint32	pos = (_ev.data.u64 & 0xffffffff);
-	cassert(objpos && objpos < sz);
+	cassert(objpos < sz);
 	return std::pair<MultiConnectionSelector::Stub*, unsigned>(pstubs + objpos, pos);
 }
 //-------------------------------------------------------------------
@@ -379,7 +379,7 @@ uint MultiConnectionSelector::doAllIo(){
 			cassert(stubpair.first->objptr->channel(stubpair.second));
 			if((evs = doIo(*stubpair.first->objptr->channel(stubpair.second), d.pevs[i].events))){
 				//first mark the channel in connection
-				stubpair.first->objptr->addDoneChannel(stubpair.second, evs);
+				stubpair.first->objptr->addDoneChannelNext(stubpair.second, evs);
 				//push channel execqueue
 				if(stubpair.first->state == Stub::OutExecQueue){
 					d.execq.push(stubpair.first);
@@ -603,7 +603,7 @@ void MultiConnectionSelector::doPrepareObjectWait(Stub &_rstub, const TimeSpec &
 					edbgx(Dbg::tcp, "epoll_ctl "<<strerror(errno));
 					cassert(false);
 				}else{
-					ro.addDoneChannel(*it, OKDONE);
+					ro.addDoneChannelFirst(*it, OKDONE);
 					if(!ioreq){
 						d.execq.push(&_rstub);
 						_rstub.state = Stub::InExecQueue;
@@ -617,7 +617,7 @@ void MultiConnectionSelector::doPrepareObjectWait(Stub &_rstub, const TimeSpec &
 					if(!epoll_ctl(d.epfd, EPOLL_CTL_DEL, rs.descriptor(), NULL)){
 						--d.chnsz;
 						rs.unprepare();
-						ro.addDoneChannel(*it, OKDONE);
+						ro.addDoneChannelFirst(*it, OKDONE);
 					}else{
 						edbgx(Dbg::tcp, "epoll_ctl: desc "<<rs.descriptor()<<" err "<<strerror(errno));
 					}

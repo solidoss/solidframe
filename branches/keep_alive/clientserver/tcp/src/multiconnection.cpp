@@ -151,6 +151,14 @@ void MultiConnection::channelUnregisterRequest(unsigned _pos){
 unsigned MultiConnection::channelCount()const{
 	return chnvec.size();
 }
+int MultiConnection::channelState(unsigned _pos)const{
+	cassert(_pos < chnvec.size() && chnvec[_pos].pchannel);
+	return chnvec[_pos].state;
+}
+void channelState(unsigned _pos, int _st)const{
+	cassert(_pos < chnvec.size() && chnvec[_pos].pchannel);
+	chnvec[_pos].state = _st;
+}
 
 const MultiConnection::UIntVectorTp & MultiConnection::signelledChannelsVector()const{
 	return resvec;
@@ -159,14 +167,14 @@ const MultiConnection::UIntVectorTp & MultiConnection::signelledChannelsVector()
 
 void MultiConnection::clearRequestVector(){
 	for(UIntVectorTp::const_iterator it(reqvec.begin()); it != reqvec.end(); ++it){
-		chnvec[*it].flags = 0;
+		chnvec[*it].flags &= ~ChannelStub::AllRequests;
 		//chnvec[*it].chnevents = 0;
 	}
 	reqvec.clear();
 }
 void MultiConnection::clearResponseVector(){
 	for(UIntVectorTp::const_iterator it(resvec.begin()); it != resvec.end(); ++it){
-		chnvec[*it].flags = 0;
+		chnvec[*it].flags &= ~ChannelStub::AllResponses;
 		//chnvec[*it].selevents = 0;
 	}
 	resvec.clear();
@@ -179,7 +187,7 @@ Channel* MultiConnection::channel(unsigned _pos){
 void MultiConnection::addTimeoutChannels(const TimeSpec &_crttime){
 	nextchntout.set(0xffffffff, 0xffffffff);
 	for(ChannelVectorTp::iterator it(chnvec.begin()); it != chnvec.end(); ++it){
-		if(_crttime <= it->timepos){
+		if(_crttime >= it->timepos){
 			cassert(it->pchannel);
 			cassert(it->toutpos >= 0);
 			toutvec[it->toutpos] = toutvec.back();
@@ -198,7 +206,23 @@ void MultiConnection::addTimeoutChannels(const TimeSpec &_crttime){
 		}
 	}
 }
-void MultiConnection::addDoneChannel(unsigned _pos, uint32 _evs){
+void MultiConnection::addDoneChannelFirst(unsigned _pos, uint32 _evs){
+	cassert(_pos < chnvec.size() && chnvec[_pos].pchannel);
+	chnvec[_pos].chnevents |= _evs;
+	//try erase it from toutvec:
+	if(chnvec[_pos].toutpos >= 0){
+		toutvec[chnvec[_pos].toutpos] = toutvec.back();
+		toutvec.pop_back();
+		chnvec[_pos].toutpos = -1;
+	}
+	//try add it to res vector:
+	if(!(chnvec[_pos].flags & ChannelStub::Response)){
+		resvec.push_back(_pos);
+		chnvec[_pos].flags = ChannelStub::Response;
+	}
+}
+
+void MultiConnection::addDoneChannelNext(unsigned _pos, uint32 _evs){
 	cassert(_pos < chnvec.size() && chnvec[_pos].pchannel);
 	chnvec[_pos].chnevents |= _evs;
 	//try erase it from toutvec:

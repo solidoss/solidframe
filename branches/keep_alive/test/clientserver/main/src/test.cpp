@@ -29,6 +29,7 @@
 #include "echo/echoservice.hpp"
 #include "alpha/alphaservice.hpp"
 #include "beta/betaservice.hpp"
+#include "proxy/proxyservice.hpp"
 #include "audit/log/logmanager.hpp"
 #include "audit/log/logconnectors.hpp"
 #include "audit/log.hpp"
@@ -181,6 +182,24 @@ int main(int argc, char* argv[]){
 			}else{
 				cout<<"failed adding listener for service alpha port "<<port<<endl;
 			}	
+		}
+		if(true){// create and register the echo service
+			test::Service* psrvc = test::proxy::Service::create();
+			ts.insertService("proxy", psrvc);
+			
+			{//add a new listener
+				int port = startport + 115;
+				AddrInfo ai("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Stream);
+				if(!ai.empty()){
+					if(!ts.insertListener("proxy", ai.begin())){
+						cout<<"added listener to proxy "<<port<<endl;
+					}else{
+						cout<<"failed adding listener for service proxy port "<<port<<endl;
+					}
+				}else{
+					cout<<"failed create address for port "<<port<<" listener not created"<<endl;
+				}
+			}
 		}
 		if(true){//adds the base ipc talker
 			int port = startport + 222;

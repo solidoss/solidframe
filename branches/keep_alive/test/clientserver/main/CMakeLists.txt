@@ -15,6 +15,7 @@ target_link_libraries (test
 	test_alpha
 	test_core
 	test_beta
+	test_proxy
 	clientserver_ipc
 	clientserver_tcp
 	clientserver_udp

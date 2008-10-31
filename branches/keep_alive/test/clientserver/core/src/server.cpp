@@ -297,7 +297,10 @@ struct Server::Data{
 typedef serialization::TypeMapper					TypeMapper;
 typedef serialization::IdTypeMap					IdTypeMap;
 typedef serialization::bin::Serializer				BinSerializer;
-Server::Data::Data(Server &_rs):pconnectionpool(NULL), plistenerpool(NULL), ptalkerpool(NULL){
+Server::Data::Data(Server &_rs):
+	pconnectionpool(NULL), 
+	plistenerpool(NULL), ptalkerpool(NULL),pmulticonnectionpool(NULL)
+{
 	pobjectpool[0] = NULL;
 	pobjectpool[1] = NULL;
 	
@@ -352,6 +355,9 @@ Server::Data::~Data(){
 	if(ptalkerpool) ptalkerpool->stop();
 	delete ptalkerpool;
 	
+	if(pmulticonnectionpool) pmulticonnectionpool->stop();
+	delete pmulticonnectionpool;
+	
 	if(pobjectpool[0]) pobjectpool[0]->stop();
 	if(pobjectpool[1]) pobjectpool[1]->stop();
 	delete pobjectpool[0];
@@ -387,6 +393,10 @@ void Server::pushJob(cs::tcp::Connection *_pj, int){
 template <>
 void Server::pushJob(cs::Object *_pj, int _pos){
 	d.pobjectpool[_pos]->push(cs::ObjPtr<cs::Object>(_pj));
+}
+template <>
+void Server::pushJob(cs::tcp::MultiConnection *_pj, int){
+	d.pmulticonnectionpool->push(cs::ObjPtr<cs::tcp::MultiConnection>(_pj));
 }
 
 /*
