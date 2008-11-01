@@ -1,5 +1,6 @@
 #include <bitset>
 #include <vector>
+#include <cstring>
 #include "audit/log.hpp"
 #include "system/common.hpp"
 #include "system/mutex.hpp"

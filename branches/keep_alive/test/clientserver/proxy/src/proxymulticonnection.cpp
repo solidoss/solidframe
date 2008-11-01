@@ -37,14 +37,14 @@ namespace proxy{
 
 MultiConnection::MultiConnection(cs::tcp::Channel *_pch, const char *_node, const char *_srv): 
 									BaseTp(_pch),
-									bend(bbeg + BUFSZ),brpos(bbeg),bwpos(bbeg),
+									//bend(bbeg + BUFSZ),brpos(bbeg),bwpos(bbeg),
 									pai(NULL),b(false){
 	if(_node){
 		pai = new AddrInfo(_node, _srv);
 		it = pai->begin();
-		state(CONNECT);
+		//state(CONNECT);
 	}else{
-		state(INIT);
+		//state(INIT);
 	}
 }
 /*
@@ -69,12 +69,12 @@ int MultiConnection::execute(ulong _sig, TimeSpec &_tout){
 	idbg("time.sec "<<_tout.seconds()<<" time.nsec = "<<_tout.nanoSeconds());
 	if(_sig & (cs::TIMEOUT | cs::ERRDONE)){
 		idbg("connecton timeout or error");
-		if(state() == CONNECT_TOUT){
-			if(++it){
-				state(CONNECT);
-				return cs::UNREGISTER;
-			}
-		}
+// 		if(state() == CONNECT_TOUT){
+// 			if(++it){
+// 				//state(CONNECT);
+// 				return cs::UNREGISTER;
+// 			}
+// 		}
 		return BAD;
 	}
 	if(signaled()){

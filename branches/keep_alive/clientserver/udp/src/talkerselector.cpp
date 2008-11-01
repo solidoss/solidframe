@@ -28,6 +28,7 @@
 
 #include <new>
 #include <cerrno>
+#include <cstring>
 #include "utility/stack.hpp"
 #include "utility/queue.hpp"
 

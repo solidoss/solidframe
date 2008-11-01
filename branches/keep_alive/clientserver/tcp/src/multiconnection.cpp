@@ -155,7 +155,7 @@ int MultiConnection::channelState(unsigned _pos)const{
 	cassert(_pos < chnvec.size() && chnvec[_pos].pchannel);
 	return chnvec[_pos].state;
 }
-void channelState(unsigned _pos, int _st)const{
+void MultiConnection::channelState(unsigned _pos, int _st){
 	cassert(_pos < chnvec.size() && chnvec[_pos].pchannel);
 	chnvec[_pos].state = _st;
 }

@@ -30,6 +30,7 @@
 
 #include <sys/sysinfo.h>
 #include <unistd.h>
+#include <limits.h>
 
 struct Cleaner{
 	~Cleaner(){
