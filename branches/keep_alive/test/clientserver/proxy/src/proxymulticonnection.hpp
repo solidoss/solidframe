@@ -59,8 +59,19 @@ public:
 	int execute();
 	int accept(clientserver::Visitor &);
 private:
-	void run(unsigned _pos);
+	int doReadAddress();
+	int doProxy(const TimeSpec &_tout);
+	int doRefill();
 private:
+	enum{
+		READ_ADDR,
+		READ_PORT,
+		REGISTER_CONNECTION,
+		CONNECT,
+		CONNECT_TOUT,
+		SEND_REMAINS,
+		PROXY
+	};
 	struct Buffer{
 		enum{
 			Capacity = 2*1024
@@ -70,23 +81,17 @@ private:
 		unsigned	size;
 		unsigned	usecnt;
 	};
-	typedef Queue<Buffer*>	BufferQueueTp;
 	struct Stub{
-		Stub():crtcmd(0), inexecq(false){}
-		char			crtcmd;
-		bool			inexecq;
-		std::string		param1;
-		std::string		param2;
 		Buffer			recvbuf;
-		BufferQueueTp	sendbufq;
 	};
-	typedef Queue<unsigned>		ExecQueueTp;
-	typedef std::deque<Stub>	StubVectorTp;
-	StubVectorTp		stubv;
-	ExecQueueTp			execq;
 	AddrInfo			*pai;
 	AddrInfoIterator	it;
 	bool				b;
+	std::string			addr;
+	std::string			port;
+	Stub				stubs[2];
+	char*				bp;
+	char*				be;
 };
 
 }//namespace proxy

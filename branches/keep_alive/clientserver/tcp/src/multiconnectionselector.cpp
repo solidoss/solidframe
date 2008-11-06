@@ -360,7 +360,7 @@ void MultiConnectionSelector::run(){
 		d.selcnt = epoll_wait(d.epfd, d.pevs, d.sz, pollwait);
 		if(d.selcnt < 0){
 			edbgx(Dbg::tcp, "epoll_create "<<strerror(errno));
-			cassert(false);
+			//cassert(false);
 		}
 		idbgx(Dbg::tcp, "epollwait = "<<d.selcnt);
 	}while(!(flags & Data::EXIT_LOOP));
@@ -379,6 +379,7 @@ uint MultiConnectionSelector::doAllIo(){
 			cassert(stubpair.first->objptr->channel(stubpair.second));
 			if((evs = doIo(*stubpair.first->objptr->channel(stubpair.second), d.pevs[i].events))){
 				//first mark the channel in connection
+				idbgx(Dbg::tcp, "evs = "<<evs<<" indone = "<<INDONE);
 				stubpair.first->objptr->addDoneChannelNext(stubpair.second, evs);
 				//push channel execqueue
 				if(stubpair.first->state == Stub::OutExecQueue){
@@ -442,6 +443,7 @@ int MultiConnectionSelector::doExecute(Stub &_rstub, ulong _evs, TimeSpec &_crtt
 	int rv = 0;
 	MultiConnection	&robj = *_rstub.objptr;
 	_rstub.state = Stub::OutExecQueue;
+	robj.nextchntout.set(0xffffffff, 0xffffffff);
 	switch(robj.execute(_evs, _crttout)){
 		case BAD://close
 			idbgx(Dbg::tcp, "BAD: removing the connection");
@@ -590,13 +592,14 @@ void MultiConnectionSelector::doPrepareObjectWait(Stub &_rstub, const TimeSpec &
 					idbgx(Dbg::tcp, "epollctl");
 					ro.chnvec[*it].selevents = ev.events = t;
 					if(epoll_ctl(d.epfd, EPOLL_CTL_MOD, rs.descriptor(), d.eventPrepare(ev, &_rstub - d.pstubs,*it))){
-						edbgx(Dbg::tcp, "epoll_ctl "<<strerror(errno));
+						edbgx(Dbg::tcp, "epoll_ctl "<<strerror(errno)<<" desc = "<<rs.descriptor());
 						cassert(false);
 					}
 				}
 				}break;
 			case MultiConnection::ChannelStub::RegisterRequest:{
 				epoll_event ev;
+				rs.prepare();
 				uint ioreq = rs.ioRequest();
 				 ro.chnvec[*it].selevents = ev.events = (EPOLLET) | ioreq;
 				if(epoll_ctl(d.epfd, EPOLL_CTL_ADD, rs.descriptor(), d.eventPrepare(ev, &_rstub - d.pstubs,*it))){

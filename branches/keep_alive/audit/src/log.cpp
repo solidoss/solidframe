@@ -7,6 +7,7 @@
 #include "system/timespec.hpp"
 #include "utility/ostream.hpp"
 #include "audit/log/logdata.hpp"
+#include "system/debug.hpp"
 
 using namespace std;
 const unsigned fileoff = (strstr(__FILE__, "audit/src") - __FILE__);
@@ -174,7 +175,8 @@ void stringoutbuf::current(
 	TimeSpec tt;
 	clock_gettime(CLOCK_MONOTONIC, &tt);
 	tt -= ct;
-	lh.set(_level, _module, _id, _line, tt.nanoSeconds(), t + tt.nanoSeconds());
+	lh.set(_level, _module, _id, _line, t + tt.seconds(), tt.nanoSeconds());
+	idbgx(Dbg::log, "time ("<<(t + tt.seconds())<<','<<tt.nanoSeconds()<<')');
 	lh.set(filenamelen, functionnamelen);
 	//no function so we can overpass the bitorder conversion for datalen
 	lh.datalen = sizeof(audit::LogRecordHead);

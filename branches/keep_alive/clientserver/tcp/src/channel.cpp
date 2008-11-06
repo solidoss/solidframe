@@ -46,7 +46,9 @@ Channel* Channel::create(const AddrInfoIterator &_rai){
 // 		edbgx(Dbg::tcp, "Error creating socket: "<<strerror(errno));
 // 		return NULL;
 // 	}
-	return new Channel();
+	SocketDevice sd;
+	sd.create(_rai);
+	return new Channel(sd);
 }
 
 Channel::Channel():rcvcnt(0), sndcnt(0), pcd(NULL), psch(NULL){
@@ -95,11 +97,11 @@ int Channel::remoteAddress(SocketAddress &_rsa)const{
 //TODO: try to only do connect here
 // and create the socket, bind it to a certain interface in 'create'
 int Channel::connect(const AddrInfoIterator &_it){
-	if(sd.ok()){
-		sd.close();
-	}
-	
-	sd.create(_it);
+// 	if(sd.ok()){
+// 		sd.close();
+// 	}
+// 	
+//	sd.create(_it);
 	sd.makeNonBlocking();
 	int rv = sd.connect(_it);
 	if(rv == NOK){

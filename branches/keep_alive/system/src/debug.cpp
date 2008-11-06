@@ -51,6 +51,7 @@ const unsigned fileoff = (strstr(__FILE__, "system/src") - __FILE__);
 /*static*/ const unsigned Dbg::tcp(Dbg::instance().registerModule("CS_TCP"));
 /*static*/ const unsigned Dbg::udp(Dbg::instance().registerModule("CS_UDP"));
 /*static*/ const unsigned Dbg::filemanager(Dbg::instance().registerModule("CS_FILEMANAGER"));
+/*static*/ const unsigned Dbg::log(Dbg::instance().registerModule("LOG"));
 
 
 struct Dbg::Data{

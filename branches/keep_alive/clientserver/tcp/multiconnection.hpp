@@ -69,6 +69,7 @@ public:
 	unsigned channelCount()const;
 	int channelState(unsigned _pos)const;
 	void channelState(unsigned _pos, int _st);
+	unsigned channelRequestCount()const;
 	
 	const UIntVectorTp & signelledChannelsVector()const;
 protected:

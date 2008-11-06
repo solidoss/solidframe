@@ -319,7 +319,7 @@ void ConnectionSelector::run(){
 		d.selcnt = epoll_wait(d.epfd, d.pevs, d.sz, pollwait);
 		if(d.selcnt < 0){
 			edbgx(Dbg::tcp, "epoll_wait "<<strerror(errno));
-			cassert(false);
+			//cassert(false);
 		}
 		idbgx(Dbg::tcp, "epollwait = "<<d.selcnt);
 	}while(!(flags & Data::EXIT_LOOP));

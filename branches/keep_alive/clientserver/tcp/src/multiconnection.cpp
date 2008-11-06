@@ -164,8 +164,11 @@ const MultiConnection::UIntVectorTp & MultiConnection::signelledChannelsVector()
 	return resvec;
 }
 
-
+unsigned MultiConnection::channelRequestCount()const{
+	return reqvec.size();
+}
 void MultiConnection::clearRequestVector(){
+	idbgx(Dbg::tcp, "");
 	for(UIntVectorTp::const_iterator it(reqvec.begin()); it != reqvec.end(); ++it){
 		chnvec[*it].flags &= ~ChannelStub::AllRequests;
 		//chnvec[*it].chnevents = 0;
@@ -173,8 +176,10 @@ void MultiConnection::clearRequestVector(){
 	reqvec.clear();
 }
 void MultiConnection::clearResponseVector(){
+	idbgx(Dbg::tcp, "");
 	for(UIntVectorTp::const_iterator it(resvec.begin()); it != resvec.end(); ++it){
 		chnvec[*it].flags &= ~ChannelStub::AllResponses;
+		chnvec[*it].chnevents = 0;
 		//chnvec[*it].selevents = 0;
 	}
 	resvec.clear();
@@ -224,6 +229,7 @@ void MultiConnection::addDoneChannelFirst(unsigned _pos, uint32 _evs){
 
 void MultiConnection::addDoneChannelNext(unsigned _pos, uint32 _evs){
 	cassert(_pos < chnvec.size() && chnvec[_pos].pchannel);
+	idbgx(Dbg::tcp, "pos "<<_pos<<" evs = "<<_evs);
 	chnvec[_pos].chnevents |= _evs;
 	//try erase it from toutvec:
 	if(chnvec[_pos].toutpos >= 0){
