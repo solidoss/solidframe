@@ -73,8 +73,6 @@ struct MultiConnectionSelector::Data{
 	typedef Stack<Stub*> 				FreeStackTp;
 	typedef Queue<Stub*>				StubQueueTp;
 	
-	typedef Stack<DataNode*>			DataNodeStackTp;
-	
 	Data();
 	~Data();
 	

@@ -48,7 +48,8 @@ enum Events{
 	INDONE = 4,//Successfull input asynchrounous completion
 	OUTDONE = 8,//Successfull output asynchrounous completion
 	TIMEOUT = 16,//Unsuccessfull asynchrounous completion due to timeout
-	SIGNALED = 32
+	SIGNALED = 32,
+	IODONE = 64,
 };
 
 enum Consts{

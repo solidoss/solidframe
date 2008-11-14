@@ -213,7 +213,7 @@ void MultiConnection::addTimeoutChannels(const TimeSpec &_crttime){
 }
 void MultiConnection::addDoneChannelFirst(unsigned _pos, uint32 _evs){
 	cassert(_pos < chnvec.size() && chnvec[_pos].pchannel);
-	chnvec[_pos].chnevents |= _evs;
+	chnvec[_pos].chnevents = _evs;
 	//try erase it from toutvec:
 	if(chnvec[_pos].toutpos >= 0){
 		toutvec[chnvec[_pos].toutpos] = toutvec.back();
