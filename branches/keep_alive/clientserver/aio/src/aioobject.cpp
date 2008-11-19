@@ -19,7 +19,7 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "clientserver/aio/src/aioobject.hpp"
+#include "clientserver/aio/aioobject.hpp"
 #include "clientserver/aio/src/aiosocket.hpp"
 #include "system/cassert.hpp"
 namespace clientserver{
@@ -36,19 +36,34 @@ Object::SocketStub::~SocketStub(){
 /*virtual*/ int Object::accept(clientserver::Visitor &_roi){
 	return BAD;
 }
+
+void Object::pushRequest(uint _pos, uint _req){
+	cassert(pstubs[_pos].request <= SocketStub::Response);
+	pstubs[_pos].request = _req;
+	*reqpos = _pos; ++reqpos;
+}
+
 inline void Object::doPushResponse(uint32 _pos){
 	if(pstubs[_pos].request != SocketStub::Response){
 		*respos = _pos; ++respos;
 		pstubs[_pos].request = SocketStub::Response;
 	}
 }
+inline void Object::doPopTimeout(uint32 _pos){
+	cassert(toutpos != toutbeg);
+	--toutpos;
+	toutbeg[pstubs[_pos].toutpos] = *toutpos;
+#ifdef DEBUG
+	*toutpos = -1;
+#endif
+	pstubs[_pos].toutpos = -1;
+}
+
 void Object::doAddSignaledSocketFirst(uint _pos, uint _evs){
 	cassert(_pos < stubcp || pstubs[_pos].psock);
 	pstubs[_pos].chnevents = _evs;
 	if(pstubs[_pos].toutpos >= 0){
-		toutbeg[pstubs[_pos].toutpos] = *toutpos;
-		--toutpos;
-		pstubs[_pos].toutpos = -1;
+		doPopTimeout(_pos);
 	}
 	doPushResponse(_pos);
 }
@@ -56,9 +71,7 @@ void Object::doAddSignaledSocketNext(uint _pos, uint _evs){
 	cassert(_pos < stubcp || pstubs[_pos].psock);
 	pstubs[_pos].chnevents |= _evs;
 	if(pstubs[_pos].toutpos >= 0){
-		toutbeg[pstubs[_pos].toutpos] = *toutpos;
-		--toutpos;
-		pstubs[_pos].toutpos = -1;
+		doPopTimeout(_pos);
 	}
 	doPushResponse(_pos);
 }
@@ -70,7 +83,8 @@ void Object::doAddTimeoutSockets(const TimeSpec &_timepos){
 		if(pstubs[*pit].timepos <= _timepos){
 			pstubs[*pit].chnevents |= TIMEOUT;
 			doPushResponse(*pit);
-			*pit = *(pend - 1);
+			--pend;
+			*pit = *pend;
 		}else ++pit;
 	}
 }
@@ -80,6 +94,13 @@ void Object::doPrepare(TimeSpec *_ptimepos){
 }
 void Object::doUnprepare(){
 	ptimepos = NULL;
+}
+
+void Object::doClearRequests(){
+	reqpos = reqbeg;
+}
+void Object::doClearResponses(){
+	respos = resbeg;
 }
 
 }//namespace aio;

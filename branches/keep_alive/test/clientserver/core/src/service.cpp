@@ -93,10 +93,9 @@ int Service::insertConnection(
 }
 int Service::insertConnection(
 	Server &_rs, 
-	cs::tcp::Channel *_pch
+	const SocketDevice &_rsd
 ){	
 	cassert(false);
-	delete _pch;
 	return BAD;
 }
 

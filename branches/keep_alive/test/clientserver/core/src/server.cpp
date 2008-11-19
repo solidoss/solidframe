@@ -41,13 +41,17 @@
 #include "clientserver/core/execpool.hpp"
 #include "clientserver/core/filemanager.hpp"
 #include "clientserver/core/filekeys.hpp"
+
 #include "clientserver/tcp/connectionselector.hpp"
 #include "clientserver/tcp/multiconnectionselector.hpp"
+#include "clientserver/tcp/listenerselector.hpp"
+#include "clientserver/udp/talkerselector.hpp"
+#include "clientserver/aio/aioselector.hpp"
+#include "clientserver/aio/aioobject.hpp"
+
 #include "clientserver/tcp/connection.hpp"
 #include "clientserver/tcp/multiconnection.hpp"
-#include "clientserver/tcp/listenerselector.hpp"
 #include "clientserver/tcp/listener.hpp"
-#include "clientserver/udp/talkerselector.hpp"
 #include "clientserver/udp/talker.hpp"
 #include "clientserver/core/objectselector.hpp"
 #include "clientserver/core/commandexecuter.hpp"
@@ -63,6 +67,10 @@ using namespace std;
 namespace clientserver{
 
 class ObjectSelector;
+
+namespace aio{
+class Selector;
+}
 
 namespace tcp{
 class ConnectionSelector;
@@ -278,6 +286,7 @@ struct Server::Data{
 	typedef clientserver::SelectPool<cs::tcp::ListenerSelector>			LisSelPoolTp;
 	typedef clientserver::SelectPool<cs::udp::TalkerSelector>			TkrSelPoolTp;
 	typedef clientserver::SelectPool<cs::tcp::MultiConnectionSelector>	MultiConSelPoolTp;
+	typedef clientserver::SelectPool<cs::aio::Selector>					AioSelectorPoolTp;
 
 	Data(Server &_rs);
 	~Data();
@@ -289,6 +298,7 @@ struct Server::Data{
 	LisSelPoolTp						*plistenerpool;// listener pool
 	TkrSelPoolTp						*ptalkerpool;// talker pool
 	MultiConSelPoolTp					*pmulticonnectionpool;
+	AioSelectorPoolTp					*paiopool;
 	cs::ObjPtr<cs::CommandExecuter>		readcmdexec;// read command executer
 	cs::ObjPtr<cs::CommandExecuter>		writecmdexec;// write command executer
 };
@@ -331,12 +341,19 @@ Server::Data::Data(Server &_rs):
 		pobjectpool[0]->start(1);//start with one worker
 	}
 	idbg("");
-	if(true){	
+	if(true){
 		pconnectionpool = new ConSelPoolTp(	_rs,
 												10,			//max thread cnt
 												256			//max connections per selector/thread
 												);			//at most 10 * 4 * 1024 connections
 		pconnectionpool->start(1);//start with one worker
+	}
+	if(true){
+		paiopool = new AioSelectorPoolTp(_rs,
+										10,			//max thread cnt
+										2048		//max aio objects per selector/thread
+										);			//at most 10 * 4 * 1024 connections
+		paiopool->start(1);//start with one worker
 	}
 	if(true){
 		pmulticonnectionpool = new MultiConSelPoolTp(_rs, 2, 100);
@@ -362,6 +379,8 @@ Server::Data::~Data(){
 	if(pobjectpool[1]) pobjectpool[1]->stop();
 	delete pobjectpool[0];
 	delete pobjectpool[1];
+	paiopool->stop();
+	delete paiopool;
 	delete readcmdexec.release();
 	delete writecmdexec.release();
 }
@@ -397,6 +416,10 @@ void Server::pushJob(cs::Object *_pj, int _pos){
 template <>
 void Server::pushJob(cs::tcp::MultiConnection *_pj, int){
 	d.pmulticonnectionpool->push(cs::ObjPtr<cs::tcp::MultiConnection>(_pj));
+}
+template <>
+void Server::pushJob(cs::aio::Object *_pj, int){
+	d.paiopool->push(cs::ObjPtr<cs::aio::Object>(_pj));
 }
 
 /*

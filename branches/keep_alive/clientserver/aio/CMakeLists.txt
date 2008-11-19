@@ -6,3 +6,4 @@ add_library(clientserver_aio
 	src/aioselector.cpp
 )
 
+add_subdirectory(tcp)

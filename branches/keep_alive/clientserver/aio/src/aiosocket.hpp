@@ -27,6 +27,7 @@
 
 struct SocketAddress;
 struct SockAddrPair;
+class SocketDevice;
 
 namespace clientserver{
 
@@ -35,19 +36,21 @@ namespace aio{
 class Selector;
 
 class Socket{
-protected:
+public:
 	enum Type{
 		ACCEPTOR,
 		CHANNEL,
 		STATION,
 	};
 	Socket(Type _tp);
-		
+	Socket(Type _tp, const SocketDevice &_rsd);
+	
 	bool ok()const;
 	//! Create the socket
 	int create(const AddrInfoIterator& _rai);
 	//! Asynchronous connect request
 	int connect(const AddrInfoIterator& _rai);
+	int accept(SocketDevice &_rsd);
 	int accept(Socket &_rs);
 	//! Send a buffer
 	int send(const char* _pb, uint32 _bl, uint32 _flags = 0);

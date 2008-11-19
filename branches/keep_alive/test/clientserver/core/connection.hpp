@@ -23,7 +23,7 @@
 #define TESTCONNECTION_HPP
 
 #include "utility/streamptr.hpp"
-#include "clientserver/tcp/connection.hpp"
+#include "clientserver/aio/tcp/connection.hpp"
 #include "common.hpp"
 #include "tstring.hpp"
 
@@ -39,7 +39,7 @@ struct ConnectorUid;
 namespace test{
 struct Command;
 //! The base class for all connections knowing how to receive things
-class Connection: public clientserver::tcp::Connection{
+class Connection: public clientserver::aio::tcp::Connection{
 public:
 	typedef Command	CommandTp;
 	typedef std::pair<uint32, uint32>	FileUidTp;
@@ -106,8 +106,9 @@ public:
 		const clientserver::ipc::ConnectorUid *_conid = NULL
 	);
 protected:
-	Connection(clientserver::tcp::Channel *_pch):
-			clientserver::tcp::Connection(_pch){}
+	Connection(const SocketDevice &_rsd):
+			clientserver::aio::tcp::Connection(_rsd){}
+	Connection(){}
 };
 
 }

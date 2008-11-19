@@ -36,8 +36,8 @@
 #include "core/common.hpp"
 
 #include "clientserver/aio/aioselector.hpp"
+#include "clientserver/aio/aioobject.hpp"
 #include "aiosocket.hpp"
-#include "aioobject.hpp"
 
 
 namespace clientserver{
@@ -501,6 +501,7 @@ uint Selector::doExecute(const uint _pos){
 	TimeSpec timepos(d.ctimepos);
 	uint evs = stub.events;
 	stub.events = 0;
+	stub.objptr->doClearRequests();//clears the requests from object to selector
 	switch(stub.objptr->execute(evs, timepos)){
 		case BAD:
 			idbgx(Dbg::tcp, "BAD: removing the connection");
@@ -520,6 +521,7 @@ uint Selector::doExecute(const uint _pos){
 			break;
 		case NOK:
 			doPrepareObjectWait(_pos, timepos);
+			stub.objptr->doClearResponses();//clears the responses from the selector to the object
 			break;
 		case LEAVE:
 			d.freestubsstk.push(_pos);
@@ -527,6 +529,7 @@ uint Selector::doExecute(const uint _pos){
 			stub.timepos.set(0xffffffff, 0xffffffff);
 			--d.objsz;
 			stub.objptr->doUnprepare();
+			stub.objptr->doClearResponses();//clears the responses from the selector to the object
 			stub.objptr.release();
 			rv = Data::EXIT_LOOP;
 		default:
@@ -540,6 +543,7 @@ void Selector::doPrepareObjectWait(const uint _pos, const TimeSpec &_timepos){
 	bool mustwait = true;
 	for(int32 *pit(stub.objptr->reqbeg); pit != pend ; ++pit){
 		Object::SocketStub &sockstub(stub.objptr->pstubs[*pit]);
+		sockstub.chnevents = 0;
 		switch(sockstub.request){
 			case Object::SocketStub::IORequest:{
 				epoll_event ev;
@@ -583,7 +587,9 @@ void Selector::doPrepareObjectWait(const uint _pos, const TimeSpec &_timepos){
 	}
 	if(mustwait){
 		if(_timepos < stub.timepos){
-			stub.timepos = _timepos;
+			if(_timepos != d.ctimepos){
+				stub.timepos = _timepos;
+			}
 		}
 		if(stub.timepos == d.ctimepos){
 			stub.timepos.set(0xffffffff, 0xffffffff);

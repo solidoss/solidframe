@@ -21,6 +21,8 @@ public:
 	int makeBlocking(int _msec = -1);
 	int makeNonBlocking();
 	bool isBlocking();
+	int send(const char* _pb, unsigned _ul, unsigned _flags = 0);
+	int recv(char *_pb, unsigned _ul, unsigned _flags = 0);
 	int send(const char* _pb, unsigned _ul, const SockAddrPair &_sap);
 	int recv(char *_pb, unsigned _ul, SocketAddress &_rsa);
 	int remoteAddress(SocketAddress &_rsa)const;

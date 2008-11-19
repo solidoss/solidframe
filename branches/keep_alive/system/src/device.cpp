@@ -263,6 +263,12 @@ bool SocketDevice::isBlocking(){
 	}
 	return !(flg & O_NONBLOCK);
 }
+int SocketDevice::send(const char* _pb, unsigned _ul, unsigned){
+	return ::send(descriptor(), _pb, _ul, 0);
+}
+int SocketDevice::recv(char *_pb, unsigned _ul, unsigned){
+	return ::recv(descriptor(), _pb, _ul, 0);
+}
 int SocketDevice::send(const char* _pb, unsigned _ul, const SockAddrPair &_sap){
 	return ::sendto(descriptor(), _pb, _ul, 0, _sap.addr, _sap.size);
 }

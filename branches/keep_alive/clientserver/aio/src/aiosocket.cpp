@@ -21,10 +21,10 @@ struct Socket::StationData{
 };
 
 struct Socket::AcceptorData{
-	AcceptorData():psock(NULL){}
+	AcceptorData():psd(NULL){}
 	static unsigned specificCount(){return 0xffffff;}
-	void specificRelease(){psock = NULL;}
-	Socket	*psock;
+	void specificRelease(){psd = NULL;}
+	SocketDevice	*psd;
 };
 
 
@@ -34,6 +34,16 @@ Socket::Socket(Type _type):
 {
 	d.psd = NULL;
 }
+
+Socket::Socket(Type _type, const SocketDevice &_rsd):
+	sd(_rsd),
+	type(_type), rcvcnt(0), sndcnt(0),
+	rcvbuf(NULL), sndbuf(NULL), rcvlen(0), sndlen(0)
+{	
+	sd.makeNonBlocking();
+	d.psd = NULL;
+}
+
 
 bool Socket::ok()const{
 	return sd.ok();
@@ -51,11 +61,21 @@ int Socket::connect(const AddrInfoIterator& _rai){
 	}
 	return rv;
 }
+int Socket::accept(SocketDevice &_rsd){
+	cassert(type == ACCEPTOR);
+	int rv = sd.accept(_rsd);
+	if(rv == NOK){
+		d.pad->psd = &_rsd;
+		rcvbuf = "";
+		rcvlen = 0;
+	}
+	return rv;
+}
 int Socket::accept(Socket &_rs){
 	cassert(type == ACCEPTOR);
 	int rv = sd.accept(_rs.sd);
 	if(rv == NOK){
-		d.pad->psock = &_rs;
+		d.pad->psd = &_rs.sd;
 		rcvbuf = "";
 		rcvlen = 0;
 	}
@@ -65,7 +85,7 @@ int Socket::send(const char* _pb, uint32 _bl, uint32 _flags){
 	cassert(!isSendPending());
 	cassert(type == CHANNEL);
 	if(!_bl) return OK;
-	int rv = sd.write(_pb, _bl);
+	int rv = sd.send(_pb, _bl);
 	if(rv == (int)_bl){
 		sndlen = 0;
 		sndcnt += rv;
@@ -84,7 +104,7 @@ int Socket::recv(char *_pb, uint32 _bl, uint32 _flags){
 	cassert(!isRecvPending());
 	cassert(type == CHANNEL);
 	if(!_bl) return OK;
-	int rv = sd.read(_pb, _bl);
+	int rv = sd.recv(_pb, _bl);
 	if(rv > 0){
 		rcvlen = rv;
 		rcvcnt += rv;
@@ -181,11 +201,6 @@ void Socket::doUnprepare(){
 }
 int Socket::doSend(){
 	switch(type){
-		case ACCEPTOR:{
-			int rv = sd.accept(d.pad->psock->sd);
-			sndbuf = NULL;
-			if(rv == OK) return OUTDONE;
-			}return ERRDONE;
 		case CHANNEL://tcp
 			if(sndlen){
 				int rv = sd.write(sndbuf, sndlen);
@@ -210,6 +225,11 @@ int Socket::doSend(){
 }
 int Socket::doRecv(){
 	switch(type){
+		case ACCEPTOR:{
+			int rv = sd.accept(*d.pad->psd);
+			sndbuf = NULL;
+			if(rv == OK) return OUTDONE;
+			}return ERRDONE;
 		case CHANNEL://tcp
 			if(rcvlen){
 				int rv = sd.read(rcvbuf, rcvlen);

@@ -65,20 +65,29 @@ void Connection::initStatic(Server &_rs){
 	Command::initStatic(_rs);
 }
 
-Connection::Connection(cs::tcp::Channel *_pch, SocketAddress *_paddr):
-						 	BaseTp(_pch),
-						 	wtr(*_pch, &logger),
-						 	rdr(*_pch, wtr, &logger), pcmd(NULL),
+Connection::Connection(SocketAddress *_paddr):
+						 	//BaseTp(_pch),
+						 	wtr(*this, &logger),
+						 	rdr(*this, wtr, &logger), pcmd(NULL),
 						 	paddr(_paddr),
 						 	reqid(1){
 	
-	if(paddr){
-		state(Connect);
-	}else{
-		state(Init);
-	}
+	cassert(paddr);
+	state(Connect);
+	
 	
 }
+
+Connection::Connection(const SocketDevice &_rsd):
+						 	BaseTp(_rsd),
+						 	wtr(*this, &logger),
+						 	rdr(*this, wtr, &logger), pcmd(NULL),
+						 	paddr(NULL),
+						 	reqid(1){
+	
+	state(Init);
+}
+
 
 /*
 NOTE: 
@@ -109,7 +118,7 @@ Connection::~Connection(){
 int Connection::execute(ulong _sig, TimeSpec &_tout){
 	test::Server &rs = test::Server::the();
 	cs::requestuidptr->set(this->id(), rs.uid(*this));
-	_tout.add(2400);
+	//_tout.add(2400);
 	if(_sig & (cs::TIMEOUT | cs::ERRDONE)){
 		if(state() == ConnectTout){
 			state(Connect);
@@ -172,7 +181,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			char			port[SocketAddress::MaxSockServSz];
 			SocketAddress	addr;
 			writer()<<"* Hello from alpha server ("<<myport<<" "<<(uint32)objid<<" "<<objuid<<") [";
-			channel().localAddress(addr);
+			socketLocalAddress(addr);
 			addr.name(
 				host,
 				SocketAddress::MaxSockHostSz,
@@ -181,7 +190,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 				SocketAddress::NumericService
 			);
 			writer()<<host<<':'<<port<<" -> ";
-			channel().remoteAddress(addr);
+			socketRemoteAddress(addr);
 			addr.name(
 				host,
 				SocketAddress::MaxSockHostSz,
@@ -202,6 +211,11 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			switch((rc = reader().run())){
 				case OK: break;
 				case NOK:
+					if(hasPendingRequests()){
+						socketTimeout(_tout, 30);
+					}else{
+						_tout.add(20);
+					}
 					state(ParseTout);
 					return NOK;
 				case BAD:
@@ -227,14 +241,10 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			//idbg("Execute");
 			switch((rc = writer().run())){
 				case NOK:
-					if(channel().arePendingSends()){
-						state(ExecuteTout);
-					}else if(!channel().arePendingRecvs()){
-						//no waiting for io - no way to detect client disconnection
-						//but to put a rather small timeout
-						//TODO: improve the algorithm so that the connection
-						//dont get closed when no command response come
-						_tout.sub(2400 - 25);//twenty seconds timeout
+					if(hasPendingRequests()){
+						socketTimeout(_tout, 30);
+					}else{
+						_tout.add(20);
 						idbg("no pending io - wait twenty seconds");
 					}
 					return NOK;

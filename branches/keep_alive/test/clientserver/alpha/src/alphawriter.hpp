@@ -24,14 +24,9 @@
 
 #include "algorithm/protocol/writer.hpp"
 
-namespace clientserver{
-namespace tcp{
-class Channel;
-}
-}
-
 namespace test{
 namespace alpha{
+class Connection;
 //! A writer better swited to alpha protocol needs.
 /*!
 	Extends the interface of the protocol::Writer, and implements
@@ -39,7 +34,7 @@ namespace alpha{
 */
 class Writer: public protocol::Writer{
 public:
-	Writer(clientserver::tcp::Channel &rch, protocol::Logger *_plog = NULL);
+	Writer(Connection &rch, protocol::Logger *_plog = NULL);
 	~Writer();
 	void clear();
 	//! Asynchrounously writes an astring (atom/quoted/literal)
@@ -62,9 +57,9 @@ private:
 	/*virtual*/ int write(char *_pb, uint32 _bl);
 	//virtual int doManage(int _mo);
 private:
-	clientserver::tcp::Channel	&rch;
-	String						msgs;
-	String						tags;
+	Connection	&rcon;
+	String		msgs;
+	String		tags;
 };
 
 }

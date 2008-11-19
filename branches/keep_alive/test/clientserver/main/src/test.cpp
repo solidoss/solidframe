@@ -157,7 +157,7 @@ int main(int argc, char* argv[]){
 				}
 			}
 		}
-		if(true){//creates and registers a new beta service
+		if(false){//creates and registers a new beta service
 			test::Service* psrvc = test::beta::Service::create();
 			ts.insertService("beta", psrvc);
 			int port = startport + 113;
@@ -183,7 +183,7 @@ int main(int argc, char* argv[]){
 				cout<<"failed adding listener for service alpha port "<<port<<endl;
 			}	
 		}
-		if(true){// create and register the echo service
+		if(false){// create and register the echo service
 			test::Service* psrvc = test::proxy::Service::create();
 			ts.insertService("proxy", psrvc);
 			

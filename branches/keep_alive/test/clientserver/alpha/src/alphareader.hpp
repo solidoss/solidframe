@@ -35,7 +35,7 @@ class Channel;
 
 namespace test{
 namespace alpha{
-
+class Connection;
 class Writer;
 //! A reader better swited to alpha protocol needs.
 /*!
@@ -47,7 +47,7 @@ public:
 	enum{
 		QuotedString = LastBasicError
 	};
-	Reader(clientserver::tcp::Channel &_rch, Writer &_rw, protocol::Logger *_plog = NULL);
+	Reader(Connection &_rch, Writer &_rw, protocol::Logger *_plog = NULL);
 	~Reader();
 	void clear();
 	//! Asynchrounously reads an astring (atom/quoted/literal)
@@ -79,8 +79,8 @@ private:
 	/*virtual*/ void basicError(int _id);
 	int extractLiteralLength(uint32 &_litlen);
 private:
-	clientserver::tcp::Channel	&rch;
-	Writer 						&rw;
+	Connection	&rcon;
+	Writer 		&rw;
 };
 
 }//namespace alpha

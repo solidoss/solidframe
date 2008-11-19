@@ -51,10 +51,13 @@ Channel* Channel::create(const AddrInfoIterator &_rai){
 	return new Channel(sd);
 }
 
+Channel* Channel::create(const SocketDevice &_rsd){
+	return new Channel(_rsd);
+}
 Channel::Channel():rcvcnt(0), sndcnt(0), pcd(NULL), psch(NULL){
 }
 
-Channel::Channel(SocketDevice &_sd):sd(_sd), rcvcnt(0), sndcnt(0), pcd(NULL), psch(NULL){
+Channel::Channel(const SocketDevice &_sd):sd(_sd), rcvcnt(0), sndcnt(0), pcd(NULL), psch(NULL){
 	sd.makeNonBlocking();
 }
 

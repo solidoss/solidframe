@@ -22,8 +22,8 @@
 #ifndef ALPHACONNECTION_HPP
 #define ALPHACONNECTION_HPP
 
-#include "core/tstring.hpp"
 #include "core/connection.hpp"
+#include "core/tstring.hpp"
 #include "core/common.hpp"
 
 #include "alphareader.hpp"
@@ -63,8 +63,12 @@ class Connection: public clientserver::CommandableObject<test::Connection>{
 public:
 	typedef clientserver::CommandableObject<test::Connection> BaseTp;
 	typedef Service	ServiceTp;
+	
 	static void initStatic(Server &_rs);
-	Connection(clientserver::tcp::Channel *_pch, SocketAddress *_paddr = NULL);
+	
+	Connection(SocketAddress *_paddr);
+	Connection(const SocketDevice &_rsd);
+	
 	~Connection();
 	//! The implementation of the protocol's state machine
 	/*!

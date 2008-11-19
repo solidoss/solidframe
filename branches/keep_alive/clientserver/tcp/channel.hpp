@@ -29,6 +29,7 @@
 #include "clientserver/core/common.hpp"
 
 class AddrInfoIterator;
+class SocketDevice;
 
 class IStreamIterator;
 class OStreamIterator;
@@ -68,6 +69,7 @@ public:
 		PREPARE_ONLY = 8
 	};
 	static Channel* create(const AddrInfoIterator &_rai);
+	static Channel* create(const SocketDevice &_rsd);
 	Channel();
 	~Channel();
 	//! Returns true if the socket was successfully created.
@@ -93,7 +95,7 @@ public:
 	int remoteAddress(SocketAddress &_rsa)const;
 protected:
 private:
-	Channel(SocketDevice &_sd);
+	Channel(const SocketDevice &_sd);
 	enum {
 		INTOUT = EPOLLIN,
 		OUTTOUT = EPOLLOUT,

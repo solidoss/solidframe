@@ -1,4 +1,4 @@
-/* Implementation file connection.cpp
+/* Implementation file connection.hpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
@@ -21,13 +21,19 @@
 #ifndef AIO_CONNECTION_HPP
 #define AIO_CONNECTION_HPP
 
-#include "clientserver/aio/src/aioobject.hpp"
+#include "clientserver/aio/aioobject.hpp"
+
+class SocketDevice;
+class SocketAddress;
+class AddrInfoIterator;
 
 namespace clientserver{
 
 namespace aio{
 
-class Connection: protected Object{
+namespace tcp{
+
+class Connection: public Object{
 public:
 	Connection(Socket *_psock = NULL);
 	Connection(const SocketDevice &_rsd);
@@ -44,11 +50,11 @@ public:
 	bool socketHasPendingRecv()const;
 	int socketLocalAddress(SocketAddress &_rsa)const;
 	int socketRemoteAddress(SocketAddress &_rsa)const;
-	void socketTimeout(const TimeSpec &_crttime, ulong _addsec, ulong _addnsec);
+	void socketTimeout(const TimeSpec &_crttime, ulong _addsec, ulong _addnsec = 0);
 	uint32 socketEvents()const;
 	void socketErase();
-	unsigned socketSet(Socket *_psock);
-	unsigned socketSet(const SocketDevice &_rsd);
+	uint socketSet(Socket *_psock);
+	uint socketSet(const SocketDevice &_rsd);
 	void socketRequestRegister();
 	void socketRequestUnregister();
 	
@@ -62,6 +68,7 @@ private:
 	int32		tout;
 };
 
+}//namespace tcp
 
 }//namespace aio
 

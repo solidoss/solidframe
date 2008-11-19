@@ -22,7 +22,7 @@
 #include "alphareader.hpp"
 #include "alphawriter.hpp"
 #include "alphaprotocolfilters.hpp"
-#include "clientserver/tcp/channel.hpp"
+#include "alphaconnection.hpp"
 #include <cerrno>
 
 namespace test{
@@ -46,10 +46,10 @@ static const char *char2name[128] = {
 
 
 Reader::Reader(
-	clientserver::tcp::Channel &_rch,
+	Connection &_rcon,
 	Writer &_rw,
 	protocol::Logger *_plog
-):protocol::Reader(_plog), rch(_rch), rw(_rw){
+):protocol::Reader(_plog), rcon(_rcon), rw(_rw){
 }
 Reader::~Reader(){
 }
@@ -175,10 +175,10 @@ void Reader::clear(){
 //     	case NOK:	return No;
 //     }
 //     return Bad;
-	return rch.recv(_pb, _bl);
+	return rcon.socketRecv(_pb, _bl);
 }
 /*virtual*/ int Reader::readSize()const{
-	return rch.recvSize();
+	return rcon.socketRecvSize();
 }
 /*virtual*/ void Reader::prepareErrorRecovery(){
 	push(&protocol::Reader::manage, protocol::Parameter(ResetLogging));

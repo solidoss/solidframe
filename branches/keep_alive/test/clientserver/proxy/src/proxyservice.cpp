@@ -48,9 +48,9 @@ Service::~Service(){
 
 int Service::insertConnection(
 	test::Server &_rs,
-	cs::tcp::Channel *_pch
+	const SocketDevice &_rsd
 ){
-	MultiConnection *pcon = new MultiConnection(_pch, 0);
+	MultiConnection *pcon = new MultiConnection(cs::tcp::Channel::create(_rsd), 0);
 	if(this->insert(*pcon, this->index())){
 		delete pcon;
 		return BAD;
@@ -63,14 +63,18 @@ int Service::insertListener(
 	test::Server &_rs,
 	const AddrInfoIterator &_rai
 ){
-	cs::tcp::Station *pst(cs::tcp::Station::create(_rai));
-	if(!pst) return BAD;
-	test::Listener *plis = new test::Listener(pst, 100, 0);
+	SocketDevice sd;
+	sd.create(_rai);
+	sd.makeNonBlocking();
+	sd.prepareAccept(_rai, 100);
+	if(!sd.ok()) return BAD;
+	test::Listener *plis = new test::Listener(sd);
+	
 	if(this->insert(*plis, this->index())){
 		delete plis;
 		return BAD;
 	}	
-	_rs.pushJob((cs::tcp::Listener*)plis);
+	_rs.pushJob(static_cast<cs::aio::Object*>(plis));
 	return OK;
 }
 int Service::insertTalker(

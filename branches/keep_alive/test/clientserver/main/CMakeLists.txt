@@ -20,6 +20,8 @@ target_link_libraries (test
 	clientserver_tcp
 	clientserver_udp
 	clientserver_core
+	clientserver_aio
+	clientserver_aio_tcp
 	protocol
 	audit_log_manager
 	audit_log

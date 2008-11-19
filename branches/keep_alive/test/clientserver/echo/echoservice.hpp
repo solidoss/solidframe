@@ -51,7 +51,7 @@ public:
 	~Service();
 	int insertConnection(
 		test::Server &_rs,
-		clientserver::tcp::Channel *_pch
+		const SocketDevice &_rsd
 	);
 	int insertListener(
 		test::Server &_rs,
