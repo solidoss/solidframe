@@ -42,6 +42,7 @@ struct Dbg{
 	static const unsigned udp;
 	static const unsigned filemanager;
 	static const unsigned log;
+	static const unsigned aio;
 	static Dbg& instance();
 	enum Level{
 		Info = 1,

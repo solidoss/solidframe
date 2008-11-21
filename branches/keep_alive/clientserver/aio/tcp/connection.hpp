@@ -37,7 +37,7 @@ class Connection: public Object{
 public:
 	Connection(Socket *_psock = NULL);
 	Connection(const SocketDevice &_rsd);
-	
+	~Connection();
 	bool socketOk()const;
 	int socketConnect(const AddrInfoIterator&);
 	bool socketIsSecure()const;
@@ -53,8 +53,11 @@ public:
 	void socketTimeout(const TimeSpec &_crttime, ulong _addsec, ulong _addnsec = 0);
 	uint32 socketEvents()const;
 	void socketErase();
-	uint socketSet(Socket *_psock);
-	uint socketSet(const SocketDevice &_rsd);
+	int socketSet(Socket *_psock);
+	int socketSet(const SocketDevice &_rsd);
+	int socketCreate4();
+	int socketCreate6();
+	int socketCreate(const AddrInfoIterator&);
 	void socketRequestRegister();
 	void socketRequestUnregister();
 	

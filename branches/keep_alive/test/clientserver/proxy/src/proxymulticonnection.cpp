@@ -19,13 +19,12 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "clientserver/tcp/channel.hpp"
-
 #include "core/server.hpp"
 #include "proxy/proxyservice.hpp"
 #include "proxymulticonnection.hpp"
 #include "system/socketaddress.hpp"
 #include "system/debug.hpp"
+#include "system/mutex.hpp"
 #include "system/timespec.hpp"
 
 namespace cs=clientserver;
@@ -35,17 +34,14 @@ namespace test{
 
 namespace proxy{
 
-MultiConnection::MultiConnection(cs::tcp::Channel *_pch, const char *_node, const char *_srv): 
-									BaseTp(_pch),
+MultiConnection::MultiConnection(const char *_node, const char *_srv): 
 									//bend(bbeg + BUFSZ),brpos(bbeg),bwpos(bbeg),
 									pai(NULL),b(false){
-	if(_node){
-		pai = new AddrInfo(_node, _srv);
-		it = pai->begin();
-		//state(CONNECT);
-	}else{
-		//state(INIT);
-	}
+	cassert(false);
+}
+MultiConnection::MultiConnection(const SocketDevice &_rsd):
+	BaseTp(_rsd), pai(NULL), b(false)
+{
 	bp = be = NULL;
 	state(READ_ADDR);
 }
@@ -66,7 +62,12 @@ MultiConnection::~MultiConnection(){
 	rs.service(*this).removeConnection(*this);
 	delete pai;
 }
-
+enum{
+		Receive,
+		ReceiveWait,
+		Send,
+		SendWait
+	};
 int MultiConnection::execute(ulong _sig, TimeSpec &_tout){
 	idbg("time.sec "<<_tout.seconds()<<" time.nsec = "<<_tout.nanoSeconds());
 	if(_sig & (cs::TIMEOUT | cs::ERRDONE)){
@@ -91,13 +92,12 @@ int MultiConnection::execute(ulong _sig, TimeSpec &_tout){
 			idbgx(Dbg::tcp, "REGISTER_CONNECTION");
 			pai = new AddrInfo(addr.c_str(), port.c_str());
 			it = pai->begin();
-			channelAdd(cs::tcp::Channel::create(it));
-			channelRegisterRequest(1);
+			socketRequestRegister(socketCreate(it));
 			state(CONNECT);
 			}return NOK;
 		case CONNECT://connect the other end:
 			idbgx(Dbg::tcp, "CONNECT");
-			switch(channelConnect(1, it)){
+			switch(socketConnect(1, it)){
 				case BAD:
 					idbgx(Dbg::tcp, "BAD");
 					return BAD;
@@ -112,28 +112,32 @@ int MultiConnection::execute(ulong _sig, TimeSpec &_tout){
 			};
 		case CONNECT_TOUT:{
 			idbgx(Dbg::tcp, "CONNECT_TOUT");
-			uint32 evs = channelEvents(1);
+			uint32 evs = socketEvents(1);
 			if(!evs || !(evs & cs::OUTDONE)) return BAD;
 			
 			state(SEND_REMAINS);
-		}
-		case SEND_REMAINS:
+			}
+		case SEND_REMAINS:{
 			idbgx(Dbg::tcp, "SEND_REMAINS");
+			state(PROXY);
 			if(bp != be){
-				switch(channelSend(1, bp, be - bp)){
+				switch(socketSend(1, bp, be - bp)){
 					case BAD:
 						idbgx(Dbg::tcp, "BAD");
 						return BAD;
 					case OK:
-						state(PROXY);
+						socketState(0, Receive);
+						socketState(1, Receive);
 						idbgx(Dbg::tcp, "OK");
 						break;
 					case NOK:
 						stubs[0].recvbuf.usecnt = 1;
-						state(PROXY);
+						socketState(0, Receive);
+						socketState(1, Receive);
 						idbgx(Dbg::tcp, "NOK");
 						return NOK;
 				}
+			}
 			}
 		case PROXY:
 			idbgx(Dbg::tcp, "PROXY");
@@ -179,87 +183,122 @@ int MultiConnection::doReadAddress(){
 	return BAD;
 }
 int MultiConnection::doProxy(const TimeSpec &_tout){
-	uint32 evs0 = channelEvents(0);
-	uint32 evs1 = channelEvents(1);
-	if(evs0 & cs::TIMEOUT)return BAD;
-	if(evs1 & cs::TIMEOUT)return BAD;
-	if(evs0 & cs::OUTDONE) stubs[1].recvbuf.usecnt = 0;
-	if(evs1 & cs::OUTDONE) stubs[0].recvbuf.usecnt = 0;
-	if(evs0 & cs::INDONE){
-		//send on 1
-		stubs[0].recvbuf.usecnt = 1;
-		switch(channelSend(1, stubs[0].recvbuf.data, channelRecvSize(0))){
-			case BAD: return BAD;
-			case OK: stubs[0].recvbuf.usecnt = 0;break;
-			case NOK:
-				channelTimeout(1, _tout, 30, 0);
-				break;
-		}
+	int retv = NOK;
+	if(socketEvents(0) & cs::ERRDONE || socketEvents(1) & cs::ERRDONE){
+		idbg("bad errdone");
+		return BAD;
 	}
-	if(evs1 & cs::INDONE){
-		//send on 0
-		stubs[1].recvbuf.usecnt = 1;
-		switch(channelSend(0, stubs[1].recvbuf.data, channelRecvSize(1))){
-			case BAD: return BAD;
-			case OK: stubs[1].recvbuf.usecnt = 0;break;
-			case NOK:
-				channelTimeout(0, _tout, 30, 0);
-				break;
-		}
+	switch(socketState(0)){
+		case Receive:
+			idbg("receive 0");
+			switch(socketRecv(0, stubs[0].recvbuf.data, Buffer::Capacity)){
+				case BAD:
+					idbg("bad recv 0");
+					return BAD;
+				case OK:
+					idbg("receive ok 0");
+					socketState(0, Send);
+					retv = OK;
+					break;
+				case NOK:
+					idbg("receive nok 0");
+					socketTimeout(0, _tout, 30);
+					socketState(0, ReceiveWait);
+					break;
+			}
+			break;
+		case ReceiveWait:
+			idbg("receivewait 0");
+			if(socketEvents(0) & cs::INDONE){
+				socketState(0, Send);
+			}else break;
+		case Send:
+			idbg("send 0");
+			switch(socketSend(1, stubs[0].recvbuf.data, socketRecvSize(0))){
+				idbg("bad send 0");
+				case BAD:
+					return BAD;
+				case OK:
+					idbg("send ok 0");
+					socketState(0, Receive);
+					retv = OK;
+					break;
+				case NOK:
+					idbg("send nok 0");
+					socketState(0, SendWait);
+					socketTimeout(1, _tout, 30);
+					break;
+			}
+			break;
+		case SendWait:
+			idbg("sendwait 0");
+			if(socketEvents(1) & cs::OUTDONE){
+				socketState(0, Receive);
+			}
+			break;
 	}
-	if(stubs[0].recvbuf.usecnt == 0){
-		switch(channelRecv(0, stubs[0].recvbuf.data, Buffer::Capacity)){
-			case BAD:	return BAD;
-			case OK:
-				stubs[0].recvbuf.usecnt = 1;
-				switch(channelSend(1, stubs[0].recvbuf.data, channelRecvSize(0))){
-					case BAD: return BAD;
-					case OK: stubs[0].recvbuf.usecnt = 0;break;
-					case NOK:
-						channelTimeout(1, _tout, 30, 0);
-						break;
-				}
-				break;
-			case NOK:
-				channelTimeout(0, _tout, 30, 0);
-				break;	
-		}
+	
+	switch(socketState(1)){
+		idbg("receive 1");
+		case Receive:
+			switch(socketRecv(1, stubs[1].recvbuf.data, Buffer::Capacity)){
+				case BAD:
+					idbg("bad recv 1");
+					return BAD;
+				case OK:
+					idbg("receive ok 1");
+					socketState(1, Send);
+					retv = OK;
+					break;
+				case NOK:
+					idbg("receive nok 1");
+					socketTimeout(1, _tout, 30);
+					socketState(1, ReceiveWait);
+					break;
+			}
+			break;
+		case ReceiveWait:
+			idbg("receivewait 1");
+			if(socketEvents(1) & cs::INDONE){
+				socketState(1, Send);
+			}else break;
+		case Send:
+			idbg("send 1");
+			switch(socketSend(0, stubs[1].recvbuf.data, socketRecvSize(1))){
+				case BAD:
+					idbg("bad recv 1");
+					return BAD;
+				case OK:
+					idbg("send ok 1");
+					socketState(1, Receive);
+					retv = OK;
+					break;
+				case NOK:
+					idbg("send nok 1");
+					socketState(1, SendWait);
+					socketTimeout(0, _tout, 30);
+					break;
+			}
+			break;
+		case SendWait:
+			idbg("sendwait 1");
+			if(socketEvents(0) & cs::OUTDONE){
+				socketState(1, Receive);
+			}
+			break;
 	}
-	if(stubs[1].recvbuf.usecnt == 0){
-		switch(channelRecv(1, stubs[1].recvbuf.data, Buffer::Capacity)){
-			case BAD:	return BAD;
-			case OK:
-				stubs[1].recvbuf.usecnt = 1;
-				switch(channelSend(0, stubs[1].recvbuf.data, channelRecvSize(1))){
-					case BAD: return BAD;
-					case OK: stubs[1].recvbuf.usecnt = 0;break;
-					case NOK:
-						channelTimeout(0, _tout, 30, 0);
-						break;
-				}
-				break;
-			case NOK:
-				channelTimeout(1, _tout, 30, 0);
-				break;	
-		}
-	}
-	if(channelRequestCount()){
-		idbgx(Dbg::tcp, "NOK");
-		return NOK;
-	}
-	idbgx(Dbg::tcp, "OK");
-	return OK;
+	idbg("retv "<<retv);
+	return retv;
 }
-
 
 int MultiConnection::doRefill(){
 	idbgx(Dbg::tcp, "");
 	if(bp == NULL){//we need to issue a read
-		switch(channelRecv(0, stubs[0].recvbuf.data, Buffer::Capacity)){
+		switch(socketRecv(0, stubs[0].recvbuf.data, Buffer::Capacity)){
 			case BAD:	return BAD;
 			case OK:
 				bp = stubs[0].recvbuf.data;
-				be = stubs[0].recvbuf.data + channelRecvSize(0);
+				be = stubs[0].recvbuf.data + socketRecvSize(0);
 				return OK;
 			case NOK:
 				be = NULL;
@@ -269,8 +308,8 @@ int MultiConnection::doRefill(){
 		}
 	}
 	if(be == NULL){
-		if(channelEvents(0) & cs::INDONE){
-			be = stubs[0].recvbuf.data + channelRecvSize(0);
+		if(socketEvents(0) & cs::INDONE){
+			be = stubs[0].recvbuf.data + socketRecvSize(0);
 		}else{
 			idbgx(Dbg::tcp, "NOK");
 			return NOK;

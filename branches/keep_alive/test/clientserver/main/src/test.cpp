@@ -183,7 +183,7 @@ int main(int argc, char* argv[]){
 				cout<<"failed adding listener for service alpha port "<<port<<endl;
 			}	
 		}
-		if(false){// create and register the echo service
+		if(true){// create and register the proxy service
 			test::Service* psrvc = test::proxy::Service::create();
 			ts.insertService("proxy", psrvc);
 			

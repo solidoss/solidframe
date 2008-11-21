@@ -296,7 +296,7 @@ void LogManager::runChannel(ChannelWorker &_w){
 		){
 			rec.head.convertToHost();
 			if(!pis->readAll(rec.data(rec.size()), rec.size(rec.head.datalen))) break;
-			idbg("read: "<<rec.data());
+			//idbg("read: "<<rec.data());
 			//prepare repositories, fetching the list of writers
 			d.m.lock();
 			for(Data::ConnectorVectorTp::const_iterator it(d.conv.begin()); it != d.conv.end(); ++it){

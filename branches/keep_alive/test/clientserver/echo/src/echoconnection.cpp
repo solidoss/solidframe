@@ -81,11 +81,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 		}
 		return BAD;
 	}
-/*	if(b){
-		_tout.set(0, 1000000 * 500);//allways set it if it's not MAXTIMEOUT
-	}else{*/
-		//_tout.add(60);
-//	}
+
 	if(signaled()){
 		test::Server &rs = test::Server::the();
 		{
@@ -95,7 +91,10 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 		}
 	}
 	if(socketEvents()){
-		if(socketEvents() == cs::TIMEOUT) return BAD;
+		if(socketEvents() == cs::ERRDONE){
+			
+			return BAD;
+		}
 		if(state() == READ_TOUT){	
 			cassert(socketEvents() & cs::INDONE);
 		}else if(state() == WRITE_TOUT){	

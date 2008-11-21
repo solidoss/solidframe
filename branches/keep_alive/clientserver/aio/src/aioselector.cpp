@@ -173,7 +173,7 @@ int Selector::reserve(uint _cp){
 	cassert(d.epollfd < 0);
 	d.epollfd = epoll_create(d.sockcp);
 	if(d.epollfd < 0){
-		edbgx(Dbg::tcp, "epoll_create: "<<strerror(errno));
+		edbgx(Dbg::aio, "epoll_create: "<<strerror(errno));
 		cassert(false);
 		return BAD;
 	}
@@ -181,7 +181,7 @@ int Selector::reserve(uint _cp){
 	//next create the pipefds:
 	cassert(d.pipefds[0] < 0 && d.pipefds[1] < 0);
 	if(pipe(d.pipefds)){
-		edbgx(Dbg::tcp, "pipe: "<<strerror(errno));
+		edbgx(Dbg::aio, "pipe: "<<strerror(errno));
 		cassert(false);
 		return BAD;
 	}
@@ -195,7 +195,7 @@ int Selector::reserve(uint _cp){
 	ev.data.u64 = 0;
 	ev.events = EPOLLIN | EPOLLPRI;//must be LevelTriggered
 	if(epoll_ctl(d.epollfd, EPOLL_CTL_ADD, d.pipefds[0], &ev)){
-		edbgx(Dbg::tcp, "epoll_ctl: "<<strerror(errno));
+		edbgx(Dbg::aio, "epoll_ctl: "<<strerror(errno));
 		cassert(false);
 		return BAD;
 	}
@@ -223,7 +223,7 @@ void Selector::unprepare(){
 }
 
 void Selector::signal(uint _pos)const{
-	idbgx(Dbg::tcp, "signal connection: "<<_pos);
+	idbgx(Dbg::aio, "signal connection: "<<_pos);
 	write(d.pipefds[1], &_pos, sizeof(uint));
 }
 
@@ -264,7 +264,7 @@ void Selector::push(const ObjectTp &_objptr, uint _thid){
 				if(
 					epoll_ctl(d.epollfd, EPOLL_CTL_ADD, psock->descriptor(), d.eventPrepare(ev, stubpos, i))
 				){
-					edbgx(Dbg::tcp, "epoll_ctl adding filedesc "<<psock->descriptor()<<" stubpos = "<<stubpos<<" pos = "<<i<<" err = "<<strerror(errno));
+					edbgx(Dbg::aio, "epoll_ctl adding filedesc "<<psock->descriptor()<<" stubpos = "<<stubpos<<" pos = "<<i<<" err = "<<strerror(errno));
 					fail = true;
 					failpos = i;
 					break;
@@ -284,7 +284,7 @@ void Selector::push(const ObjectTp &_objptr, uint _thid){
 		++d.objsz;
 		stub.objptr = _objptr;
 		stub.objptr->doPrepare(&stub.timepos);
-		idbgx(Dbg::tcp, "pushing object "<<&(*(stub.objptr))<<" on position "<<stubpos);
+		idbgx(Dbg::aio, "pushing object "<<&(*(stub.objptr))<<" on position "<<stubpos);
 		stub.state = Stub::InExecQueue;
 		d.execq.push(stubpos);
 	}
@@ -331,14 +331,14 @@ void Selector::run(){
 			--nbcnt;
 		}else{
 			pollwait = d.computeWaitTimeout();
-			idbgx(Dbg::tcp, "pollwait "<<pollwait<<" ntimepos.s = "<<d.ntimepos.seconds()<<" ntimepos.ns = "<<d.ntimepos.nanoSeconds());
-			idbgx(Dbg::tcp, "ctimepos.s = "<<d.ctimepos.seconds()<<" ctimepos.ns = "<<d.ctimepos.nanoSeconds());
+			idbgx(Dbg::aio, "pollwait "<<pollwait<<" ntimepos.s = "<<d.ntimepos.seconds()<<" ntimepos.ns = "<<d.ntimepos.nanoSeconds());
+			idbgx(Dbg::aio, "ctimepos.s = "<<d.ctimepos.seconds()<<" ctimepos.ns = "<<d.ctimepos.nanoSeconds());
 			nbcnt = -1;
         }
 		
 		d.selcnt = epoll_wait(d.epollfd, d.events, d.socksz, pollwait);
 		
-		idbgx(Dbg::tcp, "epollwait = "<<d.selcnt);
+		idbgx(Dbg::aio, "epollwait = "<<d.selcnt);
 	}while(!(flags & Data::EXIT_LOOP));
 }
 
@@ -384,7 +384,7 @@ uint Selector::doReadPipe(){
 	if(j > maxcnt){
 		//dummy read:
 		rv = Data::EXIT_LOOP | Data::FULL_SCAN;//scan all filedescriptors for events
-		idbgx(Dbg::tcp, "reading pipe dummy");
+		idbgx(Dbg::aio, "reading pipe dummy");
 		while((rsz = read(d.pipefds[0], buf, BUFSZ)) > 0);
 	}
 	return rv;
@@ -402,7 +402,7 @@ void Selector::doUnregisterObject(Object &_robj, int _lastfailpos){
 				--d.socksz;
 				psock->doUnprepare();
 			}else{
-				edbgx(Dbg::tcp, "epoll_ctl "<<strerror(errno));
+				edbgx(Dbg::aio, "epoll_ctl "<<strerror(errno));
 			}
 		}
 	}
@@ -424,7 +424,7 @@ uint Selector::doAllIo(){
 			cassert(psock);
 			if((evs = doIo(*psock, d.events[i].events))){
 				//first mark the socket in connection
-				idbgx(Dbg::tcp, "evs = "<<evs<<" indone = "<<INDONE);
+				idbgx(Dbg::aio, "evs = "<<evs<<" indone = "<<INDONE);
 				stub.objptr->doAddSignaledSocketNext(sockpos, evs);
 				stub.events |= IODONE;
 				//push channel execqueue
@@ -442,7 +442,7 @@ uint Selector::doAllIo(){
 uint Selector::doFullScan(){
 	uint		evs;
 	++d.rep_fullscancount;
-	idbgx(Dbg::tcp, "fullscan count "<<d.rep_fullscancount);
+	idbgx(Dbg::aio, "fullscan count "<<d.rep_fullscancount);
 	d.ntimepos.set(Data::MAXTIMEPOS);
 	for(Data::StubVectorTp::iterator it(d.stubs.begin() + 1); it != d.stubs.end(); ++it){
 		Stub &stub = *it;
@@ -481,6 +481,7 @@ uint Selector::doExecuteQueue(){
 uint Selector::doIo(Socket &_rsock, ulong _evs){
 	if(_evs & (EPOLLERR | EPOLLHUP)){
 		_rsock.doClear();
+		idbgx(Dbg::aio, "epollerr evs = "<<_evs);
 		return ERRDONE;
 	}
 	int rv = 0;
@@ -504,7 +505,7 @@ uint Selector::doExecute(const uint _pos){
 	stub.objptr->doClearRequests();//clears the requests from object to selector
 	switch(stub.objptr->execute(evs, timepos)){
 		case BAD:
-			idbgx(Dbg::tcp, "BAD: removing the connection");
+			idbgx(Dbg::aio, "BAD: removing the connection");
 			d.freestubsstk.push(_pos);
 			//unregister all channels
 			doUnregisterObject(*stub.objptr);
@@ -551,7 +552,7 @@ void Selector::doPrepareObjectWait(const uint _pos, const TimeSpec &_timepos){
 				if((sockstub.selevents & Data::EPOLLMASK) != t){
 					sockstub.selevents = ev.events = t;
 					if(epoll_ctl(d.epollfd, EPOLL_CTL_MOD, sockstub.psock->descriptor(), d.eventPrepare(ev, _pos, *pit))){
-						edbgx(Dbg::tcp, "epoll_ctl: "<<strerror(errno)<<" desc = "<<sockstub.psock->descriptor());
+						edbgx(Dbg::aio, "epoll_ctl: "<<strerror(errno)<<" desc = "<<sockstub.psock->descriptor());
 						cassert(false);
 					}
 				}
@@ -565,7 +566,7 @@ void Selector::doPrepareObjectWait(const uint _pos, const TimeSpec &_timepos){
 					d.addNewSocket();
 					mustwait = false;
 				}else{
-					edbgx(Dbg::tcp, "epoll_ctl "<<strerror(errno));
+					edbgx(Dbg::aio, "epoll_ctl "<<strerror(errno));
 					cassert(false);
 				}
 			}break;
@@ -576,7 +577,7 @@ void Selector::doPrepareObjectWait(const uint _pos, const TimeSpec &_timepos){
 						sockstub.psock->doUnprepare();
 						stub.objptr->doAddSignaledSocketFirst(*pit, OKDONE);
 					}else{
-						edbgx(Dbg::tcp, "epoll_ctl: "<<strerror(errno));
+						edbgx(Dbg::aio, "epoll_ctl: "<<strerror(errno));
 					}
 					mustwait = false;
 				}

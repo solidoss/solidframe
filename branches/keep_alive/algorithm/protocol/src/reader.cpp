@@ -115,7 +115,7 @@ int Reader::run(){
 				while(fs.size())fs.pop();
 				prepareErrorRecovery();
 				break;
-			case Ok: fs.pop();
+			case Ok: fs.pop();break;
 			case Yield:return YIELD;
 			case Continue: break;
 			default: cassert(false);

@@ -25,8 +25,7 @@
 #include "utility/queue.hpp"
 #include <string>
 #include <deque>
-#include "clientserver/tcp/multiconnection.hpp"
-#include "clientserver/core/readwriteobject.hpp"
+#include "clientserver/aio/tcp/multiconnection.hpp"
 #include "system/socketaddress.hpp"
 
 class SocketAddress;
@@ -48,12 +47,13 @@ namespace proxy{
 
 class Service;
 
-class MultiConnection: public clientserver::ReadWriteObject<clientserver::tcp::MultiConnection>{
+class MultiConnection: public clientserver::aio::tcp::MultiConnection{
 public:
 	typedef Service	ServiceTp;
-	typedef clientserver::ReadWriteObject<clientserver::tcp::MultiConnection> BaseTp;
+	typedef clientserver::aio::tcp::MultiConnection BaseTp;
 	
-	MultiConnection(clientserver::tcp::Channel *_pch, const char *_node = NULL, const char *_srv = NULL);
+	MultiConnection(const char *_node = NULL, const char *_srv = NULL);
+	MultiConnection(const SocketDevice &_rsd);
 	~MultiConnection();
 	int execute(ulong _sig, TimeSpec &_tout);
 	int execute();

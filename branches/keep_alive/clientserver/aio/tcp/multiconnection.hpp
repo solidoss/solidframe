@@ -18,21 +18,25 @@
 	You should have received a copy of the GNU General Public License
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef AIO_CONNECTION_HPP
-#define AIO_CONNECTION_HPP
+#ifndef AIO_MULTICONNECTION_HPP
+#define AIO_MULTICONNECTION_HPP
 
-#include "clientserver/aio/src/aioobject.hpp"
+#include "clientserver/aio/aioobject.hpp"
 #include "utility/stack.hpp"
+
+class SocketAddress;
 
 namespace clientserver{
 
 namespace aio{
 
-class MultiConnection: protected Object{
+namespace tcp{
+
+class MultiConnection: public Object{
 public:
 	MultiConnection(Socket *_psock = NULL);
 	MultiConnection(const SocketDevice &_rsd);
-	
+	~MultiConnection();
 	bool socketOk(uint _pos)const;
 	int socketConnect(uint _pos, const AddrInfoIterator&);
 	bool socketIsSecure(uint _pos)const;
@@ -45,22 +49,28 @@ public:
 	bool socketHasPendingRecv(uint _pos)const;
 	int socketLocalAddress(uint _pos, SocketAddress &_rsa)const;
 	int socketRemoteAddress(uint _pos, SocketAddress &_rsa)const;
-	void socketTimeout(uint _pos, const TimeSpec &_crttime, ulong _addsec, ulong _addnsec);
+	void socketTimeout(uint _pos, const TimeSpec &_crttime, ulong _addsec, ulong _addnsec = 0);
 	uint32 socketEvents(uint _pos)const;
 	void socketErase(uint _pos);
-	uint socketInsert(Socket *_psock);
-	uint socketInsert(const SocketDevice &_rsd);
+	int socketInsert(Socket *_psock);
+	int socketInsert(const SocketDevice &_rsd);
+	int socketCreate4();
+	int socketCreate6();
+	int socketCreate(const AddrInfoIterator&);
 	void socketRequestRegister(uint _pos);
 	void socketRequestUnregister(uint _pos);
 	int socketState(unsigned _pos)const;
 	void socketState(unsigned _pos, int _st);
 private:
 	void reserve(uint _cp);//using only one allocation sets the pointers from the aioobject
+	uint dataSize(uint _cp);
+	uint newStub();
 private:
 	typedef Stack<uint>		PositionStackTp;
 	PositionStackTp		posstk;
 };
 
+}//namespace tcp
 
 }//namespace aio
 

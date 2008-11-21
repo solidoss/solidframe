@@ -151,25 +151,24 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 		//now we determine if we return with NOK or we continue
 		if(!_sig) return NOK;
 	}
-	if(_sig & cs::INDONE){
-		cassert(state() == ParseTout);
-		state(Parse);
+	if(socketEvents() & cs::ERRDONE){
+		return BAD;
 	}
-	if(_sig & cs::OUTDONE){
-		switch(state()){
-			case IdleExecute:
-			case ExecuteTout:
-				state(Execute);
-				break;
-			case Execute:
-				break;
-			case Connect:
-				state(Init);
-				break;
-			default:
-				state(Parse);
-		}
-	}
+// 	if(socketEvents() & cs::OUTDONE){
+// 		switch(state()){
+// 			case IdleExecute:
+// 			case ExecuteTout:
+// 				state(Execute);
+// 				break;
+// 			case Execute:
+// 				break;
+// 			case Connect:
+// 				state(Init);
+// 				break;
+// 			default:
+// 				state(Parse);
+// 		}
+// 	}
 	int rc;
 	switch(state()){
 		case Init:{
@@ -212,9 +211,9 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 				case OK: break;
 				case NOK:
 					if(hasPendingRequests()){
-						socketTimeout(_tout, 30);
+						socketTimeout(_tout, 3000);
 					}else{
-						_tout.add(20);
+						_tout.add(2000);
 					}
 					state(ParseTout);
 					return NOK;
@@ -235,18 +234,17 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			idbg("PrepareExecute");
 			pcmd->execute(*this);
 			state(Execute);
-		case IdleExecute:
-			//idbg("IdleExecute");
 		case Execute:
 			//idbg("Execute");
 			switch((rc = writer().run())){
 				case NOK:
 					if(hasPendingRequests()){
-						socketTimeout(_tout, 30);
+						socketTimeout(_tout, 3000);
 					}else{
-						_tout.add(20);
+						_tout.add(2000);
 						idbg("no pending io - wait twenty seconds");
 					}
+					state(ExecuteTout);
 					return NOK;
 				case OK:
 					if(state() != IdleExecute){
@@ -262,6 +260,12 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 					return rc;
 			}
 			break;
+		case IdleExecute:
+			//idbg("IdleExecute");
+			if(socketEvents() & cs::OUTDONE){
+				state(Execute);
+				return OK;
+			}return NOK;
 		case Connect:
 			/*
 			switch(channel().connect(*paddr)){
@@ -275,10 +279,17 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			//delete(paddr); paddr = NULL;
 			break;
 		case ParseTout:
-			idbg("State: ParseTout");
+			if(socketEvents() & cs::INDONE){
+				state(Parse);
+				return OK;
+			}
 			return NOK;
 		case ExecuteTout:
 			idbg("State: ExecuteTout");
+			if(socketEvents() & cs::OUTDONE){
+				state(Execute);
+				return OK;
+			}
 			return NOK;
 	}
 	return OK;
@@ -321,6 +332,9 @@ int Connection::receiveIStream(
 				if(state() == ParseTout){
 					state(Parse);
 				}
+				if(state() == ExecuteTout){
+					state(Execute);
+				}
 				break;
 			case NOK:
 				idbg("");
@@ -352,6 +366,9 @@ int Connection::receiveOStream(
 				idbg("");
 				if(state() == ParseTout){
 					state(Parse);
+				}
+				if(state() == ExecuteTout){
+					state(Execute);
 				}
 				break;
 			case NOK:
@@ -385,6 +402,9 @@ int Connection::receiveIOStream(
 				if(state() == ParseTout){
 					state(Parse);
 				}
+				if(state() == ExecuteTout){
+					state(Execute);
+				}
 				break;
 			case NOK:
 				idbg("");
@@ -416,6 +436,9 @@ int Connection::receiveString(
 				if(state() == ParseTout){
 					state(Parse);
 				}
+				if(state() == ExecuteTout){
+					state(Execute);
+				}
 				break;
 			case NOK:
 				idbg("");
@@ -446,6 +469,9 @@ int Connection::receiveNumber(
 				idbg("");
 				if(state() == ParseTout){
 					state(Parse);
+				}
+				if(state() == ExecuteTout){
+					state(Execute);
 				}
 				break;
 			case NOK:
@@ -479,6 +505,9 @@ int Connection::receiveData(
 				if(state() == ParseTout){
 					state(Parse);
 				}
+				if(state() == ExecuteTout){
+					state(Execute);
+				}
 				break;
 			case NOK:
 				idbg("");
@@ -508,6 +537,9 @@ int Connection::receiveError(
 				idbg("");
 				if(state() == ParseTout){
 					state(Parse);
+				}
+				if(state() == ExecuteTout){
+					state(Execute);
 				}
 				break;
 			case NOK:

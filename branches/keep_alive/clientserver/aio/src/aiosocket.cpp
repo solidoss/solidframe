@@ -3,6 +3,7 @@
 #include "system/socketaddress.hpp"
 #include "system/specific.hpp"
 #include "system/cassert.hpp"
+#include "system/debug.hpp"
 #include <cerrno>
 #include <sys/epoll.h>
 
@@ -199,11 +200,25 @@ void Socket::doUnprepare(){
 			break;
 	}
 }
+/*NOTE: for both doSend and doRecv
+	We must also check for sndbuf/rcvbuf on send or recv
+	because we allow to have events on sockets not waiting for events
+	(this is a limitation of the aio selector). Here's a situation
+	1) cona issue recv == NOK for 4K
+	2) selector wait recv on cona
+	3) cona->dorecv 2K
+	4) cona->execute, return ok
+	5) selector puts cona in execq (selector still waits for recv on cona)
+	6) selector does epollselect and finds cona ready for read
+	
+	The situation is far more difficult to avoid on multiconnections/multitalkers.
+*/
 int Socket::doSend(){
 	switch(type){
 		case CHANNEL://tcp
-			if(sndlen){
-				int rv = sd.write(sndbuf, sndlen);
+			if(sndlen && sndbuf){//NOTE: see the above note
+				int rv = sd.send(sndbuf, sndlen);
+				idbgx(Dbg::aio, "send rv = "<<rv);
 				if(rv <= 0) return ERRDONE;
 				sndbuf += rv;
 				sndlen -= rv;
@@ -212,7 +227,7 @@ int Socket::doSend(){
 			sndbuf = NULL;
 			return OUTDONE;
 		case STATION://udp
-			if(sndlen){
+			if(sndlen && sndbuf){//NOTE: see the above note
 				int rv = sd.send(sndbuf, sndlen, d.psd->sndaddrpair);
 				if(rv != sndlen) return ERRDONE;
 				sndlen = 0;
@@ -231,8 +246,9 @@ int Socket::doRecv(){
 			if(rv == OK) return OUTDONE;
 			}return ERRDONE;
 		case CHANNEL://tcp
-			if(rcvlen){
-				int rv = sd.read(rcvbuf, rcvlen);
+			if(rcvlen && rcvbuf){//NOTE: see the above note
+				int rv = sd.recv(rcvbuf, rcvlen);
+				idbgx(Dbg::aio, "recv rv = "<<rv<<" err = "<<strerror(errno)<<" rcvbuf = "<<(void*)rcvbuf<<" rcvlen = "<<rcvlen);
 				if(rv <= 0) return ERRDONE;
 				rcvcnt += rv;
 				rcvlen = rv;
@@ -240,7 +256,7 @@ int Socket::doRecv(){
 			rcvbuf = NULL;
 			return INDONE;
 		case STATION://udp
-			if(rcvlen){
+			if(rcvlen && rcvbuf){//NOTE: see the above note
 				int rv = sd.recv(rcvbuf, rcvlen, d.psd->rcvaddr);
 				if(rv <= 0) return ERRDONE;
 				rcvcnt += rv;

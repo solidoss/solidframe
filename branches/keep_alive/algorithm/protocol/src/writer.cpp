@@ -53,7 +53,7 @@ int Writer::run(){
 		switch((*fs.top().first)(*this, fs.top().second)){
 			case Bad:return BAD;
 			case No: return NOK;//wait data
-			case Ok: fs.pop();
+			case Ok: fs.pop();break;
 			case Yield:return YIELD;
 			case Continue: break;
 			default: cassert(false);

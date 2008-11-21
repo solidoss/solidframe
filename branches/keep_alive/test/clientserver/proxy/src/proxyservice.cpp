@@ -50,12 +50,12 @@ int Service::insertConnection(
 	test::Server &_rs,
 	const SocketDevice &_rsd
 ){
-	MultiConnection *pcon = new MultiConnection(cs::tcp::Channel::create(_rsd), 0);
+	MultiConnection *pcon = new MultiConnection(_rsd);
 	if(this->insert(*pcon, this->index())){
 		delete pcon;
 		return BAD;
 	}
-	_rs.pushJob((cs::tcp::MultiConnection*)pcon);
+	_rs.pushJob(static_cast<cs::aio::Object*>(pcon));
 	return OK;
 }
 
@@ -100,14 +100,14 @@ int Service::insertConnection(
 	const char *_node,
 	const char *_svc
 ){
-	cs::tcp::Channel *pch(cs::tcp::Channel::create(_rai));
+/*	cs::tcp::Channel *pch(cs::tcp::Channel::create(_rai));
 	if(!pch) return BAD;
 	MultiConnection *pcon = new MultiConnection(pch, _node, _svc);
 	if(this->insert(*pcon, this->index())){
 		delete pcon;
 		return BAD;
 	}
-	_rs.pushJob((cs::tcp::MultiConnection*)pcon);
+	_rs.pushJob((cs::tcp::MultiConnection*)pcon);*/
 	return OK;
 }
 

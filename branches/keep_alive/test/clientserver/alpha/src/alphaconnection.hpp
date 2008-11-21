@@ -164,14 +164,15 @@ private:
 	enum {
 		Init,
 		ParsePrepare,
-		ParseTout,
 		Parse,
 		ExecutePrepare,
-		ExecuteTout,
-		Execute,
 		IdleExecute,
+		Execute,
 		Connect,
-		ConnectTout
+		ConnectTout,
+		ParseTout,
+		ExecuteTout,
+		
 	};
 	Logger				logger;
 	Writer				wtr;
