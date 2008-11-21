@@ -141,10 +141,12 @@ int Socket::remoteAddress(SocketAddress &_rsa)const{
 
 int Socket::recvFrom(char *_pb, uint32 _bl, uint32 _flags){
 	if(!_bl) return OK;
+	cassert(!isRecvPending());
 	d.psd->rcvaddr.size() = SocketAddress::MaxSockAddrSz;
 	int rv = sd.recv(_pb, _bl, d.psd->rcvaddr);
 	if(rv > 0){
 		rcvlen = rv;
+		d.psd->rcvaddrpair.size = d.psd->rcvaddr.size();
 		//d.pad->rcvaddrpair.addr = rcvsa.addr();
 		//d.pad->rcvaddrpair.size = rcvsa.size();
 		return OK;
@@ -156,6 +158,7 @@ int Socket::recvFrom(char *_pb, uint32 _bl, uint32 _flags){
 	return NOK;
 }
 int Socket::sendTo(const char *_pb, uint32 _bl, const SockAddrPair &_sap, uint32 _flags){	
+	cassert(!isSendPending());
 	int rv = sd.send(_pb, _bl, _sap);
 	if(rv == (ssize_t)_bl) return OK;
 	if(rv >= 0) return BAD;
@@ -261,6 +264,7 @@ int Socket::doRecv(){
 				if(rv <= 0) return ERRDONE;
 				rcvcnt += rv;
 				rcvlen = rv;
+				d.psd->rcvaddrpair.size = d.psd->rcvaddr.size();
 			}
 			rcvbuf = NULL;
 			return INDONE;

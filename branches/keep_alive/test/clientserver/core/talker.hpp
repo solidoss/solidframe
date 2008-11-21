@@ -22,17 +22,19 @@
 #ifndef TESTTALKER_HPP
 #define TESTTALKER_HPP
 
-#include "clientserver/udp/talker.hpp"
+#include "clientserver/aio/udp/talker.hpp"
 #include "common.hpp"
+
+class SocketDevice;
 
 namespace test{
 //! The base class for all talkers in the test server
-class Talker: public clientserver::udp::Talker{
+class Talker: public clientserver::aio::udp::Talker{
 public:
 	virtual ~Talker(){}
 protected:
-	Talker(clientserver::udp::Station *_pst):
-			clientserver::udp::Talker(_pst){}
+	Talker(){}
+	Talker(const SocketDevice &_rsd):clientserver::aio::udp::Talker(_rsd){}
 };
 
 }

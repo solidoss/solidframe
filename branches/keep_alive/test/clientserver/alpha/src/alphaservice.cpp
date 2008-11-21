@@ -25,8 +25,6 @@
 #include "algorithm/serialization/binary.hpp"
 
 #include "clientserver/core/objptr.hpp"
-#include "clientserver/tcp/station.hpp"
-#include "clientserver/tcp/channel.hpp"
 
 #include "core/listener.hpp"
 

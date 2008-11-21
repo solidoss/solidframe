@@ -52,7 +52,7 @@ const unsigned fileoff = (strstr(__FILE__, "system/src") - __FILE__);
 /*static*/ const unsigned Dbg::udp(Dbg::instance().registerModule("CS_UDP"));
 /*static*/ const unsigned Dbg::filemanager(Dbg::instance().registerModule("CS_FILEMANAGER"));
 /*static*/ const unsigned Dbg::log(Dbg::instance().registerModule("LOG"));
-/*static*/ const unsigned Dbg::aio(Dbg::instance().registerModule("AIO"));
+/*static*/ const unsigned Dbg::aio(Dbg::instance().registerModule("CS_AIO"));
 
 
 struct Dbg::Data{

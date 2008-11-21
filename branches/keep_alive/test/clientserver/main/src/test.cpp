@@ -37,9 +37,6 @@
 #include "system/directory.hpp"
 
 #include "clientserver/ipc/ipcservice.hpp"
-#include "clientserver/tcp/station.hpp"
-#include "clientserver/tcp/channel.hpp"
-#include "clientserver/udp/station.hpp"
 
 namespace cs = clientserver;
 using namespace std;
@@ -157,7 +154,7 @@ int main(int argc, char* argv[]){
 				}
 			}
 		}
-		if(false){//creates and registers a new beta service
+		if(true){//creates and registers a new beta service
 			test::Service* psrvc = test::beta::Service::create();
 			ts.insertService("beta", psrvc);
 			int port = startport + 113;

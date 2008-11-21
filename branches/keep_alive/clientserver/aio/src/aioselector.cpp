@@ -426,7 +426,7 @@ uint Selector::doAllIo(){
 				//first mark the socket in connection
 				idbgx(Dbg::aio, "evs = "<<evs<<" indone = "<<INDONE);
 				stub.objptr->doAddSignaledSocketNext(sockpos, evs);
-				stub.events |= IODONE;
+				stub.events |= evs;
 				//push channel execqueue
 				if(stub.state == Stub::OutExecQueue){
 					d.execq.push(stubpos);

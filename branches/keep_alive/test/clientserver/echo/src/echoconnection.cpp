@@ -19,14 +19,13 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "clientserver/tcp/channel.hpp"
-
 #include "core/server.hpp"
 #include "echo/echoservice.hpp"
 #include "echoconnection.hpp"
 #include "system/socketaddress.hpp"
 #include "system/debug.hpp"
 #include "system/timespec.hpp"
+#include "system/cassert.hpp"
 
 namespace cs=clientserver;
 static char	*hellostr = "Welcome to echo service!!!\r\n"; 

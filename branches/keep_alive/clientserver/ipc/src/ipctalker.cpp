@@ -38,8 +38,6 @@
 #include "ipc/ipcservice.hpp"
 #include "ipc/connectoruid.hpp"
 
-#include "udp/station.hpp"
-
 #include "ipctalker.hpp"
 #include "processconnector.hpp"
 
@@ -109,7 +107,7 @@ struct Talker::Data{
 
 //======================================================================
 
-Talker::Talker(cs::udp::Station *_pst, Service &_rservice, uint16 _id):	BaseTp(_pst), d(*new Data(_rservice, _id)){
+Talker::Talker(const SocketDevice &_rsd, Service &_rservice, uint16 _id):	BaseTp(_rsd), d(*new Data(_rservice, _id)){
 }
 //----------------------------------------------------------------------
 Talker::~Talker(){
@@ -141,10 +139,10 @@ Talker::~Talker(){
 inline bool Talker::inDone(ulong _sig, const TimeSpec &_rts){
 	if(_sig & cs::INDONE){
 		//TODO: reject too smaller buffers
-		d.rcvbuf.bufferSize(station().recvSize());
+		d.rcvbuf.bufferSize(socketRecvSize());
 		if(d.rcvbuf.check()){
 			idbgx(Dbg::ipc, "received valid buffer size "<<d.rcvbuf.bufferSize()<<" data size "<<d.rcvbuf.dataSize()<<" id "<<d.rcvbuf.id());
-			dispatchReceivedBuffer(station().recvAddr(), _rts);//the address is deeply copied
+			dispatchReceivedBuffer(socketRecvAddr(), _rts);//the address is deeply copied
 		}else{
 			idbgx(Dbg::ipc, "received invalid buffer size "<<d.rcvbuf.bufferSize()<<" data size "<<d.rcvbuf.dataSize()<<" id "<<d.rcvbuf.id());
 		}
@@ -255,7 +253,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 		d.rservice.disconnectTalkerProcesses(*this);
 	}
 	//try to recv something
-	if(inDone(_sig, _tout) || (!station().recvPending())){
+	if(inDone(_sig, _tout) || (!socketHasPendingRecv())){
 		//non blocking read some buffers
 		int cnt = 0;
 		while(cnt++ < 16){
@@ -265,16 +263,16 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 			}else{
 				d.rcvbuf.reset();
 			}
-			switch(station().recvFrom(d.rcvbuf.buffer(), d.rcvbuf.bufferCapacity())){
+			switch(socketRecv(d.rcvbuf.buffer(), d.rcvbuf.bufferCapacity())){
 				case BAD:
 					idbgx(Dbg::ipc, "socket error "<<strerror(errno));
 					cassert(false);
 					break;
 				case OK:
-					d.rcvbuf.bufferSize(station().recvSize());
+					d.rcvbuf.bufferSize(socketRecvSize());
 					if(d.rcvbuf.check()){
 						idbgx(Dbg::ipc, "received valid buffer size "<<d.rcvbuf.bufferSize()<<" data size "<<d.rcvbuf.dataSize()<<" id "<<d.rcvbuf.id());
-						dispatchReceivedBuffer(station().recvAddr(), _tout);//the address is deeply copied
+						dispatchReceivedBuffer(socketRecvAddr(), _tout);//the address is deeply copied
 					}else{
 						idbgx(Dbg::ipc, "received invalid buffer size "<<d.rcvbuf.bufferSize()<<" data size "<<d.rcvbuf.dataSize()<<" id "<<d.rcvbuf.id());
 					}
@@ -291,7 +289,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 	}
 	bool mustreenter = processCommands(_tout);
 	
-	while(d.sendq.size() && !station().sendPendingCount()){
+	while(d.sendq.size() && !socketHasPendingSend()){
 		if(_tout < d.sendq.top()->timeout){
 			_tout = d.sendq.top()->timeout;
 			idbgx(Dbg::ipc, "return");
@@ -302,7 +300,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 			mustreenter = dispatchSentBuffer(_tout);
 			continue;
 		}
-		switch(station().sendTo(d.sendq.top()->b.buffer(), d.sendq.top()->b.bufferSize(), *d.sendq.top()->paddr)){
+		switch(socketSend(d.sendq.top()->b.buffer(), d.sendq.top()->b.bufferSize(), *d.sendq.top()->paddr)){
 			case BAD:
 			case OK: 
 				mustreenter = dispatchSentBuffer(_tout);
@@ -315,7 +313,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 	}//while
 	//if we've sent something or
 	//if we did not have a timeout while reading we MUST do an ioUpdate asap.
-	if(mustreenter || !station().recvPending() || d.closes.size()){
+	if(mustreenter || !socketHasPendingRecv() || d.closes.size()){
 		idbgx(Dbg::ipc, "return");
 		return OK;
 	}

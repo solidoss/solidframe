@@ -16,12 +16,11 @@ target_link_libraries (test
 	test_core
 	test_beta
 	test_proxy
-	clientserver_ipc
-	clientserver_tcp
-	clientserver_udp
 	clientserver_core
+	clientserver_ipc
 	clientserver_aio
 	clientserver_aio_tcp
+	clientserver_aio_udp
 	protocol
 	audit_log_manager
 	audit_log

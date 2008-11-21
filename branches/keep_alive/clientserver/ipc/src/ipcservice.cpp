@@ -24,10 +24,10 @@
 
 #include "system/debug.hpp"
 #include "system/mutex.hpp"
+#include "system/socketdevice.hpp"
 
 #include "clientserver/core/objptr.hpp"
 #include "clientserver/core/common.hpp"
-#include "clientserver/udp/station.hpp"
 
 #include "core/server.hpp"
 #include "ipc/ipcservice.hpp"
@@ -249,17 +249,19 @@ int16 Service::createNewTalker(uint32 &_tkrpos, uint32 &_tkruid){
 	if(d.tkrvec.size() > 30000) return BAD;
 	int16 tkrid = d.tkrvec.size();
 	d.firstaddr.port(d.firstaddr.port() + tkrid);
-	cs::udp::Station *pust = cs::udp::Station::create(SockAddrPair(d.firstaddr));
+	SocketDevice sd;
+	sd.create(d.firstaddr.family(), AddrInfo::Datagram, 0);
+	sd.bind(d.firstaddr);
 	d.firstaddr.port(d.firstaddr.port() - tkrid);
-	if(pust){
-		Talker *ptkr = new Talker(pust, *this, tkrid);
+	if(sd.ok()){
+		Talker *ptkr = new Talker(sd, *this, tkrid);
 		if(this->doInsert(*ptkr, this->index())){
 			delete ptkr;
 			return BAD;
 		}
 		d.tkrvec.push_back(Data::TkrPairTp((_tkrpos = ptkr->id()), (_tkruid = this->uid(*ptkr))));
 		//Server::the().pushJob((cs::udp::Talker*)ptkr);
-		pushTalkerInPool(Server::the(), (cs::udp::Talker*)ptkr);
+		pushTalkerInPool(Server::the(), ptkr);
 	}else{
 		return BAD;
 	}
@@ -268,7 +270,7 @@ int16 Service::createNewTalker(uint32 &_tkrpos, uint32 &_tkruid){
 
 int Service::insertConnection(
 	Server &_rs,
-	cs::tcp::Channel *_pch
+	const SocketDevice &_rsd
 ){
 /*	Connection *pcon = new Connection(_pch, 0);
 	if(this->insert(*pcon, _serviceid)){
@@ -297,11 +299,13 @@ int Service::insertTalker(
 	const char *_node,
 	const char *_svc
 ){	
-	cs::udp::Station *pst(cs::udp::Station::create(_rai));
-	if(!pst) return BAD;
+	SocketDevice sd;
+	sd.create(_rai);
+	sd.bind(_rai);
+	if(!sd.ok()) return BAD;
 	Mutex::Locker lock(*mutex());
 	cassert(!d.tkrvec.size());//only the first tkr must be inserted from outside
-	Talker *ptkr = new Talker(pst, *this, 0);
+	Talker *ptkr = new Talker(sd, *this, 0);
 	if(this->doInsert(*ptkr, this->index())){
 		delete ptkr;
 		return BAD;
@@ -310,7 +314,7 @@ int Service::insertTalker(
 	d.baseport = d.firstaddr.port();
 	d.tkrvec.push_back(Data::TkrPairTp(ptkr->id(), this->uid(*ptkr)));
 	//_rs.pushJob((cs::udp::Talker*)ptkr);
-	pushTalkerInPool(_rs, (cs::udp::Talker*)ptkr);
+	pushTalkerInPool(_rs, ptkr);
 	return OK;
 }
 

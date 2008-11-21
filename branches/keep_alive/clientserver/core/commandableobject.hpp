@@ -43,7 +43,7 @@ class CommandableObject: public B{
 public:
 	//!Comodity one parameter template constructor - forward to base
 	template <typename T>
-	CommandableObject(T _t):B(_t){}
+	CommandableObject(const T &_t):B(_t){}
 	//!Comodity two parameters template constructor - forward to base
 	template <typename T1, typename T2>
 	CommandableObject(T1 _t1, T2 _t2):B(_t1,_t2){}

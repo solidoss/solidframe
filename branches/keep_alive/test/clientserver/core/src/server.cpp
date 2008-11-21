@@ -42,17 +42,9 @@
 #include "clientserver/core/filemanager.hpp"
 #include "clientserver/core/filekeys.hpp"
 
-#include "clientserver/tcp/connectionselector.hpp"
-#include "clientserver/tcp/multiconnectionselector.hpp"
-#include "clientserver/tcp/listenerselector.hpp"
-#include "clientserver/udp/talkerselector.hpp"
 #include "clientserver/aio/aioselector.hpp"
 #include "clientserver/aio/aioobject.hpp"
 
-#include "clientserver/tcp/connection.hpp"
-#include "clientserver/tcp/multiconnection.hpp"
-#include "clientserver/tcp/listener.hpp"
-#include "clientserver/udp/talker.hpp"
 #include "clientserver/core/objectselector.hpp"
 #include "clientserver/core/commandexecuter.hpp"
 #include "clientserver/core/requestuid.hpp"
@@ -243,7 +235,7 @@ class IpcService: public cs::ipc::Service{
 public:
 	IpcService(uint32 _keepalivetout):cs::ipc::Service(_keepalivetout){}
 protected:
-	/*virtual*/void pushTalkerInPool(clientserver::Server &_rs, clientserver::udp::Talker *_ptkr);
+	/*virtual*/void pushTalkerInPool(clientserver::Server &_rs, clientserver::aio::Object *_ptkr);
 };
 
 //=========================================================================
@@ -282,10 +274,6 @@ struct Server::Data{
 	typedef std::vector<ExtraObjPtr>									ExtraObjectVector;
 	typedef std::map<const char*, int, StrLess> 						ServiceIdxMap;
 	typedef clientserver::SelectPool<cs::ObjectSelector>				ObjSelPoolTp;
-	typedef clientserver::SelectPool<cs::tcp::ConnectionSelector>		ConSelPoolTp;
-	typedef clientserver::SelectPool<cs::tcp::ListenerSelector>			LisSelPoolTp;
-	typedef clientserver::SelectPool<cs::udp::TalkerSelector>			TkrSelPoolTp;
-	typedef clientserver::SelectPool<cs::tcp::MultiConnectionSelector>	MultiConSelPoolTp;
 	typedef clientserver::SelectPool<cs::aio::Selector>					AioSelectorPoolTp;
 
 	Data(Server &_rs);
@@ -294,10 +282,6 @@ struct Server::Data{
 	ServiceIdxMap						servicemap;// map name -> service index
 	//cs::ipc::Service					*pcs; // A pointer to the ipc service
 	ObjSelPoolTp						*pobjectpool[2];//object pools
-	ConSelPoolTp						*pconnectionpool;// connection pool
-	LisSelPoolTp						*plistenerpool;// listener pool
-	TkrSelPoolTp						*ptalkerpool;// talker pool
-	MultiConSelPoolTp					*pmulticonnectionpool;
 	AioSelectorPoolTp					*paiopool;
 	cs::ObjPtr<cs::CommandExecuter>		readcmdexec;// read command executer
 	cs::ObjPtr<cs::CommandExecuter>		writecmdexec;// write command executer
@@ -308,30 +292,13 @@ typedef serialization::TypeMapper					TypeMapper;
 typedef serialization::IdTypeMap					IdTypeMap;
 typedef serialization::bin::Serializer				BinSerializer;
 Server::Data::Data(Server &_rs):
-	pconnectionpool(NULL), 
-	plistenerpool(NULL), ptalkerpool(NULL),pmulticonnectionpool(NULL)
+	paiopool(NULL)
 {
 	pobjectpool[0] = NULL;
 	pobjectpool[1] = NULL;
 	
 	TypeMapper::registerMap<IdTypeMap>(new IdTypeMap);
 	TypeMapper::registerSerializer<BinSerializer>();
-	idbg("");
-	if(true){
-		plistenerpool = new LisSelPoolTp(	_rs, 
-												2, 	//max thread cnt
-												128	//max listeners per selector 
-												);	//at most 128*2 = 256 listeners
-		plistenerpool->start(1);//start with one worker
-	}
-	idbg("");
-	if(true){
-		ptalkerpool = new TkrSelPoolTp(	_rs, 
-												2, 	//max thread cnt
-												128	//max listeners per selector 
-												);	//at most 128*2 = 256 listeners
-		ptalkerpool->start(1);//start with one worker
-	}
 	idbg("");
 	if(true){
 		pobjectpool[0] = new ObjSelPoolTp(	_rs, 
@@ -342,44 +309,21 @@ Server::Data::Data(Server &_rs):
 	}
 	idbg("");
 	if(true){
-		pconnectionpool = new ConSelPoolTp(	_rs,
-												10,			//max thread cnt
-												256			//max connections per selector/thread
-												);			//at most 10 * 4 * 1024 connections
-		pconnectionpool->start(1);//start with one worker
-	}
-	if(true){
 		paiopool = new AioSelectorPoolTp(_rs,
 										10,			//max thread cnt
 										2048		//max aio objects per selector/thread
 										);			//at most 10 * 4 * 1024 connections
 		paiopool->start(1);//start with one worker
 	}
-	if(true){
-		pmulticonnectionpool = new MultiConSelPoolTp(_rs, 2, 100);
-		pmulticonnectionpool->start(1);
-	}
 	idbg("");
 }
 
 Server::Data::~Data(){
-	if(pconnectionpool) pconnectionpool->stop();
-	delete pconnectionpool;
-	
-	if(plistenerpool) plistenerpool->stop();
-	delete plistenerpool;
-	
-	if(ptalkerpool) ptalkerpool->stop();
-	delete ptalkerpool;
-	
-	if(pmulticonnectionpool) pmulticonnectionpool->stop();
-	delete pmulticonnectionpool;
-	
 	if(pobjectpool[0]) pobjectpool[0]->stop();
 	if(pobjectpool[1]) pobjectpool[1]->stop();
 	delete pobjectpool[0];
 	delete pobjectpool[1];
-	paiopool->stop();
+	if(paiopool)paiopool->stop();
 	delete paiopool;
 	delete readcmdexec.release();
 	delete writecmdexec.release();
@@ -398,24 +342,8 @@ void registerService(ServiceCreator _psc, const char* _pname){
 }
 //----------------------------------------------------------------------------------
 template <>
-void Server::pushJob(cs::tcp::Listener *_pj, int){
-	d.plistenerpool->push(cs::ObjPtr<cs::tcp::Listener>(_pj));
-}
-template <>
-void Server::pushJob(cs::udp::Talker *_pj, int){
-	d.ptalkerpool->push(cs::ObjPtr<cs::udp::Talker>(_pj));
-}
-template <>
-void Server::pushJob(cs::tcp::Connection *_pj, int){
-	d.pconnectionpool->push(cs::ObjPtr<cs::tcp::Connection>(_pj));
-}
-template <>
 void Server::pushJob(cs::Object *_pj, int _pos){
 	d.pobjectpool[_pos]->push(cs::ObjPtr<cs::Object>(_pj));
-}
-template <>
-void Server::pushJob(cs::tcp::MultiConnection *_pj, int){
-	d.pmulticonnectionpool->push(cs::ObjPtr<cs::tcp::MultiConnection>(_pj));
 }
 template <>
 void Server::pushJob(cs::aio::Object *_pj, int){
@@ -568,7 +496,7 @@ int Server::visitService(const char* _nm, Visitor &_rov){
 	}
 }
 //----------------------------------------------------------------------------------
-void IpcService::pushTalkerInPool(clientserver::Server &_rs, clientserver::udp::Talker *_ptkr){
+void IpcService::pushTalkerInPool(clientserver::Server &_rs, clientserver::aio::Object *_ptkr){
 	static_cast<Server&>(_rs).pushJob(_ptkr);
 }
 //----------------------------------------------------------------------------------

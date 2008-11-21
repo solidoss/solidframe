@@ -27,19 +27,14 @@
 #include "clientserver/ipc/connectoruid.hpp"
 
 struct SockAddrPair;
+struct SocketDevice;
+struct AddrInfoIterator;
 
 namespace clientserver{
 
-namespace tcp{
-class Channel;
-class Station;
+namespace aio{
+class Object;
 }
-
-namespace udp{
-class Station;
-class Talker;
-}
-
 
 namespace ipc{
 
@@ -147,7 +142,7 @@ public:
 	//! Not used for now - will be used when ipc will use tcp connections
 	int insertConnection(
 		Server &_rs,
-		clientserver::tcp::Channel *_pch
+		const SocketDevice &_rsd
 	);
 	//! Not used for now - will be used when ipc will use tcp connections
 	int insertListener(
@@ -182,7 +177,7 @@ public:
 protected:
 	int execute(ulong _sig, TimeSpec &_rtout);
 	Service(uint32 _keepalivetout = 0/*no keepalive*/);
-	virtual void pushTalkerInPool(clientserver::Server &_rs, clientserver::udp::Talker *_ptkr) = 0;
+	virtual void pushTalkerInPool(clientserver::Server &_rs, clientserver::aio::Object *_ptkr) = 0;
 private:
 	friend class Talker;
 	int doSendCommand(

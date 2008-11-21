@@ -38,7 +38,7 @@ Object::SocketStub::~SocketStub(){
 }
 
 void Object::pushRequest(uint _pos, uint _req){
-	cassert(pstubs[_pos].request <= SocketStub::Response);
+	if(pstubs[_pos].request > SocketStub::Response) return;
 	pstubs[_pos].request = _req;
 	*reqpos = _pos; ++reqpos;
 }

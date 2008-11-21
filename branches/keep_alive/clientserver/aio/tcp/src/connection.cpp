@@ -65,7 +65,7 @@ bool Connection::socketIsSecure()const{
 }
 int Connection::socketSend(const char* _pb, uint32 _bl, uint32 _flags){
 	//ensure that we dont have double request
-	cassert(stub.request <= SocketStub::Response);
+	//cassert(stub.request <= SocketStub::Response);
 	cassert(stub.psock);
 	int rv = stub.psock->send(_pb, _bl);
 	if(rv == NOK){
@@ -75,7 +75,7 @@ int Connection::socketSend(const char* _pb, uint32 _bl, uint32 _flags){
 }
 int Connection::socketRecv(char *_pb, uint32 _bl, uint32 _flags){
 	//ensure that we dont have double request
-	cassert(stub.request <= SocketStub::Response);
+	//cassert(stub.request <= SocketStub::Response);
 	cassert(stub.psock);
 	int rv = stub.psock->recv(_pb, _bl);
 	if(rv == NOK){
@@ -329,7 +329,7 @@ int MultiConnection::socketCreate4(){
 int MultiConnection::socketCreate6(){
 	uint pos = newStub();
 	SocketDevice sd;
-	sd.create(AddrInfo::Inet4, AddrInfo::Stream, 0);
+	sd.create(AddrInfo::Inet6, AddrInfo::Stream, 0);
 	if(sd.ok()){
 		pstubs[pos].psock = new Socket(Socket::CHANNEL, sd);
 		return pos;

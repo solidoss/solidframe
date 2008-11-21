@@ -22,9 +22,6 @@
 #include "system/debug.hpp"
 #include "core/server.hpp"
 #include "clientserver/core/objptr.hpp"
-#include "clientserver/tcp/station.hpp"
-#include "clientserver/tcp/channel.hpp"
-#include "clientserver/udp/station.hpp"
 
 #include "core/listener.hpp"
 
@@ -84,14 +81,15 @@ int Service::insertTalker(
 		const char *_node,
 		const char *_svc
 ){
-	cs::udp::Station *pst(cs::udp::Station::create(_rai));
-	if(!pst) return BAD;
-	Talker *ptkr = new Talker(pst, _node, _svc);
+	SocketDevice sd;
+	sd.create(_rai);
+	sd.bind(_rai);
+	Talker *ptkr = new Talker(sd);
 	if(this->insert(*ptkr, this->index())){
 		delete ptkr;
 		return BAD;
 	}
-	_rs.pushJob((cs::udp::Talker*)ptkr);
+	_rs.pushJob(static_cast<cs::aio::Object*>(ptkr));
 	return OK;
 }
 
