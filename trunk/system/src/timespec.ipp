@@ -76,12 +76,29 @@ inline TimeSpec& TimeSpec::operator += (unsigned _msec){
 	tv_nsec %= 1000000000;
 	return *this;
 }
+
 inline bool TimeSpec::operator !=(const TimeSpec &_ts)const{
 	return tv_sec != _ts.tv_sec || tv_nsec != _ts.tv_nsec;
 }
 
 inline bool TimeSpec::operator ==(const TimeSpec &_ts)const{
 	return tv_sec == _ts.tv_sec && tv_nsec == _ts.tv_nsec;
+}
+
+inline TimeSpec& TimeSpec::operator += (const TimeSpec &_ts){
+	tv_sec += _ts.seconds();
+	tv_nsec += _ts.nanoSeconds();
+	tv_sec += tv_nsec/1000000000;
+	tv_nsec %= 1000000000;
+	return *this;
+}
+inline TimeSpec& TimeSpec::operator -= (const TimeSpec &_ts){
+	tv_sec -= _ts.seconds();
+	--tv_sec;
+	tv_nsec = (tv_nsec + 1000000000) - _ts.nanoSeconds();
+	tv_sec += tv_nsec/1000000000;
+	tv_nsec %= 1000000000;
+	return *this;
 }
 
 #ifndef UINLINES

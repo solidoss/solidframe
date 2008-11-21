@@ -45,6 +45,7 @@ public:
 	virtual int64 seek(int64, SeekRef _ref = SeekBeg) = 0;
 	virtual int release();
 	virtual int64 size()const;
+	virtual void close();
 	bool ok()const;
 	bool eof()const;
 	bool bad()const;

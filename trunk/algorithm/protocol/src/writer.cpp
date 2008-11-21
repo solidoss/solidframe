@@ -53,7 +53,7 @@ int Writer::run(){
 		switch((*fs.top().first)(*this, fs.top().second)){
 			case Bad:return BAD;
 			case No: return NOK;//wait data
-			case Ok: fs.pop();
+			case Ok: fs.pop();break;
 			case Yield:return YIELD;
 			case Continue: break;
 			default: cassert(false);
@@ -68,7 +68,7 @@ int Writer::flush(){
 		return Ok;
 		
 	int rv = write(rpos, towrite);
-	if(dolog) plog->writeFlush();
+	if(dolog) plog->outFlush();
 	if(rv == Ok){
 		rpos = wpos = bbeg;
 		return Ok;
@@ -83,7 +83,7 @@ int Writer::flushAll(){
 		
 	int rv = write(rpos, towrite);
 	if(dolog)
-		plog->writeFlush();
+		plog->outFlush();
 	if(rv == Ok){
 		rpos = wpos = bbeg; 
 		return Ok;
@@ -110,22 +110,22 @@ void Writer::resize(uint32 _len){
 }
 
 void Writer::putChar(char _c1){
-	plog->writeChar(_c1);
+	if(dolog) plog->outChar(_c1);
 	putSilentChar(_c1);
 }
 
 void Writer::putChar(char _c1, char _c2){
-	plog->writeChar(_c1, _c2);
+	if(dolog) plog->outChar(_c1, _c2);
 	putSilentChar(_c1, _c2);
 }
 
 void Writer::putChar(char _c1, char _c2, char _c3){
-	plog->writeChar(_c1, _c2, _c3);
+	if(dolog) plog->outChar(_c1, _c2, _c3);
 	putSilentChar(_c1, _c2, _c3);
 }
 
 void Writer::putChar(char _c1, char _c2, char _c3, char _c4){
-	plog->writeChar(_c1, _c2, _c3, _c4);
+	if(dolog) plog->outChar(_c1, _c2, _c3, _c4);
 	putSilentChar(_c1, _c2, _c3, _c4);
 }
 
@@ -168,7 +168,7 @@ void Writer::putSilentChar(char _c1, char _c2, char _c3, char _c4){
 }
 
 void Writer::putString(const char* _s, uint32 _sz){
-	plog->writeAtom(_s, _sz);
+	if(dolog) plog->outAtom(_s, _sz);
 	putSilentString(_s, _sz);
 }
 
@@ -193,7 +193,7 @@ void Writer::put(uint32 _v){
 		}
 		++pos;
 		putSilentString(tmp + pos, 12 - pos);
-		plog->writeAtom(tmp + pos, 12 - pos);
+		if(dolog) plog->outAtom(tmp + pos, 12 - pos);
 	}
 }
 
@@ -320,7 +320,7 @@ void Writer::putSilent(uint32 _v){
 }
 
 /*static*/ int Writer::putAtom(Writer &_rw, Parameter &_rp){
-	if(_rw.dolog) _rw.plog->writeAtom((const char*)_rp.a.p, _rp.b.u);
+	if(_rw.dolog) _rw.plog->outAtom((const char*)_rp.a.p, _rp.b.u);
 	if(_rp.b.u < FlushLength){
 		//I'm sure that the data in buf is less then FlushLength
 		//so adding something less than FlushLength will certainly fit into the buffer
@@ -343,7 +343,7 @@ void Writer::putSilent(uint32 _v){
 
 /*static*/ int Writer::putChar(Writer &_rw, Parameter &_rp){
 	_rw.putSilentChar(_rp.a.i);
-	if(_rw.dolog) _rw.plog->writeChar(_rp.a.i);
+	if(_rw.dolog) _rw.plog->outChar(_rp.a.i);
 	int rv = _rw.flush();
 	if(rv){ _rw.fs.top().first = &Writer::doneFlush; return rv;}
 	return Ok;
@@ -386,8 +386,7 @@ Writer& Writer::operator << (const String &_str){
 }
 
 Writer& Writer::operator << (uint32 _v){
-	if(dolog) putSilent(_v);
-	else put(_v);
+	put(_v);
 	return *this;
 }
 

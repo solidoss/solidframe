@@ -65,6 +65,7 @@ public:
 	CmdTp* ptr() const		{return pcmd;}
 	//operator bool () const	{return pcmd;}
 	bool operator!()const	{return !pcmd;}
+	operator bool()	const	{return pcmd != NULL;}
 	void clear(){if(pcmd) CmdPtrBase::clear(static_cast<Command*>(pcmd));pcmd = NULL;}
 protected:
 	void ptr(CmdTp *_pcmd){

@@ -36,6 +36,8 @@ namespace ipc{
 struct ConnectorUid;
 struct CommandUid;
 }
+template <class T>
+class CmdPtr;
 class CommandExecuter;
 class Object;
 //! A base class for commands to be sent to objects
@@ -47,22 +49,23 @@ class Object;
 	\see test::alpha::FetchMasterCommand
 */
 struct Command{
-	Command(){}
+	Command();
 	virtual ~Command();
 	//! Called by ipc module after the command was successfully parsed
-	virtual int received(const ipc::ConnectorUid&);
-	//! Called by ipc module when the command was successfully sent
-	virtual int sent(const ipc::ConnectorUid&);
+	/*!
+		\retval BAD for deleting the command, OK for not
+	*/
+	virtual int ipcReceived(ipc::CommandUid &, const ipc::ConnectorUid&);
 	//! Called by ipc module, before the command begins to be serialized
-	virtual int prepare(const ipc::CommandUid&);
+	virtual int ipcPrepare(const ipc::CommandUid&);
 	//! Called by ipc module on peer failure detection (disconnect,reconnect)
-	virtual int fail();
+	virtual void ipcFail(int _err);
 	//! Used by CmdPtr - smartpointers
 	virtual void use();
 	//! Execute the command only knowing its for an object
 	virtual int execute(Object &);
 	//! Execute the command knowing its for an CommandExecuter
-	virtual int execute(CommandExecuter&, const CommandUidTp &, TimeSpec &_rts);
+	virtual int execute(uint32 _evs, CommandExecuter&, const CommandUidTp &, TimeSpec &_rts);
 	//! Used by CmdPtr to know if the command must be deleted
 	virtual int release();
 	//! Used with CommandExecuter to receive a command

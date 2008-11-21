@@ -70,8 +70,8 @@ public:
 	static int parseAcceptedBuffer(Buffer &_rbuf);
 	static int parseConnectingBuffer(Buffer &_rbuf);
 	
-	ProcessConnector(const Inet4SockAddrPair &_raddr);
-	ProcessConnector(const Inet4SockAddrPair &_raddr, int _basport);
+	ProcessConnector(const Inet4SockAddrPair &_raddr, uint32 _keepalivetout);
+	ProcessConnector(const Inet4SockAddrPair &_raddr, int _basport, uint32 _keepalivetout);
 	~ProcessConnector();
 	/**
 	 * \retval BAD on error, 
@@ -80,7 +80,7 @@ public:
 	int pushCommand(clientserver::CmdPtr<Command> &_rcmd, uint32 _flags);
 	int pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpos, bool &_reusebuf);
 	int processSendCommands(SendBufferData &_rsb, const TimeSpec &_tpos, int _baseport);
-	int pushReceivedBuffer(Buffer &_rbuf, const ConnectorUid &_rcodid);
+	int pushReceivedBuffer(Buffer &_rbuf, const ConnectorUid &_rcodid, const TimeSpec &_tpos);
 	void completeConnect(int _port);
 	void reconnect(ProcessConnector *_ppc);
 	const Inet4SockAddrPair* peerAddr4()const;
@@ -88,6 +88,7 @@ public:
 	bool isConnected()const;
 	bool isDisconnecting()const;
 	bool isConnecting()const;
+	void prepare();
 	//const Inet6SockAddrPair* pairAddr6()const;
 	//const std::pair<const Inet6SockAddrPair*, int>* baseAddr6()const;
 private:

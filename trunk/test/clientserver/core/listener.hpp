@@ -19,22 +19,24 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef TESTLISTENER_HPP
-#define TESTLISTENER_HPP
+#ifndef TESTAIOLISTENER_HPP
+#define TESTAIOLISTENER_HPP
 
-#include "clientserver/tcp/listener.hpp"
+#include "clientserver/aio/tcp/listener.hpp"
+#include "system/socketdevice.hpp"
 
 namespace test{
 
 class Service;
 //! A simple listener
-class Listener: public clientserver::tcp::Listener{
+class Listener: public clientserver::aio::tcp::Listener{
 public:
 	typedef Service		ServiceTp;
-	Listener(clientserver::tcp::Station *_pst, uint _res, ulong _fullid):	
-		clientserver::tcp::Listener(_pst, _res, _fullid){}
-	virtual ~Listener();
+	Listener(const SocketDevice &_rsd);
+	~Listener();
 	virtual int execute(ulong, TimeSpec&);
+private:
+	SocketDevice sd;
 };
 
 }//namespace test

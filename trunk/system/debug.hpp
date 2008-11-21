@@ -22,22 +22,12 @@
 #ifndef SYSTEM_DEBUG_HPP
 #define SYSTEM_DEBUG_HPP
 
-void initDebug(const char * _fname, const char *_opt = 0);
-void printDebugBits();
 
-#ifdef	UDEBUG
-void setAllDebugBits();
-void resetAllDebugBits();
-void setDebugBit(unsigned _v);
-void resetDebugBit(unsigned _v);
-
-unsigned registerDebugModule(const char *_name);
+#ifdef UDEBUG
 
 #define DEBUG_BITSET_SIZE 256
-
-#include <cstdio>
-#include <iostream>
-#include "timespec.hpp"
+#include <ostream>
+#include <string>
 
 struct Dbg{
 	static const unsigned any;
@@ -51,109 +41,75 @@ struct Dbg{
 	static const unsigned tcp;
 	static const unsigned udp;
 	static const unsigned filemanager;
+	static const unsigned log;
+	static const unsigned aio;
+	static Dbg& instance();
+	enum Level{
+		Info = 1,
+		Error = 2,
+		Warn = 4,
+		AllLevels = 1 + 2 + 4
+	};
 	
-	static const int fileoff;
-
-	static bool lock(TimeSpec &);
-	static const char* lock(unsigned v, TimeSpec &);
-	static const char* lock(unsigned v = 0);
-	static void unlock();
-	static long crtThrId();
+	~Dbg();
+	
+	void init(
+		std::string &_file,
+		const char * _fname,
+		unsigned _lvlopt = 0,
+		const char *_modopt = 0
+	);
+	
+	void moduleBits(std::string &_ros);
+	void setAllModuleBits();
+	void resetAllModuleBits();
+	void setModuleBit(unsigned _v);
+	void resetModuleBit(unsigned _v);
+	unsigned registerModule(const char *_name);
+	
+	std::ostream& print();
+	std::ostream& print(
+		const char _t,
+		const char *_file,
+		const char *_fnc,
+		int _line
+	);
+	std::ostream& print(
+		const char _t,
+		unsigned _module,
+		const char *_file,
+		const char *_fnc,
+		int _line
+	);
+	void done();
+	bool isSet(Level _lvl, unsigned _v)const;
+private:
+	Dbg();
+	struct Data;
+	Data &d;
 };
 
-#define CERR	std::clog
+#define idbg(x)\
+	if(Dbg::instance().isSet(Dbg::Info, Dbg::any)){\
+	Dbg::instance().print('I', Dbg::any, __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}
+#define idbgx(a,x)\
+	if(Dbg::instance().isSet(Dbg::Info, a)){\
+	Dbg::instance().print('I', a,  __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}
+#define edbg(x)\
+	if(Dbg::instance().isSet(Dbg::Error, Dbg::any)){\
+	Dbg::instance().print('E', Dbg::any, __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}
+#define edbgx(a,x)\
+	if(Dbg::instance().isSet(Dbg::Error, a)){\
+	Dbg::instance().print('E', a,  __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}
+#define wdbg(x)\
+	if(Dbg::instance().isSet(Dbg::Warn, Dbg::any)){\
+	Dbg::instance().print('W', Dbg::any, __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}
+#define wdbgx(a,x)\
+	if(Dbg::instance().isSet(Dbg::Warn, a)){\
+	Dbg::instance().print('W', a,  __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}
+#define writedbg(x,sz)
+#define writedbgx(a, x, sz)
 
-#ifndef UTHREADS
-
-//inline void Dbg::lock(int v)
-inline void Dbg::unlock(){}
-inline int  Dbg::crtThrId(){return -1;}
-//print
-#define pdbg(x) if(Dbg::lock()){CERR<<x<<std::endl;Dbg::unlock();}
-#define pdbgx(a,x) if(Dbg::lock(a)){CERR<<x<<std::endl;Dbg::unlock();}
-
-//info
-#define idbg(x) if(Dbg::lock()){CERR<<"I["<<(__FILE__ + Dbg::fileoff)<<':'<<__LINE__<<'|'<<__FUNCTION__<<']'<<' '<<x<<std::endl; Dbg::unlock();}
-#define idbgx(a, x){\
-	const char *mod(Dbg::lock(a));\
-	if(mod){\
-	CERR<<"I["<<(__FILE__ + Dbg::fileoff)<<':'<<__LINE__<<'|'<<__FUNCTION__<<']'<<' '<<x<<std::endl; Dbg::unlock();\
-	}}
-//error
-#define edbg(x) if(Dbg::lock()){CERR<<"E["<<(__FILE__ + Dbg::fileoff)<<':'<<__LINE__<<'|'<<__FUNCTION__<<']'<<' '<<x<<std::endl; Dbg::unlock();}
-#define edbgx(a, x)\
-	const char *mod(Dbg::lock(a));\
-	if(mod){\
-	CERR<<"E-"<<mod<<'['<<(__FILE__ + Dbg::fileoff)<<':'<<__LINE__<<'|'<<__FUNCTION__<<']'<<' '<<x<<std::endl; Dbg::unlock();\
-	}}
-//warn
-#define wdbg(x) if(Dbg::lock()){CERR<<"W["<<(__FILE__ + Dbg::fileoff)<<':'<<__LINE__<<'|'<<__FUNCTION__<<']'<<' '<<x<<std::endl; Dbg::unlock();}
-#define wdbgx(a, x){\
-	const char *mod(Dbg::lock(a));\
-	if(mod){\
-	CERR<<"W-"<<mod<<'['<<(__FILE__ + Dbg::fileoff)<<':'<<__LINE__<<'|'<<__FUNCTION__<<']'<<' '<<x<<std::endl; Dbg::unlock();\
-	}}
-//write
-#define writedbg(x,sz) if(Dbg::lock()){CERR.write(x,sz);Dbg::unlock();}
-#define writedbgx(a, x, sz) if(Dbg::lock(a)){CERR.write(x,sz);Dbg::unlock();}
-
-#else
-
-//print
-#define pdbg(x) {TimeSpec t;if(Dbg::lock(t)){CERR<<x<<std::endl;Dbg::unlock();}}
-#define pdbgx(a, x) {TimeSpec t;if(Dbg::lock(a, t)){CERR<<x<<std::endl;Dbg::unlock();}}
-
-//info
-#define idbg(x) {\
-	TimeSpec t;\
-	if(Dbg::lock(t)){ \
-	CERR<<"I["<<t.seconds()<<'.'<<t.nanoSeconds()/1000<<" ANY "<<(__FILE__ + Dbg::fileoff)<<':'<<__LINE__<<'|'<<__FUNCTION__<<']'<<'('<<Dbg::crtThrId()<<')'<<' '<<x<<std::endl;\
-	Dbg::unlock();\
-	}}
-#define idbgx(a, x) {\
-	TimeSpec t;\
-	const char *mod(Dbg::lock(a,t));\
-	if(mod){ \
-	CERR<<'I'<<'['<<t.seconds()<<'.'<<t.nanoSeconds()/1000<<' '<<mod<<' '<<(__FILE__ + Dbg::fileoff)<<':'<<__LINE__<<'|'<<__FUNCTION__<<']'<<'('<<Dbg::crtThrId()<<')'<<' '<<x<<std::endl;\
-	Dbg::unlock();\
-	}}
-
-//error
-#define edbg(x) {\
-	TimeSpec t;\
-	if(Dbg::lock(t)){\
-	CERR<<"E["<<t.seconds()<<'.'<<t.nanoSeconds()/1000<<" ANY "<<(__FILE__ + Dbg::fileoff)<<':'<<__LINE__<<'|'<<__FUNCTION__<<']'<<'('<<Dbg::crtThrId()<<')'<<' '<<x<<std::endl;\
-	Dbg::unlock();\
-	}}
-#define edbgx(a, x) {\
-	TimeSpec t;\
-	const char *mod(Dbg::lock(a,t));\
-	if(mod){\
-	CERR<<'E'<<'['<<t.seconds()<<'.'<<t.nanoSeconds()/1000<<' '<<mod<<' '<<(__FILE__ + Dbg::fileoff)<<':'<<__LINE__<<'|'<<__FUNCTION__<<']'<<'('<<Dbg::crtThrId()<<')'<<' '<<x<<std::endl;\
-	Dbg::unlock();\
-	}}
-
-//warn
-#define wdbg(x) {\
-	TimeSpec t;\
-	if(Dbg::lock(t)){\
-	CERR<<'W'<<'['<<t.seconds()<<'.'<<t.nanoSeconds()/1000<<" ANY "<<(__FILE__ + Dbg::fileoff)<<':'<<__LINE__<<'|'<<__FUNCTION__<<']'<<'('<<Dbg::crtThrId()<<')'<<' '<<x<<std::endl;\
-	Dbg::unlock();\
-	}}
-#define wdbgx(a, x) {\
-	TimeSpec t;\
-	const char *mod(Dbg::lock(a,t));\
-	if(mod){\
-	CERR<<'W'<<'['<<t.seconds()<<'.'<<t.nanoSeconds()/1000<<' '<<mod<<' '<<(__FILE__ + Dbg::fileoff)<<':'<<__LINE__<<'|'<<__FUNCTION__<<']'<<'('<<Dbg::crtThrId()<<')'<<' '<<x<<std::endl;\
-	Dbg::unlock();\
-	}}
-
-//write
-#define writedbg(x, sz) {TimeSpec t;if(Dbg::lock(t)){CERR.write(x,sz);Dbg::unlock();}}
-#define writedbgx(a, x,sz) {TimeSpec t;if(Dbg::lock(a, t)){CERR.write(x,sz);Dbg::unlock();}}
-
-
-#endif
 
 #else
 
@@ -167,6 +123,7 @@ inline int  Dbg::crtThrId(){return -1;}
 #define wdbgx(a,x)
 #define writedbg(x,sz)
 #define writedbgx(a, x, sz)
+
 #endif
 
 #endif

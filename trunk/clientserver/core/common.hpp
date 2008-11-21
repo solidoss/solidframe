@@ -43,7 +43,13 @@ enum Signals{
 };
 
 enum Events{
-	OKDONE = 1, ERRDONE = 2, TIMEOUT = 4, INDONE = 8, OUTDONE = 16, SIGNALED = 32
+	OKDONE = 1, //Successfull asynchrounous completion
+	ERRDONE = 2,//Unsuccessfull asynchrounous completion
+	INDONE = 4,//Successfull input asynchrounous completion
+	OUTDONE = 8,//Successfull output asynchrounous completion
+	TIMEOUT = 16,//Unsuccessfull asynchrounous completion due to timeout
+	SIGNALED = 32,
+	IODONE = 64,
 };
 
 enum Consts{

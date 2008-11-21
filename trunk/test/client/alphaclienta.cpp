@@ -482,6 +482,21 @@ int AlphaThread::fetch(unsigned _idx, char *_pb){
 
 
 int main(int argc, char *argv[]){
+#ifdef UDEBUG
+	{
+	string s = "";
+	Dbg::instance().init(s, Dbg::AllLevels, argv[0]+2, "all");
+	cout<<"Debug file: "<<s<<endl;
+	s.clear();
+	Dbg::instance().bits(s);
+	cout<<"Debug bits: "<<s<<endl;
+	}
+#endif
+	
+	idbgx(Dbg::system, "some info "<<argc);
+	idbg("another info "<<argc);
+	edbgx(Dbg::cs, "yet another info "<<argc);
+	
 	if(argc != 7 && argc != 9){
 		cout<<"Usage: alphaclient thcnt addr port path tout repeat_count [peer_addr peer_port]"<<endl;
 		cout<<"Where:"<<endl;
@@ -490,13 +505,6 @@ int main(int argc, char *argv[]){
 	}
 	signal(SIGPIPE, SIG_IGN);
 	Thread::init();
-#ifdef UDEBUG
-	{
-	string s = "dbg/";
-	s+= argv[0]+2;
-	initDebug(s.c_str());
-	}
-#endif
 	sleeptout = atoi(argv[5]);
 	int cnt = atoi(argv[1]);
 	int repeatcnt = atoi(argv[6]);

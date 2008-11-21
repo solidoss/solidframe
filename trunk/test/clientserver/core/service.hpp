@@ -26,11 +26,11 @@
 #include "common.hpp"
 
 struct AddrInfoIterator;
+struct SocketDevice;
 
 namespace clientserver{
 namespace tcp{
 class Station;
-class Channel;
 }
 
 namespace udp{
@@ -52,7 +52,9 @@ class Service: public clientserver::ReadWriteService{
 public:
 	Service(){}
 	~Service();
+	
 	virtual int execute(ulong _evs, TimeSpec &_rtout);
+	
 	virtual int insertListener(
 		Server &_rsrv,
 		const AddrInfoIterator &_rai
@@ -63,10 +65,10 @@ public:
 		const char *_node,
 		const char *_svc
 	);
-	//this is used by the generic listener
+	//this is used by the generic aio listener
 	virtual int insertConnection(
 		Server &_rs,
-		clientserver::tcp::Channel *_pch
+		const SocketDevice &_rsd
 	);
 	virtual int insertConnection(
 		Server &_rs,

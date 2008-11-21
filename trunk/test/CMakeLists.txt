@@ -3,4 +3,5 @@ add_subdirectory(utility)
 add_subdirectory(clientserver)
 add_subdirectory(algorithm)
 add_subdirectory(client)
-
+add_subdirectory(audit)
+add_subdirectory(tools)

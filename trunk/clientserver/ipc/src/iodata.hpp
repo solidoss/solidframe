@@ -99,7 +99,8 @@ struct Buffer{
 		uint32 size()const{return sizeof(Header) + updatescnt * sizeof(uint32);}
 	};
 	enum Types{
-		DataType = 1,
+		KeepAliveType = 1,
+		DataType,
 		ConnectingType,
 		AcceptingType,
 		Unknown
@@ -116,6 +117,9 @@ struct Buffer{
 		NewCommand,
 		OldCommand
 	};
+	static uint32 minSize(){
+		return sizeof(Header);
+	}
 	Buffer(char *_pb = NULL, uint16 _bc = 0, uint16 _dl = 0):pb(_pb), bc(_bc), dl(_dl){
 		if(_pb){
 			reset(_dl);

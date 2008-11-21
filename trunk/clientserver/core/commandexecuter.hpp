@@ -32,6 +32,7 @@ class IStream;
 class OStream;
 class IOStream;
 
+struct TimeSpec;
 
 namespace clientserver{
 namespace ipc{
@@ -124,6 +125,7 @@ public:
 	);
 private:
 	int execute();
+	void doExecute(uint _pos, uint32 _evs, const TimeSpec &_rtout);
 	struct Data;
 	Data	&d;
 };

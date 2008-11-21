@@ -22,9 +22,6 @@
 #include "system/debug.hpp"
 #include "core/server.hpp"
 #include "clientserver/core/objptr.hpp"
-#include "clientserver/tcp/station.hpp"
-#include "clientserver/tcp/channel.hpp"
-#include "clientserver/udp/station.hpp"
 
 #include "core/listener.hpp"
 
@@ -49,14 +46,14 @@ Service::~Service(){
 
 int Service::insertConnection(
 	test::Server &_rs,
-	cs::tcp::Channel *_pch
+	const SocketDevice &_rsd
 ){
-	Connection *pcon = new Connection(_pch, 0);
+	Connection *pcon = new Connection(_rsd);
 	if(this->insert(*pcon, this->index())){
 		delete pcon;
 		return BAD;
 	}
-	_rs.pushJob((cs::tcp::Connection*)pcon);
+	_rs.pushJob(static_cast<cs::aio::Object*>(pcon));
 	return OK;
 }
 
@@ -64,14 +61,18 @@ int Service::insertListener(
 	test::Server &_rs,
 	const AddrInfoIterator &_rai
 ){
-	cs::tcp::Station *pst(cs::tcp::Station::create(_rai));
-	if(!pst) return BAD;
-	test::Listener *plis = new test::Listener(pst, 100, 0);
+	SocketDevice sd;
+	sd.create(_rai);
+	sd.makeNonBlocking();
+	sd.prepareAccept(_rai, 100);
+	if(!sd.ok()) return BAD;
+	test::Listener *plis = new test::Listener(sd);
+	
 	if(this->insert(*plis, this->index())){
 		delete plis;
 		return BAD;
 	}	
-	_rs.pushJob((cs::tcp::Listener*)plis);
+	_rs.pushJob(static_cast<cs::aio::Object*>(plis));
 	return OK;
 }
 int Service::insertTalker(
@@ -80,14 +81,15 @@ int Service::insertTalker(
 		const char *_node,
 		const char *_svc
 ){
-	cs::udp::Station *pst(cs::udp::Station::create(_rai));
-	if(!pst) return BAD;
-	Talker *ptkr = new Talker(pst, _node, _svc);
+	SocketDevice sd;
+	sd.create(_rai);
+	sd.bind(_rai);
+	Talker *ptkr = new Talker(sd);
 	if(this->insert(*ptkr, this->index())){
 		delete ptkr;
 		return BAD;
 	}
-	_rs.pushJob((cs::udp::Talker*)ptkr);
+	_rs.pushJob(static_cast<cs::aio::Object*>(ptkr));
 	return OK;
 }
 
@@ -97,14 +99,12 @@ int Service::insertConnection(
 	const char *_node,
 	const char *_svc
 ){
-	cs::tcp::Channel *pch(cs::tcp::Channel::create(_rai));
-	if(!pch) return BAD;
-	Connection *pcon = new Connection(pch, _node, _svc);
+	Connection *pcon = new Connection(_node, _svc);
 	if(this->insert(*pcon, this->index())){
 		delete pcon;
 		return BAD;
 	}
-	_rs.pushJob((cs::tcp::Connection*)pcon);
+	_rs.pushJob(static_cast<cs::aio::Object*>(pcon));
 	return OK;
 }
 

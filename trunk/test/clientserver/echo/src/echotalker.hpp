@@ -23,7 +23,6 @@
 #define ECHOTALKER_HPP
 
 #include "core/talker.hpp"
-#include "clientserver/core/readwriteobject.hpp"
 
 namespace clientserver{
 class Visitor;
@@ -42,12 +41,13 @@ namespace echo{
 
 class Service;
 
-class Talker: public clientserver::ReadWriteObject<test::Talker>{
+class Talker: public test::Talker{
 public:
 	typedef Service	ServiceTp;
-	typedef clientserver::ReadWriteObject<test::Talker> BaseTp;
+	typedef test::Talker BaseTp;
 	
-	Talker(clientserver::udp::Station *_pst, const char *_node, const char *_srv);
+	Talker(const char *_node, const char *_srv);
+	Talker(const SocketDevice &_rsd);
 	~Talker();
 	int execute(ulong _sig, TimeSpec &_tout);
 	int execute();

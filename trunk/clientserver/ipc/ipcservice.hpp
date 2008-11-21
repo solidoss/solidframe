@@ -27,19 +27,14 @@
 #include "clientserver/ipc/connectoruid.hpp"
 
 struct SockAddrPair;
+struct SocketDevice;
+struct AddrInfoIterator;
 
 namespace clientserver{
 
-namespace tcp{
-class Channel;
-class Station;
+namespace aio{
+class Object;
 }
-
-namespace udp{
-class Station;
-class Talker;
-}
-
 
 namespace ipc{
 
@@ -97,7 +92,9 @@ class Service: public clientserver::Service{
 public:
 	enum {
 		SameConnectorFlag = 1, //!< Do not send command to a restarted peer process
-		ResponseFlag	= SameConnectorFlag //!< The sent command is a response
+		ResponseFlag	= SameConnectorFlag, //!< The sent command is a response
+		WaitResponseFlag = 2,
+		SentFlag = 4,//!< The command was successfully sent
 	};
 	//! Destructor
 	~Service();
@@ -145,7 +142,7 @@ public:
 	//! Not used for now - will be used when ipc will use tcp connections
 	int insertConnection(
 		Server &_rs,
-		clientserver::tcp::Channel *_pch
+		const SocketDevice &_rsd
 	);
 	//! Not used for now - will be used when ipc will use tcp connections
 	int insertListener(
@@ -179,8 +176,8 @@ public:
 	int basePort()const;
 protected:
 	int execute(ulong _sig, TimeSpec &_rtout);
-	Service();
-	virtual void pushTalkerInPool(clientserver::Server &_rs, clientserver::udp::Talker *_ptkr) = 0;
+	Service(uint32 _keepalivetout = 0/*no keepalive*/);
+	virtual void pushTalkerInPool(clientserver::Server &_rs, clientserver::aio::Object *_ptkr) = 0;
 private:
 	friend class Talker;
 	int doSendCommand(
@@ -194,6 +191,7 @@ private:
 	void disconnectTalkerProcesses(Talker &);
 	int16 createNewTalker(uint32 &_tkrpos, uint32 &_tkruid);
 	int16 computeTalkerForNewProcess();
+	uint32 keepAliveTimeout()const;
 private:
 	struct Data;
 	friend struct Data;

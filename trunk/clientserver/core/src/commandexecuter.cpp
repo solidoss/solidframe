@@ -67,6 +67,7 @@ void CommandExecuter::Data::eraseToutPos(uint32 _pos){
 
 CommandExecuter::CommandExecuter():d(*(new Data)){
 	state(Data::Running);
+	d.tout.set(0xffffffff);
 }
 
 CommandExecuter::~CommandExecuter(){
@@ -131,71 +132,19 @@ int CommandExecuter::execute(ulong _evs, TimeSpec &_rtout){
 		while(d.eq.size()){
 			uint32 pos = d.eq.front();
 			d.eq.pop();
-			Data::CmdData &rcp(d.cdq[pos]);
-			TimeSpec ts(_rtout);
-			switch(rcp.cmd->execute(*this, CommandUidTp(pos, rcp.uid), ts)){
-				case BAD: 
-					++rcp.uid;
-					rcp.cmd.clear();
-					d.fs2.push(pos);
-					if(rcp.toutidx >= 0){
-						d.eraseToutPos(rcp.toutidx);
-						rcp.toutidx = -1;
-					}
-					break;
-				case OK:
-					d.eq.push(pos);
-					if(rcp.toutidx >= 0){
-						d.eraseToutPos(rcp.toutidx);
-						rcp.toutidx = -1;
-					}
-					break;
-				case NOK:
-					if(ts != _rtout){
-						rcp.tout = ts;
-						if(d.tout > ts){
-							d.tout = ts;
-						}
-						if(rcp.toutidx < 0){
-							d.toutv.push_back(pos);
-							rcp.toutidx = d.toutv.size() - 1;
-						}
-					}else{
-						//++rcp.uid;
-						//rcp.cmd.clear();
-						//d.fs2.push(pos);
-						rcp.tout.set(0xffffffff);
-						if(rcp.toutidx >= 0){
-							d.eraseToutPos(rcp.toutidx);
-							rcp.toutidx = -1;
-						}
-					}
-					break;
-				case LEAVE:
-					++rcp.uid;
-					rcp.cmd.release();
-					d.fs2.push(pos);
-					if(rcp.toutidx >= 0){
-						d.eraseToutPos(rcp.toutidx);
-						rcp.toutidx = -1;
-					}
-					break;
-			}
+			doExecute(pos, 0, _rtout);
 		}
-		if((_evs & TIMEOUT) && _rtout <= d.tout){
+		if((_evs & TIMEOUT) && _rtout >= d.tout){
 			TimeSpec tout(0xffffffff);
 			for(Data::TimeoutVectorTp::const_iterator it(d.toutv.begin()); it != d.toutv.end();){
 				Data::CmdData &rcp(d.cdq[*it]);
 				if(_rtout >= rcp.tout){
-					++rcp.uid;
-					rcp.cmd.clear();
-					d.fs2.push(*it);
-					if(rcp.toutidx >= 0){
-						d.eraseToutPos(rcp.toutidx);
-						rcp.toutidx = -1;
-					}
+					doExecute(*it, TIMEOUT, _rtout);
+				}else if(rcp.tout < tout){
+					tout = rcp.tout;
 				}
 			}
+			d.tout = tout;
 		}
 	}else{
 		for(Data::CommandDequeTp::iterator it(d.cdq.begin()); it != d.cdq.end(); ++it){
@@ -219,6 +168,7 @@ int CommandExecuter::execute(ulong _evs, TimeSpec &_rtout){
 		}
 		d.pm->unlock();
 	}
+	_rtout = d.tout;
 	return NOK;
 }
 
@@ -228,6 +178,56 @@ void CommandExecuter::mutex(Mutex *_pmut){
 
 int CommandExecuter::execute(){
 	cassert(false);
+}
+
+void CommandExecuter::doExecute(uint _pos, uint32 _evs, const TimeSpec &_rtout){
+	Data::CmdData &rcp(d.cdq[_pos]);
+	TimeSpec ts(_rtout);
+	switch(rcp.cmd->execute( _evs, *this, CommandUidTp(_pos, rcp.uid), ts)){
+		case BAD: 
+			++rcp.uid;
+			rcp.cmd.clear();
+			d.fs2.push(_pos);
+			if(rcp.toutidx >= 0){
+				d.eraseToutPos(rcp.toutidx);
+				rcp.toutidx = -1;
+			}
+			break;
+		case OK:
+			d.eq.push(_pos);
+			if(rcp.toutidx >= 0){
+				d.eraseToutPos(rcp.toutidx);
+				rcp.toutidx = -1;
+			}
+			break;
+		case NOK:
+			if(ts != _rtout){
+				rcp.tout = ts;
+				if(d.tout > ts){
+					d.tout = ts;
+				}
+				if(rcp.toutidx < 0){
+					d.toutv.push_back(_pos);
+					rcp.toutidx = d.toutv.size() - 1;
+				}
+			}else{
+				rcp.tout.set(0xffffffff);
+				if(rcp.toutidx >= 0){
+					d.eraseToutPos(rcp.toutidx);
+					rcp.toutidx = -1;
+				}
+			}
+			break;
+		case LEAVE:
+			++rcp.uid;
+			rcp.cmd.release();
+			d.fs2.push(_pos);
+			if(rcp.toutidx >= 0){
+				d.eraseToutPos(rcp.toutidx);
+				rcp.toutidx = -1;
+			}
+			break;
+	}
 }
 
 void CommandExecuter::receiveCommand(

@@ -24,14 +24,9 @@
 
 #include "algorithm/protocol/writer.hpp"
 
-namespace clientserver{
-namespace tcp{
-class Channel;
-}
-}
-
 namespace test{
 namespace alpha{
+class Connection;
 //! A writer better swited to alpha protocol needs.
 /*!
 	Extends the interface of the protocol::Writer, and implements
@@ -39,7 +34,7 @@ namespace alpha{
 */
 class Writer: public protocol::Writer{
 public:
-	Writer(clientserver::tcp::Channel &rch);
+	Writer(Connection &rch, protocol::Logger *_plog = NULL);
 	~Writer();
 	void clear();
 	//! Asynchrounously writes an astring (atom/quoted/literal)
@@ -54,17 +49,17 @@ public:
 	static int reinit(protocol::Writer &_rw, protocol::Parameter &_rp){
 		return reinterpret_cast<C*>(_rp.a.p)->reinitWriter(static_cast<Writer&>(_rw), _rp);
 	}
-	protocol::String &message(){return msgs;}
-	protocol::String &tag(){return tags;}
+	String &message(){return msgs;}
+	String &tag(){return tags;}
 private:
 	//! Asynchrounously writes a quoted string
 	static int putQString(protocol::Writer &_rw, protocol::Parameter &_rp);
 	/*virtual*/ int write(char *_pb, uint32 _bl);
 	//virtual int doManage(int _mo);
 private:
-	clientserver::tcp::Channel	&rch;
-	protocol::String			msgs;
-	protocol::String			tags;
+	Connection	&rcon;
+	String		msgs;
+	String		tags;
 };
 
 }

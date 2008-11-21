@@ -19,8 +19,6 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "clientserver/udp/station.hpp"
-
 #include "core/server.hpp"
 #include "beta/betaservice.hpp"
 #include "betatalker.hpp"
@@ -40,14 +38,16 @@ namespace beta{
 
 struct AddrMap: std::map<Inet4SockAddrPair, pair<uint32, uint32> >{};
 
-Talker::Talker(cs::udp::Station *_pst, const char *_node, const char *_srv): 
-									BaseTp(_pst), pai(NULL), addrmap(*(new AddrMap)){
+Talker::Talker(const char *_node, const char *_srv): pai(NULL), addrmap(*(new AddrMap)){
 	if(_node){
 		pai = new AddrInfo(_node, _srv);
 		//strcpy(bbeg, hellostr);
 		sz = BUFSZ;
 		state(WRITE);
-	}else state(READ);
+	}
+}
+Talker::Talker(const SocketDevice &_rsd): BaseTp(_rsd), pai(NULL), addrmap(*(new AddrMap)){
+	state(READ);
 }
 
 /*
@@ -91,20 +91,20 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 		do{
 			switch(state()){
 				case READ:
-					switch(station().recvFrom(bbeg, BUFSZ)){
+					switch(socketRecv(bbeg, BUFSZ)){
 						case BAD: return BAD;
 						case OK: break;
 						case NOK: state(READ_DONE); return NOK;
 					}
 				case READ_DONE:{
-					AddrMap::iterator it(addrmap.find(station().recvAddr()));
+					AddrMap::iterator it(addrmap.find(socketRecvAddr()));
 					pair<uint32, uint32> *pp((pair<uint32, uint32> *)bbeg);
-					if(pp->second != station().recvSize()){
-						cout<<"wrong size : should = "<<pp->second<<" is = "<<station().recvSize()<<endl;
+					if(pp->second != socketRecvSize()){
+						cout<<"wrong size : should = "<<pp->second<<" is = "<<socketRecvSize()<<endl;
 					}
 					if(it == addrmap.end()){//add address
 						//cout<<"add address "<<(uint32)station().recvAddr()<<" (id = "<<pp->first<<" size = "<<pp->second<<')'<<endl;
-						addrmap[station().recvAddr()] = *pp;
+						addrmap[socketRecvAddr()] = *pp;
 					}else{
 						pair<uint32, uint32> *pp((pair<uint32, uint32> *)bbeg);
 						if(it->second.first + 1 != pp->first){
@@ -120,7 +120,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 					state(READ);
 				}break;
 			}
-			rc -= station().recvSize();
+			rc -= socketRecvSize();
 		}while(rc > 0);
 	}else{//
 		switch(state()){
@@ -128,7 +128,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 				pair<uint32, uint32> *pp((pair<uint32, uint32> *)bbeg);
 				AddrInfoIterator	 it(pai->begin());
 				pp->first = id;pp->second = sz; ++id;
-				switch(station().sendTo(bbeg, sz, SockAddrPair(it))){
+				switch(socketSend(bbeg, sz, SockAddrPair(it))){
 					case BAD: return BAD;
 					case OK: state(WRITE); break;
 					case NOK: state(WRITE_DONE); return NOK;

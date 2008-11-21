@@ -22,6 +22,8 @@
 #include "system/debug.hpp"
 #include "system/socketaddress.hpp"
 #include "system/filedevice.hpp"
+#include "system/thread.hpp"
+#include "system/timespec.hpp"
 
 #include "utility/iostream.hpp"
 
@@ -249,30 +251,42 @@ int List::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 // RemoteList command
 //---------------------------------------------------------------
 struct RemoteListCommand: test::Command{
-	RemoteListCommand(): ppthlst(NULL),err(-1){
+	RemoteListCommand(uint32 _tout = 0): ppthlst(NULL),err(-1),tout(_tout){
 		idbg(""<<(void*)this);
 	}
 	~RemoteListCommand(){
 		idbg(""<<(void*)this);
-		//delete ppthlst;
+		delete ppthlst;
 	}
-	int received(const cs::ipc::ConnectorUid &_rconid);
+	int ipcReceived(cs::ipc::CommandUid &_rcmduid, const cs::ipc::ConnectorUid &_rconid);
 	int execute(test::Connection &);
-	int execute(cs::CommandExecuter&, const CommandUidTp &, TimeSpec &_rts);
+	int execute(uint32 _evs, cs::CommandExecuter&, const CommandUidTp &, TimeSpec &_rts);
+	int ipcPrepare(const cs::ipc::CommandUid &_rcmduid){
+		cmduid = _rcmduid;
+		if(!ppthlst){//on sender
+			return NOK;
+		}else return OK;// on peer
+	}
+	void ipcFail(int _err);
 	template <class S>
 	S& operator&(S &_s){
-		return _s.pushContainer(ppthlst, "strlst").push(err, "error").push(requid, "requid").push(strpth, "strpth").push(fromv, "from");
+		_s.pushContainer(ppthlst, "strlst").push(err, "error").push(tout,"timeout");
+		_s.push(requid, "requid").push(strpth, "strpth").push(fromv, "from");
+		_s.push(cmduid.idx, "cmduid.idx").push(cmduid.uid,"cmduid.uid");
+		return _s;
 	}
 //data:
 	RemoteList::PathListTp		*ppthlst;
 	String						strpth;
 	int							err;
+	uint32						tout;
 	cs::ipc::ConnectorUid		conid;
+	cs::ipc::CommandUid			cmduid;
 	uint32						requid;
 	ObjectUidTp					fromv;
 };
 
-int RemoteListCommand::received(const cs::ipc::ConnectorUid &_rconid){
+int RemoteListCommand::ipcReceived(cs::ipc::CommandUid &_rcmduid, const cs::ipc::ConnectorUid &_rconid){
 	cs::CmdPtr<cs::Command> pcmd(this);
 	conid = _rconid;
 	if(!ppthlst){
@@ -283,10 +297,18 @@ int RemoteListCommand::received(const cs::ipc::ConnectorUid &_rconid){
 		Server::the().signalObject(ttov.first, ttov.second, pcmd);
 	}else{
 		idbg("Received RemoteListCommand back on sender");
-		//print();
+		_rcmduid = cmduid;
 		Server::the().signalObject(fromv.first, fromv.second, pcmd);
 	}
 	return false;
+}
+void RemoteListCommand::ipcFail(int _err){
+	if(!ppthlst){
+		idbg("failed receiving response");
+		Server::the().signalObject(fromv.first, fromv.second, cs::S_KILL | cs::S_RAISE);
+	}else{
+		idbg("failed on peer");
+	}
 }
 int RemoteListCommand::execute(test::Connection &_rcon){
 	if(!err){
@@ -299,7 +321,14 @@ int RemoteListCommand::execute(test::Connection &_rcon){
 	}
 	return NOK;
 }
-int RemoteListCommand::execute(cs::CommandExecuter&, const CommandUidTp &, TimeSpec &_rts){
+int RemoteListCommand::execute(uint32 _evs, cs::CommandExecuter&, const CommandUidTp &, TimeSpec &_rts){
+	if(tout){
+		idbg("sleep for "<<tout<<" mseconds");
+		_rts += tout;
+		tout = 0;
+		return NOK;
+	}
+	idbg("done sleeping");
 	fs::directory_iterator	it,end;
 	fs::path				pth(strpth.c_str(), fs::native);
 	cs::CmdPtr<cs::Command> pcmd(this);
@@ -334,6 +363,7 @@ int RemoteListCommand::execute(cs::CommandExecuter&, const CommandUidTp &, TimeS
 		++it;
 	}
 	err = 0;
+	//Thread::sleep(1000 * 20);
 	if(Server::the().ipc().sendCommand(conid, pcmd)){
 		idbg("connector was destroyed "<<conid.tkrid<<' '<<conid.procid<<' '<<conid.procuid);
 		return BAD;
@@ -342,7 +372,6 @@ int RemoteListCommand::execute(cs::CommandExecuter&, const CommandUidTp &, TimeS
 	}
 	return cs::LEAVE;
 }
-
 //--------------------------------------------------------------
 RemoteList::PathListTp::PathListTp(){
 	idbg(""<<(void*)this);
@@ -370,7 +399,8 @@ int RemoteList::execute(Connection &_rc){
 	AddrInfo ai(straddr.c_str(), port, 0, AddrInfo::Inet4, AddrInfo::Stream);
 	idbg("addr"<<straddr<<" port = "<<port);
 	if(!ai.empty()){
-		RemoteListCommand *pcmd(new RemoteListCommand);
+		RemoteListCommand *pcmd(new RemoteListCommand(1000 + (int) (10000.0 * (rand() / (RAND_MAX + 1.0)))));
+		idbg("remotelist with "<<pcmd->tout<<" miliseconds delay");
 		pcmd->strpth = strpth;
 		pcmd->requid = _rc.newRequestId();
 		pcmd->fromv.first = _rc.id();
@@ -459,13 +489,15 @@ struct FetchMasterCommand: test::Command{
 		SendNextStream,
 		SendError,
 	};
-	FetchMasterCommand():success_sent(true), pcmd(NULL), fromv(0xffffffff, 0xffffffff), state(NotReceived), insz(-1), inpos(0), requid(0){
+	FetchMasterCommand():pcmd(NULL), fromv(0xffffffff, 0xffffffff), state(NotReceived), insz(-1), inpos(0), requid(0){
 		idbg("");
 	}
 	~FetchMasterCommand();
-	int received(const cs::ipc::ConnectorUid &_rconid);
-	int sent(const cs::ipc::ConnectorUid &);
-	int execute(cs::CommandExecuter&, const CommandUidTp &, TimeSpec &_rts);
+	
+	int ipcReceived(cs::ipc::CommandUid &_rcmduid, const cs::ipc::ConnectorUid &_rconid);
+	void ipcFail(int _err);
+	
+	int execute(uint32 _evs, cs::CommandExecuter&, const CommandUidTp &, TimeSpec &_rts);
 	int receiveCommand(
 		cs::CmdPtr<cs::Command> &_rcmd,
 		int			_which,
@@ -492,7 +524,6 @@ struct FetchMasterCommand: test::Command{
 	}
 	void print()const;
 //data:
-	bool 					success_sent;
 	String					fname;
 	FetchSlaveCommand		*pcmd;
 	ObjectUidTp				fromv;
@@ -516,10 +547,10 @@ struct FetchSlaveCommand: test::Command{
 		idbg("");
 	}
 	~FetchSlaveCommand();
-	int received(const cs::ipc::ConnectorUid &_rconid);
+	int ipcReceived(cs::ipc::CommandUid &_rcmduid, const cs::ipc::ConnectorUid &_rconid);
 	int sent(const cs::ipc::ConnectorUid &);
 	int execute(test::Connection &);
-	int execute(cs::CommandExecuter&, const CommandUidTp &, TimeSpec &_rts);
+	int execute(uint32 _evs, cs::CommandExecuter&, const CommandUidTp &, TimeSpec &_rts);
 	int createDeserializationStream(std::pair<OStream *, int64> &_rps, int _id);
 	void destroyDeserializationStream(const std::pair<OStream *, int64> &_rps, int _id);
 	int createSerializationStream(std::pair<IStream *, int64> &_rps, int _id);
@@ -552,13 +583,11 @@ struct FetchSlaveCommand: test::Command{
 FetchMasterCommand::~FetchMasterCommand(){
 	delete pcmd;
 	idbg("");
-	if(!success_sent){
-		idbg("unsuccessfull sent");
-		//signal fromv object to die
-		Server::the().signalObject(fromv.first, fromv.second, cs::S_RAISE | cs::S_KILL);
-	}
 }
 
+void FetchMasterCommand::ipcFail(int _err){
+	Server::the().signalObject(fromv.first, fromv.second, cs::S_RAISE | cs::S_KILL);
+}
 void FetchMasterCommand::print()const{
 	idbg("FetchMasterCommand:");
 	idbg("state = "<<state<<" insz = "<<insz<<" requid = "<<requid<<" fname = "<<fname);
@@ -567,7 +596,7 @@ void FetchMasterCommand::print()const{
 	idbg("tmpfuid.first = "<<tmpfuid.first<<" tmpfuid.second = "<<tmpfuid.second);
 }
 
-int FetchMasterCommand::received(const cs::ipc::ConnectorUid &_rconid){
+int FetchMasterCommand::ipcReceived(cs::ipc::CommandUid &_rcmduid, const cs::ipc::ConnectorUid &_rconid){
 	cs::CmdPtr<cs::Command> cmd(this);
 	conid = _rconid;
 	state = Received;
@@ -576,18 +605,14 @@ int FetchMasterCommand::received(const cs::ipc::ConnectorUid &_rconid){
 	print();
 	Server::the().readCommandExecuterUid(tov);
 	Server::the().signalObject(tov.first, tov.second, cmd);
-	return false;
-}
-int FetchMasterCommand::sent(const cs::ipc::ConnectorUid &){
-	idbg("");
-	success_sent = true;
-	return false;
+	return OK;//release the ptr not clear
 }
 /*
 	The state machine running on peer
 */
-int FetchMasterCommand::execute(cs::CommandExecuter& _rce, const CommandUidTp &_cmduid, TimeSpec &_rts){
+int FetchMasterCommand::execute(uint32 _evs, cs::CommandExecuter& _rce, const CommandUidTp &_cmduid, TimeSpec &_rts){
 	Server &rs(Server::the());
+	cassert(!(_evs & cs::TIMEOUT));
 	switch(state){
 		case Received:{
 			idbg("try to open file "<<fname<<" _cmduid = "<<_cmduid.first<<","<<_cmduid.second);
@@ -726,9 +751,9 @@ void FetchSlaveCommand::print()const{
 int FetchSlaveCommand::sent(const cs::ipc::ConnectorUid &_rconid){
 	idbg("");
 	fromv.first = 0xffffffff;
-	return false;
+	return BAD;
 }
-int FetchSlaveCommand::received(const cs::ipc::ConnectorUid &_rconid){
+int FetchSlaveCommand::ipcReceived(cs::ipc::CommandUid &_rcmduid, const cs::ipc::ConnectorUid &_rconid){
 	cs::CmdPtr<cs::Command> pcmd(this);
 	conid = _rconid;
 	if(sz == -10){
@@ -742,7 +767,7 @@ int FetchSlaveCommand::received(const cs::ipc::ConnectorUid &_rconid){
 		print();
 		Server::the().signalObject(tov.first, tov.second, pcmd);
 	}
-	return false;
+	return OK;
 }
 // Executed when received back on the requesting alpha connection
 int FetchSlaveCommand::execute(test::Connection &_rcon){
@@ -756,7 +781,7 @@ int FetchSlaveCommand::execute(test::Connection &_rcon){
 	return NOK;
 }
 // Executed on peer within the command executer
-int FetchSlaveCommand::execute(cs::CommandExecuter& _rce, const CommandUidTp &, TimeSpec &){
+int FetchSlaveCommand::execute(uint32 _evs, cs::CommandExecuter& _rce, const CommandUidTp &, TimeSpec &){
 	idbg("");
 	cs::CmdPtr<cs::Command>	cp(this);
 	_rce.receiveCommand(cp, cmduid);
@@ -812,7 +837,7 @@ int FetchSlaveCommand::createSerializationStream(
 Fetch::Fetch(Connection &_rc):port(-1), rc(_rc), st(0), pp(NULL){
 }
 Fetch::~Fetch(){
-	idbg("");
+	idbg(""<<(void*)this<<' '<<(void*)sp.ptr());
 	sp.clear();
 }
 void Fetch::initReader(Reader &_rr){
@@ -889,7 +914,7 @@ int Fetch::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 			}
 		}break;
 		case SendMasterRemote:{
-			idbg("send master remote");
+			idbg("send master remote "<<(void*)this);
 			cassert(sp);
 			AddrInfo ai(straddr.c_str(), port, 0, AddrInfo::Inet4, AddrInfo::Stream);
 			idbg("addr"<<straddr<<" port = "<<port);
@@ -897,7 +922,6 @@ int Fetch::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 				//send the master remote command
 				FetchMasterCommand *pcmd(new FetchMasterCommand);
 				//TODO: add a convenient init method to fetchmastercommand
-				pcmd->success_sent = false;
 				pcmd->fname = strpth;
 				pcmd->requid = rc.newRequestId();
 				pcmd->fromv.first = rc.id();
@@ -1001,7 +1025,7 @@ int Fetch::receiveIStream(
 	const ObjectUidTp&,
 	const clientserver::ipc::ConnectorUid *
 ){
-	idbg("");
+	idbg(""<<(void*)this);
 	sp =_sptr;
 	fuid = _fuid;
 	if(st == WaitStreamLocal)
@@ -1155,7 +1179,7 @@ struct SendStringCommand: test::Command{
 		ulong _fromobjid,
 		uint32 _fromobjuid
 	):str(_str), tov(_toobjid, _toobjuid), fromv(_fromobjid, _fromobjuid){}
-	int received(const cs::ipc::ConnectorUid &_rconid);
+	int ipcReceived(cs::ipc::CommandUid &_rcmduid, const cs::ipc::ConnectorUid &_rconid);
 	int execute(test::Connection &);
 	template <class S>
 	S& operator&(S &_s){
@@ -1170,7 +1194,7 @@ private:
 	cs::ipc::ConnectorUid		conid;
 };
 
-int SendStringCommand::received(const cs::ipc::ConnectorUid &_rconid){
+int SendStringCommand::ipcReceived(cs::ipc::CommandUid &_rcmduid, const cs::ipc::ConnectorUid &_rconid){
 	cs::CmdPtr<cs::Command> pcmd(this);
 	conid = _rconid;
 	Server::the().signalObject(tov.first, tov.second, pcmd);
@@ -1235,7 +1259,7 @@ struct SendStreamCommand: test::Command{
 	}
 	std::pair<uint32, uint32> to()const{return tov;}
 	std::pair<uint32, uint32> from()const{return fromv;}
-	int received(const cs::ipc::ConnectorUid &_rconid);
+	int ipcReceived(cs::ipc::CommandUid &_rcmduid, const cs::ipc::ConnectorUid &_rconid);
 	int execute(test::Connection &);
 	int createDeserializationStream(std::pair<OStream *, int64> &_rps, int _id);
 	void destroyDeserializationStream(const std::pair<OStream *, int64> &_rps, int _id);
@@ -1258,7 +1282,7 @@ private:
 	cs::ipc::ConnectorUid		conid;
 };
 //-------------------------------------------------------------------------------
-int SendStreamCommand::received(const cs::ipc::ConnectorUid &_rconid){
+int SendStreamCommand::ipcReceived(cs::ipc::CommandUid &_rcmduid, const cs::ipc::ConnectorUid &_rconid){
 	cs::CmdPtr<cs::Command> pcmd(this);
 	conid = _rconid;
 	Server::the().signalObject(tov.first, tov.second, pcmd);

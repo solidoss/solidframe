@@ -33,6 +33,9 @@ void StreamPtrBase::clear(Stream *_ps){
 Stream::~Stream(){
 }
 
+void Stream::close(){
+}
+
 int Stream::release(){return -1;}
 //bool Stream::isOk()const{return true;}
 
@@ -54,4 +57,14 @@ IOStream::~IOStream(){
 #include "iostream.ipp"
 #endif
 
-
+bool IStream::readAll(char *_pd, uint32 _dl, uint32){
+	int rv;
+	char *pd = (char*)_pd;
+	while(_dl && (rv = this->read(pd, _dl)) != _dl){
+		if(rv > 0){
+			pd += rv;
+			_dl -= rv;
+		}else return false;
+	}
+	return true;
+}

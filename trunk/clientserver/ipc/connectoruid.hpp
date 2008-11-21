@@ -51,7 +51,7 @@ struct ConnectorUid{
 };
 
 struct CommandUid{
-	CommandUid(uint32 _idx = 0, uint32 _uid = 0):idx(_idx), uid(_uid){}
+	CommandUid(uint32 _idx = 0xffffffff, uint32 _uid = 0xffffffff):idx(_idx), uid(_uid){}
 	uint32	idx;
 	uint32	uid;
 };

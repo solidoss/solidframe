@@ -19,11 +19,10 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CLUSTER_TALKER_HPP
-#define CLUSTER_TALKER_HPP
+#ifndef CLIENTSERVER_IPC_TALKER_HPP
+#define CLIENTSERVER_IPC_TALKER_HPP
 
-#include "udp/talker.hpp"
-//#include "clientserver/core/commandableobject.h"
+#include "aio/udp/talker.hpp"
 
 struct TimeSpec;
 
@@ -38,12 +37,12 @@ struct Buffer;
 struct ConnectorUid;
 
 //! A talker for io requests
-class Talker: public clientserver::udp::Talker{
+class Talker: public clientserver::aio::udp::Talker{
 public:
-	typedef Service						ServiceTp;
-	typedef clientserver::udp::Talker	BaseTp;
+	typedef Service							ServiceTp;
+	typedef clientserver::aio::udp::Talker	BaseTp;
 	
-	Talker(clientserver::udp::Station *_pst, Service &_rservice, uint16 _id);
+	Talker(const SocketDevice &_rsd, Service &_rservice, uint16 _id);
 	~Talker();
 	int execute(ulong _sig, TimeSpec &_tout);
 	int execute();
@@ -54,9 +53,9 @@ public:
 private:
 	bool processCommands(const TimeSpec &_rts);
 	bool dispatchSentBuffer(const TimeSpec &_rts);
-	void dispatchReceivedBuffer(const SockAddrPair &_rsap);
+	void dispatchReceivedBuffer(const SockAddrPair &_rsap, const TimeSpec &_rts);
 	void optimizeBuffer(Buffer &_rbuf);
-	bool inDone(ulong _sig);
+	bool inDone(ulong _sig, const TimeSpec &_rts);
 	struct Data;
 	Data &d;
 };
