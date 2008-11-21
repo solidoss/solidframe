@@ -19,14 +19,13 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "clientserver/tcp/channel.hpp"
-
 #include "core/server.hpp"
 #include "beta/betaservice.hpp"
 #include "betaconnection.hpp"
 #include "system/socketaddress.hpp"
 #include "system/debug.hpp"
 #include "system/timespec.hpp"
+#include "system/cassert.hpp"
 
 namespace cs=clientserver;
 static char	*hellostr = "Welcome to echo service!!!\r\n"; 
@@ -34,17 +33,21 @@ static char	*hellostr = "Welcome to echo service!!!\r\n";
 namespace test{
 
 namespace beta{
-Connection::Connection(cs::tcp::Channel *_pch, const char *_node, const char *_srv): 
-									BaseTp(_pch),
+Connection::Connection(const char *_node, const char *_srv): 
 									bend(bbeg + BUFSZ),brpos(bbeg),bwpos(bbeg),
 									pai(NULL){
-	if(_node){
-		pai = new AddrInfo(_node, _srv, 0, AddrInfo::Inet4, AddrInfo::Stream);
-		it = pai->begin();
-		state(CONNECT);
-	}else{
-		state(INIT);
-	}
+	cassert(_node && _srv);
+	pai = new AddrInfo(_node, _srv, 0, AddrInfo::Inet4, AddrInfo::Stream);
+	it = pai->begin();
+	state(CONNECT);
+	
+}
+Connection::Connection(const SocketDevice &_rsd):
+	BaseTp(_rsd),
+	bend(bbeg + BUFSZ),brpos(bbeg),bwpos(bbeg),
+	pai(NULL)
+{
+	state(INIT);
 }
 /*
 NOTE: 
@@ -69,8 +72,8 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 	if(_sig & (cs::TIMEOUT | cs::ERRDONE)){
 		idbg("connecton timeout or error");
 		if(state() == CONNECT_TOUT){
-			cassert(!channel().arePendingSends());
-			idbg("are pending sends = "<<channel().arePendingSends());
+			cassert(!socketHasPendingSend());
+			//idbg("are pending sends = "<<channel().arePendingSends());
 			if(++it){
 				state(CONNECT);
 				return cs::UNREGISTER;
@@ -90,7 +93,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 	do{
 		switch(state()){
 			case READ:
-				switch(channel().recv(bbeg, BUFSZ)){
+				switch(socketRecv(bbeg, BUFSZ)){
 					case BAD: return BAD;
 					case OK: break;
 					case NOK: state(READ_TOUT); return NOK;
@@ -98,7 +101,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			case READ_TOUT:
 				state(WRITE);
 			case WRITE:
-				switch(channel().send(bbeg, channel().recvSize())){
+				switch(socketSend(bbeg, socketRecvSize())){
 					case BAD: return BAD;
 					case OK: break;
 					case NOK: state(WRITE_TOUT); return NOK;
@@ -107,7 +110,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 				state(READ);
 				break;
 			case CONNECT:
-				switch(channel().connect(it)){
+				switch(socketConnect(it)){
 					case BAD:
 						if(++it){
 							state(CONNECT);
@@ -124,7 +127,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 				char			host[SocketAddress::MaxSockHostSz];
 				char			port[SocketAddress::MaxSockServSz];
 				SocketAddress	addr;
-				channel().remoteAddress(addr);
+				socketRemoteAddress(addr);
 				addr.name(
 					host,
 					SocketAddress::MaxSockHostSz,
@@ -133,11 +136,11 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 					SocketAddress::NumericService
 				);
 				idbg("remote host = "<<host<<" remote port = "<<port);
-				channel().send(hellostr, strlen(hellostr));
+				socketSend(hellostr, strlen(hellostr));
 				state(READ);
 				}break;
 		}
-		rc -= channel().recvSize();
+		rc -= socketRecvSize();
 	}while(rc > 0);
 	return OK;
 }

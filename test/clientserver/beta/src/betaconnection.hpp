@@ -46,7 +46,8 @@ public:
 	typedef Service	ServiceTp;
 	typedef clientserver::ReadWriteObject<test::Connection> BaseTp;
 	
-	Connection(clientserver::tcp::Channel *_pch, const char *_node = NULL, const char *_srv = NULL);
+	Connection(const char *_node, const char *_srv);
+	Connection(const SocketDevice &_rsd);
 	~Connection();
 	int execute(ulong _sig, TimeSpec &_tout);
 	int execute();

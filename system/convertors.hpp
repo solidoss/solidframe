@@ -23,6 +23,7 @@
 #define SYSTEM_CONVERTORS_HPP
 
 #include "common.hpp"
+#include <arpa/inet.h>
 
 template <class T>
 struct UnsignedConvertor;
@@ -76,6 +77,22 @@ inline unsigned bitsToMsk(unsigned v){
 }
 inline unsigned bitsToCnt(unsigned v){
 	return (1 << v);
+}
+
+inline uint32 toNetwork(uint32 _v){
+	return htonl(_v);
+}
+
+inline uint32 toHost(uint32 _v){
+	return ntohl(_v);
+}
+
+inline uint16 toNetwork(uint16 _v){
+	return htons(_v);
+}
+
+inline uint16 toHost(uint16 _v){
+	return ntohs(_v);
 }
 
 

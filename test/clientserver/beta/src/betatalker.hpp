@@ -47,7 +47,8 @@ public:
 	typedef Service	ServiceTp;
 	typedef clientserver::ReadWriteObject<test::Talker> BaseTp;
 	
-	Talker(clientserver::udp::Station *_pst, const char *_node, const char *_srv);
+	Talker(const char *_node, const char *_srv);
+	Talker(const SocketDevice &_rsd);
 	~Talker();
 	int execute(ulong _sig, TimeSpec &_tout);
 	int execute();

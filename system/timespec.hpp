@@ -46,6 +46,8 @@ struct TimeSpec: public timespec{
 	bool operator >(const TimeSpec &_ts)const;
 	bool operator <=(const TimeSpec &_ts)const;
 	bool operator <(const TimeSpec &_ts)const;
+	TimeSpec& operator += (const TimeSpec &_ts);
+	TimeSpec& operator -= (const TimeSpec &_ts);
 	operator bool () const{	return tv_sec | tv_nsec;}
 	TimeSpec& operator += (unsigned _msec);
 };

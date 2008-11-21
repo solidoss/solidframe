@@ -26,6 +26,8 @@
 
 namespace clientserver{
 
+enum {MAXTIMEPOS = 0xffffffff};
+
 ObjectSelector::ObjectSelector():sz(0){
 }
 ObjectSelector::~ObjectSelector(){
@@ -34,9 +36,8 @@ int ObjectSelector::reserve(ulong _cp){
 	sv.resize(_cp);
 	//objq.reserve(_cp);
 	for(unsigned i = _cp - 1; i; --i) fstk.push(i);//all but first pos (0)
-	btimepos = time(NULL);
-	//ctimepos.set(0(;
-	ntimepos.set(0xffffffff);
+	ctimepos.set(0);
+	ntimepos.set(MAXTIMEPOS);
 	sz = 0;
 	return OK;
 }
@@ -81,10 +82,13 @@ void ObjectSelector::run(){
 	do{
 		state = 0;
 		if(nbcnt < 0){
-			ctimepos.set((uint64)time(NULL) - btimepos);
+			clock_gettime(CLOCK_MONOTONIC, &ctimepos);
 			nbcnt = maxnbcnt;
 		}
 		
+		if(ctimepos > ntimepos){
+			state |= FULL_SCAN;
+		}
 		if(state || objq.size()){
 			pollwait = 0;
 			--nbcnt;
@@ -105,7 +109,7 @@ void ObjectSelector::run(){
 				if(ro.objptr){
 					evs = 0;
 					if(ctimepos >= ro.timepos) evs |= TIMEOUT;
-					else if(ntimepos.seconds() > ro.timepos.seconds()) ntimepos = ro.timepos;
+					else if(ntimepos > ro.timepos) ntimepos = ro.timepos;
 					if(ro.objptr->signaled(S_RAISE)) evs |= SIGNALED;//should not be checked by objs
 					if(evs){
 						state |= doExecute(it - sv.begin(), evs, ctimepos);
@@ -189,7 +193,6 @@ int ObjectSelector::doExecute(unsigned _i, ulong _evs, TimeSpec _crttout){
 			break;
 		case NOK:
 			idbgx(Dbg::cs, "TOUT: connection waits for signals");
-			//sv[_i].timepos.set(_crttout.seconds() ? ctimepos.seconds() + _crttout.seconds() : (TimeSpec::TimeTp)0xffffffff);
 			if(_crttout != ctimepos){
 				sv[_i].timepos = _crttout;
 				if(ntimepos > _crttout){

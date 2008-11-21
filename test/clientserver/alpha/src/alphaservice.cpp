@@ -25,7 +25,6 @@
 #include "algorithm/serialization/binary.hpp"
 
 #include "clientserver/core/objptr.hpp"
-#include "clientserver/tcp/station.hpp"
 
 #include "core/listener.hpp"
 
@@ -58,17 +57,17 @@ Service::~Service(){
 
 int Service::insertConnection(
 	test::Server &_rs,
-	clientserver::tcp::Channel *_pch
+	const SocketDevice &_rsd
 ){
 	//create a new connection with the given channel
-	Connection *pcon = new Connection(_pch, 0);
+	Connection *pcon = new Connection(_rsd);
 	//register it into the service
 	if(this->insert(*pcon, this->index())){
 		delete pcon;
 		return BAD;
 	}
 	// add it into a connection pool
-	_rs.pushJob((cs::tcp::Connection*)pcon);
+	_rs.pushJob(static_cast<cs::aio::Object*>(pcon));
 	return OK;
 }
 
@@ -76,18 +75,18 @@ int Service::insertListener(
 	test::Server &_rs,
 	const AddrInfoIterator &_rai
 ){
-	//first create a station
-	cs::tcp::Station *pst(cs::tcp::Station::create(_rai));
-	if(!pst) return BAD;
-	//then a listener using the created station
-	test::Listener *plis = new test::Listener(pst, 100, 0);
-	//register the listener into the service
+	SocketDevice sd;
+	sd.create(_rai);
+	sd.makeNonBlocking();
+	sd.prepareAccept(_rai, 100);
+	if(!sd.ok()) return BAD;
+	test::Listener *plis = new test::Listener(sd);
+	
 	if(this->insert(*plis, this->index())){
 		delete plis;
 		return BAD;
-	}
-	// add the listener into a listener pool
-	_rs.pushJob((cs::tcp::Listener*)plis, 0);
+	}	
+	_rs.pushJob(static_cast<cs::aio::Object*>(plis));
 	return OK;
 }
 

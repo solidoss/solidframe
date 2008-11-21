@@ -31,6 +31,7 @@
 #include "core/cmdptr.hpp"
 #include "core/server.hpp"
 
+#include "utility/memory.hpp"
 namespace clientserver{
 //---------------------------------------------------------------------
 //----	Visitor	----
@@ -123,33 +124,34 @@ void Object::mutex(Mutex *){
 //---------------------------------------------------------------------
 //----	Command	----
 //---------------------------------------------------------------------
-
+Command::Command(){
+	objectCheck<Command>(true, __FUNCTION__);
+	idbgx(Dbg::cs, "memadd "<<(void*)this);
+}
 Command::~Command(){
+	objectCheck<Command>(false, __FUNCTION__);
+	idbgx(Dbg::cs, "memsub "<<(void*)this);
 }
 
 void Command::use(){
 	idbgx(Dbg::cs, "Use command");
 }
-int Command::received(const ipc::ConnectorUid&){
-	return false;
+int Command::ipcReceived(ipc::CommandUid&, const ipc::ConnectorUid&){
+	return BAD;
 }
-int Command::sent(const ipc::ConnectorUid&){
-	return false;
+int Command::ipcPrepare(const ipc::CommandUid&){
+	return OK;//do nothing - no wait for response
 }
-int Command::prepare(const ipc::CommandUid&){
-	return false;
-}
-int Command::fail(){
-	return false;
+void Command::ipcFail(int _err){
 }
 int Command::execute(Object &){
 	idbgx(Dbg::cs, "Unhandled command");
 	return 0;
 }
 
-int Command::execute(CommandExecuter &, const CommandUidTp &, TimeSpec &_rts){
+int Command::execute(uint32 _evs, CommandExecuter &, const CommandUidTp &, TimeSpec &_rts){
 	idbgx(Dbg::cs, "Unhandled command");
-	return 0;
+	return BAD;
 }
 
 int Command::release(){

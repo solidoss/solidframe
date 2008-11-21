@@ -22,11 +22,10 @@
 #ifndef PROTOCOL_LOGGER_HPP
 #define PROTOCOL_LOGGER_HPP
 
+#include "system/common.hpp"
 #include <string>
 
 namespace protocol{
-
-typedef std::string String;
 
 //! A class for protocol level logging.
 /*!
@@ -34,21 +33,28 @@ typedef std::string String;
 */
 class Logger{
 public:
-	Logger();
+	Logger(uint32 _linesz = 1024);
 	virtual ~Logger();
-	void readFlush();
-	void readChar(int _c);
-	void readAtom(const char *_pb, unsigned _bl);
-	void readLiteral(const char *_pb, unsigned _bl);
-	void readLocate(const char *_pb, unsigned _bl);
+	void inFlush();
+	void inChar(int _c);
+	void inAtom(const char *_pb, unsigned _bl);
+	void inLiteral(const char *_pb, unsigned _bl);
+	void inLocate(const char *_pb, unsigned _bl);
 	
-	void writeFlush();
-	void writeChar(int _c1);
-	void writeChar(int _c1, int _c2);
-	void writeChar(int _c1, int _c2, int _c3);
-	void writeChar(int _c1, int _c2, int _c3, int _c4);
-	void writeAtom(const char *_pb, unsigned _bl);
-	void writeLiteral(const char *_pb, unsigned _bl);
+	void outFlush();
+	void outChar(int _c1);
+	void outChar(int _c1, int _c2);
+	void outChar(int _c1, int _c2, int _c3);
+	void outChar(int _c1, int _c2, int _c3, int _c4);
+	void outAtom(const char *_pb, unsigned _bl);
+	void outLiteral(const char *_pb, unsigned _bl);
+protected:
+	virtual void doInFlush(const char *_pd, unsigned _dl) = 0;
+	virtual void doOutFlush(const char *_pd, unsigned _dl) = 0;
+private:
+	std::string 	ins;
+	std::string		outs;
+	const uint32	linesz;
 };
 
 }

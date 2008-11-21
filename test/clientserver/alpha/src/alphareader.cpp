@@ -22,7 +22,7 @@
 #include "alphareader.hpp"
 #include "alphawriter.hpp"
 #include "alphaprotocolfilters.hpp"
-#include "clientserver/tcp/channel.hpp"
+#include "alphaconnection.hpp"
 #include <cerrno>
 
 namespace test{
@@ -45,7 +45,11 @@ static const char *char2name[128] = {
 };
 
 
-Reader::Reader(clientserver::tcp::Channel &_rch, Writer &_rw):rch(_rch),rw(_rw){
+Reader::Reader(
+	Connection &_rcon,
+	Writer &_rw,
+	protocol::Logger *_plog
+):protocol::Reader(_plog), rcon(_rcon), rw(_rw){
 }
 Reader::~Reader(){
 }
@@ -128,7 +132,7 @@ void Reader::clear(){
 }
 /*static*/ int Reader::copyTmpString(protocol::Reader &_rr, protocol::Parameter &_rp){
 	Reader &rr = static_cast<Reader&>(_rr);
-	*static_cast<protocol::String*>(_rp.a.p) = rr.tmp;
+	*static_cast<String*>(_rp.a.p) = rr.tmp;
 	rr.tmp.clear();
 	return Ok;
 }
@@ -171,10 +175,10 @@ void Reader::clear(){
 //     	case NOK:	return No;
 //     }
 //     return Bad;
-	return rch.recv(_pb, _bl);
+	return rcon.socketRecv(_pb, _bl);
 }
 /*virtual*/ int Reader::readSize()const{
-	return rch.recvSize();
+	return rcon.socketRecvSize();
 }
 /*virtual*/ void Reader::prepareErrorRecovery(){
 	push(&protocol::Reader::manage, protocol::Parameter(ResetLogging));
@@ -190,7 +194,7 @@ void Reader::clear(){
 	rw.message() += char2name[((uint8)_popc) & 127];
 	rw.message() += "@";
 }
-/*virtual*/ void Reader::keyError(const protocol::String &_pops, int _id){
+/*virtual*/ void Reader::keyError(const String &_pops, int _id){
 	rw.message() = " BAD ";
 	switch(_id){
 		case Unexpected:

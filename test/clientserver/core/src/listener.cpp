@@ -19,12 +19,9 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "system/cassert.hpp"
 #include "system/debug.hpp"
 #include "system/mutex.hpp"
-
-#include "clientserver/tcp/station.hpp"
-#include "clientserver/tcp/channel.hpp"
-
 
 #include "core/common.hpp"
 #include "core/server.hpp"
@@ -32,6 +29,10 @@
 #include "core/listener.hpp"
 
 namespace test{
+
+Listener::Listener(const SocketDevice &_rsd):clientserver::aio::tcp::Listener(_rsd){
+	state(0);
+}
 
 Listener::~Listener(){
 	test::Server &rs = test::Server::the();
@@ -42,6 +43,7 @@ int Listener::execute(ulong, TimeSpec&){
 	idbg("here");
 	Server &rs = Server::the();
 	Service	&rsrvc = rs.service(*this);
+	cassert(this->socketOk());
 	if(signaled()){
 		{
 		Mutex::Locker	lock(rs.mutex(*this));
@@ -49,11 +51,21 @@ int Listener::execute(ulong, TimeSpec&){
 		if(sm & clientserver::S_KILL) return BAD;
 		}
 	}
-	station().accept(chvec);
-	for(ChannelVecTp::iterator it(chvec.begin()); it != chvec.end(); ++it){
-		if(rsrvc.insertConnection(rs, *it)){
-			delete *it;
+	uint cnt(10);
+	while(cnt--){
+		if(state() == 0){
+			switch(this->socketAccept(sd)){
+				case BAD: return BAD;
+				case OK:break;
+				case NOK:
+					state(1);
+					return NOK;
+			}
 		}
+		state(0);
+		cassert(sd.ok());
+		//TODO: one may do some filtering on sd based on sd.remoteAddress()
+		rsrvc.insertConnection(rs, sd);
 	}
 	return OK;
 }

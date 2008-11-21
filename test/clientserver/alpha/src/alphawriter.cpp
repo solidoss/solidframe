@@ -21,13 +21,16 @@
 
 #include "alphawriter.hpp"
 #include "alphaprotocolfilters.hpp"
-#include "clientserver/tcp/channel.hpp"
+#include "alphaconnection.hpp"
 
 
 namespace test{
 namespace alpha{
 
-Writer::Writer(clientserver::tcp::Channel &_rch):rch(_rch){
+Writer::Writer(
+	Connection &_rcon,
+	protocol::Logger *_plog
+):protocol::Writer(_plog), rcon(_rcon){
 }
 
 Writer::~Writer(){
@@ -111,7 +114,7 @@ int Writer::write(char *_pb, uint32 _bl){
 // 	}
 // 	cassert(false);
 // 	return Bad;
-	return rch.send(_pb, _bl);
+	return rcon.socketSend(_pb, _bl);
 }
 
 }//namespace alpha

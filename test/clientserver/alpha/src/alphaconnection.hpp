@@ -22,8 +22,8 @@
 #ifndef ALPHACONNECTION_HPP
 #define ALPHACONNECTION_HPP
 
-#include "core/tstring.hpp"
 #include "core/connection.hpp"
+#include "core/tstring.hpp"
 #include "core/common.hpp"
 
 #include "alphareader.hpp"
@@ -48,6 +48,12 @@ namespace alpha{
 class Service;
 class Command;
 
+class Logger: public protocol::Logger{
+protected:
+	virtual void doInFlush(const char*, unsigned);
+	virtual void doOutFlush(const char*, unsigned);
+};
+
 //! Alpha connection implementing the alpha protocol resembling somehow the IMAP protocol
 /*!
 	It uses a reader and a writer to implement a state machine for the 
@@ -57,8 +63,12 @@ class Connection: public clientserver::CommandableObject<test::Connection>{
 public:
 	typedef clientserver::CommandableObject<test::Connection> BaseTp;
 	typedef Service	ServiceTp;
+	
 	static void initStatic(Server &_rs);
-	Connection(clientserver::tcp::Channel *_pch, SocketAddress *_paddr = NULL);
+	
+	Connection(SocketAddress *_paddr);
+	Connection(const SocketDevice &_rsd);
+	
 	~Connection();
 	//! The implementation of the protocol's state machine
 	/*!
@@ -154,16 +164,17 @@ private:
 	enum {
 		Init,
 		ParsePrepare,
-		ParseTout,
 		Parse,
 		ExecutePrepare,
-		ExecuteTout,
-		Execute,
 		IdleExecute,
+		Execute,
 		Connect,
-		ConnectTout
+		ConnectTout,
+		ParseTout,
+		ExecuteTout,
+		
 	};
-	protocol::Logger	logger;
+	Logger				logger;
 	Writer				wtr;
 	Reader				rdr;
 	Command				*pcmd;

@@ -80,14 +80,14 @@ int Reader::peek(int &_c){
 int Reader::get(int &_c){
 	if(rpos != wpos) {
         _c = *(rpos++);
-        if(dolog) plog->readChar(_c);
+        if(dolog) plog->inChar(_c);
         return Ok;
     }
     return No;
 }
 
 void Reader::drop(){
-	if(dolog) plog->readChar(*rpos);
+	if(dolog) plog->inChar(*rpos);
 	++rpos;
 }
 
@@ -98,7 +98,7 @@ int Reader::fetchLiteral(String &_rds, ulong &_rdsz){
 	_rdsz -= mlen;
 	rpos += mlen;
 	if(_rdsz == 0){
-		if(dolog) plog->readLiteral(_rds.data(), _rds.size());
+		if(dolog) plog->inLiteral(_rds.data(), _rds.size());
 		return Ok;
 	}
 	return No;
@@ -115,7 +115,7 @@ int Reader::run(){
 				while(fs.size())fs.pop();
 				prepareErrorRecovery();
 				break;
-			case Ok: fs.pop();
+			case Ok: fs.pop();break;
 			case Yield:return YIELD;
 			case Continue: break;
 			default: cassert(false);

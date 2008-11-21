@@ -134,4 +134,4 @@ add_subdirectory (algorithm)
 add_subdirectory (clientserver)
 add_subdirectory (test)
 add_subdirectory (application)
-
+add_subdirectory (audit)

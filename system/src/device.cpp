@@ -21,9 +21,12 @@
 
 #include <unistd.h>
 #include "system/filedevice.hpp"
+#include "system/socketdevice.hpp"
 #include "system/directory.hpp"
 #include "system/cassert.hpp"
+#include "system/debug.hpp"
 #include <cerrno>
+#include <cstring>
 
 Device::Device(const Device &_dev):desc(_dev.descriptor()) {
 	_dev.desc = -1;
@@ -111,4 +114,186 @@ bool FileDevice::canRetryOpen()const{
 
 /*static*/ int Directory::eraseFile(const char *_path){
 	return unlink(_path);
+}
+
+//---- SocketDevice ---------------------------------
+
+SocketDevice::SocketDevice(){
+}
+SocketDevice::~SocketDevice(){
+	shutdownReadWrite();
+}
+void SocketDevice::shutdownRead(){
+	if(ok()) shutdown(descriptor(), SHUT_RD);
+}
+void SocketDevice::shutdownWrite(){
+	if(ok()) shutdown(descriptor(), SHUT_WR);
+}
+void SocketDevice::shutdownReadWrite(){
+	if(ok()) shutdown(descriptor(), SHUT_RDWR);
+}
+int SocketDevice::create(const AddrInfoIterator &_rai){
+	Device::descriptor(socket(_rai.family(), _rai.type(), _rai.protocol()));
+	if(ok()) return OK;
+	edbg("socket create: "<<strerror(errno));
+	return BAD;
+}
+int SocketDevice::create(AddrInfo::Family _family, AddrInfo::Type _type, int _proto){
+	Device::descriptor(socket(_family, _type, _proto));
+	if(ok()) return OK;
+	edbg("socket create: "<<strerror(errno));
+	return BAD;
+}
+int SocketDevice::connect(const AddrInfoIterator &_rai){
+	int rv = ::connect(descriptor(), _rai.addr(), _rai.size());
+	if (rv < 0) { // sau rv == -1 ...
+		if(errno == EINPROGRESS) return NOK;
+		edbg("socket connect: "<<strerror(errno));
+		close();
+		return BAD;
+	}
+	return OK;
+}
+int SocketDevice::prepareAccept(const AddrInfoIterator &_rai, unsigned _listencnt){
+	int yes = 1;
+	int rv = setsockopt(descriptor(), SOL_SOCKET, SO_REUSEADDR, (char *) &yes, sizeof(yes));
+	if(rv < 0) {
+		edbg("socket setsockopt: "<<strerror(errno));
+		shutdownReadWrite();
+		close();
+		return BAD;
+	}
+
+	rv = ::bind(descriptor(), _rai.addr(), _rai.size());
+	if(rv < 0) {
+		edbg("socket bind: "<<strerror(errno));
+		shutdownReadWrite();
+		close();
+		return BAD;
+	}
+	rv = listen(descriptor(), _listencnt);
+	if(rv < 0){
+		edbg("socket listen: "<<strerror(errno));
+		shutdownReadWrite();
+		close();
+		return BAD;
+	}
+	return OK;
+}
+int SocketDevice::accept(SocketDevice &_dev){
+	if(!ok()) return BAD;
+	SocketAddress sa;
+	int rv = ::accept(descriptor(), sa.addr(), &sa.size());
+	if (rv < 0) {
+		if(errno == EAGAIN) return NOK;
+		edbg("socket accept: "<<strerror(errno));
+		shutdownReadWrite();
+		close();
+		return BAD;
+	}
+	_dev.Device::descriptor(rv);
+	return OK;
+}
+int SocketDevice::bind(const AddrInfoIterator &_rai){
+	if(!ok()) return BAD;
+	int rv = ::bind(descriptor(), _rai.addr(), _rai.size());
+	if(rv < 0){
+		edbg("socket bind: "<<strerror(errno));
+		shutdownReadWrite();
+		close();
+		return BAD;
+	}
+	return OK;
+}
+int SocketDevice::bind(const SockAddrPair &_rsa){
+	if(!ok()) return BAD;
+	int rv = ::bind(descriptor(), _rsa.addr, _rsa.size);
+	if(rv < 0){
+		edbg("socket bind: "<<strerror(errno));
+		shutdownReadWrite();
+		close();
+		return BAD;
+	}
+	return OK;
+}
+int SocketDevice::makeBlocking(int _msec){
+	if(!ok()) return BAD;
+	int flg = fcntl(descriptor(), F_GETFL);
+	if(flg == -1){
+		edbg("socket fcntl getfl: "<<strerror(errno));
+		shutdownReadWrite();
+		close();
+		return BAD;
+	}
+	flg &= ~O_NONBLOCK;
+	int rv = fcntl(descriptor(), F_SETFL, flg);
+	if (rv < 0){
+		edbg("error fcntl setfl: "<<strerror(errno));
+		shutdownReadWrite();
+		close();
+		return BAD;
+	}
+	return OK;
+}
+int SocketDevice::makeNonBlocking(){
+	if(!ok()) return BAD;
+	int flg = fcntl(descriptor(), F_GETFL);
+	if(flg == -1){
+		edbg("socket fcntl getfl: "<<strerror(errno));
+		shutdownReadWrite();
+		close();
+		return BAD;
+	}
+	int rv = fcntl(descriptor(), F_SETFL, flg | O_NONBLOCK);
+	if(rv < 0){
+		edbg("socket fcntl setfl: "<<strerror(errno));
+		shutdownReadWrite();
+		close();
+		return BAD;
+	}
+	return OK;
+}
+bool SocketDevice::isBlocking(){
+	int flg = fcntl(descriptor(), F_GETFL);
+	if(flg == -1){
+		edbg("socket fcntl getfl: "<<strerror(errno));
+		shutdownReadWrite();
+		close();
+		return false;
+	}
+	return !(flg & O_NONBLOCK);
+}
+int SocketDevice::send(const char* _pb, unsigned _ul, unsigned){
+	return ::send(descriptor(), _pb, _ul, 0);
+}
+int SocketDevice::recv(char *_pb, unsigned _ul, unsigned){
+	return ::recv(descriptor(), _pb, _ul, 0);
+}
+int SocketDevice::send(const char* _pb, unsigned _ul, const SockAddrPair &_sap){
+	return ::sendto(descriptor(), _pb, _ul, 0, _sap.addr, _sap.size);
+}
+int SocketDevice::recv(char *_pb, unsigned _ul, SocketAddress &_rsa){
+	_rsa.clear();
+	_rsa.size() = SocketAddress::MaxSockAddrSz;
+	return ::recvfrom(descriptor(), _pb, _ul, 0, _rsa.addr(), &_rsa.size());
+}
+int SocketDevice::remoteAddress(SocketAddress &_rsa)const{
+	_rsa.clear();
+	_rsa.size() = SocketAddress::MaxSockAddrSz;
+	int rv = getpeername(descriptor(), _rsa.addr(), &_rsa.size());
+	if(rv){
+		edbg("socket getpeername: "<<strerror(errno));
+		return BAD;
+	}
+	return OK;
+}
+int SocketDevice::localAddress(SocketAddress &_rsa)const{
+	_rsa.clear();
+	_rsa.size() = SocketAddress::MaxSockAddrSz;
+	int rv = getsockname(descriptor(), _rsa.addr(), &_rsa.size());
+	if(rv){
+		edbg("socket getsockname: "<<strerror(errno));
+		return BAD;
+	}
+	return OK;
 }

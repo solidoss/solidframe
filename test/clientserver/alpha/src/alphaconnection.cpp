@@ -22,13 +22,14 @@
 #include "system/debug.hpp"
 #include "system/timespec.hpp"
 #include "system/mutex.hpp"
+#include "system/socketaddress.hpp"
 
 #include "utility/ostream.hpp"
 #include "utility/istream.hpp"
 
-#include "clientserver/tcp/channel.hpp"
 #include "clientserver/ipc/ipcservice.hpp"
 #include "clientserver/core/requestuid.hpp"
+
 
 #include "core/server.hpp"
 #include "core/command.hpp"
@@ -38,6 +39,7 @@
 #include "alphaconnection.hpp"
 #include "alphacommand.hpp"
 #include "alphaprotocolfilters.hpp"
+#include "audit/log.hpp"
 
 namespace cs=clientserver;
 static char	*hellostr = "Welcome to alpha service!!!\r\n"; 
@@ -46,24 +48,47 @@ static char *sigstr = "Signaled!!!\r\n";
 namespace test{
 namespace alpha{
 
+void Logger::doInFlush(const char *_pb, unsigned _bl){
+	if(Log::instance().isSet(Log::any, Log::Input)){
+		Log::instance().record(Log::Input, Log::any, 0, __FILE__, __FUNCTION__, __LINE__).write(_pb, _bl);
+		Log::instance().done();
+	}
+}
+
+void Logger::doOutFlush(const char *_pb, unsigned _bl){
+	if(Log::instance().isSet(Log::any, Log::Output)){
+		Log::instance().record(Log::Output, Log::any, 0, __FILE__, __FUNCTION__, __LINE__).write(_pb, _bl);
+		Log::instance().done();
+	}
+}
+
 void Connection::initStatic(Server &_rs){
 	Command::initStatic(_rs);
 }
 
-Connection::Connection(cs::tcp::Channel *_pch, SocketAddress *_paddr):
-						 	BaseTp(_pch),
-						 	wtr(*_pch),
-						 	rdr(*_pch, wtr), pcmd(NULL),
+Connection::Connection(SocketAddress *_paddr):
+						 	//BaseTp(_pch),
+						 	wtr(*this, &logger),
+						 	rdr(*this, wtr, &logger), pcmd(NULL),
 						 	paddr(_paddr),
 						 	reqid(1){
 	
-	if(paddr){
-		state(Connect);
-	}else{
-		state(Init);
-	}
+	cassert(paddr);
+	state(Connect);
+	
 	
 }
+
+Connection::Connection(const SocketDevice &_rsd):
+						 	BaseTp(_rsd),
+						 	wtr(*this, &logger),
+						 	rdr(*this, wtr, &logger), pcmd(NULL),
+						 	paddr(NULL),
+						 	reqid(1){
+	
+	state(Init);
+}
+
 
 /*
 NOTE: 
@@ -94,12 +119,13 @@ Connection::~Connection(){
 int Connection::execute(ulong _sig, TimeSpec &_tout){
 	test::Server &rs = test::Server::the();
 	cs::requestuidptr->set(this->id(), rs.uid(*this));
-	_tout.add(2400);
+	//_tout.add(2400);
 	if(_sig & (cs::TIMEOUT | cs::ERRDONE)){
 		if(state() == ConnectTout){
 			state(Connect);
 			return cs::UNREGISTER;
-		}else 
+		}else
+			idbg("timeout occured - destroy connection");
 			return BAD;
 	}
 	
@@ -126,25 +152,24 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 		//now we determine if we return with NOK or we continue
 		if(!_sig) return NOK;
 	}
-	if(_sig & cs::INDONE){
-		cassert(state() == ParseTout);
-		state(Parse);
+	if(socketEvents() & cs::ERRDONE){
+		return BAD;
 	}
-	if(_sig & cs::OUTDONE){
-		switch(state()){
-			case IdleExecute:
-			case ExecuteTout:
-				state(Execute);
-				break;
-			case Execute:
-				break;
-			case Connect:
-				state(Init);
-				break;
-			default:
-				state(Parse);
-		}
-	}
+// 	if(socketEvents() & cs::OUTDONE){
+// 		switch(state()){
+// 			case IdleExecute:
+// 			case ExecuteTout:
+// 				state(Execute);
+// 				break;
+// 			case Execute:
+// 				break;
+// 			case Connect:
+// 				state(Init);
+// 				break;
+// 			default:
+// 				state(Parse);
+// 		}
+// 	}
 	int rc;
 	switch(state()){
 		case Init:{
@@ -156,7 +181,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			char			port[SocketAddress::MaxSockServSz];
 			SocketAddress	addr;
 			writer()<<"* Hello from alpha server ("<<myport<<" "<<(uint32)objid<<" "<<objuid<<") [";
-			channel().localAddress(addr);
+			socketLocalAddress(addr);
 			addr.name(
 				host,
 				SocketAddress::MaxSockHostSz,
@@ -165,7 +190,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 				SocketAddress::NumericService
 			);
 			writer()<<host<<':'<<port<<" -> ";
-			channel().remoteAddress(addr);
+			socketRemoteAddress(addr);
 			addr.name(
 				host,
 				SocketAddress::MaxSockHostSz,
@@ -173,7 +198,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 				SocketAddress::MaxSockServSz,
 				SocketAddress::NumericService | SocketAddress::NumericHost
 			);
-			writer()<<host<<':'<<port<<"]\r\n";
+			writer()<<host<<':'<<port<<"]"<<'\r'<<'\n';
 			writer().push(&Writer::flushAll);
 			state(Execute);
 			}break;
@@ -186,6 +211,11 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			switch((rc = reader().run())){
 				case OK: break;
 				case NOK:
+					if(hasPendingRequests()){
+						socketTimeout(_tout, 3000);
+					}else{
+						_tout.add(2000);
+					}
 					state(ParseTout);
 					return NOK;
 				case BAD:
@@ -195,30 +225,27 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			}
 			if(reader().isError()){
 				delete pcmd; pcmd = NULL;
+				logger.inFlush();
 				state(Execute);
 				writer().push(Writer::putStatus);
 				break;
 			}
 		case ExecutePrepare:
+			logger.inFlush();
 			idbg("PrepareExecute");
 			pcmd->execute(*this);
 			state(Execute);
-		case IdleExecute:
-			//idbg("IdleExecute");
 		case Execute:
 			//idbg("Execute");
 			switch((rc = writer().run())){
 				case NOK:
-					if(channel().arePendingSends()){
-						state(ExecuteTout);
-					}else if(!channel().arePendingRecvs()){
-						//no waiting for io - no way to detect client disconnection
-						//but to put a rather small timeout
-						//TODO: improve the algorithm so that the connection
-						//dont get closed when no command response come
-						_tout.sub(2400 - 25);//twenty seconds timeout
+					if(hasPendingRequests()){
+						socketTimeout(_tout, 3000);
+					}else{
+						_tout.add(2000);
 						idbg("no pending io - wait twenty seconds");
 					}
+					state(ExecuteTout);
 					return NOK;
 				case OK:
 					if(state() != IdleExecute){
@@ -234,6 +261,12 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 					return rc;
 			}
 			break;
+		case IdleExecute:
+			//idbg("IdleExecute");
+			if(socketEvents() & cs::OUTDONE){
+				state(Execute);
+				return OK;
+			}return NOK;
 		case Connect:
 			/*
 			switch(channel().connect(*paddr)){
@@ -247,10 +280,17 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			//delete(paddr); paddr = NULL;
 			break;
 		case ParseTout:
-			idbg("State: ParseTout");
+			if(socketEvents() & cs::INDONE){
+				state(Parse);
+				return OK;
+			}
 			return NOK;
 		case ExecuteTout:
 			idbg("State: ExecuteTout");
+			if(socketEvents() & cs::OUTDONE){
+				state(Execute);
+				return OK;
+			}
 			return NOK;
 	}
 	return OK;
@@ -263,6 +303,7 @@ int Connection::execute(){
 void Connection::prepareReader(){
 	writer().clear();
 	reader().clear();
+	//logger.outFlush();
 	reader().push(&Reader::checkChar, protocol::Parameter('\n'));
 	reader().push(&Reader::checkChar, protocol::Parameter('\r'));
 	reader().push(&Reader::fetchKey<Reader, Connection, AtomFilter, Command>, protocol::Parameter(this, 64));
@@ -291,6 +332,9 @@ int Connection::receiveIStream(
 				idbg("");
 				if(state() == ParseTout){
 					state(Parse);
+				}
+				if(state() == ExecuteTout){
+					state(Execute);
 				}
 				break;
 			case NOK:
@@ -324,6 +368,9 @@ int Connection::receiveOStream(
 				if(state() == ParseTout){
 					state(Parse);
 				}
+				if(state() == ExecuteTout){
+					state(Execute);
+				}
 				break;
 			case NOK:
 				idbg("");
@@ -331,7 +378,7 @@ int Connection::receiveOStream(
 				break;
 		}
 	}
-	return OK;
+	return NOK;
 }
 
 int Connection::receiveIOStream(
@@ -356,6 +403,9 @@ int Connection::receiveIOStream(
 				if(state() == ParseTout){
 					state(Parse);
 				}
+				if(state() == ExecuteTout){
+					state(Execute);
+				}
 				break;
 			case NOK:
 				idbg("");
@@ -363,7 +413,7 @@ int Connection::receiveIOStream(
 				break;
 		}
 	}
-	return OK;
+	return NOK;
 }
 
 int Connection::receiveString(
@@ -386,6 +436,9 @@ int Connection::receiveString(
 				idbg("");
 				if(state() == ParseTout){
 					state(Parse);
+				}
+				if(state() == ExecuteTout){
+					state(Execute);
 				}
 				break;
 			case NOK:
@@ -417,6 +470,9 @@ int Connection::receiveNumber(
 				idbg("");
 				if(state() == ParseTout){
 					state(Parse);
+				}
+				if(state() == ExecuteTout){
+					state(Execute);
 				}
 				break;
 			case NOK:
@@ -450,6 +506,9 @@ int Connection::receiveData(
 				if(state() == ParseTout){
 					state(Parse);
 				}
+				if(state() == ExecuteTout){
+					state(Execute);
+				}
 				break;
 			case NOK:
 				idbg("");
@@ -479,6 +538,9 @@ int Connection::receiveError(
 				idbg("");
 				if(state() == ParseTout){
 					state(Parse);
+				}
+				if(state() == ExecuteTout){
+					state(Execute);
 				}
 				break;
 			case NOK:

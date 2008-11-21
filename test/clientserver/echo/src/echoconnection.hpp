@@ -22,7 +22,7 @@
 #ifndef ECHOCONNECTION_HPP
 #define ECHOCONNECTION_HPP
 
-#include "core/connection.hpp"
+#include "clientserver/aio/tcp/connection.hpp"
 #include "clientserver/core/readwriteobject.hpp"
 #include "system/socketaddress.hpp"
 class SocketAddress;
@@ -41,12 +41,13 @@ class Visitor;
 namespace echo{
 class Service;
 
-class Connection: public clientserver::ReadWriteObject<test::Connection>{
+class Connection: public clientserver::aio::tcp::Connection{
 public:
 	typedef Service	ServiceTp;
-	typedef clientserver::ReadWriteObject<test::Connection> BaseTp;
+	typedef clientserver::aio::tcp::Connection BaseTp;
 	
-	Connection(clientserver::tcp::Channel *_pch, const char *_node = NULL, const char *_srv = NULL);
+	Connection(const char *_node, const char *_srv);
+	Connection(const SocketDevice &_rsd);
 	~Connection();
 	int execute(ulong _sig, TimeSpec &_tout);
 	int execute();

@@ -26,10 +26,19 @@ Here is a list with what the framework is offering for now:
 	* Doxygen documentation.
 	* Lots of test applications, including a central proof of concept multi service server.
 
-Here are some planned additions:
+Here are some planned additions for the forthcoming first edition:
+	* Improved debug log engine.
+	* Keep alive for IPC.
+	* An audit/log engine.
 	* Secure connections support using (eventually) OpenSSL.
-	* A generic, simple btree implementation.
-	
+	* Remote append test alpha command.
+
+*Notes*
+ # The use of IPC term may somehow be misleading, because the module with this name
+is also a RPC module. I've called it IPC because it is designed to be the central,
+lightweight, way of communicating between processes (whether they are found 
+on the same machine, or on an X thousands machines cluster).
+ # Please consider visiting my newly started project based on SolidGround framework: http://code.google.com/p/solidbox/.
 
 *************************************
 * 2) Building the test applications *

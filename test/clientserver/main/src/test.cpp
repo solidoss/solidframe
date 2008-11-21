@@ -29,11 +29,14 @@
 #include "echo/echoservice.hpp"
 #include "alpha/alphaservice.hpp"
 #include "beta/betaservice.hpp"
+#include "proxy/proxyservice.hpp"
+#include "audit/log/logmanager.hpp"
+#include "audit/log/logconnectors.hpp"
+#include "audit/log.hpp"
+#include "utility/iostream.hpp"
+#include "system/directory.hpp"
 
 #include "clientserver/ipc/ipcservice.hpp"
-#include "clientserver/tcp/station.hpp"
-#include "clientserver/tcp/channel.hpp"
-#include "clientserver/udp/station.hpp"
 
 namespace cs = clientserver;
 using namespace std;
@@ -51,25 +54,68 @@ int insertTalker(char *_pc, int _len, test::Server &_rts);
 // inserts a new connection
 int insertConnection(char *_pc, int _len, test::Server &_rts);
 
+
+struct DeviceIOStream: IOStream{
+	DeviceIOStream(int _d, int _pd):d(_d), pd(_pd){}
+	void close(){
+		int tmp = d;
+		d = -1;
+		if(pd > 0){
+			::close(tmp);
+			::close(pd);
+		}
+	}
+	/*virtual*/ int read(char *_pb, uint32 _bl, uint32 _flags = 0){
+		int rv = ::read(d, _pb, _bl);
+		return rv;
+	}
+	/*virtual*/ int write(const char *_pb, uint32 _bl, uint32 _flags = 0){
+		return ::write(d, _pb, _bl);
+	}
+	int64 seek(int64, SeekRef){
+		return -1;
+	}
+	int d;
+	int pd;
+};
+
+int pairfd[2];
+
 int main(int argc, char* argv[]){
 	signal(SIGPIPE, SIG_IGN);
+	pipe(pairfd);
 	cout<<"Built on SolidGround version "<<SG_MAJOR<<'.'<<SG_MINOR<<'.'<<SG_PATCH<<endl;
 	Thread::init();
 #ifdef UDEBUG
 	{
-	string s = "dbg/";
-	s+= argv[0]+2;
+	string s;
 	if(argc > 1){
-		initDebug(s.c_str(), argv[1]);
+		Dbg::instance().init(s, argv[0] + 2, Dbg::AllLevels, argv[1]);
 	}else{
-		initDebug(s.c_str());
+		Dbg::instance().init(s, argv[0] + 2, Dbg::AllLevels);
 	}
-	cout<<"Debug bits: ";
-	printDebugBits();
-	cout<<endl;
+	cout<<"Debug file: "<<s<<endl;
+	s.clear();
+	Dbg::instance().moduleBits(s);
+	cout<<"Debug bits: "<<s<<endl;
 	}
 #endif
-	pdbg("Built on SolidGround version "<<SG_MAJOR<<'.'<<SG_MINOR<<'.'<<SG_PATCH);
+	audit::LogManager lm;
+	lm.start();
+	lm.insertChannel(new DeviceIOStream(pairfd[0], pairfd[1]));
+	lm.insertListener("localhost", "3333");
+	Directory::create("log");
+	lm.insertConnector(new audit::LogBasicConnector("log"));
+	Log::instance().reinit(argv[0], Log::AllLevels, "ALL", new DeviceIOStream(pairfd[1],-1));
+	
+	int i,stime;
+	long ltime;
+
+	ltime = time(NULL); /* get current calendar time */
+	stime = (unsigned int) ltime/2;
+	srand(stime);
+	
+	idbg("Built on SolidGround version "<<SG_MAJOR<<'.'<<SG_MINOR<<'.'<<SG_PATCH);
 	{
 		int startport = 1000;
 		if(argc > 2){
@@ -134,6 +180,24 @@ int main(int argc, char* argv[]){
 				cout<<"failed adding listener for service alpha port "<<port<<endl;
 			}	
 		}
+		if(true){// create and register the proxy service
+			test::Service* psrvc = test::proxy::Service::create();
+			ts.insertService("proxy", psrvc);
+			
+			{//add a new listener
+				int port = startport + 115;
+				AddrInfo ai("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Stream);
+				if(!ai.empty()){
+					if(!ts.insertListener("proxy", ai.begin())){
+						cout<<"added listener to proxy "<<port<<endl;
+					}else{
+						cout<<"failed adding listener for service proxy port "<<port<<endl;
+					}
+				}else{
+					cout<<"failed create address for port "<<port<<" listener not created"<<endl;
+				}
+			}
+		}
 		if(true){//adds the base ipc talker
 			int port = startport + 222;
 			AddrInfo ai("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Datagram);
@@ -161,6 +225,7 @@ int main(int argc, char* argv[]){
 			cout<<'>';cin.getline(buf,2048);
 			if(!strncasecmp(buf,"quit",4)){
 				ts.stop();
+				lm.stop();
 				cout<<"signalled to stop"<<endl;
 				break;
 			}

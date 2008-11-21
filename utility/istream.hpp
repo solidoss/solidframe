@@ -29,6 +29,7 @@ class IStream: virtual public Stream{
 public:
 	virtual ~IStream();
 	virtual int read(char *, uint32, uint32 _flags = 0) = 0;
+	bool readAll(char *, uint32, uint32 _flags = 0);
 	bool iok()const;
 	bool ieof()const;
 	bool ibad()const;

@@ -38,8 +38,6 @@
 #include "ipc/ipcservice.hpp"
 #include "ipc/connectoruid.hpp"
 
-#include "udp/station.hpp"
-
 #include "ipctalker.hpp"
 #include "processconnector.hpp"
 
@@ -109,7 +107,7 @@ struct Talker::Data{
 
 //======================================================================
 
-Talker::Talker(cs::udp::Station *_pst, Service &_rservice, uint16 _id):	BaseTp(_pst), d(*new Data(_rservice, _id)){
+Talker::Talker(const SocketDevice &_rsd, Service &_rservice, uint16 _id):	BaseTp(_rsd), d(*new Data(_rservice, _id)){
 }
 //----------------------------------------------------------------------
 Talker::~Talker(){
@@ -138,13 +136,13 @@ Talker::~Talker(){
 	delete &d;
 }
 //----------------------------------------------------------------------
-inline bool Talker::inDone(ulong _sig){
+inline bool Talker::inDone(ulong _sig, const TimeSpec &_rts){
 	if(_sig & cs::INDONE){
 		//TODO: reject too smaller buffers
-		d.rcvbuf.bufferSize(station().recvSize());
+		d.rcvbuf.bufferSize(socketRecvSize());
 		if(d.rcvbuf.check()){
 			idbgx(Dbg::ipc, "received valid buffer size "<<d.rcvbuf.bufferSize()<<" data size "<<d.rcvbuf.dataSize()<<" id "<<d.rcvbuf.id());
-			dispatchReceivedBuffer(station().recvAddr());//the address is deeply copied
+			dispatchReceivedBuffer(socketRecvAddr(), _rts);//the address is deeply copied
 		}else{
 			idbgx(Dbg::ipc, "received invalid buffer size "<<d.rcvbuf.bufferSize()<<" data size "<<d.rcvbuf.dataSize()<<" id "<<d.rcvbuf.id());
 		}
@@ -216,6 +214,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 				}
 				if(!d.procs[newprocidx].first){
 					d.procs[newprocidx].first = pnewproc;
+					pnewproc->prepare();
 					//register in base map
 					d.basepm4[pnewproc->baseAddr4()] = newprocidx;
 					if(pnewproc->isConnected()){
@@ -254,7 +253,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 		d.rservice.disconnectTalkerProcesses(*this);
 	}
 	//try to recv something
-	if(inDone(_sig) || (!station().recvPending())){
+	if(inDone(_sig, _tout) || (!socketHasPendingRecv())){
 		//non blocking read some buffers
 		int cnt = 0;
 		while(cnt++ < 16){
@@ -264,16 +263,16 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 			}else{
 				d.rcvbuf.reset();
 			}
-			switch(station().recvFrom(d.rcvbuf.buffer(), d.rcvbuf.bufferCapacity())){
+			switch(socketRecv(d.rcvbuf.buffer(), d.rcvbuf.bufferCapacity())){
 				case BAD:
 					idbgx(Dbg::ipc, "socket error "<<strerror(errno));
 					cassert(false);
 					break;
 				case OK:
-					d.rcvbuf.bufferSize(station().recvSize());
+					d.rcvbuf.bufferSize(socketRecvSize());
 					if(d.rcvbuf.check()){
 						idbgx(Dbg::ipc, "received valid buffer size "<<d.rcvbuf.bufferSize()<<" data size "<<d.rcvbuf.dataSize()<<" id "<<d.rcvbuf.id());
-						dispatchReceivedBuffer(station().recvAddr());//the address is deeply copied
+						dispatchReceivedBuffer(socketRecvAddr(), _tout);//the address is deeply copied
 					}else{
 						idbgx(Dbg::ipc, "received invalid buffer size "<<d.rcvbuf.bufferSize()<<" data size "<<d.rcvbuf.dataSize()<<" id "<<d.rcvbuf.id());
 					}
@@ -290,7 +289,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 	}
 	bool mustreenter = processCommands(_tout);
 	
-	while(d.sendq.size() && !station().sendPendingCount()){
+	while(d.sendq.size() && !socketHasPendingSend()){
 		if(_tout < d.sendq.top()->timeout){
 			_tout = d.sendq.top()->timeout;
 			idbgx(Dbg::ipc, "return");
@@ -301,7 +300,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 			mustreenter = dispatchSentBuffer(_tout);
 			continue;
 		}
-		switch(station().sendTo(d.sendq.top()->b.buffer(), d.sendq.top()->b.bufferSize(), *d.sendq.top()->paddr)){
+		switch(socketSend(d.sendq.top()->b.buffer(), d.sendq.top()->b.bufferSize(), *d.sendq.top()->paddr)){
 			case BAD:
 			case OK: 
 				mustreenter = dispatchSentBuffer(_tout);
@@ -314,7 +313,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 	}//while
 	//if we've sent something or
 	//if we did not have a timeout while reading we MUST do an ioUpdate asap.
-	if(mustreenter || !station().recvPending() || d.closes.size()){
+	if(mustreenter || !socketHasPendingRecv() || d.closes.size()){
 		idbgx(Dbg::ipc, "return");
 		return OK;
 	}
@@ -358,12 +357,13 @@ void Talker::pushProcessConnector(ProcessConnector *_pc, ConnectorUid &_rconid, 
 }
 //----------------------------------------------------------------------
 //dispatch d.rcvbuf
-void Talker::dispatchReceivedBuffer(const SockAddrPair &_rsap){
+void Talker::dispatchReceivedBuffer(const SockAddrPair &_rsap, const TimeSpec &_rts){
 	cassert(_rsap.family() == AddrInfo::Inet4);
 	idbgx(Dbg::ipc, "received buffer:");
 	d.rcvbuf.print();
 
 	switch(d.rcvbuf.type()){
+		case Buffer::KeepAliveType:
 		case Buffer::DataType:{
 			idbgx(Dbg::ipc, "data buffer");
 			Inet4SockAddrPair					inaddr(_rsap);
@@ -373,16 +373,17 @@ void Talker::dispatchReceivedBuffer(const SockAddrPair &_rsap){
 				Data::ProcPairTp &rpp(d.procs[pit->second]);
 				cassert(rpp.first);
 				ConnectorUid conid(d.tkrid, pit->second, rpp.second);
-				switch(d.procs[pit->second].first->pushReceivedBuffer(d.rcvbuf, conid)){
+				switch(d.procs[pit->second].first->pushReceivedBuffer(d.rcvbuf, conid, _rts)){
 					case BAD:
 						cassert(false);
 						idbgx(Dbg::ipc, "the processconnector wants to close");
-// 						if((rpp.first->isConnecting())){
-// 							d.peerpm4.erase(rpp.first->peerAddr4());
-// 							d.cq.push(pit->second);
-// 						}else{
-// 							d.closes.push(pit->second);
-// 						}
+						//TODO: it may crash if uncommenting the below if block
+						if((rpp.first->isConnecting())){
+							d.peerpm4.erase(rpp.first->peerAddr4());
+							d.cq.push(pit->second);
+						}else{
+							d.closes.push(pit->second);
+						}
 					case OK:
 						break;
 					case NOK:
@@ -396,7 +397,7 @@ void Talker::dispatchReceivedBuffer(const SockAddrPair &_rsap){
 			int baseport = ProcessConnector::parseConnectingBuffer(d.rcvbuf);
 			idbgx(Dbg::ipc, "connecting buffer with baseport "<<baseport);
 			if(baseport >= 0){
-				ProcessConnector *ppc(new ProcessConnector(inaddr, baseport));
+				ProcessConnector *ppc(new ProcessConnector(inaddr, baseport, d.rservice.keepAliveTimeout()));
 				if(d.rservice.acceptProcess(ppc)) delete ppc;
 			}
 		}break;
@@ -452,7 +453,9 @@ bool Talker::processCommands(const TimeSpec &_rts){
 				d.cq.push(procid);
 			case OK:
 				++sndbufcnt;
-				optimizeBuffer(psb->b);
+				if(psb->b.buffer()){
+					optimizeBuffer(psb->b);
+				}
 				psb->procid = procid;
 				d.sendq.push(psb);
 				psb = NULL;
@@ -491,9 +494,10 @@ bool Talker::dispatchSentBuffer(const TimeSpec &_rts){
 	d.sendq.pop();
 	if(renqueuebuf){
 		d.sendq.push(psb);
-	}else{
+	}/*else{//TODO:
+		cassert(!psb->b.buffer());
 		d.sendfs.push(psb);
-	}
+	}*/
 	return d.cq.size();
 }
 //----------------------------------------------------------------------

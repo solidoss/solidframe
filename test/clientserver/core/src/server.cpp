@@ -41,12 +41,10 @@
 #include "clientserver/core/execpool.hpp"
 #include "clientserver/core/filemanager.hpp"
 #include "clientserver/core/filekeys.hpp"
-#include "clientserver/tcp/connectionselector.hpp"
-#include "clientserver/tcp/connection.hpp"
-#include "clientserver/tcp/listenerselector.hpp"
-#include "clientserver/tcp/listener.hpp"
-#include "clientserver/udp/talkerselector.hpp"
-#include "clientserver/udp/talker.hpp"
+
+#include "clientserver/aio/aioselector.hpp"
+#include "clientserver/aio/aioobject.hpp"
+
 #include "clientserver/core/objectselector.hpp"
 #include "clientserver/core/commandexecuter.hpp"
 #include "clientserver/core/requestuid.hpp"
@@ -61,6 +59,10 @@ using namespace std;
 namespace clientserver{
 
 class ObjectSelector;
+
+namespace aio{
+class Selector;
+}
 
 namespace tcp{
 class ConnectionSelector;
@@ -86,24 +88,27 @@ typedef Object::RequestUidTp	RequestUidTp;
 	A command for sending istreams from the fileManager
 */
 struct IStreamCommand: test::Command{
-	IStreamCommand(StreamPtr<IStream> &_sptr, const FileUidTp &_rfuid, const RequestUidTp &_requid):sptr(_sptr), fileuid(_rfuid), requid(_requid){}
+	IStreamCommand(StreamPtr<IStream> &_sptr, const FileUidTp &_rfuid, const RequestUidTp &_requid):sptr(_sptr), fileuid(_rfuid), requid(_requid){
+		idbg("");
+	}
 	int execute(Connection &_pcon);
 	int execute(Object &_pobj);
-	int execute(cs::CommandExecuter&, const CommandUidTp &, TimeSpec &);
+	int execute(uint32 _evs, cs::CommandExecuter&, const CommandUidTp &, TimeSpec &);
 	StreamPtr<IStream>	sptr;
 	FileUidTp			fileuid;
 	RequestUidTp		requid;
 };
 
 int IStreamCommand::execute(Connection &_rcon){
-	return _rcon.receiveIStream(sptr, fileuid, requid);
+	_rcon.receiveIStream(sptr, fileuid, requid);
+	return NOK;
 }
 
 int IStreamCommand::execute(Object &_robj){
 	return _robj.receiveIStream(sptr, fileuid, requid);
 }
 
-int IStreamCommand::execute(cs::CommandExecuter& _rce, const CommandUidTp &, TimeSpec &){
+int IStreamCommand::execute(uint32 _evs, cs::CommandExecuter& _rce, const CommandUidTp &, TimeSpec &){
 	_rce.receiveIStream(sptr, fileuid, requid);
 	return BAD;
 }
@@ -112,23 +117,26 @@ int IStreamCommand::execute(cs::CommandExecuter& _rce, const CommandUidTp &, Tim
 	A command for sending ostreams from the fileManager
 */
 struct OStreamCommand: test::Command{
-	OStreamCommand(StreamPtr<OStream> &_sptr, const FileUidTp &_rfuid, const RequestUidTp &_requid):sptr(_sptr), fileuid(_rfuid), requid(_requid){}
+	OStreamCommand(StreamPtr<OStream> &_sptr, const FileUidTp &_rfuid, const RequestUidTp &_requid):sptr(_sptr), fileuid(_rfuid), requid(_requid){
+		idbg("");
+	}
 	int execute(Connection &_pcon);
 	int execute(Object &_pobj);
-	int execute(cs::CommandExecuter&, const CommandUidTp &, TimeSpec &);
+	int execute(uint32 _evs, cs::CommandExecuter&, const CommandUidTp &, TimeSpec &);
 	StreamPtr<OStream>	sptr;
 	FileUidTp			fileuid;
 	RequestUidTp		requid;
 };
 
 int OStreamCommand::execute(Connection &_rcon){
-	return _rcon.receiveOStream(sptr, fileuid, requid);
+	_rcon.receiveOStream(sptr, fileuid, requid);
+	return NOK;
 }
 
 int OStreamCommand::execute(Object &_robj){
 	return _robj.receiveOStream(sptr, fileuid, requid);
 }
-int OStreamCommand::execute(cs::CommandExecuter& _rce, const CommandUidTp &, TimeSpec &){
+int OStreamCommand::execute(uint32 _evs, cs::CommandExecuter& _rce, const CommandUidTp &, TimeSpec &){
 	_rce.receiveOStream(sptr, fileuid, requid);
 	return NOK;
 }
@@ -138,24 +146,27 @@ int OStreamCommand::execute(cs::CommandExecuter& _rce, const CommandUidTp &, Tim
 */
 
 struct IOStreamCommand: test::Command{
-	IOStreamCommand(StreamPtr<IOStream> &_sptr, const FileUidTp &_rfuid, const RequestUidTp &_requid):sptr(_sptr), fileuid(_rfuid), requid(_requid){}
+	IOStreamCommand(StreamPtr<IOStream> &_sptr, const FileUidTp &_rfuid, const RequestUidTp &_requid):sptr(_sptr), fileuid(_rfuid), requid(_requid){
+		idbg("");
+	}
 	int execute(Connection &_pcon);
 	int execute(Object &_pobj);
-	int execute(cs::CommandExecuter&, const CommandUidTp &, TimeSpec &);
+	int execute(uint32 _evs, cs::CommandExecuter&, const CommandUidTp &, TimeSpec &);
 	StreamPtr<IOStream>	sptr;
 	FileUidTp			fileuid;
 	RequestUidTp		requid;
 };
 
 int IOStreamCommand::execute(Connection &_rcon){
-	return _rcon.receiveIOStream(sptr, fileuid, requid);
+	_rcon.receiveIOStream(sptr, fileuid, requid);
+	return NOK;
 }
 
 int IOStreamCommand::execute(Object &_robj){
 	return _robj.receiveIOStream(sptr, fileuid, requid);
 }
 
-int IOStreamCommand::execute(cs::CommandExecuter& _rce, const CommandUidTp &, TimeSpec &){
+int IOStreamCommand::execute(uint32 _evs, cs::CommandExecuter& _rce, const CommandUidTp &, TimeSpec &){
 	_rce.receiveIOStream(sptr, fileuid, requid);
 	return NOK;
 }
@@ -168,18 +179,19 @@ struct StreamErrorCommand: test::Command{
 	StreamErrorCommand(int _errid, const RequestUidTp &_requid):errid(_errid), requid(_requid){}
 	int execute(Connection &_pcon);
 	int execute(Object &_pobj);
-	int execute(cs::CommandExecuter&, const CommandUidTp &, TimeSpec &);
+	int execute(uint32 _evs, cs::CommandExecuter&, const CommandUidTp &, TimeSpec &);
 	int				errid;
 	RequestUidTp	requid;
 };
 
 int StreamErrorCommand::execute(Connection &_rcon){
-	return _rcon.receiveError(errid, requid);
+	_rcon.receiveError(errid, requid);
+	return NOK;
 }
 int StreamErrorCommand::execute(Object &_robj){
 	return _robj.receiveError(errid, requid);
 }
-int StreamErrorCommand::execute(cs::CommandExecuter& _rce, const CommandUidTp &, TimeSpec &){
+int StreamErrorCommand::execute(uint32 _evs, cs::CommandExecuter& _rce, const CommandUidTp &, TimeSpec &){
 	_rce.receiveError(errid, requid);
 	return NOK;
 }
@@ -221,9 +233,9 @@ void FileManager::sendError(int _error, const cs::RequestUid& _rrequid){
 */
 class IpcService: public cs::ipc::Service{
 public:
-	IpcService():cs::ipc::Service(){}
+	IpcService(uint32 _keepalivetout):cs::ipc::Service(_keepalivetout){}
 protected:
-	/*virtual*/void pushTalkerInPool(clientserver::Server &_rs, clientserver::udp::Talker *_ptkr);
+	/*virtual*/void pushTalkerInPool(clientserver::Server &_rs, clientserver::aio::Object *_ptkr);
 };
 
 //=========================================================================
@@ -259,12 +271,10 @@ void CommandExecuter::removeFromServer(){
 //=========================================================================
 //The server's localdata
 struct Server::Data{
-	typedef std::vector<ExtraObjPtr>								ExtraObjectVector;
-	typedef std::map<const char*, int, StrLess> 					ServiceIdxMap;
-	typedef clientserver::SelectPool<cs::ObjectSelector>			ObjSelPoolTp;
-	typedef clientserver::SelectPool<cs::tcp::ConnectionSelector>	ConSelPoolTp;
-	typedef clientserver::SelectPool<cs::tcp::ListenerSelector>		LisSelPoolTp;
-	typedef clientserver::SelectPool<cs::udp::TalkerSelector>		TkrSelPoolTp;
+	typedef std::vector<ExtraObjPtr>									ExtraObjectVector;
+	typedef std::map<const char*, int, StrLess> 						ServiceIdxMap;
+	typedef clientserver::SelectPool<cs::ObjectSelector>				ObjSelPoolTp;
+	typedef clientserver::SelectPool<cs::aio::Selector>					AioSelectorPoolTp;
 
 	Data(Server &_rs);
 	~Data();
@@ -272,9 +282,7 @@ struct Server::Data{
 	ServiceIdxMap						servicemap;// map name -> service index
 	//cs::ipc::Service					*pcs; // A pointer to the ipc service
 	ObjSelPoolTp						*pobjectpool[2];//object pools
-	ConSelPoolTp						*pconnectionpool;// connection pool
-	LisSelPoolTp						*plistenerpool;// listener pool
-	TkrSelPoolTp						*ptalkerpool;// talker pool
+	AioSelectorPoolTp					*paiopool;
 	cs::ObjPtr<cs::CommandExecuter>		readcmdexec;// read command executer
 	cs::ObjPtr<cs::CommandExecuter>		writecmdexec;// write command executer
 };
@@ -283,28 +291,14 @@ struct Server::Data{
 typedef serialization::TypeMapper					TypeMapper;
 typedef serialization::IdTypeMap					IdTypeMap;
 typedef serialization::bin::Serializer				BinSerializer;
-Server::Data::Data(Server &_rs):pconnectionpool(NULL), plistenerpool(NULL), ptalkerpool(NULL){
+Server::Data::Data(Server &_rs):
+	paiopool(NULL)
+{
 	pobjectpool[0] = NULL;
 	pobjectpool[1] = NULL;
 	
 	TypeMapper::registerMap<IdTypeMap>(new IdTypeMap);
 	TypeMapper::registerSerializer<BinSerializer>();
-	idbg("");
-	if(true){
-		plistenerpool = new LisSelPoolTp(	_rs, 
-												2, 	//max thread cnt
-												128	//max listeners per selector 
-												);	//at most 128*2 = 256 listeners
-		plistenerpool->start(1);//start with one worker
-	}
-	idbg("");
-	if(true){
-		ptalkerpool = new TkrSelPoolTp(	_rs, 
-												2, 	//max thread cnt
-												128	//max listeners per selector 
-												);	//at most 128*2 = 256 listeners
-		ptalkerpool->start(1);//start with one worker
-	}
 	idbg("");
 	if(true){
 		pobjectpool[0] = new ObjSelPoolTp(	_rs, 
@@ -314,30 +308,23 @@ Server::Data::Data(Server &_rs):pconnectionpool(NULL), plistenerpool(NULL), ptal
 		pobjectpool[0]->start(1);//start with one worker
 	}
 	idbg("");
-	if(true){	
-		pconnectionpool = new ConSelPoolTp(	_rs,
-												10,			//max thread cnt
-												256			//max connections per selector/thread
-												);			//at most 10 * 4 * 1024 connections
-		pconnectionpool->start(1);//start with one worker
+	if(true){
+		paiopool = new AioSelectorPoolTp(_rs,
+										10,			//max thread cnt
+										2048		//max aio objects per selector/thread
+										);			//at most 10 * 4 * 1024 connections
+		paiopool->start(1);//start with one worker
 	}
 	idbg("");
 }
 
 Server::Data::~Data(){
-	if(pconnectionpool) pconnectionpool->stop();
-	delete pconnectionpool;
-	
-	if(plistenerpool) plistenerpool->stop();
-	delete plistenerpool;
-	
-	if(ptalkerpool) ptalkerpool->stop();
-	delete ptalkerpool;
-	
 	if(pobjectpool[0]) pobjectpool[0]->stop();
 	if(pobjectpool[1]) pobjectpool[1]->stop();
 	delete pobjectpool[0];
 	delete pobjectpool[1];
+	if(paiopool)paiopool->stop();
+	delete paiopool;
 	delete readcmdexec.release();
 	delete writecmdexec.release();
 }
@@ -355,20 +342,12 @@ void registerService(ServiceCreator _psc, const char* _pname){
 }
 //----------------------------------------------------------------------------------
 template <>
-void Server::pushJob(cs::tcp::Listener *_pj, int){
-	d.plistenerpool->push(cs::ObjPtr<cs::tcp::Listener>(_pj));
-}
-template <>
-void Server::pushJob(cs::udp::Talker *_pj, int){
-	d.ptalkerpool->push(cs::ObjPtr<cs::udp::Talker>(_pj));
-}
-template <>
-void Server::pushJob(cs::tcp::Connection *_pj, int){
-	d.pconnectionpool->push(cs::ObjPtr<cs::tcp::Connection>(_pj));
-}
-template <>
 void Server::pushJob(cs::Object *_pj, int _pos){
 	d.pobjectpool[_pos]->push(cs::ObjPtr<cs::Object>(_pj));
+}
+template <>
+void Server::pushJob(cs::aio::Object *_pj, int){
+	d.paiopool->push(cs::ObjPtr<cs::aio::Object>(_pj));
 }
 
 /*
@@ -398,7 +377,7 @@ Server::Server():d(*(new Data(*this))){
 		this->pushJob((cs::Object*)d.writecmdexec.ptr());
 	}
 	if(true){// create register the ipc service
-		this->ipc(new IpcService);
+		this->ipc(new IpcService(1000));//one sec keepalive tout
 		int pos = cs::Server::insertService(&this->ipc());
 		if(pos < 0){
 			idbg("unable to register service: "<<"ipc");
@@ -517,7 +496,7 @@ int Server::visitService(const char* _nm, Visitor &_rov){
 	}
 }
 //----------------------------------------------------------------------------------
-void IpcService::pushTalkerInPool(clientserver::Server &_rs, clientserver::udp::Talker *_ptkr){
+void IpcService::pushTalkerInPool(clientserver::Server &_rs, clientserver::aio::Object *_ptkr){
 	static_cast<Server&>(_rs).pushJob(_ptkr);
 }
 //----------------------------------------------------------------------------------

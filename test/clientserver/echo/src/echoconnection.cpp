@@ -19,14 +19,13 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "clientserver/tcp/channel.hpp"
-
 #include "core/server.hpp"
 #include "echo/echoservice.hpp"
 #include "echoconnection.hpp"
 #include "system/socketaddress.hpp"
 #include "system/debug.hpp"
 #include "system/timespec.hpp"
+#include "system/cassert.hpp"
 
 namespace cs=clientserver;
 static char	*hellostr = "Welcome to echo service!!!\r\n"; 
@@ -34,17 +33,22 @@ static char	*hellostr = "Welcome to echo service!!!\r\n";
 namespace test{
 
 namespace echo{
-Connection::Connection(cs::tcp::Channel *_pch, const char *_node, const char *_srv): 
-									BaseTp(_pch),
-									bend(bbeg + BUFSZ),brpos(bbeg),bwpos(bbeg),
-									pai(NULL),b(false){
-	if(_node){
-		pai = new AddrInfo(_node, _srv);
-		it = pai->begin();
-		state(CONNECT);
-	}else{
-		state(INIT);
-	}
+Connection::Connection(const char *_node, const char *_srv): 
+	BaseTp(NULL),
+	bend(bbeg + BUFSZ),brpos(bbeg),bwpos(bbeg),
+	pai(NULL),b(false)
+{
+	cassert(_node && _srv);
+	pai = new AddrInfo(_node, _srv);
+	it = pai->begin();
+	state(CONNECT);
+	
+}
+Connection::Connection(const SocketDevice &_rsd):
+	BaseTp(_rsd),bend(bbeg + BUFSZ),brpos(bbeg),bwpos(bbeg),
+	pai(NULL),b(false)
+{
+	state(INIT);
 }
 /*
 NOTE: 
@@ -76,11 +80,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 		}
 		return BAD;
 	}
-/*	if(b){
-		_tout.set(0, 1000000 * 500);//allways set it if it's not MAXTIMEOUT
-	}else{*/
-		_tout.add(60);
-//	}
+
 	if(signaled()){
 		test::Server &rs = test::Server::the();
 		{
@@ -89,28 +89,46 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 		if(sm & cs::S_KILL) return BAD;
 		}
 	}
+	if(socketEvents()){
+		if(socketEvents() == cs::ERRDONE){
+			
+			return BAD;
+		}
+		if(state() == READ_TOUT){	
+			cassert(socketEvents() & cs::INDONE);
+		}else if(state() == WRITE_TOUT){	
+			cassert(socketEvents() & cs::OUTDONE);
+		}
+		
+	}
 	int rc = 512 * 1024;
 	do{
 		switch(state()){
 			case READ:
-				switch(channel().recv(bbeg, BUFSZ)){
+				switch(socketRecv(bbeg, BUFSZ)){
 					case BAD: return BAD;
 					case OK: break;
-					case NOK: state(READ_TOUT); b=true; return NOK;
+					case NOK: 
+						state(READ_TOUT); b=true; 
+						socketTimeout(_tout, 30);
+						return NOK;
 				}
 			case READ_TOUT:
 				state(WRITE);
 			case WRITE:
-				switch(channel().send(bbeg, channel().recvSize())){
+				switch(socketSend(bbeg, socketRecvSize())){
 					case BAD: return BAD;
 					case OK: break;
-					case NOK: state(WRITE_TOUT); return NOK;
+					case NOK: 
+						state(WRITE_TOUT);
+						socketTimeout(_tout, 10);
+						return NOK;
 				}
 			case WRITE_TOUT:
 				state(READ);
 				break;
 			case CONNECT:
-				switch(channel().connect(it)){
+				switch(socketConnect(it)){
 					case BAD:
 						if(++it){
 							state(CONNECT);
@@ -124,11 +142,11 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			case CONNECT_TOUT:
 				delete pai; pai = NULL;
 			case INIT:
-				channel().send(hellostr, strlen(hellostr));
+				socketSend(hellostr, strlen(hellostr));
 				state(READ);
 				break;
 		}
-		rc -= channel().recvSize();
+		rc -= socketRecvSize();
 	}while(rc > 0);
 	return OK;
 }

@@ -21,14 +21,13 @@
 
 #include <cstdio>
 
-#include "clientserver/udp/station.hpp"
-
 #include "core/server.hpp"
 #include "echo/echoservice.hpp"
 #include "echotalker.hpp"
 #include "system/timespec.hpp"
 #include "system/socketaddress.hpp"
 #include "system/debug.hpp"
+#include "system/mutex.hpp"
 
 namespace cs = clientserver;
 
@@ -38,14 +37,17 @@ namespace test{
 
 namespace echo{
 
-Talker::Talker(cs::udp::Station *_pst, const char *_node, const char *_srv): 
-									BaseTp(_pst), pai(NULL){
+Talker::Talker(const char *_node, const char *_srv):pai(NULL){
 	if(_node){
 		pai = new AddrInfo(_node, _srv);
 		strcpy(bbeg, hellostr);
 		sz = strlen(hellostr);
 		state(INIT);
-	}else state(READ);
+	}
+}
+
+Talker::Talker(const SocketDevice &_rsd):BaseTp(_rsd), pai(NULL){
+	state(READ);
 }
 
 /*
@@ -81,40 +83,41 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 		if(sm & cs::S_KILL) return BAD;
 		}
 	}
+	if(socketEvents() & cs::ERRDONE) return BAD;
 	int rc = 512 * 1024;
 	do{
 		switch(state()){
 			case READ:
-				switch(station().recvFrom(bbeg, BUFSZ)){
+				switch(socketRecv(bbeg, BUFSZ)){
 					case BAD: return BAD;
 					case OK: state(READ_TOUT);break;
 					case NOK:
-						if(pai) _tout.add(20);
+						socketTimeout(_tout, 20);
 						state(READ_TOUT); 
 						return NOK;
 				}
 			case READ_TOUT:
 				state(WRITE);
 			case WRITE:
-				sprintf(bbeg + station().recvSize() - 1," [%u:%d]\r\n", (unsigned)_tout.seconds(), (int)_tout.nanoSeconds());
-				switch(station().sendTo(bbeg, strlen(bbeg), station().recvAddr())){
+				sprintf(bbeg + socketRecvSize() - 1," [%u:%d]\r\n", (unsigned)_tout.seconds(), (int)_tout.nanoSeconds());
+				switch(socketSend(bbeg, strlen(bbeg), socketRecvAddr())){
 					case BAD: return BAD;
 					case OK: break;
 					case NOK: state(WRITE_TOUT);
-						if(pai) _tout.add(20);
+						socketTimeout(_tout, 20);
 						return NOK;
 				}
 			case WRITE_TOUT:
 				state(WRITE2);
-				_tout.set(0, 500 * 1000000);
+				socketTimeout(_tout, 20);
 				return NOK;
 			case WRITE2:
-				sprintf(bbeg + station().recvSize() - 1," [%u:%d]\r\n", (unsigned)_tout.seconds(), (int)_tout.nanoSeconds());
-				switch(station().sendTo(bbeg, strlen(bbeg), station().recvAddr())){
+				sprintf(bbeg + socketRecvSize() - 1," [%u:%d]\r\n", (unsigned)_tout.seconds(), (int)_tout.nanoSeconds());
+				switch(socketSend(bbeg, strlen(bbeg), socketRecvAddr())){
 					case BAD: return BAD;
 					case OK: break;
 					case NOK: state(WRITE_TOUT2);
-						if(pai) _tout.add(20);
+						socketTimeout(_tout, 20);
 						return NOK;
 				}
 			case WRITE_TOUT2:
@@ -126,14 +129,16 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 					return BAD;
 				}
 				AddrInfoIterator it(pai->begin());
-				switch(station().sendTo(bbeg, sz, SockAddrPair(it))){
+				switch(socketSend(bbeg, sz, SockAddrPair(it))){
 					case BAD: return BAD;
 					case OK: state(READ); break;
-					case NOK: state(WRITE_TOUT); return NOK;
+					case NOK:
+						state(WRITE_TOUT);
+						return NOK;
 				}
 				break;
 		}
-		rc -= station().recvSize();
+		rc -= socketRecvSize();
 	}while(rc > 0);
 	return OK;
 }

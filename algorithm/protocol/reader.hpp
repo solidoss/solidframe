@@ -25,6 +25,9 @@
 #include "algorithm/protocol/parameter.hpp"
 #include "algorithm/protocol/logger.hpp"
 #include "utility/stack.hpp"
+#include <string>
+
+typedef std::string String;
 
 namespace protocol{
 
@@ -256,11 +259,11 @@ protected:
 		if((_rds.size() + (rpos - tbeg)) <= _maxsz){
 			_rds.append(tbeg, rpos - tbeg);
 			if(rpos != wpos){
-				if(dolog) plog->readLiteral(_rds.data(),_rds.size());
+				if(dolog) plog->inLiteral(_rds.data(),_rds.size());
 				return Ok;
 			}
 		}else{
-			if(dolog) plog->readLiteral(_rds.data(), _rds.size());
+			if(dolog) plog->inLiteral(_rds.data(), _rds.size());
 			return Error;
 		}
 		return No;
@@ -283,7 +286,7 @@ protected:
 		}
 		_rdsz -= slen;
 		if(rpos != wpos){
-			if(dolog) plog->readLocate(_rds.data(), _rds.size());
+			if(dolog) plog->inLocate(_rds.data(), _rds.size());
 			return Ok;
 		}
 		return No;
