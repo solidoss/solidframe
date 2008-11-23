@@ -20,7 +20,7 @@ void objectCheck(bool _add, const char *_fncname){
 }
 #else
 template <class T>
-void objectCheck(bool _add){
+void objectCheck(bool _add, const char *){
 }
 #endif
 
