@@ -1046,6 +1046,7 @@ void FileManager::Data::collectFilePositionExt(unsigned _pos){
 void FileManager::Data::eraseToutPos(unsigned _pos){
 	cassert(_pos < toutv.size());
 	toutv[_pos] = toutv.back();
+	fv[toutv.back()].toutidx = _pos;
 	toutv.pop_back();
 }
 //--------------------------------------------------------------------------

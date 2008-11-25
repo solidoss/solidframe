@@ -46,6 +46,7 @@ void Object::pushRequest(uint _pos, uint _req){
 inline void Object::doPushResponse(uint32 _pos){
 	if(pstubs[_pos].request != SocketStub::Response){
 		*respos = _pos; ++respos;
+		cassert(respos - resbeg == 1);
 		pstubs[_pos].request = SocketStub::Response;
 	}
 }
@@ -85,6 +86,8 @@ void Object::doAddTimeoutSockets(const TimeSpec &_timepos){
 			doPushResponse(*pit);
 			--pend;
 			*pit = *pend;
+			//TODO: add some checking
+			//pstubs[*pit].toutpos = pit - toutbeg;
 		}else ++pit;
 	}
 }

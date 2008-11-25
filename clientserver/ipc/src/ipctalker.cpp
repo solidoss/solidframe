@@ -186,6 +186,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 // 			idbgx(Dbg::ipc, "talker error");
 // 		return BAD;
 // 	}
+	idbgx(Dbg::ipc, "this = "<<(void*)this<<" &d = "<<(void*)&d);
 	if(signaled() || d.closes.size()){
 		{
 			Mutex::Locker	lock(rs.mutex(*this));
