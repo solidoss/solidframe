@@ -351,8 +351,10 @@ void Selector::run(){
         }
 		
 		d.selcnt = epoll_wait(d.epollfd, d.events, d.socksz, pollwait);
-		
 		idbgx(Dbg::aio, "epollwait = "<<d.selcnt);
+#ifdef UDEBUG
+		if(d.selcnt < 0) d.selcnt = 0;
+#endif
 	}while(!(flags & Data::EXIT_LOOP));
 }
 
@@ -438,7 +440,7 @@ uint Selector::doAllIo(){
 			cassert(psock);
 			if((evs = doIo(*psock, d.events[i].events))){
 				//first mark the socket in connection
-				idbgx(Dbg::aio, "evs = "<<evs<<" indone = "<<INDONE);
+				idbgx(Dbg::aio, "evs = "<<evs<<" indone = "<<INDONE<<" stubpos = "<<stubpos);
 				stub.objptr->doAddSignaledSocketNext(sockpos, evs);
 				stub.events |= evs;
 				//push channel execqueue
@@ -533,6 +535,7 @@ uint Selector::doExecute(const uint _pos){
 			d.execq.push(_pos);
 			stub.state = Stub::InExecQueue;
 			stub.timepos.set(0xffffffff, 0xffffffff);
+			stub.objptr->doClearResponses();//clears the responses from the selector to the object
 			break;
 		case NOK:
 			doPrepareObjectWait(_pos, timepos);

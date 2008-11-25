@@ -62,6 +62,7 @@ void CommandExecuter::Data::push(CmdPtr<Command> &_cmd){
 void CommandExecuter::Data::eraseToutPos(uint32 _pos){
 	cassert(_pos < toutv.size());
 	toutv[_pos] = toutv.back();
+	cdq[toutv.back()].toutidx = _pos;
 	toutv.pop_back();
 }
 
@@ -136,12 +137,17 @@ int CommandExecuter::execute(ulong _evs, TimeSpec &_rtout){
 		}
 		if((_evs & TIMEOUT) && _rtout >= d.tout){
 			TimeSpec tout(0xffffffff);
-			for(Data::TimeoutVectorTp::const_iterator it(d.toutv.begin()); it != d.toutv.end();){
-				Data::CmdData &rcp(d.cdq[*it]);
+			for(uint i = 0; i < d.toutv.size();){
+				Data::CmdData &rcp(d.cdq[d.toutv[i]]);
 				if(_rtout >= rcp.tout){
-					doExecute(*it, TIMEOUT, _rtout);
-				}else if(rcp.tout < tout){
-					tout = rcp.tout;
+					d.eraseToutPos(i);
+					rcp.toutidx = -1;
+					doExecute(d.toutv[i], TIMEOUT, _rtout);
+				}else{
+					if(rcp.tout < tout){
+						tout = rcp.tout;
+					}
+					++i;
 				}
 			}
 			d.tout = tout;
