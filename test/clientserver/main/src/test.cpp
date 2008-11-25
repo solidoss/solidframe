@@ -106,7 +106,7 @@ int main(int argc, char* argv[]){
 	lm.insertListener("localhost", "3333");
 	Directory::create("log");
 	lm.insertConnector(new audit::LogBasicConnector("log"));
-	Log::instance().reinit(argv[0], Log::AllLevels, "ALL", new DeviceIOStream(pairfd[1],-1));
+	Log::instance().reinit(argv[0], 0, "ALL", new DeviceIOStream(pairfd[1],-1));
 	
 	int i,stime;
 	long ltime;

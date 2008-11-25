@@ -485,10 +485,10 @@ int main(int argc, char *argv[]){
 #ifdef UDEBUG
 	{
 	string s = "";
-	Dbg::instance().init(s, Dbg::AllLevels, argv[0]+2, "all");
+	Dbg::instance().init(s, argv[0]+2, 0, "all");
 	cout<<"Debug file: "<<s<<endl;
 	s.clear();
-	Dbg::instance().bits(s);
+	Dbg::instance().moduleBits(s);
 	cout<<"Debug bits: "<<s<<endl;
 	}
 #endif

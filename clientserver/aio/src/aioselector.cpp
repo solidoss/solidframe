@@ -126,9 +126,11 @@ int Selector::Data::computeWaitTimeout()const{
 void Selector::Data::addNewSocket(){
 	++socksz;
 	if(socksz > sockcp){
+		uint oldcp = sockcp;
 		sockcp += 64;//TODO: improve!!
+		epoll_event *pevs = new epoll_event[sockcp];
+		memcpy(pevs, events, oldcp * sizeof(epoll_event));
 		delete []events;
-		events = new epoll_event[sockcp];
 // 		for(uint i = 0; i < sockcp; ++i){
 // 			pevs[i].events = 0;
 // 			pevs[i].data.u64 = 0;
@@ -141,8 +143,17 @@ uint Selector::Data::newStub(){
 		pos = freestubsstk.top();
 		freestubsstk.pop();
 	}else{
+		uint cp = stubs.capacity();
 		pos = stubs.size();
 		stubs.push_back(Stub());
+		if(cp != stubs.capacity()){
+			//we need to reset the aioobject's pointer to timepos
+			for(Data::StubVectorTp::iterator it(stubs.begin()); it != stubs.end(); ++it){
+				if(it->objptr){
+					it->objptr->ptimepos = &it->timepos;
+				}
+			}
+		}
 	}
 	return pos;
 }
@@ -206,7 +217,9 @@ int Selector::reserve(uint _cp){
 		d.events[i].events = 0;
 		d.events[i].data.u64 = 0L;
 	}
-	
+	//We need to have the stubs preallocated
+	//because of aio::Object::ptimeout
+	d.stubs.reserve(d.objcp);
 	//add the pipe stub:
 	d.stubs.push_back(Stub());
 	
@@ -241,6 +254,7 @@ bool Selector::full()const{
 }
 
 void Selector::push(const ObjectTp &_objptr, uint _thid){
+	cassert(!full());
 	uint stubpos = d.newStub();
 	Stub &stub = d.stubs[stubpos];
 	
