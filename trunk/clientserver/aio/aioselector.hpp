@@ -37,7 +37,12 @@ class Socket;
 
 typedef ObjPtr<Object>	ObjectPtrTp;
 
-
+//! An asynchronous IO selector to be used with the template SelectPool
+/*!
+	A selector will help SelectPool to actively hold aio::objects.
+	A selector must export a certain interface requested by the SelectPool,
+	and the pool will have one for its every thread.
+*/
 class Selector{
 public:
 	typedef ObjectPtrTp		ObjectTp;

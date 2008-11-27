@@ -182,10 +182,10 @@ void Connection::socketRequestUnregister(){
 	++reqpos;
 }
 
-int Connection::state()const{
+int Connection::socketState()const{
 	return stub.state;
 }
-void Connection::state(int _st){
+void Connection::socketState(int _st){
 	stub.state = _st;
 }
 
