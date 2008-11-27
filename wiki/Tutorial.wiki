@@ -100,7 +100,7 @@ Here are the most important components of the core library:
 === The server ===
 
 The test::Server inherits and extends cs::Server. Here's what it does:
- * create and keep the active sets (the thread pools) allowing job insertion (pushJob<T>);
+ * create and keep the active sets (the thread pools) allowing job insertion (pushJob< T >);
  * allows insertion of new services given a pointer to a service and its name (insertService);
  * keep the services in a name to service map;
  * allows adding different objects to services (insertTalker, insertConnection, insertListener);
