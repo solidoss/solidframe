@@ -39,7 +39,7 @@ namespace test{
 	
 */
 int Service::execute(ulong _sig, TimeSpec &_rtout){
-	idbg("serviceexec");
+	idbg("serviceexec sig = "<<_sig);
 	if(signaled()){
 		ulong sm;
 		{

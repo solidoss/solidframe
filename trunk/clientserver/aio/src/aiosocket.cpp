@@ -5,6 +5,7 @@
 #include "system/cassert.hpp"
 #include "system/debug.hpp"
 #include <cerrno>
+#include <cstring>
 #include <sys/epoll.h>
 
 namespace clientserver{
