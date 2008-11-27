@@ -30,15 +30,33 @@ namespace aio{
 
 class Socket;
 class Selector;
-
+//! aio::Object is the base class for all objects doing asynchronous socket io
+/*!
+	Although it can be inherited directly, one should use the extended
+	classes from aio::tcp and aio::udp. It is designed together with
+	aio::Selector so the objects shoud stay within a SelectorPool\<aio::Selector>.
+	It allows for multiple sockets but this is only from the aio::Selector side,
+	as actual support for single/multiple sockets must came from upper levels,
+	i.e. inheritants - see aio::tcp::Connection, aio::tcp::MultiConnection and/or
+	aio::udp::Talker, aio::udp::MultiTalker.
+*/
 class Object: public clientserver::Object{
 public:
 	virtual ~Object();
+	//!Called by selector on certain events
 	virtual int execute(ulong _evs, TimeSpec &_rtout) = 0;
 	virtual int accept(clientserver::Visitor &_roi);
+protected:
+	//! Returns true if there are pending io requests
+	/*!
+		Notable is that the method is thought to be called
+		from execute callback, and that its status is reseted
+		after exiting from execute.
+	*/
 	bool hasPendingRequests()const{return reqbeg != reqpos;}
 protected:
 	friend class Selector;
+	//! A stub struncture for sockets
 	struct SocketStub{
 		enum{
 			//Requests from multiconnection to selector
@@ -67,11 +85,25 @@ protected:
 		TimeSpec	timepos;
 		int			toutpos;	//-1 or position in toutvec
 		uint16		request;	//Requests from connection to selector
-		int16		state;
+		int16		state;		//An associated state for the socket
 		uint32		chnevents;	//the event from selector to connection:
 								//INDONE, OUTDONE, TIMEOUT, ERRDONE
 		uint32		selevents;	//used by selector - current io requests
 	};
+	//!Constructor
+	/*!
+		Constructor setting all needed data.
+		The data is not dealocated, it is the responsability of inheritants.
+		E.g. some classes may avoid "new" allocation by holding the table
+		within the class (as aio::tcp::Connection). Others may do a single
+		allocation of a big chunck to hold all the tables and just set 
+		the pointers to offsets within.
+		\param _pstubs A table with allocated stubs, can be changed after
+		\param _stubcp The capacity of the table
+		\param _reqbeg A table of int32[_stubcp]
+		\param _resbeg A table of int32[_stubcp]
+		\param _toutbeg A table of int32[_stubcp]
+	*/
 	Object(
 		SocketStub *_pstubs,
 		uint32 _stubcp,

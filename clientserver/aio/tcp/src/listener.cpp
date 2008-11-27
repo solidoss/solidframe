@@ -86,10 +86,10 @@ void Listener::socketRequestUnregister(){
 	++reqpos;
 }
 
-int Listener::state()const{
+int Listener::socketState()const{
 	return stub.state;
 }
-void Listener::state(int _st){
+void Listener::socketState(int _st){
 	stub.state = _st;
 }
 

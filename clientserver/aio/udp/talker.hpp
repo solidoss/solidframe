@@ -61,8 +61,8 @@ public:
 	void socketRequestRegister();
 	void socketRequestUnregister();
 	
-	int state()const;
-	void state(int _st);
+	int socketState()const;
+	void socketState(int _st);
 	
 private:
 	SocketStub	stub;

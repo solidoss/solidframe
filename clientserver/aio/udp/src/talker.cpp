@@ -180,10 +180,10 @@ void Talker::socketRequestUnregister(){
 	++reqpos;
 }
 
-int Talker::state()const{
+int Talker::socketState()const{
 	return stub.state;
 }
-void Talker::state(int _st){
+void Talker::socketState(int _st){
 	stub.state = _st;
 }
 
