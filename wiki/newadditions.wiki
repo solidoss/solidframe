@@ -3,11 +3,12 @@
 = Introduction =
 
 SolidGround has received lately some very nice additions and improvements:
-  # an audit/logging module;
-  # keep alive support for ipc
-  # redesign the asynchronous socket communication. 
+  # An audit/logging module;
+  # Keep alive support for ipc
+  # Redesign the asynchronous socket communication. 
   
 In the following lines I shall present each of them.
+
 
 = Audit Logging Module =
 
@@ -24,7 +25,9 @@ The log lines have some properties:
   * the name of the current function.
 
 All these properties can be filtered and someone can either drop the log line, or send it to an appropriate destination (e.g. one can extend the logging engine to send log lines to different log files for every module).
+
 Here is a snapshot from the test/audit/log/server.cpp:
+
 {{{
 #include <iostream>
 #include "audit/log/logmanager.hpp"
@@ -87,26 +90,36 @@ int main(int _argc, char *argv[]){
 }}}
 
 As you can see it uses a pipe to communicate from client to server (one can easily modify it to use socketpair), it initiate the server module and then logs the user inserted strings on info level.
+
 The server can also listen for tcp connections on port 3333.
 One can also insert multiple channels and/or listeners.
 
 = The keep alive support for ipc =
 
-The ipc service can now the configured to use keep alive in order to detect peer side disconnection. So if configured, the ipc engine can send keep alive buffers from time to time when there are commands waiting for responses from the peer side.
-Some times is quite helpful when you send a command for which you wait for a response. For how log should you wait for the response?
-Using ipc keep alive, the command sent to a peer, if it is waiting for a response it is not immediately deleted, it is kept, until either the response has come, or a disconnect is detected, in which case it (the command) can be used to inform the sender that the response will never come.
+The ipc service can now be configured to use keep alive in order to detect peer side disconnection. So if configured, the ipc engine can send keep alive buffers from time to time when there are commands waiting for responses from the peer side.
+
+This is quite helpful when you send a command for which you wait for a response!
+
+For how log should you wait for the response?
+
+Using ipc keep alive, the command sent to a peer - if it is waiting for a response - it is not immediately deleted, it is kept, until either the response has come, or a disconnect is detected, in which case it (the command) can be used to inform the sender that the response will never come.
+
 Notable is that no keep alive data is transmitted if no response is awaited.
 
 = Redesign the asynchronous socket communication =
 
 The previous aio design had one big problem: it had selector pools for every type of socket: one pool for tcp channel, one for tcp listener and one for udp.
+
 So here comes the new design which improves the situation: one aio selector pool.
+
 So with an aio::Selector with capacity large enough, one can do all socket io in one single thread.
+
 Another problem with the previous design is that it didn't allow for easy and powerful implementations for proxies or multi connections (connection with multiple sockets).
 
 With the new design, one can have connections using multiple sockets: e.g. two for proxies.
 
 Here's another situation: group chat.
+
 One can have a MultiListener, which listens on one socket for new connections, then asynchronously wait for user authentication and chat-room request, then send the connection stub to the appropriate chat-room's MultiConnection object.
 
 
