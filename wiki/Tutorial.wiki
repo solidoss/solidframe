@@ -1,4 +1,4 @@
-#summary A step by step tutorial for start using SolidGround.
+#summary A step by step tutorial to start using SolidGround.
 
 = Introduction =
 
