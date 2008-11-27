@@ -586,6 +586,7 @@ FetchMasterCommand::~FetchMasterCommand(){
 }
 
 void FetchMasterCommand::ipcFail(int _err){
+	idbg("");
 	Server::the().signalObject(fromv.first, fromv.second, cs::S_RAISE | cs::S_KILL);
 }
 void FetchMasterCommand::print()const{
@@ -736,11 +737,11 @@ int FetchMasterCommand::receiveError(
 //-------------------------------------------------------------------------------
 FetchSlaveCommand::~FetchSlaveCommand(){
 	idbg("");
-	if(fromv.first != 0xffffffff){
-		idbg("unsuccessfull sent");
-		//signal fromv object to die
-		Server::the().signalObject(fromv.first, fromv.second, cs::S_RAISE | cs::S_KILL);
-	}
+// 	if(fromv.first != 0xffffffff){
+// 		idbg("unsuccessfull sent");
+// 		//signal fromv object to die
+// 		Server::the().signalObject(fromv.first, fromv.second, cs::S_RAISE | cs::S_KILL);
+// 	}
 }
 void FetchSlaveCommand::print()const{
 	idbg("FetchSlaveCommand:");

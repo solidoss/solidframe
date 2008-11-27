@@ -340,7 +340,7 @@ int AlphaThread::list(char *_pb){
 
 int AlphaThread::fetch(unsigned _idx, char *_pb){
 	wr<<"s2 fetch "<<sdq[_idx];
-	//cout<<_idx<<" "<<sdq[_idx]<<endl;
+	cout<<_idx<<" "<<sdq[_idx]<<endl;
 	if(addr.size()){
 		wr<<" \""<<addr<<"\" "<<(uint32)port;
 	}

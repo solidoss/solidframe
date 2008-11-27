@@ -137,12 +137,14 @@ int CommandExecuter::execute(ulong _evs, TimeSpec &_rtout){
 		}
 		if((_evs & TIMEOUT) && _rtout >= d.tout){
 			TimeSpec tout(0xffffffff);
+			idbgx(Dbg::cs, "1 tout.size = "<<d.toutv.size());
 			for(uint i = 0; i < d.toutv.size();){
-				Data::CmdData &rcp(d.cdq[d.toutv[i]]);
+				uint pos = d.toutv[i];
+				Data::CmdData &rcp(d.cdq[pos]);
 				if(_rtout >= rcp.tout){
 					d.eraseToutPos(i);
 					rcp.toutidx = -1;
-					doExecute(d.toutv[i], TIMEOUT, _rtout);
+					doExecute(pos, TIMEOUT, _rtout);
 				}else{
 					if(rcp.tout < tout){
 						tout = rcp.tout;
@@ -150,6 +152,7 @@ int CommandExecuter::execute(ulong _evs, TimeSpec &_rtout){
 					++i;
 				}
 			}
+			idbgx(Dbg::cs, "2 tout.size = "<<d.toutv.size());
 			d.tout = tout;
 		}
 	}else{
@@ -208,6 +211,7 @@ void CommandExecuter::doExecute(uint _pos, uint32 _evs, const TimeSpec &_rtout){
 			break;
 		case NOK:
 			if(ts != _rtout){
+				idbgx(Dbg::cs, "tout idx = "<<rcp.toutidx);
 				rcp.tout = ts;
 				if(d.tout > ts){
 					d.tout = ts;
@@ -216,6 +220,7 @@ void CommandExecuter::doExecute(uint _pos, uint32 _evs, const TimeSpec &_rtout){
 					d.toutv.push_back(_pos);
 					rcp.toutidx = d.toutv.size() - 1;
 				}
+				idbgx(Dbg::cs, "tout idx = "<<rcp.toutidx<<" toutv.size = "<<d.toutv.size());
 			}else{
 				rcp.tout.set(0xffffffff);
 				if(rcp.toutidx >= 0){

@@ -82,7 +82,7 @@ void ObjectSelector::run(){
 	do{
 		state = 0;
 		if(nbcnt < 0){
-			clock_gettime(CLOCK_MONOTONIC, &ctimepos);
+			clock_gettime(CLOCK_REALTIME, &ctimepos);
 			nbcnt = maxnbcnt;
 		}
 		
@@ -94,14 +94,14 @@ void ObjectSelector::run(){
 			--nbcnt;
 		}else{ 
 			if(ntimepos.seconds() != 0xffffffff) {
-				pollwait = ntimepos.seconds() - ctimepos.seconds();
+				pollwait = 1;
 			} else pollwait = -1;
 			nbcnt = -1;
         }
-		
 		state |= doWait(pollwait);
 		
 		if(state & FULL_SCAN){
+			idbgx(Dbg::cs, "full_scan");
 			ulong evs = 0;
 			ntimepos.set(0xffffffff);
 			for(SelVecTp::iterator it(sv.begin()); it != sv.end(); ++it){
@@ -147,13 +147,32 @@ void ObjectSelector::push(const ObjectPtrTp &_robj, uint _thid){
 }
 
 int ObjectSelector::doWait(int _wt){
+	idbgx(Dbg::cs, "wt = "<<_wt);
 	int rv = 0;
 	mtx.lock();
 	if(_wt){
 		if(_wt > 0){
 			TimeSpec ts(ctimepos);
-			ts.set(ts.seconds() + _wt);
-			while(uiq.empty() && !cnd.wait(mtx,ts));
+			ts.add(60);//1 min
+			if(ts > ntimepos){
+				ts = ntimepos;
+			}
+			idbgx(Dbg::cs, "uiq.size = "<<uiq.size());
+			while(uiq.empty()){
+				idbgx(Dbg::cs, "before cond wait");
+				if(cnd.wait(mtx,ts)){
+					idbgx(Dbg::cs, "after 1 cond wait");
+					clock_gettime(CLOCK_REALTIME, &ctimepos);
+					rv |= FULL_SCAN;
+					break;
+				}
+				idbgx(Dbg::cs, "after 2 cond wait");
+				clock_gettime(CLOCK_REALTIME, &ctimepos);
+				if(ctimepos >= ntimepos){
+					rv |= FULL_SCAN;
+					break;
+				}
+			}
 		}else{
 			while(uiq.empty()) cnd.wait(mtx);
 		}
@@ -173,6 +192,7 @@ int ObjectSelector::doWait(int _wt){
 		}while(uiq.size());
 	}else{if(_wt) rv |= FULL_SCAN;}
 	mtx.unlock();
+	idbgx(Dbg::cs, "rv = "<<rv);
 	return rv;
 }
 
@@ -189,7 +209,7 @@ int ObjectSelector::doExecute(unsigned _i, ulong _evs, TimeSpec _crttout){
 		case OK:
 			idbgx(Dbg::cs, "OK: reentering object");
 			if(!sv[_i].state) {objq.push(_i); sv[_i].state = 1;}
-			_crttout.set(0xffffffff);
+			sv[_i].timepos.set(0xffffffff);
 			break;
 		case NOK:
 			idbgx(Dbg::cs, "TOUT: connection waits for signals");
@@ -199,7 +219,7 @@ int ObjectSelector::doExecute(unsigned _i, ulong _evs, TimeSpec _crttout){
 					ntimepos = _crttout;
 				}
 			}else{
-				_crttout.set(0xffffffff);
+				sv[_i].timepos.set(0xffffffff);
 			}
 			break;
 		case LEAVE:

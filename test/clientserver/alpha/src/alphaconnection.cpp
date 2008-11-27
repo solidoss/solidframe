@@ -241,11 +241,12 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 				case NOK:
 					if(hasPendingRequests()){
 						socketTimeout(_tout, 3000);
+						state(ExecuteIOTout);
 					}else{
 						_tout.add(2000);
-						idbg("no pending io - wait twenty seconds");
+						idbg("no pendin io - wait twenty seconds");
+						state(ExecuteTout);
 					}
-					state(ExecuteTout);
 					return NOK;
 				case OK:
 					if(state() != IdleExecute){
@@ -285,12 +286,13 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 				return OK;
 			}
 			return NOK;
-		case ExecuteTout:
+		case ExecuteIOTout:
 			idbg("State: ExecuteTout");
 			if(socketEvents() & cs::OUTDONE){
 				state(Execute);
 				return OK;
 			}
+		case ExecuteTout:
 			return NOK;
 	}
 	return OK;
