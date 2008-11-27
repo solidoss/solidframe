@@ -17,12 +17,12 @@ The logging module has two sides:
   * and the server side which is used for filtering and sending log lines to appropriate destinations.
 
 The log lines have some properties:
-  * a log level:  info, error, warn, debug, io;
+  * The log level:  info, error, warn, debug, io.
   * The module which sent the log line, which is configurable. Here are some predefined: any, aio, aio_tcp, aio_udp, filemanager, ipc etc.
   * An id (uint32) which is particular to every module.
-  * the source file where is the log line.
-  * the source file line where is the log line.
-  * the name of the current function.
+  * The source file where is the log line.
+  * The source file line where is the log line.
+  * The name of the current function.
 
 All these properties can be filtered and someone can either drop the log line, or send it to an appropriate destination (e.g. one can extend the logging engine to send log lines to different log files for every module).
 
