@@ -111,20 +111,19 @@ The insert methods are just proxies for test::Service methods.
 
 The pools are simply defined like this:
 {{{
-	typedef clientserver::SelectPool<cs::ObjectSelector>			ObjSelPoolTp;
-	typedef clientserver::SelectPool<cs::tcp::ConnectionSelector>		ConSelPoolTp;
-	typedef clientserver::SelectPool<cs::tcp::ListenerSelector>		LisSelPoolTp;
-	typedef clientserver::SelectPool<cs::udp::TalkerSelector>		TkrSelPoolTp;
+	typedef clientserver::SelectPool<cs::ObjectSelector>		ObjSelPoolTp;
+	typedef clientserver::SelectPool<cs::aio::Selector>		AioSelectorPoolTp;
 }}}
 
 Instantiating a pool is simple:
+
 {{{
 if(true){	
-	pconnectionpool = new ConSelPoolTp(_rs,
+	paiopool = new AioSelectorPoolTp(_rs,		//the server
 					10,		//max thread cnt
 					50		//max connections per selector
 					);		//at most 10 * 4 * 1024 connections
-	pconnectionpool->start(1);//start with one worker
+	paiopool->start(1);//start with one worker
 }
 }}}
 
