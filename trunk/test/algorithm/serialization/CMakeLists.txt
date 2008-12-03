@@ -1,4 +1,4 @@
-include_directories (${SOLIDGROUND_SOURCE_DIR})
+#include_directories (${SOLIDGROUND_SOURCE_DIR})
 
 link_directories (${SOLIDGROUND_SOURCE_DIR}/system)
 
