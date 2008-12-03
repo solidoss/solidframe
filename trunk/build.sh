@@ -25,6 +25,7 @@ if [ "$1" = "" ] ; then
 	echo -ne "\tmaintain - same as debug but with compilation warnings activated\n"
 	echo -ne "\tnolog - full debug info but logs are deactivated\n"
 	echo -ne "\trelease - full optimization (-O3)\n"
+	echo -me "\textern - build the tar.gz with the extern libs\n"
 	echo -ne "\tdocumentation_full - full API documentation including pdf\n"
 	echo -ne "\tdocumentation_fast - fast API documentation\n"
 	echo -ne "\nWhen used kdevelop, a kdevelop project will be created else make based project will be created\n\n"
@@ -58,14 +59,18 @@ else
 			doxygen Doxyfile.fast
 			tar -cjf documentation/fast.tar.bz2 documentation/html/ documentation/index.html
 		else
-			mkdir application
-			cd application
-			make_cmake_list *
-			cd ../
-			mkdir build
-			mkdir "build/$1"
-			cd "build/$1"
-			cmake -DCMAKE_BUILD_TYPE=$1 ../../
+			if [ "$1" = "extern" ] ; then
+				tar -cjf extern/solidground_extern_linux.tar.bz2 extern/linux
+			else
+				mkdir application
+				cd application
+				make_cmake_list *
+				cd ../
+				mkdir build
+				mkdir "build/$1"
+				cd "build/$1"
+				cmake -DCMAKE_BUILD_TYPE=$1 ../../
+			fi
 		fi
 	fi
 fi
