@@ -287,7 +287,7 @@ void Writer::putSilent(uint32 _v){
 	uint64			&sz = *static_cast<uint64*>(_rp.b.p);
 	ulong 			toread;
 	const ulong		blen = _rw.bend - _rw.bbeg;
-	ulong 			tmpsz = blen * 8;
+	ulong 			tmpsz = blen * 16;
 	int				rv = 0;
 	if(tmpsz > sz) tmpsz = sz;
 	sz -= tmpsz;

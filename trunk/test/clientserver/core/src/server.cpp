@@ -282,7 +282,7 @@ struct Server::Data{
 	ServiceIdxMap						servicemap;// map name -> service index
 	//cs::ipc::Service					*pcs; // A pointer to the ipc service
 	ObjSelPoolTp						*pobjectpool[2];//object pools
-	AioSelectorPoolTp					*paiopool;
+	AioSelectorPoolTp					*paiopool[2];
 	cs::ObjPtr<cs::CommandExecuter>		readcmdexec;// read command executer
 	cs::ObjPtr<cs::CommandExecuter>		writecmdexec;// write command executer
 };
@@ -291,11 +291,13 @@ struct Server::Data{
 typedef serialization::TypeMapper					TypeMapper;
 typedef serialization::IdTypeMap					IdTypeMap;
 typedef serialization::bin::Serializer				BinSerializer;
-Server::Data::Data(Server &_rs):
-	paiopool(NULL)
+Server::Data::Data(Server &_rs)
 {
 	pobjectpool[0] = NULL;
 	pobjectpool[1] = NULL;
+	
+	paiopool[0] = NULL;
+	paiopool[1] = NULL;
 	
 	TypeMapper::registerMap<IdTypeMap>(new IdTypeMap);
 	TypeMapper::registerSerializer<BinSerializer>();
@@ -309,11 +311,17 @@ Server::Data::Data(Server &_rs):
 	}
 	idbg("");
 	if(true){
-		paiopool = new AioSelectorPoolTp(_rs,
+		paiopool[0] = new AioSelectorPoolTp(_rs,
 										10,			//max thread cnt
 										2048		//max aio objects per selector/thread
 										);			//at most 10 * 4 * 1024 connections
-		paiopool->start(1);//start with one worker
+		paiopool[0]->start(1);//start with one worker
+		
+		paiopool[1] = new AioSelectorPoolTp(_rs,
+										10,			//max thread cnt
+										2048		//max aio objects per selector/thread
+										);			//at most 10 * 4 * 1024 connections
+		paiopool[1]->start(1);//start with one worker
 	}
 	idbg("");
 }
@@ -323,8 +331,10 @@ Server::Data::~Data(){
 	if(pobjectpool[1]) pobjectpool[1]->stop();
 	delete pobjectpool[0];
 	delete pobjectpool[1];
-	if(paiopool)paiopool->stop();
-	delete paiopool;
+	if(paiopool[0])paiopool[0]->stop();
+	if(paiopool[1])paiopool[1]->stop();
+	delete paiopool[0];
+	delete paiopool[1];
 	delete readcmdexec.release();
 	delete writecmdexec.release();
 }
@@ -346,8 +356,8 @@ void Server::pushJob(cs::Object *_pj, int _pos){
 	d.pobjectpool[_pos]->push(cs::ObjPtr<cs::Object>(_pj));
 }
 template <>
-void Server::pushJob(cs::aio::Object *_pj, int){
-	d.paiopool->push(cs::ObjPtr<cs::aio::Object>(_pj));
+void Server::pushJob(cs::aio::Object *_pj, int _i){
+	d.paiopool[_i]->push(cs::ObjPtr<cs::aio::Object>(_pj));
 }
 
 /*
@@ -497,7 +507,7 @@ int Server::visitService(const char* _nm, Visitor &_rov){
 }
 //----------------------------------------------------------------------------------
 void IpcService::pushTalkerInPool(clientserver::Server &_rs, clientserver::aio::Object *_ptkr){
-	static_cast<Server&>(_rs).pushJob(_ptkr);
+	static_cast<Server&>(_rs).pushJob(_ptkr, 1);
 }
 //----------------------------------------------------------------------------------
 // Some dummy command methods definitions

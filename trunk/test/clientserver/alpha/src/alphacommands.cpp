@@ -399,7 +399,7 @@ int RemoteList::execute(Connection &_rc){
 	AddrInfo ai(straddr.c_str(), port, 0, AddrInfo::Inet4, AddrInfo::Stream);
 	idbg("addr"<<straddr<<" port = "<<port);
 	if(!ai.empty()){
-		RemoteListCommand *pcmd(new RemoteListCommand(1000 + (int) (10000.0 * (rand() / (RAND_MAX + 1.0)))));
+		RemoteListCommand *pcmd(new RemoteListCommand(0/*1000 + (int) (10000.0 * (rand() / (RAND_MAX + 1.0)))*/));
 		idbg("remotelist with "<<pcmd->tout<<" miliseconds delay");
 		pcmd->strpth = strpth;
 		pcmd->requid = _rc.newRequestId();

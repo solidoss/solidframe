@@ -186,9 +186,11 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 // 			idbgx(Dbg::ipc, "talker error");
 // 		return BAD;
 // 	}
+	bool nothing = true;
 	idbgx(Dbg::ipc, "this = "<<(void*)this<<" &d = "<<(void*)&d);
 	if(signaled() || d.closes.size()){
 		{
+			nothing = false;
 			Mutex::Locker	lock(rs.mutex(*this));
 			ulong sm = grabSignalMask(0);
 			if(sm & cs::S_KILL){
@@ -250,14 +252,16 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 		}
 	}
 	if(d.closes.size()){
+		nothing = false;
 		//this is to ensure the locking order: first service then talker
 		d.rservice.disconnectTalkerProcesses(*this);
 	}
 	//try to recv something
 	if(inDone(_sig, _tout) || (!socketHasPendingRecv())){
+		nothing  = false;
 		//non blocking read some buffers
 		int cnt = 0;
-		while(cnt++ < 16){
+		while(cnt++ < 32){
 			if(!d.rcvbuf.buffer()){
 				cnt += 2;//fewer iterations if we keep storing received buffers
 				d.rcvbuf.reinit(Specific::popBuffer(Specific::capacityToId(4096)), 4096);
@@ -286,6 +290,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 		DoneRecv:;
 	}
 	if(_sig & cs::OUTDONE){
+		nothing = false;
 		dispatchSentBuffer(_tout);
 	}
 	bool mustreenter = processCommands(_tout);
@@ -293,9 +298,10 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 	while(d.sendq.size() && !socketHasPendingSend()){
 		if(_tout < d.sendq.top()->timeout){
 			_tout = d.sendq.top()->timeout;
-			idbgx(Dbg::ipc, "return");
+			idbgx(Dbg::ipc, "return "<<nothing);
 			return mustreenter ? OK : NOK;
 		}
+		nothing = false;
 		if(d.sendq.top()->b.buffer() == NULL){
 			//simulate sending
 			mustreenter = dispatchSentBuffer(_tout);
@@ -315,7 +321,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 	//if we've sent something or
 	//if we did not have a timeout while reading we MUST do an ioUpdate asap.
 	if(mustreenter || !socketHasPendingRecv() || d.closes.size()){
-		idbgx(Dbg::ipc, "return");
+		idbgx(Dbg::ipc, "return "<<nothing);
 		return OK;
 	}
 	//_tout.set(0);
