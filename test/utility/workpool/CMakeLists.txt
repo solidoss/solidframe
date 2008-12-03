@@ -1,4 +1,4 @@
-include_directories (${SOLIDGROUND_SOURCE_DIR})
+#include_directories (${SOLIDGROUND_SOURCE_DIR})
 
 add_executable (file_open_pool file_open_pool.cpp)
 

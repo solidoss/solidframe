@@ -1,4 +1,4 @@
-include_directories (${SOLIDGROUND_SOURCE_DIR})
+#include_directories (${SOLIDGROUND_SOURCE_DIR})
 
 link_directories (${SOLIDGROUND_SOURCE_DIR}/system ${SOLIDGROUND_SOURCE_DIR}/clientserver
 ${SOLIDGROUND_SOURCE_DIR}/test/clientserver/core ${SOLIDGROUND_SOURCE_DIR}/test/clientserver/echo

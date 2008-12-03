@@ -1,4 +1,4 @@
-include_directories (${SOLIDGROUND_SOURCE_DIR})
+#include_directories (${SOLIDGROUND_SOURCE_DIR})
 
 add_library(speca speca.cpp)
 add_library(specb specb.cpp)

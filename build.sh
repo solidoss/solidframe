@@ -60,7 +60,8 @@ else
 			tar -cjf documentation/fast.tar.bz2 documentation/html/ documentation/index.html
 		else
 			if [ "$1" = "extern" ] ; then
-				tar -cjf extern/solidground_extern_linux.tar.bz2 extern/linux
+				cd extern
+				tar -cjf solidground_extern_linux.tar.bz2 linux
 			else
 				mkdir application
 				cd application
