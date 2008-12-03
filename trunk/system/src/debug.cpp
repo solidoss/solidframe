@@ -88,6 +88,40 @@ void Dbg::Data::setBit(const char *_pbeg, const char *_pend){
 		}
 	}
 }
+uint32 parseLevels(const char *_lvl){
+	if(!_lvl) return 0;
+	uint32 r = 0;
+	
+	while(*_lvl){
+		switch(*_lvl){
+			case 'i':
+			case 'I':
+				r |= Dbg::Info;
+				break;
+			case 'e':
+			case 'E':
+				r |= Dbg::Error;
+				break;
+			case 'w':
+			case 'W':
+				r |= Dbg::Warn;
+				break;
+			case 'r':
+			case 'R':
+				r |= Dbg::Report;
+				break;
+		}
+		++_lvl;
+	}
+}
+void Dbg::init(
+	std::string &_file,
+	const char * _prefix,
+	const char *_lvlopt,
+	const char *_opt
+){
+	init(_file, _prefix, parseLevels(_lvlopt), _opt);
+}
 
 void Dbg::init(
 	std::string &_file,

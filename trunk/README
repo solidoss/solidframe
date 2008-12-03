@@ -70,6 +70,13 @@ $ svn checkout http://solidground.googlecode.com/svn/trunk/ solidground-read-onl
 
 )
 
+Download the linux extern library pack from:
+http://code.google.com/p/solidground/downloads.
+
+Copy it to solidground-read-only/extern
+cd solidground-read-only/extern
+tar -xjf solidground_extern_linux.tar.bz2
+
 The SolidGround framework, has a commodity build script which can be used to create certain builds for certain base build systems (make or kdevelop3 - run ./build.sh with no parameters to se the options).
 
 So lets build a (debug-)nolog version.

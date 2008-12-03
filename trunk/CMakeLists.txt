@@ -86,7 +86,11 @@ SET( CMAKE_BUILD_TYPE "${CMAKE_BUILD_TYPE}" CACHE STRING
     "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel nolog maintain optimized:"
     FORCE )
     
-include_directories(${SOLIDGROUND_SOURCE_DIR} ${SOLIDGROUND_SOURCE_DIR}/extern/linux)
+include_directories(
+	${SOLIDGROUND_SOURCE_DIR}
+	${SOLIDGROUND_SOURCE_DIR}/extern/linux/openssl/include
+	${SOLIDGROUND_SOURCE_DIR}/extern/linux/tclap/include
+)
 
 add_subdirectory (system)
 add_subdirectory (utility)

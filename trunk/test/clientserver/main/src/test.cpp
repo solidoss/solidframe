@@ -38,6 +38,9 @@
 
 #include "clientserver/ipc/ipcservice.hpp"
 
+#include "tclap/CmdLine.h"
+
+
 namespace cs = clientserver;
 using namespace std;
 
@@ -81,27 +84,32 @@ struct DeviceIOStream: IOStream{
 
 int pairfd[2];
 
+struct Params{
+	int			start_port;
+	string		dbg_levels;
+	string		dbg_modules;
+};
+
+bool parseArguments(Params &_par, int argc, char *argv[]);
+
 int main(int argc, char* argv[]){
 	signal(SIGPIPE, SIG_IGN);
+	
+	Params p;
+	if(parseArguments(p, argc, argv)) return 0;
+	
 	pipe(pairfd);
 	cout<<"Built on SolidGround version "<<SG_MAJOR<<'.'<<SG_MINOR<<'.'<<SG_PATCH<<endl;
 	Thread::init();
 #ifdef UDEBUG
-	cout<<"Usage\n:./test [base_port_value]"<<endl;
 	{
 	string s;
-	if(argc > 1){
-		Dbg::instance().init(s, argv[0] + 2, Dbg::AllLevels, argv[1]);
-	}else{
-		Dbg::instance().init(s, argv[0] + 2, Dbg::AllLevels);
-	}
+	Dbg::instance().init(s, argv[0] + 2, p.dbg_levels.c_str(), p.dbg_modules.c_str());
 	cout<<"Debug file: "<<s<<endl;
 	s.clear();
 	Dbg::instance().moduleBits(s);
 	cout<<"Debug bits: "<<s<<endl;
 	}
-#else
-	cout<<"Usage\n:./test [base_port_value]"<<endl;
 #endif
 	audit::LogManager lm;
 	lm.start();
@@ -362,4 +370,34 @@ int insertConnection(char *_pc, int _len,test::Server &_rts){
 // 		cout<<"Failed adding connection"<<endl;
 // 	}
 	return 0;
+}
+
+bool parseArguments(Params &_par, int argc, char *argv[]){
+	try {  
+
+	TCLAP::CmdLine cmd("SolidGround test application", ' ', "0.8");
+	
+	TCLAP::ValueArg<uint16> port("p","port","Base port",false,1000,"integer");
+	
+	TCLAP::ValueArg<std::string> lvls("l","levels","Debug logging levels",false,"","string");
+	TCLAP::ValueArg<std::string> mdls("m","modules","Debug logging modules",false,"","string");
+
+	cmd.add(port);
+	cmd.add(lvls);
+	cmd.add(mdls);
+
+	// Parse the argv array.
+	cmd.parse( argc, argv );
+
+	// Get the value parsed by each arg. 
+	_par.dbg_levels = lvls.getValue();
+	_par.start_port = port.getValue();
+	_par.dbg_modules = mdls.getValue();
+	
+	return false;
+	} catch (TCLAP::ArgException &e)  // catch any exceptions
+	{ std::cerr << "error: " << e.error() << " for arg " << e.argId() << std::endl;
+		return true;
+	}
+
 }
