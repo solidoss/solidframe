@@ -304,6 +304,19 @@ void Selector::push(const ObjectTp &_objptr, uint _thid){
 	}
 }
 
+inline uint Selector::doExecuteQueue(){
+	uint		flags = 0;
+	uint		qsz(d.execq.size());
+	while(qsz){//we only do a single scan:
+		const uint pos = d.execq.front();
+		d.execq.pop();
+		--qsz;
+		flags |= doExecute(pos);
+	}
+	return flags;
+}
+
+
 void Selector::run(){
 	static const int	maxnbcnt = 16;
 	uint 				flags;
@@ -328,7 +341,7 @@ void Selector::run(){
 			flags |= doReadPipe();
 		}
 		
-		if((flags & Data::FULL_SCAN) || d.ctimepos >= d.ntimepos){
+		if(d.ctimepos >= d.ntimepos || (flags & Data::FULL_SCAN)){
 			nbcnt -= 4;
 			flags |= doFullScan();
 		}
@@ -400,7 +413,7 @@ uint Selector::doReadPipe(){
 	if(j > maxcnt){
 		//dummy read:
 		rv = Data::EXIT_LOOP | Data::FULL_SCAN;//scan all filedescriptors for events
-		idbgx(Dbg::aio, "reading pipe dummy");
+		wdbgx(Dbg::aio, "reading pipe dummy");
 		while((rsz = read(d.pipefds[0], buf, BUFSZ)) > 0);
 	}
 	return rv;
@@ -423,6 +436,23 @@ void Selector::doUnregisterObject(Object &_robj, int _lastfailpos){
 		}
 	}
 }
+
+inline uint Selector::doIo(Socket &_rsock, ulong _evs){
+	if(_evs & (EPOLLERR | EPOLLHUP)){
+		_rsock.doClear();
+		idbgx(Dbg::aio, "epollerr evs = "<<_evs);
+		return ERRDONE;
+	}
+	int rv = 0;
+	if(_evs & EPOLLIN){
+		rv = _rsock.doRecv();
+	}
+	if(!(rv & ERRDONE) && (_evs & EPOLLOUT)){
+		rv |= _rsock.doSend();
+	}
+	return rv;
+}
+
 uint Selector::doAllIo(){
 	uint		flags = 0;
 	TimeSpec	crttout;
@@ -458,7 +488,7 @@ uint Selector::doAllIo(){
 uint Selector::doFullScan(){
 	uint		evs;
 	++d.rep_fullscancount;
-	idbgx(Dbg::aio, "fullscan count "<<d.rep_fullscancount);
+	rdbgx(Dbg::aio, "fullscan count "<<d.rep_fullscancount);
 	d.ntimepos.set(Data::MAXTIMEPOS);
 	for(Data::StubVectorTp::iterator it(d.stubs.begin() + 1); it != d.stubs.end(); ++it){
 		Stub &stub = *it;
@@ -482,32 +512,6 @@ uint Selector::doFullScan(){
 		}
 	}
 	return 0;
-}
-uint Selector::doExecuteQueue(){
-	uint		flags = 0;
-	uint		qsz(d.execq.size());
-	while(qsz){//we only do a single scan:
-		const uint pos = d.execq.front();
-		d.execq.pop();
-		--qsz;
-		flags |= doExecute(pos);
-	}
-	return flags;
-}
-uint Selector::doIo(Socket &_rsock, ulong _evs){
-	if(_evs & (EPOLLERR | EPOLLHUP)){
-		_rsock.doClear();
-		idbgx(Dbg::aio, "epollerr evs = "<<_evs);
-		return ERRDONE;
-	}
-	int rv = 0;
-	if(_evs & EPOLLIN){
-		rv = _rsock.doRecv();
-	}
-	if(!(rv & ERRDONE) && (_evs & EPOLLOUT)){
-		rv |= _rsock.doSend();
-	}
-	return rv;
 }
 uint Selector::doExecute(const uint _pos){
 	Stub &stub(d.stubs[_pos]);

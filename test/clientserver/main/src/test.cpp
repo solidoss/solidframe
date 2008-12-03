@@ -87,6 +87,7 @@ int main(int argc, char* argv[]){
 	cout<<"Built on SolidGround version "<<SG_MAJOR<<'.'<<SG_MINOR<<'.'<<SG_PATCH<<endl;
 	Thread::init();
 #ifdef UDEBUG
+	cout<<"Usage\n:./test [base_port_value]"<<endl;
 	{
 	string s;
 	if(argc > 1){
@@ -99,6 +100,8 @@ int main(int argc, char* argv[]){
 	Dbg::instance().moduleBits(s);
 	cout<<"Debug bits: "<<s<<endl;
 	}
+#else
+	cout<<"Usage\n:./test [base_port_value]"<<endl;
 #endif
 	audit::LogManager lm;
 	lm.start();

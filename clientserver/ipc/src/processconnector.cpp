@@ -948,13 +948,13 @@ int ProcessConnector::processSendCommands(SendBufferData &_rsb, const TimeSpec &
 			written = true;
 		}
 		if(written){//send the buffer
-			_rsb.timeout = d.lasttimepos;//TODO: d.lasttimepos can be uninitialized
+			_rsb.timeout = _tpos;//TODO: d.lasttimepos can be uninitialized
 			//TODO: use a variable instead of 0
-			_rsb.timeout += 0;//10 miliseconds
-			if(_rsb.timeout <= _tpos)
-				d.lasttimepos = _tpos;
-			else
-				d.lasttimepos = _rsb.timeout;
+			//_rsb.timeout += 10;//10 miliseconds
+			//if(_rsb.timeout <= _tpos)
+			//d.lasttimepos = _tpos;
+			//else
+			d.lasttimepos = _rsb.timeout;
 			if(rbuf.dataSize()){
 				rbuf.id(d.sendid);
 				d.incrementSendId();

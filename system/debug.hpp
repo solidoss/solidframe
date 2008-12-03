@@ -48,7 +48,8 @@ struct Dbg{
 		Info = 1,
 		Error = 2,
 		Warn = 4,
-		AllLevels = 1 + 2 + 4
+		Report = 8,
+		AllLevels = 1 + 2 + 4 + 8
 	};
 	
 	~Dbg();
@@ -95,18 +96,28 @@ private:
 #define idbgx(a,x)\
 	if(Dbg::instance().isSet(Dbg::Info, a)){\
 	Dbg::instance().print('I', a,  __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}
+
 #define edbg(x)\
 	if(Dbg::instance().isSet(Dbg::Error, Dbg::any)){\
 	Dbg::instance().print('E', Dbg::any, __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}
 #define edbgx(a,x)\
 	if(Dbg::instance().isSet(Dbg::Error, a)){\
 	Dbg::instance().print('E', a,  __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}
+
 #define wdbg(x)\
 	if(Dbg::instance().isSet(Dbg::Warn, Dbg::any)){\
 	Dbg::instance().print('W', Dbg::any, __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}
 #define wdbgx(a,x)\
 	if(Dbg::instance().isSet(Dbg::Warn, a)){\
 	Dbg::instance().print('W', a,  __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}
+
+#define rdbg(x)\
+	if(Dbg::instance().isSet(Dbg::Report, Dbg::any)){\
+	Dbg::instance().print('R', Dbg::any, __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}
+#define rdbgx(a,x)\
+	if(Dbg::instance().isSet(Dbg::Report, a)){\
+	Dbg::instance().print('R', a,  __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}
+
 #define writedbg(x,sz)
 #define writedbgx(a, x, sz)
 
@@ -121,6 +132,8 @@ private:
 #define edbgx(a,x)
 #define wdbg(x)
 #define wdbgx(a,x)
+#define rdbg(x)
+#define rdbgx(a,x)
 #define writedbg(x,sz)
 #define writedbgx(a, x, sz)
 
