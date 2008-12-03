@@ -60,7 +60,12 @@ struct Dbg{
 		unsigned _lvlopt = 0,
 		const char *_modopt = 0
 	);
-	
+	void init(
+		std::string &_file,
+		const char * _fname,
+		const char * _lvlopt = 0,
+		const char *_modopt = 0
+	);
 	void moduleBits(std::string &_ros);
 	void setAllModuleBits();
 	void resetAllModuleBits();
