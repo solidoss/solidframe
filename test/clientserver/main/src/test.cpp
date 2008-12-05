@@ -88,6 +88,9 @@ struct Params{
 	int			start_port;
 	string		dbg_levels;
 	string		dbg_modules;
+	string		dbg_addr;
+	string		dbg_port;
+	bool		dbg_buffered;
 };
 
 bool parseArguments(Params &_par, int argc, char *argv[]);
@@ -104,7 +107,11 @@ int main(int argc, char* argv[]){
 #ifdef UDEBUG
 	{
 	string s;
-	Dbg::instance().init(s, argv[0] + 2, p.dbg_levels.c_str(), p.dbg_modules.c_str());
+	if(p.dbg_addr.size() && p.dbg_port.size()){
+		Dbg::instance().init(s, p.dbg_addr.c_str(), p.dbg_port.c_str(), p.dbg_levels.c_str(), p.dbg_modules.c_str(),p.dbg_buffered);
+	}else{
+		Dbg::instance().init(s, argv[0] + 2, p.dbg_levels.c_str(), p.dbg_modules.c_str(), p.dbg_buffered);
+	}
 	cout<<"Debug file: "<<s<<endl;
 	s.clear();
 	Dbg::instance().moduleBits(s);
@@ -119,7 +126,7 @@ int main(int argc, char* argv[]){
 	lm.insertConnector(new audit::LogBasicConnector("log"));
 	Log::instance().reinit(argv[0], 0, "ALL", new DeviceIOStream(pairfd[1],-1));
 	
-	int i,stime;
+	int stime;
 	long ltime;
 
 	ltime = time(NULL); /* get current calendar time */
@@ -128,17 +135,14 @@ int main(int argc, char* argv[]){
 	
 	idbg("Built on SolidGround version "<<SG_MAJOR<<'.'<<SG_MINOR<<'.'<<SG_PATCH);
 	{
-		int startport = 1000;
-		if(argc > 2){
-			startport = atoi(argv[2]);
-		}
+
 		test::Server	ts;
 		if(true){// create and register the echo service
 			test::Service* psrvc = test::echo::Service::create();
 			ts.insertService("echo", psrvc);
 			
 			{//add a new listener
-				int port = startport + 111;
+				int port = p.start_port + 111;
 				AddrInfo ai("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Stream);
 				if(!ai.empty()){
 					if(!ts.insertListener("echo", ai.begin())){
@@ -151,7 +155,7 @@ int main(int argc, char* argv[]){
 				}
 			}
 			{//add a new talker
-				int port = startport + 112;
+				int port = p.start_port + 112;
 				AddrInfo ai("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Datagram);
 				if(!ai.empty()){
 					AddrInfoIterator it(ai.begin());
@@ -168,7 +172,7 @@ int main(int argc, char* argv[]){
 		if(true){//creates and registers a new beta service
 			test::Service* psrvc = test::beta::Service::create();
 			ts.insertService("beta", psrvc);
-			int port = startport + 113;
+			int port = p.start_port + 113;
 			AddrInfo ai("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Datagram);
 			if(!ai.empty()){//ands a talker
 				if(!ts.insertTalker("beta", ai.begin())){
@@ -183,7 +187,7 @@ int main(int argc, char* argv[]){
 		if(true){//creates and registers a new alpha service
 			test::Service* psrvc = test::alpha::Service::create(ts);
 			ts.insertService("alpha", psrvc);
-			int port = startport + 114;
+			int port = p.start_port + 114;
 			AddrInfo ai("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Stream);
 			if(!ai.empty() && !ts.insertListener("alpha", ai.begin())){//adds a listener
 				cout<<"added listener for service alpha "<<port<<endl;
@@ -196,7 +200,7 @@ int main(int argc, char* argv[]){
 			ts.insertService("proxy", psrvc);
 			
 			{//add a new listener
-				int port = startport + 115;
+				int port = p.start_port + 115;
 				AddrInfo ai("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Stream);
 				if(!ai.empty()){
 					if(!ts.insertListener("proxy", ai.begin())){
@@ -210,7 +214,7 @@ int main(int argc, char* argv[]){
 			}
 		}
 		if(true){//adds the base ipc talker
-			int port = startport + 222;
+			int port = p.start_port + 222;
 			AddrInfo ai("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Datagram);
 			if(!ai.empty()){
 				if(!ts.insertIpcTalker(ai.begin())){
@@ -377,14 +381,21 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 
 	TCLAP::CmdLine cmd("SolidGround test application", ' ', "0.8");
 	
-	TCLAP::ValueArg<uint16> port("p","port","Base port",false,1000,"integer");
+	TCLAP::ValueArg<uint16> port("b","base_port","Base port",false,1000,"integer");
 	
-	TCLAP::ValueArg<std::string> lvls("l","levels","Debug logging levels",false,"","string");
-	TCLAP::ValueArg<std::string> mdls("m","modules","Debug logging modules",false,"","string");
+	TCLAP::ValueArg<std::string> lvls("l","debug_levels","Debug logging levels",false,"","string");
+	TCLAP::ValueArg<std::string> mdls("m","debug_modules","Debug logging modules",false,"","string");
+	TCLAP::ValueArg<std::string> da("a","debug_address","Debug server address",false,"","string");
+	TCLAP::ValueArg<std::string> dp("p","debug_port","Debug server ports",false,"","string");
+	TCLAP::SwitchArg dl("s","debug_buffered", "Debug buffered output", false, false);
+
 
 	cmd.add(port);
 	cmd.add(lvls);
 	cmd.add(mdls);
+	cmd.add(da);
+	cmd.add(dp);
+	cmd.add(dl);
 
 	// Parse the argv array.
 	cmd.parse( argc, argv );
@@ -393,7 +404,9 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 	_par.dbg_levels = lvls.getValue();
 	_par.start_port = port.getValue();
 	_par.dbg_modules = mdls.getValue();
-	
+	_par.dbg_addr = da.getValue();
+	_par.dbg_port = dp.getValue();
+	_par.dbg_buffered = dl.getValue();
 	return false;
 	} catch (TCLAP::ArgException &e)  // catch any exceptions
 	{ std::cerr << "error: " << e.error() << " for arg " << e.argId() << std::endl;

@@ -30,11 +30,15 @@
 #include <cstring>
 #include <ctime>
 #include <iostream>
+#include <fstream>
 #include <bitset>
 #include "system/timespec.hpp"
+#include "system/socketdevice.hpp"
+#include "system/socketaddress.hpp"
 #include "cassert.hpp"
 #include "thread.hpp"
 #include "mutex.hpp"
+
 
 const unsigned fileoff = (strstr(__FILE__, "system/src") - __FILE__);
 
@@ -54,18 +58,144 @@ const unsigned fileoff = (strstr(__FILE__, "system/src") - __FILE__);
 /*static*/ const unsigned Dbg::log(Dbg::instance().registerModule("LOG"));
 /*static*/ const unsigned Dbg::aio(Dbg::instance().registerModule("CS_AIO"));
 
+class DeviceOutBasicBuffer : public std::streambuf {
+public:
+	// constructor
+	DeviceOutBasicBuffer(){}
+	DeviceOutBasicBuffer(const Device & _d) : d(_d){}
+	void device(const Device & _d){
+		d = _d;
+	}
+protected:
+	// write one character
+	virtual
+	int_type overflow(int_type c){
+		if(c != EOF){
+			char z = c;
+			if(d.write(&z, 1) != 1){
+				return EOF;
+			}
+		}
+		return c;
+	}
+	// write multiple characters
+	virtual
+	std::streamsize xsputn(const char* s, std::streamsize num){
+		return d.write(s, num);
+	}
+private:
+	Device d;
+};
+
+class DeviceOutBuffer : public std::streambuf {
+public:
+	enum {BUFF_CP = 2048, BUFF_FLUSH = 1024};
+	// constructor
+	DeviceOutBuffer():bpos(bbeg){}
+	DeviceOutBuffer(const Device & _d) : d(_d), bpos(bbeg){}
+	void device(const Device & _d){
+		d = _d;
+	}
+protected:
+	// write one character
+	virtual
+	int_type overflow(int_type c);
+	// write multiple characters
+	virtual
+	std::streamsize xsputn(const char* s, std::streamsize num);
+private:
+	bool flush(){
+		uint towrite = bpos - bbeg;
+		bpos = bbeg;
+		if(d.write(bbeg, towrite) != towrite) return false;
+		return true;
+	}
+private:
+	Device	d;
+	char 	bbeg[BUFF_CP];
+	char 	*bpos;
+};
+
+// virtual
+std::streambuf::int_type DeviceOutBuffer::overflow(int_type c) {
+	if (c != EOF){
+		*bpos = c; ++bpos;
+		if((bpos - bbeg) > BUFF_FLUSH && !flush()){
+			return EOF;
+		}
+	}
+	return c;
+}
+// write multiple characters
+// virtual
+std::streamsize DeviceOutBuffer::xsputn(const char* s, std::streamsize num){
+	//we can safely put BUFF_FLUSH into the buffer
+	uint towrite = BUFF_CP - BUFF_FLUSH;
+	if(towrite > num) towrite = num;
+	memcpy(bpos, s, towrite);
+	bpos += towrite;
+	if((bpos - bbeg) > BUFF_FLUSH && !flush()){
+		return -1;
+	}
+	if(num == towrite) return num;
+	num -= towrite;
+	s += towrite;
+	if(num >= BUFF_FLUSH){
+		return d.write(s, num);
+	}
+	memcpy(bpos, s, num);
+	bpos += num;
+	return num;
+}
+
+class DeviceBasicOutStream : public std::ostream {
+protected:
+	DeviceOutBasicBuffer buf;
+public:
+	DeviceBasicOutStream(const Device &_d) : std::ostream(0), buf(_d) {
+		rdbuf(&buf);
+	}
+	DeviceBasicOutStream():std::ostream(0){
+		rdbuf(&buf);
+	}
+	void device(const Device &_d){
+		buf.device(_d);
+	}
+};
+
+class DeviceOutStream : public std::ostream {
+protected:
+	DeviceOutBuffer buf;
+public:
+	DeviceOutStream():std::ostream(0){
+		rdbuf(&buf);
+	}
+	DeviceOutStream(const Device &_d) : std::ostream(0), buf(_d) {
+		rdbuf(&buf);
+	}
+	void device(const Device &_d){
+    	buf.device(_d);
+    }
+};
 
 struct Dbg::Data{
 	typedef std::bitset<DEBUG_BITSET_SIZE>	BitSetTp;
 	typedef std::vector<const char*>		NameVectorTp;
-	Data():lvlmsk(0){}
+	Data():lvlmsk(0){
+		pos = &std::cerr;
+	}
+	bool init(uint32, const char*);
 	void setBit(const char *_pbeg, const char *_pend);
-	Mutex			m;
-	BitSetTp		bs;
-	unsigned		lvlmsk;
-	NameVectorTp	nv;
-	time_t			begt;
-	TimeSpec		begts;
+	Mutex					m;
+	BitSetTp				bs;
+	unsigned				lvlmsk;
+	NameVectorTp			nv;
+	time_t					begt;
+	TimeSpec				begts;
+	DeviceOutStream			dos;
+	DeviceBasicOutStream	dbos;
+	std::ofstream			ofs;
+	std::ostream			*pos;
 };
 
 /*static*/ Dbg& Dbg::instance(){
@@ -113,25 +243,14 @@ uint32 parseLevels(const char *_lvl){
 		}
 		++_lvl;
 	}
-}
-void Dbg::init(
-	std::string &_file,
-	const char * _prefix,
-	const char *_lvlopt,
-	const char *_opt
-){
-	init(_file, _prefix, parseLevels(_lvlopt), _opt);
+	return r;
 }
 
-void Dbg::init(
-	std::string &_file,
-	const char * _prefix,
-	uint32	_lvlopt,
-	const char *_opt
-){
+bool Dbg::Data::init(uint32	_lvlopt, const char *_opt){
 	{
-		Mutex::Locker lock(d.m);
-		d.lvlmsk = _lvlopt;
+		Mutex::Locker lock(m);
+		lvlmsk = _lvlopt;
+		if(lvlmsk == 0) return true;//
 		if(_opt){
 			const char *pbeg = _opt;
 			const char *pcrt = _opt;
@@ -149,20 +268,39 @@ void Dbg::init(
 					if(!isspace(*pcrt)){
 						++pcrt;
 					}else{
-						d.setBit(pbeg, pcrt);
+						setBit(pbeg, pcrt);
 						pbeg = pcrt;
 						state = 0;
 					}
 				}
 			}
 			if(pcrt != pbeg){
-				d.setBit(pbeg, pcrt);
+				setBit(pbeg, pcrt);
 			}
 		}
-		if(d.bs.none()) return;
+		if(bs.none()) return true;
 	}
-	
-	std::ios_base::sync_with_stdio(false);
+	return false;
+}
+
+void Dbg::init(
+	std::string &_file,
+	const char * _prefix,
+	const char *_lvlopt,
+	const char *_opt,
+	bool _buffered
+){
+	init(_file, _prefix, parseLevels(_lvlopt), _opt, _buffered);
+}
+
+void Dbg::init(
+	std::string &_file,
+	const char * _prefix,
+	uint32	_lvlopt,
+	const char *_opt,
+	bool _buffered
+){
+	if(d.init(_lvlopt, _opt)) return;
 	
 	if(_prefix && *_prefix){
 		Directory::create("dbg");
@@ -170,13 +308,67 @@ void Dbg::init(
 		sprintf(name,"dbg/%s_%u.dbg", _prefix, getpid());
 		//printf("Debug file: [%s]\r\n", name);
 		_file = name;
-		int fd = open(name, O_CREAT | O_RDWR | O_TRUNC, 0600);
-		delete []name;
-		if(dup2(fd, fileno(stderr))<0){
-			printf("error duplicating filedescriptor\n");
+// 		int fd = open(name, O_CREAT | O_RDWR | O_TRUNC, 0600);
+// 		delete []name;
+// 		if(dup2(fd, fileno(stderr))<0){
+// 			printf("error duplicating filedescriptor\n");
+// 		}
+		d.ofs.open(name);
+		d.pos = &d.ofs;
+	}else{
+		if(_buffered){
+			d.pos = &std::clog;
+		}else{
+			d.pos = &std::cerr;
 		}
-	}//else print to cerr
+	}
 }
+
+void Dbg::init(
+	std::string &_file,
+	const char * _addr,
+	const char * _port,
+	const char * _lvlopt,
+	const char *_modopt,
+	bool _buffered
+){
+	init(_file, _addr, _port, parseLevels(_lvlopt), _modopt, _buffered);
+}
+void Dbg::init(
+	std::string &_file,
+	const char * _addr,
+	const char * _port,
+	unsigned  _lvlopt,
+	const char *_modopt,
+	bool _buffered
+){
+	if(d.init(_lvlopt, _modopt)) return;
+	
+	if(_addr == 0 || !*_addr){
+		_addr = "localhost";
+	}
+	
+	//cassert(_port && *_port);
+	
+	AddrInfo ai(_addr, _port);
+	SocketDevice sd;
+	if(!ai.empty() && sd.create(ai.begin()) == OK && sd.connect(ai.begin()) == OK){
+		if(_buffered){
+			d.dos.device(sd);
+			d.pos = &d.dos;
+		}else{
+			d.dbos.device(sd);
+			d.pos = &d.dbos;
+		}
+	}else{
+		if(_buffered){
+			d.pos = &std::clog;
+		}else{
+			d.pos = &std::cerr;
+		}
+	}
+}
+
 void Dbg::moduleBits(std::string &_ros){
 	Mutex::Locker lock(d.m);
 	for(Data::NameVectorTp::const_iterator it(d.nv.begin()); it != d.nv.end(); ++it){
@@ -240,11 +432,11 @@ std::ostream& Dbg::print(
 		d.nv[_module],
 		Thread::currentId()
 	);
-	return OUTS<<buf<<'['<<_file + fileoff<<'('<<_line<<')'<<' '<<_fnc<<']'<<' ';
+	return (*d.pos)<<buf<<'['<<_file + fileoff<<'('<<_line<<')'<<' '<<_fnc<<']'<<' ';
 }
 
 void Dbg::done(){
-	OUTS<<std::endl;
+	(*d.pos)<<std::endl;
 	d.m.unlock();
 }
 bool Dbg::isSet(Level _lvl, unsigned _v)const{

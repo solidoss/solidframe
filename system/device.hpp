@@ -32,6 +32,8 @@ class Device{
 public:
 	//! The copy constructor which will grab the desc from the given device (like std::autoptr)
 	Device(const Device &_dev);
+	Device(int _desc = -1);
+	~Device();
 	//! Read call
 	int read(char	*_pb, uint32 _bl);
 	//! Write call
@@ -42,10 +44,8 @@ public:
 	int flush();
 	//! Check if the device is valid
 	bool ok()const{return desc >= 0;}
-	Device& operator&(Device &_dev);
+	Device& operator=(const Device &_dev);
 protected:
-	Device(int _desc = -1);
-	~Device();
 	int descriptor()const;
 	void descriptor(int _desc);
 private:

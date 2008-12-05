@@ -31,9 +31,10 @@
 Device::Device(const Device &_dev):desc(_dev.descriptor()) {
 	_dev.desc = -1;
 }
-Device& Device::operator&(Device &_dev){
+
+Device& Device::operator=(const Device &_dev){
 	close();
-	desc = _dev.descriptor();_dev.descriptor(-1);
+	desc = _dev.descriptor();_dev.desc = -1;
 	return *this;
 }
 Device::Device(int _desc):desc(_desc){}
