@@ -21,6 +21,7 @@ public:
 	int makeBlocking(int _msec = -1);
 	int makeNonBlocking();
 	bool isBlocking();
+	bool shouldWait()const;
 	int send(const char* _pb, unsigned _ul, unsigned _flags = 0);
 	int recv(char *_pb, unsigned _ul, unsigned _flags = 0);
 	int send(const char* _pb, unsigned _ul, const SockAddrPair &_sap);
@@ -28,6 +29,7 @@ public:
 	int remoteAddress(SocketAddress &_rsa)const;
 	int localAddress(SocketAddress &_rsa)const;
 	int descriptor()const{return Device::descriptor();}
+	
 };
 
 
