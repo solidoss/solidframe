@@ -92,6 +92,11 @@ include_directories(
 	${SOLIDGROUND_SOURCE_DIR}/extern/linux/tclap/include
 )
 
+link_directories(
+	${SOLIDGROUND_SOURCE_DIR}/system
+	${SOLIDGROUND_SOURCE_DIR}/extern/linux/openssl
+)
+
 add_subdirectory (system)
 add_subdirectory (utility)
 add_subdirectory (algorithm)
