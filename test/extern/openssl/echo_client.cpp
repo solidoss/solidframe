@@ -44,6 +44,7 @@ int main(int argc, char *argv[]){
 	
 	pfds[1].fd = sd.descriptor();
 	pfds[1].events = POLLIN;
+	pfds[1].revents = 0;
 	
 	BIO *bio = BIO_new_socket(sd.descriptor(), 0);
 	
@@ -53,20 +54,41 @@ int main(int argc, char *argv[]){
 	int		states[2];
 	//SSL_get_error
 	//SSL_ERROR_WANT_READ
+	//Edge triggered 
+	readsz[0] = 0;
+	bool read_socket = true, read_stdin = false;
+	bool write_socket = false;
+	bool wait_read_on_write = false;
+	bool wait_write_on_read = false;
 	while(true){
 /*		int pollcnt = poll(pfds, 2, -1);
 		if(pollcnt <= 0) continue;*/
-		
-		if(readsz[0] == 0 && pfds[0].revents){//we can safely read from stdin
-			readsz[0] = ::read(fileno(stdin), bufs[0], 1024);
-			wbuf[0] = bufs[0];
-			pfds[0].events = 0;//wait
-			pfds[1].revents = 1;//force enter in the next if
+		if(pfds[0].revents & POLLIN && !readsz[0]){
+			read_stdin = true;
 		}
 		
-		if(readsz[0] > 0 && pfds[1].revents){//write to socket
+		if(pfds[1].revents & POLLOUT){
+			write_socket = write_socket || (readsz[0] != 0);
+			read_socket = read_socket || wait_write_on_read;
+		}
+		if(pfds[1].revents & POLLIN){
+			write_socket = write_socket || wait_read_on_write;
+			read_socket = read_socket || (!wait_read_on_write);
+			//TODO: maybe you only need:
+			//read_socket = true;
+		}
+		
+		if(read_stdin){//we can safely read from stdin
+			readsz[0] = ::read(fileno(stdin), bufs[0], 1024);
+			wbuf[0] = bufs[0];
+			pfds[0].events = 0;//dont wait for stdin
+			write_socket = true;
+			read_stdin = false;
+		}
+		
+		if(write_socket){//write to socket
 			int rv = BIO_write(bio, wbuf[0], readsz[0]);
-			pfds[1].events = 0;
+			//pfds[1].events = 0;
 			if(BIO_should_read(bio)){
 				pfds[1].events |= POLLIN;
 			}else{
@@ -79,17 +101,24 @@ int main(int argc, char *argv[]){
 			}
 			if(rv == readsz[0]){
 				readsz[0] = 0;
+				write_socket = false;
+				pfds[0].events = POLLIN;//dont wait for stdin
 			}else if(BIO_should_retry(bio)){
 				cassert(pfds[1].events);
+				write_socket = false;
+			}else if(rv > 0){
+				wbuf[0] += rv;
+				readsz[0] -= rv;
+				//write_socket = true;
 			}else{
 				break;
 			}
 		}
 		
-		if(readsz[1] == 0  && pfds[1].revents){
+		if(read_socket){
 			//we can read:
 			int rv = BIO_read(bio, bufs[1], 1024);
-			pfds[1].events = 0;
+			//pfds[1].events = 0;
 			if(BIO_should_read(bio)){
 				pfds[1].events |= POLLIN;
 			}else{
@@ -102,12 +131,16 @@ int main(int argc, char *argv[]){
 			}
 			if(rv > 0){
 				cout.write(bufs[1], rv).flush();
+				read_socket = true;
 			}else if(BIO_should_retry(bio)){
 				cassert(pfds[1].events);
+				read_socket = false;
 			}else{
 				break;
 			}
 		}
+		int pollcnt = poll(pfds, 2, read_socket ? 0 : -1);
+		if(pollcnt <= 0) continue;
 	}
 	return 0;
 }
