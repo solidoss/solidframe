@@ -1,0 +1,263 @@
+#include <iostream>
+#include "system/debug.hpp"
+#include "openssl/bio.h"
+#include "openssl/ssl.h"
+#include "openssl/err.h"
+#include "system/socketaddress.hpp"
+#include "system/socketdevice.hpp"
+#include <sys/epoll.h>
+#include "utility/queue.hpp"
+using namespace std;
+
+struct Handle{
+	enum{
+		BufferCapacity = 1024,
+	};
+	Handle(const SocketDevice &_sd):eevents(0), events(0), sd(_sd), bio(NULL){
+		wait_read_on_write = false;
+		wait_read_on_read = false;
+		wait_write_on_write = false;
+		wait_write_on_read = false;
+		sevents = 0;
+	}
+	void clearWaitWrite(){
+		wait_read_on_write = false;
+		wait_write_on_write = false;
+	}
+	void clearWaitRead(){
+		wait_read_on_read = false;
+		wait_write_on_read = false;
+	}
+	bool shouldWait(){
+		return BIO_should_retry(bio);
+	}
+	void setWaitWrite(){
+		if(BIO_should_read(bio)){
+			wait_read_on_write = true;
+		}
+		if(BIO_should_write(bio)){
+			wait_write_on_write = true;
+		}
+	}
+	void setWaitRead(){
+		if(BIO_should_read(bio)){
+			wait_read_on_read = true;
+		}
+		if(BIO_should_write(bio)){
+			wait_write_on_read = true;
+		}
+	}
+	int write(const char *_pb, const unsigned _bl){
+		return BIO_write(bio, _pb, _bl);
+	}
+	int read(char *_pb, const unsigned _bl){
+		return BIO_read(bio, _pb, _bl);
+	}
+	void setExpectedEvents(){
+		eevents = 0;
+		if(wait_read_on_write || wait_read_on_read){
+			eevents = EPOLLIN;
+		}
+		if(wait_write_on_write || wait_write_on_read){
+			eevents = EPOLLOUT;
+		}
+	}
+	uint32			eevents;//expected events
+	uint32			sevents;//set events
+	uint32			events;//incomming events
+	
+	bool			wait_read_on_write;
+	bool			wait_read_on_read;
+	bool			wait_write_on_write;
+	bool			wait_write_on_read;
+	SocketDevice	sd;
+	BIO				*bio;
+	//we use multiple buffers to be able to 
+	//test synchrounous read and writes
+	char			buf[2][BufferCapacity];
+	int				len[2];
+	char			*pwbuf[2];
+	Queue<uint>		readbufs;
+	Queue<uint>		writebufs;
+};
+typedef std::vector<Handle>	HandleVectorTp;
+HandleVectorTp		handles;
+int					epollfd;
+Queue<uint32> 		execq;
+
+
+int executeConnection(uint32 _pos);
+int executeListener();
+
+//a simple nonblocking echo server using sslbio
+
+int main(int argc, char* argv[]){
+	if(argc != 3){
+		cout<<"Usage:\n./sslserver addr port"<<endl;
+		return 0;
+	}
+#ifdef UDEBUG
+	Dbg::instance().init(s, NULL, "iew", "all", false);
+	cout<<"Debug file: "<<s<<endl;
+	s.clear();
+	Dbg::instance().moduleBits(s);
+	cout<<"Debug bits: "<<s<<endl;
+#endif
+	SSL_load_error_strings();
+	ERR_load_BIO_strings();
+	OpenSSL_add_all_algorithms();
+	
+	//create a connection
+	
+	AddrInfo ai(argv[1], argv[2]);
+	
+	if(ai.empty()){
+		cout<<"no such address"<<endl;
+		return 0;
+	}
+	typedef std::vector<Handle>	HandleVectorTp;
+	const unsigned epoll_cp = 4096;
+	epoll_event 		events[epoll_cp];
+	epollfd = epoll_create(epoll_cp);
+	{
+		SocketDevice sd;
+		sd.prepareAccept(ai.begin());
+		sd.makeNonBlocking();
+		if(!sd.ok()){
+			cout<<"Error preparing accept"<<endl;
+			return 0;
+		}
+		handles.push_back(Handle(sd));
+		epoll_event ev;
+		ev.data.u32 = 0;
+		ev.events = EPOLLIN;//must be LevelTriggered
+		if(epoll_ctl(epollfd, EPOLL_CTL_ADD, handles[0].sd.descriptor(), &ev)){
+			edbg("epoll_ctl: "<<strerror(errno));
+			cassert(false);
+			return BAD;
+		}
+	}
+	int selected = 0;
+	while(true){
+		for(int i = 0; i < selected; ++i){
+			handles[events[i].u32].events |= events[i].events;
+			execq.push(events[i].u32);
+		}
+		uint32 qsz = execq.size();
+		while(qsz--){
+			uint32 pos = execq.front();execq.pop();
+			if(pos){
+				if(executeConnection(pos) == OK){
+					execq.push(pos);
+				}
+			}else{
+				if(executeListener() == OK){
+					execq.push(pos);
+				}
+			}
+		}
+		selected = epoll_wait(epollfd, events, handles.size(), execq.size() ? 0 : -1);
+		if(selected < 0) selected = 0;
+	}
+	return 0;
+}
+
+const char *echo_str = "Hello from echo server\r\n";
+const uint  echo_len = strlen(echo_str);
+
+int executeConnection(uint32 _pos){
+	Handle &h(handles[_pos]);
+	int rv = 0;
+	int retval = NOK;
+	switch(h.state){
+		case Handle::Init:
+			rv = h.write(echo_str, echo_len);
+			if(rv == echo_len){
+				h.state = Handle::DoIO;
+				h.doread = true;
+				retval = OK;
+			}else if(h.shouldWait()){
+				cassert(rv > 0);
+				h.setWaitWrite();
+				retval = NOK;
+			}else return BAD;
+			break;
+		case Handle::DoIO:{
+				h.doread;
+				h.dowrite;
+				if(h.doread){
+					h.doread = false;
+					rv = h.read(d.buf[d.readbufs.front()], Handle::BufferCapacity);
+					if(rv > 0){
+						d.writebufs.push(d.readbufs.front());
+						h.len[d.readbufs.front()] = rv;
+						h.pwbuf[d.readbufs.front()] = d.buf[d.readbufs.front()];
+						d.readbufs.pop();
+						//if we dont wait for something on write, force write
+						if(!h.wait_write_on_write && !h.wait_read_on_write)
+							h.dowrite = true;
+						if(d.readbufs.size())
+							h.doread = true;
+					}else if(h.shouldWait()){
+						h.setWaitRead();
+					}else return BAD;
+				}
+				if(h.dowrite){
+					h.dowrite = false;
+					int &len = h.len[h.writebufs.front()];
+					rv = h.write(h.pwbuf[h.writebufs.front()], len);
+					if(rv > 0){
+						if(rv == len){
+							h.readbufs.push(h.writebufs.front());
+							h.writebufs.pop();
+							if(h.readbufs.size() == 1){
+								h.doread = true;
+							}
+							if(h.writebufs.size()){
+								h.dowrite = true;
+							}
+						}else{
+							h.dowrite = true;//continue writing
+							h.pwbuf[h.writebufs.front()] += rv;
+							len -= rv;
+						}
+					}else if(h.shouldWait()){
+						h.setWaitWrite();
+					}else return BAD;
+				}
+			}break;
+	}
+	h.events = 0;
+	h.setExpectedEvents();
+	if(h.eevents != h.sevents){
+		h.sevents = h.eevents;
+		epoll_event ev;
+		ev.data.u32 = _pos;
+		ev.events = h.sevents;
+		epoll_ctl(epollfd, EPOLL_CTL_MOD, h.sd.descriptor(), &ev);
+	}
+	if(h.doread || h.dowrite) return OK;
+	return retval;
+}
+
+int executeListener(){
+	Handle &h(handles[0]);
+	SocketDevice sd;
+	
+	while(h.sd.accept(sd)){
+		epoll_event ev;
+		ev.data.u32 = handles.size();
+		handles.push_back(Handle(sd));
+		execq.push(ev.data.u32);
+		handles.back().eevents = 0;
+		handles.back().bio = BIO_new_socket(handles.back().sd.descriptor(), 0);
+		ev.events = 0;
+		if(epoll_ctl(epollfd, EPOLL_CTL_ADD, handles.back().sd.descriptor(), &ev)){
+			edbg("epoll_ctl: "<<strerror(errno));
+			cassert(false);
+			return BAD;
+		}
+	}
+	return NOK;
+}
+

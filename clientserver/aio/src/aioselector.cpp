@@ -19,7 +19,7 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <unistd.h>
+//#include <unistd.h>
 #include <fcntl.h>
 #include <sys/epoll.h>
 #include <vector>
@@ -538,9 +538,14 @@ uint Selector::doExecute(const uint _pos){
 		case OK:
 			d.execq.push(_pos);
 			stub.state = Stub::InExecQueue;
-			stub.timepos.set(0xffffffff, 0xffffffff);
-			stub.objptr->doClearResponses();//clears the responses from the selector to the object
-			break;
+			//stub.timepos.set(0xffffffff, 0xffffffff);
+			//TODO: uncomment the following 2 lines if performance decreases
+			//TODO: test - redesign the exit OK for ease of use
+			//stub.objptr->doClearResponses();//clears the responses from the selector to the object
+			if(!stub.objptr->hasPendingRequests()){
+				stub.objptr->doClearResponses();//clears the responses from the selector to the object
+				break;
+			}
 		case NOK:
 			doPrepareObjectWait(_pos, timepos);
 			stub.objptr->doClearResponses();//clears the responses from the selector to the object
@@ -561,7 +566,7 @@ uint Selector::doExecute(const uint _pos){
 }
 void Selector::doPrepareObjectWait(const uint _pos, const TimeSpec &_timepos){
 	Stub &stub(d.stubs[_pos]);
-	const int32 *pend(stub.objptr->reqpos);
+	const int32 * const pend(stub.objptr->reqpos);
 	bool mustwait = true;
 	for(int32 *pit(stub.objptr->reqbeg); pit != pend ; ++pit){
 		Object::SocketStub &sockstub(stub.objptr->pstubs[*pit]);
@@ -618,7 +623,7 @@ void Selector::doPrepareObjectWait(const uint _pos, const TimeSpec &_timepos){
 		}else if(d.ntimepos > stub.timepos){
 			d.ntimepos = stub.timepos;
 		}
-	}else{
+	}else if(stub.state != Stub::InExecQueue){
 		d.execq.push(_pos);
 		stub.state = Stub::InExecQueue;
 	}
