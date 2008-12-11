@@ -8,13 +8,28 @@
 #include <cstring>
 #include <iostream>
 #include <poll.h>
+
+#include <termios.h>
+#include <unistd.h>
+
 using namespace std;
+
+int tocrlf(char *_pb, const char *_bend);
 
 int main(int argc, char *argv[]){
 	
 	if(argc != 3){
 		cout<<"usage:\n$ echo_client addr port"<<endl;
 		return 0;
+	}
+	termios tio;
+	if(!tcgetattr(fileno(stdin), &tio)){
+		tio.c_oflag |= ONLCR;
+		if(tcsetattr(fileno(stdin), TCSANOW, &tio)){
+			cout<<"failed tcsetattr "<<strerror(errno)<<endl;
+		}
+	}else{
+		cout<<"failed tcgetattr "<<strerror(errno)<<endl;
 	}
 	//Initializing OpenSSL
 	SSL_load_error_strings();
@@ -48,7 +63,7 @@ int main(int argc, char *argv[]){
 	
 	BIO *bio = BIO_new_socket(sd.descriptor(), 0);
 	
-	char	bufs[2][1024];
+	char	bufs[2][1024 + 128];
 	char	*wbuf[2];
 	int		readsz[2];
 	int		states[2];
@@ -60,6 +75,7 @@ int main(int argc, char *argv[]){
 	bool write_socket = false;
 	bool wait_read_on_write = false;
 	bool wait_write_on_read = false;
+	bool wait_write_on_write = false;
 	while(true){
 /*		int pollcnt = poll(pfds, 2, -1);
 		if(pollcnt <= 0) continue;*/
@@ -80,6 +96,7 @@ int main(int argc, char *argv[]){
 		
 		if(read_stdin){//we can safely read from stdin
 			readsz[0] = ::read(fileno(stdin), bufs[0], 1024);
+			readsz[0] = tocrlf(bufs[0], bufs[0] + readsz[0]);
 			wbuf[0] = bufs[0];
 			pfds[0].events = 0;//dont wait for stdin
 			write_socket = true;
@@ -88,15 +105,9 @@ int main(int argc, char *argv[]){
 		
 		if(write_socket){//write to socket
 			int rv = BIO_write(bio, wbuf[0], readsz[0]);
-			//pfds[1].events = 0;
-			if(BIO_should_read(bio)){
-				pfds[1].events |= POLLIN;
-			}else{
-				pfds[1].events &= ~POLLIN;
-			}
-			if(BIO_should_write(bio)){
-				pfds[1].events |= POLLOUT;
-			}else{
+			wait_write_on_write = false;
+			wait_read_on_write = false;
+			if(!wait_write_on_read){
 				pfds[1].events &= ~POLLOUT;
 			}
 			if(rv == readsz[0]){
@@ -106,6 +117,14 @@ int main(int argc, char *argv[]){
 			}else if(BIO_should_retry(bio)){
 				cassert(pfds[1].events);
 				write_socket = false;
+				if(BIO_should_read(bio)){
+					pfds[1].events |= POLLIN;
+					wait_read_on_write = true;
+				}
+				if(BIO_should_write(bio)){
+					pfds[1].events |= POLLOUT;
+					wait_write_on_write = true;
+				}
 			}else if(rv > 0){
 				wbuf[0] += rv;
 				readsz[0] -= rv;
@@ -117,32 +136,58 @@ int main(int argc, char *argv[]){
 		
 		if(read_socket){
 			//we can read:
-			int rv = BIO_read(bio, bufs[1], 1024);
-			//pfds[1].events = 0;
-			if(BIO_should_read(bio)){
-				pfds[1].events |= POLLIN;
-			}else{
-				pfds[1].events &= ~POLLIN;
-			}
-			if(BIO_should_write(bio)){
-				pfds[1].events |= POLLOUT;
-			}else{
+			int rv = BIO_read(bio, bufs[1], 8);
+			wait_write_on_read = false;
+			if(!wait_write_on_write){
 				pfds[1].events &= ~POLLOUT;
 			}
 			if(rv > 0){
 				cout.write(bufs[1], rv).flush();
 				read_socket = true;
 			}else if(BIO_should_retry(bio)){
-				cassert(pfds[1].events);
+				if(BIO_should_read(bio)){
+					pfds[1].events |= POLLIN;
+				}
+				if(BIO_should_write(bio)){
+					pfds[1].events |= POLLOUT;
+					wait_write_on_read = true;
+				}
 				read_socket = false;
 			}else{
 				break;
 			}
 		}
-		int pollcnt = poll(pfds, 2, read_socket ? 0 : -1);
+		int pollcnt = poll(pfds, 2, (read_socket || read_stdin) ? 0 : -1);
 		if(pollcnt <= 0) continue;
 	}
 	return 0;
+}
+
+
+int tocrlf(char *_pb, const char *_bend){
+	if(_pb == _bend) return 0;
+	int len = _bend - _pb;
+	char b[2048];
+	const char *ip = _pb;
+	char *op = b;
+	char last = 's';
+	while(ip != _bend){
+		if(*ip == '\n' and last != '\r'){
+			*op = '\r';
+			++op;
+			*op = '\n';
+			++op;
+			++len;
+			last = '\n';
+		}else{
+			*op = *ip;
+			++op;
+			last = *ip;
+		}
+		++ip;
+	}
+	memcpy(_pb, b, len);
+	return len;
 }
 
 /*
