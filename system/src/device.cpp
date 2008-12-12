@@ -118,8 +118,12 @@ bool FileDevice::canRetryOpen()const{
 }
 
 //---- SocketDevice ---------------------------------
-
+SocketDevice::SocketDevice(const SocketDevice &_sd):Device(_sd){}
 SocketDevice::SocketDevice(){
+}
+SocketDevice& SocketDevice::operator=(const SocketDevice &_dev){
+	*static_cast<Device*>(this) = static_cast<const Device&>(_dev);
+	return *this;
 }
 SocketDevice::~SocketDevice(){
 	shutdownReadWrite();

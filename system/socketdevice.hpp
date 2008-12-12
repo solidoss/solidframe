@@ -6,8 +6,10 @@
 
 class SocketDevice: public Device{
 public:
+	SocketDevice(const SocketDevice &_sd);
 	SocketDevice();
 	~SocketDevice();
+	SocketDevice& operator=(const SocketDevice &_dev);
 	void shutdownRead();
 	void shutdownWrite();
 	void shutdownReadWrite();

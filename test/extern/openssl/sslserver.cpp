@@ -1,4 +1,5 @@
 #include <iostream>
+#include <vector>
 #include "system/debug.hpp"
 #include "openssl/bio.h"
 #include "openssl/ssl.h"
@@ -7,11 +8,14 @@
 #include "system/socketdevice.hpp"
 #include <sys/epoll.h>
 #include "utility/queue.hpp"
+
 using namespace std;
 
 struct Handle{
 	enum{
 		BufferCapacity = 1024,
+		Init,
+		DoIO
 	};
 	Handle(const SocketDevice &_sd):eevents(0), events(0), sd(_sd), bio(NULL){
 		wait_read_on_write = false;
@@ -19,6 +23,9 @@ struct Handle{
 		wait_write_on_write = false;
 		wait_write_on_read = false;
 		sevents = 0;
+		state = Init;
+		doread = false;
+		dowrite = false;
 	}
 	void clearWaitWrite(){
 		wait_read_on_write = false;
@@ -70,6 +77,9 @@ struct Handle{
 	bool			wait_read_on_read;
 	bool			wait_write_on_write;
 	bool			wait_write_on_read;
+	bool			doread;
+	bool			dowrite;
+	int				state;
 	SocketDevice	sd;
 	BIO				*bio;
 	//we use multiple buffers to be able to 
@@ -80,6 +90,7 @@ struct Handle{
 	Queue<uint>		readbufs;
 	Queue<uint>		writebufs;
 };
+
 typedef std::vector<Handle>	HandleVectorTp;
 HandleVectorTp		handles;
 int					epollfd;
@@ -97,6 +108,7 @@ int main(int argc, char* argv[]){
 		return 0;
 	}
 #ifdef UDEBUG
+	string s;
 	Dbg::instance().init(s, NULL, "iew", "all", false);
 	cout<<"Debug file: "<<s<<endl;
 	s.clear();
@@ -108,7 +120,7 @@ int main(int argc, char* argv[]){
 	OpenSSL_add_all_algorithms();
 	
 	//create a connection
-	
+	handles.reserve(2048);
 	AddrInfo ai(argv[1], argv[2]);
 	
 	if(ai.empty()){
@@ -121,6 +133,7 @@ int main(int argc, char* argv[]){
 	epollfd = epoll_create(epoll_cp);
 	{
 		SocketDevice sd;
+		sd.create(ai.begin());
 		sd.prepareAccept(ai.begin());
 		sd.makeNonBlocking();
 		if(!sd.ok()){
@@ -140,8 +153,8 @@ int main(int argc, char* argv[]){
 	int selected = 0;
 	while(true){
 		for(int i = 0; i < selected; ++i){
-			handles[events[i].u32].events |= events[i].events;
-			execq.push(events[i].u32);
+			handles[events[i].data.u32].events |= events[i].events;
+			execq.push(events[i].data.u32);
 		}
 		uint32 qsz = execq.size();
 		while(qsz--){
@@ -176,6 +189,8 @@ int executeConnection(uint32 _pos){
 				h.state = Handle::DoIO;
 				h.doread = true;
 				retval = OK;
+				h.readbufs.push(0);
+				h.readbufs.push(1);
 			}else if(h.shouldWait()){
 				cassert(rv > 0);
 				h.setWaitWrite();
@@ -183,20 +198,26 @@ int executeConnection(uint32 _pos){
 			}else return BAD;
 			break;
 		case Handle::DoIO:{
-				h.doread;
-				h.dowrite;
+				if(h.events & EPOLLIN){
+					h.doread = h.doread || h.wait_read_on_read;
+					h.dowrite = h.dowrite || h.wait_read_on_write;
+				}
+				if(h.events & EPOLLOUT){
+					h.doread = h.doread || h.wait_write_on_read;
+					h.dowrite = h.dowrite || h.wait_write_on_write;
+				}
 				if(h.doread){
 					h.doread = false;
-					rv = h.read(d.buf[d.readbufs.front()], Handle::BufferCapacity);
+					rv = h.read(h.buf[h.readbufs.front()], Handle::BufferCapacity);
 					if(rv > 0){
-						d.writebufs.push(d.readbufs.front());
-						h.len[d.readbufs.front()] = rv;
-						h.pwbuf[d.readbufs.front()] = d.buf[d.readbufs.front()];
-						d.readbufs.pop();
+						h.writebufs.push(h.readbufs.front());
+						h.len[h.readbufs.front()] = rv;
+						h.pwbuf[h.readbufs.front()] = h.buf[h.readbufs.front()];
+						h.readbufs.pop();
 						//if we dont wait for something on write, force write
 						if(!h.wait_write_on_write && !h.wait_read_on_write)
 							h.dowrite = true;
-						if(d.readbufs.size())
+						if(h.readbufs.size())
 							h.doread = true;
 					}else if(h.shouldWait()){
 						h.setWaitRead();
@@ -239,14 +260,13 @@ int executeConnection(uint32 _pos){
 	if(h.doread || h.dowrite) return OK;
 	return retval;
 }
-
 int executeListener(){
 	Handle &h(handles[0]);
 	SocketDevice sd;
-	
-	while(h.sd.accept(sd)){
+	while(h.sd.accept(sd) == OK){
 		epoll_event ev;
 		ev.data.u32 = handles.size();
+		sd.makeNonBlocking();
 		handles.push_back(Handle(sd));
 		execq.push(ev.data.u32);
 		handles.back().eevents = 0;

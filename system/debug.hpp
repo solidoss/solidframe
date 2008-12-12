@@ -49,7 +49,8 @@ struct Dbg{
 		Error = 2,
 		Warn = 4,
 		Report = 8,
-		AllLevels = 1 + 2 + 4 + 8
+		Verbose = 16,
+		AllLevels = 1 + 2 + 4 + 8 + 16
 	};
 	
 	~Dbg();
@@ -141,9 +142,22 @@ private:
 	if(Dbg::instance().isSet(Dbg::Report, a)){\
 	Dbg::instance().print('R', a,  __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}
 
+#define vdbg(x)\
+	if(Dbg::instance().isSet(Dbg::Verbose, Dbg::any)){\
+	Dbg::instance().print('V', Dbg::any, __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}
+#define vdbgx(a,x)\
+	if(Dbg::instance().isSet(Dbg::Verbose, a)){\
+	Dbg::instance().print('V', a,  __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}
+
+
 #define writedbg(x,sz)
 #define writedbgx(a, x, sz)
 
+#define check_call(a, v, c) \
+	if((c) != v){\
+		edbgx(a, "Error call ##c"<<strerror(errno))\
+		cassert(false);\
+	}
 
 #else
 
@@ -159,6 +173,8 @@ private:
 #define rdbgx(a,x)
 #define writedbg(x,sz)
 #define writedbgx(a, x, sz)
+
+#define check_call(a, v, c) c
 
 #endif
 
