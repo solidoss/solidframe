@@ -32,6 +32,7 @@ int main(int argc, char *argv[]){
 		cout<<"failed tcgetattr "<<strerror(errno)<<endl;
 	}
 	//Initializing OpenSSL
+	SSL_library_init();
 	SSL_load_error_strings();
 	ERR_load_BIO_strings();
 	OpenSSL_add_all_algorithms();
@@ -46,11 +47,7 @@ int main(int argc, char *argv[]){
 	}
 	SocketDevice sd;
 	sd.create(ai.begin());
-	if(sd.connect(ai.begin()) == BAD){
-		cout<<"could not connect = "<<strerror(errno)<<endl;
-		return 0;
-	}
-	sd.makeNonBlocking();
+	
 	pollfd pfds[2];
 	
 	pfds[0].fd = fileno(stdin);
@@ -61,8 +58,66 @@ int main(int argc, char *argv[]){
 	pfds[1].events = POLLIN;
 	pfds[1].revents = 0;
 	
-	BIO *bio = BIO_new_socket(sd.descriptor(), 0);
+	SSL_CTX * ctx = SSL_CTX_new(SSLv23_client_method());
+	SSL * ssl;
 	
+	if(!ctx){
+		cout<<"failed SSL_CTX_new: "<<ERR_error_string(ERR_get_error(), NULL)<<endl;
+		return 0;
+	}
+	if(! SSL_CTX_load_verify_locations(ctx, "../../../../../extern/linux/openssl/demos/tunala/A-client.pem", NULL)){
+    	cout<<"failed SSL_CTX_load_verify_locations 1 "<<ERR_error_string(ERR_get_error(), NULL)<<endl;;
+    	return 0;
+	}
+	system("mkdir certs");
+	
+	if(! SSL_CTX_load_verify_locations(ctx, NULL, "certs")){
+		cout<<"failed SSL_CTX_load_verify_locations 2 "<<ERR_error_string(ERR_get_error(), NULL)<<endl;;
+		return 0;
+	}
+	//BIO *bio = BIO_new_ssl_connect(ctx);//BIO_new_socket(sd.descriptor(), 0);
+	BIO *bio = BIO_new_socket(sd.descriptor(), BIO_NOCLOSE);
+	
+	//BIO_set_conn_hostname(bio, "localhost:4433");
+	
+	ssl = SSL_new(ctx);
+	//BIO_get_ssl(bio, &ssl);
+	SSL_set_mode(ssl, SSL_MODE_AUTO_RETRY);
+	
+	if(!ssl){
+		cout<<"failed SSL_new "<<ERR_error_string(ERR_get_error(), NULL)<<endl;;
+		return 0;
+	}
+	cout<<"before connect"<<endl;
+	if(sd.connect(ai.begin()) == BAD){
+		cout<<"could not connect = "<<strerror(errno)<<endl;
+		return 0;
+	}
+	
+	SSL_set_bio(ssl, bio, bio);
+	BIO_set_ssl(bio, ssl, 0);
+	
+	if(SSL_connect(ssl) < 0){
+		fprintf(stderr, "Error connecting to server\n");
+		ERR_print_errors_fp(stderr);
+		return 0;
+	}
+	
+// 	if(BIO_do_connect(bio) <= 0) {
+// 		fprintf(stderr, "Error connecting to server\n");
+// 		ERR_print_errors_fp(stderr);
+// 		return 0;
+// 	}
+	cout<<"done connect"<<endl;
+// 	if(BIO_do_handshake(bio) <= 0) {
+// 		fprintf(stderr, "Error establishing SSL connection\n");
+// 		ERR_print_errors_fp(stderr);
+// 		return 0;
+// 	}
+
+	
+	cout<<"done ssl handshaking"<<endl;
+	sd.makeNonBlocking();
 	char	bufs[2][1024 + 128];
 	char	*wbuf[2];
 	int		readsz[2];

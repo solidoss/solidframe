@@ -240,6 +240,10 @@ uint32 parseLevels(const char *_lvl){
 			case 'R':
 				r |= Dbg::Report;
 				break;
+			case 'v':
+			case 'V':
+				r |= Dbg::Verbose;
+				break;
 		}
 		++_lvl;
 	}

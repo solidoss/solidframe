@@ -427,12 +427,9 @@ void Selector::doUnregisterObject(Object &_robj, int _lastfailpos){
 	for(uint i = 0; i < to; ++i, ++psockstub){
 		Socket *psock = psockstub->psock;
 		if(psock && psock->descriptor() >= 0){
-			if(!epoll_ctl(d.epollfd, EPOLL_CTL_DEL, psock->descriptor(), NULL)){
-				--d.socksz;
-				psock->doUnprepare();
-			}else{
-				edbgx(Dbg::aio, "epoll_ctl "<<strerror(errno));
-			}
+			check_call(Dbg::aio, 0, epoll_ctl(d.epollfd, EPOLL_CTL_DEL, psock->descriptor(), NULL));
+			--d.socksz;
+			psock->doUnprepare();
 		}
 	}
 }
@@ -538,10 +535,6 @@ uint Selector::doExecute(const uint _pos){
 		case OK:
 			d.execq.push(_pos);
 			stub.state = Stub::InExecQueue;
-			//stub.timepos.set(0xffffffff, 0xffffffff);
-			//TODO: uncomment the following 2 lines if performance decreases
-			//TODO: test - redesign the exit OK for ease of use
-			//stub.objptr->doClearResponses();//clears the responses from the selector to the object
 			if(!stub.objptr->hasPendingRequests()){
 				stub.objptr->doClearResponses();//clears the responses from the selector to the object
 				break;
@@ -568,43 +561,35 @@ void Selector::doPrepareObjectWait(const uint _pos, const TimeSpec &_timepos){
 	Stub &stub(d.stubs[_pos]);
 	const int32 * const pend(stub.objptr->reqpos);
 	bool mustwait = true;
-	for(int32 *pit(stub.objptr->reqbeg); pit != pend ; ++pit){
+	for(const int32 *pit(stub.objptr->reqbeg); pit != pend; ++pit){
 		Object::SocketStub &sockstub(stub.objptr->pstubs[*pit]);
 		sockstub.chnevents = 0;
 		switch(sockstub.request){
 			case Object::SocketStub::IORequest:{
 				epoll_event ev;
-				uint t = (EPOLLET) | sockstub.psock->ioRequest();
+				uint t = sockstub.psock->ioRequest();
 				if((sockstub.selevents & Data::EPOLLMASK) != t){
-					sockstub.selevents = ev.events = t;
-					if(epoll_ctl(d.epollfd, EPOLL_CTL_MOD, sockstub.psock->descriptor(), d.eventPrepare(ev, _pos, *pit))){
-						edbgx(Dbg::aio, "epoll_ctl: "<<strerror(errno)<<" desc = "<<sockstub.psock->descriptor());
-						cassert(false);
-					}
+					sockstub.selevents = t;
+					ev.events = t | EPOLLET;
+					check_call(Dbg::aio, 0, epoll_ctl(d.epollfd, EPOLL_CTL_MOD, sockstub.psock->descriptor(), d.eventPrepare(ev, _pos, *pit)));
 				}
 			}break;
 			case Object::SocketStub::RegisterRequest:{
 				epoll_event ev;
 				sockstub.psock->doPrepare();
-				sockstub.selevents = ev.events = (EPOLLET);
-				if(!epoll_ctl(d.epollfd, EPOLL_CTL_ADD, sockstub.psock->descriptor(), d.eventPrepare(ev, _pos, *pit))){
-					stub.objptr->doAddSignaledSocketFirst(*pit, OKDONE);
-					d.addNewSocket();
-					mustwait = false;
-				}else{
-					edbgx(Dbg::aio, "epoll_ctl "<<strerror(errno));
-					cassert(false);
-				}
+				sockstub.selevents = 0;
+				ev.events = (EPOLLET);
+				check_call(Dbg::aio, 0, epoll_ctl(d.epollfd, EPOLL_CTL_ADD, sockstub.psock->descriptor(), d.eventPrepare(ev, _pos, *pit)));
+				stub.objptr->doAddSignaledSocketFirst(*pit, OKDONE);
+				d.addNewSocket();
+				mustwait = false;
 			}break;
 			case Object::SocketStub::UnregisterRequest:{
 				if(sockstub.psock->ok()){
-					if(!epoll_ctl(d.epollfd, EPOLL_CTL_DEL, sockstub.psock->descriptor(), NULL)){
-						--d.socksz;
-						sockstub.psock->doUnprepare();
-						stub.objptr->doAddSignaledSocketFirst(*pit, OKDONE);
-					}else{
-						edbgx(Dbg::aio, "epoll_ctl: "<<strerror(errno));
-					}
+					check_call(Dbg::aio, 0, epoll_ctl(d.epollfd, EPOLL_CTL_DEL, sockstub.psock->descriptor(), NULL));
+					--d.socksz;
+					sockstub.psock->doUnprepare();
+					stub.objptr->doAddSignaledSocketFirst(*pit, OKDONE);
 					mustwait = false;
 				}
 			}break;
@@ -613,10 +598,8 @@ void Selector::doPrepareObjectWait(const uint _pos, const TimeSpec &_timepos){
 		}
 	}
 	if(mustwait){
-		if(_timepos < stub.timepos){
-			if(_timepos != d.ctimepos){
-				stub.timepos = _timepos;
-			}
+		if(_timepos < stub.timepos && _timepos != d.ctimepos){
+			stub.timepos = _timepos;
 		}
 		if(stub.timepos == d.ctimepos){
 			stub.timepos.set(0xffffffff, 0xffffffff);
