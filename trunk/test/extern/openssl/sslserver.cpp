@@ -15,9 +15,10 @@ struct Handle{
 	enum{
 		BufferCapacity = 1024,
 		Init,
+		Banner,
 		DoIO
 	};
-	Handle(const SocketDevice &_sd):eevents(0), events(0), sd(_sd), bio(NULL){
+	Handle(const SocketDevice &_sd):eevents(0), events(0), sd(_sd), ssl(NULL){
 		wait_read_on_write = false;
 		wait_read_on_read = false;
 		wait_write_on_write = false;
@@ -36,29 +37,32 @@ struct Handle{
 		wait_write_on_read = false;
 	}
 	bool shouldWait(){
-		return BIO_should_retry(bio);
+		return SSL_want(ssl) != SSL_NOTHING;
 	}
 	void setWaitWrite(){
-		if(BIO_should_read(bio)){
+		if(SSL_want_read(ssl)){
 			wait_read_on_write = true;
 		}
-		if(BIO_should_write(bio)){
+		if(SSL_want_write(ssl)){
 			wait_write_on_write = true;
 		}
 	}
 	void setWaitRead(){
-		if(BIO_should_read(bio)){
+		if(SSL_want_read(ssl)){
 			wait_read_on_read = true;
 		}
-		if(BIO_should_write(bio)){
+		if(SSL_want_write(ssl)){
 			wait_write_on_read = true;
 		}
 	}
 	int write(const char *_pb, const unsigned _bl){
-		return BIO_write(bio, _pb, _bl);
+		return SSL_write(ssl, _pb, _bl);
 	}
 	int read(char *_pb, const unsigned _bl){
-		return BIO_read(bio, _pb, _bl);
+		return SSL_read(ssl, _pb, _bl);
+	}
+	int ssl_accept(){
+		return SSL_accept(ssl);
 	}
 	void setExpectedEvents(){
 		eevents = 0;
@@ -81,7 +85,7 @@ struct Handle{
 	bool			dowrite;
 	int				state;
 	SocketDevice	sd;
-	BIO				*bio;
+	SSL				*ssl;
 	//we use multiple buffers to be able to 
 	//test synchrounous read and writes
 	char			buf[2][BufferCapacity];
@@ -95,6 +99,7 @@ typedef std::vector<Handle>	HandleVectorTp;
 HandleVectorTp		handles;
 int					epollfd;
 Queue<uint32> 		execq;
+SSL_CTX				*ctx;
 
 
 int executeConnection(uint32 _pos);
@@ -115,9 +120,31 @@ int main(int argc, char* argv[]){
 	Dbg::instance().moduleBits(s);
 	cout<<"Debug bits: "<<s<<endl;
 #endif
+	SSL_library_init();
 	SSL_load_error_strings();
 	ERR_load_BIO_strings();
 	OpenSSL_add_all_algorithms();
+	
+	
+	ctx = SSL_CTX_new (SSLv23_server_method());
+	if (!ctx) {
+		ERR_print_errors_fp(stderr);
+		exit(2);
+	}
+	
+	if (SSL_CTX_use_certificate_file(ctx, "../../../../../extern/linux/openssl/demos/tunala/A-server.pem", SSL_FILETYPE_PEM) <= 0) {
+		ERR_print_errors_fp(stderr);
+		exit(3);
+	}
+	if (SSL_CTX_use_PrivateKey_file(ctx, "../../../../../extern/linux/openssl/demos/tunala/A-server.pem", SSL_FILETYPE_PEM) <= 0) {
+		ERR_print_errors_fp(stderr);
+		exit(4);
+	}
+	
+	if (!SSL_CTX_check_private_key(ctx)) {
+		fprintf(stderr,"Private key does not match the certificate public key\n");
+		exit(5);
+	}	
 	
 	//create a connection
 	handles.reserve(2048);
@@ -184,6 +211,19 @@ int executeConnection(uint32 _pos){
 	int retval = NOK;
 	switch(h.state){
 		case Handle::Init:
+			rv = h.ssl_accept();
+			if(rv == 0) return BAD;
+			if(rv > 0){
+				h.state = Handle::Banner;
+				h.clearWaitRead();
+			}else{
+				//timeout
+				if(h.shouldWait()){
+					h.setWaitRead();
+				}else return BAD;
+				break;
+			}
+		case Handle::Banner:
 			rv = h.write(echo_str, echo_len);
 			if(rv == echo_len){
 				h.state = Handle::DoIO;
@@ -270,7 +310,8 @@ int executeListener(){
 		handles.push_back(Handle(sd));
 		execq.push(ev.data.u32);
 		handles.back().eevents = 0;
-		handles.back().bio = BIO_new_socket(handles.back().sd.descriptor(), 0);
+		handles.back().ssl = SSL_new(ctx);
+		SSL_set_fd(handles.back().ssl, handles.back().sd.descriptor());
 		ev.events = 0;
 		if(epoll_ctl(epollfd, EPOLL_CTL_ADD, handles.back().sd.descriptor(), &ev)){
 			edbg("epoll_ctl: "<<strerror(errno));
