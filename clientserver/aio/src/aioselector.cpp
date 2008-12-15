@@ -461,19 +461,29 @@ uint Selector::doAllIo(){
 		d.stub(stubpos, sockpos, d.events[i]);
 		if(stubpos){
 			cassert(stubpos < d.stubs.size());
-			Stub &stub(d.stubs[stubpos]);
+			Stub				&stub(d.stubs[stubpos]);
 			cassert(sockpos < stub.objptr->stubcp);
-			Socket *psock(stub.objptr->pstubs[sockpos].psock);
-			cassert(psock);
-			if((evs = doIo(*psock, d.events[i].events))){
+			cassert(stub.objptr->pstubs[sockpos].psock);
+			Object::SocketStub	&sockstub(stub.objptr->pstubs[sockpos]);
+			Socket				&sock(*sockstub.psock);
+			evs = doIo(sock, d.events[i].events);
+			if(evs){
 				//first mark the socket in connection
 				idbgx(Dbg::aio, "evs = "<<evs<<" indone = "<<INDONE<<" stubpos = "<<stubpos);
-				stub.objptr->doAddSignaledSocketNext(sockpos, evs);
-				stub.events |= evs;
+				sock.objptr->doAddSignaledSocketNext(sockpos, evs);
+				sock.events |= evs;
 				//push channel execqueue
-				if(stub.state == Stub::OutExecQueue){
+				if(sock.state == Stub::OutExecQueue){
 					d.execq.push(stubpos);
-					stub.state = Stub::InExecQueue;
+					sock.state = Stub::InExecQueue;
+				}
+			}else{
+				epoll_event ev;
+				uint t = sockstub.psock->ioRequest();
+				if((sockstub.selevents & Data::EPOLLMASK) != t){
+					sockstub.selevents = t;
+					ev.events = t | EPOLLET;
+					check_call(Dbg::aio, 0, epoll_ctl(d.epollfd, EPOLL_CTL_MOD, sockstub.psock->descriptor(), d.eventPrepare(ev, _pos, *pit)));
 				}
 			}
 		}else{//the pipe stub
