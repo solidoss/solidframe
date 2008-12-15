@@ -59,6 +59,10 @@ inline int Socket::doRecv(){
 	}
 }
 
+inline uint32 Socket::ioRequest()const{
+	return ioreq;
+}
+
 #ifndef UINLINES
 #undef inline
 #endif

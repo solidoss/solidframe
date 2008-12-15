@@ -72,10 +72,6 @@ inline ulong Object::index()const{
 	return computeIndex(fullid);
 }
 
-inline uint32 Socket::ioRequest()const{
-	return ioreq;
-}
-
 #ifndef UINLINES
 #undef inline
 #endif
