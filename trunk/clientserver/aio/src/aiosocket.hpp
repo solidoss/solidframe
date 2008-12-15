@@ -34,6 +34,8 @@ namespace clientserver{
 namespace aio{
 
 class Selector;
+class SecureSocket;
+
 
 class Socket{
 public:
@@ -42,9 +44,10 @@ public:
 		CHANNEL,
 		STATION,
 	};
-	Socket(Type _tp);
-	Socket(Type _tp, const SocketDevice &_rsd);
-	
+	Socket(Type _tp, SecureSocket *_pss = NULL);
+	Socket(Type _tp, const SocketDevice &_rsd, SecureSocket *_pss = NULL);
+	~Socket();
+	bool isSecure()const;
 	bool ok()const;
 	//! Create the socket
 	int create(const AddrInfoIterator& _rai);
@@ -77,14 +80,36 @@ public:
 	int sendTo(const char *_pb, uint32 _bl, const SockAddrPair &_sap, uint32 _flags = 0);
 	//! The sender address for last received data.
 	const SockAddrPair &recvAddr() const;
+	void secureSocket(SecureSocket *_pss);
+	SecureSocket* secureSocket()const;
+	
+	int secureAccept();
+	int secureConnect();
 private:
 	friend class Selector;
 	void doPrepare();
 	void doUnprepare();
 	void doClear();
 	
+	void doWantAccept(int _w);
+	void doWantConnect(int _w);
+	void doWantRead(int _w);
+	void doWantWrite(int _w);
+	
 	int doSend();
 	int doRecv();
+	
+	int doSendPlain();
+	int doRecvPlain();
+	
+	int doSendPlain(const char* _pb, uint32 _bl, uint32 _flags);
+	int doRecvPlain(char *_pb, uint32 _bl, uint32 _flags);
+	
+	int doSendSecure();
+	int doRecvSecure();
+	
+	int doSendSecure(const char* _pb, uint32 _bl, uint32 _flags);
+	int doRecvSecure(char *_pb, uint32 _bl, uint32 _flags);
 	
 	uint32 ioRequest()const;
 	int descriptor()const{return sd.descriptor();}
@@ -92,23 +117,28 @@ private:
 	struct StationData;
 	struct AcceptorData;
 	SocketDevice	sd;
-	Type			type;
+	SecureSocket	*pss;
+	uint16			type;
+	uint16			want;
 	uint64			rcvcnt;
 	uint64			sndcnt;
 	char*			rcvbuf;
 	const char*		sndbuf;
 	uint32			rcvlen;
 	uint32			sndlen;
+	uint32			ioreq;
 	union{
 		StationData		*psd;
 		AcceptorData	*pad;
 	}d;
 };
 
+#ifdef UINLINES
+#include "socket.ipp"
+#endif
+
 
 }//namespace aio
-
-
 }//namespace clientserver
 
 

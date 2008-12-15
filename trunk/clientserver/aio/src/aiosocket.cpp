@@ -1,5 +1,6 @@
 #include "clientserver/core/common.hpp"
 #include "clientserver/aio/src/aiosocket.hpp"
+#include "clientserver/aio/aiosecuresocket.hpp"
 #include "system/socketaddress.hpp"
 #include "system/specific.hpp"
 #include "system/cassert.hpp"
@@ -10,6 +11,11 @@
 
 namespace clientserver{
 namespace aio{
+
+#ifndef UINLINES
+#include "object.ipp"
+#endif
+
 
 struct Socket::StationData{
 	StationData():rcvaddrpair(rcvaddr){}
@@ -30,20 +36,26 @@ struct Socket::AcceptorData{
 };
 
 
-Socket::Socket(Type _type):
+Socket::Socket(Type _type, SecureSocket *_pss):
+	pss(_pss),
 	type(_type), rcvcnt(0), sndcnt(0),
-	rcvbuf(NULL), sndbuf(NULL), rcvlen(0), sndlen(0)
+	rcvbuf(NULL), sndbuf(NULL), rcvlen(0), sndlen(0), ioreq(0)
 {
 	d.psd = NULL;
 }
 
 Socket::Socket(Type _type, const SocketDevice &_rsd):
 	sd(_rsd),
+	pss(_pss),
 	type(_type), rcvcnt(0), sndcnt(0),
-	rcvbuf(NULL), sndbuf(NULL), rcvlen(0), sndlen(0)
+	rcvbuf(NULL), sndbuf(NULL), rcvlen(0), sndlen(0), ioreq(0)
 {	
 	sd.makeNonBlocking();
 	d.psd = NULL;
+}
+
+Socket::~Socket(){
+	delete pss;
 }
 
 
@@ -60,6 +72,7 @@ int Socket::connect(const AddrInfoIterator& _rai){
 	if(rv == NOK){
 		sndbuf = "";
 		sndlen = 0;
+		ioreq |= EPOLLOUT;
 	}
 	return rv;
 }
@@ -70,6 +83,7 @@ int Socket::accept(SocketDevice &_rsd){
 		d.pad->psd = &_rsd;
 		rcvbuf = "";
 		rcvlen = 0;
+		ioreq |= EPOLLIN;
 	}
 	return rv;
 }
@@ -80,10 +94,11 @@ int Socket::accept(Socket &_rs){
 		d.pad->psd = &_rs.sd;
 		rcvbuf = "";
 		rcvlen = 0;
+		ioreq |= EPOLLIN;
 	}
 	return rv;
 }
-int Socket::send(const char* _pb, uint32 _bl, uint32 _flags){
+int Socket::doSendPlain(const char* _pb, uint32 _bl, uint32 _flags){
 	cassert(!isSendPending());
 	cassert(type == CHANNEL);
 	if(!_bl) return OK;
@@ -100,9 +115,10 @@ int Socket::send(const char* _pb, uint32 _bl, uint32 _flags){
 	}
 	sndbuf = _pb + rv;
 	sndlen = _bl - rv;
+	ioreq |= EPOLLOUT;
 	return NOK;
 }
-int Socket::recv(char *_pb, uint32 _bl, uint32 _flags){
+int Socket::doRecvPlain(char *_pb, uint32 _bl, uint32 _flags){
 	cassert(!isRecvPending());
 	cassert(type == CHANNEL);
 	if(!_bl) return OK;
@@ -116,6 +132,7 @@ int Socket::recv(char *_pb, uint32 _bl, uint32 _flags){
 	if(errno != EAGAIN) return BAD;
 	rcvbuf = _pb;
 	rcvlen = _bl;
+	ioreq |= EPOLLIN;
 	return NOK;
 }
 uint32 Socket::recvSize()const{
@@ -147,6 +164,7 @@ int Socket::recvFrom(char *_pb, uint32 _bl, uint32 _flags){
 	int rv = sd.recv(_pb, _bl, d.psd->rcvaddr);
 	if(rv > 0){
 		rcvlen = rv;
+		rcvcnt += rv;
 		d.psd->rcvaddrpair.size = d.psd->rcvaddr.size();
 		//d.pad->rcvaddrpair.addr = rcvsa.addr();
 		//d.pad->rcvaddrpair.size = rcvsa.size();
@@ -156,28 +174,28 @@ int Socket::recvFrom(char *_pb, uint32 _bl, uint32 _flags){
 	if(errno != EAGAIN) return BAD;
 	rcvbuf = _pb;
 	rcvlen = _bl;
+	ioreq |= EPOLLIN;
 	return NOK;
 }
 int Socket::sendTo(const char *_pb, uint32 _bl, const SockAddrPair &_sap, uint32 _flags){	
 	cassert(!isSendPending());
 	int rv = sd.send(_pb, _bl, _sap);
-	if(rv == (ssize_t)_bl) return OK;
+	if(rv == (ssize_t)_bl){
+		sndlen = 0;
+		sndcnt += rv;
+		return OK;
+	}
 	if(rv >= 0) return BAD;
 	if(errno != EAGAIN) return BAD;
 	sndbuf = _pb;
 	sndlen = _bl;
+	
+	ioreq |= EPOLLOUT;
 	d.psd->sndaddrpair = _sap;
 	return NOK;
 }
 const SockAddrPair &Socket::recvAddr()const{
 	return d.psd->rcvaddrpair;
-}
-
-uint32 Socket::ioRequest()const{
-	uint32 rv = 0;
-	if(sndbuf) rv |= EPOLLOUT;
-	if(rcvbuf) rv |= EPOLLIN;
-	return rv;
 }
 
 void Socket::doPrepare(){
@@ -217,47 +235,53 @@ void Socket::doUnprepare(){
 	
 	The situation is far more difficult to avoid on multiconnections/multitalkers.
 */
-int Socket::doSend(){
+int Socket::doSendPlain(){
 	switch(type){
 		case CHANNEL://tcp
 			if(sndlen && sndbuf){//NOTE: see the above note
 				int rv = sd.send(sndbuf, sndlen);
-				idbgx(Dbg::aio, "send rv = "<<rv);
+				vdbgx(Dbg::aio, "send rv = "<<rv);
 				if(rv <= 0) return ERRDONE;
 				sndbuf += rv;
 				sndlen -= rv;
+				sndcnt += rv;
 				if(sndlen) return 0;//not yet done
 			}
 			sndbuf = NULL;
+			ioreq &= ~EPOLLOUT;
 			return OUTDONE;
 		case STATION://udp
 			if(sndlen && sndbuf){//NOTE: see the above note
 				int rv = sd.send(sndbuf, sndlen, d.psd->sndaddrpair);
 				if(rv != sndlen) return ERRDONE;
+				sndcnt += rv;
 				sndlen = 0;
 			}
 			sndbuf = NULL;
+			ioreq &= ~EPOLLOUT;
 			return OUTDONE;
 	}
 	cassert(false);
 	return ERRDONE;
 }
-int Socket::doRecv(){
+int Socket::doRecvPlain(){
 	switch(type){
 		case ACCEPTOR:{
 			int rv = sd.accept(*d.pad->psd);
 			sndbuf = NULL;
+			ioreq &= ~EPOLLIN;
 			if(rv == OK) return OUTDONE;
 			}return ERRDONE;
 		case CHANNEL://tcp
 			if(rcvlen && rcvbuf){//NOTE: see the above note
 				int rv = sd.recv(rcvbuf, rcvlen);
-				idbgx(Dbg::aio, "recv rv = "<<rv<<" err = "<<strerror(errno)<<" rcvbuf = "<<(void*)rcvbuf<<" rcvlen = "<<rcvlen);
+				vdbgx(Dbg::aio, "recv rv = "<<rv<<" err = "<<strerror(errno)<<" rcvbuf = "<<(void*)rcvbuf<<" rcvlen = "<<rcvlen);
 				if(rv <= 0) return ERRDONE;
 				rcvcnt += rv;
 				rcvlen = rv;
 			}
 			rcvbuf = NULL;
+			ioreq &= ~EPOLLIN;
 			return INDONE;
 		case STATION://udp
 			if(rcvlen && rcvbuf){//NOTE: see the above note
@@ -268,6 +292,7 @@ int Socket::doRecv(){
 				d.psd->rcvaddrpair.size = d.psd->rcvaddr.size();
 			}
 			rcvbuf = NULL;
+			ioreq &= ~EPOLLIN;
 			return INDONE;
 	};
 	cassert(false);
@@ -276,6 +301,250 @@ int Socket::doRecv(){
 void  Socket::doClear(){
 	rcvbuf = NULL;
 	sndbuf = NULL;
+	ioreq = 0;
+}
+
+inline void Socket::doWantAccept(int _w){
+	if(_w & (SecureSocket::WANT_READ)){
+		ioreq |= EPOLLIN;
+		want = SecureSocket::WANT_READ_ON_ACCEPT;
+	}
+	if(_w & (SecureSocket::WANT_WRITE)){
+		ioreq |= EPOLLOUT;
+		want = SecureSocket::WANT_WRITE_ON_ACCEPT;
+	}
+}
+inline void Socket::doWantConnect(int _w){
+	if(_w & (SecureSocket::WANT_READ)){
+		ioreq |= EPOLLIN;
+		want = SecureSocket::WANT_READ_ON_CONNECT;
+	}
+	if(_w & (SecureSocket::WANT_WRITE)){
+		ioreq |= EPOLLOUT;
+		want = SecureSocket::WANT_WRITE_ON_CONNECT;
+	}
+}
+inline void Socket::doWantRead(int _w){
+	if(_w & (SecureSocket::WANT_READ)){
+		ioreq |= EPOLLIN;
+		want |= SecureSocket::WANT_READ_ON_READ;
+	}
+	if(_w & (SecureSocket::WANT_WRITE)){
+		ioreq |= EPOLLOUT;
+		want |= SecureSocket::WANT_WRITE_ON_READ;
+	}
+}
+inline void Socket::doWantWrite(int _w){
+	if(_w & (SecureSocket::WANT_READ)){
+		ioreq |= EPOLLIN;
+		want |= SecureSocket::WANT_READ_ON_WRITE;
+	}
+	if(_w & (SecureSocket::WANT_WRITE)){
+		ioreq |= EPOLLOUT;
+		want |= SecureSocket::WANT_WRITE_ON_WRITE;
+	}
+}
+
+int Socket::doSendSecure(const char* _pb, uint32 _bl, uint32 _flags){
+	cassert(!isSendPending());
+	cassert(type == CHANNEL);
+	if(!_bl) return OK;
+	int rv = pss->send(_pb, _bl);
+	if(rv == (int)_bl){
+		sndlen = 0;
+		sndcnt += rv;
+		return OK;
+	}
+	if(!rv) return BAD;
+	if(rv < 0){
+		int w = pss->wantEvents();
+		if(!w) return BAD;
+		doWantWrite(w);
+		rv = 0;
+	}
+	sndbuf = _pb + rv;
+	sndlen = _bl - rv;
+	return NOK;
+}
+int Socket::doRecvSecure(char *_pb, uint32 _bl, uint32 _flags){
+	cassert(!isRecvPending());
+	cassert(type == CHANNEL);
+	if(!_bl) return OK;
+	int rv = pss->recv(_pb, _bl);
+	if(rv > 0){
+		rcvlen = rv;
+		rcvcnt += rv;
+		return OK;
+	}
+	if(!rv) return BAD;
+	int w = pss->wantEvents();
+	if(!w) return BAD;
+	doWantRead(w);
+	rcvbuf = _pb;
+	rcvlen = _bl;
+	ioreq |= EPOLLIN;
+	return NOK;
+}
+
+int Socket::doSecureAccept(){
+	int rv = pss->secureAccept();
+	ioreq = 0;
+	want = 0;
+	if(rv == OK){
+		rcvbuf = NULL;
+		return OUTDONE;
+	}
+	if(rv == BAD){
+		rcvbuf = NULL;
+		return ERRDONE;
+	}
+	doWandAccept(pss->wantEvents());
+	return 0;
+}
+int Socket::doSecureConnect(){
+	int rv = pss->secureConnect();
+	ioreq = 0;
+	want = 0;
+	if(rv == OK){
+		sndbuf = NULL;
+		return OUTDONE;
+	}
+	if(rv == BAD){
+		sndbuf = NULL;
+		return ERRDONE;
+	}
+	doWandAccept(pss->wantEvents());
+	return 0;
+}
+
+int Socket::doSecureReadWrite(int _w){
+	int retval = 0;
+	int w = _w & (SecureSocket::WANT_WRITE_ON_WRITE | SecureSocket::WANT_READ_ON_WRITE);
+	if(w){
+		want &= (~w);
+		if(sndlen && sndbuf){//NOTE: see the above note
+			int rv = pss->send(sndbuf, sndlen);
+			vdbgx(Dbg::aio, "send rv = "<<rv);
+			if(rv == 0) return ERRDONE;
+			if(rv < 0){
+				
+				return 0;
+			}else{
+				sndbuf += rv;
+				sndcnt += rv;
+				sndlen -= rv;
+				if(sndlen){
+					
+				}else{
+					sndbuf = NULL;
+					rv |= OUTDONE;
+				}
+			}
+		}else{
+			sndbuf = NULL;
+			rv |= OUTDONE;
+		}
+	}
+	w = _w & (SecureSocket::WANT_WRITE_ON_READ | SecureSocket::WANT_READ_ON_READ);
+	if(w){
+		want &= (~w);
+		if(rcvlen && rcvbuf){//NOTE: see the above note
+			int rv = pss->recv(rcvbuf, rcvlen);
+			vdbgx(Dbg::aio, "recv rv = "<<rv);
+			if(rv == 0) return ERRDONE;
+			if(rv < 0){
+				int sw = pss->wantEvents();
+				if(!sw) return ERRDONE;
+				
+				return 0;
+			}else{
+				rcvcnt += rv;
+				rcvlen = rv;
+				rcvbuf = NULL;
+				rv |= INDONE;
+			}
+		}else{
+			sndbuf = NULL;
+			rv |= INDONE;
+		}
+	}
+	return retval;
+}
+
+int Socket::doSendSecure(){
+	ioreq &= ~EPOLLOUT;
+	{
+		int w = want & (SecureSocket::WANT_WRITE_ON_WRITE | SecureSocket::WANT_WRITE_ON_READ);
+		if(w){
+			return doSecureReadWrite(w);
+		}
+	}
+	if(want == SecureSocket::WANT_WRITE_ON_ACCEPT){
+		return doSecureAccept();
+	}
+	if(want == SecureSocket::WANT_WRITE_ON_CONNECT){
+		return doSecureConnect();
+	}
+	cassert(false);
+	return ERRDONE;
+}
+int Socket::doRecvSecure(){
+	ioreq &= ~EPOLLIN;
+	{
+		int w = want & (SecureSocket::WANT_READ_ON_WRITE | SecureSocket::WANT_READ_ON_READ);
+		if(w){
+			return doSecureReadWrite(w);
+		}
+	}
+	if(want == SecureSocket::WANT_READ_ON_ACCEPT){
+		return doSecureAccept();
+	}
+	if(want == SecureSocket::WANT_READ_ON_CONNECT){
+		return doSecureConnect();
+	}
+	cassert(false);
+	return ERRDONE;
+}
+
+int Socket::secureAccept(){
+	cassert(!isRecvPending());
+	cassert(isSecure());
+	cassert(type == CHANNEL);
+	int rv = pss->secureAccept();
+	if(rv == OK) return OK;
+	if(rv == BAD) return BAD;
+	rcvbuf = "";
+	rcvlen = 0;
+	ioreq = 0;
+	if(want & (SecureSocket::WANT_READ)){
+		ioreq |= EPOLLIN;
+		want = SecureSocket::WANT_READ_ON_ACCEPT;
+	}
+	if(want & (SecureSocket::WANT_WRITE)){
+		ioreq |= EPOLLOUT;
+		want = SecureSocket::WANT_WRITE_ON_ACCEPT;
+	}
+	return NOK;
+}
+int Socket::secureConnect(){
+	cassert(!isRecvPending());
+	cassert(isSecure());
+	cassert(type == CHANNEL);
+	int rv = pss->secureConnect();
+	if(rv == OK) return OK;
+	if(rv == BAD) return BAD;
+	sndbuf = "";
+	sndlen = 0;
+	ioreq = 0;
+	if(want & (SecureSocket::WANT_READ)){
+		ioreq |= EPOLLIN;
+		want = SecureSocket::WANT_READ_ON_CONNECT;
+	}
+	if(want & (SecureSocket::WANT_WRITE)){
+		ioreq |= EPOLLOUT;
+		want = SecureSocket::WANT_WRITE_ON_CONNECT;
+	}
+	return NOK;
 }
 
 }//namespace aio
