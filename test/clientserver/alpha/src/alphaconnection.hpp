@@ -163,6 +163,7 @@ private:
 private:
 	enum {
 		Init,
+		Banner,
 		ParsePrepare,
 		Parse,
 		ExecutePrepare,

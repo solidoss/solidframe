@@ -187,13 +187,24 @@ int main(int argc, char* argv[]){
 		if(true){//creates and registers a new alpha service
 			test::Service* psrvc = test::alpha::Service::create(ts);
 			ts.insertService("alpha", psrvc);
-			int port = p.start_port + 114;
-			AddrInfo ai("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Stream);
-			if(!ai.empty() && !ts.insertListener("alpha", ai.begin())){//adds a listener
-				cout<<"added listener for service alpha "<<port<<endl;
-			}else{
-				cout<<"failed adding listener for service alpha port "<<port<<endl;
-			}	
+			{
+				int port = p.start_port + 114;
+				AddrInfo ai("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Stream);
+				if(!ai.empty() && !ts.insertListener("alpha", ai.begin())){//adds a listener
+					cout<<"added listener for service alpha "<<port<<endl;
+				}else{
+					cout<<"failed adding listener for service alpha port "<<port<<endl;
+				}
+			}
+			{
+				int port = p.start_port + 124;
+				AddrInfo ai("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Stream);
+				if(!ai.empty() && !ts.insertListener("alpha", ai.begin(), true)){//adds a listener
+					cout<<"added listener for service alpha "<<port<<endl;
+				}else{
+					cout<<"failed adding listener for service alpha port "<<port<<endl;
+				}
+			}
 		}
 		if(true){// create and register the proxy service
 			test::Service* psrvc = test::proxy::Service::create();

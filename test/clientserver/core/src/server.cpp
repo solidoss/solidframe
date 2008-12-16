@@ -460,11 +460,11 @@ void Server::removeService(Service *_psrvc){
 	cs::Server::removeService(_psrvc);
 }
 
-int Server::insertListener(const char* _nm, const AddrInfoIterator &_rai){
+int Server::insertListener(const char* _nm, const AddrInfoIterator &_rai, bool _secure){
 	Data::ServiceIdxMap::iterator it(d.servicemap.find(_nm));
 	if(it != d.servicemap.end()){
 		test::Service &ts = static_cast<test::Service&>(this->service(it->second));
-		return ts.insertListener(*this, _rai);
+		return ts.insertListener(*this, _rai, _secure);
 	}else{
 		idbg("service not found "<<d.servicemap.size());
 		return BAD;
@@ -482,7 +482,13 @@ int Server::insertTalker(const char* _nm, const AddrInfoIterator &_rai, const ch
 	}
 }
 
-int Server::insertConnection(const char* _nm, const AddrInfoIterator &_rai, const char*_node, const char *_srv){
+int Server::insertConnection(
+	const char* _nm,
+	const AddrInfoIterator &_rai,
+	const char*_node,
+	const char *_srv,
+	bool _secure
+){
 	Data::ServiceIdxMap::iterator it(d.servicemap.find(_nm));
 	if(it != d.servicemap.end()){
 		test::Service &ts = static_cast<test::Service&>(this->service(it->second));

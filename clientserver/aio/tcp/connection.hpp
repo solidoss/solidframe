@@ -31,6 +31,8 @@ namespace clientserver{
 
 namespace aio{
 
+class SecureSocket;
+
 namespace tcp{
 //! A simple Connection object optimized for single channel tcp communication
 /*!
@@ -117,6 +119,11 @@ public:
 	int socketState()const;
 	void socketState(int _st);
 	
+	SecureSocket* socketSecureSocket();
+	void socketSecureSocket(SecureSocket *_pss);
+	
+	int socketSecureAccept();
+	int socketSecureConnect();
 private:
 	SocketStub	stub;
 	int32		req;

@@ -19,6 +19,7 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "clientserver/aio/openssl/opensslsocket.hpp"
 #include "system/cassert.hpp"
 #include "system/debug.hpp"
 #include "system/mutex.hpp"
@@ -30,7 +31,10 @@
 
 namespace test{
 
-Listener::Listener(const SocketDevice &_rsd):clientserver::aio::tcp::Listener(_rsd){
+Listener::Listener(
+	const SocketDevice &_rsd,
+	clientserver::aio::openssl::Context *_pctx
+):clientserver::aio::tcp::Listener(_rsd), pctx(_pctx){
 	state(0);
 }
 
@@ -65,7 +69,11 @@ int Listener::execute(ulong, TimeSpec&){
 		state(0);
 		cassert(sd.ok());
 		//TODO: one may do some filtering on sd based on sd.remoteAddress()
-		rsrvc.insertConnection(rs, sd);
+		if(!pctx){
+			rsrvc.insertConnection(rs, sd);
+		}else{
+			rsrvc.insertConnection(rs, sd, pctx, true);
+		}
 	}
 	return OK;
 }

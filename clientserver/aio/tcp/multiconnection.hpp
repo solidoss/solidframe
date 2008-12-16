@@ -28,6 +28,8 @@ class SocketAddress;
 
 namespace clientserver{
 
+class SecureSocket;
+
 namespace aio{
 
 namespace tcp{
@@ -61,6 +63,12 @@ public:
 	void socketRequestUnregister(uint _pos);
 	int socketState(unsigned _pos)const;
 	void socketState(unsigned _pos, int _st);
+	
+	SecureSocket* socketSecureSocket(unsigned _pos);
+	void socketSecureSocket(unsigned _pos, SecureSocket *_pss);
+	
+	int socketSecureAccept(unsigned _pos);
+	int socketSecureConnect(unsigned _pos);
 private:
 	void reserve(uint _cp);//using only one allocation sets the pointers from the aioobject
 	uint dataSize(uint _cp);

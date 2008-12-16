@@ -470,12 +470,12 @@ uint Selector::doAllIo(){
 			if(evs){
 				//first mark the socket in connection
 				idbgx(Dbg::aio, "evs = "<<evs<<" indone = "<<INDONE<<" stubpos = "<<stubpos);
-				sock.objptr->doAddSignaledSocketNext(sockpos, evs);
-				sock.events |= evs;
+				stub.objptr->doAddSignaledSocketNext(sockpos, evs);
+				stub.events |= evs;
 				//push channel execqueue
-				if(sock.state == Stub::OutExecQueue){
+				if(stub.state == Stub::OutExecQueue){
 					d.execq.push(stubpos);
-					sock.state = Stub::InExecQueue;
+					stub.state = Stub::InExecQueue;
 				}
 			}else{
 				epoll_event ev;
@@ -483,7 +483,7 @@ uint Selector::doAllIo(){
 				if((sockstub.selevents & Data::EPOLLMASK) != t){
 					sockstub.selevents = t;
 					ev.events = t | EPOLLET;
-					check_call(Dbg::aio, 0, epoll_ctl(d.epollfd, EPOLL_CTL_MOD, sockstub.psock->descriptor(), d.eventPrepare(ev, _pos, *pit)));
+					check_call(Dbg::aio, 0, epoll_ctl(d.epollfd, EPOLL_CTL_MOD, sockstub.psock->descriptor(), d.eventPrepare(ev, stubpos, sockpos)));
 				}
 			}
 		}else{//the pipe stub

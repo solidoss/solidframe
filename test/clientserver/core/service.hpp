@@ -39,6 +39,13 @@ class Station;
 
 }
 
+namespace clientserver{
+namespace aio{
+namespace openssl{
+class Context;
+}
+}
+}
 
 namespace test{
 
@@ -57,7 +64,8 @@ public:
 	
 	virtual int insertListener(
 		Server &_rsrv,
-		const AddrInfoIterator &_rai
+		const AddrInfoIterator &_rai,
+		bool _secure = false
 	);
 	virtual int insertTalker(
 		Server &_rs,
@@ -68,7 +76,9 @@ public:
 	//this is used by the generic aio listener
 	virtual int insertConnection(
 		Server &_rs,
-		const SocketDevice &_rsd
+		const SocketDevice &_rsd,
+		clientserver::aio::openssl::Context *_pctx = NULL,
+		bool _secure = false
 	);
 	virtual int insertConnection(
 		Server &_rs,

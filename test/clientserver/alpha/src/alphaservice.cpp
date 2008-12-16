@@ -22,9 +22,11 @@
 #include "system/debug.hpp"
 #include "core/server.hpp"
 
+
 #include "algorithm/serialization/binary.hpp"
 
 #include "clientserver/core/objptr.hpp"
+#include "clientserver/aio/openssl/opensslsocket.hpp"
 
 #include "core/listener.hpp"
 
@@ -57,10 +59,15 @@ Service::~Service(){
 
 int Service::insertConnection(
 	test::Server &_rs,
-	const SocketDevice &_rsd
+	const SocketDevice &_rsd,
+	clientserver::aio::openssl::Context *_pctx,
+	bool _secure
 ){
 	//create a new connection with the given channel
 	Connection *pcon = new Connection(_rsd);
+	if(_pctx){
+		pcon->socketSecureSocket(_pctx->createSocket());
+	}
 	//register it into the service
 	if(this->insert(*pcon, this->index())){
 		delete pcon;
@@ -73,14 +80,24 @@ int Service::insertConnection(
 
 int Service::insertListener(
 	test::Server &_rs,
-	const AddrInfoIterator &_rai
+	const AddrInfoIterator &_rai,
+	bool _secure
 ){
 	SocketDevice sd;
 	sd.create(_rai);
 	sd.makeNonBlocking();
 	sd.prepareAccept(_rai, 100);
 	if(!sd.ok()) return BAD;
-	test::Listener *plis = new test::Listener(sd);
+	
+	clientserver::aio::openssl::Context *pctx = NULL;
+	if(_secure){
+		pctx = clientserver::aio::openssl::Context::create();
+	}
+	if(pctx){
+		pctx->loadCertificateFile("../../../../../extern/linux/openssl/demos/tunala/A-server.pem");
+		pctx->loadPrivateKeyFile("../../../../../extern/linux/openssl/demos/tunala/A-server.pem");
+	}
+	test::Listener *plis = new test::Listener(sd, pctx);
 	
 	if(this->insert(*plis, this->index())){
 		delete plis;

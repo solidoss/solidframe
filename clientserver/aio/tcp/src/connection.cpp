@@ -60,8 +60,7 @@ int Connection::socketConnect(const AddrInfoIterator& _rai){
 	return stub.psock->connect(_rai);
 }
 bool Connection::socketIsSecure()const{
-	//TODO:
-	return false;
+	return stub.psock->isSecure();
 }
 int Connection::socketSend(const char* _pb, uint32 _bl, uint32 _flags){
 	//ensure that we dont have double request
@@ -187,6 +186,20 @@ int Connection::socketState()const{
 }
 void Connection::socketState(int _st){
 	stub.state = _st;
+}
+
+SecureSocket* Connection::socketSecureSocket(){
+	return stub.psock->secureSocket();
+}
+void Connection::socketSecureSocket(SecureSocket *_pss){
+	stub.psock->secureSocket(_pss);
+}
+
+int Connection::socketSecureAccept(){
+	return stub.psock->secureAccept();
+}
+int Connection::socketSecureConnect(){
+	return stub.psock->secureConnect();
 }
 
 //================== MultiConnection =============================
@@ -424,6 +437,20 @@ uint MultiConnection::newStub(){
 	uint pos = posstk.top();
 	posstk.pop();
 	return pos;
+}
+
+SecureSocket* MultiConnection::socketSecureSocket(unsigned _pos){
+	return pstubs[_pos].psock->secureSocket();
+}
+void MultiConnection::socketSecureSocket(unsigned _pos, SecureSocket *_pss){
+	pstubs[_pos].psock->secureSocket(_pss);
+}
+
+int MultiConnection::socketSecureAccept(unsigned _pos){
+	return pstubs[_pos].psock->secureAccept();
+}
+int MultiConnection::socketSecureConnect(unsigned _pos){
+	return pstubs[_pos].psock->secureConnect();
 }
 
 }//namespace tcp

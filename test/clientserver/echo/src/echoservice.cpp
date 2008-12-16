@@ -46,7 +46,9 @@ Service::~Service(){
 
 int Service::insertConnection(
 	test::Server &_rs,
-	const SocketDevice &_rsd
+	const SocketDevice &_rsd,
+	clientserver::aio::openssl::Context *_pctx,
+	bool _secure
 ){
 	//Connection *pcon = new Connection(_rsd);
 	Connection *pcon = new Connection(_rsd);
@@ -60,7 +62,8 @@ int Service::insertConnection(
 
 int Service::insertListener(
 	test::Server &_rs,
-	const AddrInfoIterator &_rai
+	const AddrInfoIterator &_rai,
+	bool _secure
 ){
 	SocketDevice sd;
 	sd.create(_rai);
