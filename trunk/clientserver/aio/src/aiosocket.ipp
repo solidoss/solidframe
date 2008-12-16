@@ -21,6 +21,8 @@
 
 #ifndef UINLINES
 #define inline
+#else
+#include "clientserver/aio/src/aiosocket.hpp"
 #endif
 
 inline bool Socket::isSecure()const{
@@ -62,7 +64,9 @@ inline int Socket::doRecv(){
 inline uint32 Socket::ioRequest()const{
 	return ioreq;
 }
-
+inline SecureSocket* Socket::secureSocket()const{
+	return pss;
+}
 #ifndef UINLINES
 #undef inline
 #endif

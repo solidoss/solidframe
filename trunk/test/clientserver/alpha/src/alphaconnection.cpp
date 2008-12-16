@@ -172,7 +172,15 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 // 	}
 	int rc;
 	switch(state()){
-		case Init:{
+		case Init:
+			if(this->socketIsSecure()){
+				int rv = this->socketSecureAccept();
+				state(Banner);
+				return rv;
+			}else{
+				state(Banner);
+			}
+		case Banner:{
 			test::Server	&rs = test::Server::the();
 			uint32			myport(rs.ipc().basePort());
 			ulong			objid(this->id());

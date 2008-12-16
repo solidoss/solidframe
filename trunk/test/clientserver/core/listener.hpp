@@ -25,6 +25,14 @@
 #include "clientserver/aio/tcp/listener.hpp"
 #include "system/socketdevice.hpp"
 
+namespace clientserver{
+namespace aio{
+namespace openssl{
+class Context;
+}
+}
+}
+
 namespace test{
 
 class Service;
@@ -32,11 +40,12 @@ class Service;
 class Listener: public clientserver::aio::tcp::Listener{
 public:
 	typedef Service		ServiceTp;
-	Listener(const SocketDevice &_rsd);
+	Listener(const SocketDevice &_rsd, clientserver::aio::openssl::Context *_pctx = NULL);
 	~Listener();
 	virtual int execute(ulong, TimeSpec&);
 private:
-	SocketDevice sd;
+	SocketDevice		sd;
+	clientserver::aio::openssl::Context *pctx;
 };
 
 }//namespace test

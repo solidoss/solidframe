@@ -77,7 +77,8 @@ public:
 	*/
 	int insertListener(
 		const char* _nm,
-		const AddrInfoIterator &_rai
+		const AddrInfoIterator &_rai,
+		bool _secure = false
 	);
 	//! Insert a talker into a service
 	/*!
@@ -103,7 +104,8 @@ public:
 		const char* _nm,
 		const AddrInfoIterator &_rai,
 		const char*_node,
-		const char *_srv
+		const char *_srv,
+		bool _secure = false
 	);
 	//! Visit all services
 	int visitService(const char* _nm, Visitor &_roi);

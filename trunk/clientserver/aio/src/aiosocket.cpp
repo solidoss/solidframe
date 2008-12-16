@@ -13,7 +13,7 @@ namespace clientserver{
 namespace aio{
 
 #ifndef UINLINES
-#include "object.ipp"
+#include "aiosocket.ipp"
 #endif
 
 
@@ -37,20 +37,21 @@ struct Socket::AcceptorData{
 
 
 Socket::Socket(Type _type, SecureSocket *_pss):
-	pss(_pss),
+	pss(NULL),
 	type(_type), rcvcnt(0), sndcnt(0),
 	rcvbuf(NULL), sndbuf(NULL), rcvlen(0), sndlen(0), ioreq(0)
 {
 	d.psd = NULL;
 }
 
-Socket::Socket(Type _type, const SocketDevice &_rsd):
+Socket::Socket(Type _type, const SocketDevice &_rsd, SecureSocket *_pss):
 	sd(_rsd),
-	pss(_pss),
+	pss(NULL),
 	type(_type), rcvcnt(0), sndcnt(0),
 	rcvbuf(NULL), sndbuf(NULL), rcvlen(0), sndlen(0), ioreq(0)
 {	
 	sd.makeNonBlocking();
+	secureSocket(_pss);
 	d.psd = NULL;
 }
 
@@ -59,9 +60,6 @@ Socket::~Socket(){
 }
 
 
-bool Socket::ok()const{
-	return sd.ok();
-}
 int Socket::create(const AddrInfoIterator& _rai){
 	return sd.create(_rai);
 }
@@ -398,7 +396,7 @@ int Socket::doSecureAccept(){
 		rcvbuf = NULL;
 		return ERRDONE;
 	}
-	doWandAccept(pss->wantEvents());
+	doWantAccept(pss->wantEvents());
 	return 0;
 }
 int Socket::doSecureConnect(){
@@ -413,7 +411,7 @@ int Socket::doSecureConnect(){
 		sndbuf = NULL;
 		return ERRDONE;
 	}
-	doWandAccept(pss->wantEvents());
+	doWantAccept(pss->wantEvents());
 	return 0;
 }
 
@@ -437,12 +435,12 @@ int Socket::doSecureReadWrite(int _w){
 					
 				}else{
 					sndbuf = NULL;
-					rv |= OUTDONE;
+					retval |= OUTDONE;
 				}
 			}
 		}else{
 			sndbuf = NULL;
-			rv |= OUTDONE;
+			retval |= OUTDONE;
 		}
 	}
 	w = _w & (SecureSocket::WANT_WRITE_ON_READ | SecureSocket::WANT_READ_ON_READ);
@@ -461,11 +459,11 @@ int Socket::doSecureReadWrite(int _w){
 				rcvcnt += rv;
 				rcvlen = rv;
 				rcvbuf = NULL;
-				rv |= INDONE;
+				retval |= INDONE;
 			}
 		}else{
 			sndbuf = NULL;
-			rv |= INDONE;
+			retval |= INDONE;
 		}
 	}
 	return retval;
@@ -516,14 +514,7 @@ int Socket::secureAccept(){
 	rcvbuf = "";
 	rcvlen = 0;
 	ioreq = 0;
-	if(want & (SecureSocket::WANT_READ)){
-		ioreq |= EPOLLIN;
-		want = SecureSocket::WANT_READ_ON_ACCEPT;
-	}
-	if(want & (SecureSocket::WANT_WRITE)){
-		ioreq |= EPOLLOUT;
-		want = SecureSocket::WANT_WRITE_ON_ACCEPT;
-	}
+	doWantAccept(pss->wantEvents());
 	return NOK;
 }
 int Socket::secureConnect(){
@@ -536,15 +527,15 @@ int Socket::secureConnect(){
 	sndbuf = "";
 	sndlen = 0;
 	ioreq = 0;
-	if(want & (SecureSocket::WANT_READ)){
-		ioreq |= EPOLLIN;
-		want = SecureSocket::WANT_READ_ON_CONNECT;
-	}
-	if(want & (SecureSocket::WANT_WRITE)){
-		ioreq |= EPOLLOUT;
-		want = SecureSocket::WANT_WRITE_ON_CONNECT;
-	}
+	doWantConnect(pss->wantEvents());
 	return NOK;
+}
+
+void Socket::secureSocket(SecureSocket *_pss){
+	delete pss;
+	pss = _pss;
+	if(pss)
+		pss->descriptor(sd);
 }
 
 }//namespace aio

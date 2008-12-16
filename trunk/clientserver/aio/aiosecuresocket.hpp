@@ -22,12 +22,35 @@
 #ifndef AIO_SECURE_SOCKET_HPP
 #define AIO_SECURE_SOCKET_HPP
 
+#include "system/common.hpp"
+
+class SocketDevice;
 
 namespace clientserver{
 
 namespace aio{
 
 class SecureSocket{
+public:
+	enum{
+		WANT_READ = (1 << 0),
+		WANT_WRITE = (1 << 1),
+		WANT_READ_ON_ACCEPT = (1 << 2),
+		WANT_WRITE_ON_ACCEPT = (1 << 3),
+		WANT_READ_ON_CONNECT = (1 << 4),
+		WANT_WRITE_ON_CONNECT = (1 << 5),
+		WANT_READ_ON_READ = (1 << 6),
+		WANT_WRITE_ON_READ = (1 << 7),
+		WANT_READ_ON_WRITE = (1 << 8),
+		WANT_WRITE_ON_WRITE = (1 << 9),
+	};
+	virtual ~SecureSocket(){}
+	virtual void descriptor(const SocketDevice &) = 0;
+	virtual int send(const char *_pb, uint _bl, uint _flags = 0) = 0;
+	virtual int recv(char *_pb, uint _bl, uint _flags = 0) = 0;
+	virtual uint wantEvents()const = 0;
+	virtual int secureAccept() = 0;
+	virtual int secureConnect() = 0;
 };
 
 }//namespace aio

@@ -21,6 +21,9 @@ target_link_libraries (test
 	clientserver_aio
 	clientserver_aio_tcp
 	clientserver_aio_udp
+	clientserver_aio_openssl
+	ssl
+	crypto
 	protocol
 	audit_log_manager
 	audit_log
@@ -30,4 +33,5 @@ target_link_libraries (test
 	boost_filesystem
 	pthread
 	rt
+	dl
 )

@@ -111,6 +111,10 @@ private:
 	int doSendSecure(const char* _pb, uint32 _bl, uint32 _flags);
 	int doRecvSecure(char *_pb, uint32 _bl, uint32 _flags);
 	
+	int doSecureReadWrite(int _w);
+	int doSecureAccept();
+	int doSecureConnect();
+	
 	uint32 ioRequest()const;
 	int descriptor()const{return sd.descriptor();}
 private:
@@ -134,7 +138,7 @@ private:
 };
 
 #ifdef UINLINES
-#include "socket.ipp"
+#include "aiosocket.ipp"
 #endif
 
 

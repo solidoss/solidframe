@@ -68,7 +68,8 @@ int Service::removeListener(Listener &_rlis){
 
 int Service::insertListener(
 	Server &_rsrv,
-	const AddrInfoIterator &_rai
+	const AddrInfoIterator &_rai,
+	bool _secure
 ){
 	return BAD;
 }
@@ -91,7 +92,9 @@ int Service::insertConnection(
 }
 int Service::insertConnection(
 	Server &_rs, 
-	const SocketDevice &_rsd
+	const SocketDevice &_rsd,
+	clientserver::aio::openssl::Context *_pctx,
+	bool _secure
 ){	
 	cassert(false);
 	return BAD;
