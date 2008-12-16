@@ -32,7 +32,10 @@
 #define OBJ_CACHE_CAP 4096*2
 #endif
 
-static const unsigned	thrspecpos = Thread::specificId();
+static const unsigned specificPosition(){
+	static const unsigned	thrspecpos = Thread::specificId();
+	return thrspecpos;
+}
 //static unsigned		stkid = 0;
 struct CleanVector: std::vector<Specific::FncTp>{
 	CleanVector(){
@@ -58,7 +61,7 @@ struct SpecificData{
 	SpecificData(SpecificCacheControl *_pcc);
 	~SpecificData();
 	inline static SpecificData& current(){
-		return *reinterpret_cast<SpecificData*>(Thread::specific(thrspecpos));
+		return *reinterpret_cast<SpecificData*>(Thread::specific(specificPosition()));
 	}
 	CachePoint 				cps[Specific::Count];
 	ObjCachePointVecTp		ops;
@@ -138,7 +141,7 @@ void destroy(void *_pv){
 }
 /*static*/ void Specific::prepareThread(SpecificCacheControl *_pcc){
 	if(!_pcc) _pcc = static_cast<SpecificCacheControl*>(&bcc);
-	Thread::specific(thrspecpos, new SpecificData(_pcc), &destroy);
+	Thread::specific(specificPosition(), new SpecificData(_pcc), &destroy);
 }
 //----------------------------------------------------------------------------------------------------
 /*static*/ unsigned Specific::sizeToId(unsigned _sz){

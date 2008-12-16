@@ -8,7 +8,10 @@ struct SpecificRequestUid::ForcedCreate{
 
 SpecificRequestUid requestuidptr;//(SpecificRequestUid::ForcedCreate);
 
-static const unsigned	thrspecpos = Thread::specificId();
+static const unsigned specificPosition(){
+	static const unsigned	thrspecpos = Thread::specificId();
+	return thrspecpos;
+}
 
 static void destroy(void *_pv){
 	RequestUid *psd = reinterpret_cast<RequestUid*>(_pv);
@@ -16,18 +19,18 @@ static void destroy(void *_pv){
 }
 
 void SpecificRequestUid::prepareThread(){
-	Thread::specific(thrspecpos, new RequestUid, &destroy);
+	Thread::specific(specificPosition(), new RequestUid, &destroy);
 }
 
 SpecificRequestUid::SpecificRequestUid(const ForcedCreate&){
 }
 
 RequestUid* SpecificRequestUid::operator->()const{
-	return reinterpret_cast<RequestUid*>(Thread::specific(thrspecpos));
+	return reinterpret_cast<RequestUid*>(Thread::specific(specificPosition()));
 }
 
 RequestUid* SpecificRequestUid::ptr() const{
-	return reinterpret_cast<RequestUid*>(Thread::specific(thrspecpos));
+	return reinterpret_cast<RequestUid*>(Thread::specific(specificPosition()));
 }
 
 RequestUid& SpecificRequestUid::operator*()const{
