@@ -49,8 +49,10 @@ void ServerThread::server(Server *_psrv){
 	ThreadBase::specific(0,_psrv);
 }
 */
-
-static const unsigned serverspecificid = Thread::specificId();
+static const unsigned specificPosition(){
+	static const unsigned thrspecpos = Thread::specificId();
+	return thrspecpos;
+}
 
 namespace clientserver{
 
@@ -164,7 +166,7 @@ void Server::stop(bool _wait){
 }
 
 Server& Server::the(){
-	return *reinterpret_cast<Server*>(Thread::specific(serverspecificid));
+	return *reinterpret_cast<Server*>(Thread::specific(specificPosition()));
 }
 
 // uint Server::serviceId(const Service &_rs)const{
@@ -255,13 +257,13 @@ void Server::raiseObject(Object &_robj){
 }
 
 void Server::prepareThread(){
-	Thread::specific(serverspecificid, this);
+	Thread::specific(specificPosition(), this);
 	//GlobalMapper::prepareThread(globalMapper());
 	Specific::prepareThread();
 	requestuidptr.prepareThread();
 }
 void Server::unprepareThread(){
-	Thread::specific(serverspecificid, NULL);
+	Thread::specific(specificPosition(), NULL);
 	//GlobalMapper::unprepareThread();
 	//Specific::unprepareThread();
 }

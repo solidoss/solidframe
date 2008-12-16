@@ -196,10 +196,20 @@ void Connection::socketSecureSocket(SecureSocket *_pss){
 }
 
 int Connection::socketSecureAccept(){
-	return stub.psock->secureAccept();
+	int rv = stub.psock->secureAccept();
+	if(rv == NOK){
+		//stub.timepos.set(0xffffffff, 0xffffffff);
+		pushRequest(0, SocketStub::IORequest);
+	}
+	return rv;
 }
 int Connection::socketSecureConnect(){
-	return stub.psock->secureConnect();
+	int rv = stub.psock->secureConnect();
+	if(rv == NOK){
+		//stub.timepos.set(0xffffffff, 0xffffffff);
+		pushRequest(0, SocketStub::IORequest);
+	}
+	return rv;
 }
 
 //================== MultiConnection =============================
@@ -447,10 +457,18 @@ void MultiConnection::socketSecureSocket(unsigned _pos, SecureSocket *_pss){
 }
 
 int MultiConnection::socketSecureAccept(unsigned _pos){
-	return pstubs[_pos].psock->secureAccept();
+	int rv = pstubs[_pos].psock->secureAccept();
+	if(rv == NOK){
+		pushRequest(_pos, SocketStub::IORequest);
+	}
+	return rv;
 }
 int MultiConnection::socketSecureConnect(unsigned _pos){
-	return pstubs[_pos].psock->secureConnect();
+	int rv = pstubs[_pos].psock->secureConnect();
+	if(rv == NOK){
+		pushRequest(_pos, SocketStub::IORequest);
+	}
+	return rv;
 }
 
 }//namespace tcp
