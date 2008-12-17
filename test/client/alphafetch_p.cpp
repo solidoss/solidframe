@@ -47,6 +47,7 @@ inline T* findNot(T *_pc){
 
 int main(int argc, char *argv[]){
 	if(argc != 7){
+		cout<<"Plain alpha connection fetch test"<<endl;
 		cout<<"Usage: alphafetch alpha_addr alpha_port ipc_addr ipc_port path local_path"<<endl;
 		return 0;
 	}

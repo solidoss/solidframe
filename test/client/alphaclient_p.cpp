@@ -12,10 +12,6 @@
 #include <deque>
 #include <cerrno>
 
-#include "openssl/bio.h"
-#include "openssl/ssl.h"
-#include "openssl/err.h"
-
 #include "system/cassert.hpp"
 #include "system/debug.hpp"
 #include "system/socketaddress.hpp"
@@ -28,11 +24,7 @@
 using namespace std;
 //typedef unsigned long long uint64;
 enum {BSIZE = 1024};
-
 static int sleeptout = 0;
-
-static SSL_CTX *sslctx = NULL;
-
 ///\cond 0
 class Info{
 public:
@@ -119,8 +111,7 @@ public:
 		int _port = -1,
 		int _repeatcnt= 0,
 		int _cnt = ((unsigned)(0xfffffff)),
-		int _sleep = 1):ai(_node, _svice), wr(-1),sd(-1), cnt(_cnt), slp(_sleep),path(_path),pos(_pos),addr(_addr?_addr:""),
-		port(_port),repeatcnt(_repeatcnt),pssl(NULL){}
+		int _sleep = 1):ai(_node, _svice), wr(-1),sd(-1), pos(_pos), cnt(_cnt),slp(_sleep),path(_path),addr(_addr?_addr:""),port(_port),repeatcnt(_repeatcnt){}
 	void run();
 private:
 	enum {BufLen = 2*1024};
@@ -139,7 +130,6 @@ private:
 	string		addr;
 	int 		port;
 	int			repeatcnt;
-	SSL			*pssl;
 };
 
 void AlphaThread::run(){
@@ -164,26 +154,15 @@ void AlphaThread::run(){
 	cout<<pos<<" connected"<<endl;
 	inf.doneConnect();
 	inf.unlock();
-	
-	//do ssl stuffs
-	pssl = SSL_new(sslctx);
-	SSL_set_fd(pssl, sd);
-	int rv = SSL_connect(pssl);
-	if(rv <= 0){
-		cout<<"error ssl connect"<<endl;
-		return;
-	}
-	
-	
 	//timeval tv;
 // 	memset(&tv, 0, sizeof(timeval));
 // 	tv.tv_sec = 30;
 // 	setsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 // 	setsockopt(sd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
 	readc = 0;
-	wr.reinit(sd, pssl);
+	wr.reinit(sd);
 	char buf[BufLen];
-	rv = list(buf);
+	int rv = list(buf);
 	idbg("return value "<<rv);
 	inf.update(pos, readc);
 	ulong m = sdq.size();
@@ -265,7 +244,7 @@ int AlphaThread::list(char *_pb){
 	const char *bpos;
 	const char *bend;
 	const char *bp;
-	while((rc = SSL_read(pssl, _pb, BufLen - 1)) > 0){
+	while((rc = read(sd, _pb, BufLen - 1)) > 0){
 		bool b = true;
 		readc += rc;
 		inf.update(pos, readc);
@@ -380,7 +359,7 @@ int AlphaThread::fetch(unsigned _idx, char *_pb){
 	string lit;
 	ulong litlen = 0;
 	
-	while((rc = SSL_read(pssl, _pb, BufLen - 1)) > 0){
+	while((rc = read(sd, _pb, BufLen - 1)) > 0){
 		readc += rc;
 		inf.update(pos, readc);
 /*		idbg("-----------------------------");
@@ -504,6 +483,7 @@ int AlphaThread::fetch(unsigned _idx, char *_pb){
 
 int main(int argc, char *argv[]){
 	if(argc != 7 && argc != 9){
+		cout<<"Plain alpha connection stress test"<<endl;
 		cout<<"Usage: alphaclient thcnt addr port path tout repeat_count [peer_addr peer_port]"<<endl;
 		cout<<"Where:"<<endl;
 		cout<<"tout is the amount of time in msec between commands"<<endl;
@@ -522,34 +502,6 @@ int main(int argc, char *argv[]){
 	cout<<"Debug bits: "<<s<<endl;
 	}
 #endif
-	
-	//Initializing OpenSSL
-	//------------------------------------------
-	SSL_library_init();
-	SSL_load_error_strings();
-	ERR_load_BIO_strings();
-	OpenSSL_add_all_algorithms();
-	
-	sslctx = SSL_CTX_new(SSLv23_client_method());
-	
-	const char *pcertpath = "../../../../extern/linux/openssl/demos/tunala/A-client.pem";
-	
-	if(!sslctx){
-		cout<<"failed SSL_CTX_new: "<<ERR_error_string(ERR_get_error(), NULL)<<endl;
-		return 0;
-	}
-	if(!SSL_CTX_load_verify_locations(sslctx, pcertpath, NULL)){
-    	cout<<"failed SSL_CTX_load_verify_locations 1 "<<ERR_error_string(ERR_get_error(), NULL)<<endl;;
-    	return 0;
-	}
-	system("mkdir certs");
-	
-	if(!SSL_CTX_load_verify_locations(sslctx, NULL, "certs")){
-		cout<<"failed SSL_CTX_load_verify_locations 2 "<<ERR_error_string(ERR_get_error(), NULL)<<endl;;
-		return 0;
-	}
-	//------------------------------------------
-	//done with ssl context stuff
 	
 	sleeptout = atoi(argv[5]);
 	int cnt = atoi(argv[1]);
