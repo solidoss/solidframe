@@ -217,6 +217,7 @@ void destroy(void *_pv){
 	SpecificData &rsd(SpecificData::current());
 	cassert(_pv);
 	cassert(_id < rsd.ops.size());
+	cassert(rsd.ops[_id].ps);
 	if(rsd.ops[_id].ps->size() < _maxcp){
 		rsd.ops[_id].ps->push(_pv);
 		return 0;
@@ -229,11 +230,14 @@ void destroy(void *_pv){
 	if(_id >= rsd.ops.size()){
 		rsd.ops.resize(_id + 1);
 		rsd.ops[_id].ps = new StackTp;
-	}
-	if(rsd.ops[_id].ps->size()){
-		void *pv = rsd.ops[_id].ps->top();
-		rsd.ops[_id].ps->pop();
-		return pv;
+	}else if(rsd.ops[_id].ps){
+		if(rsd.ops[_id].ps->size()){
+			void *pv = rsd.ops[_id].ps->top();
+			rsd.ops[_id].ps->pop();
+			return pv;
+		}
+	}else{
+		rsd.ops[_id].ps = new StackTp;
 	}
 	++rsd.ops[_id].cp;
 	return NULL;

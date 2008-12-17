@@ -14,16 +14,21 @@ bool isquotedspecial(uint8 _c){
 	return isgraph(_c);
 }
 
-void Writer::reinit(int _sd){
+void Writer::reinit(int _sd, SSL *_pssl){
 	sd = _sd;
 	bpos = bbeg;
+	pssl = _pssl;
 }
 
 int Writer::flush(){
 	uint32 len = bpos-bbeg;
 	if(len){
 		writedbg(bbeg, len);
-		wrerr = write(sd,bbeg,len);
+		if(pssl){
+			wrerr= SSL_write(pssl, bbeg, len);
+		}else{
+			wrerr = write(sd,bbeg,len);
+		}
 		count += wrerr;
 		bpos=bbeg;
 	}
@@ -47,7 +52,11 @@ void Writer::put(const char *_s,uint32 _sz){
 	_sz -= rem;
 	if(_sz){
 		if(wrerr >= 0){
-			wrerr = write(sd,_s,_sz);
+			if(pssl){
+				wrerr = SSL_write(pssl,_s,_sz);
+			}else{
+				wrerr = write(sd,_s,_sz);
+			}
 			count += wrerr;
 		}
 	}
