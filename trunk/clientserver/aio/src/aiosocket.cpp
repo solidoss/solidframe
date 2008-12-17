@@ -38,7 +38,7 @@ struct Socket::AcceptorData{
 
 Socket::Socket(Type _type, SecureSocket *_pss):
 	pss(NULL),
-	type(_type), rcvcnt(0), sndcnt(0),
+	type(_type), want(0), rcvcnt(0), sndcnt(0),
 	rcvbuf(NULL), sndbuf(NULL), rcvlen(0), sndlen(0), ioreq(0)
 {
 	d.psd = NULL;
@@ -47,7 +47,7 @@ Socket::Socket(Type _type, SecureSocket *_pss):
 Socket::Socket(Type _type, const SocketDevice &_rsd, SecureSocket *_pss):
 	sd(_rsd),
 	pss(NULL),
-	type(_type), rcvcnt(0), sndcnt(0),
+	type(_type), want(0), rcvcnt(0), sndcnt(0),
 	rcvbuf(NULL), sndbuf(NULL), rcvlen(0), sndlen(0), ioreq(0)
 {	
 	sd.makeNonBlocking();
@@ -309,7 +309,7 @@ inline void Socket::doWantAccept(int _w){
 	}
 	if(_w & (SecureSocket::WANT_WRITE)){
 		ioreq |= EPOLLOUT;
-		want = SecureSocket::WANT_WRITE_ON_ACCEPT;
+		want |= SecureSocket::WANT_WRITE_ON_ACCEPT;
 	}
 }
 inline void Socket::doWantConnect(int _w){
@@ -319,7 +319,7 @@ inline void Socket::doWantConnect(int _w){
 	}
 	if(_w & (SecureSocket::WANT_WRITE)){
 		ioreq |= EPOLLOUT;
-		want = SecureSocket::WANT_WRITE_ON_CONNECT;
+		want |= SecureSocket::WANT_WRITE_ON_CONNECT;
 	}
 }
 inline void Socket::doWantRead(int _w){
@@ -386,6 +386,7 @@ int Socket::doRecvSecure(char *_pb, uint32 _bl, uint32 _flags){
 
 int Socket::doSecureAccept(){
 	int rv = pss->secureAccept();
+	vdbgx(Dbg::aio, " secureaccept "<<rv);
 	ioreq = 0;
 	want = 0;
 	if(rv == OK){
