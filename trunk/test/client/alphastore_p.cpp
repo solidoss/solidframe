@@ -38,6 +38,7 @@ private:
 
 int main(int argc, char *argv[]){
 	if(argc != 5){
+		cout<<"Plain alpha connection store test"<<endl;
 		cout<<"Usage: alphastore alpha_addr alpha_port local_path path"<<endl;
 		return 0;
 	}
