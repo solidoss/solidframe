@@ -6,6 +6,7 @@
 #include <cstring>
 #include "system/common.hpp"
 #include <list>
+#include "openssl/ssl.h"
 
 #define APPSTR(str) str, sizeof(str) - 1
 ///\cond 0
@@ -18,7 +19,7 @@ public://nonstatic methods
     static bool isquotedspecial(uint8 _c);
     Writer(int _sd):sd(_sd),wrerr(0),bend(bbeg+BUFFLEN),bpos(bbeg),count(0){}
     ~Writer(){}
-    void reinit(int _sd);
+    void reinit(int _sd, SSL *_pssl = NULL);
     int flush();
     bool isOk()const{
         return (wrerr >= 0);
@@ -124,6 +125,7 @@ public://nonstatic methods
     }
 private:
     int	        	sd;
+    SSL				*pssl;
     int             wrerr;
     char            bbeg[BUFFLEN+4];
     char            *bend;

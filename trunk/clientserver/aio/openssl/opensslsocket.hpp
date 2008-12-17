@@ -1,4 +1,4 @@
-/* Implementation file opensslsocket.hpp
+/* Declarations file opensslsocket.hpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
@@ -32,25 +32,48 @@ namespace aio{
 namespace openssl{
 
 class Socket;
-
+//! A OpenSSL context wrapper
+/*!
+	NOTE: this is not a complete nor a final/perfect interface.
+	The intention is to have an easy to use wrapper for
+	OpenSSL. One can extend and improve the interface to offer
+	more of OpenSSL functionality.
+*/
 class Context{
 public:
 	static Context* create();
 	~Context();
+	//! Creates a new OpenSSL SecureSocket
 	Socket*	createSocket();
-	int loadFile(const char *_path);
-	int loadPath(const char *_path);
-	int loadCertificateFile(const char *_path);
-	int loadPrivateKeyFile(const char *_path);
-private:
-	Context(SSL_CTX *_pctx);
 	
+	//!Use it on client side to load the certificates
+	int loadFile(const char *_path);
+	//!Use it on client side to load the certificates
+	int loadPath(const char *_path);
+	
+	//!Use it on server side to load the certificates
+	int loadCertificateFile(const char *_path);
+	//!Use it on server side to load the certificates
+	int loadPrivateKeyFile(const char *_path);
+
+private:
 	Context(const Context&);
 	Context& operator=(const Context&);
-private:
+protected:
+	Context(SSL_CTX *_pctx);
+protected:
 	SSL_CTX	*pctx;
 };
-
+//! A OpenSSL secure communication wrapper
+/*!
+	It is an implementation of clientserver::aio::SecureSocket
+	interface.
+	
+	NOTE: this is not a complete nor a final/perfect interface.
+	The intention is to have an easy to use wrapper for
+	OpenSSL. One can extend and improve the interface to offer
+	more of OpenSSL functionality.
+*/
 class Socket: public SecureSocket{
 public:
 	/*virtual*/ ~Socket();
@@ -62,13 +85,14 @@ public:
 	/*virtual*/ int secureConnect();
 private:
 
-	friend class Context;
-	Socket(SSL *_pssl);
-	bool shouldWait()const;
-	
+	friend class Context;	
 	Socket& operator=(const Socket&);
 	Socket(const Socket&);
-private:
+protected:
+	Socket(SSL *_pssl);
+	bool shouldWait()const;
+
+protected:
 	SSL	*pssl;
 };
 

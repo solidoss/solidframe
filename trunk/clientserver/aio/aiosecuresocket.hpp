@@ -1,4 +1,4 @@
-/* Declarations file aiosocket.hpp
+/* Declarations file aiosecuresocket.hpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
@@ -29,7 +29,16 @@ class SocketDevice;
 namespace clientserver{
 
 namespace aio{
-
+//! Interface for secure socket (ssl sockets) used by aio::Socket
+/*!
+	This is the interface used by the aio::Socket for secure
+	(ssl) communication. One have to implement the interface
+	using its favorite ssl library.
+	The default ssl library, used by SolidGround is OpenSSL
+	(http://www.openssl.org/).
+	See clientserver/aio/openssl/opensslsocket.hpp for an implementation
+	of SecureSocket interface as a wrapper for OpenSSL.
+*/
 class SecureSocket{
 public:
 	enum{
@@ -44,12 +53,55 @@ public:
 		WANT_READ_ON_WRITE = (1 << 8),
 		WANT_WRITE_ON_WRITE = (1 << 9),
 	};
+	//! Virtual destructor
 	virtual ~SecureSocket(){}
+	//!Set the socket descriptor to be used by the secure socket
 	virtual void descriptor(const SocketDevice &) = 0;
+	//!Send method
+	/*!
+		The return value is modeled around OpenSSL API.
+		
+		\retval 0 for clean connection close, <0 for an error
+		(for nonblocking sockets check wantEvents), >0 success.
+	*/
 	virtual int send(const char *_pb, uint _bl, uint _flags = 0) = 0;
+	//!Receive method
+	/*!
+		The return value is modeled around OpenSSL API.
+		
+		\retval 0 for clean connection close, <0 for an error
+		(for nonblocking sockets check wantEvents), >0 success.
+	*/
 	virtual int recv(char *_pb, uint _bl, uint _flags = 0) = 0;
+	//! Return the events requested by the previous io opperation
+	/*!
+		The events can be: 0 or WANT_READ, or WANT_WRITE
+		or WANT_READ | WANT_WRITE
+	*/
 	virtual uint wantEvents()const = 0;
+	//! Do a secure accept
+	/*!
+		This is modeled around the OpenSSL API.
+		It does the secure hand-shake for incomming
+		connections. The socket has to be created.
+		
+		The return value is modeled around OpenSSL API.
+		
+		\retval 0 for clean connection close, <0 for an error
+		(for nonblocking sockets check wantEvents), >0 success.
+	*/
 	virtual int secureAccept() = 0;
+	//! Do a secure connect
+	/*!
+		This is modeled around the OpenSSL API.
+		It does the secure hand-shake for outgoing
+		connections.
+		
+		The return value is modeled around OpenSSL API.
+		
+		\retval 0 for clean connection close, <0 for an error
+		(for nonblocking sockets check wantEvents), >0 success.
+	*/
 	virtual int secureConnect() = 0;
 };
 
