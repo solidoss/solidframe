@@ -25,7 +25,7 @@ if [ "$1" = "" ] ; then
 	echo -ne "\tmaintain - same as debug but with compilation warnings activated\n"
 	echo -ne "\tnolog - full debug info but logs are deactivated\n"
 	echo -ne "\trelease - full optimization (-O3)\n"
-	echo -me "\textern - build the tar.gz with the extern libs\n"
+	echo -ne "\textern - build the tar.gz with the extern libs\n"
 	echo -ne "\tdocumentation_full - full API documentation including pdf\n"
 	echo -ne "\tdocumentation_fast - fast API documentation\n"
 	echo -ne "\nWhen used kdevelop, a kdevelop project will be created else make based project will be created\n\n"

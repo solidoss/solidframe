@@ -35,8 +35,13 @@ namespace aio{
 
 class Selector;
 class SecureSocket;
-
-
+//! Asynchronous socket
+/*!
+	Implements an asynchronous socket to be used by aio::Object and aio::Selector.
+	The operations are initiated on the aio::Object, and eventually completed
+	within the aio::Selector. A socket can be: an accepting TCP socket, a channel for
+	TCP streaming, and a station for UDP communication.
+*/
 class Socket{
 public:
 	enum Type{
@@ -44,10 +49,13 @@ public:
 		CHANNEL,
 		STATION,
 	};
+	//!Constructor
 	Socket(Type _tp, SecureSocket *_pss = NULL);
 	Socket(Type _tp, const SocketDevice &_rsd, SecureSocket *_pss = NULL);
 	~Socket();
+	//!Returns true if the socket has a securesocket
 	bool isSecure()const;
+	//!Returns true if the filedescriptor is valid
 	bool ok()const;
 	//! Create the socket
 	int create(const AddrInfoIterator& _rai);
@@ -80,10 +88,13 @@ public:
 	int sendTo(const char *_pb, uint32 _bl, const SockAddrPair &_sap, uint32 _flags = 0);
 	//! The sender address for last received data.
 	const SockAddrPair &recvAddr() const;
+	//! Setter for the secure socket
 	void secureSocket(SecureSocket *_pss);
+	//! Getter for the secure socket
 	SecureSocket* secureSocket()const;
-	
+	//! Do a SSL accept - secure handshake
 	int secureAccept();
+	//! Do a SSL connect - secure handshake
 	int secureConnect();
 private:
 	friend class Selector;
