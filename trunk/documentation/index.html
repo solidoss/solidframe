@@ -28,17 +28,22 @@
 </table>
 SolidGround is a C++ framework intending to offer everything one need to build powerful distributed highly-scalable client-server applications.<br><br>
 
-Here is a list with what the framework is offering for now:
+Here is a list with what the framework is offering:<br><br>
+
+Version 1.0:<br><br>
 
 <ol>
-	<li> a system library which wraps up threads, synchronization objects, thread specific, file access, socket address etc. </li>
-	<li> asynchronous signaling engine </li>
-	<li> asynchronous TCP and UDP communication engine </li>
-	<li> asynchronous multiplexed IPC (Inter Process Communication)/RPC (Remote Procedure Call) engine (for now only over UDP) </li>
-	<li> asynchronous file manager for non-conflicting file access (multiple reads are allowed, only a single write at a time and no read while there are pending writes)</li>
-	<li> a nice serialization engine (for now only binary, non portable - used by IPC) </li>
-	<li> a nice asynchronous ready, text protocol engine (parser and response builder) for protocols like IMAP, POP, SMTP etc.</li>
-	<li> lots of test applications, including a central proof of concept multi service server </li>
+	<LI>A system library which wraps up threads, synchronization objects, thread specific, file access, socket address, debug logging engine etc. </LI>
+	<li>Asynchronous signaling engine.</li>
+	<li>Asynchronous TCP and UDP communication engine, single-channel and multi-channel(for easily implementing proxies and other communication nodes, e.g. chat rooms).</li>
+	<li>Secure Socket support for the asynchronous TCP communication, using OpenSSL library (http://www.openssl.org/).</li>
+	<li>Asynchronous multiplexed IPC (Inter Process Communication) / RPC (Remote Procedure Call) engine with keep-alive support for peer disconnection detection. The protocol allows for sending commands (of any size - one can even send file streams) to a peer process over multiplexed UDP.</li>
+	<li>A nice serialization engine (for now only binary, non portable - used by IPC)</li>
+	<li>A nice asynchronous ready, text protocol engine (parser and response builder) for protocols like IMAP, POP, SMTP etc.</li>
+	<li>A file stream manager for asynchronous usage (e.g. if you want a read-only stream for a file which is locked for writing, the manager will signal you the stream when unlocked)</li>
+	<li>A nice audit/log engine.</li>
+	<li>Doxygen documentation.</li>
+	<li>Lots of test applications, including a central proof of concept multi service server.</li>
 </ol>
 
 <table width="100%" border="0" align="left">
@@ -55,10 +60,10 @@ Here is a list with what the framework is offering for now:
 <br>
 <strong>Wiki:</strong> <A href="http://code.google.com/p/solidground/w/list" name=wiki>http://code.google.com/p/solidground/w/list</A>
 <br>
-<strong>Download documentation html:</strong> <A href="http://code.google.com/p/solidground/" name=documentation>http://code.google.com/p/solidground/</A>
+<strong>Download page:</strong> <A href="http://code.google.com/p/solidground/downloads/list" name=documentation>http://code.google.com/p/solidground/downloads/list</A>
 <br>
 
-<strong>Fetch Source:</strong> svn checkout http://solidground.googlecode.com/svn/trunk/ solidground-read-only
+<strong>Fetch latest source:</strong> svn checkout http://solidground.googlecode.com/svn/trunk/ solidground-read-only
 
 <br><br>
 
@@ -67,7 +72,7 @@ Here is a list with what the framework is offering for now:
   <thead align="left" valign="left" bgcolor="black">
     <tr>
       <th style="color : #ea851f;">
-	<a href="html/index.html"><strong>Documentation:</strong></a>
+	<a href="html/index.html"><strong>Documentation:</strong></LI>
 	
 	</th>
     </tr>
@@ -86,36 +91,40 @@ Here is a list with what the framework is offering for now:
   </thead>
 </table>
 
-Before anything you must ensure you have all the needed packages installed on you Linux box. You'll need: gcc-c++, boost, boost-devel, cmake (on a fedora box: "yum install gcc-c++ boost boost-devel cmake" will suffice). Eventually you'll need "subversion" to fetch a copy of solidground repository (fedora:"yum install subversion").
+Before anything you must ensure you have all the needed packages installed on your Linux box. You'll need: gcc-c++, boost, boost-devel, cmake (on a fedora box: "yum install gcc-c++ boost boost-devel cmake" will suffice). Eventually you'll need "subversion" to fetch a copy of solidground repository (fedora:"yum install subversion").
 <br>
 The solidground framework, has a commodity build script which can be used to create certain builds for certain base build systems (make or kdevelop3 - run <pre>./build.sh</pre> with no parameters to se the options).
 <br>
-So lets build a (debug-)nolog version.
+So lets build a debug version of the server.
 
-<pre style="font-family : monospace;">solidground $ ./build.sh nolog
+<pre style="font-family : monospace;">solidground $ ./build.sh debug
 
-solidground $ cd build/nolog/test/clientserver/main
+solidground $ cd build/debug/test/clientserver/main
 
 main $ make
 </pre>
 
 The above commands will start building the proof of concept clientserver test application. When it's done the application is created within the main directory, and you can start using it:
 
-<pre style="font-family : monospace;">main $ ./test</pre>
+<pre style="font-family : monospace;">main $ ./test --help</pre>
+
+To see the parameters accepted.
+
+<pre style="font-family : monospace;">main $ ./test -b 1000</pre>
 
 The application should start printing some information and offering a small CLI on which you can type help to see the commands.
 
-The test application expects a starting port value which will be used for opening listening TCP and UDP sockets (default is 1000). There are few services offered by test among which are echo and the most important, alpha.
+The test application expects a starting base port value (-b argument) which will be used for opening listening TCP and UDP sockets (default is 1000). There are few services offered by test among which are echo and the most important, alpha.
 
-In the following lines, to show the capabilities of the framework we'll use the alpha protocol which somehow resembles the IMAP protocol in syntax. The alpha service will listen on (x + 114) port, where x is the value given as parameter to test application. So, next you'll need to start a telnet on localhost 1114 (telnet 0 1114) and you should see the alpha banner.
+In the following lines, to show the capabilities of the framework we'll use the alpha protocol which somehow resembles the IMAP protocol in syntax. The alpha service will listen on (base_port + 114) port. So, next you'll need to start a telnet on localhost 1114 (telnet 0 1114) and you should see the alpha banner.
 
-With alpha you can list folder content:
+With alpha protocol you can list folder content:
 
 <pre style="font-family : monospace;">aa list "/home"</pre>
 
 Append a new file to an existing folder:
 
-<pre style="font-family : monospace;">ac store "/tmp/000002.txt" {10}
+<pre style="font-family : monospace;">ab store "/tmp/000002.txt" {10}
 
 1234567890</pre>
 
@@ -123,46 +132,34 @@ The above command will create "/tmp/000002.txt" and will write the given 10 char
 
 Fetch files:
 
-<pre style="font-family : monospace;">ab fetch "/tmp/000002.txt"</pre>
+<pre style="font-family : monospace;">ac fetch "/tmp/000002.txt"</pre>
 
 Now lets move forward to two more interesting commands. For that we'll need another instance of test listening on different set of ports:
 
-<pre style="font-family : monospace;">main $ ./test 2000</pre>
+<pre style="font-family : monospace;">main $ ./test -b 2000</pre>
 
-We'll also need a new telnet alpha session on the new test instance:
+The folowing commands will test the IPC capabilities, remote executing commands issued from the first server on the second server.
 
-<pre>telnet 0 2114</pre>
+The first command is remotelist. Lets issue it on the telnet session;
 
-On this telnet session first copy from the banner what is between brackets (something like "2222 83886081 0") and then we'll issue the idle command:
+<pre style="font-family : monospace;">ad remotelist "/home" localhost 2222</pre>
 
-<pre style="font-family : monospace;">ba idle</pre>
+It will send an ipc command to the second server, execute it to build a list of filesystem sub-items of the given path, send the list back to the client connection which will send the command result to the client.
 
-To exit from the idle command type done, but for now lets leave the session this way - in idle.
+The second command is much more interesting and complex. It will remotely fetch a command.
 
-Now go back to the first alpha session opened on the first test instance, and issue:
+<pre style="font-family : monospace;">ae fetch "/tmp/000002.txt" localhost 2222</pre>
 
-<pre style="font-family : monospace;">ad sendstring localhost 2222 83886081 0 "one nice string"</pre>
+Here's what the command does:
+<ol>
+	<li>Create a temporary file.</li>
+	<LI>Send an ipc master command which will open a stream to the requested file on the remote server and send back a response with the first 1MB of the file</LI>
+	<li>On the first server the first 1MB of file is writen to the temp file</li>
+	<LI>Then the fetch command issues another request (using an ipc slave command) for the next 1MB of data, while starting sending the first 1MB of data to the client.</LI>
+	<LI>... and so on</LI>
+</ol>
 
-(please replace "2222 83886081 0" with what you've copied from the banner of the second alpha connection)
-
-Now go to the second alpha connection to see the marvel.
-
-Now lets send something nicer, a file from the first alpha session:
-
-<pre style="font-family : monospace;">ae sendstream localhost 2222 83886081 0 "/tmp/000002.txt" "/tmp/rcvd-000002.txt"</pre>
-
-<p>And, you guessed!, back to the second alpha connection to see a new marvel.</p>
-
-Notable is that the last two commands can be used with the test instances on different machines, in which case 'localhost' can be replaced with the name/address of the peer (this way the test can be started without parameter in which case in the above alpha commands you'll need to replace 2222 with 1222). Also don't forget to add new firewall rules for used ports (on my machine I'm allowing for 1114(TCP) and 1222(UDP)).
-
-<p>In the end lets go back to the idle connection and type:</p>
-
-<pre style="font-family : monospace;">done</pre>
-
-... to end the idle command.<br>
-Then lets remotely fetch the file stored above ("/tmp/000002.txt"):
-
-<pre style="font-family : monospace;">bb fetch "/tmp/000002.txt" localhost 1222</pre>
+The command is quite complex and quite important as it stresses/tests a lot the IPC service, especially for large files.
 
 <p><strong>Notes:</strong></p>
 <ul>
@@ -202,13 +199,13 @@ solidground $ cd build/release/test/client<br>
 client $ make
 </pre>
 
-Now you have built three clients: <strong>alphaclienta</strong>, <strong>alphafetch</strong>, <strong>alphastore</strong>.
+Now you have built three clients: <strong>alphaclient_p</strong>, <strong>alphaclient_s</strong>, <strong>alphafetch_p</strong>, <strong>alphastore_p</strong>.
 
-<h3>alphafetch</h3>
+<h3>alphafetch_p</h3>
 
-As its name says this client tests the alpha <strong>fetch</strong> command.<br>
+As its name says this client tests the alpha <strong>fetch</strong> command on plain a connection.<br>
 Usage:
-<pre>./alphafetch alpha_addr alpha_port ipc_addr ipc_port path local_path</pre>
+<pre>./alphafetch_p alpha_addr alpha_port ipc_addr ipc_port path local_path</pre>
 
 Where:
 <ul>
@@ -221,12 +218,12 @@ Where:
 </ul>
 
 
-<h3>alphastore</h3>
+<h3>alphastore_p</h3>
 
-This one tests the alpha store command for storing a file on the server.
+This one tests the alpha store command for storing a file on the server on a plain connection.
 
 Usage:
-<pre>./alphastore alpha_addr alpha_port local_path path</pre>
+<pre>./alphastore_p alpha_addr alpha_port local_path path</pre>
 
 Where:
 <ul>
@@ -236,12 +233,12 @@ Where:
 <li><strong>path</strong>: the path to destination file on the server</li>
 </ul>
 
-<h3>alphaclienta</h3>
+<h3>alphaclient_p/alphaclient_s</h3>
 
-This is a fetch stress test for alpha server. 
+This is a fetch stress test for alpha server on plain/secure connections.
 
 Usage:
-<pre>./alphaclient thcnt addr port path tout</pre>
+<pre>./alphaclient_s thcnt addr port path tout [remote_addr remote_base_port]</pre>
 
 Where:
 <ul>
@@ -250,6 +247,8 @@ Where:
 <li><strong>port</strong>: the port of the alpha server</li>
 <li><strong>path</strong>: the path to the parent folder - see below</li>
 <li><strong>tout</strong>: time out between commands in msec</li>
+<li><strong>remote_addr</strong>: for testing remotelist and remote fetch, the address of the peer server</li>
+<li><strong>remote_base_port</strong>: for testing remotelist and remote fetch, the base_port of the peer server</li>
 </ul>
 
 Basically it oppens thcnt connections to alpha server, and on every connection it
@@ -258,7 +257,7 @@ then it cyclically issues FETCH commands for every file.
 
 <br><br>
 
-While fetching alphaclienta displays certain statistical information like:
+While fetching alphaclient_p displays certain statistical information like:
 <br>
 <ul>
 <LI>total transfer speed in KB/s,</LI>

@@ -127,8 +127,9 @@ FILE_PATTERNS          = *.c \
                          *.MM \
                          *.PY
 RECURSIVE              = YES
-EXCLUDE                = /home/vpalade/Documents/sg/application/ \
-                         /home/vpalade/Documents/sg/build/
+EXCLUDE                = application/ \
+                         build/ \
+                         extern
 EXCLUDE_SYMLINKS       = NO
 EXCLUDE_PATTERNS       = 
 EXCLUDE_SYMBOLS        = 
