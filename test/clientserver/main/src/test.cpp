@@ -390,37 +390,37 @@ int insertConnection(char *_pc, int _len,test::Server &_rts){
 bool parseArguments(Params &_par, int argc, char *argv[]){
 	try {  
 
-	TCLAP::CmdLine cmd("SolidGround test application", ' ', "0.8");
+		TCLAP::CmdLine cmd("SolidGround test application", ' ', "0.8");
+		
+		TCLAP::ValueArg<uint16> port("b","base_port","Base port",false,1000,"integer");
+		
+		TCLAP::ValueArg<std::string> lvls("l","debug_levels","Debug logging levels",false,"","string");
+		TCLAP::ValueArg<std::string> mdls("m","debug_modules","Debug logging modules",false,"","string");
+		TCLAP::ValueArg<std::string> da("a","debug_address","Debug server address",false,"","string");
+		TCLAP::ValueArg<std::string> dp("p","debug_port","Debug server ports",false,"","string");
+		TCLAP::SwitchArg dl("s","debug_buffered", "Debug buffered output", false, false);
 	
-	TCLAP::ValueArg<uint16> port("b","base_port","Base port",false,1000,"integer");
 	
-	TCLAP::ValueArg<std::string> lvls("l","debug_levels","Debug logging levels",false,"","string");
-	TCLAP::ValueArg<std::string> mdls("m","debug_modules","Debug logging modules",false,"","string");
-	TCLAP::ValueArg<std::string> da("a","debug_address","Debug server address",false,"","string");
-	TCLAP::ValueArg<std::string> dp("p","debug_port","Debug server ports",false,"","string");
-	TCLAP::SwitchArg dl("s","debug_buffered", "Debug buffered output", false, false);
-
-
-	cmd.add(port);
-	cmd.add(lvls);
-	cmd.add(mdls);
-	cmd.add(da);
-	cmd.add(dp);
-	cmd.add(dl);
-
-	// Parse the argv array.
-	cmd.parse( argc, argv );
-
-	// Get the value parsed by each arg. 
-	_par.dbg_levels = lvls.getValue();
-	_par.start_port = port.getValue();
-	_par.dbg_modules = mdls.getValue();
-	_par.dbg_addr = da.getValue();
-	_par.dbg_port = dp.getValue();
-	_par.dbg_buffered = dl.getValue();
-	return false;
-	} catch (TCLAP::ArgException &e)  // catch any exceptions
-	{ std::cerr << "error: " << e.error() << " for arg " << e.argId() << std::endl;
+		cmd.add(port);
+		cmd.add(lvls);
+		cmd.add(mdls);
+		cmd.add(da);
+		cmd.add(dp);
+		cmd.add(dl);
+	
+		// Parse the argv array.
+		cmd.parse( argc, argv );
+	
+		// Get the value parsed by each arg. 
+		_par.dbg_levels = lvls.getValue();
+		_par.start_port = port.getValue();
+		_par.dbg_modules = mdls.getValue();
+		_par.dbg_addr = da.getValue();
+		_par.dbg_port = dp.getValue();
+		_par.dbg_buffered = dl.getValue();
+		return false;
+	}catch (TCLAP::ArgException &e){// catch any exceptions
+		std::cerr << "error: " << e.error() << " for arg " << e.argId() << std::endl;
 		return true;
 	}
 
