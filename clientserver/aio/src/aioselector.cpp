@@ -97,7 +97,6 @@ public://methods:
 	~Data();
 	int computeWaitTimeout()const;
 	void addNewSocket();
-	uint newStub();
 	epoll_event* eventPrepare(epoll_event &_ev, const uint32 _objpos, const uint32 _sockpos);
 	void stub(uint32 &_objpos, uint32 &_sockpos, const epoll_event &_ev);
 };
@@ -136,26 +135,6 @@ void Selector::Data::addNewSocket(){
 // 			pevs[i].data.u64 = 0;
 // 		}
 	}
-}
-uint Selector::Data::newStub(){
-	uint pos = 0;
-	if(this->freestubsstk.size()){
-		pos = freestubsstk.top();
-		freestubsstk.pop();
-	}else{
-		uint cp = stubs.capacity();
-		pos = stubs.size();
-		stubs.push_back(Stub());
-		if(cp != stubs.capacity()){
-			//we need to reset the aioobject's pointer to timepos
-			for(Data::StubVectorTp::iterator it(stubs.begin()); it != stubs.end(); ++it){
-				if(it->objptr){
-					it->objptr->ptimepos = &it->timepos;
-				}
-			}
-		}
-	}
-	return pos;
 }
 inline epoll_event* Selector::Data::eventPrepare(
 	epoll_event &_ev, const uint32 _objpos, const uint32 _sockpos
@@ -255,7 +234,7 @@ bool Selector::full()const{
 
 void Selector::push(const ObjectTp &_objptr, uint _thid){
 	cassert(!full());
-	uint stubpos = d.newStub();
+	uint stubpos = doNewStub();
 	Stub &stub = d.stubs[stubpos];
 	
 	_objptr->setThread(_thid, stubpos);
@@ -629,6 +608,28 @@ void Selector::doPrepareObjectWait(const uint _pos, const TimeSpec &_timepos){
 		stub.state = Stub::InExecQueue;
 	}
 }
+
+uint Selector::doNewStub(){
+	uint pos = 0;
+	if(d.freestubsstk.size()){
+		pos = d.freestubsstk.top();
+		d.freestubsstk.pop();
+	}else{
+		uint cp = d.stubs.capacity();
+		pos = d.stubs.size();
+		d.stubs.push_back(Stub());
+		if(cp != d.stubs.capacity()){
+			//we need to reset the aioobject's pointer to timepos
+			for(Data::StubVectorTp::iterator it(d.stubs.begin()); it != d.stubs.end(); ++it){
+				if(it->objptr){
+					it->objptr->ptimepos = &it->timepos;
+				}
+			}
+		}
+	}
+	return pos;
+}
+
 //-------------------------------------------------------------
 }//namespace aio
 
