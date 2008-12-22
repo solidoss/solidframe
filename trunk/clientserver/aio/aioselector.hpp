@@ -66,6 +66,7 @@ private:
 	uint doAllIo();
 	uint doFullScan();
 	uint doExecuteQueue();
+	uint doNewStub();
 	
 	void doUnregisterObject(Object &_robj, int _lastfailpos = -1);
 	uint doIo(Socket &_rsock, ulong _evs);
