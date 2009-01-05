@@ -1,7 +1,7 @@
 #ifndef CS_FILE_MAPPER_HPP
 #define CS_FILE_MAPPER_HPP
 
-namespace clientserver{
+namespace foundation{
 
 //! The base class for all file mappers
 class FileMapper{
@@ -10,6 +10,6 @@ public:
 	virtual ~FileMapper();
 };
 
-}//namespace clientserver
+}//namespace foundation
 
 #endif

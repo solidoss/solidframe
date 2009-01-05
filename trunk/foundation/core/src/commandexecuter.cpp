@@ -1,6 +1,6 @@
-#include "clientserver/core/commandexecuter.hpp"
-#include "clientserver/core/command.hpp"
-#include "clientserver/core/server.hpp"
+#include "foundation/core/commandexecuter.hpp"
+#include "foundation/core/command.hpp"
+#include "foundation/core/manager.hpp"
 #include <deque>
 
 #include "system/cassert.hpp"
@@ -11,7 +11,7 @@
 #include "utility/queue.hpp"
 
 
-namespace clientserver{
+namespace foundation{
 
 
 struct CommandExecuter::Data{
@@ -115,7 +115,7 @@ int CommandExecuter::execute(ulong _evs, TimeSpec &_rtout){
 				state(-1);
 				d.pm->unlock();
 				d.cdq.clear();
-				removeFromServer();
+				removeFromManager();
 				idbgx(Dbg::cs, "~CommandExecuter");
 				return BAD;
 			}
@@ -163,7 +163,7 @@ int CommandExecuter::execute(ulong _evs, TimeSpec &_rtout){
 			}
 		}
 		idbgx(Dbg::cs, "~CommandExecuter");
-		removeFromServer();
+		removeFromManager();
 		state(-1);
 		d.cdq.clear();
 		return BAD;
@@ -333,7 +333,7 @@ void CommandExecuter::receiveError(
 	int _errid, 
 	const RequestUidTp &_requid,
 	const ObjectUidTp&_from,
-	const clientserver::ipc::ConnectorUid *_conid
+	const foundation::ipc::ConnectorUid *_conid
 ){
 	if(_requid.first < d.cdq.size() && d.cdq[_requid.first].uid == _requid.second){
 		if(d.cdq[_requid.first].cmd->receiveError(_errid, _from, _conid) == OK){
@@ -343,7 +343,7 @@ void CommandExecuter::receiveError(
 }
 
 
-}//namespace clientserver
+}//namespace foundation
 
 
 

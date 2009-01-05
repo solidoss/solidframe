@@ -19,11 +19,11 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "clientserver/aio/tcp/listener.hpp"
-#include "clientserver/aio/src/aiosocket.hpp"
+#include "foundation/aio/tcp/listener.hpp"
+#include "foundation/aio/src/aiosocket.hpp"
 #include "system/cassert.hpp"
 
-namespace clientserver{
+namespace foundation{
 
 namespace aio{
 
@@ -97,4 +97,4 @@ void Listener::socketState(int _st){
 
 }//namespace aio
 
-}//namespace clientserver
+}//namespace foundation

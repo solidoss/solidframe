@@ -24,7 +24,7 @@
 
 #include "core/talker.hpp"
 
-namespace clientserver{
+namespace foundation{
 class Visitor;
 namespace udp{
 class Station;
@@ -51,7 +51,7 @@ public:
 	~Talker();
 	int execute(ulong _sig, TimeSpec &_tout);
 	int execute();
-	int accept(clientserver::Visitor &);
+	int accept(foundation::Visitor &);
 private:
 	enum {BUFSZ = 1024};
 	enum {INIT,READ, READ_TOUT, WRITE, WRITE_TOUT, WRITE2,WRITE_TOUT2};

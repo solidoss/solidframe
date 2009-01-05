@@ -23,11 +23,11 @@
 #define BETACONNECTION_HPP
 
 #include "core/connection.hpp"
-#include "clientserver/core/readwriteobject.hpp"
+#include "foundation/core/readwriteobject.hpp"
 #include "system/socketaddress.hpp"
 class SocketAddress;
 
-namespace clientserver{
+namespace foundation{
 class Visitor;
 namespace tcp{
 class Channel;
@@ -41,17 +41,17 @@ class Visitor;
 namespace beta{
 class Service;
 
-class Connection: public clientserver::ReadWriteObject<test::Connection>{
+class Connection: public foundation::ReadWriteObject<test::Connection>{
 public:
 	typedef Service	ServiceTp;
-	typedef clientserver::ReadWriteObject<test::Connection> BaseTp;
+	typedef foundation::ReadWriteObject<test::Connection> BaseTp;
 	
 	Connection(const char *_node, const char *_srv);
 	Connection(const SocketDevice &_rsd);
 	~Connection();
 	int execute(ulong _sig, TimeSpec &_tout);
 	int execute();
-	int accept(clientserver::Visitor &);
+	int accept(foundation::Visitor &);
 private:
 	enum {BUFSZ = 4*1024};
 	enum {INIT,READ, READ_TOUT, WRITE, WRITE_TOUT, CONNECT,CONNECT_TOUT};

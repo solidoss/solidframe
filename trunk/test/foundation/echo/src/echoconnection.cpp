@@ -19,7 +19,7 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "core/server.hpp"
+#include "core/manager.hpp"
 #include "echo/echoservice.hpp"
 #include "echoconnection.hpp"
 #include "system/socketaddress.hpp"
@@ -27,7 +27,7 @@
 #include "system/timespec.hpp"
 #include "system/cassert.hpp"
 
-namespace cs=clientserver;
+namespace cs=foundation;
 static char	*hellostr = "Welcome to echo service!!!\r\n"; 
 
 namespace test{
@@ -63,8 +63,8 @@ NOTE:
 */
 
 Connection::~Connection(){
-	test::Server &rs = test::Server::the();
-	rs.service(*this).removeConnection(*this);
+	test::Manager &rm = test::Manager::the();
+	rm.service(*this).removeConnection(*this);
 	delete pai;
 }
 
@@ -82,7 +82,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 	}
 
 	if(signaled()){
-		test::Server &rs = test::Server::the();
+		test::Manager &rs = test::Manager::the();
 		{
 		Mutex::Locker	lock(rs.mutex(*this));
 		ulong sm = grabSignalMask();

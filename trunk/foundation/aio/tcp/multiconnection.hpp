@@ -21,12 +21,12 @@
 #ifndef AIO_MULTICONNECTION_HPP
 #define AIO_MULTICONNECTION_HPP
 
-#include "clientserver/aio/aioobject.hpp"
+#include "foundation/aio/aioobject.hpp"
 #include "utility/stack.hpp"
 
 class SocketAddress;
 
-namespace clientserver{
+namespace foundation{
 
 class SecureSocket;
 
@@ -82,7 +82,7 @@ private:
 
 }//namespace aio
 
-}//namespace clientserver
+}//namespace foundation
 
 
 #endif

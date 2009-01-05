@@ -24,7 +24,7 @@
 
 #include "system/common.hpp"
 
-namespace clientserver{
+namespace foundation{
 namespace ipc{
 //! A structure to uniquely indetify a connector
 /*!
@@ -39,7 +39,7 @@ namespace ipc{
 	
 	<b>Usage:</b><br>
 	The basic idea is that you send requests identifing the peer process
-	either by its base address (see clientserver::ipc::Service) or by
+	either by its base address (see foundation::ipc::Service) or by
 	its unique id, while you'll mostly send responses using ConnectorUid.
 	
 */
@@ -57,6 +57,6 @@ struct CommandUid{
 };
 
 }//namespace ipc
-}//namespace clientserver
+}//namespace foundation
 
 #endif

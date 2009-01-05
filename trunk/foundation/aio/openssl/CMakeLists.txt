@@ -1,3 +1,3 @@
-add_library(clientserver_aio_openssl 
+add_library(foundation_aio_openssl 
 	src/opensslsocket.cpp
 )

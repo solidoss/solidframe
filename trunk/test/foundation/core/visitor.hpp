@@ -22,11 +22,11 @@
 #ifndef TESTVISITOR_HPP
 #define TESTVISITOR_HPP
 
-#include "clientserver/core/visitor.hpp"
+#include "foundation/core/visitor.hpp"
 
 namespace test{
 
-class Visitor: public clientserver::Visitor{
+class Visitor: public foundation::Visitor{
 public:
 	Visitor(){}
 	virtual ~Visitor(){}

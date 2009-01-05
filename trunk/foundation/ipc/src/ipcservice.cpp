@@ -26,19 +26,19 @@
 #include "system/mutex.hpp"
 #include "system/socketdevice.hpp"
 
-#include "clientserver/core/objptr.hpp"
-#include "clientserver/core/common.hpp"
+#include "foundation/core/objptr.hpp"
+#include "foundation/core/common.hpp"
 
-#include "core/server.hpp"
+#include "core/manager.hpp"
 #include "ipc/ipcservice.hpp"
 #include "ipc/connectoruid.hpp"
 #include "ipctalker.hpp"
 #include "iodata.hpp"
 #include "processconnector.hpp"
 
-namespace cs = clientserver;
+namespace cs = foundation;
 
-namespace clientserver{
+namespace foundation{
 namespace ipc{
 
 //*******	Service::Data	******************************************************************
@@ -100,7 +100,7 @@ uint32 Service::keepAliveTimeout()const{
 }
 int Service::sendCommand(
 	const ConnectorUid &_rconid,//the id of the process connector
-	clientserver::CmdPtr<Command> &_pcmd,//the command to be sent
+	foundation::CmdPtr<Command> &_pcmd,//the command to be sent
 	uint32	_flags
 ){
 	cassert(_rconid.tkrid < d.tkrvec.size());
@@ -112,7 +112,7 @@ int Service::sendCommand(
 	if(ptkr->pushCommand(_pcmd, _rconid, _flags | SameConnectorFlag)){
 		//the talker must be signaled
 		if(ptkr->signal(cs::S_RAISE)){
-			Server::the().raiseObject(*ptkr);
+			Manager::the().raiseObject(*ptkr);
 		}
 	}
 	return OK;
@@ -124,7 +124,7 @@ int Service::basePort()const{
 
 int Service::doSendCommand(
 	const SockAddrPair &_rsap,
-	clientserver::CmdPtr<Command> &_pcmd,//the command to be sent
+	foundation::CmdPtr<Command> &_pcmd,//the command to be sent
 	ConnectorUid *_pconid,
 	uint32	_flags
 ){
@@ -145,7 +145,7 @@ int Service::doSendCommand(
 			if(ptkr->pushCommand(_pcmd, conid, _flags)){
 				//the talker must be signaled
 				if(ptkr->signal(cs::S_RAISE)){
-					Server::the().raiseObject(*ptkr);
+					Manager::the().raiseObject(*ptkr);
 				}
 			}
 			if(_pconid) *_pconid = conid;
@@ -170,11 +170,11 @@ int Service::doSendCommand(
 			ConnectorUid conid(tkrid);
 			ptkr->pushProcessConnector(ppc, conid);
 			d.basepm4[ppc->baseAddr4()] = conid;
-// 			clientserver::CmdPtr<test::Command> pnullcmd(NULL);
+// 			foundation::CmdPtr<test::Command> pnullcmd(NULL);
 // 			ptkr->pushCommand(pnullcmd, conid, Buffer::Connecting);
 			ptkr->pushCommand(_pcmd, conid, _flags);
 			if(ptkr->signal(cs::S_RAISE)){
-				Server::the().raiseObject(*ptkr);
+				Manager::the().raiseObject(*ptkr);
 			}
 			if(_pconid) *_pconid = conid;
 			return OK;
@@ -206,7 +206,7 @@ int Service::acceptProcess(ProcessConnector *_ppc){
 			Talker *ptkr = static_cast<Talker*>(this->object(tkrpos, tkruid));
 			ptkr->pushProcessConnector(_ppc, it->second, true);
 			if(ptkr->signal(cs::S_RAISE)){
-				Server::the().raiseObject(*ptkr);
+				Manager::the().raiseObject(*ptkr);
 			}
 			return OK;
 		}
@@ -228,10 +228,10 @@ int Service::acceptProcess(ProcessConnector *_ppc){
 	ConnectorUid conid(tkrid, 0xffff, 0xffff);
 	ptkr->pushProcessConnector(_ppc, conid);
 	d.basepm4[_ppc->baseAddr4()] = conid;
-// 	clientserver::CmdPtr<test::Command> pnullcmd(NULL);
+// 	foundation::CmdPtr<test::Command> pnullcmd(NULL);
 // 	ptkr->pushCommand(pnullcmd, conid, Buffer::Accepted);
 	if(ptkr->signal(cs::S_RAISE)){
-		Server::the().raiseObject(*ptkr);
+		Manager::the().raiseObject(*ptkr);
 	}
 	return OK;
 }
@@ -260,8 +260,8 @@ int16 Service::createNewTalker(uint32 &_tkrpos, uint32 &_tkruid){
 			return BAD;
 		}
 		d.tkrvec.push_back(Data::TkrPairTp((_tkrpos = ptkr->id()), (_tkruid = this->uid(*ptkr))));
-		//Server::the().pushJob((cs::udp::Talker*)ptkr);
-		pushTalkerInPool(Server::the(), ptkr);
+		//Manager::the().pushJob((cs::udp::Talker*)ptkr);
+		pushTalkerInPool(Manager::the(), ptkr);
 	}else{
 		return BAD;
 	}
@@ -269,7 +269,7 @@ int16 Service::createNewTalker(uint32 &_tkrpos, uint32 &_tkruid){
 }
 
 int Service::insertConnection(
-	Server &_rs,
+	Manager &_rm,
 	const SocketDevice &_rsd
 ){
 /*	Connection *pcon = new Connection(_pch, 0);
@@ -277,12 +277,12 @@ int Service::insertConnection(
 		delete pcon;
 		return BAD;
 	}
-	_rs.pushJob((cs::tcp::Connection*)pcon);*/
+	_rm.pushJob((cs::tcp::Connection*)pcon);*/
 	return OK;
 }
 
 int Service::insertListener(
-	Server &_rs,
+	Manager &_rm,
 	const AddrInfoIterator &_rai
 ){
 /*	test::Listener *plis = new test::Listener(_pst, 100, 0);
@@ -290,11 +290,11 @@ int Service::insertListener(
 		delete plis;
 		return BAD;
 	}	
-	_rs.pushJob((cs::tcp::Listener*)plis);*/
+	_rm.pushJob((cs::tcp::Listener*)plis);*/
 	return OK;
 }
 int Service::insertTalker(
-	Server &_rs, 
+	Manager &_rm, 
 	const AddrInfoIterator &_rai,
 	const char *_node,
 	const char *_svc
@@ -313,13 +313,13 @@ int Service::insertTalker(
 	d.firstaddr = _rai;
 	d.baseport = d.firstaddr.port();
 	d.tkrvec.push_back(Data::TkrPairTp(ptkr->id(), this->uid(*ptkr)));
-	//_rs.pushJob((cs::udp::Talker*)ptkr);
-	pushTalkerInPool(_rs, ptkr);
+	//_rm.pushJob((cs::udp::Talker*)ptkr);
+	pushTalkerInPool(_rm, ptkr);
 	return OK;
 }
 
 int Service::insertConnection(
-		Server &_rs, 
+		Manager &_rm, 
 		const AddrInfoIterator &_rai,
 		const char *_node,
 		const char *_svc){
@@ -329,7 +329,7 @@ int Service::insertConnection(
 		delete pcon;
 		return BAD;
 	}
-	_rs.pushJob((cs::tcp::Connection*)pcon);*/
+	_rm.pushJob((cs::tcp::Connection*)pcon);*/
 	return OK;
 }
 
@@ -353,8 +353,8 @@ int Service::execute(ulong _sig, TimeSpec &_rtout){
 		}
 		if(sm & cs::S_KILL){
 			idbgx(Dbg::ipc, "killing service "<<this->id());
-			this->stop(Server::the(), true);
-			Server::the().removeService(this);
+			this->stop(Manager::the(), true);
+			Manager::the().removeService(this);
 			return BAD;
 		}
 	}
@@ -380,5 +380,5 @@ void Buffer::print()const{
 }
 
 }//namespace ipc
-}//namespace clientserver
+}//namespace foundation
 

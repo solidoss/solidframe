@@ -21,7 +21,7 @@
 
 #include <cstdio>
 
-#include "core/server.hpp"
+#include "core/manager.hpp"
 #include "echo/echoservice.hpp"
 #include "echotalker.hpp"
 #include "system/timespec.hpp"
@@ -29,7 +29,7 @@
 #include "system/debug.hpp"
 #include "system/mutex.hpp"
 
-namespace cs = clientserver;
+namespace cs = foundation;
 
 static const char * const hellostr = "Hello from echo udp client talker!!!\r\n"; 
 
@@ -63,8 +63,8 @@ NOTE:
 */
 
 Talker::~Talker(){
-	test::Server &rs = test::Server::the();
-	rs.service(*this).removeTalker(*this);
+	test::Manager &rm = test::Manager::the();
+	rm.service(*this).removeTalker(*this);
 	delete pai;
 }
 int Talker::execute(ulong _sig, TimeSpec &_tout){
@@ -76,9 +76,9 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 		if(state() != WRITE && state() != WRITE2)	return BAD;
 	}
 	if(signaled()){
-		test::Server &rs = test::Server::the();
+		test::Manager &rm = test::Manager::the();
 		{
-		Mutex::Locker	lock(rs.mutex(*this));
+		Mutex::Locker	lock(rm.mutex(*this));
 		ulong sm = grabSignalMask(0);
 		if(sm & cs::S_KILL) return BAD;
 		}

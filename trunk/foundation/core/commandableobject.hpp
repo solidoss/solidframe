@@ -29,8 +29,8 @@
 
 #include "system/cassert.hpp"
 
-namespace clientserver{
-//! A class for generic handeling of commands by clientserver::Object(s)
+namespace foundation{
+//! A class for generic handeling of commands by foundation::Object(s)
 /*!
 	<b>Usage</b><br>
 	- You must directly inherit from CommandableObject

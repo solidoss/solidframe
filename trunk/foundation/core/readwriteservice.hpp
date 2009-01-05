@@ -28,7 +28,7 @@
 
 #include "service.hpp"
 
-namespace clientserver{
+namespace foundation{
 class ReadWriteService:public Service{
 public:
 	virtual ~ReadWriteService();
@@ -42,5 +42,5 @@ private:
 	typedef MutualObjectContainer<CondStackTp> ConditionPoolTp;
 	ConditionPoolTp	cndpool;
 };
-}//namespace clientserver
+}//namespace foundation
 #endif

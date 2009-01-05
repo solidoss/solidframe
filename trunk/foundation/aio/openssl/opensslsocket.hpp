@@ -22,10 +22,10 @@
 #ifndef OPENSSL_SOCKET_HPP
 #define OPENSSL_SOCKET_HPP
 
-#include "clientserver/aio/aiosecuresocket.hpp"
+#include "foundation/aio/aiosecuresocket.hpp"
 #include "openssl/ssl.h"
 
-namespace clientserver{
+namespace foundation{
 
 namespace aio{
 
@@ -66,7 +66,7 @@ protected:
 };
 //! A OpenSSL secure communication wrapper
 /*!
-	It is an implementation of clientserver::aio::SecureSocket
+	It is an implementation of foundation::aio::SecureSocket
 	interface.
 	
 	NOTE: this is not a complete nor a final/perfect interface.
@@ -100,6 +100,6 @@ protected:
 
 }//namespace aio
 
-}//namespace clientserver
+}//namespace foundation
 
 #endif

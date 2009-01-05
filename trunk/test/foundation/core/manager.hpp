@@ -1,4 +1,4 @@
-/* Declarations file server.hpp
+/* Declarations file manager.hpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
@@ -22,7 +22,7 @@
 #ifndef TESTSERVER_HPP
 #define TESTSERVER_HPP
 #include <map>
-#include "clientserver/core/server.hpp"
+#include "foundation/core/manager.hpp"
 #include "common.hpp"
 
 namespace test{
@@ -40,17 +40,17 @@ void registerService(ServiceCreator _psc, const char* _pname);
 /*!
 	This is a proof of concept server and should be taken accordingly.
 	
-	It tries to give an ideea of how the clientserver::Server should be used.
+	It tries to give an ideea of how the foundation::Manager should be used.
 	
 	To complicate things a little, it allso keeps a map service name to service,
 	so that services can be more naturally accessed by their names.
 */
-class Server: public clientserver::Server{
+class Manager: public foundation::Manager{
 public:
-	Server();
-	~Server();
-	//! Overwrite the clientserver::Server::the to give access to the extended interface
-	static Server& the(){return static_cast<Server&>(clientserver::Server::the());}
+	Manager();
+	~Manager();
+	//! Overwrite the foundation::Manager::the to give access to the extended interface
+	static Manager& the(){return static_cast<Manager&>(foundation::Manager::the());}
 	//! Starts a specific service or all services
 	/*!
 		\param _which If not null it represents the name of the service

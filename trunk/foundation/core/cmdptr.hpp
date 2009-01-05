@@ -24,7 +24,7 @@
 
 #include "common.hpp"
 
-namespace clientserver{
+namespace foundation{
 
 class Command;
 

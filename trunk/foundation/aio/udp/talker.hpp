@@ -21,14 +21,14 @@
 #ifndef AIO_TALKER_HPP
 #define AIO_TALKER_HPP
 
-#include "clientserver/aio/aioobject.hpp"
+#include "foundation/aio/aioobject.hpp"
 
 class SocketDevice;
 class SocketAddress;
 class SockAddrPair;
 class AddrInfoIterator;
 
-namespace clientserver{
+namespace foundation{
 
 namespace aio{
 
@@ -75,7 +75,7 @@ private:
 
 }//namespace aio
 
-}//namespace clientserver
+}//namespace foundation
 
 
 #endif

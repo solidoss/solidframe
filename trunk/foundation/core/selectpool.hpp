@@ -27,11 +27,11 @@
 #include "utility/workpool.hpp"
 #include "utility/list.hpp"
 
-#include "server.hpp"
+#include "manager.hpp"
 #include "activeset.hpp"
 
 
-namespace clientserver{
+namespace foundation{
 
 //! An active container for objects needing complex handeling
 /*!
@@ -64,13 +64,13 @@ protected:
 public://definition
 	//! Constructor
 	/*!
-		\param _rsrv Reference to parent server
+		\param _rm Reference to parent manager
 		\param _maxthcnt The maximum count of threads that can be created
 		\param _selcap The capacity of a selector - the total number
 		of objects handled would be _maxthcnt * _selcap
 	*/
-	SelectPool(Server &_rsrv, uint _maxthcnt, uint _selcap = 1024):rsrv(_rsrv),cap(0),selcap(_selcap){
-		thrid = _rsrv.registerActiveSet(*this);
+	SelectPool(Manager &_rm, uint _maxthcnt, uint _selcap = 1024):rm(_rm),cap(0),selcap(_selcap){
+		thrid = _rm.registerActiveSet(*this);
 		thrid <<= 16;
 		slotvec.reserve(_maxthcnt > 1024 ? 1024 : _maxthcnt);
 	}
@@ -106,14 +106,14 @@ public://definition
 	
 	//! Prepare the worker (usually thread specific data) - called internally
 	void prepareWorker(){
-		rsrv.prepareThread();
+		rm.prepareThread();
 		doPrepareWorker();
 	}
 	
 	//! Prepare the worker (usually thread specific data) - called internally
 	void unprepareWorker(){
 		doUnprepareWorker();
-		rsrv.unprepareThread();
+		rm.unprepareThread();
 	}
 	
 	//! The run loop for every thread
@@ -258,7 +258,7 @@ private:
 	}
 
 private:
-	Server			&rsrv;
+	Manager			&rm;
 	ulong			cap;//the total count of objects already in pool
 	uint			selcap;
 	uint			thrid;
@@ -267,7 +267,7 @@ private:
 	
 };
 
-}//namesspace clientserver
+}//namesspace foundation
 
 #endif
 

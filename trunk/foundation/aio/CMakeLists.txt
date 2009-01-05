@@ -1,5 +1,5 @@
 
-add_library(clientserver_aio 
+add_library(foundation_aio 
 	src/aiosocket.cpp
 	src/aioobject.cpp
 	src/aioselector.cpp

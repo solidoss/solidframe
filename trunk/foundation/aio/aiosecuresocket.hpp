@@ -26,7 +26,7 @@
 
 class SocketDevice;
 
-namespace clientserver{
+namespace foundation{
 
 namespace aio{
 //! Interface for secure socket (ssl sockets) used by aio::Socket
@@ -36,7 +36,7 @@ namespace aio{
 	using its favorite ssl library.
 	The default ssl library, used by SolidGround is OpenSSL
 	(http://www.openssl.org/).
-	See clientserver/aio/openssl/opensslsocket.hpp for an implementation
+	See foundation/aio/openssl/opensslsocket.hpp for an implementation
 	of SecureSocket interface as a wrapper for OpenSSL.
 */
 class SecureSocket{
@@ -107,7 +107,7 @@ public:
 
 }//namespace aio
 
-}//namespace clientserver
+}//namespace foundation
 
 
 #endif

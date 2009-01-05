@@ -101,7 +101,7 @@ link_directories(
 add_subdirectory (system)
 add_subdirectory (utility)
 add_subdirectory (algorithm)
-add_subdirectory (clientserver)
+add_subdirectory (foundation)
 add_subdirectory (audit)
 add_subdirectory (test)
 add_subdirectory (library)

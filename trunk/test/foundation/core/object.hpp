@@ -23,7 +23,7 @@
 #define TESTOBJECT_HPP
 
 #include "utility/streamptr.hpp"
-#include "clientserver/core/object.hpp"
+#include "foundation/core/object.hpp"
 #include "common.hpp"
 #include "tstring.hpp"
 
@@ -31,7 +31,7 @@ class IStream;
 class OStream;
 class IOStream;
 
-namespace clientserver{
+namespace foundation{
 namespace ipc{
 struct ConnectorUid;
 }
@@ -40,11 +40,11 @@ struct ConnectorUid;
 namespace test{
 struct Command;
 
-//! A test variant of clientserver::Object
+//! A test variant of foundation::Object
 /*!
 	For now all it knows is to receive things.
 */
-class Object: public clientserver::Object{
+class Object: public foundation::Object{
 public:
 	typedef Command	CommandTp;
 	typedef std::pair<uint32, uint32>	FromPairTp;
@@ -65,7 +65,7 @@ public:
 		const RequestUidTp &_requid,
 		int			_which = 0,
 		const ObjectUidTp&_from = ObjectUidTp(),
-		const clientserver::ipc::ConnectorUid *_conid = NULL
+		const foundation::ipc::ConnectorUid *_conid = NULL
 	);
 	virtual int receiveOStream(
 		StreamPtr<OStream> &,
@@ -73,7 +73,7 @@ public:
 		const RequestUidTp &_requid,
 		int			_which = 0,
 		const ObjectUidTp&_from = ObjectUidTp(),
-		const clientserver::ipc::ConnectorUid *_conid = NULL
+		const foundation::ipc::ConnectorUid *_conid = NULL
 	);
 	virtual int receiveIOStream(
 		StreamPtr<IOStream> &,
@@ -81,23 +81,23 @@ public:
 		const RequestUidTp &_requid,
 		int			_which = 0,
 		const ObjectUidTp&_from = ObjectUidTp(),
-		const clientserver::ipc::ConnectorUid *_conid = NULL
+		const foundation::ipc::ConnectorUid *_conid = NULL
 	);
 	virtual int receiveString(
 		const String &_str,
 		const RequestUidTp &_requid,
 		int			_which = 0,
 		const ObjectUidTp&_from = ObjectUidTp(),
-		const clientserver::ipc::ConnectorUid *_conid = NULL
+		const foundation::ipc::ConnectorUid *_conid = NULL
 	);
 	virtual int receiveError(
 		int _errid, 
 		const RequestUidTp &_requid,
 		const ObjectUidTp&_from = ObjectUidTp(),
-		const clientserver::ipc::ConnectorUid *_conid = NULL
+		const foundation::ipc::ConnectorUid *_conid = NULL
 	);
 protected:
-	Object(uint32 _fullid = 0):clientserver::Object(_fullid){}
+	Object(uint32 _fullid = 0):foundation::Object(_fullid){}
 };
 
 }

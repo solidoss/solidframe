@@ -23,9 +23,9 @@
 #define BETATALKER_HPP
 
 #include "core/talker.hpp"
-#include "clientserver/core/readwriteobject.hpp"
+#include "foundation/core/readwriteobject.hpp"
 
-namespace clientserver{
+namespace foundation{
 class Visitor;
 namespace udp{
 class Station;
@@ -42,17 +42,17 @@ namespace beta{
 
 class Service;
 struct AddrMap;
-class Talker: public clientserver::ReadWriteObject<test::Talker>{
+class Talker: public foundation::ReadWriteObject<test::Talker>{
 public:
 	typedef Service	ServiceTp;
-	typedef clientserver::ReadWriteObject<test::Talker> BaseTp;
+	typedef foundation::ReadWriteObject<test::Talker> BaseTp;
 	
 	Talker(const char *_node, const char *_srv);
 	Talker(const SocketDevice &_rsd);
 	~Talker();
 	int execute(ulong _sig, TimeSpec &_tout);
 	int execute();
-	int accept(clientserver::Visitor &);
+	int accept(foundation::Visitor &);
 private:
 	enum {BUFSZ = 4*1024};
 	enum {INIT,READ, READ_DONE, WRITE, WRITE_DONE};

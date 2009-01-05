@@ -1,9 +1,9 @@
 #include_directories (${SOLIDGROUND_SOURCE_DIR})
 
-link_directories (${SOLIDGROUND_SOURCE_DIR}/system ${SOLIDGROUND_SOURCE_DIR}/clientserver
-${SOLIDGROUND_SOURCE_DIR}/test/clientserver/core ${SOLIDGROUND_SOURCE_DIR}/test/clientserver/echo
-${SOLIDGROUND_SOURCE_DIR}/test/clientserver/alpha
-${SOLIDGROUND_SOURCE_DIR}/test/clientserver/cluster)
+link_directories (${SOLIDGROUND_SOURCE_DIR}/system ${SOLIDGROUND_SOURCE_DIR}/foundation
+${SOLIDGROUND_SOURCE_DIR}/test/foundation/core ${SOLIDGROUND_SOURCE_DIR}/test/foundation/echo
+${SOLIDGROUND_SOURCE_DIR}/test/foundation/alpha
+${SOLIDGROUND_SOURCE_DIR}/test/foundation/cluster)
 
 add_executable (test src/test.cpp)
 
@@ -16,12 +16,12 @@ target_link_libraries (test
 	test_core
 	test_beta
 	test_proxy
-	clientserver_core
-	clientserver_ipc
-	clientserver_aio
-	clientserver_aio_tcp
-	clientserver_aio_udp
-	clientserver_aio_openssl
+	foundation_core
+	foundation_ipc
+	foundation_aio
+	foundation_aio_tcp
+	foundation_aio_udp
+	foundation_aio_openssl
 	ssl
 	crypto
 	protocol

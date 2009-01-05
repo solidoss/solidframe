@@ -22,7 +22,7 @@
 #ifndef CS_COMMAND_HPP
 #define CS_COMMAND_HPP
 
-#include "clientserver/core/common.hpp"
+#include "foundation/core/common.hpp"
 #include "utility/streamptr.hpp"
 #include <string>
 
@@ -31,7 +31,7 @@ class OStream;
 class IOStream;
 class TimeSpec;
 
-namespace clientserver{
+namespace foundation{
 namespace ipc{
 struct ConnectorUid;
 struct CommandUid;
@@ -44,7 +44,7 @@ class Object;
 /*!
 	Inherit this class if you want so send something to an object.
 	Implement the proper execute method.
-	Also the command can be used with an clientserver::CommandExecuter,
+	Also the command can be used with an foundation::CommandExecuter,
 	in which case the posibilities widen.
 	\see test::alpha::FetchMasterCommand
 */
@@ -120,6 +120,6 @@ struct Command{
 		const ipc::ConnectorUid *_conid = NULL
 	);
 };
-}//namespace clientserver
+}//namespace foundation
 
 #endif

@@ -22,14 +22,14 @@
 #ifndef TESTCOMMON_HPP
 #define TESTCOMMON_HPP
 
-#include "clientserver/core/common.hpp"
+#include "foundation/core/common.hpp"
 
 #include <string.h>
 
-typedef clientserver::RequestUidTp	RequestUidTp;
-typedef clientserver::FileUidTp		FileUidTp;
-typedef clientserver::ObjectUidTp	ObjectUidTp;
-typedef clientserver::CommandUidTp	CommandUidTp;
+typedef foundation::RequestUidTp	RequestUidTp;
+typedef foundation::FileUidTp		FileUidTp;
+typedef foundation::ObjectUidTp	ObjectUidTp;
+typedef foundation::CommandUidTp	CommandUidTp;
 
 struct StrLess{
 	bool operator()(const char* const &_str1, const char* const &_str2)const{

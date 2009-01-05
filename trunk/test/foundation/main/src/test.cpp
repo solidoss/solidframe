@@ -25,7 +25,7 @@
 #include "system/thread.hpp"
 #include "system/socketaddress.hpp"
 
-#include "core/server.hpp"
+#include "core/manager.hpp"
 #include "echo/echoservice.hpp"
 #include "alpha/alphaservice.hpp"
 #include "beta/betaservice.hpp"
@@ -36,12 +36,12 @@
 #include "utility/iostream.hpp"
 #include "system/directory.hpp"
 
-#include "clientserver/ipc/ipcservice.hpp"
+#include "foundation/ipc/ipcservice.hpp"
 
 #include "tclap/CmdLine.h"
 
 
-namespace cs = clientserver;
+namespace cs = foundation;
 using namespace std;
 
 /*
@@ -53,9 +53,9 @@ using namespace std;
 // prints the CLI help
 void printHelp();
 // inserts a new talker
-int insertTalker(char *_pc, int _len, test::Server &_rts);
+int insertTalker(char *_pc, int _len, test::Manager &_rts);
 // inserts a new connection
-int insertConnection(char *_pc, int _len, test::Server &_rts);
+int insertConnection(char *_pc, int _len, test::Manager &_rts);
 
 
 struct DeviceIOStream: IOStream{
@@ -136,7 +136,7 @@ int main(int argc, char* argv[]){
 	idbg("Built on SolidGround version "<<SG_MAJOR<<'.'<<SG_MINOR<<'.'<<SG_PATCH);
 	{
 
-		test::Server	ts;
+		test::Manager	ts;
 		if(true){// create and register the echo service
 			test::Service* psrvc = test::echo::Service::create();
 			ts.insertService("echo", psrvc);
@@ -326,7 +326,7 @@ int signalobj(char *_pc, int _len,TestServer &_rts,TheInspector &_rti){
 }
 */
 
-int insertTalker(char *_pc, int _len,test::Server &_rts){
+int insertTalker(char *_pc, int _len,test::Manager &_rts){
 	if(*_pc != ' ') return -1;
 	++_pc;
 	string srvname;
@@ -354,7 +354,7 @@ int insertTalker(char *_pc, int _len,test::Server &_rts){
 // 	}
 	return 0;
 }
-int insertConnection(char *_pc, int _len,test::Server &_rts){
+int insertConnection(char *_pc, int _len,test::Manager &_rts){
 	if(*_pc != ' ') return -1;
 	++_pc;
 	string srvname;

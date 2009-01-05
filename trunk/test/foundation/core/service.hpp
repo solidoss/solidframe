@@ -22,13 +22,13 @@
 #ifndef TESTSERVICE_HPP
 #define TESTSERVICE_HPP
 
-#include "clientserver/core/readwriteservice.hpp"
+#include "foundation/core/readwriteservice.hpp"
 #include "common.hpp"
 
 struct AddrInfoIterator;
 struct SocketDevice;
 
-namespace clientserver{
+namespace foundation{
 namespace tcp{
 class Station;
 }
@@ -39,7 +39,7 @@ class Station;
 
 }
 
-namespace clientserver{
+namespace foundation{
 namespace aio{
 namespace openssl{
 class Context;
@@ -49,13 +49,13 @@ class Context;
 
 namespace test{
 
-class Server;
+class Manager;
 class Visitor;
 
 class Listener;
 class Talker;
 
-class Service: public clientserver::ReadWriteService{
+class Service: public foundation::ReadWriteService{
 public:
 	Service(){}
 	~Service();
@@ -63,25 +63,25 @@ public:
 	virtual int execute(ulong _evs, TimeSpec &_rtout);
 	
 	virtual int insertListener(
-		Server &_rsrv,
+		Manager &_rm,
 		const AddrInfoIterator &_rai,
 		bool _secure = false
 	);
 	virtual int insertTalker(
-		Server &_rs,
+		Manager &_rm,
 		const AddrInfoIterator &_rai,
 		const char *_node,
 		const char *_svc
 	);
 	//this is used by the generic aio listener
 	virtual int insertConnection(
-		Server &_rs,
+		Manager &_rm,
 		const SocketDevice &_rsd,
-		clientserver::aio::openssl::Context *_pctx = NULL,
+		foundation::aio::openssl::Context *_pctx = NULL,
 		bool _secure = false
 	);
 	virtual int insertConnection(
-		Server &_rs,
+		Manager &_rm,
 		const AddrInfoIterator &_rai,
 		const char *_node,
 		const char *_svc

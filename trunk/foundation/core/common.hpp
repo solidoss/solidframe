@@ -25,7 +25,7 @@
 #include <utility>
 #include "utility/common.hpp"
 
-namespace clientserver{
+namespace foundation{
 
 enum RetValEx {
 	LEAVE = CONTINUE + 1,

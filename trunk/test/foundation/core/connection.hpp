@@ -23,7 +23,7 @@
 #define TESTCONNECTION_HPP
 
 #include "utility/streamptr.hpp"
-#include "clientserver/aio/tcp/connection.hpp"
+#include "foundation/aio/tcp/connection.hpp"
 #include "common.hpp"
 #include "tstring.hpp"
 
@@ -31,7 +31,7 @@ class IStream;
 class OStream;
 class IOStream;
 
-namespace clientserver{
+namespace foundation{
 namespace ipc{
 struct ConnectorUid;
 }
@@ -39,7 +39,7 @@ struct ConnectorUid;
 namespace test{
 struct Command;
 //! The base class for all connections knowing how to receive things
-class Connection: public clientserver::aio::tcp::Connection{
+class Connection: public foundation::aio::tcp::Connection{
 public:
 	typedef Command	CommandTp;
 	typedef std::pair<uint32, uint32>	FileUidTp;
@@ -59,7 +59,7 @@ public:
 		const RequestUidTp &_requid,
 		int			_which = 0,
 		const ObjectUidTp&_from = ObjectUidTp(),
-		const clientserver::ipc::ConnectorUid *_conid = NULL
+		const foundation::ipc::ConnectorUid *_conid = NULL
 	);
 	virtual int receiveOStream(
 		StreamPtr<OStream> &,
@@ -67,7 +67,7 @@ public:
 		const RequestUidTp &_requid,
 		int			_which = 0,
 		const ObjectUidTp&_from = ObjectUidTp(),
-		const clientserver::ipc::ConnectorUid *_conid = NULL
+		const foundation::ipc::ConnectorUid *_conid = NULL
 	);
 	virtual int receiveIOStream(
 		StreamPtr<IOStream> &,
@@ -75,21 +75,21 @@ public:
 		const RequestUidTp &_requid,
 		int			_which = 0,
 		const ObjectUidTp&_from = ObjectUidTp(),
-		const clientserver::ipc::ConnectorUid *_conid = NULL
+		const foundation::ipc::ConnectorUid *_conid = NULL
 	);
 	virtual int receiveString(
 		const String &_str,
 		const RequestUidTp &_requid,
 		int			_which = 0,
 		const ObjectUidTp&_from = ObjectUidTp(),
-		const clientserver::ipc::ConnectorUid *_conid = NULL
+		const foundation::ipc::ConnectorUid *_conid = NULL
 	);
 	virtual int receiveNumber(
 		const int64 &_no,
 		const RequestUidTp &_requid,
 		int			_which = 0,
 		const ObjectUidTp&_from = ObjectUidTp(),
-		const clientserver::ipc::ConnectorUid *_conid = NULL
+		const foundation::ipc::ConnectorUid *_conid = NULL
 	);
 	virtual int receiveData(
 		void *_pdata,
@@ -97,17 +97,17 @@ public:
 		const RequestUidTp &_requid,
 		int			_which = 0,
 		const ObjectUidTp&_from = ObjectUidTp(),
-		const clientserver::ipc::ConnectorUid *_conid = NULL
+		const foundation::ipc::ConnectorUid *_conid = NULL
 	);
 	virtual int receiveError(
 		int _errid, 
 		const RequestUidTp &_requid,
 		const ObjectUidTp&_from = ObjectUidTp(),
-		const clientserver::ipc::ConnectorUid *_conid = NULL
+		const foundation::ipc::ConnectorUid *_conid = NULL
 	);
 protected:
 	Connection(const SocketDevice &_rsd):
-			clientserver::aio::tcp::Connection(_rsd){}
+			foundation::aio::tcp::Connection(_rsd){}
 	Connection(){}
 };
 

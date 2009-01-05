@@ -31,11 +31,11 @@
 
 #include "utility/queue.hpp"
 
-#include "clientserver/core/objptr.hpp"
+#include "foundation/core/objptr.hpp"
 
 #include "common.hpp"
 
-namespace clientserver{
+namespace foundation{
 
 typedef ObjPtr<Object> ObjectPtrTp;
 //! An object selector to be used with the template SelectPool

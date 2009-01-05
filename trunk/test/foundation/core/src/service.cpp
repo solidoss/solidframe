@@ -27,10 +27,10 @@
 #include "system/cassert.hpp"
 
 #include "core/service.hpp"
-#include "core/server.hpp"
+#include "core/manager.hpp"
 #include "core/listener.hpp"
 
-namespace cs = clientserver;
+namespace cs = foundation;
 
 namespace test{
 /*
@@ -48,8 +48,8 @@ int Service::execute(ulong _sig, TimeSpec &_rtout){
 		}
 		if(sm & cs::S_KILL){
 			idbg("killing service "<<this->id());
-			this->stop(test::Server::the(), true);
-			test::Server::the().removeService(this);
+			this->stop(test::Manager::the(), true);
+			test::Manager::the().removeService(this);
 			return BAD;
 		}
 	}
@@ -67,14 +67,14 @@ int Service::removeListener(Listener &_rlis){
 // Some dummy insert methods
 
 int Service::insertListener(
-	Server &_rsrv,
+	Manager &_rm,
 	const AddrInfoIterator &_rai,
 	bool _secure
 ){
 	return BAD;
 }
 int Service::insertTalker(
-	Server &_rs, 
+	Manager &_rm, 
 	const AddrInfoIterator &_rai,
 	const char *_node,
 	const char *_svc
@@ -83,7 +83,7 @@ int Service::insertTalker(
 	return BAD;
 }
 int Service::insertConnection(
-	Server &_rs,
+	Manager &_rm,
 	const AddrInfoIterator &_rai,
 	const char *_node,
 	const char *_svc
@@ -91,9 +91,9 @@ int Service::insertConnection(
 	return BAD;
 }
 int Service::insertConnection(
-	Server &_rs, 
+	Manager &_rm, 
 	const SocketDevice &_rsd,
-	clientserver::aio::openssl::Context *_pctx,
+	foundation::aio::openssl::Context *_pctx,
 	bool _secure
 ){	
 	cassert(false);

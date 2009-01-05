@@ -26,7 +26,7 @@
 #include <string>
 
 
-namespace clientserver{
+namespace foundation{
 namespace tcp{
 class Channel;
 }

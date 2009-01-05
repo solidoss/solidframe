@@ -20,8 +20,8 @@
 */
 
 #include "system/debug.hpp"
-#include "core/server.hpp"
-#include "clientserver/core/objptr.hpp"
+#include "core/manager.hpp"
+#include "foundation/core/objptr.hpp"
 
 #include "core/listener.hpp"
 
@@ -29,7 +29,7 @@
 #include "betaconnection.hpp"
 #include "betatalker.hpp"
 
-namespace cs = clientserver;
+namespace cs = foundation;
 
 namespace test{
 namespace beta{
@@ -45,9 +45,9 @@ Service::~Service(){
 }
 
 int Service::insertConnection(
-	test::Server &_rs,
+	test::Manager &_rm,
 	const SocketDevice &_rsd,
-	clientserver::aio::openssl::Context *_pctx,
+	foundation::aio::openssl::Context *_pctx,
 	bool _secure
 ){
 	Connection *pcon = new Connection(_rsd);
@@ -55,12 +55,12 @@ int Service::insertConnection(
 		delete pcon;
 		return BAD;
 	}
-	_rs.pushJob(static_cast<cs::aio::Object*>(pcon));
+	_rm.pushJob(static_cast<cs::aio::Object*>(pcon));
 	return OK;
 }
 
 int Service::insertListener(
-	test::Server &_rs,
+	test::Manager &_rm,
 	const AddrInfoIterator &_rai,
 	bool _secure
 ){
@@ -75,14 +75,14 @@ int Service::insertListener(
 		delete plis;
 		return BAD;
 	}	
-	_rs.pushJob(static_cast<cs::aio::Object*>(plis));
+	_rm.pushJob(static_cast<cs::aio::Object*>(plis));
 	return OK;
 }
 int Service::insertTalker(
-		Server &_rs, 
-		const AddrInfoIterator &_rai,
-		const char *_node,
-		const char *_svc
+	Manager &_rm, 
+	const AddrInfoIterator &_rai,
+	const char *_node,
+	const char *_svc
 ){
 	SocketDevice sd;
 	sd.create(_rai);
@@ -92,12 +92,12 @@ int Service::insertTalker(
 		delete ptkr;
 		return BAD;
 	}
-	_rs.pushJob(static_cast<cs::aio::Object*>(ptkr));
+	_rm.pushJob(static_cast<cs::aio::Object*>(ptkr));
 	return OK;
 }
 
 int Service::insertConnection(
-	Server &_rs, 
+	Manager &_rm, 
 	const AddrInfoIterator &_rai,
 	const char *_node,
 	const char *_svc
@@ -107,7 +107,7 @@ int Service::insertConnection(
 		delete pcon;
 		return BAD;
 	}
-	_rs.pushJob(static_cast<cs::aio::Object*>(pcon));
+	_rm.pushJob(static_cast<cs::aio::Object*>(pcon));
 	return OK;
 }
 

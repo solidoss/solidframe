@@ -19,7 +19,7 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "core/server.hpp"
+#include "core/manager.hpp"
 #include "proxy/proxyservice.hpp"
 #include "proxymulticonnection.hpp"
 #include "system/socketaddress.hpp"
@@ -27,7 +27,7 @@
 #include "system/mutex.hpp"
 #include "system/timespec.hpp"
 
-namespace cs=clientserver;
+namespace cs=foundation;
 static char	*hellostr = "Welcome to proxy service!!!\r\n"; 
 
 namespace test{
@@ -58,8 +58,8 @@ NOTE:
 */
 
 MultiConnection::~MultiConnection(){
-	test::Server &rs = test::Server::the();
-	rs.service(*this).removeConnection(*this);
+	test::Manager &rm = test::Manager::the();
+	rm.service(*this).removeConnection(*this);
 	delete pai;
 }
 enum{
@@ -75,9 +75,9 @@ int MultiConnection::execute(ulong _sig, TimeSpec &_tout){
 		return BAD;
 	}
 	if(signaled()){
-		test::Server &rs = test::Server::the();
+		test::Manager &rm = test::Manager::the();
 		{
-		Mutex::Locker	lock(rs.mutex(*this));
+		Mutex::Locker	lock(rm.mutex(*this));
 		ulong sm = grabSignalMask();
 		if(sm & cs::S_KILL) return BAD;
 		}

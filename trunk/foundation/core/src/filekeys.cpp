@@ -1,15 +1,15 @@
 #include <map>
 #include <cstring>
 
-#include "clientserver/core/filekeys.hpp"
-#include "clientserver/core/filemapper.hpp"
-#include "clientserver/core/filemanager.hpp"
+#include "foundation/core/filekeys.hpp"
+#include "foundation/core/filemapper.hpp"
+#include "foundation/core/filemanager.hpp"
 #include "system/directory.hpp"
 #include "system/cassert.hpp"
 
 using namespace std;
 
-namespace clientserver{
+namespace foundation{
 //---------------------------------------------------------------
 struct LessStrCmp{
 	inline bool operator()(const char* const& _s1, const char* const& _s2)const{
@@ -191,5 +191,5 @@ void TempFileMapper::initFolders(){
 	}
 }
 
-}//namespace clientserver
+}//namespace foundation
 

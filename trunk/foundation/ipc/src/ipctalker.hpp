@@ -26,7 +26,7 @@
 
 struct TimeSpec;
 
-namespace clientserver{
+namespace foundation{
 
 class Visitor;
 
@@ -37,17 +37,17 @@ struct Buffer;
 struct ConnectorUid;
 
 //! A talker for io requests
-class Talker: public clientserver::aio::udp::Talker{
+class Talker: public foundation::aio::udp::Talker{
 public:
 	typedef Service							ServiceTp;
-	typedef clientserver::aio::udp::Talker	BaseTp;
+	typedef foundation::aio::udp::Talker	BaseTp;
 	
 	Talker(const SocketDevice &_rsd, Service &_rservice, uint16 _id);
 	~Talker();
 	int execute(ulong _sig, TimeSpec &_tout);
 	int execute();
-	int accept(clientserver::Visitor &);
-	int pushCommand(clientserver::CmdPtr<Command> &_pcmd, const ConnectorUid &_rconid, uint32 _flags);
+	int accept(foundation::Visitor &);
+	int pushCommand(foundation::CmdPtr<Command> &_pcmd, const ConnectorUid &_rconid, uint32 _flags);
 	void pushProcessConnector(ProcessConnector *_pc, ConnectorUid &_rconid, bool _exists = false);
 	void disconnectProcesses();
 private:
@@ -61,7 +61,7 @@ private:
 };
 
 }//namespace ipc
-}//namespace clientserver
+}//namespace foundation
 
 #endif
 

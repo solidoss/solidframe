@@ -33,7 +33,7 @@
 #include "utility/queue.hpp"
 #include "utility/stack.hpp"
 
-#include "core/server.hpp"
+#include "core/manager.hpp"
 
 #include "ipc/ipcservice.hpp"
 #include "ipc/connectoruid.hpp"
@@ -41,16 +41,16 @@
 #include "ipctalker.hpp"
 #include "processconnector.hpp"
 
-namespace cs = clientserver;
+namespace cs = foundation;
 
-namespace clientserver{
+namespace foundation{
 namespace ipc{
 
 struct Talker::Data{
 	struct CommandData{
-		CommandData(clientserver::CmdPtr<Command> &_pcmd, uint16 _procid, uint16 _procuid, uint32 _flags):
+		CommandData(foundation::CmdPtr<Command> &_pcmd, uint16 _procid, uint16 _procuid, uint32 _flags):
 			pcmd(_pcmd), procid(_procid), procuid(_procuid), flags(_flags){}
-		clientserver::CmdPtr<Command> pcmd;
+		foundation::CmdPtr<Command> pcmd;
 		uint16	procid;
 		uint16	procuid;
 		uint32	flags;
@@ -151,8 +151,8 @@ inline bool Talker::inDone(ulong _sig, const TimeSpec &_rts){
 }
 //this should be called under ipc service's mutex lock
 void Talker::disconnectProcesses(){
-	Server &rs = Server::the();
-	Mutex::Locker	lock(rs.mutex(*this));
+	Manager &rm = Manager::the();
+	Mutex::Locker	lock(rm.mutex(*this));
 	//delete processconnectors
 	while(d.closes.size()){
 		ProcessConnector *ppc = d.procs[d.closes.top()].first;
@@ -178,7 +178,7 @@ void Talker::disconnectProcesses(){
 }
 //----------------------------------------------------------------------
 int Talker::execute(ulong _sig, TimeSpec &_tout){
-	Server &rs = Server::the();
+	Manager &rm = Manager::the();
 // 	if(_sig & (cs::TIMEOUT | cs::ERRDONE)){
 // 		if(_sig & cs::TIMEOUT)
 // 			idbgx(Dbg::ipc, "talker timeout");
@@ -191,7 +191,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 	if(signaled() || d.closes.size()){
 		{
 			nothing = false;
-			Mutex::Locker	lock(rs.mutex(*this));
+			Mutex::Locker	lock(rm.mutex(*this));
 			ulong sm = grabSignalMask(0);
 			if(sm & cs::S_KILL){
 				idbgx(Dbg::ipc, "intalker - dying");
@@ -332,13 +332,13 @@ int Talker::execute(){
 	return BAD;
 }
 //----------------------------------------------------------------------
-int Talker::accept(clientserver::Visitor &){
+int Talker::accept(foundation::Visitor &){
 	return BAD;
 }
 //----------------------------------------------------------------------
 //The talker's mutex should be locked
 //return ok if the talker should be signaled
-int Talker::pushCommand(clientserver::CmdPtr<Command> &_pcmd, const ConnectorUid &_rconid, uint32 _flags){
+int Talker::pushCommand(foundation::CmdPtr<Command> &_pcmd, const ConnectorUid &_rconid, uint32 _flags){
 	d.cmdq.push(Data::CommandData(_pcmd, _rconid.procid, _rconid.procuid, _flags));
 	return d.cmdq.size() == 1 ? NOK : OK;
 }
@@ -524,6 +524,6 @@ void Talker::optimizeBuffer(Buffer &_rbuf){
 }
 //======================================================================
 }//namespace ipc
-}//namesapce clientserver
+}//namesapce foundation
 
 

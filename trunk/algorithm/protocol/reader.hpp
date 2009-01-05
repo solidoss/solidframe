@@ -77,7 +77,7 @@ struct DummyKey{
 		
 	<b>Notes:</b><br>
 		- You can safely use pointers to existing parameters within the stack.<br>
-		- For an excelent example see test::alpha::Writer (test/clientserver/alpha/src/alpha.(h/cpp)).<br>
+		- For an excelent example see test::alpha::Writer (test/foundation/alpha/src/alpha.(h/cpp)).<br>
 */
 class Reader{
 public:

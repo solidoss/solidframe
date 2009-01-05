@@ -34,10 +34,10 @@
 
 class Mutex;
 struct TimeSpec;
-namespace clientserver{
+namespace foundation{
 
 class Visitor;
-class Server;
+class Manager;
 class Service;
 class ObjPtrBase;
 class Command;
@@ -51,8 +51,8 @@ class Command;
 	So an object:
 	- can receive signals
 	- can receive commands
-	- must reside both on a static container (clientserver::Service) and 
-	an ActiveSet (usually clientserver::SelectPool)
+	- must reside both on a static container (foundation::Service) and 
+	an ActiveSet (usually foundation::SelectPool)
 	- has an associated mutex which can be requested from the service
 	- can be visited using a visitor<br>
 	

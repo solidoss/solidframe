@@ -29,7 +29,7 @@
 #include "algorithm/serialization/binary.hpp"
 #include "algorithm/serialization/idtypemap.hpp"
 
-#include "core/server.hpp"
+#include "core/manager.hpp"
 #include "core/service.hpp"
 #include "core/visitor.hpp"
 #include "core/command.hpp"
@@ -37,26 +37,26 @@
 #include "core/object.hpp"
 
 
-#include "clientserver/core/selectpool.hpp"
-#include "clientserver/core/execpool.hpp"
-#include "clientserver/core/filemanager.hpp"
-#include "clientserver/core/filekeys.hpp"
+#include "foundation/core/selectpool.hpp"
+#include "foundation/core/execpool.hpp"
+#include "foundation/core/filemanager.hpp"
+#include "foundation/core/filekeys.hpp"
 
-#include "clientserver/aio/aioselector.hpp"
-#include "clientserver/aio/aioobject.hpp"
+#include "foundation/aio/aioselector.hpp"
+#include "foundation/aio/aioobject.hpp"
 
-#include "clientserver/core/objectselector.hpp"
-#include "clientserver/core/commandexecuter.hpp"
-#include "clientserver/core/requestuid.hpp"
+#include "foundation/core/objectselector.hpp"
+#include "foundation/core/commandexecuter.hpp"
+#include "foundation/core/requestuid.hpp"
 
-#include "clientserver/ipc/ipcservice.hpp"
+#include "foundation/ipc/ipcservice.hpp"
 
 
 #include <iostream>
 using namespace std;
 
 //some forward declarations
-namespace clientserver{
+namespace foundation{
 
 class ObjectSelector;
 
@@ -73,9 +73,9 @@ namespace udp{
 class TalkerSelector;
 }//namespace udp
 
-}//namespace clientserver
+}//namespace foundation
 
-namespace cs=clientserver;
+namespace cs=foundation;
 
 
 namespace test{
@@ -197,7 +197,7 @@ int StreamErrorCommand::execute(uint32 _evs, cs::CommandExecuter& _rce, const Co
 }
 //----------------------------------------------------------------------
 /*
-	Local implementation of the clientserver::FileManager wich will now know how
+	Local implementation of the foundation::FileManager wich will now know how
 	to send streams/errors to an object.
 */
 class FileManager: public cs::FileManager{
@@ -211,19 +211,19 @@ protected:
 };
 void FileManager::sendStream(StreamPtr<IStream> &_sptr, const FileUidTp &_rfuid, const cs::RequestUid& _rrequid){
 	cs::CmdPtr<cs::Command>	cp(new IStreamCommand(_sptr, _rfuid, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
-	Server::the().signalObject(_rrequid.objidx, _rrequid.objuid, cp);
+	Manager::the().signalObject(_rrequid.objidx, _rrequid.objuid, cp);
 }
 void FileManager::sendStream(StreamPtr<OStream> &_sptr, const FileUidTp &_rfuid, const cs::RequestUid& _rrequid){
 	cs::CmdPtr<cs::Command>	cp(new OStreamCommand(_sptr, _rfuid, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
-	Server::the().signalObject(_rrequid.objidx, _rrequid.objuid, cp);
+	Manager::the().signalObject(_rrequid.objidx, _rrequid.objuid, cp);
 }
 void FileManager::sendStream(StreamPtr<IOStream> &_sptr, const FileUidTp &_rfuid, const cs::RequestUid& _rrequid){
 	cs::CmdPtr<cs::Command>	cp(new IOStreamCommand(_sptr, _rfuid, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
-	Server::the().signalObject(_rrequid.objidx, _rrequid.objuid, cp);
+	Manager::the().signalObject(_rrequid.objidx, _rrequid.objuid, cp);
 }
 void FileManager::sendError(int _error, const cs::RequestUid& _rrequid){
 	cs::CmdPtr<cs::Command>	cp(new StreamErrorCommand(_error, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
-	Server::the().signalObject(_rrequid.objidx, _rrequid.objuid, cp);
+	Manager::the().signalObject(_rrequid.objidx, _rrequid.objuid, cp);
 }
 
 //======= IpcService ======================================================
@@ -235,7 +235,7 @@ class IpcService: public cs::ipc::Service{
 public:
 	IpcService(uint32 _keepalivetout):cs::ipc::Service(_keepalivetout){}
 protected:
-	/*virtual*/void pushTalkerInPool(clientserver::Server &_rs, clientserver::aio::Object *_ptkr);
+	/*virtual*/void pushTalkerInPool(foundation::Manager &_rm, foundation::aio::Object *_ptkr);
 };
 
 //=========================================================================
@@ -262,21 +262,21 @@ ExtraObjPtr& ExtraObjPtr::operator=(cs::Object *_pobj){
 */
 class CommandExecuter: public cs::CommandExecuter{
 public:
-	void removeFromServer();
+	void removeFromManager();
 };
-void CommandExecuter::removeFromServer(){
-	Server::the().removeObject(this);
+void CommandExecuter::removeFromManager(){
+	Manager::the().removeObject(this);
 }
 
 //=========================================================================
 //The server's localdata
-struct Server::Data{
+struct Manager::Data{
 	typedef std::vector<ExtraObjPtr>									ExtraObjectVector;
 	typedef std::map<const char*, int, StrLess> 						ServiceIdxMap;
-	typedef clientserver::SelectPool<cs::ObjectSelector>				ObjSelPoolTp;
-	typedef clientserver::SelectPool<cs::aio::Selector>					AioSelectorPoolTp;
+	typedef foundation::SelectPool<cs::ObjectSelector>					ObjSelPoolTp;
+	typedef foundation::SelectPool<cs::aio::Selector>					AioSelectorPoolTp;
 
-	Data(Server &_rs);
+	Data(Manager &_rm);
 	~Data();
 	ExtraObjectVector					eovec;
 	ServiceIdxMap						servicemap;// map name -> service index
@@ -291,7 +291,7 @@ struct Server::Data{
 typedef serialization::TypeMapper					TypeMapper;
 typedef serialization::IdTypeMap					IdTypeMap;
 typedef serialization::bin::Serializer				BinSerializer;
-Server::Data::Data(Server &_rs)
+Manager::Data::Data(Manager &_rm)
 {
 	pobjectpool[0] = NULL;
 	pobjectpool[1] = NULL;
@@ -303,7 +303,7 @@ Server::Data::Data(Server &_rs)
 	TypeMapper::registerSerializer<BinSerializer>();
 	idbg("");
 	if(true){
-		pobjectpool[0] = new ObjSelPoolTp(	_rs, 
+		pobjectpool[0] = new ObjSelPoolTp(	_rm, 
 												10,		//max thread cnt
 												1024 * 4//max objects per selector
 												);		//at most 10 * 4 * 1024 connections
@@ -311,13 +311,13 @@ Server::Data::Data(Server &_rs)
 	}
 	idbg("");
 	if(true){
-		paiopool[0] = new AioSelectorPoolTp(_rs,
+		paiopool[0] = new AioSelectorPoolTp(_rm,
 										10,			//max thread cnt
 										2048		//max aio objects per selector/thread
 										);			//at most 10 * 4 * 1024 connections
 		paiopool[0]->start(1);//start with one worker
 		
-		paiopool[1] = new AioSelectorPoolTp(_rs,
+		paiopool[1] = new AioSelectorPoolTp(_rm,
 										10,			//max thread cnt
 										2048		//max aio objects per selector/thread
 										);			//at most 10 * 4 * 1024 connections
@@ -326,7 +326,7 @@ Server::Data::Data(Server &_rs)
 	idbg("");
 }
 
-Server::Data::~Data(){
+Manager::Data::~Data(){
 	if(pobjectpool[0]) pobjectpool[0]->stop();
 	if(pobjectpool[1]) pobjectpool[1]->stop();
 	delete pobjectpool[0];
@@ -352,11 +352,11 @@ void registerService(ServiceCreator _psc, const char* _pname){
 }
 //----------------------------------------------------------------------------------
 template <>
-void Server::pushJob(cs::Object *_pj, int _pos){
+void Manager::pushJob(cs::Object *_pj, int _pos){
 	d.pobjectpool[_pos]->push(cs::ObjPtr<cs::Object>(_pj));
 }
 template <>
-void Server::pushJob(cs::aio::Object *_pj, int _i){
+void Manager::pushJob(cs::aio::Object *_pj, int _i){
 	d.paiopool[_i]->push(cs::ObjPtr<cs::aio::Object>(_pj));
 }
 
@@ -367,28 +367,28 @@ NOTE:
 	which is defined in the base class of the server which should be initialized first
 */
 
-Server::Server():d(*(new Data(*this))){
+Manager::Manager():d(*(new Data(*this))){
 	//ppools = new PoolContainer(*this);
 	if(true){//create register the file manager
 		this->fileManager(new FileManager(10));
-		cs::Server::insertObject(&fileManager());
+		cs::Manager::insertObject(&fileManager());
 		cs::NameFileKey::registerMapper(fileManager());
 		cs::TempFileKey::registerMapper(fileManager());
 		this->pushJob((cs::Object*)&fileManager());
 	}
 	if(true){// create register the read command executer
 		d.readcmdexec = new CommandExecuter;
-		cs::Server::insertObject(d.readcmdexec.ptr());
+		cs::Manager::insertObject(d.readcmdexec.ptr());
 		this->pushJob((cs::Object*)d.readcmdexec.ptr());
 	}
 	if(true){// create register the write command executer
 		d.writecmdexec = new CommandExecuter;
-		cs::Server::insertObject(d.writecmdexec.ptr());
+		cs::Manager::insertObject(d.writecmdexec.ptr());
 		this->pushJob((cs::Object*)d.writecmdexec.ptr());
 	}
 	if(true){// create register the ipc service
 		this->ipc(new IpcService(1000));//one sec keepalive tout
-		int pos = cs::Server::insertService(&this->ipc());
+		int pos = cs::Manager::insertService(&this->ipc());
 		if(pos < 0){
 			idbg("unable to register service: "<<"ipc");
 		}else{
@@ -400,12 +400,12 @@ Server::Server():d(*(new Data(*this))){
 	}
 }
 
-Server::~Server(){
-	cs::Server::stop(true);//wait all services to stop
+Manager::~Manager(){
+	cs::Manager::stop(true);//wait all services to stop
 	delete &d;
 }
 
-int Server::start(const char *_which){
+int Manager::start(const char *_which){
 	if(_which){
 		Data::ServiceIdxMap::iterator it(d.servicemap.find(_which));
 		if(it != d.servicemap.end()){
@@ -418,30 +418,30 @@ int Server::start(const char *_which){
 	}
 	return OK;
 }
-int Server::stop(const char *_which){
+int Manager::stop(const char *_which){
 	if(_which){
 		Data::ServiceIdxMap::iterator it(d.servicemap.find(_which));
 		if(it != d.servicemap.end()){
 			service(it->second).stop(*this);
 		}
 	}else{
-		cs::Server::stop(false);
+		cs::Manager::stop(false);
 	}
 	return OK;
 }
 
-void Server::readCommandExecuterUid(ObjectUidTp &_ruid){
+void Manager::readCommandExecuterUid(ObjectUidTp &_ruid){
 	_ruid.first = d.readcmdexec->id();
 	_ruid.second = uid(*d.readcmdexec);
 }
-void Server::writeCommandExecuterUid(ObjectUidTp &_ruid){
+void Manager::writeCommandExecuterUid(ObjectUidTp &_ruid){
 	_ruid.first = d.writecmdexec->id();
 	_ruid.second = uid(*d.writecmdexec);
 }
 
-int Server::insertService(const char* _nm, Service* _psrvc){
+int Manager::insertService(const char* _nm, Service* _psrvc){
 	if(_psrvc != NULL){
-		int pos = cs::Server::insertService(_psrvc);
+		int pos = cs::Manager::insertService(_psrvc);
 		if(pos < 0){
 			idbg("unable to register service: "<<_nm);
 		}else{
@@ -456,11 +456,11 @@ int Server::insertService(const char* _nm, Service* _psrvc){
 	}
 	return BAD;
 }
-void Server::removeService(Service *_psrvc){
-	cs::Server::removeService(_psrvc);
+void Manager::removeService(Service *_psrvc){
+	cs::Manager::removeService(_psrvc);
 }
 
-int Server::insertListener(const char* _nm, const AddrInfoIterator &_rai, bool _secure){
+int Manager::insertListener(const char* _nm, const AddrInfoIterator &_rai, bool _secure){
 	Data::ServiceIdxMap::iterator it(d.servicemap.find(_nm));
 	if(it != d.servicemap.end()){
 		test::Service &ts = static_cast<test::Service&>(this->service(it->second));
@@ -471,7 +471,7 @@ int Server::insertListener(const char* _nm, const AddrInfoIterator &_rai, bool _
 	}
 }
 
-int Server::insertTalker(const char* _nm, const AddrInfoIterator &_rai, const char*_node, const char *_srv){
+int Manager::insertTalker(const char* _nm, const AddrInfoIterator &_rai, const char*_node, const char *_srv){
 	Data::ServiceIdxMap::iterator it(d.servicemap.find(_nm));
 	if(it != d.servicemap.end()){
 		test::Service &ts = static_cast<test::Service&>(this->service(it->second));
@@ -482,7 +482,7 @@ int Server::insertTalker(const char* _nm, const AddrInfoIterator &_rai, const ch
 	}
 }
 
-int Server::insertConnection(
+int Manager::insertConnection(
 	const char* _nm,
 	const AddrInfoIterator &_rai,
 	const char*_node,
@@ -499,7 +499,7 @@ int Server::insertConnection(
 	}
 }
 
-int Server::visitService(const char* _nm, Visitor &_rov){
+int Manager::visitService(const char* _nm, Visitor &_rov){
 	Data::ServiceIdxMap::iterator it(d.servicemap.find(_nm));
 	if(it != d.servicemap.end()){
 		//test::Service *ts = static_cast<test::Service*>(this->service(it->second));
@@ -512,8 +512,8 @@ int Server::visitService(const char* _nm, Visitor &_rov){
 	}
 }
 //----------------------------------------------------------------------------------
-void IpcService::pushTalkerInPool(clientserver::Server &_rs, clientserver::aio::Object *_ptkr){
-	static_cast<Server&>(_rs).pushJob(_ptkr, 1);
+void IpcService::pushTalkerInPool(foundation::Manager &_rm, foundation::aio::Object *_ptkr){
+	static_cast<Manager&>(_rm).pushJob(_ptkr, 1);
 }
 //----------------------------------------------------------------------------------
 // Some dummy command methods definitions
@@ -540,7 +540,7 @@ int Connection::receiveIStream(
 	const RequestUidTp &_requid,
 	int			_which,
 	const ObjectUidTp& _from,
-	const clientserver::ipc::ConnectorUid *_conid
+	const foundation::ipc::ConnectorUid *_conid
 ){
 	cassert(false);
 	return BAD;
@@ -552,7 +552,7 @@ int Connection::receiveOStream(
 	const RequestUidTp &_requid,
 	int			_which,
 	const ObjectUidTp& _from,
-	const clientserver::ipc::ConnectorUid *_conid
+	const foundation::ipc::ConnectorUid *_conid
 ){
 	cassert(false);
 	return BAD;
@@ -564,7 +564,7 @@ int Connection::receiveIOStream(
 	const RequestUidTp &_requid,
 	int			_which,
 	const ObjectUidTp&_from,
-	const clientserver::ipc::ConnectorUid *_conid
+	const foundation::ipc::ConnectorUid *_conid
 ){
 	cassert(false);
 	return BAD;
@@ -575,7 +575,7 @@ int Connection::receiveString(
 	const RequestUidTp &_requid,
 	int			_which,
 	const ObjectUidTp&_from,
-	const clientserver::ipc::ConnectorUid *_conid
+	const foundation::ipc::ConnectorUid *_conid
 ){
 	cassert(false);
 	return BAD;
@@ -586,7 +586,7 @@ int Connection::receiveData(
 	const RequestUidTp &_requid,
 	int			_which,
 	const ObjectUidTp&_from,
-	const clientserver::ipc::ConnectorUid *_conid
+	const foundation::ipc::ConnectorUid *_conid
 ){
 	cassert(false);
 	return BAD;
@@ -596,7 +596,7 @@ int Connection::receiveNumber(
 	const RequestUidTp &_requid,
 	int			_which,
 	const ObjectUidTp&_from,
-	const clientserver::ipc::ConnectorUid *_conid
+	const foundation::ipc::ConnectorUid *_conid
 ){
 	cassert(false);
 	return BAD;
@@ -606,7 +606,7 @@ int Connection::receiveError(
 	int _errid, 
 	const RequestUidTp &_requid,
 	const ObjectUidTp&_from,
-	const clientserver::ipc::ConnectorUid *_conid
+	const foundation::ipc::ConnectorUid *_conid
 ){
 	cassert(false);
 	return BAD;
@@ -619,7 +619,7 @@ int Object::receiveIStream(
 	const RequestUidTp &_requid,
 	int			_which,
 	const ObjectUidTp&_from,
-	const clientserver::ipc::ConnectorUid *_conid
+	const foundation::ipc::ConnectorUid *_conid
 ){
 	cassert(false);
 	return BAD;
@@ -631,7 +631,7 @@ int Object::receiveOStream(
 	const RequestUidTp &_requid,
 	int			_which,
 	const ObjectUidTp&_from,
-	const clientserver::ipc::ConnectorUid *_conid
+	const foundation::ipc::ConnectorUid *_conid
 ){
 	cassert(false);
 	return BAD;
@@ -643,7 +643,7 @@ int Object::receiveIOStream(
 	const RequestUidTp &_requid,
 	int			_which,
 	const ObjectUidTp&_from,
-	const clientserver::ipc::ConnectorUid *_conid
+	const foundation::ipc::ConnectorUid *_conid
 ){
 	cassert(false);
 	return BAD;
@@ -654,7 +654,7 @@ int Object::receiveString(
 	const RequestUidTp &_requid,
 	int			_which,
 	const ObjectUidTp&_from,
-	const clientserver::ipc::ConnectorUid *_conid
+	const foundation::ipc::ConnectorUid *_conid
 ){
 	cassert(false);
 	return BAD;
@@ -663,7 +663,7 @@ int Object::receiveError(
 	int _errid, 
 	const RequestUidTp &_requid,
 	const ObjectUidTp&_from,
-	const clientserver::ipc::ConnectorUid *_conid
+	const foundation::ipc::ConnectorUid *_conid
 ){
 	cassert(false);
 	return BAD;

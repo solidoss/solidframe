@@ -3,7 +3,7 @@
 
 #include "common.hpp"
 
-namespace clientserver{
+namespace foundation{
 
 //! Unique identifier for a request
 struct RequestUid{

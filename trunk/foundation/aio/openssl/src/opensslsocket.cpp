@@ -19,14 +19,14 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "clientserver/aio/openssl/opensslsocket.hpp"
+#include "foundation/aio/openssl/opensslsocket.hpp"
 #include "system/socketdevice.hpp"
 #include "system/common.hpp"
 #include "openssl/bio.h"
 #include "openssl/ssl.h"
 #include "openssl/err.h"
 
-namespace clientserver{
+namespace foundation{
 
 namespace aio{
 
@@ -127,5 +127,5 @@ Socket::Socket(SSL *_pssl):pssl(_pssl){
 
 }//namespace aio
 
-}//namespace clientserver
+}//namespace foundation
 

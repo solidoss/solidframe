@@ -22,8 +22,8 @@
 #ifndef CS_COMMAND_EXECUTER_HPP
 #define CS_COMMAND_EXECUTER_HPP
 
-#include "clientserver/core/object.hpp"
-#include "clientserver/core/common.hpp"
+#include "foundation/core/object.hpp"
+#include "foundation/core/common.hpp"
 #include "cmdptr.hpp"
 #include "utility/streamptr.hpp"
 #include <string>
@@ -34,7 +34,7 @@ class IOStream;
 
 struct TimeSpec;
 
-namespace clientserver{
+namespace foundation{
 namespace ipc{
 struct ConnectorUid;
 }
@@ -54,15 +54,15 @@ struct ConnectorUid;
 		_requid parameter.
 	
 	<b>Usage:</b><br>
-	- Inherit from CommandExecuter and implement removeFromServer
-		in which you should call Server::the().removeObject(this);
+	- Inherit from CommandExecuter and implement removeFromManager
+		in which you should call Manager::the().removeObject(this);
 	- In your server, create some commandexecuters and register them
-		using clientserver::Server::insertObject
+		using foundation::Manager::insertObject
 	- Implement for your commands execute(CommandExecuter&, const CommandUidTp &, TimeSpec &_rts);
 	
-	\see test/clientserver/core/src/server.cpp test/clientserver/alpha/src/alphacommands.cpp
+	\see test/foundation/core/src/server.cpp test/foundation/alpha/src/alphacommands.cpp
 	\see test::CommandExecuter test::alpha::FetchMasterCommand
-	\see clientserver::Command clientserver::Object
+	\see foundation::Command foundation::Object
 */
 class CommandExecuter: public Object{
 public:
@@ -70,7 +70,7 @@ public:
 	~CommandExecuter();
 	int signal(CmdPtr<Command> &_cmd);
 	int execute(ulong _evs, TimeSpec &_rtout);
-	virtual void removeFromServer() = 0;
+	virtual void removeFromManager() = 0;
 	void mutex(Mutex *_pmut);
 	void receiveCommand(
 		CmdPtr<Command> &_rcmd,
@@ -130,6 +130,6 @@ private:
 	Data	&d;
 };
 
-}//namespace clientserver
+}//namespace foundation
 
 #endif

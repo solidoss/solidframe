@@ -27,7 +27,7 @@
 #include "activeset.hpp"
 #include "objptr.hpp"
 
-namespace clientserver{
+namespace foundation{
 
 class ExecPool: public WorkPool<ObjPtr<Object> >, public ActiveSet{
 public:

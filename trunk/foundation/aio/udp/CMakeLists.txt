@@ -1,4 +1,4 @@
 
-add_library(clientserver_aio_udp
+add_library(foundation_aio_udp
 	src/talker.cpp
 )

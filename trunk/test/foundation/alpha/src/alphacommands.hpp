@@ -115,18 +115,18 @@ public:
 		const FileUidTp &_fuid,
 		int			_which,
 		const ObjectUidTp&,
-		const clientserver::ipc::ConnectorUid *
+		const foundation::ipc::ConnectorUid *
 	);
 	int receiveError(
 		int _errid,
 		const ObjectUidTp&_from,
-		const clientserver::ipc::ConnectorUid *
+		const foundation::ipc::ConnectorUid *
 	);
 	int receiveNumber(
 		const int64 &_no,
 		int			_which,
 		const ObjectUidTp&_from,
-		const clientserver::ipc::ConnectorUid *_conid
+		const foundation::ipc::ConnectorUid *_conid
 	);
 private:
 	enum {
@@ -149,7 +149,7 @@ private:
 	uint64				litsz64;
 	uint64				chunksz;
 	uint16				isfirst;
-	clientserver::ipc::ConnectorUid conuid;
+	foundation::ipc::ConnectorUid conuid;
 };
 //! Store a file locally
 /*!
@@ -170,12 +170,12 @@ public:
 		const FileUidTp &_fuid,
 		int			_which,
 		const ObjectUidTp&,
-		const clientserver::ipc::ConnectorUid *
+		const foundation::ipc::ConnectorUid *
 	);
 	int receiveError(
 		int _errid,
 		const ObjectUidTp&_from,
-		const clientserver::ipc::ConnectorUid *
+		const foundation::ipc::ConnectorUid *
 	);
 	int reinitWriter(Writer &, protocol::Parameter &);
 private:
@@ -237,12 +237,12 @@ public:
 		int _datasz,
 		int			_which, 
 		const ObjectUidTp&_from,
-		const clientserver::ipc::ConnectorUid *_conid
+		const foundation::ipc::ConnectorUid *_conid
 	);
 	int receiveError(
 		int _errid, 
 		const ObjectUidTp&_from,
-		const clientserver::ipc::ConnectorUid *_conid
+		const foundation::ipc::ConnectorUid *_conid
 	);
 private:
 	String					strpth;
@@ -329,7 +329,7 @@ public:
 		const FileUidTp&,
 		int			_which,
 		const ObjectUidTp&_from,
-		const clientserver::ipc::ConnectorUid *_conid
+		const foundation::ipc::ConnectorUid *_conid
 	);
 // 	virtual int receiveOStream(
 // 		StreamPtr<OStream> &,
@@ -345,14 +345,14 @@ public:
 		const String &_str,
 		int			_which,
 		const ObjectUidTp&_from,
-		const clientserver::ipc::ConnectorUid *_conid
+		const foundation::ipc::ConnectorUid *_conid
 	);
 private:
 	enum Type{LocalStringType, PeerStringType, LocalStreamType, PeerStreamType};
 	Queue<Type>					typeq;
 	Queue<String>				stringq;
 	Queue<ObjectUidTp>			fromq;
-	Queue<clientserver::ipc::ConnectorUid>	conidq;
+	Queue<foundation::ipc::ConnectorUid>	conidq;
 	Queue<StreamPtr<IStream> >	streamq;
 	Connection					&rc;
 	IStreamIterator				it;
