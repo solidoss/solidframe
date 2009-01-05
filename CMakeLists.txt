@@ -85,15 +85,16 @@ MARK_AS_ADVANCED(
 SET( CMAKE_BUILD_TYPE "${CMAKE_BUILD_TYPE}" CACHE STRING
     "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel nolog maintain optimized:"
     FORCE )
-    
+
 include_directories(
 	${SOLIDGROUND_SOURCE_DIR}
+	${SOLIDGROUND_SOURCE_DIR}/library
 	${SOLIDGROUND_SOURCE_DIR}/extern/linux/openssl/include
 	${SOLIDGROUND_SOURCE_DIR}/extern/linux/tclap/include
 )
 
 link_directories(
-	${SOLIDGROUND_SOURCE_DIR}/system
+#	${SOLIDGROUND_SOURCE_DIR}/system
 	${SOLIDGROUND_SOURCE_DIR}/extern/linux/openssl
 )
 
@@ -101,6 +102,7 @@ add_subdirectory (system)
 add_subdirectory (utility)
 add_subdirectory (algorithm)
 add_subdirectory (clientserver)
-add_subdirectory (test)
-add_subdirectory (application)
 add_subdirectory (audit)
+add_subdirectory (test)
+add_subdirectory (library)
+add_subdirectory (application)

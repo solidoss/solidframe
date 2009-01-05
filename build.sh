@@ -1,9 +1,9 @@
 #!/bin/bash
 
-function make_cmake_list(){
+function make_cmake_list_app(){
 	rm CMakeLists.txt
 	if [ $1 = "*" ]; then
-		echo "No application directory found!"
+		echo "No child folder found!"
 	else
 		for name in $*
 			do
@@ -38,10 +38,14 @@ if [ "$1" = "kdevelop" ] ; then
 		echo "./build.sh [kdevelop] build_type"
 		exit
 	else
-		mkdir application
 		cd application
 		make_cmake_list *
 		cd ../
+		
+		cd library
+		make_cmake_list *
+		cd ../
+		
 		mkdir build
 		mkdir "build/$1"
 		cd "build/$1"
@@ -63,10 +67,14 @@ else
 				cd extern
 				tar -cjf solidground_extern_linux.tar.bz2 linux
 			else
-				mkdir application
 				cd application
 				make_cmake_list *
 				cd ../
+				
+				cd library
+				make_cmake_list *
+				cd ../
+				
 				mkdir build
 				mkdir "build/$1"
 				cd "build/$1"
