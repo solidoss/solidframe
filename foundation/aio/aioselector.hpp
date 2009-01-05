@@ -22,14 +22,14 @@
 #ifndef CS_AIO_SELECTOR_HPP
 #define CS_AIO_SELECTOR_HPP
 
-#include "clientserver/core/common.hpp"
-#include "clientserver/core/objptr.hpp"
+#include "foundation/core/common.hpp"
+#include "foundation/core/objptr.hpp"
 
 
 struct TimeSpec;
 struct epoll_event;
 
-namespace clientserver{
+namespace foundation{
 namespace aio{
 
 class Object;
@@ -80,7 +80,7 @@ private://data
 
 
 }//namespace aio
-}//namespace clientserver
+}//namespace foundation
 
 #endif
 

@@ -1,6 +1,6 @@
-#include "clientserver/core/common.hpp"
-#include "clientserver/aio/src/aiosocket.hpp"
-#include "clientserver/aio/aiosecuresocket.hpp"
+#include "foundation/core/common.hpp"
+#include "foundation/aio/src/aiosocket.hpp"
+#include "foundation/aio/aiosecuresocket.hpp"
 #include "system/socketaddress.hpp"
 #include "system/specific.hpp"
 #include "system/cassert.hpp"
@@ -9,7 +9,7 @@
 #include <cstring>
 #include <sys/epoll.h>
 
-namespace clientserver{
+namespace foundation{
 namespace aio{
 
 #ifndef UINLINES
@@ -540,5 +540,5 @@ void Socket::secureSocket(SecureSocket *_pss){
 }
 
 }//namespace aio
-}//namespace clientserver
+}//namespace foundation
 

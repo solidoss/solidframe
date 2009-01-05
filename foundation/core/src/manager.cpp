@@ -1,4 +1,4 @@
-/* Implementation file server.cpp
+/* Implementation file manager.cpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
@@ -27,7 +27,7 @@
 #include "system/mutex.hpp"
 #include "system/specific.hpp"
 
-#include "core/server.hpp"
+#include "core/manager.hpp"
 #include "core/service.hpp"
 #include "core/object.hpp"
 #include "core/activeset.hpp"
@@ -36,16 +36,16 @@
 #include "ipc/ipcservice.hpp"
 
 /*
-Server &ServerThread::server(){
-	return *reinterpret_cast<Server*>(ThreadBase::specific(0));
+Manager &ManagerThread::server(){
+	return *reinterpret_cast<Manager*>(ThreadBase::specific(0));
 }
-void ServerThread::initSpecific(){
+void ManagerThread::initSpecific(){
 	ThreadBase::specific((void*)NULL);
 }
-void ServerThread::destroySpecific(){
+void ManagerThread::destroySpecific(){
 	ThreadBase::specific(0, NULL);
 }
-void ServerThread::server(Server *_psrv){
+void ManagerThread::server(Manager *_psrv){
 	ThreadBase::specific(0,_psrv);
 }
 */
@@ -54,7 +54,7 @@ static const unsigned specificPosition(){
 	return thrspecpos;
 }
 
-namespace clientserver{
+namespace foundation{
 
 class DummySet: public ActiveSet{
 public:
@@ -93,25 +93,25 @@ private:
 };
 
 
-struct Server::ServicePtr: ObjPtr<Service>{
+struct Manager::ServicePtr: ObjPtr<Service>{
 	ServicePtr(Service *_ps = NULL);
 	~ServicePtr();
 	ServicePtr& operator=(Service *_pobj);
 };
 
 
-Server::ServicePtr::ServicePtr(Service *_ps):ObjPtr<Service>(_ps){}
+Manager::ServicePtr::ServicePtr(Service *_ps):ObjPtr<Service>(_ps){}
 
-Server::ServicePtr::~ServicePtr(){
+Manager::ServicePtr::~ServicePtr(){
 	delete this->release();
 }
-Server::ServicePtr& Server::ServicePtr::operator=(Service *_pobj){
+Manager::ServicePtr& Manager::ServicePtr::operator=(Service *_pobj){
 	ptr(_pobj);
 	return *this;
 }
 
-struct Server::ServiceVector: std::vector<ServicePtr>{};
-struct Server::ActiveSetVector:std::vector<ActiveSet*>{};
+struct Manager::ServiceVector: std::vector<ServicePtr>{};
+struct Manager::ActiveSetVector:std::vector<ActiveSet*>{};
 
 // int ServiceContainer::insert(Service *_ps){
 // 	return Service::insert(*_ps, 0);
@@ -137,12 +137,12 @@ void ServiceContainer::clearDummy(){
 	}
 }
 
-Server::Server(FileManager *_pfm, ipc::Service *_pipcs):servicev(*(new ServiceVector)),asv(*(new ActiveSetVector)), pfm(_pfm), pipcs(_pipcs){
+Manager::Manager(FileManager *_pfm, ipc::Service *_pipcs):servicev(*(new ServiceVector)),asv(*(new ActiveSetVector)), pfm(_pfm), pipcs(_pipcs){
 	registerActiveSet(*(new DummySet));
 	servicev.push_back(ServicePtr(new ServiceContainer));
 }
 
-Server::~Server(){
+Manager::~Manager(){
 	//delete servicev.front();
 	servicev.clear();
 	delete asv.front();
@@ -152,46 +152,46 @@ Server::~Server(){
 	//delete pipcs;
 }
 
-ServiceContainer & Server::serviceContainer(){
+ServiceContainer & Manager::serviceContainer(){
 	return static_cast<ServiceContainer&>(*servicev.front());
 }
 
-Service& Server::service(uint _i)const{
+Service& Manager::service(uint _i)const{
 	return *servicev[_i];
 }
 
-void Server::stop(bool _wait){
+void Manager::stop(bool _wait){
 	serviceContainer().clearDummy();
 	serviceContainer().stop(*this, _wait);
 }
 
-Server& Server::the(){
-	return *reinterpret_cast<Server*>(Thread::specific(specificPosition()));
+Manager& Manager::the(){
+	return *reinterpret_cast<Manager*>(Thread::specific(specificPosition()));
 }
 
-// uint Server::serviceId(const Service &_rs)const{
+// uint Manager::serviceId(const Service &_rs)const{
 // 	return _rs.index();//the first service must be the ServiceContainer
 // }
 
-void Server::fileManager(FileManager *_pfm){
+void Manager::fileManager(FileManager *_pfm){
 	cassert(!pfm);
 	pfm = _pfm;
 }
-void Server::ipc(ipc::Service *_pipcs){
+void Manager::ipc(ipc::Service *_pipcs){
 	pipcs = _pipcs;
 }
 
-void Server::removeFileManager(){
+void Manager::removeFileManager(){
 	removeObject(&fileManager());
 	//psm = NULL;
 }
 
-uint Server::registerActiveSet(ActiveSet &_ras){
+uint Manager::registerActiveSet(ActiveSet &_ras){
 	_ras.poolid(asv.size());
 	asv.push_back(&_ras);
 	return asv.size() - 1;
 }
-int Server::insertService(Service *_ps){
+int Manager::insertService(Service *_ps){
 	//servicev.push_back(ServicePtr(_ps));
 	//cassert(_ps->state() == Service::Stopped);
 	serviceContainer().insert(_ps);
@@ -203,19 +203,19 @@ int Server::insertService(Service *_ps){
 	return idx;
 }
 
-void Server::insertObject(Object *_po){
+void Manager::insertObject(Object *_po){
 	serviceContainer().insert(_po);
 }
 
-void Server::removeService(Service *_ps){
+void Manager::removeService(Service *_ps){
 	serviceContainer().remove(_ps);
 }
 
-void Server::removeObject(Object *_po){
+void Manager::removeObject(Object *_po){
 	serviceContainer().remove(_po);
 }
 
-int Server::signalObject(ulong _fullid, ulong _uid, ulong _sigmask){
+int Manager::signalObject(ulong _fullid, ulong _uid, ulong _sigmask){
 	cassert(Object::computeServiceId(_fullid) < servicev.size());
 	return servicev[Object::computeServiceId(_fullid)]->signal(
 		_fullid,_uid,
@@ -223,12 +223,12 @@ int Server::signalObject(ulong _fullid, ulong _uid, ulong _sigmask){
 		_sigmask);
 }
 		
-int Server::signalObject(Object &_robj, ulong _sigmask){
+int Manager::signalObject(Object &_robj, ulong _sigmask){
 	cassert(_robj.serviceid() < servicev.size());
 	return servicev[_robj.serviceid()]->signal(_robj, *this, _sigmask);
 }
 
-int Server::signalObject(ulong _fullid, ulong _uid, CmdPtr<Command> &_cmd){
+int Manager::signalObject(ulong _fullid, ulong _uid, CmdPtr<Command> &_cmd){
 	cassert(Object::computeServiceId(_fullid) < servicev.size());
 	return servicev[Object::computeServiceId(_fullid)]->signal(
 		_fullid,_uid,
@@ -236,52 +236,52 @@ int Server::signalObject(ulong _fullid, ulong _uid, CmdPtr<Command> &_cmd){
 		_cmd);
 }
 
-int Server::signalObject(Object &_robj, CmdPtr<Command> &_cmd){
+int Manager::signalObject(Object &_robj, CmdPtr<Command> &_cmd){
 	cassert(_robj.serviceid() < servicev.size());
 	return servicev[_robj.serviceid()]->signal(_robj, *this, _cmd);
 }
 
-Mutex& Server::mutex(Object &_robj)const{
+Mutex& Manager::mutex(Object &_robj)const{
 	return servicev[_robj.serviceid()]->mutex(_robj);
 }
 
-ulong  Server::uid(Object &_robj)const{
+ulong  Manager::uid(Object &_robj)const{
 	return servicev[_robj.serviceid()]->uid(_robj);
 }
 
-void Server::raiseObject(Object &_robj){
+void Manager::raiseObject(Object &_robj){
 	uint thrid,thrpos;
 	_robj.getThread(thrid, thrpos);
 	idbgx(Dbg::cs, "raise thrid "<<thrid<<" thrpos "<<thrpos<<" objid "<<_robj.id());
 	asv[thrid>>16]->raise(thrid & 0xffff, thrpos);
 }
 
-void Server::prepareThread(){
+void Manager::prepareThread(){
 	Thread::specific(specificPosition(), this);
 	//GlobalMapper::prepareThread(globalMapper());
 	Specific::prepareThread();
 	requestuidptr.prepareThread();
 }
-void Server::unprepareThread(){
+void Manager::unprepareThread(){
 	Thread::specific(specificPosition(), NULL);
 	//GlobalMapper::unprepareThread();
 	//Specific::unprepareThread();
 }
 
-SpecificMapper*  Server::specificMapper(){
+SpecificMapper*  Manager::specificMapper(){
 //TODO return a function static default local mapper
 	return NULL;
 }
-GlobalMapper* Server::globalMapper(){
+GlobalMapper* Manager::globalMapper(){
 //TODO return a function static default local mapper
 	return NULL;
 }
 
-unsigned Server::serviceCount()const{
+unsigned Manager::serviceCount()const{
 	return servicev.size();
 }
 
-int Server::insertIpcTalker(
+int Manager::insertIpcTalker(
 	const AddrInfoIterator &_rai,
 	const char*_node,
 	const char *_srv
@@ -290,4 +290,4 @@ int Server::insertIpcTalker(
 	return ipc().insertTalker(*this, _rai, _node, _srv);
 }
 
-}//namespace clientserver
+}//namespace foundation

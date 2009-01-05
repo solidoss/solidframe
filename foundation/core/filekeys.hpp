@@ -22,9 +22,9 @@
 #ifndef CS_FILE_KEYS_HPP
 #define CS_FILE_KEYS_HPP
 
-#include "clientserver/core/filekey.hpp"
+#include "foundation/core/filekey.hpp"
 
-namespace clientserver{
+namespace foundation{
 //! A filekey based on the name/path of the file
 struct NameFileKey: public FileKey{
 	static void registerMapper(FileManager &, const char *_prefix = NULL);
@@ -67,7 +67,7 @@ private:
 };
 
 
-}//namespace clientserver
+}//namespace foundation
 
 
 #endif

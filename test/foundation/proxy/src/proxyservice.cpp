@@ -20,15 +20,15 @@
 */
 
 #include "system/debug.hpp"
-#include "clientserver/core/objptr.hpp"
+#include "foundation/core/objptr.hpp"
 
-#include "core/server.hpp"
+#include "core/manager.hpp"
 #include "core/listener.hpp"
 
 #include "proxy/proxyservice.hpp"
 #include "proxymulticonnection.hpp"
 
-namespace cs = clientserver;
+namespace cs = foundation;
 
 namespace test{
 namespace proxy{
@@ -44,9 +44,9 @@ Service::~Service(){
 }
 
 int Service::insertConnection(
-	test::Server &_rs,
+	test::Manager &_rm,
 	const SocketDevice &_rsd,
-	clientserver::aio::openssl::Context *_pctx,
+	foundation::aio::openssl::Context *_pctx,
 	bool _secure
 ){
 	MultiConnection *pcon = new MultiConnection(_rsd);
@@ -54,12 +54,12 @@ int Service::insertConnection(
 		delete pcon;
 		return BAD;
 	}
-	_rs.pushJob(static_cast<cs::aio::Object*>(pcon));
+	_rm.pushJob(static_cast<cs::aio::Object*>(pcon));
 	return OK;
 }
 
 int Service::insertListener(
-	test::Server &_rs,
+	test::Manager &_rm,
 	const AddrInfoIterator &_rai,
 	bool _secure
 ){
@@ -74,11 +74,11 @@ int Service::insertListener(
 		delete plis;
 		return BAD;
 	}	
-	_rs.pushJob(static_cast<cs::aio::Object*>(plis));
+	_rm.pushJob(static_cast<cs::aio::Object*>(plis));
 	return OK;
 }
 int Service::insertTalker(
-	Server &_rs, 
+	Manager &_rm, 
 	const AddrInfoIterator &_rai,
 	const char *_node,
 	const char *_svc
@@ -90,12 +90,12 @@ int Service::insertTalker(
 		delete ptkr;
 		return BAD;
 	}
-	_rs.pushJob((cs::udp::Talker*)ptkr);*/
+	_rm.pushJob((cs::udp::Talker*)ptkr);*/
 	return OK;
 }
 
 int Service::insertConnection(
-	Server &_rs, 
+	Manager &_rm, 
 	const AddrInfoIterator &_rai,
 	const char *_node,
 	const char *_svc
@@ -107,7 +107,7 @@ int Service::insertConnection(
 		delete pcon;
 		return BAD;
 	}
-	_rs.pushJob((cs::tcp::MultiConnection*)pcon);*/
+	_rm.pushJob((cs::tcp::MultiConnection*)pcon);*/
 	return OK;
 }
 

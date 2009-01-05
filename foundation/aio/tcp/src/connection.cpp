@@ -19,9 +19,9 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "clientserver/aio/tcp/connection.hpp"
-#include "clientserver/aio/tcp/multiconnection.hpp"
-#include "clientserver/aio/src/aiosocket.hpp"
+#include "foundation/aio/tcp/connection.hpp"
+#include "foundation/aio/tcp/multiconnection.hpp"
+#include "foundation/aio/src/aiosocket.hpp"
 
 #include "system/socketdevice.hpp"
 #include "system/cassert.hpp"
@@ -29,7 +29,7 @@
 #include <memory>
 #include <cstring>
 
-namespace clientserver{
+namespace foundation{
 
 namespace aio{
 
@@ -475,4 +475,4 @@ int MultiConnection::socketSecureConnect(unsigned _pos){
 
 }//namespace aio
 
-}//namespace clientserver
+}//namespace foundation

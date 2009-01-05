@@ -22,7 +22,7 @@
 #ifndef IPC_PROCESS_CONNECTOR_HPP
 #define IPC_PROCESS_CONNECTOR_HPP
 
-#include "clientserver/core/cmdptr.hpp"
+#include "foundation/core/cmdptr.hpp"
 #include "iodata.hpp"
 #include "system/timespec.hpp"
 
@@ -32,7 +32,7 @@ struct Inet6SockAddrPair;
 struct TimeSpec;
 struct AddrInfoIterator;
 
-namespace clientserver{
+namespace foundation{
 
 struct Command;
 
@@ -77,7 +77,7 @@ public:
 	 * \retval BAD on error, 
 	 *	NOK enqueued and talker must be waken, OK enqueued - no need to wake talker
 	 */
-	int pushCommand(clientserver::CmdPtr<Command> &_rcmd, uint32 _flags);
+	int pushCommand(foundation::CmdPtr<Command> &_rcmd, uint32 _flags);
 	int pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpos, bool &_reusebuf);
 	int processSendCommands(SendBufferData &_rsb, const TimeSpec &_tpos, int _baseport);
 	int pushReceivedBuffer(Buffer &_rbuf, const ConnectorUid &_rcodid, const TimeSpec &_tpos);
@@ -103,7 +103,7 @@ private:
 };
 
 }//namespace ipc
-}//namespace clientserver
+}//namespace foundation
 
 
 #endif

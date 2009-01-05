@@ -25,7 +25,7 @@
 #include "system/common.hpp"
 #include <string>
 
-namespace clientserver{
+namespace foundation{
 
 class FileManager;
 //! A base class for file keys
@@ -64,7 +64,7 @@ protected:
 };
 
 
-}//namespace clientserver
+}//namespace foundation
 
 
 #endif

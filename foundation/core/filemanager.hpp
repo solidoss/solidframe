@@ -24,7 +24,7 @@
 
 #include "utility/streamptr.hpp"
 
-#include "clientserver/core/object.hpp"
+#include "foundation/core/object.hpp"
 
 #include "common.hpp"
 
@@ -34,7 +34,7 @@ class IOStream;
 
 class Mutex;
 
-namespace clientserver{
+namespace foundation{
 class File;
 
 
@@ -68,7 +68,7 @@ class RequestUid;
 	Another capability offered by the manager is that the files can be
 	identified usign different keys / mapper pairs (e.g. for files that
 	are mail messages within a maibox, you may want to map/identify the
-	files using numbers meaning the messageids (see clientserver::FileKey).
+	files using numbers meaning the messageids (see foundation::FileKey).
 	
 	<b>Notes:</b><br>
 	- The mapper method is a little bit more complex than it should be 
@@ -205,6 +205,6 @@ private:
 	Data	&d;
 };
 
-}//namespace clientserver
+}//namespace foundation
 
 #endif

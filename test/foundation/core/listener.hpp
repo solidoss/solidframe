@@ -22,10 +22,10 @@
 #ifndef TESTAIOLISTENER_HPP
 #define TESTAIOLISTENER_HPP
 
-#include "clientserver/aio/tcp/listener.hpp"
+#include "foundation/aio/tcp/listener.hpp"
 #include "system/socketdevice.hpp"
 
-namespace clientserver{
+namespace foundation{
 namespace aio{
 namespace openssl{
 class Context;
@@ -37,15 +37,15 @@ namespace test{
 
 class Service;
 //! A simple listener
-class Listener: public clientserver::aio::tcp::Listener{
+class Listener: public foundation::aio::tcp::Listener{
 public:
 	typedef Service		ServiceTp;
-	Listener(const SocketDevice &_rsd, clientserver::aio::openssl::Context *_pctx = NULL);
+	Listener(const SocketDevice &_rsd, foundation::aio::openssl::Context *_pctx = NULL);
 	~Listener();
 	virtual int execute(ulong, TimeSpec&);
 private:
 	SocketDevice		sd;
-	clientserver::aio::openssl::Context *pctx;
+	foundation::aio::openssl::Context *pctx;
 };
 
 }//namespace test

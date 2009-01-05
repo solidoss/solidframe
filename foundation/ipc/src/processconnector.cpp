@@ -30,7 +30,7 @@
 #include "algorithm/serialization/binary.hpp"
 #include "algorithm/serialization/idtypemap.hpp"
 #include "core/command.hpp"
-#include "core/server.hpp"
+#include "core/manager.hpp"
 #include "ipc/ipcservice.hpp"
 #include "processconnector.hpp"
 #include "iodata.hpp"
@@ -51,9 +51,9 @@ NOTE: Design keep alive:
 
 */
 
-namespace cs = clientserver;
+namespace cs = foundation;
 
-namespace clientserver{
+namespace foundation{
 namespace ipc{
 
 struct BufCmp{
@@ -621,7 +621,7 @@ const std::pair<const Inet4SockAddrPair*, int>* ProcessConnector::baseAddr4()con
 // }
 
 
-int ProcessConnector::pushCommand(clientserver::CmdPtr<Command> &_rcmd, uint32 _flags){
+int ProcessConnector::pushCommand(foundation::CmdPtr<Command> &_rcmd, uint32 _flags){
 	//_flags &= ~Data::ProcessReservedFlags;
 	d.cq.push(Data::CmdPairTp(_rcmd, _flags));
 	if(d.cq.size() == 1) return NOK;
@@ -1099,4 +1099,4 @@ void ProcessConnector::parseBuffer(Buffer &_rbuf, const ConnectorUid &_rconid){
 
 
 }//namespace ipc
-}//namespace clientserver
+}//namespace foundation

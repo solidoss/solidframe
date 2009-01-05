@@ -27,23 +27,23 @@
 class SocketDevice;
 
 namespace test{
-class Server;
+class Manager;
 namespace alpha{
 class Connection;
 
 class Service: public test::Service{
 public:
-	static test::Service* create(Server &);
+	static test::Service* create(Manager &);
 	Service();
 	~Service();
 	int insertConnection(
-		test::Server &_rs,
+		test::Manager &_rm,
 		const SocketDevice &_rsd,
-		clientserver::aio::openssl::Context *_pctx,
+		foundation::aio::openssl::Context *_pctx,
 		bool _secure
 	);
 	int insertListener(
-		test::Server &_rs,
+		test::Manager &_rm,
 		const AddrInfoIterator &_rai,
 		bool _secure
 	);

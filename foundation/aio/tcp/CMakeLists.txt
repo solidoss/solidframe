@@ -1,5 +1,5 @@
 
-add_library(clientserver_aio_tcp
+add_library(foundation_aio_tcp
 	src/connection.cpp
 	src/listener.cpp
 )

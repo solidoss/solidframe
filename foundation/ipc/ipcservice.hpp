@@ -22,15 +22,15 @@
 #ifndef IPCSERVICE_HPP
 #define IPCSERVICE_HPP
 
-#include "clientserver/core/service.hpp"
-#include "clientserver/core/command.hpp"
-#include "clientserver/ipc/connectoruid.hpp"
+#include "foundation/core/service.hpp"
+#include "foundation/core/command.hpp"
+#include "foundation/ipc/connectoruid.hpp"
 
 struct SockAddrPair;
 struct SocketDevice;
 struct AddrInfoIterator;
 
-namespace clientserver{
+namespace foundation{
 
 namespace aio{
 class Object;
@@ -52,7 +52,7 @@ class Service;
 	<b>Overview:</b><br>
 	- In its current state it only uses UDP for communication.
 	- It can only send/receive command objects (objects of a type
-	derived from clientserver::Command).
+	derived from foundation::Command).
 	- It uses non portable, binary serialization, aiming for speed
 	not for versatility.
 	- For udp communication uses connectors which resembles somehow
@@ -60,14 +60,14 @@ class Service;
 	- There can be at most one connector linking two processes, and it 
 	is created when first send something.
 	- More than one connectors are handled by a single 
-	clientserver::udp::Talker. There is a base connector used for both
+	foundation::udp::Talker. There is a base connector used for both
 	communication and accepting/creating new connectors. Also new talkers
 	can be created when the number of connectors increases.
 	- Because there can be only one connector to a peer process, and 
 	commands can be quite big (i.e. commands sending streams) a command
 	multiplexing algorithm is implemented.
 	- An existing connector can be identified by it unique id: 
-	clientserver::ipc::ConnectorUid or by its base address (inetaddr and port).
+	foundation::ipc::ConnectorUid or by its base address (inetaddr and port).
 	- The ipc service should (i.e. it is a bug if it doesnt) ensure that
 	 a response (or a command sent using SameConnectorFlag) will not
 	 be sent if the a peer process restart is detected.
@@ -88,7 +88,7 @@ class Service;
 	- When needed, new talkers will be created with ports values starting 
 	incrementally from baseaddress port + 1.
 */
-class Service: public clientserver::Service{
+class Service: public foundation::Service{
 public:
 	enum {
 		SameConnectorFlag = 1, //!< Do not send command to a restarted peer process
@@ -108,7 +108,7 @@ public:
 	*/
 	int sendCommand(
 		const ConnectorUid &_rconid,//the id of the process connector
-		clientserver::CmdPtr<Command> &_pcmd,//the command to be sent
+		foundation::CmdPtr<Command> &_pcmd,//the command to be sent
 		uint32	_flags = 0
 	);
 	//!Send a command to a peer process using it's base address.
@@ -122,7 +122,7 @@ public:
 	*/
 	int sendCommand(
 		const SockAddrPair &_rsap,
-		clientserver::CmdPtr<Command> &_pcmd,//the command to be sent
+		foundation::CmdPtr<Command> &_pcmd,//the command to be sent
 		ConnectorUid &_rconid,
 		uint32	_flags = 0
 	);
@@ -136,17 +136,17 @@ public:
 	*/
 	int sendCommand(
 		const SockAddrPair &_rsap,
-		clientserver::CmdPtr<Command> &_pcmd,//the command to be sent
+		foundation::CmdPtr<Command> &_pcmd,//the command to be sent
 		uint32	_flags = 0
 	);
 	//! Not used for now - will be used when ipc will use tcp connections
 	int insertConnection(
-		Server &_rs,
+		Manager &_rm,
 		const SocketDevice &_rsd
 	);
 	//! Not used for now - will be used when ipc will use tcp connections
 	int insertListener(
-		Server &_rs,
+		Manager &_rm,
 		const AddrInfoIterator &_rai
 	);
 	//! Use this method to add the base talker
@@ -156,14 +156,14 @@ public:
 		\param _rai 
 	*/
 	int insertTalker(
-		Server &_rs, 
+		Manager &_rm, 
 		const AddrInfoIterator &_rai,
 		const char *_node,
 		const char *_svc
 	);
 	//! Not used for now - will be used when ipc will use tcp connections
 	int insertConnection(
-		Server &_rs,
+		Manager &_rm,
 		const AddrInfoIterator &_rai,
 		const char *_node,
 		const char *_svc
@@ -177,12 +177,12 @@ public:
 protected:
 	int execute(ulong _sig, TimeSpec &_rtout);
 	Service(uint32 _keepalivetout = 0/*no keepalive*/);
-	virtual void pushTalkerInPool(clientserver::Server &_rs, clientserver::aio::Object *_ptkr) = 0;
+	virtual void pushTalkerInPool(foundation::Manager &_rs, foundation::aio::Object *_ptkr) = 0;
 private:
 	friend class Talker;
 	int doSendCommand(
 		const SockAddrPair &_rsap,
-		clientserver::CmdPtr<Command> &_pcmd,//the command to be sent
+		foundation::CmdPtr<Command> &_pcmd,//the command to be sent
 		ConnectorUid *_pconid,
 		uint32	_flags = 0
 	);
@@ -200,7 +200,7 @@ private:
 
 inline int Service::sendCommand(
 	const SockAddrPair &_rsap,
-	clientserver::CmdPtr<Command> &_pcmd,//the command to be sent
+	foundation::CmdPtr<Command> &_pcmd,//the command to be sent
 	ConnectorUid &_rconid,
 	uint32	_flags
 ){
@@ -209,13 +209,13 @@ inline int Service::sendCommand(
 
 inline int Service::sendCommand(
 	const SockAddrPair &_rsap,
-	clientserver::CmdPtr<Command> &_pcmd,//the command to be sent
+	foundation::CmdPtr<Command> &_pcmd,//the command to be sent
 	uint32	_flags
 ){
 	return doSendCommand(_rsap, _pcmd, NULL, _flags);
 }
 
 }//namespace ipc
-}//namespace clientserver
+}//namespace foundation
 
 #endif

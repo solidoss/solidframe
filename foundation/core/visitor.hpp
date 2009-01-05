@@ -22,7 +22,7 @@
 #ifndef CS_VISITOR_HPP
 #define CS_VISITOR_HPP
 
-namespace clientserver{
+namespace foundation{
 class Object;
 //! The base class for all object visitors
 class Visitor{

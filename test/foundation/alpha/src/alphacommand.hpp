@@ -31,7 +31,7 @@ class OStream;
 
 namespace test{
 
-class Server;
+class Manager;
 
 namespace alpha{
 
@@ -43,7 +43,7 @@ protected:
 	Command();
 public:
 	//! Initiate static data for all commands - like registering serializable structures.
-	static void initStatic(Server &_rs);
+	static void initStatic(Manager &_rm);
 	//! Virtual destructor
 	virtual ~Command();
 	//! Called by the reader to learn how to parse the command
@@ -57,7 +57,7 @@ public:
 		const FileUidTp &,
 		int			_which,
 		const ObjectUidTp&_from,
-		const clientserver::ipc::ConnectorUid *_conid
+		const foundation::ipc::ConnectorUid *_conid
 	);
 	//! Receive an ostream
 	virtual int receiveOStream(
@@ -65,7 +65,7 @@ public:
 		const FileUidTp &,
 		int			_which,
 		const ObjectUidTp&_from,
-		const clientserver::ipc::ConnectorUid *_conid
+		const foundation::ipc::ConnectorUid *_conid
 	);
 	//! Receive an iostream
 	virtual int receiveIOStream(
@@ -73,14 +73,14 @@ public:
 		const FileUidTp &,
 		int			_which,
 		const ObjectUidTp&_from,
-		const clientserver::ipc::ConnectorUid *_conid
+		const foundation::ipc::ConnectorUid *_conid
 	);
 	//! Receive a string
 	virtual int receiveString(
 		const String &_str,
 		int			_which, 
 		const ObjectUidTp&_from,
-		const clientserver::ipc::ConnectorUid *_conid
+		const foundation::ipc::ConnectorUid *_conid
 	);
 	//! Receive data
 	virtual int receiveData(
@@ -88,20 +88,20 @@ public:
 		int _datasz,
 		int			_which, 
 		const ObjectUidTp&_from,
-		const clientserver::ipc::ConnectorUid *_conid
+		const foundation::ipc::ConnectorUid *_conid
 	);
 	//! Receive a number
 	virtual int receiveNumber(
 		const int64 &_no,
 		int			_which,
 		const ObjectUidTp&_from,
-		const clientserver::ipc::ConnectorUid *_conid
+		const foundation::ipc::ConnectorUid *_conid
 	);
 	//! Receive an error code
 	virtual int receiveError(
 		int _errid,
 		const ObjectUidTp&_from,
-		const clientserver::ipc::ConnectorUid *_conid
+		const foundation::ipc::ConnectorUid *_conid
 	);
 
 };

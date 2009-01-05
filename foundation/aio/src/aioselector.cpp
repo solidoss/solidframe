@@ -35,12 +35,12 @@
 #include "core/object.hpp"
 #include "core/common.hpp"
 
-#include "clientserver/aio/aioselector.hpp"
-#include "clientserver/aio/aioobject.hpp"
+#include "foundation/aio/aioselector.hpp"
+#include "foundation/aio/aioobject.hpp"
 #include "aiosocket.hpp"
 
 
-namespace clientserver{
+namespace foundation{
 
 namespace aio{
 //=============================================================
@@ -633,5 +633,5 @@ uint Selector::doNewStub(){
 //-------------------------------------------------------------
 }//namespace aio
 
-}//namespace clientserver
+}//namespace foundation
 

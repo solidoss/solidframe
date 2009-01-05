@@ -19,7 +19,7 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "core/server.hpp"
+#include "core/manager.hpp"
 #include "beta/betaservice.hpp"
 #include "betatalker.hpp"
 #include "system/socketaddress.hpp"
@@ -30,7 +30,7 @@
 
 using namespace std;
 
-namespace cs = clientserver;
+namespace cs = foundation;
 
 namespace test{
 
@@ -63,8 +63,8 @@ NOTE:
 */
 
 Talker::~Talker(){
-	test::Server &rs = test::Server::the();
-	rs.service(*this).removeTalker(*this);
+	test::Manager &rm = test::Manager::the();
+	rm.service(*this).removeTalker(*this);
 	delete pai;
 	delete &addrmap;
 }
@@ -79,9 +79,9 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 		return BAD;
 	}
 	if(signaled()){
-		test::Server &rs = test::Server::the();
+		test::Manager &rm = test::Manager::the();
 		{
-		Mutex::Locker	lock(rs.mutex(*this));
+		Mutex::Locker	lock(rm.mutex(*this));
 		ulong sm = grabSignalMask(0);
 		if(sm & cs::S_KILL) return BAD;
 		}

@@ -24,7 +24,7 @@
 
 #include "common.hpp"
 
-namespace clientserver{
+namespace foundation{
 
 class Object;
 
@@ -81,6 +81,6 @@ private:
 	mutable ObjectTp 	*pobj;
 };
 
-}//namespace clientserver
+}//namespace foundation
 #endif
 

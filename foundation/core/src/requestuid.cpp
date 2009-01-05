@@ -1,7 +1,7 @@
 #include "core/requestuid.hpp"
 #include "system/thread.hpp"
 
-namespace clientserver{
+namespace foundation{
 
 struct SpecificRequestUid::ForcedCreate{
 };

@@ -25,12 +25,12 @@
 #include "utility/queue.hpp"
 #include <string>
 #include <deque>
-#include "clientserver/aio/tcp/multiconnection.hpp"
+#include "foundation/aio/tcp/multiconnection.hpp"
 #include "system/socketaddress.hpp"
 
 class SocketAddress;
 
-namespace clientserver{
+namespace foundation{
 class Visitor;
 namespace tcp{
 class Channel;
@@ -47,17 +47,17 @@ namespace proxy{
 
 class Service;
 
-class MultiConnection: public clientserver::aio::tcp::MultiConnection{
+class MultiConnection: public foundation::aio::tcp::MultiConnection{
 public:
 	typedef Service	ServiceTp;
-	typedef clientserver::aio::tcp::MultiConnection BaseTp;
+	typedef foundation::aio::tcp::MultiConnection BaseTp;
 	
 	MultiConnection(const char *_node = NULL, const char *_srv = NULL);
 	MultiConnection(const SocketDevice &_rsd);
 	~MultiConnection();
 	int execute(ulong _sig, TimeSpec &_tout);
 	int execute();
-	int accept(clientserver::Visitor &);
+	int accept(foundation::Visitor &);
 private:
 	int doReadAddress();
 	int doProxy(const TimeSpec &_tout);

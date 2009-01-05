@@ -29,10 +29,10 @@
 #include "core/visitor.hpp"
 #include "core/command.hpp"
 #include "core/cmdptr.hpp"
-#include "core/server.hpp"
+#include "core/manager.hpp"
 
 #include "utility/memory.hpp"
-namespace clientserver{
+namespace foundation{
 //---------------------------------------------------------------------
 //----	Visitor	----
 //---------------------------------------------------------------------
@@ -50,7 +50,7 @@ void ObjPtrBase::clear(Object *_pobj){
 	cassert(_pobj);
 	int usecnt = 0;
 	{
-		Mutex::Locker lock(Server::the().mutex(*_pobj));
+		Mutex::Locker lock(Manager::the().mutex(*_pobj));
 		usecnt = --_pobj->usecnt;
 	}
 	if(!usecnt) delete _pobj;

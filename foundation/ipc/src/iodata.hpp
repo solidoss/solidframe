@@ -25,14 +25,14 @@
 #include "system/cassert.hpp"
 #include "system/socketaddress.hpp"
 
-namespace clientserver{
+namespace foundation{
 class Visitor;
 namespace udp{
 class Station;
 }
 }
 
-namespace clientserver{
+namespace foundation{
 namespace ipc{
 
 //*******	AddrPtrCmp		******************************************************************
@@ -212,6 +212,6 @@ inline void Buffer::Header::pushUpdate(uint32 _upd){
 }
 
 }//namespace ipc
-}//namespace clientserver
+}//namespace foundation
 
 #endif

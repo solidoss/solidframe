@@ -27,7 +27,7 @@
 
 #include "common.hpp"
 
-namespace clientserver{
+namespace foundation{
 
 template <class B>
 class ReadWriteObject: public B{
@@ -38,7 +38,7 @@ public:
 	template <class P>
 	ReadWriteObject(P &_rp):BaseTp(_rp),count(0),rpending(0),wpending(0),prc(NULL),pwc(NULL){}
 	void readLock(){
-		ReadWriteService &rws = Server::the().service(*this);
+		ReadWriteService &rws = Manager::the().service(*this);
 		Mutex &mut(rws.mutex(*this));
 		mut.lock();
 		if(wpending){
@@ -54,14 +54,14 @@ public:
 		mut.unlock();
 	}
 	void readUnlock(){
-		ReadWriteService &rws = Server::the().service(*this);
+		ReadWriteService &rws = Manager::the().service(*this);
 		Mutex &mut(rws.mutex(*this));
 		mut.lock();
 		if(!(--count) && wpending) pwc->signal();
 		mut.unlock();
 	}
 	void writeLock(){
-		ReadWriteService &rws = Server::the().service(*this);
+		ReadWriteService &rws = Manager::the().service(*this);
 		Mutex &mut(rws.mutex(*this));
 		mut.lock();
 		++wpending;
@@ -75,7 +75,7 @@ public:
 		mut.unlock();
 	}
 	void writeUnlock(){
-		ReadWriteService &rws = Server::the().service(*this);
+		ReadWriteService &rws = Manager::the().service(*this);
 		Mutex &mut(rws.mutex(*this));
 		mut.lock();
 		--count;
@@ -95,7 +95,7 @@ private:
 	Condition	*pwc;
 };
 
-}//namespace clientserver
+}//namespace foundation
 
 #endif
 

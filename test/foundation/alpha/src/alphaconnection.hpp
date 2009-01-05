@@ -29,20 +29,26 @@
 #include "alphareader.hpp"
 #include "alphawriter.hpp"
 
-#include "clientserver/core/commandableobject.hpp"
+#include "foundation/core/commandableobject.hpp"
 
 class SocketAddress;
 
-namespace clientserver{
+namespace foundation{
+
 class Visitor;
+
 namespace tcp{
+
 class Channel;
+
 }
 }
 
 namespace test{
+
 class Visitor;
-class Server;
+class Manager;
+
 namespace alpha{
 
 class Service;
@@ -59,12 +65,12 @@ protected:
 	It uses a reader and a writer to implement a state machine for the 
 	protocol communication. 
 */
-class Connection: public clientserver::CommandableObject<test::Connection>{
+class Connection: public foundation::CommandableObject<test::Connection>{
 public:
-	typedef clientserver::CommandableObject<test::Connection> BaseTp;
+	typedef foundation::CommandableObject<test::Connection> BaseTp;
 	typedef Service	ServiceTp;
 	
-	static void initStatic(Server &_rs);
+	static void initStatic(Manager &_rm);
 	
 	Connection(SocketAddress *_paddr);
 	Connection(const SocketDevice &_rsd);
@@ -72,14 +78,14 @@ public:
 	~Connection();
 	//! The implementation of the protocol's state machine
 	/*!
-		The method will be called within a clientserver::SelectPool by an
-		clientserver::tcp::ConnectionSelector.
+		The method will be called within a foundation::SelectPool by an
+		foundation::tcp::ConnectionSelector.
 	*/
 	int execute(ulong _sig, TimeSpec &_tout);
 	//! Dummy inmplementation
 	int execute();
 	//! Dummy inmplementation
-	int accept(clientserver::Visitor &);
+	int accept(foundation::Visitor &);
 	
 	//! creator method for new commands
 	Command* create(const String& _name);
@@ -112,7 +118,7 @@ public:
 		const RequestUidTp &_requid,
 		int			_which,
 		const ObjectUidTp &_from,
-		const clientserver::ipc::ConnectorUid *_conid
+		const foundation::ipc::ConnectorUid *_conid
 	);
 	/*virtual*/ int receiveOStream(
 		StreamPtr<OStream> &,
@@ -120,7 +126,7 @@ public:
 		const RequestUidTp &_requid,
 		int			_which,
 		const ObjectUidTp&_from,
-		const clientserver::ipc::ConnectorUid *_conid
+		const foundation::ipc::ConnectorUid *_conid
 	);
 	/*virtual*/ int receiveIOStream(
 		StreamPtr<IOStream> &,
@@ -128,21 +134,21 @@ public:
 		const RequestUidTp &_requid,
 		int			_which,
 		const ObjectUidTp &_from,
-		const clientserver::ipc::ConnectorUid *_conid
+		const foundation::ipc::ConnectorUid *_conid
 	);
 	/*virtual*/ int receiveString(
 		const String &_str, 
 		const RequestUidTp &_requid,
 		int			_which,
 		const ObjectUidTp &_from,
-		const clientserver::ipc::ConnectorUid *_conid
+		const foundation::ipc::ConnectorUid *_conid
 	);
 	/*virtual*/ int receiveNumber(
 		const int64 &_no, 
 		const RequestUidTp &_requid,
 		int			_which,
 		const ObjectUidTp &_from,
-		const clientserver::ipc::ConnectorUid *_conid
+		const foundation::ipc::ConnectorUid *_conid
 	);
 	/*virtual*/ int receiveData(
 		void *_pdata,
@@ -150,13 +156,13 @@ public:
 		const RequestUidTp &_requid,
 		int			_which = 0,
 		const ObjectUidTp&_from = ObjectUidTp(),
-		const clientserver::ipc::ConnectorUid *_conid = NULL
+		const foundation::ipc::ConnectorUid *_conid = NULL
 	);
 	/*virtual*/ int receiveError(
 		int _errid, 
 		const RequestUidTp &_requid,
 		const ObjectUidTp &_from,
-		const clientserver::ipc::ConnectorUid *_conid
+		const foundation::ipc::ConnectorUid *_conid
 	);
 private:
 	void prepareReader();

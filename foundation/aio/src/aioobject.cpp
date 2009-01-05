@@ -19,10 +19,10 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "clientserver/aio/aioobject.hpp"
-#include "clientserver/aio/src/aiosocket.hpp"
+#include "foundation/aio/aioobject.hpp"
+#include "foundation/aio/src/aiosocket.hpp"
 #include "system/cassert.hpp"
-namespace clientserver{
+namespace foundation{
 
 namespace aio{
 
@@ -33,7 +33,7 @@ Object::SocketStub::~SocketStub(){
 /*virtual*/ Object::~Object(){
 }
 
-/*virtual*/ int Object::accept(clientserver::Visitor &_roi){
+/*virtual*/ int Object::accept(foundation::Visitor &_roi){
 	return BAD;
 }
 
@@ -107,4 +107,4 @@ void Object::doClearResponses(){
 }
 
 }//namespace aio;
-}//namespace clientserver
+}//namespace foundation

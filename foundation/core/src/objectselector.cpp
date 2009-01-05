@@ -24,7 +24,7 @@
 #include "core/object.hpp"
 #include "core/objectselector.hpp"
 
-namespace clientserver{
+namespace foundation{
 
 enum {MAXTIMEPOS = 0xffffffff};
 
@@ -235,6 +235,6 @@ int ObjectSelector::doExecute(unsigned _i, ulong _evs, TimeSpec _crttout){
 	return rv;
 }
 
-}//namespace clientserver
+}//namespace foundation
 
 

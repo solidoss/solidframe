@@ -38,17 +38,17 @@
 #include "utility/stack.hpp"
 
 #include "core/filemanager.hpp"
-#include "core/server.hpp"
+#include "core/manager.hpp"
 #include "core/common.hpp"
 #include "core/filekeys.hpp"
 #include "core/filemapper.hpp"
 #include "core/requestuid.hpp"
 
-namespace cs = clientserver;
+namespace cs = foundation;
 using namespace std;
 typedef std::string	String;
 
-namespace clientserver{
+namespace foundation{
 //	Local Declarations	========================================================
 struct LessStrCmp{
 	inline bool operator()(const char* const& _s1, const char* const& _s2)const{
@@ -235,7 +235,7 @@ int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 			if(!d.sz){//no file
 				state(-1);
 				d.mut->unlock();
-				Server::the().removeFileManager();
+				Manager::the().removeFileManager();
 				idbgx(Dbg::filemanager, "~FileManager");
 				return BAD;
 			}
@@ -466,7 +466,7 @@ int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 	if(state() != Data::Running && !d.sz){
 		idbgx(Dbg::filemanager, "kill "<<d.sz);
 		cassert(!d.sz);
-		Server::the().removeFileManager();
+		Manager::the().removeFileManager();
 		state(-1);//TODO: is there a pb that mut is not locked?!
 		idbgx(Dbg::filemanager, "~FileManager");
 		return BAD;
@@ -747,7 +747,7 @@ int FileManager::doGetStream(
 					d.sq.push(pos);
 					idbgx(Dbg::filemanager, "sq.push "<<pos);
 					if(static_cast<cs::Object*>(this)->signal((int)cs::S_RAISE)){
-						Server::the().raiseObject(*this);
+						Manager::the().raiseObject(*this);
 					}
 					return NOK;
 				}else{
@@ -783,7 +783,7 @@ int FileManager::doGetStream(
 	}
 	d.oq.push(pos);
 	if(static_cast<cs::Object*>(this)->signal((int)cs::S_RAISE)){
-		Server::the().raiseObject(*this);
+		Manager::the().raiseObject(*this);
 	}
 	return NOK;
 }
@@ -930,7 +930,7 @@ void FileManager::releaseIStream(uint _fileid){
 		d.sq.push(_fileid);
 		idbgx(Dbg::filemanager, "sq.push "<<_fileid);
 		if(static_cast<cs::Object*>(this)->signal((int)cs::S_RAISE)){
-			Server::the().raiseObject(*this);
+			Manager::the().raiseObject(*this);
 		}
 	}
 }
@@ -947,7 +947,7 @@ void FileManager::releaseOStream(uint _fileid){
 		d.sq.push(_fileid);
 		idbgx(Dbg::filemanager, "sq.push "<<_fileid);
 		if(static_cast<cs::Object*>(this)->signal((int)cs::S_RAISE)){
-			Server::the().raiseObject(*this);
+			Manager::the().raiseObject(*this);
 		}
 	}
 }
@@ -1052,7 +1052,7 @@ void FileManager::Data::eraseToutPos(unsigned _pos){
 //--------------------------------------------------------------------------
 // FileIStream
 FileIStream::~FileIStream(){
-	Server::the().fileManager().releaseIStream(fileid);
+	Manager::the().fileManager().releaseIStream(fileid);
 }
 
 int FileIStream::read(char * _pb, uint32 _bl, uint32 _flags){
@@ -1077,7 +1077,7 @@ int64 FileIStream::size()const{
 //--------------------------------------------------------------------------
 // FileOStream
 FileOStream::~FileOStream(){
-	Server::the().fileManager().releaseOStream(fileid);
+	Manager::the().fileManager().releaseOStream(fileid);
 }
 int  FileOStream::write(const char *_pb, uint32 _bl, uint32 _flags){
 	int rv = rd.fileWrite(fileid, _pb, _bl, off, _flags);
@@ -1102,7 +1102,7 @@ int64 FileOStream::size()const{
 //--------------------------------------------------------------------------
 // FileIOStream
 FileIOStream::~FileIOStream(){
-	Server::the().fileManager().releaseIOStream(fileid);
+	Manager::the().fileManager().releaseIOStream(fileid);
 }
 
 int FileIOStream::read(char * _pb, uint32 _bl, uint32 _flags){
@@ -1304,5 +1304,5 @@ bool File::signalStreams(FileManager &_rsm, const FileUidTp &_fuid){
 	return ousecnt || iusecnt;
 }
 
-}//namespace clientserver
+}//namespace foundation
 

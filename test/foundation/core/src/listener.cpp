@@ -19,13 +19,13 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "clientserver/aio/openssl/opensslsocket.hpp"
+#include "foundation/aio/openssl/opensslsocket.hpp"
 #include "system/cassert.hpp"
 #include "system/debug.hpp"
 #include "system/mutex.hpp"
 
 #include "core/common.hpp"
-#include "core/server.hpp"
+#include "core/manager.hpp"
 #include "core/service.hpp"
 #include "core/listener.hpp"
 
@@ -33,26 +33,26 @@ namespace test{
 
 Listener::Listener(
 	const SocketDevice &_rsd,
-	clientserver::aio::openssl::Context *_pctx
-):clientserver::aio::tcp::Listener(_rsd), pctx(_pctx){
+	foundation::aio::openssl::Context *_pctx
+):foundation::aio::tcp::Listener(_rsd), pctx(_pctx){
 	state(0);
 }
 
 Listener::~Listener(){
-	test::Server &rs = test::Server::the();
-	rs.service(*this).removeListener(*this);
+	test::Manager &rm = test::Manager::the();
+	rm.service(*this).removeListener(*this);
 }
 
 int Listener::execute(ulong, TimeSpec&){
 	idbg("here");
-	Server &rs = Server::the();
-	Service	&rsrvc = rs.service(*this);
+	Manager &rm = Manager::the();
+	Service	&rsrvc = rm.service(*this);
 	cassert(this->socketOk());
 	if(signaled()){
 		{
-		Mutex::Locker	lock(rs.mutex(*this));
+		Mutex::Locker	lock(rm.mutex(*this));
 		ulong sm = this->grabSignalMask();
-		if(sm & clientserver::S_KILL) return BAD;
+		if(sm & foundation::S_KILL) return BAD;
 		}
 	}
 	uint cnt(10);
@@ -70,9 +70,9 @@ int Listener::execute(ulong, TimeSpec&){
 		cassert(sd.ok());
 		//TODO: one may do some filtering on sd based on sd.remoteAddress()
 		if(!pctx){
-			rsrvc.insertConnection(rs, sd);
+			rsrvc.insertConnection(rm, sd);
 		}else{
-			rsrvc.insertConnection(rs, sd, pctx, true);
+			rsrvc.insertConnection(rm, sd, pctx, true);
 		}
 	}
 	return OK;

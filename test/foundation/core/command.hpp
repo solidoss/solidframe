@@ -22,7 +22,7 @@
 #ifndef TEST_COMMAND_HPP
 #define TEST_COMMAND_HPP
 
-#include "clientserver/core/command.hpp"
+#include "foundation/core/command.hpp"
 
 namespace test{
 class Connection;
@@ -31,7 +31,7 @@ class Object;
 //extends the interface of command to support test Objects
 //see implementation in server
 //! The base class for all commands in the test server
-struct Command: clientserver::Command{
+struct Command: foundation::Command{
 	virtual int execute(Connection &);
 	virtual int execute(Listener &);
 	virtual int execute(Object &);

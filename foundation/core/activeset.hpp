@@ -22,10 +22,10 @@
 #ifndef CS_ACTIVESET_HPP
 #define CS_ACTIVESET_HPP
 
-namespace clientserver{
+namespace foundation{
 //! This is the base class for all active containers/sets (i.e. WorkPools)
 /*!
-	It is used by clientserver::Server for signaling a workpool
+	It is used by foundation::Manager for signaling a workpool
 	currently holding an object.
 */
 class ActiveSet{
@@ -42,8 +42,8 @@ public:
 	virtual void raise(uint _thridx, uint _objid) = 0;
 	//! Sets the pool's id, which in turn will be used for computing the thread id
 	/*!
-		This is called by the clientserver::Server on activeset's registration:
-		clientserver::Server::registerActiveSet
+		This is called by the foundation::Manager on activeset's registration:
+		foundation::Manager::registerActiveSet
 	*/
 	virtual void poolid(uint _id) =  0;
 };

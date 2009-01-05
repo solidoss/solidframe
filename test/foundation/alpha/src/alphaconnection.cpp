@@ -27,11 +27,11 @@
 #include "utility/ostream.hpp"
 #include "utility/istream.hpp"
 
-#include "clientserver/ipc/ipcservice.hpp"
-#include "clientserver/core/requestuid.hpp"
+#include "foundation/ipc/ipcservice.hpp"
+#include "foundation/core/requestuid.hpp"
 
 
-#include "core/server.hpp"
+#include "core/manager.hpp"
 #include "core/command.hpp"
 
 #include "alpha/alphaservice.hpp"
@@ -41,7 +41,7 @@
 #include "alphaprotocolfilters.hpp"
 #include "audit/log.hpp"
 
-namespace cs=clientserver;
+namespace cs=foundation;
 static char	*hellostr = "Welcome to alpha service!!!\r\n"; 
 static char *sigstr = "Signaled!!!\r\n";
 
@@ -62,8 +62,8 @@ void Logger::doOutFlush(const char *_pb, unsigned _bl){
 	}
 }
 
-void Connection::initStatic(Server &_rs){
-	Command::initStatic(_rs);
+void Connection::initStatic(Manager &_rm){
+	Command::initStatic(_rm);
 }
 
 Connection::Connection(SocketAddress *_paddr):
@@ -105,8 +105,8 @@ NOTE:
 Connection::~Connection(){
 	idbg("destroy connection id "<<this->id()<<" pcmd "<<pcmd);
 	delete pcmd; pcmd = NULL;
-	test::Server &rs = test::Server::the();
-	rs.service(*this).removeConnection(*this);
+	test::Manager &rm = test::Manager::the();
+	rm.service(*this).removeConnection(*this);
 }
 
 /*
@@ -117,8 +117,8 @@ Connection::~Connection(){
 */
 
 int Connection::execute(ulong _sig, TimeSpec &_tout){
-	test::Server &rs = test::Server::the();
-	cs::requestuidptr->set(this->id(), rs.uid(*this));
+	test::Manager &rm = test::Manager::the();
+	cs::requestuidptr->set(this->id(), rm.uid(*this));
 	//_tout.add(2400);
 	if(_sig & (cs::TIMEOUT | cs::ERRDONE)){
 		if(state() == ConnectTout){
@@ -132,7 +132,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 	if(signaled()){//we've received a signal
 		ulong sm(0);
 		{
-			Mutex::Locker	lock(rs.mutex(*this));
+			Mutex::Locker	lock(rm.mutex(*this));
 			sm = grabSignalMask(0);//grab all bits of the signal mask
 			if(sm & cs::S_KILL) return BAD;
 			if(sm & cs::S_CMD){//we have commands
@@ -181,10 +181,10 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 				state(Banner);
 			}
 		case Banner:{
-			test::Server	&rs = test::Server::the();
-			uint32			myport(rs.ipc().basePort());
+			test::Manager	&rm = test::Manager::the();
+			uint32			myport(rm.ipc().basePort());
 			ulong			objid(this->id());
-			uint32			objuid(rs.uid(*this));
+			uint32			objuid(rm.uid(*this));
 			char			host[SocketAddress::MaxSockHostSz];
 			char			port[SocketAddress::MaxSockServSz];
 			SocketAddress	addr;
@@ -327,7 +327,7 @@ int Connection::receiveIStream(
 	const RequestUidTp &_requid,
 	int			_which,
 	const ObjectUidTp&_from,
-	const clientserver::ipc::ConnectorUid *_conid
+	const foundation::ipc::ConnectorUid *_conid
 ){
 	idbg("");
 	if(_requid.first && _requid.first != reqid) return OK;//not an expected command/request
@@ -362,7 +362,7 @@ int Connection::receiveOStream(
 	const RequestUidTp &_requid,
 	int			_which,
 	const ObjectUidTp&_from,
-	const clientserver::ipc::ConnectorUid *_conid
+	const foundation::ipc::ConnectorUid *_conid
 ){
 	idbg("");
 	if(_requid.first && _requid.first != reqid) return OK;
@@ -397,7 +397,7 @@ int Connection::receiveIOStream(
 	const RequestUidTp &_requid,
 	int			_which,
 	const ObjectUidTp&_from,
-	const clientserver::ipc::ConnectorUid *_conid
+	const foundation::ipc::ConnectorUid *_conid
 ){
 	idbg("");
 	if(_requid.first && _requid.first != reqid) return OK;
@@ -431,7 +431,7 @@ int Connection::receiveString(
 	const RequestUidTp &_requid,
 	int			_which,
 	const ObjectUidTp&_from,
-	const clientserver::ipc::ConnectorUid *_conid
+	const foundation::ipc::ConnectorUid *_conid
 ){
 	idbg("");
 	if(_requid.first && _requid.first != reqid) return OK;
@@ -465,7 +465,7 @@ int Connection::receiveNumber(
 	const RequestUidTp &_requid,
 	int			_which,
 	const ObjectUidTp&_from,
-	const clientserver::ipc::ConnectorUid *_conid
+	const foundation::ipc::ConnectorUid *_conid
 ){
 	idbg("");
 	if(_requid.first && _requid.first != reqid) return OK;
@@ -500,7 +500,7 @@ int Connection::receiveData(
 	const RequestUidTp &_requid,
 	int _which,
 	const ObjectUidTp&_from,
-	const clientserver::ipc::ConnectorUid *_conid
+	const foundation::ipc::ConnectorUid *_conid
 ){
 	idbg("");
 	if(_requid.first && _requid.first != reqid) return OK;
@@ -533,7 +533,7 @@ int Connection::receiveError(
 	int _errid, 
 	const RequestUidTp &_requid,
 	const ObjectUidTp&_from,
-	const clientserver::ipc::ConnectorUid *_conid
+	const foundation::ipc::ConnectorUid *_conid
 ){
 	idbg("");
 	if(_requid.first && _requid.first != reqid) return OK;

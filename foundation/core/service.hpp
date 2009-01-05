@@ -28,9 +28,9 @@
 
 #include "object.hpp"
 
-namespace clientserver{
+namespace foundation{
 
-class Server;
+class Manager;
 class Visitor;
 class ObjectVector;
 class IndexStack;
@@ -42,8 +42,8 @@ class IndexStack;
 	
 	It also provides a mutex for every contained object.
 	
-	Most of the interface of the clientserver::Service is forwarded
-	by the clientserver::Server which is much easely accessible.
+	Most of the interface of the foundation::Service is forwarded
+	by the foundation::Manager which is much easely accessible.
 	
 	Services can be started and stopped but they cannot be destroyed.
 	
@@ -51,13 +51,13 @@ class IndexStack;
 	call will fail, making it easy to stop multiple cross dependent
 	service not caring for the order the services would stop.
 	
-	Also a clientserver::Service is a clientserver::Object meaning
+	Also a foundation::Service is a foundation::Object meaning
 	that it can/will reside within an active container.
 	
 	<b>Usage:</b><br>
 	- Usually you should define a base service for every service
 	of your application. That base service must inherit 
-	clientserver::Service.
+	foundation::Service.
 	- You also must implement the execute method either in the
 	base service or on the concrete ones.
 */
@@ -67,30 +67,30 @@ public:
 	virtual ~Service();
 	//! Signal an object with a signal mask
 	/*!
-		Added the Server parameter too because
+		Added the Manager parameter too because
 		the function may be called also from a non pool thread,
-		so the Server will/may not be available from thread static.
+		so the Manager will/may not be available from thread static.
 	*/
-	int signal(Object &_robj, Server &_rsrv, ulong _sigmask);
+	int signal(Object &_robj, Manager &_rm, ulong _sigmask);
 	//! Signal an object with a signal mask
-	int signal(ulong _fullid, ulong _uid, Server &_rsrv, ulong _sigmask);
+	int signal(ulong _fullid, ulong _uid, Manager &_rm, ulong _sigmask);
 	
 	//! Signal an object with a command
-	int signal(Object &_robj, Server &_rsrv, CmdPtr<Command> &_cmd);
+	int signal(Object &_robj, Manager &_rm, CmdPtr<Command> &_cmd);
 	//! Signal an object with a command
-	int signal(ulong _fullid, ulong _uid, Server &_rsrv, CmdPtr<Command> &_cmd);
+	int signal(ulong _fullid, ulong _uid, Manager &_rm, CmdPtr<Command> &_cmd);
 	
 	//! Signal all objects with a signal mask
-	void signalAll(Server &_rsrv, ulong _sigmask);
+	void signalAll(Manager &_rm, ulong _sigmask);
 	//! Signal all objects with a command
 	/*!	
 		NOTE: use it with care because the command has to be
 		prepared for paralel access as the same command pointer
 		is given to all objects.
 	*/
-	void signalAll(Server &_rsrv, CmdPtr<Command> &_cmd);
+	void signalAll(Manager &_rm, CmdPtr<Command> &_cmd);
 	//! Visit all objects
-	void visit(Server &_rsrv, Visitor &_rov);
+	void visit(Manager &_rm, Visitor &_rov);
 	//! Get the mutex associated to an object
 	Mutex& mutex(Object &_robj);
 	//! Get the unique id associated to an object
@@ -101,9 +101,9 @@ public:
 	//! Pointer to the service's mutex
 	Mutex* mutex()const{return mut;}
 	//! Start the service
-	virtual int start(Server &_rsrv);
+	virtual int start(Manager &_rm);
 	//! Stop it eventually waiting for all objects to unregister
-	virtual int stop(Server &_rsrv, bool _wait = true);
+	virtual int stop(Manager &_rm, bool _wait = true);
 	//! Not used
 	virtual int execute();
 	
@@ -123,9 +123,9 @@ protected:
 	*/
 	Object* object(ulong _fullid, ulong _uid);
 	//! Signal all objects - the service's mutex must be locked from outside
-	void doSignalAll(Server &_rsrv, ulong _sigmask);
+	void doSignalAll(Manager &_rm, ulong _sigmask);
 	//! Signal all objects - the service's mutex must be locked from outside
-	void doSignalAll(Server &_rsrv, CmdPtr<Command> &_cmd);
+	void doSignalAll(Manager &_rm, CmdPtr<Command> &_cmd);
 	//! Insert an object - the service's mutex must be locked from outside
 	int doInsert(Object &_robj, ulong _srvid);
 	//! Constructor - forwards the parameters to the MutualObjectContainer of mutexes
@@ -143,6 +143,6 @@ protected:
 };
 
 
-}//namespace clientserver
+}//namespace foundation
 
 #endif

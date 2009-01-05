@@ -29,12 +29,12 @@
 #include "utility/queue.hpp"
 
 #include "core/object.hpp"
-#include "core/server.hpp"
+#include "core/manager.hpp"
 #include "core/command.hpp"
 #include "core/readwriteservice.hpp"
 #include "core/common.hpp"
 
-namespace clientserver{
+namespace foundation{
 
 typedef std::pair<Object*, ulong>	ObjPairTp;
 class ObjectVector:public std::deque<ObjPairTp>{};
@@ -103,7 +103,7 @@ void Service::remove(Object &_robj){
  * Be very carefull when using this function as you can raise/kill
  * other object than you might want.
  */
-int Service::signal(ulong _fullid, ulong _uid, Server &_rsrv, ulong _sigmask){
+int Service::signal(ulong _fullid, ulong _uid, Manager &_rm, ulong _sigmask){
 	ulong oidx(Object::computeIndex(_fullid));
 	if(oidx >= objv.size()) return BAD;
 	Mutex::Locker	lock(mutpool.object(oidx));
@@ -111,15 +111,15 @@ int Service::signal(ulong _fullid, ulong _uid, Server &_rsrv, ulong _sigmask){
 	Object *pobj = objv[oidx].first;
 	if(!pobj) return BAD;
 	if(pobj->signal(_sigmask)){
-		_rsrv.raiseObject(*pobj);
+		_rm.raiseObject(*pobj);
 	}
 	return OK;
 }
 
-int Service::signal(Object &_robj, Server &_rsrv, ulong _sigmask){
+int Service::signal(Object &_robj, Manager &_rm, ulong _sigmask){
 	Mutex::Locker	lock(mutpool.object(_robj.index()));
 	if(_robj.signal(_sigmask)){
-		_rsrv.raiseObject(_robj);
+		_rm.raiseObject(_robj);
 	}
 	return OK;
 }
@@ -135,15 +135,15 @@ Object* Service::object(ulong _fullid, ulong _uid){
 	return objv[oidx].first;
 }
 
-int Service::signal(Object &_robj, Server &_rsrv, CmdPtr<Command> &_cmd){
+int Service::signal(Object &_robj, Manager &_rm, CmdPtr<Command> &_cmd){
 	Mutex::Locker	lock(mutpool.object(_robj.index()));
 	if(_robj.signal(_cmd)){
-		_rsrv.raiseObject(_robj);
+		_rm.raiseObject(_robj);
 	}
 	return OK;
 }
 
-int Service::signal(ulong _fullid, ulong _uid, Server &_rsrv, CmdPtr<Command> &_cmd){
+int Service::signal(ulong _fullid, ulong _uid, Manager &_rm, CmdPtr<Command> &_cmd){
 	ulong oidx(Object::computeIndex(_fullid));
 	if(oidx >= objv.size()) return BAD;
 	Mutex::Locker	lock(mutpool.object(oidx));
@@ -151,22 +151,22 @@ int Service::signal(ulong _fullid, ulong _uid, Server &_rsrv, CmdPtr<Command> &_
 	Object *pobj = objv[oidx].first;
 	if(!pobj) return BAD;
 	if(pobj->signal(_cmd)){
-		_rsrv.raiseObject(*pobj);
+		_rm.raiseObject(*pobj);
 	}
 	return OK;
 }
 
-void Service::signalAll(Server &_rsrv, ulong _sigmask){
+void Service::signalAll(Manager &_rm, ulong _sigmask){
 	Mutex::Locker	lock(*mut);
-	doSignalAll(_rsrv, _sigmask);
+	doSignalAll(_rm, _sigmask);
 }
 
-void Service::signalAll(Server &_rsrv, CmdPtr<Command> &_cmd){
+void Service::signalAll(Manager &_rm, CmdPtr<Command> &_cmd){
 	Mutex::Locker	lock(*mut);
-	doSignalAll(_rsrv, _cmd);
+	doSignalAll(_rm, _cmd);
 }
 
-void Service::doSignalAll(Server &_rsrv, ulong _sigmask){
+void Service::doSignalAll(Manager &_rm, ulong _sigmask){
 	int oc = objcnt;
 	int i = 0;
 	int mi = -1;
@@ -180,7 +180,7 @@ void Service::doSignalAll(Server &_rsrv, ulong _sigmask){
 				mutpool[mi].lock();
 			}
 			if(it->first->signal(_sigmask)){
-				_rsrv.raiseObject(*it->first);
+				_rm.raiseObject(*it->first);
 			}
 			--oc;
 		}
@@ -188,7 +188,7 @@ void Service::doSignalAll(Server &_rsrv, ulong _sigmask){
 	if(mi >= 0)	mutpool[mi].unlock();
 }
 
-void Service::doSignalAll(Server &_rsrv, CmdPtr<Command> &_cmd){
+void Service::doSignalAll(Manager &_rm, CmdPtr<Command> &_cmd){
 	int oc = objcnt;
 	int i = 0;
 	int mi = -1;
@@ -203,7 +203,7 @@ void Service::doSignalAll(Server &_rsrv, CmdPtr<Command> &_cmd){
 			}
 			CmdPtr<Command> cmd(_cmd.ptr());
 			if(it->first->signal(cmd)){
-				_rsrv.raiseObject(*it->first);
+				_rm.raiseObject(*it->first);
 			}
 			--oc;
 		}
@@ -211,7 +211,7 @@ void Service::doSignalAll(Server &_rsrv, CmdPtr<Command> &_cmd){
 	if(mi >= 0)	mutpool[mi].unlock();
 }
 
-void Service::visit(Server &_rsrv, Visitor &_rov){
+void Service::visit(Manager &_rm, Visitor &_rov){
 	Mutex::Locker	lock(*mut);
 	int oc = objcnt;
 	int i = 0;
@@ -224,7 +224,7 @@ void Service::visit(Server &_rsrv, Visitor &_rov){
 				mutpool[mi].lock();
 			}
 			if(it->first->accept(_rov)){
-				_rsrv.raiseObject(*it->first);
+				_rm.raiseObject(*it->first);
 			}
 			--oc;
 		}
@@ -240,17 +240,17 @@ ulong Service::uid(Object &_robj)const{
 	return objv[_robj.index()].second;
 }
 
-int Service::start(Server &_rsrv){
+int Service::start(Manager &_rm){
 	Mutex::Locker	lock(*mut);
 	if(state() != Stopped) return OK;
 	state(Running);
 	return OK;
 }
 
-int Service::stop(Server &_rsrv, bool _wait){
+int Service::stop(Manager &_rm, bool _wait){
 	Mutex::Locker	lock(*mut);
 	if(state() == Running){
-		doSignalAll(_rsrv, S_KILL | S_RAISE);
+		doSignalAll(_rm, S_KILL | S_RAISE);
 		state(Stopping);
 	}
 	if(!_wait) return OK;

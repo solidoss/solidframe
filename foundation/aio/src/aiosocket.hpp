@@ -29,7 +29,7 @@ struct SocketAddress;
 struct SockAddrPair;
 class SocketDevice;
 
-namespace clientserver{
+namespace foundation{
 
 namespace aio{
 
@@ -154,7 +154,7 @@ private:
 
 
 }//namespace aio
-}//namespace clientserver
+}//namespace foundation
 
 
 #endif

@@ -21,7 +21,7 @@
 
 #include "core/execpool.hpp"
 
-namespace clientserver{
+namespace foundation{
 
 void ExecPool::run(){
 	

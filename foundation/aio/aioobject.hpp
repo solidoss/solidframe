@@ -23,9 +23,9 @@
 #define CS_AIO_OBJECT_HPP
 
 #include "system/timespec.hpp"
-#include "clientserver/core/object.hpp"
+#include "foundation/core/object.hpp"
 
-namespace clientserver{
+namespace foundation{
 namespace aio{
 
 class Socket;
@@ -40,12 +40,12 @@ class Selector;
 	i.e. inheritants - see aio::tcp::Connection, aio::tcp::MultiConnection and/or
 	aio::udp::Talker, aio::udp::MultiTalker.
 */
-class Object: public clientserver::Object{
+class Object: public foundation::Object{
 public:
 	virtual ~Object();
 	//!Called by selector on certain events
 	virtual int execute(ulong _evs, TimeSpec &_rtout) = 0;
-	virtual int accept(clientserver::Visitor &_roi);
+	virtual int accept(foundation::Visitor &_roi);
 protected:
 	//! Returns true if there are pending io requests
 	/*!
@@ -139,6 +139,6 @@ protected:
 };
 
 }//namespace aio
-}//namespace clientserver
+}//namespace foundation
 
 #endif

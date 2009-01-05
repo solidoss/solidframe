@@ -24,7 +24,7 @@
 
 #include "core/service.hpp"
 
-namespace clientserver{
+namespace foundation{
 
 namespace tcp{
 class Channel;
@@ -36,7 +36,7 @@ class Station;
 class Talker;
 }
 
-}//namespace clientserver
+}//namespace foundation
 
 namespace test{
 namespace beta{
@@ -50,24 +50,24 @@ public:
 	Service();
 	~Service();
 	int insertConnection(
-		test::Server &_rs,
+		test::Manager &_rm,
 		const SocketDevice &_rsd,
-		clientserver::aio::openssl::Context *_pctx,
+		foundation::aio::openssl::Context *_pctx,
 		bool _secure
 	);
 	int insertListener(
-		test::Server &_rs,
+		test::Manager &_rs,
 		const AddrInfoIterator &_rai,
 		bool _secure
 	);
 	int insertTalker(
-		Server &_rs, 
+		Manager &_rm, 
 		const AddrInfoIterator &_rai,
 		const char *_node,
 		const char *_svc
 	);
 	int insertConnection(
-		Server &_rs, 
+		Manager &_rm, 
 		const AddrInfoIterator &_rai,
 		const char *_node,
 		const char *_svc

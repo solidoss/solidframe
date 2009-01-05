@@ -1,4 +1,4 @@
-/* Declarations file server.hpp
+/* Declarations file manager.hpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CS_SERVER_HPP
-#define CS_SERVER_HPP
+#ifndef CS_MANAGER_HPP
+#define CS_MANAGER_HPP
 
 //#include <vector>
 
@@ -33,7 +33,8 @@ class  SpecificMapper;
 class  GlobalMapper;
 struct AddrInfoIterator;
 
-namespace clientserver{
+namespace foundation{
+
 class	Service;
 class	Pool;
 class	Object;
@@ -51,21 +52,21 @@ class Service;
 	- Although usually you don't need more than a server per process,
 	the design allows that.
 	- The server keeps the services and should keep the workpools (it 
-	means that the clientserver::Server does not keep any workpool, but
+	means that the foundation::Manager does not keep any workpool, but
 	the inheriting server should).
 	- The server object can be easely accessed from any of the server's
-	thread through thread specific: use Server::the() method.
+	thread through thread specific: use Manager::the() method.
 	
 	<b>Usage:</b><br>
 	- Inherit, add workpools and extend.
 	
 	<b>Notes:</b><br>
 */
-class Server{
+class Manager{
 public:
-	virtual ~Server();
+	virtual ~Manager();
 	//! Easy access to server using thread specific
-	static Server& the();
+	static Manager& the();
 	
 	//! Signal an object identified by (id,uid) with a sinal mask
 	int signalObject(ulong _fullid, ulong _uid, ulong _sigmask);
@@ -162,7 +163,7 @@ protected:
 	//! Get the service at index _i
 	Service& service(uint _i = 0)const;
 	//! Constructor with filemanager pointer and ipc service
-	Server(FileManager *_pfm = NULL, ipc::Service *_pipcs = NULL);
+	Manager(FileManager *_pfm = NULL, ipc::Service *_pipcs = NULL);
 	//! Set the filemanager
 	void fileManager(FileManager *_pfm);
 	//! Set the ipc service
@@ -170,8 +171,8 @@ protected:
 	void stop(bool _wait = true);
 private:
 	ServiceContainer & serviceContainer();
-	//Server(const Server&){}
-	Server& operator=(const Server&){return *this;}
+	//Manager(const Manager&){}
+	Manager& operator=(const Manager&){return *this;}
 	class ServicePtr;
 	class ServiceVector;
 	class ActiveSetVector;

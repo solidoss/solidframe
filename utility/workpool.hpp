@@ -61,7 +61,7 @@ WorkPoolPlugin* basicWorkPoolPlugin();
 	The interface is quite straight forward: one can push jobs, start and stop
 	the pool.
 	
-	\see clientserver::ExecPool and/or clientserver::SelectPool.
+	\see foundation::ExecPool and/or foundation::SelectPool.
 */
 template <class Jb>
 class WorkPool{

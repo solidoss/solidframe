@@ -19,9 +19,9 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "clientserver/aio/udp/talker.hpp"
-#include "clientserver/aio/udp/multitalker.hpp"
-#include "clientserver/aio/src/aiosocket.hpp"
+#include "foundation/aio/udp/talker.hpp"
+#include "foundation/aio/udp/multitalker.hpp"
+#include "foundation/aio/src/aiosocket.hpp"
 
 #include "system/socketdevice.hpp"
 #include "system/cassert.hpp"
@@ -29,7 +29,7 @@
 #include <memory>
 #include <cstring>
 
-namespace clientserver{
+namespace foundation{
 
 namespace aio{
 
@@ -424,4 +424,4 @@ uint MultiTalker::newStub(){
 
 }//namespace aio
 
-}//namespace clientserver
+}//namespace foundation

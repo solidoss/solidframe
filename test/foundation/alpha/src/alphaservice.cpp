@@ -20,34 +20,34 @@
 */
 
 #include "system/debug.hpp"
-#include "core/server.hpp"
+#include "core/manager.hpp"
 
 
 #include "algorithm/serialization/binary.hpp"
 
-#include "clientserver/core/objptr.hpp"
-#include "clientserver/aio/openssl/opensslsocket.hpp"
+#include "foundation/core/objptr.hpp"
+#include "foundation/aio/openssl/opensslsocket.hpp"
 
 #include "core/listener.hpp"
 
 #include "alpha/alphaservice.hpp"
 #include "alphaconnection.hpp"
 
-namespace cs=clientserver;
+namespace cs=foundation;
 
 namespace test{
 namespace alpha{
 
 struct InitServiceOnce{
-	InitServiceOnce(Server &_rs);
+	InitServiceOnce(Manager &_rm);
 };
 
-InitServiceOnce::InitServiceOnce(Server &_rs){
-	Connection::initStatic(_rs);
+InitServiceOnce::InitServiceOnce(Manager &_rm){
+	Connection::initStatic(_rm);
 }
 
-test::Service* Service::create(Server &_rsrv){
-	static InitServiceOnce	init(_rsrv);
+test::Service* Service::create(Manager &_rm){
+	static InitServiceOnce	init(_rm);
 	return new Service();
 }
 
@@ -58,9 +58,9 @@ Service::~Service(){
 }
 
 int Service::insertConnection(
-	test::Server &_rs,
+	test::Manager &_rm,
 	const SocketDevice &_rsd,
-	clientserver::aio::openssl::Context *_pctx,
+	foundation::aio::openssl::Context *_pctx,
 	bool _secure
 ){
 	//create a new connection with the given channel
@@ -74,12 +74,12 @@ int Service::insertConnection(
 		return BAD;
 	}
 	// add it into a connection pool
-	_rs.pushJob(static_cast<cs::aio::Object*>(pcon));
+	_rm.pushJob(static_cast<cs::aio::Object*>(pcon));
 	return OK;
 }
 
 int Service::insertListener(
-	test::Server &_rs,
+	test::Manager &_rm,
 	const AddrInfoIterator &_rai,
 	bool _secure
 ){
@@ -89,9 +89,9 @@ int Service::insertListener(
 	sd.prepareAccept(_rai, 100);
 	if(!sd.ok()) return BAD;
 	
-	clientserver::aio::openssl::Context *pctx = NULL;
+	foundation::aio::openssl::Context *pctx = NULL;
 	if(_secure){
-		pctx = clientserver::aio::openssl::Context::create();
+		pctx = foundation::aio::openssl::Context::create();
 	}
 	if(pctx){
 		pctx->loadCertificateFile("../../../../../extern/linux/openssl/demos/tunala/A-server.pem");
@@ -103,7 +103,7 @@ int Service::insertListener(
 		delete plis;
 		return BAD;
 	}	
-	_rs.pushJob(static_cast<cs::aio::Object*>(plis));
+	_rm.pushJob(static_cast<cs::aio::Object*>(plis));
 	return OK;
 }
 
