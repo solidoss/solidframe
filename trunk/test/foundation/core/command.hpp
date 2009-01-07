@@ -29,8 +29,8 @@ class Connection;
 class Listener;
 class Object;
 //extends the interface of command to support test Objects
-//see implementation in server
-//! The base class for all commands in the test server
+//see implementation in manager
+//! The base class for all commands in the test manager
 struct Command: foundation::Command{
 	virtual int execute(Connection &);
 	virtual int execute(Listener &);

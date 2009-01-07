@@ -64,10 +64,10 @@ class Command;
 	
 	<b>Notes:</b><br>
 	- Every object have an associated unique id (a pair of uint32) wich 
-	uniquely identifies the object within the server both on memory and on
+	uniquely identifies the object within the manager both on memory and on
 	time. The solidground architecture and the ones built upon it MUST NOT allow
 	access to object pointers, instead they do/should do permit limited access
-	using the unique id: sigaling and sending commands through the server interface.
+	using the unique id: sigaling and sending commands through the manager interface.
 	- Also an object will hold information about the thread in which it is currently
 	executed, so that the signaling is fast.
 */

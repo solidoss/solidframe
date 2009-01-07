@@ -1,4 +1,4 @@
-/* Implementation file server.cpp
+/* Implementation file manager.cpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
@@ -258,7 +258,7 @@ ExtraObjPtr& ExtraObjPtr::operator=(cs::Object *_pobj){
 //=========================================================================
 /*
 	A local command executer who knows how to unregister itself from the 
-	server
+	manager
 */
 class CommandExecuter: public cs::CommandExecuter{
 public:
@@ -269,7 +269,7 @@ void CommandExecuter::removeFromManager(){
 }
 
 //=========================================================================
-//The server's localdata
+//The manager's localdata
 struct Manager::Data{
 	typedef std::vector<ExtraObjPtr>									ExtraObjectVector;
 	typedef std::map<const char*, int, StrLess> 						ServiceIdxMap;
@@ -364,7 +364,7 @@ void Manager::pushJob(cs::aio::Object *_pj, int _i){
 NOTE:
 	It should be safe to give reference to 'this' to Data constructor, because
 	it will be used in the SelectPool(s) constructor to call registerActiveSet(*this),
-	which is defined in the base class of the server which should be initialized first
+	which is defined in the base class of the manager which should be initialized first
 */
 
 Manager::Manager():d(*(new Data(*this))){

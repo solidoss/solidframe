@@ -56,7 +56,7 @@ struct ConnectorUid;
 	<b>Usage:</b><br>
 	- Inherit from CommandExecuter and implement removeFromManager
 		in which you should call Manager::the().removeObject(this);
-	- In your server, create some commandexecuters and register them
+	- In your manager, create some commandexecuters and register them
 		using foundation::Manager::insertObject
 	- Implement for your commands execute(CommandExecuter&, const CommandUidTp &, TimeSpec &_rts);
 	
