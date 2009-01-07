@@ -57,6 +57,52 @@ enum {
 						//storring a stream will end up returning NOK
 };
 //===============================================================
+//! A base class for binary serializer and deserializer
+/*!
+	The main goals for serializer and deserializer was to
+	be ease to use and to be reentrant.
+	The ease of use means that one should do little things to
+	make a class serializable. E.g. :<br>
+	<code>
+	struct RemoteListCommand{<br>
+	//...<br>
+	template <class S><br>
+	S& operator&(S &_s){<br>
+		_s.pushContainer(ppthlst, "strlst").push(err, "error").push(tout,"timeout");<br>
+		_s.push(requid, "requid").push(strpth, "strpth").push(fromv, "from");<br>
+		_s.push(cmduid.idx, "cmduid.idx").push(cmduid.uid,"cmduid.uid");<br>
+		return _s;<br>
+	}<br>
+	//...<br>
+	//data:<br>
+	RemoteList::PathListTp		*ppthlst;<br>
+	String						strpth;<br>
+	int							err;<br>
+	uint32						tout;<br>
+	cs::ipc::ConnectorUid		conid;<br>
+	cs::ipc::CommandUid			cmduid;<br>
+	uint32						requid;<br>
+	ObjectUidTp					fromv;<br>
+	</code>
+	<br>
+	Reentrant means for serializer that:<br>
+	* you push serializable objects onto the serializer<br>
+	* you do a loop to actually serialize using a fixed size buffer
+	until there is nothing to serialize:<br>
+	<code>
+	while((rv = ser.run(buf, blen)) == blen){<br>
+		cnt += rv;<br>
+		sock.write(buf, rv);<br>
+	}<br>
+	if(rv > 0){<br>
+		sock.write(buf, blen);<br>
+	}<br>
+	</code>
+	For deserializer means something equivalent:<br>
+	* you push the serualizabe objects onto the deserializer<br>
+	* you do a loop where you fed the deserializer, buffers filled
+	e.g. from a file or a socket etc.
+*/
 class Base{
 protected:
 	struct FncData;
@@ -102,7 +148,10 @@ protected:
 	ExtDataStackTp		estk;
 };
 //===============================================================
-
+//! A fast reentrant binary serializer
+/*!
+	See serialization::bin::Base for details
+*/
 class Serializer: public Base{
 	template <class TM>
 	static int storeTypeId(Base &_rs, FncData &_rfd){
@@ -283,6 +332,11 @@ private:
 	std::string	tmpstr;
 };
 //===============================================================
+
+//! A fast reentrant binary deserializer
+/*!
+	See serialization::bin::Base for details
+*/
 class Deserializer: public Base{
 	template <typename T>
 	static int parse(Base& _rd, FncData &_rfd){

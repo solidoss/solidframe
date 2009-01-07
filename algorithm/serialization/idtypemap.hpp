@@ -34,6 +34,10 @@ namespace serialization{
 template <class S>
 S& operator&(uint32 &_t, S &_s);
 
+//! A map for types that uses integer ids
+/*!
+	\see serialization::TypeMapper for a detailed explanation.
+*/
 class IdTypeMap: public BaseTypeMap{
 public:
 	IdTypeMap();

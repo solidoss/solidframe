@@ -113,6 +113,12 @@ Selector::Data::~Data(){
 	if(epollfd >= 0){
 		close(epollfd);
 	}
+	if(pipefds[0] >= 0){
+		close(pipefds[0]);
+	}
+	if(pipefds[1] >= 0){
+		close(pipefds[1]);
+	}
 }
 
 int Selector::Data::computeWaitTimeout()const{

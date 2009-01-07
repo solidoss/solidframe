@@ -73,7 +73,7 @@ class Service;
 	 be sent if the a peer process restart is detected.
 	
 	<b>Usage:</b><br>
-	- On server init, add the base taker to the ipc::Service
+	- On manager init, add the base taker to the ipc::Service
 	- Then make your commands serializable
 	- Send commands using a ipc::Service::sendCommand method.
 	
@@ -151,8 +151,8 @@ public:
 	);
 	//! Use this method to add the base talker
 	/*!
-		Should be called only once at server initation.
-		\param _rs Reference to server
+		Should be called only once at manager initation.
+		\param _rs Reference to manager
 		\param _rai 
 	*/
 	int insertTalker(

@@ -29,7 +29,51 @@
 #define LOG_BITSET_SIZE 256
 
 class OStream;
-
+//! A class for logging
+/*!
+	This is not to be used directly.
+	It is to be used through preprocessor macros:<br>
+	ilog (info log), elog (error log), wlog (warn log), dlog (debug log).
+	Here's how it should be used:
+	At the begginging of your application do:
+	<code>
+	Log::instance().reinit(argv[0], Log::AllLevels, "any");<br>
+	</code>
+	<br>
+	then we need to tell the log where to send logging records. In the
+	following example we do this on a socket:
+	<code><br>
+	{<br>
+		SocketOStream	*pos(new SocketOStream);<br>
+		AddrInfo ai("localhost", 3333, 0, AddrInfo::Inet4, AddrInfo::Stream);<br>
+		if(!ai.empty()){<br>
+			pos->sd.create(ai.begin());<br>
+			pos->sd.connect(ai.begin());<br>
+			<br>
+			Log::instance().reinit(pos);<br>
+			<br>
+			idbg("Logging");<br>
+		}else{<br>
+			delete pos;<br>
+			edbg("Sorry no logging");<br>
+		}<br>
+	}<br>
+	</code><br>
+	Here's how you specify a log record:
+	<code><br>
+	ilog(Log::any, 0, "some message");<br>
+	elog(Log::any, 1, "some message "<<i<<' '<<some_string);<br>
+	</code><br>
+	the first parameter of the macro is a module id,
+	usually a static const unsigned value initialized like this:
+	<code><br>
+	static const unsigned imap(Log::instance().registerModule("IMAP");<br>
+	</code><br>
+	The second parameter is an interger with a local meaning for the module.
+	E.g. for the above IMAP module, it can be the unique id of the current connection.
+	The last parameter means formated data to be writen. It is just like writing to
+	a stl stream.
+*/
 class Log{
 public:
 	enum Level{

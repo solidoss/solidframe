@@ -75,7 +75,7 @@ class RequestUid;
 	(doGetMapper must also register a mapper) because I want to be able
 	to have more than one instance of FileManager per process. It is 
 	not a really usefull request, but as long as one can have multiple 
-	servers per process it is at least nice to be able to have multiple
+	managers per process it is at least nice to be able to have multiple
 	file managers.<br>
 	
 	- Some words about Forced flag:<br>

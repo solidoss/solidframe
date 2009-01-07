@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef TESTSERVER_HPP
-#define TESTSERVER_HPP
+#ifndef TESTMANAGER_HPP
+#define TESTMANAGER_HPP
 #include <map>
 #include "foundation/core/manager.hpp"
 #include "common.hpp"

@@ -46,7 +46,7 @@ using namespace std;
 
 /*
 	The proof of concept test application.
-	It instantiate a server, creates some services,
+	It instantiate a manager, creates some services,
 	registers some listeners talkers on those services
 	and offers a small CLI.
 */

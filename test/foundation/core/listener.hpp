@@ -24,6 +24,7 @@
 
 #include "foundation/aio/tcp/listener.hpp"
 #include "system/socketdevice.hpp"
+#include <memory>
 
 namespace foundation{
 namespace aio{
@@ -44,8 +45,9 @@ public:
 	~Listener();
 	virtual int execute(ulong, TimeSpec&);
 private:
+	typedef std::auto_ptr<foundation::aio::openssl::Context> SslContextPtrTp;
 	SocketDevice		sd;
-	foundation::aio::openssl::Context *pctx;
+	SslContextPtrTp		pctx;
 };
 
 }//namespace test

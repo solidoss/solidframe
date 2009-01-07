@@ -36,8 +36,8 @@ namespace foundation{
 //! An active container for objects needing complex handeling
 /*!
 	<b>Overview:</b><br>
-	By complex handeling I mean that objects can reside within the
-	pool for as much as they want, and are given processor time 
+	Complex handeling means that objects can reside within the
+	pool for as much as they want, and are given processor time
 	as result of different events.
 	
 	<b>Usage:</b><br>
@@ -48,10 +48,10 @@ namespace foundation{
 template <class Sel>
 class SelectPool: public WorkPool<typename Sel::ObjectTp>, public ActiveSet{
 public:
-	typedef Sel									SelectorTp;
-	typedef typename Sel::ObjectTp				JobTp;
-	typedef SelectPool<Sel>						ThisTp;
-	typedef WorkPool<typename Sel::ObjectTp>	WorkPoolTp;
+	typedef Sel										SelectorTp;
+	typedef typename Sel::ObjectTp					JobTp;
+	typedef SelectPool<Sel>							ThisTp;
+	typedef WorkPool<typename Sel::ObjectTp>		WorkPoolTp;
 
 private:
 	typedef List<ulong>								ListTp;

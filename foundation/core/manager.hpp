@@ -49,12 +49,12 @@ class Service;
 //! The central class of solidground system
 /*!
 	<b>Overview:</b><br>
-	- Although usually you don't need more than a server per process,
+	- Although usually you don't need more than a manager per process,
 	the design allows that.
-	- The server keeps the services and should keep the workpools (it 
+	- The manager keeps the services and should keep the workpools (it 
 	means that the foundation::Manager does not keep any workpool, but
-	the inheriting server should).
-	- The server object can be easely accessed from any of the server's
+	the inheriting manager should).
+	- The manager object can be easely accessed from any of the manager's
 	thread through thread specific: use Manager::the() method.
 	
 	<b>Usage:</b><br>
@@ -65,7 +65,7 @@ class Service;
 class Manager{
 public:
 	virtual ~Manager();
-	//! Easy access to server using thread specific
+	//! Easy access to manager using thread specific
 	static Manager& the();
 	
 	//! Signal an object identified by (id,uid) with a sinal mask
@@ -109,18 +109,18 @@ public:
 	typename T::ServiceTp& service(const T &_robj){
 		return static_cast<typename T::ServiceTp&>(service(_robj.serviceid()));
 	}
-	//! Prepare a server thread
+	//! Prepare a manager thread
 	/*!
 		The method is called (should be called) from every
-		server thread, to initiate thread specific data. In order to extend
+		manager thread, to initiate thread specific data. In order to extend
 		the initialization of specific data, implement the virtual protected method:
 		doPrepareThread.
 	 */
 	void prepareThread();
-	//! Unprepare a server thread
+	//! Unprepare a manager thread
 	/*!
 		The method is called (should be called) from every
-		server thread, to initiate thread specific data. In order to extend
+		manager thread, to initiate thread specific data. In order to extend
 		the initialization of specific data, implement the virtual protected method:
 		doUnprepareThread.
 	 */

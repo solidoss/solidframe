@@ -71,7 +71,7 @@ struct DummyObject: Object{
 //TODO: make it inheritable by users. 
 // for service group signalling.
 // We use the dummy object to ensure that the index within
-// ServiceContainer is the same as the index within the server's
+// ServiceContainer is the same as the index within the manager's
 // service vector (i.e. pservice->index());
 class ServiceContainer: public Service{
 public:

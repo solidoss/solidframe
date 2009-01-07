@@ -42,7 +42,39 @@ BASIC_DECL(uint32);
 BASIC_DECL(int64);
 BASIC_DECL(uint64);
 
-
+//! Maps types to be used on serialization
+/*!
+	Conde sample:
+	<code>
+	typedef serialization::TypeMapper					TypeMapper;<br>
+	//typedef serialization::NameTypeMap				NameTypeMap;<br>
+	typedef serialization::IdTypeMap					IdTypeMap;<br>
+	typedef serialization::bin::Serializer				BinSerializer;<br>
+	typedef serialization::bin::Deserializer			BinDeserializer;<br>
+	<br>
+	TypeMapper::registerMap<IdTypeMap>(new IdTypeMap);<br>
+	<br>
+	TypeMapper::registerSerializer<BinSerializer>();<br>
+	<br>
+	TypeMapper::map<String, BinSerializer, BinDeserializer>();<br>
+	TypeMapper::map<UnsignedInteger, BinSerializer, BinDeserializer>();<br>
+	TypeMapper::map<IntegerVector, BinSerializer, BinDeserializer>();<br>
+	</code>
+	<br>
+	In the above code, we register a type map using ids for types,
+	then we register the serializer (the binary one) an then we map the 
+	actual types: a String, an UnsignedInterger and an IntegerVector. <br>
+	The mapping must be done given the serializer/and deserializer.
+	So if we would have lets say XmlSerializer and XmlDeserializer, we would
+	have to do:
+	<br>
+	<code>
+	//...<br>
+	TypeMapper::registerSerializer<XmlSerializer>();<br>
+	//...<br>
+	TypeMapper::map<String, XmlSerializer, XmlDeserializer>();<br>
+	//...<br>
+*/
 class TypeMapper{
 	typedef BaseTypeMap::FncTp	FncTp;
 	template <class T>
