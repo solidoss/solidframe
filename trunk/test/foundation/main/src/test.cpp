@@ -53,9 +53,9 @@ using namespace std;
 // prints the CLI help
 void printHelp();
 // inserts a new talker
-int insertTalker(char *_pc, int _len, test::Manager &_rts);
+int insertTalker(char *_pc, int _len, test::Manager &_rtm);
 // inserts a new connection
-int insertConnection(char *_pc, int _len, test::Manager &_rts);
+int insertConnection(char *_pc, int _len, test::Manager &_rtm);
 
 
 struct DeviceIOStream: IOStream{
@@ -139,16 +139,16 @@ int main(int argc, char* argv[]){
 	idbg("Built on SolidGround version "<<SG_MAJOR<<'.'<<SG_MINOR<<'.'<<SG_PATCH);
 	{
 
-		test::Manager	ts;
+		test::Manager	tm;
 		if(true){// create and register the echo service
 			test::Service* psrvc = test::echo::Service::create();
-			ts.insertService("echo", psrvc);
+			tm.insertService("echo", psrvc);
 			
 			{//add a new listener
 				int port = p.start_port + 111;
 				AddrInfo ai("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Stream);
 				if(!ai.empty()){
-					if(!ts.insertListener("echo", ai.begin())){
+					if(!tm.insertListener("echo", ai.begin())){
 						cout<<"added listener to echo "<<port<<endl;
 					}else{
 						cout<<"failed adding listener for service echo port "<<port<<endl;
@@ -162,7 +162,7 @@ int main(int argc, char* argv[]){
 				AddrInfo ai("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Datagram);
 				if(!ai.empty()){
 					AddrInfoIterator it(ai.begin());
-					if(!ts.insertTalker("echo", ai.begin())){
+					if(!tm.insertTalker("echo", ai.begin())){
 						cout<<"added talker to echo "<<port<<endl;
 					}else{
 						cout<<"failed creating udp listener station "<<port<<endl;
@@ -174,11 +174,11 @@ int main(int argc, char* argv[]){
 		}
 		if(true){//creates and registers a new beta service
 			test::Service* psrvc = test::beta::Service::create();
-			ts.insertService("beta", psrvc);
+			tm.insertService("beta", psrvc);
 			int port = p.start_port + 113;
 			AddrInfo ai("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Datagram);
 			if(!ai.empty()){//ands a talker
-				if(!ts.insertTalker("beta", ai.begin())){
+				if(!tm.insertTalker("beta", ai.begin())){
 					cout<<"added talker to beta "<<port<<endl;
 				}else{
 					cout<<"failed creating udp listener station "<<port<<endl;
@@ -188,12 +188,12 @@ int main(int argc, char* argv[]){
 			}
 		}
 		if(true){//creates and registers a new alpha service
-			test::Service* psrvc = test::alpha::Service::create(ts);
-			ts.insertService("alpha", psrvc);
+			test::Service* psrvc = test::alpha::Service::create(tm);
+			tm.insertService("alpha", psrvc);
 			{
 				int port = p.start_port + 114;
 				AddrInfo ai("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Stream);
-				if(!ai.empty() && !ts.insertListener("alpha", ai.begin())){//adds a listener
+				if(!ai.empty() && !tm.insertListener("alpha", ai.begin())){//adds a listener
 					cout<<"added listener for service alpha "<<port<<endl;
 				}else{
 					cout<<"failed adding listener for service alpha port "<<port<<endl;
@@ -202,7 +202,7 @@ int main(int argc, char* argv[]){
 			{
 				int port = p.start_port + 124;
 				AddrInfo ai("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Stream);
-				if(!ai.empty() && !ts.insertListener("alpha", ai.begin(), true)){//adds a listener
+				if(!ai.empty() && !tm.insertListener("alpha", ai.begin(), true)){//adds a listener
 					cout<<"added listener for service alpha "<<port<<endl;
 				}else{
 					cout<<"failed adding listener for service alpha port "<<port<<endl;
@@ -211,13 +211,13 @@ int main(int argc, char* argv[]){
 		}
 		if(true){// create and register the proxy service
 			test::Service* psrvc = test::proxy::Service::create();
-			ts.insertService("proxy", psrvc);
+			tm.insertService("proxy", psrvc);
 			
 			{//add a new listener
 				int port = p.start_port + 115;
 				AddrInfo ai("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Stream);
 				if(!ai.empty()){
-					if(!ts.insertListener("proxy", ai.begin())){
+					if(!tm.insertListener("proxy", ai.begin())){
 						cout<<"added listener to proxy "<<port<<endl;
 					}else{
 						cout<<"failed adding listener for service proxy port "<<port<<endl;
@@ -231,7 +231,7 @@ int main(int argc, char* argv[]){
 			int port = p.start_port + 222;
 			AddrInfo ai("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Datagram);
 			if(!ai.empty()){
-				if(!ts.insertIpcTalker(ai.begin())){
+				if(!tm.insertIpcTalker(ai.begin())){
 					cout<<"added talker to ipc "<<port<<endl;
 				}else{
 					cout<<"failed creating udp listener station "<<port<<endl;
@@ -253,21 +253,21 @@ int main(int argc, char* argv[]){
 			rc = 0;
 			cout<<'>';cin.getline(buf,2048);
 			if(!strncasecmp(buf,"quit",4)){
-				ts.stop();
+				tm.stop();
 				lm.stop();
 				cout<<"signalled to stop"<<endl;
 				break;
 			}
 			if(!strncasecmp(buf,"fetchobj",8)){
-				//rc = fetchobj(buf + 8,cin.gcount() - 8,ts,ti);
+				//rc = fetchobj(buf + 8,cin.gcount() - 8,tm,ti);
 				continue;
 			}
 			if(!strncasecmp(buf,"printobj",8)){
-				//rc = printobj(buf + 8,cin.gcount() - 8,ts,ti);
+				//rc = printobj(buf + 8,cin.gcount() - 8,tm,ti);
 				continue;
 			}
 			if(!strncasecmp(buf,"signalobj",9)){
-				//rc = signalobj(buf + 9,cin.gcount() - 9,ts,ti);
+				//rc = signalobj(buf + 9,cin.gcount() - 9,tm,ti);
 				continue;
 			}
 			if(!strncasecmp(buf,"help",4)){
@@ -275,11 +275,11 @@ int main(int argc, char* argv[]){
 				continue;
 			}
 			if(!strncasecmp(buf,"addtalker",9)){
-				rc = insertTalker(buf + 9,cin.gcount() - 9,ts);
+				rc = insertTalker(buf + 9,cin.gcount() - 9,tm);
 				continue;
 			}
 			if(!strncasecmp(buf,"addconnection", 13)){
-				rc = insertConnection(buf + 13, cin.gcount() - 13, ts);
+				rc = insertConnection(buf + 13, cin.gcount() - 13, tm);
 				continue;
 			}
 			cout<<"Error parsing command line"<<endl;
@@ -329,7 +329,7 @@ int signalobj(char *_pc, int _len,TestServer &_rts,TheInspector &_rti){
 }
 */
 
-int insertTalker(char *_pc, int _len,test::Manager &_rts){
+int insertTalker(char *_pc, int _len,test::Manager &_rtm){
 	if(*_pc != ' ') return -1;
 	++_pc;
 	string srvname;
@@ -357,7 +357,7 @@ int insertTalker(char *_pc, int _len,test::Manager &_rts){
 // 	}
 	return 0;
 }
-int insertConnection(char *_pc, int _len,test::Manager &_rts){
+int insertConnection(char *_pc, int _len,test::Manager &_rtm){
 	if(*_pc != ' ') return -1;
 	++_pc;
 	string srvname;
@@ -380,7 +380,7 @@ int insertConnection(char *_pc, int _len,test::Manager &_rts){
 		++_pc;
 	}
 	AddrInfo ai("0.0.0.0","");
-	if(ai.empty() || _rts.insertConnection(srvname.c_str(), ai.begin(), node.c_str(), srv.c_str())){
+	if(ai.empty() || _rtm.insertConnection(srvname.c_str(), ai.begin(), node.c_str(), srv.c_str())){
 		cout<<"Failed adding connection"<<endl;
 	}
 	//TODO:
