@@ -8,6 +8,7 @@ string (REGEX REPLACE "^([0-9]*)\\.([0-9]*)\\.([0-9]*)" "\\1" VERSION_MAJOR ${VE
 string (REGEX REPLACE "^([0-9]*)\\.([0-9]*)\\.([0-9]*)" "\\2" VERSION_MINOR ${VERSION})
 string (REGEX REPLACE "^([0-9]*)\\.([0-9]*)\\.([0-9]*)" "\\3" VERSION_PATCH ${VERSION})
 
+#debug build
 SET(CMAKE_CXX_FLAGS_DEBUG "-Wreorder -Wreturn-type -Wunused-variable -Winline -g3 -DUDEBUG -DUTHREADS -DUASSERT -DU_SERIALIZATION_MUTEX -DSG_MAJOR=${VERSION_MAJOR} -DSG_MINOR=${VERSION_MINOR} -DSG_PATCH=${VERSION_PATCH}" CACHE STRING "Flags used by the C++ compiler during debug builds." FORCE)
 SET(CMAKE_C_FLAGS_DEBUG "-g3  -DUASSERT -DSG_MAJOR=${VERSION_MAJOR} -DSG_MINOR=${VERSION_MINOR} -DSG_PATCH=${VERSION_PATCH}" CACHE STRING "Flags used by the C compiler during debug builds." FORCE)
 SET( CMAKE_EXE_LINKER_FLAGS_DEBUG
@@ -19,6 +20,7 @@ SET( CMAKE_SHARED_LINKER_FLAGS_DEBUG
     "Flags used by the shared libraries linker during debug builds."
     FORCE )
 
+#maintain build
 SET(CMAKE_CXX_FLAGS_MAINTAIN "-Wall -Wabi -O3 -g3 -DUDEBUG -DUINLINES -DUASSERT -DUTHREADS -DU_SERIALIZATION_MUTEX -DSG_MAJOR=${VERSION_MAJOR} -DSG_MINOR=${VERSION_MINOR} -DSG_PATCH=${VERSION_PATCH}" CACHE STRING "Flags used by the C++ compiler during maintain builds." FORCE)
 SET(CMAKE_C_FLAGS_MAINTAIN "-Wall -pedantic -g3 -DSG_MAJOR=${VERSION_MAJOR} -DSG_MINOR=${VERSION_MINOR} -DSG_PATCH=${VERSION_PATCH}" CACHE STRING "Flags used by the C compiler during maintain builds." FORCE)
 SET( CMAKE_EXE_LINKER_FLAGS_MAINTAIN
@@ -30,6 +32,7 @@ SET( CMAKE_SHARED_LINKER_FLAGS_MAINTAIN
     "Flags used by the shared libraries linker during maintain builds."
     FORCE )
 
+#optimized build
 SET(CMAKE_CXX_FLAGS_OPTIMIZED "-O3 -g3 -DUTHREADS -DU_SERIALIZATION_MUTEX -DUASSERT -DSG_MAJOR=${VERSION_MAJOR} -DSG_MINOR=${VERSION_MINOR} -DSG_PATCH=${VERSION_PATCH}" CACHE STRING "Flags used by the C++ compiler during optimized builds." FORCE)
 SET(CMAKE_C_FLAGS_OPTIMIZED "-O3 -g3 -DSG_MAJOR=${VERSION_MAJOR} -DSG_MINOR=${VERSION_MINOR} -DSG_PATCH=${VERSION_PATCH}" CACHE STRING "Flags used by the C compiler during optimized builds." FORCE)
 SET( CMAKE_EXE_LINKER_FLAGS_OPTIMIZED
@@ -43,7 +46,7 @@ SET( CMAKE_SHARED_LINKER_FLAGS_OPTIMIZED
 
 
 #overwrite the defaults for release
-SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -DUTHREADS -DUINLINES -DUASSERT -DU_SERIALIZATION_MUTEX -Wuninitialized -DSG_MAJOR=${VERSION_MAJOR} -DSG_MINOR=${VERSION_MINOR} -DSG_PATCH=${VERSION_PATCH}" CACHE STRING "Flags used by the C++ compiler during release builds." FORCE)
+SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -DUTHREADS -DUINLINES -DU_SERIALIZATION_MUTEX -Wuninitialized -DSG_MAJOR=${VERSION_MAJOR} -DSG_MINOR=${VERSION_MINOR} -DSG_PATCH=${VERSION_PATCH}" CACHE STRING "Flags used by the C++ compiler during release builds." FORCE)
 #SET(CMAKE_C_FLAGS_RELEASE "-O3 -DUTHREADS" CACHE STRING "Flags used by the C compiler during release builds." FORCE)
 
 

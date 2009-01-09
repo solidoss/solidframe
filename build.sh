@@ -1,6 +1,6 @@
 #!/bin/bash
 
-function make_cmake_list_app(){
+function make_cmake_list(){
 	rm CMakeLists.txt
 	if [ $1 = "*" ]; then
 		echo "No child folder found!"
