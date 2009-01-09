@@ -101,9 +101,10 @@ int main(int argc, char* argv[]){
 	Params p;
 	if(parseArguments(p, argc, argv)) return 0;
 	
-	pipe(pairfd);
 	cout<<"Built on SolidGround version "<<SG_MAJOR<<'.'<<SG_MINOR<<'.'<<SG_PATCH<<endl;
+	
 	Thread::init();
+
 #ifdef UDEBUG
 	{
 	string s;
@@ -118,6 +119,8 @@ int main(int argc, char* argv[]){
 	cout<<"Debug bits: "<<s<<endl;
 	}
 #endif
+	
+	pipe(pairfd);
 	audit::LogManager lm;
 	lm.start();
 	lm.insertChannel(new DeviceIOStream(pairfd[0], pairfd[1]));
