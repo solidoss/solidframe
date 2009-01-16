@@ -427,7 +427,7 @@ std::ostream& Dbg::print(
 		"%c[%04u-%02u-%02u %02u:%02u:%02u.%03u][%s][%d]",
 		_t,
 		loctm.tm_year + 1900,
-		loctm.tm_mon, 
+		loctm.tm_mon + 1, 
 		loctm.tm_mday,
 		loctm.tm_hour,
 		loctm.tm_min,

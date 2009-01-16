@@ -29,7 +29,7 @@
 #include "echoconnection.hpp"
 #include "echotalker.hpp"
 
-namespace cs = foundation;
+namespace fdt = foundation;
 
 namespace test{
 namespace echo{
@@ -56,7 +56,7 @@ int Service::insertConnection(
 		delete pcon;
 		return BAD;
 	}
-	_rm.pushJob(static_cast<cs::aio::Object*>(pcon));
+	_rm.pushJob(static_cast<fdt::aio::Object*>(pcon));
 	return OK;
 }
 
@@ -76,7 +76,7 @@ int Service::insertListener(
 		delete plis;
 		return BAD;
 	}	
-	_rm.pushJob(static_cast<cs::aio::Object*>(plis));
+	_rm.pushJob(static_cast<fdt::aio::Object*>(plis));
 	return OK;
 }
 int Service::insertTalker(
@@ -93,7 +93,7 @@ int Service::insertTalker(
 		delete ptkr;
 		return BAD;
 	}
-	_rm.pushJob(static_cast<cs::aio::Object*>(ptkr));
+	_rm.pushJob(static_cast<fdt::aio::Object*>(ptkr));
 	return OK;
 }
 
@@ -108,7 +108,7 @@ int Service::insertConnection(
 		delete pcon;
 		return BAD;
 	}
-	_rm.pushJob(static_cast<cs::aio::Object*>(pcon));
+	_rm.pushJob(static_cast<fdt::aio::Object*>(pcon));
 	return OK;
 }
 

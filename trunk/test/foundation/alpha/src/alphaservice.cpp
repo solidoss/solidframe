@@ -33,7 +33,7 @@
 #include "alpha/alphaservice.hpp"
 #include "alphaconnection.hpp"
 
-namespace cs=foundation;
+namespace fdt=foundation;
 
 namespace test{
 namespace alpha{
@@ -74,7 +74,7 @@ int Service::insertConnection(
 		return BAD;
 	}
 	// add it into a connection pool
-	_rm.pushJob(static_cast<cs::aio::Object*>(pcon));
+	_rm.pushJob(static_cast<fdt::aio::Object*>(pcon));
 	return OK;
 }
 
@@ -103,7 +103,7 @@ int Service::insertListener(
 		delete plis;
 		return BAD;
 	}	
-	_rm.pushJob(static_cast<cs::aio::Object*>(plis));
+	_rm.pushJob(static_cast<fdt::aio::Object*>(plis));
 	return OK;
 }
 

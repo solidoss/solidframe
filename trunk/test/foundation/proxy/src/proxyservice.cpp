@@ -28,7 +28,7 @@
 #include "proxy/proxyservice.hpp"
 #include "proxymulticonnection.hpp"
 
-namespace cs = foundation;
+namespace fdt = foundation;
 
 namespace test{
 namespace proxy{
@@ -54,7 +54,7 @@ int Service::insertConnection(
 		delete pcon;
 		return BAD;
 	}
-	_rm.pushJob(static_cast<cs::aio::Object*>(pcon));
+	_rm.pushJob(static_cast<fdt::aio::Object*>(pcon));
 	return OK;
 }
 
@@ -74,7 +74,7 @@ int Service::insertListener(
 		delete plis;
 		return BAD;
 	}	
-	_rm.pushJob(static_cast<cs::aio::Object*>(plis));
+	_rm.pushJob(static_cast<fdt::aio::Object*>(plis));
 	return OK;
 }
 int Service::insertTalker(
@@ -83,14 +83,14 @@ int Service::insertTalker(
 	const char *_node,
 	const char *_svc
 ){
-/*	cs::udp::Station *pst(cs::udp::Station::create(_rai));
+/*	fdt::udp::Station *pst(fdt::udp::Station::create(_rai));
 	if(!pst) return BAD;
 	Talker *ptkr = new Talker(pst, _node, _svc);
 	if(this->insert(*ptkr, this->index())){
 		delete ptkr;
 		return BAD;
 	}
-	_rm.pushJob((cs::udp::Talker*)ptkr);*/
+	_rm.pushJob((fdt::udp::Talker*)ptkr);*/
 	return OK;
 }
 
@@ -100,14 +100,14 @@ int Service::insertConnection(
 	const char *_node,
 	const char *_svc
 ){
-/*	cs::tcp::Channel *pch(cs::tcp::Channel::create(_rai));
+/*	fdt::tcp::Channel *pch(fdt::tcp::Channel::create(_rai));
 	if(!pch) return BAD;
 	MultiConnection *pcon = new MultiConnection(pch, _node, _svc);
 	if(this->insert(*pcon, this->index())){
 		delete pcon;
 		return BAD;
 	}
-	_rm.pushJob((cs::tcp::MultiConnection*)pcon);*/
+	_rm.pushJob((fdt::tcp::MultiConnection*)pcon);*/
 	return OK;
 }
 

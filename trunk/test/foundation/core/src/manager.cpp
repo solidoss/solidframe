@@ -75,13 +75,13 @@ class TalkerSelector;
 
 }//namespace foundation
 
-namespace cs=foundation;
+namespace fdt=foundation;
 
 
 namespace test{
 
 //======= FileManager:==================================================
-//typedef cs::FileUidTp			FileUidTp;
+//typedef fdt::FileUidTp			FileUidTp;
 typedef Object::RequestUidTp	RequestUidTp;
 //----------------------------------------------------------------------
 /*
@@ -93,7 +93,7 @@ struct IStreamCommand: test::Command{
 	}
 	int execute(Connection &_pcon);
 	int execute(Object &_pobj);
-	int execute(uint32 _evs, cs::CommandExecuter&, const CommandUidTp &, TimeSpec &);
+	int execute(uint32 _evs, fdt::CommandExecuter&, const CommandUidTp &, TimeSpec &);
 	StreamPtr<IStream>	sptr;
 	FileUidTp			fileuid;
 	RequestUidTp		requid;
@@ -108,7 +108,7 @@ int IStreamCommand::execute(Object &_robj){
 	return _robj.receiveIStream(sptr, fileuid, requid);
 }
 
-int IStreamCommand::execute(uint32 _evs, cs::CommandExecuter& _rce, const CommandUidTp &, TimeSpec &){
+int IStreamCommand::execute(uint32 _evs, fdt::CommandExecuter& _rce, const CommandUidTp &, TimeSpec &){
 	_rce.receiveIStream(sptr, fileuid, requid);
 	return BAD;
 }
@@ -122,7 +122,7 @@ struct OStreamCommand: test::Command{
 	}
 	int execute(Connection &_pcon);
 	int execute(Object &_pobj);
-	int execute(uint32 _evs, cs::CommandExecuter&, const CommandUidTp &, TimeSpec &);
+	int execute(uint32 _evs, fdt::CommandExecuter&, const CommandUidTp &, TimeSpec &);
 	StreamPtr<OStream>	sptr;
 	FileUidTp			fileuid;
 	RequestUidTp		requid;
@@ -136,7 +136,7 @@ int OStreamCommand::execute(Connection &_rcon){
 int OStreamCommand::execute(Object &_robj){
 	return _robj.receiveOStream(sptr, fileuid, requid);
 }
-int OStreamCommand::execute(uint32 _evs, cs::CommandExecuter& _rce, const CommandUidTp &, TimeSpec &){
+int OStreamCommand::execute(uint32 _evs, fdt::CommandExecuter& _rce, const CommandUidTp &, TimeSpec &){
 	_rce.receiveOStream(sptr, fileuid, requid);
 	return NOK;
 }
@@ -151,7 +151,7 @@ struct IOStreamCommand: test::Command{
 	}
 	int execute(Connection &_pcon);
 	int execute(Object &_pobj);
-	int execute(uint32 _evs, cs::CommandExecuter&, const CommandUidTp &, TimeSpec &);
+	int execute(uint32 _evs, fdt::CommandExecuter&, const CommandUidTp &, TimeSpec &);
 	StreamPtr<IOStream>	sptr;
 	FileUidTp			fileuid;
 	RequestUidTp		requid;
@@ -166,7 +166,7 @@ int IOStreamCommand::execute(Object &_robj){
 	return _robj.receiveIOStream(sptr, fileuid, requid);
 }
 
-int IOStreamCommand::execute(uint32 _evs, cs::CommandExecuter& _rce, const CommandUidTp &, TimeSpec &){
+int IOStreamCommand::execute(uint32 _evs, fdt::CommandExecuter& _rce, const CommandUidTp &, TimeSpec &){
 	_rce.receiveIOStream(sptr, fileuid, requid);
 	return NOK;
 }
@@ -179,7 +179,7 @@ struct StreamErrorCommand: test::Command{
 	StreamErrorCommand(int _errid, const RequestUidTp &_requid):errid(_errid), requid(_requid){}
 	int execute(Connection &_pcon);
 	int execute(Object &_pobj);
-	int execute(uint32 _evs, cs::CommandExecuter&, const CommandUidTp &, TimeSpec &);
+	int execute(uint32 _evs, fdt::CommandExecuter&, const CommandUidTp &, TimeSpec &);
 	int				errid;
 	RequestUidTp	requid;
 };
@@ -191,7 +191,7 @@ int StreamErrorCommand::execute(Connection &_rcon){
 int StreamErrorCommand::execute(Object &_robj){
 	return _robj.receiveError(errid, requid);
 }
-int StreamErrorCommand::execute(uint32 _evs, cs::CommandExecuter& _rce, const CommandUidTp &, TimeSpec &){
+int StreamErrorCommand::execute(uint32 _evs, fdt::CommandExecuter& _rce, const CommandUidTp &, TimeSpec &){
 	_rce.receiveError(errid, requid);
 	return NOK;
 }
@@ -200,29 +200,29 @@ int StreamErrorCommand::execute(uint32 _evs, cs::CommandExecuter& _rce, const Co
 	Local implementation of the foundation::FileManager wich will now know how
 	to send streams/errors to an object.
 */
-class FileManager: public cs::FileManager{
+class FileManager: public fdt::FileManager{
 public:
-	FileManager(uint32 _maxfcnt = 1024 * 20):cs::FileManager(_maxfcnt){}
+	FileManager(uint32 _maxfcnt = 1024 * 20):fdt::FileManager(_maxfcnt){}
 protected:
-	/*virtual*/ void sendStream(StreamPtr<IStream> &_sptr, const FileUidTp &_rfuid, const cs::RequestUid& _rrequid);
-	/*virtual*/ void sendStream(StreamPtr<OStream> &_sptr, const FileUidTp &_rfuid, const cs::RequestUid& _rrequid);
-	/*virtual*/ void sendStream(StreamPtr<IOStream> &_sptr, const FileUidTp &_rfuid, const cs::RequestUid& _rrequid);
-	/*virtual*/ void sendError(int _errid, const cs::RequestUid& _rrequid);
+	/*virtual*/ void sendStream(StreamPtr<IStream> &_sptr, const FileUidTp &_rfuid, const fdt::RequestUid& _rrequid);
+	/*virtual*/ void sendStream(StreamPtr<OStream> &_sptr, const FileUidTp &_rfuid, const fdt::RequestUid& _rrequid);
+	/*virtual*/ void sendStream(StreamPtr<IOStream> &_sptr, const FileUidTp &_rfuid, const fdt::RequestUid& _rrequid);
+	/*virtual*/ void sendError(int _errid, const fdt::RequestUid& _rrequid);
 };
-void FileManager::sendStream(StreamPtr<IStream> &_sptr, const FileUidTp &_rfuid, const cs::RequestUid& _rrequid){
-	cs::CmdPtr<cs::Command>	cp(new IStreamCommand(_sptr, _rfuid, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
+void FileManager::sendStream(StreamPtr<IStream> &_sptr, const FileUidTp &_rfuid, const fdt::RequestUid& _rrequid){
+	fdt::CmdPtr<fdt::Command>	cp(new IStreamCommand(_sptr, _rfuid, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
 	Manager::the().signalObject(_rrequid.objidx, _rrequid.objuid, cp);
 }
-void FileManager::sendStream(StreamPtr<OStream> &_sptr, const FileUidTp &_rfuid, const cs::RequestUid& _rrequid){
-	cs::CmdPtr<cs::Command>	cp(new OStreamCommand(_sptr, _rfuid, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
+void FileManager::sendStream(StreamPtr<OStream> &_sptr, const FileUidTp &_rfuid, const fdt::RequestUid& _rrequid){
+	fdt::CmdPtr<fdt::Command>	cp(new OStreamCommand(_sptr, _rfuid, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
 	Manager::the().signalObject(_rrequid.objidx, _rrequid.objuid, cp);
 }
-void FileManager::sendStream(StreamPtr<IOStream> &_sptr, const FileUidTp &_rfuid, const cs::RequestUid& _rrequid){
-	cs::CmdPtr<cs::Command>	cp(new IOStreamCommand(_sptr, _rfuid, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
+void FileManager::sendStream(StreamPtr<IOStream> &_sptr, const FileUidTp &_rfuid, const fdt::RequestUid& _rrequid){
+	fdt::CmdPtr<fdt::Command>	cp(new IOStreamCommand(_sptr, _rfuid, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
 	Manager::the().signalObject(_rrequid.objidx, _rrequid.objuid, cp);
 }
-void FileManager::sendError(int _error, const cs::RequestUid& _rrequid){
-	cs::CmdPtr<cs::Command>	cp(new StreamErrorCommand(_error, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
+void FileManager::sendError(int _error, const fdt::RequestUid& _rrequid){
+	fdt::CmdPtr<fdt::Command>	cp(new StreamErrorCommand(_error, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
 	Manager::the().signalObject(_rrequid.objidx, _rrequid.objuid, cp);
 }
 
@@ -231,27 +231,27 @@ void FileManager::sendError(int _error, const cs::RequestUid& _rrequid){
 	Local implementation of the ipc service which will know in which 
 	pool to push the ipc talkers.
 */
-class IpcService: public cs::ipc::Service{
+class IpcService: public fdt::ipc::Service{
 public:
-	IpcService(uint32 _keepalivetout):cs::ipc::Service(_keepalivetout){}
+	IpcService(uint32 _keepalivetout):fdt::ipc::Service(_keepalivetout){}
 protected:
 	/*virtual*/void pushTalkerInPool(foundation::Manager &_rm, foundation::aio::Object *_ptkr);
 };
 
 //=========================================================================
 
-struct ExtraObjPtr: cs::ObjPtr<cs::Object>{
-	ExtraObjPtr(cs::Object *_po);
+struct ExtraObjPtr: fdt::ObjPtr<fdt::Object>{
+	ExtraObjPtr(fdt::Object *_po);
 	~ExtraObjPtr();
-	ExtraObjPtr& operator=(cs::Object *_pobj);
+	ExtraObjPtr& operator=(fdt::Object *_pobj);
 };
 
-ExtraObjPtr::ExtraObjPtr(cs::Object *_po):cs::ObjPtr<cs::Object>(_po){}
+ExtraObjPtr::ExtraObjPtr(fdt::Object *_po):fdt::ObjPtr<fdt::Object>(_po){}
 
 ExtraObjPtr::~ExtraObjPtr(){
 	this->destroy(this->release());
 }
-ExtraObjPtr& ExtraObjPtr::operator=(cs::Object *_pobj){
+ExtraObjPtr& ExtraObjPtr::operator=(fdt::Object *_pobj){
 	ptr(_pobj);
 	return *this;
 }
@@ -260,7 +260,7 @@ ExtraObjPtr& ExtraObjPtr::operator=(cs::Object *_pobj){
 	A local command executer who knows how to unregister itself from the 
 	manager
 */
-class CommandExecuter: public cs::CommandExecuter{
+class CommandExecuter: public fdt::CommandExecuter{
 public:
 	void removeFromManager();
 };
@@ -273,18 +273,18 @@ void CommandExecuter::removeFromManager(){
 struct Manager::Data{
 	typedef std::vector<ExtraObjPtr>									ExtraObjectVector;
 	typedef std::map<const char*, int, StrLess> 						ServiceIdxMap;
-	typedef foundation::SelectPool<cs::ObjectSelector>					ObjSelPoolTp;
-	typedef foundation::SelectPool<cs::aio::Selector>					AioSelectorPoolTp;
+	typedef foundation::SelectPool<fdt::ObjectSelector>					ObjSelPoolTp;
+	typedef foundation::SelectPool<fdt::aio::Selector>					AioSelectorPoolTp;
 
 	Data(Manager &_rm);
 	~Data();
 	ExtraObjectVector					eovec;
 	ServiceIdxMap						servicemap;// map name -> service index
-	//cs::ipc::Service					*pcs; // A pointer to the ipc service
+	//fdt::ipc::Service					*pcs; // A pointer to the ipc service
 	ObjSelPoolTp						*pobjectpool[2];//object pools
 	AioSelectorPoolTp					*paiopool[2];
-	cs::ObjPtr<cs::CommandExecuter>		readcmdexec;// read command executer
-	cs::ObjPtr<cs::CommandExecuter>		writecmdexec;// write command executer
+	fdt::ObjPtr<fdt::CommandExecuter>		readcmdexec;// read command executer
+	fdt::ObjPtr<fdt::CommandExecuter>		writecmdexec;// write command executer
 };
 
 //--------------------------------------------------------------------------
@@ -352,12 +352,12 @@ void registerService(ServiceCreator _psc, const char* _pname){
 }
 //----------------------------------------------------------------------------------
 template <>
-void Manager::pushJob(cs::Object *_pj, int _pos){
-	d.pobjectpool[_pos]->push(cs::ObjPtr<cs::Object>(_pj));
+void Manager::pushJob(fdt::Object *_pj, int _pos){
+	d.pobjectpool[_pos]->push(fdt::ObjPtr<fdt::Object>(_pj));
 }
 template <>
-void Manager::pushJob(cs::aio::Object *_pj, int _i){
-	d.paiopool[_i]->push(cs::ObjPtr<cs::aio::Object>(_pj));
+void Manager::pushJob(fdt::aio::Object *_pj, int _i){
+	d.paiopool[_i]->push(fdt::ObjPtr<fdt::aio::Object>(_pj));
 }
 
 /*
@@ -371,29 +371,29 @@ Manager::Manager():d(*(new Data(*this))){
 	//ppools = new PoolContainer(*this);
 	if(true){//create register the file manager
 		this->fileManager(new FileManager(10));
-		cs::Manager::insertObject(&fileManager());
-		cs::NameFileKey::registerMapper(fileManager());
-		cs::TempFileKey::registerMapper(fileManager());
-		this->pushJob((cs::Object*)&fileManager());
+		fdt::Manager::insertObject(&fileManager());
+		fdt::NameFileKey::registerMapper(fileManager());
+		fdt::TempFileKey::registerMapper(fileManager());
+		this->pushJob((fdt::Object*)&fileManager());
 	}
 	if(true){// create register the read command executer
 		d.readcmdexec = new CommandExecuter;
-		cs::Manager::insertObject(d.readcmdexec.ptr());
-		this->pushJob((cs::Object*)d.readcmdexec.ptr());
+		fdt::Manager::insertObject(d.readcmdexec.ptr());
+		this->pushJob((fdt::Object*)d.readcmdexec.ptr());
 	}
 	if(true){// create register the write command executer
 		d.writecmdexec = new CommandExecuter;
-		cs::Manager::insertObject(d.writecmdexec.ptr());
-		this->pushJob((cs::Object*)d.writecmdexec.ptr());
+		fdt::Manager::insertObject(d.writecmdexec.ptr());
+		this->pushJob((fdt::Object*)d.writecmdexec.ptr());
 	}
 	if(true){// create register the ipc service
 		this->ipc(new IpcService(1000));//one sec keepalive tout
-		int pos = cs::Manager::insertService(&this->ipc());
+		int pos = fdt::Manager::insertService(&this->ipc());
 		if(pos < 0){
 			idbg("unable to register service: "<<"ipc");
 		}else{
 			idbg("service "<<"ipc"<<" registered on pos "<<pos);
-			this->pushJob((cs::Object*)&this->ipc());
+			this->pushJob((fdt::Object*)&this->ipc());
 			//do not map the ipc!!!
 			//d.servicemap["ipc"] = pos;
 		}
@@ -401,7 +401,7 @@ Manager::Manager():d(*(new Data(*this))){
 }
 
 Manager::~Manager(){
-	cs::Manager::stop(true);//wait all services to stop
+	fdt::Manager::stop(true);//wait all services to stop
 	delete &d;
 }
 
@@ -425,7 +425,7 @@ int Manager::stop(const char *_which){
 			service(it->second).stop(*this);
 		}
 	}else{
-		cs::Manager::stop(false);
+		fdt::Manager::stop(false);
 	}
 	return OK;
 }
@@ -441,13 +441,13 @@ void Manager::writeCommandExecuterUid(ObjectUidTp &_ruid){
 
 int Manager::insertService(const char* _nm, Service* _psrvc){
 	if(_psrvc != NULL){
-		int pos = cs::Manager::insertService(_psrvc);
+		int pos = fdt::Manager::insertService(_psrvc);
 		if(pos < 0){
 			idbg("unable to register service: "<<_nm);
 		}else{
 			idbg("service "<<_nm<<" registered on pos "<<pos);
-			//this->get<ObjSelPoolVecTp>()[0]->push(cs::ObjPtr<cs::Object>(_psrvc));
-			this->pushJob((cs::Object*)_psrvc);
+			//this->get<ObjSelPoolVecTp>()[0]->push(fdt::ObjPtr<fdt::Object>(_psrvc));
+			this->pushJob((fdt::Object*)_psrvc);
 			d.servicemap[_nm] = pos;
 			return OK;
 		}
@@ -457,7 +457,7 @@ int Manager::insertService(const char* _nm, Service* _psrvc){
 	return BAD;
 }
 void Manager::removeService(Service *_psrvc){
-	cs::Manager::removeService(_psrvc);
+	fdt::Manager::removeService(_psrvc);
 }
 
 int Manager::insertListener(const char* _nm, const AddrInfoIterator &_rai, bool _secure){

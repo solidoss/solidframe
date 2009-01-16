@@ -51,7 +51,7 @@ NOTE: Design keep alive:
 
 */
 
-namespace cs = foundation;
+namespace fdt = foundation;
 
 namespace foundation{
 namespace ipc{
@@ -103,7 +103,7 @@ struct ProcessConnector::Data{
 	struct OutWaitCommand{
 		OutWaitCommand(
 			uint32 _bufid,
-			const cs::CmdPtr<Command>& _rcmd,
+			const fdt::CmdPtr<Command>& _rcmd,
 			uint32 _flags,
 			uint32 _id
 		):bufid(_bufid), cmd(_rcmd), pser(NULL), flags(_flags), id(_id), uid(0){}
@@ -123,7 +123,7 @@ struct ProcessConnector::Data{
 			}else return false;
 		}
 		uint32				bufid;
-		cs::CmdPtr<Command> cmd;
+		fdt::CmdPtr<Command> cmd;
 		BinSerializerTp		*pser;
 		uint32				flags;
 		uint32				id;
@@ -135,7 +135,7 @@ struct ProcessConnector::Data{
 	typedef Stack<uint16>						OutFreePosStackTp;
 	typedef std::priority_queue<Buffer,std::vector<Buffer>,BufCmp>	
 												BufferPriorityQueueTp;
-	typedef std::pair<cs::CmdPtr<Command>, uint32>
+	typedef std::pair<fdt::CmdPtr<Command>, uint32>
 												CmdPairTp;
 	typedef Queue<CmdPairTp>					CmdQueueTp;
 	typedef std::deque<OutWaitCommand>			OutCmdVectorTp;
@@ -160,7 +160,7 @@ struct ProcessConnector::Data{
 	//save commands to be resent in case of disconnect
 	CommandUid pushOutWaitCommand(
 		uint32 _bufid,
-		cs::CmdPtr<Command> &_cmd,
+		fdt::CmdPtr<Command> &_cmd,
 		uint32 _flags,
 		uint32 _id
 	);
@@ -357,7 +357,7 @@ inline const ProcessConnector::Data::OutWaitCommand& ProcessConnector::Data::wai
 }
 
 
-CommandUid ProcessConnector::Data::pushOutWaitCommand(uint32 _bufid, cs::CmdPtr<Command> &_cmd, uint32 _flags, uint32 _id){
+CommandUid ProcessConnector::Data::pushOutWaitCommand(uint32 _bufid, fdt::CmdPtr<Command> &_cmd, uint32 _flags, uint32 _id){
 	_flags &= ~Service::SentFlag;
 	_flags &= ~Service::WaitResponseFlag;
 	if(this->outfreecmdstk.size()){

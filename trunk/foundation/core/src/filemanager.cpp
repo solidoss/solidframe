@@ -44,7 +44,7 @@
 #include "core/filemapper.hpp"
 #include "core/requestuid.hpp"
 
-namespace cs = foundation;
+namespace fdt = foundation;
 using namespace std;
 typedef std::string	String;
 
@@ -229,7 +229,7 @@ int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 	if(signaled()){
 		ulong sm = grabSignalMask(0);
 		idbgx(Dbg::filemanager, "signalmask "<<sm);
-		if(sm & cs::S_KILL){
+		if(sm & fdt::S_KILL){
 			state(Data::Stopping);
 			idbgx(Dbg::filemanager, "kill "<<d.sz);
 			if(!d.sz){//no file
@@ -746,7 +746,7 @@ int FileManager::doGetStream(
 					pf->stream(*this, pos, _sptr, _requid, _flags | ForcePending);
 					d.sq.push(pos);
 					idbgx(Dbg::filemanager, "sq.push "<<pos);
-					if(static_cast<cs::Object*>(this)->signal((int)cs::S_RAISE)){
+					if(static_cast<fdt::Object*>(this)->signal((int)fdt::S_RAISE)){
 						Manager::the().raiseObject(*this);
 					}
 					return NOK;
@@ -782,7 +782,7 @@ int FileManager::doGetStream(
 		pf->stream(*this, pos, _sptr, _requid, _flags | ForcePending);
 	}
 	d.oq.push(pos);
-	if(static_cast<cs::Object*>(this)->signal((int)cs::S_RAISE)){
+	if(static_cast<fdt::Object*>(this)->signal((int)fdt::S_RAISE)){
 		Manager::the().raiseObject(*this);
 	}
 	return NOK;
@@ -929,7 +929,7 @@ void FileManager::releaseIStream(uint _fileid){
 		//we must signal the filemanager
 		d.sq.push(_fileid);
 		idbgx(Dbg::filemanager, "sq.push "<<_fileid);
-		if(static_cast<cs::Object*>(this)->signal((int)cs::S_RAISE)){
+		if(static_cast<fdt::Object*>(this)->signal((int)fdt::S_RAISE)){
 			Manager::the().raiseObject(*this);
 		}
 	}
@@ -946,7 +946,7 @@ void FileManager::releaseOStream(uint _fileid){
 		//we must signal the filemanager
 		d.sq.push(_fileid);
 		idbgx(Dbg::filemanager, "sq.push "<<_fileid);
-		if(static_cast<cs::Object*>(this)->signal((int)cs::S_RAISE)){
+		if(static_cast<fdt::Object*>(this)->signal((int)fdt::S_RAISE)){
 			Manager::the().raiseObject(*this);
 		}
 	}

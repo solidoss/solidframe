@@ -30,7 +30,7 @@
 #include "core/manager.hpp"
 #include "core/listener.hpp"
 
-namespace cs = foundation;
+namespace fdt = foundation;
 
 namespace test{
 /*
@@ -46,7 +46,7 @@ int Service::execute(ulong _sig, TimeSpec &_rtout){
 			Mutex::Locker	lock(*mut);
 			sm = grabSignalMask(1);
 		}
-		if(sm & cs::S_KILL){
+		if(sm & fdt::S_KILL){
 			idbg("killing service "<<this->id());
 			this->stop(test::Manager::the(), true);
 			test::Manager::the().removeService(this);

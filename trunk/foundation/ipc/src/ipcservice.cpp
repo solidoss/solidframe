@@ -36,7 +36,7 @@
 #include "iodata.hpp"
 #include "processconnector.hpp"
 
-namespace cs = foundation;
+namespace fdt = foundation;
 
 namespace foundation{
 namespace ipc{
@@ -111,7 +111,7 @@ int Service::sendCommand(
 	cassert(ptkr);
 	if(ptkr->pushCommand(_pcmd, _rconid, _flags | SameConnectorFlag)){
 		//the talker must be signaled
-		if(ptkr->signal(cs::S_RAISE)){
+		if(ptkr->signal(fdt::S_RAISE)){
 			Manager::the().raiseObject(*ptkr);
 		}
 	}
@@ -144,7 +144,7 @@ int Service::doSendCommand(
 			cassert(ptkr);
 			if(ptkr->pushCommand(_pcmd, conid, _flags)){
 				//the talker must be signaled
-				if(ptkr->signal(cs::S_RAISE)){
+				if(ptkr->signal(fdt::S_RAISE)){
 					Manager::the().raiseObject(*ptkr);
 				}
 			}
@@ -173,7 +173,7 @@ int Service::doSendCommand(
 // 			foundation::CmdPtr<test::Command> pnullcmd(NULL);
 // 			ptkr->pushCommand(pnullcmd, conid, Buffer::Connecting);
 			ptkr->pushCommand(_pcmd, conid, _flags);
-			if(ptkr->signal(cs::S_RAISE)){
+			if(ptkr->signal(fdt::S_RAISE)){
 				Manager::the().raiseObject(*ptkr);
 			}
 			if(_pconid) *_pconid = conid;
@@ -205,7 +205,7 @@ int Service::acceptProcess(ProcessConnector *_ppc){
 			Mutex::Locker lock2(this->mutex(tkrpos, tkruid));
 			Talker *ptkr = static_cast<Talker*>(this->object(tkrpos, tkruid));
 			ptkr->pushProcessConnector(_ppc, it->second, true);
-			if(ptkr->signal(cs::S_RAISE)){
+			if(ptkr->signal(fdt::S_RAISE)){
 				Manager::the().raiseObject(*ptkr);
 			}
 			return OK;
@@ -230,7 +230,7 @@ int Service::acceptProcess(ProcessConnector *_ppc){
 	d.basepm4[_ppc->baseAddr4()] = conid;
 // 	foundation::CmdPtr<test::Command> pnullcmd(NULL);
 // 	ptkr->pushCommand(pnullcmd, conid, Buffer::Accepted);
-	if(ptkr->signal(cs::S_RAISE)){
+	if(ptkr->signal(fdt::S_RAISE)){
 		Manager::the().raiseObject(*ptkr);
 	}
 	return OK;
@@ -260,7 +260,7 @@ int16 Service::createNewTalker(uint32 &_tkrpos, uint32 &_tkruid){
 			return BAD;
 		}
 		d.tkrvec.push_back(Data::TkrPairTp((_tkrpos = ptkr->id()), (_tkruid = this->uid(*ptkr))));
-		//Manager::the().pushJob((cs::udp::Talker*)ptkr);
+		//Manager::the().pushJob((fdt::udp::Talker*)ptkr);
 		pushTalkerInPool(Manager::the(), ptkr);
 	}else{
 		return BAD;
@@ -277,7 +277,7 @@ int Service::insertConnection(
 		delete pcon;
 		return BAD;
 	}
-	_rm.pushJob((cs::tcp::Connection*)pcon);*/
+	_rm.pushJob((fdt::tcp::Connection*)pcon);*/
 	return OK;
 }
 
@@ -290,7 +290,7 @@ int Service::insertListener(
 		delete plis;
 		return BAD;
 	}	
-	_rm.pushJob((cs::tcp::Listener*)plis);*/
+	_rm.pushJob((fdt::tcp::Listener*)plis);*/
 	return OK;
 }
 int Service::insertTalker(
@@ -313,7 +313,7 @@ int Service::insertTalker(
 	d.firstaddr = _rai;
 	d.baseport = d.firstaddr.port();
 	d.tkrvec.push_back(Data::TkrPairTp(ptkr->id(), this->uid(*ptkr)));
-	//_rm.pushJob((cs::udp::Talker*)ptkr);
+	//_rm.pushJob((fdt::udp::Talker*)ptkr);
 	pushTalkerInPool(_rm, ptkr);
 	return OK;
 }
@@ -329,7 +329,7 @@ int Service::insertConnection(
 		delete pcon;
 		return BAD;
 	}
-	_rm.pushJob((cs::tcp::Connection*)pcon);*/
+	_rm.pushJob((fdt::tcp::Connection*)pcon);*/
 	return OK;
 }
 
@@ -351,7 +351,7 @@ int Service::execute(ulong _sig, TimeSpec &_rtout){
 			Mutex::Locker	lock(*mut);
 			sm = grabSignalMask(1);
 		}
-		if(sm & cs::S_KILL){
+		if(sm & fdt::S_KILL){
 			idbgx(Dbg::ipc, "killing service "<<this->id());
 			this->stop(Manager::the(), true);
 			Manager::the().removeService(this);

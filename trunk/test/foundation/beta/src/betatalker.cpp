@@ -30,7 +30,7 @@
 
 using namespace std;
 
-namespace cs = foundation;
+namespace fdt = foundation;
 
 namespace test{
 
@@ -71,10 +71,10 @@ Talker::~Talker(){
 int Talker::execute(ulong _sig, TimeSpec &_tout){
 	//if(pai) _tout.set(20);//allways set it if it's not MAXTIMEOUT
 	//else _tout.set(0);
-	if(_sig & (cs::TIMEOUT | cs::ERRDONE)){
-		if(_sig & cs::TIMEOUT)
+	if(_sig & (fdt::TIMEOUT | fdt::ERRDONE)){
+		if(_sig & fdt::TIMEOUT)
 			idbg("talker timeout");
-		if(_sig & cs::ERRDONE)
+		if(_sig & fdt::ERRDONE)
 			idbg("talker error");
 		return BAD;
 	}
@@ -83,7 +83,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 		{
 		Mutex::Locker	lock(rm.mutex(*this));
 		ulong sm = grabSignalMask(0);
-		if(sm & cs::S_KILL) return BAD;
+		if(sm & fdt::S_KILL) return BAD;
 		}
 	}
 	int rc = 512 * 1024;
@@ -149,7 +149,7 @@ int Talker::execute(){
 }
 
 
-int Talker::accept(cs::Visitor &_rov){
+int Talker::accept(fdt::Visitor &_rov){
 	//static_cast<TestInspector&>(_roi).inspectTalker(*this);
 	return -1;
 }

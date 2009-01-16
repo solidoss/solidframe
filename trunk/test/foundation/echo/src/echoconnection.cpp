@@ -27,7 +27,7 @@
 #include "system/timespec.hpp"
 #include "system/cassert.hpp"
 
-namespace cs=foundation;
+namespace fdt=foundation;
 static char	*hellostr = "Welcome to echo service!!!\r\n"; 
 
 namespace test{
@@ -70,12 +70,12 @@ Connection::~Connection(){
 
 int Connection::execute(ulong _sig, TimeSpec &_tout){
 	idbg("time.sec "<<_tout.seconds()<<" time.nsec = "<<_tout.nanoSeconds());
-	if(_sig & (cs::TIMEOUT | cs::ERRDONE)){
+	if(_sig & (fdt::TIMEOUT | fdt::ERRDONE)){
 		idbg("connecton timeout or error");
 		if(state() == CONNECT_TOUT){
 			if(++it){
 				state(CONNECT);
-				return cs::UNREGISTER;
+				return fdt::UNREGISTER;
 			}
 		}
 		return BAD;
@@ -86,18 +86,18 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 		{
 		Mutex::Locker	lock(rs.mutex(*this));
 		ulong sm = grabSignalMask();
-		if(sm & cs::S_KILL) return BAD;
+		if(sm & fdt::S_KILL) return BAD;
 		}
 	}
 	if(socketEvents()){
-		if(socketEvents() == cs::ERRDONE){
+		if(socketEvents() == fdt::ERRDONE){
 			
 			return BAD;
 		}
 		if(state() == READ_TOUT){	
-			cassert(socketEvents() & cs::INDONE);
+			cassert(socketEvents() & fdt::INDONE);
 		}else if(state() == WRITE_TOUT){	
-			cassert(socketEvents() & cs::OUTDONE);
+			cassert(socketEvents() & fdt::OUTDONE);
 		}
 		
 	}
@@ -136,7 +136,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 						}
 						return BAD;
 					case OK:  state(INIT);break;
-					case NOK: state(CONNECT_TOUT); return cs::REGISTER;
+					case NOK: state(CONNECT_TOUT); return fdt::REGISTER;
 				};
 				break;
 			case CONNECT_TOUT:
@@ -155,7 +155,7 @@ int Connection::execute(){
 	return BAD;
 }
 
-int Connection::accept(cs::Visitor &_rov){
+int Connection::accept(fdt::Visitor &_rov){
 	//static_cast<TestInspector&>(_roi).inspectConnection(*this);
 	return -1;
 }
