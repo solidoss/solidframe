@@ -99,7 +99,7 @@ LogRecorder* LogBasicConnector::createRecorder(const LogClientData &_rcl){
 		buf,
 		"_%04u-%02u-%02u__%02u_%02u_%02u__%06u",
 		loctm.tm_year + 1900,
-		loctm.tm_mon, 
+		loctm.tm_mon + 1, 
 		loctm.tm_mday,
 		loctm.tm_hour,
 		loctm.tm_min,

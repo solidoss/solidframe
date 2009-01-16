@@ -41,7 +41,7 @@
 #include "alphaprotocolfilters.hpp"
 #include "audit/log.hpp"
 
-namespace cs=foundation;
+namespace fdt=foundation;
 static char	*hellostr = "Welcome to alpha service!!!\r\n"; 
 static char *sigstr = "Signaled!!!\r\n";
 
@@ -118,12 +118,12 @@ Connection::~Connection(){
 
 int Connection::execute(ulong _sig, TimeSpec &_tout){
 	test::Manager &rm = test::Manager::the();
-	cs::requestuidptr->set(this->id(), rm.uid(*this));
+	fdt::requestuidptr->set(this->id(), rm.uid(*this));
 	//_tout.add(2400);
-	if(_sig & (cs::TIMEOUT | cs::ERRDONE)){
+	if(_sig & (fdt::TIMEOUT | fdt::ERRDONE)){
 		if(state() == ConnectTout){
 			state(Connect);
-			return cs::UNREGISTER;
+			return fdt::UNREGISTER;
 		}else
 			idbg("timeout occured - destroy connection");
 			return BAD;
@@ -134,17 +134,17 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 		{
 			Mutex::Locker	lock(rm.mutex(*this));
 			sm = grabSignalMask(0);//grab all bits of the signal mask
-			if(sm & cs::S_KILL) return BAD;
-			if(sm & cs::S_CMD){//we have commands
+			if(sm & fdt::S_KILL) return BAD;
+			if(sm & fdt::S_CMD){//we have commands
 				grabCommands();//grab them
 			}
 		}
-		if(sm & cs::S_CMD){//we've grabed commands, execute them
+		if(sm & fdt::S_CMD){//we've grabed commands, execute them
 			switch(execCommands(*this)){
 				case BAD: 
 					return BAD;
 				case OK: //expected command received
-					_sig |= cs::OKDONE;
+					_sig |= fdt::OKDONE;
 				case NOK://unexpected command received
 					break;
 			}
@@ -152,10 +152,10 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 		//now we determine if we return with NOK or we continue
 		if(!_sig) return NOK;
 	}
-	if(socketEvents() & cs::ERRDONE){
+	if(socketEvents() & fdt::ERRDONE){
 		return BAD;
 	}
-// 	if(socketEvents() & cs::OUTDONE){
+// 	if(socketEvents() & fdt::OUTDONE){
 // 		switch(state()){
 // 			case IdleExecute:
 // 			case ExecuteTout:
@@ -272,7 +272,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			break;
 		case IdleExecute:
 			//idbg("IdleExecute");
-			if(socketEvents() & cs::OUTDONE){
+			if(socketEvents() & fdt::OUTDONE){
 				state(Execute);
 				return OK;
 			}return NOK;
@@ -289,14 +289,14 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			//delete(paddr); paddr = NULL;
 			break;
 		case ParseTout:
-			if(socketEvents() & cs::INDONE){
+			if(socketEvents() & fdt::INDONE){
 				state(Parse);
 				return OK;
 			}
 			return NOK;
 		case ExecuteIOTout:
 			idbg("State: ExecuteTout");
-			if(socketEvents() & cs::OUTDONE){
+			if(socketEvents() & fdt::OUTDONE){
 				state(Execute);
 				return OK;
 			}
@@ -563,7 +563,7 @@ int Connection::receiveError(
 }
 
 
-int Connection::accept(cs::Visitor &_rov){
+int Connection::accept(fdt::Visitor &_rov){
 	//static_cast<TestInspector&>(_roi).inspectConnection(*this);
 	return 0;
 }

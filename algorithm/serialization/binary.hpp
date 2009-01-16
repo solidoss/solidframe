@@ -79,8 +79,8 @@ enum {
 	String						strpth;<br>
 	int							err;<br>
 	uint32						tout;<br>
-	cs::ipc::ConnectorUid		conid;<br>
-	cs::ipc::CommandUid			cmduid;<br>
+	fdt::ipc::ConnectorUid		conid;<br>
+	fdt::ipc::CommandUid		cmduid;<br>
 	uint32						requid;<br>
 	ObjectUidTp					fromv;<br>
 	</code>

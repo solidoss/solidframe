@@ -41,7 +41,7 @@
 #include "tclap/CmdLine.h"
 
 
-namespace cs = foundation;
+namespace fdt = foundation;
 using namespace std;
 
 /*
@@ -352,7 +352,7 @@ int insertTalker(char *_pc, int _len,test::Manager &_rtm){
 		++_pc;
 	}
 	//TODO:
-// 	if(_rts.insertTalker(srvname.c_str(), cs::udp::Station::create(), node.c_str(), srv.c_str())){
+// 	if(_rts.insertTalker(srvname.c_str(), fdt::udp::Station::create(), node.c_str(), srv.c_str())){
 // 		cout<<"Failed adding talker"<<endl;
 // 	}
 	return 0;
@@ -384,7 +384,7 @@ int insertConnection(char *_pc, int _len,test::Manager &_rtm){
 		cout<<"Failed adding connection"<<endl;
 	}
 	//TODO:
-// 	if(_rts.insertConnection(srvname.c_str(), new cs::tcp::Channel, node.c_str(), srv.c_str())){
+// 	if(_rts.insertConnection(srvname.c_str(), new fdt::tcp::Channel, node.c_str(), srv.c_str())){
 // 		cout<<"Failed adding connection"<<endl;
 // 	}
 	return 0;

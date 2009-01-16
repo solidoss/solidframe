@@ -41,7 +41,7 @@
 #include "ipctalker.hpp"
 #include "processconnector.hpp"
 
-namespace cs = foundation;
+namespace fdt = foundation;
 
 namespace foundation{
 namespace ipc{
@@ -137,7 +137,7 @@ Talker::~Talker(){
 }
 //----------------------------------------------------------------------
 inline bool Talker::inDone(ulong _sig, const TimeSpec &_rts){
-	if(_sig & cs::INDONE){
+	if(_sig & fdt::INDONE){
 		//TODO: reject too smaller buffers
 		d.rcvbuf.bufferSize(socketRecvSize());
 		if(d.rcvbuf.check()){
@@ -179,10 +179,10 @@ void Talker::disconnectProcesses(){
 //----------------------------------------------------------------------
 int Talker::execute(ulong _sig, TimeSpec &_tout){
 	Manager &rm = Manager::the();
-// 	if(_sig & (cs::TIMEOUT | cs::ERRDONE)){
-// 		if(_sig & cs::TIMEOUT)
+// 	if(_sig & (fdt::TIMEOUT | fdt::ERRDONE)){
+// 		if(_sig & fdt::TIMEOUT)
 // 			idbgx(Dbg::ipc, "talker timeout");
-// 		if(_sig & cs::ERRDONE)
+// 		if(_sig & fdt::ERRDONE)
 // 			idbgx(Dbg::ipc, "talker error");
 // 		return BAD;
 // 	}
@@ -193,13 +193,13 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 			nothing = false;
 			Mutex::Locker	lock(rm.mutex(*this));
 			ulong sm = grabSignalMask(0);
-			if(sm & cs::S_KILL){
+			if(sm & fdt::S_KILL){
 				idbgx(Dbg::ipc, "intalker - dying");
 				return BAD;
 			}
 			idbgx(Dbg::ipc, "intalker - signaled");
-			if(sm == cs::S_RAISE){
-				_sig |= cs::SIGNALED;
+			if(sm == fdt::S_RAISE){
+				_sig |= fdt::SIGNALED;
 			}else{
 				idbgx(Dbg::ipc, "unknown signal");
 			}
@@ -289,7 +289,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 		}
 		DoneRecv:;
 	}
-	if(_sig & cs::OUTDONE){
+	if(_sig & fdt::OUTDONE){
 		nothing = false;
 		dispatchSentBuffer(_tout);
 	}

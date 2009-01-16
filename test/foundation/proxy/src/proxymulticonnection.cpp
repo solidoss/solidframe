@@ -27,7 +27,7 @@
 #include "system/mutex.hpp"
 #include "system/timespec.hpp"
 
-namespace cs=foundation;
+namespace fdt=foundation;
 static char	*hellostr = "Welcome to proxy service!!!\r\n"; 
 
 namespace test{
@@ -70,7 +70,7 @@ enum{
 	};
 int MultiConnection::execute(ulong _sig, TimeSpec &_tout){
 	idbg("time.sec "<<_tout.seconds()<<" time.nsec = "<<_tout.nanoSeconds());
-	if(_sig & (cs::TIMEOUT | cs::ERRDONE)){
+	if(_sig & (fdt::TIMEOUT | fdt::ERRDONE)){
 		idbg("connecton timeout or error");
 		return BAD;
 	}
@@ -79,7 +79,7 @@ int MultiConnection::execute(ulong _sig, TimeSpec &_tout){
 		{
 		Mutex::Locker	lock(rm.mutex(*this));
 		ulong sm = grabSignalMask();
-		if(sm & cs::S_KILL) return BAD;
+		if(sm & fdt::S_KILL) return BAD;
 		}
 	}
 	switch(state()){
@@ -113,7 +113,7 @@ int MultiConnection::execute(ulong _sig, TimeSpec &_tout){
 		case CONNECT_TOUT:{
 			idbgx(Dbg::tcp, "CONNECT_TOUT");
 			uint32 evs = socketEvents(1);
-			if(!evs || !(evs & cs::OUTDONE)) return BAD;
+			if(!evs || !(evs & fdt::OUTDONE)) return BAD;
 			
 			state(SEND_REMAINS);
 			}
@@ -184,7 +184,7 @@ int MultiConnection::doReadAddress(){
 }
 int MultiConnection::doProxy(const TimeSpec &_tout){
 	int retv = NOK;
-	if(socketEvents(0) & cs::ERRDONE || socketEvents(1) & cs::ERRDONE){
+	if(socketEvents(0) & fdt::ERRDONE || socketEvents(1) & fdt::ERRDONE){
 		idbg("bad errdone");
 		return BAD;
 	}
@@ -209,7 +209,7 @@ int MultiConnection::doProxy(const TimeSpec &_tout){
 			break;
 		case ReceiveWait:
 			idbg("receivewait 0");
-			if(socketEvents(0) & cs::INDONE){
+			if(socketEvents(0) & fdt::INDONE){
 				socketState(0, Send);
 			}else break;
 		case Send:
@@ -232,7 +232,7 @@ int MultiConnection::doProxy(const TimeSpec &_tout){
 			break;
 		case SendWait:
 			idbg("sendwait 0");
-			if(socketEvents(1) & cs::OUTDONE){
+			if(socketEvents(1) & fdt::OUTDONE){
 				socketState(0, Receive);
 			}
 			break;
@@ -259,7 +259,7 @@ int MultiConnection::doProxy(const TimeSpec &_tout){
 			break;
 		case ReceiveWait:
 			idbg("receivewait 1");
-			if(socketEvents(1) & cs::INDONE){
+			if(socketEvents(1) & fdt::INDONE){
 				socketState(1, Send);
 			}else break;
 		case Send:
@@ -282,7 +282,7 @@ int MultiConnection::doProxy(const TimeSpec &_tout){
 			break;
 		case SendWait:
 			idbg("sendwait 1");
-			if(socketEvents(0) & cs::OUTDONE){
+			if(socketEvents(0) & fdt::OUTDONE){
 				socketState(1, Receive);
 			}
 			break;
@@ -308,7 +308,7 @@ int MultiConnection::doRefill(){
 		}
 	}
 	if(be == NULL){
-		if(socketEvents(0) & cs::INDONE){
+		if(socketEvents(0) & fdt::INDONE){
 			be = stubs[0].recvbuf.data + socketRecvSize(0);
 		}else{
 			idbgx(Dbg::tcp, "NOK");
@@ -322,7 +322,7 @@ int MultiConnection::execute(){
 	return BAD;
 }
 
-int MultiConnection::accept(cs::Visitor &_rov){
+int MultiConnection::accept(fdt::Visitor &_rov){
 	return BAD;
 }
 }//namespace proxy
