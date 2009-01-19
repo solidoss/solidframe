@@ -22,7 +22,7 @@
 #ifndef UINLINES
 #define inline
 #else
-#include "clientserver/aio/src/aiosocket.hpp"
+#include "foundation/aio/src/aiosocket.hpp"
 #endif
 
 inline bool Socket::isSecure()const{

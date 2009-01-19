@@ -442,7 +442,7 @@ uint Selector::doAllIo(){
 	uint		stubpos;
 	uint		sockpos;
 	const uint	selcnt = d.selcnt;
-	for(int i = 0; i < selcnt; ++i){
+	for(uint i = 0; i < selcnt; ++i){
 		d.stub(stubpos, sockpos, d.events[i]);
 		if(stubpos){
 			cassert(stubpos < d.stubs.size());

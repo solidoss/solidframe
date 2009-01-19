@@ -26,25 +26,25 @@
 
 
 enum ObjectDefs{
-	SERVICEBITCNT = sizeof(ulong) == 4 ? 5 : 8,
-	INDEXBITCNT	= sizeof(ulong) * 8 - SERVICEBITCNT,
+	SERVICEBITCNT = sizeof(IndexTp) == 4 ? 5 : 8,
+	INDEXBITCNT	= sizeof(IndexTp) * 8 - SERVICEBITCNT,
 };
 
-inline void Object::getThread(uint &_rthid, uint &_rthpos){
+inline void Object::getThread(uint32 &_rthid, uint32 &_rthpos){
 	//which is better:
 	//new thread id and old pos, or
 	//new pos and old thread id
 	_rthpos = thrpos;
 	_rthid  = thrid;
 }
-inline void Object::setThread(uint _thrid, uint _thrpos){
+inline void Object::setThread(uint32 _thrid, uint32 _thrpos){
 	thrid  = _thrid;
 	thrpos = _thrpos;
 }
-inline ulong Object::computeIndex(ulong _fullid){
+inline IndexTp Object::computeIndex(IndexTp _fullid){
 	return _fullid & (MAX_ULONG >> SERVICEBITCNT);
 }
-inline ulong Object::computeServiceId(ulong _fullid){
+inline IndexTp Object::computeServiceId(IndexTp _fullid){
 	return _fullid >> INDEXBITCNT;
 }
 
@@ -53,22 +53,22 @@ inline ulong Object::grabSignalMask(ulong _leave){
 	smask = sm & _leave;
 	return sm;
 }
-inline uint Object::signaled(uint _s) const{
+inline ulong Object::signaled(ulong _s) const{
 	return smask & _s;
 }
-inline void Object::id(ulong _fullid){
+inline void Object::id(IndexTp _fullid){
 	fullid = _fullid;
 }
-inline void Object::id(ulong _srvid, ulong _ind){
+inline void Object::id(IndexTp _srvid, IndexTp _ind){
 	fullid = (_srvid << INDEXBITCNT) | _ind;
 }
 inline void Object::state(int _st){
 	crtstate = _st;//if state < 0 the object can be destroyed
 }
-inline uint Object::serviceid()const{
+inline IndexTp Object::serviceid()const{
 	return computeServiceId(fullid);
 }
-inline ulong Object::index()const{
+inline IndexTp Object::index()const{
 	return computeIndex(fullid);
 }
 

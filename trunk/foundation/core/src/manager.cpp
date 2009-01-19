@@ -215,7 +215,7 @@ void Manager::removeObject(Object *_po){
 	serviceContainer().remove(_po);
 }
 
-int Manager::signalObject(ulong _fullid, ulong _uid, ulong _sigmask){
+int Manager::signalObject(IndexTp _fullid, uint32 _uid, ulong _sigmask){
 	cassert(Object::computeServiceId(_fullid) < servicev.size());
 	return servicev[Object::computeServiceId(_fullid)]->signal(
 		_fullid,_uid,
@@ -228,7 +228,7 @@ int Manager::signalObject(Object &_robj, ulong _sigmask){
 	return servicev[_robj.serviceid()]->signal(_robj, *this, _sigmask);
 }
 
-int Manager::signalObject(ulong _fullid, ulong _uid, CmdPtr<Command> &_cmd){
+int Manager::signalObject(IndexTp _fullid, uint32 _uid, CmdPtr<Command> &_cmd){
 	cassert(Object::computeServiceId(_fullid) < servicev.size());
 	return servicev[Object::computeServiceId(_fullid)]->signal(
 		_fullid,_uid,
@@ -245,7 +245,7 @@ Mutex& Manager::mutex(Object &_robj)const{
 	return servicev[_robj.serviceid()]->mutex(_robj);
 }
 
-ulong  Manager::uid(Object &_robj)const{
+uint32  Manager::uid(Object &_robj)const{
 	return servicev[_robj.serviceid()]->uid(_robj);
 }
 
