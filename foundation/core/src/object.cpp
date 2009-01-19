@@ -83,7 +83,7 @@ void CmdPtrBase::use(Command *_pcmd){
 #include "object.ipp"
 #endif
 
-Object::Object(ulong _fullid):	fullid(_fullid), smask(0), 
+Object::Object(IndexTp _fullid):	fullid(_fullid), smask(0), 
 								thrid(0),thrpos(0),usecnt(0),crtstate(0){
 }
 
@@ -101,7 +101,7 @@ int Object::signal(CmdPtr<Command> &_cmd){
  * Returns true if the object must be executed.
  */
 
-int Object::signal(uint _smask){
+ulong Object::signal(ulong _smask){
 	ulong oldmask = smask;
 	smask |= _smask;
 	return (smask != oldmask) && signaled(S_RAISE);

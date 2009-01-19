@@ -73,12 +73,12 @@ public:
 	*/
 	int signal(Object &_robj, Manager &_rm, ulong _sigmask);
 	//! Signal an object with a signal mask
-	int signal(ulong _fullid, ulong _uid, Manager &_rm, ulong _sigmask);
+	int signal(IndexTp _fullid, uint32 _uid, Manager &_rm, ulong _sigmask);
 	
 	//! Signal an object with a command
 	int signal(Object &_robj, Manager &_rm, CmdPtr<Command> &_cmd);
 	//! Signal an object with a command
-	int signal(ulong _fullid, ulong _uid, Manager &_rm, CmdPtr<Command> &_cmd);
+	int signal(IndexTp _fullid, uint32 _uid, Manager &_rm, CmdPtr<Command> &_cmd);
 	
 	//! Signal all objects with a signal mask
 	void signalAll(Manager &_rm, ulong _sigmask);
@@ -94,7 +94,7 @@ public:
 	//! Get the mutex associated to an object
 	Mutex& mutex(Object &_robj);
 	//! Get the unique id associated to an object
-	ulong  uid(Object &_robj)const;
+	uint32  uid(Object &_robj)const;
 	
 	//! The service will keep a pointer to its associated mutex
 	void mutex(Mutex *_pmut);
@@ -110,24 +110,24 @@ public:
 protected:
 	typedef MutualObjectContainer<Mutex>	MutexContainer;
 	//! Insert an object.
-	int insert(Object &_robj, ulong _srvid);
+	int insert(Object &_robj, IndexTp _srvid);
 	//! Remove an object
 	void remove(Object &_robj);
 	//! Get an object mutex using objects unique id
-	Mutex& mutex(ulong _fullid, ulong _uid);
+	Mutex& mutex(IndexTp _fullid, uint32 _uid);
 	//! Get a pointer to an object using its unique id
 	/*!
 		The call may fail and it should be carefully called
 		from within Service's mutex lock.
 		
 	*/
-	Object* object(ulong _fullid, ulong _uid);
+	Object* object(IndexTp _fullid, uint32 _uid);
 	//! Signal all objects - the service's mutex must be locked from outside
 	void doSignalAll(Manager &_rm, ulong _sigmask);
 	//! Signal all objects - the service's mutex must be locked from outside
 	void doSignalAll(Manager &_rm, CmdPtr<Command> &_cmd);
 	//! Insert an object - the service's mutex must be locked from outside
-	int doInsert(Object &_robj, ulong _srvid);
+	int doInsert(Object &_robj, IndexTp _srvid);
 	//! Constructor - forwards the parameters to the MutualObjectContainer of mutexes
 	Service(int _objpermutbts = 6, int _mutrowsbts = 8, int _mutcolsbts = 8);
 	//Service(const Service &):state(Stopped),objv(*((ObjectVector*)NULL)),

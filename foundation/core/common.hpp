@@ -55,11 +55,35 @@ enum Events{
 enum Consts{
 	MAXTIMEOUT = (0xffffffff>>1)/1000
 };
+#if defined(__arch64__)
+//64 bit architectures
+#ifdef UINDEX32
+//32 bit indexes
+typedef uint32 IndexTp;
+#else
+//64 bit indexes
+typedef uint64 IndexTp;
+#endif
 
-typedef std::pair<ulong, uint32> ObjectUidTp;
-typedef std::pair<uint32, uint32> CommandUidTp;
-typedef std::pair<uint32, uint32> FileUidTp;
-typedef std::pair<uint32, uint32> RequestUidTp;
+#else
+
+//32 bit architectures
+#ifdef UINDEX64
+//64 bit indexes
+typedef uint64 IndexTp;
+#else
+//32 bit indexes
+typedef uint32 IndexTp;
+#endif
+
+
+#endif
+
+
+typedef std::pair<IndexTp, uint32> ObjectUidTp;
+typedef std::pair<IndexTp, uint32> CommandUidTp;
+typedef std::pair<IndexTp, uint32> FileUidTp;
+typedef std::pair<IndexTp, uint32> RequestUidTp;
 }
 
 #endif

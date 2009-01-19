@@ -103,7 +103,7 @@ void Log::Data::setModuleBit(const char *_pbeg, const char *_pend){
 	}else if(!strncasecmp(_pbeg, "ALL", _pend - _pbeg)){
 		bs.set();
 	}else for(NameVectorTp::const_iterator it(nv.begin()); it != nv.end(); ++it){
-		if(!strncasecmp(_pbeg, *it, _pend - _pbeg) && strlen(*it) == (_pend - _pbeg)){
+		if(!strncasecmp(_pbeg, *it, _pend - _pbeg) && (int)strlen(*it) == (_pend - _pbeg)){
 			bs.set(it - nv.begin());
 		}
 	}

@@ -251,7 +251,7 @@ int Socket::doSendPlain(){
 		case STATION://udp
 			if(sndlen && sndbuf){//NOTE: see the above note
 				int rv = sd.send(sndbuf, sndlen, d.psd->sndaddrpair);
-				if(rv != sndlen) return ERRDONE;
+				if(rv != (int)sndlen) return ERRDONE;
 				sndcnt += rv;
 				sndlen = 0;
 			}

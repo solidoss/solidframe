@@ -36,7 +36,7 @@
 
 namespace foundation{
 
-typedef std::pair<Object*, ulong>	ObjPairTp;
+typedef std::pair<Object*, uint32>	ObjPairTp;
 class ObjectVector:public std::deque<ObjPairTp>{};
 class IndexStack: public std::stack<ulong>{};
 
@@ -57,12 +57,12 @@ Service::~Service(){
 	delete &inds;
 }
 
-int Service::insert(Object &_robj, ulong _srvid){
+int Service::insert(Object &_robj, IndexTp _srvid){
 	Mutex::Locker lock(*mut);
 	return doInsert(_robj, _srvid);
 }
 
-int Service::doInsert(Object &_robj, ulong _srvid){
+int Service::doInsert(Object &_robj, IndexTp _srvid){
 	if(state() != Running) return BAD;
 	if(inds.size()){
 		{
@@ -103,7 +103,7 @@ void Service::remove(Object &_robj){
  * Be very carefull when using this function as you can raise/kill
  * other object than you might want.
  */
-int Service::signal(ulong _fullid, ulong _uid, Manager &_rm, ulong _sigmask){
+int Service::signal(IndexTp _fullid, uint32 _uid, Manager &_rm, ulong _sigmask){
 	ulong oidx(Object::computeIndex(_fullid));
 	if(oidx >= objv.size()) return BAD;
 	Mutex::Locker	lock(mutpool.object(oidx));
@@ -124,11 +124,11 @@ int Service::signal(Object &_robj, Manager &_rm, ulong _sigmask){
 	return OK;
 }
 
-Mutex& Service::mutex(ulong _fullid, ulong){
+Mutex& Service::mutex(IndexTp _fullid, uint32){
 	return mutpool.object(Object::computeIndex(_fullid));
 }
 
-Object* Service::object(ulong _fullid, ulong _uid){
+Object* Service::object(IndexTp _fullid, uint32 _uid){
 	ulong oidx(Object::computeIndex(_fullid));
 	if(oidx >= objv.size()) return NULL;
 	if(_uid != objv[oidx].second) return NULL;
@@ -143,7 +143,7 @@ int Service::signal(Object &_robj, Manager &_rm, CmdPtr<Command> &_cmd){
 	return OK;
 }
 
-int Service::signal(ulong _fullid, ulong _uid, Manager &_rm, CmdPtr<Command> &_cmd){
+int Service::signal(IndexTp _fullid, uint32 _uid, Manager &_rm, CmdPtr<Command> &_cmd){
 	ulong oidx(Object::computeIndex(_fullid));
 	if(oidx >= objv.size()) return BAD;
 	Mutex::Locker	lock(mutpool.object(oidx));
@@ -236,7 +236,7 @@ Mutex& Service::mutex(Object &_robj){
 	return mutpool.object(_robj.index());
 }
 
-ulong Service::uid(Object &_robj)const{
+uint32 Service::uid(Object &_robj)const{
 	return objv[_robj.index()].second;
 }
 

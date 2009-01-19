@@ -24,14 +24,6 @@
 
 #include "common.hpp"
 #include "cmdptr.hpp"
-//#define SERVICEBITCNT	3
-//#define SERVICEBITDPL	((sizeof(ulong) * 8) - SERVICEBITCNT)
-//#define SERVICEBITMSK	(1+2+4)
-//#define MASKBITCNT		3
-//#define MASKBITDPL		((sizeof(ulong) * 8) - SERVICEBITCNT - MASKBITCNT)
-//#define MASKBITMSK		(1+2+4)
-//#define INDEXMSK		(~((SERVICEBITMSK << SERVICEBITDPL) | (MASKBITMSK << MASKBITDPL)))
-
 class Mutex;
 struct TimeSpec;
 namespace foundation{
@@ -75,35 +67,35 @@ class Object{
 public:
 	typedef Command	CommandTp;
 	//! Extracts the object index within service from an objectid
-	static ulong computeIndex(ulong _fullid);
+	static IndexTp computeIndex(IndexTp _fullid);
 	//! Extracts the service id from an objectid
-	static ulong computeServiceId(ulong _fullid);
+	static IndexTp computeServiceId(IndexTp _fullid);
 	//! Constructor
-	Object(ulong _fullid = 0);
+	Object(IndexTp _fullid = 0);
 	
 	//getters:
 	//! Get the id of the parent service
-	uint serviceid()const;
+	IndexTp serviceid()const;
 	//! Get the index of the object within service from an objectid
-	ulong index()const;
+	IndexTp index()const;
 
 	//! Get the id of the object
-	ulong id()			const 	{return fullid;}
+	IndexTp id()			const 	{return fullid;}
 	
 	//! Gets the id of the thread the object resides in
-	void getThread(uint &_rthid, uint &_rthpos);
+	void getThread(uint32 &_rthid, uint32 &_rthpos);
 	//! Returns true if the object is signaled
-	uint signaled()			const 	{return smask;}
+	ulong signaled()			const 	{return smask;}
 	
-	uint signaled(uint _s)	const;
+	ulong signaled(ulong _s)	const;
 	
 	//setters:
 	//! Set the id
-	void id(ulong _fullid);
+	void id(IndexTp _fullid);
 	//! Set the id given the service id and index
-	void id(ulong _srvid, ulong _ind);
+	void id(IndexTp _srvid, IndexTp _ind);
 	//! Set the thread id
-	void setThread(uint _thrid, uint _thrpos);
+	void setThread(uint32 _thrid, uint32 _thrpos);
 	
 	//! Returns the state of the objec -a negative state means the object must be destroyed
 	int state()	const 	{return crtstate;}
@@ -111,7 +103,7 @@ public:
 	 * Returns true if the signal should raise the object ASAP
 	 * \param _smask The signal bitmask
 	 */
-	int signal(uint _smask);
+	ulong signal(ulong _smask);
 	//! Signal the object with a command
 	virtual int signal(CmdPtr<Command> &_cmd);
 	
@@ -149,7 +141,7 @@ protected:
 	//! Virtual destructor
 	virtual ~Object();//only objptr base can destroy an object
 private:
-	ulong			fullid;
+	IndexTp			fullid;
 	ulong			smask;
 	volatile uint32	thrid;//the current thread which (may) execute(s) the object
 	volatile uint32	thrpos;//

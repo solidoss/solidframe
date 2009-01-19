@@ -105,7 +105,7 @@ protected:
 	std::streamsize xsputn(const char* s, std::streamsize num);
 private:
 	bool flush(){
-		uint towrite = bpos - bbeg;
+		int towrite = bpos - bbeg;
 		bpos = bbeg;
 		if(d.write(bbeg, towrite) != towrite) return false;
 		return true;
@@ -130,7 +130,7 @@ std::streambuf::int_type DeviceOutBuffer::overflow(int_type c) {
 // virtual
 std::streamsize DeviceOutBuffer::xsputn(const char* s, std::streamsize num){
 	//we can safely put BUFF_FLUSH into the buffer
-	uint towrite = BUFF_CP - BUFF_FLUSH;
+	int towrite = BUFF_CP - BUFF_FLUSH;
 	if(towrite > num) towrite = num;
 	memcpy(bpos, s, towrite);
 	bpos += towrite;
@@ -213,7 +213,7 @@ void Dbg::Data::setBit(const char *_pbeg, const char *_pend){
 	}else if(!strncasecmp(_pbeg, "none", _pend - _pbeg)){
 		bs.reset();
 	}else for(NameVectorTp::const_iterator it(nv.begin()); it != nv.end(); ++it){
-		if(!strncasecmp(_pbeg, *it, _pend - _pbeg) && strlen(*it) == (_pend - _pbeg)){
+		if(!strncasecmp(_pbeg, *it, _pend - _pbeg) && (int)strlen(*it) == (_pend - _pbeg)){
 			bs.set(it - nv.begin());
 		}
 	}
@@ -432,7 +432,7 @@ std::ostream& Dbg::print(
 		loctm.tm_hour,
 		loctm.tm_min,
 		loctm.tm_sec,
-		ts_now.nanoSeconds()/1000000,
+		(uint)ts_now.nanoSeconds()/1000000,
 		d.nv[_module],
 		Thread::currentId()
 	);
