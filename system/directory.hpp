@@ -28,6 +28,7 @@ public:
 	static int create(const char *);
 	//! Erase a file
 	static int eraseFile(const char *);
+	static int renameFile(const char *_to, const char *_from);
 };
 
 #endif

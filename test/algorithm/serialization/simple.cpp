@@ -200,8 +200,7 @@ int main(int argc, char *argv[]){
 	Thread::init();
 #ifdef UDEBUG
 	{
-	string ds = argv[0] + 2;
-	Dbg::instance().init(ds, ds.c_str(), Dbg::AllLevels, "any");
+	Dbg::instance().init(NULL, Dbg::AllLevels, "any");
 	}
 #endif
 	cout<<"sizeof(map<int , string>::iterator): "<<sizeof(map<int , string>::iterator)<<endl;

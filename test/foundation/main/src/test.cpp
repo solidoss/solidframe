@@ -107,16 +107,31 @@ int main(int argc, char* argv[]){
 
 #ifdef UDEBUG
 	{
-	string s;
+	string dbgout;
 	if(p.dbg_addr.size() && p.dbg_port.size()){
-		Dbg::instance().init(s, p.dbg_addr.c_str(), p.dbg_port.c_str(), p.dbg_levels.c_str(), p.dbg_modules.c_str(),p.dbg_buffered);
+		Dbg::instance().init(
+			p.dbg_addr.c_str(),
+			p.dbg_port.c_str(),
+			p.dbg_levels.c_str(),
+			p.dbg_modules.c_str(),
+			p.dbg_buffered,
+			&dbgout
+		);
 	}else{
-		Dbg::instance().init(s, argv[0] + 2, p.dbg_levels.c_str(), p.dbg_modules.c_str(), p.dbg_buffered);
+		Dbg::instance().init(
+			*argv[0] == '.' ? argv[0] + 2 : argv[0],
+			p.dbg_levels.c_str(),
+			p.dbg_modules.c_str(),
+			p.dbg_buffered,
+			3,
+			1024 * 10,
+			&dbgout
+		);
 	}
-	cout<<"Debug file: "<<s<<endl;
-	s.clear();
-	Dbg::instance().moduleBits(s);
-	cout<<"Debug bits: "<<s<<endl;
+	cout<<"Debug output: "<<dbgout<<endl;
+	dbgout.clear();
+	Dbg::instance().moduleBits(dbgout);
+	cout<<"Debug levels: "<<dbgout<<endl;
 	}
 #endif
 	
