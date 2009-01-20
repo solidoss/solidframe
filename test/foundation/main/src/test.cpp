@@ -416,7 +416,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 		TCLAP::ValueArg<std::string> mdls("m","debug_modules","Debug logging modules",false,"","string");
 		TCLAP::ValueArg<std::string> da("a","debug_address","Debug server address",false,"","string");
 		TCLAP::ValueArg<std::string> dp("p","debug_port","Debug server ports",false,"","string");
-		TCLAP::SwitchArg dl("s","debug_buffered", "Debug buffered output", false, false);
+		TCLAP::SwitchArg dl("s","debug_buffered", "Debug buffered output", false);
 	
 	
 		cmd.add(port);

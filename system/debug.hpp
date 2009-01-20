@@ -28,6 +28,7 @@
 #define DEBUG_BITSET_SIZE 256
 #include <ostream>
 #include <string>
+#include "system/common.hpp"
 
 struct Dbg{
 	static const unsigned any;
