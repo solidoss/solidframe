@@ -114,8 +114,8 @@ int main(int argc, char* argv[]){
 	}
 #ifdef UDEBUG
 	string s;
-	Dbg::instance().init(s, NULL, "iew", "all", false);
-	cout<<"Debug file: "<<s<<endl;
+	Dbg::instance().init(NULL, "iew", "all", false, &s);
+	cout<<"Debug output: "<<s<<endl;
 	s.clear();
 	Dbg::instance().moduleBits(s);
 	cout<<"Debug bits: "<<s<<endl;

@@ -56,35 +56,40 @@ struct Dbg{
 	~Dbg();
 	
 	void init(
-		std::string &_file,
 		const char * _fname,
 		unsigned _lvlopt = 0,
 		const char *_modopt = 0,
-		bool _buffered = true
+		bool _buffered = true,
+		ulong _respincnt = 10,
+		ulong _respinsize = 1024 * 1024 * 1024,
+		std::string *_output = NULL
 	);
 	void init(
-		std::string &_file,
 		const char * _fname,
 		const char * _lvlopt = 0,
 		const char *_modopt = 0,
-		bool _buffered = true
+		bool _buffered = true,
+		ulong _respincnt = 10,
+		ulong _respinsize = 1024 * 1024 * 1024,
+		std::string *_output = NULL
 	);
 	void init(
-		std::string &_file,
 		const char * _addr,
 		const char * _port,
 		unsigned _lvlopt = 0,
 		const char *_modopt = 0,
-		bool _buffered = true
+		bool _buffered = true,
+		std::string *_output = NULL
 	);
 	void init(
-		std::string &_file,
 		const char * _addr,
 		const char * _port,
 		const char * _lvlopt = 0,
 		const char *_modopt = 0,
-		bool _buffered = true
+		bool _buffered = true,
+		std::string *_output = NULL
 	);
+	
 	void moduleBits(std::string &_ros);
 	void setAllModuleBits();
 	void resetAllModuleBits();

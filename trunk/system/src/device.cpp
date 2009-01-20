@@ -116,6 +116,9 @@ bool FileDevice::canRetryOpen()const{
 /*static*/ int Directory::eraseFile(const char *_path){
 	return unlink(_path);
 }
+/*static*/ int Directory::renameFile(const char *_to, const char *_from){
+	return ::rename(_from, _to);
+}
 
 //---- SocketDevice ---------------------------------
 SocketDevice::SocketDevice(const SocketDevice &_sd):Device(_sd){}
