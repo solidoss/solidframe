@@ -330,6 +330,9 @@ bool Dbg::Data::initFile(FileDevice &_rfd, uint32 _respincnt, uint64 _respinsz, 
 	string fpath;
 	filePath(fpath, 0, getpid(), path, name);
 	if(_rfd.create(fpath.c_str(), FileDevice::WO)) return false;
+	if(_poutput){
+		*_poutput = fpath;
+	}
 	return true;
 }
 
