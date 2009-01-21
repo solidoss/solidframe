@@ -1,4 +1,4 @@
-#summary SolidGround Overview
+#summary *SolidGround* Overview
 #labels overview
 
 = Introduction =
@@ -16,7 +16,7 @@ Well, no! You can use multi repository projects. Have a base repository containi
 
 Also, one can think of a mechanism of promoting code from "upper" repository to the base one.
 
-This is how the SolidGround framework is designed. It uses CMake as build system, it has libraries and groups of libraries to help write from simple to most sophisticated cross-platform C++ applications.
+This is how the *SolidGround* framework is designed. It uses CMake as build system, it has libraries and groups of libraries to help write from simple to most sophisticated cross-platform C++ applications.
 
 Its main goal is to allow writing powerful cross-platform server side distributed applications, but it can be used to easily write any kind of C++ application.
 
@@ -31,7 +31,7 @@ So what do we need for writing C++ applications:
 	* for distributed applications we need ways of passing commands from a process to another;
 	* we also might need an audit engine.
 
-SolidGround offers all this and more. It has a neat design, nice concepts like Pseudo Active Objects and a solid implementation. It has lots of test applications, including a central proof of concept server to test most of the offered concepts. Also there are some clients written to stress the proof of concept server for testing/profiling purposes.
+*SolidGround* offers all this and more. It has a neat design, nice concepts like Pseudo Active Objects and a solid implementation. It has lots of test applications, including a central proof of concept server to test most of the offered concepts. Also there are some clients written to stress the proof of concept server for testing/profiling purposes.
 
 Here are some of the nicest things it offers:
 
@@ -42,18 +42,18 @@ Here are some of the nicest things it offers:
 	* a very nice Inter Process Communication / Remote Procedure Call engine, which allow commands to be executed on a different process/machine and have the response returned back to the sender;
 	* a powerful asynchronous communication engine, TCP (plain and SSL) and UDP.
 
-Some words about the build system
+==Some words about the build system==
 
-The build system is based on CMake with a simple shell script to easily configure it. On *nix use ./build.sh on Windows build.bat. With this basic script, you can:
+The build system is based on CMake with a simple shell script to easily configure it. On '*'nix use ./build.sh on Windows build.bat. With this basic script, you can:
 	# prepare sub folders under build folder for different types of builds: debug, release, no-log, maintain;
 	# build the documentation (doxygen is needed).
 
 
-In the following paragraphs I will present all libraries and groups of libraries from SolidGround.
+In the following paragraphs I will present all libraries and groups of libraries from *SolidGround*.
 
 =The *"system"* library=
 
-It contains system wrappers for: `thread`, `mutex`, `condition`, `semaphore`, `timespec` (time in seconds and nanoseconds), `devices` (file descriptors: files, sockets), `socket addresses`, `thread specific data`. It also contains typedefs for basic types some framework wide used enums and a powerfull debug logging engine. The debug logging is deactivated on nolog and release builds. The threading and the debug engine need special initializations to be made at the start of your application:
+It contains system wrappers for: 'thread', 'mutex', 'condition', 'semaphore', 'timespec' (time in seconds and nanoseconds), 'devices' (file descriptors: files, sockets), 'socket addresses', 'thread specific data'. It also contains typedefs for basic types some framework wide used enums and a powerfull debug logging engine. The debug logging is deactivated on nolog and release builds. The threading and the debug engine need special initializations to be made at the start of your application:
 
 {{{
 Thread::init();
@@ -94,12 +94,12 @@ To initiate the debug logging to output either to a file, to stderr or to a sock
 Here is an example of how the debug log should be used:
 
 {{{
-	idbg("Built on SolidGround version "<<SG_MAJOR<<'.'<<SG_MINOR<<'.'<<SG_PATCH);
+	idbg("Built on *SolidGround* version "<<SG_MAJOR<<'.'<<SG_MINOR<<'.'<<SG_PATCH);
 }}}
 
 =The *"utility"* library=
 
-This library depends on *system* one and defines concepts like: `streams`, `threadpool` (workpool). It also contains some utility classes for concepts like: `stack`, `queue`, `list`. The interfaces resembles the stl ones but the implementation is twice faster. Another interesting utility class is `MutualObjectContainer` which can be used when having objects like mutexes shared by some other groups of objects from a container. To be more explicit here's the situation it is used:
+This library depends on *system* one and defines concepts like: 'streams', 'threadpool' (workpool). It also contains some utility classes for concepts like: 'stack', 'queue', 'list'. The interfaces resembles the stl ones but the implementation is twice faster. Another interesting utility class is 'MutualObjectContainer' which can be used when having objects like mutexes shared by some other groups of objects from a container. To be more explicit here's the situation it is used:
 	# we have a container of objects that must have associated mutexes and we need to limit the number of used mutexes;
 	# so we want that N objects to share the same mutex;
 	# we want at most M = Mc x Mr mutexes, where Mc is the number of mutexes allocated once (c from columns) and Mr is the number of rows.
@@ -111,7 +111,7 @@ When the index exceeds N x M the mutexes returned start again from 0x0, and a mu
 
 There are two libraries: *protocol* for implementing internet text protocols, and *serialization* for re-entrant serialization.
 
-As you've learned, in SolidGround the communication is asynchronous, so although it simplifies some things, it complicates a little the parsing of the data received on the communication channel and the built of the response. The "protocol" library helps with that: re-entrant parsing with error handling and re-entrant response builder. I've designed the protocol library having the experience of implementing the IMAP protocol so as you'll see from the foundation alpha test protocol which resembles IMAP, the library is quite easy to use. By re-entrant I mean, for example in case of parsing, that you don't have to feed the parser all the data, you give the parser the data you have, and it will inform you if it has finished parsing or if it needs more data.
+As you've learned, in *SolidGround* the communication is asynchronous, so although it simplifies some things, it complicates a little the parsing of the data received on the communication channel and the built of the response. The "protocol" library helps with that: re-entrant parsing with error handling and re-entrant response builder. I've designed the protocol library having the experience of implementing the IMAP protocol so as you'll see from the foundation alpha test protocol which resembles IMAP, the library is quite easy to use. By re-entrant I mean, for example in case of parsing, that you don't have to feed the parser all the data, you give the parser the data you have, and it will inform you if it has finished parsing or if it needs more data.
 
 Same thing with the *serialization* library. Although not as complete as let's say boost::serialization, it has the major advantage of being re-entrant. For the moment it only features binary serialization, written specifically for the IPC engine. It can serialize basic types, (abstract) objects as pointers and references, stl::containers of objects and of pointers, and, yes it can serialize streams (e.g. file streams) etc.
 When used with pointers to objects, great care must be taken.
@@ -166,7 +166,7 @@ Requesting a stream to a file from the file manager, will either return immediat
 
 It offers support for asynchronous TCP (plain and secured with SSL) and UDP IO. There are four libraries in group: *foundation_aio*, *foudation_aio_tcp*, *foundation_aio_udp*, *foundation_aio_openssl*.
 
-The *foundation_aio* library offers the `foundation::aio::Selector` (to be used with `foundation::SelectPool`) the active container for PAOs needing IO support. An object needing aio support, can have a single communication channel or multiple ones (e.g. for easy implementing proxies and chat rooms).
+The *foundation_aio* library offers the 'foundation::aio::Selector' (to be used with 'foundation::SelectPool') the active container for PAOs needing IO support. An object needing aio support, can have a single communication channel or multiple ones (e.g. for easy implementing proxies and chat rooms).
 
 The *foundation_aio_tcp* offers specialized interface for plain and secured TCP AIO - connections, multiconnections and listeners.
 The *foundation_aio_udp* offers specialized interface for plain UDP AIO - talkers and multitalkers.
@@ -181,4 +181,4 @@ The stress tests I've performed show the same io transfer speed as TCP.
 
 =Closing=
 
-In this page you've learned basic knowledge about SolidGround: what it is, what it offers, about its core concepts, about its libraries. Next you'll learn about how to compile and test the SolidGround test applications.
+In this page you've learned basic knowledge about *SolidGround*: what it is, what it offers, about its core concepts, about its libraries. Next you'll learn about how to compile and test the *SolidGround* test applications.
