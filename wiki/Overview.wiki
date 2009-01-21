@@ -166,7 +166,7 @@ Requesting a stream to a file from the file manager, will either return immediat
 
 It offers support for asynchronous TCP (plain and secured with SSL) and UDP IO. There are four libraries in group: *foundation_aio*, *foudation_aio_tcp*, *foundation_aio_udp*, *foundation_aio_openssl*.
 
-The *foundation_aio* library offers the _foundation::aio::Selector_ (to be used with _foundation::SelectPool_) the active container for PAOs needing IO support. An object needing aio support, can have a single communication channel or multiple ones (e.g. for easy implementing proxies and chat rooms).
+The *foundation_aio* library offers the _foundation::aio::Selector_ (to be used with _foundation::SelectPool_ ) the active container for PAOs needing IO support. An object needing aio support, can have a single communication channel or multiple ones (e.g. for easy implementing proxies and chat rooms).
 
 The *foundation_aio_tcp* offers specialized interface for plain and secured TCP AIO - connections, multiconnections and listeners.
 The *foundation_aio_udp* offers specialized interface for plain UDP AIO - talkers and multitalkers.
