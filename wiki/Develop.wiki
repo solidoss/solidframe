@@ -521,6 +521,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 }}}
 
 The idea is: the connection uses a rather simple state machine to asynchronously read and parse the input data using an alpha::Reader, building alpha::Command objects, execute those commands which in their turn, instruct the alpha::Writer to asynchronously build the output/command response. All commands are implemented in src/alphacommands.cpp.
+
 As you can see from alpha code, the connection not only deals with IO events but also with incoming commands (containing: filestreams from FileManager, data from remote hosts in case of remotelist or fetch commands). Notable is the way the connection deals with the incoming commands, the way it forwards the to the current alpha::Command object:
 
 {{{
