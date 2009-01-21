@@ -1,0 +1,185 @@
+#summary SolidGround Overview
+#labels overview
+
+= Introduction =
+
+However the size of a C++ project is, even from its early stages, it needs a powerfull framework to help build upon.
+
+By framework I mean:
+ 
+ * an easy to use, crossplatform build system;
+ * a powerfull set of libraries and concepts to help you design and write applications.
+ 
+More over, within a team there is allways diversity: one likes using Eclipse, another likes MS Visual Studio, others loves KDevelop. Modern build systems like CMake (www.cmake.org/) or SCons (www.scons.org) can generate project files for different IDEs. So we should use them, but how? What if you have two or more projects, what will you do? Copy paste the cmake/scons files and adapt them to the new project?
+
+Well, no! You can use multi repository projects. Have a base repository containing the main build system project files (e.g. the main CMakeLists.txt), some base libraries, have two empty folders (application and library) and have the build system look in any subfolder of those two. Within those folders you can checkout the code of different applications or libraries that are built upon this base framework, and they should integrate within the build system of the base.
+
+Also, one can think of a mechanism of promoting code from "upper" repository to the base one.
+
+This is how the SolidGround framework is designed. It uses CMake as build system, it has libraries and groups of libraries to help write from simple to most sophisticated cross-platform C++ applications.
+
+Its main goal is to allow writing powerfull cross-platform serverside distributed applications, but it can be used to easily write any kind of C++ application.
+
+So what do we need for writing C++ applications:
+	* an easy to extend build system;
+	* wrappers for different system concepts: threads, mutexes, conditions, sockets, socket addresses etc.;
+	* a debug log engine to log debug messages;
+	* then we might need more sophisticated concepts like thread pools;
+	* we might need serialization algorithms to allow easy packing/unpacking objects;
+	* we also might need some support for implementing text based internet protocols;
+	* for powerfull servers we need asynchronous signaling and communication (secure or plain);
+	* for distributed applications we need ways of passing commands from a process to another;
+	* we also might need an audit engine.
+
+SolidGround offers all this and more. It has a neat design, nice concepts like Pseudo Active Objects and a solid implementation. It has lots of test applications, including a central proof of concept server to test most of the offered concepts. Also there are some clients written to stress the proof of concept server for testing/profiling purposes.
+
+Here are some of the nicest things it offers:
+
+	* a nice re-entrant serialization engine allowing the use of fixed sized buffers to serialize objects of any size (one can even serialize files!) - see below for details;
+	* a nice text protocol re-entrant parser and response builder - to also be used with fixed sized buffers;
+	* a nice asynchronous signaling engine;
+	* a nice filemanager to allow nonconflicting access to files from within the same process. The file will be signaled to a requesting pseudo-active object when its request does not conflict with others (e.g. no writer while there are readers);
+	* a very nice Inter Process Communication / Remote Procedure Call engine, which allow commands to be executed on a different process/machine and have the response returned back to the sender;
+	* a powerfull asynchronous communication engine, TCP (plain and SSL) and UDP.
+
+Some words about the build system
+
+The build system is based on CMake with a simple shell script to easily configure it. On *nix use ./build.sh on Windows build.bat. With this basic script, you can:
+	# prepare subfolders under build folder for different types of builds: debug, release, no-log, maintain;
+	# build the documentation (doxygen is needed).
+
+
+In the folowing paragraphs I will present all libraries and groups of libraries from SolidGround.
+
+=The *"system"* library=
+
+It contains system wrappers for: thread, mutex, condition, semaphore, timespec (time in seconds and nanoseconds), devices (file descriptors: files, sockets), socket addresses, thread specific data. It also contains typedefs for basic types some framework wide used enums and a powerfull debug logging engine. The debug logging is deactivated on nolog and release builds. The threading and the debug engine need special initializations to be made at the start of your application:
+{{{
+Thread::init();
+}}}
+
+and for debugging, something like:
+
+{{{
+#ifdef UDEBUG
+	{
+	string dbgout;
+	if(p.dbg_addr.size() && p.dbg_port.size()){
+		Dbg::instance().init(
+			p.dbg_addr.c_str(),
+			p.dbg_port.c_str(),
+			p.dbg_levels.c_str(),
+			p.dbg_modules.c_str(),
+			p.dbg_buffered,
+			&dbgout
+		);
+	}else{
+		Dbg::instance().init(
+			*argv[0] == '.' ? argv[0] + 2 : argv[0],
+			p.dbg_levels.c_str(),
+			p.dbg_modules.c_str(),
+			p.dbg_buffered,
+			3,
+			1024 * 10,
+			&dbgout
+		);
+	}
+	cout<<"Debug output: "<<dbgout<<endl;
+#endif
+}}}
+
+To initiate the debug logging to output either to a file, to stderr or to a socket connected to a server(E.g. on *nix I use "nc -l" to view the debug log messages.)
+
+Here is an example of how the debug log should be used:
+
+{{{
+	idbg("Built on SolidGround version "<<SG_MAJOR<<'.'<<SG_MINOR<<'.'<<SG_PATCH);
+}}}
+
+=The *"utility"* library=
+
+This library depends on "system" one and defines concepts like: streams, threadpool (workpool). It also contains some utility classes for concepts like: stack, queue, list. The interfaces resembles the stl ones but the implementation is twice faster. Another interesting utility class is MutualObjectContainer which can be used when having objects like mutexes shared by some other groups of objects from a container. To be more explicit here's the situation it is used:
+	# we have a container of objects that must have associated mutexes and we need to limit the number of used mutexes;
+	# so we want that N objects to share the same mutex;
+	# we want at most M = Mc x Mr mutexes, where Mc is the number of mutexes allocated once (c from columns) and Mr is the number of rows.
+	# using the object index within the container, a mutex is given. 
+
+When the index exceeds N x M the mutexes returned start again from 0x0, and a mutex will guard more that N objects.
+
+=The *"algorithm"* library group=
+
+There are two libraries: "protocol" for implementing internet text protocols, and serialization for re-entrant serialization.
+
+As you've learned, in SolidGround the communication is asynchronous, so although it simplifies some things, it complicates a little the parsing of the data received on the communication channel and the built of the response. The "protocol" library helps with that: re-entrant parsing with error handling and re-entrant response builder. I've designed the protocol library having the experience of implementing the IMAP protocol so as you'll see from the foundation alpha test protocol which resembles IMAP, the library is quite easy to use. By re-entrant I mean, for example in case of parsing, that you don't have to feed the parser all the data, you give the parser the data you have, and it will inform you if it has finished parsing or if it needs more data.
+
+Same thing with the "serialization" library. Although not as complete as let's say boost::serialization, it has the major advantage of being re-entrant. For the moment it only features binary serialization, written specifically for the IPC engine. It can serialize basic types, (abstract) objects as pointers and references, stl::containers of objects and of pointers, and, yes it can serialize streams (e.g. file streams) etc.
+When used with pointers to objects, great care must be taken.
+
+=The *"audit"* library group=
+
+For now the only libraries implemented is for logging (audit_log audit_log_manager), the reporting library being planned for a future release.
+
+The audit_log library offers an interface for a log client. You initiate the log client, connecting it to a log manager and feed it log lines. The interface resembles the one of the debug engine. Here is an excerpt of initiating both the client and the server (usually these are not done within the same process):
+
+{{{
+	pipe(pairfd);
+	//the log manager init
+	audit::LogManager lm;
+	lm.start();
+	lm.insertChannel(new DeviceIOStream(pairfd[0], pairfd[1]));
+	lm.insertListener("localhost", "3333");
+	Directory::create("log");
+	lm.insertConnector(new audit::LogBasicConnector("log"));
+	
+	//the log client init
+	Log::instance().reinit(argv[0], 0, "ALL", new DeviceIOStream(pairfd[1],-1));
+}}}
+
+And here's an example of usage:
+
+{{{	
+	ilog(Log::any, 0, "some message "<<some_value<<" some words "<<another_value);
+}}}
+
+=The *"foundation"* library group==
+
+This is the central group of libraries of the framework. It defines most of its most powerfull concepts.
+The central concept is the *Pseudo-Active Object* (PAO), which is an object residing both within a static container (a Service) and an active pool (a thread pool). All services reside within Manager and are all PAOs too. The manager is used to signal the objects different signals and/or commands, or to visit the objects. The only way to access directly an object is through a visitor, in rest the only interaction is through signals and commands.
+
+Every object has an unique id which uniquely identifies the object in both space (indexed access) and time (one can safely send a signal or a command to a deleted object). This unique id has two parts, an index part to locate the object starting from the manager (contains the index of the service and the index within the service) and an unique number incremented on every release of a position within a service.
+
+The the role of active containers (SelectPools) is to keep objects and provide them with processor time on certain events like: signals, timeouts, io completion events.
+
+There are three foundation libraries and group of libraries: foundation_core, foundation_aio group and foundation_ipc.
+
+=The *"foundation_core"* library==
+
+It defines the main concepts: the base class for PAOs, the services, some basic thread pools and the manager. It also includes the file manager presented below.
+
+==The file manager==
+
+Suppose you have different objects (PAOs) needing to access a certain file. Some access modes are incompatible: one cannot write while there are readers, only a single writer at a time, and no readers while there are writers.
+Requesting a stream to a file from the file manager, will either return immediately with success and with the stream, or with failure or with pending when the requested stream conflicts with other existing stream(s). In the last case the filemanager will signal the stream to a PAO using a command. Also it might happen for filemanager to signal an error. The file manager also offers support for temporary files. For a very nice example of both the way it should be used and its power, see the test alpha fetch command, especially how the remote fetching is implemented (test/foundation/alpha/src/alphacommands.cpp).
+
+=The *"foundation_aio"* library group=
+
+It offers support for asynchronous TCP (plain and secured with SSL) and UDP IO. There are four libraries in group: *foundation_aio*, *foudation_aio_tcp*, *foundation_aio_udp*, *foundation_aio_openssl*.
+
+The foundation_aio library offers the foundation::aio::Selector (to be used with foundation::SelectPool) the active container for PAOs needing IO support. An object needing aio support, can have a single communication channel or multiple ones (e.g. for easy implementing proxies and chat rooms).
+
+The foundation_aio_tcp offers specialized interface for plain and secured TCP AIO - connections, multiconnections and listeners.
+The foundation_aio_udp offers specialized interface for plain UDP AIO - talkers and multitalkers.
+The foundation_aio_openssl is a wrapper for OpenSSL (www.openssl.org) library.
+
+=The *"foundation_ipc"* library=
+
+This library offers support for remote execution of commands. It uses UDP for communication and binary serialization for commands. It has keep-alive support in the sense that when sending a command which has to generate a response, the ipc module will periodically send keep alive data to detect peer disconnection and if the disconnection is detected, the PAO waiting for the response will be signaled with an error. This is usefull when waiting for a response, you cannot approximate how long will it take for the peer process to build that response, so you will only wait for the response or an error from the ipc module.
+It uses UDP and a talker (the aio UDP socket) is used for "talking" with multiple peer processes. More over because commands can be quite long (especially if they contain streams) the commands sent to a peer process are multiplexed: no more than N data buffers are sent continuously for a command, bigger commands being re-queued.
+Beacause the use of UDP, I had to add many of TCP capabilities like: in-order buffer receive, resending not-received buffers etc.
+The stress tests I've performed show the same io transfer speed as TCP.
+
+=Closing=
+
+In this page you've learned basic knowledge about SolidGround: what it is, what it offers, about its core concepts, about its libraries. Next you'll learn about how to compile and test the SolidGround test applications.
+
+
