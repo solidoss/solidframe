@@ -28,14 +28,13 @@ solidground/application $ svn co https://foobarsuite.googlecode.com/svn/trunk/ f
 
 So you'll have a repository copy of your application within `"solidground/application/foobar"`. With no files and no folders. Lets add some (we suppose the foobar contains: a client, a server and some test applications):
 
-	1. first you'll need to create the folders:
+	# first you'll need to create the folders:
 		{{{
 		application/foobar $ mkdir server && svn add server
 		application/foobar $ mkdir client && svn add client
 		application/foobar $ mkdir test && svn add test
 		}}}
-	
-	2. next you'll need the CMakeLists.txt file that will look in every foobar's subfolder:
+	# next you'll need the CMakeLists.txt file that will look in every foobar's subfolder:
 		{{{
 		application/foobar $ cat > CMakeLists.txt
 		add_subdirectory (server)
@@ -48,10 +47,8 @@ So you'll have a repository copy of your application within `"solidground/applic
 		application/foobar $ touch client/CMakeLists.txt
 		application/foobar $ touch test/CMakeLists.txt
 		}}}
-	
-	3. then you'll need to add the source files to every foobar subfolder, along with the CMakeLists.txt files.
-	
-	4. last you'll need to integrate "foobar" into *SolidGround*'s build system. This is done by running solidground/build.sh again:
+	# then you'll need to add the source files to every foobar subfolder, along with the CMakeLists.txt files.
+	# last you'll need to integrate "foobar" into *SolidGround*'s build system. This is done by running solidground/build.sh again:
 		{{{
 		solidground $ ./build.sh debug
 		}}}
@@ -576,6 +573,4 @@ Alpha protocol is a test protocol designed as a proof of concept (showing the wa
 This presentation is not complete, there is lot of code and I believe that sample code "speaks better". So don't hesitate browsing the sample code and the framework code.
 
 I'm sure that from this presentation you haven't learned to program with *SolidGround*, but I hope you've at least started to understand some of the design and what it offers. I also hope you've liked the design enough to have a better in-depth look at the code and maybe, just maybe start your own project to use *SolidGround*.
-
-
 
