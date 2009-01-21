@@ -1,0 +1,196 @@
+#summary Fetching and building the test suite
+
+=Introduction=
+
+First of all, I suppose you are on a linux box.
+
+You need to have the following installed: gcc-c++, boost, boost-devel, cmake and eventually subversion.
+(On a Fedora box, the following will suffice: 'yum install gcc-c++ boost boost-devel cmake subversion'.)
+
+If you are using svn to fetch the latest code you can do:
+
+{{{
+work $ svn checkout http://solidground.googlecode.com/svn/trunk/ solidground
+}}}
+
+else you can download the archive with source snapshot from:
+
+http://code.google.com/p/solidground/downloads/list
+
+then
+
+
+`work $ tar -xjf solidground-source-X.Y.Z.tar.bz2`
+
+so you'll have a folder with SolidGround source code.
+
+
+Next you need to get the latest SolidGround external libraries pack from:
+
+http://code.google.com/p/solidground/downloads/list.
+
+My advice is to use the following pattern:
+
+work $ mkdir sg_extern
+work $ cd sg_extern
+sg_extern $ cp ~/Download/solidground_extern_linux.tar.bz2 .
+sg_extern $ tar -xjf solidground_extern_linux.tar.bz2
+
+# build the external libraries:
+
+sg_extern $ cd linux/openssl
+openssl $ ./config
+openssl $ make
+
+#no need for 'make install'
+
+
+openssl $ cd ../../
+sg_extern $ cd ../solidground/extern
+extern $ ln -s ../../sg_extern/linux
+
+this way if you delete the solidground folder you don't delete the external libraries which in case of openssl takes quite a while to build.
+
+
+So, now you have all you need to start building the SolidGround test applications.
+
+Building the test applications
+
+To build the test applications you need to prepare the build folder. You can do this for different types of builds: release, debug, nolog, optimized, maintain.
+
+	* release - without debug messages, -03, with inlines, no assert
+	* debug - with debug messages, -g3, without inlines, with assert
+	* nolog - without debug messages, -g3, without inlines, with assert
+	* optimized - without debug messages, -O3 -g3, without inlines, with assert
+	* maintain - with debug messages, -O3 -g3, with inlines, with assert, all compile warnings active
+
+In the this workshop we'll use debug build but you can use any other build type.
+
+solidground $ ./build.sh debug
+
+Next lets build the proof of concept server:
+
+solidground $ cd build/debug/test/foundation/main
+main $ make
+
+If everything went right, the server should successfully build.
+
+Next lets build the clients:
+
+main $ cd ../../client
+client $ make
+
+The most relevant service of the test server is the alpha service. See below a presentation of the alpha protocol and the way to manually test it. For now we'll use the test clients.
+
+The most interesting test clients for alpha protocol are alphaclient_p and alphaclient_s. They are the same except that the first one uses plain connections while the second uses SSL connections.
+
+Before anything we'll need another test application:
+
+solidground $ cd build/debug/test/system/files
+files $ make
+
+# lets build some 100 files with sizes from 4K to 1M
+
+files $ ./create /tmp 4000 1000000 100 1
+
+Next we'll need two instances of the proof of concept server:
+
+in one terminal:
+solidground $ cd build/debug/test/foundation/main
+main $ ./test -b 1000
+
+in another terminal:
+solidground $ cd build/debug/test/foundation/main
+main $ ./test -b 2000
+
+in yet another terminal we should use the clients:
+
+solidground $ cd build/debug/test/client
+
+First let us use the plain client for local fetching on 10 threads:
+client $ time ./alphaclient_p 10 localhost 1114 /tmp/00000001 5 2
+
+Next lets use it for remote fetching using the second test application instance as peer:
+
+client $ time ./alphaclient_p 10 localhost 1114 /tmp/00000001 5 2 localhost 2222
+
+Now lets use the alphaclient_s for SSL connections:
+
+client $ time ./alphaclient_s 10 localhost 1124 /tmp/00000001 5 2
+client $ time ./alphaclient_p 10 localhost 1124 /tmp/00000001 5 2 localhost 2222
+
+Note the change of port from 1114 to 1124.
+
+Here is roughly what the client does on every connection it opens to the server:
+
+	1) get or remote get the list of files from folder /tmp (list or remotelist commands)
+	2) for every file in the list it issues a fetch / remote fetch to read the file (fetch command)
+	3) it does the previous step twice with 5 milliseconds sleep between commands
+	
+The ALPHA protocol
+
+The alpha protocol resembles somehow IMAP and has few commands of real interest:
+list, remotelist, store, fetch
+
+ALPHA LIST command
+
+tag list "/absolute/path"
+
+Lists all items from '/absolute/path' specifying if they are files or folder, for files the size is also printed.
+
+ALPHA REMOTELIST command
+
+tag remotelist /absolute/path/on/peer peer_addr peer_ipc_base_port
+
+e.g.: aa remotelist "/tmp" localhost 2222
+
+Here's what will happen behind the curtain:
+	- a command is created and sent to peer process.
+	- there it is executed and it fetches all items under the requested path
+	- it returns to the issuer process with a response containing the list of items
+	- here the list is written on the connection.
+
+ALPHA FETCH command
+
+tag fetch "/absolute/path" [peer_addr peer_ipc_base_port]
+
+It has two forms:
+
+A local fetch form
+
+aa fetch "/tmp/00000001/00000006.txt"
+
+Which does:
+	- request a istream from filemanager for input file
+	- when the stream is received, it writes all stream data on connection
+
+And a remote fetch form:
+
+aa fetch "/tmp/00000001/00000006.txt" localhost 2222
+
+Which does:
+- Request from filemanager an iostream for a temp file
+- when received the stream, it issues a masterfetchcommand to the peer
+- on the peer the master fetch command requests an istream to the requested file from filemanager
+- when received the stream the masterfetchcommand sends the issuer process a response containing the size of the stream and at most the first 1MB of file data, which on deserialization on issuer process is written on the temporary file
+- if there is data on the file not sent to the issuer, the masterfetch command waits for slavefetchcommands
+- then the connection, if there is still file data to request from peer, it creates a slavefetchcommand for the next 1MB of file data which will be written at the end of the temp file.
+- also the connection starts sending to the client the file data from the temp file.
+- continue with the previous 3 steps until all file data is sent to the client, using rotationally
+first MB of temp file to send data to the client and the second MB to receive data from peer, then the first MB to receive data from peer and the second MB to send to the client.
+
+As you'll see, the performance decreases on remote fetch at half of that of the local fetch.
+
+Closing
+
+In this page you've learned how to have a working copy of the SolidGround framework, and learned somethings about its test applications, especially the proof of concept server. You've also learned how to do a small performance test. There you have it, now brace yourself for the interesting part - start using the framework for development.
+
+
+
+
+
+
+
+
+
+
