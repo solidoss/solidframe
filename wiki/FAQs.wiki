@@ -1,0 +1,24 @@
+#summary Some Frequently Asked Questions
+#labels faqs
+
+----
+*Q:* Who should use SolidGround?
+
+*R:* C++ developers for either their own projects and/or for company projects. Companies implementing C++ solutions. Please have a look at the last question too.
+----
+*Q:* What kind of projects should use SolidGround?
+
+*R:* I believe any kind of project can benefit from what SolidGround offers, but frankly I've designed it for  asynchronous, distributed internet servers of: mail, HTTP, radio/video internet broadcasting etc.
+----
+*Q:* Is SolidGround perfect?
+
+*R:* NO it is not! It is usable, quite powerfull, but certainly it has some rough edges which I believe will disappear through usage in projects.
+----
+*Q:* What are SolidGround's most valuable assets?
+
+*R:* Its simple asynchronous design; The powerfull asynchronous socket IO engine; The powerfull IPC/RPC engine.
+----
+*Q:* Does SolidGround have a Commercial license?
+
+*R:* Please contact me over email for this matter.
+----
