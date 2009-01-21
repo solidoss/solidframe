@@ -30,7 +30,7 @@ namespace aio{
 
 class Socket;
 class Selector;
-//! aio::Object is the base class for all objects doing asynchronous socket io
+//! aio::Object is the base class for all classes doing asynchronous socket io
 /*!
 	Although it can be inherited directly, one should use the extended
 	classes from aio::tcp and aio::udp. It is designed together with
@@ -39,6 +39,7 @@ class Selector;
 	as actual support for single/multiple sockets must came from upper levels,
 	i.e. inheritants - see aio::tcp::Connection, aio::tcp::MultiConnection and/or
 	aio::udp::Talker, aio::udp::MultiTalker.
+	
 */
 class Object: public foundation::Object{
 public:

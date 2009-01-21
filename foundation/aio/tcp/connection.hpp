@@ -34,11 +34,18 @@ namespace aio{
 class SecureSocket;
 
 namespace tcp{
-//! A simple Connection object optimized for single channel tcp communication
+//! A class for single socket asynchronous TCP communication
 /*!
 	Lots of protocols (like IMAP, SMTP, POP etc) use single separate connections.
 	The aio::tcp::Connection should be used for implementing this kind of protocols.
-	It avoids an extra allocation used in case of MultiConnections.
+	It avoids an extra allocation used in case of MultiConnections.<br>
+	If you implement a proxy protocol, or something that need two or more
+	connections to pass data to eachother consider using aio::MultiConnection
+	All methods marked as asynchronous have three return values:<br>
+	- BAD (-1) for unrecoverable error like socket connection closed;<br>
+	- NOK (1) opperation is pending for completion within aio::Selector;<br>
+	- OK (0) opperation completed successfully.<br>
+	
 */
 class Connection: public Object{
 public:
@@ -53,7 +60,7 @@ public:
 	~Connection();
 	//! Returs true if the socket is ok
 	bool socketOk()const;
-	//! Initiate an asynchronous connect
+	//! Asynchronous connect
 	/*!
 		\param _rai An AddrInfo iterator holding the destination address.
 		\retval _ OK when opperation completed right away, BAD when something 
@@ -62,17 +69,9 @@ public:
 	int socketConnect(const AddrInfoIterator& _rai);
 	//! Returns true if the socket is secure - SSL
 	bool socketIsSecure()const;
-	//! Initiate an asynchronous send
-	/*!
-		\retval _ OK when opperation completed right away, BAD when something 
-		bad happened, NOK when needing to wait for completion.
-	*/
+	//! Asynchronous send
 	int socketSend(const char* _pb, uint32 _bl, uint32 _flags = 0);
-	//! Initiate an asynchronous receive
-	/*!
-		\retval _ OK when opperation completed right away, BAD when something 
-		bad happened, NOK when needing to wait for completion.
-	*/
+	//! Asynchronous receive
 	int socketRecv(char *_pb, uint32 _bl, uint32 _flags = 0);
 	//! Get the size of the received data
 	/*!
@@ -83,9 +82,9 @@ public:
 	const uint64& socketSendCount()const;
 	//! The ammount of data received
 	const uint64& socketRecvCount()const;
-	//! Return true if it already waiting for a receive completion
+	//! Return true if the socket is already waiting for a send completion
 	bool socketHasPendingSend()const;
-	//! Return true if it already waiting for a send completion
+	//! Return true if the socket is already waiting for a receive completion
 	bool socketHasPendingRecv()const;
 	//! Get the local address of the socket
 	int socketLocalAddress(SocketAddress &_rsa)const;
@@ -105,24 +104,30 @@ public:
 	int socketCreate4();
 	//! Create a socket for ipv6 - use connect after
 	int socketCreate6();
-	//! Create a socket given a address
+	//! Create a socket given an address
 	int socketCreate(const AddrInfoIterator&);
-	//! Request for registering the socket to the aio::Selector
+	//! Request for registering the socket onto the aio::Selector
 	void socketRequestRegister();
-	//! Request for registering the socket to the aio::Selector
+	//! Request for unregistering the socket onto the aio::Selector
 	/*!
 		The sockets are automatically unregistered and erased
 		on object destruction.
 	*/
 	void socketRequestUnregister();
 	
+	//! Gets the state associated to the socket
 	int socketState()const;
+	//! Sets the state associated to the socket
 	void socketState(int _st);
 	
+	//! Gets the secure socket associated to socket
 	SecureSocket* socketSecureSocket();
+	//! Sets the secure socket associated to the socket
 	void socketSecureSocket(SecureSocket *_pss);
 	
+	//! Asynchronous secure accept
 	int socketSecureAccept();
+	//! Asynchronous secure connect
 	int socketSecureConnect();
 private:
 	SocketStub	stub;

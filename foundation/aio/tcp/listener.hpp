@@ -32,23 +32,43 @@ namespace foundation{
 namespace aio{
 
 namespace tcp{
-
+//! A class for asynchronous listening and accepting incomming TCP connections
+/*!
+	Inherit this class in your server to have support for accepting incomming
+	TCP connections.<br>
+	All methods marked as asynchronous have three return values:<br>
+	- BAD (-1) for unrecoverable error like socket connection closed;<br>
+	- NOK (1) opperation is pending for completion within aio::Selector;<br>
+	- OK (0) opperation completed successfully.<br>
+*/
 class Listener: public Object{
 public:
+	//! Constructor with an aio::Socket
 	Listener(Socket *_psock = NULL);
+	//! Constructor with a SocketDevice
 	Listener(const SocketDevice &_rsd);
-	
+	//! Returns true if the socket descriptor/handle is valid
 	bool socketOk()const;
-	
+	//! Asynchronous accept an incomming connection
 	int socketAccept(SocketDevice &_rsd);
 	
+	//! Erase the associated aio::Socket
 	void socketErase();
+	//! Set the associated aio::Socket given the aio::Socket
 	uint socketSet(Socket *_psock);
+	//! Set the associated aio::Socket given the SocketDevice
 	uint socketSet(const SocketDevice &_rsd);
+	//! Request for registering the socket onto the aio::Selector
 	void socketRequestRegister();
+	//! Request for registering the socket onto the aio::Selector
+	/*!
+		The sockets are automatically unregistered and erased
+		on object destruction.
+	*/
 	void socketRequestUnregister();
-	
+	//! Get the socket state
 	int socketState()const;
+	//! Set the socket state
 	void socketState(int _st);
 private:
 	SocketStub	stub;
