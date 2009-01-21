@@ -99,7 +99,7 @@ Here is an example of how the debug log should be used:
 
 =The *"utility"* library=
 
-This library depends on *system* one and defines concepts like: _streams_, _threadpool_ (workpool). It also contains some utility classes for concepts like: _stack_, _queue_, _list_. The interfaces resembles the stl ones but the implementation is twice faster. Another interesting utility class is _MutualObjectContainer_ which can be used when having objects like mutexes shared by some other groups of objects from a container. To be more explicit here's the situation it is used:
+This library depends on *system* one and defines concepts like: _streams_, _threadpool_ (workpool). It also contains some utility classes for concepts like: _stack_, _queue_, _list_. The interfaces resembles the stl ones but the implementation is twice faster. Another interesting utility class is MutualObjectContainer which can be used when having objects like mutexes shared by some other groups of objects from a container. To be more explicit here's the situation it is used:
 	# we have a container of objects that must have associated mutexes and we need to limit the number of used mutexes;
 	# so we want that N objects to share the same mutex;
 	# we want at most M = Mc x Mr mutexes, where Mc is the number of mutexes allocated once (c from columns) and Mr is the number of rows.
@@ -166,7 +166,7 @@ Requesting a stream to a file from the file manager, will either return immediat
 
 It offers support for asynchronous TCP (plain and secured with SSL) and UDP IO. There are four libraries in group: *foundation_aio*, *foudation_aio_tcp*, *foundation_aio_udp*, *foundation_aio_openssl*.
 
-The *foundation_aio* library offers the _foundation::aio::Selector_ (to be used with _foundation::SelectPool_ ) the active container for PAOs needing IO support. An object needing aio support, can have a single communication channel or multiple ones (e.g. for easy implementing proxies and chat rooms).
+The *foundation_aio* library offers the _foundation_::_aio_::_Selector_ (to be used with foundation::SelectPool ) the active container for PAOs needing IO support. An object needing aio support, can have a single communication channel or multiple ones (e.g. for easy implementing proxies and chat rooms).
 
 The *foundation_aio_tcp* offers specialized interface for plain and secured TCP AIO - connections, multiconnections and listeners.
 The *foundation_aio_udp* offers specialized interface for plain UDP AIO - talkers and multitalkers.
