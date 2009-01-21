@@ -10,7 +10,7 @@ By framework I mean:
  * an easy to use, cross platform build system;
  * a powerful set of libraries and concepts to help you design and write applications.
  
-More over, within a team there is always diversity: one likes using Eclipse, another likes MS Visual Studio, others loves KDevelop. Modern build systems like *CMake* (www.cmake.org/) or *SCons* (www.scons.org) can generate project files for different IDEs. So we should use them, but how? What if you have two or more projects, what will you do? Copy paste the CMake/SCons files and adapt them to the new project?
+More over, within a team there is always diversity: one likes using Eclipse, another likes MS Visual Studio, others loves KDevelop. Modern build systems like *CMake* (http://www.cmake.org/) or *SCons* (http://www.scons.org) can generate project files for different IDEs. So we should use them, but how? What if you have two or more projects, what will you do? Copy paste the CMake/SCons files and adapt them to the new project?
 
 Well, no! You can use multi repository projects. Have a base repository containing the main build system project files (e.g. the main CMakeLists.txt), some base libraries, have two empty folders (application and library) and have the build system look in any sub folder of those two. Within those folders you can checkout the code of different applications or libraries that are built upon this base framework, and they should integrate within the build system of the base.
 
@@ -170,7 +170,7 @@ The *foundation_aio* library offers the _foundation::aio::Selector_ (to be used 
 
 The *foundation_aio_tcp* offers specialized interface for plain and secured TCP AIO - connections, multiconnections and listeners.
 The *foundation_aio_udp* offers specialized interface for plain UDP AIO - talkers and multitalkers.
-The *foundation_aio_openssl* is a wrapper for OpenSSL (www.openssl.org) library.
+The *foundation_aio_openssl* is a wrapper for OpenSSL (http://www.openssl.org) library.
 
 ==The *"foundation_ipc"* library==
 
