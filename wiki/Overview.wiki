@@ -100,6 +100,7 @@ Here is an example of how the debug log should be used:
 =The *"utility"* library=
 
 This library depends on *system* one and defines concepts like: _streams_, _threadpool_ (workpool). It also contains some utility classes for concepts like: _stack_, _queue_, _list_. The interfaces resembles the stl ones but the implementation is twice faster. Another interesting utility class is MutualObjectContainer which can be used when having objects like mutexes shared by some other groups of objects from a container. To be more explicit here's the situation it is used:
+	
 	# we have a container of objects that must have associated mutexes and we need to limit the number of used mutexes;
 	# so we want that N objects to share the same mutex;
 	# we want at most M = Mc x Mr mutexes, where Mc is the number of mutexes allocated once (c from columns) and Mr is the number of rows.
@@ -160,7 +161,10 @@ It defines the main concepts: the base class for PAOs, the services, some basic 
 ===The file manager===
 
 Suppose you have different objects (PAOs) needing to access a certain file. Some access modes are incompatible: one cannot write while there are readers, only a single writer at a time, and no readers while there are writers.
-Requesting a stream to a file from the file manager, will either return immediately with success and with the stream, or with failure or with pending when the requested stream conflicts with other existing stream(s). In the last case the filemanager will signal the stream to a PAO using a command. Also it might happen for filemanager to signal an error. The file manager also offers support for temporary files. For a very nice example of both the way it should be used and its power, see the test alpha fetch command, especially how the remote fetching is implemented (test/foundation/alpha/src/alphacommands.cpp).
+
+Requesting a stream to a file from the file manager, will either return immediately with success and with the stream, or with failure or with pending when the requested stream conflicts with other existing stream(s). In the last case the filemanager will signal the stream to a PAO using a command. Also it might happen for filemanager to signal an error.
+
+The file manager also offers support for temporary files. For a very nice example of both the way it should be used and its power, see the test alpha fetch command, especially how the remote fetching is implemented (test/foundation/alpha/src/alphacommands.cpp).
 
 ==The *"foundation_aio"* library group==
 
@@ -169,14 +173,18 @@ It offers support for asynchronous TCP (plain and secured with SSL) and UDP IO. 
 The *foundation_aio* library offers the _foundation_::_aio_::_Selector_ (to be used with foundation::SelectPool ) the active container for PAOs needing IO support. An object needing aio support, can have a single communication channel or multiple ones (e.g. for easy implementing proxies and chat rooms).
 
 The *foundation_aio_tcp* offers specialized interface for plain and secured TCP AIO - connections, multiconnections and listeners.
+
 The *foundation_aio_udp* offers specialized interface for plain UDP AIO - talkers and multitalkers.
+
 The *foundation_aio_openssl* is a wrapper for OpenSSL (http://www.openssl.org) library.
 
 ==The *"foundation_ipc"* library==
 
 This library offers support for remote execution of commands. It uses UDP for communication and binary serialization for commands. It has keep-alive support in the sense that when sending a command which has to generate a response, the IPC module will periodically send keep alive data to detect peer disconnection and if the disconnection is detected, the PAO waiting for the response will be signaled with an error. This is useful when waiting for a response, you cannot approximate how long will it take for the peer process to build that response, so you will only wait for the response or an error from the ipc module.
+
 It uses UDP and a talker (the aio UDP socket) is used for "talking" with multiple peer processes. More over because commands can be quite long (especially if they contain streams) the commands sent to a peer process are multiplexed: no more than N data buffers are sent continuously for a command, bigger commands being re-queued.
 Because the use of UDP, I had to add many of TCP capabilities like: in-order buffer receive, resending not-received buffers etc.
+
 The stress tests I've performed show the same io transfer speed as TCP.
 
 =Closing=
