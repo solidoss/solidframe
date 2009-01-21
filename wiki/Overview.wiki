@@ -44,7 +44,7 @@ Here are some of the nicest things it offers:
 
 ==Some words about the build system==
 
-The build system is based on CMake with a simple shell script to easily configure it. On '*'nix use ./build.sh on Windows build.bat. With this basic script, you can:
+The build system is based on CMake with a simple shell script to easily configure it. On **nix use ./build.sh on Windows build.bat. With this basic script, you can:
 	# prepare sub folders under build folder for different types of builds: debug, release, no-log, maintain;
 	# build the documentation (doxygen is needed).
 
