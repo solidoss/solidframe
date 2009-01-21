@@ -64,7 +64,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]);
 int initOutput(ofstream &_os, const Params &_p, int _cnt);
 bool addFile(ofstream &_os, const Params &_par, const string &_s);
 int sendOutput();
-int doneOutput();
+int doneOutput(ofstream &_os);
 
 int main(int argc, char *argv[]){
 	Params	p;
@@ -85,7 +85,7 @@ int main(int argc, char *argv[]){
 	while(it != end){
 		if(addFile(tmpf, p, it->string())){
 			//done with the output
-			doneOutput();
+			doneOutput(tmpf);
 			sendOutput();
 			++count;
 			added = 0;
@@ -96,12 +96,12 @@ int main(int argc, char *argv[]){
 		++it; 
 	}
 	cout<<"done"<<endl;
-	tmpf.flush();
-	tmpf.close();
 	if(added){
-		doneOutput();
+		doneOutput(tmpf);
+		tmpf.flush();
 		sendOutput();
 	}
+	tmpf.close();
 	return 0;
 }
 
@@ -144,25 +144,34 @@ int initOutput(ofstream &_os, const Params &_p, int _cnt){
 	_os.close();
 	_os.clear();
 	_os.open("tmp.eml");
-	cout<<"is open tem = "<<_os.is_open()<<endl;
-	_os<<"Message-ID: <494B91F6.3050006@localhost>\r\n";
-	_os<<"Date: Fri, 19 Dec 2008 14:22:14 +0200\r\n";
-	_os<<"From: Valentin Palade <vpalade@localhost>\r\n";
-	_os<<"X-Mozilla-Draft-Info: internal/draft; vcard=0; receipt=0; uuencode=0\r\n";
-	_os<<"User-Agent: Thunderbird 2.0.0.14 (X11/20080501)\r\n";
-	_os<<"MIME-Version: 1.0\r\n";
-	_os<<"To: vipalade@yahoo.com\r\n";
-	_os<<"Subject: pictures\r\n";
-	_os<<"Content-Type: multipart/mixed;\r\n";
- 	_os<<"boundary=\"------------090007060609050203080902\"\r\n";
-	_os<<"\r\n";
-	_os<<"This is a multi-part message in MIME format.\r\n";
-	_os<<"--------------090007060609050203080902\r\n";
-	_os<<"Content-Type: text/plain; charset=ISO-8859-1\r\n";
-	_os<<"Content-Transfer-Encoding: 7bit\r\n";
+	cout<<"is open temp = "<<_os.is_open()<<endl;
+	
+	_os<<"To: \"vipalade@yahoo.com\"\n";
+	_os<<"Subject: some subject\n";
+	_os<<"Date: Wed, 21 Jan 2009 19:10:10 +0200\n";
+	_os<<"MIME-Version: 1.0\n";
+	_os<<"Content-Type: multipart/mixed;\n";
+	_os<<"\tboundary=\"----=_NextPart_000_0007_01C97BFB.E8916420\"\n";
+	_os<<"X-Priority: 3\n";
+	_os<<"X-MSMail-Priority: Normal\n";
+	_os<<"X-Unsent: 1\n";
+	_os<<"X-MimeOLE: Produced By Microsoft MimeOLE V6.00.2900.3138\n";
+	_os<<"\n";
+	_os<<"This is a multi-part message in MIME format.\n";
+	_os<<"\n";
+	_os<<"------=_NextPart_000_0007_01C97BFB.E8916420\n";
+	_os<<"Content-Type: multipart/alternative;\n";
+    _os<<"\tboundary=\"----=_NextPart_001_0008_01C97BFB.E8916420\"\n";
+	_os<<"\n";
+	_os<<"\n";
+	_os<<"------=_NextPart_001_0008_01C97BFB.E8916420\n";
+	_os<<"Content-Type: text/plain;\n";
+	_os<<"\tcharset=\"iso-8859-1\"\n";
+	_os<<"Content-Transfer-Encoding: quoted-printable\n";
+	_os<<"\n";
+	_os<<"some text\n\n";
+	_os<<"------=_NextPart_001_0008_01C97BFB.E8916420--\n";
 
-	_os<<"some text\r\n";
-	_os<<"--------------090007060609050203080902\r\n";
 	return 0;
 }
 
@@ -203,17 +212,19 @@ bool addFile(ofstream &_os, const Params &_p, const string &_s){
 	else ++name;
 	string ctp;
 	contentType(ctp, _s);
-	_os<<"Content-Type: "<<ctp<<";\r\n";
-	_os<<"name=\""<<name<<"\"\r\n";
-	_os<<"Content-Transfer-Encoding: base64\r\n";
-	_os<<"Content-Disposition: inline;\r\n";
- 	_os<<"filename=\""<<name<<"\"\r\n\r\n";
+	
+	_os<<"\n\n";
+	_os<<"------=_NextPart_000_0007_01C97BFB.E8916420\n";
+	_os<<"Content-Type: "<<ctp<<";\n";
+    _os<<"\tname=\""<<name<<"\"\n";
+	_os<<"Content-Transfer-Encoding: base64\n";
+	_os<<"Content-Disposition: attachment;\n";
+     _os<<"\tfilename=\""<<name<<"\"\n\n";
+
 	
 	cxxtools::Base64ostream b64os(_os);
 	copystream(b64os, ifs);
 	b64os.end();
-	_os<<"\r\n";
-	_os<<"--------------090007060609050203080902\r\n";
 	return false;
 }
 int sendOutput(){
@@ -222,7 +233,8 @@ int sendOutput(){
 	copystream(cout, ifs);
 }
 
-int doneOutput(){
-	//_is<<"\r\n";
+int doneOutput(ofstream &_os){
+	_os<<"\r\n\r\n------=_NextPart_000_0007_01C97BFB.E8916420--\r\n";
+	return 0;
 }
 
