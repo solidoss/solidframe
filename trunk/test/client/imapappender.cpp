@@ -237,7 +237,7 @@ int initOutput(ofstream &_os, const Params &_p, int _cnt){
 	cout<<"is open temp = "<<_os.is_open()<<endl;
 	
 	_os<<"To: \"vipalade@yahoo.com\"\n";
-	_os<<"Subject: some subject\n";
+	_os<<"Subject: "<<_p.folder<<"\n";
 	_os<<"Date: Wed, 21 Jan 2009 19:10:10 +0200\n";
 	_os<<"MIME-Version: 1.0\n";
 	_os<<"Content-Type: multipart/mixed;\n";
@@ -372,6 +372,7 @@ bool sendOutput(Writer &_wr, SocketDevice &_sd, SSL *_pssl, const Params &_p){
 	FileDevice fd;
 	fd.open("tmp.eml", FileDevice::RO);
 	FileStream fs(fd);
+	cout<<"Sending tmp file of size "<<fd.size()<<endl;
 	_wr<<"s3 append \""<<_p.folder<<'\"'<<' '<<lit(&fs, fd.size())<<crlf;
 	_wr.flush();
 	const int blen = 256;
@@ -379,9 +380,14 @@ bool sendOutput(Writer &_wr, SocketDevice &_sd, SSL *_pssl, const Params &_p){
 	int rc = readAtLeast(5, _pssl, buf, blen);
 	if(rc > 0){
 		cout.write(buf, rc)<<endl;
-		if(strncasecmp(buf + 4, "OK", 2) == 0){
-			return true;
+		rc = readAtLeast(5, _pssl, buf, blen);
+		if(rc > 0){
+			cout.write(buf, rc)<<endl;
+			if(strncasecmp(buf + 4, "OK", 2) == 0){
+				return true;
+			}
 		}
+		
 	}
 	return false;
 }
@@ -405,8 +411,12 @@ bool doAuthenticate(Writer &_wr, SocketDevice &_sd, SSL *_pssl){
 	int rc = readAtLeast(5, _pssl, buf, blen);
 	if(rc > 0){
 		cout.write(buf, rc)<<endl;
-		if(strncasecmp(buf + 4, "OK", 2) == 0){
-			return true;
+		rc = readAtLeast(5, _pssl, buf, blen);
+		if(rc > 0){
+			cout.write(buf, rc)<<endl;
+			if(strncasecmp(buf + 3, "OK", 2) == 0){
+				return true;
+			}
 		}
 	}
 	return false;
