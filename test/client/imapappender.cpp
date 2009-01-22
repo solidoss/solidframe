@@ -68,7 +68,7 @@ struct Params{
 };
 
 bool parseArguments(Params &_par, int argc, char *argv[]);
-int initOutput(ofstream &_os, const Params &_p, int _cnt);
+int initOutput(ofstream &_os, const Params &_p, int _cnt, int _piccnt);
 bool addFile(ofstream &_os, const Params &_par, const string &_s);
 bool doAuthenticate(Writer &_wr, SocketDevice &_sd, SSL *_pssl);
 bool doCreateFolder(Writer &_wr, SocketDevice &_sd, SSL *_pssl, const Params &_par);
@@ -163,7 +163,8 @@ int main(int argc, char *argv[]){
 		return OK;
 	}
 	int count = 0;
-	initOutput(tmpf, p, count);
+	int piccnt = 0;
+	initOutput(tmpf, p, count, piccnt);
 	int added = 0;
 	cout<<"p.path = "<<p.path<<endl;
 	while(it != end){
@@ -176,10 +177,11 @@ int main(int argc, char *argv[]){
 			}
 			++count;
 			added = 0;
-			initOutput(tmpf, p, count);
+			initOutput(tmpf, p, count, piccnt);
 		}else{
 			++added;
 		}
+		++piccnt;
 		++it; 
 	}
 	cout<<"done"<<endl;
@@ -229,7 +231,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 	}
 }
 
-int initOutput(ofstream &_os, const Params &_p, int _cnt){
+int initOutput(ofstream &_os, const Params &_p, int _cnt, int _piccnt){
 	//write the header:
 	_os.close();
 	_os.clear();
@@ -237,7 +239,7 @@ int initOutput(ofstream &_os, const Params &_p, int _cnt){
 	cout<<"is open temp = "<<_os.is_open()<<endl;
 	
 	_os<<"To: \"vipalade@yahoo.com\"\n";
-	_os<<"Subject: "<<_p.folder<<"\n";
+	_os<<"Subject: "<<_p.folder<<' '<<_cnt<<' '<<_piccnt<<"\n";
 	_os<<"Date: Wed, 21 Jan 2009 19:10:10 +0200\n";
 	_os<<"MIME-Version: 1.0\n";
 	_os<<"Content-Type: multipart/mixed;\n";
