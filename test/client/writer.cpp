@@ -88,7 +88,12 @@ void Writer::put(IStream *_ps, uint64 sz){
 		sz -= toread;
 		int rv = _ps->read(bbeg, toread);
 		cassert((ulong)rv == toread);
-		wr += write(sd, bbeg, rv);
+		//wr += write(sd, bbeg, rv);
+		if(pssl){
+			wr = SSL_write(pssl,bbeg,rv);
+		}else{
+			wrerr = write(sd,bbeg,rv);
+		}
 	}
 	cout<<"wr = "<<wr<<endl;
 }
