@@ -23,14 +23,19 @@
 #include "system/cassert.hpp"
 #include "system/debug.hpp"
 #include "system/socketaddress.hpp"
+#include "system/socketdevice.hpp"
 #include "system/thread.hpp"
 #include "system/mutex.hpp"
 #include "system/timespec.hpp"
+#include "system/filedevice.hpp"
 //#include "common/utils.h"
 #include "writer.hpp"
 #include "base64stream.h"
 #include "system/common.hpp"
+#include "utility/istream.hpp"
 #include <fstream>
+
+#include <termios.h>
 
 #include "tclap/CmdLine.h"
 using namespace std;
@@ -51,6 +56,7 @@ struct Params{
 		port = "143";
 		secure = false;
 		maxsz = 10 * 1024 * 1024;
+		maxcnt = 50;
 	}
 	string	host;
 	string	port;
@@ -58,17 +64,95 @@ struct Params{
 	string	path;
 	string	folder;
 	uint32	maxsz;
+	uint32	maxcnt;
 };
 
 bool parseArguments(Params &_par, int argc, char *argv[]);
 int initOutput(ofstream &_os, const Params &_p, int _cnt);
 bool addFile(ofstream &_os, const Params &_par, const string &_s);
-int sendOutput();
+bool doAuthenticate(Writer &_wr, SocketDevice &_sd, SSL *_pssl);
+bool doCreateFolder(Writer &_wr, SocketDevice &_sd, SSL *_pssl, const Params &_par);
+bool sendOutput(Writer &_wr, SocketDevice &_sd, SSL *_pssl, const Params &_par);
 int doneOutput(ofstream &_os);
 
 int main(int argc, char *argv[]){
 	Params	p;
 	if(parseArguments(p, argc, argv)) return 0;
+	
+	//Initializing OpenSSL
+	//------------------------------------------
+	SSL_library_init();
+	SSL_load_error_strings();
+	ERR_load_BIO_strings();
+	OpenSSL_add_all_algorithms();
+	
+	sslctx = SSL_CTX_new(SSLv23_client_method());
+	
+	const char *pcertpath = "../../../../extern/linux/openssl/demos/tunala/A-client.pem";
+	
+	if(!sslctx){
+		cout<<"failed SSL_CTX_new: "<<ERR_error_string(ERR_get_error(), NULL)<<endl;
+		return 0;
+	}
+	if(!SSL_CTX_load_verify_locations(sslctx, pcertpath, NULL)){
+    	cout<<"failed SSL_CTX_load_verify_locations 1 "<<ERR_error_string(ERR_get_error(), NULL)<<endl;;
+    	return 0;
+	}
+	system("mkdir certs");
+	
+	if(!SSL_CTX_load_verify_locations(sslctx, NULL, "certs")){
+		cout<<"failed SSL_CTX_load_verify_locations 2 "<<ERR_error_string(ERR_get_error(), NULL)<<endl;;
+		return 0;
+	}
+	//------------------------------------------
+	//done with ssl context stuff
+	
+	SocketDevice sd;
+	
+	{
+		AddrInfo    ai(p.host.c_str(), p.port.c_str());
+		if(ai.empty()){
+			cout<<"No such address: "<<p.host<<":"<<p.port<<endl;
+			//return 0;
+		}
+		
+		
+		sd.create(ai.begin());
+		if(sd.connect(ai.begin())){
+			cout<<"Unable to connect to: "<<p.host<<":"<<p.port<<endl;
+			//return 0;
+		}
+	}
+	{
+		SocketAddress sa;
+		sd.remoteAddress(sa);
+		char host[64];
+		char serv[64];
+		sa.name(host, 64, serv, 64);
+		cout<<"Successfully connected to: "<<host<<':'<<serv<<endl;
+	}
+	Writer      wr;
+	//do ssl stuffs
+	SSL *pssl = SSL_new(sslctx);
+	SSL_set_fd(pssl, sd.descriptor());
+	int rv = SSL_connect(pssl);
+	if(rv <= 0){
+		cout<<"error ssl connect"<<endl;
+		//return 0;
+	}
+	wr.reinit(sd.descriptor(), pssl);
+	
+	if(!doAuthenticate(wr, sd, pssl)){
+		cout<<"Authentication failed"<<endl;
+		return 0;
+	}
+	cout<<"Successfully authenticated"<<endl;
+	if(!doCreateFolder(wr, sd, pssl, p)){
+		cout<<"Unable to create IMAP folder: "<<p.folder<<endl;
+		return 0;
+	}
+	cout<<"Successfully created folder: "<<p.folder<<endl;
+	//------------------------------------------
 	ofstream tmpf;
 	fs::directory_iterator 	it,end;
 	try{
@@ -86,7 +170,10 @@ int main(int argc, char *argv[]){
 		if(addFile(tmpf, p, it->string())){
 			//done with the output
 			doneOutput(tmpf);
-			sendOutput();
+			if(!sendOutput(wr, sd, pssl, p)){
+				cout<<"append failed"<<endl;
+				return 0;
+			}
 			++count;
 			added = 0;
 			initOutput(tmpf, p, count);
@@ -99,7 +186,7 @@ int main(int argc, char *argv[]){
 	if(added){
 		doneOutput(tmpf);
 		tmpf.flush();
-		sendOutput();
+		sendOutput(wr, sd, pssl, p);
 	}
 	tmpf.close();
 	return 0;
@@ -114,6 +201,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 		TCLAP::ValueArg<std::string> path("l","localpath","Path to local folder containing files",true,"","string");
 		TCLAP::ValueArg<std::string> folder("f","imapfolder","imap folder to push data on",true,"","string");
 		TCLAP::ValueArg<uint32> maxsz("m","maxsz","per mail maximum size",false,1024 * 1024 * 5,"uint32");
+		TCLAP::ValueArg<uint32> maxcnt("c","maxcnt","per mail maximum attachement count",false,50,"uint32");
 		TCLAP::SwitchArg ssl("s","ssl", "Use ssl for communication", false, false);
 		
 		cmd.add(host);
@@ -122,6 +210,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 		cmd.add(folder);
 		cmd.add(ssl);
 		cmd.add(maxsz);
+		cmd.add(maxcnt);
 		
 		// Parse the argv array.
 		cmd.parse( argc, argv );
@@ -132,6 +221,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 		_par.folder = folder.getValue();
 		_par.secure = ssl.getValue();
 		_par.maxsz = maxsz.getValue();
+		_par.maxcnt = maxcnt.getValue();
 		return false;
 	}catch(TCLAP::ArgException &e){// catch any exceptions
 		std::cerr << "error: " << e.error() << " for arg " << e.argId() << std::endl;
@@ -204,9 +294,34 @@ void contentType(string &_o, const string &_i){
 	}
 }
 
+uint64 size(ifstream &_ifs){
+	_ifs.seekg (0, ios::end);
+	uint64 length = _ifs.tellg();
+	_ifs.seekg (0, ios::beg);
+	return length;
+}
+
+uint64 size(ofstream &_ofs){
+	long pos = _ofs.tellp();
+	_ofs.seekp (0, ios::end);
+	uint64 length = _ofs.tellp();
+	_ofs.seekp (pos, ios::beg);
+	return length;
+}
+
 bool addFile(ofstream &_os, const Params &_p, const string &_s){
 	ifstream ifs;
 	ifs.open(_s.c_str());
+	
+	uint64 ifsize(size(ifs));
+	
+	if(ifsize >= _p.maxsz){
+		cout<<"Skip file "<<_s<<" with size "<<ifsize<<endl;
+		return false;
+	}else{
+		cout<<"Adding file "<<_s<<" with size "<<ifsize<<endl;
+	}
+	
 	const char *name = strrchr(_s.c_str(), '/');
 	if(!name) name = _s.c_str();
 	else ++name;
@@ -225,16 +340,105 @@ bool addFile(ofstream &_os, const Params &_p, const string &_s){
 	cxxtools::Base64ostream b64os(_os);
 	copystream(b64os, ifs);
 	b64os.end();
+	uint64 ofsize(size(_os));
+	cout<<"Current output file size: "<<ofsize<<endl;
+	if(ofsize >= _p.maxsz) return true;
 	return false;
 }
-int sendOutput(){
-	ifstream ifs;
-	ifs.open("tmp.eml");
-	copystream(cout, ifs);
-}
-
 int doneOutput(ofstream &_os){
 	_os<<"\r\n\r\n------=_NextPart_000_0007_01C97BFB.E8916420--\r\n";
 	return 0;
+}
+
+int readAtLeast(int _minsz, SSL *_pssl, char *_pb, unsigned _sz);
+
+class FileStream: public IStream{
+public:
+	FileStream(FileDevice &_rfd):fd(_rfd){}
+	int read(char *_pb, uint32 _sz, uint32 _flags = 0){
+		return fd.read(_pb, _sz);
+	}
+	int64 seek(int64, SeekRef){
+		return -1;
+	}
+private:
+	FileDevice &fd;
+};
+
+bool sendOutput(Writer &_wr, SocketDevice &_sd, SSL *_pssl, const Params &_p){
+// 	ifstream ifs;
+// 	ifs.open("tmp.eml");
+// 	copystream(cout, ifs);
+	FileDevice fd;
+	fd.open("tmp.eml", FileDevice::RO);
+	FileStream fs(fd);
+	_wr<<"s3 append \""<<_p.folder<<'\"'<<' '<<lit(&fs, fd.size())<<crlf;
+	_wr.flush();
+	const int blen = 256;
+	char buf[blen];
+	int rc = readAtLeast(5, _pssl, buf, blen);
+	if(rc > 0){
+		cout.write(buf, rc)<<endl;
+		if(strncasecmp(buf + 4, "OK", 2) == 0){
+			return true;
+		}
+	}
+	return false;
+}
+
+bool doAuthenticate(Writer &_wr, SocketDevice &_sd, SSL *_pssl){
+	string u;
+	string p;
+	cout<<"User: ";cin>>u;
+	termios tio;
+	tcgetattr(fileno(stdin), &tio);
+	tio.c_lflag &= ~ECHO;
+	tcsetattr(fileno(stdin), TCSANOW, &tio);
+	cout<<"Pass: ";cin>>p;
+	tio.c_lflag |= ECHO;
+	tcsetattr(fileno(stdin), TCSANOW, &tio);
+	//cout<<"User name: "<<u<<" pass: "<<p<<endl;
+	_wr<<"s1 login \""<<u<<"\" \""<<p<<'\"'<<crlf;
+	_wr.flush();
+	const int blen = 256;
+	char buf[blen];
+	int rc = readAtLeast(5, _pssl, buf, blen);
+	if(rc > 0){
+		cout.write(buf, rc)<<endl;
+		if(strncasecmp(buf + 4, "OK", 2) == 0){
+			return true;
+		}
+	}
+	return false;
+}
+bool doCreateFolder(Writer &_wr, SocketDevice &_sd, SSL *_pssl, const Params &_par){
+	_wr<<"s2 create \""<<_par.folder<<"\""<<crlf;
+	_wr.flush();
+	const int blen = 256;
+	char buf[blen];
+	int rc = readAtLeast(5, _pssl, buf, blen);
+	if(rc > 0){
+		cout.write(buf, rc)<<endl;
+		if(strncasecmp(buf + 4, "OK", 2) == 0){
+			return true;
+		}
+		return true;
+	}
+	return false;
+}
+
+int readAtLeast(int _minsz, SSL *_pssl, char *_pb, unsigned _sz){
+	char *pd = (char*)_pb;
+	int rc = 0;
+	while(_minsz > 0 && _sz){
+		int rv = SSL_read(_pssl, pd, _sz);
+		if(rv <= 0) return -1;
+		_sz -= 0;
+		_minsz -= rv;
+		pd += rv;
+		_sz -= rv;
+		rc += rv;
+	}
+	return rc;
 }
 
