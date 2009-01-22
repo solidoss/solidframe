@@ -385,7 +385,7 @@ bool sendOutput(Writer &_wr, SocketDevice &_sd, SSL *_pssl, const Params &_p){
 		rc = readAtLeast(5, _pssl, buf, blen);
 		if(rc > 0){
 			cout.write(buf, rc)<<endl;
-			if(strncasecmp(buf + 4, "OK", 2) == 0){
+			if(strncasecmp(buf + 3, "OK", 2) == 0){
 				return true;
 			}
 		}
