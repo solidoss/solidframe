@@ -29,7 +29,7 @@ if [ "$1" = "" ] ; then
 	echo -ne "\tdocumentation_full - full API documentation including pdf\n"
 	echo -ne "\tdocumentation_fast - fast API documentation\n"
 	echo -ne "\nWhen used kdevelop, a kdevelop project will be created else make based project will be created.\n"
-	echo -ne "\nOne can give extra framework wide compiler definitions specifing them after build_type. E.g.:\n"
+	echo -ne "\nExtra framework wide compiler definitions can be specified after 'build_type'. E.g.:\n"
 	echo -ne "\t./build.sh kdevelop debug \"-DUINDEX32 -DUINLINES\"\n\n"
 	exit
 fi
