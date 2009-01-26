@@ -32,6 +32,7 @@
 #include "core/manager.hpp"
 
 #include "utility/memory.hpp"
+
 namespace foundation{
 //---------------------------------------------------------------------
 //----	Visitor	----
