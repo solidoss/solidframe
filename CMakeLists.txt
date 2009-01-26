@@ -8,7 +8,15 @@ string (REGEX REPLACE "^([0-9]*)\\.([0-9]*)\\.([0-9]*)" "\\1" VERSION_MAJOR ${VE
 string (REGEX REPLACE "^([0-9]*)\\.([0-9]*)\\.([0-9]*)" "\\2" VERSION_MINOR ${VERSION})
 string (REGEX REPLACE "^([0-9]*)\\.([0-9]*)\\.([0-9]*)" "\\3" VERSION_PATCH ${VERSION})
 
+
+# if(UCPPFLAGS)
+# 	message("UCPPFLAGS set "${UCPPFLAGS})
+# endif(UCPPFLAGS)
+
 #debug build
+
+ADD_DEFINITIONS(${UDEFS})
+
 SET(CMAKE_CXX_FLAGS_DEBUG "-Wreorder -Wreturn-type -Wunused-variable -Winline -g3 -DUDEBUG -DUTHREADS -DUASSERT -DU_SERIALIZATION_MUTEX -DSG_MAJOR=${VERSION_MAJOR} -DSG_MINOR=${VERSION_MINOR} -DSG_PATCH=${VERSION_PATCH}" CACHE STRING "Flags used by the C++ compiler during debug builds." FORCE)
 SET(CMAKE_C_FLAGS_DEBUG "-g3  -DUASSERT -DSG_MAJOR=${VERSION_MAJOR} -DSG_MINOR=${VERSION_MINOR} -DSG_PATCH=${VERSION_PATCH}" CACHE STRING "Flags used by the C compiler during debug builds." FORCE)
 SET( CMAKE_EXE_LINKER_FLAGS_DEBUG
@@ -46,7 +54,7 @@ SET( CMAKE_SHARED_LINKER_FLAGS_OPTIMIZED
 
 
 #overwrite the defaults for release
-SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -DUTHREADS -DUINLINES -DU_SERIALIZATION_MUTEX -Wuninitialized -DSG_MAJOR=${VERSION_MAJOR} -DSG_MINOR=${VERSION_MINOR} -DSG_PATCH=${VERSION_PATCH}" CACHE STRING "Flags used by the C++ compiler during release builds." FORCE)
+SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -DUTHREADS -DUINLINES -DU_SERIALIZATION_MUTEX -Wuninitialized -DSG_MAJOR=${VERSION_MAJOR} -DSG_MINOR=${VERSION_MINOR} -DSG_PATCH=${VERSION_PATCH} " CACHE STRING "Flags used by the C++ compiler during release builds." FORCE)
 #SET(CMAKE_C_FLAGS_RELEASE "-O3 -DUTHREADS" CACHE STRING "Flags used by the C compiler during release builds." FORCE)
 
 

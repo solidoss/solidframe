@@ -19,7 +19,7 @@ function make_cmake_list(){
 
 if [ "$1" = "" ] ; then
 	echo "Usage:"
-	echo -ne "\n./build.sh [kdevelop] build_type\n\n"
+	echo -ne "\n./build.sh [kdevelop] build_type [\"-DXXXX[ -D...]\"]\n\n"
 	echo -ne "Where build type can be:\n"
 	echo -ne "\tdebug - build uses full debug infos (-g3) and the debug log is activated\n"
 	echo -ne "\tmaintain - same as debug but with compilation warnings activated\n"
@@ -28,7 +28,9 @@ if [ "$1" = "" ] ; then
 	echo -ne "\textern - build the tar.gz with the extern libs\n"
 	echo -ne "\tdocumentation_full - full API documentation including pdf\n"
 	echo -ne "\tdocumentation_fast - fast API documentation\n"
-	echo -ne "\nWhen used kdevelop, a kdevelop project will be created else make based project will be created\n\n"
+	echo -ne "\nWhen used kdevelop, a kdevelop project will be created else make based project will be created.\n"
+	echo -ne "\nOne can give extra framework wide compiler definitions specifing them after build_type. E.g.:\n"
+	echo -ne "\t./build.sh kdevelop debug \"-DUINDEX32 -DUINLINES\"\n\n"
 	exit
 fi
 
@@ -49,7 +51,7 @@ if [ "$1" = "kdevelop" ] ; then
 		mkdir build
 		mkdir "build/$1"
 		cd "build/$1"
-		cmake -G KDevelop3 -DCMAKE_BUILD_TYPE=$2 ../../
+		cmake -G KDevelop3 -DCMAKE_BUILD_TYPE=$2 -DUDEFS="$3" ../../
 	fi
 else 
 	if [ "$1" = "documentation_full" ] ; then
@@ -78,7 +80,7 @@ else
 				mkdir build
 				mkdir "build/$1"
 				cd "build/$1"
-				cmake -DCMAKE_BUILD_TYPE=$1 ../../
+				cmake -DCMAKE_BUILD_TYPE=$1 -DUDEFS="$2" ../../
 			fi
 		fi
 	fi
