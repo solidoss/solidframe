@@ -54,7 +54,7 @@
 
 namespace fdt=foundation;
 
-
+///\cond 0
 namespace std{
 
 template <class S>
@@ -70,6 +70,7 @@ S& operator&(pair<long unsigned int, unsigned int> &_v, S &_s){
 	return _s.push(_v.first, "first").push(_v.second, "second");
 }
 }
+///\endcond
 
 namespace test{
 namespace alpha{

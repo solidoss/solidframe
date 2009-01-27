@@ -21,7 +21,7 @@
 
 #include "base64stream.h"
 #include <map>
-
+///\cond 0
 namespace cxxtools
 {
 
@@ -193,3 +193,4 @@ int Base64stream_streambuf::getval()
 }
 
 }
+///\endcond
