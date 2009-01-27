@@ -23,7 +23,7 @@
 #define CXXTOOLS_BASE64STREAM_H
 
 #include <iostream>
-
+///\cond 0
 namespace cxxtools
 {
 
@@ -122,6 +122,7 @@ class Base64istream : public std::istream
 };
 
 }
+///\endcond
 
 #endif // CXXTOOLS_BASE64STREAM_H
 

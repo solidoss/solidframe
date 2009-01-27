@@ -17,7 +17,7 @@ function make_cmake_list(){
 	fi
 }
 
-if [ "$1" = "" ] ; then
+function print_usage(){
 	echo "Usage:"
 	echo -ne "\n./build.sh [kdevelop] build_type [\"-DXXXX[ -D...]\"]\n\n"
 	echo -ne "Where build type can be:\n"
@@ -32,14 +32,60 @@ if [ "$1" = "" ] ; then
 	echo -ne "\nExtra framework wide compiler definitions can be specified after 'build_type'. E.g.:\n"
 	echo -ne "\t./build.sh kdevelop debug \"-DUINDEX32 -DUINLINES\"\n\n"
 	exit
+}
+
+if [ "$1" = "" ] ; then
+	print_usage
 fi
 
-if [ "$1" = "kdevelop" ] ; then
-	if [ "$2" = "" ] ; then
-		echo "Usage:"
-		echo "./build.sh [kdevelop] build_type"
-		exit
-	else
+case "$1" in
+	"kdevelop")
+		if [ "$2" = "" ] ; then
+			print_usage
+		else
+			echo "Building KDevelop project ..."
+			cd application
+			make_cmake_list *
+			cd ../
+			
+			cd library
+			make_cmake_list *
+			cd ../
+			
+			mkdir build
+			mkdir "build/$1"
+			cd "build/$1"
+			cmake -G KDevelop3 -DCMAKE_BUILD_TYPE=$2 -DUDEFS="$3" ../../
+			echo "Done building KDevelop project"
+		fi
+		;;
+	"documentation_full")
+		echo "Building full documentation ..."
+		rm -rf documentation/html/
+		rm -rf documentation/latex/
+		doxygen
+		tar -cjf documentation/full.tar.bz2 documentation/html/ documentation/index.html
+		echo "Done building full documentation"
+		;;
+	"documentation_fast")
+		echo "Building documentation..."
+		rm -rf documentation/html/
+		doxygen Doxyfile.fast
+		tar -cjf documentation/fast.tar.bz2 documentation/html/ documentation/index.html
+		echo "Done building documentation"
+		;;
+	"extern")
+		echo "Building extern archive"
+		cd extern
+		tar -cjf solidground_extern_linux.tar.bz2 linux
+		echo "Done building extern archive"
+		;;
+	*)
+		THEFLD="$2"
+		echo $THEFLD
+		if [ "$THEFLD" = "" ] ; then
+			THEFLD="$1"
+		fi
 		cd application
 		make_cmake_list *
 		cd ../
@@ -47,41 +93,11 @@ if [ "$1" = "kdevelop" ] ; then
 		cd library
 		make_cmake_list *
 		cd ../
-		
+		echo "Preparing build/$THEFLD for $1 build type with \"$3\" parameters..."
 		mkdir build
-		mkdir "build/$1"
-		cd "build/$1"
-		cmake -G KDevelop3 -DCMAKE_BUILD_TYPE=$2 -DUDEFS="$3" ../../
-	fi
-else 
-	if [ "$1" = "documentation_full" ] ; then
-		rm -rf documentation/html/
-		rm -rf documentation/latex/
-		doxygen
-		tar -cjf documentation/full.tar.bz2 documentation/html/ documentation/index.html
-	else 
-		if [ "$1" = "documentation_fast" ] ; then
-			rm -rf documentation/html/
-			doxygen Doxyfile.fast
-			tar -cjf documentation/fast.tar.bz2 documentation/html/ documentation/index.html
-		else
-			if [ "$1" = "extern" ] ; then
-				cd extern
-				tar -cjf solidground_extern_linux.tar.bz2 linux
-			else
-				cd application
-				make_cmake_list *
-				cd ../
-				
-				cd library
-				make_cmake_list *
-				cd ../
-				
-				mkdir build
-				mkdir "build/$1"
-				cd "build/$1"
-				cmake -DCMAKE_BUILD_TYPE=$1 -DUDEFS="$2" ../../
-			fi
-		fi
-	fi
-fi
+		mkdir "build/$THEFLD"
+		cd "build/$THEFLD"
+		cmake -DCMAKE_BUILD_TYPE=$1 -DUDEFS="$3" ../../
+		echo "Done preparing build/$THEFLD for $1 build type with \"$3\" parameters"
+		;;
+esac
