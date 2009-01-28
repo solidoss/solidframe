@@ -37,7 +37,9 @@ int pairfd[2];
 
 int main(int _argc, char *argv[]){
 	pipe(pairfd);
+#ifdef UDEBUG
 	Dbg::instance().init(NULL, Dbg::AllLevels, "any");
+#endif
 	audit::LogManager lm;
 	lm.start();
 	lm.insertChannel(new DeviceIOStream(pairfd[0], pairfd[1]));

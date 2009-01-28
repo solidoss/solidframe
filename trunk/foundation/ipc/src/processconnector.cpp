@@ -1042,7 +1042,7 @@ void ProcessConnector::parseBuffer(Buffer &_rbuf, const ConnectorUid &_rconid){
 		switch(datatype){
 			case Buffer::ContinuedCommand:
 				idbgx(Dbg::ipc, "continuedcommand");
-				assert(blen == firstblen);
+				cassert(blen == firstblen);
 				if(!d.rcq.front().first){
 					d.rcq.pop();
 				}
