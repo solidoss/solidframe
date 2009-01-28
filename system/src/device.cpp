@@ -25,6 +25,7 @@
 #include "system/directory.hpp"
 #include "system/cassert.hpp"
 #include "system/debug.hpp"
+#include <cstdio>
 #include <cerrno>
 #include <cstring>
 

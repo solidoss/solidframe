@@ -177,6 +177,9 @@ private:
 #define wdbgx(a,x)
 #define rdbg(x)
 #define rdbgx(a,x)
+#define vdbg(x)
+#define vdbgx(a,x)
+
 #define writedbg(x,sz)
 #define writedbgx(a, x, sz)
 
