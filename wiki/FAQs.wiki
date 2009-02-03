@@ -12,7 +12,7 @@
 ----
 *Q:* Is SolidGround perfect?
 
-*R:* NO it is not! It is usable, quite powerful, but certainly it has some rough edges which I believe will disappear through usage in projects.
+*R:* NO it is not! It is usable, quite powerful, but certainly it has some rough edges which, I believe, will disappear through usage in projects.
 ----
 *Q:* What are SolidGround's most valuable assets?
 
