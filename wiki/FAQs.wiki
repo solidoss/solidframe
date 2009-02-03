@@ -4,7 +4,7 @@
 ----
 *Q:* Who should use SolidGround?
 
-*R:* C++ developers for either their own projects and/or for company projects. Companies implementing C++ solutions. Please have a look at the last question too.
+*R:* C++ developers can use SolidGround for their own projects/applications and/or for company projects. Companies also can implement C++ solutions based on SolidGround. Please have a look at the last question too.
 ----
 *Q:* What kind of projects should use SolidGround?
 
