@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 function make_cmake_list(){
 	rm CMakeLists.txt
@@ -19,7 +19,7 @@ function make_cmake_list(){
 
 function print_usage(){
 	echo "Usage:"
-	echo -ne "\n./build.sh [kdevelop] build_type [\"-DXXXX[ -D...]\"]\n\n"
+	echo -ne "\n./configure [kdevelop] build_type [\"-DXXXX[ -D...]\"]\n\n"
 	echo -ne "Where build type can be:\n"
 	echo -ne "\tdebug - build uses full debug infos (-g3) and the debug log is activated\n"
 	echo -ne "\tmaintain - same as debug but with compilation warnings activated\n"
@@ -30,7 +30,7 @@ function print_usage(){
 	echo -ne "\tdocumentation_fast - fast API documentation\n"
 	echo -ne "\nWhen used kdevelop, a kdevelop project will be created else make based project will be created.\n"
 	echo -ne "\nExtra framework wide compiler definitions can be specified after 'build_type'. E.g.:\n"
-	echo -ne "\t./build.sh kdevelop debug \"-DUINDEX32 -DUINLINES\"\n\n"
+	echo -ne "\t./configure kdevelop debug \"-DUINDEX32 -DUINLINES\"\n\n"
 	exit
 }
 

@@ -77,11 +77,11 @@ Copy it to solidground-read-only/extern
 cd solidground-read-only/extern
 tar -xjf solidground_extern_linux.tar.bz2
 
-The SolidGround framework, has a commodity build script which can be used to create certain builds for certain base build systems (make or kdevelop3 - run ./build.sh with no parameters to se the options).
+The SolidGround framework, has a commodity build script which can be used to create certain builds for certain base build systems (make or kdevelop3 - run ./configure with no parameters to se the options).
 
 So lets build a (debug-)nolog version.
 
-solidground $ ./build.sh nolog
+solidground $ ./configure nolog
 
 solidground $ cd build/nolog/test/clientserver/main
 
@@ -247,7 +247,7 @@ So you'll have a repository copy of your application within "solidground/applica
       application/foobar $ touch test/CMakeLists.txt
 
    3. then you'll need to add the source files to every foobar subfolder, along with the CMakeLists.txt files.
-   4. last you'll need to integrate "foobar" into solidground's build system. This is done by running solidground/build.sh again. It will create application/CMakeLists.txt which will integrate all subfolders within application into cmake build system. 
+   4. last you'll need to integrate "foobar" into solidground's build system. This is done by running solidground/configure again. It will create application/CMakeLists.txt which will integrate all subfolders within application into cmake build system. 
 
 As you can see, you can have multiple SG based projects within application.
 
@@ -255,7 +255,7 @@ NOTE:
 
    1. I'm using KDevelop IDE (http://www.kdevelop.org/) for managing the SolidGround project. To do that too, you'll need to run the build script this way: 
 
-build.sh kdevelop nolog
+./configure kdevelop nolog
 
 (instead of nolog you can use other target specifications - debug, release etc.) Then open the KDevelop project residing within: solidground/build/kdevelop/SOLIDGROUND.kdevelop
 
