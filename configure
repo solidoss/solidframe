@@ -19,24 +19,159 @@ function make_cmake_list(){
 
 function print_usage(){
 	echo "Usage:"
-	echo -ne "\n./configure [kdevelop] build_type [\"-DXXXX[ -D...]\"]\n\n"
-	echo -ne "Where build type can be:\n"
-	echo -ne "\tdebug - build uses full debug infos (-g3) and the debug log is activated\n"
-	echo -ne "\tmaintain - same as debug but with compilation warnings activated\n"
-	echo -ne "\tnolog - full debug info but logs are deactivated\n"
-	echo -ne "\trelease - full optimization (-O3)\n"
-	echo -ne "\textern - build the tar.gz with the extern libs\n"
-	echo -ne "\tdocumentation_full - full API documentation including pdf\n"
-	echo -ne "\tdocumentation_fast - fast API documentation\n"
-	echo -ne "\nWhen used kdevelop, a kdevelop project will be created else make based project will be created.\n"
-	echo -ne "\nExtra framework wide compiler definitions can be specified after 'build_type'. E.g.:\n"
-	echo -ne "\t./configure kdevelop debug \"-DUINDEX32 -DUINLINES\"\n\n"
+	echo -ne "\n./configure [-g|--generator GeneratorName] [-f|--folder FolderName] [-b|--build BuildType] "
+	echo -ne " [-p|--param ParamName] [-d|--documentation full/fast] [-e|--extern pack] [-h|--help]\n"
+	echo -ne "Options:\n"
+	echo "[-g|--generator GeneratorName]: Specify the cmake generator - default cmake's default"
+	echo "[-f|--folder FolderName]: Specify the build folder name - default is the generator name or the build type if the generator was not specified"
+	echo "[-b|--build BuildType]: The cmake build type release/debug/nolog/maintain - default release"
+	echo "[-p|--param ParamName]: Extra compilation flags"
+	echo "[-d|--documentation full/fast]: Build either fast or full documentation"
+	echo "[-e|--extern pack]: operate on extern libraries, pack builds a tar.bz2 archive"
 	exit
 }
 
-if [ "$1" = "" ] ; then
+# if [ "$1" = "" ] ; then
+# 	print_usage
+# fi
+
+# First define and initilaize the variables
+
+GENERATOR=
+DOCUMENTATION=
+BUILD_TYPE=
+FOLDER_NAME=
+HELP="no"
+PARAM=
+EXTERN=
+
+while [ "$#" -gt 0 ]; do
+	CURRENT_OPT="$1"
+	UNKNOWN_ARG=no
+	case "$1" in
+	-g|--generator)
+		shift
+		GENERATOR=$1
+		;;
+	-f|--folder)
+		shift
+		FOLDER_NAME=$1
+		;;
+	-b|--build)
+		shift
+		BUILD_TYPE=$1
+		;;
+	-d|--documentation)
+		if [ -z "$2" ] || echo "$2" | grep '^-' >/dev/null 2>&1; then
+			DOCUMENTATION="fast"
+		else
+			shift;
+			DOCUMENTATION=$1
+		fi
+		;;
+	-p|--param)
+		shift
+		PARAM=$PARAM"$1 "
+		;;
+	-e|--extern)
+		if [ -z "$2" ] || echo "$2" | grep '^-' >/dev/null 2>&1; then
+			EXTERN="pack"
+		else
+			shift;
+			EXTERN=$1
+		fi
+		;;
+	-h|--help)
+		HELP="yes"
+		;;
+	*)
+		HELP="yes"
+		;;
+	esac
+	shift
+done
+
+
+echo "generator = $GENERATOR"
+echo "folder = $FOLDER_NAME"
+echo "build = $BUILD_TYPE"
+echo "documentation = $DOCUMENTATION"
+echo "parameters = $PARAM"
+echo "help = $HELP"
+echo "extern = $EXTERN"
+
+if [ "$HELP" = "yes" ]; then
 	print_usage
+	exit
 fi
+
+if [ "$DOCUMENTATION" = "full" ]; then
+	echo "Building full documentation ..."
+	rm -rf documentation/html/
+	rm -rf documentation/latex/
+	doxygen
+	tar -cjf documentation/full.tar.bz2 documentation/html/ documentation/index.html
+	echo "Done building full documentation"
+	exit
+fi
+
+if [ "$DOCUMENTATION" = "fast" ]; then
+	echo "Building documentation..."
+	rm -rf documentation/html/
+	doxygen Doxyfile.fast
+	tar -cjf documentation/fast.tar.bz2 documentation/html/ documentation/index.html
+	echo "Done building documentation"
+	exit
+fi
+
+if [ "$EXTERN" = "pack" ]; then
+	echo "Building extern archive"
+	cd extern
+	tar -cjf solidground_extern_linux.tar.bz2 linux
+	echo "Done building extern archive"
+fi
+
+
+if [ "$BUILD_TYPE" = "" ]; then
+	BUILD_TYPE="release"
+fi
+
+if [ "$FOLDER_NAME" = "" ]; then
+	if [ "$GENERATOR" = "" ]; then
+		FOLDER_NAME=$BUILD_TYPE
+	else
+		FOLDER_NAME=$GENERATOR
+	fi
+fi
+
+
+echo "Configure a out-of-source build configuration of type $BUILD_TYPE on folder build/$FOLDER_NAME"
+cd application
+make_cmake_list *
+cd ../
+
+cd library
+make_cmake_list *
+cd ../
+
+mkdir build
+mkdir "build/$FOLDER_NAME"
+cd "build/$FOLDER_NAME"
+
+if [ "$GENERATOR" = "" ]; then
+	echo "Using cmake's default generator"
+	cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS="$PARAM" ../../
+	echo "Done!"
+else
+	echo "Using cmake's $GENERATOR"
+	cmake -G $GENERATOR -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS="$PARAM" ../../
+fi
+
+
+
+
+exit
+
 
 case "$1" in
 	"kdevelop")
