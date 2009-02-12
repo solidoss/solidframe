@@ -1,2 +1,9 @@
 include_directories(${SOLIDGROUND_SOURCE_DIR}/test/foundation)
-add_library(test_alpha src/alphaconnection.cpp src/alphaservice.cpp src/alphacommands.cpp src/alphareader.cpp src/alphawriter.cpp)
+
+FILE(GLOB Sources RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} src/*.cpp)
+FILE(GLOB Headers RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.hpp)
+
+
+add_library(test_alpha
+	${Sources} ${Headers}
+)
