@@ -1,2 +1,8 @@
-add_library(test_core src/listener.cpp src/manager.cpp src/service.cpp
- src/tstring.cpp)
+
+FILE(GLOB Sources RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} src/*.cpp)
+FILE(GLOB Headers RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.hpp)
+
+
+add_library(test_core
+	${Sources} ${Headers}
+)

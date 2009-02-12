@@ -1,2 +1,7 @@
-add_library(test_beta src/betaconnection.cpp src/betaservice.cpp
-src/betatalker.cpp)
+
+FILE(GLOB Sources RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} src/*.cpp)
+FILE(GLOB Headers RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.hpp)
+
+add_library(test_beta
+	${Sources} ${Headers}
+)

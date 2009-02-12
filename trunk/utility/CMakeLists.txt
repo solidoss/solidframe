@@ -1,5 +1,9 @@
 include_directories(${SOLIDGROUND_SOURCE_DIR}/utility)
-add_library (
-	utility src/list.cpp src/stream.cpp src/utility.cpp src/memory.cpp
+
+FILE(GLOB Sources RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} src/*.cpp)
+FILE(GLOB Headers RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.hpp)
+
+add_library (utility
+	${Sources} ${Headers}
 )
 

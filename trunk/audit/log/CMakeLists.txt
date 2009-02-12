@@ -1,4 +1,7 @@
-include_directories(${SOLIDGROUND_SOURCE_DIR})
-add_library (
-	audit_log_manager src/logconnectors.cpp src/logmanager.cpp src/logrecorders.cpp
+
+FILE(GLOB Sources RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} src/*.cpp)
+FILE(GLOB Headers RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.hpp)
+
+add_library (audit_log_manager
+	${Sources} ${Headers}
 )
