@@ -3,12 +3,11 @@
 
 = Introduction =
 
-Whatever the size of a C++ project is, even from its early stages, it needs a powerful framework to help build upon.
-
+Regarding the size of a C++ project even at an early stage,  it needs a strong framework to help build.
 By framework I mean:
  
  * an easy to use, cross platform build system;
- * a powerful set of libraries and concepts to help you design and write applications.
+ * a powerful set of libraries and concepts to help you design and write applications
  
 More over, within a team there is always diversity: one likes using Eclipse, another likes MS Visual Studio, others love KDevelop. Modern build systems like *CMake* (http://www.cmake.org/) or *SCons* (http://www.scons.org) can generate project files for different IDEs. So we should use them. 
 
@@ -24,9 +23,9 @@ Well, no! You can use multi repository projects. Have a base repository containi
 
 Also, one can think of a mechanism of promoting code from "upper" repository to the base one.
 
-This is how the *SolidGround* framework is designed. It uses CMake as build system, it has libraries and groups of libraries to help write from simple to most sophisticated cross-platform C++ applications.
+This is how the *SolidGround* framework is designed. It uses CMake as build system, it has libraries and groups of libraries to help write from simple to the most sophisticated cross-platform C++ applications.
 
-Its main goal is to allow writing powerful cross-platform server side distributed applications, but it can be used to easily write any kind of C++ application.
+Its main goal is o enable the writing of powerfull cross-platform server side distributed applications, but can be used to easily write any kind of C++ application.
 
 So what do we need for writing C++ applications:
 	* an easy to extend build system;
@@ -43,8 +42,8 @@ So what do we need for writing C++ applications:
 
 Here are some of the nicest things it offers:
 
-	* a nice re-entrant serialization engine allowing the use of fixed sized buffers to serialize objects of any size (one can even serialize files!) - see below for details;
-	* a nice text protocol re-entrant parser and response builder - to also be used with fixed sized buffers;
+	* a nice re-entrant serialization engine allowing the use of fixed buffers size; to serialize objects of any size (one can even serialize files!) - see below for details;
+	* a nice text protocol re-entrant parser and response builder - to also be used with fixed buffers size;;
 	* a nice asynchronous signaling engine;
 	* a nice filemanager to allow non conflicting access to files from within the same process. The file will be signaled to a requesting pseudo-active object when its request does not conflict with others (e.g. no writer while there are readers);
 	* a very nice Inter Process Communication / Remote Procedure Call engine, which allow commands to be executed on a different process/machine and have the response returned back to the sender;
@@ -107,7 +106,7 @@ Here is an example of how the debug log should be used:
 
 =The *"utility"* library=
 
-This library depends on *system* one and defines concepts like: _streams_, _threadpool_ (workpool). It also contains some utility classes for concepts like: _stack_, _queue_, _list_. The interfaces resembles the stl ones but the implementation is twice faster. Another interesting utility class is MutualObjectContainer which can be used when having objects like mutexes shared by some other groups of objects from a container. To be more explicit here's the situation it is used:
+This library depends on *system* one and defines concepts like: _streams_, _threadpool_ (workpool). It also contains some utility classes for concepts like: _stack_, _queue_, _list_. Interfaces are similar to those of STL, but implementation is twice faster at run time. Another interesting utility class is MutualObjectContainer that can be used when having objects like mutexes shared by some other groups of objects from a container. To be more explicit here's the situation it is used:
 	
 	# we have a container of objects that must have associated mutexes and we need to limit the number of used mutexes;
 	# so we want that N objects to share the same mutex;
@@ -122,14 +121,14 @@ There are two libraries: *protocol* for implementing internet text protocols, an
 
 As you've learned, in *SolidGround* the communication is asynchronous, so although it simplifies some things, it complicates a little the parsing of the data received on the communication channel and the built of the response. The "protocol" library helps with that: re-entrant parsing with error handling and re-entrant response builder. I've designed the protocol library having the experience of implementing the IMAP protocol so as you'll see from the foundation alpha test protocol which resembles IMAP, the library is quite easy to use. By re-entrant I mean, for example in case of parsing, that you don't have to feed the parser all the data, you give the parser the data you have, and it will inform you if it has finished parsing or if it needs more data.
 
-Same thing with the *serialization* library. Although not as complete as let's say boost::serialization, it has the major advantage of being re-entrant. For the moment it only features binary serialization, written specifically for the IPC engine. It can serialize basic types, (abstract) objects as pointers and references, stl::containers of objects and of pointers, and, yes it can serialize streams (e.g. file streams) etc.
+Same thing with the *serialization* library. Although not as complete as let's say boost::serialization, it has the major advantage of being re-entrant. For the moment it only features binary serialization, written specifically for the IPC engine. It can serialize basic types, (abstract) objects as pointers and references, STL::containers of objects and of pointers, and, yes it can serialize streams (e.g. file streams) etc.
 When used with pointers to objects, great care must be taken.
 
 =The *"audit"* library group=
 
-For now the only libraries implemented is for logging (*audit_log* *audit_log_manager*), the reporting library being planned for a future release.
+For now, only the library is implemented logging (*audit_log* *audit_log_manager*), reporting library is planned for a future edition
 
-The *audit_log* library offers an interface for a log client. You initiate the log client, connecting it to a log manager and feed it log lines. The interface resembles the one of the debug engine. Here is an excerpt of initiating both the client and the server (usually these are not done within the same process):
+The *audit_log* library provides an interface for a log client. You initiate the log client, connecting it to a log manager and feed it log lines. The interface resembles the debug engine. Here is an excerpt of initiating both the client and the server (usually these are not done within the same process):
 
 {{{
 	pipe(pairfd);
@@ -153,12 +152,12 @@ And here's an example of usage:
 
 =The *"foundation"* library group==
 
-This is the central group of libraries of the framework. It defines most of its most powerful concepts.
-The central concept is the *Pseudo-Active Object* (PAO), which is an object residing both within a static container (a Service) and an active pool (a thread pool). All services reside within Manager and are all PAOs too. The manager is used to signal the objects different signals and/or commands, or to visit the objects. The only way to access directly an object is through a visitor, in rest the only interaction is through signals and commands.
+This is the central group of libraries of the framework. It defines most of most powerful concepts.
+The central concept is the *Pseudo-Active Object* (PAO), which is an object residing both within a static container (a Service) and an active pool (a thread pool). All services reside within Manager and are all PAOs too. The manager is used to send different signals and/or commands to the objects or to allow visitors on them. The only way to access directly an object is through a visitor, the rest of interaction is through signals and commands.
 
 Every object has an unique id which uniquely identifies the object in both space (indexed access) and time (one can safely send a signal or a command to a deleted object). This unique id has two parts, an index part to locate the object starting from the manager (contains the index of the service and the index within the service) and an unique number incremented on every release of a position within a service.
 
-The the role of active containers (SelectPools) is to keep objects and provide them with processor time on certain events like: signals, timeouts, io completion events.
+The role of active containers (SelectPools) is to keep objects and provide them with processor time on certain events like: signals, timeouts, IO completion events.
 
 There are three foundation libraries and group of libraries: *foundation_core*, *foundation_aio group* and *foundation_ipc*.
 
@@ -168,17 +167,17 @@ It defines the main concepts: the base class for PAOs, the services, some basic 
 
 ===The file manager===
 
-Suppose you have different objects (PAOs) needing to access a certain file. Some access modes are incompatible: one cannot write while there are readers, only a single writer at a time, and no readers while there are writers.
+Suppose you have different objects (PAOs) that need to access a certain file. Some access modes are incompatible: one cannot write while there are readers, only a single writer at a time, and no readers while there are writers.
 
-Requesting a stream to a file from the file manager, will either return immediately with success and with the stream, or with failure or with pending when the requested stream conflicts with other existing stream(s). In the last case the filemanager will signal the stream to a PAO using a command. Also it might happen for filemanager to signal an error.
+Requesting a stream to a file from the file manager, will either return immediately with success and the stream, or with failure or "pending" when the requested stream conflicts with other existing stream(s). In the last case the filemanager will signal the stream to a PAO using a command. Also it may happen for filemanager to signal an error.
 
-The file manager also offers support for temporary files. For a very nice example of both the way it should be used and its power, see the test alpha fetch command, especially how the remote fetching is implemented (test/foundation/alpha/src/alphacommands.cpp).
+The file manager also offers support for temporary files. For a very nice example of both, the way it should be used and its power, see the test alpha fetch command, especially how the remote fetching is implemented (test/foundation/alpha/src/alphacommands.cpp).
 
 ==The *"foundation_aio"* library group==
 
-It offers support for asynchronous TCP (plain and secured with SSL) and UDP IO. There are four libraries in group: *foundation_aio*, *foudation_aio_tcp*, *foundation_aio_udp*, *foundation_aio_openssl*.
+It offers support for asynchronous TCP (plain and secured with SSL) and UDP IO. There are four libraries in the group: *foundation_aio*, *foudation_aio_tcp*, *foundation_aio_udp*, *foundation_aio_openssl*.
 
-The *foundation_aio* library offers the _foundation_::_aio_::_Selector_ (to be used with foundation::SelectPool ) the active container for PAOs needing IO support. An object needing aio support, can have a single communication channel or multiple ones (e.g. for easy implementing proxies and chat rooms).
+The *foundation_aio* library offers the _foundation_::_aio_::_Selector_ (to be used with foundation::SelectPool), the active container for PAOs needing IO support. An object needing AIO support, can have one or multiple channels (e.g. for easy implementing proxies and chat rooms).
 
 The *foundation_aio_tcp* offers specialized interface for plain and secured TCP AIO - connections, multiconnections and listeners.
 
@@ -188,13 +187,13 @@ The *foundation_aio_openssl* is a wrapper for OpenSSL (http://www.openssl.org) l
 
 ==The *"foundation_ipc"* library==
 
-This library offers support for remote execution of commands. It uses UDP for communication and binary serialization for commands. It has keep-alive support in the sense that when sending a command which has to generate a response, the IPC module will periodically send keep alive data to detect peer disconnection and if the disconnection is detected, the PAO waiting for the response will be signaled with an error. This is useful when waiting for a response, you cannot approximate how long will it take for the peer process to build that response, so you will only wait for the response or an error from the ipc module.
+This library offers support for remote execution of commands. It uses UDP for communication and binary serialization for commands. It has keep-alive support which means that sending a command which has to generate a response, the IPC module will periodically send keep alive data to detect peer disconnection. If the disconnection is detected, the PAO waiting for the response, will be signaled with an error. This is useful when waiting for a response, you cannot approximate how long will it take for the peer process to build that response, so you will only wait for the response or an error from the ipc module.
 
-It uses UDP and a talker (the aio UDP socket) is used for "talking" with multiple peer processes. More over because commands can be quite long (especially if they contain streams) the commands sent to a peer process are multiplexed: no more than N data buffers are sent continuously for a command, bigger commands being re-queued.
-Because the use of UDP, I had to add many of TCP capabilities like: in-order buffer receive, resending not-received buffers etc.
+It uses UDP and a talker (the aio UDP socket) for "talking" with multiple peer processes. More over, because commands can be quite long (especially if they contain streams) the commands being sent, on the same time, to a peer process are multiplexed: no more than N data buffers are sent continuously for a command, bigger commands being re-queued.
+Because it uses UDP, I had to add many of TCP capabilities like: in-order buffer receive, resending not-received buffers etc.
 
-The stress tests I've performed show the same io transfer speed as TCP.
+The stress tests I've performed show the same IO transfer speed as TCP.
 
 =Closing=
 
-In this page you've learned basic knowledge about *SolidGround*: what it is, what it offers, about its core concepts, about its libraries. Next you'll learn about how to compile and test the *SolidGround* test applications.
+In this page you've learned basic knowledge about *SolidGround*: what it is, what it offers, about its core concepts and its libraries. Next you'll learn about how to compile and test the *SolidGround* test applications.
