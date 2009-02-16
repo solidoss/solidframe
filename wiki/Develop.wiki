@@ -335,13 +335,13 @@ So into an alpha service one can insert connections and listeners. The listeners
 As the code form the alpha service is pretty simple we shall not delve into it. The only thing I'd like to add is some words about the destructions of services.
 On manager stop this is what is done:
 	* all objects from all services are signaled to stop including the services (which are also PAOs);
-	* the active pools start executing the PAOs which in their turn exit with destroy code. The only difference between service PAOs and other PAOs is that services are not deleted, they are deleted on foundation::Manager destructor.
+	* the active pools start executing the PAOs which in their turn exit with destroy code. The only difference between service PAOs and other PAOs is that services are not removed, they are deleted on foundation::Manager destructor.
 
 This is a quite nice approach because as you'll see, the shutdown time is very short even if lots of connections/ (and/or other objects are created).
 
 Next we shall have a look at alpha::Connection (`src/alphaconnection.hpp` and `src/alphaconnection.cpp`).
 
-Because alpha service features a quite complicated text protocol (resembling IMAP), the alpha::Connection features an extended protocol::Reader and protocol::Writer to simplify the asynchronous send, receive/parse operations. The connection also receives different commands. I believe the most complicated function from alpha is the alpha::Connection::execute which implements a rather not so simple state machine:
+Because alpha service features rather complicated text protocol (resembling IMAP), the alpha::Connection features an extended protocol::Reader and protocol::Writer to simplify the asynchronous send, receive/parse operations. The connection also receives different commands. I believe the most complicated function from alpha is the alpha::Connection::execute which implements a rather not so simple state machine:
 
 {{{
 int Connection::execute(ulong _sig, TimeSpec &_tout){
@@ -572,4 +572,4 @@ Alpha protocol is a test protocol designed as a proof of concept (showing the wa
 
 This presentation is not complete, there is lot of code and I believe that sample code "speaks better". So don't hesitate browsing the sample code and the framework code.
 
-I'm sure that from this presentation you haven't learned to program with *SolidGround*, but I hope you've at least started to understand some of the design and what it offers. I also hope you've liked the design enough to have a better in-depth look at the code and maybe, just maybe start your own project to use *SolidGround*.
+I'm sure that from this presentation you haven't learned to program with *SolidGround*, but I hope you've at least started to understand some of the design and what it offers. I also hope you've liked the design enough to have a better in-depth look at the code and maybe, start your own project to use *SolidGround*.
