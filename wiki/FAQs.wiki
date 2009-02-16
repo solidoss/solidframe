@@ -4,11 +4,11 @@
 ----
 *Q:* Who should use SolidGround?
 
-*R:* C++ developers can use SolidGround for their own projects/applications and/or for company projects. Companies also can implement C++ solutions based on SolidGround. Please have a look at the last question too.
+*R:* C++ developers can use SolidGround for their own projects/applications and/or for company projects. Companies, also, can implement C++ solutions based on SolidGround. Please have a look to the last question too.
 ----
 *Q:* What kind of projects should use SolidGround?
 
-*R:* I believe any kind of project can benefit from what SolidGround offers, but frankly I've designed it for  asynchronous, distributed internet servers of: mail, HTTP, radio/video internet broadcasting etc.
+*R:* I believe that any kind of project can benefit from what SolidGround offers, but frankly I've designed it for  asynchronous, distributed internet servers of: mail, HTTP, radio/video internet broadcasting etc.
 ----
 *Q:* Is SolidGround perfect?
 
