@@ -27,7 +27,7 @@ So you should do something like:
 solidground/application $ svn co https://foobarsuite.googlecode.com/svn/trunk/ foobar
 }}}
 
-So you'll have a repository copy of your application within `"solidground/application/foobar"`. With no files and no folders. Lets add some (we suppose the foobar contains: a client, a server and some applications test):
+to have a repository copy of your application within `"solidground/application/foobar"`, with no files and no folders. Lets add some (we suppose the foobar contains: a client, a server and some applications test):
 
 	# first you'll need to create the folders:
 		{{{
@@ -192,13 +192,13 @@ At the end of main function, after the manager was destroyed we do:
 	Thread::waitAll();
 }}}
 
-= The test core library =
-
 Note that the test::Manager is declared within a block, and the waitAll() is called outside that block, so that it is called after the manager object is destroyed.
 
-While at design level the central concept of the framework is the Pseudo-Active-Object class, at implementation level the central concept is the Manager object which provides the main way to interact with objects and services. As you can see in the above code the manager is a test::Manager which is also a foundation::Manager. Lets have a look at test::Manager (`test/foundation/core/src/manager.cpp`).
+= The test core library =
 
-The test::Manager is the bottom container as it holds: the file manager, the active pools and the services. Most of the classes of the objects held by the manager are abstract and a local implementation (which consists mostly of simple lines of code) must be given. So we have to implement: a FileManager, an ipc::Service, a CommandExecuter (a PAO which all it does is to execute incoming Commands). Also the concrete active pools must be defined. Next the foundation::Manager is extended to allow insertion of services and different types of objects like connections, talkers, listeners etc. 
+While at design level the central concept of the framework is the Pseudo-Active-Object class, at implementation level the central concept is the Manager object which provides the main way to interact with objects and services. As you can see in the above code, the manager is a test::Manager which is also a foundation::Manager. Lets have a look at test::Manager (`test/foundation/core/src/manager.cpp`).
+
+The test::Manager is the bottom container as it holds: the file manager, the active pools and the services. Most of the classes of the objects held by the foundation::Manager, are abstract and a local implementation (which consists mostly of simple lines of code) must be given. So we have to implement: a FileManager, an ipc::Service, a CommandExecuter (a PAO which all it does is to execute incoming Commands). Also the concrete active pools must be defined. Next the foundation::Manager is extended to allow insertion of services and different types of objects like connections, talkers, listeners etc. 
 
 So, using the manager, one can add new connections (connections that will connect to a server), new listeners 
 and/or new talkers (asynchronous UDP communication stubs) to a service.
@@ -209,9 +209,9 @@ The manager mixes all these and allows restrictive access to services and object
 static Manager& the(){return static_cast<Manager&>(foundation::Manager::the());}
 }}}
 
-This method is necessary because all concrete objects defined within "test" to access this test::Manager (and not the foundation::Manager, which is eventually accessed internally at the foundation level) 
+This method is necessary because all concrete objects defined within "test" need to access this test::Manager (and not the foundation::Manager, which is eventually accessed internally at the foundation level) 
 
-Here is the code for pool definition:
+Here is the code for pools definitions:
 
 {{{
 typedef foundation::SelectPool<cs::ObjectSelector>					ObjSelPoolTp;
@@ -282,7 +282,7 @@ int Service::execute(ulong _sig, TimeSpec &_rtout){
 
 The test::Service is not a final service, it extends the foundation::Service but this is not final. The final services are defined in their corresponding library (e.g. test::alpha::Service `test/foundation/alpha/alphaservice.hpp`).
 
-What is final and it is implemented in `test/foundation/core` is the listener, which is a PAO creating connections:
+What is final and it is implemented in `test/foundation/core` is the listener, which is a PAO that accepts incomming connections:
 
 {{{
 int Listener::execute(ulong, TimeSpec&){
@@ -321,27 +321,28 @@ int Listener::execute(ulong, TimeSpec&){
 }
 }}}
 
-Up till now you've learned about the `test/foundation/core` library, which is the basis for the proof of concept multiservice server application. You've learn about the central object, the test::Manager, you've learned about the base services and the listeners. As you've learned from above, every service has it's own library and folder. Let's take a look at the alpha service which is the most important service/protocol exported by the proof of concept server.
+Up till now you've learned about the `test/foundation/core` library, which is the basis for the proof of concept multiservice server application. You've learn about the central object, the test::Manager, you've learned about the base services and the listeners. As you've found out from above, every service has it's own library and folder. Let's take a look at the alpha service which is the most important service/protocol exported by the proof of concept server.
 
 = The alpha service =
 
-As every library in *SolidGround*, the test_alpha library has it own folder. The only public interface of the library is in the `alphaservice.hpp` file, the rest of the code, being private is within `alpha/src`. In `test/foundation/alpha/alphaservice.hpp` is declared the test::alpha::Service, which is instantiated in the application's main function and registered into the manager.
+As every library in *SolidGround*, the test_alpha library has it own folder. The only public interface of the library is in the `alphaservice.hpp` file, the rest of the code, being private, is within `alpha/src`. In `test/foundation/alpha/alphaservice.hpp` is declared the test::alpha::Service, which is instantiated in the application's main function and registered into the manager.
 
-A service, while registered cannot be unregistered. A service can be inactive or active but it cannot be deleted.
+A service, once registered, cannot be unregistered. A service can be inactive or active but it cannot be deleted.
 As you can see from the code, the alpha service is a test core service and implements that interface allowing additions of connections and listeners. The only recommended way to directly access a service (I've tried to enforce in the code) is from its PAOs within PAOs execute function. The idea is that the service life will allways exceed its PAOs. See the test::Listener::execute, above, for an example.
 
-So into an alpha service one can insert connections and listeners. The listeners are test::Listener while the connections are test::alpha::Connection(s) private to alpha library.
+So into an alpha service one can insert connections and listeners. The listeners are of type test::Listener, while the connections are test::alpha::Connection(s), private to alpha library.
 
-As the code form the alpha service is pretty simple we shall not delve into it. The only thing I'd like to add is some words about the destructions of services.
+As the code from the alpha service is pretty simple we shall not delve into it. The only thing I'd like to add, is some words about the destruction of services.
+
 On manager stop this is what is done:
-	* all objects from all services are signaled to stop including the services (which are also PAOs);
-	* the active pools start executing the PAOs which in their turn exit with destroy code. The only difference between service PAOs and other PAOs is that services are not removed, they are deleted on foundation::Manager destructor.
+	* All objects from all services are signaled to stop - including the services (which are also PAOs).
+	* The active pools start executing the PAOs which in their turn exit with destroy code. The only difference between service PAOs and other PAOs is that services are not removed, they are deleted on foundation::Manager destructor.
 
-This is a quite nice approach because as you'll see, the shutdown time is very short even if lots of connections/ (and/or other objects are created).
+This is a quite nice approach because as you'll see, the shutdown time is very short, even if lots of connections (and/or other objects) are created.
 
 Next we shall have a look at alpha::Connection (`src/alphaconnection.hpp` and `src/alphaconnection.cpp`).
 
-Because alpha service features rather complicated text protocol (resembling IMAP), the alpha::Connection features an extended protocol::Reader and protocol::Writer to simplify the asynchronous send, receive/parse operations. The connection also receives different commands. I believe the most complicated function from alpha is the alpha::Connection::execute which implements a rather not so simple state machine:
+Because alpha service features, rather complicated, text protocol (resembling IMAP), the alpha::Connection uses an extended protocol::Reader and protocol::Writer to simplify the asynchronous send, receive/parse operations. The connection also receives different commands internal commands. I believe the most complicated function from alpha is the alpha::Connection::execute which implements a not so simple state machine:
 
 {{{
 int Connection::execute(ulong _sig, TimeSpec &_tout){
@@ -521,9 +522,13 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 }
 }}}
 
-The idea is: the connection uses a rather simple state machine to asynchronously read and parse the input data using an alpha::Reader, building alpha::Command objects, execute those commands which in their turn, instruct the alpha::Writer to asynchronously build the output/command response. All commands are implemented in src/alphacommands.cpp.
+The idea is:
+	* the connection uses a rather simple state machine to asynchronously read and parse the input data using an alpha::Reader, building alpha::Command objects, 
+	* execute those command objects, which in their turn, instruct the alpha::Writer to asynchronously build the output/command response. 
+	
+All commands are implemented in src/alphacommands.cpp.
 
-As you can see from alpha code, the connection not only deals with IO events but also with incoming commands (containing: filestreams from FileManager, data from remote hosts in case of remotelist or fetch commands). Notable is the way the connection deals with the incoming commands, the way it forwards the to the current alpha::Command object:
+As you can see from alpha code, the connection, not only deals with IO events but also with incoming internal commands (containing: filestreams from FileManager, data from remote hosts in case of remotelist or fetch commands). Interesting is the way the connection deals with the incoming internal commands, the way it forwards them to the current alpha::Command object:
 
 {{{
 //receiving an istream
@@ -564,12 +569,12 @@ int Connection::receiveIStream(
 }}}
 
 
-Notable commands are: test::alpha::RemoteList and test::alpha::Fetch - see their implementation in `solidground/test/foundation/alpha/src/alphacommands.cpp`.
+Notable alpha commands are: test::alpha::RemoteList and test::alpha::Fetch - see their implementation in `solidground/test/foundation/alpha/src/alphacommands.cpp`.
 
-Alpha protocol is a test protocol designed as a proof of concept (showing the way the *SolidGround* foundation libraries should be used). The implementation though, is both not perfect and incomplete. It serves as a testing platform for new features and for stress testing in combination with some clients (`test/client/alpha`*``).
+Alpha protocol is a test protocol designed as a proof of concept (showing the way the *SolidGround* foundation libraries should/may be used). The implementation though, is both not perfect and incomplete. It serves as a testing platform for new features and for profiling testing in combination with some clients (`test/client/alpha`*``).
 
 = Closing =
 
 This presentation is not complete, there is lot of code and I believe that sample code "speaks better". So don't hesitate browsing the sample code and the framework code.
 
-I'm sure that from this presentation you haven't learned to program with *SolidGround*, but I hope you've at least started to understand some of the design and what it offers. I also hope you've liked the design enough to have a better in-depth look at the code and maybe, start your own project to use *SolidGround*.
+I'm sure that from this presentation you haven't learned to program with *SolidGround*, but I hope you've at least started to understand the design and what it offers. I also hope you've liked the design enough to have a better in-depth look at the code and maybe, start your own project to use *SolidGround*.
