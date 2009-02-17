@@ -8,13 +8,13 @@ First of all, I suppose you are on a linux box.
 You need to have the following installed: gcc-c++, boost, boost-devel, cmake and eventually subversion.
 (On a Fedora box, the following will suffice: 'yum install gcc-c++ boost boost-devel cmake subversion'.)
 
-If you are using svn to fetch the latest code you can do:
+If you use svn to fetch the latest code you can do:
 
 {{{
 work $ svn checkout http://solidground.googlecode.com/svn/trunk/ solidground
 }}}
 
-else you can download the archive with source snapshot from:
+otherwise you can download archive with source snapshot from:
 
 http://code.google.com/p/solidground/downloads/list
 
@@ -78,7 +78,7 @@ solidground $ cd build/debug/test/foundation/main
 main $ make
 }}}
 
-If everything went right, the server should successfully build.
+If everything went well, the server should build successfully.
 
 Next lets build the clients:
 
@@ -87,7 +87,7 @@ main $ cd ../../client
 client $ make
 }}}
 
-The most relevant service of the test server is the alpha service. See below a presentation of the alpha protocol and the way to manually test it. For now we'll use the test clients.
+The most relevant service of the test server is the alpha service. See below a presentation of alpha protocol and a way to manually test it. Now we use the test clients.
 
 The most interesting test clients for alpha protocol are alphaclient_p and alphaclient_s. They are the same except that the first one uses plain connections while the second uses SSL connections.
 
@@ -139,9 +139,9 @@ client $ time ./alphaclient_p 10 localhost 1124 /tmp/00000001 5 2 localhost 2222
 
 *Note the change of port from 1114 to 1124.*
 
-Here is roughly what the client does on every connection it opens to the server:
+Here is approximately what the client does on every connection it opens to the server:
 
-	# get or remote get the list of files from folder /tmp (list or remotelist commands)
+	# gets the local or the remote list of files from folder /tmp (list or remotelist commands)
 	# for every file in the list it issues a fetch / remote fetch to read the file (fetch command)
 	# it does the previous step twice with 5 milliseconds sleep between commands
 	
@@ -154,7 +154,7 @@ list, remotelist, store, fetch
 
 `tag list "/absolute/path"`
 
-Lists all items from '/absolute/path' specifying if they are files or folder, for files the size is also printed.
+Lists all items from '/absolute/path' specifying whether they are files or folder, for files, the size is also printed.
 
 == ALPHA REMOTELIST command ==
 
@@ -174,12 +174,12 @@ Here's what will happen behind the curtain:
 
 It has two forms:
 
-A local fetch form
+A local fetch form:
 
 `aa fetch "/tmp/00000001/00000006.txt"`
 
 Which does:
-	* request a istream from filemanager for input file
+	* requests an istream from filemanager for input file
 	* when the stream is received, it writes all stream data on connection
 
 And a remote fetch form:
@@ -187,17 +187,17 @@ And a remote fetch form:
 `aa fetch "/tmp/00000001/00000006.txt" localhost 2222`
 
 Which does:
-	* Request from filemanager an iostream for a temp file
+	* Requests from filemanager an iostream for a temp file
 	* when received the stream, it issues a masterfetchcommand to the peer
 	* on the peer the master fetch command requests an istream to the requested file from filemanager
 	* when received the stream the masterfetchcommand sends the issuer process a response containing the size of the stream and at most the first 1MB of file data, which on deserialization on issuer process is written on the temporary file
 	* if there is data on the file not sent to the issuer, the masterfetch command waits for slavefetchcommands
 	* then the connection, if there is still file data to request from peer, it creates a slavefetchcommand for the next 1MB of file data which will be written at the end of the temp file.
 	* also the connection starts sending to the client the file data from the temp file.
-	* continue with the previous 3 steps until all file data is sent to the client, using rotationally first MB of temp file to send data to the client and the second MB to receive data from peer, then the first MB to receive data from peer and the second MB to send to the client.
+	* continues with the previous 3 steps until all file data is sent to the client, using rotationally first MB of temp file to send data to the client and the second MB to receive data from peer, then the first MB to receive data from peer and the second MB to send to the client.
 
 As you'll see, the performance decreases on remote fetch at half of that of the local fetch.
 
 = Closing =
 
-In this page you've learned how to have a working copy of the *SolidGround* framework, and learned somethings about its test applications, especially the proof of concept server. You've also learned how to do a small performance test. There you have it, now brace yourself for the interesting part - start using the framework for development [ http://code.google.com/p/solidground/wiki/Develop ].
+On this page you've learned how to have a working copy of the *SolidGround* framework, and learned something about its test applications, especially the proof of concept server. You've also learned how to make a small performance test. There you have it, now brace yourself for the interesting part - start using the framework for development [ http://code.google.com/p/solidground/wiki/Develop ].
