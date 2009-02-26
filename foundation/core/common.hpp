@@ -55,7 +55,7 @@ enum Events{
 enum Consts{
 	MAXTIMEOUT = (0xffffffff>>1)/1000
 };
-#if defined(__arch64__)
+#ifdef _LP64
 //64 bit architectures
 #ifdef UINDEX32
 //32 bit indexes
