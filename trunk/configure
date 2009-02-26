@@ -25,9 +25,10 @@ function print_usage(){
 	echo "[-g|--generator GeneratorName]: Specify the cmake generator - default cmake's default"
 	echo "[-f|--folder FolderName]: Specify the build folder name - default is the generator name or the build type if the generator was not specified"
 	echo "[-b|--build BuildType]: The cmake build type release/debug/nolog/maintain - default release"
-	echo "[-p|--param ParamName]: Extra compilation flags"
+	echo "[-p|--param ParamName]: Extra compilation flags. E.g. -p \"-DUINDEX64 -DUSERVICEBITS=3\""
 	echo "[-d|--documentation full/fast]: Build either fast or full documentation"
 	echo "[-e|--extern pack]: operate on extern libraries, pack builds a tar.bz2 archive"
+	echo
 	exit
 }
 
@@ -92,13 +93,13 @@ while [ "$#" -gt 0 ]; do
 done
 
 
-echo "generator = $GENERATOR"
-echo "folder = $FOLDER_NAME"
-echo "build = $BUILD_TYPE"
-echo "documentation = $DOCUMENTATION"
-echo "parameters = $PARAM"
-echo "help = $HELP"
-echo "extern = $EXTERN"
+#echo "generator = $GENERATOR"
+#echo "folder = $FOLDER_NAME"
+#echo "build = $BUILD_TYPE"
+#echo "documentation = $DOCUMENTATION"
+#echo "parameters = $PARAM"
+#echo "help = $HELP"
+#echo "extern = $EXTERN"
 
 if [ "$HELP" = "yes" ]; then
 	print_usage
@@ -145,7 +146,7 @@ if [ "$FOLDER_NAME" = "" ]; then
 fi
 
 
-echo "Configure a out-of-source build configuration of type $BUILD_TYPE on folder build/$FOLDER_NAME"
+echo "Configure a out-of-source build configuration of type $BUILD_TYPE on folder build/$FOLDER_NAME and params $PARAM"
 cd application
 make_cmake_list *
 cd ../
@@ -160,11 +161,11 @@ cd "build/$FOLDER_NAME"
 
 if [ "$GENERATOR" = "" ]; then
 	echo "Using cmake's default generator"
-	cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS="$PARAM" ../../
+	cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS:STRING="$PARAM" ../../
 	echo "Done!"
 else
 	echo "Using cmake's $GENERATOR"
-	cmake -G $GENERATOR -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS="$PARAM" ../../
+	cmake -G $GENERATOR -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS:STRING="$PARAM" ../../
 fi
 
 
@@ -232,7 +233,7 @@ case "$1" in
 		mkdir build
 		mkdir "build/$THEFLD"
 		cd "build/$THEFLD"
-		cmake -DCMAKE_BUILD_TYPE=$1 -DUDEFS="$3" ../../
+		cmake -DCMAKE_BUILD_TYPE=$1 -DUDEFS:STRING="$3" ../../
 		echo "Done preparing build/$THEFLD for $1 build type with \"$3\" parameters"
 		;;
 esac

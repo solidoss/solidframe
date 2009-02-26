@@ -61,14 +61,7 @@ template <class S>
 S& operator&(pair<String, int64> &_v, S &_s){
 	return _s.push(_v.first, "first").push(_v.second, "second");
 }
-// template <class S>
-// S& operator&(pair<unsigned int, unsigned int> &_v, S &_s){
-// 	return _s.push(_v.first, "first").push(_v.second, "second");
-// }
-/*template <class S>
-S& operator&(pair<long unsigned int, unsigned int> &_v, S &_s){
-	return _s.push(_v.first, "first").push(_v.second, "second");
-}*/
+
 template <class S>
 S& operator&(ObjectUidTp &_v, S &_s){
 	return _s.push(_v.first, "first").push(_v.second, "second");

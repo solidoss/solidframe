@@ -31,11 +31,16 @@ namespace foundation{
 class Visitor;
 class Manager;
 class Service;
+class ReadWriteService;
 class ObjPtrBase;
 class Command;
 
+#ifndef USERVICEBITS
+#define USERVICEBITS (sizeof(IndexTp) == 4 ? 5 : 8)
+#endif
+
 enum ObjectDefs{
-	SERVICEBITCNT = sizeof(IndexTp) == 4 ? 5 : 8,
+	SERVICEBITCNT = USERVICEBITS,
 	INDEXBITCNT	= sizeof(IndexTp) * 8 - SERVICEBITCNT,
 };
 
@@ -97,10 +102,6 @@ public:
 	ulong signaled(ulong _s)	const;
 	
 	//setters:
-	//! Set the id
-	void id(IndexTp _fullid);
-	//! Set the id given the service id and index
-	void id(IndexTp _srvid, IndexTp _ind);
 	//! Set the thread id
 	void setThread(uint32 _thrid, uint32 _thrpos);
 	
@@ -135,6 +136,9 @@ public:
 	*/
 	virtual void mutex(Mutex *_pmut);
 protected:
+	friend class Service;
+	friend class ReadWriteService;
+	friend class ObjPtrBase;
 	//! Sets the current state.
 	/*! If your object will implement a state machine (and in an asynchronous
 	environments it most certanly will) use this base state setting it to
@@ -143,10 +147,13 @@ protected:
 	void state(int _st);
 	//! Grab the signal mask eventually leaving some bits set- CALL this inside lock!!
 	ulong grabSignalMask(ulong _leave = 0);
-	friend class Service;
-	friend class ObjPtrBase;
 	//! Virtual destructor
 	virtual ~Object();//only objptr base can destroy an object
+private:
+	//! Set the id
+	void id(IndexTp _fullid);
+	//! Set the id given the service id and index
+	void id(IndexTp _srvid, IndexTp _ind);
 private:
 	IndexTp			fullid;
 	ulong			smask;
