@@ -14,7 +14,7 @@ string (REGEX REPLACE "^([0-9]*)\\.([0-9]*)\\.([0-9]*)" "\\3" VERSION_PATCH ${VE
 # endif(UCPPFLAGS)
 
 #debug build
-
+message("UDEFS set "${UDEFS})
 ADD_DEFINITIONS(${UDEFS})
 
 SET(CMAKE_CXX_FLAGS_DEBUG "-Wreorder -Wreturn-type -Wunused-variable -Winline -g3 -DUDEBUG -DUTHREADS -DUASSERT -DU_SERIALIZATION_MUTEX -DSG_MAJOR=${VERSION_MAJOR} -DSG_MINOR=${VERSION_MINOR} -DSG_PATCH=${VERSION_PATCH}" CACHE STRING "Flags used by the C++ compiler during debug builds." FORCE)
