@@ -33,6 +33,13 @@ class Manager;
 class Service;
 class ObjPtrBase;
 class Command;
+
+enum ObjectDefs{
+	SERVICEBITCNT = sizeof(IndexTp) == 4 ? 5 : 8,
+	INDEXBITCNT	= sizeof(IndexTp) * 8 - SERVICEBITCNT,
+};
+
+
 //! A pseudo-active object class
 /*!
 	<b>Overview:</b><br>

@@ -25,11 +25,6 @@
 
 
 
-enum ObjectDefs{
-	SERVICEBITCNT = sizeof(IndexTp) == 4 ? 5 : 8,
-	INDEXBITCNT	= sizeof(IndexTp) * 8 - SERVICEBITCNT,
-};
-
 inline void Object::getThread(uint32 &_rthid, uint32 &_rthpos){
 	//which is better:
 	//new thread id and old pos, or
