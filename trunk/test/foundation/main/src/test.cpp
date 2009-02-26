@@ -131,7 +131,7 @@ int main(int argc, char* argv[]){
 	cout<<"Debug output: "<<dbgout<<endl;
 	dbgout.clear();
 	Dbg::instance().moduleBits(dbgout);
-	cout<<"Debug levels: "<<dbgout<<endl;
+	cout<<"Debug modules: "<<dbgout<<endl;
 	}
 #endif
 	
@@ -152,6 +152,7 @@ int main(int argc, char* argv[]){
 	srand(stime);
 	
 	idbg("Built on SolidGround version "<<SG_MAJOR<<'.'<<SG_MINOR<<'.'<<SG_PATCH);
+	idbg("sizeof(IndexTp) = "<<sizeof(foundation::IndexTp)<<" SERVICEBITCNT = "<<foundation::SERVICEBITCNT<<" INDEXBITCNT = "<<foundation::INDEXBITCNT);
 	{
 
 		test::Manager	tm;
