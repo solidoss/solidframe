@@ -78,7 +78,7 @@ public:
 	//! Extracts the service id from an objectid
 	static IndexTp computeServiceId(IndexTp _fullid);
 	//! Constructor
-	Object(IndexTp _fullid = 0L);
+	Object(IndexTp _fullid = 0UL);
 	
 	//getters:
 	//! Get the id of the parent service
