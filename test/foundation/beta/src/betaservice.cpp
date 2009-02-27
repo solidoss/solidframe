@@ -21,7 +21,7 @@
 
 #include "system/debug.hpp"
 #include "core/manager.hpp"
-#include "foundation/core/objptr.hpp"
+#include "foundation/objptr.hpp"
 
 #include "core/listener.hpp"
 

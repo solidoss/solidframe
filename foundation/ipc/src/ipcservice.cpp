@@ -26,12 +26,13 @@
 #include "system/mutex.hpp"
 #include "system/socketdevice.hpp"
 
-#include "foundation/core/objptr.hpp"
-#include "foundation/core/common.hpp"
+#include "foundation/objptr.hpp"
+#include "foundation/common.hpp"
+#include "foundation/manager.hpp"
 
-#include "core/manager.hpp"
-#include "ipc/ipcservice.hpp"
-#include "ipc/connectoruid.hpp"
+#include "foundation/ipc/ipcservice.hpp"
+#include "foundation/ipc/connectoruid.hpp"
+
 #include "ipctalker.hpp"
 #include "iodata.hpp"
 #include "processconnector.hpp"

@@ -19,7 +19,7 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "core/execpool.hpp"
+#include "foundation/execpool.hpp"
 
 namespace foundation{
 

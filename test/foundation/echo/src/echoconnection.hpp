@@ -23,7 +23,7 @@
 #define ECHOCONNECTION_HPP
 
 #include "foundation/aio/tcp/connection.hpp"
-#include "foundation/core/readwriteobject.hpp"
+#include "foundation/readwriteobject.hpp"
 #include "system/socketaddress.hpp"
 class SocketAddress;
 

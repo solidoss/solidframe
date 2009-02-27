@@ -22,7 +22,7 @@
 #ifndef CS_FILE_KEYS_HPP
 #define CS_FILE_KEYS_HPP
 
-#include "foundation/core/filekey.hpp"
+#include "foundation/filekey.hpp"
 
 namespace foundation{
 //! A filekey based on the name/path of the file

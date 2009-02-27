@@ -1,9 +1,9 @@
 #include <map>
 #include <cstring>
 
-#include "foundation/core/filekeys.hpp"
-#include "foundation/core/filemapper.hpp"
-#include "foundation/core/filemanager.hpp"
+#include "foundation/filekeys.hpp"
+#include "foundation/filemapper.hpp"
+#include "foundation/filemanager.hpp"
 #include "system/directory.hpp"
 #include "system/cassert.hpp"
 

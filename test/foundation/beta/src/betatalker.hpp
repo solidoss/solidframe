@@ -23,7 +23,7 @@
 #define BETATALKER_HPP
 
 #include "core/talker.hpp"
-#include "foundation/core/readwriteobject.hpp"
+#include "foundation/readwriteobject.hpp"
 
 namespace foundation{
 class Visitor;

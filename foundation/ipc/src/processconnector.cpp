@@ -29,9 +29,9 @@
 #include "utility/queue.hpp"
 #include "algorithm/serialization/binary.hpp"
 #include "algorithm/serialization/idtypemap.hpp"
-#include "core/command.hpp"
-#include "core/manager.hpp"
-#include "ipc/ipcservice.hpp"
+#include "foundation/command.hpp"
+#include "foundation/manager.hpp"
+#include "foundation/ipc/ipcservice.hpp"
 #include "processconnector.hpp"
 #include "iodata.hpp"
 

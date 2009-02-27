@@ -28,11 +28,11 @@
 
 #include "utility/queue.hpp"
 
-#include "core/object.hpp"
-#include "core/manager.hpp"
-#include "core/command.hpp"
-#include "core/readwriteservice.hpp"
-#include "core/common.hpp"
+#include "foundation/object.hpp"
+#include "foundation/manager.hpp"
+#include "foundation/command.hpp"
+#include "foundation/readwriteservice.hpp"
+#include "foundation/common.hpp"
 
 namespace foundation{
 

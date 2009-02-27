@@ -22,7 +22,7 @@
 #ifndef IPC_PROCESS_CONNECTOR_HPP
 #define IPC_PROCESS_CONNECTOR_HPP
 
-#include "foundation/core/cmdptr.hpp"
+#include "foundation/cmdptr.hpp"
 #include "iodata.hpp"
 #include "system/timespec.hpp"
 

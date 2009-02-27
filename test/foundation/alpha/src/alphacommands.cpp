@@ -32,9 +32,9 @@
 
 #include "foundation/ipc/ipcservice.hpp"
 #include "foundation/ipc/ipcservice.hpp"
-#include "foundation/core/filemanager.hpp"
-#include "foundation/core/commandexecuter.hpp"
-#include "foundation/core/requestuid.hpp"
+#include "foundation/filemanager.hpp"
+#include "foundation/commandexecuter.hpp"
+#include "foundation/requestuid.hpp"
 
 #include "core/common.hpp"
 #include "core/tstring.hpp"

@@ -33,10 +33,10 @@
 #include "utility/queue.hpp"
 #include "utility/stack.hpp"
 
-#include "core/manager.hpp"
+#include "foundation/manager.hpp"
 
-#include "ipc/ipcservice.hpp"
-#include "ipc/connectoruid.hpp"
+#include "foundation/ipc/ipcservice.hpp"
+#include "foundation/ipc/connectoruid.hpp"
 
 #include "ipctalker.hpp"
 #include "processconnector.hpp"

@@ -22,8 +22,8 @@
 #ifndef CS_COMMAND_EXECUTER_HPP
 #define CS_COMMAND_EXECUTER_HPP
 
-#include "foundation/core/object.hpp"
-#include "foundation/core/common.hpp"
+#include "foundation/object.hpp"
+#include "foundation/common.hpp"
 #include "cmdptr.hpp"
 #include "utility/streamptr.hpp"
 #include <string>
@@ -60,7 +60,7 @@ struct ConnectorUid;
 		using foundation::Manager::insertObject
 	- Implement for your commands execute(CommandExecuter&, const CommandUidTp &, TimeSpec &_rts);
 	
-	\see test/foundation/core/src/server.cpp test/foundation/alpha/src/alphacommands.cpp
+	\see test/foundation/src/server.cpp test/foundation/alpha/src/alphacommands.cpp
 	\see test::CommandExecuter test::alpha::FetchMasterCommand
 	\see foundation::Command foundation::Object
 */

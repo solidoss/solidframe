@@ -31,9 +31,9 @@
 
 #include "utility/queue.hpp"
 
-#include "foundation/core/objptr.hpp"
+#include "foundation/objptr.hpp"
 
-#include "common.hpp"
+#include "foundation/common.hpp"
 
 namespace foundation{
 

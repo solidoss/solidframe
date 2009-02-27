@@ -32,11 +32,12 @@
 #include "utility/queue.hpp"
 #include "utility/stack.hpp"
 
-#include "core/object.hpp"
-#include "core/common.hpp"
+#include "foundation/object.hpp"
+#include "foundation/common.hpp"
 
 #include "foundation/aio/aioselector.hpp"
 #include "foundation/aio/aioobject.hpp"
+
 #include "aiosocket.hpp"
 
 

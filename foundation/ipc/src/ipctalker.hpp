@@ -22,7 +22,7 @@
 #ifndef CLIENTSERVER_IPC_TALKER_HPP
 #define CLIENTSERVER_IPC_TALKER_HPP
 
-#include "aio/udp/talker.hpp"
+#include "foundation/aio/udp/talker.hpp"
 
 struct TimeSpec;
 

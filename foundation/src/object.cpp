@@ -24,12 +24,12 @@
 
 #include "system/debug.hpp"
 
-#include "core/object.hpp"
-#include "core/objptr.hpp"
-#include "core/visitor.hpp"
-#include "core/command.hpp"
-#include "core/cmdptr.hpp"
-#include "core/manager.hpp"
+#include "foundation/object.hpp"
+#include "foundation/objptr.hpp"
+#include "foundation/visitor.hpp"
+#include "foundation/command.hpp"
+#include "foundation/cmdptr.hpp"
+#include "foundation/manager.hpp"
 
 #include "utility/memory.hpp"
 

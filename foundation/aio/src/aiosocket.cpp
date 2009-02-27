@@ -1,4 +1,4 @@
-#include "foundation/core/common.hpp"
+#include "foundation/common.hpp"
 #include "foundation/aio/src/aiosocket.hpp"
 #include "foundation/aio/aiosecuresocket.hpp"
 #include "system/socketaddress.hpp"
