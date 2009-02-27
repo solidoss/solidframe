@@ -22,7 +22,7 @@
 #ifndef TEST_COMMAND_HPP
 #define TEST_COMMAND_HPP
 
-#include "foundation/core/command.hpp"
+#include "foundation/command.hpp"
 
 namespace test{
 class Connection;
