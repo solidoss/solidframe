@@ -1,12 +1,14 @@
-#include "foundation/core/commandexecuter.hpp"
-#include "foundation/core/command.hpp"
-#include "foundation/core/manager.hpp"
 #include <deque>
+
+#include "foundation/commandexecuter.hpp"
+#include "foundation/command.hpp"
+#include "foundation/manager.hpp"
 
 #include "system/cassert.hpp"
 #include "system/mutex.hpp"
 #include "system/debug.hpp"
 #include "system/timespec.hpp"
+
 #include "utility/stack.hpp"
 #include "utility/queue.hpp"
 

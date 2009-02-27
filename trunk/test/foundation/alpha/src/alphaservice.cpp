@@ -25,7 +25,7 @@
 
 #include "algorithm/serialization/binary.hpp"
 
-#include "foundation/core/objptr.hpp"
+#include "foundation/objptr.hpp"
 #include "foundation/aio/openssl/opensslsocket.hpp"
 
 #include "core/listener.hpp"

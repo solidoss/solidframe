@@ -37,12 +37,12 @@
 #include "utility/queue.hpp"
 #include "utility/stack.hpp"
 
-#include "core/filemanager.hpp"
-#include "core/manager.hpp"
-#include "core/common.hpp"
-#include "core/filekeys.hpp"
-#include "core/filemapper.hpp"
-#include "core/requestuid.hpp"
+#include "foundation/filemanager.hpp"
+#include "foundation/manager.hpp"
+#include "foundation/common.hpp"
+#include "foundation/filekeys.hpp"
+#include "foundation/filemapper.hpp"
+#include "foundation/requestuid.hpp"
 
 namespace fdt = foundation;
 using namespace std;

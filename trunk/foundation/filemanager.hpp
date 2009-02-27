@@ -24,9 +24,9 @@
 
 #include "utility/streamptr.hpp"
 
-#include "foundation/core/object.hpp"
+#include "foundation/object.hpp"
 
-#include "common.hpp"
+#include "foundation/common.hpp"
 
 class IStream;
 class OStream;

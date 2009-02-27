@@ -21,8 +21,8 @@
 
 #include "system/debug.hpp"
 
-#include "core/object.hpp"
-#include "core/objectselector.hpp"
+#include "foundation/object.hpp"
+#include "foundation/objectselector.hpp"
 
 namespace foundation{
 

@@ -28,7 +28,7 @@
 #include "utility/istream.hpp"
 
 #include "foundation/ipc/ipcservice.hpp"
-#include "foundation/core/requestuid.hpp"
+#include "foundation/requestuid.hpp"
 
 
 #include "core/manager.hpp"

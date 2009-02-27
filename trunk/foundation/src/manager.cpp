@@ -27,13 +27,13 @@
 #include "system/mutex.hpp"
 #include "system/specific.hpp"
 
-#include "core/manager.hpp"
-#include "core/service.hpp"
-#include "core/object.hpp"
-#include "core/activeset.hpp"
-#include "core/filemanager.hpp"
-#include "core/requestuid.hpp"
-#include "ipc/ipcservice.hpp"
+#include "foundation/manager.hpp"
+#include "foundation/service.hpp"
+#include "foundation/object.hpp"
+#include "foundation/activeset.hpp"
+#include "foundation/filemanager.hpp"
+#include "foundation/requestuid.hpp"
+#include "foundation/ipc/ipcservice.hpp"
 
 /*
 Manager &ManagerThread::server(){

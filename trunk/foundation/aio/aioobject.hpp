@@ -23,7 +23,7 @@
 #define CS_AIO_OBJECT_HPP
 
 #include "system/timespec.hpp"
-#include "foundation/core/object.hpp"
+#include "foundation/object.hpp"
 
 namespace foundation{
 namespace aio{

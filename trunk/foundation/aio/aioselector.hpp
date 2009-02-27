@@ -22,8 +22,8 @@
 #ifndef CS_AIO_SELECTOR_HPP
 #define CS_AIO_SELECTOR_HPP
 
-#include "foundation/core/common.hpp"
-#include "foundation/core/objptr.hpp"
+#include "foundation/common.hpp"
+#include "foundation/objptr.hpp"
 
 
 struct TimeSpec;

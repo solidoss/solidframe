@@ -20,7 +20,7 @@
 */
 
 #include "system/debug.hpp"
-#include "foundation/core/objptr.hpp"
+#include "foundation/objptr.hpp"
 
 #include "core/manager.hpp"
 #include "core/listener.hpp"

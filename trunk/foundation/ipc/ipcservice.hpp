@@ -22,8 +22,8 @@
 #ifndef IPCSERVICE_HPP
 #define IPCSERVICE_HPP
 
-#include "foundation/core/service.hpp"
-#include "foundation/core/command.hpp"
+#include "foundation/service.hpp"
+#include "foundation/command.hpp"
 #include "foundation/ipc/connectoruid.hpp"
 
 struct SockAddrPair;

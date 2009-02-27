@@ -22,7 +22,7 @@
 #ifndef CS_COMMAND_HPP
 #define CS_COMMAND_HPP
 
-#include "foundation/core/common.hpp"
+#include "foundation/common.hpp"
 #include "utility/streamptr.hpp"
 #include <string>
 
