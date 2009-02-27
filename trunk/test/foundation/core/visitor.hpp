@@ -22,7 +22,7 @@
 #ifndef TESTVISITOR_HPP
 #define TESTVISITOR_HPP
 
-#include "foundation/core/visitor.hpp"
+#include "foundation/visitor.hpp"
 
 namespace test{
 

@@ -22,7 +22,7 @@
 #ifndef TESTMANAGER_HPP
 #define TESTMANAGER_HPP
 #include <map>
-#include "foundation/core/manager.hpp"
+#include "foundation/manager.hpp"
 #include "common.hpp"
 
 namespace test{
@@ -36,6 +36,7 @@ typedef std::map<const char*, ServiceCreator, StrLess>	ServiceMap;
 
 ServiceMap& getServiceMap();
 void registerService(ServiceCreator _psc, const char* _pname);
+
 //! A proof of concept test server
 /*!
 	This is a proof of concept server and should be taken accordingly.

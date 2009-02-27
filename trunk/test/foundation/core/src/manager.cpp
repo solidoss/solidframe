@@ -37,17 +37,17 @@
 #include "core/object.hpp"
 
 
-#include "foundation/core/selectpool.hpp"
-#include "foundation/core/execpool.hpp"
-#include "foundation/core/filemanager.hpp"
-#include "foundation/core/filekeys.hpp"
+#include "foundation/selectpool.hpp"
+#include "foundation/execpool.hpp"
+#include "foundation/filemanager.hpp"
+#include "foundation/filekeys.hpp"
 
 #include "foundation/aio/aioselector.hpp"
 #include "foundation/aio/aioobject.hpp"
 
-#include "foundation/core/objectselector.hpp"
-#include "foundation/core/commandexecuter.hpp"
-#include "foundation/core/requestuid.hpp"
+#include "foundation/objectselector.hpp"
+#include "foundation/commandexecuter.hpp"
+#include "foundation/requestuid.hpp"
 
 #include "foundation/ipc/ipcservice.hpp"
 

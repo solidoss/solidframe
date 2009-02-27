@@ -22,7 +22,7 @@
 #ifndef TESTCOMMON_HPP
 #define TESTCOMMON_HPP
 
-#include "foundation/core/common.hpp"
+#include "foundation/common.hpp"
 
 #include <string.h>
 

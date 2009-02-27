@@ -22,7 +22,7 @@
 #ifndef TESTSERVICE_HPP
 #define TESTSERVICE_HPP
 
-#include "foundation/core/readwriteservice.hpp"
+#include "foundation/readwriteservice.hpp"
 #include "common.hpp"
 
 struct AddrInfoIterator;
