@@ -25,7 +25,7 @@
 #include "utility/queue.hpp"
 #include <string>
 #include <deque>
-#include "foundation/aio/tcp/multiconnection.hpp"
+#include "foundation/aio/aiomultiobject.hpp"
 #include "system/socketaddress.hpp"
 
 class SocketAddress;
@@ -47,10 +47,10 @@ namespace proxy{
 
 class Service;
 
-class MultiConnection: public foundation::aio::tcp::MultiConnection{
+class MultiConnection: public foundation::aio::MultiObject{
 public:
 	typedef Service	ServiceTp;
-	typedef foundation::aio::tcp::MultiConnection BaseTp;
+	typedef foundation::aio::MultiObject BaseTp;
 	
 	MultiConnection(const char *_node = NULL, const char *_srv = NULL);
 	MultiConnection(const SocketDevice &_rsd);

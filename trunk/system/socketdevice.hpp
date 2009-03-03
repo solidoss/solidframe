@@ -31,7 +31,8 @@ public:
 	int remoteAddress(SocketAddress &_rsa)const;
 	int localAddress(SocketAddress &_rsa)const;
 	int descriptor()const{return Device::descriptor();}
-	
+	int type()const;
+	bool isListening()const;
 };
 
 

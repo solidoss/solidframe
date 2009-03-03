@@ -22,7 +22,7 @@
 #ifndef CLIENTSERVER_IPC_TALKER_HPP
 #define CLIENTSERVER_IPC_TALKER_HPP
 
-#include "foundation/aio/udp/talker.hpp"
+#include "foundation/aio/aiosingleobject.hpp"
 
 struct TimeSpec;
 
@@ -37,10 +37,10 @@ struct Buffer;
 struct ConnectorUid;
 
 //! A talker for io requests
-class Talker: public foundation::aio::udp::Talker{
+class Talker: public foundation::aio::SingleObject{
 public:
 	typedef Service							ServiceTp;
-	typedef foundation::aio::udp::Talker	BaseTp;
+	typedef foundation::aio::SingleObject	BaseTp;
 	
 	Talker(const SocketDevice &_rsd, Service &_rservice, uint16 _id);
 	~Talker();

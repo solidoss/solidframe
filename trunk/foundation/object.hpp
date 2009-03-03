@@ -85,23 +85,9 @@ public:
 	//! Constructor
 	Object(IndexTp _fullid = 0UL);
 	
-	//getters:
-	//! Get the id of the parent service
-	IndexTp serviceid()const;
-	//! Get the index of the object within service from an objectid
-	IndexTp index()const;
-
 	//! Get the id of the object
 	IndexTp id()			const 	{return fullid;}
 	
-	//! Gets the id of the thread the object resides in
-	void getThread(uint32 &_rthid, uint32 &_rthpos);
-	//! Returns true if the object is signaled
-	ulong signaled()			const 	{return smask;}
-	
-	ulong signaled(ulong _s)	const;
-	
-	//setters:
 	//! Set the thread id
 	void setThread(uint32 _thrid, uint32 _thrpos);
 	
@@ -112,6 +98,9 @@ public:
 	 * \param _smask The signal bitmask
 	 */
 	ulong signal(ulong _smask);
+	
+	ulong signaled(ulong _s) const;
+	
 	//! Signal the object with a command
 	virtual int signal(CmdPtr<Command> &_cmd);
 	
@@ -129,14 +118,9 @@ public:
 	virtual int execute(ulong _evs, TimeSpec &_rtout);
 	//! Acceptor method for different visitors
 	virtual int accept(Visitor &_roi);
-	//! This method will be called once by service when registering an object
-	/*!
-		Some objects may need faster access to their associated mutex, so they
-		might want to keep a pointe to it.
-	*/
-	virtual void mutex(Mutex *_pmut);
 protected:
 	friend class Service;
+	friend class Manager;
 	friend class ReadWriteService;
 	friend class ObjPtrBase;
 	//! Sets the current state.
@@ -149,11 +133,30 @@ protected:
 	ulong grabSignalMask(ulong _leave = 0);
 	//! Virtual destructor
 	virtual ~Object();//only objptr base can destroy an object
+	
+	//getters:
+	//! Get the id of the parent service
+	IndexTp serviceid()const;
+	//! Get the index of the object within service from an objectid
+	IndexTp index()const;
+	
+	
+	//! Returns true if the object is signaled
+	ulong signaled()			const 	{return smask;}
+	
 private:
 	//! Set the id
 	void id(IndexTp _fullid);
 	//! Set the id given the service id and index
 	void id(IndexTp _srvid, IndexTp _ind);
+	//! This method will be called once by service when registering an object
+	/*!
+		Some objects may need faster access to their associated mutex, so they
+		might want to keep a pointe to it.
+	*/
+	virtual void mutex(Mutex *_pmut);
+	//! Gets the id of the thread the object resides in
+	void getThread(uint32 &_rthid, uint32 &_rthpos);
 private:
 	IndexTp			fullid;
 	ulong			smask;
@@ -162,9 +165,12 @@ private:
 	short			usecnt;//
 	short			crtstate;// < 0 -> must die
 };
+
+
 #ifdef UINLINES
 #include "src/object.ipp"
 #endif
+
 }//namespace
 
 #endif

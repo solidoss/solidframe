@@ -268,7 +268,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 			}else{
 				d.rcvbuf.reset();
 			}
-			switch(socketRecv(d.rcvbuf.buffer(), d.rcvbuf.bufferCapacity())){
+			switch(socketRecvFrom(d.rcvbuf.buffer(), d.rcvbuf.bufferCapacity())){
 				case BAD:
 					idbgx(Dbg::ipc, "socket error "<<strerror(errno));
 					cassert(false);
@@ -307,7 +307,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 			mustreenter = dispatchSentBuffer(_tout);
 			continue;
 		}
-		switch(socketSend(d.sendq.top()->b.buffer(), d.sendq.top()->b.bufferSize(), *d.sendq.top()->paddr)){
+		switch(socketSendTo(d.sendq.top()->b.buffer(), d.sendq.top()->b.bufferSize(), *d.sendq.top()->paddr)){
 			case BAD:
 			case OK: 
 				mustreenter = dispatchSentBuffer(_tout);
