@@ -159,7 +159,7 @@ private:
 	void getThread(uint32 &_rthid, uint32 &_rthpos);
 private:
 	IndexTp			fullid;
-	ulong			smask;
+	volatile ulong	smask;
 	volatile uint32	thrid;//the current thread which (may) execute(s) the object
 	volatile uint32	thrpos;//
 	short			usecnt;//
