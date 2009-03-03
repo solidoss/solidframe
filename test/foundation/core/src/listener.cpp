@@ -34,7 +34,7 @@ namespace test{
 Listener::Listener(
 	const SocketDevice &_rsd,
 	foundation::aio::openssl::Context *_pctx
-):foundation::aio::tcp::Listener(_rsd), pctx(_pctx){
+):foundation::aio::SingleObject(_rsd), pctx(_pctx){
 	state(0);
 }
 

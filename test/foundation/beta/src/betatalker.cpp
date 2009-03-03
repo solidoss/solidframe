@@ -91,7 +91,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 		do{
 			switch(state()){
 				case READ:
-					switch(socketRecv(bbeg, BUFSZ)){
+					switch(socketRecvFrom(bbeg, BUFSZ)){
 						case BAD: return BAD;
 						case OK: break;
 						case NOK: state(READ_DONE); return NOK;
@@ -128,7 +128,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 				pair<uint32, uint32> *pp((pair<uint32, uint32> *)bbeg);
 				AddrInfoIterator	 it(pai->begin());
 				pp->first = id;pp->second = sz; ++id;
-				switch(socketSend(bbeg, sz, SockAddrPair(it))){
+				switch(socketSendTo(bbeg, sz, SockAddrPair(it))){
 					case BAD: return BAD;
 					case OK: state(WRITE); break;
 					case NOK: state(WRITE_DONE); return NOK;

@@ -19,8 +19,6 @@ target_link_libraries (test
 	foundation_core
 	foundation_ipc
 	foundation_aio
-	foundation_aio_tcp
-	foundation_aio_udp
 	foundation_aio_openssl
 	ssl
 	crypto

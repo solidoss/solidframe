@@ -22,7 +22,7 @@
 #ifndef TESTAIOLISTENER_HPP
 #define TESTAIOLISTENER_HPP
 
-#include "foundation/aio/tcp/listener.hpp"
+#include "foundation/aio/aiosingleobject.hpp"
 #include "system/socketdevice.hpp"
 #include <memory>
 
@@ -38,7 +38,7 @@ namespace test{
 
 class Service;
 //! A simple listener
-class Listener: public foundation::aio::tcp::Listener{
+class Listener: public foundation::aio::SingleObject{
 public:
 	typedef Service		ServiceTp;
 	Listener(const SocketDevice &_rsd, foundation::aio::openssl::Context *_pctx = NULL);

@@ -88,7 +88,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 	do{
 		switch(state()){
 			case READ:
-				switch(socketRecv(bbeg, BUFSZ)){
+				switch(socketRecvFrom(bbeg, BUFSZ)){
 					case BAD: return BAD;
 					case OK: state(READ_TOUT);break;
 					case NOK:
@@ -100,7 +100,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 				state(WRITE);
 			case WRITE:
 				sprintf(bbeg + socketRecvSize() - 1," [%u:%d]\r\n", (unsigned)_tout.seconds(), (int)_tout.nanoSeconds());
-				switch(socketSend(bbeg, strlen(bbeg), socketRecvAddr())){
+				switch(socketSendTo(bbeg, strlen(bbeg), socketRecvAddr())){
 					case BAD: return BAD;
 					case OK: break;
 					case NOK: state(WRITE_TOUT);
@@ -113,7 +113,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 				return NOK;
 			case WRITE2:
 				sprintf(bbeg + socketRecvSize() - 1," [%u:%d]\r\n", (unsigned)_tout.seconds(), (int)_tout.nanoSeconds());
-				switch(socketSend(bbeg, strlen(bbeg), socketRecvAddr())){
+				switch(socketSendTo(bbeg, strlen(bbeg), socketRecvAddr())){
 					case BAD: return BAD;
 					case OK: break;
 					case NOK: state(WRITE_TOUT2);
@@ -129,7 +129,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 					return BAD;
 				}
 				AddrInfoIterator it(pai->begin());
-				switch(socketSend(bbeg, sz, SockAddrPair(it))){
+				switch(socketSendTo(bbeg, sz, SockAddrPair(it))){
 					case BAD: return BAD;
 					case OK: state(READ); break;
 					case NOK:

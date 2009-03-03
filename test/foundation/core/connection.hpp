@@ -23,7 +23,7 @@
 #define TESTCONNECTION_HPP
 
 #include "utility/streamptr.hpp"
-#include "foundation/aio/tcp/connection.hpp"
+#include "foundation/aio/aiosingleobject.hpp"
 #include "common.hpp"
 #include "tstring.hpp"
 
@@ -39,7 +39,7 @@ struct ConnectorUid;
 namespace test{
 struct Command;
 //! The base class for all connections knowing how to receive things
-class Connection: public foundation::aio::tcp::Connection{
+class Connection: public foundation::aio::SingleObject{
 public:
 	typedef Command	CommandTp;
 	typedef std::pair<uint32, uint32>	FileUidTp;
@@ -107,7 +107,7 @@ public:
 	);
 protected:
 	Connection(const SocketDevice &_rsd):
-			foundation::aio::tcp::Connection(_rsd){}
+			foundation::aio::SingleObject(_rsd){}
 	Connection(){}
 };
 

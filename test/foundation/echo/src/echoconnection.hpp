@@ -22,7 +22,7 @@
 #ifndef ECHOCONNECTION_HPP
 #define ECHOCONNECTION_HPP
 
-#include "foundation/aio/tcp/connection.hpp"
+#include "foundation/aio/aiosingleobject.hpp"
 #include "foundation/readwriteobject.hpp"
 #include "system/socketaddress.hpp"
 class SocketAddress;
@@ -41,10 +41,10 @@ class Visitor;
 namespace echo{
 class Service;
 
-class Connection: public foundation::aio::tcp::Connection{
+class Connection: public foundation::aio::SingleObject{
 public:
 	typedef Service	ServiceTp;
-	typedef foundation::aio::tcp::Connection BaseTp;
+	typedef foundation::aio::SingleObject BaseTp;
 	
 	Connection(const char *_node, const char *_srv);
 	Connection(const SocketDevice &_rsd);

@@ -309,3 +309,26 @@ int SocketDevice::localAddress(SocketAddress &_rsa)const{
 	}
 	return OK;
 }
+
+int SocketDevice::type()const{
+	int val = 0;
+	socklen_t valsz = sizeof(int);
+	int rv = getsockopt(descriptor(), SOL_SOCKET, SO_TYPE, &val, &valsz);
+	if(rv == 0){
+		return val;
+	}
+	edbg("socket getsockopt: "<<strerror(errno));
+	return BAD;
+}
+
+bool SocketDevice::isListening()const{
+	int val = 0;
+	socklen_t valsz = sizeof(int);
+	int rv = getsockopt(descriptor(), SOL_SOCKET, SO_ACCEPTCONN, &val, &valsz);
+	if(rv == 0){
+		return val;
+	}
+	edbg("socket getsockopt: "<<strerror(errno));
+	return false;
+}
+

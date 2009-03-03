@@ -23,6 +23,7 @@
 #include "proxy/proxyservice.hpp"
 #include "proxymulticonnection.hpp"
 #include "system/socketaddress.hpp"
+#include "system/socketdevice.hpp"
 #include "system/debug.hpp"
 #include "system/mutex.hpp"
 #include "system/timespec.hpp"
@@ -92,7 +93,9 @@ int MultiConnection::execute(ulong _sig, TimeSpec &_tout){
 			idbgx(Dbg::tcp, "REGISTER_CONNECTION");
 			pai = new AddrInfo(addr.c_str(), port.c_str());
 			it = pai->begin();
-			socketRequestRegister(socketCreate(it));
+			SocketDevice	sd;
+			sd.create(it);
+			socketRequestRegister(socketInsert(sd));
 			state(CONNECT);
 			}return NOK;
 		case CONNECT://connect the other end:
