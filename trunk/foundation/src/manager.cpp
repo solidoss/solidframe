@@ -110,20 +110,10 @@ Manager::ServicePtr& Manager::ServicePtr::operator=(Service *_pobj){
 	return *this;
 }
 
-struct Manager::ServiceVector: std::vector<ServicePtr>{};
-struct Manager::ActiveSetVector:std::vector<ActiveSet*>{};
-
-// int ServiceContainer::insert(Service *_ps){
-// 	return Service::insert(*_ps, 0);
-// }
 
 int ServiceContainer::insert(Object *_po){
 	return Service::insert(*_po, 0);
 }
-
-// void ServiceContainer::remove(Service *_ps){
-// 	Service::remove(*_ps);
-// }
 
 void ServiceContainer::remove(Object *_po){
 	Service::remove(*_po);
@@ -137,27 +127,42 @@ void ServiceContainer::clearDummy(){
 	}
 }
 
-Manager::Manager(FileManager *_pfm, ipc::Service *_pipcs):servicev(*(new ServiceVector)),asv(*(new ActiveSetVector)), pfm(_pfm), pipcs(_pipcs){
+//-------------------------------------------------------------------
+struct Manager::Data{
+	typedef std::vector<ServicePtr> ServiceVectorTp;
+	typedef std::vector<ActiveSet*> ActiveSetVectorTp;
+	Data(FileManager *_pfm, ipc::Service *_pipcs):pfm(_pfm), pipcs(_pipcs){}
+	ObjPtr<FileManager>		pfm;
+	ipc::Service			*pipcs;
+	ServiceVectorTp			sv;
+	ActiveSetVectorTp		asv;
+};
+Manager::Manager(FileManager *_pfm, ipc::Service *_pipcs):d(*(new Data(_pfm, _pipcs))){
 	registerActiveSet(*(new DummySet));
-	servicev.push_back(ServicePtr(new ServiceContainer));
+	d.sv.push_back(ServicePtr(new ServiceContainer));
 }
 
 Manager::~Manager(){
-	//delete servicev.front();
-	servicev.clear();
-	delete asv.front();
-	delete &asv;
-	delete &servicev;
-	delete pfm.release();
-	//delete pipcs;
+	d.sv.clear();
+	delete d.asv.front();
+	delete d.pfm.release();
+	delete &d;
+}
+
+FileManager& Manager::fileManager(){
+	return *d.pfm;
+}
+
+ipc::Service& Manager::ipc(){
+	return *d.pipcs;
 }
 
 ServiceContainer & Manager::serviceContainer(){
-	return static_cast<ServiceContainer&>(*servicev.front());
+	return static_cast<ServiceContainer&>(*d.sv.front());
 }
 
 Service& Manager::service(uint _i)const{
-	return *servicev[_i];
+	return *d.sv[_i];
 }
 
 void Manager::stop(bool _wait){
@@ -174,11 +179,11 @@ Manager& Manager::the(){
 // }
 
 void Manager::fileManager(FileManager *_pfm){
-	cassert(!pfm);
-	pfm = _pfm;
+	cassert(!d.pfm);
+	d.pfm = _pfm;
 }
 void Manager::ipc(ipc::Service *_pipcs){
-	pipcs = _pipcs;
+	d.pipcs = _pipcs;
 }
 
 void Manager::removeFileManager(){
@@ -187,19 +192,17 @@ void Manager::removeFileManager(){
 }
 
 uint Manager::registerActiveSet(ActiveSet &_ras){
-	_ras.poolid(asv.size());
-	asv.push_back(&_ras);
-	return asv.size() - 1;
+	_ras.poolid(d.asv.size());
+	d.asv.push_back(&_ras);
+	return d.asv.size() - 1;
 }
 int Manager::insertService(Service *_ps){
-	//servicev.push_back(ServicePtr(_ps));
-	//cassert(_ps->state() == Service::Stopped);
 	serviceContainer().insert(_ps);
 	uint idx = _ps->index();//serviceId(*_ps);
-	if(idx >= servicev.size()){
-		servicev.resize(idx + 1);
+	if(idx >= d.sv.size()){
+		d.sv.resize(idx + 1);
 	}
-	servicev[idx] = ServicePtr(_ps);
+	d.sv[idx] = ServicePtr(_ps);
 	return idx;
 }
 
@@ -216,44 +219,44 @@ void Manager::removeObject(Object *_po){
 }
 
 int Manager::signalObject(IndexTp _fullid, uint32 _uid, ulong _sigmask){
-	cassert(Object::computeServiceId(_fullid) < servicev.size());
-	return servicev[Object::computeServiceId(_fullid)]->signal(
+	cassert(Object::computeServiceId(_fullid) < d.sv.size());
+	return d.sv[Object::computeServiceId(_fullid)]->signal(
 		_fullid,_uid,
 		*this,
 		_sigmask);
 }
 		
 int Manager::signalObject(Object &_robj, ulong _sigmask){
-	cassert(_robj.serviceid() < servicev.size());
-	return servicev[_robj.serviceid()]->signal(_robj, *this, _sigmask);
+	cassert(_robj.serviceid() < d.sv.size());
+	return d.sv[_robj.serviceid()]->signal(_robj, *this, _sigmask);
 }
 
 int Manager::signalObject(IndexTp _fullid, uint32 _uid, CmdPtr<Command> &_cmd){
-	cassert(Object::computeServiceId(_fullid) < servicev.size());
-	return servicev[Object::computeServiceId(_fullid)]->signal(
+	cassert(Object::computeServiceId(_fullid) < d.sv.size());
+	return d.sv[Object::computeServiceId(_fullid)]->signal(
 		_fullid,_uid,
 		*this,
 		_cmd);
 }
 
 int Manager::signalObject(Object &_robj, CmdPtr<Command> &_cmd){
-	cassert(_robj.serviceid() < servicev.size());
-	return servicev[_robj.serviceid()]->signal(_robj, *this, _cmd);
+	cassert(_robj.serviceid() < d.sv.size());
+	return d.sv[_robj.serviceid()]->signal(_robj, *this, _cmd);
 }
 
 Mutex& Manager::mutex(Object &_robj)const{
-	return servicev[_robj.serviceid()]->mutex(_robj);
+	return d.sv[_robj.serviceid()]->mutex(_robj);
 }
 
 uint32  Manager::uid(Object &_robj)const{
-	return servicev[_robj.serviceid()]->uid(_robj);
+	return d.sv[_robj.serviceid()]->uid(_robj);
 }
 
 void Manager::raiseObject(Object &_robj){
 	uint thrid,thrpos;
 	_robj.getThread(thrid, thrpos);
 	idbgx(Dbg::cs, "raise thrid "<<thrid<<" thrpos "<<thrpos<<" objid "<<_robj.id());
-	asv[thrid>>16]->raise(thrid & 0xffff, thrpos);
+	d.asv[thrid>>16]->raise(thrid & 0xffff, thrpos);
 }
 
 void Manager::prepareThread(){
@@ -278,7 +281,7 @@ GlobalMapper* Manager::globalMapper(){
 }
 
 unsigned Manager::serviceCount()const{
-	return servicev.size();
+	return d.sv.size();
 }
 
 int Manager::insertIpcTalker(
@@ -286,7 +289,7 @@ int Manager::insertIpcTalker(
 	const char*_node,
 	const char *_srv
 ){
-	cassert(pipcs);
+	cassert(d.pipcs);
 	return ipc().insertTalker(*this, _rai, _node, _srv);
 }
 

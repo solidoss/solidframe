@@ -89,13 +89,13 @@ public:
 	uint32  uid(Object &_robj)const;
 	
 	//! Get a reference to the filemanager
-	FileManager& fileManager(){return *pfm;}
+	FileManager& fileManager();
 	
 	//! Remove the file manager - do not use this
 	void removeFileManager();
 	
 	//! Get a reference to the ipc service
-	ipc::Service& ipc(){return *pipcs;}
+	ipc::Service& ipc();
 	
 	//! Insert a talker into the ipc service
 	int insertIpcTalker(
@@ -172,15 +172,11 @@ protected:
 private:
 	ServiceContainer & serviceContainer();
 	//Manager(const Manager&){}
-	Manager& operator=(const Manager&){return *this;}
+	Manager& operator=(const Manager&);
+private:
 	class ServicePtr;
-	class ServiceVector;
-	class ActiveSetVector;
-	
-	ServiceVector			&servicev;
-	ActiveSetVector			&asv;
-	ObjPtr<FileManager>		pfm;
-	ipc::Service			*pipcs;
+	struct Data;
+	Data &d;
 };
 
 }//namespace
