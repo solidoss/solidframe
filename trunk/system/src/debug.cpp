@@ -71,6 +71,9 @@ public:
 	void device(const Device & _d){
 		d = _d;
 	}
+	void close(){
+		d.close();
+	}
 protected:
 	// write one character
 	virtual
@@ -105,6 +108,9 @@ public:
 	DeviceOutBuffer(const Device & _d, uint64 &_rsz): d(_d), sz(_rsz), bpos(bbeg){}
 	void device(const Device & _d){
 		d = _d;
+	}
+	void close(){
+		d.close();
 	}
 protected:
 	// write one character
@@ -175,6 +181,9 @@ public:
 	void device(const Device &_d){
 		buf.device(_d);
 	}
+	void close(){
+		buf.close();
+	}
 };
 //-----------------------------------------------------------------
 class DeviceOutStream : public std::ostream {
@@ -190,6 +199,9 @@ public:
 	void device(const Device &_d){
     	buf.device(_d);
     }
+    void close(){
+		buf.close();
+	}
 };
 //-----------------------------------------------------------------
 struct Dbg::Data{
@@ -214,7 +226,7 @@ struct Dbg::Data{
 	uint32					respinpos;
 	DeviceOutStream			dos;
 	DeviceBasicOutStream	dbos;
-	std::ofstream			ofs;
+	//std::ofstream			ofs;
 	std::ostream			*pos;
 	string					path;
 	string					name;
@@ -375,6 +387,10 @@ void Dbg::initStdErr(
 	std::string *_output
 ){
 	Mutex::Locker lock(d.m);
+
+	d.dos.close();
+	d.dbos.close();
+
 	if(_buffered){
 		d.pos = &std::clog;
 		if(_output){
@@ -400,6 +416,9 @@ void Dbg::initFile(
 	Mutex::Locker lock(d.m);
 	d.respinsz = 0;
 
+	d.dos.close();
+	d.dbos.close();
+	
 	if(_prefix && *_prefix){
 		splitPrefix(d.path, d.name, _prefix);
 		if(d.path.empty()){
@@ -444,18 +463,25 @@ void Dbg::initSocket(
 	bool _buffered,
 	std::string *_output
 ){
+	//do the connect outside locking
+	AddrInfo ai(_addr, _port);
+	SocketDevice sd;
+	if(!ai.empty() && sd.create(ai.begin()) == OK && sd.connect(ai.begin()) == OK){
+	}else{
+		sd.close();//make sure the socket is closed
+	}
+	
 	Mutex::Locker lock(d.m);
 	d.respinsz = 0;
+	
+	d.dos.close();
+	d.dbos.close();
 	
 	if(_addr == 0 || !*_addr){
 		_addr = "localhost";
 	}
 	
-	//cassert(_port && *_port);
-	
-	AddrInfo ai(_addr, _port);
-	SocketDevice sd;
-	if(!ai.empty() && sd.create(ai.begin()) == OK && sd.connect(ai.begin()) == OK){
+	if(sd.ok()){
 		if(_buffered){
 			d.dos.device(sd);
 			d.pos = &d.dos;

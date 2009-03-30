@@ -122,7 +122,7 @@ int main(int argc, char* argv[]){
 			*argv[0] == '.' ? argv[0] + 2 : argv[0],
 			p.dbg_buffered,
 			3,
-			1024 * 10,
+			1024 * 1024 * 64,
 			&dbgout
 		);
 	}
