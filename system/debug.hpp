@@ -55,41 +55,28 @@ struct Dbg{
 	};
 	
 	~Dbg();
-	
-	void init(
+
+	void initStdErr(
+		bool _buffered = true,
+		std::string *_output = NULL
+	);
+
+	void initFile(
 		const char * _fname,
-		unsigned _lvlopt = 0,
-		const char *_modopt = 0,
 		bool _buffered = true,
 		ulong _respincnt = 10,
 		ulong _respinsize = 1024 * 1024 * 1024,
 		std::string *_output = NULL
 	);
-	void init(
-		const char * _fname,
-		const char * _lvlopt = 0,
-		const char *_modopt = 0,
-		bool _buffered = true,
-		ulong _respincnt = 10,
-		ulong _respinsize = 1024 * 1024 * 1024,
-		std::string *_output = NULL
-	);
-	void init(
+	void initSocket(
 		const char * _addr,
 		const char * _port,
-		unsigned _lvlopt = 0,
-		const char *_modopt = 0,
 		bool _buffered = true,
 		std::string *_output = NULL
 	);
-	void init(
-		const char * _addr,
-		const char * _port,
-		const char * _lvlopt = 0,
-		const char *_modopt = 0,
-		bool _buffered = true,
-		std::string *_output = NULL
-	);
+
+	void levelMask(const char *_msk = NULL);
+	void moduleMask(const char *_msk = NULL);
 	
 	void moduleBits(std::string &_ros);
 	void setAllModuleBits();

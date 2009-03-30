@@ -108,20 +108,18 @@ int main(int argc, char* argv[]){
 #ifdef UDEBUG
 	{
 	string dbgout;
+	Dbg::instance().levelMask(p.dbg_levels.c_str());
+	Dbg::instance().moduleMask(p.dbg_modules.c_str());
 	if(p.dbg_addr.size() && p.dbg_port.size()){
-		Dbg::instance().init(
+		Dbg::instance().initSocket(
 			p.dbg_addr.c_str(),
 			p.dbg_port.c_str(),
-			p.dbg_levels.c_str(),
-			p.dbg_modules.c_str(),
 			p.dbg_buffered,
 			&dbgout
 		);
 	}else{
-		Dbg::instance().init(
+		Dbg::instance().initFile(
 			*argv[0] == '.' ? argv[0] + 2 : argv[0],
-			p.dbg_levels.c_str(),
-			p.dbg_modules.c_str(),
 			p.dbg_buffered,
 			3,
 			1024 * 10,

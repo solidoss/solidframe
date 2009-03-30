@@ -198,7 +198,7 @@ struct Dbg::Data{
 	Data():lvlmsk(0), sz(0), respinsz(0), respincnt(0), respinpos(0), dos(sz), dbos(sz){
 		pos = &std::cerr;
 	}
-	bool init(uint32, const char*);
+	void setModuleMask(const char*);
 	void setBit(const char *_pbeg, const char *_pend);
 	bool initFile(FileDevice &_rfd, uint32 _respincnt, uint64 _respinsz, string *_poutput);
 	void doRespin();
@@ -274,11 +274,10 @@ uint32 parseLevels(const char *_lvl){
 	return r;
 }
 
-bool Dbg::Data::init(uint32	_lvlopt, const char *_opt){
+void Dbg::Data::setModuleMask(const char *_opt){
 	{
 		Mutex::Locker lock(m);
-		lvlmsk = _lvlopt;
-		if(lvlmsk == 0) return true;//
+		bs.reset();
 		if(_opt){
 			const char *pbeg = _opt;
 			const char *pcrt = _opt;
@@ -306,9 +305,7 @@ bool Dbg::Data::init(uint32	_lvlopt, const char *_opt){
 				setBit(pbeg, pcrt);
 			}
 		}
-		if(bs.none()) return true;
 	}
-	return false;
 }
 
 void filePath(string &_out, uint32 _pos, ulong _pid, const string &_path, const string &_name){
@@ -372,30 +369,37 @@ void Dbg::Data::doRespin(){
 	}
 }
 
-void Dbg::init(
-	const char * _prefix,
-	const char *_lvlopt,
-	const char *_opt,
+
+void Dbg::initStdErr(
 	bool _buffered,
-	ulong _respincnt,
-	ulong _respinsize,
 	std::string *_output
 ){
-	init(_prefix, parseLevels(_lvlopt), _opt, _buffered, _respincnt, _respinsize, _output);
+	Mutex::Locker lock(d.m);
+	if(_buffered){
+		d.pos = &std::clog;
+		if(_output){
+			*_output += "clog";
+			*_output += " (buffered)";
+		}
+	}else{
+		d.pos = &std::cerr;
+		if(_output){
+			*_output += "cerr";
+			*_output += " (unbuffered)";
+		}
+	}
 }
 
-void Dbg::init(
+void Dbg::initFile(
 	const char * _prefix,
-	uint32	_lvlopt,
-	const char *_opt,
 	bool _buffered,
 	ulong _respincnt,
 	ulong _respinsize,
 	std::string *_output
 ){
+	Mutex::Locker lock(d.m);
 	d.respinsz = 0;
-	if(d.init(_lvlopt, _opt)) return;
-	
+
 	if(_prefix && *_prefix){
 		splitPrefix(d.path, d.name, _prefix);
 		if(d.path.empty()){
@@ -434,27 +438,14 @@ void Dbg::init(
 		}
 	}
 }
-
-void Dbg::init(
+void Dbg::initSocket(
 	const char * _addr,
 	const char * _port,
-	const char * _lvlopt,
-	const char *_modopt,
 	bool _buffered,
 	std::string *_output
 ){
-	init(_addr, _port, parseLevels(_lvlopt), _modopt, _buffered, _output);
-}
-void Dbg::init(
-	const char * _addr,
-	const char * _port,
-	unsigned  _lvlopt,
-	const char *_modopt,
-	bool _buffered,
-	std::string *_output
-){
+	Mutex::Locker lock(d.m);
 	d.respinsz = 0;
-	if(d.init(_lvlopt, _modopt)) return;
 	
 	if(_addr == 0 || !*_addr){
 		_addr = "localhost";
@@ -499,6 +490,20 @@ void Dbg::init(
 			}
 		}
 	}
+}
+
+void Dbg::levelMask(const char *_msk){
+	Mutex::Locker lock(d.m);
+	if(!_msk){
+		_msk = "iewrv";
+	}
+	d.lvlmsk = parseLevels(_msk);
+}
+void Dbg::moduleMask(const char *_msk){
+	if(!_msk){
+		_msk = "all";
+	}
+	d.setModuleMask(_msk);
 }
 
 void Dbg::moduleBits(std::string &_ros){

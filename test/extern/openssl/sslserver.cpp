@@ -114,7 +114,10 @@ int main(int argc, char* argv[]){
 	}
 #ifdef UDEBUG
 	string s;
-	Dbg::instance().init(NULL, "iew", "all", false, &s);
+	Dbg::instance().levelMask("iew");
+	Dbg::instance().moduleMask();
+	Dbg::instance().initStdErr(false, &s);
+	
 	cout<<"Debug output: "<<s<<endl;
 	s.clear();
 	Dbg::instance().moduleBits(s);

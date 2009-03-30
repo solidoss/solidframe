@@ -38,7 +38,9 @@ int pairfd[2];
 int main(int _argc, char *argv[]){
 	pipe(pairfd);
 #ifdef UDEBUG
-	Dbg::instance().init(NULL, Dbg::AllLevels, "any");
+	Dbg::instance().levelMask();
+	Dbg::instance().moduleMask();
+	Dbg::instance().initStdErr();
 #endif
 	audit::LogManager lm;
 	lm.start();
