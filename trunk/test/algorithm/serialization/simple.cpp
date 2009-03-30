@@ -199,9 +199,9 @@ void print(StrDeqTp &_rsdq);
 int main(int argc, char *argv[]){
 	Thread::init();
 #ifdef UDEBUG
-	{
-	Dbg::instance().init(NULL, Dbg::AllLevels, "any");
-	}
+	Dbg::instance().levelMask();
+	Dbg::instance().moduleMask();
+	Dbg::instance().initStdErr();
 #endif
 	cout<<"sizeof(map<int , string>::iterator): "<<sizeof(map<int , string>::iterator)<<endl;
 	cout<<"sizeof(list<string>::iterator): "<<sizeof(list<string>::iterator)<<endl;
