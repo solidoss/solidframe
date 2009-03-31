@@ -58,7 +58,18 @@ int main(){
 	Dbg::instance().moduleMask();
 	Dbg::instance().initStdErr(false);
 #endif
-
+	idbg("sizeof(uint8) = "<<sizeof(uint8));
+	idbg("sizeof(int8) = "<<sizeof(int8));
+	idbg("sizeof(uint16) = "<<sizeof(uint16));
+	idbg("sizeof(int16) = "<<sizeof(int16));
+	idbg("sizeof(uint32) = "<<sizeof(uint32));
+	idbg("sizeof(int32) = "<<sizeof(int32));
+	idbg("sizeof(uint64) = "<<sizeof(uint64));
+	idbg("sizeof(int64) = "<<sizeof(int64));
+	idbg("sizeof(uint) = "<<sizeof(uint));
+	idbg("sizeof(ulong) = "<<sizeof(ulong));
+	idbg("sizeof(longlong) = "<<sizeof(longlong));
+	idbg("sizeof(ulonglong) = "<<sizeof(ulonglong));
 	MyObject::registerCommands();
 	MyObject o;
 	
