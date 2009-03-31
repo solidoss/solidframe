@@ -24,24 +24,35 @@
 
 #include <cstdlib>
 
+
 typedef unsigned char		uchar;
 typedef unsigned int		uint;
-typedef unsigned long		ulong;
-typedef unsigned short		ushort;
+
+typedef signed char			int8;
+typedef unsigned char		uint8;
+
+typedef short				int16;
+typedef unsigned short		uint16;
+
+typedef unsigned int		uint32;
+typedef int					int32;
+// #if defined(U_WIN) && !defined(U_GCC)
+#if defined(U_WIN)
+typedef __int64				int64;
+typedef unsigned __int64	uint64;
+#else
 typedef unsigned long long	uint64;
 typedef long long 			int64;
-typedef unsigned short		uint16;
-typedef short		        int16;
+#endif
+
 #ifdef _LP64
-typedef unsigned long		uint32;
-typedef long			    int32;
 #define MAX_ULONG			0xffffffffffffffffL
 #else
 #define MAX_ULONG			0xfffffff
-typedef unsigned			uint32;
-typedef long int			int32;
 #endif
-typedef unsigned char		uint8;
+
+typedef unsigned long       ulong;
+typedef unsigned short      ushort;
 
 
 enum SeekRef {
