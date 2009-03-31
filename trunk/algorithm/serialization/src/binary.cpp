@@ -110,13 +110,13 @@ int Serializer::store<uint64>(Base &_rb, FncData &_rfd){
 	_rfd.f = &Serializer::storeBinary;
 	return CONTINUE;
 }
-template <>
+/*template <>
 int Serializer::store<ulong>(Base &_rb, FncData &_rfd){
 	idbgx(Dbg::ser_bin, "");
 	_rfd.s = sizeof(ulong);
 	_rfd.f = &Serializer::storeBinary;
 	return CONTINUE;
-}
+}*/
 template <>
 int Serializer::store<std::string>(Base &_rb, FncData &_rfd){
 	Serializer &rs(static_cast<Serializer&>(_rb));
@@ -234,19 +234,19 @@ int Deserializer::parse<uint64>(Base &_rb, FncData &_rfd){
 	_rfd.f = &Deserializer::parseBinary;
 	return CONTINUE;
 }
-template <>
+/*template <>
 int Deserializer::parse<ulong>(Base &_rb, FncData &_rfd){
 	idbgx(Dbg::ser_bin, "");
 	_rfd.s = sizeof(ulong);
 	_rfd.f = &Deserializer::parseBinary;
 	return CONTINUE;
-}
+}*/
 template <>
 int Deserializer::parse<std::string>(Base &_rb, FncData &_rfd){
 	idbgx(Dbg::ser_bin, "parse generic non pointer string");
 	Deserializer &rd(static_cast<Deserializer&>(_rb));
 	if(!rd.cpb) return OK;
-	rd.estk.push(ExtData(0));
+	rd.estk.push(ExtData((int32)0));
 	rd.replace(FncData(&Deserializer::parseBinaryString, _rfd.p, _rfd.n));
 	rd.fstk.push(FncData(&Deserializer::parse<uint32>, &rd.estk.top().u32()));
 	return CONTINUE;

@@ -253,7 +253,7 @@ uint32  Manager::uid(Object &_robj)const{
 }
 
 void Manager::raiseObject(Object &_robj){
-	uint thrid,thrpos;
+	uint32 thrid,thrpos;
 	_robj.getThread(thrid, thrpos);
 	idbgx(Dbg::cs, "raise thrid "<<thrid<<" thrpos "<<thrpos<<" objid "<<_robj.id());
 	d.asv[thrid>>16]->raise(thrid & 0xffff, thrpos);

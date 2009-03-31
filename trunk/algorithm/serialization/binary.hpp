@@ -43,7 +43,7 @@ BASIC_DECL(int32);
 BASIC_DECL(uint32);
 BASIC_DECL(int64);
 BASIC_DECL(uint64);
-BASIC_DECL(ulong);
+//BASIC_DECL(int);
 
 //! Nonintrusive string serialization/deserialization specification
 template <class S>
@@ -113,13 +113,13 @@ protected:
 			FncTp _f,
 			void *_p,
 			const char *_n = NULL,
-			ulong _s = -1
+			uint32 _s = -1
 		):f(_f),p(_p),n(_n),s(_s){}
 		
 		FncTp		f;	//!< Pointer to function
 		void		*p;	//!< Pointer to data
 		const char 	*n;	//!< Some name - of the item serialized
-		ulong		s;	//!< Some size
+		uint32		s;	//!< Some size
 	};
 	
 	struct ExtData{
@@ -370,7 +370,7 @@ class Deserializer: public Base{
 		Deserializer &rd(static_cast<Deserializer&>(_rb));
 		if(!rd.cpb) return OK;
 		_rfd.f = &Deserializer::parseContainerBegin<T>;
-		rd.estk.push(ExtData(0));
+		rd.estk.push(ExtData((int32)0));
 		rd.fstk.push(FncData(&Deserializer::parse<int32>, &rd.estk.top().i32()));
 		return CONTINUE;
 	}
