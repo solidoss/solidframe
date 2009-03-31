@@ -28,6 +28,12 @@
 typedef unsigned char		uchar;
 typedef unsigned int		uint;
 
+typedef unsigned long       ulong;
+typedef unsigned short      ushort;
+
+typedef long long			longlong;
+typedef unsigned long long	ulonglong;
+
 typedef signed char			int8;
 typedef unsigned char		uint8;
 
@@ -50,10 +56,6 @@ typedef long long 			int64;
 #else
 #define MAX_ULONG			0xfffffff
 #endif
-
-typedef unsigned long       ulong;
-typedef unsigned short      ushort;
-
 
 enum SeekRef {
 	SeekBeg=0,
