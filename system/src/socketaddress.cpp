@@ -184,7 +184,7 @@ int SocketAddress::name(
 	unsigned _hostcp,
 	char* _serv,
 	unsigned _servcp,
-	unsigned _flags
+	uint32 _flags
 )const{
 	if(!_hostcp || !_servcp) return BAD;
 	if(!size()) return BAD;

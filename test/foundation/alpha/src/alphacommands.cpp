@@ -276,10 +276,10 @@ struct RemoteListCommand: test::Command{
 //data:
 	RemoteList::PathListTp		*ppthlst;
 	String						strpth;
-	int							err;
+	int32						err;
 	uint32						tout;
 	fdt::ipc::ConnectorUid		conid;
-	fdt::ipc::CommandUid			cmduid;
+	fdt::ipc::CommandUid		cmduid;
 	uint32						requid;
 	ObjectUidTp					fromv;
 };
@@ -529,7 +529,7 @@ struct FetchMasterCommand: test::Command{
 	FileUidTp				tmpfuid;
 	fdt::ipc::ConnectorUid	conid;
 	StreamPtr<IStream>		ins;
-	int						state;
+	int32						state;
 	int64					insz;
 	int64					inpos;
 	uint32					requid;
@@ -574,7 +574,7 @@ struct FetchSlaveCommand: test::Command{
 	StreamPtr<IStream>			ins;
 	//if insz >= 0 -> [0->1M) else -> [1M->2M)
 	int64						insz;
-	int							sz;
+	int32						sz;
 	uint32						requid;
 };
 //-------------------------------------------------------------------------------

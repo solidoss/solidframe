@@ -38,15 +38,15 @@ struct UnsignedConvertor<int32>{
 	typedef uint32 UnsignedType;
 };
 
-template <>
-struct UnsignedConvertor<long>{
-	typedef ulong UnsignedType;
-};
+// template <>
+// struct UnsignedConvertor<long>{
+// 	typedef ulong UnsignedType;
+// };
 
-template <>
-struct UnsignedConvertor<ulong>{
-	typedef ulong UnsignedType;
-};
+// template <>
+// struct UnsignedConvertor<ulong>{
+// 	typedef ulong UnsignedType;
+// };
 
 
 template <>

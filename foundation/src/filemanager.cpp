@@ -1140,7 +1140,7 @@ File::~File(){
 	}
 }
 
-int File::open(FileManager &_rsm, uint _fileid){
+int File::open(FileManager &_rsm, uint32 _fileid){
 	//TODO: do it right/better
 	idbgx(Dbg::filemanager, "open file "<<_fileid);
 	string fn;

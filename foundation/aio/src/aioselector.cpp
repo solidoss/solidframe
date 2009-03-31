@@ -439,9 +439,9 @@ inline uint Selector::doIo(Socket &_rsock, ulong _evs){
 uint Selector::doAllIo(){
 	uint		flags = 0;
 	TimeSpec	crttout;
-	uint		evs;
-	uint		stubpos;
-	uint		sockpos;
+	uint32		evs;
+	uint32		stubpos;
+	uint32		sockpos;
 	const uint	selcnt = d.selcnt;
 	for(uint i = 0; i < selcnt; ++i){
 		d.stub(stubpos, sockpos, d.events[i]);

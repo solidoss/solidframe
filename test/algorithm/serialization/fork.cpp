@@ -91,7 +91,7 @@ struct Test{
 	void destroySerializationStream(const std::pair<IStream *, int64> &_rps, int _id);
 	void print();
 private:
-	int 			no;
+	int32 			no;
 	string			fn;
 	FileIOStream	fs;
 };

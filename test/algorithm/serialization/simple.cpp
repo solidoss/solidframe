@@ -69,15 +69,15 @@ struct TestA{
 	S& operator&(S &_s){
 		return _s.push(a, "a::a").push(b, "a::b").push(c, "a::c");
 	}
-	int 		a;
-	short 		b;
-	unsigned	c;
+	int32 		a;
+	int16 		b;
+	uint32		c;
 	void print()const{cout<<"testa: a = "<<a<<" b = "<<b<<" c = "<<c<<endl;}
 };
 
 struct TestB{
 	TestB(int _a = 4):a(_a){}
-	int			a;
+	int32			a;
 	void print()const {cout<<"testb: a = "<<a<<endl;}
 	template <class S>
 	S& operator&(S &_s){
@@ -87,7 +87,7 @@ struct TestB{
 
 struct TestC{
 	explicit TestC(unsigned _a = 5):a(_a){}
-	int 	a;
+	int32 	a;
 	void print()const{cout<<"testc: a = "<<a<<endl;}
 };
 
@@ -137,7 +137,7 @@ struct UnsignedInteger: Integer{
 		cout<<"}"<<endl;
 	}
 private:
-	unsigned 	u;
+	uint32 	u;
 };
 
 struct IntegerVector: Base{
@@ -185,13 +185,13 @@ S& operator&(TestC &_tb, S &_s){
 }
 namespace std{
 template <class S>
-S& operator&(pair<int,int> &_tb, S &_s){
+S& operator&(pair<int32,int32> &_tb, S &_s){
 	return _s.push(_tb.first, "first").push(_tb.second, "second");
 }
 }
 
 typedef std::deque<std::string> StrDeqTp;
-typedef std::deque<std::pair<int,int> > PairIntDeqTp;
+typedef std::deque<std::pair<int32,int32> > PairIntDeqTp;
 
 void print(StrDeqTp &_rsdq);
 ///\endcond
@@ -203,7 +203,7 @@ int main(int argc, char *argv[]){
 	Dbg::instance().moduleMask();
 	Dbg::instance().initStdErr();
 #endif
-	cout<<"sizeof(map<int , string>::iterator): "<<sizeof(map<int , string>::iterator)<<endl;
+	cout<<"sizeof(map<int , string>::iterator): "<<sizeof(map<int32 , string>::iterator)<<endl;
 	cout<<"sizeof(list<string>::iterator): "<<sizeof(list<string>::iterator)<<endl;
 	cout<<"sizeof(deque<string>::iterator): "<<sizeof(deque<string>::iterator)<<endl;
 	cout<<"sizeof(uint64) = "<<sizeof(uint64)<<endl;
@@ -271,11 +271,11 @@ int main(int argc, char *argv[]){
 		ser.push(b1, "basestring").push(b2, "baseui").push(b3, "baseiv");
 		
 		PairIntDeqTp pidq;
-		pidq.push_back(pair<int, int>(1,2));
-		pidq.push_back(pair<int, int>(2,3));
-		pidq.push_back(pair<int, int>(3,4));
+		pidq.push_back(pair<int32, int32>(1,2));
+		pidq.push_back(pair<int32, int32>(2,3));
+		pidq.push_back(pair<int32, int32>(3,4));
 		ser.pushContainer(pidq, "pidq");
-		pair<int,int> ppi(1,2);
+		pair<int32,int32> ppi(1,2);
 		ser.push(ppi, "pi");
 		for(PairIntDeqTp::const_iterator it(pidq.begin()); it != pidq.end(); ++it){
 			cout<<"("<<it->first<<','<<it->second<<')';
@@ -313,7 +313,7 @@ int main(int argc, char *argv[]){
 		int cnt = 0;
 		PairIntDeqTp pidq;
 		des.pushContainer(pidq, "pidq");
-		pair<int,int> ppi;
+		pair<int32,int32> ppi;
 		des.push(ppi, "pi");
 		while((rv = des.run(bufs[v], blen)) == blen){
 			cnt += rv;
