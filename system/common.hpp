@@ -31,15 +31,15 @@ typedef unsigned short		ushort;
 typedef unsigned long long	uint64;
 typedef long long 			int64;
 typedef unsigned short		uint16;
-typedef signed short		int16;
+typedef short		        int16;
 #ifdef _LP64
 typedef unsigned long		uint32;
-typedef signed long			int32;
+typedef long			    int32;
 #define MAX_ULONG			0xffffffffffffffffL
 #else
 #define MAX_ULONG			0xfffffff
 typedef unsigned			uint32;
-typedef signed				int32;
+typedef long int			int32;
 #endif
 typedef unsigned char		uint8;
 
