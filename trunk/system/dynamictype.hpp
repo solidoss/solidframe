@@ -38,7 +38,7 @@ struct DynamicCallbackMap{
 	}
 	
 #define DYNAMIC_RECEIVER_DECLARATION\
-	private:\
+	public:\
 	template <class O, class C>\
 	static int dynamicExecute(void *_pcmd, void *_po);\
 	private:
