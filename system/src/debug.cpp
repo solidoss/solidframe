@@ -214,6 +214,7 @@ struct Dbg::Data{
 	void setBit(const char *_pbeg, const char *_pend);
 	bool initFile(FileDevice &_rfd, uint32 _respincnt, uint64 _respinsz, string *_poutput);
 	void doRespin();
+	bool isActive()const{return lvlmsk != 0 && !bs.none();}
 	Mutex					m;
 	BitSetTp				bs;
 	unsigned				lvlmsk;
@@ -390,7 +391,7 @@ void Dbg::initStdErr(
 
 	d.dos.close();
 	d.dbos.close();
-
+    if(!d.isActive()) return;
 	if(_buffered){
 		d.pos = &std::clog;
 		if(_output){
@@ -418,6 +419,7 @@ void Dbg::initFile(
 
 	d.dos.close();
 	d.dbos.close();
+	if(!d.isActive()) return;
 	
 	if(_prefix && *_prefix){
 		splitPrefix(d.path, d.name, _prefix);
@@ -463,6 +465,7 @@ void Dbg::initSocket(
 	bool _buffered,
 	std::string *_output
 ){
+	if(!d.isActive()) return;
 	//do the connect outside locking
 	AddrInfo ai(_addr, _port);
 	SocketDevice sd;
