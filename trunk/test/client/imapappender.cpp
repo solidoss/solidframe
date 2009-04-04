@@ -336,7 +336,7 @@ bool addFile(ofstream &_os, const Params &_p, const string &_s){
     _os<<"\tname=\""<<name<<"\"\n";
 	_os<<"Content-Transfer-Encoding: base64\n";
 	_os<<"Content-Disposition: attachment;\n";
-     _os<<"\tfilename=\""<<name<<"\"\n\n";
+	_os<<"\tfilename=\""<<name<<"\"\n\n";
 
 	
 	cxxtools::Base64ostream b64os(_os);
@@ -388,6 +388,8 @@ bool sendOutput(Writer &_wr, SocketDevice &_sd, SSL *_pssl, const Params &_p){
 			if(strncasecmp(buf + 3, "OK", 2) == 0){
 				return true;
 			}
+		}else{
+			cout<<"connection closed by peer"<<endl;
 		}
 		
 	}
@@ -444,7 +446,10 @@ int readAtLeast(int _minsz, SSL *_pssl, char *_pb, unsigned _sz){
 	int rc = 0;
 	while(_minsz > 0 && _sz){
 		int rv = SSL_read(_pssl, pd, _sz);
-		if(rv <= 0) return -1;
+		if(rv <= 0){
+			rv = SSL_read(_pssl, pd, _sz);//try once again
+			if(rv <= 0) return -1;
+		}
 		_sz -= 0;
 		_minsz -= rv;
 		pd += rv;
