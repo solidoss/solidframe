@@ -111,7 +111,7 @@ public://nonstatic methods
         return *this;
     }
     struct littp{
-        uint64       len;
+        uint32       len;
         IStream      *pstream;
     };
     Writer& operator<<(littp _t){
@@ -192,7 +192,7 @@ inline Writer::astring astr(const String &_str){
     return qs;
 }
 
-inline Writer::littp lit(IStream* _ps, const uint64 &_len){
+inline Writer::littp lit(IStream* _ps, const uint32 &_len){
     Writer::littp l; l.pstream = _ps; l.len = _len;
     return l;
 }
