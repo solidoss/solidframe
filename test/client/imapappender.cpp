@@ -67,6 +67,26 @@ struct Params{
 	uint32	maxcnt;
 };
 
+typedef std::pair<std::string*, bool>	DirItemTp;
+
+struct DirItemVector: std::deque<DirItemTp>{
+	void push(const string &_str, bool _isdir){
+		push_back(DirItemTp(new string(_str), _isdir));
+	}
+	~DirItemVector(){
+		for(const_iterator it(begin()); it != end(); ++it){
+			delete it->first;
+		}
+	}
+};
+
+struct DirItemCmp{
+	bool operator()(const DirItemTp &_i1, const DirItemTp &_i2)const{
+		if(_i1.second == _i2.second) return (*_i1.first) < (*_i2.first);
+		return _i1.second;
+	}
+};
+
 bool parseArguments(Params &_par, int argc, char *argv[]);
 int initOutput(ofstream &_os, const Params &_p, int _cnt, int _piccnt);
 bool addFile(ofstream &_os, const Params &_par, const string &_s);
@@ -154,21 +174,37 @@ int main(int argc, char *argv[]){
 	cout<<"Successfully created folder: "<<p.folder<<endl;
 	//------------------------------------------
 	ofstream tmpf;
-	fs::directory_iterator 	it,end;
-	try{
-	fs::path pth(p.path, fs::native);
-	it = fs::directory_iterator(pth);
-	}catch ( const std::exception & ex ){
-		cout<<"iterator exception"<<endl;
-		return OK;
+	DirItemVector	dirv;
+	{
+		fs::directory_iterator 	it,end;
+		try{
+		fs::path pth(p.path, fs::native);
+		it = fs::directory_iterator(pth);
+		}catch ( const std::exception & ex ){
+			cout<<"iterator exception"<<endl;
+			return OK;
+		}
+		while(it != end){
+			dirv.push(it->string(), is_directory(*it));
+			++it;
+		}
+		std::sort(dirv.begin(), dirv.end(), DirItemCmp());
 	}
 	int count = 0;
 	int piccnt = 0;
 	initOutput(tmpf, p, count, piccnt);
 	int added = 0;
 	cout<<"p.path = "<<p.path<<endl;
-	while(it != end){
-		if(addFile(tmpf, p, it->string())){
+	DirItemVector::const_iterator it(dirv.begin());
+	while(it != dirv.end()){
+// 		cout<<"Adding file "<<*it->first<<" dir = "<<it->second<<endl;
+// 		++it;
+// 		continue;
+		if(it->second){
+			++it;
+			continue;
+		}
+		if(added >= p.maxcnt || addFile(tmpf, p, *it->first)){
 			//done with the output
 			doneOutput(tmpf);
 			if(!sendOutput(wr, sd, pssl, p)){
@@ -238,7 +274,8 @@ int initOutput(ofstream &_os, const Params &_p, int _cnt, int _piccnt){
 	_os.open("tmp.eml");
 	cout<<"is open temp = "<<_os.is_open()<<endl;
 	
-	_os<<"To: \"vipalade@yahoo.com\"\n";
+	_os<<"To:  \"pictures\"\n";
+	_os<<"From:  \"pictures\"\n";
 	_os<<"Subject: "<<_p.folder<<' '<<_cnt<<' '<<_piccnt<<"\n";
 	_os<<"Date: Wed, 21 Jan 2009 19:10:10 +0200\n";
 	_os<<"MIME-Version: 1.0\n";
