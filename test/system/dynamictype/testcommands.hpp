@@ -5,23 +5,17 @@
 
 namespace test_cmds{
 
-struct FirstCommand: public test_base::BaseCommand{
-	DYNAMIC_DECLARATION;
-	
+struct FirstCommand: Dynamic<FirstCommand, test_base::BaseCommand>{
 	FirstCommand(uint32 _v);
 	uint32 v;
 };
 
-struct SecondCommand: public test_base::BaseCommand{
-	DYNAMIC_DECLARATION;
-	
+struct SecondCommand: Dynamic<SecondCommand, test_base::BaseCommand>{
 	SecondCommand(const char *_v);
 	const char *v;
 };
 
-struct ThirdCommand: SecondCommand{
-	DYNAMIC_DECLARATION;
-	
+struct ThirdCommand: Dynamic<ThirdCommand, SecondCommand>{
 	ThirdCommand(char _v1, const char *_v2, uint32 _v3 = 0);
 	char v;
 };

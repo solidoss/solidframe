@@ -6,8 +6,7 @@
 
 namespace test_base{
 
-struct BaseCommand{
-	DYNAMIC_DECLARATION;
+struct BaseCommand: Dynamic<BaseCommand>{
 	BaseCommand();
 };
 

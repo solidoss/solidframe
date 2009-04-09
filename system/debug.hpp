@@ -109,38 +109,38 @@ private:
 
 #define idbg(x)\
 	if(Dbg::instance().isSet(Dbg::Info, Dbg::any)){\
-	Dbg::instance().print('I', Dbg::any, __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}
+	Dbg::instance().print('I', Dbg::any, __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}else;
 #define idbgx(a,x)\
 	if(Dbg::instance().isSet(Dbg::Info, a)){\
-	Dbg::instance().print('I', a,  __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}
+	Dbg::instance().print('I', a,  __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}else;
 
 #define edbg(x)\
 	if(Dbg::instance().isSet(Dbg::Error, Dbg::any)){\
-	Dbg::instance().print('E', Dbg::any, __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}
+	Dbg::instance().print('E', Dbg::any, __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}else;
 #define edbgx(a,x)\
 	if(Dbg::instance().isSet(Dbg::Error, a)){\
-	Dbg::instance().print('E', a,  __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}
+	Dbg::instance().print('E', a,  __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}else;
 
 #define wdbg(x)\
 	if(Dbg::instance().isSet(Dbg::Warn, Dbg::any)){\
-	Dbg::instance().print('W', Dbg::any, __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}
+	Dbg::instance().print('W', Dbg::any, __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}else;
 #define wdbgx(a,x)\
 	if(Dbg::instance().isSet(Dbg::Warn, a)){\
-	Dbg::instance().print('W', a,  __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}
+	Dbg::instance().print('W', a,  __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}else;
 
 #define rdbg(x)\
 	if(Dbg::instance().isSet(Dbg::Report, Dbg::any)){\
-	Dbg::instance().print('R', Dbg::any, __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}
+	Dbg::instance().print('R', Dbg::any, __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}else;
 #define rdbgx(a,x)\
 	if(Dbg::instance().isSet(Dbg::Report, a)){\
-	Dbg::instance().print('R', a,  __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}
+	Dbg::instance().print('R', a,  __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}else;
 
 #define vdbg(x)\
 	if(Dbg::instance().isSet(Dbg::Verbose, Dbg::any)){\
-	Dbg::instance().print('V', Dbg::any, __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}
+	Dbg::instance().print('V', Dbg::any, __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}else;
 #define vdbgx(a,x)\
 	if(Dbg::instance().isSet(Dbg::Verbose, a)){\
-	Dbg::instance().print('V', a,  __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}
+	Dbg::instance().print('V', a,  __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}else;
 
 
 #define writedbg(x,sz)

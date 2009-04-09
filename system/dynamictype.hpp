@@ -9,57 +9,69 @@ struct DynamicId{
 	uint32	v;
 };
 
-struct DynamicCallbackMap{
+struct DynamicMap{
 	typedef int (*FncTp)(void*,void*);
-	
+	typedef void (*RegisterFncTp)(DynamicMap &_rdm);
 	static uint32 generateId();
 	
-	DynamicCallbackMap();
-	~DynamicCallbackMap();
+	DynamicMap(RegisterFncTp _prfnc);
+	~DynamicMap();
 	void callback(uint32 _tid, FncTp _pf);
 	FncTp callback(uint32 _id);
 	struct Data;
 	Data	&d;
 };
 
-#define DYNAMIC_DECLARATION\
-	public:\
-	static uint32 staticTypeId();\
-	virtual uint32 dynamicTypeId()const;\
-	public:
+struct DynamicBase{
+	virtual uint32 dynamicTypeId()const = 0;
+protected:
+	virtual ~DynamicBase();
+};
 
-#define DYNAMIC_DEFINITION(X)\
-	/*static*/ uint32 X::staticTypeId(){\
-		static uint32 id(DynamicCallbackMap::generateId());\
-		return id;\
-	}\
-	uint32 X::dynamicTypeId()const{\
-		return staticTypeId();\
+template <class X, class T = DynamicBase>
+struct Dynamic: T{
+	typedef Dynamic<X,T>	BaseTp;
+	Dynamic(){}
+	template<class G>
+	Dynamic(G _x):T(_x){}
+	static uint32 staticTypeId(){
+		static uint32 id(DynamicMap::generateId());
+		return id;
 	}
-	
-#define DYNAMIC_RECEIVER_DECLARATION\
-	public:\
-	template <class O, class C>\
-	static int dynamicExecute(void *_pcmd, void *_po);\
-	private:
+	virtual uint32 dynamicTypeId()const{
+		return staticTypeId();
+	}
+};
 
-#define DYNAMIC_RECEIVER_DEFINITION(RCV, FNC, CMD)\
-static DynamicCallbackMap& callbackMap(){\
-	static DynamicCallbackMap	cm;\
-	return cm;\
-}\
-template <class O, class C>\
-/*static*/ int RCV::dynamicExecute(void *_pcmd, void *_po){\
-	return static_cast<O*>(_po)->FNC(*static_cast<C*>(_pcmd));\
-}\
-template <class O, class C>\
-static void registerCommand(){\
-	callbackMap().callback(C::staticTypeId(), &O::template dynamicExecute<O, C>);\
-}\
-/*static*/ int executeCommand(CMD &_rcmd, void *_pthis){\
-	DynamicCallbackMap::FncTp pf = callbackMap().callback(_rcmd.dynamicTypeId());\
-	if(pf) return (*pf)(&_rcmd, _pthis);\
-	return BAD;\
-}
+struct DynamicReceiverBase{
+	typedef int (*FncTp)(void*,void*);
+};
+
+
+template <class X, class T = DynamicReceiverBase>
+struct DynamicReceiver: T{
+	typedef DynamicReceiver<X,T>	BaseTp;
+	DynamicReceiver(){}
+	template<class G>
+	DynamicReceiver(G _x):T(_x){}
+
+	template <class C>
+	static int dynamicCallback(void *_pdyn, void *_prcv){
+		return static_cast<X*>(_prcv)->dynamicReceive(*static_cast<C*>(_pdyn));
+	}
+	static DynamicMap& dynamicMap(){
+		static DynamicMap dm(&X::dynamicRegister);
+		return dm;
+	}
+	template <class C>
+	static void dynamicRegister(DynamicMap &_rdm){
+		_rdm.callback(C::staticTypeId(), &dynamicCallback<C>);
+	}
+	int dynamicReceiver(DynamicBase *_pd){
+		DynamicMap::FncTp pf = dynamicMap().callback(_pd->dynamicTypeId());
+		if(pf) return (*pf)(_pd, this);
+		return BAD;
+	}
+};
 
 #endif
