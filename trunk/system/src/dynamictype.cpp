@@ -4,13 +4,13 @@
 #include "system/mutex.hpp"
 #include <vector>
 
-struct DynamicCallbackMap::Data{
+struct DynamicMap::Data{
 	typedef std::vector<FncTp>	FncVectorTp;
 	FncVectorTp fncvec;
 };
 
 
-/*static*/ uint32 DynamicCallbackMap::generateId(){
+/*static*/ uint32 DynamicMap::generateId(){
 	static uint32 u(0);
 	Thread::gmutex().lock();
 	uint32 v = ++u;
@@ -18,29 +18,33 @@ struct DynamicCallbackMap::Data{
 	return v;
 }
 
-DynamicCallbackMap::DynamicCallbackMap():d(*(new Data)){
+DynamicMap::DynamicMap(RegisterFncTp _prfnc):d(*(new Data)){
+	(*_prfnc)(*this);
 }
-DynamicCallbackMap::~DynamicCallbackMap(){
+DynamicMap::~DynamicMap(){
 	delete &d;
 }
 
-void DynamicCallbackMap::callback(uint32 _tid, FncTp _pf){
-	Thread::gmutex().lock();
+void DynamicMap::callback(uint32 _tid, FncTp _pf){
+	//Thread::gmutex().lock();
 	if(_tid >= d.fncvec.size()){
 		d.fncvec.resize(_tid + 1);
 	}
 	cassert(!d.fncvec[_tid]);
 	d.fncvec[_tid] = _pf;
-	Thread::gmutex().unlock();
+	//Thread::gmutex().unlock();
 }
 
-DynamicCallbackMap::FncTp DynamicCallbackMap::callback(uint32 _id){
+DynamicMap::FncTp DynamicMap::callback(uint32 _id){
 	FncTp pf = NULL;
-	Thread::gmutex().lock();
+	//Thread::gmutex().lock();
 	if(_id < d.fncvec.size()){
 		pf = d.fncvec[_id];
 	}
-	Thread::gmutex().unlock();
+	//Thread::gmutex().unlock();
 	return pf;
 }
 
+
+
+DynamicBase::~DynamicBase(){}

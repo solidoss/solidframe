@@ -14,39 +14,30 @@ class ThirdCommand;//Inherits Second
 }
 
 
-class MyObject{
-	DYNAMIC_RECEIVER_DECLARATION;
+class MyObject: public DynamicReceiver<MyObject>{
 public:
 	
-	static void registerCommands();
-	void receiveCommand(test_base::BaseCommand &);
-private:
-	
-	int receive(test_cmds::FirstCommand &_rcmd);
-	int receive(test_cmds::SecondCommand &_rcmd);
-};
+	static void dynamicRegister(DynamicMap &_rdm);
 
-DYNAMIC_RECEIVER_DEFINITION(MyObject, receive, test_base::BaseCommand);
+	int dynamicReceive(test_cmds::FirstCommand &_rcmd);
+	int dynamicReceive(test_cmds::SecondCommand &_rcmd);
+};
 
 #include "testcommands.hpp"
 
-void MyObject::registerCommands(){
-	registerCommand<MyObject, test_cmds::FirstCommand>();
-	registerCommand<MyObject, test_cmds::SecondCommand>();
-	registerCommand<MyObject, test_cmds::ThirdCommand>();
+void MyObject::dynamicRegister(DynamicMap &_rdm){
+	BaseTp::dynamicRegister<test_cmds::FirstCommand>(_rdm);
+	BaseTp::dynamicRegister<test_cmds::SecondCommand>(_rdm);
+	BaseTp::dynamicRegister<test_cmds::ThirdCommand>(_rdm);
 }
 
 
-void MyObject::receiveCommand(test_base::BaseCommand &_rcmd){
-	executeCommand(_rcmd, this);
-}
-
-int MyObject::receive(test_cmds::FirstCommand &_rcmd){
+int MyObject::dynamicReceive(test_cmds::FirstCommand &_rcmd){
 	idbg("First command value "<<_rcmd.v);
 	return 0;
 }
 
-int MyObject::receive(test_cmds::SecondCommand &_rcmd){
+int MyObject::dynamicReceive(test_cmds::SecondCommand &_rcmd){
 	idbg("Second command value "<<_rcmd.v);
 	return 0;
 }
@@ -70,16 +61,15 @@ int main(){
 	idbg("sizeof(ulong) = "<<sizeof(ulong));
 	idbg("sizeof(longlong) = "<<sizeof(longlong));
 	idbg("sizeof(ulonglong) = "<<sizeof(ulonglong));
-	MyObject::registerCommands();
 	MyObject o;
 	
 	test_cmds::FirstCommand		c1(10);
 	test_cmds::SecondCommand	c2("second");
 	test_cmds::ThirdCommand		c3('3', "third", 30);
 	
-	o.receiveCommand(c1);
-	o.receiveCommand(c2);
-	o.receiveCommand(c3);
+	o.dynamicReceiver(static_cast<DynamicBase*>(&c1));
+	o.dynamicReceiver(static_cast<DynamicBase*>(&c2));
+	o.dynamicReceiver(static_cast<DynamicBase*>(&c3));
 	
 	return 0;
 }
