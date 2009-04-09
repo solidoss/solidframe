@@ -107,6 +107,10 @@ private:
 	Data &d;
 };
 
+#ifndef __FUNCTION__
+#define __FUNCTION__ __func__
+#endif
+
 #define idbg(x)\
 	if(Dbg::instance().isSet(Dbg::Info, Dbg::any)){\
 	Dbg::instance().print('I', Dbg::any, __FILE__, __FUNCTION__, __LINE__)<<x;Dbg::instance().done();}else;

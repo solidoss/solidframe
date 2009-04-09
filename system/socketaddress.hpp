@@ -55,7 +55,7 @@ struct AddrInfo{
 		NumericServ = AI_NUMERICSERV
 	};
 	enum Family{
-		Local = AF_LOCAL,
+		Local = AF_UNIX,
 		Inet4 = AF_INET,
 		Inet6 = AF_INET6
 	};

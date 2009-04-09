@@ -22,10 +22,15 @@
 #ifndef THREADPP_HPP
 #define THREADPP_HPP
 
-#ifdef _WIN32
+#ifdef ON_WIN
 #else
 #include <pthread.h>
 #endif
+
+#ifdef ON_SUN
+//#include <thread.h>
+#endif
+
 #include <vector>
 #include "system/common.hpp"
 
@@ -122,14 +127,18 @@ private:
 };
 
 inline void Thread::yield(){
-#ifdef _WIN32
-#else	
+#ifdef ON_WIN
+#else
+#ifdef ON_SUN
+//	thr_yield();
+#else
 	pthread_yield();
+#endif
 #endif
 }
 
 inline int Thread::currentId(){
-#ifdef _WIN32
+#ifdef ON_WIN
 #else
 	return pthread_self();
 #endif
