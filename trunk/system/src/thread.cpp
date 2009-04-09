@@ -22,6 +22,7 @@
 
 #include <cerrno>
 #include <cstring>
+#include <pthread.h>
 #include "system/timespec.hpp"
 #include "system/thread.hpp"
 #include "system/debug.hpp"
@@ -43,15 +44,22 @@ struct ThreadData{
 		MutexPoolSize = 4,
 		FirstSpecificId = 0
 	};
-	ThreadData():crtthread_key(0), thcnt(0), once_key(PTHREAD_ONCE_INIT){}
+	//ThreadData();
+	//ThreadData():crtthread_key(0), thcnt(0), once_key(PTHREAD_ONCE_INIT){}
 	pthread_key_t					crtthread_key;
 	uint32    						thcnt;
 	pthread_once_t					once_key;
 	Condition						gcon;
 	Mutex							gmut;
 	FastMutexPool<MutexPoolSize>	mutexpool;
+	ThreadData():crtthread_key(0), thcnt(0), once_key(PTHREAD_ONCE_INIT){}
 };
 
+//ThreadData::ThreadData(){
+//	crtthread_key = 0;
+//	thcnt = 0;
+//	once_key = PTHREAD_ONCE_INIT;
+//}
 static ThreadData& threadData(){
 	static ThreadData td;
 	return td;
