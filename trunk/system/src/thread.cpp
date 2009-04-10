@@ -23,6 +23,7 @@
 #include <cerrno>
 #include <cstring>
 #include <pthread.h>
+#include <limits.h>
 #include "system/timespec.hpp"
 #include "system/thread.hpp"
 #include "system/debug.hpp"
@@ -39,6 +40,8 @@ struct Cleaner{
 	}
 };
 
+static const pthread_once_t	oncek = PTHREAD_ONCE_INIT;
+
 struct ThreadData{
 	enum {
 		MutexPoolSize = 4,
@@ -52,7 +55,8 @@ struct ThreadData{
 	Condition						gcon;
 	Mutex							gmut;
 	FastMutexPool<MutexPoolSize>	mutexpool;
-	ThreadData():crtthread_key(0), thcnt(0), once_key(PTHREAD_ONCE_INIT){}
+	ThreadData():crtthread_key(0), thcnt(0), once_key(oncek){
+	}
 };
 
 //ThreadData::ThreadData(){
@@ -131,6 +135,10 @@ Thread * Thread::current(){
 	return reinterpret_cast<Thread*>(pthread_getspecific(threadData().crtthread_key));
 }
 //-------------------------------------------------------------------------
+long Thread::processId(){
+	return getpid();
+}
+//-------------------------------------------------------------------------
 Thread::Thread():th(0),dtchd(true),pcndpair(NULL){
 }
 //-------------------------------------------------------------------------
@@ -147,7 +155,11 @@ void Thread::dummySpecificDestroy(void*){
 }
 //-------------------------------------------------------------------------
 /*static*/ unsigned Thread::processorCount(){
+#ifdef ON_SUN
+	return 1;
+#else
 	return get_nprocs();
+#endif
 }
 //-------------------------------------------------------------------------
 int Thread::join(){
@@ -211,6 +223,9 @@ Mutex& Thread::mutex()const{
 	return threadData().mutexpool.getr(this);
 }
 //-------------------------------------------------------------------------
+#ifndef PTHREAD_STACK_MIN
+#define PTHREAD_STACK_MIN 4096
+#endif
 int Thread::start(int _wait, int _detached, ulong _stacksz){	
 	Mutex::Locker locker(mutex());
 	idbg("");

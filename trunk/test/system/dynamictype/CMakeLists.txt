@@ -4,4 +4,4 @@
 
 add_executable (dynamictest dynamictest.cpp testcommands.cpp)
 
-target_link_libraries (dynamictest system pthread rt boost_filesystem)
+target_link_libraries (dynamictest system boost_filesystem ${SYS_BASIC_LIBS})
