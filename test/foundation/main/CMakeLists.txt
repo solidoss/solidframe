@@ -5,12 +5,12 @@ ${SOLIDGROUND_SOURCE_DIR}/test/foundation/core ${SOLIDGROUND_SOURCE_DIR}/test/fo
 ${SOLIDGROUND_SOURCE_DIR}/test/foundation/alpha
 ${SOLIDGROUND_SOURCE_DIR}/test/foundation/cluster)
 
-add_executable (test src/test.cpp)
+add_executable (test_concept src/test.cpp)
 
 #NOTE:
 #set_target_properties(test PROPERTIES COMPILE_FLAGS "-DUDEBUG")
 
-target_link_libraries (test
+target_link_libraries (test_concept
 	test_echo
 	test_alpha
 	test_core
