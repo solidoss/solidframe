@@ -28,7 +28,7 @@
 #endif
 
 #ifdef ON_SUN
-//#include <thread.h>
+#include <sched.h>
 #endif
 
 #include <vector>
@@ -60,6 +60,7 @@ public:
 	//! Returns the number of processors on the running machine
 	static unsigned processorCount();
 	
+	static long processId();
 	static void waitAll();
 	//! Releases the processor for another thread
 	static void yield();
@@ -130,7 +131,7 @@ inline void Thread::yield(){
 #ifdef ON_WIN
 #else
 #ifdef ON_SUN
-//	thr_yield();
+	sched_yield();
 #else
 	pthread_yield();
 #endif

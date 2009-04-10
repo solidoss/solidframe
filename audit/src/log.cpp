@@ -4,6 +4,7 @@
 #include "audit/log.hpp"
 #include "system/common.hpp"
 #include "system/mutex.hpp"
+#include "system/thread.hpp"
 #include "system/timespec.hpp"
 #include "utility/ostream.hpp"
 #include "audit/log/logdata.hpp"
@@ -141,7 +142,7 @@ void Log::Data::parseModuleOptions(const char *_modopt){
 void Log::Data::sendInfo(){
 	if(!pos || !isActive()) return;
 	//we send - version, the process id, the process name, the list of modules
-	audit::LogHead lh(getpid(), procname.size(), nv.size());
+	audit::LogHead lh(Thread::processId(), procname.size(), nv.size());
 	lh.convertToNetwork();
 	pos->write((const char*) &lh, sizeof(lh));
 	//now write the procname
