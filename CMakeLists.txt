@@ -19,8 +19,27 @@ string (REGEX REPLACE "^([0-9]*)\\.([0-9]*)\\.([0-9]*)" "\\3" VERSION_PATCH ${VE
 # extra user definitions
 #-----------------------------------------------------------------
 message("UDEFS set "${UDEFS})
+message("UEXTERN set "${UEXTERN})
+message("UEXTERN_ABS set "${UEXTERN_ABS})
 ADD_DEFINITIONS(${UDEFS})
 
+#-----------------------------------------------------------------
+# prepare the extern path
+#-----------------------------------------------------------------
+
+STRING(LENGTH "${UEXTERN_ABS}" ExtAbsLen)
+SET(EXTERN_PATH)
+IF(ExtAbsLen GREATER 0)
+	SET(EXTERN_PATH "${UEXTERN_ABS}/")
+ELSE(ExtAbsLen GREATER 0)
+	STRING(LENGTH ${UEXTERN} ExtLen)
+	IF(ExtLen GREATER 0)
+		SET(EXTERN_PATH "${SOLIDGROUND_SOURCE_DIR}/extern/${UEXTERN}/")
+	ELSE(ExtLen GREATER 0)
+		SET(EXTERN_PATH "${SOLIDGROUND_SOURCE_DIR}/extern/")
+	ENDIF(ExtLen GREATER 0)
+ENDIF(ExtAbsLen GREATER 0)
+MESSAGE("EXTERN_PATH set as "${EXTERN_PATH})
 #-----------------------------------------------------------------
 # prepare the definitions for build types
 #-----------------------------------------------------------------
@@ -170,13 +189,13 @@ SET(CMAKE_BUILD_TYPE
 include_directories(
 	${SOLIDGROUND_SOURCE_DIR}
 	${SOLIDGROUND_SOURCE_DIR}/library
-	${SOLIDGROUND_SOURCE_DIR}/extern/linux/openssl/include
-	${SOLIDGROUND_SOURCE_DIR}/extern/linux/tclap/include
+	${EXTERN_PATH}/include/openssl
+	${EXTERN_PATH}/include/tclap
+	${EXTERN_PATH}/include/
 )
 
 link_directories(
-#	${SOLIDGROUND_SOURCE_DIR}/system
-	${SOLIDGROUND_SOURCE_DIR}/extern/linux/openssl
+	${EXTERN_PATH}/lib
 )
 
 add_subdirectory (system)

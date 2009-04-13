@@ -19,15 +19,17 @@ function make_cmake_list(){
 
 function print_usage(){
 	echo "Usage:"
-	echo -ne "\n./configure [-g|--generator GeneratorName] [-f|--folder FolderName] [-b|--build BuildType] "
-	echo -ne " [-p|--param ParamName] [-d|--documentation full/fast] [-e|--extern pack] [-h|--help]\n"
+	echo -ne "\n./configure [-g|--generator GeneratorName] [-f|--folder FolderName] [-b|--build BuildType]"
+	echo -ne " [-p|--param ParamName] [-d|--documentation full/fast] [-h|--help]"
+	echo -ne " [-e|--extern-path ExternPath] [-E|--extern-abs-path ExternAbsPath]\n"
 	echo -ne "Options:\n"
 	echo "[-g|--generator GeneratorName]: Specify the cmake generator - default cmake's default"
 	echo "[-f|--folder FolderName]: Specify the build folder name - default is the generator name or the build type if the generator was not specified"
 	echo "[-b|--build BuildType]: The cmake build type release/debug/nolog/maintain - default release"
 	echo "[-p|--param ParamName]: Extra compilation flags. E.g. -p \"-DUINDEX64 -DUSERVICEBITS=3\""
 	echo "[-d|--documentation full/fast]: Build either fast or full documentation"
-	echo "[-e|--extern pack]: operate on extern libraries, pack builds a tar.bz2 archive"
+	echo "[-e|--extern-path ExternPath]: relative path to extern libraries under solidground/extern folder"
+	echo "[-E|--extern-abs-path ExternAbsPath]: absolute path to extern libraries"
 	echo
 	exit
 }
@@ -44,7 +46,8 @@ BUILD_TYPE=
 FOLDER_NAME=
 HELP="no"
 PARAM=
-EXTERN=
+EXTERN_PATH=
+EXTERN_ABS_PATH=
 
 while [ "$#" -gt 0 ]; do
 	CURRENT_OPT="$1"
@@ -74,14 +77,23 @@ while [ "$#" -gt 0 ]; do
 		shift
 		PARAM=$PARAM"$1 "
 		;;
-	-e|--extern)
+	-e|--extern-path)
 		if [ -z "$2" ] || echo "$2" | grep '^-' >/dev/null 2>&1; then
-			EXTERN="pack"
+			EXTERN_PATH="extern"
 		else
 			shift;
-			EXTERN=$1
+			EXTERN_PATH=$1
 		fi
 		;;
+	-E|--extern-abs-path)
+		if [ -z "$2" ] || echo "$2" | grep '^-' >/dev/null 2>&1; then
+			EXTERN_ABS_PATH=""
+		else
+			shift;
+			EXTERN_ABS_PATH=$1
+		fi
+		;;
+
 	-h|--help)
 		HELP="yes"
 		;;
@@ -125,12 +137,12 @@ if [ "$DOCUMENTATION" = "fast" ]; then
 	exit
 fi
 
-if [ "$EXTERN" = "pack" ]; then
-	echo "Building extern archive"
-	cd extern
-	tar -cjf solidground_extern_linux.tar.bz2 linux
-	echo "Done building extern archive"
-fi
+# if [ "$EXTERN" = "pack" ]; then
+# 	echo "Building extern archive"
+# 	cd extern
+# 	tar -cjf solidground_extern_linux.tar.bz2 linux
+# 	echo "Done building extern archive"
+# fi
 
 
 if [ "$BUILD_TYPE" = "" ]; then
@@ -161,11 +173,11 @@ cd "build/$FOLDER_NAME"
 
 if [ "$GENERATOR" = "" ]; then
 	echo "Using cmake's default generator"
-	cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS:STRING="$PARAM" ../../
+	cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS:STRING="$PARAM" -DUEXTERN:STRING="$EXTERN_PATH" -DUEXTERN_ABS:STRING="$EXTERN_ABS_PATH" ../../
 	echo "Done!"
 else
 	echo "Using cmake's $GENERATOR"
-	cmake -G $GENERATOR -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS:STRING="$PARAM" ../../
+	cmake -G $GENERATOR -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS:STRING="$PARAM" -DUEXTERN:STRING="$EXTERN_PATH" -DUEXTERN_ABS:STRING="$EXTERN_ABS_PATH" ../../
 fi
 
 
