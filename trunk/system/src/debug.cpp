@@ -41,7 +41,7 @@
 #include "mutex.hpp"
 
 
-const unsigned fileoff = (strstr(__FILE__, "system/src") - __FILE__);
+const unsigned fileoff = (strlen(__FILE__) - strlen(strstr(__FILE__, "system/src")));
 
 using namespace std;
 
