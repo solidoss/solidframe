@@ -1,4 +1,4 @@
-/* Implementation file selector.cpp
+/* Implementation file aioselector_lin.cpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com

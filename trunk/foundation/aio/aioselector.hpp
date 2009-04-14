@@ -27,7 +27,6 @@
 
 
 struct TimeSpec;
-struct epoll_event;
 
 namespace foundation{
 namespace aio{
