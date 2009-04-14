@@ -3,12 +3,20 @@
 #FILE(GLOB Sources RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} src/*.cpp)
 #FILE(GLOB Headers RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.hpp)
 
-set(Sources
-	src/aioobject.cpp
-	src/aioselector.cpp
-	src/aiosocket.cpp
-)
+IF(${ON_SUN})
+	set(Sources
+		src/aioobject.cpp
+		src/aioselector_sun.cpp
+		src/aiosocket.cpp
+	)
 
+ELSE(${ON_SUN})
+	set(Sources
+		src/aioobject.cpp
+		src/aioselector_lin.cpp
+		src/aiosocket.cpp
+	)
+ENDIF(${ON_SUN})
 set(Headers
 	aioobject.hpp
 	aiosecuresocket.hpp
