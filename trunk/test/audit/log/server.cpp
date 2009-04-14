@@ -7,6 +7,8 @@
 #include "system/directory.hpp"
 #include "system/debug.hpp"
 
+#include <unistd.h>
+
 using namespace std;
 
 struct DeviceIOStream: IOStream{

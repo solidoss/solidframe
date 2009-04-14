@@ -21,7 +21,7 @@
 
 
 #include <cerrno>
-#include <cstring>
+#include <string.h>
 #include <pthread.h>
 #include <limits.h>
 #include "system/timespec.hpp"

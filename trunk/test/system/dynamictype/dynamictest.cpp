@@ -2,6 +2,9 @@
 #include "testcommands.hpp"
 #include "system/debug.hpp"
 #include "system/cassert.hpp"
+#include <iostream>
+
+using namespace std;
 
 #include <vector>
 
@@ -62,7 +65,7 @@ int main(){
 	idbg("sizeof(longlong)  = "<<sizeof(longlong));
 	idbg("sizeof(ulonglong) = "<<sizeof(ulonglong));
 	MyObject o;
-	
+	cout<<"gigi"<<endl;
 	test_cmds::FirstCommand		c1(10);
 	test_cmds::SecondCommand	c2("second");
 	test_cmds::ThirdCommand		c3('3', "third", 30);

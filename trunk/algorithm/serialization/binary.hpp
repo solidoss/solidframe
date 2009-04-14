@@ -165,15 +165,7 @@ class Serializer: public Base{
 		return CONTINUE;
 	}
 	template <typename T>
-	static int store(Base &_rs, FncData &_rfd){
-		idbgx(Dbg::ser_bin, "store generic non pointer");
-		Serializer &rs(static_cast<Serializer&>(_rs));
-		if(!rs.cpb) return OK;
-		T& rt = *((T*)_rfd.p);
-		rs.fstk.pop();
-		rt & rs;
-		return CONTINUE;
-	}
+	static int store(Base &_rs, FncData &_rfd);
 	static int storeBinary(Base &_rs, FncData &_rfd);
 	template <typename T>
 	static int storeContainer(Base &_rs, FncData &_rfd){
@@ -333,20 +325,39 @@ private:
 };
 //===============================================================
 
+template <>
+int Serializer::store<int16>(Base &_rb, FncData &_rfd);
+template <>
+int Serializer::store<uint16>(Base &_rb, FncData &_rfd);
+template <>
+int Serializer::store<int32>(Base &_rb, FncData &_rfd);
+template <>
+int Serializer::store<uint32>(Base &_rb, FncData &_rfd);
+template <>
+int Serializer::store<int64>(Base &_rb, FncData &_rfd);
+template <>
+int Serializer::store<uint64>(Base &_rb, FncData &_rfd);
+template <>
+int Serializer::store<std::string>(Base &_rb, FncData &_rfd);
+
+template <typename T>
+int Serializer::store(Base &_rs, FncData &_rfd){
+	idbgx(Dbg::ser_bin, "store generic non pointer");
+	Serializer &rs(static_cast<Serializer&>(_rs));
+	if(!rs.cpb) return OK;
+	T& rt = *((T*)_rfd.p);
+	rs.fstk.pop();
+	rt & rs;
+	return CONTINUE;
+}
+
 //! A fast reentrant binary deserializer
 /*!
 	See serialization::bin::Base for details
 */
 class Deserializer: public Base{
 	template <typename T>
-	static int parse(Base& _rd, FncData &_rfd){
-		idbgx(Dbg::ser_bin, "parse generic non pointer");
-		Deserializer &rd(static_cast<Deserializer&>(_rd));
-		if(!rd.cpb) return OK;
-		rd.fstk.pop();
-		*reinterpret_cast<T*>(_rfd.p) & rd;
-		return CONTINUE;
-	}
+	static int parse(Base& _rd, FncData &_rfd);
 	template <class TM>
 	static int parseTypeIdDone(Base& _rd, FncData &_rfd){
 		Deserializer &rd(static_cast<Deserializer&>(_rd));
@@ -516,6 +527,33 @@ private:
 	const char	*be;
 	std::string	tmpstr;
 };
+
+template <>
+int Deserializer::parse<int16>(Base &_rb, FncData &_rfd);
+template <>
+int Deserializer::parse<uint16>(Base &_rb, FncData &_rfd);
+template <>
+int Deserializer::parse<int32>(Base &_rb, FncData &_rfd);
+template <>
+int Deserializer::parse<uint32>(Base &_rb, FncData &_rfd);
+
+template <>
+int Deserializer::parse<int64>(Base &_rb, FncData &_rfd);
+template <>
+int Deserializer::parse<uint64>(Base &_rb, FncData &_rfd);
+template <>
+int Deserializer::parse<std::string>(Base &_rb, FncData &_rfd);
+
+template <typename T>
+int Deserializer::parse(Base& _rd, FncData &_rfd){
+	idbgx(Dbg::ser_bin, "parse generic non pointer");
+	Deserializer &rd(static_cast<Deserializer&>(_rd));
+	if(!rd.cpb) return OK;
+	rd.fstk.pop();
+	*reinterpret_cast<T*>(_rfd.p) & rd;
+	return CONTINUE;
+}
+
 
 }//namespace bin
 }//namespace serialization
