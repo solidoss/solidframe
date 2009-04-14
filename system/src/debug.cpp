@@ -40,6 +40,10 @@
 #include "thread.hpp"
 #include "mutex.hpp"
 
+#ifdef ON_SUN
+#include <strings.h>
+#endif
+
 
 const unsigned fileoff = (strlen(__FILE__) - strlen(strstr(__FILE__, "system/src")));
 

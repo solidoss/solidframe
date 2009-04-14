@@ -20,9 +20,9 @@
 */
 
 #include "socketaddress.hpp"
-#include <cstdio>
+#include <stdio.h>
 #include <cstdlib>
-#include <cstring>
+#include <string.h>
 #include <cerrno>
 #include "system/cassert.hpp"
 #include "system/debug.hpp"

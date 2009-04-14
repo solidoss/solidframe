@@ -27,7 +27,7 @@
 #include "system/debug.hpp"
 #include <cstdio>
 #include <cerrno>
-#include <cstring>
+#include <string.h>
 
 Device::Device(const Device &_dev):desc(_dev.descriptor()) {
 	_dev.desc = -1;

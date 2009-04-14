@@ -10,6 +10,10 @@
 #include "audit/log/logdata.hpp"
 #include "system/debug.hpp"
 
+#ifdef ON_SUN
+#include <strings.h>
+#endif
+
 using namespace std;
 const unsigned fileoff = (strstr(__FILE__, "audit/src") - __FILE__);
 
