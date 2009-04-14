@@ -29,7 +29,7 @@ target_link_libraries (test_concept
 	utility
 	system
 	boost_filesystem
-	pthread
-	rt
+	boost_system
+	${SYS_BASIC_LIBS}
 	dl
 )
