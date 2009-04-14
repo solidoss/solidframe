@@ -18,3 +18,11 @@
 	You should have received a copy of the GNU General Public License
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
+
+
+/*TODO:
+	try using:
+	man port_associate
+	man port_create
+*/
+
