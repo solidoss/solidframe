@@ -38,73 +38,12 @@ struct ConnectorUid;
 }
 namespace test{
 struct Command;
-//! The base class for all connections knowing how to receive things
+//! The base class for all test connections
 class Connection: public foundation::aio::SingleObject{
 public:
 	typedef Command	CommandTp;
 	typedef std::pair<uint32, uint32>	FileUidTp;
 	typedef std::pair<uint32, uint32>	RequestUidTp;
-	//! Dummy method for receiving istreams
-	/*!
-		\param _sp Stream pointer
-		\param _fuid The file unique id
-		\param _requid The request uid as given by the requester of the stream
-		\param _which Used for receiving more then one stream with a single command
-		\param _from The object who has sent the stream
-		\param _conid The ipc connection on which the stream was received
-	*/
-	virtual int receiveIStream(
-		StreamPtr<IStream> &,
-		const FileUidTp	&,
-		const RequestUidTp &_requid,
-		int			_which = 0,
-		const ObjectUidTp&_from = ObjectUidTp(),
-		const foundation::ipc::ConnectorUid *_conid = NULL
-	);
-	virtual int receiveOStream(
-		StreamPtr<OStream> &,
-		const FileUidTp	&,
-		const RequestUidTp &_requid,
-		int			_which = 0,
-		const ObjectUidTp&_from = ObjectUidTp(),
-		const foundation::ipc::ConnectorUid *_conid = NULL
-	);
-	virtual int receiveIOStream(
-		StreamPtr<IOStream> &,
-		const FileUidTp	&,
-		const RequestUidTp &_requid,
-		int			_which = 0,
-		const ObjectUidTp&_from = ObjectUidTp(),
-		const foundation::ipc::ConnectorUid *_conid = NULL
-	);
-	virtual int receiveString(
-		const String &_str,
-		const RequestUidTp &_requid,
-		int			_which = 0,
-		const ObjectUidTp&_from = ObjectUidTp(),
-		const foundation::ipc::ConnectorUid *_conid = NULL
-	);
-	virtual int receiveNumber(
-		const int64 &_no,
-		const RequestUidTp &_requid,
-		int			_which = 0,
-		const ObjectUidTp&_from = ObjectUidTp(),
-		const foundation::ipc::ConnectorUid *_conid = NULL
-	);
-	virtual int receiveData(
-		void *_pdata,
-		int	_datasz,
-		const RequestUidTp &_requid,
-		int			_which = 0,
-		const ObjectUidTp&_from = ObjectUidTp(),
-		const foundation::ipc::ConnectorUid *_conid = NULL
-	);
-	virtual int receiveError(
-		int _errid, 
-		const RequestUidTp &_requid,
-		const ObjectUidTp&_from = ObjectUidTp(),
-		const foundation::ipc::ConnectorUid *_conid = NULL
-	);
 protected:
 	Connection(const SocketDevice &_rsd):
 			foundation::aio::SingleObject(_rsd){}

@@ -23,7 +23,7 @@
 #define CS_AIO_SELECTOR_HPP
 
 #include "foundation/common.hpp"
-#include "foundation/objptr.hpp"
+#include "foundation/objectpointer.hpp"
 
 
 struct TimeSpec;
@@ -34,7 +34,7 @@ namespace aio{
 class Object;
 class Socket;
 
-typedef ObjPtr<Object>	ObjectPtrTp;
+typedef ObjectPointer<Object>	ObjectPtrTp;
 
 //! An asynchronous IO selector to be used with the template SelectPool
 /*!

@@ -29,7 +29,7 @@
 #include "utility/queue.hpp"
 #include "algorithm/serialization/binary.hpp"
 #include "algorithm/serialization/idtypemap.hpp"
-#include "foundation/command.hpp"
+#include "foundation/signal.hpp"
 #include "foundation/manager.hpp"
 #include "foundation/ipc/ipcservice.hpp"
 #include "processconnector.hpp"
@@ -39,15 +39,15 @@ using namespace std;
 
 /*
 NOTE: Design keep alive:
-* no Keep Alive Buffers (KABs) are sent if there are commands and/or buffer to be sent
+* no Keep Alive Buffers (KABs) are sent if there are signals and/or buffer to be sent
 * KAB needs to use incremental buf id and it needs to be updated and resent
 *
- 1) in pushSentBuffer: when there is no command to be sent and/or there are no buffer
- pending to be sent and there are commands waiting for responses, an null buffer is
+ 1) in pushSentBuffer: when there is no signal to be sent and/or there are no buffer
+ pending to be sent and there are signals waiting for responses, an null buffer is
  scheduled for timeout, indicating to a KAB with a static position (0) in outbufs
- 2) when the null buffer is back, check again if there are commands to be sent
+ 2) when the null buffer is back, check again if there are signals to be sent
  and/or pending buffers else sent the KAB
- 3) when KAB is back, wait for updates with timeout exactly as for the other command buffers
+ 3) when KAB is back, wait for updates with timeout exactly as for the other signal buffers
 
 */
 
@@ -80,39 +80,39 @@ struct ProcessConnector::Data{
 	enum{
 		LastBufferId = 0xffffffff - 5,
 		UpdateBufferId = 0xffffffff,//the id of a buffer containing only updates
-		MaxCommandBufferCount = 32,//continuous buffers sent for a command
-		MaxSendCommandQueueSize = 16,//max count of commands sent in paralell
+		MaxSignalBufferCount = 32,//continuous buffers sent for a signal
+		MaxSendSignalQueueSize = 16,//max count of signals sent in paralell
 		DataRetransmitCount = 8,
 		ConnectRetransmitCount = 16
 	};
 	struct BinSerializer:serialization::bin::Serializer{
 		BinSerializer():serialization::bin::Serializer(IdTypeMap::the()){}
-		static unsigned specificCount(){return MaxSendCommandQueueSize;}
+		static unsigned specificCount(){return MaxSendSignalQueueSize;}
 		void specificRelease(){}
 	};
 
 	struct BinDeserializer:serialization::bin::Deserializer{
 		BinDeserializer():serialization::bin::Deserializer(IdTypeMap::the()){}
-		static unsigned specificCount(){return MaxSendCommandQueueSize;}
+		static unsigned specificCount(){return MaxSendSignalQueueSize;}
 		void specificRelease(){}
 	};
 	
 	typedef BinSerializer						BinSerializerTp;
 	typedef BinDeserializer						BinDeserializerTp;
 	
-	struct OutWaitCommand{
-		OutWaitCommand(
+	struct OutWaitSignal{
+		OutWaitSignal(
 			uint32 _bufid,
-			const fdt::CmdPtr<Command>& _rcmd,
+			const fdt::SignalPointer<Signal>& _rsig,
 			uint32 _flags,
 			uint32 _id
-		):bufid(_bufid), cmd(_rcmd), pser(NULL), flags(_flags), id(_id), uid(0){}
-		~OutWaitCommand(){
+		):bufid(_bufid), sig(_rsig), pser(NULL), flags(_flags), id(_id), uid(0){}
+		~OutWaitSignal(){
 			cassert(!pser);
 		}
-		bool operator<(const OutWaitCommand &_owc)const{
-			if(cmd.ptr()){
-				if(_owc.cmd.ptr()){
+		bool operator<(const OutWaitSignal &_owc)const{
+			if(sig.ptr()){
+				if(_owc.sig.ptr()){
 				}else return true;
 			}else return false;
 			//TODO: optimize!!
@@ -123,7 +123,7 @@ struct ProcessConnector::Data{
 			}else return false;
 		}
 		uint32				bufid;
-		fdt::CmdPtr<Command> cmd;
+		fdt::SignalPointer<Signal> sig;
 		BinSerializerTp		*pser;
 		uint32				flags;
 		uint32				id;
@@ -135,16 +135,16 @@ struct ProcessConnector::Data{
 	typedef Stack<uint16>						OutFreePosStackTp;
 	typedef std::priority_queue<Buffer,std::vector<Buffer>,BufCmp>	
 												BufferPriorityQueueTp;
-	typedef std::pair<fdt::CmdPtr<Command>, uint32>
+	typedef std::pair<fdt::SignalPointer<Signal>, uint32>
 												CmdPairTp;
 	typedef Queue<CmdPairTp>					CmdQueueTp;
-	typedef std::deque<OutWaitCommand>			OutCmdVectorTp;
+	typedef std::deque<OutWaitSignal>			OutCmdVectorTp;
 	typedef Queue<uint32>						ReceivedIdsQueueTp;
 	typedef std::pair<const SockAddrPair*, int>	BaseProcAddr;
-	typedef std::pair<Command*, BinDeserializerTp*>
+	typedef std::pair<Signal*, BinDeserializerTp*>
 												RecvCmdPairTp;
 	typedef Queue<RecvCmdPairTp>				RecvCmdQueueTp;
-	typedef Queue<CommandUid>					SendCmdQueueTp;
+	typedef Queue<SignalUid>					SendCmdQueueTp;
 	
 	Data(const Inet4SockAddrPair &_raddr, uint32 _keepalivetout);
 	Data(const Inet4SockAddrPair &_raddr, int _baseport, uint32 _keepalivetout);
@@ -157,23 +157,23 @@ struct ProcessConnector::Data{
 	void pushSerializer(BinSerializerTp*);
 	BinDeserializerTp* popDeserializer();
 	void pushDeserializer(BinDeserializerTp*);
-	//save commands to be resent in case of disconnect
-	CommandUid pushOutWaitCommand(
+	//save signals to be resent in case of disconnect
+	SignalUid pushOutWaitSignal(
 		uint32 _bufid,
-		fdt::CmdPtr<Command> &_cmd,
+		fdt::SignalPointer<Signal> &_sig,
 		uint32 _flags,
 		uint32 _id
 	);
-	OutWaitCommand& waitCommand(const CommandUid &_cmduid);
-	const OutWaitCommand& waitCommand(const CommandUid &_cmduid)const;
-	OutWaitCommand& waitFrontCommand();
-	const OutWaitCommand& waitFrontCommand()const;
-	OutWaitCommand& waitBackCommand();
-	const OutWaitCommand& waitBackCommand()const;
-	//eventually pops commands associated to a buffer
-	void popOutWaitCommands(uint32 _bufid, const ConnectorUid &_rconid);
-	//pops a command waiting for a response
-	void popOutWaitCommand(const CommandUid &_rcmduid);
+	OutWaitSignal& waitSignal(const SignalUid &_siguid);
+	const OutWaitSignal& waitSignal(const SignalUid &_siguid)const;
+	OutWaitSignal& waitFrontSignal();
+	const OutWaitSignal& waitFrontSignal()const;
+	OutWaitSignal& waitBackSignal();
+	const OutWaitSignal& waitBackSignal()const;
+	//eventually pops signals associated to a buffer
+	void popOutWaitSignals(uint32 _bufid, const ConnectorUid &_rconid);
+	//pops a signal waiting for a response
+	void popOutWaitSignal(const SignalUid &_rsiguid);
 	OutBufferPairTp& keepAliveBuffer(){
 		cassert(outbufs.size());
 		return outbufs[0];
@@ -186,7 +186,7 @@ struct ProcessConnector::Data{
 	int16					state;
 	uint16					flags;
 	int16					bufjetons;
-	uint16					crtcmdbufcnt;
+	uint16					crtsigbufcnt;
 	uint32					sendid;
 	SocketAddress			addr;
 	SockAddrPair			pairaddr;
@@ -200,11 +200,11 @@ struct ProcessConnector::Data{
 	SendCmdQueueTp			scq;
 	ReceivedIdsQueueTp		rcvidq;
 	BufferPriorityQueueTp	inbufq;
-	OutCmdVectorTp			outcmdv;
-	OutFreePosStackTp		outfreecmdstk;
-	uint32					sndcmdid;
+	OutCmdVectorTp			outsigv;
+	OutFreePosStackTp		outfreesigstk;
+	uint32					sndsigid;
 	uint32					keepalivetout;
-	uint32					respwaitcmdcnt;
+	uint32					respwaitsigcnt;
 	TimeSpec				rcvtpos;
 };
 
@@ -212,25 +212,25 @@ struct ProcessConnector::Data{
 ProcessConnector::Data::Data(const Inet4SockAddrPair &_raddr, uint32 _keepalivetout):
 	expectedid(1), retranstimeout(300),
 	state(Connecting), flags(0), bufjetons(1), 
-	crtcmdbufcnt(MaxCommandBufferCount),sendid(0),
+	crtsigbufcnt(MaxSignalBufferCount),sendid(0),
 	addr(_raddr), pairaddr(addr), 
-	baseaddr(&pairaddr, addr.port()),sndcmdid(0), keepalivetout(_keepalivetout),
-	respwaitcmdcnt(0)
+	baseaddr(&pairaddr, addr.port()),sndsigid(0), keepalivetout(_keepalivetout),
+	respwaitsigcnt(0)
 {
 	outbufs.push_back(OutBufferPairTp(Buffer(NULL,0), 0));
 }
 
 // ProcessConnector::Data::Data(BinMapper &_rm, const Inet6SockAddrPair &_raddr, int _tkrid, int _procid):
-// 	ser(_rm), des(_rm), pincmd(NULL), expectedid(1), id(_procid), retranstimeout(1000),
+// 	ser(_rm), des(_rm), pinsig(NULL), expectedid(1), id(_procid), retranstimeout(1000),
 // 	lockcnt(0), state(Connecting), flags(0), bufjetons(1), sendid(0), tkrid(_tkrid),
 // 	addr(_raddr), pairaddr(addr), baseaddr(&pairaddr, addr.port()){
 // }
 
 ProcessConnector::Data::Data(const Inet4SockAddrPair &_raddr, int _baseport, uint32 _keepalivetout):
 	expectedid(1), retranstimeout(300),
-	state(Accepting), flags(0), bufjetons(3), crtcmdbufcnt(MaxCommandBufferCount), sendid(0),
+	state(Accepting), flags(0), bufjetons(3), crtsigbufcnt(MaxSignalBufferCount), sendid(0),
 	addr(_raddr), pairaddr(addr), baseaddr(&pairaddr, _baseport),
-	sndcmdid(0), keepalivetout(_keepalivetout),respwaitcmdcnt(0)
+	sndsigid(0), keepalivetout(_keepalivetout),respwaitsigcnt(0)
 {
 	outbufs.push_back(OutBufferPairTp(Buffer(NULL,0), 0));
 }
@@ -253,22 +253,22 @@ ProcessConnector::Data::~Data(){
 	
 	while(scq.size()){scq.pop();}
 	
-	for(OutCmdVectorTp::iterator it(outcmdv.begin()); it != outcmdv.end(); ++it){
+	for(OutCmdVectorTp::iterator it(outsigv.begin()); it != outsigv.end(); ++it){
 		if(it->pser){
 			it->pser->clear();
 			pushSerializer(it->pser);
 			it->pser = NULL;
 		}
-		if(it->cmd){
+		if(it->sig){
 			++it->uid;
 			if(it->flags & Service::WaitResponseFlag && it->flags & Service::SentFlag){
 				//the was successfully sent but the response did not arrive
-				it->cmd->ipcFail(1);
+				it->sig->ipcFail(1);
 			}else{
-				//the command was not successfully sent
-				it->cmd->ipcFail(0);
+				//the signal was not successfully sent
+				it->sig->ipcFail(0);
 			}
-			it->cmd.clear();
+			it->sig.clear();
 		}
 	}
 	while(rcq.size()){
@@ -333,73 +333,73 @@ void ProcessConnector::Data::pushDeserializer(ProcessConnector::Data::BinDeseria
 	Specific::cache(_p);
 }
 
-inline ProcessConnector::Data::OutWaitCommand& ProcessConnector::Data::waitCommand(const CommandUid &_cmduid){
-	cassert(_cmduid.idx < outcmdv.size() && outcmdv[_cmduid.idx].uid == _cmduid.uid);
-	return outcmdv[_cmduid.idx];
+inline ProcessConnector::Data::OutWaitSignal& ProcessConnector::Data::waitSignal(const SignalUid &_siguid){
+	cassert(_siguid.idx < outsigv.size() && outsigv[_siguid.idx].uid == _siguid.uid);
+	return outsigv[_siguid.idx];
 }
-inline const ProcessConnector::Data::OutWaitCommand& ProcessConnector::Data::waitCommand(const CommandUid &_cmduid)const{
-	cassert(_cmduid.idx < outcmdv.size() && outcmdv[_cmduid.idx].uid == _cmduid.uid);
-	return outcmdv[_cmduid.idx];
-}
-
-inline ProcessConnector::Data::OutWaitCommand& ProcessConnector::Data::waitFrontCommand(){
-	return waitCommand(scq.front());
-}
-inline const ProcessConnector::Data::OutWaitCommand& ProcessConnector::Data::waitFrontCommand()const{
-	return waitCommand(scq.front());
+inline const ProcessConnector::Data::OutWaitSignal& ProcessConnector::Data::waitSignal(const SignalUid &_siguid)const{
+	cassert(_siguid.idx < outsigv.size() && outsigv[_siguid.idx].uid == _siguid.uid);
+	return outsigv[_siguid.idx];
 }
 
-inline ProcessConnector::Data::OutWaitCommand& ProcessConnector::Data::waitBackCommand(){
-	return waitCommand(scq.back());
+inline ProcessConnector::Data::OutWaitSignal& ProcessConnector::Data::waitFrontSignal(){
+	return waitSignal(scq.front());
 }
-inline const ProcessConnector::Data::OutWaitCommand& ProcessConnector::Data::waitBackCommand()const{
-	return waitCommand(scq.back());
+inline const ProcessConnector::Data::OutWaitSignal& ProcessConnector::Data::waitFrontSignal()const{
+	return waitSignal(scq.front());
+}
+
+inline ProcessConnector::Data::OutWaitSignal& ProcessConnector::Data::waitBackSignal(){
+	return waitSignal(scq.back());
+}
+inline const ProcessConnector::Data::OutWaitSignal& ProcessConnector::Data::waitBackSignal()const{
+	return waitSignal(scq.back());
 }
 
 
-CommandUid ProcessConnector::Data::pushOutWaitCommand(uint32 _bufid, fdt::CmdPtr<Command> &_cmd, uint32 _flags, uint32 _id){
+SignalUid ProcessConnector::Data::pushOutWaitSignal(uint32 _bufid, fdt::SignalPointer<Signal> &_sig, uint32 _flags, uint32 _id){
 	_flags &= ~Service::SentFlag;
 	_flags &= ~Service::WaitResponseFlag;
-	if(this->outfreecmdstk.size()){
-		OutWaitCommand &owc = outcmdv[outfreecmdstk.top()];
+	if(this->outfreesigstk.size()){
+		OutWaitSignal &owc = outsigv[outfreesigstk.top()];
 		owc.bufid = _bufid;
-		owc.cmd = _cmd;
+		owc.sig = _sig;
 		owc.flags = _flags;
-		uint32 idx = outfreecmdstk.top();
-		outfreecmdstk.pop();
-		return CommandUid(idx, owc.uid);
+		uint32 idx = outfreesigstk.top();
+		outfreesigstk.pop();
+		return SignalUid(idx, owc.uid);
 	}else{
-		outcmdv.push_back(OutWaitCommand(_bufid, _cmd, _flags, _id));
-		return CommandUid(outcmdv.size() - 1, 0/*uid*/);
+		outsigv.push_back(OutWaitSignal(_bufid, _sig, _flags, _id));
+		return SignalUid(outsigv.size() - 1, 0/*uid*/);
 	}
 }
-void ProcessConnector::Data::popOutWaitCommands(uint32 _bufid, const ConnectorUid &_rconid){
-	for(OutCmdVectorTp::iterator it(outcmdv.begin()); it != outcmdv.end(); ++it){
-		if(it->bufid == _bufid && it->cmd.ptr()){
+void ProcessConnector::Data::popOutWaitSignals(uint32 _bufid, const ConnectorUid &_rconid){
+	for(OutCmdVectorTp::iterator it(outsigv.begin()); it != outsigv.end(); ++it){
+		if(it->bufid == _bufid && it->sig.ptr()){
 			it->bufid = 0;
 			cassert(!it->pser);
 			if(it->flags & Service::WaitResponseFlag){
 				//let it leave a little longer
-				idbgx(Dbg::ipc, "command waits for response "<<(it - outcmdv.begin())<<','<<it->uid);
+				idbgx(Dbg::ipc, "signal waits for response "<<(it - outsigv.begin())<<','<<it->uid);
 				it->flags |= Service::SentFlag;
 			}else{
 				++it->uid;
-				it->cmd.clear();
+				it->sig.clear();
 			}
 		}
 	}
 }
-void ProcessConnector::Data::popOutWaitCommand(const CommandUid &_rcmduid){
-	if(_rcmduid.idx < outcmdv.size() && outcmdv[_rcmduid.idx].uid == _rcmduid.uid){
-		idbgx(Dbg::ipc, "command received response "<<_rcmduid.idx<<','<<_rcmduid.uid);
-		outcmdv[_rcmduid.idx].cmd.clear();
-		--respwaitcmdcnt;
+void ProcessConnector::Data::popOutWaitSignal(const SignalUid &_rsiguid){
+	if(_rsiguid.idx < outsigv.size() && outsigv[_rsiguid.idx].uid == _rsiguid.uid){
+		idbgx(Dbg::ipc, "signal received response "<<_rsiguid.idx<<','<<_rsiguid.uid);
+		outsigv[_rsiguid.idx].sig.clear();
+		--respwaitsigcnt;
 	}
 }
 bool ProcessConnector::Data::canSendKeepAlive(const TimeSpec &_tpos){
-	idbgx(Dbg::ipc, "keepalivetout = "<<keepalivetout<<" respwaitcmdcnt = "<<respwaitcmdcnt<<" rcq = "<<rcq.size()<<" cq = "<<cq.size()<<" scq = "<<scq.size());
+	idbgx(Dbg::ipc, "keepalivetout = "<<keepalivetout<<" respwaitsigcnt = "<<respwaitsigcnt<<" rcq = "<<rcq.size()<<" cq = "<<cq.size()<<" scq = "<<scq.size());
 	idbgx(Dbg::ipc, "_tpos = "<<_tpos.seconds()<<','<<_tpos.nanoSeconds()<<" rcvtpos = "<<rcvtpos.seconds()<<','<<rcvtpos.nanoSeconds());
-	return keepalivetout && respwaitcmdcnt &&
+	return keepalivetout && respwaitsigcnt &&
 		(rcq.empty() || rcq.size() == 1 && !rcq.front().first) && 
 		cq.empty() && scq.empty() && _tpos >= rcvtpos;
 }
@@ -456,7 +456,7 @@ ProcessConnector::ProcessConnector(
 
 
 
-//TODO: ensure that really no command is dropped on reconnect
+//TODO: ensure that really no signal is dropped on reconnect
 // not even those from Dropped buffers!!!
 void ProcessConnector::reconnect(ProcessConnector *_ppc){
 	idbgx(Dbg::ipc, "reconnecting - clearing process data "<<(void*)_ppc);
@@ -482,69 +482,69 @@ void ProcessConnector::reconnect(ProcessConnector *_ppc){
 	//
 	for(int sz = d.cq.size(); sz; --sz){
 		if(!(d.cq.front().second & Service::SameConnectorFlag)) {
-			idbgx(Dbg::ipc, "command scheduled for resend");
+			idbgx(Dbg::ipc, "signal scheduled for resend");
 			d.cq.push(d.cq.front());
 		}else{
-			idbgx(Dbg::ipc, "command not scheduled for resend");
+			idbgx(Dbg::ipc, "signal not scheduled for resend");
 		}
 		d.cq.pop();
 	}
 	uint32 cqsz = d.cq.size();
-	//we must put into the cq all command in the exact oreder they were sent
-	//to do so we must push into cq, the commands from scq and waitcmdv 
+	//we must put into the cq all signal in the exact oreder they were sent
+	//to do so we must push into cq, the signals from scq and waitsigv
 	//ordered by their id
 	for(int sz = d.scq.size(); sz; --sz){
-		Data::OutWaitCommand &outcmd(d.waitFrontCommand());
-		if(outcmd.pser){
-			outcmd.pser->clear();
-			d.pushSerializer(outcmd.pser);
-			outcmd.pser = NULL;
+		Data::OutWaitSignal &outsig(d.waitFrontSignal());
+		if(outsig.pser){
+			outsig.pser->clear();
+			d.pushSerializer(outsig.pser);
+			outsig.pser = NULL;
 		}
-		cassert(outcmd.cmd);
-		//NOTE: on reconnect the responses, or commands sent using ConnectorUid are dropped
-		if(!(outcmd.flags & Service::SameConnectorFlag)){
-			if(outcmd.flags & Service::WaitResponseFlag && outcmd.flags & Service::SentFlag){
-				//if the command was sent and were waiting for response - were not sending twice
-				outcmd.cmd->ipcFail(1);
-				outcmd.cmd.clear();
+		cassert(outsig.sig);
+		//NOTE: on reconnect the responses, or signals sent using ConnectorUid are dropped
+		if(!(outsig.flags & Service::SameConnectorFlag)){
+			if(outsig.flags & Service::WaitResponseFlag && outsig.flags & Service::SentFlag){
+				//if the signal was sent and were waiting for response - were not sending twice
+				outsig.sig->ipcFail(1);
+				outsig.sig.clear();
 			}
-			//we can try resending the command
+			//we can try resending the signal
 		}else{
-			idbgx(Dbg::ipc, "command not scheduled for resend");
-			if(outcmd.flags & Service::WaitResponseFlag && outcmd.flags & Service::SentFlag){
-				outcmd.cmd->ipcFail(1);
+			idbgx(Dbg::ipc, "signal not scheduled for resend");
+			if(outsig.flags & Service::WaitResponseFlag && outsig.flags & Service::SentFlag){
+				outsig.sig->ipcFail(1);
 			}else{
-				outcmd.cmd->ipcFail(0);
+				outsig.sig->ipcFail(0);
 			}
-			outcmd.cmd.clear();
-			++outcmd.uid;
+			outsig.sig.clear();
+			++outsig.uid;
 		}
 		d.scq.pop();
 	}
-	//now we need to sort d.outcmdv
-	std::sort(d.outcmdv.begin(), d.outcmdv.end());
+	//now we need to sort d.outsigv
+	std::sort(d.outsigv.begin(), d.outsigv.end());
 	
-	//then we push into cq the commands from outcmv
-	for(Data::OutCmdVectorTp::const_iterator it(d.outcmdv.begin()); it != d.outcmdv.end(); ++it){
-		if(it->cmd.ptr()){
-			d.cq.push(Data::CmdPairTp(it->cmd, it->flags));
+	//then we push into cq the signals from outcmv
+	for(Data::OutCmdVectorTp::const_iterator it(d.outsigv.begin()); it != d.outsigv.end(); ++it){
+		if(it->sig.ptr()){
+			d.cq.push(Data::CmdPairTp(it->sig, it->flags));
 		}else break;
 	}
-	//clear out cmd vector and stack
-	d.outcmdv.clear();
-	while(d.outfreecmdstk.size()){
-		d.outfreecmdstk.pop();
+	//clear out sig vector and stack
+	d.outsigv.clear();
+	while(d.outfreesigstk.size()){
+		d.outfreesigstk.pop();
 	}
 	
-	//put the commands already in the cq to the end of cq
+	//put the signals already in the cq to the end of cq
 	while(cqsz--){
 		d.cq.push(d.cq.front());
 		d.cq.pop();
 	}
 	
-	d.crtcmdbufcnt = Data::MaxCommandBufferCount;
+	d.crtsigbufcnt = Data::MaxSignalBufferCount;
 	d.expectedid = 1;
-	d.respwaitcmdcnt = 0;
+	d.respwaitsigcnt = 0;
 	d.sendid = 0;
 	//clear rcvidq - updates
 	while(d.rcvidq.size()){
@@ -621,9 +621,9 @@ const std::pair<const Inet4SockAddrPair*, int>* ProcessConnector::baseAddr4()con
 // }
 
 
-int ProcessConnector::pushCommand(foundation::CmdPtr<Command> &_rcmd, uint32 _flags){
+int ProcessConnector::pushSignal(foundation::SignalPointer<Signal> &_rsig, uint32 _flags){
 	//_flags &= ~Data::ProcessReservedFlags;
-	d.cq.push(Data::CmdPairTp(_rcmd, _flags));
+	d.cq.push(Data::CmdPairTp(_rsig, _flags));
 	if(d.cq.size() == 1) return NOK;
 	return OK;
 }
@@ -823,18 +823,18 @@ NOTE: VERY IMPORTANT
 	destroyed if there are buffers pending for sending (outstk.size < outbufs.size)
 */
 
-int ProcessConnector::processSendCommands(SendBufferData &_rsb, const TimeSpec &_tpos, int _baseport){
+int ProcessConnector::processSendSignals(SendBufferData &_rsb, const TimeSpec &_tpos, int _baseport){
 	idbgx(Dbg::ipc, "bufjetons = "<<d.bufjetons);
 	if(d.bufjetons || d.state != Data::Connected || d.rcvidq.size()){
 		idbgx(Dbg::ipc, "d.rcvidq.size() = "<<d.rcvidq.size());
 		bool written = false;
 		Buffer &rbuf(_rsb.b);
 		rbuf.reset();
-		//here we keep per buffer waiting commands - 
-		//commands that in case of a peer disconnection detection
+		//here we keep per buffer waiting signals - 
+		//signals that in case of a peer disconnection detection
 		//can safely be resend
-		CommandUid	waitcmds[Data::MaxSendCommandQueueSize];
-		CommandUid	*pcrtwaitcmd(waitcmds - 1);
+		SignalUid	waitsigs[Data::MaxSendSignalQueueSize];
+		SignalUid	*pcrtwaitsig(waitsigs - 1);
 		
 		if(d.state == Data::Connected){
 			rbuf.type(Buffer::DataType);
@@ -845,21 +845,21 @@ int ProcessConnector::processSendCommands(SendBufferData &_rsb, const TimeSpec &
 				d.rcvidq.pop();
 			}
 			if(d.bufjetons){//send data only if we have jetons
-				//then push the commands
+				//then push the signals
 				idbgx(Dbg::ipc, "d.cq.size() = "<<d.cq.size()<<" d.scq.size = "<<d.scq.size());
 				//fill scq
-				while(d.cq.size() && d.scq.size() < Data::MaxSendCommandQueueSize){
+				while(d.cq.size() && d.scq.size() < Data::MaxSendSignalQueueSize){
 					uint32 flags = d.cq.front().second;
 					cassert(d.cq.front().first.ptr());
-					d.scq.push(d.pushOutWaitCommand(0, d.cq.front().first, flags, d.sndcmdid++));
-					Data::OutWaitCommand &rocmd(d.waitBackCommand());
-					switch(rocmd.cmd->ipcPrepare(d.scq.back())){
-						case OK://command doesnt wait for response
-							rocmd.flags &= ~Service::WaitResponseFlag;
+					d.scq.push(d.pushOutWaitSignal(0, d.cq.front().first, flags, d.sndsigid++));
+					Data::OutWaitSignal &rosig(d.waitBackSignal());
+					switch(rosig.sig->ipcPrepare(d.scq.back())){
+						case OK://signal doesnt wait for response
+							rosig.flags &= ~Service::WaitResponseFlag;
 							break;
-						case NOK://command wait for response
-							++d.respwaitcmdcnt;
-							rocmd.flags |= Service::WaitResponseFlag;
+						case NOK://signal wait for response
+							++d.respwaitsigcnt;
+							rosig.flags |= Service::WaitResponseFlag;
 							break;
 						default:
 							cassert(false);
@@ -868,64 +868,64 @@ int ProcessConnector::processSendCommands(SendBufferData &_rsb, const TimeSpec &
 				}
 				Data::BinSerializerTp	*pser = NULL;
 				
-				//at most we can send Data::MaxSendCommandQueueSize commands within a single buffer
+				//at most we can send Data::MaxSendSignalQueueSize signals within a single buffer
 				
 				while(d.scq.size()){
-					if(d.crtcmdbufcnt){
-						Data::OutWaitCommand &rocmd(d.waitFrontCommand());
-						if(rocmd.pser){//a continued command
-							if(d.crtcmdbufcnt == Data::MaxCommandBufferCount){
-								idbgx(Dbg::ipc, "oldcommand");
-								rbuf.dataType(Buffer::OldCommand);
+					if(d.crtsigbufcnt){
+						Data::OutWaitSignal &rosig(d.waitFrontSignal());
+						if(rosig.pser){//a continued signal
+							if(d.crtsigbufcnt == Data::MaxSignalBufferCount){
+								idbgx(Dbg::ipc, "oldsignal");
+								rbuf.dataType(Buffer::OldSignal);
 							}else{
-								idbgx(Dbg::ipc, "continuedcommand");
-								rbuf.dataType(Buffer::ContinuedCommand);
+								idbgx(Dbg::ipc, "continuedsignal");
+								rbuf.dataType(Buffer::ContinuedSignal);
 							}
 						}else{//a new commnad
-							idbgx(Dbg::ipc, "newcommand");
-							rbuf.dataType(Buffer::NewCommand);
+							idbgx(Dbg::ipc, "newsignal");
+							rbuf.dataType(Buffer::NewSignal);
 							if(pser){
-								rocmd.pser = pser;
+								rosig.pser = pser;
 								pser = NULL;
 							}else{
-								rocmd.pser = d.popSerializer();
+								rosig.pser = d.popSerializer();
 							}
-							Command *pcmd(rocmd.cmd.ptr());
-							rocmd.pser->push(pcmd);
+							Signal *psig(rosig.sig.ptr());
+							rosig.pser->push(psig);
 						}
-						--d.crtcmdbufcnt;
-						idbgx(Dbg::ipc, "d.crtcmdbufcnt = "<<d.crtcmdbufcnt);
+						--d.crtsigbufcnt;
+						idbgx(Dbg::ipc, "d.crtsigbufcnt = "<<d.crtsigbufcnt);
 						written = true;
 						
-						int rv = rocmd.pser->run(rbuf.dataEnd(), rbuf.dataFreeSize());
+						int rv = rosig.pser->run(rbuf.dataEnd(), rbuf.dataFreeSize());
 						
 						cassert(rv >= 0);//TODO: deal with the situation!
 						
 						rbuf.dataSize(rbuf.dataSize() + rv);
-						if(rocmd.pser->empty()){//finished with this command
-							idbgx(Dbg::ipc, "donecommand");
+						if(rosig.pser->empty()){//finished with this signal
+							idbgx(Dbg::ipc, "donesignal");
 							if(pser) d.pushSerializer(pser);
-							pser = rocmd.pser;
+							pser = rosig.pser;
 							pser->clear();
-							rocmd.pser = NULL;
-							idbgx(Dbg::ipc, "cached wait command");
-							++pcrtwaitcmd;
-							*pcrtwaitcmd = d.scq.front();
+							rosig.pser = NULL;
+							idbgx(Dbg::ipc, "cached wait signal");
+							++pcrtwaitsig;
+							*pcrtwaitsig = d.scq.front();
 							d.scq.pop();
-							//we dont want to switch to an old command
-							d.crtcmdbufcnt = Data::MaxCommandBufferCount - 1;
+							//we dont want to switch to an old signal
+							d.crtsigbufcnt = Data::MaxSignalBufferCount - 1;
 							if(rbuf.dataFreeSize() < 16) break;
 							break;
 						}else{
 							break;
 						}
-					}else if(d.scq.size() == 1){//only one command
-						d.crtcmdbufcnt = Data::MaxCommandBufferCount - 1;
+					}else if(d.scq.size() == 1){//only one signal
+						d.crtsigbufcnt = Data::MaxSignalBufferCount - 1;
 					}else{
 						d.scq.push(d.scq.front());
-						//d.waitFrontCommand().pser = NULL;
+						//d.waitFrontSignal().pser = NULL;
 						d.scq.pop();
-						d.crtcmdbufcnt = Data::MaxCommandBufferCount;
+						d.crtsigbufcnt = Data::MaxSignalBufferCount;
 					}
 				}//while
 				if(pser) d.pushSerializer(pser);
@@ -959,11 +959,11 @@ int ProcessConnector::processSendCommands(SendBufferData &_rsb, const TimeSpec &
 				rbuf.id(d.sendid);
 				d.incrementSendId();
 				--d.bufjetons;
-				//now cache all waiting commands based on their last buffer id
-				//so that whe this buffer is sent, only then the command can be deleted
-				while(waitcmds <= pcrtwaitcmd){
-					d.waitCommand(*pcrtwaitcmd).bufid= rbuf.id();
-					--pcrtwaitcmd;
+				//now cache all waiting signals based on their last buffer id
+				//so that whe this buffer is sent, only then the signal can be deleted
+				while(waitsigs <= pcrtwaitsig){
+					d.waitSignal(*pcrtwaitsig).bufid= rbuf.id();
+					--pcrtwaitsig;
 				}
 			}else{
 				rbuf.id(Data::UpdateBufferId);
@@ -1009,7 +1009,7 @@ bool ProcessConnector::freeSentBuffers(Buffer &_rbuf, const ConnectorUid &_rconi
 		for(Data::OutBufferVectorTp::iterator it(d.outbufs.begin()); it != d.outbufs.end(); ++it){
 			if(it->first.buffer() && _rbuf.update(i) == it->first.id()){//done with this one
 				if(it != d.outbufs.begin()){
-					d.popOutWaitCommands(it->first.id(), _rconid);
+					d.popOutWaitSignals(it->first.id(), _rconid);
 					b = true;
 					char *pb = it->first.buffer();
 					Specific::pushBuffer(pb, Specific::capacityToId(it->first.bufferCapacity()));
@@ -1040,19 +1040,19 @@ void ProcessConnector::parseBuffer(Buffer &_rbuf, const ConnectorUid &_rconid){
 		++bpos;
 		--blen;
 		switch(datatype){
-			case Buffer::ContinuedCommand:
-				idbgx(Dbg::ipc, "continuedcommand");
+			case Buffer::ContinuedSignal:
+				idbgx(Dbg::ipc, "continuedsignal");
 				cassert(blen == firstblen);
 				if(!d.rcq.front().first){
 					d.rcq.pop();
 				}
-				//we cannot have a continued command on the same buffer
+				//we cannot have a continued signal on the same buffer
 				break;
-			case Buffer::NewCommand:
-				idbgx(Dbg::ipc, "newcommand");
+			case Buffer::NewSignal:
+				idbgx(Dbg::ipc, "newsignal");
 				if(d.rcq.size()){
 					idbgx(Dbg::ipc, "switch to new rcq.size = "<<d.rcq.size());
-					if(d.rcq.front().first){//the previous command didnt end, we reschedule
+					if(d.rcq.front().first){//the previous signal didnt end, we reschedule
 						d.rcq.push(d.rcq.front());
 						d.rcq.front().first = NULL;
 					}
@@ -1064,8 +1064,8 @@ void ProcessConnector::parseBuffer(Buffer &_rbuf, const ConnectorUid &_rconid){
 					d.rcq.front().second->push(d.rcq.front().first);
 				}
 				break;
-			case Buffer::OldCommand:
-				idbgx(Dbg::ipc, "oldcommand");
+			case Buffer::OldSignal:
+				idbgx(Dbg::ipc, "oldsignal");
 				cassert(d.rcq.size() > 1);
 				if(d.rcq.front().first){
 					d.rcq.push(d.rcq.front());
@@ -1079,18 +1079,18 @@ void ProcessConnector::parseBuffer(Buffer &_rbuf, const ConnectorUid &_rconid){
 		rv = d.rcq.front().second->run(bpos, blen);
 		cassert(rv >= 0);
 		blen -= rv;
-		if(d.rcq.front().second->empty()){//done one command.
-			CommandUid cmduid(0xffffffff, 0xffffffff);
-			if(d.rcq.front().first->ipcReceived(cmduid, _rconid))
+		if(d.rcq.front().second->empty()){//done one signal.
+			SignalUid siguid(0xffffffff, 0xffffffff);
+			if(d.rcq.front().first->ipcReceived(siguid, _rconid))
 				delete d.rcq.front().first;
-			idbgx(Dbg::ipc, "donecommand "<<cmduid.idx<<','<<cmduid.uid);
-			if(cmduid.idx != 0xffffffff && cmduid.uid != 0xffffffff){//a valid command waiting for response
-				d.popOutWaitCommand(cmduid);
+			idbgx(Dbg::ipc, "donesignal "<<siguid.idx<<','<<siguid.uid);
+			if(siguid.idx != 0xffffffff && siguid.uid != 0xffffffff){//a valid signal waiting for response
+				d.popOutWaitSignal(siguid);
 			}
 			d.pushDeserializer(d.rcq.front().second);
-			//we do not pop it because in case of a new command,
-			//we must know if the previous command terminate
-			//so we dont mistakingly reschedule another command!!
+			//we do not pop it because in case of a new signal,
+			//we must know if the previous signal terminate
+			//so we dont mistakingly reschedule another signal!!
 			d.rcq.front().first = NULL;
 			d.rcq.front().second = NULL;
 		}

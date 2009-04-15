@@ -50,8 +50,8 @@ struct ConnectorUid{
 	uint16	procuid;
 };
 
-struct CommandUid{
-	CommandUid(uint32 _idx = 0xffffffff, uint32 _uid = 0xffffffff):idx(_idx), uid(_uid){}
+struct SignalUid{
+	SignalUid(uint32 _idx = 0xffffffff, uint32 _uid = 0xffffffff):idx(_idx), uid(_uid){}
 	uint32	idx;
 	uint32	uid;
 };

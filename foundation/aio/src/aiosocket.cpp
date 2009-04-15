@@ -7,7 +7,19 @@
 #include "system/debug.hpp"
 #include <cerrno>
 #include <cstring>
+#ifndef ON_SUN
+
 #include <sys/epoll.h>
+
+enum{
+	FLAG_POLL_IN  = EPOLLIN,
+	FLAG_POLL_OUT = EPOLLOUT 
+};
+
+#else
+
+#endif
+
 
 namespace foundation{
 namespace aio{
@@ -70,7 +82,7 @@ int Socket::connect(const AddrInfoIterator& _rai){
 	if(rv == NOK){
 		sndbuf = "";
 		sndlen = 0;
-		ioreq |= EPOLLOUT;
+		ioreq |= FLAG_POLL_OUT;
 	}
 	return rv;
 }
@@ -81,7 +93,7 @@ int Socket::accept(SocketDevice &_rsd){
 		d.pad->psd = &_rsd;
 		rcvbuf = "";
 		rcvlen = 0;
-		ioreq |= EPOLLIN;
+		ioreq |= FLAG_POLL_IN;
 	}
 	return rv;
 }
@@ -92,7 +104,7 @@ int Socket::accept(Socket &_rs){
 		d.pad->psd = &_rs.sd;
 		rcvbuf = "";
 		rcvlen = 0;
-		ioreq |= EPOLLIN;
+		ioreq |= FLAG_POLL_IN;
 	}
 	return rv;
 }
@@ -113,7 +125,7 @@ int Socket::doSendPlain(const char* _pb, uint32 _bl, uint32 _flags){
 	}
 	sndbuf = _pb + rv;
 	sndlen = _bl - rv;
-	ioreq |= EPOLLOUT;
+	ioreq |= FLAG_POLL_OUT;
 	return NOK;
 }
 int Socket::doRecvPlain(char *_pb, uint32 _bl, uint32 _flags){
@@ -130,7 +142,7 @@ int Socket::doRecvPlain(char *_pb, uint32 _bl, uint32 _flags){
 	if(errno != EAGAIN) return BAD;
 	rcvbuf = _pb;
 	rcvlen = _bl;
-	ioreq |= EPOLLIN;
+	ioreq |= FLAG_POLL_IN;
 	return NOK;
 }
 uint32 Socket::recvSize()const{
@@ -172,7 +184,7 @@ int Socket::recvFrom(char *_pb, uint32 _bl, uint32 _flags){
 	if(errno != EAGAIN) return BAD;
 	rcvbuf = _pb;
 	rcvlen = _bl;
-	ioreq |= EPOLLIN;
+	ioreq |= FLAG_POLL_IN;
 	return NOK;
 }
 int Socket::sendTo(const char *_pb, uint32 _bl, const SockAddrPair &_sap, uint32 _flags){	
@@ -188,7 +200,7 @@ int Socket::sendTo(const char *_pb, uint32 _bl, const SockAddrPair &_sap, uint32
 	sndbuf = _pb;
 	sndlen = _bl;
 	
-	ioreq |= EPOLLOUT;
+	ioreq |= FLAG_POLL_OUT;
 	d.psd->sndaddrpair = _sap;
 	return NOK;
 }
@@ -246,7 +258,7 @@ int Socket::doSendPlain(){
 				if(sndlen) return 0;//not yet done
 			}
 			sndbuf = NULL;
-			ioreq &= ~EPOLLOUT;
+			ioreq &= ~FLAG_POLL_OUT;
 			return OUTDONE;
 		case STATION://udp
 			if(sndlen && sndbuf){//NOTE: see the above note
@@ -256,7 +268,7 @@ int Socket::doSendPlain(){
 				sndlen = 0;
 			}
 			sndbuf = NULL;
-			ioreq &= ~EPOLLOUT;
+			ioreq &= ~FLAG_POLL_OUT;
 			return OUTDONE;
 	}
 	cassert(false);
@@ -267,7 +279,7 @@ int Socket::doRecvPlain(){
 		case ACCEPTOR:{
 			int rv = sd.accept(*d.pad->psd);
 			sndbuf = NULL;
-			ioreq &= ~EPOLLIN;
+			ioreq &= ~FLAG_POLL_IN;
 			if(rv == OK) return OUTDONE;
 			}return ERRDONE;
 		case CHANNEL://tcp
@@ -279,7 +291,7 @@ int Socket::doRecvPlain(){
 				rcvlen = rv;
 			}
 			rcvbuf = NULL;
-			ioreq &= ~EPOLLIN;
+			ioreq &= ~FLAG_POLL_IN;
 			return INDONE;
 		case STATION://udp
 			if(rcvlen && rcvbuf){//NOTE: see the above note
@@ -290,7 +302,7 @@ int Socket::doRecvPlain(){
 				d.psd->rcvaddrpair.size = d.psd->rcvaddr.size();
 			}
 			rcvbuf = NULL;
-			ioreq &= ~EPOLLIN;
+			ioreq &= ~FLAG_POLL_IN;
 			return INDONE;
 	};
 	cassert(false);
@@ -304,41 +316,41 @@ void  Socket::doClear(){
 
 inline void Socket::doWantAccept(int _w){
 	if(_w & (SecureSocket::WANT_READ)){
-		ioreq |= EPOLLIN;
+		ioreq |= FLAG_POLL_IN;
 		want = SecureSocket::WANT_READ_ON_ACCEPT;
 	}
 	if(_w & (SecureSocket::WANT_WRITE)){
-		ioreq |= EPOLLOUT;
+		ioreq |= FLAG_POLL_OUT;
 		want |= SecureSocket::WANT_WRITE_ON_ACCEPT;
 	}
 }
 inline void Socket::doWantConnect(int _w){
 	if(_w & (SecureSocket::WANT_READ)){
-		ioreq |= EPOLLIN;
+		ioreq |= FLAG_POLL_IN;
 		want = SecureSocket::WANT_READ_ON_CONNECT;
 	}
 	if(_w & (SecureSocket::WANT_WRITE)){
-		ioreq |= EPOLLOUT;
+		ioreq |= FLAG_POLL_OUT;
 		want |= SecureSocket::WANT_WRITE_ON_CONNECT;
 	}
 }
 inline void Socket::doWantRead(int _w){
 	if(_w & (SecureSocket::WANT_READ)){
-		ioreq |= EPOLLIN;
+		ioreq |= FLAG_POLL_IN;
 		want |= SecureSocket::WANT_READ_ON_READ;
 	}
 	if(_w & (SecureSocket::WANT_WRITE)){
-		ioreq |= EPOLLOUT;
+		ioreq |= FLAG_POLL_OUT;
 		want |= SecureSocket::WANT_WRITE_ON_READ;
 	}
 }
 inline void Socket::doWantWrite(int _w){
 	if(_w & (SecureSocket::WANT_READ)){
-		ioreq |= EPOLLIN;
+		ioreq |= FLAG_POLL_IN;
 		want |= SecureSocket::WANT_READ_ON_WRITE;
 	}
 	if(_w & (SecureSocket::WANT_WRITE)){
-		ioreq |= EPOLLOUT;
+		ioreq |= FLAG_POLL_OUT;
 		want |= SecureSocket::WANT_WRITE_ON_WRITE;
 	}
 }
@@ -380,7 +392,7 @@ int Socket::doRecvSecure(char *_pb, uint32 _bl, uint32 _flags){
 	doWantRead(w);
 	rcvbuf = _pb;
 	rcvlen = _bl;
-	ioreq |= EPOLLIN;
+	ioreq |= FLAG_POLL_IN;
 	return NOK;
 }
 
@@ -471,7 +483,7 @@ int Socket::doSecureReadWrite(int _w){
 }
 
 int Socket::doSendSecure(){
-	ioreq &= ~EPOLLOUT;
+	ioreq &= ~FLAG_POLL_OUT;
 	{
 		int w = want & (SecureSocket::WANT_WRITE_ON_WRITE | SecureSocket::WANT_WRITE_ON_READ);
 		if(w){
@@ -488,7 +500,7 @@ int Socket::doSendSecure(){
 	return ERRDONE;
 }
 int Socket::doRecvSecure(){
-	ioreq &= ~EPOLLIN;
+	ioreq &= ~FLAG_POLL_IN;
 	{
 		int w = want & (SecureSocket::WANT_READ_ON_WRITE | SecureSocket::WANT_READ_ON_READ);
 		if(w){

@@ -23,7 +23,7 @@
 #define CS_OBJECT_HPP
 
 #include "common.hpp"
-#include "cmdptr.hpp"
+#include "signalpointer.hpp"
 class Mutex;
 struct TimeSpec;
 namespace foundation{
@@ -32,8 +32,8 @@ class Visitor;
 class Manager;
 class Service;
 class ReadWriteService;
-class ObjPtrBase;
-class Command;
+class ObjectPointerBase;
+class Signal;
 
 #ifndef USERVICEBITS
 #define USERVICEBITS (sizeof(IndexTp) == 4 ? 5 : 8)
@@ -54,7 +54,7 @@ enum ObjectDefs{
 	
 	So an object:
 	- can receive signals
-	- can receive commands
+	- can receive signals
 	- must reside both on a static container (foundation::Service) and 
 	an ActiveSet (usually foundation::SelectPool)
 	- has an associated mutex which can be requested from the service
@@ -62,7 +62,7 @@ enum ObjectDefs{
 	
 	<b>Usage:</b><br>
 	- Inherit the object and implement execute, adding code for grabing
-	the signal mask and the commands under lock.
+	the signal mask and the signals under lock.
 	- Add code so that the object gets registered on service and inserted
 	into a proper workpool upon its creation.
 	
@@ -71,13 +71,13 @@ enum ObjectDefs{
 	uniquely identifies the object within the manager both on memory and on
 	time. The solidground architecture and the ones built upon it MUST NOT allow
 	access to object pointers, instead they do/should do permit limited access
-	using the unique id: sigaling and sending commands through the manager interface.
+	using the unique id: sigaling and sending signals through the manager interface.
 	- Also an object will hold information about the thread in which it is currently
 	executed, so that the signaling is fast.
 */
 class Object{
 public:
-	typedef Command	CommandTp;
+	typedef Signal	SignalTp;
 	//! Extracts the object index within service from an objectid
 	static IndexTp computeIndex(IndexTp _fullid);
 	//! Extracts the service id from an objectid
@@ -101,8 +101,8 @@ public:
 	
 	ulong signaled(ulong _s) const;
 	
-	//! Signal the object with a command
-	virtual int signal(CmdPtr<Command> &_cmd);
+	//! Signal the object with a signal
+	virtual int signal(SignalPointer<Signal> &_rsig);
 	
 	//! Executes the objects
 	/*!
@@ -122,7 +122,7 @@ protected:
 	friend class Service;
 	friend class Manager;
 	friend class ReadWriteService;
-	friend class ObjPtrBase;
+	friend class ObjectPointerBase;
 	//! Sets the current state.
 	/*! If your object will implement a state machine (and in an asynchronous
 	environments it most certanly will) use this base state setting it to

@@ -1,4 +1,4 @@
-/* Declarations file objptr.hpp
+/* Declarations file objectpointer.hpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
@@ -28,7 +28,7 @@ namespace foundation{
 
 class Object;
 
-struct ObjPtrBase{
+struct ObjectPointerBase{
 protected:
 	void clear(Object *_pobj);
 	void use(Object *_pobj);
@@ -37,21 +37,21 @@ protected:
 
 //! An autoptr style smartpointer for objects.
 template <class SO>
-class ObjPtr: protected ObjPtrBase{
+class ObjectPointer: protected ObjectPointerBase{
 public:
-	typedef SO 			ObjectTp;
-	typedef ObjPtr<SO>	ThisTp;
+	typedef SO 					ObjectTp;
+	typedef ObjectPointer<SO>	ThisTp;
 public:
-	ObjPtr():pobj(NULL){}
+	ObjectPointer():pobj(NULL){}
 	
-	explicit ObjPtr(ObjectTp *_pobj):pobj(_pobj) {
+	explicit ObjectPointer(ObjectTp *_pobj):pobj(_pobj) {
 		if(_pobj) use(static_cast<Object*>(_pobj));
 	}
 	
-	ObjPtr(const ThisTp &_pobj):pobj(_pobj.release()){}
+	ObjectPointer(const ThisTp &_pobj):pobj(_pobj.release()){}
 	
-	~ObjPtr(){
-		if(pobj){ObjPtrBase::clear(static_cast<Object*>(pobj));}
+	~ObjectPointer(){
+		if(pobj){ObjectPointerBase::clear(static_cast<Object*>(pobj));}
 	}
 	ObjectTp* release() const{
 		ObjectTp *po = pobj;
@@ -71,7 +71,7 @@ public:
 	ObjectTp* ptr()	const	{return pobj;}
 	operator bool ()const	{return pobj != NULL;}
 	bool operator!()const	{return pobj == NULL;}
-	void clear(){if(pobj){ObjPtrBase::clear(static_cast<Object*>(pobj));pobj = NULL;}}
+	void clear(){if(pobj){ObjectPointerBase::clear(static_cast<Object*>(pobj));pobj = NULL;}}
 protected:
 	void ptr(ObjectTp *_pobj){
 		pobj = _pobj;

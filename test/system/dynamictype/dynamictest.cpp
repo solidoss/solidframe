@@ -31,7 +31,7 @@ public:
 void MyObject::dynamicRegister(DynamicMap &_rdm){
 	BaseTp::dynamicRegister<test_cmds::FirstCommand>(_rdm);
 	BaseTp::dynamicRegister<test_cmds::SecondCommand>(_rdm);
-	BaseTp::dynamicRegister<test_cmds::ThirdCommand>(_rdm);
+	//BaseTp::dynamicRegister<test_cmds::ThirdCommand>(_rdm);
 }
 
 

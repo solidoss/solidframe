@@ -47,11 +47,11 @@ public:
 	int execute(ulong _sig, TimeSpec &_tout);
 	int execute();
 	int accept(foundation::Visitor &);
-	int pushCommand(foundation::CmdPtr<Command> &_pcmd, const ConnectorUid &_rconid, uint32 _flags);
+	int pushSignal(foundation::SignalPointer<Signal> &_psig, const ConnectorUid &_rconid, uint32 _flags);
 	void pushProcessConnector(ProcessConnector *_pc, ConnectorUid &_rconid, bool _exists = false);
 	void disconnectProcesses();
 private:
-	bool processCommands(const TimeSpec &_rts);
+	bool processSignals(const TimeSpec &_rts);
 	bool dispatchSentBuffer(const TimeSpec &_rts);
 	void dispatchReceivedBuffer(const SockAddrPair &_rsap, const TimeSpec &_rts);
 	void optimizeBuffer(Buffer &_rbuf);
