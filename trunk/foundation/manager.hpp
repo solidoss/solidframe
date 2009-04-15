@@ -25,8 +25,8 @@
 //#include <vector>
 
 #include "common.hpp"
-#include "objptr.hpp"
-#include "cmdptr.hpp"
+#include "objectpointer.hpp"
+#include "signalpointer.hpp"
 
 class  Mutex;
 class  SpecificMapper;
@@ -74,11 +74,11 @@ public:
 	//! Signal an object with a signal mask, given a reference to the object
 	int signalObject(Object &_robj, ulong _sigmask);
 	
-	//! Signal an object identified by (id,uid) with a command
-	int signalObject(IndexTp _fullid, uint32 _uid, CmdPtr<Command> &_cmd);
+	//! Signal an object identified by (id,uid) with a signal
+	int signalObject(IndexTp _fullid, uint32 _uid, SignalPointer<Signal> &_rsig);
 	
-	//! Signal an object with a command, given a reference to the object
-	int signalObject(Object &_robj, CmdPtr<Command> &_cmd);
+	//! Signal an object with a signal, given a reference to the object
+	int signalObject(Object &_robj, SignalPointer<Signal> &_rsig);
 	
 	//! Wake an object
 	void raiseObject(Object &_robj);

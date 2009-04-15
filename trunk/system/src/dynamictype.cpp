@@ -35,7 +35,7 @@ void DynamicMap::callback(uint32 _tid, FncTp _pf){
 	//Thread::gmutex().unlock();
 }
 
-DynamicMap::FncTp DynamicMap::callback(uint32 _id){
+DynamicMap::FncTp DynamicMap::callback(uint32 _id)const{
 	FncTp pf = NULL;
 	//Thread::gmutex().lock();
 	if(_id < d.fncvec.size()){
@@ -48,3 +48,6 @@ DynamicMap::FncTp DynamicMap::callback(uint32 _id){
 
 
 DynamicBase::~DynamicBase(){}
+DynamicMap::FncTp DynamicBase::callback(const DynamicMap &_rdm){
+	return NULL;
+}

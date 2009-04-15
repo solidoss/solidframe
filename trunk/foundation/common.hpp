@@ -36,7 +36,7 @@ enum Signals{
 	//simple:
 	S_RAISE = 1,
 	S_UPDATE = 2,
-	S_CMD = 4,
+	S_SIG = 4,
 	S_KILL = 1<<8,
 	S_IDLE = 1<<9,
 	S_ERR  = 1<<10
@@ -81,7 +81,7 @@ typedef uint32 IndexTp;
 
 
 typedef std::pair<IndexTp, uint32> ObjectUidTp;
-typedef std::pair<IndexTp, uint32> CommandUidTp;
+typedef std::pair<IndexTp, uint32> SignalUidTp;
 typedef std::pair<IndexTp, uint32> FileUidTp;
 typedef std::pair<IndexTp, uint32> RequestUidTp;
 }

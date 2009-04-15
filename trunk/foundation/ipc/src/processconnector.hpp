@@ -22,7 +22,7 @@
 #ifndef IPC_PROCESS_CONNECTOR_HPP
 #define IPC_PROCESS_CONNECTOR_HPP
 
-#include "foundation/cmdptr.hpp"
+#include "foundation/signalpointer.hpp"
 #include "iodata.hpp"
 #include "system/timespec.hpp"
 
@@ -34,7 +34,7 @@ struct AddrInfoIterator;
 
 namespace foundation{
 
-struct Command;
+struct Signal;
 
 namespace ipc{
 
@@ -55,9 +55,9 @@ struct SendBufferData{
 
 //! The data identifying a process	
 /*!
-	Not all commands are guaranteed to still be sent on peer restart. These are the commands already written into discarded buffers.
-	Should I discard sending commands (not responses) after its buffer was successfully sent!?
-	Or should I consider the situation similar to, command successfully sent but peer crashed while processing it?!
+	Not all signals are guaranteed to still be sent on peer restart. These are the signals already written into discarded buffers.
+	Should I discard sending signals (not responses) after its buffer was successfully sent!?
+	Or should I consider the situation similar to, signal successfully sent but peer crashed while processing it?!
 	
 	Considering the complexity of changes i think it is wize to chose the second situation.
 */
@@ -77,9 +77,9 @@ public:
 	 * \retval BAD on error, 
 	 *	NOK enqueued and talker must be waken, OK enqueued - no need to wake talker
 	 */
-	int pushCommand(foundation::CmdPtr<Command> &_rcmd, uint32 _flags);
+	int pushSignal(foundation::SignalPointer<Signal> &_rsig, uint32 _flags);
 	int pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpos, bool &_reusebuf);
-	int processSendCommands(SendBufferData &_rsb, const TimeSpec &_tpos, int _baseport);
+	int processSendSignals(SendBufferData &_rsb, const TimeSpec &_tpos, int _baseport);
 	int pushReceivedBuffer(Buffer &_rbuf, const ConnectorUid &_rcodid, const TimeSpec &_tpos);
 	void completeConnect(int _port);
 	void reconnect(ProcessConnector *_ppc);
@@ -95,7 +95,7 @@ private:
 	bool freeSentBuffers(Buffer &_rbuf, const ConnectorUid &_rconid);
 	void parseBuffer(Buffer &_rbuf, const ConnectorUid &_rconid);
 	bool moveToNextInBuffer();
-	void freeBufferCommands(uint32 _bufid, const ConnectorUid &_rconid);//frees the commands associated to a send buffer
+	void freeBufferSignals(uint32 _bufid, const ConnectorUid &_rconid);//frees the signals associated to a send buffer
 	//void popBuffersConnecting(IOData &_riod, const TimeSpec &_tpos, ServiceStubUnlocked &_rs);
 	//void popBuffersConnected(IOData &_riod, const TimeSpec &_tpos, ServiceStubUnlocked &_rs);
 	struct Data;

@@ -93,14 +93,14 @@ private:
 };
 
 
-struct Manager::ServicePtr: ObjPtr<Service>{
+struct Manager::ServicePtr: ObjectPointer<Service>{
 	ServicePtr(Service *_ps = NULL);
 	~ServicePtr();
 	ServicePtr& operator=(Service *_pobj);
 };
 
 
-Manager::ServicePtr::ServicePtr(Service *_ps):ObjPtr<Service>(_ps){}
+Manager::ServicePtr::ServicePtr(Service *_ps):ObjectPointer<Service>(_ps){}
 
 Manager::ServicePtr::~ServicePtr(){
 	delete this->release();
@@ -132,7 +132,7 @@ struct Manager::Data{
 	typedef std::vector<ServicePtr> ServiceVectorTp;
 	typedef std::vector<ActiveSet*> ActiveSetVectorTp;
 	Data(FileManager *_pfm, ipc::Service *_pipcs):pfm(_pfm), pipcs(_pipcs){}
-	ObjPtr<FileManager>		pfm;
+	ObjectPointer<FileManager>		pfm;
 	ipc::Service			*pipcs;
 	ServiceVectorTp			sv;
 	ActiveSetVectorTp		asv;
@@ -231,17 +231,17 @@ int Manager::signalObject(Object &_robj, ulong _sigmask){
 	return d.sv[_robj.serviceid()]->signal(_robj, *this, _sigmask);
 }
 
-int Manager::signalObject(IndexTp _fullid, uint32 _uid, CmdPtr<Command> &_cmd){
+int Manager::signalObject(IndexTp _fullid, uint32 _uid, SignalPointer<Signal> &_rsig){
 	cassert(Object::computeServiceId(_fullid) < d.sv.size());
 	return d.sv[Object::computeServiceId(_fullid)]->signal(
 		_fullid,_uid,
 		*this,
-		_cmd);
+		_rsig);
 }
 
-int Manager::signalObject(Object &_robj, CmdPtr<Command> &_cmd){
+int Manager::signalObject(Object &_robj, SignalPointer<Signal> &_rsig){
 	cassert(_robj.serviceid() < d.sv.size());
-	return d.sv[_robj.serviceid()]->signal(_robj, *this, _cmd);
+	return d.sv[_robj.serviceid()]->signal(_robj, *this, _rsig);
 }
 
 Mutex& Manager::mutex(Object &_robj)const{

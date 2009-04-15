@@ -25,11 +25,11 @@
 #include "utility/workpool.hpp"
 
 #include "activeset.hpp"
-#include "objptr.hpp"
+#include "objectpointer.hpp"
 
 namespace foundation{
 
-class ExecPool: public WorkPool<ObjPtr<Object> >, public ActiveSet{
+class ExecPool: public WorkPool<ObjectPointer<Object> >, public ActiveSet{
 public:
 	ExecPool(){}
 	virtual ~ExecPool(){}
@@ -37,7 +37,7 @@ public:
 	void raise(uint _thid, ulong _objid){}
 	void poolid(uint _pid){}
 protected:
-	typedef WorkPool<ObjPtr<Object> > WorkPoolTp;
+	typedef WorkPool<ObjectPointer<Object> > WorkPoolTp;
 	virtual void run();
 	virtual int createWorkers(uint) = 0;
 };

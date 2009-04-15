@@ -23,7 +23,7 @@
 #define IPCSERVICE_HPP
 
 #include "foundation/service.hpp"
-#include "foundation/command.hpp"
+#include "foundation/signal.hpp"
 #include "foundation/ipc/connectoruid.hpp"
 
 struct SockAddrPair;
@@ -51,8 +51,8 @@ class Service;
 /*!
 	<b>Overview:</b><br>
 	- In its current state it only uses UDP for communication.
-	- It can only send/receive command objects (objects of a type
-	derived from foundation::Command).
+	- It can only send/receive signal objects (objects of a type
+	derived from foundation::Signal).
 	- It uses non portable, binary serialization, aiming for speed
 	not for versatility.
 	- For udp communication uses connectors which resembles somehow
@@ -64,18 +64,18 @@ class Service;
 	communication and accepting/creating new connectors. Also new talkers
 	can be created when the number of connectors increases.
 	- Because there can be only one connector to a peer process, and 
-	commands can be quite big (i.e. commands sending streams) a command
+	signals can be quite big (i.e. signals sending streams) a signal
 	multiplexing algorithm is implemented.
 	- An existing connector can be identified by it unique id: 
 	foundation::ipc::ConnectorUid or by its base address (inetaddr and port).
 	- The ipc service should (i.e. it is a bug if it doesnt) ensure that
-	 a response (or a command sent using SameConnectorFlag) will not
+	 a response (or a signal sent using SameConnectorFlag) will not
 	 be sent if the a peer process restart is detected.
 	
 	<b>Usage:</b><br>
 	- On manager init, add the base taker to the ipc::Service
-	- Then make your commands serializable
-	- Send commands using a ipc::Service::sendCommand method.
+	- Then make your signals serializable
+	- Send signals using a ipc::Service::sendSignal method.
 	
 	<b>Notes:</b><br>
 	- Despite it's simple interface, the ipc service is quite complex
@@ -91,52 +91,52 @@ class Service;
 class Service: public foundation::Service{
 public:
 	enum {
-		SameConnectorFlag = 1, //!< Do not send command to a restarted peer process
-		ResponseFlag	= SameConnectorFlag, //!< The sent command is a response
+		SameConnectorFlag = 1, //!< Do not send signal to a restarted peer process
+		ResponseFlag	= SameConnectorFlag, //!< The sent signal is a response
 		WaitResponseFlag = 2,
-		SentFlag = 4,//!< The command was successfully sent
+		SentFlag = 4,//!< The signal was successfully sent
 	};
 	//! Destructor
 	~Service();
-	//!Send a command (usually a response) to a peer process using a previously saved ConnectorUid
+	//!Send a signal (usually a response) to a peer process using a previously saved ConnectorUid
 	/*!
-		The command is send only if the connector exists. If the peer process,
-		restarts the command is not sent.
+		The signal is send only if the connector exists. If the peer process,
+		restarts the signal is not sent.
 		\param _rconid A previously saved connectionuid
-		\param _pcmd A CmdPtr with the command to be sent.
+		\param _psig A SignalPointer with the signal to be sent.
 		\param _flags (Optional) Not used for now
 	*/
-	int sendCommand(
+	int sendSignal(
 		const ConnectorUid &_rconid,//the id of the process connector
-		foundation::CmdPtr<Command> &_pcmd,//the command to be sent
+		foundation::SignalPointer<Signal> &_psig,//the signal to be sent
 		uint32	_flags = 0
 	);
-	//!Send a command to a peer process using it's base address.
+	//!Send a signal to a peer process using it's base address.
 	/*!
 		The base address of a process is the address on which the process listens for new UDP connections.
 		If the connection does not already exist, it will be created.
 		\param _rsap The base socket address of the peer.
-		\param _pcmd The command.
+		\param _psig The signal.
 		\param _rcondid An output value, which on success will contain the uid of the connector.
 		\param _flags (Optional) Not used for now
 	*/
-	int sendCommand(
+	int sendSignal(
 		const SockAddrPair &_rsap,
-		foundation::CmdPtr<Command> &_pcmd,//the command to be sent
+		foundation::SignalPointer<Signal> &_psig,//the signal to be sent
 		ConnectorUid &_rconid,
 		uint32	_flags = 0
 	);
-	//!Send a command to a peer process using it's base address.
+	//!Send a signal to a peer process using it's base address.
 	/*!
 		The base address of a process is the address on which the process listens for new UDP connections.
 		If the connection does not already exist, it will be created.
 		\param _rsap The base socket address of the peer.
-		\param _pcmd The command.
+		\param _psig The signal.
 		\param _flags (Optional) Not used for now
 	*/
-	int sendCommand(
+	int sendSignal(
 		const SockAddrPair &_rsap,
-		foundation::CmdPtr<Command> &_pcmd,//the command to be sent
+		foundation::SignalPointer<Signal> &_psig,//the signal to be sent
 		uint32	_flags = 0
 	);
 	//! Not used for now - will be used when ipc will use tcp connections
@@ -180,9 +180,9 @@ protected:
 	virtual void pushTalkerInPool(foundation::Manager &_rs, foundation::aio::Object *_ptkr) = 0;
 private:
 	friend class Talker;
-	int doSendCommand(
+	int doSendSignal(
 		const SockAddrPair &_rsap,
-		foundation::CmdPtr<Command> &_pcmd,//the command to be sent
+		foundation::SignalPointer<Signal> &_psig,//the signal to be sent
 		ConnectorUid *_pconid,
 		uint32	_flags = 0
 	);
@@ -198,21 +198,21 @@ private:
 	Data	&d;
 };
 
-inline int Service::sendCommand(
+inline int Service::sendSignal(
 	const SockAddrPair &_rsap,
-	foundation::CmdPtr<Command> &_pcmd,//the command to be sent
+	foundation::SignalPointer<Signal> &_psig,//the signal to be sent
 	ConnectorUid &_rconid,
 	uint32	_flags
 ){
-	return doSendCommand(_rsap, _pcmd, &_rconid, _flags);
+	return doSendSignal(_rsap, _psig, &_rconid, _flags);
 }
 
-inline int Service::sendCommand(
+inline int Service::sendSignal(
 	const SockAddrPair &_rsap,
-	foundation::CmdPtr<Command> &_pcmd,//the command to be sent
+	foundation::SignalPointer<Signal> &_psig,//the signal to be sent
 	uint32	_flags
 ){
-	return doSendCommand(_rsap, _pcmd, NULL, _flags);
+	return doSendSignal(_rsap, _psig, NULL, _flags);
 }
 
 }//namespace ipc

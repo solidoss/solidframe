@@ -248,7 +248,7 @@ int List::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 //---------------------------------------------------------------
 // RemoteList command
 //---------------------------------------------------------------
-struct RemoteListCommand: test::Command{
+struct RemoteListCommand: Dynamic<RemoteListCommand, test::Command>{
 	RemoteListCommand(uint32 _tout = 0): ppthlst(NULL),err(-1),tout(_tout){
 		idbg(""<<(void*)this);
 	}

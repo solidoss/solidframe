@@ -47,10 +47,10 @@ namespace foundation{
 namespace ipc{
 
 struct Talker::Data{
-	struct CommandData{
-		CommandData(foundation::CmdPtr<Command> &_pcmd, uint16 _procid, uint16 _procuid, uint32 _flags):
-			pcmd(_pcmd), procid(_procid), procuid(_procuid), flags(_flags){}
-		foundation::CmdPtr<Command> pcmd;
+	struct SignalData{
+		SignalData(foundation::SignalPointer<Signal> &_psig, uint16 _procid, uint16 _procuid, uint32 _flags):
+			psig(_psig), procid(_procid), procuid(_procuid), flags(_flags){}
+		foundation::SignalPointer<Signal> psig;
 		uint16	procid;
 		uint16	procuid;
 		uint32	flags;
@@ -80,7 +80,7 @@ struct Talker::Data{
 	typedef Queue<uint32>								CmdQueueTp;
 	typedef Stack<uint32>								CloseStackTp;
 	typedef Stack<std::pair<uint16, uint16> >			FreePosStackTp;//first is the pos second is the uid
-	typedef Queue<CommandData>							CommandQueueTp;
+	typedef Queue<SignalData>							SignalQueueTp;
 	typedef std::priority_queue<SendBufferData*, std::vector<SendBufferData*>, SendBufferDataCmp>	
 														SendQueueTp;
 	typedef Stack<SendBufferData>						SendStackTp;
@@ -97,7 +97,7 @@ struct Talker::Data{
 	BaseProcAddr4MapTp	basepm4;
 	FreePosStackTp		procfs;
 	CmdQueueTp			cq;
-	CommandQueueTp		cmdq;
+	SignalQueueTp		sigq;
 	SendQueueTp			sendq;
 	SendStackTp			sends;
 	SendFreeStackTp		sendfs;
@@ -238,16 +238,16 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 				d.newprocs.pop();
 			}
 			d.nextprocid = d.procs.size();//TODO: see if its right
-			//dispatch commands before deleting processconnectors
-			while(d.cmdq.size()){
-				cassert(d.cmdq.front().procid < d.procs.size());
-				Data::ProcPairTp	&rpp(d.procs[d.cmdq.front().procid]);
-				uint32				flags(d.cmdq.front().flags);
-				if(rpp.first && (!(flags & Service::SameConnectorFlag) || rpp.second == d.cmdq.front().procuid)){
-					rpp.first->pushCommand(d.cmdq.front().pcmd, d.cmdq.front().flags);
-					d.cq.push(d.cmdq.front().procid);
+			//dispatch signals before deleting processconnectors
+			while(d.sigq.size()){
+				cassert(d.sigq.front().procid < d.procs.size());
+				Data::ProcPairTp	&rpp(d.procs[d.sigq.front().procid]);
+				uint32				flags(d.sigq.front().flags);
+				if(rpp.first && (!(flags & Service::SameConnectorFlag) || rpp.second == d.sigq.front().procuid)){
+					rpp.first->pushSignal(d.sigq.front().psig, d.sigq.front().flags);
+					d.cq.push(d.sigq.front().procid);
 				}
-				d.cmdq.pop();
+				d.sigq.pop();
 			}
 		}
 	}
@@ -293,7 +293,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 		nothing = false;
 		dispatchSentBuffer(_tout);
 	}
-	bool mustreenter = processCommands(_tout);
+	bool mustreenter = processSignals(_tout);
 	
 	while(d.sendq.size() && !socketHasPendingSend()){
 		if(_tout < d.sendq.top()->timeout){
@@ -338,9 +338,9 @@ int Talker::accept(foundation::Visitor &){
 //----------------------------------------------------------------------
 //The talker's mutex should be locked
 //return ok if the talker should be signaled
-int Talker::pushCommand(foundation::CmdPtr<Command> &_pcmd, const ConnectorUid &_rconid, uint32 _flags){
-	d.cmdq.push(Data::CommandData(_pcmd, _rconid.procid, _rconid.procuid, _flags));
-	return d.cmdq.size() == 1 ? NOK : OK;
+int Talker::pushSignal(foundation::SignalPointer<Signal> &_psig, const ConnectorUid &_rconid, uint32 _flags){
+	d.sigq.push(Data::SignalData(_psig, _rconid.procid, _rconid.procuid, _flags));
+	return d.sigq.size() == 1 ? NOK : OK;
 }
 //----------------------------------------------------------------------
 //The talker's mutex should be locked
@@ -420,7 +420,7 @@ void Talker::dispatchReceivedBuffer(const SockAddrPair &_rsap, const TimeSpec &_
 					ppc->completeConnect(inaddr.port());
 					//register in peer map
 					d.peerpm4[ppc->peerAddr4()] = bit->second;
-					//the connector has a command to send!!
+					//the connector has a signal to send!!
 					d.cq.push(bit->second);
 				}
 			}
@@ -430,9 +430,9 @@ void Talker::dispatchReceivedBuffer(const SockAddrPair &_rsap, const TimeSpec &_
 	}
 }
 //----------------------------------------------------------------------
-//process commands to be sent d.cq
+//process signals to be sent d.cq
 //return true if the cq is not empty
-bool Talker::processCommands(const TimeSpec &_rts){
+bool Talker::processSignals(const TimeSpec &_rts){
 	int sndbufcnt = 0;
 	SendBufferData *psb = NULL;
 	while(d.cq.size() && sndbufcnt < 16){
@@ -451,10 +451,10 @@ bool Talker::processCommands(const TimeSpec &_rts){
 			}
 			psb->b.reinit(Specific::popBuffer(Specific::capacityToId(4096)), 4096);
 		}
-		switch(ppc->processSendCommands(*psb, _rts, d.rservice.basePort())){
+		switch(ppc->processSendSignals(*psb, _rts, d.rservice.basePort())){
 			case BAD:
 				//TODO: should very rarely pass here
-				idbgx(Dbg::ipc, "BAD processSendCommands - should be rare");
+				idbgx(Dbg::ipc, "BAD processSendSignals - should be rare");
 				break;
 			case NOK://not finished sending
 				d.cq.push(procid);

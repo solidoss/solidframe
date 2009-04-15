@@ -32,7 +32,7 @@
 #include "core/manager.hpp"
 #include "core/service.hpp"
 #include "core/visitor.hpp"
-#include "core/command.hpp"
+#include "core/signals.hpp"
 #include "core/connection.hpp"
 #include "core/object.hpp"
 
@@ -81,118 +81,32 @@ namespace fdt=foundation;
 namespace test{
 
 //======= FileManager:==================================================
-//typedef fdt::FileUidTp			FileUidTp;
-typedef Object::RequestUidTp	RequestUidTp;
 //----------------------------------------------------------------------
-/*
-	A command for sending istreams from the fileManager
-*/
-struct IStreamCommand: test::Command{
-	IStreamCommand(StreamPtr<IStream> &_sptr, const FileUidTp &_rfuid, const RequestUidTp &_requid):sptr(_sptr), fileuid(_rfuid), requid(_requid){
-		idbg("");
-	}
-	int execute(Connection &_pcon);
-	int execute(Object &_pobj);
-	int execute(uint32 _evs, fdt::CommandExecuter&, const CommandUidTp &, TimeSpec &);
-	StreamPtr<IStream>	sptr;
-	FileUidTp			fileuid;
-	RequestUidTp		requid;
-};
 
-int IStreamCommand::execute(Connection &_rcon){
-	_rcon.receiveIStream(sptr, fileuid, requid);
-	return NOK;
-}
-
-int IStreamCommand::execute(Object &_robj){
-	return _robj.receiveIStream(sptr, fileuid, requid);
-}
-
-int IStreamCommand::execute(uint32 _evs, fdt::CommandExecuter& _rce, const CommandUidTp &, TimeSpec &){
-	_rce.receiveIStream(sptr, fileuid, requid);
-	return BAD;
-}
-//----------------------------------------------------------------------
-/*
-	A command for sending ostreams from the fileManager
-*/
-struct OStreamCommand: test::Command{
-	OStreamCommand(StreamPtr<OStream> &_sptr, const FileUidTp &_rfuid, const RequestUidTp &_requid):sptr(_sptr), fileuid(_rfuid), requid(_requid){
-		idbg("");
-	}
-	int execute(Connection &_pcon);
-	int execute(Object &_pobj);
-	int execute(uint32 _evs, fdt::CommandExecuter&, const CommandUidTp &, TimeSpec &);
-	StreamPtr<OStream>	sptr;
-	FileUidTp			fileuid;
-	RequestUidTp		requid;
-};
-
-int OStreamCommand::execute(Connection &_rcon){
-	_rcon.receiveOStream(sptr, fileuid, requid);
-	return NOK;
-}
-
-int OStreamCommand::execute(Object &_robj){
-	return _robj.receiveOStream(sptr, fileuid, requid);
-}
-int OStreamCommand::execute(uint32 _evs, fdt::CommandExecuter& _rce, const CommandUidTp &, TimeSpec &){
-	_rce.receiveOStream(sptr, fileuid, requid);
+int IStreamSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidTp &, TimeSpec &){
+	fdt::SignalPointer<Signal> cmdptr(this);
+	_rce.sendSignal(cmdptr, requid);
 	return NOK;
 }
 //----------------------------------------------------------------------
-/*
-	A command for sending iostreams from the fileManager
-*/
 
-struct IOStreamCommand: test::Command{
-	IOStreamCommand(StreamPtr<IOStream> &_sptr, const FileUidTp &_rfuid, const RequestUidTp &_requid):sptr(_sptr), fileuid(_rfuid), requid(_requid){
-		idbg("");
-	}
-	int execute(Connection &_pcon);
-	int execute(Object &_pobj);
-	int execute(uint32 _evs, fdt::CommandExecuter&, const CommandUidTp &, TimeSpec &);
-	StreamPtr<IOStream>	sptr;
-	FileUidTp			fileuid;
-	RequestUidTp		requid;
-};
-
-int IOStreamCommand::execute(Connection &_rcon){
-	_rcon.receiveIOStream(sptr, fileuid, requid);
-	return NOK;
-}
-
-int IOStreamCommand::execute(Object &_robj){
-	return _robj.receiveIOStream(sptr, fileuid, requid);
-}
-
-int IOStreamCommand::execute(uint32 _evs, fdt::CommandExecuter& _rce, const CommandUidTp &, TimeSpec &){
-	_rce.receiveIOStream(sptr, fileuid, requid);
+int OStreamSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidTp &, TimeSpec &){
+	fdt::SignalPointer<Signal> cmdptr(this);
+	_rce.sendSignal(cmdptr, requid);
 	return NOK;
 }
 //----------------------------------------------------------------------
-/*
-	A command for sending errors from the fileManager
-*/
 
-struct StreamErrorCommand: test::Command{
-	StreamErrorCommand(int _errid, const RequestUidTp &_requid):errid(_errid), requid(_requid){}
-	int execute(Connection &_pcon);
-	int execute(Object &_pobj);
-	int execute(uint32 _evs, fdt::CommandExecuter&, const CommandUidTp &, TimeSpec &);
-	int				errid;
-	RequestUidTp	requid;
-};
-
-int StreamErrorCommand::execute(Connection &_rcon){
-	_rcon.receiveError(errid, requid);
+int IOStreamSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidTp &, TimeSpec &){
+	fdt::SignalPointer<Signal> cmdptr(this);
+	_rce.sendSignal(cmdptr, requid);
 	return NOK;
 }
-int StreamErrorCommand::execute(Object &_robj){
-	return _robj.receiveError(errid, requid);
-}
-int StreamErrorCommand::execute(uint32 _evs, fdt::CommandExecuter& _rce, const CommandUidTp &, TimeSpec &){
-	_rce.receiveError(errid, requid);
+//----------------------------------------------------------------------
+
+int StreamErrorSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidTp &, TimeSpec &){
+	fdt::SignalPointer<Signal> cmdptr(this);
+	_rce.sendSignal(cmdptr, requid);
 	return NOK;
 }
 //----------------------------------------------------------------------
@@ -210,19 +124,19 @@ protected:
 	/*virtual*/ void sendError(int _errid, const fdt::RequestUid& _rrequid);
 };
 void FileManager::sendStream(StreamPtr<IStream> &_sptr, const FileUidTp &_rfuid, const fdt::RequestUid& _rrequid){
-	fdt::CmdPtr<fdt::Command>	cp(new IStreamCommand(_sptr, _rfuid, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
+	fdt::SignalPointer<fdt::Signal>	cp(new IStreamSignal(_sptr, _rfuid, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
 	Manager::the().signalObject(_rrequid.objidx, _rrequid.objuid, cp);
 }
 void FileManager::sendStream(StreamPtr<OStream> &_sptr, const FileUidTp &_rfuid, const fdt::RequestUid& _rrequid){
-	fdt::CmdPtr<fdt::Command>	cp(new OStreamCommand(_sptr, _rfuid, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
+	fdt::SignalPointer<fdt::Signal>	cp(new OStreamSignal(_sptr, _rfuid, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
 	Manager::the().signalObject(_rrequid.objidx, _rrequid.objuid, cp);
 }
 void FileManager::sendStream(StreamPtr<IOStream> &_sptr, const FileUidTp &_rfuid, const fdt::RequestUid& _rrequid){
-	fdt::CmdPtr<fdt::Command>	cp(new IOStreamCommand(_sptr, _rfuid, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
+	fdt::SignalPointer<fdt::Signal>	cp(new IOStreamSignal(_sptr, _rfuid, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
 	Manager::the().signalObject(_rrequid.objidx, _rrequid.objuid, cp);
 }
 void FileManager::sendError(int _error, const fdt::RequestUid& _rrequid){
-	fdt::CmdPtr<fdt::Command>	cp(new StreamErrorCommand(_error, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
+	fdt::SignalPointer<fdt::Signal>	cp(new StreamErrorSignal(_error, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
 	Manager::the().signalObject(_rrequid.objidx, _rrequid.objuid, cp);
 }
 
@@ -240,18 +154,18 @@ protected:
 
 //=========================================================================
 
-struct ExtraObjPtr: fdt::ObjPtr<fdt::Object>{
-	ExtraObjPtr(fdt::Object *_po);
-	~ExtraObjPtr();
-	ExtraObjPtr& operator=(fdt::Object *_pobj);
+struct ExtraObjectPointer: fdt::ObjectPointer<fdt::Object>{
+	ExtraObjectPointer(fdt::Object *_po);
+	~ExtraObjectPointer();
+	ExtraObjectPointer& operator=(fdt::Object *_pobj);
 };
 
-ExtraObjPtr::ExtraObjPtr(fdt::Object *_po):fdt::ObjPtr<fdt::Object>(_po){}
+ExtraObjectPointer::ExtraObjectPointer(fdt::Object *_po):fdt::ObjectPointer<fdt::Object>(_po){}
 
-ExtraObjPtr::~ExtraObjPtr(){
+ExtraObjectPointer::~ExtraObjectPointer(){
 	this->destroy(this->release());
 }
-ExtraObjPtr& ExtraObjPtr::operator=(fdt::Object *_pobj){
+ExtraObjectPointer& ExtraObjectPointer::operator=(fdt::Object *_pobj){
 	ptr(_pobj);
 	return *this;
 }
@@ -260,18 +174,18 @@ ExtraObjPtr& ExtraObjPtr::operator=(fdt::Object *_pobj){
 	A local command executer who knows how to unregister itself from the 
 	manager
 */
-class CommandExecuter: public fdt::CommandExecuter{
+class SignalExecuter: public fdt::SignalExecuter{
 public:
 	void removeFromManager();
 };
-void CommandExecuter::removeFromManager(){
+void SignalExecuter::removeFromManager(){
 	Manager::the().removeObject(this);
 }
 
 //=========================================================================
 //The manager's localdata
 struct Manager::Data{
-	typedef std::vector<ExtraObjPtr>									ExtraObjectVector;
+	typedef std::vector<ExtraObjectPointer>									ExtraObjectVector;
 	typedef std::map<const char*, int, StrLess> 						ServiceIdxMap;
 	typedef foundation::SelectPool<fdt::ObjectSelector>					ObjSelPoolTp;
 	typedef foundation::SelectPool<fdt::aio::Selector>					AioSelectorPoolTp;
@@ -283,8 +197,8 @@ struct Manager::Data{
 	//fdt::ipc::Service					*pcs; // A pointer to the ipc service
 	ObjSelPoolTp						*pobjectpool[2];//object pools
 	AioSelectorPoolTp					*paiopool[2];
-	fdt::ObjPtr<fdt::CommandExecuter>		readcmdexec;// read command executer
-	fdt::ObjPtr<fdt::CommandExecuter>		writecmdexec;// write command executer
+	fdt::ObjectPointer<fdt::SignalExecuter>		readcmdexec;// read command executer
+	fdt::ObjectPointer<fdt::SignalExecuter>		writecmdexec;// write command executer
 };
 
 //--------------------------------------------------------------------------
@@ -353,11 +267,11 @@ void registerService(ServiceCreator _psc, const char* _pname){
 //----------------------------------------------------------------------------------
 template <>
 void Manager::pushJob(fdt::Object *_pj, int _pos){
-	d.pobjectpool[_pos]->push(fdt::ObjPtr<fdt::Object>(_pj));
+	d.pobjectpool[_pos]->push(fdt::ObjectPointer<fdt::Object>(_pj));
 }
 template <>
 void Manager::pushJob(fdt::aio::Object *_pj, int _i){
-	d.paiopool[_i]->push(fdt::ObjPtr<fdt::aio::Object>(_pj));
+	d.paiopool[_i]->push(fdt::ObjectPointer<fdt::aio::Object>(_pj));
 }
 
 /*
@@ -377,12 +291,12 @@ Manager::Manager():d(*(new Data(*this))){
 		this->pushJob((fdt::Object*)&fileManager());
 	}
 	if(true){// create register the read command executer
-		d.readcmdexec = new CommandExecuter;
+		d.readcmdexec = new SignalExecuter;
 		fdt::Manager::insertObject(d.readcmdexec.ptr());
 		this->pushJob((fdt::Object*)d.readcmdexec.ptr());
 	}
 	if(true){// create register the write command executer
-		d.writecmdexec = new CommandExecuter;
+		d.writecmdexec = new SignalExecuter;
 		fdt::Manager::insertObject(d.writecmdexec.ptr());
 		this->pushJob((fdt::Object*)d.writecmdexec.ptr());
 	}
@@ -430,11 +344,11 @@ int Manager::stop(const char *_which){
 	return OK;
 }
 
-void Manager::readCommandExecuterUid(ObjectUidTp &_ruid){
+void Manager::readSignalExecuterUid(ObjectUidTp &_ruid){
 	_ruid.first = d.readcmdexec->id();
 	_ruid.second = uid(*d.readcmdexec);
 }
-void Manager::writeCommandExecuterUid(ObjectUidTp &_ruid){
+void Manager::writeSignalExecuterUid(ObjectUidTp &_ruid){
 	_ruid.first = d.writecmdexec->id();
 	_ruid.second = uid(*d.writecmdexec);
 }
@@ -446,7 +360,7 @@ int Manager::insertService(const char* _nm, Service* _psrvc){
 			idbg("unable to register service: "<<_nm);
 		}else{
 			idbg("service "<<_nm<<" registered on pos "<<pos);
-			//this->get<ObjSelPoolVecTp>()[0]->push(fdt::ObjPtr<fdt::Object>(_psrvc));
+			//this->get<ObjSelPoolVecTp>()[0]->push(fdt::ObjectPointer<fdt::Object>(_psrvc));
 			this->pushJob((fdt::Object*)_psrvc);
 			d.servicemap[_nm] = pos;
 			return OK;
@@ -517,157 +431,21 @@ void IpcService::pushTalkerInPool(foundation::Manager &_rm, foundation::aio::Obj
 }
 //----------------------------------------------------------------------------------
 // Some dummy command methods definitions
-int Command::execute(Connection &){
-	cassert(false);
-	return BAD;
-}
+// int Signal::execute(Connection &){
+// 	cassert(false);
+// 	return BAD;
+// }
+// 
+// int Signal::execute(Listener &){
+// 	cassert(false);
+// 	return BAD;
+// }
+// 
+// int Signal::execute(Object &){
+// 	cassert(false);
+// 	return BAD;
+// }
 
-int Command::execute(Listener &){
-	cassert(false);
-	return BAD;
-}
-
-int Command::execute(Object &){
-	cassert(false);
-	return BAD;
-}
-
-//----------------------------------------------------------------------------------
-// some dummy connection methods definitions
-int Connection::receiveIStream(
-	StreamPtr<IStream> &,
-	const FileUidTp	&,
-	const RequestUidTp &_requid,
-	int			_which,
-	const ObjectUidTp& _from,
-	const foundation::ipc::ConnectorUid *_conid
-){
-	cassert(false);
-	return BAD;
-}
-
-int Connection::receiveOStream(
-	StreamPtr<OStream> &,
-	const FileUidTp	&,
-	const RequestUidTp &_requid,
-	int			_which,
-	const ObjectUidTp& _from,
-	const foundation::ipc::ConnectorUid *_conid
-){
-	cassert(false);
-	return BAD;
-}
-
-int Connection::receiveIOStream(
-	StreamPtr<IOStream> &,
-	const FileUidTp	&,
-	const RequestUidTp &_requid,
-	int			_which,
-	const ObjectUidTp&_from,
-	const foundation::ipc::ConnectorUid *_conid
-){
-	cassert(false);
-	return BAD;
-}
-
-int Connection::receiveString(
-	const String &_str,
-	const RequestUidTp &_requid,
-	int			_which,
-	const ObjectUidTp&_from,
-	const foundation::ipc::ConnectorUid *_conid
-){
-	cassert(false);
-	return BAD;
-}
-int Connection::receiveData(
-	void *_pdata,
-	int	_datasz,
-	const RequestUidTp &_requid,
-	int			_which,
-	const ObjectUidTp&_from,
-	const foundation::ipc::ConnectorUid *_conid
-){
-	cassert(false);
-	return BAD;
-}
-int Connection::receiveNumber(
-	const int64 &_no,
-	const RequestUidTp &_requid,
-	int			_which,
-	const ObjectUidTp&_from,
-	const foundation::ipc::ConnectorUid *_conid
-){
-	cassert(false);
-	return BAD;
-}
-
-int Connection::receiveError(
-	int _errid, 
-	const RequestUidTp &_requid,
-	const ObjectUidTp&_from,
-	const foundation::ipc::ConnectorUid *_conid
-){
-	cassert(false);
-	return BAD;
-}
-//----------------------------------------------------------------------------------
-//Some dummy object methods definitions
-int Object::receiveIStream(
-	StreamPtr<IStream> &,
-	const FileUidTp	&,
-	const RequestUidTp &_requid,
-	int			_which,
-	const ObjectUidTp&_from,
-	const foundation::ipc::ConnectorUid *_conid
-){
-	cassert(false);
-	return BAD;
-}
-
-int Object::receiveOStream(
-	StreamPtr<OStream> &,
-	const FileUidTp	&,
-	const RequestUidTp &_requid,
-	int			_which,
-	const ObjectUidTp&_from,
-	const foundation::ipc::ConnectorUid *_conid
-){
-	cassert(false);
-	return BAD;
-}
-
-int Object::receiveIOStream(
-	StreamPtr<IOStream> &,
-	const FileUidTp	&,
-	const RequestUidTp &_requid,
-	int			_which,
-	const ObjectUidTp&_from,
-	const foundation::ipc::ConnectorUid *_conid
-){
-	cassert(false);
-	return BAD;
-}
-
-int Object::receiveString(
-	const String &_str,
-	const RequestUidTp &_requid,
-	int			_which,
-	const ObjectUidTp&_from,
-	const foundation::ipc::ConnectorUid *_conid
-){
-	cassert(false);
-	return BAD;
-}
-int Object::receiveError(
-	int _errid, 
-	const RequestUidTp &_requid,
-	const ObjectUidTp&_from,
-	const foundation::ipc::ConnectorUid *_conid
-){
-	cassert(false);
-	return BAD;
-}
 
 //----------------------------------------------------------------------------------
 }//namespace test

@@ -17,13 +17,14 @@ struct DynamicMap{
 	DynamicMap(RegisterFncTp _prfnc);
 	~DynamicMap();
 	void callback(uint32 _tid, FncTp _pf);
-	FncTp callback(uint32 _id);
+	FncTp callback(uint32 _id)const;
 	struct Data;
 	Data	&d;
 };
 
 struct DynamicBase{
 	virtual uint32 dynamicTypeId()const = 0;
+	virtual DynamicMap::FncTp callback(const DynamicMap &_rdm);
 protected:
 	virtual ~DynamicBase();
 };
@@ -40,6 +41,11 @@ struct Dynamic: T{
 	}
 	virtual uint32 dynamicTypeId()const{
 		return staticTypeId();
+	}
+	virtual DynamicMap::FncTp callback(const DynamicMap &_rdm){
+		DynamicMap::FncTp pf = _rdm.callback(staticTypeId());
+		if(pf) return pf;
+		return T::callback(_rdm);
 	}
 };
 
@@ -68,7 +74,7 @@ struct DynamicReceiver: T{
 		_rdm.callback(C::staticTypeId(), &dynamicCallback<C>);
 	}
 	int dynamicReceiver(DynamicBase *_pd){
-		DynamicMap::FncTp pf = dynamicMap().callback(_pd->dynamicTypeId());
+		DynamicMap::FncTp pf = _pd->callback(dynamicMap());
 		if(pf) return (*pf)(_pd, this);
 		return BAD;
 	}

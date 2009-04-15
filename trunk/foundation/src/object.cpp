@@ -25,10 +25,10 @@
 #include "system/debug.hpp"
 
 #include "foundation/object.hpp"
-#include "foundation/objptr.hpp"
+#include "foundation/objectpointer.hpp"
 #include "foundation/visitor.hpp"
-#include "foundation/command.hpp"
-#include "foundation/cmdptr.hpp"
+#include "foundation/signal.hpp"
+#include "foundation/signalpointer.hpp"
 #include "foundation/manager.hpp"
 
 #include "utility/memory.hpp"
@@ -44,10 +44,10 @@ Visitor::Visitor(){
 Visitor::~Visitor(){
 }
 //---------------------------------------------------------------------
-//----	ObjPtr	----
+//----	ObjectPointerBase	----
 //---------------------------------------------------------------------
 
-void ObjPtrBase::clear(Object *_pobj){
+void ObjectPointerBase::clear(Object *_pobj){
 	cassert(_pobj);
 	int usecnt = 0;
 	{
@@ -58,23 +58,23 @@ void ObjPtrBase::clear(Object *_pobj){
 }
 
 //NOTE: No locking so Be carefull!!
-void ObjPtrBase::use(Object *_pobj){
+void ObjectPointerBase::use(Object *_pobj){
 	++_pobj->usecnt;
 }
-void ObjPtrBase::destroy(Object *_pobj){
+void ObjectPointerBase::destroy(Object *_pobj){
 	delete _pobj;
 }
 //---------------------------------------------------------------------
-//----	CmdPtr	----
+//----	SignalPointer	----
 //---------------------------------------------------------------------
 
-void CmdPtrBase::clear(Command *_pcmd){
-	cassert(_pcmd);
-	if(_pcmd->release()) delete _pcmd;
+void SignalPointerBase::clear(Signal *_psig){
+	cassert(_psig);
+	if(_psig->release()) delete _psig;
 }
 
-void CmdPtrBase::use(Command *_pcmd){
-	_pcmd->use();
+void SignalPointerBase::use(Signal *_psig){
+	_psig->use();
 }
 //---------------------------------------------------------------------
 //----	Object	----
@@ -84,8 +84,9 @@ void CmdPtrBase::use(Command *_pcmd){
 #include "object.ipp"
 #endif
 
-Object::Object(IndexTp _fullid):	fullid(_fullid), smask(0), 
-								thrid(0),thrpos(0),usecnt(0),crtstate(0){
+Object::Object(IndexTp _fullid):
+	fullid(_fullid), smask(0),
+	thrid(0),thrpos(0),usecnt(0),crtstate(0){
 }
 
 Object::~Object(){
@@ -95,7 +96,7 @@ void Object::threadid(ulong _thrid){
 	thrid = _thrid;
 }
 */
-int Object::signal(CmdPtr<Command> &_cmd){
+int Object::signal(SignalPointer<Signal> &_cmd){
 	return OK;
 }
 /**
@@ -123,109 +124,50 @@ int Object::execute(ulong _evs, TimeSpec &_rtout){
 void Object::mutex(Mutex *){
 }
 //---------------------------------------------------------------------
-//----	Command	----
+//----	Signal	----
 //---------------------------------------------------------------------
-Command::Command(){
-	objectCheck<Command>(true, __FUNCTION__);
+Signal::Signal(){
+	objectCheck<Signal>(true, __FUNCTION__);
 	idbgx(Dbg::cs, "memadd "<<(void*)this);
 }
-Command::~Command(){
-	objectCheck<Command>(false, __FUNCTION__);
+Signal::~Signal(){
+	objectCheck<Signal>(false, __FUNCTION__);
 	idbgx(Dbg::cs, "memsub "<<(void*)this);
 }
 
-void Command::use(){
-	idbgx(Dbg::cs, "Use command");
+void Signal::use(){
+	idbgx(Dbg::cs, "Use signal");
 }
-int Command::ipcReceived(ipc::CommandUid&, const ipc::ConnectorUid&){
+int Signal::ipcReceived(ipc::SignalUid&, const ipc::ConnectorUid&){
 	return BAD;
 }
-int Command::ipcPrepare(const ipc::CommandUid&){
+int Signal::ipcPrepare(const ipc::SignalUid&){
 	return OK;//do nothing - no wait for response
 }
-void Command::ipcFail(int _err){
+void Signal::ipcFail(int _err){
 }
-int Command::execute(Object &){
-	idbgx(Dbg::cs, "Unhandled command");
-	return 0;
-}
+// int Signal::execute(Object &){
+// 	idbgx(Dbg::cs, "Unhandled signal");
+// 	return 0;
+// }
 
-int Command::execute(uint32 _evs, CommandExecuter &, const CommandUidTp &, TimeSpec &_rts){
-	idbgx(Dbg::cs, "Unhandled command");
+int Signal::execute(uint32 _evs, SignalExecuter &, const SignalUidTp &, TimeSpec &_rts){
+	idbgx(Dbg::cs, "Unhandled signal");
 	return BAD;
 }
 
-int Command::release(){
-	idbgx(Dbg::cs, "Release command");
+int Signal::release(){
+	idbgx(Dbg::cs, "Release signal");
 	return BAD;
 }
 
-int Command::receiveCommand(
-	CmdPtr<Command> &_rcmd,
-	int			_which,
-	const ObjectUidTp&_from,
+int Signal::receiveSignal(
+	SignalPointer<Signal> &_rsig,
+	const ObjectUidTp& _from,
 	const ipc::ConnectorUid *_conid
 ){
-	cassert(false);
-	return BAD;
+	idbgx(Dbg::cs, "Unhandled signal receive");
+	return BAD;//no need for execution
 }
-
-int Command::receiveIStream(
-	StreamPtr<IStream> &,
-	const FileUidTp	&,
-	int			_which,
-	const ObjectUidTp&,
-	const ipc::ConnectorUid *
-){
-	cassert(false);
-	return BAD;
-}
-int Command::receiveOStream(
-	StreamPtr<OStream> &,
-	const FileUidTp	&,
-	int			_which,
-	const ObjectUidTp&,
-	const ipc::ConnectorUid *
-){
-	cassert(false);
-	return BAD;
-}
-int Command::receiveIOStream(
-	StreamPtr<IOStream> &,
-	const FileUidTp	&,
-	int			_which,
-	const ObjectUidTp&,
-	const ipc::ConnectorUid *
-){
-	cassert(false);
-	return BAD;
-}
-int Command::receiveString(
-	const std::string &_str,
-	int			_which,
-	const ObjectUidTp&,
-	const ipc::ConnectorUid *
-){
-	cassert(false);
-	return BAD;
-}
-int Command::receiveNumber(
-	const int64 &,
-	int			_which,
-	const ObjectUidTp&,
-	const ipc::ConnectorUid *
-){
-	cassert(false);
-	return BAD;
-}
-int Command::receiveError(
-	int, 
-	const ObjectUidTp&,
-	const ipc::ConnectorUid *
-){
-	cassert(false);
-	return BAD;
-}
-
 }//namespace
 

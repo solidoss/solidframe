@@ -30,7 +30,7 @@
 
 #include "foundation/object.hpp"
 #include "foundation/manager.hpp"
-#include "foundation/command.hpp"
+#include "foundation/signal.hpp"
 #include "foundation/readwriteservice.hpp"
 #include "foundation/common.hpp"
 
@@ -135,22 +135,22 @@ Object* Service::object(IndexTp _fullid, uint32 _uid){
 	return objv[oidx].first;
 }
 
-int Service::signal(Object &_robj, Manager &_rm, CmdPtr<Command> &_cmd){
+int Service::signal(Object &_robj, Manager &_rm, SignalPointer<Signal> &_rsig){
 	Mutex::Locker	lock(mutpool.object(_robj.index()));
-	if(_robj.signal(_cmd)){
+	if(_robj.signal(_rsig)){
 		_rm.raiseObject(_robj);
 	}
 	return OK;
 }
 
-int Service::signal(IndexTp _fullid, uint32 _uid, Manager &_rm, CmdPtr<Command> &_cmd){
+int Service::signal(IndexTp _fullid, uint32 _uid, Manager &_rm, SignalPointer<Signal> &_rsig){
 	ulong oidx(Object::computeIndex(_fullid));
 	if(oidx >= objv.size()) return BAD;
 	Mutex::Locker	lock(mutpool.object(oidx));
 	if(_uid != objv[oidx].second) return BAD;
 	Object *pobj = objv[oidx].first;
 	if(!pobj) return BAD;
-	if(pobj->signal(_cmd)){
+	if(pobj->signal(_rsig)){
 		_rm.raiseObject(*pobj);
 	}
 	return OK;
@@ -161,9 +161,9 @@ void Service::signalAll(Manager &_rm, ulong _sigmask){
 	doSignalAll(_rm, _sigmask);
 }
 
-void Service::signalAll(Manager &_rm, CmdPtr<Command> &_cmd){
+void Service::signalAll(Manager &_rm, SignalPointer<Signal> &_rsig){
 	Mutex::Locker	lock(*mut);
-	doSignalAll(_rm, _cmd);
+	doSignalAll(_rm, _rsig);
 }
 
 void Service::doSignalAll(Manager &_rm, ulong _sigmask){
@@ -188,7 +188,7 @@ void Service::doSignalAll(Manager &_rm, ulong _sigmask){
 	if(mi >= 0)	mutpool[mi].unlock();
 }
 
-void Service::doSignalAll(Manager &_rm, CmdPtr<Command> &_cmd){
+void Service::doSignalAll(Manager &_rm, SignalPointer<Signal> &_rsig){
 	int oc = objcnt;
 	int i = 0;
 	int mi = -1;
@@ -201,8 +201,8 @@ void Service::doSignalAll(Manager &_rm, CmdPtr<Command> &_cmd){
 				++mi;
 				mutpool[mi].lock();
 			}
-			CmdPtr<Command> cmd(_cmd.ptr());
-			if(it->first->signal(cmd)){
+			SignalPointer<Signal> sig(_rsig.ptr());
+			if(it->first->signal(sig)){
 				_rm.raiseObject(*it->first);
 			}
 			--oc;

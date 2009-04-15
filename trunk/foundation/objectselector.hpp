@@ -31,13 +31,13 @@
 
 #include "utility/queue.hpp"
 
-#include "foundation/objptr.hpp"
+#include "foundation/objectpointer.hpp"
 
 #include "foundation/common.hpp"
 
 namespace foundation{
 
-typedef ObjPtr<Object> ObjectPtrTp;
+typedef ObjectPointer<Object> ObjectPtrTp;
 //! An object selector to be used with the template SelectPool
 /*!
 	A selector will help SelectPool to actively hold objects.

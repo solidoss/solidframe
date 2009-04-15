@@ -26,7 +26,7 @@
 #include "system/mutex.hpp"
 #include "system/socketdevice.hpp"
 
-#include "foundation/objptr.hpp"
+#include "foundation/objectpointer.hpp"
 #include "foundation/common.hpp"
 #include "foundation/manager.hpp"
 
@@ -99,9 +99,9 @@ Service::~Service(){
 uint32 Service::keepAliveTimeout()const{
 	return d.keepalivetout;
 }
-int Service::sendCommand(
+int Service::sendSignal(
 	const ConnectorUid &_rconid,//the id of the process connector
-	foundation::CmdPtr<Command> &_pcmd,//the command to be sent
+	foundation::SignalPointer<Signal> &_psig,//the signal to be sent
 	uint32	_flags
 ){
 	cassert(_rconid.tkrid < d.tkrvec.size());
@@ -110,7 +110,7 @@ int Service::sendCommand(
 	Mutex::Locker lock2(this->mutex(rtp.first, rtp.second));
 	Talker *ptkr = static_cast<Talker*>(this->object(rtp.first, rtp.second));
 	cassert(ptkr);
-	if(ptkr->pushCommand(_pcmd, _rconid, _flags | SameConnectorFlag)){
+	if(ptkr->pushSignal(_psig, _rconid, _flags | SameConnectorFlag)){
 		//the talker must be signaled
 		if(ptkr->signal(fdt::S_RAISE)){
 			Manager::the().raiseObject(*ptkr);
@@ -123,9 +123,9 @@ int Service::basePort()const{
 	return d.baseport;
 }
 
-int Service::doSendCommand(
+int Service::doSendSignal(
 	const SockAddrPair &_rsap,
-	foundation::CmdPtr<Command> &_pcmd,//the command to be sent
+	foundation::SignalPointer<Signal> &_psig,//the signal to be sent
 	ConnectorUid *_pconid,
 	uint32	_flags
 ){
@@ -143,7 +143,7 @@ int Service::doSendCommand(
 			Mutex::Locker lock2(this->mutex(rtp.first, rtp.second));
 			Talker *ptkr = static_cast<Talker*>(this->object(rtp.first, rtp.second));
 			cassert(ptkr);
-			if(ptkr->pushCommand(_pcmd, conid, _flags)){
+			if(ptkr->pushSignal(_psig, conid, _flags)){
 				//the talker must be signaled
 				if(ptkr->signal(fdt::S_RAISE)){
 					Manager::the().raiseObject(*ptkr);
@@ -171,9 +171,9 @@ int Service::doSendCommand(
 			ConnectorUid conid(tkrid);
 			ptkr->pushProcessConnector(ppc, conid);
 			d.basepm4[ppc->baseAddr4()] = conid;
-// 			foundation::CmdPtr<test::Command> pnullcmd(NULL);
-// 			ptkr->pushCommand(pnullcmd, conid, Buffer::Connecting);
-			ptkr->pushCommand(_pcmd, conid, _flags);
+// 			foundation::SignalPointer<test::Signal> pnullsig(NULL);
+// 			ptkr->pushSignal(pnullsig, conid, Buffer::Connecting);
+			ptkr->pushSignal(_psig, conid, _flags);
 			if(ptkr->signal(fdt::S_RAISE)){
 				Manager::the().raiseObject(*ptkr);
 			}
@@ -229,8 +229,8 @@ int Service::acceptProcess(ProcessConnector *_ppc){
 	ConnectorUid conid(tkrid, 0xffff, 0xffff);
 	ptkr->pushProcessConnector(_ppc, conid);
 	d.basepm4[_ppc->baseAddr4()] = conid;
-// 	foundation::CmdPtr<test::Command> pnullcmd(NULL);
-// 	ptkr->pushCommand(pnullcmd, conid, Buffer::Accepted);
+// 	foundation::SignalPointer<test::Signal> pnullsig(NULL);
+// 	ptkr->pushSignal(pnullsig, conid, Buffer::Accepted);
 	if(ptkr->signal(fdt::S_RAISE)){
 		Manager::the().raiseObject(*ptkr);
 	}

@@ -1,7 +1,7 @@
 #include_directories(${SOLIDGROUND_SOURCE_DIR}/foundation)
 
 set(Sources
-	src/commandexecuter.cpp
+	src/signalexecuter.cpp
 	src/execpool.cpp
 	src/filekeys.cpp
 	src/filemanager.cpp
@@ -14,10 +14,10 @@ set(Sources
 
 set(Headers
 	activeset.hpp
-	cmdptr.hpp
-	commandableobject.hpp
-	commandexecuter.hpp
-	command.hpp
+	signalpointer.hpp
+	signalableobject.hpp
+	signalexecuter.hpp
+	signal.hpp
 	common.hpp
 	execpool.hpp
 	filekey.hpp
@@ -27,7 +27,7 @@ set(Headers
 	manager.hpp
 	object.hpp
 	objectselector.hpp
-	objptr.hpp
+	objectpointer.hpp
 	readwriteobject.hpp
 	readwriteservice.hpp
 	requestuid.hpp

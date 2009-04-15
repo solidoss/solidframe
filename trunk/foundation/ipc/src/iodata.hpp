@@ -113,9 +113,9 @@ struct Buffer{
 		Accepted = 1 << 31	
 	};
 	enum DataTypes{
-		ContinuedCommand = 0,
-		NewCommand,
-		OldCommand
+		ContinuedSignal = 0,
+		NewSignal,
+		OldSignal
 	};
 	static uint32 minSize(){
 		return sizeof(Header);
