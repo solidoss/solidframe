@@ -24,9 +24,9 @@
 #include "istream.hpp"
 #include "ostream.hpp"
 #include "iostream.hpp"
-#include "streamptr.hpp"
+#include "streampointer.hpp"
 
-void StreamPtrBase::clear(Stream *_ps){
+void StreamPointerBase::clear(Stream *_ps){
 	if(_ps->release()) delete _ps;
 }
 

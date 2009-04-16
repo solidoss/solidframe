@@ -1,4 +1,4 @@
-/* Declarations file streamptr.hpp
+/* Declarations file streampointer.hpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
@@ -19,12 +19,12 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef STREAM_PTR_HPP
-#define STREAM_PTR_HPP
+#ifndef STREAM_POINTER_HPP
+#define STREAM_POINTER_HPP
 
 class Stream;
 
-struct StreamPtrBase{
+struct StreamPointerBase{
 protected:
 	void clear(Stream *_pobj);
 };
@@ -35,15 +35,15 @@ protected:
 	returns true then it will be acctually deleted.
 */
 template <class SO>
-class StreamPtr: StreamPtrBase{
+class StreamPointer: StreamPointerBase{
 public:
 	typedef SO 				ObjectTp;
-	typedef StreamPtr<SO>	ThisTp;
-	StreamPtr():pobj(NULL){}
-	StreamPtr(ObjectTp *_pobj):pobj(_pobj) {}
-	StreamPtr(const ThisTp &_pobj):pobj(_pobj.release()){}
-	~StreamPtr(){
-		if(pobj){StreamPtrBase::clear(pobj);}
+	typedef StreamPointer<SO>	ThisTp;
+	StreamPointer():pobj(NULL){}
+	StreamPointer(ObjectTp *_pobj):pobj(_pobj) {}
+	StreamPointer(const ThisTp &_pobj):pobj(_pobj.release()){}
+	~StreamPointer(){
+		if(pobj){StreamPointerBase::clear(pobj);}
 	}
 	ObjectTp* release() const{
 		ObjectTp *po = pobj;
@@ -64,7 +64,7 @@ public:
 	ObjectTp* ptr() const throw() {return pobj;}
 	operator bool () const throw() {return pobj;}
 	bool operator!()const throw() {return !pobj;}
-	void clear(){if(pobj){StreamPtrBase::clear(pobj);pobj = NULL;}}
+	void clear(){if(pobj){StreamPointerBase::clear(pobj);pobj = NULL;}}
 private:
 	mutable ObjectTp 	*pobj;
 };

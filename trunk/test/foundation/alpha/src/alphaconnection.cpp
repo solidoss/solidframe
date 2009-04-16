@@ -335,7 +335,7 @@ void Connection::prepareReader(){
 /*
 //receiving an istream
 int Connection::receiveIStream(
-	StreamPtr<IStream> &_ps,
+	StreamPointer<IStream> &_ps,
 	const FileUidTp &_fuid,
 	const RequestUidTp &_requid,
 	int			_which,
@@ -370,7 +370,7 @@ int Connection::receiveIStream(
 }
 
 int Connection::receiveOStream(
-	StreamPtr<OStream> &_ps,
+	StreamPointer<OStream> &_ps,
 	const FileUidTp &_fuid,
 	const RequestUidTp &_requid,
 	int			_which,
@@ -405,7 +405,7 @@ int Connection::receiveOStream(
 }
 
 int Connection::receiveIOStream(
-	StreamPtr<IOStream> &_ps,
+	StreamPointer<IOStream> &_ps,
 	const FileUidTp &_fuid,
 	const RequestUidTp &_requid,
 	int			_which,
