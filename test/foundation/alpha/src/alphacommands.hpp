@@ -28,7 +28,7 @@
 #include <boost/utility.hpp>
 
 #include "utility/queue.hpp"
-#include "utility/streamptr.hpp"
+#include "utility/streampointer.hpp"
 #include "utility/istream.hpp"
 #include "utility/ostream.hpp"
 
@@ -114,7 +114,7 @@ public:
 	*/
 	int reinitWriter(Writer &, protocol::Parameter &);
 	int receiveIStream(
-		StreamPtr<IStream> &_sptr,
+		StreamPointer<IStream> &_sptr,
 		const FileUidTp &_fuid,
 		int			_which,
 		const ObjectUidTp&,
@@ -143,7 +143,7 @@ private:
 	String				straddr;
 	FileUidTp			fuid;
 	uint32				port;
-	StreamPtr<IStream>	sp;
+	StreamPointer<IStream>	sp;
 	IStreamIterator		it;
 	Connection			&rc;
 	SignalUidTp			mastersiguid;
@@ -169,7 +169,7 @@ public:
 	int reinitReader(Reader &, protocol::Parameter &);
 	int execute(Connection &);
 	int receiveOStream(
-		StreamPtr<OStream> &_sptr,
+		StreamPointer<OStream> &_sptr,
 		const FileUidTp &_fuid,
 		int			_which,
 		const ObjectUidTp&,
@@ -183,7 +183,7 @@ public:
 	int reinitWriter(Writer &, protocol::Parameter &);
 private:
 	String				strpth;//the file path
-	StreamPtr<OStream>	sp;
+	StreamPointer<OStream>	sp;
 	OStreamIterator		it;
 	Connection			&rc;
 	int 				st;
@@ -328,19 +328,19 @@ public:
 	int execute(Connection &);
 	int reinitWriter(Writer &, protocol::Parameter &);
 	/*virtual*/ int receiveIStream(
-		StreamPtr<IStream> &,
+		StreamPointer<IStream> &,
 		const FileUidTp&,
 		int			_which,
 		const ObjectUidTp&_from,
 		const foundation::ipc::ConnectorUid *_conid
 	);
 // 	virtual int receiveOStream(
-// 		StreamPtr<OStream> &,
+// 		StreamPointer<OStream> &,
 // 		const FromPairTp&_from,
 // 		const ipc::ConnectorUid *_conid
 // 	);
 // 	virtual int receiveIOStream(
-// 		StreamPtr<IOStream> &, 
+// 		StreamPointer<IOStream> &, 
 // 		const FromPairTp&_from,
 // 		const ipc::ConnectorUid *_conid
 // 	);
@@ -356,7 +356,7 @@ private:
 	Queue<String>				stringq;
 	Queue<ObjectUidTp>			fromq;
 	Queue<foundation::ipc::ConnectorUid>	conidq;
-	Queue<StreamPtr<IStream> >	streamq;
+	Queue<StreamPointer<IStream> >	streamq;
 	Connection					&rc;
 	IStreamIterator				it;
 	uint64						litsz64;

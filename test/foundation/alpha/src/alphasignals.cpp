@@ -269,7 +269,7 @@ int FetchMasterSignal::receiveSignal(
 // 	return OK;
 // }
 // int FetchMasterSignal::receiveIStream(
-// 	StreamPtr<IStream> &_rins,
+// 	StreamPointer<IStream> &_rins,
 // 	const FileUidTp	& _fuid,
 // 	int			_which,
 // 	const ObjectUidTp&,
@@ -365,7 +365,7 @@ int FetchSlaveSignal::createDeserializationStream(
 ){
 	if(_id) return NOK;
 	if(sz <= 0) return NOK;
-	StreamPtr<OStream>			sp;
+	StreamPointer<OStream>			sp;
 	fdt::RequestUid	requid;
 	Manager::the().fileManager().stream(sp, fuid, requid, fdt::FileManager::Forced);
 	if(!sp) return BAD;
@@ -460,7 +460,7 @@ int SendStreamSignal::createSerializationStream(
 
 // int SendStreamSignal::execute(test::Connection &_rcon){
 // 	{
-// 	StreamPtr<IStream>	isp(static_cast<IStream*>(iosp.release()));
+// 	StreamPointer<IStream>	isp(static_cast<IStream*>(iosp.release()));
 // 	idbg("");
 // 	_rcon.receiveIStream(isp, test::Connection::FileUidTp(0,0), test::Connection::RequestUidTp(0, 0), 0, fromv, &conid);
 // 	idbg("");

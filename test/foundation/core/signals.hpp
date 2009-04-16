@@ -22,7 +22,7 @@
 #ifndef TEST_CORE_SIGNALS_HPP
 #define TEST_CORE_SIGNALS_HPP
 
-#include "utility/streamptr.hpp"
+#include "utility/streampointer.hpp"
 #include "foundation/signal.hpp"
 #include "object.hpp"
 
@@ -37,30 +37,30 @@ typedef Object::RequestUidTp	RequestUidTp;
 
 //!	A signal for sending istreams from the fileManager
 struct IStreamSignal: Dynamic<IStreamSignal, foundation::Signal>{
-	IStreamSignal(StreamPtr<IStream> &_sptr, const FileUidTp &_rfuid, const RequestUidTp &_requid):sptr(_sptr), fileuid(_rfuid), requid(_requid){}
+	IStreamSignal(StreamPointer<IStream> &_sptr, const FileUidTp &_rfuid, const RequestUidTp &_requid):sptr(_sptr), fileuid(_rfuid), requid(_requid){}
 	int execute(uint32 _evs, foundation::SignalExecuter&, const SignalUidTp &, TimeSpec &);
-	StreamPtr<IStream>	sptr;
-	FileUidTp			fileuid;
-	RequestUidTp		requid;
+	StreamPointer<IStream>	sptr;
+	FileUidTp				fileuid;
+	RequestUidTp			requid;
 };
 
 //!A signal for sending ostreams from the fileManager
 struct OStreamSignal: Dynamic<OStreamSignal, foundation::Signal>{
-	OStreamSignal(StreamPtr<OStream> &_sptr, const FileUidTp &_rfuid, const RequestUidTp &_requid):sptr(_sptr), fileuid(_rfuid), requid(_requid){}
+	OStreamSignal(StreamPointer<OStream> &_sptr, const FileUidTp &_rfuid, const RequestUidTp &_requid):sptr(_sptr), fileuid(_rfuid), requid(_requid){}
 	int execute(uint32 _evs, foundation::SignalExecuter&, const SignalUidTp &, TimeSpec &);
-	StreamPtr<OStream>	sptr;
-	FileUidTp			fileuid;
-	RequestUidTp		requid;
+	StreamPointer<OStream>	sptr;
+	FileUidTp				fileuid;
+	RequestUidTp			requid;
 };
 
 
 //!A signal for sending iostreams from the fileManager
 struct IOStreamSignal: Dynamic<IOStreamSignal, foundation::Signal>{
-	IOStreamSignal(StreamPtr<IOStream> &_sptr, const FileUidTp &_rfuid, const RequestUidTp &_requid):sptr(_sptr), fileuid(_rfuid), requid(_requid){}
+	IOStreamSignal(StreamPointer<IOStream> &_sptr, const FileUidTp &_rfuid, const RequestUidTp &_requid):sptr(_sptr), fileuid(_rfuid), requid(_requid){}
 	int execute(uint32 _evs, foundation::SignalExecuter&, const SignalUidTp &, TimeSpec &);
-	StreamPtr<IOStream>	sptr;
-	FileUidTp			fileuid;
-	RequestUidTp		requid;
+	StreamPointer<IOStream>	sptr;
+	FileUidTp				fileuid;
+	RequestUidTp			requid;
 };
 
 

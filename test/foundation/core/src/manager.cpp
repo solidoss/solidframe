@@ -118,20 +118,20 @@ class FileManager: public fdt::FileManager{
 public:
 	FileManager(uint32 _maxfcnt = 1024 * 20):fdt::FileManager(_maxfcnt){}
 protected:
-	/*virtual*/ void sendStream(StreamPtr<IStream> &_sptr, const FileUidTp &_rfuid, const fdt::RequestUid& _rrequid);
-	/*virtual*/ void sendStream(StreamPtr<OStream> &_sptr, const FileUidTp &_rfuid, const fdt::RequestUid& _rrequid);
-	/*virtual*/ void sendStream(StreamPtr<IOStream> &_sptr, const FileUidTp &_rfuid, const fdt::RequestUid& _rrequid);
+	/*virtual*/ void sendStream(StreamPointer<IStream> &_sptr, const FileUidTp &_rfuid, const fdt::RequestUid& _rrequid);
+	/*virtual*/ void sendStream(StreamPointer<OStream> &_sptr, const FileUidTp &_rfuid, const fdt::RequestUid& _rrequid);
+	/*virtual*/ void sendStream(StreamPointer<IOStream> &_sptr, const FileUidTp &_rfuid, const fdt::RequestUid& _rrequid);
 	/*virtual*/ void sendError(int _errid, const fdt::RequestUid& _rrequid);
 };
-void FileManager::sendStream(StreamPtr<IStream> &_sptr, const FileUidTp &_rfuid, const fdt::RequestUid& _rrequid){
+void FileManager::sendStream(StreamPointer<IStream> &_sptr, const FileUidTp &_rfuid, const fdt::RequestUid& _rrequid){
 	fdt::SignalPointer<fdt::Signal>	cp(new IStreamSignal(_sptr, _rfuid, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
 	Manager::the().signalObject(_rrequid.objidx, _rrequid.objuid, cp);
 }
-void FileManager::sendStream(StreamPtr<OStream> &_sptr, const FileUidTp &_rfuid, const fdt::RequestUid& _rrequid){
+void FileManager::sendStream(StreamPointer<OStream> &_sptr, const FileUidTp &_rfuid, const fdt::RequestUid& _rrequid){
 	fdt::SignalPointer<fdt::Signal>	cp(new OStreamSignal(_sptr, _rfuid, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
 	Manager::the().signalObject(_rrequid.objidx, _rrequid.objuid, cp);
 }
-void FileManager::sendStream(StreamPtr<IOStream> &_sptr, const FileUidTp &_rfuid, const fdt::RequestUid& _rrequid){
+void FileManager::sendStream(StreamPointer<IOStream> &_sptr, const FileUidTp &_rfuid, const fdt::RequestUid& _rrequid){
 	fdt::SignalPointer<fdt::Signal>	cp(new IOStreamSignal(_sptr, _rfuid, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
 	Manager::the().signalObject(_rrequid.objidx, _rrequid.objuid, cp);
 }

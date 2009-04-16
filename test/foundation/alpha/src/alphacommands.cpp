@@ -514,7 +514,7 @@ int Fetch::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 	return BAD;
 }
 int Fetch::receiveIStream(
-	StreamPtr<IStream> &_sptr,
+	StreamPointer<IStream> &_sptr,
 	const FileUidTp &_fuid,
 	int			_which,
 	const ObjectUidTp&,
@@ -634,7 +634,7 @@ int Store::execute(Connection &_rc){
 }
 
 int Store::receiveOStream(
-	StreamPtr<OStream> &_sptr,
+	StreamPointer<OStream> &_sptr,
 	const FileUidTp &_fuid,
 	int			_which,
 	const ObjectUidTp&,
@@ -721,7 +721,7 @@ int SendStream::execute(Connection &_rc){
 	uint32	fromobjid(_rc.id());
 	uint32	fromobjuid(rm.uid(_rc));
 	fdt::RequestUid reqid(_rc.id(), rm.uid(_rc), _rc.requestId()); 
-	StreamPtr<IOStream>	sp;
+	StreamPointer<IOStream>	sp;
 	int rv = Manager::the().fileManager().stream(sp, reqid, srcstr.c_str());
 	protocol::Parameter &rp = _rc.writer().push(&Writer::putStatus);
 	switch(rv){
@@ -817,7 +817,7 @@ int Idle::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 	}
 }
 int Idle::receiveIStream(
-	StreamPtr<IStream> &_sp,
+	StreamPointer<IStream> &_sp,
 	const FileUidTp &,
 	int			_which,
 	const ObjectUidTp&_from,
@@ -876,7 +876,7 @@ void Command::initStatic(Manager &_rm){
 /*virtual*/ Command::~Command(){}
 
 int Command::receiveIStream(
-	StreamPtr<IStream> &_ps,
+	StreamPointer<IStream> &_ps,
 	const FileUidTp &,
 	int			_which,
 	const ObjectUidTp&_from,
@@ -885,7 +885,7 @@ int Command::receiveIStream(
 	return BAD;
 }
 int Command::receiveOStream(
-	StreamPtr<OStream> &,
+	StreamPointer<OStream> &,
 	const FileUidTp &,
 	int			_which,
 	const ObjectUidTp&_from,
@@ -894,7 +894,7 @@ int Command::receiveOStream(
 	return BAD;
 }
 int Command::receiveIOStream(
-	StreamPtr<IOStream> &, 
+	StreamPointer<IOStream> &, 
 	const FileUidTp &,
 	int			_which,
 	const ObjectUidTp&_from,

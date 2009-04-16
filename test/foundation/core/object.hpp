@@ -22,7 +22,7 @@
 #ifndef TESTOBJECT_HPP
 #define TESTOBJECT_HPP
 
-#include "utility/streamptr.hpp"
+#include "utility/streampointer.hpp"
 #include "foundation/object.hpp"
 #include "common.hpp"
 #include "tstring.hpp"

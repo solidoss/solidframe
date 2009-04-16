@@ -22,7 +22,7 @@
 #ifndef ALPHA_COMMAND_HPP
 #define ALPHA_COMMAND_HPP
 
-#include "utility/streamptr.hpp"
+#include "utility/streampointer.hpp"
 #include "core/common.hpp"
 #include "core/tstring.hpp"
 
@@ -53,7 +53,7 @@ public:
 	//received from filemanager
 	//! Receive an istream
 	virtual int receiveIStream(
-		StreamPtr<IStream> &,
+		StreamPointer<IStream> &,
 		const FileUidTp &,
 		int			_which,
 		const ObjectUidTp&_from,
@@ -61,7 +61,7 @@ public:
 	);
 	//! Receive an ostream
 	virtual int receiveOStream(
-		StreamPtr<OStream> &,
+		StreamPointer<OStream> &,
 		const FileUidTp &,
 		int			_which,
 		const ObjectUidTp&_from,
@@ -69,7 +69,7 @@ public:
 	);
 	//! Receive an iostream
 	virtual int receiveIOStream(
-		StreamPtr<IOStream> &,
+		StreamPointer<IOStream> &,
 		const FileUidTp &,
 		int			_which,
 		const ObjectUidTp&_from,

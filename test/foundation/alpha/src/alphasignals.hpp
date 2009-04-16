@@ -146,7 +146,7 @@ struct FetchMasterSignal: Dynamic<FetchMasterSignal, foundation::Signal>{
 	FileUidTp				fuid;
 	FileUidTp				tmpfuid;
 	foundation::ipc::ConnectorUid	conid;
-	StreamPtr<IStream>		ins;
+	StreamPointer<IStream>		ins;
 	int32					state;
 	int64					insz;
 	int64					inpos;
@@ -190,7 +190,7 @@ struct FetchSlaveSignal: Dynamic<FetchSlaveSignal, foundation::Signal>{
 	FileUidTp					fuid;
 	foundation::ipc::ConnectorUid		conid;
 	SignalUidTp					siguid;
-	StreamPtr<IStream>			ins;
+	StreamPointer<IStream>			ins;
 	//if insz >= 0 -> [0->1M) else -> [1M->2M)
 	int64						insz;
 	int32						sz;
@@ -235,7 +235,7 @@ private:
 struct SendStreamSignal: Dynamic<SendStreamSignal, foundation::Signal>{
 	SendStreamSignal(){}
 	SendStreamSignal(
-		StreamPtr<IOStream> &_iosp,
+		StreamPointer<IOStream> &_iosp,
 		const String &_str,
 		uint32 _myprocid,
 		ulong _toobjid,
@@ -264,7 +264,7 @@ private:
 	typedef std::pair<uint32, uint32> 	ObjPairTp;
 	typedef std::pair<uint32, uint32> 	FileUidTp;
 
-	StreamPtr<IOStream>			iosp;
+	StreamPointer<IOStream>		iosp;
 	String						dststr;
 	ObjPairTp					tov;
 	ObjPairTp					fromv;

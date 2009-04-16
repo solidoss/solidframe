@@ -22,7 +22,7 @@
 #ifndef TESTCONNECTION_HPP
 #define TESTCONNECTION_HPP
 
-#include "utility/streamptr.hpp"
+#include "utility/streampointer.hpp"
 #include "foundation/aio/aiosingleobject.hpp"
 #include "common.hpp"
 #include "tstring.hpp"

@@ -23,7 +23,7 @@ set(Headers
 	queue.hpp
 	stack.hpp
 	stream.hpp
-	streamptr.hpp
+	streampointer.hpp
 	string.hpp
 	workpool.hpp
 )

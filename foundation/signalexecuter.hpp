@@ -25,7 +25,7 @@
 #include "foundation/object.hpp"
 #include "foundation/common.hpp"
 #include "signalpointer.hpp"
-#include "utility/streamptr.hpp"
+#include "utility/streampointer.hpp"
 #include <string>
 
 class IStream;
