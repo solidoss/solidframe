@@ -27,21 +27,10 @@
 #include "common.hpp"
 #include "tstring.hpp"
 
-class IStream;
-class OStream;
-class IOStream;
-
-namespace foundation{
-namespace ipc{
-struct ConnectorUid;
-}
-}
 namespace test{
-struct Command;
 //! The base class for all test connections
 class Connection: public foundation::aio::SingleObject{
 public:
-	typedef Command	CommandTp;
 	typedef std::pair<uint32, uint32>	FileUidTp;
 	typedef std::pair<uint32, uint32>	RequestUidTp;
 protected:

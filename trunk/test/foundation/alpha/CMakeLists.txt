@@ -9,6 +9,7 @@ set(Sources
 	src/alphareader.cpp
 	src/alphaservice.cpp
 	src/alphawriter.cpp
+	src/alphasignals.cpp
 )
 
 set(Headers
@@ -19,6 +20,7 @@ set(Headers
 	src/alphaprotocolfilters.hpp
 	src/alphareader.hpp
 	src/alphawriter.hpp
+	src/alphasignals.hpp
 )
 
 set(Includes

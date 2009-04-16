@@ -22,10 +22,13 @@
 #ifndef TEST_CORE_SIGNALS_HPP
 #define TEST_CORE_SIGNALS_HPP
 
+#include "utility/streamptr.hpp"
 #include "foundation/signal.hpp"
 #include "object.hpp"
 
-
+class IStream;
+class OStream;
+class IOStream;
 
 namespace test{
 

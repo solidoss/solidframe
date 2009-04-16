@@ -39,14 +39,14 @@ namespace foundation{
 	- After exiting the lock, call execSignals(*this)
 */
 template <class B>
-class SingnalableObject: public B{
+class SignalableObject: public B{
 public:
 	//!Comodity one parameter template constructor - forward to base
 	template <typename T>
-	SingnalableObject(const T &_t):B(_t){}
+	SignalableObject(const T &_t):B(_t){}
 	//!Comodity two parameters template constructor - forward to base
 	template <typename T1, typename T2>
-	SingnalableObject(T1 _t1, T2 _t2):B(_t1,_t2){}
+	SignalableObject(T1 _t1, T2 _t2):B(_t1,_t2){}
 	/*virtual*/ int signal(SignalPointer<Signal> &_sig){
 		if(this->state() < 0){
 			_sig.clear();
@@ -74,11 +74,11 @@ public:
 		typename SigVecTp::iterator it(runv.begin());
 		for(; it != runv.end(); ++it){
 			//TODO:
-// 			switch(static_cast<typename T::CommandTp&>(*(*it)).execute(_thisobj)){
-// 				case BAD: rv = BAD; goto done;
-// 				case OK:  (*it).release(); break;
-// 				case NOK: delete (*it).release(); break;
-// 			}
+			switch(_thisobj.dynamicReceiver(&static_cast<DynamicBase&>(*(*it)))){
+				case BAD: rv = BAD; goto done;
+				case OK:  (*it).release(); break;
+				case NOK: delete (*it).release(); break;
+			}
 		}
 		done:
 		runv.clear();
@@ -88,10 +88,10 @@ public:
 	void clear(){
 		sigv.clear();runv.clear();
 	}
-	~SingnalableObject(){ clear();}
+	~SignalableObject(){ clear();}
 protected:
-	typedef std::vector<CmdPtr<Command> >  SigVecTp;
-	SingnalableObject(){}
+	typedef std::vector<SignalPointer<Signal> >  SigVecTp;
+	SignalableObject(){}
 	SigVecTp    runv;
 private:
 	SigVecTp    sigv;

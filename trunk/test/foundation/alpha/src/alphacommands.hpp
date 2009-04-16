@@ -31,6 +31,9 @@
 #include "utility/streamptr.hpp"
 #include "utility/istream.hpp"
 #include "utility/ostream.hpp"
+
+#include "foundation/ipc/connectoruid.hpp"
+
 #include "core/common.hpp"
 #include "alphacommand.hpp"
 
@@ -143,7 +146,7 @@ private:
 	StreamPtr<IStream>	sp;
 	IStreamIterator		it;
 	Connection			&rc;
-	CommandUidTp		mastercmduid;
+	SignalUidTp			mastersiguid;
 	int16 				st;
 	protocol::Parameter	*pp;
 	uint64				litsz64;

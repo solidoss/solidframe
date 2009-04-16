@@ -10,7 +10,7 @@ set(Sources
 )
 
 set(Headers
-	command.hpp
+	signals.hpp
 	common.hpp
 	connection.hpp
 	listener.hpp
