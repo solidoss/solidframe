@@ -29,7 +29,7 @@ namespace test{
 
 class Service;
 class Visitor;
-class CommandExecuter;
+class SignalExecuter;
 
 typedef Service* (*ServiceCreator)();
 typedef std::map<const char*, ServiceCreator, StrLess>	ServiceMap;
@@ -66,9 +66,9 @@ public:
 	//! Registers a service given its name and a pointer to a service.
 	int insertService(const char* _nm, Service* _psrvc);
 	//! Get the id of the command executer specialized for reading
-	void readCommandExecuterUid(ObjectUidTp &_ruid);
+	void readSignalExecuterUid(ObjectUidTp &_ruid);
 	//! Get the id of the command executer specialized for writing
-	void writeCommandExecuterUid(ObjectUidTp &_ruid);
+	void writeSignalExecuterUid(ObjectUidTp &_ruid);
 	//! Removes a service
 	void removeService(Service *_psrvc);
 	//! Inserts a listener into a service
@@ -115,7 +115,7 @@ public:
 	template <class J>
 	void pushJob(J *_pj, int _pos = 0);
 private:
-	friend class CommandExecuter;
+	friend class SignalExecuter;
 	struct Data;
 	Data	&d;
 };

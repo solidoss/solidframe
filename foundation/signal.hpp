@@ -74,7 +74,7 @@ struct Signal: Dynamic<Signal>{
 		If it returns OK, the commnad is rescheduled for execution
 	*/
 	virtual int receiveSignal(
-		SignalPointer<Signal> &_rcmd,
+		SignalPointer<Signal> &_rsig,
 		const ObjectUidTp& _from = ObjectUidTp(),
 		const ipc::ConnectorUid *_conid = NULL
 	);

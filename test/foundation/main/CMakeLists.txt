@@ -12,10 +12,10 @@ add_executable (test_concept src/test.cpp)
 
 target_link_libraries (test_concept
 	test_echo
-	test_alpha
-	test_core
 	test_beta
 	test_proxy
+	test_alpha
+	test_core
 	foundation_core
 	foundation_ipc
 	foundation_aio

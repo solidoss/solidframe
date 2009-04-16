@@ -28,8 +28,8 @@
 
 typedef foundation::RequestUidTp	RequestUidTp;
 typedef foundation::FileUidTp		FileUidTp;
-typedef foundation::ObjectUidTp	ObjectUidTp;
-typedef foundation::CommandUidTp	CommandUidTp;
+typedef foundation::ObjectUidTp		ObjectUidTp;
+typedef foundation::SignalUidTp		SignalUidTp;
 
 struct StrLess{
 	bool operator()(const char* const &_str1, const char* const &_str2)const{

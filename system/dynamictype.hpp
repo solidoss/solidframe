@@ -3,11 +3,11 @@
 
 #include "system/common.hpp"
 
-struct DynamicId{
-	static uint32 generate();
-	DynamicId(uint32 _v):v(_v){}
-	uint32	v;
-};
+// struct DynamicId{
+// 	static uint32 generate();
+// 	DynamicId(uint32 _v):v(_v){}
+// 	uint32	v;
+// };
 
 struct DynamicMap{
 	typedef int (*FncTp)(void*,void*);
@@ -39,6 +39,9 @@ struct Dynamic: T{
 		static uint32 id(DynamicMap::generateId());
 		return id;
 	}
+	//TODO: add:
+	//static bool isTypeExplicit(const DynamicBase*);
+	//static bool isType(const DynamicBase*);
 	virtual uint32 dynamicTypeId()const{
 		return staticTypeId();
 	}
@@ -59,7 +62,9 @@ struct DynamicReceiver: T{
 	typedef DynamicReceiver<X,T>	BaseTp;
 	DynamicReceiver(){}
 	template<class G>
-	DynamicReceiver(G _x):T(_x){}
+	DynamicReceiver(const G &_x):T(_x){}
+// 	template<class G>
+// 	DynamicReceiver(G _x):T(_x){}
 
 	template <class C>
 	static int dynamicCallback(void *_pdyn, void *_prcv){

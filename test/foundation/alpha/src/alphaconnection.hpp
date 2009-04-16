@@ -29,7 +29,7 @@
 #include "alphareader.hpp"
 #include "alphawriter.hpp"
 
-#include "foundation/commandableobject.hpp"
+#include "foundation/signalableobject.hpp"
 
 class SocketAddress;
 
@@ -49,10 +49,23 @@ namespace test{
 class Visitor;
 class Manager;
 
+//signals
+struct IStreamSignal;
+struct OStreamSignal;
+struct IOStreamSignal;
+struct StreamErrorSignal;
+
+
 namespace alpha{
 
 class Service;
 class Command;
+
+//signals:
+struct RemoteListSignal;
+struct FetchSlaveSignal;
+struct SendStringSignal;
+struct SendStreamSignal;
 
 class Logger: public protocol::Logger{
 protected:
@@ -65,12 +78,13 @@ protected:
 	It uses a reader and a writer to implement a state machine for the 
 	protocol communication. 
 */
-class Connection: public foundation::CommandableObject<test::Connection>{
+class Connection: public DynamicReceiver<Connection, foundation::SignalableObject<test::Connection> >{
 public:
-	typedef foundation::CommandableObject<test::Connection> BaseTp;
+	//typedef foundation::CommandableObject<test::Connection> BaseTp;
 	typedef Service	ServiceTp;
 	
 	static void initStatic(Manager &_rm);
+	static void dynamicRegister(DynamicMap &_rdm);
 	
 	Connection(SocketAddress *_paddr);
 	Connection(const SocketDevice &_rsd);
@@ -107,63 +121,14 @@ public:
 		return (reqid = 1);
 	}
 	
-	//int sendStatusResponse(cmd::Responder &_rr, int _opt);
-	//! Receive a stream as a response
-	/*!
-		Filters unexpected responses and forwards the stream to the current alpha command
-	*/
-	/*virtual*/ int receiveIStream(
-		StreamPtr<IStream> &,
-		const FileUidTp&,
-		const RequestUidTp &_requid,
-		int			_which,
-		const ObjectUidTp &_from,
-		const foundation::ipc::ConnectorUid *_conid
-	);
-	/*virtual*/ int receiveOStream(
-		StreamPtr<OStream> &,
-		const FileUidTp&,
-		const RequestUidTp &_requid,
-		int			_which,
-		const ObjectUidTp&_from,
-		const foundation::ipc::ConnectorUid *_conid
-	);
-	/*virtual*/ int receiveIOStream(
-		StreamPtr<IOStream> &,
-		const FileUidTp&,
-		const RequestUidTp &_requid,
-		int			_which,
-		const ObjectUidTp &_from,
-		const foundation::ipc::ConnectorUid *_conid
-	);
-	/*virtual*/ int receiveString(
-		const String &_str, 
-		const RequestUidTp &_requid,
-		int			_which,
-		const ObjectUidTp &_from,
-		const foundation::ipc::ConnectorUid *_conid
-	);
-	/*virtual*/ int receiveNumber(
-		const int64 &_no, 
-		const RequestUidTp &_requid,
-		int			_which,
-		const ObjectUidTp &_from,
-		const foundation::ipc::ConnectorUid *_conid
-	);
-	/*virtual*/ int receiveData(
-		void *_pdata,
-		int	_datasz,
-		const RequestUidTp &_requid,
-		int			_which = 0,
-		const ObjectUidTp&_from = ObjectUidTp(),
-		const foundation::ipc::ConnectorUid *_conid = NULL
-	);
-	/*virtual*/ int receiveError(
-		int _errid, 
-		const RequestUidTp &_requid,
-		const ObjectUidTp &_from,
-		const foundation::ipc::ConnectorUid *_conid
-	);
+	int dynamicReceive(RemoteListSignal &_rsig);
+	int dynamicReceive(FetchSlaveSignal &_rsig);
+	int dynamicReceive(SendStringSignal &_rsig);
+	int dynamicReceive(SendStreamSignal &_rsig);
+	int dynamicReceive(IStreamSignal &_rsig);
+	int dynamicReceive(OStreamSignal &_rsig);
+	int dynamicReceive(IOStreamSignal &_rsig);
+	int dynamicReceive(StreamErrorSignal &_rsig);
 private:
 	void prepareReader();
 private:

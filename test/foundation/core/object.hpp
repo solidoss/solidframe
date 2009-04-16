@@ -27,18 +27,7 @@
 #include "common.hpp"
 #include "tstring.hpp"
 
-class IStream;
-class OStream;
-class IOStream;
-
-namespace foundation{
-namespace ipc{
-struct ConnectorUid;
-}
-}
-
 namespace test{
-struct Command;
 
 //! A test variant of foundation::Object
 /*!
@@ -46,7 +35,6 @@ struct Command;
 */
 class Object: public foundation::Object{
 public:
-	typedef Command	CommandTp;
 	typedef std::pair<uint32, uint32>	FromPairTp;
 	typedef std::pair<uint32, uint32>	FileUidTp;
 	typedef std::pair<uint32, uint32>	RequestUidTp;

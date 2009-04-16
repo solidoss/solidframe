@@ -26,18 +26,20 @@
 
 #include "utility/ostream.hpp"
 #include "utility/istream.hpp"
+#include "utility/iostream.hpp"
 
 #include "foundation/ipc/ipcservice.hpp"
 #include "foundation/requestuid.hpp"
 
 
 #include "core/manager.hpp"
-#include "core/command.hpp"
+#include "core/signals.hpp"
 
 #include "alpha/alphaservice.hpp"
 
 #include "alphaconnection.hpp"
 #include "alphacommand.hpp"
+#include "alphasignals.hpp"
 #include "alphaprotocolfilters.hpp"
 #include "audit/log.hpp"
 
@@ -62,10 +64,19 @@ void Logger::doOutFlush(const char *_pb, unsigned _bl){
 	}
 }
 
-void Connection::initStatic(Manager &_rm){
+/*static*/ void Connection::initStatic(Manager &_rm){
 	Command::initStatic(_rm);
 }
-
+/*static*/ void Connection::dynamicRegister(DynamicMap &_rdm){
+	BaseTp::dynamicRegister<IStreamSignal>(_rdm);
+	BaseTp::dynamicRegister<OStreamSignal>(_rdm);
+	BaseTp::dynamicRegister<IOStreamSignal>(_rdm);
+	BaseTp::dynamicRegister<StreamErrorSignal>(_rdm);
+	BaseTp::dynamicRegister<RemoteListSignal>(_rdm);
+	BaseTp::dynamicRegister<FetchSlaveSignal>(_rdm);
+	BaseTp::dynamicRegister<SendStringSignal>(_rdm);
+	BaseTp::dynamicRegister<SendStreamSignal>(_rdm);
+}
 Connection::Connection(SocketAddress *_paddr):
 						 	//BaseTp(_pch),
 						 	wtr(*this, &logger),
@@ -135,17 +146,17 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			Mutex::Locker	lock(rm.mutex(*this));
 			sm = grabSignalMask(0);//grab all bits of the signal mask
 			if(sm & fdt::S_KILL) return BAD;
-			if(sm & fdt::S_CMD){//we have commands
-				grabCommands();//grab them
+			if(sm & fdt::S_SIG){//we have signals
+				grabSignals();//grab them
 			}
 		}
-		if(sm & fdt::S_CMD){//we've grabed commands, execute them
-			switch(execCommands(*this)){
+		if(sm & fdt::S_SIG){//we've grabed signals, execute them
+			switch(this->execSignals(*this)){
 				case BAD: 
 					return BAD;
-				case OK: //expected command received
+				case OK: //expected signal received
 					_sig |= fdt::OKDONE;
-				case NOK://unexpected command received
+				case NOK://unexpected signal received
 					break;
 			}
 		}
@@ -320,6 +331,8 @@ void Connection::prepareReader(){
 	reader().push(&Reader::checkChar, protocol::Parameter(' '));
 	reader().push(&Reader::fetchFilteredString<TagFilter>, protocol::Parameter(&writer().tag(),64));
 }
+
+/*
 //receiving an istream
 int Connection::receiveIStream(
 	StreamPtr<IStream> &_ps,
@@ -560,6 +573,55 @@ int Connection::receiveError(
 		}
 	}
 	return OK;
+}
+*/
+int Connection::dynamicReceive(RemoteListSignal &_rsig){
+	idbg("");
+	if(_rsig.requid && _rsig.requid != reqid) return OK;
+	idbg("");
+	newRequestId();//prevent multiple responses with the same id
+	if(pcmd){
+		int rv;
+		if(!_rsig.err){
+			rv = pcmd->receiveData((void*)_rsig.ppthlst, -1, 0, ObjectUidTp(), &_rsig.conid);
+			_rsig.ppthlst = NULL;
+		}else{
+			rv = pcmd->receiveError(_rsig.err, ObjectUidTp(), &_rsig.conid);
+		}
+		switch(rv){
+			case BAD:
+				idbg("");
+				break;
+			case OK:
+				idbg("");
+				if(state() == ParseTout){
+					state(Parse);
+				}
+				if(state() == ExecuteTout){
+					state(Execute);
+				}
+				break;
+			case NOK:
+				idbg("");
+				state(IdleExecute);
+				break;
+		}
+	}
+	return NOK;
+}
+int Connection::dynamicReceive(FetchSlaveSignal &_rsig){
+}
+int Connection::dynamicReceive(SendStringSignal &_rsig){
+}
+int Connection::dynamicReceive(SendStreamSignal &_rsig){
+}
+int Connection::dynamicReceive(IStreamSignal &_rsig){
+}
+int Connection::dynamicReceive(OStreamSignal &_rsig){
+}
+int Connection::dynamicReceive(IOStreamSignal &_rsig){
+}
+int Connection::dynamicReceive(StreamErrorSignal &_rsig){
 }
 
 
