@@ -185,16 +185,16 @@ struct FetchSlaveSignal: Dynamic<FetchSlaveSignal, foundation::Signal>{
 	}
 	void print()const;
 //data:	
-	ObjectUidTp					fromv;
-	ObjectUidTp					tov;
-	FileUidTp					fuid;
-	foundation::ipc::ConnectorUid		conid;
-	SignalUidTp					siguid;
+	ObjectUidTp						fromv;
+	ObjectUidTp						tov;
+	FileUidTp						fuid;
+	foundation::ipc::ConnectorUid	conid;
+	SignalUidTp						siguid;
 	StreamPointer<IStream>			ins;
 	//if insz >= 0 -> [0->1M) else -> [1M->2M)
-	int64						insz;
-	int32						sz;
-	uint32						requid;
+	int64							insz;
+	int32							sz;
+	uint32							requid;
 };
 
 //---------------------------------------------------------------
