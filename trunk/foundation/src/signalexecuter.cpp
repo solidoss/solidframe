@@ -23,24 +23,24 @@ struct SignalExecuter::Data{
 	};
 	void push(SignalPointer<Signal> &_sig);
 	void eraseToutPos(uint32 _pos);
-	struct CmdData{
-		CmdData(const SignalPointer<Signal>& _rsig):sig(_rsig), toutidx(-1), uid(0),tout(0xffffffff){}
-		CmdData(){}
+	struct SigData{
+		SigData(const SignalPointer<Signal>& _rsig):sig(_rsig), toutidx(-1), uid(0),tout(0xffffffff){}
+		SigData(){}
 		SignalPointer<Signal>	sig;
 		int32					toutidx;
 		uint32					uid;
 		TimeSpec				tout;
 	};
 	typedef std::deque<int32>					TimeoutVectorTp;
-	typedef std::deque<CmdData >				SignalDequeTp;
+	typedef std::deque<SigData >				SignalDequeTp;
 	typedef std::deque<SignalPointer<Signal> >	SignalExtDequeTp;
 	typedef Queue<uint32>						ExecQueueTp;
 	typedef Stack<uint32>						FreeStackTp;
 	Mutex 				*pm;
 	uint32				extsz;
 	uint32				sz;
-	SignalDequeTp		cdq;
-	SignalExtDequeTp	cedq;
+	SignalDequeTp		sdq;
+	SignalExtDequeTp	sedq;
 	FreeStackTp			fs;
 	FreeStackTp			fs2;
 	ExecQueueTp			sq;
@@ -51,20 +51,20 @@ struct SignalExecuter::Data{
 
 void SignalExecuter::Data::push(SignalPointer<Signal> &_sig){
 	if(fs.size()){
-		cdq[fs.top()].sig = _sig;
+		sdq[fs.top()].sig = _sig;
 		sq.push(fs.top());
 		fs.pop();
 	}else{
-		cedq.push_back(_sig);
+		sedq.push_back(_sig);
 		++extsz;
-		sq.push(cdq.size() + extsz - 1);
+		sq.push(sdq.size() + extsz - 1);
 	}
 }
 
 void SignalExecuter::Data::eraseToutPos(uint32 _pos){
 	cassert(_pos < toutv.size());
 	toutv[_pos] = toutv.back();
-	cdq[toutv.back()].toutidx = _pos;
+	sdq[toutv.back()].toutidx = _pos;
 	toutv.pop_back();
 }
 
@@ -101,11 +101,11 @@ int SignalExecuter::execute(ulong _evs, TimeSpec &_rtout){
 	d.pm->lock();
 	idbgx(Dbg::cs, "d.extsz = "<<d.extsz);
 	if(d.extsz){
-		for(Data::SignalExtDequeTp::const_iterator it(d.cedq.begin()); it != d.cedq.end(); ++it){
-			d.cdq.push_back(Data::CmdData(*it));
+		for(Data::SignalExtDequeTp::const_iterator it(d.sedq.begin()); it != d.sedq.end(); ++it){
+			d.sdq.push_back(Data::SigData(*it));
 		}
-		d.sz += d.cedq.size();
-		d.cedq.clear();
+		d.sz += d.sedq.size();
+		d.sedq.clear();
 		d.extsz = 0;
 	}
 	if(signaled()){
@@ -116,7 +116,7 @@ int SignalExecuter::execute(ulong _evs, TimeSpec &_rtout){
 			if(!d.sz){//no signal
 				state(-1);
 				d.pm->unlock();
-				d.cdq.clear();
+				d.sdq.clear();
 				removeFromManager();
 				idbgx(Dbg::cs, "~SignalExecuter");
 				return BAD;
@@ -142,7 +142,7 @@ int SignalExecuter::execute(ulong _evs, TimeSpec &_rtout){
 			idbgx(Dbg::cs, "1 tout.size = "<<d.toutv.size());
 			for(uint i = 0; i < d.toutv.size();){
 				uint pos = d.toutv[i];
-				Data::CmdData &rcp(d.cdq[pos]);
+				Data::SigData &rcp(d.sdq[pos]);
 				if(_rtout >= rcp.tout){
 					d.eraseToutPos(i);
 					rcp.toutidx = -1;
@@ -158,7 +158,7 @@ int SignalExecuter::execute(ulong _evs, TimeSpec &_rtout){
 			d.tout = tout;
 		}
 	}else{
-		for(Data::SignalDequeTp::iterator it(d.cdq.begin()); it != d.cdq.end(); ++it){
+		for(Data::SignalDequeTp::iterator it(d.sdq.begin()); it != d.sdq.end(); ++it){
 			if(it->sig.ptr()){
 				//TODO: should you use clear?!
 				delete it->sig.release();
@@ -167,7 +167,7 @@ int SignalExecuter::execute(ulong _evs, TimeSpec &_rtout){
 		idbgx(Dbg::cs, "~SignalExecuter");
 		removeFromManager();
 		state(-1);
-		d.cdq.clear();
+		d.sdq.clear();
 		return BAD;
 	}
 	if(d.fs2.size()){
@@ -192,7 +192,7 @@ int SignalExecuter::execute(){
 }
 
 void SignalExecuter::doExecute(uint _pos, uint32 _evs, const TimeSpec &_rtout){
-	Data::CmdData &rcp(d.cdq[_pos]);
+	Data::SigData &rcp(d.sdq[_pos]);
 	TimeSpec ts(_rtout);
 	switch(rcp.sig->execute( _evs, *this, SignalUidTp(_pos, rcp.uid), ts)){
 		case BAD: 
@@ -249,10 +249,10 @@ void SignalExecuter::sendSignal(
 	const ObjectUidTp& _from,
 	const ipc::ConnectorUid *_conid
 ){
-	idbgx(Dbg::cs, "_requid.first = "<<_requid.first<<" _requid.second = "<<_requid.second<<" uid = "<<d.cdq[_requid.first].uid);
-	if(_requid.first < d.cdq.size() && d.cdq[_requid.first].uid == _requid.second){
+	idbgx(Dbg::cs, "_requid.first = "<<_requid.first<<" _requid.second = "<<_requid.second<<" uid = "<<d.sdq[_requid.first].uid);
+	if(_requid.first < d.sdq.size() && d.sdq[_requid.first].uid == _requid.second){
 		idbgx(Dbg::cs, "");
-		if(d.cdq[_requid.first].sig->receiveSignal(_rsig, _from, _conid) == OK){
+		if(d.sdq[_requid.first].sig->receiveSignal(_rsig, _from, _conid) == OK){
 			idbgx(Dbg::cs, "");
 			d.eq.push(_requid.first);
 		}

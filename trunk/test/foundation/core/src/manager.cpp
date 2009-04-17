@@ -86,28 +86,28 @@ namespace test{
 int IStreamSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidTp &, TimeSpec &){
 	fdt::SignalPointer<Signal> cmdptr(this);
 	_rce.sendSignal(cmdptr, requid);
-	return NOK;
+	return fdt::LEAVE;
 }
 //----------------------------------------------------------------------
 
 int OStreamSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidTp &, TimeSpec &){
 	fdt::SignalPointer<Signal> cmdptr(this);
 	_rce.sendSignal(cmdptr, requid);
-	return NOK;
+	return fdt::LEAVE;
 }
 //----------------------------------------------------------------------
 
 int IOStreamSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidTp &, TimeSpec &){
 	fdt::SignalPointer<Signal> cmdptr(this);
 	_rce.sendSignal(cmdptr, requid);
-	return NOK;
+	return fdt::LEAVE;
 }
 //----------------------------------------------------------------------
 
 int StreamErrorSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidTp &, TimeSpec &){
 	fdt::SignalPointer<Signal> cmdptr(this);
 	_rce.sendSignal(cmdptr, requid);
-	return NOK;
+	return fdt::LEAVE;
 }
 //----------------------------------------------------------------------
 /*

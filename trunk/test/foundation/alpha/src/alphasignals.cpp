@@ -238,6 +238,7 @@ int FetchMasterSignal::receiveSignal(
 	const fdt::ipc::ConnectorUid *_conid
 ){
 	if(_rsig->dynamicTypeId() == IStreamSignal::staticTypeId()){
+		idbg("Received stream");
 		IStreamSignal &rsig(*static_cast<IStreamSignal*>(_rsig.ptr()));
 		ins = rsig.sptr;
 		fuid = rsig.fileuid;
@@ -251,9 +252,11 @@ int FetchMasterSignal::receiveSignal(
 		state = SendError;
 	}else if(_rsig->dynamicTypeId() == FetchSlaveSignal::staticTypeId()){
 		//FetchSlaveSignal &rsig(*static_cast<FetchSlaveSignal*>(_rsig.ptr()));
+		idbg("Received slavesignal");
 		psig = static_cast<FetchSlaveSignal*>(_rsig.release());
 		state = SendNextStream;
 	}else return NOK;
+	idbg("success");
 	return OK;//success reschedule command for execution
 }
 

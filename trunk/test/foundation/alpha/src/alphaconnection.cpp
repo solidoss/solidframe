@@ -577,7 +577,7 @@ int Connection::receiveError(
 */
 int Connection::dynamicReceive(RemoteListSignal &_rsig){
 	idbg("");
-	if(_rsig.requid && _rsig.requid != reqid) return OK;
+	if(_rsig.requid && _rsig.requid != reqid) return NOK;
 	idbg("");
 	newRequestId();//prevent multiple responses with the same id
 	if(pcmd){
@@ -610,24 +610,159 @@ int Connection::dynamicReceive(RemoteListSignal &_rsig){
 	return NOK;
 }
 int Connection::dynamicReceive(FetchSlaveSignal &_rsig){
+	idbg("");
+	if(_rsig.requid && _rsig.requid != reqid) return NOK;
+	idbg("");
+	newRequestId();//prevent multiple responses with the same id
+	if(pcmd){
+		int rv;
+		if(_rsig.sz >= 0){
+			idbg("");
+			rv = pcmd->receiveNumber(_rsig.insz, 0, _rsig.siguid, &_rsig.conid);
+		}else{
+			idbg("");
+			rv = pcmd->receiveError(-1, _rsig.siguid, &_rsig.conid);
+		}
+		switch(rv){
+			case BAD:
+				idbg("");
+				break;
+			case OK:
+				idbg("");
+				if(state() == ParseTout){
+					state(Parse);
+				}
+				if(state() == ExecuteTout){
+					state(Execute);
+				}
+				break;
+			case NOK:
+				idbg("");
+				state(IdleExecute);
+				break;
+		}
+	}
+	return NOK;
 }
 int Connection::dynamicReceive(SendStringSignal &_rsig){
+	return NOK;
 }
 int Connection::dynamicReceive(SendStreamSignal &_rsig){
+	return NOK;
 }
 int Connection::dynamicReceive(IStreamSignal &_rsig){
+	idbg("");
+	if(_rsig.requid.first && _rsig.requid.first != reqid) return NOK;
+	idbg("");
+	newRequestId();//prevent multiple responses with the same id
+	if(pcmd){
+		switch(pcmd->receiveIStream(_rsig.sptr, _rsig.fileuid, 0, ObjectUidTp(), NULL)){
+			case BAD:
+				idbg("");
+				break;
+			case OK:
+				idbg("");
+				if(state() == ParseTout){
+					state(Parse);
+				}
+				if(state() == ExecuteTout){
+					state(Execute);
+				}
+				break;
+			case NOK:
+				idbg("");
+				state(IdleExecute);
+				break;
+		}
+	}
+	return NOK;
 }
 int Connection::dynamicReceive(OStreamSignal &_rsig){
+	idbg("");
+	if(_rsig.requid.first && _rsig.requid.first != reqid) return NOK;
+	idbg("");
+	newRequestId();//prevent multiple responses with the same id
+	if(pcmd){
+		switch(pcmd->receiveOStream(_rsig.sptr, _rsig.fileuid, 0, ObjectUidTp(), NULL)){
+			case BAD:
+				idbg("");
+				break;
+			case OK:
+				idbg("");
+				if(state() == ParseTout){
+					state(Parse);
+				}
+				if(state() == ExecuteTout){
+					state(Execute);
+				}
+				break;
+			case NOK:
+				idbg("");
+				state(IdleExecute);
+				break;
+		}
+	}
+	return NOK;
 }
 int Connection::dynamicReceive(IOStreamSignal &_rsig){
+	idbg("");
+	if(_rsig.requid.first && _rsig.requid.first != reqid) return NOK;
+	idbg("");
+	newRequestId();//prevent multiple responses with the same id
+	if(pcmd){
+		switch(pcmd->receiveIOStream(_rsig.sptr, _rsig.fileuid, 0, ObjectUidTp(), NULL)){
+			case BAD:
+				idbg("");
+				break;
+			case OK:
+				idbg("");
+				if(state() == ParseTout){
+					state(Parse);
+				}
+				if(state() == ExecuteTout){
+					state(Execute);
+				}
+				break;
+			case NOK:
+				idbg("");
+				state(IdleExecute);
+				break;
+		}
+	}
+	return NOK;
 }
 int Connection::dynamicReceive(StreamErrorSignal &_rsig){
+	idbg("");
+	if(_rsig.requid.first && _rsig.requid.first != reqid) return NOK;
+	idbg("");
+	newRequestId();//prevent multiple responses with the same id
+	if(pcmd){
+		switch(pcmd->receiveError(_rsig.errid, ObjectUidTp(), NULL)){
+			case BAD:
+				idbg("");
+				break;
+			case OK:
+				idbg("");
+				if(state() == ParseTout){
+					state(Parse);
+				}
+				if(state() == ExecuteTout){
+					state(Execute);
+				}
+				break;
+			case NOK:
+				idbg("");
+				state(IdleExecute);
+				break;
+		}
+	}
+	return NOK;
 }
 
 
 int Connection::accept(fdt::Visitor &_rov){
 	//static_cast<TestInspector&>(_roi).inspectConnection(*this);
-	return 0;
+	return OK;
 }
 
 }//namespace alpha
