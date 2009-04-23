@@ -23,7 +23,7 @@ int main(){
 	TestA::instance().set(10);
 
 	//load lib b
-	void *libb_handle = dlopen("libdltestb.so", RTLD_LAZY);
+	void *libb_handle = dlopen("./libdltestb.so", RTLD_LAZY);
 	if(!libb_handle){
 		idbg("cannot open libdltestb.so");
 		return 0;
@@ -42,7 +42,7 @@ int main(){
 	delete ptb;
 
 	//load lib c
-	void *libc_handle = dlopen("libdltestc.so", RTLD_LAZY);
+	void *libc_handle = dlopen("./libdltestc.so", RTLD_LAZY);
 	if(!libc_handle){
 		idbg("cannot open libdltestc.so");
 		return 0;
