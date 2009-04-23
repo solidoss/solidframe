@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef STREAM_POINTER_HPP
-#define STREAM_POINTER_HPP
+#ifndef UTILITY_STREAM_POINTER_HPP
+#define UTILITY_STREAM_POINTER_HPP
 
 class Stream;
 

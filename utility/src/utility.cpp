@@ -22,6 +22,11 @@
 #include "utility/workpool.hpp"
 #include "utility/string.hpp"
 #include "utility/polycontainer.hpp"
+#include <cstring>
+#ifndef ON_WIN
+#include <strings.h>
+#endif
+
 
 //------	WorkPoolPlugin --------------------------------------------
 
@@ -76,3 +81,30 @@ static const char* strs[] = {
 const char * charToString(unsigned _c){
 	return strs[_c & 255];
 }
+
+
+/*static*/ int cstring::cmp(const char* _s1, const char *_s2){
+    return strcmp(_s1, _s2);
+}
+
+/*static*/ int cstring::ncmp(const char* _s1, const char *_s2, uint _len){
+    return strncmp(_s1, _s2, _len);
+}
+
+/*static*/ int cstring::casecmp(const char* _s1, const char *_s2){
+#ifdef ON_WIN
+        return _stricmp(_s1,_s2) < 0;
+#else
+        return strcasecmp(_s1,_s2) < 0;
+#endif
+}
+
+/*static*/ int cstring::ncasecmp(const char* _s1, const char *_s2, uint _len){
+#ifdef ON_WIN
+        return _strnicmp(_s1,_s2, _len) < 0;
+#else
+        return strncasecmp(_s1,_s2, _len) < 0;
+#endif
+}
+
+
