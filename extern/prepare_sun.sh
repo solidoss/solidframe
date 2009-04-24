@@ -33,7 +33,7 @@ cd "$BOOST_DIR"
 echo "$EXT_DIR"
 ./configure --with-toolset=sun --with-libraries="filesystem,system,program_options" --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR"
 #make && make install
-tools/jam/src/bin.solaris/bjam toolset=sun stdlib=sun-stlport instruction-set=i586 address-model=32 --with-filesystem --with-system --with-program-options --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" install
+tools/jam/src/bin.solaris/bjam toolset=sun stdlib=sun-stlport instruction-set=i586 address-model=32 --with-filesystem --with-system --with-program_options --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" install
 #make install
 cd ..
 cd include
