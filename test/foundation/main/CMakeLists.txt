@@ -29,6 +29,7 @@ target_link_libraries (test_concept
 	utility
 	system
 	boost_filesystem
+	boost_program_options
 	boost_system
 	${SYS_BASIC_LIBS}
 	dl
