@@ -37,7 +37,8 @@
 
 #include <termios.h>
 
-#include "tclap/CmdLine.h"
+#include "boost/program_options.hpp"
+
 using namespace std;
 
 namespace fs = boost::filesystem;
@@ -230,39 +231,75 @@ int main(int argc, char *argv[]){
 	return 0;
 }
 
+// bool parseArguments(Params &_par, int argc, char *argv[]){
+// 	try{
+// 		TCLAP::CmdLine cmd("imapappender application", ' ', "0.1");
+// 		
+// 		TCLAP::ValueArg<std::string> host("a","addr","IMAP server host",false,"localhost","string");
+// 		TCLAP::ValueArg<std::string> port("p","port","IMAP server port",false,"143","string");
+// 		TCLAP::ValueArg<std::string> path("l","localpath","Path to local folder containing files",true,"","string");
+// 		TCLAP::ValueArg<std::string> folder("f","imapfolder","imap folder to push data on",true,"","string");
+// 		TCLAP::ValueArg<uint32> maxsz("m","maxsz","per mail maximum size",false,1024 * 1024 * 5,"uint32");
+// 		TCLAP::ValueArg<uint32> maxcnt("c","maxcnt","per mail maximum attachement count",false,50,"uint32");
+// 		TCLAP::SwitchArg ssl("s","ssl", "Use ssl for communication", false, false);
+// 		
+// 		cmd.add(host);
+// 		cmd.add(port);
+// 		cmd.add(path);
+// 		cmd.add(folder);
+// 		cmd.add(ssl);
+// 		cmd.add(maxsz);
+// 		cmd.add(maxcnt);
+// 		
+// 		// Parse the argv array.
+// 		cmd.parse( argc, argv );
+// 		
+// 		_par.host = host.getValue();
+// 		_par.port = port.getValue();
+// 		_par.path = path.getValue();
+// 		_par.folder = folder.getValue();
+// 		_par.secure = ssl.getValue();
+// 		_par.maxsz = maxsz.getValue();
+// 		_par.maxcnt = maxcnt.getValue();
+// 		return false;
+// 	}catch(TCLAP::ArgException &e){// catch any exceptions
+// 		std::cerr << "error: " << e.error() << " for arg " << e.argId() << std::endl;
+// 		return true;
+// 	}
+// }
+
 bool parseArguments(Params &_par, int argc, char *argv[]){
+	using namespace boost::program_options;
 	try{
-		TCLAP::CmdLine cmd("imapappender application", ' ', "0.1");
-		
-		TCLAP::ValueArg<std::string> host("a","addr","IMAP server host",false,"localhost","string");
-		TCLAP::ValueArg<std::string> port("p","port","IMAP server port",false,"143","string");
-		TCLAP::ValueArg<std::string> path("l","localpath","Path to local folder containing files",true,"","string");
-		TCLAP::ValueArg<std::string> folder("f","imapfolder","imap folder to push data on",true,"","string");
-		TCLAP::ValueArg<uint32> maxsz("m","maxsz","per mail maximum size",false,1024 * 1024 * 5,"uint32");
-		TCLAP::ValueArg<uint32> maxcnt("c","maxcnt","per mail maximum attachement count",false,50,"uint32");
-		TCLAP::SwitchArg ssl("s","ssl", "Use ssl for communication", false, false);
-		
-		cmd.add(host);
-		cmd.add(port);
-		cmd.add(path);
-		cmd.add(folder);
-		cmd.add(ssl);
-		cmd.add(maxsz);
-		cmd.add(maxcnt);
-		
-		// Parse the argv array.
-		cmd.parse( argc, argv );
-		
-		_par.host = host.getValue();
-		_par.port = port.getValue();
-		_par.path = path.getValue();
-		_par.folder = folder.getValue();
-		_par.secure = ssl.getValue();
-		_par.maxsz = maxsz.getValue();
-		_par.maxcnt = maxcnt.getValue();
+		options_description desc("ImapAppender application");
+		desc.add_options()
+			("help,h", "List program options")
+			("addr,a", value<string>(&_par.host),"Server address")
+			("port,p", value<string>(&_par.port),"Server port")
+			("path,l", value<string>(&_par.path),"Local path")
+			("folder,f", value<string>(&_par.folder), "Imap folder on server")
+			("maxsz,m", value<uint32>(&_par.maxsz)->default_value(1024 * 1024 * 5), "Per mail maximum size")
+			("maxcnt,c", value<uint32>(&_par.maxcnt)->default_value(5), "Per mail maximum attachement count")
+			("ssl,s",value<bool>(&_par.secure)->default_value(true), "Use ssl")
+	/*		("verbose,v", po::value<int>()->implicit_value(1),
+					"enable verbosity (optionally specify level)")*/
+	/*		("listen,l", po::value<int>(&portnum)->implicit_value(1001)
+					->default_value(0,"no"),
+					"listen on a port.")
+			("include-path,I", po::value< vector<string> >(),
+					"include path")
+			("input-file", po::value< vector<string> >(), "input file")*/
+		;
+		variables_map vm;
+		store(parse_command_line(argc, argv, desc), vm);
+		notify(vm);
+		if (vm.count("help")) {
+			cout << desc << "\n";
+			return true;
+		}
 		return false;
-	}catch(TCLAP::ArgException &e){// catch any exceptions
-		std::cerr << "error: " << e.error() << " for arg " << e.argId() << std::endl;
+	}catch(exception& e){
+		cout << e.what() << "\n";
 		return true;
 	}
 }

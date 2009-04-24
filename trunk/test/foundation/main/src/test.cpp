@@ -38,7 +38,7 @@
 
 #include "foundation/ipc/ipcservice.hpp"
 
-#include "tclap/CmdLine.h"
+#include "boost/program_options.hpp"
 
 
 namespace fdt = foundation;
@@ -411,41 +411,77 @@ int insertConnection(char *_pc, int _len,test::Manager &_rtm){
 	return 0;
 }
 
+// bool parseArguments(Params &_par, int argc, char *argv[]){
+// 	try {  
+// 
+// 		TCLAP::CmdLine cmd("SolidGround test application", ' ', "0.8");
+// 		
+// 		TCLAP::ValueArg<uint16> port("b","base_port","Base port",false,1000,"integer");
+// 		
+// 		TCLAP::ValueArg<std::string> lvls("l","debug_levels","Debug logging levels",false,"","string");
+// 		TCLAP::ValueArg<std::string> mdls("m","debug_modules","Debug logging modules",false,"","string");
+// 		TCLAP::ValueArg<std::string> da("a","debug_address","Debug server address",false,"","string");
+// 		TCLAP::ValueArg<std::string> dp("p","debug_port","Debug server ports",false,"","string");
+// 		TCLAP::SwitchArg dl("s","debug_buffered", "Debug buffered output", false);
+// 	
+// 	
+// 		cmd.add(port);
+// 		cmd.add(lvls);
+// 		cmd.add(mdls);
+// 		cmd.add(da);
+// 		cmd.add(dp);
+// 		cmd.add(dl);
+// 	
+// 		// Parse the argv array.
+// 		cmd.parse( argc, argv );
+// 	
+// 		// Get the value parsed by each arg. 
+// 		_par.dbg_levels = lvls.getValue();
+// 		_par.start_port = port.getValue();
+// 		_par.dbg_modules = mdls.getValue();
+// 		_par.dbg_addr = da.getValue();
+// 		_par.dbg_port = dp.getValue();
+// 		_par.dbg_buffered = dl.getValue();
+// 		return false;
+// 	}catch (TCLAP::ArgException &e){// catch any exceptions
+// 		std::cerr << "error: " << e.error() << " for arg " << e.argId() << std::endl;
+// 		return true;
+// 	}
+// 
+// }
 bool parseArguments(Params &_par, int argc, char *argv[]){
-	try {  
-
-		TCLAP::CmdLine cmd("SolidGround test application", ' ', "0.8");
-		
-		TCLAP::ValueArg<uint16> port("b","base_port","Base port",false,1000,"integer");
-		
-		TCLAP::ValueArg<std::string> lvls("l","debug_levels","Debug logging levels",false,"","string");
-		TCLAP::ValueArg<std::string> mdls("m","debug_modules","Debug logging modules",false,"","string");
-		TCLAP::ValueArg<std::string> da("a","debug_address","Debug server address",false,"","string");
-		TCLAP::ValueArg<std::string> dp("p","debug_port","Debug server ports",false,"","string");
-		TCLAP::SwitchArg dl("s","debug_buffered", "Debug buffered output", false);
-	
-	
-		cmd.add(port);
-		cmd.add(lvls);
-		cmd.add(mdls);
-		cmd.add(da);
-		cmd.add(dp);
-		cmd.add(dl);
-	
-		// Parse the argv array.
-		cmd.parse( argc, argv );
-	
-		// Get the value parsed by each arg. 
-		_par.dbg_levels = lvls.getValue();
-		_par.start_port = port.getValue();
-		_par.dbg_modules = mdls.getValue();
-		_par.dbg_addr = da.getValue();
-		_par.dbg_port = dp.getValue();
-		_par.dbg_buffered = dl.getValue();
+	using namespace boost::program_options;
+	try{
+		options_description desc("SolidGround test application");
+		desc.add_options()
+			("help,h", "List program options")
+			("base_port,b", value<int>(&_par.start_port)->default_value(1000),
+					"Base port")
+			("debug_levels,l", value<string>(&_par.dbg_levels)->default_value("iew"),"Debug logging levels")
+			("debug_modules,m", value<string>(&_par.dbg_modules),"Debug logging modules")
+			("debug_address,a", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")
+			("debug_port,p", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")
+			("debug_buffered,s", value<bool>(&_par.dbg_buffered)->default_value(true), "Debug buffered")
+	/*		("verbose,v", po::value<int>()->implicit_value(1),
+					"enable verbosity (optionally specify level)")*/
+	/*		("listen,l", po::value<int>(&portnum)->implicit_value(1001)
+					->default_value(0,"no"),
+					"listen on a port.")
+			("include-path,I", po::value< vector<string> >(),
+					"include path")
+			("input-file", po::value< vector<string> >(), "input file")*/
+		;
+		variables_map vm;
+		store(parse_command_line(argc, argv, desc), vm);
+		notify(vm);
+		if (vm.count("help")) {
+			cout << desc << "\n";
+			return true;
+		}
 		return false;
-	}catch (TCLAP::ArgException &e){// catch any exceptions
-		std::cerr << "error: " << e.error() << " for arg " << e.argId() << std::endl;
+	}catch(exception& e){
+		cout << e.what() << "\n";
 		return true;
 	}
-
 }
+

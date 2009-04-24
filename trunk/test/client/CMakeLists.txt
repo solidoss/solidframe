@@ -12,4 +12,14 @@ target_link_libraries (alphaclient_p utility system ssl crypto ${SYS_BASIC_LIBS}
 target_link_libraries (alphaclient_s utility system ssl crypto ${SYS_BASIC_LIBS} dl)
 target_link_libraries (alphafetch_p utility system ssl crypto  ${SYS_BASIC_LIBS} dl)
 target_link_libraries (alphastore_p utility system ssl crypto  ${SYS_BASIC_LIBS} dl)
-target_link_libraries (imapappender utility system ssl crypto boost_filesystem boost_system ${SYS_BASIC_LIBS} dl)
+target_link_libraries (imapappender
+	utility
+	system
+	ssl
+	crypto
+	boost_filesystem
+	boost_program_options
+	boost_system
+	${SYS_BASIC_LIBS}
+	dl
+)
