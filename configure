@@ -28,8 +28,8 @@ function print_usage(){
 	echo "[-b|--build BuildType]: The cmake build type release/debug/nolog/maintain - default release"
 	echo "[-p|--param ParamName]: Extra compilation flags. E.g. -p \"-DUINDEX64 -DUSERVICEBITS=3\""
 	echo "[-d|--documentation full/fast]: Build either fast or full documentation"
-	echo "[-e|--extern-path ExternPath]: relative path to extern libraries under solidground/extern folder"
-	echo "[-E|--extern-abs-path ExternAbsPath]: absolute path to extern libraries"
+#	echo "[-e|--extern-path ExternPath]: relative path to extern libraries under solidground/extern folder"
+	echo "[-e|--extern-path ExternAbsPath]: absolute path to extern libraries"
 	echo
 	exit
 }
@@ -77,15 +77,15 @@ while [ "$#" -gt 0 ]; do
 		shift
 		PARAM=$PARAM"$1 "
 		;;
+#	-e|--extern-path)
+#		if [ -z "$2" ] || echo "$2" | grep '^-' >/dev/null 2>&1; then
+#			EXTERN_PATH="extern"
+#		else
+#			shift;
+#			EXTERN_PATH=$1
+#		fi
+#		;;
 	-e|--extern-path)
-		if [ -z "$2" ] || echo "$2" | grep '^-' >/dev/null 2>&1; then
-			EXTERN_PATH="extern"
-		else
-			shift;
-			EXTERN_PATH=$1
-		fi
-		;;
-	-E|--extern-abs-path)
 		if [ -z "$2" ] || echo "$2" | grep '^-' >/dev/null 2>&1; then
 			EXTERN_ABS_PATH=""
 		else
@@ -158,7 +158,7 @@ if [ "$FOLDER_NAME" = "" ]; then
 fi
 
 
-echo "Configure a out-of-source build configuration of type $BUILD_TYPE on folder build/$FOLDER_NAME and params $PARAM"
+echo "Configure an out-of-source build configuration of type $BUILD_TYPE on folder build/$FOLDER_NAME and params $PARAM"
 cd application
 make_cmake_list *
 cd ../
