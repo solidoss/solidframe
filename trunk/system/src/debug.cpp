@@ -21,7 +21,9 @@
 
 #ifdef UDEBUG
 
+#define DO_EXPORT_DLL 1
 #include "debug.hpp"
+
 #include "directory.hpp"
 #include <sys/types.h>
 #include <sys/stat.h>

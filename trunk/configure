@@ -186,66 +186,66 @@ fi
 exit
 
 
-case "$1" in
-	"kdevelop")
-		if [ "$2" = "" ] ; then
-			print_usage
-		else
-			echo "Building KDevelop project ..."
-			cd application
-			make_cmake_list *
-			cd ../
-			
-			cd library
-			make_cmake_list *
-			cd ../
-			
-			mkdir build
-			mkdir "build/$1"
-			cd "build/$1"
-			cmake -G KDevelop3 -DCMAKE_BUILD_TYPE=$2 -DUDEFS="$3" ../../
-			echo "Done building KDevelop project"
-		fi
-		;;
-	"documentation_full")
-		echo "Building full documentation ..."
-		rm -rf documentation/html/
-		rm -rf documentation/latex/
-		doxygen
-		tar -cjf documentation/full.tar.bz2 documentation/html/ documentation/index.html
-		echo "Done building full documentation"
-		;;
-	"documentation_fast")
-		echo "Building documentation..."
-		rm -rf documentation/html/
-		doxygen Doxyfile.fast
-		tar -cjf documentation/fast.tar.bz2 documentation/html/ documentation/index.html
-		echo "Done building documentation"
-		;;
-	"extern")
-		echo "Building extern archive"
-		cd extern
-		tar -cjf solidground_extern_linux.tar.bz2 linux
-		echo "Done building extern archive"
-		;;
-	*)
-		THEFLD="$2"
-		echo $THEFLD
-		if [ "$THEFLD" = "" ] ; then
-			THEFLD="$1"
-		fi
-		cd application
-		make_cmake_list *
-		cd ../
-		
-		cd library
-		make_cmake_list *
-		cd ../
-		echo "Preparing build/$THEFLD for $1 build type with \"$3\" parameters..."
-		mkdir build
-		mkdir "build/$THEFLD"
-		cd "build/$THEFLD"
-		cmake -DCMAKE_BUILD_TYPE=$1 -DUDEFS:STRING="$3" ../../
-		echo "Done preparing build/$THEFLD for $1 build type with \"$3\" parameters"
-		;;
-esac
+# case "$1" in
+# 	"kdevelop")
+# 		if [ "$2" = "" ] ; then
+# 			print_usage
+# 		else
+# 			echo "Building KDevelop project ..."
+# 			cd application
+# 			make_cmake_list *
+# 			cd ../
+# 
+# 			cd library
+# 			make_cmake_list *
+# 			cd ../
+# 
+# 			mkdir build
+# 			mkdir "build/$1"
+# 			cd "build/$1"
+# 			cmake -G KDevelop3 -DCMAKE_BUILD_TYPE=$2 -DUDEFS="$3" ../../
+# 			echo "Done building KDevelop project"
+# 		fi
+# 		;;
+# 	"documentation_full")
+# 		echo "Building full documentation ..."
+# 		rm -rf documentation/html/
+# 		rm -rf documentation/latex/
+# 		doxygen
+# 		tar -cjf documentation/full.tar.bz2 documentation/html/ documentation/index.html
+# 		echo "Done building full documentation"
+# 		;;
+# 	"documentation_fast")
+# 		echo "Building documentation..."
+# 		rm -rf documentation/html/
+# 		doxygen Doxyfile.fast
+# 		tar -cjf documentation/fast.tar.bz2 documentation/html/ documentation/index.html
+# 		echo "Done building documentation"
+# 		;;
+# 	"extern")
+# 		echo "Building extern archive"
+# 		cd extern
+# 		tar -cjf solidground_extern_linux.tar.bz2 linux
+# 		echo "Done building extern archive"
+# 		;;
+# 	*)
+# 		THEFLD="$2"
+# 		echo $THEFLD
+# 		if [ "$THEFLD" = "" ] ; then
+# 			THEFLD="$1"
+# 		fi
+# 		cd application
+# 		make_cmake_list *
+# 		cd ../
+# 
+# 		cd library
+# 		make_cmake_list *
+# 		cd ../
+# 		echo "Preparing build/$THEFLD for $1 build type with \"$3\" parameters..."
+# 		mkdir build
+# 		mkdir "build/$THEFLD"
+# 		cd "build/$THEFLD"
+# 		cmake -DCMAKE_BUILD_TYPE=$1 -DUDEFS:STRING="$3" ../../
+# 		echo "Done preparing build/$THEFLD for $1 build type with \"$3\" parameters"
+# 		;;
+# esac
