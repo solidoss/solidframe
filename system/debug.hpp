@@ -30,7 +30,20 @@
 #include <string>
 #include "system/common.hpp"
 
-struct Dbg{
+#ifdef _WIN32
+#ifdef DO_EXPORT_DLL
+#define EXPORT_DLL __declspec(dllexport)
+#else
+#define EXPORT_DLL __declspec(dllimport)
+#endif
+
+#ifndef EXPORT_DLL
+#define EXPORT_DLL
+#endif
+
+
+
+struct EXPORTDLL Dbg{
 	static const unsigned any;
 	static const unsigned system;
 	static const unsigned specific;
