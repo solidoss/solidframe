@@ -30,11 +30,15 @@
 #include <string>
 #include "system/common.hpp"
 
+
 #ifdef _WIN32
+
 #ifdef DO_EXPORT_DLL
 #define EXPORT_DLL __declspec(dllexport)
 #else
 #define EXPORT_DLL __declspec(dllimport)
+#endif
+
 #endif
 
 #ifndef EXPORT_DLL
