@@ -22,6 +22,7 @@
 
 #include "system/cassert.hpp"
 #include "system/debug.hpp"
+#include "system/directory.hpp"
 #include "system/socketaddress.hpp"
 #include "system/socketdevice.hpp"
 #include "system/thread.hpp"
@@ -98,6 +99,7 @@ int doneOutput(ofstream &_os);
 
 int main(int argc, char *argv[]){
 	Params	p;
+	cout<<"OSSL_SOURCE_PATH = "<<OSSL_SOURCE_PATH<<endl;
 	if(parseArguments(p, argc, argv)) return 0;
 	
 	//Initializing OpenSSL
@@ -109,8 +111,8 @@ int main(int argc, char *argv[]){
 	
 	sslctx = SSL_CTX_new(SSLv23_client_method());
 	
-	const char *pcertpath = "../../../../extern/linux/openssl/demos/tunala/A-client.pem";
-	
+	const char *pcertpath = OSSL_SOURCE_PATH"openssl_/certs/A-client.pem";
+	cout<<"Client certificate path: "<<pcertpath<<endl;
 	if(!sslctx){
 		cout<<"failed SSL_CTX_new: "<<ERR_error_string(ERR_get_error(), NULL)<<endl;
 		return 0;
@@ -119,7 +121,8 @@ int main(int argc, char *argv[]){
     	cout<<"failed SSL_CTX_load_verify_locations 1 "<<ERR_error_string(ERR_get_error(), NULL)<<endl;;
     	return 0;
 	}
-	system("mkdir certs");
+	//system("mkdir certs");
+	Directory::create("certs");
 	
 	if(!SSL_CTX_load_verify_locations(sslctx, NULL, "certs")){
 		cout<<"failed SSL_CTX_load_verify_locations 2 "<<ERR_error_string(ERR_get_error(), NULL)<<endl;;
@@ -134,14 +137,14 @@ int main(int argc, char *argv[]){
 		AddrInfo    ai(p.host.c_str(), p.port.c_str());
 		if(ai.empty()){
 			cout<<"No such address: "<<p.host<<":"<<p.port<<endl;
-			//return 0;
+			return 0;
 		}
 		
 		
 		sd.create(ai.begin());
 		if(sd.connect(ai.begin())){
 			cout<<"Unable to connect to: "<<p.host<<":"<<p.port<<endl;
-			//return 0;
+			return 0;
 		}
 	}
 	{
@@ -159,7 +162,7 @@ int main(int argc, char *argv[]){
 	int rv = SSL_connect(pssl);
 	if(rv <= 0){
 		cout<<"error ssl connect"<<endl;
-		//return 0;
+		return 0;
 	}
 	wr.reinit(sd.descriptor(), pssl);
 	
