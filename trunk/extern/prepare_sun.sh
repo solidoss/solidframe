@@ -56,4 +56,8 @@ cd $OPENSSL_DIR
 make
 make install
 cd ..
+echo "Copy test certificates to openssl_ dir..."
+cp $OPENSSL_DIR/demos/tunala/*.pem openssl_/certs/.
+echo
+echo "DONE!!"
 

@@ -47,7 +47,7 @@
 
 
 
-struct EXPORTDLL Dbg{
+struct EXPORT_DLL Dbg{
 	static const unsigned any;
 	static const unsigned system;
 	static const unsigned specific;
