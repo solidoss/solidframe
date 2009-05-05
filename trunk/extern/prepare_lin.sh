@@ -8,10 +8,10 @@ tar -xjf "$BOOST_ARCH"
 echo "Extract openssl $OPENSSL_ARCH"
 tar -xzf "$OPENSSL_ARCH"
 
-echo "Make the arch folder and move the archives there"
-mkdir arch
-mv *.bz2 arch
-mv *.gz arch
+# echo "Make the arch folder and move the archives there"
+# mkdir arch
+# mv *.bz2 arch
+# mv *.gz arch
 
 echo "Make the include folder"
 mkdir include
@@ -29,8 +29,8 @@ rm -rf include/*
 cd lib
 cd ..
 
-BOOST_DIR=`ls . | grep "boost"`
-OPENSSL_DIR=`ls . | grep "openssl"`
+BOOST_DIR=`ls . | grep "boost" | grep -v "tar"`
+OPENSSL_DIR=`ls . | grep "openssl" | grep -v "tar"`
 
 EXT_DIR="`pwd`"
 
