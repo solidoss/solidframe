@@ -11,7 +11,7 @@ set(Sources
 	src/alphawriter.cpp
 	src/alphasignals.cpp
 )
-
+set_source_files_properties(src/alphaservice.cpp COMPILE_FLAGS -DOSSL_SOURCE_PATH='"${EXTERN_PATH}"')
 set(Headers
 	alphaservice.hpp
 	src/alphacommand.hpp

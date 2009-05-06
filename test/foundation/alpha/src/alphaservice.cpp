@@ -94,8 +94,9 @@ int Service::insertListener(
 		pctx = foundation::aio::openssl::Context::create();
 	}
 	if(pctx){
-		pctx->loadCertificateFile("../../../../../extern/linux/openssl/demos/tunala/A-server.pem");
-		pctx->loadPrivateKeyFile("../../../../../extern/linux/openssl/demos/tunala/A-server.pem");
+		const char *pcertpath = OSSL_SOURCE_PATH"openssl_/certs/A-server.pem";
+		pctx->loadCertificateFile(pcertpath);
+		pctx->loadPrivateKeyFile(pcertpath);
 	}
 	test::Listener *plis = new test::Listener(sd, pctx);
 	
