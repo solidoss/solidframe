@@ -206,7 +206,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 				SocketAddress::MaxSockHostSz,
 				port,
 				SocketAddress::MaxSockServSz,
-				SocketAddress::NumericService
+				SocketAddress::NumericService | SocketAddress::NumericHost
 			);
 			writer()<<host<<':'<<port<<" -> ";
 			socketRemoteAddress(addr);
