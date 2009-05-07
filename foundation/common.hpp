@@ -60,9 +60,11 @@ enum Consts{
 #ifdef UINDEX32
 //32 bit indexes
 typedef uint32 IndexTp;
+#define ID_MASK 0xfffffff
 #else
 //64 bit indexes
 typedef uint64 IndexTp;
+#define ID_MASK 0xffffffffffffffffL
 #endif
 
 #else
@@ -71,9 +73,11 @@ typedef uint64 IndexTp;
 #ifdef UINDEX64
 //64 bit indexes
 typedef uint64 IndexTp;
+#define ID_MASK 0xffffffffffffffffL
 #else
 //32 bit indexes
 typedef uint32 IndexTp;
+#define ID_MASK 0xfffffff
 #endif
 
 
