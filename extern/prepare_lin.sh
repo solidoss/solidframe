@@ -37,21 +37,25 @@ EXT_DIR="`pwd`"
 echo "Make boost..."
 cd "$BOOST_DIR"
 echo "$EXT_DIR"
-#./configure --with-libraries="date_time,filesystem,regex,system,serialization,program_options" --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR"
-./configure --with-libraries="filesystem,system,program_options" --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR"
-make && make install
+cd tools/jam
+sh build_dist.sh
+cd ../../
+JAMEXE=`find . -name bjam`
+echo "Using jam: $JAMEXE"
+$JAMEXE --with-system --with-filesystem --with-system --with-program_options --layout=system --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" install
+
 cd ..
 cd include
 BOOST_INC_DIR=`ls . | grep "boost"`
-ln -s "$BOOST_INC_DIR/boost" .
-cd ../lib
-LIB_LIST=`find . -name "libboost_*-mt-*.a"`
-LIB_NAME=`find . -name "libboost_filesystem*-mt-*.a"`
-ln -s $LIB_NAME libboost_filesystem.a
-LIB_NAME=`find . -name "libboost_system*-mt-*.a"`
-ln -s $LIB_NAME libboost_system.a
-LIB_NAME=`find . -name "libboost_program_options*-mt-*.a"`
-ln -s $LIB_NAME libboost_program_options.a
+#ln -s "$BOOST_INC_DIR/boost" .
+#cd ../lib
+#LIB_LIST=`find . -name "libboost_*-mt-*.a"`
+#LIB_NAME=`find . -name "libboost_filesystem*-mt-*.a"`
+#ln -s $LIB_NAME libboost_filesystem.a
+#LIB_NAME=`find . -name "libboost_system*-mt-*.a"`
+#ln -s $LIB_NAME libboost_system.a
+#LIB_NAME=`find . -name "libboost_program_options*-mt-*.a"`
+#ln -s $LIB_NAME libboost_program_options.a
 
 echo "Make openssl..."
 cd ../$OPENSSL_DIR
