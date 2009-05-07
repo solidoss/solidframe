@@ -37,7 +37,7 @@ inline void Object::setThread(uint32 _thrid, uint32 _thrpos){
 	thrpos = _thrpos;
 }
 inline IndexTp Object::computeIndex(IndexTp _fullid){
-	return _fullid & (MAX_ULONG >> SERVICEBITCNT);
+	return _fullid & (ID_MASK >> SERVICEBITCNT);
 }
 inline IndexTp Object::computeServiceId(IndexTp _fullid){
 	return _fullid >> INDEXBITCNT;
