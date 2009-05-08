@@ -1004,8 +1004,8 @@ int ProcessConnector::processSendSignals(SendBufferData &_rsb, const TimeSpec &_
 //TODO: optimize!!
 bool ProcessConnector::freeSentBuffers(Buffer &_rbuf, const ConnectorUid &_rconid){
 	bool b = false;
+	idbgx(Dbg::ipc, "beg update count "<<_rbuf.updatesCount()<<" sent count = "<<d.outbufs.size());
 	for(uint32 i(0); i < _rbuf.updatesCount(); ++i){
-		idbgx(Dbg::ipc, "compare update "<<_rbuf.update(i)<<" out bufs sz = "<<d.outbufs.size());
 		for(Data::OutBufferVectorTp::iterator it(d.outbufs.begin()); it != d.outbufs.end(); ++it){
 			if(it->first.buffer() && _rbuf.update(i) == it->first.id()){//done with this one
 				if(it != d.outbufs.begin()){
@@ -1024,6 +1024,7 @@ bool ProcessConnector::freeSentBuffers(Buffer &_rbuf, const ConnectorUid &_rconi
 			}
 		}
 	}
+	idbgx(Dbg::ipc, "end update count "<<_rbuf.updatesCount()<<" sent count = "<<d.outbufs.size());
 	return b;
 }
 void ProcessConnector::parseBuffer(Buffer &_rbuf, const ConnectorUid &_rconid){
