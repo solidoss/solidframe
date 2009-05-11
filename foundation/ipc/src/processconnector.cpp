@@ -232,9 +232,9 @@ struct ProcessConnector::Data{
 StaticData::StaticData(){
 	const uint datsz = StaticData::DataRetransmitCount;
 	const uint consz = StaticData::ConnectRetransmitCount;
-	const uint sz = datsz < consz ? consz : datsz;
-	toutvec.reserve(sz + 1);
-	toutvec.resize(sz + 1);
+	const uint sz = datsz < consz ? consz + 1 : datsz + 1;
+	toutvec.reserve(sz);
+	toutvec.resize(sz);
 	toutvec[0] = 100;
 	toutvec[1] = 400;
 	toutvec[2] = 800;
