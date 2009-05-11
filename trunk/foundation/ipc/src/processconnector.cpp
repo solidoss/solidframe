@@ -236,12 +236,10 @@ StaticData::StaticData(){
 	toutvec.reserve(sz + 1);
 	toutvec.resize(sz + 1);
 	toutvec[0] = 100;
-	toutvec[1] = 200;
-	toutvec[2] = 400;
-	toutvec[3] = 600;
-	toutvec[4] = 800;
-	toutvec[5] = 1000;
-	for(uint i = 6; i < sz; ++i){
+	toutvec[1] = 400;
+	toutvec[2] = 800;
+	toutvec[3] = 1000;
+	for(uint i = 4; i < sz; ++i){
 		toutvec[i] = 1000;
 	}
 }
