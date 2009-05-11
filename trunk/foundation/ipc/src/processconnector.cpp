@@ -64,6 +64,22 @@ struct BufCmp{
 
 typedef serialization::IdTypeMap					IdTypeMap;
 
+//========	StaticData	===========================================================
+
+struct StaticData{
+	enum{
+		DataRetransmitCount = 8,
+		ConnectRetransmitCount = 16,
+		//StartRetransmitTimeout = 100
+	};
+	StaticData();
+	static StaticData& instance();
+	ulong retransmitTimeout(uint _pos);
+private:
+	typedef std::vector<ulong> ULongVectorTp;
+	ULongVectorTp	toutvec;
+};
+
 //========	ProcessConnector	===========================================================
 struct ProcessConnector::Data{
 	enum Flags{
@@ -82,8 +98,6 @@ struct ProcessConnector::Data{
 		UpdateBufferId = 0xffffffff,//the id of a buffer containing only updates
 		MaxSignalBufferCount = 32,//continuous buffers sent for a signal
 		MaxSendSignalQueueSize = 16,//max count of signals sent in paralell
-		DataRetransmitCount = 8,
-		ConnectRetransmitCount = 16
 	};
 	struct BinSerializer:serialization::bin::Serializer{
 		BinSerializer():serialization::bin::Serializer(IdTypeMap::the()){}
@@ -182,7 +196,7 @@ struct ProcessConnector::Data{
 	bool canSendKeepAlive(const TimeSpec &_tpos);
 //data:	
 	uint32					expectedid;
-	int32					retranstimeout;
+//	int32					retranstimeout;
 	int16					state;
 	uint16					flags;
 	int16					bufjetons;
@@ -208,9 +222,39 @@ struct ProcessConnector::Data{
 	TimeSpec				rcvtpos;
 };
 
+//==============================================================================
+
+/*static*/ StaticData& StaticData::instance(){
+	static StaticData sd;
+	return sd;
+}
+
+StaticData::StaticData(){
+	const uint datsz = StaticData::DataRetransmitCount;
+	const uint consz = StaticData::ConnectRetransmitCount;
+	const uint sz = datsz < consz ? consz : datsz;
+	toutvec.reserve(sz + 1);
+	toutvec.resize(sz + 1);
+	toutvec[0] = 100;
+	toutvec[1] = 200;
+	toutvec[2] = 400;
+	toutvec[3] = 600;
+	toutvec[4] = 800;
+	toutvec[5] = 1000;
+	for(uint i = 6; i < sz; ++i){
+		toutvec[i] = 1000;
+	}
+}
+
+
+ulong StaticData::retransmitTimeout(uint _pos){
+	cassert(_pos < toutvec.size());
+	return toutvec[_pos];
+}
+//==============================================================================
 
 ProcessConnector::Data::Data(const Inet4SockAddrPair &_raddr, uint32 _keepalivetout):
-	expectedid(1), retranstimeout(300),
+	expectedid(1), /*retranstimeout(StartRetransmitTimeout),*/
 	state(Connecting), flags(0), bufjetons(1), 
 	crtsigbufcnt(MaxSignalBufferCount),sendid(0),
 	addr(_raddr), pairaddr(addr), 
@@ -220,14 +264,8 @@ ProcessConnector::Data::Data(const Inet4SockAddrPair &_raddr, uint32 _keepalivet
 	outbufs.push_back(OutBufferPairTp(Buffer(NULL,0), 0));
 }
 
-// ProcessConnector::Data::Data(BinMapper &_rm, const Inet6SockAddrPair &_raddr, int _tkrid, int _procid):
-// 	ser(_rm), des(_rm), pinsig(NULL), expectedid(1), id(_procid), retranstimeout(1000),
-// 	lockcnt(0), state(Connecting), flags(0), bufjetons(1), sendid(0), tkrid(_tkrid),
-// 	addr(_raddr), pairaddr(addr), baseaddr(&pairaddr, addr.port()){
-// }
-
 ProcessConnector::Data::Data(const Inet4SockAddrPair &_raddr, int _baseport, uint32 _keepalivetout):
-	expectedid(1), retranstimeout(300),
+	expectedid(1), /*retranstimeout(StartRetransmitTimeout),*/
 	state(Accepting), flags(0), bufjetons(3), crtsigbufcnt(MaxSignalBufferCount), sendid(0),
 	addr(_raddr), pairaddr(addr), baseaddr(&pairaddr, _baseport),
 	sndsigid(0), keepalivetout(_keepalivetout),respwaitsigcnt(0)
@@ -723,7 +761,8 @@ int ProcessConnector::pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpo
 		}else{
 			idbgx(Dbg::ipc, "sent bufid = "<<_rbuf.b.id()<<" bufpos = "<<_rbuf.bufpos<<" retransmitid "<<_rbuf.b.retransmitId()<<" buf = "<<(void*)_rbuf.b.buffer()<<" buffercap = "<<_rbuf.b.bufferCapacity()<<" flags = "<<_rbuf.b.flags()<<" type = "<<(int)_rbuf.b.type());
 			std::pair<uint16, uint16>  p;
-			if(!_rbuf.b.retransmitId()){
+			const uint retransid = _rbuf.b.retransmitId();
+			if(!retransid){
 				//cassert(_rbuf.bufpos < 0);
 				p = d.insertSentBuffer(_rbuf.b);	//_rbuf.bc will contain the buffer index, and
 													//_rbuf.dl will contain the buffer uid
@@ -743,7 +782,7 @@ int ProcessConnector::pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpo
 			_rbuf.b.dl = p.second;
 			_rbuf.bufpos = p.first;
 			_rbuf.timeout = _tpos;
-			_rbuf.timeout += d.retranstimeout;//miliseconds retransmission timeout
+			_rbuf.timeout += StaticData::instance().retransmitTimeout(retransid); //d.retranstimeout;//miliseconds retransmission timeout
 			_reusebuf = true;
 			idbgx(Dbg::ipc, "prepare waitbuf b.cap "<<_rbuf.b.bufferCapacity()<<" b.dl "<<_rbuf.b.dl);
 			cassert(sizeof(uint32) <= sizeof(size_t));
@@ -763,9 +802,9 @@ int ProcessConnector::pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpo
 				if(bufpos){
 					rob.first.print();
 					rob.first.retransmitId(rob.first.retransmitId() + 1);
-					if(rob.first.retransmitId() > Data::DataRetransmitCount){
+					if(rob.first.retransmitId() > StaticData::DataRetransmitCount){
 						if(rob.first.type() == Buffer::ConnectingType){
-							if(rob.first.retransmitId() > Data::ConnectRetransmitCount){//too many resends for connect type
+							if(rob.first.retransmitId() > StaticData::ConnectRetransmitCount){//too many resends for connect type
 								idbgx(Dbg::ipc, "preparing to disconnect process");
 								cassert(d.state != Data::Disconnecting);
 								d.state = Data::Disconnecting;
@@ -780,7 +819,7 @@ int ProcessConnector::pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpo
 				}else{//keepalive buffer
 					//we are scheduled to send the keepalive buffer
 					//rob will point to keepalive buffer
-					if(rob.first.retransmitId() > Data::DataRetransmitCount){
+					if(rob.first.retransmitId() > StaticData::DataRetransmitCount){
 						idbgx(Dbg::ipc, "keep alive buffer - too many retransmits");
 						//reconnecting
 						reconnect(NULL);
