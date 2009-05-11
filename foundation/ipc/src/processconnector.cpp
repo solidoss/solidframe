@@ -773,14 +773,15 @@ int ProcessConnector::pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpo
 			}
 			++p.first;//adjust the index
 			//_rbuf.b.retransmitId(_rbuf.retransmitId() + 1);
-			idbgx(Dbg::ipc, "p.first "<<p.first<<" p.second "<<p.second);
+			uint tmptimeout = StaticData::instance().retransmitTimeout(retransid);
+			idbgx(Dbg::ipc, "p.first "<<p.first<<" p.second "<<p.second<<" retransid = "<<retransid<<" tmptimeout = "<<tmptimeout);
 			//reuse _rbuf for retransmission timeout
 			_rbuf.b.pb = NULL;
 			_rbuf.b.bc = p.first;
 			_rbuf.b.dl = p.second;
 			_rbuf.bufpos = p.first;
 			_rbuf.timeout = _tpos;
-			_rbuf.timeout += StaticData::instance().retransmitTimeout(retransid); //d.retranstimeout;//miliseconds retransmission timeout
+			_rbuf.timeout +=  tmptimeout;//d.retranstimeout;//miliseconds retransmission timeout
 			_reusebuf = true;
 			idbgx(Dbg::ipc, "prepare waitbuf b.cap "<<_rbuf.b.bufferCapacity()<<" b.dl "<<_rbuf.b.dl);
 			cassert(sizeof(uint32) <= sizeof(size_t));

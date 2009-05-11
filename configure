@@ -180,11 +180,7 @@ else
 	cmake -G $GENERATOR -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS:STRING="$PARAM" -DUEXTERN:STRING="$EXTERN_PATH" -DUEXTERN_ABS:STRING="$EXTERN_ABS_PATH" ../../
 fi
 
-
-
-
 exit
-
 
 # case "$1" in
 # 	"kdevelop")
