@@ -38,7 +38,7 @@
 using namespace std;
 
 /*
-NOTE: Design keep alive:
+NOTE 1: Design keep alive:
 * no Keep Alive Buffers (KABs) are sent if there are signals and/or buffer to be sent
 * KAB needs to use incremental buf id and it needs to be updated and resent
 *
@@ -48,6 +48,9 @@ NOTE: Design keep alive:
  2) when the null buffer is back, check again if there are signals to be sent
  and/or pending buffers else sent the KAB
  3) when KAB is back, wait for updates with timeout exactly as for the other signal buffers
+NOTE 2: retransmit timeout coputation
+We want to use the network according to its speed. See Data::computeRetransmitTimeout.
+
 
 */
 
@@ -71,6 +74,7 @@ struct StaticData{
 		DataRetransmitCount = 8,
 		ConnectRetransmitCount = 16,
 		//StartRetransmitTimeout = 100
+		RefreshIndex = (1 << 7) - 1
 	};
 	StaticData();
 	static StaticData& instance();
@@ -194,9 +198,10 @@ struct ProcessConnector::Data{
 	}
 	void prepareKeepAlive();
 	bool canSendKeepAlive(const TimeSpec &_tpos);
+	uint computeRetransmitTimeout(const uint _retrid, const uint32 _bufid);
 //data:	
 	uint32					expectedid;
-//	int32					retranstimeout;
+	uint16					retrpos;//see note 2
 	int16					state;
 	uint16					flags;
 	int16					bufjetons;
@@ -235,7 +240,7 @@ StaticData::StaticData(){
 	const uint sz = datsz < consz ? consz + 1 : datsz + 1;
 	toutvec.reserve(sz);
 	toutvec.resize(sz);
-	toutvec[0] = 100;
+	toutvec[0] = 200;
 	toutvec[1] = 400;
 	toutvec[2] = 800;
 	toutvec[3] = 1000;
@@ -252,7 +257,7 @@ ulong StaticData::retransmitTimeout(uint _pos){
 //==============================================================================
 
 ProcessConnector::Data::Data(const Inet4SockAddrPair &_raddr, uint32 _keepalivetout):
-	expectedid(1), /*retranstimeout(StartRetransmitTimeout),*/
+	expectedid(1), /*retranstimeout(StartRetransmitTimeout),*/retrpos(0),
 	state(Connecting), flags(0), bufjetons(1), 
 	crtsigbufcnt(MaxSignalBufferCount),sendid(0),
 	addr(_raddr), pairaddr(addr), 
@@ -263,7 +268,7 @@ ProcessConnector::Data::Data(const Inet4SockAddrPair &_raddr, uint32 _keepalivet
 }
 
 ProcessConnector::Data::Data(const Inet4SockAddrPair &_raddr, int _baseport, uint32 _keepalivetout):
-	expectedid(1), /*retranstimeout(StartRetransmitTimeout),*/
+	expectedid(1), /*retranstimeout(StartRetransmitTimeout),*/retrpos(0),
 	state(Accepting), flags(0), bufjetons(3), crtsigbufcnt(MaxSignalBufferCount), sendid(0),
 	addr(_raddr), pairaddr(addr), baseaddr(&pairaddr, _baseport),
 	sndsigid(0), keepalivetout(_keepalivetout),respwaitsigcnt(0)
@@ -447,6 +452,20 @@ void ProcessConnector::Data::prepareKeepAlive(){
 	b.type(Buffer::KeepAliveType);
 	outbufs[0] = OutBufferPairTp(b, 0);
 }
+
+inline uint ProcessConnector::Data::computeRetransmitTimeout(const uint _retrid, const uint32 _bufid){
+	if(!(_bufid & StaticData::RefreshIndex)){
+		//recalibrate the retrpos
+		retrpos = 0;
+	}
+	if(_retrid > retrpos) retrpos = _retrid;
+	if(retrpos){
+		return StaticData::instance().retransmitTimeout(retrpos);
+	}else{
+		return StaticData::instance().retransmitTimeout(_retrid);
+	}
+}
+
 //*******************************************************************************
 
 ProcessConnector::~ProcessConnector(){
@@ -773,7 +792,7 @@ int ProcessConnector::pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpo
 			}
 			++p.first;//adjust the index
 			//_rbuf.b.retransmitId(_rbuf.retransmitId() + 1);
-			uint tmptimeout = StaticData::instance().retransmitTimeout(retransid);
+			uint tmptimeout = d.computeRetransmitTimeout(retransid, _rbuf.b.id());
 			idbgx(Dbg::ipc, "p.first "<<p.first<<" p.second "<<p.second<<" retransid = "<<retransid<<" tmptimeout = "<<tmptimeout);
 			//reuse _rbuf for retransmission timeout
 			_rbuf.b.pb = NULL;
