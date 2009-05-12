@@ -562,7 +562,7 @@ int Fetch::receiveError(
 			st = SendTempError;
 			break;
 		default:
-			st = ReturnBad;
+			st = SendError;
 	}
 	return OK;
 }
