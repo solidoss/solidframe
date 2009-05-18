@@ -7,12 +7,23 @@ project (SOLIDGROUND)
 #-----------------------------------------------------------------
 # project version
 #-----------------------------------------------------------------
+
 file (READ "${CMAKE_SOURCE_DIR}/VERSION" VERSION)
 string (REPLACE "\n" "" VERSION ${VERSION})
 string (REPLACE "\r" "" VERSION ${VERSION})
 string (REGEX REPLACE "^([0-9]*)\\.([0-9]*)\\.([0-9]*)" "\\1" VERSION_MAJOR ${VERSION})
 string (REGEX REPLACE "^([0-9]*)\\.([0-9]*)\\.([0-9]*)" "\\2" VERSION_MINOR ${VERSION})
 string (REGEX REPLACE "^([0-9]*)\\.([0-9]*)\\.([0-9]*)" "\\3" VERSION_PATCH ${VERSION})
+
+find_package(Subversion)
+
+if(Subversion_FOUND)
+	Subversion_WC_INFO(${PROJECT_SOURCE_DIR} SVNINFO)
+	MESSAGE("-- Current SVN revision is ${SVNINFO_WC_REVISION}")
+	set(VERSION_PATCH ${SVNINFO_WC_REVISION})
+ELSE(Subversion_FOUND)
+	MESSAGE(SEND_ERROR "Could not determine SVN revision -- assumming ${VERSION_PATCH}")
+ENDIF(Subversion_FOUND)
 
 
 #-----------------------------------------------------------------
