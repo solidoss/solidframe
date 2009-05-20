@@ -237,15 +237,19 @@ struct ProcessConnector::Data{
 StaticData::StaticData(){
 	const uint datsz = StaticData::DataRetransmitCount;
 	const uint consz = StaticData::ConnectRetransmitCount;
-	const uint sz = datsz < consz ? consz + 1 : datsz + 1;
+	const uint sz = (datsz < consz ? consz + 1 : datsz + 1) * 2;
+	
 	toutvec.reserve(sz);
 	toutvec.resize(sz);
 	toutvec[0] = 200;
 	toutvec[1] = 400;
 	toutvec[2] = 800;
-	toutvec[3] = 1000;
-	for(uint i = 4; i < sz; ++i){
-		toutvec[i] = 1000;
+	toutvec[3] = 1200;
+	toutvec[4] = 1600;
+	toutvec[5] = 2000;
+	cassert(sz >= 5);
+	for(uint i = 6; i < sz; ++i){
+		toutvec[i] = 2000;
 	}
 }
 
@@ -458,11 +462,11 @@ inline uint ProcessConnector::Data::computeRetransmitTimeout(const uint _retrid,
 		//recalibrate the retrpos
 		retrpos = 0;
 	}
-	if(_retrid > retrpos) retrpos = _retrid;
-	if(retrpos){
+	if(_retrid > retrpos){
+		retrpos = _retrid;
 		return StaticData::instance().retransmitTimeout(retrpos);
 	}else{
-		return StaticData::instance().retransmitTimeout(_retrid);
+		return StaticData::instance().retransmitTimeout(retrpos + _retrid);
 	}
 }
 
