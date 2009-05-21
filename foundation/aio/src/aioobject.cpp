@@ -45,7 +45,9 @@ Object::SocketStub::~SocketStub(){
 }
 
 void Object::pushRequest(uint _pos, uint _req){
-	if(pstubs[_pos].request > SocketStub::Response) return;
+	if(pstubs[_pos].request > SocketStub::Response){
+		return;
+	}
 	pstubs[_pos].request = _req;
 	*reqpos = _pos; ++reqpos;
 }
@@ -53,7 +55,8 @@ void Object::pushRequest(uint _pos, uint _req){
 inline void Object::doPushResponse(uint32 _pos){
 	if(pstubs[_pos].request != SocketStub::Response){
 		*respos = _pos; ++respos;
-		cassert(respos - resbeg == 1);
+		//the assert is only valid for singleconnections only
+		//cassert(respos - resbeg == 1);
 		pstubs[_pos].request = SocketStub::Response;
 	}
 }

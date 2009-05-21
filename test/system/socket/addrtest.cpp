@@ -1,6 +1,6 @@
 /* Implementation file addrtest.cpp
 	
-	Copyright 2007, 2008 Valentin Palade 
+	Copyright 2007, 2008 Valentin Palade
 	vipalade@gmail.com
 
 	This file is part of SolidGround framework.
@@ -20,7 +20,7 @@
 */
 
 #include <poll.h>
-#include "socketaddress.h"
+#include "system/socketaddress.hpp"
 #include <unistd.h>
 #include <fcntl.h>
 #include <cerrno>
@@ -49,18 +49,22 @@ int main(int argc, char *argv[]){
 		if(sd > 0){
 			cout<<"Connecting..."<<endl;
 			fcntl(sd, F_SETFL, O_NONBLOCK);
-			if(!connect(sd, it.addr(), it.size())){
+			if(false/* !connect(sd, it.addr(), it.size())*/){
 				cout<<"Connected!"<<endl;
 			}else{
-				if(errno != EINPROGRESS){
+				if(false/*errno != EINPROGRESS*/){
 					cout<<"Failed connect"<<endl;
 				}else{
 					cout<<"Polling ..."<<endl;
 					pollfd pfd;
 					pfd.fd = sd;
-					pfd.events = POLLOUT;
+					pfd.events = 0;//POLLOUT;
 					int rv = poll(&pfd, 1, -1);
 					cout<<"pollrv = "<<rv<<endl;
+					if(pfd.revents & (POLLERR | POLLHUP | POLLNVAL)){
+						
+						cout<<"poll err "<<(pfd.revents & POLLERR)<<' '<<(pfd.revents & POLLHUP)<<' '<<(pfd.revents & POLLNVAL)<<' '<<endl;
+					}
 				}
 			}
 			socklen_t len = 4;
