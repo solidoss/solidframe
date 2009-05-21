@@ -161,6 +161,8 @@ void AlphaThread::run(){
 	readc = 0;
 	wr.reinit(sd);
 	char buf[BufLen];
+	//wr<<"localhost 1114"<<crlf;
+	//wr.flush();
 	int rv = list(buf);
 	idbg("return value "<<rv);
 	inf.update(pos, readc);
@@ -250,6 +252,7 @@ int AlphaThread::list(char *_pb){
 		bpos = _pb;
 		bend = bpos + rc;
 		_pb[rc] = '\0';
+		//cout<<'[';cout.write(_pb, rc);cout<<']'<<endl;
 		while(b){
 			switch(state){
 				case SkipFirstLine:

@@ -46,6 +46,7 @@ Device::~Device(){
 
 int Device::read(char	*_pb, uint32 _bl){
 	cassert(desc >= 0);
+	idbgx(Dbg::system, "closing descriptor "<<desc);
 	return ::read(desc, _pb, _bl);
 }
 

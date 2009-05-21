@@ -581,7 +581,7 @@ void Selector::doPrepareObjectWait(const uint _pos, const TimeSpec &_timepos){
 				epoll_event ev;
 				sockstub.psock->doPrepare();
 				sockstub.selevents = 0;
-				ev.events = (EPOLLET);
+				ev.events = 0;//(EPOLLET);
 				check_call(Dbg::aio, 0, epoll_ctl(d.epollfd, EPOLL_CTL_ADD, sockstub.psock->descriptor(), d.eventPrepare(ev, _pos, *pit)));
 				stub.objptr->doAddSignaledSocketFirst(*pit, OKDONE);
 				d.addNewSocket();
@@ -600,6 +600,7 @@ void Selector::doPrepareObjectWait(const uint _pos, const TimeSpec &_timepos){
 			default:
 				cassert(false);
 		}
+		sockstub.request = 0;
 	}
 	if(mustwait){
 		if(_timepos < stub.timepos && _timepos != d.ctimepos){
