@@ -161,8 +161,11 @@ void AlphaThread::run(){
 	readc = 0;
 	wr.reinit(sd);
 	char buf[BufLen];
-	//wr<<"localhost 1114"<<crlf;
-	//wr.flush();
+	if(port && port < 1200){
+		cout<<"Using proxy..."<<endl;
+		wr<<"localhost "<<port<<crlf;
+		wr.flush();
+	}
 	int rv = list(buf);
 	idbg("return value "<<rv);
 	inf.update(pos, readc);
@@ -489,6 +492,7 @@ int main(int argc, char *argv[]){
 		cout<<"Usage: alphaclient thcnt addr port path tout repeat_count [peer_addr peer_port]"<<endl;
 		cout<<"Where:"<<endl;
 		cout<<"tout is the amount of time in msec between commands"<<endl;
+		cout<<"if the given port is < 1200 then the connection is considered through a proxy server"<<endl;
 		return 0;
 	}
 	signal(SIGPIPE, SIG_IGN);
