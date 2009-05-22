@@ -578,10 +578,15 @@ void Selector::doPrepareObjectWait(const uint _pos, const TimeSpec &_timepos){
 			}break;
 			case Object::SocketStub::RegisterRequest:{
 				vdbgx(Dbg::aio, "sockstub "<<*pit<<" regreq");
+				/*
+					NOTE: may be a good ideea to add RegisterAndIORequest
+					Epoll doesn't like sockets that are only created, it signals
+					EPOLLET on them.
+				*/
 				epoll_event ev;
 				sockstub.psock->doPrepare();
 				sockstub.selevents = 0;
-				ev.events = 0;//(EPOLLET);
+				ev.events = (EPOLLET);
 				check_call(Dbg::aio, 0, epoll_ctl(d.epollfd, EPOLL_CTL_ADD, sockstub.psock->descriptor(), d.eventPrepare(ev, _pos, *pit)));
 				stub.objptr->doAddSignaledSocketFirst(*pit, OKDONE);
 				d.addNewSocket();
