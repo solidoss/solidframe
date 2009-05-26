@@ -5,8 +5,8 @@
 
 First of all, I suppose you are on a linux box.
 
-You need to have the following installed: gcc-c++, boost, boost-devel, cmake and eventually subversion.
-(On a Fedora box, the following will suffice: 'yum install gcc-c++ boost boost-devel cmake subversion'.)
+You need to have the following installed: gcc-c++, cmake and eventually subversion.
+(On a Fedora box, the following will suffice: 'yum install gcc-c++ cmake subversion'.)
 
 If you use svn to fetch the latest code you can do:
 
@@ -25,35 +25,18 @@ work $ tar -xjf solidground-source-X.Y.Z.tar.bz2
 so you'll have a folder with *SolidGround* source code.
 
 
-Next you need to get the latest *SolidGround* external libraries pack from:
+Next you'll need to prepare the *SolidGround* extern library pack:
 
-http://code.google.com/p/solidground/downloads/list.
-
-My advice is to use the following pattern:
 {{{
 work $ mkdir sg_extern
 work $ cd sg_extern
-sg_extern $ cp ~/Download/solidground_extern_linux.tar.bz2 .
-sg_extern $ tar -xjf solidground_extern_linux.tar.bz2
-
-# build the external libraries:
-
-sg_extern $ cd linux/openssl
-openssl $ ./config
-openssl $ make
-
-#no need for 'make install'
-
-
-openssl $ cd ../../
-sg_extern $ cd ../solidground/extern
-extern $ ln -s ../../sg_extern/linux
+sg_extern $ wget "http://garr.dl.sourceforge.net/sourceforge/boost/boost_1_39_0.tar.bz2"
+sg_extern $ wget "http://www.openssl.org/source/openssl-0.9.8k.tar.gz"
+sg_extern $ ln -s ../solidground/extern/prepare_lin.sh .
+sg_extern $ ./prepare_lin.sh
 }}}
 
-this way if you delete the solidground folder you don't delete the external libraries which in case of openssl takes quite a while to build.
-
-
-So, now you have all you need to start building the *SolidGround* test applications.
+The script will automatically extract and build the needed extern libraries.
 
 =Building the test applications=
 
@@ -68,13 +51,21 @@ To build the test applications you need to prepare the build folder. You can do 
 In the this workshop we'll use debug build but you can use any other build type.
 
 {{{
-solidground $ ./build.sh debug
+solidground $ ./configure --help
+solidground $ ./configure -f dbg -b debug -e ~/work/sg_extern
+solidground $ ./configure -f kdv -g KDevelop3 -b debug -e ~/work/sg_extern
+solidground $ ./configure -f rls -b release -e ~/work/sg_extern
 }}}
+
+The above commands will prepare three build environments:
+	* build/dbg: makefile based build environment for debug;
+	* build/rls: makefile based build environment for release;
+	* build/kdv: kdevelop3 project.
 
 Next lets build the proof of concept server:
 
 {{{
-solidground $ cd build/debug/test/foundation/main
+solidground $ cd build/dbg/test/foundation/main
 main $ make
 }}}
 
@@ -94,7 +85,7 @@ The most interesting test clients for alpha protocol are alphaclient_p and alpha
 Before anything we'll need another test application:
 {{{
 
-solidground $ cd build/debug/test/system/files
+solidground $ cd build/dbg/test/system/files
 files $ make
 
 # lets build some 100 files with sizes from 4K to 1M
@@ -106,20 +97,20 @@ Next we'll need two instances of the proof of concept server:
 
 in one terminal:
 {{{
-solidground $ cd build/debug/test/foundation/main
+solidground $ cd build/dbg/test/foundation/main
 main $ ./test -b 1000
 }}}
 in another terminal:
 
 {{{
-solidground $ cd build/debug/test/foundation/main
+solidground $ cd build/dbg/test/foundation/main
 main $ ./test -b 2000
 }}}
 
 in yet another terminal we should use the clients:
 
 {{{
-solidground $ cd build/debug/test/client
+solidground $ cd build/dbg/test/client
 }}}
 
 First let us use the plain client for local fetching on 10 threads:

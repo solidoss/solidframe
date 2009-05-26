@@ -4,6 +4,7 @@
 = Introduction =
 
 Regarding the size of a C++ project even at an early stage,  it needs a strong framework to help build.
+
 By framework I mean:
  
  * an easy to use, cross platform build system;
@@ -20,7 +21,7 @@ What will you do?
 Copy/paste the CMake/SCons files and adapt them to the new project?
 
 Well, no! You can use multi repository projects. 
-	* Have a *base repository* containing the porject's, build system main files (e.g. the main CMakeLists.txt), 
+	* Have a *base repository* containing the project's, build system main files (e.g. the main CMakeLists.txt), 
 	* some base libraries, 
 	* have two empty folders (_application_ and _library_), and have the build system look in any sub folder of those two. Those subfolders contain the code of different applications or libraries that are built upon this *base framework*, and they should integrate within the base build system.
 
@@ -34,14 +35,14 @@ So what do we need for writing C++ applications:
 	* an easy to extend, cross-platform, build system;
 	* wrappers for different system concepts: threads, mutexes, conditions, sockets, socket addresses etc.;
 	* a debug log engine to log debug messages;
-	* then we might need more sophisticated concepts like thread pools;
-	* we might need serialization algorithms to allow easy packing/unpacking objects;
-	* we also might need some support for implementing text based internet protocols;
-	* for powerful servers we need asynchronous signaling and communication (secure and plain);
-	* for distributed applications we need ways of passing commands from a process to another;
-	* we also might need an audit (logging) engine.
+	* (might need) more sophisticated concepts like thread pools;
+	* (might need) serialization algorithms to allow easy packing/unpacking objects;
+	* (might need) some support for implementing text based internet protocols;
+	* (might need) asynchronous signaling and communication (secure and plain), for powerful servers;
+	* (might need) ways of passing commands from a process to another, for distributed applications;
+	* (might need) an audit (logging) engine.
 
-*SolidGround* offers all this and more. It has a neat design, nice concepts like Pseudo Active Objects and a solid implementation. It has lots of test applications, including a central proof of concept server to test most of the offered concepts. Also there are some clients written to stress the proof of concept server for profiling purposes.
+*SolidGround* offers all this and more. It has a neat design, nice concepts like Pseudo Active Objects and a *solid* implementation. It has lots of test applications, including a central proof of concept server to test most of the offered concepts. Also there are some clients written to stress the proof of concept server for profiling purposes.
 
 Here are some of the nicest things it offers:
 
@@ -49,7 +50,7 @@ Here are some of the nicest things it offers:
 	* a text protocol re-entrant parser and response builder - to also be used with fixed sized buffers;
 	* a nice asynchronous signaling engine - based on Pseudo Active Objects;
 	* a powerful filemanager to allow non conflicting access to files from within the same process. The file will be signaled to a requesting pseudo-active object when its request does not conflict with others (e.g. no writer while there are readers);
-	* a very nice Inter Process Communication / Remote Procedure Call engine, which allow commands to be executed on a different process/machine and have the response returned back to the sender;
+	* a very nice Inter Process Communication / Remote Procedure Call engine, which allows commands to be executed on a different process/machine and have the response returned back to the sender;
 	* a powerful asynchronous communication engine, TCP (plain and SSL) and UDP.
 
 ==Some words about the build system==
@@ -75,28 +76,29 @@ and for debugging, something like:
 {{{
 #ifdef UDEBUG
 	{
-		string dbgout;
-		if(p.dbg_addr.size() && p.dbg_port.size()){
-			Dbg::instance().init(
-				p.dbg_addr.c_str(),
-				p.dbg_port.c_str(),
-				p.dbg_levels.c_str(),
-				p.dbg_modules.c_str(),
-				p.dbg_buffered,
-				&dbgout
-			);
-		}else{
-			Dbg::instance().init(
-				*argv[0] == '.' ? argv[0] + 2 : argv[0],
-				p.dbg_levels.c_str(),
-				p.dbg_modules.c_str(),
-				p.dbg_buffered,
-				3,
-				1024 * 10,
-				&dbgout
-			);
-		}
-		cout<<"Debug output: "<<dbgout<<endl;
+	string dbgout;
+	Dbg::instance().levelMask(p.dbg_levels.c_str());
+	Dbg::instance().moduleMask(p.dbg_modules.c_str());
+	if(p.dbg_addr.size() && p.dbg_port.size()){
+		Dbg::instance().initSocket(
+			p.dbg_addr.c_str(),
+			p.dbg_port.c_str(),
+			p.dbg_buffered,
+			&dbgout
+		);
+	}else{
+		Dbg::instance().initFile(
+			*argv[0] == '.' ? argv[0] + 2 : argv[0],
+			p.dbg_buffered,
+			3,
+			1024 * 1024 * 64,
+			&dbgout
+		);
+	}
+	cout<<"Debug output: "<<dbgout<<endl;
+	dbgout.clear();
+	Dbg::instance().moduleBits(dbgout);
+	cout<<"Debug modules: "<<dbgout<<endl;
 	}
 #endif
 }}}
@@ -111,12 +113,12 @@ Here is an example of how the debug log should be used:
 
 =The *"utility"* library=
 
-This library depends on *system* one and defines concepts like: _streams_, _threadpool_ (workpool). It also contains some utility classes for concepts like: _stack_, _queue_, _list_. Interfaces are similar to those of STL, but implementation is twice faster at run time. Another interesting utility class is MutualObjectContainer that can be used when having objects like mutexes shared by some other groups of objects from a container. To be more explicit here's the situation it is used:
+This library depends on *system* and defines concepts like: _streams_, _threadpool_ (workpool). It also contains some utility classes for concepts like: _stack_, _queue_, _list_. Their interfaces are similar to those of STL, but implementation is twice faster at run time. Another interesting utility class is MutualObjectContainer that can be used when having objects (like mutexes) shared by some other groups of objects from a container. To be more explicit here's the situation it is used:
 	
-	# we have a container of objects that must have associated mutexes and we need to limit the number of used mutexes;
-	# so we want that N objects to share the same mutex;
-	# we want at most M = Mc x Mr mutexes, where Mc is the number of mutexes allocated once (c from columns) and Mr is the number of rows.
-	# using the object index within the container, a mutex is given. 
+	# We have a container of objects. Every object needs an associated mutex. We also need to limit the number of used mutexes.
+	# So, we want that N objects to share the same mutex.
+	# We want at most M = Mc x Mr mutexes, where Mc is the number of mutexes allocated once (c from columns) and Mr is the number of rows.
+	# Using the object's index within the container, a mutex is given. 
 
 When the index exceeds N x M, the mutexes returned start again from 0x0, and a mutex will guard more that N objects.
 
@@ -163,10 +165,10 @@ And here's an example of usage:
 
 =The *"foundation"* library group==
 
-This is the central group of libraries of the framework. It defines most of most powerful concepts.
-The central concept is the *Pseudo-Active Object* (PAO), which is an object residing both within a static container (a Service) and an active pool (a thread pool). All services reside within Manager and are all PAOs too. The manager is used to send different signals and/or commands to the objects or to allow visitors on them. The only way to access directly an object is through a visitor, the rest of interaction is through signals and commands.
+This is the central group of libraries of the framework. It defines most of its powerful concepts.
+The central concept is the *Pseudo-Active Object* (PAO), which is an object residing both within a static container (a Service) and an active pool (a thread pool). All services reside within Manager and are all PAOs too. The manager is used to send different signals to the objects or to allow visitors on them. The only way to access directly an object is through a visitor, the rest of interaction is through signals and commands.
 
-Every object has an unique id which uniquely identifies the object in both space (indexed access) and time (one can safely send a signal or a command to a deleted object). This unique id has two parts, an index part to locate the object starting from the manager (contains the index of the service and the index within the service) and an unique number incremented on every release of a position within a service.
+Every object has an unique id which uniquely identifies the object in both space (indexed access) and time (one can safely send a signal to a deleted object). This unique id has two parts, an index part to locate the object starting from the manager (contains the index of the service and the index within the service) and an unique number incremented on every release of a position within a service.
 
 The role of active containers (SelectPools) is to keep objects and provide them with processor time on certain events like: signals, timeouts, IO completion events.
 
@@ -186,13 +188,9 @@ The file manager also offers support for temporary files. For a very nice exampl
 
 ==The *"foundation_aio"* library group==
 
-It offers support for asynchronous TCP (plain and secured with SSL) and UDP IO. There are four libraries in the group: *foundation_aio*, *foudation_aio_tcp*, *foundation_aio_udp*, *foundation_aio_openssl*.
+It offers support for asynchronous TCP (plain and secured with SSL) and UDP IO. There are four libraries in the group: *foundation_aio*, *foundation_aio_openssl*.
 
 The *foundation_aio* library offers the _foundation_::_aio_::_Selector_ (to be used with foundation::SelectPool), the active container for PAOs needing IO support. An object needing AIO support, can have one or multiple channels (e.g. for easy implementing proxies and chat rooms).
-
-The *foundation_aio_tcp* offers specialized interface for plain and secured TCP AIO - connections, multiconnections and listeners.
-
-The *foundation_aio_udp* offers specialized interface for plain UDP AIO - talkers and multitalkers.
 
 The *foundation_aio_openssl* is a wrapper for OpenSSL (http://www.openssl.org) library.
 
@@ -200,7 +198,7 @@ The *foundation_aio_openssl* is a wrapper for OpenSSL (http://www.openssl.org) l
 
 This library offers support for remote execution of commands. It uses UDP for communication and binary serialization for commands. It has keep-alive support which means that sending a command which has to generate a response, the IPC module will periodically send keep alive data to detect peer disconnection. If the disconnection is detected, the PAO waiting for the response, will be signaled with an error. This is useful when waiting for a response, you cannot approximate how long will it take for the peer process to build that response, so you will only wait for the response or an error from the ipc module.
 
-It uses UDP and a talker (the aio UDP socket) for "talking" with multiple peer processes. More over, because commands can be quite long (especially if they contain streams) the commands being sent, on the same time, to a peer process are multiplexed: no more than N data buffers are sent continuously for a command, bigger commands being re-queued.
+It uses UDP (an aio UDP socket) for "talking" with multiple peer processes. More over, because commands can be quite long (especially if they contain streams) the commands being sent, on the same time, to a peer process are multiplexed: no more than N data buffers are sent continuously for a command, bigger commands being re-queued.
 Because it uses UDP, I had to add many of TCP capabilities like: in-order buffer receive, resending not-received buffers etc.
 
 The stress tests I've performed show the same IO transfer speed as TCP.

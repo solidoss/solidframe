@@ -7,11 +7,13 @@ I suppose you've managed to build the *SolidGround* test applications, which mea
 
 = Building a KDevelop project =
 
+You've already learned the command to build a KDevelop3 project:
+
 {{{
-solidground $ ./build.sh kdevelop debug
+solidground $ ./configure -f kdv -g KDevelop3 -b debug -e ~/work/sg_extern
 }}}
 
-In KDevelop, open the project from: `/path/to/solidground/build/kdevelop/SOLIDGROUND.kdevelop`.
+In KDevelop, open the project from: `/path/to/solidground/build/kdv/SOLIDGROUND.kdevelop`.
 
 That's all, eventually you can configure KDevelop to use Subversion for project, and use 4 spaces wide tabs for indentation.
 
@@ -19,7 +21,7 @@ In the following lines I will present the way to start writing a new *SolidGroun
 
 = Adding a new application =
 
-*SolidGround* repository copy contains an empty folder called "application". There's where your application(s) should reside.
+*SolidGround* repository copy contains an empty folder called "application". There's where your application(s) will reside.
 
 So you should do something like:
 
@@ -49,7 +51,9 @@ to have a repository copy of your application within `"solidground/application/f
 	# then you'll need to add the source files to every foobar subfolder, along with the CMakeLists.txt files.
 	# last you'll need to integrate "foobar" into *SolidGround*'s build system. This is done by running solidground/build.sh again:
 		{{{
-		solidground $ ./build.sh debug
+		solidground $ ./configure -f dbg -b debug -e ~/work/sg_extern
+		solidground $ ./configure -f kdv -g KDevelop3 -b debug -e ~/work/sg_extern
+		solidground $ ./configure -f rls -b release -e ~/work/sg_extern
 		}}}
 	
 	It will create `application/CMakeLists.txt` which will integrate all subfolders within 'application' into *SolidGround* cmake build system. 
@@ -80,7 +84,7 @@ Ignore the sigpipe signal:
 	signal(SIGPIPE, SIG_IGN);
 }}}
 
-Parse the input parameters using tclap:
+Parse the input parameters using boost_program_options:
 
 {{{
 	Params p;
@@ -99,30 +103,28 @@ Initiate the debug log engine either to log to a socket or to a file
 #ifdef UDEBUG
 	{
 	string dbgout;
+	Dbg::instance().levelMask(p.dbg_levels.c_str());
+	Dbg::instance().moduleMask(p.dbg_modules.c_str());
 	if(p.dbg_addr.size() && p.dbg_port.size()){
-		Dbg::instance().init(
+		Dbg::instance().initSocket(
 			p.dbg_addr.c_str(),
 			p.dbg_port.c_str(),
-			p.dbg_levels.c_str(),
-			p.dbg_modules.c_str(),
 			p.dbg_buffered,
 			&dbgout
 		);
 	}else{
-		Dbg::instance().init(
+		Dbg::instance().initFile(
 			*argv[0] == '.' ? argv[0] + 2 : argv[0],
-			p.dbg_levels.c_str(),
-			p.dbg_modules.c_str(),
 			p.dbg_buffered,
 			3,
-			1024 * 10,
+			1024 * 1024 * 64,
 			&dbgout
 		);
 	}
 	cout<<"Debug output: "<<dbgout<<endl;
 	dbgout.clear();
 	Dbg::instance().moduleBits(dbgout);
-	cout<<"Debug levels: "<<dbgout<<endl;
+	cout<<"Debug modules: "<<dbgout<<endl;
 	}
 #endif
 }}}
@@ -137,7 +139,7 @@ Initiate the audit log engine and connect the client with the manager through a 
 	lm.insertListener("localhost", "3333");
 	Directory::create("log");
 	lm.insertConnector(new audit::LogBasicConnector("log"));
-	Log::instance().reinit(argv[0], 0, "ALL", new DeviceIOStream(pairfd[1],-1));
+	Log::instance().reinit(argv[0], Log::AllLevels, "ALL", new DeviceIOStream(pairfd[1],-1));
 }}}
 
 Instantiate a Manager, add a new echo service, a new listener and a new talker to it:
@@ -198,7 +200,7 @@ Note that the test::Manager is declared within a block, and the waitAll() is cal
 
 While at design level the central concept of the framework is the Pseudo-Active-Object class, at implementation level the central concept is the Manager object which provides the main way to interact with objects and services. As you can see in the above code, the manager is a test::Manager which is also a foundation::Manager. Lets have a look at test::Manager (`test/foundation/core/src/manager.cpp`).
 
-The test::Manager is the bottom container as it holds: the file manager, the active pools and the services. Most of the classes of the objects held by the foundation::Manager, are abstract and a local implementation (which consists mostly of simple lines of code) must be given. So we have to implement: a FileManager, an ipc::Service, a CommandExecuter (a PAO which all it does is to execute incoming Commands). Also the concrete active pools must be defined. Next the foundation::Manager is extended to allow insertion of services and different types of objects like connections, talkers, listeners etc. 
+The test::Manager is the bottom container as it holds: the file manager, the active pools and the services. Most of the classes of the objects held by the foundation::Manager, are abstract and a local implementation (which consists mostly of simple lines of code) must be given. So we have to implement: a FileManager, an ipc::Service, a SignalExecuter (a PAO which all it does is to execute incoming Signal(s)). Also the concrete active pools must be defined. Next the foundation::Manager is extended to allow insertion of services and different types of objects like connections, talkers, listeners etc. 
 
 So, using the manager, one can add new connections (connections that will connect to a server), new listeners 
 and/or new talkers (asynchronous UDP communication stubs) to a service.
@@ -292,7 +294,6 @@ What is final and it is implemented in `test/foundation/core` is the listener, w
 
 {{{
 int Listener::execute(ulong, TimeSpec&){
-	idbg("here");
 	Manager &rm = Manager::the();
 	Service	&rsrvc = rm.service(*this);
 	cassert(this->socketOk());
@@ -370,17 +371,17 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			Mutex::Locker	lock(rm.mutex(*this));
 			sm = grabSignalMask(0);//grab all bits of the signal mask
 			if(sm & fdt::S_KILL) return BAD;
-			if(sm & fdt::S_CMD){//we have commands
-				grabCommands();//grab them
+			if(sm & fdt::S_SIG){//we have signals
+				grabSignals();//grab them
 			}
 		}
-		if(sm & fdt::S_CMD){//we've grabed commands, execute them
-			switch(execCommands(*this)){
+		if(sm & fdt::S_SIG){//we've grabed signals, execute them
+			switch(this->execSignals(*this)){
 				case BAD: 
 					return BAD;
-				case OK: //expected command received
+				case OK: //expected signal received
 					_sig |= fdt::OKDONE;
-				case NOK://unexpected command received
+				case NOK://unexpected signal received
 					break;
 			}
 		}
@@ -390,7 +391,6 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 	if(socketEvents() & fdt::ERRDONE){
 		return BAD;
 	}
-	
 	int rc;
 	switch(state()){
 		case Init:
@@ -416,7 +416,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 				SocketAddress::MaxSockHostSz,
 				port,
 				SocketAddress::MaxSockServSz,
-				SocketAddress::NumericService
+				SocketAddress::NumericService | SocketAddress::NumericHost
 			);
 			writer()<<host<<':'<<port<<" -> ";
 			socketRemoteAddress(addr);
@@ -534,24 +534,30 @@ The idea is:
 	
 All commands are implemented in src/alphacommands.cpp.
 
-As you can see from alpha code, the connection, not only deals with IO events but also with incoming internal commands (containing: filestreams from FileManager, data from remote hosts in case of remotelist or fetch commands). Interesting is the way the connection deals with the incoming internal commands, the way it forwards them to the current alpha::Command object:
+As you can see from alpha code, the connection, not only deals with IO events but also with incoming internal commands (containing: filestreams from FileManager, data from remote hosts in case of remotelist or fetch commands). Interesting is the way the connection deals with the incoming internal signals, the way it forwards them to the current alpha::Command object:
+
+{{{
+/*static*/ void Connection::dynamicRegister(DynamicMap &_rdm){
+	BaseTp::dynamicRegister<IStreamSignal>(_rdm);
+	BaseTp::dynamicRegister<OStreamSignal>(_rdm);
+	BaseTp::dynamicRegister<IOStreamSignal>(_rdm);
+	BaseTp::dynamicRegister<StreamErrorSignal>(_rdm);
+	BaseTp::dynamicRegister<RemoteListSignal>(_rdm);
+	BaseTp::dynamicRegister<FetchSlaveSignal>(_rdm);
+	BaseTp::dynamicRegister<SendStringSignal>(_rdm);
+	BaseTp::dynamicRegister<SendStreamSignal>(_rdm);
+}
+}}}
 
 {{{
 //receiving an istream
-int Connection::receiveIStream(
-	StreamPtr<IStream> &_ps,
-	const FileUidTp &_fuid,
-	const RequestUidTp &_requid,
-	int			_which,
-	const ObjectUidTp&_from,
-	const foundation::ipc::ConnectorUid *_conid
-){
+int Connection::dynamicReceive(IStreamSignal &_rsig){
 	idbg("");
-	if(_requid.first && _requid.first != reqid) return OK;//not an expected command/request
+	if(_rsig.requid.first && _rsig.requid.first != reqid) return NOK;
 	idbg("");
 	newRequestId();//prevent multiple responses with the same id
 	if(pcmd){
-		switch(pcmd->receiveIStream(_ps, _fuid, _which, _from, _conid)){//forward the stream to command
+		switch(pcmd->receiveIStream(_rsig.sptr, _rsig.fileuid, 0, ObjectUidTp(), NULL)){
 			case BAD:
 				idbg("");
 				break;
@@ -570,7 +576,7 @@ int Connection::receiveIStream(
 				break;
 		}
 	}
-	return OK;
+	return NOK;
 }
 }}}
 
