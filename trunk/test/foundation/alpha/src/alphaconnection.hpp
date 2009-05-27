@@ -37,11 +37,6 @@ namespace foundation{
 
 class Visitor;
 
-namespace tcp{
-
-class Channel;
-
-}
 }
 
 namespace test{
@@ -93,7 +88,7 @@ public:
 	//! The implementation of the protocol's state machine
 	/*!
 		The method will be called within a foundation::SelectPool by an
-		foundation::tcp::ConnectionSelector.
+		foundation::aio::Selector.
 	*/
 	int execute(ulong _sig, TimeSpec &_tout);
 	//! Dummy inmplementation

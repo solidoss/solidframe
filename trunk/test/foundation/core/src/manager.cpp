@@ -63,16 +63,6 @@ class ObjectSelector;
 namespace aio{
 class Selector;
 }
-
-namespace tcp{
-class ConnectionSelector;
-class ListenerSelector;
-}//namespace tcp
-
-namespace udp{
-class TalkerSelector;
-}//namespace udp
-
 }//namespace foundation
 
 namespace fdt=foundation;

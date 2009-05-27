@@ -32,9 +32,6 @@ class SocketAddress;
 
 namespace foundation{
 class Visitor;
-namespace tcp{
-class Channel;
-}
 }
 
 class AddrInfo;

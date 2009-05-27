@@ -26,9 +26,6 @@
 
 namespace foundation{
 class Visitor;
-namespace udp{
-class Station;
-}
 }
 
 class AddrInfo;

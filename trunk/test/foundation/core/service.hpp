@@ -29,17 +29,6 @@ struct AddrInfoIterator;
 struct SocketDevice;
 
 namespace foundation{
-namespace tcp{
-class Station;
-}
-
-namespace udp{
-class Station;
-}
-
-}
-
-namespace foundation{
 namespace aio{
 namespace openssl{
 class Context;
