@@ -33,12 +33,11 @@ class Selector;
 //! aio::Object is the base class for all classes doing asynchronous socket io
 /*!
 	Although it can be inherited directly, one should use the extended
-	classes from aio::tcp and aio::udp. It is designed together with
+	classes aio::SingleObject or aio::MultiObject. It is designed together with
 	aio::Selector so the objects shoud stay within a SelectorPool\<aio::Selector>.
 	It allows for multiple sockets but this is only from the aio::Selector side,
 	as actual support for single/multiple sockets must came from upper levels,
-	i.e. inheritants - see aio::tcp::Connection, aio::tcp::MultiConnection and/or
-	aio::udp::Talker, aio::udp::MultiTalker.
+	i.e. inheritants - see aio::SingleObject or aio::MultiObject.
 	
 */
 class Object: public foundation::Object{
@@ -96,7 +95,7 @@ protected:
 		Constructor setting all needed data.
 		The data is not dealocated, it is the responsability of inheritants.
 		E.g. some classes may avoid "new" allocation by holding the table
-		within the class (as aio::tcp::Connection). Others may do a single
+		within the class (as aio::SingleObject). Others may do a single
 		allocation of a big chunck to hold all the tables and just set 
 		the pointers to offsets within.
 		\param _pstubs A table with allocated stubs, can be changed after

@@ -24,20 +24,6 @@
 
 #include "core/service.hpp"
 
-namespace foundation{
-
-namespace tcp{
-class Channel;
-class Station;
-}
-
-namespace udp{
-class Station;
-class Talker;
-}
-
-}//namespace foundation
-
 namespace test{
 namespace echo{
 

@@ -26,12 +26,6 @@
 #include <string>
 
 
-namespace foundation{
-namespace tcp{
-class Channel;
-}
-}
-
 
 namespace test{
 namespace alpha{

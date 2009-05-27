@@ -53,13 +53,11 @@ struct SendBufferData{
 	TimeSpec		timeout;
 };
 
-//! The data identifying a process	
+//! Handles a virtual connection to a peer process
 /*!
-	Not all signals are guaranteed to still be sent on peer restart. These are the signals already written into discarded buffers.
-	Should I discard sending signals (not responses) after its buffer was successfully sent!?
-	Or should I consider the situation similar to, signal successfully sent but peer crashed while processing it?!
-	
-	Considering the complexity of changes i think it is wize to chose the second situation.
+	It implements capabilities like: in order buffer receive, keep alive support,
+	multiplexed signal sending/receiving.
+	This class is not used directly.
 */
 class ProcessConnector{
 public:
@@ -73,10 +71,6 @@ public:
 	ProcessConnector(const Inet4SockAddrPair &_raddr, uint32 _keepalivetout);
 	ProcessConnector(const Inet4SockAddrPair &_raddr, int _basport, uint32 _keepalivetout);
 	~ProcessConnector();
-	/**
-	 * \retval BAD on error, 
-	 *	NOK enqueued and talker must be waken, OK enqueued - no need to wake talker
-	 */
 	int pushSignal(foundation::SignalPointer<Signal> &_rsig, uint32 _flags);
 	int pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpos, bool &_reusebuf);
 	int processSendSignals(SendBufferData &_rsb, const TimeSpec &_tpos, int _baseport);
