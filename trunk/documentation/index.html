@@ -91,28 +91,43 @@ Version 1.0:<br><br>
   </thead>
 </table>
 
-Before anything you must ensure you have all the needed packages installed on your Linux box. You'll need: gcc-c++, boost, boost-devel, cmake (on a fedora box: "yum install gcc-c++ boost boost-devel cmake" will suffice). Eventually you'll need "subversion" to fetch a copy of solidground repository (fedora:"yum install subversion").
+Before anything you must ensure you have all the needed packages installed on your Linux box. You'll need: gcc-c++, boost, boost-devel, cmake (on a fedora box: "yum install gcc-c++ cmake" will suffice). Eventually you'll need "subversion" to fetch a copy of solidground repository (fedora:"yum install subversion").
 <br>
-The solidground framework, has a commodity build script which can be used to create certain builds for certain base build systems (make or kdevelop3 - run <pre>./build.sh</pre> with no parameters to se the options).
+The solidground framework, has a commodity build script which can be used to create certain builds for certain base build systems (make or kdevelop3 - run <pre>./configure --help</pre> to se the options).
 <br>
-So lets build a debug version of the server.
+<br>
+First you'll need the solidground code - see above how you can do that. E.g.:
+<pre style="font-family : monospace;">
+work $ svn checkout http://solidground.googlecode.com/svn/trunk/ solidground
+</pre>
+Next you need to build the external libraries, SolidGround uses:
+<pre style="font-family : monospace;">
+work $ mkdir sg_extern
+work $ cd sg_extern
+sg_extern $ wget "http://garr.dl.sourceforge.net/sourceforge/boost/boost_1_39_0.tar.bz2"
+sg_extern $ wget "http://www.openssl.org/source/openssl-0.9.8k.tar.gz"
+sg_extern $ ln -s ../solidground/extern/prepare_lin.sh .
+sg_extern $ ./prepare_lin.sh
+</pre>
 
-<pre style="font-family : monospace;">solidground $ ./build.sh debug
+Now, lets build a debug version of the proof of concept server.
 
-solidground $ cd build/debug/test/clientserver/main
+<pre style="font-family : monospace;">
+solidground $ ./configure -f dbg -b debug -e ~/work/sg_extern
+solidground $ cd build/dbg/test/foundation/main
 
 main $ make
 </pre>
 
 The above commands will start building the proof of concept clientserver test application. When it's done the application is created within the main directory, and you can start using it:
 
-<pre style="font-family : monospace;">main $ ./test --help</pre>
+<pre style="font-family : monospace;">main $ ./test_concept --help</pre>
 
 To see the parameters accepted.
 
-<pre style="font-family : monospace;">main $ ./test -b 1000</pre>
+<pre style="font-family : monospace;">main $ ./test_concept -b 1000</pre>
 
-The application should start printing some information and offering a small CLI on which you can type help to see the commands.
+The application should start printing some information and offering a small CLI (Command Line Interface) on which you can type help to see the commands.
 
 The test application expects a starting base port value (-b argument) which will be used for opening listening TCP and UDP sockets (default is 1000). There are few services offered by test among which are echo and the most important, alpha.
 
@@ -136,7 +151,7 @@ Fetch files:
 
 Now lets move forward to two more interesting commands. For that we'll need another instance of test listening on different set of ports:
 
-<pre style="font-family : monospace;">main $ ./test -b 2000</pre>
+<pre style="font-family : monospace;">main $ ./test_concept -b 2000</pre>
 
 The folowing commands will test the IPC capabilities, remote executing commands issued from the first server on the second server.
 
@@ -184,18 +199,18 @@ So there are some client applications writen to test some of those commands.
 
 They are located in:
 
-<pre>solidground/test/client</pre>
+<pre style="font-family : monospace;">solidground/test/client</pre>
 
 Lets build em in release mode.
 
 If you haven't done so yet do:
 
-<pre>solidground$ ./build.sh release</pre>
+<pre style="font-family : monospace;">solidground $ ./configure -f rls -b release -e ~/work/sg_extern</pre>
 
 Then do:
 
-<pre>
-solidground $ cd build/release/test/client<br>
+<pre style="font-family : monospace;">
+solidground $ cd build/rls/test/client<br>
 client $ make
 </pre>
 

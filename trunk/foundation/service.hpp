@@ -132,8 +132,9 @@ protected:
 	Service(int _objpermutbts = 6, int _mutrowsbts = 8, int _mutcolsbts = 8);
 	//Service(const Service &):state(Stopped),objv(*((ObjectVector*)NULL)),
 	//							indq(*((IndexQueue*)NULL)){}
-	const Service& operator=(const Service &){return *this;}
-	
+private:
+	const Service& operator=(const Service &);
+protected:
 	ObjectVector		&objv;
 	IndexStack			&inds;
 	Condition			cond;
