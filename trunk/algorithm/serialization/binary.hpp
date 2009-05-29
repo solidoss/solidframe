@@ -99,7 +99,7 @@ enum {
 	}<br>
 	</code>
 	For deserializer means something equivalent:<br>
-	* you push the serualizabe objects onto the deserializer<br>
+	* you push the serializable objects onto the deserializer<br>
 	* you do a loop where you fed the deserializer, buffers filled
 	e.g. from a file or a socket etc.
 */

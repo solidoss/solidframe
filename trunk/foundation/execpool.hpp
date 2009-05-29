@@ -28,7 +28,10 @@
 #include "objectpointer.hpp"
 
 namespace foundation{
-
+//! A simple execution pool for one shot object execution
+/*!
+	It doesn't suppor object signaling and timeouts.
+*/
 class ExecPool: public WorkPool<ObjectPointer<Object> >, public ActiveSet{
 public:
 	ExecPool(){}

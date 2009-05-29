@@ -6,7 +6,7 @@
 #include <vector>
 
 namespace audit{
-
+//! Log data identifing a client for log server
 struct LogClientData{
 	typedef std::vector<std::string> NameVectorTp;
 	LogClientData():idx(-1), uid(-1){}

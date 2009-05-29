@@ -6,7 +6,7 @@
 namespace audit{
 
 class LogRecorder;
-
+//! A basic log connector
 class LogBasicConnector: public LogConnector{
 public:
 	LogBasicConnector(const char *_prfx = NULL);

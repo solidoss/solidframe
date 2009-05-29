@@ -153,7 +153,7 @@ public:
 	/*!
 		Should be called only once at manager initation.
 		\param _rs Reference to manager
-		\param _rai 
+		\param _rai The address for talker to use
 	*/
 	int insertTalker(
 		Manager &_rm, 
