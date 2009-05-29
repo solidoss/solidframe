@@ -61,9 +61,9 @@ struct Signal: Dynamic<Signal>{
 	virtual int ipcPrepare(const ipc::SignalUid&);
 	//! Called by ipc module on peer failure detection (disconnect,reconnect)
 	virtual void ipcFail(int _err);
-	//! Used by CmdPtr - smartpointers
+	//! Used by SignalPointer - smartpointers
 	virtual void use();
-	//! Used by CmdPtr to know if the signal must be deleted
+	//! Used by SignalPointer to know if the signal must be deleted
 	virtual int release();
 
 	//! Called by the SignalExecuter
@@ -71,7 +71,7 @@ struct Signal: Dynamic<Signal>{
 
 	//! Called by the SignalExecuter when receiving a signal for a signal
 	/*!
-		If it returns OK, the commnad is rescheduled for execution
+		If it returns OK, the signal is rescheduled for execution
 	*/
 	virtual int receiveSignal(
 		SignalPointer<Signal> &_rsig,

@@ -50,7 +50,7 @@ struct ConnectorUid;
 	- The _requid parameter of the receiveSomething methods, will uniquely
 		identify the signals and must be the same with SignalUidTp parameter
 		of the Signal::execute(SignalExecuter&, const SignalUidTp &, TimeSpec &_rts).
-	- The receiveSomething methods are forwards to the actual commnads identified by
+	- The receiveSomething methods are forwards to the actual signals identified by
 		_requid parameter.
 	
 	<b>Usage:</b><br>

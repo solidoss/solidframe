@@ -10,6 +10,8 @@ namespace audit{
 
 class LogConnector;
 
+
+//! The main class for log management
 class LogManager{
 public:
 	typedef std::pair<uint32, uint32> UidTp;

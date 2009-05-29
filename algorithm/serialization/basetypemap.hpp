@@ -22,10 +22,11 @@
 #define BASE_TYPE_MAP_HPP
 
 namespace serialization{
-
+//! A base class for mapping types to callbacks
 class BaseTypeMap{
 public:
 	typedef void (*FncTp)(void*, void*, void*);
+	//! Insert a function callback
 	virtual void insert(FncTp, unsigned _pos, const char *_name, unsigned _maxpos) = 0;
 	virtual ~BaseTypeMap();
 };

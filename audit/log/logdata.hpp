@@ -4,7 +4,7 @@
 #include "system/convertors.hpp"
 
 namespace audit{
-
+//! The head of a log record - sent from client to server
 struct LogRecordHead{
 	uint16		level;
 	uint16		module;
@@ -43,7 +43,7 @@ struct LogRecordHead{
 		datalen = toHost(datalen);
 	}
 };
-
+//! The head of a log connection - sent from client to server
 struct LogHead{
 	LogHead(
 		uint32 _procid = 0,

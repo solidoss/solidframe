@@ -5,7 +5,7 @@
 #include "audit/log/logrecorder.hpp"
 
 namespace audit{
-
+//! A simple file recorder
 class LogFileRecorder: public LogRecorder{
 public:
 	LogFileRecorder(const char*_name = NULL, bool _dorespin = false):respin(_dorespin ? 0 : -1){

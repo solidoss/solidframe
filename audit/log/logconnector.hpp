@@ -9,6 +9,10 @@ class LogRecorderVector;
 class LogRecord;
 class LogClientData;
 
+//! A log connector is a container of log client connections and a filter for log records
+/*!
+	Inherit this class and implement the actual connection keeping and the filtering.
+*/
 class LogConnector{
 public:
 	LogConnector();
