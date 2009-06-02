@@ -163,7 +163,8 @@ void AlphaThread::run(){
 	char buf[BufLen];
 	if(port && port < 1200){
 		cout<<"Using proxy..."<<endl;
-		wr<<"localhost "<<port<<crlf;
+		wr<<"localhost ";
+		wr<<(uint32)port<<crlf;
 		wr.flush();
 	}
 	int rv = list(buf);

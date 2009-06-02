@@ -25,6 +25,7 @@
 #include <fcntl.h>
 #include <cerrno>
 #include <iostream>
+#include <cstring>
 
 using namespace std;
 
