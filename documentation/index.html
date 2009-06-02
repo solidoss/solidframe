@@ -43,7 +43,7 @@ Version 1.0:<br><br>
 	<li>A file stream manager for asynchronous usage (e.g. if you want a read-only stream for a file which is locked for writing, the manager will signal you the stream when unlocked)</li>
 	<li>A nice audit/log engine.</li>
 	<li>Doxygen documentation.</li>
-	<li>Lots of test applications, including a central proof of concept multi service server.</li>
+	<li>Lots of example applications, including a central proof of concept multi service server.</li>
 </ol>
 
 <table width="100%" border="0" align="left">
@@ -91,7 +91,7 @@ Version 1.0:<br><br>
   </thead>
 </table>
 
-Before anything you must ensure you have all the needed packages installed on your Linux box. You'll need: gcc-c++, boost, boost-devel, cmake (on a fedora box: "yum install gcc-c++ cmake" will suffice). Eventually you'll need "subversion" to fetch a copy of solidground repository (fedora:"yum install subversion").
+Before anything you must ensure you have all the needed packages installed on your Linux box. You'll need: gcc-c++, cmake (on a fedora box: "yum install gcc-c++ cmake" will suffice). Eventually you'll need "subversion" to fetch a copy of solidground repository (fedora:"yum install subversion").
 <br>
 The solidground framework, has a commodity build script which can be used to create certain builds for certain base build systems (make or kdevelop3 - run <pre>./configure --help</pre> to se the options).
 <br>
@@ -114,22 +114,22 @@ Now, lets build a debug version of the proof of concept server.
 
 <pre style="font-family : monospace;">
 solidground $ ./configure -f dbg -b debug -e ~/work/sg_extern
-solidground $ cd build/dbg/test/foundation/main
+solidground $ cd build/dbg/example/foundation/main
 
 main $ make
 </pre>
 
-The above commands will start building the proof of concept clientserver test application. When it's done the application is created within the main directory, and you can start using it:
+The above commands will start building the proof of concept clientserver example application. When it's done the application is created within the main directory, and you can start using it:
 
-<pre style="font-family : monospace;">main $ ./test_concept --help</pre>
+<pre style="font-family : monospace;">main $ ./concept --help</pre>
 
 To see the parameters accepted.
 
-<pre style="font-family : monospace;">main $ ./test_concept -b 1000</pre>
+<pre style="font-family : monospace;">main $ ./concept -b 1000</pre>
 
 The application should start printing some information and offering a small CLI (Command Line Interface) on which you can type help to see the commands.
 
-The test application expects a starting base port value (-b argument) which will be used for opening listening TCP and UDP sockets (default is 1000). There are few services offered by test among which are echo and the most important, alpha.
+The concept application expects a starting base port value (-b argument) which will be used for opening listening TCP and UDP sockets (default is 1000). There are few services offered by concept among which are echo and the most important, alpha.
 
 In the following lines, to show the capabilities of the framework we'll use the alpha protocol which somehow resembles the IMAP protocol in syntax. The alpha service will listen on (base_port + 114) port. So, next you'll need to start a telnet on localhost 1114 (telnet 0 1114) and you should see the alpha banner.
 
@@ -149,9 +149,9 @@ Fetch files:
 
 <pre style="font-family : monospace;">ac fetch "/tmp/000002.txt"</pre>
 
-Now lets move forward to two more interesting commands. For that we'll need another instance of test listening on different set of ports:
+Now lets move forward to two more interesting commands. For that we'll need another instance of concept listening on different set of ports:
 
-<pre style="font-family : monospace;">main $ ./test_concept -b 2000</pre>
+<pre style="font-family : monospace;">main $ ./concept -b 2000</pre>
 
 The folowing commands will test the IPC capabilities, remote executing commands issued from the first server on the second server.
 
@@ -181,7 +181,7 @@ The command is quite complex and quite important as it stresses/tests a lot the 
    <li> To close a connection use:
 	<pre style="font-family : monospace;">xx logout</pre>
 	</li>
-   <li> To close the test application type "quit" in the mini CLI</li>
+   <li> To close the concept application type "quit" in the mini CLI</li>
  </ul>
 <br><br>
 <table width="100%" border="0" align="left">
@@ -199,7 +199,7 @@ So there are some client applications writen to test some of those commands.
 
 They are located in:
 
-<pre style="font-family : monospace;">solidground/test/client</pre>
+<pre style="font-family : monospace;">solidground/example/client</pre>
 
 Lets build em in release mode.
 
@@ -210,7 +210,7 @@ If you haven't done so yet do:
 Then do:
 
 <pre style="font-family : monospace;">
-solidground $ cd build/rls/test/client<br>
+solidground $ cd build/rls/example/client<br>
 client $ make
 </pre>
 

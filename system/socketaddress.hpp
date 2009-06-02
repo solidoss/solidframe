@@ -29,6 +29,10 @@
 
 struct AddrInfo;
 //! A wrapper for POSIX addrinfo (see man getaddrinfo)
+/*!
+	Usually it will hold all data needed for creating and connecting 
+	a socket
+*/
 struct AddrInfoIterator{
 	AddrInfoIterator():paddr(NULL){}
 	AddrInfoIterator& next(){paddr = paddr->ai_next; return *this;}
@@ -45,6 +49,12 @@ private:
 	addrinfo	*paddr;
 };
 //! A wrapper for POSIX getaddrinfo (see man getaddrinfo)
+/*!
+	This is an address resolver class.
+	It resolves names to ip addresses.
+	It is a blocking resolver, so use it with care expecially when combined with
+	nonblocking/asynchronous IO.
+*/
 struct AddrInfo{
 	enum Flags{
 		CannonName = AI_CANONNAME,
@@ -64,9 +74,14 @@ struct AddrInfo{
 		Datagram = SOCK_DGRAM
 	};
 	AddrInfo(){}
+	//! Create an addr info using a name and a service name
 	AddrInfo(const char *_node, const char *_service){
 		reinit(_node, _service);
 	}
+	//! Create an addr info using a name and a service name and extra parameters
+	/*!
+		Using this constructor you can request certain connection family, type protocol.
+	*/
 	AddrInfo(
 		const char *_node, 
 		const char *_service, 
@@ -77,7 +92,12 @@ struct AddrInfo{
 	){
 		reinit(_node, _service, _flags, _family, _type, _proto);
 	}
+	//! Create an addr info using a name and a service port
 	AddrInfo(const char *_node, int _port);
+	//! Create an addr info using a name and a service port and extra parameters
+	/*!
+		Using this constructor you can request certain connection family, type protocol.
+	*/
 	AddrInfo(
 		const char *_node, 
 		int _port,
@@ -90,9 +110,9 @@ struct AddrInfo{
 	}
 	
 	~AddrInfo();
-	
+	//! Initiate an addr info using a name and a service name
 	void reinit(const char *_node, const char *_service);
-	
+	//! Initiate an addr info using a name and a service name and extra parameters
 	void reinit(
 		const char *_node, 
 		const char *_service,
@@ -101,9 +121,9 @@ struct AddrInfo{
 		int _type = -1,
 		int _proto = -1	
 	);
-	
+	//! Initiate an addr info using a name and a service port
 	void reinit(const char *_node, int _port);
-	
+	//! Initiate an addr info using a name and a service port and extra parameters
 	void reinit(
 		const char *_node, 
 		int _port,
@@ -112,8 +132,9 @@ struct AddrInfo{
 		int _type = -1,
 		int _proto = -1
 	);
-	
+	//! Get an iterator to he first resolved ip address
 	AddrInfoIterator begin(){ return ib;}
+	//! Check if the returned list of ip addresses is empty
 	bool empty()const{return ib.paddr == NULL;}
 private:
 	AddrInfoIterator	ib;

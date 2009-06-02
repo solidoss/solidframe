@@ -25,6 +25,14 @@
 #include "common.hpp"
 #include <arpa/inet.h>
 
+//!A template convertor to an unsigned
+/*!
+	it convert a basic type to it unsigned equivalent:<br>
+	int -> unsigned int<br>
+	long -> unsigned long<br>
+	usigned long -> unsigned long<br>
+	etc.<br>
+*/
 template <class T>
 struct UnsignedConvertor;
 

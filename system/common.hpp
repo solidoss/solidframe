@@ -63,6 +63,7 @@ enum SeekRef {
 	SeekEnd=2
 };
 
+//! Some project wide used return values
 enum RetVal{
 	BAD = -1,
 	OK = 0,
@@ -79,10 +80,17 @@ template <typename T>
 inline T tMin(T v1,T v2){
     return (v1>v2)?v2:v1;
 }
-
+//! A fast template inline function for exchanging values
 template <typename T>
 void exchange(T &a, T &b, T &tmp){
 	tmp = a;
+	a = b;
+	b = tmp;
+}
+//! A fast template inline function for exchanging values
+template <typename T>
+void exchange(T &a, T &b){
+	T tmp(a);
 	a = b;
 	b = tmp;
 }

@@ -17,7 +17,7 @@ set(Headers
 	logrecorder.hpp
 	logrecorders.hpp
 	logrecord.hpp
-	logwriter.hpp
+	#logwriter.hpp
 )
 
 set(Inlines	

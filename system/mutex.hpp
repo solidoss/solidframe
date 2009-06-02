@@ -46,11 +46,15 @@ public:
 	Mutex(Type _type = FAST);
 #endif
 	~Mutex();
-	
+	//! Lock for current thread
 	void lock();
+	//! Unlock for current thread
 	void unlock();
+	//! Timed lock for current thread
 	int timedLock(const TimeSpec &_rts);
+	//! Try lock for current thread
 	bool tryLock();
+	//! Reinit with a new tipe
 	int reinit(Type _type = FAST);
 private:
 	friend class Condition;
