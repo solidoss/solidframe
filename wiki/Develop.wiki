@@ -3,7 +3,7 @@
 
 = Introduction =
 
-I suppose you've managed to build the *SolidGround* test applications, which means that you have a working copy. You'll now learn to develop using *SolidGround*.
+I suppose you've managed to build the *SolidGround* example applications, which means that you have a working copy. You'll now learn to develop using *SolidGround*.
 
 = Building a KDevelop project =
 
@@ -17,7 +17,7 @@ In KDevelop, open the project from: `/path/to/solidground/build/kdv/SOLIDGROUND.
 
 That's all, eventually you can configure KDevelop to use Subversion for project, and use 4 spaces wide tabs for indentation.
 
-In the following lines I will present the way to start writing a new *SolidGround* application then I'll present the proof of concept test application.
+In the following lines I will present the way to start writing a new *SolidGround* application then I'll present the proof of concept example application.
 
 = Adding a new application =
 
@@ -29,7 +29,7 @@ So you should do something like:
 solidground/application $ svn co https://foobarsuite.googlecode.com/svn/trunk/ foobar
 }}}
 
-to have a repository copy of your application within `"solidground/application/foobar"`, with no files and no folders. Lets add some (we suppose the foobar contains: a client, a server and some applications test):
+to have a repository copy of your application within `"solidground/application/foobar"`, with no files and no folders. Lets add some (we suppose the foobar contains: a client, a server and some test applications):
 
 	# first you'll need to create the folders:
 		{{{
@@ -60,19 +60,19 @@ to have a repository copy of your application within `"solidground/application/f
 
 As you can see, you can have multiple *SolidGround* based projects within 'application'.
 
-= The proof of concept test application =
+= The proof of concept example application =
 
-The Proof Of Concept Test Application (POCTA: `solidground/test/foundation/`) is a multi service, server offering:
+The Proof Of Concept Example Application (POCEA: `solidground/example/foundation/`) is a multi service, server offering:
 	* an ALPHA service resembling IMAP on syntax;
 	* echo service for TCP and UDP;
 	* a proxy service.
 
 You've built it and tested it, now lets dig into the code, as shows how the *SolidGround* libraries should be used.
 
-Lets look first at the main function (`solidground/test/foundation/main/src/test.cpp`).
+Lets look first at the main function (`solidground/example/foundation/main/src/concept.cpp`).
 
 
-= The main function of the test server =
+= The main function of the concept server =
 
 {{{
 int main(int argc, char* argv[]){
@@ -146,9 +146,9 @@ Instantiate a Manager, add a new echo service, a new listener and a new talker t
 
 {{{
 	{
-		test::Manager	tm;
+		concept::Manager	tm;
 		if(true){// create and register the echo service
-			test::Service* psrvc = test::echo::Service::create();
+			concept::Service* psrvc = concept::echo::Service::create();
 			tm.insertService("echo", psrvc);
 			
 			{//add a new listener
@@ -194,13 +194,13 @@ At the end of main function, after the manager was destroyed we do:
 	Thread::waitAll();
 }}}
 
-Note that the test::Manager is declared within a block, and the waitAll() is called outside that block, so that it is called after the manager object is destroyed.
+Note that the concept::Manager is declared within a block, and the waitAll() is called outside that block, so that it is called after the manager object is destroyed.
 
-= The test core library =
+= The concept core library =
 
-While at design level the central concept of the framework is the Pseudo-Active-Object class, at implementation level the central concept is the Manager object which provides the main way to interact with objects and services. As you can see in the above code, the manager is a test::Manager which is also a foundation::Manager. Lets have a look at test::Manager (`test/foundation/core/src/manager.cpp`).
+While at design level the central concept of the framework is the Pseudo-Active-Object class, at implementation level the central concept is the Manager object which provides the main way to interact with objects and services. As you can see in the above code, the manager is a concept::Manager which is also a foundation::Manager. Lets have a look at concept::Manager (`example/foundation/core/src/manager.cpp`).
 
-The test::Manager is the bottom container as it holds: the file manager, the active pools and the services. Most of the classes of the objects held by the foundation::Manager, are abstract and a local implementation (which consists mostly of simple lines of code) must be given. So we have to implement: a FileManager, an ipc::Service, a SignalExecuter (a PAO which all it does is to execute incoming Signal(s)). Also the concrete active pools must be defined. Next the foundation::Manager is extended to allow insertion of services and different types of objects like connections, talkers, listeners etc. 
+The concept::Manager is the bottom container as it holds: the file manager, the active pools and the services. Most of the classes of the objects held by the foundation::Manager, are abstract and a local implementation (which consists mostly of simple lines of code) must be given. So we have to implement: a FileManager, an ipc::Service, a SignalExecuter (a PAO which all it does is to execute incoming Signal(s)). Also the concrete active pools must be defined. Next the foundation::Manager is extended to allow insertion of services and different types of objects like connections, talkers, listeners etc. 
 
 So, using the manager, one can add new connections (connections that will connect to a server), new listeners 
 and/or new talkers (asynchronous UDP communication stubs) to a service.
@@ -211,7 +211,7 @@ The manager mixes all these and allows restrictive access to services and object
 static Manager& the(){return static_cast<Manager&>(foundation::Manager::the());}
 }}}
 
-This method is necessary because all concrete objects defined within "test" need to access this test::Manager (and not the foundation::Manager, which is eventually accessed internally at the foundation level) 
+This method is necessary because all concrete objects defined within "concept" need to access this concept::Manager (and not the foundation::Manager, which is eventually accessed internally at the foundation level) 
 
 Here is the code for pools definitions:
 
@@ -265,7 +265,7 @@ Manager::Data::Data(Manager &_rm)
 }
 }}}
 
-Next we'll stop on the test::Service (`test/foundation/core/src/service.cpp`). The service is also a PAO which all it does is to wait for kill signal.
+Next we'll stop on the concept::Service (`example/foundation/core/src/service.cpp`). The service is also a PAO which all it does is to wait for kill signal.
 
 {{{
 int Service::execute(ulong _sig, TimeSpec &_rtout){
@@ -278,8 +278,8 @@ int Service::execute(ulong _sig, TimeSpec &_rtout){
 		}
 		if(sm & cs::S_KILL){
 			idbg("killing service "<<this->id());
-			this->stop(test::Manager::the(), true);
-			test::Manager::the().removeService(this);
+			this->stop(concept::Manager::the(), true);
+			concept::Manager::the().removeService(this);
 			return BAD;
 		}
 	}
@@ -288,9 +288,9 @@ int Service::execute(ulong _sig, TimeSpec &_rtout){
 }}}
 
 
-The test::Service is not a final service, it extends the foundation::Service but this is not final. The final services are defined in their corresponding library (e.g. test::alpha::Service `test/foundation/alpha/alphaservice.hpp`).
+The concept::Service is not a final service, it extends the foundation::Service but this is not final. The final services are defined in their corresponding library (e.g. concept::alpha::Service `example/foundation/alpha/alphaservice.hpp`).
 
-What is final and it is implemented in `test/foundation/core` is the listener, which is a PAO that accepts incomming connections:
+What is final and it is implemented in `example/foundation/core` is the listener, which is a PAO that accepts incomming connections:
 
 {{{
 int Listener::execute(ulong, TimeSpec&){
@@ -328,16 +328,16 @@ int Listener::execute(ulong, TimeSpec&){
 }
 }}}
 
-Up till now you've learned about the `test/foundation/core` library, which is the basis for the proof of concept multiservice server application. You've learn about the central object, the test::Manager, you've learned about the base services and the listeners. As you've found out from above, every service has it's own library and folder. Let's take a look at the alpha service which is the most important service/protocol exported by the proof of concept server.
+Up till now you've learned about the `example/foundation/core` library, which is the basis for the proof of concept multiservice server application. You've learn about the central object, the concept::Manager, you've learned about the base services and the listeners. As you've found out from above, every service has it's own library and folder. Let's take a look at the alpha service which is the most important service/protocol exported by the proof of concept server.
 
 = The alpha service =
 
-As every library in *SolidGround*, the test_alpha library has it own folder. The only public interface of the library is in the `alphaservice.hpp` file, the rest of the code, being private, is within `alpha/src`. In `test/foundation/alpha/alphaservice.hpp` is declared the test::alpha::Service, which is instantiated in the application's main function and registered into the manager.
+As every library in *SolidGround*, the concept_alpha library has it own folder. The only public interface of the library is in the `alphaservice.hpp` file, the rest of the code, being private, is within `alpha/src`. In `example/foundation/alpha/alphaservice.hpp` is declared the concept::alpha::Service, which is instantiated in the application's main function and registered into the manager.
 
 A service, once registered, cannot be unregistered. A service can be inactive or active but it cannot be deleted.
-As you can see from the code, the alpha service is a test core service and implements that interface allowing additions of connections and listeners. The only recommended way to directly access a service (I've tried to enforce in the code) is from its PAOs within PAOs execute function. The idea is that the service life will allways exceed its PAOs. See the test::Listener::execute, above, for an example.
+As you can see from the code, the alpha service is a concept core service and implements that interface allowing additions of connections and listeners. The only recommended way to directly access a service (I've tried to enforce in the code) is from its PAOs within PAOs execute function. The idea is that the service life will allways exceed its PAOs. See the concept::Listener::execute, above, for an example.
 
-So into an alpha service one can insert connections and listeners. The listeners are of type test::Listener, while the connections are test::alpha::Connection(s), private to alpha library.
+So into an alpha service one can insert connections and listeners. The listeners are of type concept::Listener, while the connections are concept::alpha::Connection(s), private to alpha library.
 
 As the code from the alpha service is pretty simple we shall not delve into it. The only thing I'd like to add, is some words about the destruction of services.
 
@@ -353,7 +353,7 @@ Because alpha service features, rather complicated, text protocol (resembling IM
 
 {{{
 int Connection::execute(ulong _sig, TimeSpec &_tout){
-	test::Manager &rm = test::Manager::the();
+	concept::Manager &rm = concept::Manager::the();
 	fdt::requestuidptr->set(this->id(), rm.uid(*this));
 	//_tout.add(2400);
 	if(_sig & (fdt::TIMEOUT | fdt::ERRDONE)){
@@ -402,7 +402,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 				state(Banner);
 			}
 		case Banner:{
-			test::Manager	&rm = test::Manager::the();
+			concept::Manager	&rm = concept::Manager::the();
 			uint32			myport(rm.ipc().basePort());
 			ulong			objid(this->id());
 			uint32			objuid(rm.uid(*this));
@@ -581,9 +581,9 @@ int Connection::dynamicReceive(IStreamSignal &_rsig){
 }}}
 
 
-Notable alpha commands are: test::alpha::RemoteList and test::alpha::Fetch - see their implementation in `solidground/test/foundation/alpha/src/alphacommands.cpp`.
+Notable alpha commands are: concept::alpha::RemoteList and concept::alpha::Fetch - see their implementation in `solidground/example/foundation/alpha/src/alphacommands.cpp`.
 
-Alpha protocol is a test protocol designed as a proof of concept (showing the way the *SolidGround* foundation libraries should/may be used). The implementation though, is both not perfect and incomplete. It serves as a testing platform for new features and for profiling testing in combination with some clients (`test/client/alpha`*``).
+Alpha protocol is a concept protocol designed as a proof of concept (showing the way the *SolidGround* foundation libraries should/may be used). The implementation though, is both not perfect and incomplete. It serves as a testing platform for new features and for profiling testing in combination with some clients (`example/client/alpha`*``).
 
 = Closing =
 

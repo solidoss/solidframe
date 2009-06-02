@@ -1,4 +1,4 @@
-#summary Fetching and building the test suite
+#summary Building and testing the sample applications
 #labels testing
 
 =Introduction=
@@ -38,9 +38,9 @@ sg_extern $ ./prepare_lin.sh
 
 The script will automatically extract and build the needed extern libraries.
 
-=Building the test applications=
+=Building the example applications=
 
-To build the test applications you need to prepare the build folder. You can do this for different types of builds: release, debug, nolog, optimized, maintain.
+To build the example applications you need to prepare the build folder. You can do this for different types of builds: release, debug, nolog, optimized, maintain.
 
 	* release - without debug messages, -03, with inlines, no assert
 	* debug - with debug messages, -g3, without inlines, with assert
@@ -65,7 +65,7 @@ The above commands will prepare three build environments:
 Next lets build the proof of concept server:
 
 {{{
-solidground $ cd build/dbg/test/foundation/main
+solidground $ cd build/dbg/example/foundation/main
 main $ make
 }}}
 
@@ -78,14 +78,14 @@ main $ cd ../../client
 client $ make
 }}}
 
-The most relevant service of the test server is the alpha service. See below a presentation of alpha protocol and a way to manually test it. Now we use the test clients.
+The most relevant service of the example server is the alpha service. See below a presentation of alpha protocol and a way to manually test it. Now we use the example clients.
 
-The most interesting test clients for alpha protocol are alphaclient_p and alphaclient_s. They are the same except that the first one uses plain connections while the second uses SSL connections.
+The most interesting example clients for alpha protocol are alphaclient_p and alphaclient_s. They are the same except that the first one uses plain connections while the second uses SSL connections.
 
-Before anything we'll need another test application:
+Before anything we'll need another example application:
 {{{
 
-solidground $ cd build/dbg/test/system/files
+solidground $ cd build/dbg/example/system/files
 files $ make
 
 # lets build some 100 files with sizes from 4K to 1M
@@ -97,27 +97,27 @@ Next we'll need two instances of the proof of concept server:
 
 in one terminal:
 {{{
-solidground $ cd build/dbg/test/foundation/main
-main $ ./test -b 1000
+solidground $ cd build/dbg/example/foundation/main
+main $ ./concept -b 1000
 }}}
 in another terminal:
 
 {{{
-solidground $ cd build/dbg/test/foundation/main
-main $ ./test -b 2000
+solidground $ cd build/dbg/example/foundation/main
+main $ ./concept -b 2000
 }}}
 
 in yet another terminal we should use the clients:
 
 {{{
-solidground $ cd build/dbg/test/client
+solidground $ cd build/dbg/example/client
 }}}
 
 First let us use the plain client for local fetching on 10 threads:
 {{{
 client $ time ./alphaclient_p 10 localhost 1114 /tmp/00000001 5 2
 }}}
-Next lets use it for remote fetching using the second test application instance as peer:
+Next lets use it for remote fetching using the second example application instance as peer:
 {{{
 client $ time ./alphaclient_p 10 localhost 1114 /tmp/00000001 5 2 localhost 2222
 }}}
@@ -191,4 +191,4 @@ As you'll see, the performance decreases on remote fetch at half of that of the 
 
 = Closing =
 
-On this page you've learned how to have a working copy of the *SolidGround* framework, and learned something about its test applications, especially the proof of concept server. You've also learned how to make a small performance test. There you have it, now brace yourself for the interesting part - start using the framework for development [ http://code.google.com/p/solidground/wiki/Develop ].
+On this page you've learned how to have a working copy of the *SolidGround* framework, and learned something about its example applications, especially the proof of concept server. You've also learned how to make a small performance test. There you have it, now brace yourself for the interesting part - start using the framework for development [ http://code.google.com/p/solidground/wiki/Develop ].

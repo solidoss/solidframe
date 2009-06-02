@@ -42,7 +42,7 @@ So what do we need for writing C++ applications:
 	* (might need) ways of passing commands from a process to another, for distributed applications;
 	* (might need) an audit (logging) engine.
 
-*SolidGround* offers all this and more. It has a neat design, nice concepts like Pseudo Active Objects and a *solid* implementation. It has lots of test applications, including a central proof of concept server to test most of the offered concepts. Also there are some clients written to stress the proof of concept server for profiling purposes.
+*SolidGround* offers all this and more. It has a neat design, nice concepts like Pseudo Active Objects and a *solid* implementation. It has lots of example applications, including a central proof of concept server to show most of the offered concepts. Also there are some clients written to stress the proof of concept server for profiling purposes.
 
 Here are some of the nicest things it offers:
 
@@ -126,7 +126,7 @@ When the index exceeds N x M, the mutexes returned start again from 0x0, and a m
 
 There are two libraries: *protocol* for implementing internet text protocols, and *serialization* for re-entrant serialization.
 
-As you've learned, in *SolidGround* the communication is asynchronous, so although it simplifies some things, it complicates a little the parsing of the data received on the communication channel and the built of the response. The "protocol" library helps with that: re-entrant parsing with error handling and re-entrant response builder. I've designed the protocol library having the experience of implementing the IMAP protocol so, as you'll see from the foundation *alpha test protocol* which resembles IMAP, the library is quite easy to use. By re-entrant I mean, for example in case of parsing, that you don't have to feed the parser all the data, you give the parser the data you have, and it will inform you if it has finished parsing or if it needs more data.
+As you've learned, in *SolidGround* the communication is asynchronous, so although it simplifies some things, it complicates a little the parsing of the data received on the communication channel and the built of the response. The "protocol" library helps with that: re-entrant parsing with error handling and re-entrant response builder. I've designed the protocol library having the experience of implementing the IMAP protocol so, as you'll see from the foundation *alpha example protocol* which resembles IMAP, the library is quite easy to use. By re-entrant I mean, for example in case of parsing, that you don't have to feed the parser all the data, you give the parser the data you have, and it will inform you if it has finished parsing or if it needs more data.
 
 Same thing with the *serialization* library. Although not as complete as, let's say, boost::serialization, it has the major advantage of being re-entrant. For the moment it only features binary serialization, written specifically for the IPC engine. It can serialize:
 
@@ -184,7 +184,7 @@ Suppose you have different objects (PAOs) that need to access a certain file. So
 
 Requesting a stream to a file from the file manager, will either return immediately with success and the stream, or with failure or "pending" when the requested stream conflicts with other existing stream(s). In the last case, the filemanager will signal the stream to a PAO using a command. Also it may happen for filemanager to signal an error.
 
-The file manager also offers support for temporary files. For a very nice example of both, the way it should be used and its power, see the test alpha fetch command, especially how the remote fetching is implemented (test/foundation/alpha/src/alphacommands.cpp).
+The file manager also offers support for temporary files. For a very nice example of both, the way it should be used and its power, see the example alpha fetch command, especially how the remote fetching is implemented (example/foundation/alpha/src/alphacommands.cpp).
 
 ==The *"foundation_aio"* library group==
 
@@ -205,4 +205,4 @@ The stress tests I've performed show the same IO transfer speed as TCP.
 
 =Closing=
 
-In this page you've learned basic knowledge about *SolidGround*: what it is, what it offers, about its core concepts and its libraries. Next [ http://code.google.com/p/solidground/wiki/Testing ] you'll learn about how to compile and test the *SolidGround* test applications.
+In this page you've learned basic knowledge about *SolidGround*: what it is, what it offers, about its core concepts and its libraries. Next [ http://code.google.com/p/solidground/wiki/Testing ] you'll learn about how to compile and test the *SolidGround* example applications.
