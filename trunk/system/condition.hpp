@@ -24,13 +24,18 @@
 
 struct TimeSpec;
 struct Mutex;
+//! A simple posix condition wrapper
 class Condition{
 public:
 	Condition();
 	~Condition();
+	//! Try to wake one waiting thread
 	int signal();
+	//! Try to wake all waiting threads
 	int broadcast();
+	//! Wait for a signal
 	int wait(Mutex &_mut);
+	//! Wait for a signal a certain amount of time
 	int wait(Mutex &_mut, const TimeSpec &_ts);
 private:
 	pthread_cond_t cond;

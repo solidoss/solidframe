@@ -39,6 +39,12 @@ struct Cacheable: T{
 	void specificRelease(){this->clear();}
 };
 
+//! A base class for thread specific objects
+/*!
+	A thread specific object is allocated and destroyed by one and the same thread.
+	It will try to reuse a buffer from threa's cache, and on delete (which must be
+	called on the same thread as new, it will reacache the data
+*/
 struct SpecificObject{
 	static void operator delete (void *_p, std::size_t _sz);
 	static void* operator new (std::size_t _sz);
@@ -68,7 +74,6 @@ struct SpecificCacheControl{
 	- objects given by pointers uncache/cache/tryUncache
 	- buffers of size power of 2
 */
-
 class Specific{
 	/*
 		Why it is not a good idea to save only the sizeof a type.

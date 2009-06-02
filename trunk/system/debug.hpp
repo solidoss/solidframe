@@ -31,7 +31,7 @@
 #include "system/common.hpp"
 
 
-#ifdef _WIN32
+#ifdef ON_WIN
 
 #ifdef DO_EXPORT_DLL
 #define EXPORT_DLL __declspec(dllexport)

@@ -27,11 +27,13 @@
 
 namespace foundation{
 
+//! Some return values
 enum RetValEx {
 	LEAVE = CONTINUE + 1,
 	REGISTER, UNREGISTER, RTOUT, WTOUT, DONE
 };
 
+//! Some signals
 enum Signals{
 	//simple:
 	S_RAISE = 1,
@@ -42,6 +44,7 @@ enum Signals{
 	S_ERR  = 1<<10
 };
 
+//! Some events
 enum Events{
 	OKDONE = 1, //Successfull asynchrounous completion
 	ERRDONE = 2,//Unsuccessfull asynchrounous completion
