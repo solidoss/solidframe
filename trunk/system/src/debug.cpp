@@ -213,7 +213,7 @@ public:
 struct Dbg::Data{
 	typedef std::bitset<DEBUG_BITSET_SIZE>	BitSetTp;
 	typedef std::vector<const char*>		NameVectorTp;
-	Data():lvlmsk(0), sz(0), respinsz(0), respincnt(0), respinpos(0), dos(sz), dbos(sz){
+	Data():lvlmsk(0), sz(0), respinsz(0), respincnt(0), respinpos(0), dos(sz), dbos(sz), trace_debth(0){
 		pos = &std::cerr;
 	}
 	void setModuleMask(const char*);
@@ -237,6 +237,7 @@ struct Dbg::Data{
 	std::ostream			*pos;
 	string					path;
 	string					name;
+	uint					trace_debth;
 };
 //-----------------------------------------------------------------
 void splitPrefix(string &_path, string &_name, const char *_prefix);
@@ -286,6 +287,10 @@ uint32 parseLevels(const char *_lvl){
 			case 'v':
 			case 'V':
 				r |= Dbg::Verbose;
+				break;
+			case 't':
+			case 'T':
+				r |= Dbg::Trace;
 				break;
 		}
 		++_lvl;
@@ -530,7 +535,7 @@ void Dbg::initSocket(
 void Dbg::levelMask(const char *_msk){
 	Mutex::Locker lock(d.m);
 	if(!_msk){
-		_msk = "iewrv";
+		_msk = "iewrvt";
 	}
 	d.lvlmsk = parseLevels(_msk);
 }
@@ -609,11 +614,106 @@ std::ostream& Dbg::print(
 	);
 	return (*d.pos)<<buf<<'['<<_file + fileoff<<'('<<_line<<')'<<' '<<_fnc<<']'<<' ';
 }
+static const char tabs[]="\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t"
+						 "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t"
+						 "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
+DbgTraceTest::~DbgTraceTest(){
+	cassert(v==0);
+}
+
+std::ostream& Dbg::printTraceIn(
+	const char _t,
+	unsigned _module,
+	const char *_file,
+	const char *_fnc,
+	int _line
+){
+	d.m.lock();
+	if(d.respinsz && d.respinsz <= d.sz){
+		d.doRespin();
+	}
+	char buf[128];
+	TimeSpec ts_now;
+	clock_gettime(CLOCK_MONOTONIC, &ts_now);
+	ts_now = ts_now - d.begts;
+	time_t t_now = d.begt + ts_now.seconds();
+	tm loctm;
+	localtime_r(&t_now, &loctm);
+	sprintf(
+		buf,
+		"%c[%04u-%02u-%02u %02u:%02u:%02u.%03u]",
+		_t,
+		loctm.tm_year + 1900,
+		loctm.tm_mon + 1, 
+		loctm.tm_mday,
+		loctm.tm_hour,
+		loctm.tm_min,
+		loctm.tm_sec,
+		(uint)ts_now.nanoSeconds()/1000000//,
+		//d.nv[_module],
+		//Thread::currentId()
+	);
+	(*d.pos)<<buf;
+	d.pos->write(tabs, d.trace_debth);
+	++d.trace_debth;
+	(*d.pos)<<'['<<_file + fileoff<<'('<<_line<<')'<<']'<<'['<<Thread::currentId()<<']'<<' '<<_fnc<<'(';
+	return (*d.pos);
+}
+
+std::ostream& Dbg::printTraceOut(
+	const char _t,
+	unsigned _module,
+	const char *_file,
+	const char *_fnc,
+	int _line
+){
+	d.m.lock();
+	if(d.respinsz && d.respinsz <= d.sz){
+		d.doRespin();
+	}
+	char buf[128];
+	TimeSpec ts_now;
+	clock_gettime(CLOCK_MONOTONIC, &ts_now);
+	ts_now = ts_now - d.begts;
+	time_t t_now = d.begt + ts_now.seconds();
+	tm loctm;
+	localtime_r(&t_now, &loctm);
+	sprintf(
+		buf,
+		"%c[%04u-%02u-%02u %02u:%02u:%02u.%03u]",
+		_t,
+		loctm.tm_year + 1900,
+		loctm.tm_mon + 1, 
+		loctm.tm_mday,
+		loctm.tm_hour,
+		loctm.tm_min,
+		loctm.tm_sec,
+		(uint)ts_now.nanoSeconds()/1000000//,
+		//d.nv[_module],
+		//Thread::currentId()
+	);
+	(*d.pos)<<buf;
+	--d.trace_debth;
+	d.pos->write(tabs, d.trace_debth);
+	(*d.pos)<<'['<<_file + fileoff<<'('<<_line<<')'<<']'<<'['<<Thread::currentId()<<']'<<' '<<'}'<<_fnc<<'(';
+	return (*d.pos);
+}
 
 void Dbg::done(){
 	(*d.pos)<<std::endl;
 	d.m.unlock();
 }
+
+void Dbg::doneTraceIn(){
+	(*d.pos)<<')'<<'{'<<std::endl;
+	d.m.unlock();
+}
+
+void Dbg::doneTraceOut(){
+	(*d.pos)<<')'<<std::endl;
+	d.m.unlock();
+}
+
 bool Dbg::isSet(Level _lvl, unsigned _v)const{
 	return (d.lvlmsk & _lvl) && d.bs[_v];
 }
