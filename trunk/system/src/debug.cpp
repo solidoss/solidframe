@@ -617,9 +617,15 @@ std::ostream& Dbg::print(
 static const char tabs[]="\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t"
 						 "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t"
 						 "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
+
+#ifdef UTRACE
 DbgTraceTest::~DbgTraceTest(){
-	cassert(v==0);
+	if(v){
+		Dbg::instance().printTraceOut('T', mod, file, fnc, line)<<"???";
+		Dbg::instance().doneTraceOut();
+	}
 }
+#endif
 
 std::ostream& Dbg::printTraceIn(
 	const char _t,

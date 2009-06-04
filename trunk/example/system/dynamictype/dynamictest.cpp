@@ -49,7 +49,7 @@ int MyObject::dynamicReceive(test_cmds::FirstCommand &_rcmd){
 	tdbgi(Dbg::any,_rcmd.v);
 	idbg("First command value "<<_rcmd.v);
 	some_test(10, "some string");
-	tdbgo(Dbg::any,0);
+	//tdbgo(Dbg::any,0);
 	return 0;
 }
 

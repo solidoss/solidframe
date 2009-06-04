@@ -148,11 +148,23 @@ private:
 #define __FUNCTION__ __func__
 #endif
 
+#ifdef UTRACE
+
 struct DbgTraceTest{
-	DbgTraceTest():v(1){}
+	DbgTraceTest(
+		int _mod,
+		const char *_file,
+		const char *_fnc,
+		int _line):v(1), mod(_mod), file(_file), fnc(_fnc),line(_line){}
 	~DbgTraceTest();
-	int v;
+	int			v;
+	int			mod;
+	const char	*file;
+	const char	*fnc;
+	int			line;
 };
+
+#endif //UTRACE
 
 #define CRT_FUNCTION_NAME __FUNCTION__
 // #endif
@@ -192,8 +204,9 @@ struct DbgTraceTest{
 	if(Dbg::instance().isSet(Dbg::Verbose, a)){\
 	Dbg::instance().print('V', a,  __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;Dbg::instance().done();}else;
 
+#ifdef UTRACE
 #define tdbgi(a,x)\
-	DbgTraceTest __dbgtrace__;\
+	DbgTraceTest __dbgtrace__(a,  __FILE__, CRT_FUNCTION_NAME, __LINE__);\
 	if(Dbg::instance().isSet(Dbg::Trace, a)){\
 	Dbg::instance().printTraceIn('T', a,  __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;Dbg::instance().doneTraceIn();}else{\
 	__dbgtrace__.v = 0;}
@@ -203,6 +216,10 @@ struct DbgTraceTest{
 	__dbgtrace__.v = 0;\
 	Dbg::instance().printTraceOut('T', a,  __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;Dbg::instance().doneTraceOut();}else;
 
+#else
+#define tdbgi(a,x)
+#define tdbgo(a,x)
+#endif
 
 #define writedbg(x,sz)
 #define writedbgx(a, x, sz)
