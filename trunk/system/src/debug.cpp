@@ -600,7 +600,7 @@ std::ostream& Dbg::print(
 	localtime_r(&t_now, &loctm);
 	sprintf(
 		buf,
-		"%c[%04u-%02u-%02u %02u:%02u:%02u.%03u][%s][%d]",
+		"%c[%04u-%02u-%02u %02u:%02u:%02u.%03u][%s]",
 		_t,
 		loctm.tm_year + 1900,
 		loctm.tm_mon + 1, 
@@ -609,10 +609,10 @@ std::ostream& Dbg::print(
 		loctm.tm_min,
 		loctm.tm_sec,
 		(uint)ts_now.nanoSeconds()/1000000,
-		d.nv[_module],
-		Thread::currentId()
+		d.nv[_module]//,
+		//Thread::currentId()
 	);
-	return (*d.pos)<<buf<<'['<<_file + fileoff<<'('<<_line<<')'<<' '<<_fnc<<']'<<' ';
+	return (*d.pos)<<buf<<'['<<_file + fileoff<<'('<<_line<<')'<<' '<<_fnc<<']'<<'['<<Thread::currentId()<<']'<<' ';
 }
 static const char tabs[]="\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t"
 						 "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t"
@@ -662,7 +662,7 @@ std::ostream& Dbg::printTraceIn(
 	(*d.pos)<<buf;
 	d.pos->write(tabs, d.trace_debth);
 	++d.trace_debth;
-	(*d.pos)<<'['<<_file + fileoff<<'('<<_line<<')'<<']'<<'['<<Thread::currentId()<<']'<<' '<<_fnc<<'(';
+	(*d.pos)<<'['<<d.nv[_module]<<']'<<'['<<_file + fileoff<<'('<<_line<<')'<<']'<<'['<<Thread::currentId()<<']'<<' '<<_fnc<<'(';
 	return (*d.pos);
 }
 
@@ -701,7 +701,7 @@ std::ostream& Dbg::printTraceOut(
 	(*d.pos)<<buf;
 	--d.trace_debth;
 	d.pos->write(tabs, d.trace_debth);
-	(*d.pos)<<'['<<_file + fileoff<<'('<<_line<<')'<<']'<<'['<<Thread::currentId()<<']'<<' '<<'}'<<_fnc<<'(';
+	(*d.pos)<<'['<<d.nv[_module]<<']'<<'['<<_file + fileoff<<'('<<_line<<')'<<']'<<'['<<Thread::currentId()<<']'<<' '<<'}'<<_fnc<<'(';
 	return (*d.pos);
 }
 
