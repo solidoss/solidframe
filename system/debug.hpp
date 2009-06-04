@@ -68,7 +68,8 @@ struct EXPORT_DLL Dbg{
 		Warn = 4,
 		Report = 8,
 		Verbose = 16,
-		AllLevels = 1 + 2 + 4 + 8 + 16
+		Trace = 32,
+		AllLevels = 1 + 2 + 4 + 8 + 16 + 32
 	};
 	
 	~Dbg();
@@ -101,7 +102,6 @@ struct EXPORT_DLL Dbg{
 	void setModuleBit(unsigned _v);
 	void resetModuleBit(unsigned _v);
 	unsigned registerModule(const char *_name);
-	
 	std::ostream& print();
 	std::ostream& print(
 		const char _t,
@@ -116,7 +116,23 @@ struct EXPORT_DLL Dbg{
 		const char *_fnc,
 		int _line
 	);
+	std::ostream& printTraceIn(
+		const char _t,
+		unsigned _module,
+		const char *_file,
+		const char *_fnc,
+		int _line
+	);
+	std::ostream& printTraceOut(
+		const char _t,
+		unsigned _module,
+		const char *_file,
+		const char *_fnc,
+		int _line
+	);
 	void done();
+	void doneTraceIn();
+	void doneTraceOut();
 	bool isSet(Level _lvl, unsigned _v)const;
 private:
 	Dbg();
@@ -131,6 +147,12 @@ private:
 #ifndef __FUNCTION__
 #define __FUNCTION__ __func__
 #endif
+
+struct DbgTraceTest{
+	DbgTraceTest():v(1){}
+	~DbgTraceTest();
+	int v;
+};
 
 #define CRT_FUNCTION_NAME __FUNCTION__
 // #endif
@@ -170,6 +192,17 @@ private:
 	if(Dbg::instance().isSet(Dbg::Verbose, a)){\
 	Dbg::instance().print('V', a,  __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;Dbg::instance().done();}else;
 
+#define tdbgi(a,x)\
+	DbgTraceTest __dbgtrace__;\
+	if(Dbg::instance().isSet(Dbg::Trace, a)){\
+	Dbg::instance().printTraceIn('T', a,  __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;Dbg::instance().doneTraceIn();}else{\
+	__dbgtrace__.v = 0;}
+
+#define tdbgo(a,x)\
+	if(Dbg::instance().isSet(Dbg::Trace, a)){\
+	__dbgtrace__.v = 0;\
+	Dbg::instance().printTraceOut('T', a,  __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;Dbg::instance().doneTraceOut();}else;
+
 
 #define writedbg(x,sz)
 #define writedbgx(a, x, sz)
@@ -194,6 +227,8 @@ private:
 #define rdbgx(a,x)
 #define vdbg(x)
 #define vdbgx(a,x)
+#define tdbgi(a,x)
+#define tdbgo(a,x)
 
 #define writedbg(x,sz)
 #define writedbgx(a, x, sz)

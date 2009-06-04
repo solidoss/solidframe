@@ -1,6 +1,7 @@
 #include "system/dynamictype.hpp"
 #include "testcommands.hpp"
 #include "system/debug.hpp"
+#include "system/thread.hpp"
 #include "system/cassert.hpp"
 #include <iostream>
 
@@ -29,14 +30,26 @@ public:
 #include "testcommands.hpp"
 
 void MyObject::dynamicRegister(DynamicMap &_rdm){
+	tdbgi(Dbg::any,"");
 	BaseTp::dynamicRegister<test_cmds::FirstCommand>(_rdm);
 	BaseTp::dynamicRegister<test_cmds::SecondCommand>(_rdm);
 	//BaseTp::dynamicRegister<test_cmds::ThirdCommand>(_rdm);
+	tdbgo(Dbg::any,"");
 }
 
+int some_test(int _v, const char *_str){
+	tdbgi(Dbg::any,_v<<','<<_str);
+	int rval = _v + strlen(_str);
+	Thread::sleep(1000);
+	tdbgo(Dbg::any,rval);
+	return rval;
+}
 
 int MyObject::dynamicReceive(test_cmds::FirstCommand &_rcmd){
+	tdbgi(Dbg::any,_rcmd.v);
 	idbg("First command value "<<_rcmd.v);
+	some_test(10, "some string");
+	tdbgo(Dbg::any,0);
 	return 0;
 }
 
