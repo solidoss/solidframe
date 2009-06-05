@@ -117,7 +117,7 @@ public:
 		If the connection does not already exist, it will be created.
 		\param _rsap The base socket address of the peer.
 		\param _psig The signal.
-		\param _rcondid An output value, which on success will contain the uid of the connector.
+		\param _rconid An output value, which on success will contain the uid of the connector.
 		\param _flags (Optional) Not used for now
 	*/
 	int sendSignal(
@@ -152,8 +152,10 @@ public:
 	//! Use this method to add the base talker
 	/*!
 		Should be called only once at manager initation.
-		\param _rs Reference to manager
+		\param _rm Reference to manager
 		\param _rai The address for talker to use
+		\param _node  Address to connect to
+		\param _svc Service/Port to connect to
 	*/
 	int insertTalker(
 		Manager &_rm, 

@@ -75,6 +75,7 @@ public:
 	/*!
 		\param _nm The name of the service
 		\param _rai The address the listener should listen on
+		\param _secure Set to true if you want a secure connection
 	*/
 	int insertListener(
 		const char* _nm,
@@ -100,6 +101,7 @@ public:
 		\param _rai The localaddress the connection will bind
 		\param _node The destination address name (for use with AddrInfo)
 		\param _srv The destination address port (for use with AddrInfo)
+		\param _secure Set to true if you want a secure connection
 	*/
 	int insertConnection(
 		const char* _nm,
