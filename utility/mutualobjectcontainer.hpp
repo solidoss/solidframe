@@ -53,7 +53,7 @@ public:
 		\param _objpermutbts The number of objects associated to a mutex in bitcount 
 		(real count 1<<bitcount)
 		\param _mutrowsbts The number of mutex rows in bitcount (real count 1<<bitcount)
-		\param _mutcolssbts The number of mutexes in a row in bitcount (real count 1<<bitcount)
+		\param _mutcolsbts The number of mutexes in a row in bitcount (real count 1<<bitcount)
 	*/
 	MutualObjectContainer(
 		unsigned _objpermutbts = 6, 

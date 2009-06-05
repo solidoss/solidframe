@@ -63,6 +63,7 @@ public:
 	
 	//! Asynchronous connect
 	/*!
+		\param _pos The socket identifier
 		\param _rai An AddrInfo iterator holding the destination address.
 	*/
 	int socketConnect(uint _pos, const AddrInfoIterator& _rai);

@@ -74,6 +74,7 @@ BASIC_DECL(uint64);
 	//...<br>
 	TypeMapper::map<String, XmlSerializer, XmlDeserializer>();<br>
 	//...<br>
+	</code>
 */
 class TypeMapper{
 	typedef BaseTypeMap::FncTp	FncTp;

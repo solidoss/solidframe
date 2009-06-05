@@ -66,7 +66,7 @@ enum {
 	<code>
 	struct RemoteListCommand{<br>
 	//...<br>
-	template <class S><br>
+	template \< class S><br>
 	S& operator&(S &_s){<br>
 		_s.pushContainer(ppthlst, "strlst").push(err, "error").push(tout,"timeout");<br>
 		_s.push(requid, "requid").push(strpth, "strpth").push(fromv, "from");<br>

@@ -4,6 +4,7 @@
 #include "system/thread.hpp"
 #include "system/cassert.hpp"
 #include <iostream>
+#include <cstring>
 
 using namespace std;
 
