@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cstdio>
 #include <deque>
 #include "system/common.hpp"
 using namespace std;
