@@ -174,10 +174,12 @@ cd "build/$FOLDER_NAME"
 if [ "$GENERATOR" = "" ]; then
 	echo "Using cmake's default generator"
 	cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS:STRING="$PARAM" -DUEXTERN:STRING="$EXTERN_PATH" -DUEXTERN_ABS:STRING="$EXTERN_ABS_PATH" ../../
+	echo "./configure -f $FOLDER_NAME -b $BUILD_TYPE -p \"$PARAM\" -e \"$EXTERN_ABS_PATH\"" > configure.txt
 	echo "Done!"
 else
 	echo "Using cmake's $GENERATOR"
 	cmake -G $GENERATOR -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS:STRING="$PARAM" -DUEXTERN:STRING="$EXTERN_PATH" -DUEXTERN_ABS:STRING="$EXTERN_ABS_PATH" ../../
+	echo "./configure -f $FOLDER_NAME -g \"$GENERATOR\" -b $BUILD_TYPE -p \"$PARAM\" -e \"$EXTERN_ABS_PATH\"" > configure.txt
 fi
 
 exit
