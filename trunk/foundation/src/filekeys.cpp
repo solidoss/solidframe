@@ -1,5 +1,6 @@
 #include <map>
 #include <cstring>
+#include <cstdio>
 
 #include "foundation/filekeys.hpp"
 #include "foundation/filemapper.hpp"
