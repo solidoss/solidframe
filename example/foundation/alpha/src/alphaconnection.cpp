@@ -44,8 +44,8 @@
 #include "audit/log.hpp"
 
 namespace fdt=foundation;
-static char	*hellostr = "Welcome to alpha service!!!\r\n"; 
-static char *sigstr = "Signaled!!!\r\n";
+static const char	*hellostr = "Welcome to alpha service!!!\r\n"; 
+static const char *sigstr = "Signaled!!!\r\n";
 
 namespace concept{
 namespace alpha{
