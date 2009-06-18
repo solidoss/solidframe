@@ -80,7 +80,7 @@ int Socket::connect(const AddrInfoIterator& _rai){
 	cassert(type == CHANNEL);
 	int rv = sd.connect(_rai);
 	if(rv == NOK){
-		sndbuf = "";
+		sndbuf = reinterpret_cast<char*>(1);
 		sndlen = 0;
 		ioreq |= FLAG_POLL_OUT;
 	}
@@ -91,7 +91,7 @@ int Socket::accept(SocketDevice &_rsd){
 	int rv = sd.accept(_rsd);
 	if(rv == NOK){
 		d.pad->psd = &_rsd;
-		rcvbuf = "";
+		rcvbuf = reinterpret_cast<char*>(1);
 		rcvlen = 0;
 		ioreq |= FLAG_POLL_IN;
 	}
@@ -102,7 +102,7 @@ int Socket::accept(Socket &_rs){
 	int rv = sd.accept(_rs.sd);
 	if(rv == NOK){
 		d.pad->psd = &_rs.sd;
-		rcvbuf = "";
+		rcvbuf = reinterpret_cast<char*>(1);
 		rcvlen = 0;
 		ioreq |= FLAG_POLL_IN;
 	}
@@ -524,7 +524,7 @@ int Socket::secureAccept(){
 	int rv = pss->secureAccept();
 	if(rv == OK) return OK;
 	if(rv == BAD) return BAD;
-	rcvbuf = "";
+	rcvbuf = reinterpret_cast<char*>(1);
 	rcvlen = 0;
 	ioreq = 0;
 	doWantAccept(pss->wantEvents());

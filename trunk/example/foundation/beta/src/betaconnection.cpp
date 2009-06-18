@@ -28,7 +28,7 @@
 #include "system/cassert.hpp"
 
 namespace fdt=foundation;
-static char	*hellostr = "Welcome to echo service!!!\r\n"; 
+static const char	*hellostr = "Welcome to echo service!!!\r\n"; 
 
 namespace concept{
 
