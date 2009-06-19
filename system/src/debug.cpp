@@ -612,7 +612,7 @@ std::ostream& Dbg::print(
 		d.nv[_module]//,
 		//Thread::currentId()
 	);
-	return (*d.pos)<<buf<<'['<<_file + fileoff<<'('<<_line<<')'<<' '<<_fnc<<']'<<'['<<Thread::currentId()<<']'<<' ';
+	return (*d.pos)<<buf<<'['<<_file + fileoff<<'('<<_line<<')'<<' '<<_fnc<<"][0x"<<std::hex<<Thread::currentId()<<std::dec<<']'<<' ';
 }
 static const char tabs[]="\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t"
 						 "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t"
@@ -662,7 +662,7 @@ std::ostream& Dbg::printTraceIn(
 	(*d.pos)<<buf;
 	d.pos->write(tabs, d.trace_debth);
 	++d.trace_debth;
-	(*d.pos)<<'['<<d.nv[_module]<<']'<<'['<<_file + fileoff<<'('<<_line<<')'<<']'<<'['<<Thread::currentId()<<']'<<' '<<_fnc<<'(';
+	(*d.pos)<<'['<<d.nv[_module]<<']'<<'['<<_file + fileoff<<'('<<_line<<')'<<"][0x"<<std::hex<<Thread::currentId()<<std::dec<<']'<<' '<<_fnc<<'(';
 	return (*d.pos);
 }
 
