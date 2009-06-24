@@ -67,7 +67,7 @@ public:
 	//! Returns a pointer to the current thread
 	static Thread * current();
 	//! Returns the id of the current thread
-	static int currentId();
+	static long currentId();
 	//! Returns a new id for use with specific objects
 	static unsigned specificId();
 	//! Returns the data for a specific id
@@ -138,10 +138,10 @@ inline void Thread::yield(){
 #endif
 }
 
-inline int Thread::currentId(){
+inline long Thread::currentId(){
 #ifdef ON_WIN
 #else
-	return pthread_self();
+	return (int)pthread_self();
 #endif
 }
 

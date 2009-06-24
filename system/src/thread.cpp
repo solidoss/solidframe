@@ -29,8 +29,12 @@
 #include "system/debug.hpp"
 #include "system/condition.hpp"
 #include "mutexpool.hpp"
-
+#ifdef ON_FBSD
+#include <pmc.h>
+#else
 #include <sys/sysinfo.h>
+#endif
+
 #include <unistd.h>
 #include <limits.h>
 
@@ -158,7 +162,11 @@ void Thread::dummySpecificDestroy(void*){
 #ifdef ON_SUN
 	return 1;
 #else
+#ifdef ON_FBSD
+	return 1;//pmc_ncpu();
+#else
 	return get_nprocs();
+#endif
 #endif
 }
 //-------------------------------------------------------------------------

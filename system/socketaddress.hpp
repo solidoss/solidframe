@@ -24,10 +24,13 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
 #include <netdb.h>
 #include "common.hpp"
 
 struct AddrInfo;
+//struct sockaddr_in;
+//struct sockaddr_in6;
 //! A wrapper for POSIX addrinfo (see man getaddrinfo)
 /*!
 	Usually it will hold all data needed for creating and connecting 
