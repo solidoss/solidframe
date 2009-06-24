@@ -163,7 +163,7 @@ void Thread::dummySpecificDestroy(void*){
 	return 1;
 #else
 #ifdef ON_FBSD
-	return 1;//pmc_ncpu();
+	return 1;//pmc_ncpu();//sysconf(_SC_NPROCESSORS_ONLN)
 #else
 	return get_nprocs();
 #endif
