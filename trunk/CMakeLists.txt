@@ -88,10 +88,14 @@ set(SYS_BASIC_LIBS "")
 
 set(ON_SUN FALSE)
 
-message("Running system: ${CMAKE_SYSTEM}")
+message("cmake's system: ${CMAKE_SYSTEM}")
+
+set(ON_FOUND FALSE)
 
 if(CMAKE_SYSTEM MATCHES "SunOS.*")
-	set(ON_SUN TRUE)
+	message("Detected system ON_SUN")
+	set(ON_FOUND TRUE)
+	#set(ON_SUN TRUE)
 	set(SYS_DEBUG_FLAGS "-DON_SUN -features=extensions -library=stlport4") 
 	set(SYS_MAINTAIN_FLAGS "-DON_SUN")
 	set(SYS_OPTIMIZED_FLAGS "-DON_SUN")
@@ -100,37 +104,41 @@ if(CMAKE_SYSTEM MATCHES "SunOS.*")
 	
 	set(SYS_BASIC_LIBS pthread socket)	
 
-else(CMAKE_SYSTEM MATCHES "SunOS.*")
-	if(CMAKE_SYSTEM MATCHES "FreeBSD*")
-		set(SYS_DEBUG_FLAGS "-DON_FBSD -Wreorder -Wreturn-type -Wunused-variable -Winline -g3")
-		set(SYS_MAINTAIN_FLAGS "-DON_FBSD -Wall -Wabi -O3 -g3")
-		set(SYS_OPTIMIZED_FLAGS "-DON_FBSD -O3 -g3")
-		set(SYS_NOLOG_FLAGS "-DON_FBSD -g3")
-		set(SYS_RELEASE_FLAGS "-DON_FBSD -O3")
-
-		set(SYS_DEBUG_LINKER_FLAGS "")
-		set(SYS_MAINTAIN_LINKER_FLAGS "-Wl,--warn-unresolved-symbols,--warn-once")
-		set(SYS_OPTIMIZED_LINKER_FLAGS "")
-		set(SYS_NOLOG_LINKER_FLAGS "")
-		set(SYS_RELEASE_LINKER_FLAGS "")
-
-		set(SYS_BASIC_LIBS pmc pthread rt)
-	else(CMAKE_SYSTEM MATCHES "FreeBSD*")
-		set(SYS_DEBUG_FLAGS "-Wreorder -Wreturn-type -Wunused-variable -Winline -g3")
-		set(SYS_MAINTAIN_FLAGS "-Wall -Wabi -O3 -g3")
-		set(SYS_OPTIMIZED_FLAGS "-O3 -g3")
-		set(SYS_NOLOG_FLAGS "-g3")
-		set(SYS_RELEASE_FLAGS "-O3")
-
-		set(SYS_DEBUG_LINKER_FLAGS "")
-		set(SYS_MAINTAIN_LINKER_FLAGS "-Wl,--warn-unresolved-symbols,--warn-once")
-		set(SYS_OPTIMIZED_LINKER_FLAGS "")
-		set(SYS_NOLOG_LINKER_FLAGS "")
-		set(SYS_RELEASE_LINKER_FLAGS "")
-
-		set(SYS_BASIC_LIBS pthread rt)
-	endif(CMAKE_SYSTEM MATCHES "FreeBSD*")
 endif(CMAKE_SYSTEM MATCHES "SunOS.*")
+
+if(CMAKE_SYSTEM MATCHES "FreeBSD*")
+	message("Detected system ON_FBSD")
+	set(ON_FOUND TRUE)
+	set(SYS_DEBUG_FLAGS "-DON_FBSD -Wreorder -Wreturn-type -Wunused-variable -Winline -g3")
+	set(SYS_MAINTAIN_FLAGS "-DON_FBSD -Wall -Wabi -O3 -g3")
+	set(SYS_OPTIMIZED_FLAGS "-DON_FBSD -O3 -g3")
+	set(SYS_NOLOG_FLAGS "-DON_FBSD -g3")
+	set(SYS_RELEASE_FLAGS "-DON_FBSD -O3")
+
+	set(SYS_DEBUG_LINKER_FLAGS "")
+	set(SYS_MAINTAIN_LINKER_FLAGS "-Wl,--warn-unresolved-symbols,--warn-once")
+	set(SYS_OPTIMIZED_LINKER_FLAGS "")
+	set(SYS_NOLOG_LINKER_FLAGS "")
+	set(SYS_RELEASE_LINKER_FLAGS "")
+
+	set(SYS_BASIC_LIBS pmc pthread rt)
+endif(CMAKE_SYSTEM MATCHES "FreeBSD*")
+
+if(NOT ON_FOUN)
+	message("Detected system ON_LINUX")
+	set(SYS_DEBUG_FLAGS "-Wreorder -Wreturn-type -Wunused-variable -Winline -g3")
+	set(SYS_MAINTAIN_FLAGS "-Wall -Wabi -O3 -g3")
+	set(SYS_OPTIMIZED_FLAGS "-O3 -g3")
+	set(SYS_NOLOG_FLAGS "-g3")
+	set(SYS_RELEASE_FLAGS "-O3")
+
+	set(SYS_DEBUG_LINKER_FLAGS "")
+	set(SYS_MAINTAIN_LINKER_FLAGS "-Wl,--warn-unresolved-symbols,--warn-once")
+	set(SYS_OPTIMIZED_LINKER_FLAGS "")
+	set(SYS_NOLOG_LINKER_FLAGS "")
+	set(SYS_RELEASE_LINKER_FLAGS "")
+
+endif(NOT ON_FOUN)
 #-----------------------------------------------------------------
 
 #-----------------------------------------------------------------
