@@ -69,7 +69,9 @@ int main(int argc, char *argv[]){
 		cout<<"failed SSL_CTX_new: "<<ERR_error_string(ERR_get_error(), NULL)<<endl;
 		return 0;
 	}
-	if(! SSL_CTX_load_verify_locations(ctx, "../../../../../extern/linux/openssl/demos/tunala/A-client.pem", NULL)){
+	const char *pcertpath = OSSL_SOURCE_PATH"openssl_/certs/A-client.pem";
+	cout<<"Client certificate path: "<<pcertpath<<endl;
+	if(! SSL_CTX_load_verify_locations(ctx, pcertpath, NULL)){
     	cout<<"failed SSL_CTX_load_verify_locations 1 "<<ERR_error_string(ERR_get_error(), NULL)<<endl;;
     	return 0;
 	}
@@ -152,6 +154,10 @@ int main(int argc, char *argv[]){
 			//read_socket = true;
 		}
 		
+		if(pfds[1].revents && !(pfds[1].revents & (POLLIN | POLLOUT))){
+			break;
+		}
+		
 		if(read_stdin){//we can safely read from stdin
 			readsz[0] = ::read(fileno(stdin), bufs[0], 1024);
 			readsz[0] = tocrlf(bufs[0], bufs[0] + readsz[0]);
@@ -203,7 +209,7 @@ int main(int argc, char *argv[]){
 			if(rv > 0){
 				cout.write(bufs[1], rv).flush();
 				read_socket = true;
-			}else if(SSL_want(ssl) != SSL_NOTHING){
+			}else if(rv < 0 && SSL_want(ssl) != SSL_NOTHING){
 				if(SSL_want_read(ssl)){
 					pfds[1].events |= POLLIN;
 				}
@@ -213,6 +219,7 @@ int main(int argc, char *argv[]){
 				}
 				read_socket = false;
 			}else{
+				cout<<"[ ... connection closed by peer ...]"<<endl;
 				break;
 			}
 		}
@@ -221,7 +228,8 @@ int main(int argc, char *argv[]){
 	}
 	
 	SSL_free(ssl);
-	cout<<sd.write("gigi", 4)<<endl;
+	cout<<"Closing"<<endl;
+	cout<<sd.write("closing", 4)<<endl;
 	return 0;
 }
 
