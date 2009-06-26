@@ -92,19 +92,19 @@ message("cmake's system: ${CMAKE_SYSTEM}")
 
 set(ON_FOUND FALSE)
 
-if(CMAKE_SYSTEM MATCHES "SunOS.*")
+if(CMAKE_SYSTEM MATCHES "SunOS*")
 	message("Detected system ON_SUN")
 	set(ON_FOUND TRUE)
 	#set(ON_SUN TRUE)
-	set(SYS_DEBUG_FLAGS "-DON_SUN -features=extensions -library=stlport4") 
+	set(SYS_DEBUG_FLAGS "-DON_SUN -features=extensions -library=stlport4 -g") 
 	set(SYS_MAINTAIN_FLAGS "-DON_SUN")
 	set(SYS_OPTIMIZED_FLAGS "-DON_SUN")
 	set(SYS_NOLOG_FLAGS "-DON_SUN")
 	set(SYS_RELEASE_FLAGS "-DON_SUN")
 	
-	set(SYS_BASIC_LIBS pthread socket)	
+	set(SYS_BASIC_LIBS pthread socket nsl)	
 
-endif(CMAKE_SYSTEM MATCHES "SunOS.*")
+endif(CMAKE_SYSTEM MATCHES "SunOS*")
 
 if(CMAKE_SYSTEM MATCHES "FreeBSD*")
 	message("Detected system ON_FBSD")
@@ -124,7 +124,7 @@ if(CMAKE_SYSTEM MATCHES "FreeBSD*")
 	set(SYS_BASIC_LIBS pmc pthread rt)
 endif(CMAKE_SYSTEM MATCHES "FreeBSD*")
 
-if(NOT ON_FOUN)
+if(NOT ON_FOUND)
 	message("Detected system ON_LINUX")
 	set(SYS_DEBUG_FLAGS "-Wreorder -Wreturn-type -Wunused-variable -Winline -g3")
 	set(SYS_MAINTAIN_FLAGS "-Wall -Wabi -O3 -g3")
@@ -138,7 +138,7 @@ if(NOT ON_FOUN)
 	set(SYS_NOLOG_LINKER_FLAGS "")
 	set(SYS_RELEASE_LINKER_FLAGS "")
 
-endif(NOT ON_FOUN)
+endif(NOT ON_FOUND)
 #-----------------------------------------------------------------
 
 #-----------------------------------------------------------------
