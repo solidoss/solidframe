@@ -5,6 +5,7 @@
 #include "system/socketdevice.hpp"
 #include "system/cassert.hpp"
 #include "system/thread.hpp"
+#include "system/debug.hpp"
 #include <cerrno>
 #include <cstring>
 #include <iostream>
@@ -26,6 +27,19 @@ int main(int argc, char *argv[]){
 		cout<<"usage:\n$ echo_client addr port"<<endl;
 		return 0;
 	}
+#ifdef UDEBUG
+	{
+	string s;
+	Dbg::instance().levelMask("iew");
+	Dbg::instance().moduleMask();
+	Dbg::instance().initStdErr(false, &s);
+	cout<<"Debug output: "<<s<<endl;
+	s.clear();
+	Dbg::instance().moduleBits(s);
+	cout<<"Debug bits: "<<s<<endl;
+	}
+#endif
+
 	termios tio;
 	if(!tcgetattr(fileno(stdin), &tio)){
 		tio.c_oflag |= ONLCR;

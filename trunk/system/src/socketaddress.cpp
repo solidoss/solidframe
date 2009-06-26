@@ -40,7 +40,13 @@ void AddrInfo::reinit(const char *_node, const char *_service){
 		ib.paddr = NULL;
 	}
 	if(!_node && !_service) return;
-	getaddrinfo(_node, _service, NULL, &ib.paddr);
+	int rv = getaddrinfo(_node, _service, NULL, &ib.paddr);
+	if(rv != 0){
+#ifdef ON_SUN
+		idbg("getaddrinfo "<<rv<<' '<<gai_strerror(rv));
+#else
+#endif
+	}
 }
 
 void AddrInfo::reinit(
