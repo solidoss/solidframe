@@ -50,10 +50,10 @@ int main(int argc, char *argv[]){
 		if(sd > 0){
 			cout<<"Connecting..."<<endl;
 			fcntl(sd, F_SETFL, O_NONBLOCK);
-			if(false/* !connect(sd, it.addr(), it.size())*/){
+			if(!connect(sd, it.addr(), it.size())){
 				cout<<"Connected!"<<endl;
 			}else{
-				if(false/*errno != EINPROGRESS*/){
+				if(errno != EINPROGRESS){
 					cout<<"Failed connect"<<endl;
 				}else{
 					cout<<"Polling ..."<<endl;
