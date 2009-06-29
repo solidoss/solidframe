@@ -57,7 +57,7 @@ int main(int argc, char *argv[]){
 	
 	//create a connection
 	
-	AddrInfo ai(argv[1], argv[2]);
+	AddrInfo ai(argv[1], argv[2], 0, AddrInfo::Inet4, AddrInfo::Stream, 0);
 	
 	if(ai.empty()){
 		cout<<"no such address"<<endl;
