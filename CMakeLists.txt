@@ -137,7 +137,8 @@ if(NOT ON_FOUND)
 	set(SYS_OPTIMIZED_LINKER_FLAGS "")
 	set(SYS_NOLOG_LINKER_FLAGS "")
 	set(SYS_RELEASE_LINKER_FLAGS "")
-
+	
+	set(SYS_BASIC_LIBS pthread rt)
 endif(NOT ON_FOUND)
 #-----------------------------------------------------------------
 
