@@ -22,12 +22,16 @@
 //#include <unistd.h>
 #include <fcntl.h>
 #include <sys/epoll.h>
+#ifndef UPIPESIGNAL
+#include <sys/eventfd.h>
+#endif
 #include <vector>
 #include <cerrno>
 #include <cstring>
 
 #include "system/debug.hpp"
 #include "system/timespec.hpp"
+#include "system/mutex.hpp"
 
 #include "utility/queue.hpp"
 #include "utility/stack.hpp"
@@ -72,8 +76,8 @@ struct Selector::Data{
 		FULL_SCAN = 2,
 		READ_PIPE = 4
 	};
-	typedef Stack<uint32>			PositionStackTp;
-	typedef Queue<uint32>			PositionQueueTp;
+	typedef Stack<uint32>			Uint32StackTp;
+	typedef Queue<uint32>			Uint32QueueTp;
 	typedef std::vector<Stub>		StubVectorTp;
 	
 	uint				objcp;
@@ -84,9 +88,16 @@ struct Selector::Data{
 	int					epollfd;
 	epoll_event 		*events;
 	StubVectorTp		stubs;
-	PositionQueueTp		execq;
-	PositionStackTp		freestubsstk;
+	Uint32QueueTp		execq;
+	Uint32StackTp		freestubsstk;
+#ifdef UPIPESIGNAL
 	int					pipefds[2];
+#else
+	int					efd;//eventfd
+	Mutex				m;
+	Uint32QueueTp		sigq;//a signal queue
+	uint64				efdv;//the eventfd value
+#endif
 	TimeSpec			ntimepos;//next timepos == next timeout
 	TimeSpec			ctimepos;//current time pos
 	
@@ -105,8 +116,13 @@ public://methods:
 Selector::Data::Data():
 	objcp(0), objsz(0), sockcp(0), socksz(0), selcnt(0), epollfd(-1), events(NULL),
 	rep_fullscancount(0){
+#ifdef UPIPESIGNAL
 	pipefds[0] = -1;
 	pipefds[1] = -1;
+#else
+	efd = -1;
+	efdv = 0;
+#endif
 }
 
 Selector::Data::~Data(){
@@ -114,12 +130,16 @@ Selector::Data::~Data(){
 	if(epollfd >= 0){
 		close(epollfd);
 	}
+#ifdef UPIPESIGNAL
 	if(pipefds[0] >= 0){
 		close(pipefds[0]);
 	}
 	if(pipefds[1] >= 0){
 		close(pipefds[1]);
 	}
+#else
+	close(efd);
+#endif
 }
 
 int Selector::Data::computeWaitTimeout()const{
@@ -174,7 +194,7 @@ int Selector::reserve(uint _cp){
 		cassert(false);
 		return BAD;
 	}
-	
+#ifdef UPIPESIGNAL
 	//next create the pipefds:
 	cassert(d.pipefds[0] < 0 && d.pipefds[1] < 0);
 	if(pipe(d.pipefds)){
@@ -196,7 +216,19 @@ int Selector::reserve(uint _cp){
 		cassert(false);
 		return BAD;
 	}
-	
+#else
+	cassert(d.efd < 0);
+	d.efd = eventfd(0, EFD_NONBLOCK);
+	//register the pipes onto epoll
+	epoll_event ev;
+	ev.data.u64 = 0;
+	ev.events = EPOLLIN | EPOLLPRI;//must be LevelTriggered
+	if(epoll_ctl(d.epollfd, EPOLL_CTL_ADD, d.efd, &ev)){
+		edbgx(Dbg::aio, "epoll_ctl: "<<strerror(errno));
+		cassert(false);
+		return BAD;
+	}
+#endif
 	//allocate the events
 	d.events = new epoll_event[d.sockcp];
 	for(uint i = 0; i < d.sockcp; ++i){
@@ -223,7 +255,17 @@ void Selector::unprepare(){
 
 void Selector::signal(uint _pos)const{
 	idbgx(Dbg::aio, "signal connection: "<<_pos);
+#ifdef UPIPESIGNAL
 	write(d.pipefds[1], &_pos, sizeof(uint));
+#else
+	uint64 v;
+	{
+		Mutex::Locker lock(d.m);
+		v = d.efdv++;
+		d.sigq.push(_pos);
+	}
+	write(d.efd, &v, sizeof(v));
+#endif
 }
 
 uint Selector::capacity()const{
@@ -359,6 +401,7 @@ void Selector::run(){
 
 //-------------------------------------------------------------
 uint Selector::doReadPipe(){
+#ifdef UPIPESIGNAL
 	enum {BUFSZ = 128, BUFLEN = BUFSZ * sizeof(uint)};
 	uint		buf[128];
 	uint		rv(0);//no
@@ -403,6 +446,54 @@ uint Selector::doReadPipe(){
 		while((rsz = read(d.pipefds[0], buf, BUFSZ)) > 0);
 	}
 	return rv;
+#else
+	//using eventfd
+	int		rv = 0;
+	uint64	v = 0;
+	bool mustempty = false;
+	Stub		*pstub(NULL);
+	
+	while(read(d.efd, &v, sizeof(v)) == sizeof(v)){
+		Mutex::Locker lock(d.m);
+		uint	limiter = 16;
+		while(d.sigq.size() && --limiter){
+			uint pos(d.sigq.front());
+			d.sigq.pop();
+			if(pos){
+				if(pos < d.stubs.size() && (pstub = &d.stubs[pos])->objptr && pstub->objptr->signaled(S_RAISE)){
+					pstub->events |= SIGNALED;
+					if(pstub->state == Stub::OutExecQueue){
+						d.execq.push(pos);
+						pstub->state = Stub::InExecQueue;
+					}
+				}
+			}else rv = Data::EXIT_LOOP;
+		}
+		if(limiter == 0){
+			//d.sigq.size() != 0
+			mustempty = true;
+		}else{
+			mustempty = false;
+		}
+	}
+	if(mustempty){
+		Mutex::Locker lock(d.m);
+		while(d.sigq.size()){
+			uint pos(d.sigq.front());
+			d.sigq.pop();
+			if(pos){
+				if(pos < d.stubs.size() && (pstub = &d.stubs[pos])->objptr && pstub->objptr->signaled(S_RAISE)){
+					pstub->events |= SIGNALED;
+					if(pstub->state == Stub::OutExecQueue){
+						d.execq.push(pos);
+						pstub->state = Stub::InExecQueue;
+					}
+				}
+			}else rv = Data::EXIT_LOOP;
+		}
+	}
+	return rv;
+#endif
 }
 void Selector::doUnregisterObject(Object &_robj, int _lastfailpos){
 	Object::SocketStub *psockstub = _robj.pstubs;

@@ -91,6 +91,7 @@ struct Params{
 	string		dbg_addr;
 	string		dbg_port;
 	bool		dbg_buffered;
+	bool		log;
 };
 
 bool parseArguments(Params &_par, int argc, char *argv[]);
@@ -135,13 +136,14 @@ int main(int argc, char* argv[]){
 	
 	pipe(pairfd);
 	audit::LogManager lm;
-	lm.start();
-	lm.insertChannel(new DeviceIOStream(pairfd[0], pairfd[1]));
-	lm.insertListener("localhost", "3333");
-	Directory::create("log");
-	lm.insertConnector(new audit::LogBasicConnector("log"));
-	Log::instance().reinit(argv[0], Log::AllLevels, "ALL", new DeviceIOStream(pairfd[1],-1));
-	
+	if(p.log){
+		lm.start();
+		lm.insertChannel(new DeviceIOStream(pairfd[0], pairfd[1]));
+		lm.insertListener("localhost", "3333");
+		Directory::create("log");
+		lm.insertConnector(new audit::LogBasicConnector("log"));
+		Log::instance().reinit(argv[0], Log::AllLevels, "ALL", new DeviceIOStream(pairfd[1],-1));
+	}
 	int stime;
 	long ltime;
 
@@ -461,7 +463,8 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 			("debug_modules,m", value<string>(&_par.dbg_modules),"Debug logging modules")
 			("debug_address,a", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")
 			("debug_port,p", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")
-			("debug_buffered,s", value<bool>(&_par.dbg_buffered)->default_value(true), "Debug buffered")
+			("debug_unbuffered,s", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered")
+			("use_log,L", value<bool>(&_par.log)->implicit_value(true)->default_value(false), "Debug buffered")
 	/*		("verbose,v", po::value<int>()->implicit_value(1),
 					"enable verbosity (optionally specify level)")*/
 	/*		("listen,l", po::value<int>(&portnum)->implicit_value(1001)
