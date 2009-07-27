@@ -255,7 +255,15 @@ link_directories(
 	"."
 	${EXTERN_PATH}/lib
 )
+
+
 #-----------------------------------------------------------------
+# Testing support (CTest & CDash)
+#-----------------------------------------------------------------
+if(UTESTING)
+	INCLUDE(CTest)
+	ENABLE_TESTING()
+endif(UTESTING)
 
 #-----------------------------------------------------------------
 # Project subdirectories

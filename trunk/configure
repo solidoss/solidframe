@@ -21,7 +21,8 @@ function print_usage(){
 	echo "Usage:"
 	echo -ne "\n./configure [-g|--generator GeneratorName] [-f|--folder FolderName] [-b|--build BuildType]"
 	echo -ne " [-p|--param ParamName] [-d|--documentation full/fast] [-h|--help]"
-	echo -ne " [-e|--extern-path ExternPath] [-E|--extern-abs-path ExternAbsPath]\n"
+	echo -ne " [-e|--extern-path ExternPath] [-E|--extern-abs-path ExternAbsPath]"
+	echo -ne " [-t|--enable-testing] [--test-name name] [--test-site addr]\n"
 	echo -ne "Options:\n"
 	echo "[-g|--generator GeneratorName]: Specify the cmake generator - default cmake's default"
 	echo "[-f|--folder FolderName]: Specify the build folder name - default is the generator name or the build type if the generator was not specified"
@@ -30,6 +31,9 @@ function print_usage(){
 	echo "[-d|--documentation full/fast]: Build either fast or full documentation"
 #	echo "[-e|--extern-path ExternPath]: relative path to extern libraries under solidground/extern folder"
 	echo "[-e|--extern-path ExternAbsPath]: absolute path to extern libraries"
+	echo "[-t|--enable-testing]: Enable unit-testing using ctest"
+	echo "[--test-name name]: The name of ctest/cdash project"
+	echo "[--test-site addr]: The address for cdash drop site"
 	echo
 	exit
 }
@@ -48,6 +52,9 @@ HELP="no"
 PARAM=
 EXTERN_PATH=
 EXTERN_ABS_PATH=
+ENABLE_TESTING=
+TEST_NAME=
+TEST_SITE=
 
 while [ "$#" -gt 0 ]; do
 	CURRENT_OPT="$1"
@@ -96,6 +103,17 @@ while [ "$#" -gt 0 ]; do
 
 	-h|--help)
 		HELP="yes"
+		;;
+	-t|--enable-testing)
+		ENABLE_TESTING="yes"
+		;;
+	--test-name)
+		shift
+		TEST_NAME="$1"
+		;;
+	--test-site)
+		shift
+		TEST_SITE="$1"
 		;;
 	*)
 		HELP="yes"
@@ -173,13 +191,13 @@ cd "build/$FOLDER_NAME"
 
 if [ "$GENERATOR" = "" ]; then
 	echo "Using cmake's default generator"
-	cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS:STRING="$PARAM" -DUEXTERN:STRING="$EXTERN_PATH" -DUEXTERN_ABS:STRING="$EXTERN_ABS_PATH" ../../
-	echo "./configure -f $FOLDER_NAME -b $BUILD_TYPE -p \"$PARAM\" -e \"$EXTERN_ABS_PATH\"" > configure.txt
+	cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS:STRING="$PARAM" -DUEXTERN:STRING="$EXTERN_PATH" -DUEXTERN_ABS:STRING="$EXTERN_ABS_PATH" -DUTESTING:STRING="$ENABLE_TESTING" -DUTEST_NAME="$TEST_NAME" -DUTEST_SITE="$TEST_SITE" ../../
+	echo "./configure -f $FOLDER_NAME -b $BUILD_TYPE -p \"$PARAM\" -e \"$EXTERN_ABS_PATH\" -DUTESTING:STRING=\"$ENABLE_TESTING\" -DUTEST_NAME=\"$TEST_NAME\" -DUTEST_SITE=\"$TEST_SITE\"" > configure.txt
 	echo "Done!"
 else
 	echo "Using cmake's $GENERATOR"
-	cmake -G $GENERATOR -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS:STRING="$PARAM" -DUEXTERN:STRING="$EXTERN_PATH" -DUEXTERN_ABS:STRING="$EXTERN_ABS_PATH" ../../
-	echo "./configure -f $FOLDER_NAME -g \"$GENERATOR\" -b $BUILD_TYPE -p \"$PARAM\" -e \"$EXTERN_ABS_PATH\"" > configure.txt
+	cmake -G $GENERATOR -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS:STRING="$PARAM" -DUEXTERN:STRING="$EXTERN_PATH" -DUEXTERN_ABS:STRING="$EXTERN_ABS_PATH" -DUTESTING:STRING="$ENABLE_TESTING" -DUTEST_NAME="$TEST_NAME" -DUTEST_SITE="$TEST_SITE" ../../
+	echo "./configure -f $FOLDER_NAME -g \"$GENERATOR\" -b $BUILD_TYPE -p \"$PARAM\" -e \"$EXTERN_ABS_PATH\" -DUTESTING:STRING=\"$ENABLE_TESTING\" -DUTEST_NAME=\"$TEST_NAME\" -DUTEST_SITE=\"$TEST_SITE\"" > configure.txt
 fi
 
 exit
