@@ -753,6 +753,7 @@ int FileManager::doGetStream(
 				}else{
 					delete pf;
 					pf->key().erase(*this, pos);
+					--d.sz;
 					d.collectFilePositionExt(pos);
 					return BAD;
 				}
@@ -1035,7 +1036,7 @@ unsigned FileManager::Data::createFilePositionExt(){
 void FileManager::Data::collectFilePositionExt(unsigned _pos){
 	if(_pos < fv.size()){
 		fs.push(_pos);
-		--sz;
+		//--sz;
 		++fv[_pos].uid;
 	}else{
 		--freeidx;
