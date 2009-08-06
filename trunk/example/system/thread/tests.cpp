@@ -29,6 +29,24 @@
 
 using namespace std;
 
+struct SingleTest{
+	SingleTest();
+	static SingleTest& instance(){
+		static SingleTest st;
+		return st;
+	}
+	int value;
+};
+
+SingleTest::SingleTest():value(0){
+	value = 0;
+	idbg("before sleep");
+	Thread::sleep(3000);
+	idbg("after sleep");
+	value = 1;
+}
+
+
 ///\cond 0
 struct Runner: public Thread{
 	Runner(int _v):v(_v){}
@@ -64,6 +82,8 @@ struct C: A{
 
 void Runner::run(){
 	idbg("runner::run");
+	idbg("Simple test value = "<<SingleTest::instance().value);
+	Thread::sleep(10);
 	Specific::prepareThread();
 	idbg("Uncaching some object");
 	testa();
@@ -128,13 +148,16 @@ void Runner::run(){
 int main(int argc, char *argv[]){
 	cout<<"Built on SolidGround version "<<SG_MAJOR<<'.'<<SG_MINOR<<'.'<<SG_PATCH<<endl;
 	{
-	string s = "dbg/";
-	s+= argv[0]+2;
 	//initDebug(s.c_str());
+		Dbg::instance().initStdErr();
+		Dbg::instance().levelMask("iwe");
+		Dbg::instance().moduleMask("all");
 	}
 	Thread::init();
 	Runner *pth = new Runner(2);
 	pth->start(true);
+	idbg("before reading the simple test value");
+	idbg("Simple test value = "<<SingleTest::instance().value);
 	idbg("before wait");
 	Thread::waitAll();
 	return 0;
