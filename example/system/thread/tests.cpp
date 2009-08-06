@@ -82,8 +82,9 @@ struct C: A{
 
 void Runner::run(){
 	idbg("runner::run");
-	idbg("Simple test value = "<<SingleTest::instance().value);
-	Thread::sleep(10);
+	int val = SingleTest::instance().value;
+	idbg("Simple test value runner = "<<val);
+	Thread::sleep(100);
 	Specific::prepareThread();
 	idbg("Uncaching some object");
 	testa();
@@ -156,8 +157,11 @@ int main(int argc, char *argv[]){
 	Thread::init();
 	Runner *pth = new Runner(2);
 	pth->start(true);
+	idbg("before reading sleep");
+	Thread::sleep(1000);
 	idbg("before reading the simple test value");
-	idbg("Simple test value = "<<SingleTest::instance().value);
+	int val = SingleTest::instance().value;
+	cout<<"Simple test value = "<<val<<endl;
 	idbg("before wait");
 	Thread::waitAll();
 	return 0;
