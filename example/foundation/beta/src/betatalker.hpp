@@ -23,7 +23,6 @@
 #define BETATALKER_HPP
 
 #include "core/talker.hpp"
-#include "foundation/readwriteobject.hpp"
 
 namespace foundation{
 class Visitor;
@@ -39,10 +38,10 @@ namespace beta{
 
 class Service;
 struct AddrMap;
-class Talker: public foundation::ReadWriteObject<concept::Talker>{
+class Talker: public concept::Talker{
 public:
 	typedef Service	ServiceTp;
-	typedef foundation::ReadWriteObject<concept::Talker> BaseTp;
+	typedef concept::Talker BaseTp;
 	
 	Talker(const char *_node, const char *_srv);
 	Talker(const SocketDevice &_rsd);

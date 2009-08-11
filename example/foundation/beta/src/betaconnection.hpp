@@ -23,7 +23,6 @@
 #define BETACONNECTION_HPP
 
 #include "core/connection.hpp"
-#include "foundation/readwriteobject.hpp"
 #include "system/socketaddress.hpp"
 class SocketAddress;
 
@@ -38,10 +37,10 @@ class Visitor;
 namespace beta{
 class Service;
 
-class Connection: public foundation::ReadWriteObject<concept::Connection>{
+class Connection: public concept::Connection{
 public:
 	typedef Service	ServiceTp;
-	typedef foundation::ReadWriteObject<concept::Connection> BaseTp;
+	typedef concept::Connection BaseTp;
 	
 	Connection(const char *_node, const char *_srv);
 	Connection(const SocketDevice &_rsd);

@@ -23,7 +23,6 @@
 #define ECHOCONNECTION_HPP
 
 #include "foundation/aio/aiosingleobject.hpp"
-#include "foundation/readwriteobject.hpp"
 #include "system/socketaddress.hpp"
 class SocketAddress;
 
