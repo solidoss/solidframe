@@ -22,7 +22,7 @@
 #ifndef TESTSERVICE_HPP
 #define TESTSERVICE_HPP
 
-#include "foundation/readwriteservice.hpp"
+#include "foundation/service.hpp"
 #include "common.hpp"
 
 struct AddrInfoIterator;
@@ -44,7 +44,7 @@ class Visitor;
 class Listener;
 class Talker;
 
-class Service: public foundation::ReadWriteService{
+class Service: public foundation::Service{
 public:
 	Service(){}
 	~Service();

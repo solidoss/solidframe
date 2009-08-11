@@ -26,6 +26,7 @@
 #include "system/debug.hpp"
 #include "system/timespec.hpp"
 #include "system/cassert.hpp"
+#include "system/mutex.hpp"
 
 namespace fdt=foundation;
 static const char	*hellostr = "Welcome to echo service!!!\r\n"; 

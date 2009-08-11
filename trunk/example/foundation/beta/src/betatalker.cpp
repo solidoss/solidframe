@@ -25,8 +25,9 @@
 #include "system/socketaddress.hpp"
 #include "system/debug.hpp"
 #include "system/timespec.hpp"
+#include "system/mutex.hpp"
+
 #include <map>
-#include <iostream>
 
 using namespace std;
 
@@ -100,7 +101,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 					AddrMap::iterator it(addrmap.find(socketRecvAddr()));
 					pair<uint32, uint32> *pp((pair<uint32, uint32> *)bbeg);
 					if(pp->second != socketRecvSize()){
-						cout<<"wrong size : should = "<<pp->second<<" is = "<<socketRecvSize()<<endl;
+						idbg("wrong size : should = "<<pp->second<<" is = "<<socketRecvSize());
 					}
 					if(it == addrmap.end()){//add address
 						//cout<<"add address "<<(uint32)station().recvAddr()<<" (id = "<<pp->first<<" size = "<<pp->second<<')'<<endl;
@@ -108,13 +109,13 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 					}else{
 						pair<uint32, uint32> *pp((pair<uint32, uint32> *)bbeg);
 						if(it->second.first + 1 != pp->first){
-							cout<<"missplaced id "<<pp->first<<" size = "<<pp->second<<" - exid = "<<it->second.first<<endl;
+							idbg("missplaced id "<<pp->first<<" size = "<<pp->second<<" - exid = "<<it->second.first);
 							if(pp->first > it->second.first){
 								it->second.first = pp->first;
 							}
 						}else{
 							it->second.first = pp->first;
-							cout<<"read id "<<pp->first<<" at "<<_tout.seconds()<<':'<<_tout.nanoSeconds()<<endl;
+							idbg("read id "<<pp->first<<" at "<<_tout.seconds()<<':'<<_tout.nanoSeconds());
 						}
 					}
 					state(READ);
