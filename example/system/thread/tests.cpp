@@ -161,7 +161,7 @@ int main(int argc, char *argv[]){
 	Thread::sleep(1000);
 	idbg("before reading the simple test value");
 	int val = SingleTest::instance().value;
-	cout<<"Simple test value = "<<val<<endl;
+	idbg("Simple test value = "<<val);
 	idbg("before wait");
 	Thread::waitAll();
 	return 0;

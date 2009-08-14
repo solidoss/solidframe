@@ -25,11 +25,13 @@
 #include <iostream>
 #include <string>
 #include <cstring>
+#include <cerrno>
 
 #include "system/debug.hpp"
 #include "system/timespec.hpp"
 #include "system/filedevice.hpp"
 #include "system/mutex.hpp"
+#include "system/thread.hpp"
 #include "system/timespec.hpp"
 
 #include "utility/mutualobjectcontainer.hpp"
@@ -147,7 +149,7 @@ private:
 //------------------------------------------------------------------------------
 struct FileManager::Data{
 	enum {Running = 1, Stopping, Stopped = -1};
-	typedef MutualObjectContainer<Mutex>	MutexContainer;
+	typedef MutualObjectContainer<Mutex>	MutexContainerTp;
 	typedef Queue<uint>						SignalQueueTp;
 	typedef Stack<uint>						FreeStackTp;
 	struct FileExtData{
@@ -182,7 +184,7 @@ struct FileManager::Data{
 	uint32					sz;
 	uint32					freeidx;
 	Mutex					*mut;
-	MutexContainer			mutpool;
+	MutexContainerTp		mutpool;
 	FileVectorTp			fv;//file vector
 	FileExtVectorTp			fextv;
 	SignalQueueTp			sq;//stream queue
@@ -691,6 +693,7 @@ int FileManager::doGetStream(
 		idbgx(Dbg::filemanager, "");
 		Mutex::Locker	lock2(d.mutpool.object(fid));
 		File *pf = NULL;
+		uint32	extflags(0);
 		if(fid < d.fv.size() && d.fv[fid].pfile){//we have a file
 			idbgx(Dbg::filemanager, "");
 			pf = d.fv[fid].pfile;
@@ -703,9 +706,11 @@ int FileManager::doGetStream(
 					break;
 				}
 			}
+			//force pending until the file is registered in d.fv
+			extflags = FileManager::ForcePending;
 		}
 		cassert(pf);
-		switch(pf->stream(*this, fid, _sptr, _requid, _flags)){
+		switch(pf->stream(*this, fid, _sptr, _requid, _flags | extflags)){
 			case BAD:
 				idbgx(Dbg::filemanager, "");
 				//we cant get the stream - not now and not ever
@@ -1017,7 +1022,11 @@ int FileManager::Data::fileWrite(uint _fileid, const char *_pb, uint32 _bl, cons
 int FileManager::Data::fileRead(uint _fileid, char *_pb, uint32 _bl, const int64 &_off, uint32 _flags){
 	Mutex::Locker lock(mutpool.object(_fileid));
 	//if(d.fv[_fileid].pfile)// the file cannot be deleted because of the usecount!!
-	return fv[_fileid].pfile->read(_pb, _bl, _off);
+	int rv = fv[_fileid].pfile->read(_pb, _bl, _off);
+	if(rv < 0){
+		edbgx(Dbg::filemanager, "error fileread "<<strerror(errno));
+	}
+	return rv;
 }
 int FileManager::Data::fileSize(uint _fileid){
 	Mutex::Locker lock(mutpool.object(_fileid));
@@ -1325,4 +1334,5 @@ bool File::signalStreams(FileManager &_rsm, const FileUidTp &_fuid){
 }
 
 }//namespace foundation
+
 
