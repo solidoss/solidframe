@@ -1022,11 +1022,7 @@ int FileManager::Data::fileWrite(uint _fileid, const char *_pb, uint32 _bl, cons
 int FileManager::Data::fileRead(uint _fileid, char *_pb, uint32 _bl, const int64 &_off, uint32 _flags){
 	Mutex::Locker lock(mutpool.object(_fileid));
 	//if(d.fv[_fileid].pfile)// the file cannot be deleted because of the usecount!!
-	int rv = fv[_fileid].pfile->read(_pb, _bl, _off);
-	if(rv < 0){
-		edbgx(Dbg::filemanager, "error fileread "<<strerror(errno));
-	}
-	return rv;
+	return fv[_fileid].pfile->read(_pb, _bl, _off);
 }
 int FileManager::Data::fileSize(uint _fileid){
 	Mutex::Locker lock(mutpool.object(_fileid));
