@@ -686,12 +686,16 @@ int FileManager::doGetStream(
 	Mutex::Locker	lock(*d.mut);
 	if(state() != Data::Running) return BAD;
 	uint32 fid = _rk.find(*this);
+	idbgx(Dbg::filemanager, ""<<fid);
 	if(fid != (uint32)-1){
+		idbgx(Dbg::filemanager, "");
 		Mutex::Locker	lock2(d.mutpool.object(fid));
 		File *pf = NULL;
 		if(fid < d.fv.size() && d.fv[fid].pfile){//we have a file
+			idbgx(Dbg::filemanager, "");
 			pf = d.fv[fid].pfile;
 		}else{
+			idbgx(Dbg::filemanager, "");
 			//search the file within the ext vector
 			for(Data::FileExtVectorTp::const_iterator it(d.fextv.begin()); it != d.fextv.end(); ++it){
 				if(it->pos == fid){
@@ -703,13 +707,16 @@ int FileManager::doGetStream(
 		cassert(pf);
 		switch(pf->stream(*this, fid, _sptr, _requid, _flags)){
 			case BAD:
+				idbgx(Dbg::filemanager, "");
 				//we cant get the stream - not now and not ever
 				return BAD;
 			case OK:
+				idbgx(Dbg::filemanager, "");
 				_rfuid.first = fid;
 				_rfuid.second = d.fv[fid].uid;
 				return OK;
 			case NOK:
+				idbgx(Dbg::filemanager, "");
 				//we should wait for the stream
 				return NOK;
 		}
@@ -721,25 +728,30 @@ int FileManager::doGetStream(
 	File *pf = new File(*_rk.clone(), _flags);
 	//now try to open the file:
 	if(d.sz < d.maxsz){
+		idbgx(Dbg::filemanager, "");
 		switch(pf->open(*this, pos)){
 			case BAD:
+				idbgx(Dbg::filemanager, "");
 				//unable to open file - not now not ever
 				delete pf;
 				d.collectFilePositionExt(pos);
 				return BAD;
 			case OK:{
+				idbgx(Dbg::filemanager, "");
 				//register into a mapper
 				++d.sz;
 				pf->key().insert(*this, pos);
 				_rfuid.first = pos;
 				Mutex::Locker	lock2(d.mutpool.safeObject(pos));
 				if(pos < d.fv.size()){
+					idbgx(Dbg::filemanager, "");
 					_rfuid.second = d.fv[pos].uid;
 					d.fv[pos].pfile = pf;
 					pf->stream(*this, pos, _sptr, _requid, _flags);//MUST NOT FAIL
 					cassert(_sptr.ptr());
 					return OK;
 				}else if(!(_flags & NoWait)){
+					idbgx(Dbg::filemanager, "");
 					//no stream is given while not in fv
 					_rfuid.second = 0;
 					d.fextv.push_back(Data::FileExtData(pf, pos));
@@ -751,6 +763,7 @@ int FileManager::doGetStream(
 					}
 					return NOK;
 				}else{
+					idbgx(Dbg::filemanager, "");
 					delete pf;
 					pf->key().erase(*this, pos);
 					--d.sz;
@@ -758,11 +771,14 @@ int FileManager::doGetStream(
 					return BAD;
 				}
 			}
-			case NOK:break;
+			case NOK:
+				idbgx(Dbg::filemanager, "");
+				break;
 		}
 	}
 	//we cant open file for now - no more fds etc
 	if(_flags & NoWait){
+		idbgx(Dbg::filemanager, "");
 		delete pf;
 		d.collectFilePositionExt(pos);
 		return BAD;
@@ -772,11 +788,13 @@ int FileManager::doGetStream(
 	_rfuid.first = pos;
 	Mutex::Locker	lock2(d.mutpool.safeObject(pos));
 	if(pos < d.fv.size()){
+		idbgx(Dbg::filemanager, "");
 		_rfuid.second = d.fv[pos].uid;
 		d.fv[pos].pfile = pf;
 		pf->stream(*this, pos, _sptr, _requid, _flags);//WILL FAIL: NOK
 		cassert(!_sptr.ptr());
 	}else{
+		idbgx(Dbg::filemanager, "");
 		//no stream is given while not in fv
 		_rfuid.second = 0;
 		d.fextv.push_back(Data::FileExtData(pf, pos));
@@ -1297,6 +1315,7 @@ bool File::signalStreams(FileManager &_rsm, const FileUidTp &_fuid){
 		++ousecnt;
 		owq.pop();
 	}else while(this->iwq.size()){//signal all istreams
+		idbgx(Dbg::filemanager, "Signal istream id = "<<_fuid.first);
 		StreamPointer<IStream> sptr(new FileIStream(_rsm.d, _fuid.first));
 		_rsm.sendStream(sptr, _fuid, iwq.front().requid);
 		++iusecnt;
