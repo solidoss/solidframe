@@ -1,8 +1,36 @@
 #include "system/dynamictype.hpp"
+#include "system/dynamicpointer.hpp"
 #include "system/thread.hpp"
+#include "system/debug.hpp"
 #include "system/cassert.hpp"
 #include "system/mutex.hpp"
 #include <vector>
+
+
+
+//---------------------------------------------------------------------
+//----	DynamicPointer	----
+//---------------------------------------------------------------------
+
+void DynamicPointerBase::clear(DynamicBase *_pdyn){
+	cassert(_pdyn);
+	if(_pdyn->release()) delete _pdyn;
+}
+
+void DynamicPointerBase::use(DynamicBase *_pdyn){
+	_pdyn->use();
+}
+
+
+/*virtual*/ void DynamicBase::use(){
+	idbgx(Dbg::system, "Use dynamicbase");
+}
+//! Used by DynamicPointer to know if the object must be deleted
+/*virtual*/ int DynamicBase::release(){
+	idbgx(Dbg::system, "Release signal");
+	return BAD;
+}
+
 
 struct DynamicMap::Data{
 	typedef std::vector<FncTp>	FncVectorTp;

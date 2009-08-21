@@ -24,8 +24,11 @@
 
 #include "foundation/object.hpp"
 #include "foundation/common.hpp"
-#include "signalpointer.hpp"
+
 #include "utility/streampointer.hpp"
+
+#include "system/dynamicpointer.hpp"
+
 #include <string>
 
 class IStream;
@@ -68,12 +71,12 @@ class SignalExecuter: public Object{
 public:
 	SignalExecuter();
 	~SignalExecuter();
-	int signal(SignalPointer<Signal> &_rsig);
+	int signal(DynamicPointer<Signal> &_rsig);
 	int execute(ulong _evs, TimeSpec &_rtout);
 	virtual void removeFromManager() = 0;
 	void mutex(Mutex *_pmut);
 	void sendSignal(
-		SignalPointer<Signal> &_rsig,
+		DynamicPointer<Signal> &_rsig,
 		const RequestUidTp &_requid,
 		const ObjectUidTp& _from = ObjectUidTp(),
 		const ipc::ConnectorUid *_conid = NULL

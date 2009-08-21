@@ -48,9 +48,9 @@ namespace ipc{
 
 struct Talker::Data{
 	struct SignalData{
-		SignalData(foundation::SignalPointer<Signal> &_psig, uint16 _procid, uint16 _procuid, uint32 _flags):
+		SignalData(DynamicPointer<Signal> &_psig, uint16 _procid, uint16 _procuid, uint32 _flags):
 			psig(_psig), procid(_procid), procuid(_procuid), flags(_flags){}
-		foundation::SignalPointer<Signal> psig;
+		DynamicPointer<Signal> psig;
 		uint16	procid;
 		uint16	procuid;
 		uint32	flags;
@@ -338,7 +338,7 @@ int Talker::accept(foundation::Visitor &){
 //----------------------------------------------------------------------
 //The talker's mutex should be locked
 //return ok if the talker should be signaled
-int Talker::pushSignal(foundation::SignalPointer<Signal> &_psig, const ConnectorUid &_rconid, uint32 _flags){
+int Talker::pushSignal(DynamicPointer<Signal> &_psig, const ConnectorUid &_rconid, uint32 _flags){
 	d.sigq.push(Data::SignalData(_psig, _rconid.procid, _rconid.procuid, _flags));
 	return d.sigq.size() == 1 ? NOK : OK;
 }

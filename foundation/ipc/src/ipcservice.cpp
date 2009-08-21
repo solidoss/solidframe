@@ -101,7 +101,7 @@ uint32 Service::keepAliveTimeout()const{
 }
 int Service::sendSignal(
 	const ConnectorUid &_rconid,//the id of the process connector
-	foundation::SignalPointer<Signal> &_psig,//the signal to be sent
+	DynamicPointer<Signal> &_psig,//the signal to be sent
 	uint32	_flags
 ){
 	cassert(_rconid.tkrid < d.tkrvec.size());
@@ -125,7 +125,7 @@ int Service::basePort()const{
 
 int Service::doSendSignal(
 	const SockAddrPair &_rsap,
-	foundation::SignalPointer<Signal> &_psig,//the signal to be sent
+	DynamicPointer<Signal> &_psig,//the signal to be sent
 	ConnectorUid *_pconid,
 	uint32	_flags
 ){
@@ -171,7 +171,7 @@ int Service::doSendSignal(
 			ConnectorUid conid(tkrid);
 			ptkr->pushProcessConnector(ppc, conid);
 			d.basepm4[ppc->baseAddr4()] = conid;
-// 			foundation::SignalPointer<test::Signal> pnullsig(NULL);
+// 			DynamicPointer<test::Signal> pnullsig(NULL);
 // 			ptkr->pushSignal(pnullsig, conid, Buffer::Connecting);
 			ptkr->pushSignal(_psig, conid, _flags);
 			if(ptkr->signal(fdt::S_RAISE)){
@@ -229,7 +229,7 @@ int Service::acceptProcess(ProcessConnector *_ppc){
 	ConnectorUid conid(tkrid, 0xffff, 0xffff);
 	ptkr->pushProcessConnector(_ppc, conid);
 	d.basepm4[_ppc->baseAddr4()] = conid;
-// 	foundation::SignalPointer<test::Signal> pnullsig(NULL);
+// 	DynamicPointer<test::Signal> pnullsig(NULL);
 // 	ptkr->pushSignal(pnullsig, conid, Buffer::Accepted);
 	if(ptkr->signal(fdt::S_RAISE)){
 		Manager::the().raiseObject(*ptkr);

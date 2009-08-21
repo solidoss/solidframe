@@ -30,14 +30,16 @@
 
 class TimeSpec;
 
-namespace foundation{
-namespace ipc{
-struct ConnectorUid;
-struct SignalUid;
-}
-
 template <class T>
-class SignalPointer;
+class DynamicPointer;
+
+
+namespace foundation{
+
+namespace ipc{
+	struct ConnectorUid;
+	struct SignalUid;
+}
 
 class SignalExecuter;
 class Object;
@@ -61,11 +63,7 @@ struct Signal: Dynamic<Signal>{
 	virtual int ipcPrepare(const ipc::SignalUid&);
 	//! Called by ipc module on peer failure detection (disconnect,reconnect)
 	virtual void ipcFail(int _err);
-	//! Used by SignalPointer - smartpointers
-	virtual void use();
-	//! Used by SignalPointer to know if the signal must be deleted
-	virtual int release();
-
+	
 	//! Called by the SignalExecuter
 	virtual int execute(uint32 _evs, SignalExecuter &_rce, const SignalUidTp &_rcmduid, TimeSpec &_rts);
 
@@ -74,7 +72,7 @@ struct Signal: Dynamic<Signal>{
 		If it returns OK, the signal is rescheduled for execution
 	*/
 	virtual int receiveSignal(
-		SignalPointer<Signal> &_rsig,
+		DynamicPointer<Signal> &_rsig,
 		const ObjectUidTp& _from = ObjectUidTp(),
 		const ipc::ConnectorUid *_conid = NULL
 	);

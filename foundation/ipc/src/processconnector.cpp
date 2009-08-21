@@ -121,7 +121,7 @@ struct ProcessConnector::Data{
 	struct OutWaitSignal{
 		OutWaitSignal(
 			uint32 _bufid,
-			const fdt::SignalPointer<Signal>& _rsig,
+			const DynamicPointer<Signal>& _rsig,
 			uint32 _flags,
 			uint32 _id
 		):bufid(_bufid), sig(_rsig), pser(NULL), flags(_flags), id(_id), uid(0){}
@@ -141,7 +141,7 @@ struct ProcessConnector::Data{
 			}else return false;
 		}
 		uint32				bufid;
-		fdt::SignalPointer<Signal> sig;
+		DynamicPointer<Signal> sig;
 		BinSerializerTp		*pser;
 		uint32				flags;
 		uint32				id;
@@ -153,7 +153,7 @@ struct ProcessConnector::Data{
 	typedef Stack<uint16>						OutFreePosStackTp;
 	typedef std::priority_queue<Buffer,std::vector<Buffer>,BufCmp>	
 												BufferPriorityQueueTp;
-	typedef std::pair<fdt::SignalPointer<Signal>, uint32>
+	typedef std::pair<DynamicPointer<Signal>, uint32>
 												CmdPairTp;
 	typedef Queue<CmdPairTp>					CmdQueueTp;
 	typedef std::deque<OutWaitSignal>			OutCmdVectorTp;
@@ -178,7 +178,7 @@ struct ProcessConnector::Data{
 	//save signals to be resent in case of disconnect
 	SignalUid pushOutWaitSignal(
 		uint32 _bufid,
-		fdt::SignalPointer<Signal> &_sig,
+		DynamicPointer<Signal> &_sig,
 		uint32 _flags,
 		uint32 _id
 	);
@@ -402,7 +402,7 @@ inline const ProcessConnector::Data::OutWaitSignal& ProcessConnector::Data::wait
 }
 
 
-SignalUid ProcessConnector::Data::pushOutWaitSignal(uint32 _bufid, fdt::SignalPointer<Signal> &_sig, uint32 _flags, uint32 _id){
+SignalUid ProcessConnector::Data::pushOutWaitSignal(uint32 _bufid, DynamicPointer<Signal> &_sig, uint32 _flags, uint32 _id){
 	_flags &= ~Service::SentFlag;
 	_flags &= ~Service::WaitResponseFlag;
 	if(this->outfreesigstk.size()){
@@ -680,7 +680,7 @@ const std::pair<const Inet4SockAddrPair*, int>* ProcessConnector::baseAddr4()con
 // }
 
 
-int ProcessConnector::pushSignal(foundation::SignalPointer<Signal> &_rsig, uint32 _flags){
+int ProcessConnector::pushSignal(DynamicPointer<Signal> &_rsig, uint32 _flags){
 	//_flags &= ~Data::ProcessReservedFlags;
 	d.cq.push(Data::CmdPairTp(_rsig, _flags));
 	if(d.cq.size() == 1) return NOK;

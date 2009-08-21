@@ -74,28 +74,28 @@ namespace concept{
 //----------------------------------------------------------------------
 
 int IStreamSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidTp &, TimeSpec &){
-	fdt::SignalPointer<Signal> cmdptr(this);
+	DynamicPointer<Signal> cmdptr(this);
 	_rce.sendSignal(cmdptr, requid);
 	return fdt::LEAVE;
 }
 //----------------------------------------------------------------------
 
 int OStreamSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidTp &, TimeSpec &){
-	fdt::SignalPointer<Signal> cmdptr(this);
+	DynamicPointer<Signal> cmdptr(this);
 	_rce.sendSignal(cmdptr, requid);
 	return fdt::LEAVE;
 }
 //----------------------------------------------------------------------
 
 int IOStreamSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidTp &, TimeSpec &){
-	fdt::SignalPointer<Signal> cmdptr(this);
+	DynamicPointer<Signal> cmdptr(this);
 	_rce.sendSignal(cmdptr, requid);
 	return fdt::LEAVE;
 }
 //----------------------------------------------------------------------
 
 int StreamErrorSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidTp &, TimeSpec &){
-	fdt::SignalPointer<Signal> cmdptr(this);
+	DynamicPointer<Signal> cmdptr(this);
 	_rce.sendSignal(cmdptr, requid);
 	return fdt::LEAVE;
 }
@@ -114,19 +114,19 @@ protected:
 	/*virtual*/ void sendError(int _errid, const fdt::RequestUid& _rrequid);
 };
 void FileManager::sendStream(StreamPointer<IStream> &_sptr, const FileUidTp &_rfuid, const fdt::RequestUid& _rrequid){
-	fdt::SignalPointer<fdt::Signal>	cp(new IStreamSignal(_sptr, _rfuid, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
+	DynamicPointer<fdt::Signal>	cp(new IStreamSignal(_sptr, _rfuid, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
 	Manager::the().signalObject(_rrequid.objidx, _rrequid.objuid, cp);
 }
 void FileManager::sendStream(StreamPointer<OStream> &_sptr, const FileUidTp &_rfuid, const fdt::RequestUid& _rrequid){
-	fdt::SignalPointer<fdt::Signal>	cp(new OStreamSignal(_sptr, _rfuid, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
+	DynamicPointer<fdt::Signal>	cp(new OStreamSignal(_sptr, _rfuid, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
 	Manager::the().signalObject(_rrequid.objidx, _rrequid.objuid, cp);
 }
 void FileManager::sendStream(StreamPointer<IOStream> &_sptr, const FileUidTp &_rfuid, const fdt::RequestUid& _rrequid){
-	fdt::SignalPointer<fdt::Signal>	cp(new IOStreamSignal(_sptr, _rfuid, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
+	DynamicPointer<fdt::Signal>	cp(new IOStreamSignal(_sptr, _rfuid, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
 	Manager::the().signalObject(_rrequid.objidx, _rrequid.objuid, cp);
 }
 void FileManager::sendError(int _error, const fdt::RequestUid& _rrequid){
-	fdt::SignalPointer<fdt::Signal>	cp(new StreamErrorSignal(_error, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
+	DynamicPointer<fdt::Signal>	cp(new StreamErrorSignal(_error, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
 	Manager::the().signalObject(_rrequid.objidx, _rrequid.objuid, cp);
 }
 
@@ -175,7 +175,7 @@ void SignalExecuter::removeFromManager(){
 //=========================================================================
 //The manager's localdata
 struct Manager::Data{
-	typedef std::vector<ExtraObjectPointer>									ExtraObjectVector;
+	typedef std::vector<ExtraObjectPointer>								ExtraObjectVector;
 	typedef std::map<const char*, int, StrLess> 						ServiceIdxMap;
 	typedef foundation::SelectPool<fdt::ObjectSelector>					ObjSelPoolTp;
 	typedef foundation::SelectPool<fdt::aio::Selector>					AioSelectorPoolTp;

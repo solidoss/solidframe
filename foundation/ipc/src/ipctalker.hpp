@@ -47,7 +47,7 @@ public:
 	int execute(ulong _sig, TimeSpec &_tout);
 	int execute();
 	int accept(foundation::Visitor &);
-	int pushSignal(foundation::SignalPointer<Signal> &_psig, const ConnectorUid &_rconid, uint32 _flags);
+	int pushSignal(DynamicPointer<Signal> &_psig, const ConnectorUid &_rconid, uint32 _flags);
 	void pushProcessConnector(ProcessConnector *_pc, ConnectorUid &_rconid, bool _exists = false);
 	void disconnectProcesses();
 private:
