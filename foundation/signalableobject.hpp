@@ -73,12 +73,7 @@ public:
 		int rv = OK;
 		typename SigVecTp::iterator it(runv.begin());
 		for(; it != runv.end(); ++it){
-			//TODO:
-			switch(_thisobj.dynamicReceiver(&static_cast<DynamicBase&>(*(*it)))){
-				case BAD: rv = BAD; goto done;
-				case OK:  (*it).release(); break;
-				case NOK: delete (*it).release(); break;
-			}
+			_thisobj.dynamicReceiver(DynamicPointer<>(*it));
 		}
 		done:
 		runv.clear();

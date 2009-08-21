@@ -2,15 +2,10 @@
 #define SYSTEM_DYNAMIC_HPP
 
 #include "system/common.hpp"
-
-// struct DynamicId{
-// 	static uint32 generate();
-// 	DynamicId(uint32 _v):v(_v){}
-// 	uint32	v;
-// };
+#include "system/dynamicpointer.hpp"
 
 struct DynamicMap{
-	typedef int (*FncTp)(void*,void*);
+	typedef void (*FncTp)(const DynamicPointer<DynamicBase> &,void*);
 	typedef void (*RegisterFncTp)(DynamicMap &_rdm);
 	static uint32 generateId();
 	
@@ -22,7 +17,7 @@ struct DynamicMap{
 	Data	&d;
 };
 
-struct DynamicPointerBase;
+//struct DynamicPointerBase;
 
 struct DynamicBase{
 	virtual uint32 dynamicTypeId()const = 0;
@@ -61,7 +56,7 @@ struct Dynamic: T{
 };
 
 struct DynamicReceiverBase{
-	typedef int (*FncTp)(void*,void*);
+	typedef void (*FncTp)(const DynamicPointer<DynamicBase> &, void*);
 };
 
 
@@ -75,8 +70,9 @@ struct DynamicReceiver: T{
 // 	DynamicReceiver(G _x):T(_x){}
 
 	template <class C>
-	static int dynamicCallback(void *_pdyn, void *_prcv){
-		return static_cast<X*>(_prcv)->dynamicReceive(*static_cast<C*>(_pdyn));
+	static void dynamicCallback(const DynamicPointer<DynamicBase> &_pd, void *_prcv){
+		DynamicPointer<C>	dp(_pd);
+		return static_cast<X*>(_prcv)->dynamicReceive(dp);
 	}
 	static DynamicMap& dynamicMap(){
 		static DynamicMap dm(&X::dynamicRegister);
@@ -86,10 +82,9 @@ struct DynamicReceiver: T{
 	static void dynamicRegister(DynamicMap &_rdm){
 		_rdm.callback(C::staticTypeId(), &dynamicCallback<C>);
 	}
-	int dynamicReceiver(DynamicBase *_pd){
+	void dynamicReceiver(const DynamicPointer<DynamicBase> &_pd){
 		DynamicMap::FncTp pf = _pd->callback(dynamicMap());
-		if(pf) return (*pf)(_pd, this);
-		return BAD;
+		if(pf) (*pf)(_pd, this);
 	}
 };
 
