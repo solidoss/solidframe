@@ -116,14 +116,14 @@ public:
 		return (reqid = 1);
 	}
 	
-	int dynamicReceive(RemoteListSignal &_rsig);
-	int dynamicReceive(FetchSlaveSignal &_rsig);
-	int dynamicReceive(SendStringSignal &_rsig);
-	int dynamicReceive(SendStreamSignal &_rsig);
-	int dynamicReceive(IStreamSignal &_rsig);
-	int dynamicReceive(OStreamSignal &_rsig);
-	int dynamicReceive(IOStreamSignal &_rsig);
-	int dynamicReceive(StreamErrorSignal &_rsig);
+	void dynamicReceive(DynamicPointer<RemoteListSignal> &_rsig);
+	void dynamicReceive(DynamicPointer<FetchSlaveSignal> &_rsig);
+	void dynamicReceive(DynamicPointer<SendStringSignal> &_rsig);
+	void dynamicReceive(DynamicPointer<SendStreamSignal> &_rsig);
+	void dynamicReceive(DynamicPointer<IStreamSignal> &_rsig);
+	void dynamicReceive(DynamicPointer<OStreamSignal> &_rsig);
+	void dynamicReceive(DynamicPointer<IOStreamSignal> &_rsig);
+	void dynamicReceive(DynamicPointer<StreamErrorSignal> &_rsig);
 private:
 	void prepareReader();
 private:

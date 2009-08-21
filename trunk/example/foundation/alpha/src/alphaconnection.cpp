@@ -332,18 +332,18 @@ void Connection::prepareReader(){
 	reader().push(&Reader::fetchFilteredString<TagFilter>, protocol::Parameter(&writer().tag(),64));
 }
 
-int Connection::dynamicReceive(RemoteListSignal &_rsig){
+void Connection::dynamicReceive(DynamicPointer<RemoteListSignal> &_psig){
 	idbg("");
-	if(_rsig.requid && _rsig.requid != reqid) return NOK;
+	if(_psig->requid && _psig->requid != reqid) return;
 	idbg("");
 	newRequestId();//prevent multiple responses with the same id
 	if(pcmd){
 		int rv;
-		if(!_rsig.err){
-			rv = pcmd->receiveData((void*)_rsig.ppthlst, -1, 0, ObjectUidTp(), &_rsig.conid);
-			_rsig.ppthlst = NULL;
+		if(!_psig->err){
+			rv = pcmd->receiveData((void*)_psig->ppthlst, -1, 0, ObjectUidTp(), &_psig->conid);
+			_psig->ppthlst = NULL;
 		}else{
-			rv = pcmd->receiveError(_rsig.err, ObjectUidTp(), &_rsig.conid);
+			rv = pcmd->receiveError(_psig->err, ObjectUidTp(), &_psig->conid);
 		}
 		switch(rv){
 			case BAD:
@@ -364,21 +364,20 @@ int Connection::dynamicReceive(RemoteListSignal &_rsig){
 				break;
 		}
 	}
-	return NOK;
 }
-int Connection::dynamicReceive(FetchSlaveSignal &_rsig){
+void Connection::dynamicReceive(DynamicPointer<FetchSlaveSignal> &_psig){
 	idbg("");
-	if(_rsig.requid && _rsig.requid != reqid) return NOK;
+	if(_psig->requid && _psig->requid != reqid) return;
 	idbg("");
 	newRequestId();//prevent multiple responses with the same id
 	if(pcmd){
 		int rv;
-		if(_rsig.sz >= 0){
+		if(_psig->sz >= 0){
 			idbg("");
-			rv = pcmd->receiveNumber(_rsig.insz, 0, _rsig.siguid, &_rsig.conid);
+			rv = pcmd->receiveNumber(_psig->insz, 0, _psig->siguid, &_psig->conid);
 		}else{
 			idbg("");
-			rv = pcmd->receiveError(-1, _rsig.siguid, &_rsig.conid);
+			rv = pcmd->receiveError(-1, _psig->siguid, &_psig->conid);
 		}
 		switch(rv){
 			case BAD:
@@ -399,21 +398,18 @@ int Connection::dynamicReceive(FetchSlaveSignal &_rsig){
 				break;
 		}
 	}
-	return NOK;
 }
-int Connection::dynamicReceive(SendStringSignal &_rsig){
-	return NOK;
+void Connection::dynamicReceive(DynamicPointer<SendStringSignal> &_psig){
 }
-int Connection::dynamicReceive(SendStreamSignal &_rsig){
-	return NOK;
+void Connection::dynamicReceive(DynamicPointer<SendStreamSignal> &_psig){
 }
-int Connection::dynamicReceive(IStreamSignal &_rsig){
+void Connection::dynamicReceive(DynamicPointer<IStreamSignal> &_psig){
 	idbg("");
-	if(_rsig.requid.first && _rsig.requid.first != reqid) return NOK;
+	if(_psig->requid.first && _psig->requid.first != reqid) return;
 	idbg("");
 	newRequestId();//prevent multiple responses with the same id
 	if(pcmd){
-		switch(pcmd->receiveIStream(_rsig.sptr, _rsig.fileuid, 0, ObjectUidTp(), NULL)){
+		switch(pcmd->receiveIStream(_psig->sptr, _psig->fileuid, 0, ObjectUidTp(), NULL)){
 			case BAD:
 				idbg("");
 				break;
@@ -432,15 +428,14 @@ int Connection::dynamicReceive(IStreamSignal &_rsig){
 				break;
 		}
 	}
-	return NOK;
 }
-int Connection::dynamicReceive(OStreamSignal &_rsig){
+void Connection::dynamicReceive(DynamicPointer<OStreamSignal> &_psig){
 	idbg("");
-	if(_rsig.requid.first && _rsig.requid.first != reqid) return NOK;
+	if(_psig->requid.first && _psig->requid.first != reqid) return;
 	idbg("");
 	newRequestId();//prevent multiple responses with the same id
 	if(pcmd){
-		switch(pcmd->receiveOStream(_rsig.sptr, _rsig.fileuid, 0, ObjectUidTp(), NULL)){
+		switch(pcmd->receiveOStream(_psig->sptr, _psig->fileuid, 0, ObjectUidTp(), NULL)){
 			case BAD:
 				idbg("");
 				break;
@@ -459,15 +454,14 @@ int Connection::dynamicReceive(OStreamSignal &_rsig){
 				break;
 		}
 	}
-	return NOK;
 }
-int Connection::dynamicReceive(IOStreamSignal &_rsig){
+void Connection::dynamicReceive(DynamicPointer<IOStreamSignal> &_psig){
 	idbg("");
-	if(_rsig.requid.first && _rsig.requid.first != reqid) return NOK;
+	if(_psig->requid.first && _psig->requid.first != reqid) return;
 	idbg("");
 	newRequestId();//prevent multiple responses with the same id
 	if(pcmd){
-		switch(pcmd->receiveIOStream(_rsig.sptr, _rsig.fileuid, 0, ObjectUidTp(), NULL)){
+		switch(pcmd->receiveIOStream(_psig->sptr, _psig->fileuid, 0, ObjectUidTp(), NULL)){
 			case BAD:
 				idbg("");
 				break;
@@ -486,15 +480,14 @@ int Connection::dynamicReceive(IOStreamSignal &_rsig){
 				break;
 		}
 	}
-	return NOK;
 }
-int Connection::dynamicReceive(StreamErrorSignal &_rsig){
+void Connection::dynamicReceive(DynamicPointer<StreamErrorSignal> &_psig){
 	idbg("");
-	if(_rsig.requid.first && _rsig.requid.first != reqid) return NOK;
+	if(_psig->requid.first && _psig->requid.first != reqid) return;
 	idbg("");
 	newRequestId();//prevent multiple responses with the same id
 	if(pcmd){
-		switch(pcmd->receiveError(_rsig.errid, ObjectUidTp(), NULL)){
+		switch(pcmd->receiveError(_psig->errid, ObjectUidTp(), NULL)){
 			case BAD:
 				idbg("");
 				break;
@@ -513,7 +506,6 @@ int Connection::dynamicReceive(StreamErrorSignal &_rsig){
 				break;
 		}
 	}
-	return NOK;
 }
 
 

@@ -31,7 +31,7 @@ protected:
 
 };
 //! An autoptr like smartpointer for signals
-template <class T>
+template <class T = DynamicBase>
 class DynamicPointer: DynamicPointerBase{
 public:
 	typedef DynamicPointer<T>	DynamicPointerTp;
@@ -40,6 +40,9 @@ public:
 	explicit DynamicPointer(DynamicTp *_pdyn = NULL):pdyn(_pdyn){
 		if(_pdyn) use(static_cast<DynamicBase*>(_pdyn));
 	}
+	template <class B>
+	explicit DynamicPointer(const DynamicPointer<B> &_rcp):pdyn(static_cast<T*>(_rcp.release())){}
+	
 	DynamicPointer(const DynamicPointerTp &_rcp):pdyn(_rcp.release()){}
 	~DynamicPointer(){
 		if(pdyn){DynamicPointerBase::clear(static_cast<DynamicBase*>(pdyn));}
