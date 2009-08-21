@@ -21,19 +21,19 @@ struct SignalExecuter::Data{
 	enum{
 		Running, Stopping
 	};
-	void push(SignalPointer<Signal> &_sig);
+	void push(DynamicPointer<Signal> &_sig);
 	void eraseToutPos(uint32 _pos);
 	struct SigData{
-		SigData(const SignalPointer<Signal>& _rsig):sig(_rsig), toutidx(-1), uid(0),tout(0xffffffff){}
+		SigData(const DynamicPointer<Signal>& _rsig):sig(_rsig), toutidx(-1), uid(0),tout(0xffffffff){}
 		SigData(){}
-		SignalPointer<Signal>	sig;
+		DynamicPointer<Signal>	sig;
 		int32					toutidx;
 		uint32					uid;
 		TimeSpec				tout;
 	};
 	typedef std::deque<int32>					TimeoutVectorTp;
 	typedef std::deque<SigData >				SignalDequeTp;
-	typedef std::deque<SignalPointer<Signal> >	SignalExtDequeTp;
+	typedef std::deque<DynamicPointer<Signal> >	SignalExtDequeTp;
 	typedef Queue<uint32>						ExecQueueTp;
 	typedef Stack<uint32>						FreeStackTp;
 	Mutex 				*pm;
@@ -49,7 +49,7 @@ struct SignalExecuter::Data{
 	TimeSpec			tout;
 };
 
-void SignalExecuter::Data::push(SignalPointer<Signal> &_sig){
+void SignalExecuter::Data::push(DynamicPointer<Signal> &_sig){
 	if(fs.size()){
 		sdq[fs.top()].sig = _sig;
 		sq.push(fs.top());
@@ -77,7 +77,7 @@ SignalExecuter::~SignalExecuter(){
 	delete &d;
 }
 
-int SignalExecuter::signal(SignalPointer<Signal> &_sig){
+int SignalExecuter::signal(DynamicPointer<Signal> &_sig){
 	cassert(!d.pm->tryLock());
 	
 	if(this->state() != Data::Running){
@@ -244,7 +244,7 @@ void SignalExecuter::doExecute(uint _pos, uint32 _evs, const TimeSpec &_rtout){
 }
 
 void SignalExecuter::sendSignal(
-	SignalPointer<Signal> &_rsig,
+	DynamicPointer<Signal> &_rsig,
 	const RequestUidTp &_requid,
 	const ObjectUidTp& _from,
 	const ipc::ConnectorUid *_conid

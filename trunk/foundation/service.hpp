@@ -76,9 +76,9 @@ public:
 	int signal(IndexTp _fullid, uint32 _uid, Manager &_rm, ulong _sigmask);
 	
 	//! Signal an object with a signal
-	int signal(Object &_robj, Manager &_rm, SignalPointer<Signal> &_rsig);
+	int signal(Object &_robj, Manager &_rm, DynamicPointer<Signal> &_rsig);
 	//! Signal an object with a signal
-	int signal(IndexTp _fullid, uint32 _uid, Manager &_rm, SignalPointer<Signal> &_rsig);
+	int signal(IndexTp _fullid, uint32 _uid, Manager &_rm, DynamicPointer<Signal> &_rsig);
 	
 	//! Signal all objects with a signal mask
 	void signalAll(Manager &_rm, ulong _sigmask);
@@ -88,7 +88,7 @@ public:
 		prepared for paralel access as the same signal pointer
 		is given to all objects.
 	*/
-	void signalAll(Manager &_rm, SignalPointer<Signal> &_rsig);
+	void signalAll(Manager &_rm, DynamicPointer<Signal> &_rsig);
 	//! Visit all objects
 	void visit(Manager &_rm, Visitor &_rov);
 	//! Get the mutex associated to an object
@@ -125,7 +125,7 @@ protected:
 	//! Signal all objects - the service's mutex must be locked from outside
 	void doSignalAll(Manager &_rm, ulong _sigmask);
 	//! Signal all objects - the service's mutex must be locked from outside
-	void doSignalAll(Manager &_rm, SignalPointer<Signal> &_rsig);
+	void doSignalAll(Manager &_rm, DynamicPointer<Signal> &_rsig);
 	//! Insert an object - the service's mutex must be locked from outside
 	int doInsert(Object &_robj, IndexTp _srvid);
 	//! Constructor - forwards the parameters to the MutualObjectContainer of mutexes

@@ -24,9 +24,9 @@
 
 #include <vector>
 #include "signal.hpp"
-#include "signalpointer.hpp"
 #include "common.hpp"
 
+#include "system/dynamicpointer.hpp"
 #include "system/cassert.hpp"
 
 namespace foundation{
@@ -47,7 +47,7 @@ public:
 	//!Comodity two parameters template constructor - forward to base
 	template <typename T1, typename T2>
 	SignalableObject(T1 _t1, T2 _t2):B(_t1,_t2){}
-	/*virtual*/ int signal(SignalPointer<Signal> &_sig){
+	/*virtual*/ int signal(DynamicPointer<Signal> &_sig){
 		if(this->state() < 0){
 			_sig.clear();
 			return 0;//no reason to raise the pool thread!!
@@ -90,7 +90,7 @@ public:
 	}
 	~SignalableObject(){ clear();}
 protected:
-	typedef std::vector<SignalPointer<Signal> >  SigVecTp;
+	typedef std::vector<DynamicPointer<Signal> >  SigVecTp;
 	SignalableObject(){}
 	SigVecTp    runv;
 private:

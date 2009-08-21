@@ -103,12 +103,12 @@ public:
 		The signal is send only if the connector exists. If the peer process,
 		restarts the signal is not sent.
 		\param _rconid A previously saved connectionuid
-		\param _psig A SignalPointer with the signal to be sent.
+		\param _psig A DynamicPointer with the signal to be sent.
 		\param _flags (Optional) Not used for now
 	*/
 	int sendSignal(
 		const ConnectorUid &_rconid,//the id of the process connector
-		foundation::SignalPointer<Signal> &_psig,//the signal to be sent
+		DynamicPointer<Signal> &_psig,//the signal to be sent
 		uint32	_flags = 0
 	);
 	//!Send a signal to a peer process using it's base address.
@@ -122,7 +122,7 @@ public:
 	*/
 	int sendSignal(
 		const SockAddrPair &_rsap,
-		foundation::SignalPointer<Signal> &_psig,//the signal to be sent
+		DynamicPointer<Signal> &_psig,//the signal to be sent
 		ConnectorUid &_rconid,
 		uint32	_flags = 0
 	);
@@ -136,7 +136,7 @@ public:
 	*/
 	int sendSignal(
 		const SockAddrPair &_rsap,
-		foundation::SignalPointer<Signal> &_psig,//the signal to be sent
+		DynamicPointer<Signal> &_psig,//the signal to be sent
 		uint32	_flags = 0
 	);
 	//! Not used for now - will be used when ipc will use tcp connections
@@ -184,7 +184,7 @@ private:
 	friend class Talker;
 	int doSendSignal(
 		const SockAddrPair &_rsap,
-		foundation::SignalPointer<Signal> &_psig,//the signal to be sent
+		DynamicPointer<Signal> &_psig,//the signal to be sent
 		ConnectorUid *_pconid,
 		uint32	_flags = 0
 	);
@@ -202,7 +202,7 @@ private:
 
 inline int Service::sendSignal(
 	const SockAddrPair &_rsap,
-	foundation::SignalPointer<Signal> &_psig,//the signal to be sent
+	DynamicPointer<Signal> &_psig,//the signal to be sent
 	ConnectorUid &_rconid,
 	uint32	_flags
 ){
@@ -211,7 +211,7 @@ inline int Service::sendSignal(
 
 inline int Service::sendSignal(
 	const SockAddrPair &_rsap,
-	foundation::SignalPointer<Signal> &_psig,//the signal to be sent
+	DynamicPointer<Signal> &_psig,//the signal to be sent
 	uint32	_flags
 ){
 	return doSendSignal(_rsap, _psig, NULL, _flags);

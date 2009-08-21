@@ -23,7 +23,8 @@
 #define ALPHA_SIGNALS_HPP
 
 #include "foundation/signal.hpp"
-#include "foundation/signalpointer.hpp"
+
+#include "system/dynamicpointer.hpp"
 
 #include "alphacommands.hpp"
 
@@ -127,7 +128,7 @@ struct FetchMasterSignal: Dynamic<FetchMasterSignal, foundation::Signal>{
 	int execute(uint32 _evs, foundation::SignalExecuter&, const SignalUidTp &, TimeSpec &_rts);
 
 	int receiveSignal(
-		foundation::SignalPointer<Signal> &_rsig,
+		DynamicPointer<Signal> &_rsig,
 		const ObjectUidTp& _from = ObjectUidTp(),
 		const foundation::ipc::ConnectorUid *_conid = NULL
 	);

@@ -26,7 +26,8 @@
 
 #include "common.hpp"
 #include "objectpointer.hpp"
-#include "signalpointer.hpp"
+
+#include "system/dynamicpointer.hpp"
 
 class  Mutex;
 class  SpecificMapper;
@@ -42,6 +43,7 @@ class	ActiveSet;
 class	Visitor;
 class	FileManager;
 class	ServiceContainer;
+class	Signal;
 
 namespace ipc{
 class Service;
@@ -75,10 +77,10 @@ public:
 	int signalObject(Object &_robj, ulong _sigmask);
 	
 	//! Signal an object identified by (id,uid) with a signal
-	int signalObject(IndexTp _fullid, uint32 _uid, SignalPointer<Signal> &_rsig);
+	int signalObject(IndexTp _fullid, uint32 _uid, DynamicPointer<Signal> &_rsig);
 	
 	//! Signal an object with a signal, given a reference to the object
-	int signalObject(Object &_robj, SignalPointer<Signal> &_rsig);
+	int signalObject(Object &_robj, DynamicPointer<Signal> &_rsig);
 	
 	//! Wake an object
 	void raiseObject(Object &_robj);

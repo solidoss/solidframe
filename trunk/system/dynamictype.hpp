@@ -22,10 +22,18 @@ struct DynamicMap{
 	Data	&d;
 };
 
+struct DynamicPointerBase;
+
 struct DynamicBase{
 	virtual uint32 dynamicTypeId()const = 0;
 	virtual DynamicMap::FncTp callback(const DynamicMap &_rdm);
+	//! Used by DynamicPointer - smartpointers
+	virtual void use();
+	//! Used by DynamicPointer to know if the object must be deleted
+	virtual int release();
+
 protected:
+	friend struct DynamicPointerBase;
 	virtual ~DynamicBase();
 };
 
@@ -84,5 +92,6 @@ struct DynamicReceiver: T{
 		return BAD;
 	}
 };
+
 
 #endif

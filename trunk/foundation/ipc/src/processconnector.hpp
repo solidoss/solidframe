@@ -22,9 +22,10 @@
 #ifndef IPC_PROCESS_CONNECTOR_HPP
 #define IPC_PROCESS_CONNECTOR_HPP
 
-#include "foundation/signalpointer.hpp"
+
 #include "iodata.hpp"
 #include "system/timespec.hpp"
+#include "system/dynamicpointer.hpp"
 
 struct SocketAddress;
 struct Inet4SockAddrPair;
@@ -71,7 +72,7 @@ public:
 	ProcessConnector(const Inet4SockAddrPair &_raddr, uint32 _keepalivetout);
 	ProcessConnector(const Inet4SockAddrPair &_raddr, int _basport, uint32 _keepalivetout);
 	~ProcessConnector();
-	int pushSignal(foundation::SignalPointer<Signal> &_rsig, uint32 _flags);
+	int pushSignal(DynamicPointer<Signal> &_rsig, uint32 _flags);
 	int pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpos, bool &_reusebuf);
 	int processSendSignals(SendBufferData &_rsb, const TimeSpec &_tpos, int _baseport);
 	int pushReceivedBuffer(Buffer &_rbuf, const ConnectorUid &_rcodid, const TimeSpec &_tpos);

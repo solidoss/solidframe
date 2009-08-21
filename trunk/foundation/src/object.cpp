@@ -23,12 +23,12 @@
 #include "system/mutex.hpp"
 
 #include "system/debug.hpp"
+#include "system/dynamicpointer.hpp"
 
 #include "foundation/object.hpp"
 #include "foundation/objectpointer.hpp"
 #include "foundation/visitor.hpp"
 #include "foundation/signal.hpp"
-#include "foundation/signalpointer.hpp"
 #include "foundation/manager.hpp"
 
 #include "utility/memory.hpp"
@@ -65,18 +65,6 @@ void ObjectPointerBase::destroy(Object *_pobj){
 	delete _pobj;
 }
 //---------------------------------------------------------------------
-//----	SignalPointer	----
-//---------------------------------------------------------------------
-
-void SignalPointerBase::clear(Signal *_psig){
-	cassert(_psig);
-	if(_psig->release()) delete _psig;
-}
-
-void SignalPointerBase::use(Signal *_psig){
-	_psig->use();
-}
-//---------------------------------------------------------------------
 //----	Object	----
 //---------------------------------------------------------------------
 
@@ -96,7 +84,7 @@ void Object::threadid(ulong _thrid){
 	thrid = _thrid;
 }
 */
-int Object::signal(SignalPointer<Signal> &_cmd){
+int Object::signal(DynamicPointer<Signal> &_sig){
 	return OK;
 }
 /**
@@ -135,9 +123,6 @@ Signal::~Signal(){
 	idbgx(Dbg::cs, "memsub "<<(void*)this);
 }
 
-void Signal::use(){
-	idbgx(Dbg::cs, "Use signal");
-}
 int Signal::ipcReceived(ipc::SignalUid&, const ipc::ConnectorUid&){
 	return BAD;
 }
@@ -146,23 +131,14 @@ int Signal::ipcPrepare(const ipc::SignalUid&){
 }
 void Signal::ipcFail(int _err){
 }
-// int Signal::execute(Object &){
-// 	idbgx(Dbg::cs, "Unhandled signal");
-// 	return 0;
-// }
 
 int Signal::execute(uint32 _evs, SignalExecuter &, const SignalUidTp &, TimeSpec &_rts){
 	idbgx(Dbg::cs, "Unhandled signal");
 	return BAD;
 }
 
-int Signal::release(){
-	idbgx(Dbg::cs, "Release signal");
-	return BAD;
-}
-
 int Signal::receiveSignal(
-	SignalPointer<Signal> &_rsig,
+	DynamicPointer<Signal> &_rsig,
 	const ObjectUidTp& _from,
 	const ipc::ConnectorUid *_conid
 ){

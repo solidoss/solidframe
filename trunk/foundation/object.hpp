@@ -23,7 +23,9 @@
 #define CS_OBJECT_HPP
 
 #include "common.hpp"
-#include "signalpointer.hpp"
+
+#include "system/dynamicpointer.hpp"
+
 class Mutex;
 struct TimeSpec;
 namespace foundation{
@@ -102,7 +104,7 @@ public:
 	ulong signaled(ulong _s) const;
 	
 	//! Signal the object with a signal
-	virtual int signal(SignalPointer<Signal> &_rsig);
+	virtual int signal(DynamicPointer<Signal> &_rsig);
 	
 	//! Executes the objects
 	/*!

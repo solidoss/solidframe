@@ -267,7 +267,7 @@ int RemoteList::execute(Connection &_rc){
 		psig->fromv.first = _rc.id();
 		psig->fromv.second = Manager::the().uid(_rc);
 		state = Wait;
-		fdt::SignalPointer<fdt::Signal> sigptr(psig);
+		DynamicPointer<fdt::Signal> sigptr(psig);
 		Manager::the().ipc().sendSignal(ai.begin(), sigptr);
 		_rc.writer().push(&Writer::reinit<RemoteList>, protocol::Parameter(this));
 	}else{
@@ -423,7 +423,7 @@ int Fetch::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 				psig->fromv.second = Manager::the().uid(rc);
 				psig->tmpfuid = fuid;
 				st = WaitFirstRemote;
-				fdt::SignalPointer<fdt::Signal> sigptr(psig);
+				DynamicPointer<fdt::Signal> sigptr(psig);
 				Manager::the().ipc().sendSignal(ai.begin(), sigptr);
 				return Writer::No;
 			}else{
@@ -449,7 +449,7 @@ int Fetch::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 				psig->requid = rc.newRequestId();
 				psig->siguid = mastersiguid;
 				psig->fuid = fuid;
-				fdt::SignalPointer<fdt::Signal> sigptr(psig);
+				DynamicPointer<fdt::Signal> sigptr(psig);
 				if(Manager::the().ipc().sendSignal(conuid, sigptr) == BAD){
 					return Writer::Bad;
 				}
@@ -478,7 +478,7 @@ int Fetch::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 				psig->siguid = mastersiguid;
 				psig->fuid = fuid;
 				psig->insz = isfrst ? 0 : -1;
-				fdt::SignalPointer<fdt::Signal> sigptr(psig);
+				DynamicPointer<fdt::Signal> sigptr(psig);
 				if(Manager::the().ipc().sendSignal(conuid, sigptr) == BAD){
 					return Writer::Bad;
 				}
@@ -687,7 +687,7 @@ int SendString::execute(alpha::Connection &_rc){
 	protocol::Parameter &rp = _rc.writer().push(&Writer::putStatus);
 	if(!ai.empty()){
 		rp = protocol::Parameter(StrDef(" OK Done SENDSTRING@"));
-		fdt::SignalPointer<fdt::Signal> sigptr(new SendStringSignal(str, objid, objuid, fromobjid, fromobjuid));
+		DynamicPointer<fdt::Signal> sigptr(new SendStringSignal(str, objid, objuid, fromobjid, fromobjuid));
 		rm.ipc().sendSignal(ai.begin(), sigptr);
 	}else{
 		rp = protocol::Parameter(StrDef(" NO SENDSTRING no such address@"));
@@ -736,7 +736,7 @@ int SendStream::execute(Connection &_rc){
 			idbg("addr"<<addr<<"str = "<<srcstr<<" port = "<<port<<" objid = "<<" objuid = "<<objuid);
 			if(!ai.empty()){
 				rp = protocol::Parameter(StrDef(" OK Done SENDSTRING@"));
-				fdt::SignalPointer<fdt::Signal> sigptr(new SendStreamSignal(sp, dststr, myprocid, objid, objuid, fromobjid, fromobjuid));
+				DynamicPointer<fdt::Signal> sigptr(new SendStreamSignal(sp, dststr, myprocid, objid, objuid, fromobjid, fromobjuid));
 				rm.ipc().sendSignal(ai.begin(), sigptr);
 			}else{
 				rp = protocol::Parameter(StrDef(" NO SENDSTRING no such address@"));

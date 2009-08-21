@@ -231,7 +231,7 @@ int Manager::signalObject(Object &_robj, ulong _sigmask){
 	return d.sv[_robj.serviceid()]->signal(_robj, *this, _sigmask);
 }
 
-int Manager::signalObject(IndexTp _fullid, uint32 _uid, SignalPointer<Signal> &_rsig){
+int Manager::signalObject(IndexTp _fullid, uint32 _uid, DynamicPointer<Signal> &_rsig){
 	cassert(Object::computeServiceId(_fullid) < d.sv.size());
 	return d.sv[Object::computeServiceId(_fullid)]->signal(
 		_fullid,_uid,
@@ -239,7 +239,7 @@ int Manager::signalObject(IndexTp _fullid, uint32 _uid, SignalPointer<Signal> &_
 		_rsig);
 }
 
-int Manager::signalObject(Object &_robj, SignalPointer<Signal> &_rsig){
+int Manager::signalObject(Object &_robj, DynamicPointer<Signal> &_rsig){
 	cassert(_robj.serviceid() < d.sv.size());
 	return d.sv[_robj.serviceid()]->signal(_robj, *this, _rsig);
 }
