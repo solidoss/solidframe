@@ -38,6 +38,7 @@ public:
 	void doneList(){++liscnt;}
 	void addWait(){lock();++waitcnt;unlock();}
 	void subWait(){lock();--waitcnt;unlock();}
+	int minId();
 private:
 	vector<ulong>   v;
 	uint32			concnt;
@@ -97,6 +98,21 @@ int Info::print(){
 	return waitcnt;
 }
 
+int Info::minId(){
+	uint32 mn(0xffffffff);
+	int idx = -1;
+	for(vector<ulong>::const_iterator it(v.begin()); it != v.end(); ++it){
+		const uint32 t = *it;
+		if(t == 0xffffffff){continue;}
+		if(t < mn)
+		{
+			mn = t;
+			idx = it - v.begin();
+		}
+	}
+	return idx;
+}
+
 static Info inf;
 
 class AlphaThread: public Thread{
@@ -132,6 +148,7 @@ private:
 };
 
 void AlphaThread::run(){
+	idbg(":::::::::::::::::::::::: "<<pos);
 	if(ai.empty()){
 		idbg("No such address");
 		return;
