@@ -64,9 +64,9 @@ inline void Object::doPopTimeout(uint32 _pos){
 	cassert(toutpos != toutbeg);
 	--toutpos;
 	toutbeg[pstubs[_pos].toutpos] = *toutpos;
-#ifdef DEBUG
+/*#ifdef DEBUG
 	*toutpos = -1;
-#endif
+#endif*/
 	pstubs[_pos].toutpos = -1;
 }
 

@@ -136,7 +136,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			state(Connect);
 			return fdt::UNREGISTER;
 		}else
-			idbg("timeout occured - destroy connection");
+			idbg("timeout occured - destroy connection "<<state());
 			return BAD;
 	}
 	

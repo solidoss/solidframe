@@ -14,7 +14,6 @@ set(Sources
 
 set(Headers
 	activeset.hpp
-	signalpointer.hpp
 	signalableobject.hpp
 	signalexecuter.hpp
 	signal.hpp
