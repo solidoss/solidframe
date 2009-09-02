@@ -80,16 +80,19 @@ class TypeMapper{
 	typedef BaseTypeMap::FncTp	FncTp;
 	template <class T>
 	static unsigned mapId(){
+		//TODO: staticproblem
 		static unsigned const d(newMapId());
 		return d;
 	}
 	template <class T>
 	static unsigned serializerId(){
+		//TODO: staticproblem
 		static unsigned const d(newSerializerId());
 		return d;
 	}
 public:
 	static TypeMapper& the(){
+		//TODO: staticproblem
 		static TypeMapper tm;
 		return tm;
 	}

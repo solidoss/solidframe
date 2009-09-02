@@ -243,6 +243,7 @@ struct Dbg::Data{
 void splitPrefix(string &_path, string &_name, const char *_prefix);
 
 /*static*/ Dbg& Dbg::instance(){
+	//TODO: staticproblem
 	static Dbg d;
 	return d;
 }

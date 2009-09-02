@@ -346,6 +346,7 @@ inline uint Selector::doExecuteQueue(){
 
 
 void Selector::run(){
+	//TODO: staticproblem?!
 	static const int	maxnbcnt = 16;
 	uint 				flags;
 	int					nbcnt = -1;	//non blocking opperations count,

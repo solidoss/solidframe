@@ -60,11 +60,13 @@ TypeMapper::~TypeMapper(){
 }
 
 /*static*/ unsigned TypeMapper::newMapId(){
+	//TODO: staticproblem
 	static unsigned d(-1);
 	return ++d;
 }
 
 /*static*/ unsigned TypeMapper::newSerializerId(){
+	//TODO: staticproblem
 	static unsigned d(-1);
 	return ++d;
 }

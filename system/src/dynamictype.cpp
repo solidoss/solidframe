@@ -39,6 +39,7 @@ struct DynamicMap::Data{
 
 
 /*static*/ uint32 DynamicMap::generateId(){
+	//TODO: staticproblem
 	static uint32 u(0);
 	Thread::gmutex().lock();
 	uint32 v = ++u;

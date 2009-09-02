@@ -14,6 +14,7 @@ private:
 #ifdef UDEBUG
 template <class T>
 void objectCheck(bool _add, const char *_fncname){
+	//TODO: staticproblem
 	static EmptyChecker ec(_fncname);
 	if(_add)	ec.add();
 	else 		ec.sub();

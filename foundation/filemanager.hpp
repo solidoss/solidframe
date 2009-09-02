@@ -121,6 +121,7 @@ public:
 	template <class T>
 	T* mapper(T *_pm = NULL){
 		//doRegisterMapper will assert if _pm is NULL
+		//TODO: staticproblem
 		static const int id(doRegisterMapper(static_cast<FileMapper*>(_pm)));
 		//doGetMapper may also register the mapper - this way one can instantiate more managers per process.
 		return static_cast<T*>(doGetMapper(id, static_cast<FileMapper*>(_pm)));
