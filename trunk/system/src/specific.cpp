@@ -33,6 +33,7 @@
 #endif
 
 static const unsigned specificPosition(){
+	//TODO: staticproblem
 	static const unsigned	thrspecpos = Thread::specificId();
 	return thrspecpos;
 }
@@ -42,8 +43,11 @@ struct CleanVector: std::vector<Specific::FncTp>{
 		this->reserve(OBJ_CACHE_CAP);
 	}
 };
+
 static CleanVector	cv;
+
 typedef std::stack<void*,std::vector<void*> > StackTp;
+
 //This is what is holded on a thread
 struct SpecificData{
 	struct CachePoint{

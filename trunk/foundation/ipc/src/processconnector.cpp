@@ -230,6 +230,7 @@ struct ProcessConnector::Data{
 //==============================================================================
 
 /*static*/ StaticData& StaticData::instance(){
+	//TODO: staticproblem
 	static StaticData sd;
 	return sd;
 }

@@ -9,6 +9,7 @@ struct SpecificRequestUid::ForcedCreate{
 SpecificRequestUid requestuidptr;//(SpecificRequestUid::ForcedCreate);
 
 static const unsigned specificPosition(){
+	//TODO: staticproblem
 	static const unsigned	thrspecpos = Thread::specificId();
 	return thrspecpos;
 }

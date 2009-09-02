@@ -69,6 +69,7 @@ struct ThreadData{
 //	once_key = PTHREAD_ONCE_INIT;
 //}
 static ThreadData& threadData(){
+	//TODO: staticproblem
 	static ThreadData td;
 	return td;
 }
@@ -191,6 +192,7 @@ int Thread::detach(){
 }
 //-------------------------------------------------------------------------
 unsigned Thread::specificId(){
+	//TODO: staticproblem
 	static unsigned sid = ThreadData::FirstSpecificId - 1;
 	Mutex::Locker lock(gmutex());
 	return ++sid;

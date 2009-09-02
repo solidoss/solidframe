@@ -160,6 +160,7 @@ void Log::Data::sendInfo(){
 }
 //=====================================================================
 /*static*/ Log& Log::instance(){
+	//TODO: staticproblem
 	static Log l;
 	return l;
 }

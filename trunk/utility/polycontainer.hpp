@@ -28,6 +28,7 @@ class MultiContainer{
 public:
 	template <typename T>
 	T* get(T *_p = NULL){
+		//TODO: staticproblem
 		static unsigned id(stackid(&MultiContainer::cleaner<T>));
 		if(_p){
 			if(push(_p, id)){ delete _p; _p = NULL;}

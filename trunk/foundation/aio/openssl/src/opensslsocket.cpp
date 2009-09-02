@@ -47,6 +47,7 @@ Initor::~Initor(){
 }
 
 /*static*/ Context* Context::create(){
+	//TODO: staticproblem
 	static Initor init;
 	SSL_CTX *pctx(SSL_CTX_new(SSLv23_server_method()));
 	if(!pctx) return NULL;

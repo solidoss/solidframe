@@ -50,6 +50,7 @@ void ManagerThread::server(Manager *_psrv){
 }
 */
 static const unsigned specificPosition(){
+	//TODO: staticproblem
 	static const unsigned thrspecpos = Thread::specificId();
 	return thrspecpos;
 }
