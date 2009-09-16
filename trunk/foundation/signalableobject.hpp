@@ -25,9 +25,11 @@
 #include <vector>
 #include "signal.hpp"
 #include "common.hpp"
+#include "object.hpp"
 
 #include "system/dynamicpointer.hpp"
 #include "system/cassert.hpp"
+
 
 namespace foundation{
 //! A class for generic handeling of signals by foundation::Object(s)
@@ -53,7 +55,7 @@ public:
 			return 0;//no reason to raise the pool thread!!
 		}
 		sigv.push_back(_sig);
-		return B::signal(S_SIG | S_RAISE);
+		return Object::signal(S_SIG | S_RAISE);
 	}
 	//! Grab the received signals into the run vector
 	/*!
