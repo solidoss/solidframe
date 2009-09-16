@@ -242,6 +242,7 @@ set(CMAKE_BUILD_TYPE
 include_directories(
 	${SOLIDGROUND_SOURCE_DIR}
 	${SOLIDGROUND_SOURCE_DIR}/library
+	${SOLIDGROUND_SOURCE_DIR}/application
 	${EXTERN_PATH}/include/openssl
 	${EXTERN_PATH}/include/tclap
 	${EXTERN_PATH}/include/

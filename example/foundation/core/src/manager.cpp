@@ -72,7 +72,6 @@ namespace concept{
 
 //======= FileManager:==================================================
 //----------------------------------------------------------------------
-
 int IStreamSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidTp &, TimeSpec &){
 	DynamicPointer<Signal> cmdptr(this);
 	_rce.sendSignal(cmdptr, requid);
@@ -243,17 +242,6 @@ Manager::Data::~Data(){
 	delete writecmdexec.release();
 }
 
-//----------------------------------------------------------------------------------
-ServiceMap& getServiceMap(){
-	static ServiceMap sm;
-	return sm;
-}
-
-void registerService(ServiceCreator _psc, const char* _pname){
-	idbg("registering "<<_pname);
-	cout<<"registering "<<_pname<<endl;
-	getServiceMap()[_pname] = _psc;
-}
 //----------------------------------------------------------------------------------
 template <>
 void Manager::pushJob(fdt::Object *_pj, int _pos){

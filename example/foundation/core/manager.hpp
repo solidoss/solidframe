@@ -21,7 +21,7 @@
 
 #ifndef TESTMANAGER_HPP
 #define TESTMANAGER_HPP
-#include <map>
+
 #include "foundation/manager.hpp"
 #include "common.hpp"
 
@@ -30,12 +30,6 @@ namespace concept{
 class Service;
 class Visitor;
 class SignalExecuter;
-
-typedef Service* (*ServiceCreator)();
-typedef std::map<const char*, ServiceCreator, StrLess>	ServiceMap;
-
-ServiceMap& getServiceMap();
-void registerService(ServiceCreator _psc, const char* _pname);
 
 //! A proof of concept server
 /*!
