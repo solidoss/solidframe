@@ -305,7 +305,7 @@ ProcessConnector::Data::~Data(){
 			pushSerializer(it->pser);
 			it->pser = NULL;
 		}
-		if(it->sig){
+		if(it->sig.ptr()){
 			++it->uid;
 			if(it->flags & Service::WaitResponseFlag && it->flags & Service::SentFlag){
 				//the was successfully sent but the response did not arrive
@@ -560,7 +560,7 @@ void ProcessConnector::reconnect(ProcessConnector *_ppc){
 			d.pushSerializer(outsig.pser);
 			outsig.pser = NULL;
 		}
-		cassert(outsig.sig);
+		cassert(outsig.sig.ptr());
 		//NOTE: on reconnect the responses, or signals sent using ConnectorUid are dropped
 		if(!(outsig.flags & Service::SameConnectorFlag)){
 			if(outsig.flags & Service::WaitResponseFlag && outsig.flags & Service::SentFlag){

@@ -64,7 +64,6 @@ public:
 	DynamicTp* ptr() const		{return pdyn;}
 	//operator bool () const	{return psig;}
 	bool operator!()const	{return !pdyn;}
-	operator bool()	const	{return pdyn != NULL;}
 	void clear(){if(pdyn) DynamicPointerBase::clear(static_cast<DynamicBase*>(pdyn));pdyn = NULL;}
 protected:
 	void ptr(DynamicTp *_pdyn){
