@@ -93,7 +93,10 @@ public:
 	
 	Mutex& mutex()const;
 protected:
-	Thread();
+#ifdef _WIN32
+#else
+	Thread(bool _detached = true, pthread_t _th = 0);
+#endif
 	virtual ~Thread();
 	//! Method called right before run
 	virtual void prepare(){}

@@ -155,6 +155,10 @@ int main(int argc, char *argv[]){
 		Dbg::instance().moduleMask("all");
 	}
 	Thread::init();
+	idbg("current thread "<<(void*)Thread::current());
+	const unsigned specid(Thread::specificId());
+	Thread::specific(specid, (void*)123456);
+	idbg("saved specific value = "<<(uint)Thread::specific(specid));
 	Runner *pth = new Runner(2);
 	pth->start(true);
 	idbg("before reading sleep");
