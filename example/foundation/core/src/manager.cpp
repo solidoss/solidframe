@@ -143,7 +143,7 @@ protected:
 
 //=========================================================================
 
-struct ExtraObjectPointer: fdt::ObjectPointer<fdt::Object>{
+/*struct ExtraObjectPointer: fdt::ObjectPointer<fdt::Object>{
 	ExtraObjectPointer(fdt::Object *_po);
 	~ExtraObjectPointer();
 	ExtraObjectPointer& operator=(fdt::Object *_pobj);
@@ -157,7 +157,7 @@ ExtraObjectPointer::~ExtraObjectPointer(){
 ExtraObjectPointer& ExtraObjectPointer::operator=(fdt::Object *_pobj){
 	ptr(_pobj);
 	return *this;
-}
+}*/
 //=========================================================================
 /*
 	A local signal executer who knows how to unregister itself from the 
@@ -174,18 +174,18 @@ void SignalExecuter::removeFromManager(){
 //=========================================================================
 //The manager's localdata
 struct Manager::Data{
-	typedef std::vector<ExtraObjectPointer>								ExtraObjectVector;
+//	typedef std::vector<ExtraObjectPointer>								ExtraObjectVector;
 	typedef std::map<const char*, int, StrLess> 						ServiceIdxMap;
 	typedef foundation::SelectPool<fdt::ObjectSelector>					ObjSelPoolTp;
 	typedef foundation::SelectPool<fdt::aio::Selector>					AioSelectorPoolTp;
 
 	Data(Manager &_rm);
 	~Data();
-	ExtraObjectVector					eovec;
-	ServiceIdxMap						servicemap;// map name -> service index
-	//fdt::ipc::Service					*pcs; // A pointer to the ipc service
-	ObjSelPoolTp						*pobjectpool[2];//object pools
-	AioSelectorPoolTp					*paiopool[2];
+//	ExtraObjectVector							eovec;
+	ServiceIdxMap								servicemap;// map name -> service index
+	//fdt::ipc::Service							*pcs; // A pointer to the ipc service
+	ObjSelPoolTp								*pobjectpool[2];//object pools
+	AioSelectorPoolTp							*paiopool[2];
 	fdt::ObjectPointer<fdt::SignalExecuter>		readcmdexec;// read signal executer
 	fdt::ObjectPointer<fdt::SignalExecuter>		writecmdexec;// write signal executer
 };
@@ -238,8 +238,8 @@ Manager::Data::~Data(){
 	if(paiopool[1])paiopool[1]->stop();
 	delete paiopool[0];
 	delete paiopool[1];
-	delete readcmdexec.release();
-	delete writecmdexec.release();
+	//delete readcmdexec.release();
+	//delete writecmdexec.release();
 }
 
 //----------------------------------------------------------------------------------
@@ -260,7 +260,7 @@ NOTE:
 */
 
 Manager::Manager():d(*(new Data(*this))){
-	//ppools = new PoolContainer(*this);
+	this->prepareThread();
 	if(true){//create register the file manager
 		this->fileManager(new FileManager(10));
 		fdt::Manager::insertObject(&fileManager());

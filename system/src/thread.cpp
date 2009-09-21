@@ -109,9 +109,17 @@ int Mutex::reinit(Type _type){
 	return pthread_mutex_init(&mut,&att);
 }
 //*************************************************************************
-void Thread::init(){
+struct MainThread: Thread{
+#ifdef _WIN32
+#else
+	MainThread(bool _detached = true, pthread_t _th = 0):Thread(_detached, _th){}
+#endif
+	void run(){}
+};
+/*static*/ void Thread::init(){
 	if(pthread_key_create(&threadData().crtthread_key, NULL)) throw -1;
-	Thread::current(NULL);
+	static MainThread	t(false, pthread_self());
+	Thread::current(&t);
 }
 //-------------------------------------------------------------------------
 void Thread::cleanup(){
@@ -144,7 +152,7 @@ long Thread::processId(){
 	return getpid();
 }
 //-------------------------------------------------------------------------
-Thread::Thread():th(0),dtchd(true),pcndpair(NULL){
+Thread::Thread(bool _detached, pthread_t _th):th(_th), dtchd(_detached), pcndpair(NULL){
 }
 //-------------------------------------------------------------------------
 Thread::~Thread(){
