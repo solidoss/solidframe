@@ -1,9 +1,11 @@
-#include "system/dynamictype.hpp"
-#include "system/dynamicpointer.hpp"
 #include "system/thread.hpp"
 #include "system/debug.hpp"
 #include "system/cassert.hpp"
 #include "system/mutex.hpp"
+
+#include "utility/dynamictype.hpp"
+#include "utility/dynamicpointer.hpp"
+
 #include <vector>
 
 

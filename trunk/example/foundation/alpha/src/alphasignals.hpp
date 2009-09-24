@@ -24,7 +24,7 @@
 
 #include "foundation/signal.hpp"
 
-#include "system/dynamicpointer.hpp"
+#include "utility/dynamicpointer.hpp"
 
 #include "alphacommands.hpp"
 

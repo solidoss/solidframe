@@ -23,7 +23,8 @@
 #include "system/mutex.hpp"
 
 #include "system/debug.hpp"
-#include "system/dynamicpointer.hpp"
+
+#include "utility/dynamicpointer.hpp"
 
 #include "foundation/object.hpp"
 #include "foundation/objectpointer.hpp"

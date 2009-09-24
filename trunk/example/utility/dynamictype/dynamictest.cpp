@@ -1,4 +1,4 @@
-#include "system/dynamictype.hpp"
+#include "utility/dynamictype.hpp"
 #include "testcommands.hpp"
 #include "system/debug.hpp"
 #include "system/thread.hpp"

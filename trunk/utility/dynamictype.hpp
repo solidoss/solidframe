@@ -2,7 +2,8 @@
 #define SYSTEM_DYNAMIC_HPP
 
 #include "system/common.hpp"
-#include "system/dynamicpointer.hpp"
+
+#include "utility/dynamicpointer.hpp"
 
 struct DynamicMap{
 	typedef void (*FncTp)(const DynamicPointer<DynamicBase> &,void*);

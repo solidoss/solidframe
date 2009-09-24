@@ -26,8 +26,7 @@
 #include "foundation/common.hpp"
 
 #include "utility/streampointer.hpp"
-
-#include "system/dynamicpointer.hpp"
+#include "utility/dynamicpointer.hpp"
 
 #include <string>
 

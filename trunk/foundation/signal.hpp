@@ -23,8 +23,9 @@
 #define CS_SIGNAL_HPP
 
 #include "foundation/common.hpp"
+
 #include "utility/streampointer.hpp"
-#include "system/dynamictype.hpp"
+#include "utility/dynamictype.hpp"
 
 #include <string>
 

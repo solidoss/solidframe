@@ -25,7 +25,8 @@
 
 #include "iodata.hpp"
 #include "system/timespec.hpp"
-#include "system/dynamicpointer.hpp"
+
+#include "utility/dynamicpointer.hpp"
 
 struct SocketAddress;
 struct Inet4SockAddrPair;
