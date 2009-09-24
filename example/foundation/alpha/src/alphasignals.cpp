@@ -6,7 +6,8 @@
 
 #include "system/timespec.hpp"
 #include "system/filedevice.hpp"
-#include "system/dynamicpointer.hpp"
+
+#include "utility/dynamicpointer.hpp"
 
 #include "foundation/signalexecuter.hpp"
 #include "foundation/filemanager.hpp"

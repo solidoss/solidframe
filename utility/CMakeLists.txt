@@ -8,6 +8,7 @@ set(Sources
 	src/memory.cpp
 	src/stream.cpp
 	src/utility.cpp
+	src/dynamictype.cpp
 )
 
 set(Headers
@@ -26,6 +27,8 @@ set(Headers
 	streampointer.hpp
 	string.hpp
 	workpool.hpp
+	dynamictype.hpp
+	dynamicpointer.hpp
 )
 
 set(Inlines

@@ -10,7 +10,6 @@ set(Sources
 	src/socketaddress.cpp
 	src/specific.cpp
 	src/thread.cpp
-	src/dynamictype.cpp
 )
 
 set(Headers

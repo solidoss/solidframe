@@ -27,7 +27,7 @@
 #include "common.hpp"
 #include "objectpointer.hpp"
 
-#include "system/dynamicpointer.hpp"
+#include "utility/dynamicpointer.hpp"
 
 class  Mutex;
 class  SpecificMapper;

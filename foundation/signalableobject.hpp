@@ -27,9 +27,9 @@
 #include "common.hpp"
 #include "object.hpp"
 
-#include "system/dynamicpointer.hpp"
 #include "system/cassert.hpp"
 
+#include "utility/dynamicpointer.hpp"
 
 namespace foundation{
 //! A class for generic handeling of signals by foundation::Object(s)

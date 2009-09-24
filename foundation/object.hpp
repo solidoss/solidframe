@@ -24,7 +24,7 @@
 
 #include "common.hpp"
 
-#include "system/dynamicpointer.hpp"
+#include "utility/dynamicpointer.hpp"
 
 class Mutex;
 struct TimeSpec;

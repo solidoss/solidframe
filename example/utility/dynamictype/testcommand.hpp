@@ -2,7 +2,7 @@
 #define TEST_DYN_COMMAND_HPP
 
 #include "system/common.hpp"
-#include "system/dynamictype.hpp"
+#include "utility/dynamictype.hpp"
 
 namespace test_base{
 
