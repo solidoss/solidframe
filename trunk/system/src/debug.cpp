@@ -727,6 +727,8 @@ bool Dbg::isSet(Level _lvl, unsigned _v)const{
 Dbg::Dbg():d(*(new Data)){
 	d.begt = time(NULL);
 	clock_gettime(CLOCK_MONOTONIC, &d.begts);
+	setAllModuleBits();
+	levelMask();
 }
 
 void splitPrefix(string &_path, string &_name, const char *_prefix){
