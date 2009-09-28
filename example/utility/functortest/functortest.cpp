@@ -1,110 +1,13 @@
 #include "system/debug.hpp"
 #include "system/common.hpp"
 
-// template <unsigned DSZ = sizeof(void*)>
-// class FunctorStub{
-// 	enum {
-// 		StoreBufSize = (DSZ >= sizeof(void*)) ? DSZ : sizeof(void*)
-// 	};
-// 	struct BaseCaller{
-// 		virtual ~BaseCaller(){}
-// 		virtual void call(void *_p){}
-// 		virtual void destroy(void *_p){}
-// 		virtual size_t size()const{return 0;}
-// 	};
-// 	template <class T>
-// 	struct Caller: BaseCaller{
-// 		void call(void *_p){
-// 			if(sizeof(T) <= StoreBufSize)
-// 				(*reinterpret_cast<T*>(_p))();
-// 			else
-// 				(*reinterpret_cast<T*>(*reinterpret_cast<void**>(_p)))();
-// 		}
-// 		void destroy(void *_p){
-// 			if(sizeof(T) <= StoreBufSize)
-// 				reinterpret_cast<T*>(_p)->~T();
-// 			else
-// 				reinterpret_cast<T*>(*reinterpret_cast<void**>(_p))->~T();
-// 		}
-// 		size_t size()const{return sizeof(T);}
-// 	};
-// public:
-// 	FunctorStub(){
-// 		new(callerbuf) BaseCaller;
-// 	}
-// 	template <class T>
-// 	void operator=(const T &_rt){
-// 		reinterpret_cast<BaseCaller*>(callerbuf)->destroy(storebuf);
-// 		reinterpret_cast<BaseCaller*>(callerbuf)->~BaseCaller();
-// 		new(callerbuf) Caller<T>;
-// 		if(sizeof(T) <= StoreBufSize){
-// 			new(storebuf) T(_rt);
-// 		}else{
-// 			*reinterpret_cast<void**>(storebuf) = new T(_rt);
-// 		}
-// 	}
-// 	void operator()(){
-// 		return reinterpret_cast<BaseCaller*>(callerbuf)->call(storebuf);
-// 	}
-// private:
-// 	char callerbuf[sizeof(BaseCaller)];
-// 	char storebuf[StoreBufSize];
-// }; 
-
-
-// template <class R = int, unsigned DSZ = sizeof(void*)>
-// class FunctorStub{
-// 	enum {
-// 		StoreBufSize = (DSZ >= sizeof(void*)) ? DSZ : sizeof(void*)
-// 	};
-// 	struct BaseCaller{
-// 		virtual ~BaseCaller(){}
-// 		virtual R call(void *_p){return R();}
-// 		virtual void destroy(void *_p){}
-// 		virtual size_t size()const{return 0;}
-// 	};
-// 	template <class T>
-// 	struct Caller: BaseCaller{
-// 		R call(void *_p){
-// 			if(sizeof(T) <= StoreBufSize)
-// 				return (*reinterpret_cast<T*>(_p))();
-// 			else
-// 				return (*reinterpret_cast<T*>(*reinterpret_cast<void**>(_p)))();
-// 		}
-// 		void destroy(void *_p){
-// 			if(sizeof(T) <= StoreBufSize)
-// 				reinterpret_cast<T*>(_p)->~T();
-// 			else
-// 				reinterpret_cast<T*>(*reinterpret_cast<void**>(_p))->~T();
-// 		}
-// 		size_t size()const{return sizeof(T);}
-// 	};
-// public:
-// 	FunctorStub(){
-// 		new(callerbuf) BaseCaller;
-// 	}
-// 	template <class T>
-// 	void operator=(const T &_rt){
-// 		reinterpret_cast<BaseCaller*>(callerbuf)->destroy(storebuf);
-// 		reinterpret_cast<BaseCaller*>(callerbuf)->~BaseCaller();
-// 		new(callerbuf) Caller<T>;
-// 		if(sizeof(T) <= StoreBufSize){
-// 			new(storebuf) T(_rt);
-// 		}else{
-// 			*reinterpret_cast<void**>(storebuf) = new T(_rt);
-// 		}
-// 	}
-// 	R operator()(){
-// 		return reinterpret_cast<BaseCaller*>(callerbuf)->call(storebuf);
-// 	}
-// private:
-// 	char callerbuf[sizeof(BaseCaller)];
-// 	char storebuf[StoreBufSize];
-// };
-
 struct NoType{};
 
-template <unsigned DSZ = sizeof(void*), class R = int, class P1 = NoType, class P2 = NoType, class P3 = NoType>
+template <
+	unsigned DSZ = sizeof(void*),
+	class R = int,
+	class P1 = NoType, class P2 = NoType, class P3 = NoType
+>
 class FunctorStub;
 
 template <unsigned DSZ, class R>
