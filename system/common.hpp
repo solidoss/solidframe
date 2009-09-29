@@ -73,12 +73,12 @@ enum RetVal{
 };
 
 template <typename T>
-inline T tMax(T v1,T v2){
-    return (v1<v2)?v2:v1;
+inline T tmax(T v1, T v2){
+    return (v1 < v2) ? v2 : v1;
 }
 template <typename T>
-inline T tMin(T v1,T v2){
-    return (v1>v2)?v2:v1;
+inline T tmin(T v1, T v2){
+    return (v1 > v2) ? v2 : v1;
 }
 //! A fast template inline function for exchanging values
 template <typename T>
@@ -94,5 +94,8 @@ void exchange(T &a, T &b){
 	a = b;
 	b = tmp;
 }
+
+struct EmptyType{};
+class NullType{};
 
 #endif

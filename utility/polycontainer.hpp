@@ -89,7 +89,7 @@ protected:
 	}
 };
 
-struct NullType{};
+//struct NullType{};
 
 #define POLY1(a1)\
 	PolyContainer<PolyLayer<a1, NullType> >
