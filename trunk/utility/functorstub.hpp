@@ -265,17 +265,17 @@ public:
 	}
 	~FunctorStub(){
 		reinterpret_cast<BaseCallerTp*>(callerbuf)->destroy(storebuf);
-		reinterpret_cast<BaseCallerTp*>(callerbuf)->~BaseCaller();
+		reinterpret_cast<BaseCallerTp*>(callerbuf)->~BaseCallerTp();
 	}
 	void clear(){
 		reinterpret_cast<BaseCallerTp*>(callerbuf)->destroy(storebuf);
-		reinterpret_cast<BaseCallerTp*>(callerbuf)->~BaseCaller();
+		reinterpret_cast<BaseCallerTp*>(callerbuf)->~BaseCallerTp();
 		new(callerbuf) BaseCallerTp;
 	}
 	template <class T>
 	void operator=(const T &_rt){
 		reinterpret_cast<BaseCallerTp*>(callerbuf)->destroy(storebuf);
-		reinterpret_cast<BaseCallerTp*>(callerbuf)->~BaseCaller();
+		reinterpret_cast<BaseCallerTp*>(callerbuf)->~BaseCallerTp();
 		new(callerbuf) typename BaseTp::template Caller<T>;
 		if(sizeof(T) <= StoreBufSize){
 			new(storebuf) T(_rt);
