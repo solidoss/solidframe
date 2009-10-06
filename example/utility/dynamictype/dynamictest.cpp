@@ -24,8 +24,8 @@ public:
 	
 	static void dynamicRegister(DynamicMap &_rdm);
 
-	int dynamicReceive(test_cmds::FirstCommand &_rcmd);
-	int dynamicReceive(test_cmds::SecondCommand &_rcmd);
+	void dynamicReceive(DynamicPointer<test_cmds::FirstCommand> &_rcmd);
+	void dynamicReceive(DynamicPointer<test_cmds::SecondCommand> &_rcmd);
 };
 
 #include "testcommands.hpp"
@@ -46,17 +46,17 @@ int some_test(int _v, const char *_str){
 	return rval;
 }
 
-int MyObject::dynamicReceive(test_cmds::FirstCommand &_rcmd){
-	tdbgi(Dbg::any,_rcmd.v);
-	idbg("First command value "<<_rcmd.v);
+void MyObject::dynamicReceive(DynamicPointer<test_cmds::FirstCommand> &_rcmd){
+	tdbgi(Dbg::any,_rcmd->v);
+	idbg("First command value "<<_rcmd->v);
 	some_test(10, "some string");
 	//tdbgo(Dbg::any,0);
-	return 0;
+	//return 0;
 }
 
-int MyObject::dynamicReceive(test_cmds::SecondCommand &_rcmd){
-	idbg("Second command value "<<_rcmd.v);
-	return 0;
+void MyObject::dynamicReceive(DynamicPointer<test_cmds::SecondCommand> &_rcmd){
+	idbg("Second command value "<<_rcmd->v);
+	//return 0;
 }
 
 
@@ -84,9 +84,9 @@ int main(){
 	test_cmds::SecondCommand	c2("second");
 	test_cmds::ThirdCommand		c3('3', "third", 30);
 	
-	o.dynamicReceiver(static_cast<DynamicBase*>(&c1));
-	o.dynamicReceiver(static_cast<DynamicBase*>(&c2));
-	o.dynamicReceiver(static_cast<DynamicBase*>(&c3));
+	o.dynamicReceiver(DynamicPointer<DynamicBase>(&c1));
+	o.dynamicReceiver(DynamicPointer<DynamicBase>(&c2));
+	o.dynamicReceiver(DynamicPointer<DynamicBase>(&c3));
 	
 	return 0;
 }

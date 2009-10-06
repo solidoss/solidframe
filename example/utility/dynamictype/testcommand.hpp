@@ -8,6 +8,7 @@ namespace test_base{
 
 struct BaseCommand: Dynamic<BaseCommand>{
 	BaseCommand();
+	int release(){return 0;}
 };
 
 }
