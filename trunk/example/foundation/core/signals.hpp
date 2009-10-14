@@ -83,6 +83,7 @@ struct AddrInfoSignal: Dynamic<AddrInfoSignal, foundation::Signal>{
 		int _type = -1,
 		int _proto = -1
 	);
+	virtual void result(int _rv);
 	uint32			id;
 	AddrInfo		addrinfo;
 	std::string		node;

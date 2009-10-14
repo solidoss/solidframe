@@ -68,4 +68,7 @@ void AddrInfoSignal::init(
 	addrinfo.reinit(_node, _port, _flags, _family, _type, _proto);
 }
 
+void AddrInfoSignal::result(int _rv){
+}
+
 }//namespace concept
