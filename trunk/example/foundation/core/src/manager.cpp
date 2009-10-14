@@ -71,34 +71,6 @@ namespace fdt=foundation;
 namespace concept{
 
 //======= FileManager:==================================================
-//----------------------------------------------------------------------
-int IStreamSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidTp &, TimeSpec &){
-	DynamicPointer<Signal> cmdptr(this);
-	_rce.sendSignal(cmdptr, requid);
-	return fdt::LEAVE;
-}
-//----------------------------------------------------------------------
-
-int OStreamSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidTp &, TimeSpec &){
-	DynamicPointer<Signal> cmdptr(this);
-	_rce.sendSignal(cmdptr, requid);
-	return fdt::LEAVE;
-}
-//----------------------------------------------------------------------
-
-int IOStreamSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidTp &, TimeSpec &){
-	DynamicPointer<Signal> cmdptr(this);
-	_rce.sendSignal(cmdptr, requid);
-	return fdt::LEAVE;
-}
-//----------------------------------------------------------------------
-
-int StreamErrorSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidTp &, TimeSpec &){
-	DynamicPointer<Signal> cmdptr(this);
-	_rce.sendSignal(cmdptr, requid);
-	return fdt::LEAVE;
-}
-//----------------------------------------------------------------------
 /*
 	Local implementation of the foundation::FileManager wich will now know how
 	to send streams/errors to an object.
@@ -134,12 +106,69 @@ void FileManager::sendError(int _error, const fdt::RequestUid& _rrequid){
 	Local implementation of the ipc service which will know in which 
 	pool to push the ipc talkers.
 */
-class IpcService: public fdt::ipc::Service{
+class IpcService:
+	public DynamicReceiver<
+		IpcService,
+		fdt::SignalableObject<fdt::ipc::Service>
+	>{
+	typedef DynamicReceiver<
+		IpcService,
+		fdt::SignalableObject<fdt::ipc::Service>
+	>	BaseTp;
 public:
-	IpcService(uint32 _keepalivetout):fdt::ipc::Service(_keepalivetout){}
+	static void dynamicRegister(DynamicMap &_rdm);
+	
+	IpcService(uint32 _keepalivetout):BaseTp(_keepalivetout){}
+	int execute(ulong _sig, TimeSpec &_rtout);
+	void dynamicReceive(DynamicPointer<AddrInfoSignal> &_rsig);
 protected:
 	/*virtual*/void pushTalkerInPool(foundation::Manager &_rm, foundation::aio::Object *_ptkr);
 };
+
+/*static*/ void IpcService::dynamicRegister(DynamicMap &_rdm){
+	BaseTp::dynamicRegister<AddrInfoSignal>(_rdm);
+}
+
+void IpcService::dynamicReceive(DynamicPointer<AddrInfoSignal> &_rsig){
+	idbg("");
+	this->insertTalker(
+		Manager::the(),
+		_rsig->addrinfo.begin(),
+		_rsig->node.c_str(),
+		_rsig->service.c_str()
+	);
+}
+
+int IpcService::execute(ulong _sig, TimeSpec &_rtout){
+	idbg("serviceexec");
+	if(signaled()){
+		ulong sm;
+		{
+			Mutex::Locker	lock(*mut);
+			sm = grabSignalMask(1);
+			if(sm & fdt::S_SIG){//we have signals
+				grabSignals();//grab them
+			}
+		}
+		if(sm & fdt::S_SIG){//we've grabed signals, execute them
+			switch(this->execSignals(*this)){
+				case BAD: 
+					return BAD;
+				case OK: //expected signal received
+					_sig |= fdt::OKDONE;
+				case NOK://unexpected signal received
+					break;
+			}
+		}
+		if(sm & fdt::S_KILL){
+			idbgx(Dbg::ipc, "killing service "<<this->id());
+			this->stop(Manager::the(), true);
+			Manager::the().removeService(this);
+			return BAD;
+		}
+	}
+	return NOK;
+}
 
 //=========================================================================
 
@@ -286,8 +315,7 @@ Manager::Manager():d(*(new Data(*this))){
 		}else{
 			idbg("service "<<"ipc"<<" registered on pos "<<pos);
 			this->pushJob((fdt::Object*)&this->ipc());
-			//do not map the ipc!!!
-			//d.servicemap["ipc"] = pos;
+			d.servicemap["ipc"] = pos;
 		}
 	}
 }
@@ -351,44 +379,17 @@ int Manager::insertService(const char* _nm, Service* _psrvc){
 void Manager::removeService(Service *_psrvc){
 	fdt::Manager::removeService(_psrvc);
 }
-
-int Manager::insertListener(const char* _nm, const AddrInfoIterator &_rai, bool _secure){
-	Data::ServiceIdxMap::iterator it(d.servicemap.find(_nm));
-	if(it != d.servicemap.end()){
-		concept::Service &ts = static_cast<concept::Service&>(this->service(it->second));
-		return ts.insertListener(*this, _rai, _secure);
-	}else{
-		idbg("service not found "<<d.servicemap.size());
-		return BAD;
-	}
+void Manager::removeService(fdt::Service *_psrvc){
+	fdt::Manager::removeService(_psrvc);
 }
 
-int Manager::insertTalker(const char* _nm, const AddrInfoIterator &_rai, const char*_node, const char *_srv){
-	Data::ServiceIdxMap::iterator it(d.servicemap.find(_nm));
-	if(it != d.servicemap.end()){
-		concept::Service &ts = static_cast<concept::Service&>(this->service(it->second));
-		return ts.insertTalker(*this, _rai, _node, _srv);
-	}else{
-		idbg("service not found "<<d.servicemap.size());
-		return BAD;
-	}
-}
 
-int Manager::insertConnection(
-	const char* _nm,
-	const AddrInfoIterator &_rai,
-	const char*_node,
-	const char *_srv,
-	bool _secure
-){
-	Data::ServiceIdxMap::iterator it(d.servicemap.find(_nm));
-	if(it != d.servicemap.end()){
-		concept::Service &ts = static_cast<concept::Service&>(this->service(it->second));
-		return ts.insertConnection(*this, _rai, _node, _srv);
-	}else{
-		idbg("service not found "<<d.servicemap.size());
-		return BAD;
-	}
+int Manager::signalService(const char *_nm, DynamicPointer<fdt::Signal> &_rsig){
+	//first find the service index
+	Data::ServiceIdxMap::const_iterator it(d.servicemap.find(_nm));
+	if(it == d.servicemap.end()) return BAD;
+	ObjectUidTp objuid(it->second, 0);
+	return this->signalObject(objuid.first, objuid.second, _rsig);
 }
 
 int Manager::visitService(const char* _nm, Visitor &_rov){

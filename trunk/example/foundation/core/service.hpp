@@ -22,7 +22,9 @@
 #ifndef TESTSERVICE_HPP
 #define TESTSERVICE_HPP
 
+#include "foundation/signalableobject.hpp"
 #include "foundation/service.hpp"
+#include "signals.hpp"
 #include "common.hpp"
 
 struct AddrInfoIterator;
@@ -44,39 +46,66 @@ class Visitor;
 class Listener;
 class Talker;
 
-class Service: public foundation::Service{
+enum{
+	AddListener = 0,
+	AddSslListener,
+	AddConnection,
+	AddSslConnection,
+	AddTalker
+};
+
+class Service: public DynamicReceiver<
+		Service,
+		foundation::SignalableObject<foundation::Service>
+	>{
+	
+	typedef DynamicReceiver<
+		Service,
+		foundation::SignalableObject<foundation::Service>
+	>	BaseTp;
 public:
+	enum{
+		AddListener = 0,
+		AddSslListener,
+		AddConnection,
+		AddSslConnection,
+		AddTalker
+	};//use with AddrInfoSignal
+	
+	static void dynamicRegister(DynamicMap &_rdm);
+	
 	Service(){}
 	~Service();
 	
+	
 	virtual int execute(ulong _evs, TimeSpec &_rtout);
 	
-	virtual int insertListener(
-		Manager &_rm,
-		const AddrInfoIterator &_rai,
-		bool _secure = false
-	);
-	virtual int insertTalker(
-		Manager &_rm,
-		const AddrInfoIterator &_rai,
-		const char *_node,
-		const char *_svc
-	);
+	void dynamicReceive(DynamicPointer<AddrInfoSignal> &_rsig);
+protected:
+	friend class Listener;
 	//this is used by the generic aio listener
 	virtual int insertConnection(
-		Manager &_rm,
 		const SocketDevice &_rsd,
 		foundation::aio::openssl::Context *_pctx = NULL,
 		bool _secure = false
 	);
-	virtual int insertConnection(
-		Manager &_rm,
+	
+	virtual int insertTalker(
 		const AddrInfoIterator &_rai,
 		const char *_node,
 		const char *_svc
 	);
-	virtual int removeListener(Listener &);
-	
+	virtual int insertConnection(
+		const AddrInfoIterator &_rai,
+		const char *_node,
+		const char *_svc
+	);
+	int insertListener(
+		const AddrInfoIterator &_rai,
+		bool _secure = false
+	);
+private:
+	void removeListener(Listener &);
 };
 
 }//namespace concept

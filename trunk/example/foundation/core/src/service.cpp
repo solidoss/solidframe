@@ -26,6 +26,8 @@
 #include "system/mutex.hpp"
 #include "system/cassert.hpp"
 
+#include "foundation/aio/openssl/opensslsocket.hpp"
+
 #include "core/service.hpp"
 #include "core/manager.hpp"
 #include "core/listener.hpp"
@@ -33,23 +35,67 @@
 namespace fdt = foundation;
 
 namespace concept{
+
+/*static*/ void Service::dynamicRegister(DynamicMap &_rdm){
+	BaseTp::dynamicRegister<AddrInfoSignal>(_rdm);
+}
+
+void Service::dynamicReceive(DynamicPointer<AddrInfoSignal> &_rsig){
+	idbg(_rsig->id);
+	int rv;
+	switch(_rsig->id){
+		case AddListener:
+			rv = this->insertListener(_rsig->addrinfo.begin(), false);
+			break;
+		case AddSslListener:
+			rv = this->insertListener(_rsig->addrinfo.begin(), true);
+			break;
+		case AddConnection:
+			rv = this->insertConnection(_rsig->addrinfo.begin(), _rsig->node.c_str(), _rsig->service.c_str());
+			break;
+		case AddSslConnection:
+			cassert(false);
+			//TODO:
+			break;
+		case AddTalker:
+			rv = this->insertTalker(_rsig->addrinfo.begin(), _rsig->node.c_str(), _rsig->service.c_str());
+			break;
+		default:
+			cassert(false);
+	}
+}
+
+
 /*
 	A service is also an object and it can do something.
 	Here's what it does by default.
 	
 */
 int Service::execute(ulong _sig, TimeSpec &_rtout){
-	idbg("serviceexec sig = "<<_sig);
+	idbg("serviceexec");
 	if(signaled()){
 		ulong sm;
 		{
 			Mutex::Locker	lock(*mut);
 			sm = grabSignalMask(1);
+			if(sm & fdt::S_SIG){//we have signals
+				grabSignals();//grab them
+			}
+		}
+		if(sm & fdt::S_SIG){//we've grabed signals, execute them
+			switch(this->execSignals(*this)){
+				case BAD: 
+					return BAD;
+				case OK: //expected signal received
+					_sig |= fdt::OKDONE;
+				case NOK://unexpected signal received
+					break;
+			}
 		}
 		if(sm & fdt::S_KILL){
-			idbg("killing service "<<this->id());
-			this->stop(concept::Manager::the(), true);
-			concept::Manager::the().removeService(this);
+			idbgx(Dbg::ipc, "killing service "<<this->id());
+			this->stop(Manager::the(), true);
+			Manager::the().removeService(static_cast<concept::Service*>(this));
 			return BAD;
 		}
 	}
@@ -59,22 +105,43 @@ int Service::execute(ulong _sig, TimeSpec &_rtout){
 Service::~Service(){
 }
 
-int Service::removeListener(Listener &_rlis){
+void Service::removeListener(Listener &_rlis){
 	this->remove(_rlis);
-	return OK;
 }
 
 // Some dummy insert methods
 
 int Service::insertListener(
-	Manager &_rm,
 	const AddrInfoIterator &_rai,
 	bool _secure
 ){
-	return BAD;
+	SocketDevice sd;
+	sd.create(_rai);
+	sd.makeNonBlocking();
+	sd.prepareAccept(_rai, 100);
+	if(!sd.ok())
+		return BAD;
+	
+	foundation::aio::openssl::Context *pctx = NULL;
+	if(_secure){
+		pctx = foundation::aio::openssl::Context::create();
+	}
+	if(pctx){
+		const char *pcertpath = OSSL_SOURCE_PATH"openssl_/certs/A-server.pem";
+		pctx->loadCertificateFile(pcertpath);
+		pctx->loadPrivateKeyFile(pcertpath);
+	}
+	
+	Listener *plis = new Listener(sd, pctx);
+	
+	if(this->insert(*plis, this->index())){
+		delete plis;
+		return BAD;
+	}	
+	Manager::the().pushJob(static_cast<fdt::aio::Object*>(plis));
+	return OK;
 }
 int Service::insertTalker(
-	Manager &_rm, 
 	const AddrInfoIterator &_rai,
 	const char *_node,
 	const char *_svc
@@ -83,7 +150,6 @@ int Service::insertTalker(
 	return BAD;
 }
 int Service::insertConnection(
-	Manager &_rm,
 	const AddrInfoIterator &_rai,
 	const char *_node,
 	const char *_svc
@@ -91,7 +157,6 @@ int Service::insertConnection(
 	return BAD;
 }
 int Service::insertConnection(
-	Manager &_rm, 
 	const SocketDevice &_rsd,
 	foundation::aio::openssl::Context *_pctx,
 	bool _secure

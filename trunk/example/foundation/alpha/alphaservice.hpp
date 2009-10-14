@@ -37,14 +37,8 @@ public:
 	Service();
 	~Service();
 	int insertConnection(
-		concept::Manager &_rm,
 		const SocketDevice &_rsd,
 		foundation::aio::openssl::Context *_pctx,
-		bool _secure
-	);
-	int insertListener(
-		concept::Manager &_rm,
-		const AddrInfoIterator &_rai,
 		bool _secure
 	);
 	int removeConnection(Connection &);

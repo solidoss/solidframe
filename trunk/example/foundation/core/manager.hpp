@@ -43,14 +43,18 @@ class SignalExecuter;
 class Manager: public foundation::Manager{
 public:
 	Manager();
+	
 	~Manager();
+	
 	//! Overwrite the foundation::Manager::the to give access to the extended interface
 	static Manager& the(){return static_cast<Manager&>(foundation::Manager::the());}
+	
 	//! Starts a specific service or all services
 	/*!
 		\param _which If not null it represents the name of the service
 	*/
 	int start(const char *_which = NULL);
+	
 	//! Stops a specific service or all services
 	/*!
 		\param _which If not null it represents the name of the service
@@ -59,51 +63,19 @@ public:
 	
 	//! Registers a service given its name and a pointer to a service.
 	int insertService(const char* _nm, Service* _psrvc);
+	
+	int signalService(const char *_nm, DynamicPointer<foundation::Signal> &_rsig);
+	
 	//! Get the id of the signal executer specialized for reading
 	void readSignalExecuterUid(ObjectUidTp &_ruid);
+	
 	//! Get the id of the signal executer specialized for writing
 	void writeSignalExecuterUid(ObjectUidTp &_ruid);
+	
 	//! Removes a service
 	void removeService(Service *_psrvc);
-	//! Inserts a listener into a service
-	/*!
-		\param _nm The name of the service
-		\param _rai The address the listener should listen on
-		\param _secure Set to true if you want a secure connection
-	*/
-	int insertListener(
-		const char* _nm,
-		const AddrInfoIterator &_rai,
-		bool _secure = false
-	);
-	//! Insert a talker into a service
-	/*!
-		\param _nm The name of the service
-		\param _rai The localaddress the talker will bind
-		\param _node The destination address name (for use with AddrInfo)
-		\param _srv The destination address port (for use with AddrInfo)
-	*/
-	int insertTalker(
-		const char* _nm,
-		const AddrInfoIterator &_rai,
-		const char*_node = NULL,
-		const char *_srv = NULL
-	);
-	//! Insert a connection into a service
-	/*!
-		\param _nm The name of the service
-		\param _rai The localaddress the connection will bind
-		\param _node The destination address name (for use with AddrInfo)
-		\param _srv The destination address port (for use with AddrInfo)
-		\param _secure Set to true if you want a secure connection
-	*/
-	int insertConnection(
-		const char* _nm,
-		const AddrInfoIterator &_rai,
-		const char*_node,
-		const char *_srv,
-		bool _secure = false
-	);
+	void removeService(foundation::Service *_psrvc);
+	
 	//! Visit all services
 	int visitService(const char* _nm, Visitor &_roi);
 	
