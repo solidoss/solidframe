@@ -45,7 +45,6 @@ Service::~Service(){
 }
 
 int Service::insertConnection(
-	concept::Manager &_rm,
 	const SocketDevice &_rsd,
 	foundation::aio::openssl::Context *_pctx,
 	bool _secure
@@ -55,31 +54,11 @@ int Service::insertConnection(
 		delete pcon;
 		return BAD;
 	}
-	_rm.pushJob(static_cast<fdt::aio::Object*>(pcon));
+	Manager::the().pushJob(static_cast<fdt::aio::Object*>(pcon));
 	return OK;
 }
 
-int Service::insertListener(
-	concept::Manager &_rm,
-	const AddrInfoIterator &_rai,
-	bool _secure
-){
-	SocketDevice sd;
-	sd.create(_rai);
-	sd.makeNonBlocking();
-	sd.prepareAccept(_rai, 100);
-	if(!sd.ok()) return BAD;
-	concept::Listener *plis = new concept::Listener(sd);
-	
-	if(this->insert(*plis, this->index())){
-		delete plis;
-		return BAD;
-	}	
-	_rm.pushJob(static_cast<fdt::aio::Object*>(plis));
-	return OK;
-}
 int Service::insertTalker(
-	Manager &_rm, 
 	const AddrInfoIterator &_rai,
 	const char *_node,
 	const char *_svc
@@ -92,12 +71,11 @@ int Service::insertTalker(
 		delete ptkr;
 		return BAD;
 	}
-	_rm.pushJob(static_cast<fdt::aio::Object*>(ptkr));
+	Manager::the().pushJob(static_cast<fdt::aio::Object*>(ptkr));
 	return OK;
 }
 
 int Service::insertConnection(
-	Manager &_rm, 
 	const AddrInfoIterator &_rai,
 	const char *_node,
 	const char *_svc
@@ -107,7 +85,7 @@ int Service::insertConnection(
 		delete pcon;
 		return BAD;
 	}
-	_rm.pushJob(static_cast<fdt::aio::Object*>(pcon));
+	Manager::the().pushJob(static_cast<fdt::aio::Object*>(pcon));
 	return OK;
 }
 

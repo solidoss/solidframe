@@ -169,67 +169,51 @@ int main(int argc, char* argv[]){
 			
 			{//add a new listener
 				int port = p.start_port + 111;
-				AddrInfo ai("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Stream);
-				if(!ai.empty()){
-					if(!tm.insertListener("echo", ai.begin())){
-						cout<<"added listener to echo "<<port<<endl;
-					}else{
-						cout<<"failed adding listener for service echo port "<<port<<endl;
-					}
-				}else{
-					cout<<"failed create address for port "<<port<<" listener not created"<<endl;
-				}
+				
+				concept::AddrInfoSignal *psig(new concept::AddrInfoSignal(concept::Service::AddListener));
+			
+				psig->init("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Stream);
+				DynamicPointer<foundation::Signal> dp(psig);
+				tm.signalService("echo", dp);
+				
 			}
 			{//add a new talker
 				int port = p.start_port + 112;
-				AddrInfo ai("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Datagram);
-				if(!ai.empty()){
-					AddrInfoIterator it(ai.begin());
-					if(!tm.insertTalker("echo", ai.begin())){
-						cout<<"added talker to echo "<<port<<endl;
-					}else{
-						cout<<"failed creating udp listener station "<<port<<endl;
-					}
-				}else{
-					cout<<"empty addr info - no listener talker"<<endl;
-				}
+				concept::AddrInfoSignal *psig(new concept::AddrInfoSignal(concept::Service::AddTalker));
+			
+				psig->init("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Datagram);
+				DynamicPointer<foundation::Signal> dp(psig);
+				tm.signalService("echo", dp);
 			}
 		}
 		if(true){//creates and registers a new beta service
 			concept::Service* psrvc = concept::beta::Service::create();
 			tm.insertService("beta", psrvc);
 			int port = p.start_port + 113;
-			AddrInfo ai("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Datagram);
-			if(!ai.empty()){//ands a talker
-				if(!tm.insertTalker("beta", ai.begin())){
-					cout<<"added talker to beta "<<port<<endl;
-				}else{
-					cout<<"failed creating udp listener station "<<port<<endl;
-				}
-			}else{
-				cout<<"empty addr info - no listener talker"<<endl;
-			}
+			concept::AddrInfoSignal *psig(new concept::AddrInfoSignal(concept::Service::AddTalker));
+			
+			psig->init("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Datagram);
+			DynamicPointer<foundation::Signal> dp(psig);
+			tm.signalService("beta", dp);
 		}
 		if(true){//creates and registers a new alpha service
 			concept::Service* psrvc = concept::alpha::Service::create(tm);
 			tm.insertService("alpha", psrvc);
 			{
 				int port = p.start_port + 114;
-				AddrInfo ai("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Stream);
-				if(!ai.empty() && !tm.insertListener("alpha", ai.begin())){//adds a listener
-					cout<<"added listener for service alpha "<<port<<endl;
-				}else{
-					cout<<"failed adding listener for service alpha port "<<port<<endl;
-				}
+				concept::AddrInfoSignal *psig(new concept::AddrInfoSignal(concept::Service::AddListener));
+			
+				psig->init("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Stream);
+				DynamicPointer<foundation::Signal> dp(psig);
+				tm.signalService("alpha", dp);
 			}
 			{
 				int port = p.start_port + 124;
-				AddrInfo ai("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Stream);
-				if(!ai.empty() && !tm.insertListener("alpha", ai.begin(), true)){//adds a listener
-					cout<<"added listener for service alpha "<<port<<endl;
-				}else{
-					cout<<"failed adding listener for service alpha port "<<port<<endl;
-				}
+				concept::AddrInfoSignal *psig(new concept::AddrInfoSignal(concept::Service::AddSslListener));
+			
+				psig->init("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Stream);
+				DynamicPointer<foundation::Signal> dp(psig);
+				tm.signalService("alpha", dp);
 			}
 		}
 		if(true){// create and register the proxy service
@@ -238,30 +222,20 @@ int main(int argc, char* argv[]){
 			
 			{//add a new listener
 				int port = p.start_port + 115;
-				AddrInfo ai("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Stream);
-				if(!ai.empty()){
-					if(!tm.insertListener("proxy", ai.begin())){
-						cout<<"added listener to proxy "<<port<<endl;
-					}else{
-						cout<<"failed adding listener for service proxy port "<<port<<endl;
-					}
-				}else{
-					cout<<"failed create address for port "<<port<<" listener not created"<<endl;
-				}
+				concept::AddrInfoSignal *psig(new concept::AddrInfoSignal(concept::Service::AddListener));
+			
+				psig->init("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Stream);
+				DynamicPointer<foundation::Signal> dp(psig);
+				tm.signalService("proxy", dp);
 			}
 		}
 		if(true){//adds the base ipc talker
 			int port = p.start_port + 222;
-			AddrInfo ai("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Datagram);
-			if(!ai.empty()){
-				if(!tm.insertIpcTalker(ai.begin())){
-					cout<<"added talker to ipc "<<port<<endl;
-				}else{
-					cout<<"failed creating udp listener station "<<port<<endl;
-				}
-			}else{
-				cout<<"empty addr info - no listener talker"<<endl;
-			}
+			concept::AddrInfoSignal *psig(new concept::AddrInfoSignal(concept::Service::AddTalker));
+			
+			psig->init("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Datagram);
+			DynamicPointer<foundation::Signal> dp(psig);
+			tm.signalService("ipc", dp);
 		}
 		char buf[2048];
 		int rc = 0;
@@ -403,9 +377,9 @@ int insertConnection(char *_pc, int _len,concept::Manager &_rtm){
 		++_pc;
 	}
 	AddrInfo ai("0.0.0.0","");
-	if(ai.empty() || _rtm.insertConnection(srvname.c_str(), ai.begin(), node.c_str(), srv.c_str())){
-		cout<<"Failed adding connection"<<endl;
-	}
+// 	if(ai.empty() || _rtm.insertConnection(srvname.c_str(), ai.begin(), node.c_str(), srv.c_str())){
+// 		cout<<"Failed adding connection"<<endl;
+// 	}
 	//TODO:
 // 	if(_rts.insertConnection(srvname.c_str(), new fdt::tcp::Channel, node.c_str(), srv.c_str())){
 // 		cout<<"Failed adding connection"<<endl;

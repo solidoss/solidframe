@@ -70,9 +70,9 @@ int Listener::execute(ulong, TimeSpec&){
 		cassert(sd.ok());
 		//TODO: one may do some filtering on sd based on sd.remoteAddress()
 		if(pctx.get()){
-			rsrvc.insertConnection(rm, sd, pctx.get(), true);
+			rsrvc.insertConnection(sd, pctx.get(), true);
 		}else{
-			rsrvc.insertConnection(rm, sd);
+			rsrvc.insertConnection(sd);
 		}
 	}
 	return OK;

@@ -22,6 +22,9 @@
 #ifndef UTILITY_STREAM_POINTER_HPP
 #define UTILITY_STREAM_POINTER_HPP
 
+
+#include "system/common.hpp"
+
 class Stream;
 
 struct StreamPointerBase{

@@ -36,24 +36,16 @@ public:
 	Service();
 	~Service();
 	int insertConnection(
-		concept::Manager &_rs,
 		const SocketDevice &_rsd,
 		foundation::aio::openssl::Context *_pctx,
 		bool _secure
 	);
-	int insertListener(
-		concept::Manager &_rs,
-		const AddrInfoIterator &_rai,
-		bool _secure
-	);
-	int insertTalker(
-		Manager &_rm, 
+/*	int insertTalker(
 		const AddrInfoIterator &_rai,
 		const char *_node,
 		const char *_svc
-	);
+	);*/
 	int insertConnection(
-		Manager &_rm, 
 		const AddrInfoIterator &_rai,
 		const char *_node,
 		const char *_svc
