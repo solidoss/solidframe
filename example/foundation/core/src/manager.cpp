@@ -131,11 +131,13 @@ protected:
 
 void IpcService::dynamicReceive(DynamicPointer<AddrInfoSignal> &_rsig){
 	idbg("");
-	this->insertTalker(
-		Manager::the(),
-		_rsig->addrinfo.begin(),
-		_rsig->node.c_str(),
-		_rsig->service.c_str()
+	_rsig->result(
+		this->insertTalker(
+			Manager::the(),
+			_rsig->addrinfo.begin(),
+			_rsig->node.c_str(),
+			_rsig->service.c_str()
+		)
 	);
 }
 

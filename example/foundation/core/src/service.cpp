@@ -46,12 +46,15 @@ void Service::dynamicReceive(DynamicPointer<AddrInfoSignal> &_rsig){
 	switch(_rsig->id){
 		case AddListener:
 			rv = this->insertListener(_rsig->addrinfo.begin(), false);
+			_rsig->result(rv);
 			break;
 		case AddSslListener:
 			rv = this->insertListener(_rsig->addrinfo.begin(), true);
+			_rsig->result(rv);
 			break;
 		case AddConnection:
 			rv = this->insertConnection(_rsig->addrinfo.begin(), _rsig->node.c_str(), _rsig->service.c_str());
+			_rsig->result(rv);
 			break;
 		case AddSslConnection:
 			cassert(false);
@@ -59,6 +62,7 @@ void Service::dynamicReceive(DynamicPointer<AddrInfoSignal> &_rsig){
 			break;
 		case AddTalker:
 			rv = this->insertTalker(_rsig->addrinfo.begin(), _rsig->node.c_str(), _rsig->service.c_str());
+			_rsig->result(rv);
 			break;
 		default:
 			cassert(false);
