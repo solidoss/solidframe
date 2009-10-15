@@ -262,7 +262,7 @@ int16 Service::createNewTalker(uint32 &_tkrpos, uint32 &_tkruid){
 		}
 		d.tkrvec.push_back(Data::TkrPairTp((_tkrpos = ptkr->id()), (_tkruid = this->uid(*ptkr))));
 		//Manager::the().pushJob((fdt::udp::Talker*)ptkr);
-		pushTalkerInPool(Manager::the(), ptkr);
+		doPushTalkerInPool(ptkr);
 	}else{
 		return BAD;
 	}
@@ -270,7 +270,6 @@ int16 Service::createNewTalker(uint32 &_tkrpos, uint32 &_tkruid){
 }
 
 int Service::insertConnection(
-	Manager &_rm,
 	const SocketDevice &_rsd
 ){
 /*	Connection *pcon = new Connection(_pch, 0);
@@ -283,7 +282,6 @@ int Service::insertConnection(
 }
 
 int Service::insertListener(
-	Manager &_rm,
 	const AddrInfoIterator &_rai
 ){
 /*	test::Listener *plis = new test::Listener(_pst, 100, 0);
@@ -295,7 +293,6 @@ int Service::insertListener(
 	return OK;
 }
 int Service::insertTalker(
-	Manager &_rm, 
 	const AddrInfoIterator &_rai,
 	const char *_node,
 	const char *_svc
@@ -315,15 +312,15 @@ int Service::insertTalker(
 	d.baseport = d.firstaddr.port();
 	d.tkrvec.push_back(Data::TkrPairTp(ptkr->id(), this->uid(*ptkr)));
 	//_rm.pushJob((fdt::udp::Talker*)ptkr);
-	pushTalkerInPool(_rm, ptkr);
+	doPushTalkerInPool(ptkr);
 	return OK;
 }
 
 int Service::insertConnection(
-		Manager &_rm, 
-		const AddrInfoIterator &_rai,
-		const char *_node,
-		const char *_svc){
+	const AddrInfoIterator &_rai,
+	const char *_node,
+	const char *_svc
+){
 	
 /*	Connection *pcon = new Connection(_pch, _node, _svc);
 	if(this->insert(*pcon, _serviceid)){
@@ -344,23 +341,23 @@ int Service::removeConnection(Connection &_rcon){
 	return OK;
 }
 
-int Service::execute(ulong _sig, TimeSpec &_rtout){
-	idbgx(Dbg::ipc, "serviceexec");
-	if(signaled()){
-		ulong sm;
-		{
-			Mutex::Locker	lock(*mut);
-			sm = grabSignalMask(1);
-		}
-		if(sm & fdt::S_KILL){
-			idbgx(Dbg::ipc, "killing service "<<this->id());
-			this->stop(Manager::the(), true);
-			Manager::the().removeService(this);
-			return BAD;
-		}
-	}
-	return NOK;
-}
+// int Service::execute(ulong _sig, TimeSpec &_rtout){
+// 	idbgx(Dbg::ipc, "serviceexec");
+// 	if(signaled()){
+// 		ulong sm;
+// 		{
+// 			Mutex::Locker	lock(*mut);
+// 			sm = grabSignalMask(1);
+// 		}
+// 		if(sm & fdt::S_KILL){
+// 			idbgx(Dbg::ipc, "killing service "<<this->id());
+// 			this->stop(Manager::the(), true);
+// 			Manager::the().removeService(this);
+// 			return BAD;
+// 		}
+// 	}
+// 	return NOK;
+// }
 
 
 //=======	Buffer		=============================================

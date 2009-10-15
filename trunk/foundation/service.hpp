@@ -71,26 +71,26 @@ public:
 		the function may be called also from a non pool thread,
 		so the Manager will/may not be available from thread static.
 	*/
-	int signal(Object &_robj, Manager &_rm, ulong _sigmask);
+	int signal(Object &_robj, ulong _sigmask);
 	//! Signal an object with a signal mask
-	int signal(IndexTp _fullid, uint32 _uid, Manager &_rm, ulong _sigmask);
+	int signal(IndexTp _fullid, uint32 _uid, ulong _sigmask);
 	
 	//! Signal an object with a signal
-	int signal(Object &_robj, Manager &_rm, DynamicPointer<Signal> &_rsig);
+	int signal(Object &_robj, DynamicPointer<Signal> &_rsig);
 	//! Signal an object with a signal
-	int signal(IndexTp _fullid, uint32 _uid, Manager &_rm, DynamicPointer<Signal> &_rsig);
+	int signal(IndexTp _fullid, uint32 _uid, DynamicPointer<Signal> &_rsig);
 	
 	//! Signal all objects with a signal mask
-	void signalAll(Manager &_rm, ulong _sigmask);
+	void signalAll(ulong _sigmask);
 	//! Signal all objects with a signal
 	/*!	
 		NOTE: use it with care because the signal has to be
 		prepared for paralel access as the same signal pointer
 		is given to all objects.
 	*/
-	void signalAll(Manager &_rm, DynamicPointer<Signal> &_rsig);
+	void signalAll(DynamicPointer<Signal> &_rsig);
 	//! Visit all objects
-	void visit(Manager &_rm, Visitor &_rov);
+	void visit(Visitor &_rov);
 	//! Get the mutex associated to an object
 	Mutex& mutex(Object &_robj);
 	//! Get the unique id associated to an object
@@ -101,9 +101,9 @@ public:
 	//! Pointer to the service's mutex
 	Mutex* mutex()const{return mut;}
 	//! Start the service
-	virtual int start(Manager &_rm);
+	virtual int start();
 	//! Stop it eventually waiting for all objects to unregister
-	virtual int stop(Manager &_rm, bool _wait = true);
+	virtual int stop(bool _wait = true);
 	//! Not used
 	virtual int execute();
 	

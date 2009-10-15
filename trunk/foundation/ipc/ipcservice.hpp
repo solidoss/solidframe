@@ -141,12 +141,10 @@ public:
 	);
 	//! Not used for now - will be used when ipc will use tcp connections
 	int insertConnection(
-		Manager &_rm,
 		const SocketDevice &_rsd
 	);
 	//! Not used for now - will be used when ipc will use tcp connections
 	int insertListener(
-		Manager &_rm,
 		const AddrInfoIterator &_rai
 	);
 	//! Use this method to add the base talker
@@ -158,14 +156,12 @@ public:
 		\param _svc Service/Port to connect to
 	*/
 	int insertTalker(
-		Manager &_rm, 
 		const AddrInfoIterator &_rai,
 		const char *_node,
 		const char *_svc
 	);
 	//! Not used for now - will be used when ipc will use tcp connections
 	int insertConnection(
-		Manager &_rm,
 		const AddrInfoIterator &_rai,
 		const char *_node,
 		const char *_svc
@@ -177,9 +173,9 @@ public:
 	//! Returns the value of the base port as set for the basetalker
 	int basePort()const;
 protected:
-	int execute(ulong _sig, TimeSpec &_rtout);
+	//int execute(ulong _sig, TimeSpec &_rtout);
 	Service(uint32 _keepalivetout = 0/*no keepalive*/);
-	virtual void pushTalkerInPool(foundation::Manager &_rs, foundation::aio::Object *_ptkr) = 0;
+	virtual void doPushTalkerInPool(foundation::aio::Object *_ptkr) = 0;
 private:
 	friend class Talker;
 	int doSendSignal(
