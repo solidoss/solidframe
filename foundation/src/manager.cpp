@@ -168,7 +168,7 @@ Service& Manager::service(uint _i)const{
 
 void Manager::stop(bool _wait){
 	serviceContainer().clearDummy();
-	serviceContainer().stop(*this, _wait);
+	serviceContainer().stop(_wait);
 }
 
 Manager& Manager::the(){
@@ -223,26 +223,24 @@ int Manager::signalObject(IndexTp _fullid, uint32 _uid, ulong _sigmask){
 	cassert(Object::computeServiceId(_fullid) < d.sv.size());
 	return d.sv[Object::computeServiceId(_fullid)]->signal(
 		_fullid,_uid,
-		*this,
 		_sigmask);
 }
 		
 int Manager::signalObject(Object &_robj, ulong _sigmask){
 	cassert(_robj.serviceid() < d.sv.size());
-	return d.sv[_robj.serviceid()]->signal(_robj, *this, _sigmask);
+	return d.sv[_robj.serviceid()]->signal(_robj, _sigmask);
 }
 
 int Manager::signalObject(IndexTp _fullid, uint32 _uid, DynamicPointer<Signal> &_rsig){
 	cassert(Object::computeServiceId(_fullid) < d.sv.size());
 	return d.sv[Object::computeServiceId(_fullid)]->signal(
 		_fullid,_uid,
-		*this,
 		_rsig);
 }
 
 int Manager::signalObject(Object &_robj, DynamicPointer<Signal> &_rsig){
 	cassert(_robj.serviceid() < d.sv.size());
-	return d.sv[_robj.serviceid()]->signal(_robj, *this, _rsig);
+	return d.sv[_robj.serviceid()]->signal(_robj, _rsig);
 }
 
 Mutex& Manager::mutex(Object &_robj)const{
@@ -291,7 +289,7 @@ int Manager::insertIpcTalker(
 	const char *_srv
 ){
 	cassert(d.pipcs);
-	return ipc().insertTalker(*this, _rai, _node, _srv);
+	return ipc().insertTalker(_rai, _node, _srv);
 }
 
 }//namespace foundation

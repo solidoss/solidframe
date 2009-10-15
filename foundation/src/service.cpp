@@ -103,7 +103,7 @@ void Service::remove(Object &_robj){
  * Be very carefull when using this function as you can raise/kill
  * other object than you might want.
  */
-int Service::signal(IndexTp _fullid, uint32 _uid, Manager &_rm, ulong _sigmask){
+int Service::signal(IndexTp _fullid, uint32 _uid, ulong _sigmask){
 	ulong oidx(Object::computeIndex(_fullid));
 	if(oidx >= objv.size()) return BAD;
 	Mutex::Locker	lock(mutpool.object(oidx));
@@ -111,15 +111,15 @@ int Service::signal(IndexTp _fullid, uint32 _uid, Manager &_rm, ulong _sigmask){
 	Object *pobj = objv[oidx].first;
 	if(!pobj) return BAD;
 	if(pobj->signal(_sigmask)){
-		_rm.raiseObject(*pobj);
+		Manager::the().raiseObject(*pobj);
 	}
 	return OK;
 }
 
-int Service::signal(Object &_robj, Manager &_rm, ulong _sigmask){
+int Service::signal(Object &_robj, ulong _sigmask){
 	Mutex::Locker	lock(mutpool.object(_robj.index()));
 	if(_robj.signal(_sigmask)){
-		_rm.raiseObject(_robj);
+		Manager::the().raiseObject(_robj);
 	}
 	return OK;
 }
@@ -135,15 +135,15 @@ Object* Service::object(IndexTp _fullid, uint32 _uid){
 	return objv[oidx].first;
 }
 
-int Service::signal(Object &_robj, Manager &_rm, DynamicPointer<Signal> &_rsig){
+int Service::signal(Object &_robj, DynamicPointer<Signal> &_rsig){
 	Mutex::Locker	lock(mutpool.object(_robj.index()));
 	if(_robj.signal(_rsig)){
-		_rm.raiseObject(_robj);
+		Manager::the().raiseObject(_robj);
 	}
 	return OK;
 }
 
-int Service::signal(IndexTp _fullid, uint32 _uid, Manager &_rm, DynamicPointer<Signal> &_rsig){
+int Service::signal(IndexTp _fullid, uint32 _uid, DynamicPointer<Signal> &_rsig){
 	ulong oidx(Object::computeIndex(_fullid));
 	if(oidx >= objv.size()) return BAD;
 	Mutex::Locker	lock(mutpool.object(oidx));
@@ -151,19 +151,19 @@ int Service::signal(IndexTp _fullid, uint32 _uid, Manager &_rm, DynamicPointer<S
 	Object *pobj = objv[oidx].first;
 	if(!pobj) return BAD;
 	if(pobj->signal(_rsig)){
-		_rm.raiseObject(*pobj);
+		Manager::the().raiseObject(*pobj);
 	}
 	return OK;
 }
 
-void Service::signalAll(Manager &_rm, ulong _sigmask){
+void Service::signalAll(ulong _sigmask){
 	Mutex::Locker	lock(*mut);
-	doSignalAll(_rm, _sigmask);
+	doSignalAll(Manager::the(), _sigmask);
 }
 
-void Service::signalAll(Manager &_rm, DynamicPointer<Signal> &_rsig){
+void Service::signalAll(DynamicPointer<Signal> &_rsig){
 	Mutex::Locker	lock(*mut);
-	doSignalAll(_rm, _rsig);
+	doSignalAll(Manager::the(), _rsig);
 }
 
 void Service::doSignalAll(Manager &_rm, ulong _sigmask){
@@ -211,7 +211,7 @@ void Service::doSignalAll(Manager &_rm, DynamicPointer<Signal> &_rsig){
 	if(mi >= 0)	mutpool[mi].unlock();
 }
 
-void Service::visit(Manager &_rm, Visitor &_rov){
+void Service::visit(Visitor &_rov){
 	Mutex::Locker	lock(*mut);
 	int oc = objcnt;
 	int i = 0;
@@ -224,7 +224,7 @@ void Service::visit(Manager &_rm, Visitor &_rov){
 				mutpool[mi].lock();
 			}
 			if(it->first->accept(_rov)){
-				_rm.raiseObject(*it->first);
+				Manager::the().raiseObject(*it->first);
 			}
 			--oc;
 		}
@@ -240,17 +240,17 @@ uint32 Service::uid(Object &_robj)const{
 	return objv[_robj.index()].second;
 }
 
-int Service::start(Manager &_rm){
+int Service::start(){
 	Mutex::Locker	lock(*mut);
 	if(state() != Stopped) return OK;
 	state(Running);
 	return OK;
 }
 
-int Service::stop(Manager &_rm, bool _wait){
+int Service::stop(bool _wait){
 	Mutex::Locker	lock(*mut);
 	if(state() == Running){
-		doSignalAll(_rm, S_KILL | S_RAISE);
+		doSignalAll(Manager::the(), S_KILL | S_RAISE);
 		state(Stopping);
 	}
 	if(!_wait) return OK;

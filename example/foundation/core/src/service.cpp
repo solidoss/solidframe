@@ -98,7 +98,7 @@ int Service::execute(ulong _sig, TimeSpec &_rtout){
 		}
 		if(sm & fdt::S_KILL){
 			idbgx(Dbg::ipc, "killing service "<<this->id());
-			this->stop(Manager::the(), true);
+			this->stop(true);
 			Manager::the().removeService(static_cast<concept::Service*>(this));
 			return BAD;
 		}

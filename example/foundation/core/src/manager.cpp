@@ -122,7 +122,7 @@ public:
 	int execute(ulong _sig, TimeSpec &_rtout);
 	void dynamicReceive(DynamicPointer<AddrInfoSignal> &_rsig);
 protected:
-	/*virtual*/void pushTalkerInPool(foundation::Manager &_rm, foundation::aio::Object *_ptkr);
+	/*virtual*/void doPushTalkerInPool(foundation::aio::Object *_ptkr);
 };
 
 /*static*/ void IpcService::dynamicRegister(DynamicMap &_rdm){
@@ -133,7 +133,6 @@ void IpcService::dynamicReceive(DynamicPointer<AddrInfoSignal> &_rsig){
 	idbg("");
 	_rsig->result(
 		this->insertTalker(
-			Manager::the(),
 			_rsig->addrinfo.begin(),
 			_rsig->node.c_str(),
 			_rsig->service.c_str()
@@ -164,7 +163,7 @@ int IpcService::execute(ulong _sig, TimeSpec &_rtout){
 		}
 		if(sm & fdt::S_KILL){
 			idbgx(Dbg::ipc, "killing service "<<this->id());
-			this->stop(Manager::the(), true);
+			this->stop(true);
 			Manager::the().removeService(this);
 			return BAD;
 		}
@@ -331,11 +330,11 @@ int Manager::start(const char *_which){
 	if(_which){
 		Data::ServiceIdxMap::iterator it(d.servicemap.find(_which));
 		if(it != d.servicemap.end()){
-			service(it->second).start(*this);
+			service(it->second).start();
 		}
 	}else{
 		for(Data::ServiceIdxMap::iterator it(d.servicemap.begin());it != d.servicemap.end(); ++it){
-			service(it->second).start(*this);
+			service(it->second).start();
 		}
 	}
 	return OK;
@@ -344,7 +343,7 @@ int Manager::stop(const char *_which){
 	if(_which){
 		Data::ServiceIdxMap::iterator it(d.servicemap.find(_which));
 		if(it != d.servicemap.end()){
-			service(it->second).stop(*this);
+			service(it->second).stop();
 		}
 	}else{
 		fdt::Manager::stop(false);
@@ -407,8 +406,8 @@ int Manager::visitService(const char* _nm, Visitor &_rov){
 	}
 }
 //----------------------------------------------------------------------------------
-void IpcService::pushTalkerInPool(foundation::Manager &_rm, foundation::aio::Object *_ptkr){
-	static_cast<Manager&>(_rm).pushJob(_ptkr, 1);
+void IpcService::doPushTalkerInPool(foundation::aio::Object *_ptkr){
+	Manager::the().pushJob(_ptkr, 1);
 }
 //----------------------------------------------------------------------------------
 }//namespace concept
