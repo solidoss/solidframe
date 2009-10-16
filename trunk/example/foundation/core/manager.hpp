@@ -79,6 +79,12 @@ public:
 	//! Visit all services
 	int visitService(const char* _nm, Visitor &_roi);
 	
+	int insertIpcTalker(
+		const AddrInfoIterator &_rai,
+		const char *_node = NULL,
+		const char *_svc = NULL
+	);
+	
 	//! Pushes an object into a specific pool.
 	template <class J>
 	void pushJob(J *_pj, int _pos = 0);

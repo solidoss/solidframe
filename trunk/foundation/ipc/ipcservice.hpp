@@ -173,9 +173,9 @@ public:
 	//! Returns the value of the base port as set for the basetalker
 	int basePort()const;
 protected:
-	//int execute(ulong _sig, TimeSpec &_rtout);
 	Service(uint32 _keepalivetout = 0/*no keepalive*/);
 	virtual void doPushTalkerInPool(foundation::aio::Object *_ptkr) = 0;
+	int execute(ulong _sig, TimeSpec &_rtout);
 private:
 	friend class Talker;
 	int doSendSignal(

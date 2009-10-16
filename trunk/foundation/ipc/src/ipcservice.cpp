@@ -341,23 +341,23 @@ int Service::removeConnection(Connection &_rcon){
 	return OK;
 }
 
-// int Service::execute(ulong _sig, TimeSpec &_rtout){
-// 	idbgx(Dbg::ipc, "serviceexec");
-// 	if(signaled()){
-// 		ulong sm;
-// 		{
-// 			Mutex::Locker	lock(*mut);
-// 			sm = grabSignalMask(1);
-// 		}
-// 		if(sm & fdt::S_KILL){
-// 			idbgx(Dbg::ipc, "killing service "<<this->id());
-// 			this->stop(Manager::the(), true);
-// 			Manager::the().removeService(this);
-// 			return BAD;
-// 		}
-// 	}
-// 	return NOK;
-// }
+int Service::execute(ulong _sig, TimeSpec &_rtout){
+	idbgx(Dbg::ipc, "serviceexec");
+	if(signaled()){
+		ulong sm;
+		{
+			Mutex::Locker	lock(*mut);
+			sm = grabSignalMask(1);
+		}
+		if(sm & fdt::S_KILL){
+			idbgx(Dbg::ipc, "killing service "<<this->id());
+			this->stop(true);
+			Manager::the().removeService(this);
+			return BAD;
+		}
+	}
+	return NOK;
+}
 
 
 //=======	Buffer		=============================================

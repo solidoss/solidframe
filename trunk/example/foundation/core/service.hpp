@@ -46,44 +46,13 @@ class Visitor;
 class Listener;
 class Talker;
 
-enum{
-	AddListener = 0,
-	AddSslListener,
-	AddConnection,
-	AddSslConnection,
-	AddTalker
-};
 
-class Service: public DynamicReceiver<
-		Service,
-		foundation::SignalableObject<foundation::Service>
-	>{
-	
-	typedef DynamicReceiver<
-		Service,
-		foundation::SignalableObject<foundation::Service>
-	>	BaseTp;
+struct ServiceStub: DynamicReceiver<ServiceStub>{
 public:
-	enum{
-		AddListener = 0,
-		AddSslListener,
-		AddConnection,
-		AddSslConnection,
-		AddTalker
-	};//use with AddrInfoSignal
-	
 	static void dynamicRegister(DynamicMap &_rdm);
-	
-	Service(){}
-	~Service();
-	
-	
-	virtual int execute(ulong _evs, TimeSpec &_rtout);
-	
 	void dynamicReceive(DynamicPointer<AddrInfoSignal> &_rsig);
 protected:
-	friend class Listener;
-	//this is used by the generic aio listener
+	typedef DynamicReceiver<ServiceStub>	BaseTp;
 	virtual int insertConnection(
 		const SocketDevice &_rsd,
 		foundation::aio::openssl::Context *_pctx = NULL,
@@ -100,6 +69,37 @@ protected:
 		const char *_node,
 		const char *_svc
 	);
+	virtual int insertListener(
+		const AddrInfoIterator &_rai,
+		bool _secure = false
+	);
+};
+
+enum{
+	AddListener = 0,
+	AddSslListener,
+	AddConnection,
+	AddSslConnection,
+	AddTalker
+};
+
+class Service: public foundation::SignalableObject<foundation::Service>, public ServiceStub{
+public:
+	enum{
+		AddListener = 0,
+		AddSslListener,
+		AddConnection,
+		AddSslConnection,
+		AddTalker
+	};//use with AddrInfoSignal
+	
+	Service(){}
+	~Service();
+	
+	/*virtual*/ int execute(ulong _evs, TimeSpec &_rtout);
+	
+protected:
+	friend class Listener;
 	int insertListener(
 		const AddrInfoIterator &_rai,
 		bool _secure = false

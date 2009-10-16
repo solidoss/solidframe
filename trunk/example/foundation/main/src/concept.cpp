@@ -335,7 +335,8 @@ int main(int argc, char* argv[]){
 				}
 			}
 		}
-		if(true){//adds the base ipc talker
+		
+		if(false){//adds the base ipc talker using AddrInfoSignal - this is not the recomended way!!! See below
 			int port = p.start_port + 222;
 			concept::AddrInfoSignal *psig(new AddrInfoSignal(concept::Service::AddTalker, rw));
 			
@@ -354,6 +355,16 @@ int main(int argc, char* argv[]){
 					cout<<"[ipc] Failed adding talker on port "<<port<<" rv = "<<rv<<endl;
 			}
 		}
+		if(true){//adds the base ipc talker using Manager::insertIpcTalker - this is not the recomended way!!! See below
+			int port = p.start_port + 222;
+			AddrInfo ai("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Datagram);
+			if(!ai.empty() && !(rv = tm.insertIpcTalker(ai.begin()))){
+				cout<<"[ipc] Added talker on port "<<port<<endl;
+			}else{
+				cout<<"[ipc] Failed adding talker on port "<<port<<" rv = "<<rv<<endl;
+			}
+		}
+		
 		char buf[2048];
 		int rc = 0;
 		// the small CLI loop

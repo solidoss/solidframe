@@ -36,11 +36,45 @@ namespace fdt = foundation;
 
 namespace concept{
 
-/*static*/ void Service::dynamicRegister(DynamicMap &_rdm){
+
+/*static*/ void ServiceStub::dynamicRegister(DynamicMap &_rdm){
 	BaseTp::dynamicRegister<AddrInfoSignal>(_rdm);
 }
 
-void Service::dynamicReceive(DynamicPointer<AddrInfoSignal> &_rsig){
+int ServiceStub::insertListener(
+	const AddrInfoIterator &_rai,
+	bool _secure
+){
+	return BAD;
+}
+
+int ServiceStub::insertTalker(
+	const AddrInfoIterator &_rai,
+	const char *_node,
+	const char *_svc
+){
+	
+	return BAD;
+}
+
+int ServiceStub::insertConnection(
+	const AddrInfoIterator &_rai,
+	const char *_node,
+	const char *_svc
+){	
+	return BAD;
+}
+
+int ServiceStub::insertConnection(
+	const SocketDevice &_rsd,
+	foundation::aio::openssl::Context *_pctx,
+	bool _secure
+){	
+	cassert(false);
+	return BAD;
+}
+
+void ServiceStub::dynamicReceive(DynamicPointer<AddrInfoSignal> &_rsig){
 	idbg(_rsig->id);
 	int rv;
 	switch(_rsig->id){
@@ -144,29 +178,6 @@ int Service::insertListener(
 	}	
 	Manager::the().pushJob(static_cast<fdt::aio::Object*>(plis));
 	return OK;
-}
-int Service::insertTalker(
-	const AddrInfoIterator &_rai,
-	const char *_node,
-	const char *_svc
-){
-	
-	return BAD;
-}
-int Service::insertConnection(
-	const AddrInfoIterator &_rai,
-	const char *_node,
-	const char *_svc
-){	
-	return BAD;
-}
-int Service::insertConnection(
-	const SocketDevice &_rsd,
-	foundation::aio::openssl::Context *_pctx,
-	bool _secure
-){	
-	cassert(false);
-	return BAD;
 }
 
 }//namespace alpha
