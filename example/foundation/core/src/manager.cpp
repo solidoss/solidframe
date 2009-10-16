@@ -105,40 +105,26 @@ void FileManager::sendError(int _error, const fdt::RequestUid& _rrequid){
 /*
 	Local implementation of the ipc service which will know in which 
 	pool to push the ipc talkers.
+	This implementation allows for having some common code with the concept::Service, and to permit
+	adding a talker using a signal.
+	The recomended way is to just inherit from ipc::Service, and redefine doPushTalkerInPool.
+	Add a new method to Manager insertIpcTalker which will call icp::Service::insertTalker.
+	The rationale of this recomendation is that one can only insert one talker to the
+	ipc::Service, and this SHOULD be done at the start of the application.
 */
-class IpcService:
-	public DynamicReceiver<
-		IpcService,
-		fdt::SignalableObject<fdt::ipc::Service>
-	>{
-	typedef DynamicReceiver<
-		IpcService,
-		fdt::SignalableObject<fdt::ipc::Service>
-	>	BaseTp;
-public:
-	static void dynamicRegister(DynamicMap &_rdm);
-	
+class IpcService: public fdt::SignalableObject<fdt::ipc::Service>, public ServiceStub{
+	typedef fdt::SignalableObject<fdt::ipc::Service> BaseTp;
+public:	
 	IpcService(uint32 _keepalivetout):BaseTp(_keepalivetout){}
 	int execute(ulong _sig, TimeSpec &_rtout);
-	void dynamicReceive(DynamicPointer<AddrInfoSignal> &_rsig);
+	/*virtual*/int insertTalker(
+		const AddrInfoIterator &_rai,
+		const char *_node,
+		const char *_svc
+	);
 protected:
 	/*virtual*/void doPushTalkerInPool(foundation::aio::Object *_ptkr);
 };
-
-/*static*/ void IpcService::dynamicRegister(DynamicMap &_rdm){
-	BaseTp::dynamicRegister<AddrInfoSignal>(_rdm);
-}
-
-void IpcService::dynamicReceive(DynamicPointer<AddrInfoSignal> &_rsig){
-	idbg("");
-	_rsig->result(
-		this->insertTalker(
-			_rsig->addrinfo.begin(),
-			_rsig->node.c_str(),
-			_rsig->service.c_str()
-		)
-	);
-}
 
 int IpcService::execute(ulong _sig, TimeSpec &_rtout){
 	idbg("serviceexec");
@@ -169,6 +155,14 @@ int IpcService::execute(ulong _sig, TimeSpec &_rtout){
 		}
 	}
 	return NOK;
+}
+
+int IpcService::insertTalker(
+	const AddrInfoIterator &_rai,
+	const char *_node,
+	const char *_svc
+){
+	return fdt::ipc::Service::insertTalker(_rai, _node, _svc);
 }
 
 //=========================================================================
@@ -404,6 +398,13 @@ int Manager::visitService(const char* _nm, Visitor &_rov){
 		idbg("service not found "<<d.servicemap.size());
 		return BAD;
 	}
+}
+int Manager::insertIpcTalker(
+	const AddrInfoIterator &_rai,
+	const char *_node,
+	const char *_svc
+){
+	return Manager::the().ipc().insertTalker(_rai, _node, _svc);
 }
 //----------------------------------------------------------------------------------
 void IpcService::doPushTalkerInPool(foundation::aio::Object *_ptkr){
