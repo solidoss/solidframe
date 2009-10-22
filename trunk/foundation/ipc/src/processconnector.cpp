@@ -632,7 +632,7 @@ void ProcessConnector::reconnect(ProcessConnector *_ppc){
 			it->first.reinit();
 		}
 	}
-	//TODO: it fires when in valgrind both ends - fixed
+	//NOTE: it fires when in valgrind both ends - fixed
 	cassert(d.outbufs.size() >= 2);
 	d.prepareKeepAlive();
 	d.outfreestk.push(1);
