@@ -169,6 +169,7 @@ int Service::doSendSignal(
 			cassert(ptkr);
 			ProcessConnector *ppc = new ProcessConnector(inaddr, d.keepalivetout);
 			ConnectorUid conid(tkrid);
+			idbgx(Dbg::ipc, "");
 			ptkr->pushProcessConnector(ppc, conid);
 			d.basepm4[ppc->baseAddr4()] = conid;
 // 			DynamicPointer<test::Signal> pnullsig(NULL);
@@ -205,6 +206,7 @@ int Service::acceptProcess(ProcessConnector *_ppc){
 			tkruid = d.tkrvec[it->second.tkrid].second;
 			Mutex::Locker lock2(this->mutex(tkrpos, tkruid));
 			Talker *ptkr = static_cast<Talker*>(this->object(tkrpos, tkruid));
+			idbgx(Dbg::ipc, "");
 			ptkr->pushProcessConnector(_ppc, it->second, true);
 			if(ptkr->signal(fdt::S_RAISE)){
 				Manager::the().raiseObject(*ptkr);
@@ -227,6 +229,7 @@ int Service::acceptProcess(ProcessConnector *_ppc){
 	Talker *ptkr = static_cast<Talker*>(this->object(tkrpos, tkruid));
 	cassert(ptkr);
 	ConnectorUid conid(tkrid, 0xffff, 0xffff);
+	idbgx(Dbg::ipc, "");
 	ptkr->pushProcessConnector(_ppc, conid);
 	d.basepm4[_ppc->baseAddr4()] = conid;
 // 	DynamicPointer<test::Signal> pnullsig(NULL);

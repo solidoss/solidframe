@@ -206,7 +206,10 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 			//insert new processes
 			while(d.newprocs.size()){
 				int32 newprocidx(d.newprocs.top().second);
+				idbgx(Dbg::ipc, "newprocidx = "<<newprocidx<<" procs.size = "<< d.procs.size());
+				
 				ProcessConnector *pnewproc(d.newprocs.top().first);
+				
 				if((uint32)newprocidx >= d.procs.size()){
 					uint32 oldsz = d.procs.size();
 					d.procs.resize(newprocidx + 1);
@@ -215,7 +218,9 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 						d.procs[i].second = 0;
 					}
 				}
+				
 				if(!d.procs[newprocidx].first){
+					
 					d.procs[newprocidx].first = pnewproc;
 					pnewproc->prepare();
 					//register in base map
@@ -224,17 +229,23 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 						//register in peer map
 						d.peerpm4[pnewproc->peerAddr4()] = newprocidx;
 					}
-				}else{//a reconnect	
+					d.cq.push(newprocidx);
+				}else{
+					
 					Data::ProcPairTp &rpp(d.procs[newprocidx]);
-					d.peerpm4.erase(rpp.first->peerAddr4());
-					rpp.first->reconnect(pnewproc);
-					++rpp.second;
-					d.peerpm4[rpp.first->peerAddr4()] = newprocidx;
+					if(!rpp.first->isAccepting()){
+						//a reconnect
+						d.peerpm4.erase(rpp.first->peerAddr4());
+						rpp.first->reconnect(pnewproc);
+						++rpp.second;
+						d.peerpm4[rpp.first->peerAddr4()] = newprocidx;
+						d.cq.push(newprocidx);
+					}
 					//TODO: try use Specific for process connectors!!
 					//TODO: Ensure that there are no pending sends!!!
 					delete pnewproc;
+				
 				}
-				d.cq.push(newprocidx);
 				d.newprocs.pop();
 			}
 			d.nextprocid = d.procs.size();//TODO: see if its right
@@ -346,14 +357,18 @@ int Talker::pushSignal(DynamicPointer<Signal> &_psig, const ConnectorUid &_rconi
 //The talker's mutex should be locked
 //Return's the new process connector's id
 void Talker::pushProcessConnector(ProcessConnector *_pc, ConnectorUid &_rconid, bool _exists){
+	idbgx(Dbg::ipc, " exists "<<_exists);
 	if(_exists){
+		
 		++_rconid.procuid;
 	}else{
 		if(d.procfs.size()){
+			idbgx(Dbg::ipc, "");
 			_rconid.procid = d.procfs.top().first;
 			_rconid.procuid = d.procfs.top().second;
 			d.procfs.pop();
 		}else{
+			idbgx(Dbg::ipc, "");
 			cassert(d.nextprocid < (uint16)0xffff);
 			_rconid.procid = d.nextprocid;
 			_rconid.procuid = 0;

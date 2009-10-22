@@ -474,6 +474,7 @@ inline uint ProcessConnector::Data::computeRetransmitTimeout(const uint _retrid,
 //*******************************************************************************
 
 ProcessConnector::~ProcessConnector(){
+	idbgx(Dbg::ipc, "");
 	delete &d;
 }
 
@@ -504,16 +505,18 @@ int ProcessConnector::parseConnectingBuffer(Buffer &_rbuf){
 ProcessConnector::ProcessConnector(
 	const Inet4SockAddrPair &_raddr,
 	uint32 _keepalivetout
-):d(*(new Data(_raddr, _keepalivetout))){}
+):d(*(new Data(_raddr, _keepalivetout))){
+	idbgx(Dbg::ipc, "");
+}
+
 //ProcessConnector::ProcessConnector(BinMapper &_rm, const Inet6SockAddrPair &_raddr):d(*(new Data(_rm, _raddr))){}
 ProcessConnector::ProcessConnector(
 	const Inet4SockAddrPair &_raddr,
 	int _baseport,
 	uint32 _keepalivetout
-):d(*(new Data(_raddr, _baseport, _keepalivetout))){}
-	
-
-
+):d(*(new Data(_raddr, _baseport, _keepalivetout))){
+	idbgx(Dbg::ipc, "");
+}
 
 
 //TODO: ensure that really no signal is dropped on reconnect
@@ -617,7 +620,7 @@ void ProcessConnector::reconnect(ProcessConnector *_ppc){
 		d.inbufq.pop();
 	}
 	//clear sent buffers
-	//we also want that the connect buffer will put on outbufs[0] so we complicate the algorithm a litle bit
+	//we also want that the connect buffer will put on outbufs[0] so we complicate the algorithm a little bit
 	while(d.outfreestk.size()){//first we clear the free stack
 		d.outfreestk.pop();
 	}
@@ -629,6 +632,7 @@ void ProcessConnector::reconnect(ProcessConnector *_ppc){
 			it->first.reinit();
 		}
 	}
+	//TODO: it fires when in valgrind both ends
 	cassert(d.outbufs.size() >= 2);
 	d.prepareKeepAlive();
 	d.outfreestk.push(1);
@@ -643,6 +647,11 @@ bool ProcessConnector::isDisconnecting()const{
 
 bool ProcessConnector::isConnecting()const{
 	return d.state == Data::Connecting;
+}
+
+
+bool ProcessConnector::isAccepting()const{
+	return d.state == Data::Accepting;
 }
 
 void ProcessConnector::completeConnect(int _pairport){

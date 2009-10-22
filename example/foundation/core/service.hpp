@@ -22,7 +22,7 @@
 #ifndef TESTSERVICE_HPP
 #define TESTSERVICE_HPP
 
-#include "foundation/signalableobject.hpp"
+#include "utility/dynamictype.hpp"
 #include "foundation/service.hpp"
 #include "signals.hpp"
 #include "common.hpp"
@@ -47,12 +47,35 @@ class Listener;
 class Talker;
 
 
-struct ServiceStub: DynamicReceiver<ServiceStub>{
+class Service: public foundation::Service{
+	typedef DynamicReceiver<int, Service>	DynamicReceiverTp;
 public:
-	static void dynamicRegister(DynamicMap &_rdm);
-	void dynamicReceive(DynamicPointer<AddrInfoSignal> &_rsig);
+	enum{
+		AddListener = 0,
+		AddSslListener,
+		AddConnection,
+		AddSslConnection,
+		AddTalker
+	};//use with AddrInfoSignal
+	
+	static void dynamicRegister();
+	
+	Service(){}
+	~Service();
+	
+	/*virtual*/ int signal(DynamicPointer<foundation::Signal> &_sig);
+	
+	int dynamicExecuteDefault(DynamicPointer<> &_dp);
+	int dynamicExecute(DynamicPointer<AddrInfoSignal> &_rsig);
+	
+	/*virtual*/ int execute(ulong _evs, TimeSpec &_rtout);
+	
 protected:
-	typedef DynamicReceiver<ServiceStub>	BaseTp;
+	friend class Listener;
+	int insertListener(
+		const AddrInfoIterator &_rai,
+		bool _secure = false
+	);
 	virtual int insertConnection(
 		const SocketDevice &_rsd,
 		foundation::aio::openssl::Context *_pctx = NULL,
@@ -69,43 +92,10 @@ protected:
 		const char *_node,
 		const char *_svc
 	);
-	virtual int insertListener(
-		const AddrInfoIterator &_rai,
-		bool _secure = false
-	);
-};
-
-enum{
-	AddListener = 0,
-	AddSslListener,
-	AddConnection,
-	AddSslConnection,
-	AddTalker
-};
-
-class Service: public foundation::SignalableObject<foundation::Service>, public ServiceStub{
-public:
-	enum{
-		AddListener = 0,
-		AddSslListener,
-		AddConnection,
-		AddSslConnection,
-		AddTalker
-	};//use with AddrInfoSignal
-	
-	Service(){}
-	~Service();
-	
-	/*virtual*/ int execute(ulong _evs, TimeSpec &_rtout);
-	
-protected:
-	friend class Listener;
-	int insertListener(
-		const AddrInfoIterator &_rai,
-		bool _secure = false
-	);
 private:
 	void removeListener(Listener &);
+private:
+	DynamicReceiverTp		dr;
 };
 
 }//namespace concept

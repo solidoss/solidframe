@@ -29,7 +29,7 @@
 
 #include "system/cassert.hpp"
 
-#include "utility/dynamicpointer.hpp"
+#include "utility/dynamictype.hpp"
 
 namespace foundation{
 //! A class for generic handeling of signals by foundation::Object(s)
@@ -49,6 +49,7 @@ public:
 	//!Comodity two parameters template constructor - forward to base
 	template <typename T1, typename T2>
 	SignalableObject(T1 _t1, T2 _t2):B(_t1,_t2){}
+	
 	/*virtual*/ int signal(DynamicPointer<Signal> &_sig){
 		if(this->state() < 0){
 			_sig.clear();

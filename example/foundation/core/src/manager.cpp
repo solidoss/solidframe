@@ -25,6 +25,7 @@
 #include "system/debug.hpp"
 
 #include "utility/iostream.hpp"
+#include "utility/dynamictype.hpp"
 
 #include "algorithm/serialization/binary.hpp"
 #include "algorithm/serialization/idtypemap.hpp"
@@ -47,6 +48,7 @@
 
 #include "foundation/objectselector.hpp"
 #include "foundation/signalexecuter.hpp"
+#include "foundation/signal.hpp"
 #include "foundation/requestuid.hpp"
 
 #include "foundation/ipc/ipcservice.hpp"
@@ -112,19 +114,42 @@ void FileManager::sendError(int _error, const fdt::RequestUid& _rrequid){
 	The rationale of this recomendation is that one can only insert one talker to the
 	ipc::Service, and this SHOULD be done at the start of the application.
 */
-class IpcService: public fdt::SignalableObject<fdt::ipc::Service>, public ServiceStub{
-	typedef fdt::SignalableObject<fdt::ipc::Service> BaseTp;
+
+class IpcService: public fdt::ipc::Service{
+	typedef fdt::ipc::Service 					BaseTp;
+	typedef DynamicReceiver<void, IpcService>	DynamicReceiverTp;
 public:	
 	IpcService(uint32 _keepalivetout):BaseTp(_keepalivetout){}
+	
+	static void dynamicRegister(){
+		DynamicReceiverTp::add<AddrInfoSignal, IpcService>();
+	}
+		
 	int execute(ulong _sig, TimeSpec &_rtout);
-	/*virtual*/int insertTalker(
+	
+	/*virtual*/ int signal(DynamicPointer<foundation::Signal> &_sig){
+		if(this->state() < 0){
+			_sig.clear();
+			return 0;//no reason to raise the pool thread!!
+		}
+		dr.push(DynamicPointer<>(_sig));
+		return Object::signal(fdt::S_SIG | fdt::S_RAISE);
+	}
+	
+	int insertTalker(
 		const AddrInfoIterator &_rai,
 		const char *_node,
 		const char *_svc
 	);
+	void dynamicExecuteDefault(DynamicPointer<> &_dp);
+	void dynamicExecute(DynamicPointer<AddrInfoSignal> &_rsig);
 protected:
 	/*virtual*/void doPushTalkerInPool(foundation::aio::Object *_ptkr);
+private:
+	DynamicReceiverTp		dr;
 };
+
+static const DynamicRegisterer<IpcService>	dr;
 
 int IpcService::execute(ulong _sig, TimeSpec &_rtout){
 	idbg("serviceexec");
@@ -134,17 +159,13 @@ int IpcService::execute(ulong _sig, TimeSpec &_rtout){
 			Mutex::Locker	lock(*mut);
 			sm = grabSignalMask(1);
 			if(sm & fdt::S_SIG){//we have signals
-				grabSignals();//grab them
+				dr.prepareExecute();
 			}
 		}
 		if(sm & fdt::S_SIG){//we've grabed signals, execute them
-			switch(this->execSignals(*this)){
-				case BAD: 
-					return BAD;
-				case OK: //expected signal received
-					_sig |= fdt::OKDONE;
-				case NOK://unexpected signal received
-					break;
+			while(dr.hasCurrent()){
+				dr.executeCurrent(*this);
+				dr.next();
 			}
 		}
 		if(sm & fdt::S_KILL){
@@ -157,6 +178,14 @@ int IpcService::execute(ulong _sig, TimeSpec &_rtout){
 	return NOK;
 }
 
+void IpcService::dynamicExecuteDefault(DynamicPointer<> &_dp){
+	wdbg("Received unknown signal on ipcservice");
+}
+
+void IpcService::dynamicExecute(DynamicPointer<AddrInfoSignal> &_rsig){
+	int rv = this->insertTalker(_rsig->addrinfo.begin(), _rsig->node.c_str(), _rsig->service.c_str());
+	_rsig->result(rv);
+}
 int IpcService::insertTalker(
 	const AddrInfoIterator &_rai,
 	const char *_node,

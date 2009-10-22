@@ -35,6 +35,8 @@ void DynamicPointerBase::use(DynamicBase *_pdyn){
 
 
 struct DynamicMap::Data{
+	Data(){}
+	Data(Data& _rd):fncvec(_rd.fncvec){}
 	typedef std::vector<FncTp>	FncVectorTp;
 	FncVectorTp fncvec;
 };
@@ -49,9 +51,21 @@ struct DynamicMap::Data{
 	return v;
 }
 
-DynamicMap::DynamicMap(RegisterFncTp _prfnc):d(*(new Data)){
-	(*_prfnc)(*this);
+static Mutex & dynamicMutex(){
+	static Mutex mtx;
+	return mtx;
 }
+
+void DynamicRegistererBase::lock(){
+	dynamicMutex().lock();
+}
+void DynamicRegistererBase::unlock(){
+	dynamicMutex().unlock();
+}
+
+DynamicMap::DynamicMap(DynamicMap *_pdm):d(*(_pdm ? new Data(_pdm->d) : new Data)){
+}
+
 DynamicMap::~DynamicMap(){
 	delete &d;
 }
@@ -61,7 +75,7 @@ void DynamicMap::callback(uint32 _tid, FncTp _pf){
 	if(_tid >= d.fncvec.size()){
 		d.fncvec.resize(_tid + 1);
 	}
-	cassert(!d.fncvec[_tid]);
+	//cassert(!d.fncvec[_tid]);
 	d.fncvec[_tid] = _pf;
 	//Thread::gmutex().unlock();
 }
