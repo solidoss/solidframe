@@ -22,14 +22,14 @@
 #ifndef ALPHACONNECTION_HPP
 #define ALPHACONNECTION_HPP
 
+#include "utility/dynamictype.hpp"
+
 #include "core/connection.hpp"
 #include "core/tstring.hpp"
 #include "core/common.hpp"
 
 #include "alphareader.hpp"
 #include "alphawriter.hpp"
-
-#include "foundation/signalableobject.hpp"
 
 class SocketAddress;
 
@@ -73,18 +73,21 @@ protected:
 	It uses a reader and a writer to implement a state machine for the 
 	protocol communication. 
 */
-class Connection: public DynamicReceiver<Connection, foundation::SignalableObject<concept::Connection> >{
+class Connection: public concept::Connection{
+	typedef DynamicReceiver<void, Connection>	DynamicReceiverTp;
 public:
-	//typedef foundation::CommandableObject<concept::Connection> BaseTp;
 	typedef Service	ServiceTp;
 	
 	static void initStatic(Manager &_rm);
-	static void dynamicRegister(DynamicMap &_rdm);
+	static void dynamicRegister();
 	
 	Connection(SocketAddress *_paddr);
 	Connection(const SocketDevice &_rsd);
 	
 	~Connection();
+	
+	/*virtual*/ int signal(DynamicPointer<foundation::Signal> &_sig);
+	
 	//! The implementation of the protocol's state machine
 	/*!
 		The method will be called within a foundation::SelectPool by an
@@ -115,15 +118,15 @@ public:
 		if(++reqid) return reqid;
 		return (reqid = 1);
 	}
-	
-	void dynamicReceive(DynamicPointer<RemoteListSignal> &_rsig);
-	void dynamicReceive(DynamicPointer<FetchSlaveSignal> &_rsig);
-	void dynamicReceive(DynamicPointer<SendStringSignal> &_rsig);
-	void dynamicReceive(DynamicPointer<SendStreamSignal> &_rsig);
-	void dynamicReceive(DynamicPointer<IStreamSignal> &_rsig);
-	void dynamicReceive(DynamicPointer<OStreamSignal> &_rsig);
-	void dynamicReceive(DynamicPointer<IOStreamSignal> &_rsig);
-	void dynamicReceive(DynamicPointer<StreamErrorSignal> &_rsig);
+	void dynamicExecuteDefault(DynamicPointer<> &_dp);
+	void dynamicExecute(DynamicPointer<RemoteListSignal> &_rsig);
+	void dynamicExecute(DynamicPointer<FetchSlaveSignal> &_rsig);
+	void dynamicExecute(DynamicPointer<SendStringSignal> &_rsig);
+	void dynamicExecute(DynamicPointer<SendStreamSignal> &_rsig);
+	void dynamicExecute(DynamicPointer<IStreamSignal> &_rsig);
+	void dynamicExecute(DynamicPointer<OStreamSignal> &_rsig);
+	void dynamicExecute(DynamicPointer<IOStreamSignal> &_rsig);
+	void dynamicExecute(DynamicPointer<StreamErrorSignal> &_rsig);
 private:
 	void prepareReader();
 private:
@@ -148,6 +151,7 @@ private:
 	Command				*pcmd;
 	SocketAddress		*paddr;
 	uint32				reqid;
+	DynamicReceiverTp	dr;
 };
 
 }//namespace alpha

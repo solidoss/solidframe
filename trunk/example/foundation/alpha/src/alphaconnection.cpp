@@ -67,16 +67,20 @@ void Logger::doOutFlush(const char *_pb, unsigned _bl){
 /*static*/ void Connection::initStatic(Manager &_rm){
 	Command::initStatic(_rm);
 }
-/*static*/ void Connection::dynamicRegister(DynamicMap &_rdm){
-	BaseTp::dynamicRegister<IStreamSignal>(_rdm);
-	BaseTp::dynamicRegister<OStreamSignal>(_rdm);
-	BaseTp::dynamicRegister<IOStreamSignal>(_rdm);
-	BaseTp::dynamicRegister<StreamErrorSignal>(_rdm);
-	BaseTp::dynamicRegister<RemoteListSignal>(_rdm);
-	BaseTp::dynamicRegister<FetchSlaveSignal>(_rdm);
-	BaseTp::dynamicRegister<SendStringSignal>(_rdm);
-	BaseTp::dynamicRegister<SendStreamSignal>(_rdm);
+namespace{
+static const DynamicRegisterer<Connection>	dre;
 }
+/*static*/ void Connection::dynamicRegister(){
+	DynamicReceiverTp::add<IStreamSignal, Connection>();
+	DynamicReceiverTp::add<OStreamSignal, Connection>();
+	DynamicReceiverTp::add<IOStreamSignal, Connection>();
+	DynamicReceiverTp::add<StreamErrorSignal, Connection>();
+	DynamicReceiverTp::add<RemoteListSignal, Connection>();
+	DynamicReceiverTp::add<FetchSlaveSignal, Connection>();
+	DynamicReceiverTp::add<SendStringSignal, Connection>();
+	DynamicReceiverTp::add<SendStreamSignal, Connection>();
+}
+
 Connection::Connection(SocketAddress *_paddr):
 						 	//BaseTp(_pch),
 						 	wtr(*this, &logger),
@@ -91,7 +95,7 @@ Connection::Connection(SocketAddress *_paddr):
 }
 
 Connection::Connection(const SocketDevice &_rsd):
-						 	BaseTp(_rsd),
+						 	concept::Connection(_rsd),
 						 	wtr(*this, &logger),
 						 	rdr(*this, wtr, &logger), pcmd(NULL),
 						 	paddr(NULL),
@@ -120,6 +124,17 @@ Connection::~Connection(){
 	rm.service(*this).removeConnection(*this);
 }
 
+
+/*virtual*/ int Connection::signal(DynamicPointer<foundation::Signal> &_sig){
+	if(this->state() < 0){
+		_sig.clear();
+		return 0;//no reason to raise the pool thread!!
+	}
+	dr.push(DynamicPointer<>(_sig));
+	return Object::signal(fdt::S_SIG | fdt::S_RAISE);
+}
+
+
 /*
 	The main loop with the implementation of the alpha protocol's
 	state machine. We dont need a loop, we use the ConnectionSelector's
@@ -147,17 +162,13 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			sm = grabSignalMask(0);//grab all bits of the signal mask
 			if(sm & fdt::S_KILL) return BAD;
 			if(sm & fdt::S_SIG){//we have signals
-				grabSignals();//grab them
+				dr.prepareExecute();
 			}
 		}
 		if(sm & fdt::S_SIG){//we've grabed signals, execute them
-			switch(this->execSignals(*this)){
-				case BAD: 
-					return BAD;
-				case OK: //expected signal received
-					_sig |= fdt::OKDONE;
-				case NOK://unexpected signal received
-					break;
+			while(dr.hasCurrent()){
+				dr.executeCurrent(*this);
+				dr.next();
 			}
 		}
 		//now we determine if we return with NOK or we continue
@@ -332,7 +343,11 @@ void Connection::prepareReader(){
 	reader().push(&Reader::fetchFilteredString<TagFilter>, protocol::Parameter(&writer().tag(),64));
 }
 
-void Connection::dynamicReceive(DynamicPointer<RemoteListSignal> &_psig){
+void Connection::dynamicExecuteDefault(DynamicPointer<> &_dp){
+	wdbg("Received unknown signal on ipcservice");
+}
+
+void Connection::dynamicExecute(DynamicPointer<RemoteListSignal> &_psig){
 	idbg("");
 	if(_psig->requid && _psig->requid != reqid) return;
 	idbg("");
@@ -365,7 +380,7 @@ void Connection::dynamicReceive(DynamicPointer<RemoteListSignal> &_psig){
 		}
 	}
 }
-void Connection::dynamicReceive(DynamicPointer<FetchSlaveSignal> &_psig){
+void Connection::dynamicExecute(DynamicPointer<FetchSlaveSignal> &_psig){
 	idbg("");
 	if(_psig->requid && _psig->requid != reqid) return;
 	idbg("");
@@ -399,11 +414,11 @@ void Connection::dynamicReceive(DynamicPointer<FetchSlaveSignal> &_psig){
 		}
 	}
 }
-void Connection::dynamicReceive(DynamicPointer<SendStringSignal> &_psig){
+void Connection::dynamicExecute(DynamicPointer<SendStringSignal> &_psig){
 }
-void Connection::dynamicReceive(DynamicPointer<SendStreamSignal> &_psig){
+void Connection::dynamicExecute(DynamicPointer<SendStreamSignal> &_psig){
 }
-void Connection::dynamicReceive(DynamicPointer<IStreamSignal> &_psig){
+void Connection::dynamicExecute(DynamicPointer<IStreamSignal> &_psig){
 	idbg("");
 	if(_psig->requid.first && _psig->requid.first != reqid) return;
 	idbg("");
@@ -429,7 +444,7 @@ void Connection::dynamicReceive(DynamicPointer<IStreamSignal> &_psig){
 		}
 	}
 }
-void Connection::dynamicReceive(DynamicPointer<OStreamSignal> &_psig){
+void Connection::dynamicExecute(DynamicPointer<OStreamSignal> &_psig){
 	idbg("");
 	if(_psig->requid.first && _psig->requid.first != reqid) return;
 	idbg("");
@@ -455,7 +470,7 @@ void Connection::dynamicReceive(DynamicPointer<OStreamSignal> &_psig){
 		}
 	}
 }
-void Connection::dynamicReceive(DynamicPointer<IOStreamSignal> &_psig){
+void Connection::dynamicExecute(DynamicPointer<IOStreamSignal> &_psig){
 	idbg("");
 	if(_psig->requid.first && _psig->requid.first != reqid) return;
 	idbg("");
@@ -481,7 +496,7 @@ void Connection::dynamicReceive(DynamicPointer<IOStreamSignal> &_psig){
 		}
 	}
 }
-void Connection::dynamicReceive(DynamicPointer<StreamErrorSignal> &_psig){
+void Connection::dynamicExecute(DynamicPointer<StreamErrorSignal> &_psig){
 	idbg("");
 	if(_psig->requid.first && _psig->requid.first != reqid) return;
 	idbg("");

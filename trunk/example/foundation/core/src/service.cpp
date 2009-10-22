@@ -37,18 +37,14 @@ namespace fdt = foundation;
 namespace concept{
 
 
-/*static*/ void ServiceStub::dynamicRegister(DynamicMap &_rdm){
-	BaseTp::dynamicRegister<AddrInfoSignal>(_rdm);
+/*static*/ void Service::dynamicRegister(){
+	DynamicReceiverTp::add<AddrInfoSignal, Service>();
 }
 
-int ServiceStub::insertListener(
-	const AddrInfoIterator &_rai,
-	bool _secure
-){
-	return BAD;
-}
+static const DynamicRegisterer<Service>	dre;
 
-int ServiceStub::insertTalker(
+
+int Service::insertTalker(
 	const AddrInfoIterator &_rai,
 	const char *_node,
 	const char *_svc
@@ -57,7 +53,7 @@ int ServiceStub::insertTalker(
 	return BAD;
 }
 
-int ServiceStub::insertConnection(
+int Service::insertConnection(
 	const AddrInfoIterator &_rai,
 	const char *_node,
 	const char *_svc
@@ -65,7 +61,7 @@ int ServiceStub::insertConnection(
 	return BAD;
 }
 
-int ServiceStub::insertConnection(
+int Service::insertConnection(
 	const SocketDevice &_rsd,
 	foundation::aio::openssl::Context *_pctx,
 	bool _secure
@@ -74,7 +70,12 @@ int ServiceStub::insertConnection(
 	return BAD;
 }
 
-void ServiceStub::dynamicReceive(DynamicPointer<AddrInfoSignal> &_rsig){
+int Service::dynamicExecuteDefault(DynamicPointer<> &_dp){
+	wdbg("Received unknown signal on ipcservice");
+	return BAD;
+}
+
+int Service::dynamicExecute(DynamicPointer<AddrInfoSignal> &_rsig){
 	idbg(_rsig->id);
 	int rv;
 	switch(_rsig->id){
@@ -101,8 +102,18 @@ void ServiceStub::dynamicReceive(DynamicPointer<AddrInfoSignal> &_rsig){
 		default:
 			cassert(false);
 	}
+	return rv;
 }
 
+
+/*virtual*/ int Service::signal(DynamicPointer<foundation::Signal> &_sig){
+	if(this->state() < 0){
+		_sig.clear();
+		return 0;//no reason to raise the pool thread!!
+	}
+	dr.push(DynamicPointer<>(_sig));
+	return Object::signal(fdt::S_SIG | fdt::S_RAISE);
+}
 
 /*
 	A service is also an object and it can do something.
@@ -117,17 +128,13 @@ int Service::execute(ulong _sig, TimeSpec &_rtout){
 			Mutex::Locker	lock(*mut);
 			sm = grabSignalMask(1);
 			if(sm & fdt::S_SIG){//we have signals
-				grabSignals();//grab them
+				dr.prepareExecute();
 			}
 		}
 		if(sm & fdt::S_SIG){//we've grabed signals, execute them
-			switch(this->execSignals(*this)){
-				case BAD: 
-					return BAD;
-				case OK: //expected signal received
-					_sig |= fdt::OKDONE;
-				case NOK://unexpected signal received
-					break;
+			while(dr.hasCurrent()){
+				dr.executeCurrent(*this);
+				dr.next();
 			}
 		}
 		if(sm & fdt::S_KILL){
@@ -147,7 +154,6 @@ void Service::removeListener(Listener &_rlis){
 	this->remove(_rlis);
 }
 
-// Some dummy insert methods
 
 int Service::insertListener(
 	const AddrInfoIterator &_rai,
