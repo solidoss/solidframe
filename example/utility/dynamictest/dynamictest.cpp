@@ -114,6 +114,10 @@ int main(){
 	Dbg::instance().moduleMask();
 	Dbg::instance().initStdErr(false);
 #endif
+	uint32 v = 2;
+	uint32 v2 = __sync_add_and_fetch(&v, 2);
+	idbg("v2 = "<<v2);
+	
 	SecondExecuter	e;
 	e.push(DynamicPointer<>(new AObject(1)));
 	e.push(DynamicPointer<>(new BObject(2,3)));
