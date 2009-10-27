@@ -21,13 +21,30 @@
 
 #include <poll.h>
 #include "system/socketaddress.hpp"
+#include "system/socketdevice.hpp"
 #include <unistd.h>
 #include <fcntl.h>
 #include <cerrno>
 #include <iostream>
 #include <cstring>
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <errno.h>
+
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
+
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
 using namespace std;
+
+void listLocalInterfaces();
 
 int main(int argc, char *argv[]){
 	if(argc < 3){
@@ -42,6 +59,11 @@ int main(int argc, char *argv[]){
 	int family = AddrInfo::Inet4;
 	int type = AddrInfo::Stream;
 	int proto = 0;
+	
+	//list all the local interfaces
+	listLocalInterfaces();
+	
+	
 	//AddrInfo ai(node, srv);
 	AddrInfo ai(node, srv, flags, family, type, proto);
 	AddrInfoIterator it(ai.begin());
@@ -79,5 +101,38 @@ int main(int argc, char *argv[]){
 		++it;
 	}
 	return 0;
+}
+
+void listLocalInterfaces(){
+	enum{
+		MAX_IFS = 64
+	};
+	SocketDevice s;
+	s.create(AddrInfo::Inet4, AddrInfo::Stream, 0);
+	
+	ifreq *ifrp, *ifend;
+	struct ifconf ifc;
+	struct ifreq ifs[MAX_IFS];
+	
+	ifc.ifc_len = sizeof( ifs );
+	ifc.ifc_buf = (char*)ifs;
+	if (ioctl(s.descriptor(), SIOCGIFCONF, (caddr_t)&ifc) < 0){
+		cout<<"error ioctl SIOCGIFCONF "<<strerror(errno)<<endl;
+		return;
+	}
+	
+	//iterate through interface info:
+	int total,current;
+	int remaining = total = ifc.ifc_len;
+	ifrp = ifc.ifc_req;
+	ifend = ifs + (ifc.ifc_len / sizeof(struct ifreq));
+	for(;ifrp != ifend; ++ifrp){
+		sockaddr_in *addr;
+		if( ifrp->ifr_addr.sa_family == AF_INET ){
+			addr = (struct sockaddr_in *)&(ifrp->ifr_addr);
+			cout<<"name = "<<ifrp->ifr_name<<" addr = "<<inet_ntoa(addr->sin_addr)<<endl;
+		}
+	}
+
 }
 
