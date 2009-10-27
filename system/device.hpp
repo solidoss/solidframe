@@ -45,8 +45,9 @@ public:
 	//! Check if the device is valid
 	bool ok()const{return desc >= 0;}
 	Device& operator=(const Device &_dev);
-protected:
+	//! The native descriptor associated to the socket
 	int descriptor()const;
+protected:
 	void descriptor(int _desc);
 private:
 	mutable int	desc;
