@@ -515,7 +515,7 @@ void Selector::doUnregisterObject(Object &_robj, int _lastfailpos){
 inline uint Selector::doIo(Socket &_rsock, ulong _evs){
 	if(_evs & (EPOLLERR | EPOLLHUP)){
 		_rsock.doClear();
-		idbgx(Dbg::aio, "epollerr evs = "<<_evs);
+		edbgx(Dbg::aio, "epollerr evs = "<<_evs);
 		return ERRDONE;
 	}
 	int rv = 0;

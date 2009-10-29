@@ -151,7 +151,11 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			state(Connect);
 			return fdt::UNREGISTER;
 		}else
-			idbg("timeout occured - destroy connection "<<state());
+			if(_sig & fdt::TIMEOUT){
+				edbg("timeout occured - destroy connection "<<state());
+			}else{
+				edbg("error occured - destroy connection "<<state());
+			}
 			return BAD;
 	}
 	
@@ -249,6 +253,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 					state(ParseTout);
 					return NOK;
 				case BAD:
+					edbg("");
 					return BAD;
 				case YIELD:
 					return OK;
@@ -288,7 +293,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 				case YIELD:
 					return OK;
 				default:
-					idbg("rc = "<<rc);
+					edbg("rc = "<<rc);
 					return rc;
 			}
 			break;
