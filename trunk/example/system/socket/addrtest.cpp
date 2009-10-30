@@ -126,11 +126,16 @@ void listLocalInterfaces(){
 	int remaining = total = ifc.ifc_len;
 	ifrp = ifc.ifc_req;
 	ifend = ifs + (ifc.ifc_len / sizeof(struct ifreq));
+	
+	char host[512];
+	char srvc[128];
+	
 	for(;ifrp != ifend; ++ifrp){
 		sockaddr_in *addr;
 		if( ifrp->ifr_addr.sa_family == AF_INET ){
 			addr = (struct sockaddr_in *)&(ifrp->ifr_addr);
-			cout<<"name = "<<ifrp->ifr_name<<" addr = "<<inet_ntoa(addr->sin_addr)<<endl;
+			getnameinfo(&(ifrp->ifr_addr), sizeof(sockaddr_in), host, 512, srvc, 128, NI_NUMERICHOST | NI_NUMERICSERV);
+			cout<<"name = "<<ifrp->ifr_name<<" addr = "<<host<<":"<<srvc<<endl;
 		}
 	}
 
