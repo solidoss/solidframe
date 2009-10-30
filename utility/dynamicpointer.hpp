@@ -30,7 +30,7 @@ protected:
 	void use(DynamicBase *_pdyn);
 
 };
-//! An autoptr like smartpointer for signals
+//! An autoptr like smartpointer for DynamicBase objects
 template <class T = DynamicBase>
 class DynamicPointer: DynamicPointerBase{
 public:
