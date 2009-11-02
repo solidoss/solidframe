@@ -39,6 +39,8 @@
 #include <sys/ioctl.h>
 #include <net/if.h>
 
+#include <ifaddrs.h>
+
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
@@ -103,6 +105,7 @@ int main(int argc, char *argv[]){
 	return 0;
 }
 
+#if 0
 void listLocalInterfaces(){
 	enum{
 		MAX_IFS = 64
@@ -141,3 +144,30 @@ void listLocalInterfaces(){
 
 }
 
+#endif
+
+void listLocalInterfaces(){
+	struct ifaddrs* ifap;
+	if(::getifaddrs(&ifap)){
+		cout<<"getifaddrs did not work"<<endl;
+		return;
+	}
+	
+	struct ifaddrs *it(ifap);
+	char host[512];
+	char srvc[128];
+	
+	while(it){
+		sockaddr_in *addr;
+		if(it->ifa_addr && it->ifa_addr->sa_family == AF_INET)
+        {
+            struct sockaddr_in* addr = reinterpret_cast<struct sockaddr_in*>(it->ifa_addr);
+            if(addr->sin_addr.s_addr != 0){
+            	getnameinfo(it->ifa_addr, sizeof(sockaddr_in), host, 512, srvc, 128, NI_NUMERICHOST | NI_NUMERICSERV);
+				cout<<"name = "<<it->ifa_name<<" addr = "<<host<<":"<<srvc<<endl;
+            }
+		}
+		it = it->ifa_next;
+	}
+	freeifaddrs(ifap);
+}
