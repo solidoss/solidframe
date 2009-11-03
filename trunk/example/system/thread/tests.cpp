@@ -1,6 +1,6 @@
 /* Implementation file tests.cpp
-	
-	Copyright 2007, 2008 Valentin Palade 
+
+	Copyright 2007, 2008 Valentin Palade
 	vipalade@gmail.com
 
 	This file is part of SolidGround framework.
@@ -96,7 +96,7 @@ void Runner::run(){
 	idbg(pc2);
 	CacheableVecTp *pc3 = Specific::uncache<CacheableVecTp>();
 	idbg(pc3);
-	
+
 	idbg("alloc two specific objects");
 	A	*pa1 = new B(10);
 	idbg(pa1);
@@ -107,15 +107,15 @@ void Runner::run(){
 	idbg("alloc two buffers");
 	void	*b1,*b2,*b3;
 	size_t  s1 = 10, s2 = 2000, s3 = 4000;
-	
+
 	for(int i = 0; i < 20; ++i){
 		idbg("sizeToId("<<(1<<i)<<") = "<<Specific::sizeToId((1<<i))<<" "<<Specific::idToCapacity(Specific::sizeToId((1<<i))));
 	}
-	
+
 /*	b1 = Specific::popBuffer(Specific::s1);idbg(b1<<" "<<s1);
 	b2 = Specific::bufferAlloc(s2);idbg(b2<<" "<<s2);
 	b3 = Specific::bufferAlloc(s3);idbg(b3<<" "<<s3);*/
-	
+
 	for(int i = 0; i < v; ++i){
 		idbg(i);
 		Thread::sleep(10);
@@ -124,7 +124,7 @@ void Runner::run(){
 	Specific::cache(pc2);
 	Specific::cache(pc3);
 	pc1 = Specific::uncache<CacheableVecTp>();
-	
+
 	idbg("test specific object");
 	delete pa1;
 	delete pa2;
@@ -132,12 +132,12 @@ void Runner::run(){
 	idbg(pa1);
 	pa2 = new C(20);
 	idbg(pa2);
-	
+
 	idbg("test buffer");
 /*	Specific::bufferFree(b1,s1);
 	Specific::bufferFree(b2,s2);
 	Specific::bufferFree(b3,s3);*/
-	
+
 // 	b1 = Specific::bufferAlloc(s1);idbg(b1<<" "<<s1);
 // 	b2 = Specific::bufferAlloc(s2);idbg(b2<<" "<<s2);
 // 	b3 = Specific::bufferAlloc(s3);idbg(b3<<" "<<s3);
@@ -158,7 +158,7 @@ int main(int argc, char *argv[]){
 	idbg("current thread "<<(void*)Thread::current());
 	const unsigned specid(Thread::specificId());
 	Thread::specific(specid, (void*)123456);
-	idbg("saved specific value = "<<(uint)Thread::specific(specid));
+	idbg("saved specific value = "<<(ulong)Thread::specific(specid));
 	Runner *pth = new Runner(2);
 	pth->start(true);
 	idbg("before reading sleep");
