@@ -23,6 +23,7 @@ function print_usage(){
 	echo -ne " [-p|--param ParamName] [-d|--documentation full/fast] [-h|--help]"
 	echo -ne " [-e|--extern-path ExternPath] [-E|--extern-abs-path ExternAbsPath]"
 	echo -ne " [-t|--enable-testing] [--test-name name] [--test-site addr]\n"
+	echo
 	echo -ne "Options:\n"
 	echo "[-g|--generator GeneratorName]: Specify the cmake generator - default cmake's default"
 	echo "[-f|--folder-name FolderName]: Specify the build folder name - default is the generator name or the build type if the generator was not specified"
@@ -220,13 +221,17 @@ echo $GENERATOR
 
 if [ "$GENERATOR" = "" ]; then
 	echo "Using cmake's default generator"
+	
 	cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS:STRING="$PARAM" -DUEXTERN:STRING="$EXTERN_PATH" -DUEXTERN_ABS:STRING="$EXTERN_ABS_PATH" -DUTESTING:STRING="$ENABLE_TESTING" -DUTEST_NAME="$TEST_NAME" -DUTEST_SITE="$TEST_SITE" "$SRC_PATH"
+	
 	echo "./configure -f $FOLDER_NAME -F $FOLDER_PATH -b $BUILD_TYPE -p \"$PARAM\" -e \"$EXTERN_ABS_PATH\" -DUTESTING:STRING=\"$ENABLE_TESTING\" -DUTEST_NAME=\"$TEST_NAME\" -DUTEST_SITE=\"$TEST_SITE\"" > configure.txt
 	echo "Done!"
 else
 	echo "Using cmake's $GENERATOR with $GPARAM"
+	
 	cmake -G "$GENERATOR" $GPARAM -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS:STRING="$PARAM" -DUEXTERN:STRING="$EXTERN_PATH" -DUEXTERN_ABS:STRING="$EXTERN_ABS_PATH" -DUTESTING:STRING="$ENABLE_TESTING" -DUTEST_NAME="$TEST_NAME" -DUTEST_SITE="$TEST_SITE" "$SRC_PATH"
-	echo "./configure -f $FOLDER_NAME -F $FOLDER_PATH -g \"$GENERATOR\" -b $BUILD_TYPE -p \"$PARAM\" -e \"$EXTERN_ABS_PATH\" -DUTESTING:STRING=\"$ENABLE_TESTING\" -DUTEST_NAME=\"$TEST_NAME\" -DUTEST_SITE=\"$TEST_SITE\"" > configure.txt
+	
+	echo "./configure -f $FOLDER_NAME -F $FOLDER_PATH -g \"$GENERATOR\" $GPARAM -b $BUILD_TYPE -p \"$PARAM\" -e \"$EXTERN_ABS_PATH\" -DUTESTING:STRING=\"$ENABLE_TESTING\" -DUTEST_NAME=\"$TEST_NAME\" -DUTEST_SITE=\"$TEST_SITE\"" > configure.txt
 fi
 
 exit
