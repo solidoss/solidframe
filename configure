@@ -25,7 +25,8 @@ function print_usage(){
 	echo -ne " [-t|--enable-testing] [--test-name name] [--test-site addr]\n"
 	echo -ne "Options:\n"
 	echo "[-g|--generator GeneratorName]: Specify the cmake generator - default cmake's default"
-	echo "[-f|--folder FolderName]: Specify the build folder name - default is the generator name or the build type if the generator was not specified"
+	echo "[-f|--folder-name FolderName]: Specify the build folder name - default is the generator name or the build type if the generator was not specified"
+	echo "[-F|--folder-path FolderPath]: Specify the build folder path - unlike the build folder-name wich creates a folder under build, this flag allows creating a build folder anywhere"
 	echo "[-b|--build BuildType]: The cmake build type release/debug/nolog/maintain - default release"
 	echo "[-p|--param ParamName]: Extra compilation flags. E.g. -p \"-DUINDEX64 -DUSERVICEBITS=3\""
 	echo "[-d|--documentation full/fast]: Build either fast or full documentation"
@@ -34,6 +35,15 @@ function print_usage(){
 	echo "[-t|--enable-testing]: Enable unit-testing using ctest"
 	echo "[--test-name name]: The name of ctest/cdash project"
 	echo "[--test-site addr]: The address for cdash drop site"
+	echo "[--generator-param]: Some parameters given to cmake like: -DECLIPSE_CDT4_GENERATE_SOURCE_PROJECT=TRUE"
+	echo
+	echo "Examples:"
+	echo "1) create simple make release build:"
+	echo "	./configure -f rls -b release -e ~/work/sg_extern"
+	echo "2) create kdevelop3 project:"
+	echo "	./configure -f kdv -b debug -e ~/work/sg_extern -g KDevelop3"
+	echo "3) create eclipse projects - one for source within source tree and one external for build (note that the build is external to source tree, as needed by eclipse):"
+	echo "	./configure -F ../sg_ecl -b debug -e ~/work/sg_extern -g \"Eclipse CDT4 - Unix Makefiles\" --generator-param \"-DECLIPSE_CDT4_GENERATE_SOURCE_PROJECT=TRUE\""
 	echo
 	exit
 }
@@ -45,6 +55,7 @@ function print_usage(){
 # First define and initilaize the variables
 
 GENERATOR=
+GPARAM=
 DOCUMENTATION=
 BUILD_TYPE=
 FOLDER_NAME=
@@ -88,6 +99,10 @@ while [ "$#" -gt 0 ]; do
 	-p|--param)
 		shift
 		PARAM=$PARAM"$1 "
+		;;
+	--generator-param)
+		shift
+		GPARAM=$GPARAM"$1 "
 		;;
 #	-e|--extern-path)
 #		if [ -z "$2" ] || echo "$2" | grep '^-' >/dev/null 2>&1; then
@@ -209,8 +224,8 @@ if [ "$GENERATOR" = "" ]; then
 	echo "./configure -f $FOLDER_NAME -F $FOLDER_PATH -b $BUILD_TYPE -p \"$PARAM\" -e \"$EXTERN_ABS_PATH\" -DUTESTING:STRING=\"$ENABLE_TESTING\" -DUTEST_NAME=\"$TEST_NAME\" -DUTEST_SITE=\"$TEST_SITE\"" > configure.txt
 	echo "Done!"
 else
-	echo "Using cmake's $GENERATOR"
-	cmake -G "$GENERATOR" -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS:STRING="$PARAM" -DUEXTERN:STRING="$EXTERN_PATH" -DUEXTERN_ABS:STRING="$EXTERN_ABS_PATH" -DUTESTING:STRING="$ENABLE_TESTING" -DUTEST_NAME="$TEST_NAME" -DUTEST_SITE="$TEST_SITE" "$SRC_PATH"
+	echo "Using cmake's $GENERATOR with $GPARAM"
+	cmake -G "$GENERATOR" $GPARAM -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS:STRING="$PARAM" -DUEXTERN:STRING="$EXTERN_PATH" -DUEXTERN_ABS:STRING="$EXTERN_ABS_PATH" -DUTESTING:STRING="$ENABLE_TESTING" -DUTEST_NAME="$TEST_NAME" -DUTEST_SITE="$TEST_SITE" "$SRC_PATH"
 	echo "./configure -f $FOLDER_NAME -F $FOLDER_PATH -g \"$GENERATOR\" -b $BUILD_TYPE -p \"$PARAM\" -e \"$EXTERN_ABS_PATH\" -DUTESTING:STRING=\"$ENABLE_TESTING\" -DUTEST_NAME=\"$TEST_NAME\" -DUTEST_SITE=\"$TEST_SITE\"" > configure.txt
 fi
 
