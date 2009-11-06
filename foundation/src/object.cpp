@@ -69,7 +69,7 @@ void ObjectPointerBase::destroy(Object *_pobj){
 //----	Object	----
 //---------------------------------------------------------------------
 
-#ifndef UINLINES
+#ifdef NINLINES
 #include "object.ipp"
 #endif
 

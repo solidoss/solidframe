@@ -204,6 +204,6 @@ int SocketAddress::name(
 	return OK;
 }
 
-#ifndef UINLINES
+#ifdef NINLINES
 #include "socketaddress.ipp"
 #endif

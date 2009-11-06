@@ -260,23 +260,23 @@ Manager::Data::Data(Manager &_rm)
 	idbg("");
 	if(true){
 		pobjectpool[0] = new ObjSelPoolTp(	_rm, 
-												10,		//max thread cnt
-												1024 * 4//max objects per selector
-												);		//at most 10 * 4 * 1024 connections
+											10,			//max thread cnt
+											1024 * 4	//max objects per selector
+											);			//at most 10 * 4 * 1024 connections
 		pobjectpool[0]->start(1);//start with one worker
 	}
 	idbg("");
 	if(true){
 		paiopool[0] = new AioSelectorPoolTp(_rm,
-										10,			//max thread cnt
-										2048		//max aio objects per selector/thread
-										);			//at most 10 * 4 * 1024 connections
+											10,			//max thread cnt
+											2048		//max aio objects per selector/thread
+											);			//at most 10 * 4 * 1024 connections
 		paiopool[0]->start(1);//start with one worker
 		
 		paiopool[1] = new AioSelectorPoolTp(_rm,
-										10,			//max thread cnt
-										2048		//max aio objects per selector/thread
-										);			//at most 10 * 4 * 1024 connections
+											10,			//max thread cnt
+											2048		//max aio objects per selector/thread
+											);			//at most 10 * 4 * 1024 connections
 		paiopool[1]->start(1);//start with one worker
 	}
 	idbg("");

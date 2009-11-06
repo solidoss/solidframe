@@ -148,7 +148,7 @@ private:
 	}d;
 };
 
-#ifdef UINLINES
+#ifndef NINLINES
 #include "aiosocket.ipp"
 #endif
 

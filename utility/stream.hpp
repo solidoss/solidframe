@@ -54,7 +54,7 @@ protected:
 	StreamFlags	flags;
 };
 
-#ifdef UINLINES
+#ifndef NINLINES
 #include "src/stream.ipp"
 #endif
 

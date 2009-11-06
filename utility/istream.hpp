@@ -47,7 +47,7 @@ struct IStreamIterator{
 	int64		off;
 };
 
-#ifdef UINLINES
+#ifndef NINLINES
 #include "src/istream.ipp"
 #endif
 
