@@ -63,6 +63,13 @@ class Service;
 	- Inherit, add workpools and extend.
 	
 	<b>Notes:</b><br>
+	- If you have a single manager per process, you should call,
+	prepareThread in the constructor of your inheritant manager.<br>
+	Else, you should use ThisGuard tg(this), for every function that is
+	called from a thread that has access to multiple Managers.
+	- Also you may consider initiating/controlling the Managers from their own thread.
+	
+	
 */
 class Manager{
 public:
@@ -141,6 +148,15 @@ public:
 	*/
 	void removeService(Service *_ps);
 protected:
+	struct ThisGuard{
+		ThisGuard(Manager *_pm){
+			_pm->prepareThis();
+		}
+		~ThisGuard(){
+			Manager::the().unprepareThis();
+		}
+		
+	};
 	//! Implement this method to exted thread preparation
 	virtual void doPrepareThread(){}
 	//! Implement this method to exted thread unpreparation
@@ -172,6 +188,8 @@ protected:
 	void ipc(ipc::Service *_pipcs);
 	void stop(bool _wait = true);
 private:
+	void prepareThis();
+	void unprepareThis();
 	ServiceContainer & serviceContainer();
 	//Manager(const Manager&){}
 	Manager& operator=(const Manager&);

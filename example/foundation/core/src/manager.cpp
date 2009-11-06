@@ -313,7 +313,11 @@ NOTE:
 */
 
 Manager::Manager():d(*(new Data(*this))){
-	this->prepareThread();
+	//NOTE: Use the following line instead of ThisGuard if you only have one Manager per process, else use the ThisGuard for any function
+	// that may be called from a thread that has access to other managers.
+	//this->prepareThread();
+	
+	ThisGuard	tg(this);
 	if(true){//create register the file manager
 		this->fileManager(new FileManager(10));
 		fdt::Manager::insertObject(&fileManager());
@@ -345,11 +349,13 @@ Manager::Manager():d(*(new Data(*this))){
 }
 
 Manager::~Manager(){
+	ThisGuard	tg(this);
 	fdt::Manager::stop(true);//wait all services to stop
 	delete &d;
 }
 
 int Manager::start(const char *_which){
+	ThisGuard	tg(this);
 	if(_which){
 		Data::ServiceIdxMap::iterator it(d.servicemap.find(_which));
 		if(it != d.servicemap.end()){
@@ -363,6 +369,7 @@ int Manager::start(const char *_which){
 	return OK;
 }
 int Manager::stop(const char *_which){
+	ThisGuard	tg(this);
 	if(_which){
 		Data::ServiceIdxMap::iterator it(d.servicemap.find(_which));
 		if(it != d.servicemap.end()){
@@ -384,6 +391,7 @@ void Manager::writeSignalExecuterUid(ObjectUidTp &_ruid){
 }
 
 int Manager::insertService(const char* _nm, Service* _psrvc){
+	ThisGuard	tg(this);
 	if(_psrvc != NULL){
 		int pos = fdt::Manager::insertService(_psrvc);
 		if(pos < 0){
@@ -410,6 +418,7 @@ void Manager::removeService(fdt::Service *_psrvc){
 
 int Manager::signalService(const char *_nm, DynamicPointer<fdt::Signal> &_rsig){
 	//first find the service index
+	ThisGuard	tg(this);
 	Data::ServiceIdxMap::const_iterator it(d.servicemap.find(_nm));
 	if(it == d.servicemap.end()) return BAD;
 	ObjectUidTp objuid(it->second, 0);
@@ -417,6 +426,7 @@ int Manager::signalService(const char *_nm, DynamicPointer<fdt::Signal> &_rsig){
 }
 
 int Manager::visitService(const char* _nm, Visitor &_rov){
+	ThisGuard	tg(this);
 	Data::ServiceIdxMap::iterator it(d.servicemap.find(_nm));
 	if(it != d.servicemap.end()){
 		//concept::Service *ts = static_cast<concept::Service*>(this->service(it->second));
@@ -433,6 +443,7 @@ int Manager::insertIpcTalker(
 	const char *_node,
 	const char *_svc
 ){
+	ThisGuard	tg(this);
 	return Manager::the().ipc().insertTalker(_rai, _node, _svc);
 }
 //----------------------------------------------------------------------------------
