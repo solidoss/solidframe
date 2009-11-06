@@ -157,7 +157,7 @@ int main(int argc, char *argv[]){
 	Thread::init();
 	idbg("current thread "<<(void*)Thread::current());
 	const unsigned specid(Thread::specificId());
-	Thread::specific(specid, (void*)123456);
+	Thread::specific(specid,  reinterpret_cast<void*>(123456));
 	idbg("saved specific value = "<<(ulong)Thread::specific(specid));
 	Runner *pth = new Runner(2);
 	pth->start(true);
