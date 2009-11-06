@@ -258,8 +258,14 @@ void Manager::raiseObject(Object &_robj){
 	d.asv[thrid>>16]->raise(thrid & 0xffff, thrpos);
 }
 
-void Manager::prepareThread(){
+void Manager::prepareThis(){
 	Thread::specific(specificPosition(), this);
+}
+void Manager::unprepareThis(){
+	//Thread::specific(specificPosition(), NULL);
+}
+void Manager::prepareThread(){
+	prepareThis();
 	//GlobalMapper::prepareThread(globalMapper());
 	Specific::prepareThread();
 	requestuidptr.prepareThread();
