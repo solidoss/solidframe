@@ -67,7 +67,8 @@ class Service;
 	prepareThread in the constructor of your inheritant manager.<br>
 	Else, you should use ThisGuard tg(this), for every function that is
 	called from a thread that has access to multiple Managers.
-	- Also you may consider initiating/controlling the Managers from their own thread.
+	- Also you may consider initiating/controlling the Managers from their
+	own thread.
 	
 	
 */
