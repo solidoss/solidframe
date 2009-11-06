@@ -24,7 +24,7 @@ enum{
 namespace foundation{
 namespace aio{
 
-#ifndef UINLINES
+#ifdef NINLINES
 #include "aiosocket.ipp"
 #endif
 

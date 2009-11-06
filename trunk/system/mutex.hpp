@@ -61,7 +61,7 @@ private:
 	pthread_mutex_t mut;
 };
 
-#ifdef UINLINES
+#ifndef NINLINES
 #include "src/mutex.ipp"
 #endif
 

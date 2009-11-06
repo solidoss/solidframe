@@ -220,7 +220,7 @@ private:
 // 	Condition		cond;
 // };
 
-#ifdef UINLINES
+#ifndef NINLINES
 #include "src/synchronization.ipp"
 #endif
 

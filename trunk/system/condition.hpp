@@ -41,7 +41,7 @@ private:
 	pthread_cond_t cond;
 };
 
-#ifdef UINLINES
+#ifndef NINLINES
 #include "src/condition.ipp"
 #endif
 

@@ -50,7 +50,7 @@ OStream::~OStream(){
 IOStream::~IOStream(){
 }
 
-#ifndef UINLINES
+#ifdef NINLINES
 #include "stream.ipp"
 #include "istream.ipp"
 #include "ostream.ipp"

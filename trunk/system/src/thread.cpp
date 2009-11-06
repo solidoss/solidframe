@@ -81,19 +81,19 @@ int Condition::wait(Mutex &_mut, const TimeSpec &_ts){
 	return pthread_cond_timedwait(&cond,&_mut.mut, &_ts);
 }
 //*************************************************************************
-#ifndef UINLINES
+#ifdef NINLINES
 #include "timespec.ipp"
 #endif
 //*************************************************************************
-#ifndef UINLINES
+#ifdef NINLINES
 #include "mutex.ipp"
 #endif
 //*************************************************************************
-#ifndef UINLINES
+#ifdef NINLINES
 #include "condition.ipp"
 #endif
 //*************************************************************************
-#ifndef UINLINES
+#ifdef NINLINES
 #include "synchronization.ipp"
 #endif
 //-------------------------------------------------------------------------

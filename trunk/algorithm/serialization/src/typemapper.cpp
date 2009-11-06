@@ -36,14 +36,15 @@ struct TypeMapper::Data{
 	~Data();
 	ulong 			sercnt;
 	TypeMapVectorTp	tmvec;
-#ifdef U_SERIALIZATION_MUTEX
+#ifndef N_SERIALIZATION_MUTEX
 	Mutex			m;
-#else
+#endif
+/*#else
 #ifdef U_SERIALIZATION_RWMUTEX
 	RWMutex			m;
 #else
-#endif
-#endif
+#endif*/
+
 };
 //================================================================
 TypeMapper::Data::Data():sercnt(0){}
@@ -91,12 +92,12 @@ BaseTypeMap &TypeMapper::getMap(unsigned _id){
 }
 
 void TypeMapper::lock(){
-#ifdef U_SERIALIZATION_MUTEX
+#ifndef N_SERIALIZATION_MUTEX
 	d.m.lock();
 #endif
 }
 void TypeMapper::unlock(){
-#ifdef U_SERIALIZATION_MUTEX
+#ifndef N_SERIALIZATION_MUTEX
 	d.m.unlock();
 #endif
 }

@@ -51,7 +51,7 @@ struct Parameter{
 
 }//namespace protocol
 
-#ifdef UINLINES
+#ifndef NINLINES
 #include "src/parameter.ipp"
 #endif
 

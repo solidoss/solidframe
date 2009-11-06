@@ -270,7 +270,7 @@ private:
 	char 		buf[MaxSockAddrSz];
 };
 
-#ifdef UINLINES
+#ifndef NINLINES
 #include "src/socketaddress.ipp"
 #endif
 

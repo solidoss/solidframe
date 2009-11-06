@@ -38,6 +38,7 @@ class ObjectPointerBase;
 class Signal;
 
 #ifndef USERVICEBITS
+//by default we have at most 32 services for x86 bits machines and 256 for x64
 #define USERVICEBITS (sizeof(IndexTp) == 4 ? 5 : 8)
 #endif
 
@@ -169,7 +170,7 @@ private:
 };
 
 
-#ifdef UINLINES
+#ifndef NINLINES
 #include "src/object.ipp"
 #endif
 
