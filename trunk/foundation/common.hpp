@@ -53,6 +53,8 @@ enum Events{
 	TIMEOUT = 16,//Unsuccessfull asynchrounous completion due to timeout
 	SIGNALED = 32,
 	IODONE = 64,
+	RESCHEDULED = 128
+	
 };
 
 enum Consts{

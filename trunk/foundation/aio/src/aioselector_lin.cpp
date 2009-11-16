@@ -626,6 +626,7 @@ uint Selector::doExecute(const uint _pos){
 		case OK:
 			d.execq.push(_pos);
 			stub.state = Stub::InExecQueue;
+			stub.events |= RESCHEDULED;
 			if(!stub.objptr->hasPendingRequests()){
 				stub.objptr->doClearResponses();//clears the responses from the selector to the object
 				break;
@@ -700,6 +701,7 @@ void Selector::doPrepareObjectWait(const uint _pos, const TimeSpec &_timepos){
 		sockstub.request = 0;
 	}
 	if(mustwait){
+		//will step here when, for example, the object waits for an external signal.
 		if(_timepos < stub.timepos && _timepos != d.ctimepos){
 			stub.timepos = _timepos;
 		}
