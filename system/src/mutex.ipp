@@ -19,7 +19,7 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef UINLINES
+#ifdef NINLINES
 #define inline
 #include "system/cassert.hpp"
 #endif
@@ -43,7 +43,7 @@ inline Mutex::~Mutex(){
 
 inline void Mutex::lock(){
 #ifdef UDEBUG
-#ifndef UINLINES
+#ifdef NINLINES
 	int rv = pthread_mutex_lock(&mut);
 	if(rv){
 		cassert(!rv);
@@ -58,7 +58,7 @@ inline void Mutex::lock(){
 }
 inline void Mutex::unlock(){
 #ifdef UDEBUG
-#ifndef UINLINES
+#ifdef NINLINES
 	int rv = pthread_mutex_unlock(&mut);
 	if(rv){
 		idbg("lock error "<<strerror(errno));
@@ -81,7 +81,7 @@ inline bool Mutex::tryLock(){
 }
 #endif
 
-#ifndef UINLINES
+#ifdef NINLINES
 #undef inline
 #endif
 

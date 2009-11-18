@@ -19,7 +19,7 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef UINLINES
+#ifdef NINLINES
 #define inline
 #endif
 
@@ -67,6 +67,6 @@ inline IndexTp Object::index()const{
 	return computeIndex(fullid);
 }
 
-#ifndef UINLINES
+#ifdef NINLINES
 #undef inline
 #endif

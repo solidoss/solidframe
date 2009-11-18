@@ -19,7 +19,7 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef UINLINES
+#ifdef NINLINES
 #define inline
 #endif
 
@@ -48,6 +48,6 @@ inline int64 OStreamIterator::start(){
 }
 
 
-#ifndef UINLINES
+#ifdef NINLINES
 #undef inline
 #endif

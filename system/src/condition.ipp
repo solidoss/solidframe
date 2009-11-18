@@ -19,7 +19,7 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef UINLINES
+#ifdef NINLINES
 #define inline
 #else
 #include "system/mutex.hpp"
@@ -45,6 +45,6 @@ inline int Condition::wait(Mutex &_mut){
 	return pthread_cond_wait(&cond,&_mut.mut);
 }
 
-#ifndef UINLINES
+#ifdef NINLINES
 #undef inline
 #endif

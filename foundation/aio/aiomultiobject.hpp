@@ -55,6 +55,12 @@ public:
 	MultiObject(const SocketDevice &_rsd);
 	//! Destructor
 	~MultiObject();
+	
+	//! Returns a pointer to the begining of a table of signaled socket indexes
+	const int32* signaledBegin()const;
+	//! Returns a pointer to the end of a table of signaled socket indexes
+	const int32 *signaledEnd()const;
+	
 	//! Returns true if the socket on position _pos is ok
 	bool socketOk(uint _pos)const;
 	
@@ -156,6 +162,14 @@ private:
 	
 	PositionStackTp		posstk;
 };
+
+inline const int32* MultiObject::signaledBegin()const{
+	return this->resbeg;
+}
+
+inline const int32 *MultiObject::signaledEnd()const{
+	return this->respos;
+}
 
 
 }//namespace aio
