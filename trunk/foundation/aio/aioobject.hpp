@@ -110,12 +110,13 @@ protected:
 		int32 *_reqbeg,
 		int32 *_resbeg,
 		int32 *_toutbeg
-	):
-		ptimepos(NULL), pstubs(_pstubs), stubcp(_stubcp),
+	):	ptimepos(NULL), pstubs(_pstubs), stubcp(_stubcp),
 		reqbeg(_reqbeg), reqpos(_reqbeg),
 		resbeg(_resbeg), respos(_resbeg),
-		toutbeg(_toutbeg), toutpos(_toutbeg){}
-		void pushRequest(uint _pos, uint _req);
+		toutbeg(_toutbeg), toutpos(_toutbeg){
+	}
+	
+	void pushRequest(uint _pos, uint _req);
 private:
 	void doAddSignaledSocketFirst(uint _pos, uint _evs);
 	void doAddSignaledSocketNext(uint _pos, uint _evs);

@@ -19,7 +19,7 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef UINLINES
+#ifdef NINLINES
 #define inline
 #endif
 
@@ -38,7 +38,7 @@ inline bool Stream::fail()const{
 	return bad() | flags.flags & (StreamFlags::IFail | StreamFlags::OFail);
 }
 
-#ifndef UINLINES
+#ifdef NINLINES
 #undef inline
 #endif
 

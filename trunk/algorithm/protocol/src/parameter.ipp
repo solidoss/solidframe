@@ -19,7 +19,7 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef UINLINES
+#ifdef NINLINES
 #define inline
 #endif
 
@@ -53,7 +53,7 @@ inline Parameter::Parameter(const Parameter &_rp){
 
 }//namespace protocol
 
-#ifndef UINLINES
+#ifdef NINLINES
 #undef inline
 #endif
 

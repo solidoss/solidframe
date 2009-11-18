@@ -19,7 +19,7 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef UINLINES
+#ifdef NINLINES
 #define inline
 #else
 #include "foundation/aio/src/aiosocket.hpp"
@@ -67,7 +67,7 @@ inline uint32 Socket::ioRequest()const{
 inline SecureSocket* Socket::secureSocket()const{
 	return pss;
 }
-#ifndef UINLINES
+#ifdef NINLINES
 #undef inline
 #endif
 
