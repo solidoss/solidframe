@@ -30,10 +30,10 @@ Next you'll need to prepare the *SolidGround* extern library pack:
 {{{
 work $ mkdir sg_extern
 work $ cd sg_extern
-sg_extern $ wget "http://garr.dl.sourceforge.net/sourceforge/boost/boost_1_39_0.tar.bz2"
+sg_extern $ wget "http://downloads.sourceforge.net/project/boost/boost/1.41.0/boost_1_41_0.tar.bz2?use_mirror=dfn"
 sg_extern $ wget "http://www.openssl.org/source/openssl-0.9.8k.tar.gz"
-sg_extern $ ln -s ../solidground/extern/prepare_lin.sh .
-sg_extern $ ./prepare_lin.sh
+sg_extern $ ln -s ../solidground/administration/linux/prepare_extern.sh .
+sg_extern $ ./prepare_extern.sh
 }}}
 
 The script will automatically extract and build the needed extern libraries.
