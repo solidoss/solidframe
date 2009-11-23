@@ -205,4 +205,4 @@ The stress tests I've performed show the same IO transfer speed as TCP.
 
 =Closing=
 
-In this page you've learned basic knowledge about *SolidGround*: what it is, what it offers, about its core concepts and its libraries. Next [ http://code.google.com/p/solidground/wiki/Testing ] you'll learn about how to compile and test the *SolidGround* example applications.
+In this page you've learned basic knowledge about *SolidGround*: what it is, what it offers, about its core concepts and its libraries. Next http://code.google.com/p/solidground/wiki/Testing you'll learn about how to compile and test the *SolidGround* example applications.
