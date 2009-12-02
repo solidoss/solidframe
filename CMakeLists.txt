@@ -241,6 +241,7 @@ set(CMAKE_BUILD_TYPE
 #-----------------------------------------------------------------
 include_directories(
 	${SOLIDGROUND_SOURCE_DIR}
+	${CMAKE_CURRENT_BINARY_DIR}
 	${SOLIDGROUND_SOURCE_DIR}/library
 	${SOLIDGROUND_SOURCE_DIR}/application
 	${EXTERN_PATH}/include/openssl
@@ -248,6 +249,12 @@ include_directories(
 	${EXTERN_PATH}/include/
 )
 #-----------------------------------------------------------------
+
+#-----------------------------------------------------------------
+# config.h support
+#-----------------------------------------------------------------
+include(check.config.cmake)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 
 #-----------------------------------------------------------------
 # Global link directories
