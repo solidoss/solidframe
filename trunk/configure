@@ -36,7 +36,7 @@ function print_usage(){
 	echo "[-t|--enable-testing]: Enable unit-testing using ctest"
 	echo "[--test-name name]: The name of ctest/cdash project"
 	echo "[--test-site addr]: The address for cdash drop site"
-	echo "[--generator-param]: Some parameters given to cmake like: -DECLIPSE_CDT4_GENERATE_SOURCE_PROJECT=TRUE"
+	echo "[-P|--cmake-param]: Some parameters given to cmake like: -DECLIPSE_CDT4_GENERATE_SOURCE_PROJECT=TRUE"
 	echo
 	echo "Examples:"
 	echo "1) create simple make release build:"
@@ -44,7 +44,11 @@ function print_usage(){
 	echo "2) create kdevelop3 project:"
 	echo "	./configure -f kdv -b debug -e ~/work/sg_extern -g KDevelop3"
 	echo "3) create eclipse projects - one for source within source tree and one external for build (note that the build is external to source tree, as needed by eclipse):"
-	echo "	./configure -F ../sg_ecl -b debug -e ~/work/sg_extern -g \"Eclipse CDT4 - Unix Makefiles\" --generator-param \"-DECLIPSE_CDT4_GENERATE_SOURCE_PROJECT=TRUE\""
+	echo "	./configure -F ../sg_ecl -b debug -e ~/work/sg_extern -g \"Eclipse CDT4 - Unix Makefiles\" --cmake-param \"-DECLIPSE_CDT4_GENERATE_SOURCE_PROJECT=TRUE\""
+	echo "4) create a simple make release build, directly specifying cmake parameters:"
+	echo "	./configure -f rel -b release -P -DUDEFS:STRING=\"-DUDEBUG -DUASSERT\" -P -DUEXTERN_ABS:STRING=\"/home/vpalade/projects/sg_extern\""
+	echo "The above command is equivalent to:"
+	echo "	./configure -f rel -b release -e ~/projects/sg_extern -p \"-DUDEBUG -DUASSERT\""
 	echo
 	exit
 }
@@ -56,7 +60,7 @@ function print_usage(){
 # First define and initilaize the variables
 
 GENERATOR=
-GPARAM=
+CMAKE_PARAM=()
 DOCUMENTATION=
 BUILD_TYPE=
 FOLDER_NAME=
@@ -69,7 +73,11 @@ ENABLE_TESTING=
 TEST_NAME=
 TEST_SITE=
 
-while [ "$#" -gt 0 ]; do
+echo "$@"
+pass_arg_count=0
+#while [ "$#" -gt 0 ]; do
+while [ $# -gt $pass_arg_count ]
+do
 	CURRENT_OPT="$1"
 	UNKNOWN_ARG=no
 	case "$1" in
@@ -101,9 +109,12 @@ while [ "$#" -gt 0 ]; do
 		shift
 		PARAM=$PARAM"$1 "
 		;;
-	--generator-param)
+	-P|--cmake-param)
 		shift
-		GPARAM=$GPARAM"$1 "
+		#CMAKE_PARAM=($CMAKE_PARAM "$1")
+		arg="$1"
+		set -- "$@" "$arg"
+		pass_arg_count=`expr $pass_arg_count + 1`
 		;;
 #	-e|--extern-path)
 #		if [ -z "$2" ] || echo "$2" | grep '^-' >/dev/null 2>&1; then
@@ -151,6 +162,7 @@ done
 #echo "parameters = $PARAM"
 #echo "help = $HELP"
 #echo "extern = $EXTERN"
+echo "parameters = $CMAKE_PARAM"
 
 if [ "$HELP" = "yes" ]; then
 	print_usage
@@ -219,83 +231,27 @@ else
 fi
 echo $GENERATOR
 
+echo "The list of parameters forwarded to cmake:"
+for param in "$@"; do
+  echo "$param"
+done
+echo
+
+
 if [ "$GENERATOR" = "" ]; then
 	echo "Using cmake's default generator"
 	
-	cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS:STRING="$PARAM" -DUEXTERN:STRING="$EXTERN_PATH" -DUEXTERN_ABS:STRING="$EXTERN_ABS_PATH" -DUTESTING:STRING="$ENABLE_TESTING" -DUTEST_NAME="$TEST_NAME" -DUTEST_SITE="$TEST_SITE" "$SRC_PATH"
+	exec cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS:STRING="$PARAM" -DUEXTERN:STRING="$EXTERN_PATH" -DUEXTERN_ABS:STRING="$EXTERN_ABS_PATH" -DUTESTING:STRING="$ENABLE_TESTING" -DUTEST_NAME="$TEST_NAME" -DUTEST_SITE="$TEST_SITE" "$@" "$SRC_PATH"
 	
-	echo "./configure -f $FOLDER_NAME -F $FOLDER_PATH -b $BUILD_TYPE -p \"$PARAM\" -e \"$EXTERN_ABS_PATH\" -DUTESTING:STRING=\"$ENABLE_TESTING\" -DUTEST_NAME=\"$TEST_NAME\" -DUTEST_SITE=\"$TEST_SITE\"" > configure.txt
+	echo "./configure -f $FOLDER_NAME -F $FOLDER_PATH -b $BUILD_TYPE -p \"$PARAM\" -e \"$EXTERN_ABS_PATH\" -DUTESTING:STRING=\"$ENABLE_TESTING\" -DUTEST_NAME=\"$TEST_NAME\" -DUTEST_SITE=\"$TEST_SITE\" $@" > configure.txt
 	echo "Done!"
 else
-	echo "Using cmake's $GENERATOR with $GPARAM"
+	echo "Using cmake's $GENERATOR with $CMAKE_PARAM"
 	
-	cmake -G "$GENERATOR" $GPARAM -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS:STRING="$PARAM" -DUEXTERN:STRING="$EXTERN_PATH" -DUEXTERN_ABS:STRING="$EXTERN_ABS_PATH" -DUTESTING:STRING="$ENABLE_TESTING" -DUTEST_NAME="$TEST_NAME" -DUTEST_SITE="$TEST_SITE" "$SRC_PATH"
+	exec cmake -G "$GENERATOR" -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS:STRING="$PARAM" -DUEXTERN:STRING="$EXTERN_PATH" -DUEXTERN_ABS:STRING="$EXTERN_ABS_PATH" -DUTESTING:STRING="$ENABLE_TESTING" -DUTEST_NAME="$TEST_NAME" -DUTEST_SITE="$TEST_SITE" "$@" "$SRC_PATH"
 	
-	echo "./configure -f $FOLDER_NAME -F $FOLDER_PATH -g \"$GENERATOR\" $GPARAM -b $BUILD_TYPE -p \"$PARAM\" -e \"$EXTERN_ABS_PATH\" -DUTESTING:STRING=\"$ENABLE_TESTING\" -DUTEST_NAME=\"$TEST_NAME\" -DUTEST_SITE=\"$TEST_SITE\"" > configure.txt
+	echo "./configure -f $FOLDER_NAME -F $FOLDER_PATH -g \"$GENERATOR\" -b $BUILD_TYPE -p \"$PARAM\" -e \"$EXTERN_ABS_PATH\" -DUTESTING:STRING=\"$ENABLE_TESTING\" -DUTEST_NAME=\"$TEST_NAME\" -DUTEST_SITE=\"$TEST_SITE\"
+	$@" > configure.txt
 fi
 
 exit
-
-# case "$1" in
-# 	"kdevelop")
-# 		if [ "$2" = "" ] ; then
-# 			print_usage
-# 		else
-# 			echo "Building KDevelop project ..."
-# 			cd application
-# 			make_cmake_list *
-# 			cd ../
-# 
-# 			cd library
-# 			make_cmake_list *
-# 			cd ../
-# 
-# 			mkdir build
-# 			mkdir "build/$1"
-# 			cd "build/$1"
-# 			cmake -G KDevelop3 -DCMAKE_BUILD_TYPE=$2 -DUDEFS="$3" ../../
-# 			echo "Done building KDevelop project"
-# 		fi
-# 		;;
-# 	"documentation_full")
-# 		echo "Building full documentation ..."
-# 		rm -rf documentation/html/
-# 		rm -rf documentation/latex/
-# 		doxygen
-# 		tar -cjf documentation/full.tar.bz2 documentation/html/ documentation/index.html
-# 		echo "Done building full documentation"
-# 		;;
-# 	"documentation_fast")
-# 		echo "Building documentation..."
-# 		rm -rf documentation/html/
-# 		doxygen Doxyfile.fast
-# 		tar -cjf documentation/fast.tar.bz2 documentation/html/ documentation/index.html
-# 		echo "Done building documentation"
-# 		;;
-# 	"extern")
-# 		echo "Building extern archive"
-# 		cd extern
-# 		tar -cjf solidground_extern_linux.tar.bz2 linux
-# 		echo "Done building extern archive"
-# 		;;
-# 	*)
-# 		THEFLD="$2"
-# 		echo $THEFLD
-# 		if [ "$THEFLD" = "" ] ; then
-# 			THEFLD="$1"
-# 		fi
-# 		cd application
-# 		make_cmake_list *
-# 		cd ../
-# 
-# 		cd library
-# 		make_cmake_list *
-# 		cd ../
-# 		echo "Preparing build/$THEFLD for $1 build type with \"$3\" parameters..."
-# 		mkdir build
-# 		mkdir "build/$THEFLD"
-# 		cd "build/$THEFLD"
-# 		cmake -DCMAKE_BUILD_TYPE=$1 -DUDEFS:STRING="$3" ../../
-# 		echo "Done preparing build/$THEFLD for $1 build type with \"$3\" parameters"
-# 		;;
-# esac
