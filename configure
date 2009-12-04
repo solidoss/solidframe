@@ -41,10 +41,13 @@ function print_usage(){
 	echo "Examples:"
 	echo "1) create simple make release build:"
 	echo "	./configure -f rls -b release -e ~/work/sg_extern"
+	echo
 	echo "2) create kdevelop3 project:"
 	echo "	./configure -f kdv -b debug -e ~/work/sg_extern -g KDevelop3"
+	echo
 	echo "3) create eclipse projects - one for source within source tree and one external for build (note that the build is external to source tree, as needed by eclipse):"
 	echo "	./configure -F ../sg_ecl -b debug -e ~/work/sg_extern -g \"Eclipse CDT4 - Unix Makefiles\" --cmake-param \"-DECLIPSE_CDT4_GENERATE_SOURCE_PROJECT=TRUE\""
+	echo
 	echo "4) create a simple make release build, directly specifying cmake parameters:"
 	echo "	./configure -f rel -b release -P -DUDEFS:STRING=\"-DUDEBUG -DUASSERT\" -P -DUEXTERN_ABS:STRING=\"/home/vpalade/projects/sg_extern\""
 	echo "The above command is equivalent to:"
@@ -73,7 +76,7 @@ ENABLE_TESTING=
 TEST_NAME=
 TEST_SITE=
 
-echo "$@"
+#echo "$@"
 pass_arg_count=0
 #while [ "$#" -gt 0 ]; do
 while [ $# -gt $pass_arg_count ]
@@ -162,7 +165,7 @@ done
 #echo "parameters = $PARAM"
 #echo "help = $HELP"
 #echo "extern = $EXTERN"
-echo "parameters = $CMAKE_PARAM"
+#echo "parameters = $CMAKE_PARAM"
 
 if [ "$HELP" = "yes" ]; then
 	print_usage
