@@ -44,7 +44,7 @@ Object::SocketStub::~SocketStub(){
 	return BAD;
 }
 
-void Object::pushRequest(uint _pos, uint _req){
+void Object::pushRequest(const uint _pos, const uint _req){
 	if(pstubs[_pos].request > SocketStub::Response){
 		return;
 	}
@@ -70,7 +70,7 @@ inline void Object::doPopTimeout(uint32 _pos){
 	pstubs[_pos].toutpos = -1;
 }
 
-void Object::doAddSignaledSocketFirst(uint _pos, uint _evs){
+void Object::doAddSignaledSocketFirst(const uint _pos, const uint _evs){
 	cassert(_pos < stubcp || pstubs[_pos].psock);
 	pstubs[_pos].chnevents = _evs;
 	if(pstubs[_pos].toutpos >= 0){
@@ -78,7 +78,7 @@ void Object::doAddSignaledSocketFirst(uint _pos, uint _evs){
 	}
 	doPushResponse(_pos);
 }
-void Object::doAddSignaledSocketNext(uint _pos, uint _evs){
+void Object::doAddSignaledSocketNext(const uint _pos, const uint _evs){
 	cassert(_pos < stubcp || pstubs[_pos].psock);
 	pstubs[_pos].chnevents |= _evs;
 	if(pstubs[_pos].toutpos >= 0){
@@ -332,12 +332,13 @@ MultiObject::~MultiObject(){
 	char *oldbuf = reinterpret_cast<char*>(pstubs);
 	delete []oldbuf;
 }
-bool MultiObject::socketOk(uint _pos)const{
+
+bool MultiObject::socketOk(const uint _pos)const{
 	cassert(_pos < stubcp);
 	return pstubs[_pos].psock->ok();
 }
 
-int MultiObject::socketAccept(uint _pos, SocketDevice &_rsd){
+int MultiObject::socketAccept(const uint _pos, SocketDevice &_rsd){
 	cassert(_pos < stubcp);
 	int rv = pstubs[_pos].psock->accept(_rsd);
 	if(rv == NOK){
@@ -346,7 +347,7 @@ int MultiObject::socketAccept(uint _pos, SocketDevice &_rsd){
 	return rv;
 }
 
-int MultiObject::socketConnect(uint _pos, const AddrInfoIterator& _rai){
+int MultiObject::socketConnect(const uint _pos, const AddrInfoIterator& _rai){
 	cassert(_pos < stubcp);
 	int rv = pstubs[_pos].psock->connect(_rai);
 	if(rv == NOK){
@@ -360,7 +361,7 @@ const SockAddrPair &MultiObject::socketRecvAddr(uint _pos) const{
 }
 
 int MultiObject::socketSend(
-	uint _pos,
+	const uint _pos,
 	const char* _pb,
 	uint32 _bl,
 	uint32 _flags
@@ -374,7 +375,7 @@ int MultiObject::socketSend(
 }
 
 int MultiObject::socketSendTo(
-	uint _pos,
+	const uint _pos,
 	const char* _pb,
 	uint32 _bl,
 	const SockAddrPair &_sap,
@@ -389,7 +390,7 @@ int MultiObject::socketSendTo(
 }
 
 int MultiObject::socketRecv(
-	uint _pos,
+	const uint _pos,
 	char *_pb,
 	uint32 _bl,
 	uint32 _flags
@@ -402,7 +403,7 @@ int MultiObject::socketRecv(
 	return rv;
 }
 int MultiObject::socketRecvFrom(
-	uint _pos,
+	const uint _pos,
 	char *_pb,
 	uint32 _bl,
 	uint32 _flags
@@ -414,36 +415,36 @@ int MultiObject::socketRecvFrom(
 	}
 	return rv;
 }
-uint32 MultiObject::socketRecvSize(uint _pos)const{	
+uint32 MultiObject::socketRecvSize(const uint _pos)const{	
 	cassert(_pos < stubcp);
 	return pstubs[_pos].psock->recvSize();
 }
-const uint64& MultiObject::socketSendCount(uint _pos)const{	
+const uint64& MultiObject::socketSendCount(const uint _pos)const{	
 	cassert(_pos < stubcp);
 	return pstubs[_pos].psock->sendCount();
 }
-const uint64& MultiObject::socketRecvCount(uint _pos)const{
+const uint64& MultiObject::socketRecvCount(const uint _pos)const{
 	cassert(_pos < stubcp);
 	return pstubs[_pos].psock->recvCount();
 }
-bool MultiObject::socketHasPendingSend(uint _pos)const{
+bool MultiObject::socketHasPendingSend(const uint _pos)const{
 	cassert(_pos < stubcp);
 	return pstubs[_pos].psock->isSendPending();
 }
-bool MultiObject::socketHasPendingRecv(uint _pos)const{
+bool MultiObject::socketHasPendingRecv(const uint _pos)const{
 	cassert(_pos < stubcp);
 	return pstubs[_pos].psock->isRecvPending();
 }
-int MultiObject::socketLocalAddress(uint _pos, SocketAddress &_rsa)const{
+int MultiObject::socketLocalAddress(const uint _pos, SocketAddress &_rsa)const{
 	cassert(_pos < stubcp);
 	return pstubs[_pos].psock->localAddress(_rsa);
 }
-int MultiObject::socketRemoteAddress(uint _pos, SocketAddress &_rsa)const{
+int MultiObject::socketRemoteAddress(const uint _pos, SocketAddress &_rsa)const{
 	cassert(_pos < stubcp);
 	return pstubs[_pos].psock->remoteAddress(_rsa);
 }
 void MultiObject::socketTimeout(
-	uint _pos,
+	const uint _pos,
 	const TimeSpec &_crttime,
 	ulong _addsec,
 	ulong _addnsec
@@ -459,11 +460,11 @@ void MultiObject::socketTimeout(
 		*ptimepos = pstubs[_pos].timepos;
 	}
 }
-uint32 MultiObject::socketEvents(uint _pos)const{
+uint32 MultiObject::socketEvents(const uint _pos)const{
 	cassert(_pos < stubcp);
 	return pstubs[_pos].chnevents;
 }
-void MultiObject::socketErase(uint _pos){
+void MultiObject::socketErase(const uint _pos){
 	cassert(_pos < stubcp);
 	delete pstubs[_pos].psock;
 	pstubs[_pos].reset();
@@ -491,35 +492,35 @@ int MultiObject::socketInsert(const SocketDevice &_rsd){
 	}
 	return -1;
 }
-void MultiObject::socketRequestRegister(uint _pos){
+void MultiObject::socketRequestRegister(const uint _pos){
 	cassert(_pos < stubcp);
 	cassert(pstubs[_pos].request <= SocketStub::Response);
 	pstubs[_pos].request = SocketStub::RegisterRequest;
 	*reqpos = _pos;
 	++reqpos;
 }
-void MultiObject::socketRequestUnregister(uint _pos){
+void MultiObject::socketRequestUnregister(const uint _pos){
 	cassert(_pos < stubcp);
 	cassert(pstubs[_pos].request <= SocketStub::Response);
 	pstubs[_pos].request = SocketStub::UnregisterRequest;
 	*reqpos = _pos;
 	++reqpos;
 }
-int MultiObject::socketState(unsigned _pos)const{
+int MultiObject::socketState(const uint _pos)const{
 	cassert(_pos < stubcp);
 	return pstubs[_pos].state;
 }
-void MultiObject::socketState(unsigned _pos, int _st){
+void MultiObject::socketState(const uint _pos, int _st){
 	cassert(_pos < stubcp);
 	pstubs[_pos].state = _st;
 }
-inline uint MultiObject::dataSize(uint _cp){
+inline uint MultiObject::dataSize(const uint _cp){
 	return _cp * sizeof(SocketStub)//the stubs
 			+ _cp * sizeof(int32)//the requests
 			+ _cp * sizeof(int32)//the reqponses
 			+ _cp * sizeof(int32);//the timeouts
 }
-void MultiObject::reserve(uint _cp){
+void MultiObject::reserve(const uint _cp){
 	cassert(_cp > stubcp);
 	//first we allocate the space
 	char* buf = new char[dataSize(_cp)];
@@ -569,25 +570,25 @@ uint MultiObject::newStub(){
 	return pos;
 }
 
-bool MultiObject::socketIsSecure(uint _pos)const{
+bool MultiObject::socketIsSecure(const uint _pos)const{
 	return pstubs[_pos].psock->isSecure();
 }
 
-SecureSocket* MultiObject::socketSecureSocket(unsigned _pos){
+SecureSocket* MultiObject::socketSecureSocket(const uint _pos){
 	return pstubs[_pos].psock->secureSocket();
 }
-void MultiObject::socketSecureSocket(unsigned _pos, SecureSocket *_pss){
+void MultiObject::socketSecureSocket(const uint _pos, SecureSocket *_pss){
 	pstubs[_pos].psock->secureSocket(_pss);
 }
 
-int MultiObject::socketSecureAccept(unsigned _pos){
+int MultiObject::socketSecureAccept(const uint _pos){
 	int rv = pstubs[_pos].psock->secureAccept();
 	if(rv == NOK){
 		pushRequest(_pos, SocketStub::IORequest);
 	}
 	return rv;
 }
-int MultiObject::socketSecureConnect(unsigned _pos){
+int MultiObject::socketSecureConnect(const uint _pos){
 	int rv = pstubs[_pos].psock->secureConnect();
 	if(rv == NOK){
 		pushRequest(_pos, SocketStub::IORequest);

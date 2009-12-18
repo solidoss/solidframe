@@ -98,7 +98,7 @@ static const protocol::NameMatcher cmdm(cmds);
 	All it does is to create the proper command, which in turn,
 	will instruct the reader how to parse itself.
 */
-Command* Connection::create(const String& _name){
+Command* Connection::create(const String& _name, Reader &){
 	cassert(!pcmd);
 	idbg("create command "<<_name);
 	switch(cmds[cmdm.match(_name.c_str())].id){

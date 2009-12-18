@@ -56,38 +56,40 @@ public:
 	//! Destructor
 	~MultiObject();
 	
+	uint count()const;
+	
 	//! Returns a pointer to the begining of a table of signaled socket indexes
 	const int32* signaledBegin()const;
 	//! Returns a pointer to the end of a table of signaled socket indexes
-	const int32 *signaledEnd()const;
+	const int32* signaledEnd()const;
 	
 	//! Returns true if the socket on position _pos is ok
-	bool socketOk(uint _pos)const;
+	bool socketOk(const uint _pos)const;
 	
 	//! Asynchronous accept an incomming connection
-	int socketAccept(uint _pos, SocketDevice &_rsd);
+	int socketAccept(const uint _pos, SocketDevice &_rsd);
 	
 	//! Asynchronous connect
 	/*!
 		\param _pos The socket identifier
 		\param _rai An AddrInfo iterator holding the destination address.
 	*/
-	int socketConnect(uint _pos, const AddrInfoIterator& _rai);
+	int socketConnect(const uint _pos, const AddrInfoIterator& _rai);
 	
 	//! Asynchronous send for socket on position _pos
-	int socketSend(uint _pos, const char* _pb, uint32 _bl, uint32 _flags = 0);
+	int socketSend(const uint _pos, const char* _pb, uint32 _bl, uint32 _flags = 0);
 	//! Asynchronous send for socket on position _pos
-	int socketSendTo(uint _pos, const char* _pb, uint32 _bl, const SockAddrPair &_sap, uint32 _flags = 0);
+	int socketSendTo(const uint _pos, const char* _pb, uint32 _bl, const SockAddrPair &_sap, uint32 _flags = 0);
 	//! Asynchronous receive for socket on position _pos
-	int socketRecv(uint _pos, char *_pb, uint32 _bl, uint32 _flags = 0);
+	int socketRecv(const uint _pos, char *_pb, uint32 _bl, uint32 _flags = 0);
 	//! Asynchronous receive for socket on position _pos
-	int socketRecvFrom(uint _pos, char *_pb, uint32 _bl, uint32 _flags = 0);
+	int socketRecvFrom(const uint _pos, char *_pb, uint32 _bl, uint32 _flags = 0);
 	
 	//! Get the size of the received data for socket on position _pos
 	/*!
 		Call this on successful completion of socketRecv
 	*/
-	uint32 socketRecvSize(uint _pos)const;
+	uint32 socketRecvSize(const uint _pos)const;
 	//! Gets the peer (sender) address of the received data
 	/*!
 		Call this on successful completion of socketRecv
@@ -96,27 +98,27 @@ public:
 	
 	
 	//! The ammount of data sent on socket on position _pos
-	const uint64& socketSendCount(uint _pos)const;
+	const uint64& socketSendCount(const uint _pos)const;
 	//! The ammount of data received on socket on position _pos
-	const uint64& socketRecvCount(uint _pos)const;
+	const uint64& socketRecvCount(const uint _pos)const;
 	//! Return true if the socket is already waiting for a send completion
-	bool socketHasPendingSend(uint _pos)const;
+	bool socketHasPendingSend(const uint _pos)const;
 	//! Return true if the socket is already waiting for a receive completion
-	bool socketHasPendingRecv(uint _pos)const;
+	bool socketHasPendingRecv(const uint _pos)const;
 	
 	//! Get the local address of the socket on position _pos
-	int socketLocalAddress(uint _pos, SocketAddress &_rsa)const;
+	int socketLocalAddress(const uint _pos, SocketAddress &_rsa)const;
 	//! Get the remote address of the socket on position _pos
-	int socketRemoteAddress(uint _pos, SocketAddress &_rsa)const;
+	int socketRemoteAddress(const uint _pos, SocketAddress &_rsa)const;
 	
 	//! Set the timeout for asynchronous opperation completion for the socket on position _pos
-	void socketTimeout(uint _pos, const TimeSpec &_crttime, ulong _addsec, ulong _addnsec = 0);
+	void socketTimeout(const uint _pos, const TimeSpec &_crttime, ulong _addsec, ulong _addnsec = 0);
 	
 	//! Gets the mask with completion events for the socket on position _pos
-	uint32 socketEvents(uint _pos)const;
+	uint32 socketEvents(const uint _pos)const;
 	
 	//! Erase the socket on position _pos - call socketRequestRegister before
-	void socketErase(uint _pos);
+	void socketErase(const uint _pos);
 	//! Insert a new socket given an aio::Socket
 	/*!
 		\retval  < 0 on error, >=0 on success, meaning the position of the socket
@@ -129,33 +131,33 @@ public:
 	int socketInsert(const SocketDevice &_rsd);
 	
 	//! Request for registering the socket onto the aio::Selector
-	void socketRequestRegister(uint _pos);
+	void socketRequestRegister(const uint _pos);
 	//! Request for unregistering the socket from the aio::Selector
 	/*!
 		The sockets are automatically unregistered and erased
 		on object destruction.
 	*/
-	void socketRequestUnregister(uint _pos);
+	void socketRequestUnregister(const uint _pos);
 	
 	//! Gets the state associated to the socket on position _pos
-	int socketState(unsigned _pos)const;
+	int socketState(const uint _pos)const;
 	//! Sets the state associated to the socket on position _pos
-	void socketState(unsigned _pos, int _st);
+	void socketState(const uint _pos, int _st);
 	
 	//! Returns true if the socket on position _pos is secured
-	bool socketIsSecure(uint _pos)const;
+	bool socketIsSecure(const uint _pos)const;
 	
 	//! Gets the secure socket associated to socket on position _pos
-	SecureSocket* socketSecureSocket(unsigned _pos);
+	SecureSocket* socketSecureSocket(uint _pos);
 	//! Sets the secure socket associated to socket on position _pos
-	void socketSecureSocket(unsigned _pos, SecureSocket *_pss);
+	void socketSecureSocket(const uint _pos, SecureSocket *_pss);
 	//! Asynchronous secure accept
-	int socketSecureAccept(unsigned _pos);
+	int socketSecureAccept(const uint _pos);
 	//! Asynchronous secure connect
-	int socketSecureConnect(unsigned _pos);
+	int socketSecureConnect(const uint _pos);
 private:
-	void reserve(uint _cp);//using only one allocation sets the pointers from the aioobject
-	uint dataSize(uint _cp);
+	void reserve(const uint _cp);//using only one allocation sets the pointers from the aioobject
+	uint dataSize(const uint _cp);
 	uint newStub();
 private:
 	typedef Stack<uint>		PositionStackTp;
@@ -169,6 +171,10 @@ inline const int32* MultiObject::signaledBegin()const{
 
 inline const int32 *MultiObject::signaledEnd()const{
 	return this->respos;
+}
+
+inline uint MultiObject::count()const{
+	return this->stubcp - this->posstk.size();
 }
 
 
