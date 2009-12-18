@@ -191,7 +191,7 @@ public:
 				_rr.basicError(StringTooLong);
 				return Error;
 		}
-		Key* pk = reinterpret_cast<Creator*>(_rp.a.p)->create(_rr.tmp);
+		Key* pk = reinterpret_cast<Creator*>(_rp.a.p)->create(_rr.tmp, rr);
 		if(pk){
 			_rr.fs.pop();
 			_rr.tmp.clear();

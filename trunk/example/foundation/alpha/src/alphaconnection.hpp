@@ -100,7 +100,7 @@ public:
 	int accept(foundation::Visitor &);
 	
 	//! creator method for new commands
-	Command* create(const String& _name);
+	Command* create(const String& _name, Reader &_rr);
 	
 	Reader& reader(){return rdr;}
 	Writer& writer(){return wtr;}

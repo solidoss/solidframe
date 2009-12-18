@@ -116,10 +116,10 @@ protected:
 		toutbeg(_toutbeg), toutpos(_toutbeg){
 	}
 	
-	void pushRequest(uint _pos, uint _req);
+	void pushRequest(const uint _pos, const uint _req);
 private:
-	void doAddSignaledSocketFirst(uint _pos, uint _evs);
-	void doAddSignaledSocketNext(uint _pos, uint _evs);
+	void doAddSignaledSocketFirst(const uint _pos, const uint _evs);
+	void doAddSignaledSocketNext(const uint _pos, const uint _evs);
 	void doAddTimeoutSockets(const TimeSpec &_timepos);
 	void doPrepare(TimeSpec *_ptimepos);
 	void doUnprepare();
