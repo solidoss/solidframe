@@ -50,13 +50,14 @@ Parameter &Writer::push(FncTp _pf){
 
 int Writer::run(){
 	while(fs.size()){
-		switch((*fs.top().first)(*this, fs.top().second)){
+		const int rval((*fs.top().first)(*this, fs.top().second));
+		switch(rval){
 			case Bad:return BAD;
 			case No: return NOK;//wait data
 			case Ok: fs.pop();break;
 			case Yield:return YIELD;
 			case Continue: break;
-			default: cassert(false);
+			default: fs.pop(); return rval;
 		}
 	}
 	return OK;
