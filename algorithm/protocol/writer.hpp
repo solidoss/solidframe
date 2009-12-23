@@ -81,6 +81,7 @@ public:
 		No = NOK,	//!<Must wait
 		Yield,		//!<Must yield the connection
 		Continue,	//!<reexecute the top function - no pop
+		LastReturnValue
 	};
 public:
 	//!Writer constructor

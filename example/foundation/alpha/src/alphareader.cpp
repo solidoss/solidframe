@@ -145,7 +145,7 @@ void Reader::clear(){
 			return Bad;
 		case Writer::Ok: return Ok;
 		case Writer::No:
-			rr.replace(&Reader::returnValue, protocol::Parameter(Continue));
+			rr.replace(&Reader::returnValue<true>, protocol::Parameter(Continue));
 			return No;
 	}
 	cassert(false);

@@ -106,7 +106,8 @@ int Reader::fetchLiteral(String &_rds, ulong &_rdsz){
 
 int Reader::run(){
 	while(fs.size()){
-		switch((*fs.top().first)(*this, fs.top().second)){
+		const int rval((*fs.top().first)(*this, fs.top().second)); 
+		switch(rval){
 			case Bad:return BAD;
 			case No: return NOK;//wait data
 			case Error:
@@ -118,7 +119,7 @@ int Reader::run(){
 			case Ok: fs.pop();break;
 			case Yield:return YIELD;
 			case Continue: break;
-			default: cassert(false);
+			default: fs.pop(); return rval;
 		}
 	}
 	return OK;
@@ -255,11 +256,19 @@ int Reader::run(){
 	return No;
 }
 
-/*static*/ int Reader::returnValue(Reader &_rr, Parameter &_rp){
+template <>
+/*static*/ int Reader::returnValue<true>(Reader &_rr, Parameter &_rp){
 	int rv = _rp.a.i;
 	_rr.fs.pop();//?!
 	return rv;
 }
+
+template <>
+/*static*/ int Reader::returnValue<false>(Reader &_rr, Parameter &_rp){
+	int rv = _rp.a.i;
+	return rv;
+}
+
 
 /*static*/ int Reader::pop(Reader &_rr, Parameter &_rp){
 	_rr.fs.pop();//this
@@ -327,7 +336,7 @@ struct DigitFilter{
 
 //default we close
 void Reader::prepareErrorRecovery(){
-	push(&Reader::returnValue, Parameter(Bad));
+	push(&Reader::returnValue<true>, Parameter(Bad));
 }
 
 int Reader::doManage(int _mo){

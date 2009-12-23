@@ -88,6 +88,7 @@ public:
 		Yield,		//!<Must yield the connection
 		Continue,	//!<reexecute the top function - no pop
 		Error,		//!<parser error - must enter error recovery
+		LastReturnValue
 	};
 	enum ManagementOptions{
 		ClearLogging,
@@ -158,6 +159,7 @@ public:
 	//!Callback for popping certain calbacks from the stack
 	static int pop(Reader &_rr, Parameter &_rp);
 	//!Callback for returning a certain value
+	template <bool B>
 	static int returnValue(Reader &_rr, Parameter &_rp);
 	//!Callback for reader management - set reset certain data
 	static int manage(Reader &_rr, Parameter &_rp);
