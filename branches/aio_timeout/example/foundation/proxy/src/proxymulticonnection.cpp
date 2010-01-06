@@ -71,8 +71,8 @@ enum{
 	};
 int MultiConnection::execute(ulong _sig, TimeSpec &_tout){
 	idbg("time.sec "<<_tout.seconds()<<" time.nsec = "<<_tout.nanoSeconds());
-	if(_sig & (fdt::TIMEOUT | fdt::ERRDONE)){
-		idbg("connecton timeout or error : tout "<<fdt::TIMEOUT<<" err "<<fdt::ERRDONE);
+	if(_sig & (fdt::TIMEOUT | fdt::ERRDONE | fdt::TIMEOUT_RECV | fdt::TIMEOUT_SEND)){
+		idbg("connecton timeout or error : tout "<<fdt::TIMEOUT<<" err "<<fdt::ERRDONE<<" toutrecv "<<fdt::TIMEOUT_RECV<<" tout send "<<fdt::TIMEOUT_SEND);
 		//We really need this check as epoll upsets if we register an unconnected socket
 		if(state() != CONNECT){
 			//lets see which socket has timeout:
@@ -220,7 +220,7 @@ int MultiConnection::doProxy(const TimeSpec &_tout){
 					break;
 				case NOK:
 					idbg("receive nok 0");
-					socketTimeout(0, _tout, 30);
+					socketTimeoutRecv(0, 30);
 					socketState(0, ReceiveWait);
 					break;
 			}
@@ -244,7 +244,7 @@ int MultiConnection::doProxy(const TimeSpec &_tout){
 				case NOK:
 					idbg("send nok 0");
 					socketState(0, SendWait);
-					socketTimeout(1, _tout, 50);
+					socketTimeoutSend(1, 50);
 					break;
 			}
 			break;
@@ -270,7 +270,7 @@ int MultiConnection::doProxy(const TimeSpec &_tout){
 					break;
 				case NOK:
 					idbg("receive nok 1");
-					socketTimeout(1, _tout, 50);
+					socketTimeoutRecv(1, 50);
 					socketState(1, ReceiveWait);
 					break;
 			}
@@ -294,7 +294,7 @@ int MultiConnection::doProxy(const TimeSpec &_tout){
 				case NOK:
 					idbg("send nok 1");
 					socketState(1, SendWait);
-					socketTimeout(0, _tout, 30);
+					socketTimeoutSend(0, 30);
 					break;
 			}
 			break;

@@ -53,7 +53,9 @@ enum Events{
 	TIMEOUT = 16,//Unsuccessfull asynchrounous completion due to timeout
 	SIGNALED = 32,
 	IODONE = 64,
-	RESCHEDULED = 128
+	RESCHEDULED = 128,
+	TIMEOUT_RECV = 256,
+	TIMEOUT_SEND = 512,
 	
 };
 

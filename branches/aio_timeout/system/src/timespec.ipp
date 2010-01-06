@@ -101,6 +101,10 @@ inline TimeSpec& TimeSpec::operator -= (const TimeSpec &_ts){
 	return *this;
 }
 
+inline bool TimeSpec::isMax()const{
+	return tv_sec == 0xffffffff;
+}
+
 #ifdef NINLINES
 #undef inline
 #endif

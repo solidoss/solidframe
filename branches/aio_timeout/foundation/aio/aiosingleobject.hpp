@@ -152,7 +152,8 @@ private:
 	SocketStub	stub;
 	int32		req;
 	int32		res;
-	int32		tout;
+	int32		itout;
+	int32		otout;
 };
 
 inline void SingleObject::socketTimeoutRecv(ulong _addsec, ulong _addnsec){

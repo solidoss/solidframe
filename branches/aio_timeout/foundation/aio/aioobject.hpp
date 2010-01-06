@@ -70,22 +70,26 @@ protected:
 		};
 		SocketStub(Socket *_psock = NULL):
 			psock(_psock),
-			timepos(TimeSpec::max),
+			itimepos(TimeSpec::max),
+			otimepos(TimeSpec::max),
 			itoutpos(-1),
 			otoutpos(-1),
 			hasresponse(false),requesttype(0), chnevents(0), selevents(0){}
 		~SocketStub();
 		void reset(){
 			psock = NULL;
-			timepos.set(0xffffffff, 0xffffffff);
-			toutpos = -1;
+			itimepos = TimeSpec::max;
+			otimepos = TimeSpec::max;
+			itoutpos = -1;
+			otoutpos = -1;
 			hasresponse = false;
 			requesttype = 0;
 			chnevents = 0;
 			selevents = 0;
 		}
 		Socket		*psock;
-		TimeSpec	timepos;
+		TimeSpec	itimepos;
+		TimeSpec	otimepos;
 		int			itoutpos;	//-1 or position in toutvec
 		int			otoutpos;	//-1 or position in toutvec
 		uint8		hasresponse;//the socket is in response queue
@@ -114,7 +118,7 @@ protected:
 		uint32 _stubcp,
 		int32 *_reqbeg,
 		int32 *_resbeg,
-		int32 *_itoutbeg
+		int32 *_itoutbeg,
 		int32 *_otoutbeg
 	):
 		pitimepos(NULL), potimepos(NULL), pstubs(_pstubs), stubcp(_stubcp),
@@ -130,17 +134,18 @@ private:
 	static void doSetCurrentTime(const TimeSpec *_pcrtts);
 	void doPrepare(TimeSpec *_pitimepos, TimeSpec *_potimepos);
 	void doUnprepare();
+	void doClearRequests();
 	
 	uint doOnTimeoutRecv(const TimeSpec &_timepos);
 	uint doOnTimeoutSend(const TimeSpec &_timepos);
 	
 	void doPopTimeoutRecv(uint32 _pos);
 	void doPopTimeoutSend(uint32 _pos);
+
+protected:
+	void doPushTimeoutRecv(uint32 _pos, const TimeSpec &_crttime, ulong _addsec, ulong _addnsec);
+	void doPushTimeoutSend(uint32 _pos, const TimeSpec &_crttime, ulong _addsec, ulong _addnsec);
 	
-	void doPushTimeoutRecv(const TimeSpec &_crttime, ulong _addsec, ulong _addnsec);
-	void doPushTimeoutSend(const TimeSpec &_crttime, ulong _addsec, ulong _addnsec);
-	
-	void doClearRequests();
 	
 protected:
 	TimeSpec			*pitimepos;

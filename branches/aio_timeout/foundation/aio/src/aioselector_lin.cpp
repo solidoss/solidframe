@@ -178,7 +178,6 @@ void Selector::Data::stub(uint32 &_objpos, uint32 &_sockpos, const epoll_event &
 }
 //=============================================================
 Selector::Selector():d(*(new Data)){
-	Object::doSetCurrentTime(&d.ctimepos);
 }
 Selector::~Selector(){
 	delete &d;
@@ -187,6 +186,8 @@ int Selector::reserve(uint _cp){
 	cassert(_cp);
 	d.objcp = _cp;
 	d.sockcp = _cp;
+	
+	Object::doSetCurrentTime(&d.ctimepos);
 	
 	//first create the epoll descriptor:
 	cassert(d.epollfd < 0);
@@ -251,6 +252,7 @@ int Selector::reserve(uint _cp){
 }
 
 void Selector::prepare(){
+	Object::doSetCurrentTime(&d.ctimepos);
 }
 void Selector::unprepare(){
 }
@@ -330,7 +332,7 @@ void Selector::push(const ObjectTp &_objptr, uint _thid){
 	}else{
 		++d.objsz;
 		stub.objptr = _objptr;
-		stub.objptr->doPrepare(&stub.timepos);
+		stub.objptr->doPrepare(&stub.itimepos, &stub.otimepos);
 		idbgx(Dbg::aio, "pushing object "<<&(*(stub.objptr))<<" on position "<<stubpos);
 		stub.state = Stub::InExecQueue;
 		d.execq.push(stubpos);
@@ -549,10 +551,12 @@ uint Selector::doAllIo(){
 		if(stubpos){
 			cassert(stubpos < d.stubs.size());
 			Stub				&stub(d.stubs[stubpos]);
-			cassert(sockpos < stub.objptr->stubcp);
-			cassert(stub.objptr->pstubs[sockpos].psock);
 			Object::SocketStub	&sockstub(stub.objptr->pstubs[sockpos]);
 			Socket				&sock(*sockstub.psock);
+			
+			cassert(sockpos < stub.objptr->stubcp);
+			cassert(stub.objptr->pstubs[sockpos].psock);
+			
 			vdbgx(Dbg::aio, "io events stubpos = "<<stubpos<<" events = "<<d.events[i].events);
 			evs = doIo(sock, d.events[i].events);
 			{
@@ -640,7 +644,7 @@ uint Selector::doExecute(const uint _pos){
 			doUnregisterObject(*stub.objptr);
 			stub.objptr->doUnprepare();
 			stub.objptr.clear();
-			stub.timepos.set(0xffffffff, 0xffffffff);
+			stub.timepos = TimeSpec::max;
 			--d.objsz;
 			rv = Data::EXIT_LOOP;
 			break;
@@ -654,7 +658,7 @@ uint Selector::doExecute(const uint _pos){
 		case LEAVE:
 			d.freestubsstk.push(_pos);
 			doUnregisterObject(*stub.objptr);
-			stub.timepos.set(0xffffffff, 0xffffffff);
+			stub.timepos = TimeSpec::max;
 			--d.objsz;
 			stub.objptr->doUnprepare();
 			stub.objptr.release();

@@ -68,7 +68,7 @@ Talker::~Talker(){
 	delete pai;
 }
 int Talker::execute(ulong _sig, TimeSpec &_tout){
-	if(_sig & (fdt::TIMEOUT | fdt::ERRDONE)){
+	if(_sig & (fdt::TIMEOUT | fdt::ERRDONE | fdt::TIMEOUT_SEND | fdt::TIMEOUT_RECV)){
 		if(_sig & fdt::TIMEOUT)
 			idbg("talker timeout");
 		if(_sig & fdt::ERRDONE)
@@ -92,7 +92,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 					case BAD: return BAD;
 					case OK: state(READ_TOUT);break;
 					case NOK:
-						socketTimeout(_tout, 20);
+						socketTimeoutRecv(20);
 						state(READ_TOUT); 
 						return NOK;
 				}
@@ -104,12 +104,12 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 					case BAD: return BAD;
 					case OK: break;
 					case NOK: state(WRITE_TOUT);
-						socketTimeout(_tout, 20);
+						socketTimeoutSend(20);
 						return NOK;
 				}
 			case WRITE_TOUT:
 				state(WRITE2);
-				socketTimeout(_tout, 20);
+				socketTimeoutSend(_tout, 20);
 				return NOK;
 			case WRITE2:
 				sprintf(bbeg + socketRecvSize() - 1," [%u:%d]\r\n", (unsigned)_tout.seconds(), (int)_tout.nanoSeconds());
@@ -117,7 +117,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 					case BAD: return BAD;
 					case OK: break;
 					case NOK: state(WRITE_TOUT2);
-						socketTimeout(_tout, 20);
+						socketTimeoutSend(20);
 						return NOK;
 				}
 			case WRITE_TOUT2:

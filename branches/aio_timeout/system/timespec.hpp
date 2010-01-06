@@ -36,6 +36,7 @@ struct TimeSpec: public timespec{
 	
 	TimeSpec(const TimeTp &_s = 0, long _ns = 0){set(_s, _ns);}
 	TimeTp	seconds()const{return tv_sec;}
+	bool isMax()const;
 	long	nanoSeconds()const{return tv_nsec;}
 	void seconds(const TimeTp &_s){tv_sec = _s;}
 	void nanoSeconds(long _ns){tv_nsec = _ns;}
