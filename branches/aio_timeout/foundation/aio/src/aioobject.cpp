@@ -125,6 +125,7 @@ uint Object::doOnTimeoutSend(const TimeSpec &_timepos){
 	
 inline void Object::doPopTimeoutRecv(uint32 _pos){
 	cassert(itoutpos != itoutbeg);
+	vdbgx(Dbg::aio, "pop itimeout pos "<<_pos<<" tout "<<pstubs[_pos].itimepos.seconds());
 	uint tpos = pstubs[_pos].itoutpos;
 	--itoutpos;
 	itoutbeg[tpos] = *itoutpos;
@@ -133,6 +134,7 @@ inline void Object::doPopTimeoutRecv(uint32 _pos){
 }
 inline void Object::doPopTimeoutSend(uint32 _pos){
 	cassert(otoutpos != otoutbeg);
+	vdbgx(Dbg::aio, "pop otimeout pos "<<_pos<<" tout "<<pstubs[_pos].otimepos.seconds());
 	uint tpos = pstubs[_pos].otoutpos;
 	--otoutpos;
 	otoutbeg[tpos] = *otoutpos;
@@ -144,6 +146,7 @@ void Object::doPushTimeoutRecv(uint32 _pos, const TimeSpec &_crttime, ulong _add
 	SocketStub &rss(pstubs[_pos]);
 	rss.itimepos = _crttime;
 	rss.itimepos.add(_addsec, _addnsec);
+	vdbgx(Dbg::aio, "pos = "<<_pos<<"itimepos = "<<rss.itimepos.seconds()<<" crttime = "<<_crttime.seconds());
 	if(rss.itoutpos < 0){
 		rss.itoutpos = itoutpos - itoutbeg;
 		*itoutpos = _pos;
@@ -155,15 +158,16 @@ void Object::doPushTimeoutRecv(uint32 _pos, const TimeSpec &_crttime, ulong _add
 }
 void Object::doPushTimeoutSend(uint32 _pos, const TimeSpec &_crttime, ulong _addsec, ulong _addnsec){
 	SocketStub &rss(pstubs[_pos]);
-	rss.itimepos = _crttime;
+	rss.otimepos = _crttime;
 	rss.otimepos.add(_addsec, _addnsec);
+	vdbgx(Dbg::aio, "pos = "<<_pos<<"otimepos = "<<rss.otimepos.seconds()<<" crttime = "<<_crttime.seconds());
 	if(rss.otoutpos < 0){
 		rss.otoutpos = otoutpos - otoutbeg;
 		*otoutpos = _pos;
 		++otoutpos;
 	}
 	if(rss.otimepos < *potimepos){
-		*potimepos = rss.itimepos;
+		*potimepos = rss.otimepos;
 	}
 }
 
