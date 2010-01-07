@@ -71,7 +71,7 @@ Connection::~Connection(){
 
 int Connection::execute(ulong _sig, TimeSpec &_tout){
 	idbg("time.sec "<<_tout.seconds()<<" time.nsec = "<<_tout.nanoSeconds());
-	if(_sig & (fdt::TIMEOUT | fdt::ERRDONE)){
+	if(_sig & (fdt::TIMEOUT | fdt::ERRDONE | fdt::TIMEOUT_RECV | fdt::TIMEOUT_SEND)){
 		idbg("connecton timeout or error");
 		if(state() == CONNECT_TOUT){
 			if(++it){
@@ -111,7 +111,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 					case OK: break;
 					case NOK: 
 						state(READ_TOUT); b=true; 
-						socketTimeout(_tout, 30);
+						socketTimeoutRecv(30);
 						return NOK;
 				}
 			case READ_TOUT:
@@ -122,7 +122,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 					case OK: break;
 					case NOK: 
 						state(WRITE_TOUT);
-						socketTimeout(_tout, 10);
+						socketTimeoutSend(10);
 						return NOK;
 				}
 			case WRITE_TOUT:

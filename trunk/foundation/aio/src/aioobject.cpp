@@ -24,6 +24,8 @@
 #include "foundation/aio/aiomultiobject.hpp"
 #include "foundation/aio/src/aiosocket.hpp"
 #include "system/cassert.hpp"
+#include "system/debug.hpp"
+#include "system/thread.hpp"
 
 #include <memory>
 #include <cstring>
@@ -31,7 +33,23 @@
 namespace foundation{
 
 namespace aio{
+
+namespace {
+static const uint crtTimeThreadSpec(){
+	static const uint id(Thread::specificId());
+	return id;
+}
+}
+
+
 //======================== aio::Object ==================================
+
+/*static*/ const TimeSpec& Object::currentTime(){
+	return *reinterpret_cast<const TimeSpec*>(Thread::specific(crtTimeThreadSpec()));
+}
+/*static*/ void Object::doSetCurrentTime(const TimeSpec *_pcrtts){
+	Thread::specific(crtTimeThreadSpec(), const_cast<TimeSpec *>(_pcrtts));
+}
 
 Object::SocketStub::~SocketStub(){
 	delete psock;
@@ -44,87 +62,163 @@ Object::SocketStub::~SocketStub(){
 	return BAD;
 }
 
-void Object::pushRequest(const uint _pos, const uint _req){
-	if(pstubs[_pos].request > SocketStub::Response){
-		return;
-	}
-	pstubs[_pos].request = _req;
-	*reqpos = _pos; ++reqpos;
-}
-
-inline void Object::doPushResponse(uint32 _pos){
-	if(pstubs[_pos].request != SocketStub::Response){
-		*respos = _pos; ++respos;
-		//the assert is only valid for singleconnections only
-		//cassert(respos - resbeg == 1);
-		pstubs[_pos].request = SocketStub::Response;
-	}
-}
-inline void Object::doPopTimeout(uint32 _pos){
-	cassert(toutpos != toutbeg);
-	--toutpos;
-	toutbeg[pstubs[_pos].toutpos] = *toutpos;
-/*#ifdef DEBUG
-	*toutpos = -1;
-#endif*/
-	pstubs[_pos].toutpos = -1;
-}
-
-void Object::doAddSignaledSocketFirst(const uint _pos, const uint _evs){
-	cassert(_pos < stubcp || pstubs[_pos].psock);
-	pstubs[_pos].chnevents = _evs;
-	if(pstubs[_pos].toutpos >= 0){
-		doPopTimeout(_pos);
-	}
-	doPushResponse(_pos);
-}
-void Object::doAddSignaledSocketNext(const uint _pos, const uint _evs){
-	cassert(_pos < stubcp || pstubs[_pos].psock);
-	pstubs[_pos].chnevents |= _evs;
-	if(pstubs[_pos].toutpos >= 0){
-		doPopTimeout(_pos);
-	}
-	doPushResponse(_pos);
-}
-void Object::doAddTimeoutSockets(const TimeSpec &_timepos){
+uint Object::doOnTimeoutRecv(const TimeSpec &_timepos){
 	//add all timeouted stubs to responses
-	const int32 *pend(toutpos);
-	for(int32 *pit(toutbeg); pit != pend;){
-		cassert(pstubs[*pit].psock);
-		if(pstubs[*pit].timepos <= _timepos){
-			pstubs[*pit].chnevents |= TIMEOUT;
-			doPushResponse(*pit);
+	const int32	*pend(itoutpos);
+	uint 		rv(0);
+	
+	*pitimepos = TimeSpec::max;
+	
+	for(int32 *pit(itoutbeg); pit != pend;){
+		SocketStub &rss(pstubs[*pit]);
+		cassert(rss.psock);
+		
+		vdbgx(Dbg::aio, "compare time for pos "<<*pit<<" tout "<<rss.itimepos.seconds()<<" with crttime "<<_timepos.seconds());
+		
+		if(rss.itimepos <= _timepos){
+			rv = TIMEOUT_RECV;
+			socketPostEvents(*pit, TIMEOUT_RECV);
 			--pend;
 			*pit = *pend;
 			//TODO: add some checking
 			//pstubs[*pit].toutpos = pit - toutbeg;
-		}else ++pit;
+		}else{
+			//pitimepos will hold the minimum itimepos for sockets
+			if(rss.itimepos < *pitimepos){
+				*pitimepos = rss.itimepos;
+			}
+			++pit;
+		}
+	}
+	return rv;
+}
+uint Object::doOnTimeoutSend(const TimeSpec &_timepos){
+	//add all timeouted stubs to responses
+	const int32	*pend(otoutpos);
+	uint 		rv(0);
+	
+	*potimepos = TimeSpec::max;
+	
+	for(int32 *pit(otoutbeg); pit != pend;){
+		SocketStub &rss(pstubs[*pit]);
+		cassert(rss.psock);
+		
+		vdbgx(Dbg::aio, "compare time for pos "<<*pit<<" tout "<<rss.otimepos.seconds()<<" with crttime "<<_timepos.seconds());
+		
+		if(rss.otimepos <= _timepos){
+			rv = TIMEOUT_SEND;
+			socketPostEvents(*pit, TIMEOUT_SEND);
+			--pend;
+			*pit = *pend;
+			//TODO: add some checking
+			//pstubs[*pit].toutpos = pit - toutbeg;
+		}else{
+			//pitimepos will hold the minimum itimepos for sockets
+			if(rss.otimepos < *potimepos){
+				*potimepos = rss.itimepos;
+			}
+			++pit;
+		}
+	}
+	return rv;
+}
+	
+inline void Object::doPopTimeoutRecv(uint32 _pos){
+	cassert(itoutpos != itoutbeg);
+	vdbgx(Dbg::aio, "pop itimeout pos "<<_pos<<" tout "<<pstubs[_pos].itimepos.seconds());
+	uint tpos = pstubs[_pos].itoutpos;
+	--itoutpos;
+	itoutbeg[tpos] = *itoutpos;
+	pstubs[*itoutpos].itoutpos = tpos;
+	pstubs[_pos].itoutpos = -1;
+}
+inline void Object::doPopTimeoutSend(uint32 _pos){
+	cassert(otoutpos != otoutbeg);
+	vdbgx(Dbg::aio, "pop otimeout pos "<<_pos<<" tout "<<pstubs[_pos].otimepos.seconds());
+	uint tpos = pstubs[_pos].otoutpos;
+	--otoutpos;
+	otoutbeg[tpos] = *otoutpos;
+	pstubs[*otoutpos].otoutpos = tpos;
+	pstubs[_pos].otoutpos = -1;
+}
+	
+void Object::doPushTimeoutRecv(uint32 _pos, const TimeSpec &_crttime, ulong _addsec, ulong _addnsec){
+	SocketStub &rss(pstubs[_pos]);
+	rss.itimepos = _crttime;
+	rss.itimepos.add(_addsec, _addnsec);
+	vdbgx(Dbg::aio, "pos = "<<_pos<<"itimepos = "<<rss.itimepos.seconds()<<" crttime = "<<_crttime.seconds());
+	if(rss.itoutpos < 0){
+		rss.itoutpos = itoutpos - itoutbeg;
+		*itoutpos = _pos;
+		++itoutpos;
+	}
+	if(rss.itimepos < *pitimepos){
+		*pitimepos = rss.itimepos;
+	}
+}
+void Object::doPushTimeoutSend(uint32 _pos, const TimeSpec &_crttime, ulong _addsec, ulong _addnsec){
+	SocketStub &rss(pstubs[_pos]);
+	rss.otimepos = _crttime;
+	rss.otimepos.add(_addsec, _addnsec);
+	vdbgx(Dbg::aio, "pos = "<<_pos<<"otimepos = "<<rss.otimepos.seconds()<<" crttime = "<<_crttime.seconds());
+	if(rss.otoutpos < 0){
+		rss.otoutpos = otoutpos - otoutbeg;
+		*otoutpos = _pos;
+		++otoutpos;
+	}
+	if(rss.otimepos < *potimepos){
+		*potimepos = rss.otimepos;
 	}
 }
 
-void Object::doPrepare(TimeSpec *_ptimepos){
-	ptimepos = _ptimepos;
+void Object::socketPushRequest(const uint _pos, const uint8 _req){
+	//NOTE: only a single request at a time is allowed
+	cassert(!pstubs[_pos].requesttype);
+	if(pstubs[_pos].requesttype) return;
+	pstubs[_pos].requesttype = _req;
+	*reqpos = _pos;
+	++reqpos;
+}
+
+void Object::socketPostEvents(const uint _pos, const uint32 _evs){
+	SocketStub &rss(pstubs[_pos]);
+	rss.chnevents |= _evs;
+	if(!rss.hasresponse){
+		rss.hasresponse = true;
+		resbeg[respos] = _pos;
+		respos = (respos + 1) % (stubcp);
+		++ressize;
+	}
+	if((_evs & INDONE) && rss.itoutpos >= 0){
+		doPopTimeoutRecv(_pos);
+	}
+	if((_evs & OUTDONE) && rss.otoutpos >= 0){
+		doPopTimeoutSend(_pos);
+	}
+}
+
+void Object::doPrepare(TimeSpec *_pitimepos, TimeSpec *_potimepos){
+	pitimepos = _pitimepos;
+	potimepos = _potimepos;
 }
 void Object::doUnprepare(){
-	ptimepos = NULL;
+	pitimepos = NULL;
+	potimepos = NULL;
 }
 
 void Object::doClearRequests(){
 	reqpos = reqbeg;
 }
-void Object::doClearResponses(){
-	respos = resbeg;
-}
 
 //========================== aio::SingleObject =============================
 
 SingleObject::SingleObject(Socket *_psock):
-	Object(&stub, 1, &req, &res, &tout), req(-1), res(-1), tout(-1)
+	Object(&stub, 1, &req, &res, &itout, &otout), req(-1), res(-1), itout(-1), otout(-1)
 {
 	stub.psock = _psock;
 }
 SingleObject::SingleObject(const SocketDevice &_rsd):
-	Object(&stub, 1, &req, &res, &tout), req(-1), res(-1), tout(-1)
+	Object(&stub, 1, &req, &res, &itout, &otout), req(-1), res(-1), itout(-1), otout(-1)
 {
 	if(_rsd.ok()){
 		socketSet(_rsd);
@@ -140,7 +234,7 @@ bool SingleObject::socketOk()const{
 int SingleObject::socketAccept(SocketDevice &_rsd){
 	int rv = stub.psock->accept(_rsd);
 	if(rv == NOK){
-		pushRequest(0, SocketStub::IORequest);
+		socketPushRequest(0, SocketStub::IORequest);
 	}
 	return rv;
 }
@@ -149,7 +243,7 @@ int SingleObject::socketConnect(const AddrInfoIterator& _rai){
 	cassert(stub.psock);
 	int rv = stub.psock->connect(_rai);
 	if(rv == NOK){
-		pushRequest(0, SocketStub::IORequest);
+		socketPushRequest(0, SocketStub::IORequest);
 	}
 	return rv;
 }
@@ -161,7 +255,7 @@ int SingleObject::socketSend(const char* _pb, uint32 _bl, uint32 _flags){
 	cassert(stub.psock);
 	int rv = stub.psock->send(_pb, _bl);
 	if(rv == NOK){
-		pushRequest(0, SocketStub::IORequest);
+		socketPushRequest(0, SocketStub::IORequest);
 	}
 	return rv;
 }
@@ -172,7 +266,7 @@ int SingleObject::socketSendTo(const char* _pb, uint32 _bl, const SockAddrPair &
 	cassert(stub.psock);
 	int rv = stub.psock->sendTo(_pb, _bl, _sap);
 	if(rv == NOK){
-		pushRequest(0, SocketStub::IORequest);
+		socketPushRequest(0, SocketStub::IORequest);
 	}
 	return rv;
 }
@@ -184,7 +278,7 @@ int SingleObject::socketRecv(char *_pb, uint32 _bl, uint32 _flags){
 	int rv = stub.psock->recv(_pb, _bl);
 	if(rv == NOK){
 		//stub.timepos.set(0xffffffff, 0xffffffff);
-		pushRequest(0, SocketStub::IORequest);
+		socketPushRequest(0, SocketStub::IORequest);
 	}
 	return rv;
 }
@@ -196,7 +290,7 @@ int SingleObject::socketRecvFrom(char *_pb, uint32 _bl, uint32 _flags){
 	int rv = stub.psock->recvFrom(_pb, _bl);
 	if(rv == NOK){
 		//stub.timepos.set(0xffffffff, 0xffffffff);
-		pushRequest(0, SocketStub::IORequest);
+		socketPushRequest(0, SocketStub::IORequest);
 	}
 	return rv;
 }
@@ -224,18 +318,14 @@ int SingleObject::socketLocalAddress(SocketAddress &_rsa)const{
 int SingleObject::socketRemoteAddress(SocketAddress &_rsa)const{
 	return stub.psock->remoteAddress(_rsa);
 }
-void SingleObject::socketTimeout(const TimeSpec &_crttime, ulong _addsec, ulong _addnsec){
-	stub.timepos = _crttime;
-	stub.timepos.add(_addsec, _addnsec);
-	if(stub.toutpos < 0){
-		stub.toutpos = 0;
-		*toutpos = 0;
-		++toutpos;
-	}
-	if(*ptimepos > stub.timepos){
-		*ptimepos = stub.timepos;
-	}
+
+void SingleObject::socketTimeoutRecv(const TimeSpec &_crttime, ulong _addsec, ulong _addnsec){
+	this->doPushTimeoutRecv(0, _crttime, _addsec, _addnsec);
 }
+void SingleObject::socketTimeoutSend(const TimeSpec &_crttime, ulong _addsec, ulong _addnsec){
+	this->doPushTimeoutSend(0, _crttime, _addsec, _addnsec);
+}
+
 uint32 SingleObject::socketEvents()const{
 	return stub.chnevents;
 }
@@ -267,15 +357,15 @@ int SingleObject::socketSet(const SocketDevice &_rsd){
 
 void SingleObject::socketRequestRegister(){
 	//ensure that we dont have double request
-	cassert(stub.request <= SocketStub::Response);
-	stub.request = SocketStub::RegisterRequest;
+	cassert(!stub.requesttype);
+	stub.requesttype = SocketStub::RegisterRequest;
 	*reqpos = 0;
 	++reqpos;
 }
 void SingleObject::socketRequestUnregister(){
 	//ensure that we dont have double request
-	cassert(stub.request <= SocketStub::Response);
-	stub.request = SocketStub::UnregisterRequest;
+	cassert(!stub.requesttype);
+	stub.requesttype = SocketStub::UnregisterRequest;
 	*reqpos = 0;
 	++reqpos;
 }
@@ -302,7 +392,7 @@ int SingleObject::socketSecureAccept(){
 	int rv = stub.psock->secureAccept();
 	if(rv == NOK){
 		//stub.timepos.set(0xffffffff, 0xffffffff);
-		pushRequest(0, SocketStub::IORequest);
+		socketPushRequest(0, SocketStub::IORequest);
 	}
 	return rv;
 }
@@ -310,18 +400,18 @@ int SingleObject::socketSecureConnect(){
 	int rv = stub.psock->secureConnect();
 	if(rv == NOK){
 		//stub.timepos.set(0xffffffff, 0xffffffff);
-		pushRequest(0, SocketStub::IORequest);
+		socketPushRequest(0, SocketStub::IORequest);
 	}
 	return rv;
 }
 
 //=========================== aio::MultiObject =============================
 
-MultiObject::MultiObject(Socket *_psock):Object(NULL, 0, NULL, NULL, NULL){
+MultiObject::MultiObject(Socket *_psock):Object(NULL, 0, NULL, NULL, NULL, NULL), respoppos(0){
 	if(_psock)
 		socketInsert(_psock);
 }
-MultiObject::MultiObject(const SocketDevice &_rsd):Object(NULL, 0, NULL, NULL, NULL){
+MultiObject::MultiObject(const SocketDevice &_rsd):Object(NULL, 0, NULL, NULL, NULL, NULL), respoppos(0){
 	socketInsert(_rsd);
 }
 MultiObject::~MultiObject(){
@@ -333,6 +423,25 @@ MultiObject::~MultiObject(){
 	delete []oldbuf;
 }
 
+uint MultiObject::signaledSize()const{
+	return ressize;
+}
+
+uint MultiObject::signaledFront()const{
+	return resbeg[respoppos];
+}
+
+void MultiObject::signaledPop(){
+	cassert(signaledSize());
+	uint v = resbeg[respoppos];
+	//first we clear the events from current "front"
+	pstubs[v].chnevents = 0;
+	pstubs[v].hasresponse = false;
+	//the new front position
+	respoppos = (respoppos + 1) % stubcp;
+	--ressize;
+}
+
 bool MultiObject::socketOk(const uint _pos)const{
 	cassert(_pos < stubcp);
 	return pstubs[_pos].psock->ok();
@@ -342,7 +451,7 @@ int MultiObject::socketAccept(const uint _pos, SocketDevice &_rsd){
 	cassert(_pos < stubcp);
 	int rv = pstubs[_pos].psock->accept(_rsd);
 	if(rv == NOK){
-		pushRequest(0, SocketStub::IORequest);
+		socketPushRequest(0, SocketStub::IORequest);
 	}
 	return rv;
 }
@@ -351,7 +460,7 @@ int MultiObject::socketConnect(const uint _pos, const AddrInfoIterator& _rai){
 	cassert(_pos < stubcp);
 	int rv = pstubs[_pos].psock->connect(_rai);
 	if(rv == NOK){
-		pushRequest(_pos, SocketStub::IORequest);
+		socketPushRequest(_pos, SocketStub::IORequest);
 	}
 	return rv;
 }
@@ -369,7 +478,7 @@ int MultiObject::socketSend(
 	cassert(_pos < stubcp);
 	int rv = pstubs[_pos].psock->send(_pb, _bl, _flags);
 	if(rv == NOK){
-		pushRequest(_pos, SocketStub::IORequest);
+		socketPushRequest(_pos, SocketStub::IORequest);
 	}
 	return rv;
 }
@@ -384,7 +493,7 @@ int MultiObject::socketSendTo(
 	cassert(_pos < stubcp);
 	int rv = pstubs[_pos].psock->sendTo(_pb, _bl, _sap, _flags);
 	if(rv == NOK){
-		pushRequest(_pos, SocketStub::IORequest);
+		socketPushRequest(_pos, SocketStub::IORequest);
 	}
 	return rv;
 }
@@ -398,7 +507,7 @@ int MultiObject::socketRecv(
 	cassert(_pos < stubcp);
 	int rv = pstubs[_pos].psock->recv(_pb, _bl, _flags);
 	if(rv == NOK){
-		pushRequest(_pos, SocketStub::IORequest);
+		socketPushRequest(_pos, SocketStub::IORequest);
 	}
 	return rv;
 }
@@ -411,7 +520,7 @@ int MultiObject::socketRecvFrom(
 	cassert(_pos < stubcp);
 	int rv = pstubs[_pos].psock->recvFrom(_pb, _bl, _flags);
 	if(rv == NOK){
-		pushRequest(_pos, SocketStub::IORequest);
+		socketPushRequest(_pos, SocketStub::IORequest);
 	}
 	return rv;
 }
@@ -443,22 +552,23 @@ int MultiObject::socketRemoteAddress(const uint _pos, SocketAddress &_rsa)const{
 	cassert(_pos < stubcp);
 	return pstubs[_pos].psock->remoteAddress(_rsa);
 }
-void MultiObject::socketTimeout(
+
+void MultiObject::socketTimeoutRecv(
 	const uint _pos,
 	const TimeSpec &_crttime,
 	ulong _addsec,
 	ulong _addnsec
 ){
-	pstubs[_pos].timepos = _crttime;
-	pstubs[_pos].timepos.add(_addsec, _addnsec);
-	if(pstubs[_pos].toutpos < 0){
-		pstubs[_pos].toutpos = toutpos - toutbeg;
-		*toutpos = _pos;
-		++toutpos;
-	}
-	if(*ptimepos > pstubs[_pos].timepos){
-		*ptimepos = pstubs[_pos].timepos;
-	}
+	this->doPushTimeoutRecv(_pos, _crttime, _addsec, _addnsec);
+}
+
+void MultiObject::socketTimeoutSend(
+	const uint _pos,
+	const TimeSpec &_crttime,
+	ulong _addsec,
+	ulong _addnsec
+){
+	this->doPushTimeoutSend(_pos, _crttime, _addsec, _addnsec);
 }
 uint32 MultiObject::socketEvents(const uint _pos)const{
 	cassert(_pos < stubcp);
@@ -494,15 +604,15 @@ int MultiObject::socketInsert(const SocketDevice &_rsd){
 }
 void MultiObject::socketRequestRegister(const uint _pos){
 	cassert(_pos < stubcp);
-	cassert(pstubs[_pos].request <= SocketStub::Response);
-	pstubs[_pos].request = SocketStub::RegisterRequest;
+	cassert(!pstubs[_pos].requesttype);
+	pstubs[_pos].requesttype = SocketStub::RegisterRequest;
 	*reqpos = _pos;
 	++reqpos;
 }
 void MultiObject::socketRequestUnregister(const uint _pos){
 	cassert(_pos < stubcp);
-	cassert(pstubs[_pos].request <= SocketStub::Response);
-	pstubs[_pos].request = SocketStub::UnregisterRequest;
+	cassert(!pstubs[_pos].requesttype);
+	pstubs[_pos].requesttype = SocketStub::UnregisterRequest;
 	*reqpos = _pos;
 	++reqpos;
 }
@@ -518,16 +628,20 @@ inline uint MultiObject::dataSize(const uint _cp){
 	return _cp * sizeof(SocketStub)//the stubs
 			+ _cp * sizeof(int32)//the requests
 			+ _cp * sizeof(int32)//the reqponses
-			+ _cp * sizeof(int32);//the timeouts
+			+ _cp * sizeof(int32)//the itimeouts
+			+ _cp * sizeof(int32)//the otimeouts
+			;
 }
 void MultiObject::reserve(const uint _cp){
 	cassert(_cp > stubcp);
 	//first we allocate the space
 	char* buf = new char[dataSize(_cp)];
-	SocketStub	*pnewstubs(reinterpret_cast<SocketStub*>(buf));
-	int32		*pnewreqbeg(reinterpret_cast<int32*>(buf + sizeof(SocketStub) * _cp));
-	int32		*pnewresbeg(reinterpret_cast<int32*>(buf + sizeof(SocketStub) * _cp + _cp * sizeof(int32)));
-	int32		*pnewtoutbeg(reinterpret_cast<int32*>(buf + sizeof(SocketStub) * _cp + 2 * _cp * sizeof(int32)));
+	
+	SocketStub	*pnewstubs   (reinterpret_cast<SocketStub*>(buf));
+	int32		*pnewreqbeg  (reinterpret_cast<int32*>(buf + sizeof(SocketStub) * _cp));
+	int32		*pnewresbeg  (reinterpret_cast<int32*>(buf + sizeof(SocketStub) * _cp + 1 * _cp * sizeof(int32)));
+	int32		*pnewitoutbeg(reinterpret_cast<int32*>(buf + sizeof(SocketStub) * _cp + 2 * _cp * sizeof(int32)));
+	int32		*pnewotoutbeg(reinterpret_cast<int32*>(buf + sizeof(SocketStub) * _cp + 3 * _cp * sizeof(int32)));
 	if(pstubs){
 		//then copy all the existing stubs:
 		memcpy(pnewstubs, (void*)pstubs, sizeof(SocketStub) * stubcp);
@@ -535,28 +649,37 @@ void MultiObject::reserve(const uint _cp){
 		memcpy(pnewreqbeg, reqbeg, sizeof(int32) * stubcp);
 		//then the responses
 		memcpy(pnewresbeg, resbeg, sizeof(int32) * stubcp);
-		//then the timeouts
-		memcpy(pnewtoutbeg, resbeg, sizeof(int32) * stubcp);
+		//then the itimeouts
+		memcpy(pnewitoutbeg, itoutbeg, sizeof(int32) * stubcp);
+		//then the otimeouts
+		memcpy(pnewotoutbeg, otoutbeg, sizeof(int32) * stubcp);
 		char *oldbuf = reinterpret_cast<char*>(pstubs);
 		delete []oldbuf;
 		pstubs = pnewstubs;
 	}else{
 		reqpos = reqbeg = NULL;
-		respos = resbeg = NULL;
-		toutpos = toutbeg = NULL;
+		resbeg = NULL;
+		respos = 0;
+		ressize = 0;
+		itoutpos = itoutbeg = NULL;
+		otoutpos = otoutbeg = NULL;
 	}
+	
 	for(int i = _cp - 1; i >= (int)stubcp; --i){
 		pnewstubs[i].reset();
 		posstk.push(i);
 	}
+	
 	pstubs = pnewstubs;
 	stubcp = _cp;
 	reqpos = pnewreqbeg + (reqpos - reqbeg);
 	reqbeg = pnewreqbeg;
-	respos = pnewresbeg + (respos - resbeg);
+	//respos = pnewresbeg + (respos - resbeg);
 	resbeg = pnewresbeg;
-	toutpos = pnewtoutbeg + (toutpos - toutbeg);
-	toutbeg = pnewtoutbeg;
+	itoutpos = pnewitoutbeg + (itoutpos - itoutbeg);
+	itoutbeg = pnewitoutbeg;
+	otoutpos = pnewotoutbeg + (otoutpos - otoutbeg);
+	otoutbeg = pnewotoutbeg;
 }
 uint MultiObject::newStub(){
 	if(posstk.size()){
@@ -584,14 +707,14 @@ void MultiObject::socketSecureSocket(const uint _pos, SecureSocket *_pss){
 int MultiObject::socketSecureAccept(const uint _pos){
 	int rv = pstubs[_pos].psock->secureAccept();
 	if(rv == NOK){
-		pushRequest(_pos, SocketStub::IORequest);
+		socketPushRequest(_pos, SocketStub::IORequest);
 	}
 	return rv;
 }
 int MultiObject::socketSecureConnect(const uint _pos){
 	int rv = pstubs[_pos].psock->secureConnect();
 	if(rv == NOK){
-		pushRequest(_pos, SocketStub::IORequest);
+		socketPushRequest(_pos, SocketStub::IORequest);
 	}
 	return rv;
 }

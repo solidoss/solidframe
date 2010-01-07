@@ -71,11 +71,18 @@ enum{
 	};
 int MultiConnection::execute(ulong _sig, TimeSpec &_tout){
 	idbg("time.sec "<<_tout.seconds()<<" time.nsec = "<<_tout.nanoSeconds());
-	if(_sig & (fdt::TIMEOUT | fdt::ERRDONE)){
-		idbg("connecton timeout or error");
+	if(_sig & (fdt::TIMEOUT | fdt::ERRDONE | fdt::TIMEOUT_RECV | fdt::TIMEOUT_SEND)){
+		idbg("connecton timeout or error : tout "<<fdt::TIMEOUT<<" err "<<fdt::ERRDONE<<" toutrecv "<<fdt::TIMEOUT_RECV<<" tout send "<<fdt::TIMEOUT_SEND);
 		//We really need this check as epoll upsets if we register an unconnected socket
-		if(state() != CONNECT)
+		if(state() != CONNECT){
+			//lets see which socket has timeout:
+			while(this->signaledSize()){
+				uint evs = socketEvents(signaledFront());
+				idbg("for "<<signaledFront()<<" evs "<<evs);
+				this->signaledPop();
+			}
 			return BAD;
+		}
 	}
 	if(signaled()){
 		concept::Manager &rm = concept::Manager::the();
@@ -85,6 +92,7 @@ int MultiConnection::execute(ulong _sig, TimeSpec &_tout){
 		if(sm & fdt::S_KILL) return BAD;
 		}
 	}
+	int rv = NOK;
 	switch(state()){
 		case READ_ADDR:
 			idbgx(Dbg::any, "READ_ADDR");
@@ -102,6 +110,10 @@ int MultiConnection::execute(ulong _sig, TimeSpec &_tout){
 			state(CONNECT);
 			}return NOK;
 		case CONNECT://connect the other end:
+			//TODO: check if anything went wrong
+			while(this->signaledSize()){
+				this->signaledPop();
+			}
 			idbgx(Dbg::any, "CONNECT");
 			switch(socketConnect(1, it)){
 				case BAD:
@@ -144,9 +156,12 @@ int MultiConnection::execute(ulong _sig, TimeSpec &_tout){
 			}
 		case PROXY:
 			idbgx(Dbg::any, "PROXY");
-			return doProxy(_tout);
+			rv =  doProxy(_tout);
 	}
-	return NOK;
+	while(this->signaledSize()){
+		this->signaledPop();
+	}
+	return rv;
 }
 int MultiConnection::doReadAddress(){
 	if(bp and !be) return doRefill();
@@ -187,8 +202,8 @@ int MultiConnection::doReadAddress(){
 }
 int MultiConnection::doProxy(const TimeSpec &_tout){
 	int retv = NOK;
-	if(socketEvents(0) & fdt::ERRDONE || socketEvents(1) & fdt::ERRDONE){
-		idbg("bad errdone");
+	if((socketEvents(0) & fdt::ERRDONE) || (socketEvents(1) & fdt::ERRDONE)){
+		idbg("bad errdone "<<socketEvents(1)<<' '<<fdt::ERRDONE);
 		return BAD;
 	}
 	switch(socketState(0)){
@@ -205,7 +220,7 @@ int MultiConnection::doProxy(const TimeSpec &_tout){
 					break;
 				case NOK:
 					idbg("receive nok 0");
-					socketTimeout(0, _tout, 30);
+					socketTimeoutRecv(0, 30);
 					socketState(0, ReceiveWait);
 					break;
 			}
@@ -229,7 +244,7 @@ int MultiConnection::doProxy(const TimeSpec &_tout){
 				case NOK:
 					idbg("send nok 0");
 					socketState(0, SendWait);
-					socketTimeout(1, _tout, 30);
+					socketTimeoutSend(1, 50);
 					break;
 			}
 			break;
@@ -255,7 +270,7 @@ int MultiConnection::doProxy(const TimeSpec &_tout){
 					break;
 				case NOK:
 					idbg("receive nok 1");
-					socketTimeout(1, _tout, 30);
+					socketTimeoutRecv(1, 50);
 					socketState(1, ReceiveWait);
 					break;
 			}
@@ -279,7 +294,7 @@ int MultiConnection::doProxy(const TimeSpec &_tout){
 				case NOK:
 					idbg("send nok 1");
 					socketState(1, SendWait);
-					socketTimeout(0, _tout, 30);
+					socketTimeoutSend(0, 30);
 					break;
 			}
 			break;

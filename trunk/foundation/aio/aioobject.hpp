@@ -42,6 +42,7 @@ class Selector;
 */
 class Object: public foundation::Object{
 public:
+	static const TimeSpec& currentTime();
 	virtual ~Object();
 	//!Called by selector on certain events
 	virtual int execute(ulong _evs, TimeSpec &_rtout) = 0;
@@ -60,7 +61,7 @@ protected:
 	struct SocketStub{
 		enum{
 			//Requests from multiconnection to selector
-			Response = 1,
+			//Response = 1,
 			IORequest = 4,
 			UnregisterRequest = 8,
 			RegisterRequest = 16,
@@ -69,22 +70,30 @@ protected:
 		};
 		SocketStub(Socket *_psock = NULL):
 			psock(_psock),
-			timepos(0xffffffff, 0xffffffff),
-			toutpos(-1),
-			request(0), chnevents(0), selevents(0){}
+			itimepos(TimeSpec::max),
+			otimepos(TimeSpec::max),
+			itoutpos(-1),
+			otoutpos(-1),
+			hasresponse(false),requesttype(0), chnevents(0), selevents(0){}
 		~SocketStub();
 		void reset(){
 			psock = NULL;
-			timepos.set(0xffffffff, 0xffffffff);
-			toutpos = -1;
-			request = 0;
+			itimepos = TimeSpec::max;
+			otimepos = TimeSpec::max;
+			itoutpos = -1;
+			otoutpos = -1;
+			hasresponse = false;
+			requesttype = 0;
 			chnevents = 0;
 			selevents = 0;
 		}
 		Socket		*psock;
-		TimeSpec	timepos;
-		int			toutpos;	//-1 or position in toutvec
-		uint16		request;	//Requests from connection to selector
+		TimeSpec	itimepos;
+		TimeSpec	otimepos;
+		int			itoutpos;	//-1 or position in toutvec
+		int			otoutpos;	//-1 or position in toutvec
+		uint8		hasresponse;//the socket is in response queue
+		uint8		requesttype;
 		int16		state;		//An associated state for the socket
 		uint32		chnevents;	//the event from selector to connection:
 								//INDONE, OUTDONE, TIMEOUT, ERRDONE
@@ -109,34 +118,49 @@ protected:
 		uint32 _stubcp,
 		int32 *_reqbeg,
 		int32 *_resbeg,
-		int32 *_toutbeg
-	):	ptimepos(NULL), pstubs(_pstubs), stubcp(_stubcp),
+		int32 *_itoutbeg,
+		int32 *_otoutbeg
+	):
+		pitimepos(NULL), potimepos(NULL), pstubs(_pstubs), stubcp(_stubcp),
 		reqbeg(_reqbeg), reqpos(_reqbeg),
-		resbeg(_resbeg), respos(_resbeg),
-		toutbeg(_toutbeg), toutpos(_toutbeg){
+		resbeg(_resbeg), respos(0), ressize(0),
+		itoutbeg(_itoutbeg), itoutpos(_itoutbeg),
+		otoutbeg(_otoutbeg), otoutpos(_otoutbeg){
 	}
 	
-	void pushRequest(const uint _pos, const uint _req);
+	void socketPushRequest(const uint _pos, const uint8 _req);
+	void socketPostEvents(const uint _pos, const uint32 _evs);
 private:
-	void doAddSignaledSocketFirst(const uint _pos, const uint _evs);
-	void doAddSignaledSocketNext(const uint _pos, const uint _evs);
-	void doAddTimeoutSockets(const TimeSpec &_timepos);
-	void doPrepare(TimeSpec *_ptimepos);
+	static void doSetCurrentTime(const TimeSpec *_pcrtts);
+	void doPrepare(TimeSpec *_pitimepos, TimeSpec *_potimepos);
 	void doUnprepare();
-	void doPushResponse(uint32 _pos);
-	void doPopTimeout(uint32 _pos);
 	void doClearRequests();
-	void doClearResponses();
+	
+	uint doOnTimeoutRecv(const TimeSpec &_timepos);
+	uint doOnTimeoutSend(const TimeSpec &_timepos);
+	
+	void doPopTimeoutRecv(uint32 _pos);
+	void doPopTimeoutSend(uint32 _pos);
+
 protected:
-	TimeSpec			*ptimepos;
+	void doPushTimeoutRecv(uint32 _pos, const TimeSpec &_crttime, ulong _addsec, ulong _addnsec);
+	void doPushTimeoutSend(uint32 _pos, const TimeSpec &_crttime, ulong _addsec, ulong _addnsec);
+	
+	
+protected:
+	TimeSpec			*pitimepos;
+	TimeSpec			*potimepos;
 	SocketStub			*pstubs;
 	uint32				stubcp;
 	int32				*reqbeg;
 	int32				*reqpos;
 	int32				*resbeg;
-	int32				*respos;
-	int32				*toutbeg;
-	int32				*toutpos;
+	uint32				respos;
+	uint32				ressize;
+	int32				*itoutbeg;
+	int32				*itoutpos;
+	int32				*otoutbeg;
+	int32				*otoutpos;
 };
 
 }//namespace aio
