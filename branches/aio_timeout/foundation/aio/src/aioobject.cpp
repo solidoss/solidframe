@@ -76,7 +76,7 @@ uint Object::doOnTimeoutRecv(const TimeSpec &_timepos){
 		vdbgx(Dbg::aio, "compare time for pos "<<*pit<<" tout "<<rss.itimepos.seconds()<<" with crttime "<<_timepos.seconds());
 		
 		if(rss.itimepos <= _timepos){
-			rv |= TIMEOUT_RECV;
+			rv = TIMEOUT_RECV;
 			socketPostEvents(*pit, TIMEOUT_RECV);
 			--pend;
 			*pit = *pend;
@@ -106,7 +106,7 @@ uint Object::doOnTimeoutSend(const TimeSpec &_timepos){
 		vdbgx(Dbg::aio, "compare time for pos "<<*pit<<" tout "<<rss.otimepos.seconds()<<" with crttime "<<_timepos.seconds());
 		
 		if(rss.otimepos <= _timepos){
-			rv |= TIMEOUT_SEND;
+			rv = TIMEOUT_SEND;
 			socketPostEvents(*pit, TIMEOUT_SEND);
 			--pend;
 			*pit = *pend;

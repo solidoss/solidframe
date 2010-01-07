@@ -596,12 +596,18 @@ uint Selector::doFullScan(){
 		evs = 0;
 		if(d.ctimepos >= stub.itimepos){
 			evs |= stub.objptr->doOnTimeoutRecv(d.ctimepos);
+			if(d.ntimepos > stub.itimepos){
+				d.ntimepos = stub.itimepos;
+			}
 		}else if(d.ntimepos > stub.itimepos){
 			d.ntimepos = stub.itimepos;
 		}
 		
 		if(d.ctimepos >= stub.otimepos){
 			evs |= stub.objptr->doOnTimeoutSend(d.ctimepos);
+			if(d.ntimepos > stub.otimepos){
+				d.ntimepos = stub.otimepos;
+			}
 		}else if(d.ntimepos > stub.otimepos){
 			d.ntimepos = stub.otimepos;
 		}
