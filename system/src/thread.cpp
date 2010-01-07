@@ -81,6 +81,7 @@ int Condition::wait(Mutex &_mut, const TimeSpec &_ts){
 	return pthread_cond_timedwait(&cond,&_mut.mut, &_ts);
 }
 //*************************************************************************
+/*static*/ const TimeSpec TimeSpec::max(0xffffffff, 0xffffffff);
 #ifdef NINLINES
 #include "timespec.ipp"
 #endif

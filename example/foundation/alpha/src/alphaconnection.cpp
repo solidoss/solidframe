@@ -245,8 +245,10 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			switch((rc = reader().run())){
 				case OK: break;
 				case NOK:
-					if(hasPendingRequests()){
-						socketTimeout(_tout, 3000);
+					if(socketHasPendingSend()){
+						socketTimeoutSend(3000);
+					}else if(socketHasPendingRecv()){
+						socketTimeoutRecv(3000);
 					}else{
 						_tout.add(2000);
 					}
@@ -274,12 +276,14 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			//idbg("Execute");
 			switch((rc = writer().run())){
 				case NOK:
-					if(hasPendingRequests()){
-						socketTimeout(_tout, 3000);
+					if(socketHasPendingSend()){
+						socketTimeoutSend(3000);
+						state(ExecuteIOTout);
+					}else if(socketHasPendingRecv()){
+						socketTimeoutRecv(3000);
 						state(ExecuteIOTout);
 					}else{
 						_tout.add(2000);
-						idbg("no pendin io - wait twenty seconds");
 						state(ExecuteTout);
 					}
 					return NOK;

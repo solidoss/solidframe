@@ -58,10 +58,9 @@ public:
 	
 	uint count()const;
 	
-	//! Returns a pointer to the begining of a table of signaled socket indexes
-	const int32* signaledBegin()const;
-	//! Returns a pointer to the end of a table of signaled socket indexes
-	const int32* signaledEnd()const;
+	uint signaledSize()const;
+	uint signaledFront()const;
+	void signaledPop();
 	
 	//! Returns true if the socket on position _pos is ok
 	bool socketOk(const uint _pos)const;
@@ -111,8 +110,16 @@ public:
 	//! Get the remote address of the socket on position _pos
 	int socketRemoteAddress(const uint _pos, SocketAddress &_rsa)const;
 	
-	//! Set the timeout for asynchronous opperation completion for the socket on position _pos
-	void socketTimeout(const uint _pos, const TimeSpec &_crttime, ulong _addsec, ulong _addnsec = 0);
+	//! Set the timeout for asynchronous recv opperation completion for the socket on position _pos
+	void socketTimeoutRecv(const uint _pos, const TimeSpec &_crttime, ulong _addsec, ulong _addnsec = 0);
+	//! Set the timeout for asynchronous send opperation completion for the socket on position _pos
+	void socketTimeoutSend(const uint _pos, const TimeSpec &_crttime, ulong _addsec, ulong _addnsec = 0);
+	
+	
+	//! Set the timeout for asynchronous recv opperation completion for the socket on position _pos
+	void socketTimeoutRecv(const uint _pos, ulong _addsec, ulong _addnsec = 0);
+	//! Set the timeout for asynchronous send opperation completion for the socket on position _pos
+	void socketTimeoutSend(const uint _pos, ulong _addsec, ulong _addnsec = 0);
 	
 	//! Gets the mask with completion events for the socket on position _pos
 	uint32 socketEvents(const uint _pos)const;
@@ -163,20 +170,19 @@ private:
 	typedef Stack<uint>		PositionStackTp;
 	
 	PositionStackTp		posstk;
+	int32				respoppos;
 };
-
-inline const int32* MultiObject::signaledBegin()const{
-	return this->resbeg;
-}
-
-inline const int32 *MultiObject::signaledEnd()const{
-	return this->respos;
-}
 
 inline uint MultiObject::count()const{
 	return this->stubcp - this->posstk.size();
 }
 
+inline void MultiObject::socketTimeoutRecv(const uint _pos, ulong _addsec, ulong _addnsec){
+	socketTimeoutRecv(_pos, Object::currentTime(), _addsec, _addnsec);
+}
+inline void MultiObject::socketTimeoutSend(const uint _pos, ulong _addsec, ulong _addnsec){
+	socketTimeoutSend(_pos, Object::currentTime(), _addsec, _addnsec);
+}
 
 }//namespace aio
 

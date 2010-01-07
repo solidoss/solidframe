@@ -55,22 +55,23 @@ struct Selector::Stub{
 		InExecQueue,
 		OutExecQueue
 	};
-	Stub():timepos(0xffffffff, 0xffffffff), state(OutExecQueue), events(0){}
+	Stub():timepos(TimeSpec::max), state(OutExecQueue), events(0){}
 	void reset(){
-		timepos.set(0xffffffff, 0xffffffff);
+		timepos = TimeSpec::max;
 		state = OutExecQueue;
 		events = 0;
 	}
-	ObjectPtrTp	objptr;
-	TimeSpec	timepos;
-	State		state;
-	uint		events;
+	ObjectPtrTp		objptr;
+	TimeSpec		timepos;//object timepos
+	TimeSpec		itimepos;//input timepos
+	TimeSpec		otimepos;//output timepos
+	State			state;
+	uint			events;
 };
 
 struct Selector::Data{
 	enum{
 		EPOLLMASK = EPOLLET | EPOLLIN | EPOLLOUT,
-		MAXTIMEPOS = 0xffffffff,
 		MAXPOLLWAIT = 0x7FFFFFFF,
 		EXIT_LOOP = 1,
 		FULL_SCAN = 2,
@@ -143,7 +144,7 @@ Selector::Data::~Data(){
 }
 
 int Selector::Data::computeWaitTimeout()const{
-	if(ntimepos.seconds() == MAXTIMEPOS) return -1;//return MAXPOLLWAIT;
+	if(ntimepos.isMax()) return -1;//return MAXPOLLWAIT;
 	int rv = (ntimepos.seconds() - ctimepos.seconds()) * 1000;
 	rv += ((long)ntimepos.nanoSeconds() - ctimepos.nanoSeconds()) / 1000000;
 	if(rv < 0) return MAXPOLLWAIT;
@@ -185,6 +186,8 @@ int Selector::reserve(uint _cp){
 	cassert(_cp);
 	d.objcp = _cp;
 	d.sockcp = _cp;
+	
+	Object::doSetCurrentTime(&d.ctimepos);
 	
 	//first create the epoll descriptor:
 	cassert(d.epollfd < 0);
@@ -242,13 +245,14 @@ int Selector::reserve(uint _cp){
 	d.stubs.push_back(Stub());
 	
 	d.ctimepos.set(0);
-	d.ntimepos.set(Data::MAXTIMEPOS);
+	d.ntimepos = TimeSpec::max;
 	d.objsz = 1;
 	d.socksz = 1;
 	return OK;
 }
 
 void Selector::prepare(){
+	Object::doSetCurrentTime(&d.ctimepos);
 }
 void Selector::unprepare(){
 }
@@ -287,9 +291,12 @@ void Selector::push(const ObjectTp &_objptr, uint _thid){
 	Stub &stub = d.stubs[stubpos];
 	
 	_objptr->setThread(_thid, stubpos);
-	_objptr->ptimepos = &stub.timepos;
 	
-	stub.timepos.set(Data::MAXTIMEPOS);
+	stub.timepos  = TimeSpec::max;
+	stub.itimepos = TimeSpec::max;
+	stub.otimepos = TimeSpec::max;
+	
+	_objptr->doPrepare(&stub.itimepos, &stub.otimepos);
 	
 	//add events for every socket
 	bool fail = false;
@@ -325,7 +332,7 @@ void Selector::push(const ObjectTp &_objptr, uint _thid){
 	}else{
 		++d.objsz;
 		stub.objptr = _objptr;
-		stub.objptr->doPrepare(&stub.timepos);
+		stub.objptr->doPrepare(&stub.itimepos, &stub.otimepos);
 		idbgx(Dbg::aio, "pushing object "<<&(*(stub.objptr))<<" on position "<<stubpos);
 		stub.state = Stub::InExecQueue;
 		d.execq.push(stubpos);
@@ -515,7 +522,11 @@ void Selector::doUnregisterObject(Object &_robj, int _lastfailpos){
 inline uint Selector::doIo(Socket &_rsock, ulong _evs){
 	if(_evs & (EPOLLERR | EPOLLHUP)){
 		_rsock.doClear();
-		edbgx(Dbg::aio, "epollerr evs = "<<_evs);
+		int err(0);
+		socklen_t len(sizeof(err));
+		int rv = getsockopt(_rsock.descriptor(), SOL_SOCKET, SO_ERROR, &err, &len);
+		edbgx(Dbg::aio, "epollerr evs = "<<_evs<<" err = "<<err<<" errstr = "<<strerror(err));
+		edbgx(Dbg::aio, "rv = "<<rv<<" "<<strerror(errno)<<" desc"<<_rsock.descriptor());
 		return ERRDONE;
 	}
 	int rv = 0;
@@ -540,10 +551,12 @@ uint Selector::doAllIo(){
 		if(stubpos){
 			cassert(stubpos < d.stubs.size());
 			Stub				&stub(d.stubs[stubpos]);
-			cassert(sockpos < stub.objptr->stubcp);
-			cassert(stub.objptr->pstubs[sockpos].psock);
 			Object::SocketStub	&sockstub(stub.objptr->pstubs[sockpos]);
 			Socket				&sock(*sockstub.psock);
+			
+			cassert(sockpos < stub.objptr->stubcp);
+			cassert(stub.objptr->pstubs[sockpos].psock);
+			
 			vdbgx(Dbg::aio, "io events stubpos = "<<stubpos<<" events = "<<d.events[i].events);
 			evs = doIo(sock, d.events[i].events);
 			{
@@ -558,7 +571,7 @@ uint Selector::doAllIo(){
 			if(evs){
 				//first mark the socket in connection
 				vdbgx(Dbg::aio, "evs = "<<evs<<" indone = "<<INDONE<<" stubpos = "<<stubpos);
-				stub.objptr->doAddSignaledSocketNext(sockpos, evs);
+				stub.objptr->socketPostEvents(sockpos, evs);
 				stub.events |= evs;
 				//push channel execqueue
 				if(stub.state == Stub::OutExecQueue){
@@ -576,17 +589,35 @@ uint Selector::doFullScan(){
 	uint		evs;
 	++d.rep_fullscancount;
 	rdbgx(Dbg::aio, "fullscan count "<<d.rep_fullscancount);
-	d.ntimepos.set(Data::MAXTIMEPOS);
+	d.ntimepos = TimeSpec::max;
 	for(Data::StubVectorTp::iterator it(d.stubs.begin() + 1); it != d.stubs.end(); ++it){
 		Stub &stub = *it;
 		if(!stub.objptr) continue;
 		evs = 0;
+		if(d.ctimepos >= stub.itimepos){
+			evs |= stub.objptr->doOnTimeoutRecv(d.ctimepos);
+			if(d.ntimepos > stub.itimepos){
+				d.ntimepos = stub.itimepos;
+			}
+		}else if(d.ntimepos > stub.itimepos){
+			d.ntimepos = stub.itimepos;
+		}
+		
+		if(d.ctimepos >= stub.otimepos){
+			evs |= stub.objptr->doOnTimeoutSend(d.ctimepos);
+			if(d.ntimepos > stub.otimepos){
+				d.ntimepos = stub.otimepos;
+			}
+		}else if(d.ntimepos > stub.otimepos){
+			d.ntimepos = stub.otimepos;
+		}
+		
 		if(d.ctimepos >= stub.timepos){
 			evs |= TIMEOUT;
-			stub.objptr->doAddTimeoutSockets(d.ctimepos);
 		}else if(d.ntimepos > stub.timepos){
 			d.ntimepos = stub.timepos;
 		}
+		
 		if(stub.objptr->signaled(S_RAISE)){
 			evs |= SIGNALED;//should not be checked by objs
 		}
@@ -605,7 +636,7 @@ uint Selector::doExecute(const uint _pos){
 	cassert(stub.state == Stub::InExecQueue);
 	stub.state = Stub::OutExecQueue;
 	uint	rv(0);
-	stub.timepos.set(0xffffffff, 0xffffffff);
+	stub.timepos = TimeSpec::max;
 	TimeSpec timepos(d.ctimepos);
 	uint evs = stub.events;
 	stub.events = 0;
@@ -619,7 +650,7 @@ uint Selector::doExecute(const uint _pos){
 			doUnregisterObject(*stub.objptr);
 			stub.objptr->doUnprepare();
 			stub.objptr.clear();
-			stub.timepos.set(0xffffffff, 0xffffffff);
+			stub.timepos = TimeSpec::max;
 			--d.objsz;
 			rv = Data::EXIT_LOOP;
 			break;
@@ -627,21 +658,15 @@ uint Selector::doExecute(const uint _pos){
 			d.execq.push(_pos);
 			stub.state = Stub::InExecQueue;
 			stub.events |= RESCHEDULED;
-			if(!stub.objptr->hasPendingRequests()){
-				stub.objptr->doClearResponses();//clears the responses from the selector to the object
-				break;
-			}
 		case NOK:
 			doPrepareObjectWait(_pos, timepos);
-			stub.objptr->doClearResponses();//clears the responses from the selector to the object
 			break;
 		case LEAVE:
 			d.freestubsstk.push(_pos);
 			doUnregisterObject(*stub.objptr);
-			stub.timepos.set(0xffffffff, 0xffffffff);
+			stub.timepos = TimeSpec::max;
 			--d.objsz;
 			stub.objptr->doUnprepare();
-			stub.objptr->doClearResponses();//clears the responses from the selector to the object
 			stub.objptr.release();
 			rv = Data::EXIT_LOOP;
 		default:
@@ -656,8 +681,10 @@ void Selector::doPrepareObjectWait(const uint _pos, const TimeSpec &_timepos){
 	vdbgx(Dbg::aio, "stub "<<_pos);
 	for(const int32 *pit(stub.objptr->reqbeg); pit != pend; ++pit){
 		Object::SocketStub &sockstub(stub.objptr->pstubs[*pit]);
-		sockstub.chnevents = 0;
-		switch(sockstub.request){
+		//sockstub.chnevents = 0;
+		const uint8 reqtp = sockstub.requesttype;
+		sockstub.requesttype = 0;
+		switch(reqtp){
 			case Object::SocketStub::IORequest:{
 				epoll_event ev;
 				uint t = sockstub.psock->ioRequest();
@@ -681,7 +708,7 @@ void Selector::doPrepareObjectWait(const uint _pos, const TimeSpec &_timepos){
 				sockstub.selevents = 0;
 				ev.events = (EPOLLET);
 				check_call(Dbg::aio, 0, epoll_ctl(d.epollfd, EPOLL_CTL_ADD, sockstub.psock->descriptor(), d.eventPrepare(ev, _pos, *pit)));
-				stub.objptr->doAddSignaledSocketFirst(*pit, OKDONE);
+				stub.objptr->socketPostEvents(*pit, OKDONE);
 				d.addNewSocket();
 				mustwait = false;
 			}break;
@@ -691,25 +718,33 @@ void Selector::doPrepareObjectWait(const uint _pos, const TimeSpec &_timepos){
 					check_call(Dbg::aio, 0, epoll_ctl(d.epollfd, EPOLL_CTL_DEL, sockstub.psock->descriptor(), NULL));
 					--d.socksz;
 					sockstub.psock->doUnprepare();
-					stub.objptr->doAddSignaledSocketFirst(*pit, OKDONE);
+					stub.objptr->socketPostEvents(*pit, OKDONE);
 					mustwait = false;
 				}
 			}break;
 			default:
 				cassert(false);
 		}
-		sockstub.request = 0;
 	}
 	if(mustwait){
 		//will step here when, for example, the object waits for an external signal.
 		if(_timepos < stub.timepos && _timepos != d.ctimepos){
 			stub.timepos = _timepos;
 		}
+		
 		if(stub.timepos == d.ctimepos){
-			stub.timepos.set(0xffffffff, 0xffffffff);
+			stub.timepos = TimeSpec::max;
 		}else if(d.ntimepos > stub.timepos){
 			d.ntimepos = stub.timepos;
 		}
+		
+		if(d.ntimepos > stub.itimepos){
+			d.ntimepos = stub.itimepos;
+		}
+		if(d.ntimepos > stub.otimepos){
+			d.ntimepos = stub.otimepos;
+		}
+		
 	}else if(stub.state != Stub::InExecQueue){
 		d.execq.push(_pos);
 		stub.state = Stub::InExecQueue;
@@ -729,7 +764,10 @@ uint Selector::doNewStub(){
 			//we need to reset the aioobject's pointer to timepos
 			for(Data::StubVectorTp::iterator it(d.stubs.begin()); it != d.stubs.end(); ++it){
 				if(it->objptr){
-					it->objptr->ptimepos = &it->timepos;
+					it->timepos  = TimeSpec::max;
+					it->itimepos = TimeSpec::max;
+					it->otimepos = TimeSpec::max;
+					it->objptr->doPrepare(&it->itimepos, &it->otimepos);
 				}
 			}
 		}
