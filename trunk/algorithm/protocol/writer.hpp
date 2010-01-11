@@ -109,7 +109,7 @@ public:
 	*/
 	Parameter &push(FncTp _pf);
 	//! Check if the stack is empty
-	unsigned empty()const{return fs.empty();}
+	bool empty()const{return fs.empty();}
 	//! The state machine algorithm
 	int run();
 	//! Convenient method for puting one char on output

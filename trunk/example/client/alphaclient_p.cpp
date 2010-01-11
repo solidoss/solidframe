@@ -503,9 +503,38 @@ int AlphaThread::fetch(unsigned _idx, char *_pb){
 	return -9;
 }
 
+// int test_a(){
+// 	cout<<"first function"<<endl;
+// 	return 0;
+// }
+// int test_b(){
+// 	cout<<"second function"<<endl;
+// 	return 1;
+// }
+// 
+// void test(int _a, int _b){
+// 	cout<<"test"<<endl;
+// }
+// 
+// struct A{
+// 	A(int _v):v(_v){
+// 		cout<<"A("<<_v<<")"<<endl;
+// 	}
+// 	~A(){
+// 		cout<<"~A("<<v<<")"<<endl;
+// 	}
+// 	int v;
+// };
+// 
+// A operator+(const A& a1, const A &a2){
+// 	return A(a1.v + a2.v);
+// }
 
 int main(int argc, char *argv[]){
 	if(argc != 7 && argc != 9){
+//		test(test_a(), test_b());
+// 		int c(test_a() + test_b());
+// 		cout<<(A(3) + A(4)).v<<endl;
 		cout<<"Plain alpha connection stress test"<<endl;
 		cout<<"Usage: alphaclient thcnt addr port path tout repeat_count [peer_addr peer_port]"<<endl;
 		cout<<"Where:"<<endl;

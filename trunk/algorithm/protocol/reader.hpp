@@ -132,7 +132,7 @@ public:
 	*/
 	Parameter &push(FncTp _pf);
 	//!Check if the stack is empty
-	unsigned empty()const{return fs.empty();}
+	bool empty()const{return fs.empty();}
 	//! The state machine algorithm
 	int run();
 	//! Check if the reader tries to recover from parsing error
