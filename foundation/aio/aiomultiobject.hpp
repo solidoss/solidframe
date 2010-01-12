@@ -24,6 +24,7 @@
 
 #include "foundation/aio/aioobject.hpp"
 #include "utility/stack.hpp"
+#include "foundation/aio/aiosocketpointer.hpp"
 
 class SocketDevice;
 class SocketAddress;
@@ -50,7 +51,7 @@ class SecureSocket;
 class MultiObject: public Object{
 public:
 	//! Constructor given an aio::Socket (it will be inserted on position zero)
-	MultiObject(Socket *_psock = NULL);
+	MultiObject(const SocketPointer& _psock = SocketPointer());
 	//! Constructor given a SocketDevice (it will be inserted on position zero)
 	MultiObject(const SocketDevice &_rsd);
 	//! Destructor
@@ -126,6 +127,7 @@ public:
 	
 	//! Erase the socket on position _pos - call socketRequestRegister before
 	void socketErase(const uint _pos);
+	Socket* socketGrab(const uint _pos);
 	//! Insert a new socket given an aio::Socket
 	/*!
 		\retval  < 0 on error, >=0 on success, meaning the position of the socket

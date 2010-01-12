@@ -23,6 +23,7 @@
 #define AIO_SINGLE_OBJECT_HPP
 
 #include "foundation/aio/aioobject.hpp"
+#include "foundation/aio/aiosocketpointer.hpp"
 
 class SocketDevice;
 class SocketAddress;
@@ -50,7 +51,7 @@ class SecureSocket;
 class SingleObject: public Object{
 public:
 	//! Constructor using an aio::Socket
-	SingleObject(Socket *_psock = NULL);
+	SingleObject(const SocketPointer& _psock = SocketPointer());
 	//! Constructor using a SocketDevice
 	SingleObject(const SocketDevice &_rsd);
 	//! Destructor
