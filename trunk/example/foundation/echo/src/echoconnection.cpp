@@ -35,7 +35,7 @@ namespace concept{
 
 namespace echo{
 Connection::Connection(const char *_node, const char *_srv): 
-	BaseTp(NULL),
+	BaseTp(),
 	bend(bbeg + BUFSZ),brpos(bbeg),bwpos(bbeg),
 	pai(NULL),b(false)
 {

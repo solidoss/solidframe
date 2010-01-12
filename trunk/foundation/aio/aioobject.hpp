@@ -29,6 +29,7 @@ namespace foundation{
 namespace aio{
 
 class Socket;
+class SocketPointer;
 class Selector;
 //! aio::Object is the base class for all classes doing asynchronous socket io
 /*!
@@ -146,6 +147,8 @@ protected:
 	void doPushTimeoutRecv(uint32 _pos, const TimeSpec &_crttime, ulong _addsec, ulong _addnsec);
 	void doPushTimeoutSend(uint32 _pos, const TimeSpec &_crttime, ulong _addsec, ulong _addnsec);
 	
+	void setSocketPointer(const SocketPointer &_rsp, Socket *_ps);
+	Socket* getSocketPointer(const SocketPointer &_rsp);
 	
 protected:
 	TimeSpec			*pitimepos;
