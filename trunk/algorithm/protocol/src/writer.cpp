@@ -214,9 +214,17 @@ void Writer::putSilent(uint32 _v){
 	}
 }
 
-/*static*/ int Writer::returnValue(Writer &_rw, Parameter &_rp){
+
+template <>
+/*static*/ int Writer::returnValue<true>(Writer &_rw, Parameter &_rp){
 	int rv = _rp.a.i;
 	_rw.fs.pop();//?!
+	return rv;
+}
+
+template <>
+/*static*/ int Writer::returnValue<false>(Writer &_rw, Parameter &_rp){
+	int rv = _rp.a.i;
 	return rv;
 }
 
@@ -250,7 +258,7 @@ void Writer::putSilent(uint32 _v){
 	}else{
 		int rv = _rw.write((char*)_rp.a.p, _rp.b.u);
 		if(rv == No){//scheduled for writing
-			_rw.replace(&Writer::returnValue, Parameter(Continue));
+			_rw.replace(&Writer::returnValue<true>, Parameter(Continue));
 			return No;
 		}
 		return rv;

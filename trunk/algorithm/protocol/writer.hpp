@@ -139,6 +139,7 @@ public:
     
 //writing callbacks
 	//! Callback for returning a certain value
+	template <bool B>
 	static int returnValue(Writer &_rw, Parameter &_rp);
 	//! Callback for trying to flush the buffer
 	/*!

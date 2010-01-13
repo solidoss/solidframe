@@ -41,6 +41,7 @@ static const uint crtTimeThreadSpec(){
 }
 }
 
+//======================== aio::SocketPointer ===========================
 void SocketPointer::clear(Socket *_ps)const{
 	delete ps;
 	ps = _ps;
@@ -221,16 +222,17 @@ void Object::doClearRequests(){
 
 //========================== aio::SingleObject =============================
 
-SingleObject::SingleObject(const SocketPointer& _psock):
+SingleObject::SingleObject(const SocketPointer& _rsp):
 	Object(&stub, 1, &req, &res, &itout, &otout), req(-1), res(-1), itout(-1), otout(-1)
 {
-	stub.psock = this->getSocketPointer(_psock);
+	//stub.psock = this->getSocketPointer(_psock);
+	socketInsert(_rsp);
 }
 SingleObject::SingleObject(const SocketDevice &_rsd):
 	Object(&stub, 1, &req, &res, &itout, &otout), req(-1), res(-1), itout(-1), otout(-1)
 {
 	if(_rsd.ok()){
-		socketSet(_rsd);
+		socketInsert(_rsd);
 	}
 }
 SingleObject::~SingleObject(){
@@ -342,12 +344,18 @@ void SingleObject::socketErase(){
 	delete stub.psock;
 	stub.psock = NULL;
 }
-int SingleObject::socketSet(Socket *_psock){
+
+void SingleObject::socketGrab(SocketPointer &_rsp){
+	this->setSocketPointer(_rsp, stub.psock);
+	stub.reset();
+}
+
+int SingleObject::socketInsert(const SocketPointer &_rsp){
 	cassert(!stub.psock);
-	stub.psock = _psock;
+	stub.psock = this->getSocketPointer(_rsp);
 	return 0;
 }
-int SingleObject::socketSet(const SocketDevice &_rsd){
+int SingleObject::socketInsert(const SocketDevice &_rsd){
 	cassert(!stub.psock);
 	if(_rsd.ok()){
 		Socket::Type tp;
@@ -416,9 +424,9 @@ int SingleObject::socketSecureConnect(){
 
 //=========================== aio::MultiObject =============================
 
-MultiObject::MultiObject(const SocketPointer& _psock):Object(NULL, 0, NULL, NULL, NULL, NULL), respoppos(0){
-	if(_psock)
-		socketInsert(this->getSocketPointer(_psock));
+MultiObject::MultiObject(const SocketPointer& _rps):Object(NULL, 0, NULL, NULL, NULL, NULL), respoppos(0){
+	if(_rps)
+		socketInsert(_rps);
 }
 MultiObject::MultiObject(const SocketDevice &_rsd):Object(NULL, 0, NULL, NULL, NULL, NULL), respoppos(0){
 	socketInsert(_rsd);
@@ -589,17 +597,16 @@ void MultiObject::socketErase(const uint _pos){
 	pstubs[_pos].reset();
 	posstk.push(_pos);
 }
-Socket* MultiObject::socketGrab(const uint _pos){
+void MultiObject::socketGrab(const uint _pos, SocketPointer &_rsp){
 	cassert(_pos < stubcp);
-	Socket *psock(pstubs[_pos].psock);
+	this->setSocketPointer(_rsp, pstubs[_pos].psock);
 	pstubs[_pos].reset();
 	posstk.push(_pos);
-	return psock;
 }
-int MultiObject::socketInsert(Socket *_psock){
-	cassert(_psock);
+int MultiObject::socketInsert(const SocketPointer &_rsp){
+	cassert(_rsp);
 	uint pos = newStub();
-	pstubs[pos].psock = _psock;
+	pstubs[pos].psock = this->getSocketPointer(_rsp);
 	return pos;
 }
 int MultiObject::socketInsert(const SocketDevice &_rsd){

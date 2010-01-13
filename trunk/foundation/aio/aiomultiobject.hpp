@@ -127,12 +127,14 @@ public:
 	
 	//! Erase the socket on position _pos - call socketRequestRegister before
 	void socketErase(const uint _pos);
-	Socket* socketGrab(const uint _pos);
+	
+	//! Grabs the aio internal socket structure - for moving it to another aioobject
+	void socketGrab(const uint _pos, SocketPointer &_rsp);
 	//! Insert a new socket given an aio::Socket
 	/*!
 		\retval  < 0 on error, >=0 on success, meaning the position of the socket
 	*/
-	int socketInsert(Socket *_psock);
+	int socketInsert(const SocketPointer &_rsp);
 	//! Insert a new socket given an aio::Socket
 	/*!
 		\retval  < 0 on error, >=0 on success, meaning the position of the socket
