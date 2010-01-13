@@ -117,10 +117,14 @@ public:
 	uint32 socketEvents()const;
 	//! Erase the socket - call socketRequestRegister before
 	void socketErase();
+	
+	//! Grabs the internal aio socket structure - to move it to another aioobject
+	void socketGrab(SocketPointer &_rsp);
+	
 	//! Sets the socket given an aio::Socket
-	int socketSet(Socket *_psock);
+	int socketInsert(const SocketPointer &_rsp);
 	//! Sets the socket given a SocketDevice
-	int socketSet(const SocketDevice &_rsd);
+	int socketInsert(const SocketDevice &_rsd);
 	
 	//! Request for registering the socket onto the aio::Selector
 	void socketRequestRegister();

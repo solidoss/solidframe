@@ -149,7 +149,7 @@ int Basic::execNoop(Connection &_rc){
 	return OK;
 }
 int Basic::execLogout(Connection &_rc){
-	_rc.writer().push(&Writer::returnValue, protocol::Parameter(Writer::Bad));
+	_rc.writer().push(&Writer::returnValue<true>, protocol::Parameter(Writer::Bad));
 	_rc.writer().push(&Writer::putStatus, protocol::Parameter(StrDef(" OK Done LOGOUT@")));
 	_rc.writer().push(&Writer::putAtom, protocol::Parameter(StrDef("* Alpha connection closing\r\n")));
 	return NOK;
