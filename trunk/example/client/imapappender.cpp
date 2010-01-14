@@ -171,6 +171,7 @@ int main(int argc, char *argv[]){
 		return 0;
 	}
 	cout<<"Successfully authenticated"<<endl;
+	//return 0;
 	if(!doCreateFolder(wr, sd, pssl, p)){
 		cout<<"Unable to create IMAP folder: "<<p.folder<<endl;
 		return 0;
@@ -444,6 +445,8 @@ private:
 	FileDevice &fd;
 };
 
+int readFindEither(const char *_f1, const char *_f2, SSL *_pssl, char *_pb, unsigned _sz);
+
 bool sendOutput(Writer &_wr, SocketDevice &_sd, SSL *_pssl, const Params &_p){
 // 	ifstream ifs;
 // 	ifs.open("tmp.eml");
@@ -487,19 +490,10 @@ bool doAuthenticate(Writer &_wr, SocketDevice &_sd, SSL *_pssl){
 	//cout<<"User name: "<<u<<" pass: "<<p<<endl;
 	_wr<<"s1 login \""<<u<<"\" \""<<p<<'\"'<<crlf;
 	_wr.flush();
-	const int blen = 256;
+	const int blen = 1024;
 	char buf[blen];
-	int rc = readAtLeast(5, _pssl, buf, blen);
-	if(rc > 0){
-		cout.write(buf, rc)<<endl;
-		rc = readAtLeast(5, _pssl, buf, blen);
-		if(rc > 0){
-			cout.write(buf, rc)<<endl;
-			if(strncasecmp(buf + 3, "OK", 2) == 0){
-				return true;
-			}
-		}
-	}
+	int rv = readFindEither("s1 OK", "s1 NO", _pssl, buf, blen);
+	if(rv == 0) return true;
 	return false;
 }
 bool doCreateFolder(Writer &_wr, SocketDevice &_sd, SSL *_pssl, const Params &_par){
@@ -536,3 +530,24 @@ int readAtLeast(int _minsz, SSL *_pssl, char *_pb, unsigned _sz){
 	return rc;
 }
 
+int readFindEither(const char *_f1, const char *_f2, SSL *_pssl, char *_pb, unsigned _sz){
+	uint32 maxfsz = strlen(_f1);
+	if(strlen(_f2) > maxfsz) maxfsz = strlen(_f2);
+	char *pd = (char*)_pb;
+	uint toread = _sz - 1;
+	while(true){
+		int rv = SSL_read(_pssl, pd, toread);
+		if(rv <= 0){
+			rv = SSL_read(_pssl, pd, _sz);//try once again
+			if(rv <= 0) return -1;
+		}
+		pd[rv] = '\0';
+		if(strstr(_pb, _f1)) return 0;
+		if(strstr(_pb, _f2)) return 1;
+		uint tcp = maxfsz;
+		if(tcp > rv) tcp = rv;
+		memmove(_pb, pd + rv - tcp, tcp);
+		pd = _pb + tcp;
+		toread = _sz - tcp - 1;
+	}
+}
