@@ -178,7 +178,8 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 		//now we determine if we return with NOK or we continue
 		if(!_sig) return NOK;
 	}
-	if(socketEvents() & fdt::ERRDONE){
+	const uint32 sevs = socketEventsGrab();
+	if(sevs & fdt::ERRDONE){
 		return BAD;
 	}
 // 	if(socketEvents() & fdt::OUTDONE){
@@ -303,7 +304,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			break;
 		case IdleExecute:
 			//idbg("IdleExecute");
-			if(socketEvents() & fdt::OUTDONE){
+			if(sevs & fdt::OUTDONE){
 				state(Execute);
 				return OK;
 			}return NOK;
@@ -320,14 +321,14 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			//delete(paddr); paddr = NULL;
 			break;
 		case ParseTout:
-			if(socketEvents() & fdt::INDONE){
+			if(sevs & fdt::INDONE){
 				state(Parse);
 				return OK;
 			}
 			return NOK;
 		case ExecuteIOTout:
-			idbg("State: ExecuteTout");
-			if(socketEvents() & fdt::OUTDONE){
+			idbg("State: ExecuteTout ");
+			if(sevs & fdt::OUTDONE){
 				state(Execute);
 				return OK;
 			}

@@ -114,7 +114,10 @@ public:
 	void socketTimeoutSend(ulong _addsec, ulong _addnsec = 0);
 	
 	//! Gets the mask with completion events for the socket.
-	uint32 socketEvents()const;
+	//uint32 socketEvents()const;
+	
+	uint32 socketEventsGrab();
+	
 	//! Erase the socket - call socketRequestRegister before
 	void socketErase();
 	

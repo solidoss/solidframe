@@ -83,7 +83,8 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 		if(sm & fdt::S_KILL) return BAD;
 		}
 	}
-	if(socketEvents() & fdt::ERRDONE) return BAD;
+	const uint32 sevs(socketEventsGrab());
+	if(sevs & fdt::ERRDONE) return BAD;
 	int rc = 512 * 1024;
 	do{
 		switch(state()){

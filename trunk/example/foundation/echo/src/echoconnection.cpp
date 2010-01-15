@@ -90,15 +90,16 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 		if(sm & fdt::S_KILL) return BAD;
 		}
 	}
-	if(socketEvents()){
-		if(socketEvents() == fdt::ERRDONE){
+	const uint32 sevs(socketEventsGrab());
+	if(sevs){
+		if(sevs == fdt::ERRDONE){
 			
 			return BAD;
 		}
 		if(state() == READ_TOUT){	
-			cassert(socketEvents() & fdt::INDONE);
+			cassert(sevs & fdt::INDONE);
 		}else if(state() == WRITE_TOUT){	
-			cassert(socketEvents() & fdt::OUTDONE);
+			cassert(sevs & fdt::OUTDONE);
 		}
 		
 	}

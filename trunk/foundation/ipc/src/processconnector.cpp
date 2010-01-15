@@ -61,7 +61,13 @@ namespace ipc{
 
 struct BufCmp{
 	bool operator()(const Buffer &_rbuf1, const Buffer &_rbuf2)const{
-		return _rbuf1.id() > _rbuf2.id();
+		//return _rbuf1.id() > _rbuf2.id();
+		const ulong id1(_rbuf1.id());
+		const ulong id2(_rbuf2.id());
+		if(id1 > id2)
+			return (id1 - id2) <= (ulong)(0xffffffff/2);
+		else
+			return (id2 - id1) > (ulong)(0xffffffff/2);
 	}
 };
 
@@ -135,10 +141,10 @@ struct ProcessConnector::Data{
 			}else return false;
 			//TODO: optimize!!
 			if(id < _owc.id){
-				return (_owc.id - id) < (0xffffffff/2);
-			}else if(id > _owc.id){
-				return (id - _owc.id) >= (0xffffffff/2);
-			}else return false;
+				return (_owc.id - id) <= (uint32)(0xffffffff/2);
+			}else //if(id > _owc.id){
+				return (id - _owc.id) > (uint32)(0xffffffff/2);
+			//}else return false;
 		}
 		uint32				bufid;
 		DynamicPointer<Signal> sig;
