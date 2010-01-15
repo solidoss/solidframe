@@ -337,9 +337,17 @@ void SingleObject::socketTimeoutSend(const TimeSpec &_crttime, ulong _addsec, ul
 	this->doPushTimeoutSend(0, _crttime, _addsec, _addnsec);
 }
 
-uint32 SingleObject::socketEvents()const{
-	return stub.chnevents;
+// uint32 SingleObject::socketEvents()const{
+// 	return stub.chnevents;
+// }
+
+uint32 SingleObject::socketEventsGrab(){
+	uint32 evs = stub.chnevents;
+	stub.chnevents = 0;
+	stub.hasresponse = false;
+	return evs;
 }
+
 void SingleObject::socketErase(){
 	delete stub.psock;
 	stub.psock = NULL;
