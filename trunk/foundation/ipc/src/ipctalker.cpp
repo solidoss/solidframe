@@ -262,6 +262,9 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 			}
 		}
 	}
+	
+	_sig |= socketEventsGrab();
+	
 	if(d.closes.size()){
 		nothing = false;
 		//this is to ensure the locking order: first service then talker

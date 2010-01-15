@@ -268,7 +268,7 @@ int RemoteList::execute(Connection &_rc){
 		psig->fromv.second = Manager::the().uid(_rc);
 		state = Wait;
 		DynamicPointer<fdt::Signal> sigptr(psig);
-		Manager::the().ipc().sendSignal(ai.begin(), sigptr);
+		Manager::the().ipc().sendSignal(ai.begin(), sigptr, fdt::ipc::Service::SameConnectorFlag);
 		_rc.writer().push(&Writer::reinit<RemoteList>, protocol::Parameter(this));
 	}else{
 		*pp = protocol::Parameter(StrDef(" NO REMOTELIST: no such peer address@"));
