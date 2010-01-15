@@ -559,7 +559,7 @@ void ProcessConnector::reconnect(ProcessConnector *_ppc){
 		d.cq.pop();
 	}
 	uint32 cqsz = d.cq.size();
-	//we must put into the cq all signal in the exact oreder they were sent
+	//we must put into the cq all signal in the exact order they were sent
 	//to do so we must push into cq, the signals from scq and waitsigv
 	//ordered by their id
 	for(int sz = d.scq.size(); sz; --sz){
@@ -589,14 +589,26 @@ void ProcessConnector::reconnect(ProcessConnector *_ppc){
 			++outsig.uid;
 		}
 		d.scq.pop();
+		vdbgx(Dbg::ipc, "scqpop "<<d.scq.size());
 	}
 	//now we need to sort d.outsigv
 	std::sort(d.outsigv.begin(), d.outsigv.end());
 	
 	//then we push into cq the signals from outcmv
 	for(Data::OutCmdVectorTp::const_iterator it(d.outsigv.begin()); it != d.outsigv.end(); ++it){
-		if(it->sig.ptr()){
-			d.cq.push(Data::CmdPairTp(it->sig, it->flags));
+		const Data::OutWaitSignal &outsig(*it);
+		if(outsig.sig.ptr()){
+			//the outsigv may contain signals sent successfully, waiting for a response
+			//those signals are not queued in the scq
+			if(outsig.flags & Service::SameConnectorFlag){
+				if(outsig.flags & Service::SentFlag){
+					outsig.sig->ipcFail(1);
+				}else{
+					outsig.sig->ipcFail(0);
+				}
+			}else{
+				d.cq.push(Data::CmdPairTp(outsig.sig, outsig.flags));
+			}
 		}else break;
 	}
 	//clear out sig vector and stack
@@ -989,6 +1001,7 @@ int ProcessConnector::processSendSignals(SendBufferData &_rsb, const TimeSpec &_
 							++pcrtwaitsig;
 							*pcrtwaitsig = d.scq.front();
 							d.scq.pop();
+							vdbgx(Dbg::ipc, "scqpop "<<d.scq.size());
 							//we dont want to switch to an old signal
 							d.crtsigbufcnt = Data::MaxSignalBufferCount - 1;
 							if(rbuf.dataFreeSize() < 16) break;
@@ -1002,6 +1015,7 @@ int ProcessConnector::processSendSignals(SendBufferData &_rsb, const TimeSpec &_
 						d.scq.push(d.scq.front());
 						//d.waitFrontSignal().pser = NULL;
 						d.scq.pop();
+						vdbgx(Dbg::ipc, "scqpop "<<d.scq.size());
 						d.crtsigbufcnt = Data::MaxSignalBufferCount;
 					}
 				}//while
@@ -1037,7 +1051,7 @@ int ProcessConnector::processSendSignals(SendBufferData &_rsb, const TimeSpec &_
 				d.incrementSendId();
 				--d.bufjetons;
 				//now cache all waiting signals based on their last buffer id
-				//so that whe this buffer is sent, only then the signal can be deleted
+				//so that when this buffer is sent, only then the signal can be deleted
 				while(waitsigs <= pcrtwaitsig){
 					d.waitSignal(*pcrtwaitsig).bufid= rbuf.id();
 					--pcrtwaitsig;
