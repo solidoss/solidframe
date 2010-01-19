@@ -41,7 +41,7 @@ class	Pool;
 class	Object;
 class	ActiveSet;
 class	Visitor;
-class	FileManager;
+class	FileStreamManager;
 class	ServiceContainer;
 class	Signal;
 
@@ -99,10 +99,10 @@ public:
 	uint32  uid(Object &_robj)const;
 	
 	//! Get a reference to the filemanager
-	FileManager& fileManager();
+	FileStreamManager& fileStreamManager();
 	
 	//! Remove the file manager - do not use this
-	void removeFileManager();
+	void removeFileStreamManager();
 	
 	//! Get a reference to the ipc service
 	ipc::Service& ipc();
@@ -182,9 +182,9 @@ protected:
 	//! Get the service at index _i
 	Service& service(uint _i = 0)const;
 	//! Constructor with filemanager pointer and ipc service
-	Manager(FileManager *_pfm = NULL, ipc::Service *_pipcs = NULL);
+	Manager(FileStreamManager *_pfm = NULL, ipc::Service *_pipcs = NULL);
 	//! Set the filemanager
-	void fileManager(FileManager *_pfm);
+	void fileStreamManager(FileStreamManager *_pfm);
 	//! Set the ipc service
 	void ipc(ipc::Service *_pipcs);
 	void stop(bool _wait = true);
