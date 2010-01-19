@@ -32,7 +32,7 @@
 
 #include "foundation/ipc/ipcservice.hpp"
 #include "foundation/ipc/ipcservice.hpp"
-#include "foundation/filemanager.hpp"
+#include "foundation/filestreammanager.hpp"
 #include "foundation/signalexecuter.hpp"
 #include "foundation/requestuid.hpp"
 
@@ -368,7 +368,7 @@ int Fetch::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 			idbg("init local");
 			//try to open stream to localfile
 			fdt::RequestUid reqid(rc.id(), Manager::the().uid(rc), rc.newRequestId());
-			int rv = Manager::the().fileManager().stream(sp, reqid, strpth.c_str());
+			int rv = Manager::the().fileStreamManager().stream(sp, reqid, strpth.c_str());
 			switch(rv){
 				case BAD: 
 					*pp = protocol::Parameter(StrDef(" NO FETCH: Unable to open file@"));
@@ -395,7 +395,7 @@ int Fetch::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 			idbg("init remote");
 			//try to open a temp stream
 			fdt::RequestUid reqid(rc.id(), Manager::the().uid(rc), rc.newRequestId());
-			int rv = Manager::the().fileManager().stream(sp, fuid, reqid, NULL, 0);
+			int rv = Manager::the().fileStreamManager().stream(sp, fuid, reqid, NULL, 0);
 			switch(rv){
 				case BAD: 
 					*pp = protocol::Parameter(StrDef(" NO FETCH: Unable to open temp file@"));
@@ -588,7 +588,7 @@ int Store::reinitReader(Reader &_rr, protocol::Parameter &_rp){
 	switch(_rp.b.i){
 		case Init:{
 			fdt::RequestUid reqid(rc.id(), Manager::the().uid(rc), rc.newRequestId());
-			int rv = Manager::the().fileManager().stream(sp, reqid, strpth.c_str(), fdt::FileManager::Create);
+			int rv = Manager::the().fileStreamManager().stream(sp, reqid, strpth.c_str(), fdt::FileStreamManager::Create);
 			switch(rv){
 				case BAD: return Reader::Ok;
 				case OK:
@@ -722,7 +722,7 @@ int SendStream::execute(Connection &_rc){
 	uint32	fromobjuid(rm.uid(_rc));
 	fdt::RequestUid reqid(_rc.id(), rm.uid(_rc), _rc.requestId()); 
 	StreamPointer<IOStream>	sp;
-	int rv = Manager::the().fileManager().stream(sp, reqid, srcstr.c_str());
+	int rv = Manager::the().fileStreamManager().stream(sp, reqid, srcstr.c_str());
 	protocol::Parameter &rp = _rc.writer().push(&Writer::putStatus);
 	switch(rv){
 		case BAD:

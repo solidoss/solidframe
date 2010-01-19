@@ -4,7 +4,8 @@ set(Sources
 	src/signalexecuter.cpp
 	src/execpool.cpp
 	src/filekeys.cpp
-	src/filemanager.cpp
+	src/filestreammanager.cpp
+	src/memorystreammanager.cpp
 	src/manager.cpp
 	src/object.cpp
 	src/objectselector.cpp
@@ -20,7 +21,8 @@ set(Headers
 	execpool.hpp
 	filekey.hpp
 	filekeys.hpp
-	filemanager.hpp
+	filestreammanager.hpp
+	memorystreammanager.hpp
 	filemapper.hpp
 	manager.hpp
 	object.hpp

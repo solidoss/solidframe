@@ -1,4 +1,4 @@
-/* Declarations file filemanager.hpp
+/* Declarations file filestreammanager.hpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CS_FILE_MANAGER_HPP
-#define CS_FILE_MANAGER_HPP
+#ifndef CS_FILE_STREAM_MANAGER_HPP
+#define CS_FILE_STREAM_MANAGER_HPP
 
 #include "utility/streampointer.hpp"
 
@@ -73,7 +73,7 @@ class RequestUid;
 	<b>Notes:</b><br>
 	- The mapper method is a little bit more complex than it should be 
 	(doGetMapper must also register a mapper) because I want to be able
-	to have more than one instance of FileManager per process. It is 
+	to have more than one instance of FileStreamManager per process. It is 
 	not a really usefull request, but as long as one can have multiple 
 	managers per process it is at least nice to be able to have multiple
 	file managers.<br>
@@ -95,7 +95,7 @@ class RequestUid;
 		to fetch log records.<br>
 */
 
-class FileManager: public Object{
+class FileStreamManager: public Object{
 public:
 	enum {
 		Forced = 1, //!< Force the opperation
@@ -109,15 +109,18 @@ public:
 	/*!
 		\param _maxfcnt Maximum open file count
 	*/
-	FileManager(uint32 _maxfcnt = 0);
-	~FileManager();
+	FileStreamManager(uint32 _maxfcnt = 0);
+	
+	~FileStreamManager();
 	
 	int execute(ulong _evs, TimeSpec &_rtout);
 	
 	//! Get the size of a file identified by its name - the file will not be open
 	int64 fileSize(const char *_fn)const;
+	
 	//! Get the size of a file identified by its key - the file will not be open
 	int64 fileSize(const FileKey &_rk)const;
+	
 	template <class T>
 	T* mapper(T *_pm = NULL){
 		//doRegisterMapper will assert if _pm is NULL
@@ -128,54 +131,198 @@ public:
 	}
 	//first type of stream request methods
 	
-	int stream(StreamPointer<IStream> &_sptr, const RequestUid &_rrequid, const char *_fn = NULL, uint32 _flags = 0);
-	int stream(StreamPointer<OStream> &_sptr, const RequestUid &_rrequid, const char *_fn = NULL, uint32 _flags = 0);
-	int stream(StreamPointer<IOStream> &_sptr, const RequestUid &_rrequid, const char *_fn = NULL, uint32 _flags = 0);
+	int stream(
+		StreamPointer<IStream> &_sptr,
+		const RequestUid &_rrequid,
+		const char *_fn = NULL,
+		uint32 _flags = 0
+	);
+	int stream(
+		StreamPointer<OStream> &_sptr,
+		const RequestUid &_rrequid,
+		const char *_fn = NULL,
+		uint32 _flags = 0
+	);
+	int stream(
+		StreamPointer<IOStream> &_sptr,
+		const RequestUid &_rrequid,
+		const char *_fn = NULL,
+		uint32 _flags = 0
+	);
 	
 	//using specific request
-	int streamSpecific(StreamPointer<IStream> &_sptr, const char *_fn = NULL, uint32 _flags = 0);
-	int streamSpecific(StreamPointer<OStream> &_sptr, const char *_fn = NULL, uint32 _flags = 0);
-	int streamSpecific(StreamPointer<IOStream> &_sptr, const char *_fn = NULL, uint32 _flags = 0);
+	int streamSpecific(
+		StreamPointer<IStream> &_sptr,
+		const char *_fn = NULL,
+		uint32 _flags = 0
+	);
+	int streamSpecific(
+		StreamPointer<OStream> &_sptr,
+		const char *_fn = NULL,
+		uint32 _flags = 0
+	);
+	int streamSpecific(
+		StreamPointer<IOStream> &_sptr,
+		const char *_fn = NULL,
+		uint32 _flags = 0
+	);
 
 	
 	//second type of stream request methods
-	int stream(StreamPointer<IStream> &_sptr, FileUidTp &_rfuid, const RequestUid &_rrequid, const char *_fn, uint32 _flags = 0);
-	int stream(StreamPointer<OStream> &_sptr, FileUidTp &_rfuid, const RequestUid &_rrequid, const char *_fn, uint32 _flags = 0);
-	int stream(StreamPointer<IOStream> &_sptr, FileUidTp &_rfuid, const RequestUid &_rrequid, const char *_fn, uint32 _flags = 0);
+	int stream(
+		StreamPointer<IStream> &_sptr,
+		FileUidTp &_rfuid,
+		const RequestUid &_rrequid,
+		const char *_fn,
+		uint32 _flags = 0
+	);
+	int stream(
+		StreamPointer<OStream> &_sptr,
+		FileUidTp &_rfuid,
+		const RequestUid &_rrequid,
+		const char *_fn,
+		uint32 _flags = 0
+	);
+	int stream(
+		StreamPointer<IOStream> &_sptr,
+		FileUidTp &_rfuid,
+		const RequestUid &_rrequid,
+		const char *_fn,
+		uint32 _flags = 0
+	);
 	
 	//using specific request
-	int streamSpecific(StreamPointer<IStream> &_sptr, FileUidTp &_rfuid, const char *_fn, uint32 _flags = 0);
-	int streamSpecific(StreamPointer<OStream> &_sptr, FileUidTp &_rfuid, const char *_fn, uint32 _flags = 0);
-	int streamSpecific(StreamPointer<IOStream> &_sptr, FileUidTp &_rfuid, const char *_fn, uint32 _flags = 0);
+	int streamSpecific(
+		StreamPointer<IStream> &_sptr,
+		FileUidTp &_rfuid,
+		const char *_fn,
+		uint32 _flags = 0
+	);
+	int streamSpecific(
+		StreamPointer<OStream> &_sptr,
+		FileUidTp &_rfuid,
+		const char *_fn,
+		uint32 _flags = 0
+	);
+	int streamSpecific(
+		StreamPointer<IOStream> &_sptr,
+		FileUidTp &_rfuid,
+		const char *_fn,
+		uint32 _flags = 0
+	);
 
 	//third type of stream request methods
-	int stream(StreamPointer<IStream> &_sptr, FileUidTp &_rfuid, const RequestUid &_rrequid, const FileKey &_rk, uint32 _flags = 0);
-	int stream(StreamPointer<OStream> &_sptr, FileUidTp &_rfuid, const RequestUid &_rrequid, const FileKey &_rk, uint32 _flags = 0);
-	int stream(StreamPointer<IOStream> &_sptr, FileUidTp &_rfuid, const RequestUid &_rrequid, const FileKey &_rk, uint32 _flags = 0);
+	int stream(
+		StreamPointer<IStream> &_sptr,
+		FileUidTp &_rfuid,
+		const RequestUid &_rrequid,
+		const FileKey &_rk,
+		uint32 _flags = 0
+	);
+	int stream(
+		StreamPointer<OStream> &_sptr,
+		FileUidTp &_rfuid,
+		const RequestUid &_rrequid,
+		const FileKey &_rk,
+		uint32 _flags = 0
+	);
+	int stream(
+		StreamPointer<IOStream> &_sptr,
+		FileUidTp &_rfuid,
+		const RequestUid &_rrequid,
+		const FileKey &_rk,
+		uint32 _flags = 0
+	);
 	
 	//using specific request
-	int streamSpecific(StreamPointer<IStream> &_sptr, FileUidTp &_rfuid, const FileKey &_rk, uint32 _flags = 0);
-	int streamSpecific(StreamPointer<OStream> &_sptr, FileUidTp &_rfuid, const FileKey &_rk, uint32 _flags = 0);
-	int streamSpecific(StreamPointer<IOStream> &_sptr, FileUidTp &_rfuid, const FileKey &_rk, uint32 _flags = 0);
+	int streamSpecific(
+		StreamPointer<IStream> &_sptr,
+		FileUidTp &_rfuid,
+		const FileKey &_rk,
+		uint32 _flags = 0
+	);
+	int streamSpecific(
+		StreamPointer<OStream> &_sptr,
+		FileUidTp &_rfuid,
+		const FileKey &_rk,
+		uint32 _flags = 0
+	);
+	int streamSpecific(
+		StreamPointer<IOStream> &_sptr,
+		FileUidTp &_rfuid,
+		const FileKey &_rk,
+		uint32 _flags = 0
+	);
 	
 	//fourth type of stream request methods
-	int stream(StreamPointer<IStream> &_sptr, const FileUidTp &_rfuid, const RequestUid &_rrequid, uint32 _flags = 0);
-	int stream(StreamPointer<OStream> &_sptr, const FileUidTp &_rfuid, const RequestUid &_rrequid, uint32 _flags = 0);
-	int stream(StreamPointer<IOStream> &_sptr, const FileUidTp &_rfuid, const RequestUid &_rrequid, uint32 _flags = 0);
+	int stream(
+		StreamPointer<IStream> &_sptr,
+		const FileUidTp &_rfuid,
+		const RequestUid &_rrequid,
+		uint32 _flags = 0
+	);
+	int stream(
+		StreamPointer<OStream> &_sptr,
+		const FileUidTp &_rfuid,
+		const RequestUid &_rrequid,
+		uint32 _flags = 0
+	);
+	int stream(
+		StreamPointer<IOStream> &_sptr,
+		const FileUidTp &_rfuid,
+		const RequestUid &_rrequid,
+		uint32 _flags = 0
+	);
 	
 	//using specific request
-	int streamSpecific(StreamPointer<IStream> &_sptr, const FileUidTp &_rfuid, uint32 _flags = 0);
-	int streamSpecific(StreamPointer<OStream> &_sptr, const FileUidTp &_rfuid, uint32 _flags = 0);
-	int streamSpecific(StreamPointer<IOStream> &_sptr, const FileUidTp &_rfuid, uint32 _flags = 0);
+	int streamSpecific(
+		StreamPointer<IStream> &_sptr,
+		const FileUidTp &_rfuid,
+		uint32 _flags = 0
+	);
+	int streamSpecific(
+		StreamPointer<OStream> &_sptr,
+		const FileUidTp &_rfuid,
+		uint32 _flags = 0
+	);
+	int streamSpecific(
+		StreamPointer<IOStream> &_sptr,
+		const FileUidTp &_rfuid,
+		uint32 _flags = 0
+	);
 	
 	//fifth type of stream request methods
-	int stream(StreamPointer<IStream> &_sptr, const char *_fn = NULL, uint32 _flags = 0);
-	int stream(StreamPointer<OStream> &_sptr, const char *_fn = NULL, uint32 _flags = 0);
-	int stream(StreamPointer<IOStream> &_sptr, const char *_fn = NULL, uint32 _flags = 0);
+	int stream(
+		StreamPointer<IStream> &_sptr,
+		const char *_fn = NULL,
+		uint32 _flags = 0
+	);
+	int stream(
+		StreamPointer<OStream> &_sptr,
+		const char *_fn = NULL,
+		uint32 _flags = 0
+	);
+	int stream(
+		StreamPointer<IOStream> &_sptr,
+		const char *_fn = NULL,
+		uint32 _flags = 0
+	);
 	
-	int stream(StreamPointer<IStream> &_sptr, const FileKey &_rk, uint32 _flags = 0);
-	int stream(StreamPointer<OStream> &_sptr, const FileKey &_rk, uint32 _flags = 0);
-	int stream(StreamPointer<IOStream> &_sptr, const FileKey &_rk, uint32 _flags = 0);
+	int stream(
+		StreamPointer<IStream> &_sptr,
+		const FileKey &_rk,
+		uint32 _flags = 0
+	);
+	int stream(
+		StreamPointer<OStream> &_sptr,
+		const FileKey &_rk,
+		uint32 _flags = 0
+	);
+	int stream(
+		StreamPointer<IOStream> &_sptr,
+		const FileKey &_rk,
+		uint32 _flags = 0
+	);
 
 	int setFileTimeout(const FileUidTp &_rfuid, const TimeSpec &_rtout);
 	
@@ -184,9 +331,21 @@ public:
 	uint32 fileOpenTimeout()const;
 	
 protected:
-	virtual void sendStream(StreamPointer<IStream> &_sptr, const FileUidTp &_rfuid, const RequestUid& _rrequid) = 0;
-	virtual void sendStream(StreamPointer<OStream> &_sptr, const FileUidTp &_rfuid, const RequestUid& _rrequid) = 0;
-	virtual void sendStream(StreamPointer<IOStream> &_sptr, const FileUidTp &_rfuid, const RequestUid& _rrequid) = 0;
+	virtual void sendStream(
+		StreamPointer<IStream> &_sptr,
+		const FileUidTp &_rfuid,
+		const RequestUid& _rrequid
+	) = 0;
+	virtual void sendStream(
+		StreamPointer<OStream> &_sptr,
+		const FileUidTp &_rfuid,
+		const RequestUid& _rrequid
+	) = 0;
+	virtual void sendStream(
+		StreamPointer<IOStream> &_sptr,
+		const FileUidTp &_rfuid,
+		const RequestUid& _rrequid
+	) = 0;
 	virtual void sendError(int _error, const RequestUid& _rrequid) = 0;
 private:
 	friend class FileIStream;
@@ -194,7 +353,13 @@ private:
 	friend class FileIOStream;
 	friend class File;
 	template <typename StreamP>
-	int doGetStream(StreamP &_sptr, FileUidTp &_rfuid, const RequestUid &_rrequid, const FileKey &_rk, uint32 _flags);
+	int doGetStream(
+		StreamP &_sptr,
+		FileUidTp &_rfuid,
+		const RequestUid &_rrequid,
+		const FileKey &_rk,
+		uint32 _flags
+	);
 	void releaseIStream(uint _fileid);
 	void releaseOStream(uint _fileid);
 	void releaseIOStream(uint _fileid);
