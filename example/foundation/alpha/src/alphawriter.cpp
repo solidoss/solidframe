@@ -54,9 +54,9 @@ bool isLiteralString(const char *_pb, unsigned _bl){
 /*static*/ int Writer::putAString(protocol::Writer &_rw, protocol::Parameter &_rp){
 	Writer &rw = static_cast<Writer&>(_rw);
 	const char *ps = (const char*)_rp.a.p;
-	if(_rp.b.u > 128 || isLiteralString(ps, _rp.b.u)){
+	if(_rp.b.u32 > 128 || isLiteralString(ps, _rp.b.u32)){
 		//right here i know for sure I can write safely (buflen - FlushLength) chars
-		rw<<'{'<<(uint32)_rp.b.u;
+		rw<<'{'<<_rp.b.u32;
 		rw.putChar('}','\r','\n');
 		rw.fs.top().first = &Writer::putAtom;
 	}else{//send quoted
