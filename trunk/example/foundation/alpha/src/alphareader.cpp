@@ -77,7 +77,7 @@ void Reader::clear(){
 		rr.push(&Reader::checkChar, protocol::Parameter('\r'));
 		rr.push(&Reader::checkChar, protocol::Parameter('}'));
 		rr.push(&Reader::saveCurrentChar, protocol::Parameter(&rp.b.i, (int)'+'));
-		rr.push(&Reader::fetchUint32, protocol::Parameter(&rp.a.u));
+		rr.push(&Reader::fetchUint32, protocol::Parameter(&rp.a.u32));
 	}else if(c == '\"'){
 		rr.drop();
 		rr.fs.top().first = &Reader::copyTmpString;
@@ -86,7 +86,7 @@ void Reader::clear(){
 		
 	}else{//we have an atom
 		rr.fs.top().first = &Reader::fetchFilteredString<AtomFilter>;
-		_rp.b.u = 1024;//the string max size
+		_rp.b.u32 = 1024;//the string max size
 	}
 	return Continue;
 }
@@ -159,10 +159,10 @@ void Reader::clear(){
 	//TODO: check for too big literals
 	if(_rp.b.i){
 		cassert(_rp.b.i == '+');
-		rr.replace(&Reader::fetchLiteralString, protocol::Parameter(&rr.tmp, _rp.a.u));
+		rr.replace(&Reader::fetchLiteralString, protocol::Parameter(&rr.tmp, _rp.a.u32));
 	}else{
-		rr.rw<<"+ Expecting "<<(uint32)_rp.a.u<<" Chars\r\n";
-		rr.replace(&Reader::fetchLiteralString, protocol::Parameter(&rr.tmp, _rp.a.u));
+		rr.rw<<"+ Expecting "<<_rp.a.u32<<" Chars\r\n";
+		rr.replace(&Reader::fetchLiteralString, protocol::Parameter(&rr.tmp, _rp.a.u32));
 		rr.push(&Reader::flushWriter);
 	}
 	return Continue;
@@ -236,7 +236,7 @@ void Reader::clear(){
 }
 /*static*/ int Reader::errorRecovery(protocol::Reader &_rr, protocol::Parameter &_rp){
 	Reader &rr = static_cast<Reader&>(_rr);
-	int rv = rr.locate<CharFilter<'\n'> >(rr.tmp, _rp.a.u, 16);
+	int rv = rr.locate<CharFilter<'\n'> >(rr.tmp, _rp.a.u32, 16);
 	if(rv == No){
 		_rr.push(&Reader::refill);
 		return Continue;
@@ -259,9 +259,9 @@ void Reader::clear(){
 	}
 	//rc == No cant send the response yet
 	
-	_rp.a.u = 64 * 1024;
+	_rp.a.u32 = 64 * 1024;
 	rr.tmp.clear();
-	rr.push(&Reader::fetchLiteralDummy, protocol::Parameter((ulong)litlen));
+	rr.push(&Reader::fetchLiteralDummy, protocol::Parameter(litlen));
 	return Continue;
 }
 

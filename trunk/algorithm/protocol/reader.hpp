@@ -165,6 +165,8 @@ public:
 	static int manage(Reader &_rr, Parameter &_rp);
 	//!Callback for fetching an unsigned number
 	static int fetchUint32(Reader &_rr, Parameter &_rp);
+	//!Callback for fetching an unsigned number
+	static int fetchUint64(Reader &_rr, Parameter &_rp);
 	//!Callback for dropping the current char
 	static int dropChar(Reader &_rr, Parameter &_rp);
 	//!Callback for saving the current char
@@ -183,7 +185,7 @@ public:
 	template <class Rdr, class Creator, class Filter, class Key/* = DummyKey*/>
 	static int fetchKey(Reader &_rr, Parameter &_rp){
 		Rdr	&rr(static_cast<Rdr&>(_rr));
-		int rv = rr.fetch<Filter>(_rr.tmp, _rp.b.u);
+		int rv = rr.fetch<Filter>(_rr.tmp, _rp.b.u32);
 		switch(rv){
 			case Ok:break;
 			case No:
@@ -208,7 +210,7 @@ public:
 	//! Callback for fetching a filtered string
 	template <class Filter>
 	static int fetchFilteredString(Reader &_rr, Parameter &_rp){
-		int rv = _rr.fetch<Filter>(*static_cast<String*>(_rp.a.p), _rp.b.u);
+		int rv = _rr.fetch<Filter>(*static_cast<String*>(_rp.a.p), _rp.b.u32);
 		switch(rv){
 			case Ok:break;
 			case No:
@@ -252,10 +254,10 @@ protected:
 	//! Move forward in the input buffer
 	void drop();
 	//! Convenient method for fetching a literal string
-	int fetchLiteral(String &_rds, ulong &_rdsz);
+	int fetchLiteral(String &_rds, uint32 &_rdsz);
 	//! Convenient method for fetching a filtered string
 	template<class Filter>
-	int fetch(String &_rds, ulong _maxsz){
+	int fetch(String &_rds, uint32 _maxsz){
 		const char *tbeg = rpos;
 		while(rpos != wpos && Filter::check(*(rpos))) ++rpos;
 		if((_rds.size() + (rpos - tbeg)) <= _maxsz){
@@ -272,7 +274,7 @@ protected:
 	}
 	//! Locate a certain char (using filter) keeping in _rds the last _keep chars
 	template <class Filter>
-	int locate(String &_rds, ulong &_rdsz, int _keep){
+	int locate(String &_rds, uint32 &_rdsz, int _keep){
 		//int rcode;
 		if(_rdsz < (ulong)(bend - bbeg)) return Bad;
 		const char *tbeg = rpos;

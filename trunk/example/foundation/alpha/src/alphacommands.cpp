@@ -387,7 +387,7 @@ int Fetch::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 			cassert(sp);
 			litsz64 = sp->size();
 			it.reinit(sp.ptr());
-			_rw<<"* DATA {"<<(uint32)sp->size()<<"}\r\n";
+			_rw<<"* DATA {"<<litsz64<<"}\r\n";
 			_rw.replace(&Writer::putCrlf);
 			_rw.push(&Writer::putStream, protocol::Parameter(&it, &litsz64));
 			return Writer::Continue;
@@ -435,7 +435,7 @@ int Fetch::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 			idbg("send first remote");
 			//The first chunk of data was received
 			it.reinit(sp.ptr(), 0);
-			_rw<<"* DATA {"<<(uint32)litsz64<<"}\r\n";
+			_rw<<"* DATA {"<<litsz64<<"}\r\n";
 			chunksz = FetchChunkSize;
 			isfirst = 1;
 			if(chunksz >= litsz64){

@@ -91,7 +91,7 @@ void Reader::drop(){
 	++rpos;
 }
 
-int Reader::fetchLiteral(String &_rds, ulong &_rdsz){
+int Reader::fetchLiteral(String &_rds, uint32 &_rdsz){
 	ulong mlen = wpos - rpos;
 	if(mlen > _rdsz) mlen = _rdsz;
 	_rds.append(rpos, mlen);
@@ -141,7 +141,7 @@ int Reader::run(){
 }
 
 /*static*/ int Reader::fetchLiteralString(Reader &_rr, Parameter &_rp){
-	if(_rr.fetchLiteral(*reinterpret_cast<String*>(_rp.a.p), _rp.b.u)){
+	if(_rr.fetchLiteral(*reinterpret_cast<String*>(_rp.a.p), _rp.b.u32)){
 		_rr.push(&Reader::refill);
 		return Continue;
 	}
@@ -150,10 +150,10 @@ int Reader::run(){
 
 /*static*/ int Reader::fetchLiteralDummy(Reader &_rr, Parameter &_rp){
 	uint32 sz = _rr.wpos - _rr.rpos;
-	if(sz > _rp.a.u) sz = _rp.a.u;
+	if(sz > _rp.a.u32) sz = _rp.a.u32;
 	_rr.rpos += sz;
-	_rp.a.u -= sz;
-	if(_rp.a.u){
+	_rp.a.u32 -= sz;
+	if(_rp.a.u32){
 		_rr.push(&Reader::refill);
 		return Continue;
 	}
@@ -306,6 +306,29 @@ struct DigitFilter{
 			return Error;
 	}
 	*reinterpret_cast<uint32 *>(_rp.a.p) = strtoul(_rr.tmp.c_str(), NULL, 10);
+	
+	if(_rr.tmp.empty() || errno==ERANGE/* || *reinterpret_cast<uint32 *>(_rp.a.p) == 0*/){
+		_rr.keyError(_rr.tmp, NotANumber);
+		_rr.tmp.clear();
+		return Error;
+	}
+	_rr.tmp.clear();
+	return Ok;
+}
+
+/*static*/ int Reader::fetchUint64(Reader &_rr, Parameter &_rp){
+	int rv = _rr.fetch<DigitFilter>(_rr.tmp, 32);
+	switch(rv){
+		case Ok:break;
+		case No:
+			_rr.push(&Reader::refill);
+			return Continue;
+		case Error:
+			_rr.basicError(StringTooLong);
+			return Error;
+	}
+	//*reinterpret_cast<uint32 *>(_rp.a.p) = strtoul(_rr.tmp.c_str(), NULL, 10);
+	*reinterpret_cast<uint64 *>(_rp.a.p) = strtoull(_rr.tmp.c_str(), NULL, 10);
 	
 	if(_rr.tmp.empty() || errno==ERANGE/* || *reinterpret_cast<uint32 *>(_rp.a.p) == 0*/){
 		_rr.keyError(_rr.tmp, NotANumber);

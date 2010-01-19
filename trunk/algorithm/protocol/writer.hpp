@@ -137,6 +137,11 @@ public:
 	//! Convenient method for silently putting a number on the output
 	void putSilent(uint32 _v);
     
+    
+    //! Convenient method for putting a number on the output
+	void put(uint64 _v);
+	//! Convenient method for silently putting a number on the output
+	void putSilent(uint64 _v);
 //writing callbacks
 	//! Callback for returning a certain value
 	template <bool B>
@@ -188,6 +193,8 @@ public:
 	Writer& operator << (const String &_str);
 	//! Put a number on the output buffer
 	Writer& operator << (uint32 _v);
+	//! Put a number on the output buffer
+	Writer& operator << (uint64 _v);
 	//! Convenient method for flushing the buffer
 	int flushAll();
 protected:

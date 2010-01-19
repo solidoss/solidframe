@@ -215,6 +215,39 @@ void Writer::putSilent(uint32 _v){
 }
 
 
+void Writer::put(uint64 _v){
+	if(!_v){
+		putChar('0');
+	}else{
+		char tmp[32];
+		uint pos = 31;
+		while(_v){
+			*(tmp + pos) = '0' + _v % 10;
+			_v /= 10;
+			--pos;
+		}
+		++pos;
+		putSilentString(tmp + pos, 32 - pos);
+		if(dolog) plog->outAtom(tmp + pos, 32 - pos);
+	}
+}
+
+void Writer::putSilent(uint64 _v){
+	if(!_v){
+		putSilentChar('0');
+	}else{
+		char tmp[32];
+		uint pos = 31;
+		while(_v){
+			*(tmp + pos) = '0' + _v % 10;
+			_v /= 10;
+			--pos;
+		}
+		++pos;
+		putSilentString(tmp + pos, 32 - pos);
+	}
+}
+
 template <>
 /*static*/ int Writer::returnValue<true>(Writer &_rw, Parameter &_rp){
 	int rv = _rp.a.i;
@@ -246,17 +279,17 @@ template <>
 }
 
 /*static*/ int Writer::putRawString(Writer &_rw, Parameter &_rp){
-	if(_rp.b.u < FlushLength){
+	if(_rp.b.u32 < FlushLength){
 		//I'm sure that the data in buf is less then FlushLength
 		//so adding something less than FlushLength will certainly fit into the buffer
-		memcpy(_rw.wpos, _rp.a.p, _rp.b.u);
-		_rw.wpos += _rp.b.u;
+		memcpy(_rw.wpos, _rp.a.p, _rp.b.u32);
+		_rw.wpos += _rp.b.u32;
 		//NOTE: no need to do the flushing now
 		//int rv = _rw.flush();
 		//if(rv){ _rw.fs.top().first = &Writer::doneFlush(); return rv;}
 		return Ok;
 	}else{
-		int rv = _rw.write((char*)_rp.a.p, _rp.b.u);
+		int rv = _rw.write((char*)_rp.a.p, _rp.b.u32);
 		if(rv == No){//scheduled for writing
 			_rw.replace(&Writer::returnValue<true>, Parameter(Continue));
 			return No;
@@ -329,22 +362,22 @@ template <>
 }
 
 /*static*/ int Writer::putAtom(Writer &_rw, Parameter &_rp){
-	if(_rw.dolog) _rw.plog->outAtom((const char*)_rp.a.p, _rp.b.u);
-	if(_rp.b.u < FlushLength){
+	if(_rw.dolog) _rw.plog->outAtom((const char*)_rp.a.p, _rp.b.u32);
+	if(_rp.b.u32 < FlushLength){
 		//I'm sure that the data in buf is less then FlushLength
 		//so adding something less than FlushLength will certainly fit into the buffer
-		memcpy(_rw.wpos, _rp.a.p, _rp.b.u);
-		_rw.wpos += _rp.b.u;
+		memcpy(_rw.wpos, _rp.a.p, _rp.b.u32);
+		_rw.wpos += _rp.b.u32;
 		int rv = _rw.flush();
 		if(rv){ _rw.fs.top().first = &Writer::doneFlush; return rv;}
 		return Ok;
 	}
 	//we kinda need to do it the hard way
 	uint towrite = _rw.bend - _rw.wpos;
-	if(towrite > _rp.b.u) towrite = _rp.b.u;
+	if(towrite > _rp.b.u32) towrite = _rp.b.u32;
 	memcpy(_rw.wpos, _rp.a.p, towrite);
 	_rp.a.p = (char*)_rp.a.p + towrite;
-	_rp.b.u -= towrite;
+	_rp.b.u32 -= towrite;
 	_rw.fs.top().first = &Writer::putRawString;
 	_rw.push(flushAll);
 	return Continue;
@@ -395,6 +428,11 @@ Writer& Writer::operator << (const String &_str){
 }
 
 Writer& Writer::operator << (uint32 _v){
+	put(_v);
+	return *this;
+}
+
+Writer& Writer::operator << (uint64 _v){
 	put(_v);
 	return *this;
 }
