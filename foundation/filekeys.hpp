@@ -27,15 +27,15 @@
 namespace foundation{
 //! A filekey based on the name/path of the file
 struct NameFileKey: public FileKey{
-	static void registerMapper(FileStreamManager &, const char *_prefix = NULL);
+	static void registerMapper(FileManager &, const char *_prefix = NULL);
 	NameFileKey(const char *_fname = NULL);
 	NameFileKey(const std::string &_fname);
 	std::string 	name;
 private:
-	/*virtual*/ void fileName(FileStreamManager &_fm, uint32 _fileid, std::string &_fname)const;
-	/*virtual*/ uint32 find(FileStreamManager &_fm)const;
-	/*virtual*/ void insert(FileStreamManager &_fm, uint32 _fileid)const;
-	/*virtual*/ void erase(FileStreamManager &_fm, uint32 _fileid)const;
+	/*virtual*/ void fileName(FileManager &_fm, uint32 _fileid, std::string &_fname)const;
+	/*virtual*/ uint32 find(FileManager &_fm)const;
+	/*virtual*/ void insert(FileManager &_fm, uint32 _fileid)const;
+	/*virtual*/ void erase(FileManager &_fm, uint32 _fileid)const;
 	/*virtual*/ FileKey* clone()const;
 };
 //! A filekey based on the name/path of the file
@@ -46,23 +46,23 @@ struct FastNameFileKey: public FileKey{
 	FastNameFileKey(const char *_name):name(_name){}
 	const char *name;
 private:
-	/*virtual*/ void fileName(FileStreamManager &_fm, uint32 _fileid, std::string &_fname)const;
-	/*virtual*/ uint32 find(FileStreamManager &_fm)const;
-	/*virtual*/ void insert(FileStreamManager &_fm, uint32 _fileid)const;
-	/*virtual*/ void erase(FileStreamManager &_fm, uint32 _fileid)const;
+	/*virtual*/ void fileName(FileManager &_fm, uint32 _fileid, std::string &_fname)const;
+	/*virtual*/ uint32 find(FileManager &_fm)const;
+	/*virtual*/ void insert(FileManager &_fm, uint32 _fileid)const;
+	/*virtual*/ void erase(FileManager &_fm, uint32 _fileid)const;
 	/*virtual*/ FileKey* clone()const;
 };
 
 //! A key for temporary files
 struct TempFileKey: public FileKey{
-	static void registerMapper(FileStreamManager &, const char *_prefix = NULL);
+	static void registerMapper(FileManager &, const char *_prefix = NULL);
 	TempFileKey(){}
 private:
 	/*virtual*/ bool release()const;
-	/*virtual*/ void fileName(FileStreamManager &_fm, uint32 _fileid, std::string &_fname)const;
-	/*virtual*/ uint32 find(FileStreamManager &_fm)const;
-	/*virtual*/ void insert(FileStreamManager &_fm, uint32 _fileid)const;
-	/*virtual*/ void erase(FileStreamManager &_fm, uint32 _fileid)const;
+	/*virtual*/ void fileName(FileManager &_fm, uint32 _fileid, std::string &_fname)const;
+	/*virtual*/ uint32 find(FileManager &_fm)const;
+	/*virtual*/ void insert(FileManager &_fm, uint32 _fileid)const;
+	/*virtual*/ void erase(FileManager &_fm, uint32 _fileid)const;
 	/*virtual*/ FileKey* clone()const;
 };
 

@@ -31,7 +31,7 @@
 #include "foundation/service.hpp"
 #include "foundation/object.hpp"
 #include "foundation/activeset.hpp"
-#include "foundation/filestreammanager.hpp"
+#include "foundation/filemanager.hpp"
 #include "foundation/requestuid.hpp"
 #include "foundation/ipc/ipcservice.hpp"
 
@@ -132,13 +132,13 @@ void ServiceContainer::clearDummy(){
 struct Manager::Data{
 	typedef std::vector<ServicePtr> ServiceVectorTp;
 	typedef std::vector<ActiveSet*> ActiveSetVectorTp;
-	Data(FileStreamManager *_pfm, ipc::Service *_pipcs):pfm(_pfm), pipcs(_pipcs){}
-	ObjectPointer<FileStreamManager>		pfm;
+	Data(FileManager *_pfm, ipc::Service *_pipcs):pfm(_pfm), pipcs(_pipcs){}
+	ObjectPointer<FileManager>		pfm;
 	ipc::Service							*pipcs;
 	ServiceVectorTp							sv;
 	ActiveSetVectorTp						asv;
 };
-Manager::Manager(FileStreamManager *_pfm, ipc::Service *_pipcs):d(*(new Data(_pfm, _pipcs))){
+Manager::Manager(FileManager *_pfm, ipc::Service *_pipcs):d(*(new Data(_pfm, _pipcs))){
 	registerActiveSet(*(new DummySet));
 	d.sv.push_back(ServicePtr(new ServiceContainer));
 }
@@ -150,7 +150,7 @@ Manager::~Manager(){
 	delete &d;
 }
 
-FileStreamManager& Manager::fileStreamManager(){
+FileManager& Manager::fileManager(){
 	return *d.pfm;
 }
 
@@ -179,7 +179,7 @@ Manager& Manager::the(){
 // 	return _rs.index();//the first service must be the ServiceContainer
 // }
 
-void Manager::fileStreamManager(FileStreamManager *_pfm){
+void Manager::fileManager(FileManager *_pfm){
 	cassert(!d.pfm);
 	d.pfm = _pfm;
 }
@@ -187,8 +187,8 @@ void Manager::ipc(ipc::Service *_pipcs){
 	d.pipcs = _pipcs;
 }
 
-void Manager::removeFileStreamManager(){
-	removeObject(&fileStreamManager());
+void Manager::removeFileManager(){
+	removeObject(&fileManager());
 	//psm = NULL;
 }
 
