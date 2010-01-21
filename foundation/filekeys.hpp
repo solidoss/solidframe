@@ -67,6 +67,21 @@ private:
 };
 
 
+//! A key for temporary in memory files
+struct MemoryFileKey: public FileKey{
+	static void registerMapper(FileManager &, const char *_prefix = NULL);
+	MemoryFileKey(const uint64& _size):size(_size){}
+	uint64	size;
+private:
+	/*virtual*/ bool release()const;
+	/*virtual*/ void fileName(FileManager &_fm, uint32 _fileid, std::string &_fname)const;
+	/*virtual*/ uint32 find(FileManager &_fm)const;
+	/*virtual*/ void insert(FileManager &_fm, uint32 _fileid)const;
+	/*virtual*/ void erase(FileManager &_fm, uint32 _fileid)const;
+	/*virtual*/ FileKey* clone()const;
+};
+
+
 }//namespace foundation
 
 
