@@ -192,5 +192,26 @@ void TempFileMapper::initFolders(){
 	}
 }
 
+//---------------------------------------------------------------
+//TODO:
+/*static*/ void MemoryFileKey::registerMapper(FileManager &, const char *_prefix){
+}
+MemoryFileKey::MemoryFileKey(const uint64& _size);
+/*virtual*/ bool MemoryFileKey::release()const{
+	return 0;
+}
+/*virtual*/ void MemoryFileKey::fileName(FileManager &_fm, uint32 _fileid, std::string &_fname)const{
+}
+/*virtual*/ uint32 MemoryFileKey::find(FileManager &_fm)const{
+	return 0;
+}
+/*virtual*/ void MemoryFileKey::insert(FileManager &_fm, uint32 _fileid)const{
+}
+/*virtual*/ void MemoryFileKey::erase(FileManager &_fm, uint32 _fileid)const{
+}
+/*virtual*/ FileKey* MemoryFileKey::clone()const{
+	return NULL;
+}
+
 }//namespace foundation
 
