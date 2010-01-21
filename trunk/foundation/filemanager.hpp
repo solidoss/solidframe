@@ -1,4 +1,4 @@
-/* Declarations file filestreammanager.hpp
+/* Declarations file filemanager.hpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CS_FILE_STREAM_MANAGER_HPP
-#define CS_FILE_STREAM_MANAGER_HPP
+#ifndef FDT_FILE_MANAGER_HPP
+#define FDT_FILE_MANAGER_HPP
 
 #include "utility/streampointer.hpp"
 
@@ -73,7 +73,7 @@ class RequestUid;
 	<b>Notes:</b><br>
 	- The mapper method is a little bit more complex than it should be 
 	(doGetMapper must also register a mapper) because I want to be able
-	to have more than one instance of FileStreamManager per process. It is 
+	to have more than one instance of FileManager per process. It is 
 	not a really usefull request, but as long as one can have multiple 
 	managers per process it is at least nice to be able to have multiple
 	file managers.<br>
@@ -95,7 +95,7 @@ class RequestUid;
 		to fetch log records.<br>
 */
 
-class FileStreamManager: public Object{
+class FileManager: public Object{
 public:
 	enum {
 		Forced = 1, //!< Force the opperation
@@ -109,9 +109,9 @@ public:
 	/*!
 		\param _maxfcnt Maximum open file count
 	*/
-	FileStreamManager(uint32 _maxfcnt = 0);
+	FileManager(uint32 _maxfcnt = 0);
 	
-	~FileStreamManager();
+	~FileManager();
 	
 	int execute(ulong _evs, TimeSpec &_rtout);
 	

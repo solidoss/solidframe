@@ -40,7 +40,7 @@
 
 #include "foundation/selectpool.hpp"
 #include "foundation/execpool.hpp"
-#include "foundation/filestreammanager.hpp"
+#include "foundation/filemanager.hpp"
 #include "foundation/filekeys.hpp"
 
 #include "foundation/aio/aioselector.hpp"
@@ -72,33 +72,33 @@ namespace fdt=foundation;
 
 namespace concept{
 
-//======= FileStreamManager:==================================================
+//======= FileManager:==================================================
 /*
 	Local implementation of the foundation::FileManager wich will now know how
 	to send streams/errors to an object.
 */
-class FileStreamManager: public fdt::FileStreamManager{
+class FileManager: public fdt::FileManager{
 public:
-	FileStreamManager(uint32 _maxfcnt = 1024 * 20):fdt::FileStreamManager(_maxfcnt){}
+	FileManager(uint32 _maxfcnt = 1024 * 20):fdt::FileManager(_maxfcnt){}
 protected:
 	/*virtual*/ void sendStream(StreamPointer<IStream> &_sptr, const FileUidTp &_rfuid, const fdt::RequestUid& _rrequid);
 	/*virtual*/ void sendStream(StreamPointer<OStream> &_sptr, const FileUidTp &_rfuid, const fdt::RequestUid& _rrequid);
 	/*virtual*/ void sendStream(StreamPointer<IOStream> &_sptr, const FileUidTp &_rfuid, const fdt::RequestUid& _rrequid);
 	/*virtual*/ void sendError(int _errid, const fdt::RequestUid& _rrequid);
 };
-void FileStreamManager::sendStream(StreamPointer<IStream> &_sptr, const FileUidTp &_rfuid, const fdt::RequestUid& _rrequid){
+void FileManager::sendStream(StreamPointer<IStream> &_sptr, const FileUidTp &_rfuid, const fdt::RequestUid& _rrequid){
 	DynamicPointer<fdt::Signal>	cp(new IStreamSignal(_sptr, _rfuid, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
 	Manager::the().signalObject(_rrequid.objidx, _rrequid.objuid, cp);
 }
-void FileStreamManager::sendStream(StreamPointer<OStream> &_sptr, const FileUidTp &_rfuid, const fdt::RequestUid& _rrequid){
+void FileManager::sendStream(StreamPointer<OStream> &_sptr, const FileUidTp &_rfuid, const fdt::RequestUid& _rrequid){
 	DynamicPointer<fdt::Signal>	cp(new OStreamSignal(_sptr, _rfuid, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
 	Manager::the().signalObject(_rrequid.objidx, _rrequid.objuid, cp);
 }
-void FileStreamManager::sendStream(StreamPointer<IOStream> &_sptr, const FileUidTp &_rfuid, const fdt::RequestUid& _rrequid){
+void FileManager::sendStream(StreamPointer<IOStream> &_sptr, const FileUidTp &_rfuid, const fdt::RequestUid& _rrequid){
 	DynamicPointer<fdt::Signal>	cp(new IOStreamSignal(_sptr, _rfuid, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
 	Manager::the().signalObject(_rrequid.objidx, _rrequid.objuid, cp);
 }
-void FileStreamManager::sendError(int _error, const fdt::RequestUid& _rrequid){
+void FileManager::sendError(int _error, const fdt::RequestUid& _rrequid){
 	DynamicPointer<fdt::Signal>	cp(new StreamErrorSignal(_error, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
 	Manager::the().signalObject(_rrequid.objidx, _rrequid.objuid, cp);
 }
@@ -319,11 +319,11 @@ Manager::Manager():d(*(new Data(*this))){
 	
 	ThisGuard	tg(this);
 	if(true){//create register the file manager
-		this->fileStreamManager(new FileStreamManager(10));
-		fdt::Manager::insertObject(&fileStreamManager());
-		fdt::NameFileKey::registerMapper(fileStreamManager());
-		fdt::TempFileKey::registerMapper(fileStreamManager());
-		this->pushJob((fdt::Object*)&fileStreamManager());
+		this->fileManager(new FileManager(10));
+		fdt::Manager::insertObject(&fileManager());
+		fdt::NameFileKey::registerMapper(fileManager());
+		fdt::TempFileKey::registerMapper(fileManager());
+		this->pushJob((fdt::Object*)&fileManager());
 	}
 	if(true){// create register the read signal executer
 		d.readcmdexec = new SignalExecuter;

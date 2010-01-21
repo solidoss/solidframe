@@ -10,7 +10,7 @@
 #include "utility/dynamicpointer.hpp"
 
 #include "foundation/signalexecuter.hpp"
-#include "foundation/filestreammanager.hpp"
+#include "foundation/filemanager.hpp"
 #include "foundation/requestuid.hpp"
 
 #include "core/common.hpp"
@@ -150,7 +150,7 @@ int FetchMasterSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const Sig
 			idbg("try to open file "<<fname<<" _siguid = "<<_siguid.first<<","<<_siguid.second);
 			//try to get a stream for the file:
 			foundation::RequestUid reqid(_rce.id(), rm.uid(_rce), _siguid.first, _siguid.second);
-			switch(rm.fileStreamManager().stream(ins, fuid, reqid, fname.c_str())){
+			switch(rm.fileManager().stream(ins, fuid, reqid, fname.c_str())){
 				case BAD://ouch
 					state = SendError;
 					idbg("open failed");
@@ -182,7 +182,7 @@ int FetchMasterSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const Sig
 			insz -= psig->sz;
 			inpos += psig->sz;
 			fdt::RequestUid reqid(_rce.id(), rm.uid(_rce), _siguid.first, _siguid.second);
-			rm.fileStreamManager().stream(psig->ins, fuid, requid, fdt::FileStreamManager::NoWait);
+			rm.fileManager().stream(psig->ins, fuid, requid, fdt::FileManager::NoWait);
 			psig = NULL;
 			if(rm.ipc().sendSignal(conid, sigptr) || !insz){
 				idbg("connector was destroyed or insz "<<insz);
@@ -206,7 +206,7 @@ int FetchMasterSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const Sig
 			idbg("insz = "<<insz<<" inpos = "<<inpos);
 			insz -= psig->sz;
 			fdt::RequestUid reqid(_rce.id(), rm.uid(_rce), _siguid.first, _siguid.second);
-			rm.fileStreamManager().stream(psig->ins, fuid, requid, fdt::FileStreamManager::NoWait);
+			rm.fileManager().stream(psig->ins, fuid, requid, fdt::FileManager::NoWait);
 			psig->ins->seek(inpos);
 			inpos += psig->sz;
 			cassert(psig->ins);
@@ -371,7 +371,7 @@ int FetchSlaveSignal::createDeserializationStream(
 	if(sz <= 0) return NOK;
 	StreamPointer<OStream>			sp;
 	fdt::RequestUid	requid;
-	Manager::the().fileStreamManager().stream(sp, fuid, requid, fdt::FileStreamManager::Forced);
+	Manager::the().fileManager().stream(sp, fuid, requid, fdt::FileManager::Forced);
 	if(!sp) return BAD;
 	idbg("Create deserialization <"<<_id<<"> sz "<<_rps.second<<" streamptr "<<(void*)sp.ptr());
 	if(insz < 0){//back 1M
@@ -437,7 +437,7 @@ int SendStreamSignal::createDeserializationStream(
 	if(dststr.empty()/* || _rps.second < 0*/) return NOK;
 	idbg("File name: "<<this->dststr);
 	//TODO:
-	int rv = Manager::the().fileStreamManager().stream(this->iosp, this->dststr.c_str(), fdt::FileStreamManager::NoWait);
+	int rv = Manager::the().fileManager().stream(this->iosp, this->dststr.c_str(), fdt::FileManager::NoWait);
 	if(rv){
 		idbg("Oops, could not open file");
 		return BAD;
