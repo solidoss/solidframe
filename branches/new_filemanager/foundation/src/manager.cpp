@@ -134,9 +134,9 @@ struct Manager::Data{
 	typedef std::vector<ActiveSet*> ActiveSetVectorTp;
 	Data(FileManager *_pfm, ipc::Service *_pipcs):pfm(_pfm), pipcs(_pipcs){}
 	ObjectPointer<FileManager>		pfm;
-	ipc::Service							*pipcs;
-	ServiceVectorTp							sv;
-	ActiveSetVectorTp						asv;
+	ipc::Service					*pipcs;
+	ServiceVectorTp					sv;
+	ActiveSetVectorTp				asv;
 };
 Manager::Manager(FileManager *_pfm, ipc::Service *_pipcs):d(*(new Data(_pfm, _pipcs))){
 	registerActiveSet(*(new DummySet));

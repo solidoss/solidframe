@@ -35,6 +35,7 @@ class IOStream;
 class Mutex;
 
 namespace foundation{
+class File;
 
 
 struct FileKey;
@@ -44,29 +45,6 @@ class FileOStream;
 class FileIOStream;
 class File;
 class RequestUid;
-
-struct FileManagerController{
-	virtual ~FileManagerController();
-	virtual void sendStream(
-		StreamPointer<IStream> &_sptr,
-		const FileUidTp &_rfuid,
-		const RequestUid& _rrequid
-	) = 0;
-	virtual void sendStream(
-		StreamPointer<OStream> &_sptr,
-		const FileUidTp &_rfuid,
-		const RequestUid& _rrequid
-	) = 0;
-	virtual void sendStream(
-		StreamPointer<IOStream> &_sptr,
-		const FileUidTp &_rfuid,
-		const RequestUid& _rrequid
-	) = 0;
-	virtual void sendError(
-		int _error,
-		const RequestUid& _rrequid
-	) = 0;
-};
 //! A manager of files
 /*!
 	<b>Overview:</b><br>
@@ -126,9 +104,16 @@ public:
 		NoWait = 8, //!< Fail if the opperation cannot be completed synchronously
 		ForcePending = 16,
 	};
-	FileManager(FileManagerController *_pfmc);
+	//typedef std::pair<uint32, uint32> FileUidTp;
+	//! Constructor
+	/*!
+		\param _maxfcnt Maximum open file count
+	*/
+	FileManager(uint32 _maxfcnt = 0);
 	
 	~FileManager();
+	
+	int execute(ulong _evs, TimeSpec &_rtout);
 	
 	//! Get the size of a file identified by its name - the file will not be open
 	int64 fileSize(const char *_fn)const;
@@ -344,9 +329,24 @@ public:
 	//overload from object
 	void mutex(Mutex *_pmut);
 	uint32 fileOpenTimeout()const;
-private:
-	int execute(ulong _evs, TimeSpec &_rtout);
+	
 protected:
+	virtual void sendStream(
+		StreamPointer<IStream> &_sptr,
+		const FileUidTp &_rfuid,
+		const RequestUid& _rrequid
+	) = 0;
+	virtual void sendStream(
+		StreamPointer<OStream> &_sptr,
+		const FileUidTp &_rfuid,
+		const RequestUid& _rrequid
+	) = 0;
+	virtual void sendStream(
+		StreamPointer<IOStream> &_sptr,
+		const FileUidTp &_rfuid,
+		const RequestUid& _rrequid
+	) = 0;
+	virtual void sendError(int _error, const RequestUid& _rrequid) = 0;
 private:
 	friend class FileIStream;
 	friend class FileOStream;
