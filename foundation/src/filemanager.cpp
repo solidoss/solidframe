@@ -128,7 +128,7 @@ private:
 	struct WaitData{
 		WaitData(const RequestUid &_rrequid, uint32 _flags):requid(_rrequid), flags(_flags){}
 		RequestUid	requid;
-		uint32			flags;
+		uint32		flags;
 	};
 	typedef Queue<WaitData>		WaitQueueTp;
 	FileKey			&rk;
@@ -195,8 +195,8 @@ struct FileManager::Data{
 		uint32	pos;
 	};
 	struct FileData{
-		FileData(File *_pfile = NULL):pfile(_pfile), toutidx(-1), uid(0), tout(0xffffffff){}
-		FileData(const FileExtData &_rfext):pfile(_rfext.pfile), toutidx(-1), uid(0), tout(0xffffffff){}
+		FileData(File *_pfile = NULL):pfile(_pfile), toutidx(-1), uid(0), tout(TimeSpec::max){}
+		FileData(const FileExtData &_rfext):pfile(_rfext.pfile), toutidx(-1), uid(0), tout(TimeSpec::max){}
 		File		*pfile;
 		int32		toutidx;
 		uint32		uid;
@@ -335,7 +335,7 @@ int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 						d.collectFilePosition(*pfid);
 						dsz = d.sz;
 					}
-					rf.tout.set(0xffffffff);
+					rf.tout = TimeSpec::max;;
 					if(rf.toutidx >= 0){
 						d.eraseToutPos(rf.toutidx);
 						rf.toutidx = -1;
@@ -359,7 +359,7 @@ int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 							d.collectFilePosition(*pfid);
 							dsz = d.sz;
 						}
-						rf.tout.set(0xffffffff);
+						rf.tout = TimeSpec::max;;
 						if(rf.toutidx >= 0){
 							d.eraseToutPos(rf.toutidx);
 							rf.toutidx = -1;
@@ -383,7 +383,7 @@ int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 				case NOK://the file is in use - wait indefinetly
 					idbgx(Dbg::filemanager, "file in use - wait indefinetly");
 					m.unlock();
-					rf.tout.set(0xffffffff);
+					rf.tout = TimeSpec::max;;
 					if(rf.toutidx >= 0){
 						d.eraseToutPos(rf.toutidx);
 						rf.toutidx = -1;
@@ -427,7 +427,7 @@ int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 						oqsz = d.oq.size();
 						if(oqsz) ofront = d.oq.front();
 					}
-					rf.tout.set(0xffffffff);
+					rf.tout = TimeSpec::max;
 					if(rf.toutidx >= 0){
 						d.eraseToutPos(rf.toutidx);
 						rf.toutidx = -1;
@@ -443,7 +443,7 @@ int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 						oqsz = d.oq.size();
 						if(oqsz) ofront = d.oq.front();
 					}
-					rf.tout.set(0xffffffff);
+					rf.tout = TimeSpec::max;
 					if(rf.toutidx >= 0){
 						d.eraseToutPos(rf.toutidx);
 						rf.toutidx = -1;
@@ -458,12 +458,12 @@ int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 	if(state() != Data::Running){
 		//simulate a timeout
 		_evs |= TIMEOUT;
-		_rtout.set(0xffffffff);
+		_rtout = TimeSpec::max;
 	}
 	if((_evs & TIMEOUT) && _rtout <= d.tout){
 		//scan all files for timeout
 		//as we change the fv[].tout only in this thread - no need for locking while scanning
-		TimeSpec tout(0xffffffff);
+		TimeSpec tout(TimeSpec::max);
 		for(Data::TimeoutVectorTp::const_iterator it(d.toutv.begin()); it != d.toutv.end();){
 			Data::FileData &rf(d.fv[*it]);
 			if(_rtout >= rf.tout){
@@ -489,7 +489,7 @@ int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 							d.oq.pop();
 							oqsz = d.oq.size();
 						}
-						rf.tout.set(0xffffffff);
+						rf.tout = TimeSpec::max;;
 						rf.toutidx = -1;
 						delete pf;
 					}

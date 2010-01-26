@@ -9,6 +9,7 @@ set(Sources
 	src/stream.cpp
 	src/utility.cpp
 	src/dynamictype.cpp
+	src/memoryfile.cpp
 )
 
 set(Headers
@@ -29,6 +30,7 @@ set(Headers
 	workpool.hpp
 	dynamictype.hpp
 	dynamicpointer.hpp
+	memoryfile.hpp
 )
 
 set(Inlines
