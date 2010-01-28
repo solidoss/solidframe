@@ -4,10 +4,14 @@
 namespace foundation{
 namespace file{
 
+struct FileIStream;
+struct FileIOStream;
+struct FileOStream;
+
 class Manager: public Object{
 public:
 	struct Controller{
-		virtual ~ManagerController();
+		virtual ~Controller(){}
 		virtual void sendStream(
 			StreamPointer<IStream> &_sptr,
 			const FileUidTp &_rfuid,
@@ -27,16 +31,31 @@ public:
 			int _error,
 			const RequestUid& _rrequid
 		) = 0;
+		virtual void removeFileManager() = 0;
 	};
 	struct Stub{
-		IStream* createIStream(uint32 _fileid);
-		OStream* createOStream(uint32 _fileid);
-		IOStream* createIOStream(uint32 _fileid);
+		IStream* createIStream(IndexTp _fileid);
+		OStream* createOStream(IndexTp _fileid);
+		IOStream* createIOStream(IndexTp _fileid);
+		
+		void pushMapper(Mapper *_mp);
 	private:
+		Stub();
+		//Stub(const Stub&);
+		Stub& operator=(const Stub&);
 		Stub(Manager &_rm):rm(_rm){}
 		friend Manager;
 		Manager		&rm;
 	};
+	
+	enum {
+		Forced = 1, //!< Force the opperation
+		Create = 2, //!< Try create if it doesnt exist
+		IOStreamRequest = 4, 
+		NoWait = 8, //!< Fail if the opperation cannot be completed synchronously
+		ForcePending = 16,
+	};
+	
 public:
 	Manager(Controller *_pc);
 	~Manager();
@@ -240,8 +259,29 @@ public://stream funtions
 	);
 private:
 	int execute(ulong _evs, TimeSpec &_rtout);
+	template <typename StreamP>
+	int doGetStream(
+		StreamP &_sptr,
+		FileUidTp &_rfuid,
+		const RequestUid &_rrequid,
+		const FileKey &_rk,
+		uint32 _flags
+	);
+	
+	friend struct FileIStream;
+	friend struct FileIOStream;
+	friend struct FileOStream;
+
+	void releaseIStream(IndexTp _fileid);
+	void releaseOStream(IndexTp _fileid);
+	void releaseIOStream(IndexTp _fileid);
+	
+	int fileWrite(IndexTp _fileid, const char *_pb, uint32 _bl, const int64 &_off, uint32 _flags);
+	int fileRead(IndexTp _fileid, char *_pb, uint32 _bl, const int64 &_off, uint32 _flags);
+	int64 fileSize(IndexTp _fileid);
 private:
-	friend Stub;
+	friend struct Stub;
+	
 	struct Data;
 	Data	&d;
 };
