@@ -34,11 +34,9 @@ class IOStream;
 namespace concept{
 
 
-typedef Object::RequestUidTp	RequestUidTp;
-
 //!	A signal for sending istreams from the fileManager
 struct IStreamSignal: Dynamic<IStreamSignal, foundation::Signal>{
-	IStreamSignal(StreamPointer<IStream> &_sptr, const FileUidTp &_rfuid, const RequestUidTp &_requid);
+	IStreamSignal(StreamPointer<IStream> &_sptr, const FileUidTp &_rfuid, const foundation::RequestUidTp &_requid);
 	int execute(uint32 _evs, foundation::SignalExecuter&, const SignalUidTp &, TimeSpec &);
 	StreamPointer<IStream>	sptr;
 	FileUidTp				fileuid;
@@ -47,7 +45,7 @@ struct IStreamSignal: Dynamic<IStreamSignal, foundation::Signal>{
 
 //!A signal for sending ostreams from the fileManager
 struct OStreamSignal: Dynamic<OStreamSignal, foundation::Signal>{
-	OStreamSignal(StreamPointer<OStream> &_sptr, const FileUidTp &_rfuid, const RequestUidTp &_requid);
+	OStreamSignal(StreamPointer<OStream> &_sptr, const FileUidTp &_rfuid, const foundation::RequestUidTp &_requid);
 	int execute(uint32 _evs, foundation::SignalExecuter&, const SignalUidTp &, TimeSpec &);
 	StreamPointer<OStream>	sptr;
 	FileUidTp				fileuid;
@@ -57,7 +55,7 @@ struct OStreamSignal: Dynamic<OStreamSignal, foundation::Signal>{
 
 //!A signal for sending iostreams from the fileManager
 struct IOStreamSignal: Dynamic<IOStreamSignal, foundation::Signal>{
-	IOStreamSignal(StreamPointer<IOStream> &_sptr, const FileUidTp &_rfuid, const RequestUidTp &_requid);
+	IOStreamSignal(StreamPointer<IOStream> &_sptr, const FileUidTp &_rfuid, const foundation::RequestUidTp &_requid);
 	int execute(uint32 _evs, foundation::SignalExecuter&, const SignalUidTp &, TimeSpec &);
 	StreamPointer<IOStream>	sptr;
 	FileUidTp				fileuid;

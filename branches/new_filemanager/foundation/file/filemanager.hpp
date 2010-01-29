@@ -38,7 +38,10 @@ public:
 		OStream* createOStream(IndexTp _fileid);
 		IOStream* createIOStream(IndexTp _fileid);
 		
-		void pushMapper(Mapper *_mp);
+		void pushFileExecQueue(File *_pf);//called by mapper
+		void pushMapperExecQueue(ulong _id);
+		const ulong mapperId(const Key& _rk)const;
+		Mapper &mapper(ulong _id);
 	private:
 		Stub();
 		//Stub(const Stub&);
@@ -276,8 +279,20 @@ private:
 	void releaseOStream(IndexTp _fileid);
 	void releaseIOStream(IndexTp _fileid);
 	
-	int fileWrite(IndexTp _fileid, const char *_pb, uint32 _bl, const int64 &_off, uint32 _flags);
-	int fileRead(IndexTp _fileid, char *_pb, uint32 _bl, const int64 &_off, uint32 _flags);
+	int fileWrite(
+		IndexTp _fileid,
+		const char *_pb,
+		uint32 _bl,
+		const int64 &_off,
+		uint32 _flags
+	);
+	int fileRead(
+		IndexTp _fileid,
+		char *_pb,
+		uint32 _bl,
+		const int64 &_off,
+		uint32 _flags
+	);
 	int64 fileSize(IndexTp _fileid);
 private:
 	friend struct Stub;
