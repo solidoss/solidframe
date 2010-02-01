@@ -33,13 +33,24 @@ public:
 		) = 0;
 		virtual void removeFileManager() = 0;
 	};
+	
+	struct InitStub{
+		uint32 registerMapper(Mapper *_pm);
+	private:
+		InitStub();
+		InitStub(const InitStub&);
+		InitStub& operator=(const InitStub&);
+		InitStub(Manager &_rm):rm(_rm){}
+		friend Manager;
+		Manager		&rm;
+	};
+	
 	struct Stub{
 		IStream* createIStream(IndexTp _fileid);
 		OStream* createOStream(IndexTp _fileid);
 		IOStream* createIOStream(IndexTp _fileid);
 		
-		void pushFileExecQueue(File *_pf);//called by mapper
-		void pushMapperExecQueue(ulong _id);
+		void pushFileTempExecQueue(File *_pf);//called by mapper
 		const ulong mapperId(const Key& _rk)const;
 		Mapper &mapper(ulong _id);
 	private:
@@ -294,6 +305,12 @@ private:
 		uint32 _flags
 	);
 	int64 fileSize(IndexTp _fileid);
+	void doExecuteMappers();
+	void doExecuteRegistered(File &_rf, const TimeSpec &_rtout);
+	void doExecuteUnregistered(File &_rf, const TimeSpec &_rtout);
+	void doDeleteFiles();
+	void doRegisterFiles();
+	void doScanTimeout(const TimeSpec &_rtout);
 private:
 	friend struct Stub;
 	
