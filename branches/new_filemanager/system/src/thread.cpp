@@ -157,7 +157,7 @@ Thread::Thread(bool _detached, pthread_t _th):th(_th), dtchd(_detached), pcndpai
 }
 //-------------------------------------------------------------------------
 Thread::~Thread(){
-	for(SpecVecTp::iterator it(specvec.begin()); it != specvec.end(); ++it){
+	for(SpecVecT::iterator it(specvec.begin()); it != specvec.end(); ++it){
 		if(it->first){
 			cassert(it->second);
 			(*it->second)(it->first);
@@ -207,7 +207,7 @@ unsigned Thread::specificId(){
 	return ++sid;
 }
 //-------------------------------------------------------------------------
-void Thread::specific(unsigned _pos, void *_psd, SpecificFncTp _pf){
+void Thread::specific(unsigned _pos, void *_psd, SpecificFncT _pf){
 	Thread *pct = current();
 	cassert(pct);
 	if(_pos >= pct->specvec.size()) pct->specvec.resize(_pos + 4);
@@ -215,7 +215,7 @@ void Thread::specific(unsigned _pos, void *_psd, SpecificFncTp _pf){
 	if(pct->specvec[_pos].first){
 		(*pct->specvec[_pos].second)(pct->specvec[_pos].first);
 	}
-	pct->specvec[_pos] = SpecPairTp(_psd, _pf);
+	pct->specvec[_pos] = SpecPairT(_psd, _pf);
 	//return _pos;
 }
 //-------------------------------------------------------------------------
@@ -271,7 +271,7 @@ int Thread::start(int _wait, int _detached, ulong _stacksz){
 			return BAD;
 		}
 	}
-	ConditionPairTp cndpair;
+	ConditionPairT cndpair;
 	cndpair.second = 1;
 	if(_wait){
 		gmutex().lock();

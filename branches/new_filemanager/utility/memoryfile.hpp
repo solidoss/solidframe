@@ -68,7 +68,7 @@ private:
 	};
 	struct BuffCmp;
 	friend struct BuffCmp;
-	typedef std::deque<Buffer>	BufferVectorTp;
+	typedef std::deque<Buffer>	BufferVectorT;
 	
 	const uint64	cp;
 	uint64			sz;
@@ -76,7 +76,7 @@ private:
 	mutable uint32	crtbuffidx;
 	const uint32	bufsz;
 	Allocator		&ra;
-	BufferVectorTp	bv;
+	BufferVectorT	bv;
 };
 
 

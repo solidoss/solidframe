@@ -234,10 +234,10 @@ int List::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 //---------------------------------------------------------------
 // RemoteList command
 //---------------------------------------------------------------
-RemoteList::PathListTp::PathListTp(){
+RemoteList::PathListT::PathListT(){
 	idbg(""<<(void*)this);
 }
-RemoteList::PathListTp::~PathListTp(){
+RemoteList::PathListT::~PathListT(){
 	idbg(""<<(void*)this);
 }
 
@@ -305,10 +305,10 @@ int RemoteList::receiveData(
 	void *_pdata,
 	int _datasz,
 	int	_which, 
-	const ObjectUidTp&_from,
+	const ObjectUidT&_from,
 	const foundation::ipc::ConnectorUid *_conid
 ){
-	ppthlst = reinterpret_cast<PathListTp*>(_pdata);
+	ppthlst = reinterpret_cast<PathListT*>(_pdata);
 	if(ppthlst){
 		it = ppthlst->begin();
 		state = SendList;
@@ -319,7 +319,7 @@ int RemoteList::receiveData(
 }
 int RemoteList::receiveError(
 	int _errid, 
-	const ObjectUidTp&_from,
+	const ObjectUidT&_from,
 	const fdt::ipc::ConnectorUid *_conid
 ){
 	idbg("");
@@ -336,14 +336,14 @@ Fetch::~Fetch(){
 	sp.clear();
 }
 void Fetch::initReader(Reader &_rr){
-	typedef CharFilter<' '>				SpaceFilterTp;
-	typedef NotFilter<SpaceFilterTp> 	NotSpaceFilterTp;
+	typedef CharFilter<' '>				SpaceFilterT;
+	typedef NotFilter<SpaceFilterT> 	NotSpaceFilterT;
 	_rr.push(&Reader::fetchUint32, protocol::Parameter(&port));
 	_rr.push(&Reader::dropChar);
-	_rr.push(&Reader::checkIfCharThenPop<NotSpaceFilterTp>, protocol::Parameter(2));
+	_rr.push(&Reader::checkIfCharThenPop<NotSpaceFilterT>, protocol::Parameter(2));
 	_rr.push(&Reader::fetchAString, protocol::Parameter(&straddr));
 	_rr.push(&Reader::dropChar);
-	_rr.push(&Reader::checkIfCharThenPop<NotSpaceFilterTp>, protocol::Parameter(5));
+	_rr.push(&Reader::checkIfCharThenPop<NotSpaceFilterT>, protocol::Parameter(5));
 	_rr.push(&Reader::fetchAString, protocol::Parameter(&strpth));
 	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
 	
@@ -515,9 +515,9 @@ int Fetch::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 }
 int Fetch::receiveIStream(
 	StreamPointer<IStream> &_sptr,
-	const FileUidTp &_fuid,
+	const FileUidT &_fuid,
 	int			_which,
-	const ObjectUidTp&,
+	const ObjectUidT&,
 	const foundation::ipc::ConnectorUid *
 ){
 	idbg(""<<(void*)this);
@@ -532,7 +532,7 @@ int Fetch::receiveIStream(
 int Fetch::receiveNumber(
 	const int64 &_no,
 	int			_which,
-	const ObjectUidTp& _objuid,
+	const ObjectUidT& _objuid,
 	const foundation::ipc::ConnectorUid *_pconuid
 ){
 	idbg("");
@@ -550,7 +550,7 @@ int Fetch::receiveNumber(
 
 int Fetch::receiveError(
 	int _errid,
-	const ObjectUidTp&_from,
+	const ObjectUidT&_from,
 	const foundation::ipc::ConnectorUid *
 ){
 	idbg("");
@@ -635,9 +635,9 @@ int Store::execute(Connection &_rc){
 
 int Store::receiveOStream(
 	StreamPointer<OStream> &_sptr,
-	const FileUidTp &_fuid,
+	const FileUidT &_fuid,
 	int			_which,
-	const ObjectUidTp&,
+	const ObjectUidT&,
 	const foundation::ipc::ConnectorUid *
 ){
 	idbg("received stream");
@@ -648,7 +648,7 @@ int Store::receiveOStream(
 
 int Store::receiveError(
 	int _errid,
-	const ObjectUidTp&_from,
+	const ObjectUidT&_from,
 	const foundation::ipc::ConnectorUid *
 ){
 	idbg("received error");
@@ -818,9 +818,9 @@ int Idle::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 }
 int Idle::receiveIStream(
 	StreamPointer<IStream> &_sp,
-	const FileUidTp &,
+	const FileUidT &,
 	int			_which,
-	const ObjectUidTp&_from,
+	const ObjectUidT&_from,
 	const fdt::ipc::ConnectorUid *_conid
 ){
 	if(_conid){
@@ -840,7 +840,7 @@ int Idle::receiveIStream(
 int Idle::receiveString(
 	const String &_str,
 	int			_which,
-	const ObjectUidTp&_from,
+	const ObjectUidT&_from,
 	const fdt::ipc::ConnectorUid *_conid
 ){
 	if(typeq.size() && typeq.back() == PeerStreamType){
@@ -877,27 +877,27 @@ void Command::initStatic(Manager &_rm){
 
 int Command::receiveIStream(
 	StreamPointer<IStream> &_ps,
-	const FileUidTp &,
+	const FileUidT &,
 	int			_which,
-	const ObjectUidTp&_from,
+	const ObjectUidT&_from,
 	const fdt::ipc::ConnectorUid *_conid
 ){
 	return BAD;
 }
 int Command::receiveOStream(
 	StreamPointer<OStream> &,
-	const FileUidTp &,
+	const FileUidT &,
 	int			_which,
-	const ObjectUidTp&_from,
+	const ObjectUidT&_from,
 	const fdt::ipc::ConnectorUid *_conid
 ){
 	return BAD;
 }
 int Command::receiveIOStream(
 	StreamPointer<IOStream> &, 
-	const FileUidTp &,
+	const FileUidT &,
 	int			_which,
-	const ObjectUidTp&_from,
+	const ObjectUidT&_from,
 	const fdt::ipc::ConnectorUid *_conid
 ){
 	return BAD;
@@ -905,7 +905,7 @@ int Command::receiveIOStream(
 int Command::receiveString(
 	const String &_str,
 	int			_which, 
-	const ObjectUidTp&_from,
+	const ObjectUidT&_from,
 	const fdt::ipc::ConnectorUid *_conid
 ){
 	return BAD;
@@ -914,7 +914,7 @@ int receiveData(
 	void *_pdata,
 	int _datasz,
 	int			_which, 
-	const ObjectUidTp&_from,
+	const ObjectUidT&_from,
 	const foundation::ipc::ConnectorUid *_conid
 ){
 	return BAD;
@@ -922,7 +922,7 @@ int receiveData(
 int Command::receiveNumber(
 	const int64 &_no,
 	int			_which,
-	const ObjectUidTp&_from,
+	const ObjectUidT&_from,
 	const fdt::ipc::ConnectorUid *_conid
 ){
 	return BAD;
@@ -931,14 +931,14 @@ int Command::receiveData(
 	void *_v,
 	int	_vsz,
 	int			_which,
-	const ObjectUidTp&_from,
+	const ObjectUidT&_from,
 	const fdt::ipc::ConnectorUid *_conid
 ){
 	return BAD;
 }
 int Command::receiveError(
 	int _errid,
-	const ObjectUidTp&_from,
+	const ObjectUidT&_from,
 	const foundation::ipc::ConnectorUid *_conid
 ){
 	return BAD;

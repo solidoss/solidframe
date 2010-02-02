@@ -14,20 +14,20 @@ class LogConnector;
 //! The main class for log management
 class LogManager{
 public:
-	typedef std::pair<uint32, uint32> UidTp;
+	typedef std::pair<uint32, uint32> UidT;
 	LogManager();
 	~LogManager();
 	
-	UidTp insertChannel(IStream *_pis);
-	UidTp insertListener(const char *_addr, const char *_port);
+	UidT insertChannel(IStream *_pis);
+	UidT insertListener(const char *_addr, const char *_port);
 	
-	void eraseClient(const UidTp &_ruid);
-	void eraseListener(const UidTp &_ruid);
+	void eraseClient(const UidT &_ruid);
+	void eraseListener(const UidT &_ruid);
 	
 	int start();
 	void stop(bool _wait = true);
-	UidTp insertConnector(LogConnector *_plc);
-	void eraseConnector(const UidTp &_ruid);
+	UidT insertConnector(LogConnector *_plc);
+	void eraseConnector(const UidT &_ruid);
 private:
 	struct ListenerWorker;
 	struct ChannelWorker;

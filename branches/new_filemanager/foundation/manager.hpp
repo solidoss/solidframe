@@ -79,13 +79,13 @@ public:
 	static Manager& the();
 	
 	//! Signal an object identified by (id,uid) with a sinal mask
-	int signalObject(IndexTp _fullid, uint32 _uid, ulong _sigmask);
+	int signalObject(IndexT _fullid, uint32 _uid, ulong _sigmask);
 	
 	//! Signal an object with a signal mask, given a reference to the object
 	int signalObject(Object &_robj, ulong _sigmask);
 	
 	//! Signal an object identified by (id,uid) with a signal
-	int signalObject(IndexTp _fullid, uint32 _uid, DynamicPointer<Signal> &_rsig);
+	int signalObject(IndexT _fullid, uint32 _uid, DynamicPointer<Signal> &_rsig);
 	
 	//! Signal an object with a signal, given a reference to the object
 	int signalObject(Object &_robj, DynamicPointer<Signal> &_rsig);
@@ -116,8 +116,8 @@ public:
 	
 	//! Unsafe - you should not use this
 	template<class T>
-	typename T::ServiceTp& service(const T &_robj){
-		return static_cast<typename T::ServiceTp&>(service(_robj.serviceid()));
+	typename T::ServiceT& service(const T &_robj){
+		return static_cast<typename T::ServiceT&>(service(_robj.serviceid()));
 	}
 	//! Prepare a manager thread
 	/*!

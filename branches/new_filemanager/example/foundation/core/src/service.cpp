@@ -38,7 +38,7 @@ namespace concept{
 
 
 /*static*/ void Service::dynamicRegister(){
-	DynamicReceiverTp::add<AddrInfoSignal, Service>();
+	DynamicReceiverT::add<AddrInfoSignal, Service>();
 }
 
 static const DynamicRegisterer<Service>	dre;

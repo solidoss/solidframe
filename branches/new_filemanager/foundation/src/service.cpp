@@ -36,8 +36,8 @@
 
 namespace foundation{
 
-typedef std::pair<Object*, uint32>	ObjPairTp;
-class ObjectVector:public std::deque<ObjPairTp>{};
+typedef std::pair<Object*, uint32>	ObjPairT;
+class ObjectVector:public std::deque<ObjPairT>{};
 class IndexStack: public std::stack<ulong>{};
 
 Service::Service(int _objpermutbts, int _mutrowsbts, int _mutcolsbts):
@@ -57,12 +57,12 @@ Service::~Service(){
 	delete &inds;
 }
 
-int Service::insert(Object &_robj, IndexTp _srvid){
+int Service::insert(Object &_robj, IndexT _srvid){
 	Mutex::Locker lock(*mut);
 	return doInsert(_robj, _srvid);
 }
 
-int Service::doInsert(Object &_robj, IndexTp _srvid){
+int Service::doInsert(Object &_robj, IndexT _srvid){
 	if(state() != Running) return BAD;
 	if(inds.size()){
 		{
@@ -79,7 +79,7 @@ int Service::doInsert(Object &_robj, IndexTp _srvid){
 		Mutex::Locker lock(rmut);
 		_robj.mutex(&rmut);
 		_robj.id(_srvid, objv.size());
-		objv.push_back(ObjPairTp(&_robj, 0));	
+		objv.push_back(ObjPairT(&_robj, 0));	
 	}
 	++objcnt;
 	return OK;
@@ -103,7 +103,7 @@ void Service::remove(Object &_robj){
  * Be very carefull when using this function as you can raise/kill
  * other object than you might want.
  */
-int Service::signal(IndexTp _fullid, uint32 _uid, ulong _sigmask){
+int Service::signal(IndexT _fullid, uint32 _uid, ulong _sigmask){
 	ulong oidx(Object::computeIndex(_fullid));
 	if(oidx >= objv.size()) return BAD;
 	Mutex::Locker	lock(mutpool.object(oidx));
@@ -124,11 +124,11 @@ int Service::signal(Object &_robj, ulong _sigmask){
 	return OK;
 }
 
-Mutex& Service::mutex(IndexTp _fullid, uint32){
+Mutex& Service::mutex(IndexT _fullid, uint32){
 	return mutpool.object(Object::computeIndex(_fullid));
 }
 
-Object* Service::object(IndexTp _fullid, uint32 _uid){
+Object* Service::object(IndexT _fullid, uint32 _uid){
 	ulong oidx(Object::computeIndex(_fullid));
 	if(oidx >= objv.size()) return NULL;
 	if(_uid != objv[oidx].second) return NULL;
@@ -143,7 +143,7 @@ int Service::signal(Object &_robj, DynamicPointer<Signal> &_rsig){
 	return OK;
 }
 
-int Service::signal(IndexTp _fullid, uint32 _uid, DynamicPointer<Signal> &_rsig){
+int Service::signal(IndexT _fullid, uint32 _uid, DynamicPointer<Signal> &_rsig){
 	ulong oidx(Object::computeIndex(_fullid));
 	if(oidx >= objv.size()) return BAD;
 	Mutex::Locker	lock(mutpool.object(oidx));
@@ -267,7 +267,7 @@ int Service::execute(){
 ReadWriteService::~ReadWriteService(){
 }
 Condition* ReadWriteService::popCondition(Object &_robj){
-	CondStackTp &rs = cndpool.object(_robj.index());
+	CondStackT &rs = cndpool.object(_robj.index());
 	Condition *pc = NULL;
 	if(rs.size()){
 		pc = rs.top();rs.pop();
@@ -301,7 +301,7 @@ int ReadWriteService::insert(Object &_robj, ulong _srvid){
 		//just ensure the resevation in cndpool
 		cndpool.safeObject(objv.size());
 		_robj.id(_srvid, objv.size());
-		objv.push_back(ObjPairTp(&_robj, 0));	
+		objv.push_back(ObjPairT(&_robj, 0));	
 	}
 	++objcnt;
 	return OK;

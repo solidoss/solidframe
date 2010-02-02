@@ -86,8 +86,8 @@ struct StaticData{
 	static StaticData& instance();
 	ulong retransmitTimeout(uint _pos);
 private:
-	typedef std::vector<ulong> ULongVectorTp;
-	ULongVectorTp	toutvec;
+	typedef std::vector<ulong> ULongVectorT;
+	ULongVectorT	toutvec;
 };
 
 //========	ProcessConnector	===========================================================
@@ -121,8 +121,8 @@ struct ProcessConnector::Data{
 		void specificRelease(){}
 	};
 	
-	typedef BinSerializer						BinSerializerTp;
-	typedef BinDeserializer						BinDeserializerTp;
+	typedef BinSerializer						BinSerializerT;
+	typedef BinDeserializer						BinDeserializerT;
 	
 	struct OutWaitSignal{
 		OutWaitSignal(
@@ -148,27 +148,27 @@ struct ProcessConnector::Data{
 		}
 		uint32				bufid;
 		DynamicPointer<Signal> sig;
-		BinSerializerTp		*pser;
+		BinSerializerT		*pser;
 		uint32				flags;
 		uint32				id;
 		uint32				uid;
 	};
 	
-	typedef std::pair<Buffer, uint16>			OutBufferPairTp;
-	typedef std::vector<OutBufferPairTp>		OutBufferVectorTp;
-	typedef Stack<uint16>						OutFreePosStackTp;
+	typedef std::pair<Buffer, uint16>			OutBufferPairT;
+	typedef std::vector<OutBufferPairT>		OutBufferVectorT;
+	typedef Stack<uint16>						OutFreePosStackT;
 	typedef std::priority_queue<Buffer,std::vector<Buffer>,BufCmp>	
-												BufferPriorityQueueTp;
+												BufferPriorityQueueT;
 	typedef std::pair<DynamicPointer<Signal>, uint32>
-												CmdPairTp;
-	typedef Queue<CmdPairTp>					CmdQueueTp;
-	typedef std::deque<OutWaitSignal>			OutCmdVectorTp;
-	typedef Queue<uint32>						ReceivedIdsQueueTp;
+												CmdPairT;
+	typedef Queue<CmdPairT>					CmdQueueT;
+	typedef std::deque<OutWaitSignal>			OutCmdVectorT;
+	typedef Queue<uint32>						ReceivedIdsQueueT;
 	typedef std::pair<const SockAddrPair*, int>	BaseProcAddr;
-	typedef std::pair<Signal*, BinDeserializerTp*>
-												RecvCmdPairTp;
-	typedef Queue<RecvCmdPairTp>				RecvCmdQueueTp;
-	typedef Queue<SignalUid>					SendCmdQueueTp;
+	typedef std::pair<Signal*, BinDeserializerT*>
+												RecvCmdPairT;
+	typedef Queue<RecvCmdPairT>				RecvCmdQueueT;
+	typedef Queue<SignalUid>					SendCmdQueueT;
 	
 	Data(const Inet4SockAddrPair &_raddr, uint32 _keepalivetout);
 	Data(const Inet4SockAddrPair &_raddr, int _baseport, uint32 _keepalivetout);
@@ -177,10 +177,10 @@ struct ProcessConnector::Data{
 	std::pair<uint16, uint16> getSentBuffer(int _bufpos);
 	void incrementExpectedId();
 	void incrementSendId();
-	BinSerializerTp* popSerializer();
-	void pushSerializer(BinSerializerTp*);
-	BinDeserializerTp* popDeserializer();
-	void pushDeserializer(BinDeserializerTp*);
+	BinSerializerT* popSerializer();
+	void pushSerializer(BinSerializerT*);
+	BinDeserializerT* popDeserializer();
+	void pushDeserializer(BinDeserializerT*);
 	//save signals to be resent in case of disconnect
 	SignalUid pushOutWaitSignal(
 		uint32 _bufid,
@@ -198,7 +198,7 @@ struct ProcessConnector::Data{
 	void popOutWaitSignals(uint32 _bufid, const ConnectorUid &_rconid);
 	//pops a signal waiting for a response
 	void popOutWaitSignal(const SignalUid &_rsiguid);
-	OutBufferPairTp& keepAliveBuffer(){
+	OutBufferPairT& keepAliveBuffer(){
 		cassert(outbufs.size());
 		return outbufs[0];
 	}
@@ -218,15 +218,15 @@ struct ProcessConnector::Data{
 	BaseProcAddr			baseaddr;
 	
 	TimeSpec				lasttimepos;
-	OutFreePosStackTp		outfreestk;
-	OutBufferVectorTp		outbufs;
-	CmdQueueTp				cq;
-	RecvCmdQueueTp			rcq;
-	SendCmdQueueTp			scq;
-	ReceivedIdsQueueTp		rcvidq;
-	BufferPriorityQueueTp	inbufq;
-	OutCmdVectorTp			outsigv;
-	OutFreePosStackTp		outfreesigstk;
+	OutFreePosStackT		outfreestk;
+	OutBufferVectorT		outbufs;
+	CmdQueueT				cq;
+	RecvCmdQueueT			rcq;
+	SendCmdQueueT			scq;
+	ReceivedIdsQueueT		rcvidq;
+	BufferPriorityQueueT	inbufq;
+	OutCmdVectorT			outsigv;
+	OutFreePosStackT		outfreesigstk;
 	uint32					sndsigid;
 	uint32					keepalivetout;
 	uint32					respwaitsigcnt;
@@ -275,7 +275,7 @@ ProcessConnector::Data::Data(const Inet4SockAddrPair &_raddr, uint32 _keepalivet
 	baseaddr(&pairaddr, addr.port()),sndsigid(0), keepalivetout(_keepalivetout),
 	respwaitsigcnt(0)
 {
-	outbufs.push_back(OutBufferPairTp(Buffer(NULL,0), 0));
+	outbufs.push_back(OutBufferPairT(Buffer(NULL,0), 0));
 }
 
 ProcessConnector::Data::Data(const Inet4SockAddrPair &_raddr, int _baseport, uint32 _keepalivetout):
@@ -284,12 +284,12 @@ ProcessConnector::Data::Data(const Inet4SockAddrPair &_raddr, int _baseport, uin
 	addr(_raddr), pairaddr(addr), baseaddr(&pairaddr, _baseport),
 	sndsigid(0), keepalivetout(_keepalivetout),respwaitsigcnt(0)
 {
-	outbufs.push_back(OutBufferPairTp(Buffer(NULL,0), 0));
+	outbufs.push_back(OutBufferPairT(Buffer(NULL,0), 0));
 }
 
 
 ProcessConnector::Data::~Data(){
-	for(OutBufferVectorTp::iterator it(outbufs.begin()); it != outbufs.end(); ++it){
+	for(OutBufferVectorT::iterator it(outbufs.begin()); it != outbufs.end(); ++it){
 		char *pb = it->first.buffer();
 		if(pb){ 
 			idbgx(Dbg::ipc, "released buffer");
@@ -305,7 +305,7 @@ ProcessConnector::Data::~Data(){
 	
 	while(scq.size()){scq.pop();}
 	
-	for(OutCmdVectorTp::iterator it(outsigv.begin()); it != outsigv.end(); ++it){
+	for(OutCmdVectorT::iterator it(outsigv.begin()); it != outsigv.end(); ++it){
 		if(it->pser){
 			it->pser->clear();
 			pushSerializer(it->pser);
@@ -344,7 +344,7 @@ std::pair<uint16, uint16> ProcessConnector::Data::insertSentBuffer(Buffer &_rbuf
 		outfreestk.pop();
 	}else{
 		p.first = outbufs.size();
-		outbufs.push_back(OutBufferPairTp(_rbuf, 0));
+		outbufs.push_back(OutBufferPairT(_rbuf, 0));
 		p.second = 0;
 	}
 	return p;
@@ -362,25 +362,25 @@ inline void ProcessConnector::Data::incrementSendId(){
 	if(sendid > LastBufferId) sendid = 0;
 }
 //TODO: use Specific
-ProcessConnector::Data::BinSerializerTp* ProcessConnector::Data::popSerializer(){
-	BinSerializerTp* p = Specific::tryUncache<BinSerializerTp>();
+ProcessConnector::Data::BinSerializerT* ProcessConnector::Data::popSerializer(){
+	BinSerializerT* p = Specific::tryUncache<BinSerializerT>();
 	if(!p){
-		p = new BinSerializerTp;
+		p = new BinSerializerT;
 	}
 	return p;
 }
-void ProcessConnector::Data::pushSerializer(ProcessConnector::Data::BinSerializerTp* _p){
+void ProcessConnector::Data::pushSerializer(ProcessConnector::Data::BinSerializerT* _p){
 	cassert(_p->empty());
 	Specific::cache(_p);
 }
-ProcessConnector::Data::BinDeserializerTp* ProcessConnector::Data::popDeserializer(){
-	BinDeserializerTp* p = Specific::tryUncache<BinDeserializerTp>();
+ProcessConnector::Data::BinDeserializerT* ProcessConnector::Data::popDeserializer(){
+	BinDeserializerT* p = Specific::tryUncache<BinDeserializerT>();
 	if(!p){
-		p = new BinDeserializerTp;
+		p = new BinDeserializerT;
 	}
 	return p;
 }
-void ProcessConnector::Data::pushDeserializer(ProcessConnector::Data::BinDeserializerTp* _p){
+void ProcessConnector::Data::pushDeserializer(ProcessConnector::Data::BinDeserializerT* _p){
 	cassert(_p->empty());
 	Specific::cache(_p);
 }
@@ -426,7 +426,7 @@ SignalUid ProcessConnector::Data::pushOutWaitSignal(uint32 _bufid, DynamicPointe
 	}
 }
 void ProcessConnector::Data::popOutWaitSignals(uint32 _bufid, const ConnectorUid &_rconid){
-	for(OutCmdVectorTp::iterator it(outsigv.begin()); it != outsigv.end(); ++it){
+	for(OutCmdVectorT::iterator it(outsigv.begin()); it != outsigv.end(); ++it){
 		if(it->bufid == _bufid && it->sig.ptr()){
 			it->bufid = 0;
 			cassert(!it->pser);
@@ -461,7 +461,7 @@ void ProcessConnector::Data::prepareKeepAlive(){
 	Buffer b(Specific::popBuffer(Specific::sizeToId(Buffer::minSize())), Specific::idToCapacity(Specific::sizeToId(Buffer::minSize())));
 	b.reset();
 	b.type(Buffer::KeepAliveType);
-	outbufs[0] = OutBufferPairTp(b, 0);
+	outbufs[0] = OutBufferPairT(b, 0);
 }
 
 inline uint ProcessConnector::Data::computeRetransmitTimeout(const uint _retrid, const uint32 _bufid){
@@ -595,7 +595,7 @@ void ProcessConnector::reconnect(ProcessConnector *_ppc){
 	std::sort(d.outsigv.begin(), d.outsigv.end());
 	
 	//then we push into cq the signals from outcmv
-	for(Data::OutCmdVectorTp::const_iterator it(d.outsigv.begin()); it != d.outsigv.end(); ++it){
+	for(Data::OutCmdVectorT::const_iterator it(d.outsigv.begin()); it != d.outsigv.end(); ++it){
 		const Data::OutWaitSignal &outsig(*it);
 		if(outsig.sig.ptr()){
 			//the outsigv may contain signals sent successfully, waiting for a response
@@ -607,7 +607,7 @@ void ProcessConnector::reconnect(ProcessConnector *_ppc){
 					outsig.sig->ipcFail(0);
 				}
 			}else{
-				d.cq.push(Data::CmdPairTp(outsig.sig, outsig.flags));
+				d.cq.push(Data::CmdPairT(outsig.sig, outsig.flags));
 			}
 		}else break;
 	}
@@ -642,7 +642,7 @@ void ProcessConnector::reconnect(ProcessConnector *_ppc){
 	while(d.outfreestk.size()){//first we clear the free stack
 		d.outfreestk.pop();
 	}
-	for(Data::OutBufferVectorTp::iterator it(d.outbufs.begin()); it != d.outbufs.end(); ++it){
+	for(Data::OutBufferVectorT::iterator it(d.outbufs.begin()); it != d.outbufs.end(); ++it){
 		if(it->first.buffer()){
 			char *buf = it->first.buffer();
 			Specific::pushBuffer(buf, Specific::capacityToId(it->first.bufferCapacity()));
@@ -710,7 +710,7 @@ const std::pair<const Inet4SockAddrPair*, int>* ProcessConnector::baseAddr4()con
 
 int ProcessConnector::pushSignal(DynamicPointer<Signal> &_rsig, uint32 _flags){
 	//_flags &= ~Data::ProcessReservedFlags;
-	d.cq.push(Data::CmdPairTp(_rsig, _flags));
+	d.cq.push(Data::CmdPairT(_rsig, _flags));
 	if(d.cq.size() == 1) return NOK;
 	return OK;
 }
@@ -844,7 +844,7 @@ int ProcessConnector::pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpo
 		if(_rbuf.b.bc){//for a sent buffer
 			cassert(_rbuf.b.bc <= d.outbufs.size());
 			int bufpos(_rbuf.b.bc - 1);
-			Data::OutBufferPairTp &rob(d.outbufs[bufpos]);
+			Data::OutBufferPairT &rob(d.outbufs[bufpos]);
 			idbgx(Dbg::ipc, "rob.second = "<<rob.second<<" b.dl = "<<_rbuf.b.dl<<" bufpos = "<<bufpos);
 			if(rob.first.buffer() && rob.second == _rbuf.b.dl){
 				//we must resend this buffer
@@ -955,7 +955,7 @@ int ProcessConnector::processSendSignals(SendBufferData &_rsb, const TimeSpec &_
 					}
 					d.cq.pop();
 				}
-				Data::BinSerializerTp	*pser = NULL;
+				Data::BinSerializerT	*pser = NULL;
 				
 				//at most we can send Data::MaxSendSignalQueueSize signals within a single buffer
 				
@@ -1063,7 +1063,7 @@ int ProcessConnector::processSendSignals(SendBufferData &_rsb, const TimeSpec &_
 			_rsb.paddr = &d.pairaddr;
 			return NOK;//this was the last data to send reenter for keep alive
 		}else{
-			Data::OutBufferPairTp &rob(d.keepAliveBuffer());
+			Data::OutBufferPairT &rob(d.keepAliveBuffer());
 			//if the keep alive buffer is not already being sent
 			// and we can send a keepalive buffer
 			// we schedule it for resending
@@ -1074,7 +1074,7 @@ int ProcessConnector::processSendSignals(SendBufferData &_rsb, const TimeSpec &_
 			if(!rob.first.retransmitId() && d.canSendKeepAlive(_tpos)){
 				//schedule sending the keepalive buffer
 				idbgx(Dbg::ipc, "keep alive buffer - schedule");
-				Data::OutBufferPairTp &rob(d.keepAliveBuffer());
+				Data::OutBufferPairT &rob(d.keepAliveBuffer());
 				rob.first.retransmitId(1);
 				++rob.second;//
 				Specific::pushBuffer(_rsb.b.pb, Specific::capacityToId(_rsb.b.bufferCapacity()));
@@ -1097,7 +1097,7 @@ bool ProcessConnector::freeSentBuffers(Buffer &_rbuf, const ConnectorUid &_rconi
 	bool b = false;
 	idbgx(Dbg::ipc, "beg update count "<<_rbuf.updatesCount()<<" sent count = "<<d.outbufs.size());
 	for(uint32 i(0); i < _rbuf.updatesCount(); ++i){
-		for(Data::OutBufferVectorTp::iterator it(d.outbufs.begin()); it != d.outbufs.end(); ++it){
+		for(Data::OutBufferVectorT::iterator it(d.outbufs.begin()); it != d.outbufs.end(); ++it){
 			if(it->first.buffer() && _rbuf.update(i) == it->first.id()){//done with this one
 				if(it != d.outbufs.begin()){
 					d.popOutWaitSignals(it->first.id(), _rconid);
@@ -1152,7 +1152,7 @@ void ProcessConnector::parseBuffer(Buffer &_rbuf, const ConnectorUid &_rconid){
 					d.rcq.front().second->push(d.rcq.front().first);
 				}else{
 					idbgx(Dbg::ipc, "switch to new rcq.size = 0");
-					d.rcq.push(Data::RecvCmdPairTp(NULL, d.popDeserializer()));
+					d.rcq.push(Data::RecvCmdPairT(NULL, d.popDeserializer()));
 					d.rcq.front().second->push(d.rcq.front().first);
 				}
 				break;

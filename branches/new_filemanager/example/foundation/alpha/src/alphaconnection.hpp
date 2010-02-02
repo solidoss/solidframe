@@ -74,9 +74,9 @@ protected:
 	protocol communication. 
 */
 class Connection: public concept::Connection{
-	typedef DynamicReceiver<void, Connection>	DynamicReceiverTp;
+	typedef DynamicReceiver<void, Connection>	DynamicReceiverT;
 public:
-	typedef Service	ServiceTp;
+	typedef Service	ServiceT;
 	
 	static void initStatic(Manager &_rm);
 	static void dynamicRegister();
@@ -151,7 +151,7 @@ private:
 	Command				*pcmd;
 	SocketAddress		*paddr;
 	uint32				reqid;
-	DynamicReceiverTp	dr;
+	DynamicReceiverT	dr;
 };
 
 }//namespace alpha

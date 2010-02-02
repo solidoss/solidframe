@@ -40,8 +40,8 @@ class Service;
 
 class Talker: public concept::Talker{
 public:
-	typedef Service	ServiceTp;
-	typedef concept::Talker BaseTp;
+	typedef Service	ServiceT;
+	typedef concept::Talker BaseT;
 	
 	Talker(const char *_node, const char *_srv);
 	Talker(const SocketDevice &_rsd);

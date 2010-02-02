@@ -39,8 +39,8 @@ class Service;
 
 class Connection: public concept::Connection{
 public:
-	typedef Service	ServiceTp;
-	typedef concept::Connection BaseTp;
+	typedef Service	ServiceT;
+	typedef concept::Connection BaseT;
 	
 	Connection(const char *_node, const char *_srv);
 	Connection(const SocketDevice &_rsd);

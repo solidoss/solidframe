@@ -31,21 +31,21 @@ struct SignalExecuter::Data{
 		uint32					uid;
 		TimeSpec				tout;
 	};
-	typedef std::deque<int32>					TimeoutVectorTp;
-	typedef std::deque<SigData >				SignalDequeTp;
-	typedef std::deque<DynamicPointer<Signal> >	SignalExtDequeTp;
-	typedef Queue<uint32>						ExecQueueTp;
-	typedef Stack<uint32>						FreeStackTp;
+	typedef std::deque<int32>					TimeoutVectorT;
+	typedef std::deque<SigData >				SignalDequeT;
+	typedef std::deque<DynamicPointer<Signal> >	SignalExtDequeT;
+	typedef Queue<uint32>						ExecQueueT;
+	typedef Stack<uint32>						FreeStackT;
 	Mutex 				*pm;
 	uint32				extsz;
 	uint32				sz;
-	SignalDequeTp		sdq;
-	SignalExtDequeTp	sedq;
-	FreeStackTp			fs;
-	FreeStackTp			fs2;
-	ExecQueueTp			sq;
-	ExecQueueTp			eq;
-	TimeoutVectorTp		toutv;
+	SignalDequeT		sdq;
+	SignalExtDequeT	sedq;
+	FreeStackT			fs;
+	FreeStackT			fs2;
+	ExecQueueT			sq;
+	ExecQueueT			eq;
+	TimeoutVectorT		toutv;
 	TimeSpec			tout;
 };
 
@@ -101,7 +101,7 @@ int SignalExecuter::execute(ulong _evs, TimeSpec &_rtout){
 	d.pm->lock();
 	idbgx(Dbg::cs, "d.extsz = "<<d.extsz);
 	if(d.extsz){
-		for(Data::SignalExtDequeTp::const_iterator it(d.sedq.begin()); it != d.sedq.end(); ++it){
+		for(Data::SignalExtDequeT::const_iterator it(d.sedq.begin()); it != d.sedq.end(); ++it){
 			d.sdq.push_back(Data::SigData(*it));
 		}
 		d.sz += d.sedq.size();
@@ -158,7 +158,7 @@ int SignalExecuter::execute(ulong _evs, TimeSpec &_rtout){
 			d.tout = tout;
 		}
 	}else{
-		for(Data::SignalDequeTp::iterator it(d.sdq.begin()); it != d.sdq.end(); ++it){
+		for(Data::SignalDequeT::iterator it(d.sdq.begin()); it != d.sdq.end(); ++it){
 			if(it->sig.ptr()){
 				//TODO: should you use clear?!
 				delete it->sig.release();
@@ -194,7 +194,7 @@ int SignalExecuter::execute(){
 void SignalExecuter::doExecute(uint _pos, uint32 _evs, const TimeSpec &_rtout){
 	Data::SigData &rcp(d.sdq[_pos]);
 	TimeSpec ts(_rtout);
-	switch(rcp.sig->execute( _evs, *this, SignalUidTp(_pos, rcp.uid), ts)){
+	switch(rcp.sig->execute( _evs, *this, SignalUidT(_pos, rcp.uid), ts)){
 		case BAD: 
 			++rcp.uid;
 			rcp.sig.clear();
@@ -245,8 +245,8 @@ void SignalExecuter::doExecute(uint _pos, uint32 _evs, const TimeSpec &_rtout){
 
 void SignalExecuter::sendSignal(
 	DynamicPointer<Signal> &_rsig,
-	const RequestUidTp &_requid,
-	const ObjectUidTp& _from,
+	const RequestUidT &_requid,
+	const ObjectUidT& _from,
 	const ipc::ConnectorUid *_conid
 ){
 	idbgx(Dbg::cs, "_requid.first = "<<_requid.first<<" _requid.second = "<<_requid.second<<" uid = "<<d.sdq[_requid.first].uid);

@@ -34,7 +34,7 @@ namespace aio{
 class Object;
 class Socket;
 
-typedef ObjectPointer<Object>	ObjectPtrTp;
+typedef ObjectPointer<Object>	ObjectPtrT;
 
 //! An asynchronous IO selector to be used with the template SelectPool
 /*!
@@ -44,7 +44,7 @@ typedef ObjectPointer<Object>	ObjectPtrTp;
 */
 class Selector{
 public:
-	typedef ObjectPtrTp		ObjectTp;
+	typedef ObjectPtrT		ObjectT;
 	
 	Selector();
 	~Selector();
@@ -57,7 +57,7 @@ public:
 	bool empty()const;
 	bool full()const;
 	
-	void push(const ObjectTp &_rcon, uint _thid);
+	void push(const ObjectT &_rcon, uint _thid);
 	void prepare();
 	void unprepare();
 private:

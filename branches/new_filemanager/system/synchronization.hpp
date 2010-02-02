@@ -45,9 +45,9 @@ private:
 // public:
 // 	CV(const T &_v):val(_v),dv(_v){}
 // 	~CV(){}
-// 	typedef CV<T> ThisTp;
+// 	typedef CV<T> ThisT;
 // 	
-// 	ThisTp & operator=(const T &_v){
+// 	ThisT & operator=(const T &_v){
 // 		val = _v;
 // 		cond.broadcast();
 // 		return *this;
@@ -60,11 +60,11 @@ private:
 // 		val = _v;
 // 		cond.broadcast();
 // 	}
-// 	ThisTp & operator ++ (){
+// 	ThisT & operator ++ (){
 // 		++val;
 // 		cond.signal();
 // 	}
-// 	ThisTp & operator -- (){
+// 	ThisT & operator -- (){
 // 		--val;
 // 		cond.signal();
 // 	}
@@ -104,9 +104,9 @@ private:
 // public:
 // 	FastCV():val(Dv){}
 // 	~FastCV(){}
-// 	typedef FastCV<T,Dv> ThisTp;
+// 	typedef FastCV<T,Dv> ThisT;
 // 	
-// 	ThisTp & operator=(const T &_v){
+// 	ThisT & operator=(const T &_v){
 // 		val = _v;
 // 		cond.broadcast();
 // 		return *this;
@@ -119,11 +119,11 @@ private:
 // 		val = _v;
 // 		cond.broadcast();
 // 	}
-// 	ThisTp & operator ++ (){
+// 	ThisT & operator ++ (){
 // 		++val;
 // 		cond.signal();
 // 	}
-// 	ThisTp & operator -- (){
+// 	ThisT & operator -- (){
 // 		--val;
 // 		cond.signal();
 // 	}
@@ -165,9 +165,9 @@ private:
 // public:
 // 	MaskCV():val(Dv){}
 // 	~MaskCV(){}
-// 	typedef MaskCV<T,Dv> ThisTp;
+// 	typedef MaskCV<T,Dv> ThisT;
 // 	
-// 	ThisTp & operator=(const T &_v){
+// 	ThisT & operator=(const T &_v){
 // 		val = _v;
 // 		cond.broadcast();
 // 		return *this;
@@ -180,11 +180,11 @@ private:
 // 		val = _v;
 // 		cond.broadcast();
 // 	}
-// 	ThisTp & operator ++ (){
+// 	ThisT & operator ++ (){
 // 		++val;
 // 		cond.signal();
 // 	}
-// 	ThisTp & operator -- (){
+// 	ThisT & operator -- (){
 // 		--val;
 // 		cond.signal();
 // 	}

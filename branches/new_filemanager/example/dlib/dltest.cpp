@@ -19,7 +19,7 @@ int main(){
 	cout<<"Debug modules: "<<s<<endl;
 	}
 #endif
-	typedef Test* (*CreatorTp)(int);
+	typedef Test* (*CreatorT)(int);
 	TestA::instance().set(10);
 
 	//load lib b
@@ -35,7 +35,7 @@ int main(){
 		idbg("dlsym error: "<<error);
 		return 0;
 	}
-	CreatorTp pbc = reinterpret_cast<CreatorTp>(pf);
+	CreatorT pbc = reinterpret_cast<CreatorT>(pf);
 
 	Test* ptb = (*pbc)(2);
 	ptb->print();
@@ -53,7 +53,7 @@ int main(){
 		idbg("dlsym error: "<<error);
 		return 0;
 	}
-	pbc = reinterpret_cast<CreatorTp>(pf);
+	pbc = reinterpret_cast<CreatorT>(pf);
 
 	Test* ptc = (*pbc)(3);
 	ptc->print();

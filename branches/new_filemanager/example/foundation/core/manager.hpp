@@ -67,10 +67,10 @@ public:
 	int signalService(const char *_nm, DynamicPointer<foundation::Signal> &_rsig);
 	
 	//! Get the id of the signal executer specialized for reading
-	void readSignalExecuterUid(ObjectUidTp &_ruid);
+	void readSignalExecuterUid(ObjectUidT &_ruid);
 	
 	//! Get the id of the signal executer specialized for writing
-	void writeSignalExecuterUid(ObjectUidTp &_ruid);
+	void writeSignalExecuterUid(ObjectUidT &_ruid);
 	
 	//! Removes a service
 	void removeService(Service *_psrvc);

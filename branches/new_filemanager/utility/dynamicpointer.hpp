@@ -34,43 +34,43 @@ protected:
 template <class T = DynamicBase>
 class DynamicPointer: DynamicPointerBase{
 public:
-	typedef DynamicPointer<T>	DynamicPointerTp;
-	typedef T					DynamicTp;
+	typedef DynamicPointer<T>	DynamicPointerT;
+	typedef T					DynamicT;
 	
-	explicit DynamicPointer(DynamicTp *_pdyn = NULL):pdyn(_pdyn){
+	explicit DynamicPointer(DynamicT *_pdyn = NULL):pdyn(_pdyn){
 		if(_pdyn) use(static_cast<DynamicBase*>(_pdyn));
 	}
 	template <class B>
 	explicit DynamicPointer(const DynamicPointer<B> &_rcp):pdyn(static_cast<T*>(_rcp.release())){}
 	
-	DynamicPointer(const DynamicPointerTp &_rcp):pdyn(_rcp.release()){}
+	DynamicPointer(const DynamicPointerT &_rcp):pdyn(_rcp.release()){}
 	~DynamicPointer(){
 		if(pdyn){DynamicPointerBase::clear(static_cast<DynamicBase*>(pdyn));}
 	}
-	DynamicTp* release() const{
-		DynamicTp *tmp = pdyn;
+	DynamicT* release() const{
+		DynamicT *tmp = pdyn;
 		pdyn = NULL;return tmp;
 	}
-	DynamicPointerTp& operator=(const DynamicPointerTp &_rcp){
+	DynamicPointerT& operator=(const DynamicPointerT &_rcp){
 		if(pdyn) clear();
 		pdyn = _rcp.release();
 		return *this;
 	}
-	DynamicPointerTp& operator=(DynamicTp *_pdyn){
+	DynamicPointerT& operator=(DynamicT *_pdyn){
 		clear();ptr(_pdyn);	return *this;
 	}
-	DynamicTp& operator*()const {return *pdyn;}
-	DynamicTp* operator->()const{return pdyn;}
-	DynamicTp* ptr() const		{return pdyn;}
+	DynamicT& operator*()const {return *pdyn;}
+	DynamicT* operator->()const{return pdyn;}
+	DynamicT* ptr() const		{return pdyn;}
 	//operator bool () const	{return psig;}
 	bool operator!()const	{return !pdyn;}
 	void clear(){if(pdyn) DynamicPointerBase::clear(static_cast<DynamicBase*>(pdyn));pdyn = NULL;}
 protected:
-	void ptr(DynamicTp *_pdyn){
+	void ptr(DynamicT *_pdyn){
 		pdyn = _pdyn;use(static_cast<DynamicBase*>(pdyn));
 	}
 private:
-	mutable DynamicTp *pdyn;
+	mutable DynamicT *pdyn;
 };
 
 

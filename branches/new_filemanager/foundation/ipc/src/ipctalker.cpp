@@ -60,54 +60,54 @@ struct Talker::Data{
 			return _rpon1->timeout > _rpon2->timeout;
 		}
 	};
-	typedef std::pair<ProcessConnector*, int32>			NewProcPairTp;
-	typedef std::pair<ProcessConnector*, uint16>		ProcPairTp;
-	typedef std::vector<ProcPairTp>						ProcVectorTp;
+	typedef std::pair<ProcessConnector*, int32>			NewProcPairT;
+	typedef std::pair<ProcessConnector*, uint16>		ProcPairT;
+	typedef std::vector<ProcPairT>						ProcVectorT;
 	
 	typedef std::map<const Inet4SockAddrPair*, 
-						uint32, Inet4AddrPtrCmp>		PeerProcAddr4MapTp;//TODO: test if a hash map is better
+						uint32, Inet4AddrPtrCmp>		PeerProcAddr4MapT;//TODO: test if a hash map is better
 	typedef std::pair<const Inet4SockAddrPair*, int>	BaseProcAddr4;
 	typedef std::map<const BaseProcAddr4*, uint32, Inet4AddrPtrCmp>
-														BaseProcAddr4MapTp;
+														BaseProcAddr4MapT;
 	
 	typedef std::map<const Inet6SockAddrPair*, 
-						uint32, Inet6AddrPtrCmp>		PeerProcAddr6MapTp;//TODO: test if a hash map is better
+						uint32, Inet6AddrPtrCmp>		PeerProcAddr6MapT;//TODO: test if a hash map is better
 	typedef std::pair<const Inet6SockAddrPair*, int>	BaseProcAddr6;
 	typedef std::map<const BaseProcAddr6*, uint32, Inet6AddrPtrCmp>
-														BaseProcAddr6MapTp;
+														BaseProcAddr6MapT;
 
 	
-	typedef Queue<uint32>								CmdQueueTp;
-	typedef Stack<uint32>								CloseStackTp;
-	typedef Stack<std::pair<uint16, uint16> >			FreePosStackTp;//first is the pos second is the uid
-	typedef Queue<SignalData>							SignalQueueTp;
+	typedef Queue<uint32>								CmdQueueT;
+	typedef Stack<uint32>								CloseStackT;
+	typedef Stack<std::pair<uint16, uint16> >			FreePosStackT;//first is the pos second is the uid
+	typedef Queue<SignalData>							SignalQueueT;
 	typedef std::priority_queue<SendBufferData*, std::vector<SendBufferData*>, SendBufferDataCmp>	
-														SendQueueTp;
-	typedef Stack<SendBufferData>						SendStackTp;
-	typedef Stack<SendBufferData*>						SendFreeStackTp;
-	typedef Stack<NewProcPairTp>						NewProcStackTp;
+														SendQueueT;
+	typedef Stack<SendBufferData>						SendStackT;
+	typedef Stack<SendBufferData*>						SendFreeStackT;
+	typedef Stack<NewProcPairT>						NewProcStackT;
 
 	Data(Service &_rservice, uint16 _id):rservice(_rservice), nextprocid(0), tkrid(_id){}
 	Service				&rservice;
 	uint32				nextprocid;
 	uint16				tkrid;
 	Buffer				rcvbuf;
-	ProcVectorTp		procs;
-	PeerProcAddr4MapTp	peerpm4;
-	BaseProcAddr4MapTp	basepm4;
-	FreePosStackTp		procfs;
-	CmdQueueTp			cq;
-	SignalQueueTp		sigq;
-	SendQueueTp			sendq;
-	SendStackTp			sends;
-	SendFreeStackTp		sendfs;
-	NewProcStackTp		newprocs;
-	CloseStackTp		closes;//a stack with talkers which want to close
+	ProcVectorT		procs;
+	PeerProcAddr4MapT	peerpm4;
+	BaseProcAddr4MapT	basepm4;
+	FreePosStackT		procfs;
+	CmdQueueT			cq;
+	SignalQueueT		sigq;
+	SendQueueT			sendq;
+	SendStackT			sends;
+	SendFreeStackT		sendfs;
+	NewProcStackT		newprocs;
+	CloseStackT		closes;//a stack with talkers which want to close
 };
 
 //======================================================================
 
-Talker::Talker(const SocketDevice &_rsd, Service &_rservice, uint16 _id):	BaseTp(_rsd), d(*new Data(_rservice, _id)){
+Talker::Talker(const SocketDevice &_rsd, Service &_rservice, uint16 _id):	BaseT(_rsd), d(*new Data(_rservice, _id)){
 }
 //----------------------------------------------------------------------
 Talker::~Talker(){
@@ -126,7 +126,7 @@ Talker::~Talker(){
 		delete d.newprocs.top().first;
 		d.newprocs.pop();
 	}
-	for(Data::ProcVectorTp::iterator it(d.procs.begin()); it != d.procs.end(); ++it){
+	for(Data::ProcVectorT::iterator it(d.procs.begin()); it != d.procs.end(); ++it){
 		idbgx(Dbg::ipc, "deleting process "<<(void*)it->first<<" pos = "<<(it - d.procs.begin()));
 		delete it->first;
 		it->first = NULL;
@@ -232,7 +232,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 					d.cq.push(newprocidx);
 				}else{
 					
-					Data::ProcPairTp &rpp(d.procs[newprocidx]);
+					Data::ProcPairT &rpp(d.procs[newprocidx]);
 					if(!rpp.first->isAccepting()){
 						//a reconnect
 						d.peerpm4.erase(rpp.first->peerAddr4());
@@ -252,7 +252,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 			//dispatch signals before deleting processconnectors
 			while(d.sigq.size()){
 				cassert(d.sigq.front().procid < d.procs.size());
-				Data::ProcPairTp	&rpp(d.procs[d.sigq.front().procid]);
+				Data::ProcPairT	&rpp(d.procs[d.sigq.front().procid]);
 				uint32				flags(d.sigq.front().flags);
 				if(rpp.first && (!(flags & Service::SameConnectorFlag) || rpp.second == d.sigq.front().procuid)){
 					rpp.first->pushSignal(d.sigq.front().psig, d.sigq.front().flags);
@@ -378,7 +378,7 @@ void Talker::pushProcessConnector(ProcessConnector *_pc, ConnectorUid &_rconid, 
 			++d.nextprocid;//TODO: it must be reseted somewhere!!!
 		}
 	}
-	d.newprocs.push(Data::NewProcPairTp(_pc, _rconid.procid));
+	d.newprocs.push(Data::NewProcPairT(_pc, _rconid.procid));
 }
 //----------------------------------------------------------------------
 //dispatch d.rcvbuf
@@ -392,10 +392,10 @@ void Talker::dispatchReceivedBuffer(const SockAddrPair &_rsap, const TimeSpec &_
 		case Buffer::DataType:{
 			idbgx(Dbg::ipc, "data buffer");
 			Inet4SockAddrPair					inaddr(_rsap);
-			Data::PeerProcAddr4MapTp::iterator	pit(d.peerpm4.find(&inaddr));
+			Data::PeerProcAddr4MapT::iterator	pit(d.peerpm4.find(&inaddr));
 			if(pit != d.peerpm4.end()){
 				idbgx(Dbg::ipc, "found process for buffer");
-				Data::ProcPairTp &rpp(d.procs[pit->second]);
+				Data::ProcPairT &rpp(d.procs[pit->second]);
 				cassert(rpp.first);
 				ConnectorUid conid(d.tkrid, pit->second, rpp.second);
 				switch(d.procs[pit->second].first->pushReceivedBuffer(d.rcvbuf, conid, _rts)){
@@ -432,7 +432,7 @@ void Talker::dispatchReceivedBuffer(const SockAddrPair &_rsap, const TimeSpec &_
 			if(baseport >= 0){
 				Inet4SockAddrPair					inaddr(_rsap);
 				Data::BaseProcAddr4					ppa(&inaddr, baseport);
-				Data::BaseProcAddr4MapTp::iterator	bit(d.basepm4.find(&ppa));
+				Data::BaseProcAddr4MapT::iterator	bit(d.basepm4.find(&ppa));
 				ProcessConnector *ppc = NULL;
 				if(bit != d.basepm4.end() && (ppc = d.procs[bit->second].first)){
 					ppc->completeConnect(inaddr.port());

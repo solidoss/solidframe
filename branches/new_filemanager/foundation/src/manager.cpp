@@ -130,13 +130,13 @@ void ServiceContainer::clearDummy(){
 
 //-------------------------------------------------------------------
 struct Manager::Data{
-	typedef std::vector<ServicePtr> ServiceVectorTp;
-	typedef std::vector<ActiveSet*> ActiveSetVectorTp;
+	typedef std::vector<ServicePtr> ServiceVectorT;
+	typedef std::vector<ActiveSet*> ActiveSetVectorT;
 	Data(FileManager *_pfm, ipc::Service *_pipcs):pfm(_pfm), pipcs(_pipcs){}
 	ObjectPointer<FileManager>		pfm;
 	ipc::Service					*pipcs;
-	ServiceVectorTp					sv;
-	ActiveSetVectorTp				asv;
+	ServiceVectorT					sv;
+	ActiveSetVectorT				asv;
 };
 Manager::Manager(FileManager *_pfm, ipc::Service *_pipcs):d(*(new Data(_pfm, _pipcs))){
 	registerActiveSet(*(new DummySet));
@@ -219,7 +219,7 @@ void Manager::removeObject(Object *_po){
 	serviceContainer().remove(_po);
 }
 
-int Manager::signalObject(IndexTp _fullid, uint32 _uid, ulong _sigmask){
+int Manager::signalObject(IndexT _fullid, uint32 _uid, ulong _sigmask){
 	cassert(Object::computeServiceId(_fullid) < d.sv.size());
 	return d.sv[Object::computeServiceId(_fullid)]->signal(
 		_fullid,_uid,
@@ -231,7 +231,7 @@ int Manager::signalObject(Object &_robj, ulong _sigmask){
 	return d.sv[_robj.serviceid()]->signal(_robj, _sigmask);
 }
 
-int Manager::signalObject(IndexTp _fullid, uint32 _uid, DynamicPointer<Signal> &_rsig){
+int Manager::signalObject(IndexT _fullid, uint32 _uid, DynamicPointer<Signal> &_rsig){
 	cassert(Object::computeServiceId(_fullid) < d.sv.size());
 	return d.sv[Object::computeServiceId(_fullid)]->signal(
 		_fullid,_uid,

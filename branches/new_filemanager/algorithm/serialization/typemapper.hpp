@@ -77,7 +77,7 @@ BASIC_DECL(uint64);
 	</code>
 */
 class TypeMapper{
-	typedef BaseTypeMap::FncTp	FncTp;
+	typedef BaseTypeMap::FncT	FncT;
 	template <class T>
 	static unsigned mapId(){
 		//TODO: staticproblem
@@ -132,7 +132,7 @@ public:
 	static void map(void *_p, Des &_rd, const std::string &_rstr){
 		TM &tm(static_cast<TM&>(the().getMap(mapId<TM>())));
 		the().lock();
-		FncTp pf = tm.parseTypeIdDone(_rstr, serializerId<Ser>());
+		FncT pf = tm.parseTypeIdDone(_rstr, serializerId<Ser>());
 		the().unlock();
 		if(pf){
 			(*pf)(_p, NULL, &_rd);
@@ -143,7 +143,7 @@ private:
 	static unsigned newMapId();
 	static unsigned newSerializerId();
 	void doRegisterMap(unsigned _id, BaseTypeMap *_pbm);
-	void doMap(FncTp _pf, unsigned _pos, const char *_name);
+	void doMap(FncT _pf, unsigned _pos, const char *_name);
 	void serializerCount(unsigned _cnt);
 	BaseTypeMap &getMap(unsigned _id);
 	template <class T, class Ser, class Des>

@@ -45,7 +45,7 @@ S& operator&(pair<String, int64> &_v, S &_s){
 }
 
 template <class S>
-S& operator&(ObjectUidTp &_v, S &_s){
+S& operator&(ObjectUidT &_v, S &_s){
 	return _s.push(_v.first, "first").push(_v.second, "second");
 }
 }
@@ -65,7 +65,7 @@ struct RemoteListSignal: Dynamic<RemoteListSignal, foundation::Signal>{
 		//idbg(""<<(void*)this);
 		delete ppthlst;
 	}
-	int execute(uint32 _evs, foundation::SignalExecuter&, const SignalUidTp &, TimeSpec &_rts);
+	int execute(uint32 _evs, foundation::SignalExecuter&, const SignalUidT &, TimeSpec &_rts);
 	
 	int ipcReceived(foundation::ipc::SignalUid &_rsiguid, const foundation::ipc::ConnectorUid &_rconid);
 	int ipcPrepare(const foundation::ipc::SignalUid &_rsiguid){
@@ -84,14 +84,14 @@ struct RemoteListSignal: Dynamic<RemoteListSignal, foundation::Signal>{
 		return _s;
 	}
 //data:
-	RemoteList::PathListTp			*ppthlst;
+	RemoteList::PathListT			*ppthlst;
 	String							strpth;
 	int32							err;
 	uint32							tout;
 	foundation::ipc::ConnectorUid	conid;
 	foundation::ipc::SignalUid		siguid;
 	uint32							requid;
-	ObjectUidTp						fromv;
+	ObjectUidT						fromv;
 };
 
 struct FetchSlaveSignal;
@@ -125,11 +125,11 @@ struct FetchMasterSignal: Dynamic<FetchMasterSignal, foundation::Signal>{
 	int ipcReceived(foundation::ipc::SignalUid &_rsiguid, const foundation::ipc::ConnectorUid &_rconid);
 	void ipcFail(int _err);
 	
-	int execute(uint32 _evs, foundation::SignalExecuter&, const SignalUidTp &, TimeSpec &_rts);
+	int execute(uint32 _evs, foundation::SignalExecuter&, const SignalUidT &, TimeSpec &_rts);
 
 	int receiveSignal(
 		DynamicPointer<Signal> &_rsig,
-		const ObjectUidTp& _from = ObjectUidTp(),
+		const ObjectUidT& _from = ObjectUidT(),
 		const foundation::ipc::ConnectorUid *_conid = NULL
 	);
 	
@@ -143,9 +143,9 @@ struct FetchMasterSignal: Dynamic<FetchMasterSignal, foundation::Signal>{
 //data:
 	String					fname;
 	FetchSlaveSignal		*psig;
-	ObjectUidTp				fromv;
-	FileUidTp				fuid;
-	FileUidTp				tmpfuid;
+	ObjectUidT				fromv;
+	FileUidT				fuid;
+	FileUidT				tmpfuid;
 	foundation::ipc::ConnectorUid	conid;
 	StreamPointer<IStream>		ins;
 	int32					state;
@@ -168,7 +168,7 @@ struct FetchSlaveSignal: Dynamic<FetchSlaveSignal, foundation::Signal>{
 	int ipcReceived(foundation::ipc::SignalUid &_rsiguid, const foundation::ipc::ConnectorUid &_rconid);
 	int sent(const foundation::ipc::ConnectorUid &);
 	//int execute(concept::Connection &);
-	int execute(uint32 _evs, foundation::SignalExecuter&, const SignalUidTp &, TimeSpec &_rts);
+	int execute(uint32 _evs, foundation::SignalExecuter&, const SignalUidT &, TimeSpec &_rts);
 	int createDeserializationStream(std::pair<OStream *, int64> &_rps, int _id);
 	void destroyDeserializationStream(const std::pair<OStream *, int64> &_rps, int _id);
 	int createSerializationStream(std::pair<IStream *, int64> &_rps, int _id);
@@ -186,11 +186,11 @@ struct FetchSlaveSignal: Dynamic<FetchSlaveSignal, foundation::Signal>{
 	}
 	void print()const;
 //data:	
-	ObjectUidTp						fromv;
-	ObjectUidTp						tov;
-	FileUidTp						fuid;
+	ObjectUidT						fromv;
+	ObjectUidT						tov;
+	FileUidT						fuid;
 	foundation::ipc::ConnectorUid	conid;
-	SignalUidTp						siguid;
+	SignalUidT						siguid;
 	StreamPointer<IStream>			ins;
 	//if insz >= 0 -> [0->1M) else -> [1M->2M)
 	int64							insz;
@@ -220,10 +220,10 @@ struct SendStringSignal: Dynamic<SendStringSignal, foundation::Signal>{
 		return _s.push(fromv.first, "fromobjectid").push(fromv.second, "fromobjectuid");
 	}
 private:
-	typedef std::pair<uint32, uint32> ObjPairTp;
+	typedef std::pair<uint32, uint32> ObjPairT;
 	String						str;
-	ObjPairTp					tov;
-	ObjPairTp					fromv;
+	ObjPairT					tov;
+	ObjPairT					fromv;
 	foundation::ipc::ConnectorUid		conid;
 };
 
@@ -262,13 +262,13 @@ struct SendStreamSignal: Dynamic<SendStreamSignal, foundation::Signal>{
 		return _s.push(fromv.first, "fromobjectid").push(fromv.second, "fromobjectuid");
 	}
 private:
-	typedef std::pair<uint32, uint32> 	ObjPairTp;
-	typedef std::pair<uint32, uint32> 	FileUidTp;
+	typedef std::pair<uint32, uint32> 	ObjPairT;
+	typedef std::pair<uint32, uint32> 	FileUidT;
 
 	StreamPointer<IOStream>		iosp;
 	String						dststr;
-	ObjPairTp					tov;
-	ObjPairTp					fromv;
+	ObjPairT					tov;
+	ObjPairT					fromv;
 	foundation::ipc::ConnectorUid		conid;
 };
 

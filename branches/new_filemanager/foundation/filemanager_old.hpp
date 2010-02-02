@@ -104,7 +104,7 @@ public:
 		NoWait = 8, //!< Fail if the opperation cannot be completed synchronously
 		ForcePending = 16,
 	};
-	//typedef std::pair<uint32, uint32> FileUidTp;
+	//typedef std::pair<uint32, uint32> FileUidT;
 	//! Constructor
 	/*!
 		\param _maxfcnt Maximum open file count
@@ -171,21 +171,21 @@ public:
 	//second type of stream request methods
 	int stream(
 		StreamPointer<IStream> &_sptr,
-		FileUidTp &_rfuid,
+		FileUidT &_rfuid,
 		const RequestUid &_rrequid,
 		const char *_fn,
 		uint32 _flags = 0
 	);
 	int stream(
 		StreamPointer<OStream> &_sptr,
-		FileUidTp &_rfuid,
+		FileUidT &_rfuid,
 		const RequestUid &_rrequid,
 		const char *_fn,
 		uint32 _flags = 0
 	);
 	int stream(
 		StreamPointer<IOStream> &_sptr,
-		FileUidTp &_rfuid,
+		FileUidT &_rfuid,
 		const RequestUid &_rrequid,
 		const char *_fn,
 		uint32 _flags = 0
@@ -194,19 +194,19 @@ public:
 	//using specific request
 	int streamSpecific(
 		StreamPointer<IStream> &_sptr,
-		FileUidTp &_rfuid,
+		FileUidT &_rfuid,
 		const char *_fn,
 		uint32 _flags = 0
 	);
 	int streamSpecific(
 		StreamPointer<OStream> &_sptr,
-		FileUidTp &_rfuid,
+		FileUidT &_rfuid,
 		const char *_fn,
 		uint32 _flags = 0
 	);
 	int streamSpecific(
 		StreamPointer<IOStream> &_sptr,
-		FileUidTp &_rfuid,
+		FileUidT &_rfuid,
 		const char *_fn,
 		uint32 _flags = 0
 	);
@@ -214,21 +214,21 @@ public:
 	//third type of stream request methods
 	int stream(
 		StreamPointer<IStream> &_sptr,
-		FileUidTp &_rfuid,
+		FileUidT &_rfuid,
 		const RequestUid &_rrequid,
 		const FileKey &_rk,
 		uint32 _flags = 0
 	);
 	int stream(
 		StreamPointer<OStream> &_sptr,
-		FileUidTp &_rfuid,
+		FileUidT &_rfuid,
 		const RequestUid &_rrequid,
 		const FileKey &_rk,
 		uint32 _flags = 0
 	);
 	int stream(
 		StreamPointer<IOStream> &_sptr,
-		FileUidTp &_rfuid,
+		FileUidT &_rfuid,
 		const RequestUid &_rrequid,
 		const FileKey &_rk,
 		uint32 _flags = 0
@@ -237,19 +237,19 @@ public:
 	//using specific request
 	int streamSpecific(
 		StreamPointer<IStream> &_sptr,
-		FileUidTp &_rfuid,
+		FileUidT &_rfuid,
 		const FileKey &_rk,
 		uint32 _flags = 0
 	);
 	int streamSpecific(
 		StreamPointer<OStream> &_sptr,
-		FileUidTp &_rfuid,
+		FileUidT &_rfuid,
 		const FileKey &_rk,
 		uint32 _flags = 0
 	);
 	int streamSpecific(
 		StreamPointer<IOStream> &_sptr,
-		FileUidTp &_rfuid,
+		FileUidT &_rfuid,
 		const FileKey &_rk,
 		uint32 _flags = 0
 	);
@@ -257,19 +257,19 @@ public:
 	//fourth type of stream request methods
 	int stream(
 		StreamPointer<IStream> &_sptr,
-		const FileUidTp &_rfuid,
+		const FileUidT &_rfuid,
 		const RequestUid &_rrequid,
 		uint32 _flags = 0
 	);
 	int stream(
 		StreamPointer<OStream> &_sptr,
-		const FileUidTp &_rfuid,
+		const FileUidT &_rfuid,
 		const RequestUid &_rrequid,
 		uint32 _flags = 0
 	);
 	int stream(
 		StreamPointer<IOStream> &_sptr,
-		const FileUidTp &_rfuid,
+		const FileUidT &_rfuid,
 		const RequestUid &_rrequid,
 		uint32 _flags = 0
 	);
@@ -277,17 +277,17 @@ public:
 	//using specific request
 	int streamSpecific(
 		StreamPointer<IStream> &_sptr,
-		const FileUidTp &_rfuid,
+		const FileUidT &_rfuid,
 		uint32 _flags = 0
 	);
 	int streamSpecific(
 		StreamPointer<OStream> &_sptr,
-		const FileUidTp &_rfuid,
+		const FileUidT &_rfuid,
 		uint32 _flags = 0
 	);
 	int streamSpecific(
 		StreamPointer<IOStream> &_sptr,
-		const FileUidTp &_rfuid,
+		const FileUidT &_rfuid,
 		uint32 _flags = 0
 	);
 	
@@ -324,7 +324,7 @@ public:
 		uint32 _flags = 0
 	);
 
-	int setFileTimeout(const FileUidTp &_rfuid, const TimeSpec &_rtout);
+	int setFileTimeout(const FileUidT &_rfuid, const TimeSpec &_rtout);
 	
 	//overload from object
 	void mutex(Mutex *_pmut);
@@ -333,17 +333,17 @@ public:
 protected:
 	virtual void sendStream(
 		StreamPointer<IStream> &_sptr,
-		const FileUidTp &_rfuid,
+		const FileUidT &_rfuid,
 		const RequestUid& _rrequid
 	) = 0;
 	virtual void sendStream(
 		StreamPointer<OStream> &_sptr,
-		const FileUidTp &_rfuid,
+		const FileUidT &_rfuid,
 		const RequestUid& _rrequid
 	) = 0;
 	virtual void sendStream(
 		StreamPointer<IOStream> &_sptr,
-		const FileUidTp &_rfuid,
+		const FileUidT &_rfuid,
 		const RequestUid& _rrequid
 	) = 0;
 	virtual void sendError(int _error, const RequestUid& _rrequid) = 0;
@@ -355,7 +355,7 @@ private:
 	template <typename StreamP>
 	int doGetStream(
 		StreamP &_sptr,
-		FileUidTp &_rfuid,
+		FileUidT &_rfuid,
 		const RequestUid &_rrequid,
 		const FileKey &_rk,
 		uint32 _flags

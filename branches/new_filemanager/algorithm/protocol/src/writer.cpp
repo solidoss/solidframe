@@ -34,17 +34,17 @@ Writer::~Writer(){
 	delete []bbeg;
 }
 
-void Writer::push(FncTp _pf, const Parameter & _rp){
-	fs.push(FncPairTp(_pf, _rp));
+void Writer::push(FncT _pf, const Parameter & _rp){
+	fs.push(FncPairT(_pf, _rp));
 }
 
-void Writer::replace(FncTp _pf, const Parameter & _rp){
+void Writer::replace(FncT _pf, const Parameter & _rp){
 	fs.top().first = _pf;
 	fs.top().second = _rp;
 }
 
-Parameter &Writer::push(FncTp _pf){
-	fs.push(FncPairTp(_pf, Parameter()));
+Parameter &Writer::push(FncT _pf){
+	fs.push(FncPairT(_pf, Parameter()));
 	return fs.top().second;
 }
 

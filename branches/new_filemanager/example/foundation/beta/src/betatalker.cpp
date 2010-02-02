@@ -47,7 +47,7 @@ Talker::Talker(const char *_node, const char *_srv): pai(NULL), addrmap(*(new Ad
 		state(WRITE);
 	}
 }
-Talker::Talker(const SocketDevice &_rsd): BaseTp(_rsd), pai(NULL), addrmap(*(new AddrMap)){
+Talker::Talker(const SocketDevice &_rsd): BaseT(_rsd), pai(NULL), addrmap(*(new AddrMap)){
 	state(READ);
 }
 

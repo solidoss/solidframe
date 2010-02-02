@@ -37,7 +37,7 @@ int RemoteListSignal::ipcReceived(fdt::ipc::SignalUid &_rsiguid, const fdt::ipc:
 	if(!ppthlst){
 		idbg("Received RemoteListSignal on peer");
 		//print();
-		ObjectUidTp	ttov;
+		ObjectUidT	ttov;
 		Manager::the().readSignalExecuterUid(ttov);
 		Manager::the().signalObject(ttov.first, ttov.second, psig);
 	}else{
@@ -55,7 +55,7 @@ void RemoteListSignal::ipcFail(int _err){
 		idbg("failed on peer");
 	}
 }
-int RemoteListSignal::execute(uint32 _evs, fdt::SignalExecuter&, const SignalUidTp &, TimeSpec &_rts){
+int RemoteListSignal::execute(uint32 _evs, fdt::SignalExecuter&, const SignalUidT &, TimeSpec &_rts){
 	if(tout){
 		idbg("sleep for "<<tout<<" mseconds");
 		_rts += tout;
@@ -66,7 +66,7 @@ int RemoteListSignal::execute(uint32 _evs, fdt::SignalExecuter&, const SignalUid
 	fs::directory_iterator	it,end;
 	fs::path				pth(strpth.c_str(), fs::native);
 	DynamicPointer<fdt::Signal> psig(this);
-	ppthlst = new RemoteList::PathListTp;
+	ppthlst = new RemoteList::PathListT;
 	strpth.clear();
 	if(!exists( pth ) || !is_directory(pth)){
 		err = -1;
@@ -132,7 +132,7 @@ int FetchMasterSignal::ipcReceived(fdt::ipc::SignalUid &_rsiguid, const fdt::ipc
 	DynamicPointer<fdt::Signal> sig(this);
 	conid = _rconid;
 	state = Received;
-	ObjectUidTp	tov;
+	ObjectUidT	tov;
 	idbg("received master signal");
 	print();
 	Manager::the().readSignalExecuterUid(tov);
@@ -142,7 +142,7 @@ int FetchMasterSignal::ipcReceived(fdt::ipc::SignalUid &_rsiguid, const fdt::ipc
 /*
 	The state machine running on peer
 */
-int FetchMasterSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidTp &_siguid, TimeSpec &_rts){
+int FetchMasterSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidT &_siguid, TimeSpec &_rts){
 	Manager &rm(Manager::the());
 	cassert(!(_evs & fdt::TIMEOUT));
 	switch(state){
@@ -235,7 +235,7 @@ int FetchMasterSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const Sig
 
 int FetchMasterSignal::receiveSignal(
 	DynamicPointer<Signal> &_rsig,
-	const ObjectUidTp& _from,
+	const ObjectUidT& _from,
 	const fdt::ipc::ConnectorUid *_conid
 ){
 	if(_rsig->dynamicTypeId() == IStreamSignal::staticTypeId()){
@@ -264,7 +264,7 @@ int FetchMasterSignal::receiveSignal(
 // int FetchMasterSignal::receiveSignal(
 // 	DynamicPointer<fdt::Signal> &_rsig,
 // 	int			_which,
-// 	const ObjectUidTp&_from,
+// 	const ObjectUidT&_from,
 // 	const fdt::ipc::ConnectorUid *
 // ){
 // 	psig = static_cast<FetchSlaveSignal*>(_rsig.release());
@@ -274,9 +274,9 @@ int FetchMasterSignal::receiveSignal(
 // }
 // int FetchMasterSignal::receiveIStream(
 // 	StreamPointer<IStream> &_rins,
-// 	const FileUidTp	& _fuid,
+// 	const FileUidT	& _fuid,
 // 	int			_which,
-// 	const ObjectUidTp&,
+// 	const ObjectUidT&,
 // 	const fdt::ipc::ConnectorUid *
 // ){
 // 	idbg("fuid = "<<_fuid.first<<","<<_fuid.second);
@@ -287,7 +287,7 @@ int FetchMasterSignal::receiveSignal(
 // }
 // int FetchMasterSignal::receiveError(
 // 	int _errid, 
-// 	const ObjectUidTp&_from,
+// 	const ObjectUidT&_from,
 // 	const fdt::ipc::ConnectorUid *_conid
 // ){
 // 	idbg("");
@@ -324,7 +324,7 @@ int FetchSlaveSignal::ipcReceived(fdt::ipc::SignalUid &_rsiguid, const fdt::ipc:
 	if(sz == -10){
 		idbg("Received FetchSlaveSignal on peer");
 		print();
-		ObjectUidTp	ttov;
+		ObjectUidT	ttov;
 		Manager::the().readSignalExecuterUid(ttov);
 		Manager::the().signalObject(ttov.first, ttov.second, psig);
 	}else{
@@ -338,15 +338,15 @@ int FetchSlaveSignal::ipcReceived(fdt::ipc::SignalUid &_rsiguid, const fdt::ipc:
 // int FetchSlaveSignal::execute(concept::Connection &_rcon){
 // 	if(sz >= 0){
 // 		idbg("");
-// 		_rcon.receiveNumber(insz, RequestUidTp(requid, 0), 0, siguid, &conid);
+// 		_rcon.receiveNumber(insz, RequestUidT(requid, 0), 0, siguid, &conid);
 // 	}else{
 // 		idbg("");
-// 		_rcon.receiveError(-1, RequestUidTp(requid, 0), siguid, &conid);
+// 		_rcon.receiveError(-1, RequestUidT(requid, 0), siguid, &conid);
 // 	}
 // 	return NOK;
 // }
 // Executed on peer within the signal executer
-int FetchSlaveSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidTp &, TimeSpec &){
+int FetchSlaveSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidT &, TimeSpec &){
 	idbg("");
 	DynamicPointer<fdt::Signal>	cp(this);
 	_rce.sendSignal(cp, siguid);
@@ -410,7 +410,7 @@ int SendStringSignal::ipcReceived(fdt::ipc::SignalUid &_rsiguid, const fdt::ipc:
 }
 
 // int SendStringSignal::execute(concept::Connection &_rcon){
-// 	return _rcon.receiveString(str, concept::Connection::RequestUidTp(0, 0), 0, fromv, &conid);
+// 	return _rcon.receiveString(str, concept::Connection::RequestUidT(0, 0), 0, fromv, &conid);
 // }
 
 //-----------------------------------------------------------------------------------
@@ -466,10 +466,10 @@ int SendStreamSignal::createSerializationStream(
 // 	{
 // 	StreamPointer<IStream>	isp(static_cast<IStream*>(iosp.release()));
 // 	idbg("");
-// 	_rcon.receiveIStream(isp, concept::Connection::FileUidTp(0,0), concept::Connection::RequestUidTp(0, 0), 0, fromv, &conid);
+// 	_rcon.receiveIStream(isp, concept::Connection::FileUidT(0,0), concept::Connection::RequestUidT(0, 0), 0, fromv, &conid);
 // 	idbg("");
 // 	}
-// 	return _rcon.receiveString(dststr, concept::Connection::RequestUidTp(0, 0), 0, fromv, &conid);
+// 	return _rcon.receiveString(dststr, concept::Connection::RequestUidT(0, 0), 0, fromv, &conid);
 // }
 
 //-----------------------------------------------------------------------------------

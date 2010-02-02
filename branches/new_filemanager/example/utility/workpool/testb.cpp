@@ -41,9 +41,9 @@ void MyWorkPool::run(Worker &_wk){
 	}
 }
 int MyWorkPool::createWorkers(uint _cnt){
-	//typedef GenericWorker<Worker, MyWorkPool> MyWorkerTp;
+	//typedef GenericWorker<Worker, MyWorkPool> MyWorkerT;
 	for(uint i = 0; i < _cnt; ++i){
-		Worker *pw = createWorker<Worker>(*this);//new MyWorkerTp(*this);
+		Worker *pw = createWorker<Worker>(*this);//new MyWorkerT(*this);
 		pw->start(true);//wait for start
 	}
 	return _cnt;

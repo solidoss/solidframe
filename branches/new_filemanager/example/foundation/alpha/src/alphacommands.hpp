@@ -115,20 +115,20 @@ public:
 	int reinitWriter(Writer &, protocol::Parameter &);
 	int receiveIStream(
 		StreamPointer<IStream> &_sptr,
-		const FileUidTp &_fuid,
+		const FileUidT &_fuid,
 		int			_which,
-		const ObjectUidTp&,
+		const ObjectUidT&,
 		const foundation::ipc::ConnectorUid *
 	);
 	int receiveError(
 		int _errid,
-		const ObjectUidTp&_from,
+		const ObjectUidT&_from,
 		const foundation::ipc::ConnectorUid *
 	);
 	int receiveNumber(
 		const int64 &_no,
 		int			_which,
-		const ObjectUidTp&_from,
+		const ObjectUidT&_from,
 		const foundation::ipc::ConnectorUid *_conid
 	);
 private:
@@ -141,12 +141,12 @@ private:
 
 	String				strpth;
 	String				straddr;
-	FileUidTp			fuid;
+	FileUidT			fuid;
 	uint32				port;
 	StreamPointer<IStream>	sp;
 	IStreamIterator		it;
 	Connection			&rc;
-	SignalUidTp			mastersiguid;
+	SignalUidT			mastersiguid;
 	int16 				st;
 	protocol::Parameter	*pp;
 	uint64				litsz64;
@@ -170,14 +170,14 @@ public:
 	int execute(Connection &);
 	int receiveOStream(
 		StreamPointer<OStream> &_sptr,
-		const FileUidTp &_fuid,
+		const FileUidT &_fuid,
 		int			_which,
-		const ObjectUidTp&,
+		const ObjectUidT&,
 		const foundation::ipc::ConnectorUid *
 	);
 	int receiveError(
 		int _errid,
-		const ObjectUidTp&_from,
+		const ObjectUidT&_from,
 		const foundation::ipc::ConnectorUid *
 	);
 	int reinitWriter(Writer &, protocol::Parameter &);
@@ -224,10 +224,10 @@ private:
 class RemoteList: public Command{
 public:
 	enum {Wait, SendList, SendError, SendListContinue};
-	//typedef std::list<std::pair<String,int64> > PathListTp;
-	struct PathListTp: std::list<std::pair<String,int64> >{
-		PathListTp();
-		~PathListTp();
+	//typedef std::list<std::pair<String,int64> > PathListT;
+	struct PathListT: std::list<std::pair<String,int64> >{
+		PathListT();
+		~PathListT();
 	};
 	RemoteList();
 	~RemoteList();
@@ -239,20 +239,20 @@ public:
 		void *_pdata,
 		int _datasz,
 		int			_which, 
-		const ObjectUidTp&_from,
+		const ObjectUidT&_from,
 		const foundation::ipc::ConnectorUid *_conid
 	);
 	int receiveError(
 		int _errid, 
-		const ObjectUidTp&_from,
+		const ObjectUidT&_from,
 		const foundation::ipc::ConnectorUid *_conid
 	);
 private:
 	String					strpth;
 	String					straddr;
 	uint32					port;
-	PathListTp				*ppthlst;
-	PathListTp::const_iterator it;
+	PathListT				*ppthlst;
+	PathListT::const_iterator it;
 	int						state;
 	protocol::Parameter		*pp;
 };
@@ -329,32 +329,32 @@ public:
 	int reinitWriter(Writer &, protocol::Parameter &);
 	/*virtual*/ int receiveIStream(
 		StreamPointer<IStream> &,
-		const FileUidTp&,
+		const FileUidT&,
 		int			_which,
-		const ObjectUidTp&_from,
+		const ObjectUidT&_from,
 		const foundation::ipc::ConnectorUid *_conid
 	);
 // 	virtual int receiveOStream(
 // 		StreamPointer<OStream> &,
-// 		const FromPairTp&_from,
+// 		const FromPairT&_from,
 // 		const ipc::ConnectorUid *_conid
 // 	);
 // 	virtual int receiveIOStream(
 // 		StreamPointer<IOStream> &, 
-// 		const FromPairTp&_from,
+// 		const FromPairT&_from,
 // 		const ipc::ConnectorUid *_conid
 // 	);
 	/*virtual*/ int receiveString(
 		const String &_str,
 		int			_which,
-		const ObjectUidTp&_from,
+		const ObjectUidT&_from,
 		const foundation::ipc::ConnectorUid *_conid
 	);
 private:
 	enum Type{LocalStringType, PeerStringType, LocalStreamType, PeerStreamType};
 	Queue<Type>					typeq;
 	Queue<String>				stringq;
-	Queue<ObjectUidTp>			fromq;
+	Queue<ObjectUidT>			fromq;
 	Queue<foundation::ipc::ConnectorUid>	conidq;
 	Queue<StreamPointer<IStream> >	streamq;
 	Connection					&rc;

@@ -61,7 +61,7 @@ struct Selector::Stub{
 		state = OutExecQueue;
 		events = 0;
 	}
-	ObjectPtrTp		objptr;
+	ObjectPtrT		objptr;
 	TimeSpec		timepos;//object timepos
 	TimeSpec		itimepos;//input timepos
 	TimeSpec		otimepos;//output timepos
@@ -77,9 +77,9 @@ struct Selector::Data{
 		FULL_SCAN = 2,
 		READ_PIPE = 4
 	};
-	typedef Stack<uint32>			Uint32StackTp;
-	typedef Queue<uint32>			Uint32QueueTp;
-	typedef std::vector<Stub>		StubVectorTp;
+	typedef Stack<uint32>			Uint32StackT;
+	typedef Queue<uint32>			Uint32QueueT;
+	typedef std::vector<Stub>		StubVectorT;
 	
 	uint				objcp;
 	uint				objsz;
@@ -88,15 +88,15 @@ struct Selector::Data{
 	int					selcnt;
 	int					epollfd;
 	epoll_event 		*events;
-	StubVectorTp		stubs;
-	Uint32QueueTp		execq;
-	Uint32StackTp		freestubsstk;
+	StubVectorT		stubs;
+	Uint32QueueT		execq;
+	Uint32StackT		freestubsstk;
 #ifdef UPIPESIGNAL
 	int					pipefds[2];
 #else
 	int					efd;//eventfd
 	Mutex				m;
-	Uint32QueueTp		sigq;//a signal queue
+	Uint32QueueT		sigq;//a signal queue
 	uint64				efdv;//the eventfd value
 #endif
 	TimeSpec			ntimepos;//next timepos == next timeout
@@ -285,7 +285,7 @@ bool Selector::full()const{
 	return d.objsz == d.objcp;
 }
 
-void Selector::push(const ObjectTp &_objptr, uint _thid){
+void Selector::push(const ObjectT &_objptr, uint _thid){
 	cassert(!full());
 	uint stubpos = doNewStub();
 	Stub &stub = d.stubs[stubpos];
@@ -590,7 +590,7 @@ uint Selector::doFullScan(){
 	++d.rep_fullscancount;
 	rdbgx(Dbg::aio, "fullscan count "<<d.rep_fullscancount);
 	d.ntimepos = TimeSpec::max;
-	for(Data::StubVectorTp::iterator it(d.stubs.begin() + 1); it != d.stubs.end(); ++it){
+	for(Data::StubVectorT::iterator it(d.stubs.begin() + 1); it != d.stubs.end(); ++it){
 		Stub &stub = *it;
 		if(!stub.objptr) continue;
 		evs = 0;
@@ -762,7 +762,7 @@ uint Selector::doNewStub(){
 		d.stubs.push_back(Stub());
 		if(cp != d.stubs.capacity()){
 			//we need to reset the aioobject's pointer to timepos
-			for(Data::StubVectorTp::iterator it(d.stubs.begin()); it != d.stubs.end(); ++it){
+			for(Data::StubVectorT::iterator it(d.stubs.begin()); it != d.stubs.end(); ++it){
 				if(it->objptr){
 					it->timepos  = TimeSpec::max;
 					it->itimepos = TimeSpec::max;

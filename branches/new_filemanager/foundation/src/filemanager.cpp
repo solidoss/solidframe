@@ -58,7 +58,7 @@ struct LessStrCmp{
 	}
 };
 
-//typedef FileManager::RequestUid FMRequestUidTp;
+//typedef FileManager::RequestUid FMRequestUidT;
 
 //------------------------------------------------------------------------------
 class File: public FileDevice{
@@ -108,37 +108,37 @@ public:
 	bool decreaseInCount();
 	int executeSignal(
 		FileManager &_rsm,
-		const FileUidTp &_fuid,
+		const FileUidT &_fuid,
 		uint32 _flags,
 		uint32 &_rtout
 	);
 	int executeOpen(
 		FileManager &_rsm,
-		const FileUidTp &_fuid,
+		const FileUidT &_fuid,
 		uint32 _flags,
 		uint32 &_rtout,
 		Mutex &_rm
 	);
-	void clear(FileManager &_rsm, const FileUidTp &_fuid);
+	void clear(FileManager &_rsm, const FileUidT &_fuid);
 	bool inUse()const{
 		return ousecnt || iusecnt;
 	}
 private:
-	bool signalStreams(FileManager &_rsm, const FileUidTp &_fuid);
+	bool signalStreams(FileManager &_rsm, const FileUidT &_fuid);
 	struct WaitData{
 		WaitData(const RequestUid &_rrequid, uint32 _flags):requid(_rrequid), flags(_flags){}
 		RequestUid	requid;
 		uint32		flags;
 	};
-	typedef Queue<WaitData>		WaitQueueTp;
+	typedef Queue<WaitData>		WaitQueueT;
 	FileKey			&rk;
 	uint32			ousecnt;
 	uint32			iusecnt;
 	uint32			msectout;
 	uint16			flags;
 	uint16			state;
-	WaitQueueTp		iwq;
-	WaitQueueTp		owq;
+	WaitQueueT		iwq;
+	WaitQueueT		owq;
 };
 //------------------------------------------------------------------------------
 class FileIStream: public IStream{
@@ -186,9 +186,9 @@ private:
 //------------------------------------------------------------------------------
 struct FileManager::Data{
 	enum {Running = 1, Stopping, Stopped = -1};
-	typedef MutualObjectContainer<Mutex>	MutexContainerTp;
-	typedef Queue<uint>						SignalQueueTp;
-	typedef Stack<uint>						FreeStackTp;
+	typedef MutualObjectContainer<Mutex>	MutexContainerT;
+	typedef Queue<uint>						SignalQueueT;
+	typedef Stack<uint>						FreeStackT;
 	struct FileExtData{
 		FileExtData(File *_pfile = NULL, uint32 _pos = 0):pfile(_pfile), pos(_pos){}
 		File	*pfile;
@@ -202,10 +202,10 @@ struct FileManager::Data{
 		uint32		uid;
 		TimeSpec	tout;
 	};
-	typedef std::deque<FileData>		FileVectorTp;
-	typedef std::deque<FileExtData>		FileExtVectorTp;
-	typedef std::deque<int32>			TimeoutVectorTp;
-	typedef std::vector<FileMapper*>	FileMapperVectorTp;
+	typedef std::deque<FileData>		FileVectorT;
+	typedef std::deque<FileExtData>		FileExtVectorT;
+	typedef std::deque<int32>			TimeoutVectorT;
+	typedef std::vector<FileMapper*>	FileMapperVectorT;
 	Data(uint32 _maxsz):maxsz(_maxsz),sz(0), freeidx(0), mut(NULL){}
 	~Data();
 	int  fileWrite(uint _fileid, const char *_pb, uint32 _bl, const int64 &_off, uint32 _flags);
@@ -221,19 +221,19 @@ struct FileManager::Data{
 	uint32					sz;
 	uint32					freeidx;
 	Mutex					*mut;
-	MutexContainerTp		mutpool;
-	FileVectorTp			fv;//file vector
-	FileExtVectorTp			fextv;
-	SignalQueueTp			sq;//stream queue
-	SignalQueueTp			oq;//open queue
-	FileMapperVectorTp		mv;
-	FreeStackTp				fs;//free stack
-	TimeoutVectorTp			toutv;
+	MutexContainerT		mutpool;
+	FileVectorT			fv;//file vector
+	FileExtVectorT			fextv;
+	SignalQueueT			sq;//stream queue
+	SignalQueueT			oq;//open queue
+	FileMapperVectorT		mv;
+	FreeStackT				fs;//free stack
+	TimeoutVectorT			toutv;
 	TimeSpec				tout;
 };
 
 FileManager::Data::~Data(){
-	for(FileMapperVectorTp::const_iterator it(mv.begin()); it != mv.end(); ++it){
+	for(FileMapperVectorT::const_iterator it(mv.begin()); it != mv.end(); ++it){
 		delete *it;
 	}
 }
@@ -261,7 +261,7 @@ int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 	d.mut->lock();
 	//before anything, we move from fextv to fv:
 	if(d.fextv.size()){
-		for(Data::FileExtVectorTp::const_iterator it(d.fextv.begin()); it != d.fextv.end(); ++it){
+		for(Data::FileExtVectorT::const_iterator it(d.fextv.begin()); it != d.fextv.end(); ++it){
 			cassert(d.fv.size() == it->pos);
 			d.fv.push_back(Data::FileData(*it));
 		}
@@ -312,7 +312,7 @@ int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 				--sz;
 				continue;
 			}
-			FileUidTp 		fuid(*pfid, rf.uid);
+			FileUidT 		fuid(*pfid, rf.uid);
 			Mutex			&m(d.mutpool.object(*pfid));
 			uint32 			msectout = 0;
 			m.lock();
@@ -403,7 +403,7 @@ int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 		//files are only deleted from within this thread. so its safe without locking
 		if(rf.pfile){
 			Mutex			&m(d.mutpool.object(ofront));
-			FileUidTp 		fuid(ofront, d.fv[ofront].uid);
+			FileUidT 		fuid(ofront, d.fv[ofront].uid);
 			//also the files from oq are only open from this thread
 			//so, no locking here too.
 			switch(rf.pfile->executeOpen(*this, fuid, 0, msectout, m)){
@@ -464,7 +464,7 @@ int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 		//scan all files for timeout
 		//as we change the fv[].tout only in this thread - no need for locking while scanning
 		TimeSpec tout(TimeSpec::max);
-		for(Data::TimeoutVectorTp::const_iterator it(d.toutv.begin()); it != d.toutv.end();){
+		for(Data::TimeoutVectorT::const_iterator it(d.toutv.begin()); it != d.toutv.end();){
 			Data::FileData &rf(d.fv[*it]);
 			if(_rtout >= rf.tout){
 				{
@@ -472,7 +472,7 @@ int FileManager::execute(ulong _evs, TimeSpec &_rtout){
 					rm.lock();
 					//if(rf.pfile){//pfile is set to null only in this thread - the file will not be in toutv
 					if(!rf.pfile->inUse()){
-						FileUidTp 		fuid(ofront, d.fv[*it].uid);
+						FileUidT 		fuid(ofront, d.fv[*it].uid);
 						File *pf(rf.pfile);
 						rm.unlock();//avoid crosslocking deadlock
 						{
@@ -527,7 +527,7 @@ int64 FileManager::fileSize(const FileKey &_rk)const{
 	return -1;
 }
 	
-int FileManager::setFileTimeout(const FileUidTp &_rfuid, const TimeSpec &_rtout){
+int FileManager::setFileTimeout(const FileUidT &_rfuid, const TimeSpec &_rtout){
 	//TODO:
 	return BAD;
 }
@@ -543,7 +543,7 @@ int FileManager::stream(
 	const char *_fn,
 	uint32 _flags
 ){
-	FileUidTp fuid;
+	FileUidT fuid;
 	return stream(_sptr, fuid, _rrequid, _fn, _flags);
 }
 
@@ -553,7 +553,7 @@ int FileManager::stream(
 	const char *_fn,
 	uint32 _flags
 ){
-	FileUidTp fuid;
+	FileUidT fuid;
 	return stream(_sptr, fuid, _rrequid, _fn, _flags);
 }
 
@@ -563,7 +563,7 @@ int FileManager::stream(
 	const char *_fn,
 	uint32 _flags
 ){
-	FileUidTp fuid;
+	FileUidT fuid;
 	return stream(_sptr, fuid, _rrequid, _fn, _flags);
 }
 //---------------------------------------------------------------
@@ -591,7 +591,7 @@ int FileManager::streamSpecific(
 //---------------------------------------------------------------
 int FileManager::stream(
 	StreamPointer<IStream> &_sptr,
-	FileUidTp &_rfuid,
+	FileUidT &_rfuid,
 	const RequestUid &_rrequid,
 	const char *_fn,
 	uint32 _flags
@@ -607,7 +607,7 @@ int FileManager::stream(
 
 int FileManager::stream(
 	StreamPointer<OStream> &_sptr,
-	FileUidTp &_rfuid,
+	FileUidT &_rfuid,
 	const RequestUid &_rrequid,
 	const char *_fn,
 	uint32 _flags
@@ -623,7 +623,7 @@ int FileManager::stream(
 
 int FileManager::stream(
 	StreamPointer<IOStream> &_sptr,
-	FileUidTp &_rfuid,
+	FileUidT &_rfuid,
 	const RequestUid &_rrequid,
 	const char *_fn,
 	uint32 _flags
@@ -639,7 +639,7 @@ int FileManager::stream(
 //---------------------------------------------------------------
 int FileManager::streamSpecific(
 	StreamPointer<IStream> &_sptr,
-	FileUidTp &_rfuid,
+	FileUidT &_rfuid,
 	const char *_fn,
 	uint32 _flags
 ){
@@ -647,7 +647,7 @@ int FileManager::streamSpecific(
 }
 int FileManager::streamSpecific(
 	StreamPointer<OStream> &_sptr,
-	FileUidTp &_rfuid,
+	FileUidT &_rfuid,
 	const char *_fn,
 	uint32 _flags
 ){
@@ -655,7 +655,7 @@ int FileManager::streamSpecific(
 }
 int FileManager::streamSpecific(
 	StreamPointer<IOStream> &_sptr,
-	FileUidTp &_rfuid,
+	FileUidT &_rfuid,
 	const char *_fn,
 	uint32 _flags
 ){
@@ -663,7 +663,7 @@ int FileManager::streamSpecific(
 }
 //---------------------------------------------------------------
 int FileManager::stream(StreamPointer<IStream> &_sptr, const char *_fn, uint32 _flags){
-	FileUidTp	fuid;
+	FileUidT	fuid;
 	RequestUid	requid;
 	if(_fn){
 		FastNameFileKey k(_fn);
@@ -675,7 +675,7 @@ int FileManager::stream(StreamPointer<IStream> &_sptr, const char *_fn, uint32 _
 }
 
 int FileManager::stream(StreamPointer<OStream> &_sptr, const char *_fn, uint32 _flags){
-	FileUidTp	fuid;
+	FileUidT	fuid;
 	RequestUid	requid;
 	if(_fn){
 		FastNameFileKey k(_fn);
@@ -687,7 +687,7 @@ int FileManager::stream(StreamPointer<OStream> &_sptr, const char *_fn, uint32 _
 }
 
 int FileManager::stream(StreamPointer<IOStream> &_sptr, const char *_fn, uint32 _flags){
-	FileUidTp	fuid;
+	FileUidT	fuid;
 	RequestUid	requid;
 	if(_fn){
 		FastNameFileKey k(_fn);
@@ -699,19 +699,19 @@ int FileManager::stream(StreamPointer<IOStream> &_sptr, const char *_fn, uint32 
 }
 //-------------------------------------------------------------------------------------
 int FileManager::stream(StreamPointer<IStream> &_sptr, const FileKey &_rk, uint32 _flags){
-	FileUidTp	fuid;
+	FileUidT	fuid;
 	RequestUid	requid;
 	return stream(_sptr, fuid, requid, _rk, _flags | NoWait);
 }
 
 int FileManager::stream(StreamPointer<OStream> &_sptr, const FileKey &_rk, uint32 _flags){
-	FileUidTp	fuid;
+	FileUidT	fuid;
 	RequestUid	requid;
 	return stream(_sptr, fuid, requid, _rk, _flags | NoWait);
 }
 
 int FileManager::stream(StreamPointer<IOStream> &_sptr, const FileKey &_rk, uint32 _flags){
-	FileUidTp	fuid;
+	FileUidT	fuid;
 	RequestUid	requid;
 	return stream(_sptr, fuid, requid, _rk, _flags | NoWait);
 }
@@ -721,7 +721,7 @@ int FileManager::stream(StreamPointer<IOStream> &_sptr, const FileKey &_rk, uint
 template <typename StreamP>
 int FileManager::doGetStream(
 	StreamP &_sptr,
-	FileUidTp &_rfuid,
+	FileUidT &_rfuid,
 	const RequestUid &_requid,
 	const FileKey &_rk,
 	uint32 _flags
@@ -741,7 +741,7 @@ int FileManager::doGetStream(
 		}else{
 			idbgx(Dbg::filemanager, "");
 			//search the file within the ext vector
-			for(Data::FileExtVectorTp::const_iterator it(d.fextv.begin()); it != d.fextv.end(); ++it){
+			for(Data::FileExtVectorT::const_iterator it(d.fextv.begin()); it != d.fextv.end(); ++it){
 				if(it->pos == fid){
 					pf = it->pfile;
 					break;
@@ -854,7 +854,7 @@ int FileManager::doGetStream(
 }
 int FileManager::stream(
 	StreamPointer<IStream> &_sptr,
-	FileUidTp &_rfuid,
+	FileUidT &_rfuid,
 	const RequestUid &_requid,
 	const FileKey &_rk,
 	uint32 _flags
@@ -863,7 +863,7 @@ int FileManager::stream(
 }
 int FileManager::stream(
 	StreamPointer<OStream> &_sptr,
-	FileUidTp &_rfuid,
+	FileUidT &_rfuid,
 	const RequestUid &_requid,
 	const FileKey &_rk,
 	uint32 _flags
@@ -878,7 +878,7 @@ int FileManager::stream(
 */
 int FileManager::stream(
 	StreamPointer<IOStream> &_sptr,
-	FileUidTp &_rfuid,
+	FileUidT &_rfuid,
 	const RequestUid &_requid,
 	const FileKey &_rk,
 	uint32 _flags
@@ -889,7 +889,7 @@ int FileManager::stream(
 //---------------------------------------------------------------
 int FileManager::streamSpecific(
 	StreamPointer<IStream> &_sptr,
-	FileUidTp &_rfuid,
+	FileUidT &_rfuid,
 	const FileKey &_rk,
 	uint32 _flags
 ){
@@ -897,7 +897,7 @@ int FileManager::streamSpecific(
 }
 int FileManager::streamSpecific(
 	StreamPointer<OStream> &_sptr,
-	FileUidTp &_rfuid,
+	FileUidT &_rfuid,
 	const FileKey &_rk,
 	uint32 _flags
 ){
@@ -905,7 +905,7 @@ int FileManager::streamSpecific(
 }
 int FileManager::streamSpecific(
 	StreamPointer<IOStream> &_sptr,
-	FileUidTp &_rfuid,
+	FileUidT &_rfuid,
 	const FileKey &_rk,
 	uint32 _flags
 ){
@@ -914,7 +914,7 @@ int FileManager::streamSpecific(
 //---------------------------------------------------------------
 int FileManager::stream(
 	StreamPointer<IStream> &_sptr,
-	const FileUidTp &_rfuid,
+	const FileUidT &_rfuid,
 	const RequestUid &_requid,
 	uint32 _flags
 ){
@@ -929,7 +929,7 @@ int FileManager::stream(
 
 int FileManager::stream(
 	StreamPointer<OStream> &_sptr,
-	const FileUidTp &_rfuid,
+	const FileUidT &_rfuid,
 	const RequestUid &_requid,
 	uint32 _flags
 ){
@@ -944,7 +944,7 @@ int FileManager::stream(
 
 int FileManager::stream(
 	StreamPointer<IOStream> &_sptr,
-	const FileUidTp &_rfuid,
+	const FileUidT &_rfuid,
 	const RequestUid &_requid,
 	uint32 _flags
 ){
@@ -960,21 +960,21 @@ int FileManager::stream(
 //using specific request
 int FileManager::streamSpecific(
 	StreamPointer<IStream> &_sptr,
-	const FileUidTp &_rfuid,
+	const FileUidT &_rfuid,
 	uint32 _flags
 ){
 	return stream(_sptr, _rfuid, *requestuidptr, _flags);
 }
 int FileManager::streamSpecific(
 	StreamPointer<OStream> &_sptr,
-	const FileUidTp &_rfuid,
+	const FileUidT &_rfuid,
 	uint32 _flags
 ){
 	return stream(_sptr, _rfuid, *requestuidptr, _flags);
 }
 int FileManager::streamSpecific(
 	StreamPointer<IOStream> &_sptr,
-	const FileUidTp &_rfuid,
+	const FileUidT &_rfuid,
 	uint32 _flags
 ){
 	return stream(_sptr, _rfuid, *requestuidptr, _flags);
@@ -1325,7 +1325,7 @@ bool File::decreaseInCount(){
 
 int File::executeSignal(
 	FileManager &_rsm,
-	const FileUidTp &_fuid,
+	const FileUidT &_fuid,
 	uint32 _flags,
 	uint32 &_rtout
 ){
@@ -1351,7 +1351,7 @@ int File::executeSignal(
 
 int File::executeOpen(
 	FileManager &_rsm,
-	const FileUidTp &_fuid,
+	const FileUidT &_fuid,
 	uint32 _flags,
 	uint32 &_rtout,
 	Mutex &_rm
@@ -1379,7 +1379,7 @@ int File::executeOpen(
 	return BAD;
 }
 
-void File::clear(FileManager &_rsm, const FileUidTp &_fuid){
+void File::clear(FileManager &_rsm, const FileUidT &_fuid){
 	while(this->iwq.size()){//signal all istreams
 		_rsm.sendError(-1, iwq.front().requid);
 		iwq.pop();
@@ -1390,7 +1390,7 @@ void File::clear(FileManager &_rsm, const FileUidTp &_fuid){
 	}
 }
 
-bool File::signalStreams(FileManager &_rsm, const FileUidTp &_fuid){
+bool File::signalStreams(FileManager &_rsm, const FileUidT &_fuid){
 	if(ousecnt) return true;//can do nothing
 	if(this->owq.size()){//we have writers waiting
 		if(iusecnt) return true;

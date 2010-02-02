@@ -45,14 +45,14 @@ struct D{
 	}
 	int data;
 };
-//typedef queue<int, list<int> > QueueTp;
-//typedef queue<int> QueueTp;
-typedef Queue<int>	QueueTp;
+//typedef queue<int, list<int> > QueueT;
+//typedef queue<int> QueueT;
+typedef Queue<int>	QueueT;
 ///\endcond
 int main(){
 	ulong sum = 0;
-	cout<<"sizeof queue<int> = "<<sizeof(QueueTp)<<endl;
-	QueueTp q;
+	cout<<"sizeof queue<int> = "<<sizeof(QueueT)<<endl;
+	QueueT q;
 	for(int j = 0; j < 20; ++j){
 		for(int i = 0; i < 100000; ++i){
 			q.push(i);

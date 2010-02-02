@@ -104,7 +104,7 @@ void ObjectSelector::run(){
 			idbgx(Dbg::cs, "full_scan");
 			ulong evs = 0;
 			ntimepos.set(0xffffffff);
-			for(SelVecTp::iterator it(sv.begin()); it != sv.end(); ++it){
+			for(SelVecT::iterator it(sv.begin()); it != sv.end(); ++it){
 				SelObject &ro = *it;
 				if(ro.objptr){
 					evs = 0;
@@ -135,7 +135,7 @@ void ObjectSelector::run(){
 	}while(state != EXIT_LOOP);
 }
 
-void ObjectSelector::push(const ObjectPtrTp &_robj, uint _thid){
+void ObjectSelector::push(const ObjectPtrT &_robj, uint _thid){
 	cassert(fstk.size());
 	uint pos = fstk.top(); fstk.pop();
 	_robj->setThread(_thid, pos);

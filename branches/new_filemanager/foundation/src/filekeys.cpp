@@ -33,8 +33,8 @@ public:
 	void erase(const char *_fname);
 	const string & prefix()const {return pfx;}
 private:
-	typedef std::map<const char*, uint32, LessStrCmp> NameMapTp;
-	NameMapTp nm;
+	typedef std::map<const char*, uint32, LessStrCmp> NameMapT;
+	NameMapT nm;
 	string pfx;
 };
 
@@ -116,12 +116,12 @@ FileKey* FastNameFileKey::clone()const{
 }
 //---------------------------------------------------------------
 uint32 NameFileMapper::find(const char *_fname)const{
-	NameMapTp::const_iterator it(nm.find(_fname));
+	NameMapT::const_iterator it(nm.find(_fname));
 	if(it != nm.end()) return it->second;
 	return -1;
 }
 void NameFileMapper::insert(const char *_fname, uint32 _fileid){
-	pair<NameMapTp::iterator,bool> rv(nm.insert(NameMapTp::value_type(_fname, _fileid)));
+	pair<NameMapT::iterator,bool> rv(nm.insert(NameMapT::value_type(_fname, _fileid)));
 	cassert(rv.second);
 }
 void NameFileMapper::erase(const char *_fname){

@@ -25,7 +25,7 @@ MemoryFile::MemoryFile(
 }
 
 MemoryFile::~MemoryFile(){
-	for(BufferVectorTp::const_iterator it(bv.begin()); it != bv.end(); ++it){
+	for(BufferVectorT::const_iterator it(bv.begin()); it != bv.end(); ++it){
 		ra.release(it->data);
 	}
 }

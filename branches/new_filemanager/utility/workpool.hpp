@@ -66,7 +66,7 @@ WorkPoolPlugin* basicWorkPoolPlugin();
 template <class Jb>
 class WorkPool{
 public:
-	typedef WorkPool<Jb>	WorkPoolTp;
+	typedef WorkPool<Jb>	WorkPoolT;
 	//! Push a new job
 	void push(const Jb& _jb){
 		mtx.lock();

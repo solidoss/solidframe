@@ -66,15 +66,15 @@ protected:
 		RequestUid	requid;
 		uint32		flags;
 	};
-	typedef Queue<WaitData>		WaitQueueTp;
+	typedef Queue<WaitData>		WaitQueueT;
 	Key				&rk;
 	uint32			ousecnt;
 	uint32			iusecnt;
 	uint32			msectout;
 	uint16			flags;
 	uint16			state;
-	WaitQueueTp		iwq;
-	WaitQueueTp		owq;
+	WaitQueueT		iwq;
+	WaitQueueT		owq;
 };
 
 }//namespace file

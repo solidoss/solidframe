@@ -30,19 +30,19 @@
 	Basicaly it is a pair of seconds and nanoseconds.
 */
 struct TimeSpec: public timespec{
-	typedef UnsignedConvertor<time_t>::UnsignedType TimeTp;
+	typedef UnsignedConvertor<time_t>::UnsignedType TimeT;
 	
 	static const TimeSpec max;
 	
-	TimeSpec(const TimeTp &_s = 0, long _ns = 0){set(_s, _ns);}
-	TimeTp	seconds()const{return tv_sec;}
+	TimeSpec(const TimeT &_s = 0, long _ns = 0){set(_s, _ns);}
+	TimeT	seconds()const{return tv_sec;}
 	bool isMax()const;
 	long	nanoSeconds()const{return tv_nsec;}
-	void seconds(const TimeTp &_s){tv_sec = _s;}
+	void seconds(const TimeT &_s){tv_sec = _s;}
 	void nanoSeconds(long _ns){tv_nsec = _ns;}
-	void set(const TimeTp &_s, long _ns = 0);
-	void add(const TimeTp &_s, long _ns = 0);
-	void sub(const TimeTp &_s, long _ns = 0);
+	void set(const TimeT &_s, long _ns = 0);
+	void add(const TimeT &_s, long _ns = 0);
+	void sub(const TimeT &_s, long _ns = 0);
 	bool operator !=(const TimeSpec &_ts)const;
 	bool operator ==(const TimeSpec &_ts)const;
 	bool operator >=(const TimeSpec &_ts)const;

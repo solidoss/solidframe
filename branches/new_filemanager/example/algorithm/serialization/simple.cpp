@@ -141,23 +141,23 @@ private:
 };
 
 struct IntegerVector: Base{
-	typedef vector<uint32> 	IntVecTp;
+	typedef vector<uint32> 	IntVecT;
 	IntegerVector():piv1(NULL), piv2(NULL) {
 	}
-	IntegerVector(bool):piv1(new IntVecTp), piv2(NULL) {
+	IntegerVector(bool):piv1(new IntVecT), piv2(NULL) {
 		piv1->push_back(1);
 		piv1->push_back(2);
 	}
 	void print()const;
-	IntVecTp	iv;
-	IntVecTp	*piv1;
-	IntVecTp	*piv2;
+	IntVecT	iv;
+	IntVecT	*piv1;
+	IntVecT	*piv2;
 };
 
 
 void IntegerVector::print()const{
 	cout<<"IntegerVector{"<<endl;
-	for(IntVecTp::const_iterator it(iv.begin()); it != iv.end(); ++it){
+	for(IntVecT::const_iterator it(iv.begin()); it != iv.end(); ++it){
 		cout<<*it<<',';
 	}
 	cout<<endl;
@@ -190,10 +190,10 @@ S& operator&(pair<int32,int32> &_tb, S &_s){
 }
 }
 
-typedef std::deque<std::string> StrDeqTp;
-typedef std::deque<std::pair<int32,int32> > PairIntDeqTp;
+typedef std::deque<std::string> StrDeqT;
+typedef std::deque<std::pair<int32,int32> > PairIntDeqT;
 
-void print(StrDeqTp &_rsdq);
+void print(StrDeqT &_rsdq);
 ///\endcond
 
 int main(int argc, char *argv[]){
@@ -236,7 +236,7 @@ int main(int argc, char *argv[]){
 		TestA 			ta;
 		TestB 			tb;// = new TestB;
 		TestC 			tc;
-		StrDeqTp		sdq;
+		StrDeqT		sdq;
 		string			s("some string");
 		
 		sdq.push_back("first");
@@ -270,14 +270,14 @@ int main(int argc, char *argv[]){
 		idbg("");
 		ser.push(b1, "basestring").push(b2, "baseui").push(b3, "baseiv");
 		
-		PairIntDeqTp pidq;
+		PairIntDeqT pidq;
 		pidq.push_back(pair<int32, int32>(1,2));
 		pidq.push_back(pair<int32, int32>(2,3));
 		pidq.push_back(pair<int32, int32>(3,4));
 		ser.pushContainer(pidq, "pidq");
 		pair<int32,int32> ppi(1,2);
 		ser.push(ppi, "pi");
-		for(PairIntDeqTp::const_iterator it(pidq.begin()); it != pidq.end(); ++it){
+		for(PairIntDeqT::const_iterator it(pidq.begin()); it != pidq.end(); ++it){
 			cout<<"("<<it->first<<','<<it->second<<')';
 		}
 		cout<<endl;
@@ -297,7 +297,7 @@ int main(int argc, char *argv[]){
 		TestA		ta;
 		TestB		tb;// = new TestB;
 		TestC		tc;
-		StrDeqTp	sdq;
+		StrDeqT	sdq;
 		string		s;
 		Base		*b1 = NULL;
 		Base		*b2 = NULL;
@@ -311,7 +311,7 @@ int main(int argc, char *argv[]){
 		idbg("");
 		int v = 0;
 		int cnt = 0;
-		PairIntDeqTp pidq;
+		PairIntDeqT pidq;
 		des.pushContainer(pidq, "pidq");
 		pair<int32,int32> ppi;
 		des.push(ppi, "pi");
@@ -329,7 +329,7 @@ int main(int argc, char *argv[]){
 		if(b1)b1->print();
 		if(b2)b2->print();
 		b3->print();
-		for(PairIntDeqTp::const_iterator it(pidq.begin()); it != pidq.end(); ++it){
+		for(PairIntDeqT::const_iterator it(pidq.begin()); it != pidq.end(); ++it){
 			cout<<"("<<it->first<<','<<it->second<<')';
 		}
 		cout<<endl;
@@ -339,9 +339,9 @@ int main(int argc, char *argv[]){
 	return 0;
 }
 
-void print(StrDeqTp &_rsdq){
+void print(StrDeqT &_rsdq){
 	cout<<"string deque begin:"<<endl;
-	for(StrDeqTp::const_iterator it(_rsdq.begin()); it != _rsdq.end(); ++it){
+	for(StrDeqT::const_iterator it(_rsdq.begin()); it != _rsdq.end(); ++it){
 		cout<<*it<<endl;
 	}
 	cout<<"string deque end"<<endl;

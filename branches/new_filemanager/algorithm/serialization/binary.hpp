@@ -75,14 +75,14 @@ enum {
 	}<br>
 	//...<br>
 	//data:<br>
-	RemoteList::PathListTp		*ppthlst;<br>
+	RemoteList::PathListT		*ppthlst;<br>
 	String						strpth;<br>
 	int							err;<br>
 	uint32						tout;<br>
 	fdt::ipc::ConnectorUid		conid;<br>
 	fdt::ipc::CommandUid		cmduid;<br>
 	uint32						requid;<br>
-	ObjectUidTp					fromv;<br>
+	ObjectUidT					fromv;<br>
 	</code>
 	<br>
 	Reentrant means for serializer that:<br>
@@ -106,17 +106,17 @@ enum {
 class Base{
 protected:
 	struct FncData;
-	typedef int (*FncTp)(Base &, FncData &);
+	typedef int (*FncT)(Base &, FncData &);
 	//! Data associated to a callback
 	struct FncData{
 		FncData(
-			FncTp _f,
+			FncT _f,
 			void *_p,
 			const char *_n = NULL,
 			uint32 _s = -1
 		):f(_f),p(_p),n(_n),s(_s){}
 		
-		FncTp		f;	//!< Pointer to function
+		FncT		f;	//!< Pointer to function
 		void		*p;	//!< Pointer to data
 		const char 	*n;	//!< Some name - of the item serialized
 		uint32		s;	//!< Some size
@@ -141,11 +141,11 @@ protected:
 	void replace(const FncData &_rfd);
 	static int popEStack(Base &_rs, FncData &_rfd);
 protected:
-	typedef Stack<FncData>	FncDataStackTp;
-	typedef Stack<ExtData>	ExtDataStackTp;
+	typedef Stack<FncData>	FncDataStackT;
+	typedef Stack<ExtData>	ExtDataStackT;
 	ulong				ul;
-	FncDataStackTp		fstk;
-	ExtDataStackTp		estk;
+	FncDataStackT		fstk;
+	ExtDataStackT		estk;
 };
 //===============================================================
 //! A fast reentrant binary serializer
@@ -317,7 +317,7 @@ public:
 	}
 private:
 	friend class TypeMapper;
-	FncTp		ptypeidf;
+	FncT		ptypeidf;
 	char		*pb;
 	char		*cpb;
 	char		*be;
@@ -521,7 +521,7 @@ public:
 		return *this;
 	}
 private:
-	FncTp		ptypeidf;
+	FncT		ptypeidf;
 	const char	*pb;
 	const char	*cpb;
 	const char	*be;

@@ -6,14 +6,14 @@
 #include <iostream>
 #include "system/cassert.hpp"
 
-typedef Cacheable<std::vector<int>, 2> CacheableVecTp;
-typedef Cacheable<std::string, 2> CacheableStringTp;
+typedef Cacheable<std::vector<int>, 2> CacheableVecT;
+typedef Cacheable<std::string, 2> CacheableStringT;
 
 void testa(){
-	CacheableVecTp *pcv = new CacheableVecTp;
-	CacheableStringTp *pcs = new CacheableStringTp;
-	Specific::tryUncache<CacheableVecTp>();
-	Specific::tryUncache<CacheableStringTp>();
+	CacheableVecT *pcv = new CacheableVecT;
+	CacheableStringT *pcs = new CacheableStringT;
+	Specific::tryUncache<CacheableVecT>();
+	Specific::tryUncache<CacheableStringT>();
 	idbg("cache vector "<<(void*)pcv);
 	std::cout<<"cache vector "<<(void*)pcv<<std::endl;
 	Specific::cache(pcv);

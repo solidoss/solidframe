@@ -50,8 +50,8 @@ struct ConnectorUid;
 	- also can execute a signal when receiving something for that signal
 		(a stream from FileManager, another signal, a string etc)
 	- The _requid parameter of the receiveSomething methods, will uniquely
-		identify the signals and must be the same with SignalUidTp parameter
-		of the Signal::execute(SignalExecuter&, const SignalUidTp &, TimeSpec &_rts).
+		identify the signals and must be the same with SignalUidT parameter
+		of the Signal::execute(SignalExecuter&, const SignalUidT &, TimeSpec &_rts).
 	- The receiveSomething methods are forwards to the actual signals identified by
 		_requid parameter.
 	
@@ -60,7 +60,7 @@ struct ConnectorUid;
 		in which you should call Manager::the().removeObject(this);
 	- In your manager, create some signalexecuters and register them
 		using foundation::Manager::insertObject
-	- Implement for your signals execute(SignalExecuter&, const SignalUidTp &, TimeSpec &_rts);
+	- Implement for your signals execute(SignalExecuter&, const SignalUidT &, TimeSpec &_rts);
 	
 	\see test/foundation/src/server.cpp test/foundation/alpha/src/alphasignals.cpp
 	\see test::SignalExecuter test::alpha::FetchMasterSignal
@@ -76,8 +76,8 @@ public:
 	void mutex(Mutex *_pmut);
 	void sendSignal(
 		DynamicPointer<Signal> &_rsig,
-		const RequestUidTp &_requid,
-		const ObjectUidTp& _from = ObjectUidTp(),
+		const RequestUidT &_requid,
+		const ObjectUidT& _from = ObjectUidT(),
 		const ipc::ConnectorUid *_conid = NULL
 	);
 private:

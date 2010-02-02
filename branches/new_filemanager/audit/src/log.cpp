@@ -72,8 +72,8 @@ protected:
 };
 
 struct Log::Data: std::ostream{
-	typedef std::bitset<LOG_BITSET_SIZE>	BitSetTp;
-	typedef std::vector<const char*>		NameVectorTp;
+	typedef std::bitset<LOG_BITSET_SIZE>	BitSetT;
+	typedef std::vector<const char*>		NameVectorT;
 
 	Data():std::ostream(0), lvlmsk(0), pos(NULL){
 		rdbuf(&outbuf);
@@ -93,8 +93,8 @@ struct Log::Data: std::ostream{
 	uint32			lvlmsk_set;
 	OStream			*pos;
 	stringoutbuf	outbuf;
-	BitSetTp		bs;
-	NameVectorTp	nv;
+	BitSetT		bs;
+	NameVectorT	nv;
 	Mutex			m;
 	string			procname;
 };
@@ -107,7 +107,7 @@ void Log::Data::setModuleBit(const char *_pbeg, const char *_pend){
 		bs.reset();
 	}else if(!strncasecmp(_pbeg, "ALL", _pend - _pbeg)){
 		bs.set();
-	}else for(NameVectorTp::const_iterator it(nv.begin()); it != nv.end(); ++it){
+	}else for(NameVectorT::const_iterator it(nv.begin()); it != nv.end(); ++it){
 		if(!strncasecmp(_pbeg, *it, _pend - _pbeg) && (int)strlen(*it) == (_pend - _pbeg)){
 			bs.set(it - nv.begin());
 		}
@@ -151,7 +151,7 @@ void Log::Data::sendInfo(){
 	pos->write((const char*) &lh, sizeof(lh));
 	//now write the procname
 	pos->write(procname.data(), procname.size());
-	for(NameVectorTp::const_iterator it(nv.begin()); it != nv.end(); ++it){
+	for(NameVectorT::const_iterator it(nv.begin()); it != nv.end(); ++it){
 		uint32 hsz = strlen(*it);
 		uint32 sz = toNetwork(hsz);
 		pos->write((const char*)&sz, 4);
@@ -221,7 +221,7 @@ void Log::reinit(OStream *_pos){
 
 void Log::moduleNames(std::string &_ros){
 	Mutex::Locker lock(d.m);
-	for(Data::NameVectorTp::const_iterator it(d.nv.begin()); it != d.nv.end(); ++it){
+	for(Data::NameVectorT::const_iterator it(d.nv.begin()); it != d.nv.end(); ++it){
 		_ros += *it;
 		_ros += ' ';
 	}
