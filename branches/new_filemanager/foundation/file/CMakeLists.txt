@@ -1,6 +1,6 @@
 set(Sources
-	src/filebase.cpp
 	src/filemanager.cpp
+	src/filebase.cpp
 )
 set(Headers
 	filebase.hpp
@@ -11,8 +11,8 @@ set(Headers
 	filemappers.hpp
 )
 
-# set(Inlines
-# )
+set(Inlines
+)
 
 add_library (foundation_file
 	${Sources} ${Headers} ${Inlines}

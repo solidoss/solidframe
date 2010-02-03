@@ -6,7 +6,7 @@
 namespace foundation{
 namespace file{
 
-struct NameKey{
+struct NameKey: Key{
 	NameKey(const char *_fname = NULL);
 	NameKey(const std::string &_fname);
 	~NameKey();
@@ -17,7 +17,7 @@ private:
 	std::string 	name;
 };
 
-struct FastNameKey{
+struct FastNameKey: Key{
 	FastNameKey(const char *_fname = NULL);
 	~FastNameKey();
 	/*virtual*/ uint32 mapperId()const;
@@ -27,7 +27,7 @@ private:
 	const char	*name;
 };
 
-struct TempKey{
+struct TempKey: Key{
 	TempKey();
 	~TempKey();
 	/*virtual*/ uint32 mapperId()const;
@@ -35,7 +35,7 @@ struct TempKey{
 	/*virtual*/ bool release()const;
 };
 
-struct MemoryKey{
+struct MemoryKey: Key{
 	MemoryKey();
 	~MemoryKey();
 	/*virtual*/ uint32 mapperId()const;

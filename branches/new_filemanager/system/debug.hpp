@@ -58,6 +58,7 @@ struct EXPORT_DLL Dbg{
 	static const unsigned ipc;
 	static const unsigned tcp;
 	static const unsigned udp;
+	static const unsigned file;
 	static const unsigned filemanager;
 	static const unsigned log;
 	static const unsigned aio;

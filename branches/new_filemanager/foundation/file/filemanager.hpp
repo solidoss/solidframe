@@ -1,17 +1,54 @@
 #ifndef FDT_FILE_MANAGER_HPP
 #define FDT_FILE_MANAGER_HPP
 
+#include "utility/streampointer.hpp"
+
+#include "foundation/object.hpp"
+
+#include "foundation/common.hpp"
+
 namespace foundation{
+
+class RequestUid;
+
 namespace file{
 
+struct Key;
+struct Mapper;
 struct FileIStream;
 struct FileIOStream;
 struct FileOStream;
+class File;
 
 class Manager: public Object{
 public:
+	enum {
+		Create = 1, //!< Try create if it doesnt exist
+		Truncate = 2,
+		Append = 4,
+		OpenR = 8,
+		OpenW = 16,
+		OpenRW = OpenR | OpenW,
+		Forced = 32, //!< Force the opperation
+		IOStreamRequest = 64, 
+		NoWait = 128, //!< Fail if the opperation cannot be completed synchronously
+		ForcePending = 256,
+	};
+	
+	struct InitStub{
+		uint32 registerMapper(Mapper *_pm)const;
+	private:
+		InitStub();
+		InitStub(const InitStub&);
+		InitStub& operator=(const InitStub&);
+		InitStub(Manager &_rm):rm(_rm){}
+		friend class Manager;
+		Manager		&rm;
+	};
+	
 	struct Controller{
-		virtual ~Controller(){}
+		virtual void init(const InitStub &_ris) = 0;
+		virtual ~Controller();
 		virtual void sendStream(
 			StreamPointer<IStream> &_sptr,
 			const FileUidT &_rfuid,
@@ -34,17 +71,6 @@ public:
 		virtual void removeFileManager() = 0;
 	};
 	
-	struct InitStub{
-		uint32 registerMapper(Mapper *_pm);
-	private:
-		InitStub();
-		InitStub(const InitStub&);
-		InitStub& operator=(const InitStub&);
-		InitStub(Manager &_rm):rm(_rm){}
-		friend Manager;
-		Manager		&rm;
-	};
-	
 	struct Stub{
 		IStream* createIStream(IndexT _fileid);
 		OStream* createOStream(IndexT _fileid);
@@ -52,21 +78,15 @@ public:
 		
 		void pushFileTempExecQueue(File *_pf);//called by mapper
 		Mapper &mapper(ulong _id);
+		Controller& controller();
+		uint32	fileUid(IndexT _uid)const;
 	private:
 		Stub();
 		//Stub(const Stub&);
 		Stub& operator=(const Stub&);
 		Stub(Manager &_rm):rm(_rm){}
-		friend Manager;
+		friend class Manager;
 		Manager		&rm;
-	};
-	
-	enum {
-		Forced = 1, //!< Force the opperation
-		Create = 2, //!< Try create if it doesnt exist
-		IOStreamRequest = 4, 
-		NoWait = 8, //!< Fail if the opperation cannot be completed synchronously
-		ForcePending = 16,
 	};
 	
 public:
@@ -77,6 +97,7 @@ public:
 	
 	//! Get the size of a file identified by its key - the file will not be open
 	int64 fileSize(const Key &_rk)const;
+	void mutex(Mutex *_pmut);
 public://stream funtions
 	int stream(
 		StreamPointer<IStream> &_sptr,
@@ -163,21 +184,21 @@ public://stream funtions
 		StreamPointer<IStream> &_sptr,
 		FileUidT &_rfuid,
 		const RequestUid &_rrequid,
-		const FileKey &_rk,
+		const Key &_rk,
 		uint32 _flags = 0
 	);
 	int stream(
 		StreamPointer<OStream> &_sptr,
 		FileUidT &_rfuid,
 		const RequestUid &_rrequid,
-		const FileKey &_rk,
+		const Key &_rk,
 		uint32 _flags = 0
 	);
 	int stream(
 		StreamPointer<IOStream> &_sptr,
 		FileUidT &_rfuid,
 		const RequestUid &_rrequid,
-		const FileKey &_rk,
+		const Key &_rk,
 		uint32 _flags = 0
 	);
 	
@@ -185,19 +206,19 @@ public://stream funtions
 	int streamSpecific(
 		StreamPointer<IStream> &_sptr,
 		FileUidT &_rfuid,
-		const FileKey &_rk,
+		const Key &_rk,
 		uint32 _flags = 0
 	);
 	int streamSpecific(
 		StreamPointer<OStream> &_sptr,
 		FileUidT &_rfuid,
-		const FileKey &_rk,
+		const Key &_rk,
 		uint32 _flags = 0
 	);
 	int streamSpecific(
 		StreamPointer<IOStream> &_sptr,
 		FileUidT &_rfuid,
-		const FileKey &_rk,
+		const Key &_rk,
 		uint32 _flags = 0
 	);
 	
@@ -257,17 +278,17 @@ public://stream funtions
 	
 	int stream(
 		StreamPointer<IStream> &_sptr,
-		const FileKey &_rk,
+		const Key &_rk,
 		uint32 _flags = 0
 	);
 	int stream(
 		StreamPointer<OStream> &_sptr,
-		const FileKey &_rk,
+		const Key &_rk,
 		uint32 _flags = 0
 	);
 	int stream(
 		StreamPointer<IOStream> &_sptr,
-		const FileKey &_rk,
+		const Key &_rk,
 		uint32 _flags = 0
 	);
 private:
@@ -277,7 +298,7 @@ private:
 		StreamP &_sptr,
 		FileUidT &_rfuid,
 		const RequestUid &_rrequid,
-		const FileKey &_rk,
+		const Key &_rk,
 		uint32 _flags
 	);
 	
@@ -319,3 +340,6 @@ private:
 
 }//namespace file
 }//namespace foundation
+
+#endif
+

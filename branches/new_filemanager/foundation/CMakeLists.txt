@@ -44,3 +44,4 @@ add_library (foundation_core
 
 add_subdirectory(ipc)
 add_subdirectory(aio)
+add_subdirectory(file)

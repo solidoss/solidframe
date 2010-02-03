@@ -2,12 +2,23 @@
 #define FILE_BASE_HPP
 
 #include "foundation/file/filemanager.hpp"
+#include "foundation/requestuid.hpp"
 
 namespace foundation{
 namespace file{
 
 class File{
 public:
+	enum{
+		Bad = -1,
+		Ok = 0,
+		No = 1,
+		MustSingal = 2,
+		MustWait = 3,
+		Timeout = 1,
+		
+	};
+	
 	virtual ~File();
 	virtual int read(
 		char *_pb,
@@ -21,33 +32,32 @@ public:
 		const int64 &_off,
 		uint32 _flags
 	) = 0;
+	virtual int64 size()const = 0;
 	
 	int stream(
 		Manager::Stub &_rs,
-		IStream &_sptr,
+		StreamPointer<IStream> &_sptr,
 		const RequestUid &_requid,
-		const FileKey &_rk,
 		uint32 _flags
 	);
 	
 	int stream(
 		Manager::Stub &_rs,
-		OStream &_sptr,
+		StreamPointer<OStream> &_sptr,
 		const RequestUid &_requid,
-		const FileKey &_rk,
 		uint32 _flags
 	);
 	
 	int stream(
 		Manager::Stub &_rs,
-		IOStream &_sptr,
+		StreamPointer<IOStream> &_sptr,
 		const RequestUid &_requid,
-		const FileKey &_rk,
 		uint32 _flags
 	);
 	bool isOpened()const;
 	bool isRegistered()const;
-	uint32 id();
+	const IndexT& id()const;
+	void id(const IndexT &_id);
 	const Key& key()const;
 	bool decreaseOutCount();
 	bool decreaseInCount();
@@ -68,10 +78,13 @@ protected:
 	};
 	typedef Queue<WaitData>		WaitQueueT;
 	Key				&rk;
+	IndexT			idx;
 	uint32			ousecnt;
 	uint32			iusecnt;
-	uint32			msectout;
-	uint16			flags;
+	uint8			openmode;
+	uint8			openmoderequest;
+	uint8			openmode_old;
+	uint8			openmoderequest_old;
 	uint16			state;
 	WaitQueueT		iwq;
 	WaitQueueT		owq;

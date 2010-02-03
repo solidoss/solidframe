@@ -1,3 +1,7 @@
+
+#include <deque>
+#include <vector>
+
 #include "system/debug.hpp"
 #include "system/timespec.hpp"
 #include "system/filedevice.hpp"
@@ -9,6 +13,14 @@
 #include "utility/iostream.hpp"
 #include "utility/queue.hpp"
 #include "utility/stack.hpp"
+
+
+#include "foundation/manager.hpp"
+
+#include "foundation/file/filemanager.hpp"
+#include "foundation/file/filekeys.hpp"
+#include "foundation/file/filebase.hpp"
+#include "foundation/file/filemapper.hpp"
 
 namespace fdt = foundation;
 
@@ -39,22 +51,15 @@ struct Manager::Data{
 		bool		inexecq;
 		uint16		events;
 	};
-	struct MapperData{
-		MapperData(
-			Mapper *_pm
-		):pm(_pm), inexecq(false){}
-		
-		Mapper	*pm;
-		bool	inexecq;
-	};
+	
 	typedef std::deque<FileData>		FileVectorT;
 	typedef std::deque<int32>			TimeoutVectorT;
 	typedef std::vector<Mapper*>		MapperVectorT;
-	typedef Queue<Mapper*>				MapperQueueT;
+	typedef Queue<uint32>				MapperQueueT;
 	typedef Queue<File*>				FileQueueT;
 	
 	
-	Data(Controller *_pc):pc(_pc), sz(0), freeidx(0), mut(NULL){}
+	Data(Controller *_pc):pc(_pc), sz(0), mut(NULL){}
 	~Data();
 	
 //data:
@@ -79,11 +84,11 @@ struct Manager::Data{
 //------------------------------------------------------------------
 
 Manager::Manager(Controller *_pc):d(*(new Data(_pc))){
-	pc->init(InitStub(*this));
+	_pc->init(InitStub(*this));
 }
 
 Manager::~Manager(){
-	idbgx(Dbg::fdt_file, "");
+	idbgx(Dbg::file, "");
 	d.pc->removeFileManager();
 	delete &d;
 }
@@ -93,14 +98,14 @@ int Manager::execute(ulong _evs, TimeSpec &_rtout){
 	d.mut->unlock();
 	if(signaled()){
 		ulong sm = grabSignalMask(0);
-		idbgx(Dbg::fdt_file, "signalmask "<<sm);
+		idbgx(Dbg::file, "signalmask "<<sm);
 		if(sm & fdt::S_KILL){
 			state(Data::Stopping);
-			idbgx(Dbg::fdt_file, "kill "<<d.sz);
+			idbgx(Dbg::file, "kill "<<d.sz);
 			if(!d.sz){//no file
 				state(-1);
 				d.mut->unlock();
-				idbgx(Dbg::fdt_file, "");
+				idbgx(Dbg::file, "");
 				return BAD;
 			}
 		}
@@ -152,12 +157,11 @@ void Manager::doExecuteMappers(){
 	uint32	tmpqsz(d.meq.size());
 	Stub 	s(*this);
 	while(tmpqsz--){
-		const ulong 		v(d.meq.front());
-		Data::MapperData	&rm(d.mv[v]);
+		const ulong 	v(d.meq.front());
+		Mapper			*pm(d.mv[v]);
 		
 		d.meq.pop();
-		rm.inexecq = false;
-		rm.pm->execute(s);
+		pm->execute(s);
 	}
 }
 //------------------------------------------------------------------
@@ -184,7 +188,9 @@ void Manager::doExecuteRegistered(File &_rf, const TimeSpec &_rtout){
 			if(state() == Data::Running){
 				if(ts != _rtout){
 					rfd.tout = ts;
-					d.insertTimeWait(rfd);
+					//d.insertTimeWait(rfd);
+				}else{
+					rfd.tout = TimeSpec::max;
 				}
 			}else{
 				d.tmpfeq.push(&_rf);
@@ -200,7 +206,7 @@ void Manager::doExecuteUnregistered(File &_rf, const TimeSpec &_rtout){
 	Mapper		&mid(s.mapper(_rf.key().mapperId()));
 	
 	switch(mid.open(_rf)){
-		case Mapper::Ok://file is opened, register it
+		case File::Ok://file is opened, register it
 			d.regfq.push(&_rf);
 			break;
 		default://file not open, queued
@@ -215,7 +221,9 @@ void Manager::doDeleteFiles(){
 		File *pf(d.delfq.front());
 		d.delfq.pop();
 		if(pf->isRegistered()){
-			d.cacheFilePosition(pf->id());
+			d.fs.push(pf->id());
+			--d.sz;
+			d.fv[pf->id()].clear();
 		}
 		uint32 mid(pf->key().mapperId());
 		if(s.mapper(mid).erase(pf)){
@@ -229,6 +237,7 @@ void Manager::doRegisterFiles(){
 		File *pf(d.regfq.front());
 		d.regfq.pop();
 		cassert(!pf->isRegistered());
+		++d.sz;
 		if(d.fs.size()){
 			uint32 id(d.fs.top());
 			d.fs.pop();
@@ -245,18 +254,14 @@ void Manager::doRegisterFiles(){
 //------------------------------------------------------------------
 void Manager::doScanTimeout(const TimeSpec &_rtout){
 	if(_rtout < d.tout) return;
-	if(d.toutv.empty()){
-		//TODO: you might need: d.tout = TimeSpec::max;
-		return;
-	}
 	d.tout = TimeSpec::max;
 	for(Data::FileVectorT::iterator it(d.fv.begin()); it != d.fv.end(); ++it){
 		Data::FileData &rfd(*it);
-		if(rfd.pf){
+		if(rfd.pfile){
 			if(rfd.tout <= _rtout){
 				if(!rfd.inexecq){
 					rfd.inexecq = true;
-					d.tmpfeq.push(rfd.fd);
+					d.tmpfeq.push(rfd.pfile);
 				}
 				rfd.events |= File::Timeout;
 			}else if(d.tout > rfd.tout){
@@ -281,7 +286,7 @@ void Manager::releaseIStream(IndexT _fileid){
 		Mutex::Locker	lock(*d.mut);
 		//we must signal the filemanager
 		d.feq.push(d.fv[_fileid].pfile);
-		idbgx(Dbg::fdt_file, "sq.push "<<_fileid);
+		idbgx(Dbg::file, "sq.push "<<_fileid);
 		if(static_cast<fdt::Object*>(this)->signal((int)fdt::S_RAISE)){
 			fdt::Manager::the().raiseObject(*this);
 		}
@@ -298,7 +303,7 @@ void Manager::releaseOStream(IndexT _fileid){
 		Mutex::Locker	lock(*d.mut);
 		//we must signal the filemanager
 		d.feq.push(d.fv[_fileid].pfile);
-		idbgx(Dbg::fdt_file, "sq.push "<<_fileid);
+		idbgx(Dbg::file, "sq.push "<<_fileid);
 		if(static_cast<fdt::Object*>(this)->signal((int)fdt::S_RAISE)){
 			fdt::Manager::the().raiseObject(*this);
 		}
@@ -342,7 +347,7 @@ int Manager::doGetStream(
 	StreamP &_sptr,
 	FileUidT &_rfuid,
 	const RequestUid &_requid,
-	const FileKey &_rk,
+	const Key &_rk,
 	uint32 _flags
 ){
 	Mutex::Locker	lock1(*d.mut);
@@ -351,19 +356,20 @@ int Manager::doGetStream(
 	
 	Stub			mstub(*this);
 	ulong			mid(_rk.mapperId());
-	MapperData		&rmd(d.mv[mid]);
-	File			*pf = rmd.pm.findOrCreateFile(_rk);
+	Mapper			&rm(*d.mv[mid]);
+	File			*pf = rm.findOrCreateFile(_rk);
 	int				rv(BAD);
 	
 	if(!pf) return BAD;
 	
 	if(!pf->isOpened())
-		_flags |= FileManager::ForcePending;
+		_flags |= Manager::ForcePending;
 	
 	if(pf->isRegistered()){//
+		const IndexT	fid = pf->id();
 		Mutex::Locker	lock2(d.mutpool.object(fid));
-		_rfuid.first = pf->id();
-		_rfuid.second = d.fv[pf->id()].uid; 
+		_rfuid.first = fid;
+		_rfuid.second = d.fv[fid].uid; 
 		rv = pf->stream(mstub, _sptr, _requid, _flags);
 	}else{
 		//delay stream creation until successfull file open
@@ -371,12 +377,12 @@ int Manager::doGetStream(
 	}
 	
 	switch(rv){
-		case File::Queue:
+		case File::MustSignal:
 			d.feq.push(pf);
 			if(static_cast<fdt::Object*>(this)->signal((int)fdt::S_RAISE)){
 				fdt::Manager::the().raiseObject(*this);
 			}
-		case File::Wait:
+		case File::MustWait:
 			return NOK;
 		default: return rv;
 	}
@@ -387,7 +393,7 @@ int Manager::stream(
 	StreamPointer<IStream> &_sptr,
 	FileUidT &_rfuid,
 	const RequestUid &_requid,
-	const FileKey &_rk,
+	const Key &_rk,
 	uint32 _flags
 ){
 	if(state() != Data::Running) return BAD;
@@ -397,18 +403,18 @@ int Manager::stream(
 	StreamPointer<OStream> &_sptr,
 	FileUidT &_rfuid,
 	const RequestUid &_requid,
-	const FileKey &_rk,
+	const Key &_rk,
 	uint32 _flags
 ){	
 	if(state() != Data::Running) return BAD;
 	return doGetStream(_sptr, _rfuid, _requid, _rk, _flags);
 }
 
-int FileManager::stream(
+int Manager::stream(
 	StreamPointer<IOStream> &_sptr,
 	FileUidT &_rfuid,
 	const RequestUid &_requid,
-	const FileKey &_rk,
+	const Key &_rk,
 	uint32 _flags
 ){	
 	if(state() != Data::Running) return BAD;
@@ -478,10 +484,10 @@ int Manager::stream(
 	uint32 _flags
 ){
 	if(_fn){
-		FastNameFileKey k(_fn);
+		FastNameKey k(_fn);
 		return stream(_sptr, _rfuid, _rrequid, k, _flags);
 	}else{
-		TempFileKey k;
+		TempKey k;
 		return stream(_sptr, _rfuid, _rrequid, k, _flags | Create);
 	}
 }
@@ -494,10 +500,10 @@ int Manager::stream(
 	uint32 _flags
 ){
 	if(_fn){
-		FastNameFileKey k(_fn);
+		FastNameKey k(_fn);
 		return stream(_sptr, _rfuid, _rrequid, k, _flags);
 	}else{
-		TempFileKey k;
+		TempKey k;
 		return stream(_sptr, _rfuid, _rrequid, k, _flags | Create);
 	}
 }
@@ -510,10 +516,10 @@ int Manager::stream(
 	uint32 _flags
 ){
 	if(_fn){
-		FastNameFileKey k(_fn);
+		FastNameKey k(_fn);
 		return stream(_sptr, _rfuid, _rrequid, k, _flags);
 	}else{
-		TempFileKey k;
+		TempKey k;
 		return stream(_sptr, _rfuid, _rrequid, k, _flags | Create);
 	}
 }
@@ -547,10 +553,10 @@ int Manager::stream(StreamPointer<IStream> &_sptr, const char *_fn, uint32 _flag
 	FileUidT	fuid;
 	RequestUid	requid;
 	if(_fn){
-		FastNameFileKey k(_fn);
+		FastNameKey k(_fn);
 		return stream(_sptr, fuid, requid, k, _flags | NoWait);
 	}else{
-		TempFileKey k;
+		TempKey k;
 		return stream(_sptr, fuid, requid, k, _flags | NoWait | Create);
 	}
 }
@@ -559,10 +565,10 @@ int Manager::stream(StreamPointer<OStream> &_sptr, const char *_fn, uint32 _flag
 	FileUidT	fuid;
 	RequestUid	requid;
 	if(_fn){
-		FastNameFileKey k(_fn);
+		FastNameKey k(_fn);
 		return stream(_sptr, fuid, requid, k, _flags | NoWait);
 	}else{
-		TempFileKey k;
+		TempKey k;
 		return stream(_sptr, fuid, requid, k, _flags | NoWait | Create);
 	}
 }
@@ -571,27 +577,27 @@ int Manager::stream(StreamPointer<IOStream> &_sptr, const char *_fn, uint32 _fla
 	FileUidT	fuid;
 	RequestUid	requid;
 	if(_fn){
-		FastNameFileKey k(_fn);
+		FastNameKey k(_fn);
 		return stream(_sptr, fuid, requid, k, _flags | NoWait);
 	}else{
-		TempFileKey k;
+		TempKey k;
 		return stream(_sptr, fuid, requid, k, _flags | NoWait | Create);
 	}
 }
 //-------------------------------------------------------------------------------------
-int Manager::stream(StreamPointer<IStream> &_sptr, const FileKey &_rk, uint32 _flags){
+int Manager::stream(StreamPointer<IStream> &_sptr, const Key &_rk, uint32 _flags){
 	FileUidT	fuid;
 	RequestUid	requid;
 	return stream(_sptr, fuid, requid, _rk, _flags | NoWait);
 }
 
-int Manager::stream(StreamPointer<OStream> &_sptr, const FileKey &_rk, uint32 _flags){
+int Manager::stream(StreamPointer<OStream> &_sptr, const Key &_rk, uint32 _flags){
 	FileUidT	fuid;
 	RequestUid	requid;
 	return stream(_sptr, fuid, requid, _rk, _flags | NoWait);
 }
 
-int Manager::stream(StreamPointer<IOStream> &_sptr, const FileKey &_rk, uint32 _flags){
+int Manager::stream(StreamPointer<IOStream> &_sptr, const Key &_rk, uint32 _flags){
 	FileUidT	fuid;
 	RequestUid	requid;
 	return stream(_sptr, fuid, requid, _rk, _flags | NoWait);
@@ -606,8 +612,10 @@ int Manager::stream(
 	Mutex::Locker	lock1(*d.mut);
 	if(_rfuid.first < d.fv.size() && d.fv[_rfuid.first].uid == _rfuid.second){
 		Mutex::Locker	lock2(d.mutpool.object(_rfuid.first));
-		if(d.fv[_rfuid.first].pfile)
-			return d.fv[_rfuid.first].pfile->stream(*this, _rfuid.first, _sptr, _requid, _flags);
+		if(d.fv[_rfuid.first].pfile){
+			Stub	s(*this);
+			return d.fv[_rfuid.first].pfile->stream(s, _sptr, _requid, _flags);
+		}
 	}
 	return BAD;
 }
@@ -621,8 +629,10 @@ int Manager::stream(
 	Mutex::Locker	lock1(*d.mut);
 	if(_rfuid.first < d.fv.size() && d.fv[_rfuid.first].uid == _rfuid.second){
 		Mutex::Locker	lock2(d.mutpool.object(_rfuid.first));
-		if(d.fv[_rfuid.first].pfile)
-			return d.fv[_rfuid.first].pfile->stream(*this, _rfuid.first, _sptr, _requid, _flags);
+		if(d.fv[_rfuid.first].pfile){
+			Stub	s(*this);
+			return d.fv[_rfuid.first].pfile->stream(s, _sptr, _requid, _flags);
+		}
 	}
 	return BAD;
 }
@@ -636,8 +646,10 @@ int Manager::stream(
 	Mutex::Locker	lock1(*d.mut);
 	if(_rfuid.first < d.fv.size() && d.fv[_rfuid.first].uid == _rfuid.second){
 		Mutex::Locker	lock2(d.mutpool.object(_rfuid.first));
-		if(d.fv[_rfuid.first].pfile)
-			return d.fv[_rfuid.first].pfile->stream(*this, _rfuid.first, _sptr, _requid, _flags);
+		if(d.fv[_rfuid.first].pfile){
+			Stub	s(*this);
+			return d.fv[_rfuid.first].pfile->stream(s, _sptr, _requid, _flags);
+		}
 	}
 	return BAD;
 }
@@ -711,7 +723,7 @@ int64 FileIStream::seek(int64 _off, SeekRef _ref){
 	return off;
 }
 int64 FileIStream::size()const{
-	return s.fileSize(fileid);
+	return rm.fileSize(fileid);
 }
 
 //--------------------------------------------------------------------------
@@ -799,7 +811,7 @@ Mapper &Manager::Stub::mapper(ulong _id){
 	return *rm.d.mv[_id];
 }
 //=======================================================================
-uint32 Manager::InitStub::registerMapper(Mapper *_pm){
+uint32 Manager::InitStub::registerMapper(Mapper *_pm)const{
 	rm.d.mv.push_back(_pm);
 	_pm->id(rm.d.mv.size() - 1);
 	return rm.d.mv.size() - 1;
