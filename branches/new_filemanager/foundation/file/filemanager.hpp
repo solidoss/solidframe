@@ -7,6 +7,10 @@
 
 #include "foundation/common.hpp"
 
+class IStream;
+class OStream;
+class IOStream;
+
 namespace foundation{
 
 class RequestUid;
@@ -28,11 +32,11 @@ public:
 		Append = 4,
 		OpenR = 8,
 		OpenW = 16,
-		OpenRW = OpenR | OpenW,
-		Forced = 32, //!< Force the opperation
-		IOStreamRequest = 64, 
-		NoWait = 128, //!< Fail if the opperation cannot be completed synchronously
-		ForcePending = 256,
+		OpenRW = 32,
+		Forced = 64, //!< Force the opperation
+		IOStreamRequest = 128, 
+		NoWait = 256, //!< Fail if the opperation cannot be completed synchronously
+		ForcePending = 512,
 	};
 	
 	struct InitStub{
@@ -76,7 +80,7 @@ public:
 		OStream* createOStream(IndexT _fileid);
 		IOStream* createIOStream(IndexT _fileid);
 		
-		void pushFileTempExecQueue(File *_pf);//called by mapper
+		void pushFileTempExecQueue(const IndexT &_idx, uint16 _evs = 0);//called by mapper
 		Mapper &mapper(ulong _id);
 		Controller& controller();
 		uint32	fileUid(IndexT _uid)const;
@@ -326,10 +330,9 @@ private:
 	);
 	int64 fileSize(IndexT _fileid);
 	void doExecuteMappers();
-	void doExecuteRegistered(File &_rf, const TimeSpec &_rtout);
-	void doExecuteUnregistered(File &_rf, const TimeSpec &_rtout);
+	void doExecuteFile(const IndexT &_idx, const TimeSpec &_rtout);
 	void doDeleteFiles();
-	void doRegisterFiles();
+	void doPrepareStop();
 	void doScanTimeout(const TimeSpec &_rtout);
 private:
 	friend struct Stub;

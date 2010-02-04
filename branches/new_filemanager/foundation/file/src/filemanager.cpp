@@ -33,7 +33,7 @@ struct Manager::Data{
 	enum {Running = 1, Stopping, Stopped = -1};
 	
 	typedef MutualObjectContainer<Mutex>	MutexContainerT;
-	typedef Stack<ulong>					FreeStackT;
+	typedef Stack<IndexT	>					FreeStackT;
 	struct FileData{
 		FileData(
 			File *_pfile = NULL
@@ -55,36 +55,57 @@ struct Manager::Data{
 	typedef std::deque<FileData>		FileVectorT;
 	typedef std::deque<int32>			TimeoutVectorT;
 	typedef std::vector<Mapper*>		MapperVectorT;
-	typedef Queue<uint32>				MapperQueueT;
+	typedef Queue<uint32>				Index32QueueT;
+	typedef Queue<IndexT>				IndexQueueT;
 	typedef Queue<File*>				FileQueueT;
 	
 	
 	Data(Controller *_pc):pc(_pc), sz(0), mut(NULL){}
 	~Data();
-	
+	void pushFileInTemp(File *_pf);
 //data:
 	Controller				*pc;//pointer to controller
 	uint32					sz;
 	Mutex					*mut;
-	MutexContainerT		mutpool;
-	FileVectorT			fv;//file vector
+	MutexContainerT			mutpool;
+	FileVectorT				fv;//file vector
 	MapperVectorT			mv;//mapper vector
-	MapperQueueT			meq;//mapper execution queue
+	Index32QueueT			meq;//mapper execution queue
 	FileQueueT				feq;//file execution q
-	FileQueueT				tmpfeq;//temp file execution q
-	FileQueueT				delfq;//file delete  q
-	FileQueueT				regfq;//file register  q
+	IndexQueueT				tmpfeq;//temp file execution q
+	IndexQueueT				delfq;//file delete  q
 	FreeStackT				fs;//free stack
 	TimeSpec				tout;
 };
-
 //------------------------------------------------------------------
+void Manager::Data::pushFileInTemp(File *_pf){
+	IndexT idx;
+	if(_pf->isRegistered()){
+		idx = _pf->id();
+	}else{
+		if(fs.size()){
+			idx = fs.top();fs.pop();
+			fv[idx].pfile = _pf;
+		}else{
+			idx = fv.size();
+			fv.push_back(FileData(_pf));
+		}
+		_pf->id(idx);
+		++sz;
+	}
+	FileData &rfd(fv[idx]);
+	if(!rfd.inexecq){
+		rfd.inexecq = false;
+		tmpfeq.push(idx);
+	}
+}
 //------------------------------------------------------------------
 //------------------------------------------------------------------
 //------------------------------------------------------------------
 
 Manager::Manager(Controller *_pc):d(*(new Data(_pc))){
 	_pc->init(InitStub(*this));
+	state(Data::Running);
 }
 
 Manager::~Manager(){
@@ -108,18 +129,18 @@ int Manager::execute(ulong _evs, TimeSpec &_rtout){
 				idbgx(Dbg::file, "");
 				return BAD;
 			}
+			doPrepareStop();
 		}
 	}
 	Stub s(*this);
 	
 	//copy the queued files into a temp queue - to be used outside lock
 	while(d.feq.size()){
-		s.pushFileTempExecQueue(d.feq.front());
+		d.pushFileInTemp(d.feq.front());
 		d.feq.pop();
 	}
 	
 	doDeleteFiles();
-	doRegisterFiles();
 	
 	d.mut->unlock();//done with the locking
 	
@@ -128,19 +149,16 @@ int Manager::execute(ulong _evs, TimeSpec &_rtout){
 	doExecuteMappers();
 	
 	uint32 tmpfeqsz(d.tmpfeq.size());
+	
 	while(tmpfeqsz--){
-		File	&rf(*d.tmpfeq.front());
+		IndexT idx(d.tmpfeq.front());
 		
 		d.tmpfeq.pop();
 		
-		if(rf.isRegistered()){
-			doExecuteRegistered(rf, _rtout);
-		}else{//not registered
-			doExecuteUnregistered(rf, _rtout);
-		}
+		doExecuteFile(idx, _rtout);
 	}
 	
-	if(d.meq.size() || d.delfq.size() || d.tmpfeq.size() || d.regfq.size()) return OK;
+	if(d.meq.size() || d.delfq.size() || d.tmpfeq.size()) return OK;
 	
 	if(!d.sz && state() == Data::Stopping){
 		state(-1);
@@ -153,9 +171,36 @@ int Manager::execute(ulong _evs, TimeSpec &_rtout){
 	return NOK;
 }
 //------------------------------------------------------------------
+void Manager::doPrepareStop(){
+	//call stop for all mappers:
+	for(Data::MapperVectorT::const_iterator it(d.mv.begin()); it != d.mv.end(); ++it){
+		(*it)->stop();
+	}
+	//empty the mapper q
+	while(d.meq.size()) d.meq.pop();
+	
+	//move the incomming files to temp, before iterating through all the files
+	while(d.feq.size()){
+		d.pushFileInTemp(d.feq.front());
+		d.feq.pop();
+	}
+	//signall all existing files to stop;
+	for(Data::FileVectorT::iterator it(d.fv.begin()); it != d.fv.end(); ++it){
+		Data::FileData &rfd(*it);
+		if(!rfd.pfile) continue;
+		rfd.events |= File::MustDie;
+		if(!rfd.inexecq){
+			rfd.inexecq = true;
+			d.tmpfeq.push(rfd.pfile->id());
+		}
+	}
+}
+//------------------------------------------------------------------
 void Manager::doExecuteMappers(){
 	uint32	tmpqsz(d.meq.size());
 	Stub 	s(*this);
+	cassert(!(tmpqsz && state() != Data::Running));
+	//execute the enqued mappers
 	while(tmpqsz--){
 		const ulong 	v(d.meq.front());
 		Mapper			*pm(d.mv[v]);
@@ -165,9 +210,9 @@ void Manager::doExecuteMappers(){
 	}
 }
 //------------------------------------------------------------------
-void Manager::doExecuteRegistered(File &_rf, const TimeSpec &_rtout){
-	Mutex			&rm(d.mutpool.object(_rf.id()));
-	Data::FileData	&rfd(d.fv[_rf.id()]);
+void Manager::doExecuteFile(const IndexT &_idx, const TimeSpec &_rtout){
+	Mutex			&rm(d.mutpool.object(_idx));
+	Data::FileData	&rfd(d.fv[_idx]);
 	TimeSpec 		ts(_rtout);
 	Stub 			s(*this);
 	uint16			evs(rfd.events);
@@ -176,40 +221,28 @@ void Manager::doExecuteRegistered(File &_rf, const TimeSpec &_rtout){
 	rfd.inexecq = false;
 	rfd.events = 0;
 	
-	switch(_rf.execute(s, evs, ts, rm)){
+	switch(rfd.pfile->execute(s, evs, ts, rm)){
 		case File::Bad:
-			d.delfq.push(&_rf);
+			d.delfq.push(_idx);
+			/*NOTE:
+				The situation is spooky:
+				- the file is closed but it is not unregistered from the mapper
+				- we cannot close the file in the doDeleteFiles method, because
+				closing may mean flushing an will take a lot of time.
+				- so there will be a method tryRevive in file, which 
+				will revive the file if there are incomming requests.
+			*/
 			break;
 		case File::Ok:
-			d.tmpfeq.push(&_rf);
+			d.tmpfeq.push(_idx);
 			rfd.inexecq = true;
 			break;//reschedule
 		case File::No:
-			if(state() == Data::Running){
-				if(ts != _rtout){
-					rfd.tout = ts;
-					//d.insertTimeWait(rfd);
-				}else{
-					rfd.tout = TimeSpec::max;
-				}
+			if(ts != _rtout){
+				rfd.tout = ts;
 			}else{
-				d.tmpfeq.push(&_rf);
-				rfd.events = TIMEOUT;
+				rfd.tout = TimeSpec::max;
 			}
-			break;
-	}
-}
-//------------------------------------------------------------------
-void Manager::doExecuteUnregistered(File &_rf, const TimeSpec &_rtout){
-	//all we need is to call mapper::open
-	Stub 		s(*this);
-	Mapper		&mid(s.mapper(_rf.key().mapperId()));
-	
-	switch(mid.open(_rf)){
-		case File::Ok://file is opened, register it
-			d.regfq.push(&_rf);
-			break;
-		default://file not open, queued
 			break;
 	}
 }
@@ -218,37 +251,35 @@ void Manager::doDeleteFiles(){
 	Stub	s(*this);
 	
 	while(d.delfq.size()){
-		File *pf(d.delfq.front());
+		const IndexT	idx(d.delfq.front());
+		Data::FileData	&rfd(d.fv[d.delfq.front()]);
+		File			*pfile;
+		
 		d.delfq.pop();
-		if(pf->isRegistered()){
-			d.fs.push(pf->id());
+		
+		{
+			
+			//Mutex::Locker lock(d.mutpool.object(idx));
+			
+			if(rfd.pfile->tryRevive()){
+				if(!rfd.inexecq){
+					rfd.inexecq = true;
+					d.tmpfeq.push(idx);
+				}
+				continue;
+			}
+			d.fs.push(rfd.pfile->id());
 			--d.sz;
-			d.fv[pf->id()].clear();
+			pfile = rfd.pfile;
+			rfd.clear();
 		}
-		uint32 mid(pf->key().mapperId());
-		if(s.mapper(mid).erase(pf)){
+		
+		uint32 mid(pfile->key().mapperId());
+		//mapper creates - mapper destroys files
+		if(s.mapper(mid).erase(pfile)){
+			cassert(state() == Data::Running);
 			d.meq.push(mid);
 		}
-	}
-}
-//------------------------------------------------------------------
-void Manager::doRegisterFiles(){
-	while(d.regfq.size()){
-		File *pf(d.regfq.front());
-		d.regfq.pop();
-		cassert(!pf->isRegistered());
-		++d.sz;
-		if(d.fs.size()){
-			uint32 id(d.fs.top());
-			d.fs.pop();
-			Data::FileData	&rfd(d.fv[id]);
-			rfd.pfile = pf;
-			pf->id(id);
-		}else{
-			pf->id(d.fv.size());
-			d.fv.push_back(Data::FileData(pf));
-		}
-		d.tmpfeq.push(pf);
 	}
 }
 //------------------------------------------------------------------
@@ -261,7 +292,7 @@ void Manager::doScanTimeout(const TimeSpec &_rtout){
 			if(rfd.tout <= _rtout){
 				if(!rfd.inexecq){
 					rfd.inexecq = true;
-					d.tmpfeq.push(rfd.pfile);
+					d.tmpfeq.push(rfd.pfile->id());
 				}
 				rfd.events |= File::Timeout;
 			}else if(d.tout > rfd.tout){
@@ -354,7 +385,7 @@ int Manager::doGetStream(
 	
 	if(state() != Data::Running) return BAD;
 	
-	Stub			mstub(*this);
+	Stub			s(*this);
 	ulong			mid(_rk.mapperId());
 	Mapper			&rm(*d.mv[mid]);
 	File			*pf = rm.findOrCreateFile(_rk);
@@ -362,18 +393,15 @@ int Manager::doGetStream(
 	
 	if(!pf) return BAD;
 	
-	if(!pf->isOpened())
-		_flags |= Manager::ForcePending;
-	
 	if(pf->isRegistered()){//
 		const IndexT	fid = pf->id();
 		Mutex::Locker	lock2(d.mutpool.object(fid));
 		_rfuid.first = fid;
 		_rfuid.second = d.fv[fid].uid; 
-		rv = pf->stream(mstub, _sptr, _requid, _flags);
+		rv = pf->stream(s, _sptr, _requid, _flags);
 	}else{
 		//delay stream creation until successfull file open
-		rv = pf->stream(mstub, _sptr, _requid, _flags);
+		rv = pf->stream(s, _sptr, _requid, _flags | Manager::ForcePending);
 	}
 	
 	switch(rv){
@@ -612,9 +640,10 @@ int Manager::stream(
 	Mutex::Locker	lock1(*d.mut);
 	if(_rfuid.first < d.fv.size() && d.fv[_rfuid.first].uid == _rfuid.second){
 		Mutex::Locker	lock2(d.mutpool.object(_rfuid.first));
-		if(d.fv[_rfuid.first].pfile){
+		Data::FileData	&rfd(d.fv[_rfuid.first]);
+		if(rfd.pfile){
 			Stub	s(*this);
-			return d.fv[_rfuid.first].pfile->stream(s, _sptr, _requid, _flags);
+			return rfd.pfile->stream(s, _sptr, _requid, _flags);
 		}
 	}
 	return BAD;
@@ -629,9 +658,10 @@ int Manager::stream(
 	Mutex::Locker	lock1(*d.mut);
 	if(_rfuid.first < d.fv.size() && d.fv[_rfuid.first].uid == _rfuid.second){
 		Mutex::Locker	lock2(d.mutpool.object(_rfuid.first));
-		if(d.fv[_rfuid.first].pfile){
+		Data::FileData	&rfd(d.fv[_rfuid.first]);
+		if(rfd.pfile){
 			Stub	s(*this);
-			return d.fv[_rfuid.first].pfile->stream(s, _sptr, _requid, _flags);
+			return rfd.pfile->stream(s, _sptr, _requid, _flags);
 		}
 	}
 	return BAD;
@@ -646,9 +676,10 @@ int Manager::stream(
 	Mutex::Locker	lock1(*d.mut);
 	if(_rfuid.first < d.fv.size() && d.fv[_rfuid.first].uid == _rfuid.second){
 		Mutex::Locker	lock2(d.mutpool.object(_rfuid.first));
+		Data::FileData	&rfd(d.fv[_rfuid.first]);
 		if(d.fv[_rfuid.first].pfile){
 			Stub	s(*this);
-			return d.fv[_rfuid.first].pfile->stream(s, _sptr, _requid, _flags);
+			return rfd.pfile->stream(s, _sptr, _requid, _flags);
 		}
 	}
 	return BAD;
@@ -795,20 +826,20 @@ OStream* Manager::Stub::createOStream(IndexT _fileid){
 IOStream* Manager::Stub::createIOStream(IndexT _fileid){
 	return new FileIOStream(rm, _fileid);
 }
-void Manager::Stub::pushFileTempExecQueue(File *_pf){
-	if(_pf->isRegistered()){
-		Data::FileData &rfd(rm.d.fv[_pf->id()]);
-		if(!rfd.inexecq){
-			rm.d.tmpfeq.push(_pf);
-			rfd.inexecq = true;
-		}
-	}else{
-		rm.d.tmpfeq.push(_pf);
+void Manager::Stub::pushFileTempExecQueue(const IndexT &_idx, uint16 _evs){
+	Data::FileData &rfd(rm.d.fv[_idx]);
+	rfd.events |= _evs;
+	if(!rfd.inexecq){
+		rm.d.tmpfeq.push(_idx);
+		rfd.inexecq = true;
 	}
 }
 Mapper &Manager::Stub::mapper(ulong _id){
 	cassert(_id < rm.d.mv.size());
 	return *rm.d.mv[_id];
+}
+uint32	Manager::Stub::fileUid(IndexT _uid)const{
+	return rm.d.fv[_uid].uid;
 }
 //=======================================================================
 uint32 Manager::InitStub::registerMapper(Mapper *_pm)const{
