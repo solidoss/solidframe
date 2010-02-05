@@ -28,19 +28,23 @@ private:
 };
 
 struct TempKey: Key{
-	TempKey();
+	TempKey(uint64 _cp = -1L):cp(_cp){}
 	~TempKey();
+	const uint64	cp;
 	/*virtual*/ uint32 mapperId()const;
 	/*virtual*/ Key* clone() const;
 	/*virtual*/ bool release()const;
+	/*virtual*/ uint64 capacity()const;
 };
 
 struct MemoryKey: Key{
-	MemoryKey();
+	MemoryKey(uint64 _cp = -1L):cp(_cp){}
 	~MemoryKey();
+	const uint64 cp;
 	/*virtual*/ uint32 mapperId()const;
 	/*virtual*/ Key* clone() const;
 	/*virtual*/ bool release()const;
+	/*virtual*/ uint64 capacity()const;
 };
 
 

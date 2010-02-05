@@ -31,9 +31,7 @@
 #include "foundation/service.hpp"
 #include "foundation/object.hpp"
 #include "foundation/activeset.hpp"
-#include "foundation/filemanager.hpp"
 #include "foundation/requestuid.hpp"
-#include "foundation/ipc/ipcservice.hpp"
 
 /*
 Manager &ManagerThread::server(){
@@ -132,13 +130,11 @@ void ServiceContainer::clearDummy(){
 struct Manager::Data{
 	typedef std::vector<ServicePtr> ServiceVectorT;
 	typedef std::vector<ActiveSet*> ActiveSetVectorT;
-	Data(FileManager *_pfm, ipc::Service *_pipcs):pfm(_pfm), pipcs(_pipcs){}
-	ObjectPointer<FileManager>		pfm;
-	ipc::Service					*pipcs;
+	Data(){}
 	ServiceVectorT					sv;
 	ActiveSetVectorT				asv;
 };
-Manager::Manager(FileManager *_pfm, ipc::Service *_pipcs):d(*(new Data(_pfm, _pipcs))){
+Manager::Manager():d(*(new Data())){
 	registerActiveSet(*(new DummySet));
 	d.sv.push_back(ServicePtr(new ServiceContainer));
 }
@@ -146,16 +142,7 @@ Manager::Manager(FileManager *_pfm, ipc::Service *_pipcs):d(*(new Data(_pfm, _pi
 Manager::~Manager(){
 	d.sv.clear();
 	delete d.asv.front();
-	delete d.pfm.release();
 	delete &d;
-}
-
-FileManager& Manager::fileManager(){
-	return *d.pfm;
-}
-
-ipc::Service& Manager::ipc(){
-	return *d.pipcs;
 }
 
 ServiceContainer & Manager::serviceContainer(){
@@ -173,23 +160,6 @@ void Manager::stop(bool _wait){
 
 Manager& Manager::the(){
 	return *reinterpret_cast<Manager*>(Thread::specific(specificPosition()));
-}
-
-// uint Manager::serviceId(const Service &_rs)const{
-// 	return _rs.index();//the first service must be the ServiceContainer
-// }
-
-void Manager::fileManager(FileManager *_pfm){
-	cassert(!d.pfm);
-	d.pfm = _pfm;
-}
-void Manager::ipc(ipc::Service *_pipcs){
-	d.pipcs = _pipcs;
-}
-
-void Manager::removeFileManager(){
-	removeObject(&fileManager());
-	//psm = NULL;
 }
 
 uint Manager::registerActiveSet(ActiveSet &_ras){
@@ -287,15 +257,6 @@ GlobalMapper* Manager::globalMapper(){
 
 unsigned Manager::serviceCount()const{
 	return d.sv.size();
-}
-
-int Manager::insertIpcTalker(
-	const AddrInfoIterator &_rai,
-	const char*_node,
-	const char *_srv
-){
-	cassert(d.pipcs);
-	return ipc().insertTalker(_rai, _node, _srv);
 }
 
 }//namespace foundation

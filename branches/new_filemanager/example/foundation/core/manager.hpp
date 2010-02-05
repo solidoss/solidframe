@@ -25,11 +25,23 @@
 #include "foundation/manager.hpp"
 #include "common.hpp"
 
+
+namespace foundation{
+namespace ipc{
+class Service;
+}
+namespace file{
+class Manager;
+}
+}
+
+
 namespace concept{
 
 class Service;
 class Visitor;
 class SignalExecuter;
+struct FileManagerController;
 
 //! A proof of concept server
 /*!
@@ -88,6 +100,12 @@ public:
 	//! Pushes an object into a specific pool.
 	template <class J>
 	void pushJob(J *_pj, int _pos = 0);
+	
+	foundation::ipc::Service 	&ipc();
+	foundation::file::Manager	&fileManager();
+private:
+	friend struct FileManagerController;
+	void removeFileManager();
 private:
 	friend class SignalExecuter;
 	struct Data;

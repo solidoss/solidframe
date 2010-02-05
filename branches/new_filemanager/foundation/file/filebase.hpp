@@ -44,7 +44,8 @@ public:
 	virtual int64 size()const = 0;
 	
 	virtual int open(const char *_path = NULL) = 0;
-	virtual void close() = 0;
+	virtual void close(const char *_path = NULL) = 0;
+	virtual int64 capacity()const = 0;
 	
 	int stream(
 		Manager::Stub &_rs,

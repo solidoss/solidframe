@@ -1,6 +1,7 @@
 set(Sources
 	src/filemanager.cpp
 	src/filebase.cpp
+	src/filemappers.cpp
 )
 set(Headers
 	filebase.hpp

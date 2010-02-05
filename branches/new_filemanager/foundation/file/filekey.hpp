@@ -1,6 +1,9 @@
 #ifndef FILE_KEY_HPP
 #define FILE_KEY_HPP
 
+#include "system/common.hpp"
+#include <string>
+
 namespace foundation{
 namespace file{
 
@@ -11,7 +14,7 @@ struct Key{
 	//! If returns true the file key will be deleted
 	virtual bool release()const;
 	virtual const char* path() const;
-	virtual uint64 size()const;
+	virtual uint64 capacity()const;
 };
 
 }//namespace file

@@ -32,7 +32,7 @@
 
 #include "foundation/ipc/ipcservice.hpp"
 #include "foundation/ipc/ipcservice.hpp"
-#include "foundation/filemanager.hpp"
+#include "foundation/file/filemanager.hpp"
 #include "foundation/signalexecuter.hpp"
 #include "foundation/requestuid.hpp"
 
@@ -588,7 +588,7 @@ int Store::reinitReader(Reader &_rr, protocol::Parameter &_rp){
 	switch(_rp.b.i){
 		case Init:{
 			fdt::RequestUid reqid(rc.id(), Manager::the().uid(rc), rc.newRequestId());
-			int rv = Manager::the().fileManager().stream(sp, reqid, strpth.c_str(), fdt::FileManager::Create);
+			int rv = Manager::the().fileManager().stream(sp, reqid, strpth.c_str(), fdt::file::Manager::Create);
 			switch(rv){
 				case BAD: return Reader::Ok;
 				case OK:

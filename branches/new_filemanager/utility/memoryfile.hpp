@@ -51,10 +51,10 @@ public:
 	//! Move the file cursor at position
 	int64 seek(int64 _pos, SeekRef _ref = SeekBeg);
 	//! Truncate the file
-	int truncate(int64 _len);
+	int truncate(int64 _len = 0);
 	//! Return the size of the file
 	int64 size()const;
-
+	int64 capacity()const;
 private:
 	int doFindBuffer(uint32 _idx)const;
 	int doLocateBuffer(uint32 _idx)const;

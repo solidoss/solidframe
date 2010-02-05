@@ -41,13 +41,9 @@ class	Pool;
 class	Object;
 class	ActiveSet;
 class	Visitor;
-class	FileManager;
 class	ServiceContainer;
 class	Signal;
 
-namespace ipc{
-class Service;
-}
 //! The central class of solidground system
 /*!
 	<b>Overview:</b><br>
@@ -97,22 +93,6 @@ public:
 	Mutex& mutex(Object &_robj)const;
 	//! Get the unique id associated to the given object
 	uint32  uid(Object &_robj)const;
-	
-	//! Get a reference to the filemanager
-	FileManager& fileManager();
-	
-	//! Remove the file manager - do not use this
-	void removeFileManager();
-	
-	//! Get a reference to the ipc service
-	ipc::Service& ipc();
-	
-	//! Insert a talker into the ipc service
-	int insertIpcTalker(
-		const AddrInfoIterator &_rai,
-		const char*_node = NULL,
-		const char *_srv = NULL
-	);
 	
 	//! Unsafe - you should not use this
 	template<class T>
@@ -182,11 +162,7 @@ protected:
 	//! Get the service at index _i
 	Service& service(uint _i = 0)const;
 	//! Constructor with filemanager pointer and ipc service
-	Manager(FileManager *_pfm = NULL, ipc::Service *_pipcs = NULL);
-	//! Set the filemanager
-	void fileManager(FileManager *_pfm);
-	//! Set the ipc service
-	void ipc(ipc::Service *_pipcs);
+	Manager();
 	void stop(bool _wait = true);
 private:
 	void prepareThis();

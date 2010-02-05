@@ -61,7 +61,7 @@ struct Manager::Data{
 	
 	
 	Data(Controller *_pc):pc(_pc), sz(0), mut(NULL){}
-	~Data();
+	~Data(){}
 	void pushFileInTemp(File *_pf);
 //data:
 	Controller				*pc;//pointer to controller
@@ -85,9 +85,11 @@ void Manager::Data::pushFileInTemp(File *_pf){
 	}else{
 		if(fs.size()){
 			idx = fs.top();fs.pop();
+			Mutex::Locker lock(mutpool.safeObject(idx));
 			fv[idx].pfile = _pf;
 		}else{
 			idx = fv.size();
+			Mutex::Locker lock(mutpool.safeObject(idx));
 			fv.push_back(FileData(_pf));
 		}
 		_pf->id(idx);
@@ -100,6 +102,8 @@ void Manager::Data::pushFileInTemp(File *_pf){
 	}
 }
 //------------------------------------------------------------------
+Manager::Controller::~Controller(){
+}
 //------------------------------------------------------------------
 //------------------------------------------------------------------
 
@@ -110,13 +114,16 @@ Manager::Manager(Controller *_pc):d(*(new Data(_pc))){
 
 Manager::~Manager(){
 	idbgx(Dbg::file, "");
-	d.pc->removeFileManager();
+	for(Data::MapperVectorT::const_iterator it(d.mv.begin()); it != d.mv.end(); ++it){
+		delete *it;
+	}
+	delete d.pc;
 	delete &d;
 }
 //------------------------------------------------------------------
 
 int Manager::execute(ulong _evs, TimeSpec &_rtout){
-	d.mut->unlock();
+	d.mut->lock();
 	if(signaled()){
 		ulong sm = grabSignalMask(0);
 		idbgx(Dbg::file, "signalmask "<<sm);
@@ -127,6 +134,7 @@ int Manager::execute(ulong _evs, TimeSpec &_rtout){
 				state(-1);
 				d.mut->unlock();
 				idbgx(Dbg::file, "");
+				d.pc->removeFileManager();
 				return BAD;
 			}
 			doPrepareStop();
@@ -162,6 +170,7 @@ int Manager::execute(ulong _evs, TimeSpec &_rtout){
 	
 	if(!d.sz && state() == Data::Stopping){
 		state(-1);
+		d.pc->removeFileManager();
 		return BAD;
 	}
 	
@@ -240,6 +249,9 @@ void Manager::doExecuteFile(const IndexT &_idx, const TimeSpec &_rtout){
 		case File::No:
 			if(ts != _rtout){
 				rfd.tout = ts;
+				if(d.tout > rfd.tout){
+					d.tout = rfd.tout;
+				}
 			}else{
 				rfd.tout = TimeSpec::max;
 			}
@@ -840,6 +852,9 @@ Mapper &Manager::Stub::mapper(ulong _id){
 }
 uint32	Manager::Stub::fileUid(IndexT _uid)const{
 	return rm.d.fv[_uid].uid;
+}
+Manager::Controller& Manager::Stub::controller(){
+	return *rm.d.pc;
 }
 //=======================================================================
 uint32 Manager::InitStub::registerMapper(Mapper *_pm)const{

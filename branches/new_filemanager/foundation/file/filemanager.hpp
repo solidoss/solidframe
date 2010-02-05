@@ -51,8 +51,8 @@ public:
 	};
 	
 	struct Controller{
-		virtual void init(const InitStub &_ris) = 0;
 		virtual ~Controller();
+		virtual void init(const InitStub &_ris) = 0;
 		virtual void sendStream(
 			StreamPointer<IStream> &_sptr,
 			const FileUidT &_rfuid,

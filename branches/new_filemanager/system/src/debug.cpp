@@ -66,6 +66,7 @@ using namespace std;
 /*static*/ const unsigned Dbg::filemanager(Dbg::instance().registerModule("FDT_FILEMANAGER"));
 /*static*/ const unsigned Dbg::log(Dbg::instance().registerModule("LOG"));
 /*static*/ const unsigned Dbg::aio(Dbg::instance().registerModule("FDT_AIO"));
+/*static*/ const unsigned Dbg::file(Dbg::instance().registerModule("FDT_FILE"));
 
 //-----------------------------------------------------------------
 
