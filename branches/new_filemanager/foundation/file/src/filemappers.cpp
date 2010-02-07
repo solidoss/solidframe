@@ -1,3 +1,25 @@
+/* Implementation file filemappers.cpp
+	
+	Copyright 2010 Valentin Palade 
+	vipalade@gmail.com
+
+	This file is part of SolidGround framework.
+
+	SolidGround is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	SolidGround is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+
 #include "foundation/file/filemappers.hpp"
 #include "foundation/file/filekeys.hpp"
 #include "foundation/file/filebase.hpp"
@@ -185,6 +207,7 @@ namespace{
 	_rf.close(_rf.key().path());
 }
 /*virtual*/ bool NameMapper::setTimeout(TimeSpec &_rts){
+	if(d.waitq.size()) return false;
 	if(d.wait){
 		_rts += d.wait;
 		return true;
@@ -297,6 +320,7 @@ namespace{
 	_rf.close(fpath.c_str());
 }
 /*virtual*/ bool TempMapper::setTimeout(TimeSpec &_rts){
+	if(d.waitq.size()) return false;
 	if(d.wait){
 		_rts += d.wait;
 		return true;
@@ -376,6 +400,7 @@ namespace{
 	_rf.close();
 }
 /*virtual*/ bool MemoryMapper::setTimeout(TimeSpec &_rts){
+	if(d.waitq.size()) return false;
 	if(d.wait){
 		_rts += d.wait;
 		return true;
