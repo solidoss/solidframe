@@ -139,20 +139,20 @@ private:
 		WaitFirstRemote, WaitNextRemote, ReturnBad,
 	};
 
-	String				strpth;
-	String				straddr;
-	FileUidT			fuid;
-	uint32				port;
-	StreamPointer<IStream>	sp;
-	IStreamIterator		it;
-	Connection			&rc;
-	SignalUidT			mastersiguid;
-	int16 				st;
-	protocol::Parameter	*pp;
-	uint64				litsz64;
-	uint64				chunksz;
-	uint16				isfirst;
-	foundation::ipc::ConnectorUid conuid;
+	String							strpth;
+	String							straddr;
+	FileUidT						fuid;
+	uint32							port;
+	StreamPointer<IStream>			sp;
+	IStreamIterator					it;
+	Connection						&rc;
+	SignalUidT						mastersiguid;
+	int16 							st;
+	protocol::Parameter				*pp;
+	uint64							litsz64;
+	uint64							chunksz;
+	uint16							isfirst;
+	foundation::ipc::ConnectorUid	conuid;
 };
 //! Store a file locally
 /*!
