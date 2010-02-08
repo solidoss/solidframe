@@ -192,7 +192,8 @@ int File::execute(
 	if(_evs & MustDie){
 		state = Destroy;
 	}
-	if(ousecnt || iusecnt) return No;
+	if(ousecnt || iusecnt)
+		return No;
 	
 	switch(state){
 		case Destroy:

@@ -65,7 +65,7 @@ public:
 	virtual int64 size()const = 0;
 	
 	virtual int open(const char *_path = NULL) = 0;
-	virtual void close(const char *_path = NULL) = 0;
+	virtual bool close(const char *_path = NULL) = 0;
 	virtual int64 capacity()const = 0;
 	
 	int stream(

@@ -60,7 +60,7 @@ private:
 	/*virtual*/ int64 size()const;
 	
 	/*virtual*/ int open(const char *_path);
-	/*virtual*/ void close(const char *_path);
+	/*virtual*/ bool close(const char *_path);
 	/*virtual*/ int64 capacity()const;
 private:
 	FileDevice	fd;
@@ -72,7 +72,7 @@ private:
 
 class MemoryFile: public File{
 public:
-	MemoryFile(const Key& _rk, uint64 _maxsz = -1L):File(_rk), mf(_maxsz){}
+	MemoryFile(const Key& _rk, uint64 _maxsz = 0L):File(_rk), mf(_maxsz){}
 private:
 	/*virtual*/ int read(
 		char *_pb,
@@ -89,7 +89,7 @@ private:
 	/*virtual*/ int64 size()const;
 	
 	/*virtual*/ int open(const char *_path);
-	/*virtual*/ void close(const char *_path);
+	/*virtual*/ bool close(const char *_path);
 	/*virtual*/ int64 capacity()const;
 private:
 	::MemoryFile	mf;
@@ -101,7 +101,7 @@ private:
 
 class TempFile: public File{
 public:
-	TempFile(const Key& _rk, uint64 _maxsz = -1L):File(_rk), maxsz(_maxsz){}
+	TempFile(const Key& _rk, uint64 _maxsz = 1L):File(_rk), maxsz(_maxsz){}
 private:
 	/*virtual*/ int read(
 		char *_pb,
@@ -118,7 +118,7 @@ private:
 	/*virtual*/ int64 size()const;
 	
 	/*virtual*/ int open(const char *_path);
-	/*virtual*/ void close(const char *_path);
+	/*virtual*/ bool close(const char *_path);
 	/*virtual*/ int64 capacity()const;
 private:
 	FileDevice	fd;
@@ -153,6 +153,7 @@ struct NameMapper::Data{
 NameMapper::NameMapper(uint32 _cnt, uint32 _wait):d(*(new Data(_cnt, _wait))){
 }
 /*virtual*/ NameMapper::~NameMapper(){
+	cassert(!d.crtcnt);
 	delete &d;
 }
 namespace{
@@ -179,7 +180,7 @@ namespace{
 	}
 }
 /*virtual*/ bool NameMapper::erase(File *_pf){
-	--d.crtcnt;
+	//cassert(d.crtcnt);
 	d.nm.erase(_pf->key().path());
 	delete _pf;
 	return d.waitq.size() != 0;
@@ -197,14 +198,20 @@ namespace{
 /*virtual*/ int NameMapper::open(File &_rf){
 	cassert(!d.state);
 	if(d.crtcnt <= d.maxcnt){
-		++d.crtcnt;
-		return _rf.open(_rf.key().path());
+		int rv(_rf.open(_rf.key().path()));
+		if(rv == File::Ok){
+			++d.crtcnt;
+		}
+		return rv;
 	}
 	d.waitq.push(_rf.id());
 	return File::No;
 }
 /*virtual*/ void NameMapper::close(File &_rf){
-	_rf.close(_rf.key().path());
+	if(_rf.close(_rf.key().path())){
+		cassert(d.crtcnt);
+		--d.crtcnt;
+	}
 }
 /*virtual*/ bool NameMapper::setTimeout(TimeSpec &_rts){
 	if(d.waitq.size()) return false;
@@ -264,6 +271,7 @@ TempMapper::TempMapper(uint64 _cp, const char *_pfx):d(*(new Data(_cp, ""))){
 	d.initFolders();
 }
 /*virtual*/ TempMapper::~TempMapper(){
+	cassert(!d.sz);
 	delete &d;
 }
 namespace{
@@ -289,9 +297,7 @@ namespace{
 	}
 }
 /*virtual*/ bool TempMapper::erase(File *_pf){
-	uint64 fcp = _pf->capacity();
 	delete _pf;
-	d.sz -= fcp;
 	if(d.waitq.size() && d.waitq.front().second <= (d.cp - d.sz)){
 		return true;
 	}
@@ -306,10 +312,13 @@ namespace{
 	if(fcp > d.cp)
 		return File::Bad;
 	if(fcp <= (d.cp - d.sz)){
-		d.sz += fcp;
 		std::string fpath;
 		d.createFileName(fpath, _rf.id());
-		return _rf.open(fpath.c_str());
+		int rv(_rf.open(fpath.c_str()));
+		if(rv == File::Ok){
+			d.sz += fcp;
+		}
+		return rv;
 	}
 	d.waitq.push(Data::IndexPairT(_rf.id(), fcp));
 	return File::No;
@@ -317,7 +326,9 @@ namespace{
 /*virtual*/ void TempMapper::close(File &_rf){
 	std::string fpath;
 	d.createFileName(fpath, _rf.id());
-	_rf.close(fpath.c_str());
+	if(_rf.close(fpath.c_str())){
+		d.sz -= _rf.capacity();
+	}
 }
 /*virtual*/ bool TempMapper::setTimeout(TimeSpec &_rts){
 	if(d.waitq.size()) return false;
@@ -371,9 +382,7 @@ namespace{
 	}
 }
 /*virtual*/ bool MemoryMapper::erase(File *_pf){
-	uint64 fcp = _pf->capacity();
 	delete _pf;
-	d.sz -= fcp;
 	if(d.waitq.size() && d.waitq.front().second <= (d.cp - d.sz)){
 		return true;
 	}
@@ -390,14 +399,19 @@ namespace{
 	if(fcp > d.cp)
 		return File::Bad;
 	if(fcp <= (d.cp - d.sz)){
-		d.sz += fcp;
-		return _rf.open();
+		int rv(_rf.open());
+		if(rv == File::Ok){
+			d.sz += fcp;
+		}
+		return rv;
 	}
 	d.waitq.push(Data::IndexPairT(_rf.id(), fcp));
 	return File::No;
 }
 /*virtual*/ void MemoryMapper::close(File &_rf){
-	_rf.close();
+	if(_rf.close()){
+		d.sz -= _rf.capacity();
+	}
 }
 /*virtual*/ bool MemoryMapper::setTimeout(TimeSpec &_rts){
 	if(d.waitq.size()) return false;
@@ -509,9 +523,11 @@ namespace{
 	return BAD;
 }
 
-/*virtual*/ void NameFile::close(const char *_path){
+/*virtual*/ bool NameFile::close(const char *_path){
+	bool rv(fd.ok());
 	fd.close();
 	openmode = 0;
+	return rv;
 }
 
 
@@ -543,8 +559,10 @@ namespace{
 	openmode = Manager::OpenR | Manager::OpenW | Manager::OpenRW;
 	return OK;
 }
-/*virtual*/ void MemoryFile::close(const char *_path){
+/*virtual*/ bool MemoryFile::close(const char *_path){
+	bool rv(openmode != 0);
 	mf.truncate();
+	return rv;
 }
 /*virtual*/ int64 MemoryFile::capacity()const{
 	return mf.capacity();
@@ -578,17 +596,19 @@ namespace{
 /*virtual*/ int TempFile::open(const char *_path){
 	//only open in RW mode
 	int rv = fd.open(_path, FileDevice::RW | FileDevice::CR | FileDevice::TR);
-	if(!rv){
+	if(rv){
 		this->openmode = 0;
 		return Bad;
 	}
 	openmode = Manager::OpenR | Manager::OpenW | Manager::OpenRW;
 	return OK;
 }
-/*virtual*/ void TempFile::close(const char *_path){
+/*virtual*/ bool TempFile::close(const char *_path){
+	bool rv(fd.ok());
 	fd.close();
 	openmode = 0;
 	Directory::eraseFile(_path);
+	return rv;
 }
 /*virtual*/ int64 TempFile::capacity()const{
 	return maxsz;

@@ -1,3 +1,4 @@
+
 /* Implementation file filemanager.cpp
 	
 	Copyright 2010 Valentin Palade 
@@ -57,7 +58,7 @@ struct Manager::Data{
 	struct FileData{
 		FileData(
 			File *_pfile = NULL
-		):pfile(_pfile), toutidx(-1), uid(0), tout(TimeSpec::max),inexecq(false), events(0){}
+		):pfile(_pfile), /*toutidx(-1), */uid(0), tout(TimeSpec::max),inexecq(false), events(0){}
 		void clear(){
 			pfile = NULL;
 			++uid;
@@ -65,7 +66,7 @@ struct Manager::Data{
 			inexecq = false;
 		}
 		File		*pfile;
-		int32		toutidx;
+		//int32		toutidx;
 		uint32		uid;
 		TimeSpec	tout;
 		bool		inexecq;
@@ -117,7 +118,7 @@ void Manager::Data::pushFileInTemp(File *_pf){
 	}
 	FileData &rfd(fv[idx]);
 	if(!rfd.inexecq){
-		rfd.inexecq = false;
+		rfd.inexecq = true;
 		tmpfeq.push(idx);
 	}
 }
@@ -546,10 +547,8 @@ int Manager::stream(
 	if(_fn){
 		FastNameKey k(_fn);
 		return stream(_sptr, _rfuid, _rrequid, k, _flags);
-	}else{
-		TempKey k;
-		return stream(_sptr, _rfuid, _rrequid, k, _flags | Create);
 	}
+	return BAD;
 }
 
 int Manager::stream(
@@ -562,10 +561,8 @@ int Manager::stream(
 	if(_fn){
 		FastNameKey k(_fn);
 		return stream(_sptr, _rfuid, _rrequid, k, _flags);
-	}else{
-		TempKey k;
-		return stream(_sptr, _rfuid, _rrequid, k, _flags | Create);
 	}
+	return BAD;
 }
 
 int Manager::stream(
@@ -578,10 +575,8 @@ int Manager::stream(
 	if(_fn){
 		FastNameKey k(_fn);
 		return stream(_sptr, _rfuid, _rrequid, k, _flags);
-	}else{
-		TempKey k;
-		return stream(_sptr, _rfuid, _rrequid, k, _flags | Create);
 	}
+	return BAD;
 }
 //---------------------------------------------------------------
 int Manager::streamSpecific(
@@ -615,10 +610,8 @@ int Manager::stream(StreamPointer<IStream> &_sptr, const char *_fn, uint32 _flag
 	if(_fn){
 		FastNameKey k(_fn);
 		return stream(_sptr, fuid, requid, k, _flags | NoWait);
-	}else{
-		TempKey k;
-		return stream(_sptr, fuid, requid, k, _flags | NoWait | Create);
 	}
+	return BAD;
 }
 
 int Manager::stream(StreamPointer<OStream> &_sptr, const char *_fn, uint32 _flags){
@@ -627,10 +620,8 @@ int Manager::stream(StreamPointer<OStream> &_sptr, const char *_fn, uint32 _flag
 	if(_fn){
 		FastNameKey k(_fn);
 		return stream(_sptr, fuid, requid, k, _flags | NoWait);
-	}else{
-		TempKey k;
-		return stream(_sptr, fuid, requid, k, _flags | NoWait | Create);
 	}
+	return BAD;
 }
 
 int Manager::stream(StreamPointer<IOStream> &_sptr, const char *_fn, uint32 _flags){
@@ -639,10 +630,8 @@ int Manager::stream(StreamPointer<IOStream> &_sptr, const char *_fn, uint32 _fla
 	if(_fn){
 		FastNameKey k(_fn);
 		return stream(_sptr, fuid, requid, k, _flags | NoWait);
-	}else{
-		TempKey k;
-		return stream(_sptr, fuid, requid, k, _flags | NoWait | Create);
 	}
+	return BAD;
 }
 //-------------------------------------------------------------------------------------
 int Manager::stream(StreamPointer<IStream> &_sptr, const Key &_rk, uint32 _flags){

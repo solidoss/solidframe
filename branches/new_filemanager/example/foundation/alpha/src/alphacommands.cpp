@@ -33,6 +33,7 @@
 #include "foundation/ipc/ipcservice.hpp"
 #include "foundation/ipc/ipcservice.hpp"
 #include "foundation/file/filemanager.hpp"
+#include "foundation/file/filekeys.hpp"
 #include "foundation/signalexecuter.hpp"
 #include "foundation/requestuid.hpp"
 
@@ -394,8 +395,9 @@ int Fetch::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 		case InitRemote:{
 			idbg("init remote");
 			//try to open a temp stream
+			fdt::file::TempKey tk(1024 * 1024 * 2);
 			fdt::RequestUid reqid(rc.id(), Manager::the().uid(rc), rc.newRequestId());
-			int rv = Manager::the().fileManager().stream(sp, fuid, reqid, NULL, 0);
+			int rv = Manager::the().fileManager().stream(sp, fuid, reqid, tk, 0);
 			switch(rv){
 				case BAD: 
 					*pp = protocol::Parameter(StrDef(" NO FETCH: Unable to open temp file@"));
