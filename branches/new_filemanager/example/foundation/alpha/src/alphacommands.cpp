@@ -330,11 +330,12 @@ int RemoteList::receiveError(
 //---------------------------------------------------------------
 // Fetch command
 //---------------------------------------------------------------
-Fetch::Fetch(Connection &_rc):port(-1), rc(_rc), st(0), pp(NULL){
+Fetch::Fetch(Connection &_rc):port(-1), rc(_rc), state(0), litsz(-1L){
 }
 Fetch::~Fetch(){
-	idbg(""<<(void*)this<<' '<<(void*)sp.ptr());
-	sp.clear();
+	idbg(""<<(void*)this<<' '<<(void*)sp_in.ptr());
+	sp_in.clear();
+	sp_out.clear();
 }
 void Fetch::initReader(Reader &_rr){
 	typedef CharFilter<' '>				SpaceFilterT;
@@ -356,165 +357,75 @@ int Fetch::execute(Connection &_rc){
 	rp = protocol::Parameter(StrDef(" OK Done FETCH@"));
 	if(port == (uint)-1) port = 1222;//default ipc port
 	if(straddr.empty()){
-		st = InitLocal;
+		state = InitLocal;
 	}else{
-		st = InitRemote;
+		state = InitRemote;
 	}
 	_rc.writer().push(&Writer::reinit<Fetch>, protocol::Parameter(this));
 	return OK;
 }
-int Fetch::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
-	switch(st){
-		case InitLocal:{
-			idbg("init local");
-			//try to open stream to localfile
-			fdt::RequestUid reqid(rc.id(), Manager::the().uid(rc), rc.newRequestId());
-			int rv = Manager::the().fileManager().stream(sp, reqid, strpth.c_str());
-			switch(rv){
-				case BAD: 
-					*pp = protocol::Parameter(StrDef(" NO FETCH: Unable to open file@"));
-					return Writer::Ok;
-				case OK: 
-					st = SendLocal;
-					return Writer::Continue;
-				case NOK:
-					st = WaitStreamLocal;
-					return Writer::No;
-			}
-		}break;
-		case SendLocal:
-			idbg("send local");
-			//send local stream
-			cassert(sp);
-			litsz64 = sp->size();
-			it.reinit(sp.ptr());
-			_rw<<"* DATA {"<<litsz64<<"}\r\n";
-			_rw.replace(&Writer::putCrlf);
-			_rw.push(&Writer::putStream, protocol::Parameter(&it, &litsz64));
-			return Writer::Continue;
-		case InitRemote:{
-			idbg("init remote");
-			//try to open a temp stream
-			fdt::file::MemoryKey tk(1024 * 1024 * 2);
-			fdt::RequestUid reqid(rc.id(), Manager::the().uid(rc), rc.newRequestId());
-			int rv = Manager::the().fileManager().stream(sp, fuid, reqid, tk, 0);
-			switch(rv){
-				case BAD: 
-					*pp = protocol::Parameter(StrDef(" NO FETCH: Unable to open temp file@"));
-					return Writer::No;
-				case OK: 
-					st = SendMasterRemote;
-					return Writer::Continue;
-				case NOK:
-					st = WaitStreamRemote;
-					return Writer::No;
-			}
-		}break;
-		case SendMasterRemote:{
-			idbg("send master remote "<<(void*)this);
-			cassert(sp);
-			AddrInfo ai(straddr.c_str(), port, 0, AddrInfo::Inet4, AddrInfo::Stream);
-			idbg("addr"<<straddr<<" port = "<<port);
-			if(!ai.empty()){
-				//send the master remote command
-				FetchMasterSignal *psig(new FetchMasterSignal);
-				//TODO: add a convenient init method to fetchmastercommand
-				psig->fname = strpth;
-				psig->requid = rc.newRequestId();
-				psig->fromv.first = rc.id();
-				psig->fromv.second = Manager::the().uid(rc);
-				psig->tmpfuid = fuid;
-				st = WaitFirstRemote;
-				DynamicPointer<fdt::Signal> sigptr(psig);
-				Manager::the().ipc().sendSignal(ai.begin(), sigptr);
-				return Writer::No;
-			}else{
-				*pp = protocol::Parameter(StrDef(" NO FETCH: no such peer address@"));
-				return Writer::Ok;
-			}
-		}
-		case SendFirstRemote:{
-			idbg("send first remote");
-			//The first chunk of data was received
-			it.reinit(sp.ptr(), 0);
-			_rw<<"* DATA {"<<litsz64<<"}\r\n";
-			chunksz = FetchChunkSize;
-			isfirst = 1;
-			if(chunksz >= litsz64){
-				_rw.replace(&Writer::putCrlf);
-				chunksz = litsz64;
-				litsz64 = 0;
-			}else{
-				//send another request
-				st = WaitNextRemote;
-				FetchSlaveSignal *psig(new FetchSlaveSignal);
-				psig->requid = rc.newRequestId();
-				psig->siguid = mastersiguid;
-				psig->fuid = fuid;
-				DynamicPointer<fdt::Signal> sigptr(psig);
-				if(Manager::the().ipc().sendSignal(conuid, sigptr) == BAD){
-					return Writer::Bad;
-				}
-				litsz64 -= chunksz;
-			}
-			_rw.push(&Writer::putStream, protocol::Parameter(&it, &chunksz));
-			return Writer::Continue;
-		}
-		case SendNextRemote:{
-			bool isfrst = isfirst & 1;
-			isfirst = (isfirst + 1) & 1;
-			idbg("send next remote "<<(isfrst ? FetchChunkSize : 0));
-			it.reinit(sp.ptr(), isfrst ? FetchChunkSize : 0);
-			chunksz = FetchChunkSize;
-			if(chunksz >= litsz64){
-				_rw.replace(&Writer::putCrlf);
-				chunksz = litsz64;
-				litsz64 = 0;
-			}else{
-				//send another request
-				st = WaitNextRemote;
-				FetchSlaveSignal *psig(new FetchSlaveSignal);
-				psig->fromv.first = rc.id();
-				psig->fromv.second = Manager::the().uid(rc);
-				psig->requid = rc.newRequestId();
-				psig->siguid = mastersiguid;
-				psig->fuid = fuid;
-				psig->insz = isfrst ? 0 : -1;
-				DynamicPointer<fdt::Signal> sigptr(psig);
-				if(Manager::the().ipc().sendSignal(conuid, sigptr) == BAD){
-					return Writer::Bad;
-				}
-				litsz64 -= chunksz;
-			}
-			//cassert(false);
-			_rw.push(&Writer::putStream, protocol::Parameter(&it, &chunksz));
-			return Writer::Continue;
-		}
-		case SendError:
-			idbg("send error");
+
+int Fetch::doInitLocal(){
+	idbg("init local");
+	//try to open stream to localfile
+	fdt::RequestUid reqid(rc.id(), Manager::the().uid(rc), rc.newRequestId());
+	int rv = Manager::the().fileManager().stream(sp_out, reqid, strpth.c_str());
+	switch(rv){
+		case BAD: 
 			*pp = protocol::Parameter(StrDef(" NO FETCH: Unable to open file@"));
 			return Writer::Ok;
-		case SendTempError:
-			idbg("send temp error");
-			*pp = protocol::Parameter(StrDef(" NO FETCH: Unable to open temp file@"));
-			return Writer::Ok;
-		case WaitStreamLocal:
-		case WaitTempRemote:
-		case WaitFirstRemote:
-		case WaitStreamRemote:
-			idbg("wait");
-			cassert(false);
-		case WaitNextRemote:
-			idbg("wait next remote");
+		case OK: 
+			state = SendLocal;
+			return Writer::Continue;
+		case NOK:
+			state = WaitLocalStream;
 			return Writer::No;
-		case ReturnBad:
-			idbg("return bad");
-			//most certainly serialization/deserialization problems
-			return Writer::Bad;
 	}
 	cassert(false);
 	return BAD;
 }
+
+int Fetch::doSendMaster(){
+	return BAD;
+}
+
+int Fetch::doSendSlave(){
+	return BAD;
+}
+
+int Fetch::doGetTempStream(){
+	return BAD;
+}
+
+int Fetch::doSendLiteral(Writer &_rw, const uint64 &_litsz){
+	idbg("send literal");
+	//send local stream
+	cassert(sp_out);
+	it.reinit(sp_out.ptr());
+	litsz = _litsz;
+	_rw<<"* DATA {"<<litsz<<"}\r\n";
+	_rw.replace(&Writer::putCrlf);
+	_rw.push(&Writer::putStream, protocol::Parameter(&it, &litsz));
+	return Writer::Continue;
+}
+
+int Fetch::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
+	switch(state){
+		case InitLocal:
+			return doInitLocal();
+		case SendLocal:
+			return doSendLiteral(_rw, sp_out->size());
+		case InitRemote:
+			return doGetTempStream();
+		case WaitLocalStream:
+		case WaitTempStream:
+		case WaitRemoteStream:
+			return Writer::No;
+	}
+	cassert(false);
+	return BAD;
+}
+
 int Fetch::receiveIStream(
 	StreamPointer<IStream> &_sptr,
 	const FileUidT &_fuid,
@@ -523,11 +434,20 @@ int Fetch::receiveIStream(
 	const foundation::ipc::ConnectorUid *
 ){
 	idbg(""<<(void*)this);
-	sp =_sptr;
+	//sp_out =_sptr;
 	fuid = _fuid;
-	if(st == WaitStreamLocal)
-		st = SendLocal;
-	else st =  SendMasterRemote;
+	if(state == WaitLocalStream){
+		sp_out = _sptr;
+		state = SendLocal;
+	}else if(state == WaitTempStream){
+		sp_in = _sptr;
+		state = WaitRemoteStream;
+		if(litsz == -1L){
+			doSendMaster();
+		}else{
+			doSendSlave();
+		}
+	}
 	return OK;
 }
 
@@ -540,12 +460,12 @@ int Fetch::receiveNumber(
 	idbg("");
 	mastersiguid = _objuid;
 	cassert(_pconuid);
-	conuid = *_pconuid;
-	if(st == WaitNextRemote){//continued
-		st = SendNextRemote;
+	ipcconuid = *_pconuid;
+	if(litsz != -1L){//continued
+		state = SendNextRemote;
 	}else{
-		litsz64 = _no;
-		st = SendFirstRemote;
+		litsz = _no;
+		state = SendFirstRemote;
 	}
 	return OK;
 }
@@ -556,15 +476,23 @@ int Fetch::receiveError(
 	const foundation::ipc::ConnectorUid *
 ){
 	idbg("");
-	switch(st){
-		case WaitStreamLocal:
-			st = SendError;
+	switch(state){
+		case WaitLocalStream:
+			state = SendError;
 			break;
-		case WaitTempRemote:
-			st = SendTempError;
+		case WaitTempStream:
+			state = SendTempError;
 			break;
+		case WaitRemoteStream:
+			if(litsz == -1L){
+				//we can send an error
+				state = SendRemoteError;
+			}else{
+				//we're already in a literal - force close connection
+				state = ReturnBad;
+			}
 		default:
-			st = SendError;
+			state = ReturnBad;
 	}
 	return OK;
 }

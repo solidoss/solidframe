@@ -132,27 +132,40 @@ public:
 		const foundation::ipc::ConnectorUid *_conid
 	);
 private:
-	enum {
-		InitLocal, SendLocal, InitRemote,
-		SendMasterRemote, SendFirstRemote, SendNextRemote, 
-		SendError, SendTempError, WaitStreamLocal, WaitStreamRemote, WaitTempRemote,
-		WaitFirstRemote, WaitNextRemote, ReturnBad,
+	enum State{
+		InitLocal,
+		SendLocal,
+		InitRemote,
+		WaitLocalStream,
+		WaitTempStream,
+		WaitRemoteStream,
+		SendNextRemote,
+		SendFirstRemote,
+		SendRemoteError,
+		SendTempError,
+		SendError,
+		ReturnBad,
 	};
-
+	int doSendMaster();
+	int doSendSlave();
+	int doInitLocal();
+	int doSendLiteral(Writer &_rw, const uint64 &_litsz);
+	int doGetTempStream();
+private:
 	String							strpth;
 	String							straddr;
-	FileUidT						fuid;
-	uint32							port;
-	StreamPointer<IStream>			sp;
-	IStreamIterator					it;
+	uint32						port;
 	Connection						&rc;
-	SignalUidT						mastersiguid;
-	int16 							st;
-	protocol::Parameter				*pp;
-	uint64							litsz64;
-	uint64							chunksz;
-	uint16							isfirst;
-	foundation::ipc::ConnectorUid	conuid;
+	int16 						state;
+	uint64						litsz;
+	protocol::Parameter	*pp;
+	FileUidT						fuid;
+	
+	StreamPointer<IStream>		sp_in;
+	StreamPointer<IStream>		sp_out;
+	IStreamIterator				it;
+	foundation::ipc::ConnectorUid ipcconuid;
+	SignalUidT			mastersiguid;
 };
 //! Store a file locally
 /*!

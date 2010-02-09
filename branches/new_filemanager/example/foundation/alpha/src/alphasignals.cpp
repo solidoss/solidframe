@@ -334,17 +334,6 @@ int FetchSlaveSignal::ipcReceived(fdt::ipc::SignalUid &_rsiguid, const fdt::ipc:
 	}
 	return OK;
 }
-// Executed when received back on the requesting alpha connection
-// int FetchSlaveSignal::execute(concept::Connection &_rcon){
-// 	if(sz >= 0){
-// 		idbg("");
-// 		_rcon.receiveNumber(insz, RequestUidT(requid, 0), 0, siguid, &conid);
-// 	}else{
-// 		idbg("");
-// 		_rcon.receiveError(-1, RequestUidT(requid, 0), siguid, &conid);
-// 	}
-// 	return NOK;
-// }
 // Executed on peer within the signal executer
 int FetchSlaveSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidT &, TimeSpec &){
 	idbg("");
@@ -369,14 +358,14 @@ int FetchSlaveSignal::createDeserializationStream(
 ){
 	if(_id) return NOK;
 	if(sz <= 0) return NOK;
-	StreamPointer<OStream>			sp;
-	fdt::RequestUid	requid;
+	StreamPointer<OStream>		sp;
+	fdt::RequestUid				requid;
+	
 	Manager::the().fileManager().stream(sp, fuid, requid, fdt::file::Manager::Forced);
 	if(!sp) return BAD;
+	
 	idbg("Create deserialization <"<<_id<<"> sz "<<_rps.second<<" streamptr "<<(void*)sp.ptr());
-	if(insz < 0){//back 1M
-		sp->seek(FetchChunkSize);
-	}
+	
 	cassert(sp);
 	_rps.first = sp.release();
 	_rps.second = sz;
@@ -388,6 +377,7 @@ void FetchSlaveSignal::destroySerializationStream(
 ){
 	idbg("doing nothing as the stream will be destroied when the signal will be destroyed");
 }
+
 int FetchSlaveSignal::createSerializationStream(
 	std::pair<IStream *, int64> &_rps, int _id
 ){

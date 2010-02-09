@@ -141,17 +141,17 @@ struct FetchMasterSignal: Dynamic<FetchMasterSignal, foundation::Signal>{
 	}
 	void print()const;
 //data:
-	String					fname;
-	FetchSlaveSignal		*psig;
-	ObjectUidT				fromv;
-	FileUidT				fuid;
-	FileUidT				tmpfuid;
+	String							fname;
+	FetchSlaveSignal				*psig;
+	ObjectUidT						fromv;
+	FileUidT						fuid;
+	FileUidT						tmpfuid;
 	foundation::ipc::ConnectorUid	conid;
-	StreamPointer<IStream>		ins;
-	int32					state;
-	int64					insz;
-	int64					inpos;
-	uint32					requid;
+	StreamPointer<IStream>			ins;
+	int32							state;
+	int64							insz;
+	int64							inpos;
+	uint32							requid;
 };
 
 //---------------------------------------------------------------
@@ -192,7 +192,6 @@ struct FetchSlaveSignal: Dynamic<FetchSlaveSignal, foundation::Signal>{
 	foundation::ipc::ConnectorUid	conid;
 	SignalUidT						siguid;
 	StreamPointer<IStream>			ins;
-	//if insz >= 0 -> [0->1M) else -> [1M->2M)
 	int64							insz;
 	int32							sz;
 	uint32							requid;
