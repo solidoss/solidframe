@@ -397,9 +397,9 @@ void Connection::dynamicExecute(DynamicPointer<FetchSlaveSignal> &_psig){
 	newRequestId();//prevent multiple responses with the same id
 	if(pcmd){
 		int rv;
-		if(_psig->sz >= 0){
+		if(_psig->filesz >= 0){
 			idbg("");
-			rv = pcmd->receiveNumber(_psig->insz, 0, _psig->siguid, &_psig->conid);
+			rv = pcmd->receiveNumber(_psig->filesz, 0, _psig->siguid, &_psig->conid);
 		}else{
 			idbg("");
 			rv = pcmd->receiveError(-1, _psig->siguid, &_psig->conid);

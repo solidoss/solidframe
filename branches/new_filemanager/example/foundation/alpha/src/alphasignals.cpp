@@ -122,7 +122,7 @@ void FetchMasterSignal::ipcFail(int _err){
 }
 void FetchMasterSignal::print()const{
 	idbg("FetchMasterSignal:");
-	idbg("state = "<<state<<" insz = "<<insz<<" requid = "<<requid<<" fname = "<<fname);
+	idbg("state = "<<state<<" streamsz = "<<streamsz<<" requid = "<<requid<<" fname = "<<fname);
 	idbg("fromv.first = "<<fromv.first<<" fromv.second = "<<fromv.second);
 	idbg("fuid.first = "<<fuid.first<<" fuid.second = "<<fuid.second);
 	idbg("tmpfuid.first = "<<tmpfuid.first<<" tmpfuid.second = "<<tmpfuid.second);
@@ -166,26 +166,26 @@ int FetchMasterSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const Sig
 		}break;
 		case SendFirstStream:{
 			idbg("send first stream");
-			FetchSlaveSignal	*psig = new FetchSlaveSignal;
-			DynamicPointer<fdt::Signal> sigptr(psig);
-			insz = ins->size();
+			FetchSlaveSignal			*psig(new FetchSlaveSignal);
+			DynamicPointer<fdt::Signal>	sigptr(psig);
+			this->filesz = ins->size();
 			psig->tov = fromv;
-			psig->insz = insz;
-			psig->sz = FetchChunkSize;
-			if(psig->sz > psig->insz){
-				psig->sz = psig->insz;
+			psig->filesz = this->filesz;
+			psig->streamsz = this->streamsz;
+			if(psig->streamsz > psig->filesz){
+				psig->streamsz = psig->filesz;
 			}
 			psig->siguid = _siguid;
 			psig->requid = requid;
 			psig->fuid = tmpfuid;
-			idbg("insz = "<<insz<<" inpos = "<<inpos);
-			insz -= psig->sz;
-			inpos += psig->sz;
+			idbg("filesz = "<<this->filesz<<" inpos = "<<filepos);
+			this->filesz -= psig->streamsz;
+			this->filepos += psig->streamsz;
 			fdt::RequestUid reqid(_rce.id(), rm.uid(_rce), _siguid.first, _siguid.second);
 			rm.fileManager().stream(psig->ins, fuid, requid, fdt::file::Manager::NoWait);
 			psig = NULL;
-			if(rm.ipc().sendSignal(conid, sigptr) || !insz){
-				idbg("connector was destroyed or insz "<<insz);
+			if(rm.ipc().sendSignal(conid, sigptr) || !this->filesz){
+				idbg("connector was destroyed or filesz = "<<this->filesz);
 				return BAD;
 			}
 			idbg("wait for streams");
@@ -197,22 +197,23 @@ int FetchMasterSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const Sig
 			idbg("send next stream");
 			DynamicPointer<fdt::Signal> sigptr(psig);
 			psig->tov = fromv;
-			psig->sz = FetchChunkSize;
-			if(psig->sz > insz){
-				psig->sz = insz;
+			psig->filesz = this->filesz;
+			//psig->sz = FetchChunkSize;
+			if(psig->streamsz > this->filesz){
+				psig->streamsz = this->filesz;
 			}
 			psig->siguid = _siguid;
 			psig->fuid = tmpfuid;
-			idbg("insz = "<<insz<<" inpos = "<<inpos);
-			insz -= psig->sz;
+			idbg("filesz = "<<this->filesz<<" filepos = "<<this->filepos);
+			this->filesz -= psig->streamsz;
 			fdt::RequestUid reqid(_rce.id(), rm.uid(_rce), _siguid.first, _siguid.second);
 			rm.fileManager().stream(psig->ins, fuid, requid, fdt::file::Manager::NoWait);
-			psig->ins->seek(inpos);
-			inpos += psig->sz;
+			psig->ins->seek(this->filepos);
+			this->filepos += psig->streamsz;
 			cassert(psig->ins);
 			psig = NULL;
-			if(rm.ipc().sendSignal(conid, sigptr) || !insz){
-				idbg("connector was destroyed or insz "<<insz);
+			if(rm.ipc().sendSignal(conid, sigptr) || !this->filesz){
+				idbg("connector was destroyed or filesz = "<<this->filesz);
 				return BAD;
 			}
 			idbg("wait for streams");
@@ -225,7 +226,7 @@ int FetchMasterSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const Sig
 			FetchSlaveSignal *psig = new FetchSlaveSignal;
 			DynamicPointer<fdt::Signal> sigptr(psig);
 			psig->tov = fromv;
-			psig->sz = -2;
+			psig->filesz = -1;
 			rm.ipc().sendSignal(conid, sigptr);
 			return BAD;
 		}
@@ -249,7 +250,7 @@ int FetchMasterSignal::receiveSignal(
 	}else if(_rsig->dynamicTypeId() == IOStreamSignal::staticTypeId()){
 		IOStreamSignal &rsig(*static_cast<IOStreamSignal*>(_rsig.ptr()));
 	}else */if(_rsig->dynamicTypeId() == StreamErrorSignal::staticTypeId()){
-		StreamErrorSignal &rsig(*static_cast<StreamErrorSignal*>(_rsig.ptr()));
+		//StreamErrorSignal &rsig(*static_cast<StreamErrorSignal*>(_rsig.ptr()));
 		state = SendError;
 	}else if(_rsig->dynamicTypeId() == FetchSlaveSignal::staticTypeId()){
 		//FetchSlaveSignal &rsig(*static_cast<FetchSlaveSignal*>(_rsig.ptr()));
@@ -309,7 +310,7 @@ FetchSlaveSignal::~FetchSlaveSignal(){
 }
 void FetchSlaveSignal::print()const{
 	idbg("FetchSlaveSignal:");
-	idbg("insz = "<<insz<<" sz = "<<sz<<" requid = "<<requid);
+	idbg("filesz = "<<this->filesz<<" streamsz = "<<this->streamsz<<" requid = "<<requid);
 	idbg("fuid.first = "<<fuid.first<<" fuid.second = "<<fuid.second);
 	idbg("siguid.first = "<<siguid.first<<" siguid.second = "<<siguid.second);
 }
@@ -321,7 +322,7 @@ int FetchSlaveSignal::sent(const fdt::ipc::ConnectorUid &_rconid){
 int FetchSlaveSignal::ipcReceived(fdt::ipc::SignalUid &_rsiguid, const fdt::ipc::ConnectorUid &_rconid){
 	DynamicPointer<fdt::Signal> psig(this);
 	conid = _rconid;
-	if(sz == -10){
+	if(filesz == -10){
 		idbg("Received FetchSlaveSignal on peer");
 		print();
 		ObjectUidT	ttov;
@@ -348,7 +349,7 @@ void FetchSlaveSignal::destroyDeserializationStream(
 	idbg("Destroy deserialization <"<<_id<<"> sz "<<_rps.second<<" streamptr "<<(void*)_rps.first);
 	if(_rps.second < 0){
 		//there was an error
-		sz = -1;
+		filesz = -1;
 	}
 	delete _rps.first;
 }
@@ -357,7 +358,8 @@ int FetchSlaveSignal::createDeserializationStream(
 	std::pair<OStream *, int64> &_rps, int _id
 ){
 	if(_id) return NOK;
-	if(sz <= 0) return NOK;
+	if(filesz <= 0) return NOK;
+	
 	StreamPointer<OStream>		sp;
 	fdt::RequestUid				requid;
 	
@@ -368,7 +370,7 @@ int FetchSlaveSignal::createDeserializationStream(
 	
 	cassert(sp);
 	_rps.first = sp.release();
-	_rps.second = sz;
+	_rps.second = streamsz;
 	return OK;
 }
 
@@ -384,7 +386,7 @@ int FetchSlaveSignal::createSerializationStream(
 	if(_id || !ins.ptr()) return NOK;
 	idbg("Create serialization <"<<_id<<"> sz "<<_rps.second);
 	_rps.first = ins.ptr();
-	_rps.second = sz;
+	_rps.second = streamsz;
 	return OK;
 }
 

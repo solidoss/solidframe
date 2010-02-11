@@ -136,36 +136,42 @@ private:
 		InitLocal,
 		SendLocal,
 		InitRemote,
+		SendFirstData,
+		SendNextData,
 		WaitLocalStream,
 		WaitTempStream,
 		WaitRemoteStream,
-		SendNextRemote,
-		SendFirstRemote,
 		SendRemoteError,
 		SendTempError,
 		SendError,
 		ReturnBad,
+		ReturnOk
 	};
-	int doSendMaster();
-	int doSendSlave();
+	void doSendMaster(const FileUidT &_fuid);
+	void doSendSlave(const FileUidT &_fuid);
 	int doInitLocal();
-	int doSendLiteral(Writer &_rw, const uint64 &_litsz);
-	int doGetTempStream();
+	int doSendLiteral(Writer &_rw);
+	int doGetTempStream(uint32 _sz);
+	int doSendFirstData(Writer &_rw);
+	int doSendNextData(Writer &_rw);
 private:
 	String							strpth;
 	String							straddr;
-	uint32						port;
+	uint32							port;
 	Connection						&rc;
-	int16 						state;
-	uint64						litsz;
-	protocol::Parameter	*pp;
-	FileUidT						fuid;
+	int16 							state;
+	uint64							litsz;
+	protocol::Parameter				*pp;
+	//FileUidT						fuid;
 	
-	StreamPointer<IStream>		sp_in;
-	StreamPointer<IStream>		sp_out;
-	IStreamIterator				it;
-	foundation::ipc::ConnectorUid ipcconuid;
-	SignalUidT			mastersiguid;
+	StreamPointer<IStream>			sp_in;
+	StreamPointer<IStream>			sp_out;
+	IStreamIterator					it;
+	foundation::ipc::ConnectorUid	ipcconuid;
+	SignalUidT						mastersiguid;
+	uint32							tmpstreamcp;//temp stream capacity
+	uint64							streamsz_out;
+	uint32							streamsz_in;
 };
 //! Store a file locally
 /*!
@@ -195,13 +201,13 @@ public:
 	);
 	int reinitWriter(Writer &, protocol::Parameter &);
 private:
-	String				strpth;//the file path
+	String					strpth;//the file path
 	StreamPointer<OStream>	sp;
-	OStreamIterator		it;
-	Connection			&rc;
-	int 				st;
-	uint32				litsz;
-	uint64				litsz64;
+	OStreamIterator			it;
+	Connection				&rc;
+	int 					st;
+	uint32					litsz;
+	uint64					litsz64;
 };
 
 //! Lists one level of the requested path
@@ -261,13 +267,13 @@ public:
 		const foundation::ipc::ConnectorUid *_conid
 	);
 private:
-	String					strpth;
-	String					straddr;
-	uint32					port;
-	PathListT				*ppthlst;
-	PathListT::const_iterator it;
-	int						state;
-	protocol::Parameter		*pp;
+	String						strpth;
+	String						straddr;
+	uint32						port;
+	PathListT					*ppthlst;
+	PathListT::const_iterator	it;
+	int							state;
+	protocol::Parameter			*pp;
 };
 
 

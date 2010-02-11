@@ -95,9 +95,7 @@ struct RemoteListSignal: Dynamic<RemoteListSignal, foundation::Signal>{
 };
 
 struct FetchSlaveSignal;
-enum{
-	FetchChunkSize = 1024*1024
-};
+
 
 //---------------------------------------------------------------
 // FetchMasterSignal
@@ -118,7 +116,7 @@ struct FetchMasterSignal: Dynamic<FetchMasterSignal, foundation::Signal>{
 		SendNextStream,
 		SendError,
 	};
-	FetchMasterSignal():psig(NULL), fromv(0xffffffff, 0xffffffff), state(NotReceived), insz(-1), inpos(0), requid(0){
+	FetchMasterSignal():psig(NULL), fromv(0xffffffff, 0xffffffff), state(NotReceived), streamsz(0), filesz(0), filepos(0), requid(0){
 	}
 	~FetchMasterSignal();
 	
@@ -137,7 +135,7 @@ struct FetchMasterSignal: Dynamic<FetchMasterSignal, foundation::Signal>{
 	S& operator&(S &_s){
 		_s.push(fname, "filename");
 		_s.push(tmpfuid.first, "tmpfileuid_first").push(tmpfuid.second, "tmpfileuid_second");
-		return _s.push(fromv.first, "fromobjectid").push(fromv.second, "fromobjectuid").push(requid, "requestuid");
+		return _s.push(fromv.first, "fromobjectid").push(fromv.second, "fromobjectuid").push(requid, "requestuid").push(streamsz, "streamsize");
 	}
 	void print()const;
 //data:
@@ -149,8 +147,9 @@ struct FetchMasterSignal: Dynamic<FetchMasterSignal, foundation::Signal>{
 	foundation::ipc::ConnectorUid	conid;
 	StreamPointer<IStream>			ins;
 	int32							state;
-	int64							insz;
-	int64							inpos;
+	uint32							streamsz;
+	int64							filesz;
+	int64							filepos;
 	uint32							requid;
 };
 
@@ -163,7 +162,7 @@ struct FetchMasterSignal: Dynamic<FetchMasterSignal, foundation::Signal>{
 	as reponse containing the requested file chunk.
 */
 struct FetchSlaveSignal: Dynamic<FetchSlaveSignal, foundation::Signal>{
-	FetchSlaveSignal(): fromv(0xffffffff, 0xffffffff), insz(-1), sz(-10), requid(0){}
+	FetchSlaveSignal(): fromv(0xffffffff, 0xffffffff), filesz(-10), streamsz(-1), requid(0){}
 	~FetchSlaveSignal();
 	int ipcReceived(foundation::ipc::SignalUid &_rsiguid, const foundation::ipc::ConnectorUid &_rconid);
 	int sent(const foundation::ipc::ConnectorUid &);
@@ -179,8 +178,8 @@ struct FetchSlaveSignal: Dynamic<FetchSlaveSignal, foundation::Signal>{
 		_s.template pushStreammer<FetchSlaveSignal>(this, "FetchStreamResponse::isp");
 		_s.push(tov.first, "toobjectid").push(tov.second, "toobjectuid");
 		//_s.push(fromv.first, "fromobjectid").push(fromv.second, "fromobjectuid");
-		_s.push(insz, "inputstreamsize").push(requid, "requestuid");
-		_s.push(sz, "inputsize").push(siguid.first, "signaluid_first").push(siguid.second, "signaluid_second");
+		_s.push(streamsz, "streamsize").push(requid, "requestuid");
+		_s.push(filesz, "filesize").push(siguid.first, "signaluid_first").push(siguid.second, "signaluid_second");
 		_s.push(fuid.first,"fileuid_first").push(fuid.second, "fileuid_second");
 		return _s;
 	}
@@ -192,8 +191,8 @@ struct FetchSlaveSignal: Dynamic<FetchSlaveSignal, foundation::Signal>{
 	foundation::ipc::ConnectorUid	conid;
 	SignalUidT						siguid;
 	StreamPointer<IStream>			ins;
-	int64							insz;
-	int32							sz;
+	int64							filesz;
+	int32							streamsz;
 	uint32							requid;
 };
 
