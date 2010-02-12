@@ -72,6 +72,23 @@ struct Manager::Data{
 		bool		inexecq;
 		uint16		events;
 	};
+	template <class Str>
+	struct SendStreamData{
+		SendStreamData(){}
+		SendStreamData(
+			const StreamPointer<Str> &_rs,
+			const FileUidT	&_rfuid,
+			const RequestUid _rrequid
+		):s(_rs), fuid(_rfuid), requid(_rrequid){}
+		StreamPointer<Str>	s;
+		FileUidT			fuid;
+		RequestUid			requid;
+	};
+	
+	typedef SendStreamData<OStream>		SendOStreamDataT;
+	typedef SendStreamData<IStream>		SendIStreamDataT;
+	typedef SendStreamData<IOStream>	SendIOStreamDataT;
+	typedef std::pair<int, RequestUid>	SendErrorDataT;
 	
 	typedef std::deque<FileData>		FileVectorT;
 	typedef std::deque<int32>			TimeoutVectorT;
@@ -79,6 +96,10 @@ struct Manager::Data{
 	typedef Queue<uint32>				Index32QueueT;
 	typedef Queue<IndexT>				IndexQueueT;
 	typedef Queue<File*>				FileQueueT;
+	typedef Queue<SendOStreamDataT>		SendOStreamQueueT;
+	typedef Queue<SendIOStreamDataT>	SendIOStreamQueueT;
+	typedef Queue<SendIStreamDataT>		SendIStreamQueueT;
+	typedef Queue<SendErrorDataT>		SendErrorQueueT;
 	
 	
 	Data(Controller *_pc):pc(_pc), sz(0), mut(NULL){}
@@ -97,6 +118,10 @@ struct Manager::Data{
 	IndexQueueT				delfq;//file delete  q
 	FreeStackT				fs;//free stack
 	TimeSpec				tout;
+	SendOStreamQueueT		sndosq;
+	SendIOStreamQueueT		sndiosq;
+	SendIStreamQueueT		sndisq;
+	SendErrorQueueT			snderrq;
 };
 //------------------------------------------------------------------
 void Manager::Data::pushFileInTemp(File *_pf){
@@ -186,7 +211,7 @@ int Manager::execute(ulong _evs, TimeSpec &_rtout){
 		
 		doExecuteFile(idx, _rtout);
 	}
-	
+	doSendStreams();
 	if(d.meq.size() || d.delfq.size() || d.tmpfeq.size()) return OK;
 	
 	if(!d.sz && state() == Data::Stopping){
@@ -199,6 +224,40 @@ int Manager::execute(ulong _evs, TimeSpec &_rtout){
 		_rtout = d.tout;
 	}
 	return NOK;
+}
+//------------------------------------------------------------------
+void Manager::doSendStreams(){
+	while(d.sndisq.size()){
+		d.pc->sendStream(
+			d.sndisq.front().s,
+			d.sndisq.front().fuid,
+			d.sndisq.front().requid
+		);
+		d.sndisq.pop();
+	}
+	while(d.sndiosq.size()){
+		d.pc->sendStream(
+			d.sndiosq.front().s,
+			d.sndiosq.front().fuid,
+			d.sndiosq.front().requid
+		);
+		d.sndiosq.pop();
+	}
+	while(d.sndosq.size()){
+		d.pc->sendStream(
+			d.sndosq.front().s,
+			d.sndosq.front().fuid,
+			d.sndosq.front().requid
+		);
+		d.sndosq.pop();
+	}
+	while(d.snderrq.size()){
+		d.pc->sendError(
+			d.snderrq.front().first,
+			d.snderrq.front().second
+		);
+		d.snderrq.pop();
+	}
 }
 //------------------------------------------------------------------
 void Manager::doPrepareStop(){
@@ -864,6 +923,34 @@ uint32	Manager::Stub::fileUid(IndexT _uid)const{
 }
 Manager::Controller& Manager::Stub::controller(){
 	return *rm.d.pc;
+}
+void Manager::Stub::push(
+	const StreamPointer<IStream> &_rsp,
+	const FileUidT &_rfuid,
+	const RequestUid &_rrequid
+	
+){
+	rm.d.sndisq.push(Manager::Data::SendIStreamDataT(_rsp, _rfuid, _rrequid));
+}
+void Manager::Stub::push(
+	const StreamPointer<IOStream> &_rsp,
+	const FileUidT &_rfuid,
+	const RequestUid &_rrequid
+){
+	rm.d.sndiosq.push(Manager::Data::SendIOStreamDataT(_rsp, _rfuid, _rrequid));
+}
+void Manager::Stub::push(
+	const StreamPointer<OStream> &_rsp,
+	const FileUidT &_rfuid,
+	const RequestUid &_rrequid
+){
+	rm.d.sndosq.push(Manager::Data::SendOStreamDataT(_rsp, _rfuid, _rrequid));
+}
+void Manager::Stub::push(
+	int _err,
+	const RequestUid& _rrequid
+){
+	rm.d.snderrq.push(Manager::Data::SendErrorDataT(_err, _rrequid));
 }
 //=======================================================================
 uint32 Manager::InitStub::registerMapper(Mapper *_pm)const{

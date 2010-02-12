@@ -105,6 +105,25 @@ public:
 		Mapper &mapper(ulong _id);
 		Controller& controller();
 		uint32	fileUid(IndexT _uid)const;
+		void push(
+			const StreamPointer<IStream> &_rsp,
+			const FileUidT &_rfuid,
+			const RequestUid& _rrequid
+		);
+		void push(
+			const StreamPointer<IOStream> &_rsp,
+			const FileUidT &_rfuid,
+			const RequestUid& _rrequid
+		);
+		void push(
+			const StreamPointer<OStream> &_rsp,
+			const FileUidT &_rfuid,
+			const RequestUid& _rrequid
+		);
+		void push(
+			int _err,
+			const RequestUid& _rrequid
+		);
 	private:
 		Stub();
 		//Stub(const Stub&);
@@ -355,6 +374,7 @@ private:
 	void doDeleteFiles();
 	void doPrepareStop();
 	void doScanTimeout(const TimeSpec &_rtout);
+	void doSendStreams();
 private:
 	friend struct Stub;
 	

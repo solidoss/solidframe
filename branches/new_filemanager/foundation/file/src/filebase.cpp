@@ -210,7 +210,7 @@ int File::execute(
 				++ousecnt;
 				//send iostream
 				StreamPointer<IOStream> sptr(_rs.createIOStream(id()));	
-				_rs.controller().sendStream(sptr, FileUidT(id(), _rs.fileUid(id())), owq.front().requid);
+				_rs.push(sptr, FileUidT(id(), _rs.fileUid(id())), owq.front().requid);
 			}else{
 				//(re)open request
 				return doRequestOpen(_rs);
@@ -220,7 +220,7 @@ int File::execute(
 				//send ostream
 				++ousecnt;
 				StreamPointer<OStream> sptr(_rs.createOStream(id()));	
-				_rs.controller().sendStream(sptr, FileUidT(id(), _rs.fileUid(id())), owq.front().requid);
+				_rs.push(sptr, FileUidT(id(), _rs.fileUid(id())), owq.front().requid);
 			}else{
 				//(re)open request
 				return doRequestOpen(_rs);
@@ -235,7 +235,7 @@ int File::execute(
 		while(iwq.size()){
 			++iusecnt;
 			StreamPointer<IStream> sptr(_rs.createIStream(id()));	
-			_rs.controller().sendStream(sptr, FileUidT(id(), _rs.fileUid(id())), iwq.front().requid);
+			_rs.push(sptr, FileUidT(id(), _rs.fileUid(id())), iwq.front().requid);
 			iwq.pop();
 		}
 		return No;
@@ -278,11 +278,11 @@ int File::doRequestOpen(Manager::Stub &_rs){
 int File::doDestroy(Manager::Stub &_rs, int _err){
 	//first signal all waiting peers the error
 	while(iwq.size()){
-		_rs.controller().sendError(_err, iwq.front().requid);
+		_rs.push(_err, iwq.front().requid);
 		iwq.pop();
 	}
 	while(owq.size()){
-		_rs.controller().sendError(_err, owq.front().requid);
+		_rs.push(_err, owq.front().requid);
 		owq.pop();
 	}
 	//close the file
@@ -295,13 +295,13 @@ int File::doDestroy(Manager::Stub &_rs, int _err){
 void File::doCheckOpenMode(Manager::Stub &_rs){
 	if(owq.size() && !(openmode & Manager::OpenW)){
 		while(owq.size()){
-			_rs.controller().sendError(-1, owq.front().requid);
+			_rs.push(-1, owq.front().requid);
 			owq.pop();
 		}
 	}
 	if(iwq.size() && !(openmode & Manager::OpenR)){
 		while(iwq.size()){
-			_rs.controller().sendError(-1, iwq.front().requid);
+			_rs.push(-1, iwq.front().requid);
 			iwq.pop();
 		}
 	}
@@ -311,7 +311,7 @@ void File::doCheckOpenMode(Manager::Stub &_rs){
 			WaitData wd(owq.front());
 			owq.pop();
 			if(wd.flags & Manager::IOStreamRequest){
-				_rs.controller().sendError(-1, wd.requid);
+				_rs.push(-1, wd.requid);
 			}else{
 				owq.push(wd);
 			}

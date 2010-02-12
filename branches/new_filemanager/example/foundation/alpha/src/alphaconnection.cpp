@@ -280,10 +280,10 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 					if(socketHasPendingSend()){
 						socketTimeoutSend(3000);
 						state(ExecuteIOTout);
-					}else if(socketHasPendingRecv()){
+					}/*else if(socketHasPendingRecv()){
 						socketTimeoutRecv(3000);
 						state(ExecuteIOTout);
-					}else{
+					}*/else{
 						_tout.add(2000);
 						state(ExecuteTout);
 					}
@@ -444,6 +444,7 @@ void Connection::dynamicExecute(DynamicPointer<IStreamSignal> &_psig){
 					state(Parse);
 				}
 				if(state() == ExecuteTout){
+					idbg("");
 					state(Execute);
 				}
 				break;

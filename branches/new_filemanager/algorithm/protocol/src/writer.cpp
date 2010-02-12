@@ -337,13 +337,16 @@ template <>
 		toread = blen;
 		if(toread > tmpsz) toread = tmpsz;
 		rv = isi->read(_rw.bbeg, toread);
-		if((ulong)rv != toread)
+		if((ulong)rv != toread){
+			idbg(""<<rv<<" "<<sz<<" "<<tmpsz<<" "<<toread);
 			return Bad;
+		}
 		tmpsz -= rv;
 		if(rv < FlushLength)
 			break;
 		switch(_rw.write(_rw.bbeg, rv)){
 			case Bad:
+				idbg("");
 				return Bad;
 			case Ok:
 				rv = 0;

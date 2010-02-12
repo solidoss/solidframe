@@ -19,6 +19,7 @@ public:
 		virtual uint  bufferSize()const = 0;
 		virtual char* allocate() = 0;
 		virtual void release(char *) = 0;
+		virtual uint64 computeCapacity(uint64 _cp) = 0;
 	};
 	template <uint Sz = 4096>
 	struct BasicAllocator: Allocator{
@@ -26,12 +27,15 @@ public:
 			static BasicAllocator<Sz> ba;
 			return ba;
 		}
-		virtual uint  bufferSize()const{return Sz;}
-		virtual char* allocate(){
+		/*virtual*/ uint  bufferSize()const{return Sz;}
+		/*virtual*/ char* allocate(){
 			return new char[Sz];
 		}
-		virtual void release(char *_p){
+		/*virtual*/ void release(char *_p){
 			delete []_p;
+		}
+		/*virtual*/ uint64 computeCapacity(uint64 _cp){
+			return ((_cp / Sz) + 1) * Sz;
 		}
 	};
 

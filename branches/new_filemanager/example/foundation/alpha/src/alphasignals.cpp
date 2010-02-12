@@ -203,7 +203,7 @@ int FetchMasterSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const Sig
 				psig->streamsz = this->filesz;
 			}
 			psig->siguid = _siguid;
-			psig->fuid = tmpfuid;
+			//psig->fuid = tmpfuid;
 			idbg("filesz = "<<this->filesz<<" filepos = "<<this->filepos);
 			this->filesz -= psig->streamsz;
 			fdt::RequestUid reqid(_rce.id(), rm.uid(_rce), _siguid.first, _siguid.second);
@@ -301,7 +301,7 @@ int FetchMasterSignal::receiveSignal(
 //-----------------------------------------------------------------------------------
 
 FetchSlaveSignal::~FetchSlaveSignal(){
-	idbg("");
+	idbg(""<<(void*)this);
 // 	if(fromv.first != 0xffffffff){
 // 		idbg("unsuccessfull sent");
 // 		//signal fromv object to die
@@ -357,14 +357,17 @@ void FetchSlaveSignal::destroyDeserializationStream(
 int FetchSlaveSignal::createDeserializationStream(
 	std::pair<OStream *, int64> &_rps, int _id
 ){
+	idbg(""<<_id<<" "<<filesz<<' '<<fuid.first<<' '<<fuid.second);
 	if(_id) return NOK;
 	if(filesz <= 0) return NOK;
 	
 	StreamPointer<OStream>		sp;
 	fdt::RequestUid				requid;
-	
 	Manager::the().fileManager().stream(sp, fuid, requid, fdt::file::Manager::Forced);
-	if(!sp) return BAD;
+	if(!sp){
+		idbg("");
+		return BAD;
+	}
 	
 	idbg("Create deserialization <"<<_id<<"> sz "<<_rps.second<<" streamptr "<<(void*)sp.ptr());
 	

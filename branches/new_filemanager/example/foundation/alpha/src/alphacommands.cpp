@@ -351,7 +351,7 @@ void Fetch::initReader(Reader &_rr){
 	
 }
 int Fetch::execute(Connection &_rc){
-	idbg("path "<<strpth<<", address "<<straddr<<", port "<<port);
+	idbg("path "<<strpth<<", address "<<straddr<<", port "<<port<<' '<<(void*)this);
 	protocol::Parameter &rp = _rc.writer().push(&Writer::putStatus);
 	pp = &rp;
 	rp = protocol::Parameter(StrDef(" OK Done FETCH@"));
@@ -366,7 +366,7 @@ int Fetch::execute(Connection &_rc){
 }
 
 int Fetch::doInitLocal(){
-	idbg("");
+	idbg(""<<(void*)this);
 	//try to open stream to localfile
 	fdt::RequestUid reqid(rc.id(), Manager::the().uid(rc), rc.newRequestId());
 	int rv = Manager::the().fileManager().stream(sp_out, reqid, strpth.c_str());
@@ -376,6 +376,8 @@ int Fetch::doInitLocal(){
 			return Writer::Ok;
 		case OK: 
 			state = SendLocal;
+			streamsz_out = sp_out->size();
+			litsz = streamsz_out;
 			return Writer::Continue;
 		case NOK:
 			state = WaitLocalStream;
@@ -386,7 +388,8 @@ int Fetch::doInitLocal(){
 }
 
 int Fetch::doGetTempStream(uint32 _sz){
-	fdt::file::TempKey	tk(_sz);
+	idbg(""<<(void*)this<<" "<<_sz);
+	fdt::file::MemoryKey	tk(_sz);
 	fdt::RequestUid		reqid(rc.id(), Manager::the().uid(rc), rc.newRequestId());
 	streamsz_in = _sz;
 	FileUidT	fuid;
@@ -406,7 +409,7 @@ int Fetch::doGetTempStream(uint32 _sz){
 }
 
 void Fetch::doSendMaster(const FileUidT &_fuid){
-	idbg("");
+	idbg(""<<(void*)this);
 	AddrInfo ai(straddr.c_str(), port, 0, AddrInfo::Inet4, AddrInfo::Stream);
 	idbg("addr"<<straddr<<" port = "<<port);
 	if(!ai.empty()){
@@ -429,7 +432,7 @@ void Fetch::doSendMaster(const FileUidT &_fuid){
 }
 
 void Fetch::doSendSlave(const FileUidT &_fuid){
-	idbg("");
+	idbg(""<<(void*)this<<' '<<_fuid.first<<' '<<_fuid.second);
 	FetchSlaveSignal *psig(new FetchSlaveSignal);
 	psig->fromv.first = rc.id();
 	psig->fromv.second = Manager::the().uid(rc);
@@ -438,80 +441,103 @@ void Fetch::doSendSlave(const FileUidT &_fuid){
 	psig->fuid = _fuid;
 	psig->streamsz = streamsz_in;
 	DynamicPointer<fdt::Signal> sigptr(psig);
-	if(Manager::the().ipc().sendSignal(ipcconuid, sigptr) == BAD){
+	int rv = Manager::the().ipc().sendSignal(ipcconuid, sigptr);
+	idbg("rv = "<<rv);
+	if(rv == BAD){
 		*pp = protocol::Parameter(StrDef(" NO FETCH: peer died@"));
 		state = ReturnBad;
 	}
 }
 
 int Fetch::doSendFirstData(Writer &_rw){
-	idbg("");
+	idbg(""<<(void*)this);
+	streamsz_out = streamsz_in;
+	idbg(""<<streamsz_out);
 	uint64 remainsz(litsz - streamsz_in);
 	if(remainsz){
-		uint32 tmpsz = 1024 * 1024;
+		uint32 tmpsz =  512 * 1024;
 		if(remainsz < tmpsz) tmpsz = remainsz;
-		if(doGetTempStream(remainsz) == Writer::Bad){
+		if(doGetTempStream(tmpsz) == Writer::Bad){
 			*pp = protocol::Parameter(StrDef(" NO FETCH: no temp stream@"));
 			return Writer::Ok;
 		}
+	}else{
+		state = ReturnCrlf;
 	}
-	streamsz_out = streamsz_in;
 	sp_out = sp_in;
-	return doSendLiteral(_rw);
+	return doSendLiteral(_rw, false);
 }
 
 int Fetch::doSendNextData(Writer &_rw){
-	idbg("");
+	idbg(""<<(void*)this);
 	uint64 remainsz(litsz - streamsz_in);
+	streamsz_out = streamsz_in;
 	if(remainsz){
-		uint32 tmpsz = 1024 * 1024;
+		uint32 tmpsz = 512 * 1024;
 		if(remainsz < tmpsz) tmpsz = remainsz;
-		if(doGetTempStream(remainsz) == Writer::Bad){
+		if(doGetTempStream(tmpsz) == Writer::Bad){
 			*pp = protocol::Parameter(StrDef(" NO FETCH: no temp stream@"));
 			return Writer::Ok;
 		}
+	}else{
+		state = ReturnCrlf;
 	}
-	streamsz_out = streamsz_in;
 	litsz -= streamsz_out;
 	sp_out = sp_in;
+	cassert(sp_out);
 	it.reinit(sp_out.ptr());
-	_rw.replace(&Writer::putCrlf);
+	//_rw.push(&Writer::putCrlf);
 	_rw.push(&Writer::putStream, protocol::Parameter(&it, &streamsz_out));
 	return Writer::Continue;
 }
 
-int Fetch::doSendLiteral(Writer &_rw){
-	idbg("send literal");
+int Fetch::doSendLiteral(Writer &_rw, bool _local){
+	idbg("send literal "<<litsz<<" "<<streamsz_out);
 	//send local stream
 	cassert(sp_out);
 	it.reinit(sp_out.ptr());
 	_rw<<"* DATA {"<<litsz<<"}\r\n";
 	litsz -= streamsz_out;
-	_rw.replace(&Writer::putCrlf);
+	if(_local){
+		_rw.replace(&Writer::putCrlf);
+	}
 	_rw.push(&Writer::putStream, protocol::Parameter(&it, &streamsz_out));
 	return Writer::Continue;
 }
 
 int Fetch::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
+	idbg("");
 	switch(state){
 		case InitLocal:
+			idbg("");
 			return doInitLocal();
 		case SendLocal:
-			return doSendLiteral(_rw);
+			idbg("");
+			return doSendLiteral(_rw, true);
 		case InitRemote:
+			idbg("");
 			return doGetTempStream(512 * 1024);
 		case SendFirstData:
+			idbg("");
 			return doSendFirstData(_rw);
 		case SendNextData:
+			idbg("");
 			return doSendNextData(_rw);
 		case WaitLocalStream:
 		case WaitTempStream:
 		case WaitRemoteStream:
+			idbg("");
 			return Writer::No;
 		case ReturnBad:
+			idbg("");
 			return Writer::Bad;
 		case ReturnOk:
+			idbg("");
 			return Writer::Ok;
+		case ReturnCrlf:
+			idbg("");
+			_rw.replace(&Writer::putCrlf);
+			return Writer::Continue;
 	}
 	cassert(false);
 	return BAD;
@@ -534,12 +560,15 @@ int Fetch::receiveIStream(
 		state = SendLocal;
 	}else if(state == WaitTempStream){
 		sp_in = _sptr;
+		idbg("");
 		state = WaitRemoteStream;
 		if(litsz == -1L){
 			doSendMaster(_fuid);
 		}else{
 			doSendSlave(_fuid);
 		}
+	}else{
+		idbg("");
 	}
 	return OK;
 }
@@ -550,16 +579,18 @@ int Fetch::receiveNumber(
 	const ObjectUidT& _objuid,
 	const foundation::ipc::ConnectorUid *_pconuid
 ){
-	idbg("");
+	idbg(""<<(void*)this<<" "<<_no);
 	mastersiguid = _objuid;
 	cassert(_pconuid);
 	ipcconuid = *_pconuid;
 	if(litsz != -1L){//continued
 		streamsz_in = sp_in->size();
+		idbg(""<<litsz<<" "<<streamsz_in);
 		state = SendNextData;
 	}else{
 		litsz = _no;
 		streamsz_in = sp_in->size();
+		idbg(""<<litsz<<" "<<streamsz_in);
 		state = SendFirstData;
 	}
 	return OK;

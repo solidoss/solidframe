@@ -107,7 +107,7 @@ protected:
 /*virtual*/ void FileManagerController::init(const fdt::file::Manager::InitStub &_ris){
 	_ris.registerMapper(new fdt::file::NameMapper(10, 1000));
 	_ris.registerMapper(new fdt::file::TempMapper(1024 * 1024 * 1024, "/tmp"));
-	_ris.registerMapper(new fdt::file::MemoryMapper(1024 * 1024 * 10));
+	_ris.registerMapper(new fdt::file::MemoryMapper(1024 * 1024 * 100));
 }
 /*virtual*/ void FileManagerController::removeFileManager(){
 	Manager::the().removeFileManager();

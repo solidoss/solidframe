@@ -409,9 +409,15 @@ inline const ProcessConnector::Data::OutWaitSignal& ProcessConnector::Data::wait
 }
 
 
-SignalUid ProcessConnector::Data::pushOutWaitSignal(uint32 _bufid, DynamicPointer<Signal> &_sig, uint32 _flags, uint32 _id){
+SignalUid ProcessConnector::Data::pushOutWaitSignal(
+	uint32 _bufid,
+	DynamicPointer<Signal> &_sig,
+	uint32 _flags,
+	uint32 _id
+){
 	_flags &= ~Service::SentFlag;
 	_flags &= ~Service::WaitResponseFlag;
+	
 	if(this->outfreesigstk.size()){
 		OutWaitSignal &owc = outsigv[outfreesigstk.top()];
 		owc.bufid = _bufid;
@@ -425,7 +431,10 @@ SignalUid ProcessConnector::Data::pushOutWaitSignal(uint32 _bufid, DynamicPointe
 		return SignalUid(outsigv.size() - 1, 0/*uid*/);
 	}
 }
-void ProcessConnector::Data::popOutWaitSignals(uint32 _bufid, const ConnectorUid &_rconid){
+void ProcessConnector::Data::popOutWaitSignals(
+	uint32 _bufid,
+	const ConnectorUid &_rconid
+){
 	for(OutCmdVectorT::iterator it(outsigv.begin()); it != outsigv.end(); ++it){
 		if(it->bufid == _bufid && it->sig.ptr()){
 			it->bufid = 0;
@@ -440,6 +449,7 @@ void ProcessConnector::Data::popOutWaitSignals(uint32 _bufid, const ConnectorUid
 			}
 		}
 	}
+	idbgx(Dbg::ipc, "");
 }
 void ProcessConnector::Data::popOutWaitSignal(const SignalUid &_rsiguid){
 	if(_rsiguid.idx < outsigv.size() && outsigv[_rsiguid.idx].uid == _rsiguid.uid){

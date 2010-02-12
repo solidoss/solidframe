@@ -258,6 +258,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 					rpp.first->pushSignal(d.sigq.front().psig, d.sigq.front().flags);
 					d.cq.push(d.sigq.front().procid);
 				}
+				idbgx(Dbg::ipc, "");
 				d.sigq.pop();
 			}
 		}

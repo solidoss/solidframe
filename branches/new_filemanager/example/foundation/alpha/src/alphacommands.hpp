@@ -145,12 +145,13 @@ private:
 		SendTempError,
 		SendError,
 		ReturnBad,
-		ReturnOk
+		ReturnOk,
+		ReturnCrlf,
 	};
 	void doSendMaster(const FileUidT &_fuid);
 	void doSendSlave(const FileUidT &_fuid);
 	int doInitLocal();
-	int doSendLiteral(Writer &_rw);
+	int doSendLiteral(Writer &_rw, bool _local);
 	int doGetTempStream(uint32 _sz);
 	int doSendFirstData(Writer &_rw);
 	int doSendNextData(Writer &_rw);
