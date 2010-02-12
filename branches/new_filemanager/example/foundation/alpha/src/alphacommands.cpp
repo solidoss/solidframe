@@ -323,7 +323,6 @@ int RemoteList::receiveError(
 	const ObjectUidT&_from,
 	const fdt::ipc::ConnectorUid *_conid
 ){
-	idbg("");
 	state = SendError;
 	return OK;
 }
@@ -506,36 +505,26 @@ int Fetch::doSendLiteral(Writer &_rw, bool _local){
 }
 
 int Fetch::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
-	idbg("");
 	switch(state){
 		case InitLocal:
-			idbg("");
 			return doInitLocal();
 		case SendLocal:
-			idbg("");
 			return doSendLiteral(_rw, true);
 		case InitRemote:
-			idbg("");
 			return doGetTempStream(512 * 1024);
 		case SendFirstData:
-			idbg("");
 			return doSendFirstData(_rw);
 		case SendNextData:
-			idbg("");
 			return doSendNextData(_rw);
 		case WaitLocalStream:
 		case WaitTempStream:
 		case WaitRemoteStream:
-			idbg("");
 			return Writer::No;
 		case ReturnBad:
-			idbg("");
 			return Writer::Bad;
 		case ReturnOk:
-			idbg("");
 			return Writer::Ok;
 		case ReturnCrlf:
-			idbg("");
 			_rw.replace(&Writer::putCrlf);
 			return Writer::Continue;
 	}
@@ -550,7 +539,6 @@ int Fetch::receiveIStream(
 	const ObjectUidT&,
 	const foundation::ipc::ConnectorUid *
 ){
-	idbg(""<<(void*)this);
 	//sp_out =_sptr;
 	//fuid = _fuid;
 	if(state == WaitLocalStream){
@@ -560,15 +548,12 @@ int Fetch::receiveIStream(
 		state = SendLocal;
 	}else if(state == WaitTempStream){
 		sp_in = _sptr;
-		idbg("");
 		state = WaitRemoteStream;
 		if(litsz == -1L){
 			doSendMaster(_fuid);
 		}else{
 			doSendSlave(_fuid);
 		}
-	}else{
-		idbg("");
 	}
 	return OK;
 }
@@ -579,7 +564,6 @@ int Fetch::receiveNumber(
 	const ObjectUidT& _objuid,
 	const foundation::ipc::ConnectorUid *_pconuid
 ){
-	idbg(""<<(void*)this<<" "<<_no);
 	mastersiguid = _objuid;
 	cassert(_pconuid);
 	ipcconuid = *_pconuid;
@@ -601,7 +585,6 @@ int Fetch::receiveError(
 	const ObjectUidT&_from,
 	const foundation::ipc::ConnectorUid *
 ){
-	idbg("");
 	switch(state){
 		case WaitLocalStream:
 			state = SendError;
@@ -885,9 +868,7 @@ int Idle::receiveIStream(
 	}else{
 		typeq.push(LocalStreamType);
 	}
-	idbg("");
 	streamq.push(_sp);
-	idbg("");
 	_sp.release();
 	fromq.push(_from);
 	rc.writer().push(&Writer::reinit<Idle>, protocol::Parameter(this, 1));
