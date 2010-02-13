@@ -744,35 +744,7 @@ bool ProcessConnector::moveToNextInBuffer(){
 int ProcessConnector::pushReceivedBuffer(Buffer &_rbuf, const ConnectorUid &_rconid, const TimeSpec &_tpos){
 	idbgx(Dbg::ipc, "rcvbufid = "<<_rbuf.id()<<" expected id "<<d.expectedid<<" inbufq.size = "<<d.inbufq.size()<<" flags = "<<_rbuf.flags());
 	d.rcvtpos = _tpos;
-	if(_rbuf.id() != d.expectedid){
-		if(_rbuf.id() < d.expectedid){
-			//the peer doesnt know that we've already received the buffer
-			//add it as update
-			d.rcvidq.push(_rbuf.id());
-			idbgx(Dbg::ipc, "already received buffer - resend update");
-			return NOK;//we have to send updates
-		}else if(_rbuf.id() <= Data::LastBufferId){
-			if(_rbuf.updatesCount()){//we have updates
-				freeSentBuffers(_rbuf, _rconid);
-			}
-			//try to keep the buffer for future parsing
-			if(d.inbufq.size() < 4){//TODO: use a variable instead of inline value
-				d.rcvidq.push(_rbuf.id());//for peer updates
-				d.inbufq.push(_rbuf);
-				_rbuf.reinit();
-				idbgx(Dbg::ipc, "keep the buffer for future parsing");
-				return NOK;//we have to send updates
-			}else{
-				idbgx(Dbg::ipc, "to many buffers out-of-order");
-				return OK;
-			}
-		}else if(_rbuf.id() == Data::UpdateBufferId){//a buffer containing only updates
-			_rbuf.updatesCount();
-			idbgx(Dbg::ipc, "received buffer containing only updates");
-			if(freeSentBuffers(_rbuf, _rconid)) return NOK;
-			return OK;
-		}
-	}else{
+	if(_rbuf.id() == d.expectedid){
 		//the expected buffer
 		d.rcvidq.push(_rbuf.id());
 		if(_rbuf.updatesCount()){
@@ -795,6 +767,32 @@ int ProcessConnector::pushReceivedBuffer(Buffer &_rbuf, const ConnectorUid &_rco
 			d.incrementExpectedId();//move to the next buffer
 		}
 		return NOK;//we have something to send
+	}else{
+		if(_rbuf.id() < d.expectedid){
+			//the peer doesnt know that we've already received the buffer
+			//add it as update
+			d.rcvidq.push(_rbuf.id());
+			idbgx(Dbg::ipc, "already received buffer - resend update");
+			return NOK;//we have to send updates
+		}else if(_rbuf.id() <= Data::LastBufferId){
+			if(_rbuf.updatesCount()){//we have updates
+				freeSentBuffers(_rbuf, _rconid);
+			}
+			//try to keep the buffer for future parsing
+			if(d.inbufq.size() < 4){//TODO: use a variable instead of inline value
+				d.rcvidq.push(_rbuf.id());//for peer updates
+				d.inbufq.push(_rbuf);
+				_rbuf.reinit();
+				idbgx(Dbg::ipc, "keep the buffer for future parsing");
+				return NOK;//we have to send updates
+			}else{
+				idbgx(Dbg::ipc, "to many buffers out-of-order");
+			}
+		}else if(_rbuf.id() == Data::UpdateBufferId){//a buffer containing only updates
+			_rbuf.updatesCount();
+			idbgx(Dbg::ipc, "received buffer containing only updates");
+			if(freeSentBuffers(_rbuf, _rconid)) return NOK;
+		}
 	}
 	return OK;
 }
