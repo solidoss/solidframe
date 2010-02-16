@@ -446,15 +446,16 @@ void ProcessConnector::Data::popOutWaitSignals(
 			}else{
 				++it->uid;
 				it->sig.clear();
+				outfreesigstk.push(it - outsigv.begin());
 			}
 		}
 	}
-	idbgx(Dbg::ipc, "");
 }
 void ProcessConnector::Data::popOutWaitSignal(const SignalUid &_rsiguid){
 	if(_rsiguid.idx < outsigv.size() && outsigv[_rsiguid.idx].uid == _rsiguid.uid){
 		idbgx(Dbg::ipc, "signal received response "<<_rsiguid.idx<<','<<_rsiguid.uid);
 		outsigv[_rsiguid.idx].sig.clear();
+		outfreesigstk.push(_rsiguid.idx);
 		--respwaitsigcnt;
 	}
 }
@@ -807,8 +808,9 @@ int ProcessConnector::pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpo
 			switch(_rbuf.b.id()){
 				case Data::UpdateBufferId:{
 					idbgx(Dbg::ipc, "sent updates - collecting buffer");
-					char *pb = _rbuf.b.buffer();
-					Specific::pushBuffer(pb, Specific::capacityToId(_rbuf.b.bufferCapacity()));
+					uint32	cp(0);
+					char 	*pb(_rbuf.b.release(cp));
+					Specific::pushBuffer(pb, Specific::capacityToId(cp));
 					//++d.bufjetons;
 					return NOK;//maybe we have something to send
 					}

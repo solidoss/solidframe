@@ -64,45 +64,59 @@ struct Talker::Data{
 	typedef std::pair<ProcessConnector*, uint16>		ProcPairT;
 	typedef std::vector<ProcPairT>						ProcVectorT;
 	
-	typedef std::map<const Inet4SockAddrPair*, 
-						uint32, Inet4AddrPtrCmp>		PeerProcAddr4MapT;//TODO: test if a hash map is better
+	typedef std::map<
+		const Inet4SockAddrPair*,
+		uint32,
+		Inet4AddrPtrCmp
+		>												PeerProcAddr4MapT;//TODO: test if a hash map is better
 	typedef std::pair<const Inet4SockAddrPair*, int>	BaseProcAddr4;
-	typedef std::map<const BaseProcAddr4*, uint32, Inet4AddrPtrCmp>
-														BaseProcAddr4MapT;
+	typedef std::map<
+		const BaseProcAddr4*,
+		uint32,
+		Inet4AddrPtrCmp
+		>												BaseProcAddr4MapT;
 	
-	typedef std::map<const Inet6SockAddrPair*, 
-						uint32, Inet6AddrPtrCmp>		PeerProcAddr6MapT;//TODO: test if a hash map is better
+	typedef std::map<
+		const Inet6SockAddrPair*, 
+		uint32,
+		Inet6AddrPtrCmp
+		>												PeerProcAddr6MapT;//TODO: test if a hash map is better
 	typedef std::pair<const Inet6SockAddrPair*, int>	BaseProcAddr6;
-	typedef std::map<const BaseProcAddr6*, uint32, Inet6AddrPtrCmp>
-														BaseProcAddr6MapT;
+	typedef std::map<
+		const BaseProcAddr6*,
+		uint32, Inet6AddrPtrCmp
+		>												BaseProcAddr6MapT;
 
 	
 	typedef Queue<uint32>								CmdQueueT;
 	typedef Stack<uint32>								CloseStackT;
 	typedef Stack<std::pair<uint16, uint16> >			FreePosStackT;//first is the pos second is the uid
 	typedef Queue<SignalData>							SignalQueueT;
-	typedef std::priority_queue<SendBufferData*, std::vector<SendBufferData*>, SendBufferDataCmp>	
-														SendQueueT;
+	typedef std::priority_queue<
+		SendBufferData*,
+		std::vector<SendBufferData*>,
+		SendBufferDataCmp
+		>												SendQueueT;
 	typedef Stack<SendBufferData>						SendStackT;
 	typedef Stack<SendBufferData*>						SendFreeStackT;
-	typedef Stack<NewProcPairT>						NewProcStackT;
+	typedef Stack<NewProcPairT>							NewProcStackT;
 
 	Data(Service &_rservice, uint16 _id):rservice(_rservice), nextprocid(0), tkrid(_id){}
-	Service				&rservice;
-	uint32				nextprocid;
-	uint16				tkrid;
-	Buffer				rcvbuf;
-	ProcVectorT		procs;
-	PeerProcAddr4MapT	peerpm4;
-	BaseProcAddr4MapT	basepm4;
-	FreePosStackT		procfs;
-	CmdQueueT			cq;
-	SignalQueueT		sigq;
-	SendQueueT			sendq;
-	SendStackT			sends;
-	SendFreeStackT		sendfs;
-	NewProcStackT		newprocs;
-	CloseStackT		closes;//a stack with talkers which want to close
+	Service					&rservice;
+	uint32					nextprocid;
+	uint16					tkrid;
+	Buffer					rcvbuf;
+	ProcVectorT				procs;
+	PeerProcAddr4MapT		peerpm4;
+	BaseProcAddr4MapT		basepm4;
+	FreePosStackT			procfs;
+	CmdQueueT				cq;
+	SignalQueueT			sigq;
+	SendQueueT				sendq;
+	SendStackT				sends;
+	SendFreeStackT			sendfs;
+	NewProcStackT			newprocs;
+	CloseStackT				closes;//a stack with talkers which want to close
 };
 
 //======================================================================
@@ -520,10 +534,10 @@ bool Talker::dispatchSentBuffer(const TimeSpec &_rts){
 	d.sendq.pop();
 	if(renqueuebuf){
 		d.sendq.push(psb);
-	}/*else{//TODO:
+	}else{//TODO:
 		cassert(!psb->b.buffer());
 		d.sendfs.push(psb);
-	}*/
+	}
 	return d.cq.size();
 }
 //----------------------------------------------------------------------

@@ -53,7 +53,7 @@ namespace file{
 struct Manager::Data{
 	enum {Running = 1, Stopping, Stopped = -1};
 	
-	typedef MutualObjectContainer<Mutex>	MutexContainerT;
+	typedef MutualObjectContainer<Mutex>		MutexContainerT;
 	typedef Stack<IndexT	>					FreeStackT;
 	struct FileData{
 		FileData(
@@ -102,7 +102,7 @@ struct Manager::Data{
 	typedef Queue<SendErrorDataT>		SendErrorQueueT;
 	
 	
-	Data(Controller *_pc):pc(_pc), sz(0), mut(NULL){}
+	Data(Controller *_pc):pc(_pc), sz(0), mut(NULL), mutpool(0, 3, 5){}
 	~Data(){}
 	void pushFileInTemp(File *_pf);
 //data:
