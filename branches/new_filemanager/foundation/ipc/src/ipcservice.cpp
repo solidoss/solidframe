@@ -66,7 +66,9 @@ struct Service::Data{
 		Inet6AddrPtrCmp
 		>												BaseProcAddr6MapT;
 	typedef std::vector<TkrPairT>						TalkerVectorT;
+	
 	Data();
+	
 	~Data();	
 	
 	int						procpertkrcnt;
@@ -82,6 +84,7 @@ struct Service::Data{
 
 Service::Data::Data():procpertkrcnt(10), proccnt(0), baseport(-1){
 }
+
 Service::Data::~Data(){
 }
 
@@ -96,9 +99,11 @@ Service::Service(uint32 _keepalivetout):d(*(new Data)){
 Service::~Service(){
 	delete &d;
 }
+
 uint32 Service::keepAliveTimeout()const{
 	return d.keepalivetout;
 }
+
 int Service::sendSignal(
 	const ConnectorUid &_rconid,//the id of the process connector
 	DynamicPointer<Signal> &_psig,//the signal to be sent
@@ -361,7 +366,6 @@ int Service::execute(ulong _sig, TimeSpec &_rtout){
 	}
 	return NOK;
 }
-
 
 //=======	Buffer		=============================================
 bool Buffer::check()const{

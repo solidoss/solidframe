@@ -146,41 +146,62 @@ struct ProcessConnector::Data{
 				return (id - _owc.id) > (uint32)(0xffffffff/2);
 			//}else return false;
 		}
-		uint32				bufid;
-		DynamicPointer<Signal> sig;
-		BinSerializerT		*pser;
-		uint32				flags;
-		uint32				id;
-		uint32				uid;
+		uint32					bufid;
+		DynamicPointer<Signal>	sig;
+		BinSerializerT			*pser;
+		uint32					flags;
+		uint32					id;
+		uint32					uid;
 	};
 	
 	typedef std::pair<Buffer, uint16>			OutBufferPairT;
-	typedef std::vector<OutBufferPairT>		OutBufferVectorT;
+	typedef std::vector<OutBufferPairT>			OutBufferVectorT;
 	typedef Stack<uint16>						OutFreePosStackT;
-	typedef std::priority_queue<Buffer,std::vector<Buffer>,BufCmp>	
-												BufferPriorityQueueT;
-	typedef std::pair<DynamicPointer<Signal>, uint32>
-												CmdPairT;
-	typedef Queue<CmdPairT>					CmdQueueT;
+	typedef std::priority_queue<
+		Buffer,
+		std::vector<Buffer>,
+		BufCmp
+		>										BufferPriorityQueueT;
+	typedef std::pair<
+		DynamicPointer<Signal>,
+		uint32
+		>										CmdPairT;
+	typedef Queue<CmdPairT>						CmdQueueT;
 	typedef std::deque<OutWaitSignal>			OutCmdVectorT;
 	typedef Queue<uint32>						ReceivedIdsQueueT;
-	typedef std::pair<const SockAddrPair*, int>	BaseProcAddr;
-	typedef std::pair<Signal*, BinDeserializerT*>
-												RecvCmdPairT;
-	typedef Queue<RecvCmdPairT>				RecvCmdQueueT;
+	typedef std::pair<
+		const SockAddrPair*,
+		int
+		>										BaseProcAddr;
+	typedef std::pair<
+		Signal*,
+		BinDeserializerT*
+		>										RecvCmdPairT;
+	typedef Queue<RecvCmdPairT>					RecvCmdQueueT;
 	typedef Queue<SignalUid>					SendCmdQueueT;
 	
 	Data(const Inet4SockAddrPair &_raddr, uint32 _keepalivetout);
+	
 	Data(const Inet4SockAddrPair &_raddr, int _baseport, uint32 _keepalivetout);
+	
 	~Data();
+	
 	std::pair<uint16, uint16> insertSentBuffer(Buffer &);
+	
 	std::pair<uint16, uint16> getSentBuffer(int _bufpos);
+	
 	void incrementExpectedId();
+	
 	void incrementSendId();
+	
 	BinSerializerT* popSerializer();
+	
 	void pushSerializer(BinSerializerT*);
+	
 	BinDeserializerT* popDeserializer();
+	
 	void pushDeserializer(BinDeserializerT*);
+	
 	//save signals to be resent in case of disconnect
 	SignalUid pushOutWaitSignal(
 		uint32 _bufid,
@@ -188,23 +209,36 @@ struct ProcessConnector::Data{
 		uint32 _flags,
 		uint32 _id
 	);
+	
 	OutWaitSignal& waitSignal(const SignalUid &_siguid);
+	
 	const OutWaitSignal& waitSignal(const SignalUid &_siguid)const;
+	
 	OutWaitSignal& waitFrontSignal();
+	
 	const OutWaitSignal& waitFrontSignal()const;
+	
 	OutWaitSignal& waitBackSignal();
+	
 	const OutWaitSignal& waitBackSignal()const;
+	
 	//eventually pops signals associated to a buffer
 	void popOutWaitSignals(uint32 _bufid, const ConnectorUid &_rconid);
+	
 	//pops a signal waiting for a response
 	void popOutWaitSignal(const SignalUid &_rsiguid);
+	
 	OutBufferPairT& keepAliveBuffer(){
 		cassert(outbufs.size());
 		return outbufs[0];
 	}
+	
 	void prepareKeepAlive();
+	
 	bool canSendKeepAlive(const TimeSpec &_tpos);
+	
 	uint computeRetransmitTimeout(const uint _retrid, const uint32 _bufid);
+	
 //data:	
 	uint32					expectedid;
 	uint16					retrpos;//see note 2
@@ -241,6 +275,7 @@ struct ProcessConnector::Data{
 	return sd;
 }
 
+//----------------------------------------------------------------------
 StaticData::StaticData(){
 	const uint datsz = StaticData::DataRetransmitCount;
 	const uint consz = StaticData::ConnectRetransmitCount;
@@ -260,7 +295,7 @@ StaticData::StaticData(){
 	}
 }
 
-
+//----------------------------------------------------------------------
 ulong StaticData::retransmitTimeout(uint _pos){
 	cassert(_pos < toutvec.size());
 	return toutvec[_pos];
@@ -278,6 +313,7 @@ ProcessConnector::Data::Data(const Inet4SockAddrPair &_raddr, uint32 _keepalivet
 	outbufs.push_back(OutBufferPairT(Buffer(NULL,0), 0));
 }
 
+//----------------------------------------------------------------------
 ProcessConnector::Data::Data(const Inet4SockAddrPair &_raddr, int _baseport, uint32 _keepalivetout):
 	expectedid(1), /*retranstimeout(StartRetransmitTimeout),*/retrpos(0),
 	state(Accepting), flags(0), bufjetons(3), crtsigbufcnt(MaxSignalBufferCount), sendid(0),
@@ -287,7 +323,7 @@ ProcessConnector::Data::Data(const Inet4SockAddrPair &_raddr, int _baseport, uin
 	outbufs.push_back(OutBufferPairT(Buffer(NULL,0), 0));
 }
 
-
+//----------------------------------------------------------------------
 ProcessConnector::Data::~Data(){
 	for(OutBufferVectorT::iterator it(outbufs.begin()); it != outbufs.end(); ++it){
 		char *pb = it->first.buffer();
@@ -333,6 +369,8 @@ ProcessConnector::Data::~Data(){
 	}
 	idbgx(Dbg::ipc, "done deleting process");
 }
+
+//----------------------------------------------------------------------
 std::pair<uint16, uint16> ProcessConnector::Data::insertSentBuffer(Buffer &_rbuf){
 	std::pair<uint16, uint16> p;
 	cassert(_rbuf.buffer());
@@ -349,18 +387,26 @@ std::pair<uint16, uint16> ProcessConnector::Data::insertSentBuffer(Buffer &_rbuf
 	}
 	return p;
 }
+
+//----------------------------------------------------------------------
 std::pair<uint16, uint16> ProcessConnector::Data::getSentBuffer(int _bufpos){
 	cassert(_bufpos < (int)outbufs.size());
 	return std::pair<uint16, uint16>(_bufpos, outbufs[_bufpos].second);
 }
+
+//----------------------------------------------------------------------
 inline void ProcessConnector::Data::incrementExpectedId(){
 	++expectedid;
 	if(expectedid > LastBufferId) expectedid = 0;
 }
+
+//----------------------------------------------------------------------
 inline void ProcessConnector::Data::incrementSendId(){
 	++sendid;
 	if(sendid > LastBufferId) sendid = 0;
 }
+
+//----------------------------------------------------------------------
 //TODO: use Specific
 ProcessConnector::Data::BinSerializerT* ProcessConnector::Data::popSerializer(){
 	BinSerializerT* p = Specific::tryUncache<BinSerializerT>();
@@ -369,10 +415,14 @@ ProcessConnector::Data::BinSerializerT* ProcessConnector::Data::popSerializer(){
 	}
 	return p;
 }
+
+//----------------------------------------------------------------------
 void ProcessConnector::Data::pushSerializer(ProcessConnector::Data::BinSerializerT* _p){
 	cassert(_p->empty());
 	Specific::cache(_p);
 }
+
+//----------------------------------------------------------------------
 ProcessConnector::Data::BinDeserializerT* ProcessConnector::Data::popDeserializer(){
 	BinDeserializerT* p = Specific::tryUncache<BinDeserializerT>();
 	if(!p){
@@ -380,35 +430,46 @@ ProcessConnector::Data::BinDeserializerT* ProcessConnector::Data::popDeserialize
 	}
 	return p;
 }
+
+//----------------------------------------------------------------------
 void ProcessConnector::Data::pushDeserializer(ProcessConnector::Data::BinDeserializerT* _p){
 	cassert(_p->empty());
 	Specific::cache(_p);
 }
 
+//----------------------------------------------------------------------
 inline ProcessConnector::Data::OutWaitSignal& ProcessConnector::Data::waitSignal(const SignalUid &_siguid){
 	cassert(_siguid.idx < outsigv.size() && outsigv[_siguid.idx].uid == _siguid.uid);
 	return outsigv[_siguid.idx];
 }
+
+//----------------------------------------------------------------------
 inline const ProcessConnector::Data::OutWaitSignal& ProcessConnector::Data::waitSignal(const SignalUid &_siguid)const{
 	cassert(_siguid.idx < outsigv.size() && outsigv[_siguid.idx].uid == _siguid.uid);
 	return outsigv[_siguid.idx];
 }
 
+//----------------------------------------------------------------------
 inline ProcessConnector::Data::OutWaitSignal& ProcessConnector::Data::waitFrontSignal(){
 	return waitSignal(scq.front());
 }
+
+//----------------------------------------------------------------------
 inline const ProcessConnector::Data::OutWaitSignal& ProcessConnector::Data::waitFrontSignal()const{
 	return waitSignal(scq.front());
 }
 
+//----------------------------------------------------------------------
 inline ProcessConnector::Data::OutWaitSignal& ProcessConnector::Data::waitBackSignal(){
 	return waitSignal(scq.back());
 }
+
+//----------------------------------------------------------------------
 inline const ProcessConnector::Data::OutWaitSignal& ProcessConnector::Data::waitBackSignal()const{
 	return waitSignal(scq.back());
 }
 
-
+//----------------------------------------------------------------------
 SignalUid ProcessConnector::Data::pushOutWaitSignal(
 	uint32 _bufid,
 	DynamicPointer<Signal> &_sig,
@@ -431,6 +492,8 @@ SignalUid ProcessConnector::Data::pushOutWaitSignal(
 		return SignalUid(outsigv.size() - 1, 0/*uid*/);
 	}
 }
+
+//----------------------------------------------------------------------
 void ProcessConnector::Data::popOutWaitSignals(
 	uint32 _bufid,
 	const ConnectorUid &_rconid
@@ -451,6 +514,8 @@ void ProcessConnector::Data::popOutWaitSignals(
 		}
 	}
 }
+
+//----------------------------------------------------------------------
 void ProcessConnector::Data::popOutWaitSignal(const SignalUid &_rsiguid){
 	if(_rsiguid.idx < outsigv.size() && outsigv[_rsiguid.idx].uid == _rsiguid.uid){
 		idbgx(Dbg::ipc, "signal received response "<<_rsiguid.idx<<','<<_rsiguid.uid);
@@ -459,6 +524,8 @@ void ProcessConnector::Data::popOutWaitSignal(const SignalUid &_rsiguid){
 		--respwaitsigcnt;
 	}
 }
+
+//----------------------------------------------------------------------
 bool ProcessConnector::Data::canSendKeepAlive(const TimeSpec &_tpos){
 	idbgx(Dbg::ipc, "keepalivetout = "<<keepalivetout<<" respwaitsigcnt = "<<respwaitsigcnt<<" rcq = "<<rcq.size()<<" cq = "<<cq.size()<<" scq = "<<scq.size());
 	idbgx(Dbg::ipc, "_tpos = "<<_tpos.seconds()<<','<<_tpos.nanoSeconds()<<" rcvtpos = "<<rcvtpos.seconds()<<','<<rcvtpos.nanoSeconds());
@@ -466,6 +533,8 @@ bool ProcessConnector::Data::canSendKeepAlive(const TimeSpec &_tpos){
 		(rcq.empty() || rcq.size() == 1 && !rcq.front().first) && 
 		cq.empty() && scq.empty() && _tpos >= rcvtpos;
 }
+
+//----------------------------------------------------------------------
 void ProcessConnector::Data::prepareKeepAlive(){
 	//cassert(outbufs.empty());
 	idbgx(Dbg::ipc,"");
@@ -475,6 +544,7 @@ void ProcessConnector::Data::prepareKeepAlive(){
 	outbufs[0] = OutBufferPairT(b, 0);
 }
 
+//----------------------------------------------------------------------
 inline uint ProcessConnector::Data::computeRetransmitTimeout(const uint _retrid, const uint32 _bufid){
 	if(!(_bufid & StaticData::RefreshIndex)){
 		//recalibrate the retrpos
@@ -495,13 +565,17 @@ ProcessConnector::~ProcessConnector(){
 	delete &d;
 }
 
+//----------------------------------------------------------------------
 void ProcessConnector::init(){
 }
+
+//----------------------------------------------------------------------
 void ProcessConnector::prepare(){
 	//add the keepalive buffer to outvec
 	d.prepareKeepAlive();
 }
 
+//----------------------------------------------------------------------
 // static
 int ProcessConnector::parseAcceptedBuffer(Buffer &_rbuf){
 	if(_rbuf.dataSize() == sizeof(int32)){
@@ -510,6 +584,8 @@ int ProcessConnector::parseAcceptedBuffer(Buffer &_rbuf){
 	}
 	return BAD;
 }
+
+//----------------------------------------------------------------------
 // static
 int ProcessConnector::parseConnectingBuffer(Buffer &_rbuf){
 	if(_rbuf.dataSize() == sizeof(int32)){
@@ -518,7 +594,8 @@ int ProcessConnector::parseConnectingBuffer(Buffer &_rbuf){
 	}
 	return BAD;
 }
-	
+
+//----------------------------------------------------------------------
 ProcessConnector::ProcessConnector(
 	const Inet4SockAddrPair &_raddr,
 	uint32 _keepalivetout
@@ -526,6 +603,7 @@ ProcessConnector::ProcessConnector(
 	idbgx(Dbg::ipc, "");
 }
 
+//----------------------------------------------------------------------
 //ProcessConnector::ProcessConnector(BinMapper &_rm, const Inet6SockAddrPair &_raddr):d(*(new Data(_rm, _raddr))){}
 ProcessConnector::ProcessConnector(
 	const Inet4SockAddrPair &_raddr,
@@ -535,7 +613,7 @@ ProcessConnector::ProcessConnector(
 	idbgx(Dbg::ipc, "");
 }
 
-
+//----------------------------------------------------------------------
 //TODO: ensure that really no signal is dropped on reconnect
 // not even those from Dropped buffers!!!
 void ProcessConnector::reconnect(ProcessConnector *_ppc){
@@ -667,22 +745,27 @@ void ProcessConnector::reconnect(ProcessConnector *_ppc){
 	d.outfreestk.push(1);
 }
 
+//----------------------------------------------------------------------
 bool ProcessConnector::isConnected()const{
 	return d.state > Data::Connecting;
 }
+
+//----------------------------------------------------------------------
 bool ProcessConnector::isDisconnecting()const{
 	return d.state == Data::Disconnecting;
 }
 
+//----------------------------------------------------------------------
 bool ProcessConnector::isConnecting()const{
 	return d.state == Data::Connecting;
 }
 
-
+//----------------------------------------------------------------------
 bool ProcessConnector::isAccepting()const{
 	return d.state == Data::Accepting;
 }
 
+//----------------------------------------------------------------------
 void ProcessConnector::completeConnect(int _pairport){
 	if(d.state == Data::Connected) return;
 	d.state = Data::Connected;
@@ -700,25 +783,19 @@ void ProcessConnector::completeConnect(int _pairport){
 	d.rcvidq.push(0);
 }
 
+//----------------------------------------------------------------------
 const Inet4SockAddrPair* ProcessConnector::peerAddr4()const{
 	const SockAddrPair *p = &(d.pairaddr);
 	return reinterpret_cast<const Inet4SockAddrPair*>(p);
 }
 
+//----------------------------------------------------------------------
 const std::pair<const Inet4SockAddrPair*, int>* ProcessConnector::baseAddr4()const{
 	const Data::BaseProcAddr *p = &(d.baseaddr);
 	return reinterpret_cast<const std::pair<const Inet4SockAddrPair*, int>*>(p);
 }
 
-// const Inet6SockAddrPair* ProcessConnector::pairAddr6()const{
-// 	return reinterpret_cast<Inet6SockAddrPair*>(&d.pairaddr);
-// }
-// 
-// const std::pair<const Inet6SockAddrPair*, int>* ProcessConnector::baseAddr6()const{
-// 	return reinterpret_cast<std::pair<const Inet6SockAddrPair*, int>*>(&d.baseaddr);
-// }
-
-
+//----------------------------------------------------------------------
 int ProcessConnector::pushSignal(DynamicPointer<Signal> &_rsig, uint32 _flags){
 	//_flags &= ~Data::ProcessReservedFlags;
 	d.cq.push(Data::CmdPairT(_rsig, _flags));
@@ -726,6 +803,7 @@ int ProcessConnector::pushSignal(DynamicPointer<Signal> &_rsig, uint32 _flags){
 	return OK;
 }
 
+//----------------------------------------------------------------------
 bool ProcessConnector::moveToNextInBuffer(){
 	while(d.inbufq.size() && (d.inbufq.top().id() < d.expectedid)){
 		idbgx(Dbg::ipc, "inbufq.size() = "<<d.inbufq.size()<<" d.inbufq.top().id() = "<<d.inbufq.top().id()<<" d.expectedid "<<d.expectedid); 
@@ -742,6 +820,7 @@ bool ProcessConnector::moveToNextInBuffer(){
 	return false;
 }
 
+//----------------------------------------------------------------------
 int ProcessConnector::pushReceivedBuffer(Buffer &_rbuf, const ConnectorUid &_rconid, const TimeSpec &_tpos){
 	idbgx(Dbg::ipc, "rcvbufid = "<<_rbuf.id()<<" expected id "<<d.expectedid<<" inbufq.size = "<<d.inbufq.size()<<" flags = "<<_rbuf.flags());
 	d.rcvtpos = _tpos;
@@ -797,6 +876,8 @@ int ProcessConnector::pushReceivedBuffer(Buffer &_rbuf, const ConnectorUid &_rco
 	}
 	return OK;
 }
+
+//----------------------------------------------------------------------
 /*
 Prevent the following situation to occur:
 A buffer is received with updates, buffers for which pushSent was not called
@@ -916,12 +997,12 @@ int ProcessConnector::pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpo
 	return OK;
 }
 
+//----------------------------------------------------------------------
 /*
 NOTE: VERY IMPORTANT
 	because were using socket address as SockAddrPair and not SocketAddress, the process MUST not be
 	destroyed if there are buffers pending for sending (outstk.size < outbufs.size)
 */
-
 int ProcessConnector::processSendSignals(SendBufferData &_rsb, const TimeSpec &_tpos, int _baseport){
 	idbgx(Dbg::ipc, "bufjetons = "<<d.bufjetons);
 	if(d.bufjetons || d.state != Data::Connected || d.rcvidq.size()){
@@ -1102,6 +1183,7 @@ int ProcessConnector::processSendSignals(SendBufferData &_rsb, const TimeSpec &_
 	return BAD;//nothing to send
 }
 
+//----------------------------------------------------------------------
 //TODO: optimize!!
 bool ProcessConnector::freeSentBuffers(Buffer &_rbuf, const ConnectorUid &_rconid){
 	bool b = false;
@@ -1128,6 +1210,8 @@ bool ProcessConnector::freeSentBuffers(Buffer &_rbuf, const ConnectorUid &_rconi
 	idbgx(Dbg::ipc, "end update count "<<_rbuf.updatesCount()<<" sent count = "<<d.outbufs.size());
 	return b;
 }
+
+//----------------------------------------------------------------------
 void ProcessConnector::parseBuffer(Buffer &_rbuf, const ConnectorUid &_rconid){
 	const char *bpos = _rbuf.data();
 	int			blen = _rbuf.dataSize();
@@ -1198,7 +1282,6 @@ void ProcessConnector::parseBuffer(Buffer &_rbuf, const ConnectorUid &_rconid){
 		}
 	}
 }
-
 
 }//namespace ipc
 }//namespace foundation

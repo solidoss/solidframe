@@ -102,6 +102,7 @@ struct Talker::Data{
 	typedef Stack<NewProcPairT>							NewProcStackT;
 
 	Data(Service &_rservice, uint16 _id):rservice(_rservice), nextprocid(0), tkrid(_id){}
+	
 	Service					&rservice;
 	uint32					nextprocid;
 	uint16					tkrid;
@@ -123,6 +124,7 @@ struct Talker::Data{
 
 Talker::Talker(const SocketDevice &_rsd, Service &_rservice, uint16 _id):	BaseT(_rsd), d(*new Data(_rservice, _id)){
 }
+
 //----------------------------------------------------------------------
 Talker::~Talker(){
 	char *pb = d.rcvbuf.buffer();
@@ -149,6 +151,7 @@ Talker::~Talker(){
 	d.rservice.removeTalker(*this);
 	delete &d;
 }
+
 //----------------------------------------------------------------------
 inline bool Talker::inDone(ulong _sig, const TimeSpec &_rts){
 	if(_sig & fdt::INDONE){
@@ -190,6 +193,7 @@ void Talker::disconnectProcesses(){
 		d.closes.pop();
 	}
 }
+
 //----------------------------------------------------------------------
 int Talker::execute(ulong _sig, TimeSpec &_tout){
 	Manager &rm = Manager::the();
@@ -356,14 +360,17 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 	//_tout.set(0);
 	return NOK;
 }
+
 //----------------------------------------------------------------------
 int Talker::execute(){
 	return BAD;
 }
+
 //----------------------------------------------------------------------
 int Talker::accept(foundation::Visitor &){
 	return BAD;
 }
+
 //----------------------------------------------------------------------
 //The talker's mutex should be locked
 //return ok if the talker should be signaled
@@ -371,6 +378,7 @@ int Talker::pushSignal(DynamicPointer<Signal> &_psig, const ConnectorUid &_rconi
 	d.sigq.push(Data::SignalData(_psig, _rconid.procid, _rconid.procuid, _flags));
 	return d.sigq.size() == 1 ? NOK : OK;
 }
+
 //----------------------------------------------------------------------
 //The talker's mutex should be locked
 //Return's the new process connector's id
@@ -395,6 +403,7 @@ void Talker::pushProcessConnector(ProcessConnector *_pc, ConnectorUid &_rconid, 
 	}
 	d.newprocs.push(Data::NewProcPairT(_pc, _rconid.procid));
 }
+
 //----------------------------------------------------------------------
 //dispatch d.rcvbuf
 void Talker::dispatchReceivedBuffer(const SockAddrPair &_rsap, const TimeSpec &_rts){
@@ -462,6 +471,7 @@ void Talker::dispatchReceivedBuffer(const SockAddrPair &_rsap, const TimeSpec &_
 			cassert(false);
 	}
 }
+
 //----------------------------------------------------------------------
 //process signals to be sent d.cq
 //return true if the cq is not empty
@@ -509,6 +519,7 @@ bool Talker::processSignals(const TimeSpec &_rts){
 	}
 	return d.cq.size();
 }
+
 //----------------------------------------------------------------------
 bool Talker::dispatchSentBuffer(const TimeSpec &_rts){
 	SendBufferData *psb(d.sendq.top());
@@ -540,6 +551,7 @@ bool Talker::dispatchSentBuffer(const TimeSpec &_rts){
 	}
 	return d.cq.size();
 }
+
 //----------------------------------------------------------------------
 void Talker::optimizeBuffer(Buffer &_rbuf){
 	uint id(Specific::sizeToId(_rbuf.bufferSize()));
