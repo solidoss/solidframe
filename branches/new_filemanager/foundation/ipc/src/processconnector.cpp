@@ -359,6 +359,7 @@ ProcessConnector::Data::~Data(){
 			it->sig.clear();
 		}
 	}
+	
 	while(rcq.size()){
 		if(rcq.front().second){
 			rcq.front().second->clear();
@@ -823,16 +824,22 @@ bool ProcessConnector::moveToNextInBuffer(){
 //----------------------------------------------------------------------
 int ProcessConnector::pushReceivedBuffer(Buffer &_rbuf, const ConnectorUid &_rconid, const TimeSpec &_tpos){
 	idbgx(Dbg::ipc, "rcvbufid = "<<_rbuf.id()<<" expected id "<<d.expectedid<<" inbufq.size = "<<d.inbufq.size()<<" flags = "<<_rbuf.flags());
+	
 	d.rcvtpos = _tpos;
+	
 	if(_rbuf.id() == d.expectedid){
+		
 		//the expected buffer
 		d.rcvidq.push(_rbuf.id());
+		
 		if(_rbuf.updatesCount()){
 			freeSentBuffers(_rbuf, _rconid);
 		}
+		
 		if(_rbuf.type() == Buffer::DataType){
 			parseBuffer(_rbuf, _rconid);
 		}
+		
 		d.incrementExpectedId();//move to the next buffer
 		//while(d.inbufq.top().id() == d.expectedid){
 		while(moveToNextInBuffer()){
@@ -847,14 +854,19 @@ int ProcessConnector::pushReceivedBuffer(Buffer &_rbuf, const ConnectorUid &_rco
 			d.incrementExpectedId();//move to the next buffer
 		}
 		return NOK;//we have something to send
+	
 	}else{
+		
 		if(_rbuf.id() < d.expectedid){
+			
 			//the peer doesnt know that we've already received the buffer
 			//add it as update
 			d.rcvidq.push(_rbuf.id());
 			idbgx(Dbg::ipc, "already received buffer - resend update");
 			return NOK;//we have to send updates
+		
 		}else if(_rbuf.id() <= Data::LastBufferId){
+			
 			if(_rbuf.updatesCount()){//we have updates
 				freeSentBuffers(_rbuf, _rconid);
 			}
@@ -868,6 +880,7 @@ int ProcessConnector::pushReceivedBuffer(Buffer &_rbuf, const ConnectorUid &_rco
 			}else{
 				idbgx(Dbg::ipc, "to many buffers out-of-order");
 			}
+		
 		}else if(_rbuf.id() == Data::UpdateBufferId){//a buffer containing only updates
 			_rbuf.updatesCount();
 			idbgx(Dbg::ipc, "received buffer containing only updates");
@@ -883,8 +896,11 @@ Prevent the following situation to occur:
 A buffer is received with updates, buffers for which pushSent was not called
 */
 int ProcessConnector::pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpos, bool &_reusebuf){
+	
 	if(_rbuf.b.buffer()){
+		
 		if(_rbuf.b.id() > Data::LastBufferId){
+			
 			//cassert(_rbuf.b.id() == Data::UpdateBufferId);
 			switch(_rbuf.b.id()){
 				case Data::UpdateBufferId:{
@@ -898,7 +914,9 @@ int ProcessConnector::pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpo
 				default:
 					cassert(false);
 			}
+		
 		}else{
+			
 			idbgx(Dbg::ipc, "sent bufid = "<<_rbuf.b.id()<<" bufpos = "<<_rbuf.bufpos<<" retransmitid "<<_rbuf.b.retransmitId()<<" buf = "<<(void*)_rbuf.b.buffer()<<" buffercap = "<<_rbuf.b.bufferCapacity()<<" flags = "<<_rbuf.b.flags()<<" type = "<<(int)_rbuf.b.type());
 			std::pair<uint16, uint16>  p;
 			const uint retransid = _rbuf.b.retransmitId();
@@ -928,8 +946,11 @@ int ProcessConnector::pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpo
 			idbgx(Dbg::ipc, "prepare waitbuf b.cap "<<_rbuf.b.bufferCapacity()<<" b.dl "<<_rbuf.b.dl);
 			cassert(sizeof(uint32) <= sizeof(size_t));
 			return OK;
+		
 		}
+	
 	}else{//a timeout occured
+		
 		idbgx(Dbg::ipc, "timeout occured _rbuf.bc "<<_rbuf.b.bc<<" rbuf.dl "<<_rbuf.b.dl<<" d.outbufs.size() = "<<d.outbufs.size());
 		cassert(d.state != Data::Disconnecting);
 		if(_rbuf.b.bc){//for a sent buffer
@@ -990,9 +1011,11 @@ int ProcessConnector::pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpo
 			}else{
 				idbgx(Dbg::ipc, "nothing to resend");
 			}
+		
 		}else{//for something else
 			//TODO: e.g. use it for sending update data with certain timeout
 		}
+	
 	}
 	return OK;
 }
@@ -1004,11 +1027,16 @@ NOTE: VERY IMPORTANT
 	destroyed if there are buffers pending for sending (outstk.size < outbufs.size)
 */
 int ProcessConnector::processSendSignals(SendBufferData &_rsb, const TimeSpec &_tpos, int _baseport){
+	
 	idbgx(Dbg::ipc, "bufjetons = "<<d.bufjetons);
+	
 	if(d.bufjetons || d.state != Data::Connected || d.rcvidq.size()){
+		
 		idbgx(Dbg::ipc, "d.rcvidq.size() = "<<d.rcvidq.size());
+		
 		bool written = false;
 		Buffer &rbuf(_rsb.b);
+		
 		rbuf.reset();
 		//here we keep per buffer waiting signals - 
 		//signals that in case of a peer disconnection detection
@@ -1221,10 +1249,12 @@ void ProcessConnector::parseBuffer(Buffer &_rbuf, const ConnectorUid &_rconid){
 	int 		firstblen = blen - 1;
 	idbgx(Dbg::ipc, "bufferid = "<<_rbuf.id());
 	while(blen > 2){
+		
 		idbgx(Dbg::ipc, "blen = "<<blen);
 		uint8	datatype = *bpos;
 		++bpos;
 		--blen;
+		
 		switch(datatype){
 			case Buffer::ContinuedSignal:
 				idbgx(Dbg::ipc, "continuedsignal");
@@ -1262,9 +1292,12 @@ void ProcessConnector::parseBuffer(Buffer &_rbuf, const ConnectorUid &_rconid){
 				cassert(false);
 			}
 		}
+		
 		rv = d.rcq.front().second->run(bpos, blen);
+		
 		cassert(rv >= 0);
 		blen -= rv;
+		
 		if(d.rcq.front().second->empty()){//done one signal.
 			SignalUid siguid(0xffffffff, 0xffffffff);
 			if(d.rcq.front().first->ipcReceived(siguid, _rconid))
