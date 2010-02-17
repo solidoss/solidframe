@@ -648,7 +648,7 @@ void ProcessConnector::reconnect(ProcessConnector *_ppc){
 		}
 		d.cq.pop();
 	}
-	uint32 cqsz = d.cq.size();
+	uint32		cqsz = d.cq.size();
 	//we must put into the cq all signal in the exact order they were sent
 	//to do so we must push into cq, the signals from scq and waitsigv
 	//ordered by their id
@@ -768,7 +768,9 @@ bool ProcessConnector::isAccepting()const{
 
 //----------------------------------------------------------------------
 void ProcessConnector::completeConnect(int _pairport){
+	
 	if(d.state == Data::Connected) return;
+	
 	d.state = Data::Connected;
 	d.addr.port(_pairport);
 	cassert(d.outbufs.size() > 1);
@@ -918,8 +920,10 @@ int ProcessConnector::pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpo
 		}else{
 			
 			idbgx(Dbg::ipc, "sent bufid = "<<_rbuf.b.id()<<" bufpos = "<<_rbuf.bufpos<<" retransmitid "<<_rbuf.b.retransmitId()<<" buf = "<<(void*)_rbuf.b.buffer()<<" buffercap = "<<_rbuf.b.bufferCapacity()<<" flags = "<<_rbuf.b.flags()<<" type = "<<(int)_rbuf.b.type());
-			std::pair<uint16, uint16>  p;
-			const uint retransid = _rbuf.b.retransmitId();
+			
+			std::pair<uint16, uint16>	p;
+			const uint 					retransid = _rbuf.b.retransmitId();
+			
 			if(!retransid){
 				//cassert(_rbuf.bufpos < 0);
 				p = d.insertSentBuffer(_rbuf.b);	//_rbuf.bc will contain the buffer index, and
@@ -932,9 +936,11 @@ int ProcessConnector::pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpo
 				idbgx(Dbg::ipc, "get buffer from pos "<<p.first<<','<<p.second);
 			}
 			++p.first;//adjust the index
-			//_rbuf.b.retransmitId(_rbuf.retransmitId() + 1);
-			uint tmptimeout = d.computeRetransmitTimeout(retransid, _rbuf.b.id());
+			
+			uint	tmptimeout = d.computeRetransmitTimeout(retransid, _rbuf.b.id());
+			
 			idbgx(Dbg::ipc, "p.first "<<p.first<<" p.second "<<p.second<<" retransid = "<<retransid<<" tmptimeout = "<<tmptimeout);
+			
 			//reuse _rbuf for retransmission timeout
 			_rbuf.b.pb = NULL;
 			_rbuf.b.bc = p.first;
@@ -1008,6 +1014,7 @@ int ProcessConnector::pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpo
 				_rbuf.timeout = _tpos;
 				d.lasttimepos = _tpos;
 				_reusebuf = true;
+				
 			}else{
 				idbgx(Dbg::ipc, "nothing to resend");
 			}
