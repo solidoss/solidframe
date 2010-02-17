@@ -106,8 +106,8 @@ struct ProcessConnector::Data{
 	enum{
 		LastBufferId = 0xffffffff - 5,
 		UpdateBufferId = 0xffffffff,//the id of a buffer containing only updates
-		MaxSignalBufferCount = 32,//continuous buffers sent for a signal
-		MaxSendSignalQueueSize = 16,//max count of signals sent in paralell
+		MaxSignalBufferCount = 8,//continuous buffers sent for a signal
+		MaxSendSignalQueueSize = 32,//max count of signals sent in paralell
 	};
 	struct BinSerializer:serialization::bin::Serializer{
 		BinSerializer():serialization::bin::Serializer(IdTypeMap::the()){}
