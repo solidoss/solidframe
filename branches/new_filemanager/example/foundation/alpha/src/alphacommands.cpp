@@ -472,7 +472,7 @@ int Fetch::doSendNextData(Writer &_rw){
 	uint64 remainsz(litsz - streamsz_in);
 	streamsz_out = streamsz_in;
 	if(remainsz){
-		uint32 tmpsz = 512 * 1024;
+		uint32 tmpsz = 2 * 512 * 1024;
 		if(remainsz < tmpsz) tmpsz = remainsz;
 		if(doGetTempStream(tmpsz) == Writer::Bad){
 			*pp = protocol::Parameter(StrDef(" NO FETCH: no temp stream@"));
