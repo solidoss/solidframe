@@ -30,7 +30,7 @@ namespace alpha{
 //-----------------------------------------------------------------------------------
 // RemoteListSignal
 //-----------------------------------------------------------------------------------
-RemoteListSignal::RemoteListSignal(uint32 _tout = 0): ppthlst(NULL),err(-1),tout(_tout){
+RemoteListSignal::RemoteListSignal(uint32 _tout): ppthlst(NULL),err(-1),tout(_tout){
 	idbg(""<<(void*)this);
 }
 RemoteListSignal::~RemoteListSignal(){

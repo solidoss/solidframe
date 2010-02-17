@@ -58,22 +58,12 @@ namespace alpha{
 // RemoteListSignal
 //---------------------------------------------------------------
 struct RemoteListSignal: Dynamic<RemoteListSignal, foundation::Signal>{
-	RemoteListSignal(uint32 _tout = 0): ppthlst(NULL),err(-1),tout(_tout){
-		//idbg(""<<(void*)this);
-	}
-	~RemoteListSignal(){
-		//idbg(""<<(void*)this);
-		delete ppthlst;
-	}
+	RemoteListSignal(uint32 _tout = 0);
+	~RemoteListSignal();
 	int execute(uint32 _evs, foundation::SignalExecuter&, const SignalUidT &, TimeSpec &_rts);
 	
 	int ipcReceived(foundation::ipc::SignalUid &_rsiguid, const foundation::ipc::ConnectorUid &_rconid);
-	int ipcPrepare(const foundation::ipc::SignalUid &_rsiguid){
-		siguid = _rsiguid;
-		if(!ppthlst){//on sender
-			return NOK;
-		}else return OK;// on peer
-	}
+	int ipcPrepare(const foundation::ipc::SignalUid &_rsiguid);
 	void ipcFail(int _err);
 
 	template <class S>
@@ -162,7 +152,7 @@ struct FetchMasterSignal: Dynamic<FetchMasterSignal, foundation::Signal>{
 	as reponse containing the requested file chunk.
 */
 struct FetchSlaveSignal: Dynamic<FetchSlaveSignal, foundation::Signal>{
-	FetchSlaveSignal(): fromv(0xffffffff, 0xffffffff), filesz(-10), streamsz(-1), requid(0){}
+	FetchSlaveSignal();
 	~FetchSlaveSignal();
 	int ipcReceived(foundation::ipc::SignalUid &_rsiguid, const foundation::ipc::ConnectorUid &_rconid);
 	int sent(const foundation::ipc::ConnectorUid &);
