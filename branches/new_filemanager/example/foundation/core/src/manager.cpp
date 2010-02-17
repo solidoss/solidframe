@@ -279,10 +279,14 @@ void SignalExecuter::removeFromManager(){
 //=========================================================================
 //The manager's localdata
 struct Manager::Data{
-//	typedef std::vector<ExtraObjectPointer>								ExtraObjectVector;
-	typedef std::map<const char*, int, StrLess> 						ServiceIdxMap;
-	typedef foundation::SelectPool<fdt::ObjectSelector>					ObjSelPoolT;
-	typedef foundation::SelectPool<fdt::aio::Selector>					AioSelectorPoolT;
+//	typedef std::vector<ExtraObjectPointer>			ExtraObjectVector;
+	typedef std::map<const char*, int, StrLess> 	ServiceIdxMap;
+	typedef foundation::SelectPool<
+		fdt::ObjectSelector
+		>											ObjSelPoolT;
+	typedef foundation::SelectPool<
+		fdt::aio::Selector
+		>											AioSelectorPoolT;
 
 	Data(Manager &_rm);
 	~Data();
@@ -295,13 +299,17 @@ struct Manager::Data{
 	fdt::ObjectPointer<fdt::SignalExecuter>		writecmdexec;// write signal executer
 	fdt::ObjectPointer<fdt::file::Manager>		pfm;
 	IpcService									*pipc;
+	//AioSelectorPoolT 							aiselpool1;
+	//AioSelectorPoolT 							aiselpool2;
 };
 
 //--------------------------------------------------------------------------
 typedef serialization::TypeMapper					TypeMapper;
 typedef serialization::IdTypeMap					IdTypeMap;
 typedef serialization::bin::Serializer				BinSerializer;
-Manager::Data::Data(Manager &_rm)
+
+
+Manager::Data::Data(Manager &_rm)/*:aiselpool1(_rm, 10, 2048), aiselpool2(_rm, 10, 2048)*/
 {
 	pobjectpool[0] = NULL;
 	pobjectpool[1] = NULL;
@@ -318,6 +326,11 @@ Manager::Data::Data(Manager &_rm)
 											1024 * 4	//max objects per selector
 											);			//at most 10 * 4 * 1024 connections
 		pobjectpool[0]->start(1);//start with one worker
+// 		pobjectpool[1] = new ObjSelPoolT(	_rm, 
+// 											10,			//max thread cnt
+// 											1024 * 4	//max objects per selector
+// 											);			//at most 10 * 4 * 1024 connections
+// 		pobjectpool[1]->start(1);//start with one worker
 	}
 	idbg("");
 	if(true){

@@ -27,8 +27,8 @@
 #include "utility/workpool.hpp"
 #include "utility/list.hpp"
 
-#include "manager.hpp"
-#include "activeset.hpp"
+#include "foundation/manager.hpp"
+#include "foundation/activeset.hpp"
 
 
 namespace foundation{
@@ -46,19 +46,23 @@ namespace foundation{
 	- Objects must implement "int execute(ulong _evs, TimeSpec &_rtout)" method.
 */
 template <class Sel>
-class SelectPool: public WorkPool<typename Sel::ObjectT>, public ActiveSet{
+class SelectPool: public ActiveSet, public WorkPool<typename Sel::ObjectT>{
 public:
-	typedef Sel										SelectorT;
-	typedef typename Sel::ObjectT					JobT;
-	typedef SelectPool<Sel>							ThisT;
-	typedef WorkPool<typename Sel::ObjectT>		WorkPoolT;
+	typedef Sel							SelectorT;
+	typedef typename Sel::ObjectT		JobT;
+	typedef SelectPool<Sel>				ThisT;
+	typedef WorkPool<JobT>				WorkPoolT;
 
 private:
-	typedef List<ulong>								ListT;
-	typedef std::pair<SelectorT*,ListT::iterator>	VecPairT;
-	typedef std::vector<VecPairT>		 			SlotVecT;
+	typedef List<ulong>					ListT;
+	typedef std::pair<
+		SelectorT*,
+		ListT::iterator
+		>								VecPairT;
+	typedef std::vector<VecPairT>		SlotVecT;
 
 protected:
+
 	struct SelectorWorker;
 
 public://definition

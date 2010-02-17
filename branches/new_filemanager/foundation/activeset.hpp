@@ -30,8 +30,8 @@ namespace foundation{
 */
 class ActiveSet{
 public:
-	ActiveSet(){}
-	virtual ~ActiveSet(){}
+	ActiveSet();
+	virtual ~ActiveSet();
 	//! Wake a theread given by its index
 	virtual void raise(uint _thridx) = 0;
 	//! Wake an object

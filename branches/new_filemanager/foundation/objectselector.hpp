@@ -38,6 +38,7 @@
 namespace foundation{
 
 typedef ObjectPointer<Object> ObjectPtrT;
+
 //! An object selector to be used with the template SelectPool
 /*!
 	A selector will help SelectPool to actively hold objects.
@@ -46,9 +47,13 @@ typedef ObjectPointer<Object> ObjectPtrT;
 */
 class ObjectSelector{
 public:
+	
 	typedef ObjectPtrT		ObjectT;
+	
 	ObjectSelector();
+	
 	~ObjectSelector();
+	
 	int reserve(ulong _cp);
 	//signal a specific object
 	void signal(uint _pos = 0);

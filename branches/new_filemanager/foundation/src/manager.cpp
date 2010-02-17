@@ -127,6 +127,11 @@ void ServiceContainer::clearDummy(){
 }
 
 //-------------------------------------------------------------------
+
+ActiveSet::ActiveSet(){}
+ActiveSet::~ActiveSet(){}
+
+//-------------------------------------------------------------------
 struct Manager::Data{
 	typedef std::vector<ServicePtr> ServiceVectorT;
 	typedef std::vector<ActiveSet*> ActiveSetVectorT;

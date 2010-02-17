@@ -182,7 +182,7 @@ Selector::Selector():d(*(new Data)){
 Selector::~Selector(){
 	delete &d;
 }
-int Selector::reserve(uint _cp){
+int Selector::reserve(ulong _cp){
 	cassert(_cp);
 	d.objcp = _cp;
 	d.sockcp = _cp;

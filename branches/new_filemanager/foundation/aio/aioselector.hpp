@@ -22,6 +22,7 @@
 #ifndef CS_AIO_SELECTOR_HPP
 #define CS_AIO_SELECTOR_HPP
 
+#include "system/timespec.hpp"
 #include "foundation/common.hpp"
 #include "foundation/objectpointer.hpp"
 
@@ -48,7 +49,7 @@ public:
 	
 	Selector();
 	~Selector();
-	int reserve(uint _cp);
+	int reserve(ulong _cp);
 	//signal a specific object
 	void signal(uint _pos = 0)const;
 	void run();
