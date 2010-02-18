@@ -39,21 +39,23 @@ RemoteListSignal::~RemoteListSignal(){
 }
 int RemoteListSignal::ipcPrepare(const foundation::ipc::SignalUid &_rsiguid){
 	idbg(""<<(void*)this<<" siguid = "<<_rsiguid.idx<<' '<<_rsiguid.uid);
-	siguid = _rsiguid;
 	if(!ppthlst){//on sender
+		//only on sender we hold the signal uid
+		//to use it when we get back - see ipcReceived
+		siguid = _rsiguid;
 		return NOK;
 	}else return OK;// on peer
 }
 int RemoteListSignal::ipcReceived(fdt::ipc::SignalUid &_rsiguid, const fdt::ipc::ConnectorUid &_rconid){
 	DynamicPointer<fdt::Signal> psig(this);
 	conid = _rconid;
-	if(!ppthlst){
+	if(!ppthlst){//on peer
 		idbg("Received RemoteListSignal on peer");
 		//print();
 		ObjectUidT	ttov;
 		Manager::the().readSignalExecuterUid(ttov);
 		Manager::the().signalObject(ttov.first, ttov.second, psig);
-	}else{
+	}else{//on sender
 		idbg("Received RemoteListSignal back on sender");
 		_rsiguid = siguid;
 		Manager::the().signalObject(fromv.first, fromv.second, psig);
@@ -315,10 +317,13 @@ int FetchMasterSignal::receiveSignal(
 
 FetchSlaveSignal::FetchSlaveSignal(): fromv(0xffffffff, 0xffffffff), filesz(-10), streamsz(-1), requid(0){
 	idbg(""<<(void*)this);
+	serialized = false;
 }
 
 FetchSlaveSignal::~FetchSlaveSignal(){
 	idbg(""<<(void*)this);
+	cassert(serialized);
+	print();
 // 	if(fromv.first != 0xffffffff){
 // 		idbg("unsuccessfull sent");
 // 		//signal fromv object to die

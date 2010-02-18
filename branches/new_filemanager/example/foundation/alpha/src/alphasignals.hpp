@@ -171,6 +171,7 @@ struct FetchSlaveSignal: Dynamic<FetchSlaveSignal, foundation::Signal>{
 		_s.push(streamsz, "streamsize").push(requid, "requestuid");
 		_s.push(filesz, "filesize").push(siguid.first, "signaluid_first").push(siguid.second, "signaluid_second");
 		_s.push(fuid.first,"fileuid_first").push(fuid.second, "fileuid_second");
+		serialized = true;
 		return _s;
 	}
 	void print()const;
@@ -184,6 +185,7 @@ struct FetchSlaveSignal: Dynamic<FetchSlaveSignal, foundation::Signal>{
 	int64							filesz;
 	int32							streamsz;
 	uint32							requid;
+	bool							serialized;
 };
 
 //---------------------------------------------------------------

@@ -483,6 +483,7 @@ SignalUid ProcessConnector::Data::pushOutWaitSignal(
 	if(this->outfreesigstk.size()){
 		OutWaitSignal &owc = outsigv[outfreesigstk.top()];
 		owc.bufid = _bufid;
+		cassert(!owc.sig.ptr());
 		owc.sig = _sig;
 		owc.flags = _flags;
 		uint32 idx = outfreesigstk.top();
@@ -520,6 +521,7 @@ void ProcessConnector::Data::popOutWaitSignals(
 void ProcessConnector::Data::popOutWaitSignal(const SignalUid &_rsiguid){
 	if(_rsiguid.idx < outsigv.size() && outsigv[_rsiguid.idx].uid == _rsiguid.uid){
 		idbgx(Dbg::ipc, "signal received response "<<_rsiguid.idx<<','<<_rsiguid.uid);
+		++outsigv[_rsiguid.idx].uid;
 		outsigv[_rsiguid.idx].sig.clear();
 		outfreesigstk.push(_rsiguid.idx);
 		--respwaitsigcnt;
