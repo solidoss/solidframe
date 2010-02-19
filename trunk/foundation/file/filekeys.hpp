@@ -27,6 +27,13 @@
 namespace foundation{
 namespace file{
 
+//! A key for requesting disk files from a NameMapper
+/*!
+	The file is identified through its absolute path.
+	The path will be deeply copy.
+	Use FastNameString to optimize the copying of the
+	path, if for example the path is given as literal.
+*/
 struct NameKey: Key{
 	NameKey(const char *_fname = NULL);
 	NameKey(const std::string &_fname);
@@ -34,10 +41,9 @@ struct NameKey: Key{
 	/*virtual*/ uint32 mapperId()const;
 	/*virtual*/ Key* clone() const;
 	/*virtual*/ const char* path() const;
-private:
 	std::string 	name;
 };
-
+//! A key like NameKey, for paths as literals
 struct FastNameKey: Key{
 	FastNameKey(const char *_fname = NULL);
 	~FastNameKey();
@@ -48,6 +54,7 @@ private:
 	const char	*name;
 };
 
+//! A key for requesting temporary files of certain capacity
 struct TempKey: Key{
 	TempKey(uint64 _cp = -1L):cp(_cp){}
 	~TempKey();
@@ -58,6 +65,7 @@ struct TempKey: Key{
 	/*virtual*/ uint64 capacity()const;
 };
 
+//! A key for requesting memory files of certain capacity
 struct MemoryKey: Key{
 	MemoryKey(uint64 _cp = -1L):cp(_cp){}
 	~MemoryKey();

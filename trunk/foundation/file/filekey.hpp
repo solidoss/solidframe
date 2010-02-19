@@ -27,7 +27,7 @@
 
 namespace foundation{
 namespace file{
-
+//! A key for requsting a file from file::Manager
 struct Key{
 	virtual ~Key();
 	virtual uint32 mapperId()const = 0;

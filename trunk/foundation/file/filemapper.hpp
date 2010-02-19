@@ -29,16 +29,45 @@ struct TimeSpec;
 namespace foundation{
 namespace file{
 
+//! An interface class for all mappers
+/*!
+	A mapper can:<br>
+	> keep a map with all open files<br>
+	> limit the number of open files<br>
+	> limit the size of open files (for temp/memory files with 
+	limited capacity)<br>
+*/
 struct Mapper{
 	virtual ~Mapper();
+	//! Setter with mapper id
 	virtual void id(uint32 _id) = 0;
+	//! Called by manager
+	/*!
+		Uses Manager::Stub::pushFileTempExecQueue to
+		add files ready for open.
+	*/
 	virtual void execute(Manager::Stub &_rs) = 0;
+	//! Clears the queue with files waiting for open
 	virtual void stop() = 0;
+	//! Erases a file object
 	virtual bool erase(File *_pf) = 0;
+	//! Creates a file or returns a pointer to an already created file with the same key
 	virtual File* findOrCreateFile(const Key &_rk) = 0;
+	//! Opens a file
+	/*!
+		When return No, the file is queued for later open.
+	*/
 	virtual int open(File &_rf) = 0;
+	//! Closes a file
 	virtual void close(File &_rf) = 0;
-	virtual bool setTimeout(TimeSpec &_rts) = 0;
+	//! Gets the timeout for a file
+	/*!
+		After the last stream for a file gets deleted,
+		if there are no pending files for open,
+		the file can remain open for certain
+		amount of time.
+	*/
+	virtual bool getTimeout(TimeSpec &_rts) = 0;
 };
 
 }//namespace file
