@@ -132,6 +132,8 @@ EXCLUDE                = application/ \
                          library/ \ 
                          administration/ \
                          documentation/ \
+                         example/ \
+                         check/ \
 EXCLUDE_SYMLINKS       = NO
 EXCLUDE_PATTERNS       = 
 EXCLUDE_SYMBOLS        = 

@@ -140,13 +140,13 @@ struct LessStrCmp{
 };
 struct NameMapper::Data{
 	Data(uint32 _cnt, uint32 _wait):maxcnt(_cnt), crtcnt(0), wait(_wait), state(0){}
-	typedef Queue<IndexT>								IndexTQueueTp;
+	typedef Queue<IndexT>								IndexTQueueT;
 	typedef std::map<const char*, File*, LessStrCmp>	NameMapT;
 	uint32			maxcnt;
 	uint32			crtcnt;
 	uint32			wait;
 	int				state;
-	IndexTQueueTp	waitq;
+	IndexTQueueT	waitq;
 	NameMapT		nm;
 };
 
