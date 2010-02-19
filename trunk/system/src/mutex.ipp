@@ -47,7 +47,7 @@ inline void Mutex::lock(){
 	int rv = pthread_mutex_lock(&mut);
 	if(rv){
 		cassert(!rv);
-		idbg("lock error "<<strerror(errno));
+		edbgx(Dbg::system, "pthread_mutex_lock: "<<strerror(errno));
 	}
 #else
 	pthread_mutex_lock(&mut);
@@ -61,7 +61,7 @@ inline void Mutex::unlock(){
 #ifdef NINLINES
 	int rv = pthread_mutex_unlock(&mut);
 	if(rv){
-		idbg("lock error "<<strerror(errno));
+		edbgx(Dbg::system, "pthread_mutex_unlock: "<<strerror(errno));
 	}
 	cassert(!rv);
 #else

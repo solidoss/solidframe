@@ -35,6 +35,7 @@ namespace ipc{
 //*******	AddrPtrCmp		******************************************************************
 
 struct Inet4AddrPtrCmp{
+	
 	bool operator()(const Inet4SockAddrPair*const &_sa1, const Inet4SockAddrPair*const &_sa2)const{
 		//TODO: optimize
 		cassert(_sa1 && _sa2); 
@@ -45,7 +46,9 @@ struct Inet4AddrPtrCmp{
 		}
 		return false;
 	}
+	
 	typedef std::pair<const Inet4SockAddrPair*, int>	PairProcAddr;
+	
 	bool operator()(const PairProcAddr* const &_sa1, const PairProcAddr* const &_sa2)const{
 		cassert(_sa1 && _sa2); 
 		cassert(_sa1->first && _sa2->first); 
@@ -59,6 +62,7 @@ struct Inet4AddrPtrCmp{
 };
 
 struct Inet6AddrPtrCmp{
+	
 	bool operator()(const Inet6SockAddrPair*const &_sa1, const Inet6SockAddrPair*const &_sa2)const{
 		//TODO: optimize
 		cassert(_sa1 && _sa2); 
@@ -69,7 +73,9 @@ struct Inet6AddrPtrCmp{
 		}
 		return false;
 	}
+	
 	typedef std::pair<const Inet6SockAddrPair*, int>	PairProcAddr;
+	
 	bool operator()(const PairProcAddr* const &_sa1, const PairProcAddr* const &_sa2)const{
 		cassert(_sa1 && _sa2); 
 		cassert(_sa1->first && _sa2->first); 
@@ -90,9 +96,13 @@ struct Buffer{
 		uint32		id;
 		uint16		retransid;
 		uint16		updatescnt;//16B
+		
 		const uint32& update(uint32 _pos)const;//the buffers that were received by peer
+		
 		uint32& update(uint32 _pos);//the buffers that were received by peer
+		
 		void pushUpdate(uint32 _upd);
+		
 		uint32 size()const{return sizeof(Header) + updatescnt * sizeof(uint32);}
 	};
 	enum Types{

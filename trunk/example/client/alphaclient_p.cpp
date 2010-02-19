@@ -132,14 +132,14 @@ private:
 	enum {BufLen = 2*1024};
 	int list(char *_pb);
 	int fetch(unsigned _idx, char *_pb);
-	typedef std::deque<string> StrDqTp;
+	typedef std::deque<string> StrDqT;
 	AddrInfo    ai;
 	Writer      wr;
 	int         sd;
 	int         cnt;
 	int         slp;
 	const char  *path;
-	StrDqTp     sdq;
+	StrDqT     sdq;
 	unsigned    pos;
 	ulong       readc;
 	string		addr;
@@ -192,7 +192,7 @@ void AlphaThread::run(){
 	inf.doneList();
 	cout<<pos<<" fetched file list: "<<m<<" files "<<endl;
 	inf.unlock();
-// 	for(StrDqTp::const_iterator it(sdq.begin()); it != sdq.end(); ++it){
+// 	for(StrDqT::const_iterator it(sdq.begin()); it != sdq.end(); ++it){
 // 		cout<<'['<<*it<<']'<<endl;
 // 	}
 	if(rv) return;

@@ -40,14 +40,14 @@ class Service;
 //! A simple listener
 class Listener: public foundation::aio::SingleObject{
 public:
-	typedef Service		ServiceTp;
+	typedef Service		ServiceT;
 	Listener(const SocketDevice &_rsd, foundation::aio::openssl::Context *_pctx = NULL);
 	~Listener();
 	virtual int execute(ulong, TimeSpec&);
 private:
-	typedef std::auto_ptr<foundation::aio::openssl::Context> SslContextPtrTp;
+	typedef std::auto_ptr<foundation::aio::openssl::Context> SslContextPtrT;
 	SocketDevice		sd;
-	SslContextPtrTp		pctx;
+	SslContextPtrT		pctx;
 };
 
 }//namespace concept

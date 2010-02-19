@@ -55,8 +55,8 @@ static T align(T _v, const ulong _by){
 const uint32  pagesize = getpagesize();
 
 ///\cond 0
-typedef std::deque<FileDevice>	FileDeuqeTp;
-typedef std::deque<auto_ptr<FileDevice> >	AutoFileDequeTp;
+typedef std::deque<FileDevice>	FileDeuqeT;
+typedef std::deque<auto_ptr<FileDevice> >	AutoFileDequeT;
 ///\endcond
 
 ///\cond 0
@@ -116,7 +116,7 @@ int main(int argc, char *argv[]){
 	sprintf(name, "%s", argv[1]);
 	char *fldname = name + strlen(argv[1]);
 	char *fname = name + strlen(argv[1]) + 1 + 8;
-	FileDeuqeTp	fdq;
+	FileDeuqeT	fdq;
 	int cnt = 0;
 	uint64	totsz = 0;
 	for(int i = foldercnt; i; --i){
@@ -140,7 +140,7 @@ int main(int argc, char *argv[]){
 	//return 0;
 	MyWorkPool wp;
 	wp.start(4);
-	for(FileDeuqeTp::iterator it(fdq.begin()); it != fdq.end(); ++it){
+	for(FileDeuqeT::iterator it(fdq.begin()); it != fdq.end(); ++it){
 		wp.push(&(*it));
 	}
 	wp.stop(true);

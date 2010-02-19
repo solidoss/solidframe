@@ -31,8 +31,8 @@ namespace concept{
 //! The base class for all concept connections
 class Connection: public foundation::aio::SingleObject{
 public:
-	typedef std::pair<uint32, uint32>	FileUidTp;
-	typedef std::pair<uint32, uint32>	RequestUidTp;
+	//typedef std::pair<uint32, uint32>	FileUidT;
+	//typedef std::pair<uint32, uint32>	RequestUidT;
 protected:
 	Connection(const SocketDevice &_rsd):
 			foundation::aio::SingleObject(_rsd){}

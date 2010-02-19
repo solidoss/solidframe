@@ -35,7 +35,7 @@ namespace concept{
 
 namespace echo{
 Connection::Connection(const char *_node, const char *_srv): 
-	BaseTp(),
+	BaseT(),
 	bend(bbeg + BUFSZ),brpos(bbeg),bwpos(bbeg),
 	pai(NULL),b(false)
 {
@@ -46,7 +46,7 @@ Connection::Connection(const char *_node, const char *_srv):
 	
 }
 Connection::Connection(const SocketDevice &_rsd):
-	BaseTp(_rsd),bend(bbeg + BUFSZ),brpos(bbeg),bwpos(bbeg),
+	BaseT(_rsd),bend(bbeg + BUFSZ),brpos(bbeg),bwpos(bbeg),
 	pai(NULL),b(false)
 {
 	state(INIT);

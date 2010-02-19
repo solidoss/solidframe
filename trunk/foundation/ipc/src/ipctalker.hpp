@@ -39,8 +39,8 @@ struct ConnectorUid;
 //! A talker for io requests
 class Talker: public foundation::aio::SingleObject{
 public:
-	typedef Service							ServiceTp;
-	typedef foundation::aio::SingleObject	BaseTp;
+	typedef Service							ServiceT;
+	typedef foundation::aio::SingleObject	BaseT;
 	
 	Talker(const SocketDevice &_rsd, Service &_rservice, uint16 _id);
 	~Talker();

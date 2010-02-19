@@ -48,7 +48,7 @@ class Talker;
 
 
 class Service: public foundation::Service{
-	typedef DynamicReceiver<int, Service>	DynamicReceiverTp;
+	typedef DynamicReceiver<int, Service>	DynamicReceiverT;
 public:
 	enum{
 		AddListener = 0,
@@ -95,7 +95,7 @@ protected:
 private:
 	void removeListener(Listener &);
 private:
-	DynamicReceiverTp		dr;
+	DynamicReceiverT		dr;
 };
 
 }//namespace concept

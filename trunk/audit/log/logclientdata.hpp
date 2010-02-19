@@ -8,13 +8,13 @@
 namespace audit{
 //! Log data identifing a client for log server
 struct LogClientData{
-	typedef std::vector<std::string> NameVectorTp;
+	typedef std::vector<std::string> NameVectorT;
 	LogClientData():idx(-1), uid(-1){}
 	uint32			idx;
 	uint32			uid;
 	LogHead			head;
 	std::string		procname;
-	NameVectorTp	modulenamev;
+	NameVectorT	modulenamev;
 };
 
 }//namespace audit

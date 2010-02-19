@@ -31,14 +31,14 @@
 using namespace std;
 
 ///\cond 0
-typedef std::deque<FileDevice>	FileDeuqeTp;
-typedef std::deque<auto_ptr<FileDevice> >	AutoFileDequeTp;
+typedef std::deque<FileDevice>	FileDeuqeT;
+typedef std::deque<auto_ptr<FileDevice> >	AutoFileDequeT;
 ///\endcond
 
 
 int main(int argc, char *argv[]){
 
-// 	AutoFileDequeTp aq;
+// 	AutoFileDequeT aq;
 // 	aq.push_back(auto_ptr<FileDevice>());
 	if(argc != 4){
 		cout<<"./file_open_pool /path/to/folder file-count folder-count"<<endl;
@@ -58,7 +58,7 @@ int main(int argc, char *argv[]){
 	sprintf(name, "%s", argv[1]);
 	char *fldname = name + strlen(argv[1]);
 	char *fname = name + strlen(argv[1]) + 1 + 8;
-	FileDeuqeTp	fdq;
+	FileDeuqeT	fdq;
 	int cnt = 0;
 	cout<<"insert a char: ";cin>>c;
 	for(int i = foldercnt; i; --i){
@@ -80,7 +80,7 @@ int main(int argc, char *argv[]){
 	}
 	cout<<"fdq size = "<<fdq.size()<<endl;
 	char bf[1000];
-	for(FileDeuqeTp::iterator it(fdq.begin()); it != fdq.end(); ++it){
+	for(FileDeuqeT::iterator it(fdq.begin()); it != fdq.end(); ++it){
 		if(it->read(bf, 1000) != 1000){
 			cout<<"error reading "<<(int)(it - fdq.begin())<<endl;
 			break;

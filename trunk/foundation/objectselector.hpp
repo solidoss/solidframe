@@ -37,7 +37,8 @@
 
 namespace foundation{
 
-typedef ObjectPointer<Object> ObjectPtrTp;
+typedef ObjectPointer<Object> ObjectPtrT;
+
 //! An object selector to be used with the template SelectPool
 /*!
 	A selector will help SelectPool to actively hold objects.
@@ -46,9 +47,13 @@ typedef ObjectPointer<Object> ObjectPtrTp;
 */
 class ObjectSelector{
 public:
-	typedef ObjectPtrTp		ObjectTp;
+	
+	typedef ObjectPtrT		ObjectT;
+	
 	ObjectSelector();
+	
 	~ObjectSelector();
+	
 	int reserve(ulong _cp);
 	//signal a specific object
 	void signal(uint _pos = 0);
@@ -61,30 +66,30 @@ public:
 	void prepare(){}
 	void unprepare(){}
 	
-	void push(const ObjectPtrTp &_rlis, uint _thid);
+	void push(const ObjectPtrT &_rlis, uint _thid);
 private:
 	int doWait(int _wt);
 	int doExecute(unsigned _i, ulong _evs, TimeSpec _crttout);
 private:
 	enum {EXIT_LOOP = 1, FULL_SCAN = 2, READ_PIPE = 4};
 	struct SelObject{
-		ObjectPtrTp	objptr;
+		ObjectPtrT	objptr;
 		TimeSpec	timepos;
 		int			state;
 	};
-	typedef std::vector<SelObject>					SelVecTp;
-	typedef std::stack<uint, std::vector<uint> >	FreeStackTp;
-	typedef Queue<uint>								ObjQueueTp;
+	typedef std::vector<SelObject>					SelVecT;
+	typedef std::stack<uint, std::vector<uint> >	FreeStackT;
+	typedef Queue<uint>								ObjQueueT;
 	uint 		sz;
-	SelVecTp	sv;
+	SelVecT	sv;
 	Queue<uint>	uiq;
-	FreeStackTp	fstk;
+	FreeStackT	fstk;
 	Mutex		mtx;
 	Condition	cnd;
 	uint64		btimepos;//begin time pos
     TimeSpec	ntimepos;//next timepos == next timeout
     TimeSpec	ctimepos;//current time pos
-    ObjQueueTp	objq;
+    ObjQueueT	objq;
 };
 
 }

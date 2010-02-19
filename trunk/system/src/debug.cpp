@@ -59,13 +59,13 @@ using namespace std;
 /*static*/ const unsigned Dbg::protocol(Dbg::instance().registerModule("PROTOCOL"));
 /*static*/ const unsigned Dbg::ser_bin(Dbg::instance().registerModule("SER_BIN"));
 /*static*/ const unsigned Dbg::utility(Dbg::instance().registerModule("UTILITY"));
-/*static*/ const unsigned Dbg::cs(Dbg::instance().registerModule("FDT"));
+/*static*/ const unsigned Dbg::fdt(Dbg::instance().registerModule("FDT"));
 /*static*/ const unsigned Dbg::ipc(Dbg::instance().registerModule("FDT_IPC"));
 /*static*/ const unsigned Dbg::tcp(Dbg::instance().registerModule("FDT_TCP"));
 /*static*/ const unsigned Dbg::udp(Dbg::instance().registerModule("FDT_UDP"));
-/*static*/ const unsigned Dbg::filemanager(Dbg::instance().registerModule("FDT_FILEMANAGER"));
 /*static*/ const unsigned Dbg::log(Dbg::instance().registerModule("LOG"));
 /*static*/ const unsigned Dbg::aio(Dbg::instance().registerModule("FDT_AIO"));
+/*static*/ const unsigned Dbg::file(Dbg::instance().registerModule("FDT_FILE"));
 
 //-----------------------------------------------------------------
 
@@ -211,8 +211,8 @@ public:
 };
 //-----------------------------------------------------------------
 struct Dbg::Data{
-	typedef std::bitset<DEBUG_BITSET_SIZE>	BitSetTp;
-	typedef std::vector<const char*>		NameVectorTp;
+	typedef std::bitset<DEBUG_BITSET_SIZE>	BitSetT;
+	typedef std::vector<const char*>		NameVectorT;
 	Data():lvlmsk(0), sz(0), respinsz(0), respincnt(0), respinpos(0), dos(sz), dbos(sz), trace_debth(0){
 		pos = &std::cerr;
 	}
@@ -222,9 +222,9 @@ struct Dbg::Data{
 	void doRespin();
 	bool isActive()const{return lvlmsk != 0 && !bs.none();}
 	Mutex					m;
-	BitSetTp				bs;
+	BitSetT				bs;
 	unsigned				lvlmsk;
-	NameVectorTp			nv;
+	NameVectorT			nv;
 	time_t					begt;
 	TimeSpec				begts;
 	uint64					sz;
@@ -257,7 +257,7 @@ void Dbg::Data::setBit(const char *_pbeg, const char *_pend){
 		bs.set();
 	}else if(!strncasecmp(_pbeg, "none", _pend - _pbeg)){
 		bs.reset();
-	}else for(NameVectorTp::const_iterator it(nv.begin()); it != nv.end(); ++it){
+	}else for(NameVectorT::const_iterator it(nv.begin()); it != nv.end(); ++it){
 		if(!strncasecmp(_pbeg, *it, _pend - _pbeg) && (int)strlen(*it) == (_pend - _pbeg)){
 			bs.set(it - nv.begin());
 		}
@@ -549,7 +549,7 @@ void Dbg::moduleMask(const char *_msk){
 
 void Dbg::moduleBits(std::string &_ros){
 	Mutex::Locker lock(d.m);
-	for(Data::NameVectorTp::const_iterator it(d.nv.begin()); it != d.nv.end(); ++it){
+	for(Data::NameVectorT::const_iterator it(d.nv.begin()); it != d.nv.end(); ++it){
 		_ros += *it;
 		_ros += ' ';
 	}

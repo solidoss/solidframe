@@ -45,7 +45,7 @@ int Serializer::run(char *_pb, unsigned _bl){
 	be = cpb + _bl;
 	while(fstk.size()){
 		FncData &rfd = fstk.top();
-		switch((*reinterpret_cast<FncTp>(rfd.f))(*this, rfd)) {
+		switch((*reinterpret_cast<FncT>(rfd.f))(*this, rfd)) {
 			case CONTINUE: continue;
 			case OK: fstk.pop(); break;
 			case NOK: goto Done;
@@ -168,7 +168,7 @@ int Deserializer::run(const char *_pb, unsigned _bl){
 	be = pb + _bl;
 	while(fstk.size()){
 		FncData &rfd = fstk.top();
-		switch((*reinterpret_cast<FncTp>(rfd.f))(*this, rfd)){
+		switch((*reinterpret_cast<FncT>(rfd.f))(*this, rfd)){
 			case CONTINUE: continue;
 			case OK: fstk.pop(); break;
 			case NOK: goto Done;

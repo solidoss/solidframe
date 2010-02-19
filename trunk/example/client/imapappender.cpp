@@ -69,11 +69,11 @@ struct Params{
 	uint32	maxcnt;
 };
 
-typedef std::pair<std::string*, bool>	DirItemTp;
+typedef std::pair<std::string*, bool>	DirItemT;
 
-struct DirItemVector: std::deque<DirItemTp>{
+struct DirItemVector: std::deque<DirItemT>{
 	void push(const string &_str, bool _isdir){
-		push_back(DirItemTp(new string(_str), _isdir));
+		push_back(DirItemT(new string(_str), _isdir));
 	}
 	~DirItemVector(){
 		for(const_iterator it(begin()); it != end(); ++it){
@@ -83,7 +83,7 @@ struct DirItemVector: std::deque<DirItemTp>{
 };
 
 struct DirItemCmp{
-	bool operator()(const DirItemTp &_i1, const DirItemTp &_i2)const{
+	bool operator()(const DirItemT &_i1, const DirItemT &_i2)const{
 		if(_i1.second == _i2.second) return (*_i1.first) < (*_i2.first);
 		return _i1.second;
 	}

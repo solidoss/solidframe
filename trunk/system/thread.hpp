@@ -48,8 +48,8 @@ class Condition;
 */
 class Thread{
 public:
-	typedef void RunParamTp;
-	typedef void (*SpecificFncTp)(void *_ptr);
+	typedef void RunParamT;
+	typedef void (*SpecificFncT)(void *_ptr);
 	
 	static void dummySpecificDestroy(void*);
 	
@@ -73,7 +73,7 @@ public:
 	//! Returns the data for a specific id
 	static void* specific(unsigned _pos);
 	//! Sets the data for a specific id, allong with a pointer to a destructor function
-	static void specific(unsigned _pos, void *_psd, SpecificFncTp _pfnc = &dummySpecificDestroy);
+	static void specific(unsigned _pos, void *_psd, SpecificFncT _pfnc = &dummySpecificDestroy);
 	//static unsigned specific(void *_psd);
 	//! Returns a reference to a global mutex
 	static Mutex& gmutex();
@@ -115,9 +115,9 @@ private:
 	void signalWaiter();
 	int waited();
 private:
-	typedef std::pair<void*, SpecificFncTp>	SpecPairTp;
-	typedef std::pair<Condition, int>		ConditionPairTp;
-	typedef std::vector<SpecPairTp>			SpecVecTp;
+	typedef std::pair<void*, SpecificFncT>	SpecPairT;
+	typedef std::pair<Condition, int>		ConditionPairT;
+	typedef std::vector<SpecPairT>			SpecVecT;
 	
 #ifdef _WIN32
 #else
@@ -125,8 +125,8 @@ private:
 #endif
 	int				dtchd;
 	unsigned        thcrtstatid;
-	SpecVecTp       specvec;
-	ConditionPairTp	*pcndpair;
+	SpecVecT       specvec;
+	ConditionPairT	*pcndpair;
 
 };
 

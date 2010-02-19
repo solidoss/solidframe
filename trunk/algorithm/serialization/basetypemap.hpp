@@ -25,9 +25,9 @@ namespace serialization{
 //! A base class for mapping types to callbacks
 class BaseTypeMap{
 public:
-	typedef void (*FncTp)(void*, void*, void*);
+	typedef void (*FncT)(void*, void*, void*);
 	//! Insert a function callback
-	virtual void insert(FncTp, unsigned _pos, const char *_name, unsigned _maxpos) = 0;
+	virtual void insert(FncT, unsigned _pos, const char *_name, unsigned _maxpos) = 0;
 	virtual ~BaseTypeMap();
 };
 

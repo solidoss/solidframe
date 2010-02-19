@@ -41,7 +41,7 @@ MultiConnection::MultiConnection(const char *_node, const char *_srv):
 	cassert(false);
 }
 MultiConnection::MultiConnection(const SocketDevice &_rsd):
-	BaseTp(_rsd), pai(NULL), b(false)
+	BaseT(_rsd), pai(NULL), b(false)
 {
 	bp = be = NULL;
 	state(READ_ADDR);

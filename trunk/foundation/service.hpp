@@ -73,12 +73,12 @@ public:
 	*/
 	int signal(Object &_robj, ulong _sigmask);
 	//! Signal an object with a signal mask
-	int signal(IndexTp _fullid, uint32 _uid, ulong _sigmask);
+	int signal(IndexT _fullid, uint32 _uid, ulong _sigmask);
 	
 	//! Signal an object with a signal
 	int signal(Object &_robj, DynamicPointer<Signal> &_rsig);
 	//! Signal an object with a signal
-	int signal(IndexTp _fullid, uint32 _uid, DynamicPointer<Signal> &_rsig);
+	int signal(IndexT _fullid, uint32 _uid, DynamicPointer<Signal> &_rsig);
 	
 	//! Signal all objects with a signal mask
 	void signalAll(ulong _sigmask);
@@ -110,24 +110,24 @@ public:
 protected:
 	typedef MutualObjectContainer<Mutex>	MutexContainer;
 	//! Insert an object.
-	int insert(Object &_robj, IndexTp _srvid);
+	int insert(Object &_robj, IndexT _srvid);
 	//! Remove an object
 	void remove(Object &_robj);
 	//! Get an object mutex using objects unique id
-	Mutex& mutex(IndexTp _fullid, uint32 _uid);
+	Mutex& mutex(IndexT _fullid, uint32 _uid);
 	//! Get a pointer to an object using its unique id
 	/*!
 		The call may fail and it should be carefully called
 		from within Service's mutex lock.
 		
 	*/
-	Object* object(IndexTp _fullid, uint32 _uid);
+	Object* object(IndexT _fullid, uint32 _uid);
 	//! Signal all objects - the service's mutex must be locked from outside
 	void doSignalAll(Manager &_rm, ulong _sigmask);
 	//! Signal all objects - the service's mutex must be locked from outside
 	void doSignalAll(Manager &_rm, DynamicPointer<Signal> &_rsig);
 	//! Insert an object - the service's mutex must be locked from outside
-	int doInsert(Object &_robj, IndexTp _srvid);
+	int doInsert(Object &_robj, IndexT _srvid);
 	//! Constructor - forwards the parameters to the MutualObjectContainer of mutexes
 	Service(int _objpermutbts = 6, int _mutrowsbts = 8, int _mutcolsbts = 8);
 	//Service(const Service &):state(Stopped),objv(*((ObjectVector*)NULL)),

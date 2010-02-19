@@ -40,36 +40,36 @@ protected:
 template <class SO>
 class StreamPointer: StreamPointerBase{
 public:
-	typedef SO 				ObjectTp;
-	typedef StreamPointer<SO>	ThisTp;
+	typedef SO 				ObjectT;
+	typedef StreamPointer<SO>	ThisT;
 	StreamPointer():pobj(NULL){}
-	StreamPointer(ObjectTp *_pobj):pobj(_pobj) {}
-	StreamPointer(const ThisTp &_pobj):pobj(_pobj.release()){}
+	StreamPointer(ObjectT *_pobj):pobj(_pobj) {}
+	StreamPointer(const ThisT &_pobj):pobj(_pobj.release()){}
 	~StreamPointer(){
 		if(pobj){StreamPointerBase::clear(pobj);}
 	}
-	ObjectTp* release() const{
-		ObjectTp *po = pobj;
+	ObjectT* release() const{
+		ObjectT *po = pobj;
 		pobj = NULL;//TODO:
 		return po;
 	}
-	ThisTp& operator=(const ThisTp &_robj){
+	ThisT& operator=(const ThisT &_robj){
 		if(pobj) clear();
 		pobj = _robj.release();
 		return *this;
 	}
-	ThisTp& operator=(ObjectTp *_pobj){
+	ThisT& operator=(ObjectT *_pobj){
 		pobj = _pobj;
 		return *this;
 	}
-	inline ObjectTp& operator*()const throw() {return *pobj;}
-	inline ObjectTp* operator->()const throw() {return pobj;}
-	ObjectTp* ptr() const throw() {return pobj;}
+	inline ObjectT& operator*()const throw() {return *pobj;}
+	inline ObjectT* operator->()const throw() {return pobj;}
+	ObjectT* ptr() const throw() {return pobj;}
 	operator bool () const throw() {return pobj;}
 	bool operator!()const throw() {return !pobj;}
 	void clear(){if(pobj){StreamPointerBase::clear(pobj);pobj = NULL;}}
 private:
-	mutable ObjectTp 	*pobj;
+	mutable ObjectT 	*pobj;
 };
 
 #endif

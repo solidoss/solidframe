@@ -45,7 +45,7 @@ S& operator&(pair<String, int64> &_v, S &_s){
 }
 
 template <class S>
-S& operator&(ObjectUidTp &_v, S &_s){
+S& operator&(ObjectUidT &_v, S &_s){
 	return _s.push(_v.first, "first").push(_v.second, "second");
 }
 }
@@ -58,22 +58,12 @@ namespace alpha{
 // RemoteListSignal
 //---------------------------------------------------------------
 struct RemoteListSignal: Dynamic<RemoteListSignal, foundation::Signal>{
-	RemoteListSignal(uint32 _tout = 0): ppthlst(NULL),err(-1),tout(_tout){
-		//idbg(""<<(void*)this);
-	}
-	~RemoteListSignal(){
-		//idbg(""<<(void*)this);
-		delete ppthlst;
-	}
-	int execute(uint32 _evs, foundation::SignalExecuter&, const SignalUidTp &, TimeSpec &_rts);
+	RemoteListSignal(uint32 _tout = 0);
+	~RemoteListSignal();
+	int execute(uint32 _evs, foundation::SignalExecuter&, const SignalUidT &, TimeSpec &_rts);
 	
 	int ipcReceived(foundation::ipc::SignalUid &_rsiguid, const foundation::ipc::ConnectorUid &_rconid);
-	int ipcPrepare(const foundation::ipc::SignalUid &_rsiguid){
-		siguid = _rsiguid;
-		if(!ppthlst){//on sender
-			return NOK;
-		}else return OK;// on peer
-	}
+	int ipcPrepare(const foundation::ipc::SignalUid &_rsiguid);
 	void ipcFail(int _err);
 
 	template <class S>
@@ -84,20 +74,18 @@ struct RemoteListSignal: Dynamic<RemoteListSignal, foundation::Signal>{
 		return _s;
 	}
 //data:
-	RemoteList::PathListTp			*ppthlst;
+	RemoteList::PathListT			*ppthlst;
 	String							strpth;
 	int32							err;
 	uint32							tout;
 	foundation::ipc::ConnectorUid	conid;
 	foundation::ipc::SignalUid		siguid;
 	uint32							requid;
-	ObjectUidTp						fromv;
+	ObjectUidT						fromv;
 };
 
 struct FetchSlaveSignal;
-enum{
-	FetchChunkSize = 1024*1024
-};
+
 
 //---------------------------------------------------------------
 // FetchMasterSignal
@@ -118,18 +106,18 @@ struct FetchMasterSignal: Dynamic<FetchMasterSignal, foundation::Signal>{
 		SendNextStream,
 		SendError,
 	};
-	FetchMasterSignal():psig(NULL), fromv(0xffffffff, 0xffffffff), state(NotReceived), insz(-1), inpos(0), requid(0){
+	FetchMasterSignal():psig(NULL), fromv(0xffffffff, 0xffffffff), state(NotReceived), streamsz(0), filesz(0), filepos(0), requid(0){
 	}
 	~FetchMasterSignal();
 	
 	int ipcReceived(foundation::ipc::SignalUid &_rsiguid, const foundation::ipc::ConnectorUid &_rconid);
 	void ipcFail(int _err);
 	
-	int execute(uint32 _evs, foundation::SignalExecuter&, const SignalUidTp &, TimeSpec &_rts);
+	int execute(uint32 _evs, foundation::SignalExecuter&, const SignalUidT &, TimeSpec &_rts);
 
 	int receiveSignal(
 		DynamicPointer<Signal> &_rsig,
-		const ObjectUidTp& _from = ObjectUidTp(),
+		const ObjectUidT& _from = ObjectUidT(),
 		const foundation::ipc::ConnectorUid *_conid = NULL
 	);
 	
@@ -137,21 +125,22 @@ struct FetchMasterSignal: Dynamic<FetchMasterSignal, foundation::Signal>{
 	S& operator&(S &_s){
 		_s.push(fname, "filename");
 		_s.push(tmpfuid.first, "tmpfileuid_first").push(tmpfuid.second, "tmpfileuid_second");
-		return _s.push(fromv.first, "fromobjectid").push(fromv.second, "fromobjectuid").push(requid, "requestuid");
+		return _s.push(fromv.first, "fromobjectid").push(fromv.second, "fromobjectuid").push(requid, "requestuid").push(streamsz, "streamsize");
 	}
 	void print()const;
 //data:
-	String					fname;
-	FetchSlaveSignal		*psig;
-	ObjectUidTp				fromv;
-	FileUidTp				fuid;
-	FileUidTp				tmpfuid;
+	String							fname;
+	FetchSlaveSignal				*psig;
+	ObjectUidT						fromv;
+	FileUidT						fuid;
+	FileUidT						tmpfuid;
 	foundation::ipc::ConnectorUid	conid;
-	StreamPointer<IStream>		ins;
-	int32					state;
-	int64					insz;
-	int64					inpos;
-	uint32					requid;
+	StreamPointer<IStream>			ins;
+	int32							state;
+	uint32							streamsz;
+	int64							filesz;
+	int64							filepos;
+	uint32							requid;
 };
 
 //---------------------------------------------------------------
@@ -163,12 +152,12 @@ struct FetchMasterSignal: Dynamic<FetchMasterSignal, foundation::Signal>{
 	as reponse containing the requested file chunk.
 */
 struct FetchSlaveSignal: Dynamic<FetchSlaveSignal, foundation::Signal>{
-	FetchSlaveSignal(): fromv(0xffffffff, 0xffffffff), insz(-1), sz(-10), requid(0){}
+	FetchSlaveSignal();
 	~FetchSlaveSignal();
 	int ipcReceived(foundation::ipc::SignalUid &_rsiguid, const foundation::ipc::ConnectorUid &_rconid);
 	int sent(const foundation::ipc::ConnectorUid &);
 	//int execute(concept::Connection &);
-	int execute(uint32 _evs, foundation::SignalExecuter&, const SignalUidTp &, TimeSpec &_rts);
+	int execute(uint32 _evs, foundation::SignalExecuter&, const SignalUidT &, TimeSpec &_rts);
 	int createDeserializationStream(std::pair<OStream *, int64> &_rps, int _id);
 	void destroyDeserializationStream(const std::pair<OStream *, int64> &_rps, int _id);
 	int createSerializationStream(std::pair<IStream *, int64> &_rps, int _id);
@@ -179,23 +168,24 @@ struct FetchSlaveSignal: Dynamic<FetchSlaveSignal, foundation::Signal>{
 		_s.template pushStreammer<FetchSlaveSignal>(this, "FetchStreamResponse::isp");
 		_s.push(tov.first, "toobjectid").push(tov.second, "toobjectuid");
 		//_s.push(fromv.first, "fromobjectid").push(fromv.second, "fromobjectuid");
-		_s.push(insz, "inputstreamsize").push(requid, "requestuid");
-		_s.push(sz, "inputsize").push(siguid.first, "signaluid_first").push(siguid.second, "signaluid_second");
+		_s.push(streamsz, "streamsize").push(requid, "requestuid");
+		_s.push(filesz, "filesize").push(siguid.first, "signaluid_first").push(siguid.second, "signaluid_second");
 		_s.push(fuid.first,"fileuid_first").push(fuid.second, "fileuid_second");
+		serialized = true;
 		return _s;
 	}
 	void print()const;
 //data:	
-	ObjectUidTp						fromv;
-	ObjectUidTp						tov;
-	FileUidTp						fuid;
+	ObjectUidT						fromv;
+	ObjectUidT						tov;
+	FileUidT						fuid;
 	foundation::ipc::ConnectorUid	conid;
-	SignalUidTp						siguid;
+	SignalUidT						siguid;
 	StreamPointer<IStream>			ins;
-	//if insz >= 0 -> [0->1M) else -> [1M->2M)
-	int64							insz;
-	int32							sz;
+	int64							filesz;
+	int32							streamsz;
 	uint32							requid;
+	bool							serialized;
 };
 
 //---------------------------------------------------------------
@@ -220,10 +210,10 @@ struct SendStringSignal: Dynamic<SendStringSignal, foundation::Signal>{
 		return _s.push(fromv.first, "fromobjectid").push(fromv.second, "fromobjectuid");
 	}
 private:
-	typedef std::pair<uint32, uint32> ObjPairTp;
+	typedef std::pair<uint32, uint32> ObjPairT;
 	String						str;
-	ObjPairTp					tov;
-	ObjPairTp					fromv;
+	ObjPairT					tov;
+	ObjPairT					fromv;
 	foundation::ipc::ConnectorUid		conid;
 };
 
@@ -262,13 +252,13 @@ struct SendStreamSignal: Dynamic<SendStreamSignal, foundation::Signal>{
 		return _s.push(fromv.first, "fromobjectid").push(fromv.second, "fromobjectuid");
 	}
 private:
-	typedef std::pair<uint32, uint32> 	ObjPairTp;
-	typedef std::pair<uint32, uint32> 	FileUidTp;
+	typedef std::pair<uint32, uint32> 	ObjPairT;
+	typedef std::pair<uint32, uint32> 	FileUidT;
 
 	StreamPointer<IOStream>		iosp;
 	String						dststr;
-	ObjPairTp					tov;
-	ObjPairTp					fromv;
+	ObjPairT					tov;
+	ObjPairT					fromv;
 	foundation::ipc::ConnectorUid		conid;
 };
 

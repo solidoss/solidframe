@@ -50,31 +50,33 @@ struct Service::Data{
 		ProcessConnector*	proc;
 		uint32				uid;
 	};
-	typedef std::pair<uint32, uint32>					TkrPairTp;
-	//typedef std::pair<uint16, uint16>					ProcPosPairTp;
+	typedef std::pair<uint32, uint32>					TkrPairT;
+	//typedef std::pair<uint16, uint16>					ProcPosPairT;
 	typedef std::pair<const Inet4SockAddrPair*, int>	BaseProcAddr4;
 	typedef std::map<
 		const BaseProcAddr4*, 
 		ConnectorUid, 
 		Inet4AddrPtrCmp
-		>												BaseProcAddr4MapTp;
+		>												BaseProcAddr4MapT;
 	
 	typedef std::pair<const Inet6SockAddrPair*, int>	BaseProcAddr6;
 	typedef std::map<
 		const BaseProcAddr6*,
 		ConnectorUid,
 		Inet6AddrPtrCmp
-		>												BaseProcAddr6MapTp;
-	typedef std::vector<TkrPairTp>						TalkerVectorTp;
+		>												BaseProcAddr6MapT;
+	typedef std::vector<TkrPairT>						TalkerVectorT;
+	
 	Data();
+	
 	~Data();	
 	
 	int						procpertkrcnt;
 	uint32					proccnt;
 	int						baseport;
 	SocketAddress			firstaddr;
-	TalkerVectorTp			tkrvec;
-	BaseProcAddr4MapTp		basepm4;
+	TalkerVectorT			tkrvec;
+	BaseProcAddr4MapT		basepm4;
 	uint32 					keepalivetout;
 };
 
@@ -82,6 +84,7 @@ struct Service::Data{
 
 Service::Data::Data():procpertkrcnt(10), proccnt(0), baseport(-1){
 }
+
 Service::Data::~Data(){
 }
 
@@ -96,9 +99,11 @@ Service::Service(uint32 _keepalivetout):d(*(new Data)){
 Service::~Service(){
 	delete &d;
 }
+
 uint32 Service::keepAliveTimeout()const{
 	return d.keepalivetout;
 }
+
 int Service::sendSignal(
 	const ConnectorUid &_rconid,//the id of the process connector
 	DynamicPointer<Signal> &_psig,//the signal to be sent
@@ -106,7 +111,7 @@ int Service::sendSignal(
 ){
 	cassert(_rconid.tkrid < d.tkrvec.size());
 	Mutex::Locker	lock(*mutex());
-	Data::TkrPairTp	&rtp(d.tkrvec[_rconid.tkrid]);
+	Data::TkrPairT	&rtp(d.tkrvec[_rconid.tkrid]);
 	Mutex::Locker lock2(this->mutex(rtp.first, rtp.second));
 	Talker *ptkr = static_cast<Talker*>(this->object(rtp.first, rtp.second));
 	cassert(ptkr);
@@ -134,12 +139,12 @@ int Service::doSendSignal(
 	if(_rsap.family() == AddrInfo::Inet4){
 		Inet4SockAddrPair 	inaddr(_rsap);
 		Data::BaseProcAddr4	baddr(&inaddr, inaddr.port());
-		Data::BaseProcAddr4MapTp::iterator	it(d.basepm4.find(&baddr));
+		Data::BaseProcAddr4MapT::iterator	it(d.basepm4.find(&baddr));
 		if(it != d.basepm4.end()){
-			idbgx(Dbg::ipc, "");
+			vdbgx(Dbg::ipc, "");
 			ConnectorUid	conid = it->second;
 			cassert(conid.tkrid < d.tkrvec.size());
-			Data::TkrPairTp	&rtp(d.tkrvec[conid.tkrid]);
+			Data::TkrPairT	&rtp(d.tkrvec[conid.tkrid]);
 			Mutex::Locker lock2(this->mutex(rtp.first, rtp.second));
 			Talker *ptkr = static_cast<Talker*>(this->object(rtp.first, rtp.second));
 			cassert(ptkr);
@@ -152,7 +157,7 @@ int Service::doSendSignal(
 			if(_pconid) *_pconid = conid;
 			return OK;
 		}else{//the process connector does not exist
-			idbgx(Dbg::ipc, "");
+			vdbgx(Dbg::ipc, "");
 			int16 tkrid = computeTalkerForNewProcess();
 			uint32 tkrpos,tkruid;
 			if(tkrid >= 0){
@@ -169,7 +174,7 @@ int Service::doSendSignal(
 			cassert(ptkr);
 			ProcessConnector *ppc = new ProcessConnector(inaddr, d.keepalivetout);
 			ConnectorUid conid(tkrid);
-			idbgx(Dbg::ipc, "");
+			vdbgx(Dbg::ipc, "");
 			ptkr->pushProcessConnector(ppc, conid);
 			d.basepm4[ppc->baseAddr4()] = conid;
 // 			DynamicPointer<test::Signal> pnullsig(NULL);
@@ -198,7 +203,7 @@ int Service::acceptProcess(ProcessConnector *_ppc){
 	Mutex::Locker	lock(*mutex());
 	{
 		//TODO: try to think if the locking is ok!!!
-		Data::BaseProcAddr4MapTp::iterator	it(d.basepm4.find(_ppc->baseAddr4()));
+		Data::BaseProcAddr4MapT::iterator	it(d.basepm4.find(_ppc->baseAddr4()));
 		if(it != d.basepm4.end()){
 			//a connection still exists
 			uint32 tkrpos,tkruid;
@@ -206,7 +211,7 @@ int Service::acceptProcess(ProcessConnector *_ppc){
 			tkruid = d.tkrvec[it->second.tkrid].second;
 			Mutex::Locker lock2(this->mutex(tkrpos, tkruid));
 			Talker *ptkr = static_cast<Talker*>(this->object(tkrpos, tkruid));
-			idbgx(Dbg::ipc, "");
+			vdbgx(Dbg::ipc, "");
 			ptkr->pushProcessConnector(_ppc, it->second, true);
 			if(ptkr->signal(fdt::S_RAISE)){
 				Manager::the().raiseObject(*ptkr);
@@ -229,7 +234,7 @@ int Service::acceptProcess(ProcessConnector *_ppc){
 	Talker *ptkr = static_cast<Talker*>(this->object(tkrpos, tkruid));
 	cassert(ptkr);
 	ConnectorUid conid(tkrid, 0xffff, 0xffff);
-	idbgx(Dbg::ipc, "");
+	vdbgx(Dbg::ipc, "");
 	ptkr->pushProcessConnector(_ppc, conid);
 	d.basepm4[_ppc->baseAddr4()] = conid;
 // 	DynamicPointer<test::Signal> pnullsig(NULL);
@@ -263,7 +268,7 @@ int16 Service::createNewTalker(uint32 &_tkrpos, uint32 &_tkruid){
 			delete ptkr;
 			return BAD;
 		}
-		d.tkrvec.push_back(Data::TkrPairTp((_tkrpos = ptkr->id()), (_tkruid = this->uid(*ptkr))));
+		d.tkrvec.push_back(Data::TkrPairT((_tkrpos = ptkr->id()), (_tkruid = this->uid(*ptkr))));
 		//Manager::the().pushJob((fdt::udp::Talker*)ptkr);
 		doPushTalkerInPool(ptkr);
 	}else{
@@ -313,7 +318,7 @@ int Service::insertTalker(
 	}
 	d.firstaddr = _rai;
 	d.baseport = d.firstaddr.port();
-	d.tkrvec.push_back(Data::TkrPairTp(ptkr->id(), this->uid(*ptkr)));
+	d.tkrvec.push_back(Data::TkrPairT(ptkr->id(), this->uid(*ptkr)));
 	//_rm.pushJob((fdt::udp::Talker*)ptkr);
 	doPushTalkerInPool(ptkr);
 	return OK;
@@ -362,7 +367,6 @@ int Service::execute(ulong _sig, TimeSpec &_rtout){
 	return NOK;
 }
 
-
 //=======	Buffer		=============================================
 bool Buffer::check()const{
 	cassert(bc >= 32);
@@ -376,7 +380,7 @@ bool Buffer::check()const{
 void Buffer::print()const{
 	idbgx(Dbg::ipc, "version = "<<(int)header().version<<" id = "<<header().id<<" retransmit = "<<header().retransid<<" flags = "<<header().flags<<" type = "<<(int)header().type<<" updatescnt = "<<header().updatescnt<<" bufcp = "<<bc<<" dl = "<<dl);
 	for(int i = 0; i < header().updatescnt; ++i){
-		idbgx(Dbg::ipc, "update = "<<update(i));
+		vdbgx(Dbg::ipc, "update = "<<update(i));
 	}
 }
 

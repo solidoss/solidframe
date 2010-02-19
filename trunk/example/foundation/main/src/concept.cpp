@@ -191,7 +191,7 @@ int main(int argc, char* argv[]){
 	srand(stime);
 	
 	idbg("Built on SolidGround version "<<SG_MAJOR<<'.'<<SG_MINOR<<'.'<<SG_PATCH);
-	idbg("sizeof(IndexTp) = "<<sizeof(foundation::IndexTp)<<" SERVICEBITCNT = "<<foundation::SERVICEBITCNT<<" INDEXBITCNT = "<<foundation::INDEXBITCNT);
+	idbg("sizeof(IndexT) = "<<sizeof(foundation::IndexT)<<" SERVICEBITCNT = "<<foundation::SERVICEBITCNT<<" INDEXBITCNT = "<<foundation::INDEXBITCNT);
 	idbg("sizeof ulong = "<<sizeof(long));
 #ifdef _LP64
 	idbg("64bit architecture");

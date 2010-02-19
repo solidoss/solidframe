@@ -32,11 +32,11 @@ namespace foundation{
 template <class B>
 class ReadWriteObject: public B{
 public:
-	typedef B	BaseTp;
-	typedef ReadWriteService	ServiceTp;
+	typedef B	BaseT;
+	typedef ReadWriteService	ServiceT;
 	ReadWriteObject():count(0),rpending(0),wpending(0),prc(NULL),pwc(NULL){}
 	template <class P>
-	ReadWriteObject(P &_rp):BaseTp(_rp),count(0),rpending(0),wpending(0),prc(NULL),pwc(NULL){}
+	ReadWriteObject(P &_rp):BaseT(_rp),count(0),rpending(0),wpending(0),prc(NULL),pwc(NULL){}
 	void readLock(){
 		ReadWriteService &rws = Manager::the().service(*this);
 		Mutex &mut(rws.mutex(*this));

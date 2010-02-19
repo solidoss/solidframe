@@ -32,6 +32,4 @@ add_library (foundation_aio
 	${Sources} ${Headers} ${Inlines}
 )
 
-#add_subdirectory(tcp)
-#add_subdirectory(udp)
 add_subdirectory(openssl)

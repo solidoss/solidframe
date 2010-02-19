@@ -24,7 +24,7 @@
 #endif
 
 
-inline void TimeSpec::set(const TimeTp &_s, long _ns){
+inline void TimeSpec::set(const TimeT &_s, long _ns){
 	tv_sec = _s;tv_nsec = _ns;
 }
 
@@ -39,14 +39,14 @@ inline TimeSpec operator-(const TimeSpec &_ts1, const TimeSpec &_ts2){
 	return ts;
 }
 
-inline void TimeSpec::add(const TimeTp &_s, long _ns){
+inline void TimeSpec::add(const TimeT &_s, long _ns){
 	tv_sec += _s;
 	tv_nsec += _ns;
 	tv_sec += tv_nsec/1000000000;
 	tv_nsec %= 1000000000;
 }
 
-inline void TimeSpec::sub(const TimeTp &_s, long _ns){
+inline void TimeSpec::sub(const TimeT &_s, long _ns){
 	tv_sec -= _s;
 	tv_nsec -= _ns;
 	tv_sec -= tv_nsec/1000000000;

@@ -27,8 +27,8 @@
 #include "utility/workpool.hpp"
 #include "utility/list.hpp"
 
-#include "manager.hpp"
-#include "activeset.hpp"
+#include "foundation/manager.hpp"
+#include "foundation/activeset.hpp"
 
 
 namespace foundation{
@@ -46,19 +46,23 @@ namespace foundation{
 	- Objects must implement "int execute(ulong _evs, TimeSpec &_rtout)" method.
 */
 template <class Sel>
-class SelectPool: public WorkPool<typename Sel::ObjectTp>, public ActiveSet{
+class SelectPool: public ActiveSet, public WorkPool<typename Sel::ObjectT>{
 public:
-	typedef Sel										SelectorTp;
-	typedef typename Sel::ObjectTp					JobTp;
-	typedef SelectPool<Sel>							ThisTp;
-	typedef WorkPool<typename Sel::ObjectTp>		WorkPoolTp;
+	typedef Sel							SelectorT;
+	typedef typename Sel::ObjectT		JobT;
+	typedef SelectPool<Sel>				ThisT;
+	typedef WorkPool<JobT>				WorkPoolT;
 
 private:
-	typedef List<ulong>								ListTp;
-	typedef std::pair<SelectorTp*,ListTp::iterator>	VecPairTp;
-	typedef std::vector<VecPairTp>		 			SlotVecTp;
+	typedef List<ulong>					ListT;
+	typedef std::pair<
+		SelectorT*,
+		ListT::iterator
+		>								VecPairT;
+	typedef std::vector<VecPairT>		SlotVecT;
 
 protected:
+
 	struct SelectorWorker;
 
 public://definition
@@ -91,7 +95,7 @@ public://definition
 	void raiseStop(){
 		{
 			Mutex::Locker	lock(this->mtx);
-			for(typename SlotVecTp::iterator it(slotvec.begin()); it != slotvec.end(); ++it){
+			for(typename SlotVecT::iterator it(slotvec.begin()); it != slotvec.end(); ++it){
 				it->first->signal();
 			}
 		}
@@ -128,12 +132,12 @@ public://definition
 	
 	//! The method for adding a new object to the pool
 	/*!
-		Method overwritten from WorkPoolTp, to add logic 
+		Method overwritten from WorkPoolT, to add logic 
 		for creating new workers.
 	 */
-	void push(const JobTp &_rjb){
+	void push(const JobT &_rjb){
 		Mutex::Locker	lock(this->mtx);
-		cassert(this->state != WorkPoolTp::Stopped);
+		cassert(this->state != WorkPoolT::Stopped);
 		this->q.push(_rjb); this->sigcnd.signal();
 		if(sgnlst.size()){
 			slotvec[sgnlst.back()].first->signal();
@@ -151,22 +155,22 @@ protected:
 
 protected:
 	//! The selector worker
-	struct SelectorWorker: WorkPoolTp::Worker{
+	struct SelectorWorker: WorkPoolT::Worker{
 		SelectorWorker(){}
 		~SelectorWorker(){}
 		uint 		thrid;
-		SelectorTp	sel;
+		SelectorT	sel;
 	};
 	
 	//! The creator of workers
 	/*!
 		Observe the fact that the created workers type
-		is WorkPool::GenericWorker\<SelectorWorker, ThisTp\>
+		is WorkPool::GenericWorker\<SelectorWorker, ThisT\>
 	*/
 	int createWorkers(uint _cnt){
 		uint i(0);
 		for(; i < _cnt; ++i){
-			SelectorWorker *pwkr = this->template createWorker<SelectorWorker,ThisTp>(*this);
+			SelectorWorker *pwkr = this->template createWorker<SelectorWorker,ThisT>(*this);
 			if(!registerSelector(pwkr->sel, pwkr->thrid))
 				pwkr->start();//do not wait
 			else{ delete pwkr; break;}
@@ -175,28 +179,28 @@ protected:
 	}
 	
 	//! Register the selector of a worker 
-	int registerSelector(SelectorTp &_rs, uint &_wkrid){
+	int registerSelector(SelectorT &_rs, uint &_wkrid){
 		if(_rs.reserve(selcap)) return BAD;
 		_wkrid = thrid++;
 		cap += _rs.capacity();
 		uint wid = _wkrid & 0xffff;
 		if(wid >= slotvec.size()){
-			slotvec.push_back(VecPairTp(&_rs, sgnlst.insert(sgnlst.end(),wid)));
+			slotvec.push_back(VecPairT(&_rs, sgnlst.insert(sgnlst.end(),wid)));
 		}else{
-			slotvec[wid] = VecPairTp(&_rs, sgnlst.insert(sgnlst.end(),wid));
+			slotvec[wid] = VecPairT(&_rs, sgnlst.insert(sgnlst.end(),wid));
 		}
 		return OK;
 	}
 	
 	//! Unregister the selector of a worker 
-	void unregisterSelector(SelectorTp &_rs, ulong _wkrid){
+	void unregisterSelector(SelectorT &_rs, ulong _wkrid){
 		Mutex::Locker	lock(this->mtx);
 		cap -= _rs.capacity();
-		slotvec[_wkrid & 0xffff] = VecPairTp(NULL, sgnlst.end());
+		slotvec[_wkrid & 0xffff] = VecPairT(NULL, sgnlst.end());
 	}
 	
 	//! Pop some objects into the selector
-	int pop(SelectorTp &_rsel, uint _wkrid){
+	int pop(SelectorT &_rsel, uint _wkrid){
 		Mutex::Locker lock(this->mtx);
 		int tid = _wkrid & 0xffff;
 		if(_rsel.full()){//can do nothing but ensure the worker will not be raised again
@@ -223,7 +227,7 @@ protected:
 				doEnsureWorkerNotRaise(tid);
 				doTrySignalOtherWorker();
 			}
-			if(this->state == WorkPoolTp::Running) return OK;
+			if(this->state == WorkPoolT::Running) return OK;
 			return NOK;
 		}
 		return BAD;
@@ -240,7 +244,7 @@ private:
 	
 	//! Wait for a new object
 	int doWaitJob(){
-		while(this->q.empty() && this->state == WorkPoolTp::Running){
+		while(this->q.empty() && this->state == WorkPoolT::Running){
 			this->sigcnd.wait(this->mtx);
 		}
 		return this->q.size();
@@ -262,8 +266,8 @@ private:
 	ulong			cap;//the total count of objects already in pool
 	uint			selcap;
 	uint			thrid;
-	ListTp			sgnlst;
-	SlotVecTp		slotvec;
+	ListT			sgnlst;
+	SlotVecT		slotvec;
 	
 };
 

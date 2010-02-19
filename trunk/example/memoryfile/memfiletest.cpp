@@ -44,7 +44,7 @@ int main(int argc, char *argv[]){
 		int rv;
 		int rc;
 		do{
-			rv = randomsize();
+			rv = 2 * 1024;//randomsize();
 			//cout<<rv<<endl;
 			rc = fd.read(b, rv);
 			if(rc < 0) break;
@@ -65,7 +65,7 @@ int main(int argc, char *argv[]){
 		char b[20 * 1024];
 		int rv, rc;
 		do{
-			rv = randomsize();
+			rv = 2 * 1024;//randomsize();
 			//cout<<rv<<endl;
 			rc = mf.read(b, rv);
 			fd.write(b, rc);

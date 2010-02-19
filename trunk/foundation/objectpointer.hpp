@@ -39,46 +39,46 @@ protected:
 template <class SO>
 class ObjectPointer: protected ObjectPointerBase{
 public:
-	typedef SO 					ObjectTp;
-	typedef ObjectPointer<SO>	ThisTp;
+	typedef SO 					ObjectT;
+	typedef ObjectPointer<SO>	ThisT;
 public:
 	ObjectPointer():pobj(NULL){}
 	
-	explicit ObjectPointer(ObjectTp *_pobj):pobj(_pobj) {
+	explicit ObjectPointer(ObjectT *_pobj):pobj(_pobj) {
 		if(_pobj) use(static_cast<Object*>(_pobj));
 	}
 	
-	ObjectPointer(const ThisTp &_pobj):pobj(_pobj.release()){}
+	ObjectPointer(const ThisT &_pobj):pobj(_pobj.release()){}
 	
 	~ObjectPointer(){
 		if(pobj){ObjectPointerBase::clear(static_cast<Object*>(pobj));}
 	}
-	ObjectTp* release() const{
-		ObjectTp *po = pobj;
+	ObjectT* release() const{
+		ObjectT *po = pobj;
 		pobj = NULL;
 		return po;
 	}
-	ThisTp& operator=(const ThisTp &_robj){
+	ThisT& operator=(const ThisT &_robj){
 		clear();
 		pobj = _robj.release();
 		return *this;
 	}
-	ThisTp& operator=(ObjectTp *_pobj){
+	ThisT& operator=(ObjectT *_pobj){
 		clear();ptr(_pobj);	return *this;
 	}
-	ObjectTp& operator*()const  {return *pobj;}
-	ObjectTp* operator->()const {return pobj;}
-	ObjectTp* ptr()	const	{return pobj;}
+	ObjectT& operator*()const  {return *pobj;}
+	ObjectT* operator->()const {return pobj;}
+	ObjectT* ptr()	const	{return pobj;}
 	operator bool ()const	{return pobj != NULL;}
 	bool operator!()const	{return pobj == NULL;}
 	void clear(){if(pobj){ObjectPointerBase::clear(static_cast<Object*>(pobj));pobj = NULL;}}
 protected:
-	void ptr(ObjectTp *_pobj){
+	void ptr(ObjectT *_pobj){
 		pobj = _pobj;
 		use(static_cast<Object*>(pobj));
 	}
 private:
-	mutable ObjectTp 	*pobj;
+	mutable ObjectT 	*pobj;
 };
 
 }//namespace foundation

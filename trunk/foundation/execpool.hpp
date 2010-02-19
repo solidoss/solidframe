@@ -40,7 +40,7 @@ public:
 	void raise(uint _thid, ulong _objid){}
 	void poolid(uint _pid){}
 protected:
-	typedef WorkPool<ObjectPointer<Object> > WorkPoolTp;
+	typedef WorkPool<ObjectPointer<Object> > WorkPoolT;
 	virtual void run();
 	virtual int createWorkers(uint) = 0;
 };

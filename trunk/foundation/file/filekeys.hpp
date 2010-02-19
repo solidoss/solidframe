@@ -1,0 +1,75 @@
+/* Declarations file filekeys.hpp
+	
+	Copyright 2010 Valentin Palade 
+	vipalade@gmail.com
+
+	This file is part of SolidGround framework.
+
+	SolidGround is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	SolidGround is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+#ifndef FILE_KEYS_HPP
+#define FILE_KEYS_HPP
+
+#include "foundation/file/filekey.hpp"
+
+namespace foundation{
+namespace file{
+
+struct NameKey: Key{
+	NameKey(const char *_fname = NULL);
+	NameKey(const std::string &_fname);
+	~NameKey();
+	/*virtual*/ uint32 mapperId()const;
+	/*virtual*/ Key* clone() const;
+	/*virtual*/ const char* path() const;
+private:
+	std::string 	name;
+};
+
+struct FastNameKey: Key{
+	FastNameKey(const char *_fname = NULL);
+	~FastNameKey();
+	/*virtual*/ uint32 mapperId()const;
+	/*virtual*/ Key* clone() const;
+	/*virtual*/ const char* path() const;
+private:
+	const char	*name;
+};
+
+struct TempKey: Key{
+	TempKey(uint64 _cp = -1L):cp(_cp){}
+	~TempKey();
+	const uint64	cp;
+	/*virtual*/ uint32 mapperId()const;
+	/*virtual*/ Key* clone() const;
+	/*virtual*/ bool release()const;
+	/*virtual*/ uint64 capacity()const;
+};
+
+struct MemoryKey: Key{
+	MemoryKey(uint64 _cp = -1L):cp(_cp){}
+	~MemoryKey();
+	const uint64 cp;
+	/*virtual*/ uint32 mapperId()const;
+	/*virtual*/ Key* clone() const;
+	/*virtual*/ bool release()const;
+	/*virtual*/ uint64 capacity()const;
+};
+
+
+}//namespace file
+}//namespace foundation
+
+#endif

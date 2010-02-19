@@ -35,9 +35,9 @@ namespace concept{
 */
 class Object: public foundation::Object{
 public:
-	typedef std::pair<uint32, uint32>	FromPairTp;
-	typedef std::pair<uint32, uint32>	FileUidTp;
-	typedef std::pair<uint32, uint32>	RequestUidTp;
+	//typedef std::pair<uint32, uint32>	FromPairT;
+	//typedef std::pair<uint32, uint32>	FileUidT;
+	//typedef std::pair<uint32, uint32>	RequestUidT;
 protected:
 	Object(uint32 _fullid = 0):foundation::Object(_fullid){}
 };

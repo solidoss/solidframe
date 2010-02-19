@@ -102,7 +102,7 @@ public:
 		LastBasicError,
 		IOError
 	};
-	typedef int (*FncTp)(Reader&, Parameter &_rp);
+	typedef int (*FncT)(Reader&, Parameter &_rp);
 public:
 	//!Constructor
 	/*!
@@ -118,19 +118,19 @@ public:
 		\param _pf A pointer to a function
 		\param _rp A const reference to a parameter
 	*/
-	void push(FncTp _pf, const Parameter & _rp/* = Parameter()*/);
+	void push(FncT _pf, const Parameter & _rp/* = Parameter()*/);
 	//! Sheduller replace top method
 	/*!
 		\param _pf A pointer to a function
 		\param _rp A const reference to a parameter
 	*/
-	void replace(FncTp _pf, const Parameter & _rp = Parameter());
+	void replace(FncT _pf, const Parameter & _rp = Parameter());
 	//! Sheduller push method
 	/*!
 		\param _pf A pointer to a function
 		\retval Parameter Returns a reference to the actual parameter the function will be called with, so you can get pointers to this parameter.
 	*/
-	Parameter &push(FncTp _pf);
+	Parameter &push(FncT _pf);
 	//!Check if the stack is empty
 	bool empty()const{return fs.empty();}
 	//! The state machine algorithm
@@ -310,7 +310,7 @@ protected:
 	//! The reader will call this method when other basic error occured
 	virtual void basicError(int _id) = 0;
 protected:
-	typedef std::pair<FncTp, Parameter>	FncPairTp;
+	typedef std::pair<FncT, Parameter>	FncPairT;
 	Logger				*plog;
 	char				*bbeg; //buff begin
 	char				*bend;
@@ -318,7 +318,7 @@ protected:
 	char				*wpos;//read buff pos
 	short				state;
 	bool				dolog;
-	Stack<FncPairTp>	fs;
+	Stack<FncPairT>	fs;
 	String				tmp;
 };
 

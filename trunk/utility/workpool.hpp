@@ -66,7 +66,7 @@ WorkPoolPlugin* basicWorkPoolPlugin();
 template <class Jb>
 class WorkPool{
 public:
-	typedef WorkPool<Jb>	WorkPoolTp;
+	typedef WorkPool<Jb>	WorkPoolT;
 	//! Push a new job
 	void push(const Jb& _jb){
 		mtx.lock();
@@ -108,20 +108,21 @@ public:
 	//! Starts the workpool, creating _minwkrcnt
 	virtual int start(ushort _minwkrcnt, bool _wait = false){
 		Mutex::Locker lock(mtx);
+		idbgx(Dbg::utility, "workpool::start "<<state);
 		if(state > Stopped) return BAD;
 		_minwkrcnt = (_minwkrcnt)?_minwkrcnt:1;
 		wkrcnt = 0;
 		state = Running;
-		idbgx(Dbg::utility, "before create workers");
+		idbgx(Dbg::utility, "workpool::create workers begin");
 		createWorkers(_minwkrcnt);
-		idbgx(Dbg::utility, "after create");
+		idbgx(Dbg::utility, "workpool::create workers done");
 		if(_wait){
 			while(wkrcnt != _minwkrcnt){
-				idbgx(Dbg::utility, "minwkrcnt = "<<_minwkrcnt<<" wkrcnt = "<<wkrcnt);
+				vdbgx(Dbg::utility, "minwkrcnt = "<<_minwkrcnt<<" wkrcnt = "<<wkrcnt);
 				thrcnd.wait(mtx);
 			}
 		}
-		idbgx(Dbg::utility, "done start");
+		idbgx(Dbg::utility, "workpool::start done");
 		return OK;
 	}
 	//! Initiate workpool stop
@@ -133,12 +134,13 @@ public:
 	*/
 	virtual void stop(bool _wait = true){
 		Mutex::Locker	lock(mtx);
+		idbgx(Dbg::utility, "workpool::stoping");
 		if(state == Stopped) return;
 		state = Stopping;
 		sigcnd.broadcast();
 		if(!_wait) return;
 		while(wkrcnt)	thrcnd.wait(mtx);
-		idbgx(Dbg::utility, "workpool::stopped"<<std::flush);
+		idbgx(Dbg::utility, "workpool::stopped");
 		state = Stopped;
 	}
 protected:
@@ -178,16 +180,16 @@ protected:
 	*/
 	int pop(int _wkrid, Jb *_jb, unsigned &_cnt){
 		Mutex::Locker lock(mtx);
-		idbgx(Dbg::utility, "enter pop");
+		idbgx(Dbg::utility, "workpool::pop wkrid = "<<_wkrid<<" cnt = "<<_cnt);
 		//if(_wkrid >= wkrcnt) return BAD;
 		if(!_cnt){
-			idbgx(Dbg::utility, "exit pop1");
+			vdbgx(Dbg::utility, "workpool::exit pop1");
 			if(state == Running) return OK;
-			idbgx(Dbg::utility, "exit pop2");
+			vdbgx(Dbg::utility, "workpool::exit pop2");
 			return BAD;
 		}
 		while(q.empty() && state == Running){
-			idbgx(Dbg::utility, "here");
+			vdbgx(Dbg::utility, "");
 			sigcnd.wait(mtx);
 		}
 		int i = 0;
@@ -198,12 +200,12 @@ protected:
 			}while(q.size() && i < _cnt);
 			_cnt = i;
 			if(q.size()) sigcnd.signal();//wake another worker
-			idbgx(Dbg::utility, "exit pop3 cnt = "<<_cnt);
+			vdbgx(Dbg::utility, "workpool::exit pop3 cnt = "<<_cnt);
 			if(state == Running) return OK;
-			idbgx(Dbg::utility, "exit pop4");
+			vdbgx(Dbg::utility, "workpool::exit pop4");
 			return NOK;
 		}
-		idbgx(Dbg::utility, "exit pop5");
+		vdbgx(Dbg::utility, "workpool::exit pop5");
 		return BAD;//the workpool is about to stop
 	}
 protected:
@@ -239,7 +241,7 @@ protected://workers:
 	class Worker: public Thread{
 	public:
 		virtual ~Worker(){
-			idbgx(Dbg::utility, "here");
+			idbgx(Dbg::utility, "workpool::");
 		}
 		int wid(){return wkrid;}
 	protected:
@@ -277,20 +279,20 @@ protected://workers:
 	};
 private:
 	void enterWorker(Worker &_rw){
-		idbgx(Dbg::utility, "wkrenter");
+		idbgx(Dbg::utility, "workpool::");
 		mtx.lock();
 		//_rwb.workerId(wkrcnt);
 		_rw.wkrid = wkrcnt;
 		++wkrcnt;
-		idbgx(Dbg::utility, "newwkr "<<wkrcnt);
+		vdbgx(Dbg::utility, "workpool::newworker "<<wkrcnt);
 		thrcnd.signal();
 		mtx.unlock();
 	}
 	void exitWorker(){
-		idbgx(Dbg::utility, "wkexit");
+		idbgx(Dbg::utility, "workpool::");
 		mtx.lock();
 		--wkrcnt;
-		idbgx(Dbg::utility, "exitwkr "<<wkrcnt<<std::flush);
+		vdbgx(Dbg::utility, "workpool::exitworker "<<wkrcnt<<std::flush);
 		thrcnd.signal();
 		mtx.unlock();
 	}

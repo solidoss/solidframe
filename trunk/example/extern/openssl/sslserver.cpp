@@ -95,8 +95,8 @@ struct Handle{
 	Queue<uint>		writebufs;
 };
 
-typedef std::vector<Handle>	HandleVectorTp;
-HandleVectorTp		handles;
+typedef std::vector<Handle>	HandleVectorT;
+HandleVectorT		handles;
 int					epollfd;
 Queue<uint32> 		execq;
 SSL_CTX				*ctx;
@@ -159,7 +159,7 @@ int main(int argc, char* argv[]){
 		cout<<"no such address"<<endl;
 		return 0;
 	}
-	typedef std::vector<Handle>	HandleVectorTp;
+	typedef std::vector<Handle>	HandleVectorT;
 	const unsigned epoll_cp = 4096;
 	epoll_event 		events[epoll_cp];
 	epollfd = epoll_create(epoll_cp);

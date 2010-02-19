@@ -40,8 +40,6 @@
 
 #include "foundation/selectpool.hpp"
 #include "foundation/execpool.hpp"
-#include "foundation/filemanager.hpp"
-#include "foundation/filekeys.hpp"
 
 #include "foundation/aio/aioselector.hpp"
 #include "foundation/aio/aioobject.hpp"
@@ -52,7 +50,8 @@
 #include "foundation/requestuid.hpp"
 
 #include "foundation/ipc/ipcservice.hpp"
-
+#include "foundation/file/filemanager.hpp"
+#include "foundation/file/filemappers.hpp"
 
 #include <iostream>
 using namespace std;
@@ -72,34 +71,82 @@ namespace fdt=foundation;
 
 namespace concept{
 
-//======= FileManager:==================================================
+//======= FileControler:==================================================
 /*
 	Local implementation of the foundation::FileManager wich will now know how
 	to send streams/errors to an object.
 */
-class FileManager: public fdt::FileManager{
+class FileManagerController: public fdt::file::Manager::Controller{
 public:
-	FileManager(uint32 _maxfcnt = 1024 * 20):fdt::FileManager(_maxfcnt){}
+	FileManagerController(){}
 protected:
-	/*virtual*/ void sendStream(StreamPointer<IStream> &_sptr, const FileUidTp &_rfuid, const fdt::RequestUid& _rrequid);
-	/*virtual*/ void sendStream(StreamPointer<OStream> &_sptr, const FileUidTp &_rfuid, const fdt::RequestUid& _rrequid);
-	/*virtual*/ void sendStream(StreamPointer<IOStream> &_sptr, const FileUidTp &_rfuid, const fdt::RequestUid& _rrequid);
-	/*virtual*/ void sendError(int _errid, const fdt::RequestUid& _rrequid);
+	/*virtual*/ void init(const fdt::file::Manager::InitStub &_ris);
+	/*virtual*/ void removeFileManager();
+	
+	/*virtual*/ void sendStream(
+		StreamPointer<IStream> &_sptr,
+		const FileUidT &_rfuid,
+		const fdt::RequestUid& _rrequid
+	);
+	/*virtual*/ void sendStream(
+		StreamPointer<OStream> &_sptr,
+		const FileUidT &_rfuid,
+		const fdt::RequestUid& _rrequid
+	);
+	/*virtual*/ void sendStream(
+		StreamPointer<IOStream> &_sptr,
+		const FileUidT &_rfuid,
+		const fdt::RequestUid& _rrequid
+	);
+	/*virtual*/ void sendError(
+		int _error,
+		const fdt::RequestUid& _rrequid
+	);
 };
-void FileManager::sendStream(StreamPointer<IStream> &_sptr, const FileUidTp &_rfuid, const fdt::RequestUid& _rrequid){
-	DynamicPointer<fdt::Signal>	cp(new IStreamSignal(_sptr, _rfuid, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
+
+/*virtual*/ void FileManagerController::init(const fdt::file::Manager::InitStub &_ris){
+	_ris.registerMapper(new fdt::file::NameMapper(10, 0));
+	_ris.registerMapper(new fdt::file::TempMapper(1024 * 1024 * 1024, "/tmp"));
+	_ris.registerMapper(new fdt::file::MemoryMapper(1024 * 1024 * 100));
+}
+/*virtual*/ void FileManagerController::removeFileManager(){
+	Manager::the().removeFileManager();
+}
+
+void FileManagerController::sendStream(
+	StreamPointer<IStream> &_sptr,
+	const FileUidT &_rfuid,
+	const fdt::RequestUid& _rrequid
+){
+	RequestUidT	ru(_rrequid.reqidx, _rrequid.requid);
+	DynamicPointer<fdt::Signal>	cp(new IStreamSignal(_sptr, _rfuid, ru));
 	Manager::the().signalObject(_rrequid.objidx, _rrequid.objuid, cp);
 }
-void FileManager::sendStream(StreamPointer<OStream> &_sptr, const FileUidTp &_rfuid, const fdt::RequestUid& _rrequid){
-	DynamicPointer<fdt::Signal>	cp(new OStreamSignal(_sptr, _rfuid, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
+
+void FileManagerController::sendStream(
+	StreamPointer<OStream> &_sptr,
+	const FileUidT &_rfuid,
+	const fdt::RequestUid& _rrequid
+){
+	RequestUidT	ru(_rrequid.reqidx, _rrequid.requid);
+	DynamicPointer<fdt::Signal>	cp(new OStreamSignal(_sptr, _rfuid, ru));
 	Manager::the().signalObject(_rrequid.objidx, _rrequid.objuid, cp);
 }
-void FileManager::sendStream(StreamPointer<IOStream> &_sptr, const FileUidTp &_rfuid, const fdt::RequestUid& _rrequid){
-	DynamicPointer<fdt::Signal>	cp(new IOStreamSignal(_sptr, _rfuid, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
+void FileManagerController::sendStream(
+	StreamPointer<IOStream> &_sptr,
+	const FileUidT &_rfuid,
+	const fdt::RequestUid& _rrequid
+){
+	RequestUidT	ru(_rrequid.reqidx, _rrequid.requid);
+	DynamicPointer<fdt::Signal>	cp(new IOStreamSignal(_sptr, _rfuid, ru));
 	Manager::the().signalObject(_rrequid.objidx, _rrequid.objuid, cp);
 }
-void FileManager::sendError(int _error, const fdt::RequestUid& _rrequid){
-	DynamicPointer<fdt::Signal>	cp(new StreamErrorSignal(_error, RequestUidTp(_rrequid.reqidx, _rrequid.requid)));
+void FileManagerController::sendError(
+	int _error,
+	const fdt::RequestUid& _rrequid
+){
+	RequestUidT	ru(_rrequid.reqidx, _rrequid.requid);
+	DynamicPointer<fdt::Signal>	cp(new StreamErrorSignal(_error, ru));
 	Manager::the().signalObject(_rrequid.objidx, _rrequid.objuid, cp);
 }
 
@@ -116,13 +163,14 @@ void FileManager::sendError(int _error, const fdt::RequestUid& _rrequid){
 */
 
 class IpcService: public fdt::ipc::Service{
-	typedef fdt::ipc::Service 					BaseTp;
-	typedef DynamicReceiver<void, IpcService>	DynamicReceiverTp;
+	typedef fdt::ipc::Service 					BaseT;
+	typedef DynamicReceiver<void, IpcService>	DynamicReceiverT;
 public:	
-	IpcService(uint32 _keepalivetout):BaseTp(_keepalivetout){}
+	IpcService(uint32 _keepalivetout):BaseT(_keepalivetout){}
+	~IpcService();
 	
 	static void dynamicRegister(){
-		DynamicReceiverTp::add<AddrInfoSignal, IpcService>();
+		DynamicReceiverT::add<AddrInfoSignal, IpcService>();
 	}
 		
 	int execute(ulong _sig, TimeSpec &_rtout);
@@ -146,10 +194,14 @@ public:
 protected:
 	/*virtual*/void doPushTalkerInPool(foundation::aio::Object *_ptkr);
 private:
-	DynamicReceiverTp		dr;
+	DynamicReceiverT		dr;
 };
 
 static const DynamicRegisterer<IpcService>	dr;
+
+IpcService::~IpcService(){
+	//Manager::the().removeService(this);
+}
 
 int IpcService::execute(ulong _sig, TimeSpec &_rtout){
 	idbg("serviceexec");
@@ -227,27 +279,37 @@ void SignalExecuter::removeFromManager(){
 //=========================================================================
 //The manager's localdata
 struct Manager::Data{
-//	typedef std::vector<ExtraObjectPointer>								ExtraObjectVector;
-	typedef std::map<const char*, int, StrLess> 						ServiceIdxMap;
-	typedef foundation::SelectPool<fdt::ObjectSelector>					ObjSelPoolTp;
-	typedef foundation::SelectPool<fdt::aio::Selector>					AioSelectorPoolTp;
+//	typedef std::vector<ExtraObjectPointer>			ExtraObjectVector;
+	typedef std::map<const char*, int, StrLess> 	ServiceIdxMap;
+	typedef foundation::SelectPool<
+		fdt::ObjectSelector
+		>											ObjSelPoolT;
+	typedef foundation::SelectPool<
+		fdt::aio::Selector
+		>											AioSelectorPoolT;
 
 	Data(Manager &_rm);
 	~Data();
 //	ExtraObjectVector							eovec;
 	ServiceIdxMap								servicemap;// map name -> service index
 	//fdt::ipc::Service							*pcs; // A pointer to the ipc service
-	ObjSelPoolTp								*pobjectpool[2];//object pools
-	AioSelectorPoolTp							*paiopool[2];
+	ObjSelPoolT									*pobjectpool[2];//object pools
+	AioSelectorPoolT							*paiopool[2];
 	fdt::ObjectPointer<fdt::SignalExecuter>		readcmdexec;// read signal executer
 	fdt::ObjectPointer<fdt::SignalExecuter>		writecmdexec;// write signal executer
+	fdt::ObjectPointer<fdt::file::Manager>		pfm;
+	IpcService									*pipc;
+	//AioSelectorPoolT 							aiselpool1;
+	//AioSelectorPoolT 							aiselpool2;
 };
 
 //--------------------------------------------------------------------------
 typedef serialization::TypeMapper					TypeMapper;
 typedef serialization::IdTypeMap					IdTypeMap;
 typedef serialization::bin::Serializer				BinSerializer;
-Manager::Data::Data(Manager &_rm)
+
+
+Manager::Data::Data(Manager &_rm)/*:aiselpool1(_rm, 10, 2048), aiselpool2(_rm, 10, 2048)*/
 {
 	pobjectpool[0] = NULL;
 	pobjectpool[1] = NULL;
@@ -259,21 +321,26 @@ Manager::Data::Data(Manager &_rm)
 	TypeMapper::registerSerializer<BinSerializer>();
 	idbg("");
 	if(true){
-		pobjectpool[0] = new ObjSelPoolTp(	_rm, 
+		pobjectpool[0] = new ObjSelPoolT(	_rm, 
 											10,			//max thread cnt
 											1024 * 4	//max objects per selector
 											);			//at most 10 * 4 * 1024 connections
 		pobjectpool[0]->start(1);//start with one worker
+// 		pobjectpool[1] = new ObjSelPoolT(	_rm, 
+// 											10,			//max thread cnt
+// 											1024 * 4	//max objects per selector
+// 											);			//at most 10 * 4 * 1024 connections
+// 		pobjectpool[1]->start(1);//start with one worker
 	}
 	idbg("");
 	if(true){
-		paiopool[0] = new AioSelectorPoolTp(_rm,
+		paiopool[0] = new AioSelectorPoolT(_rm,
 											10,			//max thread cnt
 											2048		//max aio objects per selector/thread
 											);			//at most 10 * 4 * 1024 connections
 		paiopool[0]->start(1);//start with one worker
 		
-		paiopool[1] = new AioSelectorPoolTp(_rm,
+		paiopool[1] = new AioSelectorPoolT(_rm,
 											10,			//max thread cnt
 											2048		//max aio objects per selector/thread
 											);			//at most 10 * 4 * 1024 connections
@@ -291,6 +358,7 @@ Manager::Data::~Data(){
 	if(paiopool[1])paiopool[1]->stop();
 	delete paiopool[0];
 	delete paiopool[1];
+	delete pfm.release();
 	//delete readcmdexec.release();
 	//delete writecmdexec.release();
 }
@@ -319,11 +387,9 @@ Manager::Manager():d(*(new Data(*this))){
 	
 	ThisGuard	tg(this);
 	if(true){//create register the file manager
-		this->fileManager(new FileManager(10));
-		fdt::Manager::insertObject(&fileManager());
-		fdt::NameFileKey::registerMapper(fileManager());
-		fdt::TempFileKey::registerMapper(fileManager());
-		this->pushJob((fdt::Object*)&fileManager());
+		d.pfm = new fdt::file::Manager(new FileManagerController());
+		fdt::Manager::insertObject(d.pfm.ptr());
+		this->pushJob((fdt::Object*)d.pfm.ptr());
 	}
 	if(true){// create register the read signal executer
 		d.readcmdexec = new SignalExecuter;
@@ -336,13 +402,13 @@ Manager::Manager():d(*(new Data(*this))){
 		this->pushJob((fdt::Object*)d.writecmdexec.ptr());
 	}
 	if(true){// create register the ipc service
-		this->ipc(new IpcService(1000));//one sec keepalive tout
-		int pos = fdt::Manager::insertService(&this->ipc());
+		d.pipc = new IpcService(1000);//one sec keepalive tout
+		int pos = fdt::Manager::insertService(d.pipc);
 		if(pos < 0){
 			idbg("unable to register service: "<<"ipc");
 		}else{
 			idbg("service "<<"ipc"<<" registered on pos "<<pos);
-			this->pushJob((fdt::Object*)&this->ipc());
+			this->pushJob((fdt::Object*)d.pipc);
 			d.servicemap["ipc"] = pos;
 		}
 	}
@@ -381,11 +447,11 @@ int Manager::stop(const char *_which){
 	return OK;
 }
 
-void Manager::readSignalExecuterUid(ObjectUidTp &_ruid){
+void Manager::readSignalExecuterUid(ObjectUidT &_ruid){
 	_ruid.first = d.readcmdexec->id();
 	_ruid.second = uid(*d.readcmdexec);
 }
-void Manager::writeSignalExecuterUid(ObjectUidTp &_ruid){
+void Manager::writeSignalExecuterUid(ObjectUidT &_ruid){
 	_ruid.first = d.writecmdexec->id();
 	_ruid.second = uid(*d.writecmdexec);
 }
@@ -398,7 +464,7 @@ int Manager::insertService(const char* _nm, Service* _psrvc){
 			idbg("unable to register service: "<<_nm);
 		}else{
 			idbg("service "<<_nm<<" registered on pos "<<pos);
-			//this->get<ObjSelPoolVecTp>()[0]->push(fdt::ObjectPointer<fdt::Object>(_psrvc));
+			//this->get<ObjSelPoolVecT>()[0]->push(fdt::ObjectPointer<fdt::Object>(_psrvc));
 			this->pushJob((fdt::Object*)_psrvc);
 			d.servicemap[_nm] = pos;
 			return OK;
@@ -421,7 +487,7 @@ int Manager::signalService(const char *_nm, DynamicPointer<fdt::Signal> &_rsig){
 	ThisGuard	tg(this);
 	Data::ServiceIdxMap::const_iterator it(d.servicemap.find(_nm));
 	if(it == d.servicemap.end()) return BAD;
-	ObjectUidTp objuid(it->second, 0);
+	ObjectUidT objuid(it->second, 0);
 	return this->signalObject(objuid.first, objuid.second, _rsig);
 }
 
@@ -445,6 +511,15 @@ int Manager::insertIpcTalker(
 ){
 	ThisGuard	tg(this);
 	return Manager::the().ipc().insertTalker(_rai, _node, _svc);
+}
+foundation::ipc::Service&	Manager::ipc(){
+	return *d.pipc;
+}
+foundation::file::Manager&	Manager::fileManager(){
+	return *d.pfm;
+}
+void Manager::removeFileManager(){
+	removeObject(d.pfm.ptr());
 }
 //----------------------------------------------------------------------------------
 void IpcService::doPushTalkerInPool(foundation::aio::Object *_ptkr){

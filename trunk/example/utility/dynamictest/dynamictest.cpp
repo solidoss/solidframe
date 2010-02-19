@@ -28,13 +28,13 @@ struct DObject: Dynamic<DObject, AObject>{
 
 class FirstExecuter{
 protected:
-	typedef DynamicReceiver<int, FirstExecuter>	IntDynamicReceiverTp;
+	typedef DynamicReceiver<int, FirstExecuter>	IntDynamicReceiverT;
 public:
 	FirstExecuter(){
 	}
 	static void dynamicRegister(){
-		IntDynamicReceiverTp::add<AObject, FirstExecuter>();
-		IntDynamicReceiverTp::add<BObject, FirstExecuter>();
+		IntDynamicReceiverT::add<AObject, FirstExecuter>();
+		IntDynamicReceiverT::add<BObject, FirstExecuter>();
 	}
 	void push(const DynamicPointer<> &_dp){
 		dr.push(_dp);
@@ -44,7 +44,7 @@ public:
 	int dynamicExecute(const DynamicPointer<BObject> &_rdp);
 	
 protected:
-	IntDynamicReceiverTp		dr;
+	IntDynamicReceiverT		dr;
 };
 
 int FirstExecuter::dynamicExecuteDefault(DynamicPointer<> &_dp){
@@ -69,9 +69,9 @@ public:
 	
 	static void dynamicRegister(){
 		FirstExecuter::dynamicRegister();
-		IntDynamicReceiverTp::add<BObject, SecondExecuter>();
-		IntDynamicReceiverTp::add<CObject, SecondExecuter>();
-		IntDynamicReceiverTp::add<DObject, SecondExecuter>();
+		IntDynamicReceiverT::add<BObject, SecondExecuter>();
+		IntDynamicReceiverT::add<CObject, SecondExecuter>();
+		IntDynamicReceiverT::add<DObject, SecondExecuter>();
 	}
 	
 	void run();
