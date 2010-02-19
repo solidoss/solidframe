@@ -241,7 +241,7 @@ int File::execute(
 		return No;
 	}
 	Mapper &rm(_rs.mapper(key().mapperId()));
-	if(rm.setTimeout(_rts)) return No;
+	if(rm.getTimeout(_rts)) return No;
 	state = Destroy;
 	return Ok;
 }

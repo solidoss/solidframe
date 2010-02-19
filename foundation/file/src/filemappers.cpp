@@ -213,7 +213,7 @@ namespace{
 		--d.crtcnt;
 	}
 }
-/*virtual*/ bool NameMapper::setTimeout(TimeSpec &_rts){
+/*virtual*/ bool NameMapper::getTimeout(TimeSpec &_rts){
 	if(d.waitq.size()) return false;
 	if(d.wait){
 		_rts += d.wait;
@@ -330,7 +330,7 @@ namespace{
 		d.sz -= _rf.capacity();
 	}
 }
-/*virtual*/ bool TempMapper::setTimeout(TimeSpec &_rts){
+/*virtual*/ bool TempMapper::getTimeout(TimeSpec &_rts){
 	if(d.waitq.size()) return false;
 	if(d.wait){
 		_rts += d.wait;
@@ -413,7 +413,7 @@ namespace{
 		d.sz -= _rf.capacity();
 	}
 }
-/*virtual*/ bool MemoryMapper::setTimeout(TimeSpec &_rts){
+/*virtual*/ bool MemoryMapper::getTimeout(TimeSpec &_rts){
 	if(d.waitq.size()) return false;
 	if(d.wait){
 		_rts += d.wait;

@@ -44,6 +44,42 @@ struct FileIStream;
 struct FileIOStream;
 struct FileOStream;
 class File;
+/*! An asynchronous manager for accessing files
+	
+	Accessing a file means getting a stream (either ISstream, OStream
+	or IOStream) to that file.
+	
+	The request is asynchronous, which means that you ask for the stream,
+	and the manager either gives or sends it to you when:<br>
+	
+	> the file is open<br>
+	> no other stream conflicts with the given stream.<br>
+	
+	The given stream for a certain file have not be in conflict:<br>
+	
+	> multiple istreams are allowed in the same time.<br>
+	> only one ostream/iostream is allowed at a time.<br>
+	> no istream is given while there are pending (i)ostreams<br>
+	
+	You must inherit Manager::Controller and give an instance 
+	when creating a Manager. The Manager::Controller specifies
+	the means of signalling a stream or an error to the 
+	object requesting it.
+	
+	Also it has support for multiple types of files:<br>
+	> basic disk files<br>
+	> temporary files (gets deleted when the last attached stream is 
+	deleted);<br>
+	> temporary memory files (like the above files but they are not 
+	stored on disk but on memory)<br>
+	<br>
+	This support is available through different types of Mappers and
+	Keys.<br>
+	
+	After the last stream for a file gets deleted,	if there are no 
+	pending files for open, the file can remain open for certain
+	amount of time (see Mapper::getTimeout).
+*/
 
 class Manager: public Object{
 public:
@@ -59,7 +95,7 @@ public:
 		NoWait = 256, //!< Fail if the opperation cannot be completed synchronously
 		ForcePending = 512,
 	};
-	
+	//! A stub for limiting the manager interface
 	struct InitStub{
 		uint32 registerMapper(Mapper *_pm)const;
 	private:
@@ -70,7 +106,7 @@ public:
 		friend class Manager;
 		Manager		&rm;
 	};
-	
+	//! A class for controlling manager initialization
 	struct Controller{
 		virtual ~Controller();
 		virtual void init(const InitStub &_ris) = 0;
@@ -96,6 +132,7 @@ public:
 		virtual void removeFileManager() = 0;
 	};
 	
+	//! A stub limiting the manager's interface
 	struct Stub{
 		IStream* createIStream(IndexT _fileid);
 		OStream* createOStream(IndexT _fileid);
@@ -134,13 +171,21 @@ public:
 	};
 	
 public:
+	//! Constructor receiving a Controller
+	/*!
+		The ownership of the given Controller object
+		is taken by the manager.
+	*/
 	Manager(Controller *_pc);
+	//! Destructor
 	~Manager();
+	
 	//! Get the size of a file identified by its name - the file will not be open
 	int64 fileSize(const char *_fn)const;
 	
 	//! Get the size of a file identified by its key - the file will not be open
 	int64 fileSize(const Key &_rk)const;
+	
 	void mutex(Mutex *_pmut);
 public://stream funtions
 	int stream(
