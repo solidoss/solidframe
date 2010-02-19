@@ -144,20 +144,20 @@ void SocketDevice::shutdownReadWrite(){
 int SocketDevice::create(const AddrInfoIterator &_rai){
 	Device::descriptor(socket(_rai.family(), _rai.type(), _rai.protocol()));
 	if(ok()) return OK;
-	edbg("socket create: "<<strerror(errno));
+	edbgx(Dbg::system, "socket create: "<<strerror(errno));
 	return BAD;
 }
 int SocketDevice::create(AddrInfo::Family _family, AddrInfo::Type _type, int _proto){
 	Device::descriptor(socket(_family, _type, _proto));
 	if(ok()) return OK;
-	edbg("socket create: "<<strerror(errno));
+	edbgx(Dbg::system, "socket create: "<<strerror(errno));
 	return BAD;
 }
 int SocketDevice::connect(const AddrInfoIterator &_rai){
 	int rv = ::connect(descriptor(), _rai.addr(), _rai.size());
 	if (rv < 0) { // sau rv == -1 ...
 		if(errno == EINPROGRESS) return NOK;
-		edbg("socket connect: "<<strerror(errno));
+		edbgx(Dbg::system, "socket connect: "<<strerror(errno));
 		close();
 		return BAD;
 	}
@@ -167,7 +167,7 @@ int SocketDevice::prepareAccept(const AddrInfoIterator &_rai, unsigned _listencn
 	int yes = 1;
 	int rv = setsockopt(descriptor(), SOL_SOCKET, SO_REUSEADDR, (char *) &yes, sizeof(yes));
 	if(rv < 0) {
-		edbg("socket setsockopt: "<<strerror(errno));
+		edbgx(Dbg::system, "socket setsockopt: "<<strerror(errno));
 		shutdownReadWrite();
 		close();
 		return BAD;
@@ -175,14 +175,14 @@ int SocketDevice::prepareAccept(const AddrInfoIterator &_rai, unsigned _listencn
 
 	rv = ::bind(descriptor(), _rai.addr(), _rai.size());
 	if(rv < 0) {
-		edbg("socket bind: "<<strerror(errno));
+		edbgx(Dbg::system, "socket bind: "<<strerror(errno));
 		shutdownReadWrite();
 		close();
 		return BAD;
 	}
 	rv = listen(descriptor(), _listencnt);
 	if(rv < 0){
-		edbg("socket listen: "<<strerror(errno));
+		edbgx(Dbg::system, "socket listen: "<<strerror(errno));
 		shutdownReadWrite();
 		close();
 		return BAD;
@@ -195,7 +195,7 @@ int SocketDevice::accept(SocketDevice &_dev){
 	int rv = ::accept(descriptor(), sa.addr(), &sa.size());
 	if (rv < 0) {
 		if(errno == EAGAIN) return NOK;
-		edbg("socket accept: "<<strerror(errno));
+		edbgx(Dbg::system, "socket accept: "<<strerror(errno));
 		shutdownReadWrite();
 		close();
 		return BAD;
@@ -207,7 +207,7 @@ int SocketDevice::bind(const AddrInfoIterator &_rai){
 	if(!ok()) return BAD;
 	int rv = ::bind(descriptor(), _rai.addr(), _rai.size());
 	if(rv < 0){
-		edbg("socket bind: "<<strerror(errno));
+		edbgx(Dbg::system, "socket bind: "<<strerror(errno));
 		shutdownReadWrite();
 		close();
 		return BAD;
@@ -218,7 +218,7 @@ int SocketDevice::bind(const SockAddrPair &_rsa){
 	if(!ok()) return BAD;
 	int rv = ::bind(descriptor(), _rsa.addr, _rsa.size);
 	if(rv < 0){
-		edbg("socket bind: "<<strerror(errno));
+		edbgx(Dbg::system, "socket bind: "<<strerror(errno));
 		shutdownReadWrite();
 		close();
 		return BAD;
@@ -229,7 +229,7 @@ int SocketDevice::makeBlocking(int _msec){
 	if(!ok()) return BAD;
 	int flg = fcntl(descriptor(), F_GETFL);
 	if(flg == -1){
-		edbg("socket fcntl getfl: "<<strerror(errno));
+		edbgx(Dbg::system, "socket fcntl getfl: "<<strerror(errno));
 		shutdownReadWrite();
 		close();
 		return BAD;
@@ -237,7 +237,7 @@ int SocketDevice::makeBlocking(int _msec){
 	flg &= ~O_NONBLOCK;
 	int rv = fcntl(descriptor(), F_SETFL, flg);
 	if (rv < 0){
-		edbg("error fcntl setfl: "<<strerror(errno));
+		edbgx(Dbg::system, "error fcntl setfl: "<<strerror(errno));
 		shutdownReadWrite();
 		close();
 		return BAD;
@@ -248,14 +248,14 @@ int SocketDevice::makeNonBlocking(){
 	if(!ok()) return BAD;
 	int flg = fcntl(descriptor(), F_GETFL);
 	if(flg == -1){
-		edbg("socket fcntl getfl: "<<strerror(errno));
+		edbgx(Dbg::system, "socket fcntl getfl: "<<strerror(errno));
 		shutdownReadWrite();
 		close();
 		return BAD;
 	}
 	int rv = fcntl(descriptor(), F_SETFL, flg | O_NONBLOCK);
 	if(rv < 0){
-		edbg("socket fcntl setfl: "<<strerror(errno));
+		edbgx(Dbg::system, "socket fcntl setfl: "<<strerror(errno));
 		shutdownReadWrite();
 		close();
 		return BAD;
@@ -265,7 +265,7 @@ int SocketDevice::makeNonBlocking(){
 bool SocketDevice::isBlocking(){
 	int flg = fcntl(descriptor(), F_GETFL);
 	if(flg == -1){
-		edbg("socket fcntl getfl: "<<strerror(errno));
+		edbgx(Dbg::system, "socket fcntl getfl: "<<strerror(errno));
 		shutdownReadWrite();
 		close();
 		return false;
@@ -294,7 +294,7 @@ int SocketDevice::remoteAddress(SocketAddress &_rsa)const{
 	_rsa.size() = SocketAddress::MaxSockAddrSz;
 	int rv = getpeername(descriptor(), _rsa.addr(), &_rsa.size());
 	if(rv){
-		edbg("socket getpeername: "<<strerror(errno));
+		edbgx(Dbg::system, "socket getpeername: "<<strerror(errno));
 		return BAD;
 	}
 	return OK;
@@ -304,7 +304,7 @@ int SocketDevice::localAddress(SocketAddress &_rsa)const{
 	_rsa.size() = SocketAddress::MaxSockAddrSz;
 	int rv = getsockname(descriptor(), _rsa.addr(), &_rsa.size());
 	if(rv){
-		edbg("socket getsockname: "<<strerror(errno));
+		edbgx(Dbg::system, "socket getsockname: "<<strerror(errno));
 		return BAD;
 	}
 	return OK;
@@ -317,7 +317,7 @@ int SocketDevice::type()const{
 	if(rv == 0){
 		return val;
 	}
-	edbg("socket getsockopt: "<<strerror(errno));
+	edbgx(Dbg::system, "socket getsockopt: "<<strerror(errno));
 	return BAD;
 }
 
@@ -328,7 +328,7 @@ bool SocketDevice::isListening()const{
 	if(rv == 0){
 		return val;
 	}
-	edbg("socket getsockopt: "<<strerror(errno));
+	edbgx(Dbg::system, "socket getsockopt: "<<strerror(errno));
 	return false;
 }
 

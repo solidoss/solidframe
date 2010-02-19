@@ -247,15 +247,14 @@ Mutex& Thread::mutex()const{
 #endif
 int Thread::start(int _wait, int _detached, ulong _stacksz){	
 	Mutex::Locker locker(mutex());
-	idbg("");
+	idbgx(Dbg::system, "starting thread "<<th);
 	if(th) return BAD;
-	idbg("");
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);
 	if(_detached){
 		if(pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_DETACHED)){
 			pthread_attr_destroy(&attr);
-			idbg("could not made thread detached");
+			edbgx(Dbg::system, "pthread_attr_setdetachstate: "<<strerror(errno));
 			return BAD;
 		}
 	}
@@ -265,9 +264,8 @@ int Thread::start(int _wait, int _detached, ulong _stacksz){
 		}
 		int rv = pthread_attr_setstacksize(&attr, _stacksz);
 		if(rv){
-			edbg("pthread_attr_setstacksize " <<strerror(rv)<<" "<<strerror(errno));
+			edbgx(Dbg::system, "pthread_attr_setstacksize "<<_stacksz<<": "<<strerror(errno));
 			pthread_attr_destroy(&attr);
-			idbg("could not set staksize");
 			return BAD;
 		}
 	}
@@ -284,7 +282,7 @@ int Thread::start(int _wait, int _detached, ulong _stacksz){
 	}
 	if(pthread_create(&th,&attr,&Thread::th_run,this)){
 		pthread_attr_destroy(&attr);
-		idbg("could not create thread");
+		edbgx(Dbg::system, "pthread_create: "<<strerror(errno));
 		Thread::exit();
 		return BAD;
 	}
@@ -296,7 +294,7 @@ int Thread::start(int _wait, int _detached, ulong _stacksz){
 		gmutex().unlock();
 	}
 	pthread_attr_destroy(&attr);
-	idbg("");
+	vdbgx(Dbg::system, "");
 	return OK;
 }
 //-------------------------------------------------------------------------
@@ -318,7 +316,7 @@ void Thread::waitAll(){
 }
 //-------------------------------------------------------------------------
 void* Thread::th_run(void *pv){
-	idbg("thrun enter"<<pv);
+	vdbgx(Dbg::system, "thrun enter "<<pv);
 	Thread	*pth(reinterpret_cast<Thread*>(pv));
 	//Thread::enter();
 	Thread::current(pth);
@@ -330,7 +328,7 @@ void* Thread::th_run(void *pv){
 	pth->run();
 	pth->unprepare();
 	if(pth->detached()) delete pth;
-	idbg("thrun exit");
+	vdbgx(Dbg::system, "thrun exit "<<pv);
 	Thread::exit();
 	return NULL;
 }

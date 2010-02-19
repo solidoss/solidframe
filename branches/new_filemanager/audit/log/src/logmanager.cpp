@@ -232,7 +232,7 @@ void LogManager::runListener(ListenerWorker &_w){
 			sd.create(ai.begin());
 			sd.prepareAccept(ai.begin(), 10);
 		}else{
-			edbg("create address "<<_w.addr<<'.'<<_w.port);
+			edbgx(Dbg::log, "create address "<<_w.addr<<'.'<<_w.port);
 		}
 	}
 	if(sd.ok()){

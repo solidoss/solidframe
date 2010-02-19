@@ -308,7 +308,6 @@ template <>
 			return Bad;
 		_rw.wpos += sz;
 		int rv = _rw.flush();
-		idbg("rv = "<<rv);
 		if(rv){
 			_rw.fs.top().first = &Writer::doneFlush; 
 			return rv;
@@ -317,7 +316,6 @@ template <>
 	}else{//flush the buffer
 		_rw.fs.top().first = &putStreamDone;
 		int rv = _rw.flushAll();
-		idbg("rv = "<<rv);
 		if(rv) return rv;
 		return Continue;
 	}
@@ -338,7 +336,6 @@ template <>
 		if(toread > tmpsz) toread = tmpsz;
 		rv = isi->read(_rw.bbeg, toread);
 		if((ulong)rv != toread){
-			idbg(""<<rv<<" "<<sz<<" "<<tmpsz<<" "<<toread);
 			return Bad;
 		}
 		tmpsz -= rv;
@@ -346,7 +343,6 @@ template <>
 			break;
 		switch(_rw.write(_rw.bbeg, rv)){
 			case Bad:
-				idbg("");
 				return Bad;
 			case Ok:
 				rv = 0;

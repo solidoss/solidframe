@@ -43,7 +43,7 @@ void AddrInfo::reinit(const char *_node, const char *_service){
 	int rv = getaddrinfo(_node, _service, NULL, &ib.paddr);
 	if(rv != 0){
 #ifdef ON_SUN
-		idbg("getaddrinfo "<<rv<<' '<<gai_strerror(rv));
+		edbgx(Dbg::system, "getaddrinfo "<<rv<<' '<<gai_strerror(rv));
 #else
 #endif
 	}
@@ -198,7 +198,7 @@ int SocketAddress::name(
 	_serv[0] = 0;
 	int rv = getnameinfo(addr(), size(), _host, _hostcp, _serv, _servcp, _flags);
 	if(rv){
-		idbg("error getnameinfo: "<<strerror(errno));
+		edbgx(Dbg::system, "getnameinfo: "<<strerror(errno));
 		return BAD;
 	}
 	return OK;

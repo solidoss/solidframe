@@ -175,11 +175,11 @@ int Manager::execute(ulong _evs, TimeSpec &_rtout){
 		idbgx(Dbg::file, "signalmask "<<sm);
 		if(sm & fdt::S_KILL){
 			state(Data::Stopping);
-			idbgx(Dbg::file, "kill "<<d.sz);
+			vdbgx(Dbg::file, "kill "<<d.sz);
 			if(!d.sz){//no file
 				state(-1);
 				d.mut->unlock();
-				idbgx(Dbg::file, "");
+				vdbgx(Dbg::file, "");
 				d.pc->removeFileManager();
 				return BAD;
 			}
@@ -409,7 +409,7 @@ void Manager::releaseIStream(IndexT _fileid){
 		Mutex::Locker	lock(*d.mut);
 		//we must signal the filemanager
 		d.feq.push(d.fv[_fileid].pfile);
-		idbgx(Dbg::file, "sq.push "<<_fileid);
+		vdbgx(Dbg::file, "sq.push "<<_fileid);
 		if(static_cast<fdt::Object*>(this)->signal((int)fdt::S_RAISE)){
 			fdt::Manager::the().raiseObject(*this);
 		}
@@ -426,7 +426,7 @@ void Manager::releaseOStream(IndexT _fileid){
 		Mutex::Locker	lock(*d.mut);
 		//we must signal the filemanager
 		d.feq.push(d.fv[_fileid].pfile);
-		idbgx(Dbg::file, "sq.push "<<_fileid);
+		vdbgx(Dbg::file, "sq.push "<<_fileid);
 		if(static_cast<fdt::Object*>(this)->signal((int)fdt::S_RAISE)){
 			fdt::Manager::the().raiseObject(*this);
 		}

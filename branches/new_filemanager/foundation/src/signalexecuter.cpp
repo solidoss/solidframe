@@ -99,7 +99,7 @@ NOTE:
 */
 int SignalExecuter::execute(ulong _evs, TimeSpec &_rtout){
 	d.pm->lock();
-	idbgx(Dbg::cs, "d.extsz = "<<d.extsz);
+	vdbgx(Dbg::fdt, "d.extsz = "<<d.extsz);
 	if(d.extsz){
 		for(Data::SignalExtDequeT::const_iterator it(d.sedq.begin()); it != d.sedq.end(); ++it){
 			d.sdq.push_back(Data::SigData(*it));
@@ -110,7 +110,7 @@ int SignalExecuter::execute(ulong _evs, TimeSpec &_rtout){
 	}
 	if(signaled()){
 		ulong sm = grabSignalMask(0);
-		idbgx(Dbg::cs, "signalmask "<<sm);
+		vdbgx(Dbg::fdt, "signalmask "<<sm);
 		if(sm & S_KILL){
 			state(Data::Stopping);
 			if(!d.sz){//no signal
@@ -118,7 +118,7 @@ int SignalExecuter::execute(ulong _evs, TimeSpec &_rtout){
 				d.pm->unlock();
 				d.sdq.clear();
 				removeFromManager();
-				idbgx(Dbg::cs, "~SignalExecuter");
+				vdbgx(Dbg::fdt, "~SignalExecuter");
 				return BAD;
 			}
 		}
@@ -131,7 +131,7 @@ int SignalExecuter::execute(ulong _evs, TimeSpec &_rtout){
 	}
 	d.pm->unlock();
 	if(state() == Data::Running){
-		idbgx(Dbg::cs, "d.eq.size = "<<d.eq.size());
+		vdbgx(Dbg::fdt, "d.eq.size = "<<d.eq.size());
 		while(d.eq.size()){
 			uint32 pos = d.eq.front();
 			d.eq.pop();
@@ -139,7 +139,7 @@ int SignalExecuter::execute(ulong _evs, TimeSpec &_rtout){
 		}
 		if((_evs & TIMEOUT) && _rtout >= d.tout){
 			TimeSpec tout(0xffffffff);
-			idbgx(Dbg::cs, "1 tout.size = "<<d.toutv.size());
+			vdbgx(Dbg::fdt, "1 tout.size = "<<d.toutv.size());
 			for(uint i = 0; i < d.toutv.size();){
 				uint pos = d.toutv[i];
 				Data::SigData &rcp(d.sdq[pos]);
@@ -154,7 +154,7 @@ int SignalExecuter::execute(ulong _evs, TimeSpec &_rtout){
 					++i;
 				}
 			}
-			idbgx(Dbg::cs, "2 tout.size = "<<d.toutv.size());
+			vdbgx(Dbg::fdt, "2 tout.size = "<<d.toutv.size());
 			d.tout = tout;
 		}
 	}else{
@@ -164,7 +164,7 @@ int SignalExecuter::execute(ulong _evs, TimeSpec &_rtout){
 				delete it->sig.release();
 			}
 		}
-		idbgx(Dbg::cs, "~SignalExecuter");
+		idbgx(Dbg::fdt, "remove signal executer from manager");
 		removeFromManager();
 		state(-1);
 		d.sdq.clear();
@@ -213,7 +213,7 @@ void SignalExecuter::doExecute(uint _pos, uint32 _evs, const TimeSpec &_rtout){
 			break;
 		case NOK:
 			if(ts != _rtout){
-				idbgx(Dbg::cs, "tout idx = "<<rcp.toutidx);
+				vdbgx(Dbg::fdt, "tout idx = "<<rcp.toutidx);
 				rcp.tout = ts;
 				if(d.tout > ts){
 					d.tout = ts;
@@ -222,7 +222,7 @@ void SignalExecuter::doExecute(uint _pos, uint32 _evs, const TimeSpec &_rtout){
 					d.toutv.push_back(_pos);
 					rcp.toutidx = d.toutv.size() - 1;
 				}
-				idbgx(Dbg::cs, "tout idx = "<<rcp.toutidx<<" toutv.size = "<<d.toutv.size());
+				vdbgx(Dbg::fdt, "tout idx = "<<rcp.toutidx<<" toutv.size = "<<d.toutv.size());
 			}else{
 				rcp.tout.set(0xffffffff);
 				if(rcp.toutidx >= 0){
@@ -249,11 +249,11 @@ void SignalExecuter::sendSignal(
 	const ObjectUidT& _from,
 	const ipc::ConnectorUid *_conid
 ){
-	idbgx(Dbg::cs, "_requid.first = "<<_requid.first<<" _requid.second = "<<_requid.second<<" uid = "<<d.sdq[_requid.first].uid);
+	vdbgx(Dbg::fdt, "_requid.first = "<<_requid.first<<" _requid.second = "<<_requid.second<<" uid = "<<d.sdq[_requid.first].uid);
 	if(_requid.first < d.sdq.size() && d.sdq[_requid.first].uid == _requid.second){
-		idbgx(Dbg::cs, "");
+		vdbgx(Dbg::fdt, "");
 		if(d.sdq[_requid.first].sig->receiveSignal(_rsig, _from, _conid) == OK){
-			idbgx(Dbg::cs, "");
+			vdbgx(Dbg::fdt, "");
 			d.eq.push(_requid.first);
 		}
 	}

@@ -182,7 +182,6 @@ void stringoutbuf::current(
 	clock_gettime(CLOCK_MONOTONIC, &tt);
 	tt -= ct;
 	lh.set(_level, _module, _id, _line, t + tt.seconds(), tt.nanoSeconds());
-	idbgx(Dbg::log, "time ("<<(t + tt.seconds())<<','<<tt.nanoSeconds()<<')');
 	lh.set(filenamelen, functionnamelen);
 	//no function so we can overpass the bitorder conversion for datalen
 	lh.datalen = sizeof(audit::LogRecordHead);

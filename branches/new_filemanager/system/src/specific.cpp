@@ -111,19 +111,20 @@ SpecificData::SpecificData(SpecificCacheControl *_pcc):pcc(_pcc){
 }
 SpecificData::~SpecificData(){
 	if(pcc->release()) delete pcc;
-	//destroy all cached buffers
+	idbgx(Dbg::specific, "destroy all cached buffers");
 	for(int i(0); i < Specific::Count; ++i){
-		idbgx(Dbg::specific,i<<" cp = "<<cps[i].cp<<" sz = "<<cps[i].s.size()<<" specific_id = "<<Specific::sizeToId((1<<i)));
+		vdbgx(Dbg::specific, i<<" cp = "<<cps[i].cp<<" sz = "<<cps[i].s.size()<<" specific_id = "<<Specific::sizeToId((1<<i)));
 		cassert(!(cps[i].cp - cps[i].s.size()));
 		while(cps[i].s.size()){
 			delete []cps[i].s.top();
 			cps[i].s.pop();
 		}
 	}
-	//destroy all cached objects
+	
+	idbgx(Dbg::specific, "destroy all cached objects");
 	Mutex::Locker lock(Thread::gmutex());
 	for(ObjCachePointVecT::iterator it(ops.begin()); it != ops.end(); ++it){
-		idbgx(Dbg::specific,"it->cp = "<<it->cp);
+		vdbgx(Dbg::specific, "it->cp = "<<it->cp);
 		if(it->ps){
 			cassert(!(it->cp - it->ps->size()));
 			while(it->ps->size()){

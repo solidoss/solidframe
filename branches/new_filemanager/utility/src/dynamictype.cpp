@@ -25,11 +25,11 @@ void DynamicPointerBase::use(DynamicBase *_pdyn){
 
 
 /*virtual*/ void DynamicBase::use(){
-	idbgx(Dbg::system, "Use dynamicbase");
+	idbgx(Dbg::utility, "Use dynamicbase");
 }
 //! Used by DynamicPointer to know if the object must be deleted
 /*virtual*/ int DynamicBase::release(){
-	idbgx(Dbg::system, "Release signal");
+	idbgx(Dbg::utility, "Release signal");
 	return BAD;
 }
 

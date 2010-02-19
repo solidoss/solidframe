@@ -117,11 +117,11 @@ void Object::mutex(Mutex *){
 //---------------------------------------------------------------------
 Signal::Signal(){
 	objectCheck<Signal>(true, __FUNCTION__);
-	idbgx(Dbg::cs, "memadd "<<(void*)this);
+	vdbgx(Dbg::fdt, "memadd "<<(void*)this);
 }
 Signal::~Signal(){
 	objectCheck<Signal>(false, __FUNCTION__);
-	idbgx(Dbg::cs, "memsub "<<(void*)this);
+	vdbgx(Dbg::fdt, "memsub "<<(void*)this);
 }
 
 int Signal::ipcReceived(ipc::SignalUid&, const ipc::ConnectorUid&){
@@ -134,7 +134,7 @@ void Signal::ipcFail(int _err){
 }
 
 int Signal::execute(uint32 _evs, SignalExecuter &, const SignalUidT &, TimeSpec &_rts){
-	idbgx(Dbg::cs, "Unhandled signal");
+	wdbgx(Dbg::fdt, "Unhandled signal");
 	return BAD;
 }
 
@@ -143,7 +143,7 @@ int Signal::receiveSignal(
 	const ObjectUidT& _from,
 	const ipc::ConnectorUid *_conid
 ){
-	idbgx(Dbg::cs, "Unhandled signal receive");
+	wdbgx(Dbg::fdt, "Unhandled signal receive");
 	return BAD;//no need for execution
 }
 }//namespace

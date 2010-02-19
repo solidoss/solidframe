@@ -328,11 +328,11 @@ ProcessConnector::Data::~Data(){
 	for(OutBufferVectorT::iterator it(outbufs.begin()); it != outbufs.end(); ++it){
 		char *pb = it->first.buffer();
 		if(pb){ 
-			idbgx(Dbg::ipc, "released buffer");
+			vdbgx(Dbg::ipc, "released buffer");
 			Specific::pushBuffer(pb, Specific::capacityToId(it->first.bufferCapacity()));
 		}
 	}
-	idbgx(Dbg::ipc, "cq.size = "<<cq.size()<<"scq.size = "<<scq.size());
+	vdbgx(Dbg::ipc, "cq.size = "<<cq.size()<<"scq.size = "<<scq.size());
 	
 	while(cq.size()){
 		cq.front().first->ipcFail(0);
@@ -530,8 +530,8 @@ void ProcessConnector::Data::popOutWaitSignal(const SignalUid &_rsiguid){
 
 //----------------------------------------------------------------------
 bool ProcessConnector::Data::canSendKeepAlive(const TimeSpec &_tpos){
-	idbgx(Dbg::ipc, "keepalivetout = "<<keepalivetout<<" respwaitsigcnt = "<<respwaitsigcnt<<" rcq = "<<rcq.size()<<" cq = "<<cq.size()<<" scq = "<<scq.size());
-	idbgx(Dbg::ipc, "_tpos = "<<_tpos.seconds()<<','<<_tpos.nanoSeconds()<<" rcvtpos = "<<rcvtpos.seconds()<<','<<rcvtpos.nanoSeconds());
+	vdbgx(Dbg::ipc, "keepalivetout = "<<keepalivetout<<" respwaitsigcnt = "<<respwaitsigcnt<<" rcq = "<<rcq.size()<<" cq = "<<cq.size()<<" scq = "<<scq.size());
+	vdbgx(Dbg::ipc, "_tpos = "<<_tpos.seconds()<<','<<_tpos.nanoSeconds()<<" rcvtpos = "<<rcvtpos.seconds()<<','<<rcvtpos.nanoSeconds());
 	return keepalivetout && respwaitsigcnt &&
 		(rcq.empty() || rcq.size() == 1 && !rcq.front().first) && 
 		cq.empty() && scq.empty() && _tpos >= rcvtpos;
@@ -540,7 +540,7 @@ bool ProcessConnector::Data::canSendKeepAlive(const TimeSpec &_tpos){
 //----------------------------------------------------------------------
 void ProcessConnector::Data::prepareKeepAlive(){
 	//cassert(outbufs.empty());
-	idbgx(Dbg::ipc,"");
+	vdbgx(Dbg::ipc,"");
 	Buffer b(Specific::popBuffer(Specific::sizeToId(Buffer::minSize())), Specific::idToCapacity(Specific::sizeToId(Buffer::minSize())));
 	b.reset();
 	b.type(Buffer::KeepAliveType);
@@ -643,10 +643,10 @@ void ProcessConnector::reconnect(ProcessConnector *_ppc){
 	//
 	for(int sz = d.cq.size(); sz; --sz){
 		if(!(d.cq.front().second & Service::SameConnectorFlag)) {
-			idbgx(Dbg::ipc, "signal scheduled for resend");
+			vdbgx(Dbg::ipc, "signal scheduled for resend");
 			d.cq.push(d.cq.front());
 		}else{
-			idbgx(Dbg::ipc, "signal not scheduled for resend");
+			vdbgx(Dbg::ipc, "signal not scheduled for resend");
 		}
 		d.cq.pop();
 	}
@@ -671,7 +671,7 @@ void ProcessConnector::reconnect(ProcessConnector *_ppc){
 			}
 			//we can try resending the signal
 		}else{
-			idbgx(Dbg::ipc, "signal not scheduled for resend");
+			vdbgx(Dbg::ipc, "signal not scheduled for resend");
 			if(outsig.flags & Service::WaitResponseFlag && outsig.flags & Service::SentFlag){
 				outsig.sig->ipcFail(1);
 			}else{
@@ -811,7 +811,7 @@ int ProcessConnector::pushSignal(DynamicPointer<Signal> &_rsig, uint32 _flags){
 //----------------------------------------------------------------------
 bool ProcessConnector::moveToNextInBuffer(){
 	while(d.inbufq.size() && (d.inbufq.top().id() < d.expectedid)){
-		idbgx(Dbg::ipc, "inbufq.size() = "<<d.inbufq.size()<<" d.inbufq.top().id() = "<<d.inbufq.top().id()<<" d.expectedid "<<d.expectedid); 
+		vdbgx(Dbg::ipc, "inbufq.size() = "<<d.inbufq.size()<<" d.inbufq.top().id() = "<<d.inbufq.top().id()<<" d.expectedid "<<d.expectedid); 
 
 		Buffer b(d.inbufq.top());
 		char *pb = d.inbufq.top().buffer();
@@ -819,7 +819,7 @@ bool ProcessConnector::moveToNextInBuffer(){
 		d.inbufq.pop();
 	}
 	if(d.inbufq.size()){
-		idbgx(Dbg::ipc, "inbufq.size() = "<<d.inbufq.size()<<" d.inbufq.top().id() = "<<d.inbufq.top().id()<<" d.expectedid "<<d.expectedid);
+		vdbgx(Dbg::ipc, "inbufq.size() = "<<d.inbufq.size()<<" d.inbufq.top().id() = "<<d.inbufq.top().id()<<" d.expectedid "<<d.expectedid);
 		return d.inbufq.top().id() == d.expectedid;
 	}
 	return false;
@@ -930,18 +930,18 @@ int ProcessConnector::pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpo
 				//cassert(_rbuf.bufpos < 0);
 				p = d.insertSentBuffer(_rbuf.b);	//_rbuf.bc will contain the buffer index, and
 													//_rbuf.dl will contain the buffer uid
-				idbgx(Dbg::ipc, "inserted buffer on pos "<<p.first<<','<<p.second);
+				vdbgx(Dbg::ipc, "inserted buffer on pos "<<p.first<<','<<p.second);
 				cassert(p.first);//it cannot be the keepalive buffer
 			}else{
 				//cassert(_rbuf.bufpos >= 0);
 				p = d.getSentBuffer(_rbuf.bufpos);
-				idbgx(Dbg::ipc, "get buffer from pos "<<p.first<<','<<p.second);
+				vdbgx(Dbg::ipc, "get buffer from pos "<<p.first<<','<<p.second);
 			}
 			++p.first;//adjust the index
 			
 			uint	tmptimeout = d.computeRetransmitTimeout(retransid, _rbuf.b.id());
 			
-			idbgx(Dbg::ipc, "p.first "<<p.first<<" p.second "<<p.second<<" retransid = "<<retransid<<" tmptimeout = "<<tmptimeout);
+			vdbgx(Dbg::ipc, "p.first "<<p.first<<" p.second "<<p.second<<" retransid = "<<retransid<<" tmptimeout = "<<tmptimeout);
 			
 			//reuse _rbuf for retransmission timeout
 			_rbuf.b.pb = NULL;
@@ -951,7 +951,7 @@ int ProcessConnector::pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpo
 			_rbuf.timeout = _tpos;
 			_rbuf.timeout +=  tmptimeout;//d.retranstimeout;//miliseconds retransmission timeout
 			_reusebuf = true;
-			idbgx(Dbg::ipc, "prepare waitbuf b.cap "<<_rbuf.b.bufferCapacity()<<" b.dl "<<_rbuf.b.dl);
+			vdbgx(Dbg::ipc, "prepare waitbuf b.cap "<<_rbuf.b.bufferCapacity()<<" b.dl "<<_rbuf.b.dl);
 			cassert(sizeof(uint32) <= sizeof(size_t));
 			return OK;
 		
@@ -965,7 +965,7 @@ int ProcessConnector::pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpo
 			cassert(_rbuf.b.bc <= d.outbufs.size());
 			int bufpos(_rbuf.b.bc - 1);
 			Data::OutBufferPairT &rob(d.outbufs[bufpos]);
-			idbgx(Dbg::ipc, "rob.second = "<<rob.second<<" b.dl = "<<_rbuf.b.dl<<" bufpos = "<<bufpos);
+			vdbgx(Dbg::ipc, "rob.second = "<<rob.second<<" b.dl = "<<_rbuf.b.dl<<" bufpos = "<<bufpos);
 			if(rob.first.buffer() && rob.second == _rbuf.b.dl){
 				//we must resend this buffer
 				idbgx(Dbg::ipc, "resending buffer "<<(bufpos)<<" retransmit id = "<<rob.first.retransmitId()<<" buf = "<<(void*)rob.first.buffer());
@@ -1041,7 +1041,7 @@ int ProcessConnector::processSendSignals(SendBufferData &_rsb, const TimeSpec &_
 	
 	if(d.bufjetons || d.state != Data::Connected || d.rcvidq.size()){
 		
-		idbgx(Dbg::ipc, "d.rcvidq.size() = "<<d.rcvidq.size());
+		vdbgx(Dbg::ipc, "d.rcvidq.size() = "<<d.rcvidq.size());
 		
 		bool written = false;
 		Buffer &rbuf(_rsb.b);
@@ -1063,7 +1063,7 @@ int ProcessConnector::processSendSignals(SendBufferData &_rsb, const TimeSpec &_
 			}
 			if(d.bufjetons){//send data only if we have jetons
 				//then push the signals
-				idbgx(Dbg::ipc, "d.cq.size() = "<<d.cq.size()<<" d.scq.size = "<<d.scq.size());
+				vdbgx(Dbg::ipc, "d.cq.size() = "<<d.cq.size()<<" d.scq.size = "<<d.scq.size());
 				//fill scq
 				while(d.cq.size() && d.scq.size() < Data::MaxSendSignalQueueSize){
 					uint32 flags = d.cq.front().second;
@@ -1092,14 +1092,14 @@ int ProcessConnector::processSendSignals(SendBufferData &_rsb, const TimeSpec &_
 						Data::OutWaitSignal &rosig(d.waitFrontSignal());
 						if(rosig.pser){//a continued signal
 							if(d.crtsigbufcnt == Data::MaxSignalBufferCount){
-								idbgx(Dbg::ipc, "oldsignal");
+								vdbgx(Dbg::ipc, "oldsignal");
 								rbuf.dataType(Buffer::OldSignal);
 							}else{
-								idbgx(Dbg::ipc, "continuedsignal");
+								vdbgx(Dbg::ipc, "continuedsignal");
 								rbuf.dataType(Buffer::ContinuedSignal);
 							}
 						}else{//a new commnad
-							idbgx(Dbg::ipc, "newsignal");
+							vdbgx(Dbg::ipc, "newsignal");
 							rbuf.dataType(Buffer::NewSignal);
 							if(pser){
 								rosig.pser = pser;
@@ -1111,7 +1111,7 @@ int ProcessConnector::processSendSignals(SendBufferData &_rsb, const TimeSpec &_
 							rosig.pser->push(psig);
 						}
 						--d.crtsigbufcnt;
-						idbgx(Dbg::ipc, "d.crtsigbufcnt = "<<d.crtsigbufcnt);
+						vdbgx(Dbg::ipc, "d.crtsigbufcnt = "<<d.crtsigbufcnt);
 						written = true;
 						
 						int rv = rosig.pser->run(rbuf.dataEnd(), rbuf.dataFreeSize());
@@ -1120,12 +1120,12 @@ int ProcessConnector::processSendSignals(SendBufferData &_rsb, const TimeSpec &_
 						
 						rbuf.dataSize(rbuf.dataSize() + rv);
 						if(rosig.pser->empty()){//finished with this signal
-							idbgx(Dbg::ipc, "donesignal");
+							vdbgx(Dbg::ipc, "donesignal");
 							if(pser) d.pushSerializer(pser);
 							pser = rosig.pser;
 							pser->clear();
 							rosig.pser = NULL;
-							idbgx(Dbg::ipc, "cached wait signal");
+							vdbgx(Dbg::ipc, "cached wait signal");
 							++pcrtwaitsig;
 							*pcrtwaitsig = d.scq.front();
 							d.scq.pop();
@@ -1224,7 +1224,7 @@ int ProcessConnector::processSendSignals(SendBufferData &_rsb, const TimeSpec &_
 //TODO: optimize!!
 bool ProcessConnector::freeSentBuffers(Buffer &_rbuf, const ConnectorUid &_rconid){
 	bool b = false;
-	idbgx(Dbg::ipc, "beg update count "<<_rbuf.updatesCount()<<" sent count = "<<d.outbufs.size());
+	vdbgx(Dbg::ipc, "beg update count "<<_rbuf.updatesCount()<<" sent count = "<<d.outbufs.size());
 	for(uint32 i(0); i < _rbuf.updatesCount(); ++i){
 		for(Data::OutBufferVectorT::iterator it(d.outbufs.begin()); it != d.outbufs.end(); ++it){
 			if(it->first.buffer() && _rbuf.update(i) == it->first.id()){//done with this one
@@ -1244,7 +1244,7 @@ bool ProcessConnector::freeSentBuffers(Buffer &_rbuf, const ConnectorUid &_rconi
 			}
 		}
 	}
-	idbgx(Dbg::ipc, "end update count "<<_rbuf.updatesCount()<<" sent count = "<<d.outbufs.size());
+	vdbgx(Dbg::ipc, "end update count "<<_rbuf.updatesCount()<<" sent count = "<<d.outbufs.size());
 	return b;
 }
 

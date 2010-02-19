@@ -271,7 +271,6 @@ public:
 	*/
 	template <typename T>
 	Serializer& push(T &_t, const char *_name = NULL){
-		//idbgx(Dbg::ser_bin, "push nonptr "<<_name);
 		fstk.push(FncData(&Serializer::template store<T>, (void*)&_t, _name));
 		return *this;
 	}
@@ -286,7 +285,6 @@ public:
 	*/
 	template <typename T>
 	Serializer& push(T* _t, const char *_name = NULL){
-		//idbgx(Dbg::ser_bin, "push ptr "<<_name);
 		fstk.push(FncData(ptypeidf, _t, _t ? TypeMapper::typeName(_t) : NULL));
 		return *this;
 	}
@@ -311,7 +309,6 @@ public:
 	*/
 	template <typename T>
 	Serializer& pushStreammer(T *_p, const char *_name = NULL){
-		//idbgx(Dbg::ser_bin, "push stream "<<_name);
 		fstk.push(FncData(&Serializer::template storeStreamBegin<T>, _p, _name, 0));
 		return *this;
 	}
@@ -390,7 +387,7 @@ class Deserializer: public Base{
 		Deserializer &rd(static_cast<Deserializer&>(_rb));
 		if(!rd.cpb) return OK;
 		int32 i = rd.estk.top().i32();
-		idbgx(Dbg::ser_bin, "i = "<<i);
+		vdbgx(Dbg::ser_bin, "i = "<<i);
 		rd.estk.pop();
 		if(i < 0){
 			T **c = reinterpret_cast<T**>(_rfd.p);
@@ -399,7 +396,7 @@ class Deserializer: public Base{
 			return OK;
 		}else if(!_rfd.s){
 			T **c = reinterpret_cast<T**>(_rfd.p);
-			idbgx(Dbg::ser_bin, "pass");
+			vdbgx(Dbg::ser_bin, "");
 			*c = new T;
 			_rfd.p = *c;
 		}
@@ -483,14 +480,12 @@ public:
 	
 	template <typename T>
 	Deserializer& push(T &_t, const char *_name = NULL){
-		//idbgx(Dbg::ser_bin, "push nonptr "<<_name);
 		fstk.push(FncData(&Deserializer::parse<T>, (void*)&_t, _name));
 		return *this;
 	}
 	
 	template <typename T>
 	Deserializer& push(T* &_t, const char *_name = NULL){
-		//idbgx(Dbg::ser_bin, "push ptr "<<_name);
 		fstk.push(FncData(ptypeidf, &_t, _name));
 		return *this;
 	}
@@ -516,7 +511,6 @@ public:
 	*/
 	template <typename T>
 	Deserializer& pushStreammer(T *_p, const char *_name = NULL){
-		//idbgx(Dbg::ser_bin, "push special "<<_name);
 		fstk.push(FncData(&Deserializer::template parseStreamBegin<T>, _p, _name, 0));
 		return *this;
 	}

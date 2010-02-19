@@ -141,7 +141,7 @@ int Service::doSendSignal(
 		Data::BaseProcAddr4	baddr(&inaddr, inaddr.port());
 		Data::BaseProcAddr4MapT::iterator	it(d.basepm4.find(&baddr));
 		if(it != d.basepm4.end()){
-			idbgx(Dbg::ipc, "");
+			vdbgx(Dbg::ipc, "");
 			ConnectorUid	conid = it->second;
 			cassert(conid.tkrid < d.tkrvec.size());
 			Data::TkrPairT	&rtp(d.tkrvec[conid.tkrid]);
@@ -157,7 +157,7 @@ int Service::doSendSignal(
 			if(_pconid) *_pconid = conid;
 			return OK;
 		}else{//the process connector does not exist
-			idbgx(Dbg::ipc, "");
+			vdbgx(Dbg::ipc, "");
 			int16 tkrid = computeTalkerForNewProcess();
 			uint32 tkrpos,tkruid;
 			if(tkrid >= 0){
@@ -174,7 +174,7 @@ int Service::doSendSignal(
 			cassert(ptkr);
 			ProcessConnector *ppc = new ProcessConnector(inaddr, d.keepalivetout);
 			ConnectorUid conid(tkrid);
-			idbgx(Dbg::ipc, "");
+			vdbgx(Dbg::ipc, "");
 			ptkr->pushProcessConnector(ppc, conid);
 			d.basepm4[ppc->baseAddr4()] = conid;
 // 			DynamicPointer<test::Signal> pnullsig(NULL);
@@ -211,7 +211,7 @@ int Service::acceptProcess(ProcessConnector *_ppc){
 			tkruid = d.tkrvec[it->second.tkrid].second;
 			Mutex::Locker lock2(this->mutex(tkrpos, tkruid));
 			Talker *ptkr = static_cast<Talker*>(this->object(tkrpos, tkruid));
-			idbgx(Dbg::ipc, "");
+			vdbgx(Dbg::ipc, "");
 			ptkr->pushProcessConnector(_ppc, it->second, true);
 			if(ptkr->signal(fdt::S_RAISE)){
 				Manager::the().raiseObject(*ptkr);
@@ -234,7 +234,7 @@ int Service::acceptProcess(ProcessConnector *_ppc){
 	Talker *ptkr = static_cast<Talker*>(this->object(tkrpos, tkruid));
 	cassert(ptkr);
 	ConnectorUid conid(tkrid, 0xffff, 0xffff);
-	idbgx(Dbg::ipc, "");
+	vdbgx(Dbg::ipc, "");
 	ptkr->pushProcessConnector(_ppc, conid);
 	d.basepm4[_ppc->baseAddr4()] = conid;
 // 	DynamicPointer<test::Signal> pnullsig(NULL);
@@ -380,7 +380,7 @@ bool Buffer::check()const{
 void Buffer::print()const{
 	idbgx(Dbg::ipc, "version = "<<(int)header().version<<" id = "<<header().id<<" retransmit = "<<header().retransid<<" flags = "<<header().flags<<" type = "<<(int)header().type<<" updatescnt = "<<header().updatescnt<<" bufcp = "<<bc<<" dl = "<<dl);
 	for(int i = 0; i < header().updatescnt; ++i){
-		idbgx(Dbg::ipc, "update = "<<update(i));
+		vdbgx(Dbg::ipc, "update = "<<update(i));
 	}
 }
 

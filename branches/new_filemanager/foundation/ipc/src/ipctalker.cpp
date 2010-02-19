@@ -129,11 +129,11 @@ Talker::Talker(const SocketDevice &_rsd, Service &_rservice, uint16 _id):	BaseT(
 Talker::~Talker(){
 	char *pb = d.rcvbuf.buffer();
 	Specific::pushBuffer(pb, Specific::capacityToId(4096));
-	idbgx(Dbg::ipc, "sendq.size = "<<d.sendq.size());
+	vdbgx(Dbg::ipc, "sendq.size = "<<d.sendq.size());
 	while(d.sendq.size()){
 		pb = d.sendq.top()->b.buffer();
 		if(pb){
-			idbgx(Dbg::ipc, "released buffer");
+			vdbgx(Dbg::ipc, "released buffer");
 			Specific::pushBuffer(pb, Specific::capacityToId(d.sendq.top()->b.bufferCapacity()));
 		}
 		d.sendq.pop();
@@ -143,7 +143,7 @@ Talker::~Talker(){
 		d.newprocs.pop();
 	}
 	for(Data::ProcVectorT::iterator it(d.procs.begin()); it != d.procs.end(); ++it){
-		idbgx(Dbg::ipc, "deleting process "<<(void*)it->first<<" pos = "<<(it - d.procs.begin()));
+		vdbgx(Dbg::ipc, "deleting process "<<(void*)it->first<<" pos = "<<(it - d.procs.begin()));
 		delete it->first;
 		it->first = NULL;
 		
@@ -212,10 +212,10 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 			Mutex::Locker	lock(rm.mutex(*this));
 			ulong sm = grabSignalMask(0);
 			if(sm & fdt::S_KILL){
-				idbgx(Dbg::ipc, "intalker - dying");
+				idbgx(Dbg::ipc, "talker - dying");
 				return BAD;
 			}
-			idbgx(Dbg::ipc, "intalker - signaled");
+			idbgx(Dbg::ipc, "talker - signaled");
 			if(sm == fdt::S_RAISE){
 				_sig |= fdt::SIGNALED;
 			}else{
@@ -276,7 +276,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 					rpp.first->pushSignal(d.sigq.front().psig, d.sigq.front().flags);
 					d.cq.push(d.sigq.front().procid);
 				}
-				idbgx(Dbg::ipc, "");
+				vdbgx(Dbg::ipc, "");
 				d.sigq.pop();
 			}
 		}
@@ -331,7 +331,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 	while(d.sendq.size() && !socketHasPendingSend()){
 		if(_tout < d.sendq.top()->timeout){
 			_tout = d.sendq.top()->timeout;
-			idbgx(Dbg::ipc, "return "<<nothing);
+			vdbgx(Dbg::ipc, "return "<<nothing);
 			return mustreenter ? OK : NOK;
 		}
 		nothing = false;
@@ -347,14 +347,14 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 				break;
 			case NOK:
 				//_tout.set(0);
-				idbgx(Dbg::ipc, "return");
+				vdbgx(Dbg::ipc, "return");
 				return mustreenter ? OK : NOK;
 		}
 	}//while
 	//if we've sent something or
 	//if we did not have a timeout while reading we MUST do an ioUpdate asap.
 	if(mustreenter || !socketHasPendingRecv() || d.closes.size()){
-		idbgx(Dbg::ipc, "return "<<nothing);
+		vdbgx(Dbg::ipc, "return "<<nothing);
 		return OK;
 	}
 	//_tout.set(0);
@@ -389,12 +389,12 @@ void Talker::pushProcessConnector(ProcessConnector *_pc, ConnectorUid &_rconid, 
 		++_rconid.procuid;
 	}else{
 		if(d.procfs.size()){
-			idbgx(Dbg::ipc, "");
+			vdbgx(Dbg::ipc, "");
 			_rconid.procid = d.procfs.top().first;
 			_rconid.procuid = d.procfs.top().second;
 			d.procfs.pop();
 		}else{
-			idbgx(Dbg::ipc, "");
+			vdbgx(Dbg::ipc, "");
 			cassert(d.nextprocid < (uint16)0xffff);
 			_rconid.procid = d.nextprocid;
 			_rconid.procuid = 0;
