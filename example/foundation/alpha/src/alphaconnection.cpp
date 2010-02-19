@@ -71,18 +71,18 @@ namespace{
 static const DynamicRegisterer<Connection>	dre;
 }
 /*static*/ void Connection::dynamicRegister(){
-	DynamicReceiverTp::add<IStreamSignal, Connection>();
-	DynamicReceiverTp::add<OStreamSignal, Connection>();
-	DynamicReceiverTp::add<IOStreamSignal, Connection>();
-	DynamicReceiverTp::add<StreamErrorSignal, Connection>();
-	DynamicReceiverTp::add<RemoteListSignal, Connection>();
-	DynamicReceiverTp::add<FetchSlaveSignal, Connection>();
-	DynamicReceiverTp::add<SendStringSignal, Connection>();
-	DynamicReceiverTp::add<SendStreamSignal, Connection>();
+	DynamicReceiverT::add<IStreamSignal, Connection>();
+	DynamicReceiverT::add<OStreamSignal, Connection>();
+	DynamicReceiverT::add<IOStreamSignal, Connection>();
+	DynamicReceiverT::add<StreamErrorSignal, Connection>();
+	DynamicReceiverT::add<RemoteListSignal, Connection>();
+	DynamicReceiverT::add<FetchSlaveSignal, Connection>();
+	DynamicReceiverT::add<SendStringSignal, Connection>();
+	DynamicReceiverT::add<SendStreamSignal, Connection>();
 }
 
 Connection::Connection(SocketAddress *_paddr):
-						 	//BaseTp(_pch),
+						 	//BaseT(_pch),
 						 	wtr(*this, &logger),
 						 	rdr(*this, wtr, &logger), pcmd(NULL),
 						 	paddr(_paddr),
@@ -280,10 +280,10 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 					if(socketHasPendingSend()){
 						socketTimeoutSend(3000);
 						state(ExecuteIOTout);
-					}else if(socketHasPendingRecv()){
+					}/*else if(socketHasPendingRecv()){
 						socketTimeoutRecv(3000);
 						state(ExecuteIOTout);
-					}else{
+					}*/else{
 						_tout.add(2000);
 						state(ExecuteTout);
 					}
@@ -365,10 +365,10 @@ void Connection::dynamicExecute(DynamicPointer<RemoteListSignal> &_psig){
 	if(pcmd){
 		int rv;
 		if(!_psig->err){
-			rv = pcmd->receiveData((void*)_psig->ppthlst, -1, 0, ObjectUidTp(), &_psig->conid);
+			rv = pcmd->receiveData((void*)_psig->ppthlst, -1, 0, ObjectUidT(), &_psig->conid);
 			_psig->ppthlst = NULL;
 		}else{
-			rv = pcmd->receiveError(_psig->err, ObjectUidTp(), &_psig->conid);
+			rv = pcmd->receiveError(_psig->err, ObjectUidT(), &_psig->conid);
 		}
 		switch(rv){
 			case BAD:
@@ -397,9 +397,9 @@ void Connection::dynamicExecute(DynamicPointer<FetchSlaveSignal> &_psig){
 	newRequestId();//prevent multiple responses with the same id
 	if(pcmd){
 		int rv;
-		if(_psig->sz >= 0){
+		if(_psig->filesz >= 0){
 			idbg("");
-			rv = pcmd->receiveNumber(_psig->insz, 0, _psig->siguid, &_psig->conid);
+			rv = pcmd->receiveNumber(_psig->filesz, 0, _psig->siguid, &_psig->conid);
 		}else{
 			idbg("");
 			rv = pcmd->receiveError(-1, _psig->siguid, &_psig->conid);
@@ -434,7 +434,7 @@ void Connection::dynamicExecute(DynamicPointer<IStreamSignal> &_psig){
 	idbg("");
 	newRequestId();//prevent multiple responses with the same id
 	if(pcmd){
-		switch(pcmd->receiveIStream(_psig->sptr, _psig->fileuid, 0, ObjectUidTp(), NULL)){
+		switch(pcmd->receiveIStream(_psig->sptr, _psig->fileuid, 0, ObjectUidT(), NULL)){
 			case BAD:
 				idbg("");
 				break;
@@ -444,6 +444,7 @@ void Connection::dynamicExecute(DynamicPointer<IStreamSignal> &_psig){
 					state(Parse);
 				}
 				if(state() == ExecuteTout){
+					idbg("");
 					state(Execute);
 				}
 				break;
@@ -460,7 +461,7 @@ void Connection::dynamicExecute(DynamicPointer<OStreamSignal> &_psig){
 	idbg("");
 	newRequestId();//prevent multiple responses with the same id
 	if(pcmd){
-		switch(pcmd->receiveOStream(_psig->sptr, _psig->fileuid, 0, ObjectUidTp(), NULL)){
+		switch(pcmd->receiveOStream(_psig->sptr, _psig->fileuid, 0, ObjectUidT(), NULL)){
 			case BAD:
 				idbg("");
 				break;
@@ -486,7 +487,7 @@ void Connection::dynamicExecute(DynamicPointer<IOStreamSignal> &_psig){
 	idbg("");
 	newRequestId();//prevent multiple responses with the same id
 	if(pcmd){
-		switch(pcmd->receiveIOStream(_psig->sptr, _psig->fileuid, 0, ObjectUidTp(), NULL)){
+		switch(pcmd->receiveIOStream(_psig->sptr, _psig->fileuid, 0, ObjectUidT(), NULL)){
 			case BAD:
 				idbg("");
 				break;
@@ -512,7 +513,7 @@ void Connection::dynamicExecute(DynamicPointer<StreamErrorSignal> &_psig){
 	idbg("");
 	newRequestId();//prevent multiple responses with the same id
 	if(pcmd){
-		switch(pcmd->receiveError(_psig->errid, ObjectUidTp(), NULL)){
+		switch(pcmd->receiveError(_psig->errid, ObjectUidT(), NULL)){
 			case BAD:
 				idbg("");
 				break;

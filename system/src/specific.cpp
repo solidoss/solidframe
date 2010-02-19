@@ -38,7 +38,7 @@ static const unsigned specificPosition(){
 	return thrspecpos;
 }
 //static unsigned		stkid = 0;
-struct CleanVector: std::vector<Specific::FncTp>{
+struct CleanVector: std::vector<Specific::FncT>{
 	CleanVector(){
 		this->reserve(OBJ_CACHE_CAP);
 	}
@@ -46,29 +46,29 @@ struct CleanVector: std::vector<Specific::FncTp>{
 
 static CleanVector	cv;
 
-typedef std::stack<void*,std::vector<void*> > StackTp;
+typedef std::stack<void*,std::vector<void*> > StackT;
 
 //This is what is holded on a thread
 struct SpecificData{
 	struct CachePoint{
 		CachePoint():cp(0){}
-		typedef std::stack<char*, std::vector<char*> > CStackTp;
-		CStackTp		s;
+		typedef std::stack<char*, std::vector<char*> > CStackT;
+		CStackT		s;
 		uint32			cp;
 	};
 	struct ObjectCachePoint{
-		ObjectCachePoint(Specific::FncTp _pf = NULL):ps(NULL),cp(0){}
-		StackTp		*ps;
+		ObjectCachePoint(Specific::FncT _pf = NULL):ps(NULL),cp(0){}
+		StackT		*ps;
 		uint32		cp;
 	};
-	typedef std::vector<ObjectCachePoint>	ObjCachePointVecTp;
+	typedef std::vector<ObjectCachePoint>	ObjCachePointVecT;
 	SpecificData(SpecificCacheControl *_pcc);
 	~SpecificData();
 	inline static SpecificData& current(){
 		return *reinterpret_cast<SpecificData*>(Thread::specific(specificPosition()));
 	}
 	CachePoint 				cps[Specific::Count];
-	ObjCachePointVecTp		ops;
+	ObjCachePointVecT		ops;
 	SpecificCacheControl	*pcc;
 };
 
@@ -111,19 +111,20 @@ SpecificData::SpecificData(SpecificCacheControl *_pcc):pcc(_pcc){
 }
 SpecificData::~SpecificData(){
 	if(pcc->release()) delete pcc;
-	//destroy all cached buffers
+	idbgx(Dbg::specific, "destroy all cached buffers");
 	for(int i(0); i < Specific::Count; ++i){
-		idbgx(Dbg::specific,i<<" cp = "<<cps[i].cp<<" sz = "<<cps[i].s.size()<<" specific_id = "<<Specific::sizeToId((1<<i)));
+		vdbgx(Dbg::specific, i<<" cp = "<<cps[i].cp<<" sz = "<<cps[i].s.size()<<" specific_id = "<<Specific::sizeToId((1<<i)));
 		cassert(!(cps[i].cp - cps[i].s.size()));
 		while(cps[i].s.size()){
 			delete []cps[i].s.top();
 			cps[i].s.pop();
 		}
 	}
-	//destroy all cached objects
+	
+	idbgx(Dbg::specific, "destroy all cached objects");
 	Mutex::Locker lock(Thread::gmutex());
-	for(ObjCachePointVecTp::iterator it(ops.begin()); it != ops.end(); ++it){
-		idbgx(Dbg::specific,"it->cp = "<<it->cp);
+	for(ObjCachePointVecT::iterator it(ops.begin()); it != ops.end(); ++it){
+		vdbgx(Dbg::specific, "it->cp = "<<it->cp);
 		if(it->ps){
 			cassert(!(it->cp - it->ps->size()));
 			while(it->ps->size()){
@@ -210,7 +211,7 @@ void destroy(void *_pv){
 }
 //----------------------------------------------------------------------------------------------------
 //for caching objects
-/*static*/ unsigned Specific::stackid(FncTp _pf){
+/*static*/ unsigned Specific::stackid(FncT _pf){
 	Mutex::Locker lock(Thread::gmutex());
 	SpecificData &rsd(SpecificData::current());
 	cassert(rsd.ops.size() < rsd.ops.capacity());
@@ -233,7 +234,7 @@ void destroy(void *_pv){
 	SpecificData &rsd(SpecificData::current());
 	if(_id >= rsd.ops.size()){
 		rsd.ops.resize(_id + 1);
-		rsd.ops[_id].ps = new StackTp;
+		rsd.ops[_id].ps = new StackT;
 	}else if(rsd.ops[_id].ps){
 		if(rsd.ops[_id].ps->size()){
 			void *pv = rsd.ops[_id].ps->top();
@@ -241,7 +242,7 @@ void destroy(void *_pv){
 			return pv;
 		}
 	}else{
-		rsd.ops[_id].ps = new StackTp;
+		rsd.ops[_id].ps = new StackT;
 	}
 	++rsd.ops[_id].cp;
 	return NULL;

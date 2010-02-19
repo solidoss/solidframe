@@ -39,12 +39,12 @@ class Signal;
 
 #ifndef USERVICEBITS
 //by default we have at most 32 services for x86 bits machines and 256 for x64
-#define USERVICEBITS (sizeof(IndexTp) == 4 ? 5 : 8)
+#define USERVICEBITS (sizeof(IndexT) == 4 ? 5 : 8)
 #endif
 
 enum ObjectDefs{
 	SERVICEBITCNT = USERVICEBITS,
-	INDEXBITCNT	= sizeof(IndexTp) * 8 - SERVICEBITCNT,
+	INDEXBITCNT	= sizeof(IndexT) * 8 - SERVICEBITCNT,
 };
 
 
@@ -80,16 +80,16 @@ enum ObjectDefs{
 */
 class Object{
 public:
-	typedef Signal	SignalTp;
+	typedef Signal	SignalT;
 	//! Extracts the object index within service from an objectid
-	static IndexTp computeIndex(IndexTp _fullid);
+	static IndexT computeIndex(IndexT _fullid);
 	//! Extracts the service id from an objectid
-	static IndexTp computeServiceId(IndexTp _fullid);
+	static IndexT computeServiceId(IndexT _fullid);
 	//! Constructor
-	Object(IndexTp _fullid = 0UL);
+	Object(IndexT _fullid = 0UL);
 	
 	//! Get the id of the object
-	IndexTp id()			const 	{return fullid;}
+	IndexT id()			const 	{return fullid;}
 	
 	//! Set the thread id
 	void setThread(uint32 _thrid, uint32 _thrpos);
@@ -139,9 +139,9 @@ protected:
 	
 	//getters:
 	//! Get the id of the parent service
-	IndexTp serviceid()const;
+	IndexT serviceid()const;
 	//! Get the index of the object within service from an objectid
-	IndexTp index()const;
+	IndexT index()const;
 	
 	
 	//! Returns true if the object is signaled
@@ -149,9 +149,9 @@ protected:
 	
 private:
 	//! Set the id
-	void id(IndexTp _fullid);
+	void id(IndexT _fullid);
 	//! Set the id given the service id and index
-	void id(IndexTp _srvid, IndexTp _ind);
+	void id(IndexT _srvid, IndexT _ind);
 	//! This method will be called once by service when registering an object
 	/*!
 		Some objects may need faster access to their associated mutex, so they
@@ -161,7 +161,7 @@ private:
 	//! Gets the id of the thread the object resides in
 	void getThread(uint32 &_rthid, uint32 &_rthpos);
 private:
-	IndexTp			fullid;
+	IndexT			fullid;
 	volatile ulong	smask;
 	volatile uint32	thrid;//the current thread which (may) execute(s) the object
 	volatile uint32	thrpos;//

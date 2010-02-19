@@ -92,7 +92,7 @@ class Specific{
 		return _p;
 	}
 public:
-	typedef void (*FncTp) (void*);
+	typedef void (*FncT) (void*);
 	//! call this method to prepare the current thread for caching
 	static void prepareThread(SpecificCacheControl *_pscc = NULL);
 	//object caching
@@ -154,7 +154,7 @@ private:
 	Specific(const Specific&);
 	~Specific();
 private:
-	static unsigned stackid(FncTp _pf);
+	static unsigned stackid(FncT _pf);
 	template<class T>
 	static void cleaner(void *_p){
 		delete reinterpret_cast<T*>(_p);

@@ -24,7 +24,7 @@
 
 
 class MultiContainer{	
-	typedef void (*FncTp) (void*);
+	typedef void (*FncT) (void*);
 public:
 	template <typename T>
 	T* get(T *_p = NULL){
@@ -38,7 +38,7 @@ public:
 		return _p;
 	}
 private:
-	static unsigned objectid(FncTp _pf);
+	static unsigned objectid(FncT _pf);
 	template<class T>
 	static void cleaner(void *_p){
 		delete reinterpret_cast<T*>(_p);

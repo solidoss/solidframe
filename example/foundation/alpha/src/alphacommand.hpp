@@ -55,32 +55,32 @@ public:
 	//! Receive an istream
 	virtual int receiveIStream(
 		StreamPointer<IStream> &,
-		const FileUidTp &,
+		const FileUidT &,
 		int			_which,
-		const ObjectUidTp&_from,
+		const ObjectUidT&_from,
 		const foundation::ipc::ConnectorUid *_conid
 	);
 	//! Receive an ostream
 	virtual int receiveOStream(
 		StreamPointer<OStream> &,
-		const FileUidTp &,
+		const FileUidT &,
 		int			_which,
-		const ObjectUidTp&_from,
+		const ObjectUidT&_from,
 		const foundation::ipc::ConnectorUid *_conid
 	);
 	//! Receive an iostream
 	virtual int receiveIOStream(
 		StreamPointer<IOStream> &,
-		const FileUidTp &,
+		const FileUidT &,
 		int			_which,
-		const ObjectUidTp&_from,
+		const ObjectUidT&_from,
 		const foundation::ipc::ConnectorUid *_conid
 	);
 	//! Receive a string
 	virtual int receiveString(
 		const String &_str,
 		int			_which, 
-		const ObjectUidTp&_from,
+		const ObjectUidT&_from,
 		const foundation::ipc::ConnectorUid *_conid
 	);
 	//! Receive data
@@ -88,20 +88,20 @@ public:
 		void *_pdata,
 		int _datasz,
 		int			_which, 
-		const ObjectUidTp&_from,
+		const ObjectUidT&_from,
 		const foundation::ipc::ConnectorUid *_conid
 	);
 	//! Receive a number
 	virtual int receiveNumber(
 		const int64 &_no,
 		int			_which,
-		const ObjectUidTp&_from,
+		const ObjectUidT&_from,
 		const foundation::ipc::ConnectorUid *_conid
 	);
 	//! Receive an error code
 	virtual int receiveError(
 		int _errid,
-		const ObjectUidTp&_from,
+		const ObjectUidT&_from,
 		const foundation::ipc::ConnectorUid *_conid
 	);
 

@@ -35,9 +35,9 @@ struct StrCmp{
 };
 struct NameMatcher::Data{
 	Data(){}
-	typedef map<const char*, int, StrCmp> StrMapTp;
-	//typedef tr1::unordered_map<const char*, int/*, StrCmp*/> StrMapTp;
-	StrMapTp 	m;
+	typedef map<const char*, int, StrCmp> StrMapT;
+	//typedef tr1::unordered_map<const char*, int/*, StrCmp*/> StrMapT;
+	StrMapT 	m;
 };
 
 NameMatcher::Data& NameMatcher::createData(){
@@ -48,13 +48,13 @@ NameMatcher::~NameMatcher(){
 }
 
 int NameMatcher::match(const char *_name)const{
-	Data::StrMapTp::const_iterator it(d.m.find(_name));
+	Data::StrMapT::const_iterator it(d.m.find(_name));
 	if(it != d.m.end()) return it->second;
 	return d.m.size();
 }
 
 void NameMatcher::push(const char *_name){
-	pair<Data::StrMapTp::iterator, bool> r(d.m.insert(Data::StrMapTp::value_type(_name, d.m.size())));
+	pair<Data::StrMapT::iterator, bool> r(d.m.insert(Data::StrMapT::value_type(_name, d.m.size())));
 	cassert(r.second);
 }
 

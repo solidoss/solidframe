@@ -2,6 +2,7 @@
 #include "utility/binaryseeker.hpp"
 #include <cstring>
 #include <cerrno>
+#include "system/cassert.hpp"
 
 
 struct MemoryFile::BuffCmp{
@@ -21,18 +22,20 @@ struct MemoryFile::BuffCmp{
 MemoryFile::MemoryFile(
 	uint64 _cp,
 	MemoryFile::Allocator &_ra
-):cp(_cp),sz(0), off(0), crtbuffidx(-1), bufsz(_ra.bufferSize()), ra(_ra){
+):cp(_cp == -1L ? -1L : _ra.computeCapacity(_cp)),sz(0), off(0), crtbuffidx(-1), bufsz(_ra.bufferSize()), ra(_ra){
 }
 
 MemoryFile::~MemoryFile(){
-	for(BufferVectorTp::const_iterator it(bv.begin()); it != bv.end(); ++it){
+	for(BufferVectorT::const_iterator it(bv.begin()); it != bv.end(); ++it){
 		ra.release(it->data);
 	}
 }
 int64 MemoryFile::size()const{
 	return sz;
 }
-
+int64 MemoryFile::capacity()const{
+	return cp;
+}
 int MemoryFile::read(char *_pb, uint32 _bl){
 	int rv(read(_pb, _bl, off));
 	if(rv > 0) off += rv;
@@ -122,6 +125,14 @@ int64 MemoryFile::seek(int64 _pos, SeekRef _ref){
 
 int MemoryFile::truncate(int64 _len){
 	//TODO:
+	cassert(_len == 0);
+	sz = 0;
+	off = 0;
+	crtbuffidx = -1;
+	for(BufferVectorT::const_iterator it(bv.begin()); it != bv.end(); ++it){
+		ra.release(it->data);
+	}
+	bv.clear();
 	return -1;
 }
 

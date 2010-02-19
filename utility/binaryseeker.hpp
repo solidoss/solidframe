@@ -41,11 +41,11 @@
 		uint64	udata;<br>
 	};<br>
 	
-	typedef std::vector\<ComplexData> CDVectorTp;
+	typedef std::vector\<ComplexData> CDVectorT;
 	
 	BinarySeeker<> bs;
 	
-	void find(const CDVectorTp &_rv, uint32 _d){<br>
+	void find(const CDVectorT &_rv, uint32 _d){<br>
 		int rv = bs(_rv.begin(), _rv.end(), _d);<br>
 	}
 	</code>
@@ -80,11 +80,11 @@ struct BasicComparator{
 		}<br>
 	};
 	
-	typedef std::vector\<ComplexData> CDVectorTp;<br>
+	typedef std::vector\<ComplexData> CDVectorT;<br>
 	
 	BinarySeeker\<ComplexDataComparator\> bs;<br>
 	
-	void find(const CDVectorTp &_rv, uint32 _d){<br>
+	void find(const CDVectorT &_rv, uint32 _d){<br>
 		int rv = bs(_rv.begin(), _rv.end(), _d);<br>
 	}
 	</code>

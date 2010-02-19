@@ -36,10 +36,10 @@ inline void Object::setThread(uint32 _thrid, uint32 _thrpos){
 	thrid  = _thrid;
 	thrpos = _thrpos;
 }
-inline IndexTp Object::computeIndex(IndexTp _fullid){
+inline IndexT Object::computeIndex(IndexT _fullid){
 	return _fullid & (ID_MASK >> SERVICEBITCNT);
 }
-inline IndexTp Object::computeServiceId(IndexTp _fullid){
+inline IndexT Object::computeServiceId(IndexT _fullid){
 	return _fullid >> INDEXBITCNT;
 }
 
@@ -51,19 +51,19 @@ inline ulong Object::grabSignalMask(ulong _leave){
 inline ulong Object::signaled(ulong _s) const{
 	return smask & _s;
 }
-inline void Object::id(IndexTp _fullid){
+inline void Object::id(IndexT _fullid){
 	fullid = _fullid;
 }
-inline void Object::id(IndexTp _srvid, IndexTp _ind){
+inline void Object::id(IndexT _srvid, IndexT _ind){
 	fullid = (_srvid << INDEXBITCNT) | _ind;
 }
 inline void Object::state(int _st){
 	crtstate = _st;//if state < 0 the object can be destroyed
 }
-inline IndexTp Object::serviceid()const{
+inline IndexT Object::serviceid()const{
 	return computeServiceId(fullid);
 }
-inline IndexTp Object::index()const{
+inline IndexT Object::index()const{
 	return computeIndex(fullid);
 }
 

@@ -34,17 +34,17 @@ Writer::~Writer(){
 	delete []bbeg;
 }
 
-void Writer::push(FncTp _pf, const Parameter & _rp){
-	fs.push(FncPairTp(_pf, _rp));
+void Writer::push(FncT _pf, const Parameter & _rp){
+	fs.push(FncPairT(_pf, _rp));
 }
 
-void Writer::replace(FncTp _pf, const Parameter & _rp){
+void Writer::replace(FncT _pf, const Parameter & _rp){
 	fs.top().first = _pf;
 	fs.top().second = _rp;
 }
 
-Parameter &Writer::push(FncTp _pf){
-	fs.push(FncPairTp(_pf, Parameter()));
+Parameter &Writer::push(FncT _pf){
+	fs.push(FncPairT(_pf, Parameter()));
 	return fs.top().second;
 }
 
@@ -308,7 +308,6 @@ template <>
 			return Bad;
 		_rw.wpos += sz;
 		int rv = _rw.flush();
-		idbg("rv = "<<rv);
 		if(rv){
 			_rw.fs.top().first = &Writer::doneFlush; 
 			return rv;
@@ -317,7 +316,6 @@ template <>
 	}else{//flush the buffer
 		_rw.fs.top().first = &putStreamDone;
 		int rv = _rw.flushAll();
-		idbg("rv = "<<rv);
 		if(rv) return rv;
 		return Continue;
 	}
@@ -337,8 +335,9 @@ template <>
 		toread = blen;
 		if(toread > tmpsz) toread = tmpsz;
 		rv = isi->read(_rw.bbeg, toread);
-		if((ulong)rv != toread)
+		if((ulong)rv != toread){
 			return Bad;
+		}
 		tmpsz -= rv;
 		if(rv < FlushLength)
 			break;

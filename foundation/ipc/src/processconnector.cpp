@@ -86,8 +86,8 @@ struct StaticData{
 	static StaticData& instance();
 	ulong retransmitTimeout(uint _pos);
 private:
-	typedef std::vector<ulong> ULongVectorTp;
-	ULongVectorTp	toutvec;
+	typedef std::vector<ulong> ULongVectorT;
+	ULongVectorT	toutvec;
 };
 
 //========	ProcessConnector	===========================================================
@@ -106,8 +106,8 @@ struct ProcessConnector::Data{
 	enum{
 		LastBufferId = 0xffffffff - 5,
 		UpdateBufferId = 0xffffffff,//the id of a buffer containing only updates
-		MaxSignalBufferCount = 32,//continuous buffers sent for a signal
-		MaxSendSignalQueueSize = 16,//max count of signals sent in paralell
+		MaxSignalBufferCount = 8,//continuous buffers sent for a signal
+		MaxSendSignalQueueSize = 32,//max count of signals sent in paralell
 	};
 	struct BinSerializer:serialization::bin::Serializer{
 		BinSerializer():serialization::bin::Serializer(IdTypeMap::the()){}
@@ -121,8 +121,8 @@ struct ProcessConnector::Data{
 		void specificRelease(){}
 	};
 	
-	typedef BinSerializer						BinSerializerTp;
-	typedef BinDeserializer						BinDeserializerTp;
+	typedef BinSerializer						BinSerializerT;
+	typedef BinDeserializer						BinDeserializerT;
 	
 	struct OutWaitSignal{
 		OutWaitSignal(
@@ -146,41 +146,62 @@ struct ProcessConnector::Data{
 				return (id - _owc.id) > (uint32)(0xffffffff/2);
 			//}else return false;
 		}
-		uint32				bufid;
-		DynamicPointer<Signal> sig;
-		BinSerializerTp		*pser;
-		uint32				flags;
-		uint32				id;
-		uint32				uid;
+		uint32					bufid;
+		DynamicPointer<Signal>	sig;
+		BinSerializerT			*pser;
+		uint32					flags;
+		uint32					id;
+		uint32					uid;
 	};
 	
-	typedef std::pair<Buffer, uint16>			OutBufferPairTp;
-	typedef std::vector<OutBufferPairTp>		OutBufferVectorTp;
-	typedef Stack<uint16>						OutFreePosStackTp;
-	typedef std::priority_queue<Buffer,std::vector<Buffer>,BufCmp>	
-												BufferPriorityQueueTp;
-	typedef std::pair<DynamicPointer<Signal>, uint32>
-												CmdPairTp;
-	typedef Queue<CmdPairTp>					CmdQueueTp;
-	typedef std::deque<OutWaitSignal>			OutCmdVectorTp;
-	typedef Queue<uint32>						ReceivedIdsQueueTp;
-	typedef std::pair<const SockAddrPair*, int>	BaseProcAddr;
-	typedef std::pair<Signal*, BinDeserializerTp*>
-												RecvCmdPairTp;
-	typedef Queue<RecvCmdPairTp>				RecvCmdQueueTp;
-	typedef Queue<SignalUid>					SendCmdQueueTp;
+	typedef std::pair<Buffer, uint16>			OutBufferPairT;
+	typedef std::vector<OutBufferPairT>			OutBufferVectorT;
+	typedef Stack<uint16>						OutFreePosStackT;
+	typedef std::priority_queue<
+		Buffer,
+		std::vector<Buffer>,
+		BufCmp
+		>										BufferPriorityQueueT;
+	typedef std::pair<
+		DynamicPointer<Signal>,
+		uint32
+		>										CmdPairT;
+	typedef Queue<CmdPairT>						CmdQueueT;
+	typedef std::deque<OutWaitSignal>			OutCmdVectorT;
+	typedef Queue<uint32>						ReceivedIdsQueueT;
+	typedef std::pair<
+		const SockAddrPair*,
+		int
+		>										BaseProcAddr;
+	typedef std::pair<
+		Signal*,
+		BinDeserializerT*
+		>										RecvCmdPairT;
+	typedef Queue<RecvCmdPairT>					RecvCmdQueueT;
+	typedef Queue<SignalUid>					SendCmdQueueT;
 	
 	Data(const Inet4SockAddrPair &_raddr, uint32 _keepalivetout);
+	
 	Data(const Inet4SockAddrPair &_raddr, int _baseport, uint32 _keepalivetout);
+	
 	~Data();
+	
 	std::pair<uint16, uint16> insertSentBuffer(Buffer &);
+	
 	std::pair<uint16, uint16> getSentBuffer(int _bufpos);
+	
 	void incrementExpectedId();
+	
 	void incrementSendId();
-	BinSerializerTp* popSerializer();
-	void pushSerializer(BinSerializerTp*);
-	BinDeserializerTp* popDeserializer();
-	void pushDeserializer(BinDeserializerTp*);
+	
+	BinSerializerT* popSerializer();
+	
+	void pushSerializer(BinSerializerT*);
+	
+	BinDeserializerT* popDeserializer();
+	
+	void pushDeserializer(BinDeserializerT*);
+	
 	//save signals to be resent in case of disconnect
 	SignalUid pushOutWaitSignal(
 		uint32 _bufid,
@@ -188,23 +209,36 @@ struct ProcessConnector::Data{
 		uint32 _flags,
 		uint32 _id
 	);
+	
 	OutWaitSignal& waitSignal(const SignalUid &_siguid);
+	
 	const OutWaitSignal& waitSignal(const SignalUid &_siguid)const;
+	
 	OutWaitSignal& waitFrontSignal();
+	
 	const OutWaitSignal& waitFrontSignal()const;
+	
 	OutWaitSignal& waitBackSignal();
+	
 	const OutWaitSignal& waitBackSignal()const;
+	
 	//eventually pops signals associated to a buffer
 	void popOutWaitSignals(uint32 _bufid, const ConnectorUid &_rconid);
+	
 	//pops a signal waiting for a response
 	void popOutWaitSignal(const SignalUid &_rsiguid);
-	OutBufferPairTp& keepAliveBuffer(){
+	
+	OutBufferPairT& keepAliveBuffer(){
 		cassert(outbufs.size());
 		return outbufs[0];
 	}
+	
 	void prepareKeepAlive();
+	
 	bool canSendKeepAlive(const TimeSpec &_tpos);
+	
 	uint computeRetransmitTimeout(const uint _retrid, const uint32 _bufid);
+	
 //data:	
 	uint32					expectedid;
 	uint16					retrpos;//see note 2
@@ -218,15 +252,15 @@ struct ProcessConnector::Data{
 	BaseProcAddr			baseaddr;
 	
 	TimeSpec				lasttimepos;
-	OutFreePosStackTp		outfreestk;
-	OutBufferVectorTp		outbufs;
-	CmdQueueTp				cq;
-	RecvCmdQueueTp			rcq;
-	SendCmdQueueTp			scq;
-	ReceivedIdsQueueTp		rcvidq;
-	BufferPriorityQueueTp	inbufq;
-	OutCmdVectorTp			outsigv;
-	OutFreePosStackTp		outfreesigstk;
+	OutFreePosStackT		outfreestk;
+	OutBufferVectorT		outbufs;
+	CmdQueueT				cq;
+	RecvCmdQueueT			rcq;
+	SendCmdQueueT			scq;
+	ReceivedIdsQueueT		rcvidq;
+	BufferPriorityQueueT	inbufq;
+	OutCmdVectorT			outsigv;
+	OutFreePosStackT		outfreesigstk;
 	uint32					sndsigid;
 	uint32					keepalivetout;
 	uint32					respwaitsigcnt;
@@ -241,6 +275,7 @@ struct ProcessConnector::Data{
 	return sd;
 }
 
+//----------------------------------------------------------------------
 StaticData::StaticData(){
 	const uint datsz = StaticData::DataRetransmitCount;
 	const uint consz = StaticData::ConnectRetransmitCount;
@@ -260,7 +295,7 @@ StaticData::StaticData(){
 	}
 }
 
-
+//----------------------------------------------------------------------
 ulong StaticData::retransmitTimeout(uint _pos){
 	cassert(_pos < toutvec.size());
 	return toutvec[_pos];
@@ -275,28 +310,29 @@ ProcessConnector::Data::Data(const Inet4SockAddrPair &_raddr, uint32 _keepalivet
 	baseaddr(&pairaddr, addr.port()),sndsigid(0), keepalivetout(_keepalivetout),
 	respwaitsigcnt(0)
 {
-	outbufs.push_back(OutBufferPairTp(Buffer(NULL,0), 0));
+	outbufs.push_back(OutBufferPairT(Buffer(NULL,0), 0));
 }
 
+//----------------------------------------------------------------------
 ProcessConnector::Data::Data(const Inet4SockAddrPair &_raddr, int _baseport, uint32 _keepalivetout):
 	expectedid(1), /*retranstimeout(StartRetransmitTimeout),*/retrpos(0),
 	state(Accepting), flags(0), bufjetons(3), crtsigbufcnt(MaxSignalBufferCount), sendid(0),
 	addr(_raddr), pairaddr(addr), baseaddr(&pairaddr, _baseport),
 	sndsigid(0), keepalivetout(_keepalivetout),respwaitsigcnt(0)
 {
-	outbufs.push_back(OutBufferPairTp(Buffer(NULL,0), 0));
+	outbufs.push_back(OutBufferPairT(Buffer(NULL,0), 0));
 }
 
-
+//----------------------------------------------------------------------
 ProcessConnector::Data::~Data(){
-	for(OutBufferVectorTp::iterator it(outbufs.begin()); it != outbufs.end(); ++it){
+	for(OutBufferVectorT::iterator it(outbufs.begin()); it != outbufs.end(); ++it){
 		char *pb = it->first.buffer();
 		if(pb){ 
-			idbgx(Dbg::ipc, "released buffer");
+			vdbgx(Dbg::ipc, "released buffer");
 			Specific::pushBuffer(pb, Specific::capacityToId(it->first.bufferCapacity()));
 		}
 	}
-	idbgx(Dbg::ipc, "cq.size = "<<cq.size()<<"scq.size = "<<scq.size());
+	vdbgx(Dbg::ipc, "cq.size = "<<cq.size()<<"scq.size = "<<scq.size());
 	
 	while(cq.size()){
 		cq.front().first->ipcFail(0);
@@ -305,7 +341,7 @@ ProcessConnector::Data::~Data(){
 	
 	while(scq.size()){scq.pop();}
 	
-	for(OutCmdVectorTp::iterator it(outsigv.begin()); it != outsigv.end(); ++it){
+	for(OutCmdVectorT::iterator it(outsigv.begin()); it != outsigv.end(); ++it){
 		if(it->pser){
 			it->pser->clear();
 			pushSerializer(it->pser);
@@ -323,6 +359,7 @@ ProcessConnector::Data::~Data(){
 			it->sig.clear();
 		}
 	}
+	
 	while(rcq.size()){
 		if(rcq.front().second){
 			rcq.front().second->clear();
@@ -333,6 +370,8 @@ ProcessConnector::Data::~Data(){
 	}
 	idbgx(Dbg::ipc, "done deleting process");
 }
+
+//----------------------------------------------------------------------
 std::pair<uint16, uint16> ProcessConnector::Data::insertSentBuffer(Buffer &_rbuf){
 	std::pair<uint16, uint16> p;
 	cassert(_rbuf.buffer());
@@ -344,77 +383,107 @@ std::pair<uint16, uint16> ProcessConnector::Data::insertSentBuffer(Buffer &_rbuf
 		outfreestk.pop();
 	}else{
 		p.first = outbufs.size();
-		outbufs.push_back(OutBufferPairTp(_rbuf, 0));
+		outbufs.push_back(OutBufferPairT(_rbuf, 0));
 		p.second = 0;
 	}
 	return p;
 }
+
+//----------------------------------------------------------------------
 std::pair<uint16, uint16> ProcessConnector::Data::getSentBuffer(int _bufpos){
 	cassert(_bufpos < (int)outbufs.size());
 	return std::pair<uint16, uint16>(_bufpos, outbufs[_bufpos].second);
 }
+
+//----------------------------------------------------------------------
 inline void ProcessConnector::Data::incrementExpectedId(){
 	++expectedid;
 	if(expectedid > LastBufferId) expectedid = 0;
 }
+
+//----------------------------------------------------------------------
 inline void ProcessConnector::Data::incrementSendId(){
 	++sendid;
 	if(sendid > LastBufferId) sendid = 0;
 }
+
+//----------------------------------------------------------------------
 //TODO: use Specific
-ProcessConnector::Data::BinSerializerTp* ProcessConnector::Data::popSerializer(){
-	BinSerializerTp* p = Specific::tryUncache<BinSerializerTp>();
+ProcessConnector::Data::BinSerializerT* ProcessConnector::Data::popSerializer(){
+	BinSerializerT* p = Specific::tryUncache<BinSerializerT>();
 	if(!p){
-		p = new BinSerializerTp;
+		p = new BinSerializerT;
 	}
 	return p;
 }
-void ProcessConnector::Data::pushSerializer(ProcessConnector::Data::BinSerializerTp* _p){
-	cassert(_p->empty());
-	Specific::cache(_p);
-}
-ProcessConnector::Data::BinDeserializerTp* ProcessConnector::Data::popDeserializer(){
-	BinDeserializerTp* p = Specific::tryUncache<BinDeserializerTp>();
-	if(!p){
-		p = new BinDeserializerTp;
-	}
-	return p;
-}
-void ProcessConnector::Data::pushDeserializer(ProcessConnector::Data::BinDeserializerTp* _p){
+
+//----------------------------------------------------------------------
+void ProcessConnector::Data::pushSerializer(ProcessConnector::Data::BinSerializerT* _p){
 	cassert(_p->empty());
 	Specific::cache(_p);
 }
 
+//----------------------------------------------------------------------
+ProcessConnector::Data::BinDeserializerT* ProcessConnector::Data::popDeserializer(){
+	BinDeserializerT* p = Specific::tryUncache<BinDeserializerT>();
+	if(!p){
+		p = new BinDeserializerT;
+	}
+	return p;
+}
+
+//----------------------------------------------------------------------
+void ProcessConnector::Data::pushDeserializer(ProcessConnector::Data::BinDeserializerT* _p){
+	cassert(_p->empty());
+	Specific::cache(_p);
+}
+
+//----------------------------------------------------------------------
 inline ProcessConnector::Data::OutWaitSignal& ProcessConnector::Data::waitSignal(const SignalUid &_siguid){
 	cassert(_siguid.idx < outsigv.size() && outsigv[_siguid.idx].uid == _siguid.uid);
 	return outsigv[_siguid.idx];
 }
+
+//----------------------------------------------------------------------
 inline const ProcessConnector::Data::OutWaitSignal& ProcessConnector::Data::waitSignal(const SignalUid &_siguid)const{
 	cassert(_siguid.idx < outsigv.size() && outsigv[_siguid.idx].uid == _siguid.uid);
 	return outsigv[_siguid.idx];
 }
 
+//----------------------------------------------------------------------
 inline ProcessConnector::Data::OutWaitSignal& ProcessConnector::Data::waitFrontSignal(){
 	return waitSignal(scq.front());
 }
+
+//----------------------------------------------------------------------
 inline const ProcessConnector::Data::OutWaitSignal& ProcessConnector::Data::waitFrontSignal()const{
 	return waitSignal(scq.front());
 }
 
+//----------------------------------------------------------------------
 inline ProcessConnector::Data::OutWaitSignal& ProcessConnector::Data::waitBackSignal(){
 	return waitSignal(scq.back());
 }
+
+//----------------------------------------------------------------------
 inline const ProcessConnector::Data::OutWaitSignal& ProcessConnector::Data::waitBackSignal()const{
 	return waitSignal(scq.back());
 }
 
-
-SignalUid ProcessConnector::Data::pushOutWaitSignal(uint32 _bufid, DynamicPointer<Signal> &_sig, uint32 _flags, uint32 _id){
+//----------------------------------------------------------------------
+SignalUid ProcessConnector::Data::pushOutWaitSignal(
+	uint32 _bufid,
+	DynamicPointer<Signal> &_sig,
+	uint32 _flags,
+	uint32 _id
+){
 	_flags &= ~Service::SentFlag;
 	_flags &= ~Service::WaitResponseFlag;
+	
 	if(this->outfreesigstk.size()){
 		OutWaitSignal &owc = outsigv[outfreesigstk.top()];
 		owc.bufid = _bufid;
+		cassert(!owc.sig.ptr());
 		owc.sig = _sig;
 		owc.flags = _flags;
 		uint32 idx = outfreesigstk.top();
@@ -425,8 +494,13 @@ SignalUid ProcessConnector::Data::pushOutWaitSignal(uint32 _bufid, DynamicPointe
 		return SignalUid(outsigv.size() - 1, 0/*uid*/);
 	}
 }
-void ProcessConnector::Data::popOutWaitSignals(uint32 _bufid, const ConnectorUid &_rconid){
-	for(OutCmdVectorTp::iterator it(outsigv.begin()); it != outsigv.end(); ++it){
+
+//----------------------------------------------------------------------
+void ProcessConnector::Data::popOutWaitSignals(
+	uint32 _bufid,
+	const ConnectorUid &_rconid
+){
+	for(OutCmdVectorT::iterator it(outsigv.begin()); it != outsigv.end(); ++it){
 		if(it->bufid == _bufid && it->sig.ptr()){
 			it->bufid = 0;
 			cassert(!it->pser);
@@ -437,33 +511,43 @@ void ProcessConnector::Data::popOutWaitSignals(uint32 _bufid, const ConnectorUid
 			}else{
 				++it->uid;
 				it->sig.clear();
+				outfreesigstk.push(it - outsigv.begin());
 			}
 		}
 	}
 }
+
+//----------------------------------------------------------------------
 void ProcessConnector::Data::popOutWaitSignal(const SignalUid &_rsiguid){
 	if(_rsiguid.idx < outsigv.size() && outsigv[_rsiguid.idx].uid == _rsiguid.uid){
 		idbgx(Dbg::ipc, "signal received response "<<_rsiguid.idx<<','<<_rsiguid.uid);
+		++outsigv[_rsiguid.idx].uid;
 		outsigv[_rsiguid.idx].sig.clear();
+		outfreesigstk.push(_rsiguid.idx);
 		--respwaitsigcnt;
 	}
 }
+
+//----------------------------------------------------------------------
 bool ProcessConnector::Data::canSendKeepAlive(const TimeSpec &_tpos){
-	idbgx(Dbg::ipc, "keepalivetout = "<<keepalivetout<<" respwaitsigcnt = "<<respwaitsigcnt<<" rcq = "<<rcq.size()<<" cq = "<<cq.size()<<" scq = "<<scq.size());
-	idbgx(Dbg::ipc, "_tpos = "<<_tpos.seconds()<<','<<_tpos.nanoSeconds()<<" rcvtpos = "<<rcvtpos.seconds()<<','<<rcvtpos.nanoSeconds());
+	vdbgx(Dbg::ipc, "keepalivetout = "<<keepalivetout<<" respwaitsigcnt = "<<respwaitsigcnt<<" rcq = "<<rcq.size()<<" cq = "<<cq.size()<<" scq = "<<scq.size());
+	vdbgx(Dbg::ipc, "_tpos = "<<_tpos.seconds()<<','<<_tpos.nanoSeconds()<<" rcvtpos = "<<rcvtpos.seconds()<<','<<rcvtpos.nanoSeconds());
 	return keepalivetout && respwaitsigcnt &&
 		(rcq.empty() || rcq.size() == 1 && !rcq.front().first) && 
 		cq.empty() && scq.empty() && _tpos >= rcvtpos;
 }
+
+//----------------------------------------------------------------------
 void ProcessConnector::Data::prepareKeepAlive(){
 	//cassert(outbufs.empty());
-	idbgx(Dbg::ipc,"");
+	vdbgx(Dbg::ipc,"");
 	Buffer b(Specific::popBuffer(Specific::sizeToId(Buffer::minSize())), Specific::idToCapacity(Specific::sizeToId(Buffer::minSize())));
 	b.reset();
 	b.type(Buffer::KeepAliveType);
-	outbufs[0] = OutBufferPairTp(b, 0);
+	outbufs[0] = OutBufferPairT(b, 0);
 }
 
+//----------------------------------------------------------------------
 inline uint ProcessConnector::Data::computeRetransmitTimeout(const uint _retrid, const uint32 _bufid){
 	if(!(_bufid & StaticData::RefreshIndex)){
 		//recalibrate the retrpos
@@ -484,13 +568,17 @@ ProcessConnector::~ProcessConnector(){
 	delete &d;
 }
 
+//----------------------------------------------------------------------
 void ProcessConnector::init(){
 }
+
+//----------------------------------------------------------------------
 void ProcessConnector::prepare(){
 	//add the keepalive buffer to outvec
 	d.prepareKeepAlive();
 }
 
+//----------------------------------------------------------------------
 // static
 int ProcessConnector::parseAcceptedBuffer(Buffer &_rbuf){
 	if(_rbuf.dataSize() == sizeof(int32)){
@@ -499,6 +587,8 @@ int ProcessConnector::parseAcceptedBuffer(Buffer &_rbuf){
 	}
 	return BAD;
 }
+
+//----------------------------------------------------------------------
 // static
 int ProcessConnector::parseConnectingBuffer(Buffer &_rbuf){
 	if(_rbuf.dataSize() == sizeof(int32)){
@@ -507,7 +597,8 @@ int ProcessConnector::parseConnectingBuffer(Buffer &_rbuf){
 	}
 	return BAD;
 }
-	
+
+//----------------------------------------------------------------------
 ProcessConnector::ProcessConnector(
 	const Inet4SockAddrPair &_raddr,
 	uint32 _keepalivetout
@@ -515,6 +606,7 @@ ProcessConnector::ProcessConnector(
 	idbgx(Dbg::ipc, "");
 }
 
+//----------------------------------------------------------------------
 //ProcessConnector::ProcessConnector(BinMapper &_rm, const Inet6SockAddrPair &_raddr):d(*(new Data(_rm, _raddr))){}
 ProcessConnector::ProcessConnector(
 	const Inet4SockAddrPair &_raddr,
@@ -524,7 +616,7 @@ ProcessConnector::ProcessConnector(
 	idbgx(Dbg::ipc, "");
 }
 
-
+//----------------------------------------------------------------------
 //TODO: ensure that really no signal is dropped on reconnect
 // not even those from Dropped buffers!!!
 void ProcessConnector::reconnect(ProcessConnector *_ppc){
@@ -551,14 +643,14 @@ void ProcessConnector::reconnect(ProcessConnector *_ppc){
 	//
 	for(int sz = d.cq.size(); sz; --sz){
 		if(!(d.cq.front().second & Service::SameConnectorFlag)) {
-			idbgx(Dbg::ipc, "signal scheduled for resend");
+			vdbgx(Dbg::ipc, "signal scheduled for resend");
 			d.cq.push(d.cq.front());
 		}else{
-			idbgx(Dbg::ipc, "signal not scheduled for resend");
+			vdbgx(Dbg::ipc, "signal not scheduled for resend");
 		}
 		d.cq.pop();
 	}
-	uint32 cqsz = d.cq.size();
+	uint32		cqsz = d.cq.size();
 	//we must put into the cq all signal in the exact order they were sent
 	//to do so we must push into cq, the signals from scq and waitsigv
 	//ordered by their id
@@ -579,7 +671,7 @@ void ProcessConnector::reconnect(ProcessConnector *_ppc){
 			}
 			//we can try resending the signal
 		}else{
-			idbgx(Dbg::ipc, "signal not scheduled for resend");
+			vdbgx(Dbg::ipc, "signal not scheduled for resend");
 			if(outsig.flags & Service::WaitResponseFlag && outsig.flags & Service::SentFlag){
 				outsig.sig->ipcFail(1);
 			}else{
@@ -595,7 +687,7 @@ void ProcessConnector::reconnect(ProcessConnector *_ppc){
 	std::sort(d.outsigv.begin(), d.outsigv.end());
 	
 	//then we push into cq the signals from outcmv
-	for(Data::OutCmdVectorTp::const_iterator it(d.outsigv.begin()); it != d.outsigv.end(); ++it){
+	for(Data::OutCmdVectorT::const_iterator it(d.outsigv.begin()); it != d.outsigv.end(); ++it){
 		const Data::OutWaitSignal &outsig(*it);
 		if(outsig.sig.ptr()){
 			//the outsigv may contain signals sent successfully, waiting for a response
@@ -607,7 +699,7 @@ void ProcessConnector::reconnect(ProcessConnector *_ppc){
 					outsig.sig->ipcFail(0);
 				}
 			}else{
-				d.cq.push(Data::CmdPairTp(outsig.sig, outsig.flags));
+				d.cq.push(Data::CmdPairT(outsig.sig, outsig.flags));
 			}
 		}else break;
 	}
@@ -642,7 +734,7 @@ void ProcessConnector::reconnect(ProcessConnector *_ppc){
 	while(d.outfreestk.size()){//first we clear the free stack
 		d.outfreestk.pop();
 	}
-	for(Data::OutBufferVectorTp::iterator it(d.outbufs.begin()); it != d.outbufs.end(); ++it){
+	for(Data::OutBufferVectorT::iterator it(d.outbufs.begin()); it != d.outbufs.end(); ++it){
 		if(it->first.buffer()){
 			char *buf = it->first.buffer();
 			Specific::pushBuffer(buf, Specific::capacityToId(it->first.bufferCapacity()));
@@ -656,24 +748,31 @@ void ProcessConnector::reconnect(ProcessConnector *_ppc){
 	d.outfreestk.push(1);
 }
 
+//----------------------------------------------------------------------
 bool ProcessConnector::isConnected()const{
 	return d.state > Data::Connecting;
 }
+
+//----------------------------------------------------------------------
 bool ProcessConnector::isDisconnecting()const{
 	return d.state == Data::Disconnecting;
 }
 
+//----------------------------------------------------------------------
 bool ProcessConnector::isConnecting()const{
 	return d.state == Data::Connecting;
 }
 
-
+//----------------------------------------------------------------------
 bool ProcessConnector::isAccepting()const{
 	return d.state == Data::Accepting;
 }
 
+//----------------------------------------------------------------------
 void ProcessConnector::completeConnect(int _pairport){
+	
 	if(d.state == Data::Connected) return;
+	
 	d.state = Data::Connected;
 	d.addr.port(_pairport);
 	cassert(d.outbufs.size() > 1);
@@ -689,35 +788,30 @@ void ProcessConnector::completeConnect(int _pairport){
 	d.rcvidq.push(0);
 }
 
+//----------------------------------------------------------------------
 const Inet4SockAddrPair* ProcessConnector::peerAddr4()const{
 	const SockAddrPair *p = &(d.pairaddr);
 	return reinterpret_cast<const Inet4SockAddrPair*>(p);
 }
 
+//----------------------------------------------------------------------
 const std::pair<const Inet4SockAddrPair*, int>* ProcessConnector::baseAddr4()const{
 	const Data::BaseProcAddr *p = &(d.baseaddr);
 	return reinterpret_cast<const std::pair<const Inet4SockAddrPair*, int>*>(p);
 }
 
-// const Inet6SockAddrPair* ProcessConnector::pairAddr6()const{
-// 	return reinterpret_cast<Inet6SockAddrPair*>(&d.pairaddr);
-// }
-// 
-// const std::pair<const Inet6SockAddrPair*, int>* ProcessConnector::baseAddr6()const{
-// 	return reinterpret_cast<std::pair<const Inet6SockAddrPair*, int>*>(&d.baseaddr);
-// }
-
-
+//----------------------------------------------------------------------
 int ProcessConnector::pushSignal(DynamicPointer<Signal> &_rsig, uint32 _flags){
 	//_flags &= ~Data::ProcessReservedFlags;
-	d.cq.push(Data::CmdPairTp(_rsig, _flags));
+	d.cq.push(Data::CmdPairT(_rsig, _flags));
 	if(d.cq.size() == 1) return NOK;
 	return OK;
 }
 
+//----------------------------------------------------------------------
 bool ProcessConnector::moveToNextInBuffer(){
 	while(d.inbufq.size() && (d.inbufq.top().id() < d.expectedid)){
-		idbgx(Dbg::ipc, "inbufq.size() = "<<d.inbufq.size()<<" d.inbufq.top().id() = "<<d.inbufq.top().id()<<" d.expectedid "<<d.expectedid); 
+		vdbgx(Dbg::ipc, "inbufq.size() = "<<d.inbufq.size()<<" d.inbufq.top().id() = "<<d.inbufq.top().id()<<" d.expectedid "<<d.expectedid); 
 
 		Buffer b(d.inbufq.top());
 		char *pb = d.inbufq.top().buffer();
@@ -725,52 +819,31 @@ bool ProcessConnector::moveToNextInBuffer(){
 		d.inbufq.pop();
 	}
 	if(d.inbufq.size()){
-		idbgx(Dbg::ipc, "inbufq.size() = "<<d.inbufq.size()<<" d.inbufq.top().id() = "<<d.inbufq.top().id()<<" d.expectedid "<<d.expectedid);
+		vdbgx(Dbg::ipc, "inbufq.size() = "<<d.inbufq.size()<<" d.inbufq.top().id() = "<<d.inbufq.top().id()<<" d.expectedid "<<d.expectedid);
 		return d.inbufq.top().id() == d.expectedid;
 	}
 	return false;
 }
 
+//----------------------------------------------------------------------
 int ProcessConnector::pushReceivedBuffer(Buffer &_rbuf, const ConnectorUid &_rconid, const TimeSpec &_tpos){
 	idbgx(Dbg::ipc, "rcvbufid = "<<_rbuf.id()<<" expected id "<<d.expectedid<<" inbufq.size = "<<d.inbufq.size()<<" flags = "<<_rbuf.flags());
+	
 	d.rcvtpos = _tpos;
-	if(_rbuf.id() != d.expectedid){
-		if(_rbuf.id() < d.expectedid){
-			//the peer doesnt know that we've already received the buffer
-			//add it as update
-			d.rcvidq.push(_rbuf.id());
-			idbgx(Dbg::ipc, "already received buffer - resend update");
-			return NOK;//we have to send updates
-		}else if(_rbuf.id() <= Data::LastBufferId){
-			if(_rbuf.updatesCount()){//we have updates
-				freeSentBuffers(_rbuf, _rconid);
-			}
-			//try to keep the buffer for future parsing
-			if(d.inbufq.size() < 4){//TODO: use a variable instead of inline value
-				d.rcvidq.push(_rbuf.id());//for peer updates
-				d.inbufq.push(_rbuf);
-				_rbuf.reinit();
-				idbgx(Dbg::ipc, "keep the buffer for future parsing");
-				return NOK;//we have to send updates
-			}else{
-				idbgx(Dbg::ipc, "to many buffers out-of-order");
-				return OK;
-			}
-		}else if(_rbuf.id() == Data::UpdateBufferId){//a buffer containing only updates
-			_rbuf.updatesCount();
-			idbgx(Dbg::ipc, "received buffer containing only updates");
-			if(freeSentBuffers(_rbuf, _rconid)) return NOK;
-			return OK;
-		}
-	}else{
+	
+	if(_rbuf.id() == d.expectedid){
+		
 		//the expected buffer
 		d.rcvidq.push(_rbuf.id());
+		
 		if(_rbuf.updatesCount()){
 			freeSentBuffers(_rbuf, _rconid);
 		}
+		
 		if(_rbuf.type() == Buffer::DataType){
 			parseBuffer(_rbuf, _rconid);
 		}
+		
 		d.incrementExpectedId();//move to the next buffer
 		//while(d.inbufq.top().id() == d.expectedid){
 		while(moveToNextInBuffer()){
@@ -785,47 +858,91 @@ int ProcessConnector::pushReceivedBuffer(Buffer &_rbuf, const ConnectorUid &_rco
 			d.incrementExpectedId();//move to the next buffer
 		}
 		return NOK;//we have something to send
+	
+	}else{
+		
+		if(_rbuf.id() < d.expectedid){
+			
+			//the peer doesnt know that we've already received the buffer
+			//add it as update
+			d.rcvidq.push(_rbuf.id());
+			idbgx(Dbg::ipc, "already received buffer - resend update");
+			return NOK;//we have to send updates
+		
+		}else if(_rbuf.id() <= Data::LastBufferId){
+			
+			if(_rbuf.updatesCount()){//we have updates
+				freeSentBuffers(_rbuf, _rconid);
+			}
+			//try to keep the buffer for future parsing
+			if(d.inbufq.size() < 4){//TODO: use a variable instead of inline value
+				d.rcvidq.push(_rbuf.id());//for peer updates
+				d.inbufq.push(_rbuf);
+				_rbuf.reinit();
+				idbgx(Dbg::ipc, "keep the buffer for future parsing");
+				return NOK;//we have to send updates
+			}else{
+				idbgx(Dbg::ipc, "to many buffers out-of-order");
+			}
+		
+		}else if(_rbuf.id() == Data::UpdateBufferId){//a buffer containing only updates
+			_rbuf.updatesCount();
+			idbgx(Dbg::ipc, "received buffer containing only updates");
+			if(freeSentBuffers(_rbuf, _rconid)) return NOK;
+		}
 	}
 	return OK;
 }
+
+//----------------------------------------------------------------------
 /*
 Prevent the following situation to occur:
 A buffer is received with updates, buffers for which pushSent was not called
 */
 int ProcessConnector::pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpos, bool &_reusebuf){
+	
 	if(_rbuf.b.buffer()){
+		
 		if(_rbuf.b.id() > Data::LastBufferId){
+			
 			//cassert(_rbuf.b.id() == Data::UpdateBufferId);
 			switch(_rbuf.b.id()){
 				case Data::UpdateBufferId:{
 					idbgx(Dbg::ipc, "sent updates - collecting buffer");
-					char *pb = _rbuf.b.buffer();
-					Specific::pushBuffer(pb, Specific::capacityToId(_rbuf.b.bufferCapacity()));
+					uint32	cp(0);
+					char 	*pb(_rbuf.b.release(cp));
+					Specific::pushBuffer(pb, Specific::capacityToId(cp));
 					//++d.bufjetons;
 					return NOK;//maybe we have something to send
 					}
 				default:
 					cassert(false);
 			}
+		
 		}else{
+			
 			idbgx(Dbg::ipc, "sent bufid = "<<_rbuf.b.id()<<" bufpos = "<<_rbuf.bufpos<<" retransmitid "<<_rbuf.b.retransmitId()<<" buf = "<<(void*)_rbuf.b.buffer()<<" buffercap = "<<_rbuf.b.bufferCapacity()<<" flags = "<<_rbuf.b.flags()<<" type = "<<(int)_rbuf.b.type());
-			std::pair<uint16, uint16>  p;
-			const uint retransid = _rbuf.b.retransmitId();
+			
+			std::pair<uint16, uint16>	p;
+			const uint 					retransid = _rbuf.b.retransmitId();
+			
 			if(!retransid){
 				//cassert(_rbuf.bufpos < 0);
 				p = d.insertSentBuffer(_rbuf.b);	//_rbuf.bc will contain the buffer index, and
 													//_rbuf.dl will contain the buffer uid
-				idbgx(Dbg::ipc, "inserted buffer on pos "<<p.first<<','<<p.second);
+				vdbgx(Dbg::ipc, "inserted buffer on pos "<<p.first<<','<<p.second);
 				cassert(p.first);//it cannot be the keepalive buffer
 			}else{
 				//cassert(_rbuf.bufpos >= 0);
 				p = d.getSentBuffer(_rbuf.bufpos);
-				idbgx(Dbg::ipc, "get buffer from pos "<<p.first<<','<<p.second);
+				vdbgx(Dbg::ipc, "get buffer from pos "<<p.first<<','<<p.second);
 			}
 			++p.first;//adjust the index
-			//_rbuf.b.retransmitId(_rbuf.retransmitId() + 1);
-			uint tmptimeout = d.computeRetransmitTimeout(retransid, _rbuf.b.id());
-			idbgx(Dbg::ipc, "p.first "<<p.first<<" p.second "<<p.second<<" retransid = "<<retransid<<" tmptimeout = "<<tmptimeout);
+			
+			uint	tmptimeout = d.computeRetransmitTimeout(retransid, _rbuf.b.id());
+			
+			vdbgx(Dbg::ipc, "p.first "<<p.first<<" p.second "<<p.second<<" retransid = "<<retransid<<" tmptimeout = "<<tmptimeout);
+			
 			//reuse _rbuf for retransmission timeout
 			_rbuf.b.pb = NULL;
 			_rbuf.b.bc = p.first;
@@ -834,18 +951,21 @@ int ProcessConnector::pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpo
 			_rbuf.timeout = _tpos;
 			_rbuf.timeout +=  tmptimeout;//d.retranstimeout;//miliseconds retransmission timeout
 			_reusebuf = true;
-			idbgx(Dbg::ipc, "prepare waitbuf b.cap "<<_rbuf.b.bufferCapacity()<<" b.dl "<<_rbuf.b.dl);
+			vdbgx(Dbg::ipc, "prepare waitbuf b.cap "<<_rbuf.b.bufferCapacity()<<" b.dl "<<_rbuf.b.dl);
 			cassert(sizeof(uint32) <= sizeof(size_t));
 			return OK;
+		
 		}
+	
 	}else{//a timeout occured
+		
 		idbgx(Dbg::ipc, "timeout occured _rbuf.bc "<<_rbuf.b.bc<<" rbuf.dl "<<_rbuf.b.dl<<" d.outbufs.size() = "<<d.outbufs.size());
 		cassert(d.state != Data::Disconnecting);
 		if(_rbuf.b.bc){//for a sent buffer
 			cassert(_rbuf.b.bc <= d.outbufs.size());
 			int bufpos(_rbuf.b.bc - 1);
-			Data::OutBufferPairTp &rob(d.outbufs[bufpos]);
-			idbgx(Dbg::ipc, "rob.second = "<<rob.second<<" b.dl = "<<_rbuf.b.dl<<" bufpos = "<<bufpos);
+			Data::OutBufferPairT &rob(d.outbufs[bufpos]);
+			vdbgx(Dbg::ipc, "rob.second = "<<rob.second<<" b.dl = "<<_rbuf.b.dl<<" bufpos = "<<bufpos);
 			if(rob.first.buffer() && rob.second == _rbuf.b.dl){
 				//we must resend this buffer
 				idbgx(Dbg::ipc, "resending buffer "<<(bufpos)<<" retransmit id = "<<rob.first.retransmitId()<<" buf = "<<(void*)rob.first.buffer());
@@ -896,28 +1016,36 @@ int ProcessConnector::pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpo
 				_rbuf.timeout = _tpos;
 				d.lasttimepos = _tpos;
 				_reusebuf = true;
+				
 			}else{
 				idbgx(Dbg::ipc, "nothing to resend");
 			}
+		
 		}else{//for something else
 			//TODO: e.g. use it for sending update data with certain timeout
 		}
+	
 	}
 	return OK;
 }
 
+//----------------------------------------------------------------------
 /*
 NOTE: VERY IMPORTANT
 	because were using socket address as SockAddrPair and not SocketAddress, the process MUST not be
 	destroyed if there are buffers pending for sending (outstk.size < outbufs.size)
 */
-
 int ProcessConnector::processSendSignals(SendBufferData &_rsb, const TimeSpec &_tpos, int _baseport){
+	
 	idbgx(Dbg::ipc, "bufjetons = "<<d.bufjetons);
+	
 	if(d.bufjetons || d.state != Data::Connected || d.rcvidq.size()){
-		idbgx(Dbg::ipc, "d.rcvidq.size() = "<<d.rcvidq.size());
+		
+		vdbgx(Dbg::ipc, "d.rcvidq.size() = "<<d.rcvidq.size());
+		
 		bool written = false;
 		Buffer &rbuf(_rsb.b);
+		
 		rbuf.reset();
 		//here we keep per buffer waiting signals - 
 		//signals that in case of a peer disconnection detection
@@ -935,7 +1063,7 @@ int ProcessConnector::processSendSignals(SendBufferData &_rsb, const TimeSpec &_
 			}
 			if(d.bufjetons){//send data only if we have jetons
 				//then push the signals
-				idbgx(Dbg::ipc, "d.cq.size() = "<<d.cq.size()<<" d.scq.size = "<<d.scq.size());
+				vdbgx(Dbg::ipc, "d.cq.size() = "<<d.cq.size()<<" d.scq.size = "<<d.scq.size());
 				//fill scq
 				while(d.cq.size() && d.scq.size() < Data::MaxSendSignalQueueSize){
 					uint32 flags = d.cq.front().second;
@@ -955,7 +1083,7 @@ int ProcessConnector::processSendSignals(SendBufferData &_rsb, const TimeSpec &_
 					}
 					d.cq.pop();
 				}
-				Data::BinSerializerTp	*pser = NULL;
+				Data::BinSerializerT	*pser = NULL;
 				
 				//at most we can send Data::MaxSendSignalQueueSize signals within a single buffer
 				
@@ -964,14 +1092,14 @@ int ProcessConnector::processSendSignals(SendBufferData &_rsb, const TimeSpec &_
 						Data::OutWaitSignal &rosig(d.waitFrontSignal());
 						if(rosig.pser){//a continued signal
 							if(d.crtsigbufcnt == Data::MaxSignalBufferCount){
-								idbgx(Dbg::ipc, "oldsignal");
+								vdbgx(Dbg::ipc, "oldsignal");
 								rbuf.dataType(Buffer::OldSignal);
 							}else{
-								idbgx(Dbg::ipc, "continuedsignal");
+								vdbgx(Dbg::ipc, "continuedsignal");
 								rbuf.dataType(Buffer::ContinuedSignal);
 							}
 						}else{//a new commnad
-							idbgx(Dbg::ipc, "newsignal");
+							vdbgx(Dbg::ipc, "newsignal");
 							rbuf.dataType(Buffer::NewSignal);
 							if(pser){
 								rosig.pser = pser;
@@ -983,7 +1111,7 @@ int ProcessConnector::processSendSignals(SendBufferData &_rsb, const TimeSpec &_
 							rosig.pser->push(psig);
 						}
 						--d.crtsigbufcnt;
-						idbgx(Dbg::ipc, "d.crtsigbufcnt = "<<d.crtsigbufcnt);
+						vdbgx(Dbg::ipc, "d.crtsigbufcnt = "<<d.crtsigbufcnt);
 						written = true;
 						
 						int rv = rosig.pser->run(rbuf.dataEnd(), rbuf.dataFreeSize());
@@ -992,12 +1120,12 @@ int ProcessConnector::processSendSignals(SendBufferData &_rsb, const TimeSpec &_
 						
 						rbuf.dataSize(rbuf.dataSize() + rv);
 						if(rosig.pser->empty()){//finished with this signal
-							idbgx(Dbg::ipc, "donesignal");
+							vdbgx(Dbg::ipc, "donesignal");
 							if(pser) d.pushSerializer(pser);
 							pser = rosig.pser;
 							pser->clear();
 							rosig.pser = NULL;
-							idbgx(Dbg::ipc, "cached wait signal");
+							vdbgx(Dbg::ipc, "cached wait signal");
 							++pcrtwaitsig;
 							*pcrtwaitsig = d.scq.front();
 							d.scq.pop();
@@ -1063,7 +1191,7 @@ int ProcessConnector::processSendSignals(SendBufferData &_rsb, const TimeSpec &_
 			_rsb.paddr = &d.pairaddr;
 			return NOK;//this was the last data to send reenter for keep alive
 		}else{
-			Data::OutBufferPairTp &rob(d.keepAliveBuffer());
+			Data::OutBufferPairT &rob(d.keepAliveBuffer());
 			//if the keep alive buffer is not already being sent
 			// and we can send a keepalive buffer
 			// we schedule it for resending
@@ -1074,7 +1202,7 @@ int ProcessConnector::processSendSignals(SendBufferData &_rsb, const TimeSpec &_
 			if(!rob.first.retransmitId() && d.canSendKeepAlive(_tpos)){
 				//schedule sending the keepalive buffer
 				idbgx(Dbg::ipc, "keep alive buffer - schedule");
-				Data::OutBufferPairTp &rob(d.keepAliveBuffer());
+				Data::OutBufferPairT &rob(d.keepAliveBuffer());
 				rob.first.retransmitId(1);
 				++rob.second;//
 				Specific::pushBuffer(_rsb.b.pb, Specific::capacityToId(_rsb.b.bufferCapacity()));
@@ -1092,12 +1220,13 @@ int ProcessConnector::processSendSignals(SendBufferData &_rsb, const TimeSpec &_
 	return BAD;//nothing to send
 }
 
+//----------------------------------------------------------------------
 //TODO: optimize!!
 bool ProcessConnector::freeSentBuffers(Buffer &_rbuf, const ConnectorUid &_rconid){
 	bool b = false;
-	idbgx(Dbg::ipc, "beg update count "<<_rbuf.updatesCount()<<" sent count = "<<d.outbufs.size());
+	vdbgx(Dbg::ipc, "beg update count "<<_rbuf.updatesCount()<<" sent count = "<<d.outbufs.size());
 	for(uint32 i(0); i < _rbuf.updatesCount(); ++i){
-		for(Data::OutBufferVectorTp::iterator it(d.outbufs.begin()); it != d.outbufs.end(); ++it){
+		for(Data::OutBufferVectorT::iterator it(d.outbufs.begin()); it != d.outbufs.end(); ++it){
 			if(it->first.buffer() && _rbuf.update(i) == it->first.id()){//done with this one
 				if(it != d.outbufs.begin()){
 					d.popOutWaitSignals(it->first.id(), _rconid);
@@ -1115,9 +1244,11 @@ bool ProcessConnector::freeSentBuffers(Buffer &_rbuf, const ConnectorUid &_rconi
 			}
 		}
 	}
-	idbgx(Dbg::ipc, "end update count "<<_rbuf.updatesCount()<<" sent count = "<<d.outbufs.size());
+	vdbgx(Dbg::ipc, "end update count "<<_rbuf.updatesCount()<<" sent count = "<<d.outbufs.size());
 	return b;
 }
+
+//----------------------------------------------------------------------
 void ProcessConnector::parseBuffer(Buffer &_rbuf, const ConnectorUid &_rconid){
 	const char *bpos = _rbuf.data();
 	int			blen = _rbuf.dataSize();
@@ -1127,10 +1258,12 @@ void ProcessConnector::parseBuffer(Buffer &_rbuf, const ConnectorUid &_rconid){
 	int 		firstblen = blen - 1;
 	idbgx(Dbg::ipc, "bufferid = "<<_rbuf.id());
 	while(blen > 2){
+		
 		idbgx(Dbg::ipc, "blen = "<<blen);
 		uint8	datatype = *bpos;
 		++bpos;
 		--blen;
+		
 		switch(datatype){
 			case Buffer::ContinuedSignal:
 				idbgx(Dbg::ipc, "continuedsignal");
@@ -1152,7 +1285,7 @@ void ProcessConnector::parseBuffer(Buffer &_rbuf, const ConnectorUid &_rconid){
 					d.rcq.front().second->push(d.rcq.front().first);
 				}else{
 					idbgx(Dbg::ipc, "switch to new rcq.size = 0");
-					d.rcq.push(Data::RecvCmdPairTp(NULL, d.popDeserializer()));
+					d.rcq.push(Data::RecvCmdPairT(NULL, d.popDeserializer()));
 					d.rcq.front().second->push(d.rcq.front().first);
 				}
 				break;
@@ -1168,9 +1301,12 @@ void ProcessConnector::parseBuffer(Buffer &_rbuf, const ConnectorUid &_rconid){
 				cassert(false);
 			}
 		}
+		
 		rv = d.rcq.front().second->run(bpos, blen);
+		
 		cassert(rv >= 0);
 		blen -= rv;
+		
 		if(d.rcq.front().second->empty()){//done one signal.
 			SignalUid siguid(0xffffffff, 0xffffffff);
 			if(d.rcq.front().first->ipcReceived(siguid, _rconid))
@@ -1188,7 +1324,6 @@ void ProcessConnector::parseBuffer(Buffer &_rbuf, const ConnectorUid &_rconid){
 		}
 	}
 }
-
 
 }//namespace ipc
 }//namespace foundation

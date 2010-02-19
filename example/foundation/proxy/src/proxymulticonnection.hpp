@@ -46,8 +46,8 @@ class Service;
 
 class MultiConnection: public foundation::aio::MultiObject{
 public:
-	typedef Service	ServiceTp;
-	typedef foundation::aio::MultiObject BaseTp;
+	typedef Service	ServiceT;
+	typedef foundation::aio::MultiObject BaseT;
 	
 	MultiConnection(const char *_node = NULL, const char *_srv = NULL);
 	MultiConnection(const SocketDevice &_rsd);

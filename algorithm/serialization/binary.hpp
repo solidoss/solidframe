@@ -75,14 +75,14 @@ enum {
 	}<br>
 	//...<br>
 	//data:<br>
-	RemoteList::PathListTp		*ppthlst;<br>
+	RemoteList::PathListT		*ppthlst;<br>
 	String						strpth;<br>
 	int							err;<br>
 	uint32						tout;<br>
 	fdt::ipc::ConnectorUid		conid;<br>
 	fdt::ipc::CommandUid		cmduid;<br>
 	uint32						requid;<br>
-	ObjectUidTp					fromv;<br>
+	ObjectUidT					fromv;<br>
 	</code>
 	<br>
 	Reentrant means for serializer that:<br>
@@ -106,17 +106,17 @@ enum {
 class Base{
 protected:
 	struct FncData;
-	typedef int (*FncTp)(Base &, FncData &);
+	typedef int (*FncT)(Base &, FncData &);
 	//! Data associated to a callback
 	struct FncData{
 		FncData(
-			FncTp _f,
+			FncT _f,
 			void *_p,
 			const char *_n = NULL,
 			uint32 _s = -1
 		):f(_f),p(_p),n(_n),s(_s){}
 		
-		FncTp		f;	//!< Pointer to function
+		FncT		f;	//!< Pointer to function
 		void		*p;	//!< Pointer to data
 		const char 	*n;	//!< Some name - of the item serialized
 		uint32		s;	//!< Some size
@@ -141,11 +141,11 @@ protected:
 	void replace(const FncData &_rfd);
 	static int popEStack(Base &_rs, FncData &_rfd);
 protected:
-	typedef Stack<FncData>	FncDataStackTp;
-	typedef Stack<ExtData>	ExtDataStackTp;
+	typedef Stack<FncData>	FncDataStackT;
+	typedef Stack<ExtData>	ExtDataStackT;
 	ulong				ul;
-	FncDataStackTp		fstk;
-	ExtDataStackTp		estk;
+	FncDataStackT		fstk;
+	ExtDataStackT		estk;
 };
 //===============================================================
 //! A fast reentrant binary serializer
@@ -271,7 +271,6 @@ public:
 	*/
 	template <typename T>
 	Serializer& push(T &_t, const char *_name = NULL){
-		//idbgx(Dbg::ser_bin, "push nonptr "<<_name);
 		fstk.push(FncData(&Serializer::template store<T>, (void*)&_t, _name));
 		return *this;
 	}
@@ -286,7 +285,6 @@ public:
 	*/
 	template <typename T>
 	Serializer& push(T* _t, const char *_name = NULL){
-		//idbgx(Dbg::ser_bin, "push ptr "<<_name);
 		fstk.push(FncData(ptypeidf, _t, _t ? TypeMapper::typeName(_t) : NULL));
 		return *this;
 	}
@@ -311,13 +309,12 @@ public:
 	*/
 	template <typename T>
 	Serializer& pushStreammer(T *_p, const char *_name = NULL){
-		//idbgx(Dbg::ser_bin, "push stream "<<_name);
 		fstk.push(FncData(&Serializer::template storeStreamBegin<T>, _p, _name, 0));
 		return *this;
 	}
 private:
 	friend class TypeMapper;
-	FncTp		ptypeidf;
+	FncT		ptypeidf;
 	char		*pb;
 	char		*cpb;
 	char		*be;
@@ -390,7 +387,7 @@ class Deserializer: public Base{
 		Deserializer &rd(static_cast<Deserializer&>(_rb));
 		if(!rd.cpb) return OK;
 		int32 i = rd.estk.top().i32();
-		idbgx(Dbg::ser_bin, "i = "<<i);
+		vdbgx(Dbg::ser_bin, "i = "<<i);
 		rd.estk.pop();
 		if(i < 0){
 			T **c = reinterpret_cast<T**>(_rfd.p);
@@ -399,7 +396,7 @@ class Deserializer: public Base{
 			return OK;
 		}else if(!_rfd.s){
 			T **c = reinterpret_cast<T**>(_rfd.p);
-			idbgx(Dbg::ser_bin, "pass");
+			vdbgx(Dbg::ser_bin, "");
 			*c = new T;
 			_rfd.p = *c;
 		}
@@ -483,14 +480,12 @@ public:
 	
 	template <typename T>
 	Deserializer& push(T &_t, const char *_name = NULL){
-		//idbgx(Dbg::ser_bin, "push nonptr "<<_name);
 		fstk.push(FncData(&Deserializer::parse<T>, (void*)&_t, _name));
 		return *this;
 	}
 	
 	template <typename T>
 	Deserializer& push(T* &_t, const char *_name = NULL){
-		//idbgx(Dbg::ser_bin, "push ptr "<<_name);
 		fstk.push(FncData(ptypeidf, &_t, _name));
 		return *this;
 	}
@@ -516,12 +511,11 @@ public:
 	*/
 	template <typename T>
 	Deserializer& pushStreammer(T *_p, const char *_name = NULL){
-		//idbgx(Dbg::ser_bin, "push special "<<_name);
 		fstk.push(FncData(&Deserializer::template parseStreamBegin<T>, _p, _name, 0));
 		return *this;
 	}
 private:
-	FncTp		ptypeidf;
+	FncT		ptypeidf;
 	const char	*pb;
 	const char	*cpb;
 	const char	*be;

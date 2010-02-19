@@ -60,64 +60,80 @@ struct Talker::Data{
 			return _rpon1->timeout > _rpon2->timeout;
 		}
 	};
-	typedef std::pair<ProcessConnector*, int32>			NewProcPairTp;
-	typedef std::pair<ProcessConnector*, uint16>		ProcPairTp;
-	typedef std::vector<ProcPairTp>						ProcVectorTp;
+	typedef std::pair<ProcessConnector*, int32>			NewProcPairT;
+	typedef std::pair<ProcessConnector*, uint16>		ProcPairT;
+	typedef std::vector<ProcPairT>						ProcVectorT;
 	
-	typedef std::map<const Inet4SockAddrPair*, 
-						uint32, Inet4AddrPtrCmp>		PeerProcAddr4MapTp;//TODO: test if a hash map is better
+	typedef std::map<
+		const Inet4SockAddrPair*,
+		uint32,
+		Inet4AddrPtrCmp
+		>												PeerProcAddr4MapT;//TODO: test if a hash map is better
 	typedef std::pair<const Inet4SockAddrPair*, int>	BaseProcAddr4;
-	typedef std::map<const BaseProcAddr4*, uint32, Inet4AddrPtrCmp>
-														BaseProcAddr4MapTp;
+	typedef std::map<
+		const BaseProcAddr4*,
+		uint32,
+		Inet4AddrPtrCmp
+		>												BaseProcAddr4MapT;
 	
-	typedef std::map<const Inet6SockAddrPair*, 
-						uint32, Inet6AddrPtrCmp>		PeerProcAddr6MapTp;//TODO: test if a hash map is better
+	typedef std::map<
+		const Inet6SockAddrPair*, 
+		uint32,
+		Inet6AddrPtrCmp
+		>												PeerProcAddr6MapT;//TODO: test if a hash map is better
 	typedef std::pair<const Inet6SockAddrPair*, int>	BaseProcAddr6;
-	typedef std::map<const BaseProcAddr6*, uint32, Inet6AddrPtrCmp>
-														BaseProcAddr6MapTp;
+	typedef std::map<
+		const BaseProcAddr6*,
+		uint32, Inet6AddrPtrCmp
+		>												BaseProcAddr6MapT;
 
 	
-	typedef Queue<uint32>								CmdQueueTp;
-	typedef Stack<uint32>								CloseStackTp;
-	typedef Stack<std::pair<uint16, uint16> >			FreePosStackTp;//first is the pos second is the uid
-	typedef Queue<SignalData>							SignalQueueTp;
-	typedef std::priority_queue<SendBufferData*, std::vector<SendBufferData*>, SendBufferDataCmp>	
-														SendQueueTp;
-	typedef Stack<SendBufferData>						SendStackTp;
-	typedef Stack<SendBufferData*>						SendFreeStackTp;
-	typedef Stack<NewProcPairTp>						NewProcStackTp;
+	typedef Queue<uint32>								CmdQueueT;
+	typedef Stack<uint32>								CloseStackT;
+	typedef Stack<std::pair<uint16, uint16> >			FreePosStackT;//first is the pos second is the uid
+	typedef Queue<SignalData>							SignalQueueT;
+	typedef std::priority_queue<
+		SendBufferData*,
+		std::vector<SendBufferData*>,
+		SendBufferDataCmp
+		>												SendQueueT;
+	typedef Stack<SendBufferData>						SendStackT;
+	typedef Stack<SendBufferData*>						SendFreeStackT;
+	typedef Stack<NewProcPairT>							NewProcStackT;
 
 	Data(Service &_rservice, uint16 _id):rservice(_rservice), nextprocid(0), tkrid(_id){}
-	Service				&rservice;
-	uint32				nextprocid;
-	uint16				tkrid;
-	Buffer				rcvbuf;
-	ProcVectorTp		procs;
-	PeerProcAddr4MapTp	peerpm4;
-	BaseProcAddr4MapTp	basepm4;
-	FreePosStackTp		procfs;
-	CmdQueueTp			cq;
-	SignalQueueTp		sigq;
-	SendQueueTp			sendq;
-	SendStackTp			sends;
-	SendFreeStackTp		sendfs;
-	NewProcStackTp		newprocs;
-	CloseStackTp		closes;//a stack with talkers which want to close
+	
+	Service					&rservice;
+	uint32					nextprocid;
+	uint16					tkrid;
+	Buffer					rcvbuf;
+	ProcVectorT				procs;
+	PeerProcAddr4MapT		peerpm4;
+	BaseProcAddr4MapT		basepm4;
+	FreePosStackT			procfs;
+	CmdQueueT				cq;
+	SignalQueueT			sigq;
+	SendQueueT				sendq;
+	SendStackT				sends;
+	SendFreeStackT			sendfs;
+	NewProcStackT			newprocs;
+	CloseStackT				closes;//a stack with talkers which want to close
 };
 
 //======================================================================
 
-Talker::Talker(const SocketDevice &_rsd, Service &_rservice, uint16 _id):	BaseTp(_rsd), d(*new Data(_rservice, _id)){
+Talker::Talker(const SocketDevice &_rsd, Service &_rservice, uint16 _id):	BaseT(_rsd), d(*new Data(_rservice, _id)){
 }
+
 //----------------------------------------------------------------------
 Talker::~Talker(){
 	char *pb = d.rcvbuf.buffer();
 	Specific::pushBuffer(pb, Specific::capacityToId(4096));
-	idbgx(Dbg::ipc, "sendq.size = "<<d.sendq.size());
+	vdbgx(Dbg::ipc, "sendq.size = "<<d.sendq.size());
 	while(d.sendq.size()){
 		pb = d.sendq.top()->b.buffer();
 		if(pb){
-			idbgx(Dbg::ipc, "released buffer");
+			vdbgx(Dbg::ipc, "released buffer");
 			Specific::pushBuffer(pb, Specific::capacityToId(d.sendq.top()->b.bufferCapacity()));
 		}
 		d.sendq.pop();
@@ -126,8 +142,8 @@ Talker::~Talker(){
 		delete d.newprocs.top().first;
 		d.newprocs.pop();
 	}
-	for(Data::ProcVectorTp::iterator it(d.procs.begin()); it != d.procs.end(); ++it){
-		idbgx(Dbg::ipc, "deleting process "<<(void*)it->first<<" pos = "<<(it - d.procs.begin()));
+	for(Data::ProcVectorT::iterator it(d.procs.begin()); it != d.procs.end(); ++it){
+		vdbgx(Dbg::ipc, "deleting process "<<(void*)it->first<<" pos = "<<(it - d.procs.begin()));
 		delete it->first;
 		it->first = NULL;
 		
@@ -135,6 +151,7 @@ Talker::~Talker(){
 	d.rservice.removeTalker(*this);
 	delete &d;
 }
+
 //----------------------------------------------------------------------
 inline bool Talker::inDone(ulong _sig, const TimeSpec &_rts){
 	if(_sig & fdt::INDONE){
@@ -176,6 +193,7 @@ void Talker::disconnectProcesses(){
 		d.closes.pop();
 	}
 }
+
 //----------------------------------------------------------------------
 int Talker::execute(ulong _sig, TimeSpec &_tout){
 	Manager &rm = Manager::the();
@@ -194,10 +212,10 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 			Mutex::Locker	lock(rm.mutex(*this));
 			ulong sm = grabSignalMask(0);
 			if(sm & fdt::S_KILL){
-				idbgx(Dbg::ipc, "intalker - dying");
+				idbgx(Dbg::ipc, "talker - dying");
 				return BAD;
 			}
-			idbgx(Dbg::ipc, "intalker - signaled");
+			idbgx(Dbg::ipc, "talker - signaled");
 			if(sm == fdt::S_RAISE){
 				_sig |= fdt::SIGNALED;
 			}else{
@@ -232,7 +250,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 					d.cq.push(newprocidx);
 				}else{
 					
-					Data::ProcPairTp &rpp(d.procs[newprocidx]);
+					Data::ProcPairT &rpp(d.procs[newprocidx]);
 					if(!rpp.first->isAccepting()){
 						//a reconnect
 						d.peerpm4.erase(rpp.first->peerAddr4());
@@ -252,12 +270,13 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 			//dispatch signals before deleting processconnectors
 			while(d.sigq.size()){
 				cassert(d.sigq.front().procid < d.procs.size());
-				Data::ProcPairTp	&rpp(d.procs[d.sigq.front().procid]);
+				Data::ProcPairT	&rpp(d.procs[d.sigq.front().procid]);
 				uint32				flags(d.sigq.front().flags);
 				if(rpp.first && (!(flags & Service::SameConnectorFlag) || rpp.second == d.sigq.front().procuid)){
 					rpp.first->pushSignal(d.sigq.front().psig, d.sigq.front().flags);
 					d.cq.push(d.sigq.front().procid);
 				}
+				vdbgx(Dbg::ipc, "");
 				d.sigq.pop();
 			}
 		}
@@ -312,7 +331,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 	while(d.sendq.size() && !socketHasPendingSend()){
 		if(_tout < d.sendq.top()->timeout){
 			_tout = d.sendq.top()->timeout;
-			idbgx(Dbg::ipc, "return "<<nothing);
+			vdbgx(Dbg::ipc, "return "<<nothing);
 			return mustreenter ? OK : NOK;
 		}
 		nothing = false;
@@ -328,27 +347,30 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 				break;
 			case NOK:
 				//_tout.set(0);
-				idbgx(Dbg::ipc, "return");
+				vdbgx(Dbg::ipc, "return");
 				return mustreenter ? OK : NOK;
 		}
 	}//while
 	//if we've sent something or
 	//if we did not have a timeout while reading we MUST do an ioUpdate asap.
 	if(mustreenter || !socketHasPendingRecv() || d.closes.size()){
-		idbgx(Dbg::ipc, "return "<<nothing);
+		vdbgx(Dbg::ipc, "return "<<nothing);
 		return OK;
 	}
 	//_tout.set(0);
 	return NOK;
 }
+
 //----------------------------------------------------------------------
 int Talker::execute(){
 	return BAD;
 }
+
 //----------------------------------------------------------------------
 int Talker::accept(foundation::Visitor &){
 	return BAD;
 }
+
 //----------------------------------------------------------------------
 //The talker's mutex should be locked
 //return ok if the talker should be signaled
@@ -356,6 +378,7 @@ int Talker::pushSignal(DynamicPointer<Signal> &_psig, const ConnectorUid &_rconi
 	d.sigq.push(Data::SignalData(_psig, _rconid.procid, _rconid.procuid, _flags));
 	return d.sigq.size() == 1 ? NOK : OK;
 }
+
 //----------------------------------------------------------------------
 //The talker's mutex should be locked
 //Return's the new process connector's id
@@ -366,20 +389,21 @@ void Talker::pushProcessConnector(ProcessConnector *_pc, ConnectorUid &_rconid, 
 		++_rconid.procuid;
 	}else{
 		if(d.procfs.size()){
-			idbgx(Dbg::ipc, "");
+			vdbgx(Dbg::ipc, "");
 			_rconid.procid = d.procfs.top().first;
 			_rconid.procuid = d.procfs.top().second;
 			d.procfs.pop();
 		}else{
-			idbgx(Dbg::ipc, "");
+			vdbgx(Dbg::ipc, "");
 			cassert(d.nextprocid < (uint16)0xffff);
 			_rconid.procid = d.nextprocid;
 			_rconid.procuid = 0;
 			++d.nextprocid;//TODO: it must be reseted somewhere!!!
 		}
 	}
-	d.newprocs.push(Data::NewProcPairTp(_pc, _rconid.procid));
+	d.newprocs.push(Data::NewProcPairT(_pc, _rconid.procid));
 }
+
 //----------------------------------------------------------------------
 //dispatch d.rcvbuf
 void Talker::dispatchReceivedBuffer(const SockAddrPair &_rsap, const TimeSpec &_rts){
@@ -392,10 +416,10 @@ void Talker::dispatchReceivedBuffer(const SockAddrPair &_rsap, const TimeSpec &_
 		case Buffer::DataType:{
 			idbgx(Dbg::ipc, "data buffer");
 			Inet4SockAddrPair					inaddr(_rsap);
-			Data::PeerProcAddr4MapTp::iterator	pit(d.peerpm4.find(&inaddr));
+			Data::PeerProcAddr4MapT::iterator	pit(d.peerpm4.find(&inaddr));
 			if(pit != d.peerpm4.end()){
 				idbgx(Dbg::ipc, "found process for buffer");
-				Data::ProcPairTp &rpp(d.procs[pit->second]);
+				Data::ProcPairT &rpp(d.procs[pit->second]);
 				cassert(rpp.first);
 				ConnectorUid conid(d.tkrid, pit->second, rpp.second);
 				switch(d.procs[pit->second].first->pushReceivedBuffer(d.rcvbuf, conid, _rts)){
@@ -432,7 +456,7 @@ void Talker::dispatchReceivedBuffer(const SockAddrPair &_rsap, const TimeSpec &_
 			if(baseport >= 0){
 				Inet4SockAddrPair					inaddr(_rsap);
 				Data::BaseProcAddr4					ppa(&inaddr, baseport);
-				Data::BaseProcAddr4MapTp::iterator	bit(d.basepm4.find(&ppa));
+				Data::BaseProcAddr4MapT::iterator	bit(d.basepm4.find(&ppa));
 				ProcessConnector *ppc = NULL;
 				if(bit != d.basepm4.end() && (ppc = d.procs[bit->second].first)){
 					ppc->completeConnect(inaddr.port());
@@ -447,6 +471,7 @@ void Talker::dispatchReceivedBuffer(const SockAddrPair &_rsap, const TimeSpec &_
 			cassert(false);
 	}
 }
+
 //----------------------------------------------------------------------
 //process signals to be sent d.cq
 //return true if the cq is not empty
@@ -494,6 +519,7 @@ bool Talker::processSignals(const TimeSpec &_rts){
 	}
 	return d.cq.size();
 }
+
 //----------------------------------------------------------------------
 bool Talker::dispatchSentBuffer(const TimeSpec &_rts){
 	SendBufferData *psb(d.sendq.top());
@@ -519,12 +545,13 @@ bool Talker::dispatchSentBuffer(const TimeSpec &_rts){
 	d.sendq.pop();
 	if(renqueuebuf){
 		d.sendq.push(psb);
-	}/*else{//TODO:
+	}else{//TODO:
 		cassert(!psb->b.buffer());
 		d.sendfs.push(psb);
-	}*/
+	}
 	return d.cq.size();
 }
+
 //----------------------------------------------------------------------
 void Talker::optimizeBuffer(Buffer &_rbuf){
 	uint id(Specific::sizeToId(_rbuf.bufferSize()));

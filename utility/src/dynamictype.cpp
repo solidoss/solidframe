@@ -25,11 +25,11 @@ void DynamicPointerBase::use(DynamicBase *_pdyn){
 
 
 /*virtual*/ void DynamicBase::use(){
-	idbgx(Dbg::system, "Use dynamicbase");
+	idbgx(Dbg::utility, "Use dynamicbase");
 }
 //! Used by DynamicPointer to know if the object must be deleted
 /*virtual*/ int DynamicBase::release(){
-	idbgx(Dbg::system, "Release signal");
+	idbgx(Dbg::utility, "Release signal");
 	return BAD;
 }
 
@@ -37,8 +37,8 @@ void DynamicPointerBase::use(DynamicBase *_pdyn){
 struct DynamicMap::Data{
 	Data(){}
 	Data(Data& _rd):fncvec(_rd.fncvec){}
-	typedef std::vector<FncTp>	FncVectorTp;
-	FncVectorTp fncvec;
+	typedef std::vector<FncT>	FncVectorT;
+	FncVectorT fncvec;
 };
 
 
@@ -70,7 +70,7 @@ DynamicMap::~DynamicMap(){
 	delete &d;
 }
 
-void DynamicMap::callback(uint32 _tid, FncTp _pf){
+void DynamicMap::callback(uint32 _tid, FncT _pf){
 	//Thread::gmutex().lock();
 	if(_tid >= d.fncvec.size()){
 		d.fncvec.resize(_tid + 1);
@@ -80,8 +80,8 @@ void DynamicMap::callback(uint32 _tid, FncTp _pf){
 	//Thread::gmutex().unlock();
 }
 
-DynamicMap::FncTp DynamicMap::callback(uint32 _id)const{
-	FncTp pf = NULL;
+DynamicMap::FncT DynamicMap::callback(uint32 _id)const{
+	FncT pf = NULL;
 	//Thread::gmutex().lock();
 	if(_id < d.fncvec.size()){
 		pf = d.fncvec[_id];
@@ -93,6 +93,6 @@ DynamicMap::FncTp DynamicMap::callback(uint32 _id)const{
 
 
 DynamicBase::~DynamicBase(){}
-DynamicMap::FncTp DynamicBase::callback(const DynamicMap &_rdm){
+DynamicMap::FncT DynamicBase::callback(const DynamicMap &_rdm){
 	return NULL;
 }

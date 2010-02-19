@@ -39,8 +39,8 @@ class Service;
 
 class Connection: public foundation::aio::SingleObject{
 public:
-	typedef Service	ServiceTp;
-	typedef foundation::aio::SingleObject BaseTp;
+	typedef Service	ServiceT;
+	typedef foundation::aio::SingleObject BaseT;
 	
 	Connection(const char *_node, const char *_srv);
 	Connection(const SocketDevice &_rsd);

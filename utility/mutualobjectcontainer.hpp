@@ -47,7 +47,7 @@
 template <class Obj>
 class MutualObjectContainer{
 public:
-	typedef Obj MutualObjectTp;
+	typedef Obj MutualObjectT;
 	//!Constructor
 	/*!
 		\param _objpermutbts The number of objects associated to a mutex in bitcount 
@@ -67,7 +67,7 @@ public:
 		mutrowscnt(bitsToCnt(_mutrowsbts)),
 		mutcolsmsk(bitsToMsk(_mutcolsbts)),
 		mutcolscnt(bitsToCnt(_mutcolsbts)),
-		objmat(new MutualObjectTp*[mutrowscnt])
+		objmat(new MutualObjectT*[mutrowscnt])
 	{
 		for(uint i = 0; i < mutrowscnt; ++i) objmat[i] = NULL;
 	}
@@ -81,22 +81,22 @@ public:
 	/*!
 		Use this after calling safeObject once for a certain position.
 	*/
-	inline MutualObjectTp& object(unsigned i){
+	inline MutualObjectT& object(unsigned i){
 		return doGetObject(i >> objpermutbts);
 	}
 	//! Slower but safe get the mutex for a position
 	/*!
 		It will reallocate new mutexes if needed
 	*/
-	MutualObjectTp& safeObject(unsigned i){
+	MutualObjectT& safeObject(unsigned i){
 		int mrow = getObjectRow(i);
 		if(!objmat[mrow]){
-			objmat[mrow] = new MutualObjectTp[mutcolscnt];
+			objmat[mrow] = new MutualObjectT[mutcolscnt];
 		}
 		return object(i);
 	}
 	//! Gets the mutex at pos i (the matrix is seen as a vector)
-	inline MutualObjectTp& operator[](unsigned i){
+	inline MutualObjectT& operator[](unsigned i){
 		return doGetObject(i);
 	}
 	//! Will return true if i is the first index of a range sharing the same mutex
@@ -104,7 +104,7 @@ public:
 		return !(i & objpermutmsk);
 	}
 private:
-	inline MutualObjectTp& doGetObject(unsigned i){
+	inline MutualObjectT& doGetObject(unsigned i){
 		return objmat[(i >> mutrowsbts) & mutrowsmsk][i & mutcolsmsk];
 	}
 	inline unsigned getObjectRow(unsigned i){
@@ -118,7 +118,7 @@ private:
 	const unsigned		mutrowscnt;//mutex rows count
 	const unsigned 		mutcolsmsk;//mutex columns mask
 	const unsigned 		mutcolscnt;//mutex columns count
-	MutualObjectTp		**objmat;
+	MutualObjectT		**objmat;
 };
 
 #endif

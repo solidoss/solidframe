@@ -70,7 +70,7 @@ namespace protocol{
 */
 class Writer{
 public:
-	typedef int (*FncTp)(Writer&, Parameter &_rp);
+	typedef int (*FncT)(Writer&, Parameter &_rp);
 	enum ManagementOptions{
 		ClearLogging,
 		ResetLogging,
@@ -95,19 +95,19 @@ public:
 		\param _pf A pointer to a function
 		\param _rp A const reference to a parameter
 	*/
-	void push(FncTp _pf, const Parameter & _rp /*= Parameter()*/);
+	void push(FncT _pf, const Parameter & _rp /*= Parameter()*/);
 	//! Sheduller replace top method
 	/*!
 		\param _pf A pointer to a function
 		\param _rp A const reference to a parameter
 	*/
-	void replace(FncTp _pf, const Parameter & _rp = Parameter());
+	void replace(FncT _pf, const Parameter & _rp = Parameter());
 	//! Sheduller push method
 	/*!
 		\param _pf A pointer to a function
 		\retval Parameter Returns a reference to the actual parameter the function will be called with, so you can get pointers to this parameter.
 	*/
-	Parameter &push(FncTp _pf);
+	Parameter &push(FncT _pf);
 	//! Check if the stack is empty
 	bool empty()const{return fs.empty();}
 	//! The state machine algorithm
@@ -220,14 +220,14 @@ protected:
 		MaxDoubleSizeLength = 4096 //!< the length up to which we can double the size of the buffer.
 	};
 	void resize(uint32 _sz);
-	typedef std::pair<FncTp, Parameter>	FncPairTp;
-	typedef Stack<FncPairTp> 			FncStackTp;
+	typedef std::pair<FncT, Parameter>	FncPairT;
+	typedef Stack<FncPairT> 			FncStackT;
 	Logger				*plog;
 	char				*bbeg;
 	char				*bend;
 	char				*rpos;
 	char				*wpos;
-	FncStackTp         	fs;
+	FncStackT         	fs;
 	bool				dolog;
 	short				state;
 };

@@ -55,7 +55,7 @@ private:
 	int v;
 };
 
-typedef Cacheable<vector<int>, 2> CacheableVecTp;
+typedef Cacheable<vector<int>, 2> CacheableVecT;
 
 struct A: SpecificObject{
 	virtual void print(){
@@ -89,12 +89,12 @@ void Runner::run(){
 	idbg("Uncaching some object");
 	testa();
 	testb();
-	CacheableVecTp *pc1 = Specific::uncache<CacheableVecTp>();
+	CacheableVecT *pc1 = Specific::uncache<CacheableVecT>();
 	idbg("uncahed vector (should be same as the last cached vector) "<<(void*)pc1);
 	cout<<"uncahed vector (should be same as the last cached vector) "<<(void*)pc1<<endl;
-	CacheableVecTp *pc2 = Specific::uncache<CacheableVecTp>();
+	CacheableVecT *pc2 = Specific::uncache<CacheableVecT>();
 	idbg(pc2);
-	CacheableVecTp *pc3 = Specific::uncache<CacheableVecTp>();
+	CacheableVecT *pc3 = Specific::uncache<CacheableVecT>();
 	idbg(pc3);
 
 	idbg("alloc two specific objects");
@@ -123,7 +123,7 @@ void Runner::run(){
 	Specific::cache(pc1);
 	Specific::cache(pc2);
 	Specific::cache(pc3);
-	pc1 = Specific::uncache<CacheableVecTp>();
+	pc1 = Specific::uncache<CacheableVecT>();
 
 	idbg("test specific object");
 	delete pa1;

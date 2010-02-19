@@ -9,8 +9,8 @@ using namespace std;
 */
 
 int main(){
-	typedef std::deque<string>	StringVectorTp;
-	StringVectorTp sv;
+	typedef std::deque<string>	StringVectorT;
+	StringVectorT sv;
 	char buf[32];
 	for(uint32 i = 0; i < 256; ++i){
 		//sv.push_back(string());
@@ -31,13 +31,13 @@ int main(){
 		//cout<<buf<<endl;
 	}
 	uint maxsz = 0;
-	for(StringVectorTp::const_iterator it(sv.begin()); it != sv.end(); ++it){
+	for(StringVectorT::const_iterator it(sv.begin()); it != sv.end(); ++it){
 		if(it->size() > maxsz){
 			maxsz = it->size();
 		}
 	}
 	const char spaces[]= "                                                                ";
-	for(StringVectorTp::const_iterator it(sv.begin()); it != sv.end(); ++it){
+	for(StringVectorT::const_iterator it(sv.begin()); it != sv.end(); ++it){
 		if(!((it - sv.begin()) % 10)) cout<<endl;
 		uint32 spno = maxsz - it->size();
 		cout.write(spaces, spno);

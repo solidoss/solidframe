@@ -3,8 +3,6 @@
 set(Sources
 	src/signalexecuter.cpp
 	src/execpool.cpp
-	src/filekeys.cpp
-	src/filemanager.cpp
 	src/manager.cpp
 	src/object.cpp
 	src/objectselector.cpp
@@ -18,10 +16,6 @@ set(Headers
 	signal.hpp
 	common.hpp
 	execpool.hpp
-	filekey.hpp
-	filekeys.hpp
-	filemanager.hpp
-	filemapper.hpp
 	manager.hpp
 	object.hpp
 	objectselector.hpp
@@ -44,3 +38,4 @@ add_library (foundation_core
 
 add_subdirectory(ipc)
 add_subdirectory(aio)
+add_subdirectory(file)

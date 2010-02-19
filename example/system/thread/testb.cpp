@@ -55,12 +55,12 @@ struct MyThreadBase: public ThreadBase{
 };
 
 struct Runner: public MyThreadBase{
-	typedef int RunParamTp;
-	void run(RunParamTp _v);
+	typedef int RunParamT;
+	void run(RunParamT _v);
 };
 ///\endcond
 
-void Runner::run(RunParamTp _v){
+void Runner::run(RunParamT _v){
 	MyThreadBase::setString2("theone");
 	cout<<"Threadstatic string: "<<MyThreadBase::getString()<<endl;
 	for(MyThreadBase::getInt() = 0; MyThreadBase::getInt() < _v; ++MyThreadBase::getInt()){

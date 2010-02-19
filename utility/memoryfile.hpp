@@ -19,6 +19,7 @@ public:
 		virtual uint  bufferSize()const = 0;
 		virtual char* allocate() = 0;
 		virtual void release(char *) = 0;
+		virtual uint64 computeCapacity(uint64 _cp) = 0;
 	};
 	template <uint Sz = 4096>
 	struct BasicAllocator: Allocator{
@@ -26,12 +27,15 @@ public:
 			static BasicAllocator<Sz> ba;
 			return ba;
 		}
-		virtual uint  bufferSize()const{return Sz;}
-		virtual char* allocate(){
+		/*virtual*/ uint  bufferSize()const{return Sz;}
+		/*virtual*/ char* allocate(){
 			return new char[Sz];
 		}
-		virtual void release(char *_p){
+		/*virtual*/ void release(char *_p){
 			delete []_p;
+		}
+		/*virtual*/ uint64 computeCapacity(uint64 _cp){
+			return ((_cp / Sz) + 1) * Sz;
 		}
 	};
 
@@ -51,10 +55,10 @@ public:
 	//! Move the file cursor at position
 	int64 seek(int64 _pos, SeekRef _ref = SeekBeg);
 	//! Truncate the file
-	int truncate(int64 _len);
+	int truncate(int64 _len = 0);
 	//! Return the size of the file
 	int64 size()const;
-
+	int64 capacity()const;
 private:
 	int doFindBuffer(uint32 _idx)const;
 	int doLocateBuffer(uint32 _idx)const;
@@ -68,7 +72,7 @@ private:
 	};
 	struct BuffCmp;
 	friend struct BuffCmp;
-	typedef std::deque<Buffer>	BufferVectorTp;
+	typedef std::deque<Buffer>	BufferVectorT;
 	
 	const uint64	cp;
 	uint64			sz;
@@ -76,7 +80,7 @@ private:
 	mutable uint32	crtbuffidx;
 	const uint32	bufsz;
 	Allocator		&ra;
-	BufferVectorTp	bv;
+	BufferVectorT	bv;
 };
 
 

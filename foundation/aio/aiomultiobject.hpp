@@ -171,9 +171,9 @@ private:
 	uint dataSize(const uint _cp);
 	uint newStub();
 private:
-	typedef Stack<uint>		PositionStackTp;
+	typedef Stack<uint>		PositionStackT;
 	
-	PositionStackTp		posstk;
+	PositionStackT		posstk;
 	int32				respoppos;
 };
 

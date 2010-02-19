@@ -22,6 +22,7 @@
 #ifndef CS_AIO_SELECTOR_HPP
 #define CS_AIO_SELECTOR_HPP
 
+#include "system/timespec.hpp"
 #include "foundation/common.hpp"
 #include "foundation/objectpointer.hpp"
 
@@ -34,7 +35,7 @@ namespace aio{
 class Object;
 class Socket;
 
-typedef ObjectPointer<Object>	ObjectPtrTp;
+typedef ObjectPointer<Object>	ObjectPtrT;
 
 //! An asynchronous IO selector to be used with the template SelectPool
 /*!
@@ -44,11 +45,11 @@ typedef ObjectPointer<Object>	ObjectPtrTp;
 */
 class Selector{
 public:
-	typedef ObjectPtrTp		ObjectTp;
+	typedef ObjectPtrT		ObjectT;
 	
 	Selector();
 	~Selector();
-	int reserve(uint _cp);
+	int reserve(ulong _cp);
 	//signal a specific object
 	void signal(uint _pos = 0)const;
 	void run();
@@ -57,7 +58,7 @@ public:
 	bool empty()const;
 	bool full()const;
 	
-	void push(const ObjectTp &_rcon, uint _thid);
+	void push(const ObjectT &_rcon, uint _thid);
 	void prepare();
 	void unprepare();
 private:

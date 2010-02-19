@@ -73,7 +73,7 @@ void ObjectPointerBase::destroy(Object *_pobj){
 #include "object.ipp"
 #endif
 
-Object::Object(IndexTp _fullid):
+Object::Object(IndexT _fullid):
 	fullid(_fullid), smask(0),
 	thrid(0),thrpos(0),usecnt(0),crtstate(0){
 }
@@ -117,11 +117,11 @@ void Object::mutex(Mutex *){
 //---------------------------------------------------------------------
 Signal::Signal(){
 	objectCheck<Signal>(true, __FUNCTION__);
-	idbgx(Dbg::cs, "memadd "<<(void*)this);
+	vdbgx(Dbg::fdt, "memadd "<<(void*)this);
 }
 Signal::~Signal(){
 	objectCheck<Signal>(false, __FUNCTION__);
-	idbgx(Dbg::cs, "memsub "<<(void*)this);
+	vdbgx(Dbg::fdt, "memsub "<<(void*)this);
 }
 
 int Signal::ipcReceived(ipc::SignalUid&, const ipc::ConnectorUid&){
@@ -133,17 +133,17 @@ int Signal::ipcPrepare(const ipc::SignalUid&){
 void Signal::ipcFail(int _err){
 }
 
-int Signal::execute(uint32 _evs, SignalExecuter &, const SignalUidTp &, TimeSpec &_rts){
-	idbgx(Dbg::cs, "Unhandled signal");
+int Signal::execute(uint32 _evs, SignalExecuter &, const SignalUidT &, TimeSpec &_rts){
+	wdbgx(Dbg::fdt, "Unhandled signal");
 	return BAD;
 }
 
 int Signal::receiveSignal(
 	DynamicPointer<Signal> &_rsig,
-	const ObjectUidTp& _from,
+	const ObjectUidT& _from,
 	const ipc::ConnectorUid *_conid
 ){
-	idbgx(Dbg::cs, "Unhandled signal receive");
+	wdbgx(Dbg::fdt, "Unhandled signal receive");
 	return BAD;//no need for execution
 }
 }//namespace

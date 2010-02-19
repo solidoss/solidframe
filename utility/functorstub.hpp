@@ -254,29 +254,29 @@ class FunctorStub: FunctorBase<
 	(DSZ >= sizeof(void*)) ? DSZ : sizeof(void*),
 	R, P1, P2, P3, P4, P5, P6, P7
 >{
-	typedef FunctorBase<(DSZ >= sizeof(void*)) ? DSZ : sizeof(void*), R, P1, P2, P3, P4, P5, P6, P7> BaseTp;
-	typedef typename BaseTp::BaseCaller	BaseCallerTp;
+	typedef FunctorBase<(DSZ >= sizeof(void*)) ? DSZ : sizeof(void*), R, P1, P2, P3, P4, P5, P6, P7> BaseT;
+	typedef typename BaseT::BaseCaller	BaseCallerT;
 	enum {
 		StoreBufSize = (DSZ >= sizeof(void*)) ? DSZ : sizeof(void*)
 	};
 public:
 	FunctorStub(){
-		new(callerbuf) BaseCallerTp;
+		new(callerbuf) BaseCallerT;
 	}
 	~FunctorStub(){
-		reinterpret_cast<BaseCallerTp*>(callerbuf)->destroy(storebuf);
-		reinterpret_cast<BaseCallerTp*>(callerbuf)->~BaseCallerTp();
+		reinterpret_cast<BaseCallerT*>(callerbuf)->destroy(storebuf);
+		reinterpret_cast<BaseCallerT*>(callerbuf)->~BaseCallerT();
 	}
 	void clear(){
-		reinterpret_cast<BaseCallerTp*>(callerbuf)->destroy(storebuf);
-		reinterpret_cast<BaseCallerTp*>(callerbuf)->~BaseCallerTp();
-		new(callerbuf) BaseCallerTp;
+		reinterpret_cast<BaseCallerT*>(callerbuf)->destroy(storebuf);
+		reinterpret_cast<BaseCallerT*>(callerbuf)->~BaseCallerT();
+		new(callerbuf) BaseCallerT;
 	}
 	template <class T>
 	void operator=(const T &_rt){
-		reinterpret_cast<BaseCallerTp*>(callerbuf)->destroy(storebuf);
-		reinterpret_cast<BaseCallerTp*>(callerbuf)->~BaseCallerTp();
-		new(callerbuf) typename BaseTp::template Caller<T>;
+		reinterpret_cast<BaseCallerT*>(callerbuf)->destroy(storebuf);
+		reinterpret_cast<BaseCallerT*>(callerbuf)->~BaseCallerT();
+		new(callerbuf) typename BaseT::template Caller<T>;
 		if(sizeof(T) <= StoreBufSize){
 			new(storebuf) T(_rt);
 		}else{
@@ -284,31 +284,31 @@ public:
 		}
 	}
 	R operator()(){
-		return reinterpret_cast<BaseCallerTp*>(callerbuf)->call(storebuf);
+		return reinterpret_cast<BaseCallerT*>(callerbuf)->call(storebuf);
 	}
 	R operator()(P1 _p1){
-		return reinterpret_cast<BaseCallerTp*>(callerbuf)->call(storebuf, _p1);
+		return reinterpret_cast<BaseCallerT*>(callerbuf)->call(storebuf, _p1);
 	}
 	R operator()(P1 _p1, P2 _p2){
-		return reinterpret_cast<BaseCallerTp*>(callerbuf)->call(storebuf, _p1, _p2);
+		return reinterpret_cast<BaseCallerT*>(callerbuf)->call(storebuf, _p1, _p2);
 	}
 	R operator()(P1 _p1, P2 _p2, P3 _p3){
-		return reinterpret_cast<BaseCallerTp*>(callerbuf)->call(storebuf, _p1, _p2, _p3);
+		return reinterpret_cast<BaseCallerT*>(callerbuf)->call(storebuf, _p1, _p2, _p3);
 	}
 	R operator()(P1 _p1, P2 _p2, P3 _p3, P4 _p4){
-		return reinterpret_cast<BaseCallerTp*>(callerbuf)->call(storebuf, _p1, _p2, _p3, _p4);
+		return reinterpret_cast<BaseCallerT*>(callerbuf)->call(storebuf, _p1, _p2, _p3, _p4);
 	}
 	R operator()(P1 _p1, P2 _p2, P3 _p3, P4 _p4, P5 _p5){
-		return reinterpret_cast<BaseCallerTp*>(callerbuf)->call(storebuf, _p1, _p2, _p3, _p4, _p5);
+		return reinterpret_cast<BaseCallerT*>(callerbuf)->call(storebuf, _p1, _p2, _p3, _p4, _p5);
 	}
 	R operator()(P1 _p1, P2 _p2, P3 _p3, P4 _p4, P5 _p5, P6 _p6){
-		return reinterpret_cast<BaseCallerTp*>(callerbuf)->call(storebuf, _p1, _p2, _p3, _p4, _p5, _p6);
+		return reinterpret_cast<BaseCallerT*>(callerbuf)->call(storebuf, _p1, _p2, _p3, _p4, _p5, _p6);
 	}
 	R operator()(P1 _p1, P2 _p2, P3 _p3, P4 _p4, P5 _p5, P6 _p6, P7 _p7){
-		return reinterpret_cast<BaseCallerTp*>(callerbuf)->call(storebuf, _p1, _p2, _p3, _p4, _p5, _p6, _p7);
+		return reinterpret_cast<BaseCallerT*>(callerbuf)->call(storebuf, _p1, _p2, _p3, _p4, _p5, _p6, _p7);
 	}
 private:
-	char callerbuf[sizeof(BaseCallerTp)];
+	char callerbuf[sizeof(BaseCallerT)];
 	char storebuf[StoreBufSize];
 };
 

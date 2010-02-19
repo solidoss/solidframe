@@ -18,6 +18,7 @@ target_link_libraries (concept
 	concept_core
 	foundation_core
 	foundation_ipc
+	foundation_file
 	foundation_aio
 	foundation_aio_openssl
 	ssl

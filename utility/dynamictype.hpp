@@ -8,12 +8,12 @@
 //! Store a map from a typeid to a callback
 /*!
 	The type id is determined using Dynamic::dynamicTypeId() or Dynamic::staticTypeId().
-	Use callback(uint32, FncTp) to register a pair of typeid and callback.
-	Use FncTp callback(uint32) to retrieve a registered callback.
+	Use callback(uint32, FncT) to register a pair of typeid and callback.
+	Use FncT callback(uint32) to retrieve a registered callback.
 */
 struct DynamicMap{
-	typedef void (*FncTp)(const DynamicPointer<DynamicBase> &,void*);
-	typedef void (*RegisterFncTp)(DynamicMap &_rdm);
+	typedef void (*FncT)(const DynamicPointer<DynamicBase> &,void*);
+	typedef void (*RegisterFncT)(DynamicMap &_rdm);
 	static uint32 generateId();
 	//!Constructor
 	/*!
@@ -31,13 +31,13 @@ struct DynamicMap{
 		\param _tid the type id as returned by Dynamic::staticTypeId
 		\param _pf a pointer to a static function
 	*/
-	void callback(uint32 _tid, FncTp _pf);
+	void callback(uint32 _tid, FncT _pf);
 	//! Retrieve an already registered callback.
 	/*!
 		\param _id The typeid as returned by Dynamic::dynamicTypeId
-		\retval FncTp the callback for typeid or NULL.
+		\retval FncT the callback for typeid or NULL.
 	*/
-	FncTp callback(uint32 _id)const;
+	FncT callback(uint32 _id)const;
 	struct Data;
 	Data	&d;
 };
@@ -71,7 +71,7 @@ struct DynamicBase{
 	//! Get the type id for a Dynamic object.
 	virtual uint32 dynamicTypeId()const = 0;
 	//! Return the callback from the given DynamicMap associated to this object
-	virtual DynamicMap::FncTp callback(const DynamicMap &_rdm);
+	virtual DynamicMap::FncT callback(const DynamicMap &_rdm);
 	//! Used by DynamicPointer - smartpointers
 	virtual void use();
 	//! Used by DynamicPointer to know if the object must be deleted
@@ -96,7 +96,7 @@ protected:
 */
 template <class X, class T = DynamicBase>
 struct Dynamic: T{
-	typedef Dynamic<X,T>	BaseTp;
+	typedef Dynamic<X,T>	BaseT;
 	
 	//! Basic constructor
 	Dynamic(){}
@@ -127,8 +127,8 @@ struct Dynamic: T{
 		return staticTypeId();
 	}
 	//! Returns the associated callback from the given DynamicMap
-	virtual DynamicMap::FncTp callback(const DynamicMap &_rdm){
-		DynamicMap::FncTp pf = _rdm.callback(staticTypeId());
+	virtual DynamicMap::FncT callback(const DynamicMap &_rdm){
+		DynamicMap::FncT pf = _rdm.callback(staticTypeId());
 		if(pf) return pf;
 		return T::callback(_rdm);
 	}
@@ -169,7 +169,7 @@ struct Dynamic: T{
 template <class R, class Exe>
 struct DynamicReceiver{
 private:
-	typedef R (*FncTp)(const DynamicPointer<DynamicBase> &, void*);
+	typedef R (*FncT)(const DynamicPointer<DynamicBase> &, void*);
 	
 	template <class S, class E>
 	static R doExecute(const DynamicPointer<DynamicBase> &_dp, void *_e){
@@ -178,7 +178,7 @@ private:
 		return pe->dynamicExecute(ds);
 	}
 	
-	typedef std::vector<DynamicPointer<DynamicBase> > DynamicPointerVectorTp;
+	typedef std::vector<DynamicPointer<DynamicBase> > DynamicPointerVectorT;
 	template <class E>
 	static DynamicMap& dynamicMapEx(){
 		static DynamicMap	dm(dynamicMap());
@@ -239,7 +239,7 @@ public:
 	template <typename E>
 	R executeCurrent(E &_re){
 		cassert(crtit != v[execid].end());
-		FncTp	pf = reinterpret_cast<FncTp>((*crtit)->callback(*dynamicMap()));
+		FncT	pf = reinterpret_cast<FncT>((*crtit)->callback(*dynamicMap()));
 		if(pf) return (*pf)(*crtit, &_re);
 		return _re.dynamicExecuteDefault(*crtit);
 	}
@@ -254,19 +254,19 @@ public:
 	/*!
 		Usage:<br>
 		<code>
-		DynamicReceiverTp::add\<ASignal, ExeOne>();<br>
-		DynamicReceiverTp::add\<BSignal, ExeOne>();<br>
+		DynamicReceiverT::add\<ASignal, ExeOne>();<br>
+		DynamicReceiverT::add\<BSignal, ExeOne>();<br>
 		</code>
 	*/
 	template <class S, class E>
 	static void add(){
-		FncTp	pf = &doExecute<S, E>;
-		dynamicMapEx<E>().callback(S::staticTypeId(), reinterpret_cast<DynamicMap::FncTp>(pf));
+		FncT	pf = &doExecute<S, E>;
+		dynamicMapEx<E>().callback(S::staticTypeId(), reinterpret_cast<DynamicMap::FncT>(pf));
 	}
 	
 private:
-	DynamicPointerVectorTp						v[2];
-	DynamicPointerVectorTp::iterator			crtit;
+	DynamicPointerVectorT						v[2];
+	DynamicPointerVectorT::iterator			crtit;
 	uint										pushid;
 	uint										execid;
 };

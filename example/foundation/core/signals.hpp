@@ -34,43 +34,41 @@ class IOStream;
 namespace concept{
 
 
-typedef Object::RequestUidTp	RequestUidTp;
-
 //!	A signal for sending istreams from the fileManager
 struct IStreamSignal: Dynamic<IStreamSignal, foundation::Signal>{
-	IStreamSignal(StreamPointer<IStream> &_sptr, const FileUidTp &_rfuid, const RequestUidTp &_requid);
-	int execute(uint32 _evs, foundation::SignalExecuter&, const SignalUidTp &, TimeSpec &);
+	IStreamSignal(StreamPointer<IStream> &_sptr, const FileUidT &_rfuid, const foundation::RequestUidT &_requid);
+	int execute(uint32 _evs, foundation::SignalExecuter&, const SignalUidT &, TimeSpec &);
 	StreamPointer<IStream>	sptr;
-	FileUidTp				fileuid;
-	RequestUidTp			requid;
+	FileUidT				fileuid;
+	RequestUidT			requid;
 };
 
 //!A signal for sending ostreams from the fileManager
 struct OStreamSignal: Dynamic<OStreamSignal, foundation::Signal>{
-	OStreamSignal(StreamPointer<OStream> &_sptr, const FileUidTp &_rfuid, const RequestUidTp &_requid);
-	int execute(uint32 _evs, foundation::SignalExecuter&, const SignalUidTp &, TimeSpec &);
+	OStreamSignal(StreamPointer<OStream> &_sptr, const FileUidT &_rfuid, const foundation::RequestUidT &_requid);
+	int execute(uint32 _evs, foundation::SignalExecuter&, const SignalUidT &, TimeSpec &);
 	StreamPointer<OStream>	sptr;
-	FileUidTp				fileuid;
-	RequestUidTp			requid;
+	FileUidT				fileuid;
+	RequestUidT			requid;
 };
 
 
 //!A signal for sending iostreams from the fileManager
 struct IOStreamSignal: Dynamic<IOStreamSignal, foundation::Signal>{
-	IOStreamSignal(StreamPointer<IOStream> &_sptr, const FileUidTp &_rfuid, const RequestUidTp &_requid);
-	int execute(uint32 _evs, foundation::SignalExecuter&, const SignalUidTp &, TimeSpec &);
+	IOStreamSignal(StreamPointer<IOStream> &_sptr, const FileUidT &_rfuid, const foundation::RequestUidT &_requid);
+	int execute(uint32 _evs, foundation::SignalExecuter&, const SignalUidT &, TimeSpec &);
 	StreamPointer<IOStream>	sptr;
-	FileUidTp				fileuid;
-	RequestUidTp			requid;
+	FileUidT				fileuid;
+	RequestUidT			requid;
 };
 
 
 //!A signal for sending errors from the fileManager
 struct StreamErrorSignal: Dynamic<StreamErrorSignal, foundation::Signal>{
-	StreamErrorSignal(int _errid, const RequestUidTp &_requid);
-	int execute(uint32 _evs, foundation::SignalExecuter&, const SignalUidTp &, TimeSpec &);
+	StreamErrorSignal(int _errid, const RequestUidT &_requid);
+	int execute(uint32 _evs, foundation::SignalExecuter&, const SignalUidT &, TimeSpec &);
 	int				errid;
-	RequestUidTp	requid;
+	RequestUidT	requid;
 };
 
 struct AddrInfoSignal: Dynamic<AddrInfoSignal, foundation::Signal>{

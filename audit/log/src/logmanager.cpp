@@ -47,11 +47,11 @@ struct LogManager::Data{
 		bool			ready;
 		uint32 			uid;
 	};
-	typedef std::pair<LogConnector*, uint32> 	ConnectorPairTp;
-	typedef std::vector<ConnectorPairTp>		ConnectorVectorTp;
-	typedef std::vector<Channel>				ChannelVectorTp;
-	typedef std::vector<Listener>				ListenerVectorTp;
-	typedef Stack<uint32>						PosStackTp;
+	typedef std::pair<LogConnector*, uint32> 	ConnectorPairT;
+	typedef std::vector<ConnectorPairT>		ConnectorVectorT;
+	typedef std::vector<Channel>				ChannelVectorT;
+	typedef std::vector<Listener>				ListenerVectorT;
+	typedef Stack<uint32>						PosStackT;
 	Data();
 	~Data();
 	enum State{
@@ -63,12 +63,12 @@ struct LogManager::Data{
 	Mutex					m;
 	Condition				statecnd;
 	State					state;
-	ConnectorVectorTp		conv;
-	PosStackTp				cons;
-	ListenerVectorTp		lsnv;
-	PosStackTp				lsns;
-	ChannelVectorTp			chnv;
-	PosStackTp				chns;
+	ConnectorVectorT		conv;
+	PosStackT				cons;
+	ListenerVectorT		lsnv;
+	PosStackT				lsns;
+	ChannelVectorT			chnv;
+	PosStackT				chns;
 };
 
 struct LogManager::ListenerWorker: Thread{
@@ -104,7 +104,7 @@ LogManager::Data::Data():state(Stopped){
 }
 LogManager::Data::~Data(){
 	//erase all the connectors
-	for(ConnectorVectorTp::iterator it(conv.begin()); it != conv.end(); ++it){
+	for(ConnectorVectorT::iterator it(conv.begin()); it != conv.end(); ++it){
 		delete it->first;
 	}
 }
@@ -119,10 +119,10 @@ LogManager::~LogManager(){
 	delete &d;
 }
 
-LogManager::UidTp LogManager::insertChannel(IStream *_pins){
+LogManager::UidT LogManager::insertChannel(IStream *_pins){
 	Mutex::Locker lock(d.m);
-	if(d.state != Data::Running){return UidTp(0xffffffff, 0xffffffff);}
-	UidTp	uid;
+	if(d.state != Data::Running){return UidT(0xffffffff, 0xffffffff);}
+	UidT	uid;
 	if(d.chns.size()){
 		d.chnv[d.chns.top()].pins = _pins;
 		uid.first = d.chns.top();d.chns.pop();
@@ -136,16 +136,16 @@ LogManager::UidTp LogManager::insertChannel(IStream *_pins){
 	pw->start(false, true, 100000);
 	return uid;
 }
-LogManager::UidTp LogManager::insertListener(const char *_addr, const char *_port){
+LogManager::UidT LogManager::insertListener(const char *_addr, const char *_port){
 	Mutex::Locker lock(d.m);
-	if(d.state != Data::Running){return UidTp(0xffffffff, 0xffffffff);}
-	UidTp	uid;
+	if(d.state != Data::Running){return UidT(0xffffffff, 0xffffffff);}
+	UidT	uid;
 	if(d.lsns.size()){
 		uid.first = d.lsns.top();d.lsns.pop();
 		uid.second = d.lsnv[uid.first].uid;
 	}else{
 		if(d.lsnv.size() == 63){
-			return UidTp(0xffffffff, 0xffffffff);
+			return UidT(0xffffffff, 0xffffffff);
 		}
 		d.lsnv.push_back(Data::Listener());
 		uid.first = d.lsnv.size() - 1;
@@ -156,13 +156,13 @@ LogManager::UidTp LogManager::insertListener(const char *_addr, const char *_por
 	return uid;
 }
 
-void LogManager::eraseClient(const LogManager::UidTp &_ruid){
+void LogManager::eraseClient(const LogManager::UidT &_ruid){
 	Mutex::Locker lock(d.m);
 	if(_ruid.first < d.chnv.size() && _ruid.second != d.chnv[_ruid.first].uid){
 		d.chnv[_ruid.first].pins->close();
 	}
 }
-void LogManager::eraseListener(const LogManager::UidTp &_ruid){
+void LogManager::eraseListener(const LogManager::UidT &_ruid){
 	Mutex::Locker lock(d.m);
 	if(_ruid.first < d.lsnv.size() && _ruid.second != d.lsnv[_ruid.first].uid){
 		d.lsnv[_ruid.first].sd.close();
@@ -182,12 +182,12 @@ void LogManager::stop(bool _wait){
 	Mutex::Locker lock(d.m);
 	if(d.state == Data::Running){
 		d.state = Data::Stopping;
-		for(Data::ChannelVectorTp::const_iterator it(d.chnv.begin()); it != d.chnv.end(); ++it){
+		for(Data::ChannelVectorT::const_iterator it(d.chnv.begin()); it != d.chnv.end(); ++it){
 			if(it->pins){
 				it->pins->close();
 			}
 		}
-		for(Data::ListenerVectorTp::iterator it(d.lsnv.begin()); it != d.lsnv.end(); ++it){
+		for(Data::ListenerVectorT::iterator it(d.lsnv.begin()); it != d.lsnv.end(); ++it){
 			it->sd.shutdownReadWrite();
 			it->sd.close();
 			it->ready = false;
@@ -200,21 +200,21 @@ void LogManager::stop(bool _wait){
 		d.state = Data::Stopped;
 	}
 }
-LogManager::UidTp LogManager::insertConnector(LogConnector *_plc){
+LogManager::UidT LogManager::insertConnector(LogConnector *_plc){
 	Mutex::Locker lock(d.m);
-	UidTp	uid;
+	UidT	uid;
 	if(d.cons.size()){
 		d.conv[d.cons.top()].first = _plc;
 		uid.first = d.cons.top();
 		uid.second = d.conv[d.cons.top()].second;
 	}else{
-		d.conv.push_back(Data::ConnectorPairTp(_plc, 0));
+		d.conv.push_back(Data::ConnectorPairT(_plc, 0));
 		uid.first = d.conv.size() - 1;
 		uid.second = 0;
 	}
 	return uid;
 }
-void LogManager::eraseConnector(const UidTp &_ruid){
+void LogManager::eraseConnector(const UidT &_ruid){
 	Mutex::Locker lock(d.m);
 	if(_ruid.first < d.conv.size() && _ruid.second != d.conv[_ruid.first].second){
 		if(d.conv[_ruid.first].first && d.conv[_ruid.first].first->destroy()){
@@ -232,7 +232,7 @@ void LogManager::runListener(ListenerWorker &_w){
 			sd.create(ai.begin());
 			sd.prepareAccept(ai.begin(), 10);
 		}else{
-			edbg("create address "<<_w.addr<<'.'<<_w.port);
+			edbgx(Dbg::log, "create address "<<_w.addr<<'.'<<_w.port);
 		}
 	}
 	if(sd.ok()){
@@ -286,9 +286,9 @@ void LogManager::runChannel(ChannelWorker &_w){
 		//first read clientdata
 		readClientData(cd, *pis);
 		//then wait for records:
-		typedef std::vector<uint32> IndexVectorTp;
+		typedef std::vector<uint32> IndexVectorT;
 		LogRecorderVector	rv;
-		IndexVectorTp		indexv;
+		IndexVectorT		indexv;
 		LogRecord			rec;
 		//uint32 sz;
 		while(
@@ -299,7 +299,7 @@ void LogManager::runChannel(ChannelWorker &_w){
 			//idbg("read: "<<rec.data());
 			//prepare repositories, fetching the list of writers
 			d.m.lock();
-			for(Data::ConnectorVectorTp::const_iterator it(d.conv.begin()); it != d.conv.end(); ++it){
+			for(Data::ConnectorVectorT::const_iterator it(d.conv.begin()); it != d.conv.end(); ++it){
 				if(it->first && it->first->receivePrepare(rv, rec, cd)){
 					indexv.push_back(it - d.conv.begin());
 				}
@@ -312,7 +312,7 @@ void LogManager::runChannel(ChannelWorker &_w){
 			rv.clear();
 			Mutex::Locker lock(d.m);
 			//done with the repositories:
-			for(IndexVectorTp::const_iterator it(indexv.begin()); it != indexv.end(); ++it){
+			for(IndexVectorT::const_iterator it(indexv.begin()); it != indexv.end(); ++it){
 				if(d.conv[*it].first->receiveDone()){
 					//not in use - its safe to delete it right now
 					delete d.conv[*it].first;
@@ -325,7 +325,7 @@ void LogManager::runChannel(ChannelWorker &_w){
 		}
 	}
 	Mutex::Locker lock(d.m);
-	for(Data::ConnectorVectorTp::const_iterator it(d.conv.begin()); it != d.conv.end(); ++it){
+	for(Data::ConnectorVectorT::const_iterator it(d.conv.begin()); it != d.conv.end(); ++it){
 		if(it->first){
 			it->first->eraseClient(cd.idx, cd.uid);
 		}

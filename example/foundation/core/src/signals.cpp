@@ -12,11 +12,11 @@ namespace concept{
 //----------------------------------------------------------------------
 IStreamSignal::IStreamSignal(
 	StreamPointer<IStream> &_sptr,
-	const FileUidTp &_rfuid,
-	const RequestUidTp &_requid
+	const FileUidT &_rfuid,
+	const RequestUidT &_requid
 ):sptr(_sptr), fileuid(_rfuid), requid(_requid){
 }
-int IStreamSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidTp &, TimeSpec &){
+int IStreamSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidT &, TimeSpec &){
 	DynamicPointer<Signal> cmdptr(this);
 	_rce.sendSignal(cmdptr, requid);
 	return fdt::LEAVE;
@@ -24,11 +24,11 @@ int IStreamSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const SignalU
 //----------------------------------------------------------------------
 OStreamSignal::OStreamSignal(
 	StreamPointer<OStream> &_sptr,
-	const FileUidTp &_rfuid,
-	const RequestUidTp &_requid
+	const FileUidT &_rfuid,
+	const RequestUidT &_requid
 ):sptr(_sptr), fileuid(_rfuid), requid(_requid){
 }
-int OStreamSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidTp &, TimeSpec &){
+int OStreamSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidT &, TimeSpec &){
 	DynamicPointer<Signal> cmdptr(this);
 	_rce.sendSignal(cmdptr, requid);
 	return fdt::LEAVE;
@@ -36,11 +36,11 @@ int OStreamSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const SignalU
 //----------------------------------------------------------------------
 IOStreamSignal::IOStreamSignal(
 	StreamPointer<IOStream> &_sptr,
-	const FileUidTp &_rfuid,
-	const RequestUidTp &_requid
+	const FileUidT &_rfuid,
+	const RequestUidT &_requid
 ):sptr(_sptr), fileuid(_rfuid), requid(_requid){
 }
-int IOStreamSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidTp &, TimeSpec &){
+int IOStreamSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidT &, TimeSpec &){
 	DynamicPointer<Signal> cmdptr(this);
 	_rce.sendSignal(cmdptr, requid);
 	return fdt::LEAVE;
@@ -48,10 +48,10 @@ int IOStreamSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const Signal
 //----------------------------------------------------------------------
 StreamErrorSignal::StreamErrorSignal(
 	int _errid,
-	const RequestUidTp &_requid
+	const RequestUidT &_requid
 ):errid(_errid), requid(_requid){
 }
-int StreamErrorSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidTp &, TimeSpec &){
+int StreamErrorSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidT &, TimeSpec &){
 	DynamicPointer<Signal> cmdptr(this);
 	_rce.sendSignal(cmdptr, requid);
 	return fdt::LEAVE;

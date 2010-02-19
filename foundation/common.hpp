@@ -66,11 +66,11 @@ enum Consts{
 //64 bit architectures
 #ifdef UINDEX32
 //32 bit indexes
-typedef uint32 IndexTp;
+typedef uint32 IndexT;
 #define ID_MASK 0xfffffff
 #else
 //64 bit indexes
-typedef uint64 IndexTp;
+typedef uint64 IndexT;
 #define ID_MASK 0xffffffffffffffffL
 #endif
 
@@ -79,11 +79,11 @@ typedef uint64 IndexTp;
 //32 bit architectures
 #ifdef UINDEX64
 //64 bit indexes
-typedef uint64 IndexTp;
+typedef uint64 IndexT;
 #define ID_MASK 0xffffffffffffffffL
 #else
 //32 bit indexes
-typedef uint32 IndexTp;
+typedef uint32 IndexT;
 #define ID_MASK 0xfffffff
 #endif
 
@@ -91,10 +91,10 @@ typedef uint32 IndexTp;
 #endif
 
 
-typedef std::pair<IndexTp, uint32> ObjectUidTp;
-typedef std::pair<IndexTp, uint32> SignalUidTp;
-typedef std::pair<IndexTp, uint32> FileUidTp;
-typedef std::pair<IndexTp, uint32> RequestUidTp;
+typedef std::pair<IndexT, uint32> ObjectUidT;
+typedef std::pair<IndexT, uint32> SignalUidT;
+typedef std::pair<IndexT, uint32> FileUidT;
+typedef std::pair<IndexT, uint32> RequestUidT;
 }
 
 #endif

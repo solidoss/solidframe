@@ -115,44 +115,64 @@ public:
 	int reinitWriter(Writer &, protocol::Parameter &);
 	int receiveIStream(
 		StreamPointer<IStream> &_sptr,
-		const FileUidTp &_fuid,
+		const FileUidT &_fuid,
 		int			_which,
-		const ObjectUidTp&,
+		const ObjectUidT&,
 		const foundation::ipc::ConnectorUid *
 	);
 	int receiveError(
 		int _errid,
-		const ObjectUidTp&_from,
+		const ObjectUidT&_from,
 		const foundation::ipc::ConnectorUid *
 	);
 	int receiveNumber(
 		const int64 &_no,
 		int			_which,
-		const ObjectUidTp&_from,
+		const ObjectUidT&_from,
 		const foundation::ipc::ConnectorUid *_conid
 	);
 private:
-	enum {
-		InitLocal, SendLocal, InitRemote,
-		SendMasterRemote, SendFirstRemote, SendNextRemote, 
-		SendError, SendTempError, WaitStreamLocal, WaitStreamRemote, WaitTempRemote,
-		WaitFirstRemote, WaitNextRemote, ReturnBad,
+	enum State{
+		InitLocal,
+		SendLocal,
+		InitRemote,
+		SendFirstData,
+		SendNextData,
+		WaitLocalStream,
+		WaitTempStream,
+		WaitRemoteStream,
+		SendRemoteError,
+		SendTempError,
+		SendError,
+		ReturnBad,
+		ReturnOk,
+		ReturnCrlf,
 	};
-
-	String				strpth;
-	String				straddr;
-	FileUidTp			fuid;
-	uint32				port;
-	StreamPointer<IStream>	sp;
-	IStreamIterator		it;
-	Connection			&rc;
-	SignalUidTp			mastersiguid;
-	int16 				st;
-	protocol::Parameter	*pp;
-	uint64				litsz64;
-	uint64				chunksz;
-	uint16				isfirst;
-	foundation::ipc::ConnectorUid conuid;
+	void doSendMaster(const FileUidT &_fuid);
+	void doSendSlave(const FileUidT &_fuid);
+	int doInitLocal();
+	int doSendLiteral(Writer &_rw, bool _local);
+	int doGetTempStream(uint32 _sz);
+	int doSendFirstData(Writer &_rw);
+	int doSendNextData(Writer &_rw);
+private:
+	String							strpth;
+	String							straddr;
+	uint32							port;
+	Connection						&rc;
+	int16 							state;
+	uint64							litsz;
+	protocol::Parameter				*pp;
+	//FileUidT						fuid;
+	
+	StreamPointer<IStream>			sp_in;
+	StreamPointer<IStream>			sp_out;
+	IStreamIterator					it;
+	foundation::ipc::ConnectorUid	ipcconuid;
+	SignalUidT						mastersiguid;
+	uint32							tmpstreamcp;//temp stream capacity
+	uint64							streamsz_out;
+	uint32							streamsz_in;
 };
 //! Store a file locally
 /*!
@@ -170,25 +190,25 @@ public:
 	int execute(Connection &);
 	int receiveOStream(
 		StreamPointer<OStream> &_sptr,
-		const FileUidTp &_fuid,
+		const FileUidT &_fuid,
 		int			_which,
-		const ObjectUidTp&,
+		const ObjectUidT&,
 		const foundation::ipc::ConnectorUid *
 	);
 	int receiveError(
 		int _errid,
-		const ObjectUidTp&_from,
+		const ObjectUidT&_from,
 		const foundation::ipc::ConnectorUid *
 	);
 	int reinitWriter(Writer &, protocol::Parameter &);
 private:
-	String				strpth;//the file path
+	String					strpth;//the file path
 	StreamPointer<OStream>	sp;
-	OStreamIterator		it;
-	Connection			&rc;
-	int 				st;
-	uint32				litsz;
-	uint64				litsz64;
+	OStreamIterator			it;
+	Connection				&rc;
+	int 					st;
+	uint32					litsz;
+	uint64					litsz64;
 };
 
 //! Lists one level of the requested path
@@ -224,10 +244,10 @@ private:
 class RemoteList: public Command{
 public:
 	enum {Wait, SendList, SendError, SendListContinue};
-	//typedef std::list<std::pair<String,int64> > PathListTp;
-	struct PathListTp: std::list<std::pair<String,int64> >{
-		PathListTp();
-		~PathListTp();
+	//typedef std::list<std::pair<String,int64> > PathListT;
+	struct PathListT: std::list<std::pair<String,int64> >{
+		PathListT();
+		~PathListT();
 	};
 	RemoteList();
 	~RemoteList();
@@ -239,22 +259,22 @@ public:
 		void *_pdata,
 		int _datasz,
 		int			_which, 
-		const ObjectUidTp&_from,
+		const ObjectUidT&_from,
 		const foundation::ipc::ConnectorUid *_conid
 	);
 	int receiveError(
 		int _errid, 
-		const ObjectUidTp&_from,
+		const ObjectUidT&_from,
 		const foundation::ipc::ConnectorUid *_conid
 	);
 private:
-	String					strpth;
-	String					straddr;
-	uint32					port;
-	PathListTp				*ppthlst;
-	PathListTp::const_iterator it;
-	int						state;
-	protocol::Parameter		*pp;
+	String						strpth;
+	String						straddr;
+	uint32						port;
+	PathListT					*ppthlst;
+	PathListT::const_iterator	it;
+	int							state;
+	protocol::Parameter			*pp;
 };
 
 
@@ -329,32 +349,32 @@ public:
 	int reinitWriter(Writer &, protocol::Parameter &);
 	/*virtual*/ int receiveIStream(
 		StreamPointer<IStream> &,
-		const FileUidTp&,
+		const FileUidT&,
 		int			_which,
-		const ObjectUidTp&_from,
+		const ObjectUidT&_from,
 		const foundation::ipc::ConnectorUid *_conid
 	);
 // 	virtual int receiveOStream(
 // 		StreamPointer<OStream> &,
-// 		const FromPairTp&_from,
+// 		const FromPairT&_from,
 // 		const ipc::ConnectorUid *_conid
 // 	);
 // 	virtual int receiveIOStream(
 // 		StreamPointer<IOStream> &, 
-// 		const FromPairTp&_from,
+// 		const FromPairT&_from,
 // 		const ipc::ConnectorUid *_conid
 // 	);
 	/*virtual*/ int receiveString(
 		const String &_str,
 		int			_which,
-		const ObjectUidTp&_from,
+		const ObjectUidT&_from,
 		const foundation::ipc::ConnectorUid *_conid
 	);
 private:
 	enum Type{LocalStringType, PeerStringType, LocalStreamType, PeerStreamType};
 	Queue<Type>					typeq;
 	Queue<String>				stringq;
-	Queue<ObjectUidTp>			fromq;
+	Queue<ObjectUidT>			fromq;
 	Queue<foundation::ipc::ConnectorUid>	conidq;
 	Queue<StreamPointer<IStream> >	streamq;
 	Connection					&rc;

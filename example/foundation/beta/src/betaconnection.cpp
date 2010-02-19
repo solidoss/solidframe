@@ -44,7 +44,7 @@ Connection::Connection(const char *_node, const char *_srv):
 	
 }
 Connection::Connection(const SocketDevice &_rsd):
-	BaseTp(_rsd),
+	BaseT(_rsd),
 	bend(bbeg + BUFSZ),brpos(bbeg),bwpos(bbeg),
 	pai(NULL)
 {
