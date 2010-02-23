@@ -527,6 +527,15 @@ int Fetch::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 		case ReturnCrlf:
 			_rw.replace(&Writer::putCrlf);
 			return Writer::Continue;
+		case SendError:
+			*pp = protocol::Parameter(StrDef(" NO FETCH: an error occured@"));
+			return Writer::Ok;
+		case SendTempError:
+			*pp = protocol::Parameter(StrDef(" NO FETCH: no temp stream@"));
+			return Writer::Ok;
+		case SendRemoteError:
+			*pp = protocol::Parameter(StrDef(" NO FETCH: no remote stream@"));
+			return Writer::Ok;
 	}
 	cassert(false);
 	return BAD;
