@@ -124,7 +124,7 @@ Signal::~Signal(){
 	vdbgx(Dbg::fdt, "memsub "<<(void*)this);
 }
 
-int Signal::ipcReceived(ipc::SignalUid&, const ipc::ConnectorUid&){
+int Signal::ipcReceived(ipc::SignalUid&, const ipc::ConnectionUid&){
 	return BAD;
 }
 int Signal::ipcPrepare(const ipc::SignalUid&){
@@ -141,7 +141,7 @@ int Signal::execute(uint32 _evs, SignalExecuter &, const SignalUidT &, TimeSpec 
 int Signal::receiveSignal(
 	DynamicPointer<Signal> &_rsig,
 	const ObjectUidT& _from,
-	const ipc::ConnectorUid *_conid
+	const ipc::ConnectionUid *_conid
 ){
 	wdbgx(Dbg::fdt, "Unhandled signal receive");
 	return BAD;//no need for execution

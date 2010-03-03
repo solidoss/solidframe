@@ -284,7 +284,7 @@ struct ProcessConnector::Data{
 	const OutWaitSignal& waitBackSignal()const;
 	
 	//eventually pops signals associated to a buffer
-	void popOutWaitSignals(uint32 _bufid, const ConnectorUid &_rconid);
+	void popOutWaitSignals(uint32 _bufid, const ConnectionUid &_rconid);
 	
 	//pops a signal waiting for a response
 	void popOutWaitSignal(const SignalUid &_rsiguid);
@@ -562,7 +562,7 @@ SignalUid ProcessConnector::Data::pushOutWaitSignal(
 //----------------------------------------------------------------------
 void ProcessConnector::Data::popOutWaitSignals(
 	uint32 _bufid,
-	const ConnectorUid &_rconid
+	const ConnectionUid &_rconid
 ){
 	for(OutCmdVectorT::iterator it(outsigv.begin()); it != outsigv.end(); ++it){
 		if(it->bufid == _bufid && it->sig.ptr()){
@@ -730,7 +730,7 @@ void ProcessConnector::reconnect(ProcessConnector *_ppc){
 			outsig.pser = NULL;
 		}
 		cassert(outsig.sig.ptr());
-		//NOTE: on reconnect the responses, or signals sent using ConnectorUid are dropped
+		//NOTE: on reconnect the responses, or signals sent using ConnectionUid are dropped
 		if(!(outsig.flags & Service::SameConnectorFlag)){
 			if(outsig.flags & Service::WaitResponseFlag && outsig.flags & Service::SentFlag){
 				//if the signal was sent and were waiting for response - were not sending twice
@@ -894,7 +894,7 @@ bool ProcessConnector::moveToNextInBuffer(){
 }
 
 //----------------------------------------------------------------------
-int ProcessConnector::pushReceivedBuffer(Buffer &_rbuf, const ConnectorUid &_rconid, const TimeSpec &_tpos){
+int ProcessConnector::pushReceivedBuffer(Buffer &_rbuf, const ConnectionUid &_rconid, const TimeSpec &_tpos){
 	idbgx(Dbg::ipc, "rcvbufid = "<<_rbuf.id()<<" expected id "<<d.expectedid<<" inbufq.size = "<<d.inbufq.size()<<" flags = "<<_rbuf.flags());
 	
 	d.rcvtpos = _tpos;
@@ -1296,7 +1296,7 @@ int ProcessConnector::processSendSignals(SendBufferData &_rsb, const TimeSpec &_
 
 //----------------------------------------------------------------------
 //TODO: optimize!!
-bool ProcessConnector::freeSentBuffers(Buffer &_rbuf, const ConnectorUid &_rconid){
+bool ProcessConnector::freeSentBuffers(Buffer &_rbuf, const ConnectionUid &_rconid){
 	bool b = false;
 	vdbgx(Dbg::ipc, "beg update count "<<_rbuf.updatesCount()<<" sent count = "<<d.outbufs.size());
 	for(uint32 i(0); i < _rbuf.updatesCount(); ++i){
@@ -1323,7 +1323,7 @@ bool ProcessConnector::freeSentBuffers(Buffer &_rbuf, const ConnectorUid &_rconi
 }
 
 //----------------------------------------------------------------------
-void ProcessConnector::parseBuffer(Buffer &_rbuf, const ConnectorUid &_rconid){
+void ProcessConnector::parseBuffer(Buffer &_rbuf, const ConnectionUid &_rconid){
 	const char *bpos = _rbuf.data();
 	int			blen = _rbuf.dataSize();
 	int rv;

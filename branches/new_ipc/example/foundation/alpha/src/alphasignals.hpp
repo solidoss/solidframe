@@ -31,7 +31,7 @@
 namespace foundation{
 class SignalExecuter;
 namespace ipc{
-struct ConnectorUid;
+struct ConnectionUid;
 }
 }
 
@@ -62,7 +62,7 @@ struct RemoteListSignal: Dynamic<RemoteListSignal, foundation::Signal>{
 	~RemoteListSignal();
 	int execute(uint32 _evs, foundation::SignalExecuter&, const SignalUidT &, TimeSpec &_rts);
 	
-	int ipcReceived(foundation::ipc::SignalUid &_rsiguid, const foundation::ipc::ConnectorUid &_rconid);
+	int ipcReceived(foundation::ipc::SignalUid &_rsiguid, const foundation::ipc::ConnectionUid &_rconid);
 	int ipcPrepare(const foundation::ipc::SignalUid &_rsiguid);
 	void ipcFail(int _err);
 
@@ -78,7 +78,7 @@ struct RemoteListSignal: Dynamic<RemoteListSignal, foundation::Signal>{
 	String							strpth;
 	int32							err;
 	uint32							tout;
-	foundation::ipc::ConnectorUid	conid;
+	foundation::ipc::ConnectionUid	conid;
 	foundation::ipc::SignalUid		siguid;
 	uint32							requid;
 	ObjectUidT						fromv;
@@ -110,7 +110,7 @@ struct FetchMasterSignal: Dynamic<FetchMasterSignal, foundation::Signal>{
 	}
 	~FetchMasterSignal();
 	
-	int ipcReceived(foundation::ipc::SignalUid &_rsiguid, const foundation::ipc::ConnectorUid &_rconid);
+	int ipcReceived(foundation::ipc::SignalUid &_rsiguid, const foundation::ipc::ConnectionUid &_rconid);
 	void ipcFail(int _err);
 	
 	int execute(uint32 _evs, foundation::SignalExecuter&, const SignalUidT &, TimeSpec &_rts);
@@ -118,7 +118,7 @@ struct FetchMasterSignal: Dynamic<FetchMasterSignal, foundation::Signal>{
 	int receiveSignal(
 		DynamicPointer<Signal> &_rsig,
 		const ObjectUidT& _from = ObjectUidT(),
-		const foundation::ipc::ConnectorUid *_conid = NULL
+		const foundation::ipc::ConnectionUid *_conid = NULL
 	);
 	
 	template <class S>
@@ -134,7 +134,7 @@ struct FetchMasterSignal: Dynamic<FetchMasterSignal, foundation::Signal>{
 	ObjectUidT						fromv;
 	FileUidT						fuid;
 	FileUidT						tmpfuid;
-	foundation::ipc::ConnectorUid	conid;
+	foundation::ipc::ConnectionUid	conid;
 	StreamPointer<IStream>			ins;
 	int32							state;
 	uint32							streamsz;
@@ -154,8 +154,8 @@ struct FetchMasterSignal: Dynamic<FetchMasterSignal, foundation::Signal>{
 struct FetchSlaveSignal: Dynamic<FetchSlaveSignal, foundation::Signal>{
 	FetchSlaveSignal();
 	~FetchSlaveSignal();
-	int ipcReceived(foundation::ipc::SignalUid &_rsiguid, const foundation::ipc::ConnectorUid &_rconid);
-	int sent(const foundation::ipc::ConnectorUid &);
+	int ipcReceived(foundation::ipc::SignalUid &_rsiguid, const foundation::ipc::ConnectionUid &_rconid);
+	int sent(const foundation::ipc::ConnectionUid &);
 	//int execute(concept::Connection &);
 	int execute(uint32 _evs, foundation::SignalExecuter&, const SignalUidT &, TimeSpec &_rts);
 	int createDeserializationStream(std::pair<OStream *, int64> &_rps, int _id);
@@ -179,7 +179,7 @@ struct FetchSlaveSignal: Dynamic<FetchSlaveSignal, foundation::Signal>{
 	ObjectUidT						fromv;
 	ObjectUidT						tov;
 	FileUidT						fuid;
-	foundation::ipc::ConnectorUid	conid;
+	foundation::ipc::ConnectionUid	conid;
 	SignalUidT						siguid;
 	StreamPointer<IStream>			ins;
 	int64							filesz;
@@ -203,7 +203,7 @@ struct SendStringSignal: Dynamic<SendStringSignal, foundation::Signal>{
 		ulong _fromobjid,
 		uint32 _fromobjuid
 	):str(_str), tov(_toobjid, _toobjuid), fromv(_fromobjid, _fromobjuid){}
-	int ipcReceived(foundation::ipc::SignalUid &_rsiguid, const foundation::ipc::ConnectorUid &_rconid);
+	int ipcReceived(foundation::ipc::SignalUid &_rsiguid, const foundation::ipc::ConnectionUid &_rconid);
 	template <class S>
 	S& operator&(S &_s){
 		_s.push(str, "string").push(tov.first, "toobjectid").push(tov.second, "toobjectuid");
@@ -214,7 +214,7 @@ private:
 	String						str;
 	ObjPairT					tov;
 	ObjPairT					fromv;
-	foundation::ipc::ConnectorUid		conid;
+	foundation::ipc::ConnectionUid		conid;
 };
 
 //---------------------------------------------------------------
@@ -238,7 +238,7 @@ struct SendStreamSignal: Dynamic<SendStreamSignal, foundation::Signal>{
 	}
 	std::pair<uint32, uint32> to()const{return tov;}
 	std::pair<uint32, uint32> from()const{return fromv;}
-	int ipcReceived(foundation::ipc::SignalUid &_rsiguid, const foundation::ipc::ConnectorUid &_rconid);
+	int ipcReceived(foundation::ipc::SignalUid &_rsiguid, const foundation::ipc::ConnectionUid &_rconid);
 
 	int createDeserializationStream(std::pair<OStream *, int64> &_rps, int _id);
 	void destroyDeserializationStream(const std::pair<OStream *, int64> &_rps, int _id);
@@ -259,7 +259,7 @@ private:
 	String						dststr;
 	ObjPairT					tov;
 	ObjPairT					fromv;
-	foundation::ipc::ConnectorUid		conid;
+	foundation::ipc::ConnectionUid		conid;
 };
 
 }//namespace alpha

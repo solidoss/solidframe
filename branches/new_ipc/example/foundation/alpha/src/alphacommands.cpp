@@ -307,7 +307,7 @@ int RemoteList::receiveData(
 	int _datasz,
 	int	_which, 
 	const ObjectUidT&_from,
-	const foundation::ipc::ConnectorUid *_conid
+	const foundation::ipc::ConnectionUid *_conid
 ){
 	ppthlst = reinterpret_cast<PathListT*>(_pdata);
 	if(ppthlst){
@@ -321,7 +321,7 @@ int RemoteList::receiveData(
 int RemoteList::receiveError(
 	int _errid, 
 	const ObjectUidT&_from,
-	const fdt::ipc::ConnectorUid *_conid
+	const fdt::ipc::ConnectionUid *_conid
 ){
 	state = SendError;
 	return OK;
@@ -546,7 +546,7 @@ int Fetch::receiveIStream(
 	const FileUidT &_fuid,
 	int			_which,
 	const ObjectUidT&,
-	const foundation::ipc::ConnectorUid *
+	const foundation::ipc::ConnectionUid *
 ){
 	//sp_out =_sptr;
 	//fuid = _fuid;
@@ -571,7 +571,7 @@ int Fetch::receiveNumber(
 	const int64 &_no,
 	int			_which,
 	const ObjectUidT& _objuid,
-	const foundation::ipc::ConnectorUid *_pconuid
+	const foundation::ipc::ConnectionUid *_pconuid
 ){
 	mastersiguid = _objuid;
 	cassert(_pconuid);
@@ -592,7 +592,7 @@ int Fetch::receiveNumber(
 int Fetch::receiveError(
 	int _errid,
 	const ObjectUidT&_from,
-	const foundation::ipc::ConnectorUid *
+	const foundation::ipc::ConnectionUid *
 ){
 	switch(state){
 		case WaitLocalStream:
@@ -686,7 +686,7 @@ int Store::receiveOStream(
 	const FileUidT &_fuid,
 	int			_which,
 	const ObjectUidT&,
-	const foundation::ipc::ConnectorUid *
+	const foundation::ipc::ConnectionUid *
 ){
 	idbg("received stream");
 	sp = _sptr;
@@ -697,7 +697,7 @@ int Store::receiveOStream(
 int Store::receiveError(
 	int _errid,
 	const ObjectUidT&_from,
-	const foundation::ipc::ConnectorUid *
+	const foundation::ipc::ConnectionUid *
 ){
 	idbg("received error");
 	st = BAD;
@@ -869,7 +869,7 @@ int Idle::receiveIStream(
 	const FileUidT &,
 	int			_which,
 	const ObjectUidT&_from,
-	const fdt::ipc::ConnectorUid *_conid
+	const fdt::ipc::ConnectionUid *_conid
 ){
 	if(_conid){
 		typeq.push(PeerStreamType);
@@ -887,7 +887,7 @@ int Idle::receiveString(
 	const String &_str,
 	int			_which,
 	const ObjectUidT&_from,
-	const fdt::ipc::ConnectorUid *_conid
+	const fdt::ipc::ConnectionUid *_conid
 ){
 	if(typeq.size() && typeq.back() == PeerStreamType){
 		stringq.push(_str);
@@ -926,7 +926,7 @@ int Command::receiveIStream(
 	const FileUidT &,
 	int			_which,
 	const ObjectUidT&_from,
-	const fdt::ipc::ConnectorUid *_conid
+	const fdt::ipc::ConnectionUid *_conid
 ){
 	return BAD;
 }
@@ -935,7 +935,7 @@ int Command::receiveOStream(
 	const FileUidT &,
 	int			_which,
 	const ObjectUidT&_from,
-	const fdt::ipc::ConnectorUid *_conid
+	const fdt::ipc::ConnectionUid *_conid
 ){
 	return BAD;
 }
@@ -944,7 +944,7 @@ int Command::receiveIOStream(
 	const FileUidT &,
 	int			_which,
 	const ObjectUidT&_from,
-	const fdt::ipc::ConnectorUid *_conid
+	const fdt::ipc::ConnectionUid *_conid
 ){
 	return BAD;
 }
@@ -952,7 +952,7 @@ int Command::receiveString(
 	const String &_str,
 	int			_which, 
 	const ObjectUidT&_from,
-	const fdt::ipc::ConnectorUid *_conid
+	const fdt::ipc::ConnectionUid *_conid
 ){
 	return BAD;
 }
@@ -961,7 +961,7 @@ int receiveData(
 	int _datasz,
 	int			_which, 
 	const ObjectUidT&_from,
-	const foundation::ipc::ConnectorUid *_conid
+	const foundation::ipc::ConnectionUid *_conid
 ){
 	return BAD;
 }
@@ -969,7 +969,7 @@ int Command::receiveNumber(
 	const int64 &_no,
 	int			_which,
 	const ObjectUidT&_from,
-	const fdt::ipc::ConnectorUid *_conid
+	const fdt::ipc::ConnectionUid *_conid
 ){
 	return BAD;
 }
@@ -978,14 +978,14 @@ int Command::receiveData(
 	int	_vsz,
 	int			_which,
 	const ObjectUidT&_from,
-	const fdt::ipc::ConnectorUid *_conid
+	const fdt::ipc::ConnectionUid *_conid
 ){
 	return BAD;
 }
 int Command::receiveError(
 	int _errid,
 	const ObjectUidT&_from,
-	const foundation::ipc::ConnectorUid *_conid
+	const foundation::ipc::ConnectionUid *_conid
 ){
 	return BAD;
 }

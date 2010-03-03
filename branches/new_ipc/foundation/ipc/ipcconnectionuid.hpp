@@ -1,6 +1,6 @@
-/* Declarations file connectoruid.hpp
+/* Declarations file ipcsessionuid.hpp
 	
-	Copyright 2007, 2008 Valentin Palade 
+	Copyright 2010 Valentin Palade 
 	vipalade@gmail.com
 
 	This file is part of SolidGround framework.
@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef IPC_CONNECTOR_UID_HPP
-#define IPC_CONNECTOR_UID_HPP
+#ifndef IPC_SESSION_UID_HPP
+#define IPC_SESSION_UID_HPP
 
 #include "system/common.hpp"
 
@@ -40,11 +40,11 @@ namespace ipc{
 	<b>Usage:</b><br>
 	The basic idea is that you send requests identifing the peer process
 	either by its base address (see foundation::ipc::Service) or by
-	its unique id, while you'll mostly send responses using ConnectorUid.
+	its unique id, while you'll mostly send responses using ConnectionUid.
 	
 */
-struct ConnectorUid{
-	ConnectorUid(uint32 _tkrid = 0, uint16 _procid = 0, uint16 _procuid = 0):tkrid(_tkrid), procid(_procid), procuid(_procuid){}
+struct SessionUid{
+	SessionUid(uint32 _tkrid = 0, uint16 _procid = 0, uint16 _procuid = 0):tkrid(_tkrid), procid(_procid), procuid(_procuid){}
 	uint32	tkrid;
 	uint16	procid;
 	uint16	procuid;

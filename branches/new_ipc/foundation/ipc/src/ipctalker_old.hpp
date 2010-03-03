@@ -35,7 +35,6 @@ namespace ipc{
 class Service;
 struct Buffer;
 struct ConnectionUid;
-class Session;
 
 //! A talker for io requests
 class Talker: public foundation::aio::SingleObject{
@@ -49,8 +48,8 @@ public:
 	int execute();
 	int accept(foundation::Visitor &);
 	int pushSignal(DynamicPointer<Signal> &_psig, const ConnectionUid &_rconid, uint32 _flags);
-	void pushSession(Session *_ps, ConnectionUid &_rconid, bool _exists = false);
-	void disconnectSessions();
+	void pushProcessConnector(ProcessConnector *_pc, ConnectionUid &_rconid, bool _exists = false);
+	void closeConnections();
 private:
 	bool processSignals(const TimeSpec &_rts);
 	bool dispatchSentBuffer(const TimeSpec &_rts);

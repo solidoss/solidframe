@@ -44,7 +44,7 @@ struct Buffer;
 struct IOData;
 struct ServiceStubUnlocked;
 class ProcessConnector;
-struct ConnectorUid;
+struct ConnectionUid;
 
 struct SendBufferData{
 	SendBufferData():procid(0xffff),bufpos(0xffff),paddr(NULL){}
@@ -76,7 +76,7 @@ public:
 	int pushSignal(DynamicPointer<Signal> &_rsig, uint32 _flags);
 	int pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpos, bool &_reusebuf);
 	int processSendSignals(SendBufferData &_rsb, const TimeSpec &_tpos, int _baseport);
-	int pushReceivedBuffer(Buffer &_rbuf, const ConnectorUid &_rcodid, const TimeSpec &_tpos);
+	int pushReceivedBuffer(Buffer &_rbuf, const ConnectionUid &_rcodid, const TimeSpec &_tpos);
 	void completeConnect(int _port);
 	void reconnect(ProcessConnector *_ppc);
 	const Inet4SockAddrPair* peerAddr4()const;
@@ -89,10 +89,10 @@ public:
 	//const Inet6SockAddrPair* pairAddr6()const;
 	//const std::pair<const Inet6SockAddrPair*, int>* baseAddr6()const;
 private:
-	bool freeSentBuffers(Buffer &_rbuf, const ConnectorUid &_rconid);
-	void parseBuffer(Buffer &_rbuf, const ConnectorUid &_rconid);
+	bool freeSentBuffers(Buffer &_rbuf, const ConnectionUid &_rconid);
+	void parseBuffer(Buffer &_rbuf, const ConnectionUid &_rconid);
 	bool moveToNextInBuffer();
-	void freeBufferSignals(uint32 _bufid, const ConnectorUid &_rconid);//frees the signals associated to a send buffer
+	void freeBufferSignals(uint32 _bufid, const ConnectionUid &_rconid);//frees the signals associated to a send buffer
 	//void popBuffersConnecting(IOData &_riod, const TimeSpec &_tpos, ServiceStubUnlocked &_rs);
 	//void popBuffersConnected(IOData &_riod, const TimeSpec &_tpos, ServiceStubUnlocked &_rs);
 	struct Data;

@@ -6,7 +6,7 @@ set(Sources
 )
 
 set(Headers
-	connectoruid.hpp
+	ipcconnectionuid.hpp
 	ipcservice.hpp
 	src/iodata.hpp
 	src/ipctalker.hpp
