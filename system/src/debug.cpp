@@ -249,6 +249,7 @@ void splitPrefix(string &_path, string &_name, const char *_prefix);
 }
 	
 Dbg::~Dbg(){
+	(*d.pos)<<flush;
 	delete &d;
 }
 
