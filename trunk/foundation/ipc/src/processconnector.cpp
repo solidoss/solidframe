@@ -22,6 +22,7 @@
 #include <queue>
 #include <algorithm>
 #include <iostream>
+#include <cstring>
 
 #include "system/debug.hpp"
 #include "system/socketaddress.hpp"
@@ -56,8 +57,27 @@ We want to use the network according to its speed. See Data::computeRetransmitTi
 
 namespace fdt = foundation;
 
+
+#ifdef USTATISTICS
+
+#define COLLECT_DATA_1(om,p1)\
+	om(p1)\
+
+#define COLLECT_DATA_2(om,p1,p2)\
+	om(p1, p2)\
+
+#else
+
+#define COLLECT_DATA_1(om,p1)
+
+#define COLLECT_DATA_2(om,p1,p2)
+
+#endif
+
 namespace foundation{
 namespace ipc{
+
+namespace {
 
 struct BufCmp{
 	bool operator()(const Buffer &_rbuf1, const Buffer &_rbuf2)const{
@@ -89,6 +109,47 @@ private:
 	typedef std::vector<ulong> ULongVectorT;
 	ULongVectorT	toutvec;
 };
+
+//========	ProcessConnector	===========================================================
+#ifdef USTATISTICS
+
+struct StatisticData{
+	StatisticData(){
+		memset(this, 0, sizeof(StatisticData));
+		minrcvupdcnt = -1L;
+		minsndupdcnt = -1L;
+	}
+	void receivedExpected(const Buffer &_rbuf);
+	void receivedAlready(const Buffer &_rbuf);
+	void receivedOutOfOrder(const Buffer &_rbuf);
+	void receivedManyOutOfOrder(const Buffer &_rbuf);
+	void receivedUpdatesOnly(const Buffer &_rbuf);
+	
+	void sentUpdatesOnly(const Buffer &_rbuf);
+	void sentBuffer(const Buffer &_rbuf);
+	
+	uint64			recv;
+	uint64			recvexp;
+	uint64			recvalr;
+	uint64			recvooo;
+	uint64			recvmooo;
+	uint64			recvupd;
+	uint64			maxrcvupdcnt;
+	uint64			minrcvupdcnt;
+	uint64			maxrcvret;
+	
+	uint64			sent;
+	uint64			sentupd;
+	uint64			maxsndupdcnt;
+	uint64			minsndupdcnt;
+	uint64			maxsndret;
+};
+
+ostream& operator<<(ostream &_ros, const StatisticData &_rsd);
+
+#endif
+
+}//namespace
 
 //========	ProcessConnector	===========================================================
 struct ProcessConnector::Data{
@@ -265,6 +326,9 @@ struct ProcessConnector::Data{
 	uint32					keepalivetout;
 	uint32					respwaitsigcnt;
 	TimeSpec				rcvtpos;
+#ifdef USTATISTICS
+	StatisticData			statistics;
+#endif
 };
 
 //==============================================================================
@@ -565,6 +629,10 @@ inline uint ProcessConnector::Data::computeRetransmitTimeout(const uint _retrid,
 
 ProcessConnector::~ProcessConnector(){
 	idbgx(Dbg::ipc, "");
+#ifdef USTATISTICS
+	rdbgx(Dbg::ipc, "Statistics:\r\n"<<d.statistics);
+#endif
+
 	delete &d;
 }
 
@@ -833,6 +901,8 @@ int ProcessConnector::pushReceivedBuffer(Buffer &_rbuf, const ConnectorUid &_rco
 	
 	if(_rbuf.id() == d.expectedid){
 		
+		
+		COLLECT_DATA_1(d.statistics.receivedExpected, _rbuf);
 		//the expected buffer
 		d.rcvidq.push(_rbuf.id());
 		
@@ -862,7 +932,7 @@ int ProcessConnector::pushReceivedBuffer(Buffer &_rbuf, const ConnectorUid &_rco
 	}else{
 		
 		if(_rbuf.id() < d.expectedid){
-			
+			COLLECT_DATA_1(d.statistics.receivedAlready, _rbuf);
 			//the peer doesnt know that we've already received the buffer
 			//add it as update
 			d.rcvidq.push(_rbuf.id());
@@ -870,7 +940,7 @@ int ProcessConnector::pushReceivedBuffer(Buffer &_rbuf, const ConnectorUid &_rco
 			return NOK;//we have to send updates
 		
 		}else if(_rbuf.id() <= Data::LastBufferId){
-			
+			COLLECT_DATA_1(d.statistics.receivedOutOfOrder, _rbuf);
 			if(_rbuf.updatesCount()){//we have updates
 				freeSentBuffers(_rbuf, _rconid);
 			}
@@ -882,11 +952,12 @@ int ProcessConnector::pushReceivedBuffer(Buffer &_rbuf, const ConnectorUid &_rco
 				idbgx(Dbg::ipc, "keep the buffer for future parsing");
 				return NOK;//we have to send updates
 			}else{
+				COLLECT_DATA_1(d.statistics.receivedManyOutOfOrder, _rbuf);
 				idbgx(Dbg::ipc, "to many buffers out-of-order");
 			}
 		
 		}else if(_rbuf.id() == Data::UpdateBufferId){//a buffer containing only updates
-			_rbuf.updatesCount();
+			COLLECT_DATA_1(d.statistics.receivedUpdatesOnly, _rbuf);
 			idbgx(Dbg::ipc, "received buffer containing only updates");
 			if(freeSentBuffers(_rbuf, _rconid)) return NOK;
 		}
@@ -908,6 +979,7 @@ int ProcessConnector::pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpo
 			//cassert(_rbuf.b.id() == Data::UpdateBufferId);
 			switch(_rbuf.b.id()){
 				case Data::UpdateBufferId:{
+					COLLECT_DATA_1(d.statistics.sentUpdatesOnly, _rbuf.b);
 					idbgx(Dbg::ipc, "sent updates - collecting buffer");
 					uint32	cp(0);
 					char 	*pb(_rbuf.b.release(cp));
@@ -922,6 +994,8 @@ int ProcessConnector::pushSentBuffer(SendBufferData &_rbuf, const TimeSpec &_tpo
 		}else{
 			
 			idbgx(Dbg::ipc, "sent bufid = "<<_rbuf.b.id()<<" bufpos = "<<_rbuf.bufpos<<" retransmitid "<<_rbuf.b.retransmitId()<<" buf = "<<(void*)_rbuf.b.buffer()<<" buffercap = "<<_rbuf.b.bufferCapacity()<<" flags = "<<_rbuf.b.flags()<<" type = "<<(int)_rbuf.b.type());
+			
+			COLLECT_DATA_1(d.statistics.sentBuffer, _rbuf.b);
 			
 			std::pair<uint16, uint16>	p;
 			const uint 					retransid = _rbuf.b.retransmitId();
@@ -1253,6 +1327,7 @@ void ProcessConnector::parseBuffer(Buffer &_rbuf, const ConnectorUid &_rconid){
 	const char *bpos = _rbuf.data();
 	int			blen = _rbuf.dataSize();
 	int rv;
+
 // 	cassert(d.rcq.size());
 // 	cassert(d.rcq.front().second);
 	int 		firstblen = blen - 1;
@@ -1324,6 +1399,74 @@ void ProcessConnector::parseBuffer(Buffer &_rbuf, const ConnectorUid &_rconid){
 		}
 	}
 }
+#ifdef USTATISTICS
+namespace {
 
+void StatisticData::receivedExpected(const Buffer &_rbuf){
+	++recv;
+	++recvexp;
+	if(_rbuf.updatesCount() > maxrcvupdcnt) maxrcvupdcnt = _rbuf.updatesCount();
+	if(_rbuf.updatesCount() < minrcvupdcnt) minrcvupdcnt = _rbuf.updatesCount();
+	if(_rbuf.retransmitId() > maxrcvret) maxrcvret = _rbuf.retransmitId();
+}
+
+void StatisticData::receivedAlready(const Buffer &_rbuf){
+	++recv;
+	++recvalr;
+	if(_rbuf.updatesCount() > maxrcvupdcnt) maxrcvupdcnt = _rbuf.updatesCount();
+	if(_rbuf.updatesCount() < minrcvupdcnt) minrcvupdcnt = _rbuf.updatesCount();
+	if(_rbuf.retransmitId() > maxrcvret) maxrcvret = _rbuf.retransmitId();
+}
+void StatisticData::receivedOutOfOrder(const Buffer &_rbuf){
+	++recv;
+	++recvooo;
+}
+void StatisticData::receivedManyOutOfOrder(const Buffer &_rbuf){
+	++recvmooo;
+}
+void StatisticData::receivedUpdatesOnly(const Buffer &_rbuf){
+	++recv;
+	++recvupd;
+	if(_rbuf.updatesCount() > maxrcvupdcnt) maxrcvupdcnt = _rbuf.updatesCount();
+	if(_rbuf.updatesCount() < minrcvupdcnt) minrcvupdcnt = _rbuf.updatesCount();
+	if(_rbuf.retransmitId() > maxrcvret) maxrcvret = _rbuf.retransmitId();
+}
+
+void StatisticData::sentUpdatesOnly(const Buffer &_rbuf){
+	++sentupd;
+	++sent;
+	if(_rbuf.updatesCount() > maxsndupdcnt) maxsndupdcnt = _rbuf.updatesCount();
+	if(_rbuf.updatesCount() < minsndupdcnt) minsndupdcnt = _rbuf.updatesCount();
+	if(_rbuf.retransmitId() > maxsndret) maxsndret = _rbuf.retransmitId();
+}
+void StatisticData::sentBuffer(const Buffer &_rbuf){
+	++sent;
+	if(_rbuf.updatesCount() > maxsndupdcnt) maxsndupdcnt = _rbuf.updatesCount();
+	if(_rbuf.updatesCount() < minsndupdcnt) minsndupdcnt = _rbuf.updatesCount();
+	if(_rbuf.retransmitId() > maxsndret) maxsndret = _rbuf.retransmitId();
+}
+
+ostream& operator<<(ostream &_ros, const StatisticData &_rsd){
+	_ros<<"\tReceived               = "<<_rsd.recv<<"\r\n";
+	_ros<<"\tReceivedExpected       = "<<_rsd.recvexp<<"\r\n";
+	_ros<<"\tReceivedAlready        = "<<_rsd.recvalr<<"\r\n";
+	_ros<<"\tReceivedOutOfOrder     = "<<_rsd.recvooo<<"\r\n";
+	_ros<<"\tReceivedManyOutOfOrder = "<<_rsd.recvmooo<<"\r\n";
+	_ros<<"\tReceivedUpdatesOnly    = "<<_rsd.recvupd<<"\r\n";
+	_ros<<"\tMaxReceivedUpdates     = "<<_rsd.maxrcvupdcnt<<"\r\n";
+	_ros<<"\tMinReceivedUpdates     = "<<_rsd.minrcvupdcnt<<"\r\n";
+	_ros<<"\tMaxReceiveRetransmit   = "<<_rsd.maxrcvret<<"\r\n";
+	_ros<<"\r\n";
+	_ros<<"\tSent                   = "<<_rsd.sent<<"\r\n";
+	_ros<<"\tSentUpdatesOnly        = "<<_rsd.sentupd<<"\r\n";
+	_ros<<"\tMaxSentUpdates         = "<<_rsd.maxsndupdcnt<<"\r\n";
+	_ros<<"\tMinSentUpdates         = "<<_rsd.minsndupdcnt<<"\r\n";
+	_ros<<"\tMaxSendRetransmit      = "<<_rsd.maxsndret<<"\r\n";
+	_ros<<flush;
+	return _ros;
+}
+
+}//namespace
+#endif
 }//namespace ipc
 }//namespace foundation

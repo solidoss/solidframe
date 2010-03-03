@@ -309,7 +309,9 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 				case OK:
 					d.rcvbuf.bufferSize(socketRecvSize());
 					if(d.rcvbuf.check()){
+						
 						idbgx(Dbg::ipc, "received valid buffer size "<<d.rcvbuf.bufferSize()<<" data size "<<d.rcvbuf.dataSize()<<" id "<<d.rcvbuf.id());
+						
 						dispatchReceivedBuffer(socketRecvAddr(), _tout);//the address is deeply copied
 					}else{
 						idbgx(Dbg::ipc, "received invalid buffer size "<<d.rcvbuf.bufferSize()<<" data size "<<d.rcvbuf.dataSize()<<" id "<<d.rcvbuf.id());
@@ -478,7 +480,7 @@ void Talker::dispatchReceivedBuffer(const SockAddrPair &_rsap, const TimeSpec &_
 bool Talker::processSignals(const TimeSpec &_rts){
 	int sndbufcnt = 0;
 	SendBufferData *psb = NULL;
-	while(d.cq.size() && sndbufcnt < 16){
+	while(d.cq.size() && sndbufcnt < 32){
 		uint32 procid = d.cq.front(); d.cq.pop();
 		if(procid >= d.procs.size()) continue;
 		ProcessConnector *ppc(d.procs[procid].first);
