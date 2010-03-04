@@ -43,11 +43,15 @@ namespace ipc{
 	its unique id, while you'll mostly send responses using ConnectionUid.
 	
 */
-struct SessionUid{
-	SessionUid(uint32 _tkrid = 0, uint16 _procid = 0, uint16 _procuid = 0):tkrid(_tkrid), procid(_procid), procuid(_procuid){}
-	uint32	tkrid;
-	uint16	procid;
-	uint16	procuid;
+struct ConnectionUid{
+	ConnectionUid(
+		uint32 _id = 0,
+		uint16 _sesidx = 0,
+		uint16 _sesuid = 0
+	):id(_id), sessionidx(_sesidx), sessionuid(_sesuid){}
+	uint32	id;
+	uint16	sessionidx;
+	uint16	sessionuid;
 };
 
 struct SignalUid{

@@ -89,6 +89,9 @@ struct Inet6AddrPtrCmp{
 };
 
 struct Buffer{
+	enum{
+		ReadCapacity = 4096
+	};
 	struct Header{
 		uint8		version;
 		uint8		type;

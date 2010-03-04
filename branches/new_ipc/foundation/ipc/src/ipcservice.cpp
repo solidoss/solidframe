@@ -110,7 +110,7 @@ int Service::sendSignal(
 	cassert(_rconid.tkrid < d.tkrvec.size());
 	
 	Mutex::Locker		lock(*mutex());
-	Data::UInt32PairT	&rtp(d.tkrvec[_rconid.tkrid]);
+	Data::UInt32PairT	&rtp(d.tkrvec[_rconid.id]);
 	Mutex::Locker		lock2(this->mutex(rtp.first, rtp.second));
 	Talker				*ptkr(static_cast<Talker*>(this->object(rtp.first, rtp.second)));
 	
@@ -154,11 +154,11 @@ int Service::doSendSignal(
 			vdbgx(Dbg::ipc, "");
 			
 			ConnectionUid		conid(it->second);
-			Data::UInt32PairT	&rtp(d.tkrvec[conid.tkrid]);
+			Data::UInt32PairT	&rtp(d.tkrvec[conid.id]);
 			Mutex::Locker		lock2(this->mutex(rtp.first, rtp.second));
 			Talker				*ptkr(static_cast<Talker*>(this->object(rtp.first, rtp.second)));
 			
-			cassert(conid.tkrid < d.tkrvec.size());
+			cassert(conid.id < d.tkrvec.size());
 			cassert(ptkr);
 			
 			if(ptkr->pushSignal(_psig, conid, _flags)){

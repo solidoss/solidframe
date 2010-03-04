@@ -47,7 +47,29 @@ namespace foundation{
 namespace ipc{
 
 struct Talker::Data{
+	struct SignalData{
+		SignalData(
+			DynamicPointer<Signal> &_psig,
+			uint16 _sesidx,
+			uint16 _sesuid,
+			uint32 _flags
+		):	psig(_psig), sesid(_sesidx),
+			sesuid(_sesuid), flags(_flags){}
+		
+		DynamicPointer<Signal>	psig;
+		uint16					sesidx;
+		uint16					sesuid;
+		uint32					flags;
+	};
 
+	typedef std::pair<char*, uint16>	BufferPairT;
+	typedef std::vector<BufferPairT>	BufferPairVectorT;
+	typedef Queue<SignalData>			SignalQueueT;
+	
+	BufferPairVectorT		receivedbufvec;
+	char					*pendingreadbuffer;
+	Buffer					crtsendbuf;
+	SignalQueueT			sigq;
 };
 
 //======================================================================
@@ -75,7 +97,64 @@ void Talker::disconnectSessions(){
 
 //----------------------------------------------------------------------
 int Talker::execute(ulong _sig, TimeSpec &_tout){
+	Manager &rm = Manager::the();
+	idbgx(Dbg::ipc, "this = "<<(void*)this<<" &d = "<<(void*)&d);
+	if(signaled() || d.closes.size()){
+		Mutex::Locker	lock(rm.mutex(*this));
+		ulong			sm = grabSignalMask(0);
+		
+		if(sm & fdt::S_KILL){
+			idbgx(Dbg::ipc, "talker - dying");
+			return BAD;
+		}
+		
+		idbgx(Dbg::ipc, "talker - signaled");
+		if(sm == fdt::S_RAISE){
+			_sig |= fdt::SIGNALED;
+		}else{
+			idbgx(Dbg::ipc, "unknown signal");
+		}
+		insertSessions();
+		dispatchSignals();
+	}
 	
+	bool	must_reenter(false);
+	int		rv;
+	
+	d.readbufsvec.clear();//try to use an on stack Array
+	
+	rv = receiveBuffers(_sig, d.receivedbufvec);
+	if(rv == OK){
+		must_reenter = true;
+	}else if(rv == BAD){
+		return BAD;
+	}
+	
+	must_reenter ||= processReceivedBuffers(d.receivedbufvec);
+	
+	if(socketHasPendingSend()){
+		return must_reenter ? OK : NOK;
+	}
+	
+	if(_sig & OUTDONE){
+		dispatchSentBuffer(d.crtsendbuf);
+	}
+	
+	rv = processSignals(_tout);
+	if(rv == OK){
+		must_reenter = true;
+	}else if(rv == BAD){
+		return BAD;
+	}
+	
+	rv = sendScheduledBuffers(_tout);
+	if(rv == OK){
+		must_reenter = true;
+	}else if(rv == BAD){
+		return BAD;
+	}
+	
+	return must_reenter ? OK : NOK;
 }
 
 //----------------------------------------------------------------------
@@ -96,26 +175,30 @@ int Talker::pushSignal(
 	const ConnectionUid &_rconid,
 	uint32 _flags
 ){
-	d.sigq.push(Data::SignalData(_psig, _rconid.procid, _rconid.procuid, _flags));
+	d.sigq.push(Data::SignalData(_psig, _rconid.sessionidx, _rconid.sessioncuid, _flags));
 	return d.sigq.size() == 1 ? NOK : OK;
 }
 
 //----------------------------------------------------------------------
 //The talker's mutex should be locked
 //Return's the new process connector's id
-void Talker::pushConnection(Connection *_pc, ConnectionUid &_rconid, bool _exists){
+void Talker::pushSession(Session *_pses, ConnectionUid &_rconid, bool _exists){
 }
-
+//----------------------------------------------------------------------
+void Talker::insertSessions(){
+}
+//----------------------------------------------------------------------
+void Talker::dispatchSignals(){
+}
 //----------------------------------------------------------------------
 //dispatch d.rcvbuf
 void Talker::dispatchReceivedBuffer(const SockAddrPair &_rsap, const TimeSpec &_rts){
 
 }
-
 //----------------------------------------------------------------------
 //process signals to be sent d.cq
 //return true if the cq is not empty
-bool Talker::processSignals(const TimeSpec &_rts){
+int Talker::processSignals(const TimeSpec &_rts){
 }
 
 //----------------------------------------------------------------------
