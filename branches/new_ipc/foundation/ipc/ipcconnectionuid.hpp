@@ -26,21 +26,11 @@
 
 namespace foundation{
 namespace ipc{
-//! A structure to uniquely indetify a connector
+//! A structure to uniquely indetify an IPC connection/session
 /*!
 	<b>Overview:</b><br>
 	
-	An ipc connector somehow resembles a tcp connection. The difference is 
-	that (for now) there cant be more than one connector to a process.
-	
-	If a process is restarted, and a new connector is created, its uid
-	will be different from the previous one. This will ensure for example
-	that one cannot send a response to a restarted process. 
-	
 	<b>Usage:</b><br>
-	The basic idea is that you send requests identifing the peer process
-	either by its base address (see foundation::ipc::Service) or by
-	its unique id, while you'll mostly send responses using ConnectionUid.
 	
 */
 struct ConnectionUid{

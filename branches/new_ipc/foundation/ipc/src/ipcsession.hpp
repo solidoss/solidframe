@@ -44,6 +44,11 @@ class Session{
 public:
 	typedef std::pair<const Inet4SockAddrPair*, int> Addr4PairT;
 	typedef std::pair<const Inet6SockAddrPair*, int> Addr6PairT;
+public:
+	static void init();
+	static int parseAcceptedBuffer(const Buffer &_rbuf);
+	static int parseConnectingBuffer(const Buffer &_rbuf);
+	
 	Session(
 		const Inet4SockAddrPair &_raddr,
 		uint32 _keepalivetout
@@ -56,6 +61,19 @@ public:
 	
 	const Inet4SockAddrPair* peerAddr4()const;
 	const Addr4PairT* baseAddr4()const;
+	
+	
+	bool isConnected()const;
+	bool isDisconnecting()const;
+	bool isConnecting()const;
+	bool isAccepting()const;
+
+	void prepare();
+	void reconnect(Session *_pses);	
+	int pushSignal(DynamicPointer<Signal> &_rsig, uint32 _flags);
+	bool pushReceivedBuffer(Buffer &_rbuf, const TimeSpec &_rts);
+	
+	void completeConnect(int _port);
 };
 
 }//namespace ipc

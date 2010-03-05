@@ -52,11 +52,12 @@ public:
 	void pushSession(Session *_ps, ConnectionUid &_rconid, bool _exists = false);
 	void disconnectSessions();
 private:
-	bool processSignals(const TimeSpec &_rts);
-	bool dispatchSentBuffer(const TimeSpec &_rts);
-	void dispatchReceivedBuffer(const SockAddrPair &_rsap, const TimeSpec &_rts);
+	int receiveBuffers(uint32 _atmost, const ulong _sig);
+	bool processReceivedBuffers(const TimeSpec &_rts);
+	void dispatchReceivedBuffer(char *_pbuf, const uint32 _bufsz, const SockAddrPair &_rsap);
+	void insertNewSessions();
+	void dispatchSignals();
 	void optimizeBuffer(Buffer &_rbuf);
-	bool inDone(ulong _sig, const TimeSpec &_rts);
 private:
 	struct Data;
 	Data &d;

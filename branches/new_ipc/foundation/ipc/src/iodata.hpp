@@ -130,24 +130,33 @@ struct Buffer{
 	static uint32 minSize(){
 		return sizeof(Header);
 	}
-	Buffer(char *_pb = NULL, uint16 _bc = 0, uint16 _dl = 0):pb(_pb), bc(_bc), dl(_dl){
-		if(_pb){
-			reset(_dl);
-		}
+	static char* allocateDataForReading();
+	static void deallocateDataForReading(char *_buf);
+	static const uint capacityForReading(){
+		return ReadCapacity;
 	}
-	void reset(int _dl = 0){
+	
+	Buffer(
+		char *_pb = NULL,
+		uint16 _bc = 0,
+		uint16 _dl = 0
+	):pb(_pb), bc(_bc), dl(_dl){
+	}
+	~Buffer();
+	void resetHeader(){
 		header().version = 1;
 		header().retransid = 0;
 		header().id = 0;
 		header().flags = 0;
 		header().type = Unknown;
 		header().updatescnt = 0;
-		dl = _dl;
 	}
+	void clear();
 	void reinit(char *_pb = NULL, uint16 _bc = 0, uint16 _dl = 0){
+		clear();
 		pb = _pb;
 		bc = _bc;
-		if(pb) reset(_dl);
+		dl = _dl;
 	}
 	char *buffer()const{return pb;}
 	char *data()const {return pb + header().size();}
@@ -176,6 +185,10 @@ struct Buffer{
 		char* tmp = pb; pb = NULL; 
 		_cp = bc; bc = 0; dl = 0;
 		return tmp;
+	}
+	char *release(){
+		uint32 cp;
+		return release(cp);
 	}
 	
 	uint8 version()const{return header().version;}
