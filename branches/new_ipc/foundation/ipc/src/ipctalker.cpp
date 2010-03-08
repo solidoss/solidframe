@@ -46,6 +46,57 @@ namespace fdt = foundation;
 namespace foundation{
 namespace ipc{
 
+
+#ifdef USTATISTICS
+
+struct StatisticData{
+	StatisticData(){
+		memset(this, 0, sizeof(StatisticData));
+	}
+	~StatisticData();
+	
+	void receivedManyBuffers();
+	void receivedKeepAlive();
+	void receivedData();
+	void receivedDataUnknown();
+	void receivedConnecting();
+	void failedAcceptSession();
+	void receivedConnectingError();
+	void receivedAccepting();
+	void receivedAcceptingError();
+	void receivedUnknown();
+	void maxTimerQueueSize(ulong _sz);
+	void maxSessionExecQueueSize(ulong _sz);
+	void maxSendQueueSize(ulong _sz);
+	void sendPending();
+	void signaled();
+	void sendPending();
+	void pushTimer();
+	
+	ulong	rcvdmannybuffers;
+	ulong	rcvdkeepalive;
+	ulong	rcvddata;
+	ulong	rcvddataunknown;
+	ulong	rcvdconnecting;
+	ulong	failedacceptsession;
+	ulong	rcvdconnectingerror;
+	ulong	rcvdaccepting;
+	ulong	rcvdacceptingerror;
+	ulong	rcvdunknown;
+	ulong	maxtimerqueuesize;
+	ulong	maxsessionexecqueuesize;
+	ulong	maxsendqueuesize;
+	ulong	sendpending;
+	ulong	signaledcount;
+	ulong	sendpending;
+	ulong	pushtimercount;
+};
+
+ostream& operator<<(ostream &_ros, const StatisticData &_rsd);
+
+#endif
+
+
 struct Talker::Data{
 	struct SignalData{
 		SignalData(
@@ -183,6 +234,9 @@ public:
 	BaseAddr4MapT			baseaddr4map;
 	TimerQueueT				timerq;
 	SendQueueT				sendq;
+#ifdef USTATISTICS
+	StatisticData			statistics;
+#endif
 };
 Talker::Data::~Data(){
 	if(pendingreadbuffer){
@@ -297,6 +351,7 @@ int Talker::doReceiveBuffers(uint32 _atmost, const ulong _sig){
 				return NOK;
 		}
 	}
+	COLLECT_DATA_0(d.statistics.receivedManyBuffers);
 	return OK;//can still read from socket
 }
 //----------------------------------------------------------------------
@@ -322,8 +377,9 @@ void Talker::doDispatchReceivedBuffer(char *_pbuf, const uint32 _bufsz, const So
 	Buffer buf(_pbuf, Buffer::ReadCapacity, _bufsz);
 	switch(buf.type()){
 		case Buffer::KeepAliveType:
+			COLLECT_DATA_0(d.statistics.receivedKeepAlive);
 		case Buffer::DataType:{
-			
+			COLLECT_DATA_0(d.statistics.receivedData);
 			idbgx(Dbg::ipc, "data buffer");
 			Inet4SockAddrPair				inaddr(_rsap);
 			Data::PeerAddr4MapT::iterator	pit(d.peeraddr4map.find(&inaddr));
@@ -332,6 +388,7 @@ void Talker::doDispatchReceivedBuffer(char *_pbuf, const uint32 _bufsz, const So
 				d.receivedbufvec.push_back(Data::RecvBuffer(_pbuf, _bufsz, pit->second));
 				buf.release();
 			}else{
+				COLLECT_DATA_0(d.statistics.receivedDataUnknown);
 				//proc
 				Buffer::deallocateDataForReading(buf.release());
 			}
@@ -339,7 +396,7 @@ void Talker::doDispatchReceivedBuffer(char *_pbuf, const uint32 _bufsz, const So
 		}break;
 		
 		case Buffer::ConnectingType:{
-			
+			COLLECT_DATA_0(d.statistics.receivedConnecting);
 			Inet4SockAddrPair	inaddr(_rsap);
 			int					baseport(Session::parseConnectingBuffer(buf));
 			
@@ -348,15 +405,17 @@ void Talker::doDispatchReceivedBuffer(char *_pbuf, const uint32 _bufsz, const So
 			if(baseport >= 0){
 				Session *ps(new Session(inaddr, baseport, d.rservice.keepAliveTimeout()));
 				if(d.rservice.acceptSession(ps)){	
+					COLLECT_DATA_0(d.statistics.failedAcceptSession);
 					delete ps;
 				}
+			}else{
+				COLLECT_DATA_0(d.statistics.receivedConnectingError);
 			}
-			
 			Buffer::deallocateDataForReading(buf.release());
 		}break;
 		
 		case Buffer::AcceptingType:{
-			
+			COLLECT_DATA_0(d.statistics.receivedAccepting);
 			int baseport = Session::parseAcceptedBuffer(buf);
 			
 			idbgx(Dbg::ipc, "accepting buffer with baseport "<<baseport);
@@ -379,12 +438,15 @@ void Talker::doDispatchReceivedBuffer(char *_pbuf, const uint32 _bufsz, const So
 						}
 					}
 				}
+			}else{
+				COLLECT_DATA_0(d.statistics.receivedAcceptingError);
 			}
 			
 			Buffer::deallocateDataForReading(buf.release());
 		}break;
 		
 		default:
+			COLLECT_DATA_0(d.statistics.receivedUnknown);
 			Buffer::deallocateDataForReading(buf.release());
 			cassert(false);
 	}
@@ -392,7 +454,7 @@ void Talker::doDispatchReceivedBuffer(char *_pbuf, const uint32 _bufsz, const So
 //----------------------------------------------------------------------
 bool Talker::doExecuteSessions(const TimeSpec &_rcrttimepos){
 	TalkerStub ts(*this, _rcrttimepos);
-	
+	COLLECT_DATA_1(d.statistics.maxTimerQueueSize, d.timerq.size());
 	//first we consider all timers
 	while(d.timerq.size() && d.timerq.top().timepos <= _rcrttimepos){
 		const Data::TimerData		&rtd(d.timerq.top());
@@ -408,7 +470,7 @@ bool Talker::doExecuteSessions(const TimeSpec &_rcrttimepos){
 	}
 	
 	ulong sz(d.sessionexecq.size());
-	
+	COLLECT_DATA_1(d.statistics.maxSessionExecQueueSize, sz);
 	while(sz--){
 		ts.sessionidx = d.sessionexecq.front();
 		d.sessionexecq.pop();
@@ -436,6 +498,7 @@ int Talker::doSendBuffers(const ulong _sig){
 	}
 	if(_sig & fdt::OUTDONE){
 		cassert(d.sendq.size());
+		COLLECT_DATA_1(d.statistics.maxSendQueueSize, d.sendq.size());
 		Data::SendBuffer	&rsb(d.sendq.front());
 		Data::SessionStub	&rss(d.sessionvec[rsb.sessionidx]);
 		
@@ -462,6 +525,7 @@ int Talker::doSendBuffers(const ulong _sig){
 					}
 				}
 			case NOK:
+				COLLECT_DATA_0(d.statistics.sendPending);
 				return NOK;
 		}
 		d.sendq.pop();
@@ -475,6 +539,7 @@ int Talker::pushSignal(
 	const ConnectionUid &_rconid,
 	uint32 _flags
 ){
+	COLLECT_DATA_0(d.statistics.signaled);
 	d.sigq.push(Data::SignalData(_psig, _rconid.sessionidx, _rconid.sessionuid, _flags));
 	return d.sigq.size() == 1 ? NOK : OK;
 }
@@ -619,6 +684,7 @@ bool Talker::TalkerStub::pushSendBuffer(uint32 _id, const char *_pb, uint32 _bl)
 		case BAD:
 		case NOK:
 			rt.d.sendq.push(Talker::Data::SendBuffer(_pb, _bl, this->sessionidx, _id));
+			COLLECT_DATA_0(rt.d.statistics.sendPending);
 			return false;
 		case OK:
 			break;
@@ -627,9 +693,75 @@ bool Talker::TalkerStub::pushSendBuffer(uint32 _id, const char *_pb, uint32 _bl)
 }
 //----------------------------------------------------------------------
 void Talker::TalkerStub::pushTimer(uint32 _id, const TimeSpec &_rtimepos){
+	COLLECT_DATA_0(d.statistics.pushTimer);
 	rt.d.timerq.push(Data::TimerData(_rtimepos, _id, this->sessionidx));
 }
 //======================================================================
+#ifdef USTATISTICS
+
+
+
+StatisticData::~StatisticData(){
+	rdbgx(Dbg::ipc, "Statistics:\r\n"<<*this);
+}
+	
+void StatisticData::receivedManyBuffers(){
+	++rcvdmannybuffers;
+}
+void StatisticData::receivedKeepAlive(){
+}
+void StatisticData::receivedData(){
+}
+void StatisticData::receivedDataUnknown(){
+}
+void StatisticData::receivedConnecting(){
+}
+void StatisticData::failedAcceptSession(){
+}
+void StatisticData::receivedConnectingError(){
+}
+void StatisticData::receivedAccepting(){
+}
+void StatisticData::receivedAcceptingError(){
+}
+void StatisticData::receivedUnknown(){
+}
+void StatisticData::maxTimerQueueSize(ulong _sz){
+}
+void StatisticData::maxSessionExecQueueSize(ulong _sz){
+}
+void StatisticData::maxSendQueueSize(ulong _sz){
+}
+void StatisticData::sendPending(){
+}
+void StatisticData::signaled(){
+}
+void StatisticData::sendPending(){
+}
+void StatisticData::pushTimer(){
+}
+
+ostream& operator<<(ostream &_ros, const StatisticData &_rsd){
+	_ros<<"rcvdmannybuffers          "<<rcvdmannybuffers<<endl;
+	_ros<<"rcvdkeepalive             "<<rcvdkeepalive<<endl;
+	_ros<<"rcvddata                  "<<rcvddata<<endl;
+	_ros<<"rcvddataunknown           "<<rcvddataunknown<<endl;
+	_ros<<"rcvdconnecting            "<<rcvdconnecting<<endl;
+	_ros<<"failedacceptsession       "<<failedacceptsession<<endl;
+	_ros<<"rcvdconnectingerror       "<<rcvdconnectingerror<<endl;
+	_ros<<"rcvdaccepting             "<<rcvdaccepting<<endl;
+	_ros<<"rcvdacceptingerror        "<<rcvdacceptingerror<<endl;
+	_ros<<"rcvdunknown               "<<rcvdunknown<<endl;
+	_ros<<"maxtimerqueuesize         "<<maxtimerqueuesize<<endl;
+	_ros<<"maxsessionexecqueuesize   "<<maxsessionexecqueuesize<<endl;
+	_ros<<"maxsendqueuesize          "<<maxsendqueuesize<<endl;
+	_ros<<"sendpending               "<<sendpending<<endl;
+	_ros<<"signaledcount             "<<signaledcount<<endl;
+	_ros<<"sendpending               "<<sendpending<<endl;
+	_ros<<"pushtimercount            "<<pushtimercount<<endl;
+	return _ros;
+}
+#endif
 }//namespace ipc
 }//namesapce foundation
 

@@ -25,6 +25,10 @@
 
 #ifdef USTATISTICS
 
+#define COLLECT_DATA_0(om)\
+	om()\
+
+
 #define COLLECT_DATA_1(om,p1)\
 	om(p1)\
 
@@ -32,6 +36,7 @@
 	om(p1, p2)\
 
 #else
+#define COLLECT_DATA_0(om)
 
 #define COLLECT_DATA_1(om,p1)
 
