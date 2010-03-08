@@ -114,10 +114,10 @@ int RemoteListSignal::execute(uint32 _evs, fdt::SignalExecuter&, const SignalUid
 	err = 0;
 	//Thread::sleep(1000 * 20);
 	if(Manager::the().ipc().sendSignal(conid, psig)){
-		idbg("connector was destroyed "<<conid.tkrid<<' '<<conid.procid<<' '<<conid.procuid);
+		idbg("connector was destroyed "<<conid.id<<' '<<conid.sessionidx<<' '<<conid.sessionuid);
 		return BAD;
 	}else{
-		idbg("signal sent "<<conid.tkrid<<' '<<conid.procid<<' '<<conid.procuid);
+		idbg("signal sent "<<conid.id<<' '<<conid.sessionidx<<' '<<conid.sessionuid);
 	}
 	return fdt::LEAVE;
 }

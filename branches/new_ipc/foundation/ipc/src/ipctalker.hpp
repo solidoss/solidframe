@@ -33,13 +33,23 @@ class Visitor;
 namespace ipc{
 
 class Service;
-struct Buffer;
 struct ConnectionUid;
 class Session;
 
 //! A talker for io requests
 class Talker: public foundation::aio::SingleObject{
 public:
+	//! Interface from Talker to Session
+	struct TalkerStub{
+		bool pushSendBuffer(uint32 _id, const char *_pb, uint32 _bl);
+		void pushTimer(uint32 _id, const TimeSpec &_rtimepos);
+	private:
+		friend class Talker;
+		TalkerStub(Talker &_rt, const TimeSpec &_rcrttime):rt(_rt), sessionidx(0), crttime(_rcrttime){}
+		Talker			&rt;
+		uint16			sessionidx;
+		const TimeSpec	&crttime;
+	};
 	typedef Service							ServiceT;
 	typedef foundation::aio::SingleObject	BaseT;
 	
@@ -52,13 +62,15 @@ public:
 	void pushSession(Session *_ps, ConnectionUid &_rconid, bool _exists = false);
 	void disconnectSessions();
 private:
-	int receiveBuffers(uint32 _atmost, const ulong _sig);
-	bool processReceivedBuffers(const TimeSpec &_rts);
-	void dispatchReceivedBuffer(char *_pbuf, const uint32 _bufsz, const SockAddrPair &_rsap);
-	void insertNewSessions();
-	void dispatchSignals();
-	void optimizeBuffer(Buffer &_rbuf);
+	int doReceiveBuffers(uint32 _atmost, const ulong _sig);
+	bool doProcessReceivedBuffers(const TimeSpec &_rts);
+	void doDispatchReceivedBuffer(char *_pbuf, const uint32 _bufsz, const SockAddrPair &_rsap);
+	void doInsertNewSessions();
+	void doDispatchSignals();
+	int doSendBuffers(const ulong _sig);
+	bool doExecuteSessions(const TimeSpec &_rcrttimepos);
 private:
+	friend struct TalkerStub;
 	struct Data;
 	Data &d;
 };

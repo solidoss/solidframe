@@ -1,4 +1,4 @@
-/* Declarations file ipcconnection.hpp
+/* Declarations file ipcsession.hpp
 	
 	Copyright 2010 Valentin Palade
 	vipalade@gmail.com
@@ -23,11 +23,13 @@
 #define IPC_CONNECTION_HPP
 
 #include "iodata.hpp"
+#include "ipctalker.hpp"
 #include "system/timespec.hpp"
 
 #include "utility/dynamicpointer.hpp"
 
 struct SocketAddress;
+struct SockAddrPair;
 struct Inet4SockAddrPair;
 struct Inet6SockAddrPair;
 struct TimeSpec;
@@ -59,9 +61,11 @@ public:
 		uint32 _keepalivetout
 	);
 	
+	~Session();
+	
 	const Inet4SockAddrPair* peerAddr4()const;
 	const Addr4PairT* baseAddr4()const;
-	
+	const SockAddrPair* peerSockAddr()const;
 	
 	bool isConnected()const;
 	bool isDisconnecting()const;
@@ -74,6 +78,19 @@ public:
 	bool pushReceivedBuffer(Buffer &_rbuf, const TimeSpec &_rts);
 	
 	void completeConnect(int _port);
+	
+	bool executeTimeout(
+		Talker::TalkerStub &_rstub,
+		uint32 _id,
+		const TimeSpec &_rts
+	);
+	int execute(Talker::TalkerStub &_rstub, const TimeSpec &_rts);
+	bool pushSentBuffer(
+		uint32 _id,
+		const char *_data,
+		const uint16 _size
+	);
+	
 };
 
 }//namespace ipc

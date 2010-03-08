@@ -21,6 +21,7 @@
 
 #include <map>
 #include <vector>
+#include <cstring>
 
 #include "system/debug.hpp"
 #include "system/mutex.hpp"
@@ -447,7 +448,26 @@ void Buffer::print()const{
 		vdbgx(Dbg::ipc, "update = "<<update(i));
 	}
 }
-//---------------------------------------------------------------------s
+//---------------------------------------------------------------------
+void Buffer::optimize(){
+	const uint32	bufsz(this->bufferSize());
+	const uint		id(Specific::sizeToId(bufsz));
+	const uint		mid(Specific::capacityToId(Buffer::capacityForReading()));
+	if(mid > id){
+		uint32 datasz = this->dataSize();//the size
+		
+		char *newbuf(Specific::popBuffer(id));
+		memcpy(newbuf, this->buffer(), bufsz);//copy to the new buffer
+		
+		char *pb = this->release();
+		Specific::pushBuffer(pb, mid);
+		
+		this->pb = newbuf;
+		this->dl = datasz;
+		this->bc = Specific::idToCapacity(id);
+	}
+}
+//---------------------------------------------------------------------
 }//namespace ipc
 }//namespace foundation
 

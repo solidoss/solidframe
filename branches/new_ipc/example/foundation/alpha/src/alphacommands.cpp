@@ -814,7 +814,7 @@ int Idle::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 	if(_rp.b.i == 1){//prepare
 		cassert(typeq.size());
 		if(typeq.front() == PeerStringType){
-			_rw<<"* RECEIVED STRING ("<<(uint32)conidq.front().tkrid<<' '<<(uint32)conidq.front().procid<<' '<<(uint32)conidq.front().procuid;
+			_rw<<"* RECEIVED STRING ("<<(uint32)conidq.front().id<<' '<<(uint32)conidq.front().sessionidx<<' '<<(uint32)conidq.front().sessionuid;
 			_rw<<") ("<<(uint32)fromq.front().first<<' '<<(uint32)fromq.front().second<<") ";
 			_rp.b.i = 0;
 			_rw.push(&Writer::flushAll);
@@ -822,7 +822,7 @@ int Idle::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 			_rw.push(&Writer::putChar, protocol::Parameter('\r'));
 			_rw.push(&Writer::putAString, protocol::Parameter((void*)stringq.front().data(), stringq.front().size()));
 		}else if(typeq.front() == PeerStreamType){
-			_rw<<"* RECEIVED STREAM ("<<(uint32)conidq.front().tkrid<<' '<<(uint32)conidq.front().procid<<' '<<(uint32)conidq.front().procuid;
+			_rw<<"* RECEIVED STREAM ("<<(uint32)conidq.front().id<<' '<<(uint32)conidq.front().sessionidx<<' '<<(uint32)conidq.front().sessionuid;
 			_rw<<") ("<<(uint32)fromq.front().first<<' '<<(uint32)fromq.front().second<<") PATH ";
 			_rp.b.i = 0;
 			_rw.push(&Writer::flushAll);

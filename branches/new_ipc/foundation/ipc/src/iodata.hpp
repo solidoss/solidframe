@@ -152,6 +152,7 @@ struct Buffer{
 		header().updatescnt = 0;
 	}
 	void clear();
+	void optimize();
 	void reinit(char *_pb = NULL, uint16 _bc = 0, uint16 _dl = 0){
 		clear();
 		pb = _pb;
@@ -216,7 +217,10 @@ struct Buffer{
 	bool check()const;
 	
 	void print()const;//see ipcservice.cpp
-	
+private:
+	Buffer(const Buffer&);
+	Buffer& operator=(const Buffer&);
+public:
 //data
 	char	*pb;
 	uint16	bc;//buffer capacity
