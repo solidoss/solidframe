@@ -23,6 +23,7 @@
 #include <map>
 #include <cerrno>
 #include <cstring>
+#include <ostream>
 
 #include "system/timespec.hpp"
 #include "system/socketaddress.hpp"
@@ -70,7 +71,6 @@ struct StatisticData{
 	void maxSendQueueSize(ulong _sz);
 	void sendPending();
 	void signaled();
-	void sendPending();
 	void pushTimer();
 	
 	ulong	rcvdmannybuffers;
@@ -88,11 +88,10 @@ struct StatisticData{
 	ulong	maxsendqueuesize;
 	ulong	sendpending;
 	ulong	signaledcount;
-	ulong	sendpending;
 	ulong	pushtimercount;
 };
 
-ostream& operator<<(ostream &_ros, const StatisticData &_rsd);
+std::ostream& operator<<(std::ostream &_ros, const StatisticData &_rsd);
 
 #endif
 
@@ -530,6 +529,7 @@ int Talker::doSendBuffers(const ulong _sig){
 		}
 		d.sendq.pop();
 	}
+	return NOK;
 }
 //----------------------------------------------------------------------
 //The talker's mutex should be locked
@@ -693,7 +693,7 @@ bool Talker::TalkerStub::pushSendBuffer(uint32 _id, const char *_pb, uint32 _bl)
 }
 //----------------------------------------------------------------------
 void Talker::TalkerStub::pushTimer(uint32 _id, const TimeSpec &_rtimepos){
-	COLLECT_DATA_0(d.statistics.pushTimer);
+	COLLECT_DATA_0(rt.d.statistics.pushTimer);
 	rt.d.timerq.push(Data::TimerData(_rtimepos, _id, this->sessionidx));
 }
 //======================================================================
@@ -709,56 +709,68 @@ void StatisticData::receivedManyBuffers(){
 	++rcvdmannybuffers;
 }
 void StatisticData::receivedKeepAlive(){
+	++rcvdkeepalive;
 }
 void StatisticData::receivedData(){
+	++rcvddata;
 }
 void StatisticData::receivedDataUnknown(){
+	++rcvddataunknown;
 }
 void StatisticData::receivedConnecting(){
+	++rcvdconnecting;
 }
 void StatisticData::failedAcceptSession(){
+	++failedacceptsession;
 }
 void StatisticData::receivedConnectingError(){
+	++rcvdconnectingerror;
 }
 void StatisticData::receivedAccepting(){
+	++rcvdaccepting;
 }
 void StatisticData::receivedAcceptingError(){
+	++rcvdacceptingerror;
 }
 void StatisticData::receivedUnknown(){
+	++rcvdunknown;
 }
 void StatisticData::maxTimerQueueSize(ulong _sz){
+	if(maxtimerqueuesize < _sz) maxtimerqueuesize = _sz;
 }
 void StatisticData::maxSessionExecQueueSize(ulong _sz){
+	if(maxsessionexecqueuesize < _sz) maxsessionexecqueuesize = _sz;
 }
 void StatisticData::maxSendQueueSize(ulong _sz){
+	if(maxsendqueuesize < _sz) maxsendqueuesize = _sz;
 }
 void StatisticData::sendPending(){
+	++sendpending;
 }
 void StatisticData::signaled(){
-}
-void StatisticData::sendPending(){
+	++signaledcount;
 }
 void StatisticData::pushTimer(){
+	++pushtimercount;
 }
 
-ostream& operator<<(ostream &_ros, const StatisticData &_rsd){
-	_ros<<"rcvdmannybuffers          "<<rcvdmannybuffers<<endl;
-	_ros<<"rcvdkeepalive             "<<rcvdkeepalive<<endl;
-	_ros<<"rcvddata                  "<<rcvddata<<endl;
-	_ros<<"rcvddataunknown           "<<rcvddataunknown<<endl;
-	_ros<<"rcvdconnecting            "<<rcvdconnecting<<endl;
-	_ros<<"failedacceptsession       "<<failedacceptsession<<endl;
-	_ros<<"rcvdconnectingerror       "<<rcvdconnectingerror<<endl;
-	_ros<<"rcvdaccepting             "<<rcvdaccepting<<endl;
-	_ros<<"rcvdacceptingerror        "<<rcvdacceptingerror<<endl;
-	_ros<<"rcvdunknown               "<<rcvdunknown<<endl;
-	_ros<<"maxtimerqueuesize         "<<maxtimerqueuesize<<endl;
-	_ros<<"maxsessionexecqueuesize   "<<maxsessionexecqueuesize<<endl;
-	_ros<<"maxsendqueuesize          "<<maxsendqueuesize<<endl;
-	_ros<<"sendpending               "<<sendpending<<endl;
-	_ros<<"signaledcount             "<<signaledcount<<endl;
-	_ros<<"sendpending               "<<sendpending<<endl;
-	_ros<<"pushtimercount            "<<pushtimercount<<endl;
+std::ostream& operator<<(std::ostream &_ros, const StatisticData &_rsd){
+	_ros<<"rcvdmannybuffers          "<<_rsd.rcvdmannybuffers<<std::endl;
+	_ros<<"rcvdkeepalive             "<<_rsd.rcvdkeepalive<<std::endl;
+	_ros<<"rcvddata                  "<<_rsd.rcvddata<<std::endl;
+	_ros<<"rcvddataunknown           "<<_rsd.rcvddataunknown<<std::endl;
+	_ros<<"rcvdconnecting            "<<_rsd.rcvdconnecting<<std::endl;
+	_ros<<"failedacceptsession       "<<_rsd.failedacceptsession<<std::endl;
+	_ros<<"rcvdconnectingerror       "<<_rsd.rcvdconnectingerror<<std::endl;
+	_ros<<"rcvdaccepting             "<<_rsd.rcvdaccepting<<std::endl;
+	_ros<<"rcvdacceptingerror        "<<_rsd.rcvdacceptingerror<<std::endl;
+	_ros<<"rcvdunknown               "<<_rsd.rcvdunknown<<std::endl;
+	_ros<<"maxtimerqueuesize         "<<_rsd.maxtimerqueuesize<<std::endl;
+	_ros<<"maxsessionexecqueuesize   "<<_rsd.maxsessionexecqueuesize<<std::endl;
+	_ros<<"maxsendqueuesize          "<<_rsd.maxsendqueuesize<<std::endl;
+	_ros<<"sendpending               "<<_rsd.sendpending<<std::endl;
+	_ros<<"signaledcount             "<<_rsd.signaledcount<<std::endl;
+	_ros<<"pushtimercount            "<<_rsd.pushtimercount<<std::endl;
 	return _ros;
 }
 #endif
