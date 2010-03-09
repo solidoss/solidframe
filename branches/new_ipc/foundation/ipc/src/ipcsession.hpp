@@ -75,7 +75,11 @@ public:
 	void prepare();
 	void reconnect(Session *_pses);	
 	int pushSignal(DynamicPointer<Signal> &_rsig, uint32 _flags);
-	bool pushReceivedBuffer(Buffer &_rbuf, const TimeSpec &_rts);
+	bool pushReceivedBuffer(
+		Buffer &_rbuf,
+		const TimeSpec &_rts,
+		const ConnectionUid &_rconid
+	);
 	
 	void completeConnect(int _port);
 	
@@ -90,7 +94,22 @@ public:
 		const char *_data,
 		const uint16 _size
 	);
-	
+private:
+	bool doPushExpectedReceivedBuffer(
+		Buffer &_rbuf,
+		const TimeSpec &_rts,
+		const ConnectionUid &_rconid
+	);
+	bool doPushUnxpectedReceivedBuffer(
+		Buffer &_rbuf,
+		const TimeSpec &_rts,
+		const ConnectionUid &_rconid
+	);
+	void doFreeSentBuffers(const Buffer &_rbuf, const ConnectionUid &_rconid);
+	void doParseBuffer(const Buffer &_rbuf, const ConnectionUid &_rconid);
+private:
+	struct Data;
+	Data	&d;
 };
 
 }//namespace ipc

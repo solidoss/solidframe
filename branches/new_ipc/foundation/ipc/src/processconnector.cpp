@@ -80,15 +80,16 @@ namespace ipc{
 namespace {
 
 struct BufCmp{
-	bool operator()(const Buffer &_rbuf1, const Buffer &_rbuf2)const{
-		//return _rbuf1.id() > _rbuf2.id();
-		const ulong id1(_rbuf1.id());
-		const ulong id2(_rbuf2.id());
+	bool operator()(const ulong id1, const ulong id2)const{
 		if(id1 > id2)
 			return (id1 - id2) <= (ulong)(0xffffffff/2);
 		else
 			return (id2 - id1) > (ulong)(0xffffffff/2);
 	}
+	bool operator()(const Buffer &_rbuf1, const Buffer &_rbuf2)const{
+		return operator()(_rbuf1.id(), _rbuf2.id());
+	}
+	
 };
 
 typedef serialization::IdTypeMap					IdTypeMap;

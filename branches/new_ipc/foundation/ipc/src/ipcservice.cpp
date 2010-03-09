@@ -93,7 +93,6 @@ Service::Data::~Data(){
 Service::Service(uint32 _keepalivetout):d(*(new Data)){
 	//d.maxtkrcnt = 2;//TODO: make it configurable
 	d.keepalivetout = _keepalivetout;
-	Session::init();
 }
 //---------------------------------------------------------------------
 Service::~Service(){

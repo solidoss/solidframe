@@ -355,13 +355,16 @@ int Talker::doReceiveBuffers(uint32 _atmost, const ulong _sig){
 }
 //----------------------------------------------------------------------
 bool Talker::doProcessReceivedBuffers(const TimeSpec &_rts){
+	ConnectionUid	conuid(d.tkrid);
 	for(Data::RecvBufferVectorT::const_iterator it(d.receivedbufvec.begin()); it != d.receivedbufvec.end(); ++it){
 		
 		const Data::RecvBuffer	&rcvbuf(*it);
 		Data::SessionStub		&rss(d.sessionvec[rcvbuf.sessionidx]);
 		Buffer					buf(rcvbuf.data, Buffer::capacityForReading(), rcvbuf.size);
 		
-		if(rss.psession->pushReceivedBuffer(buf, _rts)){
+		conuid.sessionidx = rcvbuf.sessionidx;
+		conuid.sessionuid = rss.uid;
+		if(rss.psession->pushReceivedBuffer(buf, _rts, conuid)){
 			if(!rss.inexeq){
 				d.sessionexecq.push(rcvbuf.sessionidx);
 				rss.inexeq = true;

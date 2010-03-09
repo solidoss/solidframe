@@ -90,7 +90,9 @@ struct Inet6AddrPtrCmp{
 
 struct Buffer{
 	enum{
-		ReadCapacity = 4096
+		ReadCapacity = 4096,
+		LastBufferId = 0xffffffff - 32,
+		UpdateBufferId = 0xffffffff,//the id of a buffer containing only updates
 	};
 	struct Header{
 		uint8		version;
@@ -140,7 +142,15 @@ struct Buffer{
 		char *_pb = NULL,
 		uint16 _bc = 0,
 		uint16 _dl = 0
-	):pb(_pb), bc(_bc), dl(_dl){
+	):bc(_bc), dl(_dl), pb(_pb){
+	}
+	Buffer(const Buffer& _rbuf):bc(_rbuf.bc), dl(_rbuf.dl), pb(_rbuf.release()){
+	}
+	Buffer& operator=(const Buffer& _rbuf){
+		bc = _rbuf.bc;
+		dl = _rbuf.dl;
+		pb = _rbuf.release();
+		return *this;
 	}
 	~Buffer();
 	void resetHeader(){
@@ -182,12 +192,12 @@ struct Buffer{
 		++dl;
 	}
 	
-	char *release(uint32 &_cp){
+	char *release(uint32 &_cp)const{
 		char* tmp = pb; pb = NULL; 
 		_cp = bc; bc = 0; dl = 0;
 		return tmp;
 	}
-	char *release(){
+	char *release()const{
 		uint32 cp;
 		return release(cp);
 	}
@@ -217,14 +227,12 @@ struct Buffer{
 	bool check()const;
 	
 	void print()const;//see ipcservice.cpp
-private:
-	Buffer(const Buffer&);
-	Buffer& operator=(const Buffer&);
+	
 public:
 //data
-	char	*pb;
-	uint16	bc;//buffer capacity
-	uint16	dl;//data length
+	mutable uint16	bc;//buffer capacity
+	mutable uint16	dl;//data length
+	mutable char	*pb;
 };
 
 //inlines:
