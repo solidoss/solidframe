@@ -67,7 +67,7 @@ struct Session::Data{
 	enum{
 		MaxSignalBufferCount = 8,//continuous buffers sent for a signal
 		MaxSendSignalQueueSize = 32,//max count of signals sent in paralell
-		MaxOutOfOrder = 4,
+		MaxOutOfOrder = 4,//please also change moveToNextOutOfOrderBuffer
 	};
 	struct BinSerializer:serialization::bin::Serializer{
 		BinSerializer():serialization::bin::Serializer(IdTypeMap::the()){}
@@ -89,11 +89,8 @@ struct Session::Data{
 		int
 	>											BaseProcAddrT;
 	typedef Queue<uint32>						UInt32QueueT;
-	typedef std::priority_queue<
-		Buffer,
-		std::vector<Buffer>,
-		BufCmp
-	>											BufferPriorityQueueT;
+	typedef std::vector<Buffer>					BufferVectorT;
+	
 public:
 	Data(
 		const Inet4SockAddrPair &_raddr,
@@ -133,7 +130,8 @@ public:
 		cassert(_p->empty());
 		Specific::cache(_p);
 	}
-	bool moveToNextOutOfOrderBuffer();
+	bool moveToNextOutOfOrderBuffer(Buffer &_rb);
+	bool keepOutOfOrderBuffer(Buffer &_rb);
 	bool mustSendUpdates();
 	void incrementExpectedId();
 public:
@@ -141,9 +139,12 @@ public:
 	SockAddrPair			pairaddr;
 	BaseProcAddrT			baseaddr;
 	uint32					rcvexpectedid;
+	uint8					state;
+	uint16					outoforderbufcnt;
 	
 	UInt32QueueT			rcvdidq;
-	BufferPriorityQueueT	outoforderbufq;
+	BufferVectorT			outoforderbufvec;
+	
 };
 
 //---------------------------------------------------------------------
@@ -152,6 +153,7 @@ Session::Data::Data(
 	uint32 _keepalivetout
 ):	addr(_raddr), pairaddr(addr), 
 	baseaddr(&pairaddr, addr.port()){
+	outoforderbufvec.resize(MaxOutOfOrder);
 }
 //---------------------------------------------------------------------
 Session::Data::Data(
@@ -159,20 +161,57 @@ Session::Data::Data(
 	int _baseport,
 	uint32 _keepalivetout
 ):	addr(_raddr), pairaddr(addr), baseaddr(&pairaddr, _baseport){
+	outoforderbufvec.resize(MaxOutOfOrder);
 }
 //---------------------------------------------------------------------
 Session::Data::~Data(){
 }
 //---------------------------------------------------------------------
-bool Session::Data::moveToNextOutOfOrderBuffer(){
-	BufCmp	bc;
-	while(outoforderbufq.size() && (bc(outoforderbufq.top().id(), rcvexpectedid))){
-		outoforderbufq.pop();
+bool Session::Data::moveToNextOutOfOrderBuffer(Buffer &_rb){
+	cassert(MaxOutOfOrder == 4);
+	unsigned idx(0);
+	if(outoforderbufvec[0].empty()){
+		return false;
 	}
-	if(outoforderbufq.size()){
-		return outoforderbufq.top().id() == rcvexpectedid;
+	if(outoforderbufvec[0].id() == rcvexpectedid){
+		idx = 0;
+		goto Success;
+	}
+	if(outoforderbufvec[1].empty()){
+		return false;
+	}
+	if(outoforderbufvec[1].id() == rcvexpectedid){
+		idx = 1;
+		goto Success;
+	}
+	if(outoforderbufvec[2].empty()){
+		return false;
+	}
+	if(outoforderbufvec[2].id() == rcvexpectedid){
+		idx = 2;
+		goto Success;
+	}
+	if(outoforderbufvec[3].empty()){
+		return false;
+	}
+	if(outoforderbufvec[3].id() == rcvexpectedid){
+		idx = 3;
+		goto Success;
 	}
 	return false;
+	Success:
+	_rb = outoforderbufvec[idx];
+	outoforderbufvec[idx] = outoforderbufvec[outoforderbufcnt - 1];
+	incrementExpectedId();
+	--outoforderbufcnt;
+	return true;
+}
+//---------------------------------------------------------------------
+bool Session::Data::keepOutOfOrderBuffer(Buffer &_rb){
+	if(outoforderbufcnt == MaxOutOfOrder) return false;
+	outoforderbufvec[outoforderbufcnt] = _rb;
+	++outoforderbufcnt;
+	return true;
 }
 //---------------------------------------------------------------------
 bool Session::Data::mustSendUpdates(){
@@ -307,14 +346,12 @@ bool Session::doPushExpectedReceivedBuffer(
 	
 	d.incrementExpectedId();//move to the next buffer
 	//while(d.inbufq.top().id() == d.expectedid){
-	while(d.moveToNextOutOfOrderBuffer()){
-		Buffer b(d.outoforderbufq.top());
-		d.outoforderbufq.pop();
+	Buffer	b;
+	while(d.moveToNextOutOfOrderBuffer(b)){
 		//this is already done on receive
 		if(_rbuf.type() == Buffer::DataType){
 			doParseBuffer(b, _rconid);
 		}
-		d.incrementExpectedId();//move to the next buffer
 	}
 	return d.mustSendUpdates();
 }
@@ -334,10 +371,9 @@ bool Session::doPushUnxpectedReceivedBuffer(
 		if(_rbuf.updatesCount()){//we have updates
 			doFreeSentBuffers(_rbuf, _rconid);
 		}
-		//try to keep the buffer for future parsing
-		if(d.outoforderbufq.size() < Data::MaxOutOfOrder){
+		//try to keep the buffer for future parsin
+		if(d.keepOutOfOrderBuffer(_rbuf)){
 			d.rcvdidq.push(_rbuf.id());//for peer updates
-			d.outoforderbufq.push(_rbuf);
 		}else{
 			idbgx(Dbg::ipc, "to many buffers out-of-order");
 		}

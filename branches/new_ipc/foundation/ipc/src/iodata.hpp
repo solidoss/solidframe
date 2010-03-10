@@ -147,12 +147,17 @@ struct Buffer{
 	Buffer(const Buffer& _rbuf):bc(_rbuf.bc), dl(_rbuf.dl), pb(_rbuf.release()){
 	}
 	Buffer& operator=(const Buffer& _rbuf){
-		bc = _rbuf.bc;
-		dl = _rbuf.dl;
-		pb = _rbuf.release();
+		if(this != &_rbuf){
+			bc = _rbuf.bc;
+			dl = _rbuf.dl;
+			pb = _rbuf.release();
+		}
 		return *this;
 	}
 	~Buffer();
+	bool empty()const{
+		return pb == NULL;
+	}
 	void resetHeader(){
 		header().version = 1;
 		header().retransid = 0;
