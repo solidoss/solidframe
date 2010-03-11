@@ -314,7 +314,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 	
 	must_reenter = doProcessReceivedBuffers(_tout) || must_reenter;
 	
-	rv = doSendBuffers(_sig);
+	rv = doSendBuffers(_sig, _tout);
 	if(rv == OK){
 		must_reenter = true;
 	}else if(rv == BAD){
@@ -462,7 +462,7 @@ bool Talker::doExecuteSessions(const TimeSpec &_rcrttimepos){
 		const Data::TimerData		&rtd(d.timerq.top());
 		Data::SessionStub			&rss(d.sessionvec[rtd.sessionidx]);
 		ts.sessionidx = rtd.sessionidx;
-		if(rss.psession->executeTimeout(ts, rtd.id, _rcrttimepos)){
+		if(rss.psession->executeTimeout(ts, rtd.id)){
 			if(!rss.inexeq){
 				d.sessionexecq.push(ts.sessionidx);
 				rss.inexeq = true;
@@ -479,7 +479,7 @@ bool Talker::doExecuteSessions(const TimeSpec &_rcrttimepos){
 		Data::SessionStub	&rss(d.sessionvec[ts.sessionidx]);
 		
 		rss.inexeq = false;
-		switch(rss.psession->execute(ts, _rcrttimepos)){
+		switch(rss.psession->execute(ts)){
 			case BAD:
 				d.closingsessionvec.push_back(ts.sessionidx);
 				rss.inexeq = true;
@@ -494,17 +494,20 @@ bool Talker::doExecuteSessions(const TimeSpec &_rcrttimepos){
 	return d.sessionexecq.size() != 0;
 }
 //----------------------------------------------------------------------
-int Talker::doSendBuffers(const ulong _sig){
+int Talker::doSendBuffers(const ulong _sig, const TimeSpec &_rcrttimepos){
 	if(socketHasPendingRecv()){
 		return NOK;
 	}
+	
+	TalkerStub ts(*this, _rcrttimepos);
+	
 	if(_sig & fdt::OUTDONE){
 		cassert(d.sendq.size());
 		COLLECT_DATA_1(d.statistics.maxSendQueueSize, d.sendq.size());
 		Data::SendBuffer	&rsb(d.sendq.front());
 		Data::SessionStub	&rss(d.sessionvec[rsb.sessionidx]);
 		
-		if(rss.psession->pushSentBuffer(rsb.id, rsb.data, rsb.size)){
+		if(rss.psession->pushSentBuffer(ts, rsb.id, rsb.data, rsb.size)){
 			if(!rss.inexeq){
 				d.sessionexecq.push(rsb.sessionidx);
 				rss.inexeq = true;
@@ -520,7 +523,7 @@ int Talker::doSendBuffers(const ulong _sig){
 		switch(socketSendTo(rsb.data, rsb.size, *rss.psession->peerSockAddr())){
 			case BAD: return BAD;
 			case OK:
-				if(rss.psession->pushSentBuffer(rsb.id, rsb.data, rsb.size)){
+				if(rss.psession->pushSentBuffer(ts, rsb.id, rsb.data, rsb.size)){
 					if(!rss.inexeq){
 						d.sessionexecq.push(rsb.sessionidx);
 						rss.inexeq = true;

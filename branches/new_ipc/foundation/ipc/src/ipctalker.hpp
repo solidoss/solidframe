@@ -43,6 +43,9 @@ public:
 	struct TalkerStub{
 		bool pushSendBuffer(uint32 _id, const char *_pb, uint32 _bl);
 		void pushTimer(uint32 _id, const TimeSpec &_rtimepos);
+		const TimeSpec& currentTime()const{
+			return crttime;
+		}
 	private:
 		friend class Talker;
 		TalkerStub(Talker &_rt, const TimeSpec &_rcrttime):rt(_rt), sessionidx(0), crttime(_rcrttime){}
@@ -67,7 +70,7 @@ private:
 	void doDispatchReceivedBuffer(char *_pbuf, const uint32 _bufsz, const SockAddrPair &_rsap);
 	void doInsertNewSessions();
 	void doDispatchSignals();
-	int doSendBuffers(const ulong _sig);
+	int doSendBuffers(const ulong _sig, const TimeSpec &_rcrttimepos);
 	bool doExecuteSessions(const TimeSpec &_rcrttimepos);
 private:
 	friend struct TalkerStub;

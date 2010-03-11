@@ -53,6 +53,32 @@ struct BufCmp{
 	}
 	
 };
+
+namespace{
+
+struct StaticData{
+	enum{
+		DataRetransmitCount = 8,
+		ConnectRetransmitCount = 16,
+		//StartRetransmitTimeout = 100
+		RefreshIndex = (1 << 7) - 1
+	};
+	StaticData();
+	static StaticData& instance();
+	ulong retransmitTimeout(uint _pos);
+private:
+	typedef std::vector<ulong> ULongVectorT;
+	ULongVectorT	toutvec;
+};
+
+union UInt32Pair{
+	uint32	u32;
+	uint16	u16first;
+	uint16	u16second;
+};
+
+}//namespace
+
 //== Session::Data ====================================================
 typedef serialization::IdTypeMap					IdTypeMap;
 
@@ -62,7 +88,8 @@ struct Session::Data{
 		Accepting,
 		WaitAccept,
 		Connected,
-		Disconnecting
+		Disconnecting,
+		Reconnecting,
 	};
 	enum{
 		MaxSendBufferCount = 6,
@@ -126,8 +153,12 @@ struct Session::Data{
 	};
 	typedef	std::vector<uint16>					UInt16VectorT;
 	struct SendBufferData{
+		SendBufferData():uid(0), sending(0), mustdelete(0){}
 		Buffer				buffer;
 		UInt16VectorT		signalidxvec;
+		uint16				uid;//we need uid for timer
+		uint8				sending;
+		uint8				mustdelete;
 	};
 	typedef std::pair<
 		const SockAddrPair*,
@@ -141,6 +172,11 @@ struct Session::Data{
 	typedef Queue<RecvSignalData>				RecvSignalQueueT;
 	typedef std::vector<SendSignalData>			SendSignalVectorT;
 	typedef std::vector<SendBufferData>			SendBufferVectorT;
+	typedef std::pair<
+		DynamicPointer<Signal>,
+		uint32
+		>										SignalPairT;
+	typedef Queue<SignalPairT>					SignalQueueT;
 public:
 	Data(
 		const Inet4SockAddrPair &_raddr,
@@ -193,6 +229,11 @@ public:
 	void popSentWaitSignals(SendBufferData &_rsbd);
 	void popSentWaitSignal(const SignalUid &_rsiguid);
 	void popSentWaitSignal(const uint32 _idx);
+	void freeSentBuffer(const uint32 _idx);
+	void clearSentBuffer(const uint32 _idx);
+	
+	uint32 computeRetransmitTimeout(const uint32 _retrid, const uint32 _bufid);
+	bool canSendKeepAlive(const TimeSpec &_tpos)const;
 public:
 	SocketAddress			addr;
 	SockAddrPair			pairaddr;
@@ -201,6 +242,7 @@ public:
 	uint8					state;
 	uint16					outoforderbufcnt;
 	uint32					sentsignalwaitresponse;
+	uint32					retansmittimepos;
 	
 	UInt32QueueT			rcvdidq;
 	BufferVectorT			outoforderbufvec;
@@ -209,6 +251,7 @@ public:
 	UInt32StackT			sendsignalfreeposstk;
 	SendBufferVectorT		sendbuffervec;//will have about 6 items
 	UInt8StackT				sendbufferfreeposstk;
+	SignalQueueT			signalq;
 };
 
 //---------------------------------------------------------------------
@@ -385,7 +428,92 @@ void Session::Data::popSentWaitSignal(const uint32 _idx){
 		sendsignalfreeposstk.push(_idx);
 	}	
 }
-
+//---------------------------------------------------------------------
+void Session::Data::freeSentBuffer(const uint32 _bufid){
+	uint	idx;
+	if(	sendbuffervec[0].buffer.buffer() && 
+		sendbuffervec[0].buffer.id() == _bufid
+	){
+		idx = 0;
+		goto Success;
+	}
+	if(	sendbuffervec[1].buffer.buffer() && 
+		sendbuffervec[1].buffer.id() == _bufid
+	){
+		idx = 1;
+		goto Success;
+	}
+	if(	sendbuffervec[2].buffer.buffer() && 
+		sendbuffervec[2].buffer.id() == _bufid
+	){
+		idx = 2;
+		goto Success;
+	}
+	if(	sendbuffervec[3].buffer.buffer() && 
+		sendbuffervec[3].buffer.id() == _bufid
+	){
+		idx = 3;
+		goto Success;
+	}
+	if(	sendbuffervec[4].buffer.buffer() && 
+		sendbuffervec[4].buffer.id() == _bufid
+	){
+		idx = 4;
+		goto Success;
+	}
+	if(	sendbuffervec[5].buffer.buffer() && 
+		sendbuffervec[5].buffer.id() == _bufid
+	){
+		idx = 5;
+		goto Success;
+	}
+	if(	sendbuffervec[6].buffer.buffer() && 
+		sendbuffervec[6].buffer.id() == _bufid
+	){
+		idx = 6;
+		goto Success;
+	}
+	return;
+	
+	Success:
+	SendBufferData &rsbd(sendbuffervec[idx]);
+	if(idx){
+		if(!rsbd.sending){
+			clearSentBuffer(idx);
+		}else{
+			rsbd.mustdelete = 1;
+		}
+	}else{
+		//we can now initiate the sending of keepalive buffer
+		rsbd.buffer.retransmitId(0);
+	}
+	
+}
+//----------------------------------------------------------------------
+void Session::Data::clearSentBuffer(const uint32 _idx){
+	SendBufferData &rsbd(sendbuffervec[_idx]);
+	popSentWaitSignals(rsbd);
+	rsbd.buffer.clear();
+	++rsbd.uid;
+	sendbufferfreeposstk.push(_idx);
+}
+//----------------------------------------------------------------------
+inline uint32 Session::Data::computeRetransmitTimeout(const uint32 _retrid, const uint32 _bufid){
+	if(!(_bufid & StaticData::RefreshIndex)){
+		//recalibrate the retansmittimepos
+		retansmittimepos = 0;
+	}
+	if(_retrid > retansmittimepos){
+		retansmittimepos = _retrid;
+		return StaticData::instance().retransmitTimeout(retansmittimepos);
+	}else{
+		return StaticData::instance().retransmitTimeout(retansmittimepos + _retrid);
+	}
+}
+//----------------------------------------------------------------------
+bool Session::Data::canSendKeepAlive(const TimeSpec &_tpos)const{
+	return false;
+}
 //=====================================================================
 /*static*/ int Session::parseAcceptedBuffer(const Buffer &_rbuf){
 	if(_rbuf.dataSize() == sizeof(int32)){
@@ -436,29 +564,37 @@ const SockAddrPair* Session::peerSockAddr()const{
 }
 //---------------------------------------------------------------------
 bool Session::isConnected()const{
-	return false;
+	return d.state > Data::Connecting;
 }
 //---------------------------------------------------------------------
 bool Session::isDisconnecting()const{
-	return false;
+	return d.state == Data::Disconnecting;
 }
 //---------------------------------------------------------------------
 bool Session::isConnecting()const{
-	return false;
+	return d.state == Data::Connecting;
 }
 //---------------------------------------------------------------------
 bool Session::isAccepting()const{
-	return false;
+	return d.state == Data::Accepting;
 }
 //---------------------------------------------------------------------
 void Session::prepare(){
+	Buffer b(
+		Specific::popBuffer(Specific::sizeToId(Buffer::minSize())),
+		Specific::idToCapacity(Specific::sizeToId(Buffer::minSize()))
+	);
+	b.type(Buffer::KeepAliveType);
+	d.sendbuffervec[0].buffer = b;
 }
 //---------------------------------------------------------------------
 void Session::reconnect(Session *_pses){
 }
 //---------------------------------------------------------------------
-int Session::pushSignal(DynamicPointer<Signal> &_rsig, uint32 _flag){
-	return BAD;
+int Session::pushSignal(DynamicPointer<Signal> &_rsig, uint32 _flags){
+	d.signalq.push(Data::SignalPairT(_rsig, _flags));
+	if(d.signalq.size() == 1) return NOK;
+	return OK;
 }
 //---------------------------------------------------------------------
 bool Session::pushReceivedBuffer(Buffer &_rbuf, const TimeSpec &_rts, const ConnectionUid &_rconuid){
@@ -469,26 +605,98 @@ bool Session::pushReceivedBuffer(Buffer &_rbuf, const TimeSpec &_rts, const Conn
 	}
 }
 //---------------------------------------------------------------------
-void Session::completeConnect(int _port){
+void Session::completeConnect(int _pairport){
+	if(d.state == Data::Connected) return;
+	
+	d.state = Data::Connected;
+	d.addr.port(_pairport);
+	
+	d.freeSentBuffer(1);
+	//put the received accepting buffer from peer as update - it MUST have id 0
+	d.rcvdidq.push(0);
 }
 //---------------------------------------------------------------------
 bool Session::executeTimeout(
 	Talker::TalkerStub &_rstub,
-	uint32 _id,
-	const TimeSpec &_rts
+	uint32 _id
 ){
+	UInt32Pair u32pack;
+	u32pack.u32 = _id;
+	
+	Data::SendBufferData &rsbd(d.sendbuffervec[u32pack.u16first]);
+	if(rsbd.uid != u32pack.u16second){
+		return false;
+	}
+	
+	cassert(!rsbd.buffer.empty());
+	
+	rsbd.buffer.retransmitId(rsbd.buffer.retransmitId() + 1);
+	
+	if(rsbd.buffer.retransmitId() > StaticData::DataRetransmitCount){
+		if(rsbd.buffer.type() == Buffer::ConnectingType){
+			if(rsbd.buffer.retransmitId() > StaticData::ConnectRetransmitCount){//too many resends for connect type
+				idbgx(Dbg::ipc, "preparing to disconnect process");
+				cassert(d.state != Data::Disconnecting);
+				d.state = Data::Disconnecting;
+				return true;//disconnecting
+			}
+		}else{
+			d.state = Data::Reconnecting;
+			return true;
+		}
+	}
+	
+	if(!u32pack.u16first || d.canSendKeepAlive(_rstub.currentTime())){
+		//resend the buffer
+		if(_rstub.pushSendBuffer(u32pack.u32, rsbd.buffer.buffer(), rsbd.buffer.bufferSize())){
+			TimeSpec tpos(_rstub.currentTime());
+			tpos += d.computeRetransmitTimeout(rsbd.buffer.retransmitId(), rsbd.buffer.id());
+	
+			_rstub.pushTimer(u32pack.u32, tpos);
+		}else{
+			rsbd.sending = 1;
+		}
+		
+	}
+	
 	return false;
 }
 //---------------------------------------------------------------------
-int Session::execute(Talker::TalkerStub &_rstub, const TimeSpec &_rts){
+int Session::execute(Talker::TalkerStub &_rstub){
 	return BAD;
 }
 //---------------------------------------------------------------------
 bool Session::pushSentBuffer(
+	Talker::TalkerStub &_rstub,
 	uint32 _id,
 	const char *_data,
 	const uint16 _size
 ){
+	if(_id == -1){//an update buffer
+		//free it right away
+		char *pb(const_cast<char*>(_data));
+		Specific::pushBuffer(pb, Specific::sizeToId(_size));
+		return false;
+	}
+	//all we do is set a timer for this buffer
+	Data::SendBufferData &rsbd(d.sendbuffervec[_id]);
+	
+	cassert(rsbd.sending);
+	cassert(rsbd.buffer.buffer() == _data);
+	rsbd.sending = 0;
+	if(rsbd.mustdelete){
+		d.clearSentBuffer(_id);
+		return false;//no scheduling
+	}
+	UInt32Pair u32pack;
+	u32pack.u16first = _id;
+	u32pack.u16second = rsbd.uid;
+	
+	//schedule a timer for this buffer
+	TimeSpec tpos(_rstub.currentTime());
+	tpos += d.computeRetransmitTimeout(rsbd.buffer.retransmitId(), rsbd.buffer.id());
+	
+	_rstub.pushTimer(u32pack.u32, tpos);
 	return false;
 }
 //---------------------------------------------------------------------
@@ -548,6 +756,9 @@ bool Session::doPushUnxpectedReceivedBuffer(
 }
 //---------------------------------------------------------------------
 void Session::doFreeSentBuffers(const Buffer &_rbuf, const ConnectionUid &_rconid){
+	for(uint32 i(0); i < _rbuf.updatesCount(); ++i){
+		d.freeSentBuffer(_rbuf.update(i));
+	}
 }
 //---------------------------------------------------------------------
 void Session::doParseBufferDataType(const char *&_bpos, int &_blen, int _firstblen){
@@ -640,6 +851,40 @@ void Session::doParseBuffer(const Buffer &_rbuf, const ConnectionUid &_rconid){
 	}
 
 }
-//---------------------------------------------------------------------
+//======================================================================
+namespace{
+/*static*/ StaticData& StaticData::instance(){
+	//TODO: staticproblem
+	static StaticData sd;
+	return sd;
+}
+
+//----------------------------------------------------------------------
+StaticData::StaticData(){
+	const uint datsz = StaticData::DataRetransmitCount;
+	const uint consz = StaticData::ConnectRetransmitCount;
+	const uint sz = (datsz < consz ? consz + 1 : datsz + 1) * 2;
+	
+	toutvec.reserve(sz);
+	toutvec.resize(sz);
+	toutvec[0] = 200;
+	toutvec[1] = 400;
+	toutvec[2] = 800;
+	toutvec[3] = 1200;
+	toutvec[4] = 1600;
+	toutvec[5] = 2000;
+	cassert(sz >= 5);
+	for(uint i = 6; i < sz; ++i){
+		toutvec[i] = 2000;
+	}
+}
+
+//----------------------------------------------------------------------
+ulong StaticData::retransmitTimeout(uint _pos){
+	cassert(_pos < toutvec.size());
+	return toutvec[_pos];
+}
+}//namespace
+//======================================================================
 }//namespace ipc
 }//namespace foundation

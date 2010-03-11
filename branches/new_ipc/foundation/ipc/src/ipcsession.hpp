@@ -85,11 +85,11 @@ public:
 	
 	bool executeTimeout(
 		Talker::TalkerStub &_rstub,
-		uint32 _id,
-		const TimeSpec &_rts
+		uint32 _id
 	);
-	int execute(Talker::TalkerStub &_rstub, const TimeSpec &_rts);
+	int execute(Talker::TalkerStub &_rstub);
 	bool pushSentBuffer(
+		Talker::TalkerStub &_rstub,
 		uint32 _id,
 		const char *_data,
 		const uint16 _size
