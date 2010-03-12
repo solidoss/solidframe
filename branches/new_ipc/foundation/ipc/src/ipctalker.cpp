@@ -702,6 +702,10 @@ void Talker::TalkerStub::pushTimer(uint32 _id, const TimeSpec &_rtimepos){
 	COLLECT_DATA_0(rt.d.statistics.pushTimer);
 	rt.d.timerq.push(Data::TimerData(_rtimepos, _id, this->sessionidx));
 }
+//----------------------------------------------------------------------
+int Talker::TalkerStub::basePort()const{
+	return rt.d.rservice.basePort();
+}
 //======================================================================
 #ifdef USTATISTICS
 

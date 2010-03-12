@@ -90,6 +90,7 @@ struct Session::Data{
 		Connected,
 		Disconnecting,
 		Reconnecting,
+		Disconnected,
 	};
 	enum{
 		MaxSendBufferCount = 6,
@@ -234,6 +235,7 @@ public:
 	
 	uint32 computeRetransmitTimeout(const uint32 _retrid, const uint32 _bufid);
 	bool canSendKeepAlive(const TimeSpec &_tpos)const;
+	uint32 registerBuffer(Buffer &_rbuf);
 public:
 	SocketAddress			addr;
 	SockAddrPair			pairaddr;
@@ -514,6 +516,17 @@ inline uint32 Session::Data::computeRetransmitTimeout(const uint32 _retrid, cons
 bool Session::Data::canSendKeepAlive(const TimeSpec &_tpos)const{
 	return false;
 }
+//----------------------------------------------------------------------
+uint32 Session::Data::registerBuffer(Buffer &_rbuf){
+	if(sendbufferfreeposstk.empty()) return -1;
+	const uint32			idx(sendbufferfreeposstk.top());
+	SendBufferData	&rsbd(sendbuffervec[idx]);
+	
+	cassert(rsbd.buffer.empty());
+	
+	rsbd.buffer = _rbuf;
+	return idx;
+}
 //=====================================================================
 /*static*/ int Session::parseAcceptedBuffer(const Buffer &_rbuf){
 	if(_rbuf.dataSize() == sizeof(int32)){
@@ -663,6 +676,21 @@ bool Session::executeTimeout(
 }
 //---------------------------------------------------------------------
 int Session::execute(Talker::TalkerStub &_rstub){
+	switch(d.state){
+		case Data::Connecting:
+			return doExecuteConnecting(_rstub);
+		case Data::Accepting:
+			return doExecuteAccepting(_rstub);
+		case Data::WaitAccept:
+			return NOK;
+		case Data::Connected:
+			return doExecuteConnected(_rstub);
+		case Data::Disconnecting:
+			return doExecuteDisconnect(_rstub);
+		case Data::Reconnecting:
+			reconnect(NULL);
+			return OK;//reschedule
+	}
 	return BAD;
 }
 //---------------------------------------------------------------------
@@ -850,6 +878,83 @@ void Session::doParseBuffer(const Buffer &_rbuf, const ConnectionUid &_rconid){
 		}
 	}
 
+}
+//---------------------------------------------------------------------
+int Session::doExecuteConnecting(Talker::TalkerStub &_rstub){
+	const uint32	bufid(Specific::sizeToId(64));
+	Buffer			buf(Specific::popBuffer(bufid), Specific::idToCapacity(bufid));
+	
+	buf.type(Buffer::ConnectingType);
+	
+	int32			*pi = (int32*)buf.dataEnd();
+	
+	*pi = htonl(_rstub.basePort());
+	buf.dataSize(buf.dataSize() + sizeof(int32));
+	
+	const uint32			bufidx(d.registerBuffer(buf));
+	Data::SendBufferData	&rsbd(d.sendbuffervec[bufidx]);
+	cassert(bufidx == 1);
+	
+	if(_rstub.pushSendBuffer(bufidx, rsbd.buffer.buffer(), rsbd.buffer.bufferSize())){
+		//buffer sent - setting a timer for it
+		UInt32Pair u32pack;
+		u32pack.u16first = bufidx;
+		u32pack.u16second = rsbd.uid;
+		
+		//schedule a timer for this buffer
+		TimeSpec tpos(_rstub.currentTime());
+		tpos += d.computeRetransmitTimeout(rsbd.buffer.retransmitId(), rsbd.buffer.id());
+		
+		_rstub.pushTimer(u32pack.u32, tpos);
+	}else{
+		rsbd.sending = 1;
+	}
+	
+	d.state = Data::WaitAccept;
+	return NOK;
+}
+//---------------------------------------------------------------------
+int Session::doExecuteAccepting(Talker::TalkerStub &_rstub){
+	const uint32	bufid(Specific::sizeToId(64));
+	Buffer			buf(Specific::popBuffer(bufid), Specific::idToCapacity(bufid));
+	
+	buf.type(Buffer::AcceptingType);
+	
+	int32 			*pi = (int32*)buf.dataEnd();
+	
+	*pi = htonl(_rstub.basePort());
+	buf.dataSize(buf.dataSize() + sizeof(int32));
+	
+	const uint32			bufidx(d.registerBuffer(buf));
+	Data::SendBufferData	&rsbd(d.sendbuffervec[bufidx]);
+	cassert(bufidx == 1);
+	
+	if(_rstub.pushSendBuffer(bufidx, rsbd.buffer.buffer(), rsbd.buffer.bufferSize())){
+		//buffer sent - setting a timer for it
+		UInt32Pair u32pack;
+		u32pack.u16first = bufidx;
+		u32pack.u16second = rsbd.uid;
+		
+		//schedule a timer for this buffer
+		TimeSpec tpos(_rstub.currentTime());
+		tpos += d.computeRetransmitTimeout(rsbd.buffer.retransmitId(), rsbd.buffer.id());
+		
+		_rstub.pushTimer(u32pack.u32, tpos);
+	}else{
+		rsbd.sending = 1;
+	}
+	
+	d.state = Data::Connected;
+	return NOK;
+}
+//---------------------------------------------------------------------
+int Session::doExecuteConnected(Talker::TalkerStub &_rstub){
+	return BAD;
+}
+//---------------------------------------------------------------------
+int Session::doExecuteDisconnect(Talker::TalkerStub &_rstub){
+	d.state = Data::Disconnected;
+	return BAD;
 }
 //======================================================================
 namespace{

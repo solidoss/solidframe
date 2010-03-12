@@ -46,6 +46,7 @@ public:
 		const TimeSpec& currentTime()const{
 			return crttime;
 		}
+		int basePort()const;
 	private:
 		friend class Talker;
 		TalkerStub(Talker &_rt, const TimeSpec &_rcrttime):rt(_rt), sessionidx(0), crttime(_rcrttime){}

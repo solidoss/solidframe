@@ -108,6 +108,11 @@ private:
 	void doFreeSentBuffers(const Buffer &_rbuf, const ConnectionUid &_rconid);
 	void doParseBufferDataType(const char *&_bpos, int &_blen, int _firstblen);
 	void doParseBuffer(const Buffer &_rbuf, const ConnectionUid &_rconid);
+	
+	int doExecuteConnecting(Talker::TalkerStub &_rstub);
+	int doExecuteAccepting(Talker::TalkerStub &_rstub);
+	int doExecuteConnected(Talker::TalkerStub &_rstub);
+	int doExecuteDisconnect(Talker::TalkerStub &_rstub);
 private:
 	struct Data;
 	Data	&d;
