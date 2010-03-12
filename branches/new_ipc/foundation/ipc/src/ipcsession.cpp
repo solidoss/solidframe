@@ -93,6 +93,7 @@ struct Session::Data{
 		Disconnected,
 	};
 	enum{
+		UpdateBufferId = 0xffffffff,//the id of a buffer containing only updates
 		MaxSendBufferCount = 6,
 		MaxRecvNoUpdateCount = 4,// max number of buffers received, without sending update
 		MaxSignalBufferCount = 8,//continuous buffers sent for a signal
@@ -221,6 +222,7 @@ public:
 	bool keepOutOfOrderBuffer(Buffer &_rb);
 	bool mustSendUpdates();
 	void incrementExpectedId();
+	void incrementSendId();
 	SignalUid pushSendWaitSignal(
 		DynamicPointer<Signal> &_sig,
 		uint16 _bufid,
@@ -236,6 +238,14 @@ public:
 	uint32 computeRetransmitTimeout(const uint32 _retrid, const uint32 _bufid);
 	bool canSendKeepAlive(const TimeSpec &_tpos)const;
 	uint32 registerBuffer(Buffer &_rbuf);
+	
+	bool isExpectingImmediateDataFromPeer()const{
+		return rcvdsignalq.size() > 1 || ((rcvdsignalq.size() == 1) && rcvdsignalq.front().psignal);
+	}
+	uint16 keepAliveBufferIndex()const{
+		return 0;
+	}
+	void moveSignalsToSendQueue();
 public:
 	SocketAddress			addr;
 	SockAddrPair			pairaddr;
@@ -245,6 +255,10 @@ public:
 	uint16					outoforderbufcnt;
 	uint32					sentsignalwaitresponse;
 	uint32					retansmittimepos;
+	uint32					sendsignalid;
+	uint16					currentbuffersignalcount;//MaxSignalBufferCount
+	uint32					sendid;
+	uint32					keepalivetimeout;
 	
 	UInt32QueueT			rcvdidq;
 	BufferVectorT			outoforderbufvec;
@@ -254,6 +268,9 @@ public:
 	SendBufferVectorT		sendbuffervec;//will have about 6 items
 	UInt8StackT				sendbufferfreeposstk;
 	SignalQueueT			signalq;
+	UInt32QueueT			sendsignalidxq;
+	Buffer					updatesbuffer;
+	TimeSpec				rcvtimepos;
 };
 
 //---------------------------------------------------------------------
@@ -333,8 +350,12 @@ bool Session::Data::keepOutOfOrderBuffer(Buffer &_rb){
 	return true;
 }
 //---------------------------------------------------------------------
-bool Session::Data::mustSendUpdates(){
-	return false;
+inline bool Session::Data::mustSendUpdates(){
+	return rcvdidq.size() && 
+		//we are not expecting anything from the peer - send updates right away
+		(!isExpectingImmediateDataFromPeer() || 
+		//or we've already waited too long to send the updates
+		rcvdidq.size() >= Data::MaxRecvNoUpdateCount);
 }
 //---------------------------------------------------------------------
 void Session::Data::incrementExpectedId(){
@@ -513,8 +534,10 @@ inline uint32 Session::Data::computeRetransmitTimeout(const uint32 _retrid, cons
 	}
 }
 //----------------------------------------------------------------------
-bool Session::Data::canSendKeepAlive(const TimeSpec &_tpos)const{
-	return false;
+inline bool Session::Data::canSendKeepAlive(const TimeSpec &_tpos)const{
+	return keepalivetimeout && sentsignalwaitresponse &&
+		(rcvdsignalq.empty() || rcvdsignalq.size() == 1 && !rcvdsignalq.front().psignal) && 
+		signalq.empty() && sendsignalidxq.empty() && _tpos >= rcvtimepos;
 }
 //----------------------------------------------------------------------
 uint32 Session::Data::registerBuffer(Buffer &_rbuf){
@@ -526,6 +549,30 @@ uint32 Session::Data::registerBuffer(Buffer &_rbuf){
 	
 	rsbd.buffer = _rbuf;
 	return idx;
+}
+//----------------------------------------------------------------------
+void Session::Data::moveSignalsToSendQueue(){
+	while(signalq.size() && sendsignalidxq.size() < Data::MaxSendSignalQueueSize){
+		uint32 			flags(signalq.front().second);
+		cassert(signalq.front().first.ptr());
+		const SignalUid	uid(pushSendWaitSignal(signalq.front().first, 0, flags, sendsignalid++));
+		SendSignalData 	&rssd(sendsignalvec[uid.idx]);
+		
+		sendsignalidxq.push(uid.idx);
+		
+		switch(rssd.signal->ipcPrepare(uid)){
+			case OK://signal doesnt wait for response
+				rssd.flags &= ~Service::WaitResponseFlag;
+				break;
+			case NOK://signal wait for response
+				++sentsignalwaitresponse;
+				rssd.flags |= Service::WaitResponseFlag;
+				break;
+			default:
+				cassert(false);
+		}
+		signalq.pop();
+	}
 }
 //=====================================================================
 /*static*/ int Session::parseAcceptedBuffer(const Buffer &_rbuf){
@@ -602,6 +649,91 @@ void Session::prepare(){
 }
 //---------------------------------------------------------------------
 void Session::reconnect(Session *_pses){
+	//first we reset the peer addresses
+	if(_pses){
+		d.addr = _pses->d.addr;
+		d.pairaddr = d.addr;
+		d.state = Data::Accepting;
+	}else{
+		d.state = Data::Connecting;
+	}
+	//clear the receive queue
+	while(d.rcvdsignalq.size()){
+		Data::RecvSignalData	&rrsd(d.rcvdsignalq.front());
+		delete rrsd.psignal;
+		if(rrsd.pdeserializer){
+			rrsd.pdeserializer->clear();
+			d.pushDeserializer(rrsd.pdeserializer);
+		}
+		d.rcvdsignalq.pop();
+	}
+	//keep sending signals that do not require the same connector
+	for(int sz(d.signalq.size()); sz; --sz){
+		if(!(d.signalq.front().second & Service::SameConnectorFlag)) {
+			vdbgx(Dbg::ipc, "signal scheduled for resend");
+			d.signalq.push(d.signalq.front());
+		}else{
+			vdbgx(Dbg::ipc, "signal not scheduled for resend");
+		}
+		d.signalq.pop();
+	}
+	//clear the sendsignalidxq
+	while(d.sendsignalidxq.size()){
+		d.sendsignalidxq.pop();
+	}
+	//see which sent/sending signals must be cleard
+	for(Data::SendSignalVectorT::iterator it(d.sendsignalvec.begin()); it != d.sendsignalvec.end(); ++it){
+		Data::SendSignalData &rssd(*it);
+		if(rssd.pserializer){
+			d.pushSerializer(rssd.pserializer);
+			rssd.pserializer = NULL;
+		}
+		if(!rssd.signal) continue;
+		
+		if(!(rssd.flags & Service::SameConnectorFlag)){
+			if(rssd.flags & Service::WaitResponseFlag && rssd.flags & Service::SentFlag){
+				//if the signal was sent and were waiting for response - were not sending twice
+				rssd.signal->ipcFail(1);
+				rssd.signal.clear();
+				++rssd.uid;
+			}
+			//we can try resending the signal
+		}else{
+			vdbgx(Dbg::ipc, "signal not scheduled for resend");
+			if(rssd.flags & Service::WaitResponseFlag && rssd.flags & Service::SentFlag){
+				rssd.signal->ipcFail(1);
+			}else{
+				rssd.signal->ipcFail(0);
+			}
+			rssd.signal.clear();
+			++rssd.uid;
+		}
+	}
+	//sort the sendsignalvec, so that we can insert into signalq the signals that can be resent
+	//in the exact order they were inserted
+	std::sort(d.sendsignalvec.begin(), d.sendsignalvec.end());
+	
+	//then we push into signalq the signals from sendsignalvec
+	for(Data::SendSignalVectorT::const_iterator it(d.sendsignalvec.begin()); it != d.sendsignalvec.end(); ++it){
+		const Data::SendSignalData &rssd(*it);
+		if(rssd.signal.ptr()){
+			//the sendsignalvec may contain signals sent successfully, waiting for a response
+			//those signals are not queued in the scq
+			d.signalq.push(Data::SignalPairT(rssd.signal, rssd.flags));
+		}else break;
+	}
+	
+	d.sendsignalvec.clear();
+	
+	//delete the sending buffers
+	//TODO:
+	
+	//clear the stacks
+	
+	d.updatesbuffer.clear();
+	
+	
+	
 }
 //---------------------------------------------------------------------
 int Session::pushSignal(DynamicPointer<Signal> &_rsig, uint32 _flags){
@@ -611,6 +743,7 @@ int Session::pushSignal(DynamicPointer<Signal> &_rsig, uint32 _flags){
 }
 //---------------------------------------------------------------------
 bool Session::pushReceivedBuffer(Buffer &_rbuf, const TimeSpec &_rts, const ConnectionUid &_rconuid){
+	d.rcvtimepos = _rts;
 	if(_rbuf.id() == d.rcvexpectedid){
 		return doPushExpectedReceivedBuffer(_rbuf, _rts, _rconuid);
 	}else{
@@ -702,9 +835,8 @@ bool Session::pushSentBuffer(
 ){
 	if(_id == -1){//an update buffer
 		//free it right away
-		char *pb(const_cast<char*>(_data));
-		Specific::pushBuffer(pb, Specific::sizeToId(_size));
-		return false;
+		d.updatesbuffer.clear();
+		return d.rcvdidq.size() != 0;
 	}
 	//all we do is set a timer for this buffer
 	Data::SendBufferData &rsbd(d.sendbuffervec[_id]);
@@ -949,7 +1081,146 @@ int Session::doExecuteAccepting(Talker::TalkerStub &_rstub){
 }
 //---------------------------------------------------------------------
 int Session::doExecuteConnected(Talker::TalkerStub &_rstub){
+	while(d.sendbufferfreeposstk.size()){
+		if(
+			d.signalq.empty() &&
+			d.sendsignalidxq.empty()
+		){
+			break;
+		}
+		//we can still send buffers
+		Buffer 					buf(Buffer::allocateDataForReading(), Buffer::capacityForReading());
+		
+		const uint32			bufidx(d.registerBuffer(buf));
+		Data::SendBufferData	&rsbd(d.sendbuffervec[bufidx]);
+		
+		rsbd.buffer.type(Buffer::DataType);
+		rsbd.buffer.id(d.sendid);
+		d.incrementSendId();
+		
+		while(d.rcvdidq.size() && rsbd.buffer.updatesCount() < 8){
+			rsbd.buffer.pushUpdate(d.rcvdidq.front());
+			d.rcvdidq.pop();
+		}
+		
+		d.moveSignalsToSendQueue();
+		
+		doFillSendBuffer(bufidx);
+		
+		rsbd.buffer.optimize();
+		
+		if(_rstub.pushSendBuffer(bufidx, rsbd.buffer.buffer(), rsbd.buffer.bufferSize())){
+			//buffer sent - setting a timer for it
+			UInt32Pair u32pack;
+			u32pack.u16first = bufidx;
+			u32pack.u16second = rsbd.uid;
+			
+			//schedule a timer for this buffer
+			TimeSpec tpos(_rstub.currentTime());
+			tpos += d.computeRetransmitTimeout(rsbd.buffer.retransmitId(), rsbd.buffer.id());
+			
+			_rstub.pushTimer(u32pack.u32, tpos);
+		}else{
+			rsbd.sending = 1;
+		}
+	}
+	if(d.rcvdidq.size() && d.updatesbuffer.empty() && d.mustSendUpdates()){
+		//send an updates buffer
+		const uint32	bufid(Specific::sizeToId(256));
+		Buffer			buf(Specific::popBuffer(bufid), Specific::idToCapacity(bufid));
+		
+		buf.type(Buffer::DataType);
+		buf.id(Data::UpdateBufferId);
+		while(d.rcvdidq.size() && buf.updatesCount() < 16){
+			buf.pushUpdate(d.rcvdidq.front());
+			d.rcvdidq.pop();
+		}
+		buf.optimize();
+		if(_rstub.pushSendBuffer(-1, buf.buffer(), buf.bufferSize())){
+		}else{
+			d.updatesbuffer = buf;
+		}
+	}else if(d.canSendKeepAlive(_rstub.currentTime())){
+		const uint32 			idx(d.keepAliveBufferIndex());
+		Data::SendBufferData	&rsbd(d.sendbuffervec[idx]);
+		UInt32Pair 				u32pack;
+		++rsbd.uid;
+		u32pack.u16first = idx;
+		u32pack.u16second = rsbd.uid;
+		
+		//schedule a timer for this buffer
+		TimeSpec tpos(_rstub.currentTime());
+		tpos += d.keepalivetimeout;
+		
+		_rstub.pushTimer(u32pack.u32, tpos);
+	}
 	return BAD;
+}
+//---------------------------------------------------------------------
+void Session::doFillSendBuffer(const uint32 _bufidx){
+	Data::SendBufferData	&rsbd(d.sendbuffervec[_bufidx]);
+	Data::BinSerializerT	*pser(NULL);
+	
+	while(d.sendsignalidxq.size()){
+		if(d.currentbuffersignalcount){
+			Data::SendSignalData	&rssd(d.sendsignalvec[d.sendsignalidxq.front()]);
+			
+			if(rssd.pserializer){//a continued signal
+				if(d.currentbuffersignalcount == Data::MaxSignalBufferCount){
+					vdbgx(Dbg::ipc, "oldsignal");
+					rsbd.buffer.dataType(Buffer::OldSignal);
+				}else{
+					vdbgx(Dbg::ipc, "continuedsignal");
+					rsbd.buffer.dataType(Buffer::ContinuedSignal);
+				}
+			}else{//a new commnad
+				vdbgx(Dbg::ipc, "newsignal");
+				rsbd.buffer.dataType(Buffer::NewSignal);
+				if(pser){
+					rssd.pserializer = pser;
+					pser = NULL;
+				}else{
+					rssd.pserializer = d.popSerializer();
+				}
+				Signal *psig(rssd.signal.ptr());
+				rssd.pserializer->push(psig);
+			}
+			--d.currentbuffersignalcount;
+			vdbgx(Dbg::ipc, "d.crtsigbufcnt = "<<d.currentbuffersignalcount);
+			
+			int rv = rssd.pserializer->run(rsbd.buffer.dataEnd(), rsbd.buffer.dataFreeSize());
+			
+			cassert(rv >= 0);//TODO: deal with the situation!
+			
+			rsbd.buffer.dataSize(rsbd.buffer.dataSize() + rv);
+			
+			if(rssd.pserializer->empty()){//finished with this signal
+				vdbgx(Dbg::ipc, "donesignal");
+				if(pser) d.pushSerializer(pser);
+				pser = rssd.pserializer;
+				pser->clear();
+				rssd.pserializer = NULL;
+				vdbgx(Dbg::ipc, "cached wait signal");
+				rsbd.signalidxvec.push_back(d.sendsignalidxq.front());
+				d.sendsignalidxq.pop();
+				vdbgx(Dbg::ipc, "sendsignalidxq poped"<<d.sendsignalidxq.size());
+				//we dont want to switch to an old signal
+				d.currentbuffersignalcount = Data::MaxSignalBufferCount - 1;
+				if(rsbd.buffer.dataFreeSize() < 16) break;
+				break;
+			}else{
+				break;
+			}
+		}else if(d.sendsignalidxq.size() == 1){//only one signal
+			d.currentbuffersignalcount = Data::MaxSignalBufferCount - 1;
+		}else{
+			d.sendsignalidxq.push(d.sendsignalidxq.front());
+			//d.waitFrontSignal().pser = NULL;
+			d.sendsignalidxq.pop();
+			vdbgx(Dbg::ipc, "scqpop "<<d.sendsignalidxq.size());
+			d.currentbuffersignalcount = Data::MaxSignalBufferCount;
+		}
+	}//while
 }
 //---------------------------------------------------------------------
 int Session::doExecuteDisconnect(Talker::TalkerStub &_rstub){
