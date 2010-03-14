@@ -358,9 +358,14 @@ inline bool Session::Data::mustSendUpdates(){
 		rcvdidq.size() >= Data::MaxRecvNoUpdateCount);
 }
 //---------------------------------------------------------------------
-void Session::Data::incrementExpectedId(){
+inline void Session::Data::incrementExpectedId(){
 	++rcvexpectedid;
 	if(rcvexpectedid > Buffer::LastBufferId) rcvexpectedid = 0;
+}
+//---------------------------------------------------------------------
+inline void Session::Data::incrementSendId(){
+	++sendid;
+	if(sendid > LastBufferId) sendid = 0;
 }
 //---------------------------------------------------------------------
 SignalUid Session::Data::pushSendWaitSignal(
@@ -454,11 +459,11 @@ void Session::Data::popSentWaitSignal(const uint32 _idx){
 //---------------------------------------------------------------------
 void Session::Data::freeSentBuffer(const uint32 _bufid){
 	uint	idx;
-	if(	sendbuffervec[0].buffer.buffer() && 
+	if(/*	sendbuffervec[0].buffer.buffer() && */
 		sendbuffervec[0].buffer.id() == _bufid
 	){
 		idx = 0;
-		goto Success;
+		goto KeepAlive;
 	}
 	if(	sendbuffervec[1].buffer.buffer() && 
 		sendbuffervec[1].buffer.id() == _bufid
@@ -497,18 +502,22 @@ void Session::Data::freeSentBuffer(const uint32 _bufid){
 		goto Success;
 	}
 	return;
-	
-	Success:
+	KeepAlive:{
+		SendBufferData &rsbd(sendbuffervec[0]);
+		if(!rsbd.sending){
+			//we can now initiate the sending of keepalive buffer
+			rsbd.buffer.retransmitId(0);
+		}else{
+			rsbd.mustdelete = 1;
+		}
+	}
+	Success:{
 	SendBufferData &rsbd(sendbuffervec[idx]);
-	if(idx){
 		if(!rsbd.sending){
 			clearSentBuffer(idx);
 		}else{
 			rsbd.mustdelete = 1;
 		}
-	}else{
-		//we can now initiate the sending of keepalive buffer
-		rsbd.buffer.retransmitId(0);
 	}
 	
 }
@@ -742,13 +751,19 @@ int Session::pushSignal(DynamicPointer<Signal> &_rsig, uint32 _flags){
 	return OK;
 }
 //---------------------------------------------------------------------
-bool Session::pushReceivedBuffer(Buffer &_rbuf, const TimeSpec &_rts, const ConnectionUid &_rconuid){
+bool Session::pushReceivedBuffer(
+	Buffer &_rbuf,
+	const TimeSpec &_rts,
+	const ConnectionUid &_rconuid
+){
 	d.rcvtimepos = _rts;
+	d.resetKeepAlive();
 	if(_rbuf.id() == d.rcvexpectedid){
 		return doPushExpectedReceivedBuffer(_rbuf, _rts, _rconuid);
 	}else{
 		return doPushUnxpectedReceivedBuffer(_rbuf, _rts, _rconuid);
 	}
+	return rv;
 }
 //---------------------------------------------------------------------
 void Session::completeConnect(int _pairport){
@@ -836,6 +851,7 @@ bool Session::pushSentBuffer(
 	if(_id == -1){//an update buffer
 		//free it right away
 		d.updatesbuffer.clear();
+		doTryScheduleKeepAlive(_rstub.currentTime());
 		return d.rcvdidq.size() != 0;
 	}
 	//all we do is set a timer for this buffer
@@ -845,8 +861,14 @@ bool Session::pushSentBuffer(
 	cassert(rsbd.buffer.buffer() == _data);
 	rsbd.sending = 0;
 	if(rsbd.mustdelete){
-		d.clearSentBuffer(_id);
-		return false;//no scheduling
+		if(_id){
+			d.clearSentBuffer(_id);
+			return false;//no scheduling
+		}else{
+			rsbd.mustdelete = 0;
+			rsbd.buffer.retransmitId(0);
+			return false;
+		}
 	}
 	UInt32Pair u32pack;
 	u32pack.u16first = _id;
@@ -911,6 +933,7 @@ bool Session::doPushUnxpectedReceivedBuffer(
 		}
 	}else if(_rbuf.id() == Buffer::UpdateBufferId){//a buffer containing only updates
 		doFreeSentBuffers(_rbuf, _rconid);
+		doTryScheduleKeepAlive(_rts);
 	}
 	return d.mustSendUpdates();
 }
@@ -1140,7 +1163,7 @@ int Session::doExecuteConnected(Talker::TalkerStub &_rstub){
 		}else{
 			d.updatesbuffer = buf;
 		}
-	}else if(d.canSendKeepAlive(_rstub.currentTime())){
+	}/*else if(d.canSendKeepAlive(_rstub.currentTime())){
 		const uint32 			idx(d.keepAliveBufferIndex());
 		Data::SendBufferData	&rsbd(d.sendbuffervec[idx]);
 		UInt32Pair 				u32pack;
@@ -1153,7 +1176,7 @@ int Session::doExecuteConnected(Talker::TalkerStub &_rstub){
 		tpos += d.keepalivetimeout;
 		
 		_rstub.pushTimer(u32pack.u32, tpos);
-	}
+	}*/
 	return BAD;
 }
 //---------------------------------------------------------------------
