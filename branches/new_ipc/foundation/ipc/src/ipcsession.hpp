@@ -77,7 +77,7 @@ public:
 	int pushSignal(DynamicPointer<Signal> &_rsig, uint32 _flags);
 	bool pushReceivedBuffer(
 		Buffer &_rbuf,
-		const TimeSpec &_rts,
+		Talker::TalkerStub &_rstub,
 		const ConnectionUid &_rconid
 	);
 	
@@ -97,12 +97,12 @@ public:
 private:
 	bool doPushExpectedReceivedBuffer(
 		Buffer &_rbuf,
-		const TimeSpec &_rts,
+		Talker::TalkerStub &_rstub,
 		const ConnectionUid &_rconid
 	);
 	bool doPushUnxpectedReceivedBuffer(
 		Buffer &_rbuf,
-		const TimeSpec &_rts,
+		Talker::TalkerStub &_rstub,
 		const ConnectionUid &_rconid
 	);
 	void doFreeSentBuffers(const Buffer &_rbuf, const ConnectionUid &_rconid);
@@ -114,6 +114,7 @@ private:
 	int doExecuteConnected(Talker::TalkerStub &_rstub);
 	int doExecuteDisconnect(Talker::TalkerStub &_rstub);
 	void doFillSendBuffer(const uint32 _bufidx);
+	void doTryScheduleKeepAlive(Talker::TalkerStub &_rstub);
 private:
 	struct Data;
 	Data	&d;

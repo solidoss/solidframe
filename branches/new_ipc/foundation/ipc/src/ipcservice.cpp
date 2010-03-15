@@ -22,6 +22,7 @@
 #include <map>
 #include <vector>
 #include <cstring>
+#include <ostream>
 
 #include "system/debug.hpp"
 #include "system/mutex.hpp"
@@ -441,13 +442,6 @@ Buffer::~Buffer(){
 	clear();
 }
 //---------------------------------------------------------------------
-void Buffer::print()const{
-	idbgx(Dbg::ipc, "version = "<<(int)header().version<<" id = "<<header().id<<" retransmit = "<<header().retransid<<" flags = "<<header().flags<<" type = "<<(int)header().type<<" updatescnt = "<<header().updatescnt<<" bufcp = "<<bc<<" dl = "<<dl);
-	for(int i = 0; i < header().updatescnt; ++i){
-		vdbgx(Dbg::ipc, "update = "<<update(i));
-	}
-}
-//---------------------------------------------------------------------
 void Buffer::optimize(){
 	const uint32	bufsz(this->bufferSize());
 	const uint		id(Specific::sizeToId(bufsz));
@@ -467,6 +461,30 @@ void Buffer::optimize(){
 	}
 }
 //---------------------------------------------------------------------
+std::ostream& operator<<(std::ostream &_ros, const Buffer &_rb){
+	_ros<<"BUFFER ver = "<<(int)_rb.header().version;
+	_ros<<" id = "<<_rb.header().id;
+	_ros<<" retransmit = "<<_rb.header().retransid;
+	_ros<<" type = ";
+	switch(_rb.header().type){
+		case Buffer::KeepAliveType: _ros<<"KeepAliveType";break;
+		case Buffer::DataType: _ros<<"DataType";break;
+		case Buffer::ConnectingType: _ros<<"ConnectingType";break;
+		case Buffer::AcceptingType: _ros<<"AcceptingType";break;
+		case Buffer::Unknown: _ros<<"Unknown";break;
+		default: _ros<<"[INVALID TYPE]";
+	}
+	_ros<<" buffer_cp = "<<_rb.bc;
+	_ros<<" datalen = "<<_rb.dl;
+	_ros<<" updatescnt = "<<_rb.header().updatescnt;
+	_ros<<" updates [";
+	for(int i = 0; i < _rb.header().updatescnt; ++i){
+		_ros<<_rb.update(i)<<',';
+	}
+	_ros<<']';
+	return _ros;
+	
+}
 }//namespace ipc
 }//namespace foundation
 

@@ -231,8 +231,6 @@ struct Buffer{
 	
 	bool check()const;
 	
-	void print()const;//see ipcservice.cpp
-	
 public:
 //data
 	mutable uint16	bc;//buffer capacity
@@ -251,6 +249,8 @@ inline void Buffer::Header::pushUpdate(uint32 _upd){
 	update(updatescnt++) = _upd;
 }
 
+
+std::ostream& operator<<(std::ostream &_ros, const Buffer &_rb);
 }//namespace ipc
 }//namespace foundation
 

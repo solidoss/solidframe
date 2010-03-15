@@ -49,7 +49,7 @@ namespace ipc{
 
 
 #ifdef USTATISTICS
-
+namespace{
 struct StatisticData{
 	StatisticData(){
 		memset(this, 0, sizeof(StatisticData));
@@ -92,7 +92,7 @@ struct StatisticData{
 };
 
 std::ostream& operator<<(std::ostream &_ros, const StatisticData &_rsd);
-
+}//namespace
 #endif
 
 
@@ -262,6 +262,7 @@ Talker::Talker(
 
 //----------------------------------------------------------------------
 Talker::~Talker(){
+	d.rservice.removeTalker(*this);
 	delete &d;
 }
 //----------------------------------------------------------------------
@@ -356,15 +357,18 @@ int Talker::doReceiveBuffers(uint32 _atmost, const ulong _sig){
 //----------------------------------------------------------------------
 bool Talker::doProcessReceivedBuffers(const TimeSpec &_rts){
 	ConnectionUid	conuid(d.tkrid);
+	TalkerStub		ts(*this, _rts);
 	for(Data::RecvBufferVectorT::const_iterator it(d.receivedbufvec.begin()); it != d.receivedbufvec.end(); ++it){
 		
 		const Data::RecvBuffer	&rcvbuf(*it);
 		Data::SessionStub		&rss(d.sessionvec[rcvbuf.sessionidx]);
-		Buffer					buf(rcvbuf.data, Buffer::capacityForReading(), rcvbuf.size);
+		Buffer					buf(rcvbuf.data, Buffer::capacityForReading());
+		
+		buf.bufferSize(rcvbuf.size);
 		
 		conuid.sessionidx = rcvbuf.sessionidx;
 		conuid.sessionuid = rss.uid;
-		if(rss.psession->pushReceivedBuffer(buf, _rts, conuid)){
+		if(rss.psession->pushReceivedBuffer(buf, ts, conuid)){
 			if(!rss.inexeq){
 				d.sessionexecq.push(rcvbuf.sessionidx);
 				rss.inexeq = true;
@@ -376,7 +380,9 @@ bool Talker::doProcessReceivedBuffers(const TimeSpec &_rts){
 }
 //----------------------------------------------------------------------
 void Talker::doDispatchReceivedBuffer(char *_pbuf, const uint32 _bufsz, const SockAddrPair &_rsap){
-	Buffer buf(_pbuf, Buffer::ReadCapacity, _bufsz);
+	Buffer buf(_pbuf, Buffer::ReadCapacity);
+	buf.bufferSize(_bufsz);
+	vdbgx(Dbg::ipc, " RECEIVED "<<buf);
 	switch(buf.type()){
 		case Buffer::KeepAliveType:
 			COLLECT_DATA_0(d.statistics.receivedKeepAlive);
@@ -495,7 +501,7 @@ bool Talker::doExecuteSessions(const TimeSpec &_rcrttimepos){
 }
 //----------------------------------------------------------------------
 int Talker::doSendBuffers(const ulong _sig, const TimeSpec &_rcrttimepos){
-	if(socketHasPendingRecv()){
+	if(socketHasPendingSend()){
 		return NOK;
 	}
 	
@@ -709,7 +715,7 @@ int Talker::TalkerStub::basePort()const{
 //======================================================================
 #ifdef USTATISTICS
 
-
+namespace{
 
 StatisticData::~StatisticData(){
 	rdbgx(Dbg::ipc, "Statistics:\r\n"<<*this);
@@ -783,6 +789,7 @@ std::ostream& operator<<(std::ostream &_ros, const StatisticData &_rsd){
 	_ros<<"pushtimercount            "<<_rsd.pushtimercount<<std::endl;
 	return _ros;
 }
+}//namespace
 #endif
 }//namespace ipc
 }//namesapce foundation
