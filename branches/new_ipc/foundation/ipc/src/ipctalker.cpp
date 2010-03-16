@@ -306,7 +306,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 		d.rservice.disconnectTalkerSessions(*this);
 	}
 	
-	rv = doReceiveBuffers(4, _sig);
+	rv = doReceiveBuffers(1, _sig);
 	if(rv == OK){
 		must_reenter = true;
 	}else if(rv == BAD){
@@ -323,6 +323,10 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 	}
 	
 	must_reenter = doExecuteSessions(_tout) || must_reenter;
+	
+	if(d.timerq.size()){
+		_tout = d.timerq.top().timepos;
+	}
 	
 	return must_reenter ? OK : NOK;
 }

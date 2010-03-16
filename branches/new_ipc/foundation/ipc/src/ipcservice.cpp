@@ -442,10 +442,10 @@ Buffer::~Buffer(){
 	clear();
 }
 //---------------------------------------------------------------------
-void Buffer::optimize(){
+void Buffer::optimize(uint16 _cp){
 	const uint32	bufsz(this->bufferSize());
 	const uint		id(Specific::sizeToId(bufsz));
-	const uint		mid(Specific::capacityToId(Buffer::capacityForReading()));
+	const uint		mid(Specific::capacityToId(_cp ? _cp : Buffer::capacityForReading()));
 	if(mid > id){
 		uint32 datasz = this->dataSize();//the size
 		

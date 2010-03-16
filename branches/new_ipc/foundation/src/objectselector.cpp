@@ -175,6 +175,7 @@ int ObjectSelector::doWait(int _wt){
 			}
 		}else{
 			while(uiq.empty()) cnd.wait(mtx);
+			clock_gettime(CLOCK_REALTIME, &ctimepos);
 		}
 	}
 	if(uiq.size()){

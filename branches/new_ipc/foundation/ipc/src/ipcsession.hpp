@@ -105,7 +105,7 @@ private:
 		Talker::TalkerStub &_rstub,
 		const ConnectionUid &_rconid
 	);
-	void doFreeSentBuffers(const Buffer &_rbuf, const ConnectionUid &_rconid);
+	bool doFreeSentBuffers(const Buffer &_rbuf, const ConnectionUid &_rconid);
 	void doParseBufferDataType(const char *&_bpos, int &_blen, int _firstblen);
 	void doParseBuffer(const Buffer &_rbuf, const ConnectionUid &_rconid);
 	

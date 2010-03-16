@@ -167,7 +167,7 @@ struct Buffer{
 		header().updatescnt = 0;
 	}
 	void clear();
-	void optimize();
+	void optimize(uint16 _cp = 0);
 	void reinit(char *_pb = NULL, uint16 _bc = 0, uint16 _dl = 0){
 		clear();
 		pb = _pb;
