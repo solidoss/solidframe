@@ -1,6 +1,6 @@
-/* Declarations file connectoruid.hpp
+/* Declarations file ipcsessionuid.hpp
 	
-	Copyright 2007, 2008 Valentin Palade 
+	Copyright 2010 Valentin Palade 
 	vipalade@gmail.com
 
 	This file is part of SolidGround framework.
@@ -19,35 +19,29 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef IPC_CONNECTOR_UID_HPP
-#define IPC_CONNECTOR_UID_HPP
+#ifndef IPC_SESSION_UID_HPP
+#define IPC_SESSION_UID_HPP
 
 #include "system/common.hpp"
 
 namespace foundation{
 namespace ipc{
-//! A structure to uniquely indetify a connector
+//! A structure to uniquely indetify an IPC connection/session
 /*!
 	<b>Overview:</b><br>
 	
-	An ipc connector somehow resembles a tcp connection. The difference is 
-	that (for now) there cant be more than one connector to a process.
-	
-	If a process is restarted, and a new connector is created, its uid
-	will be different from the previous one. This will ensure for example
-	that one cannot send a response to a restarted process. 
-	
 	<b>Usage:</b><br>
-	The basic idea is that you send requests identifing the peer process
-	either by its base address (see foundation::ipc::Service) or by
-	its unique id, while you'll mostly send responses using ConnectorUid.
 	
 */
-struct ConnectorUid{
-	ConnectorUid(uint32 _tkrid = 0, uint16 _procid = 0, uint16 _procuid = 0):tkrid(_tkrid), procid(_procid), procuid(_procuid){}
-	uint32	tkrid;
-	uint16	procid;
-	uint16	procuid;
+struct ConnectionUid{
+	ConnectionUid(
+		uint32 _id = 0,
+		uint16 _sesidx = 0,
+		uint16 _sesuid = 0
+	):id(_id), sessionidx(_sesidx), sessionuid(_sesuid){}
+	uint32	id;
+	uint16	sessionidx;
+	uint16	sessionuid;
 };
 
 struct SignalUid{

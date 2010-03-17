@@ -1,6 +1,6 @@
 /* Implementation file ipcservice.cpp
 	
-	Copyright 2007, 2008 Valentin Palade 
+	Copyright 2007, 2008, 2010 Valentin Palade 
 	vipalade@gmail.com
 
 	This file is part of SolidGround framework.
@@ -21,21 +21,24 @@
 
 #include <map>
 #include <vector>
+#include <cstring>
+#include <ostream>
 
 #include "system/debug.hpp"
 #include "system/mutex.hpp"
 #include "system/socketdevice.hpp"
+#include "system/specific.hpp"
 
 #include "foundation/objectpointer.hpp"
 #include "foundation/common.hpp"
 #include "foundation/manager.hpp"
 
 #include "foundation/ipc/ipcservice.hpp"
-#include "foundation/ipc/connectoruid.hpp"
+#include "foundation/ipc/ipcconnectionuid.hpp"
 
 #include "ipctalker.hpp"
 #include "iodata.hpp"
-#include "processconnector.hpp"
+#include "ipcsession.hpp"
 
 namespace fdt = foundation;
 
@@ -45,44 +48,42 @@ namespace ipc{
 //*******	Service::Data	******************************************************************
 
 struct Service::Data{
-	struct ProcStub{
-		ProcStub(ProcessConnector*	_proc = NULL, uint32 _uid = 0):proc(_proc), uid(_uid){}
-		ProcessConnector*	proc;
-		uint32				uid;
+	struct SessionStub{
+		SessionStub(Session*	_pses = NULL, uint32 _uid = 0):pses(_pses), uid(_uid){}
+		Session*	pses;
+		uint32		uid;
 	};
-	typedef std::pair<uint32, uint32>					TkrPairT;
-	//typedef std::pair<uint16, uint16>					ProcPosPairT;
-	typedef std::pair<const Inet4SockAddrPair*, int>	BaseProcAddr4;
-	typedef std::map<
-		const BaseProcAddr4*, 
-		ConnectorUid, 
-		Inet4AddrPtrCmp
-		>												BaseProcAddr4MapT;
 	
-	typedef std::pair<const Inet6SockAddrPair*, int>	BaseProcAddr6;
+	typedef std::pair<uint32, uint32>					UInt32PairT;
 	typedef std::map<
-		const BaseProcAddr6*,
-		ConnectorUid,
+		const Session::Addr4PairT*, 
+		ConnectionUid, 
+		Inet4AddrPtrCmp
+		>												SessionAddr4MapT;
+	
+	typedef std::map<
+		const Session::Addr6PairT*,
+		ConnectionUid,
 		Inet6AddrPtrCmp
-		>												BaseProcAddr6MapT;
-	typedef std::vector<TkrPairT>						TalkerVectorT;
+		>												SessionAddr6MapT;
+	typedef std::vector<UInt32PairT>					UInt32PairVectorT;
 	
 	Data();
 	
 	~Data();	
 	
-	int						procpertkrcnt;
-	uint32					proccnt;
+	int						sespertkrcnt;
+	uint32					sessioncnt;
 	int						baseport;
 	SocketAddress			firstaddr;
-	TalkerVectorT			tkrvec;
-	BaseProcAddr4MapT		basepm4;
+	UInt32PairVectorT		tkrvec;
+	SessionAddr4MapT		sessionaddr4map;
 	uint32 					keepalivetout;
 };
 
 //=======	ServiceData		===========================================
 
-Service::Data::Data():procpertkrcnt(10), proccnt(0), baseport(-1){
+Service::Data::Data():sespertkrcnt(10), sessioncnt(0), baseport(-1){
 }
 
 Service::Data::~Data(){
@@ -93,28 +94,30 @@ Service::Data::~Data(){
 Service::Service(uint32 _keepalivetout):d(*(new Data)){
 	//d.maxtkrcnt = 2;//TODO: make it configurable
 	d.keepalivetout = _keepalivetout;
-	ProcessConnector::init();
 }
-
+//---------------------------------------------------------------------
 Service::~Service(){
 	delete &d;
 }
-
+//---------------------------------------------------------------------
 uint32 Service::keepAliveTimeout()const{
 	return d.keepalivetout;
 }
-
+//---------------------------------------------------------------------
 int Service::sendSignal(
-	const ConnectorUid &_rconid,//the id of the process connector
+	const ConnectionUid &_rconid,//the id of the process connector
 	DynamicPointer<Signal> &_psig,//the signal to be sent
 	uint32	_flags
 ){
-	cassert(_rconid.tkrid < d.tkrvec.size());
-	Mutex::Locker	lock(*mutex());
-	Data::TkrPairT	&rtp(d.tkrvec[_rconid.tkrid]);
-	Mutex::Locker lock2(this->mutex(rtp.first, rtp.second));
-	Talker *ptkr = static_cast<Talker*>(this->object(rtp.first, rtp.second));
+	cassert(_rconid.sessionidx < d.tkrvec.size());
+	
+	Mutex::Locker		lock(*mutex());
+	Data::UInt32PairT	&rtp(d.tkrvec[_rconid.id]);
+	Mutex::Locker		lock2(this->mutex(rtp.first, rtp.second));
+	Talker				*ptkr(static_cast<Talker*>(this->object(rtp.first, rtp.second)));
+	
 	cassert(ptkr);
+	
 	if(ptkr->pushSignal(_psig, _rconid, _flags | SameConnectorFlag)){
 		//the talker must be signaled
 		if(ptkr->signal(fdt::S_RAISE)){
@@ -123,31 +126,43 @@ int Service::sendSignal(
 	}
 	return OK;
 }
-
+//---------------------------------------------------------------------
 int Service::basePort()const{
 	return d.baseport;
 }
-
+//---------------------------------------------------------------------
 int Service::doSendSignal(
 	const SockAddrPair &_rsap,
 	DynamicPointer<Signal> &_psig,//the signal to be sent
-	ConnectorUid *_pconid,
+	ConnectionUid *_pconid,
 	uint32	_flags
 ){
-	if(_rsap.family() != AddrInfo::Inet4 && _rsap.family() != AddrInfo::Inet6) return -1;
+	
+	if(
+		_rsap.family() != AddrInfo::Inet4 && 
+		_rsap.family() != AddrInfo::Inet6
+	) return -1;
+	
 	Mutex::Locker	lock(*mutex());
+	
 	if(_rsap.family() == AddrInfo::Inet4){
-		Inet4SockAddrPair 	inaddr(_rsap);
-		Data::BaseProcAddr4	baddr(&inaddr, inaddr.port());
-		Data::BaseProcAddr4MapT::iterator	it(d.basepm4.find(&baddr));
-		if(it != d.basepm4.end()){
+		
+		Inet4SockAddrPair 					inaddr(_rsap);
+		Session::Addr4PairT					baddr(&inaddr, inaddr.port());
+		Data::SessionAddr4MapT::iterator	it(d.sessionaddr4map.find(&baddr));
+		
+		if(it != d.sessionaddr4map.end()){
+		
 			vdbgx(Dbg::ipc, "");
-			ConnectorUid	conid = it->second;
-			cassert(conid.tkrid < d.tkrvec.size());
-			Data::TkrPairT	&rtp(d.tkrvec[conid.tkrid]);
-			Mutex::Locker lock2(this->mutex(rtp.first, rtp.second));
-			Talker *ptkr = static_cast<Talker*>(this->object(rtp.first, rtp.second));
+			
+			ConnectionUid		conid(it->second);
+			Data::UInt32PairT	&rtp(d.tkrvec[conid.id]);
+			Mutex::Locker		lock2(this->mutex(rtp.first, rtp.second));
+			Talker				*ptkr(static_cast<Talker*>(this->object(rtp.first, rtp.second)));
+			
+			cassert(conid.id < d.tkrvec.size());
 			cassert(ptkr);
+			
 			if(ptkr->pushSignal(_psig, conid, _flags)){
 				//the talker must be signaled
 				if(ptkr->signal(fdt::S_RAISE)){
@@ -156,10 +171,14 @@ int Service::doSendSignal(
 			}
 			if(_pconid) *_pconid = conid;
 			return OK;
-		}else{//the process connector does not exist
+		
+		}else{//the connection/session does not exist
 			vdbgx(Dbg::ipc, "");
-			int16 tkrid = computeTalkerForNewProcess();
-			uint32 tkrpos,tkruid;
+			
+			int16	tkrid(computeTalkerForNewSession());
+			uint32	tkrpos;
+			uint32	tkruid;
+			
 			if(tkrid >= 0){
 				//the talker exists
 				tkrpos = d.tkrvec[tkrid].first;
@@ -169,21 +188,25 @@ int Service::doSendSignal(
 				tkrid = createNewTalker(tkrpos, tkruid);
 				if(tkrid < 0) return BAD;
 			}
-			Mutex::Locker lock2(this->mutex(tkrpos, tkruid));
-			Talker *ptkr = static_cast<Talker*>(this->object(tkrpos, tkruid));
+			
+			Mutex::Locker		lock2(this->mutex(tkrpos, tkruid));
+			Talker				*ptkr(static_cast<Talker*>(this->object(tkrpos, tkruid)));
 			cassert(ptkr);
-			ProcessConnector *ppc = new ProcessConnector(inaddr, d.keepalivetout);
-			ConnectorUid conid(tkrid);
+			Session				*pses(new Session(inaddr, d.keepalivetout));
+			ConnectionUid		conid(tkrid);
+			
 			vdbgx(Dbg::ipc, "");
-			ptkr->pushProcessConnector(ppc, conid);
-			d.basepm4[ppc->baseAddr4()] = conid;
-// 			DynamicPointer<test::Signal> pnullsig(NULL);
-// 			ptkr->pushSignal(pnullsig, conid, Buffer::Connecting);
+			ptkr->pushSession(pses, conid);
+			d.sessionaddr4map[pses->baseAddr4()] = conid;
+			
 			ptkr->pushSignal(_psig, conid, _flags);
+			
 			if(ptkr->signal(fdt::S_RAISE)){
 				Manager::the().raiseObject(*ptkr);
 			}
+			
 			if(_pconid) *_pconid = conid;
+			
 			return OK;
 		}
 	}else{//inet6
@@ -192,35 +215,40 @@ int Service::doSendSignal(
 	}
 	return OK;
 }
-
-int16 Service::computeTalkerForNewProcess(){
-	++d.proccnt;
-	if(d.proccnt % d.procpertkrcnt) return d.proccnt / d.procpertkrcnt;
+//---------------------------------------------------------------------
+int16 Service::computeTalkerForNewSession(){
+	++d.sessioncnt;
+	if(d.sessioncnt % d.sespertkrcnt) return d.sessioncnt / d.sespertkrcnt;
 	return -1;
 }
-
-int Service::acceptProcess(ProcessConnector *_ppc){
+//---------------------------------------------------------------------
+int Service::acceptSession(Session *_pses){
 	Mutex::Locker	lock(*mutex());
 	{
 		//TODO: try to think if the locking is ok!!!
-		Data::BaseProcAddr4MapT::iterator	it(d.basepm4.find(_ppc->baseAddr4()));
-		if(it != d.basepm4.end()){
+		
+		Data::SessionAddr4MapT::iterator	it(d.sessionaddr4map.find(_pses->baseAddr4()));
+		
+		if(it != d.sessionaddr4map.end()){
 			//a connection still exists
-			uint32 tkrpos,tkruid;
-			tkrpos = d.tkrvec[it->second.tkrid].first;
-			tkruid = d.tkrvec[it->second.tkrid].second;
-			Mutex::Locker lock2(this->mutex(tkrpos, tkruid));
-			Talker *ptkr = static_cast<Talker*>(this->object(tkrpos, tkruid));
+			uint32			tkrpos(d.tkrvec[it->second.sessionidx].first);
+			uint32			tkruid(d.tkrvec[it->second.sessionidx].second);
+			Mutex::Locker	lock2(this->mutex(tkrpos, tkruid));
+			Talker			*ptkr(static_cast<Talker*>(this->object(tkrpos, tkruid)));
+			
 			vdbgx(Dbg::ipc, "");
-			ptkr->pushProcessConnector(_ppc, it->second, true);
+			
+			ptkr->pushSession(_pses, it->second, true);
+			
 			if(ptkr->signal(fdt::S_RAISE)){
 				Manager::the().raiseObject(*ptkr);
 			}
 			return OK;
 		}
 	}
-	int16 tkrid = computeTalkerForNewProcess();
-	uint32 tkrpos,tkruid;
+	int16	tkrid(computeTalkerForNewSession());
+	uint32	tkrpos,tkruid;
+	
 	if(tkrid >= 0){
 		//the talker exists
 		tkrpos = d.tkrvec[tkrid].first;
@@ -230,53 +258,63 @@ int Service::acceptProcess(ProcessConnector *_ppc){
 		tkrid = createNewTalker(tkrpos, tkruid);
 		if(tkrid < 0) return BAD;
 	}
-	Mutex::Locker lock2(this->mutex(tkrpos, tkruid));
-	Talker *ptkr = static_cast<Talker*>(this->object(tkrpos, tkruid));
+	
+	Mutex::Locker	lock2(this->mutex(tkrpos, tkruid));
+	Talker			*ptkr(static_cast<Talker*>(this->object(tkrpos, tkruid)));
 	cassert(ptkr);
-	ConnectorUid conid(tkrid, 0xffff, 0xffff);
+	ConnectionUid	conid(tkrid, 0xffff, 0xffff);
+	
 	vdbgx(Dbg::ipc, "");
-	ptkr->pushProcessConnector(_ppc, conid);
-	d.basepm4[_ppc->baseAddr4()] = conid;
-// 	DynamicPointer<test::Signal> pnullsig(NULL);
-// 	ptkr->pushSignal(pnullsig, conid, Buffer::Accepted);
+	
+	ptkr->pushSession(_pses, conid);
+	d.sessionaddr4map[_pses->baseAddr4()] = conid;
+	
 	if(ptkr->signal(fdt::S_RAISE)){
 		Manager::the().raiseObject(*ptkr);
 	}
 	return OK;
 }
-
-void Service::disconnectTalkerProcesses(Talker &_rtkr){
+//---------------------------------------------------------------------
+void Service::disconnectTalkerSessions(Talker &_rtkr){
 	Mutex::Locker	lock(*mutex());
-	_rtkr.disconnectProcesses();
+	_rtkr.disconnectSessions();
 }
-
-void Service::disconnectProcess(ProcessConnector *_ppc){
-	d.basepm4.erase(_ppc->baseAddr4());
+//---------------------------------------------------------------------
+void Service::disconnectSession(Session *_pses){
+	d.sessionaddr4map.erase(_pses->baseAddr4());
 }
-
+//---------------------------------------------------------------------
 int16 Service::createNewTalker(uint32 &_tkrpos, uint32 &_tkruid){
+	
 	if(d.tkrvec.size() > 30000) return BAD;
-	int16 tkrid = d.tkrvec.size();
+	
+	int16			tkrid(d.tkrvec.size());
+	SocketDevice	sd;
+	
 	d.firstaddr.port(d.firstaddr.port() + tkrid);
-	SocketDevice sd;
+	
 	sd.create(d.firstaddr.family(), AddrInfo::Datagram, 0);
 	sd.bind(d.firstaddr);
 	d.firstaddr.port(d.firstaddr.port() - tkrid);
+	
 	if(sd.ok()){
-		Talker *ptkr = new Talker(sd, *this, tkrid);
+		
+		Talker *ptkr(new Talker(sd, *this, tkrid));
+		
 		if(this->doInsert(*ptkr, this->index())){
 			delete ptkr;
 			return BAD;
 		}
-		d.tkrvec.push_back(Data::TkrPairT((_tkrpos = ptkr->id()), (_tkruid = this->uid(*ptkr))));
-		//Manager::the().pushJob((fdt::udp::Talker*)ptkr);
+		
+		d.tkrvec.push_back(Data::UInt32PairT((_tkrpos = ptkr->id()), (_tkruid = this->uid(*ptkr))));
 		doPushTalkerInPool(ptkr);
+	
 	}else{
 		return BAD;
 	}
 	return tkrid;
 }
-
+//---------------------------------------------------------------------
 int Service::insertConnection(
 	const SocketDevice &_rsd
 ){
@@ -288,7 +326,7 @@ int Service::insertConnection(
 	_rm.pushJob((fdt::tcp::Connection*)pcon);*/
 	return OK;
 }
-
+//---------------------------------------------------------------------
 int Service::insertListener(
 	const AddrInfoIterator &_rai
 ){
@@ -300,30 +338,35 @@ int Service::insertListener(
 	_rm.pushJob((fdt::tcp::Listener*)plis);*/
 	return OK;
 }
+//---------------------------------------------------------------------
 int Service::insertTalker(
 	const AddrInfoIterator &_rai,
 	const char *_node,
 	const char *_svc
 ){	
-	SocketDevice sd;
+	SocketDevice	sd;
 	sd.create(_rai);
 	sd.bind(_rai);
+	
 	if(!sd.ok()) return BAD;
-	Mutex::Locker lock(*mutex());
+	
+	Mutex::Locker	lock(*mutex());
 	cassert(!d.tkrvec.size());//only the first tkr must be inserted from outside
-	Talker *ptkr = new Talker(sd, *this, 0);
+	Talker			*ptkr(new Talker(sd, *this, 0));
+	
 	if(this->doInsert(*ptkr, this->index())){
 		delete ptkr;
 		return BAD;
 	}
+	
 	d.firstaddr = _rai;
 	d.baseport = d.firstaddr.port();
-	d.tkrvec.push_back(Data::TkrPairT(ptkr->id(), this->uid(*ptkr)));
+	d.tkrvec.push_back(Data::UInt32PairT(ptkr->id(), this->uid(*ptkr)));
 	//_rm.pushJob((fdt::udp::Talker*)ptkr);
 	doPushTalkerInPool(ptkr);
 	return OK;
 }
-
+//---------------------------------------------------------------------
 int Service::insertConnection(
 	const AddrInfoIterator &_rai,
 	const char *_node,
@@ -338,17 +381,17 @@ int Service::insertConnection(
 	_rm.pushJob((fdt::tcp::Connection*)pcon);*/
 	return OK;
 }
-
+//---------------------------------------------------------------------
 int Service::removeTalker(Talker& _rtkr){
 	this->remove(_rtkr);
 	return OK;
 }
-
+//---------------------------------------------------------------------
 int Service::removeConnection(Connection &_rcon){
 //	this->remove(_rcon);
 	return OK;
 }
-
+//---------------------------------------------------------------------
 int Service::execute(ulong _sig, TimeSpec &_rtout){
 	idbgx(Dbg::ipc, "serviceexec");
 	if(signaled()){
@@ -373,17 +416,75 @@ bool Buffer::check()const{
 	//TODO:
 	if(this->pb){
 		if(header().size() < sizeof(Header)) return false;
+		if(header().size() > ReadCapacity) return false;
 		return true;
 	}
 	return false;
 }
-void Buffer::print()const{
-	idbgx(Dbg::ipc, "version = "<<(int)header().version<<" id = "<<header().id<<" retransmit = "<<header().retransid<<" flags = "<<header().flags<<" type = "<<(int)header().type<<" updatescnt = "<<header().updatescnt<<" bufcp = "<<bc<<" dl = "<<dl);
-	for(int i = 0; i < header().updatescnt; ++i){
-		vdbgx(Dbg::ipc, "update = "<<update(i));
+//---------------------------------------------------------------------
+/*static*/ char* Buffer::allocateDataForReading(){
+	return Specific::popBuffer(Specific::capacityToId(ReadCapacity));
+}
+//---------------------------------------------------------------------
+/*static*/ void Buffer::deallocateDataForReading(char *_buf){
+	Specific::pushBuffer(_buf, Specific::capacityToId(ReadCapacity));
+}
+//---------------------------------------------------------------------
+void Buffer::clear(){
+	if(pb){
+		Specific::pushBuffer(pb, Specific::capacityToId(bc));
+		pb = NULL;
+		bc = 0;
 	}
 }
-
+//---------------------------------------------------------------------
+Buffer::~Buffer(){
+	clear();
+}
+//---------------------------------------------------------------------
+void Buffer::optimize(uint16 _cp){
+	const uint32	bufsz(this->bufferSize());
+	const uint		id(Specific::sizeToId(bufsz));
+	const uint		mid(Specific::capacityToId(_cp ? _cp : Buffer::capacityForReading()));
+	if(mid > id){
+		uint32 datasz = this->dataSize();//the size
+		
+		char *newbuf(Specific::popBuffer(id));
+		memcpy(newbuf, this->buffer(), bufsz);//copy to the new buffer
+		
+		char *pb = this->release();
+		Specific::pushBuffer(pb, mid);
+		
+		this->pb = newbuf;
+		this->dl = datasz;
+		this->bc = Specific::idToCapacity(id);
+	}
+}
+//---------------------------------------------------------------------
+std::ostream& operator<<(std::ostream &_ros, const Buffer &_rb){
+	_ros<<"BUFFER ver = "<<(int)_rb.header().version;
+	_ros<<" id = "<<_rb.header().id;
+	_ros<<" retransmit = "<<_rb.header().retransid;
+	_ros<<" type = ";
+	switch(_rb.header().type){
+		case Buffer::KeepAliveType: _ros<<"KeepAliveType";break;
+		case Buffer::DataType: _ros<<"DataType";break;
+		case Buffer::ConnectingType: _ros<<"ConnectingType";break;
+		case Buffer::AcceptingType: _ros<<"AcceptingType";break;
+		case Buffer::Unknown: _ros<<"Unknown";break;
+		default: _ros<<"[INVALID TYPE]";
+	}
+	_ros<<" buffer_cp = "<<_rb.bc;
+	_ros<<" datalen = "<<_rb.dl;
+	_ros<<" updatescnt = "<<_rb.header().updatescnt;
+	_ros<<" updates [";
+	for(int i = 0; i < _rb.header().updatescnt; ++i){
+		_ros<<_rb.update(i)<<',';
+	}
+	_ros<<']';
+	return _ros;
+	
+}
 }//namespace ipc
 }//namespace foundation
 

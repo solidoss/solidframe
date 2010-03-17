@@ -46,7 +46,7 @@ int RemoteListSignal::ipcPrepare(const foundation::ipc::SignalUid &_rsiguid){
 		return NOK;
 	}else return OK;// on peer
 }
-int RemoteListSignal::ipcReceived(fdt::ipc::SignalUid &_rsiguid, const fdt::ipc::ConnectorUid &_rconid){
+int RemoteListSignal::ipcReceived(fdt::ipc::SignalUid &_rsiguid, const fdt::ipc::ConnectionUid &_rconid){
 	DynamicPointer<fdt::Signal> psig(this);
 	conid = _rconid;
 	if(!ppthlst){//on peer
@@ -114,10 +114,10 @@ int RemoteListSignal::execute(uint32 _evs, fdt::SignalExecuter&, const SignalUid
 	err = 0;
 	//Thread::sleep(1000 * 20);
 	if(Manager::the().ipc().sendSignal(conid, psig)){
-		idbg("connector was destroyed "<<conid.tkrid<<' '<<conid.procid<<' '<<conid.procuid);
+		idbg("connector was destroyed "<<conid.id<<' '<<conid.sessionidx<<' '<<conid.sessionuid);
 		return BAD;
 	}else{
-		idbg("signal sent "<<conid.tkrid<<' '<<conid.procid<<' '<<conid.procuid);
+		idbg("signal sent "<<conid.id<<' '<<conid.sessionidx<<' '<<conid.sessionuid);
 	}
 	return fdt::LEAVE;
 }
@@ -143,7 +143,7 @@ void FetchMasterSignal::print()const{
 	idbg("tmpfuid.first = "<<tmpfuid.first<<" tmpfuid.second = "<<tmpfuid.second);
 }
 
-int FetchMasterSignal::ipcReceived(fdt::ipc::SignalUid &_rsiguid, const fdt::ipc::ConnectorUid &_rconid){
+int FetchMasterSignal::ipcReceived(fdt::ipc::SignalUid &_rsiguid, const fdt::ipc::ConnectionUid &_rconid){
 	DynamicPointer<fdt::Signal> sig(this);
 	conid = _rconid;
 	state = Received;
@@ -252,7 +252,7 @@ int FetchMasterSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const Sig
 int FetchMasterSignal::receiveSignal(
 	DynamicPointer<Signal> &_rsig,
 	const ObjectUidT& _from,
-	const fdt::ipc::ConnectorUid *_conid
+	const fdt::ipc::ConnectionUid *_conid
 ){
 	if(_rsig->dynamicTypeId() == IStreamSignal::staticTypeId()){
 		idbg((void*)this<<" Received stream");
@@ -281,7 +281,7 @@ int FetchMasterSignal::receiveSignal(
 // 	DynamicPointer<fdt::Signal> &_rsig,
 // 	int			_which,
 // 	const ObjectUidT&_from,
-// 	const fdt::ipc::ConnectorUid *
+// 	const fdt::ipc::ConnectionUid *
 // ){
 // 	psig = static_cast<FetchSlaveSignal*>(_rsig.release());
 // 	idbg("");
@@ -293,7 +293,7 @@ int FetchMasterSignal::receiveSignal(
 // 	const FileUidT	& _fuid,
 // 	int			_which,
 // 	const ObjectUidT&,
-// 	const fdt::ipc::ConnectorUid *
+// 	const fdt::ipc::ConnectionUid *
 // ){
 // 	idbg("fuid = "<<_fuid.first<<","<<_fuid.second);
 // 	ins = _rins;
@@ -304,7 +304,7 @@ int FetchMasterSignal::receiveSignal(
 // int FetchMasterSignal::receiveError(
 // 	int _errid, 
 // 	const ObjectUidT&_from,
-// 	const fdt::ipc::ConnectorUid *_conid
+// 	const fdt::ipc::ConnectionUid *_conid
 // ){
 // 	idbg("");
 // 	state = SendError;
@@ -336,12 +336,12 @@ void FetchSlaveSignal::print()const{
 	idbg("fuid.first = "<<fuid.first<<" fuid.second = "<<fuid.second);
 	idbg("siguid.first = "<<siguid.first<<" siguid.second = "<<siguid.second);
 }
-int FetchSlaveSignal::sent(const fdt::ipc::ConnectorUid &_rconid){
+int FetchSlaveSignal::sent(const fdt::ipc::ConnectionUid &_rconid){
 	idbg((void*)this<<"");
 	fromv.first = 0xffffffff;
 	return BAD;
 }
-int FetchSlaveSignal::ipcReceived(fdt::ipc::SignalUid &_rsiguid, const fdt::ipc::ConnectorUid &_rconid){
+int FetchSlaveSignal::ipcReceived(fdt::ipc::SignalUid &_rsiguid, const fdt::ipc::ConnectionUid &_rconid){
 	DynamicPointer<fdt::Signal> psig(this);
 	conid = _rconid;
 	if(filesz == -10){
@@ -419,7 +419,7 @@ int FetchSlaveSignal::createSerializationStream(
 // SendStringSignal
 //-----------------------------------------------------------------------------------
 
-int SendStringSignal::ipcReceived(fdt::ipc::SignalUid &_rsiguid, const fdt::ipc::ConnectorUid &_rconid){
+int SendStringSignal::ipcReceived(fdt::ipc::SignalUid &_rsiguid, const fdt::ipc::ConnectionUid &_rconid){
 	DynamicPointer<fdt::Signal> psig(this);
 	conid = _rconid;
 	Manager::the().signalObject(tov.first, tov.second, psig);
@@ -434,7 +434,7 @@ int SendStringSignal::ipcReceived(fdt::ipc::SignalUid &_rsiguid, const fdt::ipc:
 // SendStreamSignal
 //-----------------------------------------------------------------------------------
 
-int SendStreamSignal::ipcReceived(fdt::ipc::SignalUid &_rsiguid, const fdt::ipc::ConnectorUid &_rconid){
+int SendStreamSignal::ipcReceived(fdt::ipc::SignalUid &_rsiguid, const fdt::ipc::ConnectionUid &_rconid){
 	DynamicPointer<fdt::Signal> psig(this);
 	conid = _rconid;
 	Manager::the().signalObject(tov.first, tov.second, psig);

@@ -38,7 +38,7 @@ struct TimeSpec;
 
 namespace foundation{
 namespace ipc{
-struct ConnectorUid;
+struct ConnectionUid;
 }
 //! An object which will only execute the received signals
 /*!
@@ -78,7 +78,7 @@ public:
 		DynamicPointer<Signal> &_rsig,
 		const RequestUidT &_requid,
 		const ObjectUidT& _from = ObjectUidT(),
-		const ipc::ConnectorUid *_conid = NULL
+		const ipc::ConnectionUid *_conid = NULL
 	);
 private:
 	int execute();

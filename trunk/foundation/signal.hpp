@@ -38,7 +38,7 @@ class DynamicPointer;
 namespace foundation{
 
 namespace ipc{
-	struct ConnectorUid;
+	struct ConnectionUid;
 	struct SignalUid;
 }
 
@@ -59,7 +59,7 @@ struct Signal: Dynamic<Signal>{
 	/*!
 		\retval BAD for deleting the signal, OK for not
 	*/
-	virtual int ipcReceived(ipc::SignalUid &, const ipc::ConnectorUid&);
+	virtual int ipcReceived(ipc::SignalUid &, const ipc::ConnectionUid&);
 	//! Called by ipc module, before the signal begins to be serialized
 	virtual int ipcPrepare(const ipc::SignalUid&);
 	//! Called by ipc module on peer failure detection (disconnect,reconnect)
@@ -75,7 +75,7 @@ struct Signal: Dynamic<Signal>{
 	virtual int receiveSignal(
 		DynamicPointer<Signal> &_rsig,
 		const ObjectUidT& _from = ObjectUidT(),
-		const ipc::ConnectorUid *_conid = NULL
+		const ipc::ConnectionUid *_conid = NULL
 	);
 };
 }//namespace foundation
