@@ -242,12 +242,18 @@ RemoteList::PathListT::~PathListT(){
 	idbg(""<<(void*)this);
 }
 
-RemoteList::RemoteList():ppthlst(NULL),state(SendError){
+RemoteList::RemoteList():pausems(0), ppthlst(NULL),state(SendError){
 }
 RemoteList::~RemoteList(){
 	delete ppthlst;
 }
 void RemoteList::initReader(Reader &_rr){
+	typedef CharFilter<' '>				SpaceFilterT;
+	typedef NotFilter<SpaceFilterT> 	NotSpaceFilterT;
+	
+	_rr.push(&Reader::fetchUint32, protocol::Parameter(&pausems));
+	_rr.push(&Reader::dropChar);
+	_rr.push(&Reader::checkIfCharThenPop<NotSpaceFilterT>, protocol::Parameter(2));
 	_rr.push(&Reader::fetchUint32, protocol::Parameter(&port));
 	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
 	_rr.push(&Reader::fetchAString, protocol::Parameter(&straddr));
@@ -261,7 +267,7 @@ int RemoteList::execute(Connection &_rc){
 	AddrInfo ai(straddr.c_str(), port, 0, AddrInfo::Inet4, AddrInfo::Stream);
 	idbg("addr"<<straddr<<" port = "<<port);
 	if(!ai.empty()){
-		RemoteListSignal *psig(new RemoteListSignal(0/*1000 + (int) (10000.0 * (rand() / (RAND_MAX + 1.0)))*/));
+		RemoteListSignal *psig(new RemoteListSignal(pausems/*1000 + (int) (10000.0 * (rand() / (RAND_MAX + 1.0)))*/));
 		idbg("remotelist with "<<psig->tout<<" miliseconds delay");
 		psig->strpth = strpth;
 		psig->requid = _rc.newRequestId();

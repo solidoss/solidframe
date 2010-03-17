@@ -271,6 +271,7 @@ private:
 	String						strpth;
 	String						straddr;
 	uint32						port;
+	uint32						pausems;
 	PathListT					*ppthlst;
 	PathListT::const_iterator	it;
 	int							state;

@@ -893,11 +893,12 @@ void Session::reconnect(Session *_pses){
 	while(d.sendsignalfreeposstk.size()){
 		d.sendsignalfreeposstk.pop();
 	}
-	d.rcvexpectedid = 1;
-	d.sendid = 0;
+	d.rcvexpectedid = 2;
+	d.sendid = 1;
 	d.sentsignalwaitresponse = 0;
 	d.currentbuffersignalcount = Data::MaxSignalBufferCount;
 	d.sendbuffervec[0].buffer.id(Buffer::UpdateBufferId);
+	d.sendbuffervec[0].buffer.retransmitId(0);
 }
 //---------------------------------------------------------------------
 int Session::pushSignal(DynamicPointer<Signal> &_rsig, uint32 _flags){
