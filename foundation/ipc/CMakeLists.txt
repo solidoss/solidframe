@@ -2,15 +2,15 @@
 set(Sources
 	src/ipcservice.cpp
 	src/ipctalker.cpp
-	src/processconnector.cpp
+	src/ipcsession.cpp
 )
 
 set(Headers
-	connectoruid.hpp
+	ipcconnectionuid.hpp
 	ipcservice.hpp
 	src/iodata.hpp
 	src/ipctalker.hpp
-	src/processconnector.hpp
+	src/ipcsession.hpp
 )
 
 set(Inlines

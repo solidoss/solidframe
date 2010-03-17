@@ -33,12 +33,27 @@ class Visitor;
 namespace ipc{
 
 class Service;
-struct Buffer;
-struct ConnectorUid;
+struct ConnectionUid;
+class Session;
 
 //! A talker for io requests
 class Talker: public foundation::aio::SingleObject{
 public:
+	//! Interface from Talker to Session
+	struct TalkerStub{
+		bool pushSendBuffer(uint32 _id, const char *_pb, uint32 _bl);
+		void pushTimer(uint32 _id, const TimeSpec &_rtimepos);
+		const TimeSpec& currentTime()const{
+			return crttime;
+		}
+		int basePort()const;
+	private:
+		friend class Talker;
+		TalkerStub(Talker &_rt, const TimeSpec &_rcrttime):rt(_rt), sessionidx(0), crttime(_rcrttime){}
+		Talker			&rt;
+		uint16			sessionidx;
+		const TimeSpec	&crttime;
+	};
 	typedef Service							ServiceT;
 	typedef foundation::aio::SingleObject	BaseT;
 	
@@ -47,15 +62,19 @@ public:
 	int execute(ulong _sig, TimeSpec &_tout);
 	int execute();
 	int accept(foundation::Visitor &);
-	int pushSignal(DynamicPointer<Signal> &_psig, const ConnectorUid &_rconid, uint32 _flags);
-	void pushProcessConnector(ProcessConnector *_pc, ConnectorUid &_rconid, bool _exists = false);
-	void disconnectProcesses();
+	int pushSignal(DynamicPointer<Signal> &_psig, const ConnectionUid &_rconid, uint32 _flags);
+	void pushSession(Session *_ps, ConnectionUid &_rconid, bool _exists = false);
+	void disconnectSessions();
 private:
-	bool processSignals(const TimeSpec &_rts);
-	bool dispatchSentBuffer(const TimeSpec &_rts);
-	void dispatchReceivedBuffer(const SockAddrPair &_rsap, const TimeSpec &_rts);
-	void optimizeBuffer(Buffer &_rbuf);
-	bool inDone(ulong _sig, const TimeSpec &_rts);
+	int doReceiveBuffers(uint32 _atmost, const ulong _sig);
+	bool doProcessReceivedBuffers(const TimeSpec &_rts);
+	void doDispatchReceivedBuffer(char *_pbuf, const uint32 _bufsz, const SockAddrPair &_rsap);
+	void doInsertNewSessions();
+	void doDispatchSignals();
+	int doSendBuffers(const ulong _sig, const TimeSpec &_rcrttimepos);
+	bool doExecuteSessions(const TimeSpec &_rcrttimepos);
+private:
+	friend struct TalkerStub;
 	struct Data;
 	Data &d;
 };

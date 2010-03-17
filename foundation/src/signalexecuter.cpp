@@ -247,7 +247,7 @@ void SignalExecuter::sendSignal(
 	DynamicPointer<Signal> &_rsig,
 	const RequestUidT &_requid,
 	const ObjectUidT& _from,
-	const ipc::ConnectorUid *_conid
+	const ipc::ConnectionUid *_conid
 ){
 	vdbgx(Dbg::fdt, "_requid.first = "<<_requid.first<<" _requid.second = "<<_requid.second<<" uid = "<<d.sdq[_requid.first].uid);
 	if(_requid.first < d.sdq.size() && d.sdq[_requid.first].uid == _requid.second){

@@ -32,7 +32,7 @@
 #include "utility/istream.hpp"
 #include "utility/ostream.hpp"
 
-#include "foundation/ipc/connectoruid.hpp"
+#include "foundation/ipc/ipcconnectionuid.hpp"
 
 #include "core/common.hpp"
 #include "alphacommand.hpp"
@@ -118,18 +118,18 @@ public:
 		const FileUidT &_fuid,
 		int			_which,
 		const ObjectUidT&,
-		const foundation::ipc::ConnectorUid *
+		const foundation::ipc::ConnectionUid *
 	);
 	int receiveError(
 		int _errid,
 		const ObjectUidT&_from,
-		const foundation::ipc::ConnectorUid *
+		const foundation::ipc::ConnectionUid *
 	);
 	int receiveNumber(
 		const int64 &_no,
 		int			_which,
 		const ObjectUidT&_from,
-		const foundation::ipc::ConnectorUid *_conid
+		const foundation::ipc::ConnectionUid *_conid
 	);
 private:
 	enum State{
@@ -168,7 +168,7 @@ private:
 	StreamPointer<IStream>			sp_in;
 	StreamPointer<IStream>			sp_out;
 	IStreamIterator					it;
-	foundation::ipc::ConnectorUid	ipcconuid;
+	foundation::ipc::ConnectionUid	ipcconuid;
 	SignalUidT						mastersiguid;
 	uint32							tmpstreamcp;//temp stream capacity
 	uint64							streamsz_out;
@@ -193,12 +193,12 @@ public:
 		const FileUidT &_fuid,
 		int			_which,
 		const ObjectUidT&,
-		const foundation::ipc::ConnectorUid *
+		const foundation::ipc::ConnectionUid *
 	);
 	int receiveError(
 		int _errid,
 		const ObjectUidT&_from,
-		const foundation::ipc::ConnectorUid *
+		const foundation::ipc::ConnectionUid *
 	);
 	int reinitWriter(Writer &, protocol::Parameter &);
 private:
@@ -260,17 +260,18 @@ public:
 		int _datasz,
 		int			_which, 
 		const ObjectUidT&_from,
-		const foundation::ipc::ConnectorUid *_conid
+		const foundation::ipc::ConnectionUid *_conid
 	);
 	int receiveError(
 		int _errid, 
 		const ObjectUidT&_from,
-		const foundation::ipc::ConnectorUid *_conid
+		const foundation::ipc::ConnectionUid *_conid
 	);
 private:
 	String						strpth;
 	String						straddr;
 	uint32						port;
+	uint32						pausems;
 	PathListT					*ppthlst;
 	PathListT::const_iterator	it;
 	int							state;
@@ -352,30 +353,30 @@ public:
 		const FileUidT&,
 		int			_which,
 		const ObjectUidT&_from,
-		const foundation::ipc::ConnectorUid *_conid
+		const foundation::ipc::ConnectionUid *_conid
 	);
 // 	virtual int receiveOStream(
 // 		StreamPointer<OStream> &,
 // 		const FromPairT&_from,
-// 		const ipc::ConnectorUid *_conid
+// 		const ipc::ConnectionUid *_conid
 // 	);
 // 	virtual int receiveIOStream(
 // 		StreamPointer<IOStream> &, 
 // 		const FromPairT&_from,
-// 		const ipc::ConnectorUid *_conid
+// 		const ipc::ConnectionUid *_conid
 // 	);
 	/*virtual*/ int receiveString(
 		const String &_str,
 		int			_which,
 		const ObjectUidT&_from,
-		const foundation::ipc::ConnectorUid *_conid
+		const foundation::ipc::ConnectionUid *_conid
 	);
 private:
 	enum Type{LocalStringType, PeerStringType, LocalStreamType, PeerStreamType};
 	Queue<Type>					typeq;
 	Queue<String>				stringq;
 	Queue<ObjectUidT>			fromq;
-	Queue<foundation::ipc::ConnectorUid>	conidq;
+	Queue<foundation::ipc::ConnectionUid>	conidq;
 	Queue<StreamPointer<IStream> >	streamq;
 	Connection					&rc;
 	IStreamIterator				it;

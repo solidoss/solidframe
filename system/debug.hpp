@@ -23,6 +23,27 @@
 #define SYSTEM_DEBUG_HPP
 
 
+#ifdef USTATISTICS
+
+#define COLLECT_DATA_0(om)\
+	om()\
+
+
+#define COLLECT_DATA_1(om,p1)\
+	om(p1)\
+
+#define COLLECT_DATA_2(om,p1,p2)\
+	om(p1, p2)\
+
+#else
+#define COLLECT_DATA_0(om)
+
+#define COLLECT_DATA_1(om,p1)
+
+#define COLLECT_DATA_2(om,p1,p2)
+
+#endif
+
 #ifdef UDEBUG
 
 #define DEBUG_BITSET_SIZE 256

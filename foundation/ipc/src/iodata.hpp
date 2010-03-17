@@ -89,6 +89,11 @@ struct Inet6AddrPtrCmp{
 };
 
 struct Buffer{
+	enum{
+		ReadCapacity = 4096,
+		LastBufferId = 0xffffffff - 32,
+		UpdateBufferId = 0xffffffff,//the id of a buffer containing only updates
+	};
 	struct Header{
 		uint8		version;
 		uint8		type;
@@ -127,24 +132,47 @@ struct Buffer{
 	static uint32 minSize(){
 		return sizeof(Header);
 	}
-	Buffer(char *_pb = NULL, uint16 _bc = 0, uint16 _dl = 0):pb(_pb), bc(_bc), dl(_dl){
-		if(_pb){
-			reset(_dl);
-		}
+	static char* allocateDataForReading();
+	static void deallocateDataForReading(char *_buf);
+	static const uint capacityForReading(){
+		return ReadCapacity;
 	}
-	void reset(int _dl = 0){
+	
+	Buffer(
+		char *_pb = NULL,
+		uint16 _bc = 0,
+		uint16 _dl = 0
+	):bc(_bc), dl(_dl), pb(_pb){
+	}
+	Buffer(const Buffer& _rbuf):bc(_rbuf.bc), dl(_rbuf.dl), pb(_rbuf.release()){
+	}
+	Buffer& operator=(const Buffer& _rbuf){
+		if(this != &_rbuf){
+			bc = _rbuf.bc;
+			dl = _rbuf.dl;
+			pb = _rbuf.release();
+		}
+		return *this;
+	}
+	~Buffer();
+	bool empty()const{
+		return pb == NULL;
+	}
+	void resetHeader(){
 		header().version = 1;
 		header().retransid = 0;
 		header().id = 0;
 		header().flags = 0;
 		header().type = Unknown;
 		header().updatescnt = 0;
-		dl = _dl;
 	}
+	void clear();
+	void optimize(uint16 _cp = 0);
 	void reinit(char *_pb = NULL, uint16 _bc = 0, uint16 _dl = 0){
+		clear();
 		pb = _pb;
 		bc = _bc;
-		if(pb) reset(_dl);
+		dl = _dl;
 	}
 	char *buffer()const{return pb;}
 	char *data()const {return pb + header().size();}
@@ -169,10 +197,14 @@ struct Buffer{
 		++dl;
 	}
 	
-	char *release(uint32 &_cp){
+	char *release(uint32 &_cp)const{
 		char* tmp = pb; pb = NULL; 
 		_cp = bc; bc = 0; dl = 0;
 		return tmp;
+	}
+	char *release()const{
+		uint32 cp;
+		return release(cp);
 	}
 	
 	uint8 version()const{return header().version;}
@@ -199,12 +231,11 @@ struct Buffer{
 	
 	bool check()const;
 	
-	void print()const;//see ipcservice.cpp
-	
+public:
 //data
-	char	*pb;
-	uint16	bc;//buffer capacity
-	uint16	dl;//data length
+	mutable uint16	bc;//buffer capacity
+	mutable uint16	dl;//data length
+	mutable char	*pb;
 };
 
 //inlines:
@@ -218,6 +249,8 @@ inline void Buffer::Header::pushUpdate(uint32 _upd){
 	update(updatescnt++) = _upd;
 }
 
+
+std::ostream& operator<<(std::ostream &_ros, const Buffer &_rb);
 }//namespace ipc
 }//namespace foundation
 

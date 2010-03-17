@@ -23,6 +23,7 @@
 #include <map>
 #include <cerrno>
 #include <cstring>
+#include <ostream>
 
 #include "system/timespec.hpp"
 #include "system/socketaddress.hpp"
@@ -36,540 +37,764 @@
 #include "foundation/manager.hpp"
 
 #include "foundation/ipc/ipcservice.hpp"
-#include "foundation/ipc/connectoruid.hpp"
+#include "foundation/ipc/ipcconnectionuid.hpp"
 
 #include "ipctalker.hpp"
-#include "processconnector.hpp"
+#include "ipcsession.hpp"
 
 namespace fdt = foundation;
 
 namespace foundation{
 namespace ipc{
 
+
+#ifdef USTATISTICS
+namespace{
+struct StatisticData{
+	StatisticData(){
+		memset(this, 0, sizeof(StatisticData));
+	}
+	~StatisticData();
+	
+	void receivedManyBuffers();
+	void receivedKeepAlive();
+	void receivedData();
+	void receivedDataUnknown();
+	void receivedConnecting();
+	void failedAcceptSession();
+	void receivedConnectingError();
+	void receivedAccepting();
+	void receivedAcceptingError();
+	void receivedUnknown();
+	void maxTimerQueueSize(ulong _sz);
+	void maxSessionExecQueueSize(ulong _sz);
+	void maxSendQueueSize(ulong _sz);
+	void sendPending();
+	void signaled();
+	void pushTimer();
+	
+	ulong	rcvdmannybuffers;
+	ulong	rcvdkeepalive;
+	ulong	rcvddata;
+	ulong	rcvddataunknown;
+	ulong	rcvdconnecting;
+	ulong	failedacceptsession;
+	ulong	rcvdconnectingerror;
+	ulong	rcvdaccepting;
+	ulong	rcvdacceptingerror;
+	ulong	rcvdunknown;
+	ulong	maxtimerqueuesize;
+	ulong	maxsessionexecqueuesize;
+	ulong	maxsendqueuesize;
+	ulong	sendpending;
+	ulong	signaledcount;
+	ulong	pushtimercount;
+};
+
+std::ostream& operator<<(std::ostream &_ros, const StatisticData &_rsd);
+}//namespace
+#endif
+
+
 struct Talker::Data{
 	struct SignalData{
-		SignalData(DynamicPointer<Signal> &_psig, uint16 _procid, uint16 _procuid, uint32 _flags):
-			psig(_psig), procid(_procid), procuid(_procuid), flags(_flags){}
-		DynamicPointer<Signal> psig;
-		uint16	procid;
-		uint16	procuid;
-		uint32	flags;
+		SignalData(
+			DynamicPointer<Signal> &_psig,
+			uint16 _sesidx,
+			uint16 _sesuid,
+			uint32 _flags
+		):	psig(_psig), sessionidx(_sesidx),
+			sessionuid(_sesuid), flags(_flags){}
+		
+		DynamicPointer<Signal>	psig;
+		uint16					sessionidx;
+		uint16					sessionuid;
+		uint32					flags;
 	};
-	struct SendBufferDataCmp{
-		bool operator()(const SendBufferData* const &_rpon1,const SendBufferData* const &_rpon2)const{
-			return _rpon1->timeout > _rpon2->timeout;
+	struct RecvBuffer{
+		RecvBuffer(
+			char *_data = NULL,
+			uint16 _size = 0,
+			uint16 _sessionidx = 0
+		):data(_data), size(_size), sessionidx(_sessionidx){}
+		char	*data;
+		uint16	size;
+		uint16	sessionidx;
+	};
+	struct SendBuffer{
+		SendBuffer(
+			const char *_data = NULL,
+			uint16 _size = 0,
+			uint16 _sessionidx = 0,
+			uint32 _id = 0
+		):data(_data), size(_size), sessionidx(_sessionidx), id(_id){}
+		const char *data;
+		uint16		size;
+		uint16		sessionidx;
+		uint32		id;
+	};
+	
+	struct TimerData{
+		TimerData(
+			const TimeSpec &_rtimepos,
+			uint32 _id,
+			uint16 _sessionidx
+		): timepos(_rtimepos), id(_id), sessionidx(_sessionidx){}
+		TimeSpec	timepos;
+		uint32		id;
+		uint16		sessionidx;
+	};
+	
+	struct TimerDataCmp{
+		bool operator()(
+			const TimerData &_rtd1,
+			const TimerData &_rtd2
+		)const{
+			return _rtd1.timepos > _rtd2.timepos;
 		}
 	};
-	typedef std::pair<ProcessConnector*, int32>			NewProcPairT;
-	typedef std::pair<ProcessConnector*, uint16>		ProcPairT;
-	typedef std::vector<ProcPairT>						ProcVectorT;
+	
+	struct SessionStub{
+		SessionStub(
+			Session *_psession = NULL,
+			uint16 _uid = 0
+		):psession(_psession), uid(_uid), inexeq(false){}
+		Session		*psession;
+		uint16		uid;
+		bool		inexeq;
+	};
+	
+	
+	typedef std::vector<RecvBuffer>				RecvBufferVectorT;
+	typedef Queue<SignalData>					SignalQueueT;
+	typedef std::pair<uint16, uint16>			UInt16PairT;
+	typedef Stack<UInt16PairT>					UInt16PairStackT;
+	typedef std::pair<Session*, uint16>			SessionPairT;
+	typedef std::vector<SessionPairT>			SessionPairVectorT;
+	typedef std::vector<uint16>					UInt16VectorT;
+	typedef std::vector<SessionStub>			SessionStubVectorT;
+	typedef Queue<uint16>						UInt16QueueT;
 	
 	typedef std::map<
 		const Inet4SockAddrPair*,
 		uint32,
 		Inet4AddrPtrCmp
-		>												PeerProcAddr4MapT;//TODO: test if a hash map is better
-	typedef std::pair<const Inet4SockAddrPair*, int>	BaseProcAddr4;
+	>											PeerAddr4MapT;//TODO: test if a hash map is better
+	typedef std::pair<
+		const Inet4SockAddrPair*,
+		int
+	>											BaseAddr4;
 	typedef std::map<
-		const BaseProcAddr4*,
+		const BaseAddr4*,
 		uint32,
 		Inet4AddrPtrCmp
-		>												BaseProcAddr4MapT;
+	>											BaseAddr4MapT;
 	
 	typedef std::map<
 		const Inet6SockAddrPair*, 
 		uint32,
 		Inet6AddrPtrCmp
-		>												PeerProcAddr6MapT;//TODO: test if a hash map is better
-	typedef std::pair<const Inet6SockAddrPair*, int>	BaseProcAddr6;
+	>											PeerAddr6MapT;//TODO: test if a hash map is better
+	typedef std::pair<
+		const Inet6SockAddrPair*,
+		int
+	>											BaseAddr6;
 	typedef std::map<
-		const BaseProcAddr6*,
+		const BaseAddr6*,
 		uint32, Inet6AddrPtrCmp
-		>												BaseProcAddr6MapT;
-
-	
-	typedef Queue<uint32>								CmdQueueT;
-	typedef Stack<uint32>								CloseStackT;
-	typedef Stack<std::pair<uint16, uint16> >			FreePosStackT;//first is the pos second is the uid
-	typedef Queue<SignalData>							SignalQueueT;
+	>											BaseAddr6MapT;
 	typedef std::priority_queue<
-		SendBufferData*,
-		std::vector<SendBufferData*>,
-		SendBufferDataCmp
-		>												SendQueueT;
-	typedef Stack<SendBufferData>						SendStackT;
-	typedef Stack<SendBufferData*>						SendFreeStackT;
-	typedef Stack<NewProcPairT>							NewProcStackT;
-
-	Data(Service &_rservice, uint16 _id):rservice(_rservice), nextprocid(0), tkrid(_id){}
+		TimerData,
+		std::vector<TimerData>,
+		TimerDataCmp
+	>											TimerQueueT;
+	typedef Queue<SendBuffer>					SendQueueT;
 	
+public:
+	Data(
+		Service &_rservice,
+		uint16 _id
+	):	rservice(_rservice), tkrid(_id), pendingreadbuffer(NULL), nextsessionidx(0){
+	}
+	~Data();
+public:
 	Service					&rservice;
-	uint32					nextprocid;
 	uint16					tkrid;
-	Buffer					rcvbuf;
-	ProcVectorT				procs;
-	PeerProcAddr4MapT		peerpm4;
-	BaseProcAddr4MapT		basepm4;
-	FreePosStackT			procfs;
-	CmdQueueT				cq;
+	RecvBufferVectorT		receivedbufvec;
+	char					*pendingreadbuffer;
 	SignalQueueT			sigq;
+	UInt16PairStackT		freesessionstack;
+	uint16					nextsessionidx;
+	SessionPairVectorT		newsessionvec;
+	UInt16VectorT			closingsessionvec;
+	SessionStubVectorT		sessionvec;
+	UInt16QueueT			sessionexecq;
+	PeerAddr4MapT			peeraddr4map;
+	BaseAddr4MapT			baseaddr4map;
+	TimerQueueT				timerq;
 	SendQueueT				sendq;
-	SendStackT				sends;
-	SendFreeStackT			sendfs;
-	NewProcStackT			newprocs;
-	CloseStackT				closes;//a stack with talkers which want to close
+#ifdef USTATISTICS
+	StatisticData			statistics;
+#endif
 };
-
+Talker::Data::~Data(){
+	if(pendingreadbuffer){
+		Buffer::deallocateDataForReading(pendingreadbuffer);
+	}
+	for(RecvBufferVectorT::const_iterator it(receivedbufvec.begin()); it != receivedbufvec.end(); ++it){
+		Buffer::deallocateDataForReading(it->data);
+	}
+	for(SessionPairVectorT::const_iterator it(newsessionvec.begin()); it != newsessionvec.end(); ++it){
+		delete it->first;
+	}
+	for(SessionStubVectorT::const_iterator it(sessionvec.begin()); it != sessionvec.end(); ++it){
+		delete it->psession;
+	}
+}
 //======================================================================
 
-Talker::Talker(const SocketDevice &_rsd, Service &_rservice, uint16 _id):	BaseT(_rsd), d(*new Data(_rservice, _id)){
+Talker::Talker(
+	const SocketDevice &_rsd,
+	Service &_rservice,
+	uint16 _id
+):BaseT(_rsd), d(*new Data(_rservice, _id)){
 }
 
 //----------------------------------------------------------------------
 Talker::~Talker(){
-	char *pb = d.rcvbuf.buffer();
-	Specific::pushBuffer(pb, Specific::capacityToId(4096));
-	vdbgx(Dbg::ipc, "sendq.size = "<<d.sendq.size());
-	while(d.sendq.size()){
-		pb = d.sendq.top()->b.buffer();
-		if(pb){
-			vdbgx(Dbg::ipc, "released buffer");
-			Specific::pushBuffer(pb, Specific::capacityToId(d.sendq.top()->b.bufferCapacity()));
-		}
-		d.sendq.pop();
-	}
-	while(d.newprocs.size()){
-		delete d.newprocs.top().first;
-		d.newprocs.pop();
-	}
-	for(Data::ProcVectorT::iterator it(d.procs.begin()); it != d.procs.end(); ++it){
-		vdbgx(Dbg::ipc, "deleting process "<<(void*)it->first<<" pos = "<<(it - d.procs.begin()));
-		delete it->first;
-		it->first = NULL;
-		
-	}
 	d.rservice.removeTalker(*this);
 	delete &d;
 }
-
-//----------------------------------------------------------------------
-inline bool Talker::inDone(ulong _sig, const TimeSpec &_rts){
-	if(_sig & fdt::INDONE){
-		//TODO: reject too smaller buffers
-		d.rcvbuf.bufferSize(socketRecvSize());
-		if(d.rcvbuf.check()){
-			idbgx(Dbg::ipc, "received valid buffer size "<<d.rcvbuf.bufferSize()<<" data size "<<d.rcvbuf.dataSize()<<" id "<<d.rcvbuf.id());
-			dispatchReceivedBuffer(socketRecvAddr(), _rts);//the address is deeply copied
-		}else{
-			idbgx(Dbg::ipc, "received invalid buffer size "<<d.rcvbuf.bufferSize()<<" data size "<<d.rcvbuf.dataSize()<<" id "<<d.rcvbuf.id());
-		}
-		return true;
-	}else return false;
-}
-//this should be called under ipc service's mutex lock
-void Talker::disconnectProcesses(){
-	Manager &rm = Manager::the();
-	Mutex::Locker	lock(rm.mutex(*this));
-	//delete processconnectors
-	while(d.closes.size()){
-		ProcessConnector *ppc = d.procs[d.closes.top()].first;
-		idbgx(Dbg::ipc, "disconnecting process "<<(void*)ppc);
-		cassert(ppc);
-		if(ppc->isDisconnecting()){
-			idbgx(Dbg::ipc, "deleting process "<<(void*)ppc<<" on pos "<<d.closes.top());
-			d.rservice.disconnectProcess(ppc);
-			//unregister from base and peer:
-			if(ppc->peerAddr4() && ppc->peerAddr4()->addr){
-				d.peerpm4.erase(ppc->peerAddr4());
-			}
-			if(ppc->baseAddr4() && ppc->baseAddr4()->first && ppc->baseAddr4()->first->addr){
-				d.basepm4.erase(ppc->baseAddr4());
-			}
-			delete ppc;
-			d.procs[d.closes.top()].first = NULL;
-			uint16 uidv = ++d.procs[d.closes.top()].second;
-			d.procfs.push(std::pair<uint16, uint16>(d.closes.top(), uidv));
-		}
-		d.closes.pop();
-	}
-}
-
 //----------------------------------------------------------------------
 int Talker::execute(ulong _sig, TimeSpec &_tout){
 	Manager &rm = Manager::the();
-// 	if(_sig & (fdt::TIMEOUT | fdt::ERRDONE)){
-// 		if(_sig & fdt::TIMEOUT)
-// 			idbgx(Dbg::ipc, "talker timeout");
-// 		if(_sig & fdt::ERRDONE)
-// 			idbgx(Dbg::ipc, "talker error");
-// 		return BAD;
-// 	}
-	bool nothing = true;
 	idbgx(Dbg::ipc, "this = "<<(void*)this<<" &d = "<<(void*)&d);
-	if(signaled() || d.closes.size()){
-		{
-			nothing = false;
-			Mutex::Locker	lock(rm.mutex(*this));
-			ulong sm = grabSignalMask(0);
-			if(sm & fdt::S_KILL){
-				idbgx(Dbg::ipc, "talker - dying");
-				return BAD;
-			}
-			idbgx(Dbg::ipc, "talker - signaled");
-			if(sm == fdt::S_RAISE){
-				_sig |= fdt::SIGNALED;
-			}else{
-				idbgx(Dbg::ipc, "unknown signal");
-			}
-			//insert new processes
-			while(d.newprocs.size()){
-				int32 newprocidx(d.newprocs.top().second);
-				idbgx(Dbg::ipc, "newprocidx = "<<newprocidx<<" procs.size = "<< d.procs.size());
-				
-				ProcessConnector *pnewproc(d.newprocs.top().first);
-				
-				if((uint32)newprocidx >= d.procs.size()){
-					uint32 oldsz = d.procs.size();
-					d.procs.resize(newprocidx + 1);
-					for(uint32 i = oldsz; i < d.procs.size(); ++i){
-						d.procs[i].first = NULL;
-						d.procs[i].second = 0;
-					}
-				}
-				
-				if(!d.procs[newprocidx].first){
-					
-					d.procs[newprocidx].first = pnewproc;
-					pnewproc->prepare();
-					//register in base map
-					d.basepm4[pnewproc->baseAddr4()] = newprocidx;
-					if(pnewproc->isConnected()){
-						//register in peer map
-						d.peerpm4[pnewproc->peerAddr4()] = newprocidx;
-					}
-					d.cq.push(newprocidx);
-				}else{
-					
-					Data::ProcPairT &rpp(d.procs[newprocidx]);
-					if(!rpp.first->isAccepting()){
-						//a reconnect
-						d.peerpm4.erase(rpp.first->peerAddr4());
-						rpp.first->reconnect(pnewproc);
-						++rpp.second;
-						d.peerpm4[rpp.first->peerAddr4()] = newprocidx;
-						d.cq.push(newprocidx);
-					}
-					//TODO: try use Specific for process connectors!!
-					//TODO: Ensure that there are no pending sends!!!
-					delete pnewproc;
-				
-				}
-				d.newprocs.pop();
-			}
-			d.nextprocid = d.procs.size();//TODO: see if its right
-			//dispatch signals before deleting processconnectors
-			while(d.sigq.size()){
-				cassert(d.sigq.front().procid < d.procs.size());
-				Data::ProcPairT	&rpp(d.procs[d.sigq.front().procid]);
-				uint32				flags(d.sigq.front().flags);
-				if(rpp.first && (!(flags & Service::SameConnectorFlag) || rpp.second == d.sigq.front().procuid)){
-					rpp.first->pushSignal(d.sigq.front().psig, d.sigq.front().flags);
-					d.cq.push(d.sigq.front().procid);
-				}
-				vdbgx(Dbg::ipc, "");
-				d.sigq.pop();
-			}
+	if(signaled() || d.closingsessionvec.size()){
+		Mutex::Locker	lock(rm.mutex(*this));
+		ulong			sm = grabSignalMask(0);
+		
+		if(sm & fdt::S_KILL){
+			idbgx(Dbg::ipc, "talker - dying");
+			return BAD;
+		}
+		
+		idbgx(Dbg::ipc, "talker - signaled");
+		if(sm == fdt::S_RAISE){
+			_sig |= fdt::SIGNALED;
+		}else{
+			idbgx(Dbg::ipc, "unknown signal");
+		}
+		if(d.newsessionvec.size()){
+			doInsertNewSessions();
+		}
+		if(d.sigq.size()){
+			doDispatchSignals();
 		}
 	}
 	
 	_sig |= socketEventsGrab();
 	
-	if(d.closes.size()){
-		nothing = false;
-		//this is to ensure the locking order: first service then talker
-		d.rservice.disconnectTalkerProcesses(*this);
+	if(_sig & fdt::ERRDONE){
+		return BAD;
 	}
-	//try to recv something
-	if(inDone(_sig, _tout) || (!socketHasPendingRecv())){
-		nothing  = false;
-		//non blocking read some buffers
-		int cnt = 0;
-		while(cnt++ < 32){
-			if(!d.rcvbuf.buffer()){
-				cnt += 2;//fewer iterations if we keep storing received buffers
-				d.rcvbuf.reinit(Specific::popBuffer(Specific::capacityToId(4096)), 4096);
-			}else{
-				d.rcvbuf.reset();
-			}
-			switch(socketRecvFrom(d.rcvbuf.buffer(), d.rcvbuf.bufferCapacity())){
-				case BAD:
-					idbgx(Dbg::ipc, "socket error "<<strerror(errno));
-					cassert(false);
-					break;
-				case OK:
-					d.rcvbuf.bufferSize(socketRecvSize());
-					if(d.rcvbuf.check()){
-						
-						idbgx(Dbg::ipc, "received valid buffer size "<<d.rcvbuf.bufferSize()<<" data size "<<d.rcvbuf.dataSize()<<" id "<<d.rcvbuf.id());
-						
-						dispatchReceivedBuffer(socketRecvAddr(), _tout);//the address is deeply copied
-					}else{
-						idbgx(Dbg::ipc, "received invalid buffer size "<<d.rcvbuf.bufferSize()<<" data size "<<d.rcvbuf.dataSize()<<" id "<<d.rcvbuf.id());
-					}
-					break;
-				case NOK:
-					idbgx(Dbg::ipc, "receive tout");
-					goto DoneRecv;
-			}
-		}
-		DoneRecv:;
-	}
-	if(_sig & fdt::OUTDONE){
-		nothing = false;
-		dispatchSentBuffer(_tout);
-	}
-	bool mustreenter = processSignals(_tout);
 	
-	while(d.sendq.size() && !socketHasPendingSend()){
-		if(_tout < d.sendq.top()->timeout){
-			_tout = d.sendq.top()->timeout;
-			vdbgx(Dbg::ipc, "return "<<nothing);
-			return mustreenter ? OK : NOK;
-		}
-		nothing = false;
-		if(d.sendq.top()->b.buffer() == NULL){
-			//simulate sending
-			mustreenter = dispatchSentBuffer(_tout);
-			continue;
-		}
-		switch(socketSendTo(d.sendq.top()->b.buffer(), d.sendq.top()->b.bufferSize(), *d.sendq.top()->paddr)){
+	bool	must_reenter(false);
+	int		rv;
+	
+	if(d.closingsessionvec.size()){
+		//this is to ensure the locking order: first service then talker
+		d.rservice.disconnectTalkerSessions(*this);
+	}
+	
+	rv = doReceiveBuffers(4, _sig);
+	if(rv == OK){
+		must_reenter = true;
+	}else if(rv == BAD){
+		return BAD;
+	}
+	
+	must_reenter = doProcessReceivedBuffers(_tout) || must_reenter;
+	
+	rv = doSendBuffers(_sig, _tout);
+	if(rv == OK){
+		must_reenter = true;
+	}else if(rv == BAD){
+		return BAD;
+	}
+	
+	must_reenter = doExecuteSessions(_tout) || must_reenter;
+	
+	if(d.timerq.size()){
+		_tout = d.timerq.top().timepos;
+	}
+	
+	return must_reenter ? OK : NOK;
+}
+
+//----------------------------------------------------------------------
+int Talker::doReceiveBuffers(uint32 _atmost, const ulong _sig){
+	if(this->socketHasPendingRecv()){
+		return NOK;
+	}
+	if(_sig & fdt::INDONE){
+		doDispatchReceivedBuffer(d.pendingreadbuffer, socketRecvSize(), socketRecvAddr());
+		d.pendingreadbuffer = NULL;
+	}
+	while(_atmost--){
+		char 			*pbuf(Buffer::allocateDataForReading());
+		const uint32	bufsz(Buffer::capacityForReading());
+		switch(socketRecvFrom(pbuf, bufsz)){
 			case BAD:
-			case OK: 
-				mustreenter = dispatchSentBuffer(_tout);
+				Buffer::deallocateDataForReading(pbuf);
+				return BAD;
+			case OK:
+				doDispatchReceivedBuffer(pbuf, socketRecvSize(), socketRecvAddr());
 				break;
 			case NOK:
-				//_tout.set(0);
-				vdbgx(Dbg::ipc, "return");
-				return mustreenter ? OK : NOK;
+				d.pendingreadbuffer = pbuf;
+				return NOK;
 		}
-	}//while
-	//if we've sent something or
-	//if we did not have a timeout while reading we MUST do an ioUpdate asap.
-	if(mustreenter || !socketHasPendingRecv() || d.closes.size()){
-		vdbgx(Dbg::ipc, "return "<<nothing);
-		return OK;
 	}
-	//_tout.set(0);
+	COLLECT_DATA_0(d.statistics.receivedManyBuffers);
+	return OK;//can still read from socket
+}
+//----------------------------------------------------------------------
+bool Talker::doProcessReceivedBuffers(const TimeSpec &_rts){
+	ConnectionUid	conuid(d.tkrid);
+	TalkerStub		ts(*this, _rts);
+	for(Data::RecvBufferVectorT::const_iterator it(d.receivedbufvec.begin()); it != d.receivedbufvec.end(); ++it){
+		
+		const Data::RecvBuffer	&rcvbuf(*it);
+		Data::SessionStub		&rss(d.sessionvec[rcvbuf.sessionidx]);
+		Buffer					buf(rcvbuf.data, Buffer::capacityForReading());
+		
+		buf.bufferSize(rcvbuf.size);
+		
+		conuid.sessionidx = rcvbuf.sessionidx;
+		conuid.sessionuid = rss.uid;
+		if(rss.psession->pushReceivedBuffer(buf, ts, conuid)){
+			if(!rss.inexeq){
+				d.sessionexecq.push(rcvbuf.sessionidx);
+				rss.inexeq = true;
+			}
+		}
+	}
+	d.receivedbufvec.clear();
+	return false;
+}
+//----------------------------------------------------------------------
+void Talker::doDispatchReceivedBuffer(char *_pbuf, const uint32 _bufsz, const SockAddrPair &_rsap){
+	Buffer buf(_pbuf, Buffer::ReadCapacity);
+	buf.bufferSize(_bufsz);
+	vdbgx(Dbg::ipc, " RECEIVED "<<buf);
+	switch(buf.type()){
+		case Buffer::KeepAliveType:
+			COLLECT_DATA_0(d.statistics.receivedKeepAlive);
+		case Buffer::DataType:{
+			COLLECT_DATA_0(d.statistics.receivedData);
+			idbgx(Dbg::ipc, "data buffer");
+			Inet4SockAddrPair				inaddr(_rsap);
+			Data::PeerAddr4MapT::iterator	pit(d.peeraddr4map.find(&inaddr));
+			if(pit != d.peeraddr4map.end()){
+				idbgx(Dbg::ipc, "found session for buffer");
+				d.receivedbufvec.push_back(Data::RecvBuffer(_pbuf, _bufsz, pit->second));
+				buf.release();
+			}else{
+				COLLECT_DATA_0(d.statistics.receivedDataUnknown);
+				//proc
+				Buffer::deallocateDataForReading(buf.release());
+			}
+		
+		}break;
+		
+		case Buffer::ConnectingType:{
+			COLLECT_DATA_0(d.statistics.receivedConnecting);
+			Inet4SockAddrPair	inaddr(_rsap);
+			int					baseport(Session::parseConnectingBuffer(buf));
+			
+			idbgx(Dbg::ipc, "connecting buffer with baseport "<<baseport);
+			
+			if(baseport >= 0){
+				Session *ps(new Session(inaddr, baseport, d.rservice.keepAliveTimeout()));
+				if(d.rservice.acceptSession(ps)){	
+					COLLECT_DATA_0(d.statistics.failedAcceptSession);
+					delete ps;
+				}
+			}else{
+				COLLECT_DATA_0(d.statistics.receivedConnectingError);
+			}
+			Buffer::deallocateDataForReading(buf.release());
+		}break;
+		
+		case Buffer::AcceptingType:{
+			COLLECT_DATA_0(d.statistics.receivedAccepting);
+			int baseport = Session::parseAcceptedBuffer(buf);
+			
+			idbgx(Dbg::ipc, "accepting buffer with baseport "<<baseport);
+			
+			if(baseport >= 0){
+				
+				Inet4SockAddrPair				inaddr(_rsap);
+				Data::BaseAddr4					ppa(&inaddr, baseport);
+				Data::BaseAddr4MapT::iterator	bit(d.baseaddr4map.find(&ppa));
+				if(bit != d.baseaddr4map.end()){
+					Data::SessionStub	&rss(d.sessionvec[bit->second]);
+					if(rss.psession){
+						rss.psession->completeConnect(inaddr.port());
+						//register in peer map
+						d.peeraddr4map[rss.psession->peerAddr4()] = bit->second;
+						//the connector has at least some updates to send
+						if(!rss.inexeq){
+							d.sessionexecq.push(bit->second);
+							rss.inexeq = true;
+						}
+					}
+				}
+			}else{
+				COLLECT_DATA_0(d.statistics.receivedAcceptingError);
+			}
+			
+			Buffer::deallocateDataForReading(buf.release());
+		}break;
+		
+		default:
+			COLLECT_DATA_0(d.statistics.receivedUnknown);
+			Buffer::deallocateDataForReading(buf.release());
+			cassert(false);
+	}
+}
+//----------------------------------------------------------------------
+bool Talker::doExecuteSessions(const TimeSpec &_rcrttimepos){
+	TalkerStub ts(*this, _rcrttimepos);
+	COLLECT_DATA_1(d.statistics.maxTimerQueueSize, d.timerq.size());
+	//first we consider all timers
+	while(d.timerq.size() && d.timerq.top().timepos <= _rcrttimepos){
+		const Data::TimerData		&rtd(d.timerq.top());
+		Data::SessionStub			&rss(d.sessionvec[rtd.sessionidx]);
+		ts.sessionidx = rtd.sessionidx;
+		if(rss.psession->executeTimeout(ts, rtd.id)){
+			if(!rss.inexeq){
+				d.sessionexecq.push(ts.sessionidx);
+				rss.inexeq = true;
+			}
+		}
+		d.timerq.pop();
+	}
+	
+	ulong sz(d.sessionexecq.size());
+	COLLECT_DATA_1(d.statistics.maxSessionExecQueueSize, sz);
+	while(sz--){
+		ts.sessionidx = d.sessionexecq.front();
+		d.sessionexecq.pop();
+		Data::SessionStub	&rss(d.sessionvec[ts.sessionidx]);
+		
+		rss.inexeq = false;
+		switch(rss.psession->execute(ts)){
+			case BAD:
+				d.closingsessionvec.push_back(ts.sessionidx);
+				rss.inexeq = true;
+				break;
+			case OK:
+				d.sessionexecq.push(ts.sessionidx);
+			case NOK:
+				break;
+		}
+	}
+	
+	return d.sessionexecq.size() != 0;
+}
+//----------------------------------------------------------------------
+int Talker::doSendBuffers(const ulong _sig, const TimeSpec &_rcrttimepos){
+	if(socketHasPendingSend()){
+		return NOK;
+	}
+	
+	TalkerStub ts(*this, _rcrttimepos);
+	
+	if(_sig & fdt::OUTDONE){
+		cassert(d.sendq.size());
+		COLLECT_DATA_1(d.statistics.maxSendQueueSize, d.sendq.size());
+		Data::SendBuffer	&rsb(d.sendq.front());
+		Data::SessionStub	&rss(d.sessionvec[rsb.sessionidx]);
+		
+		if(rss.psession->pushSentBuffer(ts, rsb.id, rsb.data, rsb.size)){
+			if(!rss.inexeq){
+				d.sessionexecq.push(rsb.sessionidx);
+				rss.inexeq = true;
+			}
+		}
+		d.sendq.pop();
+	}
+	
+	while(d.sendq.size()){
+		Data::SendBuffer	&rsb(d.sendq.front());
+		Data::SessionStub	&rss(d.sessionvec[rsb.sessionidx]);
+		
+		switch(socketSendTo(rsb.data, rsb.size, *rss.psession->peerSockAddr())){
+			case BAD: return BAD;
+			case OK:
+				if(rss.psession->pushSentBuffer(ts, rsb.id, rsb.data, rsb.size)){
+					if(!rss.inexeq){
+						d.sessionexecq.push(rsb.sessionidx);
+						rss.inexeq = true;
+					}
+				}
+			case NOK:
+				COLLECT_DATA_0(d.statistics.sendPending);
+				return NOK;
+		}
+		d.sendq.pop();
+	}
 	return NOK;
 }
-
-//----------------------------------------------------------------------
-int Talker::execute(){
-	return BAD;
-}
-
-//----------------------------------------------------------------------
-int Talker::accept(foundation::Visitor &){
-	return BAD;
-}
-
 //----------------------------------------------------------------------
 //The talker's mutex should be locked
 //return ok if the talker should be signaled
-int Talker::pushSignal(DynamicPointer<Signal> &_psig, const ConnectorUid &_rconid, uint32 _flags){
-	d.sigq.push(Data::SignalData(_psig, _rconid.procid, _rconid.procuid, _flags));
+int Talker::pushSignal(
+	DynamicPointer<Signal> &_psig,
+	const ConnectionUid &_rconid,
+	uint32 _flags
+){
+	COLLECT_DATA_0(d.statistics.signaled);
+	d.sigq.push(Data::SignalData(_psig, _rconid.sessionidx, _rconid.sessionuid, _flags));
 	return d.sigq.size() == 1 ? NOK : OK;
 }
 
 //----------------------------------------------------------------------
 //The talker's mutex should be locked
 //Return's the new process connector's id
-void Talker::pushProcessConnector(ProcessConnector *_pc, ConnectorUid &_rconid, bool _exists){
-	idbgx(Dbg::ipc, " exists "<<_exists);
+void Talker::pushSession(Session *_pses, ConnectionUid &_rconid, bool _exists){
+	vdbgx(Dbg::ipc, "exists "<<_exists);
 	if(_exists){
-		
-		++_rconid.procuid;
+		++_rconid.sessionuid;
 	}else{
-		if(d.procfs.size()){
+		if(d.freesessionstack.size()){
 			vdbgx(Dbg::ipc, "");
-			_rconid.procid = d.procfs.top().first;
-			_rconid.procuid = d.procfs.top().second;
-			d.procfs.pop();
+			_rconid.sessionidx = d.freesessionstack.top().first;
+			_rconid.sessionuid = d.freesessionstack.top().second;
+			d.freesessionstack.pop();
 		}else{
 			vdbgx(Dbg::ipc, "");
-			cassert(d.nextprocid < (uint16)0xffff);
-			_rconid.procid = d.nextprocid;
-			_rconid.procuid = 0;
-			++d.nextprocid;//TODO: it must be reseted somewhere!!!
+			cassert(d.nextsessionidx < (uint16)0xffff);
+			_rconid.sessionidx = d.nextsessionidx;
+			_rconid.sessionuid = 0;
+			++d.nextsessionidx;//TODO: it must be reseted somewhere!!!
 		}
 	}
-	d.newprocs.push(Data::NewProcPairT(_pc, _rconid.procid));
+	d.newsessionvec.push_back(Data::SessionPairT(_pses, _rconid.sessionidx));
 }
-
 //----------------------------------------------------------------------
-//dispatch d.rcvbuf
-void Talker::dispatchReceivedBuffer(const SockAddrPair &_rsap, const TimeSpec &_rts){
-	cassert(_rsap.family() == AddrInfo::Inet4);
-	idbgx(Dbg::ipc, "received buffer:");
-	d.rcvbuf.print();
-
-	switch(d.rcvbuf.type()){
-		case Buffer::KeepAliveType:
-		case Buffer::DataType:{
-			idbgx(Dbg::ipc, "data buffer");
-			Inet4SockAddrPair					inaddr(_rsap);
-			Data::PeerProcAddr4MapT::iterator	pit(d.peerpm4.find(&inaddr));
-			if(pit != d.peerpm4.end()){
-				idbgx(Dbg::ipc, "found process for buffer");
-				Data::ProcPairT &rpp(d.procs[pit->second]);
-				cassert(rpp.first);
-				ConnectorUid conid(d.tkrid, pit->second, rpp.second);
-				switch(d.procs[pit->second].first->pushReceivedBuffer(d.rcvbuf, conid, _rts)){
-					case BAD:
-						cassert(false);
-						idbgx(Dbg::ipc, "the processconnector wants to close");
-						//TODO: it may crash if uncommenting the below if block
-						if((rpp.first->isConnecting())){
-							d.peerpm4.erase(rpp.first->peerAddr4());
-							d.cq.push(pit->second);
-						}else{
-							d.closes.push(pit->second);
-						}
-					case OK:
-						break;
-					case NOK:
-						d.cq.push(pit->second);
-						break;
-				}
-			}
-		}break;
-		case Buffer::ConnectingType:{
-			Inet4SockAddrPair		inaddr(_rsap);
-			int baseport = ProcessConnector::parseConnectingBuffer(d.rcvbuf);
-			idbgx(Dbg::ipc, "connecting buffer with baseport "<<baseport);
-			if(baseport >= 0){
-				ProcessConnector *ppc(new ProcessConnector(inaddr, baseport, d.rservice.keepAliveTimeout()));
-				if(d.rservice.acceptProcess(ppc)) delete ppc;
-			}
-		}break;
-		case Buffer::AcceptingType:{
-			int baseport = ProcessConnector::parseAcceptedBuffer(d.rcvbuf);
-			idbgx(Dbg::ipc, "accepting buffer with baseport "<<baseport);
-			if(baseport >= 0){
-				Inet4SockAddrPair					inaddr(_rsap);
-				Data::BaseProcAddr4					ppa(&inaddr, baseport);
-				Data::BaseProcAddr4MapT::iterator	bit(d.basepm4.find(&ppa));
-				ProcessConnector *ppc = NULL;
-				if(bit != d.basepm4.end() && (ppc = d.procs[bit->second].first)){
-					ppc->completeConnect(inaddr.port());
-					//register in peer map
-					d.peerpm4[ppc->peerAddr4()] = bit->second;
-					//the connector has a signal to send!!
-					d.cq.push(bit->second);
-				}
-			}
-		}break;
-		default:
-			cassert(false);
-	}
-}
-
-//----------------------------------------------------------------------
-//process signals to be sent d.cq
-//return true if the cq is not empty
-bool Talker::processSignals(const TimeSpec &_rts){
-	int sndbufcnt = 0;
-	SendBufferData *psb = NULL;
-	while(d.cq.size() && sndbufcnt < 32){
-		uint32 procid = d.cq.front(); d.cq.pop();
-		if(procid >= d.procs.size()) continue;
-		ProcessConnector *ppc(d.procs[procid].first);
-		//only a buffer for every process
-		//SendBufferData defined in processconnector.h
-		if(!psb){
-			if(d.sendfs.size()){
-				psb = d.sendfs.top();
-				d.sendfs.pop();
-			}else{
-				d.sends.push(SendBufferData());
-				psb = &d.sends.top();
-			}
-			psb->b.reinit(Specific::popBuffer(Specific::capacityToId(4096)), 4096);
+void Talker::doInsertNewSessions(){
+	for(Data::SessionPairVectorT::const_iterator it(d.newsessionvec.begin()); it != d.newsessionvec.end(); ++it){
+		vdbgx(Dbg::ipc, "newsession idx = "<<it->second<<" session vector size = "<<d.sessionvec.size());
+		
+		if(it->second >= d.sessionvec.size()){
+			d.sessionvec.resize(it->second + 1);
 		}
-		switch(ppc->processSendSignals(*psb, _rts, d.rservice.basePort())){
-			case BAD:
-				//TODO: should very rarely pass here
-				idbgx(Dbg::ipc, "BAD processSendSignals - should be rare");
-				break;
-			case NOK://not finished sending
-				d.cq.push(procid);
-			case OK:
-				++sndbufcnt;
-				if(psb->b.buffer()){
-					optimizeBuffer(psb->b);
+		Data::SessionStub &rss(d.sessionvec[it->second]);
+		if(rss.psession == NULL){
+			rss.psession = it->first;
+			rss.psession->prepare();
+			d.baseaddr4map[rss.psession->baseAddr4()] = it->second;
+			if(rss.psession->isConnected()){
+				d.peeraddr4map[rss.psession->peerAddr4()] = it->second;
+			}
+			if(!rss.inexeq){
+				d.sessionexecq.push(it->second);
+				rss.inexeq = true;
+			}
+		}else{
+			if(!rss.psession->isAccepting()){
+				//a reconnect
+				d.peeraddr4map.erase(rss.psession->peerAddr4());
+				rss.psession->reconnect(it->first);
+				++rss.uid;
+				d.peeraddr4map[rss.psession->peerAddr4()] = it->second;
+				if(!rss.inexeq){
+					d.sessionexecq.push(it->second);
+					rss.inexeq = true;
 				}
-				psb->procid = procid;
-				d.sendq.push(psb);
-				psb = NULL;
-				break;
+			}
+			delete it->first;
 		}
 	}
-	if(psb){
-		char *pb = psb->b.buffer();
-		Specific::pushBuffer(pb, Specific::capacityToId(4096));
-		d.sendfs.push(psb);
-	}
-	return d.cq.size();
+	d.newsessionvec.clear();
+	d.nextsessionidx = d.sessionvec.size();
 }
-
 //----------------------------------------------------------------------
-bool Talker::dispatchSentBuffer(const TimeSpec &_rts){
-	SendBufferData *psb(d.sendq.top());
-	ProcessConnector *ppc(d.procs[psb->procid].first);
-	bool	renqueuebuf = false;
-	switch(ppc->pushSentBuffer(*psb, _rts, renqueuebuf)){
-		case BAD:
-			if(ppc->isConnecting()){
-				//the process tries to reconnect
-				d.peerpm4.erase(ppc->peerAddr4());
-				++d.procs[psb->procid].second;
-				d.cq.push(psb->procid);
-			}else{
-				d.closes.push(psb->procid);
+void Talker::doDispatchSignals(){
+	//dispatch signals before disconnecting sessions
+	while(d.sigq.size()){
+		cassert(d.sigq.front().sessionidx < d.sessionvec.size());
+		Data::SignalData	&rsd(d.sigq.front());
+		Data::SessionStub	&rss(d.sessionvec[rsd.sessionidx]);
+		const uint32		flags(rsd.flags);
+		
+		if(
+			rss.psession && 
+			(
+				!(flags & Service::SameConnectorFlag) ||
+				rss.uid == rsd.sessionuid
+			)
+		){
+			rss.psession->pushSignal(rsd.psig, flags);
+			if(!rss.inexeq){
+				d.sessionexecq.push(rsd.sessionidx);
+				rss.inexeq = true;
 			}
-		case OK:
-			break;
-		case NOK:
-			//the process has something to send
-			d.cq.push(psb->procid);
-			break;
+		}
+		
+		d.sigq.pop();
 	}
-	d.sendq.pop();
-	if(renqueuebuf){
-		d.sendq.push(psb);
-	}else{//TODO:
-		cassert(!psb->b.buffer());
-		d.sendfs.push(psb);
-	}
-	return d.cq.size();
 }
-
 //----------------------------------------------------------------------
-void Talker::optimizeBuffer(Buffer &_rbuf){
-	uint id(Specific::sizeToId(_rbuf.bufferSize()));
-	uint mid(Specific::capacityToId(4096));
-	if(mid > id){
-		uint32 datasz = _rbuf.dataSize();//the size
-		uint32 buffsz = _rbuf.bufferSize();
-		Buffer b(Specific::popBuffer(id), Specific::idToCapacity(id));//create a new smaller buffer
-		memcpy(b.buffer(), _rbuf.buffer(), buffsz);//copy to the new buffer
-		b.dataSize(datasz);
-		char *pb = _rbuf.buffer();
-		Specific::pushBuffer(pb, mid);
-		_rbuf = b;
+//this should be called under ipc service's mutex lock
+void Talker::disconnectSessions(){
+	Manager 		&rm(Manager::the());
+	Mutex::Locker	lock(rm.mutex(*this));
+	//delete sessions
+	
+	for(Data::UInt16VectorT::const_iterator it(d.closingsessionvec.begin()); it != d.closingsessionvec.end(); ++it){
+		Data::SessionStub &rss(d.sessionvec[*it]);
+		vdbgx(Dbg::ipc, "disconnecting sessions "<<(void*)rss.psession);
+		cassert(rss.psession);
+		if(rss.psession->isDisconnecting()){
+			idbgx(Dbg::ipc, "deleting session "<<(void*)rss.psession<<" on pos "<<*it);
+			d.rservice.disconnectSession(rss.psession);
+			//unregister from base and peer:
+			if(rss.psession->peerAddr4() && rss.psession->peerAddr4()->addr){
+				d.peeraddr4map.erase(rss.psession->peerAddr4());
+			}
+			if(
+				rss.psession->baseAddr4() &&
+				rss.psession->baseAddr4()->first &&
+				rss.psession->baseAddr4()->first->addr
+			){
+				d.baseaddr4map.erase(rss.psession->baseAddr4());
+			}
+			delete rss.psession;
+			rss.psession = NULL;
+			++rss.uid;
+			d.freesessionstack.push(Data::UInt16PairT(*it, rss.uid));
+		}
 	}
+	d.closingsessionvec.clear();
+}
+//----------------------------------------------------------------------
+int Talker::execute(){
+	return BAD;
+}
+//----------------------------------------------------------------------
+int Talker::accept(foundation::Visitor &){
+	return BAD;
 }
 //======================================================================
+bool Talker::TalkerStub::pushSendBuffer(uint32 _id, const char *_pb, uint32 _bl){
+	if(rt.d.sendq.size()){
+		rt.d.sendq.push(Talker::Data::SendBuffer(_pb, _bl, this->sessionidx, _id));
+		return false;
+	}
+	Talker::Data::SessionStub &rss(rt.d.sessionvec[this->sessionidx]);
+	//try to send the buffer right now:
+	switch(rt.socketSendTo(_pb, _bl, *rss.psession->peerSockAddr())){
+		case BAD:
+		case NOK:
+			rt.d.sendq.push(Talker::Data::SendBuffer(_pb, _bl, this->sessionidx, _id));
+			COLLECT_DATA_0(rt.d.statistics.sendPending);
+			return false;
+		case OK:
+			break;
+	}
+	return true;//the buffer was written on socket
+}
+//----------------------------------------------------------------------
+void Talker::TalkerStub::pushTimer(uint32 _id, const TimeSpec &_rtimepos){
+	COLLECT_DATA_0(rt.d.statistics.pushTimer);
+	rt.d.timerq.push(Data::TimerData(_rtimepos, _id, this->sessionidx));
+}
+//----------------------------------------------------------------------
+int Talker::TalkerStub::basePort()const{
+	return rt.d.rservice.basePort();
+}
+//======================================================================
+#ifdef USTATISTICS
+
+namespace{
+
+StatisticData::~StatisticData(){
+	rdbgx(Dbg::ipc, "Statistics:\r\n"<<*this);
+}
+	
+void StatisticData::receivedManyBuffers(){
+	++rcvdmannybuffers;
+}
+void StatisticData::receivedKeepAlive(){
+	++rcvdkeepalive;
+}
+void StatisticData::receivedData(){
+	++rcvddata;
+}
+void StatisticData::receivedDataUnknown(){
+	++rcvddataunknown;
+}
+void StatisticData::receivedConnecting(){
+	++rcvdconnecting;
+}
+void StatisticData::failedAcceptSession(){
+	++failedacceptsession;
+}
+void StatisticData::receivedConnectingError(){
+	++rcvdconnectingerror;
+}
+void StatisticData::receivedAccepting(){
+	++rcvdaccepting;
+}
+void StatisticData::receivedAcceptingError(){
+	++rcvdacceptingerror;
+}
+void StatisticData::receivedUnknown(){
+	++rcvdunknown;
+}
+void StatisticData::maxTimerQueueSize(ulong _sz){
+	if(maxtimerqueuesize < _sz) maxtimerqueuesize = _sz;
+}
+void StatisticData::maxSessionExecQueueSize(ulong _sz){
+	if(maxsessionexecqueuesize < _sz) maxsessionexecqueuesize = _sz;
+}
+void StatisticData::maxSendQueueSize(ulong _sz){
+	if(maxsendqueuesize < _sz) maxsendqueuesize = _sz;
+}
+void StatisticData::sendPending(){
+	++sendpending;
+}
+void StatisticData::signaled(){
+	++signaledcount;
+}
+void StatisticData::pushTimer(){
+	++pushtimercount;
+}
+
+std::ostream& operator<<(std::ostream &_ros, const StatisticData &_rsd){
+	_ros<<"rcvdmannybuffers          "<<_rsd.rcvdmannybuffers<<std::endl;
+	_ros<<"rcvdkeepalive             "<<_rsd.rcvdkeepalive<<std::endl;
+	_ros<<"rcvddata                  "<<_rsd.rcvddata<<std::endl;
+	_ros<<"rcvddataunknown           "<<_rsd.rcvddataunknown<<std::endl;
+	_ros<<"rcvdconnecting            "<<_rsd.rcvdconnecting<<std::endl;
+	_ros<<"failedacceptsession       "<<_rsd.failedacceptsession<<std::endl;
+	_ros<<"rcvdconnectingerror       "<<_rsd.rcvdconnectingerror<<std::endl;
+	_ros<<"rcvdaccepting             "<<_rsd.rcvdaccepting<<std::endl;
+	_ros<<"rcvdacceptingerror        "<<_rsd.rcvdacceptingerror<<std::endl;
+	_ros<<"rcvdunknown               "<<_rsd.rcvdunknown<<std::endl;
+	_ros<<"maxtimerqueuesize         "<<_rsd.maxtimerqueuesize<<std::endl;
+	_ros<<"maxsessionexecqueuesize   "<<_rsd.maxsessionexecqueuesize<<std::endl;
+	_ros<<"maxsendqueuesize          "<<_rsd.maxsendqueuesize<<std::endl;
+	_ros<<"sendpending               "<<_rsd.sendpending<<std::endl;
+	_ros<<"signaledcount             "<<_rsd.signaledcount<<std::endl;
+	_ros<<"pushtimercount            "<<_rsd.pushtimercount<<std::endl;
+	return _ros;
+}
+}//namespace
+#endif
 }//namespace ipc
 }//namesapce foundation
 

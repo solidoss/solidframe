@@ -24,7 +24,7 @@
 
 #include "foundation/service.hpp"
 #include "foundation/signal.hpp"
-#include "foundation/ipc/connectoruid.hpp"
+#include "foundation/ipc/ipcconnectionuid.hpp"
 
 struct SockAddrPair;
 struct SocketDevice;
@@ -38,12 +38,12 @@ class Object;
 
 namespace ipc{
 
-class Connection;
+class Session;
 class Talker;
-class ProcessConnector;
+class Connection;
 class IOData;
 struct Buffer;
-struct ConnectorUid;
+struct ConnectionUid;
 
 class Service;
 
@@ -67,7 +67,7 @@ class Service;
 	signals can be quite big (i.e. signals sending streams) a signal
 	multiplexing algorithm is implemented.
 	- An existing connector can be identified by it unique id: 
-	foundation::ipc::ConnectorUid or by its base address (inetaddr and port).
+	foundation::ipc::ConnectionUid or by its base address (inetaddr and port).
 	- The ipc service should (i.e. it is a bug if it doesnt) ensure that
 	 a response (or a signal sent using SameConnectorFlag) will not
 	 be sent if the a peer process restart is detected.
@@ -98,7 +98,7 @@ public:
 	};
 	//! Destructor
 	~Service();
-	//!Send a signal (usually a response) to a peer process using a previously saved ConnectorUid
+	//!Send a signal (usually a response) to a peer process using a previously saved ConnectionUid
 	/*!
 		The signal is send only if the connector exists. If the peer process,
 		restarts the signal is not sent.
@@ -107,7 +107,7 @@ public:
 		\param _flags (Optional) Not used for now
 	*/
 	int sendSignal(
-		const ConnectorUid &_rconid,//the id of the process connector
+		const ConnectionUid &_rconid,//the id of the process connector
 		DynamicPointer<Signal> &_psig,//the signal to be sent
 		uint32	_flags = 0
 	);
@@ -123,7 +123,7 @@ public:
 	int sendSignal(
 		const SockAddrPair &_rsap,
 		DynamicPointer<Signal> &_psig,//the signal to be sent
-		ConnectorUid &_rconid,
+		ConnectionUid &_rconid,
 		uint32	_flags = 0
 	);
 	//!Send a signal to a peer process using it's base address.
@@ -181,14 +181,14 @@ private:
 	int doSendSignal(
 		const SockAddrPair &_rsap,
 		DynamicPointer<Signal> &_psig,//the signal to be sent
-		ConnectorUid *_pconid,
+		ConnectionUid *_pconid,
 		uint32	_flags = 0
 	);
-	int acceptProcess(ProcessConnector *_ppc);
-	void disconnectProcess(ProcessConnector *_ppc);
-	void disconnectTalkerProcesses(Talker &);
+	int acceptSession(Session *_pses);
+	void disconnectSession(Session *_pses);
+	void disconnectTalkerSessions(Talker &);
 	int16 createNewTalker(uint32 &_tkrpos, uint32 &_tkruid);
-	int16 computeTalkerForNewProcess();
+	int16 computeTalkerForNewSession();
 	uint32 keepAliveTimeout()const;
 private:
 	struct Data;
@@ -199,7 +199,7 @@ private:
 inline int Service::sendSignal(
 	const SockAddrPair &_rsap,
 	DynamicPointer<Signal> &_psig,//the signal to be sent
-	ConnectorUid &_rconid,
+	ConnectionUid &_rconid,
 	uint32	_flags
 ){
 	return doSendSignal(_rsap, _psig, &_rconid, _flags);
