@@ -21,7 +21,7 @@ function print_usage(){
 	echo "Usage:"
 	echo -ne "\n./configure [-g|--generator GeneratorName] [-f|--folder FolderName] [-b|--build BuildType]"
 	echo -ne " [-p|--param ParamName] [-d|--documentation full/fast] [-h|--help]"
-	echo -ne " [-e|--extern-path ExternPath] [-E|--extern-abs-path ExternAbsPath]"
+	echo -ne " [-e|--extern-path ExternPath] [-c|--cmake-param]"
 	echo -ne " [-t|--enable-testing] [--test-name name] [--test-site addr]\n"
 	echo
 	echo -ne "Options:\n"
@@ -36,7 +36,7 @@ function print_usage(){
 	echo "[-t|--enable-testing]: Enable unit-testing using ctest"
 	echo "[--test-name name]: The name of ctest/cdash project"
 	echo "[--test-site addr]: The address for cdash drop site"
-	echo "[-P|--cmake-param]: Some parameters given to cmake like: -DECLIPSE_CDT4_GENERATE_SOURCE_PROJECT=TRUE"
+	echo "[-c|--cmake-param]: Some parameters given to cmake like: -DECLIPSE_CDT4_GENERATE_SOURCE_PROJECT=TRUE"
 	echo
 	echo "Examples:"
 	echo "1) create simple make release build:"

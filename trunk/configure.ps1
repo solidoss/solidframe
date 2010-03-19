@@ -1,4 +1,11 @@
 
+#param([parameter(ValueFromRemainingArguments=$true)][String[]]$files, `
+#[alias("l")][String][ValidateSet("0", "1", "2", "3", "4")]$log_level = 1)
+#Write-Host "Switch (-l): $log_level"
+#foreach ($x in $files) {
+#Write-Host "Extra arg: $x"
+#}
+
 param ( 
         [string] $g = "NMake Makefiles"
 	  , [string] $generator
@@ -6,11 +13,13 @@ param (
 	  , [string] $folder_name
 	  , [string] $folder_path
 	  , [string] $b
-	  , [string] $build
+	  , [string] $build = "release"
 	  , [string] $d
 	  , [string] $documentation
 	  , [string] $p
 	  , [string] $param
+	  , [string] $e
+	  ,	[string] $extern_path
 	  , [string[]] $cmake_param
 	  , [switch] $t
 	  , [switch] $enable_testing
@@ -35,6 +44,11 @@ if($t)
 if($d)
 {
 	$documentation = $d
+}
+
+if($e)
+{
+	$extern_path = $e
 }
 function printHelp()
 {
@@ -61,8 +75,26 @@ function printHelp()
 	Write-Host
 	Write-Host "Examples:"
 	Write-Host "1) create simple make release build:"
-	Write-Host "	./configure -f rls -b release -e d:\work\sg_extern"
+	Write-Host "	.\configure.ps1 -f rls -b release -e d:/work/sg_extern"
+	Write-Host "2) create a release build but give the parameters as cmake parameters"
+	Write-Host "	.\configure.ps1 -f rel -b release -cmake_param `"-DUDEFS:STRING=`'-DUDEBUG -DUASSERT`'`",`"-DUEXTERN_ABS:STRING=`'D:/work/als_extern/release`'`""
 	Write-Host
+	Write-Host "Note:`nPlease consider running `"cmake -h`" to get the list of available generators"
+	Write-Host
+}
+
+function make_cmake_list()
+{
+	$files=get-childitem -name
+	Write-Host $files
+	if($files.Length -ge 1)
+	{		
+		$f1 = New-Item -type file CMakeLists.txt -Force
+		foreach($file in $files)
+		{
+			add-content $f1 "add_subdirectory(`"$file`")"
+		}
+	}
 }
 
 if($h -or $help){
@@ -96,4 +128,61 @@ $current_folder = (Get-Location -PSProvider FileSystem).ProviderPath
 
 Write-Host "Current folder $current_folder"
 
-Write-host "configure.ps1 -generator `"$generator`" -folder_name `"$folder_name`" -cmake_param `"$cmake_param`""
+cd application
+if(test-path "CMakeLists.txt")
+{
+rm CMakeLists.txt -force
+}
+make_cmake_list
+cd ../
+
+cd library
+if(test-path "CMakeLists.txt")
+{
+rm CMakeLists.txt -force
+}
+make_cmake_list
+cd ../
+
+if(!($folder_name))
+{
+	if($generator)
+	{
+		$folder_name = $generator
+	}
+	else
+	{
+		$folder_name = $build
+	}
+}
+
+if(!($folder_path -eq ""))
+{
+	if(test-path $folder_path)
+	{
+		rm -force $folder_path
+	}
+	mkdir $folder_path
+	cd $folder_path
+}
+else
+{
+	if(!(test-path "build"))
+	{
+		mkdir "build"
+	}
+	cd build
+	if(!(test-path "$folder_name"))
+	{
+		mkdir "$folder_name"
+	}
+	cd "$folder_name"
+}
+
+foreach($cp in $cmake_param)
+{
+	Write-Host "$cp"
+}
+cmake -DCMAKE_BUILD_TYPE=$builf "-DUDEFS:STRING=`"$param`"" "-DUEXTERN_ABS:STRING=`"$extern_path`"" "-DUTESTING:STRING=`"$enable_testing`"" "-DUTEST_NAME=`"$test_name`"" "-DUTEST_SITE=`"$test_site`"" $cmake_param "$current_folder"
+
+cd "$current_folder"
