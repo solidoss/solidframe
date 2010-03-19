@@ -1,0 +1,99 @@
+
+param ( 
+        [string] $g = "NMake Makefiles"
+	  , [string] $generator
+	  , [string] $f
+	  , [string] $folder_name
+	  , [string] $folder_path
+	  , [string] $b
+	  , [string] $build
+	  , [string] $d
+	  , [string] $documentation
+	  , [string] $p
+	  , [string] $param
+	  , [string[]] $cmake_param
+	  , [switch] $t
+	  , [switch] $enable_testing
+	  , [string] $test_name
+	  , [string] $test_site
+	  , [switch] $h
+	  ,	[switch] $help
+)
+
+if($g)
+{
+	$generator = $g
+}
+if($f)
+{
+	$folder_name = $f
+}
+if($t)
+{
+	$enable_testing = $t
+}
+if($d)
+{
+	$documentation = $d
+}
+function printHelp()
+{
+	Write-Host
+	Write-Host "Usage:"
+	Write-Host ".\configure.ps1 [-g|-generator GeneratorName] [-f|-folder FolderName] [-b|-build BuildType]"
+	Write-Host " [-p|-param ParamName] [-d|-documentation full/fast] [-h|-help]"
+	Write-Host " [-E|-extern-path ExternAbsPath]"
+	Write-Host " [-t|-enable-testing] [-test-name name] [-test-site addr]"
+	Write-Host " [-P|-cmake-param CMakeParameter]"
+	Write-Host
+	Write-Host "Options:"
+	Write-Host "[-g|-generator GeneratorName]: Specify the cmake generator - default cmake's default"
+	Write-Host "[-f|-folder-name FolderName]: Specify the build folder name - default is the generator name or the build type if the generator was not specified"
+	Write-Host "[-F|-folder-path FolderPath]: Specify the build folder path - unlike the build folder-name wich creates a folder under build, this flag allows creating a build folder anywhere"
+	Write-Host "[-b|-build BuildType]: The cmake build type release/debug/nolog/maintain - default release"
+	Write-Host "[-p|-param ParamName]: Extra compilation flags. E.g. -p `"-DUINDEX64 -DUSERVICEBITS=3`""
+	Write-Host "[-d|-documentation full/fast]: Build either fast or full documentation"
+	Write-Host "[-e|-extern-path ExternAbsPath]: absolute path to extern libraries"
+	Write-Host "[-t|-enable-testing]: Enable unit-testing using ctest"
+	Write-Host "[-test-name name]: The name of ctest/cdash project"
+	Write-Host "[-test-site addr]: The address for cdash drop site"
+	Write-Host "[-P|-cmake-param]: Some parameters given to cmake like: `"-DECLIPSE_CDT4_GENERATE_SOURCE_PROJECT=TRUE`""
+	Write-Host
+	Write-Host "Examples:"
+	Write-Host "1) create simple make release build:"
+	Write-Host "	./configure -f rls -b release -e d:\work\sg_extern"
+	Write-Host
+}
+
+if($h -or $help){
+	printHelp
+	exit
+}
+
+if($documentation -eq "full")
+{
+	Write-Host "Building full documentation ..."
+	rm documentation\html\
+	rm documentation\latex\
+	#doxygen
+	#tar -cjf documentation/full.tar.bz2 documentation/html/ documentation/index.html
+	Write-Host "Done building full documentation"
+	exit
+}
+
+if($documentation -eq "fast")
+{
+	Write-Host "Building fast documentation ..."
+	rm documentation\html\
+	rm documentation\latex\
+	#doxygen Doxyfile.fast
+	#tar -cjf documentation/full.tar.bz2 documentation/html/ documentation/index.html
+	Write-Host "Done building full documentation"
+	exit
+}
+
+$current_folder = (Get-Location -PSProvider FileSystem).ProviderPath
+
+Write-Host "Current folder $current_folder"
+
+Write-host "configure.ps1 -generator `"$generator`" -folder_name `"$folder_name`" -cmake_param `"$cmake_param`""
