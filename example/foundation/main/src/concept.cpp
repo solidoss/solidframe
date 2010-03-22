@@ -32,6 +32,7 @@
 #include "alpha/alphaservice.hpp"
 #include "beta/betaservice.hpp"
 #include "proxy/proxyservice.hpp"
+#include "gamma/gammaservice.hpp"
 #include "audit/log/logmanager.hpp"
 #include "audit/log/logconnectors.hpp"
 #include "audit/log.hpp"
@@ -336,6 +337,31 @@ int main(int argc, char* argv[]){
 			}
 		}
 		
+		if(true){// create and register the gamma service
+			concept::Service* psrvc = concept::gamma::Service::create();
+			tm.insertService("gamma", psrvc);
+			
+			{//add a new listener
+				int port = p.start_port + 125;
+				concept::AddrInfoSignal *psig(new AddrInfoSignal(concept::Service::AddListener, rw));
+			
+				psig->init("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Stream);
+				DynamicPointer<foundation::Signal> dp(psig);
+				rw.prepare();
+				tm.signalService("gamma", dp);
+				switch((rv = rw.wait())){
+					case -2:
+						cout<<"[Gamma] No such service"<<endl;
+						break;
+					case OK:
+						cout<<"[Gamma] Added listener on port "<<port<<endl;
+						break;
+					default:
+						cout<<"[Gamma] Failed adding listener on port "<<port<<" rv = "<<rv<<endl;
+				}
+			}
+		}
+		
 		if(false){//adds the base ipc talker using AddrInfoSignal - this is not the recomended way!!! See below
 			int port = p.start_port + 222;
 			concept::AddrInfoSignal *psig(new AddrInfoSignal(concept::Service::AddTalker, rw));
@@ -355,7 +381,7 @@ int main(int argc, char* argv[]){
 					cout<<"[ipc] Failed adding talker on port "<<port<<" rv = "<<rv<<endl;
 			}
 		}
-		if(true){//adds the base ipc talker using Manager::insertIpcTalker - this is not the recomended way!!! See below
+		if(true){
 			int port = p.start_port + 222;
 			AddrInfo ai("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Datagram);
 			if(!ai.empty() && !(rv = tm.insertIpcTalker(ai.begin()))){

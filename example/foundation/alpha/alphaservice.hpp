@@ -27,8 +27,11 @@
 class SocketDevice;
 
 namespace concept{
+
 class Manager;
+
 namespace alpha{
+
 class Connection;
 
 class Service: public concept::Service{
