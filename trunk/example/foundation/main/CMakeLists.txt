@@ -15,6 +15,7 @@ target_link_libraries (concept
 	concept_beta
 	concept_proxy
 	concept_alpha
+	concept_gamma
 	concept_core
 	foundation_core
 	foundation_ipc
