@@ -77,7 +77,7 @@ void Reader::clear(){
 		rr.push(&Reader::checkChar, protocol::Parameter('\r'));
 		rr.push(&Reader::checkChar, protocol::Parameter('}'));
 		rr.push(&Reader::saveCurrentChar, protocol::Parameter(&rp.b.i, (int)'+'));
-		rr.push(&Reader::fetchUint32, protocol::Parameter(&rp.a.u32));
+		rr.push(&Reader::fetchUInt32, protocol::Parameter(&rp.a.u32));
 	}else if(c == '\"'){
 		rr.drop();
 		rr.fs.top().first = &Reader::copyTmpString;

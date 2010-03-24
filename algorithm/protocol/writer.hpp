@@ -164,6 +164,10 @@ public:
 	static int putAtom(Writer &_rw, Parameter &_rp);
 	//! Callback for sending a single char
 	static int putChar(Writer &_rw, Parameter &_rp);
+	//! Callback for sending an uint32
+	static int putUInt32(Writer &_rw, Parameter &_rp);
+	//! Callback for sending an uint64
+	static int putUInt64(Writer &_rw, Parameter &_rp);
 	//! Callback for manage opperations
 	static int manage(Writer &_rw, Parameter &_rp);
 	//! Callback for external (write) opperations

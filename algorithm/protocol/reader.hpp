@@ -164,9 +164,9 @@ public:
 	//!Callback for reader management - set reset certain data
 	static int manage(Reader &_rr, Parameter &_rp);
 	//!Callback for fetching an unsigned number
-	static int fetchUint32(Reader &_rr, Parameter &_rp);
+	static int fetchUInt32(Reader &_rr, Parameter &_rp);
 	//!Callback for fetching an unsigned number
-	static int fetchUint64(Reader &_rr, Parameter &_rp);
+	static int fetchUInt64(Reader &_rr, Parameter &_rp);
 	//!Callback for dropping the current char
 	static int dropChar(Reader &_rr, Parameter &_rp);
 	//!Callback for saving the current char

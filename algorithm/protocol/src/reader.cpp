@@ -294,7 +294,7 @@ struct DigitFilter{
 	}
 };
 
-/*static*/ int Reader::fetchUint32(Reader &_rr, Parameter &_rp){
+/*static*/ int Reader::fetchUInt32(Reader &_rr, Parameter &_rp){
 	int rv = _rr.fetch<DigitFilter>(_rr.tmp, 12);
 	switch(rv){
 		case Ok:break;
@@ -316,7 +316,7 @@ struct DigitFilter{
 	return Ok;
 }
 
-/*static*/ int Reader::fetchUint64(Reader &_rr, Parameter &_rp){
+/*static*/ int Reader::fetchUInt64(Reader &_rr, Parameter &_rp){
 	int rv = _rr.fetch<DigitFilter>(_rr.tmp, 32);
 	switch(rv){
 		case Ok:break;

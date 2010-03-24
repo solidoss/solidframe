@@ -251,10 +251,10 @@ void RemoteList::initReader(Reader &_rr){
 	typedef CharFilter<' '>				SpaceFilterT;
 	typedef NotFilter<SpaceFilterT> 	NotSpaceFilterT;
 	
-	_rr.push(&Reader::fetchUint32, protocol::Parameter(&pausems));
+	_rr.push(&Reader::fetchUInt32, protocol::Parameter(&pausems));
 	_rr.push(&Reader::dropChar);
 	_rr.push(&Reader::checkIfCharThenPop<NotSpaceFilterT>, protocol::Parameter(2));
-	_rr.push(&Reader::fetchUint32, protocol::Parameter(&port));
+	_rr.push(&Reader::fetchUInt32, protocol::Parameter(&port));
 	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
 	_rr.push(&Reader::fetchAString, protocol::Parameter(&straddr));
 	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
@@ -345,7 +345,7 @@ Fetch::~Fetch(){
 void Fetch::initReader(Reader &_rr){
 	typedef CharFilter<' '>				SpaceFilterT;
 	typedef NotFilter<SpaceFilterT> 	NotSpaceFilterT;
-	_rr.push(&Reader::fetchUint32, protocol::Parameter(&port));
+	_rr.push(&Reader::fetchUInt32, protocol::Parameter(&port));
 	_rr.push(&Reader::dropChar);
 	_rr.push(&Reader::checkIfCharThenPop<NotSpaceFilterT>, protocol::Parameter(2));
 	_rr.push(&Reader::fetchAString, protocol::Parameter(&straddr));
@@ -632,7 +632,7 @@ Store::~Store(){
 void Store::initReader(Reader &_rr){
 	_rr.push(&Reader::reinit<Store>, protocol::Parameter(this, Init));
 	_rr.push(&Reader::checkChar, protocol::Parameter('}'));
-	_rr.push(&Reader::fetchUint32, protocol::Parameter(&litsz));
+	_rr.push(&Reader::fetchUInt32, protocol::Parameter(&litsz));
 	_rr.push(&Reader::checkChar, protocol::Parameter('{'));
 	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
 	_rr.push(&Reader::fetchAString, protocol::Parameter(&strpth));
@@ -723,11 +723,11 @@ SendString::~SendString(){
 void SendString::initReader(Reader &_rr){
 	_rr.push(&Reader::fetchAString, protocol::Parameter(&str));
 	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
-	_rr.push(&Reader::fetchUint32, protocol::Parameter(&objuid));
+	_rr.push(&Reader::fetchUInt32, protocol::Parameter(&objuid));
 	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
-	_rr.push(&Reader::fetchUint32, protocol::Parameter(&objid));
+	_rr.push(&Reader::fetchUInt32, protocol::Parameter(&objid));
 	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
-	_rr.push(&Reader::fetchUint32, protocol::Parameter(&port));
+	_rr.push(&Reader::fetchUInt32, protocol::Parameter(&port));
 	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
 	_rr.push(&Reader::fetchAString, protocol::Parameter(&addr));
 	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
@@ -759,11 +759,11 @@ void SendStream::initReader(Reader &_rr){
 	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
 	_rr.push(&Reader::fetchAString, protocol::Parameter(&srcstr));
 	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
-	_rr.push(&Reader::fetchUint32, protocol::Parameter(&objuid));
+	_rr.push(&Reader::fetchUInt32, protocol::Parameter(&objuid));
 	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
-	_rr.push(&Reader::fetchUint32, protocol::Parameter(&objid));
+	_rr.push(&Reader::fetchUInt32, protocol::Parameter(&objid));
 	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
-	_rr.push(&Reader::fetchUint32, protocol::Parameter(&port));
+	_rr.push(&Reader::fetchUInt32, protocol::Parameter(&port));
 	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
 	_rr.push(&Reader::fetchAString, protocol::Parameter(&addr));
 	_rr.push(&Reader::checkChar, protocol::Parameter(' '));

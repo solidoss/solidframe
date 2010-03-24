@@ -390,6 +390,20 @@ template <>
 	return Ok;
 }
 
+/*static*/ int Writer::putUInt32(Writer &_rw, Parameter &_rp){
+	_rw.put(_rp.a.u32);
+	int rv = _rw.flush();
+	if(rv){ _rw.fs.top().first = &Writer::doneFlush; return rv;}
+	return Ok;
+}
+
+/*static*/ int Writer::putUInt64(Writer &_rw, Parameter &_rp){
+	_rw.put(_rp.a.u64);
+	int rv = _rw.flush();
+	if(rv){ _rw.fs.top().first = &Writer::doneFlush; return rv;}
+	return Ok;
+}
+
 /*static*/ int Writer::manage(Writer &_rw, Parameter &_rp){
 	switch(_rp.a.i){
 		case ClearLogging: _rw.dolog = false; return Ok;
