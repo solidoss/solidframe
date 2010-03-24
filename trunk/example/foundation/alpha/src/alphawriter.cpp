@@ -83,7 +83,7 @@ bool isLiteralString(const char *_pb, unsigned _bl){
 	if(rp.a.p){
 		rw.push(&Writer::putAtom, rp);
 	}else{//send the msg
-		rw.push(&Writer::putAtom, protocol::Parameter((void*)rw.msgs.data(), rw.msgs.size()));	
+		rw.push(&Writer::putAtom, protocol::Parameter((void*)rw.msgs.data(), rw.msgs.size()));
 	}
 	//rw.push(&Writer::putChar, protocol::Parameter(' '));
 	if(rw.tags.size()){
