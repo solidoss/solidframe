@@ -198,8 +198,9 @@ namespace{
 /*virtual*/ int NameMapper::open(File &_rf){
 	cassert(!d.state);
 	if(d.crtcnt <= d.maxcnt){
-		int rv(_rf.open(_rf.key().path()));
-		if(rv == File::Ok){
+		bool	opened(_rf.isOpened());
+		int		rv(_rf.open(_rf.key().path()));
+		if(!opened && rv == File::Ok){
 			++d.crtcnt;
 		}
 		return rv;
@@ -459,7 +460,9 @@ namespace{
 	//accurate mode
 	int mode = 0;
 	//just to be sure:
-		
+	if(fd.ok()){
+		fd.close();
+	}
 	if(openmoderequest & Manager::Create){
 		mode |= FileDevice::CR;
 	}
