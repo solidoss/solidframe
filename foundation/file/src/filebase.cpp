@@ -91,7 +91,7 @@ int File::stream(
 	}else if(openmode & Manager::OpenW){
 		if(_flags & Manager::ForcePending){
 			owq.push(WaitData(_requid, _flags));
-			return (ousecnt || iusecnt || owq.size()) ? MustWait : MustSignal;
+			return (ousecnt || iusecnt || (owq.size() != 1)) ? MustWait : MustSignal;
 		}else if(ousecnt || iusecnt || owq.size()){
 			owq.push(WaitData(_requid, _flags));
 			return MustWait;
@@ -99,7 +99,7 @@ int File::stream(
 	}else{// prepare for reading
 		openmoderequest |= (_flags | Manager::OpenW);
 		owq.push(WaitData(_requid, _flags));
-		return (ousecnt || iusecnt || owq.size()) ? MustWait : MustSignal;
+		return (ousecnt || iusecnt || (owq.size() != 1)) ? MustWait : MustSignal;
 	}
 	++ousecnt;
 	_sptr = _rs.createOStream(this->id());
@@ -118,7 +118,7 @@ int File::stream(
 	}else if(openmode & Manager::OpenRW){
 		if(_flags & Manager::ForcePending){
 			owq.push(WaitData(_requid, _flags));
-			return (ousecnt || iusecnt || owq.size()) ? MustWait : MustSignal;
+			return (ousecnt || iusecnt || (owq.size() != 1)) ? MustWait : MustSignal;
 		}else if(ousecnt || iusecnt || owq.size()){
 			owq.push(WaitData(_requid, _flags));
 			return MustWait;
@@ -126,7 +126,7 @@ int File::stream(
 	}else{// prepare for reading
 		openmoderequest |= (_flags | Manager::OpenRW);
 		owq.push(WaitData(_requid, _flags | Manager::IOStreamRequest));
-		return (ousecnt || iusecnt || owq.size()) ? MustWait : MustSignal;
+		return (ousecnt || iusecnt || (owq.size() != 1)) ? MustWait : MustSignal;
 	}
 	++ousecnt;
 	_sptr = _rs.createIOStream(this->id());
