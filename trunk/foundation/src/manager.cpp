@@ -33,25 +33,15 @@
 #include "foundation/activeset.hpp"
 #include "foundation/requestuid.hpp"
 
-/*
-Manager &ManagerThread::server(){
-	return *reinterpret_cast<Manager*>(ThreadBase::specific(0));
-}
-void ManagerThread::initSpecific(){
-	ThreadBase::specific((void*)NULL);
-}
-void ManagerThread::destroySpecific(){
-	ThreadBase::specific(0, NULL);
-}
-void ManagerThread::server(Manager *_psrv){
-	ThreadBase::specific(0,_psrv);
-}
-*/
+//#define NSINGLETON_MANAGER
+
+#ifdef NSINGLETON_MANAGER
 static const unsigned specificPosition(){
 	//TODO: staticproblem
 	static const unsigned thrspecpos = Thread::specificId();
 	return thrspecpos;
 }
+#endif
 
 namespace foundation{
 
@@ -139,15 +129,37 @@ struct Manager::Data{
 	ServiceVectorT					sv;
 	ActiveSetVectorT				asv;
 };
+
+#ifdef NSINGLETON_MANAGER
+Manager& Manager::the(){
+	return *reinterpret_cast<Manager*>(Thread::specific(specificPosition()));
+}
+#else
+namespace{
+	Manager *globalpm(NULL);
+}
+/*static*/ Manager& Manager::the(){
+	return *globalpm;
+}
+#endif
+
+
 Manager::Manager():d(*(new Data())){
 	registerActiveSet(*(new DummySet));
 	d.sv.push_back(ServicePtr(new ServiceContainer));
+#ifndef NSINGLETON_MANAGER
+	globalpm = this;
+#endif
 }
 
 Manager::~Manager(){
 	d.sv.clear();
 	delete d.asv.front();
 	delete &d;
+#ifndef NSINGLETON_MANAGER
+	globalpm = NULL;
+#endif
+
 }
 
 ServiceContainer & Manager::serviceContainer(){
@@ -161,10 +173,6 @@ Service& Manager::service(uint _i)const{
 void Manager::stop(bool _wait){
 	serviceContainer().clearDummy();
 	serviceContainer().stop(_wait);
-}
-
-Manager& Manager::the(){
-	return *reinterpret_cast<Manager*>(Thread::specific(specificPosition()));
 }
 
 uint Manager::registerActiveSet(ActiveSet &_ras){
@@ -233,10 +241,14 @@ void Manager::raiseObject(Object &_robj){
 }
 
 void Manager::prepareThis(){
+#ifdef NSINGLETON_MANAGER
 	Thread::specific(specificPosition(), this);
+#endif
 }
 void Manager::unprepareThis(){
+#ifdef NSINGLETON_MANAGER
 	//Thread::specific(specificPosition(), NULL);
+#endif
 }
 void Manager::prepareThread(){
 	prepareThis();
@@ -245,7 +257,9 @@ void Manager::prepareThread(){
 	requestuidptr.prepareThread();
 }
 void Manager::unprepareThread(){
+#ifdef NSINGLETON_MANAGER
 	Thread::specific(specificPosition(), NULL);
+#endif
 	//GlobalMapper::unprepareThread();
 	//Specific::unprepareThread();
 }
@@ -261,6 +275,17 @@ GlobalMapper* Manager::globalMapper(){
 
 unsigned Manager::serviceCount()const{
 	return d.sv.size();
+}
+
+Manager::ThisGuard::ThisGuard(Manager *_pm){
+#ifdef NSINGLETON_MANAGER
+	_pm->prepareThis();
+#endif
+}
+Manager::ThisGuard::~ThisGuard(){
+#ifdef NSINGLETON_MANAGER
+	Manager::the().unprepareThis();
+#endif
 }
 
 }//namespace foundation
