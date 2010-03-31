@@ -130,13 +130,8 @@ public:
 	void removeService(Service *_ps);
 protected:
 	struct ThisGuard{
-		ThisGuard(Manager *_pm){
-			_pm->prepareThis();
-		}
-		~ThisGuard(){
-			Manager::the().unprepareThis();
-		}
-		
+		ThisGuard(Manager *_pm);
+		~ThisGuard();
 	};
 	//! Implement this method to exted thread preparation
 	virtual void doPrepareThread(){}

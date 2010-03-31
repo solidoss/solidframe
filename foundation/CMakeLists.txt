@@ -36,6 +36,12 @@ add_library (foundation_core
 	${Sources} ${Headers} ${Inlines}
 )
 
+add_library (foundation_core_nsm #non singleton manager
+	${Sources} ${Headers} ${Inlines}
+)
+
+set_target_properties(foundation_core_nsm PROPERTIES COMPILE_FLAGS "-DNSINGLETON_MANAGER")
+
 add_subdirectory(ipc)
 add_subdirectory(aio)
 add_subdirectory(file)

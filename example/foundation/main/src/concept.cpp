@@ -144,6 +144,9 @@ int main(int argc, char* argv[]){
 	
 	cout<<"Built on SolidGround version "<<SG_MAJOR<<'.'<<SG_MINOR<<'.'<<SG_PATCH<<endl;
 	
+	//this must be called from the main thread
+	//so that the main thread can also have specific data
+	//like any other threads from solidground::system::thread
 	Thread::init();
 
 #ifdef UDEBUG
