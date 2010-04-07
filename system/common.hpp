@@ -23,6 +23,7 @@
 #define SYSTEM_COMMON_HPP
 
 #include <cstdlib>
+#include "config.h"
 
 
 typedef unsigned char		uchar;
