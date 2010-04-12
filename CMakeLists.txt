@@ -260,7 +260,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DI
 # Global link directories
 #-----------------------------------------------------------------
 link_directories(
-	"."
+	${CMAKE_CURRENT_SOURCE_DIR}
 	${EXTERN_PATH}/lib
 )
 
