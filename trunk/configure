@@ -4,6 +4,7 @@ function make_cmake_list(){
 	rm CMakeLists.txt
 	if [ $1 = "*" ]; then
 		echo "No child folder found!"
+		echo -ne "\r\n" >> CMakeLists.txt
 	else
 		for name in $*
 			do
@@ -11,7 +12,7 @@ function make_cmake_list(){
 				echo "Skip CMakeLists.txt"
 			else
 				echo "Adding dir: " $name
-				echo -ne "add_subdirectory("$name")\n" >> CMakeLists.txt
+				echo -ne "add_subdirectory("$name")\r\n" >> CMakeLists.txt
 			fi
 			done
 	fi
