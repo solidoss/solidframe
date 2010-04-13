@@ -97,6 +97,9 @@ function make_cmake_list()
 		{
 			add-content $f1 "add_subdirectory(`"$file`")"
 		}
+	}else{
+		$f1 = New-Item -type file CMakeLists.txt -Force
+		add-content $f1 ""
 	}
 }
 
