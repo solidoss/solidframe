@@ -91,6 +91,10 @@ set(ON_SUN FALSE)
 message("cmake's system: ${CMAKE_SYSTEM}")
 
 set(ON_FOUND FALSE)
+set(ON_FBSD FALSE)
+set(ON_MACOS FALSE)
+set(ON_LINUX FALSE)
+set(ON_POSIX FALSE)
 
 if(CMAKE_SYSTEM MATCHES "SunOS*")
 	message("Detected system ON_SUN")
@@ -142,8 +146,9 @@ if(CMAKE_SYSTEM MATCHES "Darwin*")
 	set(SYS_BASIC_LIBS pthread)
 endif(CMAKE_SYSTEM MATCHES "Darwin*")
 
-if(NOT ON_FOUND)
+if(CMAKE_SYSTEM MATCHES "Linux*")
 	message("Detected system ON_LINUX")
+	set(ON_FOUND TRUE)
 	set(SYS_DEBUG_FLAGS "-Wreorder -Wreturn-type -Wunused-variable -Winline -g3")
 	set(SYS_MAINTAIN_FLAGS "-Wall -Wabi -O3 -g3")
 	set(SYS_OPTIMIZED_FLAGS "-O3 -g3")
@@ -157,6 +162,12 @@ if(NOT ON_FOUND)
 	set(SYS_RELEASE_LINKER_FLAGS "")
 	
 	set(SYS_BASIC_LIBS pthread rt)
+endif(CMAKE_SYSTEM MATCHES "Linux*")
+
+if(NOT ON_FOUND)
+	message("\r\n === Sorry unsupported system - please contact project owner ===\r\n")
+	exit()#only to raise an exception
+	return()
 endif(NOT ON_FOUND)
 #-----------------------------------------------------------------
 
