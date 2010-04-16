@@ -56,9 +56,9 @@ public:
 		\param _mutcolsbts The number of mutexes in a row in bitcount (real count 1<<bitcount)
 	*/
 	MutualObjectContainer(
-		unsigned _objpermutbts = 6, 
-		unsigned _mutrowsbts = 8, 
-		unsigned _mutcolsbts = 8
+		unsigned _objpermutbts = 6,
+		unsigned _mutrowsbts = 3,
+		unsigned _mutcolsbts = 3
 	 ):
 		objpermutbts(_objpermutbts),
 		objpermutmsk(bitsToMsk(_objpermutbts)),
@@ -102,6 +102,15 @@ public:
 	//! Will return true if i is the first index of a range sharing the same mutex
 	inline int isRangeBegin(unsigned i){
 		return !(i & objpermutmsk);
+	}
+	template <typename V>
+	void visit(uint32 _upto, V &_rv){
+		const uint32 mutcnt(mutrowscnt * mutcolscnt);
+		const uint32 cnt((_upto >> objpermutbts) + 1);
+		const uint32 end(cnt > mutcnt ? mutcnt : cnt);
+		for(uint32 i(0); i < end; ++i){
+			_rv(doGetObject(i));
+		}
 	}
 private:
 	inline MutualObjectT& doGetObject(unsigned i){
