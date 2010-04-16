@@ -62,7 +62,14 @@ int Service::insert(Object &_robj, IndexT _srvid){
 	Mutex::Locker lock(*mut);
 	return doInsert(_robj, _srvid);
 }
-
+namespace{
+void lock(Mutex &_rm){
+	_rm.lock();
+}
+void unlock(Mutex &_rm){
+	_rm.unlock();
+}
+}
 int Service::doInsert(Object &_robj, IndexT _srvid){
 	if(state() != Running) return BAD;
 	if(inds.size()){
@@ -76,11 +83,14 @@ int Service::doInsert(Object &_robj, IndexT _srvid){
 		inds.pop();
 	}else{
 		//worst case scenario
-		Mutex &rmut = mutpool.safeObject(objv.size());
-		Mutex::Locker lock(rmut);
+		const uint32 sz(objv.size());
+		Mutex &rmut(mutpool.safeObject(sz));
+		//Mutex::Locker lock(rmut);
 		_robj.mutex(&rmut);
-		_robj.id(_srvid, objv.size());
+		_robj.id(_srvid, sz);
+		mutpool.visit(sz, lock);//lock all mutexes
 		objv.push_back(ObjPairT(&_robj, 0));	
+		mutpool.visit(sz, unlock);//unlock all mutexes
 	}
 	++objcnt;
 	return OK;
@@ -90,7 +100,7 @@ void Service::mutex(Mutex *_pmut){
 	mut = _pmut;
 }
 void Service::remove(Object &_robj){
-	Mutex::Locker lock1(*mut);
+	Mutex::Locker	lock1(*mut);
 	//obj's mutext should not be locked
 	Mutex::Locker	lock2(mutpool.object(_robj.index()));
 	idbgx(Dbg::fdt, "removig object with index "<<_robj.index());
@@ -239,6 +249,10 @@ Mutex& Service::mutex(Object &_robj){
 
 uint32 Service::uid(Object &_robj)const{
 	return objv[_robj.index()].second;
+}
+
+uint32 Service::uid(const uint32 _idx)const{
+	return objv[_idx].second;
 }
 
 int Service::start(){
