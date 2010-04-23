@@ -55,7 +55,7 @@ typedef long long 			int64;
 #ifdef _LP64
 #define MAX_ULONG			0xffffffffffffffffL
 #else
-#define MAX_ULONG			0xfffffff
+#define MAX_ULONG			0xffffffff
 #endif
 
 enum SeekRef {
