@@ -15,23 +15,30 @@ string (REGEX REPLACE "^([0-9]*)\\.([0-9]*)\\.([0-9]*)" "\\1" VERSION_MAJOR ${VE
 string (REGEX REPLACE "^([0-9]*)\\.([0-9]*)\\.([0-9]*)" "\\2" VERSION_MINOR ${VERSION})
 string (REGEX REPLACE "^([0-9]*)\\.([0-9]*)\\.([0-9]*)" "\\3" VERSION_PATCH ${VERSION})
 
-find_package(Subversion)
-
-if(Subversion_FOUND)
-	Subversion_WC_INFO(${PROJECT_SOURCE_DIR} SVNINFO)
-	message("-- Current SVN revision is ${SVNINFO_WC_REVISION}")
-	set(VERSION_PATCH ${SVNINFO_WC_REVISION})
-else(Subversion_FOUND)
-	message(SEND_ERROR "Could not determine SVN revision -- assumming ${VERSION_PATCH}")
-endif(Subversion_FOUND)
+if(EXISTS ${CMAKE_SOURCE_DIR}/.svn)
+	find_package(Subversion)
+	if(Subversion_FOUND)
+		Subversion_WC_INFO(${PROJECT_SOURCE_DIR} SVNINFO)
+		message("-- Current SVN revision is ${SVNINFO_WC_REVISION}")
+		set(VERSION_PATCH ${SVNINFO_WC_REVISION})
+	else(Subversion_FOUND)
+		message("")
+		message(AUTHOR_WARNING "Could not determine SVN revision -- assumming ${VERSION_PATCH}")
+		message("")
+	endif(Subversion_FOUND)
+else(EXISTS ${CMAKE_SOURCE_DIR}/.svn)
+	message("")
+	message(AUTHOR_WARNING "Could not determine SVN revision -- assumming ${VERSION_PATCH}")
+	message("")
+endif(EXISTS ${CMAKE_SOURCE_DIR}/.svn)
 #-----------------------------------------------------------------
 
 #-----------------------------------------------------------------
 # Extra user definitions
 #-----------------------------------------------------------------
-message("UDEFS set "${UDEFS})
-message("UEXTERN set "${UEXTERN})
-message("UEXTERN_ABS set "${UEXTERN_ABS})
+message("UDEFS set as "${UDEFS})
+message("UEXTERN set as "${UEXTERN})
+message("UEXTERN_ABS set as "${UEXTERN_ABS})
 add_definitions(${UDEFS})
 #-----------------------------------------------------------------
 
@@ -88,7 +95,9 @@ set(SYS_BASIC_LIBS "")
 
 set(ON_SUN FALSE)
 
+message("")
 message("cmake's system: ${CMAKE_SYSTEM}")
+message("")
 
 set(ON_FOUND FALSE)
 set(ON_FBSD FALSE)
@@ -181,6 +190,8 @@ if(CMAKE_SYSTEM MATCHES "Windows*")
 	
 	set(SYS_BASIC_LIBS pthread rt)
 endif(CMAKE_SYSTEM MATCHES "Windows*")
+
+message("")
 
 if(NOT ON_FOUND)
 	message("\r\n === Sorry unsupported system - please contact project owner ===\r\n")
