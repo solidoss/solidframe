@@ -241,21 +241,19 @@ for param in "$@"; do
 done
 echo
 
+echo -ne "./configure -f $FOLDER_NAME -F \"$FOLDER_PATH\" -b \"$BUILD_TYPE\" -g \"$GENERATOR\" -p \"$PARAM\" -e \"$EXTERN_ABS_PATH\" -DUTESTING:STRING=\"$ENABLE_TESTING\" -DUTEST_NAME=\"$TEST_NAME\" -DUTEST_SITE=\"$TEST_SITE\" \"$@\" \"$SRC_PATH\"\r\n" > configure.txt
 
 if [ "$GENERATOR" = "" ]; then
-	echo "Using cmake's default generator"
+	echo "Using cmake's default generator:"
+	echo ""
 	
 	exec cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS:STRING="$PARAM" -DUEXTERN:STRING="$EXTERN_PATH" -DUEXTERN_ABS:STRING="$EXTERN_ABS_PATH" -DUTESTING:STRING="$ENABLE_TESTING" -DUTEST_NAME="$TEST_NAME" -DUTEST_SITE="$TEST_SITE" "$@" "$SRC_PATH"
-	
-	echo "./configure -f $FOLDER_NAME -F $FOLDER_PATH -b $BUILD_TYPE -p \"$PARAM\" -e \"$EXTERN_ABS_PATH\" -DUTESTING:STRING=\"$ENABLE_TESTING\" -DUTEST_NAME=\"$TEST_NAME\" -DUTEST_SITE=\"$TEST_SITE\" $@" > configure.txt
 	echo "Done!"
 else
-	echo "Using cmake's $GENERATOR with $CMAKE_PARAM"
+	echo "Using cmake's $GENERATOR with $CMAKE_PARAM:"
+	echo ""
 	
 	exec cmake -G "$GENERATOR" -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS:STRING="$PARAM" -DUEXTERN:STRING="$EXTERN_PATH" -DUEXTERN_ABS:STRING="$EXTERN_ABS_PATH" -DUTESTING:STRING="$ENABLE_TESTING" -DUTEST_NAME="$TEST_NAME" -DUTEST_SITE="$TEST_SITE" "$@" "$SRC_PATH"
-	
-	echo "./configure -f $FOLDER_NAME -F $FOLDER_PATH -g \"$GENERATOR\" -b $BUILD_TYPE -p \"$PARAM\" -e \"$EXTERN_ABS_PATH\" -DUTESTING:STRING=\"$ENABLE_TESTING\" -DUTEST_NAME=\"$TEST_NAME\" -DUTEST_SITE=\"$TEST_SITE\"
-	$@" > configure.txt
 fi
 
 exit
