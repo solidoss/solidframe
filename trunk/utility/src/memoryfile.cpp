@@ -121,6 +121,7 @@ int64 MemoryFile::seek(int64 _pos, SeekRef _ref){
 			off = sz + _pos;
 			return off;
 	}
+	return -1;
 }
 
 int MemoryFile::truncate(int64 _len){
