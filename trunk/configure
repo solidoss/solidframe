@@ -18,6 +18,7 @@ function make_cmake_list(){
 	fi
 }
 
+
 function print_usage(){
 	echo "Usage:"
 	echo -ne "\n./configure [-g|--generator GeneratorName] [-f|--folder FolderName] [-b|--build BuildType]"
