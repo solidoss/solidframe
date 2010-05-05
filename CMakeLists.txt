@@ -39,7 +39,12 @@ endif(EXISTS ${CMAKE_SOURCE_DIR}/.svn)
 message("UDEFS set as "${UDEFS})
 message("UEXTERN set as "${UEXTERN})
 message("UEXTERN_ABS set as "${UEXTERN_ABS})
-add_definitions(${UDEFS})
+
+
+set(EXTRA_DEFINITIONS "${UDEFS}" CACHE STRING "Extra compiler definitions")
+
+
+add_definitions(${EXTRA_DEFINITIONS})
 #-----------------------------------------------------------------
 
 #-----------------------------------------------------------------
@@ -48,15 +53,16 @@ add_definitions(${UDEFS})
 string(LENGTH "${UEXTERN_ABS}" ExtAbsLen)
 set(EXTERN_PATH)
 if(ExtAbsLen GREATER 0)
-	set(EXTERN_PATH "${UEXTERN_ABS}/")
+	set(EXTERN_PATH "${UEXTERN_ABS}/" CACHE STRING "Extern dependencies path")
 else(ExtAbsLen GREATER 0)
 	string(LENGTH "${UEXTERN}" ExtLen)
 	if(ExtLen GREATER 0)
-		set(EXTERN_PATH "${SOLIDGROUND_SOURCE_DIR}/extern/${UEXTERN}/")
+		set(EXTERN_PATH "${SOLIDGROUND_SOURCE_DIR}/extern/${UEXTERN}/"  CACHE STRING "Extern dependencies path")
 	else(ExtLen GREATER 0)
-		set(EXTERN_PATH "${SOLIDGROUND_SOURCE_DIR}/extern/")
+		set(EXTERN_PATH "${SOLIDGROUND_SOURCE_DIR}/extern/"  CACHE STRING "Extern dependencies path")
 	endif(ExtLen GREATER 0)
 endif(ExtAbsLen GREATER 0)
+
 message("EXTERN_PATH set as "${EXTERN_PATH})
 #-----------------------------------------------------------------
 
