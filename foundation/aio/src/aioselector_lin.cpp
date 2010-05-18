@@ -49,6 +49,10 @@ namespace foundation{
 
 namespace aio{
 //=============================================================
+// TODO:
+// - investigate if you can use timerfd_create (man timerfd_create)
+//
+//=============================================================
 
 struct Selector::Stub{
 	enum State{
