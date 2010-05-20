@@ -4,6 +4,7 @@ include (CheckCXXSourceRuns)
 # just as an idea
 check_include_files(pthread.h HAVE_PTHREAD_H)
 
+check_include_files(sys/eventfd.h HAVE_EVENTFD_H)
 
 # check if function local static variables are thread safe
 file (READ "${CMAKE_CURRENT_SOURCE_DIR}/check/safestatic.cpp" source_code)

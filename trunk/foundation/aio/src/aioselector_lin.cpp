@@ -20,11 +20,18 @@
 */
 
 //#include <unistd.h>
+#include "system/common.hpp"
 #include <fcntl.h>
 #include <sys/epoll.h>
+
 #ifndef UPIPESIGNAL
-#include <sys/eventfd.h>
+	#ifdef HAVE_EVENTFD_H
+		#include <sys/eventfd.h>
+	#else 
+		#define UPIPESIGNAL
+	#endif
 #endif
+
 #include <vector>
 #include <cerrno>
 #include <cstring>
