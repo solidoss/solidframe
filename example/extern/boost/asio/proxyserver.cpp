@@ -242,8 +242,17 @@ class server
 public:
     server(boost::asio::io_service& io_service, short port)
         : io_service_(io_service),
-        acceptor_(io_service, tcp::endpoint(tcp::v4(), port))
+        acceptor_(io_service/*, tcp::endpoint(tcp::v4(), port)*/)
+        
     {
+		boost::asio::ip::address_v4	localaddr;
+		localaddr.from_string("127.0.0.1");
+		boost::asio::ip::tcp::endpoint endpoint(localaddr, port);
+		acceptor_.open(endpoint.protocol());
+		acceptor_.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
+		acceptor_.bind(endpoint);
+		acceptor_.listen();
+		
         session* new_session = new session(io_service_);
         acceptor_.async_accept(new_session->socketOne(),
             boost::bind(&server::handle_accept, this, new_session,
@@ -316,6 +325,8 @@ int main(int argc, char* argv[])
         {
             cout<<"no such address "<<endl;
         }
+        io_service.run();
+		return 0;
         string c;
         while(true){
             cin>>c;

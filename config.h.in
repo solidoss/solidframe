@@ -1,4 +1,4 @@
 #cmakedefine HAVE_PTHREAD_H
-#cmakedefine HAVE_SOMETHING_H
+#cmakedefine HAVE_EVENTFD_H
 #cmakedefine IS_SAFE_FUNCTION_STATIC
 
