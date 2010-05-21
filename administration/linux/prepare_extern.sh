@@ -50,6 +50,22 @@ echo "Copy test certificates to openssl_ dir..."
 cp $OPENSSL_DIR/demos/tunala/*.pem openssl_/certs/.
 
 ############################################################
+echo 
+echo "Making links from all libraries from lib64 within lib"
+echo 
+
+if [ -d lib64 ]; then
+	cd lib
+
+	for filename in ../librtr/*
+	do
+	echo "SimLink to $filename"
+	ln -s $filename .
+	done;
+fi
+
+cd lib
+
 echo
 echo "DONE!!"
 ############################################################
