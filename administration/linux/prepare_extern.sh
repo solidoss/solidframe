@@ -57,7 +57,7 @@ echo
 if [ -d lib64 ]; then
 	cd lib
 
-	for filename in ../librtr/*
+	for filename in ../lib64/*
 	do
 	echo "SimLink to $filename"
 	ln -s $filename .
