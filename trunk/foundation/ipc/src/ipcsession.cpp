@@ -42,11 +42,11 @@ namespace ipc{
 
 
 struct BufCmp{
-	bool operator()(const ulong id1, const ulong id2)const{
+	bool operator()(const uint32 id1, const uint32 id2)const{
 		if(id1 > id2)
-			return (id1 - id2) <= (ulong)(0xffffffff/2);
+			return (id1 - id2) <= (uint32)(0xffffffff/2);
 		else
-			return (id2 - id1) > (ulong)(0xffffffff/2);
+			return (id2 - id1) > (uint32)(0xffffffff/2);
 	}
 	bool operator()(const Buffer &_rbuf1, const Buffer &_rbuf2)const{
 		return operator()(_rbuf1.id(), _rbuf2.id());
@@ -1138,7 +1138,7 @@ bool Session::doPushUnxpectedReceivedBuffer(
 			vdbgx(Dbg::ipc, "out of order buffer");
 			d.rcvdidq.push(bufid);//for peer updates
 		}else{
-			vdbgx(Dbg::ipc, "to many buffers out-of-order "<<d.outoforderbufcnt);
+			vdbgx(Dbg::ipc, "too many buffers out-of-order "<<d.outoforderbufcnt);
 			COLLECT_DATA_0(d.statistics.tooManyBuffersOutOfOrder);
 		}
 	}else if(_rbuf.id() == Buffer::UpdateBufferId){//a buffer containing only updates
