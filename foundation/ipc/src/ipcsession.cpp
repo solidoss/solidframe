@@ -829,6 +829,7 @@ void Session::reconnect(Session *_pses){
 	for(Data::SendSignalVectorT::iterator it(d.sendsignalvec.begin()); it != d.sendsignalvec.end(); ++it){
 		Data::SendSignalData &rssd(*it);
 		if(rssd.pserializer){
+			rssd.pserializer->clear();
 			d.pushSerializer(rssd.pserializer);
 			rssd.pserializer = NULL;
 		}
@@ -1134,9 +1135,10 @@ bool Session::doPushUnxpectedReceivedBuffer(
 		//try to keep the buffer for future parsing
 		uint32 bufid(_rbuf.id());
 		if(d.keepOutOfOrderBuffer(_rbuf)){
+			vdbgx(Dbg::ipc, "out of order buffer");
 			d.rcvdidq.push(bufid);//for peer updates
 		}else{
-			idbgx(Dbg::ipc, "to many buffers out-of-order");
+			vdbgx(Dbg::ipc, "to many buffers out-of-order "<<d.outoforderbufcnt);
 			COLLECT_DATA_0(d.statistics.tooManyBuffersOutOfOrder);
 		}
 	}else if(_rbuf.id() == Buffer::UpdateBufferId){//a buffer containing only updates
@@ -1571,7 +1573,7 @@ void StatisticData::sendSignalIdxQueueSize(const ulong _sz){
 	if(maxsendsignalidxqueuesize < _sz) maxsendsignalidxqueuesize = _sz;
 }
 void StatisticData::tryScheduleKeepAlive(){
-	++toomanybuffersoutofordercnt;
+	++tryschedulekeepalivecnt;
 }
 void StatisticData::scheduleKeepAlive(){
 	++schedulekeepalivecnt;
