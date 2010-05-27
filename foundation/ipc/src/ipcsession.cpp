@@ -200,7 +200,7 @@ struct Session::Data{
 			uint32 _id
 		):signal(_rsig), pserializer(NULL), bufid(_bufid), flags(_flags), id(_id), uid(0){}
 		~SendSignalData(){
-			cassert(!pserializer);
+			//cassert(!pserializer);
 		}
 		bool operator<(const SendSignalData &_owc)const{
 			if(signal.ptr()){
