@@ -397,7 +397,7 @@ int Service::execute(ulong _sig, TimeSpec &_rtout){
 	if(signaled()){
 		ulong sm;
 		{
-			Mutex::Locker	lock(*mut);
+			Mutex::Locker	lock(*mutex());
 			sm = grabSignalMask(1);
 		}
 		if(sm & fdt::S_KILL){

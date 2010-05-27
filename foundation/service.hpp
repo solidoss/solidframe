@@ -22,18 +22,12 @@
 #ifndef CS_SERVICE_HPP
 #define CS_SERVICE_HPP
 
-#include "system/condition.hpp"
-
-#include "utility/mutualobjectcontainer.hpp"
-
 #include "object.hpp"
 
 namespace foundation{
 
 class Manager;
 class Visitor;
-class ObjectVector;
-class IndexStack;
 //! Static container of objects
 /*!
 	<b>Overview:</b><br>
@@ -99,7 +93,7 @@ public:
 	//! The service will keep a pointer to its associated mutex
 	void mutex(Mutex *_pmut);
 	//! Pointer to the service's mutex
-	Mutex* mutex()const{return mut;}
+	Mutex* mutex()const;
 	//! Start the service
 	virtual int start();
 	//! Stop it eventually waiting for all objects to unregister
@@ -108,7 +102,6 @@ public:
 	virtual int execute();
 	
 protected:
-	typedef MutualObjectContainer<Mutex>	MutexContainer;
 	//! Insert an object.
 	int insert(Object &_robj, IndexT _srvid);
 	//! Remove an object
@@ -130,17 +123,22 @@ protected:
 	int doInsert(Object &_robj, IndexT _srvid);
 	//! Constructor - forwards the parameters to the MutualObjectContainer of mutexes
 	Service(int _objpermutbts = 6, int _mutrowsbts = 8, int _mutcolsbts = 8);
-	//Service(const Service &):state(Stopped),objv(*((ObjectVector*)NULL)),
-	//							indq(*((IndexQueue*)NULL)){}
+	
+	
+	ulong indexStackSize()const;
+	ulong indexStackTop()const;
+	void indexStackPop();
+	Mutex& mutexAt(ulong _idx);
+	void lockForPushBack();
+	void unlockForPushBack();
+	void insertObject(Object &_robj, ulong _srvid);
+	void appendObject(Object &_robj, ulong _srvid);
+	ulong objectVectorSize()const;
 private:
 	const Service& operator=(const Service &);
-protected:
-	ObjectVector		&objv;
-	IndexStack			&inds;
-	Condition			cond;
-	Mutex				*mut;
-	unsigned			objcnt;//object count
-	MutexContainer		mutpool;
+private:
+	struct Data;
+	Data	&d;
 };
 
 
