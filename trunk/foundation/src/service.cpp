@@ -122,10 +122,11 @@ int Service::doInsert(Object &_robj, IndexT _srvid){
 		d.objv.push_back(Data::ObjectPairT(&_robj, 0));
 		
 		//reserve some positions
-		uint	cnt(63);
+		uint			cnt(63);
+		const ulong		initialsize(d.objv.size());
 		while(cnt--){
 			d.mutpool.safeObject(d.objv.size());
-			d.inds.push(d.objv.size());
+			d.inds.push(initialsize + cnt);
 			d.objv.push_back(Data::ObjectPairT(NULL, 0));
 		}
 		d.mutpool.visit(sz, visit_unlock);//unlock all mutexes
