@@ -22,6 +22,8 @@
 #ifndef SYSTEM_DYNAMIC_POINTER_HPP
 #define SYSTEM_DYNAMIC_POINTER_HPP
 
+#include "system/common.hpp"
+
 struct DynamicBase;
 
 class DynamicPointerBase{
