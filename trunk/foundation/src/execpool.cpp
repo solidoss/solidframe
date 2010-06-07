@@ -23,6 +23,17 @@
 
 namespace foundation{
 
+
+ExecPool::ExecPool(){
+}
+/*virtual*/ ExecPool::~ExecPool(){
+}
+void ExecPool::raise(uint _thid){
+}
+void ExecPool::raise(uint _thid, ulong _objid){
+}
+void ExecPool::poolid(uint _pid){
+}
 void ExecPool::run(){
 	
 }
