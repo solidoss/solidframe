@@ -30,19 +30,19 @@
 namespace foundation{
 //! A simple execution pool for one shot object execution
 /*!
-	It doesn't suppor object signaling and timeouts.
+	It doesn't support object signaling and timeouts.
 */
 class ExecPool: public WorkPool<ObjectPointer<Object> >, public ActiveSet{
 public:
-	ExecPool(){}
-	virtual ~ExecPool(){}
-	void raise(uint _thid){}
-	void raise(uint _thid, ulong _objid){}
-	void poolid(uint _pid){}
+	ExecPool();
+	virtual ~ExecPool();
+	void raise(uint _thid);
+	void raise(uint _thid, ulong _objid);
+	void poolid(uint _pid);
 protected:
 	typedef WorkPool<ObjectPointer<Object> > WorkPoolT;
 	virtual void run();
-	virtual int createWorkers(uint) = 0;
+	/*virtual*/ int createWorkers(uint);
 };
 
 
