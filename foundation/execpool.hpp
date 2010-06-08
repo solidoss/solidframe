@@ -34,14 +34,16 @@ namespace foundation{
 */
 class ExecPool: public WorkPool<ObjectPointer<Object> >, public ActiveSet{
 public:
-	ExecPool();
+	ExecPool(uint32 _maxthrcnt);
 	virtual ~ExecPool();
 	void raise(uint _thid);
-	void raise(uint _thid, ulong _objid);
+	void raise(uint _thid, uint _objid);
 	void poolid(uint _pid);
+	void run(Worker &_rw);
+	void prepareWorker();
+	void unprepareWorker();
 protected:
 	typedef WorkPool<ObjectPointer<Object> > WorkPoolT;
-	virtual void run();
 	/*virtual*/ int createWorkers(uint);
 };
 
