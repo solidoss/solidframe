@@ -20,26 +20,55 @@
 */
 
 #include "foundation/execpool.hpp"
+#include "foundation/object.hpp"
+
 
 namespace foundation{
 
 
-ExecPool::ExecPool(){
+ExecPool::ExecPool(uint32 _maxthrcnt){
 }
 /*virtual*/ ExecPool::~ExecPool(){
 }
 void ExecPool::raise(uint _thid){
 }
-void ExecPool::raise(uint _thid, ulong _objid){
+void ExecPool::raise(uint _thid, uint _objid){
 }
 void ExecPool::poolid(uint _pid){
 }
-void ExecPool::run(){
-	
+void ExecPool::run(Worker &_rw){
+	ObjectPointer<Object> pobj;
+	while(!pop(_rw.wid(), pobj)){
+		idbg(_rw.wid()<<" is processing "<<pobj->id());
+		int rv(pobj->execute());
+		switch(rv){
+			case LEAVE:
+				pobj.release();
+				break;
+			case OK:
+				this->push(pobj);
+				break;
+			case BAD:
+				pobj.clear();
+				break;
+			default:
+				edbg("Unknown return value from Object::exec "<<rv);
+				pobj.clear();
+				break;
+		}
+	}
+}
+void ExecPool::prepareWorker(){
+}
+void ExecPool::unprepareWorker(){
 }
 
-int createWorkers(uint _cnt){
-	return BAD;
+int ExecPool::createWorkers(uint _cnt){
+	for(uint i = 0; i < _cnt; ++i){
+		Worker *pw = createWorker<Worker>(*this);//new MyWorkerT(*this);
+		pw->start(true);//wait for start
+	}
+	return _cnt;
 }
 
 }//namespace
