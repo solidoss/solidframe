@@ -209,12 +209,13 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			}
 		case Banner:{
 			concept::Manager	&rm = concept::Manager::the();
-			uint32			myport(rm.ipc().basePort());
-			ulong			objid(this->id());
-			uint32			objuid(rm.uid(*this));
-			char			host[SocketAddress::MaxSockHostSz];
-			char			port[SocketAddress::MaxSockServSz];
-			SocketAddress	addr;
+			uint32				myport(rm.ipc().basePort());
+			ulong				objid(this->id());
+			uint32				objuid(rm.uid(*this));
+			char				host[SocketAddress::MaxSockHostSz];
+			char				port[SocketAddress::MaxSockServSz];
+			SocketAddress		addr;
+			
 			writer()<<"* Hello from alpha server ("<<myport<<" "<<(uint32)objid<<" "<<objuid<<") [";
 			socketLocalAddress(addr);
 			addr.name(
