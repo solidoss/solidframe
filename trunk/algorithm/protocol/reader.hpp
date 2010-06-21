@@ -119,6 +119,7 @@ public:
 		\param _rp A const reference to a parameter
 	*/
 	void push(FncT _pf, const Parameter & _rp/* = Parameter()*/);
+	void pop();
 	//! Sheduller replace top method
 	/*!
 		\param _pf A pointer to a function
@@ -171,6 +172,8 @@ public:
 	static int dropChar(Reader &_rr, Parameter &_rp);
 	//!Callback for saving the current char
 	static int saveCurrentChar(Reader &_rr, Parameter &_rp);
+	//!Callback for saving the current char
+	static int fetchChar(Reader &_rr, Parameter &_rp);
 	//! Callback - external reading plugin
 	/*! You'd better have one in the most derived reader too*/
 	template <class C>

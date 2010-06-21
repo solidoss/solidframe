@@ -55,6 +55,10 @@ void Reader::push(FncT _pf, const Parameter & _rp){
 	fs.push(FncPairT(_pf, _rp));
 }
 
+void Reader::pop(){
+	fs.pop();
+}
+
 void Reader::replace(FncT _pf, const Parameter & _rp){
 	fs.top().first = _pf;
 	fs.top().second = _rp;
@@ -356,7 +360,16 @@ struct DigitFilter{
 	}
 	return Ok;
 }
-
+/*static*/ int Reader::fetchChar(Reader &_rr, Parameter &_rp){
+	int c;
+	if(_rr.peek(c)){
+		_rr.push(&Reader::refill);
+		return Continue;
+	}
+	*reinterpret_cast<char*>(_rp.a.p) = c;
+	_rr.drop();
+	return Ok;
+}
 //default we close
 void Reader::prepareErrorRecovery(){
 	push(&Reader::returnValue<true>, Parameter(Bad));
