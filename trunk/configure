@@ -218,10 +218,10 @@ echo "Configure an out-of-source build configuration of type $BUILD_TYPE on fold
 cd application
 make_cmake_list *
 cd ../
-
-cd library
-make_cmake_list *
-cd ../
+# 
+# cd library
+# make_cmake_list *
+# cd ../
 
 SRC_PATH="`pwd`"
 
