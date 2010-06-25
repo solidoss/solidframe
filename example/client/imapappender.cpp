@@ -494,7 +494,7 @@ bool doAuthenticate(Writer &_wr, SocketDevice &_sd, SSL *_pssl){
 	char buf[blen];
 	int rv = readFindEither("s1 OK", "s1 NO", _pssl, buf, blen);
 	if(rv == 0) return true;
-	return false;
+	return true;
 }
 bool doCreateFolder(Writer &_wr, SocketDevice &_sd, SSL *_pssl, const Params &_par){
 	_wr<<"s2 create \""<<_par.folder<<"\""<<crlf;
