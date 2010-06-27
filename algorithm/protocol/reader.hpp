@@ -263,7 +263,8 @@ protected:
 	int fetch(String &_rds, uint32 _maxsz){
 		const char *tbeg = rpos;
 		while(rpos != wpos && Filter::check(*(rpos))) ++rpos;
-		if((_rds.size() + (rpos - tbeg)) <= _maxsz){
+		const uint32 sz(_rds.size() + (rpos - tbeg));
+		if(sz && sz <= _maxsz){
 			_rds.append(tbeg, rpos - tbeg);
 			if(rpos != wpos){
 				if(dolog) plog->inLiteral(_rds.data(),_rds.size());
