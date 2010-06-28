@@ -98,6 +98,7 @@ public:
 	enum BasicErrors{
 		Unexpected,
 		StringTooLong,
+		EmptyAtom,
 		NotANumber,
 		LastBasicError,
 		IOError
@@ -215,7 +216,12 @@ public:
 	static int fetchFilteredString(Reader &_rr, Parameter &_rp){
 		int rv = _rr.fetch<Filter>(*static_cast<String*>(_rp.a.p), _rp.b.u32);
 		switch(rv){
-			case Ok:break;
+			case Ok:
+				if(static_cast<String*>(_rp.a.p)->empty()){
+					_rr.basicError(EmptyAtom);
+					return Error;
+				}
+				break;
 			case No:
 				_rr.push(&Reader::refill);
 				return Continue;
@@ -263,8 +269,10 @@ protected:
 	int fetch(String &_rds, uint32 _maxsz){
 		const char *tbeg = rpos;
 		while(rpos != wpos && Filter::check(*(rpos))) ++rpos;
+		
 		const uint32 sz(_rds.size() + (rpos - tbeg));
-		if(sz && sz <= _maxsz){
+		
+		if(sz <= _maxsz){
 			_rds.append(tbeg, rpos - tbeg);
 			if(rpos != wpos){
 				if(dolog) plog->inLiteral(_rds.data(),_rds.size());

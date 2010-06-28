@@ -221,6 +221,8 @@ void Reader::clear(){
 		case StringTooLong:
 			rw.message() += "Tocken too long@";
 			break;
+		case EmptyAtom:
+			rw.message() += "Empty atom@";
 		case QuotedString:
 			rw.message() += "Error parsing quoted string@";
 			break;
