@@ -118,7 +118,9 @@ int Service::doInsert(Object &_robj, IndexT _srvid){
 
 		_robj.mutex(&rmut);
 		_robj.id(_srvid, sz);
+		
 		d.mutpool.visit(sz, visit_lock);//lock all mutexes
+		
 		d.objv.push_back(Data::ObjectPairT(&_robj, 0));
 		
 		//reserve some positions
@@ -129,6 +131,7 @@ int Service::doInsert(Object &_robj, IndexT _srvid){
 			d.inds.push(initialsize + cnt);
 			d.objv.push_back(Data::ObjectPairT(NULL, 0));
 		}
+		
 		d.mutpool.visit(sz, visit_unlock);//unlock all mutexes
 	}
 	++d.objcnt;
