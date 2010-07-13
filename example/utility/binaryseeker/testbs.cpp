@@ -28,10 +28,13 @@ int main(){
 	vector<int> v;
 	for(int i = 1; i < 11; ++i){
 		v.push_back(i);
+		v.push_back(i);
+		v.push_back(i);
 	}
 	BinarySeeker<> bs;
 	const int *pd = v.data();
-	cout<<"bs(10) = "<<bs(pd, pd + v.size(), 10)<<endl;
+	int rv(0);
+	cout<<"bs(10) = "<<v[rv]<<' '<<(rv = bs(pd, pd + v.size(), 10))<<endl;
 	cout<<"bs(12) = "<<bs(pd, pd + v.size(), 12)<<endl;
 	cout<<"bs(-1) = "<<bs(pd, pd + v.size(), -1)<<endl;
 	for(int i = 0; i < (v.size() + 2); ++i){

@@ -125,7 +125,7 @@ struct BinarySeeker{
 	int first(It _from, It _to, const Key &_rk)const{
 		int p = (*this)(_from, _to, _rk);
 		if(p < 0) return p;//not found
-		while(p && !cmp(_from + p - 1, _rk)){
+		while(p && !cmp(*(_from + p - 1), _rk)){
 			p =  (*this)(_from, _from + p, _rk);
 		}
 		return p;
@@ -135,12 +135,13 @@ struct BinarySeeker{
 	int last(It _from, It _to, const Key &_rk)const{
 		int p = (*this)(_from, _to, _rk);
 		if(p < 0) return p;//not found
-		while(p != (_to - _from - 1) && !cmp(_from + p + 1, _rk)){
+		while(p != (_to - _from - 1) && !cmp(*(_from + p + 1), _rk)){
 			p =  (*this)(_from + p + 1, _to, _rk);
 		}
 		return p;
 	}
 	static int insertIndex(int _idx){
+		if(_idx >= 0) return _idx;
 		return -_idx - 1;
 	}
 private:

@@ -68,3 +68,28 @@ bool IStream::readAll(char *_pd, uint32 _dl, uint32){
 	}
 	return true;
 }
+
+ int IStream::read(uint64 _offset, char* _pbuf, uint32 _blen, uint32 _flags){
+	 const int64	crtoff(seek(0, SeekCur));
+	 
+	 if(crtoff < 0) return -1;
+	 if(_offset != seek(_offset)) return -1;
+	 
+	 int rv = read(_pbuf, _blen, _flags);
+	 
+	 seek(crtoff);
+	 return rv;
+ }
+
+
+int OStream::write(uint64 _offset, const char *_pbuf, uint32 _blen, uint32 _flags){
+	 const int64	crtoff(seek(0, SeekCur));
+	 
+	 if(crtoff < 0) return -1;
+	 if(_offset != seek(_offset)) return -1;
+	 
+	 int rv = write(_pbuf, _blen, _flags);
+	 
+	 seek(crtoff);
+	 return rv;
+}

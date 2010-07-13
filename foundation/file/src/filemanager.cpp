@@ -773,6 +773,7 @@ public:
 	FileIStream(Manager &_rm, IndexT _fileid):rm(_rm), fileid(_fileid), off(0){}
 	~FileIStream();
 	int read(char *, uint32, uint32 _flags = 0);
+	int read(uint64 _offset, char*, uint32, uint32 _flags = 0);
 	int release();
 	int64 seek(int64, SeekRef);
 	int64 size()const;
@@ -787,6 +788,7 @@ public:
 	FileOStream(Manager &_rm, IndexT _fileid):rm(_rm), fileid(_fileid), off(0){}
 	~FileOStream();
 	int write(const char *, uint32, uint32 _flags = 0);
+	int write(uint64 _offset, const char *_pbuf, uint32 _blen, uint32 _flags = 0);
 	int release();
 	int64 seek(int64, SeekRef);
 	int64 size()const;
@@ -801,7 +803,9 @@ public:
 	FileIOStream(Manager &_rm, IndexT _fileid):rm(_rm), fileid(_fileid), off(0){}
 	~FileIOStream();
 	int read(char *, uint32, uint32 _flags = 0);
+	int read(uint64 _offset, char*, uint32, uint32 _flags = 0);
 	int write(const char *, uint32, uint32 _flags = 0);
+	int write(uint64 _offset, const char *_pbuf, uint32 _blen, uint32 _flags = 0);
 	int release();
 	int64 seek(int64, SeekRef);
 	int64 size()const;
@@ -823,7 +827,9 @@ int FileIStream::read(char * _pb, uint32 _bl, uint32 _flags){
 	if(rv > 0) off += rv;
 	return rv;
 }
-
+int FileIStream::read(uint64 _offset, char* _pb, uint32 _bl, uint32 _flags){
+	return rm.fileRead(fileid, _pb, _bl, _offset, _flags);
+}
 int FileIStream::release(){	
 	return BAD;
 }
@@ -847,7 +853,9 @@ int  FileOStream::write(const char *_pb, uint32 _bl, uint32 _flags){
 	if(rv > 0) off += rv;
 	return rv;
 }
-
+int FileOStream::write(uint64 _offset, const char* _pb, uint32 _bl, uint32 _flags){
+	return rm.fileWrite(fileid, _pb, _bl, _offset, _flags);
+}
 int FileOStream::release(){
 	return -1;
 }
@@ -878,6 +886,13 @@ int  FileIOStream::write(const char *_pb, uint32 _bl, uint32 _flags){
 	int rv = rm.fileWrite(fileid, _pb, _bl, off, _flags);
 	if(rv > 0) off += rv;
 	return rv;
+}
+
+int FileIOStream::read(uint64 _offset, char*_pb, uint32 _bl, uint32 _flags){
+	return rm.fileRead(fileid, _pb, _bl, _offset, _flags);
+}
+int FileIOStream::write(uint64 _offset, const char* _pb, uint32 _bl, uint32 _flags){
+	return rm.fileWrite(fileid, _pb, _bl, _offset, _flags);
 }
 
 int FileIOStream::release(){
