@@ -30,6 +30,7 @@ class OStream: virtual public Stream{
 public:
 	virtual ~OStream();
 	virtual int write(const char *, uint32, uint32 _flags = 0) = 0;
+	virtual int write(uint64 _offset, const char *_pbuf, uint32 _blen, uint32 _flags = 0);
 	bool ook()const;
 	bool oeof()const;
 	bool obad()const;
