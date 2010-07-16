@@ -140,9 +140,8 @@ struct BinarySeeker{
 		}
 		return p;
 	}
-	static int insertIndex(int _idx){
-		if(_idx >= 0) return _idx;
-		return -_idx - 1;
+	static int insertIndex(const int _idx){
+		return _idx >= 0 ? _idx : -_idx - 1;
 	}
 private:
 	Cmp		cmp;
