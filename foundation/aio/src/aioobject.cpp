@@ -183,7 +183,9 @@ void Object::doPushTimeoutSend(uint32 _pos, const TimeSpec &_crttime, ulong _add
 
 void Object::socketPushRequest(const uint _pos, const uint8 _req){
 	//NOTE: only a single request at a time is allowed
-	cassert(!pstubs[_pos].requesttype);
+	//cassert(!pstubs[_pos].requesttype);
+	//you can have 2 io requests on the same time - one for recv and one for send
+	cassert(!pstubs[_pos].requesttype || (pstubs[_pos].requesttype == SocketStub::IORequest && _req == SocketStub::IORequest));
 	if(pstubs[_pos].requesttype) return;
 	pstubs[_pos].requesttype = _req;
 	*reqpos = _pos;
