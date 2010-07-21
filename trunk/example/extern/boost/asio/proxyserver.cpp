@@ -325,8 +325,7 @@ int main(int argc, char* argv[])
         {
             cout<<"no such address "<<endl;
         }
-        io_service.run();
-		return 0;
+        boost::asio::io_service::work work(io_service);
         string c;
         while(true){
             cin>>c;
