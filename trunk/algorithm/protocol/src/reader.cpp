@@ -165,22 +165,32 @@ int Reader::run(){
 }
 
 /*static*/ int Reader::fetchLiteralStream(Reader &_rr, Parameter &_rp){
-	OStreamIterator &osi(*static_cast<OStreamIterator*>(_rp.a.p));
-	if(osi.start() < 0){
-		cassert(false);
-	}
-	uint64		&sz = *static_cast<uint64*>(_rp.b.p);
-	ulong		minlen = (ulong)(_rr.wpos - _rr.rpos);
+	OStreamIterator	&osi(*static_cast<OStreamIterator*>(_rp.a.p));
+	
+	cassert(osi.start() >= 0);
+	
+	uint64			&sz = *static_cast<uint64*>(_rp.b.p);
+	ulong			minlen = (ulong)(_rr.wpos - _rr.rpos);
+	
 	if(sz < minlen) minlen = sz;
+	
 	//write what we allready have in buffer into the stream
-	if(minlen) osi->write(_rr.rpos, minlen);
+	if(minlen){
+		osi->write(_rr.rpos, minlen);
+	}
+	
 	idbgx(Dbg::protocol, "stream size = "<<sz<<" minlen = "<<minlen);
 	sz -= minlen;
+	
 	if(sz){
 		_rr.rpos = _rr.wpos = _rr.bbeg;
-		ulong		toread = _rr.bend - _rr.bbeg;
+		
+		ulong	toread(_rr.bend - _rr.bbeg);
+		
 		if(sz < toread) toread = sz;
-		int rv = Continue;
+		
+		int		rv(Continue);
+		
 		switch(_rr.read(_rr.bbeg, toread)){
 			case Bad: return Bad;
 			case Ok: break;
@@ -197,17 +207,20 @@ int Reader::run(){
 }
 
 /*static*/ int Reader::fetchLiteralStreamContinue(Reader &_rr, Parameter &_rp){
-	OStreamIterator &osi(*static_cast<OStreamIterator*>(_rp.a.p));
-	uint64		&sz = *static_cast<uint64*>(_rp.b.p);
-	const ulong	bufsz = _rr.bend - _rr.bbeg;
-	ulong		toread;
-	ulong		tmpsz = bufsz * 8;
+	OStreamIterator	&osi(*static_cast<OStreamIterator*>(_rp.a.p));
+	uint64			&sz(*static_cast<uint64*>(_rp.b.p));
+	const ulong		bufsz(_rr.bend - _rr.bbeg);
+	ulong			toread;
+	ulong			tmpsz(bufsz * 8);
+	
 	if(sz < tmpsz) tmpsz = sz;
 	sz -= tmpsz;
 	while(tmpsz){
-		const ulong rdsz = _rr.readSize();
+		const ulong rdsz(_rr.readSize());
+		
 		osi->write(_rr.bbeg, rdsz);
 		tmpsz -= rdsz; 
+		
 		if(!tmpsz) break;
 		toread = bufsz;
 		if(tmpsz < toread) toread = tmpsz;
