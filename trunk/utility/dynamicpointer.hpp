@@ -69,7 +69,10 @@ public:
 	void clear(){if(pdyn) DynamicPointerBase::clear(static_cast<DynamicBase*>(pdyn));pdyn = NULL;}
 protected:
 	void ptr(DynamicT *_pdyn){
-		pdyn = _pdyn;use(static_cast<DynamicBase*>(pdyn));
+		pdyn = _pdyn;
+		if(pdyn){
+			use(static_cast<DynamicBase*>(pdyn));
+		}
 	}
 private:
 	mutable DynamicT *pdyn;
