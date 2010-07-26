@@ -59,6 +59,7 @@ public:
 		return *this;
 	}
 	ThisT& operator=(ObjectT *_pobj){
+		if(pobj) clear();
 		pobj = _pobj;
 		return *this;
 	}
