@@ -144,7 +144,7 @@ inline void Thread::yield(){
 inline long Thread::currentId(){
 #ifdef ON_WIN
 #else
-	return (int)pthread_self();
+	return (long)pthread_self();
 #endif
 }
 
