@@ -52,8 +52,8 @@ inline Parameter::Parameter(int _i){
 }
 
 inline Parameter::Parameter(const Parameter &_rp){
-	a.p = _rp.a.p;
-	b.p = _rp.b.p;
+	a.u64 = _rp.a.u64;
+	b.u64 = _rp.b.u64;
 }
 
 }//namespace protocol
