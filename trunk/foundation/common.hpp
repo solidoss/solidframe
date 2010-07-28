@@ -60,7 +60,7 @@ enum Events{
 };
 
 enum Consts{
-	MAXTIMEOUT = (0xffffffff>>1)/1000
+	MAXTIMEOUT = (0xffffffffUL>>1)/1000
 };
 #ifdef _LP64
 //64 bit architectures
@@ -71,7 +71,7 @@ typedef uint32 IndexT;
 #else
 //64 bit indexes
 typedef uint64 IndexT;
-#define ID_MASK 0xffffffffffffffffL
+#define ID_MASK 0xffffffffffffffffULL
 #endif
 
 #else
@@ -80,11 +80,11 @@ typedef uint64 IndexT;
 #ifdef UINDEX64
 //64 bit indexes
 typedef uint64 IndexT;
-#define ID_MASK 0xffffffffffffffffL
+#define ID_MASK 0xffffffffffffffffULL
 #else
 //32 bit indexes
 typedef uint32 IndexT;
-#define ID_MASK 0xffffffff
+#define ID_MASK 0xffffffffUL
 #endif
 
 
