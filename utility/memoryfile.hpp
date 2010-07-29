@@ -41,7 +41,7 @@ public:
 
 public:
 	//! Constructor with the file capacity and the allocator
-	MemoryFile(uint64 _cp = -1L, Allocator &_ral = BasicAllocator<>::instance());
+	MemoryFile(uint64 _cp = -1, Allocator &_ral = BasicAllocator<>::instance());
 	//! Destructor
 	~MemoryFile();
 	//! Read data from file from offset

@@ -290,6 +290,7 @@ protected:
 		//int rcode;
 		if(_rdsz < (ulong)(bend - bbeg)) return Bad;
 		const char *tbeg = rpos;
+		cassert(rpos <= wpos);
 		while(rpos != wpos && !Filter::check(*rpos)) ++rpos;
 		int slen = rpos - tbeg;
 		if(slen < _keep){

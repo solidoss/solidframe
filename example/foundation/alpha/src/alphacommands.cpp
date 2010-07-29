@@ -335,7 +335,7 @@ int RemoteList::receiveError(
 //---------------------------------------------------------------
 // Fetch command
 //---------------------------------------------------------------
-Fetch::Fetch(Connection &_rc):port(-1), rc(_rc), state(0), litsz(-1L){
+Fetch::Fetch(Connection &_rc):port(-1), rc(_rc), state(0), litsz(-1){
 }
 Fetch::~Fetch(){
 	idbg(""<<(void*)this<<' '<<(void*)sp_in.ptr());
@@ -564,7 +564,7 @@ int Fetch::receiveIStream(
 	}else if(state == WaitTempStream){
 		sp_in = _sptr;
 		state = WaitRemoteStream;
-		if(litsz == -1L){
+		if(litsz == -1){
 			doSendMaster(_fuid);
 		}else{
 			doSendSlave(_fuid);
@@ -582,7 +582,7 @@ int Fetch::receiveNumber(
 	mastersiguid = _objuid;
 	cassert(_pconuid);
 	ipcconuid = *_pconuid;
-	if(litsz != -1L){//continued
+	if(litsz != -1){//continued
 		streamsz_in = sp_in->size();
 		idbg(""<<litsz<<" "<<streamsz_in);
 		state = SendNextData;
@@ -608,7 +608,7 @@ int Fetch::receiveError(
 			state = SendTempError;
 			break;
 		case WaitRemoteStream:
-			if(litsz == -1L){
+			if(litsz == -1){
 				//we can send an error
 				state = SendRemoteError;
 			}else{

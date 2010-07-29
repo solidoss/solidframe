@@ -628,7 +628,7 @@ namespace{
 	return NULL;
 }
 /*virtual*/ uint64 Key::capacity()const{
-	return -1L;
+	return -1;
 }
 //==================================================================
 //	file::NameKey

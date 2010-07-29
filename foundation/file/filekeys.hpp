@@ -56,7 +56,7 @@ private:
 
 //! A key for requesting temporary files of certain capacity
 struct TempKey: Key{
-	TempKey(uint64 _cp = -1L):cp(_cp){}
+	TempKey(uint64 _cp = -1):cp(_cp){}
 	~TempKey();
 	const uint64	cp;
 	/*virtual*/ uint32 mapperId()const;
@@ -67,7 +67,7 @@ struct TempKey: Key{
 
 //! A key for requesting memory files of certain capacity
 struct MemoryKey: Key{
-	MemoryKey(uint64 _cp = -1L):cp(_cp){}
+	MemoryKey(uint64 _cp = -1):cp(_cp){}
 	~MemoryKey();
 	const uint64 cp;
 	/*virtual*/ uint32 mapperId()const;
