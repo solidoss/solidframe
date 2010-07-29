@@ -22,7 +22,7 @@ struct MemoryFile::BuffCmp{
 MemoryFile::MemoryFile(
 	uint64 _cp,
 	MemoryFile::Allocator &_ra
-):cp(_cp == -1L ? -1L : _ra.computeCapacity(_cp)),sz(0), off(0), crtbuffidx(-1), bufsz(_ra.bufferSize()), ra(_ra){
+):cp(_cp == -1 ? -1 : _ra.computeCapacity(_cp)),sz(0), off(0), crtbuffidx(-1), bufsz(_ra.bufferSize()), ra(_ra){
 }
 
 MemoryFile::~MemoryFile(){

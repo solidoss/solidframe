@@ -251,7 +251,7 @@ int Open::doDoneLocal(Writer &_rw){
 	
 	Connection	&rc(Connection::the());
 	uint32	pos(-1);
-	uint64	sz(-1L);
+	uint64	sz(-1);
 	
 	//TODO:
 	

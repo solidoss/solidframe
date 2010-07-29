@@ -357,6 +357,11 @@ struct DigitFilter{
 }
 
 /*static*/ int Reader::dropChar(Reader &_rr, Parameter &_rp){
+	int c;
+	if(_rr.peek(c)){
+		_rr.push(&Reader::refill);
+		return Continue;
+	}
 	_rr.drop();
 	return Ok;
 }
