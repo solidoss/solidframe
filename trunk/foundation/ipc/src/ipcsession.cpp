@@ -1122,7 +1122,9 @@ bool Session::doPushUnxpectedReceivedBuffer(
 	vdbgx(Dbg::ipc, "unexpected "<<_rbuf<<" expectedid = "<<d.rcvexpectedid);
 	BufCmp	bc;
 	bool	mustexecute = false;
-	//if(_rbuf.id() < d.expectedid){
+	if(d.state == Data::Connecting){
+		return false;
+	}
 	if(bc(_rbuf.id(), d.rcvexpectedid)){
 		COLLECT_DATA_0(d.statistics.alreadyReceived);
 		//the peer doesnt know that we've already received the buffer
@@ -1317,7 +1319,7 @@ int Session::doExecuteAccepting(Talker::TalkerStub &_rstub){
 	}
 	
 	d.state = Data::Connected;
-	return NOK;
+	return OK;
 }
 //---------------------------------------------------------------------
 int Session::doExecuteConnected(Talker::TalkerStub &_rstub){
