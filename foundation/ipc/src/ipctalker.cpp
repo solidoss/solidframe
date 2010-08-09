@@ -401,6 +401,9 @@ void Talker::doDispatchReceivedBuffer(char *_pbuf, const uint32 _bufsz, const So
 				buf.release();
 			}else{
 				COLLECT_DATA_0(d.statistics.receivedDataUnknown);
+				if(buf.check()){
+					d.rservice.connectSession(inaddr);
+				}
 				//proc
 				Buffer::deallocateDataForReading(buf.release());
 			}

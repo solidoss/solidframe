@@ -169,7 +169,9 @@ int Service::doSendSignal(
 					Manager::the().raiseObject(*ptkr);
 				}
 			}
-			if(_pconid) *_pconid = conid;
+			if(_pconid){
+				*_pconid = conid;
+			}
 			return OK;
 		
 		}else{//the connection/session does not exist
@@ -186,7 +188,9 @@ int Service::doSendSignal(
 			}else{
 				//create new talker
 				tkrid = createNewTalker(tkrpos, tkruid);
-				if(tkrid < 0) return BAD;
+				if(tkrid < 0){
+					return BAD;
+				}
 			}
 			
 			Mutex::Locker		lock2(this->mutex(tkrpos, tkruid));
@@ -205,8 +209,9 @@ int Service::doSendSignal(
 				Manager::the().raiseObject(*ptkr);
 			}
 			
-			if(_pconid) *_pconid = conid;
-			
+			if(_pconid){
+				*_pconid = conid;
+			}
 			return OK;
 		}
 	}else{//inet6
@@ -273,6 +278,39 @@ int Service::acceptSession(Session *_pses){
 		Manager::the().raiseObject(*ptkr);
 	}
 	return OK;
+}
+//---------------------------------------------------------------------
+void Service::connectSession(const Inet4SockAddrPair &_raddr){
+	Mutex::Locker	lock(*mutex());
+	int16			tkrid(computeTalkerForNewSession());
+	uint32			tkrpos;
+	uint32			tkruid;
+	
+	if(tkrid >= 0){
+		//the talker exists
+		tkrpos = d.tkrvec[tkrid].first;
+		tkruid = d.tkrvec[tkrid].second;
+	}else{
+		//create new talker
+		tkrid = createNewTalker(tkrpos, tkruid);
+		if(tkrid < 0){
+			return;
+		}
+	}
+	
+	Mutex::Locker		lock2(this->mutex(tkrpos, tkruid));
+	Talker				*ptkr(static_cast<Talker*>(this->object(tkrpos, tkruid)));
+	cassert(ptkr);
+	Session				*pses(new Session(_raddr, d.keepalivetout));
+	ConnectionUid		conid(tkrid);
+	
+	vdbgx(Dbg::ipc, "");
+	ptkr->pushSession(pses, conid);
+	d.sessionaddr4map[pses->baseAddr4()] = conid;
+	
+	if(ptkr->signal(fdt::S_RAISE)){
+		Manager::the().raiseObject(*ptkr);
+	}
 }
 //---------------------------------------------------------------------
 void Service::disconnectTalkerSessions(Talker &_rtkr){

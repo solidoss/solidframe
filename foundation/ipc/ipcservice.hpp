@@ -29,6 +29,7 @@
 struct SockAddrPair;
 struct SocketDevice;
 struct AddrInfoIterator;
+struct Inet4SockAddrPair;
 
 namespace foundation{
 
@@ -190,6 +191,7 @@ private:
 	int16 createNewTalker(uint32 &_tkrpos, uint32 &_tkruid);
 	int16 computeTalkerForNewSession();
 	uint32 keepAliveTimeout()const;
+	void connectSession(const Inet4SockAddrPair &_raddr);
 private:
 	struct Data;
 	friend struct Data;
