@@ -63,6 +63,10 @@ public:
 	static int reinit(protocol::Reader &_rr, protocol::Parameter &_rp){
 		return reinterpret_cast<C*>(_rp.a.p)->reinitReader(static_cast<Reader&>(_rr), _rp);
 	}
+	template <class C, int V>
+	static int reinitExtended(protocol::Reader &_rr, protocol::Parameter &_rp){
+		return reinterpret_cast<C*>(_rp.a.p)->template reinitReader<V>(static_cast<Reader&>(_rr), _rp);
+	}
 private:
 	/*virtual*/ int read(char *_pb, uint32 _bl);
 	/*virtual*/ int readSize()const;

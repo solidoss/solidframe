@@ -155,7 +155,7 @@ private:
 	//! This method will be called once by service when registering an object
 	/*!
 		Some objects may need faster access to their associated mutex, so they
-		might want to keep a pointe to it.
+		might want to keep a pointer to it.
 	*/
 	virtual void mutex(Mutex *_pmut);
 	//! Gets the id of the thread the object resides in

@@ -66,7 +66,13 @@ struct Signal: Dynamic<Signal>{
 	virtual void ipcFail(int _err);
 	
 	//! Called by the SignalExecuter
-	virtual int execute(uint32 _evs, SignalExecuter &_rce, const SignalUidT &_rcmduid, TimeSpec &_rts);
+	virtual int execute(
+		DynamicPointer<Signal> &_rthis_ptr,
+		uint32 _evs,
+		SignalExecuter &_rce,
+		const SignalUidT &_rcmduid,
+		TimeSpec &_rts
+	);
 
 	//! Called by the SignalExecuter when receiving a signal for a signal
 	/*!

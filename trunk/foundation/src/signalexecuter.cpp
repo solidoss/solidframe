@@ -194,7 +194,11 @@ int SignalExecuter::execute(){
 void SignalExecuter::doExecute(uint _pos, uint32 _evs, const TimeSpec &_rtout){
 	Data::SigData &rcp(d.sdq[_pos]);
 	TimeSpec ts(_rtout);
-	switch(rcp.sig->execute( _evs, *this, SignalUidT(_pos, rcp.uid), ts)){
+	int rv(rcp.sig->execute(rcp.sig, _evs, *this, SignalUidT(_pos, rcp.uid), ts));
+	if(!rcp.sig){
+		rv = BAD;
+	}
+	switch(rv){
 		case BAD: 
 			++rcp.uid;
 			rcp.sig.clear();
@@ -229,15 +233,6 @@ void SignalExecuter::doExecute(uint _pos, uint32 _evs, const TimeSpec &_rtout){
 					d.eraseToutPos(rcp.toutidx);
 					rcp.toutidx = -1;
 				}
-			}
-			break;
-		case LEAVE:
-			++rcp.uid;
-			rcp.sig.release();
-			d.fs2.push(_pos);
-			if(rcp.toutidx >= 0){
-				d.eraseToutPos(rcp.toutidx);
-				rcp.toutidx = -1;
 			}
 			break;
 	}

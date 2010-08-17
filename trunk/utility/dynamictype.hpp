@@ -5,6 +5,7 @@
 #include "system/cassert.hpp"
 #include <vector>
 #include "utility/dynamicpointer.hpp"
+#include "utility/shared.hpp"
 //! Store a map from a typeid to a callback
 /*!
 	The type id is determined using Dynamic::dynamicTypeId() or Dynamic::staticTypeId().
@@ -81,6 +82,29 @@ protected:
 	friend struct DynamicPointerBase;
 	virtual ~DynamicBase();
 };
+
+struct DynamicSharedImpl: Shared{
+protected:
+	DynamicSharedImpl():usecount(0){}
+	void doUse();
+	int doRelease();
+protected:
+	int		usecount;
+};
+
+//! A class for 
+template <class B = DynamicBase>
+struct DynamicShared: B, DynamicSharedImpl{
+	//! Used by DynamicPointer - smartpointers
+	/*virtual*/ void use(){
+		doUse();
+	}
+	//! Used by DynamicPointer to know if the object must be deleted
+	/*virtual*/ int release(){
+		return doRelease();
+	}
+};
+
 
 //! Template class to provide dynamic type functionality
 /*!
