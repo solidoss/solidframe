@@ -360,7 +360,10 @@ void Connection::dynamicExecuteDefault(DynamicPointer<> &_dp){
 
 void Connection::dynamicExecute(DynamicPointer<RemoteListSignal> &_psig){
 	idbg("");
-	if(_psig->requid && _psig->requid != reqid) return;
+	if(_psig->requid && _psig->requid != reqid){
+		idbg("RemoteListSignal signal rejected");
+		return;
+	}
 	idbg("");
 	newRequestId();//prevent multiple responses with the same id
 	if(pcmd){

@@ -57,14 +57,22 @@ namespace alpha{
 //---------------------------------------------------------------
 // RemoteListSignal
 //---------------------------------------------------------------
-struct RemoteListSignal: Dynamic<RemoteListSignal, foundation::Signal>{
-	RemoteListSignal(uint32 _tout = 0);
+struct RemoteListSignal: Dynamic<RemoteListSignal, DynamicShared<foundation::Signal> >{
+	RemoteListSignal(uint32 _tout = 0, uint16 _sentcnt = 1);
 	~RemoteListSignal();
-	int execute(uint32 _evs, foundation::SignalExecuter&, const SignalUidT &, TimeSpec &_rts);
+	int execute(
+		DynamicPointer<Signal> &_rthis_ptr,
+		uint32 _evs,
+		foundation::SignalExecuter&,
+		const SignalUidT &, TimeSpec &_rts
+	);
 	
 	int ipcReceived(foundation::ipc::SignalUid &_rsiguid, const foundation::ipc::ConnectionUid &_rconid);
 	int ipcPrepare(const foundation::ipc::SignalUid &_rsiguid);
 	void ipcFail(int _err);
+	
+	void use();
+	int release();
 
 	template <class S>
 	S& operator&(S &_s){
@@ -82,6 +90,8 @@ struct RemoteListSignal: Dynamic<RemoteListSignal, foundation::Signal>{
 	foundation::ipc::SignalUid		siguid;
 	uint32							requid;
 	ObjectUidT						fromv;
+	int16							sentcnt;
+	bool							success_response;
 };
 
 struct FetchSlaveSignal;
@@ -113,7 +123,12 @@ struct FetchMasterSignal: Dynamic<FetchMasterSignal, foundation::Signal>{
 	int ipcReceived(foundation::ipc::SignalUid &_rsiguid, const foundation::ipc::ConnectionUid &_rconid);
 	void ipcFail(int _err);
 	
-	int execute(uint32 _evs, foundation::SignalExecuter&, const SignalUidT &, TimeSpec &_rts);
+	int execute(
+		DynamicPointer<Signal> &_rthis_ptr,
+		uint32 _evs,
+		foundation::SignalExecuter&,
+		const SignalUidT &, TimeSpec &_rts
+	);
 
 	int receiveSignal(
 		DynamicPointer<Signal> &_rsig,
@@ -157,7 +172,12 @@ struct FetchSlaveSignal: Dynamic<FetchSlaveSignal, foundation::Signal>{
 	int ipcReceived(foundation::ipc::SignalUid &_rsiguid, const foundation::ipc::ConnectionUid &_rconid);
 	int sent(const foundation::ipc::ConnectionUid &);
 	//int execute(concept::Connection &);
-	int execute(uint32 _evs, foundation::SignalExecuter&, const SignalUidT &, TimeSpec &_rts);
+	int execute(
+		DynamicPointer<Signal> &_rthis_ptr,
+		uint32 _evs,
+		foundation::SignalExecuter&,
+		const SignalUidT &, TimeSpec &_rts
+	);
 	int createDeserializationStream(std::pair<OStream *, int64> &_rps, int _id);
 	void destroyDeserializationStream(const std::pair<OStream *, int64> &_rps, int _id);
 	int createSerializationStream(std::pair<IStream *, int64> &_rps, int _id);

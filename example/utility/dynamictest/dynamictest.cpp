@@ -4,7 +4,7 @@
 
 using namespace std;
 
-struct AObject: Dynamic<AObject>{
+struct AObject: Dynamic<AObject, DynamicShared<> >{
 	AObject(int _v):v(_v){}
 	int v;
 };
@@ -117,6 +117,17 @@ int main(){
 	uint32 v = 2;
 	uint32 v2 = __sync_add_and_fetch(&v, 2);
 	idbg("v2 = "<<v2);
+	{
+		DynamicSharedPointer<AObject> 	dsap(new AObject(1));
+		DynamicSharedPointer<>			dsbp;
+		dsbp = dsap;
+		{
+			DynamicPointer<AObject>			dap(dsap);
+			DynamicSharedPointer<>			dsaap(dap);
+			cout<<"ptr = "<<(void*)dap.ptr()<<" ptr = "<<(void*)dsaap.ptr()<<endl;
+		}
+		cout<<"ptr = "<<(void*)dsap.ptr()<<" ptr = "<<(void*)dsbp.ptr()<<endl;
+	}
 	
 	SecondExecuter	e;
 	e.push(DynamicPointer<>(new AObject(1)));

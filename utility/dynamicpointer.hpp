@@ -32,41 +32,191 @@ protected:
 	void use(DynamicBase *_pdyn);
 
 };
-//! An autoptr like smartpointer for DynamicBase objects
+
+
 template <class T = DynamicBase>
+class DynamicPointer;
+
+template <class T = DynamicBase>
+class DynamicSharedPointer: DynamicPointerBase{
+public:
+	typedef DynamicSharedPointer<T>		DynamicPointerT;
+	typedef T							DynamicT;
+	
+	DynamicSharedPointer(DynamicT *_pdyn = NULL):pdyn(_pdyn){
+		if(_pdyn){
+			use(static_cast<DynamicBase*>(_pdyn));
+		}
+	}
+	template <class B>
+	explicit DynamicSharedPointer(const DynamicSharedPointer<B> &_rcp):pdyn(static_cast<T*>(_rcp.release())){
+		if(pdyn){
+			use(static_cast<DynamicBase*>(pdyn));
+		}
+	}
+	
+	//The copy constructor must be specified - the compiler wount consider the above constructor as copy-constructor
+	DynamicSharedPointer(const DynamicPointerT &_rcp):pdyn(static_cast<T*>(_rcp.release())){
+		if(pdyn){
+			use(static_cast<DynamicBase*>(pdyn));
+		}
+	}
+	
+	template <class B>
+	explicit DynamicSharedPointer(const DynamicPointer<B> &_rcp):pdyn(static_cast<T*>(_rcp.release())){
+		//we inherit the usecount - do not uncomment the lines below
+// 		if(pdyn){
+// 			use(static_cast<DynamicBase*>(pdyn));
+// 		}
+	}
+	
+	~DynamicSharedPointer(){
+		if(pdyn){
+			DynamicPointerBase::clear(static_cast<DynamicBase*>(pdyn));
+		}
+	}
+	DynamicT* release() const{
+		return pdyn;
+	}
+	template <class O>
+	DynamicPointerT& operator=(const DynamicSharedPointer<O> &_rcp){
+		DynamicT *p(_rcp.release());
+		if(p == pdyn){
+			return *this;
+		}
+		if(pdyn) clear();
+		ptr(p);
+		return *this;
+	}
+	template <class O>
+	DynamicPointerT& operator=(const DynamicPointer<O> &_rcp){
+		DynamicT *p(_rcp.release());
+		if(p == pdyn){
+			return *this;
+		}
+		if(pdyn) clear();
+		pdyn = p;//inherit the use
+		return *this;
+	}
+	DynamicPointerT& operator=(DynamicT *_pdyn){
+		if(_pdyn == pdyn){
+			return *this;
+		}
+		clear();
+		ptr(_pdyn);
+		return *this;
+	}
+	DynamicT& operator*()const	{return *pdyn;}
+	DynamicT* operator->()const	{return pdyn;}
+	DynamicT* ptr() const		{return pdyn;}
+	//operator bool () const	{return psig;}
+	bool operator!()const		{return !pdyn;}
+	bool empty()const			{return !pdyn;}
+	void clear(){
+		if(pdyn){
+			DynamicPointerBase::clear(static_cast<DynamicBase*>(pdyn));
+			pdyn = NULL;
+		}
+	}
+protected:
+	void ptr(DynamicT *_pdyn){
+		pdyn = _pdyn;
+		if(pdyn){
+			use(static_cast<DynamicBase*>(pdyn));
+		}
+	}
+private:
+	mutable DynamicT *pdyn;
+};
+
+
+
+//! An autoptr like smartpointer for DynamicBase objects
+template <class T>
 class DynamicPointer: DynamicPointerBase{
 public:
 	typedef DynamicPointer<T>	DynamicPointerT;
 	typedef T					DynamicT;
 	
-	explicit DynamicPointer(DynamicT *_pdyn = NULL):pdyn(_pdyn){
-		if(_pdyn) use(static_cast<DynamicBase*>(_pdyn));
+	DynamicPointer(DynamicT *_pdyn = NULL):pdyn(_pdyn){
+		if(_pdyn){
+			use(static_cast<DynamicBase*>(_pdyn));
+		}
+	}
+	//!Use this constructor if you want to pass a pointer without incrementing use count - use it with caution
+	DynamicPointer(DynamicT *_pdyn, bool _b):pdyn(_pdyn){
 	}
 	template <class B>
-	explicit DynamicPointer(const DynamicPointer<B> &_rcp):pdyn(static_cast<T*>(_rcp.release())){}
+	explicit DynamicPointer(const DynamicPointer<B> &_rcp):pdyn(static_cast<T*>(_rcp.release())){
+		//we inherit the usecount - do not uncomment the lines below
+// 		if(pdyn){
+// 			use(static_cast<DynamicBase*>(pdyn));
+// 		}
+	}
 	
-	DynamicPointer(const DynamicPointerT &_rcp):pdyn(_rcp.release()){}
+	//The copy constructor must be specified - the compiler wount consider the above constructor as copy-constructor
+	DynamicPointer(const DynamicPointerT &_rcp):pdyn(_rcp.release()){
+		//we inherit the usecount - do not uncomment the lines below
+// 		if(pdyn){
+// 			use(static_cast<DynamicBase*>(pdyn));
+// 		}
+	}
+	
+	template <class B>
+	explicit DynamicPointer(const DynamicSharedPointer<B> &_rcp):pdyn(static_cast<T*>(_rcp.release())){
+		if(pdyn){
+			use(static_cast<DynamicBase*>(pdyn));
+		}
+	}
+	
 	~DynamicPointer(){
-		if(pdyn){DynamicPointerBase::clear(static_cast<DynamicBase*>(pdyn));}
+		if(pdyn){
+			DynamicPointerBase::clear(static_cast<DynamicBase*>(pdyn));
+		}
 	}
 	DynamicT* release() const{
 		DynamicT *tmp = pdyn;
 		pdyn = NULL;return tmp;
 	}
-	DynamicPointerT& operator=(const DynamicPointerT &_rcp){
+	template <class O>
+	DynamicPointerT& operator=(const DynamicPointer<O> &_rcp){
+		DynamicT *p(_rcp.release());
+		if(this == &_rcp){
+			return *this;
+		}
 		if(pdyn) clear();
-		pdyn = _rcp.release();
+		pdyn = p;//we inherit the usecount
+		return *this;
+	}
+	template <class O>
+	DynamicPointerT& operator=(const DynamicSharedPointer<O> &_rcp){
+		DynamicT *p(_rcp.release());
+		if(p == pdyn){
+			return *this;
+		}
+		if(pdyn) clear();
+		ptr(p);
 		return *this;
 	}
 	DynamicPointerT& operator=(DynamicT *_pdyn){
-		clear();ptr(_pdyn);	return *this;
+		if(_pdyn == pdyn){
+			return *this;
+		}
+		clear();
+		ptr(_pdyn);
+		return *this;
 	}
-	DynamicT& operator*()const {return *pdyn;}
-	DynamicT* operator->()const{return pdyn;}
+	DynamicT& operator*()const	{return *pdyn;}
+	DynamicT* operator->()const	{return pdyn;}
 	DynamicT* ptr() const		{return pdyn;}
 	//operator bool () const	{return psig;}
-	bool operator!()const	{return !pdyn;}
-	void clear(){if(pdyn) DynamicPointerBase::clear(static_cast<DynamicBase*>(pdyn));pdyn = NULL;}
+	bool operator!()const		{return !pdyn;}
+	void clear(){
+		if(pdyn){
+			DynamicPointerBase::clear(static_cast<DynamicBase*>(pdyn));
+			pdyn = NULL;
+		}
+	}
 protected:
 	void ptr(DynamicT *_pdyn){
 		pdyn = _pdyn;

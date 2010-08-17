@@ -99,4 +99,5 @@ void exchange(T &a, T &b){
 struct EmptyType{};
 class NullType{};
 
+
 #endif

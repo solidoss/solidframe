@@ -1,17 +1,16 @@
 #include "utility/istream.hpp"
 #include "utility/ostream.hpp"
 #include "utility/iostream.hpp"
-
-#include "foundation/ipc/ipcservice.hpp"
+#include "utility/dynamicpointer.hpp"
 
 #include "system/timespec.hpp"
 #include "system/filedevice.hpp"
-
-#include "utility/dynamicpointer.hpp"
+#include "system/mutex.hpp"
 
 #include "foundation/signalexecuter.hpp"
-#include "foundation/file/filemanager.hpp"
 #include "foundation/requestuid.hpp"
+#include "foundation/file/filemanager.hpp"
+#include "foundation/ipc/ipcservice.hpp"
 
 #include "core/common.hpp"
 #include "core/manager.hpp"
@@ -30,12 +29,25 @@ namespace alpha{
 //-----------------------------------------------------------------------------------
 // RemoteListSignal
 //-----------------------------------------------------------------------------------
-RemoteListSignal::RemoteListSignal(uint32 _tout): ppthlst(NULL),err(-1),tout(_tout){
+RemoteListSignal::RemoteListSignal(uint32 _tout, uint16 _sentcnt): ppthlst(NULL),err(-1),tout(_tout), sentcnt(_sentcnt){
 	idbg(""<<(void*)this);
 }
 RemoteListSignal::~RemoteListSignal(){
 	idbg(""<<(void*)this);
+	if(!ppthlst && !sentcnt){
+		idbg("failed receiving response "<<sentcnt);
+		Manager::the().signalObject(fromv.first, fromv.second, fdt::S_KILL | fdt::S_RAISE);
+	}
 	delete ppthlst;
+}
+void RemoteListSignal::use(){
+	DynamicShared<fdt::Signal>::use();
+	idbg(""<<(void*)this<<" usecount = "<<usecount);
+}
+int RemoteListSignal::release(){
+	int rv = DynamicShared<fdt::Signal>::release();
+	idbg(""<<(void*)this<<" usecount = "<<usecount);
+	return rv;
 }
 int RemoteListSignal::ipcPrepare(const foundation::ipc::SignalUid &_rsiguid){
 	idbg(""<<(void*)this<<" siguid = "<<_rsiguid.idx<<' '<<_rsiguid.uid);
@@ -43,6 +55,7 @@ int RemoteListSignal::ipcPrepare(const foundation::ipc::SignalUid &_rsiguid){
 		//only on sender we hold the signal uid
 		//to use it when we get back - see ipcReceived
 		siguid = _rsiguid;
+		sentcnt = -sentcnt;
 		return NOK;
 	}else return OK;// on peer
 }
@@ -64,13 +77,20 @@ int RemoteListSignal::ipcReceived(fdt::ipc::SignalUid &_rsiguid, const fdt::ipc:
 }
 void RemoteListSignal::ipcFail(int _err){
 	if(!ppthlst){
-		idbg("failed receiving response");
-		Manager::the().signalObject(fromv.first, fromv.second, fdt::S_KILL | fdt::S_RAISE);
+		idbg("failed on sender "<<sentcnt<<" "<<(void*)this);
+		Mutex::Locker lock(mutex());
+		++sentcnt;
 	}else{
 		idbg("failed on peer");
 	}
 }
-int RemoteListSignal::execute(uint32 _evs, fdt::SignalExecuter&, const SignalUidT &, TimeSpec &_rts){
+int RemoteListSignal::execute(
+	DynamicPointer<Signal> &_rthis_ptr,
+	uint32 _evs,
+	fdt::SignalExecuter&,
+	const SignalUidT &,
+	TimeSpec &_rts
+){
 	if(tout){
 		idbg("sleep for "<<tout<<" mseconds");
 		_rts += tout;
@@ -78,31 +98,33 @@ int RemoteListSignal::execute(uint32 _evs, fdt::SignalExecuter&, const SignalUid
 		return NOK;
 	}
 	idbg("done sleeping");
-	fs::directory_iterator	it,end;
-	fs::path				pth(strpth.c_str(), fs::native);
-	DynamicPointer<fdt::Signal> psig(this);
+	
+	fs::directory_iterator			it,end;
+	fs::path						pth(strpth.c_str(), fs::native);
+	
 	ppthlst = new RemoteList::PathListT;
 	strpth.clear();
+	
 	if(!exists( pth ) || !is_directory(pth)){
 		err = -1;
-		if(Manager::the().ipc().sendSignal(conid, psig)){
+		if(Manager::the().ipc().sendSignal(conid, _rthis_ptr)){
 			idbg("connector was destroyed");
-			return BAD;
 		}
-		return fdt::LEAVE;
+		return BAD;
 	}
+	
 	try{
-	it = fs::directory_iterator(pth);
+		it = fs::directory_iterator(pth);
 	}catch ( const std::exception & ex ){
 		idbg("dir_iterator exception :"<<ex.what());
 		err = -1;
 		strpth = ex.what();
-		if(Manager::the().ipc().sendSignal(conid, psig)){
+		if(Manager::the().ipc().sendSignal(conid, _rthis_ptr)){
 			idbg("connector was destroyed");
-			return BAD;
 		}
-		return fdt::LEAVE;
+		return BAD;
 	}
+	
 	while(it != end){
 		ppthlst->push_back(std::pair<String, int64>(it->string(), -1));
 		if(is_directory(*it)){
@@ -113,13 +135,12 @@ int RemoteListSignal::execute(uint32 _evs, fdt::SignalExecuter&, const SignalUid
 	}
 	err = 0;
 	//Thread::sleep(1000 * 20);
-	if(Manager::the().ipc().sendSignal(conid, psig)){
+	if(Manager::the().ipc().sendSignal(conid, _rthis_ptr)){
 		idbg("connector was destroyed "<<conid.id<<' '<<conid.sessionidx<<' '<<conid.sessionuid);
-		return BAD;
 	}else{
 		idbg("signal sent "<<conid.id<<' '<<conid.sessionidx<<' '<<conid.sessionuid);
 	}
-	return fdt::LEAVE;
+	return BAD;
 }
 
 //-----------------------------------------------------------------------------------
@@ -157,7 +178,13 @@ int FetchMasterSignal::ipcReceived(fdt::ipc::SignalUid &_rsiguid, const fdt::ipc
 /*
 	The state machine running on peer
 */
-int FetchMasterSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidT &_siguid, TimeSpec &_rts){
+int FetchMasterSignal::execute(
+	DynamicPointer<Signal> &_rthis_ptr,
+	uint32 _evs,
+	fdt::SignalExecuter& _rce,
+	const SignalUidT &_siguid,
+	TimeSpec &_rts
+){
 	Manager &rm(Manager::the());
 	cassert(!(_evs & fdt::TIMEOUT));
 	switch(state){
@@ -183,6 +210,7 @@ int FetchMasterSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const Sig
 			idbg((void*)this<<" send first stream");
 			FetchSlaveSignal			*psig(new FetchSlaveSignal);
 			DynamicPointer<fdt::Signal>	sigptr(psig);
+			
 			this->filesz = ins->size();
 			psig->tov = fromv;
 			psig->filesz = this->filesz;
@@ -358,11 +386,16 @@ int FetchSlaveSignal::ipcReceived(fdt::ipc::SignalUid &_rsiguid, const fdt::ipc:
 	return OK;
 }
 // Executed on peer within the signal executer
-int FetchSlaveSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidT &, TimeSpec &){
+int FetchSlaveSignal::execute(
+	DynamicPointer<Signal> &_rthis_ptr,
+	uint32 _evs,
+	fdt::SignalExecuter& _rce,
+	const SignalUidT &,
+	TimeSpec &
+){
 	idbg((void*)this<<"");
-	DynamicPointer<fdt::Signal>	cp(this);
-	_rce.sendSignal(cp, siguid);
-	return fdt::LEAVE;
+	_rce.sendSignal(_rthis_ptr, siguid);
+	return BAD;
 }
 
 void FetchSlaveSignal::destroyDeserializationStream(

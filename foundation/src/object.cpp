@@ -133,7 +133,13 @@ int Signal::ipcPrepare(const ipc::SignalUid&){
 void Signal::ipcFail(int _err){
 }
 
-int Signal::execute(uint32 _evs, SignalExecuter &, const SignalUidT &, TimeSpec &_rts){
+int Signal::execute(
+	DynamicPointer<Signal> &_rthis_ptr,
+	uint32 _evs,
+	SignalExecuter &,
+	const SignalUidT &,
+	TimeSpec &_rts
+){
 	wdbgx(Dbg::fdt, "Unhandled signal");
 	return BAD;
 }

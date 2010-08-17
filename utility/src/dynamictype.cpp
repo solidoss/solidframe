@@ -3,12 +3,37 @@
 #include "system/cassert.hpp"
 #include "system/mutex.hpp"
 
+#include "utility/mutualobjectcontainer.hpp"
 #include "utility/dynamictype.hpp"
 #include "utility/dynamicpointer.hpp"
+#include "utility/shared.hpp"
 
 #include <vector>
 
+//---------------------------------------------------------------------
+//----	Shared	----
+//---------------------------------------------------------------------
 
+namespace{
+typedef MutualObjectContainer<Mutex>	MutexContainerT;
+
+MutexContainerT &mutexContainer(){
+	//TODO: staticproblem
+	static MutexContainerT		mutpool(3, 2, 2);
+	return mutpool;
+}
+
+}//namespace
+
+/*static*/ Mutex& Shared::mutex(void *_pv){
+	return mutexContainer().object((uint32)reinterpret_cast<ulong>(_pv));
+}
+Shared::Shared(){
+	mutexContainer().safeObject((uint32)reinterpret_cast<ulong>(this));
+}
+Mutex& Shared::mutex(){
+	return mutex(this);
+}
 
 //---------------------------------------------------------------------
 //----	DynamicPointer	----
@@ -16,22 +41,13 @@
 
 void DynamicPointerBase::clear(DynamicBase *_pdyn){
 	cassert(_pdyn);
-	if(_pdyn->release()) delete _pdyn;
+	if(!_pdyn->release()) delete _pdyn;
 }
 
 void DynamicPointerBase::use(DynamicBase *_pdyn){
 	_pdyn->use();
 }
 
-
-/*virtual*/ void DynamicBase::use(){
-	idbgx(Dbg::utility, "Use dynamicbase");
-}
-//! Used by DynamicPointer to know if the object must be deleted
-/*virtual*/ int DynamicBase::release(){
-	idbgx(Dbg::utility, "Release signal");
-	return BAD;
-}
 
 
 struct DynamicMap::Data{
@@ -52,6 +68,7 @@ struct DynamicMap::Data{
 }
 
 static Mutex & dynamicMutex(){
+	//TODO: staticproblem
 	static Mutex mtx;
 	return mtx;
 }
@@ -93,6 +110,28 @@ DynamicMap::FncT DynamicMap::callback(uint32 _id)const{
 
 
 DynamicBase::~DynamicBase(){}
+
 DynamicMap::FncT DynamicBase::callback(const DynamicMap &_rdm){
 	return NULL;
+}
+/*virtual*/ void DynamicBase::use(){
+	idbgx(Dbg::utility, "DynamicBase");
+}
+//! Used by DynamicPointer to know if the object must be deleted
+/*virtual*/ int DynamicBase::release(){
+	idbgx(Dbg::utility, "DynamicBase");
+	return OK;
+}
+
+
+void DynamicSharedImpl::doUse(){
+	idbgx(Dbg::utility, "DynamicSharedImpl");
+	Mutex::Locker	lock(this->mutex());
+	++usecount;
+}
+int DynamicSharedImpl::doRelease(){
+	idbgx(Dbg::utility, "DynamicSharedImpl");
+	Mutex::Locker	lock(this->mutex());
+	--usecount;
+	return usecount;
 }

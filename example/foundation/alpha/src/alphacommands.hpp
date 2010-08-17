@@ -267,10 +267,13 @@ public:
 		const ObjectUidT&_from,
 		const foundation::ipc::ConnectionUid *_conid
 	);
+	template <int U>
+	int reinitReader(Reader &, protocol::Parameter &);
 private:
+	typedef std::pair<String, uint32>	HostAddrPairT;
+	typedef std::vector<HostAddrPairT>	HostAddrVectorT;
 	String						strpth;
-	String						straddr;
-	uint32						port;
+	HostAddrVectorT				hostvec;
 	uint32						pausems;
 	PathListT					*ppthlst;
 	PathListT::const_iterator	it;

@@ -46,6 +46,12 @@ struct AtomFilter{
 	}
 };
 
+struct DigitFilter{
+	static bool check(int _c){
+		return isdigit(_c);
+	}
+};
+
 struct QuotedFilter{
     //TODO: change to use bitset
     static bool check(int _c){
