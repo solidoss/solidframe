@@ -85,11 +85,26 @@ public:
 	static IndexT computeIndex(IndexT _fullid);
 	//! Extracts the service id from an objectid
 	static IndexT computeServiceId(IndexT _fullid);
+	
+	//!Get the curent object associate to the current thread
+	static Object&	the();
+	
 	//! Constructor
 	Object(IndexT _fullid = 0UL);
 	
+	//! Assigns the object to the current thread
+	/*!
+		This is usualy called by the pool's Selector.
+	*/
+	void associateToCurrentThread();
+	
 	//! Get the id of the object
 	IndexT id()			const 	{return fullid;}
+	
+	uint32 uid()const;
+	
+	//! Get the associated mutex
+	Mutex& mutex()const;
 	
 	//! Set the thread id
 	void setThread(uint32 _thrid, uint32 _thrpos);
@@ -159,7 +174,7 @@ private:
 	*/
 	virtual void mutex(Mutex *_pmut);
 	//! Gets the id of the thread the object resides in
-	void getThread(uint32 &_rthid, uint32 &_rthpos);
+	void getThread(uint32 &_rthid, uint32 &_rthpos)const;
 private:
 	IndexT			fullid;
 	volatile ulong	smask;

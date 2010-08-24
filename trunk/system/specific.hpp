@@ -42,8 +42,8 @@ struct Cacheable: T{
 //! A base class for thread specific objects
 /*!
 	A thread specific object is allocated and destroyed by one and the same thread.
-	It will try to reuse a buffer from threa's cache, and on delete (which must be
-	called on the same thread as new, it will reacache the data
+	It will try to reuse a buffer from thread's cache, and on delete (which must be
+	called on the same thread as new), it will recache the data
 */
 struct SpecificObject{
 	static void operator delete (void *_p, std::size_t _sz);
@@ -63,7 +63,7 @@ struct SpecificObject{
 struct SpecificCacheControl{
 	virtual ~SpecificCacheControl(){}
 	//! Must return how many buffers should be kept for a specific capacity
-	virtual unsigned stackCapacity(unsigned _bufid)const = 0;
+	virtual unsigned stackCapacity(unsigned _bufid)const;
 	//! If it returns true specific will delete this object
 	virtual bool release() = 0;
 };

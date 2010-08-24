@@ -34,7 +34,7 @@ class Connection;
 */
 class Writer: public protocol::Writer{
 public:
-	Writer(Connection &rch, protocol::Logger *_plog = NULL);
+	Writer(protocol::Logger *_plog = NULL);
 	~Writer();
 	void clear();
 	//! Asynchrounously writes an astring (atom/quoted/literal)
@@ -57,7 +57,6 @@ private:
 	/*virtual*/ int write(char *_pb, uint32 _bl);
 	//virtual int doManage(int _mo);
 private:
-	Connection	&rcon;
 	String		msgs;
 	String		tags;
 };

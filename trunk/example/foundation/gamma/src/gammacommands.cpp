@@ -249,7 +249,6 @@ int Open::doInitLocal(const uint _sid){
 int Open::doDoneLocal(Writer &_rw){
 	idbg(""<<(void*)this);
 	
-	Connection	&rc(Connection::the());
 	uint32	pos(-1);
 	uint64	sz(-1);
 	

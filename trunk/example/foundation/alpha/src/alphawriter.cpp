@@ -28,9 +28,8 @@ namespace concept{
 namespace alpha{
 
 Writer::Writer(
-	Connection &_rcon,
 	protocol::Logger *_plog
-):protocol::Writer(_plog), rcon(_rcon){
+):protocol::Writer(_plog){
 }
 
 Writer::~Writer(){
@@ -114,7 +113,7 @@ int Writer::write(char *_pb, uint32 _bl){
 // 	}
 // 	cassert(false);
 // 	return Bad;
-	return rcon.socketSend(_pb, _bl);
+	return Connection::the().socketSend(_pb, _bl);
 }
 
 }//namespace alpha

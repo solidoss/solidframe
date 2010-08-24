@@ -80,6 +80,9 @@ public:
 	
 	static void initStatic(Manager &_rm);
 	static void dynamicRegister();
+	static Connection& the(){
+		return static_cast<Connection&>(Object::the());
+	}
 	
 	Connection(SocketAddress *_paddr);
 	Connection(const SocketDevice &_rsd);

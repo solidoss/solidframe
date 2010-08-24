@@ -25,7 +25,7 @@
 
 
 
-inline void Object::getThread(uint32 &_rthid, uint32 &_rthpos){
+inline void Object::getThread(uint32 &_rthid, uint32 &_rthpos)const{
 	//which is better:
 	//new thread id and old pos, or
 	//new pos and old thread id
