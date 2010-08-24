@@ -21,7 +21,7 @@
 
 #include "system/cassert.hpp"
 #include "system/mutex.hpp"
-
+#include "system/thread.hpp"
 #include "system/debug.hpp"
 
 #include "utility/dynamicpointer.hpp"
@@ -33,6 +33,16 @@
 #include "foundation/manager.hpp"
 
 #include "utility/memory.hpp"
+
+//--------------------------------------------------------------
+namespace{
+static const unsigned specificPosition(){
+	//TODO: staticproblem
+	static const unsigned	thrspecpos = Thread::specificId();
+	return thrspecpos;
+}
+}
+
 
 namespace foundation{
 //---------------------------------------------------------------------
@@ -80,11 +90,28 @@ Object::Object(IndexT _fullid):
 
 Object::~Object(){
 }
+
+//--------------------------------------------------------------
+/*static*/ Object& Object::the(){
+	return *reinterpret_cast<Object*>(Thread::specific(specificPosition()));
+}
+//--------------------------------------------------------------
+void Object::associateToCurrentThread(){
+	Thread::specific(specificPosition(), this);
+}
+//--------------------------------------------------------------
+Mutex& Object::mutex()const{
+	return Manager::the().mutex(*this);
+}
+//--------------------------------------------------------------
 /*
 void Object::threadid(ulong _thrid){
 	thrid = _thrid;
 }
 */
+uint32  Object::uid()const{
+	return Manager::the().uid(*this);
+}
 int Object::signal(DynamicPointer<Signal> &_sig){
 	return OK;
 }

@@ -73,7 +73,6 @@ struct SpecificData{
 };
 
 struct BasicCacheControl:SpecificCacheControl{
-	/*virtual*/ unsigned stackCapacity(unsigned _bufid)const;
 	/*virtual*/ bool release();
 };
 
@@ -97,11 +96,11 @@ void* SpecificObject::operator new (std::size_t _sz){
 }
 //----------------------------------------------------------------------------------------------------
 // 32 * 4096 per every id
-unsigned BasicCacheControl::stackCapacity(unsigned _bufid)const{
+unsigned SpecificCacheControl::stackCapacity(unsigned _bufid)const{
 	return 32 * 4096 / (1 << _bufid);
 }
 bool BasicCacheControl::release(){
-	return false;//do not delete the object
+	return false;//do not delete this object
 }
 //****************************************************************************************************
 //		SpecificData

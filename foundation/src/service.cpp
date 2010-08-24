@@ -311,11 +311,11 @@ void Service::visit(Visitor &_rov){
 	if(mi >= 0)	d.mutpool[mi].unlock();
 }
 
-Mutex& Service::mutex(Object &_robj){
+Mutex& Service::mutex(const Object &_robj){
 	return d.mutpool.object(_robj.index());
 }
 
-uint32 Service::uid(Object &_robj)const{
+uint32 Service::uid(const Object &_robj)const{
 	return d.objv[_robj.index()].second;
 }
 

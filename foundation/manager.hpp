@@ -87,12 +87,12 @@ public:
 	int signalObject(Object &_robj, DynamicPointer<Signal> &_rsig);
 	
 	//! Wake an object
-	void raiseObject(Object &_robj);
+	void raiseObject(const Object &_robj);
 	
 	//! Get the mutex associated to the given object
-	Mutex& mutex(Object &_robj)const;
+	Mutex& mutex(const Object &_robj)const;
 	//! Get the unique id associated to the given object
-	uint32  uid(Object &_robj)const;
+	uint32  uid(const Object &_robj)const;
 	
 	//! Unsafe - you should not use this
 	template<class T>

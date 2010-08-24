@@ -41,7 +41,7 @@ public:
 	enum{
 		QuotedString = LastBasicError
 	};
-	Reader(Connection &_rch, Writer &_rw, protocol::Logger *_plog = NULL);
+	Reader(Writer &_rw, protocol::Logger *_plog = NULL);
 	~Reader();
 	void clear();
 	//! Asynchrounously reads an astring (atom/quoted/literal)
@@ -77,7 +77,6 @@ private:
 	/*virtual*/ void basicError(int _id);
 	int extractLiteralLength(uint32 &_litlen);
 private:
-	Connection	&rcon;
 	Writer 		&rw;
 };
 

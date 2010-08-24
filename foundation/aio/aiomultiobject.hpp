@@ -57,6 +57,8 @@ public:
 	//! Destructor
 	~MultiObject();
 	
+	static MultiObject& the();
+	
 	uint count()const;
 	
 	uint signaledSize()const;
@@ -186,6 +188,10 @@ inline void MultiObject::socketTimeoutRecv(const uint _pos, ulong _addsec, ulong
 }
 inline void MultiObject::socketTimeoutSend(const uint _pos, ulong _addsec, ulong _addnsec){
 	socketTimeoutSend(_pos, Object::currentTime(), _addsec, _addnsec);
+}
+
+/*static*/ inline MultiObject& MultiObject::the(){
+	return static_cast<MultiObject&>(Object::the());
 }
 
 }//namespace aio

@@ -50,6 +50,7 @@ class SecureSocket;
 */
 class SingleObject: public Object{
 public:
+	static SingleObject& the();
 	//! Constructor using an aio::Socket
 	SingleObject(const SocketPointer& _psock = SocketPointer());
 	//! Constructor using a SocketDevice
@@ -169,6 +170,10 @@ inline void SingleObject::socketTimeoutRecv(ulong _addsec, ulong _addnsec){
 }
 inline void SingleObject::socketTimeoutSend(ulong _addsec, ulong _addnsec){
 	socketTimeoutSend(Object::currentTime(), _addsec, _addnsec);
+}
+
+/*static*/ inline SingleObject& SingleObject::the(){
+	return static_cast<SingleObject&>(Object::the());
 }
 
 

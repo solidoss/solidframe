@@ -199,6 +199,7 @@ int ObjectSelector::doWait(int _wt){
 
 int ObjectSelector::doExecute(unsigned _i, ulong _evs, TimeSpec _crttout){
 	int rv = 0;
+	sv[_i].objptr->associateToCurrentThread();
 	switch(sv[_i].objptr->execute(_evs, _crttout)){
 		case BAD:
 			fstk.push(_i);

@@ -86,9 +86,9 @@ public:
 	//! Visit all objects
 	void visit(Visitor &_rov);
 	//! Get the mutex associated to an object
-	Mutex& mutex(Object &_robj);
+	Mutex& mutex(const Object &_robj);
 	//! Get the unique id associated to an object
-	uint32  uid(Object &_robj)const;
+	uint32  uid(const Object &_robj)const;
 	uint32  uid(const uint32 _idx)const;
 	//! The service will keep a pointer to its associated mutex
 	void mutex(Mutex *_pmut);

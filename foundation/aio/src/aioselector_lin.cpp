@@ -653,6 +653,7 @@ uint Selector::doExecute(const uint _pos){
 	stub.events = 0;
 	stub.objptr->doClearRequests();//clears the requests from object to selector
 	idbgx(Dbg::aio, "execute object "<<_pos);
+	stub.objptr->associateToCurrentThread();
 	switch(stub.objptr->execute(evs, timepos)){
 		case BAD:
 			idbgx(Dbg::aio, "BAD: removing the connection");

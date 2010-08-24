@@ -83,8 +83,8 @@ static const DynamicRegisterer<Connection>	dre;
 
 Connection::Connection(SocketAddress *_paddr):
 						 	//BaseT(_pch),
-						 	wtr(*this, &logger),
-						 	rdr(*this, wtr, &logger), pcmd(NULL),
+						 	wtr(&logger),
+						 	rdr(wtr, &logger), pcmd(NULL),
 						 	paddr(_paddr),
 						 	reqid(1){
 	
@@ -96,8 +96,8 @@ Connection::Connection(SocketAddress *_paddr):
 
 Connection::Connection(const SocketDevice &_rsd):
 						 	concept::Connection(_rsd),
-						 	wtr(*this, &logger),
-						 	rdr(*this, wtr, &logger), pcmd(NULL),
+						 	wtr(&logger),
+						 	rdr(wtr, &logger), pcmd(NULL),
 						 	paddr(NULL),
 						 	reqid(1){
 	
@@ -143,8 +143,8 @@ Connection::~Connection(){
 */
 
 int Connection::execute(ulong _sig, TimeSpec &_tout){
-	concept::Manager &rm = concept::Manager::the();
-	fdt::requestuidptr->set(this->id(), rm.uid(*this));
+	//concept::Manager &rm = concept::Manager::the();
+	fdt::requestuidptr->set(this->id(), this->uid());
 	//_tout.add(2400);
 	if(_sig & (fdt::TIMEOUT | fdt::ERRDONE)){
 		if(state() == ConnectTout){
@@ -162,7 +162,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 	if(signaled()){//we've received a signal
 		ulong sm(0);
 		{
-			Mutex::Locker	lock(rm.mutex(*this));
+			Mutex::Locker	lock(this->mutex());
 			sm = grabSignalMask(0);//grab all bits of the signal mask
 			if(sm & fdt::S_KILL) return BAD;
 			if(sm & fdt::S_SIG){//we have signals
@@ -211,7 +211,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			concept::Manager	&rm = concept::Manager::the();
 			uint32				myport(rm.ipc().basePort());
 			ulong				objid(this->id());
-			uint32				objuid(rm.uid(*this));
+			uint32				objuid(this->uid());
 			char				host[SocketAddress::MaxSockHostSz];
 			char				port[SocketAddress::MaxSockServSz];
 			SocketAddress		addr;

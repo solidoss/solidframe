@@ -226,15 +226,15 @@ int Manager::signalObject(Object &_robj, DynamicPointer<Signal> &_rsig){
 	return d.sv[_robj.serviceid()]->signal(_robj, _rsig);
 }
 
-Mutex& Manager::mutex(Object &_robj)const{
+Mutex& Manager::mutex(const Object &_robj)const{
 	return d.sv[_robj.serviceid()]->mutex(_robj);
 }
 
-uint32  Manager::uid(Object &_robj)const{
+uint32  Manager::uid(const Object &_robj)const{
 	return d.sv[_robj.serviceid()]->uid(_robj);
 }
 
-void Manager::raiseObject(Object &_robj){
+void Manager::raiseObject(const Object &_robj){
 	uint32 thrid,thrpos;
 	_robj.getThread(thrid, thrpos);
 	d.asv[thrid>>16]->raise(thrid & 0xffff, thrpos);
