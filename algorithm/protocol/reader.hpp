@@ -24,7 +24,9 @@
 
 #include "algorithm/protocol/parameter.hpp"
 #include "algorithm/protocol/logger.hpp"
+#include "algorithm/protocol/buffer.hpp"
 #include "utility/stack.hpp"
+#include "utility/holder.hpp"
 #include <string>
 
 typedef std::string String;
@@ -105,15 +107,27 @@ public:
 	};
 	typedef int (*FncT)(Reader&, Parameter &_rp);
 public:
-	//!Constructor
+	//! Constructor
 	/*!
 		It can get a pointer to a logger object which it will
 		use to log protocol/filtered communication level data.
 		\param _plog A pointer to a logger object or NULL
 	*/
 	Reader(Logger *_plog = NULL);
+	
 	//!virtual destructor
 	virtual ~Reader();
+	
+	//! Sets the internal buffer
+	template <class B>
+	void buffer(const B &_b){
+		doPrepareBuffer(_b.pbeg, _b.pend);
+		bh = _b;
+	}
+	
+	//! Gets the internal buffer
+	const Buffer& buffer()const;
+	
 	//! Sheduller push method
 	/*!
 		\param _pf A pointer to a function
@@ -288,7 +302,7 @@ protected:
 	template <class Filter>
 	int locate(String &_rds, uint32 &_rdsz, int _keep){
 		//int rcode;
-		if(_rdsz < (ulong)(bend - bbeg)) return Bad;
+		if(_rdsz < (ulong)(bh->pend - bh->pbeg)) return Bad;
 		const char *tbeg = rpos;
 		cassert(rpos <= wpos);
 		while(rpos != wpos && !Filter::check(*rpos)) ++rpos;
@@ -322,11 +336,12 @@ protected:
 	virtual void keyError(const String &_pops, int _id = Unexpected) = 0;
 	//! The reader will call this method when other basic error occured
 	virtual void basicError(int _id) = 0;
+	void doPrepareBuffer(char *_newbeg, const char *_newend);
 protected:
+	typedef Holder<Buffer>		BufferHolderT;
 	typedef std::pair<FncT, Parameter>	FncPairT;
 	Logger				*plog;
-	char				*bbeg; //buff begin
-	char				*bend;
+	BufferHolderT		bh;
 	char				*rpos;//write buff pos
 	char				*wpos;//read buff pos
 	short				state;
@@ -334,6 +349,11 @@ protected:
 	Stack<FncPairT>	fs;
 	String				tmp;
 };
+
+inline const Buffer& Reader::buffer()const{
+	return *bh;
+}
+
 
 }// namespace protocol
 

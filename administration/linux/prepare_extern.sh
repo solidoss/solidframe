@@ -33,7 +33,7 @@ sh build_dist.sh
 cd ../../
 JAMEXE=`find . -name bjam`
 echo "Using jam: $JAMEXE"
-$JAMEXE --with-filesystem --with-system --with-program_options --with-test --with-thread --layout=system  --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" install
+$JAMEXE --with-filesystem --with-system --with-program_options --with-test --with-thread --layout=system  --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" variant=release link=static threading=multi install
 cd ../
 ############################################################
 echo

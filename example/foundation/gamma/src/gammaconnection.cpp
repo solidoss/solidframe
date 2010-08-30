@@ -74,6 +74,8 @@ Connection::Connection(const SocketDevice &_rsd):
 	foundation::aio::MultiObject(_rsd),isslave(true),crtreqid(1)
 {
 	sdv.push_back(new SocketData(0));
+	sdv.back()->r.buffer(protocol::HeapBuffer(1024));
+	sdv.back()->w.buffer(protocol::HeapBuffer(1024));
 	socketState(0, SocketInit);
 	this->socketPostEvents(0, fdt::RESCHEDULED);
 }
@@ -442,10 +444,13 @@ void Connection::dynamicExecute(DynamicPointer<SocketMoveSignal> &_psig){
 		sdv[sid] = _psig->psd;
 	}else{
 		sdv.push_back(_psig->psd);
+		sdv.back()->w.buffer(protocol::HeapBuffer(1024));
+		sdv.back()->r.buffer(protocol::HeapBuffer(1024));
 	}
 	_psig->psd = NULL;
 	sdv[sid]->r.socketId(sid);
 	sdv[sid]->w.socketId(sid);
+	
 }
 
 

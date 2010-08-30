@@ -42,7 +42,7 @@ void AddrInfo::reinit(const char *_node, const char *_service){
 	if(!_node && !_service) return;
 	int rv = getaddrinfo(_node, _service, NULL, &ib.paddr);
 	if(rv != 0){
-#ifdef ON_SUN
+#ifdef ON_SOLARIS
 		edbgx(Dbg::system, "getaddrinfo "<<rv<<' '<<gai_strerror(rv));
 #else
 #endif
