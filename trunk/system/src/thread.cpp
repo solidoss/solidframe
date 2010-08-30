@@ -29,7 +29,7 @@
 #include "system/debug.hpp"
 #include "system/condition.hpp"
 #include "mutexpool.hpp"
-#ifdef ON_FBSD
+#ifdef ON_FREEBSD
 #include <pmc.h>
 #else
 #include <sys/sysinfo.h>
@@ -169,14 +169,12 @@ void Thread::dummySpecificDestroy(void*){
 }
 //-------------------------------------------------------------------------
 /*static*/ unsigned Thread::processorCount(){
-#ifdef ON_SUN
+#if		defined(ON_SOLARIS)
 	return 1;
-#else
-#ifdef ON_FBSD
+#elseif	defined(ON_FREEBSD)
 	return 1;//pmc_ncpu();//sysconf(_SC_NPROCESSORS_ONLN)
 #else
 	return get_nprocs();
-#endif
 #endif
 }
 //-------------------------------------------------------------------------

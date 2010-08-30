@@ -10,7 +10,7 @@
 #include "audit/log/logdata.hpp"
 #include "system/debug.hpp"
 
-#ifdef ON_SUN
+#ifdef ON_SOLARIS
 #include <strings.h>
 #endif
 

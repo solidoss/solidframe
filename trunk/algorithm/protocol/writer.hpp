@@ -24,7 +24,9 @@
 
 #include "algorithm/protocol/parameter.hpp"
 #include "algorithm/protocol/logger.hpp"
+#include "algorithm/protocol/buffer.hpp"
 #include "utility/stack.hpp"
+#include "utility/holder.hpp"
 #include <string>
 
 typedef std::string String;
@@ -88,6 +90,17 @@ public:
 	Writer(Logger *_plog = NULL);
 	//! Writer destructor
 	virtual ~Writer();
+	
+	//! Sets the internal buffer
+	template <class B>
+	void buffer(const B &_b){
+		doPrepareBuffer(_b.pbeg, _b.pend);
+		bh = _b;
+	}
+	
+	//! Gets the internal buffer
+	const Buffer& buffer()const;
+	
 	//! Check if the log is active.
 	bool isLogActive()const{return plog != NULL;}
 	//! Sheduller push method
@@ -213,7 +226,9 @@ protected:
 	virtual int write(char *_pb, uint32 _bl) = 0;
 	//! The writer will call this method on manage callback
 	virtual int doManage(int _mo);
+	void doPrepareBuffer(char *_newbeg, const char *_newend);
 protected:
+	typedef Holder<Buffer>		BufferHolderT;
 	enum States{
 		RunState,
 		ErrorState
@@ -227,14 +242,17 @@ protected:
 	typedef std::pair<FncT, Parameter>	FncPairT;
 	typedef Stack<FncPairT> 			FncStackT;
 	Logger				*plog;
-	char				*bbeg;
-	char				*bend;
+	BufferHolderT		bh;
 	char				*rpos;
 	char				*wpos;
 	FncStackT         	fs;
 	bool				dolog;
 	short				state;
 };
+
+inline const Buffer& Writer::buffer()const{
+	return *bh;
+}
 
 }//namespace protocol
 

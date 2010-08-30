@@ -22,6 +22,7 @@
 #include "algorithm/protocol/reader.hpp"
 #include "utility/ostream.hpp"
 #include "system/debug.hpp"
+#include <cstring>
 #include <cerrno>
 
 namespace protocol{
@@ -36,14 +37,11 @@ void DummyKey::initReader(const Reader &_){
 	//does absolutely nothing
 }
 
-Reader::Reader(Logger *_plog):plog(_plog), bbeg(NULL), bend(NULL), rpos(NULL), wpos(NULL), state(RunState){
-	bbeg = new char[2*1024];
-	bend = bbeg + 2*1024;
+Reader::Reader(Logger *_plog):plog(_plog), rpos(NULL), wpos(NULL), state(RunState){
 	dolog = isLogActive();
 }
 
 Reader::~Reader(){
-	delete []bbeg;
 }
 
 Parameter& Reader::push(FncT _pf){
@@ -183,15 +181,15 @@ int Reader::run(){
 	sz -= minlen;
 	
 	if(sz){
-		_rr.rpos = _rr.wpos = _rr.bbeg;
+		_rr.rpos = _rr.wpos = _rr.bh->pbeg;
 		
-		ulong	toread(_rr.bend - _rr.bbeg);
+		ulong	toread(_rr.bh->pend - _rr.bh->pbeg);
 		
 		if(sz < toread) toread = sz;
 		
 		int		rv(Continue);
 		
-		switch(_rr.read(_rr.bbeg, toread)){
+		switch(_rr.read(_rr.bh->pbeg, toread)){
 			case Bad: return Bad;
 			case Ok: break;
 			case No:
@@ -209,7 +207,7 @@ int Reader::run(){
 /*static*/ int Reader::fetchLiteralStreamContinue(Reader &_rr, Parameter &_rp){
 	OStreamIterator	&osi(*static_cast<OStreamIterator*>(_rp.a.p));
 	uint64			&sz(*static_cast<uint64*>(_rp.b.p));
-	const ulong		bufsz(_rr.bend - _rr.bbeg);
+	const ulong		bufsz(_rr.bh->pend - _rr.bh->pbeg);
 	ulong			toread;
 	ulong			tmpsz(bufsz * 8);
 	
@@ -218,13 +216,13 @@ int Reader::run(){
 	while(tmpsz){
 		const ulong rdsz(_rr.readSize());
 		
-		osi->write(_rr.bbeg, rdsz);
+		osi->write(_rr.bh->pbeg, rdsz);
 		tmpsz -= rdsz; 
 		
 		if(!tmpsz) break;
 		toread = bufsz;
 		if(tmpsz < toread) toread = tmpsz;
-		switch(_rr.read(_rr.bbeg, toread)){
+		switch(_rr.read(_rr.bh->pbeg, toread)){
 			case Bad:
 				return Bad;
 			case Ok:
@@ -237,7 +235,7 @@ int Reader::run(){
 	if(sz){
 		toread = bufsz;
 		if(sz < toread) toread = sz;
-		switch(_rr.read(_rr.bbeg, toread)){
+		switch(_rr.read(_rr.bh->pbeg, toread)){
 			case Bad:
 				return Bad;
 			case Ok:
@@ -252,20 +250,20 @@ int Reader::run(){
 }
 
 /*static*/ int Reader::refillDone(Reader &_rr, Parameter &_rp){
-	_rr.wpos = _rr.bbeg + _rr.readSize();
-	_rr.rpos = _rr.bbeg;
+	_rr.wpos = _rr.bh->pbeg + _rr.readSize();
+	_rr.rpos = _rr.bh->pbeg;
 	//writedbg(_rr.rpos, _rr.readSize());
 	return Ok;
 }
 
 /*static*/ int Reader::refill(Reader &_rr, Parameter &_rp){
-	int rv = _rr.read(_rr.bbeg, _rr.bend - _rr.bbeg);
+	int rv = _rr.read(_rr.bh->pbeg, _rr.bh->pend - _rr.bh->pbeg);
 	if(rv == Bad){
 		_rr.state = IOErrorState;
 		return Bad;
 	}else if(rv == Ok){
-		_rr.wpos = _rr.bbeg + _rr.readSize();
-		_rr.rpos = _rr.bbeg;
+		_rr.wpos = _rr.bh->pbeg + _rr.readSize();
+		_rr.rpos = _rr.bh->pbeg;
 		//writedbg(_rr.rpos, _rr.readSize());
 		return Ok;
 	}
@@ -396,6 +394,16 @@ void Reader::prepareErrorRecovery(){
 int Reader::doManage(int _mo){
 	cassert(false);
 	return Ok;
+}
+
+void Reader::doPrepareBuffer(char *_newbeg, const char *_newend){
+	const uint32 sz(wpos - rpos);
+	
+	if(sz){
+		memcpy(_newbeg, rpos, wpos - rpos);
+	}
+	rpos = _newbeg;
+	wpos = rpos + sz;
 }
 
 }//namespace protocol

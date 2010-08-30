@@ -52,7 +52,7 @@
 #include "system/common.hpp"
 
 
-#ifdef ON_WIN
+#ifdef ON_WINDOWS
 
 #ifdef DO_EXPORT_DLL
 #define EXPORT_DLL __declspec(dllexport)

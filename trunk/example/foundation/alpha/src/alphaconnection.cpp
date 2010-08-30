@@ -200,6 +200,8 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 	int rc;
 	switch(state()){
 		case Init:
+			wtr.buffer(protocol::SpecificBuffer(2*1024));
+			rdr.buffer(protocol::SpecificBuffer(2*1024));
 			if(this->socketIsSecure()){
 				int rv = this->socketSecureAccept();
 				state(Banner);

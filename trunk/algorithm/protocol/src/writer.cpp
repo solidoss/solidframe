@@ -26,12 +26,11 @@
 
 namespace protocol{
 
-Writer::Writer(Logger *_plog):plog(_plog), bbeg(new char[StartLength]), bend(bbeg + StartLength), rpos(bbeg), wpos(bbeg){
+Writer::Writer(Logger *_plog):plog(_plog), rpos(NULL), wpos(NULL){
 	dolog = isLogActive();
 }
 
 Writer::~Writer(){
-	delete []bbeg;
 }
 
 void Writer::push(FncT _pf, const Parameter & _rp){
@@ -71,7 +70,7 @@ int Writer::flush(){
 	int rv = write(rpos, towrite);
 	if(dolog) plog->outFlush();
 	if(rv == Ok){
-		rpos = wpos = bbeg;
+		rpos = wpos = bh->pbeg;
 		return Ok;
 	}
 	return rv;
@@ -86,29 +85,39 @@ int Writer::flushAll(){
 	if(dolog)
 		plog->outFlush();
 	if(rv == Ok){
-		rpos = wpos = bbeg; 
+		rpos = wpos = bh->pbeg; 
 		return Ok;
 	}
 	return rv;
 }
-
 void Writer::resize(uint32 _len){
-	uint32 clen = bend - bbeg;			//current length
-    uint32 rlen = _len + (wpos - bbeg);	//requested length
-    clen <<= 1;
-    if(clen > rlen && clen < MaxDoubleSizeLength){
-    }else{
-        clen = rlen - (rlen & 255) + 512;
-    }
-    //INF3("resize crtsz = %u, reqsz = %u, givensize = %u",bend - bbeg, rsz, csz);
-    char *tmp = new char[clen];
-    memcpy(tmp, rpos, wpos - rpos);
-    delete []bbeg;
-    bbeg = tmp;
-    bend = bbeg + clen;
-    wpos = bbeg + (wpos - rpos);
-    rpos = bbeg;
+	if(_len < bh->capacity()) return;
+	const uint32 rlen(rpos - bh->pbeg);
+	if(!bh->resize(_len, rpos, wpos)){
+		HeapBuffer hb(_len);
+		memcpy(hb.pbeg, rpos, wpos - rpos);
+		bh = hb;
+	}
+	wpos = bh->pbeg + (wpos -rpos);
+	rpos = bh->pbeg + rlen;
 }
+// void Writer::resize(uint32 _len){
+// 	uint32 clen = bh->capacity();			//current length
+//     uint32 rlen = _len + (wpos - pbeg);	//requested length
+//     clen <<= 1;
+//     if(clen > rlen && clen < MaxDoubleSizeLength){
+//     }else{
+//         clen = rlen - (rlen & 255) + 512;
+//     }
+//     //INF3("resize crtsz = %u, reqsz = %u, givensize = %u",pend - pbeg, rsz, csz);
+//     char *tmp = new char[clen];
+//     memcpy(tmp, rpos, wpos - rpos);
+//     delete []pbeg;
+//     pbeg = tmp;
+//     pend = pbeg + clen;
+//     wpos = pbeg + (wpos - rpos);
+//     rpos = pbeg;
+// }
 
 void Writer::putChar(char _c1){
 	if(dolog) plog->outChar(_c1);
@@ -131,16 +140,16 @@ void Writer::putChar(char _c1, char _c2, char _c3, char _c4){
 }
 
 void Writer::putSilentChar(char _c1){
-	cassert(wpos <= bend);
-	if(wpos != bend){
+	cassert(wpos <= bh->pend);
+	if(wpos != bh->pend){
 	}else resize(1);
 	
 	*(wpos++) = _c1;
 }
 
 void Writer::putSilentChar(char _c1, char _c2){
-	cassert(wpos <= bend);
-	if(2 < (uint32)(bend - wpos)){
+	cassert(wpos <= bh->pend);
+	if(2 < (uint32)(bh->pend - wpos)){
 	}else resize(2);
 	
 	*(wpos++) = _c1;
@@ -148,8 +157,8 @@ void Writer::putSilentChar(char _c1, char _c2){
 }
 
 void Writer::putSilentChar(char _c1, char _c2, char _c3){
-	cassert(wpos <= bend);
-	if(3 < (uint32)(bend - wpos)){
+	cassert(wpos <= bh->pend);
+	if(3 < (uint32)(bh->pend - wpos)){
 	}else resize(3);
 	
 	*(wpos++) = _c1;
@@ -158,8 +167,8 @@ void Writer::putSilentChar(char _c1, char _c2, char _c3){
 }
 
 void Writer::putSilentChar(char _c1, char _c2, char _c3, char _c4){
-	cassert(wpos <= bend);
-	if(4 < (uint32)(bend - wpos)){
+	cassert(wpos <= bh->pend);
+	if(4 < (uint32)(bh->pend - wpos)){
 	}else resize(4);
 	
 	*(wpos++) = _c1;
@@ -174,8 +183,8 @@ void Writer::putString(const char* _s, uint32 _sz){
 }
 
 void Writer::putSilentString(const char* _s, uint32 _sz){
-	cassert(wpos <= bend);
-	if(_sz < (uint32)(bend - wpos)){
+	cassert(wpos <= bh->pend);
+	if(_sz < (uint32)(bh->pend - wpos)){
 	}else resize(_sz);
 	memcpy(wpos, _s, _sz);
 	wpos += _sz;
@@ -274,7 +283,7 @@ template <>
 }
 
 /*static*/ int Writer::doneFlush(Writer &_rw, Parameter &_rp){
-	_rw.rpos = _rw.wpos = _rw.bbeg;
+	_rw.rpos = _rw.wpos = _rw.bh->pbeg;
 	return Ok;
 }
 
@@ -303,7 +312,7 @@ template <>
 	uint64			&sz = *static_cast<uint64*>(_rp.b.p);
 	if(isi.start() < 0) return Bad;
 	if(sz < FlushLength){
-		cassert((_rw.bend - _rw.wpos) >= FlushLength);
+		cassert((_rw.bh->pend - _rw.wpos) >= FlushLength);
 		if(sz != (uint64)isi->read(_rw.wpos, sz))
 			return Bad;
 		_rw.wpos += sz;
@@ -326,7 +335,7 @@ template <>
 	IStreamIterator &isi = *reinterpret_cast<IStreamIterator*>(_rp.a.p);
 	uint64			&sz = *static_cast<uint64*>(_rp.b.p);
 	ulong 			toread;
-	const ulong		blen = _rw.bend - _rw.bbeg;
+	const ulong		blen = _rw.bh->pend - _rw.bh->pbeg;
 	ulong 			tmpsz = blen * 16;
 	int				rv = 0;
 	if(tmpsz > sz) tmpsz = sz;
@@ -334,14 +343,14 @@ template <>
 	while(tmpsz){
 		toread = blen;
 		if(toread > tmpsz) toread = tmpsz;
-		rv = isi->read(_rw.bbeg, toread);
+		rv = isi->read(_rw.bh->pbeg, toread);
 		if((ulong)rv != toread){
 			return Bad;
 		}
 		tmpsz -= rv;
 		if(rv < FlushLength)
 			break;
-		switch(_rw.write(_rw.bbeg, rv)){
+		switch(_rw.write(_rw.bh->pbeg, rv)){
 			case Bad:
 				return Bad;
 			case Ok:
@@ -372,7 +381,7 @@ template <>
 		return Ok;
 	}
 	//we kinda need to do it the hard way
-	uint towrite = _rw.bend - _rw.wpos;
+	uint towrite = _rw.bh->pend - _rw.wpos;
 	if(towrite > _rp.b.u32) towrite = _rp.b.u32;
 	memcpy(_rw.wpos, _rp.a.p, towrite);
 	_rp.a.p = (char*)_rp.a.p + towrite;
@@ -450,6 +459,15 @@ Writer& Writer::operator << (uint64 _v){
 	return *this;
 }
 
+void Writer::doPrepareBuffer(char *_newbeg, const char *_newend){
+	const uint32 sz(wpos - rpos);
+	
+	if(sz){
+		memcpy(_newbeg, rpos, wpos - rpos);
+	}
+	rpos = _newbeg;
+	wpos = rpos + sz;
+}
 
 }//namespace protocol
 

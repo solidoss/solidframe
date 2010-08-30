@@ -7,6 +7,7 @@ set(Sources
 	src/namematcher.cpp
 	src/reader.cpp
 	src/writer.cpp
+	src/buffer.cpp
 )
 
 set(Headers
@@ -15,6 +16,7 @@ set(Headers
 	parameter.hpp
 	reader.hpp
 	writer.hpp
+	buffer.hpp
 )
 
 set(Inlines

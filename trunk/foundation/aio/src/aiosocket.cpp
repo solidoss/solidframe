@@ -7,7 +7,9 @@
 #include "system/debug.hpp"
 #include <cerrno>
 #include <cstring>
-#ifndef ON_SUN
+
+
+#ifndef ON_SOLARIS
 
 #include <sys/epoll.h>
 

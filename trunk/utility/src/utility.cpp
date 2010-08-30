@@ -23,7 +23,7 @@
 #include "utility/string.hpp"
 #include "utility/polycontainer.hpp"
 #include <cstring>
-#ifndef ON_WIN
+#ifndef ON_WINDOWS
 #include <strings.h>
 #endif
 
@@ -92,7 +92,7 @@ const char * charToString(unsigned _c){
 }
 
 /*static*/ int cstring::casecmp(const char* _s1, const char *_s2){
-#ifdef ON_WIN
+#ifdef ON_WINDOWS
         return _stricmp(_s1,_s2);
 #else
         return ::strcasecmp(_s1,_s2);
@@ -100,7 +100,7 @@ const char * charToString(unsigned _c){
 }
 
 /*static*/ int cstring::ncasecmp(const char* _s1, const char *_s2, uint _len){
-#ifdef ON_WIN
+#ifdef ON_WINDOWS
         return _strnicmp(_s1,_s2, _len);
 #else
         return strncasecmp(_s1,_s2, _len);

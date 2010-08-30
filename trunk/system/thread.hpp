@@ -22,12 +22,12 @@
 #ifndef THREADPP_HPP
 #define THREADPP_HPP
 
-#ifdef ON_WIN
+#ifdef ON_WINDOWS
 #else
 #include <pthread.h>
 #endif
 
-#ifdef ON_SUN
+#ifdef ON_SOLARIS
 #include <sched.h>
 #endif
 
@@ -119,7 +119,7 @@ private:
 	typedef std::pair<Condition, int>		ConditionPairT;
 	typedef std::vector<SpecPairT>			SpecVecT;
 	
-#ifdef _WIN32
+#if		defined(ON_WINDOWS)
 #else
 	pthread_t       th;
 #endif
@@ -131,18 +131,16 @@ private:
 };
 
 inline void Thread::yield(){
-#ifdef ON_WIN
-#else
-#ifdef ON_SUN
+#if		defined(ON_WINDOWS)
+#elseif	defined(ON_SOLARIS)
 	sched_yield();
 #else
 	pthread_yield();
 #endif
-#endif
 }
 
 inline long Thread::currentId(){
-#ifdef ON_WIN
+#ifdef ON_WINDOWS
 #else
 	return (long)pthread_self();
 #endif
