@@ -292,12 +292,13 @@ Command* Connection::create(const String& _name, Reader &_rr){
 
 int Connection::doSocketPrepareBanner(const uint _sid, SocketData &_rsd){
 	concept::Manager	&rm = concept::Manager::the();
-	uint32			myport(rm.ipc().basePort());
-	ulong			objid(this->id());
-	uint32			objuid(rm.uid(*this));
-	char			host[SocketAddress::MaxSockHostSz];
-	char			port[SocketAddress::MaxSockServSz];
-	SocketAddress	addr;
+	uint32				myport(rm.ipc().basePort());
+	ulong				objid(this->id());
+	uint32				objuid(rm.uid(*this));
+	char				host[SocketAddress::MaxSockHostSz];
+	char				port[SocketAddress::MaxSockServSz];
+	SocketAddress		addr;
+	
 	_rsd.w<<"* Hello from gamma server ("<<myport<<" "<<(uint32)objid<<" "<<objuid<<") [";
 	socketLocalAddress(_sid, addr);
 	addr.name(
@@ -474,9 +475,9 @@ int Connection::accept(fdt::Visitor &_rov){
 
 void Connection::appendContextString(std::string &_str){
 	concept::Manager	&rm = concept::Manager::the();
-	char						buffer[256];
-	foundation::IndexT			objid(this->id());
-	uint32						objuid(rm.uid(*this));
+	char				buffer[256];
+	foundation::IndexT	objid(this->id());
+	uint32				objuid(rm.uid(*this));
 	
 	
 	if(sizeof(objid) == 8){
