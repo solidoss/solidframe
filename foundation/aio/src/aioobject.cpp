@@ -35,6 +35,7 @@ namespace foundation{
 namespace aio{
 
 namespace {
+
 static const uint crtTimeThreadSpec(){
 	static const uint id(Thread::specificId());
 	return id;
