@@ -10,9 +10,9 @@ echo "Extracting archives ..."
 echo
 ############################################################
 echo "Extracting boost [$BOOST_ARCH]..."
-tar -xjf "$BOOST_ARCH"
+bzcat "$BOOST_ARCH" | tar xfv -
 echo "Extracting openssl [$OPENSSL_ARCH]..."
-tar -xzf "$OPENSSL_ARCH"
+gzip -cd "$OPENSSL_ARCH" | tar xfv -
 
 ############################################################
 
