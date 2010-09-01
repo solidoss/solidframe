@@ -33,7 +33,7 @@ sh build_dist.sh
 cd ../../
 JAMEXE=`find . -name bjam`
 echo "Using jam: $JAMEXE"
-$JAMEXE toolset=sun stdlib=sun-stlport instruction-set=i586 address-model=32 --with-filesystem --with-system --with-program_options --with-test --layout=system --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" install
+$JAMEXE toolset=sun stdlib=sun-stlport instruction-set=i586 address-model=32 --with-filesystem --with-system --with-program_options --with-test --with-thread --layout=system  --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" variant=release link=static threading=multi install
 cd ../
 
 ############################################################
