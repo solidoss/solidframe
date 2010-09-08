@@ -15,19 +15,35 @@ That nasty problem prevented me to do a head to head performance comparison with
 
 = Setting up the test environment =
 
-Of course I've immediately set up the test environment (a Fedora 13 machine on a AMD3000+ x64):
- * Programs involved: solidground/examples/client/alphaclient_p, solidground/examples/foundation/main/concept and solidground/examples/extern/boost/asio/proxyserver.
-  * The scenario: on the same machine start the servers in three different consoles: "./concept", "./concept -b 2000", "./proxyserver 3115 localhost 1114". The first concept instance is for file serving on concept::alpha protocol. The second one is for it's proxy service. The first concept sever, serves 10 files with sizes from 4KB to 8.8MB.
-  * The test: I used alphaclient_p with 50 threads, testing head to head solidground proxy with boost proxy. Every thread do:
+Of course I've immediately set up the test environment (a Fedora 13 machine with an AMD3000+ x64):
+ * *Programs involved*: solidground/examples/client/alphaclient_p, solidground/examples/foundation/main/concept and solidground/examples/extern/boost/asio/proxyserver.
+ * *The scenario*: on the same machine start the servers in three different consoles:
+   # `./concept` - the file server, serves files (10 files with sizes from 4KB to 8.8MB) using concept::alpha protocol.
+   # `./concept -b 2000` - solidground asio proxy on port 2115.
+   # `./proxyserver 3115 localhost 1114` - boost::asio proxy implementation on port 3115.
+ * *The test*: I used alphaclient_p with 50 threads, testing head to head solidground proxy with boost proxy. Every thread do:
     * request the list of files (alpha LIST command)
     * fetches every file in the list two times (alpha FETCH command).
 
-There is alphaclient_p call for solidground proxy:
+Here is how alphaclient_p was launched for solidground proxy:
 {{{
 time ./alphaclient_p 50 localhost 2115 ~/tmp/00000001 1 2 "" 1114
 }}}
 
-and the call for boost proxy:
+and here is for boost proxy:
 {{{
 time ./alphaclient_p 50 localhost 3115 ~/tmp/00000001 1 2
 }}}
+
+= Results =
+
+|| *Test* || *Time(s)* || *Max Avg Transfer Rate(KB/s)* ||
+||        || 74.262    ||  60205                        ||
+||        || 74.757    ||  60300                        ||
+||        || 73.770    ||  60600                        ||
+|| Boost:asio || 74.263||  60368,33                     ||
+||        || 71.257    ||  62700                        ||
+||        || 70.765    ||  62800                        ||
+||        || 70.759    ||  62800                        ||
+|| SolidGround::aio|| 70.927 || 62766,66                ||
+
