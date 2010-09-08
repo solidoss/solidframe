@@ -48,6 +48,9 @@ public:
         //socket_1 is accepted ok, connecting socket 2
         boost::system::error_code   err;
         socket_2.open(tcp::v4(), err);
+		//very important - need to make the socket non blocking
+		tcp::socket::non_blocking_io non_blocking_io(true);
+		socketTwo().io_control(non_blocking_io);
         ++pending;
         socket_2.async_connect(
             *resolved_endpoint,
@@ -264,8 +267,11 @@ public:
     {
         if (!error)
         {
-        boost::asio::socket_base::send_buffer_size option(0);
-        new_session->socketOne().set_option(option);
+		// boost::asio::socket_base::send_buffer_size option(0);
+        //new_session->socketOne().set_option(option);
+		//very important - need to make the socket non blocking
+		tcp::socket::non_blocking_io non_blocking_io(true);
+		new_session->socketOne().io_control(non_blocking_io);
         new_session->start();
         new_session = new session(io_service_);
         acceptor_.async_accept(new_session->socketOne(),
