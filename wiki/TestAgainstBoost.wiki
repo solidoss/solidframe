@@ -20,7 +20,7 @@ Of course I've immediately set up the test environment (a Fedora 13 machine with
  * *The scenario*: on the same machine start the servers in three different consoles:
    # `./concept` - the file server, serves files (10 files with sizes from 4KB to 8.8MB) using concept::alpha protocol.
    # `./concept -b 2000` - solidground asio proxy on port 2115.
-   # `./proxyserver 3115 localhost 1114` - boost::asio proxy implementation on port 3115.
+   # `./proxyserver 3115 localhost 1114` - boost::asio (boost 1.44.0) proxy implementation on port 3115.
  * *The test*: I used alphaclient_p with 50 threads, testing head to head solidground proxy with boost proxy. Every thread do:
     * request the list of files (alpha LIST command)
     * fetches every file in the list two times (alpha FETCH command).
@@ -47,3 +47,13 @@ time ./alphaclient_p 50 localhost 3115 ~/tmp/00000001 1 2
 ||        || 70.759    ||  62800                        ||
 || SolidGround::aio|| 70.927 || 62766,66                ||
 
+
+= Conclusions =
+
+As you can see in the table, solidground::aio is doing quite well with more than 3 seconds faster test completion.
+
+Note that this test was made on local-loop, with all the files cached in memory (by Linux). It is still conclusive as it shows better usage of system resources (memory, cache, processor etc).
+
+I'll try to repeat the test on other machines and eventually on a gigabit network, so ...
+
+*STAY TUNED!!!*
