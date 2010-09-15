@@ -1,58 +1,226 @@
 #!/bin/bash
-############################################################
 
-BOOST_ARCH=`find . -name "boost_*.tar.bz2"`
-OPENSSL_ARCH=`find . -name "openssl-*.tar.gz"`
+function printUsage()
+{
+	echo "Usage:"
+	echo "./prepare_extern.sh [-a|--all] [-w|--with LIB] [--force-down] [-d|--debug] [-z|--archive]"
+	echo "Where LIB can be: boost_min|boost_full|openssl"
+	echo "Examples:"
+	echo "./prepare_extern.sh -a"
+	echo "./prepare_extern.sh -w boost_min"
+	echo "./prepare_extern.sh -w boost_full --force-down -d"
+	echo "./prepare_extern.sh -w boost_min -w openssl"
+	echo
+}
 
-############################################################
-echo
-echo "Extracting archives ..."
-echo
-############################################################
-echo "Extracting boost [$BOOST_ARCH]..."
-tar -xjf "$BOOST_ARCH"
-echo "Extracting openssl [$OPENSSL_ARCH]..."
-tar -xzf "$OPENSSL_ARCH"
+BOOST_ADDR="http://garr.dl.sourceforge.net/project/boost/boost/1.44.0/boost_1_44_0.tar.bz2"
+OPENSSL_ADDR="http://www.openssl.org/source/openssl-1.0.0a.tar.gz"
 
-############################################################
+function downloadArchive()
+{
+	echo "Downloading: [$1]"
+	#wget $1
+	curl -O $1
+}
 
-BOOST_DIR=`ls . | grep "boost" | grep -v "tar"`
-OPENSSL_DIR=`ls . | grep "openssl" | grep -v "tar"`
+function extractTarBz2()
+{
+#    bzip2 -dc "$1" | tar -xf -
+	tar -xjf "$1"
+}
+
+function extractTarGz()
+{
+#    gzip -dc "$1" | tar -xf -
+	tar -xzf "$1"
+}
+
+
+function buildBoost()
+{
+	echo
+	echo "Building boost..."
+	echo
+	BOOST_DIR=`ls . | grep "boost" | grep -v "tar"`
+	echo "Cleanup previous builds..."
+	rm -rf $BOOST_DIR
+	rm -rf include/boost
+	rm -rf lib/libboost*
+
+	echo
+	echo "Prepare the boost archive..."
+	echo
+	BOOST_ARCH=`find . -name "boost_*.tar.bz2" | grep -v "old/"`
+
+	if [ -z "$BOOST_ARCH" -o -n "$DOWNLOAD" ] ; then
+		mkdir old
+		mv $BOOST_ARCH old/
+		echo "No boost archive found - try download: $BOOST_ADDR"
+		downloadArchive $BOOST_ADDR
+		BOOST_ARCH=`find . -name "boost_*.tar.bz2" | grep -v "old/"`
+	fi
+
+	echo
+	echo "Extracting boost [$BOOST_ARCH]..."
+	echo
+
+	extractTarBz2 $BOOST_ARCH
+	BOOST_DIR=`ls . | grep "boost" | grep -v "tar"`
+	echo
+	echo "Making boost [$BOOST_DIR]..."
+	echo
+
+	cd "$BOOST_DIR"
+	cd tools/jam
+	sh build_dist.sh
+	cd ../../
+	JAMTOOL=`find . -name bjam`
+	VARIANT_BUILD=
+	
+	if [ $DEBUG ] ; then
+		VARIANT_BUILD="variant=debug"
+	else
+		VARIANT_BUILD="variant=release"
+	fi
+	
+	if [ $BUILD_BOOST_FULL ] ; then
+		$JAMTOOL --layout=system  --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" link=static threading=multi $VARIANT_BUILD install
+	else
+		$JAMTOOL --with-filesystem --with-system --with-program_options --with-test --with-thread --layout=system  --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" link=static threading=multi $VARIANT_BUILD  install
+	fi
+	echo
+	echo "Done BOOST!"
+	echo
+	cd ..
+}
+
+function buildOpenssl()
+{
+	echo
+	echo "Building OPENSSL..."
+	echo
+
+	OPENSSL_DIR=`ls . | grep "openssl" | grep -v "tar"`
+	echo
+	echo "Cleanup previous builds..."
+	echo
+
+	rm -rf $OPENSSL_DIR
+	rm -rf include/openssl
+	rm -rf lib/libssl*
+	rm -rf lib64/libssl*
+
+	echo
+	echo "Prepare the openssl archive..."
+	echo
+
+	OPENSSL_ARCH=`find . -name "openssl-*.tar.gz" | grep -v "old/"`
+	if [ -z "$OPENSSL_ARCH" -o -n "$DOWNLOAD" ] ; then
+		mkdir old
+		mv $OPENSSL_ARCH old/
+		echo "No openssl archive found or forced - try download: $OPENSSL_ADDR"
+		downloadArchive $OPENSSL_ADDR
+		OPENSSL_ARCH=`find . -name "openssl-*.tar.gz" | grep -v "old/"`
+	fi
+	echo "Extracting openssl [$OPENSSL_ARCH]..."
+	extractTarGz $OPENSSL_ARCH
+
+	OPENSSL_DIR=`ls . | grep "openssl" | grep -v "tar"`
+	echo
+	echo "Making openssl [$OPENSSL_DIR]..."
+	echo
+
+	cd $OPENSSL_DIR
+	if [ $DEBUG ] ; then
+		./config --prefix="$EXT_DIR" --openssldir="openssl_"
+	else
+		./config --prefix="$EXT_DIR" --openssldir="openssl_"
+	fi
+	make && make install
+	cd ..
+	echo "Copy test certificates to openssl_ dir..."
+	cp $OPENSSL_DIR/demos/tunala/*.pem openssl_/certs/.
+	echo
+	echo "Done OPENSSL!"
+	echo
+}
+
 
 EXT_DIR="`pwd`"
 echo "$EXT_DIR"
 
-############################################################
-echo
-echo "Making boost[$BOOST_DIR]..."
-echo
-############################################################
-cd "$BOOST_DIR"
-cd tools/jam
-sh build_dist.sh
-cd ../../
-JAMEXE=`find . -name bjam`
-echo "Using jam: $JAMEXE"
-$JAMEXE --with-filesystem --with-system --with-program_options --with-test --with-thread --layout=system  --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" variant=release link=static threading=multi install
-cd ../
-############################################################
-echo
-echo "Making openssl[$OPENSSL_DIR]..."
-echo
-############################################################
+BUILD_BOOST_MIN=
+BUILD_BOOST_FULL=
+BUILD_OPENSSL=
 
-cd $OPENSSL_DIR
-./config --prefix="$EXT_DIR" --openssldir="openssl_"
-make
-make install
-cd ..
-echo "Copy test certificates to openssl_ dir..."
-cp $OPENSSL_DIR/demos/tunala/*.pem openssl_/certs/.
+ARCHIVE=
+DOWNLOAD=
+DEBUG=
+HELP="yes"
 
-############################################################
-echo 
-echo "Making links from all libraries from lib64 within lib"
-echo 
+
+while [ "$#" -gt 0 ]; do
+	CURRENT_OPT="$1"
+	UNKNOWN_ARG=no
+	HELP=
+	case "$1" in
+	-a|--all)
+		BUILD_BOOST_MIN="yes"
+		BUILD_OPENSSL="yes"
+		;;
+	-w|--with)
+		shift
+		#BUILD_LIBS=$BUILD_LIBS:"$1"
+		if [ "$1" = "boost_min" ] ; then
+			BUILD_BOOST_MIN="yes"
+		fi
+		if [ "$1" = "boost_full" ] ; then
+			BUILD_BOOST_FULL="yes"
+		fi
+		if [ "$1" = "openssl" ] ; then
+			BUILD_OPENSSL="yes"
+		fi
+		;;
+	-d|--debug)
+		shift
+		DEBUG="yes"
+		;;
+	-z|--archive)
+		shift
+		ARCHIVE="yes"
+		;;
+	--force-down)
+		DOWNLOAD="yes"
+		;;
+	-h|--help)
+		HELP="yes"
+		;;
+	*)
+		HELP="yes"
+		;;
+	esac
+	shift
+done
+
+echo "Debug build = $DEBUG"
+echo "Force download = $DOWNLOAD"
+
+if [ "$HELP" = "yes" ]; then
+	printUsage
+	exit
+fi
+
+if [ $BUILD_BOOST_FULL ]; then
+	buildBoost
+else
+	if [ $BUILD_BOOST_MIN ]; then
+		buildBoost
+	fi
+fi
+
+if [ $BUILD_OPENSSL ]; then
+	buildOpenssl
+fi
 
 if [ -d lib64 ]; then
 	cd lib
@@ -64,8 +232,15 @@ if [ -d lib64 ]; then
 	done;
 fi
 
-cd lib
+if [ $ARCHIVE ]; then
+	cd $EXT_DIR
+	cd ../
+	CWD="`basename $EXT_DIR`"
+	echo $CWD
+
+	echo "tar -cjf $CWD.tar.bz2 $CWD/include $CWD/lib $CWD/lib64 $CWD/bin $CWD/sbin $CWD/share"
+	tar -cjf $CWD.tar.bz2 $CWD/include $CWD/lib $CWD/bin $CWD/sbin $CWD/share
+fi
 
 echo
-echo "DONE!!"
-############################################################
+echo "DONE!"
