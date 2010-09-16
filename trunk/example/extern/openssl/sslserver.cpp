@@ -134,7 +134,7 @@ int main(int argc, char* argv[]){
 		ERR_print_errors_fp(stderr);
 		exit(2);
 	}
-	const char *pcertpath = OSSL_SOURCE_PATH"openssl_/certs/A-server.pem";
+	const char *pcertpath = OSSL_SOURCE_PATH"ssl_/certs/A-server.pem";
 	cout<<"Client certificate path: "<<pcertpath<<endl;
 	
 	if (SSL_CTX_use_certificate_file(ctx, pcertpath, SSL_FILETYPE_PEM) <= 0) {

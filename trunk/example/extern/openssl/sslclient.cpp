@@ -83,7 +83,7 @@ int main(int argc, char *argv[]){
 		cout<<"failed SSL_CTX_new: "<<ERR_error_string(ERR_get_error(), NULL)<<endl;
 		return 0;
 	}
-	const char *pcertpath = OSSL_SOURCE_PATH"openssl_/certs/A-client.pem";
+	const char *pcertpath = OSSL_SOURCE_PATH"ssl_/certs/A-client.pem";
 	cout<<"Client certificate path: "<<pcertpath<<endl;
 	if(! SSL_CTX_load_verify_locations(ctx, pcertpath, NULL)){
     	cout<<"failed SSL_CTX_load_verify_locations 1 "<<ERR_error_string(ERR_get_error(), NULL)<<endl;;
