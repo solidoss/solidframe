@@ -94,54 +94,62 @@ function buildBoost()
 	cd ..
 }
 
+rm -rf include/openssl
+	rm -rf lib/libssl*
+	rm -rf lib64/libssl*
+
 function buildOpenssl()
 {
+	WHAT="openssl"
+	ADDR_NAME=
 	echo
-	echo "Building OPENSSL..."
+	echo "Building $WHAT..."
 	echo
 
-	OPENSSL_DIR=`ls . | grep "openssl" | grep -v "tar"`
+	OLD_DIR=`ls . | grep "db" | grep -v "tar"`
 	echo
 	echo "Cleanup previous builds..."
 	echo
 
-	rm -rf $OPENSSL_DIR
+	rm -rf $OLD_DIR
 	rm -rf include/openssl
 	rm -rf lib/libssl*
 	rm -rf lib64/libssl*
+	rm -rf ssl_
 
 	echo
-	echo "Prepare the openssl archive..."
+	echo "Prepare the $WHAT archive..."
 	echo
 
-	OPENSSL_ARCH=`find . -name "openssl-*.tar.gz" | grep -v "old/"`
-	if [ -z "$OPENSSL_ARCH" -o -n "$DOWNLOAD" ] ; then
+	ARCH_NAME=`find . -name "$WHAT-*.tar.gz" | grep -v "old/"`
+	if [ -z "$ARCH_NAME" -o -n "$DOWNLOAD" ] ; then
 		mkdir old
-		mv $OPENSSL_ARCH old/
-		echo "No openssl archive found or forced - try download: $OPENSSL_ADDR"
-		downloadArchive $OPENSSL_ADDR
-		OPENSSL_ARCH=`find . -name "openssl-*.tar.gz" | grep -v "old/"`
+		mv $ARCH_NAME old/
+		echo "No $WHAT archive found or forced - try download: $ADDR_NAME"
+		downloadArchive $ADDR_NAME
+		ARCH_NAME=`find . -name "$db-*.tar.gz" | grep -v "old/"`
 	fi
-	echo "Extracting openssl [$OPENSSL_ARCH]..."
-	extractTarGz $OPENSSL_ARCH
+	
+	echo "Extracting $WHAT [$ARCH_NAME]..."
+	extractTarGz $ARCH_NAME
 
-	OPENSSL_DIR=`ls . | grep "openssl" | grep -v "tar"`
+	DIR_NAME=`ls . | grep "$WHAT" | grep -v "tar"`
 	echo
-	echo "Making openssl [$OPENSSL_DIR]..."
+	echo "Making $WHAT [$DIR_NAME]..."
 	echo
 
-	cd $OPENSSL_DIR
+	cd $DIR_NAME
 	if [ $DEBUG ] ; then
-		./config --prefix="$EXT_DIR" --openssldir="openssl_"
+		./config --prefix="$EXT_DIR" --openssldir="ssl_"
 	else
-		./config --prefix="$EXT_DIR" --openssldir="openssl_"
+		./config --prefix="$EXT_DIR" --openssldir="ssl_"
 	fi
 	make && make install
 	cd ..
-	echo "Copy test certificates to openssl_ dir..."
-	cp $OPENSSL_DIR/demos/tunala/*.pem openssl_/certs/.
+	echo "Copy test certificates to ssl_ dir..."
+	cp $DIR_NAME/demos/tunala/*.pem ssl_/certs/.
 	echo
-	echo "Done OPENSSL!"
+	echo "Done $WHAT!"
 	echo
 }
 

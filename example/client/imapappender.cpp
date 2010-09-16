@@ -111,7 +111,7 @@ int main(int argc, char *argv[]){
 	
 	sslctx = SSL_CTX_new(SSLv23_client_method());
 	
-	const char *pcertpath = OSSL_SOURCE_PATH"openssl_/certs/A-client.pem";
+	const char *pcertpath = OSSL_SOURCE_PATH"ssl_/certs/A-client.pem";
 	cout<<"Client certificate path: "<<pcertpath<<endl;
 	if(!sslctx){
 		cout<<"failed SSL_CTX_new: "<<ERR_error_string(ERR_get_error(), NULL)<<endl;
