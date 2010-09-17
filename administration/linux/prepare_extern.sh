@@ -1,6 +1,6 @@
-#!/bin/bash
+#! /bin/sh
 
-function printUsage()
+printUsage()
 {
 	echo "Usage:"
 	echo "./prepare_extern.sh [-a|--all] [-w|--with LIB] [--force-down] [-d|--debug] [-z|--archive]"
@@ -16,27 +16,27 @@ function printUsage()
 BOOST_ADDR="http://garr.dl.sourceforge.net/project/boost/boost/1.44.0/boost_1_44_0.tar.bz2"
 OPENSSL_ADDR="http://www.openssl.org/source/openssl-1.0.0a.tar.gz"
 
-function downloadArchive()
+downloadArchive()
 {
 	echo "Downloading: [$1]"
 	#wget $1
 	curl -O $1
 }
 
-function extractTarBz2()
+extractTarBz2()
 {
 #    bzip2 -dc "$1" | tar -xf -
 	tar -xjf "$1"
 }
 
-function extractTarGz()
+extractTarGz()
 {
 #    gzip -dc "$1" | tar -xf -
 	tar -xzf "$1"
 }
 
 
-function buildBoost()
+buildBoost()
 {
 	echo
 	echo "Building boost..."
@@ -94,19 +94,15 @@ function buildBoost()
 	cd ..
 }
 
-rm -rf include/openssl
-	rm -rf lib/libssl*
-	rm -rf lib64/libssl*
-
-function buildOpenssl()
+buildOpenssl()
 {
 	WHAT="openssl"
-	ADDR_NAME=
+	ADDR_NAME=$OPENSSL_ADDR
 	echo
 	echo "Building $WHAT..."
 	echo
 
-	OLD_DIR=`ls . | grep "db" | grep -v "tar"`
+	OLD_DIR=`ls . | grep "$WHAT" | grep -v "tar"`
 	echo
 	echo "Cleanup previous builds..."
 	echo
@@ -127,7 +123,7 @@ function buildOpenssl()
 		mv $ARCH_NAME old/
 		echo "No $WHAT archive found or forced - try download: $ADDR_NAME"
 		downloadArchive $ADDR_NAME
-		ARCH_NAME=`find . -name "$db-*.tar.gz" | grep -v "old/"`
+		ARCH_NAME=`find . -name "$WHAT-*.tar.gz" | grep -v "old/"`
 	fi
 	
 	echo "Extracting $WHAT [$ARCH_NAME]..."
