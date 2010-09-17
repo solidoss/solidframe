@@ -1,4 +1,4 @@
-#!/bin/bash
+#! /bin/bash
 
 function printUsage()
 {
@@ -95,12 +95,12 @@ function buildBoost()
 function buildOpenssl()
 {
 	WHAT="openssl"
-	ADDR_NAME=
+	ADDR_NAME=$OPENSSL_ADDR
 	echo
 	echo "Building $WHAT..."
 	echo
 
-	OLD_DIR=`ls . | grep "db" | grep -v "tar"`
+	OLD_DIR=`ls . | grep "$WHAT" | grep -v "tar"`
 	echo
 	echo "Cleanup previous builds..."
 	echo
@@ -121,7 +121,7 @@ function buildOpenssl()
 		mv $ARCH_NAME old/
 		echo "No $WHAT archive found or forced - try download: $ADDR_NAME"
 		downloadArchive $ADDR_NAME
-		ARCH_NAME=`find . -name "$db-*.tar.gz" | grep -v "old/"`
+		ARCH_NAME=`find . -name "$WHAT-*.tar.gz" | grep -v "old/"`
 	fi
 	
 	echo "Extracting $WHAT [$ARCH_NAME]..."
