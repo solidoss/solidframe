@@ -1,6 +1,6 @@
-#! /bin/bash
+#! /bin/sh
 
-function printUsage()
+printUsage()
 {
 	echo "Usage:"
 	echo "./prepare_extern.sh [-a|--all] [-w|--with LIB] [--force-down] [-d|--debug] [-z|--archive]"
@@ -16,25 +16,25 @@ function printUsage()
 BOOST_ADDR="http://garr.dl.sourceforge.net/project/boost/boost/1.44.0/boost_1_44_0.tar.bz2"
 OPENSSL_ADDR="http://www.openssl.org/source/openssl-1.0.0a.tar.gz"
 
-function downloadArchive()
+downloadArchive()
 {
 	echo "Downloading: [$1]"
 	wget $1
 	#curl -O $1
 }
 
-function extractTarBz2()
+extractTarBz2()
 {
     bzip2 -dc "$1" | tar -xf -
 }
 
-function extractTarGz()
+extractTarGz()
 {
     gzip -dc "$1" | tar -xf -
 }
 
 
-function buildBoost()
+buildBoost()
 {
 	echo
 	echo "Building boost..."
@@ -92,7 +92,7 @@ function buildBoost()
 	cd ..
 }
 
-function buildOpenssl()
+buildOpenssl()
 {
 	WHAT="openssl"
 	ADDR_NAME=$OPENSSL_ADDR

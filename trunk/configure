@@ -1,6 +1,6 @@
-#!/bin/bash
+#! /bin/sh
 
-function make_cmake_list(){
+make_cmake_list(){
 	rm CMakeLists.txt
 	if [ $1 = "*" ]; then
 		echo "No child folder found!"
@@ -19,7 +19,7 @@ function make_cmake_list(){
 }
 
 
-function print_usage(){
+print_usage(){
 	echo "Usage:"
 	echo -ne "\n./configure [-g|--generator GeneratorName] [-f|--folder FolderName] [-b|--build BuildType]"
 	echo -ne " [-p|--param ParamName] [-d|--documentation full/fast] [-h|--help]"
