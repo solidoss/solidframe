@@ -151,7 +151,12 @@ Signal::~Signal(){
 	vdbgx(Dbg::fdt, "memsub "<<(void*)this);
 }
 
-int Signal::ipcReceived(ipc::SignalUid&, const ipc::ConnectionUid&){
+int Signal::ipcReceived(
+	ipc::SignalUid&,
+	const ipc::ConnectionUid&,
+	const SockAddrPair &_peeraddr,
+	int _peerbaseport
+){
 	return BAD;
 }
 int Signal::ipcPrepare(const ipc::SignalUid&){

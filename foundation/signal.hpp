@@ -34,6 +34,7 @@ class TimeSpec;
 template <class T>
 class DynamicPointer;
 
+struct SockAddrPair;
 
 namespace foundation{
 
@@ -57,11 +58,34 @@ struct Signal: Dynamic<Signal>{
 	virtual ~Signal();
 	//! Called by ipc module after the signal was successfully parsed
 	/*!
+		\param _waitingsignaluid	The UID of the waiting signal - one can 
+			configure a Request signal to wait within the ipc module until
+			either the response was received or a communication error occured.
+			The transmited request must keep the id of the waiting signal 
+			(given by the ipc module when calling Signal's ipcPrepare method)
+			so that when the response comes back, it gives it back to the 
+			ipc module.
+		\param _ipcsessionuid	The unique id of an ipc session. It is used 
+			for guaranteeing that the response is sent back to the instance
+			that requested it. If somehow the requesting process is restarted
+			and it reconnects to current process, the session will have another
+			unique id. Signals, must retain the _ipcsessionuid value and use it 
+			for sending response(s).
+		\param _peeraddr The address of the peer socket. No not use this
+			combination for sending signals - use _peerbaseport parameter
+			for port instead of the one embedded in _peeraddr.
+		\param _peerbaseport The base port for peer ipc module. See also 
+			_peeraddr parameter.
 		\retval BAD for deleting the signal, OK for not
 	*/
-	virtual int ipcReceived(ipc::SignalUid &, const ipc::ConnectionUid&);
+	virtual int ipcReceived(
+		ipc::SignalUid &_waitingsignaluid,
+		const ipc::ConnectionUid &_ipcsessionuid,
+		const SockAddrPair &_peeraddr,
+		int _peerbaseport
+	);
 	//! Called by ipc module, before the signal begins to be serialized
-	virtual int ipcPrepare(const ipc::SignalUid&);
+	virtual int ipcPrepare(const ipc::SignalUid& _waitingsignaluid);
 	//! Called by ipc module on peer failure detection (disconnect,reconnect)
 	virtual void ipcFail(int _err);
 	

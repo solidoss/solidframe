@@ -67,7 +67,11 @@ struct RemoteListSignal: Dynamic<RemoteListSignal, DynamicShared<foundation::Sig
 		const SignalUidT &, TimeSpec &_rts
 	);
 	
-	int ipcReceived(foundation::ipc::SignalUid &_rsiguid, const foundation::ipc::ConnectionUid &_rconid);
+	int ipcReceived(
+		foundation::ipc::SignalUid &_rsiguid,
+		const foundation::ipc::ConnectionUid &_rconid,
+		const SockAddrPair &_peeraddr, int _peerbaseport
+	);
 	int ipcPrepare(const foundation::ipc::SignalUid &_rsiguid);
 	void ipcFail(int _err);
 	
@@ -120,7 +124,12 @@ struct FetchMasterSignal: Dynamic<FetchMasterSignal, foundation::Signal>{
 	}
 	~FetchMasterSignal();
 	
-	int ipcReceived(foundation::ipc::SignalUid &_rsiguid, const foundation::ipc::ConnectionUid &_rconid);
+	int ipcReceived(
+		foundation::ipc::SignalUid &_rsiguid,
+		const foundation::ipc::ConnectionUid &_rconid,
+		const SockAddrPair &_peeraddr,
+		int _peerbaseport
+	);
 	void ipcFail(int _err);
 	
 	int execute(
@@ -169,7 +178,12 @@ struct FetchMasterSignal: Dynamic<FetchMasterSignal, foundation::Signal>{
 struct FetchSlaveSignal: Dynamic<FetchSlaveSignal, foundation::Signal>{
 	FetchSlaveSignal();
 	~FetchSlaveSignal();
-	int ipcReceived(foundation::ipc::SignalUid &_rsiguid, const foundation::ipc::ConnectionUid &_rconid);
+	int ipcReceived(
+		foundation::ipc::SignalUid &_rsiguid,
+		const foundation::ipc::ConnectionUid &_rconid,
+		const SockAddrPair &_peeraddr,
+		int _peerbaseport
+	);
 	int sent(const foundation::ipc::ConnectionUid &);
 	//int execute(concept::Connection &);
 	int execute(
@@ -223,7 +237,12 @@ struct SendStringSignal: Dynamic<SendStringSignal, foundation::Signal>{
 		ulong _fromobjid,
 		uint32 _fromobjuid
 	):str(_str), tov(_toobjid, _toobjuid), fromv(_fromobjid, _fromobjuid){}
-	int ipcReceived(foundation::ipc::SignalUid &_rsiguid, const foundation::ipc::ConnectionUid &_rconid);
+	int ipcReceived(
+		foundation::ipc::SignalUid &_rsiguid,
+		const foundation::ipc::ConnectionUid &_rconid,
+		const SockAddrPair &_peeraddr,
+		int _peerbaseport
+	);
 	template <class S>
 	S& operator&(S &_s){
 		_s.push(str, "string").push(tov.first, "toobjectid").push(tov.second, "toobjectuid");
@@ -258,7 +277,12 @@ struct SendStreamSignal: Dynamic<SendStreamSignal, foundation::Signal>{
 	}
 	std::pair<uint32, uint32> to()const{return tov;}
 	std::pair<uint32, uint32> from()const{return fromv;}
-	int ipcReceived(foundation::ipc::SignalUid &_rsiguid, const foundation::ipc::ConnectionUid &_rconid);
+	int ipcReceived(
+		foundation::ipc::SignalUid &_rsiguid,
+		const foundation::ipc::ConnectionUid &_rconid,
+		const SockAddrPair &_peeraddr,
+		int _peerbaseport
+	);
 
 	int createDeserializationStream(std::pair<OStream *, int64> &_rps, int _id);
 	void destroyDeserializationStream(const std::pair<OStream *, int64> &_rps, int _id);

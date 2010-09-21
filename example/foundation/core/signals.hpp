@@ -37,7 +37,7 @@ namespace concept{
 //!	A signal for sending istreams from the fileManager
 struct IStreamSignal: Dynamic<IStreamSignal, foundation::Signal>{
 	IStreamSignal(StreamPointer<IStream> &_sptr, const FileUidT &_rfuid, const foundation::RequestUidT &_requid);
-	int execute(uint32 _evs, foundation::SignalExecuter&, const SignalUidT &, TimeSpec &);
+	int execute(DynamicPointer<Signal> &_rthis_ptr, uint32 _evs, foundation::SignalExecuter&, const SignalUidT &, TimeSpec &);
 	StreamPointer<IStream>	sptr;
 	FileUidT				fileuid;
 	RequestUidT			requid;
@@ -46,7 +46,7 @@ struct IStreamSignal: Dynamic<IStreamSignal, foundation::Signal>{
 //!A signal for sending ostreams from the fileManager
 struct OStreamSignal: Dynamic<OStreamSignal, foundation::Signal>{
 	OStreamSignal(StreamPointer<OStream> &_sptr, const FileUidT &_rfuid, const foundation::RequestUidT &_requid);
-	int execute(uint32 _evs, foundation::SignalExecuter&, const SignalUidT &, TimeSpec &);
+	int execute(DynamicPointer<Signal> &_rthis_ptr, uint32 _evs, foundation::SignalExecuter&, const SignalUidT &, TimeSpec &);
 	StreamPointer<OStream>	sptr;
 	FileUidT				fileuid;
 	RequestUidT			requid;
@@ -56,7 +56,7 @@ struct OStreamSignal: Dynamic<OStreamSignal, foundation::Signal>{
 //!A signal for sending iostreams from the fileManager
 struct IOStreamSignal: Dynamic<IOStreamSignal, foundation::Signal>{
 	IOStreamSignal(StreamPointer<IOStream> &_sptr, const FileUidT &_rfuid, const foundation::RequestUidT &_requid);
-	int execute(uint32 _evs, foundation::SignalExecuter&, const SignalUidT &, TimeSpec &);
+	int execute(DynamicPointer<Signal> &_rthis_ptr, uint32 _evs, foundation::SignalExecuter&, const SignalUidT &, TimeSpec &);
 	StreamPointer<IOStream>	sptr;
 	FileUidT				fileuid;
 	RequestUidT			requid;
@@ -66,7 +66,7 @@ struct IOStreamSignal: Dynamic<IOStreamSignal, foundation::Signal>{
 //!A signal for sending errors from the fileManager
 struct StreamErrorSignal: Dynamic<StreamErrorSignal, foundation::Signal>{
 	StreamErrorSignal(int _errid, const RequestUidT &_requid);
-	int execute(uint32 _evs, foundation::SignalExecuter&, const SignalUidT &, TimeSpec &);
+	int execute(DynamicPointer<Signal> &_rthis_ptr, uint32 _evs, foundation::SignalExecuter&, const SignalUidT &, TimeSpec &);
 	int				errid;
 	RequestUidT	requid;
 };

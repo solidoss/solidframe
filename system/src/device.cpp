@@ -216,7 +216,7 @@ int SocketDevice::bind(const AddrInfoIterator &_rai){
 }
 int SocketDevice::bind(const SockAddrPair &_rsa){
 	if(!ok()) return BAD;
-	int rv = ::bind(descriptor(), _rsa.addr, _rsa.size);
+	int rv = ::bind(descriptor(), _rsa.addr, _rsa.size());
 	if(rv < 0){
 		edbgx(Dbg::system, "socket bind: "<<strerror(errno));
 		shutdownReadWrite();
@@ -282,7 +282,7 @@ int SocketDevice::recv(char *_pb, unsigned _ul, unsigned){
 	return ::recv(descriptor(), _pb, _ul, 0);
 }
 int SocketDevice::send(const char* _pb, unsigned _ul, const SockAddrPair &_sap){
-	return ::sendto(descriptor(), _pb, _ul, 0, _sap.addr, _sap.size);
+	return ::sendto(descriptor(), _pb, _ul, 0, _sap.addr, _sap.size());
 }
 int SocketDevice::recv(char *_pb, unsigned _ul, SocketAddress &_rsa){
 	_rsa.clear();
