@@ -59,7 +59,12 @@ int RemoteListSignal::ipcPrepare(const foundation::ipc::SignalUid &_rsiguid){
 		return NOK;
 	}else return OK;// on peer
 }
-int RemoteListSignal::ipcReceived(fdt::ipc::SignalUid &_rsiguid, const fdt::ipc::ConnectionUid &_rconid){
+int RemoteListSignal::ipcReceived(
+	fdt::ipc::SignalUid &_rsiguid,
+	const fdt::ipc::ConnectionUid &_rconid,
+	const SockAddrPair &_peeraddr,
+	int _peerbaseport
+){
 	DynamicPointer<fdt::Signal> psig(this);
 	conid = _rconid;
 	if(!ppthlst){//on peer
@@ -164,7 +169,12 @@ void FetchMasterSignal::print()const{
 	idbg("tmpfuid.first = "<<tmpfuid.first<<" tmpfuid.second = "<<tmpfuid.second);
 }
 
-int FetchMasterSignal::ipcReceived(fdt::ipc::SignalUid &_rsiguid, const fdt::ipc::ConnectionUid &_rconid){
+int FetchMasterSignal::ipcReceived(
+	fdt::ipc::SignalUid &_rsiguid,
+	const fdt::ipc::ConnectionUid &_rconid,
+	const SockAddrPair &_peeraddr,
+	int _peerbaseport
+){
 	DynamicPointer<fdt::Signal> sig(this);
 	conid = _rconid;
 	state = Received;
@@ -369,7 +379,12 @@ int FetchSlaveSignal::sent(const fdt::ipc::ConnectionUid &_rconid){
 	fromv.first = 0xffffffff;
 	return BAD;
 }
-int FetchSlaveSignal::ipcReceived(fdt::ipc::SignalUid &_rsiguid, const fdt::ipc::ConnectionUid &_rconid){
+int FetchSlaveSignal::ipcReceived(
+	fdt::ipc::SignalUid &_rsiguid,
+	const fdt::ipc::ConnectionUid &_rconid,
+	const SockAddrPair &_peeraddr,
+	int _peerbaseport
+){
 	DynamicPointer<fdt::Signal> psig(this);
 	conid = _rconid;
 	if(filesz == -10){
@@ -452,7 +467,12 @@ int FetchSlaveSignal::createSerializationStream(
 // SendStringSignal
 //-----------------------------------------------------------------------------------
 
-int SendStringSignal::ipcReceived(fdt::ipc::SignalUid &_rsiguid, const fdt::ipc::ConnectionUid &_rconid){
+int SendStringSignal::ipcReceived(
+	fdt::ipc::SignalUid &_rsiguid,
+	const fdt::ipc::ConnectionUid &_rconid,
+	const SockAddrPair &_peeraddr,
+	int _peerbaseport
+){
 	DynamicPointer<fdt::Signal> psig(this);
 	conid = _rconid;
 	Manager::the().signalObject(tov.first, tov.second, psig);
@@ -467,7 +487,12 @@ int SendStringSignal::ipcReceived(fdt::ipc::SignalUid &_rsiguid, const fdt::ipc:
 // SendStreamSignal
 //-----------------------------------------------------------------------------------
 
-int SendStreamSignal::ipcReceived(fdt::ipc::SignalUid &_rsiguid, const fdt::ipc::ConnectionUid &_rconid){
+int SendStreamSignal::ipcReceived(
+	fdt::ipc::SignalUid &_rsiguid,
+	const fdt::ipc::ConnectionUid &_rconid,
+	const SockAddrPair &_peeraddr,
+	int _peerbaseport
+){
 	DynamicPointer<fdt::Signal> psig(this);
 	conid = _rconid;
 	Manager::the().signalObject(tov.first, tov.second, psig);

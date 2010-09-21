@@ -100,11 +100,13 @@ void AddrInfo::reinit(
 // 
 // }
 
-Inet4SockAddrPair::Inet4SockAddrPair(const SockAddrPair &_rsap):addr((sockaddr_in*)_rsap.addr), size(_rsap.size){
+Inet4SockAddrPair::Inet4SockAddrPair(const SockAddrPair &_rsap):addr((sockaddr_in*)_rsap.addr)/*, size(_rsap.size)*/{
 	cassert(_rsap.family() == AddrInfo::Inet4);
+	cassert(_rsap.size() == size());
 }
-Inet4SockAddrPair::Inet4SockAddrPair(const SocketAddress &_rsa):addr((sockaddr_in*)_rsa.addr()),size(_rsa.size()){
+Inet4SockAddrPair::Inet4SockAddrPair(const SocketAddress &_rsa):addr((sockaddr_in*)_rsa.addr())/*, size(_rsa.size())*/{
 	cassert(_rsa.family() == AddrInfo::Inet4);
+	cassert(_rsa.size() == size());
 }
 int Inet4SockAddrPair::port()const{
 	return htons(addr->sin_port);
@@ -116,11 +118,13 @@ bool Inet4SockAddrPair::operator<(const Inet4SockAddrPair &_addr)const{
 	return addr->sin_addr.s_addr < _addr.addr->sin_addr.s_addr;
 }
 
-Inet6SockAddrPair::Inet6SockAddrPair(const SockAddrPair &_rsap):addr((sockaddr_in6*)_rsap.addr), size(_rsap.size){
+Inet6SockAddrPair::Inet6SockAddrPair(const SockAddrPair &_rsap):addr((sockaddr_in6*)_rsap.addr)/*, size(_rsap.size)*/{
 	cassert(_rsap.family() == AddrInfo::Inet6);
+	cassert(_rsap.size() == size());
 }
-Inet6SockAddrPair::Inet6SockAddrPair(const SocketAddress &_rsa):addr((sockaddr_in6*)_rsa.addr()),size(_rsa.size()){
+Inet6SockAddrPair::Inet6SockAddrPair(const SocketAddress &_rsa):addr((sockaddr_in6*)_rsa.addr())/*,size(_rsa.size())*/{
 	cassert(_rsa.family() == AddrInfo::Inet6);
+	cassert(_rsa.size() == size());
 }
 bool Inet6SockAddrPair::operator<(const Inet6SockAddrPair &_addr)const{
 	//return addr->sin6_addr.s_addr < _addr.addr->sin6_addr.s_addr;
@@ -159,14 +163,14 @@ bool SocketAddress::operator<(const SocketAddress &_raddr)const{
 }
 
 SocketAddress::SocketAddress(const Inet4SockAddrPair &_sp){
-	addr((sockaddr*)_sp.addr, _sp.size);
+	addr((sockaddr*)_sp.addr, _sp.size());
 }
 SocketAddress::SocketAddress(const Inet6SockAddrPair &_sp){
-	addr((sockaddr*)_sp.addr, _sp.size);
+	addr((sockaddr*)_sp.addr, _sp.size());
 }
 
 SocketAddress::SocketAddress(const SockAddrPair &_sp){
-	addr(_sp.addr, _sp.size);
+	addr(_sp.addr, _sp.size());
 }
 
 int SocketAddress::port()const{

@@ -16,9 +16,8 @@ IStreamSignal::IStreamSignal(
 	const RequestUidT &_requid
 ):sptr(_sptr), fileuid(_rfuid), requid(_requid){
 }
-int IStreamSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidT &, TimeSpec &){
-	DynamicPointer<Signal> cmdptr(this);
-	_rce.sendSignal(cmdptr, requid);
+int IStreamSignal::execute(DynamicPointer<Signal> &_rthis_ptr, uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidT &, TimeSpec &){
+	_rce.sendSignal(_rthis_ptr, requid);
 	return fdt::LEAVE;
 }
 //----------------------------------------------------------------------
@@ -28,9 +27,8 @@ OStreamSignal::OStreamSignal(
 	const RequestUidT &_requid
 ):sptr(_sptr), fileuid(_rfuid), requid(_requid){
 }
-int OStreamSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidT &, TimeSpec &){
-	DynamicPointer<Signal> cmdptr(this);
-	_rce.sendSignal(cmdptr, requid);
+int OStreamSignal::execute(DynamicPointer<Signal> &_rthis_ptr, uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidT &, TimeSpec &){
+	_rce.sendSignal(_rthis_ptr, requid);
 	return fdt::LEAVE;
 }
 //----------------------------------------------------------------------
@@ -40,9 +38,8 @@ IOStreamSignal::IOStreamSignal(
 	const RequestUidT &_requid
 ):sptr(_sptr), fileuid(_rfuid), requid(_requid){
 }
-int IOStreamSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidT &, TimeSpec &){
-	DynamicPointer<Signal> cmdptr(this);
-	_rce.sendSignal(cmdptr, requid);
+int IOStreamSignal::execute(DynamicPointer<Signal> &_rthis_ptr, uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidT &, TimeSpec &){
+	_rce.sendSignal(_rthis_ptr, requid);
 	return fdt::LEAVE;
 }
 //----------------------------------------------------------------------
@@ -51,9 +48,8 @@ StreamErrorSignal::StreamErrorSignal(
 	const RequestUidT &_requid
 ):errid(_errid), requid(_requid){
 }
-int StreamErrorSignal::execute(uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidT &, TimeSpec &){
-	DynamicPointer<Signal> cmdptr(this);
-	_rce.sendSignal(cmdptr, requid);
+int StreamErrorSignal::execute(DynamicPointer<Signal> &_rthis_ptr, uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidT &, TimeSpec &){
+	_rce.sendSignal(_rthis_ptr, requid);
 	return fdt::LEAVE;
 }
 //----------------------------------------------------------------------

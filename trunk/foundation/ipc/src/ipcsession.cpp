@@ -220,7 +220,9 @@ struct Session::Data{
 		uint32					id;
 		uint32					uid;
 	};
+	
 	typedef	std::vector<uint16>					UInt16VectorT;
+	
 	struct SendBufferData{
 		SendBufferData():uid(0), sending(0), mustdelete(0){}
 		Buffer				buffer;
@@ -229,10 +231,11 @@ struct Session::Data{
 		uint8				sending;
 		uint8				mustdelete;
 	};
+	
 	typedef std::pair<
 		const SockAddrPair*,
 		int
-	>											BaseProcAddrT;
+	>											BaseAddrT;
 	typedef Queue<uint32>						UInt32QueueT;
 	typedef Stack<uint32>						UInt32StackT;
 	typedef Stack<uint16>						UInt16StackT;
@@ -317,7 +320,7 @@ public:
 public:
 	SocketAddress			addr;
 	SockAddrPair			pairaddr;
-	BaseProcAddrT			baseaddr;
+	BaseAddrT				baseaddr;
 	uint32					rcvexpectedid;
 	uint8					state;
 	uint8					sendpendingcount;
@@ -503,6 +506,7 @@ SignalUid Session::Data::pushSendWaitSignal(
 		rssd.bufid = _bufid;
 		cassert(!rssd.signal.ptr());
 		rssd.signal = _sig;
+		cassert(!_sig.ptr());
 		rssd.flags = _flags;
 		
 		return SignalUid(idx, rssd.uid);
@@ -510,6 +514,7 @@ SignalUid Session::Data::pushSendWaitSignal(
 	}else{
 		
 		sendsignalvec.push_back(SendSignalData(_sig, _bufid, _flags, _id));
+		cassert(!_sig.ptr());
 		return SignalUid(sendsignalvec.size() - 1, 0/*uid*/);
 	}
 }
@@ -754,7 +759,7 @@ const Inet4SockAddrPair* Session::peerAddr4()const{
 }
 //---------------------------------------------------------------------
 const Session::Addr4PairT* Session::baseAddr4()const{
-	const Data::BaseProcAddrT *p = &(d.baseaddr);
+	const Data::BaseAddrT *p = &(d.baseaddr);
 	return reinterpret_cast<const std::pair<const Inet4SockAddrPair*, int>*>(p);
 }
 //---------------------------------------------------------------------
@@ -1226,9 +1231,9 @@ void Session::doParseBuffer(const Buffer &_rbuf, const ConnectionUid &_rconid){
 		blen -= rv;
 		
 		if(rrsd.pdeserializer->empty()){//done one signal.
-			SignalUid siguid(0xffffffff, 0xffffffff);
-			
-			if(rrsd.psignal->ipcReceived(siguid, _rconid)){
+			SignalUid 		siguid(0xffffffff, 0xffffffff);
+			SockAddrPair	pairaddr(d.addr);
+			if(rrsd.psignal->ipcReceived(siguid, _rconid, pairaddr, baseAddr4()->second)){
 				delete rrsd.psignal;
 				rrsd.psignal = NULL;
 			}

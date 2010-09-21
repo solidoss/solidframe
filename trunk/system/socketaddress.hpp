@@ -150,14 +150,26 @@ struct SocketAddress;
 	nor it will delete it. Use this structure in with SocketAddress and AddrInfoIterator
 */
 struct SockAddrPair{
-	SockAddrPair(sockaddr *_pa = NULL, size_t _sz = 0):addr(_pa),size(_sz){}
+	SockAddrPair(sockaddr *_pa = NULL, size_t _sz = 0):addr(_pa),sz(_sz){}
 	SockAddrPair(const AddrInfoIterator &_it);
 	SockAddrPair(SocketAddress &_rsa);
 	AddrInfo::Family family()const{return (AddrInfo::Family)addr->sa_family;}
 	SockAddrPair& operator=(const AddrInfoIterator &_it);
+	bool isInet4()const{
+		return sz == sizeof(sockaddr_in);
+	}
+	bool isInet6()const{
+		return sz == sizeof(sockaddr_in6);
+	}
+	socklen_t size()const{
+		return sz;
+	}
+	void size(socklen_t _sz){
+		sz = _sz;
+	}
 	//bool operator<(const SockAddrPair &_addr)const;
 	sockaddr	*addr;
-	socklen_t	size;
+	socklen_t	sz;
 };
 
 //! A pair of a sockaddr_in pointer and a size
@@ -174,7 +186,7 @@ struct Inet4SockAddrPair{
 	bool operator<(const Inet4SockAddrPair &_addr)const;
 	AddrInfo::Family family()const{return (AddrInfo::Family)addr->sin_family;}
 	sockaddr_in	*addr;
-	socklen_t	size;
+	socklen_t	size()const{return sizeof(sockaddr_in);}
 };
 
 //! A pair of a sockaddr_in6 pointer and a size
@@ -190,7 +202,7 @@ struct Inet6SockAddrPair{
 	bool operator<(const Inet6SockAddrPair &_addr)const;
 	AddrInfo::Family family()const{return (AddrInfo::Family)addr->sin6_family;}
 	sockaddr_in6	*addr;
-	socklen_t		size;
+	socklen_t	size()const{return sizeof(sockaddr_in6);}
 };
 
 //! Holds a socket address

@@ -178,6 +178,15 @@ public:
 		DynamicT *tmp = pdyn;
 		pdyn = NULL;return tmp;
 	}
+	DynamicPointerT& operator=(const DynamicPointerT &_rcp){
+		DynamicT *p(_rcp.release());
+		if(this == &_rcp){
+			return *this;
+		}
+		if(pdyn) clear();
+		pdyn = p;//we inherit the usecount
+		return *this;
+	}
 	template <class O>
 	DynamicPointerT& operator=(const DynamicPointer<O> &_rcp){
 		DynamicT *p(_rcp.release());

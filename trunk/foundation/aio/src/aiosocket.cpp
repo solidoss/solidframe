@@ -177,7 +177,7 @@ int Socket::recvFrom(char *_pb, uint32 _bl, uint32 _flags){
 	if(rv > 0){
 		rcvlen = rv;
 		rcvcnt += rv;
-		d.psd->rcvaddrpair.size = d.psd->rcvaddr.size();
+		d.psd->rcvaddrpair.size(d.psd->rcvaddr.size());
 		//d.pad->rcvaddrpair.addr = rcvsa.addr();
 		//d.pad->rcvaddrpair.size = rcvsa.size();
 		return OK;
@@ -301,7 +301,7 @@ int Socket::doRecvPlain(){
 				if(rv <= 0) return ERRDONE;
 				rcvcnt += rv;
 				rcvlen = rv;
-				d.psd->rcvaddrpair.size = d.psd->rcvaddr.size();
+				d.psd->rcvaddrpair.size(d.psd->rcvaddr.size());
 			}
 			rcvbuf = NULL;
 			ioreq &= ~FLAG_POLL_IN;
