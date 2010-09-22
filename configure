@@ -4,8 +4,9 @@ make_cmake_list(){
 	rm CMakeLists.txt
 	if [ $1 = "*" ]; then
 		echo "No child folder found!"
-		echo "#Automaticaly created" >> CMakeLists.txt
+		echo "# Automaticaly created" >> CMakeLists.txt
 	else
+		WRITEN_LIST=
 		for name in $*
 			do
 			if [ $name = "CMakeLists.txt" ]; then
@@ -15,6 +16,9 @@ make_cmake_list(){
 				echo "add_subdirectory("$name")\r\n" >> CMakeLists.txt
 			fi
 			done
+		if [ -z $WRITEN_LIST ]; then
+			echo "# Automaticaly created" >> CMakeLists.txt
+		fi
 	fi
 }
 
