@@ -4,7 +4,7 @@ make_cmake_list(){
 	rm CMakeLists.txt
 	if [ $1 = "*" ]; then
 		echo "No child folder found!"
-		echo -ne "\r\n" >> CMakeLists.txt
+		echo "#Automaticaly created" >> CMakeLists.txt
 	else
 		for name in $*
 			do
@@ -12,7 +12,7 @@ make_cmake_list(){
 				echo "Skip CMakeLists.txt"
 			else
 				echo "Adding dir: " $name
-				echo -ne "add_subdirectory("$name")\r\n" >> CMakeLists.txt
+				echo "add_subdirectory("$name")\r\n" >> CMakeLists.txt
 			fi
 			done
 	fi
@@ -65,7 +65,7 @@ print_usage(){
 # First define and initilaize the variables
 
 GENERATOR=
-CMAKE_PARAM=()
+#CMAKE_PARAM=()
 DOCUMENTATION=
 BUILD_TYPE=
 FOLDER_NAME=
@@ -251,7 +251,7 @@ if [ "$GENERATOR" = "" ]; then
 	exec cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS:STRING="$PARAM" -DUEXTERN:STRING="$EXTERN_PATH" -DUEXTERN_ABS:STRING="$EXTERN_ABS_PATH" -DUTESTING:STRING="$ENABLE_TESTING" -DUTEST_NAME="$TEST_NAME" -DUTEST_SITE="$TEST_SITE" "$@" "$SRC_PATH"
 	echo "Done!"
 else
-	echo "Using cmake's $GENERATOR with $CMAKE_PARAM:"
+	echo "Using cmake's $GENERATOR"
 	echo ""
 	
 	exec cmake -G "$GENERATOR" -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS:STRING="$PARAM" -DUEXTERN:STRING="$EXTERN_PATH" -DUEXTERN_ABS:STRING="$EXTERN_ABS_PATH" -DUTESTING:STRING="$ENABLE_TESTING" -DUTEST_NAME="$TEST_NAME" -DUTEST_SITE="$TEST_SITE" "$@" "$SRC_PATH"
