@@ -78,6 +78,7 @@ public:
 		d = _d;
 	}
 	void close(){
+		//fsync(d.descriptor());
 		d.close();
 	}
 protected:
@@ -116,6 +117,9 @@ public:
 		d = _d;
 	}
 	void close(){
+		if(!d.ok()) return;
+		flush();
+		//fsync(d.descriptor());
 		d.close();
 	}
 protected:
@@ -216,15 +220,16 @@ struct Dbg::Data{
 	Data():lvlmsk(0), sz(0), respinsz(0), respincnt(0), respinpos(0), dos(sz), dbos(sz), trace_debth(0){
 		pos = &std::cerr;
 	}
+	
 	void setModuleMask(const char*);
 	void setBit(const char *_pbeg, const char *_pend);
 	bool initFile(FileDevice &_rfd, uint32 _respincnt, uint64 _respinsz, string *_poutput);
 	void doRespin();
 	bool isActive()const{return lvlmsk != 0 && !bs.none();}
 	Mutex					m;
-	BitSetT				bs;
+	BitSetT					bs;
 	unsigned				lvlmsk;
-	NameVectorT			nv;
+	NameVectorT				nv;
 	time_t					begt;
 	TimeSpec				begts;
 	uint64					sz;
@@ -250,7 +255,10 @@ void splitPrefix(string &_path, string &_name, const char *_prefix);
 	
 Dbg::~Dbg(){
 	(*d.pos)<<flush;
-	delete &d;
+	d.dos.close();
+	d.dbos.close();
+	d.pos = &cerr;
+	//delete &d;
 }
 
 void Dbg::Data::setBit(const char *_pbeg, const char *_pend){
