@@ -30,7 +30,7 @@
 #include "system/thread.hpp"
 #include "system/timespec.hpp"
 
-#include "utility/mutualobjectcontainer.hpp"
+#include "utility/mutualobjectstore.hpp"
 #include "utility/iostream.hpp"
 #include "utility/queue.hpp"
 #include "utility/stack.hpp"
@@ -53,8 +53,8 @@ namespace file{
 struct Manager::Data{
 	enum {Running = 1, Stopping, Stopped = -1};
 	
-	typedef MutualObjectContainer<Mutex>		MutexContainerT;
-	typedef Stack<IndexT	>					FreeStackT;
+	typedef MutualObjectStore<Mutex>		MutexStoreT;
+	typedef Stack<IndexT	>				FreeStackT;
 	struct FileData{
 		FileData(
 			File *_pfile = NULL
@@ -109,7 +109,7 @@ struct Manager::Data{
 	Controller				*pc;//pointer to controller
 	uint32					sz;
 	Mutex					*mut;
-	MutexContainerT			mutpool;
+	MutexStoreT				mutpool;
 	FileVectorT				fv;//file vector
 	MapperVectorT			mv;//mapper vector
 	Index32QueueT			meq;//mapper execution queue

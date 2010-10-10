@@ -27,7 +27,7 @@
 #include "system/mutex.hpp"
 #include "system/condition.hpp"
 
-#include "utility/mutualobjectcontainer.hpp"
+#include "utility/mutualobjectstore.hpp"
 #include "utility/queue.hpp"
 #include "utility/stack.hpp"
 
@@ -45,7 +45,7 @@ struct Service::Data{
 	typedef std::deque<ObjectPairT>			ObjectVectorT;
 	typedef Stack<ulong>					ULongStackT;
 	
-	typedef MutualObjectContainer<Mutex>	MutexContainerT;
+	typedef MutualObjectStore<Mutex>		MutexStoreT;
 	
 	Data(
 		int _objpermutbts,
@@ -59,7 +59,7 @@ struct Service::Data{
 	Condition			cond;
 	Mutex				*pmut;
 	ulong				objcnt;//object count
-	MutexContainerT		mutpool;
+	MutexStoreT			mutpool;
 };
 	
 typedef std::pair<Object*, uint32>	ObjPairT;

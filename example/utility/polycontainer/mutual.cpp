@@ -1,4 +1,4 @@
-#include "utility/mutualobjectcontainer.hpp"
+#include "utility/mutualobjectstore.hpp"
 #include <iostream>
 
 using namespace std;
@@ -12,7 +12,7 @@ int main(int argc, char *argv[]){
 	int mutrowsbts(atoi(argv[2]));
 	int mutcolsbts(atoi(argv[3]));
 	int count(atoi(argv[4]));
-	MutualObjectContainer<uint32> moc(objpermutbts, mutrowsbts, mutcolsbts);
+	MutualObjectStore<uint32> moc(objpermutbts, mutrowsbts, mutcolsbts);
 	
 	for(int i = 0; i < count; ++i){
 		moc.safeObject(i) = i;
