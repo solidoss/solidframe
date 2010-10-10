@@ -1,4 +1,4 @@
-/* Declarations file mutualobjectcontainer.hpp
+/* Declarations file mutualobjectstore.hpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
@@ -19,21 +19,21 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef MUTUALOBJECTCONTAINER_HPP
-#define MUTUALOBJECTCONTAINER_HPP
+#ifndef MUTUALOBJECTSTORE_HPP
+#define MUTUALOBJECTSTORE_HPP
 
 #include "common.hpp"
 #include "system/convertors.hpp"
 
 //! A container of shared objects
 /*!
-	Here's the concrete situation for which i've designed this container.
+	Here's the concrete situation for which this object store was designed for:<br><br>
 	
 	Suppose you have lots of objects in a vector. Also suppose that every
 	this object needs an associated mutex. More over such a mutex can be
 	shared by multiple objects, and you dont want all mutexez created at once.
 	
-	MutualObjectContainer does:<br>
+	MutualObjectStore does:<br>
 	- associate M indexes (a range of indexes) to a mutex/an object;
 	- allocates the mutexes by rows of N mutexes/objects
 	- allocates no more than R rows
@@ -42,10 +42,10 @@
 	- Then it will start allover with the mutex(0,0)
 	
 	In the end Ive decided that instead of a mutext I should have any type I want,
-	so the template\<Obj\> MutualObjectContainer appeared.
+	so the template\<Obj\> MutualObjectStore appeared.
 */
 template <class Obj>
-class MutualObjectContainer{
+class MutualObjectStore{
 public:
 	typedef Obj MutualObjectT;
 	//!Constructor
@@ -55,7 +55,7 @@ public:
 		\param _mutrowsbts The number of mutex rows in bitcount (real count 1<<bitcount)
 		\param _mutcolsbts The number of mutexes in a row in bitcount (real count 1<<bitcount)
 	*/
-	MutualObjectContainer(
+	MutualObjectStore(
 		unsigned _objpermutbts = 6,
 		unsigned _mutrowsbts = 3,
 		unsigned _mutcolsbts = 3
@@ -71,7 +71,7 @@ public:
 	{
 		for(uint i = 0; i < mutrowscnt; ++i) objmat[i] = NULL;
 	}
-	~MutualObjectContainer(){
+	~MutualObjectStore(){
 		for(uint i(0); i < mutrowscnt; ++i){
 			delete []objmat[i];
 		}

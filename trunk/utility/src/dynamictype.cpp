@@ -3,7 +3,7 @@
 #include "system/cassert.hpp"
 #include "system/mutex.hpp"
 
-#include "utility/mutualobjectcontainer.hpp"
+#include "utility/mutualobjectstore.hpp"
 #include "utility/dynamictype.hpp"
 #include "utility/dynamicpointer.hpp"
 #include "utility/shared.hpp"
@@ -15,21 +15,21 @@
 //---------------------------------------------------------------------
 
 namespace{
-typedef MutualObjectContainer<Mutex>	MutexContainerT;
+typedef MutualObjectStore<Mutex>	MutexStoreT;
 
-MutexContainerT &mutexContainer(){
+MutexStoreT &mutexStore(){
 	//TODO: staticproblem
-	static MutexContainerT		mutpool(3, 2, 2);
+	static MutexStoreT		mutpool(3, 2, 2);
 	return mutpool;
 }
 
 }//namespace
 
 /*static*/ Mutex& Shared::mutex(void *_pv){
-	return mutexContainer().object((uint32)reinterpret_cast<ulong>(_pv));
+	return mutexStore().object((uint32)reinterpret_cast<ulong>(_pv));
 }
 Shared::Shared(){
-	mutexContainer().safeObject((uint32)reinterpret_cast<ulong>(this));
+	mutexStore().safeObject((uint32)reinterpret_cast<ulong>(this));
 }
 Mutex& Shared::mutex(){
 	return mutex(this);
