@@ -30,7 +30,7 @@
 #include "system/thread.hpp"
 #include "system/timespec.hpp"
 
-#include "utility/mutualobjectstore.hpp"
+#include "utility/mutualstore.hpp"
 #include "utility/iostream.hpp"
 #include "utility/queue.hpp"
 #include "utility/stack.hpp"
@@ -53,8 +53,8 @@ namespace file{
 struct Manager::Data{
 	enum {Running = 1, Stopping, Stopped = -1};
 	
-	typedef MutualObjectStore<Mutex>		MutexStoreT;
-	typedef Stack<IndexT	>				FreeStackT;
+	typedef MutualStore<Mutex>		MutexStoreT;
+	typedef Stack<IndexT	>		FreeStackT;
 	struct FileData{
 		FileData(
 			File *_pfile = NULL
@@ -102,14 +102,14 @@ struct Manager::Data{
 	typedef Queue<SendErrorDataT>		SendErrorQueueT;
 	
 	
-	Data(Controller *_pc):pc(_pc), sz(0), mut(NULL), mutpool(0, 3, 5){}
+	Data(Controller *_pc):pc(_pc), sz(0), mtx(NULL), mtxstore(0, 3, 5){}
 	~Data(){}
 	void pushFileInTemp(File *_pf);
 //data:
 	Controller				*pc;//pointer to controller
 	uint32					sz;
-	Mutex					*mut;
-	MutexStoreT				mutpool;
+	Mutex					*mtx;
+	MutexStoreT				mtxstore;
 	FileVectorT				fv;//file vector
 	MapperVectorT			mv;//mapper vector
 	Index32QueueT			meq;//mapper execution queue
@@ -131,11 +131,11 @@ void Manager::Data::pushFileInTemp(File *_pf){
 	}else{
 		if(fs.size()){
 			idx = fs.top();fs.pop();
-			Mutex::Locker lock(mutpool.safeObject(idx));
+			Mutex::Locker lock(mtxstore.safeAt(idx));
 			fv[idx].pfile = _pf;
 		}else{
 			idx = fv.size();
-			Mutex::Locker lock(mutpool.safeObject(idx));
+			Mutex::Locker lock(mtxstore.safeAt(idx));
 			fv.push_back(FileData(_pf));
 		}
 		_pf->id(idx);
@@ -169,7 +169,7 @@ Manager::~Manager(){
 //------------------------------------------------------------------
 
 int Manager::execute(ulong _evs, TimeSpec &_rtout){
-	d.mut->lock();
+	d.mtx->lock();
 	if(signaled()){
 		ulong sm = grabSignalMask(0);
 		idbgx(Dbg::file, "signalmask "<<sm);
@@ -178,7 +178,7 @@ int Manager::execute(ulong _evs, TimeSpec &_rtout){
 			vdbgx(Dbg::file, "kill "<<d.sz);
 			if(!d.sz){//no file
 				state(-1);
-				d.mut->unlock();
+				d.mtx->unlock();
 				vdbgx(Dbg::file, "");
 				d.pc->removeFileManager();
 				return BAD;
@@ -196,7 +196,7 @@ int Manager::execute(ulong _evs, TimeSpec &_rtout){
 	
 	doDeleteFiles();
 	
-	d.mut->unlock();//done with the locking
+	d.mtx->unlock();//done with the locking
 	
 	doScanTimeout(_rtout);
 	
@@ -300,7 +300,7 @@ void Manager::doExecuteMappers(){
 }
 //------------------------------------------------------------------
 void Manager::doExecuteFile(const IndexT &_idx, const TimeSpec &_rtout){
-	Mutex			&rm(d.mutpool.object(_idx));
+	Mutex			&rm(d.mtxstore.at(_idx));
 	Data::FileData	&rfd(d.fv[_idx]);
 	TimeSpec 		ts(_rtout);
 	Stub 			s(*this);
@@ -351,7 +351,7 @@ void Manager::doDeleteFiles(){
 		
 		{
 			
-			//Mutex::Locker lock(d.mutpool.object(idx));
+			//Mutex::Locker lock(d.mtxstore.at(idx));
 			
 			if(rfd.pfile->tryRevive()){
 				if(!rfd.inexecq){
@@ -395,18 +395,18 @@ void Manager::doScanTimeout(const TimeSpec &_rtout){
 }
 //------------------------------------------------------------------
 //overload from object
-void Manager::mutex(Mutex *_pmut){
-	d.mut = _pmut;
+void Manager::mutex(Mutex *_pmtx){
+	d.mtx = _pmtx;
 }
 //------------------------------------------------------------------
 void Manager::releaseIStream(IndexT _fileid){
 	bool b = false;
 	{
-		Mutex::Locker lock(d.mutpool.object(_fileid));
+		Mutex::Locker lock(d.mtxstore.at(_fileid));
 		b = d.fv[_fileid].pfile->decreaseInCount();
 	}
 	if(b){
-		Mutex::Locker	lock(*d.mut);
+		Mutex::Locker	lock(*d.mtx);
 		//we must signal the filemanager
 		d.feq.push(d.fv[_fileid].pfile);
 		vdbgx(Dbg::file, "sq.push "<<_fileid);
@@ -419,11 +419,11 @@ void Manager::releaseIStream(IndexT _fileid){
 void Manager::releaseOStream(IndexT _fileid){
 	bool b = false;
 	{
-		Mutex::Locker lock(d.mutpool.object(_fileid));
+		Mutex::Locker lock(d.mtxstore.at(_fileid));
 		b = d.fv[_fileid].pfile->decreaseOutCount();
 	}
 	if(b){
-		Mutex::Locker	lock(*d.mut);
+		Mutex::Locker	lock(*d.mtx);
 		//we must signal the filemanager
 		d.feq.push(d.fv[_fileid].pfile);
 		vdbgx(Dbg::file, "sq.push "<<_fileid);
@@ -444,7 +444,7 @@ int Manager::fileWrite(
 	const int64 &_off,
 	uint32 _flags
 ){
-	Mutex::Locker lock(d.mutpool.object(_fileid));
+	Mutex::Locker lock(d.mtxstore.at(_fileid));
 	return d.fv[_fileid].pfile->write(_pb, _bl, _off, _flags);
 }
 //------------------------------------------------------------------
@@ -455,12 +455,12 @@ int Manager::fileRead(
 	const int64 &_off,
 	uint32 _flags
 ){
-	Mutex::Locker lock(d.mutpool.object(_fileid));
+	Mutex::Locker lock(d.mtxstore.at(_fileid));
 	return d.fv[_fileid].pfile->read(_pb, _bl, _off, _flags);
 }
 //------------------------------------------------------------------
 int64 Manager::fileSize(IndexT _fileid){
-	Mutex::Locker lock(d.mutpool.object(_fileid));
+	Mutex::Locker lock(d.mtxstore.at(_fileid));
 	return d.fv[_fileid].pfile->size();
 }
 //===================================================================
@@ -473,7 +473,7 @@ int Manager::doGetStream(
 	const Key &_rk,
 	uint32 _flags
 ){
-	Mutex::Locker	lock1(*d.mut);
+	Mutex::Locker	lock1(*d.mtx);
 	
 	if(state() != Data::Running) return BAD;
 	
@@ -487,7 +487,7 @@ int Manager::doGetStream(
 	
 	if(pf->isRegistered()){//
 		const IndexT	fid = pf->id();
-		Mutex::Locker	lock2(d.mutpool.object(fid));
+		Mutex::Locker	lock2(d.mtxstore.at(fid));
 		_rfuid.first = fid;
 		_rfuid.second = d.fv[fid].uid; 
 		rv = pf->stream(s, _sptr, _requid, _flags);
@@ -717,9 +717,9 @@ int Manager::stream(
 	const RequestUid &_requid,
 	uint32 _flags
 ){
-	Mutex::Locker	lock1(*d.mut);
+	Mutex::Locker	lock1(*d.mtx);
 	if(_rfuid.first < d.fv.size() && d.fv[_rfuid.first].uid == _rfuid.second){
-		Mutex::Locker	lock2(d.mutpool.object(_rfuid.first));
+		Mutex::Locker	lock2(d.mtxstore.at(_rfuid.first));
 		Data::FileData	&rfd(d.fv[_rfuid.first]);
 		if(rfd.pfile){
 			Stub	s(*this);
@@ -735,9 +735,9 @@ int Manager::stream(
 	const RequestUid &_requid,
 	uint32 _flags
 ){
-	Mutex::Locker	lock1(*d.mut);
+	Mutex::Locker	lock1(*d.mtx);
 	if(_rfuid.first < d.fv.size() && d.fv[_rfuid.first].uid == _rfuid.second){
-		Mutex::Locker	lock2(d.mutpool.object(_rfuid.first));
+		Mutex::Locker	lock2(d.mtxstore.at(_rfuid.first));
 		Data::FileData	&rfd(d.fv[_rfuid.first]);
 		if(rfd.pfile){
 			Stub	s(*this);
@@ -753,9 +753,9 @@ int Manager::stream(
 	const RequestUid &_requid,
 	uint32 _flags
 ){
-	Mutex::Locker	lock1(*d.mut);
+	Mutex::Locker	lock1(*d.mtx);
 	if(_rfuid.first < d.fv.size() && d.fv[_rfuid.first].uid == _rfuid.second){
-		Mutex::Locker	lock2(d.mutpool.object(_rfuid.first));
+		Mutex::Locker	lock2(d.mtxstore.at(_rfuid.first));
 		Data::FileData	&rfd(d.fv[_rfuid.first]);
 		if(d.fv[_rfuid.first].pfile){
 			Stub	s(*this);

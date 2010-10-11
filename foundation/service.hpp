@@ -121,7 +121,7 @@ protected:
 	void doSignalAll(Manager &_rm, DynamicPointer<Signal> &_rsig);
 	//! Insert an object - the service's mutex must be locked from outside
 	int doInsert(Object &_robj, IndexT _srvid);
-	//! Constructor - forwards the parameters to the MutualObjectStore of mutexes
+	//! Constructor - forwards the parameters to the MutualStore of mutexes
 	Service(int _objpermutbts = 6, int _mutrowsbts = 8, int _mutcolsbts = 8);
 	
 	

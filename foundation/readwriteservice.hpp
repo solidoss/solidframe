@@ -24,7 +24,7 @@
 #include <vector>
 #include <stack>
 
-#include "utility/mutualobjectstore.hpp"
+#include "utility/mutualstore.hpp"
 
 #include "service.hpp"
 
@@ -38,9 +38,12 @@ protected:
 	ReadWriteService(int _objpermutbts = 6, int _mutrowsbts = 8, int _mutcolsbts = 8);
 	virtual int insert(Object &_robj, ulong _srvid);
 private:
-	typedef std::stack<Condition*, std::vector<Condition*> > CondStackT; 
-	typedef MutualObjectStore<CondStackT> ConditionPoolT;
-	ConditionPoolT	cndpool;
+	typedef std::stack<
+		Condition*,
+		std::vector<Condition*>
+	> 								CondStackT; 
+	typedef MutualStore<CondStackT>	ConditionStoreT;
+	ConditionStoreT	cndstore;
 };
 }//namespace foundation
 #endif

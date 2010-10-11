@@ -1,4 +1,4 @@
-#include "utility/mutualobjectstore.hpp"
+#include "utility/mutualstore.hpp"
 #include <iostream>
 
 using namespace std;
@@ -12,14 +12,14 @@ int main(int argc, char *argv[]){
 	int mutrowsbts(atoi(argv[2]));
 	int mutcolsbts(atoi(argv[3]));
 	int count(atoi(argv[4]));
-	MutualObjectStore<uint32> moc(objpermutbts, mutrowsbts, mutcolsbts);
+	MutualStore<uint32> ms(objpermutbts, mutrowsbts, mutcolsbts);
 	
 	for(int i = 0; i < count; ++i){
-		moc.safeObject(i) = i;
+		ms.safeAt(i) = i;
 	}
 	
 	for(int i(0); i < count; ++i){
-		cout<<"object("<<i<<") = "<<moc.object(i)<<endl;
+		cout<<"object("<<i<<") = "<<ms.at(i)<<endl;
 	}
 	
 	return 0;
