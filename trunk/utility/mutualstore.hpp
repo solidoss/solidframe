@@ -1,4 +1,4 @@
-/* Declarations file mutualobjectstore.hpp
+/* Declarations file mutualstore.hpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef MUTUALOBJECTSTORE_HPP
-#define MUTUALOBJECTSTORE_HPP
+#ifndef MUTUALSTORE_HPP
+#define MUTUALSTORE_HPP
 
 #include "common.hpp"
 #include "system/convertors.hpp"
@@ -33,7 +33,7 @@
 	this object needs an associated mutex. More over such a mutex can be
 	shared by multiple objects, and you dont want all mutexez created at once.
 	
-	MutualObjectStore does:<br>
+	MutualSStore does:<br>
 	- associate M indexes (a range of indexes) to a mutex/an object;
 	- allocates the mutexes by rows of N mutexes/objects
 	- allocates no more than R rows
@@ -42,10 +42,10 @@
 	- Then it will start allover with the mutex(0,0)
 	
 	In the end Ive decided that instead of a mutext I should have any type I want,
-	so the template\<Obj\> MutualObjectStore appeared.
+	so the template\<Obj\> MutualStore appeared.
 */
 template <class Obj>
-class MutualObjectStore{
+class MutualStore{
 public:
 	typedef Obj MutualObjectT;
 	//!Constructor
@@ -55,7 +55,7 @@ public:
 		\param _mutrowsbts The number of mutex rows in bitcount (real count 1<<bitcount)
 		\param _mutcolsbts The number of mutexes in a row in bitcount (real count 1<<bitcount)
 	*/
-	MutualObjectStore(
+	MutualStore(
 		unsigned _objpermutbts = 6,
 		unsigned _mutrowsbts = 3,
 		unsigned _mutcolsbts = 3
@@ -71,7 +71,7 @@ public:
 	{
 		for(uint i = 0; i < mutrowscnt; ++i) objmat[i] = NULL;
 	}
-	~MutualObjectStore(){
+	~MutualStore(){
 		for(uint i(0); i < mutrowscnt; ++i){
 			delete []objmat[i];
 		}
@@ -81,19 +81,19 @@ public:
 	/*!
 		Use this after calling safeObject once for a certain position.
 	*/
-	inline MutualObjectT& object(unsigned i){
+	inline MutualObjectT& at(unsigned i){
 		return doGetObject(i >> objpermutbts);
 	}
 	//! Slower but safe get the mutex for a position
 	/*!
 		It will reallocate new mutexes if needed
 	*/
-	MutualObjectT& safeObject(unsigned i){
+	MutualObjectT& safeAt(unsigned i){
 		int mrow = getObjectRow(i);
 		if(!objmat[mrow]){
 			objmat[mrow] = new MutualObjectT[mutcolscnt];
 		}
-		return object(i);
+		return at(i);
 	}
 	//! Gets the mutex at pos i (the matrix is seen as a vector)
 	inline MutualObjectT& operator[](unsigned i){
