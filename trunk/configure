@@ -6,19 +6,16 @@ make_cmake_list(){
 		echo "No child folder found!"
 		echo "# Automaticaly created" >> CMakeLists.txt
 	else
-		WRITEN_LIST=
+		echo "# Automaticaly created" >> CMakeLists.txt
 		for name in $*
 			do
 			if [ $name = "CMakeLists.txt" ]; then
 				echo "Skip CMakeLists.txt"
 			else
 				echo "Adding dir: " $name
-				echo "add_subdirectory("$name")\r\n" >> CMakeLists.txt
+				echo -ne "add_subdirectory("$name")\r\n" >> CMakeLists.txt
 			fi
 			done
-		if [ -z $WRITEN_LIST ]; then
-			echo "# Automaticaly created" >> CMakeLists.txt
-		fi
 	fi
 }
 
@@ -27,8 +24,8 @@ print_usage(){
 	echo "Usage:"
 	echo -ne "\n./configure [-g|--generator GeneratorName] [-f|--folder FolderName] [-b|--build BuildType]"
 	echo -ne " [-p|--param ParamName] [-d|--documentation full/fast] [-h|--help]"
-	echo -ne " [-e|--extern-path ExternPath] [-c|--cmake-param]"
-	echo -ne " [-t|--enable-testing] [--test-name name] [--test-site addr]\n"
+	echo -ne " [-e|--extern-path ExternPath] [-P|--cmake-param]"
+	echo -ne " [-t|--enable-testing] [--test-name name] [--test-site addr] [-c|--create-lists] [-]\n"
 	echo
 	echo -ne "Options:\n"
 	echo "[-g|--generator GeneratorName]: Specify the cmake generator - default cmake's default"
@@ -42,7 +39,8 @@ print_usage(){
 	echo "[-t|--enable-testing]: Enable unit-testing using ctest"
 	echo "[--test-name name]: The name of ctest/cdash project"
 	echo "[--test-site addr]: The address for cdash drop site"
-	echo "[-c|--cmake-param]: Some parameters given to cmake like: -DECLIPSE_CDT4_GENERATE_SOURCE_PROJECT=TRUE"
+	echo "[-P|--cmake-param]: Some parameters given to cmake like: -DECLIPSE_CDT4_GENERATE_SOURCE_PROJECT=TRUE"
+	echo "[-c|--create-lists]: Implicit for any build option - create CMakeLists.txt files for <application> and <library> folders and exits the script. E.g use this before creating a KDevelop4 project."
 	echo
 	echo "Examples:"
 	echo "1) create simple make release build:"
@@ -81,6 +79,7 @@ EXTERN_ABS_PATH=
 ENABLE_TESTING=
 TEST_NAME=
 TEST_SITE=
+CREATE_LISTS=
 
 #echo "$@"
 pass_arg_count=0
@@ -141,7 +140,9 @@ do
 			EXTERN_ABS_PATH=$1
 		fi
 		;;
-
+	-c|--create-lists)
+		CREATE_LISTS="yes"
+		;;
 	-h|--help)
 		HELP="yes"
 		;;
@@ -177,6 +178,19 @@ if [ "$HELP" = "yes" ]; then
 	print_usage
 	exit
 fi
+
+if [ "$CREATE_LISTS" = "yes" ]; then
+	cd application
+	make_cmake_list *
+	cd ../
+	
+	cd library
+	make_cmake_list *
+	cd ../
+
+	exit
+fi
+
 
 if [ "$DOCUMENTATION" = "full" ]; then
 	echo "Building full documentation ..."
@@ -222,10 +236,10 @@ echo "Configure an out-of-source build configuration of type $BUILD_TYPE on fold
 cd application
 make_cmake_list *
 cd ../
-# 
-# cd library
-# make_cmake_list *
-# cd ../
+ 
+cd library
+make_cmake_list *
+cd ../
 
 SRC_PATH="`pwd`"
 
