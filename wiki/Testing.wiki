@@ -5,8 +5,8 @@
 
 First of all, I suppose you are on a linux box.
 
-You need to have the following installed: gcc-c++, cmake and eventually subversion.
-(On a Fedora box, the following will suffice: 'yum install gcc-c++ cmake subversion'.)
+You need to have the following installed: gcc-c++, cmake and eventually subversion and curl.
+(On a Fedora box, the following will suffice: 'yum install gcc-c++ cmake subversion curl'.)
 
 If you use svn to fetch the latest code you can do:
 
@@ -30,13 +30,10 @@ Next you'll need to prepare the *SolidGround* extern library pack:
 {{{
 work $ mkdir sg_extern
 work $ cd sg_extern
-sg_extern $ wget "http://downloads.sourceforge.net/project/boost/boost/1.41.0/boost_1_41_0.tar.bz2?use_mirror=dfn"
-sg_extern $ wget "http://www.openssl.org/source/openssl-0.9.8k.tar.gz"
-sg_extern $ ln -s ../solidground/administration/linux/prepare_extern.sh .
-sg_extern $ ./prepare_extern.sh
+work $ ../solidground/administration/prepare_extern.sh -a
 }}}
 
-The script will automatically extract and build the needed extern libraries.
+The script will automatically download, extract and build the needed extern libraries.
 
 =Building the example applications=
 
@@ -48,7 +45,7 @@ To build the example applications you need to prepare the build folder. You can 
 	* optimized - without debug messages, -O3 -g3, without inlines, with assert
 	* maintain - with debug messages, -O3 -g3, with inlines, with assert, all compile warnings active
 
-In the this workshop we'll use debug build but you can use any other build type.
+In this workshop we'll use debug build.
 
 {{{
 solidground $ ./configure --help
@@ -100,6 +97,7 @@ in one terminal:
 solidground $ cd build/dbg/example/foundation/main
 main $ ./concept -b 1000
 }}}
+
 in another terminal:
 
 {{{
@@ -113,16 +111,20 @@ in yet another terminal we should use the clients:
 solidground $ cd build/dbg/example/client
 }}}
 
-First let us use the plain client for local fetching on 10 threads:
+First let us use the plain alpha client for local fetching on 10 threads:
+
 {{{
 client $ time ./alphaclient_p 10 localhost 1114 /tmp/00000001 5 2
 }}}
+
 Next lets use it for remote fetching using the second example application instance as peer:
+
 {{{
 client $ time ./alphaclient_p 10 localhost 1114 /tmp/00000001 5 2 localhost 2222
 }}}
 
 Now lets use the alphaclient_s for SSL connections:
+
 {{{
 client $ time ./alphaclient_s 10 localhost 1124 /tmp/00000001 5 2
 client $ time ./alphaclient_p 10 localhost 1124 /tmp/00000001 5 2 localhost 2222
@@ -132,7 +134,7 @@ client $ time ./alphaclient_p 10 localhost 1124 /tmp/00000001 5 2 localhost 2222
 
 Here is approximately what the client does on every connection it opens to the server:
 
-	# gets the local or the remote list of files from folder /tmp (list or remotelist commands)
+	# gets the local or the remote list of files from folder /tmp/00000001 (list or remotelist commands)
 	# for every file in the list it issues a fetch / remote fetch to read the file (fetch command)
 	# it does the previous step twice with 5 milliseconds sleep between commands
 	
@@ -154,7 +156,7 @@ Lists all items from '/absolute/path' specifying whether they are files or folde
 e.g.: `aa remotelist "/tmp" localhost 2222`
 
 Here's what will happen behind the curtain:
-	* a command is created and sent to peer process.
+	* a signal is created and sent to peer process.
 	* there it is executed and it fetches all items under the requested path
 	* it returns to the issuer process with a response containing the list of items
 	* here the list is written on the connection.
