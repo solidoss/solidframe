@@ -191,10 +191,10 @@ foreach($cp in $cmake_param)
 }
 if(!($generator -eq ""))
 {
-	cmake -G $generator -DCMAKE_BUILD_TYPE=$builf "-DUDEFS:STRING=`"$param`"" "-DUEXTERN_ABS:STRING=`"$extern_path`"" "-DUTESTING:STRING=`"$enable_testing`"" "-DUTEST_NAME=`"$test_name`"" "-DUTEST_SITE=`"$test_site`"" $cmake_param "$current_folder"
+	cmake -G $generator -DCMAKE_BUILD_TYPE=$build "-DUDEFS:STRING=`"$param`"" "-DUEXTERN_ABS:STRING=`"$extern_path`"" "-DUTESTING:STRING=`"$enable_testing`"" "-DUTEST_NAME=`"$test_name`"" "-DUTEST_SITE=`"$test_site`"" $cmake_param "$current_folder"
 }
 else
 {
-	cmake -DCMAKE_BUILD_TYPE=$builf "-DUDEFS:STRING=`"$param`"" "-DUEXTERN_ABS:STRING=`"$extern_path`"" "-DUTESTING:STRING=`"$enable_testing`"" "-DUTEST_NAME=`"$test_name`"" "-DUTEST_SITE=`"$test_site`"" $cmake_param "$current_folder"
+	cmake -DCMAKE_BUILD_TYPE=$build "-DUDEFS:STRING=`"$param`"" "-DUEXTERN_ABS:STRING=`"$extern_path`"" "-DUTESTING:STRING=`"$enable_testing`"" "-DUTEST_NAME=`"$test_name`"" "-DUTEST_SITE=`"$test_site`"" $cmake_param "$current_folder"
 }
 cd "$current_folder"
