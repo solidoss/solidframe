@@ -18,8 +18,8 @@
 	You should have received a copy of the GNU General Public License
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef BINAR_SEEKER_HPP
-#define BINAR_SEEKER_HPP
+#ifndef UTILITY_BINARY_SEEKER_HPP
+#define UTILITY_BINARY_SEEKER_HPP
 
 //! A basic comparator for binary seeker using less (<) operator.
 /*!

@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef SYNCHROPP_HPP
-#define SYNCHROPP_HPP
+#ifndef SYSTEM_SYNCHRO_HPP
+#define SYSTEM_SYNCHRO_HPP
 
 #include "system/cassert.hpp"
 #include <semaphore.h>
@@ -221,7 +221,7 @@ private:
 // };
 
 #ifndef NINLINES
-#include "src/synchronization.ipp"
+#include "system/synchronization.ipp"
 #endif
 
 

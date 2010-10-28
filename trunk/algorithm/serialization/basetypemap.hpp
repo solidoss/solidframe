@@ -18,8 +18,8 @@
 	You should have received a copy of the GNU General Public License
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef BASE_TYPE_MAP_HPP
-#define BASE_TYPE_MAP_HPP
+#ifndef ALGORITHM_SERIALIZATION_BASE_TYPE_MAP_HPP
+#define ALGORITHM_SERIALIZATION_BASE_TYPE_MAP_HPP
 
 namespace serialization{
 //! A base class for mapping types to callbacks

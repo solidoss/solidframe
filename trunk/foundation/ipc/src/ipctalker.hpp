@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CLIENTSERVER_IPC_TALKER_HPP
-#define CLIENTSERVER_IPC_TALKER_HPP
+#ifndef FOUNDATION_IPC_SRC_IPC_TALKER_HPP
+#define FOUNDATION_IPC_SRC_IPC_TALKER_HPP
 
 #include "foundation/aio/aiosingleobject.hpp"
 

@@ -19,14 +19,14 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "specific.hpp"
-#include "thread.hpp"
-#include "debug.hpp"
-#include "mutex.hpp"
 #include <stack>
 #include <vector>
-#include "common.hpp"
+#include "system/common.hpp"
 #include "system/cassert.hpp"
+#include "system/specific.hpp"
+#include "system/thread.hpp"
+#include "system/debug.hpp"
+#include "system/mutex.hpp"
 
 #ifndef OBJ_CACHE_CAP
 #define OBJ_CACHE_CAP 4096*2

@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef THREADPP_HPP
-#define THREADPP_HPP
+#ifndef SYSTEM_THREAD_HPP
+#define SYSTEM_THREAD_HPP
 
 #ifdef ON_WINDOWS
 #else

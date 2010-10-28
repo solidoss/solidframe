@@ -21,14 +21,16 @@
 
 
 #include <cerrno>
-#include <string.h>
+#include <cstring>
 #include <pthread.h>
 #include <limits.h>
+
 #include "system/timespec.hpp"
 #include "system/thread.hpp"
 #include "system/debug.hpp"
 #include "system/condition.hpp"
 #include "mutexpool.hpp"
+
 #ifdef ON_FREEBSD
 #include <pmc.h>
 #else
@@ -83,19 +85,19 @@ int Condition::wait(Mutex &_mut, const TimeSpec &_ts){
 //*************************************************************************
 /*static*/ const TimeSpec TimeSpec::max(0xffffffff, 0xffffffff);
 #ifdef NINLINES
-#include "timespec.ipp"
+#include "system/timespec.ipp"
 #endif
 //*************************************************************************
 #ifdef NINLINES
-#include "mutex.ipp"
+#include "system/mutex.ipp"
 #endif
 //*************************************************************************
 #ifdef NINLINES
-#include "condition.ipp"
+#include "system/condition.ipp"
 #endif
 //*************************************************************************
 #ifdef NINLINES
-#include "synchronization.ipp"
+#include "system/synchronization.ipp"
 #endif
 //-------------------------------------------------------------------------
 int Mutex::timedLock(const TimeSpec &_rts){

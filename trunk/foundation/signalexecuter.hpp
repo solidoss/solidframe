@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CS_SIGNAL_EXECUTER_HPP
-#define CS_SIGNAL_EXECUTER_HPP
+#ifndef FOUNDATION_SIGNAL_EXECUTER_HPP
+#define FOUNDATION_SIGNAL_EXECUTER_HPP
 
 #include "foundation/object.hpp"
 #include "foundation/common.hpp"

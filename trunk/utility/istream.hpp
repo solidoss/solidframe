@@ -19,11 +19,12 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef ISTREAMPP_HPP
-#define ISTREAMPP_HPP
+#ifndef UTILITY_ISTREAM_HPP
+#define UTILITY_ISTREAM_HPP
 
-#include "stream.hpp"
-#include "common.hpp"
+#include "utility/stream.hpp"
+#include "utility/common.hpp"
+
 //! A stream for reading 
 class IStream: virtual public Stream{
 public:
@@ -49,7 +50,7 @@ struct IStreamIterator{
 };
 
 #ifndef NINLINES
-#include "src/istream.ipp"
+#include "utility/istream.ipp"
 #endif
 
 #endif

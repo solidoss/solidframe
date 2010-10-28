@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef AIO_SINGLE_OBJECT_HPP
-#define AIO_SINGLE_OBJECT_HPP
+#ifndef FOUNDATION_AIO_SINGLE_OBJECT_HPP
+#define FOUNDATION_AIO_SINGLE_OBJECT_HPP
 
 #include "foundation/aio/aioobject.hpp"
 #include "foundation/aio/aiosocketpointer.hpp"

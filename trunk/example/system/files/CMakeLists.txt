@@ -1,7 +1,3 @@
-#include_directories (${SOLIDGROUND_SOURCE_DIR})
-
-link_directories (${SOLIDGROUND_SOURCE_DIR}/system)
-
 add_executable (create create.cpp)
 add_executable (open open.cpp)
 

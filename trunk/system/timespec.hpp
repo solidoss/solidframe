@@ -58,7 +58,7 @@ struct TimeSpec: public timespec{
 TimeSpec operator-(const TimeSpec &_ts1, const TimeSpec &_ts2);
 
 #ifndef NINLINES
-#include "src/timespec.ipp"
+#include "system/timespec.ipp"
 #endif
 
 

@@ -18,13 +18,13 @@
 	You should have received a copy of the GNU General Public License
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef TYPE_MAPPER_HPP
-#define TYPE_MAPPER_HPP
+#ifndef ALGORITHM_SERIALIZATION_TYPE_MAPPER_HPP
+#define ALGORITHM_SERIALIZATION_TYPE_MAPPER_HPP
 
 #include <string>
 #include <typeinfo>
 #include "utility/common.hpp"
-#include "basetypemap.hpp"
+#include "algorithm/serialization/basetypemap.hpp"
 
 #define BASIC_DECL(tp) \
 template <class S>\

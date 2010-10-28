@@ -1,5 +1,5 @@
-#ifndef ALGORITHM_PROTOCOL_HPP
-#define ALGORITHM_PROTOCOL_HPP
+#ifndef ALGORITHM_PROTOCOL_BUFFER_HPP
+#define ALGORITHM_PROTOCOL_BUFFER_HPP
 
 #include "system/common.hpp"
 

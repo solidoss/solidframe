@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef SOCKETADDRESS_HPP
-#define SOCKETADDRESS_HPP
+#ifndef SYSTEM_SOCKETADDRESS_HPP
+#define SYSTEM_SOCKETADDRESS_HPP
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -283,7 +283,7 @@ private:
 };
 
 #ifndef NINLINES
-#include "src/socketaddress.ipp"
+#include "system/socketaddress.ipp"
 #endif
 
 

@@ -1,10 +1,3 @@
-#include_directories (${SOLIDGROUND_SOURCE_DIR})
-
-link_directories (${SOLIDGROUND_SOURCE_DIR}/system ${SOLIDGROUND_SOURCE_DIR}/foundation
-${SOLIDGROUND_SOURCE_DIR}/test/foundation/core ${SOLIDGROUND_SOURCE_DIR}/test/foundation/echo
-${SOLIDGROUND_SOURCE_DIR}/test/foundation/alpha
-${SOLIDGROUND_SOURCE_DIR}/test/foundation/cluster)
-
 add_executable (concept src/concept.cpp)
 
 #NOTE:
@@ -24,10 +17,10 @@ target_link_libraries (concept
 	foundation_aio_openssl
 	ssl
 	crypto
-	protocol
+	algorithm_protocol
 	audit_log_manager
 	audit_log
-	serialization
+	algorithm_serialization
 	utility
 	system
 	boost_filesystem

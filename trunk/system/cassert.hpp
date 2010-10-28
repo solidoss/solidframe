@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef SYS_CASSERT_HPP
-#define SYS_CASSERT_HPP
+#ifndef SYSTEM_CASSERT_HPP
+#define SYSTEM_CASSERT_HPP
 
 #ifdef UASSERT
 #include <cassert>

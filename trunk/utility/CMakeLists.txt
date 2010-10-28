@@ -1,8 +1,3 @@
-include_directories(${SOLIDGROUND_SOURCE_DIR}/utility)
-
-#FILE(GLOB Sources RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} src/*.cpp)
-#FILE(GLOB Headers RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.hpp)
-
 set(Sources
 	src/list.cpp
 	src/memory.cpp
@@ -34,10 +29,10 @@ set(Headers
 )
 
 set(Inlines
-	src/iostream.ipp
-	src/istream.ipp
-	src/ostream.ipp
-	src/stream.ipp	
+	iostream.ipp
+	istream.ipp
+	ostream.ipp
+	stream.ipp	
 )
 
 add_library (utility

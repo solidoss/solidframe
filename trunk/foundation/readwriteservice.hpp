@@ -19,14 +19,14 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CS_READWRITESERVICE_HPP
-#define CS_READWRITESERVICE_HPP
+#ifndef FOUNDATION_READWRITESERVICE_HPP
+#define FOUNDATION_READWRITESERVICE_HPP
 #include <vector>
 #include <stack>
 
 #include "utility/mutualstore.hpp"
 
-#include "service.hpp"
+#include "foundation/service.hpp"
 
 namespace foundation{
 class ReadWriteService:public Service{

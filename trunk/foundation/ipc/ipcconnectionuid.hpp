@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef IPC_SESSION_UID_HPP
-#define IPC_SESSION_UID_HPP
+#ifndef FOUNDATION_IPC_IPC_SESSION_UID_HPP
+#define FOUNDATION_IPC_IPC_SESSION_UID_HPP
 
 #include "system/common.hpp"
 

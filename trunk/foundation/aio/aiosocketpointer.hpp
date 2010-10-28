@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef FDT_AIO_SOCKETPOINTER_HPP
-#define FDT_AIO_SOCKETPOINTER_HPP
+#ifndef FOUNDATION_AIO_SOCKETPOINTER_HPP
+#define FOUNDATION_AIO_SOCKETPOINTER_HPP
 
 namespace foundation{
 namespace aio{

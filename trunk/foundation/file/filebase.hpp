@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef FILE_BASE_HPP
-#define FILE_BASE_HPP
+#ifndef FOUNDATION_FILE_FILE_BASE_HPP
+#define FOUNDATION_FILE_FILE_BASE_HPP
 
 #include "foundation/file/filemanager.hpp"
 #include "foundation/requestuid.hpp"

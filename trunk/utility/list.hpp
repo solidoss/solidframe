@@ -19,8 +19,9 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef LISTPP_HPP
-#define LISTPP_HPP
+#ifndef UTILITY_LIST_HPP
+#define UTILITY_LIST_HPP
+
 #include "system/cassert.hpp"
 #include <stdlib.h>
 

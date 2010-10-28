@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef SERIALIZATION_BINARY_HPP
-#define SERIALIZATION_BINARY_HPP
+#ifndef ALGORITHM_SERIALIZATION_BINARY_HPP
+#define ALGORITHM_SERIALIZATION__BINARY_HPP
 
 #include <typeinfo>
 #include <string>
@@ -29,7 +29,7 @@
 #include "system/debug.hpp"
 #include "utility/common.hpp"
 #include "utility/stack.hpp"
-#include "typemapper.hpp"
+#include "algorithm/serialization/typemapper.hpp"
 
 class IStream;
 class OStream;

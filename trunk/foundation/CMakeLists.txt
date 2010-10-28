@@ -1,5 +1,3 @@
-#include_directories(${SOLIDGROUND_SOURCE_DIR}/foundation)
-
 set(Sources
 	src/signalexecuter.cpp
 	src/execpool.cpp
@@ -29,7 +27,7 @@ set(Headers
 )
 
 set(Inlines
-	src/object.ipp
+	object.ipp
 )
 
 add_library (foundation_core

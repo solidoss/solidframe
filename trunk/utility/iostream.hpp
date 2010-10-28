@@ -19,11 +19,11 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef IOSTREAMPP_HPP
-#define IOSTREAMPP_HPP
+#ifndef UTILITY_IOSTREAM_HPP
+#define UTILITY_IOSTREAM_HPP
 
-#include "istream.hpp"
-#include "ostream.hpp"
+#include "utility/istream.hpp"
+#include "utility/ostream.hpp"
 
 //! A stream for both input and output
 class IOStream: public IStream, public OStream{
@@ -42,7 +42,7 @@ struct IOStreamIterator{
 };
 
 #ifndef NINLINES
-#include "src/iostream.ipp"
+#include "utility/iostream.ipp"
 #endif
 
 #endif

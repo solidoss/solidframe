@@ -22,7 +22,7 @@
 #ifndef UTILITY_STREAM_HPP
 #define UTILITY_STREAM_HPP
 
-#include "common.hpp"
+#include "utility/common.hpp"
 #include <cstdlib>
 
 struct StreamFlags{
@@ -55,7 +55,7 @@ protected:
 };
 
 #ifndef NINLINES
-#include "src/stream.ipp"
+#include "utility/stream.ipp"
 #endif
 
 

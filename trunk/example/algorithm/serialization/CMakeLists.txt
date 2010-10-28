@@ -1,7 +1,3 @@
-#include_directories (${SOLIDGROUND_SOURCE_DIR})
-
-link_directories (${SOLIDGROUND_SOURCE_DIR}/system)
-
 add_executable (simple simple.cpp)
 add_executable (fork fork.cpp)
 #add_executable (simple_new simple_new.cpp)

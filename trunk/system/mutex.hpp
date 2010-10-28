@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef MUTEXPP_HPP
-#define MUTEXPP_HPP
+#ifndef SYSTEM_MUTEX_HPP
+#define SYSTEM_MUTEX_HPP
 
 #include <pthread.h>
 
@@ -62,7 +62,7 @@ private:
 };
 
 #ifndef NINLINES
-#include "src/mutex.ipp"
+#include "system/mutex.ipp"
 #endif
 
 #endif

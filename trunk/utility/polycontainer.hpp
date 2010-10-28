@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef POLYCONTAINERPP_HPP
-#define POLYCONTAINERPP_HPP
+#ifndef UTILITY_POLYCONTAINER_HPP
+#define UTILITY_POLYCONTAINER_HPP
 
 
 class MultiContainer{	

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.6)
 #-----------------------------------------------------------------
 # The project
 #-----------------------------------------------------------------
-project (SOLIDGROUND)
+project (SolidFrame)
 #-----------------------------------------------------------------
 
 #-----------------------------------------------------------------
@@ -57,9 +57,9 @@ if(ExtAbsLen GREATER 0)
 else(ExtAbsLen GREATER 0)
 	string(LENGTH "${UEXTERN}" ExtLen)
 	if(ExtLen GREATER 0)
-		set(EXTERN_PATH "${SOLIDGROUND_SOURCE_DIR}/extern/${UEXTERN}/"  CACHE STRING "Extern dependencies path")
+		set(EXTERN_PATH "${SolidFrame_SOURCE_DIR}/extern/${UEXTERN}/"  CACHE STRING "Extern dependencies path")
 	else(ExtLen GREATER 0)
-		set(EXTERN_PATH "${SOLIDGROUND_SOURCE_DIR}/extern/"  CACHE STRING "Extern dependencies path")
+		set(EXTERN_PATH "${SolidFrame_SOURCE_DIR}/extern/"  CACHE STRING "Extern dependencies path")
 	endif(ExtLen GREATER 0)
 endif(ExtAbsLen GREATER 0)
 
@@ -77,7 +77,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "debug")
 	set(CMAKE_VERBOSE_MAKEFILE ON)
 endif(CMAKE_BUILD_TYPE STREQUAL "debug")
 
-set(SG_VERSION_FLAGS "-DSG_MAJOR=${VERSION_MAJOR} -DSG_MINOR=${VERSION_MINOR} -DSG_PATCH=${VERSION_PATCH}")
+set(SG_VERSION_FLAGS "-DSF_MAJOR=${VERSION_MAJOR} -DSF_MINOR=${VERSION_MINOR} -DSF_PATCH=${VERSION_PATCH}")
 
 set(SG_DEBUG_FLAGS "-DUDEBUG -DUASSERT -DNINLINES -DUSTATISTICS")
 set(SG_MAINTAIN_FLAGS "-DUDEBUG -DUASSERT -DUSTATISTICS")
@@ -310,10 +310,10 @@ set(CMAKE_BUILD_TYPE
 # Global include directories
 #-----------------------------------------------------------------
 include_directories(
-	${SOLIDGROUND_SOURCE_DIR}
+	${SolidFrame_SOURCE_DIR}
 	${CMAKE_CURRENT_BINARY_DIR}
-	${SOLIDGROUND_SOURCE_DIR}/library
-	${SOLIDGROUND_SOURCE_DIR}/application
+	${SolidFrame_SOURCE_DIR}/library
+	${SolidFrame_SOURCE_DIR}/application
 	${EXTERN_PATH}/include/
 )
 #-----------------------------------------------------------------

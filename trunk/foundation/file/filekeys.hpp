@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef FILE_KEYS_HPP
-#define FILE_KEYS_HPP
+#ifndef FOUNDATION_FILE_FILE_KEYS_HPP
+#define FOUNDATION_FILE_FILE_KEYS_HPP
 
 #include "foundation/file/filekey.hpp"
 

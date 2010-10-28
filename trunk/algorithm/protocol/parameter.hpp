@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef PROTOCOL_PARAMETER_HPP
-#define PROTOCOL_PARAMETER_HPP
+#ifndef ALGORITHM_PROTOCOL_PARAMETERX_HPP
+#define ALGORITHM_PROTOCOL_PARAMETERX_HPP
 
 #include "system/common.hpp"
 
@@ -54,7 +54,7 @@ struct Parameter{
 }//namespace protocol
 
 #ifndef NINLINES
-#include "src/parameter.ipp"
+#include "algorithm/protocol/parameter.ipp"
 #endif
 
 #endif

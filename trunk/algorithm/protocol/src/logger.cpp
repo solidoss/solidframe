@@ -226,6 +226,6 @@ void Logger::outLiteral(const char *_pb, unsigned _bl){
 
 #ifdef NINLINES
 #include "algorithm/protocol/parameter.hpp"
-#include "parameter.ipp"
+#include "algorithm/protocol/parameter.ipp"
 #endif
 

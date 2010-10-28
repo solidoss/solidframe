@@ -20,9 +20,9 @@ set(Headers
 )
 
 set(Inlines
-	src/parameter.ipp
+	parameter.ipp
 )
 
-add_library(protocol 
+add_library(algorithm_protocol 
 	${Sources} ${Headers} ${Inlines}
 )

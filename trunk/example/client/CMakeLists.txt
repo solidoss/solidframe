@@ -1,7 +1,3 @@
-#include_directories (${SOLIDGROUND_SOURCE_DIR})
-
-#link_directories (${SOLIDGROUND_SOURCE_DIR}/system)
-
 add_executable (alphaclient_p alphaclient_p.cpp writer.cpp)
 add_executable (alphaclient_s alphaclient_s.cpp writer.cpp)
 add_executable (alphafetch_p alphafetch_p.cpp writer.cpp)

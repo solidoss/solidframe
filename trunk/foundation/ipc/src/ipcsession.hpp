@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef IPC_CONNECTION_HPP
-#define IPC_CONNECTION_HPP
+#ifndef FOUNDATION_IPC_SRC_IPC_CONNECTION_HPP
+#define FOUNDATION_IPC_SRC_IPC_CONNECTION_HPP
 
 #include "iodata.hpp"
 #include "ipctalker.hpp"

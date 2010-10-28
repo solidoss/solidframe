@@ -1,4 +1,4 @@
-include_directories(${SOLIDGROUND_SOURCE_DIR}/example/foundation ${SOLIDGROUND_SOURCE_DIR})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 add_subdirectory(core)
 add_subdirectory(echo)
 add_subdirectory(alpha)

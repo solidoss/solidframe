@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef AIO_SOCKET_HPP
-#define AIO_SOCKET_HPP
+#ifndef FOUNDATION_AIO_SRC_SOCKET_HPP
+#define FOUNDATION_AIO_SRC_SOCKET_HPP
 
 #include "system/socketdevice.hpp"
 #include "system/common.hpp"

@@ -21,7 +21,9 @@
 
 #ifndef UTILITY_QUEUE_HPP
 #define UTILITY_QUEUE_HPP
+
 #include <cstdlib>
+
 #include "system/convertors.hpp"
 #include "system/cassert.hpp"
 #include "system/debug.hpp"

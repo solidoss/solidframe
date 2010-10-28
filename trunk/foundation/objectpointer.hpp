@@ -19,10 +19,10 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CS_OBJECTPTR_HPP
-#define CS_OBJECTPTR_HPP
+#ifndef FOUNDATION_OBJECTPTR_HPP
+#define FOUNDATION_OBJECTPTR_HPP
 
-#include "common.hpp"
+#include "foundation/common.hpp"
 
 namespace foundation{
 
