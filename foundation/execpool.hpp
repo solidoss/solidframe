@@ -19,13 +19,13 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CS_EXECPOOL_HPP
-#define CS_EXECPOOL_HPP
+#ifndef FOUNDATION_EXECPOOL_HPP
+#define FOUNDATION_EXECPOOL_HPP
 
 #include "utility/workpool.hpp"
 
-#include "activeset.hpp"
-#include "objectpointer.hpp"
+#include "foundation/activeset.hpp"
+#include "foundation/objectpointer.hpp"
 
 namespace foundation{
 //! A simple execution pool for one shot object execution

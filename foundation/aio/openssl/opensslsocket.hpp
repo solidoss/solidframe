@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef OPENSSL_SOCKET_HPP
-#define OPENSSL_SOCKET_HPP
+#ifndef FOUNDATION_AIO_OPENSSL_SOCKET_HPP
+#define FOUNDATION_AIO_OPENSSL_SOCKET_HPP
 
 #include "foundation/aio/aiosecuresocket.hpp"
 #include "openssl/ssl.h"

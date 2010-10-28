@@ -1,7 +1,8 @@
-#include "utility/memoryfile.hpp"
-#include "utility/binaryseeker.hpp"
 #include <cstring>
 #include <cerrno>
+
+#include "utility/memoryfile.hpp"
+#include "utility/binaryseeker.hpp"
 #include "system/cassert.hpp"
 
 

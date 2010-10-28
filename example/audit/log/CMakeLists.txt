@@ -1,5 +1,3 @@
-#include_directories(${SOLIDGROUND_SOURCE_DIR})
-
 add_executable(log_client client.cpp)
 add_executable(log_server server.cpp)
 

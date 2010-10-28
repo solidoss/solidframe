@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef AIO_SECURE_SOCKET_HPP
-#define AIO_SECURE_SOCKET_HPP
+#ifndef FOUNDATION_AIO_SECURE_SOCKET_HPP
+#define FOUNDATION_AIO_SECURE_SOCKET_HPP
 
 #include "system/common.hpp"
 

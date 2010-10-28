@@ -19,7 +19,7 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "serialization/binary.hpp"
+#include "algorithm/serialization/binary.hpp"
 #include "utility/ostream.hpp"
 #include "utility/istream.hpp"
 #include <string.h>

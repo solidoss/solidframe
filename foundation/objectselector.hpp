@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CS_OBJECT_SELECTOR_HPP
-#define CS_OBJECT_SELECTOR_HPP
+#ifndef FOUNDATION_OBJECT_SELECTOR_HPP
+#define FOUNDATION_OBJECT_SELECTOR_HPP
 
 #include <vector>
 #include <stack>

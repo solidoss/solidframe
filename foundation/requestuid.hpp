@@ -1,7 +1,7 @@
-#ifndef REQUESTUID_HPP
-#define REQUESTUID_HPP
+#ifndef FOUNDATION_REQUESTUID_HPP
+#define FOUNDATION_REQUESTUID_HPP
 
-#include "common.hpp"
+#include "foundation/common.hpp"
 
 namespace foundation{
 

@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef PROTOCOL_LOGGER_HPP
-#define PROTOCOL_LOGGER_HPP
+#ifndef ALGORITHM_PROTOCOL_LOGGER_HPP
+#define ALGORITHM_PROTOCOL_LOGGER_HPP
 
 #include "system/common.hpp"
 #include <string>

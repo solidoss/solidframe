@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef FDT_FILE_MANAGER_HPP
-#define FDT_FILE_MANAGER_HPP
+#ifndef FOUNDATION_FILE_FILE_MANAGER_HPP
+#define FOUNDATION_FILE_FILE_MANAGER_HPP
 
 #include "utility/streampointer.hpp"
 

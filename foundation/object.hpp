@@ -19,10 +19,10 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CS_OBJECT_HPP
-#define CS_OBJECT_HPP
+#ifndef FOUNDATION_OBJECT_HPP
+#define FOUNDATION_OBJECT_HPP
 
-#include "common.hpp"
+#include "foundation/common.hpp"
 
 #include "utility/dynamicpointer.hpp"
 
@@ -186,7 +186,7 @@ private:
 
 
 #ifndef NINLINES
-#include "src/object.ipp"
+#include "foundation/object.ipp"
 #endif
 
 }//namespace

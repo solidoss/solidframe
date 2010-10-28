@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef SELECTPOOL_HPP
-#define SELECTPOOL_HPP
+#ifndef FOUNDATION_SELECTPOOL_HPP
+#define FOUNDATION_SELECTPOOL_HPP
 
 #include <deque>
 

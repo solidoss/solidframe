@@ -24,8 +24,6 @@
 #include "system/thread.hpp"
 #include "system/debug.hpp"
 
-#include "utility/dynamicpointer.hpp"
-
 #include "foundation/object.hpp"
 #include "foundation/objectpointer.hpp"
 #include "foundation/visitor.hpp"
@@ -33,6 +31,7 @@
 #include "foundation/manager.hpp"
 
 #include "utility/memory.hpp"
+#include "utility/dynamicpointer.hpp"
 
 //--------------------------------------------------------------
 namespace{
@@ -80,7 +79,7 @@ void ObjectPointerBase::destroy(Object *_pobj){
 //---------------------------------------------------------------------
 
 #ifdef NINLINES
-#include "object.ipp"
+#include "foundation/object.ipp"
 #endif
 
 Object::Object(IndexT _fullid):

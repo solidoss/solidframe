@@ -19,15 +19,15 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef ID_TYPE_MAP_HPP
-#define ID_TYPE_MAP_HPP
+#ifndef ALGORITHM_SERIALIZATION_ID_TYPE_MAP_HPP
+#define ALGORITHM_SERIALIZATION_ID_TYPE_MAP_HPP
 
 #include <string>
 
 #include "system/debug.hpp"
 #include "system/common.hpp"
 
-#include "basetypemap.hpp"
+#include "algorithm/serialization/basetypemap.hpp"
 
 namespace serialization{
 

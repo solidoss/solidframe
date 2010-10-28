@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef SYSTEM_DYNAMIC_POINTER_HPP
-#define SYSTEM_DYNAMIC_POINTER_HPP
+#ifndef UTILITY_DYNAMIC_POINTER_HPP
+#define UTILITY_DYNAMIC_POINTER_HPP
 
 #include "system/common.hpp"
 

@@ -19,14 +19,17 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef SYSTEM_DYNAMIC_HPP
-#define SYSTEM_DYNAMIC_HPP
+#ifndef UTILITY_DYNAMIC_TYPE_HPP
+#define UTILITY_DYNAMIC_TYPE_HPP
+
+#include <vector>
 
 #include "system/common.hpp"
 #include "system/cassert.hpp"
-#include <vector>
+
 #include "utility/dynamicpointer.hpp"
 #include "utility/shared.hpp"
+
 //! Store a map from a typeid to a callback
 /*!
 	The type id is determined using Dynamic::dynamicTypeId() or Dynamic::staticTypeId().

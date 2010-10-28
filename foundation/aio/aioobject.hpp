@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CS_AIO_OBJECT_HPP
-#define CS_AIO_OBJECT_HPP
+#ifndef FOUNDATION_AIO_OBJECT_HPP
+#define FOUNDATION_AIO_OBJECT_HPP
 
 #include "system/timespec.hpp"
 #include "foundation/object.hpp"

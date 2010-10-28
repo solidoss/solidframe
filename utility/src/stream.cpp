@@ -20,11 +20,11 @@
 */
 
 #include <cstdlib>
-#include "stream.hpp"
-#include "istream.hpp"
-#include "ostream.hpp"
-#include "iostream.hpp"
-#include "streampointer.hpp"
+#include "utility/stream.hpp"
+#include "utility/istream.hpp"
+#include "utility/ostream.hpp"
+#include "utility/iostream.hpp"
+#include "utility/streampointer.hpp"
 
 void StreamPointerBase::clear(Stream *_ps){
 	if(_ps->release()) delete _ps;
@@ -51,10 +51,10 @@ IOStream::~IOStream(){
 }
 
 #ifdef NINLINES
-#include "stream.ipp"
-#include "istream.ipp"
-#include "ostream.ipp"
-#include "iostream.ipp"
+#include "utility/stream.ipp"
+#include "utility/istream.ipp"
+#include "utility/ostream.ipp"
+#include "utility/iostream.ipp"
 #endif
 
 bool IStream::readAll(char *_pd, uint32 _dl, uint32){

@@ -20,14 +20,17 @@
 */
 
 #include <unistd.h>
+
+#include <cstdio>
+#include <cerrno>
+#include <cstring>
+
 #include "system/filedevice.hpp"
 #include "system/socketdevice.hpp"
 #include "system/directory.hpp"
 #include "system/cassert.hpp"
 #include "system/debug.hpp"
-#include <cstdio>
-#include <cerrno>
-#include <string.h>
+
 
 Device::Device(const Device &_dev):desc(_dev.descriptor()) {
 	_dev.desc = -1;

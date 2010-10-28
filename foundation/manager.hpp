@@ -19,13 +19,13 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CS_MANAGER_HPP
-#define CS_MANAGER_HPP
+#ifndef FOUNDATION_MANAGER_HPP
+#define FOUNDATION_MANAGER_HPP
 
 //#include <vector>
 
-#include "common.hpp"
-#include "objectpointer.hpp"
+#include "foundation/common.hpp"
+#include "foundation/objectpointer.hpp"
 
 #include "utility/dynamicpointer.hpp"
 

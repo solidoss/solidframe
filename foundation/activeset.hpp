@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CS_ACTIVESET_HPP
-#define CS_ACTIVESET_HPP
+#ifndef FOUNDATION_ACTIVESET_HPP
+#define FOUNDATION_ACTIVESET_HPP
 
 namespace foundation{
 //! This is the base class for all active containers/sets (i.e. WorkPools)

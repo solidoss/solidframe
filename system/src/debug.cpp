@@ -22,9 +22,7 @@
 #ifdef UDEBUG
 
 #define DO_EXPORT_DLL 1
-#include "debug.hpp"
 
-#include "directory.hpp"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -34,13 +32,16 @@
 #include <iostream>
 #include <fstream>
 #include <bitset>
+
 #include "system/timespec.hpp"
 #include "system/socketdevice.hpp"
 #include "system/socketaddress.hpp"
 #include "system/filedevice.hpp"
-#include "cassert.hpp"
-#include "thread.hpp"
-#include "mutex.hpp"
+#include "system/cassert.hpp"
+#include "system/thread.hpp"
+#include "system/mutex.hpp"
+#include "system/debug.hpp"
+#include "system/directory.hpp"
 
 #ifdef ON_SOLARIS
 #include <strings.h>

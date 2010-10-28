@@ -19,13 +19,13 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CS_READWRITEOBJECT_HPP
-#define CS_READWRITEOBJECT_HPP
+#ifndef FOUNDATION_READWRITEOBJECT_HPP
+#define FOUNDATION_READWRITEOBJECT_HPP
 
 #include "system/condition.hpp"
 #include "system/mutex.hpp"
 
-#include "common.hpp"
+#include "foundation/common.hpp"
 
 namespace foundation{
 

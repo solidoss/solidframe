@@ -19,7 +19,7 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef FILE_MAPPER_HPP
+#ifndef FOUNDATION_FILE_FILE_MAPPER_HPP
 #define FILE_MAPPER_HPP
 
 #include "foundation/file/filemanager.hpp"

@@ -19,11 +19,11 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef OSTREAMPP_HPP
-#define OSTREAMPP_HPP
+#ifndef UTILITY_OSTREAM_HPP
+#define UTILITY_OSTREAM_HPP
 
-#include "stream.hpp"
-#include "common.hpp"
+#include "utility/stream.hpp"
+#include "utility/common.hpp"
 
 //! A stream for writing
 class OStream: virtual public Stream{
@@ -49,7 +49,7 @@ struct OStreamIterator{
 };
 
 #ifndef NINLINES
-#include "src/ostream.ipp"
+#include "utility/ostream.ipp"
 #endif
 
 #endif

@@ -19,10 +19,10 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef MUTUALSTORE_HPP
-#define MUTUALSTORE_HPP
+#ifndef UTILITY_MUTUALSTORE_HPP
+#define UTILITY_MUTUALSTORE_HPP
 
-#include "common.hpp"
+#include "utility/common.hpp"
 #include "system/convertors.hpp"
 
 //! A container of shared objects

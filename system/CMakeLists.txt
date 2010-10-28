@@ -1,9 +1,3 @@
-include_directories(${SOLIDGROUND_SOURCE_DIR}/system)
-
-#not a good idea of usign automatic file detection - the projects are not automatiocally updated
-#FILE(GLOB Sources RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} src/*.cpp)
-#FILE(GLOB Headers RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.hpp)
-
 set(Sources
 	src/debug.cpp
 	src/device.cpp
@@ -33,11 +27,11 @@ set(Headers
 	src/mutexpool.hpp
 )
 set(Inlines
-	src/condition.ipp
-	src/mutex.ipp
-	src/socketaddress.ipp
-	src/synchronization.ipp
-	src/timespec.ipp
+	condition.ipp
+	mutex.ipp
+	socketaddress.ipp
+	synchronization.ipp
+	timespec.ipp
 )
 
 add_library (system 

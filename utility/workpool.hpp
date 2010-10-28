@@ -19,16 +19,18 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef WORKPOOL_HPP
-#define WORKPOOL_HPP
+#ifndef UTILITY_WORKPOOL_HPP
+#define UTILITY_WORKPOOL_HPP
 
 #include "system/debug.hpp"
 #include "system/thread.hpp"
 #include "system/mutex.hpp"
 #include "system/condition.hpp"
 
-#include "common.hpp"
-#include "queue.hpp"
+#include "utility/common.hpp"
+#include "utility/queue.hpp"
+
+
 //! A simple worker initialization plugin
 struct WorkPoolPlugin{
 	//! Virtual destructor

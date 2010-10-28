@@ -19,8 +19,8 @@
 	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef IPC_IODATA_HPP
-#define IPC_IODATA_HPP
+#ifndef FOUNDATION_IPC_SRC_IPC_IODATA_HPP
+#define FOUNDATION_IPC_SRC_IPC_IODATA_HPP
 
 #include "system/cassert.hpp"
 #include "system/socketaddress.hpp"
