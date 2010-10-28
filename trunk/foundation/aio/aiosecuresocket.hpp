@@ -3,20 +3,20 @@
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
 
-	This file is part of SolidGround framework.
+	This file is part of SolidFrame framework.
 
-	SolidGround is free software: you can redistribute it and/or modify
+	SolidFrame is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
 	the Free Software Foundation, either version 3 of the License, or
 	(at your option) any later version.
 
-	SolidGround is distributed in the hope that it will be useful,
+	SolidFrame is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
+	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #ifndef FOUNDATION_AIO_SECURE_SOCKET_HPP
@@ -34,7 +34,7 @@ namespace aio{
 	This is the interface used by the aio::Socket for secure
 	(ssl) communication. One have to implement the interface
 	using its favorite ssl library.
-	The default ssl library, used by SolidGround is OpenSSL
+	The default ssl library, used by SolidFrame is OpenSSL
 	(http://www.openssl.org/).
 	See foundation/aio/openssl/opensslsocket.hpp for an implementation
 	of SecureSocket interface as a wrapper for OpenSSL.

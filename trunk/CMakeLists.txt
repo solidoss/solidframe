@@ -77,13 +77,13 @@ if(CMAKE_BUILD_TYPE STREQUAL "debug")
 	set(CMAKE_VERBOSE_MAKEFILE ON)
 endif(CMAKE_BUILD_TYPE STREQUAL "debug")
 
-set(SG_VERSION_FLAGS "-DSF_MAJOR=${VERSION_MAJOR} -DSF_MINOR=${VERSION_MINOR} -DSF_PATCH=${VERSION_PATCH}")
+set(SF_VERSION_FLAGS "-DSF_MAJOR=${VERSION_MAJOR} -DSF_MINOR=${VERSION_MINOR} -DSF_PATCH=${VERSION_PATCH}")
 
-set(SG_DEBUG_FLAGS "-DUDEBUG -DUASSERT -DNINLINES -DUSTATISTICS")
-set(SG_MAINTAIN_FLAGS "-DUDEBUG -DUASSERT -DUSTATISTICS")
-set(SG_OPTIMIZED_FLAGS "-DNINLINES")
-set(SG_NOLOG_FLAGS "-DUASSERT -DNINLINES")
-set(SG_RELEASE_FLAGS "")
+set(SF_DEBUG_FLAGS "-DUDEBUG -DUASSERT -DNINLINES -DUSTATISTICS")
+set(SF_MAINTAIN_FLAGS "-DUDEBUG -DUASSERT -DUSTATISTICS")
+set(SF_OPTIMIZED_FLAGS "-DNINLINES")
+set(SF_NOLOG_FLAGS "-DUASSERT -DNINLINES")
+set(SF_RELEASE_FLAGS "")
 
 set(SYS_DEBUG_FLAGS "")
 set(SYS_MAINTAIN_FLAGS "")
@@ -216,7 +216,7 @@ endif(NOT ON_FOUND)
 # Debug build
 #-----------------------------------------------------------------
 set(CMAKE_CXX_FLAGS_DEBUG 
-	"${SYS_DEBUG_FLAGS} ${SG_DEBUG_FLAGS} ${SG_VERSION_FLAGS}"
+	"${SYS_DEBUG_FLAGS} ${SF_DEBUG_FLAGS} ${SF_VERSION_FLAGS}"
 	CACHE STRING "Flags used by the C++ compiler during debug builds."
 	FORCE
 )
@@ -226,7 +226,7 @@ set(CMAKE_CXX_FLAGS_DEBUG
 # Maintain build
 #-----------------------------------------------------------------
 set(CMAKE_CXX_FLAGS_MAINTAIN 
-	"${SYS_MAINTAIN_FLAGS} ${SG_MAINTAIN_FLAGS} ${SG_VERSION_FLAGS}"
+	"${SYS_MAINTAIN_FLAGS} ${SF_MAINTAIN_FLAGS} ${SF_VERSION_FLAGS}"
 	CACHE STRING "Flags used by the C++ compiler during maintain builds."
 	FORCE
 )
@@ -247,7 +247,7 @@ set(CMAKE_SHARED_LINKER_FLAGS_MAINTAIN
 # Optimized build
 #-----------------------------------------------------------------
 set(CMAKE_CXX_FLAGS_OPTIMIZED 
-	"${SYS_OPTIMIZED_FLAGS} ${SG_OPTIMIZED_FLAGS} ${SG_VERSION_FLAGS}"
+	"${SYS_OPTIMIZED_FLAGS} ${SF_OPTIMIZED_FLAGS} ${SF_VERSION_FLAGS}"
 	CACHE STRING "Flags used by the C++ compiler during optimized builds."
 	FORCE
 )
@@ -257,7 +257,7 @@ set(CMAKE_CXX_FLAGS_OPTIMIZED
 # Release build
 #-----------------------------------------------------------------
 set(CMAKE_CXX_FLAGS_RELEASE
-	"${SYS_RELEASE_FLAGS} ${SG_RELEASE_FLAGS} ${SG_VERSION_FLAGS}"
+	"${SYS_RELEASE_FLAGS} ${SF_RELEASE_FLAGS} ${SF_VERSION_FLAGS}"
 	CACHE STRING "Flags used by the C++ compiler during release builds."
 	FORCE
 )
@@ -267,7 +267,7 @@ set(CMAKE_CXX_FLAGS_RELEASE
 # Nolog build
 #-----------------------------------------------------------------
 set(CMAKE_CXX_FLAGS_NOLOG 
-	"${SYS_NOLOG_FLAGS} ${SG_NOLOG_FLAGS} ${SG_VERSION_FLAGS}"
+	"${SYS_NOLOG_FLAGS} ${SF_NOLOG_FLAGS} ${SF_VERSION_FLAGS}"
 	CACHE STRING "Flags used by the C++ compiler during nolog builds."
     FORCE
 )
