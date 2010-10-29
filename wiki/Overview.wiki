@@ -1,4 +1,4 @@
-#summary *SolidGround* Framework Overview
+#summary *SolidFrame* Framework Overview
 #labels overview
 
 = Introduction =
@@ -26,13 +26,13 @@ You can have a base repository containing the framework (the build system and th
 
 Also, one can think of a mechanism of promoting code from "upper" repository to the base one.
 
-This is how the *SolidGround* framework is designed. It uses CMake as build system, it has libraries and groups of libraries to help write from simple to the most sophisticated cross-platform C++ applications.
+This is how the *SolidFrame* framework is designed. It uses CMake as build system, it has libraries and groups of libraries to help write from simple to the most sophisticated cross-platform C++ applications.
 
 You can add new application/library repositories into the _application_ / _library_ directories and run `configure` to have the application/library plugged into the build system. You can also instruct the build system (using the configure script) to create project/solution for the preferred IDE and start coding; or you can instruct it to create console based builds (for make/nmake).
 
-Also the framework is designed to easily plug in external libraries. SolidGround by default depends of boost (for some of the examples) and openssl, but the architecture was successfully tested to work with other libraries like: Qt for GUI applications, ICU for internationalization and Xerces for xml parsing.
+Also the framework is designed to easily plug in external libraries. SolidFrame by default depends of boost (for some of the examples) and openssl, but the architecture was successfully tested to work with other libraries like: Qt for GUI applications, ICU for internationalization and Xerces for xml parsing.
 
-*SolidGround's* main goal is to enable the writing of powerfull cross-platform server side distributed applications, but can be used to easily write any kind of C++ application.
+*SolidFrame's* main goal is to enable the writing of powerfull cross-platform server side distributed applications, but can be used to easily write any kind of C++ application.
 
 So what do we need for writing C++ applications:
 	* an easy to extend, cross-platform, build system;
@@ -45,7 +45,7 @@ So what do we need for writing C++ applications:
 	* (might need) ways of passing signals from a process to another, for distributed applications;
 	* (might need) an audit (logging) engine.
 
-*SolidGround* offers all this and more. It has a neat design, nice concepts like Pseudo Active Objects and a *solid* implementation. It has lots of example applications, including a central proof of concept server to show most of the offered concepts. Also there are some clients written to stress the proof of concept server for profiling purposes.
+*SolidFrame* offers all this and more. It has a neat design, nice concepts like Pseudo Active Objects and a *solid* implementation. It has lots of example applications, including a central proof of concept server to show most of the offered concepts. Also there are some clients written to stress the proof of concept server for profiling purposes.
 
 Here are some of the nicest things it offers:
 
@@ -65,7 +65,7 @@ The build system is based on CMake with a simple shell script to easily configur
         # create project files for different IDEs.
 	# build the documentation (doxygen is needed).
 
-In the following paragraphs I will present all libraries and groups of libraries from *SolidGround*.
+In the following paragraphs I will present all libraries and groups of libraries from *SolidFrame*.
 
 =The *"system"* library=
 
@@ -112,7 +112,7 @@ To initiate the debug logging to output either to _a file_, to _stderr_ or to _a
 Here is an example of how the debug log should be used:
 
 {{{
-	idbg("Built on *SolidGround* version "<<SG_MAJOR<<'.'<<SG_MINOR<<'.'<<SG_PATCH);
+	idbg("Built on *SolidFrame* version "<<SG_MAJOR<<'.'<<SG_MINOR<<'.'<<SG_PATCH);
 }}}
 
 =The *"utility"* library=
@@ -130,7 +130,7 @@ When the index exceeds N x M, the mutexes returned start again from 0x0, and a m
 
 There are two libraries: *protocol* for implementing internet text protocols, and *serialization* for re-entrant serialization.
 
-As you've learned, in *SolidGround* framework, the communication is asynchronous, so although it simplifies some things, it complicates a little the parsing of the data received on the communication channel and the building of the response. The "protocol" library helps with that: re-entrant parsing with error handling and re-entrant response builder. I've designed the protocol library having the experience of implementing the IMAP protocol so, as you'll see from the foundation *alpha example protocol* which resembles IMAP, the library is quite easy to use. By re-entrant I mean, for example in case of parsing, that you don't have to feed the parser all the data, you give the parser the data you have, and it will inform you if it has finished parsing or if it needs more data.
+As you've learned, in *SolidFrame* framework, the communication is asynchronous, so although it simplifies some things, it complicates a little the parsing of the data received on the communication channel and the building of the response. The "protocol" library helps with that: re-entrant parsing with error handling and re-entrant response builder. I've designed the protocol library having the experience of implementing the IMAP protocol so, as you'll see from the foundation *alpha example protocol* which resembles IMAP, the library is quite easy to use. By re-entrant I mean, for example in case of parsing, that you don't have to feed the parser all the data, you give the parser the data you have, and it will inform you if it has finished parsing or if it needs more data.
 
 Same thing with the *serialization* library. Although not as complete as, let's say, boost::serialization, it has the major advantage of being re-entrant. For the moment it only features binary serialization, written specifically for the IPC engine. It can serialize:
 
@@ -209,4 +209,4 @@ The stress tests I've performed show the same IO transfer speed as TCP.
 
 =Closing=
 
-In this page you've learned basic knowledge about *SolidGround*: what it is, what it offers, about its core concepts and its libraries. Next http://code.google.com/p/solidground/wiki/Testing you'll learn about how to compile and test the *Aphorism* example applications.
+In this page you've learned basic knowledge about *SolidFrame*: what it is, what it offers, about its core concepts and its libraries. Next http://code.google.com/p/solidframe/wiki/Testing you'll learn about how to compile and test the *Aphorism* example applications.

@@ -1,35 +1,40 @@
-#summary Start developing using SolidGround
+#summary Start developing using SolidFrame
 #labels developing
 
 = Introduction =
 
-I suppose you've managed to build the *SolidGround* example applications, which means that you have a working copy. You'll now learn to develop using *SolidGround*.
+I suppose you've managed to build the *SolidFrame* example applications, which means that you have a working copy. You'll now learn to develop using *SolidFrame*.
 
-= Building a KDevelop project =
+= Building a KDevelop3 project =
 
 You've already learned the command to build a KDevelop3 project:
 
 {{{
-solidground $ ./configure -f kdv -g KDevelop3 -b debug -e ~/work/sg_extern
+solidframe $ ./configure -f kdv -g KDevelop3 -b debug -e ~/work/sg_extern
 }}}
 
-In KDevelop, open the project from: `/path/to/solidground/build/kdv/SOLIDGROUND.kdevelop`.
+In KDevelop3, open the project from: `/path/to/solidframe/build/kdv/SolidFrame.kdevelop`.
 
-That's all, eventually you can configure KDevelop to use Subversion for project, and use 4 spaces wide tabs for indentation.
+That's all, eventually you can configure KDevelop3 to use Subversion for project, and use 4 spaces wide tabs for indentation.
 
-In the following lines I will present the way to start writing a new *SolidGround* application then I'll present the proof of concept example application.
+
+= Building a KDevelop4 project =
+
+
+
+In the following lines I will present the way to start writing a new *SolidFrame* application then I'll present the proof of concept example application.
 
 = Adding a new application =
 
-*SolidGround* repository copy contains an empty folder called "application". There's where your application(s) will reside.
+*SolidFrame* repository copy contains an empty folder called "application". There's where your application(s) will reside.
 
 So you should do something like:
 
 {{{
-solidground/application $ svn co https://foobarsuite.googlecode.com/svn/trunk/ foobar
+solidframe/application $ svn co https://foobarsuite.googlecode.com/svn/trunk/ foobar
 }}}
 
-to have a repository copy of your application within `"solidground/application/foobar"`, with no files and no folders. Lets add some (we suppose the foobar contains: a client, a server and some test applications):
+to have a repository copy of your application within `"solidframe/application/foobar"`, with no files and no folders. Lets add some (we suppose the foobar contains: a client, a server and some test applications):
 
 	# first you'll need to create the folders:
 		{{{
@@ -49,27 +54,27 @@ to have a repository copy of your application within `"solidground/application/f
 		application/foobar $ touch test/CMakeLists.txt
 		}}}
 	# then you'll need to add the source files to every foobar subfolder, along with the CMakeLists.txt files.
-	# last you'll need to integrate "foobar" into *SolidGround*'s build system. This is done by running solidground/build.sh again:
+	# last you'll need to integrate "foobar" into *SolidFrame*'s build system. This is done by running solidframe/build.sh again:
 		{{{
-		solidground $ ./configure -f dbg -b debug -e ~/work/sg_extern
-		solidground $ ./configure -f kdv -g KDevelop3 -b debug -e ~/work/sg_extern
-		solidground $ ./configure -f rls -b release -e ~/work/sg_extern
+		solidframe $ ./configure -f dbg -b debug -e ~/work/sg_extern
+		solidframe $ ./configure -f kdv -g KDevelop3 -b debug -e ~/work/sg_extern
+		solidframe $ ./configure -f rls -b release -e ~/work/sg_extern
 		}}}
 	
-	It will create `application/CMakeLists.txt` which will integrate all subfolders within 'application' into *SolidGround* cmake build system. 
+	It will create `application/CMakeLists.txt` which will integrate all subfolders within 'application' into *SolidFrame* cmake build system. 
 
-As you can see, you can have multiple *SolidGround* based projects within 'application'.
+As you can see, you can have multiple *SolidFrame* based projects within 'application'.
 
 = The proof of concept example application =
 
-The Proof Of Concept Example Application (POCEA: `solidground/example/foundation/`) is a multi service, server offering:
+The Proof Of Concept Example Application (POCEA: `solidframe/example/foundation/`) is a multi service, server offering:
 	* an ALPHA service resembling IMAP on syntax;
 	* echo service for TCP and UDP;
 	* a proxy service.
 
-You've built it and tested it, now lets dig into the code, as shows how the *SolidGround* libraries should be used.
+You've built it and tested it, now lets dig into the code, as shows how the *SolidFrame* libraries should be used.
 
-Lets look first at the main function (`solidground/example/foundation/main/src/concept.cpp`).
+Lets look first at the main function (`solidframe/example/foundation/main/src/concept.cpp`).
 
 
 = The main function of the concept server =
@@ -332,7 +337,7 @@ Up till now you've learned about the `example/foundation/core` library, which is
 
 = The alpha service =
 
-As every library in *SolidGround*, the concept_alpha library has it own folder. The only public interface of the library is in the `alphaservice.hpp` file, the rest of the code, being private, is within `alpha/src`. In `example/foundation/alpha/alphaservice.hpp` is declared the concept::alpha::Service, which is instantiated in the application's main function and registered into the manager.
+As every library in *SolidFrame*, the concept_alpha library has it own folder. The only public interface of the library is in the `alphaservice.hpp` file, the rest of the code, being private, is within `alpha/src`. In `example/foundation/alpha/alphaservice.hpp` is declared the concept::alpha::Service, which is instantiated in the application's main function and registered into the manager.
 
 A service, once registered, cannot be unregistered. A service can be inactive or active but it cannot be deleted.
 As you can see from the code, the alpha service is a concept core service and implements that interface allowing additions of connections and listeners. The only recommended way to directly access a service (I've tried to enforce in the code) is from its PAOs within PAOs execute function. The idea is that the service life will allways exceed its PAOs. See the concept::Listener::execute, above, for an example.
@@ -581,12 +586,12 @@ int Connection::dynamicReceive(IStreamSignal &_rsig){
 }}}
 
 
-Notable alpha commands are: concept::alpha::RemoteList and concept::alpha::Fetch - see their implementation in `solidground/example/foundation/alpha/src/alphacommands.cpp`.
+Notable alpha commands are: concept::alpha::RemoteList and concept::alpha::Fetch - see their implementation in `solidframe/example/foundation/alpha/src/alphacommands.cpp`.
 
-Alpha protocol is a concept protocol designed as a proof of concept (showing the way the *SolidGround* foundation libraries should/may be used). The implementation though, is both not perfect and incomplete. It serves as a testing platform for new features and for profiling testing in combination with some clients (`example/client/alpha`*``).
+Alpha protocol is a concept protocol designed as a proof of concept (showing the way the *SolidFrame* foundation libraries should/may be used). The implementation though, is both not perfect and incomplete. It serves as a testing platform for new features and for profiling testing in combination with some clients (`example/client/alpha`*``).
 
 = Closing =
 
 This presentation is not complete, there is lot of code and I believe that sample code "speaks better". So don't hesitate browsing the sample code and the framework code.
 
-I'm sure that from this presentation you haven't learned to program with *SolidGround*, but I hope you've at least started to understand the design and what it offers. I also hope you've liked the design enough to have a better in-depth look at the code and maybe, start your own project to use *SolidGround*.
+I'm sure that from this presentation you haven't learned to program with *SolidFrame*, but I hope you've at least started to understand the design and what it offers. I also hope you've liked the design enough to have a better in-depth look at the code and maybe, start your own project to use *SolidFrame*.
