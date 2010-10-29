@@ -1,7 +1,7 @@
 #summary *SolidFrame* Framework Overview
 #labels overview
 
-<wiki:toc max_depth="1" />
+<wiki:toc max_depth="2" />
 
 = Introduction =
 
