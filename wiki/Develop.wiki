@@ -1,6 +1,8 @@
 #summary Start developing using SolidFrame
 #labels developing
 
+<wiki:toc max_depth="1" />
+
 = Introduction =
 
 I suppose you've managed to build the *SolidFrame* example applications, which means that you have a working copy. You'll now learn to develop using *SolidFrame*.
