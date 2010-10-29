@@ -5,7 +5,7 @@
 
 I suppose you've managed to build the *SolidFrame* example applications, which means that you have a working copy. You'll now learn to develop using *SolidFrame*.
 
-= Building a KDevelop3 project =
+= Creating a KDevelop3 project =
 
 You've already learned the command to build a KDevelop3 project:
 
@@ -18,7 +18,7 @@ In KDevelop3, open the project from: `/path/to/solidframe/build/kdv/SolidFrame.k
 That's all, eventually you can configure KDevelop3 to use Subversion for project, and use 4 spaces wide tabs for indentation.
 
 
-= Building a KDevelop4 project =
+= Creating a KDevelop4 project =
 
 The Kdevelop4 is out for a while now, and the difference from KDevelop3 is that it isn't supported by cmake, but instead it supports cmake based projects. This comes somehow as a disadvantage as some by hand configuration is needed. Here are the steps:
 
