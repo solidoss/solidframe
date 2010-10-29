@@ -193,4 +193,4 @@ As you'll see, the performance decreases on remote fetch at half of that of the 
 
 = Closing =
 
-On this page you've learned how to have a working copy of the *SolidFrame* framework, and learned something about its example applications, especially the proof of concept server. You've also learned how to make a small performance test. There you have it, now brace yourself for the interesting part - start using the framework for development http://code.google.com/p/solidframe/wiki/Develop.
+On this page you've learned how to have a working copy of the *SolidFrame* framework, and learned something about its example applications, especially the proof of concept server. You've also learned how to make a small performance test. There you have it, now brace yourself for the interesting part - start using the framework for development [Develop].
