@@ -20,7 +20,26 @@ That's all, eventually you can configure KDevelop3 to use Subversion for project
 
 = Building a KDevelop4 project =
 
+The Kdevelop4 is out for a while now, and the difference from KDevelop3 is that it isn't supported by cmake, but instead it supports cmake based projects. This comes somehow as a disadvantage as some by hand configuration is needed. Here are the steps:
 
+Step 1. Embed application and library folders into project
+{{{
+solidframe $ ./configure -c
+}}} 
+
+Step 2. Open KDevelop4 and import SolidFrame. Select Project->Open/ImportProject. Go to SolidFrame's folder and select CMakeLists.txt file from there. Push Next, then Finish.
+
+Step 3. If a window with "Kdevelop has found several possible root for your project ...", select SolidFrame's folder path.
+
+Step 4. In the window "Configure a build directory for ...", edit the "Build Directory:" line, and append /kdv4. Press OK.
+
+Step 5. Select Project->Configure Selection.
+
+Step 6. In the "Projects" area on left right-click on solidframe and select "Open Configuration". There you should edit:
+  * EXTERN_PATH to point to where you've built the extern libraries (See ... TODO).
+  * EXTRA_DEFINITIONS: -DUDEBUG -DUASSERT
+
+[Step 7.] Build the main concept example. On the left Projects area, navigate to: solidframe->example->main. Right-Click on "concept" and select "Build". Pretty neat ... isn't it!!!
 
 In the following lines I will present the way to start writing a new *SolidFrame* application then I'll present the proof of concept example application.
 
