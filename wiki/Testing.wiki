@@ -22,15 +22,15 @@ then
 {{{
 work $ tar -xjf solidframe-source-X.Y.Z.tar.bz2
 }}}
-so you'll have a folder with *SolidGround* source code.
+so you'll have a folder with *SolidFrame* source code.
 
 
-Next you'll need to prepare the *SolidGround* extern library pack:
+Next you'll need to prepare the *SolidFrame* extern library pack:
 
 {{{
-work $ mkdir sg_extern
-work $ cd sg_extern
-work $ ../solidground/administration/prepare_extern.sh -a
+work $ mkdir sf_extern
+work $ cd sf_extern
+work $ ../solidframe/administration/prepare_extern.sh -a
 }}}
 
 The script will automatically download, extract and build the needed extern libraries.
@@ -48,10 +48,10 @@ To build the example applications you need to prepare the build folder. You can 
 In this workshop we'll use debug build.
 
 {{{
-solidground $ ./configure --help
-solidground $ ./configure -f dbg -b debug -e ~/work/sg_extern
-solidground $ ./configure -f kdv -g KDevelop3 -b debug -e ~/work/sg_extern
-solidground $ ./configure -f rls -b release -e ~/work/sg_extern
+solidframe $ ./configure --help
+solidframe $ ./configure -f dbg -b debug -e ~/work/sf_extern
+solidframe $ ./configure -f kdv -g KDevelop3 -b debug -e ~/work/sf_extern
+solidframe $ ./configure -f rls -b release -e ~/work/sf_extern
 }}}
 
 The above commands will prepare three build environments:
@@ -62,7 +62,7 @@ The above commands will prepare three build environments:
 Next lets build the proof of concept server:
 
 {{{
-solidground $ cd build/dbg/example/foundation/main
+solidframe $ cd build/dbg/example/foundation/main
 main $ make
 }}}
 
@@ -82,7 +82,7 @@ The most interesting example clients for alpha protocol are alphaclient_p and al
 Before anything we'll need another example application:
 {{{
 
-solidground $ cd build/dbg/example/system/files
+solidframe $ cd build/dbg/example/system/files
 files $ make
 
 # lets build some 100 files with sizes from 4K to 1M
@@ -94,21 +94,21 @@ Next we'll need two instances of the proof of concept server:
 
 in one terminal:
 {{{
-solidground $ cd build/dbg/example/foundation/main
+solidframe $ cd build/dbg/example/foundation/main
 main $ ./concept -b 1000
 }}}
 
 in another terminal:
 
 {{{
-solidground $ cd build/dbg/example/foundation/main
+solidframe $ cd build/dbg/example/foundation/main
 main $ ./concept -b 2000
 }}}
 
 in yet another terminal we should use the clients:
 
 {{{
-solidground $ cd build/dbg/example/client
+solidframe $ cd build/dbg/example/client
 }}}
 
 First let us use the plain alpha client for local fetching on 10 threads:
@@ -193,4 +193,4 @@ As you'll see, the performance decreases on remote fetch at half of that of the 
 
 = Closing =
 
-On this page you've learned how to have a working copy of the *SolidGround* framework, and learned something about its example applications, especially the proof of concept server. You've also learned how to make a small performance test. There you have it, now brace yourself for the interesting part - start using the framework for development http://code.google.com/p/solidground/wiki/Develop.
+On this page you've learned how to have a working copy of the *SolidFrame* framework, and learned something about its example applications, especially the proof of concept server. You've also learned how to make a small performance test. There you have it, now brace yourself for the interesting part - start using the framework for development http://code.google.com/p/solidframe/wiki/Develop.
