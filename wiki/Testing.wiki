@@ -11,16 +11,16 @@ You need to have the following installed: gcc-c++, cmake and eventually subversi
 If you use svn to fetch the latest code you can do:
 
 {{{
-work $ svn checkout http://solidground.googlecode.com/svn/trunk/ solidground
+work $ svn checkout http://solidframe.googlecode.com/svn/trunk/ solidground
 }}}
 
 otherwise you can download archive with source snapshot from:
 
-http://code.google.com/p/solidground/downloads/list
+http://code.google.com/p/solidframe/downloads/list
 
 then
 {{{
-work $ tar -xjf solidground-source-X.Y.Z.tar.bz2
+work $ tar -xjf solidframe-source-X.Y.Z.tar.bz2
 }}}
 so you'll have a folder with *SolidGround* source code.
 
