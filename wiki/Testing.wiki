@@ -11,7 +11,7 @@ You need to have the following installed: gcc-c++, cmake and eventually subversi
 If you use svn to fetch the latest code you can do:
 
 {{{
-work $ svn checkout http://solidframe.googlecode.com/svn/trunk/ solidground
+work $ svn checkout http://solidframe.googlecode.com/svn/trunk/ solidframe
 }}}
 
 otherwise you can download archive with source snapshot from:
