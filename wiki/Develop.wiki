@@ -10,7 +10,7 @@ I suppose you've managed to build the *SolidFrame* example applications, which m
 You've already learned the command to build a KDevelop3 project:
 
 {{{
-solidframe $ ./configure -f kdv -g KDevelop3 -b debug -e ~/work/sg_extern
+solidframe $ ./configure -f kdv -g KDevelop3 -b debug -e ~/work/sf_extern
 }}}
 
 In KDevelop3, open the project from: `/path/to/solidframe/build/kdv/SolidFrame.kdevelop`.
