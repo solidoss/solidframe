@@ -1,6 +1,8 @@
 #summary Building and testing the sample applications
 #labels testing
 
+<wiki:toc max_depth="1" />
+
 =Introduction=
 
 First of all, I suppose you are on a linux box.
