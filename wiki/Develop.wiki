@@ -38,7 +38,7 @@ Step 4. In the window "Configure a build directory for ...", edit the "Build Dir
 Step 5. Select Project->Configure Selection.
 
 Step 6. In the "Projects" area on left right-click on solidframe and select "Open Configuration". There you should edit:
-  * EXTERN_PATH to point to where you've built the extern libraries (See [Overview#Introduction]).
+  * EXTERN_PATH to point to where you've built the extern libraries (See [Testing#Introduction]).
 
 
 (Step 7.) Build the main concept example. On the left Projects area, navigate to: solidframe->example->main. Right-Click on "concept" and select "Build". Pretty neat ... isn't it!!!
