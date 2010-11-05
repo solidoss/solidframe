@@ -1,0 +1,292 @@
+#! /bin/sh
+
+make_cmake_list(){
+	if [ -e CMakeLists.txt ]; then
+		rm CMakeLists.txt
+	fi
+	if [ $1 = "*" ]; then
+		echo "No child folder found!"
+		echo "# Automaticaly created" >> CMakeLists.txt
+	else
+		echo "# Automaticaly created" >> CMakeLists.txt
+		for name in $*
+			do
+			if [ $name = "CMakeLists.txt" ]; then
+				echo "Skip CMakeLists.txt"
+			else
+				echo "Adding dir: " $name
+				echo -ne "add_subdirectory("$name")\r\n" >> CMakeLists.txt
+			fi
+			done
+	fi
+}
+
+
+print_usage(){
+	echo "Usage:"
+	echo -ne "\n./configure [-g|--generator GeneratorName] [-f|--folder FolderName] [-b|--build BuildType]"
+	echo -ne " [-p|--param ParamName] [-d|--documentation full/fast] [-h|--help]"
+	echo -ne " [-e|--extern-path ExternPath] [-P|--cmake-param]"
+	echo -ne " [-t|--enable-testing] [--test-name name] [--test-site addr] [-c|--create-lists] [-]\n"
+	echo
+	echo -ne "Options:\n"
+	echo "[-g|--generator GeneratorName]: Specify the cmake generator - default cmake's default"
+	echo "[-f|--folder-name FolderName]: Specify the build folder name - default is the generator name or the build type if the generator was not specified"
+	echo "[-F|--folder-path FolderPath]: Specify the build folder path - unlike the build folder-name wich creates a folder under build, this flag allows creating a build folder anywhere"
+	echo "[-b|--build BuildType]: The cmake build type release/debug/nolog/maintain - default release"
+	echo "[-p|--param ParamName]: Extra compilation flags. E.g. -p \"-DUINDEX64 -DUSERVICEBITS=3\""
+	echo "[-d|--documentation full/fast]: Build either fast or full documentation"
+#	echo "[-e|--extern-path ExternPath]: relative path to extern libraries under solidground/extern folder"
+	echo "[-e|--extern-path ExternAbsPath]: absolute path to extern libraries"
+	echo "[-t|--enable-testing]: Enable unit-testing using ctest"
+	echo "[--test-name name]: The name of ctest/cdash project"
+	echo "[--test-site addr]: The address for cdash drop site"
+	echo "[-P|--cmake-param]: Some parameters given to cmake like: -DECLIPSE_CDT4_GENERATE_SOURCE_PROJECT=TRUE"
+	echo "[-c|--create-lists]: Implicit for any build option - create CMakeLists.txt files for <application> and <library> folders and exits the script. E.g use this before creating a KDevelop4 project."
+	echo
+	echo "Examples:"
+	echo "1) create simple make release build:"
+	echo "	./configure -f rls -b release -e ~/work/sg_extern"
+	echo
+	echo "2) create kdevelop3 project:"
+	echo "	./configure -f kdv -b debug -e ~/work/sg_extern -g KDevelop3"
+	echo
+	echo "3) create eclipse projects - one for source within source tree and one external for build (note that the build is external to source tree, as needed by eclipse):"
+	echo "	./configure -F ../sg_ecl -b debug -e ~/work/sg_extern -g \"Eclipse CDT4 - Unix Makefiles\" --cmake-param \"-DECLIPSE_CDT4_GENERATE_SOURCE_PROJECT=TRUE\""
+	echo
+	echo "4) create a simple make release build, directly specifying cmake parameters:"
+	echo "	./configure -f rel -b release -P -DUDEFS:STRING=\"-DUDEBUG -DUASSERT\" -P -DUEXTERN_ABS:STRING=\"/home/vpalade/projects/sg_extern\""
+	echo "The above command is equivalent to:"
+	echo "	./configure -f rel -b release -e ~/projects/sg_extern -p \"-DUDEBUG -DUASSERT\""
+	echo
+	exit
+}
+
+# if [ "$1" = "" ] ; then
+# 	print_usage
+# fi
+
+# First define and initilaize the variables
+
+GENERATOR=
+#CMAKE_PARAM=()
+DOCUMENTATION=
+BUILD_TYPE=
+FOLDER_NAME=
+FOLDER_PATH=
+HELP="no"
+PARAM=
+EXTERN_PATH=
+EXTERN_ABS_PATH=
+ENABLE_TESTING=
+TEST_NAME=
+TEST_SITE=
+CREATE_LISTS=
+
+#echo "$@"
+pass_arg_count=0
+#while [ "$#" -gt 0 ]; do
+while [ $# -gt $pass_arg_count ]
+do
+	CURRENT_OPT="$1"
+	UNKNOWN_ARG=no
+	case "$1" in
+	-g|--generator)
+		shift
+		GENERATOR=$1
+		;;
+	-f|--folder-name)
+		shift
+		FOLDER_NAME=$1
+		;;
+	-F|--folder-path)
+		shift
+		FOLDER_PATH=$1
+		;;
+	-b|--build)
+		shift
+		BUILD_TYPE=$1
+		;;
+	-d|--documentation)
+		if [ -z "$2" ] || echo "$2" | grep '^-' >/dev/null 2>&1; then
+			DOCUMENTATION="fast"
+		else
+			shift;
+			DOCUMENTATION=$1
+		fi
+		;;
+	-p|--param)
+		shift
+		PARAM=$PARAM"$1 "
+		;;
+	-P|--cmake-param)
+		shift
+		#CMAKE_PARAM=($CMAKE_PARAM "$1")
+		arg="$1"
+		set -- "$@" "$arg"
+		pass_arg_count=`expr $pass_arg_count + 1`
+		;;
+#	-e|--extern-path)
+#		if [ -z "$2" ] || echo "$2" | grep '^-' >/dev/null 2>&1; then
+#			EXTERN_PATH="extern"
+#		else
+#			shift;
+#			EXTERN_PATH=$1
+#		fi
+#		;;
+	-e|--extern-path)
+		if [ -z "$2" ] || echo "$2" | grep '^-' >/dev/null 2>&1; then
+			EXTERN_ABS_PATH=""
+		else
+			shift;
+			EXTERN_ABS_PATH=$1
+		fi
+		;;
+	-c|--create-lists)
+		CREATE_LISTS="yes"
+		;;
+	-h|--help)
+		HELP="yes"
+		;;
+	-t|--enable-testing)
+		ENABLE_TESTING="yes"
+		;;
+	--test-name)
+		shift
+		TEST_NAME="$1"
+		;;
+	--test-site)
+		shift
+		TEST_SITE="$1"
+		;;
+	*)
+		HELP="yes"
+		;;
+	esac
+	shift
+done
+
+
+#echo "generator = $GENERATOR"
+#echo "folder = $FOLDER_NAME"
+#echo "build = $BUILD_TYPE"
+#echo "documentation = $DOCUMENTATION"
+#echo "parameters = $PARAM"
+#echo "help = $HELP"
+#echo "extern = $EXTERN"
+#echo "parameters = $CMAKE_PARAM"
+
+if [ "$HELP" = "yes" ]; then
+	print_usage
+	exit
+fi
+
+if [ "$CREATE_LISTS" = "yes" ]; then
+	if [ ! -d application ]; then
+		mkdir application
+	fi
+	cd application
+	make_cmake_list *
+	cd ../
+	
+	if [ ! -d library ]; then
+		mkdir library
+	fi
+	cd library
+	make_cmake_list *
+	cd ../
+
+	exit
+fi
+
+
+if [ "$DOCUMENTATION" = "full" ]; then
+	echo "Building full documentation ..."
+	rm -rf documentation/html/
+	rm -rf documentation/latex/
+	doxygen
+	tar -cjf documentation/full.tar.bz2 documentation/html/ documentation/index.html
+	echo "Done building full documentation"
+	exit
+fi
+
+if [ "$DOCUMENTATION" = "fast" ]; then
+	echo "Building documentation..."
+	rm -rf documentation/html/
+	doxygen Doxyfile.fast
+	tar -cjf documentation/fast.tar.bz2 documentation/html/ documentation/index.html
+	echo "Done building documentation"
+	exit
+fi
+
+# if [ "$EXTERN" = "pack" ]; then
+# 	echo "Building extern archive"
+# 	cd extern
+# 	tar -cjf solidground_extern_linux.tar.bz2 linux
+# 	echo "Done building extern archive"
+# fi
+
+
+if [ "$BUILD_TYPE" = "" ]; then
+	BUILD_TYPE="release"
+fi
+
+if [ "$FOLDER_NAME" = "" ]; then
+	if [ "$GENERATOR" = "" ]; then
+		FOLDER_NAME=$BUILD_TYPE
+	else
+		FOLDER_NAME=$GENERATOR
+	fi
+fi
+
+
+echo "Configure an out-of-source build configuration of type $BUILD_TYPE on folder build/$FOLDER_NAME and params $PARAM"
+if [ ! -d application ]; then
+	mkdir application
+fi
+cd application
+make_cmake_list *
+cd ../
+
+if [ ! -d library ]; then
+	mkdir library
+fi
+cd library
+make_cmake_list *
+cd ../
+
+SRC_PATH="`pwd`"
+
+if [ "$FOLDER_PATH" = "" ]; then
+	mkdir build
+	mkdir "build/$FOLDER_NAME"
+	cd "build/$FOLDER_NAME"
+else
+	echo "$FOLDER_PATH"
+	mkdir "$FOLDER_PATH"
+	cd "$FOLDER_PATH"
+fi
+echo $GENERATOR
+
+echo "The list of parameters forwarded to cmake:"
+for param in "$@"; do
+  echo "$param"
+done
+echo
+
+echo -ne "./configure -f $FOLDER_NAME -F \"$FOLDER_PATH\" -b \"$BUILD_TYPE\" -g \"$GENERATOR\" -p \"$PARAM\" -e \"$EXTERN_ABS_PATH\" -DUTESTING:STRING=\"$ENABLE_TESTING\" -DUTEST_NAME=\"$TEST_NAME\" -DUTEST_SITE=\"$TEST_SITE\" \"$@\" \"$SRC_PATH\"\r\n" > configure.txt
+
+if [ "$GENERATOR" = "" ]; then
+	echo "Using cmake's default generator:"
+	echo ""
+	
+	exec cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS:STRING="$PARAM" -DUEXTERN:STRING="$EXTERN_PATH" -DUEXTERN_ABS:STRING="$EXTERN_ABS_PATH" -DUTESTING:STRING="$ENABLE_TESTING" -DUTEST_NAME="$TEST_NAME" -DUTEST_SITE="$TEST_SITE" "$@" "$SRC_PATH"
+	echo "Done!"
+else
+	echo "Using cmake's $GENERATOR"
+	echo ""
+	
+	exec cmake -G "$GENERATOR" -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUDEFS:STRING="$PARAM" -DUEXTERN:STRING="$EXTERN_PATH" -DUEXTERN_ABS:STRING="$EXTERN_ABS_PATH" -DUTESTING:STRING="$ENABLE_TESTING" -DUTEST_NAME="$TEST_NAME" -DUTEST_SITE="$TEST_SITE" "$@" "$SRC_PATH"
+fi
+
+exit
