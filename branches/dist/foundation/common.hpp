@@ -90,7 +90,6 @@ typedef uint32 IndexT;
 
 #endif
 
-
 typedef std::pair<IndexT, uint32> ObjectUidT;
 typedef std::pair<IndexT, uint32> SignalUidT;
 typedef std::pair<IndexT, uint32> FileUidT;

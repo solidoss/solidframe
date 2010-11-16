@@ -73,8 +73,8 @@ public://definition
 		\param _selcap The capacity of a selector - the total number
 		of objects handled would be _maxthcnt * _selcap
 	*/
-	SelectPool(Manager &_rm, uint _maxthcnt, uint _selcap = 1024):rm(_rm),cap(0),selcap(_selcap){
-		thrid = _rm.registerActiveSet(*this);
+	SelectPool(ManagerStub &_rm, uint _maxthcnt, uint _selcap = 1024):rm(_rm),cap(0),selcap(_selcap){
+		thrid = _rm->registerActiveSet(*this);
 		thrid <<= 16;
 		slotvec.reserve(_maxthcnt > 1024 ? 1024 : _maxthcnt);
 	}
@@ -110,14 +110,14 @@ public://definition
 	
 	//! Prepare the worker (usually thread specific data) - called internally
 	void prepareWorker(){
-		rm.prepareThread();
+		rm->prepareThread();
 		doPrepareWorker();
 	}
 	
 	//! Prepare the worker (usually thread specific data) - called internally
 	void unprepareWorker(){
 		doUnprepareWorker();
-		rm.unprepareThread();
+		rm->unprepareThread();
 	}
 	
 	//! The run loop for every thread
@@ -220,7 +220,8 @@ protected:
 		if(doWaitJob()){
 			//we have at least one job
 			do{
-				_rsel.push(this->q.front(), _wkrid); this->q.pop();
+				_rsel.push(this->q.front(), _wkrid);
+				this->q.pop();
 			}while(this->q.size() && !_rsel.full());
 			
 			if(this->q.size()){//the job queue is not empty..
@@ -262,7 +263,7 @@ private:
 	}
 
 private:
-	Manager			&rm;
+	ManagerStub		&rm;
 	ulong			cap;//the total count of objects already in pool
 	uint			selcap;
 	uint			thrid;

@@ -46,6 +46,11 @@ struct Cleaner{
 	}
 };
 
+/*static*/ const char* src_file_name(char const *_fname){
+	static const unsigned fileoff = (strlen(__FILE__) - strlen(strstr(__FILE__, "system/src")));
+	return _fname + fileoff;
+}
+
 static const pthread_once_t	oncek = PTHREAD_ONCE_INIT;
 
 struct ThreadData{

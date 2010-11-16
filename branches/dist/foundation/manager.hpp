@@ -1,6 +1,6 @@
 /* Declarations file manager.hpp
 	
-	Copyright 2007, 2008 Valentin Palade 
+	Copyright 2007, 2008, 2010 Valentin Palade 
 	vipalade@gmail.com
 
 	This file is part of SolidFrame framework.
@@ -44,132 +44,105 @@ class	Visitor;
 class	ServiceContainer;
 class	Signal;
 
-//! The central class of solidground system
-/*!
-	<b>Overview:</b><br>
-	- Although usually you don't need more than a manager per process,
-	the design allows that.
-	- The manager keeps the services and should keep the workpools (it 
-	means that the foundation::Manager does not keep any workpool, but
-	the inheriting manager should).
-	- The manager object can be easely accessed from any of the manager's
-	thread through thread specific: use Manager::the() method.
+class Manager;
+struct ManagerStub{
+	void prepareThread();
+	void unprepareThread();
+	uint registerActiveSet(ActiveSet &_ras);
 	
-	<b>Usage:</b><br>
-	- Inherit, add workpools and extend.
+	Manager* operator->(){return pmanager;}
 	
-	<b>Notes:</b><br>
-	- If you have a single manager per process, you should call,
-	prepareThread in the constructor of your inheritant manager.<br>
-	Else, you should use ThisGuard tg(this), for every function that is
-	called from a thread that has access to multiple Managers.
-	- Also you may consider initiating/controlling the Managers from their
-	own thread.
-	
-	
-*/
+	Manager	*pmanager;
+private:
+	ManagerStub(Manager *_pman = NULL):pmanager(_pman){}
+};
+
 class Manager{
 public:
 	virtual ~Manager();
-	//! Easy access to manager using thread specific
 	static Manager& the();
 	
-	//! Signal an object identified by (id,uid) with a sinal mask
+	void start();
+	void stop(bool _wait = true);
+	
 	int signalObject(IndexT _fullid, uint32 _uid, ulong _sigmask);
 	
-	//! Signal an object with a signal mask, given a reference to the object
 	int signalObject(Object &_robj, ulong _sigmask);
 	
-	//! Signal an object identified by (id,uid) with a signal
 	int signalObject(IndexT _fullid, uint32 _uid, DynamicPointer<Signal> &_rsig);
 	
-	//! Signal an object with a signal, given a reference to the object
 	int signalObject(Object &_robj, DynamicPointer<Signal> &_rsig);
 	
-	//! Wake an object
 	void raiseObject(const Object &_robj);
 	
-	//! Get the mutex associated to the given object
 	Mutex& mutex(const Object &_robj)const;
-	//! Get the unique id associated to the given object
+	
 	uint32  uid(const Object &_robj)const;
 	
-	//! Unsafe - you should not use this
 	template<class T>
 	typename T::ServiceT& service(const T &_robj){
 		return static_cast<typename T::ServiceT&>(service(_robj.serviceid()));
 	}
-	//! Prepare a manager thread
-	/*!
-		The method is called (should be called) from every
-		manager thread, to initiate thread specific data. In order to extend
-		the initialization of specific data, implement the virtual protected method:
-		doPrepareThread.
-	 */
-	void prepareThread();
-	//! Unprepare a manager thread
-	/*!
-		The method is called (should be called) from every
-		manager thread, to initiate thread specific data. In order to extend
-		the initialization of specific data, implement the virtual protected method:
-		doUnprepareThread.
-	 */
-	void unprepareThread();
+	
 	virtual SpecificMapper*  specificMapper();
+	
 	virtual GlobalMapper* globalMapper();
-	//! Register an activeset / workpool
-	uint registerActiveSet(ActiveSet &_ras);
-	//! Get the service id for a service
-	//uint serviceId(const Service &_rs)const;
-	//! Remove a service
-	/*!
-		The services are also objects so this must be called when
-		receiving S_KILL within service's execute method, outside
-		service's associated mutex lock.
-	*/
-	void removeService(Service *_ps);
+
 protected:
 	struct ThisGuard{
 		ThisGuard(Manager *_pm);
 		~ThisGuard();
 	};
-	//! Implement this method to exted thread preparation
-	virtual void doPrepareThread(){}
-	//! Implement this method to exted thread unpreparation
-	virtual void doUnprepareThread(){}
-	//! Registers a new service.
-	/*! 
-		- The service MUST be stopped before adding it.
-		- All it does is to register the service as an object, into 
-			a service of services which will permit signaling capabilities
-			for services.
-		- You must in case of success, add the service into a ObjectSelector
-			select pool.
-		\return the id of the service
-	*/
-	int insertService(Service *_ps);
-	//! Add objects that are on the same level as the services but are not services
+	
+	virtual void doPrepareThread();
+	virtual void doUnprepareThread();
+	
+	uint insertService(Service *_ps, uint _pos = 0);
 	void insertObject(Object *_po);
-	//! Remove an object
+	
 	void removeObject(Object *_po);
-	//! Get the number of services
+	
 	unsigned serviceCount()const;
-	//! Get the service at index _i
+	
 	Service& service(uint _i = 0)const;
-	//! Constructor with filemanager pointer and ipc service
+	
 	Manager();
-	void stop(bool _wait = true);
+	
+	ManagerStub createStub();
 private:
+	friend ManagerStub;
+	
+	void prepareThread();
+	void unprepareThread();
+	
+	uint registerActiveSet(ActiveSet &_ras);
+	
 	void prepareThis();
 	void unprepareThis();
+	
 	ServiceContainer & serviceContainer();
-	//Manager(const Manager&){}
+	
+	Manager(const Manager&);
 	Manager& operator=(const Manager&);
 private:
 	class ServicePtr;
 	struct Data;
 	Data &d;
 };
+
+inline void ManagerStub::prepareThread(){
+	pmanager->prepareThread();
+}
+inline void  ManagerStub::unprepareThread(){
+	pmanager->unprepareThread();
+}
+inline uint ManagerStub::registerActiveSet(ActiveSet &_ras){
+	return pmanager->registerActiveSet(_ras);
+}
+
+inline ManagerStub Manager::createStub(){
+	return ManagerStub(this);
+}
 
 }//namespace
 #endif

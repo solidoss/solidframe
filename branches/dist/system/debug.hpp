@@ -242,6 +242,9 @@ struct DbgTraceTest{
 #define tdbgo(a,x)
 #endif
 
+#define pdbg(f, ln, fnc, x)\
+	{Dbg::instance().print('P', Dbg::any,  f, fnc, ln)<<x;Dbg::instance().done();}
+
 #define writedbg(x,sz)
 #define writedbgx(a, x, sz)
 
@@ -267,6 +270,7 @@ struct DbgTraceTest{
 #define vdbgx(a,x)
 #define tdbgi(a,x)
 #define tdbgo(a,x)
+#define pdbg(f, ln, fnc, x)
 
 #define writedbg(x,sz)
 #define writedbgx(a, x, sz)

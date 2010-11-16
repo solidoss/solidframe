@@ -99,5 +99,7 @@ void exchange(T &a, T &b){
 struct EmptyType{};
 class NullType{};
 
+const char* src_file_name(char const *_fname);
+
 
 #endif

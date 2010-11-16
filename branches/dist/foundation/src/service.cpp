@@ -34,7 +34,6 @@
 #include "foundation/object.hpp"
 #include "foundation/manager.hpp"
 #include "foundation/signal.hpp"
-#include "foundation/readwriteservice.hpp"
 #include "foundation/common.hpp"
 
 
@@ -238,7 +237,7 @@ void Service::signalAll(ulong _sigmask){
 	doSignalAll(Manager::the(), _sigmask);
 }
 
-void Service::signalAll(DynamicPointer<Signal> &_rsig){
+void Service::signalAll(DynamicSharedPointer<Signal> &_rsig){
 	Mutex::Locker	lock(*d.pmtx);
 	doSignalAll(Manager::the(), _rsig);
 }
@@ -266,7 +265,7 @@ void Service::doSignalAll(Manager &_rm, ulong _sigmask){
 	if(mi >= 0)	d.mtxstore[mi].unlock();
 }
 
-void Service::doSignalAll(Manager &_rm, DynamicPointer<Signal> &_rsig){
+void Service::doSignalAll(Manager &_rm, DynamicSharedPointer<Signal> &_rsig){
 	ulong	oc(d.objcnt);
 	ulong	i(0);
 	long	mi(-1);
@@ -280,7 +279,7 @@ void Service::doSignalAll(Manager &_rm, DynamicPointer<Signal> &_rsig){
 				++mi;
 				d.mtxstore[mi].lock();
 			}
-			DynamicPointer<Signal> sig(_rsig.ptr());
+			DynamicPointer<Signal> sig(_rsig);
 			if(it->first->signal(sig)){
 				_rm.raiseObject(*it->first);
 			}
@@ -302,9 +301,7 @@ void Service::visit(Visitor &_rov){
 				++mi;
 				d.mtxstore[mi].lock();
 			}
-			if(it->first->accept(_rov)){
-				Manager::the().raiseObject(*it->first);
-			}
+			it->first->accept(_rov);
 			--oc;
 		}
 	}

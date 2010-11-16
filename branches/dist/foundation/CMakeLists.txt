@@ -18,12 +18,11 @@ set(Headers
 	object.hpp
 	objectselector.hpp
 	objectpointer.hpp
-	readwriteobject.hpp
-	readwriteservice.hpp
 	requestuid.hpp
 	selectpool.hpp
 	service.hpp
 	visitor.hpp
+	selector.hpp
 )
 
 set(Inlines

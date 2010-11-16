@@ -66,9 +66,15 @@ struct Selector::Stub{
 		InExecQueue,
 		OutExecQueue
 	};
-	Stub():timepos(TimeSpec::max), state(OutExecQueue), events(0){}
+	Stub():
+		timepos(TimeSpec::max),
+		itimepos(TimeSpec::max),
+		otimepos(TimeSpec::max),
+		state(OutExecQueue),
+		events(0){
+	}
 	void reset(){
-		timepos = TimeSpec::max;
+		timepos = TimeSpec::max; 
 		state = OutExecQueue;
 		events = 0;
 	}
@@ -301,7 +307,7 @@ void Selector::push(const ObjectT &_objptr, uint _thid){
 	uint stubpos = doNewStub();
 	Stub &stub = d.stubs[stubpos];
 	
-	_objptr->setThread(_thid, stubpos);
+	this->setObjectThread(*_objptr, _thid, stubpos);
 	
 	stub.timepos  = TimeSpec::max;
 	stub.itimepos = TimeSpec::max;
@@ -653,8 +659,8 @@ uint Selector::doExecute(const uint _pos){
 	stub.events = 0;
 	stub.objptr->doClearRequests();//clears the requests from object to selector
 	idbgx(Dbg::aio, "execute object "<<_pos);
-	stub.objptr->associateToCurrentThread();
-	switch(stub.objptr->execute(evs, timepos)){
+	this->associateObjectToCurrentThread(*stub.objptr);
+	switch(this->executeObject(stub.objptr, evs, timepos)){
 		case BAD:
 			idbgx(Dbg::aio, "BAD: removing the connection");
 			d.freestubsstk.push(_pos);
@@ -776,9 +782,10 @@ uint Selector::doNewStub(){
 			//we need to reset the aioobject's pointer to timepos
 			for(Data::StubVectorT::iterator it(d.stubs.begin()); it != d.stubs.end(); ++it){
 				if(it->objptr){
-					it->timepos  = TimeSpec::max;
-					it->itimepos = TimeSpec::max;
-					it->otimepos = TimeSpec::max;
+					//TODO: is it ok commenting the following lines?!
+					//it->timepos  = TimeSpec::max;
+					//it->itimepos = TimeSpec::max;
+					//it->otimepos = TimeSpec::max;
 					it->objptr->doPrepare(&it->itimepos, &it->otimepos);
 				}
 			}

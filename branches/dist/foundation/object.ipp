@@ -48,8 +48,8 @@ inline ulong Object::grabSignalMask(ulong _leave){
 	smask = sm & _leave;
 	return sm;
 }
-inline ulong Object::signaled(ulong _s) const{
-	return smask & _s;
+inline bool Object::signaled(ulong _s) const{
+	return (smask & _s) != 0;
 }
 inline void Object::id(IndexT _fullid){
 	fullid = _fullid;

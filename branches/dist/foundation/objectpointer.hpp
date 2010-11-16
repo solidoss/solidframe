@@ -45,13 +45,17 @@ public:
 	ObjectPointer():pobj(NULL){}
 	
 	explicit ObjectPointer(ObjectT *_pobj):pobj(_pobj) {
-		if(_pobj) use(static_cast<Object*>(_pobj));
+		if(_pobj){
+			use(static_cast<Object*>(_pobj));
+		}
 	}
 	
 	ObjectPointer(const ThisT &_pobj):pobj(_pobj.release()){}
 	
 	~ObjectPointer(){
-		if(pobj){ObjectPointerBase::clear(static_cast<Object*>(pobj));}
+		if(pobj){
+			ObjectPointerBase::clear(static_cast<Object*>(pobj));
+		}
 	}
 	ObjectT* release() const{
 		ObjectT *po = pobj;
@@ -71,7 +75,12 @@ public:
 	ObjectT* ptr()	const	{return pobj;}
 	operator bool ()const	{return pobj != NULL;}
 	bool operator!()const	{return pobj == NULL;}
-	void clear(){if(pobj){ObjectPointerBase::clear(static_cast<Object*>(pobj));pobj = NULL;}}
+	void clear(){
+		if(pobj){
+			ObjectPointerBase::clear(static_cast<Object*>(pobj));
+			pobj = NULL;
+		}
+	}
 protected:
 	void ptr(ObjectT *_pobj){
 		pobj = _pobj;

@@ -24,6 +24,7 @@
 
 #include "system/timespec.hpp"
 #include "foundation/common.hpp"
+#include "foundation/selector.hpp"
 #include "foundation/objectpointer.hpp"
 
 
@@ -43,7 +44,7 @@ typedef ObjectPointer<Object>	ObjectPtrT;
 	A selector must export a certain interface requested by the SelectPool,
 	and the pool will have one for its every thread.
 */
-class Selector{
+class Selector: protected foundation::Selector{
 public:
 	typedef ObjectPtrT		ObjectT;
 	

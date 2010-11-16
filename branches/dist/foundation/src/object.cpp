@@ -103,30 +103,26 @@ Mutex& Object::mutex()const{
 	return Manager::the().mutex(*this);
 }
 //--------------------------------------------------------------
-/*
-void Object::threadid(ulong _thrid){
-	thrid = _thrid;
-}
-*/
 uint32  Object::uid()const{
 	return Manager::the().uid(*this);
 }
-int Object::signal(DynamicPointer<Signal> &_sig){
-	return OK;
+
+bool Object::signal(DynamicPointer<Signal> &_sig){
+	return false;//by default do not raise the object
 }
 /**
  * Returns true if the object must be executed.
  */
 
-ulong Object::signal(ulong _smask){
+bool Object::signal(ulong _smask){
 	ulong oldmask = smask;
 	smask |= _smask;
 	return (smask != oldmask) && signaled(S_RAISE);
 }
 
 
-int Object::accept(Visitor &_roi){
-	return _roi.visit(*this);
+void Object::accept(Visitor &_rov){
+	_rov.visit(*this);
 }
 
 int Object::execute(){

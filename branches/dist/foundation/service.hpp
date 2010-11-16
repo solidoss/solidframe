@@ -82,7 +82,7 @@ public:
 		prepared for paralel access as the same signal pointer
 		is given to all objects.
 	*/
-	void signalAll(DynamicPointer<Signal> &_rsig);
+	void signalAll(DynamicSharedPointer<Signal> &_rsig);
 	//! Visit all objects
 	void visit(Visitor &_rov);
 	//! Get the mutex associated to an object
@@ -112,13 +112,12 @@ protected:
 	/*!
 		The call may fail and it should be carefully called
 		from within Service's mutex lock.
-		
 	*/
 	Object* object(IndexT _fullid, uint32 _uid);
 	//! Signal all objects - the service's mutex must be locked from outside
 	void doSignalAll(Manager &_rm, ulong _sigmask);
 	//! Signal all objects - the service's mutex must be locked from outside
-	void doSignalAll(Manager &_rm, DynamicPointer<Signal> &_rsig);
+	void doSignalAll(Manager &_rm, DynamicSharedPointer<Signal> &_rsig);
 	//! Insert an object - the service's mutex must be locked from outside
 	int doInsert(Object &_robj, IndexT _srvid);
 	//! Constructor - forwards the parameters to the MutualStore of mutexes

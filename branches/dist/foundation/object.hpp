@@ -33,9 +33,9 @@ namespace foundation{
 class Visitor;
 class Manager;
 class Service;
-class ReadWriteService;
 class ObjectPointerBase;
 class Signal;
+class Selector;
 
 #ifndef USERVICEBITS
 //by default we have at most 32 services for x86 bits machines and 256 for x64
@@ -81,16 +81,69 @@ enum ObjectDefs{
 class Object{
 public:
 	typedef Signal	SignalT;
+	
 	//! Extracts the object index within service from an objectid
 	static IndexT computeIndex(IndexT _fullid);
+	
 	//! Extracts the service id from an objectid
 	static IndexT computeServiceId(IndexT _fullid);
 	
 	//!Get the curent object associate to the current thread
-	static Object&	the();
+	static Object& the();
+	
+	//! Returns true if the object is signaled
+	bool signaled() const;
+	
+	//! Returns the state of the objec -a negative state means the object must be destroyed
+	int state() const;
+	
+	bool signaled(ulong _s) const;
+	
+	//! Get the id of the object
+	IndexT id() const;
+	
+	uint32 uid()const;
+	
+	//! Get the associated mutex
+	Mutex& mutex()const;
+	
+protected:
+	friend class Service;
+	friend class Manager;
+	friend class ObjectPointerBase;
+	friend class Selector;
 	
 	//! Constructor
 	Object(IndexT _fullid = 0UL);
+	
+	//! Sets the current state.
+	/*! If your object will implement a state machine (and in an asynchronous
+	environments it most certanly will) use this base state setting it to
+	somethin negative on destruction
+	*/
+	void state(int _st);
+	
+	//! Grab the signal mask eventually leaving some bits set- CALL this inside lock!!
+	ulong grabSignalMask(ulong _leave = 0);
+	
+	//! Virtual destructor
+	virtual ~Object();//only objptr base can destroy an object
+	
+	//getters:
+	//! Get the id of the parent service
+	IndexT serviceid()const;
+	
+	//! Get the index of the object within service from an objectid
+	IndexT index()const;
+	
+	/**
+	 * Returns true if the signal should raise the object ASAP
+	 * \param _smask The signal bitmask
+	 */
+	bool signal(ulong _smask);
+	
+	//! Signal the object with a signal
+	virtual bool signal(DynamicPointer<Signal> &_rsig);
 	
 	//! Assigns the object to the current thread
 	/*!
@@ -98,70 +151,18 @@ public:
 	*/
 	void associateToCurrentThread();
 	
-	//! Get the id of the object
-	IndexT id()			const 	{return fullid;}
-	
-	uint32 uid()const;
-	
-	//! Get the associated mutex
-	Mutex& mutex()const;
-	
-	//! Set the thread id
-	void setThread(uint32 _thrid, uint32 _thrpos);
-	
-	//! Returns the state of the objec -a negative state means the object must be destroyed
-	int state()	const 	{return crtstate;}
-	/**
-	 * Returns true if the signal should raise the object ASAP
-	 * \param _smask The signal bitmask
-	 */
-	ulong signal(ulong _smask);
-	
-	ulong signaled(ulong _s) const;
-	
-	//! Signal the object with a signal
-	virtual int signal(DynamicPointer<Signal> &_rsig);
-	
-	//! Executes the objects
-	/*!
-		This method is calle by basic objectpools with no support for
-		events and timeouts
-	*/
-	virtual int execute();
 	//! Executes the objects
 	/*!
 		This method is calle by selectpools with support for
 		events and timeouts
 	*/
 	virtual int execute(ulong _evs, TimeSpec &_rtout);
+	
 	//! Acceptor method for different visitors
-	virtual int accept(Visitor &_roi);
-protected:
-	friend class Service;
-	friend class Manager;
-	friend class ReadWriteService;
-	friend class ObjectPointerBase;
-	//! Sets the current state.
-	/*! If your object will implement a state machine (and in an asynchronous
-	environments it most certanly will) use this base state setting it to
-	somethin negative on destruction
-	*/
-	void state(int _st);
-	//! Grab the signal mask eventually leaving some bits set- CALL this inside lock!!
-	ulong grabSignalMask(ulong _leave = 0);
-	//! Virtual destructor
-	virtual ~Object();//only objptr base can destroy an object
+	virtual void accept(Visitor &_rov);
 	
-	//getters:
-	//! Get the id of the parent service
-	IndexT serviceid()const;
-	//! Get the index of the object within service from an objectid
-	IndexT index()const;
-	
-	
-	//! Returns true if the object is signaled
-	ulong signaled()			const 	{return smask;}
-	
+	//! Set the thread id
+	void setThread(uint32 _thrid, uint32 _thrpos);
 private:
 	//! Set the id
 	void id(IndexT _fullid);
@@ -183,6 +184,18 @@ private:
 	short			usecnt;//
 	short			crtstate;// < 0 -> must die
 };
+
+inline bool Object::signaled() const {
+	return smask != 0;
+}
+	
+inline int Object::state()	const {
+	return crtstate;
+}
+
+inline IndexT Object::id()	const {
+	return fullid;
+}
 
 
 #ifndef NINLINES

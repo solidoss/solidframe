@@ -48,8 +48,6 @@
 #endif
 
 
-const unsigned fileoff = (strlen(__FILE__) - strlen(strstr(__FILE__, "system/src")));
-
 using namespace std;
 
 //-----------------------------------------------------------------
@@ -623,7 +621,7 @@ std::ostream& Dbg::print(
 		d.nv[_module]//,
 		//Thread::currentId()
 	);
-	return (*d.pos)<<buf<<'['<<_file + fileoff<<'('<<_line<<')'<<' '<<_fnc<<"][0x"<<std::hex<<Thread::currentId()<<std::dec<<']'<<' ';
+	return (*d.pos)<<buf<<'['<<src_file_name(_file)<<'('<<_line<<')'<<' '<<_fnc<<"][0x"<<std::hex<<Thread::currentId()<<std::dec<<']'<<' ';
 }
 static const char tabs[]="\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t"
 						 "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t"
@@ -673,7 +671,7 @@ std::ostream& Dbg::printTraceIn(
 	(*d.pos)<<buf;
 	d.pos->write(tabs, d.trace_debth);
 	++d.trace_debth;
-	(*d.pos)<<'['<<d.nv[_module]<<']'<<'['<<_file + fileoff<<'('<<_line<<')'<<"][0x"<<std::hex<<Thread::currentId()<<std::dec<<']'<<' '<<_fnc<<'(';
+	(*d.pos)<<'['<<d.nv[_module]<<']'<<'['<<src_file_name(_file)<<'('<<_line<<')'<<"][0x"<<std::hex<<Thread::currentId()<<std::dec<<']'<<' '<<_fnc<<'(';
 	return (*d.pos);
 }
 
@@ -712,7 +710,7 @@ std::ostream& Dbg::printTraceOut(
 	(*d.pos)<<buf;
 	--d.trace_debth;
 	d.pos->write(tabs, d.trace_debth);
-	(*d.pos)<<'['<<d.nv[_module]<<']'<<'['<<_file + fileoff<<'('<<_line<<')'<<']'<<'['<<Thread::currentId()<<']'<<' '<<'}'<<_fnc<<'(';
+	(*d.pos)<<'['<<d.nv[_module]<<']'<<'['<<src_file_name(_file)<<'('<<_line<<')'<<']'<<'['<<Thread::currentId()<<']'<<' '<<'}'<<_fnc<<'(';
 	return (*d.pos);
 }
 
