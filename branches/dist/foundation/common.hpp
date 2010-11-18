@@ -112,7 +112,7 @@ typedef UidT						FileUidT;
 typedef UidT						RequestUidT;
 
 inline const UidT& invalid_uid(){
-	static const UidT u(0xffffffff, 0xffffffff);
+	static const UidT u(ID_MASK, 0xffffffff);
 	return u;
 }
 

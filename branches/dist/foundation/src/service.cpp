@@ -477,5 +477,60 @@ bool Service::doSignalAll(DynamicSharedPointer<Signal> &_rsig){
 	return signaled;
 }
 //---------------------------------------------------------
+bool Service::doVisit(Visitor &_rv, uint _visidx){
+	IndexT				oc(d.objcnt);
+	IndexT				i(0);
+	long				mi(-1);
+	bool				signaled(false);
+	Manager				&rm(m());
+	VisitorTypeStub		&rvts(vistpvec[_visidx]);
+	
+	idbgx(Dbg::fdt, "visiting "<<oc<<" objects");
+	
+	for(Data::ObjectVectorT::iterator it(d.objvec.begin()); oc && it != d.objvec.end(); ++it, ++i){
+		if(it->first){
+			if(d.mtxstore.isRangeBegin(i)){
+				if(mi >= 0)	d.mtxstore[mi].unlock();
+				++mi;
+				d.mtxstore[mi].lock();
+			}
+			Object			*pobj(*it);
+			
+			if(pobj->typeId() < rvts.cbkvec.size() && rvts.cbkvec[pobj->typeId()] != NULL){
+				(*rvts.cbkvec[pobj->typeId()])(pobj, _rv);
+			}else{
+				Service::visit_cbk<Object, Visitor>(pobj, _rv);
+			}
+			
+			signaled = true;
+			--oc;
+		}
+	}
+	if(mi >= 0)	d.mtxstore[mi].unlock();
+	return signaled;
+}
+//---------------------------------------------------------
+bool Service::doVisit(Visitor &_rv, uint _visidx, const ObjectUidT &_ruid){
+	const IndexT	oidx(compute_index(_ruid.first));
+	
+	if(oidx >= d.objvec.size()) return false;
+	
+	Mutex::Locker	lock(d.mtxstore.at(oidx));
+	
+	if(_ruid.second != d.objvec[oidx].second) return false;
+	
+	Object			*pobj(d.objvec[oidx].first);
+	
+	if(!pobj) return false;
+	
+	VisitorTypeStub	&rvts(vistpvec[_visidx]);
+	
+	if(pobj->typeId() < rvts.cbkvec.size() && rvts.cbkvec[pobj->typeId()] != NULL){
+		(*rvts.cbkvec[pobj->typeId()])(pobj, _rv);
+	}else{
+		Service::visit_cbk<Object, Visitor>(pobj, _rv);
+	}
+}
+//---------------------------------------------------------
 }//namespace fundation
 

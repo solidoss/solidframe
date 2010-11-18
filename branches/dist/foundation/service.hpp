@@ -145,13 +145,8 @@ public:
 	
 	template <class V>
 	void visit(V &_rv){
-		
-	}
-	
-	template <class V>
-	void visit(V &_rv, const ObjectUidT &_ruid){
 		if(is_invalid_uid(_ruid)){
-			return;
+			return false;
 		}
 		int	 			visidx(-1);
 		
@@ -161,13 +156,27 @@ public:
 				break;
 			}
 		}
-		if(visidx < 0) return;
+		if(visidx < 0) return false;
 		
-		IndexT			idx(compute_index(_ruid.first));
-		Mutex::Locker	lock(mutex(idx));
-		Object			*po(objectAt(idx, _ruid.second));
+		return doVisit(_rv, visidx);
+	}
+	
+	template <class V>
+	bool visit(V &_rv, const ObjectUidT &_ruid){
+		if(is_invalid_uid(_ruid)){
+			return false;
+		}
+		int	 			visidx(-1);
 		
-		doVisit(po, _rv, visidx);
+		for(int i(vistpvec.size() - 1); i >= 0; --i){
+			if(V::isType(vistpvec[i].tid)){
+				visidx = i;
+				break;
+			}
+		}
+		if(visidx < 0) return false;
+		
+		return doVisit(_rv, visidx, _ruid);
 	}
 	
 	template <class V, class I>
@@ -229,13 +238,15 @@ private:
 		static const uint v(newObjectTypeId());
 		return v;
 	}
-	ObjectUidT doInsertObject(Object &_ro, uint16 _tid,const IndexT &_ruid);
+	ObjectUidT doInsertObject(Object &_ro, uint16 _tid, const IndexT &_ruid);
 	uint newObjectTypeId();
 	Object* objectAt(const IndexT &_ridx, uint32 _uid);
 	void doVisit(Object *_po, Visitor &_rv, uint32 _visidx);
 	const Service& operator=(const Service &);
 	bool doSignalAll(ulong _sm);
 	bool doSignalAll(DynamicSharedPointer<Signal> &_rsig){
+	bool doVisit(Visitor &_rv, uint _visidx);
+	bool doVisit(Visitor &_rv, uint _visidx, const ObjectUidT &_ruid);
 private:
 	friend class Manager;
 	//this is called by manager 
