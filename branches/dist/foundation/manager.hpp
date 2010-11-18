@@ -34,6 +34,8 @@ class  SpecificMapper;
 class  GlobalMapper;
 struct AddrInfoIterator;
 
+namespace fdt = foundation;
+
 namespace foundation{
 
 class	Service;
@@ -142,6 +144,10 @@ inline uint ManagerStub::registerActiveSet(ActiveSet &_ras){
 
 inline ManagerStub Manager::createStub(){
 	return ManagerStub(this);
+}
+
+inline Manager& m(){
+	return Manager::the();
 }
 
 }//namespace

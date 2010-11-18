@@ -23,11 +23,17 @@
 #define FOUNDATION_SERVICE_HPP
 
 #include "foundation/object.hpp"
+#include <vector>
 
 namespace foundation{
 
 class Manager;
-class Visitor;
+
+//! A visitor structure for the basic service
+struct Visitor: Dynamic<Visitor>{
+	virtual void visitObject(Object &_robj) = 0;
+};
+
 //! Static container of objects
 /*!
 	<b>Overview:</b><br>
@@ -55,91 +61,204 @@ class Visitor;
 	- You also must implement the execute method either in the
 	base service or on the concrete ones.
 */
-class Service: public Object{
+class Service: public Dynamic<Service, Object>{
+	typedef void (*EraseCbkT) (const Object &, Service *);
+	typedef void (*InsertCbkT) (Object *, Service *, const ObjectUidT &);
+	typedef void (*VisitCbkT)(Object *, Visitor&);
+	
+	template <class O, class S>
+	static void insert_cbk(Object *_po, Service *_ps, const ObjectUidT &_ruid){
+		static_cast<S*>(_ps)->insertObject(*static_cast<O*>(_po), _ruid);
+	}
+	template <class O, class S>
+	static void erase_cbk(const Object &_ro, Service *_ps){
+		static_cast<S*>(_ps)->eraseObject(static_cast<const O&>(_ro));
+	}
+	template <class O, class V>
+	static void visit_cbk(Object *_po, Visitor &_rv){
+		static_cast<V&>(_rv).visitObject(static_cast<O&>(*_po));
+	}
+	
+	struct ObjectTypeStub{
+		ObjectTypeStub(
+			EraseCbkT _pec = &erase_cbk<Object,Service>,
+			InsertCbkT _pic = &insert_cbk<Object,Service>
+		):erase_callback(_pec), insert_callback(_pic){}
+		bool empty()const{
+			return erase_callback == NULL;
+		}
+		EraseCbkT	erase_callback;
+		InsertCbkT	insert_callback;
+	};
+	
+	struct VisitorTypeStub{
+		typedef std::vector<VisitCbkT>	CbkVectorT;
+		VisitorTypeStub(uint32 _tid = 0xffffffff):tid(_tid){}
+		uint32			tid;
+		CbkVectorT		cbkvec;
+	};
+	
+	struct ObjectStub{
+		ObjectStub(Object *_pobj = NULL):pobj(_pobj), uid(0){}
+		Object	*pobj;
+		uint32	uid;
+	};
 public:
 	enum States{Running, Stopping, Stopped};
-	virtual ~Service();
-	//! Signal an object with a signal mask
-	/*!
-		Added the Manager parameter too because
-		the function may be called also from a non pool thread,
-		so the Manager will/may not be available from thread static.
-	*/
-	int signal(Object &_robj, ulong _sigmask);
-	//! Signal an object with a signal mask
-	int signal(IndexT _fullid, uint32 _uid, ulong _sigmask);
+	/*virtual*/ ~Service();
 	
-	//! Signal an object with a signal
-	int signal(Object &_robj, DynamicPointer<Signal> &_rsig);
-	//! Signal an object with a signal
-	int signal(IndexT _fullid, uint32 _uid, DynamicPointer<Signal> &_rsig);
+	template <class O>
+	ObjectUidT insert(O *_po, const IndexT &_ridx = invalid_uid().first){
+		Mutex::Locker		lock(serviceMutex());
+		const uint16		tid(objectTypeId<O>());
+		ObjectTypeStub		&rots(objectTypeStub(tid));
+		const ObjectUidT	objuid(doInsertObject(*_po, tid, _ridx));
+		
+		(*rots.insert_callback)(_po, this, objuid);
+		
+		return objuid;
+	}
 	
-	//! Signal all objects with a signal mask
-	void signalAll(ulong _sigmask);
-	//! Signal all objects with a signal
-	/*!	
-		NOTE: use it with care because the signal has to be
-		prepared for paralel access as the same signal pointer
-		is given to all objects.
-	*/
-	void signalAll(DynamicSharedPointer<Signal> &_rsig);
-	//! Visit all objects
-	void visit(Visitor &_rov);
-	//! Get the mutex associated to an object
+	IndexT size()const;
+	
+	void erase(const Object &_robj);
+	
+	bool signal(ulong _sm);
+	bool signal(ulong _sm, const ObjectUidT &_ruid);
+	bool signal(ulong _sm, IndexT _fullid, uint32 _uid);
+	bool signal(ulong _sm, const Object &_robj);
+
+	template <class I>
+	bool signal(ulong _sm, I &_rbeg, const I &_rend){
+		return false;
+	}
+	
+	bool signal(DynamicSharedPointer<Signal> &_rsig);
+	bool signal(DynamicPointer<Signal> &_rsig, const ObjectUidT &_ruid);
+	bool signal(DynamicPointer<Signal> &_rsig, IndexT _fullid, uint32 _uid);
+	bool signal(DynamicPointer<Signal> &_rsig, const Object &_robj);
+	
+	template <class I>
+	bool signal(DynamicSharedPointer<Signal> &_rsig, I &_rbeg, const I &_rend){
+		return false;
+	}
+	
+	template <class V>
+	void visit(V &_rv){
+		
+	}
+	
+	template <class V>
+	void visit(V &_rv, const ObjectUidT &_ruid){
+		if(is_invalid_uid(_ruid)){
+			return;
+		}
+		int	 			visidx(-1);
+		
+		for(int i(vistpvec.size() - 1); i >= 0; --i){
+			if(V::isType(vistpvec[i].tid)){
+				visidx = i;
+				break;
+			}
+		}
+		if(visidx < 0) return;
+		
+		IndexT			idx(compute_index(_ruid.first));
+		Mutex::Locker	lock(mutex(idx));
+		Object			*po(objectAt(idx, _ruid.second));
+		
+		doVisit(po, _rv, visidx);
+	}
+	
+	template <class V, class I>
+	void visit(V &_rv, const I &_rbeg, const I &_rend){
+		
+	}
+	
 	Mutex& mutex(const Object &_robj);
-	//! Get the unique id associated to an object
-	uint32  uid(const Object &_robj)const;
-	uint32  uid(const uint32 _idx)const;
-	//! The service will keep a pointer to its associated mutex
-	void mutex(Mutex *_pmut);
-	//! Pointer to the service's mutex
-	Mutex* mutex()const;
-	//! Start the service
-	virtual int start();
-	//! Stop it eventually waiting for all objects to unregister
-	virtual int stop(bool _wait = true);
-	//! Not used
-	virtual int execute();
+	uint32 uid(const Object &_robj)const;
+	uint32 uid(const IndexT &_idx)const;
 	
+	void start();
+	
+	/*virtual*/ int execute(ulong _evs, TimeSpec &_rtout);
 protected:
-	//! Insert an object.
-	int insert(Object &_robj, IndexT _srvid);
-	//! Remove an object
-	void remove(Object &_robj);
-	//! Get an object mutex using objects unique id
-	Mutex& mutex(IndexT _fullid, uint32 _uid);
-	//! Get a pointer to an object using its unique id
-	/*!
-		The call may fail and it should be carefully called
-		from within Service's mutex lock.
-	*/
-	Object* object(IndexT _fullid, uint32 _uid);
-	//! Signal all objects - the service's mutex must be locked from outside
-	void doSignalAll(Manager &_rm, ulong _sigmask);
-	//! Signal all objects - the service's mutex must be locked from outside
-	void doSignalAll(Manager &_rm, DynamicSharedPointer<Signal> &_rsig);
-	//! Insert an object - the service's mutex must be locked from outside
-	int doInsert(Object &_robj, IndexT _srvid);
-	//! Constructor - forwards the parameters to the MutualStore of mutexes
 	Service(int _objpermutbts = 6, int _mutrowsbts = 8, int _mutcolsbts = 8);
+	Mutex &serviceMutex()const;
+	void insertObject(Object &_ro, const ObjectUidT &_ruid);
+	void eraseObject(const Object &_ro);
+	virtual void dynamicExecute(DynamicPointer<> &_dp);
 	
+	void stop(bool _wait = true);
 	
-	ulong indexStackSize()const;
-	ulong indexStackTop()const;
-	void indexStackPop();
-	Mutex& mutexAt(ulong _idx);
-	void lockForPushBack();
-	void unlockForPushBack();
-	void insertObject(Object &_robj, ulong _srvid);
-	void appendObject(Object &_robj, ulong _srvid);
-	ulong objectVectorSize()const;
+	virtual void doStart();
+	virtual void doStop();
+	
+	template <class O, class S>
+	void registerObjectType(){
+		const uint32	objtpid(objectTypeId<O>());
+		ObjectTypeStub &rts(safe_at(objtpvec, objtpid));
+		rts.erase_callback = &erase_cbk<O, S>;
+		rts.insert_callback = &insert_cbk<O, S>;
+	}
+	template <class O, class V>
+	void registerVisitorType(){
+		const uint32	objtpid(objectTypeId<O>());
+		const uint32	vistpid(V::staticTypeId());
+		int				pos(-1);
+		for(VisitorTypeStubVectorT::const_iterator it(vistpvec.begin()); it != vistpvec.end(); ++it){
+			if(it->tid == vistpid){
+				pos = it - vistpvec.begin();
+				break;
+			}
+		}
+		if(pos < 0){
+			pos = vistpvec.size();
+			vistpvec.push_back(VisitorTypeStub(vistpid));
+		}
+		VisitorTypeStub	&rvts(vistpvec[pos]);
+		safe_at(rvts.cbkvec, objtpid) = &visit_cbk<O, V>;
+	}
 private:
+	ObjectTypeStub& objectTypeStub(uint _tid){
+		if(_tid >= objtpvec.size()) _tid = 0;
+		return objtpvec[_tid];
+	}
+	template <class O>
+	uint objectTypeId(){
+		static const uint v(newObjectTypeId());
+		return v;
+	}
+	ObjectUidT doInsertObject(Object &_ro, uint16 _tid,const IndexT &_ruid);
+	uint newObjectTypeId();
+	Object* objectAt(const IndexT &_ridx, uint32 _uid);
+	void doVisit(Object *_po, Visitor &_rv, uint32 _visidx);
 	const Service& operator=(const Service &);
+	bool doSignalAll(ulong _sm);
+	bool doSignalAll(DynamicSharedPointer<Signal> &_rsig){
+private:
+	friend class Manager;
+	//this is called by manager 
+	void invalidateService();
+protected:
+	typedef DynamicExecuter<void, Service>	DynamicExecuterT;
+	DynamicExecuterT		de;
 private:
 	struct Data;
-	Data	&d;
+	//typedef std::vector<ObjectStub>			ObjectStubVectorT;
+	typedef std::vector<ObjectTypeStub>		ObjectTypeStubVectorT;
+	typedef std::vector<VisitorTypeStub>	VisitorTypeStubVectorT;
+	//ObjectStubVectorT		objvec;
+	ObjectTypeStubVectorT	objtpvec;
+	VisitorTypeStubVectorT	vistpvec;
+	//uint					crtobjtypeid;
+	Data					&d;
 };
 
+inline ObjectTypeStub& Service::objectTypeStub(uint _tid){
+	if(_tid >= objtpvec.size()) _tid = 0;
+	return objtpvec[_tid];
+}
 
 }//namespace foundation
 

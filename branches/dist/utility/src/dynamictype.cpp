@@ -88,22 +88,18 @@ DynamicMap::~DynamicMap(){
 }
 
 void DynamicMap::callback(uint32 _tid, FncT _pf){
-	//Thread::gmutex().lock();
 	if(_tid >= d.fncvec.size()){
 		d.fncvec.resize(_tid + 1);
 	}
 	//cassert(!d.fncvec[_tid]);
 	d.fncvec[_tid] = _pf;
-	//Thread::gmutex().unlock();
 }
 
 DynamicMap::FncT DynamicMap::callback(uint32 _id)const{
 	FncT pf = NULL;
-	//Thread::gmutex().lock();
 	if(_id < d.fncvec.size()){
 		pf = d.fncvec[_id];
 	}
-	//Thread::gmutex().unlock();
 	return pf;
 }
 

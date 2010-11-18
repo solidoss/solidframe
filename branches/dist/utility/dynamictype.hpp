@@ -29,6 +29,7 @@
 
 #include "utility/dynamicpointer.hpp"
 #include "utility/shared.hpp"
+#include <foundation/service.hpp>
 
 //! Store a map from a typeid to a callback
 /*!
@@ -93,6 +94,9 @@ struct DynamicRegisterer: DynamicRegistererBase{
 //struct DynamicPointerBase;
 //! A base for all types that needs dynamic typeid.
 struct DynamicBase{
+	static bool isType(uint32 _id){
+		return false;
+	}
 	//! Get the type id for a Dynamic object.
 	virtual uint32 dynamicTypeId()const = 0;
 	//! Return the callback from the given DynamicMap associated to this object
@@ -101,6 +105,8 @@ struct DynamicBase{
 	virtual void use();
 	//! Used by DynamicPointer to know if the object must be deleted
 	virtual int release();
+	
+	
 
 protected:
 	friend struct DynamicPointerBase;
@@ -127,6 +133,7 @@ struct DynamicShared: B, DynamicSharedImpl{
 	/*virtual*/ int release(){
 		return doRelease();
 	}
+	
 };
 
 
@@ -169,7 +176,10 @@ struct Dynamic: T{
 	}
 	//TODO: add:
 	//static bool isTypeExplicit(const DynamicBase*);
-	//static bool isType(const DynamicBase*);
+	static bool isType(uint32 _id){
+		if(_id == staticTypeId()) return true;
+		return BaseT::isType(_id);
+	}
 	//! The dynamic typeid
 	virtual uint32 dynamicTypeId()const{
 		return staticTypeId();
@@ -215,7 +225,7 @@ struct Dynamic: T{
 	
 */
 template <class R, class Exe>
-struct DynamicReceiver{
+struct DynamicExecuter{
 private:
 	typedef R (*FncT)(const DynamicPointer<DynamicBase> &, void*);
 	
@@ -235,7 +245,7 @@ private:
 	}
 public:
 	//! Basic constructor
-	DynamicReceiver():pushid(0), execid(1){}
+	DynamicExecuter():pushid(0), execid(1){}
 	
 	//! Push a new object for later execution
 	/*! 
@@ -284,12 +294,21 @@ public:
 		\param _re Reference to the executer, usually *this.
 		\retval R the return value for dynamicExecute methods.
 	*/
-	template <typename E>
-	R executeCurrent(E &_re){
+	R executeCurrent(Exe &_re){
 		cassert(crtit != v[execid].end());
+		DynamicRegistererBase	dr;
+		dr.lock();
 		FncT	pf = reinterpret_cast<FncT>((*crtit)->callback(*dynamicMap()));
+		dr.unlock();
 		if(pf) return (*pf)(*crtit, &_re);
-		return _re.dynamicExecuteDefault(*crtit);
+		return _re.dynamicExecute(*crtit);
+	}
+	
+	void execute(Exe &_re){
+		while(hasCurrent()){
+			executeCurrent(_re);
+			next();
+		}
 	}
 	
 	static DynamicMap* dynamicMap(DynamicMap *_pdm = NULL){
@@ -307,14 +326,14 @@ public:
 		</code>
 	*/
 	template <class S, class E>
-	static void add(){
+	static void registerDynamic(){
 		FncT	pf = &doExecute<S, E>;
 		dynamicMapEx<E>().callback(S::staticTypeId(), reinterpret_cast<DynamicMap::FncT>(pf));
 	}
 	
 private:
 	DynamicPointerVectorT						v[2];
-	DynamicPointerVectorT::iterator			crtit;
+	DynamicPointerVectorT::iterator				crtit;
 	uint										pushid;
 	uint										execid;
 };

@@ -39,10 +39,12 @@
 
 namespace foundation{
 
+//---------------------------------------------------------
+
 struct Service::Data{
 	typedef std::pair<Object*, uint32>		ObjectPairT;
 	typedef std::deque<ObjectPairT>			ObjectVectorT;
-	typedef Stack<ulong>					ULongStackT;
+	typedef Stack<uint32>					Uint32StackT;
 	
 	typedef MutualStore<Mutex>				MutexStoreT;
 	
@@ -50,229 +52,413 @@ struct Service::Data{
 		int _objpermutbts,
 		int _mutrowsbts,
 		int _mutcolsbts
-	):	pmtx(NULL), objcnt(0),
-		mtxstore(_objpermutbts, _mutrowsbts, _mutcolsbts){}
-	
-	ObjectVectorT		objv;
-	ULongStackT			inds;
-	Condition			cond;
-	Mutex				*pmtx;
-	ulong				objcnt;//object count
+	):objcnt(0), crtobjtypeid(0)
+		mtxstore(_objpermutbts, _mutrowsbts, _mutcolsbts){
+		
+	}
+	void popIndex(const IndexT &_idx);
+	IndexT				objcnt;//object count
+	uint16				crtobjtypeid;
 	MutexStoreT			mtxstore;
+	ObjectVectorT		objvec;
+	Uint32StackT		idxque;
+	Condition			cnd;
+	Mutex				mtx;
 };
-	
-typedef std::pair<Object*, uint32>	ObjPairT;
-class ObjectVector:public std::deque<ObjPairT>{};
-class IndexStack: public std::stack<ulong>{};
-
+void Service::Data::popIndex(const IndexT &_idx){
+	IndexT sz(idxque.size());
+	while(sz--){
+		if(idxque.front() == _idx){
+			idxque.pop();
+			return;
+		}
+		IndexT	tmp(idxque.front());
+		idxque.pop();
+		idxque.push(tmp);
+	}
+	cassert(false);
+}
+//---------------------------------------------------------
 Service::Service(
 	int _objpermutbts,
 	int _mutrowsbts,
 	int _mutcolsbts
 ):d(*(new Data(_objpermutbts, _mutrowsbts, _mutcolsbts))){
-	state(Running);
+	state(Stopped);
+	registerObjectType<Object, Service>();
+	registerVisitorType<Object, Visitor>();
 	idbgx(Dbg::fdt, "");
 }
-
+//---------------------------------------------------------
 Service::~Service(){
 	//stop();
 	idbgx(Dbg::fdt, "");
 	cassert(!d.objcnt);
 	delete &d;
 }
-
-int Service::insert(Object &_robj, IndexT _srvid){
-	Mutex::Locker lock(*d.pmtx);
-	return doInsert(_robj, _srvid);
+//---------------------------------------------------------
+IndexT Service::size()const{
+	return d.objcnt;
 }
-
-namespace{
-
-void visit_lock(Mutex &_rm){
-	_rm.lock();
-}
-
-void visit_unlock(Mutex &_rm){
-	_rm.unlock();
-}
-
-}
-
-int Service::doInsert(Object &_robj, IndexT _srvid){
-	if(state() != Running) return BAD;
-	if(d.inds.size()){
-		{
-			Mutex 			&rmut(d.mtxstore.at(d.inds.top()));
-			Mutex::Locker	lock(rmut);
-			
-			_robj.mutex(&rmut);
-			d.objv[d.inds.top()].first = &_robj;
-			_robj.id(_srvid, d.inds.top());
-		}
-		d.inds.pop();
-	}else{
-		//worst case scenario
-		const ulong	sz(d.objv.size());
-		Mutex 		&rmut(d.mtxstore.safeAt(sz));
-
-		_robj.mutex(&rmut);
-		_robj.id(_srvid, sz);
-		
-		d.mtxstore.visit(sz, visit_lock);//lock all mutexes
-		
-		d.objv.push_back(Data::ObjectPairT(&_robj, 0));
-		
-		//reserve some positions
-		uint			cnt(63);
-		const ulong		initialsize(d.objv.size());
-		while(cnt--){
-			d.mtxstore.safeAt(d.objv.size());
-			d.inds.push(initialsize + cnt);
-			d.objv.push_back(Data::ObjectPairT(NULL, 0));
-		}
-		
-		d.mtxstore.visit(sz, visit_unlock);//unlock all mutexes
-	}
-	++d.objcnt;
-	return OK;
-}
-
-void Service::mutex(Mutex *_pmtx){
-	d.pmtx = _pmtx;
-}
-
-Mutex* Service::mutex()const{
-	return d.pmtx;
-}
-
-void Service::remove(Object &_robj){
-	Mutex::Locker	lock1(*d.pmtx);
-	//obj's mutext should not be locked
-	Mutex::Locker	lock2(d.mtxstore.at(_robj.index()));
+//---------------------------------------------------------
+void Service::erase(const Object &_robj){
+	const IndexT	oidx(_robj.index());
+	Mutex::Locker	lock1(d.mtx);
+	Mutex::Locker	lock2(d.mtxstore.at(oidx));
 	
-	idbgx(Dbg::fdt, "removig object with index "<<_robj.index());
+	ObjectTypeStub	&rots(objectTypeStub(_robj.typeId()));
 	
-	d.objv[_robj.index()].first = NULL;
-	++d.objv[_robj.index()].second;
-	d.inds.push(_robj.index());
-	--d.objcnt;
-	d.cond.signal();
+	(*rots.erase_callback)(_robj, this);
+	
+	ObjectPairT		&rop(objvec[oidx]);
+	
+	rop.first = NULL;
+	++rop.second;
+	d.idxque.push(oidx);
+	d.cnd.broadcast();
 }
-/**
- * Be very carefull when using this function as you can raise/kill
- * other object than you might want.
- */
-int Service::signal(IndexT _fullid, uint32 _uid, ulong _sigmask){
-	ulong			oidx(Object::computeIndex(_fullid));
+//---------------------------------------------------------
+bool Service::signal(ulong _sm){
+	Mutex::Locker lock(d.mtx);
+	return doSignalAll(_sm);
+}
+//---------------------------------------------------------
+bool Service::signal(ulong _sm, const ObjectUidT &_ruid){
+	return signal(_sm, _ruid.first, _ruid.second);
+}
+//---------------------------------------------------------
+bool Service::signal(ulong _sm, IndexT _fullid, uint32 _uid){
+	const IndexT	oidx(compute_index(_fullid));
 	
-	if(oidx >= d.objv.size()) return BAD;
+	if(oidx >= d.objvec.size()) return false;
 	
 	Mutex::Locker	lock(d.mtxstore.at(oidx));
 	
-	if(_uid != d.objv[oidx].second) return BAD;
+	if(_uid != d.objvec[oidx].second) return false;
 	
-	Object			*pobj(d.objv[oidx].first);
+	Object			*pobj(d.objvec[oidx].first);
 	
-	if(!pobj) return BAD;
+	if(!pobj) return false;
 	
-	if(pobj->signal(_sigmask)){
-		Manager::the().raiseObject(*pobj);
+	if(pobj->signal(_sm)){
+		m().raiseObject(*pobj);
 	}
-	return OK;
+	return true;
 }
-
-int Service::signal(Object &_robj, ulong _sigmask){
-	Mutex::Locker	lock(d.mtxstore.at(_robj.index()));
+//---------------------------------------------------------
+bool Service::signal(ulong _sm, const Object &_robj){
+	const IndexT	oidx(_robj.index());
 	
-	if(_robj.signal(_sigmask)){
-		Manager::the().raiseObject(_robj);
-	}
-	return OK;
-}
-
-Mutex& Service::mutex(IndexT _fullid, uint32){
-	return d.mtxstore.at(Object::computeIndex(_fullid));
-}
-
-Object* Service::object(IndexT _fullid, uint32 _uid){
-	const ulong oidx(Object::computeIndex(_fullid));
-	
-	if(oidx >= d.objv.size()) return NULL;
-	
-	if(_uid != d.objv[oidx].second) return NULL;
-	
-	return d.objv[oidx].first;
-}
-
-int Service::signal(Object &_robj, DynamicPointer<Signal> &_rsig){
-	Mutex::Locker	lock(d.mtxstore.at(_robj.index()));
-	
-	if(_robj.signal(_rsig)){
-		Manager::the().raiseObject(_robj);
-	}
-	return OK;
-}
-
-int Service::signal(IndexT _fullid, uint32 _uid, DynamicPointer<Signal> &_rsig){
-	const ulong		oidx(Object::computeIndex(_fullid));
-	
-	if(oidx >= d.objv.size()) return BAD;
+	cassert(oidx < d.objvec.size());
 	
 	Mutex::Locker	lock(d.mtxstore.at(oidx));
 	
-	if(_uid != d.objv[oidx].second) return BAD;
+	//if(_uid != d.objvec[oidx].second) return false;
 	
-	Object 			*pobj = d.objv[oidx].first;
+	Object			*pobj(d.objvec[oidx].first);
 	
-	if(!pobj) return BAD;
+	if(!pobj) return false;
+	
+	if(pobj->signal(_sm)){
+		m().raiseObject(*pobj);
+	}
+	return true;
+}
+//---------------------------------------------------------
+bool Service::signal(DynamicSharedPointer<Signal> &_rsig){
+	Mutex::Locker lock(d.mtx);
+	return doSignalAll(_rsig);
+}
+//---------------------------------------------------------
+bool Service::signal(DynamicPointer<Signal> &_rsig, const Object &_robj){
+	const IndexT	oidx(_robj.index());
+	
+	cassert(oidx < d.objvec.size());
+	
+	Mutex::Locker	lock(d.mtxstore.at(oidx));
+	
+	//if(_uid != d.objvec[oidx].second) return false;
+	
+	Object			*pobj(d.objvec[oidx].first);
+	
+	if(!pobj) return false;
 	
 	if(pobj->signal(_rsig)){
-		Manager::the().raiseObject(*pobj);
+		m().raiseObject(*pobj);
 	}
-	return OK;
+	return true;
 }
-
-void Service::signalAll(ulong _sigmask){
-	Mutex::Locker	lock(*d.pmtx);
-	doSignalAll(Manager::the(), _sigmask);
+//---------------------------------------------------------
+bool Service::signal(DynamicPointer<Signal> &_rsig, const ObjectUidT &_ruid){
+	return signal(_sm, _ruid.first, _ruid.second);
 }
-
-void Service::signalAll(DynamicSharedPointer<Signal> &_rsig){
-	Mutex::Locker	lock(*d.pmtx);
-	doSignalAll(Manager::the(), _rsig);
+//---------------------------------------------------------
+bool Service::signal(DynamicPointer<Signal> &_rsig, IndexT _fullid, uint32 _uid){
+	const IndexT	oidx(compute_index(_fullid));
+	
+	if(oidx >= d.objvec.size()) return false;
+	
+	Mutex::Locker	lock(d.mtxstore.at(oidx));
+	
+	if(_uid != d.objvec[oidx].second) return false;
+	
+	Object			*pobj(d.objvec[oidx].first);
+	
+	if(!pobj) return false;
+	
+	if(pobj->signal(_rsig)){
+		m().raiseObject(*pobj);
+	}
+	return true;
 }
+//---------------------------------------------------------
+Mutex& Service::mutex(const Object &_robj){
+	return d.mtxstore.at(_robj.index());
+}
+//---------------------------------------------------------
+uint32 Service::uid(const Object &_robj)const{
+	return d.objvec[_robj.index()].second;
+}
+//---------------------------------------------------------
+uint32 Service::uid(const IndexT &_idx)const{
+	return d.objvec[_idx].second;
+}
+//---------------------------------------------------------
+void Service::start(){
+	Mutex::Locker	lock(d.mtx);
+	if(state() == Running){
+		return;
+	}
+	if(state() == Stopping){
+		stop(true);
+	}
+	state(Running);
+	m().pushJob(this);
+	return true;
+}
+//---------------------------------------------------------
+void Service::stop(bool _wait = true){
+	Mutex::Locker	lock(d.mtx);
+	
+	if(state() == Running){
+		doSignalAll(S_KILL | S_RAISE);
+		state(Stopping);
+	}
+	
+	if(!_wait) return;
+	
+	while(d.objcnt){
+		d.cnd.wait(d.mtx);
+	}
+	state(Stopped);
+}
+//---------------------------------------------------------
+/*virtual*/ int Service::execute(ulong _evs, TimeSpec &_rtout){
+	if(state() == Stopping){
+		this->stop(true);
+		return BAD;
+	}
+	if(signaled()){
+		ulong sm;
+		{
+			Mutex::Locker	lock(mutex());
+			sm = grabSignalMask();
+			if(sm & fdt::S_SIG){//we have signals
+				de.prepareExecute();
+			}
+		}
+		if(sm & fdt::S_SIG){//we've grabed signals, execute them
+			de.execute(*this);
+		}
+		if(sm & fdt::S_KILL){
+			idbgx(Dbg::ipc, "killing service "<<this->id());
+			this->stop(false);//initiate stop
+			return OK;
+		}
+	}
+	return NOK;
+}
+//---------------------------------------------------------
+Mutex &Service::serviceMutex()const{
+	return d.mtx;
+}
+//---------------------------------------------------------
+void Service::insertObject(Object &_ro, const ObjectUidT &_ruid){
+	//by default do nothing
+}
+//---------------------------------------------------------
+void Service::eraseObject(const Object &_ro){
+	//by default do nothing
+}
+//---------------------------------------------------------
+/*virtual*/ void Service::dynamicExecute(DynamicPointer<> &_dp){
+	//by default do nothing
+}
+//---------------------------------------------------------
+/*virtual*/ void Service::doStart(){
+	//by default do nothing
+}
+//---------------------------------------------------------
+/*virtual*/ void Service::doStop(){
+	//by default do nothing
+}
+//---------------------------------------------------------
+namespace{
 
-void Service::doSignalAll(Manager &_rm, ulong _sigmask){
+	void visit_lock(Mutex &_rm){
+		_rm.lock();
+	}
+
+	void visit_unlock(Mutex &_rm){
+		_rm.unlock();
+	}
+
+}//namespace
+
+ObjectUidT Service::doInsertObject(Object &_ro, uint16 _tid, const IndexT &_ridx){
+	uint32 u;
+	if(is_invalid_index(_ridx)){
+		if(d.idxque.size()){
+			{
+				Mutex 				&rmut(d.mtxstore.at(d.idxque.front()));
+				Mutex::Locker		lock(rmut);
+				Data::ObjectPairT	&rop(d.objvec[_ridx]);
+				
+				rop.first = &_ro;
+				_ro.id(this->index(), d.idxque.front());
+				u = rop.second;
+			}
+			d.idxque.pop();
+		}else{
+			//worst case scenario
+			const IndexT	sz(d.objvec.size());
+			Mutex 			&rmut(d.mtxstore.safeAt(sz));
+
+			_ro.id(this->index(), sz);
+			
+			d.mtxstore.visit(sz, visit_lock);//lock all mutexes
+			
+			d.objvec.push_back(Data::ObjectPairT(&_ro, 0));
+			u = 0;
+			//reserve some positions
+			uint			cnt(63);
+			const IndexT	initialsize(d.objvec.size());
+			while(cnt--){
+				d.mtxstore.safeAt(d.objvec.size());
+				d.idxque.push(initialsize + 62 - cnt);
+				d.objvec.push_back(Data::ObjectPairT(NULL, 0));
+			}
+			
+			d.mtxstore.visit(sz, visit_unlock);//unlock all mutexes
+		}
+		++d.objcnt;
+		return ObjectUidT(_ro.id(), u);
+	}else{
+		if(_ridx < d.objvec.size()){
+			{
+				Mutex 				&rmut(d.mtxstore.at(_ridx));
+				Mutex::Locker		lock(rmut);
+				Data::ObjectPairT	&rop(d.objvec[_ridx]);
+				if(!rop.first){
+					rop.first = &_ro;
+					_ro.id(this->index(), _ridx);
+					u = rop.second;
+				}else{
+					return invalid_uid();
+				}
+			}
+			d.popIndex(_ridx);
+			return ObjectUidT(_ro.id(), u);
+		}else{
+			//worst case scenario
+			const IndexT	initialsize(d.objvec.size());
+			d.objvec.resize(_ridx + 16);
+			const IndexT	sz(d.objvec.size());
+			const IndexT	diffsz(sz - initialsize - 1);
+			Mutex 			&rmut(d.mtxstore.safeAt(sz));
+
+			_ro.id(this->index(), _ridx);
+			
+			d.mtxstore.visit(sz, visit_lock);//lock all mutexes
+			
+			//reserve some positions
+			IndexT		cnt(diffsz + 1);
+			while(cnt--){
+				d.mtxstore.safeAt(d.objvec.size());
+				IndexT crtidx(initialsize + diffsz - cnt)
+				if(crtidx != _ridx){
+					d.idxque.push(crtidx);
+				}
+			}
+			
+			d.objvec[_ridx].first = &_ro;
+			u = 0;
+			
+			d.mtxstore.visit(sz, visit_unlock);//unlock all mutexes
+		}
+	}
+}
+//---------------------------------------------------------
+uint Service::newObjectTypeId(){
+	uint r;
+	{
+		Mutex::Locker lock(serviceMutex());
+		r = d.crtobjtypeid;
+		++d.crtobjtypeid;
+	}
+	return r;
+}
+//---------------------------------------------------------
+Object* Service::objectAt(const IndexT &_ridx, uint32 _uid){
+	if(_ridx < d.objvec.size() && d.objvec[_ridx].second == _uid){
+		return d.objvec[_ridx].first;
+	}
+	return NULL;
+}
+//---------------------------------------------------------
+void Service::doVisit(Object *_po, Visitor &_rv, uint32 _visidx){
+	
+}
+//---------------------------------------------------------
+void Service::invalidateService(){
+	this->id(invalid_uid().first);
+}
+//---------------------------------------------------------
+bool Service::doSignalAll(ulong _sm){
 	ulong	oc(d.objcnt);
 	ulong	i(0);
 	long	mi(-1);
-	
+	bool	signaled(false);
+	Manager	&rm(m());
 	idbgx(Dbg::fdt, "signalling "<<oc<<" objects");
 	
-	for(Data::ObjectVectorT::iterator it(d.objv.begin()); oc && it != d.objv.end(); ++it, ++i){
+	for(Data::ObjectVectorT::iterator it(d.objvec.begin()); oc && it != d.objvec.end(); ++it, ++i){
 		if(it->first){
 			if(d.mtxstore.isRangeBegin(i)){
 				if(mi >= 0)	d.mtxstore[mi].unlock();
 				++mi;
 				d.mtxstore[mi].lock();
 			}
-			if(it->first->signal(_sigmask)){
-				_rm.raiseObject(*it->first);
+			if(it->first->signal(_sm)){
+				rm.raiseObject(*it->first);
 			}
+			signaled = true;
 			--oc;
 		}
 	}
 	if(mi >= 0)	d.mtxstore[mi].unlock();
+	return signaled;
 }
-
-void Service::doSignalAll(Manager &_rm, DynamicSharedPointer<Signal> &_rsig){
+//---------------------------------------------------------
+bool Service::doSignalAll(DynamicSharedPointer<Signal> &_rsig){
 	ulong	oc(d.objcnt);
 	ulong	i(0);
 	long	mi(-1);
-	
+	bool	signaled(false);
+	Manager	&rm(m());
 	idbgx(Dbg::fdt, "signalling "<<oc<<" objects");
 	
-	for(Data::ObjectVectorT::iterator it(d.objv.begin()); oc && it != d.objv.end(); ++it, ++i){
+	for(Data::ObjectVectorT::iterator it(d.objvec.begin()); oc && it != d.objvec.end(); ++it, ++i){
 		if(it->first){
 			if(d.mtxstore.isRangeBegin(i)){
 				if(mi >= 0)	d.mtxstore[mi].unlock();
@@ -281,159 +467,15 @@ void Service::doSignalAll(Manager &_rm, DynamicSharedPointer<Signal> &_rsig){
 			}
 			DynamicPointer<Signal> sig(_rsig);
 			if(it->first->signal(sig)){
-				_rm.raiseObject(*it->first);
+				rm.raiseObject(*it->first);
 			}
+			signaled = true;
 			--oc;
 		}
 	}
 	if(mi >= 0)	d.mtxstore[mi].unlock();
+	return signaled;
 }
-
-void Service::visit(Visitor &_rov){
-	Mutex::Locker	lock(*d.pmtx);
-	ulong			oc(d.objcnt);
-	ulong			i(0);
-	long			mi(-1);
-	for(Data::ObjectVectorT::iterator it(d.objv.begin()); oc && it != d.objv.end(); ++it, ++i){
-		if(it->first){
-			if(d.mtxstore.isRangeBegin(i)){
-				if(mi >= 0)	d.mtxstore[mi].unlock();
-				++mi;
-				d.mtxstore[mi].lock();
-			}
-			it->first->accept(_rov);
-			--oc;
-		}
-	}
-	if(mi >= 0)	d.mtxstore[mi].unlock();
-}
-
-Mutex& Service::mutex(const Object &_robj){
-	return d.mtxstore.at(_robj.index());
-}
-
-uint32 Service::uid(const Object &_robj)const{
-	return d.objv[_robj.index()].second;
-}
-
-uint32 Service::uid(const uint32 _idx)const{
-	return d.objv[_idx].second;
-}
-
-int Service::start(){
-	Mutex::Locker	lock(*d.pmtx);
-	if(state() != Stopped) return OK;
-	state(Running);
-	return OK;
-}
-
-int Service::stop(bool _wait){
-	Mutex::Locker	lock(*d.pmtx);
-	
-	if(state() == Running){
-		doSignalAll(Manager::the(), S_KILL | S_RAISE);
-		state(Stopping);
-	}
-	
-	if(!_wait) return OK;
-	
-	while(d.objcnt){
-		d.cond.wait(*d.pmtx);
-	}
-	state(Stopped);
-	return OK;
-}
-int Service::execute(){
-	return BAD;
-}
-
-ulong Service::indexStackSize()const{
-	return d.inds.size();
-}
-ulong Service::indexStackTop()const{
-	return d.inds.top();
-}
-void Service::indexStackPop(){
-	d.inds.pop();
-}
-Mutex& Service::mutexAt(ulong _idx){
-	return d.mtxstore.at(_idx);
-}
-void Service::lockForPushBack(){
-	const ulong	sz(d.objv.size());
-	d.mtxstore.safeAt(sz);
-	d.mtxstore.visit(sz, visit_lock);//lock all mutexes
-}
-void Service::unlockForPushBack(){
-	const ulong	sz(d.objv.size() - 1);
-	d.mtxstore.visit(sz, visit_unlock);//unlock all mutexes
-}
-void Service::insertObject(Object &_robj, ulong _srvid){
-	d.objv[d.inds.top()].first = &_robj;
-	_robj.id(_srvid, d.inds.top());
-	_robj.mutex(&mutexAt(d.inds.top()));
-	++d.objcnt;
-}
-void Service::appendObject(Object &_robj, ulong _srvid){
-	_robj.id(_srvid, d.objv.size());
-	_robj.mutex(&mutexAt(d.objv.size()));
-	d.objv.push_back(Data::ObjectPairT(&_robj, 0));
-	++d.objcnt;
-}
-ulong Service::objectVectorSize()const{
-	return d.objv.size();
-}
-
-//***********************************************************************
-
-ReadWriteService::~ReadWriteService(){
-}
-
-Condition* ReadWriteService::popCondition(Object &_robj){
-	CondStackT &rs = cndstore.at(_robj.index());
-	Condition *pc = NULL;
-	if(rs.size()){
-		pc = rs.top();rs.pop();
-	}else pc = new Condition;
-	return pc;
-}
-
-void ReadWriteService:: pushCondition(Object &_robj, Condition *&_rpc){
-	if(_rpc){
-		cndstore.at(_robj.index()).push(_rpc);
-		_rpc = NULL;
-	}
-}
-
-ReadWriteService::ReadWriteService(
-	int _objpermutbts,
-	int _mutrowsbts,
-	int _mutcolsbts
-):Service(_objpermutbts, _mutrowsbts, _mutcolsbts){}
-
-
-int ReadWriteService::insert(Object &_robj, ulong _srvid){
-	Mutex::Locker lock(*mutex());
-	if(state() != Running) return BAD;
-	if(indexStackSize()){
-		{
-			Mutex::Locker lock(mutexAt(indexStackTop()));
-			insertObject(_robj, _srvid);
-		}
-		indexStackPop();
-	}else{
-		//worst case scenario
-		
-		lockForPushBack();
-
-		//just ensure the resevation in cndstore
-		cndstore.safeAt(objectVectorSize());
-		appendObject(_robj, _srvid);
-		
-		unlockForPushBack();
-	}
-	//++objcnt;
-	return OK;
-}
-}//namespace
+//---------------------------------------------------------
+}//namespace fundation
 

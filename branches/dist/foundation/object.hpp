@@ -24,28 +24,19 @@
 
 #include "foundation/common.hpp"
 
+#include "utility/dynamictype.hpp"
 #include "utility/dynamicpointer.hpp"
 
 class Mutex;
 struct TimeSpec;
+
 namespace foundation{
 
-class Visitor;
 class Manager;
 class Service;
 class ObjectPointerBase;
 class Signal;
 class Selector;
-
-#ifndef USERVICEBITS
-//by default we have at most 32 services for x86 bits machines and 256 for x64
-#define USERVICEBITS (sizeof(IndexT) == 4 ? 5 : 8)
-#endif
-
-enum ObjectDefs{
-	SERVICEBITCNT = USERVICEBITS,
-	INDEXBITCNT	= sizeof(IndexT) * 8 - SERVICEBITCNT,
-};
 
 
 //! A pseudo-active object class
@@ -78,15 +69,9 @@ enum ObjectDefs{
 	- Also an object will hold information about the thread in which it is currently
 	executed, so that the signaling is fast.
 */
-class Object{
+class Object: public Dynamic<Object>{
 public:
 	typedef Signal	SignalT;
-	
-	//! Extracts the object index within service from an objectid
-	static IndexT computeIndex(IndexT _fullid);
-	
-	//! Extracts the service id from an objectid
-	static IndexT computeServiceId(IndexT _fullid);
 	
 	//!Get the curent object associate to the current thread
 	static Object& the();
@@ -102,7 +87,7 @@ public:
 	//! Get the id of the object
 	IndexT id() const;
 	
-	uint32 uid()const;
+	ObjectUidT uid()const;
 	
 	//! Get the associated mutex
 	Mutex& mutex()const;
@@ -131,7 +116,7 @@ protected:
 	
 	//getters:
 	//! Get the id of the parent service
-	IndexT serviceid()const;
+	IndexT serviceId()const;
 	
 	//! Get the index of the object within service from an objectid
 	IndexT index()const;
@@ -158,22 +143,16 @@ protected:
 	*/
 	virtual int execute(ulong _evs, TimeSpec &_rtout);
 	
-	//! Acceptor method for different visitors
-	virtual void accept(Visitor &_rov);
-	
 	//! Set the thread id
 	void setThread(uint32 _thrid, uint32 _thrpos);
 private:
+	void typeId(const uint16 _tid);
+	const uint typeId()const;
+	
 	//! Set the id
 	void id(IndexT _fullid);
 	//! Set the id given the service id and index
 	void id(IndexT _srvid, IndexT _ind);
-	//! This method will be called once by service when registering an object
-	/*!
-		Some objects may need faster access to their associated mutex, so they
-		might want to keep a pointer to it.
-	*/
-	virtual void mutex(Mutex *_pmut);
 	//! Gets the id of the thread the object resides in
 	void getThread(uint32 &_rthid, uint32 &_rthpos)const;
 private:
@@ -181,8 +160,9 @@ private:
 	volatile ulong	smask;
 	volatile uint32	thrid;//the current thread which (may) execute(s) the object
 	volatile uint32	thrpos;//
-	short			usecnt;//
-	short			crtstate;// < 0 -> must die
+	uint16			usecnt;//
+	uint16			tid;//typeid
+	int32			crtstate;// < 0 -> must die
 };
 
 inline bool Object::signaled() const {
@@ -196,7 +176,12 @@ inline int Object::state()	const {
 inline IndexT Object::id()	const {
 	return fullid;
 }
-
+inline void Object::typeId(const uint16 _tid){
+	tid = _tid;
+}
+inline const uint Object::typeId()const{
+	return tid;
+}
 
 #ifndef NINLINES
 #include "foundation/object.ipp"

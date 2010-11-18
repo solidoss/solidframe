@@ -29,6 +29,7 @@
 #include "foundation/visitor.hpp"
 #include "foundation/signal.hpp"
 #include "foundation/manager.hpp"
+#include "foundation/service.hpp"
 
 #include "utility/memory.hpp"
 #include "utility/dynamicpointer.hpp"
@@ -88,6 +89,9 @@ Object::Object(IndexT _fullid):
 }
 
 Object::~Object(){
+	if(is_valid_index(fullid)){
+		m().service(*this).erase(*this);
+	}
 }
 
 //--------------------------------------------------------------
@@ -100,11 +104,11 @@ void Object::associateToCurrentThread(){
 }
 //--------------------------------------------------------------
 Mutex& Object::mutex()const{
-	return Manager::the().mutex(*this);
+	return m().mutex(*this);
 }
 //--------------------------------------------------------------
-uint32  Object::uid()const{
-	return Manager::the().uid(*this);
+ObjectUidT  Object::uid()const{
+	return ObjectUidT(id(), m().uid(*this));
 }
 
 bool Object::signal(DynamicPointer<Signal> &_sig){
@@ -120,19 +124,8 @@ bool Object::signal(ulong _smask){
 	return (smask != oldmask) && signaled(S_RAISE);
 }
 
-
-void Object::accept(Visitor &_rov){
-	_rov.visit(*this);
-}
-
-int Object::execute(){
-	return BAD;
-}
 int Object::execute(ulong _evs, TimeSpec &_rtout){
 	return BAD;
-}
-//we do not need the keep a pointer to mutex
-void Object::mutex(Mutex *){
 }
 //---------------------------------------------------------------------
 //----	Signal	----

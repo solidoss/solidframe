@@ -1,12 +1,24 @@
 #include <iostream>
-#include "system/common.hpp"
 #include <vector>
+#include "system/common.hpp"
 #include "utility/dynamictype.hpp"
 #include "system/mutex.hpp"
 
 using namespace std;
 
 typedef uint32 IndexT;
+
+#ifndef USERVICEBITS
+//by default we have at most 32 services for x86 bits machines and 256 for x64
+#define USERVICEBITS (sizeof(IndexT) == 4 ? 5 : 8)
+#endif
+
+#define ID_MASK 0xffffffff
+
+enum ObjectDefs{
+	SERVICEBITCNT = USERVICEBITS,
+	INDEXBITCNT	= sizeof(IndexT) * 8 - SERVICEBITCNT,
+};
 
 typedef std::pair<IndexT, uint32>	UidT;
 
@@ -28,9 +40,31 @@ inline UidT make_object_uid(const IndexT _srvidx, const IndexT _objidx, const ui
 	return UidT(_objidx /*TODO: add _srvidx*/, _uid);
 }
 
-class Service;
+inline IndexT compute_index(IndexT _fullid){
+	return _fullid & (ID_MASK >> SERVICEBITCNT);
+}
+inline IndexT compute_service_id(IndexT _fullid){
+	return _fullid >> INDEXBITCNT;
+}
+inline IndexT compute_id(IndexT _srvid, IndexT _idx){
+	return (_srvid << INDEXBITCNT) | _idx;
+}
 
-struct Object{
+
+template <class V>
+typename V::value_type& safe_at(V &_v, uint _pos){
+	if(_pos < _v.size()){
+		return _v[_pos];
+	}else{
+		_v.resize(_pos + 1);
+		return _v[_pos];
+	}
+}
+
+class Service;
+class Signal;
+
+struct Object: Dynamic<Object>{
 public:
 	Object(){}
 	virtual ~Object();
@@ -51,37 +85,15 @@ Object::~Object(){
 	
 }
 
-struct Visitor{
+struct Visitor: Dynamic<Visitor>{
 	virtual void visitObject(Object &_robj) = 0;
 };
 
-class Service: public Dynamic<Service>{
-	typedef bool (*TypeCbkT) (const uint32);
+class Service: public Dynamic<Service, Object>{
 	typedef void (*EraseCbkT) (const Object &, Service *);
 	typedef void (*InsertCbkT) (Object *, Service *, const ObjectUidT &);
+	typedef void (*VisitCbkT)(Object *, Visitor&);
 	
-	struct ObjectTypeStub{
-		ObjectTypeStub():type_callback(NULL), erase_callback(NULL), insert_callback(NULL){}
-		bool empty()const{
-			return type_callback == NULL;
-		}
-		bool isType(const uint32 _id)const{
-			return (*type_callback)(_id);
-		}
-		TypeCbkT	type_callback;
-		EraseCbkT	erase_callback;
-		InsertCbkT	insert_callback;
-	};
-	
-	struct ObjectStub{
-		ObjectStub(Object *_pobj = NULL):pobj(_pobj), uid(0){}
-		Object	*pobj;
-		uint32	uid;
-	};
-	template <class S>
-	static bool type_cbk(const uint32 _id){
-		return S::isType(_id);
-	}
 	template <class O, class S>
 	static void insert_cbk(Object *_po, Service *_ps, const ObjectUidT &_ruid){
 		static_cast<S*>(_ps)->insertObject(*static_cast<O*>(_po), _ruid);
@@ -91,22 +103,50 @@ class Service: public Dynamic<Service>{
 		static_cast<S*>(_ps)->eraseObject(static_cast<const O&>(_ro));
 	}
 	template <class O, class V>
-	static void visit_cbk(Object *_po, Visitor *_pv){
-		static_cast<V*>(_pv)->visitObject(static_cast<O&>(*_po));
+	static void visit_cbk(Object *_po, Visitor &_rv){
+		static_cast<V&>(_rv).visitObject(static_cast<O&>(*_po));
 	}
+	
+	struct ObjectTypeStub{
+		ObjectTypeStub(
+			EraseCbkT _pec = &erase_cbk<Object,Service>,
+			InsertCbkT _pic = &insert_cbk<Object,Service>
+		):erase_callback(_pec), insert_callback(_pic){}
+		bool empty()const{
+			return erase_callback == NULL;
+		}
+		EraseCbkT	erase_callback;
+		InsertCbkT	insert_callback;
+	};
+	
+	struct VisitorTypeStub{
+		typedef std::vector<VisitCbkT>	CbkVectorT;
+		VisitorTypeStub(uint32 _tid = 0xffffffff):tid(_tid){}
+		uint32			tid;
+		CbkVectorT		cbkvec;
+	};
+	
+	struct ObjectStub{
+		ObjectStub(Object *_pobj = NULL):pobj(_pobj), uid(0){}
+		Object	*pobj;
+		uint32	uid;
+	};
+	
 public:
-	Service(){
+	Service():crtobjtypeid(0), pmtx(NULL){
+		pmtx = new Mutex;
 		registerObjectType<Object, Service>();
 		registerVisitorType<Object, Visitor>();
 	}
 	
 	template <class O>
 	ObjectUidT insert(O *_po, const ObjectUidT &_ruid = invalid_uid()){
+		Mutex::Locker		lock(mutex());
 		const uint16		tid(objectTypeId<O>());
-		ObjectTypeStub		&rots(createObjectTypeStub(tid));
+		ObjectTypeStub		&rots(objectTypeStub(tid));
 		const IndexT 		objidx(doInsertObject(*_po, tid, _ruid));
 		
-		static_cast<Object*>(_po)->idx = objidx;
+		//static_cast<Object*>(_po)->idx = objidx;
 		
 		const ObjectUidT	objuid(make_object_uid(this->index(), objidx, uid(objidx)));
 		
@@ -117,19 +157,61 @@ public:
 	
 	void erase(const Object &_robj);
 	
-	template <class V>
-	void visit(V &_rv, const ObjectUidT &_ruid = invalid_uid()){
-		if(is_valid_uid(_ruid)){
-			
-		}else{
-			
-		}
+	bool signal(ulong _sm);
+	bool signal(ulong _sm, const ObjectUidT &_ruid);
+	bool signal(ulong _sm, Object &_robj);
+	bool signal(ulong _sm, IndexT _fullid, uint32 _uid);
+	template <class I>
+	bool signal(ulong _sm, I &_rbeg, const I &_rend){
+		return false;
 	}
+	
+	bool signal(DynamicSharedPointer<Signal> &_rsig);
+	template <class I>
+	bool signal(DynamicSharedPointer<Signal> &_rsig, I &_rbeg, const I &_rend){
+		return false;
+	}
+	bool signal(DynamicPointer<Signal> &_rsig, Object &_robj);
+	bool signal(DynamicPointer<Signal> &_rsig, IndexT _fullid, uint32 _uid);
+	
+	template <class V>
+	void visit(V &_rv){
+		
+	}
+	
+	template <class V>
+	void visit(V &_rv, const ObjectUidT &_ruid){
+		if(is_invalid_uid(_ruid)){
+			return;
+		}
+		int	 			visidx(-1);
+		
+		for(int i(vistpvec.size() - 1); i >= 0; --i){
+			if(V::isType(vistpvec[i].tid)){
+				visidx = i;
+				break;
+			}
+		}
+		if(visidx < 0) return;
+		
+		IndexT			idx(compute_index(_ruid.first));
+		Mutex::Locker	lock(mutex(idx));
+		Object			*po(objectAt(idx, _ruid.second));
+		
+		doVisit(po, _rv, visidx);
+	}
+	
+	template <class V, class I>
+	void visit(V &_rv, const I &_rbeg, const I &_rend){
+		
+	}
+	
 	Mutex& mutex(){
 		return *pmtx;
 	}
 protected:
-	void insertObject(Object *_po, const ObjectUidT &_ruid);
+	Mutex& mutex(IndexT	_idx);
+	void insertObject(Object &_ro, const ObjectUidT &_ruid);
 	void eraseObject(const Object &_ro);
 	
 	uint32 uid(const IndexT _idx)const{
@@ -138,49 +220,76 @@ protected:
 	
 	template <class O, class S>
 	void registerObjectType(){
-		
+		const uint32	objtpid(objectTypeId<O>());
+		ObjectTypeStub &rts(safe_at(objtpvec, objtpid));
+		rts.erase_callback = &erase_cbk<O, S>;
+		rts.insert_callback = &insert_cbk<O, S>;
 	}
 	template <class O, class V>
 	void registerVisitorType(){
-		
+		const uint32	objtpid(objectTypeId<O>());
+		const uint32	vistpid(V::staticTypeId());
+		int				pos(-1);
+		for(VisitorTypeStubVectorT::const_iterator it(vistpvec.begin()); it != vistpvec.end(); ++it){
+			if(it->tid == vistpid){
+				pos = it - vistpvec.begin();
+				break;
+			}
+		}
+		if(pos < 0){
+			pos = vistpvec.size();
+			vistpvec.push_back(VisitorTypeStub(vistpid));
+		}
+		VisitorTypeStub	&rvts(vistpvec[pos]);
+		safe_at(rvts.cbkvec, objtpid) = &visit_cbk<O, V>;
 	}
 private:
-	ObjectTypeStub& createObjectTypeStub(uint _tid){
-		
-	}
 	ObjectTypeStub& objectTypeStub(uint _tid){
+		if(_tid >= objtpvec.size()) _tid = 0;
+		return objtpvec[_tid];
 	}
 	template <class O>
 	uint objectTypeId(){
-		static uint v(0);
-		Mutex::Locker lock(mutex());
-		return v++;
+		static const uint v(newObjectTypeId());
+		return v;
 	}
 	IndexT index(){
 		return 0;
 	}
 	IndexT doInsertObject(Object &_ro, uint16 _tid,const ObjectUidT &_ruid);
+	uint newObjectTypeId(){
+		return crtobjtypeid++;
+	}
+	Object* objectAt(IndexT &_ridx, uint32 _uid){
+		//TODO:
+		return NULL;
+	}
+	void doVisit(Object *_po, Visitor &_rv, uint32 _visidx);
 private:
-	typedef std::vector<ObjectStub>		ObjectStubVectorT;
-	typedef std::vector<ObjectTypeStub>	ObjectTypeStubVectorT;
+	typedef std::vector<ObjectStub>			ObjectStubVectorT;
+	typedef std::vector<ObjectTypeStub>		ObjectTypeStubVectorT;
+	typedef std::vector<VisitorTypeStub>	VisitorTypeStubVectorT;
 	ObjectStubVectorT		objvec;
 	ObjectTypeStubVectorT	objtpvec;
+	VisitorTypeStubVectorT	vistpvec;
+	uint					crtobjtypeid;
 	Mutex					*pmtx;
 };
 
-Service::ObjectTypeStub& Service::createObjectTypeStub(uint _tid){
-	
-}
-
-void Service::insertObject(Object *_po, const ObjectUidT &_ruid){
+void Service::insertObject(Object &_ro, const ObjectUidT &_ruid){
 	
 }
 void Service::eraseObject(const Object &_ro){
 	
 }
 
-IndexT Service::doInsertObject(Object &_ro, uint16 _tid,const ObjectUidT &_ruid){
-	
+IndexT Service::doInsertObject(Object &_ro, uint16 _tid, const ObjectUidT &_ruid){
+	_ro.typeId(_tid);
+	IndexT idx(objvec.size());
+	objvec.push_back(ObjectStub());
+	objvec.back().pobj = &_ro;
+	_ro.idx = idx;
+	return idx;
 }
 
 void Service::erase(const Object &_robj){
@@ -194,10 +303,20 @@ void Service::erase(const Object &_robj){
 	++ros.uid;
 }
 
+void Service::doVisit(Object *_po, Visitor &_rv, uint32 _visidx){
+	if(!_po) return;
+	VisitorTypeStub	&rvts(vistpvec[_visidx]);
+	if(_po->typeId() < rvts.cbkvec.size() && rvts.cbkvec[_po->typeId()] != NULL){
+		(*rvts.cbkvec[_po->typeId()])(_po, _rv);
+	}else{
+		Service::visit_cbk<Object, Visitor>(_po, _rv);
+	}
+}
+
 class FirstObject;
 class SecondObject;
 
-struct AVisitor: public Visitor{
+struct AVisitor: public Dynamic<AVisitor, Visitor>{
 	virtual void visitObject(FirstObject &_robj) = 0;
 	virtual void visitObject(SecondObject &_robj) = 0;
 };
@@ -210,18 +329,32 @@ public:
 		registerVisitorType<FirstObject, AVisitor>();
 		registerVisitorType<SecondObject, AVisitor>();
 	}
-	void insertObject(FirstObject *_po, const ObjectUidT &_ruid);
-	void insertObject(SecondObject *_po, const ObjectUidT &_ruid);
+	void insertObject(FirstObject &_ro, const ObjectUidT &_ruid);
+	void insertObject(SecondObject &_ro, const ObjectUidT &_ruid);
 	
 	void eraseObject(const FirstObject &_ro);
 	void eraseObject(const SecondObject &_ro);
 };
 
 
+void AService::insertObject(FirstObject &_ro, const ObjectUidT &_ruid){
+	
+}
+void AService::insertObject(SecondObject &_ro, const ObjectUidT &_ruid){
+	
+}
+
+void AService::eraseObject(const FirstObject &_ro){
+	
+}
+void AService::eraseObject(const SecondObject &_ro){
+	
+}
+
 
 class ThirdObject;
 
-class BVisitor: public AVisitor{
+struct BVisitor: Dynamic<BVisitor, AVisitor>{
 	virtual void visitObject(ThirdObject &_robj) = 0;
 };
 
@@ -233,12 +366,26 @@ public:
 		registerVisitorType<ThirdObject, BVisitor>();
 	}
 	
-	void insertObject(FirstObject *_po, const ObjectUidT &_ruid);
-	void insertObject(ThirdObject *_po, const ObjectUidT &_ruid);
+	void insertObject(FirstObject &_ro, const ObjectUidT &_ruid);
+	void insertObject(ThirdObject &_ro, const ObjectUidT &_ruid);
 	
 	void eraseObject(const FirstObject &_ro);
 	void eraseObject(const ThirdObject &_ro);
 };
+
+void BService::insertObject(FirstObject &_ro, const ObjectUidT &_ruid){
+	
+}
+void BService::insertObject(ThirdObject &_ro, const ObjectUidT &_ruid){
+	
+}
+
+void BService::eraseObject(const FirstObject &_ro){
+	
+}
+void BService::eraseObject(const ThirdObject &_ro){
+	
+}
 
 struct FirstObject: Object{
 	
@@ -254,6 +401,15 @@ struct ThirdObject: Object{
 
 
 int main(){
+	std::vector<int>	v;
+	
+	//v.insert(v.begin() + 10, 1);
+	safe_at(v, 10) = 1;
+	
+	for(vector<int>::const_iterator it(v.begin()); it != v.end(); ++it){
+		cout<<*it<<' ';
+	}
+	cout<<endl;
 	AService as;
 	BService bs;
 	
