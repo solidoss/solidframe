@@ -72,40 +72,19 @@ public:
 	//! Push a new job
 	void push(const Jb& _jb){
 		mtx.lock();
-		cassert(state != Stopped);
-		q.push(_jb);
+		jobq.push(_jb);
 		sigcnd.signal();
 		mtx.unlock();
 	}
 	//! Push a table of jobs of size _cnt
-	void push(const Jb *_pjb, unsigned _cnt){
-		if(!_cnt) return;
+	template <class I>
+	void push(I _i, const I &_end){
 		mtx.lock();
-		cassert(state != Stopped);
-		while(_cnt--){
-			q.push(*_pjb);
-			++_pjb;
+		for(; _i != _end; ++_i){
+			jobq.push(*_i);
 		}
 		sigcnd.signal();
 		mtx.unlock();
-	}
-	//! Tries to push a job
-	/*! Will return BAD if the pool is stoped
-		else will return OK
-	*/
-	int tryPush(const Jb &_jb){
-		if(state < Running) return BAD;
-		push(_jb);
-		return OK;
-	}
-	//! Tries to push a table of jobs of size _cnt
-	/*! Will return BAD if the pool is stoped
-		else will return OK
-	*/
-	int tryPush(const Jb *_pjb, int _cnt){
-		if(state < Running) return BAD;
-		push(_pjb,_cnt);
-		return OK;
 	}
 	//! Starts the workpool, creating _minwkrcnt
 	virtual int start(ushort _minwkrcnt, bool _wait = false){
@@ -214,7 +193,10 @@ protected:
 	enum States {Stopped = 0, Stopping, Running};
 	enum Signals{ Init, JobEnter, JobExit, MustDie,WkrEnter,WkrExit};
 	//! Constructor receiving a plugin
-	WorkPool(WorkPoolPlugin *_pwp = basicWorkPoolPlugin()):state(Stopped), wkrcnt(0), pwp(_pwp){}
+	WorkPool(
+		WorkPoolPlugin *_pwp = NULL
+	):state(Stopped), wkrcnt(0), 
+	pwp(_pwp ? _pwp : basicWorkPoolPlugin()){}
 	//! virtual destructor
 	virtual ~WorkPool(){
 		//big mistacke to call stop from here
@@ -273,10 +255,21 @@ protected://workers:
 	template <class Wkr, class WP>
 	struct GenericWorker: Wkr{
 		GenericWorker(WP &_wp):wp(_wp){}
-		~GenericWorker(){}
-		void prepare()	{	wp.enterWorker(*this); wp.prepareWorker();	Worker::prepare(wp);}
-		void run()		{	wp.run(*this);											}
-		void unprepare(){	Worker::unprepare(wp);	wp.unprepareWorker(); wp.exitWorker(); 	}//NOTE: the call order is very important!!
+		~GenericWorker(){
+		}
+		void prepare(){
+			wp.enterWorker(*this);
+			wp.prepareWorker();
+			Worker::prepare(wp);
+		}
+		void run(){
+			wp.run(*this);
+		}
+		void unprepare(){
+			Worker::unprepare(wp);
+			wp.unprepareWorker();
+			wp.exitWorker();
+		}//NOTE: the call order is very important!!
 		WP	&wp;
 	};
 private:

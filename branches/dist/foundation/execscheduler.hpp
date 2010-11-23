@@ -1,4 +1,4 @@
-/* Declarations file execpool.hpp
+/* Declarations file execscheduler.hpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
@@ -19,12 +19,12 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef FOUNDATION_EXECPOOL_HPP
-#define FOUNDATION_EXECPOOL_HPP
+#ifndef FOUNDATION_EXECSCHEDULER_HPP
+#define FOUNDATION_EXECSCHEDULER_HPP
 
 #include "utility/workpool.hpp"
 
-#include "foundation/activeset.hpp"
+#include "foundation/schedulerbase.hpp"
 #include "foundation/objectpointer.hpp"
 
 namespace foundation{
@@ -32,13 +32,12 @@ namespace foundation{
 /*!
 	It doesn't support object signaling and timeouts.
 */
-class ExecPool: public WorkPool<ObjectPointer<Object> >, public ActiveSet{
+class ExecScheduler: protected SchedulerBase, protected WorkPool<ObjectPointer<Object> >{
 public:
-	ExecPool(uint32 _maxthrcnt);
-	virtual ~ExecPool();
+	ExecScheduler(uint32 _maxthrcnt);
+	virtual ~ExecScheduler();
 	void raise(uint _thid);
 	void raise(uint _thid, uint _objid);
-	void poolid(uint _pid);
 	void run(Worker &_rw);
 	void prepareWorker();
 	void unprepareWorker();

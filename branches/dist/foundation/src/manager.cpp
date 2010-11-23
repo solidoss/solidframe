@@ -30,11 +30,11 @@
 #include "foundation/manager.hpp"
 #include "foundation/service.hpp"
 #include "foundation/object.hpp"
-#include "foundation/activeset.hpp"
+#include "foundation/schedulerbase.hpp"
 #include "foundation/requestuid.hpp"
 
 //#define NSINGLETON_MANAGER
-//-------------------------------------------------------------------------------------
+//---------------------------------------------------------
 #ifdef NSINGLETON_MANAGER
 static const unsigned specificPosition(){
 	//TODO: staticproblem
@@ -42,115 +42,126 @@ static const unsigned specificPosition(){
 	return thrspecpos;
 }
 #endif
-//-------------------------------------------------------------------------------------
+//---------------------------------------------------------
 
 namespace foundation{
-//-------------------------------------------------------------------------------------
+//---------------------------------------------------------
 struct Manager::Data{
 	
 };
-//-------------------------------------------------------------------------------------
+//---------------------------------------------------------
 
-//-------------------------------------------------------------------------------------
+//---------------------------------------------------------
 
 /*static*/ Manager& Manager::the(){
-	
 }
-
-Manager::Manager(){
+//---------------------------------------------------------
+Manager::Manager():d(*(new Data)){
 }
-
+//---------------------------------------------------------
 /*virtual*/ Manager::~Manager(){
-	
 }
+//---------------------------------------------------------
 void Manager::start(){
-	
 }
-
-void Manager::stop(bool _wait=){
-	
+//---------------------------------------------------------
+void Manager::stop(bool _wait){
 }
-
-int Manager::signalObject(IndexT _fullid, uint32 _uid, ulong _sigmask){
-	
+//---------------------------------------------------------
+bool Manager::signal(ulong _sm){
 }
-
-int Manager::signalObject(Object &_robj, ulong _sigmask){
-	
+//---------------------------------------------------------
+bool Manager::signal(ulong _sm, const ObjectUidT &_ruid){
 }
-
-int Manager::signalObject(IndexT _fullid, uint32 _uid, DynamicPointer<Signal> &_rsig){
-	
+//---------------------------------------------------------
+bool Manager::signal(ulong _sm, IndexT _fullid, uint32 _uid){
 }
-
-int Manager::signalObject(Object &_robj, DynamicPointer<Signal> &_rsig){
-	
+//---------------------------------------------------------
+bool Manager::signal(ulong _sm, const Object &_robj){
 }
-
+//---------------------------------------------------------
+bool Manager::signal(DynamicSharedPointer<Signal> &_rsig){
+}
+//---------------------------------------------------------
+bool Manager::signal(DynamicPointer<Signal> &_rsig, const ObjectUidT &_ruid){
+}
+//---------------------------------------------------------
+bool Manager::signal(DynamicPointer<Signal> &_rsig, IndexT _fullid, uint32 _uid){
+}
+//---------------------------------------------------------
+bool Manager::signal(DynamicPointer<Signal> &_rsig, const Object &_robj){
+}
+//---------------------------------------------------------
 void Manager::raiseObject(const Object &_robj){
-	
 }
-
+//---------------------------------------------------------
 Mutex& Manager::mutex(const Object &_robj)const{
-	
 }
-
+//---------------------------------------------------------
 uint32  Manager::uid(const Object &_robj)const{
-	
 }
-
+//---------------------------------------------------------
+Service& Manager::service(const IndexT &_i)const{
+}
+//---------------------------------------------------------
+Object& Manager::object(const IndexT &_i)const{
+}
+//---------------------------------------------------------
 /*virtual*/ SpecificMapper*  Manager::specificMapper(){
-	
 }
+//---------------------------------------------------------
 
 /*virtual*/ GlobalMapper* Manager::globalMapper(){
-	
 }
-
+//---------------------------------------------------------
 /*virtual*/ void Manager::doPrepareThread(){
-	
 }
+//---------------------------------------------------------
 /*virtual*/ void Manager::doUnprepareThread(){
-	
 }
-
-uint Manager::insertService(Service *_ps, uint _pos){
-	
+//---------------------------------------------------------
+unsigned Manager::serviceCount()const{
 }
-
-void Manager::insertObject(Object *_po){
-	
-}
-
-void Manager::removeObject(Object *_po){
-	
-}
-
-
-Service& Manager::service(uint _i)const{
-	
-}
-
+//---------------------------------------------------------
 void Manager::prepareThread(){
 }
-
+//---------------------------------------------------------
 void Manager::unprepareThread(){
-	
 }
-
-uint Manager::registerActiveSet(ActiveSet &_ras){
-	
-}
-
+//---------------------------------------------------------
 void Manager::prepareThis(){
-	
 }
+//---------------------------------------------------------
 void Manager::unprepareThis(){
-	
 }
-
-ServiceContainer & Manager::serviceContainer();
-//-------------------------------------------------------------------------------------
+//---------------------------------------------------------
+uint Manager::newSchedulerTypeId(){
+}
+//---------------------------------------------------------
+uint Manager::newServiceTypeId(){
+}
+//---------------------------------------------------------
+uint Manager::newObjectTypeId(){
+}
+//---------------------------------------------------------
+uint Manager::doRegisterScheduler(SchedulerBase *_ps, uint _typeid){
+}
+//---------------------------------------------------------
+ObjectUidT Manager::doRegisterService(Service *_ps, uint _typeid, const IndexT &_ridx){
+}
+//---------------------------------------------------------
+ObjectUidT Manager::doRegisterObject(Object *_po, uint _typeid, const IndexT &_ridx){
+}
+//---------------------------------------------------------
+SchedulerBase* Manager::doGetScheduler(uint _typeid, uint _idx)const{
+}
+//---------------------------------------------------------
+Service* Manager::doGetService(uint _typeid, const IndexT &_ridx)const{
+}
+//---------------------------------------------------------
+Object* Manager::doGetObject(uint _typeid, const IndexT &_ridx)const{
+}
+//---------------------------------------------------------
 Manager::ThisGuard::ThisGuard(Manager *_pm){
 #ifdef NSINGLETON_MANAGER
 	_pm->prepareThis();
@@ -161,8 +172,5 @@ Manager::ThisGuard::~ThisGuard(){
 	Manager::the().unprepareThis();
 #endif
 }
-
-//-------------------------------------------------------------------------------------
-
-
+//---------------------------------------------------------
 }//namespace foundation

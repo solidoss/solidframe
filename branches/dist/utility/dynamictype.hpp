@@ -29,7 +29,6 @@
 
 #include "utility/dynamicpointer.hpp"
 #include "utility/shared.hpp"
-#include <foundation/service.hpp>
 
 //! Store a map from a typeid to a callback
 /*!

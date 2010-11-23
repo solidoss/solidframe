@@ -23,6 +23,7 @@
 #define FOUNDATION_SERVICE_HPP
 
 #include "foundation/object.hpp"
+#include "system/mutex.hpp"
 #include <vector>
 
 namespace foundation{
@@ -103,8 +104,15 @@ class Service: public Dynamic<Service, Object>{
 		Object	*pobj;
 		uint32	uid;
 	};
+	
+	typedef std::vector<ObjectTypeStub>		ObjectTypeStubVectorT;
+	typedef std::vector<VisitorTypeStub>	VisitorTypeStubVectorT;
+	ObjectTypeStubVectorT	objtpvec;
+	VisitorTypeStubVectorT	vistpvec;
 public:
 	enum States{Running, Stopping, Stopped};
+	Service(int _objpermutbts = 6, int _mutrowsbts = 8, int _mutcolsbts = 8);
+	
 	/*virtual*/ ~Service();
 	
 	template <class O>
@@ -122,6 +130,8 @@ public:
 	IndexT size()const;
 	
 	void erase(const Object &_robj);
+	
+	bool signal(DynamicPointer<foundation::Signal> &_sig);
 	
 	bool signal(ulong _sm);
 	bool signal(ulong _sm, const ObjectUidT &_ruid);
@@ -145,12 +155,9 @@ public:
 	
 	template <class V>
 	void visit(V &_rv){
-		if(is_invalid_uid(_ruid)){
-			return false;
-		}
 		int	 			visidx(-1);
 		
-		for(int i(vistpvec.size() - 1); i >= 0; --i){
+		for(int i(this->vistpvec.size() - 1); i >= 0; --i){
 			if(V::isType(vistpvec[i].tid)){
 				visidx = i;
 				break;
@@ -191,12 +198,12 @@ public:
 	void start();
 	
 	/*virtual*/ int execute(ulong _evs, TimeSpec &_rtout);
+	
+	virtual void dynamicExecute(DynamicPointer<> &_dp);
 protected:
-	Service(int _objpermutbts = 6, int _mutrowsbts = 8, int _mutcolsbts = 8);
 	Mutex &serviceMutex()const;
 	void insertObject(Object &_ro, const ObjectUidT &_ruid);
 	void eraseObject(const Object &_ro);
-	virtual void dynamicExecute(DynamicPointer<> &_dp);
 	
 	void stop(bool _wait = true);
 	
@@ -244,7 +251,7 @@ private:
 	void doVisit(Object *_po, Visitor &_rv, uint32 _visidx);
 	const Service& operator=(const Service &);
 	bool doSignalAll(ulong _sm);
-	bool doSignalAll(DynamicSharedPointer<Signal> &_rsig){
+	bool doSignalAll(DynamicSharedPointer<Signal> &_rsig);
 	bool doVisit(Visitor &_rv, uint _visidx);
 	bool doVisit(Visitor &_rv, uint _visidx, const ObjectUidT &_ruid);
 private:
@@ -256,20 +263,8 @@ protected:
 	DynamicExecuterT		de;
 private:
 	struct Data;
-	//typedef std::vector<ObjectStub>			ObjectStubVectorT;
-	typedef std::vector<ObjectTypeStub>		ObjectTypeStubVectorT;
-	typedef std::vector<VisitorTypeStub>	VisitorTypeStubVectorT;
-	//ObjectStubVectorT		objvec;
-	ObjectTypeStubVectorT	objtpvec;
-	VisitorTypeStubVectorT	vistpvec;
-	//uint					crtobjtypeid;
 	Data					&d;
 };
-
-inline ObjectTypeStub& Service::objectTypeStub(uint _tid){
-	if(_tid >= objtpvec.size()) _tid = 0;
-	return objtpvec[_tid];
-}
 
 }//namespace foundation
 

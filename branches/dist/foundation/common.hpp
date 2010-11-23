@@ -133,7 +133,7 @@ inline bool is_invalid_index(const IndexT &_idx){
 }
 
 inline IndexT compute_id(const IndexT &_srvidx, const IndexT &_objidx){
-	return (_srvid << INDEXBITCNT) | _objidx;
+	return (_srvidx << INDEXBITCNT) | _objidx;
 }
 
 inline UidT make_object_uid(const IndexT &_srvidx, const IndexT &_objidx, const uint32 _uid){

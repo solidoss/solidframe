@@ -36,7 +36,7 @@ protected:
 };
 
 //! An autoptr style smartpointer for objects.
-template <class SO>
+template <class SO = Object>
 class ObjectPointer: protected ObjectPointerBase{
 public:
 	typedef SO 					ObjectT;

@@ -70,7 +70,7 @@ class SignalExecuter: public Object{
 public:
 	SignalExecuter();
 	~SignalExecuter();
-	int signal(DynamicPointer<Signal> &_rsig);
+	bool signal(DynamicPointer<Signal> &_rsig);
 	int execute(ulong _evs, TimeSpec &_rtout);
 	virtual void removeFromManager() = 0;
 	void mutex(Mutex *_pmut);

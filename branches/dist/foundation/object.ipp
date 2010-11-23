@@ -48,7 +48,7 @@ inline bool Object::signaled(ulong _s) const{
 inline void Object::id(IndexT _fullid){
 	fullid = _fullid;
 }
-inline void Object::id(IndexT _srvid, IndexT _objidx){
+inline void Object::id(IndexT _srvidx, IndexT _objidx){
 	fullid = compute_id(_srvidx, _objidx);
 }
 inline void Object::state(int _st){

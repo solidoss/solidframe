@@ -31,6 +31,7 @@
 #include "utility/queue.hpp"
 #include "utility/stack.hpp"
 
+#include "foundation/service.hpp"
 #include "foundation/object.hpp"
 #include "foundation/manager.hpp"
 #include "foundation/signal.hpp"
@@ -44,7 +45,7 @@ namespace foundation{
 struct Service::Data{
 	typedef std::pair<Object*, uint32>		ObjectPairT;
 	typedef std::deque<ObjectPairT>			ObjectVectorT;
-	typedef Stack<uint32>					Uint32StackT;
+	typedef Queue<uint32>					Uint32QueueT;
 	
 	typedef MutualStore<Mutex>				MutexStoreT;
 	
@@ -52,7 +53,7 @@ struct Service::Data{
 		int _objpermutbts,
 		int _mutrowsbts,
 		int _mutcolsbts
-	):objcnt(0), crtobjtypeid(0)
+	):	objcnt(0), crtobjtypeid(0),
 		mtxstore(_objpermutbts, _mutrowsbts, _mutcolsbts){
 		
 	}
@@ -61,7 +62,7 @@ struct Service::Data{
 	uint16				crtobjtypeid;
 	MutexStoreT			mtxstore;
 	ObjectVectorT		objvec;
-	Uint32StackT		idxque;
+	Uint32QueueT		idxque;
 	Condition			cnd;
 	Mutex				mtx;
 };
@@ -110,12 +111,20 @@ void Service::erase(const Object &_robj){
 	
 	(*rots.erase_callback)(_robj, this);
 	
-	ObjectPairT		&rop(objvec[oidx]);
+	Data::ObjectPairT		&rop(d.objvec[oidx]);
 	
 	rop.first = NULL;
 	++rop.second;
 	d.idxque.push(oidx);
 	d.cnd.broadcast();
+}
+//---------------------------------------------------------
+bool Service::signal(DynamicPointer<Signal> &_rsig){
+	if(this->state() < 0){
+		return false;//no reason to raise the pool thread!!
+	}
+	de.push(DynamicPointer<>(_rsig));
+	return Object::signal(fdt::S_SIG | fdt::S_RAISE);
 }
 //---------------------------------------------------------
 bool Service::signal(ulong _sm){
@@ -190,7 +199,7 @@ bool Service::signal(DynamicPointer<Signal> &_rsig, const Object &_robj){
 }
 //---------------------------------------------------------
 bool Service::signal(DynamicPointer<Signal> &_rsig, const ObjectUidT &_ruid){
-	return signal(_sm, _ruid.first, _ruid.second);
+	return signal(_rsig, _ruid.first, _ruid.second);
 }
 //---------------------------------------------------------
 bool Service::signal(DynamicPointer<Signal> &_rsig, IndexT _fullid, uint32 _uid){
@@ -233,11 +242,9 @@ void Service::start(){
 		stop(true);
 	}
 	state(Running);
-	m().pushJob(this);
-	return true;
 }
 //---------------------------------------------------------
-void Service::stop(bool _wait = true){
+void Service::stop(bool _wait){
 	Mutex::Locker	lock(d.mtx);
 	
 	if(state() == Running){
@@ -261,7 +268,7 @@ void Service::stop(bool _wait = true){
 	if(signaled()){
 		ulong sm;
 		{
-			Mutex::Locker	lock(mutex());
+			Mutex::Locker	lock(Object::mutex());
 			sm = grabSignalMask();
 			if(sm & fdt::S_SIG){//we have signals
 				de.prepareExecute();
@@ -332,7 +339,8 @@ ObjectUidT Service::doInsertObject(Object &_ro, uint16 _tid, const IndexT &_ridx
 		}else{
 			//worst case scenario
 			const IndexT	sz(d.objvec.size());
-			Mutex 			&rmut(d.mtxstore.safeAt(sz));
+			
+			d.mtxstore.safeAt(sz);
 
 			_ro.id(this->index(), sz);
 			
@@ -375,7 +383,8 @@ ObjectUidT Service::doInsertObject(Object &_ro, uint16 _tid, const IndexT &_ridx
 			d.objvec.resize(_ridx + 16);
 			const IndexT	sz(d.objvec.size());
 			const IndexT	diffsz(sz - initialsize - 1);
-			Mutex 			&rmut(d.mtxstore.safeAt(sz));
+			
+			d.mtxstore.safeAt(sz);
 
 			_ro.id(this->index(), _ridx);
 			
@@ -385,7 +394,7 @@ ObjectUidT Service::doInsertObject(Object &_ro, uint16 _tid, const IndexT &_ridx
 			IndexT		cnt(diffsz + 1);
 			while(cnt--){
 				d.mtxstore.safeAt(d.objvec.size());
-				IndexT crtidx(initialsize + diffsz - cnt)
+				IndexT crtidx(initialsize + diffsz - cnt);
 				if(crtidx != _ridx){
 					d.idxque.push(crtidx);
 				}
@@ -395,6 +404,7 @@ ObjectUidT Service::doInsertObject(Object &_ro, uint16 _tid, const IndexT &_ridx
 			u = 0;
 			
 			d.mtxstore.visit(sz, visit_unlock);//unlock all mutexes
+			return ObjectUidT(_ro.id(), u);
 		}
 	}
 }
@@ -482,7 +492,6 @@ bool Service::doVisit(Visitor &_rv, uint _visidx){
 	IndexT				i(0);
 	long				mi(-1);
 	bool				signaled(false);
-	Manager				&rm(m());
 	VisitorTypeStub		&rvts(vistpvec[_visidx]);
 	
 	idbgx(Dbg::fdt, "visiting "<<oc<<" objects");
@@ -494,7 +503,7 @@ bool Service::doVisit(Visitor &_rv, uint _visidx){
 				++mi;
 				d.mtxstore[mi].lock();
 			}
-			Object			*pobj(*it);
+			Object			*pobj(it->first);
 			
 			if(pobj->typeId() < rvts.cbkvec.size() && rvts.cbkvec[pobj->typeId()] != NULL){
 				(*rvts.cbkvec[pobj->typeId()])(pobj, _rv);
@@ -530,6 +539,7 @@ bool Service::doVisit(Visitor &_rv, uint _visidx, const ObjectUidT &_ruid){
 	}else{
 		Service::visit_cbk<Object, Visitor>(pobj, _rv);
 	}
+	return true;
 }
 //---------------------------------------------------------
 }//namespace fundation

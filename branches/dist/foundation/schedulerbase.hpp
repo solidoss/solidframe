@@ -1,4 +1,4 @@
-/* Declarations file activeset.hpp
+/* Declarations file schedulerbase.hpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
@@ -19,19 +19,23 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef FOUNDATION_ACTIVESET_HPP
-#define FOUNDATION_ACTIVESET_HPP
+#ifndef FOUNDATION_SCHEDULER_BASE_HPP
+#define FOUNDATION_SCHEDULER_BASE_HPP
 
 namespace foundation{
+
+class Manager;
+
 //! This is the base class for all active containers/sets (i.e. WorkPools)
 /*!
 	It is used by foundation::Manager for signaling a workpool
 	currently holding an object.
 */
-class ActiveSet{
-public:
-	ActiveSet();
-	virtual ~ActiveSet();
+class SchedulerBase{
+protected:
+	SchedulerBase();
+	SchedulerBase(Manager &_rm);
+	virtual ~SchedulerBase();
 	//! Wake a theread given by its index
 	virtual void raise(uint _thridx) = 0;
 	//! Wake an object
@@ -40,12 +44,11 @@ public:
 		thread.
 	*/
 	virtual void raise(uint _thridx, uint _objid) = 0;
-	//! Sets the pool's id, which in turn will be used for computing the thread id
-	/*!
-		This is called by the foundation::Manager on activeset's registration:
-		foundation::Manager::registerActiveSet
-	*/
-	virtual void poolid(uint _id) =  0;
+	
+	void prepareThread();
+	void unprepareThread();
+protected:
+	Manager	&rm;
 };
 
 }//namespace

@@ -1,4 +1,4 @@
-/* Declarations file selectpool.hpp
+/* Declarations file scheduler.hpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
@@ -19,8 +19,8 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef FOUNDATION_SELECTPOOL_HPP
-#define FOUNDATION_SELECTPOOL_HPP
+#ifndef FOUNDATION_SCHEDULER_HPP
+#define FOUNDATION_SCHEDULER_HPP
 
 #include <deque>
 
@@ -28,7 +28,7 @@
 #include "utility/list.hpp"
 
 #include "foundation/manager.hpp"
-#include "foundation/activeset.hpp"
+#include "foundation/schedulerbase.hpp"
 
 
 namespace foundation{
@@ -46,20 +46,21 @@ namespace foundation{
 	- Objects must implement "int execute(ulong _evs, TimeSpec &_rtout)" method.
 */
 template <class Sel>
-class SelectPool: public ActiveSet, public WorkPool<typename Sel::ObjectT>{
+class Scheduler: public SchedulerBase, public WorkPool<typename Sel::ObjectT>{
 public:
 	typedef Sel							SelectorT;
 	typedef typename Sel::ObjectT		JobT;
-	typedef SelectPool<Sel>				ThisT;
-	typedef WorkPool<JobT>				WorkPoolT;
+	typedef Scheduler<Sel>				ThisT;
 
 private:
+	typedef WorkPool<JobT>				WorkPoolT;
 	typedef List<ulong>					ListT;
 	typedef std::pair<
 		SelectorT*,
 		ListT::iterator
 		>								VecPairT;
 	typedef std::vector<VecPairT>		SlotVecT;
+	
 
 protected:
 
@@ -73,12 +74,41 @@ public://definition
 		\param _selcap The capacity of a selector - the total number
 		of objects handled would be _maxthcnt * _selcap
 	*/
-	SelectPool(ManagerStub &_rm, uint _maxthcnt, uint _selcap = 1024):rm(_rm),cap(0),selcap(_selcap){
-		thrid = _rm->registerActiveSet(*this);
-		thrid <<= 16;
+	Scheduler(
+		Manager &_rm,
+		uint _maxthcnt = 1,
+		const IndexT &_selcap = 1024,
+		WorkPoolPlugin	*_pwp = NULL
+	):SchedulerBase(_rm), WorkPoolT(_pwp), cap(0), selcap(_selcap){
+		const uint tid(_rm.registerScheduler(this));
+		
+		Mutex::Locker	lock(this->mtx);
+		thrid = tid << 16;
 		slotvec.reserve(_maxthcnt > 1024 ? 1024 : _maxthcnt);
 	}
+	Scheduler(
+		uint _maxthcnt = 1,
+		const IndexT &_selcap = 1024
+	):cap(0),selcap(_selcap){
+		const uint tid(rm.registerScheduler(this));
+		
+		Mutex::Locker	lock(this->mtx);
+		thrid = tid << 16;
+		slotvec.reserve(_maxthcnt > 1024 ? 1024 : _maxthcnt);
+	}
+	static void schedule(const JobT &_rjb, uint _idx = 0){
+		static_cast<ThisT*>(m().scheduler<ThisT>(_idx))->push(_rjb);
+	}
+	//! Prepare the worker (usually thread specific data) - called internally
+	void prepareWorker(){
+		this->prepareThread();
+	}
 	
+	//! Prepare the worker (usually thread specific data) - called internally
+	void unprepareWorker(){
+		this->unprepareThread();
+	}
+protected:
 	//! Raise a thread from the pool
 	void raise(uint _thid){
 		cassert(_thid < slotvec.size());
@@ -92,32 +122,20 @@ public://definition
 	}
 	
 	//! Raise all threads for stopping
-	void raiseStop(){
-		{
-			Mutex::Locker	lock(this->mtx);
-			for(typename SlotVecT::iterator it(slotvec.begin()); it != slotvec.end(); ++it){
-				it->first->signal();
-			}
-		}
-		this->stop();
-	}
+// 	void raiseStop(){
+// 		{
+// 			Mutex::Locker	lock(this->mtx);
+// 			for(typename SlotVecT::iterator it(slotvec.begin()); it != slotvec.end(); ++it){
+// 				it->first->signal();
+// 			}
+// 		}
+// 		this->stop();
+// 	}
 	
 	//! Set the pool id
-	void poolid(uint _pid){
+	void id(uint _pid){
 		Mutex::Locker	lock(this->mtx);
 		thrid = _pid << 16;
-	}
-	
-	//! Prepare the worker (usually thread specific data) - called internally
-	void prepareWorker(){
-		rm->prepareThread();
-		doPrepareWorker();
-	}
-	
-	//! Prepare the worker (usually thread specific data) - called internally
-	void unprepareWorker(){
-		doUnprepareWorker();
-		rm->unprepareThread();
 	}
 	
 	//! The run loop for every thread
@@ -146,14 +164,6 @@ public://definition
 		}
 	}
 
-protected:
-	//! Inherit and add thread preparation - or use workpool plugin
-	virtual void doPrepareWorker(){}
-	
-	//! Inherit and add thread unpreparation - or use workpool plugin
-	virtual void doUnprepareWorker(){}
-
-protected:
 	//! The selector worker
 	struct SelectorWorker: WorkPoolT::Worker{
 		SelectorWorker(){}
@@ -263,9 +273,8 @@ private:
 	}
 
 private:
-	ManagerStub		&rm;
-	ulong			cap;//the total count of objects already in pool
-	uint			selcap;
+	IndexT			cap;//the total count of objects already in pool
+	IndexT			selcap;
 	uint			thrid;
 	ListT			sgnlst;
 	SlotVecT		slotvec;

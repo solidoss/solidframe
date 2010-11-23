@@ -200,7 +200,7 @@ int ObjectSelector::doWait(int _wt){
 int ObjectSelector::doExecute(unsigned _i, ulong _evs, TimeSpec _crttout){
 	int rv = 0;
 	this->associateObjectToCurrentThread(*sv[_i].objptr);
-	switch(this->executeObject(_evs, _crttout)){
+	switch(this->executeObject(*sv[_i].objptr, _evs, _crttout)){
 		case BAD:
 			fstk.push(_i);
 			sv[_i].objptr.clear();

@@ -89,7 +89,7 @@ class Service;
 	- When needed, new talkers will be created with ports values starting 
 	incrementally from baseaddress port + 1.
 */
-class Service: public foundation::Service{
+class Service: public Dynamic<Service, foundation::Service>{
 public:
 	enum {
 		SameConnectorFlag = 1, //!< Do not send signal to a restarted peer process

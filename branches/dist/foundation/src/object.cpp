@@ -26,7 +26,6 @@
 
 #include "foundation/object.hpp"
 #include "foundation/objectpointer.hpp"
-#include "foundation/visitor.hpp"
 #include "foundation/signal.hpp"
 #include "foundation/manager.hpp"
 #include "foundation/service.hpp"
@@ -45,15 +44,6 @@ static const unsigned specificPosition(){
 
 
 namespace foundation{
-//---------------------------------------------------------------------
-//----	Visitor	----
-//---------------------------------------------------------------------
-
-Visitor::Visitor(){
-}
-
-Visitor::~Visitor(){
-}
 //---------------------------------------------------------------------
 //----	ObjectPointerBase	----
 //---------------------------------------------------------------------
@@ -90,7 +80,7 @@ Object::Object(IndexT _fullid):
 
 Object::~Object(){
 	if(is_valid_index(fullid)){
-		m().service(*this).erase(*this);
+		m().service(serviceId()).erase(*this);
 	}
 }
 

@@ -45,35 +45,28 @@ class	ActiveSet;
 class	Visitor;
 class	ServiceContainer;
 class	Signal;
-
-class Manager;
-struct ManagerStub{
-	void prepareThread();
-	void unprepareThread();
-	uint registerActiveSet(ActiveSet &_ras);
-	
-	Manager* operator->(){return pmanager;}
-	
-	Manager	*pmanager;
-private:
-	ManagerStub(Manager *_pman = NULL):pmanager(_pman){}
-};
+class	SchedulerBase;
 
 class Manager{
 public:
-	virtual ~Manager();
 	static Manager& the();
+	
+	Manager();
+	
+	virtual ~Manager();
 	
 	void start();
 	void stop(bool _wait = true);
 	
-	int signalObject(IndexT _fullid, uint32 _uid, ulong _sigmask);
-	
-	int signalObject(Object &_robj, ulong _sigmask);
-	
-	int signalObject(IndexT _fullid, uint32 _uid, DynamicPointer<Signal> &_rsig);
-	
-	int signalObject(Object &_robj, DynamicPointer<Signal> &_rsig);
+	bool signal(ulong _sm);
+	bool signal(ulong _sm, const ObjectUidT &_ruid);
+	bool signal(ulong _sm, IndexT _fullid, uint32 _uid);
+	bool signal(ulong _sm, const Object &_robj);
+
+	bool signal(DynamicSharedPointer<Signal> &_rsig);
+	bool signal(DynamicPointer<Signal> &_rsig, const ObjectUidT &_ruid);
+	bool signal(DynamicPointer<Signal> &_rsig, IndexT _fullid, uint32 _uid);
+	bool signal(DynamicPointer<Signal> &_rsig, const Object &_robj);
 	
 	void raiseObject(const Object &_robj);
 	
@@ -89,7 +82,38 @@ public:
 	virtual SpecificMapper*  specificMapper();
 	
 	virtual GlobalMapper* globalMapper();
-
+	
+	template <class S>
+	uint registerScheduler(S *_ps){
+		return doRegisterScheduler(_ps, schedulerTypeId<S>());
+	}
+	
+	template <class S>
+	S* scheduler(uint _id){
+		return static_cast<S*>(doGetScheduler(schedulerTypeId<S>(), _id));
+	}
+	
+	template <class S>
+	ObjectUidT registerService(S *_s, const IndexT &_idx = invalid_uid().second){
+		return doRegisterService(_s, serviceTypeId<S>(), _idx);
+	}
+	template <class O>
+	ObjectUidT registerObject(O *_o, const IndexT &_idx = invalid_uid().second){
+		return doRegisterObject(_o, objectTypeId<O>(), _idx);
+	}
+	
+	Service& service(const IndexT &_ridx = 0)const;
+	Object& object(const IndexT &_ridx)const;
+	
+	template <class S>
+	S* service(const IndexT &_ridx)const{
+		return static_cast<S*>(doGetService(serviceTypeId<S>(), _ridx));
+	}
+	
+	template <class O>
+	O* object(const IndexT &_ridx)const{
+		return static_cast<O*>(doGetObject(objectTypeId<O>(), _ridx));
+	}
 protected:
 	struct ThisGuard{
 		ThisGuard(Manager *_pm);
@@ -99,30 +123,47 @@ protected:
 	virtual void doPrepareThread();
 	virtual void doUnprepareThread();
 	
-	uint insertService(Service *_ps, uint _pos = 0);
-	void insertObject(Object *_po);
-	
-	void removeObject(Object *_po);
 	
 	unsigned serviceCount()const;
 	
-	Service& service(uint _i = 0)const;
-	
-	Manager();
-	
-	ManagerStub createStub();
 private:
-	friend ManagerStub;
+	friend class SchedulerBase;
 	
 	void prepareThread();
 	void unprepareThread();
 	
-	uint registerActiveSet(ActiveSet &_ras);
-	
 	void prepareThis();
 	void unprepareThis();
 	
-	ServiceContainer & serviceContainer();
+	uint newSchedulerTypeId();
+	uint newServiceTypeId();
+	uint newObjectTypeId();
+	
+	uint doRegisterScheduler(SchedulerBase *_ps, uint _typeid);
+	ObjectUidT doRegisterService(Service *_ps, uint _typeid, const IndexT &_ridx);
+	ObjectUidT doRegisterObject(Object *_po, uint _typeid, const IndexT &_ridx);
+	
+	SchedulerBase* doGetScheduler(uint _typeid, uint _idx)const;
+	Service* doGetService(uint _typeid, const IndexT &_ridx)const;
+	Object* doGetObject(uint _typeid, const IndexT &_ridx)const;
+	
+	template <class O>
+	uint schedulerTypeId(){
+		static const uint v(newSchedulerTypeId());
+		return v;
+	}
+	
+	template <class O>
+	uint objectTypeId(){
+		static const uint v(newObjectTypeId());
+		return v;
+	}
+	
+	template <class O>
+	uint serviceTypeId(){
+		static const uint v(newServiceTypeId());
+		return v;
+	}
 	
 	Manager(const Manager&);
 	Manager& operator=(const Manager&);
@@ -131,20 +172,6 @@ private:
 	struct Data;
 	Data &d;
 };
-
-inline void ManagerStub::prepareThread(){
-	pmanager->prepareThread();
-}
-inline void  ManagerStub::unprepareThread(){
-	pmanager->unprepareThread();
-}
-inline uint ManagerStub::registerActiveSet(ActiveSet &_ras){
-	return pmanager->registerActiveSet(_ras);
-}
-
-inline ManagerStub Manager::createStub(){
-	return ManagerStub(this);
-}
 
 inline Manager& m(){
 	return Manager::the();

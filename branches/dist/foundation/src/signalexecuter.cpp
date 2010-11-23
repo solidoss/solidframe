@@ -77,12 +77,12 @@ SignalExecuter::~SignalExecuter(){
 	delete &d;
 }
 
-int SignalExecuter::signal(DynamicPointer<Signal> &_sig){
+bool SignalExecuter::signal(DynamicPointer<Signal> &_sig){
 	cassert(!d.pm->tryLock());
 	
 	if(this->state() != Data::Running){
 		_sig.clear();
-		return 0;//no reason to raise the pool thread!!
+		return false;//no reason to raise the pool thread!!
 	}
 	d.push(_sig);
 	return Object::signal(S_SIG | S_RAISE);

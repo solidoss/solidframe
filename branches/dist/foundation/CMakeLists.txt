@@ -1,6 +1,5 @@
 set(Sources
 	src/signalexecuter.cpp
-	src/execpool.cpp
 	src/manager.cpp
 	src/object.cpp
 	src/objectselector.cpp
@@ -9,19 +8,18 @@ set(Sources
 )
 
 set(Headers
-	activeset.hpp
+	schedulerbase.hpp
 	signalexecuter.hpp
 	signal.hpp
 	common.hpp
-	execpool.hpp
+#	execpool.hpp
 	manager.hpp
 	object.hpp
 	objectselector.hpp
 	objectpointer.hpp
 	requestuid.hpp
-	selectpool.hpp
+	scheduler.hpp
 	service.hpp
-	visitor.hpp
 	selector.hpp
 )
 

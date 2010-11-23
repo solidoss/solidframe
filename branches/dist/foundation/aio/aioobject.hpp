@@ -41,7 +41,7 @@ class Selector;
 	i.e. inheritants - see aio::SingleObject or aio::MultiObject.
 	
 */
-class Object: public foundation::Object{
+class Object: public Dynamic<Object, foundation::Object>{
 public:
 	static const TimeSpec& currentTime();
 	virtual ~Object();
