@@ -25,6 +25,7 @@
 namespace foundation{
 
 class Manager;
+class SelectorBase;
 
 //! This is the base class for all active containers/sets (i.e. WorkPools)
 /*!
@@ -36,17 +37,8 @@ protected:
 	SchedulerBase();
 	SchedulerBase(Manager &_rm);
 	virtual ~SchedulerBase();
-	//! Wake a theread given by its index
-	virtual void raise(uint _thridx) = 0;
-	//! Wake an object
-	/*!
-		Wake an object given the thread on which it resides and an index in the 
-		thread.
-	*/
-	virtual void raise(uint _thridx, uint _objid) = 0;
-	
-	void prepareThread();
-	void unprepareThread();
+	uint32 prepareThread(SelectorBase *_ps = NULL);
+	void unprepareThread(uint32 _id = 0);
 protected:
 	Manager	&rm;
 };

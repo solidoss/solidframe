@@ -42,7 +42,7 @@ int ObjectSelector::reserve(ulong _cp){
 	return OK;
 }
 
-void ObjectSelector::signal(uint _pos){
+void ObjectSelector::raise(uint _pos){
 	Mutex::Locker lock(mtx);
 	uiq.push(_pos);
 	cnd.signal();

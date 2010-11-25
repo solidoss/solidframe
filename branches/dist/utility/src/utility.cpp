@@ -28,24 +28,6 @@
 #endif
 
 
-//------	WorkPoolPlugin --------------------------------------------
-
-WorkPoolPlugin::~WorkPoolPlugin(){
-}
-void WorkPoolPlugin::prepare(){
-}
-void WorkPoolPlugin::unprepare(){
-}
-bool WorkPoolPlugin::release()const{
-	return false;//do not delete
-}
-
-static WorkPoolPlugin pwp;
-
-WorkPoolPlugin* basicWorkPoolPlugin(){
-	return &pwp;
-}
-
 //------	PolyContainter --------------------------------------------
 
 static const char* strs[] = {

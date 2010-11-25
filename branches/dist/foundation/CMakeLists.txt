@@ -20,7 +20,7 @@ set(Headers
 	requestuid.hpp
 	scheduler.hpp
 	service.hpp
-	selector.hpp
+	selectorbase.hpp
 )
 
 set(Inlines

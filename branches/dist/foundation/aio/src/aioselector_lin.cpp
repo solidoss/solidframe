@@ -274,7 +274,7 @@ void Selector::prepare(){
 void Selector::unprepare(){
 }
 
-void Selector::signal(uint _pos)const{
+void Selector::raise(uint _pos){
 	idbgx(Dbg::aio, "signal connection: "<<_pos);
 #ifdef UPIPESIGNAL
 	write(d.pipefds[1], &_pos, sizeof(uint));
