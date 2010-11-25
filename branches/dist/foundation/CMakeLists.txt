@@ -5,6 +5,7 @@ set(Sources
 	src/objectselector.cpp
 	src/requestuid.cpp
 	src/service.cpp
+	src/execscheduler.cpp
 )
 
 set(Headers

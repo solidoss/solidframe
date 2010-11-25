@@ -62,9 +62,11 @@ int main(){
 	
 	foundation::Manager m;
 	
-	new AioSchedulerT(m);
-	new SchedulerT(m);
-	new SchedulerT(m);
+	//AioSchedulerT	*pais = new AioSchedulerT(m);
+	SchedulerT		*ps1 = new SchedulerT(m);
+	SchedulerT		*ps2 = new SchedulerT(m);
+	
+	ps1->start();
 	
 	//m.registerService(new foundation::ipc::Service(), ipcid);
 	m.registerService(new foundation::Service, firstid);

@@ -22,6 +22,8 @@
 #ifndef FOUNDATION_SCHEDULER_BASE_HPP
 #define FOUNDATION_SCHEDULER_BASE_HPP
 
+#include "foundation/common.hpp"
+
 namespace foundation{
 
 class Manager;
@@ -37,8 +39,8 @@ protected:
 	SchedulerBase();
 	SchedulerBase(Manager &_rm);
 	virtual ~SchedulerBase();
-	uint32 prepareThread(SelectorBase *_ps = NULL);
-	void unprepareThread(uint32 _id = 0);
+	void prepareThread(SelectorBase *_ps = NULL);
+	void unprepareThread(SelectorBase *_ps = NULL);
 protected:
 	Manager	&rm;
 };

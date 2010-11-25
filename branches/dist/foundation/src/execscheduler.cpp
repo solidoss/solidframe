@@ -1,4 +1,4 @@
-/* Implementation file execpool.cpp
+/* Implementation file execscheduler.cpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
@@ -19,57 +19,70 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "foundation/execpool.hpp"
+#include "foundation/schedulerbase.hpp"
+#include "foundation/manager.hpp"
 #include "foundation/object.hpp"
 
 
 namespace foundation{
 
-
-ExecPool::ExecPool(uint32 _maxthrcnt){
+SchedulerBase::SchedulerBase():rm(m()){
 }
-/*virtual*/ ExecPool::~ExecPool(){
+SchedulerBase::SchedulerBase(Manager &_rm):rm(_rm){
 }
-void ExecPool::raise(uint _thid){
+/*virtual*/ SchedulerBase::~SchedulerBase(){
 }
-void ExecPool::raise(uint _thid, uint _objid){
+void SchedulerBase::prepareThread(SelectorBase *_ps){
+	//rm.prepareThread(_ps);
 }
-void ExecPool::poolid(uint _pid){
-}
-void ExecPool::run(Worker &_rw){
-	ObjectPointer<Object> pobj;
-	while(!pop(_rw.wid(), pobj)){
-		idbg(_rw.wid()<<" is processing "<<pobj->id());
-		int rv(pobj->execute());
-		switch(rv){
-			case LEAVE:
-				pobj.release();
-				break;
-			case OK:
-				this->push(pobj);
-				break;
-			case BAD:
-				pobj.clear();
-				break;
-			default:
-				edbg("Unknown return value from Object::exec "<<rv);
-				pobj.clear();
-				break;
-		}
-	}
-}
-void ExecPool::prepareWorker(){
-}
-void ExecPool::unprepareWorker(){
+void SchedulerBase::unprepareThread(SelectorBase *_ps){
+	//rm.unprepareThread(_ps);
 }
 
-int ExecPool::createWorkers(uint _cnt){
-	for(uint i = 0; i < _cnt; ++i){
-		Worker *pw = createWorker<Worker>(*this);//new MyWorkerT(*this);
-		pw->start(true);//wait for start
-	}
-	return _cnt;
-}
+// ExecPool::ExecPool(uint32 _maxthrcnt){
+// }
+// /*virtual*/ ExecPool::~ExecPool(){
+// }
+// void ExecPool::raise(uint _thid){
+// }
+// void ExecPool::raise(uint _thid, uint _objid){
+// }
+// void ExecPool::poolid(uint _pid){
+// }
+// void ExecPool::run(Worker &_rw){
+// 	ObjectPointer<Object> pobj;
+// 	while(!pop(_rw.wid(), pobj)){
+// 		idbg(_rw.wid()<<" is processing "<<pobj->id());
+// 		int rv(pobj->execute());
+// 		switch(rv){
+// 			case LEAVE:
+// 				pobj.release();
+// 				break;
+// 			case OK:
+// 				this->push(pobj);
+// 				break;
+// 			case BAD:
+// 				pobj.clear();
+// 				break;
+// 			default:
+// 				edbg("Unknown return value from Object::exec "<<rv);
+// 				pobj.clear();
+// 				break;
+// 		}
+// 	}
+// }
+// void ExecPool::prepareWorker(){
+// }
+// void ExecPool::unprepareWorker(){
+// }
+// 
+// int ExecPool::createWorkers(uint _cnt){
+// 	for(uint i = 0; i < _cnt; ++i){
+// 		Worker *pw = createWorker<Worker>(*this);//new MyWorkerT(*this);
+// 		pw->start(true);//wait for start
+// 	}
+// 	return _cnt;
+// }
 
 }//namespace
 

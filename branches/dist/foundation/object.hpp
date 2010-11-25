@@ -36,7 +36,7 @@ class Manager;
 class Service;
 class ObjectPointerBase;
 class Signal;
-class Selector;
+class SelectorBase;
 
 
 //! A pseudo-active object class
@@ -96,7 +96,7 @@ protected:
 	friend class Service;
 	friend class Manager;
 	friend class ObjectPointerBase;
-	friend class Selector;
+	friend class SelectorBase;
 	
 	//! Constructor
 	Object(IndexT _fullid = 0UL);

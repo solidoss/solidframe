@@ -45,28 +45,25 @@ namespace foundation{
 	object handeling at thread level.
 	- Objects must implement "int execute(ulong _evs, TimeSpec &_rtout)" method.
 */
-template <class Sel>
-class Scheduler: public SchedulerBase, public WorkPool<typename Sel::ObjectT>{
-public:
-	typedef Sel							SelectorT;
-	typedef typename Sel::ObjectT		JobT;
-	typedef Scheduler<Sel>				ThisT;
-
-private:
-	typedef WorkPool<JobT>				WorkPoolT;
-	typedef List<ulong>					ListT;
-	typedef std::pair<
-		SelectorT*,
-		ListT::iterator
-		>								VecPairT;
-	typedef std::vector<VecPairT>		SlotVecT;
-	
-
-protected:
-
-	struct SelectorWorker;
-
+template <class S>
+class Scheduler: public SchedulerBase, public WorkPoolControllerBase{
+	typedef S				SelectorT;
+	typedef Scheduler<S>	ThisT;
+	struct Worker: WorkerBase{
+		SelectorT	s;
+	};
+	typedef WorkPool<
+		typename S::ObjectT,
+		ThisT&,
+		Worker
+	> 						WorkPoolT;
+	friend class WorkPool<
+		typename S::ObjectT,
+		ThisT&,
+		Worker
+	>;
 public://definition
+	typedef typename S::ObjectT		JobT;
 	//! Constructor
 	/*!
 		\param _rm Reference to parent manager
@@ -77,208 +74,59 @@ public://definition
 	Scheduler(
 		Manager &_rm,
 		uint _maxthcnt = 1,
-		const IndexT &_selcap = 1024,
-		WorkPoolPlugin	*_pwp = NULL
-	):SchedulerBase(_rm), WorkPoolT(_pwp), cap(0), selcap(_selcap){
-		const uint tid(_rm.registerScheduler(this));
-		
-		Mutex::Locker	lock(this->mtx);
-		thrid = tid << 16;
-		slotvec.reserve(_maxthcnt > 1024 ? 1024 : _maxthcnt);
+		const IndexT &_selcap = 1024
+	):SchedulerBase(_rm), wp(*this), cap(0), selcap(_selcap){
+		//slotvec.reserve(_maxthcnt > 1024 ? 1024 : _maxthcnt);
 	}
 	Scheduler(
 		uint _maxthcnt = 1,
 		const IndexT &_selcap = 1024
-	):cap(0),selcap(_selcap){
-		const uint tid(rm.registerScheduler(this));
-		
-		Mutex::Locker	lock(this->mtx);
-		thrid = tid << 16;
-		slotvec.reserve(_maxthcnt > 1024 ? 1024 : _maxthcnt);
+	):wp(*this), cap(0),selcap(_selcap){
+		//slotvec.reserve(_maxthcnt > 1024 ? 1024 : _maxthcnt);
 	}
+	
 	static void schedule(const JobT &_rjb, uint _idx = 0){
-		static_cast<ThisT*>(m().scheduler<ThisT>(_idx))->push(_rjb);
-	}
-	//! Prepare the worker (usually thread specific data) - called internally
-	void prepareWorker(){
-		this->prepareThread();
+		static_cast<ThisT*>(m().scheduler<ThisT>(_idx))->wp.push(_rjb);
 	}
 	
-	//! Prepare the worker (usually thread specific data) - called internally
-	void unprepareWorker(){
-		this->unprepareThread();
-	}
-protected:
-	//! Raise a thread from the pool
-	void raise(uint _thid){
-		cassert(_thid < slotvec.size());
-		slotvec[_thid].first->signal();
+	void start(ushort _minwkrcnt = 1, bool _wait = false){
+		wp.start(_minwkrcnt, _wait);
 	}
 	
-	//! Raise an object from the pool
-	void raise(uint _thid, uint _thpos){
-		cassert(_thid < slotvec.size());
-		slotvec[_thid].first->signal(_thpos);
+	void stop(bool _wait = true){
+		wp.stop(_wait);
 	}
-	
-	//! Raise all threads for stopping
-// 	void raiseStop(){
-// 		{
-// 			Mutex::Locker	lock(this->mtx);
-// 			for(typename SlotVecT::iterator it(slotvec.begin()); it != slotvec.end(); ++it){
-// 				it->first->signal();
-// 			}
-// 		}
-// 		this->stop();
-// 	}
-	
-	//! Set the pool id
-	void id(uint _pid){
-		Mutex::Locker	lock(this->mtx);
-		thrid = _pid << 16;
-	}
-	
-	//! The run loop for every thread
-	void run(SelectorWorker &_rwkr){
-		_rwkr.sel.prepare();
-		while(pop(_rwkr.sel,_rwkr.thrid) >= 0){
-			_rwkr.sel.run();
-		}
-		_rwkr.sel.unprepare();
-		unregisterSelector(_rwkr.sel, _rwkr.thrid);
-	}
-	
-	//! The method for adding a new object to the pool
-	/*!
-		Method overwritten from WorkPoolT, to add logic 
-		for creating new workers.
-	 */
-	void push(const JobT &_rjb){
-		Mutex::Locker	lock(this->mtx);
-		cassert(this->state != WorkPoolT::Stopped);
-		this->q.push(_rjb); this->sigcnd.signal();
-		if(sgnlst.size()){
-			slotvec[sgnlst.back()].first->signal();
-		}else{
-			createWorkers(1);//increase the capacity
-		}
-	}
-
-	//! The selector worker
-	struct SelectorWorker: WorkPoolT::Worker{
-		SelectorWorker(){}
-		~SelectorWorker(){}
-		uint 		thrid;
-		SelectorT	sel;
-	};
-	
-	//! The creator of workers
-	/*!
-		Observe the fact that the created workers type
-		is WorkPool::GenericWorker\<SelectorWorker, ThisT\>
-	*/
-	int createWorkers(uint _cnt){
-		uint i(0);
-		for(; i < _cnt; ++i){
-			SelectorWorker *pwkr = this->template createWorker<SelectorWorker,ThisT>(*this);
-			if(!registerSelector(pwkr->sel, pwkr->thrid))
-				pwkr->start();//do not wait
-			else{ delete pwkr; break;}
-		}
-		return (int)i;
-	}
-	
-	//! Register the selector of a worker 
-	int registerSelector(SelectorT &_rs, uint &_wkrid){
-		if(_rs.reserve(selcap)) return BAD;
-		_wkrid = thrid++;
-		cap += _rs.capacity();
-		uint wid = _wkrid & 0xffff;
-		if(wid >= slotvec.size()){
-			slotvec.push_back(VecPairT(&_rs, sgnlst.insert(sgnlst.end(),wid)));
-		}else{
-			slotvec[wid] = VecPairT(&_rs, sgnlst.insert(sgnlst.end(),wid));
-		}
-		return OK;
-	}
-	
-	//! Unregister the selector of a worker 
-	void unregisterSelector(SelectorT &_rs, ulong _wkrid){
-		Mutex::Locker	lock(this->mtx);
-		cap -= _rs.capacity();
-		slotvec[_wkrid & 0xffff] = VecPairT(NULL, sgnlst.end());
-	}
-	
-	//! Pop some objects into the selector
-	int pop(SelectorT &_rsel, uint _wkrid){
-		Mutex::Locker lock(this->mtx);
-		int tid = _wkrid & 0xffff;
-		if(_rsel.full()){//can do nothing but ensure the worker will not be raised again
-			doEnsureWorkerNotRaise(tid);
-			if(this->q.size()) doTrySignalOtherWorker();
-			return OK;
-		}
-		//the selector is not full
-		if(slotvec[tid].second == sgnlst.end()){
-			//register that we're not full so the selector can be signaled
-			slotvec[tid].second = sgnlst.insert(sgnlst.end(), tid);
-		}
-		if((this->q.empty() && !_rsel.empty())){
-			//the selector is busy with its connections
-			return OK;
-		}
-		if(doWaitJob()){
-			//we have at least one job
-			do{
-				_rsel.push(this->q.front(), _wkrid);
-				this->q.pop();
-			}while(this->q.size() && !_rsel.full());
-			
-			if(this->q.size()){//the job queue is not empty..
-				doEnsureWorkerNotRaise(tid);
-				doTrySignalOtherWorker();
-			}
-			if(this->state == WorkPoolT::Running) return OK;
-			return NOK;
-		}
-		return BAD;
-	}
-
 private:
-	//! Make sure that the worker will not be raised again.
-	inline void doEnsureWorkerNotRaise(int _thndx){
-		if(slotvec[_thndx].second != sgnlst.end()){
-			sgnlst.erase(slotvec[_thndx].second);
-			slotvec[_thndx].second = sgnlst.end();
-		}
+	typedef std::vector<JobT>	JobVectorT;
+	void createWorker(WorkPoolT &_rwp){
+		_rwp.createMultiWorker(0);
 	}
-	
-	//! Wait for a new object
-	int doWaitJob(){
-		while(this->q.empty() && this->state == WorkPoolT::Running){
-			this->sigcnd.wait(this->mtx);
-		}
-		return this->q.size();
+	ulong onPopCheckWorkerAvailability(WorkPoolT &_rwp, Worker&_rw){
+		return 1;
 	}
-	
-	//! Try to signal another worker
-	inline void doTrySignalOtherWorker(){
-		if(sgnlst.size()){
-			//maybe some other worker can take the job
-			raise(sgnlst.back());
-		}else{
-			//TODO: it might not be safe - create unneeded threads
-			createWorkers(1);
-		}
+	void onPopWakeOtherWorkers(WorkPoolT &_rwp){
 	}
-
+	void prepareWorker(Worker &_rw){
+	}
+	void unprepareWorker(Worker &_rw){
+	}
+	void onPush(WorkPoolT &_rwp){
+	}
+	void onMultiPush(WorkPoolT &_rwp, ulong _cnt){
+	}
+	ulong onPopStart(WorkPoolT &_rwp, Worker &_rw, ulong _maxcnt){
+		return _maxcnt;
+	}
+	void onPopDone(WorkPoolT &_rwp){
+	}
+	void execute(JobVectorT &_rjobvec){
+		
+	}
 private:
+	WorkPoolT		wp;
 	IndexT			cap;//the total count of objects already in pool
 	IndexT			selcap;
 	uint			thrid;
-	ListT			sgnlst;
-	SlotVecT		slotvec;
-	
 };
 
 }//namesspace foundation
