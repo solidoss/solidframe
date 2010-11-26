@@ -118,7 +118,9 @@ DynamicMap::FncT DynamicBase::callback(const DynamicMap &_rdm){
 	idbgx(Dbg::utility, "DynamicBase");
 	return OK;
 }
-
+/*virtual*/ bool DynamicBase::isTypeDynamic(uint32 _id)const{
+	return false;
+}
 
 void DynamicSharedImpl::doUse(){
 	idbgx(Dbg::utility, "DynamicSharedImpl");

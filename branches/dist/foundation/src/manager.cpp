@@ -147,19 +147,19 @@ uint Manager::newObjectTypeId(){
 uint Manager::doRegisterScheduler(SchedulerBase *_ps, uint _typeid){
 }
 //---------------------------------------------------------
-ObjectUidT Manager::doRegisterService(Service *_ps, uint _typeid, const IndexT &_ridx){
+ObjectUidT Manager::registerObject(Object *_po, const IndexT &_ridx){
 }
 //---------------------------------------------------------
-ObjectUidT Manager::doRegisterObject(Object *_po, uint _typeid, const IndexT &_ridx){
+ObjectUidT Manager::registerService(Service *_ps, const IndexT &_ridx){
 }
 //---------------------------------------------------------
 SchedulerBase* Manager::doGetScheduler(uint _typeid, uint _idx)const{
 }
 //---------------------------------------------------------
-Service* Manager::doGetService(uint _typeid, const IndexT &_ridx)const{
+Object* Manager::doGetObject(uint _typeid, const IndexT &_ridx)const{
 }
 //---------------------------------------------------------
-Object* Manager::doGetObject(uint _typeid, const IndexT &_ridx)const{
+Service* Manager::doGetService(uint _typeid, const IndexT &_ridx)const{
 }
 //---------------------------------------------------------
 Manager::ThisGuard::ThisGuard(Manager *_pm){

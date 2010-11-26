@@ -105,7 +105,7 @@ struct DynamicBase{
 	//! Used by DynamicPointer to know if the object must be deleted
 	virtual int release();
 	
-	
+	virtual bool isTypeDynamic(uint32 _id)const;
 
 protected:
 	friend struct DynamicPointerBase;
@@ -183,11 +183,21 @@ struct Dynamic: T{
 	virtual uint32 dynamicTypeId()const{
 		return staticTypeId();
 	}
+	virtual bool isTypeDynamic(uint32 _id)const{
+		if(_id == staticTypeId()) return true;
+		return BaseT::isTypeDynamic(_id);
+	}
 	//! Returns the associated callback from the given DynamicMap
 	virtual DynamicMap::FncT callback(const DynamicMap &_rdm){
 		DynamicMap::FncT pf = _rdm.callback(staticTypeId());
 		if(pf) return pf;
 		return T::callback(_rdm);
+	}
+	X* cast(DynamicBase *_pdb){
+		if(isTypeDynamic(_pdb->dynamicTypeId())){
+			return static_cast<X*>(_pdb);
+		}
+		return NULL;
 	}
 };
 

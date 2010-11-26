@@ -95,26 +95,23 @@ public:
 		return static_cast<S*>(doGetScheduler(schedulerTypeId<S>(), _id));
 	}
 	
-	template <class S>
-	ObjectUidT registerService(S *_s, const IndexT &_idx = invalid_uid().second){
-		return doRegisterService(_s, serviceTypeId<S>(), _idx);
-	}
-	template <class O>
-	ObjectUidT registerObject(O *_o, const IndexT &_idx = invalid_uid().second){
-		return doRegisterObject(_o, objectTypeId<O>(), _idx);
-	}
+	ObjectUidT registerService(Service *_ps, const IndexT &_idx = invalid_uid().second);
+	
+	ObjectUidT registerObject(Object *_po, const IndexT &_idx = invalid_uid().second);
 	
 	Service& service(const IndexT &_ridx = 0)const;
 	Object& object(const IndexT &_ridx)const;
 	
-	template <class S>
-	S* service(const IndexT &_ridx)const{
-		return static_cast<S*>(doGetService(serviceTypeId<S>(), _ridx));
-	}
+	Service* servicePointer(const IndexT &_ridx = 0)const;
+	Object* objectPointer(const IndexT &_ridx)const;
 	
 	template <class O>
 	O* object(const IndexT &_ridx)const{
-		return static_cast<O*>(doGetObject(objectTypeId<O>(), _ridx));
+		return static_cast<O*>(doGetObject(O::staticTypeId(), _ridx));
+	}
+	template <class O>
+	O* service(const IndexT &_ridx)const{
+		return static_cast<O*>(doGetService(O::staticTypeId(), _ridx));
 	}
 protected:
 	struct ThisGuard{
@@ -142,8 +139,6 @@ private:
 	uint newObjectTypeId();
 	
 	uint doRegisterScheduler(SchedulerBase *_ps, uint _typeid);
-	ObjectUidT doRegisterService(Service *_ps, uint _typeid, const IndexT &_ridx);
-	ObjectUidT doRegisterObject(Object *_po, uint _typeid, const IndexT &_ridx);
 	
 	SchedulerBase* doGetScheduler(uint _typeid, uint _idx)const;
 	Service* doGetService(uint _typeid, const IndexT &_ridx)const;
