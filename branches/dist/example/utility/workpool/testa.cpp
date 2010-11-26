@@ -35,11 +35,11 @@ struct MyWorkPoolController: WorkPoolControllerBase{
 		//_rwp.createSingleWorker()->start();
 		_rwp.createMultiWorker(4)->start();
 	}
-	void execute(int _i){
+	void execute(WorkerBase &, int _i){
 		idbg("i = "<<_i);
 		Thread::sleep(_i * 10);
 	}
-	void execute(IntVectorT &_rjobvec){
+	void execute(WorkerBase &, IntVectorT &_rjobvec){
 		for(IntVectorT::const_iterator it(_rjobvec.begin()); it != _rjobvec.end(); ++it){
 			idbg("it = "<<*it);
 			Thread::sleep(*it * 10);

@@ -59,42 +59,45 @@ int main(){
 	
 	typedef foundation::Scheduler<foundation::aio::Selector>	AioSchedulerT;
 	typedef foundation::Scheduler<foundation::ObjectSelector>	SchedulerT;
-	
-	foundation::Manager m;
-	
-	//AioSchedulerT	*pais = new AioSchedulerT(m);
-	SchedulerT		*ps1 = new SchedulerT(m);
-	SchedulerT		*ps2 = new SchedulerT(m);
-	
-	ps1->start();
-	
-	//m.registerService(new foundation::ipc::Service(), ipcid);
-	m.registerService(new foundation::Service, firstid);
-	m.registerService(new foundation::Service, secondid);
-	m.registerObject(new ThirdObject(0, 10), thirdid);
-	
-	m.start();
-	
-	SchedulerT::schedule(foundation::ObjectPointer<>(&m.service(firstid)));
-	SchedulerT::schedule(foundation::ObjectPointer<>(&m.service(secondid)));
-	SchedulerT::schedule(foundation::ObjectPointer<>(&m.object(thirdid)));
-	
 	{
-		ThirdObject	*po(new ThirdObject(10, 1));
-		m.service(firstid).insert(po);
-		SchedulerT::schedule(foundation::ObjectPointer<>(po), 0);
+		foundation::Manager m;
+		
+		//AioSchedulerT	*pais = new AioSchedulerT(m);
+		//SchedulerT		*ps1 = new SchedulerT(m);
+		//SchedulerT		*ps2 = new SchedulerT(m);
+		
+		m.registerScheduler(new SchedulerT(m))->start();
+		m.registerScheduler(new SchedulerT(m))->start();
+		
+		
+		//m.registerService(new foundation::ipc::Service(), ipcid);
+		m.registerService(new foundation::Service, firstid);
+		m.registerService(new foundation::Service, secondid);
+		m.registerObject(new ThirdObject(0, 10), thirdid);
+		
+		m.start();
+		
+		SchedulerT::schedule(foundation::ObjectPointer<>(&m.service(firstid)));
+		SchedulerT::schedule(foundation::ObjectPointer<>(&m.service(secondid)));
+		SchedulerT::schedule(foundation::ObjectPointer<>(&m.object(thirdid)));
+		
+		{
+			ThirdObject	*po(new ThirdObject(10, 1));
+			m.service(firstid).insert(po);
+			SchedulerT::schedule(foundation::ObjectPointer<>(po), 0);
+		}
+		
+		{
+			ThirdObject	*po(new ThirdObject(20, 2));
+			m.service(secondid).insert(po);
+			SchedulerT::schedule(foundation::ObjectPointer<>(po), 1);
+		}
+		
+		char c;
+		cout<<"> "<<flush;
+		cin>>c;
+		//m.stop(true);
 	}
-	
-	{
-		ThirdObject	*po(new ThirdObject(20, 2));
-		m.service(secondid).insert(po);
-		SchedulerT::schedule(foundation::ObjectPointer<>(po), 1);
-	}
-	
-	char c;
-	cout<<"> "<<flush;
-	cin>>c;
-	m.stop(true);
 	Thread::waitAll();
 	return 0;
 }

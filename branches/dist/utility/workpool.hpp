@@ -58,11 +58,6 @@ protected:
 };
 
 struct WorkPoolControllerBase{
-	ulong onPopCheckWorkerAvailability(WorkPoolBase &, WorkerBase &){
-		return 1;
-	}
-	void onPopWakeOtherWorkers(WorkPoolBase &){
-	}
 	void prepareWorker(WorkerBase &_rw){
 	}
 	void unprepareWorker(WorkerBase &_rw){
@@ -74,7 +69,7 @@ struct WorkPoolControllerBase{
 	ulong onPopStart(WorkPoolBase &, WorkerBase &, ulong _maxcnt){
 		return _maxcnt;
 	}
-	void onPopDone(WorkPoolBase &){
+	void onPopDone(WorkPoolBase &, WorkerBase &){
 	}
 };
 
@@ -88,7 +83,7 @@ class WorkPool: public WorkPoolBase{
 			J	job;
 			rw.enterWorker(*this);
 			while(rw.pop(*this, job)){
-				rw.execute(job);
+				rw.execute(*this, job);
 			}
 			rw.exitWorker(*this);
 		}
@@ -101,7 +96,7 @@ class WorkPool: public WorkPoolBase{
 			if(maxcnt == 0) maxcnt = 1;
 			rw.enterWorker(*this);
 			while(rw.pop(*this, jobvec, maxcnt)){
-				rw.execute(jobvec);
+				rw.execute(*this, jobvec);
 				jobvec.clear();
 			}
 			rw.exitWorker(*this);
@@ -151,6 +146,9 @@ public:
 	//! Starts the workpool, creating _minwkrcnt
 	void start(ushort _minwkrcnt = 1, bool _wait = false){
 		Mutex::Locker lock(mtx);
+		if(state() == Running){
+			return;
+		}
 		if(state() != Stopped){
 			doStop(true);
 		}
@@ -217,7 +215,7 @@ private:
 				_rjobvec.push_back(jobq.front());
 				jobq.pop();
 			}while(jobq.size() && --insertcount);
-			ctrl.onPopDone(*this);
+			ctrl.onPopDone(*this, _rw);
 			return true;
 		}
 		return false;
@@ -232,7 +230,7 @@ private:
 		if(doWaitJob()){
 			_rjob = jobq.front();
 			jobq.pop();
-			ctrl.onPopDone(*this);
+			ctrl.onPopDone(*this, _rw);
 			return true;
 		}
 		return false;
@@ -259,11 +257,11 @@ private:
 		thrcnd.broadcast();
 		mtx.unlock();
 	}
-	void execute(JobT &_rjob){
-		ctrl.execute(_rjob);
+	void execute(WorkerT &_rw, JobT &_rjob){
+		ctrl.execute(_rw, _rjob);
 	}
-	void execute(JobVectorT &_rjobvec){
-		ctrl.execute(_rjobvec);
+	void execute(WorkerT &_rw, JobVectorT &_rjobvec){
+		ctrl.execute(_rw, _rjobvec);
 	}
 private:
 	Queue<JobT>					jobq;

@@ -98,14 +98,14 @@ struct Selector::Data{
 	typedef Queue<uint32>			Uint32QueueT;
 	typedef std::vector<Stub>		StubVectorT;
 	
-	uint				objcp;
-	uint				objsz;
-	uint				sockcp;
-	uint				socksz;
+	ulong				objcp;
+	ulong				objsz;
+	ulong				sockcp;
+	ulong				socksz;
 	int					selcnt;
 	int					epollfd;
 	epoll_event 		*events;
-	StubVectorT		stubs;
+	StubVectorT			stubs;
 	Uint32QueueT		execq;
 	Uint32StackT		freestubsstk;
 #ifdef UPIPESIGNAL
@@ -289,10 +289,10 @@ void Selector::raise(uint _pos){
 #endif
 }
 
-uint Selector::capacity()const{
+ulong Selector::capacity()const{
 	return d.objcp - 1;
 }
-uint Selector::size() const{
+ulong Selector::size() const{
 	return d.objsz;
 }
 bool Selector::empty()const{

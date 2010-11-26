@@ -123,10 +123,10 @@ Object& Manager::object(const IndexT &_i)const{
 unsigned Manager::serviceCount()const{
 }
 //---------------------------------------------------------
-void Manager::prepareThread(){
+void Manager::prepareThread(SelectorBase *_ps){
 }
 //---------------------------------------------------------
-void Manager::unprepareThread(){
+void Manager::unprepareThread(SelectorBase *_ps){
 }
 //---------------------------------------------------------
 void Manager::prepareThis(){

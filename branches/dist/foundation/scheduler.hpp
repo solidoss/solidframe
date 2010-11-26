@@ -73,15 +73,17 @@ public://definition
 	*/
 	Scheduler(
 		Manager &_rm,
-		uint _maxthcnt = 1,
+		uint16 _startthrcnt = 1,
+		uint16 _maxthrcnt = 1,
 		const IndexT &_selcap = 1024
-	):SchedulerBase(_rm), wp(*this), cap(0), selcap(_selcap){
+	):SchedulerBase(_rm, _startthrcnt, _maxthrcnt, _selcap), wp(*this){
 		//slotvec.reserve(_maxthcnt > 1024 ? 1024 : _maxthcnt);
 	}
 	Scheduler(
-		uint _maxthcnt = 1,
+		uint16 _startthrcnt = 1,
+		uint16 _maxthrcnt = 1,
 		const IndexT &_selcap = 1024
-	):wp(*this), cap(0),selcap(_selcap){
+	):SchedulerBase(_startthrcnt, _maxthrcnt, _selcap),wp(*this){
 		//slotvec.reserve(_maxthcnt > 1024 ? 1024 : _maxthcnt);
 	}
 	
@@ -89,44 +91,81 @@ public://definition
 		static_cast<ThisT*>(m().scheduler<ThisT>(_idx))->wp.push(_rjb);
 	}
 	
-	void start(ushort _minwkrcnt = 1, bool _wait = false){
-		wp.start(_minwkrcnt, _wait);
+	void start(ushort _startwkrcnt = 1, bool _wait = false){
+		wp.start(_startwkrcnt ? _startwkrcnt : startwkrcnt, _wait);
 	}
 	
 	void stop(bool _wait = true){
 		wp.stop(_wait);
 	}
+	
 private:
+	
 	typedef std::vector<JobT>	JobVectorT;
 	void createWorker(WorkPoolT &_rwp){
 		_rwp.createMultiWorker(0);
 	}
-	ulong onPopCheckWorkerAvailability(WorkPoolT &_rwp, Worker&_rw){
-		return 1;
-	}
-	void onPopWakeOtherWorkers(WorkPoolT &_rwp){
-	}
 	void prepareWorker(Worker &_rw){
+		prepareThread(&_rw.s);
+		_rw.s.prepare();
 	}
 	void unprepareWorker(Worker &_rw){
+		unprepareThread(&_rw.s);
+		_rw.s.unprepare();
 	}
 	void onPush(WorkPoolT &_rwp){
+		if(_rwp.size() != 1) return;
+		if(tryRaiseOneSelector()) return;
+		if(crtwkrcnt < maxwkrcnt){
+			_rwp.createWorker();
+		}else{
+			raiseOneSelector();
+		}
 	}
 	void onMultiPush(WorkPoolT &_rwp, ulong _cnt){
+		//NOTE: not used right now
 	}
-	ulong onPopStart(WorkPoolT &_rwp, Worker &_rw, ulong _maxcnt){
-		return _maxcnt;
+	ulong onPopStart(WorkPoolT &_rwp, Worker &_rw, ulong){
+		if(_rw.s.full()){
+			if(_rwp.size() && !tryRaiseOneSelector()){
+				if(crtwkrcnt < maxwkrcnt){
+					_rwp.createWorker();
+				}else{
+					return 64;//TODO:
+				}
+			}
+			markSelectorFull(_rw.s);
+			return 0;
+		}
+		markSelectorNotFull(_rw.s);
+		if(_rwp.empty() && !_rw.s.empty()) return 0;
+		return _rw.s.capacity() - _rw.s.size();
 	}
-	void onPopDone(WorkPoolT &_rwp){
+	void onPopDone(WorkPoolT &_rwp, Worker &_rw){
+		if(_rwp.size()){
+			if(_rw.s.full()){
+				markSelectorFull(_rw.s);
+				if(!tryRaiseOneSelector()){
+					if(crtwkrcnt < maxwkrcnt){
+						_rwp.createWorker();
+					}else{
+						raiseOneSelector();
+					}
+				}
+			}else{
+				bool b = tryRaiseOneSelector();
+				cassert(b);
+			}
+		}
 	}
-	void execute(JobVectorT &_rjobvec){
-		
+	void execute(Worker &_rw, JobVectorT &_rjobvec){
+		for(typename JobVectorT::iterator it(_rjobvec.begin()); it != _rjobvec.end(); ++it){
+			_rw.s.push(*it);
+		}
+		_rw.s.run();
 	}
 private:
 	WorkPoolT		wp;
-	IndexT			cap;//the total count of objects already in pool
-	IndexT			selcap;
-	uint			thrid;
 };
 
 }//namesspace foundation

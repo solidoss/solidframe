@@ -26,18 +26,6 @@
 
 namespace foundation{
 
-SchedulerBase::SchedulerBase():rm(m()){
-}
-SchedulerBase::SchedulerBase(Manager &_rm):rm(_rm){
-}
-/*virtual*/ SchedulerBase::~SchedulerBase(){
-}
-void SchedulerBase::prepareThread(SelectorBase *_ps){
-	//rm.prepareThread(_ps);
-}
-void SchedulerBase::unprepareThread(SelectorBase *_ps){
-	//rm.unprepareThread(_ps);
-}
 
 // ExecPool::ExecPool(uint32 _maxthrcnt){
 // }

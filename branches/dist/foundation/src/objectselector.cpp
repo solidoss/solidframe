@@ -135,10 +135,10 @@ void ObjectSelector::run(){
 	}while(state != EXIT_LOOP);
 }
 
-void ObjectSelector::push(const ObjectPtrT &_robj, uint _thid){
+void ObjectSelector::push(const ObjectPtrT &_robj){
 	cassert(fstk.size());
 	uint pos = fstk.top(); fstk.pop();
-	this->setObjectThread(*_robj, _thid, pos);
+	this->setObjectThread(*_robj, pos);
 	sv[pos].objptr = _robj;
 	sv[pos].timepos = 0;
 	sv[pos].state = 1;

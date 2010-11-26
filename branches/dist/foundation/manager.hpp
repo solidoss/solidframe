@@ -46,6 +46,7 @@ class	Visitor;
 class	ServiceContainer;
 class	Signal;
 class	SchedulerBase;
+class	SelectorBase;
 
 class Manager{
 public:
@@ -84,8 +85,9 @@ public:
 	virtual GlobalMapper* globalMapper();
 	
 	template <class S>
-	uint registerScheduler(S *_ps){
-		return doRegisterScheduler(_ps, schedulerTypeId<S>());
+	S* registerScheduler(S *_ps){
+		doRegisterScheduler(_ps, schedulerTypeId<S>());
+		return _ps;
 	}
 	
 	template <class S>
@@ -129,8 +131,8 @@ protected:
 private:
 	friend class SchedulerBase;
 	
-	void prepareThread();
-	void unprepareThread();
+	void prepareThread(SelectorBase *_ps = NULL);
+	void unprepareThread(SelectorBase *_ps = NULL);
 	
 	void prepareThis();
 	void unprepareThis();

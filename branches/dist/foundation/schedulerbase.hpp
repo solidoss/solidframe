@@ -35,14 +35,33 @@ class SelectorBase;
 	currently holding an object.
 */
 class SchedulerBase{
+public:
+	virtual void start(uint16 _startwkrcnt = 0, bool _wait = false) = 0;
+	
+	virtual void stop(bool _wait = true) = 0;
 protected:
-	SchedulerBase();
-	SchedulerBase(Manager &_rm);
+	
+	SchedulerBase(uint16 _startwkrcnt, uint16 _maxwkrcnt, const IndexT &_selcap);
+	SchedulerBase(Manager &_rm, uint16 _startwkrcnt, uint16 _maxwkrcnt, const IndexT &_selcap);
 	virtual ~SchedulerBase();
+	
 	void prepareThread(SelectorBase *_ps = NULL);
 	void unprepareThread(SelectorBase *_ps = NULL);
+	
+	bool tryRaiseOneSelector()const;
+	void raiseOneSelector();
+	
+	void markSelectorFull(SelectorBase &_rs);
+	void markSelectorNotFull(SelectorBase &_rs);
 protected:
+	struct Data;
 	Manager	&rm;
+	Data	&d;
+	IndexT	cap;//the total count of objects already in pool
+	uint16	startwkrcnt;
+	uint16	maxwkrcnt;
+	uint16	crtwkrcnt;
+	IndexT	selcap;
 };
 
 }//namespace

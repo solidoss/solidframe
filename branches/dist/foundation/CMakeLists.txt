@@ -6,6 +6,7 @@ set(Sources
 	src/requestuid.cpp
 	src/service.cpp
 	src/execscheduler.cpp
+	src/schedulerbase.cpp
 )
 
 set(Headers

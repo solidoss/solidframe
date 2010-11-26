@@ -44,7 +44,7 @@ typedef ObjectPointer<Object>	ObjectPtrT;
 	A selector must export a certain interface requested by the SelectPool,
 	and the pool will have one for its every thread.
 */
-class Selector: protected foundation::SelectorBase{
+class Selector: public foundation::SelectorBase{
 public:
 	typedef ObjectPtrT		ObjectT;
 	
@@ -54,8 +54,8 @@ public:
 	//signal a specific object
 	void raise(uint32 _pos);
 	void run();
-	uint capacity()const;
-	uint size() const;
+	ulong capacity()const;
+	ulong size() const;
 	bool empty()const;
 	bool full()const;
 	
