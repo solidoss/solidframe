@@ -92,6 +92,14 @@ public:
 	//! Get the associated mutex
 	Mutex& mutex()const;
 	
+	/**
+	 * Returns true if the signal should raise the object ASAP
+	 * \param _smask The signal bitmask
+	 */
+	bool signal(ulong _smask);
+	
+	//! Signal the object with a signal
+	virtual bool signal(DynamicPointer<Signal> &_rsig);
 protected:
 	friend class Service;
 	friend class Manager;
@@ -120,15 +128,6 @@ protected:
 	
 	//! Get the index of the object within service from an objectid
 	IndexT index()const;
-	
-	/**
-	 * Returns true if the signal should raise the object ASAP
-	 * \param _smask The signal bitmask
-	 */
-	bool signal(ulong _smask);
-	
-	//! Signal the object with a signal
-	virtual bool signal(DynamicPointer<Signal> &_rsig);
 	
 	//! Assigns the object to the current thread
 	/*!

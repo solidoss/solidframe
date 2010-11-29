@@ -302,12 +302,12 @@ bool Selector::full()const{
 	return d.objsz == d.objcp;
 }
 
-void Selector::push(const ObjectT &_objptr, uint _thid){
+void Selector::push(const ObjectT &_objptr){
 	cassert(!full());
 	uint stubpos = doNewStub();
 	Stub &stub = d.stubs[stubpos];
 	
-	this->setObjectThread(*_objptr, _thid, stubpos);
+	this->setObjectThread(*_objptr, stubpos);
 	
 	stub.timepos  = TimeSpec::max;
 	stub.itimepos = TimeSpec::max;
@@ -660,7 +660,7 @@ uint Selector::doExecute(const uint _pos){
 	stub.objptr->doClearRequests();//clears the requests from object to selector
 	idbgx(Dbg::aio, "execute object "<<_pos);
 	this->associateObjectToCurrentThread(*stub.objptr);
-	switch(this->executeObject(stub.objptr, evs, timepos)){
+	switch(this->executeObject(*stub.objptr, evs, timepos)){
 		case BAD:
 			idbgx(Dbg::aio, "BAD: removing the connection");
 			d.freestubsstk.push(_pos);

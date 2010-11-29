@@ -113,6 +113,17 @@ public:
 	O* service(const IndexT &_ridx)const{
 		return static_cast<O*>(doGetService(O::staticTypeId(), _ridx));
 	}
+	//For cases when there is only one object per type
+	template <class O>
+	O* object()const{
+		return static_cast<O*>(doGetObject(O::staticTypeId()));
+	}
+	//For cases when there is only one object per type
+	template <class O>
+	O* service()const{
+		return static_cast<O*>(doGetService(O::staticTypeId()));
+	}
+	
 protected:
 	struct ThisGuard{
 		ThisGuard(Manager *_pm);
@@ -143,6 +154,9 @@ private:
 	SchedulerBase* doGetScheduler(uint _typeid, uint _idx)const;
 	Service* doGetService(uint _typeid, const IndexT &_ridx)const;
 	Object* doGetObject(uint _typeid, const IndexT &_ridx)const;
+	
+	Service* doGetService(uint _typeid)const;
+	Object* doGetObject(uint _typeid)const;
 	
 	template <class O>
 	uint schedulerTypeId(){

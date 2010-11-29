@@ -235,6 +235,9 @@ protected:
 		VisitorTypeStub	&rvts(vistpvec[pos]);
 		safe_at(rvts.cbkvec, objtpid) = &visit_cbk<O, V>;
 	}
+	Mutex& mutex(const IndexT &_ridx);
+	Object* objectAt(const IndexT &_ridx, uint32 _uid);
+	Object* objectAt(const IndexT &_ridx);
 private:
 	ObjectTypeStub& objectTypeStub(uint _tid){
 		if(_tid >= objtpvec.size()) _tid = 0;
@@ -247,7 +250,6 @@ private:
 	}
 	ObjectUidT doInsertObject(Object &_ro, uint16 _tid, const IndexT &_ruid);
 	uint newObjectTypeId();
-	Object* objectAt(const IndexT &_ridx, uint32 _uid);
 	void doVisit(Object *_po, Visitor &_rv, uint32 _visidx);
 	const Service& operator=(const Service &);
 	bool doSignalAll(ulong _sm);

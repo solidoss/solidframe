@@ -225,6 +225,10 @@ Mutex& Service::mutex(const Object &_robj){
 	return d.mtxstore.at(_robj.index());
 }
 //---------------------------------------------------------
+Mutex& Service::mutex(const IndexT &_ridx){
+	return d.mtxstore.at(_ridx);
+}
+//---------------------------------------------------------
 uint32 Service::uid(const Object &_robj)const{
 	return d.objvec[_robj.index()].second;
 }
@@ -424,6 +428,10 @@ Object* Service::objectAt(const IndexT &_ridx, uint32 _uid){
 		return d.objvec[_ridx].first;
 	}
 	return NULL;
+}
+//---------------------------------------------------------
+Object* Service::objectAt(const IndexT &_ridx){
+	return d.objvec[_ridx].first;
 }
 //---------------------------------------------------------
 void Service::doVisit(Object *_po, Visitor &_rv, uint32 _visidx){

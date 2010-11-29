@@ -1,11 +1,16 @@
 #include "foundation/manager.hpp"
 #include "foundation/service.hpp"
 #include "foundation/scheduler.hpp"
-#include "system/thread.hpp"
+
 #include "foundation/aio/aioselector.hpp"
 #include "foundation/objectselector.hpp"
 #include "foundation/aio/aioobject.hpp"
-//#include "foundation/ipc/ipcservice.hpp"
+#include "foundation/ipc/ipcservice.hpp"
+
+#include "system/thread.hpp"
+#include "system/socketaddress.hpp"
+
+#include "boost/program_options.hpp"
 
 #include <iostream>
 using namespace std;
@@ -46,8 +51,38 @@ private:
 	return NOK;
 }
 
-int main(){
+typedef foundation::Scheduler<foundation::aio::Selector>	AioSchedulerT;
+typedef foundation::Scheduler<foundation::ObjectSelector>	SchedulerT;
+
+struct IpcServiceController: foundation::ipc::Service::Controller{
+	void scheduleTalker(foundation::aio::Object *_po){
+		foundation::ObjectPointer<foundation::aio::Object> op(_po);
+		AioSchedulerT::schedule(op);
+	}
+	bool release(){
+		return false;
+	}
+};
+
+struct Params{
+	int			start_port;
+	string		dbg_levels;
+	string		dbg_modules;
+	string		dbg_addr;
+	string		dbg_port;
+	bool		dbg_buffered;
+	bool		log;
+};
+
+bool parseArguments(Params &_par, int argc, char *argv[]);
+
+int main(int argc, char *argv[]){
+	
+	Params p;
+	if(parseArguments(p, argc, argv)) return 0;
+	
 	Thread::init();
+	
 #ifdef UDEBUG
 	{
 	string dbgout;
@@ -57,10 +92,11 @@ int main(){
 	}
 #endif
 	
-	typedef foundation::Scheduler<foundation::aio::Selector>	AioSchedulerT;
-	typedef foundation::Scheduler<foundation::ObjectSelector>	SchedulerT;
 	{
-		foundation::Manager m;
+		
+		foundation::Manager 	m;
+		
+		IpcServiceController	ipcctrl;
 		
 		//AioSchedulerT	*pais = new AioSchedulerT(m);
 		//SchedulerT		*ps1 = new SchedulerT(m);
@@ -68,12 +104,19 @@ int main(){
 		
 		m.registerScheduler(new SchedulerT(m))->start();
 		m.registerScheduler(new SchedulerT(m))->start();
+		m.registerScheduler(new AioSchedulerT(m))->start();
 		
 		
 		//m.registerService(new foundation::ipc::Service(), ipcid);
 		m.registerService(new foundation::Service, firstid);
 		m.registerService(new foundation::Service, secondid);
+		m.registerService(new foundation::ipc::Service(&ipcctrl));
 		m.registerObject(new ThirdObject(0, 10), thirdid);
+		
+		{
+			AddrInfo ai("0.0.0.0", p.start_port, 0, AddrInfo::Inet4, AddrInfo::Datagram);
+			foundation::ipc::Service::the().insertTalker(ai.begin());
+		}
 		
 		m.start();
 		
@@ -100,5 +143,42 @@ int main(){
 	}
 	Thread::waitAll();
 	return 0;
+}
+
+bool parseArguments(Params &_par, int argc, char *argv[]){
+	using namespace boost::program_options;
+	try{
+		options_description desc("SolidFrame concept application");
+		desc.add_options()
+			("help,h", "List program options")
+			("base_port,b", value<int>(&_par.start_port)->default_value(1000),
+					"Base port")
+			("debug_levels,l", value<string>(&_par.dbg_levels)->default_value("iew"),"Debug logging levels")
+			("debug_modules,m", value<string>(&_par.dbg_modules),"Debug logging modules")
+			("debug_address,a", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")
+			("debug_port,p", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")
+			("debug_unbuffered,s", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered")
+			("use_log,L", value<bool>(&_par.log)->implicit_value(true)->default_value(false), "Debug buffered")
+	/*		("verbose,v", po::value<int>()->implicit_value(1),
+					"enable verbosity (optionally specify level)")*/
+	/*		("listen,l", po::value<int>(&portnum)->implicit_value(1001)
+					->default_value(0,"no"),
+					"listen on a port.")
+			("include-path,I", po::value< vector<string> >(),
+					"include path")
+			("input-file", po::value< vector<string> >(), "input file")*/
+		;
+		variables_map vm;
+		store(parse_command_line(argc, argv, desc), vm);
+		notify(vm);
+		if (vm.count("help")) {
+			cout << desc << "\n";
+			return true;
+		}
+		return false;
+	}catch(exception& e){
+		cout << e.what() << "\n";
+		return true;
+	}
 }
 

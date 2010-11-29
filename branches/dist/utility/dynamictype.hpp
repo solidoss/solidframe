@@ -167,6 +167,18 @@ struct Dynamic: T{
 	template<class G1, class G2, class G3>
 	Dynamic(G1 _g1, G2 _g2, G3 _g3):T(_g1, _g2, _g3){}
 	
+	template<class G1, class G2, class G3, class G4>
+	Dynamic(G1 _g1, G2 _g2, G3 _g3, G4 _g4):T(_g1, _g2, _g3, _g4){}
+	
+	template<class G1, class G2, class G3, class G4, class G5>
+	Dynamic(G1 _g1, G2 _g2, G3 _g3, G4 _g4, G5 _g5):T(_g1, _g2, _g3, _g4, _g5){}
+	
+	template<class G1, class G2, class G3, class G4, class G5, class G6>
+	Dynamic(G1 _g1, G2 _g2, G3 _g3, G4 _g4, G5 _g5, G6 _g6):T(_g1, _g2, _g3, _g4, _g5, _g6){}
+	
+	template<class G1, class G2, class G3, class G4, class G5, class G6, class G7>
+	Dynamic(G1 _g1, G2 _g2, G3 _g3, G4 _g4, G5 _g5, G6 _g6, G7 _g7):T(_g1, _g2, _g3, _g4, _g5, _g6, _g7){}
+	
 	//!The static type id
 	static uint32 staticTypeId(){
 		//TODO: staticproblem

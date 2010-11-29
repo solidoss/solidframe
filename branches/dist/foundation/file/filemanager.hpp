@@ -81,7 +81,7 @@ class File;
 	amount of time (see Mapper::getTimeout).
 */
 
-class Manager: public Object{
+class Manager: public Dynamic<Manager, Object>{
 public:
 	enum {
 		Create = 1, //!< Try create if it doesnt exist
@@ -130,6 +130,8 @@ public:
 			const RequestUid& _rrequid
 		) = 0;
 		virtual void removeFileManager() = 0;
+		
+		virtual bool release() = 0;//return true for deletion
 	};
 	
 	//! A stub limiting the manager's interface
@@ -171,6 +173,8 @@ public:
 	};
 	
 public:
+	static Manager& the();
+	static Manager& the(const IndexT &_ridx);
 	//! Constructor receiving a Controller
 	/*!
 		The ownership of the given Controller object

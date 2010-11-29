@@ -162,6 +162,12 @@ Object* Manager::doGetObject(uint _typeid, const IndexT &_ridx)const{
 Service* Manager::doGetService(uint _typeid, const IndexT &_ridx)const{
 }
 //---------------------------------------------------------
+Object* Manager::doGetObject(uint _typeid)const{
+}
+//---------------------------------------------------------
+Service* Manager::doGetService(uint _typeid)const{
+}
+//---------------------------------------------------------
 Manager::ThisGuard::ThisGuard(Manager *_pm){
 #ifdef NSINGLETON_MANAGER
 	_pm->prepareThis();

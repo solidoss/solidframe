@@ -59,7 +59,7 @@ public:
 	bool empty()const;
 	bool full()const;
 	
-	void push(const ObjectT &_rcon, uint _thid);
+	void push(const ObjectT &_rcon);
 	void prepare();
 	void unprepare();
 private:

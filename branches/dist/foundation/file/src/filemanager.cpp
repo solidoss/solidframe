@@ -153,6 +153,13 @@ Manager::Controller::~Controller(){
 //------------------------------------------------------------------
 //------------------------------------------------------------------
 
+/*static*/ Manager& Manager::the(){
+	return *m().object<Manager>();
+}
+
+/*static*/ Manager& Manager::the(const IndexT &_ridx){
+	return *m().object<Manager>(_ridx);
+}
 Manager::Manager(Controller *_pc):d(*(new Data(_pc))){
 	_pc->init(InitStub(*this));
 	state(Data::Running);
@@ -163,7 +170,9 @@ Manager::~Manager(){
 	for(Data::MapperVectorT::const_iterator it(d.mv.begin()); it != d.mv.end(); ++it){
 		delete *it;
 	}
-	delete d.pc;
+	if(d.pc && d.pc->release()){
+		delete d.pc;
+	}
 	delete &d;
 }
 //------------------------------------------------------------------
@@ -410,7 +419,8 @@ void Manager::releaseIStream(IndexT _fileid){
 		//we must signal the filemanager
 		d.feq.push(d.fv[_fileid].pfile);
 		vdbgx(Dbg::file, "sq.push "<<_fileid);
-		if(static_cast<fdt::Object*>(this)->signal((int)fdt::S_RAISE)){
+		//if(static_cast<fdt::Object*>(this)->signal((int)fdt::S_RAISE)){
+		if(this->signal((int)fdt::S_RAISE)){
 			fdt::Manager::the().raiseObject(*this);
 		}
 	}
@@ -427,7 +437,7 @@ void Manager::releaseOStream(IndexT _fileid){
 		//we must signal the filemanager
 		d.feq.push(d.fv[_fileid].pfile);
 		vdbgx(Dbg::file, "sq.push "<<_fileid);
-		if(static_cast<fdt::Object*>(this)->signal((int)fdt::S_RAISE)){
+		if(this->signal((int)fdt::S_RAISE)){
 			fdt::Manager::the().raiseObject(*this);
 		}
 	}
@@ -499,7 +509,7 @@ int Manager::doGetStream(
 	switch(rv){
 		case File::MustSignal:
 			d.feq.push(pf);
-			if(static_cast<fdt::Object*>(this)->signal((int)fdt::S_RAISE)){
+			if(this->signal((int)fdt::S_RAISE)){
 				fdt::Manager::the().raiseObject(*this);
 			}
 		case File::MustWait:

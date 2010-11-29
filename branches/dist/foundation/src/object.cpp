@@ -55,7 +55,13 @@ void ObjectPointerBase::clear(Object *_pobj){
 		Mutex::Locker lock(Manager::the().mutex(*_pobj));
 		usecnt = --_pobj->usecnt;
 	}
-	if(!usecnt) delete _pobj;
+	if(!usecnt){
+		IndexT	idx(_pobj->id());
+		if(is_valid_index(idx)){
+			m().service(compute_service_id(idx)).erase(*_pobj);
+		}
+		delete _pobj;
+	}
 }
 
 //NOTE: No locking so Be carefull!!
@@ -79,9 +85,6 @@ Object::Object(IndexT _fullid):
 }
 
 Object::~Object(){
-	if(is_valid_index(fullid)){
-		m().service(serviceId()).erase(*this);
-	}
 }
 
 //--------------------------------------------------------------
