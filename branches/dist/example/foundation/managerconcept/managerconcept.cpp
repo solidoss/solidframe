@@ -102,16 +102,16 @@ int main(int argc, char *argv[]){
 		//SchedulerT		*ps1 = new SchedulerT(m);
 		//SchedulerT		*ps2 = new SchedulerT(m);
 		
+		m.registerScheduler(new SchedulerT(m))/*->start()*/;
 		m.registerScheduler(new SchedulerT(m))->start();
-		m.registerScheduler(new SchedulerT(m))->start();
-		m.registerScheduler(new AioSchedulerT(m))->start();
+		m.registerScheduler(new AioSchedulerT(m))/*->start()*/;
 		
 		
 		//m.registerService(new foundation::ipc::Service(), ipcid);
-		m.registerService(new foundation::Service, firstid);
-		m.registerService(new foundation::Service, secondid);
-		m.registerService(new foundation::ipc::Service(&ipcctrl));
-		m.registerObject(new ThirdObject(0, 10), thirdid);
+		m.registerService<SchedulerT>(new foundation::Service, firstid);
+		m.registerService<SchedulerT>(new foundation::Service, secondid);
+		m.registerService<SchedulerT>(new foundation::ipc::Service(&ipcctrl));
+		m.registerObject<SchedulerT>(new ThirdObject(0, 10), thirdid);
 		
 		{
 			AddrInfo ai("0.0.0.0", p.start_port, 0, AddrInfo::Inet4, AddrInfo::Datagram);
@@ -120,10 +120,7 @@ int main(int argc, char *argv[]){
 		
 		m.start();
 		
-		SchedulerT::schedule(foundation::ObjectPointer<>(&m.service(firstid)));
-		SchedulerT::schedule(foundation::ObjectPointer<>(&m.service(secondid)));
-		SchedulerT::schedule(foundation::ObjectPointer<>(&m.object(thirdid)));
-		
+
 		{
 			ThirdObject	*po(new ThirdObject(10, 1));
 			m.service(firstid).insert(po);

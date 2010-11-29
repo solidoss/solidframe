@@ -302,7 +302,7 @@ bool Selector::full()const{
 	return d.objsz == d.objcp;
 }
 
-void Selector::push(const ObjectT &_objptr){
+void Selector::push(const JobT &_objptr){
 	cassert(!full());
 	uint stubpos = doNewStub();
 	Stub &stub = d.stubs[stubpos];

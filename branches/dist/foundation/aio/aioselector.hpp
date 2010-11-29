@@ -46,7 +46,8 @@ typedef ObjectPointer<Object>	ObjectPtrT;
 */
 class Selector: public foundation::SelectorBase{
 public:
-	typedef ObjectPtrT		ObjectT;
+	typedef ObjectPtrT		JobT;
+	typedef Object			ObjectT;
 	
 	Selector();
 	~Selector();
@@ -59,7 +60,7 @@ public:
 	bool empty()const;
 	bool full()const;
 	
-	void push(const ObjectT &_rcon);
+	void push(const JobT &_rcon);
 	void prepare();
 	void unprepare();
 private:

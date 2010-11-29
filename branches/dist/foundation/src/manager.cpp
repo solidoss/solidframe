@@ -33,17 +33,6 @@
 #include "foundation/schedulerbase.hpp"
 #include "foundation/requestuid.hpp"
 
-//#define NSINGLETON_MANAGER
-//---------------------------------------------------------
-#ifdef NSINGLETON_MANAGER
-static const unsigned specificPosition(){
-	//TODO: staticproblem
-	static const unsigned thrspecpos = Thread::specificId();
-	return thrspecpos;
-}
-#endif
-//---------------------------------------------------------
-
 namespace foundation{
 //---------------------------------------------------------
 struct Manager::Data{
@@ -53,13 +42,37 @@ struct Manager::Data{
 
 //---------------------------------------------------------
 
-/*static*/ Manager& Manager::the(){
+#ifdef NSINGLETON_MANAGER
+static const unsigned specificPosition(){
+	//TODO: staticproblem
+	static const unsigned thrspecpos = Thread::specificId();
+	return thrspecpos;
 }
+Manager& Manager::the(){
+	return *reinterpret_cast<Manager*>(Thread::specific(specificPosition()));
+}
+#else
+namespace{
+	Manager *globalpm(NULL);
+}
+/*static*/ Manager& Manager::the(){
+	return *globalpm;
+}
+#endif
 //---------------------------------------------------------
 Manager::Manager():d(*(new Data)){
+#ifndef NSINGLETON_MANAGER
+	globalpm = this;
+#endif
+	
 }
 //---------------------------------------------------------
 /*virtual*/ Manager::~Manager(){
+	stop(true);
+	//stop all schedulers
+	
+	
+	delete &d;
 }
 //---------------------------------------------------------
 void Manager::start(){
@@ -147,10 +160,22 @@ uint Manager::newObjectTypeId(){
 uint Manager::doRegisterScheduler(SchedulerBase *_ps, uint _typeid){
 }
 //---------------------------------------------------------
-ObjectUidT Manager::registerObject(Object *_po, const IndexT &_ridx){
+ObjectUidT Manager::doRegisterService(
+	Service *_ps,
+	const IndexT &_idx,
+	ScheduleCbkT _pschcbk,
+	uint _schedidx
+){
+	
 }
 //---------------------------------------------------------
-ObjectUidT Manager::registerService(Service *_ps, const IndexT &_ridx){
+ObjectUidT Manager::doRegisterObject(
+	Object *_po,
+	const IndexT &_idx,
+	ScheduleCbkT _pschcbk,
+	uint _schedidx
+){
+	
 }
 //---------------------------------------------------------
 SchedulerBase* Manager::doGetScheduler(uint _typeid, uint _idx)const{

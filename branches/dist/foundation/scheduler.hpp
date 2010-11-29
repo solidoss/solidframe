@@ -53,17 +53,18 @@ class Scheduler: public SchedulerBase, public WorkPoolControllerBase{
 		SelectorT	s;
 	};
 	typedef WorkPool<
-		typename S::ObjectT,
+		typename S::JobT,
 		ThisT&,
 		Worker
 	> 						WorkPoolT;
 	friend class WorkPool<
-		typename S::ObjectT,
+		typename S::JobT,
 		ThisT&,
 		Worker
 	>;
 public://definition
-	typedef typename S::ObjectT		JobT;
+	typedef typename S::JobT		JobT;
+	typedef typename S::ObjectT		ObjectT;
 	//! Constructor
 	/*!
 		\param _rm Reference to parent manager

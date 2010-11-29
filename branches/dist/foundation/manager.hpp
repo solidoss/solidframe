@@ -95,9 +95,23 @@ public:
 		return static_cast<S*>(doGetScheduler(schedulerTypeId<S>(), _id));
 	}
 	
-	ObjectUidT registerService(Service *_ps, const IndexT &_idx = invalid_uid().second);
+	template <class Sch, class S>
+	ObjectUidT registerService(
+		S *_ps,
+		const IndexT &_idx = invalid_uid().second,
+		uint _schedidx = 0
+	){
+		return doRegisterService(_ps, _idx, &sched_cbk<S, Sch>, _schedidx);
+	}
 	
-	ObjectUidT registerObject(Object *_po, const IndexT &_idx = invalid_uid().second);
+	template <class Sch, class O>
+	ObjectUidT registerObject(
+		O *_po,
+		const IndexT &_idx = invalid_uid().second,
+		uint _schedidx = 0
+	){
+		return doRegisterObject(_po, _idx, &sched_cbk<O, Sch>, _schedidx);
+	}
 	
 	Service& service(const IndexT &_ridx = 0)const;
 	Object& object(const IndexT &_ridx)const;
@@ -137,6 +151,7 @@ protected:
 	unsigned serviceCount()const;
 	
 private:
+	typedef void (*ScheduleCbkT) (uint, Object *);
 	friend class SchedulerBase;
 	
 	void prepareThread(SelectorBase *_ps = NULL);
@@ -150,6 +165,8 @@ private:
 	uint newObjectTypeId();
 	
 	uint doRegisterScheduler(SchedulerBase *_ps, uint _typeid);
+	ObjectUidT doRegisterService(Service *_ps, const IndexT &_idx, ScheduleCbkT _pschcbk, uint _schedidx);
+	ObjectUidT doRegisterObject(Object *_po, const IndexT &_idx, ScheduleCbkT _pschcbk, uint _schedidx);
 	
 	SchedulerBase* doGetScheduler(uint _typeid, uint _idx)const;
 	Service* doGetService(uint _typeid, const IndexT &_ridx)const;
@@ -163,17 +180,11 @@ private:
 		static const uint v(newSchedulerTypeId());
 		return v;
 	}
-	
-	template <class O>
-	uint objectTypeId(){
-		static const uint v(newObjectTypeId());
-		return v;
-	}
-	
-	template <class O>
-	uint serviceTypeId(){
-		static const uint v(newServiceTypeId());
-		return v;
+	template <class O, class Sch>
+	static void sched_cbk(uint _idx, Object *_po){
+		O *po(static_cast<O*>(_po));
+		typename Sch::JobT op(static_cast<typename Sch::ObjectT*>(po));
+		Sch::schedule(op, _idx);
 	}
 	
 	Manager(const Manager&);

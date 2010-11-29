@@ -49,7 +49,8 @@ typedef ObjectPointer<Object> ObjectPtrT;
 class ObjectSelector: public foundation::SelectorBase{
 public:
 	
-	typedef ObjectPtrT		ObjectT;
+	typedef ObjectPtrT		JobT;
+	typedef Object			ObjectT;
 	
 	ObjectSelector();
 	
