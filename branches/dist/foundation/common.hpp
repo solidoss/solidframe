@@ -111,6 +111,11 @@ typedef UidT						SignalUidT;
 typedef UidT						FileUidT;
 typedef UidT						RequestUidT;
 
+inline const IndexT& max_service_count(){
+	static const IndexT idx(IndexT(ID_MASK) >> INDEXBITCNT);
+	return idx;
+}
+
 inline const UidT& invalid_uid(){
 	static const UidT u(ID_MASK, 0xffffffff);
 	return u;
@@ -157,6 +162,11 @@ typename V::value_type& safe_at(V &_v, uint _pos){
 	}
 }
 
+template <class V>
+IndexT smart_resize(V &_rv, const IndexT &_rby){
+	_rv.resize(((_rv.size() / _rby) + 1) * _rby);
+	return _rv.size();
+}
 
 }//namespace foundation
 

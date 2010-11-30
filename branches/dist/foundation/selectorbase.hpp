@@ -5,6 +5,8 @@
 
 namespace foundation{
 
+class Manager;
+
 class SelectorBase{
 public:
 	uint32 id()const{
@@ -17,6 +19,7 @@ protected:
 	int executeObject(Object &_robj, ulong _evs, TimeSpec &_rtout);
 	void id(uint32 _id);
 private:
+	friend class Manager;
 	uint32	selid;//given by manager
 };
 

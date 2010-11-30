@@ -86,8 +86,8 @@ int main(int argc, char *argv[]){
 #ifdef UDEBUG
 	{
 	string dbgout;
-	Dbg::instance().levelMask("iew");
-	Dbg::instance().moduleMask("any");
+	Dbg::instance().levelMask("view");
+	Dbg::instance().moduleMask("all");
 	Dbg::instance().initStdErr(true);
 	}
 #endif
@@ -102,9 +102,9 @@ int main(int argc, char *argv[]){
 		//SchedulerT		*ps1 = new SchedulerT(m);
 		//SchedulerT		*ps2 = new SchedulerT(m);
 		
-		m.registerScheduler(new SchedulerT(m))/*->start()*/;
-		m.registerScheduler(new SchedulerT(m))->start();
-		m.registerScheduler(new AioSchedulerT(m))/*->start()*/;
+		m.registerScheduler(new SchedulerT(m));
+		m.registerScheduler(new SchedulerT(m));
+		m.registerScheduler(new AioSchedulerT(m));
 		
 		
 		//m.registerService(new foundation::ipc::Service(), ipcid);

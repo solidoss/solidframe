@@ -331,15 +331,16 @@ ObjectUidT Service::doInsertObject(Object &_ro, uint16 _tid, const IndexT &_ridx
 	if(is_invalid_index(_ridx)){
 		if(d.idxque.size()){
 			{
-				Mutex 				&rmut(d.mtxstore.at(d.idxque.front()));
+				const IndexT		idx(d.idxque.front());
+				Mutex 				&rmut(d.mtxstore.at(idx));
 				Mutex::Locker		lock(rmut);
-				Data::ObjectPairT	&rop(d.objvec[_ridx]);
+				Data::ObjectPairT	&rop(d.objvec[idx]);
 				
+				d.idxque.pop();
 				rop.first = &_ro;
-				_ro.id(this->index(), d.idxque.front());
+				_ro.id(this->index(), idx);
 				u = rop.second;
 			}
-			d.idxque.pop();
 		}else{
 			//worst case scenario
 			const IndexT	sz(d.objvec.size());
@@ -384,7 +385,7 @@ ObjectUidT Service::doInsertObject(Object &_ro, uint16 _tid, const IndexT &_ridx
 		}else{
 			//worst case scenario
 			const IndexT	initialsize(d.objvec.size());
-			d.objvec.resize(_ridx + 16);
+			d.objvec.resize(smart_resize(d.objvec, 256));
 			const IndexT	sz(d.objvec.size());
 			const IndexT	diffsz(sz - initialsize - 1);
 			

@@ -52,7 +52,13 @@ class Manager{
 public:
 	static Manager& the();
 	
-	Manager();
+	Manager(
+		const IndexT &_startdynamicidx = 1,
+		uint _objtpcnt = 4096,
+		uint _schtpcnt = 256,
+		uint _schcnt = 16,
+		uint _selcnt = 1024
+	);
 	
 	virtual ~Manager();
 	
@@ -62,12 +68,12 @@ public:
 	bool signal(ulong _sm);
 	bool signal(ulong _sm, const ObjectUidT &_ruid);
 	bool signal(ulong _sm, IndexT _fullid, uint32 _uid);
-	bool signal(ulong _sm, const Object &_robj);
+	//bool signal(ulong _sm, const Object &_robj);
 
 	bool signal(DynamicSharedPointer<Signal> &_rsig);
 	bool signal(DynamicPointer<Signal> &_rsig, const ObjectUidT &_ruid);
 	bool signal(DynamicPointer<Signal> &_rsig, IndexT _fullid, uint32 _uid);
-	bool signal(DynamicPointer<Signal> &_rsig, const Object &_robj);
+	//bool signal(DynamicPointer<Signal> &_rsig, const Object &_robj);
 	
 	void raiseObject(const Object &_robj);
 	
@@ -85,9 +91,9 @@ public:
 	virtual GlobalMapper* globalMapper();
 	
 	template <class S>
-	S* registerScheduler(S *_ps){
-		doRegisterScheduler(_ps, schedulerTypeId<S>());
-		return _ps;
+	uint registerScheduler(S *_ps){
+		typedef typename S::ObjectT ObjectT;
+		return doRegisterScheduler(_ps, schedulerTypeId<S>(), &sched_cbk<ObjectT, S>, ObjectT::staticTypeId());
 	}
 	
 	template <class S>
@@ -164,7 +170,7 @@ private:
 	uint newServiceTypeId();
 	uint newObjectTypeId();
 	
-	uint doRegisterScheduler(SchedulerBase *_ps, uint _typeid);
+	uint doRegisterScheduler(SchedulerBase *_ps, uint _typeid, ScheduleCbkT _pschcbk, uint _objtypeid);
 	ObjectUidT doRegisterService(Service *_ps, const IndexT &_idx, ScheduleCbkT _pschcbk, uint _schedidx);
 	ObjectUidT doRegisterObject(Object *_po, const IndexT &_idx, ScheduleCbkT _pschcbk, uint _schedidx);
 	

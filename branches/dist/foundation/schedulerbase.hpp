@@ -39,11 +39,11 @@ public:
 	virtual void start(uint16 _startwkrcnt = 0, bool _wait = false) = 0;
 	
 	virtual void stop(bool _wait = true) = 0;
+	virtual ~SchedulerBase();
 protected:
 	
 	SchedulerBase(uint16 _startwkrcnt, uint16 _maxwkrcnt, const IndexT &_selcap);
 	SchedulerBase(Manager &_rm, uint16 _startwkrcnt, uint16 _maxwkrcnt, const IndexT &_selcap);
-	virtual ~SchedulerBase();
 	
 	void prepareThread(SelectorBase *_ps = NULL);
 	void unprepareThread(SelectorBase *_ps = NULL);
