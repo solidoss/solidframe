@@ -39,11 +39,7 @@ namespace fdt = foundation;
 namespace foundation{
 
 class	Service;
-class	Pool;
 class	Object;
-class	ActiveSet;
-class	Visitor;
-class	ServiceContainer;
 class	Signal;
 class	SchedulerBase;
 class	SelectorBase;
@@ -54,16 +50,24 @@ public:
 	
 	Manager(
 		const IndexT &_startdynamicidx = 1,
-		uint _objtpcnt = 4096,
-		uint _schtpcnt = 256,
-		uint _schcnt = 16,
 		uint _selcnt = 1024
 	);
 	
 	virtual ~Manager();
 	
-	void start();
-	void stop(bool _wait = true);
+	template <class S>
+	void start(uint _schidx = 0){
+		const uint	tblcp(64);
+		Service		*psvctbl[tblcp];
+		uint sz(doStart(psvctbl, tblcp));
+		if(sz){
+			for(uint i(0); i < sz; ++i){
+				typedef S	SchedulerT;
+				SchedulerT::schedule(ObjectPointer<>(psvctbl[i]), _schidx);
+			}
+		}
+	}
+	void stop();
 	
 	bool signal(ulong _sm);
 	bool signal(ulong _sm, const ObjectUidT &_ruid);
@@ -92,8 +96,7 @@ public:
 	
 	template <class S>
 	uint registerScheduler(S *_ps){
-		typedef typename S::ObjectT ObjectT;
-		return doRegisterScheduler(_ps, schedulerTypeId<S>(), &sched_cbk<ObjectT, S>, ObjectT::staticTypeId());
+		return doRegisterScheduler(_ps, schedulerTypeId<S>());
 	}
 	
 	template <class S>
@@ -101,22 +104,18 @@ public:
 		return static_cast<S*>(doGetScheduler(schedulerTypeId<S>(), _id));
 	}
 	
-	template <class Sch, class S>
-	ObjectUidT registerService(
-		S *_ps,
-		const IndexT &_idx = invalid_uid().second,
-		uint _schedidx = 0
+	IndexT registerService(
+		Service *_ps,
+		const IndexT &_idx = invalid_uid().first
 	){
-		return doRegisterService(_ps, _idx, &sched_cbk<S, Sch>, _schedidx);
+		return doRegisterService(_ps, _idx);
 	}
 	
-	template <class Sch, class O>
-	ObjectUidT registerObject(
-		O *_po,
-		const IndexT &_idx = invalid_uid().second,
-		uint _schedidx = 0
+	IndexT registerObject(
+		Object *_po,
+		const IndexT &_idx = invalid_uid().first
 	){
-		return doRegisterObject(_po, _idx, &sched_cbk<O, Sch>, _schedidx);
+		return doRegisterObject(_po, _idx);
 	}
 	
 	Service& service(const IndexT &_ridx = 0)const;
@@ -144,6 +143,16 @@ public:
 		return static_cast<O*>(doGetService(O::staticTypeId()));
 	}
 	
+	template <typename S>
+	ObjectUidT startObject(const IndexT &_idx, uint _schidx = 0){
+		ObjectUidT objuid(invalid_uid());
+		Object* po(doStartObject(_idx, objuid));
+		if(doStartObject(_idx, objuid)){
+			S::schedule(ObjectPointer<>(po), _schidx);
+		}
+		return objuid;
+	}
+	void stopObject(const IndexT &_idx);
 protected:
 	struct ThisGuard{
 		ThisGuard(Manager *_pm);
@@ -156,9 +165,14 @@ protected:
 	
 	unsigned serviceCount()const;
 	
+	virtual void doStart();
+	
+	virtual void doStop();
+	
 private:
-	typedef void (*ScheduleCbkT) (uint, Object *);
+	//typedef void (*ScheduleCbkT) (uint, Object *);
 	friend class SchedulerBase;
+	friend class Service;
 	
 	void prepareThread(SelectorBase *_ps = NULL);
 	void unprepareThread(SelectorBase *_ps = NULL);
@@ -170,9 +184,11 @@ private:
 	uint newServiceTypeId();
 	uint newObjectTypeId();
 	
-	uint doRegisterScheduler(SchedulerBase *_ps, uint _typeid, ScheduleCbkT _pschcbk, uint _objtypeid);
-	ObjectUidT doRegisterService(Service *_ps, const IndexT &_idx, ScheduleCbkT _pschcbk, uint _schedidx);
-	ObjectUidT doRegisterObject(Object *_po, const IndexT &_idx, ScheduleCbkT _pschcbk, uint _schedidx);
+	uint doRegisterScheduler(SchedulerBase *_ps, uint _typeid);
+	IndexT doRegisterService(Service *_ps, const IndexT &_idx);
+	IndexT doRegisterObject(Object *_po, const IndexT &_idx);
+	
+	Object* doStartObject(const IndexT &_ridx, ObjectUidT &_robjuid);
 	
 	SchedulerBase* doGetScheduler(uint _typeid, uint _idx)const;
 	Service* doGetService(uint _typeid, const IndexT &_ridx)const;
@@ -180,6 +196,8 @@ private:
 	
 	Service* doGetService(uint _typeid)const;
 	Object* doGetObject(uint _typeid)const;
+	
+	uint doStart(Service **_psvctbl, uint _svctblcp); 
 	
 	template <class O>
 	uint schedulerTypeId(){
@@ -192,6 +210,9 @@ private:
 		typename Sch::JobT op(static_cast<typename Sch::ObjectT*>(po));
 		Sch::schedule(op, _idx);
 	}
+	
+	ObjectUidT insertService(Service *_ps, const IndexT &_ridx);
+	void eraseService(Service *_ps);
 	
 	Manager(const Manager&);
 	Manager& operator=(const Manager&);

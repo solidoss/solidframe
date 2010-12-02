@@ -26,6 +26,7 @@
 #include "system/debug.hpp"
 #include "system/mutex.hpp"
 #include "system/condition.hpp"
+#include "system/exception.hpp"
 
 #include "utility/mutualstore.hpp"
 #include "utility/queue.hpp"
@@ -64,6 +65,7 @@ struct Service::Data{
 	ObjectVectorT		objvec;
 	Uint32QueueT		idxque;
 	Condition			cnd;
+	Condition			objcnd;
 	Mutex				mtx;
 };
 void Service::Data::popIndex(const IndexT &_idx){
@@ -92,7 +94,7 @@ Service::Service(
 }
 //---------------------------------------------------------
 Service::~Service(){
-	//stop();
+	stop(true);
 	idbgx(Dbg::fdt, "");
 	cassert(!d.objcnt);
 	delete &d;
@@ -116,7 +118,7 @@ void Service::erase(const Object &_robj){
 	rop.first = NULL;
 	++rop.second;
 	d.idxque.push(oidx);
-	d.cnd.broadcast();
+	d.objcnd.signal();//only one thread waits for 
 }
 //---------------------------------------------------------
 bool Service::signal(DynamicPointer<Signal> &_rsig){
@@ -237,15 +239,26 @@ uint32 Service::uid(const IndexT &_idx)const{
 	return d.objvec[_idx].second;
 }
 //---------------------------------------------------------
-void Service::start(){
+bool Service::doStart(ObjectUidT &_robjuid){
 	Mutex::Locker	lock(d.mtx);
 	if(state() == Running){
-		return;
+		_robjuid = static_cast<Object*>(this)->uid();
+		return false;
 	}
 	if(state() == Stopping){
-		stop(true);
+		do{
+			d.cnd.wait(d.mtx);
+		}while(state() == Stopping);
+		if(state() == Running){
+			_robjuid = static_cast<Object*>(this)->uid();
+			return false;
+		}
 	}
 	state(Running);
+	d.cnd.broadcast();
+	doStart();
+	_robjuid = m().insertService(this, this->index());
+	return true;
 }
 //---------------------------------------------------------
 void Service::stop(bool _wait){
@@ -254,21 +267,26 @@ void Service::stop(bool _wait){
 	if(state() == Running){
 		doSignalAll(S_KILL | S_RAISE);
 		state(Stopping);
+		doStop(false);
 	}
 	
 	if(!_wait) return;
 	
 	while(d.objcnt){
+		d.objcnd.wait(d.mtx);
+	}
+	
+	doStop(true);
+	
+	m().signal(S_KILL | S_RAISE, static_cast<Object*>(this)->uid());
+	
+	while(state() == Stopping){
 		d.cnd.wait(d.mtx);
 	}
-	state(Stopped);
+	m().eraseService(this);
 }
 //---------------------------------------------------------
 /*virtual*/ int Service::execute(ulong _evs, TimeSpec &_rtout){
-	if(state() == Stopping){
-		this->stop(true);
-		return BAD;
-	}
 	if(signaled()){
 		ulong sm;
 		{
@@ -282,9 +300,16 @@ void Service::stop(bool _wait){
 			de.execute(*this);
 		}
 		if(sm & fdt::S_KILL){
-			idbgx(Dbg::ipc, "killing service "<<this->id());
-			this->stop(false);//initiate stop
-			return OK;
+			Mutex::Locker	lock(d.mtx);
+			if(state() == Stopping){
+				idbgx(Dbg::ipc, "dying service "<<this->id());
+				state(Stopped);
+				d.cnd.broadcast();
+				return BAD;
+			}else{
+				edbgx(Dbg::ipc, "Ignore S_KILL for service "<<this->index());
+				return NOK;
+			}
 		}
 	}
 	return NOK;
@@ -310,7 +335,7 @@ void Service::eraseObject(const Object &_ro){
 	//by default do nothing
 }
 //---------------------------------------------------------
-/*virtual*/ void Service::doStop(){
+/*virtual*/ void Service::doStop(bool _wait){
 	//by default do nothing
 }
 //---------------------------------------------------------
@@ -377,6 +402,7 @@ ObjectUidT Service::doInsertObject(Object &_ro, uint16 _tid, const IndexT &_ridx
 					_ro.id(this->index(), _ridx);
 					u = rop.second;
 				}else{
+					THROW_EXCEPTION_EX("Multiple inserts on the same index ",_ridx);
 					return invalid_uid();
 				}
 			}
@@ -552,4 +578,5 @@ bool Service::doVisit(Visitor &_rv, uint _visidx, const ObjectUidT &_ruid){
 }
 //---------------------------------------------------------
 }//namespace fundation
+
 

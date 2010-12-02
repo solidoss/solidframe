@@ -16,7 +16,7 @@
 using namespace std;
 
 namespace {
-	const foundation::IndexT	ipcid(10);
+	foundation::IndexT			ipcid(10);
 	const foundation::IndexT	firstid(11);
 	const foundation::IndexT	secondid(14);
 	const foundation::IndexT	thirdid(14);
@@ -107,19 +107,23 @@ int main(int argc, char *argv[]){
 		m.registerScheduler(new AioSchedulerT(m));
 		
 		
-		//m.registerService(new foundation::ipc::Service(), ipcid);
-		m.registerService<SchedulerT>(new foundation::Service, firstid);
-		m.registerService<SchedulerT>(new foundation::Service, secondid);
-		m.registerService<SchedulerT>(new foundation::ipc::Service(&ipcctrl));
-		m.registerObject<SchedulerT>(new ThirdObject(0, 10), thirdid);
+		m.registerService(new foundation::Service, firstid);
+		m.registerService(new foundation::Service, secondid);
+		ipcid = m.registerService(new foundation::ipc::Service(&ipcctrl));
+		m.registerObject(new ThirdObject(0, 10), thirdid);
 		
 		{
 			AddrInfo ai("0.0.0.0", p.start_port, 0, AddrInfo::Inet4, AddrInfo::Datagram);
 			foundation::ipc::Service::the().insertTalker(ai.begin());
 		}
 		
-		m.start();
+		m.start<SchedulerT>();
 		
+		m.service(firstid).start<SchedulerT>();
+		m.service(secondid).start<SchedulerT>();
+		m.service(ipcid).start<SchedulerT>(1);
+		//SchedulerT::schedule(foundation::ObjectPointer<>(m.objectPointer(thirdid)), 0);
+		m.startObject<SchedulerT>(thirdid);
 
 		{
 			ThirdObject	*po(new ThirdObject(10, 1));

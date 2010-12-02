@@ -57,8 +57,9 @@ void ObjectPointerBase::clear(Object *_pobj){
 	}
 	if(!usecnt){
 		IndexT	idx(_pobj->id());
-		if(is_valid_index(idx)){
-			m().service(compute_service_id(idx)).erase(*_pobj);
+		IndexT	svcidx(compute_service_id(idx));
+		if(svcidx){
+			m().service(svcidx).erase(*_pobj);
 		}
 		delete _pobj;
 	}

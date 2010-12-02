@@ -23,6 +23,7 @@
 #define FOUNDATION_SERVICE_HPP
 
 #include "foundation/object.hpp"
+#include "foundation/objectpointer.hpp"
 #include "system/mutex.hpp"
 #include <vector>
 
@@ -195,8 +196,16 @@ public:
 	uint32 uid(const Object &_robj)const;
 	uint32 uid(const IndexT &_idx)const;
 	
-	void start();
-	
+	template <class S>
+	ObjectUidT start(uint _schidx = 0){
+		ObjectUidT objuid(invalid_uid());
+		if(doStart(objuid)){
+			typedef S	SchedulerT;
+			SchedulerT::schedule(ObjectPointer<>(this), _schidx);
+		}
+		return objuid;
+	}
+	void stop(bool _wait = true);
 	/*virtual*/ int execute(ulong _evs, TimeSpec &_rtout);
 	
 	virtual void dynamicExecute(DynamicPointer<> &_dp);
@@ -205,10 +214,9 @@ protected:
 	void insertObject(Object &_ro, const ObjectUidT &_ruid);
 	void eraseObject(const Object &_ro);
 	
-	void stop(bool _wait = true);
 	
 	virtual void doStart();
-	virtual void doStop();
+	virtual void doStop(bool _wait);
 	
 	template <class O, class S>
 	void registerObjectType(){
@@ -256,6 +264,7 @@ private:
 	bool doSignalAll(DynamicSharedPointer<Signal> &_rsig);
 	bool doVisit(Visitor &_rv, uint _visidx);
 	bool doVisit(Visitor &_rv, uint _visidx, const ObjectUidT &_ruid);
+	bool doStart(ObjectUidT &_robjuid);
 private:
 	friend class Manager;
 	//this is called by manager 
