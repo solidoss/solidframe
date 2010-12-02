@@ -147,7 +147,7 @@ public:
 	ObjectUidT startObject(const IndexT &_idx, uint _schidx = 0){
 		ObjectUidT objuid(invalid_uid());
 		Object* po(doStartObject(_idx, objuid));
-		if(doStartObject(_idx, objuid)){
+		if(po){
 			S::schedule(ObjectPointer<>(po), _schidx);
 		}
 		return objuid;

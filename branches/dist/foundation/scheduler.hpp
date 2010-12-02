@@ -104,11 +104,12 @@ private:
 	
 	typedef std::vector<JobT>	JobVectorT;
 	void createWorker(WorkPoolT &_rwp){
-		_rwp.createMultiWorker(0);
+		_rwp.createMultiWorker(0)->start();
 	}
 	void prepareWorker(Worker &_rw){
 		prepareThread(&_rw.s);
 		_rw.s.prepare();
+		_rw.s.reserve(selcap);
 	}
 	void unprepareWorker(Worker &_rw){
 		unprepareThread(&_rw.s);
@@ -164,6 +165,9 @@ private:
 			_rw.s.push(*it);
 		}
 		_rw.s.run();
+	}
+	void onStop(){
+		this->doStop();
 	}
 private:
 	WorkPoolT		wp;

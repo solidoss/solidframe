@@ -71,6 +71,8 @@ struct WorkPoolControllerBase{
 	}
 	void onPopDone(WorkPoolBase &, WorkerBase &){
 	}
+	void onStop(){
+	}
 };
 
 template <class J, class C, class W = WorkerBase>
@@ -198,6 +200,7 @@ private:
 		if(state() == Stopped) return;
 		state(Stopping);
 		sigcnd.broadcast();
+		ctrl.onStop();
 		if(!_wait) return;
 		while(wkrcnt){
 			thrcnd.wait(mtx);
@@ -208,7 +211,7 @@ private:
 		Mutex::Locker lock(mtx);
 		uint32 insertcount(ctrl.onPopStart(*this, _rw, _maxcnt));
 		if(!insertcount){
-			return OK;
+			return true;
 		}
 		if(doWaitJob()){
 			do{

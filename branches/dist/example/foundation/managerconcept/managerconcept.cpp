@@ -19,7 +19,7 @@ namespace {
 	foundation::IndexT			ipcid(10);
 	const foundation::IndexT	firstid(11);
 	const foundation::IndexT	secondid(14);
-	const foundation::IndexT	thirdid(14);
+	const foundation::IndexT	thirdid(12);
 }
 
 
@@ -34,10 +34,11 @@ private:
 
 /*virtual*/ int ThirdObject::execute(ulong _evs, TimeSpec &_rtout){
 	ulong sm(0);
-	if(signed()){
+	if(signaled()){
 		Mutex::Locker lock(mutex());
 		sm = grabSignalMask();
 		if(sm & foundation::S_KILL){
+			idbg("killing thirdobject");
 			return BAD;
 		}
 	}
@@ -88,13 +89,13 @@ int main(int argc, char *argv[]){
 	string dbgout;
 	Dbg::instance().levelMask("view");
 	Dbg::instance().moduleMask("all");
-	Dbg::instance().initStdErr(true);
+	Dbg::instance().initStdErr(false);
 	}
 #endif
 	
 	{
 		
-		foundation::Manager 	m;
+		foundation::Manager 	m(16);
 		
 		IpcServiceController	ipcctrl;
 		
@@ -108,11 +109,11 @@ int main(int argc, char *argv[]){
 		
 		
 		m.registerService(new foundation::Service, firstid);
-		m.registerService(new foundation::Service, secondid);
-		ipcid = m.registerService(new foundation::ipc::Service(&ipcctrl));
-		m.registerObject(new ThirdObject(0, 10), thirdid);
+		//m.registerService(new foundation::Service, secondid);
+		//ipcid = m.registerService(new foundation::ipc::Service(&ipcctrl));
+		//m.registerObject(new ThirdObject(0, 10), thirdid);
 		
-		{
+		if(false){
 			AddrInfo ai("0.0.0.0", p.start_port, 0, AddrInfo::Inet4, AddrInfo::Datagram);
 			foundation::ipc::Service::the().insertTalker(ai.begin());
 		}
@@ -120,10 +121,10 @@ int main(int argc, char *argv[]){
 		m.start<SchedulerT>();
 		
 		m.service(firstid).start<SchedulerT>();
-		m.service(secondid).start<SchedulerT>();
-		m.service(ipcid).start<SchedulerT>(1);
+		//m.service(secondid).start<SchedulerT>();
+		//m.service(ipcid).start<SchedulerT>(1);
 		//SchedulerT::schedule(foundation::ObjectPointer<>(m.objectPointer(thirdid)), 0);
-		m.startObject<SchedulerT>(thirdid);
+		//m.startObject<SchedulerT>(thirdid);
 
 		{
 			ThirdObject	*po(new ThirdObject(10, 1));
@@ -131,7 +132,7 @@ int main(int argc, char *argv[]){
 			SchedulerT::schedule(foundation::ObjectPointer<>(po), 0);
 		}
 		
-		{
+		if(false){
 			ThirdObject	*po(new ThirdObject(20, 2));
 			m.service(secondid).insert(po);
 			SchedulerT::schedule(foundation::ObjectPointer<>(po), 1);
@@ -152,7 +153,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 		options_description desc("SolidFrame concept application");
 		desc.add_options()
 			("help,h", "List program options")
-			("base_port,b", value<int>(&_par.start_port)->default_value(1000),
+			("base_port,b", value<int>(&_par.start_port)->default_value(2000),
 					"Base port")
 			("debug_levels,l", value<string>(&_par.dbg_levels)->default_value("iew"),"Debug logging levels")
 			("debug_modules,m", value<string>(&_par.dbg_modules),"Debug logging modules")

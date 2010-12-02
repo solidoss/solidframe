@@ -151,6 +151,7 @@ Manager::Manager(
 	d.selvec.push_back(&d.dummysel);
 	d.svcvec.push_back(Data::ServicePairT());
 	d.svcvec.back().first = new Service;
+	d.svcvec.back().first->id(0, 0);
 	d.svcvec.back().second = Object::staticTypeId();
 	//TODO: refactor
 	d.svcvec.resize(max_service_count());
@@ -204,6 +205,7 @@ uint Manager::doStart(Service **_psvctbl, uint _svctblcp){
 			sit != it->schvec.end();
 			++sit
 		){
+			vdbgx(Dbg::fdt, "start scheduler of type "<<(it - d.schtpvec.begin())<<" index "<<(sit - it->schvec.begin()));
 			(*sit)->start();
 		}
 	}
@@ -240,17 +242,31 @@ void Manager::stop(){
 		d.st = Data::Stopping;
 	}
 	
-	for(Data::ServiceVectorT::const_iterator it(d.svcvec.begin()); it != d.svcvec.end(); ++it){
-		if(it->first){
-			it->first->stop(false);
+	d.masterService().stop(false);
+	
+	if(d.svcvec.size() > 1){
+		for(Data::ServiceVectorT::const_iterator it(d.svcvec.begin() + 1); it != d.svcvec.end(); ++it){
+			if(it->first){
+				it->first->stop(false);
+			}
+		}
+	
+		for(Data::ServiceVectorT::const_iterator it(d.svcvec.begin() + 1); it != d.svcvec.end(); ++it){
+			if(it->first){
+				vdbgx(Dbg::fdt, "stopping service "<<(it - d.svcvec.begin()));
+				it->first->stop(true);
+			}
 		}
 	}
 	
-	for(Data::ServiceVectorT::const_iterator it(d.svcvec.begin()); it != d.svcvec.end(); ++it){
+	for(Data::ObjectVectorT::const_iterator it(d.objvec.begin()); it != d.objvec.end(); ++it){
 		if(it->first){
-			it->first->stop(true);
+			//it->first->stop(false);
+			stopObject(it - d.objvec.begin());
 		}
 	}
+	
+	d.masterService().stop(true);
 	
 	//stop all schedulers
 	for(
@@ -415,6 +431,7 @@ unsigned Manager::serviceCount()const{
 void Manager::prepareThread(SelectorBase *_ps){
 	prepareThis();
 	//GlobalMapper::prepareThread(globalMapper());
+	vdbgx(Dbg::fdt, "prepare thread "<<(void*)_ps);
 	Specific::prepareThread();
 	requestuidptr.prepareThread();
 	if(_ps){
@@ -424,6 +441,7 @@ void Manager::prepareThread(SelectorBase *_ps){
 			cassert(false);
 		}
 		_ps->selid = d.currentselectoridx;
+		vdbgx(Dbg::fdt, "prepare thread selector idx "<<_ps->selid);
 		d.selvec[_ps->selid] = _ps;
 		++d.currentselectoridx;
 	}
@@ -431,6 +449,7 @@ void Manager::prepareThread(SelectorBase *_ps){
 }
 //---------------------------------------------------------
 void Manager::unprepareThread(SelectorBase *_ps){
+	vdbgx(Dbg::fdt,"");
 	unprepareThis();
 	if(_ps){
 		d.selvec[_ps->selid] = NULL;
@@ -476,7 +495,7 @@ uint Manager::doRegisterScheduler(
 		return -1;
 	}
 	
-	Data::SchedulerTypeStub	&rstp(d.schtpvec[_typeid]);
+	Data::SchedulerTypeStub	&rstp(safe_at(d.schtpvec, _typeid));
 	
 	rstp.schvec.push_back(_ps);
 	

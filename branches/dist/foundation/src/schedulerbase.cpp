@@ -99,5 +99,12 @@ void SchedulerBase::markSelectorNotFull(SelectorBase &_rs){
 		d.selvec[_rs.id()].second = d.idxlst.insert(d.idxlst.end(), _rs.id());
 	}
 }
+void SchedulerBase::doStop(){
+	for(Data::SelectorPairVectorT::const_iterator it(d.selvec.begin()); it != d.selvec.end(); ++it){
+		if(it->first){
+			it->first->raise();
+		}
+	}
+}
 
 }//namespace foundation

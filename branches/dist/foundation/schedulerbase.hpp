@@ -36,7 +36,7 @@ class SelectorBase;
 */
 class SchedulerBase{
 public:
-	virtual void start(uint16 _startwkrcnt = 0, bool _wait = false) = 0;
+	virtual void start(uint16 _startwkrcnt = 1, bool _wait = false) = 0;
 	
 	virtual void stop(bool _wait = true) = 0;
 	virtual ~SchedulerBase();
@@ -53,6 +53,7 @@ protected:
 	
 	void markSelectorFull(SelectorBase &_rs);
 	void markSelectorNotFull(SelectorBase &_rs);
+	void doStop();
 protected:
 	struct Data;
 	Manager	&rm;

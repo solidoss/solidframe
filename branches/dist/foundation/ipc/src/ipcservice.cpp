@@ -399,12 +399,13 @@ int Service::insertTalker(
 	
 	if(!sd.ok()) return BAD;
 	
-	Mutex::Locker	lock(serviceMutex());
+	//Mutex::Locker	lock(serviceMutex());
 	cassert(!d.tkrvec.size());//only the first tkr must be inserted from outside
 	Talker			*ptkr(new Talker(sd, *this, 0));
 	
 	ObjectUidT objuid(this->insert(ptkr));
 	
+	Mutex::Locker	lock(serviceMutex());
 	d.firstaddr = _rai;
 	d.baseport = d.firstaddr.port();
 	d.tkrvec.push_back(objuid);

@@ -117,6 +117,8 @@ void Service::erase(const Object &_robj){
 	
 	rop.first = NULL;
 	++rop.second;
+	--d.objcnt;
+	vdbgx(Dbg::fdt, "erase object "<<d.objcnt);
 	d.idxque.push(oidx);
 	d.objcnd.signal();//only one thread waits for 
 }
@@ -283,7 +285,9 @@ void Service::stop(bool _wait){
 	while(state() == Stopping){
 		d.cnd.wait(d.mtx);
 	}
-	m().eraseService(this);
+	if(this->index()){
+		m().eraseService(this);
+	}
 }
 //---------------------------------------------------------
 /*virtual*/ int Service::execute(ulong _evs, TimeSpec &_rtout){
@@ -321,10 +325,13 @@ Mutex &Service::serviceMutex()const{
 //---------------------------------------------------------
 void Service::insertObject(Object &_ro, const ObjectUidT &_ruid){
 	//by default do nothing
+	vdbgx(Dbg::fdt, "insert object "<<compute_service_id(_ruid.first)<<' '<<compute_index(_ruid.first)<<' '<<_ruid.second);
 }
 //---------------------------------------------------------
 void Service::eraseObject(const Object &_ro){
 	//by default do nothing
+	ObjectUidT objuid(_ro.uid());
+	vdbgx(Dbg::fdt, "erase object "<<compute_service_id(objuid.first)<<' '<<compute_index(objuid.first)<<' '<<objuid.second);
 }
 //---------------------------------------------------------
 /*virtual*/ void Service::dynamicExecute(DynamicPointer<> &_dp){
@@ -406,6 +413,7 @@ ObjectUidT Service::doInsertObject(Object &_ro, uint16 _tid, const IndexT &_ridx
 					return invalid_uid();
 				}
 			}
+			++d.objcnt;
 			d.popIndex(_ridx);
 			return ObjectUidT(_ro.id(), u);
 		}else{
@@ -435,6 +443,7 @@ ObjectUidT Service::doInsertObject(Object &_ro, uint16 _tid, const IndexT &_ridx
 			u = 0;
 			
 			d.mtxstore.visit(sz, visit_unlock);//unlock all mutexes
+			++d.objcnt;
 			return ObjectUidT(_ro.id(), u);
 		}
 	}
@@ -443,7 +452,7 @@ ObjectUidT Service::doInsertObject(Object &_ro, uint16 _tid, const IndexT &_ridx
 uint Service::newObjectTypeId(){
 	uint r;
 	{
-		Mutex::Locker lock(serviceMutex());
+		//Mutex::Locker lock(serviceMutex());
 		r = d.crtobjtypeid;
 		++d.crtobjtypeid;
 	}
