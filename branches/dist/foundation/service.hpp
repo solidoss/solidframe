@@ -111,7 +111,6 @@ class Service: public Dynamic<Service, Object>{
 	ObjectTypeStubVectorT	objtpvec;
 	VisitorTypeStubVectorT	vistpvec;
 public:
-	enum States{Running, Stopping, Stopped};
 	Service(int _objpermutbts = 6, int _mutrowsbts = 8, int _mutcolsbts = 8);
 	
 	/*virtual*/ ~Service();
@@ -247,6 +246,7 @@ protected:
 	Object* objectAt(const IndexT &_ridx, uint32 _uid);
 	Object* objectAt(const IndexT &_ridx);
 private:
+	friend class Manager;
 	ObjectTypeStub& objectTypeStub(uint _tid){
 		if(_tid >= objtpvec.size()) _tid = 0;
 		return objtpvec[_tid];
@@ -265,8 +265,6 @@ private:
 	bool doVisit(Visitor &_rv, uint _visidx);
 	bool doVisit(Visitor &_rv, uint _visidx, const ObjectUidT &_ruid);
 	bool doStart(ObjectUidT &_robjuid);
-private:
-	friend class Manager;
 	//this is called by manager 
 	void invalidateService();
 protected:

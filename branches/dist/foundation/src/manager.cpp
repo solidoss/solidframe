@@ -152,7 +152,8 @@ Manager::Manager(
 	d.svcvec.push_back(Data::ServicePairT());
 	d.svcvec.back().first = new Service;
 	d.svcvec.back().first->id(0, 0);
-	d.svcvec.back().second = Object::staticTypeId();
+	//d.svcvec.back().first->insert(d.svcvec.back().first.ptr(), 0);
+	//d.svcvec.back().second = Object::staticTypeId();
 	//TODO: refactor
 	d.svcvec.resize(max_service_count());
 	d.objvec.resize(max_service_count());

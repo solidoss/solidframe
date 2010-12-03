@@ -26,6 +26,7 @@
 
 #include "foundation/common.hpp"
 #include "foundation/objectpointer.hpp"
+#include "foundation/service.hpp"
 
 #include "utility/dynamicpointer.hpp"
 
@@ -38,7 +39,7 @@ namespace fdt = foundation;
 
 namespace foundation{
 
-class	Service;
+//class	Service;
 class	Object;
 class	Signal;
 class	SchedulerBase;
@@ -63,7 +64,8 @@ public:
 		if(sz){
 			for(uint i(0); i < sz; ++i){
 				typedef S	SchedulerT;
-				SchedulerT::schedule(ObjectPointer<>(psvctbl[i]), _schidx);
+				//SchedulerT::schedule(ObjectPointer<>(psvctbl[i]), _schidx);
+				psvctbl[i]->start<SchedulerT>();
 			}
 		}
 	}
@@ -228,3 +230,4 @@ inline Manager& m(){
 
 }//namespace
 #endif
+

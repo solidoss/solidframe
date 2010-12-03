@@ -44,6 +44,7 @@ namespace foundation{
 //---------------------------------------------------------
 
 struct Service::Data{
+	enum States{Stopped, Starting, Running, Stopping};
 	typedef std::pair<Object*, uint32>		ObjectPairT;
 	typedef std::deque<ObjectPairT>			ObjectVectorT;
 	typedef Queue<uint32>					Uint32QueueT;
@@ -87,7 +88,7 @@ Service::Service(
 	int _mutrowsbts,
 	int _mutcolsbts
 ):d(*(new Data(_objpermutbts, _mutrowsbts, _mutcolsbts))){
-	state(Stopped);
+	state(Data::Stopped);
 	registerObjectType<Object, Service>();
 	registerVisitorType<Object, Visitor>();
 	idbgx(Dbg::fdt, "");
@@ -242,35 +243,63 @@ uint32 Service::uid(const IndexT &_idx)const{
 }
 //---------------------------------------------------------
 bool Service::doStart(ObjectUidT &_robjuid){
-	Mutex::Locker	lock(d.mtx);
-	if(state() == Running){
-		_robjuid = static_cast<Object*>(this)->uid();
-		return false;
-	}
-	if(state() == Stopping){
+	{
+		Mutex::Locker	lock(d.mtx);
+		bool reenter;
 		do{
-			d.cnd.wait(d.mtx);
-		}while(state() == Stopping);
-		if(state() == Running){
-			_robjuid = static_cast<Object*>(this)->uid();
-			return false;
-		}
+			reenter = false;
+			if(state() == Data::Running){
+				_robjuid = static_cast<Object*>(this)->uid();
+				return false;
+			}else if(state() == Data::Starting){
+				do{
+					d.cnd.wait(d.mtx);
+				}while(state() == Data::Starting);
+				reenter = true;
+			}else if(state() == Data::Stopping){
+				do{
+					d.cnd.wait(d.mtx);
+				}while(state() == Data::Stopping);
+				reenter = true;
+			}
+		}while(reenter);
+		
+		state(Data::Starting);
 	}
-	state(Running);
-	d.cnd.broadcast();
-	doStart();
 	_robjuid = m().insertService(this, this->index());
+	{
+		Mutex::Locker	lock(d.mtx);
+		state(Data::Running);
+		d.cnd.broadcast();
+	}
 	return true;
 }
 //---------------------------------------------------------
 void Service::stop(bool _wait){
 	Mutex::Locker	lock(d.mtx);
-	
-	if(state() == Running){
-		doSignalAll(S_KILL | S_RAISE);
-		state(Stopping);
-		doStop(false);
-	}
+	bool reenter;
+	do{
+		reenter = false;
+		
+		if(state() == Data::Running){
+			doStop(false);
+			doSignalAll(S_KILL | S_RAISE);
+			state(Data::Stopping);
+			m().signal(S_KILL | S_RAISE, static_cast<Object*>(this)->uid());
+			m().eraseService(this);//necesarily after sending the signal!!!
+		}else if(state() == Data::Starting){
+			reenter = true;
+			do{
+				d.cnd.wait(d.mtx);
+			}while(state() == Data::Starting);
+		}else if(state() >= Data::Stopping){
+			if(_wait){
+				
+			}else{
+				
+			}
+		}
+	}while(reenter);
 	
 	if(!_wait) return;
 	
@@ -278,15 +307,8 @@ void Service::stop(bool _wait){
 		d.objcnd.wait(d.mtx);
 	}
 	
-	doStop(true);
-	
-	m().signal(S_KILL | S_RAISE, static_cast<Object*>(this)->uid());
-	
-	while(state() == Stopping){
+	while(state() == Data::Stopping){
 		d.cnd.wait(d.mtx);
-	}
-	if(this->index()){
-		m().eraseService(this);
 	}
 }
 //---------------------------------------------------------
@@ -305,9 +327,9 @@ void Service::stop(bool _wait){
 		}
 		if(sm & fdt::S_KILL){
 			Mutex::Locker	lock(d.mtx);
-			if(state() == Stopping){
+			if(state() == Data::Stopping){
 				idbgx(Dbg::ipc, "dying service "<<this->id());
-				state(Stopped);
+				state(Data::Stopped);
 				d.cnd.broadcast();
 				return BAD;
 			}else{
