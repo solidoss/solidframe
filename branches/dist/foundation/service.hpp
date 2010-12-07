@@ -115,14 +115,28 @@ public:
 	
 	/*virtual*/ ~Service();
 	
-	template <class O>
+	template <typename O>
 	ObjectUidT insert(O *_po, const IndexT &_ridx = invalid_uid().first){
 		Mutex::Locker		lock(serviceMutex());
-		const uint16		tid(objectTypeId<O>());
+		const uint			tid(O::staticTypeId());
 		ObjectTypeStub		&rots(objectTypeStub(tid));
 		const ObjectUidT	objuid(doInsertObject(*_po, tid, _ridx));
 		
 		(*rots.insert_callback)(_po, this, objuid);
+		
+		return objuid;
+	}
+	
+	template <typename S, class O>
+	ObjectUidT insert(ObjectPointer<O> &_op, uint _schidx = 0, const IndexT &_ridx = invalid_uid().first){
+		Mutex::Locker		lock(serviceMutex());
+		const uint			tid(O::staticTypeId());
+		ObjectTypeStub		&rots(objectTypeStub(tid));
+		const ObjectUidT	objuid(doInsertObject(*_op, tid, _ridx));
+		
+		(*rots.insert_callback)(_op.ptr(), this, objuid);
+		
+		S::schedule(_op, _schidx);
 		
 		return objuid;
 	}
@@ -195,16 +209,8 @@ public:
 	uint32 uid(const Object &_robj)const;
 	uint32 uid(const IndexT &_idx)const;
 	
-	template <class S>
-	ObjectUidT start(uint _schidx = 0){
-		ObjectUidT objuid(invalid_uid());
-		if(doStart(objuid)){
-			typedef S	SchedulerT;
-			SchedulerT::schedule(ObjectPointer<>(this), _schidx);
-		}
-		return objuid;
-	}
-	void stop(bool _wait = true);
+	virtual void start();
+	virtual void stop(bool _wait = true);
 	/*virtual*/ int execute(ulong _evs, TimeSpec &_rtout);
 	
 	virtual void dynamicExecute(DynamicPointer<> &_dp);
@@ -213,20 +219,17 @@ protected:
 	void insertObject(Object &_ro, const ObjectUidT &_ruid);
 	void eraseObject(const Object &_ro);
 	
-	
-	virtual void doStart();
-	virtual void doStop(bool _wait);
-	
-	template <class O, class S>
-	void registerObjectType(){
-		const uint32	objtpid(objectTypeId<O>());
-		ObjectTypeStub &rts(safe_at(objtpvec, objtpid));
+	template <typename O, class S>
+	static void registerObjectType(S *_ps){
+		const uint32	objtpid(O::staticTypeId());
+		Service			&rs(*static_cast<Service*>(_ps));
+		ObjectTypeStub &rts(safe_at(rs.objtpvec, objtpid));
 		rts.erase_callback = &erase_cbk<O, S>;
 		rts.insert_callback = &insert_cbk<O, S>;
 	}
-	template <class O, class V>
+	template <typename O, typename V>
 	void registerVisitorType(){
-		const uint32	objtpid(objectTypeId<O>());
+		const uint32	objtpid(O::staticTypeId());
 		const uint32	vistpid(V::staticTypeId());
 		int				pos(-1);
 		for(VisitorTypeStubVectorT::const_iterator it(vistpvec.begin()); it != vistpvec.end(); ++it){
@@ -251,22 +254,17 @@ private:
 		if(_tid >= objtpvec.size()) _tid = 0;
 		return objtpvec[_tid];
 	}
-	template <class O>
-	uint objectTypeId(){
-		static const uint v(newObjectTypeId());
-		return v;
-	}
-	ObjectUidT doInsertObject(Object &_ro, uint16 _tid, const IndexT &_ruid);
-	uint newObjectTypeId();
+	ObjectUidT doInsertObject(Object &_ro, uint _tid, const IndexT &_ruid);
 	void doVisit(Object *_po, Visitor &_rv, uint32 _visidx);
 	const Service& operator=(const Service &);
 	bool doSignalAll(ulong _sm);
 	bool doSignalAll(DynamicSharedPointer<Signal> &_rsig);
 	bool doVisit(Visitor &_rv, uint _visidx);
 	bool doVisit(Visitor &_rv, uint _visidx, const ObjectUidT &_ruid);
-	bool doStart(ObjectUidT &_robjuid);
 	//this is called by manager 
 	void invalidateService();
+	void prepare();
+	void unprepare(bool _wait);
 protected:
 	typedef DynamicExecuter<void, Service>	DynamicExecuterT;
 	DynamicExecuterT		de;

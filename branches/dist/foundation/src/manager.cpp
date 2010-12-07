@@ -65,12 +65,24 @@ struct Manager::Data{
 	struct SchedulerTypeStub{
 		SchedulerVectorT	schvec;
 	};
+	struct ServiceStub{
+		ServiceStub():tpid(-1), schcbk(NULL), schidx(-1){}
+		ServicePointerT		ptr;
+		uint				tpid;
+		SchedCbkT			schcbk;
+		uint				schidx;
+	};
+	struct ObjectStub{
+		ObjectStub():tpid(-1), schcbk(NULL), schidx(-1){}
+		ObjectPointerT		ptr;
+		uint				tpid;
+		SchedCbkT			schcbk;
+		uint				schidx;
+	};
 	
-	typedef std::pair<ServicePointerT, uint>	ServicePairT;
-	typedef std::pair<ObjectPointerT, uint>		ObjectPairT;
 	
-	typedef std::vector<ServicePairT>			ServiceVectorT;
-	typedef std::vector<ObjectPairT>			ObjectVectorT;
+	typedef std::vector<ServiceStub>			ServiceVectorT;
+	typedef std::vector<ObjectStub>				ObjectVectorT;
 	typedef std::vector<SelectorBase*>			SelectorVectorT;
 	typedef std::vector<ObjectTypeStub>			ObjectTypeStubVectorT;
 	typedef std::vector<SchedulerTypeStub>		SchedulerTypeStubVectorT;
@@ -111,7 +123,7 @@ Manager::Data::Data(
 }
 //---------------------------------------------------------
 Service& Manager::Data::masterService(){
-	return *svcvec[0].first;
+	return *svcvec.front().ptr;
 }
 //---------------------------------------------------------
 
@@ -149,10 +161,10 @@ Manager::Manager(
 	}
 	d.currentdynamicidx = d.startdynamicidx;
 	d.selvec.push_back(&d.dummysel);
-	d.svcvec.push_back(Data::ServicePairT());
-	d.svcvec.back().first = new Service;
-	d.svcvec.back().first->id(0, 0);
-	//d.svcvec.back().first->insert(d.svcvec.back().first.ptr(), 0);
+	d.svcvec.push_back(Data::ServiceStub());
+	d.svcvec.front().ptr = new Service;
+	d.svcvec.front().ptr->id(0, 0);
+	d.svcvec.front().tpid = Object::staticTypeId();
 	//d.svcvec.back().second = Object::staticTypeId();
 	//TODO: refactor
 	d.svcvec.resize(max_service_count());
@@ -171,7 +183,7 @@ Manager::Manager(
 	delete &d;
 }
 //---------------------------------------------------------
-uint Manager::doStart(Service **_psvctbl, uint _svctblcp){
+void Manager::start(){
 	{
 		Mutex::Locker	lock(d.mtx);
 		bool reenter;
@@ -180,7 +192,7 @@ uint Manager::doStart(Service **_psvctbl, uint _svctblcp){
 			if(d.st == Data::Stopped){
 				d.st = Data::Starting;
 			}else if(d.st == Data::Running){
-				return 0;
+				return;
 			}else if(d.st == Data::Starting){
 				do{
 					d.cnd.wait(d.mtx);
@@ -210,14 +222,41 @@ uint Manager::doStart(Service **_psvctbl, uint _svctblcp){
 			(*sit)->start();
 		}
 	}
+	if(d.svcvec.front().schcbk == NULL){
+		THROW_EXCEPTION("At least one ObjectScheduler must be registered");
+		return;
+	}
+	
+	d.masterService().start();
+	d.masterService().insert(d.svcvec.front().ptr.ptr(), 0);
+	(*d.svcvec.front().schcbk)(d.svcvec.front().schidx, d.svcvec.front().ptr.ptr());
+	
+	
+	for(
+		Data::ServiceVectorT::iterator it(d.svcvec.begin() + 1);
+		it != d.svcvec.end();
+		++it
+	){
+		it->ptr->prepare();
+		d.masterService().insert(it->ptr.ptr(), it - d.svcvec.begin());
+		(*it->schcbk)(it->schidx, it->ptr.ptr());
+	}
+	
+	for(
+		Data::ObjectVectorT::iterator it(d.objvec.begin() + 1);
+		it != d.objvec.end();
+		++it
+	){
+		d.masterService().insert(it->ptr.ptr(), it - d.objvec.begin());
+		(*it->schcbk)(it->schidx, it->ptr.ptr());
+	}
+	
 	doStart();
 	{
 		Mutex::Locker	lock(d.mtx);
 		d.st = Data::Running;
 		d.cnd.broadcast();
 	}
-	_psvctbl[0] = &d.masterService();
-	return 1;
 }
 //---------------------------------------------------------
 void Manager::stop(){
@@ -243,31 +282,41 @@ void Manager::stop(){
 		d.st = Data::Stopping;
 	}
 	
-	d.masterService().stop(false);
+	//d.masterService().stop(false);
 	
-	if(d.svcvec.size() > 1){
-		for(Data::ServiceVectorT::const_iterator it(d.svcvec.begin() + 1); it != d.svcvec.end(); ++it){
-			if(it->first){
-				it->first->stop(false);
-			}
+	for(Data::ServiceVectorT::const_iterator it(d.svcvec.begin() + 1); it != d.svcvec.end(); ++it){
+		if(it->ptr){
+			it->ptr->stop(false);
 		}
+	}
+
+	for(Data::ServiceVectorT::const_iterator it(d.svcvec.begin() + 1); it != d.svcvec.end(); ++it){
+		if(it->ptr){
+			vdbgx(Dbg::fdt, "stopping service "<<(it - d.svcvec.begin()));
+			it->ptr->stop(true);
+			it->ptr->unprepare(false);
+		}
+	}
 	
-		for(Data::ServiceVectorT::const_iterator it(d.svcvec.begin() + 1); it != d.svcvec.end(); ++it){
-			if(it->first){
-				vdbgx(Dbg::fdt, "stopping service "<<(it - d.svcvec.begin()));
-				it->first->stop(true);
-			}
+	for(Data::ServiceVectorT::const_iterator it(d.svcvec.begin() + 1); it != d.svcvec.end(); ++it){
+		if(it->ptr){
+			vdbgx(Dbg::fdt, "unprepare service "<<(it - d.svcvec.begin()));
+			it->ptr->unprepare(true);
+			signal(S_KILL | S_RAISE, static_cast<Object&>(*it->ptr).uid());
+			d.masterService().erase(*it->ptr);
 		}
 	}
 	
 	for(Data::ObjectVectorT::const_iterator it(d.objvec.begin()); it != d.objvec.end(); ++it){
-		if(it->first){
-			//it->first->stop(false);
+		if(it->ptr){
 			stopObject(it - d.objvec.begin());
 		}
 	}
 	
-	d.masterService().stop(true);
+	signal(S_KILL | S_RAISE, static_cast<Object&>(d.masterService()).uid());
+	d.masterService().erase(d.masterService());
+	
+	d.masterService().unprepare(true);
 	
 	//stop all schedulers
 	for(
@@ -310,8 +359,8 @@ void Manager::stop(){
 bool Manager::signal(ulong _sm){
 	bool b = false;
 	for(Data::ServiceVectorT::const_iterator it(d.svcvec.begin()); it != d.svcvec.end(); ++it){
-		if(it->first){
-			b = b || it->first->signal(_sm);
+		if(it->ptr){
+			b = b || it->ptr->signal(_sm);
 		}
 	}
 	return b;
@@ -341,9 +390,9 @@ bool Manager::signal(ulong _sm, IndexT _fullid, uint32 _uid){
 bool Manager::signal(DynamicSharedPointer<Signal> &_rsig){
 	bool b(false);
 	for(Data::ServiceVectorT::const_iterator it(d.svcvec.begin()); it != d.svcvec.end(); ++it){
-		if(it->first){
+		if(it->ptr){
 			DynamicPointer<Signal>	sp(_rsig);
-			b = b || it->first->signal(sp);
+			b = b || it->ptr->signal(sp);
 		}
 	}
 	return b;
@@ -384,26 +433,26 @@ uint32  Manager::uid(const Object &_robj)const{
 //---------------------------------------------------------
 Service& Manager::service(const IndexT &_i)const{
 	cassert(_i < d.svcvec.size());
-	return *d.svcvec[_i].first;
+	return *d.svcvec[_i].ptr;
 }
 //---------------------------------------------------------
 Object& Manager::object(const IndexT &_i)const{
 	cassert(_i < d.objvec.size());
-	return *d.objvec[_i].first;
+	return *d.objvec[_i].ptr;
 }
 //---------------------------------------------------------
 Service* Manager::servicePointer(const IndexT &_ridx)const{
 	if(_ridx < d.svcvec.size()){
-		Data::ServicePairT &rsp(d.svcvec[_ridx]);
-		return rsp.first.ptr();
+		Data::ServiceStub &rsp(d.svcvec[_ridx]);
+		return rsp.ptr.ptr();
 	}
 	return NULL;
 }
 //---------------------------------------------------------
 Object* Manager::objectPointer(const IndexT &_ridx)const{
 	if(_ridx < d.svcvec.size()){
-		Data::ObjectPairT &rop(d.objvec[_ridx]);
-		return rop.first.ptr();
+		Data::ObjectStub &rop(d.objvec[_ridx]);
+		return rop.ptr.ptr();
 	}
 	return NULL;
 }
@@ -488,7 +537,9 @@ uint Manager::newObjectTypeId(){
 //---------------------------------------------------------
 uint Manager::doRegisterScheduler(
 	SchedulerBase *_ps,
-	uint _typeid
+	uint _typeid,
+	uint _objtypeid,
+	SchedCbkT _schcbk
  ){
 	Mutex::Locker	lock(d.mtx);
 	if(d.st != Data::Stopped){
@@ -500,12 +551,19 @@ uint Manager::doRegisterScheduler(
 	
 	rstp.schvec.push_back(_ps);
 	
+	if(d.svcvec.front().schcbk == NULL){
+		d.svcvec.front().schcbk = _schcbk;
+		d.svcvec.front().schidx = 0;
+	}
+	
 	return rstp.schvec.size() - 1;
 }
 //---------------------------------------------------------
 IndexT Manager::doRegisterService(
 	Service *_ps,
-	const IndexT &_idx
+	const IndexT &_idx,
+	SchedCbkT _schcbk,
+	uint _schidx
 ){
 	Mutex::Locker			lock(d.mtx);
 	uint					tpid(_ps->dynamicTypeId());
@@ -521,11 +579,14 @@ IndexT Manager::doRegisterService(
 	
 	if(is_valid_index(_idx)){
 		if(_idx >= d.startdynamicidx){
+			THROW_EXCEPTION_EX("Error: invalid static index for service", _idx);
 			return invalid_uid().first;
 		}
-		Data::ServicePairT &robj(d.svcvec[_idx]);
-		robj.first = _ps;
-		robj.second = tpid;
+		Data::ServiceStub &robj(d.svcvec[_idx]);
+		robj.ptr = _ps;
+		robj.tpid = tpid;
+		robj.schcbk = _schcbk;
+		robj.schidx = _schidx;
 		if(rotps.objidx == -1){
 			rotps.objidx = _idx;
 		}
@@ -533,12 +594,15 @@ IndexT Manager::doRegisterService(
 		return _ps->index();
 	}else{
 		if(d.currentdynamicidx >= max_service_count()){
+			THROW_EXCEPTION_EX("Error: invalid dynamic index for service", d.currentdynamicidx);
 			return invalid_uid().first;
 		}
 		
-		Data::ServicePairT	&robj(d.svcvec[d.currentdynamicidx]);
-		robj.first = _ps;
-		robj.second = tpid;
+		Data::ServiceStub	&robj(d.svcvec[d.currentdynamicidx]);
+		robj.ptr = _ps;
+		robj.tpid = tpid;
+		robj.schcbk = _schcbk;
+		robj.schidx = _schidx;
 		if(rotps.objidx == -1){
 			rotps.objidx = d.currentdynamicidx;
 		}
@@ -550,7 +614,9 @@ IndexT Manager::doRegisterService(
 //---------------------------------------------------------
 IndexT Manager::doRegisterObject(
 	Object *_po,
-	const IndexT &_idx
+	const IndexT &_idx,
+	SchedCbkT _schcbk,
+	uint _schidx
 ){
 	Mutex::Locker			lock(d.mtx);
 	uint					tpid(_po->dynamicTypeId());
@@ -566,12 +632,15 @@ IndexT Manager::doRegisterObject(
 	
 	if(is_valid_index(_idx)){
 		if(_idx >= d.startdynamicidx){
+			THROW_EXCEPTION_EX("Error: invalid static index for object", _idx);
 			return invalid_uid().first;
 		}
 		
-		Data::ObjectPairT &robj(d.objvec[_idx]);
-		robj.first = _po;
-		robj.second = tpid;
+		Data::ObjectStub &robj(d.objvec[_idx]);
+		robj.ptr = _po;
+		robj.tpid = tpid;
+		robj.schcbk = _schcbk;
+		robj.schidx = _schidx;
 		if(rotps.objidx == -1){
 			rotps.objidx = _idx;
 		}
@@ -579,12 +648,15 @@ IndexT Manager::doRegisterObject(
 		return _po->index();
 	}else{
 		if(d.currentdynamicidx >= max_service_count()){
+			THROW_EXCEPTION_EX("Error: invalid dynamic index for service", d.currentdynamicidx);
 			return invalid_uid().first;
 		}
 		
-		Data::ObjectPairT	&robj(d.objvec[d.currentdynamicidx]);
-		robj.first = _po;
-		robj.second = tpid;
+		Data::ObjectStub	&robj(d.objvec[d.currentdynamicidx]);
+		robj.ptr = _po;
+		robj.tpid = tpid;
+		robj.schcbk = _schcbk;
+		robj.schidx = _schidx;
 		if(rotps.objidx == -1){
 			rotps.objidx = d.currentdynamicidx;
 		}
@@ -606,9 +678,9 @@ SchedulerBase* Manager::doGetScheduler(uint _typeid, uint _idx)const{
 //---------------------------------------------------------
 Object* Manager::doGetObject(uint _typeid, const IndexT &_ridx)const{
 	if(_ridx < d.objvec.size()){
-		Data::ObjectPairT	&rop(d.objvec[_ridx]);
-		if(rop.second == _typeid){
-			return rop.first.ptr();
+		Data::ObjectStub	&rop(d.objvec[_ridx]);
+		if(rop.tpid == _typeid){
+			return rop.ptr.ptr();
 		}
 	}
 	return NULL;
@@ -616,12 +688,12 @@ Object* Manager::doGetObject(uint _typeid, const IndexT &_ridx)const{
 //---------------------------------------------------------
 Service* Manager::doGetService(uint _typeid, const IndexT &_ridx)const{
 	if(_ridx < d.svcvec.size()){
-		Data::ServicePairT	&rsp(d.svcvec[_ridx]);
-		if(rsp.second == _typeid){
-			return rsp.first.ptr();
+		Data::ServiceStub	&rsp(d.svcvec[_ridx]);
+		if(rsp.tpid == _typeid){
+			return rsp.ptr.ptr();
 		}
-		if(rsp.first.ptr() && rsp.first->isTypeDynamic(_typeid)){
-			return rsp.first.ptr();
+		if(rsp.ptr.ptr() && rsp.ptr->isTypeDynamic(_typeid)){
+			return rsp.ptr.ptr();
 		}
 	}
 	return NULL;
@@ -631,7 +703,7 @@ Object* Manager::doGetObject(uint _typeid)const{
 	if(_typeid < d.objtpvec.size()){
 		Data::ObjectTypeStub	&rts(d.objtpvec[_typeid]);
 		if(rts.objidx > 0){
-			return d.objvec[rts.objidx].first.ptr();
+			return d.objvec[rts.objidx].ptr.ptr();
 		}
 	}
 	return NULL;
@@ -641,7 +713,7 @@ Service* Manager::doGetService(uint _typeid)const{
 	if(_typeid < d.objtpvec.size()){
 		Data::ObjectTypeStub	&rts(d.objtpvec[_typeid]);
 		if(rts.objidx > 0){
-			return d.svcvec[rts.objidx].first.ptr();
+			return d.svcvec[rts.objidx].ptr.ptr();
 		}
 	}
 	return NULL;
@@ -661,23 +733,12 @@ void Manager::eraseService(Service *_ps){
 /*virtual*/ void Manager::doStop(){
 }
 //---------------------------------------------------------
-Object* Manager::doStartObject(const IndexT &_ridx, ObjectUidT &_robjuid){
-	if(_ridx < d.objvec.size()){
-		Data::ObjectPairT	&rop(d.objvec[_ridx]);
-		if(rop.first){
-			d.masterService().insert(rop.first.ptr(), _ridx);
-			return rop.first.ptr();
-		}
-	}
-	return NULL;
-}
-//---------------------------------------------------------
 void Manager::stopObject(const IndexT &_ridx){
 	if(_ridx < d.objvec.size()){
-		Data::ObjectPairT	&rop(d.objvec[_ridx]);
-		if(rop.first){
-			signal(S_KILL | S_RAISE, rop.first->uid());
-			d.masterService().erase(*rop.first);
+		Data::ObjectStub	&rop(d.objvec[_ridx]);
+		if(rop.tpid){
+			signal(S_KILL | S_RAISE, rop.ptr->uid());
+			d.masterService().erase(*rop.ptr);
 			//rop.first->id(0, _ridx);
 		}
 	}

@@ -55,13 +55,12 @@ struct Service::Data{
 		int _objpermutbts,
 		int _mutrowsbts,
 		int _mutcolsbts
-	):	objcnt(0), crtobjtypeid(0),
+	):	objcnt(0),
 		mtxstore(_objpermutbts, _mutrowsbts, _mutcolsbts){
 		
 	}
 	void popIndex(const IndexT &_idx);
 	IndexT				objcnt;//object count
-	uint16				crtobjtypeid;
 	MutexStoreT			mtxstore;
 	ObjectVectorT		objvec;
 	Uint32QueueT		idxque;
@@ -89,7 +88,7 @@ Service::Service(
 	int _mutcolsbts
 ):d(*(new Data(_objpermutbts, _mutrowsbts, _mutcolsbts))){
 	state(Data::Stopped);
-	registerObjectType<Object, Service>();
+	registerObjectType<Object>(this);
 	registerVisitorType<Object, Visitor>();
 	idbgx(Dbg::fdt, "");
 }
@@ -242,74 +241,11 @@ uint32 Service::uid(const IndexT &_idx)const{
 	return d.objvec[_idx].second;
 }
 //---------------------------------------------------------
-bool Service::doStart(ObjectUidT &_robjuid){
-	{
-		Mutex::Locker	lock(d.mtx);
-		bool reenter;
-		do{
-			reenter = false;
-			if(state() == Data::Running){
-				_robjuid = static_cast<Object*>(this)->uid();
-				return false;
-			}else if(state() == Data::Starting){
-				do{
-					d.cnd.wait(d.mtx);
-				}while(state() == Data::Starting);
-				reenter = true;
-			}else if(state() == Data::Stopping){
-				do{
-					d.cnd.wait(d.mtx);
-				}while(state() == Data::Stopping);
-				reenter = true;
-			}
-		}while(reenter);
-		
-		state(Data::Starting);
-	}
-	_robjuid = m().insertService(this, this->index());
-	{
-		Mutex::Locker	lock(d.mtx);
-		state(Data::Running);
-		d.cnd.broadcast();
-	}
-	return true;
+/*virtual*/ void Service::start(){
+	
 }
 //---------------------------------------------------------
-void Service::stop(bool _wait){
-	Mutex::Locker	lock(d.mtx);
-	bool reenter;
-	do{
-		reenter = false;
-		
-		if(state() == Data::Running){
-			doStop(false);
-			doSignalAll(S_KILL | S_RAISE);
-			state(Data::Stopping);
-			m().signal(S_KILL | S_RAISE, static_cast<Object*>(this)->uid());
-			m().eraseService(this);//necesarily after sending the signal!!!
-		}else if(state() == Data::Starting){
-			reenter = true;
-			do{
-				d.cnd.wait(d.mtx);
-			}while(state() == Data::Starting);
-		}else if(state() >= Data::Stopping){
-			if(_wait){
-				
-			}else{
-				
-			}
-		}
-	}while(reenter);
-	
-	if(!_wait) return;
-	
-	while(d.objcnt){
-		d.objcnd.wait(d.mtx);
-	}
-	
-	while(state() == Data::Stopping){
-		d.cnd.wait(d.mtx);
-	}
+/*virtual*/ void Service::stop(bool _wait){
 }
 //---------------------------------------------------------
 /*virtual*/ int Service::execute(ulong _evs, TimeSpec &_rtout){
@@ -360,14 +296,6 @@ void Service::eraseObject(const Object &_ro){
 	//by default do nothing
 }
 //---------------------------------------------------------
-/*virtual*/ void Service::doStart(){
-	//by default do nothing
-}
-//---------------------------------------------------------
-/*virtual*/ void Service::doStop(bool _wait){
-	//by default do nothing
-}
-//---------------------------------------------------------
 namespace{
 
 	void visit_lock(Mutex &_rm){
@@ -380,7 +308,7 @@ namespace{
 
 }//namespace
 
-ObjectUidT Service::doInsertObject(Object &_ro, uint16 _tid, const IndexT &_ridx){
+ObjectUidT Service::doInsertObject(Object &_ro, uint _tid, const IndexT &_ridx){
 	uint32 u;
 	if(is_invalid_index(_ridx)){
 		if(d.idxque.size()){
@@ -469,16 +397,6 @@ ObjectUidT Service::doInsertObject(Object &_ro, uint16 _tid, const IndexT &_ridx
 			return ObjectUidT(_ro.id(), u);
 		}
 	}
-}
-//---------------------------------------------------------
-uint Service::newObjectTypeId(){
-	uint r;
-	{
-		//Mutex::Locker lock(serviceMutex());
-		r = d.crtobjtypeid;
-		++d.crtobjtypeid;
-	}
-	return r;
 }
 //---------------------------------------------------------
 Object* Service::objectAt(const IndexT &_ridx, uint32 _uid){
@@ -606,6 +524,14 @@ bool Service::doVisit(Visitor &_rv, uint _visidx, const ObjectUidT &_ruid){
 		Service::visit_cbk<Object, Visitor>(pobj, _rv);
 	}
 	return true;
+}
+//---------------------------------------------------------
+void Service::prepare(){
+	
+}
+//---------------------------------------------------------
+void Service::unprepare(bool _wait){
+	
 }
 //---------------------------------------------------------
 }//namespace fundation

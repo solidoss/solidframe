@@ -108,7 +108,7 @@ int main(int argc, char *argv[]){
 		m.registerScheduler(new AioSchedulerT(m));
 		
 		
-		m.registerService(new foundation::Service, firstid);
+		m.registerService<SchedulerT>(new foundation::Service, 0, firstid);
 		//m.registerService(new foundation::Service, secondid);
 		//ipcid = m.registerService(new foundation::ipc::Service(&ipcctrl));
 		//m.registerObject(new ThirdObject(0, 10), thirdid);
@@ -118,18 +118,19 @@ int main(int argc, char *argv[]){
 			foundation::ipc::Service::the().insertTalker(ai.begin());
 		}
 		
-		m.start<SchedulerT>();
+		m.start();
 		
-		m.service(firstid).start<SchedulerT>();
+		m.service(firstid).start();
 		//m.service(secondid).start<SchedulerT>();
 		//m.service(ipcid).start<SchedulerT>(1);
 		//SchedulerT::schedule(foundation::ObjectPointer<>(m.objectPointer(thirdid)), 0);
 		//m.startObject<SchedulerT>(thirdid);
 
 		{
-			ThirdObject	*po(new ThirdObject(10, 1));
-			m.service(firstid).insert(po);
-			SchedulerT::schedule(foundation::ObjectPointer<>(po), 0);
+			//ThirdObject	*po(new ThirdObject(10, 1));
+			foundation::ObjectPointer<ThirdObject>	op(new ThirdObject(10, 1));
+			m.service(firstid).insert<SchedulerT>(op);
+			//SchedulerT::schedule(foundation::ObjectPointer<>(po), 0);
 		}
 		
 		if(false){

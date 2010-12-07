@@ -99,7 +99,7 @@ Service::Data::~Data(){
 }
 
 Service::Service(Service::Controller *_pc, uint32 _keepalivetout):d(*(new Data)){
-	registerObjectType<Talker, Service>();
+	registerObjectType<Talker>(this);
 	//d.maxtkrcnt = 2;//TODO: make it configurable
 	d.keepalivetout = _keepalivetout;
 	d.pc = _pc;

@@ -24,6 +24,7 @@
 
 #include "foundation/common.hpp"
 
+struct B;
 namespace foundation{
 
 class Object;
@@ -42,15 +43,17 @@ public:
 	typedef SO 					ObjectT;
 	typedef ObjectPointer<SO>	ThisT;
 public:
-	ObjectPointer():pobj(NULL){}
-	
-	explicit ObjectPointer(ObjectT *_pobj):pobj(_pobj) {
+	explicit ObjectPointer(ObjectT *_pobj = NULL):pobj(_pobj) {
 		if(_pobj){
 			use(static_cast<Object*>(_pobj));
 		}
 	}
 	
 	ObjectPointer(const ThisT &_pobj):pobj(_pobj.release()){}
+	
+	template <class B>
+	ObjectPointer(const ObjectPointer<B> &_rop):pobj(_rop.release()){
+	}
 	
 	~ObjectPointer(){
 		if(pobj){
