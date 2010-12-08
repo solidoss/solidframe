@@ -111,7 +111,7 @@ class Service: public Dynamic<Service, Object>{
 	ObjectTypeStubVectorT	objtpvec;
 	VisitorTypeStubVectorT	vistpvec;
 public:
-	Service(int _objpermutbts = 6, int _mutrowsbts = 8, int _mutcolsbts = 8);
+	Service(bool _started = true, int _objpermutbts = 6, int _mutrowsbts = 8, int _mutcolsbts = 8);
 	
 	/*virtual*/ ~Service();
 	
@@ -209,8 +209,8 @@ public:
 	uint32 uid(const Object &_robj)const;
 	uint32 uid(const IndexT &_idx)const;
 	
-	virtual void start();
-	virtual void stop(bool _wait = true);
+	int start(bool _wait = true);
+	int stop(bool _wait = true);
 	/*virtual*/ int execute(ulong _evs, TimeSpec &_rtout);
 	
 	virtual void dynamicExecute(DynamicPointer<> &_dp);
@@ -263,8 +263,6 @@ private:
 	bool doVisit(Visitor &_rv, uint _visidx, const ObjectUidT &_ruid);
 	//this is called by manager 
 	void invalidateService();
-	void prepare();
-	void unprepare(bool _wait);
 protected:
 	typedef DynamicExecuter<void, Service>	DynamicExecuterT;
 	DynamicExecuterT		de;

@@ -41,7 +41,8 @@ enum Signals{
 	S_SIG = 4,
 	S_KILL = 1<<8,
 	S_IDLE = 1<<9,
-	S_ERR  = 1<<10
+	S_ERR  = 1<<10,
+	S_STOP = 1<<11,
 };
 
 //! Some events

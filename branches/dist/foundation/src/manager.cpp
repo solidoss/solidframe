@@ -207,6 +207,11 @@ void Manager::start(){
 		}while(reenter);
 	}
 	
+	if(d.svcvec.front().schcbk == NULL){
+		THROW_EXCEPTION("At least one ObjectScheduler must be registered");
+		return;
+	}
+	
 	for(
 		Data::SchedulerTypeStubVectorT::const_iterator it(d.schtpvec.begin());
 		it != d.schtpvec.end();
@@ -222,26 +227,11 @@ void Manager::start(){
 			(*sit)->start();
 		}
 	}
-	if(d.svcvec.front().schcbk == NULL){
-		THROW_EXCEPTION("At least one ObjectScheduler must be registered");
-		return;
-	}
 	
 	d.masterService().start();
 	d.masterService().insert(d.svcvec.front().ptr.ptr(), 0);
 	(*d.svcvec.front().schcbk)(d.svcvec.front().schidx, d.svcvec.front().ptr.ptr());
-	
-	
-	for(
-		Data::ServiceVectorT::iterator it(d.svcvec.begin() + 1);
-		it != d.svcvec.end();
-		++it
-	){
-		it->ptr->prepare();
-		d.masterService().insert(it->ptr.ptr(), it - d.svcvec.begin());
-		(*it->schcbk)(it->schidx, it->ptr.ptr());
-	}
-	
+		
 	for(
 		Data::ObjectVectorT::iterator it(d.objvec.begin() + 1);
 		it != d.objvec.end();
@@ -282,41 +272,43 @@ void Manager::stop(){
 		d.st = Data::Stopping;
 	}
 	
-	//d.masterService().stop(false);
-	
-	for(Data::ServiceVectorT::const_iterator it(d.svcvec.begin() + 1); it != d.svcvec.end(); ++it){
-		if(it->ptr){
-			it->ptr->stop(false);
-		}
-	}
-
-	for(Data::ServiceVectorT::const_iterator it(d.svcvec.begin() + 1); it != d.svcvec.end(); ++it){
-		if(it->ptr){
-			vdbgx(Dbg::fdt, "stopping service "<<(it - d.svcvec.begin()));
-			it->ptr->stop(true);
-			it->ptr->unprepare(false);
-		}
-	}
-	
-	for(Data::ServiceVectorT::const_iterator it(d.svcvec.begin() + 1); it != d.svcvec.end(); ++it){
-		if(it->ptr){
-			vdbgx(Dbg::fdt, "unprepare service "<<(it - d.svcvec.begin()));
-			it->ptr->unprepare(true);
-			signal(S_KILL | S_RAISE, static_cast<Object&>(*it->ptr).uid());
-			d.masterService().erase(*it->ptr);
-		}
-	}
-	
-	for(Data::ObjectVectorT::const_iterator it(d.objvec.begin()); it != d.objvec.end(); ++it){
-		if(it->ptr){
-			stopObject(it - d.objvec.begin());
-		}
-	}
-	
-	signal(S_KILL | S_RAISE, static_cast<Object&>(d.masterService()).uid());
+	d.masterService().stop(false);
 	d.masterService().erase(d.masterService());
+	d.masterService().stop(true);
 	
-	d.masterService().unprepare(true);
+// 	for(Data::ServiceVectorT::const_iterator it(d.svcvec.begin() + 1); it != d.svcvec.end(); ++it){
+// 		if(it->ptr){
+// 			it->ptr->stop(false);
+// 		}
+// 	}
+// 
+// 	for(Data::ServiceVectorT::const_iterator it(d.svcvec.begin() + 1); it != d.svcvec.end(); ++it){
+// 		if(it->ptr){
+// 			vdbgx(Dbg::fdt, "stopping service "<<(it - d.svcvec.begin()));
+// 			it->ptr->stop(true);
+// 			it->ptr->unprepare(false);
+// 		}
+// 	}
+// 	
+// 	for(Data::ServiceVectorT::const_iterator it(d.svcvec.begin() + 1); it != d.svcvec.end(); ++it){
+// 		if(it->ptr){
+// 			vdbgx(Dbg::fdt, "unprepare service "<<(it - d.svcvec.begin()));
+// 			it->ptr->unprepare(true);
+// 			signal(S_KILL | S_RAISE, static_cast<Object&>(*it->ptr).uid());
+// 			d.masterService().erase(*it->ptr);
+// 		}
+// 	}
+// 	
+// 	for(Data::ObjectVectorT::const_iterator it(d.objvec.begin()); it != d.objvec.end(); ++it){
+// 		if(it->ptr){
+// 			stopObject(it - d.objvec.begin());
+// 		}
+// 	}
+// 	
+// 	signal(S_KILL | S_RAISE, static_cast<Object&>(d.masterService()).uid());
+// 	d.masterService().erase(d.masterService());
+// 	
+// 	d.masterService().unprepare(true);
 	
 	//stop all schedulers
 	for(
