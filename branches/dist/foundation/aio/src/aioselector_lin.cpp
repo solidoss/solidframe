@@ -200,6 +200,7 @@ Selector::~Selector(){
 	delete &d;
 }
 int Selector::reserve(ulong _cp){
+	idbgx(Dbg::aio, "aio::Selector "<<(void*)this);
 	cassert(_cp);
 	d.objcp = _cp;
 	d.sockcp = _cp;
@@ -275,17 +276,18 @@ void Selector::unprepare(){
 }
 
 void Selector::raise(uint _pos){
-	idbgx(Dbg::aio, "signal connection: "<<_pos);
 #ifdef UPIPESIGNAL
+	idbgx(Dbg::aio, "signal connection pipe: "<<_pos<<" this "<<(void*)this);
 	write(d.pipefds[1], &_pos, sizeof(uint));
 #else
-	uint64 v;
+	idbgx(Dbg::aio, "signal connection evnt: "<<_pos<<" this "<<(void*)this);
+	uint64 v(1);
 	{
 		Mutex::Locker lock(d.m);
-		v = d.efdv++;
 		d.sigq.push(_pos);
 	}
-	write(d.efd, &v, sizeof(v));
+	int rv = write(d.efd, &v, sizeof(v));
+	cassert(rv == sizeof(v));
 #endif
 }
 
@@ -485,7 +487,9 @@ uint Selector::doReadPipe(){
 			uint pos(d.sigq.front());
 			d.sigq.pop();
 			if(pos){
+				idbgx(Dbg::aio, "signaling object on pos "<<pos);
 				if(pos < d.stubs.size() && (pstub = &d.stubs[pos])->objptr && pstub->objptr->signaled(S_RAISE)){
+					idbgx(Dbg::aio, "signaled object on pos "<<pos);
 					pstub->events |= SIGNALED;
 					if(pstub->state == Stub::OutExecQueue){
 						d.execq.push(pos);
@@ -565,6 +569,7 @@ uint Selector::doAllIo(){
 	const uint	selcnt = d.selcnt;
 	for(uint i = 0; i < selcnt; ++i){
 		d.stub(stubpos, sockpos, d.events[i]);
+		vdbgx(Dbg::aio, "stubpos = "<<stubpos);
 		if(stubpos){
 			cassert(stubpos < d.stubs.size());
 			Stub				&stub(d.stubs[stubpos]);

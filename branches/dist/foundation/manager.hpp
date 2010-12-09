@@ -144,6 +144,8 @@ public:
 		return static_cast<O*>(doGetService(O::staticTypeId()));
 	}
 	
+	void eraseObject(Object &_robj);
+	
 	void stopObject(const IndexT &_idx);
 protected:
 	struct ThisGuard{
@@ -165,6 +167,9 @@ private:
 	//typedef void (*ScheduleCbkT) (uint, Object *);
 	friend class SchedulerBase;
 	friend class Service;
+	friend class ObjectPointerBase;
+	
+	void erase(Object &_robj);
 	
 	void prepareThread(SelectorBase *_ps = NULL);
 	void unprepareThread(SelectorBase *_ps = NULL);

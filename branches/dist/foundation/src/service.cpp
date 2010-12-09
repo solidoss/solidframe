@@ -54,6 +54,12 @@ struct Service::Data{
 	enum ExeStates{
 		ExeStarting,
 		ExeRunning,
+		ExeStopping,
+		ExeStoppingWait,
+		ExeStopped,
+		ExeDying,
+		ExeDyingWait,
+		ExeDie,
 	};
 	typedef std::pair<Object*, uint32>		ObjectPairT;
 	typedef std::deque<ObjectPairT>			ObjectVectorT;
@@ -66,13 +72,14 @@ struct Service::Data{
 		int _objpermutbts,
 		int _mutrowsbts,
 		int _mutcolsbts
-	):	objcnt(0), st(_started ? Starting : Stopped),
+	):	objcnt(0), expcnt(0), st(_started ? Starting : Stopped),
 		mtxstore(_objpermutbts, _mutrowsbts, _mutcolsbts){
 		
 	}
 	void popIndex(const IndexT &_idx);
 	
 	IndexT				objcnt;//object count
+	IndexT				expcnt;
 	int					st;
 	MutexStoreT			mtxstore;
 	ObjectVectorT		objvec;
@@ -100,7 +107,11 @@ Service::Service(
 	int _mutrowsbts,
 	int _mutcolsbts
 ):d(*(new Data(_started, _objpermutbts, _mutrowsbts, _mutcolsbts))){
-	state(Data::Stopped);
+	if(_started){
+		state(Data::ExeStarting);
+	}else{
+		state(Data::Stopped);
+	}
 	registerObjectType<Object>(this);
 	registerVisitorType<Object, Visitor>();
 	idbgx(Dbg::fdt, "");
@@ -131,9 +142,10 @@ void Service::erase(const Object &_robj){
 	rop.first = NULL;
 	++rop.second;
 	--d.objcnt;
-	vdbgx(Dbg::fdt, "erase object "<<d.objcnt);
+	vdbgx(Dbg::fdt, "erase object "<<d.objcnt<<" state "<<d.st);
 	d.idxque.push(oidx);
-	if(d.st == Data::Stopping && d.objcnt == 0){
+	if(d.st == Data::Stopping && d.objcnt == d.expcnt){
+		vdbgx(Dbg::fdt, "signal service");
 		d.st = Data::StoppingDone;
 		m().signal(S_RAISE | S_UPDATE, static_cast<Object*>(this)->uid());
 	}
@@ -275,7 +287,8 @@ uint32 Service::uid(const IndexT &_idx)const{
 			//if(!_wait) return false;
 			do{
 				d.cnd.wait(d.mtx);
-			}while(d.st != Data::Stopped);
+			}while(d.st != Data::Stopped && d.st != Data::Running);
+			if(d.st == Data::Running) reenter = true;
 		}
 	}while(reenter);
 	
@@ -296,6 +309,7 @@ uint32 Service::uid(const IndexT &_idx)const{
 //---------------------------------------------------------
 /*virtual*/ int Service::stop(bool _wait){
 	Mutex::Locker	lock(d.mtx);
+	
 	if(d.st == Data::Stopped){
 		return OK;
 	}else if(d.st < Data::Running){
@@ -310,8 +324,10 @@ uint32 Service::uid(const IndexT &_idx)const{
 	}else if(d.st < Data::Stopped){
 		do{
 			d.cnd.wait(d.mtx);
-		}while(d.st != Data::Stopped);
-		return OK;
+		}while(d.st != Data::Stopped && d.st != Data::Running);
+		if(d.st == Data::Stopped){
+			return OK;
+		}
 	}
 	cassert(d.st == Data::Running);
 	
@@ -329,8 +345,8 @@ uint32 Service::uid(const IndexT &_idx)const{
 }
 //---------------------------------------------------------
 /*virtual*/ int Service::execute(ulong _evs, TimeSpec &_rtout){
+	ulong sm(0);
 	if(signaled()){
-		ulong sm;
 		{
 			Mutex::Locker	lock(Object::mutex());
 			sm = grabSignalMask();
@@ -342,17 +358,15 @@ uint32 Service::uid(const IndexT &_idx)const{
 			de.execute(*this);
 		}
 		if(sm & S_KILL){
-			if(state() < Data::ExeDyingStart){
-				Mutex::Locker	lock(d.mtx);
-				
+			if(state() < Data::ExeDying){
+				state(Data::ExeDying);
 			}
 		}
-		if(sm & S_UPDATE){
-			
-		}
 	}
+	idbgx(Dbg::fdt, ""<<sm);
 	switch(state()){
 		case Data::ExeStarting:
+			idbgx(Dbg::fdt, "ExeStarting");
 			switch(doStart(_evs, _rtout)){
 				case BAD:{
 					Mutex::Locker	lock(d.mtx);
@@ -365,19 +379,128 @@ uint32 Service::uid(const IndexT &_idx)const{
 					state(Data::ExeRunning);
 					d.st = Data::Running;
 					d.cnd.broadcast();
+					//return OK;
 				}	
 				case NOK:
 					return NOK;
 			}
 		case Data::ExeRunning:
-			return doRun(_evs, _rtout);
+			idbgx(Dbg::fdt, "ExeRunning");
+			if(sm & S_UPDATE){
+				if(state() == Data::ExeRunning){
+					Mutex::Locker	lock(d.mtx);
+					if(d.st == Data::Stopping){
+						state(Data::ExeStopping);
+						return OK;
+					}
+				}
+			}
+			switch(doRun(_evs, _rtout)){
+				case BAD:{
+					Mutex::Locker	lock(d.mtx);
+					state(Data::ExeStopping);
+					d.st = Data::Stopping;
+					return OK;
+				}
+				case OK: return OK;
+				case NOK: return NOK;
+			}
 		case Data::ExeStopping:
+			idbgx(Dbg::fdt, "ExeStopping");
+			switch(doStop(_evs, _rtout)){
+				case BAD:
+				case OK:{
+					Mutex::Locker	lock(d.mtx);
+					if(d.objcnt > d.expcnt){
+						state(Data::ExeStoppingWait);
+					}else{
+						d.st = Data::Stopped;
+						state(Data::ExeStopped);
+						d.cnd.broadcast();
+					}
+					//d.st = Data::Stopped;
+					return OK;
+				}
+				case NOK: return NOK;
+			}
+		case Data::ExeStoppingWait:
+			idbgx(Dbg::fdt, "ExeStoppingWait");
+			if(sm & S_UPDATE){
+				Mutex::Locker	lock(d.mtx);
+				if(d.st == Data::StoppingDone){
+					d.st = Data::Stopped;
+					state(Data::ExeStopped);
+					d.cnd.broadcast();
+				}else{
+					cassert(d.st == Data::Stopping);
+				}
+			}
+			return NOK;
+		case Data::ExeStopped:
+			idbgx(Dbg::fdt, "ExeStopped");
+			if(sm & S_UPDATE){
+				Mutex::Locker	lock(d.mtx);
+				if(d.st == Data::Starting){
+					state(Data::ExeStarting);
+					return OK;
+				}
+			}
+			return NOK;
+		case Data::ExeDying:
+			idbgx(Dbg::fdt, "ExeDying");
+			switch(doStop(_evs, _rtout)){
+				case BAD:
+				case OK:{
+					Mutex::Locker	lock(d.mtx);
+					if(d.objcnt > d.expcnt){
+						state(Data::ExeDyingWait);
+						d.st = Data::Stopping;
+					}else{
+						d.st = Data::Stopped;
+						state(Data::ExeDie);
+						d.cnd.broadcast();
+					}
+					return OK;
+				}
+				case NOK: return NOK;
+			}
+		case Data::ExeDyingWait:
+			idbgx(Dbg::fdt, "ExeDyingWait");
+			if(sm & S_UPDATE){
+				Mutex::Locker	lock(d.mtx);
+				if(d.st == Data::StoppingDone){
+					d.st = Data::Stopped;
+					state(Data::ExeDie);
+					d.cnd.broadcast();
+					return OK;
+				}else{
+					cassert(d.st == Data::Stopping);
+				}
+			}
+			return NOK;
+		case Data::ExeDie:
+			idbgx(Dbg::fdt, "ExeDie");
+			m().eraseObject(*this);
+			return BAD;
 			
 	}
 	return NOK;
 }
 //---------------------------------------------------------
-Mutex &Service::serviceMutex()const{
+/*virtual*/ int Service::doStart(ulong _evs, TimeSpec &_rtout){
+	return OK;
+}
+//---------------------------------------------------------
+/*virtual*/ int Service::doRun(ulong _evs, TimeSpec &_rtout){
+	return NOK;
+}
+//---------------------------------------------------------
+/*virtual*/ int Service::doStop(ulong _evs, TimeSpec &_rtout){
+	signal(S_RAISE | S_KILL);
+	return OK;
+}
+//---------------------------------------------------------
+Mutex& Service::serviceMutex()const{
 	return d.mtx;
 }
 //---------------------------------------------------------
@@ -390,6 +513,14 @@ void Service::eraseObject(const Object &_ro){
 	//by default do nothing
 	ObjectUidT objuid(_ro.uid());
 	vdbgx(Dbg::fdt, "erase object "<<compute_service_id(objuid.first)<<' '<<compute_index(objuid.first)<<' '<<objuid.second);
+}
+//---------------------------------------------------------
+void Service::expectedCount(const IndexT &_rcnt){
+	d.expcnt = _rcnt;
+}
+//---------------------------------------------------------
+const IndexT& Service::expectedCount()const{
+	return d.expcnt;
 }
 //---------------------------------------------------------
 /*virtual*/ void Service::dynamicExecute(DynamicPointer<> &_dp){

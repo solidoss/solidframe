@@ -57,6 +57,7 @@ typedef foundation::Scheduler<foundation::ObjectSelector>	SchedulerT;
 
 struct IpcServiceController: foundation::ipc::Service::Controller{
 	void scheduleTalker(foundation::aio::Object *_po){
+		idbg("");
 		foundation::ObjectPointer<foundation::aio::Object> op(_po);
 		AioSchedulerT::schedule(op);
 	}
@@ -109,31 +110,31 @@ int main(int argc, char *argv[]){
 		
 		
 		m.registerService<SchedulerT>(new foundation::Service, 0, firstid);
-		//m.registerService(new foundation::Service, secondid);
-		//ipcid = m.registerService(new foundation::ipc::Service(&ipcctrl));
+		m.registerService<SchedulerT>(new foundation::Service, 0, secondid);
+		ipcid = m.registerService<SchedulerT>(new foundation::ipc::Service(&ipcctrl));
 		//m.registerObject(new ThirdObject(0, 10), thirdid);
 		
-		if(false){
+		m.start();
+		
+		if(true){
 			AddrInfo ai("0.0.0.0", p.start_port, 0, AddrInfo::Inet4, AddrInfo::Datagram);
 			foundation::ipc::Service::the().insertTalker(ai.begin());
 		}
 		
-		m.start();
-		
-		m.service(firstid).start();
+		//m.service(firstid).start();
 		//m.service(secondid).start<SchedulerT>();
 		//m.service(ipcid).start<SchedulerT>(1);
 		//SchedulerT::schedule(foundation::ObjectPointer<>(m.objectPointer(thirdid)), 0);
 		//m.startObject<SchedulerT>(thirdid);
 
-		{
+		if(true){
 			//ThirdObject	*po(new ThirdObject(10, 1));
 			foundation::ObjectPointer<ThirdObject>	op(new ThirdObject(10, 1));
 			m.service(firstid).insert<SchedulerT>(op);
 			//SchedulerT::schedule(foundation::ObjectPointer<>(po), 0);
 		}
 		
-		if(false){
+		if(true){
 			ThirdObject	*po(new ThirdObject(20, 2));
 			m.service(secondid).insert(po);
 			SchedulerT::schedule(foundation::ObjectPointer<>(po), 1);

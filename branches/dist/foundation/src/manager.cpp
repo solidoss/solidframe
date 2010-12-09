@@ -122,6 +122,14 @@ Manager::Data::Data(
 	objtpcnt(1024), schtpcnt(16), schcnt(32), selcnt(_selcnt), st(Stopped){
 }
 //---------------------------------------------------------
+class MasterService: public Dynamic<MasterService, Service>{
+public:
+	MasterService():BaseT(true, 0, 0, 8){}
+	/*virtual*/ int doStop(ulong _evs, TimeSpec &_rtout){
+		expectedCount(1);
+		return Service::doStop(_evs, _rtout);
+	}
+};
 Service& Manager::Data::masterService(){
 	return *svcvec.front().ptr;
 }
@@ -162,7 +170,7 @@ Manager::Manager(
 	d.currentdynamicidx = d.startdynamicidx;
 	d.selvec.push_back(&d.dummysel);
 	d.svcvec.push_back(Data::ServiceStub());
-	d.svcvec.front().ptr = new Service;
+	d.svcvec.front().ptr = new MasterService;
 	d.svcvec.front().ptr->id(0, 0);
 	d.svcvec.front().tpid = Object::staticTypeId();
 	//d.svcvec.back().second = Object::staticTypeId();
@@ -179,6 +187,12 @@ Manager::Manager(
 	d.selvec[0] = NULL;
 	for(Data::SelectorVectorT::const_iterator it(d.selvec.begin()); it != d.selvec.end(); ++it){
 		cassert(*it == NULL);
+	}
+	for(Data::ServiceVectorT::iterator it(d.svcvec.begin()); it != d.svcvec.end(); ++it){
+		delete it->ptr.release();
+	}
+	for(Data::ObjectVectorT::iterator it(d.objvec.begin()); it != d.objvec.end(); ++it){
+		delete it->ptr.release();
 	}
 	delete &d;
 }
@@ -228,15 +242,28 @@ void Manager::start(){
 		}
 	}
 	
-	d.masterService().start();
-	d.masterService().insert(d.svcvec.front().ptr.ptr(), 0);
 	(*d.svcvec.front().schcbk)(d.svcvec.front().schidx, d.svcvec.front().ptr.ptr());
-		
+	
+	d.masterService().start();
+	
+	d.masterService().insert(d.svcvec.front().ptr.ptr(), 0);
+	
+	for(
+		Data::ServiceVectorT::iterator it(d.svcvec.begin() + 1);
+		it != d.svcvec.end();
+		++it
+	){
+		if(!it->ptr) continue;
+		d.masterService().insert(it->ptr.ptr(), it - d.svcvec.begin());
+		(*it->schcbk)(it->schidx, it->ptr.ptr());
+	}
+	
 	for(
 		Data::ObjectVectorT::iterator it(d.objvec.begin() + 1);
 		it != d.objvec.end();
 		++it
 	){
+		if(!it->ptr) continue;
 		d.masterService().insert(it->ptr.ptr(), it - d.objvec.begin());
 		(*it->schcbk)(it->schidx, it->ptr.ptr());
 	}
@@ -272,8 +299,6 @@ void Manager::stop(){
 		d.st = Data::Stopping;
 	}
 	
-	d.masterService().stop(false);
-	d.masterService().erase(d.masterService());
 	d.masterService().stop(true);
 	
 // 	for(Data::ServiceVectorT::const_iterator it(d.svcvec.begin() + 1); it != d.svcvec.end(); ++it){
@@ -346,6 +371,18 @@ void Manager::stop(){
 		d.st = Data::Stopped;
 		d.cnd.broadcast();
 	}
+}
+//---------------------------------------------------------
+void Manager::erase(Object &_robj){
+	IndexT	idx(_robj.id());
+	IndexT	svcidx(compute_service_id(idx));
+	service(svcidx).erase(_robj);
+}
+//---------------------------------------------------------
+void Manager::eraseObject(Object &_robj){
+	IndexT	idx(_robj.id());
+	IndexT	svcidx(compute_service_id(idx));
+	service(svcidx).erase(_robj);
 }
 //---------------------------------------------------------
 bool Manager::signal(ulong _sm){

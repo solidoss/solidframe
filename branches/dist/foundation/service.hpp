@@ -218,6 +218,8 @@ protected:
 	Mutex &serviceMutex()const;
 	void insertObject(Object &_ro, const ObjectUidT &_ruid);
 	void eraseObject(const Object &_ro);
+	void expectedCount(const IndexT &_rcnt);
+	const IndexT& expectedCount()const;
 	
 	template <typename O, class S>
 	static void registerObjectType(S *_ps){
@@ -248,6 +250,9 @@ protected:
 	Mutex& mutex(const IndexT &_ridx);
 	Object* objectAt(const IndexT &_ridx, uint32 _uid);
 	Object* objectAt(const IndexT &_ridx);
+	virtual int doStart(ulong _evs, TimeSpec &_rtout);
+	virtual int doRun(ulong _evs, TimeSpec &_rtout);
+	virtual int doStop(ulong _evs, TimeSpec &_rtout);
 private:
 	friend class Manager;
 	ObjectTypeStub& objectTypeStub(uint _tid){

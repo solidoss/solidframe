@@ -257,6 +257,7 @@ private:
 		mtx.lock();
 		ctrl.unprepareWorker(_rw);
 		--wkrcnt;
+		cassert(wkrcnt >= 0);
 		thrcnd.broadcast();
 		mtx.unlock();
 	}
