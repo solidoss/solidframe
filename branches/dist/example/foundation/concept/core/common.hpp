@@ -26,10 +26,11 @@
 
 #include <string.h>
 
-typedef foundation::RequestUidT	RequestUidT;
+typedef foundation::RequestUidT		RequestUidT;
 typedef foundation::FileUidT		FileUidT;
 typedef foundation::ObjectUidT		ObjectUidT;
 typedef foundation::SignalUidT		SignalUidT;
+typedef foundation::IndexT			IndexT;
 
 struct StrLess{
 	bool operator()(const char* const &_str1, const char* const &_str2)const{

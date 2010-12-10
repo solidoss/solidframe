@@ -25,7 +25,7 @@
 #include "system/socketaddress.hpp"
 #include "utility/streampointer.hpp"
 #include "foundation/signal.hpp"
-#include "object.hpp"
+#include "common.hpp"
 
 class IStream;
 class OStream;
@@ -40,7 +40,7 @@ struct IStreamSignal: Dynamic<IStreamSignal, foundation::Signal>{
 	int execute(DynamicPointer<Signal> &_rthis_ptr, uint32 _evs, foundation::SignalExecuter&, const SignalUidT &, TimeSpec &);
 	StreamPointer<IStream>	sptr;
 	FileUidT				fileuid;
-	RequestUidT			requid;
+	RequestUidT				requid;
 };
 
 //!A signal for sending ostreams from the fileManager
@@ -49,7 +49,7 @@ struct OStreamSignal: Dynamic<OStreamSignal, foundation::Signal>{
 	int execute(DynamicPointer<Signal> &_rthis_ptr, uint32 _evs, foundation::SignalExecuter&, const SignalUidT &, TimeSpec &);
 	StreamPointer<OStream>	sptr;
 	FileUidT				fileuid;
-	RequestUidT			requid;
+	RequestUidT				requid;
 };
 
 
@@ -59,7 +59,7 @@ struct IOStreamSignal: Dynamic<IOStreamSignal, foundation::Signal>{
 	int execute(DynamicPointer<Signal> &_rthis_ptr, uint32 _evs, foundation::SignalExecuter&, const SignalUidT &, TimeSpec &);
 	StreamPointer<IOStream>	sptr;
 	FileUidT				fileuid;
-	RequestUidT			requid;
+	RequestUidT				requid;
 };
 
 
@@ -68,7 +68,7 @@ struct StreamErrorSignal: Dynamic<StreamErrorSignal, foundation::Signal>{
 	StreamErrorSignal(int _errid, const RequestUidT &_requid);
 	int execute(DynamicPointer<Signal> &_rthis_ptr, uint32 _evs, foundation::SignalExecuter&, const SignalUidT &, TimeSpec &);
 	int				errid;
-	RequestUidT	requid;
+	RequestUidT		requid;
 };
 
 struct AddrInfoSignal: Dynamic<AddrInfoSignal, foundation::Signal>{

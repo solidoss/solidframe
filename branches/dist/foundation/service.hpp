@@ -111,6 +111,7 @@ class Service: public Dynamic<Service, Object>{
 	ObjectTypeStubVectorT	objtpvec;
 	VisitorTypeStubVectorT	vistpvec;
 public:
+	static void dynamicRegister();
 	Service(bool _started = true, int _objpermutbts = 6, int _mutrowsbts = 8, int _mutcolsbts = 8);
 	
 	/*virtual*/ ~Service();

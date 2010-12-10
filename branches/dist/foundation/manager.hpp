@@ -77,7 +77,7 @@ public:
 	uint32  uid(const Object &_robj)const;
 	
 	template<class T>
-	typename T::ServiceT& service(const T &_robj){
+	typename T::ServiceT& service(const T &_robj)const{
 		return static_cast<typename T::ServiceT&>(service(_robj.serviceid()));
 	}
 	
@@ -97,7 +97,7 @@ public:
 	}
 	
 	template <class S>
-	S* scheduler(uint _id){
+	S* scheduler(uint _id)const{
 		return static_cast<S*>(doGetScheduler(schedulerTypeId<S>(), _id));
 	}
 	
@@ -147,6 +147,9 @@ public:
 	void eraseObject(Object &_robj);
 	
 	void stopObject(const IndexT &_idx);
+	
+	ObjectUidT serviceUid(const IndexT &_idx);
+	ObjectUidT objectUid(const IndexT &_idx);
 protected:
 	struct ThisGuard{
 		ThisGuard(Manager *_pm);
@@ -177,7 +180,7 @@ private:
 	void prepareThis();
 	void unprepareThis();
 	
-	uint newSchedulerTypeId();
+	uint newSchedulerTypeId()const;
 	uint newServiceTypeId();
 	uint newObjectTypeId();
 	
@@ -195,7 +198,7 @@ private:
 	uint doStart(Service **_psvctbl, uint _svctblcp); 
 	
 	template <class O>
-	uint schedulerTypeId(){
+	uint schedulerTypeId()const{
 		static const uint v(newSchedulerTypeId());
 		return v;
 	}

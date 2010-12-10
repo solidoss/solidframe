@@ -1,5 +1,5 @@
-#include "example/foundation/core/signals.hpp"
-#include "example/foundation/core/manager.hpp"
+#include "example/foundation/concept/core/signals.hpp"
+#include "example/foundation/concept/core/manager.hpp"
 #include "foundation/signalexecuter.hpp"
 #include "utility/iostream.hpp"
 #include "system/debug.hpp"

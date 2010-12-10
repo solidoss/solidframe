@@ -34,23 +34,19 @@ namespace concept{
 Listener::Listener(
 	const SocketDevice &_rsd,
 	foundation::aio::openssl::Context *_pctx
-):foundation::aio::SingleObject(_rsd), pctx(_pctx){
+):BaseT(_rsd), pctx(_pctx){
 	state(0);
 }
 
 Listener::~Listener(){
-	concept::Manager &rm = concept::Manager::the();
-	rm.service(*this).removeListener(*this);
 }
 
 int Listener::execute(ulong, TimeSpec&){
 	idbg("here");
-	Manager &rm = Manager::the();
-	Service	&rsrvc = rm.service(*this);
 	cassert(this->socketOk());
 	if(signaled()){
 		{
-		Mutex::Locker	lock(rm.mutex(*this));
+		Mutex::Locker	lock(this->mutex());
 		ulong sm = this->grabSignalMask();
 		if(sm & foundation::S_KILL) return BAD;
 		}
@@ -70,9 +66,9 @@ int Listener::execute(ulong, TimeSpec&){
 		cassert(sd.ok());
 		//TODO: one may do some filtering on sd based on sd.remoteAddress()
 		if(pctx.get()){
-			rsrvc.insertConnection(sd, pctx.get(), true);
+			m().service(*this).insertConnection(sd, pctx.get(), true);
 		}else{
-			rsrvc.insertConnection(sd);
+			m().service(*this).insertConnection(sd);
 		}
 	}
 	return OK;

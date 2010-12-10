@@ -19,8 +19,8 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef TESTAIOLISTENER_HPP
-#define TESTAIOLISTENER_HPP
+#ifndef EXAMPLE_CONCEPT_AIO_LISTENER_HPP
+#define EXAMPLE_CONCEPT_AIO_LISTENER_HPP
 
 #include "foundation/aio/aiosingleobject.hpp"
 #include "system/socketdevice.hpp"
@@ -38,7 +38,7 @@ namespace concept{
 
 class Service;
 //! A simple listener
-class Listener: public foundation::aio::SingleObject{
+class Listener: public Dynamic<Listener, foundation::aio::SingleObject>{
 public:
 	typedef Service		ServiceT;
 	Listener(const SocketDevice &_rsd, foundation::aio::openssl::Context *_pctx = NULL);

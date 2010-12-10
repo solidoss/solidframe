@@ -38,44 +38,20 @@ namespace concept{
 
 
 /*static*/ void Service::dynamicRegister(){
-	DynamicReceiverT::add<AddrInfoSignal, Service>();
+	BaseT::dynamicRegister();
+	DynamicExecuterT::registerDynamic<AddrInfoSignal, Service>();
 }
 
 static const DynamicRegisterer<Service>	dre;
 
-
-int Service::insertTalker(
-	const AddrInfoIterator &_rai,
-	const char *_node,
-	const char *_svc
-){
-	
-	return BAD;
+Service::Service(){
+	registerObjectType<Listener>(this);
 }
 
-int Service::insertConnection(
-	const AddrInfoIterator &_rai,
-	const char *_node,
-	const char *_svc
-){	
-	return BAD;
+Service::~Service(){
 }
 
-int Service::insertConnection(
-	const SocketDevice &_rsd,
-	foundation::aio::openssl::Context *_pctx,
-	bool _secure
-){	
-	cassert(false);
-	return BAD;
-}
-
-int Service::dynamicExecuteDefault(DynamicPointer<> &_dp){
-	wdbg("Received unknown signal on ipcservice");
-	return BAD;
-}
-
-int Service::dynamicExecute(DynamicPointer<AddrInfoSignal> &_rsig){
+void Service::dynamicExecute(DynamicPointer<AddrInfoSignal> &_rsig){
 	idbg(_rsig->id);
 	int rv;
 	switch(_rsig->id){
@@ -102,60 +78,17 @@ int Service::dynamicExecute(DynamicPointer<AddrInfoSignal> &_rsig){
 		default:
 			cassert(false);
 	}
-	return rv;
 }
 
-
-/*virtual*/ int Service::signal(DynamicPointer<foundation::Signal> &_sig){
-	if(this->state() < 0){
-		_sig.clear();
-		return 0;//no reason to raise the pool thread!!
-	}
-	dr.push(DynamicPointer<>(_sig));
-	return Object::signal(fdt::S_SIG | fdt::S_RAISE);
-}
-
-/*
-	A service is also an object and it can do something.
-	Here's what it does by default.
+void Service::insertObject(Listener &_ro, const ObjectUidT &_ruid){
 	
-*/
-int Service::execute(ulong _sig, TimeSpec &_rtout){
-	idbg("serviceexec");
-	if(signaled()){
-		ulong sm;
-		{
-			Mutex::Locker	lock(*mutex());
-			sm = grabSignalMask(1);
-			if(sm & fdt::S_SIG){//we have signals
-				dr.prepareExecute();
-			}
-		}
-		if(sm & fdt::S_SIG){//we've grabed signals, execute them
-			while(dr.hasCurrent()){
-				dr.executeCurrent(*this);
-				dr.next();
-			}
-		}
-		if(sm & fdt::S_KILL){
-			idbgx(Dbg::ipc, "killing service "<<this->id());
-			this->stop(true);
-			Manager::the().removeService(static_cast<concept::Service*>(this));
-			return BAD;
-		}
-	}
-	return NOK;
 }
 
-Service::~Service(){
+void Service::eraseObject(const Listener &_ro){
+	
 }
 
-void Service::removeListener(Listener &_rlis){
-	this->remove(_rlis);
-}
-
-
-int Service::insertListener(
+bool Service::insertListener(
 	const AddrInfoIterator &_rai,
 	bool _secure
 ){
@@ -163,27 +96,55 @@ int Service::insertListener(
 	sd.create(_rai);
 	sd.makeNonBlocking();
 	sd.prepareAccept(_rai, 100);
-	if(!sd.ok())
-		return BAD;
+	if(!sd.ok()){
+		return false;
+	}
 	
 	foundation::aio::openssl::Context *pctx = NULL;
 	if(_secure){
 		pctx = foundation::aio::openssl::Context::create();
 	}
 	if(pctx){
-		const char *pcertpath = OSSL_SOURCE_PATH"ssl_/certs/A-server.pem";
+		const char *pcertpath(OSSL_SOURCE_PATH"ssl_/certs/A-server.pem");
+		
 		pctx->loadCertificateFile(pcertpath);
 		pctx->loadPrivateKeyFile(pcertpath);
 	}
 	
-	Listener *plis = new Listener(sd, pctx);
+	fdt::ObjectPointer<Listener> lisptr(new Listener(sd, pctx));
 	
-	if(this->insert(*plis, this->index())){
-		delete plis;
-		return BAD;
-	}	
-	Manager::the().pushJob(static_cast<fdt::aio::Object*>(plis));
-	return OK;
+	insert<AioSchedulerT>(lisptr, 1, this->index());
+		
+	return true;
 }
+
+
+bool Service::insertTalker(
+	const AddrInfoIterator &_rai,
+	const char *_node,
+	const char *_svc
+){
+	
+	return BAD;
+}
+
+bool Service::insertConnection(
+	const AddrInfoIterator &_rai,
+	const char *_node,
+	const char *_svc
+){	
+	return BAD;
+}
+
+bool Service::insertConnection(
+	const SocketDevice &_rsd,
+	foundation::aio::openssl::Context *_pctx,
+	bool _secure
+){	
+	cassert(false);
+	return BAD;
+}
+
+
 
 }//namespace alpha

@@ -97,7 +97,7 @@ struct Manager::Data{
 	uint						currentservicecount;
 	uint						currentobjectcount;
 	uint						currentselectoridx;
-	uint						currentschedulertypeid;
+	mutable uint				currentschedulertypeid;
 	uint						currentobjecttypeid;
 	const uint					objtpcnt;
 	const uint					schtpcnt;
@@ -300,40 +300,6 @@ void Manager::stop(){
 	}
 	
 	d.masterService().stop(true);
-	
-// 	for(Data::ServiceVectorT::const_iterator it(d.svcvec.begin() + 1); it != d.svcvec.end(); ++it){
-// 		if(it->ptr){
-// 			it->ptr->stop(false);
-// 		}
-// 	}
-// 
-// 	for(Data::ServiceVectorT::const_iterator it(d.svcvec.begin() + 1); it != d.svcvec.end(); ++it){
-// 		if(it->ptr){
-// 			vdbgx(Dbg::fdt, "stopping service "<<(it - d.svcvec.begin()));
-// 			it->ptr->stop(true);
-// 			it->ptr->unprepare(false);
-// 		}
-// 	}
-// 	
-// 	for(Data::ServiceVectorT::const_iterator it(d.svcvec.begin() + 1); it != d.svcvec.end(); ++it){
-// 		if(it->ptr){
-// 			vdbgx(Dbg::fdt, "unprepare service "<<(it - d.svcvec.begin()));
-// 			it->ptr->unprepare(true);
-// 			signal(S_KILL | S_RAISE, static_cast<Object&>(*it->ptr).uid());
-// 			d.masterService().erase(*it->ptr);
-// 		}
-// 	}
-// 	
-// 	for(Data::ObjectVectorT::const_iterator it(d.objvec.begin()); it != d.objvec.end(); ++it){
-// 		if(it->ptr){
-// 			stopObject(it - d.objvec.begin());
-// 		}
-// 	}
-// 	
-// 	signal(S_KILL | S_RAISE, static_cast<Object&>(d.masterService()).uid());
-// 	d.masterService().erase(d.masterService());
-// 	
-// 	d.masterService().unprepare(true);
 	
 	//stop all schedulers
 	for(
@@ -548,7 +514,7 @@ void Manager::unprepareThis(){
 #endif
 }
 //---------------------------------------------------------
-uint Manager::newSchedulerTypeId(){
+uint Manager::newSchedulerTypeId()const{
 	Mutex::Locker	lock(d.mtx);
 	++d.currentschedulertypeid;
 	return d.currentschedulertypeid;
@@ -711,6 +677,9 @@ Object* Manager::doGetObject(uint _typeid, const IndexT &_ridx)const{
 		if(rop.tpid == _typeid){
 			return rop.ptr.ptr();
 		}
+		if(rop.ptr.ptr() && rop.ptr->isTypeDynamic(_typeid)){
+			return rop.ptr.ptr();
+		}
 	}
 	return NULL;
 }
@@ -771,6 +740,14 @@ void Manager::stopObject(const IndexT &_ridx){
 			//rop.first->id(0, _ridx);
 		}
 	}
+}
+//---------------------------------------------------------
+ObjectUidT Manager::serviceUid(const IndexT &_idx){
+	return make_object_uid(0, _idx, 0);
+}
+//---------------------------------------------------------
+ObjectUidT Manager::objectUid(const IndexT &_idx){
+	return make_object_uid(0, _idx, 0);
 }
 //---------------------------------------------------------
 Manager::ThisGuard::ThisGuard(Manager *_pm){

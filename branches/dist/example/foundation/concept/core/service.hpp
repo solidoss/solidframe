@@ -47,8 +47,7 @@ class Listener;
 class Talker;
 
 
-class Service: public foundation::Service{
-	typedef DynamicReceiver<int, Service>	DynamicReceiverT;
+class Service: public Dynamic<Service, foundation::Service>{
 public:
 	enum{
 		AddListener = 0,
@@ -60,42 +59,34 @@ public:
 	
 	static void dynamicRegister();
 	
-	Service(){}
+	Service();
 	~Service();
 	
-	/*virtual*/ int signal(DynamicPointer<foundation::Signal> &_sig);
-	
-	int dynamicExecuteDefault(DynamicPointer<> &_dp);
-	int dynamicExecute(DynamicPointer<AddrInfoSignal> &_rsig);
-	
-	/*virtual*/ int execute(ulong _evs, TimeSpec &_rtout);
-	
+	void dynamicExecute(DynamicPointer<AddrInfoSignal> &_rsig);
+	void insertObject(Listener &_ro, const ObjectUidT &_ruid);
+	void eraseObject(const Listener &_ro);
 protected:
 	friend class Listener;
-	int insertListener(
+	bool insertListener(
 		const AddrInfoIterator &_rai,
 		bool _secure = false
 	);
-	virtual int insertConnection(
+	virtual bool insertConnection(
 		const SocketDevice &_rsd,
 		foundation::aio::openssl::Context *_pctx = NULL,
 		bool _secure = false
 	);
 	
-	virtual int insertTalker(
+	virtual bool insertTalker(
 		const AddrInfoIterator &_rai,
 		const char *_node,
 		const char *_svc
 	);
-	virtual int insertConnection(
+	virtual bool insertConnection(
 		const AddrInfoIterator &_rai,
 		const char *_node,
 		const char *_svc
 	);
-private:
-	void removeListener(Listener &);
-private:
-	DynamicReceiverT		dr;
 };
 
 }//namespace concept

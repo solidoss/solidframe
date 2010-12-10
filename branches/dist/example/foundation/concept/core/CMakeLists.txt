@@ -13,14 +13,10 @@ set_source_files_properties(src/service.cpp COMPILE_FLAGS -DOSSL_SOURCE_PATH='"$
 set(Headers
 	signals.hpp
 	common.hpp
-	connection.hpp
 	listener.hpp
 	manager.hpp
-	object.hpp
 	service.hpp
-	talker.hpp
 	tstring.hpp
-	visitor.hpp
 )
 
 set(Includes

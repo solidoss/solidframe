@@ -4,11 +4,11 @@ add_executable (concept src/concept.cpp)
 #set_target_properties(test PROPERTIES COMPILE_FLAGS "-DUDEBUG")
 
 target_link_libraries (concept
-	concept_echo
-	concept_beta
-	concept_proxy
+# 	concept_echo
+# 	concept_beta
+#	concept_proxy
 	concept_alpha
-	concept_gamma
+# 	concept_gamma
 	concept_core
 	foundation_core
 	foundation_ipc

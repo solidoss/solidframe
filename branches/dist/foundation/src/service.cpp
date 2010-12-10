@@ -101,6 +101,9 @@ void Service::Data::popIndex(const IndexT &_idx){
 	cassert(false);
 }
 //---------------------------------------------------------
+/*static*/ void Service::dynamicRegister(){
+	
+}
 Service::Service(
 	bool _started,
 	int _objpermutbts,

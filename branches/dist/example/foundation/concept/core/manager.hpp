@@ -19,10 +19,13 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef TESTMANAGER_HPP
-#define TESTMANAGER_HPP
+#ifndef EXAMPLE_CONCEPT_MANAGER_HPP
+#define EXAMPLE_CONCEPT_MANAGER_HPP
 
 #include "foundation/manager.hpp"
+#include "foundation/scheduler.hpp"
+#include "foundation/aio/aioselector.hpp"
+#include "foundation/objectselector.hpp"
 #include "common.hpp"
 
 
@@ -38,10 +41,9 @@ class Manager;
 
 namespace concept{
 
-class Service;
-class Visitor;
-class SignalExecuter;
-struct FileManagerController;
+typedef foundation::Scheduler<foundation::aio::Selector>	AioSchedulerT;
+typedef foundation::Scheduler<foundation::ObjectSelector>	SchedulerT;
+
 
 //! A proof of concept server
 /*!
@@ -58,59 +60,29 @@ public:
 	
 	~Manager();
 	
-	//! Overwrite the foundation::Manager::the to give access to the extended interface
 	static Manager& the(){return static_cast<Manager&>(foundation::Manager::the());}
 	
-	//! Starts a specific service or all services
-	/*!
-		\param _which If not null it represents the name of the service
-	*/
-	int start(const char *_which = NULL);
+	template <typename O>
+	typename O::ServiceT & service(O &_ro){
+		return static_cast<typename O::ServiceT&>(foundation::Manager::service(_ro.serviceId()));
+	}
 	
-	//! Stops a specific service or all services
-	/*!
-		\param _which If not null it represents the name of the service
-	*/
-	int stop(const char *_which = NULL);
+	void signalService(const IndexT &_ridx, DynamicPointer<foundation::Signal> &_rsig);
 	
-	//! Registers a service given its name and a pointer to a service.
-	int insertService(const char* _nm, Service* _psrvc);
+	ObjectUidT readSignalExecuterUid()const;
 	
-	int signalService(const char *_nm, DynamicPointer<foundation::Signal> &_rsig);
+	ObjectUidT writeSignalExecuterUid()const;
 	
-	//! Get the id of the signal executer specialized for reading
-	void readSignalExecuterUid(ObjectUidT &_ruid);
-	
-	//! Get the id of the signal executer specialized for writing
-	void writeSignalExecuterUid(ObjectUidT &_ruid);
-	
-	//! Removes a service
-	void removeService(Service *_psrvc);
-	void removeService(foundation::Service *_psrvc);
-	
-	//! Visit all services
-	int visitService(const char* _nm, Visitor &_roi);
-	
-	int insertIpcTalker(
-		const AddrInfoIterator &_rai,
-		const char *_node = NULL,
-		const char *_svc = NULL
-	);
-	
-	//! Pushes an object into a specific pool.
-	template <class J>
-	void pushJob(J *_pj, int _pos = 0);
-	
-	foundation::ipc::Service 	&ipc();
-	foundation::file::Manager	&fileManager();
+	foundation::ipc::Service 	&ipc()const;
+	foundation::file::Manager	&fileManager()const;
 private:
-	friend struct FileManagerController;
-	void removeFileManager();
-private:
-	friend class SignalExecuter;
 	struct Data;
 	Data	&d;
 };
+
+inline Manager& m(){
+	return Manager::the();
+}
 
 }//namespace concept
 #endif

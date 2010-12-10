@@ -92,6 +92,12 @@ public:
 	//! Get the associated mutex
 	Mutex& mutex()const;
 	
+	//! Get the id of the parent service
+	IndexT serviceId()const;
+	
+	//! Get the index of the object within service from an objectid
+	IndexT index()const;
+	
 	/**
 	 * Returns true if the signal should raise the object ASAP
 	 * \param _smask The signal bitmask
@@ -121,13 +127,6 @@ protected:
 	
 	//! Virtual destructor
 	virtual ~Object();//only objptr base can destroy an object
-	
-	//getters:
-	//! Get the id of the parent service
-	IndexT serviceId()const;
-	
-	//! Get the index of the object within service from an objectid
-	IndexT index()const;
 	
 	//! Assigns the object to the current thread
 	/*!

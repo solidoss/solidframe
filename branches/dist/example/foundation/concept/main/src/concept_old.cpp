@@ -136,8 +136,6 @@ struct AddrInfoSignal: concept::AddrInfoSignal{
 
 bool parseArguments(Params &_par, int argc, char *argv[]);
 
-void insertListener(SignalResultWaiter &_rw, const char *_name, IndexT _idx, const char *_addr, int _port, bool _secure);
-
 int main(int argc, char* argv[]){
 	signal(SIGPIPE, SIG_IGN);
 	
@@ -211,24 +209,191 @@ int main(int argc, char* argv[]){
 		SignalResultWaiter	rw;
 		int 				rv;
 		
-		const IndexT alphaidx = m.registerService<concept::SchedulerT>(concept::alpha::Service::create());
-		
+		if(false){// create and register the echo service
+			concept::Service* psrvc = concept::echo::Service::create();
+			tm.insertService("echo", psrvc);
+			
+			{//add a new listener
+				int port = p.start_port + 111;
+				
+				concept::AddrInfoSignal *psig(new AddrInfoSignal(concept::Service::AddListener, rw));
+			
+				psig->init("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Stream);
+				DynamicPointer<foundation::Signal> dp(psig);
+				rw.prepare();
+				tm.signalService("echo", dp);
+				switch((rv = rw.wait())){
+					case -2:
+						cout<<"[Echo] No such service"<<endl;
+						break;
+					case OK:
+						cout<<"[Echo] Added listener on port "<<port<<endl;
+						break;
+					default:
+						cout<<"[Echo] Failed adding listener on port "<<port<<" rv = "<<rv<<endl;
+				}
+			}
+			{//add a new talker
+				int port = p.start_port + 112;
+				concept::AddrInfoSignal *psig(new AddrInfoSignal(concept::Service::AddTalker, rw));
+			
+				psig->init("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Datagram);
+				DynamicPointer<foundation::Signal> dp(psig);
+				rw.prepare();
+				tm.signalService("echo", dp);
+				switch((rv = rw.wait())){
+					case -2:
+						cout<<"[Echo] No such service"<<endl;
+						break;
+					case OK:
+						cout<<"[Echo] Added talker on port "<<port<<endl;
+						break;
+					default:
+						cout<<"[Echo] Failed adding talker on port "<<port<<" rv = "<<rv<<endl;
+				}
+			}
+		}
+		if(true){//creates and registers a new beta service
+			concept::Service* psrvc = concept::beta::Service::create();
+			tm.insertService("beta", psrvc);
+			int port = p.start_port + 113;
+			concept::AddrInfoSignal *psig(new AddrInfoSignal(concept::Service::AddTalker, rw));
+			
+			psig->init("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Datagram);
+			DynamicPointer<foundation::Signal> dp(psig);
+			rw.prepare();
+			tm.signalService("beta", dp);
+			switch((rv = rw.wait())){
+				case -2:
+					cout<<"[Beta] No such service"<<endl;
+					break;
+				case OK:
+					cout<<"[Beta] Added talker on port "<<port<<endl;
+					break;
+				default:
+					cout<<"[Beta] Failed adding talker on port "<<port<<" rv = "<<rv<<endl;
+			}
+		}
 		if(true){//creates and registers a new alpha service
-			insertListener(rw, "alpha", alphaidx, "0.0.0.0", p.start_port + 114, false);
-			insertListener(rw, "alpha", alphaidx, "0.0.0.0", p.start_port + 124, true);
+			concept::Service* psrvc = concept::alpha::Service::create(tm);
+			tm.insertService("alpha", psrvc);
+			{
+				int port = p.start_port + 114;
+				concept::AddrInfoSignal *psig(new AddrInfoSignal(concept::Service::AddListener, rw));
+			
+				psig->init("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Stream);
+				DynamicPointer<foundation::Signal> dp(psig);
+				rw.prepare();
+				tm.signalService("alpha", dp);
+				switch((rv = rw.wait())){
+					case -2:
+						cout<<"[Alpha] No such service"<<endl;
+						break;
+					case OK:
+						cout<<"[Alpha] Added listener on port "<<port<<endl;
+						break;
+					default:
+						cout<<"[Alpha] Failed adding listener on port "<<port<<" rv = "<<rv<<endl;
+				}
+			}
+			{
+				int port = p.start_port + 124;
+				concept::AddrInfoSignal *psig(new AddrInfoSignal(concept::Service::AddSslListener, rw));
+			
+				psig->init("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Stream);
+				DynamicPointer<foundation::Signal> dp(psig);
+				rw.prepare();
+				tm.signalService("alpha", dp);
+				switch((rv = rw.wait())){
+					case -2:
+						cout<<"[Alpha] No such service"<<endl;
+						break;
+					case OK:
+						cout<<"[Alpha] Added ssl listener on port "<<port<<endl;
+						break;
+					default:
+						cout<<"[Alpha] Failed adding ssl listener on port "<<port<<" rv = "<<rv<<endl;
+				}
+			}
+		}
+		if(true){// create and register the proxy service
+			concept::Service* psrvc = concept::proxy::Service::create();
+			tm.insertService("proxy", psrvc);
+			
+			{//add a new listener
+				int port = p.start_port + 115;
+				concept::AddrInfoSignal *psig(new AddrInfoSignal(concept::Service::AddListener, rw));
+			
+				psig->init("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Stream);
+				DynamicPointer<foundation::Signal> dp(psig);
+				rw.prepare();
+				tm.signalService("proxy", dp);
+				switch((rv = rw.wait())){
+					case -2:
+						cout<<"[Proxy] No such service"<<endl;
+						break;
+					case OK:
+						cout<<"[Proxy] Added listener on port "<<port<<endl;
+						break;
+					default:
+						cout<<"[Proxy] Failed adding listener on port "<<port<<" rv = "<<rv<<endl;
+				}
+			}
 		}
 		
+		if(true){// create and register the gamma service
+			concept::Service* psrvc = concept::gamma::Service::create();
+			tm.insertService("gamma", psrvc);
+			
+			{//add a new listener
+				int port = p.start_port + 125;
+				concept::AddrInfoSignal *psig(new AddrInfoSignal(concept::Service::AddListener, rw));
+			
+				psig->init("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Stream);
+				DynamicPointer<foundation::Signal> dp(psig);
+				rw.prepare();
+				tm.signalService("gamma", dp);
+				switch((rv = rw.wait())){
+					case -2:
+						cout<<"[Gamma] No such service"<<endl;
+						break;
+					case OK:
+						cout<<"[Gamma] Added listener on port "<<port<<endl;
+						break;
+					default:
+						cout<<"[Gamma] Failed adding listener on port "<<port<<" rv = "<<rv<<endl;
+				}
+			}
+		}
+		
+		if(false){//adds the base ipc talker using AddrInfoSignal - this is not the recomended way!!! See below
+			int port = p.start_port + 222;
+			concept::AddrInfoSignal *psig(new AddrInfoSignal(concept::Service::AddTalker, rw));
+			
+			psig->init("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Datagram);
+			DynamicPointer<foundation::Signal> dp(psig);
+			rw.prepare();
+			tm.signalService("ipc", dp);
+			switch((rv = rw.wait())){
+				case -2:
+					cout<<"[ipc] No such service"<<endl;
+					break;
+				case OK:
+					cout<<"[ipc] Added talker on port "<<port<<endl;
+					break;
+				default:
+					cout<<"[ipc] Failed adding talker on port "<<port<<" rv = "<<rv<<endl;
+			}
+		}
 		if(true){
 			int port = p.start_port + 222;
 			AddrInfo ai("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Datagram);
-			if(!ai.empty() && !(rv = foundation::ipc::Service::the().insertTalker(ai.begin()))){
+			if(!ai.empty() && !(rv = tm.insertIpcTalker(ai.begin()))){
 				cout<<"[ipc] Added talker on port "<<port<<endl;
 			}else{
 				cout<<"[ipc] Failed adding talker on port "<<port<<" rv = "<<rv<<endl;
 			}
 		}
-		
-		
 		
 		char buf[2048];
 		int rc = 0;
@@ -288,24 +453,6 @@ void printHelp(){
 	cout<<"[signalobj SP fetch_list_index SP signal]: Signals an object in the list previuously fetched"<<endl;
 }
 
-void insertListener(SignalResultWaiter &_rw, const char *_name, IndexT _idx, const char *_addr, int _port, bool _secure){
-	concept::AddrInfoSignal *psig(new AddrInfoSignal(_secure? concept::Service::AddSslListener : concept::Service::AddListener, _rw));
-
-	psig->init(_addr, _port, 0, AddrInfo::Inet4, AddrInfo::Stream);
-	DynamicPointer<foundation::Signal> dp(psig);
-	_rw.prepare();
-	concept::m().signalService(_idx, dp);
-	switch((rv = _rw.wait())){
-		case -2:
-			cout<<"["<<_name<<"] No such service"<<endl;
-			break;
-		case OK:
-			cout<<"["<<_name<<"] Added listener on port "<<port<<endl;
-			break;
-		default:
-			cout<<"["<<_name<<"] Failed adding listener on port "<<port<<" rv = "<<rv<<endl;
-	}
-}
 //>fetchobj servicename type
 /*
 int fetchobj(char *_pc, int _len,TestServer &_rts,TheInspector &_rti){
