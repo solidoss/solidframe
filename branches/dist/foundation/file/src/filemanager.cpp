@@ -405,9 +405,8 @@ void Manager::doScanTimeout(const TimeSpec &_rtout){
 }
 //------------------------------------------------------------------
 //overload from object
-void Manager::init(IndexT _srvid, IndexT _ind){
-	Object::init(_srvid, _ind);//this must be first
-	d.mtx = &mutex();
+void Manager::init(Mutex *_pmtx){
+	d.mtx = _pmtx;
 }
 //------------------------------------------------------------------
 void Manager::releaseIStream(IndexT _fileid){

@@ -144,8 +144,7 @@ protected:
 	//! Set the thread id
 	void setThread(uint32 _thrid, uint32 _thrpos);
 	
-	//! Set the id given the service id and index
-	virtual void init(IndexT _srvid, IndexT _ind);
+	virtual void init(Mutex *_pm);
 private:
 	void typeId(const uint16 _tid);
 	const uint typeId()const;
@@ -154,6 +153,8 @@ private:
 	void id(IndexT _fullid);
 	//! Gets the id of the thread the object resides in
 	void getThread(uint32 &_rthid, uint32 &_rthpos)const;
+	//! Set the id given the service id and index
+	void id(IndexT _srvid, IndexT _ind);
 private:
 	IndexT			fullid;
 	volatile ulong	smask;

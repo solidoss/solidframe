@@ -163,8 +163,7 @@ int Signal::receiveSignal(
 	return BAD;//no need for execution
 }
 
-/*virtual*/ void Object::init(IndexT _srvidx, IndexT _objidx){
-	fullid = compute_id(_srvidx, _objidx);
+/*virtual*/ void Object::init(Mutex*){
 }
 
 

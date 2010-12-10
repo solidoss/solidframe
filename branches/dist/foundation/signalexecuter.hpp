@@ -79,7 +79,7 @@ public:
 		const ipc::ConnectionUid *_conid = NULL
 	);
 private:
-	/*virtual*/ void init(IndexT _srvid, IndexT _ind);
+	/*virtual*/ void init(Mutex*);
 	int execute();
 	void doExecute(uint _pos, uint32 _evs, const TimeSpec &_rtout);
 	struct Data;

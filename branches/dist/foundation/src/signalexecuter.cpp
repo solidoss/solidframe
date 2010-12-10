@@ -183,9 +183,8 @@ int SignalExecuter::execute(ulong _evs, TimeSpec &_rtout){
 	return NOK;
 }
 
-void SignalExecuter::init(IndexT _srvid, IndexT _ind){
-	Object::init(_srvid, _ind);//this must be first
-	d.pm = &Object::mutex();
+void SignalExecuter::init(Mutex *_pmtx){
+	d.pm = _pmtx;
 }
 
 int SignalExecuter::execute(){

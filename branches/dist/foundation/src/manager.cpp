@@ -39,14 +39,22 @@
 #include "foundation/signal.hpp"
 
 namespace foundation{
-
+//---------------------------------------------------------
 typedef ObjectPointer<Service>	ServicePointerT;
 typedef ObjectPointer<Object>	ObjectPointerT;
-
+//---------------------------------------------------------
 struct DummySelector: SelectorBase{
 	void raise(uint32 _objidx){}
 };
-
+//---------------------------------------------------------
+class MasterService: public Dynamic<MasterService, Service>{
+public:
+	MasterService():BaseT(true, 0, 0, 8){}
+	/*virtual*/ int doStop(ulong _evs, TimeSpec &_rtout){
+		expectedCount(1);
+		return Service::doStop(_evs, _rtout);
+	}
+};
 //---------------------------------------------------------
 struct Manager::Data{
 	enum State {
@@ -110,8 +118,10 @@ struct Manager::Data{
 	SchedulerTypeStubVectorT	schtpvec;
 	ObjectTypeStubVectorT		objtpvec;
 	Mutex						mtx;
+	Mutex						svcmtx;
 	Condition					cnd;
 	DummySelector				dummysel;
+	MasterService				mastersvc;
 };
 //---------------------------------------------------------
 Manager::Data::Data(
@@ -122,16 +132,8 @@ Manager::Data::Data(
 	objtpcnt(1024), schtpcnt(16), schcnt(32), selcnt(_selcnt), st(Stopped){
 }
 //---------------------------------------------------------
-class MasterService: public Dynamic<MasterService, Service>{
-public:
-	MasterService():BaseT(true, 0, 0, 8){}
-	/*virtual*/ int doStop(ulong _evs, TimeSpec &_rtout){
-		expectedCount(1);
-		return Service::doStop(_evs, _rtout);
-	}
-};
 Service& Manager::Data::masterService(){
-	return *svcvec.front().ptr;
+	return mastersvc;
 }
 //---------------------------------------------------------
 
@@ -170,8 +172,9 @@ Manager::Manager(
 	d.currentdynamicidx = d.startdynamicidx;
 	d.selvec.push_back(&d.dummysel);
 	d.svcvec.push_back(Data::ServiceStub());
-	d.svcvec.front().ptr = new MasterService;
-	d.svcvec.front().ptr->init(0, 0);
+	d.svcvec.front().ptr = &d.mastersvc;
+	d.svcvec.front().ptr->id(0, 0);
+	d.svcvec.front().ptr->init(&d.svcmtx);
 	d.svcvec.front().tpid = Object::staticTypeId();
 	//d.svcvec.back().second = Object::staticTypeId();
 	//TODO: refactor
@@ -188,12 +191,13 @@ Manager::Manager(
 	for(Data::SelectorVectorT::const_iterator it(d.selvec.begin()); it != d.selvec.end(); ++it){
 		cassert(*it == NULL);
 	}
-	for(Data::ServiceVectorT::iterator it(d.svcvec.begin()); it != d.svcvec.end(); ++it){
+	for(Data::ServiceVectorT::iterator it(d.svcvec.begin() + 1); it != d.svcvec.end(); ++it){
 		delete it->ptr.release();
 	}
 	for(Data::ObjectVectorT::iterator it(d.objvec.begin()); it != d.objvec.end(); ++it){
 		delete it->ptr.release();
 	}
+	d.svcvec.front().ptr.release();
 	delete &d;
 }
 //---------------------------------------------------------
@@ -586,7 +590,7 @@ IndexT Manager::doRegisterService(
 		if(rotps.objidx == -1){
 			rotps.objidx = _idx;
 		}
-		static_cast<Object*>(_ps)->init(0, _idx);
+		static_cast<Object*>(_ps)->id(0, _idx);
 		return _ps->index();
 	}else{
 		if(d.currentdynamicidx >= max_service_count()){
@@ -602,7 +606,7 @@ IndexT Manager::doRegisterService(
 		if(rotps.objidx == -1){
 			rotps.objidx = d.currentdynamicidx;
 		}
-		static_cast<Object*>(_ps)->init(0, d.currentdynamicidx);
+		static_cast<Object*>(_ps)->id(0, d.currentdynamicidx);
 		++d.currentdynamicidx;
 		return _ps->index();
 	}
@@ -640,7 +644,7 @@ IndexT Manager::doRegisterObject(
 		if(rotps.objidx == -1){
 			rotps.objidx = _idx;
 		}
-		_po->init(0, _idx);
+		_po->id(0, _idx);
 		return _po->index();
 	}else{
 		if(d.currentdynamicidx >= max_service_count()){
@@ -656,7 +660,7 @@ IndexT Manager::doRegisterObject(
 		if(rotps.objidx == -1){
 			rotps.objidx = d.currentdynamicidx;
 		}
-		_po->init(0, d.currentdynamicidx);
+		_po->id(0, d.currentdynamicidx);
 		++d.currentdynamicidx;
 		return _po->index();
 	}

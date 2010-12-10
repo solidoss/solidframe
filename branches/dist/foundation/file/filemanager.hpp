@@ -422,7 +422,7 @@ private:
 	void doPrepareStop();
 	void doScanTimeout(const TimeSpec &_rtout);
 	void doSendStreams();
-	/*virtual*/ void init(IndexT _srvid, IndexT _ind);
+	/*virtual*/ void init(Mutex *);
 private:
 	friend struct Stub;
 	

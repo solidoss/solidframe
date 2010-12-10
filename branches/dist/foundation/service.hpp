@@ -269,6 +269,7 @@ private:
 	bool doVisit(Visitor &_rv, uint _visidx, const ObjectUidT &_ruid);
 	//this is called by manager 
 	void invalidateService();
+	/*virtual*/ void init(Mutex *);
 protected:
 	typedef DynamicExecuter<void, Service>	DynamicExecuterT;
 	DynamicExecuterT		de;
