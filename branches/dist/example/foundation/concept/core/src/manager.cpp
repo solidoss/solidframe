@@ -72,7 +72,6 @@ public:
 	FileManagerController(){}
 protected:
 	/*virtual*/ void init(const fdt::file::Manager::InitStub &_ris);
-	/*virtual*/ void removeFileManager();
 	 
 	/*virtual*/ bool release();
 	
@@ -109,16 +108,6 @@ struct IpcServiceController: foundation::ipc::Service::Controller{
 };
 
 //------------------------------------------------------
-//		SignalExecuter
-//------------------------------------------------------
-
-
-class SignalExecuter: public fdt::SignalExecuter{
-public:
-	/*virtual*/ void removeFromManager();
-};
-
-//------------------------------------------------------
 //		Manager::Data
 //------------------------------------------------------
 
@@ -150,11 +139,9 @@ Manager::Manager():foundation::Manager(16), d(*(new Data())){
 	registerScheduler(new AioSchedulerT(*this));
 	registerScheduler(new AioSchedulerT(*this));
 	
-	//registerService<SchedulerT>(new foundation::Service, 0, firstid);
-	
 	registerObject<SchedulerT>(new fdt::file::Manager(&d.fmctrl), 0, d.filemanageridx);
-	registerObject<SchedulerT>(new SignalExecuter, 0, d.readsigexeidx);
-	registerObject<SchedulerT>(new SignalExecuter, 0, d.writesigexeidx);
+	registerObject<SchedulerT>(new fdt::SignalExecuter, 0, d.readsigexeidx);
+	registerObject<SchedulerT>(new fdt::SignalExecuter, 0, d.writesigexeidx);
 	registerService<SchedulerT>(new foundation::ipc::Service(&d.ipcctrl), 0, d.ipcidx);
 }
 
@@ -178,12 +165,6 @@ foundation::file::Manager&	Manager::fileManager()const{
 void Manager::signalService(const IndexT &_ridx, DynamicPointer<foundation::Signal> &_rsig){
 	signal(_rsig, serviceUid(_ridx));
 }
-//------------------------------------------------------
-//		SignalExecuter
-//------------------------------------------------------
-
-void SignalExecuter::removeFromManager(){
-}
 
 //------------------------------------------------------
 //		IpcServiceController
@@ -203,8 +184,6 @@ bool IpcServiceController::release(){
 	_ris.registerMapper(new fdt::file::NameMapper(10, 0));
 	_ris.registerMapper(new fdt::file::TempMapper(1024 * 1024 * 1024, "/tmp"));
 	_ris.registerMapper(new fdt::file::MemoryMapper(1024 * 1024 * 100));
-}
-/*virtual*/ void FileManagerController::removeFileManager(){
 }
 /*virtual*/ bool FileManagerController::release(){
 	return false;

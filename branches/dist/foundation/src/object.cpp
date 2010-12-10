@@ -162,5 +162,11 @@ int Signal::receiveSignal(
 	wdbgx(Dbg::fdt, "Unhandled signal receive");
 	return BAD;//no need for execution
 }
+
+/*virtual*/ void Object::init(IndexT _srvidx, IndexT _objidx){
+	fullid = compute_id(_srvidx, _objidx);
+}
+
+
 }//namespace
 

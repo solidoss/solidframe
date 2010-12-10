@@ -179,6 +179,7 @@ Manager::~Manager(){
 
 int Manager::execute(ulong _evs, TimeSpec &_rtout){
 	d.mtx->lock();
+	idbgx(Dbg::file, "signalmask "<<_evs);
 	if(signaled()){
 		ulong sm = grabSignalMask(0);
 		idbgx(Dbg::file, "signalmask "<<sm);
@@ -189,7 +190,7 @@ int Manager::execute(ulong _evs, TimeSpec &_rtout){
 				state(-1);
 				d.mtx->unlock();
 				vdbgx(Dbg::file, "");
-				d.pc->removeFileManager();
+				m().eraseObject(*this);
 				return BAD;
 			}
 			doPrepareStop();
@@ -225,7 +226,7 @@ int Manager::execute(ulong _evs, TimeSpec &_rtout){
 	
 	if(!d.sz && state() == Data::Stopping){
 		state(-1);
-		d.pc->removeFileManager();
+		m().eraseObject(*this);
 		return BAD;
 	}
 	
@@ -404,8 +405,9 @@ void Manager::doScanTimeout(const TimeSpec &_rtout){
 }
 //------------------------------------------------------------------
 //overload from object
-void Manager::mutex(Mutex *_pmtx){
-	d.mtx = _pmtx;
+void Manager::init(IndexT _srvid, IndexT _ind){
+	Object::init(_srvid, _ind);//this must be first
+	d.mtx = &mutex();
 }
 //------------------------------------------------------------------
 void Manager::releaseIStream(IndexT _fileid){

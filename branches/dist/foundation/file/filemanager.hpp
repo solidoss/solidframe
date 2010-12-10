@@ -129,7 +129,6 @@ public:
 			int _error,
 			const RequestUid& _rrequid
 		) = 0;
-		virtual void removeFileManager() = 0;
 		
 		virtual bool release() = 0;//return true for deletion
 	};
@@ -190,7 +189,6 @@ public:
 	//! Get the size of a file identified by its key - the file will not be open
 	int64 fileSize(const Key &_rk)const;
 	
-	void mutex(Mutex *_pmut);
 public://stream funtions
 	int stream(
 		StreamPointer<IStream> &_sptr,
@@ -424,6 +422,7 @@ private:
 	void doPrepareStop();
 	void doScanTimeout(const TimeSpec &_rtout);
 	void doSendStreams();
+	/*virtual*/ void init(IndexT _srvid, IndexT _ind);
 private:
 	friend struct Stub;
 	

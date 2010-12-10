@@ -113,7 +113,7 @@ bool Service::insertListener(
 	
 	fdt::ObjectPointer<Listener> lisptr(new Listener(sd, pctx));
 	
-	insert<AioSchedulerT>(lisptr, 1, this->index());
+	insert<AioSchedulerT>(lisptr, 1);
 		
 	return true;
 }

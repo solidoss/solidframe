@@ -555,7 +555,7 @@ ObjectUidT Service::doInsertObject(Object &_ro, uint _tid, const IndexT &_ridx){
 				
 				d.idxque.pop();
 				rop.first = &_ro;
-				_ro.id(this->index(), idx);
+				_ro.init(this->index(), idx);
 				u = rop.second;
 			}
 		}else{
@@ -563,12 +563,13 @@ ObjectUidT Service::doInsertObject(Object &_ro, uint _tid, const IndexT &_ridx){
 			const IndexT	sz(d.objvec.size());
 			
 			d.mtxstore.safeAt(sz);
-
-			_ro.id(this->index(), sz);
 			
 			d.mtxstore.visit(sz, visit_lock);//lock all mutexes
 			
 			d.objvec.push_back(Data::ObjectPairT(&_ro, 0));
+			
+			_ro.init(this->index(), sz);
+			
 			u = 0;
 			//reserve some positions
 			uint			cnt(63);
@@ -591,7 +592,7 @@ ObjectUidT Service::doInsertObject(Object &_ro, uint _tid, const IndexT &_ridx){
 				Data::ObjectPairT	&rop(d.objvec[_ridx]);
 				if(!rop.first){
 					rop.first = &_ro;
-					_ro.id(this->index(), _ridx);
+					_ro.init(this->index(), _ridx);
 					u = rop.second;
 				}else{
 					THROW_EXCEPTION_EX("Multiple inserts on the same index ",_ridx);
@@ -609,8 +610,6 @@ ObjectUidT Service::doInsertObject(Object &_ro, uint _tid, const IndexT &_ridx){
 			const IndexT	diffsz(sz - initialsize - 1);
 			
 			d.mtxstore.safeAt(sz);
-
-			_ro.id(this->index(), _ridx);
 			
 			d.mtxstore.visit(sz, visit_lock);//lock all mutexes
 			
@@ -626,7 +625,7 @@ ObjectUidT Service::doInsertObject(Object &_ro, uint _tid, const IndexT &_ridx){
 			
 			d.objvec[_ridx].first = &_ro;
 			u = 0;
-			
+			_ro.init(this->index(), _ridx);
 			d.mtxstore.visit(sz, visit_unlock);//unlock all mutexes
 			++d.objcnt;
 			return ObjectUidT(_ro.id(), u);

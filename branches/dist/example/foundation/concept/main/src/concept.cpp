@@ -301,7 +301,7 @@ void insertListener(SignalResultWaiter &_rw, const char *_name, IndexT _idx, con
 		case -2:
 			cout<<"["<<_name<<"] No such service"<<endl;
 			break;
-		case OK:
+		case true:
 			cout<<"["<<_name<<"] Added listener on port "<<_port<<endl;
 			break;
 		default:

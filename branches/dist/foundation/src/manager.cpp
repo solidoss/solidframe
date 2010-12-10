@@ -171,7 +171,7 @@ Manager::Manager(
 	d.selvec.push_back(&d.dummysel);
 	d.svcvec.push_back(Data::ServiceStub());
 	d.svcvec.front().ptr = new MasterService;
-	d.svcvec.front().ptr->id(0, 0);
+	d.svcvec.front().ptr->init(0, 0);
 	d.svcvec.front().tpid = Object::staticTypeId();
 	//d.svcvec.back().second = Object::staticTypeId();
 	//TODO: refactor
@@ -269,6 +269,7 @@ void Manager::start(){
 	}
 	
 	doStart();
+	
 	{
 		Mutex::Locker	lock(d.mtx);
 		d.st = Data::Running;
@@ -585,7 +586,7 @@ IndexT Manager::doRegisterService(
 		if(rotps.objidx == -1){
 			rotps.objidx = _idx;
 		}
-		static_cast<Object*>(_ps)->id(0, _idx);
+		static_cast<Object*>(_ps)->init(0, _idx);
 		return _ps->index();
 	}else{
 		if(d.currentdynamicidx >= max_service_count()){
@@ -601,7 +602,7 @@ IndexT Manager::doRegisterService(
 		if(rotps.objidx == -1){
 			rotps.objidx = d.currentdynamicidx;
 		}
-		static_cast<Object*>(_ps)->id(0, d.currentdynamicidx);
+		static_cast<Object*>(_ps)->init(0, d.currentdynamicidx);
 		++d.currentdynamicidx;
 		return _ps->index();
 	}
@@ -639,7 +640,7 @@ IndexT Manager::doRegisterObject(
 		if(rotps.objidx == -1){
 			rotps.objidx = _idx;
 		}
-		_po->id(0, _idx);
+		_po->init(0, _idx);
 		return _po->index();
 	}else{
 		if(d.currentdynamicidx >= max_service_count()){
@@ -655,7 +656,7 @@ IndexT Manager::doRegisterObject(
 		if(rotps.objidx == -1){
 			rotps.objidx = d.currentdynamicidx;
 		}
-		_po->id(0, d.currentdynamicidx);
+		_po->init(0, d.currentdynamicidx);
 		++d.currentdynamicidx;
 		return _po->index();
 	}

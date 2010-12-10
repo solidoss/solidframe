@@ -143,14 +143,15 @@ protected:
 	
 	//! Set the thread id
 	void setThread(uint32 _thrid, uint32 _thrpos);
+	
+	//! Set the id given the service id and index
+	virtual void init(IndexT _srvid, IndexT _ind);
 private:
 	void typeId(const uint16 _tid);
 	const uint typeId()const;
 	
 	//! Set the id
 	void id(IndexT _fullid);
-	//! Set the id given the service id and index
-	void id(IndexT _srvid, IndexT _ind);
 	//! Gets the id of the thread the object resides in
 	void getThread(uint32 &_rthid, uint32 &_rthpos)const;
 private:

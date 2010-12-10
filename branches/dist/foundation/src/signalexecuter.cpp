@@ -117,7 +117,7 @@ int SignalExecuter::execute(ulong _evs, TimeSpec &_rtout){
 				state(-1);
 				d.pm->unlock();
 				d.sdq.clear();
-				removeFromManager();
+				m().eraseObject(*this);
 				vdbgx(Dbg::fdt, "~SignalExecuter");
 				return BAD;
 			}
@@ -165,7 +165,7 @@ int SignalExecuter::execute(ulong _evs, TimeSpec &_rtout){
 			}
 		}
 		idbgx(Dbg::fdt, "remove signal executer from manager");
-		removeFromManager();
+		m().eraseObject(*this);
 		state(-1);
 		d.sdq.clear();
 		return BAD;
@@ -183,8 +183,9 @@ int SignalExecuter::execute(ulong _evs, TimeSpec &_rtout){
 	return NOK;
 }
 
-void SignalExecuter::mutex(Mutex *_pmut){
-	d.pm = _pmut;
+void SignalExecuter::init(IndexT _srvid, IndexT _ind){
+	Object::init(_srvid, _ind);//this must be first
+	d.pm = &Object::mutex();
 }
 
 int SignalExecuter::execute(){
