@@ -23,8 +23,8 @@
 #define ALPHACONNECTION_HPP
 
 #include "utility/dynamictype.hpp"
+#include "foundation/aio/aiosingleobject.hpp"
 
-#include "core/connection.hpp"
 #include "core/tstring.hpp"
 #include "core/common.hpp"
 
@@ -73,8 +73,8 @@ protected:
 	It uses a reader and a writer to implement a state machine for the 
 	protocol communication. 
 */
-class Connection: public concept::Connection{
-	typedef DynamicReceiver<void, Connection>	DynamicReceiverT;
+class Connection: public Dynamic<Connection, foundation::aio::SingleObject>{
+	typedef DynamicExecuter<void, Connection>	DynamicExecuterT;
 public:
 	typedef Service	ServiceT;
 	
@@ -89,7 +89,7 @@ public:
 	
 	~Connection();
 	
-	/*virtual*/ int signal(DynamicPointer<foundation::Signal> &_sig);
+	/*virtual*/ bool signal(DynamicPointer<foundation::Signal> &_sig);
 	
 	//! The implementation of the protocol's state machine
 	/*!
@@ -121,7 +121,7 @@ public:
 		if(++reqid) return reqid;
 		return (reqid = 1);
 	}
-	void dynamicExecuteDefault(DynamicPointer<> &_dp);
+	void dynamicExecute(DynamicPointer<> &_dp);
 	void dynamicExecute(DynamicPointer<RemoteListSignal> &_rsig);
 	void dynamicExecute(DynamicPointer<FetchSlaveSignal> &_rsig);
 	void dynamicExecute(DynamicPointer<SendStringSignal> &_rsig);
@@ -154,7 +154,7 @@ private:
 	Command				*pcmd;
 	SocketAddress		*paddr;
 	uint32				reqid;
-	DynamicReceiverT	dr;
+	DynamicExecuterT	dr;
 };
 
 }//namespace alpha

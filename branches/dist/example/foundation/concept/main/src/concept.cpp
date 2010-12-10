@@ -211,7 +211,9 @@ int main(int argc, char* argv[]){
 		SignalResultWaiter	rw;
 		int 				rv;
 		
-		const IndexT alphaidx = m.registerService<concept::SchedulerT>(concept::alpha::Service::create());
+		const IndexT alphaidx = m.registerService<concept::SchedulerT>(concept::alpha::Service::create(m));
+		
+		m.start();
 		
 		if(true){//creates and registers a new alpha service
 			insertListener(rw, "alpha", alphaidx, "0.0.0.0", p.start_port + 114, false);
@@ -243,8 +245,7 @@ int main(int argc, char* argv[]){
 			rc = 0;
 			cout<<'>';cin.getline(buf,2048);
 			if(!strncasecmp(buf,"quit",4)){
-				tm.stop();
-				lm.stop();
+				m.stop();
 				cout<<"signalled to stop"<<endl;
 				break;
 			}
@@ -265,11 +266,11 @@ int main(int argc, char* argv[]){
 				continue;
 			}
 			if(!strncasecmp(buf,"addtalker",9)){
-				rc = insertTalker(buf + 9,cin.gcount() - 9,tm);
+				rc = insertTalker(buf + 9,cin.gcount() - 9,m);
 				continue;
 			}
 			if(!strncasecmp(buf,"addconnection", 13)){
-				rc = insertConnection(buf + 13, cin.gcount() - 13, tm);
+				rc = insertConnection(buf + 13, cin.gcount() - 13, m);
 				continue;
 			}
 			cout<<"Error parsing command line"<<endl;
@@ -295,15 +296,16 @@ void insertListener(SignalResultWaiter &_rw, const char *_name, IndexT _idx, con
 	DynamicPointer<foundation::Signal> dp(psig);
 	_rw.prepare();
 	concept::m().signalService(_idx, dp);
+	int rv;
 	switch((rv = _rw.wait())){
 		case -2:
 			cout<<"["<<_name<<"] No such service"<<endl;
 			break;
 		case OK:
-			cout<<"["<<_name<<"] Added listener on port "<<port<<endl;
+			cout<<"["<<_name<<"] Added listener on port "<<_port<<endl;
 			break;
 		default:
-			cout<<"["<<_name<<"] Failed adding listener on port "<<port<<" rv = "<<rv<<endl;
+			cout<<"["<<_name<<"] Failed adding listener on port "<<_port<<" rv = "<<rv<<endl;
 	}
 }
 //>fetchobj servicename type

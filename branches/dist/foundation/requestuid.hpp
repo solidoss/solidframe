@@ -12,10 +12,13 @@ struct RequestUid{
 		uint32 _objuid = 0,
 		uint32 _reqidx = 0,
 		uint32 _requid = 0
-	):objidx(_objidx),
-	objuid(_objuid),
-	reqidx(_reqidx),
-	requid(_requid){
+	):objidx(_objidx), objuid(_objuid), reqidx(_reqidx), requid(_requid){
+	}
+	RequestUid(
+		const ObjectUidT &_ruid,
+		uint32 _reqidx = 0,
+		uint32 _requid = 0
+	):objidx(_ruid.first), objuid(_ruid.second), reqidx(_reqidx), requid(_requid){
 	}
 	void set(
 		IndexT  _objidx = 0,
@@ -25,6 +28,16 @@ struct RequestUid{
 	){
 		objidx = _objidx;
 		objuid = _objuid;
+		reqidx = _reqidx;
+		requid = _requid;
+	}
+	void set(
+		const ObjectUidT &_ruid,
+		uint32 _reqidx = 0,
+		uint32 _requid = 0
+	){
+		objidx = _ruid.first;
+		objuid = _ruid.second;
 		reqidx = _reqidx;
 		requid = _requid;
 	}

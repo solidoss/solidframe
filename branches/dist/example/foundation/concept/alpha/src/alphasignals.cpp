@@ -36,7 +36,7 @@ RemoteListSignal::~RemoteListSignal(){
 	idbg(""<<(void*)this);
 	if(!ppthlst && !sentcnt){
 		idbg("failed receiving response "<<sentcnt);
-		Manager::the().signalObject(fromv.first, fromv.second, fdt::S_KILL | fdt::S_RAISE);
+		m().signal(fdt::S_KILL | fdt::S_RAISE, fromv.first, fromv.second);
 	}
 	delete ppthlst;
 }
@@ -70,13 +70,11 @@ int RemoteListSignal::ipcReceived(
 	if(!ppthlst){//on peer
 		idbg("Received RemoteListSignal on peer");
 		//print();
-		ObjectUidT	ttov;
-		Manager::the().readSignalExecuterUid(ttov);
-		Manager::the().signalObject(ttov.first, ttov.second, psig);
+		m().signal(psig, m().readSignalExecuterUid());
 	}else{//on sender
 		idbg("Received RemoteListSignal back on sender");
 		_rsiguid = siguid;
-		Manager::the().signalObject(fromv.first, fromv.second, psig);
+		m().signal(psig, fromv.first, fromv.second);
 	}
 	return false;
 }
@@ -159,7 +157,7 @@ FetchMasterSignal::~FetchMasterSignal(){
 
 void FetchMasterSignal::ipcFail(int _err){
 	idbg((void*)this<<"");
-	Manager::the().signalObject(fromv.first, fromv.second, fdt::S_RAISE | fdt::S_KILL);
+	Manager::the().signal(fdt::S_RAISE | fdt::S_KILL, fromv.first, fromv.second);
 }
 void FetchMasterSignal::print()const{
 	idbg((void*)this<<" FetchMasterSignal:");
@@ -178,11 +176,9 @@ int FetchMasterSignal::ipcReceived(
 	DynamicPointer<fdt::Signal> sig(this);
 	conid = _rconid;
 	state = Received;
-	ObjectUidT	tov;
 	idbg("received master signal");
 	print();
-	Manager::the().readSignalExecuterUid(tov);
-	Manager::the().signalObject(tov.first, tov.second, sig);
+	m().signal(sig, m().readSignalExecuterUid());
 	return OK;//release the ptr not clear
 }
 /*
@@ -391,12 +387,12 @@ int FetchSlaveSignal::ipcReceived(
 		idbg((void*)this<<" Received FetchSlaveSignal on peer");
 		print();
 		ObjectUidT	ttov;
-		Manager::the().readSignalExecuterUid(ttov);
-		Manager::the().signalObject(ttov.first, ttov.second, psig);
+		m().readSignalExecuterUid();
+		m().signal(psig, m().readSignalExecuterUid());
 	}else{
 		idbg((void*)this<<" Received FetchSlaveSignal on sender");
 		print();
-		Manager::the().signalObject(tov.first, tov.second, psig);
+		m().signal(psig, tov.first, tov.second);
 	}
 	return OK;
 }
@@ -475,7 +471,7 @@ int SendStringSignal::ipcReceived(
 ){
 	DynamicPointer<fdt::Signal> psig(this);
 	conid = _rconid;
-	Manager::the().signalObject(tov.first, tov.second, psig);
+	m().signal(psig, tov.first, tov.second);
 	return false;
 }
 
@@ -495,7 +491,7 @@ int SendStreamSignal::ipcReceived(
 ){
 	DynamicPointer<fdt::Signal> psig(this);
 	conid = _rconid;
-	Manager::the().signalObject(tov.first, tov.second, psig);
+	m().signal(psig, tov.first, tov.second);
 	return false;
 }
 

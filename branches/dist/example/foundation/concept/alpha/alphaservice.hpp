@@ -34,17 +34,19 @@ namespace alpha{
 
 class Connection;
 
-class Service: public concept::Service{
+class Service: public Dynamic<Service, concept::Service>{
 public:
-	static concept::Service* create(Manager &);
+	static Service* create(Manager &);
 	Service();
 	~Service();
-	int insertConnection(
+	bool insertConnection(
 		const SocketDevice &_rsd,
 		foundation::aio::openssl::Context *_pctx,
 		bool _secure
 	);
-	int removeConnection(Connection &);
+	
+	void insertObject(Connection &_ro, const ObjectUidT &_ruid);
+	void eraseObject(const Connection &_ro);
 };
 
 }//namespace alpha

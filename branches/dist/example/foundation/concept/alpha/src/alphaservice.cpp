@@ -46,7 +46,7 @@ InitServiceOnce::InitServiceOnce(Manager &_rm){
 	Connection::initStatic(_rm);
 }
 
-concept::Service* Service::create(Manager &_rm){
+Service* Service::create(Manager &_rm){
 	static InitServiceOnce	init(_rm);
 	return new Service();
 }
@@ -57,33 +57,29 @@ Service::Service(){
 Service::~Service(){
 }
 
-int Service::insertConnection(
+bool Service::insertConnection(
 	const SocketDevice &_rsd,
 	foundation::aio::openssl::Context *_pctx,
 	bool _secure
 ){
 	//create a new connection with the given channel
-	Connection *pcon = new Connection(_rsd);
+	fdt::ObjectPointer<Connection> conptr(new Connection(_rsd));
 	if(_pctx){
-		pcon->socketSecureSocket(_pctx->createSocket());
+		conptr->socketSecureSocket(_pctx->createSocket());
 	}
 	//register it into the service
-	if(this->insert(*pcon, this->index())){
-		delete pcon;
-		return BAD;
-	}
-	// add it into a connection pool
-	Manager::the().pushJob(static_cast<fdt::aio::Object*>(pcon));
-	return OK;
+	this->insert<AioSchedulerT>(conptr, 0);
+	return true;
 }
 
-int Service::removeConnection(Connection &_rcon){
-	//TODO:
-	//unregisters the connection from the service.
-	this->remove(_rcon);
-	return OK;
+void Service::insertObject(Connection &_ro, const ObjectUidT &_ruid){
+	idbg("alpha "<<fdt::compute_service_id(_ruid.first)<<' '<<fdt::compute_index(_ruid.first)<<' '<<_ruid.second);
 }
 
+void Service::eraseObject(const Connection &_ro){
+	ObjectUidT objuid(_ro.uid());
+	idbg("alpha "<<fdt::compute_service_id(objuid.first)<<' '<<fdt::compute_index(objuid.first)<<' '<<objuid.second);
+}
 }//namespace alpha
 }//namespace concept
 

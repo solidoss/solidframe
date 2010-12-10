@@ -71,35 +71,29 @@ namespace{
 static const DynamicRegisterer<Connection>	dre;
 }
 /*static*/ void Connection::dynamicRegister(){
-	DynamicReceiverT::add<IStreamSignal, Connection>();
-	DynamicReceiverT::add<OStreamSignal, Connection>();
-	DynamicReceiverT::add<IOStreamSignal, Connection>();
-	DynamicReceiverT::add<StreamErrorSignal, Connection>();
-	DynamicReceiverT::add<RemoteListSignal, Connection>();
-	DynamicReceiverT::add<FetchSlaveSignal, Connection>();
-	DynamicReceiverT::add<SendStringSignal, Connection>();
-	DynamicReceiverT::add<SendStreamSignal, Connection>();
+	DynamicExecuterT::registerDynamic<IStreamSignal, Connection>();
+	DynamicExecuterT::registerDynamic<OStreamSignal, Connection>();
+	DynamicExecuterT::registerDynamic<IOStreamSignal, Connection>();
+	DynamicExecuterT::registerDynamic<StreamErrorSignal, Connection>();
+	DynamicExecuterT::registerDynamic<RemoteListSignal, Connection>();
+	DynamicExecuterT::registerDynamic<FetchSlaveSignal, Connection>();
+	DynamicExecuterT::registerDynamic<SendStringSignal, Connection>();
+	DynamicExecuterT::registerDynamic<SendStreamSignal, Connection>();
 }
 
-Connection::Connection(SocketAddress *_paddr):
-						 	//BaseT(_pch),
-						 	wtr(&logger),
-						 	rdr(wtr, &logger), pcmd(NULL),
-						 	paddr(_paddr),
-						 	reqid(1){
-	
+Connection::Connection(
+	SocketAddress *_paddr
+):	wtr(&logger), rdr(wtr, &logger),
+	pcmd(NULL), paddr(_paddr), reqid(1){
+		
 	cassert(paddr);
 	state(Connect);
-	
-	
 }
 
-Connection::Connection(const SocketDevice &_rsd):
-						 	concept::Connection(_rsd),
-						 	wtr(&logger),
-						 	rdr(wtr, &logger), pcmd(NULL),
-						 	paddr(NULL),
-						 	reqid(1){
+Connection::Connection(
+	const SocketDevice &_rsd
+):	BaseT(_rsd), wtr(&logger),rdr(wtr, &logger),
+	pcmd(NULL), paddr(NULL), reqid(1){
 	
 	state(Init);
 }
@@ -120,15 +114,13 @@ NOTE:
 Connection::~Connection(){
 	idbg("destroy connection id "<<this->id()<<" pcmd "<<pcmd);
 	delete pcmd; pcmd = NULL;
-	concept::Manager &rm = concept::Manager::the();
-	rm.service(*this).removeConnection(*this);
 }
 
 
-/*virtual*/ int Connection::signal(DynamicPointer<foundation::Signal> &_sig){
+/*virtual*/ bool Connection::signal(DynamicPointer<foundation::Signal> &_sig){
 	if(this->state() < 0){
 		_sig.clear();
-		return 0;//no reason to raise the pool thread!!
+		return false;//no reason to raise the pool thread!!
 	}
 	dr.push(DynamicPointer<>(_sig));
 	return Object::signal(fdt::S_SIG | fdt::S_RAISE);
@@ -144,7 +136,7 @@ Connection::~Connection(){
 
 int Connection::execute(ulong _sig, TimeSpec &_tout){
 	//concept::Manager &rm = concept::Manager::the();
-	fdt::requestuidptr->set(this->id(), this->uid());
+	fdt::requestuidptr->set(this->uid());
 	//_tout.add(2400);
 	if(_sig & (fdt::TIMEOUT | fdt::ERRDONE)){
 		if(state() == ConnectTout){
@@ -212,8 +204,8 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 		case Banner:{
 			concept::Manager	&rm = concept::Manager::the();
 			uint32				myport(rm.ipc().basePort());
-			ulong				objid(this->id());
-			uint32				objuid(this->uid());
+			IndexT				objid(this->id());
+			uint32				objuid(this->uid().first);
 			char				host[SocketAddress::MaxSockHostSz];
 			char				port[SocketAddress::MaxSockServSz];
 			SocketAddress		addr;
@@ -356,7 +348,7 @@ void Connection::prepareReader(){
 	reader().push(&Reader::fetchFilteredString<TagFilter>, protocol::Parameter(&writer().tag(),64));
 }
 
-void Connection::dynamicExecuteDefault(DynamicPointer<> &_dp){
+void Connection::dynamicExecute(DynamicPointer<> &_dp){
 	wdbg("Received unknown signal on ipcservice");
 }
 
