@@ -110,7 +110,7 @@ int RemoteListSignal::execute(
 	
 	if(!exists( pth ) || !is_directory(pth)){
 		err = -1;
-		if(Manager::the().ipc().sendSignal(conid, _rthis_ptr)){
+		if(Manager::the().ipc().sendSignal(_rthis_ptr, conid)){
 			idbg("connector was destroyed");
 		}
 		return BAD;
@@ -122,7 +122,7 @@ int RemoteListSignal::execute(
 		idbg("dir_iterator exception :"<<ex.what());
 		err = -1;
 		strpth = ex.what();
-		if(Manager::the().ipc().sendSignal(conid, _rthis_ptr)){
+		if(Manager::the().ipc().sendSignal(_rthis_ptr, conid)){
 			idbg("connector was destroyed");
 		}
 		return BAD;
@@ -138,7 +138,7 @@ int RemoteListSignal::execute(
 	}
 	err = 0;
 	//Thread::sleep(1000 * 20);
-	if(Manager::the().ipc().sendSignal(conid, _rthis_ptr)){
+	if(Manager::the().ipc().sendSignal(_rthis_ptr, conid)){
 		idbg("connector was destroyed "<<conid.id<<' '<<conid.sessionidx<<' '<<conid.sessionuid);
 	}else{
 		idbg("signal sent "<<conid.id<<' '<<conid.sessionidx<<' '<<conid.sessionuid);
@@ -233,7 +233,7 @@ int FetchMasterSignal::execute(
 			fdt::RequestUid reqid(_rce.id(), rm.uid(_rce), _siguid.first, _siguid.second);
 			rm.fileManager().stream(psig->ins, fuid, requid, fdt::file::Manager::NoWait);
 			psig = NULL;
-			if(rm.ipc().sendSignal(conid, sigptr) || !this->filesz){
+			if(rm.ipc().sendSignal(sigptr, conid) || !this->filesz){
 				idbg("connector was destroyed or filesz = "<<this->filesz);
 				return BAD;
 			}
@@ -261,7 +261,7 @@ int FetchMasterSignal::execute(
 			this->filepos += psig->streamsz;
 			cassert(psig->ins);
 			psig = NULL;
-			if(rm.ipc().sendSignal(conid, sigptr) || !this->filesz){
+			if(rm.ipc().sendSignal(sigptr, conid) || !this->filesz){
 				idbg("connector was destroyed or filesz = "<<this->filesz);
 				return BAD;
 			}
@@ -276,7 +276,7 @@ int FetchMasterSignal::execute(
 			DynamicPointer<fdt::Signal> sigptr(psig);
 			psig->tov = fromv;
 			psig->filesz = -1;
-			rm.ipc().sendSignal(conid, sigptr);
+			rm.ipc().sendSignal(sigptr, conid);
 			return BAD;
 		}
 	}

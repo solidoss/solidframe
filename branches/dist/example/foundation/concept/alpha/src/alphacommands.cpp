@@ -308,7 +308,7 @@ int RemoteList::execute(Connection &_rc){
 		if(!ai.empty()){
 			state = Wait;
 			DynamicPointer<fdt::Signal> sigptr(sig_sp);
-			Manager::the().ipc().sendSignal(ai.begin(), sigptr, fdt::ipc::Service::SameConnectorFlag);
+			Manager::the().ipc().sendSignal(sigptr, ai.begin(), fdt::ipc::Service::SameConnectorFlag);
 			_rc.writer().push(&Writer::reinit<RemoteList>, protocol::Parameter(this));
 		}else{
 			*pp = protocol::Parameter(StrDef(" NO REMOTELIST: no such peer address@"));
@@ -464,7 +464,7 @@ void Fetch::doSendMaster(const FileUidT &_fuid){
 		psig->streamsz = streamsz_in;
 		state = WaitRemoteStream;
 		DynamicPointer<fdt::Signal> sigptr(psig);
-		Manager::the().ipc().sendSignal(ai.begin(), sigptr);
+		Manager::the().ipc().sendSignal(sigptr, ai.begin());
 	}else{
 		*pp = protocol::Parameter(StrDef(" NO FETCH: no such peer address@"));
 		state = ReturnOk;
@@ -481,7 +481,7 @@ void Fetch::doSendSlave(const FileUidT &_fuid){
 	psig->fuid = _fuid;
 	psig->streamsz = streamsz_in;
 	DynamicPointer<fdt::Signal> sigptr(psig);
-	int rv = Manager::the().ipc().sendSignal(ipcconuid, sigptr);
+	int rv = Manager::the().ipc().sendSignal(sigptr, ipcconuid);
 	idbg("rv = "<<rv);
 	if(rv == BAD){
 		*pp = protocol::Parameter(StrDef(" NO FETCH: peer died@"));
@@ -777,7 +777,7 @@ int SendString::execute(alpha::Connection &_rc){
 	if(!ai.empty()){
 		rp = protocol::Parameter(StrDef(" OK Done SENDSTRING@"));
 		DynamicPointer<fdt::Signal> sigptr(new SendStringSignal(str, objid, objuid, fromobjid, fromobjuid));
-		rm.ipc().sendSignal(ai.begin(), sigptr);
+		rm.ipc().sendSignal(sigptr, ai.begin());
 	}else{
 		rp = protocol::Parameter(StrDef(" NO SENDSTRING no such address@"));
 	}
@@ -826,7 +826,7 @@ int SendStream::execute(Connection &_rc){
 			if(!ai.empty()){
 				rp = protocol::Parameter(StrDef(" OK Done SENDSTRING@"));
 				DynamicPointer<fdt::Signal> sigptr(new SendStreamSignal(sp, dststr, myprocid, objid, objuid, fromobjid, fromobjuid));
-				rm.ipc().sendSignal(ai.begin(), sigptr);
+				rm.ipc().sendSignal(sigptr, ai.begin());
 			}else{
 				rp = protocol::Parameter(StrDef(" NO SENDSTRING no such address@"));
 			}

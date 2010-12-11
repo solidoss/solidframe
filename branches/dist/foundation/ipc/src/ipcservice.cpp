@@ -117,8 +117,8 @@ uint32 Service::keepAliveTimeout()const{
 }
 //---------------------------------------------------------------------
 int Service::sendSignal(
-	const ConnectionUid &_rconid,//the id of the process connector
 	DynamicPointer<Signal> &_psig,//the signal to be sent
+	const ConnectionUid &_rconid,//the id of the process connector
 	uint32	_flags
 ){
 	cassert(_rconid.sessionidx < d.tkrvec.size());
@@ -144,8 +144,8 @@ int Service::basePort()const{
 }
 //---------------------------------------------------------------------
 int Service::doSendSignal(
-	const SockAddrPair &_rsap,
 	DynamicPointer<Signal> &_psig,//the signal to be sent
+	const SockAddrPair &_rsap,
 	ConnectionUid *_pconid,
 	uint32	_flags
 ){

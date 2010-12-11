@@ -119,8 +119,8 @@ public:
 		\param _flags (Optional) Not used for now
 	*/
 	int sendSignal(
-		const ConnectionUid &_rconid,//the id of the process connector
 		DynamicPointer<Signal> &_psig,//the signal to be sent
+		const ConnectionUid &_rconid,//the id of the process connector
 		uint32	_flags = 0
 	);
 	//!Send a signal to a peer process using it's base address.
@@ -133,8 +133,8 @@ public:
 		\param _flags (Optional) Not used for now
 	*/
 	int sendSignal(
-		const SockAddrPair &_rsap,
 		DynamicPointer<Signal> &_psig,//the signal to be sent
+		const SockAddrPair &_rsap,
 		ConnectionUid &_rconid,
 		uint32	_flags = 0
 	);
@@ -147,8 +147,8 @@ public:
 		\param _flags (Optional) Not used for now
 	*/
 	int sendSignal(
-		const SockAddrPair &_rsap,
 		DynamicPointer<Signal> &_psig,//the signal to be sent
+		const SockAddrPair &_rsap,
 		uint32	_flags = 0
 	);
 	//! Not used for now - will be used when ipc will use tcp connections
@@ -185,8 +185,8 @@ public:
 private:
 	friend class Talker;
 	int doSendSignal(
-		const SockAddrPair &_rsap,
 		DynamicPointer<Signal> &_psig,//the signal to be sent
+		const SockAddrPair &_rsap,
 		ConnectionUid *_pconid,
 		uint32	_flags = 0
 	);
@@ -204,20 +204,20 @@ private:
 };
 
 inline int Service::sendSignal(
-	const SockAddrPair &_rsap,
 	DynamicPointer<Signal> &_psig,//the signal to be sent
+	const SockAddrPair &_rsap,
 	ConnectionUid &_rconid,
 	uint32	_flags
 ){
-	return doSendSignal(_rsap, _psig, &_rconid, _flags);
+	return doSendSignal(_psig, _rsap, &_rconid, _flags);
 }
 
 inline int Service::sendSignal(
-	const SockAddrPair &_rsap,
 	DynamicPointer<Signal> &_psig,//the signal to be sent
+	const SockAddrPair &_rsap,
 	uint32	_flags
 ){
-	return doSendSignal(_rsap, _psig, NULL, _flags);
+	return doSendSignal(_psig, _rsap, NULL, _flags);
 }
 
 }//namespace ipc
