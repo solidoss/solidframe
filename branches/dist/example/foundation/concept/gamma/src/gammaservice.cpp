@@ -26,9 +26,9 @@ InitServiceOnce::InitServiceOnce(Manager &_rm){
 	Connection::initStatic(_rm);
 }
 
-/*static*/ concept::Service* Service::create(){
+/*static*/ concept::gamma::Service* Service::create(){
 	//TODO: staticproblem
-	static InitServiceOnce	init(Manager::the());
+	static InitServiceOnce	init(m());
 	return new Service();
 }
 
@@ -38,32 +38,20 @@ Service::Service(){
 Service::~Service(){
 }
 
-int Service::insertConnection(
+bool Service::insertConnection(
 	const SocketDevice &_rsd,
 	foundation::aio::openssl::Context *_pctx,
 	bool _secure
 ){
 	//create a new connection with the given channel
-	Connection *pcon = new Connection(_rsd);
-	if(_pctx){
-		//TODO:
-		//pcon->socketSecureSocket(_pctx->createSocket());
-	}
-	//register it into the service
-	if(this->insert(*pcon, this->index())){
-		delete pcon;
-		return BAD;
-	}
-	// add it into a connection pool
-	Manager::the().pushJob(static_cast<fdt::aio::Object*>(pcon));
-	return OK;
+	fdt::ObjectPointer<Connection> conptr(new Connection(_rsd));
+	this->insert<AioSchedulerT>(conptr, 0);
+	return true;
 }
 
-int Service::removeConnection(Connection &_rcon){
-	//TODO:
-	//unregisters the connection from the service.
-	this->remove(_rcon);
-	return OK;
+void Service::eraseObject(const Connection &_ro){
+	ObjectUidT objuid(_ro.uid());
+	idbg("gamma "<<fdt::compute_service_id(objuid.first)<<' '<<fdt::compute_index(objuid.first)<<' '<<objuid.second);
 }
 
 }//namespace gamma

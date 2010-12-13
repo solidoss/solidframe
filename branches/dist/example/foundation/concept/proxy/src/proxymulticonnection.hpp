@@ -44,17 +44,15 @@ namespace proxy{
 
 class Service;
 
-class MultiConnection: public foundation::aio::MultiObject{
+class MultiConnection: public Dynamic<MultiConnection, foundation::aio::MultiObject>{
 public:
 	typedef Service	ServiceT;
-	typedef foundation::aio::MultiObject BaseT;
+	//typedef foundation::aio::MultiObject BaseT;
 	
 	MultiConnection(const char *_node = NULL, const char *_srv = NULL);
 	MultiConnection(const SocketDevice &_rsd);
 	~MultiConnection();
 	int execute(ulong _sig, TimeSpec &_tout);
-	int execute();
-	int accept(foundation::Visitor &);
 private:
 	int doReadAddress();
 	int doProxy(const TimeSpec &_tout);

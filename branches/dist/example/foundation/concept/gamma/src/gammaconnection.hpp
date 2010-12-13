@@ -69,8 +69,8 @@ struct SocketData{
 	It uses a reader and a writer to implement a state machine for the 
 	protocol communication. 
 */
-class Connection: public foundation::aio::MultiObject{
-	typedef DynamicReceiver<void, Connection>	DynamicReceiverT;
+class Connection: public Dynamic<Connection, foundation::aio::MultiObject>{
+	typedef DynamicExecuter<void, Connection>	DynamicExecuterT;
 public:
 	enum{
 		SocketRegister,
@@ -99,7 +99,7 @@ public:
 	
 	~Connection();
 	
-	/*virtual*/ int signal(DynamicPointer<foundation::Signal> &_sig);
+	/*virtual*/ bool signal(DynamicPointer<foundation::Signal> &_sig);
 	
 	//! The implementation of the protocol's state machine
 	/*!
@@ -107,10 +107,6 @@ public:
 		foundation::aio::Selector.
 	*/
 	int execute(ulong _sig, TimeSpec &_tout);
-	//! Dummy inmplementation
-	int execute();
-	//! Dummy inmplementation
-	int accept(foundation::Visitor &);
 	
 	//! creator method for new commands
 	Command* create(const String& _name, Reader &_rr);
@@ -129,7 +125,7 @@ public:
 	
 	SocketData &socketData(const uint _sid);
 	
-	void dynamicExecuteDefault(DynamicPointer<> &_dp);
+	void dynamicExecute(DynamicPointer<> &_dp);
 	void dynamicExecute(DynamicPointer<IStreamSignal> &_rsig);
 	void dynamicExecute(DynamicPointer<OStreamSignal> &_rsig);
 	void dynamicExecute(DynamicPointer<IOStreamSignal> &_rsig);
@@ -171,7 +167,7 @@ private:
 private:
 	bool				isslave;
 	uint32				crtreqid;
-	DynamicReceiverT	dr;
+	DynamicExecuterT	dr;
 	SocketDataVectorT	sdv;
 	RequestIdVectorT	ridv;
 	StreamDataVectorT	streamv;

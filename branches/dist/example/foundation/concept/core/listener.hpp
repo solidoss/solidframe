@@ -42,7 +42,6 @@ class Listener: public Dynamic<Listener, foundation::aio::SingleObject>{
 public:
 	typedef Service		ServiceT;
 	Listener(const SocketDevice &_rsd, foundation::aio::openssl::Context *_pctx = NULL);
-	~Listener();
 	virtual int execute(ulong, TimeSpec&);
 private:
 	typedef std::auto_ptr<foundation::aio::openssl::Context> SslContextPtrT;

@@ -587,11 +587,11 @@ ObjectUidT Service::doInsertObject(Object &_ro, uint _tid, const IndexT &_ridx){
 			
 			u = 0;
 			//reserve some positions
-			uint			cnt(63);
+			uint			cnt(255);
 			const IndexT	initialsize(d.objvec.size());
 			while(cnt--){
 				d.mtxstore.safeAt(d.objvec.size());
-				d.idxque.push(initialsize + 62 - cnt);
+				d.idxque.push(initialsize + 254 - cnt);
 				d.objvec.push_back(Data::ObjectPairT(NULL, 0));
 			}
 			

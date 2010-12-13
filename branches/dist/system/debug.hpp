@@ -256,8 +256,6 @@ struct DbgTraceTest{
 
 #else
 
-#define pdbg(x)
-#define pdbgx(a,x)
 #define idbg(x)
 #define idbgx(a,x)
 #define edbg(x)

@@ -32,26 +32,6 @@ private:
 	uint	waitsec;
 };
 
-/*virtual*/ int ThirdObject::execute(ulong _evs, TimeSpec &_rtout){
-	ulong sm(0);
-	if(signaled()){
-		Mutex::Locker lock(mutex());
-		sm = grabSignalMask();
-		if(sm & foundation::S_KILL){
-			idbg("killing thirdobject");
-			return BAD;
-		}
-	}
-	idbg("event on "<<id()<<" remain count "<<cnt<<" wait sec "<<waitsec);
-	_rtout.add(waitsec);
-	if(cnt == 0) return NOK;
-	--cnt;
-	if(cnt == 0){
-		return BAD;
-	}
-	return NOK;
-}
-
 typedef foundation::Scheduler<foundation::aio::Selector>	AioSchedulerT;
 typedef foundation::Scheduler<foundation::ObjectSelector>	SchedulerT;
 
@@ -186,3 +166,22 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 	}
 }
 
+/*virtual*/ int ThirdObject::execute(ulong _evs, TimeSpec &_rtout){
+	ulong sm(0);
+	if(signaled()){
+		Mutex::Locker lock(mutex());
+		sm = grabSignalMask();
+		if(sm & foundation::S_KILL){
+			idbg("killing thirdobject");
+			return BAD;
+		}
+	}
+	idbg("event on "<<id()<<" remain count "<<cnt<<" wait sec "<<waitsec);
+	_rtout.add(waitsec);
+	if(cnt == 0) return NOK;
+	--cnt;
+	if(cnt == 0){
+		return BAD;
+	}
+	return NOK;
+}

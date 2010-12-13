@@ -13,16 +13,14 @@ namespace gamma{
 
 class Connection;
 
-class Service: public concept::Service{
-	
-	typedef concept::Service	BaseT;
+class Service: public Dynamic<Service, concept::Service>{
 public:
-	static concept::Service* create();
+	static concept::gamma::Service* create();
 	Service();
 	~Service();
-	int removeConnection(Connection &);
+	void eraseObject(const Connection &);
 private:
-	int insertConnection(
+	bool insertConnection(
 		const SocketDevice &_rsd,
 		foundation::aio::openssl::Context *_pctx,
 		bool _secure

@@ -59,8 +59,6 @@ NOTE:
 */
 
 MultiConnection::~MultiConnection(){
-	concept::Manager &rm = concept::Manager::the();
-	rm.service(*this).removeConnection(*this);
 	delete pai;
 }
 enum{
@@ -337,13 +335,6 @@ int MultiConnection::doRefill(){
 	return OK;
 }
 
-int MultiConnection::execute(){
-	return BAD;
-}
-
-int MultiConnection::accept(fdt::Visitor &_rov){
-	return BAD;
-}
 }//namespace proxy
 }//namespace concept
 

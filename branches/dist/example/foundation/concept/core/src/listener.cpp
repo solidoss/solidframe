@@ -38,9 +38,6 @@ Listener::Listener(
 	state(0);
 }
 
-Listener::~Listener(){
-}
-
 int Listener::execute(ulong, TimeSpec&){
 	idbg("here");
 	cassert(this->socketOk());

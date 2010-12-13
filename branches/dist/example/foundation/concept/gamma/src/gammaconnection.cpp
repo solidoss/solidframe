@@ -63,15 +63,15 @@ static const unsigned specificPosition(){
 }
 
 /*static*/ void Connection::dynamicRegister(){
-	DynamicReceiverT::add<IStreamSignal, Connection>();
-	DynamicReceiverT::add<OStreamSignal, Connection>();
-	DynamicReceiverT::add<IOStreamSignal, Connection>();
-	DynamicReceiverT::add<StreamErrorSignal, Connection>();
-	DynamicReceiverT::add<SocketMoveSignal, Connection>();
+	DynamicExecuterT::registerDynamic<IStreamSignal, Connection>();
+	DynamicExecuterT::registerDynamic<OStreamSignal, Connection>();
+	DynamicExecuterT::registerDynamic<IOStreamSignal, Connection>();
+	DynamicExecuterT::registerDynamic<StreamErrorSignal, Connection>();
+	DynamicExecuterT::registerDynamic<SocketMoveSignal, Connection>();
 }
 
 Connection::Connection(const SocketDevice &_rsd):
-	foundation::aio::MultiObject(_rsd),isslave(true),crtreqid(1)
+	BaseT(_rsd),isslave(true),crtreqid(1)
 {
 	sdv.push_back(new SocketData(0));
 	sdv.back()->r.buffer(protocol::HeapBuffer(1024));
@@ -99,18 +99,16 @@ NOTE:
 
 Connection::~Connection(){
 	idbg("destroy connection id "<<this->id());
-	Manager &rm = Manager::the();
 	Thread::specific(specificPosition(), this);
-	rm.service(*this).removeConnection(*this);
 	for(SocketDataVectorT::const_iterator it(sdv.begin()); it != sdv.end(); ++it){
 		delete *it;
 	}
 }
 
-/*virtual*/ int Connection::signal(DynamicPointer<foundation::Signal> &_sig){
+/*virtual*/ bool Connection::signal(DynamicPointer<foundation::Signal> &_sig){
 	if(this->state() < 0){
 		_sig.clear();
-		return 0;//no reason to raise the pool thread!!
+		return false;//no reason to raise the pool thread!!
 	}
 	dr.push(DynamicPointer<>(_sig));
 	return Object::signal(fdt::S_SIG | fdt::S_RAISE);
@@ -281,10 +279,6 @@ int Connection::executeSocket(const uint _sid, const TimeSpec &_tout){
 	return NOK;
 }
 
-int Connection::execute(){
-	return BAD;
-}
-
 Command* Connection::create(const String& _name, Reader &_rr){
 	//return isslave ? doCreateSlave(_name) : doCreateMaster(_name);
 	return doCreateSlave(_name,_rr);
@@ -411,7 +405,7 @@ int Connection::doSocketExecute(const uint _sid, SocketData &_rsd, const int _st
 }
 
 
-void Connection::dynamicExecuteDefault(DynamicPointer<> &_dp){
+void Connection::dynamicExecute(DynamicPointer<> &_dp){
 	wdbg("Received unknown signal on ipcservice");
 }
 
@@ -465,12 +459,7 @@ void Connection::doSendSocketSignal(const uint _sid){
 	this->socketGrab(_sid, sp);
 	DynamicPointer<fdt::Signal>	psig(new SocketMoveSignal(sp, sdv[_sid]));
 	sdv[_sid] = NULL;
-	rm.signalObject(objuid.first, objuid.second, psig);
-}
-
-
-int Connection::accept(fdt::Visitor &_rov){
-	return OK;
+	rm.signal(psig, objuid.first, objuid.second);
 }
 
 void Connection::appendContextString(std::string &_str){

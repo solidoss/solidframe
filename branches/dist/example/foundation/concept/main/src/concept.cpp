@@ -31,8 +31,8 @@
 //#include "echo/echoservice.hpp"
 #include "alpha/alphaservice.hpp"
 //#include "beta/betaservice.hpp"
-//#include "proxy/proxyservice.hpp"
-//#include "gamma/gammaservice.hpp"
+#include "proxy/proxyservice.hpp"
+#include "gamma/gammaservice.hpp"
 #include "audit/log/logmanager.hpp"
 #include "audit/log/logconnectors.hpp"
 #include "audit/log.hpp"
@@ -212,13 +212,10 @@ int main(int argc, char* argv[]){
 		int 				rv;
 		
 		const IndexT alphaidx = m.registerService<concept::SchedulerT>(concept::alpha::Service::create(m));
+		const IndexT proxyidx = m.registerService<concept::SchedulerT>(concept::proxy::Service::create());
+		const IndexT gammaidx = m.registerService<concept::SchedulerT>(concept::gamma::Service::create());
 		
 		m.start();
-		
-		if(true){//creates and registers a new alpha service
-			insertListener(rw, "alpha", alphaidx, "0.0.0.0", p.start_port + 114, false);
-			insertListener(rw, "alpha", alphaidx, "0.0.0.0", p.start_port + 124, true);
-		}
 		
 		if(true){
 			int port = p.start_port + 222;
@@ -230,7 +227,20 @@ int main(int argc, char* argv[]){
 			}
 		}
 		
+		if(true){//creates and registers a new alpha service
+			insertListener(rw, "alpha", alphaidx, "0.0.0.0", p.start_port + 114, false);
+			insertListener(rw, "alpha", alphaidx, "0.0.0.0", p.start_port + 124, true);
+		}
 		
+		if(true){//creates and registers a new alpha service
+			insertListener(rw, "proxy", proxyidx, "0.0.0.0", p.start_port + 214, false);
+			//insertListener(rw, "alpha", alphaidx, "0.0.0.0", p.start_port + 124, true);
+		}
+		
+		if(true){//creates and registers a new alpha service
+			insertListener(rw, "gamma", gammaidx, "0.0.0.0", p.start_port + 314, false);
+			//insertListener(rw, "alpha", alphaidx, "0.0.0.0", p.start_port + 124, true);
+		}
 		
 		char buf[2048];
 		int rc = 0;

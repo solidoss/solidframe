@@ -33,7 +33,7 @@ namespace fdt = foundation;
 namespace concept{
 namespace proxy{
 
-concept::Service* Service::create(){
+concept::proxy::Service* Service::create(){
 	return new Service;
 }
 
@@ -43,62 +43,27 @@ Service::Service(){
 Service::~Service(){
 }
 
-int Service::insertConnection(
+bool Service::insertConnection(
 	const SocketDevice &_rsd,
 	foundation::aio::openssl::Context *_pctx,
 	bool _secure
 ){
-	MultiConnection *pcon = new MultiConnection(_rsd);
-	if(this->insert(*pcon, this->index())){
-		delete pcon;
-		return BAD;
-	}
-	Manager::the().pushJob(static_cast<fdt::aio::Object*>(pcon));
-	return OK;
+	fdt::ObjectPointer<MultiConnection> conptr(new MultiConnection(_rsd));
+	this->insert<AioSchedulerT>(conptr, 0);
+	return true;
 }
 
-// int Service::insertTalker(
-// 	Manager &_rm, 
-// 	const AddrInfoIterator &_rai,
-// 	const char *_node,
-// 	const char *_svc
-// ){
-// 	fdt::udp::Station *pst(fdt::udp::Station::create(_rai));
-// 	if(!pst) return BAD;
-// 	Talker *ptkr = new Talker(pst, _node, _svc);
-// 	if(this->insert(*ptkr, this->index())){
-// 		delete ptkr;
-// 		return BAD;
-// 	}
-// 	_rm.pushJob((fdt::udp::Talker*)ptkr);
-// 	return OK;
-// }
-
-int Service::insertConnection(
+bool Service::insertConnection(
 	const AddrInfoIterator &_rai,
 	const char *_node,
 	const char *_svc
 ){
-/*	fdt::tcp::Channel *pch(fdt::tcp::Channel::create(_rai));
-	if(!pch) return BAD;
-	MultiConnection *pcon = new MultiConnection(pch, _node, _svc);
-	if(this->insert(*pcon, this->index())){
-		delete pcon;
-		return BAD;
-	}
-	_rm.pushJob((fdt::tcp::MultiConnection*)pcon);*/
-	return OK;
+	return true;
 }
 
-// int Service::removeTalker(Talker& _rtkr){
-// 	this->remove(_rtkr);
-// 	return OK;
-// }
-
-int Service::removeConnection(MultiConnection &_rcon){
-	//TODO:
-	this->remove(_rcon);
-	return OK;
+void Service::eraseObject(const MultiConnection &_ro){
+	ObjectUidT objuid(_ro.uid());
+	idbg("proxy "<<fdt::compute_service_id(objuid.first)<<' '<<fdt::compute_index(objuid.first)<<' '<<objuid.second);
 }
 
 }//namespace proxy

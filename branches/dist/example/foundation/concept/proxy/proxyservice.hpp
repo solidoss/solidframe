@@ -30,12 +30,12 @@ namespace proxy{
 class MultiConnection;
 //class Talker;
 
-class Service: public concept::Service{
+class Service: public Dynamic<Service, concept::Service>{
 public:
-	static concept::Service* create();
+	static concept::proxy::Service* create();
 	Service();
 	~Service();
-	int insertConnection(
+	bool insertConnection(
 		const SocketDevice &_rsd,
 		foundation::aio::openssl::Context *_pctx,
 		bool _secure
@@ -45,13 +45,12 @@ public:
 		const char *_node,
 		const char *_svc
 	);*/
-	int insertConnection(
+	bool insertConnection(
 		const AddrInfoIterator &_rai,
 		const char *_node,
 		const char *_svc
 	);
-	int removeConnection(MultiConnection &);
-	//int removeTalker(Talker&);
+	void eraseObject(const MultiConnection &_ro);
 };
 
 }//namespace echo

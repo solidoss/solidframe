@@ -205,12 +205,16 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			concept::Manager	&rm = concept::Manager::the();
 			uint32				myport(rm.ipc().basePort());
 			IndexT				objid(this->id());
-			uint32				objuid(this->uid().first);
+			IndexT				svcid(fdt::compute_service_id(objid));
+			IndexT				objidx(fdt::compute_index(objid));
+			uint32				objuid(this->uid().second);
 			char				host[SocketAddress::MaxSockHostSz];
 			char				port[SocketAddress::MaxSockServSz];
 			SocketAddress		addr;
 			
-			writer()<<"* Hello from alpha server ("<<myport<<" "<<(uint32)objid<<" "<<objuid<<") [";
+			
+			
+			writer()<<"* Hello from alpha server ("<<myport<<' '<<svcid<<' '<<objidx<<' '<< objid<<' '<<objuid<<") [";
 			socketLocalAddress(addr);
 			addr.name(
 				host,

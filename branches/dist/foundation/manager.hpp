@@ -78,7 +78,7 @@ public:
 	
 	template<class T>
 	typename T::ServiceT& service(const T &_robj)const{
-		return static_cast<typename T::ServiceT&>(service(_robj.serviceid()));
+		return static_cast<typename T::ServiceT&>(service(_robj.serviceId()));
 	}
 	
 	virtual SpecificMapper*  specificMapper();
