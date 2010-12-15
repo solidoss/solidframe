@@ -19,53 +19,52 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "workpoolpp.h"
+#include "utility/workpool.hpp"
+#include "system/debug.hpp"
 #include <iostream>
 
 using namespace std;
 
-///\cond 0
-class MyWorkPool: public WorkPool<int>{
-public:
-	void run(Worker &);
-protected:
-	int createWorkers(uint);
+struct MyWorkPoolController;
+
+typedef WorkPool<int, MyWorkPoolController>	MyWorkPool;
+
+struct MyWorkPoolController: WorkPoolControllerBase{
+	typedef std::vector<int>	IntVectorT;
+	void createWorker(MyWorkPool &_rwp){
+		//_rwp.createSingleWorker()->start();
+		_rwp.createMultiWorker(4)->start();
+	}
+	void execute(WorkerBase &, int _i){
+		idbg("i = "<<_i);
+		Thread::sleep(_i * 10);
+	}
+	void execute(WorkerBase &, IntVectorT &_rjobvec){
+		for(IntVectorT::const_iterator it(_rjobvec.begin()); it != _rjobvec.end(); ++it){
+			idbg("it = "<<*it);
+			Thread::sleep(*it * 10);
+		}
+	}
 };
-///\endcond
-void MyWorkPool::run(Worker &_wk){
-	int k;
-	while(!pop(_wk.wid(),k)){
-		idbg(_wk.wid()<<" is processing "<<k);
-		Thread::sleep(1000);
-	}
-}
-int MyWorkPool::createWorkers(uint _cnt){
-	//typedef GenericWorker<Worker, MyWorkPool> MyWorkerT;
-	for(uint i = 0; i < _cnt; ++i){
-		Worker *pw = createWorker<Worker>(*this);//new MyWorkerT(*this);
-		pw->start(true);//wait for start
-	}
-	return _cnt;
-}
 
 
 int main(int argc, char *argv[]){
-	{
-	string s = "dbg/";
-	s+= argv[0]+2;
-	//initDebug(s.c_str());
-	}
 	Thread::init();
-	MyWorkPool mwp;
-	idbg("before start");
-	mwp.start(5);
-	idbg("after start");
-	for(int i = 0; i < 1000; ++i){
-		mwp.push(i);
-		if(!(i % 10)) Thread::sleep(500);
+#ifdef UDEBUG
+	{
+	string dbgout;
+	Dbg::instance().levelMask("iew");
+	Dbg::instance().moduleMask("any");
+	Dbg::instance().initStdErr(true);
 	}
-	idbg("before stop");
-	mwp.stop();
+#endif
+	MyWorkPool	mwp;
+	mwp.start(2, true);
+	
+	for(int i(0); i < 100; ++i){
+		mwp.push(i);
+	}
+	mwp.stop(true);
 	Thread::waitAll();
 	return 0;
 }

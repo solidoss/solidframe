@@ -77,12 +77,12 @@ SignalExecuter::~SignalExecuter(){
 	delete &d;
 }
 
-int SignalExecuter::signal(DynamicPointer<Signal> &_sig){
+bool SignalExecuter::signal(DynamicPointer<Signal> &_sig){
 	cassert(!d.pm->tryLock());
 	
 	if(this->state() != Data::Running){
 		_sig.clear();
-		return 0;//no reason to raise the pool thread!!
+		return false;//no reason to raise the pool thread!!
 	}
 	d.push(_sig);
 	return Object::signal(S_SIG | S_RAISE);
@@ -117,7 +117,7 @@ int SignalExecuter::execute(ulong _evs, TimeSpec &_rtout){
 				state(-1);
 				d.pm->unlock();
 				d.sdq.clear();
-				removeFromManager();
+				m().eraseObject(*this);
 				vdbgx(Dbg::fdt, "~SignalExecuter");
 				return BAD;
 			}
@@ -165,7 +165,7 @@ int SignalExecuter::execute(ulong _evs, TimeSpec &_rtout){
 			}
 		}
 		idbgx(Dbg::fdt, "remove signal executer from manager");
-		removeFromManager();
+		m().eraseObject(*this);
 		state(-1);
 		d.sdq.clear();
 		return BAD;
@@ -183,8 +183,8 @@ int SignalExecuter::execute(ulong _evs, TimeSpec &_rtout){
 	return NOK;
 }
 
-void SignalExecuter::mutex(Mutex *_pmut){
-	d.pm = _pmut;
+void SignalExecuter::init(Mutex *_pmtx){
+	d.pm = _pmtx;
 }
 
 int SignalExecuter::execute(){

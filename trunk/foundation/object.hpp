@@ -24,28 +24,19 @@
 
 #include "foundation/common.hpp"
 
+#include "utility/dynamictype.hpp"
 #include "utility/dynamicpointer.hpp"
 
 class Mutex;
 struct TimeSpec;
+
 namespace foundation{
 
-class Visitor;
 class Manager;
 class Service;
-class ReadWriteService;
 class ObjectPointerBase;
 class Signal;
-
-#ifndef USERVICEBITS
-//by default we have at most 32 services for x86 bits machines and 256 for x64
-#define USERVICEBITS (sizeof(IndexT) == 4 ? 5 : 8)
-#endif
-
-enum ObjectDefs{
-	SERVICEBITCNT = USERVICEBITS,
-	INDEXBITCNT	= sizeof(IndexT) * 8 - SERVICEBITCNT,
-};
+class SelectorBase;
 
 
 //! A pseudo-active object class
@@ -78,19 +69,64 @@ enum ObjectDefs{
 	- Also an object will hold information about the thread in which it is currently
 	executed, so that the signaling is fast.
 */
-class Object{
+class Object: public Dynamic<Object>{
 public:
 	typedef Signal	SignalT;
-	//! Extracts the object index within service from an objectid
-	static IndexT computeIndex(IndexT _fullid);
-	//! Extracts the service id from an objectid
-	static IndexT computeServiceId(IndexT _fullid);
 	
 	//!Get the curent object associate to the current thread
-	static Object&	the();
+	static Object& the();
+	
+	//! Returns true if the object is signaled
+	bool signaled() const;
+	
+	//! Returns the state of the objec -a negative state means the object must be destroyed
+	int state() const;
+	
+	bool signaled(ulong _s) const;
+	
+	//! Get the id of the object
+	IndexT id() const;
+	
+	ObjectUidT uid()const;
+	
+	//! Get the associated mutex
+	Mutex& mutex()const;
+	
+	//! Get the id of the parent service
+	IndexT serviceId()const;
+	
+	//! Get the index of the object within service from an objectid
+	IndexT index()const;
+	
+	/**
+	 * Returns true if the signal should raise the object ASAP
+	 * \param _smask The signal bitmask
+	 */
+	bool signal(ulong _smask);
+	
+	//! Signal the object with a signal
+	virtual bool signal(DynamicPointer<Signal> &_rsig);
+protected:
+	friend class Service;
+	friend class Manager;
+	friend class ObjectPointerBase;
+	friend class SelectorBase;
 	
 	//! Constructor
 	Object(IndexT _fullid = 0UL);
+	
+	//! Sets the current state.
+	/*! If your object will implement a state machine (and in an asynchronous
+	environments it most certanly will) use this base state setting it to
+	somethin negative on destruction
+	*/
+	void state(int _st);
+	
+	//! Grab the signal mask eventually leaving some bits set- CALL this inside lock!!
+	ulong grabSignalMask(ulong _leave = 0);
+	
+	//! Virtual destructor
+	virtual ~Object();//only objptr base can destroy an object
 	
 	//! Assigns the object to the current thread
 	/*!
@@ -98,92 +134,58 @@ public:
 	*/
 	void associateToCurrentThread();
 	
-	//! Get the id of the object
-	IndexT id()			const 	{return fullid;}
-	
-	uint32 uid()const;
-	
-	//! Get the associated mutex
-	Mutex& mutex()const;
-	
-	//! Set the thread id
-	void setThread(uint32 _thrid, uint32 _thrpos);
-	
-	//! Returns the state of the objec -a negative state means the object must be destroyed
-	int state()	const 	{return crtstate;}
-	/**
-	 * Returns true if the signal should raise the object ASAP
-	 * \param _smask The signal bitmask
-	 */
-	ulong signal(ulong _smask);
-	
-	ulong signaled(ulong _s) const;
-	
-	//! Signal the object with a signal
-	virtual int signal(DynamicPointer<Signal> &_rsig);
-	
-	//! Executes the objects
-	/*!
-		This method is calle by basic objectpools with no support for
-		events and timeouts
-	*/
-	virtual int execute();
 	//! Executes the objects
 	/*!
 		This method is calle by selectpools with support for
 		events and timeouts
 	*/
 	virtual int execute(ulong _evs, TimeSpec &_rtout);
-	//! Acceptor method for different visitors
-	virtual int accept(Visitor &_roi);
-protected:
-	friend class Service;
-	friend class Manager;
-	friend class ReadWriteService;
-	friend class ObjectPointerBase;
-	//! Sets the current state.
-	/*! If your object will implement a state machine (and in an asynchronous
-	environments it most certanly will) use this base state setting it to
-	somethin negative on destruction
-	*/
-	void state(int _st);
-	//! Grab the signal mask eventually leaving some bits set- CALL this inside lock!!
-	ulong grabSignalMask(ulong _leave = 0);
-	//! Virtual destructor
-	virtual ~Object();//only objptr base can destroy an object
 	
-	//getters:
-	//! Get the id of the parent service
-	IndexT serviceid()const;
-	//! Get the index of the object within service from an objectid
-	IndexT index()const;
+	//! Set the thread id
+	void setThread(uint32 _thrid, uint32 _thrpos);
 	
-	
-	//! Returns true if the object is signaled
-	ulong signaled()			const 	{return smask;}
-	
+	//! This is called by the service after the object was registered
+	/*!
+	 * Some objects may keep the mutex for faster access
+	 */
+	virtual void init(Mutex *_pm);
 private:
+	void typeId(const uint16 _tid);
+	const uint typeId()const;
+	
 	//! Set the id
 	void id(IndexT _fullid);
-	//! Set the id given the service id and index
-	void id(IndexT _srvid, IndexT _ind);
-	//! This method will be called once by service when registering an object
-	/*!
-		Some objects may need faster access to their associated mutex, so they
-		might want to keep a pointer to it.
-	*/
-	virtual void mutex(Mutex *_pmut);
 	//! Gets the id of the thread the object resides in
 	void getThread(uint32 &_rthid, uint32 &_rthpos)const;
+	//! Set the id given the service id and index
+	void id(IndexT _srvid, IndexT _ind);
 private:
 	IndexT			fullid;
 	volatile ulong	smask;
 	volatile uint32	thrid;//the current thread which (may) execute(s) the object
 	volatile uint32	thrpos;//
-	short			usecnt;//
-	short			crtstate;// < 0 -> must die
+	uint16			usecnt;//
+	uint16			tid;//typeid
+	int32			crtstate;// < 0 -> must die
 };
 
+inline bool Object::signaled() const {
+	return smask != 0;
+}
+	
+inline int Object::state()	const {
+	return crtstate;
+}
+
+inline IndexT Object::id()	const {
+	return fullid;
+}
+inline void Object::typeId(const uint16 _tid){
+	tid = _tid;
+}
+inline const uint Object::typeId()const{
+	return tid;
+}
 
 #ifndef NINLINES
 #include "foundation/object.ipp"

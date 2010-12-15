@@ -24,6 +24,7 @@
 
 #include "foundation/common.hpp"
 
+struct B;
 namespace foundation{
 
 class Object;
@@ -36,22 +37,28 @@ protected:
 };
 
 //! An autoptr style smartpointer for objects.
-template <class SO>
+template <class SO = Object>
 class ObjectPointer: protected ObjectPointerBase{
 public:
 	typedef SO 					ObjectT;
 	typedef ObjectPointer<SO>	ThisT;
 public:
-	ObjectPointer():pobj(NULL){}
-	
-	explicit ObjectPointer(ObjectT *_pobj):pobj(_pobj) {
-		if(_pobj) use(static_cast<Object*>(_pobj));
+	explicit ObjectPointer(ObjectT *_pobj = NULL):pobj(_pobj) {
+		if(_pobj){
+			use(static_cast<Object*>(_pobj));
+		}
 	}
 	
 	ObjectPointer(const ThisT &_pobj):pobj(_pobj.release()){}
 	
+	template <class B>
+	ObjectPointer(const ObjectPointer<B> &_rop):pobj(_rop.release()){
+	}
+	
 	~ObjectPointer(){
-		if(pobj){ObjectPointerBase::clear(static_cast<Object*>(pobj));}
+		if(pobj){
+			ObjectPointerBase::clear(static_cast<Object*>(pobj));
+		}
 	}
 	ObjectT* release() const{
 		ObjectT *po = pobj;
@@ -71,7 +78,12 @@ public:
 	ObjectT* ptr()	const	{return pobj;}
 	operator bool ()const	{return pobj != NULL;}
 	bool operator!()const	{return pobj == NULL;}
-	void clear(){if(pobj){ObjectPointerBase::clear(static_cast<Object*>(pobj));pobj = NULL;}}
+	void clear(){
+		if(pobj){
+			ObjectPointerBase::clear(static_cast<Object*>(pobj));
+			pobj = NULL;
+		}
+	}
 protected:
 	void ptr(ObjectT *_pobj){
 		pobj = _pobj;

@@ -1,23 +1,21 @@
+add_executable (echoserver echoserver.cpp)
 
-#FILE(GLOB Sources RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} src/*.cpp)
-#FILE(GLOB Headers RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.hpp)
+set_source_files_properties(echoserver.cpp COMPILE_FLAGS -DOSSL_SOURCE_PATH='"${EXTERN_PATH}"')
 
-set(Sources
-	src/echoconnection.cpp
-	src/echoservice.cpp
-	src/echotalker.cpp
+target_link_libraries (echoserver
+	foundation_aio
+	foundation_aio_openssl
+	foundation_core
+	algorithm_serialization
+	utility
+	system
+	ssl
+	crypto
+	boost_program_options
+	boost_system
+	${SYS_BASIC_LIBS}
+	dl
 )
 
-set(Headers
-	echoservice.hpp
-	src/echoconnection.hpp
-	src/echotalker.hpp
-)
 
-set(Includes
-)
-
-add_library(concept_echo
-	${Sources} ${Headers} ${Includes}
-)
 

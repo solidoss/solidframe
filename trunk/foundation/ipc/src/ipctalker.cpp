@@ -27,6 +27,7 @@
 
 #include "system/timespec.hpp"
 #include "system/socketaddress.hpp"
+#include "system/socketdevice.hpp"
 #include "system/debug.hpp"
 #include "system/mutex.hpp"
 #include "system/specific.hpp"
@@ -262,7 +263,6 @@ Talker::Talker(
 
 //----------------------------------------------------------------------
 Talker::~Talker(){
-	d.rservice.removeTalker(*this);
 	delete &d;
 }
 //----------------------------------------------------------------------

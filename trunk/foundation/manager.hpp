@@ -1,6 +1,6 @@
 /* Declarations file manager.hpp
 	
-	Copyright 2007, 2008 Valentin Palade 
+	Copyright 2007, 2008, 2010 Valentin Palade 
 	vipalade@gmail.com
 
 	This file is part of SolidFrame framework.
@@ -26,6 +26,7 @@
 
 #include "foundation/common.hpp"
 #include "foundation/objectpointer.hpp"
+#include "foundation/service.hpp"
 
 #include "utility/dynamicpointer.hpp"
 
@@ -34,136 +35,194 @@ class  SpecificMapper;
 class  GlobalMapper;
 struct AddrInfoIterator;
 
+namespace fdt = foundation;
+
 namespace foundation{
 
-class	Service;
-class	Pool;
+//class	Service;
 class	Object;
-class	ActiveSet;
-class	Visitor;
-class	ServiceContainer;
 class	Signal;
-
-//! The central class of solidground system
+class	SchedulerBase;
+class	SelectorBase;
+//! The central class of the foundation architecure.
 /*!
-	<b>Overview:</b><br>
-	- Although usually you don't need more than a manager per process,
-	the design allows that.
-	- The manager keeps the services and should keep the workpools (it 
-	means that the foundation::Manager does not keep any workpool, but
-	the inheriting manager should).
-	- The manager object can be easely accessed from any of the manager's
-	thread through thread specific: use Manager::the() method.
-	
-	<b>Usage:</b><br>
-	- Inherit, add workpools and extend.
-	
-	<b>Notes:</b><br>
-	- If you have a single manager per process, you should call,
-	prepareThread in the constructor of your inheritant manager.<br>
-	Else, you should use ThisGuard tg(this), for every function that is
-	called from a thread that has access to multiple Managers.
-	- Also you may consider initiating/controlling the Managers from their
-	own thread.
-	
-	
-*/
+ * Schedulers, services and service like objects (objects
+ * that reside within a master service), must be registered
+ * before Manager start.
+ * The manager is a singleton and it is inheritable.
+ * One can access the manager using Manager::the static function
+ * or foundation::m().
+ * After start, the manager is solely used to access services
+ * and signal objects.
+ */
 class Manager{
+	typedef void (*SchedCbkT) (uint, Object *);
 public:
-	virtual ~Manager();
-	//! Easy access to manager using thread specific
 	static Manager& the();
 	
-	//! Signal an object identified by (id,uid) with a sinal mask
-	int signalObject(IndexT _fullid, uint32 _uid, ulong _sigmask);
+	Manager(
+		const IndexT &_startdynamicidx = 1,
+		uint _selcnt = 1024
+	);
 	
-	//! Signal an object with a signal mask, given a reference to the object
-	int signalObject(Object &_robj, ulong _sigmask);
+	virtual ~Manager();
 	
-	//! Signal an object identified by (id,uid) with a signal
-	int signalObject(IndexT _fullid, uint32 _uid, DynamicPointer<Signal> &_rsig);
+	void start();
+	void stop();
 	
-	//! Signal an object with a signal, given a reference to the object
-	int signalObject(Object &_robj, DynamicPointer<Signal> &_rsig);
+	bool signal(ulong _sm);
+	bool signal(ulong _sm, const ObjectUidT &_ruid);
+	bool signal(ulong _sm, IndexT _fullid, uint32 _uid);
+	//bool signal(ulong _sm, const Object &_robj);
+
+	bool signal(DynamicSharedPointer<Signal> &_rsig);
+	bool signal(DynamicPointer<Signal> &_rsig, const ObjectUidT &_ruid);
+	bool signal(DynamicPointer<Signal> &_rsig, IndexT _fullid, uint32 _uid);
+	//bool signal(DynamicPointer<Signal> &_rsig, const Object &_robj);
 	
-	//! Wake an object
 	void raiseObject(const Object &_robj);
 	
-	//! Get the mutex associated to the given object
 	Mutex& mutex(const Object &_robj)const;
-	//! Get the unique id associated to the given object
+	
 	uint32  uid(const Object &_robj)const;
 	
-	//! Unsafe - you should not use this
 	template<class T>
-	typename T::ServiceT& service(const T &_robj){
-		return static_cast<typename T::ServiceT&>(service(_robj.serviceid()));
+	typename T::ServiceT& service(const T &_robj)const{
+		return static_cast<typename T::ServiceT&>(service(_robj.serviceId()));
 	}
-	//! Prepare a manager thread
-	/*!
-		The method is called (should be called) from every
-		manager thread, to initiate thread specific data. In order to extend
-		the initialization of specific data, implement the virtual protected method:
-		doPrepareThread.
-	 */
-	void prepareThread();
-	//! Unprepare a manager thread
-	/*!
-		The method is called (should be called) from every
-		manager thread, to initiate thread specific data. In order to extend
-		the initialization of specific data, implement the virtual protected method:
-		doUnprepareThread.
-	 */
-	void unprepareThread();
+	
 	virtual SpecificMapper*  specificMapper();
+	
 	virtual GlobalMapper* globalMapper();
-	//! Register an activeset / workpool
-	uint registerActiveSet(ActiveSet &_ras);
-	//! Get the service id for a service
-	//uint serviceId(const Service &_rs)const;
-	//! Remove a service
-	/*!
-		The services are also objects so this must be called when
-		receiving S_KILL within service's execute method, outside
-		service's associated mutex lock.
-	*/
-	void removeService(Service *_ps);
+	
+	template <typename S>
+	uint registerScheduler(S *_ps){
+		typedef typename S::ObjectT ObjectT;
+		return doRegisterScheduler(
+			_ps,
+			schedulerTypeId<S>(),
+			ObjectT::staticTypeId(),
+			&sched_cbk<ObjectT, S>
+		);
+	}
+	
+	template <class S>
+	S* scheduler(uint _id)const{
+		return static_cast<S*>(doGetScheduler(schedulerTypeId<S>(), _id));
+	}
+	
+	template <typename S, class O>
+	IndexT registerService(
+		O *_po,
+		uint _schidx = 0,
+		const IndexT &_idx = invalid_uid().first
+	){
+		return doRegisterService(_po, _idx, &sched_cbk<O, S>, _schidx);
+	}
+	
+	template <typename S, class O>
+	IndexT registerObject(
+		O *_po,
+		uint _schidx = 0,
+		const IndexT &_idx = invalid_uid().first
+	){
+		return doRegisterObject(_po, _idx, &sched_cbk<O, S>, _schidx);
+	}
+	
+	Service& service(const IndexT &_ridx = 0)const;
+	Object& object(const IndexT &_ridx)const;
+	
+	Service* servicePointer(const IndexT &_ridx = 0)const;
+	Object* objectPointer(const IndexT &_ridx)const;
+	
+	template <class O>
+	O* object(const IndexT &_ridx)const{
+		return static_cast<O*>(doGetObject(O::staticTypeId(), _ridx));
+	}
+	template <class O>
+	O* service(const IndexT &_ridx)const{
+		return static_cast<O*>(doGetService(O::staticTypeId(), _ridx));
+	}
+	//For cases when there is only one object per type
+	template <class O>
+	O* object()const{
+		return static_cast<O*>(doGetObject(O::staticTypeId()));
+	}
+	//For cases when there is only one object per type
+	template <class O>
+	O* service()const{
+		return static_cast<O*>(doGetService(O::staticTypeId()));
+	}
+	
+	void eraseObject(Object &_robj);
+	
+	void stopObject(const IndexT &_idx);
+	
+	ObjectUidT serviceUid(const IndexT &_idx);
+	ObjectUidT objectUid(const IndexT &_idx);
 protected:
 	struct ThisGuard{
 		ThisGuard(Manager *_pm);
 		~ThisGuard();
 	};
-	//! Implement this method to exted thread preparation
-	virtual void doPrepareThread(){}
-	//! Implement this method to exted thread unpreparation
-	virtual void doUnprepareThread(){}
-	//! Registers a new service.
-	/*! 
-		- The service MUST be stopped before adding it.
-		- All it does is to register the service as an object, into 
-			a service of services which will permit signaling capabilities
-			for services.
-		- You must in case of success, add the service into a ObjectSelector
-			select pool.
-		\return the id of the service
-	*/
-	int insertService(Service *_ps);
-	//! Add objects that are on the same level as the services but are not services
-	void insertObject(Object *_po);
-	//! Remove an object
-	void removeObject(Object *_po);
-	//! Get the number of services
+	
+	virtual void doPrepareThread();
+	virtual void doUnprepareThread();
+	
+	
 	unsigned serviceCount()const;
-	//! Get the service at index _i
-	Service& service(uint _i = 0)const;
-	//! Constructor with filemanager pointer and ipc service
-	Manager();
-	void stop(bool _wait = true);
+	
+	virtual void doStart();
+	
+	virtual void doStop();
+	
 private:
+	//typedef void (*ScheduleCbkT) (uint, Object *);
+	friend class SchedulerBase;
+	friend class Service;
+	friend class ObjectPointerBase;
+	
+	void erase(Object &_robj);
+	
+	void prepareThread(SelectorBase *_ps = NULL);
+	void unprepareThread(SelectorBase *_ps = NULL);
+	
 	void prepareThis();
 	void unprepareThis();
-	ServiceContainer & serviceContainer();
-	//Manager(const Manager&){}
+	
+	uint newSchedulerTypeId()const;
+	uint newServiceTypeId();
+	uint newObjectTypeId();
+	
+	uint doRegisterScheduler(SchedulerBase *_ps, uint _typeid, uint _objtypeid, SchedCbkT _schcbk);
+	IndexT doRegisterService(Service *_ps, const IndexT &_idx, SchedCbkT _schcbk, uint _schidx);
+	IndexT doRegisterObject(Object *_po, const IndexT &_idx, SchedCbkT _schcbk, uint _schidx);
+	
+	SchedulerBase* doGetScheduler(uint _typeid, uint _idx)const;
+	Service* doGetService(uint _typeid, const IndexT &_ridx)const;
+	Object* doGetObject(uint _typeid, const IndexT &_ridx)const;
+	
+	Service* doGetService(uint _typeid)const;
+	Object* doGetObject(uint _typeid)const;
+	
+	uint doStart(Service **_psvctbl, uint _svctblcp); 
+	
+	template <class O>
+	uint schedulerTypeId()const{
+		static const uint v(newSchedulerTypeId());
+		return v;
+	}
+	template <class O, typename S>
+	static void sched_cbk(uint _idx, Object *_po){
+		O *po(static_cast<O*>(_po));
+		typename S::JobT op(static_cast<typename S::ObjectT*>(po));
+		S::schedule(op, _idx);
+	}
+	
+	ObjectUidT insertService(Service *_ps, const IndexT &_ridx);
+	void eraseService(Service *_ps);
+	
+	Manager(const Manager&);
 	Manager& operator=(const Manager&);
 private:
 	class ServicePtr;
@@ -171,5 +230,10 @@ private:
 	Data &d;
 };
 
+inline Manager& m(){
+	return Manager::the();
+}
+
 }//namespace
 #endif
+

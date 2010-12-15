@@ -153,6 +153,13 @@ Manager::Controller::~Controller(){
 //------------------------------------------------------------------
 //------------------------------------------------------------------
 
+/*static*/ Manager& Manager::the(){
+	return *m().object<Manager>();
+}
+
+/*static*/ Manager& Manager::the(const IndexT &_ridx){
+	return *m().object<Manager>(_ridx);
+}
 Manager::Manager(Controller *_pc):d(*(new Data(_pc))){
 	_pc->init(InitStub(*this));
 	state(Data::Running);
@@ -163,13 +170,16 @@ Manager::~Manager(){
 	for(Data::MapperVectorT::const_iterator it(d.mv.begin()); it != d.mv.end(); ++it){
 		delete *it;
 	}
-	delete d.pc;
+	if(d.pc && d.pc->release()){
+		delete d.pc;
+	}
 	delete &d;
 }
 //------------------------------------------------------------------
 
 int Manager::execute(ulong _evs, TimeSpec &_rtout){
 	d.mtx->lock();
+	idbgx(Dbg::file, "signalmask "<<_evs);
 	if(signaled()){
 		ulong sm = grabSignalMask(0);
 		idbgx(Dbg::file, "signalmask "<<sm);
@@ -180,7 +190,7 @@ int Manager::execute(ulong _evs, TimeSpec &_rtout){
 				state(-1);
 				d.mtx->unlock();
 				vdbgx(Dbg::file, "");
-				d.pc->removeFileManager();
+				m().eraseObject(*this);
 				return BAD;
 			}
 			doPrepareStop();
@@ -216,7 +226,7 @@ int Manager::execute(ulong _evs, TimeSpec &_rtout){
 	
 	if(!d.sz && state() == Data::Stopping){
 		state(-1);
-		d.pc->removeFileManager();
+		m().eraseObject(*this);
 		return BAD;
 	}
 	
@@ -395,7 +405,7 @@ void Manager::doScanTimeout(const TimeSpec &_rtout){
 }
 //------------------------------------------------------------------
 //overload from object
-void Manager::mutex(Mutex *_pmtx){
+void Manager::init(Mutex *_pmtx){
 	d.mtx = _pmtx;
 }
 //------------------------------------------------------------------
@@ -410,7 +420,8 @@ void Manager::releaseIStream(IndexT _fileid){
 		//we must signal the filemanager
 		d.feq.push(d.fv[_fileid].pfile);
 		vdbgx(Dbg::file, "sq.push "<<_fileid);
-		if(static_cast<fdt::Object*>(this)->signal((int)fdt::S_RAISE)){
+		//if(static_cast<fdt::Object*>(this)->signal((int)fdt::S_RAISE)){
+		if(this->signal((int)fdt::S_RAISE)){
 			fdt::Manager::the().raiseObject(*this);
 		}
 	}
@@ -427,7 +438,7 @@ void Manager::releaseOStream(IndexT _fileid){
 		//we must signal the filemanager
 		d.feq.push(d.fv[_fileid].pfile);
 		vdbgx(Dbg::file, "sq.push "<<_fileid);
-		if(static_cast<fdt::Object*>(this)->signal((int)fdt::S_RAISE)){
+		if(this->signal((int)fdt::S_RAISE)){
 			fdt::Manager::the().raiseObject(*this);
 		}
 	}
@@ -499,7 +510,7 @@ int Manager::doGetStream(
 	switch(rv){
 		case File::MustSignal:
 			d.feq.push(pf);
-			if(static_cast<fdt::Object*>(this)->signal((int)fdt::S_RAISE)){
+			if(this->signal((int)fdt::S_RAISE)){
 				fdt::Manager::the().raiseObject(*this);
 			}
 		case File::MustWait:

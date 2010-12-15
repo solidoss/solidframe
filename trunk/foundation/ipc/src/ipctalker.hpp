@@ -37,7 +37,7 @@ struct ConnectionUid;
 class Session;
 
 //! A talker for io requests
-class Talker: public foundation::aio::SingleObject{
+class Talker: public Dynamic<Talker, foundation::aio::SingleObject>{
 public:
 	//! Interface from Talker to Session
 	struct TalkerStub{
@@ -55,7 +55,6 @@ public:
 		const TimeSpec	&crttime;
 	};
 	typedef Service							ServiceT;
-	typedef foundation::aio::SingleObject	BaseT;
 	
 	Talker(const SocketDevice &_rsd, Service &_rservice, uint16 _id);
 	~Talker();
