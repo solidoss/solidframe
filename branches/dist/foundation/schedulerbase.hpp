@@ -29,11 +29,7 @@ namespace foundation{
 class Manager;
 class SelectorBase;
 
-//! This is the base class for all active containers/sets (i.e. WorkPools)
-/*!
-	It is used by foundation::Manager for signaling a workpool
-	currently holding an object.
-*/
+//! A base class for all schedulers
 class SchedulerBase{
 public:
 	virtual void start(uint16 _startwkrcnt = 1, bool _wait = false) = 0;

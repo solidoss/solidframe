@@ -144,6 +144,10 @@ protected:
 	//! Set the thread id
 	void setThread(uint32 _thrid, uint32 _thrpos);
 	
+	//! This is called by the service after the object was registered
+	/*!
+	 * Some objects may keep the mutex for faster access
+	 */
 	virtual void init(Mutex *_pm);
 private:
 	void typeId(const uint16 _tid);

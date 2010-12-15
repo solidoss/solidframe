@@ -44,24 +44,14 @@ struct Visitor: Dynamic<Visitor>{
 	
 	It also provides a mutex for every contained object.
 	
-	Most of the interface of the foundation::Service is forwarded
-	by the foundation::Manager which is much easely accessible.
-	
 	Services can be started and stopped but they cannot be destroyed.
 	
-	Stopping means deactivating the interface which means that every
-	call will fail, making it easy to stop multiple cross dependent
-	service not caring for the order the services would stop.
+	Stopping means signalling all sub-objects with S_KILL, and wait
+	for all objects to unregister.
 	
 	Also a foundation::Service is a foundation::Object meaning
-	that it can/will reside within an active container.
+	that it resides within an active container.
 	
-	<b>Usage:</b><br>
-	- Usually you should define a base service for every service
-	of your application. That base service must inherit 
-	foundation::Service.
-	- You also must implement the execute method either in the
-	base service or on the concrete ones.
 */
 class Service: public Dynamic<Service, Object>{
 	typedef void (*EraseCbkT) (const Object &, Service *);

@@ -44,7 +44,17 @@ class	Object;
 class	Signal;
 class	SchedulerBase;
 class	SelectorBase;
-
+//! The central class of the foundation architecure.
+/*!
+ * Schedulers, services and service like objects (objects
+ * that reside within a master service), must be registered
+ * before Manager start.
+ * The manager is a singleton and it is inheritable.
+ * One can access the manager using Manager::the static function
+ * or foundation::m().
+ * After start, the manager is solely used to access services
+ * and signal objects.
+ */
 class Manager{
 	typedef void (*SchedCbkT) (uint, Object *);
 public:

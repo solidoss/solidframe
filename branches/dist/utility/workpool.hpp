@@ -29,10 +29,12 @@
 #include "utility/common.hpp"
 #include "utility/queue.hpp"
 
+//! Base class for every workpool workers
 struct WorkerBase: Thread{
 	uint32	wkrid;
 };
 
+//! Base class for workpool
 struct WorkPoolBase{
 	enum State{
 		Stopped = 0,
@@ -57,6 +59,13 @@ protected:
 	Mutex						mtx;
 };
 
+//! A controller structure for WorkPool
+/*!
+ * The WorkPool will call methods of this structure.
+ * Inherit and implement the needed methods.
+ * No need for virtualization as the Controller is
+ * a template parameter for WorkPool.
+ */
 struct WorkPoolControllerBase{
 	void prepareWorker(WorkerBase &_rw){
 	}
@@ -75,6 +84,17 @@ struct WorkPoolControllerBase{
 	}
 };
 
+//! A template workpool
+/*!
+ * The template parameters are:<br>
+ * J - the Job type to be processed by the workpool. I
+ * will hold a Queue\<J\>.<br>
+ * C - WorkPool controller, the workpool will call controller
+ * methods on different ocasions / events<br>
+ * W - Base class for workers. Specify this if you want certain data
+ * kept per worker. The workpool's actual workers will publicly
+ * inherit W.<br>
+ */
 template <class J, class C, class W = WorkerBase>
 class WorkPool: public WorkPoolBase{
 	typedef std::vector<J>		JobVectorT;

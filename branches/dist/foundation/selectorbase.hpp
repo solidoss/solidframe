@@ -7,6 +7,11 @@ namespace foundation{
 
 class Manager;
 
+//! The base for every selector
+/*!
+ * The manager will call raise when an object needs processor
+ * time, e.g. because of an event.
+ */
 class SelectorBase{
 public:
 	uint32 id()const{
