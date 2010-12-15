@@ -93,6 +93,9 @@ struct DynamicRegisterer: DynamicRegistererBase{
 //struct DynamicPointerBase;
 //! A base for all types that needs dynamic typeid.
 struct DynamicBase{
+	static bool isType(uint32 _id){
+		return false;
+	}
 	//! Get the type id for a Dynamic object.
 	virtual uint32 dynamicTypeId()const = 0;
 	//! Return the callback from the given DynamicMap associated to this object
@@ -101,6 +104,8 @@ struct DynamicBase{
 	virtual void use();
 	//! Used by DynamicPointer to know if the object must be deleted
 	virtual int release();
+	
+	virtual bool isTypeDynamic(uint32 _id)const;
 
 protected:
 	friend struct DynamicPointerBase;
@@ -127,6 +132,7 @@ struct DynamicShared: B, DynamicSharedImpl{
 	/*virtual*/ int release(){
 		return doRelease();
 	}
+	
 };
 
 
@@ -151,15 +157,48 @@ struct Dynamic: T{
 	
 	//! One parameter constructor to forward to base
 	template<class G1>
-	Dynamic(G1 _g1):T(_g1){}
+	explicit Dynamic(G1 &_g1):T(_g1){}
+	
+	template<class G1>
+	explicit Dynamic(const G1 &_g1):T(_g1){}
 	
 	//! Two parameters constructor to forward to base
 	template<class G1, class G2>
-	Dynamic(G1 _g1, G2 _g2):T(_g1, _g2){}
+	explicit Dynamic(G1 &_g1, G2 &_g2):T(_g1, _g2){}
+	
+	template<class G1, class G2>
+	explicit Dynamic(const G1 &_g1, const G2 &_g2):T(_g1, _g2){}
 	
 	//! Three parameters constructor to forward to base
 	template<class G1, class G2, class G3>
-	Dynamic(G1 _g1, G2 _g2, G3 _g3):T(_g1, _g2, _g3){}
+	explicit Dynamic(G1 &_g1, G2 &_g2, G3 &_g3):T(_g1, _g2, _g3){}
+	
+	template<class G1, class G2, class G3>
+	explicit Dynamic(const G1 &_g1, const G2 &_g2, const G3 &_g3):T(_g1, _g2, _g3){}
+	
+	template<class G1, class G2, class G3, class G4>
+	explicit Dynamic(G1 &_g1, G2 &_g2, G3 &_g3, G4 &_g4):T(_g1, _g2, _g3, _g4){}
+	
+	template<class G1, class G2, class G3, class G4>
+	explicit Dynamic(const G1 &_g1, const G2 &_g2, const G3 &_g3, const G4 &_g4):T(_g1, _g2, _g3, _g4){}
+	
+	template<class G1, class G2, class G3, class G4, class G5>
+	explicit Dynamic(G1 &_g1, G2 &_g2, G3 &_g3, G4 &_g4, G5 &_g5):T(_g1, _g2, _g3, _g4, _g5){}
+	
+	template<class G1, class G2, class G3, class G4, class G5>
+	explicit Dynamic(const G1 &_g1, const G2 &_g2, const G3 &_g3, const G4 &_g4, const G5 &_g5):T(_g1, _g2, _g3, _g4, _g5){}
+	
+	template<class G1, class G2, class G3, class G4, class G5, class G6>
+	explicit Dynamic(const G1 &_g1, const G2 &_g2, const G3 &_g3, const G4 &_g4, const G5 &_g5, const G6 &_g6):T(_g1, _g2, _g3, _g4, _g5, _g6){}
+	
+	template<class G1, class G2, class G3, class G4, class G5, class G6, class G7>
+	explicit Dynamic(G1 &_g1, G2 &_g2, G3 &_g3, G4 &_g4, G5 &_g5, G6 &_g6, G7 &_g7):T(_g1, _g2, _g3, _g4, _g5, _g6, _g7){}
+	
+	template<class G1, class G2, class G3, class G4, class G5, class G6>
+	explicit Dynamic(G1 &_g1, G2 &_g2, G3 &_g3, G4 &_g4, G5 &_g5, G6 &_g6):T(_g1, _g2, _g3, _g4, _g5, _g6){}
+	
+	template<class G1, class G2, class G3, class G4, class G5, class G6, class G7>
+	explicit Dynamic(const G1 &_g1, const G2 &_g2, const G3 &_g3, const G4 &_g4, const G5 &_g5, const G6 &_g6, const G7 &_g7):T(_g1, _g2, _g3, _g4, _g5, _g6, _g7){}
 	
 	//!The static type id
 	static uint32 staticTypeId(){
@@ -169,16 +208,29 @@ struct Dynamic: T{
 	}
 	//TODO: add:
 	//static bool isTypeExplicit(const DynamicBase*);
-	//static bool isType(const DynamicBase*);
+	static bool isType(uint32 _id){
+		if(_id == staticTypeId()) return true;
+		return BaseT::isType(_id);
+	}
 	//! The dynamic typeid
 	virtual uint32 dynamicTypeId()const{
 		return staticTypeId();
+	}
+	virtual bool isTypeDynamic(uint32 _id)const{
+		if(_id == staticTypeId()) return true;
+		return BaseT::isTypeDynamic(_id);
 	}
 	//! Returns the associated callback from the given DynamicMap
 	virtual DynamicMap::FncT callback(const DynamicMap &_rdm){
 		DynamicMap::FncT pf = _rdm.callback(staticTypeId());
 		if(pf) return pf;
 		return T::callback(_rdm);
+	}
+	X* cast(DynamicBase *_pdb){
+		if(isTypeDynamic(_pdb->dynamicTypeId())){
+			return static_cast<X*>(_pdb);
+		}
+		return NULL;
 	}
 };
 
@@ -215,7 +267,7 @@ struct Dynamic: T{
 	
 */
 template <class R, class Exe>
-struct DynamicReceiver{
+struct DynamicExecuter{
 private:
 	typedef R (*FncT)(const DynamicPointer<DynamicBase> &, void*);
 	
@@ -235,7 +287,7 @@ private:
 	}
 public:
 	//! Basic constructor
-	DynamicReceiver():pushid(0), execid(1){}
+	DynamicExecuter():pushid(0), execid(1){}
 	
 	//! Push a new object for later execution
 	/*! 
@@ -284,12 +336,21 @@ public:
 		\param _re Reference to the executer, usually *this.
 		\retval R the return value for dynamicExecute methods.
 	*/
-	template <typename E>
-	R executeCurrent(E &_re){
+	R executeCurrent(Exe &_re){
 		cassert(crtit != v[execid].end());
+		DynamicRegistererBase	dr;
+		dr.lock();
 		FncT	pf = reinterpret_cast<FncT>((*crtit)->callback(*dynamicMap()));
+		dr.unlock();
 		if(pf) return (*pf)(*crtit, &_re);
-		return _re.dynamicExecuteDefault(*crtit);
+		return _re.dynamicExecute(*crtit);
+	}
+	
+	void execute(Exe &_re){
+		while(hasCurrent()){
+			executeCurrent(_re);
+			next();
+		}
 	}
 	
 	static DynamicMap* dynamicMap(DynamicMap *_pdm = NULL){
@@ -307,14 +368,14 @@ public:
 		</code>
 	*/
 	template <class S, class E>
-	static void add(){
+	static void registerDynamic(){
 		FncT	pf = &doExecute<S, E>;
 		dynamicMapEx<E>().callback(S::staticTypeId(), reinterpret_cast<DynamicMap::FncT>(pf));
 	}
 	
 private:
 	DynamicPointerVectorT						v[2];
-	DynamicPointerVectorT::iterator			crtit;
+	DynamicPointerVectorT::iterator				crtit;
 	uint										pushid;
 	uint										execid;
 };

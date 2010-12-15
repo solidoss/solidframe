@@ -64,9 +64,6 @@ Object::SocketStub::~SocketStub(){
 /*virtual*/ Object::~Object(){
 }
 
-/*virtual*/ int Object::accept(foundation::Visitor &_roi){
-	return BAD;
-}
 void Object::setSocketPointer(const SocketPointer &_rsp, Socket *_ps){
 	_rsp.clear(_ps);
 }
@@ -226,13 +223,13 @@ void Object::doClearRequests(){
 //========================== aio::SingleObject =============================
 
 SingleObject::SingleObject(const SocketPointer& _rsp):
-	Object(&stub, 1, &req, &res, &itout, &otout), req(-1), res(-1), itout(-1), otout(-1)
+	BaseT(&stub, 1, &req, &res, &itout, &otout), req(-1), res(-1), itout(-1), otout(-1)
 {
 	//stub.psock = this->getSocketPointer(_psock);
 	socketInsert(_rsp);
 }
 SingleObject::SingleObject(const SocketDevice &_rsd):
-	Object(&stub, 1, &req, &res, &itout, &otout), req(-1), res(-1), itout(-1), otout(-1)
+	BaseT(&stub, 1, &req, &res, &itout, &otout), req(-1), res(-1), itout(-1), otout(-1)
 {
 	if(_rsd.ok()){
 		socketInsert(_rsd);
@@ -435,11 +432,11 @@ int SingleObject::socketSecureConnect(){
 
 //=========================== aio::MultiObject =============================
 
-MultiObject::MultiObject(const SocketPointer& _rps):Object(NULL, 0, NULL, NULL, NULL, NULL), respoppos(0){
+MultiObject::MultiObject(const SocketPointer& _rps):respoppos(0){
 	if(_rps)
 		socketInsert(_rps);
 }
-MultiObject::MultiObject(const SocketDevice &_rsd):Object(NULL, 0, NULL, NULL, NULL, NULL), respoppos(0){
+MultiObject::MultiObject(const SocketDevice &_rsd):respoppos(0){
 	socketInsert(_rsd);
 }
 MultiObject::~MultiObject(){

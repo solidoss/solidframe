@@ -1,29 +1,28 @@
 set(Sources
 	src/signalexecuter.cpp
-	src/execpool.cpp
 	src/manager.cpp
 	src/object.cpp
 	src/objectselector.cpp
 	src/requestuid.cpp
 	src/service.cpp
+	src/execscheduler.cpp
+	src/schedulerbase.cpp
 )
 
 set(Headers
-	activeset.hpp
+	schedulerbase.hpp
 	signalexecuter.hpp
 	signal.hpp
 	common.hpp
-	execpool.hpp
+#	execpool.hpp
 	manager.hpp
 	object.hpp
 	objectselector.hpp
 	objectpointer.hpp
-	readwriteobject.hpp
-	readwriteservice.hpp
 	requestuid.hpp
-	selectpool.hpp
+	scheduler.hpp
 	service.hpp
-	visitor.hpp
+	selectorbase.hpp
 )
 
 set(Inlines

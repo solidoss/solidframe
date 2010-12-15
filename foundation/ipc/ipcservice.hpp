@@ -26,6 +26,7 @@
 #include "foundation/signal.hpp"
 #include "foundation/ipc/ipcconnectionuid.hpp"
 
+struct C;
 struct SockAddrPair;
 struct SocketDevice;
 struct AddrInfoIterator;
@@ -89,7 +90,7 @@ class Service;
 	- When needed, new talkers will be created with ports values starting 
 	incrementally from baseaddress port + 1.
 */
-class Service: public foundation::Service{
+class Service: public Dynamic<Service, foundation::Service>{
 public:
 	enum {
 		SameConnectorFlag = 1, //!< Do not send signal to a restarted peer process
@@ -97,6 +98,16 @@ public:
 		WaitResponseFlag = 2,
 		SentFlag = 4,//!< The signal was successfully sent
 	};
+	struct Controller{
+		virtual bool release() = 0;
+		virtual void scheduleTalker(foundation::aio::Object *_ptkr) = 0;
+	};
+	
+	static Service& the();
+	static Service& the(const IndexT &_ridx);
+	
+	
+	Service(Controller *_pc, uint32 _keepalivetout = 0/*no keepalive*/);
 	//! Destructor
 	~Service();
 	//!Send a signal (usually a response) to a peer process using a previously saved ConnectionUid
@@ -108,8 +119,8 @@ public:
 		\param _flags (Optional) Not used for now
 	*/
 	int sendSignal(
-		const ConnectionUid &_rconid,//the id of the process connector
 		DynamicPointer<Signal> &_psig,//the signal to be sent
+		const ConnectionUid &_rconid,//the id of the process connector
 		uint32	_flags = 0
 	);
 	//!Send a signal to a peer process using it's base address.
@@ -122,8 +133,8 @@ public:
 		\param _flags (Optional) Not used for now
 	*/
 	int sendSignal(
-		const SockAddrPair &_rsap,
 		DynamicPointer<Signal> &_psig,//the signal to be sent
+		const SockAddrPair &_rsap,
 		ConnectionUid &_rconid,
 		uint32	_flags = 0
 	);
@@ -136,8 +147,8 @@ public:
 		\param _flags (Optional) Not used for now
 	*/
 	int sendSignal(
-		const SockAddrPair &_rsap,
 		DynamicPointer<Signal> &_psig,//the signal to be sent
+		const SockAddrPair &_rsap,
 		uint32	_flags = 0
 	);
 	//! Not used for now - will be used when ipc will use tcp connections
@@ -157,15 +168,11 @@ public:
 		\param _svc Service/Port to connect to
 	*/
 	int insertTalker(
-		const AddrInfoIterator &_rai,
-		const char *_node,
-		const char *_svc
+		const AddrInfoIterator &_rai
 	);
 	//! Not used for now - will be used when ipc will use tcp connections
 	int insertConnection(
-		const AddrInfoIterator &_rai,
-		const char *_node,
-		const char *_svc
+		const AddrInfoIterator &_rai
 	);
 	//! Not used for now - will be used when ipc will use tcp connections
 	int removeConnection(Connection &);
@@ -173,22 +180,20 @@ public:
 	int removeTalker(Talker&);
 	//! Returns the value of the base port as set for the basetalker
 	int basePort()const;
-protected:
-	Service(uint32 _keepalivetout = 0/*no keepalive*/);
-	virtual void doPushTalkerInPool(foundation::aio::Object *_ptkr) = 0;
-	int execute(ulong _sig, TimeSpec &_rtout);
+	void insertObject(Talker &_ro, const ObjectUidT &_ruid);
+	void eraseObject(const Talker &_ro);
 private:
 	friend class Talker;
 	int doSendSignal(
-		const SockAddrPair &_rsap,
 		DynamicPointer<Signal> &_psig,//the signal to be sent
+		const SockAddrPair &_rsap,
 		ConnectionUid *_pconid,
 		uint32	_flags = 0
 	);
 	int acceptSession(Session *_pses);
 	void disconnectSession(Session *_pses);
 	void disconnectTalkerSessions(Talker &);
-	int16 createNewTalker(uint32 &_tkrpos, uint32 &_tkruid);
+	int16 createNewTalker(IndexT &_tkrpos, uint32 &_tkruid);
 	int16 computeTalkerForNewSession();
 	uint32 keepAliveTimeout()const;
 	void connectSession(const Inet4SockAddrPair &_raddr);
@@ -199,20 +204,20 @@ private:
 };
 
 inline int Service::sendSignal(
-	const SockAddrPair &_rsap,
 	DynamicPointer<Signal> &_psig,//the signal to be sent
+	const SockAddrPair &_rsap,
 	ConnectionUid &_rconid,
 	uint32	_flags
 ){
-	return doSendSignal(_rsap, _psig, &_rconid, _flags);
+	return doSendSignal(_psig, _rsap, &_rconid, _flags);
 }
 
 inline int Service::sendSignal(
-	const SockAddrPair &_rsap,
 	DynamicPointer<Signal> &_psig,//the signal to be sent
+	const SockAddrPair &_rsap,
 	uint32	_flags
 ){
-	return doSendSignal(_rsap, _psig, NULL, _flags);
+	return doSendSignal(_psig, _rsap, NULL, _flags);
 }
 
 }//namespace ipc

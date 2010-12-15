@@ -26,9 +26,9 @@
 
 #include "foundation/object.hpp"
 #include "foundation/objectpointer.hpp"
-#include "foundation/visitor.hpp"
 #include "foundation/signal.hpp"
 #include "foundation/manager.hpp"
+#include "foundation/service.hpp"
 
 #include "utility/memory.hpp"
 #include "utility/dynamicpointer.hpp"
@@ -45,15 +45,6 @@ static const unsigned specificPosition(){
 
 namespace foundation{
 //---------------------------------------------------------------------
-//----	Visitor	----
-//---------------------------------------------------------------------
-
-Visitor::Visitor(){
-}
-
-Visitor::~Visitor(){
-}
-//---------------------------------------------------------------------
 //----	ObjectPointerBase	----
 //---------------------------------------------------------------------
 
@@ -64,7 +55,10 @@ void ObjectPointerBase::clear(Object *_pobj){
 		Mutex::Locker lock(Manager::the().mutex(*_pobj));
 		usecnt = --_pobj->usecnt;
 	}
-	if(!usecnt) delete _pobj;
+	if(!usecnt){
+		m().erase(*_pobj);
+		delete _pobj;
+	}
 }
 
 //NOTE: No locking so Be carefull!!
@@ -100,43 +94,28 @@ void Object::associateToCurrentThread(){
 }
 //--------------------------------------------------------------
 Mutex& Object::mutex()const{
-	return Manager::the().mutex(*this);
+	return m().mutex(*this);
 }
 //--------------------------------------------------------------
-/*
-void Object::threadid(ulong _thrid){
-	thrid = _thrid;
+ObjectUidT  Object::uid()const{
+	return ObjectUidT(id(), m().uid(*this));
 }
-*/
-uint32  Object::uid()const{
-	return Manager::the().uid(*this);
-}
-int Object::signal(DynamicPointer<Signal> &_sig){
-	return OK;
+
+bool Object::signal(DynamicPointer<Signal> &_sig){
+	return false;//by default do not raise the object
 }
 /**
  * Returns true if the object must be executed.
  */
 
-ulong Object::signal(ulong _smask){
+bool Object::signal(ulong _smask){
 	ulong oldmask = smask;
 	smask |= _smask;
 	return (smask != oldmask) && signaled(S_RAISE);
 }
 
-
-int Object::accept(Visitor &_roi){
-	return _roi.visit(*this);
-}
-
-int Object::execute(){
-	return BAD;
-}
 int Object::execute(ulong _evs, TimeSpec &_rtout){
 	return BAD;
-}
-//we do not need the keep a pointer to mutex
-void Object::mutex(Mutex *){
 }
 //---------------------------------------------------------------------
 //----	Signal	----
@@ -183,5 +162,10 @@ int Signal::receiveSignal(
 	wdbgx(Dbg::fdt, "Unhandled signal receive");
 	return BAD;//no need for execution
 }
+
+/*virtual*/ void Object::init(Mutex*){
+}
+
+
 }//namespace
 

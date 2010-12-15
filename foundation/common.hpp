@@ -41,7 +41,8 @@ enum Signals{
 	S_SIG = 4,
 	S_KILL = 1<<8,
 	S_IDLE = 1<<9,
-	S_ERR  = 1<<10
+	S_ERR  = 1<<10,
+	S_STOP = 1<<11,
 };
 
 //! Some events
@@ -63,6 +64,7 @@ enum Consts{
 	MAXTIMEOUT = (0xffffffffUL>>1)/1000
 };
 #ifdef _LP64
+
 //64 bit architectures
 #ifdef UINDEX32
 //32 bit indexes
@@ -87,14 +89,86 @@ typedef uint32 IndexT;
 #define ID_MASK 0xffffffffUL
 #endif
 
-
 #endif
-
 
 typedef std::pair<IndexT, uint32> ObjectUidT;
 typedef std::pair<IndexT, uint32> SignalUidT;
 typedef std::pair<IndexT, uint32> FileUidT;
 typedef std::pair<IndexT, uint32> RequestUidT;
+
+#ifndef USERVICEBITS
+//by default we have at most 32 services for x86 bits machines and 256 for x64
+#define USERVICEBITS (sizeof(IndexT) == 4 ? 5 : 8)
+#endif
+
+enum ObjectDefs{
+	SERVICEBITCNT = USERVICEBITS,
+	INDEXBITCNT	= sizeof(IndexT) * 8 - SERVICEBITCNT,
+};
+
+typedef std::pair<IndexT, uint32>	UidT;
+typedef UidT						ObjectUidT;
+typedef UidT						SignalUidT;
+typedef UidT						FileUidT;
+typedef UidT						RequestUidT;
+
+inline const IndexT& max_service_count(){
+	static const IndexT idx(IndexT(ID_MASK) >> INDEXBITCNT);
+	return idx;
 }
+
+inline const UidT& invalid_uid(){
+	static const UidT u(ID_MASK, 0xffffffff);
+	return u;
+}
+
+inline bool is_valid_uid(const UidT &_ruid){
+	return _ruid.first != ID_MASK;
+}
+
+inline bool is_invalid_uid(const UidT &_ruid){
+	return _ruid.first == ID_MASK;
+}
+
+inline bool is_valid_index(const IndexT &_idx){
+	return _idx != ID_MASK;
+}
+
+inline bool is_invalid_index(const IndexT &_idx){
+	return _idx == ID_MASK;
+}
+
+inline IndexT compute_id(const IndexT &_srvidx, const IndexT &_objidx){
+	return (_srvidx << INDEXBITCNT) | _objidx;
+}
+
+inline UidT make_object_uid(const IndexT &_srvidx, const IndexT &_objidx, const uint32 _uid){
+	return UidT(compute_id(_srvidx, _objidx), _uid);
+}
+
+inline IndexT compute_index(const IndexT &_fullid){
+	return _fullid & (ID_MASK >> SERVICEBITCNT);
+}
+inline IndexT compute_service_id(const IndexT &_fullid){
+	return _fullid >> INDEXBITCNT;
+}
+
+template <class V>
+typename V::value_type& safe_at(V &_v, uint _pos){
+	if(_pos < _v.size()){
+		return _v[_pos];
+	}else{
+		_v.resize(_pos + 1);
+		return _v[_pos];
+	}
+}
+
+template <class V>
+IndexT smart_resize(V &_rv, const IndexT &_rby){
+	_rv.resize(((_rv.size() / _rby) + 1) * _rby);
+	return _rv.size();
+}
+
+}//namespace foundation
 
 #endif

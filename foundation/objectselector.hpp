@@ -34,6 +34,7 @@
 #include "foundation/objectpointer.hpp"
 
 #include "foundation/common.hpp"
+#include "foundation/selectorbase.hpp"
 
 namespace foundation{
 
@@ -45,10 +46,11 @@ typedef ObjectPointer<Object> ObjectPtrT;
 	A selector must export a certain interface requested by the SelectPool,
 	and the pool will have one for its every thread.
 */
-class ObjectSelector{
+class ObjectSelector: public foundation::SelectorBase{
 public:
 	
-	typedef ObjectPtrT		ObjectT;
+	typedef ObjectPtrT		JobT;
+	typedef Object			ObjectT;
 	
 	ObjectSelector();
 	
@@ -56,17 +58,16 @@ public:
 	
 	int reserve(ulong _cp);
 	//signal a specific object
-	void signal(uint _pos = 0);
+	void raise(uint32 _pos);
 	void run();
 	uint capacity()const	{return sv.size();}
 	uint size() const		{return sz;}
 	int  empty()const		{return !sz;}
 	int  full()const		{return sz == sv.size();}
-	
 	void prepare(){}
 	void unprepare(){}
 	
-	void push(const ObjectPtrT &_rlis, uint _thid);
+	void push(const ObjectPtrT &_rlis);
 private:
 	int doWait(int _wt);
 	int doExecute(unsigned _i, ulong _evs, TimeSpec _crttout);

@@ -41,13 +41,12 @@ class Selector;
 	i.e. inheritants - see aio::SingleObject or aio::MultiObject.
 	
 */
-class Object: public foundation::Object{
+class Object: public Dynamic<Object, foundation::Object>{
 public:
 	static const TimeSpec& currentTime();
 	virtual ~Object();
 	//!Called by selector on certain events
 	virtual int execute(ulong _evs, TimeSpec &_rtout) = 0;
-	virtual int accept(foundation::Visitor &_roi);
 protected:
 	//! Returns true if there are pending io requests
 	/*!
@@ -115,12 +114,12 @@ protected:
 		\param _toutbeg A table of int32[_stubcp]
 	*/
 	Object(
-		SocketStub *_pstubs,
-		uint32 _stubcp,
-		int32 *_reqbeg,
-		int32 *_resbeg,
-		int32 *_itoutbeg,
-		int32 *_otoutbeg
+		SocketStub *_pstubs = NULL,
+		uint32 _stubcp = 0,
+		int32 *_reqbeg = NULL,
+		int32 *_resbeg = NULL,
+		int32 *_itoutbeg = NULL,
+		int32 *_otoutbeg = NULL
 	):
 		pitimepos(NULL), potimepos(NULL), pstubs(_pstubs), stubcp(_stubcp),
 		reqbeg(_reqbeg), reqpos(_reqbeg),

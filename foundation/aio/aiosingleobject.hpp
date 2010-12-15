@@ -48,7 +48,7 @@ class SecureSocket;
 	- NOK (1) opperation is pending for completion within aio::Selector;<br>
 	- OK (0) opperation completed successfully.<br>
 */
-class SingleObject: public Object{
+class SingleObject: public Dynamic<SingleObject, Object>{
 public:
 	static SingleObject& the();
 	//! Constructor using an aio::Socket

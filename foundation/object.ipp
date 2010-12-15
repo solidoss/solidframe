@@ -36,35 +36,30 @@ inline void Object::setThread(uint32 _thrid, uint32 _thrpos){
 	thrid  = _thrid;
 	thrpos = _thrpos;
 }
-inline IndexT Object::computeIndex(IndexT _fullid){
-	return _fullid & (ID_MASK >> SERVICEBITCNT);
-}
-inline IndexT Object::computeServiceId(IndexT _fullid){
-	return _fullid >> INDEXBITCNT;
-}
 
 inline ulong Object::grabSignalMask(ulong _leave){
 	ulong sm = smask;
 	smask = sm & _leave;
 	return sm;
 }
-inline ulong Object::signaled(ulong _s) const{
-	return smask & _s;
+inline bool Object::signaled(ulong _s) const{
+	return (smask & _s) != 0;
 }
 inline void Object::id(IndexT _fullid){
 	fullid = _fullid;
 }
-inline void Object::id(IndexT _srvid, IndexT _ind){
-	fullid = (_srvid << INDEXBITCNT) | _ind;
+inline void Object::id(IndexT _srvidx, IndexT _objidx){
+	fullid = compute_id(_srvidx, _objidx);
 }
+
 inline void Object::state(int _st){
 	crtstate = _st;//if state < 0 the object can be destroyed
 }
-inline IndexT Object::serviceid()const{
-	return computeServiceId(fullid);
+inline IndexT Object::serviceId()const{
+	return compute_service_id(fullid);
 }
 inline IndexT Object::index()const{
-	return computeIndex(fullid);
+	return compute_index(fullid);
 }
 
 #ifdef NINLINES

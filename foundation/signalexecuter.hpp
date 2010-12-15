@@ -66,14 +66,12 @@ struct ConnectionUid;
 	\see test::SignalExecuter test::alpha::FetchMasterSignal
 	\see foundation::Signal foundation::Object
 */
-class SignalExecuter: public Object{
+class SignalExecuter: public Dynamic<SignalExecuter, Object>{
 public:
 	SignalExecuter();
 	~SignalExecuter();
-	int signal(DynamicPointer<Signal> &_rsig);
+	bool signal(DynamicPointer<Signal> &_rsig);
 	int execute(ulong _evs, TimeSpec &_rtout);
-	virtual void removeFromManager() = 0;
-	void mutex(Mutex *_pmut);
 	void sendSignal(
 		DynamicPointer<Signal> &_rsig,
 		const RequestUidT &_requid,
@@ -81,6 +79,7 @@ public:
 		const ipc::ConnectionUid *_conid = NULL
 	);
 private:
+	/*virtual*/ void init(Mutex*);
 	int execute();
 	void doExecute(uint _pos, uint32 _evs, const TimeSpec &_rtout);
 	struct Data;

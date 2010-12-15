@@ -48,7 +48,7 @@ class SecureSocket;
 	- OK (0) opperation completed successfully.<br>
 */
 
-class MultiObject: public Object{
+class MultiObject: public Dynamic<MultiObject, Object>{
 public:
 	//! Constructor given an aio::Socket (it will be inserted on position zero)
 	MultiObject(const SocketPointer& _psock = SocketPointer());

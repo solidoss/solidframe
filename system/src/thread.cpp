@@ -29,6 +29,8 @@
 #include "system/thread.hpp"
 #include "system/debug.hpp"
 #include "system/condition.hpp"
+#include "system/exception.hpp"
+
 #include "mutexpool.hpp"
 
 #ifdef ON_FREEBSD
@@ -45,6 +47,16 @@ struct Cleaner{
 		Thread::cleanup();
 	}
 };
+
+/*static*/ const char* src_file_name(char const *_fname){
+	static const unsigned fileoff = (strlen(__FILE__) - strlen(strstr(__FILE__, "system/src")));
+	return _fname + fileoff;
+}
+
+void throw_exception(const char* const _pt, const char * const _file, const int _line, const char * const _func){
+	throw Exception<const char*>(_pt, _file, _line, _func);
+}
+
 
 static const pthread_once_t	oncek = PTHREAD_ONCE_INIT;
 

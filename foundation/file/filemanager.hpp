@@ -81,7 +81,7 @@ class File;
 	amount of time (see Mapper::getTimeout).
 */
 
-class Manager: public Object{
+class Manager: public Dynamic<Manager, Object>{
 public:
 	enum {
 		Create = 1, //!< Try create if it doesnt exist
@@ -129,7 +129,8 @@ public:
 			int _error,
 			const RequestUid& _rrequid
 		) = 0;
-		virtual void removeFileManager() = 0;
+		
+		virtual bool release() = 0;//return true for deletion
 	};
 	
 	//! A stub limiting the manager's interface
@@ -171,6 +172,8 @@ public:
 	};
 	
 public:
+	static Manager& the();
+	static Manager& the(const IndexT &_ridx);
 	//! Constructor receiving a Controller
 	/*!
 		The ownership of the given Controller object
@@ -186,7 +189,6 @@ public:
 	//! Get the size of a file identified by its key - the file will not be open
 	int64 fileSize(const Key &_rk)const;
 	
-	void mutex(Mutex *_pmut);
 public://stream funtions
 	int stream(
 		StreamPointer<IStream> &_sptr,
@@ -420,6 +422,7 @@ private:
 	void doPrepareStop();
 	void doScanTimeout(const TimeSpec &_rtout);
 	void doSendStreams();
+	/*virtual*/ void init(Mutex *);
 private:
 	friend struct Stub;
 	

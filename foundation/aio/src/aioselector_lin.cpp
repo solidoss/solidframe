@@ -66,9 +66,15 @@ struct Selector::Stub{
 		InExecQueue,
 		OutExecQueue
 	};
-	Stub():timepos(TimeSpec::max), state(OutExecQueue), events(0){}
+	Stub():
+		timepos(TimeSpec::max),
+		itimepos(TimeSpec::max),
+		otimepos(TimeSpec::max),
+		state(OutExecQueue),
+		events(0){
+	}
 	void reset(){
-		timepos = TimeSpec::max;
+		timepos = TimeSpec::max; 
 		state = OutExecQueue;
 		events = 0;
 	}
@@ -92,14 +98,14 @@ struct Selector::Data{
 	typedef Queue<uint32>			Uint32QueueT;
 	typedef std::vector<Stub>		StubVectorT;
 	
-	uint				objcp;
-	uint				objsz;
-	uint				sockcp;
-	uint				socksz;
+	ulong				objcp;
+	ulong				objsz;
+	ulong				sockcp;
+	ulong				socksz;
 	int					selcnt;
 	int					epollfd;
 	epoll_event 		*events;
-	StubVectorT		stubs;
+	StubVectorT			stubs;
 	Uint32QueueT		execq;
 	Uint32StackT		freestubsstk;
 #ifdef UPIPESIGNAL
@@ -194,6 +200,7 @@ Selector::~Selector(){
 	delete &d;
 }
 int Selector::reserve(ulong _cp){
+	idbgx(Dbg::aio, "aio::Selector "<<(void*)this);
 	cassert(_cp);
 	d.objcp = _cp;
 	d.sockcp = _cp;
@@ -268,25 +275,26 @@ void Selector::prepare(){
 void Selector::unprepare(){
 }
 
-void Selector::signal(uint _pos)const{
-	idbgx(Dbg::aio, "signal connection: "<<_pos);
+void Selector::raise(uint _pos){
 #ifdef UPIPESIGNAL
+	idbgx(Dbg::aio, "signal connection pipe: "<<_pos<<" this "<<(void*)this);
 	write(d.pipefds[1], &_pos, sizeof(uint));
 #else
-	uint64 v;
+	idbgx(Dbg::aio, "signal connection evnt: "<<_pos<<" this "<<(void*)this);
+	uint64 v(1);
 	{
 		Mutex::Locker lock(d.m);
-		v = d.efdv++;
 		d.sigq.push(_pos);
 	}
-	write(d.efd, &v, sizeof(v));
+	int rv = write(d.efd, &v, sizeof(v));
+	cassert(rv == sizeof(v));
 #endif
 }
 
-uint Selector::capacity()const{
+ulong Selector::capacity()const{
 	return d.objcp - 1;
 }
-uint Selector::size() const{
+ulong Selector::size() const{
 	return d.objsz;
 }
 bool Selector::empty()const{
@@ -296,12 +304,12 @@ bool Selector::full()const{
 	return d.objsz == d.objcp;
 }
 
-void Selector::push(const ObjectT &_objptr, uint _thid){
+void Selector::push(const JobT &_objptr){
 	cassert(!full());
 	uint stubpos = doNewStub();
 	Stub &stub = d.stubs[stubpos];
 	
-	_objptr->setThread(_thid, stubpos);
+	this->setObjectThread(*_objptr, stubpos);
 	
 	stub.timepos  = TimeSpec::max;
 	stub.itimepos = TimeSpec::max;
@@ -479,7 +487,9 @@ uint Selector::doReadPipe(){
 			uint pos(d.sigq.front());
 			d.sigq.pop();
 			if(pos){
+				idbgx(Dbg::aio, "signaling object on pos "<<pos);
 				if(pos < d.stubs.size() && (pstub = &d.stubs[pos])->objptr && pstub->objptr->signaled(S_RAISE)){
+					idbgx(Dbg::aio, "signaled object on pos "<<pos);
 					pstub->events |= SIGNALED;
 					if(pstub->state == Stub::OutExecQueue){
 						d.execq.push(pos);
@@ -559,6 +569,7 @@ uint Selector::doAllIo(){
 	const uint	selcnt = d.selcnt;
 	for(uint i = 0; i < selcnt; ++i){
 		d.stub(stubpos, sockpos, d.events[i]);
+		vdbgx(Dbg::aio, "stubpos = "<<stubpos);
 		if(stubpos){
 			cassert(stubpos < d.stubs.size());
 			Stub				&stub(d.stubs[stubpos]);
@@ -653,8 +664,8 @@ uint Selector::doExecute(const uint _pos){
 	stub.events = 0;
 	stub.objptr->doClearRequests();//clears the requests from object to selector
 	idbgx(Dbg::aio, "execute object "<<_pos);
-	stub.objptr->associateToCurrentThread();
-	switch(stub.objptr->execute(evs, timepos)){
+	this->associateObjectToCurrentThread(*stub.objptr);
+	switch(this->executeObject(*stub.objptr, evs, timepos)){
 		case BAD:
 			idbgx(Dbg::aio, "BAD: removing the connection");
 			d.freestubsstk.push(_pos);
@@ -776,9 +787,10 @@ uint Selector::doNewStub(){
 			//we need to reset the aioobject's pointer to timepos
 			for(Data::StubVectorT::iterator it(d.stubs.begin()); it != d.stubs.end(); ++it){
 				if(it->objptr){
-					it->timepos  = TimeSpec::max;
-					it->itimepos = TimeSpec::max;
-					it->otimepos = TimeSpec::max;
+					//TODO: is it ok commenting the following lines?!
+					//it->timepos  = TimeSpec::max;
+					//it->itimepos = TimeSpec::max;
+					//it->otimepos = TimeSpec::max;
 					it->objptr->doPrepare(&it->itimepos, &it->otimepos);
 				}
 			}

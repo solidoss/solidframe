@@ -42,7 +42,7 @@ int ObjectSelector::reserve(ulong _cp){
 	return OK;
 }
 
-void ObjectSelector::signal(uint _pos){
+void ObjectSelector::raise(uint _pos){
 	Mutex::Locker lock(mtx);
 	uiq.push(_pos);
 	cnd.signal();
@@ -135,10 +135,10 @@ void ObjectSelector::run(){
 	}while(state != EXIT_LOOP);
 }
 
-void ObjectSelector::push(const ObjectPtrT &_robj, uint _thid){
+void ObjectSelector::push(const ObjectPtrT &_robj){
 	cassert(fstk.size());
 	uint pos = fstk.top(); fstk.pop();
-	_robj->setThread(_thid, pos);
+	this->setObjectThread(*_robj, pos);
 	sv[pos].objptr = _robj;
 	sv[pos].timepos = 0;
 	sv[pos].state = 1;
@@ -199,8 +199,8 @@ int ObjectSelector::doWait(int _wt){
 
 int ObjectSelector::doExecute(unsigned _i, ulong _evs, TimeSpec _crttout){
 	int rv = 0;
-	sv[_i].objptr->associateToCurrentThread();
-	switch(sv[_i].objptr->execute(_evs, _crttout)){
+	this->associateObjectToCurrentThread(*sv[_i].objptr);
+	switch(this->executeObject(*sv[_i].objptr, _evs, _crttout)){
 		case BAD:
 			fstk.push(_i);
 			sv[_i].objptr.clear();

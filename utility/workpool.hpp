@@ -22,7 +22,6 @@
 #ifndef UTILITY_WORKPOOL_HPP
 #define UTILITY_WORKPOOL_HPP
 
-#include "system/debug.hpp"
 #include "system/thread.hpp"
 #include "system/mutex.hpp"
 #include "system/condition.hpp"
@@ -30,102 +29,163 @@
 #include "utility/common.hpp"
 #include "utility/queue.hpp"
 
-
-//! A simple worker initialization plugin
-struct WorkPoolPlugin{
-	//! Virtual destructor
-	virtual ~WorkPoolPlugin();
-	//! This is called by every worker on Thread::prepare
-	virtual void prepare();
-	//! This is called by every worker on Thread::unprepare
-	virtual void unprepare();
-	//! It is called on workpool destructor
-	/*!
-		It is designed to allow using the same statically created
-		plugin for many workpools.
-		If release returns true, the plugin is deleted else not.
-	*/
-	virtual bool release()const;
+//! Base class for every workpool workers
+struct WorkerBase: Thread{
+	uint32	wkrid;
 };
 
-WorkPoolPlugin* basicWorkPoolPlugin();
-//! A template workpool/thread pool for processing jobs.
+//! Base class for workpool
+struct WorkPoolBase{
+	enum State{
+		Stopped = 0,
+		Stopping,
+		Running
+	};
+	State state()const{
+		return st;
+	}
+	void state(State _s){
+		st = _s;
+	}
+	bool isRunning()const{
+		return st == Running;
+	}
+protected:
+	WorkPoolBase():st(Stopped), wkrcnt(0) {}
+	State						st;
+	int							wkrcnt;
+	Condition					thrcnd;
+	Condition					sigcnd;
+	Mutex						mtx;
+};
+
+//! A controller structure for WorkPool
 /*!
-	I've tried to design it as flexible as possible. Basically all you need is to
-	inherit the workpool and:
-	- implement the not necessarily virtual run(Worker) method and use pop methods
-		either in its single job pop form or the multy job form.
-	- implement the createWorker(uint) which will create the requested number of workers
-	- you can define your own workers inheriting the WorkPool::Worker but you should 
-	use WorkPool::GenericWorker\<YourWorker\> to use the implemented prepare and unprepare
-	methods. For that there is a commodity template method: createWorker.
+ * The WorkPool will call methods of this structure.
+ * Inherit and implement the needed methods.
+ * No need for virtualization as the Controller is
+ * a template parameter for WorkPool.
+ */
+struct WorkPoolControllerBase{
+	void prepareWorker(WorkerBase &_rw){
+	}
+	void unprepareWorker(WorkerBase &_rw){
+	}
+	void onPush(WorkPoolBase &){
+	}
+	void onMultiPush(WorkPoolBase &, ulong _cnd){
+	}
+	ulong onPopStart(WorkPoolBase &, WorkerBase &, ulong _maxcnt){
+		return _maxcnt;
+	}
+	void onPopDone(WorkPoolBase &, WorkerBase &){
+	}
+	void onStop(){
+	}
+};
+
+//! A template workpool
+/*!
+ * The template parameters are:<br>
+ * J - the Job type to be processed by the workpool. I
+ * will hold a Queue\<J\>.<br>
+ * C - WorkPool controller, the workpool will call controller
+ * methods on different ocasions / events<br>
+ * W - Base class for workers. Specify this if you want certain data
+ * kept per worker. The workpool's actual workers will publicly
+ * inherit W.<br>
+ */
+template <class J, class C, class W = WorkerBase>
+class WorkPool: public WorkPoolBase{
+	typedef std::vector<J>		JobVectorT;
+	typedef WorkPool<J, C, W>	ThisT;
+	struct SingleWorker: W{
+		SingleWorker(ThisT &_rw):rw(_rw){}
+		void run(){
+			J	job;
+			rw.enterWorker(*this);
+			while(rw.pop(*this, job)){
+				rw.execute(*this, job);
+			}
+			rw.exitWorker(*this);
+		}
+		ThisT	&rw;
+	};
+	struct MultiWorker: W{
+		MultiWorker(ThisT &_rw, ulong _maxcnt):rw(_rw), maxcnt(_maxcnt){}
+		void run(){
+			JobVectorT	jobvec;
+			if(maxcnt == 0) maxcnt = 1;
+			rw.enterWorker(*this);
+			while(rw.pop(*this, jobvec, maxcnt)){
+				rw.execute(*this, jobvec);
+				jobvec.clear();
+			}
+			rw.exitWorker(*this);
+		}
+		ThisT	&rw;
+		ulong	maxcnt;
+	};
 	
-	The interface is quite straight forward: one can push jobs, start and stop
-	the pool.
-	
-	\see foundation::ExecPool and/or foundation::SelectPool.
-*/
-template <class Jb>
-class WorkPool{
 public:
-	typedef WorkPool<Jb>	WorkPoolT;
+	typedef ThisT	WorkPoolT;
+	typedef C		ControllerT;
+	typedef W		WorkerT;
+	typedef J		JobT;
+	
+	
+	WorkPool(){
+	}
+	
+	template <class T>
+	WorkPool(T &_rt):ctrl(_rt){
+	}
+	
+	~WorkPool(){
+		
+	}
+	
 	//! Push a new job
-	void push(const Jb& _jb){
+	void push(const JobT& _jb){
 		mtx.lock();
-		cassert(state != Stopped);
-		q.push(_jb);
+		jobq.push(_jb);
 		sigcnd.signal();
+		ctrl.onPush(*this);
 		mtx.unlock();
 	}
 	//! Push a table of jobs of size _cnt
-	void push(const Jb *_pjb, unsigned _cnt){
-		if(!_cnt) return;
+	template <class I>
+	void push(I _i, const I &_end){
 		mtx.lock();
-		cassert(state != Stopped);
-		while(_cnt--){
-			q.push(*_pjb);
-			++_pjb;
+		ulong cnt(_end - _i);
+		for(; _i != _end; ++_i){
+			jobq.push(*_i);
 		}
-		sigcnd.signal();
+		sigcnd.broadcast();
+		ctrl.onMultiPush(*this, cnt);
 		mtx.unlock();
 	}
-	//! Tries to push a job
-	/*! Will return BAD if the pool is stoped
-		else will return OK
-	*/
-	int tryPush(const Jb &_jb){
-		if(state < Running) return BAD;
-		push(_jb);
-		return OK;
-	}
-	//! Tries to push a table of jobs of size _cnt
-	/*! Will return BAD if the pool is stoped
-		else will return OK
-	*/
-	int tryPush(const Jb *_pjb, int _cnt){
-		if(state < Running) return BAD;
-		push(_pjb,_cnt);
-		return OK;
-	}
 	//! Starts the workpool, creating _minwkrcnt
-	virtual int start(ushort _minwkrcnt, bool _wait = false){
+	void start(ushort _minwkrcnt = 1, bool _wait = false){
 		Mutex::Locker lock(mtx);
-		idbgx(Dbg::utility, "workpool::start "<<state);
-		if(state > Stopped) return BAD;
-		_minwkrcnt = (_minwkrcnt)?_minwkrcnt:1;
-		wkrcnt = 0;
-		state = Running;
-		idbgx(Dbg::utility, "workpool::create workers begin");
-		createWorkers(_minwkrcnt);
-		idbgx(Dbg::utility, "workpool::create workers done");
-		if(_wait){
-			while(wkrcnt != _minwkrcnt){
-				vdbgx(Dbg::utility, "minwkrcnt = "<<_minwkrcnt<<" wkrcnt = "<<wkrcnt);
-				thrcnd.wait(mtx);
-			}
+		if(state() == Running){
+			return;
 		}
-		idbgx(Dbg::utility, "workpool::start done");
-		return OK;
+		if(state() != Stopped){
+			doStop(true);
+		}
+		_minwkrcnt = (_minwkrcnt) ? _minwkrcnt : 1;
+		wkrcnt = 0;
+		state(Running);
+		for(ushort i(0); i < _minwkrcnt; ++i){
+			createWorker();
+		}
+		if(!_wait){
+			return;
+		}
+		while(wkrcnt != _minwkrcnt){
+			thrcnd.wait(mtx);
+		}
 	}
 	//! Initiate workpool stop
 	/*!
@@ -134,179 +194,103 @@ public:
 		first initiate stop for all pools (wp[i].stop(false)) and then wait
 		for actual stoping (wp[i].stop(true))
 	*/
-	virtual void stop(bool _wait = true){
+	void stop(bool _wait = true){
 		Mutex::Locker	lock(mtx);
-		idbgx(Dbg::utility, "workpool::stoping");
-		if(state == Stopped) return;
-		state = Stopping;
+		doStop(_wait);
+	}
+	ulong size()const{
+		return jobq.size();
+	}
+	bool empty()const{
+		return jobq.empty();
+	}
+	void createWorker(){
+		ctrl.createWorker(*this);
+	}
+	WorkerT* createSingleWorker(){
+		return new SingleWorker(*this);
+	}
+	WorkerT* createMultiWorker(ulong _maxcnt){
+		return new MultiWorker(*this, _maxcnt);
+	}
+private:
+	friend struct SingleWorker;
+	friend struct MultiWorker;
+	void doStop(bool _wait){
+		if(state() == Stopped) return;
+		state(Stopping);
 		sigcnd.broadcast();
+		ctrl.onStop();
 		if(!_wait) return;
-		while(wkrcnt)	thrcnd.wait(mtx);
-		idbgx(Dbg::utility, "workpool::stopped");
-		state = Stopped;
+		while(wkrcnt){
+			thrcnd.wait(mtx);
+		}
+		state(Stopped);
 	}
-protected:
-	//! Pop a job - called from WorkPool::run
-	/*!
-		This must be called in a while loop by the concrete workpool's run method.
-		If no job is available, it will block until either a new job comes or
-		the worker must die (workpool is stopping).
-		\retval int BAD no job is returned and worker must die, OK a job was returned
-		and it must be processed, NOK a job is returned but the workpool is stopping.
-	*/
-	int pop(int _wkrid, Jb &_jb){
+	bool pop(WorkerT &_rw, JobVectorT &_rjobvec, ulong _maxcnt){
 		Mutex::Locker lock(mtx);
-		//if(_wkrid >= wkrcnt) return BAD;
-		while(q.empty() && state == Running){
-			sigcnd.wait(mtx);
+		uint32 insertcount(ctrl.onPopStart(*this, _rw, _maxcnt));
+		if(!insertcount){
+			return true;
 		}
-		if(q.size()){
-			_jb = q.front();
-			q.pop();
-			if(q.size()) sigcnd.signal();
-			if(state == Running) return OK;
-			return NOK;
-		}
-		return BAD;//the workpool is about to stop
-	}
-	//! Pop multiple jobs in a given table.
-	/*!
-		This must be called in a while loop by the concrete workpool's run method.
-		If no job is available, it will block until either a new job comes or
-		the worker must die (workpool is stopping).
-		\retval int BAD no job is returned and worker must die, OK a job was returned
-		and it must be processed, NOK a job is returned but the workpool is stopping.
-		\param _wkrid The id of the worker
-		\param _jb	A table of jobs
-		\param _cnt Input - the capacity of the table, Output the number of returned jobs.
-	*/
-	int pop(int _wkrid, Jb *_jb, unsigned &_cnt){
-		Mutex::Locker lock(mtx);
-		idbgx(Dbg::utility, "workpool::pop wkrid = "<<_wkrid<<" cnt = "<<_cnt);
-		//if(_wkrid >= wkrcnt) return BAD;
-		if(!_cnt){
-			vdbgx(Dbg::utility, "workpool::exit pop1");
-			if(state == Running) return OK;
-			vdbgx(Dbg::utility, "workpool::exit pop2");
-			return BAD;
-		}
-		while(q.empty() && state == Running){
-			vdbgx(Dbg::utility, "");
-			sigcnd.wait(mtx);
-		}
-		int i = 0;
-		if(q.size()){
+		if(doWaitJob()){
 			do{
-				_jb[i] = q.front();
-				q.pop(); ++i;
-			}while(q.size() && i < _cnt);
-			_cnt = i;
-			if(q.size()) sigcnd.signal();//wake another worker
-			vdbgx(Dbg::utility, "workpool::exit pop3 cnt = "<<_cnt);
-			if(state == Running) return OK;
-			vdbgx(Dbg::utility, "workpool::exit pop4");
-			return NOK;
+				_rjobvec.push_back(jobq.front());
+				jobq.pop();
+			}while(jobq.size() && --insertcount);
+			ctrl.onPopDone(*this, _rw);
+			return true;
 		}
-		vdbgx(Dbg::utility, "workpool::exit pop5");
-		return BAD;//the workpool is about to stop
-	}
-protected:
-	enum States {Stopped = 0, Stopping, Running};
-	enum Signals{ Init, JobEnter, JobExit, MustDie,WkrEnter,WkrExit};
-	//! Constructor receiving a plugin
-	WorkPool(WorkPoolPlugin *_pwp = basicWorkPoolPlugin()):state(Stopped), wkrcnt(0), pwp(_pwp){}
-	//! virtual destructor
-	virtual ~WorkPool(){
-		//big mistacke to call stop from here
-		//top destructors are called first and the workers might have references to then
-		if(pwp->release()) delete pwp;
+		return false;
 	}
 	
-	///usually used for initiating static data for workers
-	//void prepareWorker(){}
-	//void unprepareWorker(){}
-	
-protected:
-	//! Commodity method for a creating generic worker
-	template <class Wkr, class WP>
-	Wkr* createWorker(WP &_wp){
-		return static_cast<Wkr*>(new GenericWorker<Wkr, WP>(_wp));
+	bool pop(WorkerT &_rw, JobT &_rjob){
+		Mutex::Locker lock(mtx);
+		if(ctrl.onPopStart(*this, _rw, 1) == 0){
+			sigcnd.signal();
+			return false;
+		}
+		if(doWaitJob()){
+			_rjob = jobq.front();
+			jobq.pop();
+			ctrl.onPopDone(*this, _rw);
+			return true;
+		}
+		return false;
 	}
-	//returns how many workers were created
-	//! Called by the workpool when more workers are needed
-	/*!	
-		\retval int how many workers were actually created.
-	*/
-	virtual int createWorkers(uint) = 0;
-protected://workers:
-	//! The base class for all workers.
-	class Worker: public Thread{
-	public:
-		virtual ~Worker(){
-			idbgx(Dbg::utility, "workpool::");
+	
+	ulong doWaitJob(){
+		while(jobq.empty() && isRunning()){
+			sigcnd.wait(mtx);
 		}
-		int wid(){return wkrid;}
-	protected:
-		void prepare(WorkPool<Jb> &_rwp){
-			_rwp.pwp->prepare();
-		}
-		void unprepare(WorkPool<Jb> &_rwp){
-			_rwp.pwp->unprepare();
-		}
-		friend class WorkPool<Jb>;
-		int 	wkrid;//worker id
-	};
-	friend class Worker;
-	//! The concrete class for all workers
-	/*!
-		This means that all the actual workers must be GenericWorker\<MyWorker, MyWorkPool\>.
-		You can actually only inherit from Worker but you really must know what you are 
-		doing.<br>
-		This allows for the following desing.<br>
-		Suppose you want to have your workers keeping some data structures accessible from 
-		the workpool's run method:<br>
-		- define your SomeWorker
-		- define your SomeWorkPool::run(SomeWorker&)
-		- in your defined createWorkers method, use createWorker\<SomeWorker, SomeWorkPool\>()
-		
-	*/
-	template <class Wkr, class WP>
-	struct GenericWorker: Wkr{
-		GenericWorker(WP &_wp):wp(_wp){}
-		~GenericWorker(){}
-		void prepare()	{	wp.enterWorker(*this); wp.prepareWorker();	Worker::prepare(wp);}
-		void run()		{	wp.run(*this);											}
-		void unprepare(){	Worker::unprepare(wp);	wp.unprepareWorker(); wp.exitWorker(); 	}//NOTE: the call order is very important!!
-		WP	&wp;
-	};
-private:
-	void enterWorker(Worker &_rw){
-		idbgx(Dbg::utility, "workpool::");
+		return jobq.size();
+	}
+	
+	void enterWorker(WorkerT &_rw){
 		mtx.lock();
-		//_rwb.workerId(wkrcnt);
-		_rw.wkrid = wkrcnt;
+		ctrl.prepareWorker(_rw);
 		++wkrcnt;
-		vdbgx(Dbg::utility, "workpool::newworker "<<wkrcnt);
-		thrcnd.signal();
+		thrcnd.broadcast();
 		mtx.unlock();
 	}
-	void exitWorker(){
-		idbgx(Dbg::utility, "workpool::");
+	void exitWorker(WorkerT &_rw){
 		mtx.lock();
+		ctrl.unprepareWorker(_rw);
 		--wkrcnt;
-		vdbgx(Dbg::utility, "workpool::exitworker "<<wkrcnt<<std::flush);
-		thrcnd.signal();
+		cassert(wkrcnt >= 0);
+		thrcnd.broadcast();
 		mtx.unlock();
 	}
-protected:
-	States						state;
-	int							wkrcnt;
-	Condition					thrcnd;
-	Condition					sigcnd;
-	Mutex						mtx;
-	Queue<Jb>					q;
+	void execute(WorkerT &_rw, JobT &_rjob){
+		ctrl.execute(_rw, _rjob);
+	}
+	void execute(WorkerT &_rw, JobVectorT &_rjobvec){
+		ctrl.execute(_rw, _rjobvec);
+	}
 private:
-	WorkPoolPlugin				*pwp;
+	Queue<JobT>					jobq;
+	ControllerT					ctrl;
+	
 };
 
 
