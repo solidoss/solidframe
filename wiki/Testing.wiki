@@ -64,7 +64,7 @@ The above commands will prepare three build environments:
 Next lets build the proof of concept server:
 
 {{{
-solidframe $ cd build/dbg/example/foundation/main
+solidframe $ cd build/dbg/example/foundation/concept/main
 main $ make
 }}}
 
@@ -73,7 +73,7 @@ If everything went well, the server should build successfully.
 Next lets build the clients:
 
 {{{
-main $ cd ../../client
+main $ cd ../../../client
 client $ make
 }}}
 
@@ -113,13 +113,13 @@ in yet another terminal we should use the clients:
 solidframe $ cd build/dbg/example/client
 }}}
 
-First let us use the plain alpha client for local fetching on 10 threads:
+Now let us use the plain alpha client for local fetching on 10 threads:
 
 {{{
 client $ time ./alphaclient_p 10 localhost 1114 /tmp/00000001 5 2
 }}}
 
-Next lets use it for remote fetching using the second example application instance as peer:
+Then lets use it for remote fetching using the second example application instance as peer:
 
 {{{
 client $ time ./alphaclient_p 10 localhost 1114 /tmp/00000001 5 2 localhost 2222
@@ -182,12 +182,12 @@ And a remote fetch form:
 `aa fetch "/tmp/00000001/00000006.txt" localhost 2222`
 
 Which does:
-	* Requests from filemanager an iostream for a temp file
-	* when received the stream, it issues a masterfetchcommand to the peer
-	* on the peer the master fetch command requests an istream to the requested file from filemanager
-	* when received the stream the masterfetchcommand sends the issuer process a response containing the size of the stream and at most the first 1MB of file data, which on deserialization on issuer process is written on the temporary file
-	* if there is data on the file not sent to the issuer, the masterfetch command waits for slavefetchcommands
-	* then the connection, if there is still file data to request from peer, it creates a slavefetchcommand for the next 1MB of file data which will be written at the end of the temp file.
+	* Requests from filemanager an iostream for a temporary or memory file
+	* when received the stream, it issues a masterfetchsignal to the peer
+	* on the peer the master fetch signal requests an istream to the requested file from filemanager
+	* when received the stream the masterfetchsignal sends the issuer process a response containing the size of the stream and at most the first 1MB of file data, which on deserialization on issuer process is written on the temporary file
+	* if there is data on the file not sent to the issuer, the masterfetch signal waits for slavefetchsignals
+	* then the connection, if there is still file data to request from peer, it creates a slavefetchsignal for the next 1MB of file data which will be written at the end of the temp file.
 	* also the connection starts sending to the client the file data from the temp file.
 	* continues with the previous 3 steps until all file data is sent to the client, using rotationally first MB of temp file to send data to the client and the second MB to receive data from peer, then the first MB to receive data from peer and the second MB to send to the client.
 

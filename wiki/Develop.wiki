@@ -88,14 +88,14 @@ As you can see, you can have multiple *SolidFrame* based projects within 'applic
 
 = The proof of concept example application =
 
-The Proof Of Concept Example Application (POCEA: `solidframe/example/foundation/`) is a multi service, server offering:
+The Proof Of Concept Example Application (`solidframe/example/foundation/concept`) is a multi service, server offering:
 	* an ALPHA service resembling IMAP on syntax;
 	* echo service for TCP and UDP;
 	* a proxy service.
 
 You've built it and tested it, now lets dig into the code, as shows how the *SolidFrame* libraries should be used.
 
-Lets look first at the main function (`solidframe/example/foundation/main/src/concept.cpp`).
+Lets look first at the main function (`solidframe/example/foundation/concept/main/src/concept.cpp`).
 
 
 = The main function of the concept server =
@@ -171,46 +171,71 @@ Initiate the audit log engine and connect the client with the manager through a 
 Instantiate a Manager, add a new echo service, a new listener and a new talker to it:
 
 {{{
-	{
-		concept::Manager	tm;
-		if(true){// create and register the echo service
-			concept::Service* psrvc = concept::echo::Service::create();
-			tm.insertService("echo", psrvc);
-			
-			{//add a new listener
-				int port = p.start_port + 111;
-				AddrInfo ai("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Stream);
-				if(!ai.empty()){
-					if(!tm.insertListener("echo", ai.begin())){
-						cout<<"added listener to echo "<<port<<endl;
-					}else{
-						cout<<"failed adding listener for service echo port "<<port<<endl;
-					}
-				}else{
-					cout<<"failed create address for port "<<port<<" listener not created"<<endl;
-				}
-			}
-			{//add a new talker
-				int port = p.start_port + 112;
-				AddrInfo ai("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Datagram);
-				if(!ai.empty()){
-					AddrInfoIterator it(ai.begin());
-					if(!tm.insertTalker("echo", ai.begin())){
-						cout<<"added talker to echo "<<port<<endl;
-					}else{
-						cout<<"failed creating udp listener station "<<port<<endl;
-					}
-				}else{
-					cout<<"empty addr info - no listener talker"<<endl;
-				}
-			}
+	typedef foundation::Scheduler<foundation::aio::Selector>	AioSchedulerT;
+	typedef foundation::Scheduler<foundation::ObjectSelector>	SchedulerT;
+
+	//...
+	concept::Manager	m;
+	SignalResultWaiter	rw;
+	int 				rv;
+	
+	m.registerScheduler(new SchedulerT(*this));
+	m.registerScheduler(new AioSchedulerT(*this));
+	m.registerScheduler(new AioSchedulerT(*this));
+	
+	const IndexT alphaidx = m.registerService<concept::SchedulerT>(concept::alpha::Service::create(m));
+	const IndexT proxyidx = m.registerService<concept::SchedulerT>(concept::proxy::Service::create());
+	const IndexT gammaidx = m.registerService<concept::SchedulerT>(concept::gamma::Service::create());
+	
+	m.start();
+	
+	if(true){
+		int port = p.start_port + 222;
+		AddrInfo ai("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Datagram);
+		if(!ai.empty() && !(rv = foundation::ipc::Service::the().insertTalker(ai.begin()))){
+			cout<<"[ipc] Added talker on port "<<port<<endl;
+		}else{
+			cout<<"[ipc] Failed adding talker on port "<<port<<" rv = "<<rv<<endl;
 		}
-		/*
-			...
-			Initiate other services and wait for userinput. When user chooses to quit do:
-			tm.stop();
-			lm.stop();
-		*/
+	}
+	
+	if(true){//creates and registers a new alpha service
+		insertListener(rw, "alpha", alphaidx, "0.0.0.0", p.start_port + 114, false);
+		insertListener(rw, "alpha", alphaidx, "0.0.0.0", p.start_port + 124, true);
+	}
+	
+	if(true){//creates and registers a new alpha service
+		insertListener(rw, "proxy", proxyidx, "0.0.0.0", p.start_port + 214, false);
+		//insertListener(rw, "alpha", alphaidx, "0.0.0.0", p.start_port + 124, true);
+	}
+	
+	if(true){//creates and registers a new alpha service
+		insertListener(rw, "gamma", gammaidx, "0.0.0.0", p.start_port + 314, false);
+		//insertListener(rw, "alpha", alphaidx, "0.0.0.0", p.start_port + 124, true);
+	}
+}}}
+
+Where, the insertListener has the following implementation:
+
+{{{
+	void insertListener(SignalResultWaiter &_rw, const char *_name, IndexT _idx, const char *_addr, int _port, bool _secure){
+		concept::AddrInfoSignal *psig(new AddrInfoSignal(_secure? concept::Service::AddSslListener : concept::Service::AddListener, _rw));
+
+		psig->init(_addr, _port, 0, AddrInfo::Inet4, AddrInfo::Stream);
+		DynamicPointer<foundation::Signal> dp(psig);
+		_rw.prepare();
+		concept::m().signalService(_idx, dp);
+		int rv;
+		switch((rv = _rw.wait())){
+			case -2:
+				cout<<"["<<_name<<"] No such service"<<endl;
+				break;
+			case true:
+				cout<<"["<<_name<<"] Added listener on port "<<_port<<endl;
+				break;
+			default:
+				cout<<"["<<_name<<"] Failed adding listener on port "<<_port<<" rv = "<<rv<<endl;
+		}
 	}
 }}}
 
@@ -224,99 +249,16 @@ Note that the concept::Manager is declared within a block, and the waitAll() is 
 
 = The concept core library =
 
-While at design level the central concept of the framework is the Pseudo-Active-Object class, at implementation level the central concept is the Manager object which provides the main way to interact with objects and services. As you can see in the above code, the manager is a concept::Manager which is also a foundation::Manager. Lets have a look at concept::Manager (`example/foundation/core/src/manager.cpp`).
+While at design level the central concept of the framework is the Pseudo-Active-Object class, at implementation level the central concept is the Manager object which provides the main way to interact with objects and services. As you can see in the above code, the manager is a concept::Manager which is also a foundation::Manager. Lets have a look at concept::Manager (`example/foundation/concept/core/src/manager.cpp`).
 
-The concept::Manager is the bottom container as it holds: the file manager, the active pools and the services. Most of the classes of the objects held by the foundation::Manager, are abstract and a local implementation (which consists mostly of simple lines of code) must be given. So we have to implement: a FileManager, an ipc::Service, a SignalExecuter (a PAO which all it does is to execute incoming Signal(s)). Also the concrete active pools must be defined. Next the foundation::Manager is extended to allow insertion of services and different types of objects like connections, talkers, listeners etc. 
+The concept::Manager and implicitly the foundation::Manager is the base container for all the services and service like objects (objects that reside within the same MasterService like services).
+The concept::Manager is only a thin wrapper for foundation::Manager, as it only initiates some internal services (the ipc) and objects (file manager, some signal executers etc).
 
-So, using the manager, one can add new connections (connections that will connect to a server), new listeners 
-and/or new talkers (asynchronous UDP communication stubs) to a service.
+Every scheduler, every service and every service like object must be registered to manager before m.start is called.
 
-The manager mixes all these and allows restrictive access to services and objects. A very important method not to be forgotten is:
+The manager can be access from anywhere using concept::Manager::the()/foundation::Manager::the() or concept::m()/foundation::m().
 
-{{{
-static Manager& the(){return static_cast<Manager&>(foundation::Manager::the());}
-}}}
-
-This method is necessary because all concrete objects defined within "concept" need to access this concept::Manager (and not the foundation::Manager, which is eventually accessed internally at the foundation level) 
-
-Here is the code for pools definitions:
-
-{{{
-typedef foundation::SelectPool<cs::ObjectSelector>					ObjSelPoolTp;
-typedef foundation::SelectPool<cs::aio::Selector>					AioSelectorPoolTp;
-}}}
-
-and for creation and initialization:
-
-{{{
-Manager::Data::Data(Manager &_rm)
-{
-	pobjectpool[0] = NULL;
-	pobjectpool[1] = NULL;
-	
-	paiopool[0] = NULL;
-	paiopool[1] = NULL;
-	
-	TypeMapper::registerMap<IdTypeMap>(new IdTypeMap);
-	TypeMapper::registerSerializer<BinSerializer>();
-	idbg("");
-	if(true){
-		pobjectpool[0] = new ObjSelPoolTp(
-			_rm, 
-			10,		//max thread cnt
-			1024 * 4//max objects per selector
-		);			//at most 10 * 4 * 1024 connections
-		
-		pobjectpool[0]->start(1);//start with one worker
-	}
-	idbg("");
-	if(true){
-		paiopool[0] = new AioSelectorPoolTp(
-			_rm,
-			10,		//max thread cnt
-			2048	//max aio objects per selector/thread
-		);			//at most 10 * 4 * 1024 connections
-		
-		paiopool[0]->start(1);//start with one worker
-		
-		paiopool[1] = new AioSelectorPoolTp(
-			_rm,
-			10,		//max thread cnt
-			2048	//max aio objects per selector/thread
-		);			//at most 10 * 4 * 1024 connections
-		
-		paiopool[1]->start(1);//start with one worker
-	}
-	idbg("");
-}
-}}}
-
-Next we'll stop on the concept::Service (`example/foundation/core/src/service.cpp`). The service is also a PAO which all it does is to wait for kill signal.
-
-{{{
-int Service::execute(ulong _sig, TimeSpec &_rtout){
-	idbg("serviceexec sig = "<<_sig);
-	if(signaled()){
-		ulong sm;
-		{
-			Mutex::Locker	lock(*mut);
-			sm = grabSignalMask(1);
-		}
-		if(sm & cs::S_KILL){
-			idbg("killing service "<<this->id());
-			this->stop(concept::Manager::the(), true);
-			concept::Manager::the().removeService(this);
-			return BAD;
-		}
-	}
-	return NOK;
-}
-}}}
-
-
-The concept::Service is not a final service, it extends the foundation::Service but this is not final. The final services are defined in their corresponding library (e.g. concept::alpha::Service `example/foundation/alpha/alphaservice.hpp`).
-
-What is final and it is implemented in `example/foundation/core` is the listener, which is a PAO that accepts incomming connections:
+The concept_core library also contains the implementation of the Listener which does the following on its execute method:
 
 {{{
 int Listener::execute(ulong, TimeSpec&){
@@ -325,7 +267,7 @@ int Listener::execute(ulong, TimeSpec&){
 	cassert(this->socketOk());
 	if(signaled()){
 		{
-		Mutex::Locker	lock(rm.mutex(*this));
+		Mutex::Locker	lock(mute());
 		ulong sm = this->grabSignalMask();
 		if(sm & foundation::S_KILL) return BAD;
 		}
@@ -358,7 +300,7 @@ Up till now you've learned about the `example/foundation/core` library, which is
 
 = The alpha service =
 
-As every library in *SolidFrame*, the concept_alpha library has it own folder. The only public interface of the library is in the `alphaservice.hpp` file, the rest of the code, being private, is within `alpha/src`. In `example/foundation/alpha/alphaservice.hpp` is declared the concept::alpha::Service, which is instantiated in the application's main function and registered into the manager.
+As every library in *SolidFrame*, the concept_alpha library has it own folder. The only public interface of the library is in the `alphaservice.hpp` file, the rest of the code, being private, is within `alpha/src`. In `example/foundation/concept/alpha/alphaservice.hpp` is declared the concept::alpha::Service, which is instantiated in the application's main function and registered into the manager.
 
 A service, once registered, cannot be unregistered. A service can be inactive or active but it cannot be deleted.
 As you can see from the code, the alpha service is a concept core service and implements that interface allowing additions of connections and listeners. The only recommended way to directly access a service (I've tried to enforce in the code) is from its PAOs within PAOs execute function. The idea is that the service life will allways exceed its PAOs. See the concept::Listener::execute, above, for an example.
@@ -368,14 +310,15 @@ So into an alpha service one can insert connections and listeners. The listeners
 As the code from the alpha service is pretty simple we shall not delve into it. The only thing I'd like to add, is some words about the destruction of services.
 
 On manager stop this is what is done:
-	* All objects from all services are signaled to stop - including the services (which are also PAOs).
-	* The active pools start executing the PAOs which in their turn exit with destroy code. The only difference between service PAOs and other PAOs is that services are not removed, they are deleted on foundation::Manager destructor.
+	* The hidden master service (which holds all services and service like objects) is signaled to die and waits until the master service is dead.
+	* The master service on its turn, signals all its objects to die, and waits till all objects are released.
+	* Then the manager stops all the schedulers.
 
 This is a quite nice approach because as you'll see, the shutdown time is very short, even if lots of connections (and/or other objects) are created.
 
 Next we shall have a look at alpha::Connection (`src/alphaconnection.hpp` and `src/alphaconnection.cpp`).
 
-Because alpha service features, rather complicated, text protocol (resembling IMAP), the alpha::Connection uses an extended protocol::Reader and protocol::Writer to simplify the asynchronous send, receive/parse operations. The connection also receives different commands internal commands. I believe the most complicated function from alpha is the alpha::Connection::execute which implements a not so simple state machine:
+Because alpha service features, a rather complicated, text protocol (resembling IMAP), the alpha::Connection uses an extended protocol::Reader and protocol::Writer to simplify the asynchronous send, receive/parse operations. The connection also receives different internal signals. I believe the most complicated function from alpha is the alpha::Connection::execute which implements a not so simple state machine:
 
 {{{
 int Connection::execute(ulong _sig, TimeSpec &_tout){
@@ -394,7 +337,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 	if(signaled()){//we've received a signal
 		ulong sm(0);
 		{
-			Mutex::Locker	lock(rm.mutex(*this));
+			Mutex::Locker	lock(mute());
 			sm = grabSignalMask(0);//grab all bits of the signal mask
 			if(sm & fdt::S_KILL) return BAD;
 			if(sm & fdt::S_SIG){//we have signals
@@ -555,23 +498,25 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 }}}
 
 The idea is:
-	* the connection uses a rather simple state machine to asynchronously read and parse the input data using an alpha::Reader, building alpha::Command objects, 
+	* the connection uses a rather complex state machine to asynchronously read and parse the input data using an alpha::Reader, building alpha::Command objects, 
 	* execute those command objects, which in their turn, instruct the alpha::Writer to asynchronously build the output/command response. 
 	
 All commands are implemented in src/alphacommands.cpp.
 
-As you can see from alpha code, the connection, not only deals with IO events but also with incoming internal commands (containing: filestreams from FileManager, data from remote hosts in case of remotelist or fetch commands). Interesting is the way the connection deals with the incoming internal signals, the way it forwards them to the current alpha::Command object:
+As you can see from alpha code, the connection, not only deals with IO events but also with incoming internal signals (containing: filestreams from FileManager, data from remote hosts in case of remotelist or fetch commands). Interesting is the way the connection deals with the incoming internal signals, the way it forwards them to the current alpha::Command object:
 
 {{{
-/*static*/ void Connection::dynamicRegister(DynamicMap &_rdm){
-	BaseTp::dynamicRegister<IStreamSignal>(_rdm);
-	BaseTp::dynamicRegister<OStreamSignal>(_rdm);
-	BaseTp::dynamicRegister<IOStreamSignal>(_rdm);
-	BaseTp::dynamicRegister<StreamErrorSignal>(_rdm);
-	BaseTp::dynamicRegister<RemoteListSignal>(_rdm);
-	BaseTp::dynamicRegister<FetchSlaveSignal>(_rdm);
-	BaseTp::dynamicRegister<SendStringSignal>(_rdm);
-	BaseTp::dynamicRegister<SendStreamSignal>(_rdm);
+typedef DynamicExecuter<void, Connection>	DynamicExecuterT;
+//...
+/*static*/ void Connection::dynamicRegister(){
+	DynamicExecuterT::registerDynamic<IStreamSignal, Connection>();
+	DynamicExecuterT::registerDynamic<OStreamSignal, Connection>();
+	DynamicExecuterT::registerDynamic<IOStreamSignal, Connection>();
+	DynamicExecuterT::registerDynamic<StreamErrorSignal, Connection>();
+	DynamicExecuterT::registerDynamic<RemoteListSignal, Connection>();
+	DynamicExecuterT::registerDynamic<FetchSlaveSignal, Connection>();
+	DynamicExecuterT::registerDynamic<SendStringSignal, Connection>();
+	DynamicExecuterT::registerDynamic<SendStreamSignal, Connection>();
 }
 }}}
 
@@ -607,9 +552,9 @@ int Connection::dynamicReceive(IStreamSignal &_rsig){
 }}}
 
 
-Notable alpha commands are: concept::alpha::RemoteList and concept::alpha::Fetch - see their implementation in `solidframe/example/foundation/alpha/src/alphacommands.cpp`.
+Notable alpha commands are: concept::alpha::RemoteList and concept::alpha::Fetch - see their implementation in `solidframe/example/foundation/concept/alpha/src/alphacommands.cpp`.
 
-Alpha protocol is a concept protocol designed as a proof of concept (showing the way the *SolidFrame* foundation libraries should/may be used). The implementation though, is both not perfect and incomplete. It serves as a testing platform for new features and for profiling testing in combination with some clients (`example/client/alpha`*``).
+Alpha protocol is a concept protocol designed as a proof of concept (showing the way the *SolidFrame* foundation libraries should/may be used). The implementation though, is both not perfect and incomplete. It serves as a testing platform for new features and for profiling in combination with some clients (`example/client/alpha`*``).
 
 = Closing =
 
