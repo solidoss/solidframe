@@ -29,7 +29,7 @@
 #include "system/timespec.hpp"
 
 namespace fdt=foundation;
-static const char	*hellostr = "Welcome to proxy service!!!\r\n"; 
+//static const char	*hellostr = "Welcome to proxy service!!!\r\n"; 
 
 namespace concept{
 

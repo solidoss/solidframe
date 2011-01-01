@@ -326,7 +326,7 @@ void Manager::stop(){
 		it != d.schtpvec.end();
 		++it
 	){
-		if(it->schvec.empty())continue;
+		if(it->schvec.empty()) continue;
 		for(
 			Data::SchedulerVectorT::const_iterator sit(it->schvec.begin());
 			sit != it->schvec.end();

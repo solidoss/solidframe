@@ -28,8 +28,8 @@
 #include "audit/log.hpp"
 
 namespace fdt=foundation;
-static const char	*hellostr = "Welcome to gamma service!!!\r\n"; 
-static const char *sigstr = "Signaled!!!\r\n";
+//static const char	*hellostr = "Welcome to gamma service!!!\r\n"; 
+//static const char *sigstr = "Signaled!!!\r\n";
 
 namespace concept{
 namespace gamma{
