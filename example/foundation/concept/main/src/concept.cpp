@@ -254,7 +254,7 @@ int main(int argc, char* argv[]){
 			}
 			rc = 0;
 			cout<<'>';cin.getline(buf,2048);
-			if(!strncasecmp(buf,"quit",4)){
+			if(!strcasecmp(buf,"quit") || !strcasecmp(buf,"q")){
 				m.stop();
 				cout<<"signalled to stop"<<endl;
 				break;

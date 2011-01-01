@@ -1458,7 +1458,6 @@ void Session::doFillSendBuffer(const uint32 _bufidx){
 				//we dont want to switch to an old signal
 				d.currentbuffersignalcount = Data::MaxSignalBufferCount - 1;
 				if(rsbd.buffer.dataFreeSize() < 16) break;
-				break;
 			}else{
 				break;
 			}
@@ -1466,7 +1465,6 @@ void Session::doFillSendBuffer(const uint32 _bufidx){
 			d.currentbuffersignalcount = Data::MaxSignalBufferCount - 1;
 		}else{
 			d.sendsignalidxq.push(d.sendsignalidxq.front());
-			//d.waitFrontSignal().pser = NULL;
 			d.sendsignalidxq.pop();
 			vdbgx(Dbg::ipc, "scqpop "<<d.sendsignalidxq.size());
 			d.currentbuffersignalcount = Data::MaxSignalBufferCount;

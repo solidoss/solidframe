@@ -179,15 +179,21 @@ bool Service::signal(ulong _sm, const ObjectUidT &_ruid){
 bool Service::signal(ulong _sm, IndexT _fullid, uint32 _uid){
 	const IndexT	oidx(compute_index(_fullid));
 	
-	if(oidx >= d.objvec.size()) return false;
+	if(oidx >= d.objvec.size()){
+		return false;
+	}
 	
 	Mutex::Locker	lock(d.mtxstore.at(oidx));
 	
-	if(_uid != d.objvec[oidx].second) return false;
+	if(_uid != d.objvec[oidx].second){
+		return false;
+	}
 	
 	Object			*pobj(d.objvec[oidx].first);
 	
-	if(!pobj) return false;
+	if(!pobj){
+		return false;
+	}
 	
 	if(pobj->signal(_sm)){
 		m().raiseObject(*pobj);
@@ -206,7 +212,9 @@ bool Service::signal(ulong _sm, const Object &_robj){
 	
 	Object			*pobj(d.objvec[oidx].first);
 	
-	if(!pobj) return false;
+	if(!pobj){
+		return false;
+	}
 	
 	if(pobj->signal(_sm)){
 		m().raiseObject(*pobj);
@@ -245,15 +253,21 @@ bool Service::signal(DynamicPointer<Signal> &_rsig, const ObjectUidT &_ruid){
 bool Service::signal(DynamicPointer<Signal> &_rsig, IndexT _fullid, uint32 _uid){
 	const IndexT	oidx(compute_index(_fullid));
 	
-	if(oidx >= d.objvec.size()) return false;
+	if(oidx >= d.objvec.size()){
+		return false;
+	}
 	
 	Mutex::Locker	lock(d.mtxstore.at(oidx));
 	
-	if(_uid != d.objvec[oidx].second) return false;
+	if(_uid != d.objvec[oidx].second){
+		return false;
+	}
 	
 	Object			*pobj(d.objvec[oidx].first);
 	
-	if(!pobj) return false;
+	if(!pobj){
+		return false;
+	}
 	
 	if(pobj->signal(_rsig)){
 		m().raiseObject(*pobj);
@@ -290,14 +304,18 @@ uint32 Service::uid(const IndexT &_idx)const{
 				do{
 					d.cnd.wait(*d.mtx);
 				}while(d.st != Data::Running && d.st != Data::Stopped);
-				if(d.st == Data::Running) return OK;
+				if(d.st == Data::Running){
+					return OK;
+				}
 				return BAD;
 			}else if(d.st < Data::Stopped){
 				//if(!_wait) return false;
 				do{
 					d.cnd.wait(*d.mtx);
 				}while(d.st != Data::Stopped && d.st != Data::Running);
-				if(d.st == Data::Running) reenter = true;
+				if(d.st == Data::Running){
+					reenter = true;
+				}
 			}
 		}while(reenter);
 		
@@ -314,7 +332,9 @@ uint32 Service::uid(const IndexT &_idx)const{
 		do{
 			d.cnd.wait(*d.mtx);
 		}while(d.st != Data::Running && d.st != Data::Stopped);
-		if(d.st == Data::Running) return OK;
+		if(d.st == Data::Running){
+			return OK;
+		}
 		return BAD;
 	}
 }
@@ -355,7 +375,9 @@ uint32 Service::uid(const IndexT &_idx)const{
 		do{
 			d.cnd.wait(*d.mtx);
 		}while(d.st != Data::Stopped && d.st != Data::Running);
-		if(d.st == Data::Running) return BAD;
+		if(d.st == Data::Running){
+			return BAD;
+		}
 	}
 	return OK;
 }
@@ -418,8 +440,10 @@ uint32 Service::uid(const IndexT &_idx)const{
 					d.st = Data::Stopping;
 					return OK;
 				}
-				case OK: return OK;
-				case NOK: return NOK;
+				case OK:
+					return OK;
+				case NOK:
+					return NOK;
 			}
 		case Data::ExeStopping:
 			idbgx(Dbg::fdt, "ExeStopping");
@@ -437,7 +461,8 @@ uint32 Service::uid(const IndexT &_idx)const{
 					//d.st = Data::Stopped;
 					return OK;
 				}
-				case NOK: return NOK;
+				case NOK:
+					return NOK;
 			}
 		case Data::ExeStoppingWait:
 			idbgx(Dbg::fdt, "ExeStoppingWait");
@@ -676,6 +701,7 @@ bool Service::doSignalAll(ulong _sm){
 	long	mi(-1);
 	bool	signaled(false);
 	Manager	&rm(m());
+	
 	idbgx(Dbg::fdt, "signalling "<<oc<<" objects");
 	
 	for(Data::ObjectVectorT::iterator it(d.objvec.begin()); oc && it != d.objvec.end(); ++it, ++i){
@@ -692,7 +718,9 @@ bool Service::doSignalAll(ulong _sm){
 			--oc;
 		}
 	}
-	if(mi >= 0)	d.mtxstore[mi].unlock();
+	if(mi >= 0){
+		d.mtxstore[mi].unlock();
+	}
 	return signaled;
 }
 //---------------------------------------------------------
@@ -702,6 +730,7 @@ bool Service::doSignalAll(DynamicSharedPointer<Signal> &_rsig){
 	long	mi(-1);
 	bool	signaled(false);
 	Manager	&rm(m());
+	
 	idbgx(Dbg::fdt, "signalling "<<oc<<" objects");
 	
 	for(Data::ObjectVectorT::iterator it(d.objvec.begin()); oc && it != d.objvec.end(); ++it, ++i){
@@ -719,7 +748,9 @@ bool Service::doSignalAll(DynamicSharedPointer<Signal> &_rsig){
 			--oc;
 		}
 	}
-	if(mi >= 0)	d.mtxstore[mi].unlock();
+	if(mi >= 0){
+		d.mtxstore[mi].unlock();
+	}
 	return signaled;
 }
 //---------------------------------------------------------
@@ -751,18 +782,24 @@ bool Service::doVisit(Visitor &_rv, uint _visidx){
 			--oc;
 		}
 	}
-	if(mi >= 0)	d.mtxstore[mi].unlock();
+	if(mi >= 0){
+		d.mtxstore[mi].unlock();
+	}
 	return signaled;
 }
 //---------------------------------------------------------
 bool Service::doVisit(Visitor &_rv, uint _visidx, const ObjectUidT &_ruid){
 	const IndexT	oidx(compute_index(_ruid.first));
 	
-	if(oidx >= d.objvec.size()) return false;
+	if(oidx >= d.objvec.size()){
+		return false;
+	}
 	
 	Mutex::Locker	lock(d.mtxstore.at(oidx));
 	
-	if(_ruid.second != d.objvec[oidx].second) return false;
+	if(_ruid.second != d.objvec[oidx].second){
+		return false;
+	}
 	
 	Object			*pobj(d.objvec[oidx].first);
 	
