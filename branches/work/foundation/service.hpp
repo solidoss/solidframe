@@ -72,9 +72,11 @@ class Service: public Dynamic<Service, Object>{
 	}
 	
 	struct ObjectTypeStub{
+		static const EraseCbkT	default_erase_cbk;
+		static const InsertCbkT	default_insert_cbk;
 		ObjectTypeStub(
-			EraseCbkT _pec = &erase_cbk<Object,Service>,
-			InsertCbkT _pic = &insert_cbk<Object,Service>
+			EraseCbkT _pec = default_erase_cbk,
+			InsertCbkT _pic = default_insert_cbk
 		):erase_callback(_pec), insert_callback(_pic){}
 		bool empty()const{
 			return erase_callback == NULL;
@@ -250,7 +252,7 @@ private:
 		if(_tid >= objtpvec.size()) _tid = 0;
 		return objtpvec[_tid];
 	}
-	ObjectUidT doInsertObject(Object &_ro, uint _tid, const IndexT &_ruid);
+	ObjectUidT doInsertObject(Object &_ro, uint32 _tid, const IndexT &_ruid);
 	void doVisit(Object *_po, Visitor &_rv, uint32 _visidx);
 	const Service& operator=(const Service &);
 	bool doSignalAll(ulong _sm);

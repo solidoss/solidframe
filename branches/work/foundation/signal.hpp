@@ -85,7 +85,7 @@ struct Signal: Dynamic<Signal>{
 		int _peerbaseport
 	);
 	//! Called by ipc module, before the signal begins to be serialized
-	virtual int ipcPrepare(const ipc::SignalUid& _waitingsignaluid);
+	virtual uint32 ipcPrepare(const ipc::SignalUid& _waitingsignaluid);
 	//! Called by ipc module on peer failure detection (disconnect,reconnect)
 	virtual void ipcFail(int _err);
 	

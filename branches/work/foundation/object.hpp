@@ -150,8 +150,8 @@ protected:
 	 */
 	virtual void init(Mutex *_pm);
 private:
-	void typeId(const uint16 _tid);
-	const uint typeId()const;
+	//void typeId(const uint16 _tid);
+	//const uint typeId()const;
 	
 	//! Set the id
 	void id(IndexT _fullid);
@@ -165,7 +165,7 @@ private:
 	volatile uint32	thrid;//the current thread which (may) execute(s) the object
 	volatile uint32	thrpos;//
 	uint16			usecnt;//
-	uint16			tid;//typeid
+	uint16			dummy;//
 	int32			crtstate;// < 0 -> must die
 };
 
@@ -180,12 +180,12 @@ inline int Object::state()	const {
 inline IndexT Object::id()	const {
 	return fullid;
 }
-inline void Object::typeId(const uint16 _tid){
-	tid = _tid;
-}
-inline const uint Object::typeId()const{
-	return tid;
-}
+// inline void Object::typeId(const uint16 _tid){
+// 	tid = _tid;
+// }
+// inline const uint Object::typeId()const{
+// 	return tid;
+// }
 
 #ifndef NINLINES
 #include "foundation/object.ipp"

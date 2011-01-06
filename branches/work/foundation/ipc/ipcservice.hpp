@@ -96,7 +96,8 @@ public:
 		SameConnectorFlag = 1, //!< Do not send signal to a restarted peer process
 		ResponseFlag	= SameConnectorFlag, //!< The sent signal is a response
 		WaitResponseFlag = 2,
-		SentFlag = 4,//!< The signal was successfully sent
+		SynchronousSendFlag = 4,
+		SentFlag = 8,//!< The signal was successfully sent
 	};
 	struct Controller{
 		virtual bool release() = 0;

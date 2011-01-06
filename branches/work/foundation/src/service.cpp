@@ -41,6 +41,8 @@
 
 namespace foundation{
 
+/*static*/ const Service::EraseCbkT		Service::ObjectTypeStub::default_erase_cbk(&Service::erase_cbk<Object, Service>);
+/*static*/ const Service::InsertCbkT	Service::ObjectTypeStub::default_insert_cbk(&Service::insert_cbk<Object, Service>);
 //---------------------------------------------------------
 
 struct Service::Data{
@@ -135,15 +137,15 @@ IndexT Service::size()const{
 void Service::erase(const Object &_robj){
 	ObjectUidT u;
 	{
-		const IndexT	oidx(_robj.index());
-		Mutex::Locker	lock1(*d.mtx);
-		Mutex::Locker	lock2(d.mtxstore.at(oidx));
+		const IndexT		oidx(_robj.index());
+		Mutex::Locker		lock1(*d.mtx);
+		Mutex::Locker		lock2(d.mtxstore.at(oidx));
 		
-		ObjectTypeStub	&rots(objectTypeStub(_robj.typeId()));
+		ObjectTypeStub		&rots(objectTypeStub(_robj.dynamicTypeId()));
 		
 		(*rots.erase_callback)(_robj, this);
 		
-		Data::ObjectPairT		&rop(d.objvec[oidx]);
+		Data::ObjectPairT	&rop(d.objvec[oidx]);
 		
 		rop.first = NULL;
 		++rop.second;
@@ -580,7 +582,7 @@ namespace{
 
 }//namespace
 
-ObjectUidT Service::doInsertObject(Object &_ro, uint _tid, const IndexT &_ridx){
+ObjectUidT Service::doInsertObject(Object &_ro, uint32 _tid, const IndexT &_ridx){
 	uint32 u;
 	
 	if(is_invalid_index(_ridx)){
@@ -771,9 +773,9 @@ bool Service::doVisit(Visitor &_rv, uint _visidx){
 				d.mtxstore[mi].lock();
 			}
 			Object			*pobj(it->first);
-			
-			if(pobj->typeId() < rvts.cbkvec.size() && rvts.cbkvec[pobj->typeId()] != NULL){
-				(*rvts.cbkvec[pobj->typeId()])(pobj, _rv);
+			const uint32	tid(pobj->dynamicTypeId());
+			if(tid < rvts.cbkvec.size() && rvts.cbkvec[tid] != NULL){
+				(*rvts.cbkvec[tid])(pobj, _rv);
 			}else{
 				Service::visit_cbk<Object, Visitor>(pobj, _rv);
 			}
@@ -806,9 +808,9 @@ bool Service::doVisit(Visitor &_rv, uint _visidx, const ObjectUidT &_ruid){
 	if(!pobj) return false;
 	
 	VisitorTypeStub	&rvts(vistpvec[_visidx]);
-	
-	if(pobj->typeId() < rvts.cbkvec.size() && rvts.cbkvec[pobj->typeId()] != NULL){
-		(*rvts.cbkvec[pobj->typeId()])(pobj, _rv);
+	const uint32	tid(pobj->dynamicTypeId());
+	if(tid < rvts.cbkvec.size() && rvts.cbkvec[tid] != NULL){
+		(*rvts.cbkvec[tid])(pobj, _rv);
 	}else{
 		Service::visit_cbk<Object, Visitor>(pobj, _rv);
 	}

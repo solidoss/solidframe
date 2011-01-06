@@ -72,7 +72,7 @@ struct RemoteListSignal: Dynamic<RemoteListSignal, DynamicShared<foundation::Sig
 		const foundation::ipc::ConnectionUid &_rconid,
 		const SockAddrPair &_peeraddr, int _peerbaseport
 	);
-	int ipcPrepare(const foundation::ipc::SignalUid &_rsiguid);
+	uint32 ipcPrepare(const foundation::ipc::SignalUid &_rsiguid);
 	void ipcFail(int _err);
 	
 	void use();

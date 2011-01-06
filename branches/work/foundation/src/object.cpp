@@ -137,8 +137,8 @@ int Signal::ipcReceived(
 ){
 	return BAD;
 }
-int Signal::ipcPrepare(const ipc::SignalUid&){
-	return OK;//do nothing - no wait for response
+uint32 Signal::ipcPrepare(const ipc::SignalUid&){
+	return 0;//do nothing - no wait for response
 }
 void Signal::ipcFail(int _err){
 }

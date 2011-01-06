@@ -694,17 +694,19 @@ void Session::Data::moveSignalsToSendQueue(){
 		SendSignalData 	&rssd(sendsignalvec[uid.idx]);
 		
 		sendsignalidxq.push(uid.idx);
+		const uint32 tmp_flgs(rssd.signal->ipcPrepare(uid));
+		rssd.flags |= tmp_flgs;
 		
-		switch(rssd.signal->ipcPrepare(uid)){
-			case OK://signal doesnt wait for response
-				rssd.flags &= ~Service::WaitResponseFlag;
-				break;
-			case NOK://signal wait for response
-				++sentsignalwaitresponse;
-				rssd.flags |= Service::WaitResponseFlag;
-				break;
-			default:
-				cassert(false);
+		if(tmp_flgs & Service::WaitResponseFlag){
+			++sentsignalwaitresponse;
+		}else{
+			rssd.flags &= ~Service::WaitResponseFlag;
+		}
+		
+		if(rssd.flags & Service::SynchronousSendFlag){
+			//rssd.syncid = d.currentsyncid;
+			//++d.currentsyncid;
+			//TODO:
 		}
 		signalq.pop();
 	}

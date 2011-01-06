@@ -49,15 +49,15 @@ int RemoteListSignal::release(){
 	idbg(""<<(void*)this<<" usecount = "<<usecount);
 	return rv;
 }
-int RemoteListSignal::ipcPrepare(const foundation::ipc::SignalUid &_rsiguid){
+uint32 RemoteListSignal::ipcPrepare(const foundation::ipc::SignalUid &_rsiguid){
 	idbg(""<<(void*)this<<" siguid = "<<_rsiguid.idx<<' '<<_rsiguid.uid);
 	if(!ppthlst){//on sender
 		//only on sender we hold the signal uid
 		//to use it when we get back - see ipcReceived
 		siguid = _rsiguid;
 		sentcnt = -sentcnt;
-		return NOK;
-	}else return OK;// on peer
+		return foundation::ipc::Service::WaitResponseFlag;
+	}else return 0;// on peer
 }
 int RemoteListSignal::ipcReceived(
 	fdt::ipc::SignalUid &_rsiguid,
