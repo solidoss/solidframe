@@ -56,8 +56,8 @@ uint32 RemoteListSignal::ipcPrepare(const foundation::ipc::SignalUid &_rsiguid){
 		//to use it when we get back - see ipcReceived
 		siguid = _rsiguid;
 		sentcnt = -sentcnt;
-		return foundation::ipc::Service::WaitResponseFlag | foundation::ipc::Service::SynchronousSendFlag;
-	}else return foundation::ipc::Service::SynchronousSendFlag;// on peer
+		return foundation::ipc::Service::WaitResponseFlag /*| foundation::ipc::Service::SynchronousSendFlag*/;
+	}else return 0/*foundation::ipc::Service::SynchronousSendFlag*/;// on peer
 }
 int RemoteListSignal::ipcReceived(
 	fdt::ipc::SignalUid &_rsiguid,
