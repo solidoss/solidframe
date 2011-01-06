@@ -56,8 +56,8 @@ uint32 RemoteListSignal::ipcPrepare(const foundation::ipc::SignalUid &_rsiguid){
 		//to use it when we get back - see ipcReceived
 		siguid = _rsiguid;
 		sentcnt = -sentcnt;
-		return foundation::ipc::Service::WaitResponseFlag;
-	}else return 0;// on peer
+		return foundation::ipc::Service::WaitResponseFlag | foundation::ipc::Service::SynchronousSendFlag;
+	}else return foundation::ipc::Service::SynchronousSendFlag;// on peer
 }
 int RemoteListSignal::ipcReceived(
 	fdt::ipc::SignalUid &_rsiguid,
@@ -166,6 +166,11 @@ void FetchMasterSignal::print()const{
 	idbg("fuid.first = "<<fuid.first<<" fuid.second = "<<fuid.second);
 	idbg("tmpfuid.first = "<<tmpfuid.first<<" tmpfuid.second = "<<tmpfuid.second);
 }
+
+uint32 FetchMasterSignal::ipcPrepare(const foundation::ipc::SignalUid &){
+	return 0;//foundation::ipc::Service::SynchronousSendFlag;
+}
+
 
 int FetchMasterSignal::ipcReceived(
 	fdt::ipc::SignalUid &_rsiguid,
@@ -374,6 +379,9 @@ int FetchSlaveSignal::sent(const fdt::ipc::ConnectionUid &_rconid){
 	idbg((void*)this<<"");
 	fromv.first = 0xffffffff;
 	return BAD;
+}
+uint32 FetchSlaveSignal::ipcPrepare(const foundation::ipc::SignalUid &){
+	return 0;//foundation::ipc::Service::SynchronousSendFlag;
 }
 int FetchSlaveSignal::ipcReceived(
 	fdt::ipc::SignalUid &_rsiguid,
