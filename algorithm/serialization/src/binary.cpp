@@ -70,42 +70,42 @@ int Serializer::storeBinary(Base &_rb, FncData &_rfd){
 }
 template <>
 int Serializer::store<int16>(Base &_rb, FncData &_rfd){
-	idbgx(Dbg::ser_bin, "");
+	idbgx(Dbg::ser_bin, ""<<_rfd.n);
 	_rfd.s = sizeof(int16);
 	_rfd.f = &Serializer::storeBinary;
 	return storeBinary(_rb, _rfd);
 }
 template <>
 int Serializer::store<uint16>(Base &_rb, FncData &_rfd){
-	idbgx(Dbg::ser_bin, "");
+	idbgx(Dbg::ser_bin, ""<<_rfd.n);
 	_rfd.s = sizeof(uint16);
 	_rfd.f = &Serializer::storeBinary;
 	return CONTINUE;
 }
 template <>
 int Serializer::store<int32>(Base &_rb, FncData &_rfd){
-	idbgx(Dbg::ser_bin, "");
+	idbgx(Dbg::ser_bin, ""<<_rfd.n);
 	_rfd.s = sizeof(int32);
 	_rfd.f = &Serializer::storeBinary;
 	return CONTINUE;
 }
 template <>
 int Serializer::store<uint32>(Base &_rb, FncData &_rfd){
-	idbgx(Dbg::ser_bin, "");
+	idbgx(Dbg::ser_bin, ""<<_rfd.n);
 	_rfd.s = sizeof(uint32);
 	_rfd.f = &Serializer::storeBinary;
 	return CONTINUE;
 }
 template <>
 int Serializer::store<int64>(Base &_rb, FncData &_rfd){
-	idbgx(Dbg::ser_bin, "");
+	idbgx(Dbg::ser_bin, ""<<_rfd.n);
 	_rfd.s = sizeof(int64);
 	_rfd.f = &Serializer::storeBinary;
 	return CONTINUE;
 }
 template <>
 int Serializer::store<uint64>(Base &_rb, FncData &_rfd){
-	idbgx(Dbg::ser_bin, "");
+	idbgx(Dbg::ser_bin, ""<<_rfd.n);
 	_rfd.s = sizeof(uint64);
 	_rfd.f = &Serializer::storeBinary;
 	return CONTINUE;
@@ -277,7 +277,10 @@ int Deserializer::parseStream(Base &_rb, FncData &_rfd){
 	std::pair<OStream*, int64> &rsp(*reinterpret_cast<std::pair<OStream*, int64>*>(rd.estk.top().buf));
 	if(rsp.second < 0) return OK;
 	int32 towrite = rd.be - rd.cpb;
-	cassert(towrite > 2);
+	if(towrite < 2){
+		cassert(towrite == 0);
+		return NOK;
+	}
 	towrite -= 2;
 	if(towrite > rsp.second) towrite = rsp.second;
 	uint16 &rsz = *((uint16*)rd.cpb);

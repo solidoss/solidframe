@@ -82,13 +82,22 @@ class Service;
 	<b>Notes:</b><br>
 	- Despite it's simple interface, the ipc service is quite complex
 	software because it must ensure reliable communication over udp,
-	emulating somehow the tcp.
+	emulating somehow the tcp.<br>
 	- There is no implementation of keep alive, so a peer process restart
-	will only be detected when some communication happens in either way.
+	will only be detected when some communication happens in either way.<br>
 	- The ipc library is a nice example of how powerfull and flexible is the
-	asynchrounous communication engine.
+	asynchrounous communication engine.<br>
 	- When needed, new talkers will be created with ports values starting 
-	incrementally from baseaddress port + 1.
+	incrementally from baseaddress port + 1.<br>
+	- using SynchronousSendFlag flag a signal can be made synchronous, which
+	means that no other synchronous signals are sent while sending a synchronous
+	signal. A synchronous signal can still be multiplexed with non synchronous
+	ones. Here is the problem: suppose you have a big signal spanned over multiple
+	ipc buffers, another signal sent after the first one, can arrive on the 
+	peer side before the first bigger signal. If someone needs to ensure
+	that some signals are delivered one after another, all he needs to do
+	is make them Synchronous (using Synchronous). The signal will still be
+	multiplexed with non-synchronous signals.<br>
 */
 class Service: public Dynamic<Service, foundation::Service>{
 public:
@@ -96,7 +105,8 @@ public:
 		SameConnectorFlag = 1, //!< Do not send signal to a restarted peer process
 		ResponseFlag	= SameConnectorFlag, //!< The sent signal is a response
 		WaitResponseFlag = 2,
-		SentFlag = 4,//!< The signal was successfully sent
+		SynchronousSendFlag = 4,//!< Make the signal synchronous
+		SentFlag = 8,//!< The signal was successfully sent
 	};
 	struct Controller{
 		virtual bool release() = 0;
