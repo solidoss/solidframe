@@ -72,7 +72,7 @@ struct RemoteListSignal: Dynamic<RemoteListSignal, DynamicShared<foundation::Sig
 		const foundation::ipc::ConnectionUid &_rconid,
 		const SockAddrPair &_peeraddr, int _peerbaseport
 	);
-	int ipcPrepare(const foundation::ipc::SignalUid &_rsiguid);
+	uint32 ipcPrepare(const foundation::ipc::SignalUid &_rsiguid);
 	void ipcFail(int _err);
 	
 	void use();
@@ -123,7 +123,7 @@ struct FetchMasterSignal: Dynamic<FetchMasterSignal, foundation::Signal>{
 	FetchMasterSignal():psig(NULL), fromv(0xffffffff, 0xffffffff), state(NotReceived), streamsz(0), filesz(0), filepos(0), requid(0){
 	}
 	~FetchMasterSignal();
-	
+	uint32 ipcPrepare(const foundation::ipc::SignalUid &_rsiguid);
 	int ipcReceived(
 		foundation::ipc::SignalUid &_rsiguid,
 		const foundation::ipc::ConnectionUid &_rconid,
@@ -192,6 +192,7 @@ struct FetchSlaveSignal: Dynamic<FetchSlaveSignal, foundation::Signal>{
 		foundation::SignalExecuter&,
 		const SignalUidT &, TimeSpec &_rts
 	);
+	uint32 ipcPrepare(const foundation::ipc::SignalUid &_rsiguid);
 	int createDeserializationStream(std::pair<OStream *, int64> &_rps, int _id);
 	void destroyDeserializationStream(const std::pair<OStream *, int64> &_rps, int _id);
 	int createSerializationStream(std::pair<IStream *, int64> &_rps, int _id);

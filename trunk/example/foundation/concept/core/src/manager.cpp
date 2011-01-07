@@ -111,14 +111,17 @@ struct IpcServiceController: foundation::ipc::Service::Controller{
 //		Manager::Data
 //------------------------------------------------------
 
+namespace{
+	FileManagerController	fmctrl;
+	IpcServiceController	ipcctrl;
+}
+
 struct Manager::Data{
 	Data():filemanageridx(1), readsigexeidx(2), writesigexeidx(3), ipcidx(4){}
 	const IndexT			filemanageridx;
 	const IndexT			readsigexeidx;
 	const IndexT			writesigexeidx;
 	const IndexT			ipcidx;
-	FileManagerController	fmctrl;
-	IpcServiceController	ipcctrl;
 };
 
 //--------------------------------------------------------------------------
@@ -139,13 +142,14 @@ Manager::Manager():foundation::Manager(16), d(*(new Data())){
 	registerScheduler(new AioSchedulerT(*this));
 	registerScheduler(new AioSchedulerT(*this));
 	
-	registerObject<SchedulerT>(new fdt::file::Manager(&d.fmctrl), 0, d.filemanageridx);
+	registerObject<SchedulerT>(new fdt::file::Manager(&fmctrl), 0, d.filemanageridx);
 	registerObject<SchedulerT>(new fdt::SignalExecuter, 0, d.readsigexeidx);
 	registerObject<SchedulerT>(new fdt::SignalExecuter, 0, d.writesigexeidx);
-	registerService<SchedulerT>(new foundation::ipc::Service(&d.ipcctrl), 0, d.ipcidx);
+	registerService<SchedulerT>(new foundation::ipc::Service(&ipcctrl), 0, d.ipcidx);
 }
 
 Manager::~Manager(){
+	delete &d;
 }
 
 ObjectUidT Manager::readSignalExecuterUid()const{

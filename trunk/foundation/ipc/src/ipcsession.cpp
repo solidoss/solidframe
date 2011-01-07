@@ -122,6 +122,9 @@ struct StatisticData{
 	void scheduleKeepAlive();
 	void failedTimeout();
 	void timeout();
+	void sendAsynchronousWhileSynchronous();
+	void sendSynchronousWhileSynchronous(ulong _sz);
+	void sendAsynchronous();
 	
 	ulong reconnectcnt;
 	ulong pushsignalcnt;
@@ -140,6 +143,11 @@ struct StatisticData{
 	ulong schedulekeepalivecnt;
 	ulong failedtimeoutcnt;
 	ulong timeoutcnt;
+	ulong sendasynchronouswhilesynchronous;
+	ulong sendsynchronouswhilesynchronous;
+	ulong maxsendsynchronouswhilesynchronous;
+	ulong sendasynchronous;
+
 };
 
 std::ostream& operator<<(std::ostream &_ros, const StatisticData &_rsd);
@@ -207,6 +215,8 @@ struct Session::Data{
 				if(_owc.signal.ptr()){
 				}else return true;
 			}else return false;
+			
+			
 			if(id < _owc.id){
 				return (_owc.id - id) <= (uint32)(0xffffffff/2);
 			}else{
@@ -317,6 +327,8 @@ public:
 	}
 	void moveSignalsToSendQueue();
 	void resetKeepAlive();
+	//returns false if there is no other signal but the current one
+	bool moveToNextSendSignal();
 public:
 	SocketAddress			addr;
 	SockAddrPair			pairaddr;
@@ -331,6 +343,8 @@ public:
 	uint16					currentbuffersignalcount;//MaxSignalBufferCount
 	uint32					sendid;
 	uint32					keepalivetimeout;
+	uint32					currentsyncid;
+	uint32					currentsendsyncid;
 	
 	UInt32QueueT			rcvdidq;
 	BufferVectorT			outoforderbufvec;
@@ -358,7 +372,8 @@ Session::Data::Data(
 	outoforderbufcnt(0), sentsignalwaitresponse(0),
 	retansmittimepos(0), sendsignalid(0), 
 	currentbuffersignalcount(MaxSignalBufferCount), sendid(1),
-	keepalivetimeout(_keepalivetout)
+	keepalivetimeout(_keepalivetout),
+	currentsendsyncid(-1)
 {
 	outoforderbufvec.resize(MaxOutOfOrder);
 	//first buffer is for keepalive
@@ -378,7 +393,8 @@ Session::Data::Data(
 	outoforderbufcnt(0), sentsignalwaitresponse(0),
 	retansmittimepos(0), sendsignalid(0), 
 	currentbuffersignalcount(MaxSignalBufferCount), sendid(1),
-	keepalivetimeout(_keepalivetout)
+	keepalivetimeout(_keepalivetout),
+	currentsendsyncid(-1)
 {
 	outoforderbufvec.resize(MaxOutOfOrder);
 	//first buffer is for keepalive
@@ -508,6 +524,7 @@ SignalUid Session::Data::pushSendWaitSignal(
 		rssd.signal = _sig;
 		cassert(!_sig.ptr());
 		rssd.flags = _flags;
+		rssd.id = _id;
 		
 		return SignalUid(idx, rssd.uid);
 	
@@ -694,18 +711,19 @@ void Session::Data::moveSignalsToSendQueue(){
 		SendSignalData 	&rssd(sendsignalvec[uid.idx]);
 		
 		sendsignalidxq.push(uid.idx);
+		const uint32 tmp_flgs(rssd.signal->ipcPrepare(uid));
+		rssd.flags |= tmp_flgs;
 		
-		switch(rssd.signal->ipcPrepare(uid)){
-			case OK://signal doesnt wait for response
-				rssd.flags &= ~Service::WaitResponseFlag;
-				break;
-			case NOK://signal wait for response
-				++sentsignalwaitresponse;
-				rssd.flags |= Service::WaitResponseFlag;
-				break;
-			default:
-				cassert(false);
+		if(tmp_flgs & Service::WaitResponseFlag){
+			++sentsignalwaitresponse;
+		}else{
+			rssd.flags &= ~Service::WaitResponseFlag;
 		}
+		
+/*		if(rssd.flags & Service::SynchronousSendFlag){
+			rssd.syncid = d.currentsyncid;
+			++d.currentsyncid;
+		}*/
 		signalq.pop();
 	}
 }
@@ -714,9 +732,48 @@ void Session::Data::resetKeepAlive(){
 	SendBufferData	&rsbd(sendbuffervec[0]);//the keep alive buffer
 	++rsbd.uid;
 }
+//----------------------------------------------------------------------
+bool Session::Data::moveToNextSendSignal(){
+	
+	if(sendsignalidxq.size() == 1) return false;
+	
+	uint32 	crtidx(sendsignalidxq.front());
+	
+	sendsignalidxq.pop();
+	sendsignalidxq.push(crtidx);
+
+	if(currentsendsyncid != static_cast<uint32>(-1) && crtidx != currentsendsyncid){
+		cassert(!(sendsignalvec[crtidx].flags & Service::SynchronousSendFlag));
+		crtidx = currentsendsyncid;
+	}
+	
+	Data::SendSignalData	&rssd(sendsignalvec[crtidx]);
+	
+	if(rssd.flags & Service::SynchronousSendFlag){
+		currentsendsyncid = crtidx;
+		uint32 tmpidx(sendsignalidxq.front());
+		while(tmpidx != crtidx){
+			Data::SendSignalData	&tmprssd(sendsignalvec[tmpidx]);
+			if(!(tmprssd.flags & Service::SynchronousSendFlag)){
+				COLLECT_DATA_0(statistics.sendAsynchronousWhileSynchronous);
+				return true;
+			}
+			sendsignalidxq.pop();
+			sendsignalidxq.push(tmpidx);
+			tmpidx = sendsignalidxq.front();
+		}
+		COLLECT_DATA_1(statistics.sendSynchronousWhileSynchronous, sendsignalidxq.size());
+		return false;
+	}else{
+		COLLECT_DATA_0(statistics.sendAsynchronous);
+		return true;
+	}
+}
+
 //=====================================================================
 //	Session
 //=====================================================================
+
 /*static*/ int Session::parseAcceptedBuffer(const Buffer &_rbuf){
 	if(_rbuf.dataSize() == sizeof(int32)){
 		int32 *pp((int32*)_rbuf.data());
@@ -1219,7 +1276,7 @@ void Session::doParseBuffer(const Buffer &_rbuf, const ConnectionUid &_rconid){
 	
 	while(blen > 2){
 		
-		idbgx(Dbg::ipc, "blen = "<<blen);
+		idbgx(Dbg::ipc, "blen = "<<blen<<" bpos "<<(bpos - _rbuf.data()));
 		
 		doParseBufferDataType(bpos, blen, firstblen);
 		
@@ -1229,6 +1286,7 @@ void Session::doParseBuffer(const Buffer &_rbuf, const ConnectionUid &_rconid){
 		
 		cassert(rv >= 0);
 		blen -= rv;
+		bpos += rv;
 		
 		if(rrsd.pdeserializer->empty()){//done one signal.
 			SignalUid 		siguid(0xffffffff, 0xffffffff);
@@ -1351,6 +1409,7 @@ int Session::doExecuteConnected(Talker::TalkerStub &_rstub){
 			rsbd.buffer.pushUpdate(d.rcvdidq.front());
 			d.rcvdidq.pop();
 		}
+		
 		COLLECT_DATA_1(d.statistics.sendUpdatesSize, rsbd.buffer.updatesCount());
 		
 		d.moveSignalsToSendQueue();
@@ -1418,14 +1477,14 @@ void Session::doFillSendBuffer(const uint32 _bufidx){
 			
 			if(rssd.pserializer){//a continued signal
 				if(d.currentbuffersignalcount == Data::MaxSignalBufferCount){
-					vdbgx(Dbg::ipc, "oldsignal");
+					vdbgx(Dbg::ipc, "oldsignal data size "<<rsbd.buffer.dataSize());
 					rsbd.buffer.dataType(Buffer::OldSignal);
 				}else{
-					vdbgx(Dbg::ipc, "continuedsignal");
+					vdbgx(Dbg::ipc, "continuedsignal data size "<<rsbd.buffer.dataSize());
 					rsbd.buffer.dataType(Buffer::ContinuedSignal);
 				}
 			}else{//a new commnad
-				vdbgx(Dbg::ipc, "newsignal");
+				vdbgx(Dbg::ipc, "newsignal data size "<<rsbd.buffer.dataSize());
 				rsbd.buffer.dataType(Buffer::NewSignal);
 				if(pser){
 					rssd.pserializer = pser;
@@ -1437,9 +1496,10 @@ void Session::doFillSendBuffer(const uint32 _bufidx){
 				rssd.pserializer->push(psig);
 			}
 			--d.currentbuffersignalcount;
-			vdbgx(Dbg::ipc, "d.crtsigbufcnt = "<<d.currentbuffersignalcount);
 			
 			int rv = rssd.pserializer->run(rsbd.buffer.dataEnd(), rsbd.buffer.dataFreeSize());
+			
+			vdbgx(Dbg::ipc, "d.crtsigbufcnt = "<<d.currentbuffersignalcount<<" serialized len = "<<rv);
 			
 			cassert(rv >= 0);//TODO: deal with the situation!
 			
@@ -1454,20 +1514,21 @@ void Session::doFillSendBuffer(const uint32 _bufidx){
 				vdbgx(Dbg::ipc, "cached wait signal");
 				rsbd.signalidxvec.push_back(d.sendsignalidxq.front());
 				d.sendsignalidxq.pop();
-				vdbgx(Dbg::ipc, "sendsignalidxq poped"<<d.sendsignalidxq.size());
-				//we dont want to switch to an old signal
-				d.currentbuffersignalcount = Data::MaxSignalBufferCount - 1;
+				if(rssd.flags & Service::SynchronousSendFlag){
+					d.currentsendsyncid = -1;
+				}
+				vdbgx(Dbg::ipc, "sendsignalidxq poped "<<d.sendsignalidxq.size());
+				d.currentbuffersignalcount = Data::MaxSignalBufferCount;
 				if(rsbd.buffer.dataFreeSize() < 16) break;
 			}else{
 				break;
 			}
-		}else if(d.sendsignalidxq.size() == 1){//only one signal
-			d.currentbuffersignalcount = Data::MaxSignalBufferCount - 1;
-		}else{
-			d.sendsignalidxq.push(d.sendsignalidxq.front());
-			d.sendsignalidxq.pop();
+			
+		}else if(d.moveToNextSendSignal()){
 			vdbgx(Dbg::ipc, "scqpop "<<d.sendsignalidxq.size());
 			d.currentbuffersignalcount = Data::MaxSignalBufferCount;
+		}else{//we continue sending the current signal
+			d.currentbuffersignalcount = Data::MaxSignalBufferCount - 1;
 		}
 	}//while
 	
@@ -1589,24 +1650,42 @@ void StatisticData::failedTimeout(){
 void StatisticData::timeout(){
 	++timeoutcnt;
 }
+void StatisticData::sendAsynchronousWhileSynchronous(){
+	++sendasynchronouswhilesynchronous;
+}
+void StatisticData::sendSynchronousWhileSynchronous(ulong _sz){
+	++sendsynchronouswhilesynchronous;
+	if(maxsendsynchronouswhilesynchronous < _sz){
+		maxsendsynchronouswhilesynchronous = _sz;
+	}
+}
+void StatisticData::sendAsynchronous(){
+	++sendasynchronous;
+}
+
 std::ostream& operator<<(std::ostream &_ros, const StatisticData &_rsd){
-	_ros<<"reconnectcnt                  = "<<_rsd.reconnectcnt<<std::endl;
-	_ros<<"pushsignalcnt                 = "<<_rsd.pushsignalcnt<<std::endl;
-	_ros<<"pushreceivedbuffercnt         = "<<_rsd.pushreceivedbuffercnt<<std::endl;
-	_ros<<"maxretransmitid               = "<<_rsd.maxretransmitid<<std::endl;
-	_ros<<"sendkeepalivecnt              = "<<_rsd.sendkeepalivecnt<<std::endl;
-	_ros<<"sendpendingcnt                = "<<_rsd.sendpendingcnt<<std::endl;
-	_ros<<"pushexpectedreceivedbuffercnt = "<<_rsd.pushexpectedreceivedbuffercnt<<std::endl;
-	_ros<<"alreadyreceivedcnt            = "<<_rsd.alreadyreceivedcnt<<std::endl;
-	_ros<<"toomanybuffersoutofordercnt   = "<<_rsd.toomanybuffersoutofordercnt<<std::endl;
-	_ros<<"maxsendupdatessize            = "<<_rsd.maxsendupdatessize<<std::endl;
-	_ros<<"sendonlyupdatescnt            = "<<_rsd.sendonlyupdatescnt<<std::endl;
-	_ros<<"maxsendonlyupdatessize        = "<<_rsd.maxsendonlyupdatessize<<std::endl;
-	_ros<<"maxsendsignalidxqueuesize     = "<<_rsd.maxsendsignalidxqueuesize<<std::endl;
-	_ros<<"tryschedulekeepalivecnt       = "<<_rsd.tryschedulekeepalivecnt<<std::endl;
-	_ros<<"schedulekeepalivecnt          = "<<_rsd.schedulekeepalivecnt<<std::endl;
-	_ros<<"failedtimeoutcnt              = "<<_rsd.failedtimeoutcnt<<std::endl;
-	_ros<<"timeoutcnt                    = "<<_rsd.timeoutcnt<<std::endl;
+	_ros<<"reconnectcnt                         = "<<_rsd.reconnectcnt<<std::endl;
+	_ros<<"pushsignalcnt                        = "<<_rsd.pushsignalcnt<<std::endl;
+	_ros<<"pushreceivedbuffercnt                = "<<_rsd.pushreceivedbuffercnt<<std::endl;
+	_ros<<"maxretransmitid                      = "<<_rsd.maxretransmitid<<std::endl;
+	_ros<<"sendkeepalivecnt                     = "<<_rsd.sendkeepalivecnt<<std::endl;
+	_ros<<"sendpendingcnt                       = "<<_rsd.sendpendingcnt<<std::endl;
+	_ros<<"pushexpectedreceivedbuffercnt        = "<<_rsd.pushexpectedreceivedbuffercnt<<std::endl;
+	_ros<<"alreadyreceivedcnt                   = "<<_rsd.alreadyreceivedcnt<<std::endl;
+	_ros<<"toomanybuffersoutofordercnt          = "<<_rsd.toomanybuffersoutofordercnt<<std::endl;
+	_ros<<"maxsendupdatessize                   = "<<_rsd.maxsendupdatessize<<std::endl;
+	_ros<<"sendonlyupdatescnt                   = "<<_rsd.sendonlyupdatescnt<<std::endl;
+	_ros<<"maxsendonlyupdatessize               = "<<_rsd.maxsendonlyupdatessize<<std::endl;
+	_ros<<"maxsendsignalidxqueuesize            = "<<_rsd.maxsendsignalidxqueuesize<<std::endl;
+	_ros<<"tryschedulekeepalivecnt              = "<<_rsd.tryschedulekeepalivecnt<<std::endl;
+	_ros<<"schedulekeepalivecnt                 = "<<_rsd.schedulekeepalivecnt<<std::endl;
+	_ros<<"failedtimeoutcnt                     = "<<_rsd.failedtimeoutcnt<<std::endl;
+	_ros<<"timeoutcnt                           = "<<_rsd.timeoutcnt<<std::endl;
+	_ros<<"sendasynchronouswhilesynchronous     = "<<_rsd.sendasynchronouswhilesynchronous<<std::endl;
+	_ros<<"sendsynchronouswhilesynchronous      = "<<_rsd.sendsynchronouswhilesynchronous<<std::endl;
+	_ros<<"maxsendsynchronouswhilesynchronous   = "<<_rsd.maxsendsynchronouswhilesynchronous<<std::endl;
+	_ros<<"sendasynchronous                     = "<<_rsd.sendasynchronous<<std::endl;
+
 	return _ros;
 }
 }//namespace
