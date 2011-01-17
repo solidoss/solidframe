@@ -26,13 +26,14 @@ typedef foundation::Scheduler<foundation::ObjectSelector>	SchedulerT;
 //------------------------------------------------------------------
 
 struct Params{
-	int			ipc_port;
-	string		dbg_levels;
-	string		dbg_modules;
-	string		dbg_addr;
-	string		dbg_port;
-	bool		dbg_buffered;
-	bool		log;
+	int				ipc_port;
+	string			dbg_levels;
+	string			dbg_modules;
+	string			dbg_addr;
+	string			dbg_port;
+	bool			dbg_buffered;
+	bool			log;
+	ClientParams	p;
 };
 
 struct IpcServiceController: foundation::ipc::Service::Controller{
@@ -59,6 +60,7 @@ int main(int argc, char *argv[]){
 	Params p;
 	if(parseArguments(p, argc, argv)) return 0;
 	
+	p.p.print(cout);
 	Thread::init();
 	
 #ifdef UDEBUG
@@ -108,13 +110,10 @@ int main(int argc, char *argv[]){
 			foundation::ipc::Service::the().insertTalker(ai.begin());
 		}
 		
-		foundation::ObjectPointer<ClientObject>	op(new ClientObject);
+		foundation::ObjectPointer<ClientObject>	op(new ClientObject(p.p));
 		fdt::ObjectUidT objuid(m.service(svcid).insert<SchedulerT>(op));
 		
-		char c;
-		cout<<"> "<<flush;
-		cin>>c;
-		//m.stop(true);
+		m.stop(true);//wait for m.signalStop(), to start stopping process
 	}
 	Thread::waitAll();
 	return 0;
@@ -133,7 +132,11 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 			("debug_address,a", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")
 			("debug_port,p", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")
 			("debug_unbuffered,s", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered")
-			("use_log,L", value<bool>(&_par.log)->implicit_value(true)->default_value(false), "Debug buffered")
+			("use_log,L", value<bool>(&_par.log)->implicit_value(true)->default_value(false), "Use audit logging")
+			("repeat_count,C", value<uint32>(&_par.p.cnt)->default_value(1), "Repeat count")
+			("server_addrs,A", value< vector<string> >(&_par.p.addrstrvec), "Server addresses")
+			("strings,G", value< vector<uint32> >(&_par.p.strszvec), "Generated string sizes")
+			("sequence,S", value<string>(&_par.p.seqstr)->default_value("i0 i1 p100 f1 p200 e1 f1 p300 f0 E"), "Opperation sequence")
 	/*		("verbose,v", po::value<int>()->implicit_value(1),
 					"enable verbosity (optionally specify level)")*/
 	/*		("listen,l", po::value<int>(&portnum)->implicit_value(1001)

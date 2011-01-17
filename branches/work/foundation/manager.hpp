@@ -68,7 +68,8 @@ public:
 	virtual ~Manager();
 	
 	void start();
-	void stop();
+	void stop(bool _waitsignal = false);
+	void signalStop();
 	
 	bool signal(ulong _sm);
 	bool signal(ulong _sm, const ObjectUidT &_ruid);

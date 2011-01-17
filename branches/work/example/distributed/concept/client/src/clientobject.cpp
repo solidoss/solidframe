@@ -4,10 +4,30 @@
 #include "system/thread.hpp"
 #include "utility/binaryseeker.hpp"
 
-namespace fdt=foundation;
 
+namespace fdt=foundation;
+using namespace std;
 //------------------------------------------------------------
-ClientObject::ClientObject():crtreqid(1){
+ClientParams::ClientParams(const ClientParams &_rcp):cnt(_rcp.cnt){
+	
+}
+void ClientParams::print(std::ostream &_ros){
+	_ros<<"Client Params:"<<endl;
+	_ros<<"seqstr		: "<<seqstr<<endl;
+	_ros<<"cnt			: "<<cnt<<endl;
+	_ros<<"addrstrvec	: ";
+	for(StringVectorT::const_iterator it(addrstrvec.begin()); it != addrstrvec.end(); ++it){
+		_ros<<*it<<';';
+	}
+	_ros<<endl;
+	_ros<<"strszvec		: "; 
+	for(UInt32VectorT::const_iterator it(strszvec.begin()); it != strszvec.end(); ++it){
+		_ros<<*it<<';';
+	}
+	_ros<<endl;
+}
+//------------------------------------------------------------
+ClientObject::ClientObject(const ClientParams &_rcp):params(_rcp), crtreqid(1){
 	
 }
 //------------------------------------------------------------
