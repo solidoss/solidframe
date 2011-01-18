@@ -13,8 +13,8 @@ printUsage()
 	echo
 }
 
-BOOST_ADDR="http://garr.dl.sourceforge.net/project/boost/boost/1.44.0/boost_1_44_0.tar.bz2"
-OPENSSL_ADDR="http://www.openssl.org/source/openssl-1.0.0a.tar.gz"
+BOOST_ADDR="http://garr.dl.sourceforge.net/project/boost/boost/1.45.0/boost_1_45_0.tar.bz2"
+OPENSSL_ADDR="http://www.openssl.org/source/openssl-1.0.0c.tar.gz"
 
 downloadArchive()
 {
@@ -71,9 +71,10 @@ buildBoost()
 	echo
 
 	cd "$BOOST_DIR"
-	cd tools/jam
+	#cd tools/jam
+	cd tools/build/v2/engine/
 	sh build_dist.sh
-	cd ../../
+	cd ../../../../
 	JAMTOOL=`find . -name bjam`
 	VARIANT_BUILD=
 	
