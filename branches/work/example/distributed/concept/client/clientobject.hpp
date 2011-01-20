@@ -20,9 +20,22 @@ struct ClientSignal: Dynamic<ClientSignal, foundation::Signal>{
 struct ClientParams{
 	typedef std::vector<std::string>	StringVectorT;
 	typedef std::vector<SocketAddress>	AddressVectorT;
-	typedef std::pair<uint8, uint32>	RequestPairT;
-	typedef std::vector<RequestPairT>	RequestVectorT;
-	typedef std::vector<uint32>			UInt32VectorT;
+	struct Request{
+		Request(uint8 _opp = 0):opp(_opp){
+			u.u64 = 0;
+		}
+		
+		uint8	opp;
+		union{
+			uint64	u64;
+			struct{
+				uint32	u32_1;
+				uint32	u32_2;
+			}		u32s;
+		}		u;
+	};
+	typedef std::vector<Request>	RequestVectorT;
+	typedef std::vector<uint32>		UInt32VectorT;
 	
 	std::string		seqstr;
 	StringVectorT	addrstrvec;
@@ -32,9 +45,18 @@ struct ClientParams{
 	AddressVectorT	addrvec;
 	RequestVectorT	reqvec;
 	StringVectorT	strvec;
+	
 	ClientParams():cnt(1){}
 	ClientParams(const ClientParams &_rcp);
+	bool init();
+	const std::string& errorString()const{
+		return err;
+	}
 	void print(std::ostream &_ros);
+private:
+	bool parseRequests();
+private:
+	std::string		err;
 };
 
 

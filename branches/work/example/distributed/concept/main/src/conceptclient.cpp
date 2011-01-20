@@ -60,8 +60,14 @@ int main(int argc, char *argv[]){
 	Params p;
 	if(parseArguments(p, argc, argv)) return 0;
 	
-	p.p.print(cout);
 	Thread::init();
+	
+	if(!p.p.init()){
+		cout<<"Error: "<<p.p.errorString()<<endl;
+		return 0;
+	}
+	
+	p.p.print(cout);
 	
 #ifdef UDEBUG
 	{
