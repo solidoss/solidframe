@@ -5,11 +5,13 @@
 #include "foundation/object.hpp"
 #include "foundation/signal.hpp"
 #include "system/socketaddress.hpp"
+#include "system/timespec.hpp"
 #include <vector>
 #include <string>
 #include <ostream>
 
 class ClientObject;
+struct ConceptSignal;
 
 struct ClientSignal: Dynamic<ClientSignal, foundation::Signal>{
 	ClientSignal();
@@ -62,6 +64,10 @@ private:
 
 class ClientObject: public Dynamic<ClientObject, foundation::Object>{
 	typedef DynamicExecuter<void, ClientObject>	DynamicExecuterT;
+	enum{
+		Execute,
+		Wait
+	};
 public:
 	ClientObject(const ClientParams &_rcp);
 	~ClientObject();
@@ -74,11 +80,23 @@ public:
 	bool   isRequestIdExpected(uint32 _v, int &_rpos)const;
 	void   deleteRequestId(uint32 _v);
 private:
+	uint32 sendSignal(ConceptSignal *_psig);
+	const std::string& getString(uint32 _pos, uint32 _crtpos);
+	void expectInsert(uint32 _rid, const std::string &_rs, uint32 _v, uint32 _cnt);
+	void expectFetch(uint32 _rid, const std::string &_rs, uint32 _cnt);
+	void expectErase(uint32 _rid, const std::string &_rs, uint32 _cnt);
+	void expectErase(uint32 _rid, uint32 _cnt);
+
+private:
 	typedef std::vector<std::pair<uint32, int> >	RequestIdVectorT;
 	
 	ClientParams		params;
 	uint32				crtreqid;
+	uint32				crtreqpos;
+	uint32				crtpos;
+	uint32				waitresponsecount;
 	
+	TimeSpec			nexttimepos;
 	DynamicExecuterT	exe;
 	RequestIdVectorT	reqidvec;
 };

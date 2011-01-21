@@ -1,10 +1,13 @@
 #include "example/distributed/concept/client/clientobject.hpp"
 #include "example/distributed/concept/core/manager.hpp"
+#include "example/distributed/concept/core/signals.hpp"
 #include "foundation/common.hpp"
 #include "system/thread.hpp"
 #include "utility/binaryseeker.hpp"
 #include "system/socketaddress.hpp"
 #include <cstdio>
+#include <cstring>
+#include "system/debug.hpp"
 
 
 namespace fdt=foundation;
@@ -200,7 +203,61 @@ int ClientObject::execute(ulong _sig, TimeSpec &_tout){
 		//now we determine if we return with NOK or we continue
 		if(!_sig) return NOK;
 	}
-	
+	idbg("ping");
+	if(crtpos < params.cnt){
+		ClientParams::Request &rr(params.reqvec[crtreqpos]);
+		switch(rr.opp){
+			case 'i':{
+				const string	&s(getString(rr.u.u32s.u32_1, crtpos));
+				uint32			sid(sendSignal(new InsertSignal(s, crtpos)));
+				expectInsert(sid, s, crtpos, params.addrvec.size());
+				break;
+			}
+			case 'p':
+				if(state() == Execute){
+					nexttimepos = _tout;
+					nexttimepos += rr.u.u32s.u32_1;
+					_tout += rr.u.u32s.u32_1; 
+					return NOK;
+				}else{
+					if(nexttimepos >= _tout){
+						break;
+					}else{
+						return NOK;
+					}
+				}
+			case 'f':{
+				const string	&s(params.strvec[rr.u.u32s.u32_1]);
+				uint32			sid(sendSignal(new FetchSignal(s)));
+				expectFetch(sid, s, params.addrvec.size());
+				break;
+			}	
+			case 'e':{
+				const string	&s(params.strvec[rr.u.u32s.u32_1]);
+				uint32			sid(sendSignal(new EraseSignal(s)));
+				expectErase(sid, s, params.addrvec.size());
+				break;
+			}
+			case 'E':{
+				uint32	sid(sendSignal(new EraseSignal));
+				expectErase(sid, params.addrvec.size());
+				break;
+			}
+
+			default:
+				wdbg("skip unknown request");
+				break;
+		}
+		++crtreqpos;
+		if(crtreqpos >= params.reqvec.size()){
+			crtreqpos = 0;
+			++crtpos;
+			return OK;
+		}
+	}else if(waitresponsecount){
+		idbg("waiting for "<<waitresponsecount<<" responses");
+		_tout.add(10);
+	}
 	return NOK;
 }
 //------------------------------------------------------------
@@ -247,5 +304,33 @@ void ClientObject::deleteRequestId(uint32 _v){
 	cassert(rv < 0);
 	rv = -rv - 1;
 	reqidvec.erase(reqidvec.begin() + rv);
+}
+//------------------------------------------------------------
+uint32 ClientObject::sendSignal(ConceptSignal *_psig){
+	return 0;
+}
+//------------------------------------------------------------
+const string& ClientObject::getString(uint32 _pos, uint32 _crtpos){
+	string &rs(params.strvec[_pos]);
+	char buf[16];
+	sprintf(buf, "%8.8x", _crtpos);
+	memcpy((void*)rs.data(), buf, 8);
+	return rs;
+}
+//------------------------------------------------------------
+void ClientObject::expectInsert(uint32 _rid, const string &_rs, uint32 _v, uint32 _cnt){
+	
+}
+//------------------------------------------------------------
+void ClientObject::expectFetch(uint32 _rid, const string &_rs, uint32 _cnt){
+	
+}
+//------------------------------------------------------------
+void ClientObject::expectErase(uint32 _rid, const string &_rs, uint32 _cnt){
+	
+}
+//------------------------------------------------------------
+void ClientObject::expectErase(uint32 _rid, uint32 _cnt){
+	
 }
 //------------------------------------------------------------

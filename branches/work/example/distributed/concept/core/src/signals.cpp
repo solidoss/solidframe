@@ -10,3 +10,18 @@ const foundation::IndexT& serverIndex(){
 	return idx;
 }
 
+InsertSignal::InsertSignal(const std::string&, uint32 _pos){
+	
+}
+
+FetchSignal::FetchSignal(const std::string&){
+	
+}
+
+EraseSignal::EraseSignal(const std::string&){
+	
+}
+
+EraseSignal::EraseSignal(){
+	
+}

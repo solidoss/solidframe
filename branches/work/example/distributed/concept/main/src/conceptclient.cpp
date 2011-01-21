@@ -32,6 +32,7 @@ struct Params{
 	string			dbg_addr;
 	string			dbg_port;
 	bool			dbg_buffered;
+	bool			dbg_console;
 	bool			log;
 	ClientParams	p;
 };
@@ -78,6 +79,11 @@ int main(int argc, char *argv[]){
 		Dbg::instance().initSocket(
 			p.dbg_addr.c_str(),
 			p.dbg_port.c_str(),
+			p.dbg_buffered,
+			&dbgout
+		);
+	}else if(p.dbg_console){
+		Dbg::instance().initStdErr(
 			p.dbg_buffered,
 			&dbgout
 		);
@@ -137,6 +143,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 			("debug_modules,m", value<string>(&_par.dbg_modules),"Debug logging modules")
 			("debug_address,a", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")
 			("debug_port,p", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")
+			("debug_console,c", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")
 			("debug_unbuffered,s", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered")
 			("use_log,L", value<bool>(&_par.log)->implicit_value(true)->default_value(false), "Use audit logging")
 			("repeat_count,C", value<uint32>(&_par.p.cnt)->default_value(1), "Repeat count")
