@@ -223,7 +223,7 @@ struct Session::Data{
 				return (id - _owc.id) > (uint32)(0xffffffff/2);
 			}
 		}
-		DynamicPointer<Signal>	signal;
+		DynamicContextPointerT	signal;
 		BinSerializerT			*pserializer;
 		uint16					bufid;
 		uint16					flags;
@@ -522,17 +522,19 @@ SignalUid Session::Data::pushSendWaitSignal(
 		rssd.bufid = _bufid;
 		cassert(!rssd.signal.ptr());
 		rssd.signal = _sig;
+		rssd.signal.context().waitid = SignalUid(idx, rssd.uid);
 		cassert(!_sig.ptr());
 		rssd.flags = _flags;
 		rssd.id = _id;
 		
-		return SignalUid(idx, rssd.uid);
+		return rssd.signal.context().waitid;
 	
 	}else{
 		
 		sendsignalvec.push_back(SendSignalData(_sig, _bufid, _flags, _id));
 		cassert(!_sig.ptr());
-		return SignalUid(sendsignalvec.size() - 1, 0/*uid*/);
+		sendsignalvec.back().signal.context().waitid = SignalUid(sendsignalvec.size() - 1, 0);
+		return sendsignalvec.back().signal.context().waitid;
 	}
 }
 //---------------------------------------------------------------------
@@ -711,7 +713,7 @@ void Session::Data::moveSignalsToSendQueue(){
 		SendSignalData 	&rssd(sendsignalvec[uid.idx]);
 		
 		sendsignalidxq.push(uid.idx);
-		const uint32 tmp_flgs(rssd.signal->ipcPrepare(uid));
+		const uint32 tmp_flgs(rssd.signal->ipcPrepare());
 		rssd.flags |= tmp_flgs;
 		
 		if(tmp_flgs & Service::WaitResponseFlag){
@@ -1497,6 +1499,7 @@ void Session::doFillSendBuffer(const uint32 _bufidx){
 			}
 			--d.currentbuffersignalcount;
 			
+			rssd.signal.storeSpecific();
 			int rv = rssd.pserializer->run(rsbd.buffer.dataEnd(), rsbd.buffer.dataFreeSize());
 			
 			vdbgx(Dbg::ipc, "d.crtsigbufcnt = "<<d.currentbuffersignalcount<<" serialized len = "<<rv);

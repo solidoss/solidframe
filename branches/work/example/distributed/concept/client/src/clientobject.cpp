@@ -1,13 +1,17 @@
 #include "example/distributed/concept/client/clientobject.hpp"
 #include "example/distributed/concept/core/manager.hpp"
 #include "example/distributed/concept/core/signals.hpp"
+
 #include "foundation/common.hpp"
-#include "system/thread.hpp"
+#include "foundation/ipc/ipcservice.hpp"
+
 #include "utility/binaryseeker.hpp"
+
 #include "system/socketaddress.hpp"
+#include "system/thread.hpp"
+#include "system/debug.hpp"
 #include <cstdio>
 #include <cstring>
-#include "system/debug.hpp"
 
 
 namespace fdt=foundation;
@@ -307,6 +311,11 @@ void ClientObject::deleteRequestId(uint32 _v){
 }
 //------------------------------------------------------------
 uint32 ClientObject::sendSignal(ConceptSignal *_psig){
+	DynamicSharedPointer<ConceptSignal>	sigptr(_psig);
+	sigptr->requestId(newRequestId(-1));
+	for(AddressVectorT::const_iterator it(addrvec.begin()); it != addrvec.end(); ++it){
+		foundation::ipc::Service::the().sendSignal(sigptr, SockAddrPair(*it));
+	}
 	return 0;
 }
 //------------------------------------------------------------
@@ -323,7 +332,6 @@ void ClientObject::expectInsert(uint32 _rid, const string &_rs, uint32 _v, uint3
 }
 //------------------------------------------------------------
 void ClientObject::expectFetch(uint32 _rid, const string &_rs, uint32 _cnt){
-	
 }
 //------------------------------------------------------------
 void ClientObject::expectErase(uint32 _rid, const string &_rs, uint32 _cnt){

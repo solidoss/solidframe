@@ -63,6 +63,8 @@ void ObjectPointerBase::clear(Object *_pobj){
 
 //NOTE: No locking so Be carefull!!
 void ObjectPointerBase::use(Object *_pobj){
+	//TODO: evaluate the use of mutex
+	Mutex::Locker lock(Manager::the().mutex(*_pobj));
 	++_pobj->usecnt;
 }
 void ObjectPointerBase::destroy(Object *_pobj){
@@ -137,7 +139,7 @@ int Signal::ipcReceived(
 ){
 	return BAD;
 }
-uint32 Signal::ipcPrepare(const ipc::SignalUid&){
+uint32 Signal::ipcPrepare(){
 	return 0;//do nothing - no wait for response
 }
 void Signal::ipcFail(int _err){

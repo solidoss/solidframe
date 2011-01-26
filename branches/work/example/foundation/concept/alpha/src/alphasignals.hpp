@@ -23,6 +23,7 @@
 #define ALPHA_SIGNALS_HPP
 
 #include "foundation/signal.hpp"
+#include "foundation/ipc/ipcconnectionuid.hpp"
 
 #include "utility/dynamicpointer.hpp"
 
@@ -72,7 +73,7 @@ struct RemoteListSignal: Dynamic<RemoteListSignal, DynamicShared<foundation::Sig
 		const foundation::ipc::ConnectionUid &_rconid,
 		const SockAddrPair &_peeraddr, int _peerbaseport
 	);
-	uint32 ipcPrepare(const foundation::ipc::SignalUid &_rsiguid);
+	uint32 ipcPrepare();
 	void ipcFail(int _err);
 	
 	void use();
@@ -82,7 +83,12 @@ struct RemoteListSignal: Dynamic<RemoteListSignal, DynamicShared<foundation::Sig
 	S& operator&(S &_s){
 		_s.pushContainer(ppthlst, "strlst").push(err, "error").push(tout,"timeout");
 		_s.push(requid, "requid").push(strpth, "strpth").push(fromv, "from");
-		_s.push(siguid.idx, "siguid.idx").push(siguid.uid,"siguid.uid");
+		if(ppthlst || !S::IsSerializer){//on peer
+			_s.push(siguid.idx, "siguid.idx").push(siguid.uid,"siguid.uid");
+		}else{//on sender
+			foundation::ipc::SignalContext &rsigctx(foundation::ipc::DynamicContextPointerT::specificContext());
+			_s.push(rsigctx.waitid.idx, "siguid.idx").push(rsigctx.waitid.uid,"siguid.uid");
+		}
 		return _s;
 	}
 //data:
@@ -123,7 +129,7 @@ struct FetchMasterSignal: Dynamic<FetchMasterSignal, foundation::Signal>{
 	FetchMasterSignal():psig(NULL), fromv(0xffffffff, 0xffffffff), state(NotReceived), streamsz(0), filesz(0), filepos(0), requid(0){
 	}
 	~FetchMasterSignal();
-	uint32 ipcPrepare(const foundation::ipc::SignalUid &_rsiguid);
+	uint32 ipcPrepare();
 	int ipcReceived(
 		foundation::ipc::SignalUid &_rsiguid,
 		const foundation::ipc::ConnectionUid &_rconid,
@@ -192,11 +198,11 @@ struct FetchSlaveSignal: Dynamic<FetchSlaveSignal, foundation::Signal>{
 		foundation::SignalExecuter&,
 		const SignalUidT &, TimeSpec &_rts
 	);
-	uint32 ipcPrepare(const foundation::ipc::SignalUid &_rsiguid);
-	int createDeserializationStream(std::pair<OStream *, int64> &_rps, int _id);
-	void destroyDeserializationStream(const std::pair<OStream *, int64> &_rps, int _id);
-	int createSerializationStream(std::pair<IStream *, int64> &_rps, int _id);
-	void destroySerializationStream(const std::pair<IStream *, int64> &_rps, int _id);
+	uint32 ipcPrepare();
+	int createDeserializationStream(OStream *&_rpos, int64 &_rsz, uint64 &_roff, int _id);
+	void destroyDeserializationStream(OStream *&_rpos, int64 &_rsz, uint64 &_roff, int _id);
+	int createSerializationStream(IStream *&_rpis, int64 &_rsz, uint64 &_roff, int _id);
+	void destroySerializationStream(IStream *&_rpis, int64 &_rsz, uint64 &_roff, int _id);
 	
 	template <class S>
 	S& operator&(S &_s){
@@ -285,10 +291,10 @@ struct SendStreamSignal: Dynamic<SendStreamSignal, foundation::Signal>{
 		int _peerbaseport
 	);
 
-	int createDeserializationStream(std::pair<OStream *, int64> &_rps, int _id);
-	void destroyDeserializationStream(const std::pair<OStream *, int64> &_rps, int _id);
-	int createSerializationStream(std::pair<IStream *, int64> &_rps, int _id);
-	void destroySerializationStream(const std::pair<IStream *, int64> &_rps, int _id);
+	int createDeserializationStream(OStream *&_rpos, int64 &_rsz, uint64 &_roff, int _id);
+	void destroyDeserializationStream(OStream *&_rpos, int64 &_rsz, uint64 &_roff, int _id);
+	int createSerializationStream(IStream *&_rpis, int64 &_rsz, uint64 &_roff, int _id);
+	void destroySerializationStream(IStream *&_rpis, int64 &_rsz, uint64 &_roff, int _id);
 	
 	template <class S>
 	S& operator&(S &_s){
