@@ -261,6 +261,8 @@ int ClientObject::execute(ulong _sig, TimeSpec &_tout){
 	}else if(waitresponsecount){
 		idbg("waiting for "<<waitresponsecount<<" responses");
 		_tout.add(10);
+	}else{
+		m().signalStop();
 	}
 	return NOK;
 }
@@ -312,9 +314,9 @@ void ClientObject::deleteRequestId(uint32 _v){
 //------------------------------------------------------------
 uint32 ClientObject::sendSignal(ConceptSignal *_psig){
 	DynamicSharedPointer<ConceptSignal>	sigptr(_psig);
-	sigptr->requestId(newRequestId(-1));
-	for(AddressVectorT::const_iterator it(addrvec.begin()); it != addrvec.end(); ++it){
-		foundation::ipc::Service::the().sendSignal(sigptr, SockAddrPair(*it));
+	//sigptr->requestId(newRequestId(-1));
+	for(ClientParams::AddressVectorT::iterator it(params.addrvec.begin()); it != params.addrvec.end(); ++it){
+		//foundation::ipc::Service::the().sendSignal(sigptr, SockAddrPair(*it));
 	}
 	return 0;
 }

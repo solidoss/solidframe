@@ -15,12 +15,12 @@ const foundation::IndexT& serverIndex(){
 }
 
 
-ConceptSignal::ConceptSignal():waitresponse(false), reqid(-1), sentcount(0)){
+ConceptSignal::ConceptSignal():waitresponse(false), reqid(-1), sentcount(0){
 	
 }
 ConceptSignal::~ConceptSignal(){
 	if(waitresponse && !sentcount){
-		idbg("failed receiving response "<<sentcnt);
+		idbg("failed receiving response "/*<<sentcnt*/);
 		m().signal(fdt::S_KILL | fdt::S_RAISE, senderuid);
 	}
 }

@@ -48,7 +48,7 @@ struct ClientParams{
 	RequestVectorT	reqvec;
 	StringVectorT	strvec;
 	
-	ClientParams():cnt(1){}
+	ClientParams():cnt(0){}
 	ClientParams(const ClientParams &_rcp);
 	bool init();
 	const std::string& errorString()const{

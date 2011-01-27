@@ -146,7 +146,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 			("debug_console,c", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")
 			("debug_unbuffered,s", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered")
 			("use_log,L", value<bool>(&_par.log)->implicit_value(true)->default_value(false), "Use audit logging")
-			("repeat_count,C", value<uint32>(&_par.p.cnt)->default_value(1), "Repeat count")
+			("repeat_count,C", value<uint32>(&_par.p.cnt)->default_value(0), "Repeat count")
 			("server_addrs,A", value< vector<string> >(&_par.p.addrstrvec), "Server addresses")
 			("strings,G", value< vector<uint32> >(&_par.p.strszvec), "Generated string sizes")
 			("sequence,S", value<string>(&_par.p.seqstr)->default_value("i0 i1 p100 f1 p200 e1 f1 p300 f0 E"), "Opperation sequence")

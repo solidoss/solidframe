@@ -2,6 +2,7 @@
 #define DISTRIBUTED_CONCEPT_CORE_SIGNALS_HPP
 
 #include "foundation/signal.hpp"
+#include "foundation/ipc/ipcconnectionuid.hpp"
 #include "utility/dynamicpointer.hpp"
 
 #include <string>
@@ -35,9 +36,9 @@ struct InsertSignal: Dynamic<InsertSignal, ConceptSignal>{
 	
 	template <class S>
 	S& operator&(S &_s){
-		_s.pushContainer(ppthlst, "strlst").push(err, "error").push(tout,"timeout");
-		_s.push(requid, "requid").push(strpth, "strpth").push(fromv, "from");
-		_s.push(siguid.idx, "siguid.idx").push(siguid.uid,"siguid.uid");
+// 		_s.pushContainer(ppthlst, "strlst").push(err, "error").push(tout,"timeout");
+// 		_s.push(requid, "requid").push(strpth, "strpth").push(fromv, "from");
+// 		_s.push(siguid.idx, "siguid.idx").push(siguid.uid,"siguid.uid");
 		return _s;
 	}
 };

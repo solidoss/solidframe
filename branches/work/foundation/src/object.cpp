@@ -63,7 +63,9 @@ void ObjectPointerBase::clear(Object *_pobj){
 
 //NOTE: No locking so Be carefull!!
 void ObjectPointerBase::use(Object *_pobj){
-	//TODO: evaluate the use of mutex
+	//NOTE: the first mutex will be the first mutex from the first service
+	//which is a valid mutex. The valid mutex will be received only
+	//after objects registration within a service.
 	Mutex::Locker lock(Manager::the().mutex(*_pobj));
 	++_pobj->usecnt;
 }
