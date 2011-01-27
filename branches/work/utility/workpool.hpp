@@ -174,18 +174,11 @@ public:
 		if(state() != Stopped){
 			doStop(true);
 		}
-		//_minwkrcnt = (_minwkrcnt) ? _minwkrcnt : 1;
 		wkrcnt = 0;
 		state(Running);
 		for(ushort i(0); i < _minwkrcnt; ++i){
 			createWorker();
 		}
-// 		if(!_wait){
-// 			return;
-// 		}
-// 		while(wkrcnt != _minwkrcnt){
-// 			thrcnd.wait(mtx);
-// 		}
 	}
 	//! Initiate workpool stop
 	/*!
@@ -205,7 +198,6 @@ public:
 		return jobq.empty();
 	}
 	void createWorker(){
-		//Mutex::Locker lock(mtx);
 		cassert(!mtx.tryLock());
 		++wkrcnt;
 		if(ctrl.createWorker(*this)){
@@ -213,7 +205,6 @@ public:
 			--wkrcnt;
 			thrcnd.broadcast();
 		}
-		
 	}
 	WorkerT* createSingleWorker(){
 		return new SingleWorker(*this);
