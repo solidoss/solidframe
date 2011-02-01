@@ -37,6 +37,8 @@ class OStream;
 namespace serialization{
 namespace bin{
 
+BASIC_DECL(int8);
+BASIC_DECL(uint8);
 BASIC_DECL(int16);
 BASIC_DECL(uint16);
 BASIC_DECL(int32);
@@ -342,7 +344,10 @@ private:
 	std::string	tmpstr;
 };
 //===============================================================
-
+template <>
+int Serializer::store<int8>(Base &_rb, FncData &_rfd);
+template <>
+int Serializer::store<uint8>(Base &_rb, FncData &_rfd);
 template <>
 int Serializer::store<int16>(Base &_rb, FncData &_rfd);
 template <>

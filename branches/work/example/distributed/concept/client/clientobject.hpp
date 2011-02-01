@@ -12,6 +12,9 @@
 
 class ClientObject;
 struct ConceptSignal;
+struct InsertSignal;
+struct FetchSignal;
+struct EraseSignal;
 
 struct ClientSignal: Dynamic<ClientSignal, foundation::Signal>{
 	ClientSignal();
@@ -69,10 +72,14 @@ class ClientObject: public Dynamic<ClientObject, foundation::Object>{
 		Wait
 	};
 public:
+	static void dynamicRegister();
 	ClientObject(const ClientParams &_rcp);
 	~ClientObject();
 	void dynamicExecute(DynamicPointer<> &_dp);
 	void dynamicExecute(DynamicPointer<ClientSignal> &_rsig);
+	void dynamicExecute(DynamicPointer<InsertSignal> &_rsig);
+	void dynamicExecute(DynamicPointer<FetchSignal> &_rsig);
+	void dynamicExecute(DynamicPointer<EraseSignal> &_rsig);
 	
 	int execute(ulong _sig, TimeSpec &_tout);
 	

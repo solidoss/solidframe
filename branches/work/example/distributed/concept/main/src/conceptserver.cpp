@@ -1,5 +1,7 @@
 #include "example/distributed/concept/server/serverobject.hpp"
 #include "example/distributed/concept/core/manager.hpp"
+#include "example/distributed/concept/core/signals.hpp"
+
 #include "foundation/service.hpp"
 #include "foundation/scheduler.hpp"
 
@@ -48,7 +50,6 @@ struct IpcServiceController: foundation::ipc::Service::Controller{
 
 namespace {
 	const foundation::IndexT	ipcid(10);
-	const foundation::IndexT	svcid(11);
 }
 
 
@@ -88,7 +89,9 @@ int main(int argc, char *argv[]){
 	cout<<"Debug modules: "<<dbgout<<endl;
 	}
 #endif
-	
+	{
+		mapSignals();
+	}
 	{
 		
 		foundation::Manager 	m(16);
@@ -98,7 +101,7 @@ int main(int argc, char *argv[]){
 		m.registerScheduler(new AioSchedulerT(m));
 		
 		//const IndexT svcidx = 
-		m.registerService<SchedulerT>(new foundation::Service, 0, svcid);
+		m.registerService<SchedulerT>(new foundation::Service, 0, fdt::compute_service_id(serverUid().first));
 		m.registerService<SchedulerT>(new foundation::ipc::Service(&ipcctrl), 0, ipcid);
 		
 		m.start();
@@ -109,7 +112,10 @@ int main(int argc, char *argv[]){
 		}
 		
 		foundation::ObjectPointer<ServerObject>	op(new ServerObject);
-		m.service(svcid).insert<SchedulerT>(op, 0, serverIndex());
+		const fdt::IndexT						svcidx(fdt::compute_service_id(serverUid().first));
+		const fdt::IndexT						srvidx(fdt::compute_index(serverUid().first));
+		
+		m.service(svcidx).insert<SchedulerT>(op, 0, srvidx);
 		
 		char c;
 		cout<<"> "<<flush;

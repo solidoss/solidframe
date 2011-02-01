@@ -78,7 +78,7 @@ struct Signal: Dynamic<Signal>{
 			_peeraddr parameter.
 		\retval BAD for deleting the signal, OK for not
 	*/
-	virtual int ipcReceived(
+	virtual bool ipcReceived(
 		ipc::SignalUid &_waitingsignaluid,
 		const ipc::ConnectionUid &_ipcsessionuid,
 		const SockAddrPair &_peeraddr,

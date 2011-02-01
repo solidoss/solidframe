@@ -68,7 +68,7 @@ struct RemoteListSignal: Dynamic<RemoteListSignal, DynamicShared<foundation::Sig
 		const SignalUidT &, TimeSpec &_rts
 	);
 	
-	int ipcReceived(
+	bool ipcReceived(
 		foundation::ipc::SignalUid &_rsiguid,
 		const foundation::ipc::ConnectionUid &_rconid,
 		const SockAddrPair &_peeraddr, int _peerbaseport
@@ -101,7 +101,7 @@ struct RemoteListSignal: Dynamic<RemoteListSignal, DynamicShared<foundation::Sig
 	uint32							requid;
 	ObjectUidT						fromv;
 	int16							sentcnt;
-	bool							success_response;
+	//bool							success_response;
 };
 
 struct FetchSlaveSignal;
@@ -130,7 +130,7 @@ struct FetchMasterSignal: Dynamic<FetchMasterSignal, foundation::Signal>{
 	}
 	~FetchMasterSignal();
 	uint32 ipcPrepare();
-	int ipcReceived(
+	bool ipcReceived(
 		foundation::ipc::SignalUid &_rsiguid,
 		const foundation::ipc::ConnectionUid &_rconid,
 		const SockAddrPair &_peeraddr,
@@ -184,7 +184,7 @@ struct FetchMasterSignal: Dynamic<FetchMasterSignal, foundation::Signal>{
 struct FetchSlaveSignal: Dynamic<FetchSlaveSignal, foundation::Signal>{
 	FetchSlaveSignal();
 	~FetchSlaveSignal();
-	int ipcReceived(
+	bool ipcReceived(
 		foundation::ipc::SignalUid &_rsiguid,
 		const foundation::ipc::ConnectionUid &_rconid,
 		const SockAddrPair &_peeraddr,
@@ -244,7 +244,7 @@ struct SendStringSignal: Dynamic<SendStringSignal, foundation::Signal>{
 		ulong _fromobjid,
 		uint32 _fromobjuid
 	):str(_str), tov(_toobjid, _toobjuid), fromv(_fromobjid, _fromobjuid){}
-	int ipcReceived(
+	bool ipcReceived(
 		foundation::ipc::SignalUid &_rsiguid,
 		const foundation::ipc::ConnectionUid &_rconid,
 		const SockAddrPair &_peeraddr,
@@ -284,7 +284,7 @@ struct SendStreamSignal: Dynamic<SendStreamSignal, foundation::Signal>{
 	}
 	std::pair<uint32, uint32> to()const{return tov;}
 	std::pair<uint32, uint32> from()const{return fromv;}
-	int ipcReceived(
+	bool ipcReceived(
 		foundation::ipc::SignalUid &_rsiguid,
 		const foundation::ipc::ConnectionUid &_rconid,
 		const SockAddrPair &_peeraddr,

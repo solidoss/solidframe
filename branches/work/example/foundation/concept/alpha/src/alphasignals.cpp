@@ -56,7 +56,7 @@ uint32 RemoteListSignal::ipcPrepare(){
 		return foundation::ipc::Service::WaitResponseFlag /*| foundation::ipc::Service::SynchronousSendFlag*/;
 	}else return 0/*foundation::ipc::Service::SynchronousSendFlag*/;// on peer
 }
-int RemoteListSignal::ipcReceived(
+bool RemoteListSignal::ipcReceived(
 	fdt::ipc::SignalUid &_rsiguid,
 	const fdt::ipc::ConnectionUid &_rconid,
 	const SockAddrPair &_peeraddr,
@@ -171,7 +171,7 @@ uint32 FetchMasterSignal::ipcPrepare(){
 }
 
 
-int FetchMasterSignal::ipcReceived(
+bool FetchMasterSignal::ipcReceived(
 	fdt::ipc::SignalUid &_rsiguid,
 	const fdt::ipc::ConnectionUid &_rconid,
 	const SockAddrPair &_peeraddr,
@@ -382,7 +382,7 @@ int FetchSlaveSignal::sent(const fdt::ipc::ConnectionUid &_rconid){
 uint32 FetchSlaveSignal::ipcPrepare(){
 	return 0;//foundation::ipc::Service::SynchronousSendFlag;
 }
-int FetchSlaveSignal::ipcReceived(
+bool FetchSlaveSignal::ipcReceived(
 	fdt::ipc::SignalUid &_rsiguid,
 	const fdt::ipc::ConnectionUid &_rconid,
 	const SockAddrPair &_peeraddr,
@@ -470,7 +470,7 @@ int FetchSlaveSignal::createSerializationStream(
 // SendStringSignal
 //-----------------------------------------------------------------------------------
 
-int SendStringSignal::ipcReceived(
+bool SendStringSignal::ipcReceived(
 	fdt::ipc::SignalUid &_rsiguid,
 	const fdt::ipc::ConnectionUid &_rconid,
 	const SockAddrPair &_peeraddr,
@@ -490,7 +490,7 @@ int SendStringSignal::ipcReceived(
 // SendStreamSignal
 //-----------------------------------------------------------------------------------
 
-int SendStreamSignal::ipcReceived(
+bool SendStreamSignal::ipcReceived(
 	fdt::ipc::SignalUid &_rsiguid,
 	const fdt::ipc::ConnectionUid &_rconid,
 	const SockAddrPair &_peeraddr,

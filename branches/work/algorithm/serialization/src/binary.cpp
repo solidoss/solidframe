@@ -69,6 +69,20 @@ int Serializer::storeBinary(Base &_rb, FncData &_rfd){
 	return OK;
 }
 template <>
+int Serializer::store<int8>(Base &_rb, FncData &_rfd){
+	idbgx(Dbg::ser_bin, ""<<_rfd.n);
+	_rfd.s = sizeof(int8);
+	_rfd.f = &Serializer::storeBinary;
+	return storeBinary(_rb, _rfd);
+}
+template <>
+int Serializer::store<uint8>(Base &_rb, FncData &_rfd){
+	idbgx(Dbg::ser_bin, ""<<_rfd.n);
+	_rfd.s = sizeof(uint8);
+	_rfd.f = &Serializer::storeBinary;
+	return CONTINUE;
+}
+template <>
 int Serializer::store<int16>(Base &_rb, FncData &_rfd){
 	idbgx(Dbg::ser_bin, ""<<_rfd.n);
 	_rfd.s = sizeof(int16);
@@ -191,6 +205,20 @@ int Deserializer::parseBinary(Base &_rb, FncData &_rfd){
 	_rfd.s -= len;
 	if(_rfd.s) return NOK;
 	return OK;
+}
+template <>
+int Deserializer::parse<int8>(Base &_rb, FncData &_rfd){
+	idbgx(Dbg::ser_bin, "");
+	_rfd.s = sizeof(int8);
+	_rfd.f = &Deserializer::parseBinary;
+	return CONTINUE;
+}
+template <>
+int Deserializer::parse<uint8>(Base &_rb, FncData &_rfd){	
+	idbgx(Dbg::ser_bin, "");
+	_rfd.s = sizeof(uint8);
+	_rfd.f = &Deserializer::parseBinary;
+	return CONTINUE;
 }
 template <>
 int Deserializer::parse<int16>(Base &_rb, FncData &_rfd){

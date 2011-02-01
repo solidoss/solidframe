@@ -169,19 +169,21 @@ void ClientParams::print(std::ostream &_ros){
 	_ros<<endl;
 }
 //------------------------------------------------------------
+namespace{
+static const DynamicRegisterer<ClientObject>	dre;
+}
+/*static*/ void ClientObject::dynamicRegister(){
+	DynamicExecuterT::registerDynamic<InsertSignal, ClientObject>();
+	DynamicExecuterT::registerDynamic<FetchSignal, ClientObject>();
+	DynamicExecuterT::registerDynamic<EraseSignal, ClientObject>();
+	//DynamicExecuterT::registerDynamic<InsertSignal, ClientObject>();
+}
+//------------------------------------------------------------
 ClientObject::ClientObject(const ClientParams &_rcp):params(_rcp), crtreqid(1){
 	
 }
 //------------------------------------------------------------
 ClientObject::~ClientObject(){
-	
-}
-//------------------------------------------------------------
-void ClientObject::dynamicExecute(DynamicPointer<> &_dp){
-	
-}
-//------------------------------------------------------------
-void ClientObject::dynamicExecute(DynamicPointer<ClientSignal> &_rsig){
 	
 }
 //------------------------------------------------------------
@@ -315,8 +317,12 @@ void ClientObject::deleteRequestId(uint32 _v){
 uint32 ClientObject::sendSignal(ConceptSignal *_psig){
 	DynamicSharedPointer<ConceptSignal>	sigptr(_psig);
 	//sigptr->requestId(newRequestId(-1));
+	sigptr->waitresponse = true;
+	sigptr->requid = newRequestId(-1);
+	sigptr->senderuid = this->uid();
 	for(ClientParams::AddressVectorT::iterator it(params.addrvec.begin()); it != params.addrvec.end(); ++it){
-		//foundation::ipc::Service::the().sendSignal(sigptr, SockAddrPair(*it));
+		DynamicPointer<foundation::Signal>	sp(sigptr);
+		foundation::ipc::Service::the().sendSignal(sp, SockAddrPair(*it));
 	}
 	return 0;
 }
@@ -327,6 +333,26 @@ const string& ClientObject::getString(uint32 _pos, uint32 _crtpos){
 	sprintf(buf, "%8.8x", _crtpos);
 	memcpy((void*)rs.data(), buf, 8);
 	return rs;
+}
+//------------------------------------------------------------
+void ClientObject::dynamicExecute(DynamicPointer<> &_dp){
+	idbg("received unknown dynamic object");
+}
+//------------------------------------------------------------
+void ClientObject::dynamicExecute(DynamicPointer<ClientSignal> &_rsig){
+	idbg("received ClientSignal response");
+}
+//------------------------------------------------------------
+void ClientObject::dynamicExecute(DynamicPointer<InsertSignal> &_rsig){
+	idbg("received InsertSignal response");
+}
+//------------------------------------------------------------
+void ClientObject::dynamicExecute(DynamicPointer<FetchSignal> &_rsig){
+	idbg("received FetchSignal response");
+}
+//------------------------------------------------------------
+void ClientObject::dynamicExecute(DynamicPointer<EraseSignal> &_rsig){
+	idbg("received EraseSignal response");
 }
 //------------------------------------------------------------
 void ClientObject::expectInsert(uint32 _rid, const string &_rs, uint32 _v, uint32 _cnt){

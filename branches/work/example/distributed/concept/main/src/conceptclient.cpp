@@ -1,5 +1,7 @@
 #include "example/distributed/concept/client/clientobject.hpp"
 #include "example/distributed/concept/core/manager.hpp"
+#include "example/distributed/concept/core/signals.hpp"
+
 #include "foundation/service.hpp"
 #include "foundation/scheduler.hpp"
 
@@ -103,6 +105,9 @@ int main(int argc, char *argv[]){
 	}
 #endif
 	
+	{
+		mapSignals();
+	}
 	{
 		
 		foundation::Manager 	m(16);
