@@ -93,7 +93,8 @@ private:
 	void expectFetch(uint32 _rid, const std::string &_rs, uint32 _cnt);
 	void expectErase(uint32 _rid, const std::string &_rs, uint32 _cnt);
 	void expectErase(uint32 _rid, uint32 _cnt);
-
+	
+	/*virtual*/ bool signal(DynamicPointer<foundation::Signal> &_sig);
 private:
 	typedef std::vector<std::pair<uint32, int> >	RequestIdVectorT;
 	

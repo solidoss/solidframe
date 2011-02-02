@@ -10,6 +10,9 @@
 #include "foundation/objectselector.hpp"
 #include "foundation/ipc/ipcservice.hpp"
 
+#include "algorithm/serialization/binary.hpp"
+#include "algorithm/serialization/idtypemap.hpp"
+
 #include "system/debug.hpp"
 #include "system/socketaddress.hpp"
 #include <iostream>
@@ -90,6 +93,13 @@ int main(int argc, char *argv[]){
 	}
 #endif
 	{
+		typedef serialization::TypeMapper					TypeMapper;
+		typedef serialization::IdTypeMap					IdTypeMap;
+		typedef serialization::bin::Serializer				BinSerializer;
+		
+		TypeMapper::registerMap<IdTypeMap>(new IdTypeMap);
+		TypeMapper::registerSerializer<BinSerializer>();
+		
 		mapSignals();
 	}
 	{

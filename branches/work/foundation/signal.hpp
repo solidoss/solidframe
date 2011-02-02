@@ -88,6 +88,7 @@ struct Signal: Dynamic<Signal>{
 	virtual uint32 ipcPrepare();
 	//! Called by ipc module on peer failure detection (disconnect,reconnect)
 	virtual void ipcFail(int _err);
+	virtual void ipcSuccess();
 	
 	//! Called by the SignalExecuter
 	virtual int execute(

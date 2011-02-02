@@ -52,6 +52,7 @@ struct ConceptSignal: Dynamic<ConceptSignal, DynamicShared<foundation::Signal> >
 	}
 	uint32 ipcPrepare();
 	void ipcFail(int _err);
+	void ipcSuccess();
 	
 	void use();
 	int release();
@@ -59,7 +60,7 @@ struct ConceptSignal: Dynamic<ConceptSignal, DynamicShared<foundation::Signal> >
 	bool							waitresponse;
 	uint8							st;
 	uint32 							requid;
-	int16							sentcount;
+	int8							sentcount;
 	fdt::ObjectUidT					senderuid;
 	foundation::ipc::ConnectionUid	ipcconid;
 	foundation::ipc::SignalUid		ipcsiguid;

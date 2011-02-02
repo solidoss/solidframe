@@ -69,6 +69,7 @@ public:
 	
 	bool isConnected()const;
 	bool isDisconnecting()const;
+	bool isDisconnected()const;
 	bool isConnecting()const;
 	bool isAccepting()const;
 

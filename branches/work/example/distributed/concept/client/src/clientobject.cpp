@@ -180,7 +180,7 @@ static const DynamicRegisterer<ClientObject>	dre;
 }
 //------------------------------------------------------------
 ClientObject::ClientObject(const ClientParams &_rcp):params(_rcp), crtreqid(1){
-	
+	state(Execute);
 }
 //------------------------------------------------------------
 ClientObject::~ClientObject(){
@@ -195,7 +195,11 @@ int ClientObject::execute(ulong _sig, TimeSpec &_tout){
 		{
 			Mutex::Locker	lock(rm.mutex(*this));
 			sm = grabSignalMask(0);//grab all bits of the signal mask
-			if(sm & fdt::S_KILL) return BAD;
+			if(sm & fdt::S_KILL){
+				idbg("die");
+				m().signalStop();
+				return BAD;
+			}
 			if(sm & fdt::S_SIG){//we have signals
 				exe.prepareExecute();
 			}
@@ -207,11 +211,12 @@ int ClientObject::execute(ulong _sig, TimeSpec &_tout){
 			}
 		}
 		//now we determine if we return with NOK or we continue
-		if(!_sig) return NOK;
+		//if(!_sig) return NOK;
 	}
 	idbg("ping");
 	if(crtpos < params.cnt){
 		ClientParams::Request &rr(params.reqvec[crtreqpos]);
+		idbg("opp = "<<rr.opp);
 		switch(rr.opp){
 			case 'i':{
 				const string	&s(getString(rr.u.u32s.u32_1, crtpos));
@@ -221,14 +226,20 @@ int ClientObject::execute(ulong _sig, TimeSpec &_tout){
 			}
 			case 'p':
 				if(state() == Execute){
+					_tout += rr.u.u32s.u32_1;
 					nexttimepos = _tout;
-					nexttimepos += rr.u.u32s.u32_1;
-					_tout += rr.u.u32s.u32_1; 
+					idbg("wait "<<rr.u.u32s.u32_1<<" "<<_tout.seconds()<<':'<<_tout.nanoSeconds());
+					state(Wait);
 					return NOK;
 				}else{
-					if(nexttimepos >= _tout){
+					if(nexttimepos <= _tout){
+						idbg("done wait "<<" "<<nexttimepos.seconds()<<':'<<nexttimepos.nanoSeconds());
+						state(Execute);
 						break;
 					}else{
+						idbg("still wait "<<" "<<nexttimepos.seconds()<<':'<<nexttimepos.nanoSeconds());
+						idbg("still wait "<<" "<<_tout.seconds()<<':'<<_tout.nanoSeconds());
+						_tout = nexttimepos;
 						return NOK;
 					}
 				}
@@ -260,6 +271,7 @@ int ClientObject::execute(ulong _sig, TimeSpec &_tout){
 			++crtpos;
 			return OK;
 		}
+		return OK;
 	}else if(waitresponsecount){
 		idbg("waiting for "<<waitresponsecount<<" responses");
 		_tout.add(10);
@@ -285,7 +297,7 @@ uint32 ClientObject::newRequestId(int _pos){
 	uint32 rq = crtreqid;
 	++crtreqid;
 	if(crtreqid == 0) crtreqid = 1;
-	if(rq > reqidvec.back().first){
+	if(reqidvec.size() && rq > reqidvec.back().first){
 		//push back
 		reqidvec.push_back(std::pair<uint32, int>(rq, _pos));
 		
@@ -333,6 +345,15 @@ const string& ClientObject::getString(uint32 _pos, uint32 _crtpos){
 	sprintf(buf, "%8.8x", _crtpos);
 	memcpy((void*)rs.data(), buf, 8);
 	return rs;
+}
+//------------------------------------------------------------
+/*virtual*/ bool ClientObject::signal(DynamicPointer<foundation::Signal> &_sig){
+	if(this->state() < 0){
+		_sig.clear();
+		return false;//no reason to raise the pool thread!!
+	}
+	exe.push(DynamicPointer<>(_sig));
+	return Object::signal(fdt::S_SIG | fdt::S_RAISE);
 }
 //------------------------------------------------------------
 void ClientObject::dynamicExecute(DynamicPointer<> &_dp){

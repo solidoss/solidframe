@@ -29,7 +29,7 @@ namespace alpha{
 //-----------------------------------------------------------------------------------
 // RemoteListSignal
 //-----------------------------------------------------------------------------------
-RemoteListSignal::RemoteListSignal(uint32 _tout, uint16 _sentcnt): ppthlst(NULL),err(-1),tout(_tout), sentcnt(-_sentcnt){
+RemoteListSignal::RemoteListSignal(uint32 _tout, uint16 _sentcnt): ppthlst(NULL),err(-1),tout(_tout), sentcnt(0){
 	idbg(""<<(void*)this);
 }
 RemoteListSignal::~RemoteListSignal(){
@@ -51,7 +51,9 @@ int RemoteListSignal::release(){
 }
 uint32 RemoteListSignal::ipcPrepare(){
 	const foundation::ipc::SignalContext &rsigctx(foundation::ipc::DynamicContextPointerT::specificContext());
-	idbg(""<<(void*)this<<" siguid = "<<rsigctx.waitid.idx<<' '<<rsigctx.waitid.uid);
+	Mutex::Locker lock(mutex());
+	++sentcnt;
+	idbg(""<<(void*)this<<" siguid = "<<rsigctx.waitid.idx<<' '<<rsigctx.waitid.uid<<" sentcnt = "<<sentcnt);
 	if(!ppthlst){//on sender
 		return foundation::ipc::Service::WaitResponseFlag /*| foundation::ipc::Service::SynchronousSendFlag*/;
 	}else return 0/*foundation::ipc::Service::SynchronousSendFlag*/;// on peer
@@ -78,10 +80,10 @@ bool RemoteListSignal::ipcReceived(
 	return false;
 }
 void RemoteListSignal::ipcFail(int _err){
+	Mutex::Locker lock(mutex());
+	--sentcnt;
 	if(!ppthlst){
 		idbg("failed on sender "<<sentcnt<<" "<<(void*)this);
-		Mutex::Locker lock(mutex());
-		++sentcnt;
 	}else{
 		idbg("failed on peer");
 	}

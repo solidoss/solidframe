@@ -20,7 +20,8 @@ public:
 	void dynamicExecute(DynamicPointer<EraseSignal> &_rsig);
 	
 	int execute(ulong _sig, TimeSpec &_tout);
-	
+private:
+	/*virtual*/ bool signal(DynamicPointer<foundation::Signal> &_sig);
 private:
 	DynamicExecuterT	exe;
 };

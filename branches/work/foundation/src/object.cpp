@@ -145,8 +145,11 @@ uint32 Signal::ipcPrepare(){
 	return 0;//do nothing - no wait for response
 }
 void Signal::ipcFail(int _err){
+	wdbgx(Dbg::fdt,"");
 }
-
+void Signal::ipcSuccess(){
+	wdbgx(Dbg::fdt,"");
+}
 int Signal::execute(
 	DynamicPointer<Signal> &_rthis_ptr,
 	uint32 _evs,

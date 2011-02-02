@@ -578,6 +578,7 @@ void Session::Data::popSentWaitSignal(const SignalUid &_rsiguid){
 		
 		if(rssd.uid != _rsiguid.uid) return;
 		++rssd.uid;
+		rssd.signal->ipcSuccess();
 		rssd.signal.clear();
 		sendsignalfreeposstk.push(_rsiguid.idx);
 		--sentsignalwaitresponse;
@@ -833,6 +834,10 @@ bool Session::isConnected()const{
 //---------------------------------------------------------------------
 bool Session::isDisconnecting()const{
 	return d.state == Data::Disconnecting;
+}
+//---------------------------------------------------------------------
+bool Session::isDisconnected()const{
+	return d.state == Data::Disconnected;
 }
 //---------------------------------------------------------------------
 bool Session::isConnecting()const{

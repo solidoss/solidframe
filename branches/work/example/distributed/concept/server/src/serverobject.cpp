@@ -2,6 +2,8 @@
 #include "example/distributed/concept/core/manager.hpp"
 #include "example/distributed/concept/core/signals.hpp"
 
+#include "foundation/ipc/ipcservice.hpp"
+
 #include "foundation/common.hpp"
 
 #include "system/thread.hpp"
@@ -52,6 +54,17 @@ int ServerObject::execute(ulong _sig, TimeSpec &_tout){
 	return NOK;
 }
 
+//------------------------------------------------------------
+/*virtual*/ bool ServerObject::signal(DynamicPointer<foundation::Signal> &_sig){
+	if(this->state() < 0){
+		_sig.clear();
+		return false;//no reason to raise the pool thread!!
+	}
+	exe.push(DynamicPointer<>(_sig));
+	return Object::signal(fdt::S_SIG | fdt::S_RAISE);
+}
+
+
 void ServerObject::dynamicExecute(DynamicPointer<> &_dp){
 	
 }
@@ -59,12 +72,24 @@ void ServerObject::dynamicExecute(DynamicPointer<> &_dp){
 
 void ServerObject::dynamicExecute(DynamicPointer<InsertSignal> &_rsig){
 	idbg("received InsertSignal request");
+	const foundation::ipc::ConnectionUid	ipcconid(_rsig->ipcconid);
+	DynamicPointer<foundation::Signal>		sigptr(_rsig);
+	
+	foundation::ipc::Service::the().sendSignal(sigptr, ipcconid);
 }
 
 void ServerObject::dynamicExecute(DynamicPointer<FetchSignal> &_rsig){
 	idbg("received FetchSignal request");
+	const foundation::ipc::ConnectionUid	ipcconid(_rsig->ipcconid);
+	DynamicPointer<foundation::Signal>		sigptr(_rsig);
+	
+	foundation::ipc::Service::the().sendSignal(sigptr, ipcconid);
 }
 
 void ServerObject::dynamicExecute(DynamicPointer<EraseSignal> &_rsig){
 	idbg("received EraseSignal request");
+	const foundation::ipc::ConnectionUid	ipcconid(_rsig->ipcconid);
+	DynamicPointer<foundation::Signal>		sigptr(_rsig);
+	
+	foundation::ipc::Service::the().sendSignal(sigptr, ipcconid);
 }
