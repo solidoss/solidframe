@@ -1,0 +1,16 @@
+set(Sources
+	src/clientobject.cpp
+)
+
+set(Headers
+	clientobject.hpp
+)
+
+set(Inlines
+)
+
+add_library (example_distributed_client
+	${Sources} ${Headers} ${Inlines}
+)
+
+

@@ -23,6 +23,7 @@
 #define FOUNDATION_IPC_IPC_SESSION_UID_HPP
 
 #include "system/common.hpp"
+#include "utility/dynamicpointer.hpp"
 
 namespace foundation{
 namespace ipc{
@@ -49,6 +50,13 @@ struct SignalUid{
 	uint32	idx;
 	uint32	uid;
 };
+
+struct SignalContext{
+	SignalUid waitid;
+};
+
+typedef DynamicPointer<Signal, SignalContext>	DynamicContextPointerT;
+
 
 }//namespace ipc
 }//namespace foundation

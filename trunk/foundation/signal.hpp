@@ -31,7 +31,7 @@
 
 class TimeSpec;
 
-template <class T>
+template <class T, class C>
 class DynamicPointer;
 
 struct SockAddrPair;
@@ -78,16 +78,17 @@ struct Signal: Dynamic<Signal>{
 			_peeraddr parameter.
 		\retval BAD for deleting the signal, OK for not
 	*/
-	virtual int ipcReceived(
+	virtual bool ipcReceived(
 		ipc::SignalUid &_waitingsignaluid,
 		const ipc::ConnectionUid &_ipcsessionuid,
 		const SockAddrPair &_peeraddr,
 		int _peerbaseport
 	);
 	//! Called by ipc module, before the signal begins to be serialized
-	virtual uint32 ipcPrepare(const ipc::SignalUid& _waitingsignaluid);
+	virtual uint32 ipcPrepare();
 	//! Called by ipc module on peer failure detection (disconnect,reconnect)
 	virtual void ipcFail(int _err);
+	virtual void ipcSuccess();
 	
 	//! Called by the SignalExecuter
 	virtual int execute(

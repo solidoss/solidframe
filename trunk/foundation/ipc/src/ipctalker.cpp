@@ -504,7 +504,7 @@ bool Talker::doExecuteSessions(const TimeSpec &_rcrttimepos){
 		}
 	}
 	
-	return d.sessionexecq.size() != 0;
+	return d.sessionexecq.size() != 0 || d.closingsessionvec.size() != 0;
 }
 //----------------------------------------------------------------------
 int Talker::doSendBuffers(const ulong _sig, const TimeSpec &_rcrttimepos){
@@ -661,7 +661,7 @@ void Talker::disconnectSessions(){
 		Data::SessionStub &rss(d.sessionvec[*it]);
 		vdbgx(Dbg::ipc, "disconnecting sessions "<<(void*)rss.psession);
 		cassert(rss.psession);
-		if(rss.psession->isDisconnecting()){
+		if(rss.psession->isDisconnected()){
 			idbgx(Dbg::ipc, "deleting session "<<(void*)rss.psession<<" on pos "<<*it);
 			d.rservice.disconnectSession(rss.psession);
 			//unregister from base and peer:

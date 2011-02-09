@@ -29,7 +29,7 @@ namespace alpha{
 //-----------------------------------------------------------------------------------
 // RemoteListSignal
 //-----------------------------------------------------------------------------------
-RemoteListSignal::RemoteListSignal(uint32 _tout, uint16 _sentcnt): ppthlst(NULL),err(-1),tout(_tout), sentcnt(_sentcnt){
+RemoteListSignal::RemoteListSignal(uint32 _tout, uint16 _sentcnt): ppthlst(NULL),err(-1),tout(_tout), sentcnt(0){
 	idbg(""<<(void*)this);
 }
 RemoteListSignal::~RemoteListSignal(){
@@ -49,24 +49,25 @@ int RemoteListSignal::release(){
 	idbg(""<<(void*)this<<" usecount = "<<usecount);
 	return rv;
 }
-uint32 RemoteListSignal::ipcPrepare(const foundation::ipc::SignalUid &_rsiguid){
-	idbg(""<<(void*)this<<" siguid = "<<_rsiguid.idx<<' '<<_rsiguid.uid);
+uint32 RemoteListSignal::ipcPrepare(){
+	const foundation::ipc::SignalContext &rsigctx(foundation::ipc::DynamicContextPointerT::specificContext());
+	Mutex::Locker lock(mutex());
+	++sentcnt;
+	idbg(""<<(void*)this<<" siguid = "<<rsigctx.waitid.idx<<' '<<rsigctx.waitid.uid<<" sentcnt = "<<sentcnt);
 	if(!ppthlst){//on sender
-		//only on sender we hold the signal uid
-		//to use it when we get back - see ipcReceived
-		siguid = _rsiguid;
-		sentcnt = -sentcnt;
 		return foundation::ipc::Service::WaitResponseFlag /*| foundation::ipc::Service::SynchronousSendFlag*/;
 	}else return 0/*foundation::ipc::Service::SynchronousSendFlag*/;// on peer
 }
-int RemoteListSignal::ipcReceived(
+bool RemoteListSignal::ipcReceived(
 	fdt::ipc::SignalUid &_rsiguid,
 	const fdt::ipc::ConnectionUid &_rconid,
 	const SockAddrPair &_peeraddr,
 	int _peerbaseport
 ){
 	DynamicPointer<fdt::Signal> psig(this);
+	idbg(""<<(void*)this<<" siguid = "<<siguid.idx<<' '<<siguid.uid);
 	conid = _rconid;
+	_rsiguid = siguid;
 	if(!ppthlst){//on peer
 		idbg("Received RemoteListSignal on peer");
 		//print();
@@ -79,10 +80,10 @@ int RemoteListSignal::ipcReceived(
 	return false;
 }
 void RemoteListSignal::ipcFail(int _err){
+	Mutex::Locker lock(mutex());
+	--sentcnt;
 	if(!ppthlst){
 		idbg("failed on sender "<<sentcnt<<" "<<(void*)this);
-		Mutex::Locker lock(mutex());
-		++sentcnt;
 	}else{
 		idbg("failed on peer");
 	}
@@ -167,12 +168,12 @@ void FetchMasterSignal::print()const{
 	idbg("tmpfuid.first = "<<tmpfuid.first<<" tmpfuid.second = "<<tmpfuid.second);
 }
 
-uint32 FetchMasterSignal::ipcPrepare(const foundation::ipc::SignalUid &){
+uint32 FetchMasterSignal::ipcPrepare(){
 	return 0;//foundation::ipc::Service::SynchronousSendFlag;
 }
 
 
-int FetchMasterSignal::ipcReceived(
+bool FetchMasterSignal::ipcReceived(
 	fdt::ipc::SignalUid &_rsiguid,
 	const fdt::ipc::ConnectionUid &_rconid,
 	const SockAddrPair &_peeraddr,
@@ -380,10 +381,10 @@ int FetchSlaveSignal::sent(const fdt::ipc::ConnectionUid &_rconid){
 	fromv.first = 0xffffffff;
 	return BAD;
 }
-uint32 FetchSlaveSignal::ipcPrepare(const foundation::ipc::SignalUid &){
+uint32 FetchSlaveSignal::ipcPrepare(){
 	return 0;//foundation::ipc::Service::SynchronousSendFlag;
 }
-int FetchSlaveSignal::ipcReceived(
+bool FetchSlaveSignal::ipcReceived(
 	fdt::ipc::SignalUid &_rsiguid,
 	const fdt::ipc::ConnectionUid &_rconid,
 	const SockAddrPair &_peeraddr,
@@ -418,18 +419,18 @@ int FetchSlaveSignal::execute(
 }
 
 void FetchSlaveSignal::destroyDeserializationStream(
-	const std::pair<OStream *, int64> &_rps, int _id
+	OStream *&_rpos, int64 &_rsz, uint64 &_roff, int _id
 ){
-	idbg((void*)this<<" Destroy deserialization <"<<_id<<"> sz "<<_rps.second<<" streamptr "<<(void*)_rps.first);
-	if(_rps.second < 0){
+	idbg((void*)this<<" Destroy deserialization <"<<_id<<"> sz "<<_rsz<<" streamptr "<<(void*)_rpos);
+	if(_rsz < 0){
 		//there was an error
 		filesz = -1;
 	}
-	delete _rps.first;
+	delete _rpos;
 }
 
 int FetchSlaveSignal::createDeserializationStream(
-	std::pair<OStream *, int64> &_rps, int _id
+	OStream *&_rpos, int64 &_rsz, uint64 &_roff, int _id
 ){
 	idbg((void*)this<<" "<<_id<<" "<<filesz<<' '<<fuid.first<<' '<<fuid.second);
 	if(_id) return NOK;
@@ -443,27 +444,27 @@ int FetchSlaveSignal::createDeserializationStream(
 		return BAD;
 	}
 	
-	idbg((void*)this<<" Create deserialization <"<<_id<<"> sz "<<_rps.second<<" streamptr "<<(void*)sp.ptr());
+	idbg((void*)this<<" Create deserialization <"<<_id<<"> sz "<<_rsz<<" streamptr "<<(void*)sp.ptr());
 	
 	cassert(sp);
-	_rps.first = sp.release();
-	_rps.second = streamsz;
+	_rpos = sp.release();
+	_rsz = streamsz;
 	return OK;
 }
 
 void FetchSlaveSignal::destroySerializationStream(
-	const std::pair<IStream *, int64> &_rps, int _id
+	IStream *&_rpis, int64 &_rsz, uint64 &_roff, int _id
 ){
 	idbg((void*)this<<" doing nothing as the stream will be destroied when the signal will be destroyed");
 }
 
 int FetchSlaveSignal::createSerializationStream(
-	std::pair<IStream *, int64> &_rps, int _id
+	IStream *&_rpis, int64 &_rsz, uint64 &_roff, int _id
 ){
 	if(_id || !ins.ptr()) return NOK;
-	idbg((void*)this<<" Create serialization <"<<_id<<"> sz "<<_rps.second);
-	_rps.first = ins.ptr();
-	_rps.second = streamsz;
+	idbg((void*)this<<" Create serialization <"<<_id<<"> sz "<<_rsz);
+	_rpis = ins.ptr();
+	_rsz = streamsz;
 	return OK;
 }
 
@@ -471,7 +472,7 @@ int FetchSlaveSignal::createSerializationStream(
 // SendStringSignal
 //-----------------------------------------------------------------------------------
 
-int SendStringSignal::ipcReceived(
+bool SendStringSignal::ipcReceived(
 	fdt::ipc::SignalUid &_rsiguid,
 	const fdt::ipc::ConnectionUid &_rconid,
 	const SockAddrPair &_peeraddr,
@@ -491,7 +492,7 @@ int SendStringSignal::ipcReceived(
 // SendStreamSignal
 //-----------------------------------------------------------------------------------
 
-int SendStreamSignal::ipcReceived(
+bool SendStreamSignal::ipcReceived(
 	fdt::ipc::SignalUid &_rsiguid,
 	const fdt::ipc::ConnectionUid &_rconid,
 	const SockAddrPair &_peeraddr,
@@ -504,15 +505,15 @@ int SendStreamSignal::ipcReceived(
 }
 
 void SendStreamSignal::destroyDeserializationStream(
-	const std::pair<OStream *, int64> &_rps, int _id
+	OStream *&_rpos, int64 &_rsz, uint64 &_roff, int _id
 ){
-	idbg("Destroy deserialization <"<<_id<<"> sz "<<_rps.second);
+	idbg("Destroy deserialization <"<<_id<<"> sz "<<_rsz);
 }
 int SendStreamSignal::createDeserializationStream(
-	std::pair<OStream *, int64> &_rps, int _id
+	OStream *&_rpos, int64 &_rsz, uint64 &_roff, int _id
 ){
 	if(_id) return NOK;
-	idbg("Create deserialization <"<<_id<<"> sz "<<_rps.second);
+	idbg("Create deserialization <"<<_id<<"> sz "<<_rsz);
 	if(dststr.empty()/* || _rps.second < 0*/) return NOK;
 	idbg("File name: "<<this->dststr);
 	//TODO:
@@ -521,23 +522,23 @@ int SendStreamSignal::createDeserializationStream(
 		idbg("Oops, could not open file");
 		return BAD;
 	}else{
-		_rps.first = static_cast<OStream*>(this->iosp.ptr());
+		_rpos = static_cast<OStream*>(this->iosp.ptr());
 	}
 	return OK;
 }
 void SendStreamSignal::destroySerializationStream(
-	const std::pair<IStream *, int64> &_rps, int _id
+	IStream *&_rpis, int64 &_rsz, uint64 &_roff, int _id
 ){
 	idbg("doing nothing as the stream will be destroied when the signal will be destroyed");
 }
 int SendStreamSignal::createSerializationStream(
-	std::pair<IStream *, int64> &_rps, int _id
+	IStream *&_rpis, int64 &_rsz, uint64 &_roff, int _id
 ){
 	if(_id) return NOK;
-	idbg("Create serialization <"<<_id<<"> sz "<<_rps.second);
+	idbg("Create serialization <"<<_id<<"> sz "<<_rsz);
 	//The stream is already opened
-	_rps.first = static_cast<IStream*>(this->iosp.ptr());
-	_rps.second = this->iosp->size();
+	_rpis = static_cast<IStream*>(this->iosp.ptr());
+	_rsz = this->iosp->size();
 	return OK;
 }
 
