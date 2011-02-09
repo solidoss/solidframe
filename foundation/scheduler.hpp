@@ -75,7 +75,7 @@ public://definition
 	*/
 	Scheduler(
 		Manager &_rm,
-		uint16 _startthrcnt = 1,
+		uint16 _startthrcnt = 0,
 		uint16 _maxthrcnt = 1,
 		const IndexT &_selcap = 1024
 	):SchedulerBase(_rm, _startthrcnt, _maxthrcnt, _selcap), wp(*this){
@@ -89,7 +89,7 @@ public://definition
 		of objects handled would be _maxthcnt * _selcap
 	*/
 	Scheduler(
-		uint16 _startthrcnt = 1,
+		uint16 _startthrcnt = 0,
 		uint16 _maxthrcnt = 1,
 		const IndexT &_selcap = 1024
 	):SchedulerBase(_startthrcnt, _maxthrcnt, _selcap),wp(*this){
@@ -117,8 +117,8 @@ public://definition
 	 * start, through SchedulerBase::start<br>
 	 * NOTE: in future versions this might be made protected or private
 	 */
-	void start(ushort _startwkrcnt = 1, bool _wait = false){
-		wp.start(_startwkrcnt ? _startwkrcnt : startwkrcnt, _wait);
+	void start(ushort _startwkrcnt = 0){
+		wp.start(_startwkrcnt ? _startwkrcnt : startwkrcnt);
 	}
 	
 	//! Starts the scheduler
@@ -134,8 +134,12 @@ public://definition
 private:
 	
 	typedef std::vector<JobT>	JobVectorT;
-	void createWorker(WorkPoolT &_rwp){
-		_rwp.createMultiWorker(0)->start();
+	bool createWorker(WorkPoolT &_rwp){
+		Worker	*pw(_rwp.createMultiWorker(0));
+		if(pw && pw->start() != OK){
+			delete pw;
+			return false;
+		}return true;
 	}
 	void prepareWorker(Worker &_rw){
 		prepareThread(&_rw.s);

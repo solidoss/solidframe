@@ -37,6 +37,8 @@ class OStream;
 namespace serialization{
 namespace bin{
 
+BASIC_DECL(int8);
+BASIC_DECL(uint8);
 BASIC_DECL(int16);
 BASIC_DECL(uint16);
 BASIC_DECL(int32);
@@ -52,7 +54,7 @@ S& operator&(std::string &_t, S &_s){
 }
 
 enum {
-	MAXITSZ = sizeof(int64) + sizeof(int64),//!< Max sizeof(iterator) for serialized containers
+	MAXITSZ = sizeof(int64) + sizeof(int64) + sizeof(int64),//!< Max sizeof(iterator) for serialized containers
 	MINSTREAMBUFLEN = 128//if the free space for current buffer is less than this value
 						//storring a stream will end up returning NOK
 };
@@ -136,6 +138,26 @@ protected:
 		ExtData(uint32 _u32){u32() = _u32;}
 		ExtData(int32 _i32){i32() = _i32;}
 	};
+	struct IStreamData{
+		IStreamData(
+			IStream *_pis = NULL,
+			int64 _sz = -1,
+			uint64 _off = 0
+		):pis(_pis), sz(_sz), off(_off){}
+		IStream *pis;
+		int64	sz;
+		uint64	off;
+	};
+	struct OStreamData{
+		OStreamData(
+			OStream *_pos = NULL,
+			int64 _sz = -1,
+			uint64 _off = 0
+		):pos(_pos), sz(_sz), off(_off){}
+		OStream *pos;
+		int64	sz;
+		uint64	off;
+	};
 protected:
 	//! Replace the top callback from the stack
 	void replace(const FncData &_rfd);
@@ -213,37 +235,38 @@ class Serializer: public Base{
 		Serializer &rs(static_cast<Serializer&>(_rs));
 		if(!rs.cpb) return OK;
 		T *pt = reinterpret_cast<T*>(_rfd.p);
-		std::pair<IStream*, int64> sp(NULL, -1);
+		
+		IStreamData	isd;
 		int cpidx = _rfd.s;
 		++_rfd.s;
-		switch(pt->createSerializationStream(sp, cpidx)){
-			case BAD: sp.second = -1;break;//send -1
+		switch(pt->createSerializationStream(isd.pis, isd.sz, isd.off, cpidx)){
+			case BAD: isd.sz = -1;break;//send -1
 			case NOK: return OK;//no more streams
 			case OK:
-				cassert(sp.first);
-				cassert(sp.second >= 0);
+				cassert(isd.pis);
+				cassert(isd.sz >= 0);
 				break;
 			default:
 				cassert(false);
 		}
 		rs.estk.push(ExtData());
-		std::pair<IStream*, int64> &rsp(*reinterpret_cast<std::pair<IStream*, int64>*>(rs.estk.top().buf));
-		rsp = sp;
+		IStreamData &rsp(*reinterpret_cast<IStreamData*>(rs.estk.top().buf));
+		rsp = isd;
 		//_rfd.s is the id of the stream
 		rs.fstk.push(FncData(&Serializer::storeStreamDone<T>, _rfd.p, _rfd.n, _rfd.s - 1));
-		if(sp.first){
+		if(rsp.pis){
 			rs.fstk.push(FncData(&Serializer::storeStream, NULL));
 		}
-		rs.fstk.push(FncData(&Serializer::storeBinary, &rsp.second, _rfd.n, sizeof(int64)));
+		rs.fstk.push(FncData(&Serializer::storeBinary, &rsp.sz, _rfd.n, sizeof(int64)));
 		return CONTINUE;
 	}
 	template <typename T>
 	static int storeStreamDone(Base &_rs, FncData &_rfd){
 		idbgx(Dbg::ser_bin, "store stream done");
 		Serializer &rs(static_cast<Serializer&>(_rs));
-		std::pair<IStream*, int64> &rsp(*reinterpret_cast<std::pair<IStream*, int64>*>(rs.estk.top().buf));
+		IStreamData &rsp(*reinterpret_cast<IStreamData*>(rs.estk.top().buf));
 		T *pt = reinterpret_cast<T*>(_rfd.p);
-		pt->destroySerializationStream(rsp, _rfd.s);
+		pt->destroySerializationStream(rsp.pis, rsp.sz, rsp.off, _rfd.s);
 		rs.estk.pop();
 		return OK;
 	}
@@ -321,7 +344,10 @@ private:
 	std::string	tmpstr;
 };
 //===============================================================
-
+template <>
+int Serializer::store<int8>(Base &_rb, FncData &_rfd);
+template <>
+int Serializer::store<uint8>(Base &_rb, FncData &_rfd);
 template <>
 int Serializer::store<int16>(Base &_rb, FncData &_rfd);
 template <>
@@ -427,34 +453,34 @@ class Deserializer: public Base{
 		
 		int cpidx = _rfd.s;
 		++_rfd.s;
-		std::pair<OStream*, int64> sp(NULL, -1);
+		OStreamData sp;
 		T	*pt = reinterpret_cast<T*>(_rfd.p);
 		//TODO: createDeserializationStream should be given the size of the stream
-		switch(pt->createDeserializationStream(sp, cpidx)){
+		switch(pt->createDeserializationStream(sp.pos, sp.sz, sp.off, cpidx)){
 			case BAD:	
 			case OK: 	break;
 			case NOK:	return OK;
 		}
 		rd.estk.push(ExtData());
-		std::pair<OStream*, int64> &rsp(*reinterpret_cast<std::pair<OStream*, int64>*>(rd.estk.top().buf));
+		OStreamData &rsp(*reinterpret_cast<OStreamData*>(rd.estk.top().buf));
 		rsp = sp;
 		//_rfd.s is the id of the stream
 		rd.fstk.push(FncData(&Deserializer::template parseStreamDone<T>, _rfd.p, _rfd.n, _rfd.s - 1));
-		if(sp.first)
+		if(sp.pos)
 			rd.fstk.push(FncData(&Deserializer::parseStream, NULL));
 		else
 			rd.fstk.push(FncData(&Deserializer::parseDummyStream, NULL));
 		//TODO: move this line - so it is called before parseStreamBegin
-		rd.fstk.push(FncData(&Deserializer::parseBinary, &rsp.second, _rfd.n, sizeof(int64)));
+		rd.fstk.push(FncData(&Deserializer::parseBinary, &rsp.sz, _rfd.n, sizeof(int64)));
 		return CONTINUE;
 	}
 	template <typename T>
 	static int parseStreamDone(Base &_rb,FncData &_rfd){
 		idbgx(Dbg::ser_bin, "parse stream done");
 		Deserializer &rd(static_cast<Deserializer&>(_rb));
-		std::pair<OStream*, int64> &rsp(*reinterpret_cast<std::pair<OStream*, int64>*>(rd.estk.top().buf));
+		OStreamData &rsp(*reinterpret_cast<OStreamData*>(rd.estk.top().buf));
 		T	*pt = reinterpret_cast<T*>(_rfd.p);
-		pt->destroyDeserializationStream(rsp, _rfd.s);
+		pt->destroyDeserializationStream(rsp.pos, rsp.sz, rsp.off, _rfd.s);
 		rd.estk.pop();
 		return OK;
 	}

@@ -166,7 +166,7 @@ public:
 		mtx.unlock();
 	}
 	//! Starts the workpool, creating _minwkrcnt
-	void start(ushort _minwkrcnt = 1, bool _wait = false){
+	void start(ushort _minwkrcnt = 0){
 		Mutex::Locker lock(mtx);
 		if(state() == Running){
 			return;
@@ -174,17 +174,10 @@ public:
 		if(state() != Stopped){
 			doStop(true);
 		}
-		_minwkrcnt = (_minwkrcnt) ? _minwkrcnt : 1;
 		wkrcnt = 0;
 		state(Running);
 		for(ushort i(0); i < _minwkrcnt; ++i){
 			createWorker();
-		}
-		if(!_wait){
-			return;
-		}
-		while(wkrcnt != _minwkrcnt){
-			thrcnd.wait(mtx);
 		}
 	}
 	//! Initiate workpool stop
@@ -205,7 +198,13 @@ public:
 		return jobq.empty();
 	}
 	void createWorker(){
-		ctrl.createWorker(*this);
+		cassert(!mtx.tryLock());
+		++wkrcnt;
+		if(ctrl.createWorker(*this)){
+		}else{
+			--wkrcnt;
+			thrcnd.broadcast();
+		}
 	}
 	WorkerT* createSingleWorker(){
 		return new SingleWorker(*this);
@@ -269,7 +268,7 @@ private:
 	void enterWorker(WorkerT &_rw){
 		mtx.lock();
 		ctrl.prepareWorker(_rw);
-		++wkrcnt;
+		//++wkrcnt;
 		thrcnd.broadcast();
 		mtx.unlock();
 	}

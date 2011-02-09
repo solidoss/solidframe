@@ -63,6 +63,10 @@ void ObjectPointerBase::clear(Object *_pobj){
 
 //NOTE: No locking so Be carefull!!
 void ObjectPointerBase::use(Object *_pobj){
+	//NOTE: the first mutex will be the first mutex from the first service
+	//which is a valid mutex. The valid mutex will be received only
+	//after objects registration within a service.
+	Mutex::Locker lock(Manager::the().mutex(*_pobj));
 	++_pobj->usecnt;
 }
 void ObjectPointerBase::destroy(Object *_pobj){
@@ -129,20 +133,23 @@ Signal::~Signal(){
 	vdbgx(Dbg::fdt, "memsub "<<(void*)this);
 }
 
-int Signal::ipcReceived(
+bool Signal::ipcReceived(
 	ipc::SignalUid&,
 	const ipc::ConnectionUid&,
 	const SockAddrPair &_peeraddr,
 	int _peerbaseport
 ){
-	return BAD;
+	return false;
 }
-uint32 Signal::ipcPrepare(const ipc::SignalUid&){
+uint32 Signal::ipcPrepare(){
 	return 0;//do nothing - no wait for response
 }
 void Signal::ipcFail(int _err){
+	wdbgx(Dbg::fdt,"");
 }
-
+void Signal::ipcSuccess(){
+	wdbgx(Dbg::fdt,"");
+}
 int Signal::execute(
 	DynamicPointer<Signal> &_rthis_ptr,
 	uint32 _evs,

@@ -23,6 +23,13 @@ MutexStoreT &mutexStore(){
 	return mtxstore;
 }
 
+uint32 specificId(){
+	//TODO: staticproblem
+	static const uint32 id(Thread::specificId());
+	return id;
+}
+
+
 }//namespace
 
 /*static*/ Mutex& Shared::mutex(void *_pv){
@@ -48,6 +55,13 @@ void DynamicPointerBase::use(DynamicBase *_pdyn){
 	_pdyn->use();
 }
 
+void DynamicPointerBase::storeSpecific(void *_pv)const{
+	Thread::specific(specificId(), _pv);
+}
+
+/*static*/ void* DynamicPointerBase::fetchSpecific(){
+	return Thread::specific(specificId());
+}
 
 
 struct DynamicMap::Data{

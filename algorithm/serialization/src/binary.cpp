@@ -69,6 +69,20 @@ int Serializer::storeBinary(Base &_rb, FncData &_rfd){
 	return OK;
 }
 template <>
+int Serializer::store<int8>(Base &_rb, FncData &_rfd){
+	idbgx(Dbg::ser_bin, ""<<_rfd.n);
+	_rfd.s = sizeof(int8);
+	_rfd.f = &Serializer::storeBinary;
+	return storeBinary(_rb, _rfd);
+}
+template <>
+int Serializer::store<uint8>(Base &_rb, FncData &_rfd){
+	idbgx(Dbg::ser_bin, ""<<_rfd.n);
+	_rfd.s = sizeof(uint8);
+	_rfd.f = &Serializer::storeBinary;
+	return CONTINUE;
+}
+template <>
 int Serializer::store<int16>(Base &_rb, FncData &_rfd){
 	idbgx(Dbg::ser_bin, ""<<_rfd.n);
 	_rfd.s = sizeof(int16);
@@ -134,26 +148,27 @@ int Serializer::storeStream(Base &_rb, FncData &_rfd){
 	Serializer &rs(static_cast<Serializer&>(_rb));
 	idbgx(Dbg::ser_bin, "");
 	if(!rs.cpb) return OK;
-	std::pair<IStream*, int64> &rsp(*reinterpret_cast<std::pair<IStream*, int64>*>(rs.estk.top().buf));
+	IStreamData &rsp(*reinterpret_cast<IStreamData*>(rs.estk.top().buf));
 	int32 toread = rs.be - rs.cpb;
 	if(toread < MINSTREAMBUFLEN) return NOK;
 	toread -= 2;//the buffsize
-	if(toread > rsp.second) toread = rsp.second;
+	if(toread > rsp.sz) toread = rsp.sz;
 	idbgx(Dbg::ser_bin, "toread = "<<toread<<" MINSTREAMBUFLEN = "<<MINSTREAMBUFLEN);
-	int rv = rsp.first->read(rs.cpb + 2, toread);
+	int rv = rsp.pis->read(rsp.off, rs.cpb + 2, toread);
 	if(rv == toread){
 		uint16 &val = *((uint16*)rs.cpb);
 		val = toread;
 		rs.cpb += toread + 2;
+		rsp.off += toread;
 	}else{
 		uint16 &val = *((uint16*)rs.cpb);
 		val = 0xffff;
 		rs.cpb += 2;
 		return OK;
 	}
-	rsp.second -= toread;
-	idbgx(Dbg::ser_bin, "rsp.second = "<<rsp.second);
-	if(rsp.second) return NOK;
+	rsp.sz -= toread;
+	idbgx(Dbg::ser_bin, "rsp.sz = "<<rsp.sz);
+	if(rsp.sz) return NOK;
 	return OK;
 }
 //========================================================================
@@ -190,6 +205,20 @@ int Deserializer::parseBinary(Base &_rb, FncData &_rfd){
 	_rfd.s -= len;
 	if(_rfd.s) return NOK;
 	return OK;
+}
+template <>
+int Deserializer::parse<int8>(Base &_rb, FncData &_rfd){
+	idbgx(Dbg::ser_bin, "");
+	_rfd.s = sizeof(int8);
+	_rfd.f = &Deserializer::parseBinary;
+	return CONTINUE;
+}
+template <>
+int Deserializer::parse<uint8>(Base &_rb, FncData &_rfd){	
+	idbgx(Dbg::ser_bin, "");
+	_rfd.s = sizeof(uint8);
+	_rfd.f = &Deserializer::parseBinary;
+	return CONTINUE;
 }
 template <>
 int Deserializer::parse<int16>(Base &_rb, FncData &_rfd){
@@ -274,55 +303,56 @@ int Deserializer::parseStream(Base &_rb, FncData &_rfd){
 	Deserializer &rd(static_cast<Deserializer&>(_rb));
 	idbgx(Dbg::ser_bin, "");
 	if(!rd.cpb) return OK;
-	std::pair<OStream*, int64> &rsp(*reinterpret_cast<std::pair<OStream*, int64>*>(rd.estk.top().buf));
-	if(rsp.second < 0) return OK;
+	OStreamData &rsp(*reinterpret_cast<OStreamData*>(rd.estk.top().buf));
+	if(rsp.sz < 0) return OK;
 	int32 towrite = rd.be - rd.cpb;
 	if(towrite < 2){
 		cassert(towrite == 0);
 		return NOK;
 	}
 	towrite -= 2;
-	if(towrite > rsp.second) towrite = rsp.second;
+	if(towrite > rsp.sz) towrite = rsp.sz;
 	uint16 &rsz = *((uint16*)rd.cpb);
 	rd.cpb += 2;
 	idbgx(Dbg::ser_bin, "rsz = "<<rsz);
 	if(rsz == 0xffff){//error on storing side - the stream is incomplete
 		idbgx(Dbg::ser_bin, "error on storing side");
-		rsp.second = -1;
+		rsp.sz = -1;
 		return OK;
 	}
 	idbgx(Dbg::ser_bin, "towrite = "<<towrite);
-	cassert(rsz <= rsp.second);
-	int rv = rsp.first->write(rd.cpb, towrite);
+	cassert(rsz <= rsp.sz);
+	int rv = rsp.pos->write(rsp.off, rd.cpb, towrite);
 	rd.cpb += towrite;
-	rsp.second -= towrite;
-	idbgx(Dbg::ser_bin, "rsp.second = "<<rsp.second);
+	rsp.sz -= towrite;
+	rsp.off += towrite;
+	idbgx(Dbg::ser_bin, "rsp.sz = "<<rsp.sz);
 	if(rv != towrite){
 		_rfd.f = &parseDummyStream;
 	}
-	if(rsp.second) return NOK;
+	if(rsp.sz) return NOK;
 	return OK;
 }
 int Deserializer::parseDummyStream(Base &_rb, FncData &_rfd){
 	Deserializer &rd(static_cast<Deserializer&>(_rb));
 	idbgx(Dbg::ser_bin, "");
 	if(!rd.cpb) return OK;
-	std::pair<OStream*, int64> &rsp(*reinterpret_cast<std::pair<OStream*, int64>*>(rd.estk.top().buf));
-	if(rsp.second < 0) return OK;
+	OStreamData &rsp(*reinterpret_cast<OStreamData*>(rd.estk.top().buf));
+	if(rsp.sz < 0) return OK;
 	int32 towrite = rd.be - rd.cpb;
 	cassert(towrite > 2);
 	towrite -= 2;
-	if(towrite > rsp.second) towrite = rsp.second;
+	if(towrite > rsp.sz) towrite = rsp.sz;
 	uint16 &rsz = *((uint16*)rd.cpb);
 	rd.cpb += 2;
 	if(rsz == 0xffff){//error on storing side - the stream is incomplete
-		rsp.second = -1;
+		rsp.sz = -1;
 		return OK;
 	}
 	rd.cpb += towrite;
-	rsp.second -= towrite;
-	if(rsp.second) return NOK;
-	rsp.second = -1;//the write was not complete
+	rsp.sz -= towrite;
+	if(rsp.sz) return NOK;
+	rsp.sz = -1;//the write was not complete
 	return OK;
 }
 

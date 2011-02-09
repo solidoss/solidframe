@@ -61,7 +61,8 @@ struct Manager::Data{
 		Stopped,
 		Starting,
 		Running,
-		Stopping
+		Stopping,
+		MustStop,
 	};
 	struct ObjectTypeStub{
 		ObjectTypeStub():objidx(invalid_uid().first){}
@@ -216,10 +217,10 @@ void Manager::start(){
 					d.cnd.wait(d.mtx);
 				}while(d.st == Data::Starting);
 				reenter = true;
-			}else if(d.st == Data::Stopping){
+			}else if(d.st == Data::Stopping || d.st == Data::MustStop){
 				do{
 					d.cnd.wait(d.mtx);
-				}while(d.st == Data::Stopping);
+				}while(d.st == Data::Stopping || d.st == Data::MustStop);
 				reenter = true;
 			}
 		}while(reenter);
@@ -281,7 +282,7 @@ void Manager::start(){
 	}
 }
 //---------------------------------------------------------
-void Manager::stop(){
+void Manager::stop(bool _waitsignal){
 	{
 		Mutex::Locker	lock(d.mtx);
 		bool reenter;
@@ -299,6 +300,14 @@ void Manager::stop(){
 					d.cnd.wait(d.mtx);
 				}while(d.st == Data::Starting);
 				reenter = true;
+			}else /*if(d.st == Data::Running || d.st == Data::MustStop)*/{
+				if(_waitsignal){
+					_waitsignal = false;
+					while(d.st == Data::Running){
+						d.cnd.wait(d.mtx);
+					}
+					reenter = true;
+				}
 			}
 		}while(reenter);
 		d.st = Data::Stopping;
@@ -340,6 +349,14 @@ void Manager::stop(){
 	{
 		Mutex::Locker	lock(d.mtx);
 		d.st = Data::Stopped;
+		d.cnd.broadcast();
+	}
+}
+//---------------------------------------------------------
+void Manager::signalStop(){
+	Mutex::Locker	lock(d.mtx);
+	if(d.st == Data::Starting || d.st == Data::Running){
+		d.st = Data::MustStop;
 		d.cnd.broadcast();
 	}
 }

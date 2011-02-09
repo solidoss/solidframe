@@ -46,7 +46,6 @@ SchedulerBase::SchedulerBase(
 	uint16 _maxwkrcnt,
 	const IndexT &_selcap
 ):rm(m()), d(*(new Data)), startwkrcnt(_startwkrcnt), maxwkrcnt(_maxwkrcnt), crtwkrcnt(0), selcap(_selcap){
-	if(startwkrcnt == 0) startwkrcnt = 1;
 	if(maxwkrcnt == 0) maxwkrcnt = 1;
 }
 SchedulerBase::SchedulerBase(
@@ -55,7 +54,6 @@ SchedulerBase::SchedulerBase(
 	uint16 _maxwkrcnt,
 	const IndexT &_selcap
 ):rm(_rm), d(*(new Data)), startwkrcnt(_startwkrcnt), maxwkrcnt(_maxwkrcnt), crtwkrcnt(0), selcap(_selcap){
-	if(startwkrcnt == 0) startwkrcnt = 1;
 	if(maxwkrcnt == 0) maxwkrcnt = 1;
 }
 /*virtual*/ SchedulerBase::~SchedulerBase(){

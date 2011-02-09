@@ -32,7 +32,7 @@ class SelectorBase;
 //! A base class for all schedulers
 class SchedulerBase{
 public:
-	virtual void start(uint16 _startwkrcnt = 1, bool _wait = false) = 0;
+	virtual void start(uint16 _startwkrcnt = 0) = 0;
 	
 	virtual void stop(bool _wait = true) = 0;
 	virtual ~SchedulerBase();
