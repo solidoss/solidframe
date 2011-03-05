@@ -55,7 +55,7 @@ struct SignalContext{
 	SignalUid waitid;
 };
 
-typedef DynamicPointer<Signal, SignalContext>	DynamicContextPointerT;
+typedef DynamicPointer<foundation::Signal, SignalContext>	DynamicContextPointerT;
 
 
 }//namespace ipc

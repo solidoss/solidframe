@@ -22,10 +22,81 @@
 #include "foundation/schedulerbase.hpp"
 #include "foundation/manager.hpp"
 #include "foundation/object.hpp"
+#include "foundation/execscheduler.hpp"
 
+#include "utility/workpool.hpp"
 
 namespace foundation{
 
+//--------------------------------------------------------------------
+
+struct Data: WorkPoolControllerBase{
+	
+	typedef WorkPool<ExecScheduler::JobT, Data>	WorkPoolT;
+	
+	Data(ExecScheduler &_res):res(_res){}
+	
+	void prepareWorker(WorkerBase &_rw){
+		res.prepareThread();
+	}
+	void unprepareWorker(WorkerBase &_rw){
+		res.unprepareThread();
+	}
+	bool createWorker(WorkPoolT &_rwp){
+		Worker	*pw(_rwp.createSingleWorker());
+		if(pw && pw->start() != OK){
+			delete pw;
+			return false;
+		}return true;
+	}
+	void execute(WorkerBase &_rw, ExecScheduler::JobT &_rjob);
+	ExecScheduler	&res;
+	WorkPoolT		wp;
+};
+
+
+void ExecScheduler::Data::execute(WorkerBase &_rw, ExecScheduler::JobT &_rjob){
+	int rv(_rjob->execute());
+	switch(rv){
+		case LEAVE:
+			_rjob.release();
+			break;
+		case OK:
+			wp.push(_rjob);
+			break;
+		case BAD:
+			_rjob.clear();
+			break;
+		default:
+			edbg("Unknown return value from Object::exec "<<rv);
+			_rjob.clear();
+			break;
+	}
+}
+
+//--------------------------------------------------------------------
+
+/*static*/ void ExecScheduler::schedule(const JobT &_rjb, uint _idx){
+	static_cast<ExecScheduler*>(m().scheduler<ExecScheduler>(_idx))->d.wp.push(_rjb);
+}
+	
+ExecScheduler::ExecScheduler(
+	uint16 _startthrcnt,
+	uint32 _maxthrcnt
+):SchedulerBase(_startthrcnt, _maxthrcnt, 0){
+	
+}
+ExecScheduler::~ExecScheduler(){
+	
+}
+	
+void ExecScheduler::start(uint16 _startwkrcnt){
+	d.wp.start(_startwkrcnt);
+}
+
+void ExecScheduler::stop(bool _wait){
+	d.wp.stop(_wait);
+}
 
 // ExecPool::ExecPool(uint32 _maxthrcnt){
 // }
