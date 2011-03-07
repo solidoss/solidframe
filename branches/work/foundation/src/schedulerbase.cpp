@@ -61,11 +61,15 @@ SchedulerBase::SchedulerBase(
 }
 void SchedulerBase::prepareThread(SelectorBase *_ps){
 	rm.prepareThread(_ps);
-	safe_at(d.selvec, _ps->id()) = Data::SelectorPairT(_ps, d.idxlst.insert(d.idxlst.end(), _ps->id()));
+	if(_ps){
+		safe_at(d.selvec, _ps->id()) = Data::SelectorPairT(_ps, d.idxlst.insert(d.idxlst.end(), _ps->id()));
+	}
 }
 void SchedulerBase::unprepareThread(SelectorBase *_ps){
-	d.selvec[_ps->id()].first = NULL;
-	d.selvec[_ps->id()].second = d.idxlst.end();
+	if(_ps){
+		d.selvec[_ps->id()].first = NULL;
+		d.selvec[_ps->id()].second = d.idxlst.end();
+	}
 	rm.unprepareThread(_ps);
 }
 bool SchedulerBase::tryRaiseOneSelector()const{

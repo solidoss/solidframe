@@ -20,21 +20,25 @@
 */
 
 #include "foundation/schedulerbase.hpp"
+#include "foundation/selectorbase.hpp"
 #include "foundation/manager.hpp"
 #include "foundation/object.hpp"
 #include "foundation/execscheduler.hpp"
 
 #include "utility/workpool.hpp"
 
+#include "system/timespec.hpp"
+
 namespace foundation{
 
 //--------------------------------------------------------------------
 
-struct Data: WorkPoolControllerBase{
+
+struct ExecScheduler::Data: WorkPoolControllerBase, SelectorBase{
 	
-	typedef WorkPool<ExecScheduler::JobT, Data>	WorkPoolT;
+	typedef WorkPool<ExecScheduler::JobT, Data&>	WorkPoolT;
 	
-	Data(ExecScheduler &_res):res(_res){}
+	Data(ExecScheduler &_res):res(_res), wp(*this){}
 	
 	void prepareWorker(WorkerBase &_rw){
 		res.prepareThread();
@@ -43,20 +47,29 @@ struct Data: WorkPoolControllerBase{
 		res.unprepareThread();
 	}
 	bool createWorker(WorkPoolT &_rwp){
-		Worker	*pw(_rwp.createSingleWorker());
+		WorkerBase	*pw(_rwp.createSingleWorker());
 		if(pw && pw->start() != OK){
 			delete pw;
 			return false;
 		}return true;
 	}
+	void onPush(WorkPoolT &_rwp){
+		if(res.crtwkrcnt < res.maxwkrcnt){
+			_rwp.createWorker();
+		}
+	}
+	/*virtual*/ void raise(uint32 _objidx = 0){}
+	
 	void execute(WorkerBase &_rw, ExecScheduler::JobT &_rjob);
 	ExecScheduler	&res;
 	WorkPoolT		wp;
+	
 };
 
 
 void ExecScheduler::Data::execute(WorkerBase &_rw, ExecScheduler::JobT &_rjob){
-	int rv(_rjob->execute());
+	TimeSpec ts;
+	int rv(SelectorBase::executeObject(*_rjob, 0, ts));
 	switch(rv){
 		case LEAVE:
 			_rjob.release();
@@ -83,11 +96,11 @@ void ExecScheduler::Data::execute(WorkerBase &_rw, ExecScheduler::JobT &_rjob){
 ExecScheduler::ExecScheduler(
 	uint16 _startthrcnt,
 	uint32 _maxthrcnt
-):SchedulerBase(_startthrcnt, _maxthrcnt, 0){
+):SchedulerBase(_startthrcnt, _maxthrcnt, 0), d(*(new Data(*this))){
 	
 }
 ExecScheduler::~ExecScheduler(){
-	
+	delete &d;
 }
 	
 void ExecScheduler::start(uint16 _startwkrcnt){
