@@ -103,6 +103,10 @@ struct DynamicBase{
 	//! Used by DynamicPointer - smartpointers
 	virtual void use();
 	//! Used by DynamicPointer to know if the object must be deleted
+	/*!
+	 * For the return value, think of use count. Returning zero means the object should
+	 * be deleted. Returning non zero means the object should not be deleted.
+	 */
 	virtual int release();
 	
 	virtual bool isTypeDynamic(uint32 _id)const;
