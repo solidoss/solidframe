@@ -5,7 +5,7 @@ set(Sources
 	src/objectselector.cpp
 	src/requestuid.cpp
 	src/service.cpp
-	src/execscheduler.cpp
+	src/basicscheduler.cpp
 	src/schedulerbase.cpp
 )
 
@@ -14,7 +14,7 @@ set(Headers
 	signalexecuter.hpp
 	signal.hpp
 	common.hpp
-#	execpool.hpp
+	basicscheduler.hpp
 	manager.hpp
 	object.hpp
 	objectselector.hpp

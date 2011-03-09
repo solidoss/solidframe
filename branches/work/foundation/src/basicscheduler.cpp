@@ -23,7 +23,7 @@
 #include "foundation/selectorbase.hpp"
 #include "foundation/manager.hpp"
 #include "foundation/object.hpp"
-#include "foundation/execscheduler.hpp"
+#include "foundation/basicscheduler.hpp"
 
 #include "utility/workpool.hpp"
 
@@ -34,11 +34,11 @@ namespace foundation{
 //--------------------------------------------------------------------
 
 
-struct ExecScheduler::Data: WorkPoolControllerBase, SelectorBase{
+struct BasicScheduler::Data: WorkPoolControllerBase, SelectorBase{
 	
-	typedef WorkPool<ExecScheduler::JobT, Data&>	WorkPoolT;
+	typedef WorkPool<BasicScheduler::JobT, Data&>	WorkPoolT;
 	
-	Data(ExecScheduler &_res):res(_res), wp(*this){}
+	Data(BasicScheduler &_res):res(_res), wp(*this){}
 	
 	void prepareWorker(WorkerBase &_rw){
 		res.prepareThread();
@@ -60,19 +60,19 @@ struct ExecScheduler::Data: WorkPoolControllerBase, SelectorBase{
 	}
 	/*virtual*/ void raise(uint32 _objidx = 0){}
 	
-	void execute(WorkerBase &_rw, ExecScheduler::JobT &_rjob);
-	ExecScheduler	&res;
+	void execute(WorkerBase &_rw, BasicScheduler::JobT &_rjob);
+	BasicScheduler	&res;
 	WorkPoolT		wp;
 	
 };
 
 
-void ExecScheduler::Data::execute(WorkerBase &_rw, ExecScheduler::JobT &_rjob){
+void BasicScheduler::Data::execute(WorkerBase &_rw, BasicScheduler::JobT &_rjob){
 	TimeSpec ts;
 	int rv(SelectorBase::executeObject(*_rjob, 0, ts));
 	switch(rv){
 		case LEAVE:
-			_rjob.release();
+			_rjob.clear();
 			break;
 		case OK:
 			wp.push(_rjob);
@@ -89,25 +89,25 @@ void ExecScheduler::Data::execute(WorkerBase &_rw, ExecScheduler::JobT &_rjob){
 
 //--------------------------------------------------------------------
 
-/*static*/ void ExecScheduler::schedule(const JobT &_rjb, uint _idx){
-	static_cast<ExecScheduler*>(m().scheduler<ExecScheduler>(_idx))->d.wp.push(_rjb);
+/*static*/ void BasicScheduler::schedule(const JobT &_rjb, uint _idx){
+	static_cast<BasicScheduler*>(m().scheduler<BasicScheduler>(_idx))->d.wp.push(_rjb);
 }
 	
-ExecScheduler::ExecScheduler(
+BasicScheduler::BasicScheduler(
 	uint16 _startthrcnt,
 	uint32 _maxthrcnt
 ):SchedulerBase(_startthrcnt, _maxthrcnt, 0), d(*(new Data(*this))){
 	
 }
-ExecScheduler::~ExecScheduler(){
+BasicScheduler::~BasicScheduler(){
 	delete &d;
 }
 	
-void ExecScheduler::start(uint16 _startwkrcnt){
+void BasicScheduler::start(uint16 _startwkrcnt){
 	d.wp.start(_startwkrcnt);
 }
 
-void ExecScheduler::stop(bool _wait){
+void BasicScheduler::stop(bool _wait){
 	d.wp.stop(_wait);
 }
 

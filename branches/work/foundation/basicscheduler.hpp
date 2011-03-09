@@ -1,4 +1,4 @@
-/* Declarations file execscheduler.hpp
+/* Declarations file basicscheduler.hpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
@@ -19,8 +19,8 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef FOUNDATION_EXECSCHEDULER_HPP
-#define FOUNDATION_EXECSCHEDULER_HPP
+#ifndef FOUNDATION_BASICSCHEDULER_HPP
+#define FOUNDATION_BASICSCHEDULER_HPP
 
 #include "foundation/schedulerbase.hpp"
 #include "foundation/objectpointer.hpp"
@@ -31,15 +31,15 @@ namespace foundation{
 /*!
 	It doesn't support object signaling and timeouts.
 */
-class ExecScheduler: public SchedulerBase{
+class BasicScheduler: public SchedulerBase{
 public:
 	typedef ObjectPointer<>	JobT;
 	typedef Object			ObjectT;
 	
 	static void schedule(const JobT &_rjb, uint _idx = 0);
 	
-	ExecScheduler(uint16 _startthrcnt = 0,uint32 _maxthrcnt = 1);
-	~ExecScheduler();
+	BasicScheduler(uint16 _startthrcnt = 0,uint32 _maxthrcnt = 1);
+	~BasicScheduler();
 	
 	void start(uint16 _startwkrcnt = 0);
 	
