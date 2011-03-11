@@ -467,7 +467,13 @@ int Manager::fileRead(
 	uint32 _flags
 ){
 	Mutex::Locker lock(d.mtxstore.at(_fileid));
-	return d.fv[_fileid].pfile->read(_pb, _bl, _off, _flags);
+	int rv = d.fv[_fileid].pfile->read(_pb, _bl, _off, _flags);
+	if(rv == 0){
+		vdbgx(Dbg::file, ""<<_fileid<<" "<<(void*)_pb<<' '<<_bl<<' '<<_off<<' '<<rv<<' '<<d.fv[_fileid].pfile->size());
+	}else{
+		vdbgx(Dbg::file, ""<<_fileid<<" "<<(void*)_pb<<' '<<_bl<<' '<<_off<<' '<<rv);
+	}
+	return rv;
 }
 //------------------------------------------------------------------
 int64 Manager::fileSize(IndexT _fileid){
