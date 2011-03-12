@@ -505,6 +505,7 @@ namespace{
 	}else if(openmoderequest & Manager::OpenR){
 		mode |= FileDevice::RO;
 		int rv = fd.open(_path, mode);
+		vdbgx(Dbg::file, "ro "<<_path<<' '<<fd.descriptor()<<' '<<rv);
 		if(rv){
 			openmode = 0;
 			return Bad;
@@ -528,6 +529,7 @@ namespace{
 
 /*virtual*/ bool NameFile::close(const char *_path){
 	bool rv(fd.ok());
+	vdbgx(Dbg::file, ""<<_path<<' '<<fd.descriptor());
 	fd.close();
 	openmode = 0;
 	return rv;
