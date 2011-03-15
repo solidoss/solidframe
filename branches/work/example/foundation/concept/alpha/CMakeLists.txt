@@ -18,9 +18,9 @@ set(Headers
 	src/alphasignals.hpp
 )
 
-set(Includes
+set(Inlines
 )
 
 add_library(concept_alpha
-	${Sources} ${Headers} ${Includes}
+	${Sources} ${Headers} ${Inlines}
 )
