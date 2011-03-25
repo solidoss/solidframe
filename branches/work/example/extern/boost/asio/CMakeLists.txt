@@ -5,5 +5,5 @@ add_executable(proxyserver proxyserver.cpp)
 #     set (SolarisSocketLibs -lsocket -lnsl)
 # endif ()
 
-target_link_libraries (proxyserver utility boost_thread boost_system pthread)
+target_link_libraries (proxyserver ${BOOST_THREAD} ${BOOST_SYSTEM} ${SYS_BASIC_LIBS})
 
