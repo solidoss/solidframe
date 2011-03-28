@@ -9,12 +9,11 @@ target_link_libraries (echoserver
 	algorithm_serialization
 	utility
 	system
-	ssl
-	crypto
-	boost_program_options
-	boost_system
+	${OPENSSL_LIBS}
+	${BOOST_PROGRAM_OPTIONS_LIB}
+	${BOOST_SYSTEM_LIB}
 	${SYS_BASIC_LIBS}
-	dl
+	${SYS_DYNAMIC_LOAD_LIB}
 )
 
 

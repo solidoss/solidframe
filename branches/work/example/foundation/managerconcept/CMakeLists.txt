@@ -7,8 +7,8 @@ target_link_libraries (managerconcept
 	algorithm_serialization
 	utility
 	system
-	boost_program_options
-	boost_system
+	${BOOST_PROGRAM_OPTIONS}
+	${BOOST_SYSTEM}
 	${SYS_BASIC_LIBS}
 )
 

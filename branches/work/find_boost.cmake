@@ -1,4 +1,4 @@
-FIND_LIBRARY(BOOST_TIME
+FIND_LIBRARY(BOOST_TIME_LIB
                 NAMES
 					libboost_date_time.lib
                     libboost_date_time.a
@@ -7,7 +7,7 @@ FIND_LIBRARY(BOOST_TIME
                     ${EXTERN_PATH}/lib
                 NO_DEFAULT_PATH)
 
-FIND_LIBRARY(BOOST_PROGRAM_OPTIONS
+FIND_LIBRARY(BOOST_PROGRAM_OPTIONS_LIB
                 NAMES
                     libboost_program_options.lib
                     libboost_program_options.a
@@ -16,7 +16,7 @@ FIND_LIBRARY(BOOST_PROGRAM_OPTIONS
                     ${EXTERN_PATH}/lib
                 NO_DEFAULT_PATH)
 
-FIND_LIBRARY(BOOST_THREAD
+FIND_LIBRARY(BOOST_THREAD_LIB
                 NAMES
 					libboost_thread.lib
                     libboost_thread.a
@@ -25,7 +25,7 @@ FIND_LIBRARY(BOOST_THREAD
                     ${EXTERN_PATH}/lib
                 NO_DEFAULT_PATH)
 
-FIND_LIBRARY(BOOST_TEST
+FIND_LIBRARY(BOOST_TEST_LIB
                 NAMES
                     libboost_unit_test_framework.lib
                     libboost_unit_test_framework.a
@@ -34,7 +34,7 @@ FIND_LIBRARY(BOOST_TEST
                     ${EXTERN_PATH}/lib
                 NO_DEFAULT_PATH)
 
-FIND_LIBRARY(BOOST_FILESYSTEM
+FIND_LIBRARY(BOOST_FILESYSTEM_LIB
                 NAMES
                     libboost_filesystem.lib
                     libboost_filesystem.a
@@ -43,7 +43,7 @@ FIND_LIBRARY(BOOST_FILESYSTEM
                     ${EXTERN_PATH}/lib
                 NO_DEFAULT_PATH)
 
-FIND_LIBRARY(BOOST_SYSTEM
+FIND_LIBRARY(BOOST_SYSTEM_LIB
                 NAMES
 					libboost_system.lib
                     libboost_system.a

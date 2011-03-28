@@ -98,7 +98,7 @@ set(SYS_NOLOG_LINKER_FLAGS "")
 set(SYS_RELEASE_LINKER_FLAGS "")
 
 set(SYS_BASIC_LIBS "")
-
+set(SYS_DYNAMIC_LOAD_LIB "")
 message("")
 message("cmake's system: ${CMAKE_SYSTEM}")
 message("")
@@ -183,6 +183,7 @@ if(CMAKE_SYSTEM MATCHES "Linux*")
 	set(SYS_RELEASE_LINKER_FLAGS "")
 	
 	set(SYS_BASIC_LIBS pthread rt)
+	set(SYS_DYNAMIC_LOAD_LIB dl)
 endif(CMAKE_SYSTEM MATCHES "Linux*")
 
 if(CMAKE_SYSTEM MATCHES "Windows*")
