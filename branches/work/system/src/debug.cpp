@@ -346,9 +346,9 @@ void filePath(string &_out, uint32 _pos, ulong _pid, const string &_path, const 
 	_out += _name;
 	char buf[128];
 	if(_pos){
-		sprintf(buf, "_%u_%u.dbg", _pid, _pos);
+		sprintf(buf, "_%lu_%u.dbg", _pid, _pos);
 	}else{
-		sprintf(buf, "_%u.dbg", _pid);
+		sprintf(buf, "_%lu.dbg", _pid);
 	}
 	_out += buf;
 }

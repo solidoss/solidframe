@@ -33,9 +33,10 @@
 
 #include "mutexpool.hpp"
 
-#ifdef ON_FREEBSD
+#if defined(ON_FREEBSD)
 #include <pmc.h>
-#else
+#elseif defined(ON_MACOS)
+#elseif defined
 #include <sys/sysinfo.h>
 #endif
 
@@ -112,7 +113,7 @@ int Condition::wait(Mutex &_mut, const TimeSpec &_ts){
 const TimeSpec& TimeSpec::currentRealTime(){
 #if  	defined(ON_WIN32)
 #elseif defined(ON_MACOS)
-#else
+#elseif defined
 	clock_gettime(CLOCK_REALTIME, this);
 #endif
 	return *this;
@@ -121,7 +122,7 @@ const TimeSpec& TimeSpec::currentRealTime(){
 const TimeSpec& TimeSpec::currentMonotonic(){
 #if  	defined(ON_WIN32)
 #elseif defined(ON_MACOS)
-#else
+#elseif defined
 	clock_gettime(CLOCK_MONOTONIC, this);
 #endif
 	return *this;
@@ -141,7 +142,11 @@ const TimeSpec& TimeSpec::currentMonotonic(){
 #endif
 //-------------------------------------------------------------------------
 int Mutex::timedLock(const TimeSpec &_rts){
+#if defined (ON_MACOS)
+    return -1;
+#else
 	return pthread_mutex_timedlock(&mut,&_rts);
+#endif
 }
 //-------------------------------------------------------------------------
 int Mutex::reinit(Type _type){
@@ -215,7 +220,9 @@ void Thread::dummySpecificDestroy(void*){
 	return 1;
 #elseif	defined(ON_FREEBSD)
 	return 1;//pmc_ncpu();//sysconf(_SC_NPROCESSORS_ONLN)
-#else
+#elseif defined(ON_MACOS)
+    return 1;
+#elseif defined
 	return get_nprocs();
 #endif
 }
