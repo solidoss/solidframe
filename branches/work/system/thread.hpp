@@ -132,9 +132,9 @@ private:
 
 inline void Thread::yield(){
 #if		defined(ON_WINDOWS)
-#elseif	defined(ON_SOLARIS) || defined(ON_MACOS)
+#elif	defined(ON_SOLARIS) || defined(ON_MACOS)
 	sched_yield();
-#elseif defined
+#else
 	pthread_yield();
 #endif
 }

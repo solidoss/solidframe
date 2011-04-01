@@ -35,7 +35,7 @@
 
 #if defined(ON_FREEBSD)
 #include <pmc.h>
-#elseif defined(ON_MACOS)
+#elif defined(ON_MACOS)
 #else
 #include <sys/sysinfo.h>
 #endif
@@ -112,8 +112,8 @@ int Condition::wait(Mutex &_mut, const TimeSpec &_ts){
 
 const TimeSpec& TimeSpec::currentRealTime(){
 #if  	defined(ON_WIN32)
-#elseif defined(ON_MACOS)
-#elseif defined
+#elif	defined(ON_MACOS)
+#else
 	clock_gettime(CLOCK_REALTIME, this);
 #endif
 	return *this;
@@ -121,8 +121,8 @@ const TimeSpec& TimeSpec::currentRealTime(){
 
 const TimeSpec& TimeSpec::currentMonotonic(){
 #if  	defined(ON_WIN32)
-#elseif defined(ON_MACOS)
-#elseif defined
+#elif	defined(ON_MACOS)
+#else
 	clock_gettime(CLOCK_MONOTONIC, this);
 #endif
 	return *this;
@@ -218,9 +218,9 @@ void Thread::dummySpecificDestroy(void*){
 /*static*/ unsigned Thread::processorCount(){
 #if		defined(ON_SOLARIS)
 	return 1;
-#elseif	defined(ON_FREEBSD)
+#elif	defined(ON_FREEBSD)
 	return 1;//pmc_ncpu();//sysconf(_SC_NPROCESSORS_ONLN)
-#elseif defined(ON_MACOS)
+#elif	defined(ON_MACOS)
     return 1;
 #else
 	return get_nprocs();
