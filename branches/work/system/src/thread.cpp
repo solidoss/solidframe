@@ -36,7 +36,7 @@
 #if defined(ON_FREEBSD)
 #include <pmc.h>
 #elseif defined(ON_MACOS)
-#elseif defined
+#else
 #include <sys/sysinfo.h>
 #endif
 
@@ -222,7 +222,7 @@ void Thread::dummySpecificDestroy(void*){
 	return 1;//pmc_ncpu();//sysconf(_SC_NPROCESSORS_ONLN)
 #elseif defined(ON_MACOS)
     return 1;
-#elseif defined
+#else
 	return get_nprocs();
 #endif
 }
