@@ -21,20 +21,21 @@
 
 //g++ -o testc testc.cpp threadpp.cpp -lpthread -lrt
 #include <iostream>
-#include "../debug.h"
-#include "threadpp.h"
-#include "synchropp.h"
-#include "../utils.h"
+#include "system/debug.hpp"
+#include "system/thread.hpp"
+#include "system/mutex.hpp"
+#include "system/condition.hpp"
+#include "system/timespec.hpp"
 using namespace std;
 
 
 int main(){
 	Mutex 		m;
 	Condition	c;
-	timespec ts;
+	TimeSpec ts;
 	m.lock();
 	cout<<"before enter"<<endl;
-	clock_gettime(CLOCK_REALTIME, &ts);
+	ts.currentRealTime();
 	cout<<"tv_sec = "<<ts.tv_sec<<" ts.tv_nsec = "<<ts.tv_nsec<<endl;
 	cout<<"time(null) = "<<time(NULL)<<endl;
 	ts.tv_sec += 5;

@@ -66,7 +66,7 @@ int Info::print(){
 	uint32	mncnt = 0;
 	uint32	mx = 0;
 	uint32	mxcnt = 0;
-	uint32	notconnected = 0;
+	//uint32	notconnected = 0;
 	//m.lock();
 	for(vector<ulong>::const_iterator it(v.begin()); it != v.end(); ++it){
 		//cout<<(*it/1024)<<'k'<<' ';
@@ -90,7 +90,7 @@ int Info::print(){
 	tot >>= 10;
 	mn >>= 10;
 	mx >>= 10;
-	clock_gettime(CLOCK_MONOTONIC, &ct);
+	ct.currentMonotonic();
 	cout<<"speed = "<<tot/(ct.seconds() - ft.seconds() + 1)<<"k/s avg = "<<tot/v.size()<<"k min = "<<mn<<"k ("<<mncnt<<") max = "<<mx<<"k ("<<mxcnt<<')';
 	if(concnt != v.size()) cout<<" conected = "<<concnt;
 	if(liscnt != v.size()) cout<<" listed = "<<liscnt;
@@ -126,7 +126,8 @@ public:
 		int _port = -1,
 		int _repeatcnt= 0,
 		int _cnt = ((unsigned)(0xfffffff)),
-		int _sleep = 1):ai(_node, _svice), wr(-1),sd(-1), pos(_pos), cnt(_cnt),slp(_sleep),path(_path),addr(_addr?_addr:""),port(_port),repeatcnt(_repeatcnt){}
+		int _sleep = 1):ai(_node, _svice), wr(-1),sd(-1),cnt(_cnt),slp(_sleep),
+			path(_path), pos(_pos),addr(_addr?_addr:""),port(_port),repeatcnt(_repeatcnt){}
 	void run();
 private:
 	enum {BufLen = 2*1024};
@@ -139,7 +140,7 @@ private:
 	int         cnt;
 	int         slp;
 	const char  *path;
-	StrDqT     sdq;
+	StrDqT		sdq;
 	unsigned    pos;
 	ulong       readc;
 	string		addr;
@@ -572,7 +573,8 @@ int main(int argc, char *argv[]){
 		inf.addWait();
 		pt->start(true, true, 24*1024);
 	}
-	clock_gettime(CLOCK_MONOTONIC, &inf.ft);
+	//clock_gettime(CLOCK_MONOTONIC, &inf.ft);
+	inf.ft.currentMonotonic();
 	while(inf.print()){
 		Thread::sleep(500);
 	}

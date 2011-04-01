@@ -601,10 +601,9 @@ std::ostream& Dbg::print(
 		d.doRespin();
 	}
 	char buf[128];
-	TimeSpec ts_now;
-	clock_gettime(CLOCK_MONOTONIC, &ts_now);
-	ts_now = ts_now - d.begts;
-	time_t t_now = d.begt + ts_now.seconds();
+	TimeSpec ts_now(TimeSpec::createRealTime());
+	//ts_now = ts_now - d.begts;
+	time_t t_now = ts_now.seconds();
 	tm loctm;
 	localtime_r(&t_now, &loctm);
 	sprintf(
@@ -648,10 +647,9 @@ std::ostream& Dbg::printTraceIn(
 		d.doRespin();
 	}
 	char buf[128];
-	TimeSpec ts_now;
-	clock_gettime(CLOCK_MONOTONIC, &ts_now);
-	ts_now = ts_now - d.begts;
-	time_t t_now = d.begt + ts_now.seconds();
+	TimeSpec ts_now(TimeSpec::createRealTime());
+	//ts_now = ts_now - d.begts;
+	time_t t_now = ts_now.seconds();
 	tm loctm;
 	localtime_r(&t_now, &loctm);
 	sprintf(
@@ -687,10 +685,9 @@ std::ostream& Dbg::printTraceOut(
 		d.doRespin();
 	}
 	char buf[128];
-	TimeSpec ts_now;
-	clock_gettime(CLOCK_MONOTONIC, &ts_now);
-	ts_now = ts_now - d.begts;
-	time_t t_now = d.begt + ts_now.seconds();
+	TimeSpec ts_now(TimeSpec::createRealTime());
+	//ts_now = ts_now - d.begts;
+	time_t t_now = ts_now.seconds();
 	tm loctm;
 	localtime_r(&t_now, &loctm);
 	sprintf(
@@ -734,7 +731,7 @@ bool Dbg::isSet(Level _lvl, unsigned _v)const{
 }
 Dbg::Dbg():d(*(new Data)){
 	d.begt = time(NULL);
-	clock_gettime(CLOCK_MONOTONIC, &d.begts);
+	d.begts.currentRealTime();
 	setAllModuleBits();
 	levelMask();
 }

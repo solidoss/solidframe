@@ -99,6 +99,34 @@ int Condition::wait(Mutex &_mut, const TimeSpec &_ts){
 #ifdef NINLINES
 #include "system/timespec.ipp"
 #endif
+
+/*static*/ TimeSpec TimeSpec::createRealTime(){
+	TimeSpec ct;
+	return ct.currentRealTime();
+}
+/*static*/ TimeSpec TimeSpec::createMonotonic(){
+	TimeSpec ct;
+	return ct.currentMonotonic();
+}
+
+const TimeSpec& TimeSpec::currentRealTime(){
+#if  	defined(ON_WIN32)
+#elseif defined(ON_MACOS)
+#else
+	clock_gettime(CLOCK_REALTIME, this);
+#endif
+	return *this;
+}
+
+const TimeSpec& TimeSpec::currentMonotonic(){
+#if  	defined(ON_WIN32)
+#elseif defined(ON_MACOS)
+#else
+	clock_gettime(CLOCK_MONOTONIC, this);
+#endif
+	return *this;
+}
+
 //*************************************************************************
 #ifdef NINLINES
 #include "system/mutex.ipp"

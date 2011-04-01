@@ -20,7 +20,7 @@ const unsigned fileoff = (strstr(__FILE__, "audit/src") - __FILE__);
 class stringoutbuf : public std::streambuf {
 protected:
 	string		s;
-	time_t		t;
+	//time_t		t;
 	TimeSpec	ct;
 	stringoutbuf& operator=(const stringoutbuf&);
 	stringoutbuf(const stringoutbuf&);
@@ -28,8 +28,8 @@ public:
 	// constructor
 	stringoutbuf(){
 		clear();
-		t = time(NULL);
-		clock_gettime(CLOCK_MONOTONIC, &ct);
+		//t = time(NULL);
+		//ct.currentRealTime();
 	}
 	
 	const char* data()const{
@@ -179,9 +179,9 @@ void stringoutbuf::current(
 	uint32	filenamelen = strlen(_file) + 1;//including the terminal \0
 	uint32	functionnamelen = strlen(_function) + 1;//including the terminal \0
 	TimeSpec tt;
-	clock_gettime(CLOCK_MONOTONIC, &tt);
-	tt -= ct;
-	lh.set(_level, _module, _id, _line, t + tt.seconds(), tt.nanoSeconds());
+	tt.currentRealTime();
+	//tt -= ct;
+	lh.set(_level, _module, _id, _line, tt.seconds(), tt.nanoSeconds());
 	lh.set(filenamelen, functionnamelen);
 	//no function so we can overpass the bitorder conversion for datalen
 	lh.datalen = sizeof(audit::LogRecordHead);

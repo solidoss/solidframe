@@ -93,7 +93,7 @@ int main(int argc, char *argv[]){
 	char *bend;
 	char c;
 	int rv;
-	int rc = 0;
+	//int rc = 0;
 	enum States{
 		ReadBanner,
 		BeginLiteral,

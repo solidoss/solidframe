@@ -382,7 +382,7 @@ void Selector::run(){
 	do{
 		flags = 0;
 		if(nbcnt < 0){
-			clock_gettime(CLOCK_MONOTONIC, &d.ctimepos);
+			d.ctimepos.currentMonotonic();
 			nbcnt = maxnbcnt;
 		}
 		
