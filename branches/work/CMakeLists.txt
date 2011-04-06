@@ -69,11 +69,15 @@ message("EXTERN_PATH set as "${EXTERN_PATH})
 #-----------------------------------------------------------------
 # Prepare the definitions for build types
 #-----------------------------------------------------------------
+
+string(TOLOWER ${CMAKE_BUILD_TYPE} CMAKE_BUILD_TYPE)
+
 if(CMAKE_BUILD_TYPE STREQUAL "maintain")
 	set(CMAKE_VERBOSE_MAKEFILE ON)
 endif(CMAKE_BUILD_TYPE STREQUAL "maintain")
 
-if(CMAKE_BUILD_TYPE STREQUAL "debug")
+
+if(CMAKE_BUILD_TYPE STRECASEQUAL "debug")
 	set(CMAKE_VERBOSE_MAKEFILE ON)
 endif(CMAKE_BUILD_TYPE STREQUAL "debug")
 
