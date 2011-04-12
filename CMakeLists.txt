@@ -69,9 +69,13 @@ message("EXTERN_PATH set as "${EXTERN_PATH})
 #-----------------------------------------------------------------
 # Prepare the definitions for build types
 #-----------------------------------------------------------------
+
+string(TOLOWER ${CMAKE_BUILD_TYPE} CMAKE_BUILD_TYPE)
+
 if(CMAKE_BUILD_TYPE STREQUAL "maintain")
 	set(CMAKE_VERBOSE_MAKEFILE ON)
 endif(CMAKE_BUILD_TYPE STREQUAL "maintain")
+
 
 if(CMAKE_BUILD_TYPE STREQUAL "debug")
 	set(CMAKE_VERBOSE_MAKEFILE ON)
@@ -98,7 +102,7 @@ set(SYS_NOLOG_LINKER_FLAGS "")
 set(SYS_RELEASE_LINKER_FLAGS "")
 
 set(SYS_BASIC_LIBS "")
-
+set(SYS_DYNAMIC_LOAD_LIB "")
 message("")
 message("cmake's system: ${CMAKE_SYSTEM}")
 message("")
@@ -183,6 +187,7 @@ if(CMAKE_SYSTEM MATCHES "Linux*")
 	set(SYS_RELEASE_LINKER_FLAGS "")
 	
 	set(SYS_BASIC_LIBS pthread rt)
+	set(SYS_DYNAMIC_LOAD_LIB dl)
 endif(CMAKE_SYSTEM MATCHES "Linux*")
 
 if(CMAKE_SYSTEM MATCHES "Windows*")
@@ -305,6 +310,13 @@ set(CMAKE_BUILD_TYPE
     FORCE
 )
 #-----------------------------------------------------------------
+
+#-----------------------------------------------------------------
+# Find libraries
+#-----------------------------------------------------------------
+
+include(find_boost.cmake)
+include(find_openssl.cmake)
 
 #-----------------------------------------------------------------
 # Global include directories

@@ -82,7 +82,7 @@ void ObjectSelector::run(){
 	do{
 		state = 0;
 		if(nbcnt < 0){
-			clock_gettime(CLOCK_REALTIME, &ctimepos);
+			ctimepos.currentRealTime();
 			nbcnt = maxnbcnt;
 		}
 		
@@ -162,12 +162,12 @@ int ObjectSelector::doWait(int _wt){
 				vdbgx(Dbg::fdt, "before cond wait");
 				if(cnd.wait(mtx,ts)){
 					vdbgx(Dbg::fdt, "after 1 cond wait");
-					clock_gettime(CLOCK_REALTIME, &ctimepos);
+					ctimepos.currentRealTime();
 					rv |= FULL_SCAN;
 					break;
 				}
 				vdbgx(Dbg::fdt, "after 2 cond wait");
-				clock_gettime(CLOCK_REALTIME, &ctimepos);
+				ctimepos.currentRealTime();
 				if(ctimepos >= ntimepos){
 					rv |= FULL_SCAN;
 					break;
@@ -175,7 +175,7 @@ int ObjectSelector::doWait(int _wt){
 			}
 		}else{
 			while(uiq.empty()) cnd.wait(mtx);
-			clock_gettime(CLOCK_REALTIME, &ctimepos);
+			ctimepos.currentRealTime();
 		}
 	}
 	if(uiq.size()){

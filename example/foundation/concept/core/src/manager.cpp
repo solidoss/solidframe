@@ -145,6 +145,7 @@ Manager::Manager():foundation::Manager(16), d(*(new Data())){
 	registerObject<SchedulerT>(new fdt::file::Manager(&fmctrl), 0, d.filemanageridx);
 	registerObject<SchedulerT>(new fdt::SignalExecuter, 0, d.readsigexeidx);
 	registerObject<SchedulerT>(new fdt::SignalExecuter, 0, d.writesigexeidx);
+	
 	registerService<SchedulerT>(new foundation::ipc::Service(&ipcctrl), 0, d.ipcidx);
 }
 

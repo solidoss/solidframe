@@ -17,7 +17,7 @@ class Writer{
 public://nonstatic methods
     enum{BUFFLEN = 1024};
     static bool isquotedspecial(uint8 _c);
-    Writer(int _sd = -1):sd(_sd),wrerr(0),bend(bbeg+BUFFLEN),bpos(bbeg),count(0),pssl(NULL){}
+    Writer(int _sd = -1):sd(_sd), pssl(NULL), wrerr(0), bend(bbeg+BUFFLEN), bpos(bbeg), count(0){}
     ~Writer(){}
     void reinit(int _sd, SSL *_pssl = NULL);
     int flush();

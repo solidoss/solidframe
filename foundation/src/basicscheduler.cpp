@@ -20,12 +20,96 @@
 */
 
 #include "foundation/schedulerbase.hpp"
+#include "foundation/selectorbase.hpp"
 #include "foundation/manager.hpp"
 #include "foundation/object.hpp"
+#include "foundation/basicscheduler.hpp"
 
+#include "utility/workpool.hpp"
+
+#include "system/timespec.hpp"
 
 namespace foundation{
 
+//--------------------------------------------------------------------
+
+
+struct BasicScheduler::Data: WorkPoolControllerBase, SelectorBase{
+	
+	typedef WorkPool<BasicScheduler::JobT, Data&>	WorkPoolT;
+	
+	Data(BasicScheduler &_res):res(_res), wp(*this){}
+	
+	void prepareWorker(WorkerBase &_rw){
+		res.prepareThread();
+	}
+	void unprepareWorker(WorkerBase &_rw){
+		res.unprepareThread();
+	}
+	bool createWorker(WorkPoolT &_rwp){
+		WorkerBase	*pw(_rwp.createSingleWorker());
+		if(pw && pw->start() != OK){
+			delete pw;
+			return false;
+		}return true;
+	}
+	void onPush(WorkPoolT &_rwp){
+		if(res.crtwkrcnt < res.maxwkrcnt){
+			_rwp.createWorker();
+		}
+	}
+	/*virtual*/ void raise(uint32 _objidx = 0){}
+	
+	void execute(WorkerBase &_rw, BasicScheduler::JobT &_rjob);
+	BasicScheduler	&res;
+	WorkPoolT		wp;
+	
+};
+
+
+void BasicScheduler::Data::execute(WorkerBase &_rw, BasicScheduler::JobT &_rjob){
+	TimeSpec ts;
+	int rv(SelectorBase::executeObject(*_rjob, 0, ts));
+	switch(rv){
+		case LEAVE:
+			_rjob.clear();
+			break;
+		case OK:
+			wp.push(_rjob);
+			break;
+		case BAD:
+			_rjob.clear();
+			break;
+		default:
+			edbg("Unknown return value from Object::exec "<<rv);
+			_rjob.clear();
+			break;
+	}
+}
+
+//--------------------------------------------------------------------
+
+/*static*/ void BasicScheduler::schedule(const JobT &_rjb, uint _idx){
+	static_cast<BasicScheduler*>(m().scheduler<BasicScheduler>(_idx))->d.wp.push(_rjb);
+}
+	
+BasicScheduler::BasicScheduler(
+	uint16 _startthrcnt,
+	uint32 _maxthrcnt
+):SchedulerBase(_startthrcnt, _maxthrcnt, 0), d(*(new Data(*this))){
+	
+}
+BasicScheduler::~BasicScheduler(){
+	delete &d;
+}
+	
+void BasicScheduler::start(uint16 _startwkrcnt){
+	d.wp.start(_startwkrcnt);
+}
+
+void BasicScheduler::stop(bool _wait){
+	d.wp.stop(_wait);
+}
 
 // ExecPool::ExecPool(uint32 _maxthrcnt){
 // }

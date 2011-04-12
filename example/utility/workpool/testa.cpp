@@ -31,9 +31,10 @@ typedef WorkPool<int, MyWorkPoolController>	MyWorkPool;
 
 struct MyWorkPoolController: WorkPoolControllerBase{
 	typedef std::vector<int>	IntVectorT;
-	void createWorker(MyWorkPool &_rwp){
+	bool createWorker(MyWorkPool &_rwp){
 		//_rwp.createSingleWorker()->start();
 		_rwp.createMultiWorker(4)->start();
+		return true;
 	}
 	void execute(WorkerBase &, int _i){
 		idbg("i = "<<_i);
@@ -59,7 +60,7 @@ int main(int argc, char *argv[]){
 	}
 #endif
 	MyWorkPool	mwp;
-	mwp.start(2, true);
+	mwp.start(2);
 	
 	for(int i(0); i < 100; ++i){
 		mwp.push(i);

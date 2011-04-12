@@ -85,10 +85,10 @@ struct Test{
 	S& operator&(S &_s){
 		return _s.template pushStreammer<Test>(this, "Test::fs").push(no, "Test::no").push(fn,"Test::fn");
 	}
-	int createDeserializationStream(std::pair<OStream *, int64> &_rps, int _id);
-	void destroyDeserializationStream(const std::pair<OStream *, int64> &_rps, int _id);
-	int createSerializationStream(std::pair<IStream *, int64> &_rps, int _id);
-	void destroySerializationStream(const std::pair<IStream *, int64> &_rps, int _id);
+	int createDeserializationStream(OStream *&_rps, int64 &_rsz, uint64 &_roff, int _id);
+	void destroyDeserializationStream(OStream *_ps, int64 &_rsz, uint64 &_roff, int _id);
+	int createSerializationStream(IStream *&_rps, int64 &_rsz, uint64 &_roff, int _id);
+	void destroySerializationStream(IStream *_ps, int64 &_rsz, uint64 &_roff, int _id);
 	void print();
 private:
 	int32 			no;
@@ -100,15 +100,15 @@ private:
 Test::Test(const char *_fn):fn(_fn?_fn:""){}
 //-----------------------------------------------------------------------------------
 void Test::destroyDeserializationStream(
-	const std::pair<OStream *, int64> &_rps, int _id
+	OStream *_ps, int64 &_rsz, uint64 &_roff, int _id
 ){
-	cout<<"Destroy deserialization <"<<_id<<"> sz "<<_rps.second<<endl;
+	cout<<"Destroy deserialization <"<<_id<<"> sz "<<_rsz<<endl;
 }
 int Test::createDeserializationStream(
-	std::pair<OStream *, int64> &_rps, int _id
+	OStream *&_rps, int64 &_rsz, uint64 &_roff, int _id
 ){
 	if(_id) return NOK;
-	cout<<"Create deserialization <"<<_id<<"> sz "<<_rps.second<<endl;
+	cout<<"Create deserialization <"<<_id<<"> sz "<<_rsz<<endl;
 	if(fn.empty() /*|| _rps.second < 0*/) return BAD;
 	fn += ".xxx";
 	cout<<"File name <"<<fn<<endl;
@@ -116,30 +116,30 @@ int Test::createDeserializationStream(
 		fn.clear();
 		cout<<"failed open des file"<<endl;
 	}else{
-		_rps.first = static_cast<OStream*>(&fs);
+		_rps = static_cast<OStream*>(&fs);
 		cout<<"success oppening des file"<<endl;
 	}
 	return OK;
 }
 void Test::destroySerializationStream(
-	const std::pair<IStream *, int64> &_rps, int _id
+	IStream *_ps, int64 &_rsz, uint64 &_roff, int _id
 ){
 	cout<<"doing nothing as the stream will be destroyed when the command will be destroyed"<<endl;
 	//fs.close();
 }
 
 int Test::createSerializationStream(
-	std::pair<IStream *, int64> &_rps, int _id
+	IStream *&_rps, int64 &_rsz, uint64 &_roff, int _id
 ){
 	if(_id) return NOK;
-	cout<<"Create serialization <"<<_id<<"> sz "<<_rps.second<<endl;;
+	cout<<"Create serialization <"<<_id<<"> sz "<<_rsz<<endl;;
 	//The stream is already opened
 	cout<<"File name "<<fn<<endl;
 	if(fn.empty() || fs.openRead(fn.c_str())){
 		return BAD;
 	}
-	_rps.first = static_cast<IStream*>(&fs);
-	_rps.second = fs.size();
+	_rps = static_cast<IStream*>(&fs);
+	_rsz = fs.size();
 	cout<<"serializing stream"<<endl;
 	return OK;
 }

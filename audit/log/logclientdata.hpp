@@ -14,7 +14,7 @@ struct LogClientData{
 	uint32			uid;
 	LogHead			head;
 	std::string		procname;
-	NameVectorT	modulenamev;
+	NameVectorT		modulenamev;
 };
 
 }//namespace audit

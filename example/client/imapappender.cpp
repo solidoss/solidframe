@@ -183,14 +183,14 @@ int main(int argc, char *argv[]){
 	{
 		fs::directory_iterator 	it,end;
 		try{
-		fs::path pth(p.path, fs::native);
+		fs::path pth(p.path/*, fs::native*/);
 		it = fs::directory_iterator(pth);
 		}catch ( const std::exception & ex ){
 			cout<<"iterator exception"<<endl;
 			return OK;
 		}
 		while(it != end){
-			dirv.push(it->string(), is_directory(*it));
+			dirv.push(it->path().c_str(), is_directory(*it));
 			++it;
 		}
 		std::sort(dirv.begin(), dirv.end(), DirItemCmp());

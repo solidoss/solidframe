@@ -1,4 +1,4 @@
-/* Declarations file execscheduler.hpp
+/* Declarations file basicscheduler.hpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
@@ -19,31 +19,36 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef FOUNDATION_EXECSCHEDULER_HPP
-#define FOUNDATION_EXECSCHEDULER_HPP
-
-#include "utility/workpool.hpp"
+#ifndef FOUNDATION_BASICSCHEDULER_HPP
+#define FOUNDATION_BASICSCHEDULER_HPP
 
 #include "foundation/schedulerbase.hpp"
 #include "foundation/objectpointer.hpp"
 
+struct D;
 namespace foundation{
 //! A simple execution pool for one shot object execution
 /*!
 	It doesn't support object signaling and timeouts.
 */
-class ExecScheduler: protected SchedulerBase, protected WorkPool<ObjectPointer<Object> >{
+class BasicScheduler: public SchedulerBase{
 public:
-	ExecScheduler(uint32 _maxthrcnt);
-	virtual ~ExecScheduler();
-	void raise(uint _thid);
-	void raise(uint _thid, uint _objid);
-	void run(Worker &_rw);
-	void prepareWorker();
-	void unprepareWorker();
-protected:
-	typedef WorkPool<ObjectPointer<Object> > WorkPoolT;
-	/*virtual*/ int createWorkers(uint);
+	typedef ObjectPointer<>	JobT;
+	typedef Object			ObjectT;
+	
+	static void schedule(const JobT &_rjb, uint _idx = 0);
+	
+	BasicScheduler(uint16 _startthrcnt = 0,uint32 _maxthrcnt = 1);
+	~BasicScheduler();
+	
+	void start(uint16 _startwkrcnt = 0);
+	
+	void stop(bool _wait = true);
+	
+private:
+	struct Data;
+	friend struct Data;
+	Data	&d;
 };
 
 

@@ -19,10 +19,10 @@ set(Headers
 	tstring.hpp
 )
 
-set(Includes
+set(Inlines
 )
 
 add_library(concept_core
-	${Sources} ${Headers} ${Includes}
+	${Sources} ${Headers} ${Inlines}
 )
 

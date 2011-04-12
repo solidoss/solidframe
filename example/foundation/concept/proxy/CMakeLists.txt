@@ -11,10 +11,10 @@ set(Headers
 	src/proxymulticonnection.hpp
 )
 
-set(Includes
+set(Inlines
 )
 
 add_library(concept_proxy
-	${Sources} ${Headers} ${Includes}
+	${Sources} ${Headers} ${Inlines}
 )
 

@@ -74,7 +74,7 @@ int Info::print(){
 	uint32	mncnt = 0;
 	uint32	mx = 0;
 	uint32	mxcnt = 0;
-	uint32	notconnected = 0;
+	//uint32	notconnected = 0;
 	//m.lock();
 	for(vector<ulong>::const_iterator it(v.begin()); it != v.end(); ++it){
 		//cout<<(*it/1024)<<'k'<<' ';
@@ -98,7 +98,7 @@ int Info::print(){
 	tot >>= 10;
 	mn >>= 10;
 	mx >>= 10;
-	clock_gettime(CLOCK_MONOTONIC, &ct);
+	ct.currentMonotonic();
 	cout<<"speed = "<<tot/(ct.seconds() - ft.seconds() + 1)<<"k/s avg = "<<tot/v.size()<<"k min = "<<mn<<"k ("<<mncnt<<") max = "<<mx<<"k ("<<mxcnt<<')';
 	if(concnt != v.size()) cout<<" conected = "<<concnt;
 	if(liscnt != v.size()) cout<<" listed = "<<liscnt;
@@ -570,7 +570,7 @@ int main(int argc, char *argv[]){
 		inf.addWait();
 		pt->start(true, true, 24*1024);
 	}
-	clock_gettime(CLOCK_MONOTONIC, &inf.ft);
+	inf.ft.currentMonotonic();
 	while(inf.print()){
 		Thread::sleep(500);
 	}

@@ -87,7 +87,9 @@ public:
 protected:
 	void ptr(ObjectT *_pobj){
 		pobj = _pobj;
-		use(static_cast<Object*>(pobj));
+		if(_pobj){
+			use(static_cast<Object*>(pobj));
+		}
 	}
 private:
 	mutable ObjectT 	*pobj;

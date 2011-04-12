@@ -286,6 +286,7 @@ int main(int argc, char* argv[]){
 			cout<<"Error parsing command line"<<endl;
 		}
 	}
+	lm.stop();
 	Thread::waitAll();
 	return 0;
 }

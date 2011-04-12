@@ -36,7 +36,7 @@ print_usage(){
 	echo "[-b|--build BuildType]: The cmake build type release/debug/nolog/maintain - default release"
 	echo "[-p|--param ParamName]: Extra compilation flags. E.g. -p \"-DUINDEX64 -DUSERVICEBITS=3\""
 	echo "[-d|--documentation full/fast]: Build either fast or full documentation"
-#	echo "[-e|--extern-path ExternPath]: relative path to extern libraries under solidground/extern folder"
+#	echo "[-e|--extern-path ExternPath]: relative path to extern libraries under solidframe/extern folder"
 	echo "[-e|--extern-path ExternAbsPath]: absolute path to extern libraries"
 	echo "[-t|--enable-testing]: Enable unit-testing using ctest"
 	echo "[--test-name name]: The name of ctest/cdash project"
@@ -46,18 +46,18 @@ print_usage(){
 	echo
 	echo "Examples:"
 	echo "1) create simple make release build:"
-	echo "	./configure -f rls -b release -e ~/work/sg_extern"
+	echo "	./configure -f rls -b release -e ~/work/sf_extern"
 	echo
 	echo "2) create kdevelop3 project:"
-	echo "	./configure -f kdv -b debug -e ~/work/sg_extern -g KDevelop3"
+	echo "	./configure -f kdv -b debug -e ~/work/sf_extern -g KDevelop3"
 	echo
 	echo "3) create eclipse projects - one for source within source tree and one external for build (note that the build is external to source tree, as needed by eclipse):"
-	echo "	./configure -F ../sg_ecl -b debug -e ~/work/sg_extern -g \"Eclipse CDT4 - Unix Makefiles\" --cmake-param \"-DECLIPSE_CDT4_GENERATE_SOURCE_PROJECT=TRUE\""
+	echo "	./configure -F ../sf_ecl -b debug -e ~/work/sf_extern -g \"Eclipse CDT4 - Unix Makefiles\" --cmake-param \"-DECLIPSE_CDT4_GENERATE_SOURCE_PROJECT=TRUE\""
 	echo
 	echo "4) create a simple make release build, directly specifying cmake parameters:"
-	echo "	./configure -f rel -b release -P -DUDEFS:STRING=\"-DUDEBUG -DUASSERT\" -P -DUEXTERN_ABS:STRING=\"/home/vpalade/projects/sg_extern\""
+	echo "	./configure -f rel -b release -P -DUDEFS:STRING=\"-DUDEBUG -DUASSERT\" -P -DUEXTERN_ABS:STRING=\"/home/vpalade/projects/sf_extern\""
 	echo "The above command is equivalent to:"
-	echo "	./configure -f rel -b release -e ~/projects/sg_extern -p \"-DUDEBUG -DUASSERT\""
+	echo "	./configure -f rel -b release -e ~/projects/sf_extern -p \"-DUDEBUG -DUASSERT\""
 	echo
 	exit
 }
@@ -218,14 +218,6 @@ if [ "$DOCUMENTATION" = "fast" ]; then
 	echo "Done building documentation"
 	exit
 fi
-
-# if [ "$EXTERN" = "pack" ]; then
-# 	echo "Building extern archive"
-# 	cd extern
-# 	tar -cjf solidground_extern_linux.tar.bz2 linux
-# 	echo "Done building extern archive"
-# fi
-
 
 if [ "$BUILD_TYPE" = "" ]; then
 	BUILD_TYPE="release"
