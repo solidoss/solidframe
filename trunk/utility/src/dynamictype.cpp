@@ -130,7 +130,7 @@ DynamicMap::FncT DynamicBase::callback(const DynamicMap &_rdm){
 //! Used by DynamicPointer to know if the object must be deleted
 /*virtual*/ int DynamicBase::release(){
 	idbgx(Dbg::utility, "DynamicBase");
-	return OK;
+	return 0;
 }
 /*virtual*/ bool DynamicBase::isTypeDynamic(uint32 _id)const{
 	return false;

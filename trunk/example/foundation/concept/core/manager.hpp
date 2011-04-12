@@ -60,7 +60,7 @@ public:
 	
 	~Manager();
 	
-	static Manager& the(){return static_cast<Manager&>(foundation::Manager::the());}
+	static Manager& the();
 	
 	template <typename O>
 	typename O::ServiceT & service(O &_ro){
@@ -82,6 +82,10 @@ private:
 
 inline Manager& m(){
 	return Manager::the();
+}
+
+inline /*static*/ Manager& Manager::the(){
+	return static_cast<Manager&>(foundation::Manager::the());
 }
 
 }//namespace concept

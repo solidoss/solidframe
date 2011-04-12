@@ -192,7 +192,7 @@ void List::initReader(Reader &_rr){
 }
 int List::execute(Connection &_rc){
 	idbg("path: "<<strpth);
-	fs::path pth(strpth.c_str(), fs::native);
+	fs::path pth(strpth.c_str()/*, fs::native*/);
 	protocol::Parameter &rp = _rc.writer().push(&Writer::putStatus);
 	rp = protocol::Parameter(StrDef(" OK Done LIST@"));
 	if(!exists( pth ) || !is_directory(pth)){
@@ -208,11 +208,11 @@ int List::execute(Connection &_rc){
 	_rc.writer().push(&Writer::reinit<List>, protocol::Parameter(this, Step));
 	if(it != end){
 		_rc.writer().push(&Writer::putCrlf);
-		_rc.writer().push(&Writer::putAString, protocol::Parameter((void*)it->string().data(), it->string().size()));
+		_rc.writer().push(&Writer::putAString, protocol::Parameter((void*)it->path().c_str(), strlen(it->path().c_str())));
 		if(is_directory(*it)){
 			_rc.writer()<<"* DIR ";
 		}else{
-			_rc.writer()<<"* FILE "<<(uint32)FileDevice::size(it->string().c_str())<<' ';
+			_rc.writer()<<"* FILE "<<(uint32)FileDevice::size(it->path().c_str())<<' ';
 		}
 	}
 	return OK;
@@ -222,11 +222,11 @@ int List::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 	++it;
 	if(it != end){
 		_rw.push(&Writer::putCrlf);
-		_rw.push(&Writer::putAString, protocol::Parameter((void*)it->string().data(), it->string().size()));
+		_rw.push(&Writer::putAString, protocol::Parameter((void*)it->path().c_str(), strlen(it->path().c_str())));
 		if(is_directory(*it)){
 			_rw<<"* DIR ";
 		}else{
-			_rw<<"* FILE "<<(uint32)FileDevice::size(it->string().c_str())<<' ';
+			_rw<<"* FILE "<<(uint32)FileDevice::size(it->path().c_str())<<' ';
 		}
 		return Writer::Continue;
 	}

@@ -25,13 +25,13 @@ LogFileRecorder::~LogFileRecorder(){
 
 static const char* levelName(unsigned _lvl){
 	switch(_lvl){
-		case Log::Warn:		return "WARN";
-		case Log::Info:		return "INFO";
-		case Log::Error:	return "ERROR";
-		case Log::Debug:	return "DEBUG";
-		case Log::Input:	return "INPUT";
-		case Log::Output:	return "OUTPUT";
-		default: return "UNKNOWN";
+		case Log::Warn:		return "WAR";
+		case Log::Info:		return "INF";
+		case Log::Error:	return "ERR";
+		case Log::Debug:	return "DEB";
+		case Log::Input:	return "INP";
+		case Log::Output:	return "OUT";
+		default: return "UNK";
 	}
 }
 

@@ -34,6 +34,14 @@ struct TimeSpec: public timespec{
 	
 	static const TimeSpec max;
 	
+	static TimeSpec createRealTime();
+	static TimeSpec createMonotonic();
+	
+	//! Current of the wall time
+	const TimeSpec& currentRealTime();
+	//! Current time lapsed from a fixed moment - e.g. computer power-up
+	const TimeSpec& currentMonotonic();
+	
 	TimeSpec(const TimeT &_s = 0, long _ns = 0){set(_s, _ns);}
 	TimeT	seconds()const{return tv_sec;}
 	bool isMax()const;

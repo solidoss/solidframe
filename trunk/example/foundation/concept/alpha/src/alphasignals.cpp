@@ -104,7 +104,7 @@ int RemoteListSignal::execute(
 	idbg("done sleeping");
 	
 	fs::directory_iterator			it,end;
-	fs::path						pth(strpth.c_str(), fs::native);
+	fs::path						pth(strpth.c_str()/*, fs::native*/);
 	
 	ppthlst = new RemoteList::PathListT;
 	strpth.clear();
@@ -130,10 +130,10 @@ int RemoteListSignal::execute(
 	}
 	
 	while(it != end){
-		ppthlst->push_back(std::pair<String, int64>(it->string(), -1));
+		ppthlst->push_back(std::pair<String, int64>(it->path().c_str(), -1));
 		if(is_directory(*it)){
 		}else{
-			ppthlst->back().second = FileDevice::size(it->string().c_str());
+			ppthlst->back().second = FileDevice::size(it->path().c_str());
 		}
 		++it;
 	}

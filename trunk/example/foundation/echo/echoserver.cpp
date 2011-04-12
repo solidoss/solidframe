@@ -1,10 +1,12 @@
 #include "foundation/manager.hpp"
 #include "foundation/service.hpp"
 #include "foundation/scheduler.hpp"
+#include "foundation/objectselector.hpp"
 
 #include "foundation/aio/aioselector.hpp"
-#include "foundation/objectselector.hpp"
 #include "foundation/aio/aiosingleobject.hpp"
+#include "foundation/aio/openssl/opensslsocket.hpp"
+
 #include "foundation/ipc/ipcservice.hpp"
 
 #include "system/thread.hpp"
@@ -13,9 +15,8 @@
 
 #include "boost/program_options.hpp"
 
-#include "foundation/aio/openssl/opensslsocket.hpp"
-
 #include <iostream>
+
 using namespace std;
 
 namespace fdt=foundation;
@@ -64,7 +65,7 @@ public:
 	
 private:
 	enum {BUFSZ = 4*1024};
-	enum {INIT,READ, READ_TOUT, WRITE, WRITE_TOUT, CONNECT,CONNECT_TOUT};
+	enum {INIT,READ, READ_TOUT, WRITE, WRITE_TOUT, CONNECT, CONNECT_TOUT};
 	char				bbeg[BUFSZ];
 	const char			*bend;
 	char				*brpos;
@@ -85,7 +86,7 @@ public:
 	int execute(ulong _sig, TimeSpec &_tout);
 private:
 	enum {BUFSZ = 1024};
-	enum {INIT,READ, READ_TOUT, WRITE, WRITE_TOUT, WRITE2,WRITE_TOUT2};
+	enum {INIT,READ, READ_TOUT, WRITE, WRITE_TOUT, WRITE2, WRITE_TOUT2};
 	char			bbeg[BUFSZ];
 	uint			sz;
 	AddrInfo		*pai;
@@ -166,9 +167,9 @@ int main(int argc, char *argv[]){
 }
 
 void insertListener(const char *_name, IndexT _idx, const char *_addr, int _port, bool _secure){
-	AddrInfo ai(_addr, _port, 0, AddrInfo::Inet4, AddrInfo::Stream);
+	AddrInfo		ai(_addr, _port, 0, AddrInfo::Inet4, AddrInfo::Stream);
+	SocketDevice	sd;
 	
-	SocketDevice sd;
 	sd.create(ai.begin());
 	sd.makeNonBlocking();
 	sd.prepareAccept(ai.begin(), 100);
@@ -195,9 +196,9 @@ void insertListener(const char *_name, IndexT _idx, const char *_addr, int _port
 }
 
 void insertTalker(const char *_name, IndexT _idx, const char *_addr, int _port){
-	AddrInfo ai(_addr, _port, 0, AddrInfo::Inet4, AddrInfo::Datagram);
+	AddrInfo		ai(_addr, _port, 0, AddrInfo::Inet4, AddrInfo::Datagram);
+	SocketDevice	sd;
 	
-	SocketDevice sd;
 	sd.create(ai.begin());
 	sd.bind(ai.begin());
 	

@@ -346,9 +346,9 @@ void filePath(string &_out, uint32 _pos, ulong _pid, const string &_path, const 
 	_out += _name;
 	char buf[128];
 	if(_pos){
-		sprintf(buf, "_%u_%u.dbg", _pid, _pos);
+		sprintf(buf, "_%lu_%u.dbg", _pid, _pos);
 	}else{
-		sprintf(buf, "_%u.dbg", _pid);
+		sprintf(buf, "_%lu.dbg", _pid);
 	}
 	_out += buf;
 }
@@ -601,10 +601,9 @@ std::ostream& Dbg::print(
 		d.doRespin();
 	}
 	char buf[128];
-	TimeSpec ts_now;
-	clock_gettime(CLOCK_MONOTONIC, &ts_now);
-	ts_now = ts_now - d.begts;
-	time_t t_now = d.begt + ts_now.seconds();
+	TimeSpec ts_now(TimeSpec::createRealTime());
+	//ts_now = ts_now - d.begts;
+	time_t t_now = ts_now.seconds();
 	tm loctm;
 	localtime_r(&t_now, &loctm);
 	sprintf(
@@ -648,10 +647,9 @@ std::ostream& Dbg::printTraceIn(
 		d.doRespin();
 	}
 	char buf[128];
-	TimeSpec ts_now;
-	clock_gettime(CLOCK_MONOTONIC, &ts_now);
-	ts_now = ts_now - d.begts;
-	time_t t_now = d.begt + ts_now.seconds();
+	TimeSpec ts_now(TimeSpec::createRealTime());
+	//ts_now = ts_now - d.begts;
+	time_t t_now = ts_now.seconds();
 	tm loctm;
 	localtime_r(&t_now, &loctm);
 	sprintf(
@@ -687,10 +685,9 @@ std::ostream& Dbg::printTraceOut(
 		d.doRespin();
 	}
 	char buf[128];
-	TimeSpec ts_now;
-	clock_gettime(CLOCK_MONOTONIC, &ts_now);
-	ts_now = ts_now - d.begts;
-	time_t t_now = d.begt + ts_now.seconds();
+	TimeSpec ts_now(TimeSpec::createRealTime());
+	//ts_now = ts_now - d.begts;
+	time_t t_now = ts_now.seconds();
 	tm loctm;
 	localtime_r(&t_now, &loctm);
 	sprintf(
@@ -734,7 +731,7 @@ bool Dbg::isSet(Level _lvl, unsigned _v)const{
 }
 Dbg::Dbg():d(*(new Data)){
 	d.begt = time(NULL);
-	clock_gettime(CLOCK_MONOTONIC, &d.begts);
+	d.begts.currentRealTime();
 	setAllModuleBits();
 	levelMask();
 }

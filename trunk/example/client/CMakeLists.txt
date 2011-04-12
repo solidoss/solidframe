@@ -5,18 +5,17 @@ add_executable (alphastore_p alphastore_p.cpp writer.cpp)
 add_executable (imapappender imapappender.cpp base64stream.cpp writer.cpp)
 set_source_files_properties(imapappender.cpp COMPILE_FLAGS -DOSSL_SOURCE_PATH='"${EXTERN_PATH}"')
 set_source_files_properties(alphaclient_s.cpp COMPILE_FLAGS -DOSSL_SOURCE_PATH='"${EXTERN_PATH}"')
-target_link_libraries (alphaclient_p utility system ssl crypto ${SYS_BASIC_LIBS} dl)
-target_link_libraries (alphaclient_s utility system ssl crypto ${SYS_BASIC_LIBS} dl)
-target_link_libraries (alphafetch_p utility system ssl crypto  ${SYS_BASIC_LIBS} dl)
-target_link_libraries (alphastore_p utility system ssl crypto  ${SYS_BASIC_LIBS} dl)
+target_link_libraries (alphaclient_p utility system ${OPENSSL_LIBS} ${SYS_BASIC_LIBS} ${SYS_DYNAMIC_LOAD_LIB})
+target_link_libraries (alphaclient_s utility system ${OPENSSL_LIBS} ${SYS_BASIC_LIBS} ${SYS_DYNAMIC_LOAD_LIB})
+target_link_libraries (alphafetch_p utility system ${OPENSSL_LIBS}  ${SYS_BASIC_LIBS} ${SYS_DYNAMIC_LOAD_LIB})
+target_link_libraries (alphastore_p utility system ${OPENSSL_LIBS}  ${SYS_BASIC_LIBS} ${SYS_DYNAMIC_LOAD_LIB})
 target_link_libraries (imapappender
 	utility
 	system
-	ssl
-	crypto
-	boost_filesystem
-	boost_program_options
-	boost_system
+	${OPENSSL_LIBS}
+	${BOOST_FILESYSTEM_LIB}
+	${BOOST_PROGRAM_OPTIONS_LIB}
+	${BOOST_SYSTEM_LIB}
 	${SYS_BASIC_LIBS}
-	dl
+	${SYS_DYNAMIC_LOAD_LIB}
 )

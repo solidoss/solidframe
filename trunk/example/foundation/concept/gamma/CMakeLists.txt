@@ -16,9 +16,9 @@ set(Headers
 	src/gammawriter.hpp
 )
 
-set(Includes
+set(Inlines
 )
 
 add_library(concept_gamma
-	${Sources} ${Headers} ${Includes}
+	${Sources} ${Headers} ${Inlines}
 )
