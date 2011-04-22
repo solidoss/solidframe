@@ -1133,14 +1133,8 @@ bool Session::pushSentBuffer(
 	}
 	
 	if(rsbd.mustdelete){
-		if(_id){
-			d.clearSentBuffer(_id);
-			return b;
-		}else{
-			rsbd.mustdelete = 0;
-			rsbd.buffer.retransmitId(0);
-			return b;
-		}
+		d.clearSentBuffer(_id);
+		return b;
 	}
 	
 	//schedule a timer for this buffer
