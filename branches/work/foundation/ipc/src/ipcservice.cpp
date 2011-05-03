@@ -121,10 +121,10 @@ int Service::sendSignal(
 	const ConnectionUid &_rconid,//the id of the process connector
 	uint32	_flags
 ){
-	cassert(_rconid.sessionidx < d.tkrvec.size());
+	cassert(_rconid.tid < d.tkrvec.size());
 	
 	Mutex::Locker		lock(serviceMutex());
-	IndexT				idx(compute_index(d.tkrvec[_rconid.id].first));
+	IndexT				idx(compute_index(d.tkrvec[_rconid.tid].first));
 	Mutex::Locker		lock2(this->mutex(idx));
 	Talker				*ptkr(static_cast<Talker*>(this->objectAt(idx)));
 	
@@ -168,11 +168,11 @@ int Service::doSendSignal(
 			vdbgx(Dbg::ipc, "");
 			
 			ConnectionUid		conid(it->second);
-			IndexT				idx(compute_index(d.tkrvec[conid.id].first));
+			IndexT				idx(compute_index(d.tkrvec[conid.tid].first));
 			Mutex::Locker		lock2(this->mutex(idx));
 			Talker				*ptkr(static_cast<Talker*>(this->objectAt(idx)));
 			
-			cassert(conid.id < d.tkrvec.size());
+			cassert(conid.tid < d.tkrvec.size());
 			cassert(ptkr);
 			
 			if(ptkr->pushSignal(_psig, conid, _flags)){
@@ -249,7 +249,7 @@ int Service::acceptSession(Session *_pses){
 		
 		if(it != d.sessionaddr4map.end()){
 			//a connection still exists
-			IndexT			tkrpos(compute_index(d.tkrvec[it->second.sessionidx].first));
+			IndexT			tkrpos(compute_index(d.tkrvec[it->second.idx].first));
 			Mutex::Locker	lock2(this->mutex(tkrpos));
 			Talker			*ptkr(static_cast<Talker*>(this->objectAt(tkrpos)));
 			

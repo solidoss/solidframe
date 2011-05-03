@@ -133,13 +133,9 @@ Signal::~Signal(){
 	vdbgx(Dbg::fdt, "memsub "<<(void*)this);
 }
 
-bool Signal::ipcReceived(
-	ipc::SignalUid&,
-	const ipc::ConnectionUid&,
-	const SockAddrPair &_peeraddr,
-	int _peerbaseport
+void Signal::ipcReceived(
+	ipc::SignalUid&
 ){
-	return false;
 }
 uint32 Signal::ipcPrepare(){
 	return 0;//do nothing - no wait for response
