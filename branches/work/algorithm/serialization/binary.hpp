@@ -273,7 +273,7 @@ class Serializer: public Base{
 	//! Internal callback for storing a stream
 	static int storeStream(Base &_rs, FncData &_rfd);
 public:
-	enum {IsSerializer = true};
+	enum {IsSerializer = true, IsDeserializer = false};
 	template <class Map>
 	Serializer(Map *p):ptypeidf(&storeTypeId<Map>), pb(NULL), cpb(NULL), be(NULL){
 		tmpstr.reserve(sizeof(ulong));
@@ -494,7 +494,7 @@ class Deserializer: public Base{
 	*/
 	static int parseDummyStream(Base &_rb, FncData &_rfd);
 public:
-	enum {IsSerializer = false};
+	enum {IsSerializer = false, IsDeserializer = true};
 	template <class Map>
 	Deserializer(Map *):ptypeidf(&parseTypeId<Map>), pb(NULL), cpb(NULL), be(NULL){
 		tmpstr.reserve(sizeof(ulong));
