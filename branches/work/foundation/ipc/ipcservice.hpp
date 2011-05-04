@@ -109,6 +109,7 @@ public:
 		SentFlag = 8,//!< The signal was successfully sent
 	};
 	struct Controller{
+		virtual ~Controller(){}
 		virtual bool release() = 0;
 		virtual void scheduleTalker(foundation::aio::Object *_ptkr) = 0;
 	};

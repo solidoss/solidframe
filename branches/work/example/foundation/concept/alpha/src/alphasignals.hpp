@@ -73,7 +73,7 @@ struct RemoteListSignal: Dynamic<RemoteListSignal, DynamicShared<foundation::Sig
 	);
 	uint32 ipcPrepare();
 	void ipcFail(int _err);
-	
+	void ipcSuccess();
 	void use();
 	int release();
 
@@ -99,7 +99,7 @@ struct RemoteListSignal: Dynamic<RemoteListSignal, DynamicShared<foundation::Sig
 	foundation::ipc::SignalUid		siguid;
 	uint32							requid;
 	ObjectUidT						fromv;
-	int16							sentcnt;
+	uint8							success;
 	uint8							ipcstatus;
 };
 

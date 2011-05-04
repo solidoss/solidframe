@@ -31,13 +31,13 @@ namespace alpha{
 //-----------------------------------------------------------------------------------
 RemoteListSignal::RemoteListSignal(
 	uint32 _tout, uint16 _sentcnt
-): ppthlst(NULL),err(-1),tout(_tout), sentcnt(0), ipcstatus(IpcOnSender){
+): ppthlst(NULL),err(-1),tout(_tout), success(0), ipcstatus(IpcOnSender){
 	idbg(""<<(void*)this);
 }
 RemoteListSignal::~RemoteListSignal(){
 	idbg(""<<(void*)this);
-	if(ipcstatus == IpcOnSender && !sentcnt){
-		idbg("failed receiving response "<<sentcnt);
+	if(ipcstatus == IpcOnSender && success == 1){
+		idbg("failed receiving response");
 		m().signal(fdt::S_KILL | fdt::S_RAISE, fromv.first, fromv.second);
 	}
 	delete ppthlst;
@@ -55,8 +55,8 @@ uint32 RemoteListSignal::ipcPrepare(){
 	const foundation::ipc::SignalContext	&rsigctx(foundation::ipc::SignalContext::the());
 	Mutex::Locker							lock(mutex());
 	
-	++sentcnt;
-	idbg(""<<(void*)this<<" siguid = "<<rsigctx.signaluid.idx<<' '<<rsigctx.signaluid.uid<<" sentcnt = "<<sentcnt<<" ipcstatus = "<<ipcstatus);
+	if(success == 0) success = 1;//wait
+	idbg(""<<(void*)this<<" siguid = "<<rsigctx.signaluid.idx<<' '<<rsigctx.signaluid.uid<<" ipcstatus = "<<ipcstatus);
 	if(ipcstatus == IpcOnSender){//on sender
 		return foundation::ipc::Service::WaitResponseFlag /*| foundation::ipc::Service::SynchronousSendFlag*/;
 	}else{
@@ -84,13 +84,18 @@ void RemoteListSignal::ipcReceived(
 }
 void RemoteListSignal::ipcFail(int _err){
 	Mutex::Locker lock(mutex());
-	--sentcnt;
+	err = _err;
 	if(ipcstatus == IpcOnSender){
-		idbg("failed on sender "<<sentcnt<<" "<<(void*)this);
+		idbg("failed on sender "<<(void*)this);
 	}else{
 		idbg("failed on peer");
 	}
 }
+void RemoteListSignal::ipcSuccess(){
+	Mutex::Locker lock(mutex());
+	success = 2;
+}
+
 int RemoteListSignal::execute(
 	DynamicPointer<Signal> &_rthis_ptr,
 	uint32 _evs,

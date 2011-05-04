@@ -613,7 +613,6 @@ void Talker::doInsertNewSessions(){
 		Data::SessionStub &rss(d.sessionvec[it->second]);
 		Context::the().sigctx.connectionuid.idx = it->second;
 		Context::the().sigctx.connectionuid.uid = rss.uid;
-		rss.psession->prepareContext(Context::the());
 		
 		if(rss.psession == NULL){
 			rss.psession = it->first;
@@ -627,6 +626,7 @@ void Talker::doInsertNewSessions(){
 				rss.inexeq = true;
 			}
 		}else{
+			rss.psession->prepareContext(Context::the());
 			if(!rss.psession->isAccepting()){
 				//a reconnect
 				d.peeraddr4map.erase(rss.psession->peerAddr4());
