@@ -30,6 +30,8 @@
 #include "system/specific.hpp"
 #include "system/exception.hpp"
 
+#include "utility/queue.hpp"
+
 #include "foundation/objectpointer.hpp"
 #include "foundation/common.hpp"
 #include "foundation/manager.hpp"
@@ -66,7 +68,15 @@ struct Service::Data{
 		ConnectionUid,
 		Inet6AddrPtrCmp
 		>												SessionAddr6MapT;
-	typedef std::vector<ObjectUidT>						ObjectUidVectorT;
+	
+	struct TalkerStub{
+		TalkerStub():cnt(0){}
+		TalkerStub(const ObjectUidT &_ruid, uint32 _cnt = 0):uid(_ruid), cnt(_cnt){}
+		ObjectUidT	uid;
+		uint32		cnt;
+	};
+	typedef std::vector<TalkerStub>						TalkerStubVectorT;
+	typedef Queue<uint32>								Uint32QueueT;
 	
 	Data(
 		uint32 _keepalivetout,
@@ -74,16 +84,22 @@ struct Service::Data{
 		uint32 _tkrmaxcnt
 	);
 	
-	~Data();	
+	~Data();
+	
+	uint32 sessionCount()const{
+		return sessionaddr4map.size();
+	}
+	
 	const uint32 			keepalivetout;
 	const uint32			sespertkr;
 	const uint32			tkrmaxcnt;
 	uint32					sessioncnt;
 	int						baseport;
 	SocketAddress			firstaddr;
-	ObjectUidVectorT		tkrvec;
+	TalkerStubVectorT		tkrvec;
 	SessionAddr4MapT		sessionaddr4map;
 	Controller				*pc;
+	Uint32QueueT			tkrq;
 };
 
 //=======	ServiceData		===========================================
@@ -251,16 +267,35 @@ int Service::doSendSignal(
 	return OK;
 }
 //---------------------------------------------------------------------
-int16 Service::allocateTalkerForNewSession(bool _force){
-	++d.sessioncnt;
-	if(d.sessioncnt % d.sespertkr) return d.sessioncnt / d.sespertkr;
-	return -1;
+int Service::allocateTalkerForNewSession(bool _force){
+	if(!_force){
+		if(d.tkrq.size()){
+			int 				rv(d.tkrq.front());
+			Data::TalkerStub	&rts(d.tkrvec[rv]);
+			++rts.cnt;
+			if(rts.cnt == d.sespertkr){
+				d.tkrq.pop();
+			}
+			return rv;
+		}
+		return -1;
+	}else{
+		int					rv(d.tkrcrt);
+		Data::TalkerStub	&rts(d.tkrvec[rv]);
+		++rts.cnt;
+		if(rts.cnt == d.sespertkr){
+			d.tkrq.pop();
+		}
+		++d.tkrcrt;
+		d.tkrcrt %= d.tkrmaxcnt;
+		return rv;
+	}
 }
 //---------------------------------------------------------------------
 int Service::acceptSession(Session *_pses){
 	Mutex::Locker	lock(serviceMutex());
 	{
-		//TODO: try to think if the locking is ok!!!
+		//TODO: see if the locking is ok!!!
 		
 		Data::SessionAddr4MapT::iterator	it(d.sessionaddr4map.find(_pses->baseAddr4()));
 		
@@ -280,7 +315,7 @@ int Service::acceptSession(Session *_pses){
 			return OK;
 		}
 	}
-	int16	tkrid(allocateTalkerForNewSession());
+	int		tkrid(allocateTalkerForNewSession());
 	IndexT	tkrpos;
 	uint32	tkruid;
 	
@@ -318,7 +353,7 @@ int Service::acceptSession(Session *_pses){
 //---------------------------------------------------------------------
 void Service::connectSession(const Inet4SockAddrPair &_raddr){
 	Mutex::Locker	lock(serviceMutex());
-	int16			tkrid(allocateTalkerForNewSession());
+	int				tkrid(allocateTalkerForNewSession());
 	IndexT			tkrpos;
 	uint32			tkruid;
 	
@@ -361,6 +396,8 @@ void Service::disconnectSession(Session *_pses){
 	d.sessionaddr4map.erase(_pses->baseAddr4());
 	//Use:Context::the().sigctx.connectionuid.tid
 	--d.sessioncnt;
+	Data::TalkerStub &rts(d.tkrvec[Context::the().sigctx.connectionuid.tid]);
+	--rts.cnt;
 }
 //---------------------------------------------------------------------
 int16 Service::createNewTalker(IndexT &_tkrpos, uint32 &_tkruid){
@@ -434,12 +471,13 @@ int Service::insertTalker(
 	cassert(!d.tkrvec.size());//only the first tkr must be inserted from outside
 	Talker			*ptkr(new Talker(sd, *this, 0));
 	
-	ObjectUidT objuid(this->insert(ptkr));
+	ObjectUidT		objuid(this->insert(ptkr));
 	
 	Mutex::Locker	lock(serviceMutex());
 	d.firstaddr = _rai;
 	d.baseport = d.firstaddr.port();
-	d.tkrvec.push_back(objuid);
+	d.tkrvec.push_back(Data::TalkerStub(objuid));
+	d.tkrq.push(0);
 	d.pc->scheduleTalker(ptkr);
 	return OK;
 }

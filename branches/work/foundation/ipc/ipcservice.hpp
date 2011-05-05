@@ -207,8 +207,8 @@ private:
 	int acceptSession(Session *_pses);
 	void disconnectSession(Session *_pses);
 	void disconnectTalkerSessions(Talker &);
-	int16 createNewTalker(IndexT &_tkrpos, uint32 &_tkruid);
-	int16 allocateTalkerForNewSession(bool _force = false);
+	int createNewTalker(IndexT &_tkrpos, uint32 &_tkruid);
+	int allocateTalkerForNewSession(bool _force = false);
 	uint32 keepAliveTimeout()const;
 	void connectSession(const Inet4SockAddrPair &_raddr);
 private:
