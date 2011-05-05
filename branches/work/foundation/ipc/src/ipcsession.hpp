@@ -19,8 +19,8 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef FOUNDATION_IPC_SRC_IPC_CONNECTION_HPP
-#define FOUNDATION_IPC_SRC_IPC_CONNECTION_HPP
+#ifndef FOUNDATION_IPC_SRC_IPC_SESSION_HPP
+#define FOUNDATION_IPC_SRC_IPC_SESSION_HPP
 
 #include "iodata.hpp"
 #include "ipctalker.hpp"

@@ -28,6 +28,7 @@
 #include "system/mutex.hpp"
 #include "system/socketdevice.hpp"
 #include "system/specific.hpp"
+#include "system/exception.hpp"
 
 #include "foundation/objectpointer.hpp"
 #include "foundation/common.hpp"
@@ -67,23 +68,34 @@ struct Service::Data{
 		>												SessionAddr6MapT;
 	typedef std::vector<ObjectUidT>						ObjectUidVectorT;
 	
-	Data();
+	Data(
+		uint32 _keepalivetout,
+		uint32 _sespertkr,
+		uint32 _tkrmaxcnt
+	);
 	
 	~Data();	
-	
-	int						sespertkrcnt;
+	const uint32 			keepalivetout;
+	const uint32			sespertkr;
+	const uint32			tkrmaxcnt;
 	uint32					sessioncnt;
 	int						baseport;
 	SocketAddress			firstaddr;
 	ObjectUidVectorT		tkrvec;
 	SessionAddr4MapT		sessionaddr4map;
-	uint32 					keepalivetout;
 	Controller				*pc;
 };
 
 //=======	ServiceData		===========================================
 
-Service::Data::Data():sespertkrcnt(10), sessioncnt(0), baseport(-1), pc(NULL){
+Service::Data::Data(
+	uint32 _keepalivetout,
+	uint32 _sespertkr,
+	uint32 _tkrmaxcnt
+):
+	keepalivetout(_keepalivetout), sespertkr(_sespertkr), tkrmaxcnt(_tkrmaxcnt),
+	sessioncnt(0), baseport(-1), pc(NULL)
+{
 }
 
 Service::Data::~Data(){
@@ -98,10 +110,13 @@ Service::Data::~Data(){
 	return *m().service<Service>(_ridx);
 }
 
-Service::Service(Service::Controller *_pc, uint32 _keepalivetout):d(*(new Data)){
+Service::Service(
+	Service::Controller *_pc,
+	uint32 _keepalivetout,
+	uint32 _sespertkr,
+	uint32 _tkrmaxcnt
+):d(*(new Data(_keepalivetout, _sespertkr, _tkrmaxcnt))){
 	registerObjectType<Talker>(this);
-	//d.maxtkrcnt = 2;//TODO: make it configurable
-	d.keepalivetout = _keepalivetout;
 	d.pc = _pc;
 }
 //---------------------------------------------------------------------
@@ -189,7 +204,7 @@ int Service::doSendSignal(
 		}else{//the connection/session does not exist
 			vdbgx(Dbg::ipc, "");
 			
-			int16	tkrid(computeTalkerForNewSession());
+			int16	tkrid(allocateTalkerForNewSession());
 			IndexT	tkrpos;
 			uint32	tkruid;
 			
@@ -201,7 +216,9 @@ int Service::doSendSignal(
 				//create new talker
 				tkrid = createNewTalker(tkrpos, tkruid);
 				if(tkrid < 0){
-					return BAD;
+					tkrid = allocateTalkerForNewSession(true/*force*/);
+					tkrpos = d.tkrvec[tkrid].first;
+					tkruid = d.tkrvec[tkrid].second;
 				}
 			}
 			
@@ -234,9 +251,9 @@ int Service::doSendSignal(
 	return OK;
 }
 //---------------------------------------------------------------------
-int16 Service::computeTalkerForNewSession(){
+int16 Service::allocateTalkerForNewSession(bool _force){
 	++d.sessioncnt;
-	if(d.sessioncnt % d.sespertkrcnt) return d.sessioncnt / d.sespertkrcnt;
+	if(d.sessioncnt % d.sespertkr) return d.sessioncnt / d.sespertkr;
 	return -1;
 }
 //---------------------------------------------------------------------
@@ -263,7 +280,7 @@ int Service::acceptSession(Session *_pses){
 			return OK;
 		}
 	}
-	int16	tkrid(computeTalkerForNewSession());
+	int16	tkrid(allocateTalkerForNewSession());
 	IndexT	tkrpos;
 	uint32	tkruid;
 	
@@ -274,7 +291,11 @@ int Service::acceptSession(Session *_pses){
 	}else{
 		//create new talker
 		tkrid = createNewTalker(tkrpos, tkruid);
-		if(tkrid < 0) return BAD;
+		if(tkrid < 0){
+			tkrid = allocateTalkerForNewSession(true/*force*/);
+			tkrpos = d.tkrvec[tkrid].first;
+			tkruid = d.tkrvec[tkrid].second;
+		}
 	}
 	
 	tkrpos = compute_index(tkrpos);
@@ -297,7 +318,7 @@ int Service::acceptSession(Session *_pses){
 //---------------------------------------------------------------------
 void Service::connectSession(const Inet4SockAddrPair &_raddr){
 	Mutex::Locker	lock(serviceMutex());
-	int16			tkrid(computeTalkerForNewSession());
+	int16			tkrid(allocateTalkerForNewSession());
 	IndexT			tkrpos;
 	uint32			tkruid;
 	
@@ -309,7 +330,9 @@ void Service::connectSession(const Inet4SockAddrPair &_raddr){
 		//create new talker
 		tkrid = createNewTalker(tkrpos, tkruid);
 		if(tkrid < 0){
-			return;
+			tkrid = allocateTalkerForNewSession(true/*force*/);
+			tkrpos = d.tkrvec[tkrid].first;
+			tkruid = d.tkrvec[tkrid].second;
 		}
 	}
 	tkrpos = compute_index(tkrpos);
@@ -336,34 +359,42 @@ void Service::disconnectTalkerSessions(Talker &_rtkr){
 //---------------------------------------------------------------------
 void Service::disconnectSession(Session *_pses){
 	d.sessionaddr4map.erase(_pses->baseAddr4());
+	//Use:Context::the().sigctx.connectionuid.tid
+	--d.sessioncnt;
 }
 //---------------------------------------------------------------------
 int16 Service::createNewTalker(IndexT &_tkrpos, uint32 &_tkruid){
 	
-	if(d.tkrvec.size() > 30000) return BAD;
-	
-	int16			tkrid(d.tkrvec.size());
-	SocketDevice	sd;
-	
-	d.firstaddr.port(d.firstaddr.port() + tkrid);
-	
-	sd.create(d.firstaddr.family(), AddrInfo::Datagram, 0);
-	sd.bind(d.firstaddr);
-	d.firstaddr.port(d.firstaddr.port() - tkrid);
-	
-	if(sd.ok()){
-		
-		Talker *ptkr(new Talker(sd, *this, tkrid));
-		
-		ObjectUidT	objuid(this->insert(ptkr));
-		
-		d.tkrvec.push_back(objuid);
-		d.pc->scheduleTalker(ptkr);
-	
-	}else{
+	if(d.tkrvec.size() >= d.tkrmaxcnt){
 		return BAD;
 	}
-	return tkrid;
+	
+	int16			tkrid(d.tkrvec.size());
+	
+	SocketDevice	sd;
+	uint16			port(d.firstaddr.port() + tkrid);
+	uint			cnt(d.tkrmaxcnt);
+	uint			oldport(d.firstaddr.port());
+	while(cnt--){
+		d.firstaddr.port(port);
+	
+		sd.create(d.firstaddr.family(), AddrInfo::Datagram, 0);
+		sd.bind(d.firstaddr);
+		
+		if(sd.ok()){
+			d.firstaddr.port(oldport);
+			Talker *ptkr(new Talker(sd, *this, tkrid));
+			
+			ObjectUidT	objuid(this->insert(ptkr));
+			
+			d.tkrvec.push_back(objuid);
+			d.pc->scheduleTalker(ptkr);
+			return tkrid;
+		}
+		++port;
+	}
+	d.firstaddr.port(oldport);
+	return BAD;
 }
 //---------------------------------------------------------------------
 int Service::insertConnection(
