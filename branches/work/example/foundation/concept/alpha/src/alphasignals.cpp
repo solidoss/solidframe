@@ -56,7 +56,7 @@ uint32 RemoteListSignal::ipcPrepare(){
 	Mutex::Locker							lock(mutex());
 	
 	if(success == 0) success = 1;//wait
-	idbg(""<<(void*)this<<" siguid = "<<rsigctx.signaluid.idx<<' '<<rsigctx.signaluid.uid<<" ipcstatus = "<<ipcstatus);
+	idbg(""<<(void*)this<<" siguid = "<<rsigctx.signaluid.idx<<' '<<rsigctx.signaluid.uid<<" ipcstatus = "<<(int)ipcstatus);
 	if(ipcstatus == IpcOnSender){//on sender
 		return foundation::ipc::Service::WaitResponseFlag /*| foundation::ipc::Service::SynchronousSendFlag*/;
 	}else{
@@ -69,11 +69,9 @@ void RemoteListSignal::ipcReceived(
 	DynamicPointer<fdt::Signal> psig(this);
 	idbg(""<<(void*)this<<" siguid = "<<siguid.idx<<' '<<siguid.uid);
 	conid = fdt::ipc::SignalContext::the().connectionuid;
-	_rsiguid = siguid;
 	++ipcstatus;
 	if(ipcstatus == IpcOnPeer){//on peer
 		idbg("Received RemoteListSignal on peer");
-		//print();
 		m().signal(psig, m().readSignalExecuterUid());
 	}else{//on sender
 		cassert(ipcstatus == IpcBackOnSender);
@@ -94,6 +92,7 @@ void RemoteListSignal::ipcFail(int _err){
 void RemoteListSignal::ipcSuccess(){
 	Mutex::Locker lock(mutex());
 	success = 2;
+	idbg("failed on peer");
 }
 
 int RemoteListSignal::execute(

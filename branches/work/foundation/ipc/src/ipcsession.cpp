@@ -600,7 +600,7 @@ void Session::Data::popSentWaitSignal(const uint32 _idx){
 	cassert(rssd.signal.ptr());
 	if(rssd.flags & Service::WaitResponseFlag){
 		//let it leave a little longer
-		idbgx(Dbg::ipc, "signal waits for response "<<_idx<<rssd.uid);
+		idbgx(Dbg::ipc, "signal waits for response "<<_idx<<' '<<rssd.uid);
 		rssd.flags |= Service::SentFlag;
 	}else{
 		++rssd.uid;
@@ -728,6 +728,7 @@ void Session::Data::moveSignalsToSendQueue(){
 		
 		const uint32 tmp_flgs(rssd.signal->ipcPrepare());
 		rssd.flags |= tmp_flgs;
+		vdbgx(Dbg::ipc, "flags = "<<(rssd.flags&Service::SentFlag)<<" tmpflgs = "<<(tmp_flgs & Service::SentFlag));
 		
 		if(tmp_flgs & Service::WaitResponseFlag){
 			++sentsignalwaitresponse;
@@ -759,6 +760,8 @@ bool Session::Data::moveToNextSendSignal(){
 	}
 	
 	Data::SendSignalData	&rssd(sendsignalvec[crtidx]);
+	
+	vdbgx(Dbg::ipc, "flags = "<<(rssd.flags&Service::SentFlag));
 	
 	if(rssd.flags & Service::SynchronousSendFlag){
 		currentsendsyncid = crtidx;
@@ -905,6 +908,7 @@ void Session::reconnect(Session *_pses){
 	//see which sent/sending signals must be cleard
 	for(Data::SendSignalVectorT::iterator it(d.sendsignalvec.begin()); it != d.sendsignalvec.end(); ++it){
 		Data::SendSignalData &rssd(*it);
+		vdbgx(Dbg::ipc, "pos = "<<(it - d.sendsignalvec.begin())<<" flags = "<<(rssd.flags&Service::SentFlag));
 		Context::the().sigctx.signaluid.idx = it - d.sendsignalvec.begin();
 		Context::the().sigctx.signaluid.uid = rssd.uid;
 		
@@ -1485,6 +1489,9 @@ void Session::doFillSendBuffer(const uint32 _bufidx){
 	while(d.sendsignalidxq.size()){
 		if(d.currentbuffersignalcount){
 			Data::SendSignalData	&rssd(d.sendsignalvec[d.sendsignalidxq.front()]);
+			
+			Context::the().sigctx.signaluid.idx = d.sendsignalidxq.front();
+			Context::the().sigctx.signaluid.uid = rssd.uid;
 			
 			if(rssd.pserializer){//a continued signal
 				if(d.currentbuffersignalcount == Data::MaxSignalBufferCount){
