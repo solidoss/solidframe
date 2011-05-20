@@ -260,7 +260,7 @@ struct Session::Data{
 	typedef std::pair<
 		DynamicPointer<Signal>,
 		uint32
-		>										SignalPairT;
+	>											SignalPairT;
 	typedef Queue<SignalPairT>					SignalQueueT;
 public:
 	Data(
