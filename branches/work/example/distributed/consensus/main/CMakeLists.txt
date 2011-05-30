@@ -1,6 +1,6 @@
-add_executable (concept_client src/conceptclient.cpp)
+add_executable (consesus_client src/consesusclient.cpp)
 
-target_link_libraries (concept_client
+target_link_libraries (consensus_client
 	example_distributed_client
 	example_distributed_core
 	foundation_ipc
@@ -14,7 +14,7 @@ target_link_libraries (concept_client
 	${SYS_BASIC_LIBS}
 )
 
-add_executable (concept_server src/conceptserver.cpp)
+add_executable (consensus_server src/consensusserver.cpp)
 
 target_link_libraries (concept_server
 	example_distributed_server
