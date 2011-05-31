@@ -1,6 +1,3 @@
-#include "example/distributed/concept/client/clientobject.hpp"
-#include "example/distributed/concept/core/manager.hpp"
-#include "example/distributed/concept/core/signals.hpp"
 
 #include "foundation/service.hpp"
 #include "foundation/scheduler.hpp"
@@ -31,6 +28,7 @@ typedef foundation::Scheduler<foundation::ObjectSelector>	SchedulerT;
 //------------------------------------------------------------------
 
 struct Params{
+	Params():dbg_buffered(false), dbg_console(false){}
 	int				ipc_port;
 	string			dbg_levels;
 	string			dbg_modules;
@@ -39,7 +37,7 @@ struct Params{
 	bool			dbg_buffered;
 	bool			dbg_console;
 	bool			log;
-	ClientParams	p;
+	//ClientParams	p;
 };
 
 struct IpcServiceController: foundation::ipc::Service::Controller{
@@ -64,22 +62,22 @@ bool parseArguments(Params &_par, int argc, char *argv[]);
 int main(int argc, char *argv[]){
 	
 	Params p;
-	if(parseArguments(p, argc, argv)) return 0;
+	//if(parseArguments(p, argc, argv)) return 0;
 	
 	Thread::init();
 	
-	if(!p.p.init()){
-		cout<<"Error: "<<p.p.errorString()<<endl;
-		return 0;
-	}
-	
-	p.p.print(cout);
+// 	if(!p.p.init()){
+// 		cout<<"Error: "<<p.p.errorString()<<endl;
+// 		return 0;
+// 	}
+// 	
+// 	p.p.print(cout);
 	
 #ifdef UDEBUG
 	{
 	string dbgout;
-	Dbg::instance().levelMask(p.dbg_levels.c_str());
-	Dbg::instance().moduleMask(p.dbg_modules.c_str());
+	Dbg::instance().levelMask("view"/*p.dbg_levels.c_str()*/);
+	Dbg::instance().moduleMask("any"/*p.dbg_modules.c_str()*/);
 	if(p.dbg_addr.size() && p.dbg_port.size()){
 		Dbg::instance().initSocket(
 			p.dbg_addr.c_str(),
@@ -101,14 +99,23 @@ int main(int argc, char *argv[]){
 			&dbgout
 		);
 	}
-	cout<<"Debug output: "<<dbgout<<endl;
+	//cout<<"Debug output: "<<dbgout<<endl;
 	dbgout.clear();
-	Dbg::instance().moduleBits(dbgout);
-	cout<<"Debug modules: "<<dbgout<<endl;
+	//Dbg::instance().moduleBits(dbgout);
+	//cout<<"Debug modules: "<<dbgout<<endl;
 	}
 #endif
+	if(true){
+		for(int i(0); i < argc; ++i){
+			idbg("arg "<<i<<" = "<<argv[i]);
+		}
+		if(isdigit(argv[1][0])){
+			int pos = atoi(argv[1]);
+			sleep(pos + 1);
+		}
+	}
 	
-	{
+	if(false){
 		typedef serialization::TypeMapper					TypeMapper;
 		typedef serialization::IdTypeMap					IdTypeMap;
 		typedef serialization::bin::Serializer				BinSerializer;
@@ -116,9 +123,9 @@ int main(int argc, char *argv[]){
 		TypeMapper::registerMap<IdTypeMap>(new IdTypeMap);
 		TypeMapper::registerSerializer<BinSerializer>();
 		
-		mapSignals();
+		//mapSignals();
 	}
-	{
+	if(false){
 		
 		foundation::Manager 	m(16);
 		IpcServiceController	ipcctrl;
@@ -137,8 +144,8 @@ int main(int argc, char *argv[]){
 			foundation::ipc::Service::the().insertTalker(ai.begin());
 		}
 		
-		foundation::ObjectPointer<ClientObject>	op(new ClientObject(p.p));
-		fdt::ObjectUidT objuid(m.service(svcid).insert<SchedulerT>(op));
+		//foundation::ObjectPointer<ClientObject>	op(new ClientObject(p.p));
+		//fdt::ObjectUidT objuid(m.service(svcid).insert<SchedulerT>(op));
 		
 		m.stop(true);//wait for m.signalStop(), to start stopping process
 	}
@@ -161,10 +168,10 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 			("debug_console,c", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")
 			("debug_unbuffered,s", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered")
 			("use_log,L", value<bool>(&_par.log)->implicit_value(true)->default_value(false), "Use audit logging")
-			("repeat_count,C", value<uint32>(&_par.p.cnt)->default_value(0), "Repeat count")
-			("server_addrs,A", value< vector<string> >(&_par.p.addrstrvec), "Server addresses")
-			("strings,G", value< vector<uint32> >(&_par.p.strszvec), "Generated string sizes")
-			("sequence,S", value<string>(&_par.p.seqstr)->default_value("i0 i1 p100 f1 p200 e1 f1 p300 f0 E"), "Opperation sequence")
+			//("repeat_count,C", value<uint32>(&_par.p.cnt)->default_value(0), "Repeat count")
+			//("server_addrs,A", value< vector<string> >(&_par.p.addrstrvec), "Server addresses")
+			//("strings,G", value< vector<uint32> >(&_par.p.strszvec), "Generated string sizes")
+			//("sequence,S", value<string>(&_par.p.seqstr)->default_value("i0 i1 p100 f1 p200 e1 f1 p300 f0 E"), "Opperation sequence")
 	/*		("verbose,v", po::value<int>()->implicit_value(1),
 					"enable verbosity (optionally specify level)")*/
 	/*		("listen,l", po::value<int>(&portnum)->implicit_value(1001)
