@@ -1,6 +1,6 @@
-#include "example/distributed/concept/server/serverobject.hpp"
-#include "example/distributed/concept/core/manager.hpp"
-#include "example/distributed/concept/core/signals.hpp"
+#include "example/distributed/consensus/server/serverobject.hpp"
+#include "example/distributed/consensus/core/manager.hpp"
+#include "example/distributed/consensus/core/signals.hpp"
 
 #include "foundation/service.hpp"
 #include "foundation/scheduler.hpp"

@@ -1,5 +1,5 @@
-#include "example/distributed/concept/core/signals.hpp"
-#include "example/distributed/concept/core/manager.hpp"
+#include "example/distributed/consensus/core/signals.hpp"
+#include "example/distributed/consensus/core/manager.hpp"
 
 #include "foundation/ipc/ipcservice.hpp"
 
@@ -24,7 +24,7 @@ void mapSignals(){
 	typedef serialization::bin::Serializer				BinSerializer;
 	typedef serialization::bin::Deserializer			BinDeserializer;
 
-	TypeMapper::map<InsertSignal, BinSerializer, BinDeserializer>();
+	TypeMapper::map<StoreSignal, BinSerializer, BinDeserializer>();
 	TypeMapper::map<FetchSignal, BinSerializer, BinDeserializer>();
 	TypeMapper::map<EraseSignal, BinSerializer, BinDeserializer>();
 }
@@ -96,10 +96,10 @@ int ConceptSignal::release(){
 	return rv;
 }
 //--------------------------------------------------------------
-InsertSignal::InsertSignal(const std::string&, uint32 _pos){
+StoreSignal::StoreSignal(const std::string&, uint32 _pos){
 	idbg("");
 }
-InsertSignal::InsertSignal(){
+StoreSignal::StoreSignal(){
 	idbg("");
 }
 //--------------------------------------------------------------

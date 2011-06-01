@@ -12,7 +12,7 @@
 
 class ClientObject;
 struct ConceptSignal;
-struct InsertSignal;
+struct StoreSignal;
 struct FetchSignal;
 struct EraseSignal;
 
@@ -77,7 +77,7 @@ public:
 	~ClientObject();
 	void dynamicExecute(DynamicPointer<> &_dp);
 	void dynamicExecute(DynamicPointer<ClientSignal> &_rsig);
-	void dynamicExecute(DynamicPointer<InsertSignal> &_rsig);
+	void dynamicExecute(DynamicPointer<StoreSignal> &_rsig);
 	void dynamicExecute(DynamicPointer<FetchSignal> &_rsig);
 	void dynamicExecute(DynamicPointer<EraseSignal> &_rsig);
 	

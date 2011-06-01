@@ -1,6 +1,6 @@
-// #include "example/distributed/concept/client/clientobject.hpp"
-// #include "example/distributed/concept/core/manager.hpp"
-// #include "example/distributed/concept/core/signals.hpp"
+#include "example/distributed/consensus/client/clientobject.hpp"
+#include "example/distributed/consensus/core/manager.hpp"
+#include "example/distributed/consensus/core/signals.hpp"
 
 #include "foundation/common.hpp"
 #include "foundation/ipc/ipcservice.hpp"
@@ -173,7 +173,7 @@ namespace{
 static const DynamicRegisterer<ClientObject>	dre;
 }
 /*static*/ void ClientObject::dynamicRegister(){
-	DynamicExecuterT::registerDynamic<InsertSignal, ClientObject>();
+	DynamicExecuterT::registerDynamic<StoreSignal, ClientObject>();
 	DynamicExecuterT::registerDynamic<FetchSignal, ClientObject>();
 	DynamicExecuterT::registerDynamic<EraseSignal, ClientObject>();
 	//DynamicExecuterT::registerDynamic<InsertSignal, ClientObject>();
@@ -220,7 +220,7 @@ int ClientObject::execute(ulong _sig, TimeSpec &_tout){
 		switch(rr.opp){
 			case 'i':{
 				const string	&s(getString(rr.u.u32s.u32_1, crtpos));
-				uint32			sid(sendSignal(new InsertSignal(s, crtpos)));
+				uint32			sid(sendSignal(new StoreSignal(s, crtpos)));
 				expectInsert(sid, s, crtpos, params.addrvec.size());
 				break;
 			}
@@ -364,7 +364,7 @@ void ClientObject::dynamicExecute(DynamicPointer<ClientSignal> &_rsig){
 	idbg("received ClientSignal response");
 }
 //------------------------------------------------------------
-void ClientObject::dynamicExecute(DynamicPointer<InsertSignal> &_rsig){
+void ClientObject::dynamicExecute(DynamicPointer<StoreSignal> &_rsig){
 	idbg("received InsertSignal response");
 }
 //------------------------------------------------------------

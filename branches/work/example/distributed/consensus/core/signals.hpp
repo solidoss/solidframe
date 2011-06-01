@@ -45,8 +45,9 @@ struct ConceptSignal: Dynamic<ConceptSignal, DynamicShared<foundation::Signal> >
 		if(waitresponse || !S::IsSerializer){//on peer
 			_s.push(ipcsiguid.idx, "siguid.idx").push(ipcsiguid.uid,"siguid.uid");
 		}else{//on sender
-			foundation::ipc::SignalContext &rsigctx(foundation::ipc::DynamicContextPointerT::specificContext());
-			_s.push(rsigctx.waitid.idx, "siguid.idx").push(rsigctx.waitid.uid,"siguid.uid");
+			const foundation::ipc::SignalContext &rsigctx(foundation::ipc::SignalContext::the());
+			foundation::ipc::SignalUid siguid(rsigctx.signaluid);
+			_s.push(siguid.idx, "siguid.idx").push(siguid.uid,"siguid.uid");
 		}
 		return _s;
 	}
@@ -66,9 +67,9 @@ struct ConceptSignal: Dynamic<ConceptSignal, DynamicShared<foundation::Signal> >
 	foundation::ipc::SignalUid		ipcsiguid;
 };
 
-struct InsertSignal: Dynamic<InsertSignal, ConceptSignal>{
-	InsertSignal(const std::string&, uint32 _pos);
-	InsertSignal();
+struct StoreSignal: Dynamic<StoreSignal, ConceptSignal>{
+	StoreSignal(const std::string&, uint32 _pos);
+	StoreSignal();
 	
 	template <class S>
 	S& operator&(S &_s){
