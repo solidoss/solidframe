@@ -414,29 +414,25 @@ int Service::createNewTalker(IndexT &_tkrpos, uint32 &_tkruid){
 	int16			tkrid(d.tkrvec.size());
 	
 	SocketDevice	sd;
-	uint16			port(d.firstaddr.port() + tkrid);
 	uint			cnt(d.tkrmaxcnt);
 	uint			oldport(d.firstaddr.port());
-	while(cnt--){
-		d.firstaddr.port(port);
 	
-		sd.create(d.firstaddr.family(), AddrInfo::Datagram, 0);
-		sd.bind(d.firstaddr);
+	d.firstaddr.port = 0;//bind to any available port
+	sd.create(d.firstaddr.family(), AddrInfo::Datagram, 0);
+	sd.bind(d.firstaddr);
+
+	if(sd.ok()){
+		d.firstaddr.port(oldport);
+		vdbgx(Dbg::ipc, "Successful created talker for port "<<port);
+		Talker *ptkr(new Talker(sd, *this, tkrid));
 		
-		if(sd.ok()){
-			d.firstaddr.port(oldport);
-			vdbgx(Dbg::ipc, "Successful created talker for port "<<port);
-			Talker *ptkr(new Talker(sd, *this, tkrid));
-			
-			ObjectUidT	objuid(this->insert(ptkr));
-			d.tkrq.push(d.tkrvec.size());
-			d.tkrvec.push_back(objuid);
-			d.pc->scheduleTalker(ptkr);
-			return tkrid;
-		}else{
-			wdbgx(Dbg::ipc, "Could not bind to port "<<port);
-		}
-		++port;
+		ObjectUidT	objuid(this->insert(ptkr));
+		d.tkrq.push(d.tkrvec.size());
+		d.tkrvec.push_back(objuid);
+		d.pc->scheduleTalker(ptkr);
+		return tkrid;
+	}else{
+		wdbgx(Dbg::ipc, "Could not bind to port "<<port);
 	}
 	d.firstaddr.port(oldport);
 	return BAD;
