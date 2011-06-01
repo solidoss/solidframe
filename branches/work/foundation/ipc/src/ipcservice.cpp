@@ -414,16 +414,15 @@ int Service::createNewTalker(IndexT &_tkrpos, uint32 &_tkruid){
 	int16			tkrid(d.tkrvec.size());
 	
 	SocketDevice	sd;
-	uint			cnt(d.tkrmaxcnt);
 	uint			oldport(d.firstaddr.port());
 	
-	d.firstaddr.port = 0;//bind to any available port
+	d.firstaddr.port(0);//bind to any available port
 	sd.create(d.firstaddr.family(), AddrInfo::Datagram, 0);
 	sd.bind(d.firstaddr);
 
 	if(sd.ok()){
 		d.firstaddr.port(oldport);
-		vdbgx(Dbg::ipc, "Successful created talker for port "<<port);
+		vdbgx(Dbg::ipc, "Successful created talker");
 		Talker *ptkr(new Talker(sd, *this, tkrid));
 		
 		ObjectUidT	objuid(this->insert(ptkr));
@@ -432,7 +431,7 @@ int Service::createNewTalker(IndexT &_tkrpos, uint32 &_tkruid){
 		d.pc->scheduleTalker(ptkr);
 		return tkrid;
 	}else{
-		wdbgx(Dbg::ipc, "Could not bind to port "<<port);
+		edbgx(Dbg::ipc, "Could not bind to random port");
 	}
 	d.firstaddr.port(oldport);
 	return BAD;
