@@ -33,10 +33,8 @@ struct ConceptSignal: Dynamic<ConceptSignal, DynamicShared<foundation::Signal> >
 	};
 	ConceptSignal();
 	~ConceptSignal();
-	bool ipcReceived(
-		foundation::ipc::SignalUid &_rsiguid,
-		const foundation::ipc::ConnectionUid &_rconid,
-		const SockAddrPair &_peeraddr, int _peerbaseport
+	void ipcReceived(
+		foundation::ipc::SignalUid &_rsiguid
 	);
 	template <class S>
 	S& operator&(S &_s){
@@ -73,8 +71,10 @@ struct StoreSignal: Dynamic<StoreSignal, ConceptSignal>{
 	
 	template <class S>
 	S& operator&(S &_s){
-		return static_cast<ConceptSignal*>(this)->operator&<S>(_s);
+		static_cast<ConceptSignal*>(this)->operator&<S>(_s);
+		_s.push(v,"value");
 	}
+	uint32	v;
 };
 
 struct FetchSignal: Dynamic<FetchSignal, ConceptSignal>{

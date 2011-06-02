@@ -11,7 +11,7 @@
 
 namespace fdt=foundation;
 
-ServerObject::ServerObject(){
+ServerObject::ServerObject():crtval(1){
 	
 }
 ServerObject::~ServerObject(){
@@ -73,8 +73,11 @@ void ServerObject::dynamicExecute(DynamicPointer<> &_dp){
 void ServerObject::dynamicExecute(DynamicPointer<StoreSignal> &_rsig){
 	idbg("received InsertSignal request");
 	const foundation::ipc::ConnectionUid	ipcconid(_rsig->ipcconid);
-	DynamicPointer<foundation::Signal>		sigptr(_rsig);
 	
+	++crtval;
+	_rsig->v = crtval;
+	
+	DynamicPointer<foundation::Signal>		sigptr(_rsig);
 	foundation::ipc::Service::the().sendSignal(sigptr, ipcconid);
 }
 

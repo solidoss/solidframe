@@ -66,22 +66,22 @@ bool parseArguments(Params &_par, int argc, char *argv[]);
 int main(int argc, char *argv[]){
 	
 	Params p;
-	//if(parseArguments(p, argc, argv)) return 0;
+	if(parseArguments(p, argc, argv)) return 0;
 	
 	Thread::init();
 	
-// 	if(!p.p.init()){
-// 		cout<<"Error: "<<p.p.errorString()<<endl;
-// 		return 0;
-// 	}
-// 	
-// 	p.p.print(cout);
+	if(!p.p.init()){
+		cout<<"Error: "<<p.p.errorString()<<endl;
+		return 0;
+	}
+	
+	p.p.print(cout);
 	
 #ifdef UDEBUG
 	{
 	string dbgout;
-	Dbg::instance().levelMask("view"/*p.dbg_levels.c_str()*/);
-	Dbg::instance().moduleMask("any"/*p.dbg_modules.c_str()*/);
+	Dbg::instance().levelMask(p.dbg_levels.c_str());
+	Dbg::instance().moduleMask(p.dbg_modules.c_str());
 	if(p.dbg_addr.size() && p.dbg_port.size()){
 		Dbg::instance().initSocket(
 			p.dbg_addr.c_str(),
@@ -119,7 +119,7 @@ int main(int argc, char *argv[]){
 		}
 	}
 	
-	if(false){
+	if(true){
 		typedef serialization::TypeMapper					TypeMapper;
 		typedef serialization::IdTypeMap					IdTypeMap;
 		typedef serialization::bin::Serializer				BinSerializer;
@@ -129,10 +129,12 @@ int main(int argc, char *argv[]){
 		
 		mapSignals();
 	}
-	if(false){
+	
+	IpcServiceController	ipcctrl;
+	
+	if(true){
 		
 		foundation::Manager 	m(16);
-		IpcServiceController	ipcctrl;
 		
 		m.registerScheduler(new SchedulerT(m));
 		m.registerScheduler(new AioSchedulerT(m));
@@ -163,16 +165,16 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 		options_description desc("SolidFrame distributed concept client application");
 		desc.add_options()
 			("help,h", "List program options")
-			("ipc_port,i", value<int>(&_par.ipc_port)->default_value(2000),
+			("ipc_port,i", value<int>(&_par.ipc_port)->default_value(0),
 					"Base port")
-			("debug_levels,l", value<string>(&_par.dbg_levels)->default_value("iew"),"Debug logging levels")
-			("debug_modules,m", value<string>(&_par.dbg_modules),"Debug logging modules")
+			("debug_levels,l", value<string>(&_par.dbg_levels)->default_value("view"),"Debug logging levels")
+			("debug_modules,m", value<string>(&_par.dbg_modules)->default_value("any"),"Debug logging modules")
 			("debug_address,a", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")
 			("debug_port,p", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")
 			("debug_console,c", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")
 			("debug_unbuffered,s", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered")
 			("use_log,L", value<bool>(&_par.log)->implicit_value(true)->default_value(false), "Use audit logging")
-			("repeat_count,C", value<uint32>(&_par.p.cnt)->default_value(0), "Repeat count")
+			("repeat_count,C", value<uint32>(&_par.p.cnt)->default_value(1), "Repeat count")
 			("server_addrs,A", value< vector<string> >(&_par.p.addrstrvec), "Server addresses")
 			("strings,G", value< vector<uint32> >(&_par.p.strszvec), "Generated string sizes")
 			("sequence,S", value<string>(&_par.p.seqstr)->default_value("i0 i1 p100 f1 p200 e1 f1 p300 f0 E"), "Opperation sequence")

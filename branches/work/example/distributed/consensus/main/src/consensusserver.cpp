@@ -37,6 +37,7 @@ struct Params{
 	string		dbg_addr;
 	string		dbg_port;
 	bool		dbg_buffered;
+	bool		dbg_console;
 	bool		log;
 };
 
@@ -77,6 +78,11 @@ int main(int argc, char *argv[]){
 			p.dbg_buffered,
 			&dbgout
 		);
+	}else if(p.dbg_console){
+		Dbg::instance().initStdErr(
+			p.dbg_buffered,
+			&dbgout
+		);
 	}else{
 		Dbg::instance().initFile(
 			*argv[0] == '.' ? argv[0] + 2 : argv[0],
@@ -102,10 +108,10 @@ int main(int argc, char *argv[]){
 		
 		mapSignals();
 	}
+	IpcServiceController	ipcctrl;
 	{
 		
 		foundation::Manager 	m(16);
-		IpcServiceController	ipcctrl;
 		
 		m.registerScheduler(new SchedulerT(m));
 		m.registerScheduler(new AioSchedulerT(m));
@@ -144,10 +150,11 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 			("help,h", "List program options")
 			("ipc_port,i", value<int>(&_par.ipc_port)->default_value(2000),
 					"Base port")
-			("debug_levels,l", value<string>(&_par.dbg_levels)->default_value("iew"),"Debug logging levels")
-			("debug_modules,m", value<string>(&_par.dbg_modules),"Debug logging modules")
+			("debug_levels,l", value<string>(&_par.dbg_levels)->default_value("view"),"Debug logging levels")
+			("debug_modules,m", value<string>(&_par.dbg_modules)->default_value("any"),"Debug logging modules")
 			("debug_address,a", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")
 			("debug_port,p", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")
+			("debug_console,c", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")
 			("debug_unbuffered,s", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered")
 			("use_log,L", value<bool>(&_par.log)->implicit_value(true)->default_value(false), "Debug buffered")
 	/*		("verbose,v", po::value<int>()->implicit_value(1),

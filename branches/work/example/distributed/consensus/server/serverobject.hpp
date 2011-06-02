@@ -24,6 +24,7 @@ private:
 	/*virtual*/ bool signal(DynamicPointer<foundation::Signal> &_sig);
 private:
 	DynamicExecuterT	exe;
+	uint32				crtval;
 };
 
 #endif

@@ -41,14 +41,13 @@ ConceptSignal::~ConceptSignal(){
 	}
 }
 
-bool ConceptSignal::ipcReceived(
-	foundation::ipc::SignalUid &_rsiguid,
-	const foundation::ipc::ConnectionUid &_rconid,
-	const SockAddrPair &_peeraddr, int _peerbaseport
+void ConceptSignal::ipcReceived(
+	foundation::ipc::SignalUid &_rsiguid
 ){
-	_rsiguid = this->ipcsiguid;
-	ipcconid = _rconid;
 	DynamicPointer<fdt::Signal> sig(this);
+	//_rsiguid = this->ipcsiguid;
+	ipcconid = fdt::ipc::SignalContext::the().connectionuid;
+	waitresponse = false;
 	if(st == OnSender){
 		st = OnPeer;
 		idbg((void*)this<<" on peer");
@@ -57,32 +56,32 @@ bool ConceptSignal::ipcReceived(
 		st == BackOnSender;
 		idbg((void*)this<<" back on sender");
 		m().signal(sig, senderuid);
+		_rsiguid = this->ipcsiguid;
 	}else{
 		cassert(false);
 	}
-	return false;
 }
 uint32 ConceptSignal::ipcPrepare(){
 	uint32	rv(0);
-	uint32	sntcnt;
-	idbg((void*)this<<" sentcount = "<<sntcnt);
+	idbg((void*)this);
 	if(st == OnSender){
 		if(waitresponse){
 			rv |= foundation::ipc::Service::WaitResponseFlag;
 		}
 		rv |= foundation::ipc::Service::SynchronousSendFlag;
+		rv |= foundation::ipc::Service::SameConnectorFlag;
 	}
 	return rv;
 }
 
 void ConceptSignal::ipcFail(int _err){
-	idbg((void*)this<<" sentcount = "<<sentcount<<" err = "<<_err);
+	idbg((void*)this<<" sentcount = "<<(int)sentcount<<" err = "<<_err);
 }
 
 void ConceptSignal::ipcSuccess(){
 	Mutex::Locker lock(mutex());
 	++sentcount;
-	idbg((void*)this<<" sentcount = "<<sentcount);
+	idbg((void*)this<<" sentcount = "<<(int)sentcount);
 }
 
 
@@ -96,7 +95,7 @@ int ConceptSignal::release(){
 	return rv;
 }
 //--------------------------------------------------------------
-StoreSignal::StoreSignal(const std::string&, uint32 _pos){
+StoreSignal::StoreSignal(const std::string&, uint32 _pos):v(0){
 	idbg("");
 }
 StoreSignal::StoreSignal(){
