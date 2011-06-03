@@ -85,8 +85,10 @@ struct RemoteListSignal: Dynamic<RemoteListSignal, DynamicShared<foundation::Sig
 		if(ipcstatus != IpcOnSender || S::IsDeserializer){
 			_s.push(siguid.idx, "siguid.idx").push(siguid.uid,"siguid.uid");
 		}else{//on sender
-			foundation::ipc::SignalUid tsiguid(foundation::ipc::SignalContext::the().signaluid);
-			_s.push(tsiguid.idx, "siguid.idx").push(tsiguid.uid,"siguid.uid");
+			foundation::ipc::SignalUid &rsiguid(
+				const_cast<foundation::ipc::SignalUid &>(foundation::ipc::SignalContext::the().signaluid)
+			);
+			_s.push(rsiguid.idx, "siguid.idx").push(rsiguid.uid,"siguid.uid");
 		}
 		return _s;
 	}

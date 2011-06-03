@@ -43,9 +43,10 @@ struct ConceptSignal: Dynamic<ConceptSignal, DynamicShared<foundation::Signal> >
 		if(waitresponse || !S::IsSerializer){//on peer
 			_s.push(ipcsiguid.idx, "siguid.idx").push(ipcsiguid.uid,"siguid.uid");
 		}else{//on sender
-			const foundation::ipc::SignalContext &rsigctx(foundation::ipc::SignalContext::the());
-			foundation::ipc::SignalUid siguid(rsigctx.signaluid);
-			_s.push(siguid.idx, "siguid.idx").push(siguid.uid,"siguid.uid");
+			foundation::ipc::SignalUid &rsiguid(
+				const_cast<foundation::ipc::SignalUid &>(foundation::ipc::SignalContext::the().signaluid)
+			);
+			_s.push(rsiguid.idx, "siguid.idx").push(rsiguid.uid,"siguid.uid");
 		}
 		return _s;
 	}
@@ -73,6 +74,7 @@ struct StoreSignal: Dynamic<StoreSignal, ConceptSignal>{
 	S& operator&(S &_s){
 		static_cast<ConceptSignal*>(this)->operator&<S>(_s);
 		_s.push(v,"value");
+		return _s;
 	}
 	uint32	v;
 };
