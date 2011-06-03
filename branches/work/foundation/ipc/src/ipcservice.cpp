@@ -302,7 +302,7 @@ int Service::acceptSession(Session *_pses){
 		
 		if(it != d.sessionaddr4map.end()){
 			//a connection still exists
-			IndexT			tkrpos(compute_index(d.tkrvec[it->second.idx].uid.first));
+			IndexT			tkrpos(compute_index(d.tkrvec[it->second.tid].uid.first));
 			Mutex::Locker	lock2(this->mutex(tkrpos));
 			Talker			*ptkr(static_cast<Talker*>(this->objectAt(tkrpos)));
 			
