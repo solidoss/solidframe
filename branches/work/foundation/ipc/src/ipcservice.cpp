@@ -233,9 +233,9 @@ int Service::doSendSignal(
 				tkrid = createNewTalker(tkrpos, tkruid);
 				if(tkrid < 0){
 					tkrid = allocateTalkerForNewSession(true/*force*/);
-					tkrpos = d.tkrvec[tkrid].uid.first;
-					tkruid = d.tkrvec[tkrid].uid.second;
 				}
+				tkrpos = d.tkrvec[tkrid].uid.first;
+				tkruid = d.tkrvec[tkrid].uid.second;
 			}
 			
 			tkrpos = compute_index(tkrpos);
@@ -279,6 +279,7 @@ int Service::allocateTalkerForNewSession(bool _force){
 			vdbgx(Dbg::ipc, "non forced allocate talker: "<<rv<<" sessions per talker "<<rts.cnt);
 			return rv;
 		}
+		vdbgx(Dbg::ipc, "non forced allocate talker failed");
 		return -1;
 	}else{
 		int					rv(d.tkrcrt);
@@ -328,9 +329,9 @@ int Service::acceptSession(Session *_pses){
 		tkrid = createNewTalker(tkrpos, tkruid);
 		if(tkrid < 0){
 			tkrid = allocateTalkerForNewSession(true/*force*/);
-			tkrpos = d.tkrvec[tkrid].uid.first;
-			tkruid = d.tkrvec[tkrid].uid.second;
 		}
+		tkrpos = d.tkrvec[tkrid].uid.first;
+		tkruid = d.tkrvec[tkrid].uid.second;
 	}
 	
 	tkrpos = compute_index(tkrpos);
@@ -366,9 +367,9 @@ void Service::connectSession(const Inet4SockAddrPair &_raddr){
 		tkrid = createNewTalker(tkrpos, tkruid);
 		if(tkrid < 0){
 			tkrid = allocateTalkerForNewSession(true/*force*/);
-			tkrpos = d.tkrvec[tkrid].uid.first;
-			tkruid = d.tkrvec[tkrid].uid.second;
 		}
+		tkrpos = d.tkrvec[tkrid].uid.first;
+		tkruid = d.tkrvec[tkrid].uid.second;
 	}
 	tkrpos = compute_index(tkrpos);
 	
@@ -425,7 +426,7 @@ int Service::createNewTalker(IndexT &_tkrpos, uint32 &_tkruid){
 		vdbgx(Dbg::ipc, "Successful created talker");
 		Talker *ptkr(new Talker(sd, *this, tkrid));
 		
-		ObjectUidT	objuid(this->insert(ptkr));
+		ObjectUidT	objuid(this->insertLockless(ptkr));
 		d.tkrq.push(d.tkrvec.size());
 		d.tkrvec.push_back(objuid);
 		d.pc->scheduleTalker(ptkr);
@@ -469,7 +470,10 @@ int Service::insertTalker(
 	sd.bind(_rai);
 	
 	if(!sd.ok()) return BAD;
-	
+	SocketAddress sa;
+	if(sd.localAddress(sa) != OK){
+		return BAD;
+	}
 	//Mutex::Locker	lock(serviceMutex());
 	cassert(!d.tkrvec.size());//only the first tkr must be inserted from outside
 	Talker			*ptkr(new Talker(sd, *this, 0));
@@ -478,7 +482,7 @@ int Service::insertTalker(
 	
 	Mutex::Locker	lock(serviceMutex());
 	d.firstaddr = _rai;
-	d.baseport = d.firstaddr.port();
+	d.baseport = sa.port();
 	d.tkrvec.push_back(Data::TalkerStub(objuid));
 	d.tkrq.push(0);
 	d.pc->scheduleTalker(ptkr);

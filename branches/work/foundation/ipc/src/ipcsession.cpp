@@ -808,7 +808,7 @@ Session::Session(
 	const Inet4SockAddrPair &_raddr,
 	uint32 _keepalivetout
 ):d(*(new Data(_raddr, _keepalivetout))){
-	vdbgx(Dbg::ipc, "Created connect session"<<(void*)this);
+	vdbgx(Dbg::ipc, "Created connect session "<<(void*)this);
 }
 //---------------------------------------------------------------------
 Session::Session(
@@ -816,11 +816,11 @@ Session::Session(
 	int _basport,
 	uint32 _keepalivetout
 ):d(*(new Data(_raddr, _basport, _keepalivetout))){
-	vdbgx(Dbg::ipc, "Created accept session"<<(void*)this);
+	vdbgx(Dbg::ipc, "Created accept session "<<(void*)this);
 }
 //---------------------------------------------------------------------
 Session::~Session(){
-	vdbgx(Dbg::ipc, "delete session"<<(void*)this);
+	vdbgx(Dbg::ipc, "delete session "<<(void*)this);
 	delete &d;
 }
 //---------------------------------------------------------------------
