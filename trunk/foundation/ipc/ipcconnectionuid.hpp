@@ -23,8 +23,10 @@
 #define FOUNDATION_IPC_IPC_SESSION_UID_HPP
 
 #include "system/common.hpp"
+#include "system/socketaddress.hpp"
 #include "utility/dynamicpointer.hpp"
 
+struct C;
 namespace foundation{
 namespace ipc{
 //! A structure to uniquely indetify an IPC connection/session
@@ -39,10 +41,10 @@ struct ConnectionUid{
 		uint32 _id = 0,
 		uint16 _sesidx = 0,
 		uint16 _sesuid = 0
-	):id(_id), sessionidx(_sesidx), sessionuid(_sesuid){}
-	uint32	id;
-	uint16	sessionidx;
-	uint16	sessionuid;
+	):tid(_id), idx(_sesidx), uid(_sesuid){}
+	uint32	tid;
+	uint16	idx;
+	uint16	uid;
 };
 
 struct SignalUid{
@@ -51,12 +53,37 @@ struct SignalUid{
 	uint32	uid;
 };
 
+//! Thread specific information about current ipc context
+/*!
+	This should be used by signals to get information about the current
+	ipc context:<br>
+	- the current ipc connection uid;<br>
+	- the peer address and peer base port for current connection;<br>
+	- the unique id of the signal<br>
+	<br>
+	Remember that signals can be broadcasted to multiple destinations.
+	The SignalContext helps a signal know which ipc sessions calls its
+	callbacks (Signal::ipcFail, Signal::ipcSuccess, Signal::ipcReceive).<br>
+	Also for the case when we want to wait for response, on signal
+	serialization we need to use the signaluid from the current context.
+	
+	See concept::alpha::RemoteListSignal from alphasignals.hpp for an example.
+	
+	
+	
+*/
+	
 struct SignalContext{
-	SignalUid waitid;
+	static const SignalContext& the();
+	ConnectionUid 		connectionuid;
+	SignalUid			signaluid;
+	SockAddrPair		pairaddr;
+	int 				baseport;
+private:
+	friend class Context;
+	
+	SignalContext(uint32 _tkrid):connectionuid(_tkrid), baseport(-1){}
 };
-
-typedef DynamicPointer<foundation::Signal, SignalContext>	DynamicContextPointerT;
-
 
 }//namespace ipc
 }//namespace foundation

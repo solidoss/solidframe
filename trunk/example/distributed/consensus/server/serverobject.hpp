@@ -4,7 +4,7 @@
 #include "foundation/object.hpp"
 #include "foundation/signal.hpp"
 
-struct InsertSignal;
+struct StoreSignal;
 struct FetchSignal;
 struct EraseSignal;
 
@@ -15,7 +15,7 @@ public:
 	ServerObject();
 	~ServerObject();
 	void dynamicExecute(DynamicPointer<> &_dp);
-	void dynamicExecute(DynamicPointer<InsertSignal> &_rsig);
+	void dynamicExecute(DynamicPointer<StoreSignal> &_rsig);
 	void dynamicExecute(DynamicPointer<FetchSignal> &_rsig);
 	void dynamicExecute(DynamicPointer<EraseSignal> &_rsig);
 	
@@ -24,6 +24,7 @@ private:
 	/*virtual*/ bool signal(DynamicPointer<foundation::Signal> &_sig);
 private:
 	DynamicExecuterT	exe;
+	uint32				crtval;
 };
 
 #endif

@@ -88,6 +88,8 @@ void SchedulerBase::raiseOneSelector(){
 	}
 	if(d.selvec[d.crtidx].first){
 		d.selvec[d.crtidx].first->raise();
+		++d.crtidx;//try use another selector
+		d.crtidx %= d.selvec.size();
 	}
 }
 void SchedulerBase::markSelectorFull(SelectorBase &_rs){

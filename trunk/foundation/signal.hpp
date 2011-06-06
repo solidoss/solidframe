@@ -52,8 +52,16 @@ class Object;
 	Also the signal can be used with an foundation::SignalExecuter,
 	in which case the posibilities widen.
 	\see test::alpha::FetchMasterSignal
+	\see foundation::ipc::SignalContext
+	\note use foundation::ipc::SignalContext for other information about current ipc session.
 */
 struct Signal: Dynamic<Signal>{
+	enum IPCStatus{
+		IpcNone = 0,
+		IpcOnSender,
+		IpcOnPeer,
+		IpcBackOnSender
+	};
 	Signal();
 	virtual ~Signal();
 	//! Called by ipc module after the signal was successfully parsed
@@ -65,24 +73,9 @@ struct Signal: Dynamic<Signal>{
 			(given by the ipc module when calling Signal's ipcPrepare method)
 			so that when the response comes back, it gives it back to the 
 			ipc module.
-		\param _ipcsessionuid	The unique id of an ipc session. It is used 
-			for guaranteeing that the response is sent back to the instance
-			that requested it. If somehow the requesting process is restarted
-			and it reconnects to current process, the session will have another
-			unique id. Signals, must retain the _ipcsessionuid value and use it 
-			for sending response(s).
-		\param _peeraddr The address of the peer socket. No not use this
-			combination for sending signals - use _peerbaseport parameter
-			for port instead of the one embedded in _peeraddr.
-		\param _peerbaseport The base port for peer ipc module. See also 
-			_peeraddr parameter.
-		\retval BAD for deleting the signal, OK for not
 	*/
-	virtual bool ipcReceived(
-		ipc::SignalUid &_waitingsignaluid,
-		const ipc::ConnectionUid &_ipcsessionuid,
-		const SockAddrPair &_peeraddr,
-		int _peerbaseport
+	virtual void ipcReceived(
+		ipc::SignalUid &_waitingsignaluid
 	);
 	//! Called by ipc module, before the signal begins to be serialized
 	virtual uint32 ipcPrepare();

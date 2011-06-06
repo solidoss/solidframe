@@ -19,8 +19,8 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef FOUNDATION_IPC_SRC_IPC_CONNECTION_HPP
-#define FOUNDATION_IPC_SRC_IPC_CONNECTION_HPP
+#ifndef FOUNDATION_IPC_SRC_IPC_SESSION_HPP
+#define FOUNDATION_IPC_SRC_IPC_SESSION_HPP
 
 #include "iodata.hpp"
 #include "ipctalker.hpp"
@@ -41,6 +41,14 @@ namespace foundation{
 struct Signal;
 
 namespace ipc{
+
+
+struct Context{
+	static Context& the();
+	Context(uint32 _tkrid);
+	~Context();
+	SignalContext sigctx;
+};
 
 class Session{
 public:
@@ -78,8 +86,8 @@ public:
 	int pushSignal(DynamicPointer<Signal> &_rsig, uint32 _flags);
 	bool pushReceivedBuffer(
 		Buffer &_rbuf,
-		Talker::TalkerStub &_rstub,
-		const ConnectionUid &_rconid
+		Talker::TalkerStub &_rstub/*,
+		const ConnectionUid &_rconid*/
 	);
 	
 	void completeConnect(int _port);
@@ -95,20 +103,21 @@ public:
 		const char *_data,
 		const uint16 _size
 	);
+	void prepareContext(Context &_rctx);
 private:
 	bool doPushExpectedReceivedBuffer(
 		Buffer &_rbuf,
-		Talker::TalkerStub &_rstub,
-		const ConnectionUid &_rconid
+		Talker::TalkerStub &_rstub/*,
+		const ConnectionUid &_rconid*/
 	);
 	bool doPushUnxpectedReceivedBuffer(
 		Buffer &_rbuf,
-		Talker::TalkerStub &_rstub,
-		const ConnectionUid &_rconid
+		Talker::TalkerStub &_rstub/*,
+		const ConnectionUid &_rconid*/
 	);
-	bool doFreeSentBuffers(const Buffer &_rbuf, const ConnectionUid &_rconid);
+	bool doFreeSentBuffers(const Buffer &_rbuf/*, const ConnectionUid &_rconid*/);
 	void doParseBufferDataType(const char *&_bpos, int &_blen, int _firstblen);
-	void doParseBuffer(const Buffer &_rbuf, const ConnectionUid &_rconid);
+	void doParseBuffer(const Buffer &_rbuf/*, const ConnectionUid &_rconid*/);
 	
 	int doExecuteConnecting(Talker::TalkerStub &_rstub);
 	int doExecuteAccepting(Talker::TalkerStub &_rstub);

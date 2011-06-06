@@ -1,2 +1,2 @@
 
-add_subdirectory(concept)
+add_subdirectory(consensus)

@@ -584,7 +584,7 @@ namespace{
 
 ObjectUidT Service::doInsertObject(Object &_ro, uint32 _tid, const IndexT &_ridx){
 	uint32 u;
-	
+	cassert(!serviceMutex().tryLock());
 	if(is_invalid_index(_ridx)){
 		if(d.idxque.size()){
 			{

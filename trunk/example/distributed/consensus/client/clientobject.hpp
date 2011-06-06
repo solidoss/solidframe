@@ -12,7 +12,7 @@
 
 class ClientObject;
 struct ConceptSignal;
-struct InsertSignal;
+struct StoreSignal;
 struct FetchSignal;
 struct EraseSignal;
 
@@ -77,7 +77,7 @@ public:
 	~ClientObject();
 	void dynamicExecute(DynamicPointer<> &_dp);
 	void dynamicExecute(DynamicPointer<ClientSignal> &_rsig);
-	void dynamicExecute(DynamicPointer<InsertSignal> &_rsig);
+	void dynamicExecute(DynamicPointer<StoreSignal> &_rsig);
 	void dynamicExecute(DynamicPointer<FetchSignal> &_rsig);
 	void dynamicExecute(DynamicPointer<EraseSignal> &_rsig);
 	
@@ -89,7 +89,7 @@ public:
 private:
 	uint32 sendSignal(ConceptSignal *_psig);
 	const std::string& getString(uint32 _pos, uint32 _crtpos);
-	void expectInsert(uint32 _rid, const std::string &_rs, uint32 _v, uint32 _cnt);
+	void expectStore(uint32 _rid, const std::string &_rs, uint32 _v, uint32 _cnt);
 	void expectFetch(uint32 _rid, const std::string &_rs, uint32 _cnt);
 	void expectErase(uint32 _rid, const std::string &_rs, uint32 _cnt);
 	void expectErase(uint32 _rid, uint32 _cnt);

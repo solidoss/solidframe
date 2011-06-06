@@ -1,6 +1,6 @@
-#include "example/distributed/concept/server/serverobject.hpp"
-#include "example/distributed/concept/core/manager.hpp"
-#include "example/distributed/concept/core/signals.hpp"
+#include "example/distributed/consensus/server/serverobject.hpp"
+#include "example/distributed/consensus/core/manager.hpp"
+#include "example/distributed/consensus/core/signals.hpp"
 
 #include "foundation/ipc/ipcservice.hpp"
 
@@ -11,7 +11,7 @@
 
 namespace fdt=foundation;
 
-ServerObject::ServerObject(){
+ServerObject::ServerObject():crtval(1){
 	
 }
 ServerObject::~ServerObject(){
@@ -22,7 +22,7 @@ namespace{
 static const DynamicRegisterer<ServerObject>	dre;
 }
 /*static*/ void ServerObject::dynamicRegister(){
-	DynamicExecuterT::registerDynamic<InsertSignal, ServerObject>();
+	DynamicExecuterT::registerDynamic<StoreSignal, ServerObject>();
 	DynamicExecuterT::registerDynamic<FetchSignal, ServerObject>();
 	DynamicExecuterT::registerDynamic<EraseSignal, ServerObject>();
 	//DynamicExecuterT::registerDynamic<InsertSignal, ClientObject>();
@@ -70,11 +70,14 @@ void ServerObject::dynamicExecute(DynamicPointer<> &_dp){
 }
 
 
-void ServerObject::dynamicExecute(DynamicPointer<InsertSignal> &_rsig){
+void ServerObject::dynamicExecute(DynamicPointer<StoreSignal> &_rsig){
 	idbg("received InsertSignal request");
 	const foundation::ipc::ConnectionUid	ipcconid(_rsig->ipcconid);
-	DynamicPointer<foundation::Signal>		sigptr(_rsig);
 	
+	++crtval;
+	_rsig->v = crtval;
+	
+	DynamicPointer<foundation::Signal>		sigptr(_rsig);
 	foundation::ipc::Service::the().sendSignal(sigptr, ipcconid);
 }
 

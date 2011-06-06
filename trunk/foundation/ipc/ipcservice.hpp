@@ -26,7 +26,6 @@
 #include "foundation/signal.hpp"
 #include "foundation/ipc/ipcconnectionuid.hpp"
 
-struct C;
 struct SockAddrPair;
 struct SocketDevice;
 struct AddrInfoIterator;
@@ -43,7 +42,6 @@ namespace ipc{
 class Session;
 class Talker;
 class Connection;
-class IOData;
 struct Buffer;
 struct ConnectionUid;
 
@@ -109,6 +107,7 @@ public:
 		SentFlag = 8,//!< The signal was successfully sent
 	};
 	struct Controller{
+		virtual ~Controller(){}
 		virtual bool release() = 0;
 		virtual void scheduleTalker(foundation::aio::Object *_ptkr) = 0;
 	};
@@ -117,7 +116,12 @@ public:
 	static Service& the(const IndexT &_ridx);
 	
 	
-	Service(Controller *_pc, uint32 _keepalivetout = 0/*no keepalive*/);
+	Service(
+		Controller *_pc,
+		uint32 _keepalivetout = 0/*no keepalive*/,
+		uint32 _sespertkr = 1024,
+		uint32 _tkrmaxcnt = 32
+	);
 	//! Destructor
 	~Service();
 	//!Send a signal (usually a response) to a peer process using a previously saved ConnectionUid
@@ -126,7 +130,7 @@ public:
 		restarts the signal is not sent.
 		\param _rconid A previously saved connectionuid
 		\param _psig A DynamicPointer with the signal to be sent.
-		\param _flags (Optional) Not used for now
+		\param _flags Control flags
 	*/
 	int sendSignal(
 		DynamicPointer<Signal> &_psig,//the signal to be sent
@@ -140,7 +144,7 @@ public:
 		\param _rsap The base socket address of the peer.
 		\param _psig The signal.
 		\param _rconid An output value, which on success will contain the uid of the connector.
-		\param _flags (Optional) Not used for now
+		\param _flags Control flags
 	*/
 	int sendSignal(
 		DynamicPointer<Signal> &_psig,//the signal to be sent
@@ -154,7 +158,7 @@ public:
 		If the connection does not already exist, it will be created.
 		\param _rsap The base socket address of the peer.
 		\param _psig The signal.
-		\param _flags (Optional) Not used for now
+		\param _flags Control flags
 	*/
 	int sendSignal(
 		DynamicPointer<Signal> &_psig,//the signal to be sent
@@ -203,8 +207,8 @@ private:
 	int acceptSession(Session *_pses);
 	void disconnectSession(Session *_pses);
 	void disconnectTalkerSessions(Talker &);
-	int16 createNewTalker(IndexT &_tkrpos, uint32 &_tkruid);
-	int16 computeTalkerForNewSession();
+	int createNewTalker(IndexT &_tkrpos, uint32 &_tkruid);
+	int allocateTalkerForNewSession(bool _force = false);
 	uint32 keepAliveTimeout()const;
 	void connectSession(const Inet4SockAddrPair &_raddr);
 private:
