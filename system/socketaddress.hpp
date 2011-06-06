@@ -155,6 +155,7 @@ struct SockAddrPair{
 	SockAddrPair(SocketAddress &_rsa);
 	AddrInfo::Family family()const{return (AddrInfo::Family)addr->sa_family;}
 	SockAddrPair& operator=(const AddrInfoIterator &_it);
+	SockAddrPair& operator=(SocketAddress &_rsa);
 	bool isInet4()const{
 		return sz == sizeof(sockaddr_in);
 	}

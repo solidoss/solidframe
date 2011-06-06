@@ -1,6 +1,6 @@
-#include "example/distributed/concept/client/clientobject.hpp"
-#include "example/distributed/concept/core/manager.hpp"
-#include "example/distributed/concept/core/signals.hpp"
+#include "example/distributed/consensus/client/clientobject.hpp"
+#include "example/distributed/consensus/core/manager.hpp"
+#include "example/distributed/consensus/core/signals.hpp"
 
 #include "foundation/common.hpp"
 #include "foundation/ipc/ipcservice.hpp"
@@ -173,13 +173,15 @@ namespace{
 static const DynamicRegisterer<ClientObject>	dre;
 }
 /*static*/ void ClientObject::dynamicRegister(){
-	DynamicExecuterT::registerDynamic<InsertSignal, ClientObject>();
+	DynamicExecuterT::registerDynamic<StoreSignal, ClientObject>();
 	DynamicExecuterT::registerDynamic<FetchSignal, ClientObject>();
 	DynamicExecuterT::registerDynamic<EraseSignal, ClientObject>();
 	//DynamicExecuterT::registerDynamic<InsertSignal, ClientObject>();
 }
 //------------------------------------------------------------
-ClientObject::ClientObject(const ClientParams &_rcp):params(_rcp), crtreqid(1){
+ClientObject::ClientObject(
+	const ClientParams &_rcp
+):params(_rcp), crtreqid(1),crtreqpos(0), crtpos(0),waitresponsecount(0){
 	state(Execute);
 }
 //------------------------------------------------------------
@@ -219,9 +221,10 @@ int ClientObject::execute(ulong _sig, TimeSpec &_tout){
 		idbg("opp = "<<rr.opp);
 		switch(rr.opp){
 			case 'i':{
+				idbg("sending a storesingal");
 				const string	&s(getString(rr.u.u32s.u32_1, crtpos));
-				uint32			sid(sendSignal(new InsertSignal(s, crtpos)));
-				expectInsert(sid, s, crtpos, params.addrvec.size());
+				uint32			sid(sendSignal(new StoreSignal(s, crtpos)));
+				expectStore(sid, s, crtpos, params.addrvec.size());
 				break;
 			}
 			case 'p':
@@ -340,11 +343,16 @@ uint32 ClientObject::sendSignal(ConceptSignal *_psig){
 }
 //------------------------------------------------------------
 const string& ClientObject::getString(uint32 _pos, uint32 _crtpos){
-	string &rs(params.strvec[_pos]);
-	char buf[16];
-	sprintf(buf, "%8.8x", _crtpos);
-	memcpy((void*)rs.data(), buf, 8);
-	return rs;
+	static const string df("");
+	if(_pos < params.strvec.size()){
+		string &rs(params.strvec[_pos]);
+		char buf[16];
+		sprintf(buf, "%8.8x", _crtpos);
+		memcpy((void*)rs.data(), buf, 8);
+		return rs;
+	}else{
+		return df;
+	}
 }
 //------------------------------------------------------------
 /*virtual*/ bool ClientObject::signal(DynamicPointer<foundation::Signal> &_sig){
@@ -364,8 +372,9 @@ void ClientObject::dynamicExecute(DynamicPointer<ClientSignal> &_rsig){
 	idbg("received ClientSignal response");
 }
 //------------------------------------------------------------
-void ClientObject::dynamicExecute(DynamicPointer<InsertSignal> &_rsig){
-	idbg("received InsertSignal response");
+void ClientObject::dynamicExecute(DynamicPointer<StoreSignal> &_rsig){
+	idbg("received StoreSignal response with value "<<_rsig->v);
+	--waitresponsecount;
 }
 //------------------------------------------------------------
 void ClientObject::dynamicExecute(DynamicPointer<FetchSignal> &_rsig){
@@ -376,8 +385,8 @@ void ClientObject::dynamicExecute(DynamicPointer<EraseSignal> &_rsig){
 	idbg("received EraseSignal response");
 }
 //------------------------------------------------------------
-void ClientObject::expectInsert(uint32 _rid, const string &_rs, uint32 _v, uint32 _cnt){
-	
+void ClientObject::expectStore(uint32 _rid, const string &_rs, uint32 _v, uint32 _cnt){
+	++waitresponsecount;
 }
 //------------------------------------------------------------
 void ClientObject::expectFetch(uint32 _rid, const string &_rs, uint32 _cnt){

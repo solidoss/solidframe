@@ -214,6 +214,30 @@ protected:
 	void expectedCount(const IndexT &_rcnt);
 	const IndexT& expectedCount()const;
 	
+	template <typename O>
+	ObjectUidT insertLockless(O *_po, const IndexT &_ridx = invalid_uid().first){
+		const uint			tid(O::staticTypeId());
+		ObjectTypeStub		&rots(objectTypeStub(tid));
+		const ObjectUidT	objuid(doInsertObject(*_po, tid, _ridx));
+		
+		(*rots.insert_callback)(_po, this, objuid);
+		
+		return objuid;
+	}
+	
+	template <typename S, class O>
+	ObjectUidT insertLockless(ObjectPointer<O> &_op, uint _schidx = 0, const IndexT &_ridx = invalid_uid().first){
+		const uint			tid(O::staticTypeId());
+		ObjectTypeStub		&rots(objectTypeStub(tid));
+		const ObjectUidT	objuid(doInsertObject(*_op, tid, _ridx));
+		
+		(*rots.insert_callback)(_op.ptr(), this, objuid);
+		
+		S::schedule(_op, _schidx);
+		
+		return objuid;
+	}
+	
 	template <typename O, class S>
 	static void registerObjectType(S *_ps){
 		const uint32	objtpid(O::staticTypeId());
@@ -222,6 +246,7 @@ protected:
 		rts.erase_callback = &erase_cbk<O, S>;
 		rts.insert_callback = &insert_cbk<O, S>;
 	}
+	
 	template <typename O, typename V>
 	void registerVisitorType(){
 		const uint32	objtpid(O::staticTypeId());

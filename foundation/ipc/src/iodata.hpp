@@ -108,7 +108,7 @@ struct Buffer{
 		
 		void pushUpdate(uint32 _upd);
 		
-		uint32 size()const{return sizeof(Header) + updatescnt * sizeof(uint32);}
+		uint32 size()const;
 	};
 	enum Types{
 		KeepAliveType = 1,
@@ -129,105 +129,64 @@ struct Buffer{
 		NewSignal,
 		OldSignal
 	};
-	static uint32 minSize(){
-		return sizeof(Header);
-	}
+	static uint32 minSize();
 	static char* allocateDataForReading();
 	static void deallocateDataForReading(char *_buf);
-	static const uint capacityForReading(){
-		return ReadCapacity;
-	}
+	static const uint capacityForReading();
 	
 	Buffer(
 		char *_pb = NULL,
 		uint16 _bc = 0,
 		uint16 _dl = 0
-	):bc(_bc), dl(_dl), pb(_pb){
-	}
-	Buffer(const Buffer& _rbuf):bc(_rbuf.bc), dl(_rbuf.dl), pb(_rbuf.release()){
-	}
-	Buffer& operator=(const Buffer& _rbuf){
-		if(this != &_rbuf){
-			bc = _rbuf.bc;
-			dl = _rbuf.dl;
-			pb = _rbuf.release();
-		}
-		return *this;
-	}
+	);
+	Buffer(const Buffer& _rbuf);
+	Buffer& operator=(const Buffer& _rbuf);
 	~Buffer();
-	bool empty()const{
-		return pb == NULL;
-	}
-	void resetHeader(){
-		header().version = 1;
-		header().retransid = 0;
-		header().id = 0;
-		header().flags = 0;
-		header().type = Unknown;
-		header().updatescnt = 0;
-	}
+	bool empty()const;
+	void resetHeader();
 	void clear();
 	void optimize(uint16 _cp = 0);
-	void reinit(char *_pb = NULL, uint16 _bc = 0, uint16 _dl = 0){
-		clear();
-		pb = _pb;
-		bc = _bc;
-		dl = _dl;
-	}
-	char *buffer()const{return pb;}
-	char *data()const {return pb + header().size();}
+	void reinit(char *_pb = NULL, uint16 _bc = 0, uint16 _dl = 0);
+	char *buffer()const;
+	char *data()const ;
 	
-	uint32 bufferSize()const{return dl + header().size();}
-	void bufferSize(uint32 _sz){
-		cassert(_sz >= header().size());
-		dl = _sz - header().size();
-	}
-	uint32 bufferCapacity()const{return bc;}
+	uint32 bufferSize()const;
+	void bufferSize(uint32 _sz);
+	uint32 bufferCapacity()const;
 	
-	uint32 dataSize()const{return dl;}
-	void dataSize(uint32 _dl){dl = _dl;}
-	uint32 dataCapacity()const{return bc - header().size();}
+	uint32 dataSize()const;
+	void dataSize(uint32 _dl);
+	uint32 dataCapacity()const;
 	
-	char* dataEnd()const{return data() + dataSize();}
-	uint32 dataFreeSize()const{return dataCapacity() - dataSize();}
+	char* dataEnd()const;
+	uint32 dataFreeSize()const;
 	
-	void dataType(DataTypes _dt){
-		uint8 dt = _dt;
-		*reinterpret_cast<uint8*>(dataEnd()) = dt;
-		++dl;
-	}
+	void dataType(DataTypes _dt);
 	
-	char *release(uint32 &_cp)const{
-		char* tmp = pb; pb = NULL; 
-		_cp = bc; bc = 0; dl = 0;
-		return tmp;
-	}
-	char *release()const{
-		uint32 cp;
-		return release(cp);
-	}
+	char *release(uint32 &_cp)const;
+	char *release()const;
 	
-	uint8 version()const{return header().version;}
-	void version(uint8 _v){header().version = _v;}
+	uint8 version()const;
+	void version(uint8 _v);
 	
-	uint16 retransmitId()const{return header().retransid;} 
-	void retransmitId(uint16 _ri){header().retransid = _ri;}
+	uint16 retransmitId()const;
+	void retransmitId(uint16 _ri);
 	
-	uint32 id()const {return header().id;}
-	void id(uint32 _id){header().id = _id;}
+	uint32 id()const;
+	void id(uint32 _id);
 	
-	uint16 flags()const {return header().flags;}
-	void flags(uint16 _flags){header().flags = _flags;}
+	uint16 flags()const;
+	void flags(uint16 _flags);
 	
-	uint8 type()const{return header().type;}
-	void type(uint8 _tp){header().type = _tp;}
+	uint8 type()const;
+	void type(uint8 _tp);
 	
-	uint32 updatesCount()const{return header().updatescnt;}
-	uint32 update(uint32 _pos)const {return header().update(_pos);}
-	void pushUpdate(uint32 _upd){header().pushUpdate(_upd);}
+	uint32 updatesCount()const;
+	uint32 update(uint32 _pos)const;
+	void pushUpdate(uint32 _upd);
 	
-	Header& header(){return *reinterpret_cast<Header*>(pb);}
-	const Header& header()const{return *reinterpret_cast<Header*>(pb);}
+	Header& header();
+	const Header& header()const;
 	
 	bool check()const;
 	
@@ -247,6 +206,173 @@ inline uint32& Buffer::Header::update(uint32 _pos){
 }
 inline void Buffer::Header::pushUpdate(uint32 _upd){
 	update(updatescnt++) = _upd;
+}
+inline uint32 Buffer::Header::size()const{
+	return sizeof(Header) + updatescnt * sizeof(uint32);
+}
+
+inline /*static*/ uint32 Buffer::minSize(){
+		return sizeof(Header);
+	}
+inline /*static*/ const uint Buffer::capacityForReading(){
+	return ReadCapacity;
+}
+
+inline Buffer::Buffer(
+	char *_pb,
+	uint16 _bc,
+	uint16 _dl
+):bc(_bc), dl(_dl), pb(_pb){
+}
+
+inline Buffer::Buffer(const Buffer& _rbuf):bc(_rbuf.bc), dl(_rbuf.dl), pb(_rbuf.release()){
+}
+
+inline Buffer& Buffer::operator=(const Buffer& _rbuf){
+	if(this != &_rbuf){
+		bc = _rbuf.bc;
+		dl = _rbuf.dl;
+		pb = _rbuf.release();
+	}
+	return *this;
+}
+
+inline bool Buffer::empty()const{
+	return pb == NULL;
+}
+
+inline void Buffer::resetHeader(){
+	header().version = 1;
+	header().retransid = 0;
+	header().id = 0;
+	header().flags = 0;
+	header().type = Unknown;
+	header().updatescnt = 0;
+}
+
+inline void Buffer::reinit(char *_pb, uint16 _bc, uint16 _dl){
+	clear();
+	pb = _pb;
+	bc = _bc;
+	dl = _dl;
+}
+
+inline char *Buffer::buffer()const{
+	return pb;
+}
+
+inline char *Buffer::data()const{
+	return pb + header().size();
+}
+
+inline uint32 Buffer::bufferSize()const{
+	return dl + header().size();
+}
+
+inline void Buffer::bufferSize(uint32 _sz){
+	cassert(_sz >= header().size());
+	dl = _sz - header().size();
+}
+
+inline uint32 Buffer::bufferCapacity()const{
+	return bc;
+}
+
+inline uint32 Buffer::dataSize()const{
+	return dl;
+}
+
+inline void Buffer::dataSize(uint32 _dl){
+	dl = _dl;
+}
+
+inline uint32 Buffer::dataCapacity()const{
+	return bc - header().size();
+}
+
+inline char* Buffer::dataEnd()const{
+	return data() + dataSize();
+}
+
+inline uint32 Buffer::dataFreeSize()const{
+	return dataCapacity() - dataSize();
+}
+
+inline void Buffer::dataType(DataTypes _dt){
+	uint8 dt = _dt;
+	*reinterpret_cast<uint8*>(dataEnd()) = dt;
+	++dl;
+}
+
+inline char *Buffer::release(uint32 &_cp)const{
+	char* tmp = pb; pb = NULL; 
+	_cp = bc; bc = 0; dl = 0;
+	return tmp;
+}
+
+inline char *Buffer::release()const{
+	uint32 cp;
+	return release(cp);
+}
+
+inline uint8 Buffer::version()const{
+	return header().version;
+}
+
+inline void Buffer::version(uint8 _v){
+	header().version = _v;
+}
+
+inline uint16 Buffer::retransmitId()const{
+	return header().retransid;
+} 
+
+inline void Buffer::retransmitId(uint16 _ri){
+	header().retransid = _ri;
+}
+
+inline uint32 Buffer::id()const {
+	return header().id;
+}
+
+inline void Buffer::id(uint32 _id){
+	header().id = _id;
+}
+
+inline uint16 Buffer::flags()const{
+	return header().flags;
+}
+
+inline void Buffer::flags(uint16 _flags){
+	header().flags = _flags;
+}
+
+inline uint8 Buffer::type()const{
+	return header().type;
+}
+
+inline void Buffer::type(uint8 _tp){
+	header().type = _tp;
+}
+
+inline uint32 Buffer::updatesCount()const{
+	return header().updatescnt;
+}
+
+inline uint32 Buffer::update(uint32 _pos)const{
+	return header().update(_pos);
+}
+
+inline void Buffer::pushUpdate(uint32 _upd){
+	header().pushUpdate(_upd);
+}
+
+inline Buffer::Header& Buffer::header(){
+	return *reinterpret_cast<Header*>(pb);
+}
+
+inline const Buffer::Header& Buffer::header()const{
+	return *reinterpret_cast<Header*>(pb);
 }
 
 

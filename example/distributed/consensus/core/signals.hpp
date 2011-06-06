@@ -33,10 +33,8 @@ struct ConceptSignal: Dynamic<ConceptSignal, DynamicShared<foundation::Signal> >
 	};
 	ConceptSignal();
 	~ConceptSignal();
-	bool ipcReceived(
-		foundation::ipc::SignalUid &_rsiguid,
-		const foundation::ipc::ConnectionUid &_rconid,
-		const SockAddrPair &_peeraddr, int _peerbaseport
+	void ipcReceived(
+		foundation::ipc::SignalUid &_rsiguid
 	);
 	template <class S>
 	S& operator&(S &_s){
@@ -45,8 +43,10 @@ struct ConceptSignal: Dynamic<ConceptSignal, DynamicShared<foundation::Signal> >
 		if(waitresponse || !S::IsSerializer){//on peer
 			_s.push(ipcsiguid.idx, "siguid.idx").push(ipcsiguid.uid,"siguid.uid");
 		}else{//on sender
-			foundation::ipc::SignalContext &rsigctx(foundation::ipc::DynamicContextPointerT::specificContext());
-			_s.push(rsigctx.waitid.idx, "siguid.idx").push(rsigctx.waitid.uid,"siguid.uid");
+			foundation::ipc::SignalUid &rsiguid(
+				const_cast<foundation::ipc::SignalUid &>(foundation::ipc::SignalContext::the().signaluid)
+			);
+			_s.push(rsiguid.idx, "siguid.idx").push(rsiguid.uid,"siguid.uid");
 		}
 		return _s;
 	}
@@ -66,14 +66,17 @@ struct ConceptSignal: Dynamic<ConceptSignal, DynamicShared<foundation::Signal> >
 	foundation::ipc::SignalUid		ipcsiguid;
 };
 
-struct InsertSignal: Dynamic<InsertSignal, ConceptSignal>{
-	InsertSignal(const std::string&, uint32 _pos);
-	InsertSignal();
+struct StoreSignal: Dynamic<StoreSignal, ConceptSignal>{
+	StoreSignal(const std::string&, uint32 _pos);
+	StoreSignal();
 	
 	template <class S>
 	S& operator&(S &_s){
-		return static_cast<ConceptSignal*>(this)->operator&<S>(_s);
+		static_cast<ConceptSignal*>(this)->operator&<S>(_s);
+		_s.push(v,"value");
+		return _s;
 	}
+	uint32	v;
 };
 
 struct FetchSignal: Dynamic<FetchSignal, ConceptSignal>{

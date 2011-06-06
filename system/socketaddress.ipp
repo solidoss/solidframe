@@ -40,6 +40,12 @@ inline SockAddrPair& SockAddrPair::operator=(const AddrInfoIterator &_it){
 	}
 	return *this;
 }
+
+inline SockAddrPair& SockAddrPair::operator=(SocketAddress &_rsa){
+	addr = _rsa.addr();	sz = _rsa.size();
+	return *this;
+}
+
 //----------------------------------------------------------------------------
 inline SocketAddress::SocketAddress(const AddrInfoIterator &_it){
 	if(_it){

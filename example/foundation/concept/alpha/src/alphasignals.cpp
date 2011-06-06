@@ -29,13 +29,15 @@ namespace alpha{
 //-----------------------------------------------------------------------------------
 // RemoteListSignal
 //-----------------------------------------------------------------------------------
-RemoteListSignal::RemoteListSignal(uint32 _tout, uint16 _sentcnt): ppthlst(NULL),err(-1),tout(_tout), sentcnt(0){
+RemoteListSignal::RemoteListSignal(
+	uint32 _tout, uint16 _sentcnt
+): ppthlst(NULL),err(-1),tout(_tout), success(0), ipcstatus(IpcOnSender){
 	idbg(""<<(void*)this);
 }
 RemoteListSignal::~RemoteListSignal(){
 	idbg(""<<(void*)this);
-	if(!ppthlst && !sentcnt){
-		idbg("failed receiving response "<<sentcnt);
+	if(ipcstatus == IpcOnSender && success == 1){
+		idbg("failed receiving response");
 		m().signal(fdt::S_KILL | fdt::S_RAISE, fromv.first, fromv.second);
 	}
 	delete ppthlst;
@@ -50,44 +52,49 @@ int RemoteListSignal::release(){
 	return rv;
 }
 uint32 RemoteListSignal::ipcPrepare(){
-	const foundation::ipc::SignalContext &rsigctx(foundation::ipc::DynamicContextPointerT::specificContext());
-	Mutex::Locker lock(mutex());
-	++sentcnt;
-	idbg(""<<(void*)this<<" siguid = "<<rsigctx.waitid.idx<<' '<<rsigctx.waitid.uid<<" sentcnt = "<<sentcnt);
-	if(!ppthlst){//on sender
+	const foundation::ipc::SignalContext	&rsigctx(foundation::ipc::SignalContext::the());
+	Mutex::Locker							lock(mutex());
+	
+	if(success == 0) success = 1;//wait
+	idbg(""<<(void*)this<<" siguid = "<<rsigctx.signaluid.idx<<' '<<rsigctx.signaluid.uid<<" ipcstatus = "<<(int)ipcstatus);
+	if(ipcstatus == IpcOnSender){//on sender
 		return foundation::ipc::Service::WaitResponseFlag /*| foundation::ipc::Service::SynchronousSendFlag*/;
-	}else return 0/*foundation::ipc::Service::SynchronousSendFlag*/;// on peer
+	}else{
+		return 0/*foundation::ipc::Service::SynchronousSendFlag*/;// on peer
+	}
 }
-bool RemoteListSignal::ipcReceived(
-	fdt::ipc::SignalUid &_rsiguid,
-	const fdt::ipc::ConnectionUid &_rconid,
-	const SockAddrPair &_peeraddr,
-	int _peerbaseport
+void RemoteListSignal::ipcReceived(
+	fdt::ipc::SignalUid &_rsiguid
 ){
 	DynamicPointer<fdt::Signal> psig(this);
 	idbg(""<<(void*)this<<" siguid = "<<siguid.idx<<' '<<siguid.uid);
-	conid = _rconid;
-	_rsiguid = siguid;
-	if(!ppthlst){//on peer
+	conid = fdt::ipc::SignalContext::the().connectionuid;
+	++ipcstatus;
+	if(ipcstatus == IpcOnPeer){//on peer
 		idbg("Received RemoteListSignal on peer");
-		//print();
 		m().signal(psig, m().readSignalExecuterUid());
 	}else{//on sender
+		cassert(ipcstatus == IpcBackOnSender);
 		idbg("Received RemoteListSignal back on sender");
 		_rsiguid = siguid;
 		m().signal(psig, fromv.first, fromv.second);
 	}
-	return false;
 }
 void RemoteListSignal::ipcFail(int _err){
 	Mutex::Locker lock(mutex());
-	--sentcnt;
-	if(!ppthlst){
-		idbg("failed on sender "<<sentcnt<<" "<<(void*)this);
+	err = _err;
+	if(ipcstatus == IpcOnSender){
+		idbg("failed on sender "<<(void*)this);
 	}else{
 		idbg("failed on peer");
 	}
 }
+void RemoteListSignal::ipcSuccess(){
+	Mutex::Locker lock(mutex());
+	success = 2;
+	idbg("failed on peer");
+}
+
 int RemoteListSignal::execute(
 	DynamicPointer<Signal> &_rthis_ptr,
 	uint32 _evs,
@@ -140,9 +147,9 @@ int RemoteListSignal::execute(
 	err = 0;
 	//Thread::sleep(1000 * 20);
 	if(Manager::the().ipc().sendSignal(_rthis_ptr, conid)){
-		idbg("connector was destroyed "<<conid.id<<' '<<conid.sessionidx<<' '<<conid.sessionuid);
+		idbg("connector was destroyed "<<conid.tid<<' '<<conid.idx<<' '<<conid.uid);
 	}else{
-		idbg("signal sent "<<conid.id<<' '<<conid.sessionidx<<' '<<conid.sessionuid);
+		idbg("signal sent "<<conid.tid<<' '<<conid.idx<<' '<<conid.uid);
 	}
 	return BAD;
 }
@@ -173,19 +180,15 @@ uint32 FetchMasterSignal::ipcPrepare(){
 }
 
 
-bool FetchMasterSignal::ipcReceived(
-	fdt::ipc::SignalUid &_rsiguid,
-	const fdt::ipc::ConnectionUid &_rconid,
-	const SockAddrPair &_peeraddr,
-	int _peerbaseport
+void FetchMasterSignal::ipcReceived(
+	fdt::ipc::SignalUid &_rsiguid
 ){
 	DynamicPointer<fdt::Signal> sig(this);
-	conid = _rconid;
+	conid = fdt::ipc::SignalContext::the().connectionuid;;
 	state = Received;
 	idbg("received master signal");
 	print();
 	m().signal(sig, m().readSignalExecuterUid());
-	return OK;//release the ptr not clear
 }
 /*
 	The state machine running on peer
@@ -384,14 +387,11 @@ int FetchSlaveSignal::sent(const fdt::ipc::ConnectionUid &_rconid){
 uint32 FetchSlaveSignal::ipcPrepare(){
 	return 0;//foundation::ipc::Service::SynchronousSendFlag;
 }
-bool FetchSlaveSignal::ipcReceived(
-	fdt::ipc::SignalUid &_rsiguid,
-	const fdt::ipc::ConnectionUid &_rconid,
-	const SockAddrPair &_peeraddr,
-	int _peerbaseport
+void FetchSlaveSignal::ipcReceived(
+	fdt::ipc::SignalUid &_rsiguid
 ){
 	DynamicPointer<fdt::Signal> psig(this);
-	conid = _rconid;
+	conid = fdt::ipc::SignalContext::the().connectionuid;
 	if(filesz == -10){
 		idbg((void*)this<<" Received FetchSlaveSignal on peer");
 		print();
@@ -403,7 +403,6 @@ bool FetchSlaveSignal::ipcReceived(
 		print();
 		m().signal(psig, tov.first, tov.second);
 	}
-	return OK;
 }
 // Executed on peer within the signal executer
 int FetchSlaveSignal::execute(
@@ -472,16 +471,12 @@ int FetchSlaveSignal::createSerializationStream(
 // SendStringSignal
 //-----------------------------------------------------------------------------------
 
-bool SendStringSignal::ipcReceived(
-	fdt::ipc::SignalUid &_rsiguid,
-	const fdt::ipc::ConnectionUid &_rconid,
-	const SockAddrPair &_peeraddr,
-	int _peerbaseport
+void SendStringSignal::ipcReceived(
+	fdt::ipc::SignalUid &_rsiguid
 ){
 	DynamicPointer<fdt::Signal> psig(this);
-	conid = _rconid;
+	conid = fdt::ipc::SignalContext::the().connectionuid;;
 	m().signal(psig, tov.first, tov.second);
-	return false;
 }
 
 // int SendStringSignal::execute(concept::Connection &_rcon){
@@ -492,16 +487,12 @@ bool SendStringSignal::ipcReceived(
 // SendStreamSignal
 //-----------------------------------------------------------------------------------
 
-bool SendStreamSignal::ipcReceived(
-	fdt::ipc::SignalUid &_rsiguid,
-	const fdt::ipc::ConnectionUid &_rconid,
-	const SockAddrPair &_peeraddr,
-	int _peerbaseport
+void SendStreamSignal::ipcReceived(
+	fdt::ipc::SignalUid &_rsiguid
 ){
 	DynamicPointer<fdt::Signal> psig(this);
-	conid = _rconid;
+	conid = fdt::ipc::SignalContext::the().connectionuid;;
 	m().signal(psig, tov.first, tov.second);
-	return false;
 }
 
 void SendStreamSignal::destroyDeserializationStream(

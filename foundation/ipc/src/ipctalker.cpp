@@ -263,11 +263,13 @@ Talker::Talker(
 
 //----------------------------------------------------------------------
 Talker::~Talker(){
+	Context		ctx(d.tkrid);
 	delete &d;
 }
 //----------------------------------------------------------------------
 int Talker::execute(ulong _sig, TimeSpec &_tout){
-	Manager &rm = Manager::the();
+	Manager		&rm = Manager::the();
+	Context		ctx(d.tkrid);
 	idbgx(Dbg::ipc, "this = "<<(void*)this<<" &d = "<<(void*)&d);
 	if(signaled() || d.closingsessionvec.size()){
 		Mutex::Locker	lock(rm.mutex(*this));
@@ -360,7 +362,7 @@ int Talker::doReceiveBuffers(uint32 _atmost, const ulong _sig){
 }
 //----------------------------------------------------------------------
 bool Talker::doProcessReceivedBuffers(const TimeSpec &_rts){
-	ConnectionUid	conuid(d.tkrid);
+	//ConnectionUid	conuid(d.tkrid);
 	TalkerStub		ts(*this, _rts);
 	for(Data::RecvBufferVectorT::const_iterator it(d.receivedbufvec.begin()); it != d.receivedbufvec.end(); ++it){
 		
@@ -370,9 +372,13 @@ bool Talker::doProcessReceivedBuffers(const TimeSpec &_rts){
 		
 		buf.bufferSize(rcvbuf.size);
 		
-		conuid.sessionidx = rcvbuf.sessionidx;
-		conuid.sessionuid = rss.uid;
-		if(rss.psession->pushReceivedBuffer(buf, ts, conuid)){
+		//conuid.sessionidx = rcvbuf.sessionidx;
+		//conuid.sessionuid = rss.uid;
+		Context::the().sigctx.connectionuid.idx = rcvbuf.sessionidx;
+		Context::the().sigctx.connectionuid.uid = rss.uid;
+		rss.psession->prepareContext(Context::the());
+		
+		if(rss.psession->pushReceivedBuffer(buf, ts/*, conuid*/)){
 			if(!rss.inexeq){
 				d.sessionexecq.push(rcvbuf.sessionidx);
 				rss.inexeq = true;
@@ -490,6 +496,9 @@ bool Talker::doExecuteSessions(const TimeSpec &_rcrttimepos){
 		ts.sessionidx = d.sessionexecq.front();
 		d.sessionexecq.pop();
 		Data::SessionStub	&rss(d.sessionvec[ts.sessionidx]);
+		Context::the().sigctx.connectionuid.idx = ts.sessionidx;
+		Context::the().sigctx.connectionuid.uid = rss.uid;
+		rss.psession->prepareContext(Context::the());
 		
 		rss.inexeq = false;
 		switch(rss.psession->execute(ts)){
@@ -520,6 +529,10 @@ int Talker::doSendBuffers(const ulong _sig, const TimeSpec &_rcrttimepos){
 		Data::SendBuffer	&rsb(d.sendq.front());
 		Data::SessionStub	&rss(d.sessionvec[rsb.sessionidx]);
 		
+		Context::the().sigctx.connectionuid.idx = rsb.sessionidx;
+		Context::the().sigctx.connectionuid.uid = rss.uid;
+		rss.psession->prepareContext(Context::the());
+		
 		if(rss.psession->pushSentBuffer(ts, rsb.id, rsb.data, rsb.size)){
 			if(!rss.inexeq){
 				d.sessionexecq.push(rsb.sessionidx);
@@ -536,6 +549,10 @@ int Talker::doSendBuffers(const ulong _sig, const TimeSpec &_rcrttimepos){
 		switch(socketSendTo(rsb.data, rsb.size, *rss.psession->peerSockAddr())){
 			case BAD: return BAD;
 			case OK:
+				Context::the().sigctx.connectionuid.idx = rsb.sessionidx;
+				Context::the().sigctx.connectionuid.uid = rss.uid;
+				rss.psession->prepareContext(Context::the());
+				
 				if(rss.psession->pushSentBuffer(ts, rsb.id, rsb.data, rsb.size)){
 					if(!rss.inexeq){
 						d.sessionexecq.push(rsb.sessionidx);
@@ -559,7 +576,7 @@ int Talker::pushSignal(
 	uint32 _flags
 ){
 	COLLECT_DATA_0(d.statistics.signaled);
-	d.sigq.push(Data::SignalData(_psig, _rconid.sessionidx, _rconid.sessionuid, _flags));
+	d.sigq.push(Data::SignalData(_psig, _rconid.idx, _rconid.uid, _flags));
 	return d.sigq.size() == 1 ? NOK : OK;
 }
 
@@ -569,22 +586,22 @@ int Talker::pushSignal(
 void Talker::pushSession(Session *_pses, ConnectionUid &_rconid, bool _exists){
 	vdbgx(Dbg::ipc, "exists "<<_exists);
 	if(_exists){
-		++_rconid.sessionuid;
+		++_rconid.uid;
 	}else{
 		if(d.freesessionstack.size()){
 			vdbgx(Dbg::ipc, "");
-			_rconid.sessionidx = d.freesessionstack.top().first;
-			_rconid.sessionuid = d.freesessionstack.top().second;
+			_rconid.idx = d.freesessionstack.top().first;
+			_rconid.uid = d.freesessionstack.top().second;
 			d.freesessionstack.pop();
 		}else{
 			vdbgx(Dbg::ipc, "");
 			cassert(d.nextsessionidx < (uint16)0xffff);
-			_rconid.sessionidx = d.nextsessionidx;
-			_rconid.sessionuid = 0;
+			_rconid.idx = d.nextsessionidx;
+			_rconid.uid = 0;
 			++d.nextsessionidx;//TODO: it must be reseted somewhere!!!
 		}
 	}
-	d.newsessionvec.push_back(Data::SessionPairT(_pses, _rconid.sessionidx));
+	d.newsessionvec.push_back(Data::SessionPairT(_pses, _rconid.idx));
 }
 //----------------------------------------------------------------------
 void Talker::doInsertNewSessions(){
@@ -595,6 +612,9 @@ void Talker::doInsertNewSessions(){
 			d.sessionvec.resize(it->second + 1);
 		}
 		Data::SessionStub &rss(d.sessionvec[it->second]);
+		Context::the().sigctx.connectionuid.idx = it->second;
+		Context::the().sigctx.connectionuid.uid = rss.uid;
+		
 		if(rss.psession == NULL){
 			rss.psession = it->first;
 			rss.psession->prepare();
@@ -607,6 +627,7 @@ void Talker::doInsertNewSessions(){
 				rss.inexeq = true;
 			}
 		}else{
+			rss.psession->prepareContext(Context::the());
 			if(!rss.psession->isAccepting()){
 				//a reconnect
 				d.peeraddr4map.erase(rss.psession->peerAddr4());
@@ -618,6 +639,9 @@ void Talker::doInsertNewSessions(){
 					rss.inexeq = true;
 				}
 			}
+			Context::the().sigctx.connectionuid.idx = 0xffff;
+			Context::the().sigctx.connectionuid.uid = 0xffff;
+			it->first->prepareContext(Context::the());
 			delete it->first;
 		}
 	}
@@ -633,6 +657,9 @@ void Talker::doDispatchSignals(){
 		Data::SessionStub	&rss(d.sessionvec[rsd.sessionidx]);
 		const uint32		flags(rsd.flags);
 		
+		Context::the().sigctx.connectionuid.idx = rsd.sessionidx;
+		Context::the().sigctx.connectionuid.uid = rss.uid;
+		rss.psession->prepareContext(Context::the());
 		if(
 			rss.psession && 
 			(
@@ -640,6 +667,7 @@ void Talker::doDispatchSignals(){
 				rss.uid == rsd.sessionuid
 			)
 		){
+			
 			rss.psession->pushSignal(rsd.psig, flags);
 			if(!rss.inexeq){
 				d.sessionexecq.push(rsd.sessionidx);
@@ -661,6 +689,11 @@ void Talker::disconnectSessions(){
 		Data::SessionStub &rss(d.sessionvec[*it]);
 		vdbgx(Dbg::ipc, "disconnecting sessions "<<(void*)rss.psession);
 		cassert(rss.psession);
+		
+		Context::the().sigctx.connectionuid.idx = *it;
+		Context::the().sigctx.connectionuid.uid = rss.uid;
+		rss.psession->prepareContext(Context::the());
+		
 		if(rss.psession->isDisconnected()){
 			idbgx(Dbg::ipc, "deleting session "<<(void*)rss.psession<<" on pos "<<*it);
 			d.rservice.disconnectSession(rss.psession);
@@ -675,6 +708,7 @@ void Talker::disconnectSessions(){
 			){
 				d.baseaddr4map.erase(rss.psession->baseAddr4());
 			}
+			
 			delete rss.psession;
 			rss.psession = NULL;
 			++rss.uid;

@@ -126,7 +126,7 @@ public:
 		int _port = -1,
 		int _repeatcnt= 0,
 		int _cnt = ((unsigned)(0xfffffff)),
-		int _sleep = 1):ai(_node, _svice), wr(-1),sd(-1),cnt(_cnt),slp(_sleep),
+                int _sleep = 1):ai(_node, _svice, 0, AddrInfo::Inet4, AddrInfo::Stream), wr(-1),sd(-1),cnt(_cnt),slp(_sleep),
 			path(_path), pos(_pos),addr(_addr?_addr:""),port(_port),repeatcnt(_repeatcnt){}
 	void run();
 private:

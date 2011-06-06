@@ -50,10 +50,10 @@ public:
 	typedef Obj MutualObjectT;
 	//!Constructor
 	/*!
-		\param _objpermutbts The number of objects associated to a mutex in bitcount 
+		\param _objpermutbts The number of objects associated to a mutex as bitcount 
 		(real count 1<<bitcount)
-		\param _mutrowsbts The number of mutex rows in bitcount (real count 1<<bitcount)
-		\param _mutcolsbts The number of mutexes in a row in bitcount (real count 1<<bitcount)
+		\param _mutrowsbts The number of mutex rows as bitcount (real count 1<<bitcount)
+		\param _mutcolsbts The number of mutexes in a row as bitcount (real count 1<<bitcount)
 	*/
 	MutualStore(
 		unsigned _objpermutbts = 6,
