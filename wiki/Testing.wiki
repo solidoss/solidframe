@@ -32,7 +32,7 @@ Next you'll need to prepare the *SolidFrame* extern library pack:
 {{{
 work $ mkdir sf_extern
 work $ cd sf_extern
-work $ ../solidframe/administration/prepare_extern.sh -a
+work $ ../solidframe/administration/linux/prepare_extern.sh -a
 }}}
 
 The script will automatically download, extract and build the needed extern libraries.
@@ -52,14 +52,12 @@ In this workshop we'll use debug build.
 {{{
 solidframe $ ./configure --help
 solidframe $ ./configure -f dbg -b debug -e ~/work/sf_extern
-solidframe $ ./configure -f kdv -g KDevelop3 -b debug -e ~/work/sf_extern
 solidframe $ ./configure -f rls -b release -e ~/work/sf_extern
 }}}
 
 The above commands will prepare three build environments:
 	* build/dbg: makefile based build environment for debug;
 	* build/rls: makefile based build environment for release;
-	* build/kdv: kdevelop3 project.
 
 Next lets build the proof of concept server:
 
@@ -96,14 +94,14 @@ Next we'll need two instances of the proof of concept server:
 
 in one terminal:
 {{{
-solidframe $ cd build/dbg/example/foundation/main
+solidframe $ cd build/dbg/example/foundation/concept/main
 main $ ./concept -b 1000
 }}}
 
 in another terminal:
 
 {{{
-solidframe $ cd build/dbg/example/foundation/main
+solidframe $ cd build/dbg/example/foundation/concept/main
 main $ ./concept -b 2000
 }}}
 
