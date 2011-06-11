@@ -7,6 +7,7 @@
 #include <sstream>
 #include "system/common.hpp"
 #include "system/debug.hpp"
+#include "system/tuple.hpp"
 
 template <class T>
 class Exception;
