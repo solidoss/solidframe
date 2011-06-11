@@ -39,7 +39,7 @@ struct Exception<const char*>:std::exception{
 	const char* what()const throw(){
 		if(w.empty()){
 			std::ostringstream oss;
-			oss<<'['<<src_file_name(file)<<':'<<line<<':'<<function<<']'<<':'<<' '<<t;
+			oss<<'['<<src_file_name(file)<<'('<<line<<')'<<' '<<function<<']'<<':'<<' '<<t;
 			w = oss.str();
 		}
 		return w.c_str();
@@ -74,7 +74,7 @@ struct Exception:std::exception{
 	const char* what()const throw(){
 		if(w.empty()){
 			std::ostringstream oss;
-			oss<<'['<<src_file_name(file)<<':'<<line<<':'<<function<<']'<<':'<<' '<<pt<<':'<<' '<<t;
+			oss<<'['<<src_file_name(file)<<'('<<line<<')'<<' '<<function<<']'<<':'<<' '<<pt<<':'<<' '<<t;
 			w = oss.str();
 		}
 		return w.c_str();
