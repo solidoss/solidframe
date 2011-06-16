@@ -395,7 +395,7 @@ uint32 Service::uid(const IndexT &_idx)const{
 			}
 		}
 		if(sm & fdt::S_SIG){//we've grabed signals, execute them
-			de.execute(*this);
+			de.executeAll(*this);
 		}
 		if(sm & S_KILL){
 			if(state() < Data::ExeDying){

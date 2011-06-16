@@ -22,9 +22,11 @@ namespace{
 static const DynamicRegisterer<ServerObject>	dre;
 }
 /*static*/ void ServerObject::dynamicRegister(){
-	DynamicExecuterT::registerDynamic<StoreSignal, ServerObject>();
-	DynamicExecuterT::registerDynamic<FetchSignal, ServerObject>();
-	DynamicExecuterT::registerDynamic<EraseSignal, ServerObject>();
+	DynamicExecuterT::registerDynamic<ConceptSignal, ServerObject>();
+	
+	DynamicExecuterExT::registerDynamic<StoreSignal, ServerObject>();
+	DynamicExecuterExT::registerDynamic<FetchSignal, ServerObject>();
+	DynamicExecuterExT::registerDynamic<EraseSignal, ServerObject>();
 	//DynamicExecuterT::registerDynamic<InsertSignal, ClientObject>();
 }
 
@@ -69,8 +71,19 @@ void ServerObject::dynamicExecute(DynamicPointer<> &_dp){
 	
 }
 
+void ServerObject::dynamicExecute(DynamicPointer<ConceptSignal> &_rsig){
+	idbg("received ConceptSignal request");
+	DynamicPointer<>	dp(_rsig);
+	exeex.execute(*this, dp, 1);
+}
 
-void ServerObject::dynamicExecute(DynamicPointer<StoreSignal> &_rsig){
+
+void ServerObject::dynamicExecute(DynamicPointer<> &_dp, int){
+	
+}
+
+
+void ServerObject::dynamicExecute(DynamicPointer<StoreSignal> &_rsig, int){
 	idbg("received InsertSignal request");
 	const foundation::ipc::ConnectionUid	ipcconid(_rsig->ipcconid);
 	
@@ -81,7 +94,7 @@ void ServerObject::dynamicExecute(DynamicPointer<StoreSignal> &_rsig){
 	foundation::ipc::Service::the().sendSignal(sigptr, ipcconid);
 }
 
-void ServerObject::dynamicExecute(DynamicPointer<FetchSignal> &_rsig){
+void ServerObject::dynamicExecute(DynamicPointer<FetchSignal> &_rsig, int){
 	idbg("received FetchSignal request");
 	const foundation::ipc::ConnectionUid	ipcconid(_rsig->ipcconid);
 	DynamicPointer<foundation::Signal>		sigptr(_rsig);
@@ -89,7 +102,7 @@ void ServerObject::dynamicExecute(DynamicPointer<FetchSignal> &_rsig){
 	foundation::ipc::Service::the().sendSignal(sigptr, ipcconid);
 }
 
-void ServerObject::dynamicExecute(DynamicPointer<EraseSignal> &_rsig){
+void ServerObject::dynamicExecute(DynamicPointer<EraseSignal> &_rsig, int){
 	idbg("received EraseSignal request");
 	const foundation::ipc::ConnectionUid	ipcconid(_rsig->ipcconid);
 	DynamicPointer<foundation::Signal>		sigptr(_rsig);
