@@ -144,6 +144,7 @@ private:
 };
 
 struct SocketAddress;
+struct SocketAddress4;
 //! A pair of a sockaddr pointer and a size
 /*!
 	It is a commodity structure, it will not allocate data for sockaddr pointer
@@ -153,9 +154,11 @@ struct SockAddrPair{
 	SockAddrPair(sockaddr *_pa = NULL, size_t _sz = 0):addr(_pa),sz(_sz){}
 	SockAddrPair(const AddrInfoIterator &_it);
 	SockAddrPair(SocketAddress &_rsa);
+	SockAddrPair(SocketAddress4 &_rsa);
 	AddrInfo::Family family()const{return (AddrInfo::Family)addr->sa_family;}
 	SockAddrPair& operator=(const AddrInfoIterator &_it);
 	SockAddrPair& operator=(SocketAddress &_rsa);
+	SockAddrPair& operator=(SocketAddress4 &_rsa);
 	bool isInet4()const{
 		return sz == sizeof(sockaddr_in);
 	}
@@ -212,7 +215,6 @@ struct Inet6SockAddrPair{
 	sizeof(sockaddr_in6).
 */
 struct SocketAddress{
-	//TODO: change to sockaddr_in6 or similar
 	enum {MaxSockAddrSz = sizeof(sockaddr_in6)};
 	enum {MaxSockHostSz = NI_MAXHOST};
 	enum {MaxSockServSz = NI_MAXSERV};
@@ -272,16 +274,90 @@ struct SocketAddress{
 	void addr(const sockaddr* _sa, size_t _sz);
 	
 	bool operator<(const SocketAddress &_raddr)const;
+	bool operator==(const SocketAddress &_raddr)const;
 	
 	int port()const;
 	void port(int _port);
 	void clear();
+	size_t hash()const;
 private:
 	sockaddr_in* addrin(){return reinterpret_cast<sockaddr_in*>(buf);}
 	const sockaddr_in* addrin()const{return reinterpret_cast<const sockaddr_in*>(buf);}
 	socklen_t	sz;
 	char 		buf[MaxSockAddrSz];
 };
+
+struct SocketAddress4{
+	enum {MaxSockAddrSz = sizeof(sockaddr_in)};
+	enum {MaxSockHostSz = NI_MAXHOST};
+	enum {MaxSockServSz = NI_MAXSERV};
+	//! Some request flags
+	enum {
+		NumericHost = NI_NUMERICHOST,	//!< Generate only numeric host
+		NameRequest = NI_NAMEREQD,		//!< Force name lookup - fail if not found
+		NumericService = NI_NUMERICSERV	//!< Generate only the port number
+	};
+	SocketAddress4(){clear();}
+	SocketAddress4(const AddrInfoIterator &);
+	SocketAddress4(const SockAddrPair &);
+	SocketAddress4(const Inet4SockAddrPair &);
+	SocketAddress4& operator=(const AddrInfoIterator &);
+	SocketAddress4& operator=(const SockAddrPair &);
+	AddrInfo::Family family()const{return (AddrInfo::Family)addr()->sa_family;}
+	socklen_t	size()const {return MaxSockAddrSz;}
+	//socklen_t&	size(){return sz;}
+	sockaddr* addr(){return reinterpret_cast<sockaddr*>(buf);}
+	const sockaddr* addr()const{return reinterpret_cast<const sockaddr*>(buf);}
+	operator sockaddr*(){return addr();}
+	//! Get the name associated to the address
+	/*!
+		Generates the string name associated to a specific address
+		filling the given buffers. It is a wrapper for POSIX,
+		getnameinfo.
+		Usage:<br>
+		<CODE>
+		char			host[SocketAddress::MaxSockHostSz];<br>
+		char			port[SocketAddress::MaxSockServSz];<br>
+		SocketAddress	addr;<br>
+		channel().localAddress(addr);<br>
+		addr.name(<br>
+			host,<br>
+			SocketAddress::MaxSockHostSz,<br>
+			port,<br>
+			SocketAddress::MaxSockServSz,<br>
+			SocketAddress::NumericService<br>
+		);<br>
+		</CODE>
+		\retval BAD for error, OK for success.
+		\param _host An output buffer to keep the host name.
+		\param _hostcp The capacity of the output host buffer.
+		\param _serv An output buffer to keep the service name/port.
+		\param _servcp The capacity of the output service buffer.
+		\param _flags Some request flags
+	*/
+	int name(
+		char* _host,
+		unsigned _hostcp,
+		char* _serv,
+		unsigned _servcp,
+		uint32	_flags = 0
+	)const;
+	
+	void addr(const sockaddr* _sa, size_t _sz);
+	
+	bool operator<(const SocketAddress4 &_raddr)const;
+	bool operator==(const SocketAddress4 &_raddr)const;
+	
+	int port()const;
+	void port(int _port);
+	void clear();
+	size_t hash()const;
+private:
+	sockaddr_in* addrin(){return reinterpret_cast<sockaddr_in*>(buf);}
+	const sockaddr_in* addrin()const{return reinterpret_cast<const sockaddr_in*>(buf);}
+	char 		buf[MaxSockAddrSz];
+};
+
 
 #ifndef NINLINES
 #include "system/socketaddress.ipp"

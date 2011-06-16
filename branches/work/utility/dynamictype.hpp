@@ -238,9 +238,6 @@ struct Dynamic: T{
 	}
 };
 
-template <class R, class Exe, class P = void>
-struct DynamicExecuter;
-
 //! A templated dynamic receiver
 /*!
 	The ideea of this class is to ease the following process:<br>
@@ -273,6 +270,10 @@ struct DynamicExecuter;
 	
 	
 */
+template <class R, class Exe, class P = void>
+struct DynamicExecuter;
+
+//! Specialization for DynamicExecuter with no extra parameter to dynamicExecute
 template <class R, class Exe>
 struct DynamicExecuter<R, Exe, void>{
 private:
@@ -396,6 +397,8 @@ private:
 	uint										execid;
 };
 
+
+//! DynamicExecuter with an extra parameter to dynamicExecute
 template <class R, class Exe, class P>
 struct DynamicExecuter{
 private:

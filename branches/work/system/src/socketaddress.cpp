@@ -27,6 +27,7 @@
 #include "system/cassert.hpp"
 #include "system/debug.hpp"
 #include "system/socketaddress.hpp"
+#include "system/exception.hpp"
 
 AddrInfo::~AddrInfo(){
 	if(!empty()){
@@ -142,6 +143,7 @@ void Inet6SockAddrPair::port(uint16 _port){
 	addr->sin6_port = ntohs(_port);
 }
 
+//-----------------------------------------------------------------
 
 void SocketAddress::addr(const sockaddr* _sa, size_t _sz){
 	if(_sa && _sz){
@@ -154,15 +156,26 @@ void SocketAddress::clear(){
 }
 
 bool SocketAddress::operator<(const SocketAddress &_raddr)const{
-	//return (*(uint32*)addr()) < (*(uint32*)_raddr.addr());
 	if(sz == sizeof(sockaddr_in)){
-		return addrin()->sin_addr.s_addr < _raddr.addrin()->sin_addr.s_addr;
+		if(addrin()->sin_addr.s_addr < _raddr.addrin()->sin_addr.s_addr){
+			return true;
+		}else if(addrin()->sin_addr.s_addr > _raddr.addrin()->sin_addr.s_addr){
+			return false;
+		}else return port() < _raddr.port();
 	}else{//sockadd_in16
 		cassert(false);
 		return false;
 	}
 }
-
+bool SocketAddress::operator==(const SocketAddress &_raddr)const{
+	if(sz == sizeof(sockaddr_in)){
+		return addrin()->sin_addr.s_addr == _raddr.addrin()->sin_addr.s_addr &&
+			addrin()->sin_port == _raddr.addrin()->sin_port;
+	}else{//sockadd_in16
+		cassert(false);
+		return false;
+	}
+}
 SocketAddress::SocketAddress(const Inet4SockAddrPair &_sp){
 	addr((sockaddr*)_sp.addr, _sp.size());
 }
@@ -191,6 +204,68 @@ void SocketAddress::port(int _port){
 }
 
 int SocketAddress::name(
+	char* _host,
+	unsigned _hostcp,
+	char* _serv,
+	unsigned _servcp,
+	uint32 _flags
+)const{
+	if(!_hostcp || !_servcp) return BAD;
+	if(!size()) return BAD;
+	_host[0] = 0;
+	_serv[0] = 0;
+	int rv = getnameinfo(addr(), size(), _host, _hostcp, _serv, _servcp, _flags);
+	if(rv){
+		edbgx(Dbg::system, "getnameinfo: "<<strerror(errno));
+		return BAD;
+	}
+	return OK;
+}
+
+//-----------------------------------------------------------------
+
+void SocketAddress4::addr(const sockaddr* _sa, size_t _sz){
+	if(_sa && _sz == MaxSockAddrSz){
+		memcpy(buf, _sa, _sz);
+	}else if(_sa){
+		THROW_EXCEPTION_EX("Assigning an address with invalid size", _sz);
+	}else{
+		THROW_EXCEPTION("Assigning a null address");
+	}
+}
+void SocketAddress4::clear(){
+	memset(buf, 0, MaxSockAddrSz);
+}
+
+bool SocketAddress4::operator<(const SocketAddress4 &_raddr)const{
+	if(addrin()->sin_addr.s_addr < _raddr.addrin()->sin_addr.s_addr){
+		return true;
+	}else if(addrin()->sin_addr.s_addr > _raddr.addrin()->sin_addr.s_addr){
+		return false;
+	}else return port() < _raddr.port();
+}
+
+bool SocketAddress4::operator==(const SocketAddress4 &_raddr)const{
+	return addrin()->sin_addr.s_addr == _raddr.addrin()->sin_addr.s_addr &&
+	addrin()->sin_port == _raddr.addrin()->sin_port;
+}
+
+SocketAddress4::SocketAddress4(const Inet4SockAddrPair &_sp){
+	addr((sockaddr*)_sp.addr, _sp.size());
+}
+
+SocketAddress4::SocketAddress4(const SockAddrPair &_sp){
+	addr(_sp.addr, _sp.size());
+}
+
+int SocketAddress4::port()const{
+	return htons(addrin()->sin_port);
+}
+void SocketAddress4::port(int _port){
+	addrin()->sin_port = ntohs(_port);
+}
+
+int SocketAddress4::name(
 	char* _host,
 	unsigned _hostcp,
 	char* _serv,

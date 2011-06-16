@@ -1,9 +1,12 @@
 #ifndef DISTRIBUTED_CONCEPT_SERVEROBJECT_HPP
 #define DISTRIBUTED_CONCEPT_SERVEROBJECT_HPP
 
+#include <deque>
+
 #include "foundation/object.hpp"
 #include "foundation/signal.hpp"
 
+struct C;
 struct StoreSignal;
 struct FetchSignal;
 struct EraseSignal;
@@ -31,9 +34,22 @@ public:
 private:
 	/*virtual*/ bool signal(DynamicPointer<foundation::Signal> &_sig);
 private:
+	struct ClientRequest{
+		DynamicPointer<ConceptSignal>	sig;
+		uint32							state;
+	};
+	struct SigCmp{
+		bool operator()(const ClientRequest* const & _req1, const ClientRequest* const & _req2)const;
+	};
+	typedef std::deque<ClientRequest>	ClientRequestVectorT;
+private:
 	DynamicExecuterT	exe;
 	DynamicExecuterExT	exeex;
+	uint32				consensusval;
+	
 	uint32				crtval;
+	
+	
 };
 
 #endif

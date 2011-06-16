@@ -333,7 +333,7 @@ public:
 	//returns false if there is no other signal but the current one
 	bool moveToNextSendSignal();
 public:
-	SocketAddress			addr;
+	SocketAddress4			addr;
 	SockAddrPair			pairaddr;
 	BaseAddrT				baseaddr;
 	uint32					rcvexpectedid;

@@ -4,6 +4,7 @@
 #include "foundation/signal.hpp"
 #include "foundation/ipc/ipcconnectionuid.hpp"
 #include "utility/dynamicpointer.hpp"
+#include "system/socketaddress.hpp"
 
 #include <string>
 
@@ -50,6 +51,9 @@ struct ConceptSignal: Dynamic<ConceptSignal, DynamicShared<foundation::Signal> >
 		}
 		return _s;
 	}
+	
+	bool operator<(const ConceptSignal &_rcs)const;
+	
 	uint32 ipcPrepare();
 	void ipcFail(int _err);
 	void ipcSuccess();
@@ -64,6 +68,7 @@ struct ConceptSignal: Dynamic<ConceptSignal, DynamicShared<foundation::Signal> >
 	fdt::ObjectUidT					senderuid;
 	foundation::ipc::ConnectionUid	ipcconid;
 	foundation::ipc::SignalUid		ipcsiguid;
+	SocketAddress4					sockaddr;
 };
 
 struct StoreSignal: Dynamic<StoreSignal, ConceptSignal>{

@@ -11,6 +11,10 @@
 
 namespace fdt=foundation;
 
+bool ServerObject::SigCmp::operator()(const ClientRequest* const & _req1, const ClientRequest* const & _req2)const{
+		return *_req1->sig < *_req2->sig;
+}
+
 ServerObject::ServerObject():crtval(1){
 	
 }
@@ -27,7 +31,6 @@ static const DynamicRegisterer<ServerObject>	dre;
 	DynamicExecuterExT::registerDynamic<StoreSignal, ServerObject>();
 	DynamicExecuterExT::registerDynamic<FetchSignal, ServerObject>();
 	DynamicExecuterExT::registerDynamic<EraseSignal, ServerObject>();
-	//DynamicExecuterT::registerDynamic<InsertSignal, ClientObject>();
 }
 
 int ServerObject::execute(ulong _sig, TimeSpec &_tout){

@@ -47,14 +47,29 @@ void ConceptSignal::ipcReceived(
 	DynamicPointer<fdt::Signal> sig(this);
 	//_rsiguid = this->ipcsiguid;
 	ipcconid = fdt::ipc::SignalContext::the().connectionuid;
+	
+	char				host[SocketAddress::MaxSockHostSz];
+	char				port[SocketAddress::MaxSockServSz];
+	
+	sockaddr = fdt::ipc::SignalContext::the().pairaddr;
+	
+	sockaddr.name(
+		host,
+		SocketAddress::MaxSockHostSz,
+		port,
+		SocketAddress::MaxSockServSz,
+		SocketAddress::NumericService | SocketAddress::NumericHost
+	);
+	
 	waitresponse = false;
 	if(st == OnSender){
 		st = OnPeer;
-		idbg((void*)this<<" on peer");
+		idbg((void*)this<<" on peer: baseport = "<<fdt::ipc::SignalContext::the().baseport<<" host = "<<host<<":"<<port);
+		sockaddr.port(fdt::ipc::SignalContext::the().baseport);
 		m().signal(sig, serverUid());
 	}else if(st == OnPeer){
 		st == BackOnSender;
-		idbg((void*)this<<" back on sender");
+		idbg((void*)this<<" back on sender: baseport = "<<fdt::ipc::SignalContext::the().baseport<<" host = "<<host<<":"<<port);
 		m().signal(sig, senderuid);
 		_rsiguid = this->ipcsiguid;
 	}else{
@@ -93,6 +108,18 @@ int ConceptSignal::release(){
 	int rv = DynamicShared<fdt::Signal>::release();
 	idbg((void*)this<<" usecount = "<<usecount);
 	return rv;
+}
+
+bool ConceptSignal::operator<(const ConceptSignal &_rcs)const{
+	if(this->sockaddr < _rcs.sockaddr){
+		return true;
+	}else if(_rcs.sockaddr < this->sockaddr){
+		return false;
+	}else if(this->senderuid < _rcs.senderuid){
+		return true;
+	}else if(this->senderuid > _rcs.senderuid){
+		return false;
+	}else return this->requid < _rcs.requid;
 }
 //--------------------------------------------------------------
 StoreSignal::StoreSignal(const std::string&, uint32 _pos):v(0){
