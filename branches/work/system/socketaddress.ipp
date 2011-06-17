@@ -74,7 +74,7 @@ inline SocketAddress& SocketAddress::operator=(const SockAddrPair &_sp){
 inline size_t SocketAddress::hash()const{
 	if(sz == sizeof(sockaddr_in)){
 		//TODO: improve
-		return addrin()->sin_addr.s_addr + addrin()->sin_port;
+		return addrin()->sin_addr.s_addr ^ addrin()->sin_port;
 	}else{//ipv6
 		//TODO:
 		return 0;
@@ -103,7 +103,7 @@ inline SocketAddress4& SocketAddress4::operator=(const SockAddrPair &_sp){
 }
 inline size_t SocketAddress4::hash()const{
 	//TODO: improve
-	return addrin()->sin_addr.s_addr + addrin()->sin_port;
+	return addrin()->sin_addr.s_addr ^ addrin()->sin_port;
 }
 
 
