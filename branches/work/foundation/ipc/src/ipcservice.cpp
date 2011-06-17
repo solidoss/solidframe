@@ -19,7 +19,6 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <map>
 #include <vector>
 #include <cstring>
 #include <ostream>
@@ -43,6 +42,12 @@
 #include "iodata.hpp"
 #include "ipcsession.hpp"
 
+#ifdef HAVE_UNORDERED_MAP
+#include <unordered_map>
+#else
+#include <map>
+#endif
+
 namespace fdt = foundation;
 
 namespace foundation{
@@ -56,7 +61,20 @@ struct Service::Data{
 		Session*	pses;
 		uint32		uid;
 	};
-	
+#ifdef HAVE_UNORDERED_MAP
+	typedef std::unordered_map<
+		const Session::Addr4PairT*,
+		ConnectionUid,
+		SockAddrHash,
+		SockAddrEqual
+	>	SessionAddr4MapT;
+	typedef std::unordered_map<
+		const Session::Addr6PairT*,
+		ConnectionUid,
+		SockAddrHash,
+		SockAddrEqual
+	>	SessionAddr6MapT;
+#else
 	typedef std::map<
 		const Session::Addr4PairT*, 
 		ConnectionUid, 
@@ -68,7 +86,7 @@ struct Service::Data{
 		ConnectionUid,
 		Inet6AddrPtrCmp
 		>												SessionAddr6MapT;
-	
+#endif	
 	struct TalkerStub{
 		TalkerStub():cnt(0){}
 		TalkerStub(const ObjectUidT &_ruid, uint32 _cnt = 0):uid(_ruid), cnt(_cnt){}

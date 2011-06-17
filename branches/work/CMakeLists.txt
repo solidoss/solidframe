@@ -64,7 +64,6 @@ else(ExtAbsLen GREATER 0)
 endif(ExtAbsLen GREATER 0)
 
 message("EXTERN_PATH set as "${EXTERN_PATH})
-#-----------------------------------------------------------------
 
 #-----------------------------------------------------------------
 # Prepare the definitions for build types
@@ -174,6 +173,8 @@ if(CMAKE_SYSTEM MATCHES "Linux*")
 	set(ON_FOUND TRUE)
 	set(ON_LINUX TRUE)
 	set(ON_POSIX TRUE)
+	
+	
 	set(SYS_DEBUG_FLAGS "-DON_LINUX -DON_POSIX -Wreorder -Wreturn-type -Wunused-variable -Winline -g3")
 	set(SYS_MAINTAIN_FLAGS "-DON_LINUX -DON_POSIX -Wall -Wabi -O3 -g3")
 	set(SYS_OPTIMIZED_FLAGS "-DON_LINUX -DON_POSIX -O3 -g3")
@@ -215,6 +216,16 @@ if(NOT ON_FOUND)
 	exit()#only to raise an exception
 	return()
 endif(NOT ON_FOUND)
+
+
+#-----------------------------------------------------------------
+# config.h support
+#-----------------------------------------------------------------
+include(check.config.cmake)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
+if(HAVE_0X)
+	add_definitions(-std=c++0x)
+endif(HAVE_0X)
 #-----------------------------------------------------------------
 
 #-----------------------------------------------------------------
@@ -331,19 +342,12 @@ include_directories(
 #-----------------------------------------------------------------
 
 #-----------------------------------------------------------------
-# config.h support
-#-----------------------------------------------------------------
-include(check.config.cmake)
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
-
-#-----------------------------------------------------------------
 # Global link directories
 #-----------------------------------------------------------------
 link_directories(
 	${CMAKE_CURRENT_SOURCE_DIR}
 	${EXTERN_PATH}/lib
 )
-
 
 #-----------------------------------------------------------------
 # Testing support (CTest & CDash)

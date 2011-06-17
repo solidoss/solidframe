@@ -20,7 +20,6 @@
 */
 
 #include <queue>
-#include <map>
 #include <cerrno>
 #include <cstring>
 #include <ostream>
@@ -43,6 +42,15 @@
 #include "ipctalker.hpp"
 #include "ipcsession.hpp"
 
+#ifdef HAVE_UNORDERED_MAP
+
+#include <unordered_map>
+
+#else
+
+#include <map>
+
+#endif
 namespace fdt = foundation;
 
 namespace foundation{
@@ -175,16 +183,48 @@ struct Talker::Data{
 	typedef std::vector<uint16>					UInt16VectorT;
 	typedef std::vector<SessionStub>			SessionStubVectorT;
 	typedef Queue<uint16>						UInt16QueueT;
-	
-	typedef std::map<
-		const Inet4SockAddrPair*,
-		uint32,
-		Inet4AddrPtrCmp
-	>											PeerAddr4MapT;//TODO: test if a hash map is better
 	typedef std::pair<
 		const Inet4SockAddrPair*,
 		int
 	>											BaseAddr4;
+	typedef std::pair<
+		const Inet6SockAddrPair*,
+		int
+	>											BaseAddr6;
+#ifdef HAVE_UNORDERED_MAP
+	typedef std::unordered_map<
+		const Inet4SockAddrPair*,
+		uint32,
+		SockAddrHash,
+		SockAddrEqual
+	>											PeerAddr4MapT;
+	typedef std::unordered_map<
+		const BaseAddr4*,
+		uint32,
+		SockAddrHash,
+		SockAddrEqual
+	>											BaseAddr4MapT;
+	
+	typedef std::unordered_map<
+		const Inet6SockAddrPair*, 
+		uint32,
+		SockAddrHash,
+		SockAddrEqual
+	>											PeerAddr6MapT;
+	
+	typedef std::unordered_map<
+		const BaseAddr6*,
+		uint32,
+		SockAddrHash,
+		SockAddrEqual
+	>											BaseAddr6MapT;
+
+#else
+	typedef std::map<
+		const Inet4SockAddrPair*,
+		uint32,
+		Inet4AddrPtrCmp
+	>											PeerAddr4MapT;
 	typedef std::map<
 		const BaseAddr4*,
 		uint32,
@@ -195,15 +235,14 @@ struct Talker::Data{
 		const Inet6SockAddrPair*, 
 		uint32,
 		Inet6AddrPtrCmp
-	>											PeerAddr6MapT;//TODO: test if a hash map is better
-	typedef std::pair<
-		const Inet6SockAddrPair*,
-		int
-	>											BaseAddr6;
+	>											PeerAddr6MapT;
+	
 	typedef std::map<
 		const BaseAddr6*,
-		uint32, Inet6AddrPtrCmp
+		uint32,
+		Inet6AddrPtrCmp
 	>											BaseAddr6MapT;
+#endif
 	typedef std::priority_queue<
 		TimerData,
 		std::vector<TimerData>,
