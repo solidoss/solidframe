@@ -333,8 +333,8 @@ uint32 ClientObject::sendSignal(ConceptSignal *_psig){
 	DynamicSharedPointer<ConceptSignal>	sigptr(_psig);
 	//sigptr->requestId(newRequestId(-1));
 	sigptr->waitresponse = true;
-	sigptr->requid = newRequestId(-1);
-	sigptr->senderuid = this->uid();
+	sigptr->id.requid = newRequestId(-1);
+	sigptr->id.senderuid = this->uid();
 	for(ClientParams::AddressVectorT::iterator it(params.addrvec.begin()); it != params.addrvec.end(); ++it){
 		DynamicPointer<foundation::Signal>	sp(sigptr);
 		foundation::ipc::Service::the().sendSignal(sp, SockAddrPair(*it));

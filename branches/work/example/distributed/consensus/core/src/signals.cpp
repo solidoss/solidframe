@@ -28,16 +28,52 @@ void mapSignals(){
 	TypeMapper::map<FetchSignal, BinSerializer, BinDeserializer>();
 	TypeMapper::map<EraseSignal, BinSerializer, BinDeserializer>();
 }
-
 //--------------------------------------------------------------
-ConceptSignal::ConceptSignal():waitresponse(false), st(OnSender), requid(-1), sentcount(0){
+bool ConceptSignalIdetifier::operator<(const ConceptSignalIdetifier &_rcsi)const{
+	if(this->sockaddr < _rcsi.sockaddr){
+		return true;
+	}else if(_rcsi.sockaddr < this->sockaddr){
+		return false;
+	}else if(this->senderuid < _rcsi.senderuid){
+		return true;
+	}else if(_rcsi.senderuid > this->senderuid){
+		return false;
+	}else if(this->requid > _rcsi.requid)
+		return (this->requid - _rcsi.requid) <= (uint32)(0xffffffff/2);
+	else
+		return (_rcsi.requid - this->requid) > (uint32)(0xffffffff/2);
+}
+bool ConceptSignalIdetifier::operator==(const ConceptSignalIdetifier &_rcsi)const{
+	return this->sockaddr == _rcsi.sockaddr && 
+		this->senderuid == _rcsi.senderuid &&
+		this->requid == _rcsi.requid;
+}
+size_t ConceptSignalIdetifier::hash()const{
+	return sockaddr.hash() ^ this->senderuid.first ^ this->requid;
+}
+bool ConceptSignalIdetifier::senderEqual(const ConceptSignalIdetifier &_rcsi)const{
+	return this->sockaddr == _rcsi.sockaddr && 
+		this->senderuid == _rcsi.senderuid;
+}
+bool ConceptSignalIdetifier::senderLess(const ConceptSignalIdetifier &_rcsi)const{
+	if(this->sockaddr < _rcsi.sockaddr){
+		return true;
+	}else if(_rcsi.sockaddr < this->sockaddr){
+		return false;
+	}else return this->senderuid < _rcsi.senderuid;
+}
+size_t ConceptSignalIdetifier::senderHash()const{
+	return sockaddr.hash() ^ this->senderuid.first;
+}
+//--------------------------------------------------------------
+ConceptSignal::ConceptSignal():waitresponse(false), st(OnSender), sentcount(0){
 	idbg("ConceptSignal "<<(void*)this);
 }
 ConceptSignal::~ConceptSignal(){
 	idbg("~ConceptSignal "<<(void*)this);
 	if(waitresponse && !sentcount){
 		idbg("failed receiving response "/*<<sentcnt*/);
-		m().signal(fdt::S_KILL | fdt::S_RAISE, senderuid);
+		m().signal(fdt::S_KILL | fdt::S_RAISE, id.senderuid);
 	}
 }
 
@@ -51,9 +87,9 @@ void ConceptSignal::ipcReceived(
 	char				host[SocketAddress::MaxSockHostSz];
 	char				port[SocketAddress::MaxSockServSz];
 	
-	sockaddr = fdt::ipc::SignalContext::the().pairaddr;
+	id.sockaddr = fdt::ipc::SignalContext::the().pairaddr;
 	
-	sockaddr.name(
+	id.sockaddr.name(
 		host,
 		SocketAddress::MaxSockHostSz,
 		port,
@@ -65,12 +101,12 @@ void ConceptSignal::ipcReceived(
 	if(st == OnSender){
 		st = OnPeer;
 		idbg((void*)this<<" on peer: baseport = "<<fdt::ipc::SignalContext::the().baseport<<" host = "<<host<<":"<<port);
-		sockaddr.port(fdt::ipc::SignalContext::the().baseport);
+		id.sockaddr.port(fdt::ipc::SignalContext::the().baseport);
 		m().signal(sig, serverUid());
 	}else if(st == OnPeer){
 		st == BackOnSender;
 		idbg((void*)this<<" back on sender: baseport = "<<fdt::ipc::SignalContext::the().baseport<<" host = "<<host<<":"<<port);
-		m().signal(sig, senderuid);
+		m().signal(sig, id.senderuid);
 		_rsiguid = this->ipcsiguid;
 	}else{
 		cassert(false);
@@ -110,17 +146,6 @@ int ConceptSignal::release(){
 	return rv;
 }
 
-bool ConceptSignal::operator<(const ConceptSignal &_rcs)const{
-	if(this->sockaddr < _rcs.sockaddr){
-		return true;
-	}else if(_rcs.sockaddr < this->sockaddr){
-		return false;
-	}else if(this->senderuid < _rcs.senderuid){
-		return true;
-	}else if(this->senderuid > _rcs.senderuid){
-		return false;
-	}else return this->requid < _rcs.requid;
-}
 //--------------------------------------------------------------
 StoreSignal::StoreSignal(const std::string&, uint32 _pos):v(0){
 	idbg("");

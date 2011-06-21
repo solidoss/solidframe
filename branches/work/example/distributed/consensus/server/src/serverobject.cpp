@@ -11,8 +11,44 @@
 
 namespace fdt=foundation;
 
-bool ServerObject::SigCmp::operator()(const ClientRequest* const & _req1, const ClientRequest* const & _req2)const{
-		return *_req1->sig < *_req2->sig;
+inline bool ServerObject::ReqCmpEqual::operator()(
+	const ConceptSignalIdetifier* const & _req1,
+	const ConceptSignalIdetifier* const & _req2
+)const{
+	return *_req1 == *_req2;
+}
+inline bool ServerObject::ReqCmpLess::operator()(
+	const ConceptSignalIdetifier* const & _req1,
+	const ConceptSignalIdetifier* const & _req2
+)const{
+	return *_req1 < *_req2;
+}
+inline size_t ServerObject::ReqHash::operator()(
+		const ConceptSignalIdetifier* const & _req1
+)const{
+	return _req1->hash();
+}
+inline bool ServerObject::SenderCmpEqual::operator()(
+	const ConceptSignalIdetifier & _req1,
+	const ConceptSignalIdetifier& _req2
+)const{
+	return _req1.senderEqual(_req2);
+}
+inline bool ServerObject::SenderCmpLess::operator()(
+	const ConceptSignalIdetifier& _req1,
+	const ConceptSignalIdetifier& _req2
+)const{
+	return _req1.senderLess(_req2);
+}
+inline size_t ServerObject::SenderHash::operator()(
+	const ConceptSignalIdetifier& _req1
+)const{
+	return _req1.senderHash();
+}
+inline bool ServerObject::TimerDataCmp::operator()(
+	const TimerData &_rtd1, const TimerData &_rtd2
+)const{
+	return _rtd1.timepos > _rtd2.timepos;
 }
 
 ServerObject::ServerObject():crtval(1){
@@ -20,6 +56,35 @@ ServerObject::ServerObject():crtval(1){
 }
 ServerObject::~ServerObject(){
 	
+}
+inline size_t ServerObject::insertClientRequest(DynamicPointer<ConceptSignal> &_rsig){
+	if(freeposstk.size()){
+		size_t idx(freeposstk.top());
+		freeposstk.pop();
+		ClientRequest &rcr(clientRequest(idx));
+		rcr.sig = _rsig;
+		return idx;
+	}else{
+		size_t idx(reqvec.size());
+		reqvec.push_back(ClientRequest(_rsig));
+		return idx;
+	}
+}
+inline void ServerObject::eraseClientRequest(size_t _idx){
+	ClientRequest &rcr(clientRequest(_idx));
+	cassert(rcr.sig.ptr());
+	rcr.sig.clear();
+	rcr.state = 0;
+	++rcr.uid;
+	freeposstk.push(_idx);
+}
+inline ServerObject::ClientRequest& ServerObject::clientRequest(size_t _idx){
+	cassert(_idx < reqvec.size());
+	return reqvec[_idx];
+}
+inline const ServerObject::ClientRequest& ServerObject::clientRequest(size_t _idx)const{
+	cassert(_idx < reqvec.size());
+	return reqvec[_idx];
 }
 //------------------------------------------------------------
 namespace{
@@ -76,6 +141,7 @@ void ServerObject::dynamicExecute(DynamicPointer<> &_dp){
 
 void ServerObject::dynamicExecute(DynamicPointer<ConceptSignal> &_rsig){
 	idbg("received ConceptSignal request");
+	if(checkAlreadyReceived(_rsig)) return;
 	DynamicPointer<>	dp(_rsig);
 	exeex.execute(*this, dp, 1);
 }
@@ -111,4 +177,19 @@ void ServerObject::dynamicExecute(DynamicPointer<EraseSignal> &_rsig, int){
 	DynamicPointer<foundation::Signal>		sigptr(_rsig);
 	
 	foundation::ipc::Service::the().sendSignal(sigptr, ipcconid);
+}
+
+bool ServerObject::checkAlreadyReceived(DynamicPointer<ConceptSignal> &_rsig){
+	
+	return false;
+}
+
+void ServerObject::registerClientRequestTimer(const TimeSpec &_rts, size_t _idx){
+	
+}
+size_t ServerObject::popClientRequestTimeout(const TimeSpec &_rts){
+	return 0;
+}
+void ServerObject::scheduleNextClientRequestTimer(TimeSpec &_rts){
+	
 }

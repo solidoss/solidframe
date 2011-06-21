@@ -6,6 +6,8 @@
 #include "utility/dynamicpointer.hpp"
 #include "system/socketaddress.hpp"
 
+#include "signalidentifier.hpp"
+
 #include <string>
 
 namespace fdt = foundation;
@@ -26,6 +28,7 @@ S& operator&(foundation::ObjectUidT &_v, S &_s){
 
 void mapSignals();
 
+
 struct ConceptSignal: Dynamic<ConceptSignal, DynamicShared<foundation::Signal> >{
 	enum{
 		OnSender,
@@ -39,7 +42,7 @@ struct ConceptSignal: Dynamic<ConceptSignal, DynamicShared<foundation::Signal> >
 	);
 	template <class S>
 	S& operator&(S &_s){
-		_s.push(requid, "requid").push(senderuid, "sender");
+		_s.push(id.requid, "id.requid").push(id.senderuid, "sender");
 		_s.push(st, "state");
 		if(waitresponse || !S::IsSerializer){//on peer
 			_s.push(ipcsiguid.idx, "siguid.idx").push(ipcsiguid.uid,"siguid.uid");
@@ -52,8 +55,6 @@ struct ConceptSignal: Dynamic<ConceptSignal, DynamicShared<foundation::Signal> >
 		return _s;
 	}
 	
-	bool operator<(const ConceptSignal &_rcs)const;
-	
 	uint32 ipcPrepare();
 	void ipcFail(int _err);
 	void ipcSuccess();
@@ -63,12 +64,10 @@ struct ConceptSignal: Dynamic<ConceptSignal, DynamicShared<foundation::Signal> >
 	
 	bool							waitresponse;
 	uint8							st;
-	uint32 							requid;
 	int8							sentcount;
-	fdt::ObjectUidT					senderuid;
 	foundation::ipc::ConnectionUid	ipcconid;
 	foundation::ipc::SignalUid		ipcsiguid;
-	SocketAddress4					sockaddr;
+	ConceptSignalIdetifier			id;
 };
 
 struct StoreSignal: Dynamic<StoreSignal, ConceptSignal>{
