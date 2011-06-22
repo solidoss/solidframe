@@ -38,10 +38,7 @@ bool ConceptSignalIdetifier::operator<(const ConceptSignalIdetifier &_rcsi)const
 		return true;
 	}else if(_rcsi.senderuid > this->senderuid){
 		return false;
-	}else if(this->requid > _rcsi.requid)
-		return (this->requid - _rcsi.requid) <= (uint32)(0xffffffff/2);
-	else
-		return (_rcsi.requid - this->requid) > (uint32)(0xffffffff/2);
+	}else return overflowSafeLess(this->requid, _rcsi.requid);
 }
 bool ConceptSignalIdetifier::operator==(const ConceptSignalIdetifier &_rcsi)const{
 	return this->sockaddr == _rcsi.sockaddr && 

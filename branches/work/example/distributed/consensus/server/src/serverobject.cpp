@@ -180,7 +180,16 @@ void ServerObject::dynamicExecute(DynamicPointer<EraseSignal> &_rsig, int){
 }
 
 bool ServerObject::checkAlreadyReceived(DynamicPointer<ConceptSignal> &_rsig){
-	
+	SenderSetT::iterator it(senderset.find(_rsig->id));
+	if(it != senderset.end()){
+		if(overflowSafeLess(_rsig->id.requid, it->requid)){
+			return true;
+		}
+		senderset.erase(it);
+		senderset.insert(_rsig->id);
+	}else{
+		senderset.insert(_rsig->id);
+	}
 	return false;
 }
 

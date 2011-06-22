@@ -96,6 +96,24 @@ void exchange(T &a, T &b){
 	b = tmp;
 }
 
+#if 0
+bool overflowSafeGreat(const uint32 _u1, const uint32 _u2){
+	if(_u1 > _u2){
+		return (_u1 - _u2) <= (uint32)(0xffffffff/2);
+	}else{
+		return (_u2 - _u1) > (uint32)(0xffffffff/2);
+	}
+}
+#endif
+
+inline bool overflowSafeLess(const uint32 _u1, const uint32 _u2){
+	if(_u1 < _u2){
+		return (_u2 - _u1) <= (uint32)(0xffffffff/2);
+	}else{
+		return (_u1 - _u2) > (uint32)(0xffffffff/2);
+	}
+
+}
 struct EmptyType{};
 class NullType{};
 

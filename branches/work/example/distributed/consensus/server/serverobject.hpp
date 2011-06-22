@@ -99,11 +99,11 @@ private:
 	};
 	typedef std::deque<ClientRequest>	ClientRequestVectorT;
 #ifdef HAVE_UNORDERED_MAP
-	typedef std::unordered_map<const ConceptSignalIdetifier*, size_t, ReqHash, ReqCmpEqual>	ClientRequestMapT;
+	typedef std::unordered_map<const ConceptSignalIdetifier*, size_t, ReqHash, ReqCmpEqual>		ClientRequestMapT;
 	typedef std::unordered_set<ConceptSignalIdetifier, SenderHash, SenderCmpEqual>				SenderSetT;
 #else
-	typedef std::map<const ConceptSignalIdetifier*, size_t, ReqCmpLess>						ClientRequestMapT;
-	typedef std::set<ConceptSignalIdetifier, SenderCmpLess>									SenderSetT;
+	typedef std::map<const ConceptSignalIdetifier*, size_t, ReqCmpLess>							ClientRequestMapT;
+	typedef std::set<ConceptSignalIdetifier, SenderCmpLess>										SenderSetT;
 #endif
 	typedef Stack<size_t>				SizeTStackT;
 	typedef std::priority_queue<TimerData, std::vector<TimerData>, TimerDataCmp>				TimerPriorityQueueT;

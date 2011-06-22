@@ -45,10 +45,7 @@ namespace ipc{
 
 struct BufCmp{
 	bool operator()(const uint32 id1, const uint32 id2)const{
-		if(id1 > id2)
-			return (id1 - id2) <= (uint32)(0xffffffff/2);
-		else
-			return (id2 - id1) > (uint32)(0xffffffff/2);
+		return overflowSafeLess(id1, id2);
 	}
 	bool operator()(const Buffer &_rbuf1, const Buffer &_rbuf2)const{
 		return operator()(_rbuf1.id(), _rbuf2.id());
@@ -219,12 +216,7 @@ struct Session::Data{
 				}else return true;
 			}else return false;
 			
-			
-			if(id < _owc.id){
-				return (_owc.id - id) <= (uint32)(0xffffffff/2);
-			}else{
-				return (id - _owc.id) > (uint32)(0xffffffff/2);
-			}
+			return overflowSafeLess(id, _owc.id);
 		}
 		DynamicSignalPointerT	signal;
 		BinSerializerT			*pserializer;
