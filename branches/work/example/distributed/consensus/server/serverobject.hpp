@@ -3,6 +3,8 @@
 
 #include <deque>
 #include <queue>
+#include <vector>
+#include <string>
 
 #include "system/common.hpp"
 
@@ -13,6 +15,7 @@
 #include <map>
 #endif
 
+#include "system/socketaddress.hpp"
 #include "system/timespec.hpp"
 
 #include "foundation/object.hpp"
@@ -26,6 +29,28 @@ struct FetchSignal;
 struct EraseSignal;
 struct ConceptSignal;
 struct ConceptSignalIdetifier;
+
+struct ServerParams{
+	typedef std::vector<std::string>	StringVectorT;
+	typedef std::vector<SocketAddress4>	AddressVectorT;
+	static ServerParams& the();
+	ServerParams():idx(0xff){}
+	bool init(int _ipc_port);
+	const std::string& errorString()const{
+		return err;
+	}
+	std::ostream& print(std::ostream &_ros)const;
+	
+	StringVectorT	addrstrvec;
+	AddressVectorT	addrvec;
+	uint8			idx;
+	
+private:
+	std::string		err;
+};
+
+std::ostream& operator<<(std::ostream &_ros, const ServerParams &_rsp);
+
 
 class ServerObject: public Dynamic<ServerObject, foundation::Object>{
 	typedef DynamicExecuter<void, ServerObject>			DynamicExecuterT;

@@ -33,7 +33,7 @@ bool ClientParams::init(){
 			return false;
 		}
 		s[pos] = 0;
-		AddrInfo ai(s.c_str(), s.c_str() + pos + 1, 0, AddrInfo::Inet4, AddrInfo::Stream);
+		AddrInfo ai(s.c_str(), s.c_str() + pos + 1, 0, AddrInfo::Inet4, AddrInfo::Datagram);
 		if(!ai.empty()){
 			addrvec.push_back(SocketAddress(ai.begin()));
 		}else{
