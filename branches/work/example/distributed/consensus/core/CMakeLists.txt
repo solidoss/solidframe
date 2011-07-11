@@ -1,10 +1,12 @@
 set(Sources
-	src/signals.cpp
+	src/consensusrequests.cpp
 )
 
 set(Headers
-	signals.hpp
-	manager.hpp
+	consensusrequestid.hpp
+	consensusrequest.hpp
+	consensusrequests.hpp
+	consensusmanager.hpp
 )
 
 set(Inlines

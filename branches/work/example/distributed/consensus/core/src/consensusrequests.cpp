@@ -1,5 +1,5 @@
-#include "example/distributed/consensus/core/signals.hpp"
-#include "example/distributed/consensus/core/manager.hpp"
+#include "example/distributed/consensus/core/consensusrequests.hpp"
+#include "example/distributed/consensus/core/consensusmanager.hpp"
 
 #include "foundation/ipc/ipcservice.hpp"
 
@@ -24,12 +24,14 @@ void mapSignals(){
 	typedef serialization::bin::Serializer				BinSerializer;
 	typedef serialization::bin::Deserializer			BinDeserializer;
 
-	TypeMapper::map<StoreSignal, BinSerializer, BinDeserializer>();
-	TypeMapper::map<FetchSignal, BinSerializer, BinDeserializer>();
-	TypeMapper::map<EraseSignal, BinSerializer, BinDeserializer>();
+	TypeMapper::map<StoreRequest, BinSerializer, BinDeserializer>();
+	TypeMapper::map<FetchRequest, BinSerializer, BinDeserializer>();
+	TypeMapper::map<EraseRequest, BinSerializer, BinDeserializer>();
 }
 //--------------------------------------------------------------
-bool ConceptSignalIdetifier::operator<(const ConceptSignalIdetifier &_rcsi)const{
+namespace consensus{
+
+bool RequestId::operator<(const RequestId &_rcsi)const{
 	if(this->sockaddr < _rcsi.sockaddr){
 		return true;
 	}else if(_rcsi.sockaddr < this->sockaddr){
@@ -40,41 +42,41 @@ bool ConceptSignalIdetifier::operator<(const ConceptSignalIdetifier &_rcsi)const
 		return false;
 	}else return overflowSafeLess(this->requid, _rcsi.requid);
 }
-bool ConceptSignalIdetifier::operator==(const ConceptSignalIdetifier &_rcsi)const{
+bool RequestId::operator==(const RequestId &_rcsi)const{
 	return this->sockaddr == _rcsi.sockaddr && 
 		this->senderuid == _rcsi.senderuid &&
 		this->requid == _rcsi.requid;
 }
-size_t ConceptSignalIdetifier::hash()const{
+size_t RequestId::hash()const{
 	return sockaddr.hash() ^ this->senderuid.first ^ this->requid;
 }
-bool ConceptSignalIdetifier::senderEqual(const ConceptSignalIdetifier &_rcsi)const{
+bool RequestId::senderEqual(const RequestId &_rcsi)const{
 	return this->sockaddr == _rcsi.sockaddr && 
 		this->senderuid == _rcsi.senderuid;
 }
-bool ConceptSignalIdetifier::senderLess(const ConceptSignalIdetifier &_rcsi)const{
+bool RequestId::senderLess(const RequestId &_rcsi)const{
 	if(this->sockaddr < _rcsi.sockaddr){
 		return true;
 	}else if(_rcsi.sockaddr < this->sockaddr){
 		return false;
 	}else return this->senderuid < _rcsi.senderuid;
 }
-size_t ConceptSignalIdetifier::senderHash()const{
+size_t RequestId::senderHash()const{
 	return sockaddr.hash() ^ this->senderuid.first;
 }
 //--------------------------------------------------------------
-ConceptSignal::ConceptSignal():waitresponse(false), st(OnSender), sentcount(0){
-	idbg("ConceptSignal "<<(void*)this);
+RequestSignal::RequestSignal():waitresponse(false), st(OnSender), sentcount(0){
+	idbg("RequestSignal "<<(void*)this);
 }
-ConceptSignal::~ConceptSignal(){
-	idbg("~ConceptSignal "<<(void*)this);
+RequestSignal::~RequestSignal(){
+	idbg("~RequestSignal "<<(void*)this);
 	if(waitresponse && !sentcount){
 		idbg("failed receiving response "/*<<sentcnt*/);
 		m().signal(fdt::S_KILL | fdt::S_RAISE, id.senderuid);
 	}
 }
 
-void ConceptSignal::ipcReceived(
+void RequestSignal::ipcReceived(
 	foundation::ipc::SignalUid &_rsiguid
 ){
 	DynamicPointer<fdt::Signal> sig(this);
@@ -109,7 +111,7 @@ void ConceptSignal::ipcReceived(
 		cassert(false);
 	}
 }
-uint32 ConceptSignal::ipcPrepare(){
+uint32 RequestSignal::ipcPrepare(){
 	uint32	rv(0);
 	idbg((void*)this);
 	if(st == OnSender){
@@ -122,46 +124,50 @@ uint32 ConceptSignal::ipcPrepare(){
 	return rv;
 }
 
-void ConceptSignal::ipcFail(int _err){
+void RequestSignal::ipcFail(int _err){
 	idbg((void*)this<<" sentcount = "<<(int)sentcount<<" err = "<<_err);
 }
 
-void ConceptSignal::ipcSuccess(){
+void RequestSignal::ipcSuccess(){
 	Mutex::Locker lock(mutex());
 	++sentcount;
 	idbg((void*)this<<" sentcount = "<<(int)sentcount);
 }
 
 
-void ConceptSignal::use(){
+void RequestSignal::use(){
 	DynamicShared<fdt::Signal>::use();
 	idbg((void*)this<<" usecount = "<<usecount);
 }
-int ConceptSignal::release(){
+int RequestSignal::release(){
 	int rv = DynamicShared<fdt::Signal>::release();
 	idbg((void*)this<<" usecount = "<<usecount);
 	return rv;
 }
+//--------------------------------------------------------------
+
+
+}//namespace consensus
 
 //--------------------------------------------------------------
-StoreSignal::StoreSignal(const std::string&, uint32 _pos):v(0){
+StoreRequest::StoreRequest(const std::string&, uint32 _pos):v(0){
 	idbg("");
 }
-StoreSignal::StoreSignal(){
-	idbg("");
-}
-//--------------------------------------------------------------
-FetchSignal::FetchSignal(const std::string&){
-	idbg("");
-}
-FetchSignal::FetchSignal(){
+StoreRequest::StoreRequest(){
 	idbg("");
 }
 //--------------------------------------------------------------
-EraseSignal::EraseSignal(const std::string&){
+FetchRequest::FetchRequest(const std::string&){
 	idbg("");
 }
-EraseSignal::EraseSignal(){
+FetchRequest::FetchRequest(){
+	idbg("");
+}
+//--------------------------------------------------------------
+EraseRequest::EraseRequest(const std::string&){
+	idbg("");
+}
+EraseRequest::EraseRequest(){
 	idbg("");
 }
 //--------------------------------------------------------------

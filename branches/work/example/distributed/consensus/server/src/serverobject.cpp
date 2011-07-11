@@ -1,6 +1,6 @@
 #include "example/distributed/consensus/server/serverobject.hpp"
-#include "example/distributed/consensus/core/manager.hpp"
-#include "example/distributed/consensus/core/signals.hpp"
+#include "example/distributed/consensus/core/consensusmanager.hpp"
+#include "example/distributed/consensus/core/consensusrequests.hpp"
 
 #include "foundation/ipc/ipcservice.hpp"
 
@@ -105,52 +105,46 @@ std::ostream& operator<<(std::ostream &_ros, const ServerParams &_rsp){
 }
 
 inline bool ServerObject::ReqCmpEqual::operator()(
-	const ConceptSignalIdetifier* const & _req1,
-	const ConceptSignalIdetifier* const & _req2
+	const consensus::RequestId* const & _req1,
+	const consensus::RequestId* const & _req2
 )const{
 	return *_req1 == *_req2;
 }
 inline bool ServerObject::ReqCmpLess::operator()(
-	const ConceptSignalIdetifier* const & _req1,
-	const ConceptSignalIdetifier* const & _req2
+	const consensus::RequestId* const & _req1,
+	const consensus::RequestId* const & _req2
 )const{
 	return *_req1 < *_req2;
 }
 inline size_t ServerObject::ReqHash::operator()(
-		const ConceptSignalIdetifier* const & _req1
+		const consensus::RequestId* const & _req1
 )const{
 	return _req1->hash();
 }
 inline bool ServerObject::SenderCmpEqual::operator()(
-	const ConceptSignalIdetifier & _req1,
-	const ConceptSignalIdetifier& _req2
+	const consensus::RequestId & _req1,
+	const consensus::RequestId& _req2
 )const{
 	return _req1.senderEqual(_req2);
 }
 inline bool ServerObject::SenderCmpLess::operator()(
-	const ConceptSignalIdetifier& _req1,
-	const ConceptSignalIdetifier& _req2
+	const consensus::RequestId& _req1,
+	const consensus::RequestId& _req2
 )const{
 	return _req1.senderLess(_req2);
 }
 inline size_t ServerObject::SenderHash::operator()(
-	const ConceptSignalIdetifier& _req1
+	const consensus::RequestId& _req1
 )const{
 	return _req1.senderHash();
 }
-inline bool ServerObject::TimerDataCmp::operator()(
-	const TimerData &_rtd1, const TimerData &_rtd2
-)const{
-	return _rtd1.timepos > _rtd2.timepos;
-}
-
 ServerObject::ServerObject():crtval(1){
 	
 }
 ServerObject::~ServerObject(){
 	
 }
-inline size_t ServerObject::insertClientRequest(DynamicPointer<ConceptSignal> &_rsig){
+inline size_t ServerObject::insertClientRequest(DynamicPointer<consensus::RequestSignal> &_rsig){
 	if(freeposstk.size()){
 		size_t idx(freeposstk.top());
 		freeposstk.pop();
@@ -184,11 +178,11 @@ namespace{
 static const DynamicRegisterer<ServerObject>	dre;
 }
 /*static*/ void ServerObject::dynamicRegister(){
-	DynamicExecuterT::registerDynamic<ConceptSignal, ServerObject>();
+	DynamicExecuterT::registerDynamic<consensus::RequestSignal, ServerObject>();
 	
-	DynamicExecuterExT::registerDynamic<StoreSignal, ServerObject>();
-	DynamicExecuterExT::registerDynamic<FetchSignal, ServerObject>();
-	DynamicExecuterExT::registerDynamic<EraseSignal, ServerObject>();
+	DynamicExecuterExT::registerDynamic<StoreRequest, ServerObject>();
+	DynamicExecuterExT::registerDynamic<FetchRequest, ServerObject>();
+	DynamicExecuterExT::registerDynamic<EraseRequest, ServerObject>();
 }
 
 int ServerObject::execute(ulong _sig, TimeSpec &_tout){
@@ -232,8 +226,8 @@ void ServerObject::dynamicExecute(DynamicPointer<> &_dp){
 	
 }
 
-void ServerObject::dynamicExecute(DynamicPointer<ConceptSignal> &_rsig){
-	idbg("received ConceptSignal request");
+void ServerObject::dynamicExecute(DynamicPointer<consensus::RequestSignal> &_rsig){
+	idbg("received consensus::RequestSignal request");
 	if(checkAlreadyReceived(_rsig)) return;
 	DynamicPointer<>	dp(_rsig);
 	exeex.execute(*this, dp, 1);
@@ -245,7 +239,7 @@ void ServerObject::dynamicExecute(DynamicPointer<> &_dp, int){
 }
 
 
-void ServerObject::dynamicExecute(DynamicPointer<StoreSignal> &_rsig, int){
+void ServerObject::dynamicExecute(DynamicPointer<StoreRequest> &_rsig, int){
 	idbg("received InsertSignal request");
 	const foundation::ipc::ConnectionUid	ipcconid(_rsig->ipcconid);
 	
@@ -256,7 +250,7 @@ void ServerObject::dynamicExecute(DynamicPointer<StoreSignal> &_rsig, int){
 	foundation::ipc::Service::the().sendSignal(sigptr, ipcconid);
 }
 
-void ServerObject::dynamicExecute(DynamicPointer<FetchSignal> &_rsig, int){
+void ServerObject::dynamicExecute(DynamicPointer<FetchRequest> &_rsig, int){
 	idbg("received FetchSignal request");
 	const foundation::ipc::ConnectionUid	ipcconid(_rsig->ipcconid);
 	DynamicPointer<foundation::Signal>		sigptr(_rsig);
@@ -264,7 +258,7 @@ void ServerObject::dynamicExecute(DynamicPointer<FetchSignal> &_rsig, int){
 	foundation::ipc::Service::the().sendSignal(sigptr, ipcconid);
 }
 
-void ServerObject::dynamicExecute(DynamicPointer<EraseSignal> &_rsig, int){
+void ServerObject::dynamicExecute(DynamicPointer<EraseRequest> &_rsig, int){
 	idbg("received EraseSignal request");
 	const foundation::ipc::ConnectionUid	ipcconid(_rsig->ipcconid);
 	DynamicPointer<foundation::Signal>		sigptr(_rsig);
@@ -272,7 +266,7 @@ void ServerObject::dynamicExecute(DynamicPointer<EraseSignal> &_rsig, int){
 	foundation::ipc::Service::the().sendSignal(sigptr, ipcconid);
 }
 
-bool ServerObject::checkAlreadyReceived(DynamicPointer<ConceptSignal> &_rsig){
+bool ServerObject::checkAlreadyReceived(DynamicPointer<consensus::RequestSignal> &_rsig){
 	SenderSetT::iterator it(senderset.find(_rsig->id));
 	if(it != senderset.end()){
 		if(overflowSafeLess(_rsig->id.requid, it->requid)){

@@ -21,14 +21,18 @@
 #include "foundation/object.hpp"
 #include "foundation/signal.hpp"
 #include "utility/stack.hpp"
-#include "example/distributed/consensus/core/signalidentifier.hpp"
+#include "example/distributed/consensus/core/consensusrequestid.hpp"
+#include "src/timerqueue.hpp"
 
-struct C;
-struct StoreSignal;
-struct FetchSignal;
-struct EraseSignal;
-struct ConceptSignal;
-struct ConceptSignalIdetifier;
+//struct C;
+struct StoreRequest;
+struct FetchRequest;
+struct EraseRequest;
+
+namespace consensus{
+struct RequestSignal;
+struct RequestId;
+}
 
 struct ServerParams{
 	typedef std::vector<std::string>	StringVectorT;
@@ -61,90 +65,76 @@ public:
 	~ServerObject();
 	void dynamicExecute(DynamicPointer<> &_dp);
 	
-	void dynamicExecute(DynamicPointer<ConceptSignal> &_rsig);
+	void dynamicExecute(DynamicPointer<consensus::RequestSignal> &_rsig);
 	
 	void dynamicExecute(DynamicPointer<> &_dp, int);
 	
-	void dynamicExecute(DynamicPointer<StoreSignal> &_rsig, int);
-	void dynamicExecute(DynamicPointer<FetchSignal> &_rsig, int);
-	void dynamicExecute(DynamicPointer<EraseSignal> &_rsig, int);
+	void dynamicExecute(DynamicPointer<StoreRequest> &_rsig, int);
+	void dynamicExecute(DynamicPointer<FetchRequest> &_rsig, int);
+	void dynamicExecute(DynamicPointer<EraseRequest> &_rsig, int);
 	
 	
 	int execute(ulong _sig, TimeSpec &_tout);
 private:
 	struct ClientRequest;
 	/*virtual*/ bool signal(DynamicPointer<foundation::Signal> &_sig);
-	size_t insertClientRequest(DynamicPointer<ConceptSignal> &_rsig);
+	size_t insertClientRequest(DynamicPointer<consensus::RequestSignal> &_rsig);
 	void eraseClientRequest(size_t _idx);
 	ClientRequest& clientRequest(size_t _idx);
 	const ClientRequest& clientRequest(size_t _idx)const;
-	bool checkAlreadyReceived(DynamicPointer<ConceptSignal> &_rsig);
+	bool checkAlreadyReceived(DynamicPointer<consensus::RequestSignal> &_rsig);
 	void registerClientRequestTimer(const TimeSpec &_rts, size_t _idx);
 	size_t popClientRequestTimeout(const TimeSpec &_rts);
 	void scheduleNextClientRequestTimer(TimeSpec &_rts);
 private:
 	struct ClientRequest{
 		ClientRequest():uid(0), state(0){}
-		ClientRequest(DynamicPointer<ConceptSignal>	&_rsig):sig(_rsig), uid(0), state(0){}
-		DynamicPointer<ConceptSignal>	sig;
-		uint16							uid;
-		uint16							timerid;
-		uint16							state;
-	};
-	struct TimerData{
-		TimerData(
-			const TimeSpec&_rts,
-			size_t _idx = -1,
-			uint16 _timerid = 0
-		): timepos(_rts), idx(_idx), timerid(_timerid){}
-		TimeSpec	timepos;
-		size_t		idx;
-		uint16		timerid;
+		ClientRequest(DynamicPointer<consensus::RequestSignal>	&_rsig):sig(_rsig), uid(0), state(0){}
+		DynamicPointer<consensus::RequestSignal>	sig;
+		uint16										uid;
+		uint16										timerid;
+		uint16										state;
 	};
 	struct ReqCmpEqual{
-		bool operator()(const ConceptSignalIdetifier* const & _req1, const ConceptSignalIdetifier* const & _req2)const;
+		bool operator()(const consensus::RequestId* const & _req1, const consensus::RequestId* const & _req2)const;
 	};
 	struct ReqCmpLess{
-		bool operator()(const ConceptSignalIdetifier* const & _req1, const ConceptSignalIdetifier* const & _req2)const;
+		bool operator()(const consensus::RequestId* const & _req1, const consensus::RequestId* const & _req2)const;
 	};
 	struct ReqHash{
-		size_t operator()(const ConceptSignalIdetifier* const & _req1)const;
+		size_t operator()(const consensus::RequestId* const & _req1)const;
 	};
 	struct SenderCmpEqual{
-		bool operator()(const ConceptSignalIdetifier & _req1, const ConceptSignalIdetifier& _req2)const;
+		bool operator()(const consensus::RequestId & _req1, const consensus::RequestId& _req2)const;
 	};
 	struct SenderCmpLess{
-		bool operator()(const ConceptSignalIdetifier& _req1, const ConceptSignalIdetifier& _req2)const;
+		bool operator()(const consensus::RequestId& _req1, const consensus::RequestId& _req2)const;
 	};
 	struct SenderHash{
-		size_t operator()(const ConceptSignalIdetifier& _req1)const;
+		size_t operator()(const consensus::RequestId& _req1)const;
 	};
-	struct TimerDataCmp{
-		bool operator()(const TimerData &_rtd1, const TimerData &_rtd2)const;
-	};
-	typedef std::deque<ClientRequest>	ClientRequestVectorT;
+	typedef std::deque<ClientRequest>															ClientRequestVectorT;
 #ifdef HAVE_UNORDERED_MAP
-	typedef std::unordered_map<const ConceptSignalIdetifier*, size_t, ReqHash, ReqCmpEqual>		ClientRequestMapT;
-	typedef std::unordered_set<ConceptSignalIdetifier, SenderHash, SenderCmpEqual>				SenderSetT;
+	typedef std::unordered_map<const consensus::RequestId*, size_t, ReqHash, ReqCmpEqual>		ClientRequestMapT;
+	typedef std::unordered_set<consensus::RequestId, SenderHash, SenderCmpEqual>				SenderSetT;
 #else
-	typedef std::map<const ConceptSignalIdetifier*, size_t, ReqCmpLess>							ClientRequestMapT;
-	typedef std::set<ConceptSignalIdetifier, SenderCmpLess>										SenderSetT;
+	typedef std::map<const consensus::RequestId*, size_t, ReqCmpLess>							ClientRequestMapT;
+	typedef std::set<consensus::RequestId, SenderCmpLess>										SenderSetT;
 #endif
-	typedef Stack<size_t>				SizeTStackT;
-	typedef std::priority_queue<TimerData, std::vector<TimerData>, TimerDataCmp>				TimerPriorityQueueT;
+	typedef Stack<size_t>																		SizeTStackT;
 private:
 	DynamicExecuterT		exe;
 	DynamicExecuterExT		exeex;
+	
 	uint32					consensusval;
-	
-	
+		
 	uint32					crtval;
 	
 	ClientRequestMapT		reqmap;
 	ClientRequestVectorT	reqvec;
 	SizeTStackT				freeposstk;
 	SenderSetT				senderset;
-	TimerPriorityQueueT		timerpriorq;
+	TimerQueue				timerq;
 };
 
 #endif
