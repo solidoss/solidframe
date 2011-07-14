@@ -31,7 +31,6 @@ typedef foundation::Scheduler<foundation::ObjectSelector>	SchedulerT;
 //------------------------------------------------------------------
 
 struct Params{
-	Params():p(ServerParams::the()){}
 	int				ipc_port;
 	string			dbg_levels;
 	string			dbg_modules;
@@ -40,7 +39,7 @@ struct Params{
 	bool			dbg_buffered;
 	bool			dbg_console;
 	bool			log;
-	ServerParams	&p;
+	ServerParams	p;
 };
 
 struct IpcServiceController: foundation::ipc::Service::Controller{

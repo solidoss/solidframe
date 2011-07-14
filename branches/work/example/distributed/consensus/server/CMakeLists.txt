@@ -1,9 +1,11 @@
 set(Sources
+	src/consensusobject.cpp
 	src/serverobject.cpp
 	src/timerqueue.cpp
 )
 
 set(Headers
+	consensusobject.hpp
 	serverobject.hpp
 	src/timerqueue.hpp
 )

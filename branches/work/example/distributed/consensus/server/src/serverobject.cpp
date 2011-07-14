@@ -17,12 +17,6 @@
 namespace fdt=foundation;
 using namespace std;
 
-/*static*/ ServerParams& ServerParams::the(){
-	//TODO: static_problem
-	static ServerParams s;
-	return s;
-}
-
 bool ServerParams::init(int _ipc_port){
 	for(StringVectorT::const_iterator it(addrstrvec.begin()); it != addrstrvec.end(); ++it){
 		string s(*it);
@@ -104,147 +98,38 @@ std::ostream& operator<<(std::ostream &_ros, const ServerParams &_rsp){
 	return _rsp.print(_ros);
 }
 
-inline bool ServerObject::ReqCmpEqual::operator()(
-	const consensus::RequestId* const & _req1,
-	const consensus::RequestId* const & _req2
-)const{
-	return *_req1 == *_req2;
-}
-inline bool ServerObject::ReqCmpLess::operator()(
-	const consensus::RequestId* const & _req1,
-	const consensus::RequestId* const & _req2
-)const{
-	return *_req1 < *_req2;
-}
-inline size_t ServerObject::ReqHash::operator()(
-		const consensus::RequestId* const & _req1
-)const{
-	return _req1->hash();
-}
-inline bool ServerObject::SenderCmpEqual::operator()(
-	const consensus::RequestId & _req1,
-	const consensus::RequestId& _req2
-)const{
-	return _req1.senderEqual(_req2);
-}
-inline bool ServerObject::SenderCmpLess::operator()(
-	const consensus::RequestId& _req1,
-	const consensus::RequestId& _req2
-)const{
-	return _req1.senderLess(_req2);
-}
-inline size_t ServerObject::SenderHash::operator()(
-	const consensus::RequestId& _req1
-)const{
-	return _req1.senderHash();
-}
-ServerObject::ServerObject():crtval(1){
-	
-}
-ServerObject::~ServerObject(){
-	
-}
-inline size_t ServerObject::insertClientRequest(DynamicPointer<consensus::RequestSignal> &_rsig){
-	if(freeposstk.size()){
-		size_t idx(freeposstk.top());
-		freeposstk.pop();
-		ClientRequest &rcr(clientRequest(idx));
-		rcr.sig = _rsig;
-		return idx;
-	}else{
-		size_t idx(reqvec.size());
-		reqvec.push_back(ClientRequest(_rsig));
-		return idx;
-	}
-}
-inline void ServerObject::eraseClientRequest(size_t _idx){
-	ClientRequest &rcr(clientRequest(_idx));
-	cassert(rcr.sig.ptr());
-	rcr.sig.clear();
-	rcr.state = 0;
-	++rcr.uid;
-	freeposstk.push(_idx);
-}
-inline ServerObject::ClientRequest& ServerObject::clientRequest(size_t _idx){
-	cassert(_idx < reqvec.size());
-	return reqvec[_idx];
-}
-inline const ServerObject::ClientRequest& ServerObject::clientRequest(size_t _idx)const{
-	cassert(_idx < reqvec.size());
-	return reqvec[_idx];
-}
 //------------------------------------------------------------
 namespace{
 static const DynamicRegisterer<ServerObject>	dre;
 }
 /*static*/ void ServerObject::dynamicRegister(){
-	DynamicExecuterT::registerDynamic<consensus::RequestSignal, ServerObject>();
-	
 	DynamicExecuterExT::registerDynamic<StoreRequest, ServerObject>();
 	DynamicExecuterExT::registerDynamic<FetchRequest, ServerObject>();
 	DynamicExecuterExT::registerDynamic<EraseRequest, ServerObject>();
 }
-
-int ServerObject::execute(ulong _sig, TimeSpec &_tout){
-	foundation::Manager &rm(m());
-	
-	if(signaled()){//we've received a signal
-		ulong sm(0);
-		{
-			Mutex::Locker	lock(rm.mutex(*this));
-			sm = grabSignalMask(0);//grab all bits of the signal mask
-			if(sm & fdt::S_KILL) return BAD;
-			if(sm & fdt::S_SIG){//we have signals
-				exe.prepareExecute();
-			}
-		}
-		if(sm & fdt::S_SIG){//we've grabed signals, execute them
-			while(exe.hasCurrent()){
-				exe.executeCurrent(*this);
-				exe.next();
-			}
-		}
-		//now we determine if we return with NOK or we continue
-		if(!_sig) return NOK;
-	}
-	
-	return NOK;
-}
-
 //------------------------------------------------------------
-/*virtual*/ bool ServerObject::signal(DynamicPointer<foundation::Signal> &_sig){
-	if(this->state() < 0){
-		_sig.clear();
-		return false;//no reason to raise the pool thread!!
-	}
-	exe.push(DynamicPointer<>(_sig));
-	return Object::signal(fdt::S_SIG | fdt::S_RAISE);
+ServerObject::ServerObject(){
+	
 }
-
-
-void ServerObject::dynamicExecute(DynamicPointer<> &_dp){
+ServerObject::~ServerObject(){
 	
 }
 
-void ServerObject::dynamicExecute(DynamicPointer<consensus::RequestSignal> &_rsig){
-	idbg("received consensus::RequestSignal request");
-	if(checkAlreadyReceived(_rsig)) return;
+/*virtual*/ void ServerObject::doAccept(DynamicPointer<consensus::RequestSignal> &_rsig){
+	idbg("accepting consensus::RequestSignal request");
 	DynamicPointer<>	dp(_rsig);
 	exeex.execute(*this, dp, 1);
 }
-
 
 void ServerObject::dynamicExecute(DynamicPointer<> &_dp, int){
 	
 }
 
-
 void ServerObject::dynamicExecute(DynamicPointer<StoreRequest> &_rsig, int){
 	idbg("received InsertSignal request");
 	const foundation::ipc::ConnectionUid	ipcconid(_rsig->ipcconid);
 	
-	++crtval;
-	_rsig->v = crtval;
+	_rsig->v = this->acceptId();
 	
 	DynamicPointer<foundation::Signal>		sigptr(_rsig);
 	foundation::ipc::Service::the().sendSignal(sigptr, ipcconid);
@@ -266,26 +151,3 @@ void ServerObject::dynamicExecute(DynamicPointer<EraseRequest> &_rsig, int){
 	foundation::ipc::Service::the().sendSignal(sigptr, ipcconid);
 }
 
-bool ServerObject::checkAlreadyReceived(DynamicPointer<consensus::RequestSignal> &_rsig){
-	SenderSetT::iterator it(senderset.find(_rsig->id));
-	if(it != senderset.end()){
-		if(overflowSafeLess(_rsig->id.requid, it->requid)){
-			return true;
-		}
-		senderset.erase(it);
-		senderset.insert(_rsig->id);
-	}else{
-		senderset.insert(_rsig->id);
-	}
-	return false;
-}
-
-void ServerObject::registerClientRequestTimer(const TimeSpec &_rts, size_t _idx){
-	
-}
-size_t ServerObject::popClientRequestTimeout(const TimeSpec &_rts){
-	return 0;
-}
-void ServerObject::scheduleNextClientRequestTimer(TimeSpec &_rts){
-	
-}
