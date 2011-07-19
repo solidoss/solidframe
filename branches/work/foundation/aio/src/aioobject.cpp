@@ -34,14 +34,6 @@ namespace foundation{
 
 namespace aio{
 
-namespace {
-
-static const uint crtTimeThreadSpec(){
-	static const uint id(Thread::specificId());
-	return id;
-}
-}
-
 //======================== aio::SocketPointer ===========================
 void SocketPointer::clear(Socket *_ps)const{
 	delete ps;
@@ -49,13 +41,6 @@ void SocketPointer::clear(Socket *_ps)const{
 }
 
 //======================== aio::Object ==================================
-
-/*static*/ const TimeSpec& Object::currentTime(){
-	return *reinterpret_cast<const TimeSpec*>(Thread::specific(crtTimeThreadSpec()));
-}
-/*static*/ void Object::doSetCurrentTime(const TimeSpec *_pcrtts){
-	Thread::specific(crtTimeThreadSpec(), const_cast<TimeSpec *>(_pcrtts));
-}
 
 Object::SocketStub::~SocketStub(){
 	delete psock;

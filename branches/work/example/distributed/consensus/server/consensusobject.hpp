@@ -41,10 +41,11 @@ protected:
 private:
 	/*virtual*/ int execute(ulong _sig, TimeSpec &_tout);
 	/*virtual*/ bool signal(DynamicPointer<foundation::Signal> &_sig);
-	virtual int doInit(ulong _sig, TimeSpec &_tout);
-	virtual int doRun(ulong _sig, TimeSpec &_tout);
-	virtual int doUpdate(ulong _sig, TimeSpec &_tout);
+	int doInit(ulong _sig, TimeSpec &_tout);
+	int doRun(ulong _sig, TimeSpec &_tout);
+	int doUpdate(ulong _sig, TimeSpec &_tout);
 	virtual void doAccept(DynamicPointer<RequestSignal> &_rsig) = 0;
+    void doProcessRequest(size_t _pos);
 private:
 	struct Data;
 	Data	&d;

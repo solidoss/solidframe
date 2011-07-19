@@ -14,6 +14,7 @@ public:
 	const uint32&	frontIndex()const;
 	const uint16&	frontValue()const;
 	const uint16&	frontUid()const;
+	void pop();
 private:
 	struct TimerData{
 		TimerData(
@@ -57,5 +58,7 @@ inline const uint16&	TimerQueue::frontValue()const{
 inline const uint16&	TimerQueue::frontUid()const{
 	return tq.top().timerid;
 }
-
+inline void TimerQueue::pop(){
+	tq.pop();
+}
 #endif

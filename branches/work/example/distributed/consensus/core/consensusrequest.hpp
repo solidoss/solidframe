@@ -18,6 +18,7 @@ struct RequestSignal: Dynamic<RequestSignal, DynamicShared<foundation::Signal> >
 		BackOnSender
 	};
 	RequestSignal();
+	RequestSignal(const RequestId &_rreqid);
 	~RequestSignal();
 	void ipcReceived(
 		foundation::ipc::SignalUid &_rsiguid

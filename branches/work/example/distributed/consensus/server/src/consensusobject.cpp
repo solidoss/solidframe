@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "system/common.hpp"
+#include "system/exception.hpp"
 
 #ifdef HAVE_UNORDERED_MAP
 #include <unordered_map>
@@ -17,6 +18,7 @@
 #include "foundation/manager.hpp"
 #include "foundation/signal.hpp"
 #include "utility/stack.hpp"
+#include "utility/queue.hpp"
 
 #include "example/distributed/consensus/core/consensusrequest.hpp"
 #include "example/distributed/consensus/server/consensusobject.hpp"
@@ -40,14 +42,28 @@ Parameters::Parameters(){
 
 //========================================================
 struct Object::Data{
-	struct ClientRequest{
-		ClientRequest():uid(0), state(0){}
-		ClientRequest(DynamicPointer<consensus::RequestSignal>	&_rsig):sig(_rsig), uid(0), state(0){}
+	struct RequestStub{
+		enum{
+			InitState = 0,
+			WaitProposeState,
+			WaitProposeAcceptState,
+		};
+		enum{
+			SignaledEvent = 1,
+			TimeoutEvent = 2,
+			
+		};
+		RequestStub(): evs(0), proposeid(-1), timerid(0), state(0){}
+		RequestStub(
+			DynamicPointer<consensus::RequestSignal> &_rsig
+		):sig(_rsig), proposeid(-1), timerid(0), state(0){}
 		DynamicPointer<consensus::RequestSignal>	sig;
-		uint16										uid;
+		uint32										evs;
+		uint32										proposeid;
 		uint16										timerid;
 		uint16										state;
 	};
+	
 	struct ReqCmpEqual{
 		bool operator()(const consensus::RequestId* const & _req1, const consensus::RequestId* const & _req2)const;
 	};
@@ -66,27 +82,26 @@ struct Object::Data{
 	struct SenderHash{
 		size_t operator()(const consensus::RequestId& _req1)const;
 	};
-	typedef std::deque<ClientRequest>															ClientRequestVectorT;
+	typedef std::deque<RequestStub>																RequestStubVectorT;
 #ifdef HAVE_UNORDERED_MAP
-	typedef std::unordered_map<const consensus::RequestId*, size_t, ReqHash, ReqCmpEqual>		ClientRequestMapT;
+	typedef std::unordered_map<const consensus::RequestId*, size_t, ReqHash, ReqCmpEqual>		RequestStubMapT;
 	typedef std::unordered_set<consensus::RequestId, SenderHash, SenderCmpEqual>				SenderSetT;
 #else
-	typedef std::map<const consensus::RequestId*, size_t, ReqCmpLess>							ClientRequestMapT;
+	typedef std::map<const consensus::RequestId*, size_t, ReqCmpLess>							RequestStubMapT;
 	typedef std::set<consensus::RequestId, SenderCmpLess>										SenderSetT;
 #endif
 	typedef Stack<size_t>																		SizeTStackT;
+	typedef Queue<size_t>																		SizeTQueueT;
+
 //methods:
 	Data();
 	~Data();
 	
-	size_t insertClientRequest(DynamicPointer<RequestSignal> &_rsig);
-	void eraseClientRequest(size_t _idx);
-	ClientRequest& clientRequest(size_t _idx);
-	const ClientRequest& clientRequest(size_t _idx)const;
+	size_t insertRequestStub(DynamicPointer<RequestSignal> &_rsig);
+	void eraseRequestStub(size_t _idx);
+	RequestStub& requestStub(size_t _idx);
+	const RequestStub& requestStub(size_t _idx)const;
 	bool checkAlreadyReceived(DynamicPointer<RequestSignal> &_rsig);
-	void registerClientRequestTimer(const TimeSpec &_rts, size_t _idx);
-	size_t popClientRequestTimeout(const TimeSpec &_rts);
-	void scheduleNextClientRequestTimer(TimeSpec &_rts);
 	bool isCoordinator()const;
 	
 	
@@ -98,8 +113,9 @@ struct Object::Data{
 	
 	int16					coordinatorid;
 	
-	ClientRequestMapT		reqmap;
-	ClientRequestVectorT	reqvec;
+	RequestStubMapT			reqmap;
+	RequestStubVectorT		reqvec;
+	SizeTQueueT				reqq;
 	SizeTStackT				freeposstk;
 	SenderSetT				senderset;
 	TimerQueue				timerq;
@@ -148,32 +164,33 @@ Object::Data::~Data(){
 	
 }
 
-size_t Object::Data::insertClientRequest(DynamicPointer<RequestSignal> &_rsig){
+size_t Object::Data::insertRequestStub(DynamicPointer<RequestSignal> &_rsig){
 	if(freeposstk.size()){
 		size_t idx(freeposstk.top());
 		freeposstk.pop();
-		ClientRequest &rcr(clientRequest(idx));
+		RequestStub &rcr(requestStub(idx));
 		rcr.sig = _rsig;
 		return idx;
 	}else{
 		size_t idx(reqvec.size());
-		reqvec.push_back(ClientRequest(_rsig));
+		reqvec.push_back(RequestStub(_rsig));
 		return idx;
 	}
 }
-void Object::Data::eraseClientRequest(size_t _idx){
-	ClientRequest &rcr(clientRequest(_idx));
+void Object::Data::eraseRequestStub(size_t _idx){
+	RequestStub &rcr(requestStub(_idx));
 	cassert(rcr.sig.ptr());
 	rcr.sig.clear();
 	rcr.state = 0;
-	++rcr.uid;
+	rcr.evs = 0;
+	++rcr.timerid;
 	freeposstk.push(_idx);
 }
-inline Object::Data::ClientRequest& Object::Data::clientRequest(size_t _idx){
+inline Object::Data::RequestStub& Object::Data::requestStub(size_t _idx){
 	cassert(_idx < reqvec.size());
 	return reqvec[_idx];
 }
-inline const Object::Data::ClientRequest& Object::Data::clientRequest(size_t _idx)const{
+inline const Object::Data::RequestStub& Object::Data::requestStub(size_t _idx)const{
 	cassert(_idx < reqvec.size());
 	return reqvec[_idx];
 }
@@ -217,9 +234,10 @@ void Object::dynamicExecute(DynamicPointer<> &_dp){
 //---------------------------------------------------------
 void Object::dynamicExecute(DynamicPointer<RequestSignal> &_rsig){
 	if(d.checkAlreadyReceived(_rsig)) return;
-	++d.acceptid;
-	doAccept(_rsig);
-	_rsig.clear();
+// 	++d.acceptid;
+// 	doAccept(_rsig);
+// 	_rsig.clear();
+	//we've received a requestsignal
 }
 //---------------------------------------------------------
 /*virtual*/ bool Object::signal(DynamicPointer<foundation::Signal> &_sig){
@@ -275,12 +293,52 @@ int Object::doInit(ulong _sig, TimeSpec &_tout){
 }
 //---------------------------------------------------------
 int Object::doRun(ulong _sig, TimeSpec &_tout){
+	//first we scan for timeout:
+	while(d.timerq.hitted(_tout)){
+		Data::RequestStub &rreq(d.requestStub(d.timerq.frontIndex()));
+		
+		if(rreq.timerid == d.timerq.frontUid()){
+			rreq.evs |= Data::RequestStub::TimeoutEvent;
+			if(!(rreq.evs & Data::RequestStub::SignaledEvent)){
+				rreq.evs |= Data::RequestStub::SignaledEvent;
+				d.reqq.push(d.timerq.frontIndex());
+			}
+		}
+		
+		d.timerq.pop();
+	}
+	
+	//next we process all request
+	size_t cnt(d.reqq.size());
+	while(cnt--){
+		size_t pos(d.reqq.front());
+		d.reqq.pop();
+		doProcessRequest(pos);
+	}
+	if(d.reqq.size()) return OK;
+	
+	//set the timer value and exit
+	
 	return NOK;
 }
 //---------------------------------------------------------
 int Object::doUpdate(ulong _sig, TimeSpec &_tout){
 	state(Run);
 	return OK;
+}
+
+void Object::doProcessRequest(size_t _pos){
+	Data::RequestStub &rreq(d.requestStub(_pos));
+	switch(rreq.state){
+		case Data::RequestStub::InitState:
+			break;
+		case Data::RequestStub::WaitProposeState:
+			break;
+		case Data::RequestStub::WaitProposeAcceptState:
+			break;
+		default:
+			THROW_EXCEPTION_EX("Unknown state ",rreq.state);
+	}
 }
 //========================================================
 }//namespace consensus

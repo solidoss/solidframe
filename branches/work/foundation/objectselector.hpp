@@ -64,7 +64,7 @@ public:
 	uint size() const		{return sz;}
 	int  empty()const		{return !sz;}
 	int  full()const		{return sz == sv.size();}
-	void prepare(){}
+	void prepare();
 	void unprepare(){}
 	
 	void push(const ObjectPtrT &_rlis);

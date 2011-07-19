@@ -34,14 +34,18 @@ ObjectSelector::~ObjectSelector(){
 }
 int ObjectSelector::reserve(ulong _cp){
 	sv.resize(_cp);
+	setCurrentTimeSpecific(ctimepos);
 	//objq.reserve(_cp);
 	for(unsigned i = _cp - 1; i; --i) fstk.push(i);//all but first pos (0)
 	ctimepos.set(0);
+	
 	ntimepos.set(MAXTIMEPOS);
 	sz = 0;
 	return OK;
 }
-
+void ObjectSelector::prepare(){
+	setCurrentTimeSpecific(ctimepos);
+}
 void ObjectSelector::raise(uint _pos){
 	Mutex::Locker lock(mtx);
 	uiq.push(_pos);

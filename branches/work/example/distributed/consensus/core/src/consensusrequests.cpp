@@ -68,6 +68,10 @@ size_t RequestId::senderHash()const{
 RequestSignal::RequestSignal():waitresponse(false), st(OnSender), sentcount(0){
 	idbg("RequestSignal "<<(void*)this);
 }
+RequestSignal::RequestSignal(const RequestId &_rreqid):waitresponse(false), st(OnSender), sentcount(0),id(_rreqid){
+	idbg("RequestSignal "<<(void*)this);
+}
+
 RequestSignal::~RequestSignal(){
 	idbg("~RequestSignal "<<(void*)this);
 	if(waitresponse && !sentcount){

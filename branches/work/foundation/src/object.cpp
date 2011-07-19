@@ -40,6 +40,10 @@ static const unsigned specificPosition(){
 	static const unsigned	thrspecpos = Thread::specificId();
 	return thrspecpos;
 }
+static const uint currentTimeSpecificPosition(){
+	static const uint id(Thread::specificId());
+	return id;
+}
 }
 
 
@@ -79,6 +83,13 @@ void ObjectPointerBase::destroy(Object *_pobj){
 #ifdef NINLINES
 #include "foundation/object.ipp"
 #endif
+
+/*static*/ const TimeSpec& Object::currentTime(){
+	return *reinterpret_cast<const TimeSpec*>(Thread::specific(currentTimeSpecificPosition()));
+}
+/*static*/ void Object::doSetCurrentTime(const TimeSpec *_pcrtts){
+	Thread::specific(currentTimeSpecificPosition(), const_cast<TimeSpec *>(_pcrtts));
+}
 
 Object::Object(IndexT _fullid):
 	fullid(_fullid), smask(0),

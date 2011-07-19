@@ -73,6 +73,8 @@ class Object: public Dynamic<Object>{
 public:
 	typedef Signal	SignalT;
 	
+	static const TimeSpec& currentTime();
+	
 	//!Get the curent object associate to the current thread
 	static Object& the();
 	
@@ -152,6 +154,7 @@ protected:
 private:
 	//void typeId(const uint16 _tid);
 	//const uint typeId()const;
+	static void doSetCurrentTime(const TimeSpec *_pcrtts);
 	
 	//! Set the id
 	void id(IndexT _fullid);

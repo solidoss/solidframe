@@ -205,7 +205,7 @@ int Selector::reserve(ulong _cp){
 	d.objcp = _cp;
 	d.sockcp = _cp;
 	
-	Object::doSetCurrentTime(&d.ctimepos);
+	setCurrentTimeSpecific(d.ctimepos);
 	
 	//first create the epoll descriptor:
 	cassert(d.epollfd < 0);
@@ -270,7 +270,7 @@ int Selector::reserve(ulong _cp){
 }
 
 void Selector::prepare(){
-	Object::doSetCurrentTime(&d.ctimepos);
+	setCurrentTimeSpecific(d.ctimepos);
 }
 void Selector::unprepare(){
 }

@@ -43,7 +43,6 @@ class Selector;
 */
 class Object: public Dynamic<Object, foundation::Object>{
 public:
-	static const TimeSpec& currentTime();
 	virtual ~Object();
 	//!Called by selector on certain events
 	virtual int execute(ulong _evs, TimeSpec &_rtout) = 0;
@@ -131,7 +130,6 @@ protected:
 	void socketPushRequest(const uint _pos, const uint8 _req);
 	void socketPostEvents(const uint _pos, const uint32 _evs);
 private:
-	static void doSetCurrentTime(const TimeSpec *_pcrtts);
 	void doPrepare(TimeSpec *_pitimepos, TimeSpec *_potimepos);
 	void doUnprepare();
 	void doClearRequests();
