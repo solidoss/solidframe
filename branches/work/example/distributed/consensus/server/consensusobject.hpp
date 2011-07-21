@@ -46,6 +46,8 @@ private:
 	int doUpdate(ulong _sig, TimeSpec &_tout);
 	virtual void doAccept(DynamicPointer<RequestSignal> &_rsig) = 0;
     void doProcessRequest(size_t _pos);
+	void doSendAccept(size_t _pos);
+	void doSendPropose(size_t _pos);
 private:
 	struct Data;
 	Data	&d;

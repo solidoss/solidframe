@@ -47,21 +47,32 @@ struct Object::Data{
 			InitState = 0,
 			WaitProposeState,
 			WaitProposeAcceptState,
+			AcceptState,
 		};
 		enum{
 			SignaledEvent = 1,
 			TimeoutEvent = 2,
 			
 		};
-		RequestStub(): evs(0), proposeid(-1), timerid(0), state(0){}
+		enum{
+			HaveRequestFlag = 1,
+		};
+		RequestStub(): evs(0), flags(0), propaccid(-1), timerid(0), state(InitState), recvpropacc(0){}
 		RequestStub(
 			DynamicPointer<consensus::RequestSignal> &_rsig
-		):sig(_rsig), proposeid(-1), timerid(0), state(0){}
+		):sig(_rsig), propaccid(-1), timerid(0), state(InitState), recvpropacc(0){}
+		
+		bool hasRequest()const{
+			return flags & HaveRequestFlag;
+		}
+		
 		DynamicPointer<consensus::RequestSignal>	sig;
-		uint32										evs;
-		uint32										proposeid;
+		uint16										evs;
+		uint16										flags;
+		uint32										propaccid;
 		uint16										timerid;
-		uint16										state;
+		uint8										state;
+		uint8										recvpropacc;
 	};
 	
 	struct ReqCmpEqual{
@@ -103,6 +114,7 @@ struct Object::Data{
 	const RequestStub& requestStub(size_t _idx)const;
 	bool checkAlreadyReceived(DynamicPointer<RequestSignal> &_rsig);
 	bool isCoordinator()const;
+	bool canSendAcceptOnly()const;
 	
 	
 //data:	
@@ -112,6 +124,8 @@ struct Object::Data{
 	uint32					acceptid;
 	
 	int16					coordinatorid;
+	uint32					continuous_accepted_proposes;
+	TimeSpec				lastaccepttime;
 	
 	RequestStubMapT			reqmap;
 	RequestStubVectorT		reqvec;
@@ -210,7 +224,11 @@ bool Object::Data::checkAlreadyReceived(DynamicPointer<RequestSignal> &_rsig){
 	}
 	return false;
 }
-
+bool Object::Data::canSendAcceptOnly()const{
+	TimeSpec ct(fdt::Object::currentTime());
+	ct -= lastaccepttime;
+	return (continuous_accepted_proposes >= 5) && ct.seconds() < 60;
+}
 //========================================================
 namespace{
 static const DynamicRegisterer<Object>	dre;
@@ -234,6 +252,10 @@ void Object::dynamicExecute(DynamicPointer<> &_dp){
 //---------------------------------------------------------
 void Object::dynamicExecute(DynamicPointer<RequestSignal> &_rsig){
 	if(d.checkAlreadyReceived(_rsig)) return;
+	size_t idx = d.insertRequestStub(_rsig);
+	Data::RequestStub &rrs(d.requestStub(idx));
+	rrs.flags |= Data::RequestStub::HaveRequestFlag;
+	d.reqq.push(idx);
 // 	++d.acceptid;
 // 	doAccept(_rsig);
 // 	_rsig.clear();
@@ -318,6 +340,10 @@ int Object::doRun(ulong _sig, TimeSpec &_tout){
 	if(d.reqq.size()) return OK;
 	
 	//set the timer value and exit
+	if(d.timerq.size() && d.timerq.hitted(_tout)){
+		return OK;
+	}
+	_tout = d.timerq.frontTime();
 	
 	return NOK;
 }
@@ -329,8 +355,28 @@ int Object::doUpdate(ulong _sig, TimeSpec &_tout){
 
 void Object::doProcessRequest(size_t _pos){
 	Data::RequestStub &rreq(d.requestStub(_pos));
+	uint32 events = rreq.evs;
+	rreq.evs = 0;
 	switch(rreq.state){
 		case Data::RequestStub::InitState:
+			if(d.isCoordinator()){
+				if(d.canSendAcceptOnly()){
+					doSendAccept(_pos);
+					
+				}else{
+					doSendPropose(_pos);
+					rreq.state = Data::RequestStub::WaitProposeAcceptState;
+					TimeSpec ts(fdt::Object::currentTime());
+					ts += 3000;//ms
+					d.timerq.push(ts, _pos, rreq.timerid);
+					rreq.recvpropacc = 1;//one is the current coordinator
+				}
+			}else{
+				rreq.state = Data::RequestStub::WaitProposeState;
+				TimeSpec ts(fdt::Object::currentTime());
+				ts += 1000;//ms
+				d.timerq.push(ts, _pos, rreq.timerid);
+			}
 			break;
 		case Data::RequestStub::WaitProposeState:
 			break;
@@ -339,6 +385,12 @@ void Object::doProcessRequest(size_t _pos){
 		default:
 			THROW_EXCEPTION_EX("Unknown state ",rreq.state);
 	}
+}
+void Object::doSendAccept(size_t _pos){
+	
+}
+void Object::doSendPropose(size_t _pos){
+	
 }
 //========================================================
 }//namespace consensus

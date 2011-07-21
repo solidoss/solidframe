@@ -15,6 +15,8 @@ public:
 	const uint16&	frontValue()const;
 	const uint16&	frontUid()const;
 	void pop();
+	size_t size()const;
+	bool empty()const;
 private:
 	struct TimerData{
 		TimerData(
@@ -61,4 +63,11 @@ inline const uint16&	TimerQueue::frontUid()const{
 inline void TimerQueue::pop(){
 	tq.pop();
 }
+inline size_t TimerQueue::size()const{
+	return tq.size();
+}
+inline bool TimerQueue::empty()const{
+	return tq.empty();
+}
+
 #endif
