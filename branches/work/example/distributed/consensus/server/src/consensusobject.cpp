@@ -230,6 +230,12 @@ bool Object::Data::canSendAcceptOnly()const{
 	return (continuous_accepted_proposes >= 5) && ct.seconds() < 60;
 }
 //========================================================
+struct Object::RunData{
+	RunData(ulong _sig, TimeSpec &_rts):signals(_sig), rtimepos(_rts){}
+	ulong		signals;
+	TimeSpec	&rtimepos;
+};
+//========================================================
 namespace{
 static const DynamicRegisterer<Object>	dre;
 }
@@ -291,10 +297,11 @@ int Object::execute(ulong _sig, TimeSpec &_tout){
 			}
 		}
 	}
+	RunData	rd(_sig, _tout);
 	switch(state()){
-		case Init:		return doInit(_sig, _tout);
-		case Run:		return doRun(_sig, _tout);
-		case Update:	return doUpdate(_sig, _tout);
+		case Init:		return doInit(rd);
+		case Run:		return doRun(rd);
+		case Update:	return doUpdate(rd);
 	}
 	return NOK;
 }
@@ -309,14 +316,14 @@ uint32 Object::proposeId()const{
 	return d.proposeid;
 }
 //---------------------------------------------------------
-int Object::doInit(ulong _sig, TimeSpec &_tout){
+int Object::doInit(RunData &_rd){
 	state(Run);
 	return OK;
 }
 //---------------------------------------------------------
-int Object::doRun(ulong _sig, TimeSpec &_tout){
+int Object::doRun(RunData &_rd){
 	//first we scan for timeout:
-	while(d.timerq.hitted(_tout)){
+	while(d.timerq.hitted(_rd.rtimepos)){
 		Data::RequestStub &rreq(d.requestStub(d.timerq.frontIndex()));
 		
 		if(rreq.timerid == d.timerq.frontUid()){
@@ -335,25 +342,27 @@ int Object::doRun(ulong _sig, TimeSpec &_tout){
 	while(cnt--){
 		size_t pos(d.reqq.front());
 		d.reqq.pop();
-		doProcessRequest(pos);
+		doProcessRequest(_rd, pos);
 	}
 	if(d.reqq.size()) return OK;
 	
 	//set the timer value and exit
-	if(d.timerq.size() && d.timerq.hitted(_tout)){
-		return OK;
+	if(d.timerq.size()){
+		if(d.timerq.hitted(_rd.rtimepos)){
+			return OK;
+		}
+		_rd.rtimepos = d.timerq.frontTime();
 	}
-	_tout = d.timerq.frontTime();
 	
 	return NOK;
 }
 //---------------------------------------------------------
-int Object::doUpdate(ulong _sig, TimeSpec &_tout){
+int Object::doUpdate(RunData &_rd){
 	state(Run);
 	return OK;
 }
 
-void Object::doProcessRequest(size_t _pos){
+void Object::doProcessRequest(RunData &_rd, size_t _pos){
 	Data::RequestStub &rreq(d.requestStub(_pos));
 	uint32 events = rreq.evs;
 	rreq.evs = 0;
@@ -361,10 +370,10 @@ void Object::doProcessRequest(size_t _pos){
 		case Data::RequestStub::InitState:
 			if(d.isCoordinator()){
 				if(d.canSendAcceptOnly()){
-					doSendAccept(_pos);
+					doSendAccept(_rd, _pos);
 					
 				}else{
-					doSendPropose(_pos);
+					doSendPropose(_rd, _pos);
 					rreq.state = Data::RequestStub::WaitProposeAcceptState;
 					TimeSpec ts(fdt::Object::currentTime());
 					ts += 3000;//ms
@@ -386,10 +395,12 @@ void Object::doProcessRequest(size_t _pos){
 			THROW_EXCEPTION_EX("Unknown state ",rreq.state);
 	}
 }
-void Object::doSendAccept(size_t _pos){
+
+void Object::doSendAccept(RunData &_rd, size_t _pos){
 	
 }
-void Object::doSendPropose(size_t _pos){
+
+void Object::doSendPropose(RunData &_rd, size_t _pos){
 	
 }
 //========================================================

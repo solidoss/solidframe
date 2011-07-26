@@ -39,15 +39,16 @@ protected:
 	uint32 acceptId()const;
 	uint32 proposeId()const;
 private:
+	struct RunData;
 	/*virtual*/ int execute(ulong _sig, TimeSpec &_tout);
 	/*virtual*/ bool signal(DynamicPointer<foundation::Signal> &_sig);
-	int doInit(ulong _sig, TimeSpec &_tout);
-	int doRun(ulong _sig, TimeSpec &_tout);
-	int doUpdate(ulong _sig, TimeSpec &_tout);
 	virtual void doAccept(DynamicPointer<RequestSignal> &_rsig) = 0;
-    void doProcessRequest(size_t _pos);
-	void doSendAccept(size_t _pos);
-	void doSendPropose(size_t _pos);
+	int doInit(RunData &_rd);
+	int doRun(RunData &_rd);
+	int doUpdate(RunData &_rd);
+    void doProcessRequest(RunData &_rd, size_t _pos);
+	void doSendAccept(RunData &_rd, size_t _pos);
+	void doSendPropose(RunData &_rd, size_t _pos);
 private:
 	struct Data;
 	Data	&d;
