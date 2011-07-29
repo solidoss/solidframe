@@ -47,14 +47,14 @@ void generate_addresses(
 );
 
 ostream& operator<<(ostream &_ros, const SocketAddress4 &_rsa){
-	char				host[SocketAddress::MaxSockHostSz];
-	char				port[SocketAddress::MaxSockServSz];
+	char				host[SocketAddress::HostNameCapacity];
+	char				port[SocketAddress::ServiceNameCapacity];
 	
 	_rsa.name(
 		host,
-		SocketAddress::MaxSockHostSz,
+		SocketAddress::HostNameCapacity,
 		port,
-		SocketAddress::MaxSockServSz,
+		SocketAddress::ServiceNameCapacity,
 		SocketAddress::NumericService | SocketAddress::NumericHost
 	);
 	_ros<<host<<':'<<port;

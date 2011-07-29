@@ -9,6 +9,15 @@ namespace consensus{
 struct RequestId{
 	RequestId():requid(-1){}
 	
+	template <class S>
+	S& operator&(S &_s){
+		_s.push(requid, "opp").push(reqid, "reqid");
+		_s.push(senderuid.first, "senderuid_first");
+		_s.push(senderuid.second, "senderuid_second");
+		_s.pushBinary(sockaddr.addr(),SocketAddress4::
+		return _s;
+	}
+	
 	bool operator<(const RequestId &_rcsi)const;
 	bool operator==(const RequestId &_rcsi)const;
 	size_t hash()const;

@@ -230,7 +230,17 @@ bool Object::Data::canSendAcceptOnly()const{
 	return (continuous_accepted_proposes >= 5) && ct.seconds() < 60;
 }
 //========================================================
+//Runntime data
 struct Object::RunData{
+	enum{
+		SignalTableCapacity = 128
+	};
+	struct OpperationStub{
+		size_t		reqidx;
+		uint8		opperation;
+		uint32		proposeid;
+		uint32		acceptid;
+	};
 	RunData(ulong _sig, TimeSpec &_rts):signals(_sig), rtimepos(_rts){}
 	ulong		signals;
 	TimeSpec	&rtimepos;

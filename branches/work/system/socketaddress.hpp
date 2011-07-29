@@ -215,9 +215,9 @@ struct Inet6SockAddrPair{
 	sizeof(sockaddr_in6).
 */
 struct SocketAddress{
-	enum {MaxSockAddrSz = sizeof(sockaddr_in6)};
-	enum {MaxSockHostSz = NI_MAXHOST};
-	enum {MaxSockServSz = NI_MAXSERV};
+	enum {Capacity = sizeof(sockaddr_in6)};
+	enum {HostNameCapacity = NI_MAXHOST};
+	enum {ServiceNameCapacity = NI_MAXSERV};
 	//! Some request flags
 	enum {
 		NumericHost = NI_NUMERICHOST,	//!< Generate only numeric host
@@ -244,15 +244,15 @@ struct SocketAddress{
 		getnameinfo.
 		Usage:<br>
 		<CODE>
-		char			host[SocketAddress::MaxSockHostSz];<br>
-		char			port[SocketAddress::MaxSockServSz];<br>
+		char			host[SocketAddress::HostNameCapacity];<br>
+		char			port[SocketAddress::ServerNameCapacity];<br>
 		SocketAddress	addr;<br>
 		channel().localAddress(addr);<br>
 		addr.name(<br>
 			host,<br>
-			SocketAddress::MaxSockHostSz,<br>
+			SocketAddress::HostNameCapacity,<br>
 			port,<br>
-			SocketAddress::MaxSockServSz,<br>
+			SocketAddress::ServiceNameCapacity,<br>
 			SocketAddress::NumericService<br>
 		);<br>
 		</CODE>
@@ -288,9 +288,9 @@ private:
 };
 
 struct SocketAddress4{
-	enum {MaxSockAddrSz = sizeof(sockaddr_in)};
-	enum {MaxSockHostSz = NI_MAXHOST};
-	enum {MaxSockServSz = NI_MAXSERV};
+	enum {Capacity = sizeof(sockaddr_in)};
+	enum {HostNameCapacity = NI_MAXHOST};
+	enum {ServiceNameCapacity = NI_MAXSERV};
 	//! Some request flags
 	enum {
 		NumericHost = NI_NUMERICHOST,	//!< Generate only numeric host
@@ -304,7 +304,7 @@ struct SocketAddress4{
 	SocketAddress4& operator=(const AddrInfoIterator &);
 	SocketAddress4& operator=(const SockAddrPair &);
 	AddrInfo::Family family()const{return (AddrInfo::Family)addr()->sa_family;}
-	socklen_t	size()const {return MaxSockAddrSz;}
+	socklen_t	size()const {return Capacity;}
 	//socklen_t&	size(){return sz;}
 	sockaddr* addr(){return reinterpret_cast<sockaddr*>(buf);}
 	const sockaddr* addr()const{return reinterpret_cast<const sockaddr*>(buf);}
@@ -316,15 +316,15 @@ struct SocketAddress4{
 		getnameinfo.
 		Usage:<br>
 		<CODE>
-		char			host[SocketAddress::MaxSockHostSz];<br>
-		char			port[SocketAddress::MaxSockServSz];<br>
+		char			host[SocketAddress::HostNameCapacity];<br>
+		char			port[SocketAddress::ServiceNameCapacity];<br>
 		SocketAddress	addr;<br>
 		channel().localAddress(addr);<br>
 		addr.name(<br>
 			host,<br>
-			SocketAddress::MaxSockHostSz,<br>
+			SocketAddress::HostNameCapacity,<br>
 			port,<br>
-			SocketAddress::MaxSockServSz,<br>
+			SocketAddress::ServiceNameCapacity,<br>
 			SocketAddress::NumericService<br>
 		);<br>
 		</CODE>

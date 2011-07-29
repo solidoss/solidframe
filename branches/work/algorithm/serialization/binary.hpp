@@ -335,6 +335,11 @@ public:
 		fstk.push(FncData(&Serializer::template storeStreamBegin<T>, _p, _name, 0));
 		return *this;
 	}
+	template <typename T>
+	Serializer& pushBinary(T *_t, const char *_name = NULL){
+		//TODO:
+		return *this;
+	}
 private:
 	friend class TypeMapper;
 	FncT		ptypeidf;

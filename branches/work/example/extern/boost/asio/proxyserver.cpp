@@ -122,8 +122,6 @@ public:
             cout<<"Delete socket read_one"<<endl;
             delete this;
         }else{
-            int err =0;
-            int vallen = sizeof(int);
             socket_1.close();
             socket_2.close();
         }
@@ -157,9 +155,6 @@ public:
             cout<<"Delete socket read_two"<<endl;
             delete this;
         }else{
-            int err =0;
-            int vallen = sizeof(int);
-            
             socket_1.close();
             socket_2.close();
         }
@@ -189,9 +184,6 @@ public:
             cout<<"Delete socket write_one"<<endl;
             delete this;
         }else{
-            int err =0;
-            int vallen = sizeof(int);
-           
             socket_1.close();
             socket_2.close();
         }
@@ -222,10 +214,7 @@ public:
             cout<<"Delete socket write_two"<<endl;
             delete this;
         }else{
-
-            int err =0;
-            int vallen = sizeof(int);
-            socket_1.close();
+			socket_1.close();
             socket_2.close();
         }
         

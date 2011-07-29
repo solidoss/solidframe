@@ -144,13 +144,13 @@ void ClientParams::print(std::ostream &_ros){
 	_ros<<"Addresses: ";
 	for(AddressVectorT::iterator it(addrvec.begin()); it != addrvec.end(); ++it){
 		SocketAddress4 &ra(*it);
-		char				host[SocketAddress::MaxSockHostSz];
-		char				port[SocketAddress::MaxSockServSz];
+		char				host[SocketAddress::HostNameCapacity];
+		char				port[SocketAddress::ServiceNameCapacity];
 		ra.name(
 			host,
-			SocketAddress4::MaxSockHostSz,
+			SocketAddress4::HostNameCapacity,
 			port,
-			SocketAddress4::MaxSockServSz,
+			SocketAddress4::ServiceNameCapacity,
 			SocketAddress4::NumericService | SocketAddress4::NumericHost
 		);
 		_ros<<host<<':'<<port<<' ';

@@ -12,16 +12,16 @@ int main(){
 	sd.bind(it);
 	
 	if(sd.ok()){
-		char				host[SocketAddress::MaxSockHostSz];
-		char				port[SocketAddress::MaxSockServSz];
+		char				host[SocketAddress::HostNameCapacity];
+		char				port[SocketAddress::ServiceNameCapacity];
 		SocketAddress		addr;
 		
 		sd.localAddress(addr);
 		addr.name(
 			host,
-			SocketAddress::MaxSockHostSz,
+			SocketAddress::HostNameCapacity,
 			port,
-			SocketAddress::MaxSockServSz,
+			SocketAddress::ServiceNameCapacity,
 			SocketAddress::NumericService | SocketAddress::NumericHost
 		);
 		cout<<host<<':'<<port<<endl;

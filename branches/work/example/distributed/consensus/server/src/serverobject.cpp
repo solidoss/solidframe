@@ -79,13 +79,14 @@ std::ostream& ServerParams::print(std::ostream &_ros)const{
 	_ros<<"Addresses: ";
 	for(AddressVectorT::const_iterator it(addrvec.begin()); it != addrvec.end(); ++it){
 		const SocketAddress4 &ra(*it);
-		char				host[SocketAddress::MaxSockHostSz];
-		char				port[SocketAddress::MaxSockServSz];
+		char				host[SocketAddress::HostNameCapacity];
+		char				port[SocketAddress::ServiceNameCapacity];
 		ra.name(
 			host,
-			SocketAddress::MaxSockHostSz,
+			SocketAddress::HostNameCapacity,
 			port,
-			SocketAddress::MaxSockServSz,
+			SocketAddress::ServiceNameCapacity
+			,
 			SocketAddress::NumericService | SocketAddress::NumericHost
 		);
 		_ros<<host<<':'<<port<<' ';

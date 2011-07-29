@@ -87,16 +87,16 @@ void RequestSignal::ipcReceived(
 	//_rsiguid = this->ipcsiguid;
 	ipcconid = fdt::ipc::SignalContext::the().connectionuid;
 	
-	char				host[SocketAddress::MaxSockHostSz];
-	char				port[SocketAddress::MaxSockServSz];
+	char				host[SocketAddress::HostNameCapacity];
+	char				port[SocketAddress::ServiceNameCapacity];
 	
 	id.sockaddr = fdt::ipc::SignalContext::the().pairaddr;
 	
 	id.sockaddr.name(
 		host,
-		SocketAddress::MaxSockHostSz,
+		SocketAddress::HostNameCapacity,
 		port,
-		SocketAddress::MaxSockServSz,
+		SocketAddress::ServiceNameCapacity,
 		SocketAddress::NumericService | SocketAddress::NumericHost
 	);
 	
