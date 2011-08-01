@@ -234,6 +234,10 @@ struct SocketAddress{
 	AddrInfo::Family family()const{return (AddrInfo::Family)addr()->sa_family;}
 	const socklen_t&	size()const {return sz;}
 	socklen_t&	size(){return sz;}
+	const socklen_t&	size(const socklen_t &_rsz){
+		sz = _rsz;
+		return sz;
+	}
 	sockaddr* addr(){return reinterpret_cast<sockaddr*>(buf);}
 	const sockaddr* addr()const{return reinterpret_cast<const sockaddr*>(buf);}
 	operator sockaddr*(){return addr();}
@@ -284,7 +288,7 @@ private:
 	sockaddr_in* addrin(){return reinterpret_cast<sockaddr_in*>(buf);}
 	const sockaddr_in* addrin()const{return reinterpret_cast<const sockaddr_in*>(buf);}
 	socklen_t	sz;
-	char 		buf[MaxSockAddrSz];
+	char 		buf[Capacity];
 };
 
 struct SocketAddress4{
@@ -355,7 +359,7 @@ struct SocketAddress4{
 private:
 	sockaddr_in* addrin(){return reinterpret_cast<sockaddr_in*>(buf);}
 	const sockaddr_in* addrin()const{return reinterpret_cast<const sockaddr_in*>(buf);}
-	char 		buf[MaxSockAddrSz];
+	char 		buf[Capacity];
 };
 
 

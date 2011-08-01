@@ -152,7 +152,8 @@ void SocketAddress::addr(const sockaddr* _sa, size_t _sz){
 	}else sz = 0;
 }
 void SocketAddress::clear(){
-	memset(buf, 0, MaxSockAddrSz);
+	memset(buf, 0, Capacity);
+	sz = 0;
 }
 
 bool SocketAddress::operator<(const SocketAddress &_raddr)const{
@@ -225,7 +226,7 @@ int SocketAddress::name(
 //-----------------------------------------------------------------
 
 void SocketAddress4::addr(const sockaddr* _sa, size_t _sz){
-	if(_sa && _sz == MaxSockAddrSz){
+	if(_sa && _sz == Capacity){
 		memcpy(buf, _sa, _sz);
 	}else if(_sa){
 		THROW_EXCEPTION_EX("Assigning an address with invalid size", _sz);
@@ -234,7 +235,7 @@ void SocketAddress4::addr(const sockaddr* _sa, size_t _sz){
 	}
 }
 void SocketAddress4::clear(){
-	memset(buf, 0, MaxSockAddrSz);
+	memset(buf, 0, Capacity);
 }
 
 bool SocketAddress4::operator<(const SocketAddress4 &_raddr)const{

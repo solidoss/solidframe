@@ -11,10 +11,10 @@ struct RequestId{
 	
 	template <class S>
 	S& operator&(S &_s){
-		_s.push(requid, "opp").push(reqid, "reqid");
+		_s.push(requid, "opp").push(requid, "reqid");
 		_s.push(senderuid.first, "senderuid_first");
 		_s.push(senderuid.second, "senderuid_second");
-		_s.pushBinary(sockaddr.addr(),SocketAddress4::
+		_s.pushBinary(sockaddr.addr(), SocketAddress4::Capacity);
 		return _s;
 	}
 	

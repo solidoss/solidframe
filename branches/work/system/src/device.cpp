@@ -289,12 +289,12 @@ int SocketDevice::send(const char* _pb, unsigned _ul, const SockAddrPair &_sap){
 }
 int SocketDevice::recv(char *_pb, unsigned _ul, SocketAddress &_rsa){
 	_rsa.clear();
-	_rsa.size() = SocketAddress::MaxSockAddrSz;
+	_rsa.size(SocketAddress::Capacity);
 	return ::recvfrom(descriptor(), _pb, _ul, 0, _rsa.addr(), &_rsa.size());
 }
 int SocketDevice::remoteAddress(SocketAddress &_rsa)const{
 	_rsa.clear();
-	_rsa.size() = SocketAddress::MaxSockAddrSz;
+	_rsa.size(SocketAddress::Capacity);
 	int rv = getpeername(descriptor(), _rsa.addr(), &_rsa.size());
 	if(rv){
 		edbgx(Dbg::system, "socket getpeername: "<<strerror(errno));
@@ -304,7 +304,7 @@ int SocketDevice::remoteAddress(SocketAddress &_rsa)const{
 }
 int SocketDevice::localAddress(SocketAddress &_rsa)const{
 	_rsa.clear();
-	_rsa.size() = SocketAddress::MaxSockAddrSz;
+	_rsa.size(SocketAddress::Capacity);
 	int rv = getsockname(descriptor(), _rsa.addr(), &_rsa.size());
 	if(rv){
 		edbgx(Dbg::system, "socket getsockname: "<<strerror(errno));
