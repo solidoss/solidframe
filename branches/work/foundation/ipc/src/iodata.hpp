@@ -33,7 +33,7 @@ namespace foundation{
 namespace ipc{
 
 //*******	AddrPtrCmp		******************************************************************
-#ifdef HAVE_UNORDERED_MAP
+#ifdef HAVE_CPP11
 
 struct SockAddrHash{
 	size_t operator()(const Inet4SockAddrPair*const &_psa)const{

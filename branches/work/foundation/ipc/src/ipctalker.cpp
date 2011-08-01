@@ -42,7 +42,7 @@
 #include "ipctalker.hpp"
 #include "ipcsession.hpp"
 
-#ifdef HAVE_UNORDERED_MAP
+#ifdef HAVE_CPP11
 
 #include <unordered_map>
 
@@ -191,7 +191,7 @@ struct Talker::Data{
 		const Inet6SockAddrPair*,
 		int
 	>											BaseAddr6;
-#ifdef HAVE_UNORDERED_MAP
+#ifdef HAVE_CPP11
 	typedef std::unordered_map<
 		const Inet4SockAddrPair*,
 		uint32,
