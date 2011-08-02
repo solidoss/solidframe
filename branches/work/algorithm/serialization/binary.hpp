@@ -335,9 +335,8 @@ public:
 		fstk.push(FncData(&Serializer::template storeStreamBegin<T>, _p, _name, 0));
 		return *this;
 	}
-	template <typename T>
-	Serializer& pushBinary(T *_t, const char *_name = NULL){
-		//TODO:
+	Serializer& pushBinary(void *_p, size_t _sz, const char *_name = NULL){
+		fstk.push(FncData(&Serializer::storeBinary, _p, _name, _sz));
 		return *this;
 	}
 private:

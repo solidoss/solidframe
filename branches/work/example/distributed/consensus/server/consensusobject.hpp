@@ -10,6 +10,8 @@ namespace consensus{
 
 struct RequestSignal;
 struct RequestId;
+template <uint16 Count>
+struct OperationSignal;
 
 struct Parameters{
 	typedef std::vector<SocketAddress4>	AddressVectorT;
@@ -29,6 +31,12 @@ public:
 	void dynamicExecute(DynamicPointer<> &_dp);
 	
 	void dynamicExecute(DynamicPointer<RequestSignal> &_rsig);
+	void dynamicExecute(DynamicPointer<OperationSignal<1> > &_rsig);
+	void dynamicExecute(DynamicPointer<OperationSignal<2> > &_rsig);
+	void dynamicExecute(DynamicPointer<OperationSignal<4> > &_rsig);
+	void dynamicExecute(DynamicPointer<OperationSignal<8> > &_rsig);
+	void dynamicExecute(DynamicPointer<OperationSignal<16> > &_rsig);
+	void dynamicExecute(DynamicPointer<OperationSignal<32> > &_rsig);
 protected:
 	enum State{
 		Init,
@@ -49,6 +57,7 @@ private:
     void doProcessRequest(RunData &_rd, size_t _pos);
 	void doSendAccept(RunData &_rd, size_t _pos);
 	void doSendPropose(RunData &_rd, size_t _pos);
+	void doFlushOperations(RunData &_rd);
 private:
 	struct Data;
 	Data	&d;

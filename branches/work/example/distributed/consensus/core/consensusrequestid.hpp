@@ -14,7 +14,7 @@ struct RequestId{
 		_s.push(requid, "opp").push(requid, "reqid");
 		_s.push(senderuid.first, "senderuid_first");
 		_s.push(senderuid.second, "senderuid_second");
-		_s.pushBinary(sockaddr.addr(), SocketAddress4::Capacity);
+		_s.pushBinary(sockaddr.addr(), SocketAddress4::Capacity, "sockaddr");
 		return _s;
 	}
 	

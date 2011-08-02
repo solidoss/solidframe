@@ -17,12 +17,15 @@
 #include "foundation/object.hpp"
 #include "foundation/manager.hpp"
 #include "foundation/signal.hpp"
+#include "foundation/ipc/ipcservice.hpp"
+
 #include "utility/stack.hpp"
 #include "utility/queue.hpp"
 
 #include "example/distributed/consensus/core/consensusrequest.hpp"
 #include "example/distributed/consensus/server/consensusobject.hpp"
 #include "timerqueue.hpp"
+#include "consensussignals.hpp"
 
 namespace fdt=foundation;
 using namespace std;
@@ -123,7 +126,7 @@ struct Object::Data{
 		
 	uint32					acceptid;
 	
-	int16					coordinatorid;
+	int8					coordinatorid;
 	uint32					continuous_accepted_proposes;
 	TimeSpec				lastaccepttime;
 	
@@ -172,7 +175,11 @@ inline size_t Object::Data::SenderHash::operator()(
 
 
 Object::Data::Data():proposeid(0), acceptid(0), coordinatorid(-2){
-	
+	if(Parameters::the().idx){
+		coordinatorid = 0;
+	}else{
+		coordinatorid = -1;
+	}
 }
 Object::Data::~Data(){
 	
@@ -233,17 +240,25 @@ bool Object::Data::canSendAcceptOnly()const{
 //Runntime data
 struct Object::RunData{
 	enum{
-		SignalTableCapacity = 128
+		OperationCapacity = 32
 	};
-	struct OpperationStub{
+	struct OperationStub{
 		size_t		reqidx;
-		uint8		opperation;
+		uint8		operation;
 		uint32		proposeid;
 		uint32		acceptid;
 	};
-	RunData(ulong _sig, TimeSpec &_rts):signals(_sig), rtimepos(_rts){}
-	ulong		signals;
-	TimeSpec	&rtimepos;
+	RunData(
+		ulong _sig,
+		TimeSpec &_rts,
+		int8 _coordinatorid
+	):signals(_sig), rtimepos(_rts), coordinatorid(_coordinatorid), opcnt(0){}
+	
+	ulong			signals;
+	TimeSpec		&rtimepos;
+	int8			coordinatorid;
+	size_t			opcnt;
+	OperationStub	ops[OperationCapacity];
 };
 //========================================================
 namespace{
@@ -252,6 +267,12 @@ static const DynamicRegisterer<Object>	dre;
 
 /*static*/ void Object::dynamicRegister(){
 	DynamicExecuterT::registerDynamic<RequestSignal, Object>();
+	DynamicExecuterT::registerDynamic<OperationSignal<1>, Object>();
+	DynamicExecuterT::registerDynamic<OperationSignal<2>, Object>();
+	DynamicExecuterT::registerDynamic<OperationSignal<4>, Object>();
+	DynamicExecuterT::registerDynamic<OperationSignal<8>, Object>();
+	DynamicExecuterT::registerDynamic<OperationSignal<16>, Object>();
+	DynamicExecuterT::registerDynamic<OperationSignal<32>, Object>();
 	//TODO: add here the other consensus Signals
 }
 Object::Object():d(*(new Data)){
@@ -276,6 +297,24 @@ void Object::dynamicExecute(DynamicPointer<RequestSignal> &_rsig){
 // 	doAccept(_rsig);
 // 	_rsig.clear();
 	//we've received a requestsignal
+}
+void Object::dynamicExecute(DynamicPointer<OperationSignal<1> > &_rsig){
+	
+}
+void Object::dynamicExecute(DynamicPointer<OperationSignal<2> > &_rsig){
+	
+}
+void Object::dynamicExecute(DynamicPointer<OperationSignal<4> > &_rsig){
+	
+}
+void Object::dynamicExecute(DynamicPointer<OperationSignal<8> > &_rsig){
+	
+}
+void Object::dynamicExecute(DynamicPointer<OperationSignal<16> > &_rsig){
+	
+}
+void Object::dynamicExecute(DynamicPointer<OperationSignal<32> > &_rsig){
+	
 }
 //---------------------------------------------------------
 /*virtual*/ bool Object::signal(DynamicPointer<foundation::Signal> &_sig){
@@ -307,7 +346,7 @@ int Object::execute(ulong _sig, TimeSpec &_tout){
 			}
 		}
 	}
-	RunData	rd(_sig, _tout);
+	RunData	rd(_sig, _tout, d.coordinatorid);
 	switch(state()){
 		case Init:		return doInit(rd);
 		case Run:		return doRun(rd);
@@ -412,6 +451,117 @@ void Object::doSendAccept(RunData &_rd, size_t _pos){
 
 void Object::doSendPropose(RunData &_rd, size_t _pos){
 	
+}
+void Object::doFlushOperations(RunData &_rd){
+	Signal *ps(NULL);
+	if(_rd.opcnt == 0){
+		return;
+	}else if(_rd.opcnt == 1){
+		OperationSignal<1>	*po(new OperationSignal<1>);
+		Data::RequestStub	&rrs(d.requestStub(_rd.ops[0].reqidx));
+		ps = po;
+		
+		po->replicaidx = Parameters::the().idx;
+		
+		po->op.operation = _rd.ops[0].operation;
+		po->op.acceptid = _rd.ops[0].acceptid;
+		po->op.proposeid = _rd.ops[0].proposeid;
+		po->op.reqid = rrs.sig->id;
+	}else if(_rd.opcnt == 2){
+		OperationSignal<2>	*po(new OperationSignal<2>);
+		Data::RequestStub	&rrs1(d.requestStub(_rd.ops[0].reqidx));
+		Data::RequestStub	&rrs2(d.requestStub(_rd.ops[1].reqidx));
+		ps = po;
+		
+		po->replicaidx = Parameters::the().idx;
+		
+		po->op[0].operation = _rd.ops[0].operation;
+		po->op[0].acceptid = _rd.ops[0].acceptid;
+		po->op[0].proposeid = _rd.ops[0].proposeid;
+		po->op[0].reqid = rrs1.sig->id;
+		
+		po->op[1].operation = _rd.ops[1].operation;
+		po->op[1].acceptid = _rd.ops[1].acceptid;
+		po->op[1].proposeid = _rd.ops[1].proposeid;
+		po->op[1].reqid = rrs2.sig->id;
+	}else if(_rd.opcnt <= 4){
+		OperationSignal<4>	*po(new OperationSignal<4>);
+		ps = po;
+		
+		po->replicaidx = Parameters::the().idx;
+		
+		for(uint i(0); i < _rd.opcnt; ++i){
+			Data::RequestStub	&rrs(d.requestStub(_rd.ops[i].reqidx));
+			//po->oparr.push_back(OperationStub());
+			
+			po->oparr.back().operation = _rd.ops[i].operation;
+			po->oparr.back().acceptid = _rd.ops[i].acceptid;
+			po->oparr.back().proposeid = _rd.ops[i].proposeid;
+			po->oparr.back().reqid = rrs.sig->id;
+		}
+	}else if(_rd.opcnt <= 8){
+		OperationSignal<8>	*po(new OperationSignal<8>);
+		ps = po;
+		
+		po->replicaidx = Parameters::the().idx;
+		
+		for(uint i(0); i < _rd.opcnt; ++i){
+			Data::RequestStub	&rrs(d.requestStub(_rd.ops[i].reqidx));
+			//po->oparr.push_back(OperationStub());
+			
+			po->oparr.back().operation = _rd.ops[i].operation;
+			po->oparr.back().acceptid = _rd.ops[i].acceptid;
+			po->oparr.back().proposeid = _rd.ops[i].proposeid;
+			po->oparr.back().reqid = rrs.sig->id;
+		}
+	}else if(_rd.opcnt <= 16){
+		OperationSignal<16>	*po(new OperationSignal<16>);
+		ps = po;
+		
+		po->replicaidx = Parameters::the().idx;
+		
+		for(uint i(0); i < _rd.opcnt; ++i){
+			Data::RequestStub	&rrs(d.requestStub(_rd.ops[i].reqidx));
+			//po->oparr.push_back(OperationStub());
+			
+			po->oparr.back().operation = _rd.ops[i].operation;
+			po->oparr.back().acceptid = _rd.ops[i].acceptid;
+			po->oparr.back().proposeid = _rd.ops[i].proposeid;
+			po->oparr.back().reqid = rrs.sig->id;
+		}
+	}else if(_rd.opcnt <= 32){
+		OperationSignal<32>	*po(new OperationSignal<32>);
+		ps = po;
+		
+		po->replicaidx = Parameters::the().idx;
+		
+		for(uint i(0); i < _rd.opcnt; ++i){
+			Data::RequestStub	&rrs(d.requestStub(_rd.ops[i].reqidx));
+			//po->oparr.push_back(OperationStub());
+			
+			po->oparr.back().operation = _rd.ops[i].operation;
+			po->oparr.back().acceptid = _rd.ops[i].acceptid;
+			po->oparr.back().proposeid = _rd.ops[i].proposeid;
+			po->oparr.back().reqid = rrs.sig->id;
+		}
+	}else{
+		THROW_EXCEPTION_EX("invalid opcnt ",_rd.opcnt);
+	}
+	
+	if(_rd.coordinatorid != -1){
+		DynamicPointer<foundation::Signal>		sigptr(ps);
+		//reply to coordinator
+		foundation::ipc::Service::the().sendSignal(sigptr, Parameters::the().addrvec[_rd.coordinatorid]);
+	}else{
+		DynamicSharedPointer<Signal>	sharedsigptr(ps);
+		//broadcast to replicas
+		for(uint i(0); i < Parameters::the().addrvec.size(); ++i){
+			if(i != Parameters::the().idx){
+				DynamicPointer<foundation::Signal>		sigptr(sharedsigptr);
+				foundation::ipc::Service::the().sendSignal(sigptr, Parameters::the().addrvec[i]);
+			}
+		}
+	}
 }
 //========================================================
 }//namespace consensus

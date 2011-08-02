@@ -1,6 +1,7 @@
 set(Sources
 	src/consensusobject.cpp
 	src/serverobject.cpp
+	src/consensussignals.cpp
 	src/timerqueue.cpp
 )
 
