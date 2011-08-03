@@ -109,6 +109,9 @@ static const DynamicRegisterer<ServerObject>	dre;
 	DynamicExecuterExT::registerDynamic<EraseRequest, ServerObject>();
 }
 //------------------------------------------------------------
+/*static*/void ServerObject::registerSignals(){
+	Object::registerSignals();
+}
 ServerObject::ServerObject(){
 	
 }

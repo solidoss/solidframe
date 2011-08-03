@@ -61,23 +61,17 @@ struct OperationSignal<2>: Dynamic<OperationSignal<2>, Signal>{
 template <uint16 Count>
 struct OperationSignal: Dynamic<OperationSignal<Count>, Signal>{
 	OperationSignal(){
-#ifndef HAVE_CPP11		
-		oparr.capacity(Count);
-#endif
+		opsz = 0;
 	}
 	template <class S>
 	S& operator&(S &_s){
 		static_cast<Signal*>(this)->operator&<S>(_s);
-		_s.pushContainer(oparr, "operation_array");
+		_s.pushArray(op, opsz, "operations");
 		return _s;
 	}
 	
-#ifdef HAVE_CPP11
-	typedef std::array<OperationStub, Count>	OperationStubArrayT;
-#else
-	typedef std::vector<OperationStub>			OperationStubArrayT;
-#endif
-	OperationStubArrayT		oparr;
+	OperationStub		op[Count];
+	size_t				opsz;
 };
 
 }//namespace consensus

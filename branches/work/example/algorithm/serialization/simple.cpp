@@ -208,7 +208,6 @@ void IntegerVector::print()const{
 template <class S>
 S& operator&(IntegerVector &_iv, S &_s){
 	return _s.pushContainer(_iv.iv, "IntegerVector::iv").pushContainer(_iv.piv1,"piv1").pushContainer(_iv.piv2, "piv2");
-	//return _s;
 }
 
 

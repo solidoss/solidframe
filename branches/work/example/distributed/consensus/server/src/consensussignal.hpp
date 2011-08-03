@@ -7,6 +7,11 @@
 namespace consensus{
 
 struct Signal: Dynamic<Signal, DynamicShared<foundation::Signal> >{
+	enum{
+		OnSender,
+		OnPeer,
+		BackOnSender
+	};
 	Signal();
 	~Signal();
 	void ipcReceived(
@@ -14,7 +19,7 @@ struct Signal: Dynamic<Signal, DynamicShared<foundation::Signal> >{
 	);
 	template <class S>
 	S& operator&(S &_s){
-		_s.push(replicaidx, "replicaidx");
+		_s.push(replicaidx, "replicaidx").push(state, "state");
 	}
 	
 	uint32 ipcPrepare();
@@ -25,6 +30,7 @@ struct Signal: Dynamic<Signal, DynamicShared<foundation::Signal> >{
 	int release();
 	
 	uint8							replicaidx;
+	uint8							state;
 };
 
 

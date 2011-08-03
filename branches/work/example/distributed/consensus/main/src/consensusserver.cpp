@@ -118,6 +118,7 @@ int main(int argc, char *argv[]){
 		TypeMapper::registerSerializer<BinSerializer>();
 		
 		mapSignals();
+		ServerObject::registerSignals();
 	}
 	IpcServiceController	ipcctrl;
 	{

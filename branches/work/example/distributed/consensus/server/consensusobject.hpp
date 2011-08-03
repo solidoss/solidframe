@@ -26,6 +26,7 @@ class Object: public Dynamic<Object, foundation::Object>{
 	typedef DynamicExecuter<void, Object>			DynamicExecuterT;
 public:
 	static void dynamicRegister();
+	static void registerSignals();
 	Object();
 	~Object();
 	void dynamicExecute(DynamicPointer<> &_dp);

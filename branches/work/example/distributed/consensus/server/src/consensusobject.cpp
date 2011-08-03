@@ -14,6 +14,10 @@
 
 #include "system/timespec.hpp"
 
+#include "algorithm/serialization/binary.hpp"
+#include "algorithm/serialization/idtypemap.hpp"
+
+
 #include "foundation/object.hpp"
 #include "foundation/manager.hpp"
 #include "foundation/signal.hpp"
@@ -275,6 +279,18 @@ static const DynamicRegisterer<Object>	dre;
 	DynamicExecuterT::registerDynamic<OperationSignal<32>, Object>();
 	//TODO: add here the other consensus Signals
 }
+/*static*/ void Object::registerSignals(){
+	typedef serialization::TypeMapper					TypeMapper;
+	typedef serialization::bin::Serializer				BinSerializer;
+	typedef serialization::bin::Deserializer			BinDeserializer;
+
+	TypeMapper::map<OperationSignal<1>, BinSerializer, BinDeserializer>();
+	TypeMapper::map<OperationSignal<2>, BinSerializer, BinDeserializer>();
+	TypeMapper::map<OperationSignal<4>, BinSerializer, BinDeserializer>();
+	TypeMapper::map<OperationSignal<8>, BinSerializer, BinDeserializer>();
+	TypeMapper::map<OperationSignal<16>, BinSerializer, BinDeserializer>();
+	TypeMapper::map<OperationSignal<32>, BinSerializer, BinDeserializer>();
+}
 Object::Object():d(*(new Data)){
 	
 }
@@ -454,6 +470,8 @@ void Object::doSendPropose(RunData &_rd, size_t _pos){
 }
 void Object::doFlushOperations(RunData &_rd){
 	Signal *ps(NULL);
+	OperationStub *pos(NULL);
+	
 	if(_rd.opcnt == 0){
 		return;
 	}else if(_rd.opcnt == 1){
@@ -469,83 +487,42 @@ void Object::doFlushOperations(RunData &_rd){
 		po->op.reqid = rrs.sig->id;
 	}else if(_rd.opcnt == 2){
 		OperationSignal<2>	*po(new OperationSignal<2>);
-		Data::RequestStub	&rrs1(d.requestStub(_rd.ops[0].reqidx));
-		Data::RequestStub	&rrs2(d.requestStub(_rd.ops[1].reqidx));
 		ps = po;
-		
 		po->replicaidx = Parameters::the().idx;
-		
-		po->op[0].operation = _rd.ops[0].operation;
-		po->op[0].acceptid = _rd.ops[0].acceptid;
-		po->op[0].proposeid = _rd.ops[0].proposeid;
-		po->op[0].reqid = rrs1.sig->id;
-		
-		po->op[1].operation = _rd.ops[1].operation;
-		po->op[1].acceptid = _rd.ops[1].acceptid;
-		po->op[1].proposeid = _rd.ops[1].proposeid;
-		po->op[1].reqid = rrs2.sig->id;
+		pos = po->op;
 	}else if(_rd.opcnt <= 4){
 		OperationSignal<4>	*po(new OperationSignal<4>);
 		ps = po;
-		
 		po->replicaidx = Parameters::the().idx;
-		
-		for(uint i(0); i < _rd.opcnt; ++i){
-			Data::RequestStub	&rrs(d.requestStub(_rd.ops[i].reqidx));
-			//po->oparr.push_back(OperationStub());
-			
-			po->oparr.back().operation = _rd.ops[i].operation;
-			po->oparr.back().acceptid = _rd.ops[i].acceptid;
-			po->oparr.back().proposeid = _rd.ops[i].proposeid;
-			po->oparr.back().reqid = rrs.sig->id;
-		}
+		pos = po->op;
 	}else if(_rd.opcnt <= 8){
 		OperationSignal<8>	*po(new OperationSignal<8>);
 		ps = po;
-		
 		po->replicaidx = Parameters::the().idx;
-		
-		for(uint i(0); i < _rd.opcnt; ++i){
-			Data::RequestStub	&rrs(d.requestStub(_rd.ops[i].reqidx));
-			//po->oparr.push_back(OperationStub());
-			
-			po->oparr.back().operation = _rd.ops[i].operation;
-			po->oparr.back().acceptid = _rd.ops[i].acceptid;
-			po->oparr.back().proposeid = _rd.ops[i].proposeid;
-			po->oparr.back().reqid = rrs.sig->id;
-		}
+		pos = po->op;
 	}else if(_rd.opcnt <= 16){
 		OperationSignal<16>	*po(new OperationSignal<16>);
 		ps = po;
-		
 		po->replicaidx = Parameters::the().idx;
-		
-		for(uint i(0); i < _rd.opcnt; ++i){
-			Data::RequestStub	&rrs(d.requestStub(_rd.ops[i].reqidx));
-			//po->oparr.push_back(OperationStub());
-			
-			po->oparr.back().operation = _rd.ops[i].operation;
-			po->oparr.back().acceptid = _rd.ops[i].acceptid;
-			po->oparr.back().proposeid = _rd.ops[i].proposeid;
-			po->oparr.back().reqid = rrs.sig->id;
-		}
+		pos = po->op;
 	}else if(_rd.opcnt <= 32){
 		OperationSignal<32>	*po(new OperationSignal<32>);
 		ps = po;
-		
 		po->replicaidx = Parameters::the().idx;
-		
+		pos = po->op;
+	}else{
+		THROW_EXCEPTION_EX("invalid opcnt ",_rd.opcnt);
+	}
+	if(pos){
 		for(uint i(0); i < _rd.opcnt; ++i){
 			Data::RequestStub	&rrs(d.requestStub(_rd.ops[i].reqidx));
 			//po->oparr.push_back(OperationStub());
 			
-			po->oparr.back().operation = _rd.ops[i].operation;
-			po->oparr.back().acceptid = _rd.ops[i].acceptid;
-			po->oparr.back().proposeid = _rd.ops[i].proposeid;
-			po->oparr.back().reqid = rrs.sig->id;
+			pos[i].operation = _rd.ops[i].operation;
+			pos[i].acceptid = _rd.ops[i].acceptid;
+			pos[i].proposeid = _rd.ops[i].proposeid;
+			pos[i].reqid = rrs.sig->id;
 		}
-	}else{
-		THROW_EXCEPTION_EX("invalid opcnt ",_rd.opcnt);
 	}
 	
 	if(_rd.coordinatorid != -1){

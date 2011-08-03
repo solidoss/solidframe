@@ -30,6 +30,7 @@ class ServerObject: public Dynamic<ServerObject, consensus::Object>{
 	typedef DynamicExecuter<void, ServerObject, int>	DynamicExecuterExT;
 public:
 	static void dynamicRegister();
+	static void registerSignals();
 	ServerObject();
 	~ServerObject();
 	void dynamicExecute(DynamicPointer<> &_dp, int);
