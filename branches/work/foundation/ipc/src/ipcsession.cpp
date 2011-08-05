@@ -45,7 +45,7 @@ namespace ipc{
 
 struct BufCmp{
 	bool operator()(const uint32 id1, const uint32 id2)const{
-		return overflowSafeLess(id1, id2);
+		return overflow_safe_less(id1, id2);
 	}
 	bool operator()(const Buffer &_rbuf1, const Buffer &_rbuf2)const{
 		return operator()(_rbuf1.id(), _rbuf2.id());
@@ -216,7 +216,7 @@ struct Session::Data{
 				}else return true;
 			}else return false;
 			
-			return overflowSafeLess(id, _owc.id);
+			return overflow_safe_less(id, _owc.id);
 		}
 		DynamicSignalPointerT	signal;
 		BinSerializerT			*pserializer;

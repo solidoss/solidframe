@@ -225,7 +225,7 @@ inline bool Object::Data::isCoordinator()const{
 bool Object::Data::checkAlreadyReceived(DynamicPointer<RequestSignal> &_rsig){
 	SenderSetT::iterator it(senderset.find(_rsig->id));
 	if(it != senderset.end()){
-		if(overflowSafeLess(_rsig->id.requid, it->requid)){
+		if(overflow_safe_less(_rsig->id.requid, it->requid)){
 			return true;
 		}
 		senderset.erase(it);

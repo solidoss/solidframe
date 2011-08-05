@@ -40,7 +40,7 @@ bool RequestId::operator<(const RequestId &_rcsi)const{
 		return true;
 	}else if(_rcsi.senderuid > this->senderuid){
 		return false;
-	}else return overflowSafeLess(this->requid, _rcsi.requid);
+	}else return overflow_safe_less(this->requid, _rcsi.requid);
 }
 bool RequestId::operator==(const RequestId &_rcsi)const{
 	return this->sockaddr == _rcsi.sockaddr && 

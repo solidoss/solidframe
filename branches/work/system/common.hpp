@@ -73,47 +73,7 @@ enum RetVal{
 	CONTINUE
 };
 
-template <typename T>
-inline T tmax(T v1, T v2){
-    return (v1 < v2) ? v2 : v1;
-}
-template <typename T>
-inline T tmin(T v1, T v2){
-    return (v1 > v2) ? v2 : v1;
-}
-//! A fast template inline function for exchanging values
-template <typename T>
-void exchange(T &a, T &b, T &tmp){
-	tmp = a;
-	a = b;
-	b = tmp;
-}
-//! A fast template inline function for exchanging values
-template <typename T>
-void exchange(T &a, T &b){
-	T tmp(a);
-	a = b;
-	b = tmp;
-}
 
-#if 0
-bool overflowSafeGreat(const uint32 _u1, const uint32 _u2){
-	if(_u1 > _u2){
-		return (_u1 - _u2) <= (uint32)(0xffffffff/2);
-	}else{
-		return (_u2 - _u1) > (uint32)(0xffffffff/2);
-	}
-}
-#endif
-
-inline bool overflowSafeLess(const uint32 _u1, const uint32 _u2){
-	if(_u1 < _u2){
-		return (_u2 - _u1) <= (uint32)(0xffffffff/2);
-	}else{
-		return (_u1 - _u2) > (uint32)(0xffffffff/2);
-	}
-
-}
 struct EmptyType{};
 class NullType{};
 
