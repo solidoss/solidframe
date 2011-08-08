@@ -20,6 +20,7 @@ struct Signal: Dynamic<Signal, DynamicShared<foundation::Signal> >{
 	template <class S>
 	S& operator&(S &_s){
 		_s.push(replicaidx, "replicaidx").push(state, "state");
+		return _s;
 	}
 	
 	uint32 ipcPrepare();

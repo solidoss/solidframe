@@ -59,6 +59,9 @@ private:
 	void doSendAccept(RunData &_rd, size_t _pos);
 	void doSendPropose(RunData &_rd, size_t _pos);
 	void doFlushOperations(RunData &_rd);
+	void doScanPendingRequests(RunData &_rd);
+	void doAcceptRequest(RunData &_rd, size_t _pos);
+    void doEraseRequest(RunData &_rd, size_t _pos);
 private:
 	struct Data;
 	Data	&d;

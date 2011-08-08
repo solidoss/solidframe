@@ -57,7 +57,7 @@ bool overflow_safe_great(const uint32 _u1, const uint32 _u2){
 }
 #endif
 
-inline bool overflow_safe_less(const uint32 _u1, const uint32 _u2){
+inline bool overflow_safe_less(const uint32 &_u1, const uint32 &_u2){
 	if(_u1 < _u2){
 		return (_u2 - _u1) <= (uint32)(0xffffffff/2);
 	}else{
@@ -65,6 +65,16 @@ inline bool overflow_safe_less(const uint32 _u1, const uint32 _u2){
 	}
 
 }
+
+inline bool overflow_safe_less(const uint64 &_u1, const uint64 &_u2){
+	if(_u1 < _u2){
+		return (_u2 - _u1) <= ((uint64)-1)/2;
+	}else{
+		return (_u1 - _u2) > ((uint64)-1)/2;
+	}
+
+}
+
 
 template <typename T>
 inline T circular_distance(const T &_v, const T &_piv, const T& _max){
