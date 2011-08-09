@@ -88,6 +88,11 @@ struct RequestStub{
 typedef std::deque<RequestStub>		RequestStubVectorT;
 
 struct Object::Data{
+	enum{
+		ProposeOperation = 1,
+		ProposeAcceptOperation,
+		AcceptOperation,
+	};
 	struct ReqCmpEqual{
 		bool operator()(const consensus::RequestId* const & _req1, const consensus::RequestId* const & _req2)const;
 	};
@@ -128,6 +133,7 @@ struct Object::Data{
 	bool checkAlreadyReceived(DynamicPointer<RequestSignal> &_rsig);
 	bool isCoordinator()const;
 	bool canSendAcceptOnly()const;
+	void coordinatorId(int8 _coordid);
 	
 	
 //data:	
@@ -137,6 +143,7 @@ struct Object::Data{
 	uint32					acceptid;
 	
 	int8					coordinatorid;
+	int8					distancefromcoordinator;
 	uint8					acceptpendingcnt;//the number of stubs in waitrequest state
 	uint32					continuous_accepted_proposes;
 	TimeSpec				lastaccepttime;
@@ -195,7 +202,15 @@ Object::Data::Data():proposeid(0), acceptid(0), coordinatorid(-2), acceptpending
 Object::Data::~Data(){
 	
 }
-
+void Object::Data::coordinatorId(int8 _coordid){
+	coordinatorid = _coordid;
+	if(_coordid != (int8)-1){
+		int8 maxsz(Parameters::the().addrvec.size());
+		distancefromcoordinator = circular_distance(static_cast<int8>(Parameters::the().idx), coordinatorid, maxsz);
+	}else{
+		distancefromcoordinator = -1;
+	}
+}
 bool Object::Data::insertRequestStub(DynamicPointer<RequestSignal> &_rsig, size_t &_ridx){
 	auto	it(reqmap.find(&_rsig->id));
 	if(it != reqmap.end()){
@@ -335,21 +350,63 @@ void Object::dynamicExecute(DynamicPointer<RequestSignal> &_rsig){
 	}
 }
 void Object::dynamicExecute(DynamicPointer<OperationSignal<1> > &_rsig){
-	
+	doExecuteOperation(_rsig->replicaidx, _rsig->op);
 }
 void Object::dynamicExecute(DynamicPointer<OperationSignal<2> > &_rsig){
-	
+	doExecuteOperation(_rsig->replicaidx, _rsig->op[0]);
+	doExecuteOperation(_rsig->replicaidx, _rsig->op[1]);
 }
 void Object::dynamicExecute(DynamicPointer<OperationSignal<4> > &_rsig){
-	
+	for(size_t i(0); i < _rsig->opsz; ++i){
+		doExecuteOperation(_rsig->replicaidx, _rsig->op[i]);
+	}
 }
 void Object::dynamicExecute(DynamicPointer<OperationSignal<8> > &_rsig){
-	
+	for(size_t i(0); i < _rsig->opsz; ++i){
+		doExecuteOperation(_rsig->replicaidx, _rsig->op[i]);
+	}
 }
 void Object::dynamicExecute(DynamicPointer<OperationSignal<16> > &_rsig){
-	
+	for(size_t i(0); i < _rsig->opsz; ++i){
+		doExecuteOperation(_rsig->replicaidx, _rsig->op[i]);
+	}
 }
 void Object::dynamicExecute(DynamicPointer<OperationSignal<32> > &_rsig){
+	for(size_t i(0); i < _rsig->opsz; ++i){
+		doExecuteOperation(_rsig->replicaidx, _rsig->op[i]);
+	}
+}
+void Object::doExecuteOperation(uint8 _replicaidx, OperationStub &_rop){
+	auto	it(d.reqmap.find(&_rop.reqid));
+	size_t	reqidx;
+	if(it != d.reqmap.end()){
+		reqidx = it->second;
+	}else{
+		DynamicPointer<RequestSignal> reqsig(new RequestSignal(_rop.reqid));
+		d.insertRequestStub(reqsig, reqidx);
+	}
+	switch(_rop.operation){
+		case Data::ProposeOperation:
+			doExecuteProposeOperation(reqidx, _rop);
+			break;
+		case Data::ProposeAcceptOperation:
+			doExecuteProposeAcceptOperation(reqidx, _rop);
+			break;
+		case Data::AcceptOperation:
+			doExecuteAcceptOperation(reqidx, _rop);
+			break;
+		default:
+			THROW_EXCEPTION_EX("Unknown operation ", (int)_rop.operation);
+	}
+	
+}
+void Object::doExecuteProposeOperation(size_t _reqidx, OperationStub &_rop){
+	
+}
+void Object::doExecuteProposeAcceptOperation(size_t _reqidx, OperationStub &_rop){
+	
+}
+void Object::doExecuteAcceptOperation(size_t _reqidx, OperationStub &_rop){
 	
 }
 //---------------------------------------------------------
@@ -456,7 +513,11 @@ void Object::doProcessRequest(RunData &_rd, size_t _pos){
 			if(d.isCoordinator()){
 				if(d.canSendAcceptOnly()){
 					doSendAccept(_rd, _pos);
-					
+					if(!(rreq.evs & RequestStub::SignaledEvent)){
+						rreq.evs |= RequestStub::SignaledEvent;
+						d.reqq.push(_pos);
+					}
+					rreq.state = RequestStub::AcceptState;
 				}else{
 					doSendPropose(_rd, _pos);
 					rreq.state = RequestStub::WaitProposeAcceptState;
@@ -468,16 +529,23 @@ void Object::doProcessRequest(RunData &_rd, size_t _pos){
 			}else{
 				rreq.state = RequestStub::WaitProposeState;
 				TimeSpec ts(fdt::Object::currentTime());
-				ts += 1000;//ms
+				ts += d.distancefromcoordinator * 500;//ms
 				d.timerq.push(ts, _pos, rreq.timerid);
 			}
 			break;
 		case RequestStub::WaitProposeState:
+			if(rreq.evs & RequestStub::TimeoutEvent){
+				//TODO: enter Object in update state
+				break;
+			}
 			break;
 		case RequestStub::WaitProposeAcceptState:
+			if(rreq.evs & RequestStub::TimeoutEvent){
+				//TODO: enter Object in update state
+				break;
+			}
 			break;
 		case RequestStub::AcceptWaitRequestState:
-			++rreq.timerid;
 			if(rreq.evs & RequestStub::TimeoutEvent){
 				//TODO: enter Object in update state
 				break;

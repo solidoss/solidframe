@@ -12,6 +12,7 @@ struct RequestSignal;
 struct RequestId;
 template <uint16 Count>
 struct OperationSignal;
+struct OperationStub;
 
 struct Parameters{
 	typedef std::vector<SocketAddress4>	AddressVectorT;
@@ -62,6 +63,10 @@ private:
 	void doScanPendingRequests(RunData &_rd);
 	void doAcceptRequest(RunData &_rd, size_t _pos);
     void doEraseRequest(RunData &_rd, size_t _pos);
+	void doExecuteOperation(uint8 _replicaidx, OperationStub &_rop);
+	void doExecuteProposeOperation(size_t _reqidx, OperationStub &_rop);
+	void doExecuteProposeAcceptOperation(size_t _reqidx, OperationStub &_rop);
+	void doExecuteAcceptOperation(size_t _reqidx, OperationStub &_rop);
 private:
 	struct Data;
 	Data	&d;
