@@ -330,11 +330,11 @@ Object::~Object(){
 	delete &d;
 }
 //---------------------------------------------------------
-void Object::dynamicExecute(DynamicPointer<> &_dp){
+void Object::dynamicExecute(DynamicPointer<> &_dp, RunData &_rrd){
 	
 }
 //---------------------------------------------------------
-void Object::dynamicExecute(DynamicPointer<RequestSignal> &_rsig){
+void Object::dynamicExecute(DynamicPointer<RequestSignal> &_rsig, RunData &_rrd){
 	if(d.checkAlreadyReceived(_rsig)) return;
 	size_t idx;
 	if(d.insertRequestStub(_rsig, idx)){
@@ -349,34 +349,34 @@ void Object::dynamicExecute(DynamicPointer<RequestSignal> &_rsig){
 		d.reqq.push(d.timerq.frontIndex());
 	}
 }
-void Object::dynamicExecute(DynamicPointer<OperationSignal<1> > &_rsig){
-	doExecuteOperation(_rsig->replicaidx, _rsig->op);
+void Object::dynamicExecute(DynamicPointer<OperationSignal<1> > &_rsig, RunData &_rrd){
+	doExecuteOperation(_rrd, _rsig->replicaidx, _rsig->op);
 }
-void Object::dynamicExecute(DynamicPointer<OperationSignal<2> > &_rsig){
-	doExecuteOperation(_rsig->replicaidx, _rsig->op[0]);
-	doExecuteOperation(_rsig->replicaidx, _rsig->op[1]);
+void Object::dynamicExecute(DynamicPointer<OperationSignal<2> > &_rsig, RunData &_rrd){
+	doExecuteOperation(_rrd, _rsig->replicaidx, _rsig->op[0]);
+	doExecuteOperation(_rrd, _rsig->replicaidx, _rsig->op[1]);
 }
-void Object::dynamicExecute(DynamicPointer<OperationSignal<4> > &_rsig){
+void Object::dynamicExecute(DynamicPointer<OperationSignal<4> > &_rsig, RunData &_rrd){
 	for(size_t i(0); i < _rsig->opsz; ++i){
-		doExecuteOperation(_rsig->replicaidx, _rsig->op[i]);
+		doExecuteOperation(_rrd, _rsig->replicaidx, _rsig->op[i]);
 	}
 }
-void Object::dynamicExecute(DynamicPointer<OperationSignal<8> > &_rsig){
+void Object::dynamicExecute(DynamicPointer<OperationSignal<8> > &_rsig, RunData &_rrd){
 	for(size_t i(0); i < _rsig->opsz; ++i){
-		doExecuteOperation(_rsig->replicaidx, _rsig->op[i]);
+		doExecuteOperation(_rrd, _rsig->replicaidx, _rsig->op[i]);
 	}
 }
-void Object::dynamicExecute(DynamicPointer<OperationSignal<16> > &_rsig){
+void Object::dynamicExecute(DynamicPointer<OperationSignal<16> > &_rsig, RunData &_rrd){
 	for(size_t i(0); i < _rsig->opsz; ++i){
-		doExecuteOperation(_rsig->replicaidx, _rsig->op[i]);
+		doExecuteOperation(_rrd, _rsig->replicaidx, _rsig->op[i]);
 	}
 }
-void Object::dynamicExecute(DynamicPointer<OperationSignal<32> > &_rsig){
+void Object::dynamicExecute(DynamicPointer<OperationSignal<32> > &_rsig, RunData &_rrd){
 	for(size_t i(0); i < _rsig->opsz; ++i){
-		doExecuteOperation(_rsig->replicaidx, _rsig->op[i]);
+		doExecuteOperation(_rrd, _rsig->replicaidx, _rsig->op[i]);
 	}
 }
-void Object::doExecuteOperation(uint8 _replicaidx, OperationStub &_rop){
+void Object::doExecuteOperation(RunData &_rd, uint8 _replicaidx, OperationStub &_rop){
 	auto	it(d.reqmap.find(&_rop.reqid));
 	size_t	reqidx;
 	if(it != d.reqmap.end()){
@@ -387,26 +387,26 @@ void Object::doExecuteOperation(uint8 _replicaidx, OperationStub &_rop){
 	}
 	switch(_rop.operation){
 		case Data::ProposeOperation:
-			doExecuteProposeOperation(reqidx, _rop);
+			doExecuteProposeOperation(_rd, reqidx, _rop);
 			break;
 		case Data::ProposeAcceptOperation:
-			doExecuteProposeAcceptOperation(reqidx, _rop);
+			doExecuteProposeAcceptOperation(_rd, reqidx, _rop);
 			break;
 		case Data::AcceptOperation:
-			doExecuteAcceptOperation(reqidx, _rop);
+			doExecuteAcceptOperation(_rd, reqidx, _rop);
 			break;
 		default:
 			THROW_EXCEPTION_EX("Unknown operation ", (int)_rop.operation);
 	}
 	
 }
-void Object::doExecuteProposeOperation(size_t _reqidx, OperationStub &_rop){
+void Object::doExecuteProposeOperation(RunData &_rd, size_t _reqidx, OperationStub &_rop){
 	
 }
-void Object::doExecuteProposeAcceptOperation(size_t _reqidx, OperationStub &_rop){
+void Object::doExecuteProposeAcceptOperation(RunData &_rd, size_t _reqidx, OperationStub &_rop){
 	
 }
-void Object::doExecuteAcceptOperation(size_t _reqidx, OperationStub &_rop){
+void Object::doExecuteAcceptOperation(RunData &_rd, size_t _reqidx, OperationStub &_rop){
 	
 }
 //---------------------------------------------------------
@@ -422,6 +422,8 @@ void Object::doExecuteAcceptOperation(size_t _reqidx, OperationStub &_rop){
 int Object::execute(ulong _sig, TimeSpec &_tout){
 	foundation::Manager &rm(fdt::m());
 	
+	RunData	rd(_sig, _tout, d.coordinatorid);
+	
 	if(signaled()){//we've received a signal
 		ulong sm(0);
 		{
@@ -434,12 +436,12 @@ int Object::execute(ulong _sig, TimeSpec &_tout){
 		}
 		if(sm & fdt::S_SIG){//we've grabed signals, execute them
 			while(d.exe.hasCurrent()){
-				d.exe.executeCurrent(*this);
+				d.exe.executeCurrent(*this, rd);
 				d.exe.next();
 			}
 		}
 	}
-	RunData	rd(_sig, _tout, d.coordinatorid);
+
 	switch(state()){
 		case Init:		return doInit(rd);
 		case Run:		return doRun(rd);
