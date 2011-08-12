@@ -30,8 +30,8 @@ inline SockAddrPair::SockAddrPair(const AddrInfoIterator &_it){
 		addr = NULL; sz = 0;
 	}
 }
-inline SockAddrPair::SockAddrPair(SocketAddress &_rsa):addr(_rsa.addr()), sz(_rsa.size()){}
-inline SockAddrPair::SockAddrPair(SocketAddress4 &_rsa):addr(_rsa.addr()), sz(_rsa.size()){}
+inline SockAddrPair::SockAddrPair(const SocketAddress &_rsa):addr(_rsa.addr()), sz(_rsa.size()){}
+inline SockAddrPair::SockAddrPair(const SocketAddress4 &_rsa):addr(_rsa.addr()), sz(_rsa.size()){}
 
 inline SockAddrPair& SockAddrPair::operator=(const AddrInfoIterator &_it){
 	if(_it){
@@ -42,11 +42,11 @@ inline SockAddrPair& SockAddrPair::operator=(const AddrInfoIterator &_it){
 	return *this;
 }
 
-inline SockAddrPair& SockAddrPair::operator=(SocketAddress &_rsa){
+inline SockAddrPair& SockAddrPair::operator=(const SocketAddress &_rsa){
 	addr = _rsa.addr();	sz = _rsa.size();
 	return *this;
 }
-inline SockAddrPair& SockAddrPair::operator=(SocketAddress4 &_rsa){
+inline SockAddrPair& SockAddrPair::operator=(const SocketAddress4 &_rsa){
 	addr = _rsa.addr();	sz = _rsa.size();
 	return *this;
 }

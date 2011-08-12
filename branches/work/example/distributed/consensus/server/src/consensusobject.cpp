@@ -38,7 +38,7 @@ using namespace std;
 namespace consensus{
 
 
-/*static*/ Parameters& Parameters::the(Parameters *_p){
+/*static*/ const Parameters& Parameters::the(Parameters *_p){
 	static Parameters &r(*_p);
 	return r;
 }
@@ -73,6 +73,14 @@ struct RequestStub{
 	
 	bool hasRequest()const{
 		return flags & HaveRequestFlag;
+	}
+	void reinit(){
+		evs = 0;
+		flags = 0;
+		state = InitState;
+		proposeid = -1;
+		acceptid = -1;
+		recvpropacc = 0;
 	}
 	
 	DynamicPointer<consensus::RequestSignal>	sig;
@@ -224,8 +232,9 @@ bool Object::Data::insertRequestStub(DynamicPointer<RequestSignal> &_rsig, size_
 	if(freeposstk.size()){
 		_ridx = freeposstk.top();
 		freeposstk.pop();
-		RequestStub &rcr(requestStub(_ridx));
-		rcr.sig = _rsig;
+		RequestStub &rreq(requestStub(_ridx));
+		rreq.reinit();
+		rreq.sig = _rsig;
 	}else{
 		_ridx = reqvec.size();
 		reqvec.push_back(RequestStub(_rsig));
@@ -234,12 +243,10 @@ bool Object::Data::insertRequestStub(DynamicPointer<RequestSignal> &_rsig, size_
 	return true;
 }
 void Object::Data::eraseRequestStub(size_t _idx){
-	RequestStub &rcr(requestStub(_idx));
-	cassert(rcr.sig.ptr());
-	rcr.sig.clear();
-	rcr.state = 0;
-	rcr.evs = 0;
-	++rcr.timerid;
+	RequestStub &rreq(requestStub(_idx));
+	cassert(rreq.sig.ptr());
+	rreq.sig.clear();
+	++rreq.timerid;
 	freeposstk.push(_idx);
 }
 inline RequestStub& Object::Data::requestStub(size_t _idx){
@@ -401,12 +408,13 @@ void Object::doExecuteOperation(RunData &_rd, uint8 _replicaidx, OperationStub &
 	
 }
 void Object::doExecuteProposeOperation(RunData &_rd, size_t _reqidx, OperationStub &_rop){
-	
+	idbg("reqidx = "<<_reqidx<<" op = ("<<(int)_rop.operation<<' '<<_rop.proposeid<<' '<<'('<<_rop.reqid<<')');
 }
 void Object::doExecuteProposeAcceptOperation(RunData &_rd, size_t _reqidx, OperationStub &_rop){
-	
+	idbg("reqidx = "<<_reqidx<<" op = ("<<(int)_rop.operation<<' '<<_rop.proposeid<<' '<<'('<<_rop.reqid<<')');
 }
 void Object::doExecuteAcceptOperation(RunData &_rd, size_t _reqidx, OperationStub &_rop){
+	idbg("reqidx = "<<_reqidx<<" op = ("<<(int)_rop.operation<<' '<<_rop.proposeid<<' '<<'('<<_rop.reqid<<')');
 	
 }
 //---------------------------------------------------------
@@ -612,7 +620,7 @@ void Object::doFlushOperations(RunData &_rd){
 		return;
 	}else if(_rd.opcnt == 1){
 		OperationSignal<1>	*po(new OperationSignal<1>);
-		RequestStub	&rrs(d.requestStub(_rd.ops[0].reqidx));
+		RequestStub	&rreq(d.requestStub(_rd.ops[0].reqidx));
 		ps = po;
 		
 		po->replicaidx = Parameters::the().idx;
@@ -620,7 +628,7 @@ void Object::doFlushOperations(RunData &_rd){
 		po->op.operation = _rd.ops[0].operation;
 		po->op.acceptid = _rd.ops[0].acceptid;
 		po->op.proposeid = _rd.ops[0].proposeid;
-		po->op.reqid = rrs.sig->id;
+		po->op.reqid = rreq.sig->id;
 	}else if(_rd.opcnt == 2){
 		OperationSignal<2>	*po(new OperationSignal<2>);
 		ps = po;
@@ -651,13 +659,13 @@ void Object::doFlushOperations(RunData &_rd){
 	}
 	if(pos){
 		for(uint i(0); i < _rd.opcnt; ++i){
-			RequestStub	&rrs(d.requestStub(_rd.ops[i].reqidx));
+			RequestStub	&rreq(d.requestStub(_rd.ops[i].reqidx));
 			//po->oparr.push_back(OperationStub());
 			
 			pos[i].operation = _rd.ops[i].operation;
 			pos[i].acceptid = _rd.ops[i].acceptid;
 			pos[i].proposeid = _rd.ops[i].proposeid;
-			pos[i].reqid = rrs.sig->id;
+			pos[i].reqid = rreq.sig->id;
 		}
 	}
 	
@@ -762,7 +770,7 @@ void Object::doAcceptRequest(RunData &_rd, size_t _pos){
 	this->doAccept(rreq.sig);
 }
 void Object::doEraseRequest(RunData &_rd, size_t _pos){
-	
+	d.eraseRequestStub(_pos);
 }
 //========================================================
 }//namespace consensus

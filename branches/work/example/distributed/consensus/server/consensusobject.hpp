@@ -16,11 +16,12 @@ struct OperationStub;
 
 struct Parameters{
 	typedef std::vector<SocketAddress4>	AddressVectorT;
-	static Parameters& the(Parameters *_p = NULL);
+	static const Parameters& the(Parameters *_p = NULL);
 	Parameters();
 	
 	AddressVectorT	addrvec;
 	uint8			idx;
+	uint8			threshold;
 };
 
 class Object: public Dynamic<Object, foundation::Object>{

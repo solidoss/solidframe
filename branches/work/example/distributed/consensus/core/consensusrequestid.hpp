@@ -4,6 +4,10 @@
 #include "foundation/ipc/ipcconnectionuid.hpp"
 #include "foundation/common.hpp"
 
+#ifdef UDEBUG
+#include <ostream>
+#endif
+
 namespace consensus{
 
 struct RequestId{
@@ -29,6 +33,10 @@ struct RequestId{
 	foundation::ObjectUidT		senderuid;
 	SocketAddress4				sockaddr;
 };
+
+#ifdef UDEBUG
+std::ostream &operator<<(std::ostream& _ros, const RequestId &_rreqid);
+#endif
 
 }//namespace consensus
 

@@ -64,6 +64,24 @@ bool RequestId::senderLess(const RequestId &_rcsi)const{
 size_t RequestId::senderHash()const{
 	return sockaddr.hash() ^ this->senderuid.first;
 }
+#ifdef UDEBUG
+std::ostream &operator<<(std::ostream& _ros, const RequestId &_rreqid){
+	_ros<<_rreqid.requid<<','<<' '<<_rreqid.senderuid.first<<','<<' '<<_rreqid.senderuid.first<<','<<' ';
+	const SocketAddress4 &ra(_rreqid.sockaddr);
+	char				host[SocketAddress::HostNameCapacity];
+	char				port[SocketAddress::ServiceNameCapacity];
+	ra.name(
+		host,
+		SocketAddress::HostNameCapacity,
+		port,
+		SocketAddress::ServiceNameCapacity
+		,
+		SocketAddress::NumericService | SocketAddress::NumericHost
+	);
+	_ros<<host<<':'<<port;
+	return _ros;
+}
+#endif
 //--------------------------------------------------------------
 RequestSignal::RequestSignal():waitresponse(false), st(OnSender), sentcount(0){
 	idbg("RequestSignal "<<(void*)this);

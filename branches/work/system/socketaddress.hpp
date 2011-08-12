@@ -153,12 +153,12 @@ struct SocketAddress4;
 struct SockAddrPair{
 	SockAddrPair(sockaddr *_pa = NULL, size_t _sz = 0):addr(_pa),sz(_sz){}
 	SockAddrPair(const AddrInfoIterator &_it);
-	SockAddrPair(SocketAddress &_rsa);
-	SockAddrPair(SocketAddress4 &_rsa);
+	SockAddrPair(const SocketAddress &_rsa);
+	SockAddrPair(const SocketAddress4 &_rsa);
 	AddrInfo::Family family()const{return (AddrInfo::Family)addr->sa_family;}
 	SockAddrPair& operator=(const AddrInfoIterator &_it);
-	SockAddrPair& operator=(SocketAddress &_rsa);
-	SockAddrPair& operator=(SocketAddress4 &_rsa);
+	SockAddrPair& operator=(const SocketAddress &_rsa);
+	SockAddrPair& operator=(const SocketAddress4 &_rsa);
 	bool isInet4()const{
 		return sz == sizeof(sockaddr_in);
 	}
@@ -172,7 +172,7 @@ struct SockAddrPair{
 		sz = _sz;
 	}
 	//bool operator<(const SockAddrPair &_addr)const;
-	sockaddr	*addr;
+	const sockaddr	*addr;
 	socklen_t	sz;
 };
 
