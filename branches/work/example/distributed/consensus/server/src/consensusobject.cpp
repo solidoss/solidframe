@@ -296,6 +296,10 @@ struct Object::RunData{
 		int8 _coordinatorid
 	):signals(_sig), rtimepos(_rts), coordinatorid(_coordinatorid), opcnt(0){}
 	
+	bool isOperationsTableFull()const{
+		return opcnt == OperationCapacity;
+	}
+	
 	ulong			signals;
 	TimeSpec		&rtimepos;
 	int8			coordinatorid;
@@ -489,7 +493,7 @@ int Object::doRun(RunData &_rd){
 		d.timerq.pop();
 	}
 	
-	//next we process all request
+	//next we process all requests
 	size_t cnt(d.reqq.size());
 	while(cnt--){
 		size_t pos(d.reqq.front());
@@ -522,6 +526,8 @@ void Object::doProcessRequest(RunData &_rd, size_t _pos){
 		case RequestStub::InitState:
 			if(d.isCoordinator()){
 				if(d.canSendAcceptOnly()){
+					++d.proposeid;
+					rreq.proposeid = d.proposeid;
 					doSendAccept(_rd, _pos);
 					if(!(rreq.evs & RequestStub::SignaledEvent)){
 						rreq.evs |= RequestStub::SignaledEvent;
@@ -606,19 +612,49 @@ void Object::doProcessRequest(RunData &_rd, size_t _pos){
 }
 
 void Object::doSendAccept(RunData &_rd, size_t _pos){
-	
+	if(d.coordinatorid != _rd.coordinatorid){
+		doFlushOperations(_rd);
+		_rd.coordinatorid = d.coordinatorid;
+	}
+	RequestStub &rreq(d.requestStub(_pos));
+	++d.acceptid;
+	rreq.acceptid = d.acceptid;
+	_rd.ops[_rd.opcnt].operation = Data::AcceptOperation;
+	_rd.ops[_rd.opcnt].acceptid = rreq.acceptid;
+	_rd.ops[_rd.opcnt].proposeid = rreq.proposeid;
+	_rd.ops[_rd.opcnt].reqidx = _pos;
+	++_rd.opcnt;
+	if(_rd.isOperationsTableFull()){
+		doFlushOperations(_rd);
+	}
 }
 
 void Object::doSendPropose(RunData &_rd, size_t _pos){
-	
+	if(d.coordinatorid != _rd.coordinatorid){
+		doFlushOperations(_rd);
+		_rd.coordinatorid = d.coordinatorid;
+	}
+	RequestStub &rreq(d.requestStub(_pos));
+	++d.proposeid;
+	rreq.proposeid = 
+	//rreq.acceptid = d.acceptid;
+	_rd.ops[_rd.opcnt].operation = Data::ProposeOperation;
+	_rd.ops[_rd.opcnt].acceptid = d.acceptid;
+	_rd.ops[_rd.opcnt].proposeid = rreq.proposeid;
+	_rd.ops[_rd.opcnt].reqidx = _pos;
+	++_rd.opcnt;
+	if(_rd.isOperationsTableFull()){
+		doFlushOperations(_rd);
+	}
 }
 void Object::doFlushOperations(RunData &_rd){
 	Signal *ps(NULL);
 	OperationStub *pos(NULL);
-	
-	if(_rd.opcnt == 0){
+	const size_t opcnt = _rd.opcnt;
+	_rd.opcnt = 0;
+	if(opcnt == 0){
 		return;
-	}else if(_rd.opcnt == 1){
+	}else if(opcnt == 1){
 		OperationSignal<1>	*po(new OperationSignal<1>);
 		RequestStub	&rreq(d.requestStub(_rd.ops[0].reqidx));
 		ps = po;
@@ -629,36 +665,36 @@ void Object::doFlushOperations(RunData &_rd){
 		po->op.acceptid = _rd.ops[0].acceptid;
 		po->op.proposeid = _rd.ops[0].proposeid;
 		po->op.reqid = rreq.sig->id;
-	}else if(_rd.opcnt == 2){
+	}else if(opcnt == 2){
 		OperationSignal<2>	*po(new OperationSignal<2>);
 		ps = po;
 		po->replicaidx = Parameters::the().idx;
 		pos = po->op;
-	}else if(_rd.opcnt <= 4){
+	}else if(opcnt <= 4){
 		OperationSignal<4>	*po(new OperationSignal<4>);
 		ps = po;
 		po->replicaidx = Parameters::the().idx;
 		pos = po->op;
-	}else if(_rd.opcnt <= 8){
+	}else if(opcnt <= 8){
 		OperationSignal<8>	*po(new OperationSignal<8>);
 		ps = po;
 		po->replicaidx = Parameters::the().idx;
 		pos = po->op;
-	}else if(_rd.opcnt <= 16){
+	}else if(opcnt <= 16){
 		OperationSignal<16>	*po(new OperationSignal<16>);
 		ps = po;
 		po->replicaidx = Parameters::the().idx;
 		pos = po->op;
-	}else if(_rd.opcnt <= 32){
+	}else if(opcnt <= 32){
 		OperationSignal<32>	*po(new OperationSignal<32>);
 		ps = po;
 		po->replicaidx = Parameters::the().idx;
 		pos = po->op;
 	}else{
-		THROW_EXCEPTION_EX("invalid opcnt ",_rd.opcnt);
+		THROW_EXCEPTION_EX("invalid opcnt ",opcnt);
 	}
 	if(pos){
-		for(uint i(0); i < _rd.opcnt; ++i){
+		for(size_t i(0); i < opcnt; ++i){
 			RequestStub	&rreq(d.requestStub(_rd.ops[i].reqidx));
 			//po->oparr.push_back(OperationStub());
 			

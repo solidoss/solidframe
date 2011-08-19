@@ -164,7 +164,7 @@ int ObjectSelector::doWait(int _wt){
 			vdbgx(Dbg::fdt, "uiq.size = "<<uiq.size());
 			while(uiq.empty()){
 				vdbgx(Dbg::fdt, "before cond wait");
-				if(cnd.wait(mtx,ts)){
+				if(cnd.wait(mtx, ts)){
 					vdbgx(Dbg::fdt, "after 1 cond wait");
 					ctimepos.currentRealTime();
 					rv |= FULL_SCAN;
