@@ -57,6 +57,7 @@ struct RequestStub{
 		AcceptWaitRequestState,
 		AcceptState,
 		AcceptPendingState,
+		EraseState,
 	};
 	enum{
 		SignaledEvent = 1,
@@ -66,7 +67,7 @@ struct RequestStub{
 	enum{
 		HaveRequestFlag = 1,
 	};
-	RequestStub(): evs(0), flags(0), proposeid(-1), acceptid(-1), timerid(0), state(InitState), recvpropacc(0){}
+	RequestStub(): evs(0), flags(0), proposeid(0xffffffff/2), acceptid(-1), timerid(0), state(InitState), recvpropacc(0){}
 	RequestStub(
 		DynamicPointer<consensus::RequestSignal> &_rsig
 	):sig(_rsig), proposeid(-1), acceptid(-1), timerid(0), state(InitState), recvpropacc(0){}
@@ -99,6 +100,7 @@ struct Object::Data{
 	enum{
 		ProposeOperation = 1,
 		ProposeAcceptOperation,
+		ProposeDeclineOperation,
 		AcceptOperation,
 	};
 	struct ReqCmpEqual{
@@ -135,9 +137,9 @@ struct Object::Data{
 	~Data();
 	
 	bool insertRequestStub(DynamicPointer<RequestSignal> &_rsig, size_t &_ridx);
-	void eraseRequestStub(size_t _idx);
-	RequestStub& requestStub(size_t _idx);
-	const RequestStub& requestStub(size_t _idx)const;
+	void eraseRequestStub(const size_t _idx);
+	RequestStub& requestStub(const size_t _idx);
+	const RequestStub& requestStub(const size_t _idx)const;
 	bool checkAlreadyReceived(DynamicPointer<RequestSignal> &_rsig);
 	bool isCoordinator()const;
 	bool canSendAcceptOnly()const;
@@ -242,18 +244,18 @@ bool Object::Data::insertRequestStub(DynamicPointer<RequestSignal> &_rsig, size_
 	reqmap[&requestStub(_ridx).sig->id] = _ridx;
 	return true;
 }
-void Object::Data::eraseRequestStub(size_t _idx){
+void Object::Data::eraseRequestStub(const size_t _idx){
 	RequestStub &rreq(requestStub(_idx));
 	cassert(rreq.sig.ptr());
 	rreq.sig.clear();
 	++rreq.timerid;
 	freeposstk.push(_idx);
 }
-inline RequestStub& Object::Data::requestStub(size_t _idx){
+inline RequestStub& Object::Data::requestStub(const size_t _idx){
 	cassert(_idx < reqvec.size());
 	return reqvec[_idx];
 }
-inline const RequestStub& Object::Data::requestStub(size_t _idx)const{
+inline const RequestStub& Object::Data::requestStub(const size_t _idx)const{
 	cassert(_idx < reqvec.size());
 	return reqvec[_idx];
 }
@@ -299,10 +301,13 @@ struct Object::RunData{
 	bool isOperationsTableFull()const{
 		return opcnt == OperationCapacity;
 	}
+	bool isCoordinator()const{
+		return coordinatorid == -1;
+	}
 	
 	ulong			signals;
 	TimeSpec		&rtimepos;
-	int8			coordinatorid;
+	bool			coordinatorid;
 	size_t			opcnt;
 	OperationStub	ops[OperationCapacity];
 };
@@ -347,14 +352,13 @@ void Object::dynamicExecute(DynamicPointer<> &_dp, RunData &_rrd){
 //---------------------------------------------------------
 void Object::dynamicExecute(DynamicPointer<RequestSignal> &_rsig, RunData &_rrd){
 	if(d.checkAlreadyReceived(_rsig)) return;
-	size_t idx;
-	if(d.insertRequestStub(_rsig, idx)){
-		
-	}else{
-		//updating existing request stub
-	}
+	size_t	idx;
+	bool	alreadyexisted(d.insertRequestStub(_rsig, idx));
 	RequestStub &rreq(d.requestStub(idx));
+	
+	idbg("adding new request "<<rreq.sig->id<<" on idx = "<<idx<<" existing = "<<alreadyexisted);
 	rreq.flags |= RequestStub::HaveRequestFlag;
+	
 	if(!(rreq.evs & RequestStub::SignaledEvent)){
 		rreq.evs |= RequestStub::SignaledEvent;
 		d.reqq.push(d.timerq.frontIndex());
@@ -387,7 +391,7 @@ void Object::dynamicExecute(DynamicPointer<OperationSignal<32> > &_rsig, RunData
 		doExecuteOperation(_rrd, _rsig->replicaidx, _rsig->op[i]);
 	}
 }
-void Object::doExecuteOperation(RunData &_rd, uint8 _replicaidx, OperationStub &_rop){
+void Object::doExecuteOperation(RunData &_rd, const uint8 _replicaidx, OperationStub &_rop){
 	auto	it(d.reqmap.find(&_rop.reqid));
 	size_t	reqidx;
 	if(it != d.reqmap.end()){
@@ -398,28 +402,68 @@ void Object::doExecuteOperation(RunData &_rd, uint8 _replicaidx, OperationStub &
 	}
 	switch(_rop.operation){
 		case Data::ProposeOperation:
-			doExecuteProposeOperation(_rd, reqidx, _rop);
+			doExecuteProposeOperation(_rd, _replicaidx, reqidx, _rop);
 			break;
 		case Data::ProposeAcceptOperation:
-			doExecuteProposeAcceptOperation(_rd, reqidx, _rop);
+			doExecuteProposeAcceptOperation(_rd, _replicaidx, reqidx, _rop);
+			break;
+		case Data::ProposeDeclineOperation:
+			doExecuteProposeDeclineOperation(_rd, _replicaidx, reqidx, _rop);
 			break;
 		case Data::AcceptOperation:
-			doExecuteAcceptOperation(_rd, reqidx, _rop);
+			doExecuteAcceptOperation(_rd, _replicaidx, reqidx, _rop);
 			break;
 		default:
 			THROW_EXCEPTION_EX("Unknown operation ", (int)_rop.operation);
 	}
 	
 }
-void Object::doExecuteProposeOperation(RunData &_rd, size_t _reqidx, OperationStub &_rop){
-	idbg("reqidx = "<<_reqidx<<" op = ("<<(int)_rop.operation<<' '<<_rop.proposeid<<' '<<'('<<_rop.reqid<<')');
-}
-void Object::doExecuteProposeAcceptOperation(RunData &_rd, size_t _reqidx, OperationStub &_rop){
-	idbg("reqidx = "<<_reqidx<<" op = ("<<(int)_rop.operation<<' '<<_rop.proposeid<<' '<<'('<<_rop.reqid<<')');
-}
-void Object::doExecuteAcceptOperation(RunData &_rd, size_t _reqidx, OperationStub &_rop){
+void Object::doExecuteProposeOperation(RunData &_rd, const uint8 _replicaidx, const size_t _reqidx, OperationStub &_rop){
 	idbg("reqidx = "<<_reqidx<<" op = ("<<(int)_rop.operation<<' '<<_rop.proposeid<<' '<<'('<<_rop.reqid<<')');
 	
+	if(overflow_safe_less(d.proposeid, _rop.proposeid)){
+		//we can accept the propose
+		d.proposeid = _rop.proposeid;
+		RequestStub &rreq(d.requestStub(_reqidx));
+		rreq.proposeid = d.proposeid;
+		doSendAcceptPropose(_rd, _reqidx, _replicaidx);
+	}else{
+		//we cannot accept the propose
+		doSendDeclinePropose(_rd, _reqidx, _replicaidx);
+	}
+}
+void Object::doExecuteProposeAcceptOperation(RunData &_rd, const uint8 _replicaidx, const size_t _reqidx, OperationStub &_rop){
+	idbg("reqidx = "<<_reqidx<<" op = ("<<(int)_rop.operation<<' '<<_rop.proposeid<<' '<<'('<<_rop.reqid<<')');
+	RequestStub &rreq(d.requestStub(_reqidx));
+	if(rreq.proposeid == _rop.proposeid){
+		++rreq.recvpropacc;
+		if(rreq.recvpropacc == Parameters::the().threshold){
+			rreq.state = RequestStub::AcceptState;
+			doSendAccept(_rd, _reqidx);
+			if(!(rreq.evs & RequestStub::SignaledEvent)){
+				rreq.evs |= RequestStub::SignaledEvent;
+				d.reqq.push(d.timerq.frontIndex());
+			}
+		}
+	}//else ignore the operation
+}
+void Object::doExecuteProposeDeclineOperation(RunData &_rd, const uint8 _replicaidx, const size_t _reqidx, OperationStub &_rop){
+	//TODO:
+}
+void Object::doExecuteAcceptOperation(RunData &_rd, const uint8 _replicaidx, const size_t _reqidx, OperationStub &_rop){
+	idbg("reqidx = "<<_reqidx<<" op = ("<<(int)_rop.operation<<' '<<_rop.proposeid<<' '<<'('<<_rop.reqid<<')');
+	RequestStub &rreq(d.requestStub(_reqidx));
+	if(overflow_safe_less(d.proposeid, _rop.proposeid)){
+		d.proposeid = _rop.proposeid;
+		rreq.proposeid = d.proposeid;
+	}else{
+		//TODO:
+	}
+	rreq.state = RequestStub::AcceptState;
+	if(!(rreq.evs & RequestStub::SignaledEvent)){
+		rreq.evs |= RequestStub::SignaledEvent;
+		d.reqq.push(d.timerq.frontIndex());
+	}
 }
 //---------------------------------------------------------
 /*virtual*/ bool Object::signal(DynamicPointer<foundation::Signal> &_sig){
@@ -514,83 +558,97 @@ int Object::doRun(RunData &_rd){
 }
 //---------------------------------------------------------
 int Object::doUpdate(RunData &_rd){
+	idbg("");
 	state(Run);
 	return OK;
 }
 
-void Object::doProcessRequest(RunData &_rd, size_t _pos){
-	RequestStub &rreq(d.requestStub(_pos));
+void Object::doProcessRequest(RunData &_rd, const size_t _reqidx){
+	RequestStub &rreq(d.requestStub(_reqidx));
 	uint32 events = rreq.evs;
 	rreq.evs = 0;
 	switch(rreq.state){
 		case RequestStub::InitState:
 			if(d.isCoordinator()){
 				if(d.canSendAcceptOnly()){
+					idbg("InitState coordinator - send accept only");
 					++d.proposeid;
 					rreq.proposeid = d.proposeid;
-					doSendAccept(_rd, _pos);
+					doSendAccept(_rd, _reqidx);
 					if(!(rreq.evs & RequestStub::SignaledEvent)){
 						rreq.evs |= RequestStub::SignaledEvent;
-						d.reqq.push(_pos);
+						d.reqq.push(_reqidx);
 					}
 					rreq.state = RequestStub::AcceptState;
 				}else{
-					doSendPropose(_rd, _pos);
+					idbg("InitState coordinator - send propose");
+					doSendPropose(_rd, _reqidx);
 					rreq.state = RequestStub::WaitProposeAcceptState;
 					TimeSpec ts(fdt::Object::currentTime());
-					ts += 3000;//ms
-					d.timerq.push(ts, _pos, rreq.timerid);
+					ts += 60 * 1000;//ms
+					d.timerq.push(ts, _reqidx, rreq.timerid);
 					rreq.recvpropacc = 1;//one is the propose_accept from current coordinator
 				}
 			}else{
+				idbg("InitState non-coordinator - wait propose/accept")
 				rreq.state = RequestStub::WaitProposeState;
 				TimeSpec ts(fdt::Object::currentTime());
 				ts += d.distancefromcoordinator * 500;//ms
-				d.timerq.push(ts, _pos, rreq.timerid);
+				d.timerq.push(ts, _reqidx, rreq.timerid);
 			}
 			break;
 		case RequestStub::WaitProposeState:
-			if(rreq.evs & RequestStub::TimeoutEvent){
-				//TODO: enter Object in update state
+			idbg("WaitProposeState");
+			if(events & RequestStub::TimeoutEvent){
+				idbg("WaitProposeState - timeout");
+				doSendPropose(_rd, _reqidx);
+				rreq.state = RequestStub::WaitProposeAcceptState;
+				TimeSpec ts(fdt::Object::currentTime());
+				ts += 60 * 1000;//ms
+				d.timerq.push(ts, _reqidx, rreq.timerid);
+				rreq.recvpropacc = 1;//one is the propose_accept from current coordinator
 				break;
 			}
 			break;
 		case RequestStub::WaitProposeAcceptState:
-			if(rreq.evs & RequestStub::TimeoutEvent){
-				//TODO: enter Object in update state
+			idbg("WaitProposeAcceptState");
+			if(events & RequestStub::TimeoutEvent){
+				doEraseRequest(_rd, _reqidx);
 				break;
 			}
 			break;
 		case RequestStub::AcceptWaitRequestState:
-			if(rreq.evs & RequestStub::TimeoutEvent){
-				//TODO: enter Object in update state
+			idbg("AcceptWaitRequestState");
+			if(events & RequestStub::TimeoutEvent){
+				//TODO: enter object in Update state
 				break;
 			}
 			if(!(rreq.flags & RequestStub::HaveRequestFlag)){
 				break;
 			}
 			if(overflow_safe_less(rreq.acceptid, d.acceptid + 1)){
-				doEraseRequest(_rd, _pos);
+				doEraseRequest(_rd, _reqidx);
 				break;
 			}
 			if(d.acceptid + 1 != rreq.acceptid){
 				rreq.state = RequestStub::AcceptPendingState;
 				break;
 			}
-			doAcceptRequest(_rd, _pos);
-			doEraseRequest(_rd, _pos);
+			doAcceptRequest(_rd, _reqidx);
+			doEraseRequest(_rd, _reqidx);
 			doScanPendingRequests(_rd);
 			break;
 		case RequestStub::AcceptState:
+			idbg("AcceptState");
 			if(!(rreq.flags & RequestStub::HaveRequestFlag)){
 				rreq.state = RequestStub::AcceptWaitRequestState;
 				TimeSpec ts(fdt::Object::currentTime());
 				ts.add(30);//30 secs
-				d.timerq.push(ts, _pos, rreq.timerid);
+				d.timerq.push(ts, _reqidx, rreq.timerid);
 				break;
 			}
 			if(overflow_safe_less(rreq.acceptid, d.acceptid + 1)){
-				doEraseRequest(_rd, _pos);
+				doEraseRequest(_rd, _reqidx);
 				break;
 			}
 			if(d.acceptid + 1 != rreq.acceptid){
@@ -600,54 +658,67 @@ void Object::doProcessRequest(RunData &_rd, size_t _pos){
 				}
 				break;
 			}
-			doAcceptRequest(_rd, _pos);
-			doEraseRequest(_rd, _pos);
+			doAcceptRequest(_rd, _reqidx);
+			//we cannot do erase here, we must wait for the
+			//send operations to be flushed away
 			break;
 		case RequestStub::AcceptPendingState:
+			idbg("AcceptPendingState");
 			//the status is changed within doScanPendingRequests
+			break;
+		case RequestStub::EraseState:
+			doEraseRequest(_rd, _reqidx);
 			break;
 		default:
 			THROW_EXCEPTION_EX("Unknown state ",rreq.state);
 	}
 }
 
-void Object::doSendAccept(RunData &_rd, size_t _pos){
-	if(d.coordinatorid != _rd.coordinatorid){
+void Object::doSendAccept(RunData &_rd, const size_t _reqidx){
+	idbg("");
+	if(!_rd.isCoordinator()){
 		doFlushOperations(_rd);
-		_rd.coordinatorid = d.coordinatorid;
+		_rd.coordinatorid = -1;
 	}
-	RequestStub &rreq(d.requestStub(_pos));
+	RequestStub &rreq(d.requestStub(_reqidx));
 	++d.acceptid;
 	rreq.acceptid = d.acceptid;
 	_rd.ops[_rd.opcnt].operation = Data::AcceptOperation;
 	_rd.ops[_rd.opcnt].acceptid = rreq.acceptid;
 	_rd.ops[_rd.opcnt].proposeid = rreq.proposeid;
-	_rd.ops[_rd.opcnt].reqidx = _pos;
+	_rd.ops[_rd.opcnt].reqidx = _reqidx;
 	++_rd.opcnt;
 	if(_rd.isOperationsTableFull()){
 		doFlushOperations(_rd);
 	}
 }
 
-void Object::doSendPropose(RunData &_rd, size_t _pos){
-	if(d.coordinatorid != _rd.coordinatorid){
+void Object::doSendPropose(RunData &_rd, const size_t _reqidx){
+	idbg("");
+	if(!_rd.isCoordinator()){
 		doFlushOperations(_rd);
-		_rd.coordinatorid = d.coordinatorid;
+		_rd.coordinatorid = -1;
 	}
-	RequestStub &rreq(d.requestStub(_pos));
+	
+	RequestStub &rreq(d.requestStub(_reqidx));
 	++d.proposeid;
-	rreq.proposeid = 
+	rreq.proposeid = d.proposeid;
 	//rreq.acceptid = d.acceptid;
 	_rd.ops[_rd.opcnt].operation = Data::ProposeOperation;
 	_rd.ops[_rd.opcnt].acceptid = d.acceptid;
 	_rd.ops[_rd.opcnt].proposeid = rreq.proposeid;
-	_rd.ops[_rd.opcnt].reqidx = _pos;
+	_rd.ops[_rd.opcnt].reqidx = _reqidx;
 	++_rd.opcnt;
 	if(_rd.isOperationsTableFull()){
 		doFlushOperations(_rd);
 	}
 }
+void Object::doSendAcceptPropose(RunData &_rd, const uint8 _replicaidx, const size_t _reqidx){
+}
+void Object::doSendDeclinePropose(RunData &_rd, const uint8 _replicaidx, const size_t _reqidx){
+}
 void Object::doFlushOperations(RunData &_rd){
+	idbg("");
 	Signal *ps(NULL);
 	OperationStub *pos(NULL);
 	const size_t opcnt = _rd.opcnt;
@@ -705,11 +776,7 @@ void Object::doFlushOperations(RunData &_rd){
 		}
 	}
 	
-	if(_rd.coordinatorid != -1){
-		DynamicPointer<foundation::Signal>		sigptr(ps);
-		//reply to coordinator
-		foundation::ipc::Service::the().sendSignal(sigptr, Parameters::the().addrvec[_rd.coordinatorid]);
-	}else{
+	if(_rd.isCoordinator()){
 		DynamicSharedPointer<Signal>	sharedsigptr(ps);
 		//broadcast to replicas
 		for(uint i(0); i < Parameters::the().addrvec.size(); ++i){
@@ -718,6 +785,10 @@ void Object::doFlushOperations(RunData &_rd){
 				foundation::ipc::Service::the().sendSignal(sigptr, Parameters::the().addrvec[i]);
 			}
 		}
+	}else{
+		DynamicPointer<foundation::Signal>		sigptr(ps);
+		//reply to coordinator
+		foundation::ipc::Service::the().sendSignal(sigptr, Parameters::the().addrvec[_rd.coordinatorid]);
 	}
 }
 /*
@@ -733,6 +804,7 @@ struct RequestStubAcceptCmp{
 	}
 };
 void Object::doScanPendingRequests(RunData &_rd){
+	idbg(""<<d.acceptpendingcnt);
 	if(d.acceptpendingcnt != 255){
 		size_t	posarr[256];
 		size_t	idx(0);
@@ -798,15 +870,20 @@ void Object::doScanPendingRequests(RunData &_rd){
 	}
 	d.acceptpendingcnt = 0;
 }
-void Object::doAcceptRequest(RunData &_rd, size_t _pos){
-	RequestStub &rreq(d.requestStub(_pos));
+void Object::doAcceptRequest(RunData &_rd, const size_t _reqidx){
+	idbg(""<<_reqidx);
+	RequestStub &rreq(d.requestStub(_reqidx));
 	cassert(rreq.flags & RequestStub::HaveRequestFlag);
 	cassert(rreq.acceptid == d.acceptid + 1);
 	++d.acceptid;
 	this->doAccept(rreq.sig);
 }
-void Object::doEraseRequest(RunData &_rd, size_t _pos){
-	d.eraseRequestStub(_pos);
+void Object::doEraseRequest(RunData &_rd, const size_t _reqidx){
+	idbg(""<<_reqidx);
+	d.eraseRequestStub(_reqidx);
+}
+void Object::doStartCoordinate(RunData &_rd, const size_t _reqidx){
+	idbg(""<<_reqidx);
 }
 //========================================================
 }//namespace consensus
