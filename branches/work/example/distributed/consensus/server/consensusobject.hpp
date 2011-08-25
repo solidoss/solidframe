@@ -58,7 +58,7 @@ private:
 	int doRun(RunData &_rd);
 	int doUpdate(RunData &_rd);
     void doProcessRequest(RunData &_rd, const size_t _reqidx);
-	void doSendAccept(RunData &_rd, const size_t _reqidx);
+	void doSendAccept(RunData &_rd, const size_t _reqidx, const bool _fast = false);
 	void doSendPropose(RunData &_rd, const size_t _reqidx);
 	void doSendAcceptPropose(RunData &_rd, const uint8 _replicaidx, const size_t _reqidx);
 	void doSendDeclinePropose(RunData &_rd, const uint8 _replicaidx, const size_t _reqidx);
@@ -71,7 +71,9 @@ private:
 	void doExecuteProposeAcceptOperation(RunData &_rd, const uint8 _replicaidx, const size_t _reqidx, OperationStub &_rop);
 	void doExecuteProposeDeclineOperation(RunData &_rd, const uint8 _replicaidx, const size_t _reqidx, OperationStub &_rop);
 	void doExecuteAcceptOperation(RunData &_rd, const uint8 _replicaidx, const size_t _reqidx, OperationStub &_rop);
+	void doExecuteFastAcceptOperation(RunData &_rd, const uint8 _replicaidx, const size_t _reqidx, OperationStub &_rop);
     void doStartCoordinate(RunData &_rd, const size_t _reqidx);
+    void doEnterUpdateState();
 private:
 	struct Data;
 	Data	&d;
