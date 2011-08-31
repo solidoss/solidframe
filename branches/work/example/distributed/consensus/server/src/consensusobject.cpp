@@ -67,6 +67,7 @@ struct RequestStub{
 	enum{
 		HaveRequestFlag = 1,
 		HaveProposeFlag = 2,
+		HaveAcceptFlag = 4,
 	};
 	RequestStub(): evs(0), flags(0), proposeid(0xffffffff/2), acceptid(-1), timerid(0), state(InitState), recvpropacc(0){}
 	RequestStub(
@@ -153,6 +154,7 @@ struct Object::Data{
 	uint32					proposeid;
 		
 	uint32					acceptid;
+	uint32					pendingacceptid;
 	
 	int8					coordinatorid;
 	int8					distancefromcoordinator;
@@ -204,7 +206,7 @@ inline size_t Object::Data::SenderHash::operator()(
 }
 
 
-Object::Data::Data():proposeid(0), acceptid(0), coordinatorid(-2), acceptpendingcnt(0){
+Object::Data::Data():proposeid(0), acceptid(0), pendingacceptid(0), coordinatorid(-2), acceptpendingcnt(0){
 	if(Parameters::the().idx){
 		coordinatorid = 0;
 	}else{
@@ -458,20 +460,32 @@ void Object::doExecuteProposeDeclineOperation(RunData &_rd, const uint8 _replica
 }
 void Object::doExecuteAcceptOperation(RunData &_rd, const uint8 _replicaidx, const size_t _reqidx, OperationStub &_rop){
 	idbg("reqidx = "<<_reqidx<<" op = ("<<(int)_rop.operation<<' '<<_rop.proposeid<<' '<<'('<<_rop.reqid<<')');
-	if(!overflow_safe_less(d.acceptid, _rop.acceptid)){
-		wdbg("Invalid acceptid = "<<_rop.acceptid<<" as opposed to existing acceptid "<<d.acceptid);
+	if(
+		!overflow_safe_less(d.proposeid, _rop.proposeid) ||
+		!overflow_safe_less(d.pendingacceptid, _rop.acceptid)
+	){
+		//silently drop the operation
+		//we've already accepted the acceptid
+		//situation:
+		//coordinator C1 sends fastaccept
+		//message is delayed
+		//coordinator C2 sends propose
+		//current replica accepts propose
+		//coordinator C2 sends accept
+		//current replica accepts the accept
+		//message from C1 reatches the current replica
+		wdbg("invalid (proposeid="<<_rop.proposeid", acceptid="<<_rop.acceptid<<") pair: "<<d.proposeid<<", "<<d.pendingacceptid);
 		doEnterUpdateState();
 		return;
 	}
 	RequestStub &rreq(d.requestStub(_reqidx));
-	if(rreq.flags & RequestStub::HaveProposeFlag){
-		if(rreq.proposeid == _rop.proposeid){
-		}else{
-			edbg("Invalid proposeid = "<<_rop.proposeid<<" as opposed to existing proposeid "<<rreq.proposeid);
-			THROW_EXCEPTION_EX("Invalid proposeid ", _rop.proposeid);
-			return;
-		}
-	}else{
+	if(rreq.flags & RequestStub::HaveAcceptFlag){
+		//silently drop the operation
+		edbg("Accept opperation on an already accepted request with acceptid =  "<<rreq.acceptid<<" operation acceptid = "<<_rop.acceptid);
+		doEnterUpdateState();
+		return;
+	}
+	if(!(rreq.flags & RequestStub::HaveProposeFlag)){
 		//we must first accept the proposeid too
 		if(overflow_safe_less(d.proposeid, _rop.proposeid)){
 			d.proposeid = _rop.proposeid;
@@ -481,13 +495,16 @@ void Object::doExecuteAcceptOperation(RunData &_rd, const uint8 _replicaidx, con
 			//we're in the following situation:
 			//a coordinator sent a fastaccept but the current proposeid
 			//is greater than what the coordinator has sent
-			edbg("Invalid proposeid = "<<_rop.proposeid<<" as opposed to existing proposeid "<<d.proposeid);
-			THROW_EXCEPTION_EX("Invalid proposeid ", _rop.proposeid);
+			//it means that we've already accepted a propose from other
+			//coordinator for other request
+			wdbg("Invalid proposeid = "<<_rop.proposeid<<" as opposed to existing proposeid "<<d.proposeid);
 			return;
 		}
 	}
 	rreq.acceptid = _rop.acceptid;
 	rreq.state = RequestStub::AcceptState;
+	d.pendingacceptid = _rop.acceptid;
+	rreq.flags |= RequestStub::HaveAcceptFlag;
 	if(!(rreq.evs & RequestStub::SignaledEvent)){
 		rreq.evs |= RequestStub::SignaledEvent;
 		d.reqq.push(d.timerq.frontIndex());
@@ -605,7 +622,9 @@ void Object::doProcessRequest(RunData &_rd, const size_t _reqidx){
 				if(d.canSendFastAccept()){
 					idbg("InitState coordinator - send fast accept");
 					++d.proposeid;
+					++d.pendingacceptid;
 					rreq.proposeid = d.proposeid;
+					rreq.acceptid = d.pendingacceptid;
 					rreq.flags |= RequestStub::HaveProposeFlag;
 					doSendAccept(_rd, _reqidx, true);
 					if(!(rreq.evs & RequestStub::SignaledEvent)){
@@ -714,8 +733,8 @@ void Object::doSendAccept(RunData &_rd, const size_t _reqidx, const bool _fast){
 		_rd.coordinatorid = -1;
 	}
 	RequestStub &rreq(d.requestStub(_reqidx));
-	++d.acceptid;
-	rreq.acceptid = d.acceptid;
+	++d.pendingacceptid;
+	rreq.acceptid = d.pendingacceptid;
 	_rd.ops[_rd.opcnt].operation = _fast ? Data::FastAcceptOperation : Data::AcceptOperation;
 	_rd.ops[_rd.opcnt].acceptid = rreq.acceptid;
 	_rd.ops[_rd.opcnt].proposeid = rreq.proposeid;
