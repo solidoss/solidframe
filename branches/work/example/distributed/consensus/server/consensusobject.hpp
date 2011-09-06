@@ -21,7 +21,7 @@ struct Parameters{
 	
 	AddressVectorT	addrvec;
 	uint8			idx;
-	uint8			threshold;
+	uint8			quorum;
 };
 
 class Object: public Dynamic<Object, foundation::Object>{
@@ -60,18 +60,22 @@ private:
     void doProcessRequest(RunData &_rd, const size_t _reqidx);
 	void doSendAccept(RunData &_rd, const size_t _reqidx, const bool _fast = false);
 	void doSendPropose(RunData &_rd, const size_t _reqidx);
-	void doSendAcceptPropose(RunData &_rd, const uint8 _replicaidx, const size_t _reqidx);
-	void doSendDeclinePropose(RunData &_rd, const uint8 _replicaidx, const size_t _reqidx);
+	void doSendConfirmPropose(RunData &_rd, const uint8 _replicaidx, const size_t _reqidx);
+	void doSendDeclinePropose(RunData &_rd, const uint8 _replicaidx, const OperationStub &_rop);
+	void doSendConfirmAccept(RunData &_rd, const uint8 _replicaidx, const size_t _reqidx);
+	void doSendDeclineAccept(RunData &_rd, const uint8 _replicaidx, const OperationStub &_rop);
 	void doFlushOperations(RunData &_rd);
 	void doScanPendingRequests(RunData &_rd);
 	void doAcceptRequest(RunData &_rd, const size_t _reqidx);
     void doEraseRequest(RunData &_rd, const size_t _reqidx);
 	void doExecuteOperation(RunData &_rd, const uint8 _replicaidx, OperationStub &_rop);
-	void doExecuteProposeOperation(RunData &_rd, const uint8 _replicaidx, const size_t _reqidx, OperationStub &_rop);
-	void doExecuteProposeAcceptOperation(RunData &_rd, const uint8 _replicaidx, const size_t _reqidx, OperationStub &_rop);
-	void doExecuteProposeDeclineOperation(RunData &_rd, const uint8 _replicaidx, const size_t _reqidx, OperationStub &_rop);
-	void doExecuteAcceptOperation(RunData &_rd, const uint8 _replicaidx, const size_t _reqidx, OperationStub &_rop);
-	void doExecuteFastAcceptOperation(RunData &_rd, const uint8 _replicaidx, const size_t _reqidx, OperationStub &_rop);
+	void doExecuteProposeOperation(RunData &_rd, const uint8 _replicaidx, OperationStub &_rop);
+	void doExecuteProposeConfirmOperation(RunData &_rd, const uint8 _replicaidx, OperationStub &_rop);
+	void doExecuteProposeDeclineOperation(RunData &_rd, const uint8 _replicaidx, OperationStub &_rop);
+	void doExecuteAcceptOperation(RunData &_rd, const uint8 _replicaidx, OperationStub &_rop);
+	void doExecuteFastAcceptOperation(RunData &_rd, const uint8 _replicaidx, OperationStub &_rop);
+	void doExecuteAcceptConfirmOperation(RunData &_rd, const uint8 _replicaidx, OperationStub &_rop);
+	void doExecuteAcceptDeclineOperation(RunData &_rd, const uint8 _replicaidx, OperationStub &_rop);
     void doStartCoordinate(RunData &_rd, const size_t _reqidx);
     void doEnterUpdateState();
 private:

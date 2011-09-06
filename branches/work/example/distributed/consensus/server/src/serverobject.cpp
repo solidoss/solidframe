@@ -71,7 +71,7 @@ bool ServerParams::init(int _ipc_port){
 		it = it->ifa_next;
 	}
 	freeifaddrs(ifap);
-	threshold = addrvec.size()/2 + 1;
+	quorum = addrvec.size()/2 + 1;
 	
 	return true;
 }

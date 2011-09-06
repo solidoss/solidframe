@@ -75,6 +75,22 @@ inline bool overflow_safe_less(const uint64 &_u1, const uint64 &_u2){
 
 }
 
+inline uint32 overflow_safe_max(const uint32 &_u1, const uint32 &_u2){
+	if(overflow_safe_less(_u1, _u2)){
+		return _u2;
+	}else{
+		return _u1;
+	}
+}
+
+inline uint64 overflow_safe_max(const uint64 &_u1, const uint64 &_u2){
+	if(overflow_safe_less(_u1, _u2)){
+		return _u2;
+	}else{
+		return _u1;
+	}
+}
+
 
 template <typename T>
 inline T circular_distance(const T &_v, const T &_piv, const T& _max){
