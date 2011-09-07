@@ -1,4 +1,5 @@
 //TODO: usefull comment
+#include "stdafx.h"
 #include <cstdlib>
 #include <cassert>
 using namespace std;
@@ -21,11 +22,38 @@ int getV(){
 	return a.v;
 }
 
-#ifdef __WIN32
+#ifdef _WIN32
+#include <Windows.h>
+
+static CRITICAL_SECTION cs;
+
 void init(){
 	//on windows allways a problem with the static
-	assert(false);
+	//assert(false);
+	InitializeCriticalSection(&cs);
 }
+DWORD th_run(void *_pv){
+	int v = getV();
+	assert(v);
+	return 0;
+}
+void create_thread(){
+	CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)&th_run, NULL, 0, NULL);
+}
+
+void ssleep(){
+	EnterCriticalSection(&cs);
+	assert(!counter);
+	counter = 1;
+	LeaveCriticalSection(&cs);
+	Sleep(1000);
+}
+
+void sssleep(){
+	Sleep(2000);
+}
+
+
 #else
 
 #include <pthread.h>
@@ -67,7 +95,8 @@ void create_thread(){
 int main(){
 	init();
 	create_thread();
-	assert(getV());
+	int v = getV();
+	assert(v);
 	sssleep();
 	return 0;
 }
