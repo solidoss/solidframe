@@ -33,7 +33,10 @@ void init(){
 }
 DWORD th_run(void *_pv){
 	int v = getV();
-	assert(v);
+	//assert(v);
+	if(v == 0){
+		exit(-2);
+	}
 	return 0;
 }
 void create_thread(){
@@ -42,7 +45,10 @@ void create_thread(){
 
 void ssleep(){
 	EnterCriticalSection(&cs);
-	assert(!counter);
+	//assert(!counter);
+	if(counter != 0){
+		exit(-3);
+	}
 	counter = 1;
 	LeaveCriticalSection(&cs);
 	Sleep(1000);
@@ -95,7 +101,8 @@ int main(){
 	init();
 	create_thread();
 	int v = getV();
-	assert(v);
+	//assert(v);
+	if(v == 0) return -1;
 	sssleep();
 	return 0;
 }
