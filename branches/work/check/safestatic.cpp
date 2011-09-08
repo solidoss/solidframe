@@ -1,6 +1,5 @@
 //TODO: usefull comment
 #include <cstdlib>
-#include <cassert>
 using namespace std;
 
 void ssleep();
@@ -35,7 +34,7 @@ DWORD th_run(void *_pv){
 	int v = getV();
 	//assert(v);
 	if(v == 0){
-		exit(-2);
+		exit(-3);
 	}
 	return 0;
 }
@@ -47,7 +46,7 @@ void ssleep(){
 	EnterCriticalSection(&cs);
 	//assert(!counter);
 	if(counter != 0){
-		exit(-3);
+		exit(-2);
 	}
 	counter = 1;
 	LeaveCriticalSection(&cs);
@@ -77,7 +76,10 @@ void init(){
 
 void ssleep(){
 	pthread_mutex_lock(&mut);
-	assert(!counter);
+	//assert(!counter);
+	if(counter != 0){
+		exit(-3);
+	}
 	counter = 1;
 	pthread_mutex_unlock(&mut);
 	sleep(1);
@@ -88,7 +90,13 @@ void sssleep(){
 }
 
 void* th_run(void *pv){
-	assert(getV());
+	//assert(getV());
+	int v = getV();
+	//assert(v);
+	if(v == 0){
+		exit(-2);
+	}
+	return NULL;
 }
 
 void create_thread(){
@@ -102,7 +110,9 @@ int main(){
 	create_thread();
 	int v = getV();
 	//assert(v);
-	if(v == 0) return -1;
+	if(v == 0){
+		return -1;
+	}
 	sssleep();
 	return 0;
 }
