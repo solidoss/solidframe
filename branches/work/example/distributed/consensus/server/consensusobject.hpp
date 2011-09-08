@@ -58,7 +58,8 @@ private:
 	int doRun(RunData &_rd);
 	int doUpdate(RunData &_rd);
     void doProcessRequest(RunData &_rd, const size_t _reqidx);
-	void doSendAccept(RunData &_rd, const size_t _reqidx, const bool _fast = false);
+	void doSendAccept(RunData &_rd, const size_t _reqidx);
+	void doSendFastAccept(RunData &_rd, const size_t _reqidx);
 	void doSendPropose(RunData &_rd, const size_t _reqidx);
 	void doSendConfirmPropose(RunData &_rd, const uint8 _replicaidx, const size_t _reqidx);
 	void doSendDeclinePropose(RunData &_rd, const uint8 _replicaidx, const OperationStub &_rop);

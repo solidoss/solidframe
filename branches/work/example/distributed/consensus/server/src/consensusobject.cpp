@@ -468,10 +468,15 @@ void Object::doExecuteProposeOperation(RunData &_rd, const uint8 _replicaidx, Op
 		size_t	reqidx;
 		//we can accept the propose
 		d.proposeid = _rop.proposeid;
+		
 		RequestStub &rreq(d.safeRequestStub(_rop.reqid, reqidx));
+		
 		rreq.proposeid = d.proposeid;
-		//rreq.acceptid = d.pendingacceptid;
 		rreq.flags |= RequestStub::HaveProposeFlag;
+		if(!(rreq.flags & RequestStub::HaveAcceptFlag)){
+			++d.pendingacceptid;
+			rreq.acceptid = d.pendingacceptid;
+		}
 		doSendConfirmPropose(_rd, _replicaidx, reqidx);
 	}else{
 		//we cannot accept the propose
@@ -492,13 +497,15 @@ void Object::doExecuteProposeConfirmOperation(RunData &_rd, const uint8 _replica
 		idbg("req->proposeid("<<preq->proposeid<<") != _rop.proposeid("<<_rop.proposeid<<")");
 		return;
 	}
+	cassert(preq->flags & RequestStub::HaveAcceptFlag);
+	cassert(preq->flags & RequestStub::HaveProposeFlag);
 	
 	const uint32 tmpaccid = overflow_safe_max(preq->acceptid, _rop.acceptid);
 	
-	if(_rop.acceptid != tmpaccid){
-		idbg("ignore a propose confirm operation from an outdated replica "<<tmpaccid<<" > "<<_rop.acceptid);
-		return;
-	}
+// 	if(_rop.acceptid != tmpaccid){
+// 		idbg("ignore a propose confirm operation from an outdated replica "<<tmpaccid<<" > "<<_rop.acceptid);
+// 		return;
+// 	}
 	
 	preq->acceptid = tmpaccid;
 	
@@ -696,12 +703,7 @@ void Object::doProcessRequest(RunData &_rd, const size_t _reqidx){
 			if(d.isCoordinator()){
 				if(d.canSendFastAccept()){
 					idbg("InitState coordinator - send fast accept");
-					++d.proposeid;
-					++d.pendingacceptid;
-					rreq.proposeid = d.proposeid;
-					rreq.acceptid = d.pendingacceptid;
-					rreq.flags |= RequestStub::HaveProposeFlag;
-					doSendAccept(_rd, _reqidx, true);
+					doSendFastAccept(_rd, _reqidx, true);
 					if(!(rreq.evs & RequestStub::SignaledEvent)){
 						rreq.evs |= RequestStub::SignaledEvent;
 						d.reqq.push(_reqidx);
@@ -709,8 +711,6 @@ void Object::doProcessRequest(RunData &_rd, const size_t _reqidx){
 					rreq.state = RequestStub::AcceptState;
 				}else{
 					idbg("InitState coordinator - send propose");
-					rreq.acceptid = d.pendingacceptid;
-					d.continuous_accepted_proposes = 0;
 					doSendPropose(_rd, _reqidx);
 					rreq.state = RequestStub::WaitProposeConfirmState;
 					TimeSpec ts(fdt::Object::currentTime());
@@ -810,24 +810,53 @@ void Object::doProcessRequest(RunData &_rd, const size_t _reqidx){
 	}
 }
 
-void Object::doSendAccept(RunData &_rd, const size_t _reqidx, const bool _fast){
+void Object::doSendAccept(RunData &_rd, const size_t _reqidx){
 	idbg("");
 	if(!_rd.isCoordinator()){
 		doFlushOperations(_rd);
 		_rd.coordinatorid = -1;
 	}
 	RequestStub &rreq(d.requestStub(_reqidx));
-	++d.pendingacceptid;
-	rreq.acceptid = d.pendingacceptid;
-	_rd.ops[_rd.opcnt].operation = _fast ? Data::FastAcceptOperation : Data::AcceptOperation;
+	
+	_rd.ops[_rd.opcnt].operation = Data::AcceptOperation;
 	_rd.ops[_rd.opcnt].acceptid = rreq.acceptid;
 	_rd.ops[_rd.opcnt].proposeid = rreq.proposeid;
 	_rd.ops[_rd.opcnt].reqidx = _reqidx;
+	
 	++_rd.opcnt;
+	
 	if(_rd.isOperationsTableFull()){
 		doFlushOperations(_rd);
 	}
 }
+
+void Object::doSendFastAccept(RunData &_rd, const size_t _reqidx){
+	idbg("");
+	if(!_rd.isCoordinator()){
+		doFlushOperations(_rd);
+		_rd.coordinatorid = -1;
+	}
+	RequestStub &rreq(d.requestStub(_reqidx));
+	
+	++d.proposeid;
+	++d.pendingacceptid;
+	
+	rreq.acceptid = d.pendingacceptid;
+	rreq.proposeid = d.proposeid;
+	rreq.flags |= (RequestStub::HaveProposeFlag | RequestStub::HaveAcceptFlag);
+	
+	_rd.ops[_rd.opcnt].operation = Data::FastAcceptOperation;
+	_rd.ops[_rd.opcnt].acceptid = rreq.acceptid;
+	_rd.ops[_rd.opcnt].proposeid = rreq.proposeid;
+	_rd.ops[_rd.opcnt].reqidx = _reqidx;
+	
+	++_rd.opcnt;
+	
+	if(_rd.isOperationsTableFull()){
+		doFlushOperations(_rd);
+	}
+}
+
 
 void Object::doSendPropose(RunData &_rd, const size_t _reqidx){
 	idbg("");
@@ -837,14 +866,21 @@ void Object::doSendPropose(RunData &_rd, const size_t _reqidx){
 	}
 	
 	RequestStub &rreq(d.requestStub(_reqidx));
+	
 	++d.proposeid;
+	++d.pendingacceptid;
+	
+	rreq.acceptid = d.pendingacceptid;
 	rreq.proposeid = d.proposeid;
-	//rreq.acceptid = d.acceptid;
+	rreq.flags |= (RequestStub::HaveProposeFlag | RequestStub::HaveAcceptFlag);
+	
 	_rd.ops[_rd.opcnt].operation = Data::ProposeOperation;
-	_rd.ops[_rd.opcnt].acceptid = d.acceptid;
+	_rd.ops[_rd.opcnt].acceptid = rreq.acceptid;
 	_rd.ops[_rd.opcnt].proposeid = rreq.proposeid;
 	_rd.ops[_rd.opcnt].reqidx = _reqidx;
+	
 	++_rd.opcnt;
+	
 	if(_rd.isOperationsTableFull()){
 		doFlushOperations(_rd);
 	}
