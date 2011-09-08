@@ -1,5 +1,4 @@
 //TODO: usefull comment
-#include "stdafx.h"
 #include <cstdlib>
 #include <cassert>
 using namespace std;
