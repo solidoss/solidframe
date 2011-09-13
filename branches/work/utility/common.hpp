@@ -101,4 +101,12 @@ inline T circular_distance(const T &_v, const T &_piv, const T& _max){
 	}
 }
 
+inline size_t padding_size(const size_t _sz, const size_t _pad){
+	return ((_sz / _pad) + 1) * _pad;
+}
+
+inline size_t fast_padding_size(const size_t _sz, const size_t _bitpad){
+	return ((_sz >> _bitpad) + 1) << _bitpad;
+}
+
 #endif

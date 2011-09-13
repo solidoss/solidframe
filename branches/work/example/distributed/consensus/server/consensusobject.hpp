@@ -45,7 +45,7 @@ protected:
 	enum State{
 		Init,
 		Run,
-		Update
+		Recovery
 	};
 	bool isCoordinator()const;
 	uint32 acceptId()const;
@@ -56,7 +56,7 @@ private:
 	virtual void doAccept(DynamicPointer<RequestSignal> &_rsig) = 0;
 	int doInit(RunData &_rd);
 	int doRun(RunData &_rd);
-	int doUpdate(RunData &_rd);
+	int doRecovery(RunData &_rd);
     void doProcessRequest(RunData &_rd, const size_t _reqidx);
 	void doSendAccept(RunData &_rd, const size_t _reqidx);
 	void doSendFastAccept(RunData &_rd, const size_t _reqidx);
@@ -78,7 +78,7 @@ private:
 	void doExecuteAcceptConfirmOperation(RunData &_rd, const uint8 _replicaidx, OperationStub &_rop);
 	void doExecuteAcceptDeclineOperation(RunData &_rd, const uint8 _replicaidx, OperationStub &_rop);
     void doStartCoordinate(RunData &_rd, const size_t _reqidx);
-    void doEnterUpdateState();
+    void doEnterRecoveryState();
 private:
 	struct Data;
 	Data	&d;

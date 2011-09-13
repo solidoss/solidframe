@@ -64,18 +64,19 @@ public:
 	void prepare();
 	void unprepare();
 private:
-	uint doReadPipe();
-	uint doAllIo();
-	uint doFullScan();
-	uint doExecuteQueue();
-	uint doNewStub();
+	struct Stub;
+	ulong doReadPipe();
+	ulong doAllIo();
+	ulong doFullScan();
+	void doFullScanCheck(Stub &_rs, const ulong _pos);
+	ulong doExecuteQueue();
+	ulong doAddNewStub();
 	
 	void doUnregisterObject(Object &_robj, int _lastfailpos = -1);
-	uint doIo(Socket &_rsock, ulong _evs);
-	uint doExecute(const uint _pos);
-	void doPrepareObjectWait(const uint _pos, const TimeSpec &_timepos);
+	ulong doIo(Socket &_rsock, ulong _evs);
+	ulong doExecute(const ulong _pos);
+	void doPrepareObjectWait(const ulong _pos, const TimeSpec &_timepos);
 private://data
-	struct Stub;
 	struct Data;
 	Data	&d;
 };

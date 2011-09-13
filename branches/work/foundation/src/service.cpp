@@ -648,7 +648,7 @@ ObjectUidT Service::doInsertObject(Object &_ro, uint32 _tid, const IndexT &_ridx
 		}else{
 			//worst case scenario
 			const IndexT	initialsize(d.objvec.size());
-			d.objvec.resize(smart_resize(d.objvec, 256));
+			d.objvec.resize(fast_smart_resize(d.objvec, 8/*256*/));
 			const IndexT	sz(d.objvec.size());
 			const IndexT	diffsz(sz - initialsize - 1);
 			
@@ -706,7 +706,9 @@ bool Service::doSignalAll(ulong _sm){
 	
 	idbgx(Dbg::fdt, "signalling "<<oc<<" objects");
 	
-	for(Data::ObjectVectorT::iterator it(d.objvec.begin()); oc && it != d.objvec.end(); ++it, ++i){
+	cassert((d.objvec.size() % 4) == 0);
+	
+	for(Data::ObjectVectorT::iterator it(d.objvec.begin()); oc && it != d.objvec.end(); it += 4, i+=4){
 		if(it->first){
 			if(d.mtxstore.isRangeBegin(i)){
 				if(mi >= 0)	d.mtxstore[mi].unlock();
@@ -715,6 +717,42 @@ bool Service::doSignalAll(ulong _sm){
 			}
 			if(it->first->signal(_sm)){
 				rm.raiseObject(*it->first);
+			}
+			signaled = true;
+			--oc;
+		}
+		if((it + 1)->first){
+			if(d.mtxstore.isRangeBegin(i + 1)){
+				if(mi >= 0)	d.mtxstore[mi].unlock();
+				++mi;
+				d.mtxstore[mi].lock();
+			}
+			if(it->first->signal(_sm)){
+				rm.raiseObject(*(it + 1)->first);
+			}
+			signaled = true;
+			--oc;
+		}
+		if((it + 2)->first){
+			if(d.mtxstore.isRangeBegin(i + 2)){
+				if(mi >= 0)	d.mtxstore[mi].unlock();
+				++mi;
+				d.mtxstore[mi].lock();
+			}
+			if(it->first->signal(_sm)){
+				rm.raiseObject(*(it + 2)->first);
+			}
+			signaled = true;
+			--oc;
+		}
+		if((it + 3)->first){
+			if(d.mtxstore.isRangeBegin(i + 3)){
+				if(mi >= 0)	d.mtxstore[mi].unlock();
+				++mi;
+				d.mtxstore[mi].lock();
+			}
+			if(it->first->signal(_sm)){
+				rm.raiseObject(*(it + 3)->first);
 			}
 			signaled = true;
 			--oc;

@@ -659,7 +659,7 @@ int Object::execute(ulong _sig, TimeSpec &_tout){
 	switch(state()){
 		case Init:		return doInit(rd);
 		case Run:		return doRun(rd);
-		case Update:	return doUpdate(rd);
+		case Recovery:	return doRecovery(rd);
 	}
 	return NOK;
 }
@@ -715,7 +715,7 @@ int Object::doRun(RunData &_rd){
 	return NOK;
 }
 //---------------------------------------------------------
-int Object::doUpdate(RunData &_rd){
+int Object::doRecovery(RunData &_rd){
 	idbg("");
 	state(Run);
 	return OK;
@@ -776,38 +776,29 @@ void Object::doProcessRequest(RunData &_rd, const size_t _reqidx){
 				break;
 			}
 			break;
-		case RequestStub::AcceptWaitRequestState:
-			idbg("AcceptWaitRequestState");
-			if(events & RequestStub::TimeoutEvent){
-				//TODO: enter object in Update state
-				break;
-			}
-			if(!(rreq.flags & RequestStub::HaveRequestFlag)){
-				break;
-			}
-			if(overflow_safe_less(rreq.acceptid, d.acceptid + 1)){
-				doEraseRequest(_rd, _reqidx);
-				break;
-			}
-			if(d.acceptid + 1 != rreq.acceptid){
-				rreq.state(RequestStub::AcceptPendingState);
-				break;
-			}
-			doAcceptRequest(_rd, _reqidx);
-			doEraseRequest(_rd, _reqidx);
-			doScanPendingRequests(_rd);
-			break;
 		case RequestStub::WaitAcceptState:
 			//TODO:
 			break;
+		case RequestStub::AcceptWaitRequestState:
+			idbg("AcceptWaitRequestState");
+			if(events & RequestStub::TimeoutEvent){
+				//TODO: enter object in Update/Recovery state
+				break;
+			}
+			if(!(rreq.flags & RequestStub::HaveRequestFlag)){
+				break;
+			}
 		case RequestStub::AcceptState:
 			idbg("AcceptState");
+			++rreq.timerid;
 			if(!(rreq.flags & RequestStub::HaveRequestFlag)){
 				rreq.state(RequestStub::AcceptWaitRequestState);
 				TimeSpec ts(fdt::Object::currentTime());
-				ts.add(30);//30 secs
+				ts.add(60);//60 secs
 				d.timerq.push(ts, _reqidx, rreq.timerid);
-				//++d.acceptwaitreqcnt;
+				if(d.acceptpendingcnt < 255){
+					++d.acceptpendingcnt;
+				}
 				break;
 			}
 			if(overflow_safe_less(rreq.acceptid, d.acceptid + 1)){
@@ -816,8 +807,12 @@ void Object::doProcessRequest(RunData &_rd, const size_t _reqidx){
 			}
 			if(d.acceptid + 1 != rreq.acceptid){
 				rreq.state(RequestStub::AcceptPendingState);
+				
 				if(d.acceptpendingcnt < 255){
 					++d.acceptpendingcnt;
+				}
+				if(d.acceptpendingcnt == 1){
+					
 				}
 				break;
 			}
@@ -1098,7 +1093,7 @@ void Object::doEraseRequest(RunData &_rd, const size_t _reqidx){
 void Object::doStartCoordinate(RunData &_rd, const size_t _reqidx){
 	idbg(""<<_reqidx);
 }
-void Object::doEnterUpdateState(){
+void Object::doEnterRecoveryState(){
 	idbg("");
 }
 //========================================================
