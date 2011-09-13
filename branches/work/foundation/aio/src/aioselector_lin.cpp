@@ -793,7 +793,7 @@ ulong Selector::doAddNewStub(){
 	}else{
 		size_t cp = d.stubs.capacity();
 		pos = d.stubs.size();
-		size_t nextsize(fast_padding_size(pos, 4));
+		size_t nextsize(fast_padding_size(pos, 2));
 		d.stubs.push_back(Stub());
 		for(size_t i(pos + 1); i < nextsize; ++i){
 			d.stubs.push_back(Stub());

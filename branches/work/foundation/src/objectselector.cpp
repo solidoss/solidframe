@@ -84,10 +84,12 @@ bool  ObjectSelector::full()const{
 }
 
 int ObjectSelector::reserve(ulong _cp){
-	d.sv.resize(_cp);
+	d.sv.resize(fast_padding_size(_cp, 2));
 	setCurrentTimeSpecific(d.ctimepos);
 	//objq.reserve(_cp);
-	for(unsigned i = _cp - 1; i; --i) d.fstk.push(i);//all but first pos (0)
+	for(ulong i = d.sv.size() - 1; i; --i){
+		d.fstk.push(i);//all but first pos (0)
+	}
 	d.ctimepos.set(0);
 	
 	d.ntimepos.set(MAXTIMEPOS);
@@ -160,15 +162,45 @@ void ObjectSelector::run(){
 			idbgx(Dbg::fdt, "full_scan");
 			ulong evs = 0;
 			d.ntimepos.set(0xffffffff);
-			for(Data::ObjectStubVectorT::iterator it(d.sv.begin()); it != d.sv.end(); ++it){
-				Data::ObjectStub &ro = *it;
-				if(ro.objptr){
+			for(Data::ObjectStubVectorT::iterator it(d.sv.begin()); it != d.sv.end(); it += 4){
+				if(it->objptr){
+					Data::ObjectStub &ro = *it;
 					evs = 0;
 					if(d.ctimepos >= ro.timepos) evs |= TIMEOUT;
 					else if(d.ntimepos > ro.timepos) d.ntimepos = ro.timepos;
 					if(ro.objptr->signaled(S_RAISE)) evs |= SIGNALED;//should not be checked by objs
 					if(evs){
 						state |= doExecute(it - d.sv.begin(), evs, d.ctimepos);
+					}
+				}
+				if((it + 1)->objptr){
+					Data::ObjectStub &ro = *(it + 1);
+					evs = 0;
+					if(d.ctimepos >= ro.timepos) evs |= TIMEOUT;
+					else if(d.ntimepos > ro.timepos) d.ntimepos = ro.timepos;
+					if(ro.objptr->signaled(S_RAISE)) evs |= SIGNALED;//should not be checked by objs
+					if(evs){
+						state |= doExecute(it - d.sv.begin() + 1, evs, d.ctimepos);
+					}
+				}
+				if((it + 2)->objptr){
+					Data::ObjectStub &ro = *(it + 2);
+					evs = 0;
+					if(d.ctimepos >= ro.timepos) evs |= TIMEOUT;
+					else if(d.ntimepos > ro.timepos) d.ntimepos = ro.timepos;
+					if(ro.objptr->signaled(S_RAISE)) evs |= SIGNALED;//should not be checked by objs
+					if(evs){
+						state |= doExecute(it - d.sv.begin() + 2, evs, d.ctimepos);
+					}
+				}
+				if((it + 3)->objptr){
+					Data::ObjectStub &ro = *(it + 3);
+					evs = 0;
+					if(d.ctimepos >= ro.timepos) evs |= TIMEOUT;
+					else if(d.ntimepos > ro.timepos) d.ntimepos = ro.timepos;
+					if(ro.objptr->signaled(S_RAISE)) evs |= SIGNALED;//should not be checked by objs
+					if(evs){
+						state |= doExecute(it - d.sv.begin() + 3, evs, d.ctimepos);
 					}
 				}
 			}
