@@ -698,7 +698,7 @@ void Service::invalidateService(){
 }
 //---------------------------------------------------------
 bool Service::doSignalAll(ulong _sm){
-	ulong	oc(d.objcnt);
+	long	oc(d.objcnt);
 	ulong	i(0);
 	long	mi(-1);
 	bool	signaled(false);
@@ -708,7 +708,7 @@ bool Service::doSignalAll(ulong _sm){
 	
 	cassert((d.objvec.size() % 4) == 0);
 	
-	for(Data::ObjectVectorT::iterator it(d.objvec.begin()); oc && it != d.objvec.end(); it += 4, i+=4){
+	for(Data::ObjectVectorT::iterator it(d.objvec.begin()); oc > 0 && it != d.objvec.end(); it += 4, i += 4){
 		if(it->first){
 			if(d.mtxstore.isRangeBegin(i)){
 				if(mi >= 0)	d.mtxstore[mi].unlock();
@@ -727,7 +727,7 @@ bool Service::doSignalAll(ulong _sm){
 				++mi;
 				d.mtxstore[mi].lock();
 			}
-			if(it->first->signal(_sm)){
+			if((it + 1)->first->signal(_sm)){
 				rm.raiseObject(*(it + 1)->first);
 			}
 			signaled = true;
@@ -739,7 +739,7 @@ bool Service::doSignalAll(ulong _sm){
 				++mi;
 				d.mtxstore[mi].lock();
 			}
-			if(it->first->signal(_sm)){
+			if((it + 2)->first->signal(_sm)){
 				rm.raiseObject(*(it + 2)->first);
 			}
 			signaled = true;
@@ -751,7 +751,7 @@ bool Service::doSignalAll(ulong _sm){
 				++mi;
 				d.mtxstore[mi].lock();
 			}
-			if(it->first->signal(_sm)){
+			if((it + 3)->first->signal(_sm)){
 				rm.raiseObject(*(it + 3)->first);
 			}
 			signaled = true;
