@@ -196,10 +196,12 @@ struct Object::Data{
 	uint32					proposedacceptid;
 	uint32					confirmedacceptid;
 	
+	uint32					continuousacceptedproposes;
+	size_t					pendingacceptwaitidx;
+	
 	int8					coordinatorid;
 	int8					distancefromcoordinator;
 	uint8					acceptpendingcnt;//the number of stubs in waitrequest state
-	uint32					continuous_accepted_proposes;
 	TimeSpec				lastaccepttime;
 	
 	RequestStubMapT			reqmap;
@@ -250,11 +252,15 @@ NOTE: proposeid should start ahead of acceptid, because this way there are
 little to no changes for proposeid == 1 and acceptid = 0
 when a restarted coordinator could be mistaken with a non restarted one.
 */
-Object::Data::Data():proposeid(1), acceptid(0), proposedacceptid(0), confirmedacceptid(0), coordinatorid(-2), acceptpendingcnt(0){
+Object::Data::Data():
+	proposeid(1), acceptid(0), proposedacceptid(0), confirmedacceptid(0),
+	continuousacceptedproposes(0), pendingacceptwaitidx(-1),
+	coordinatorid(-2), distancefromcoordinator(-1), acceptpendingcnt(0)
+{
 	if(Parameters::the().idx){
-		coordinatorid = 0;
+		coordinatorId(0);
 	}else{
-		coordinatorid = -1;
+		coordinatorId(-1);
 	}
 }
 Object::Data::~Data(){
@@ -296,6 +302,7 @@ void Object::Data::eraseRequestStub(const size_t _idx){
 	RequestStub &rreq(requestStub(_idx));
 	cassert(rreq.sig.ptr());
 	rreq.sig.clear();
+	rreq.state(RequestStub::InitState);
 	++rreq.timerid;
 	freeposstk.push(_idx);
 }
@@ -326,7 +333,7 @@ bool Object::Data::checkAlreadyReceived(DynamicPointer<RequestSignal> &_rsig){
 bool Object::Data::canSendFastAccept()const{
 	TimeSpec ct(fdt::Object::currentTime());
 	ct -= lastaccepttime;
-	return (continuous_accepted_proposes >= 5) && ct.seconds() < 60;
+	return (continuousacceptedproposes >= 5) && ct.seconds() < 60;
 }
 RequestStub& Object::Data::safeRequestStub(const consensus::RequestId &_reqid, size_t &_rreqidx){
 	auto	it(reqmap.find(&_reqid));
@@ -546,7 +553,7 @@ void Object::doExecuteProposeConfirmOperation(RunData &_rd, const uint8 _replica
 	++preq->recvpropconf;
 	
 	if(preq->recvpropconf == Parameters::the().quorum){
-		++d.continuous_accepted_proposes;
+		++d.continuousacceptedproposes;
 		preq->state(RequestStub::WaitAcceptConfirmState);
 		TimeSpec ts(fdt::Object::currentTime());
 		ts += 60 * 1000;//ms
@@ -782,7 +789,7 @@ void Object::doProcessRequest(RunData &_rd, const size_t _reqidx){
 		case RequestStub::AcceptWaitRequestState:
 			idbg("AcceptWaitRequestState");
 			if(events & RequestStub::TimeoutEvent){
-				//TODO: enter object in Update/Recovery state
+				doEnterRecoveryState();
 				break;
 			}
 			if(!(rreq.flags & RequestStub::HaveRequestFlag)){
@@ -812,14 +819,29 @@ void Object::doProcessRequest(RunData &_rd, const size_t _reqidx){
 					++d.acceptpendingcnt;
 				}
 				if(d.acceptpendingcnt == 1){
-					
+					cassert(d.pendingacceptwaitidx == -1);
+					d.pendingacceptwaitidx = _reqidx;
+					TimeSpec ts(fdt::Object::currentTime());
+					ts.add(2*60);//2 mins
+					d.timerq.push(ts, _reqidx, rreq.timerid);
+					if(d.acceptpendingcnt < 255){
+						++d.acceptpendingcnt;
+					}
 				}
 				break;
 			}
 			doAcceptRequest(_rd, _reqidx);
+			
 			//we cannot do erase here, we must wait for the
 			//send operations to be flushed away
 			rreq.state(RequestStub::EraseState);
+			
+			if(d.acceptpendingcnt){
+				if(d.pendingacceptwaitidx == _reqidx){
+					d.pendingacceptwaitidx = -1;
+				}
+				doScanPendingRequests(_rd);
+			}
 	
 			if(!(rreq.evs & RequestStub::SignaledEvent)){
 				rreq.evs |= RequestStub::SignaledEvent;
@@ -828,6 +850,10 @@ void Object::doProcessRequest(RunData &_rd, const size_t _reqidx){
 			break;
 		case RequestStub::AcceptPendingState:
 			idbg("AcceptPendingState");
+			if(events & RequestStub::TimeoutEvent){
+				doEnterRecoveryState();
+				break;
+			}
 			//the status is changed within doScanPendingRequests
 			break;
 		case RequestStub::EraseState:
@@ -1011,20 +1037,29 @@ struct RequestStubAcceptCmp{
 		return overflow_safe_less(rreqvec[_ridx1].acceptid, rreqvec[_ridx2].acceptid);
 	}
 };
+
 void Object::doScanPendingRequests(RunData &_rd){
 	idbg(""<<d.acceptpendingcnt);
-	if(d.acceptpendingcnt != 255){
+	const size_t accpendcnt = d.acceptpendingcnt;
+	d.acceptpendingcnt = 0;
+	size_t	cnt(0);
+	if(accpendcnt != 255){
 		size_t	posarr[256];
 		size_t	idx(0);
-		size_t	cnt(d.acceptpendingcnt);
-		for(auto it(d.reqvec.begin()); cnt && it != d.reqvec.end(); ++it){
+		
+		
+		for(auto it(d.reqvec.begin()); it != d.reqvec.end(); ++it){
 			RequestStub	&rreq(*it);
-			if(rreq.state() == RequestStub::AcceptPendingState){
-				--cnt;
+			if(
+				rreq.state() == RequestStub::AcceptPendingState
+			){
 				posarr[idx] = it - d.reqvec.begin();
 				++idx;
+			}else if(rreq.state() == RequestStub::AcceptWaitRequestState){
+				++cnt;
 			}
 		}
+		
 		RequestStubAcceptCmp cmp(d.reqvec);
 		std::sort(posarr, posarr + idx, cmp);
 		
@@ -1039,7 +1074,16 @@ void Object::doScanPendingRequests(RunData &_rd){
 				}
 				rreq.state(RequestStub::AcceptState);
 			}else{
-				d.acceptpendingcnt = idx - i;
+				const size_t	tmp = cnt + idx - i;
+				d.acceptpendingcnt = tmp <= 255 ? tmp : 255;
+				if(tmp != cnt && d.pendingacceptwaitidx == -1){
+					//we have at least one pending request wich is not in waitrequest state
+					RequestStub	&rreq(d.requestStub(posarr[i]));
+					TimeSpec	ts(fdt::Object::currentTime());
+					ts.add(2*60);//2 mins
+					d.timerq.push(ts, posarr[i], rreq.timerid);
+					d.pendingacceptwaitidx = posarr[i];
+				}
 				break;
 			}
 		}
@@ -1049,6 +1093,8 @@ void Object::doScanPendingRequests(RunData &_rd){
 			RequestStub	&rreq(*it);
 			if(rreq.state() == RequestStub::AcceptPendingState){
 				posvec.push_back(it - d.reqvec.begin());
+			}else if(rreq.state() == RequestStub::AcceptWaitRequestState){
+				++cnt;
 			}
 		}
 		
@@ -1056,6 +1102,7 @@ void Object::doScanPendingRequests(RunData &_rd){
 		std::sort(posvec.begin(), posvec.end(), cmp);
 		
 		uint32 crtacceptid(d.acceptid);
+		
 		for(auto it(posvec.begin()); it != posvec.end(); ++it){
 			RequestStub	&rreq(d.reqvec[*it]);
 			++crtacceptid;
@@ -1067,10 +1114,14 @@ void Object::doScanPendingRequests(RunData &_rd){
 				rreq.state(RequestStub::AcceptState);
 			}else{
 				size_t sz(it - posvec.begin());
-				if(sz >= 255){
-					d.acceptpendingcnt = 255;
-				}else{
-					d.acceptpendingcnt = static_cast<uint8>(sz);
+				size_t tmp = cnt + posvec.size() - sz;
+				if(tmp != cnt && d.pendingacceptwaitidx == -1){
+					//we have at least one pending request wich is not in waitrequest state
+					RequestStub	&rreq(d.requestStub(*it));
+					TimeSpec	ts(fdt::Object::currentTime());
+					ts.add(2*60);//2 mins
+					d.timerq.push(ts, *it, rreq.timerid);
+					d.pendingacceptwaitidx = *it;
 				}
 				break;
 			}
