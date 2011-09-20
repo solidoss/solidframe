@@ -43,19 +43,29 @@ public:
 	void dynamicExecute(DynamicPointer<OperationSignal<32> > &_rsig, RunData &_rrd);
 protected:
 	enum State{
-		Init,
-		Run,
-		Recovery
+		InitState,
+		PrepareRunState,
+		RunState,
+		PrepareRecoveryState,
+		FirstRecoveryState,
+		LastRecoveryState = FirstRecoveryState + 32,
 	};
 	bool isCoordinator()const;
 	uint32 acceptId()const;
 	uint32 proposeId()const;
+	void enterRunState();
 private:
 	/*virtual*/ int execute(ulong _sig, TimeSpec &_tout);
 	/*virtual*/ bool signal(DynamicPointer<foundation::Signal> &_sig);
-	virtual void doAccept(DynamicPointer<RequestSignal> &_rsig) = 0;
+	virtual void accept(DynamicPointer<RequestSignal> &_rsig) = 0;
+	virtual void init();
+	virtual void prepareRun();
+	virtual void prepareRecovery();
+	virtual int recovery() = 0;
 	int doInit(RunData &_rd);
+	int doPrepareRun(RunData &_rd);
 	int doRun(RunData &_rd);
+	int doPrepareRecovery(RunData &_rd);
 	int doRecovery(RunData &_rd);
     void doProcessRequest(RunData &_rd, const size_t _reqidx);
 	void doSendAccept(RunData &_rd, const size_t _reqidx);

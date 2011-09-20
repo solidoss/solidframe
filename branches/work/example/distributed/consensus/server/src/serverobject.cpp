@@ -120,10 +120,16 @@ ServerObject::~ServerObject(){
 	
 }
 
-/*virtual*/ void ServerObject::doAccept(DynamicPointer<consensus::RequestSignal> &_rsig){
+/*virtual*/ void ServerObject::accept(DynamicPointer<consensus::RequestSignal> &_rsig){
 	idbg("accepting consensus::RequestSignal request");
 	DynamicPointer<>	dp(_rsig);
 	exeex.execute(*this, dp, 1);
+}
+
+/*virtual*/ int ServerObject::recovery(){
+	//use enterRunState() and return OK when done recovery
+	this->enterRunState();
+	return OK;
 }
 
 void ServerObject::dynamicExecute(DynamicPointer<> &_dp, int){
