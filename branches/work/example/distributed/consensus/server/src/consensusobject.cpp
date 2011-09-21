@@ -54,8 +54,8 @@ struct RequestStub{
 		InitState = 0,
 		WaitProposeState,
 		WaitProposeConfirmState,
-		WaitAcceptConfirmState,
 		WaitAcceptState,
+		WaitAcceptConfirmState,
 		AcceptWaitRequestState,
 		AcceptState,
 		AcceptPendingState,
@@ -71,10 +71,15 @@ struct RequestStub{
 		HaveProposeFlag = 2,
 		HaveAcceptFlag = 4,
 	};
-	RequestStub(): evs(0), flags(0), proposeid(0xffffffff/2), acceptid(-1), timerid(0), recvpropconf(0), st(InitState){}
+	RequestStub(
+	):
+		evs(0), flags(0), proposeid(0xffffffff/2), acceptid(-1),
+		timerid(0), recvpropconf(0), recvpropdecl(0), st(InitState){}
 	RequestStub(
 		DynamicPointer<consensus::RequestSignal> &_rsig
-	):sig(_rsig), proposeid(-1), acceptid(-1), timerid(0), recvpropconf(0), st(InitState){}
+	):
+		sig(_rsig), proposeid(-1), acceptid(-1), timerid(0),
+		recvpropconf(0), recvpropdecl(0), st(InitState){}
 	
 	bool hasRequest()const{
 		return flags & HaveRequestFlag;
@@ -91,6 +96,13 @@ struct RequestStub{
 	uint8 state()const{
 		return st;
 	}
+	bool isValidProposeState()const;
+	bool isValidProposeConfirmState()const;
+	bool isValidProposeDeclineState()const;
+	bool isValidAcceptState()const;
+	bool isValidFastAcceptState()const;
+	bool isValidAcceptConfirmState()const;
+	bool isValidAcceptDeclineState()const;
 	
 	DynamicPointer<consensus::RequestSignal>	sig;
 	uint16										evs;
@@ -99,6 +111,7 @@ struct RequestStub{
 	uint32										acceptid;
 	uint16										timerid;
 	uint8										recvpropconf;//received accepts for propose
+	uint8										recvpropdecl;//received accepts for propose
 private:
 	uint8										st;
 };
@@ -128,6 +141,75 @@ void RequestStub::state(uint8 _st){
 	}
 	st = _st;
 }
+
+inline bool RequestStub::isValidProposeState()const{
+	switch(st){
+		case InitState:
+		case WaitProposeState:
+		case WaitProposeConfirmState:
+		case WaitAcceptConfirmState:
+		case WaitAcceptState:
+			return true;
+		default:
+			return false;
+	}
+}
+inline bool RequestStub::isValidProposeConfirmState()const{
+	switch(st){
+		case InitState:
+		case WaitProposeState:
+			return false;
+		case WaitProposeConfirmState:
+			return true;
+		case WaitAcceptConfirmState:
+		case WaitAcceptState:
+		default:
+			return false;
+	}
+}
+inline bool RequestStub::isValidProposeDeclineState()const{
+	return isValidProposeConfirmState();
+}
+inline bool RequestStub::isValidAcceptState()const{
+	switch(st){
+		case WaitAcceptState:
+			return true;
+		case AcceptWaitRequestState:
+		case AcceptState:
+		case AcceptPendingState:
+		default:
+			return false;
+	}
+}
+inline bool RequestStub::isValidFastAcceptState()const{
+	switch(st){
+		case InitState:
+		case WaitProposeState:
+		case WaitProposeConfirmState:
+			return true;
+		case WaitAcceptConfirmState:
+		case WaitAcceptState:
+		default:
+			return false;
+	}
+}
+inline bool RequestStub::isValidAcceptConfirmState()const{
+	switch(st){
+		case InitState:
+		case WaitProposeState:
+		case WaitProposeConfirmState:
+			return false;
+		case WaitAcceptConfirmState:
+			return true;
+		case WaitAcceptState:
+		default:
+			return false;
+	}
+}
+inline bool RequestStub::isValidAcceptDeclineState()const{
+	return isValidAcceptConfirmState();
+}
+
 
 
 typedef std::deque<RequestStub>		RequestStubVectorT;
@@ -422,6 +504,10 @@ Object::~Object(){
 	delete &d;
 }
 //---------------------------------------------------------
+bool Object::isRecoveryState()const{
+	return state() >= PrepareRecoveryState && state() <= LastRecoveryState;
+}
+//---------------------------------------------------------
 void Object::dynamicExecute(DynamicPointer<> &_dp, RunData &_rrd){
 	
 }
@@ -507,11 +593,11 @@ void Object::doExecuteOperation(RunData &_rd, const uint8 _replicaidx, Operation
 //on replica
 void Object::doExecuteProposeOperation(RunData &_rd, const uint8 _replicaidx, OperationStub &_rop){
 	idbg("op = ("<<(int)_rop.operation<<' '<<_rop.proposeid<<' '<<'('<<_rop.reqid<<')');
-	if(!_rop.proposeid && d.proposeid){
+	if(!_rop.proposeid && d.proposeid/* && !isRecoveryState()*/){
 		doSendDeclinePropose(_rd, _replicaidx, _rop);
 		return;
 	}
-	if(overflow_safe_less(d.proposeid, _rop.proposeid)){
+	if(overflow_safe_less(d.proposeid, _rop.proposeid)/* && !isRecoveryState()*/){
 		//we cannot accept the propose
 		doSendDeclinePropose(_rd, _replicaidx, _rop);
 		return;
@@ -523,18 +609,33 @@ void Object::doExecuteProposeOperation(RunData &_rd, const uint8 _replicaidx, Op
 	
 	RequestStub &rreq(d.safeRequestStub(_rop.reqid, reqidx));
 	
+	if(!rreq.isValidProposeState() && !isRecoveryState()){
+		wdbg("Invalid state "<<rreq.state()<<" for reqidx "<<reqidx);
+		return;
+	}
+	
 	rreq.proposeid = d.proposeid;
 	rreq.flags |= RequestStub::HaveProposeFlag;
 	if(!(rreq.flags & RequestStub::HaveAcceptFlag)){
 		++d.proposedacceptid;
 		rreq.acceptid = d.proposedacceptid;
 	}
+	rreq.state(RequestStub::WaitAcceptState);
+	++rreq.timerid;
+	TimeSpec ts(fdt::Object::currentTime());
+	ts += 10 * 1000;//ms
+	d.timerq.push(ts, reqidx, rreq.timerid);
+	
 	doSendConfirmPropose(_rd, _replicaidx, reqidx);
 }
 
 //on coordinator
 void Object::doExecuteProposeConfirmOperation(RunData &_rd, const uint8 _replicaidx, OperationStub &_rop){
 	idbg("op = ("<<(int)_rop.operation<<' '<<_rop.proposeid<<' '<<'('<<_rop.reqid<<')');
+	if(isRecoveryState()){
+		idbg("Recovery state!!!");
+		return;
+	}
 	size_t reqidx;
 	RequestStub *preq(d.requestStubPointer(_rop.reqid, reqidx));
 	if(!preq){
@@ -543,6 +644,10 @@ void Object::doExecuteProposeConfirmOperation(RunData &_rd, const uint8 _replica
 	}
 	if(preq->proposeid != _rop.proposeid){
 		idbg("req->proposeid("<<preq->proposeid<<") != _rop.proposeid("<<_rop.proposeid<<")");
+		return;
+	}
+	if(!preq->isValidProposeConfirmState()){
+		wdbg("Invalid state "<<preq->state()<<" for reqidx "<<reqidx);
 		return;
 	}
 	cassert(preq->flags & RequestStub::HaveAcceptFlag);
@@ -573,7 +678,42 @@ void Object::doExecuteProposeConfirmOperation(RunData &_rd, const uint8 _replica
 
 //on coordinator
 void Object::doExecuteProposeDeclineOperation(RunData &_rd, const uint8 _replicaidx, OperationStub &_rop){
-	//TODO:
+	idbg("op = ("<<(int)_rop.operation<<' '<<_rop.proposeid<<' '<<'('<<_rop.reqid<<')');
+	if(isRecoveryState()){
+		idbg("Recovery state!!!");
+		return;
+	}
+	size_t reqidx;
+	RequestStub *preq(d.requestStubPointer(_rop.reqid, reqidx));
+	if(!preq){
+		idbg("no such request");
+		return;
+	}
+	
+	if(!preq->isValidProposeDeclineState()){
+		wdbg("Invalid state "<<preq->state()<<" for reqidx "<<reqidx);
+		return;
+	}
+	if(
+		preq->proposeid == 0 && 
+		preq->proposeid != _rop.proposeid &&
+		d.acceptid != _rop.acceptid
+	){
+		idbg("req->proposeid("<<preq->proposeid<<") != _rop.proposeid("<<_rop.proposeid<<")");
+		doEnterRecoveryState();
+		return;
+	}
+	++preq->recvpropdecl;
+	if(preq->recvpropdecl == Parameters::the().quorum){
+		++preq->timerid;
+		preq->state(RequestStub::InitState);
+		d.continuousacceptedproposes = 0;
+		if(!(preq->evs & RequestStub::SignaledEvent)){
+			preq->evs |= RequestStub::SignaledEvent;
+			d.reqq.push(reqidx);
+		}
+	}
+	return;
 }
 
 //on replica
@@ -583,12 +723,19 @@ void Object::doExecuteAcceptOperation(RunData &_rd, const uint8 _replicaidx, Ope
 	RequestStub *preq(d.requestStubPointer(_rop.reqid, reqidx));
 	if(!preq){
 		idbg("no such request");
+		if(!isRecoveryState()){
+			doSendDeclineAccept(_rd, _replicaidx, _rop);
+		}
+		return;
+	}
+	if(preq->proposeid != _rop.proposeid && !isRecoveryState()){
+		idbg("req->proposeid("<<preq->proposeid<<") != _rop.proposeid("<<_rop.proposeid<<")");
 		doSendDeclineAccept(_rd, _replicaidx, _rop);
 		return;
 	}
-	if(preq->proposeid != _rop.proposeid){
-		idbg("req->proposeid("<<preq->proposeid<<") != _rop.proposeid("<<_rop.proposeid<<")");
-		doSendDeclineAccept(_rd, _replicaidx, _rop);
+	
+	if(!preq->isValidAcceptState() && !isRecoveryState()){
+		wdbg("Invalid state "<<preq->state()<<" for reqidx "<<reqidx);
 		return;
 	}
 	
@@ -601,11 +748,14 @@ void Object::doExecuteAcceptOperation(RunData &_rd, const uint8 _replicaidx, Ope
 		preq->evs |= RequestStub::SignaledEvent;
 		d.reqq.push(reqidx);
 	}
+	
 	doSendConfirmAccept(_rd, _replicaidx, reqidx);
 }
+
+//on replica
 void Object::doExecuteFastAcceptOperation(RunData &_rd, const uint8 _replicaidx, OperationStub &_rop){
 	idbg("op = ("<<(int)_rop.operation<<' '<<_rop.proposeid<<' '<<'('<<_rop.reqid<<')');
-	if(!overflow_safe_less(d.proposeid, _rop.proposeid)){
+	if(!isRecoveryState() && !overflow_safe_less(d.proposeid, _rop.proposeid)){
 		//we cannot accept the propose
 		doSendDeclineAccept(_rd, _replicaidx, _rop);
 		return;
@@ -615,6 +765,11 @@ void Object::doExecuteFastAcceptOperation(RunData &_rd, const uint8 _replicaidx,
 	d.proposeid = _rop.proposeid;
 	
 	RequestStub &rreq(d.safeRequestStub(_rop.reqid, reqidx));
+	
+	if(!rreq.isValidFastAcceptState() && !isRecoveryState()){
+		wdbg("Invalid state "<<rreq.state()<<" for reqidx "<<reqidx);
+		return;
+	}
 	
 	rreq.proposeid = _rop.proposeid;
 	rreq.acceptid = _rop.acceptid;
@@ -630,11 +785,66 @@ void Object::doExecuteFastAcceptOperation(RunData &_rd, const uint8 _replicaidx,
 	doSendConfirmAccept(_rd, _replicaidx, reqidx);
 }
 
+//on coordinator
 void Object::doExecuteAcceptConfirmOperation(RunData &_rd, const uint8 _replicaidx, OperationStub &_rop){
+	idbg("op = ("<<(int)_rop.operation<<' '<<_rop.proposeid<<' '<<'('<<_rop.reqid<<')');
+	if(isRecoveryState()){
+		idbg("Recovery state!!!");
+		return;
+	}
+	size_t reqidx;
+	RequestStub *preq(d.requestStubPointer(_rop.reqid, reqidx));
+	if(!preq){
+		idbg("no such request");
+		return;
+	}
+	if(preq->proposeid != _rop.proposeid || preq->acceptid != _rop.acceptid){
+		idbg("req->proposeid("<<preq->proposeid<<") != _rop.proposeid("<<_rop.proposeid<<")");
+		return;
+	}
+	if(preq->acceptid != _rop.acceptid){
+		idbg("req->acceptid("<<preq->acceptid<<") != _rop.acceptid("<<_rop.acceptid<<")");
+		return;
+	}
+	if(!preq->isValidAcceptConfirmState()){
+		wdbg("Invalid state "<<preq->state()<<" for reqidx "<<reqidx);
+		return;
+	}
 	
+	preq->state(RequestStub::AcceptState);
+	
+	if(!(preq->evs & RequestStub::SignaledEvent)){
+		preq->evs |= RequestStub::SignaledEvent;
+		d.reqq.push(reqidx);
+	}
 }
+//on coordinator
 void Object::doExecuteAcceptDeclineOperation(RunData &_rd, const uint8 _replicaidx, OperationStub &_rop){
-	
+	idbg("op = ("<<(int)_rop.operation<<' '<<_rop.proposeid<<' '<<'('<<_rop.reqid<<')');
+	if(isRecoveryState()){
+		idbg("Recovery state!!!");
+		return;
+	}
+	size_t reqidx;
+	RequestStub *preq(d.requestStubPointer(_rop.reqid, reqidx));
+	if(!preq){
+		idbg("no such request");
+		return;
+	}
+	if(preq->proposeid != _rop.proposeid || preq->acceptid != _rop.acceptid){
+		idbg("req->proposeid("<<preq->proposeid<<") != _rop.proposeid("<<_rop.proposeid<<")");
+		return;
+	}
+	if(preq->acceptid != _rop.acceptid){
+		idbg("req->acceptid("<<preq->acceptid<<") != _rop.acceptid("<<_rop.acceptid<<")");
+		return;
+	}
+	if(!preq->isValidAcceptConfirmState()){
+		wdbg("Invalid state "<<preq->state()<<" for reqidx "<<reqidx);
+		return;
+	}
+	//do nothing for now
+	return;
 }
 
 //---------------------------------------------------------
@@ -646,6 +856,7 @@ void Object::doExecuteAcceptDeclineOperation(RunData &_rd, const uint8 _replicai
 	d.exe.push(DynamicPointer<>(_sig));
 	return fdt::Object::signal(fdt::S_SIG | fdt::S_RAISE);
 }
+
 //---------------------------------------------------------
 /*virtual*/ void Object::init(){
 }
@@ -776,7 +987,7 @@ void Object::doProcessRequest(RunData &_rd, const size_t _reqidx){
 	uint32 events = rreq.evs;
 	rreq.evs = 0;
 	switch(rreq.state()){
-		case RequestStub::InitState:
+		case RequestStub::InitState://any
 			if(d.isCoordinator()){
 				if(d.canSendFastAccept()){
 					idbg("InitState coordinator - send fast accept");
@@ -799,7 +1010,7 @@ void Object::doProcessRequest(RunData &_rd, const size_t _reqidx){
 				d.timerq.push(ts, _reqidx, rreq.timerid);
 			}
 			break;
-		case RequestStub::WaitProposeState:
+		case RequestStub::WaitProposeState://on replica
 			idbg("WaitProposeState");
 			if(events & RequestStub::TimeoutEvent){
 				idbg("WaitProposeState - timeout");
@@ -812,24 +1023,32 @@ void Object::doProcessRequest(RunData &_rd, const size_t _reqidx){
 				break;
 			}
 			break;
-		case RequestStub::WaitProposeConfirmState:
+		case RequestStub::WaitProposeConfirmState://on coordinator
 			idbg("WaitProposeAcceptState");
 			if(events & RequestStub::TimeoutEvent){
 				doEraseRequest(_rd, _reqidx);
 				break;
 			}
 			break;
-		case RequestStub::WaitAcceptConfirmState:
+		case RequestStub::WaitAcceptState://on replica
+			if(events & RequestStub::TimeoutEvent){
+				idbg("WaitAcceptState - timeout");
+				rreq.state(RequestStub::WaitProposeState);
+				TimeSpec ts(fdt::Object::currentTime());
+				ts += d.distancefromcoordinator * 1000;//ms
+				++rreq.timerid;
+				d.timerq.push(ts, _reqidx, rreq.timerid);
+				break;
+			}
+			break;
+		case RequestStub::WaitAcceptConfirmState://on coordinator
 			idbg("WaitProposeAcceptState");
 			if(events & RequestStub::TimeoutEvent){
 				doEraseRequest(_rd, _reqidx);
 				break;
 			}
 			break;
-		case RequestStub::WaitAcceptState:
-			//TODO:
-			break;
-		case RequestStub::AcceptWaitRequestState:
+		case RequestStub::AcceptWaitRequestState://any
 			idbg("AcceptWaitRequestState");
 			if(events & RequestStub::TimeoutEvent){
 				doEnterRecoveryState();
@@ -838,7 +1057,7 @@ void Object::doProcessRequest(RunData &_rd, const size_t _reqidx){
 			if(!(rreq.flags & RequestStub::HaveRequestFlag)){
 				break;
 			}
-		case RequestStub::AcceptState:
+		case RequestStub::AcceptState://any
 			idbg("AcceptState");
 			++rreq.timerid;
 			//for recovery reasons, we do this check before
@@ -912,10 +1131,16 @@ void Object::doProcessRequest(RunData &_rd, const size_t _reqidx){
 
 void Object::doSendAccept(RunData &_rd, const size_t _reqidx){
 	idbg("");
+	if(!isRecoveryState()){
+		return;
+	}
 	if(!_rd.isCoordinator()){
 		doFlushOperations(_rd);
 		_rd.coordinatorid = -1;
 	}
+	
+	d.coordinatorId(-1);
+	
 	RequestStub &rreq(d.requestStub(_reqidx));
 	
 	_rd.ops[_rd.opcnt].operation = Data::AcceptOperation;
@@ -932,6 +1157,9 @@ void Object::doSendAccept(RunData &_rd, const size_t _reqidx){
 
 void Object::doSendFastAccept(RunData &_rd, const size_t _reqidx){
 	idbg("");
+	if(!isRecoveryState()){
+		return;
+	}
 	if(!_rd.isCoordinator()){
 		doFlushOperations(_rd);
 		_rd.coordinatorid = -1;
@@ -961,6 +1189,9 @@ void Object::doSendFastAccept(RunData &_rd, const size_t _reqidx){
 
 void Object::doSendPropose(RunData &_rd, const size_t _reqidx){
 	idbg("");
+	if(!isRecoveryState()){
+		return;
+	}
 	if(!_rd.isCoordinator()){
 		doFlushOperations(_rd);
 		_rd.coordinatorid = -1;
@@ -993,6 +1224,9 @@ void Object::doSendPropose(RunData &_rd, const size_t _reqidx){
 }
 void Object::doSendConfirmPropose(RunData &_rd, const uint8 _replicaidx, const size_t _reqidx){
 	idbg("");
+	if(!isRecoveryState()){
+		return;
+	}
 	if(_rd.coordinatorid != _replicaidx){
 		doFlushOperations(_rd);
 		_rd.coordinatorid = _replicaidx;
@@ -1016,6 +1250,9 @@ void Object::doSendConfirmPropose(RunData &_rd, const uint8 _replicaidx, const s
 
 void Object::doSendDeclinePropose(RunData &_rd, const uint8 _replicaidx, const OperationStub &_rop){
 	idbg("");
+	if(!isRecoveryState()){
+		return;
+	}
 	OperationSignal<1>	*po(new OperationSignal<1>);
 	
 	po->replicaidx = Parameters::the().idx;
@@ -1032,10 +1269,15 @@ void Object::doSendDeclinePropose(RunData &_rd, const uint8 _replicaidx, const O
 
 void Object::doSendConfirmAccept(RunData &_rd, const uint8 _replicaidx, const size_t _reqidx){
 	idbg("");
+	if(!isRecoveryState()){
+		return;
+	}
 	if(_rd.coordinatorid != _replicaidx){
 		doFlushOperations(_rd);
 		_rd.coordinatorid = _replicaidx;
 	}
+	
+	d.coordinatorId(_replicaidx);
 	
 	RequestStub &rreq(d.requestStub(_reqidx));
 	
@@ -1052,6 +1294,9 @@ void Object::doSendConfirmAccept(RunData &_rd, const uint8 _replicaidx, const si
 	}
 }
 void Object::doSendDeclineAccept(RunData &_rd, const uint8 _replicaidx, const OperationStub &_rop){
+	if(!isRecoveryState()){
+		return;
+	}
 	OperationSignal<1>	*po(new OperationSignal<1>);
 	
 	po->replicaidx = Parameters::the().idx;
@@ -1258,7 +1503,7 @@ void Object::doStartCoordinate(RunData &_rd, const size_t _reqidx){
 	idbg(""<<_reqidx);
 }
 void Object::doEnterRecoveryState(){
-	idbg("");
+	idbg("ENTER RECOVERY STATE");
 	state(PrepareRecoveryState);
 }
 void Object::enterRunState(){

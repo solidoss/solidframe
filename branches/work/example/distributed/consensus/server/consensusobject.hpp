@@ -54,6 +54,7 @@ protected:
 	uint32 acceptId()const;
 	uint32 proposeId()const;
 	void enterRunState();
+	bool isRecoveryState()const;
 private:
 	/*virtual*/ int execute(ulong _sig, TimeSpec &_tout);
 	/*virtual*/ bool signal(DynamicPointer<foundation::Signal> &_sig);
