@@ -186,7 +186,7 @@ ClientObject::ClientObject(
 }
 //------------------------------------------------------------
 ClientObject::~ClientObject(){
-	
+	idbg("");
 }
 //------------------------------------------------------------
 int ClientObject::execute(ulong _sig, TimeSpec &_tout){
@@ -276,8 +276,12 @@ int ClientObject::execute(ulong _sig, TimeSpec &_tout){
 		}
 		return OK;
 	}else if(waitresponsecount){
-		idbg("waiting for "<<waitresponsecount<<" responses");
-		_tout.add(10);
+		if(_sig & fdt::TIMEOUT){
+			m().signalStop();
+		}else{
+			idbg("waiting for "<<waitresponsecount<<" responses");
+			_tout.add(1 * 60);
+		}
 	}else{
 		m().signalStop();
 	}
@@ -373,8 +377,8 @@ void ClientObject::dynamicExecute(DynamicPointer<ClientSignal> &_rsig){
 }
 //------------------------------------------------------------
 void ClientObject::dynamicExecute(DynamicPointer<StoreRequest> &_rsig){
-	idbg("received StoreSignal response with value "<<_rsig->v);
 	--waitresponsecount;
+	idbg("received StoreSignal response with value "<<_rsig->v<<" waitresponsecount = "<<waitresponsecount);
 }
 //------------------------------------------------------------
 void ClientObject::dynamicExecute(DynamicPointer<FetchRequest> &_rsig){
@@ -386,7 +390,7 @@ void ClientObject::dynamicExecute(DynamicPointer<EraseRequest> &_rsig){
 }
 //------------------------------------------------------------
 void ClientObject::expectStore(uint32 _rid, const string &_rs, uint32 _v, uint32 _cnt){
-	++waitresponsecount;
+	waitresponsecount += (_cnt);
 }
 //------------------------------------------------------------
 void ClientObject::expectFetch(uint32 _rid, const string &_rs, uint32 _cnt){

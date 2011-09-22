@@ -648,7 +648,7 @@ ulong Selector::doFullScan(){
 	++d.rep_fullscancount;
 	idbgx(Dbg::aio, "fullscan count "<<d.rep_fullscancount);
 	d.ntimepos = TimeSpec::max;
-	for(Data::StubVectorT::iterator it(d.stubs.begin() + 1); it != d.stubs.end(); it += 4){
+	for(Data::StubVectorT::iterator it(d.stubs.begin()); it != d.stubs.end(); it += 4){
 		if(it->objptr){
 			doFullScanCheck(*it, it - d.stubs.begin());
 		}

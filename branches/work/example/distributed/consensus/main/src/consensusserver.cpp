@@ -101,12 +101,12 @@ int main(int argc, char *argv[]){
 #endif
 	{
 		if(!p.p.init(p.ipc_port)){
-		cout<<"Failed ServerParams::init: "<<p.p.errorString()<<endl;
+		//cout<<"Failed ServerParams::init: "<<p.p.errorString()<<endl;
 		idbg("Failed ServerParams::init: "<<p.p.errorString());
 		return 0;
 	}
 	
-		cout<<p.p;
+		//cout<<p.p;
 		idbg(p.p);
 	}
 	{
@@ -130,7 +130,7 @@ int main(int argc, char *argv[]){
 		
 		//const IndexT svcidx = 
 		m.registerService<SchedulerT>(new foundation::Service, 0, fdt::compute_service_id(serverUid().first));
-		m.registerService<SchedulerT>(new foundation::ipc::Service(&ipcctrl, 500, 2, 2), 0, ipcid);
+		m.registerService<SchedulerT>(new foundation::ipc::Service(&ipcctrl, 0, 2, 2), 0, ipcid);
 		
 		m.start();
 		

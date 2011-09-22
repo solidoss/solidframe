@@ -77,7 +77,7 @@ bool ServerParams::init(int _ipc_port){
 }
 
 std::ostream& ServerParams::print(std::ostream &_ros)const{
-	_ros<<"Addresses: ";
+	_ros<<"Addresses: [";
 	for(AddressVectorT::const_iterator it(addrvec.begin()); it != addrvec.end(); ++it){
 		const SocketAddress4 &ra(*it);
 		char				host[SocketAddress::HostNameCapacity];
@@ -92,8 +92,7 @@ std::ostream& ServerParams::print(std::ostream &_ros)const{
 		);
 		_ros<<host<<':'<<port<<' ';
 	}
-	_ros<<endl;
-	_ros<<"Index: "<<(int)idx<<endl;
+	_ros<<"] Index: "<<(int)idx<<" Qorum: "<<(int)quorum;
 	return _ros;
 }
 std::ostream& operator<<(std::ostream &_ros, const ServerParams &_rsp){
@@ -137,10 +136,11 @@ void ServerObject::dynamicExecute(DynamicPointer<> &_dp, int){
 }
 
 void ServerObject::dynamicExecute(DynamicPointer<StoreRequest> &_rsig, int){
-	idbg("received InsertSignal request");
 	const foundation::ipc::ConnectionUid	ipcconid(_rsig->ipcconid);
 	
 	_rsig->v = this->acceptId();
+
+	idbg("StoreSignal request: v = "<<_rsig->v);
 	
 	DynamicPointer<foundation::Signal>		sigptr(_rsig);
 	foundation::ipc::Service::the().sendSignal(sigptr, ipcconid);
