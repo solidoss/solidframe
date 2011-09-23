@@ -597,12 +597,14 @@ void Object::doExecuteOperation(RunData &_rd, const uint8 _replicaidx, Operation
 
 //on replica
 void Object::doExecuteProposeOperation(RunData &_rd, const uint8 _replicaidx, OperationStub &_rop){
-	idbg("op = ("<<(int)_rop.operation<<' '<<_rop.proposeid<<' '<<'('<<_rop.reqid<<')');
+	idbg("op = ("<<(int)_rop.operation<<' '<<_rop.proposeid<<' '<<'('<<_rop.reqid<<')'<<" crtproposeid = "<<d.proposeid);
 	if(!_rop.proposeid && d.proposeid/* && !isRecoveryState()*/){
+		idbg("");
 		doSendDeclinePropose(_rd, _replicaidx, _rop);
 		return;
 	}
-	if(overflow_safe_less(d.proposeid, _rop.proposeid)/* && !isRecoveryState()*/){
+	if(overflow_safe_less(_rop.proposeid, d.proposeid)/* && !isRecoveryState()*/){
+		idbg("");
 		//we cannot accept the propose
 		doSendDeclinePropose(_rd, _replicaidx, _rop);
 		return;
@@ -1226,6 +1228,7 @@ void Object::doSendPropose(RunData &_rd, const size_t _reqidx){
 	rreq.acceptid = d.proposedacceptid;
 	rreq.proposeid = d.proposeid;
 	rreq.flags |= (RequestStub::HaveProposeFlag | RequestStub::HaveAcceptFlag);
+	idbg("sendpropose: proposeid = "<<rreq.proposeid<<" acceptid = "<<rreq.acceptid);
 	
 	_rd.ops[_rd.opcnt].operation = Data::ProposeOperation;
 	_rd.ops[_rd.opcnt].acceptid = rreq.acceptid;
