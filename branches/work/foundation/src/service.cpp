@@ -619,7 +619,7 @@ ObjectUidT Service::doInsertObject(Object &_ro, uint32 _tid, const IndexT &_ridx
 			while(cnt--){
 				d.mtxstore.safeAt(d.objvec.size());
 				d.idxque.push(initialsize + 254 - cnt);
-				d.objvec.push_back(Data::ObjectPairT(NULL, 0));
+				d.objvec.push_back(Data::ObjectPairT(static_cast<fdt::Object*>(NULL), 0));
 			}
 			
 			d.mtxstore.visit(sz, visit_unlock);//unlock all mutexes

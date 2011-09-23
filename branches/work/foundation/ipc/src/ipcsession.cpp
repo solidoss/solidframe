@@ -557,7 +557,7 @@ void Session::Data::popSentWaitSignals(Session::Data::SendBufferData &_rsbd){
 			popSentWaitSignal(_rsbd.signalidxvec[0]);
 			popSentWaitSignal(_rsbd.signalidxvec[1]);
 			popSentWaitSignal(_rsbd.signalidxvec[2]);
-			popSentWaitSignal(_rsbd.signalidxvec[4]);
+			popSentWaitSignal(_rsbd.signalidxvec[3]);
 			break;
 		default:
 			for(
