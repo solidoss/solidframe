@@ -175,13 +175,13 @@ if(CMAKE_SYSTEM MATCHES "Linux*")
 	set(ON_POSIX TRUE)
 	
 	
-	set(SYS_DEBUG_FLAGS "-DON_LINUX -DON_POSIX -Wreorder -Wreturn-type -Wunused-variable -Winline -g3")
+	set(SYS_DEBUG_FLAGS "-DON_LINUX -DON_POSIX -Wreorder -Wreturn-type -Wunused-variable -Winline -g3")# -D_GLIBCXX_DEBUG
 	set(SYS_MAINTAIN_FLAGS "-DON_LINUX -DON_POSIX -Wall -Wabi -O3 -g3")
 	set(SYS_OPTIMIZED_FLAGS "-DON_LINUX -DON_POSIX -O3 -g3")
 	set(SYS_NOLOG_FLAGS "-DON_LINUX -DON_POSIX -g3")
 	set(SYS_RELEASE_FLAGS "-DON_LINUX -DON_POSIX -O3")
 
-	set(SYS_DEBUG_LINKER_FLAGS "")
+	set(SYS_DEBUG_LINKER_FLAGS "")# -D_GLIBCXX_DEBUG
 	set(SYS_MAINTAIN_LINKER_FLAGS "-Wl,--warn-unresolved-symbols,--warn-once")
 	set(SYS_OPTIMIZED_LINKER_FLAGS "")
 	set(SYS_NOLOG_LINKER_FLAGS "")
