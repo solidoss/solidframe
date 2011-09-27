@@ -26,7 +26,7 @@ bool ServerParams::init(int _ipc_port){
 			return false;
 		}
 		s[pos] = 0;
-		AddrInfo ai(s.c_str(), s.c_str() + pos + 1, 0, AddrInfo::Inet4, AddrInfo::Datagram);
+		SocketAddressInfo ai(s.c_str(), s.c_str() + pos + 1, 0, SocketAddressInfo::Inet4, SocketAddressInfo::Datagram);
 		if(!ai.empty()){
 			addrvec.push_back(SocketAddress4(ai.begin()));
 		}else{
@@ -60,7 +60,7 @@ bool ServerParams::init(int _ipc_port){
 				idbg("inaddr: name = "<<it->ifa_name<<", addr = "<<host<<":"<<srvc);
 				
             }
-            SocketAddress4 sa(SockAddrPair(it->ifa_addr, sizeof(sockaddr_in)));
+            SocketAddress4 sa(SocketAddressPair(it->ifa_addr, sizeof(sockaddr_in)));
 			sa.port(_ipc_port);
 			int pos = bs(addrvec.begin(), addrvec.end(), sa);
 			if(pos >= 0){

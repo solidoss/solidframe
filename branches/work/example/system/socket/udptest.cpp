@@ -4,8 +4,8 @@
 using namespace std;
 
 int main(){
-	AddrInfo ai("0.0.0.0", "0", 0, AddrInfo::Inet4, AddrInfo::Datagram, 0);
-	AddrInfoIterator it(ai.begin());
+	SocketAddressInfo ai("0.0.0.0", "0", 0, SocketAddressInfo::Inet4, SocketAddressInfo::Datagram, 0);
+	SocketAddressInfoIterator it(ai.begin());
 	
 	SocketDevice sd;
 	sd.create(it);

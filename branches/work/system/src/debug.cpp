@@ -487,7 +487,7 @@ void Dbg::initSocket(
 ){
 	if(!d.isActive()) return;
 	//do the connect outside locking
-	AddrInfo ai(_addr, _port);
+	SocketAddressInfo ai(_addr, _port);
 	SocketDevice sd;
 	if(!ai.empty() && sd.create(ai.begin()) == OK && sd.connect(ai.begin()) == OK){
 	}else{

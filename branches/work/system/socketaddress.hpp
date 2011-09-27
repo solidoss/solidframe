@@ -28,7 +28,7 @@
 #include <netdb.h>
 #include "common.hpp"
 
-struct AddrInfo;
+struct SocketAddressInfo;
 //struct sockaddr_in;
 //struct sockaddr_in6;
 //! A wrapper for POSIX addrinfo (see man getaddrinfo)
@@ -36,19 +36,19 @@ struct AddrInfo;
 	Usually it will hold all data needed for creating and connecting 
 	a socket
 */
-struct AddrInfoIterator{
-	AddrInfoIterator():paddr(NULL){}
-	AddrInfoIterator& next(){paddr = paddr->ai_next; return *this;}
+struct SocketAddressInfoIterator{
+	SocketAddressInfoIterator():paddr(NULL){}
+	SocketAddressInfoIterator& next(){paddr = paddr->ai_next; return *this;}
 	int family()const {return paddr->ai_family;}
 	int type()const {return paddr->ai_socktype;}
 	int protocol()const{return paddr->ai_protocol;}
 	size_t size()const{return paddr->ai_addrlen;}
 	sockaddr* addr()const{return paddr->ai_addr;}
 	operator bool()const{return paddr != NULL;}
-	AddrInfoIterator &operator++(){return next();}
+	SocketAddressInfoIterator &operator++(){return next();}
 private:
-	friend class AddrInfo;
-	AddrInfoIterator(addrinfo *_pa):paddr(_pa){}
+	friend class SocketAddressInfo;
+	SocketAddressInfoIterator(addrinfo *_pa):paddr(_pa){}
 	addrinfo	*paddr;
 };
 //! A wrapper for POSIX getaddrinfo (see man getaddrinfo)
@@ -58,7 +58,7 @@ private:
 	It is a blocking resolver, so use it with care expecially when combined with
 	nonblocking/asynchronous IO.
 */
-struct AddrInfo{
+struct SocketAddressInfo{
 	enum Flags{
 		CannonName = AI_CANONNAME,
 		NumericHost = AI_NUMERICHOST,
@@ -76,16 +76,16 @@ struct AddrInfo{
 		Stream = SOCK_STREAM,
 		Datagram = SOCK_DGRAM
 	};
-	AddrInfo(){}
+	SocketAddressInfo(){}
 	//! Create an addr info using a name and a service name
-	AddrInfo(const char *_node, const char *_service){
+	SocketAddressInfo(const char *_node, const char *_service){
 		reinit(_node, _service);
 	}
 	//! Create an addr info using a name and a service name and extra parameters
 	/*!
 		Using this constructor you can request certain connection family, type protocol.
 	*/
-	AddrInfo(
+	SocketAddressInfo(
 		const char *_node, 
 		const char *_service, 
 		int _flags,
@@ -96,12 +96,12 @@ struct AddrInfo{
 		reinit(_node, _service, _flags, _family, _type, _proto);
 	}
 	//! Create an addr info using a name and a service port
-	AddrInfo(const char *_node, int _port);
+	SocketAddressInfo(const char *_node, int _port);
 	//! Create an addr info using a name and a service port and extra parameters
 	/*!
 		Using this constructor you can request certain connection family, type protocol.
 	*/
-	AddrInfo(
+	SocketAddressInfo(
 		const char *_node, 
 		int _port,
 		int _flags,
@@ -112,7 +112,7 @@ struct AddrInfo{
 		reinit(_node, _port, _flags, _family, _type, _proto);
 	}
 	
-	~AddrInfo();
+	~SocketAddressInfo();
 	//! Initiate an addr info using a name and a service name
 	void reinit(const char *_node, const char *_service);
 	//! Initiate an addr info using a name and a service name and extra parameters
@@ -136,11 +136,11 @@ struct AddrInfo{
 		int _proto = -1
 	);
 	//! Get an iterator to he first resolved ip address
-	AddrInfoIterator begin(){ return ib;}
+	SocketAddressInfoIterator begin(){ return ib;}
 	//! Check if the returned list of ip addresses is empty
 	bool empty()const{return ib.paddr == NULL;}
 private:
-	AddrInfoIterator	ib;
+	SocketAddressInfoIterator	ib;
 };
 
 struct SocketAddress;
@@ -148,17 +148,17 @@ struct SocketAddress4;
 //! A pair of a sockaddr pointer and a size
 /*!
 	It is a commodity structure, it will not allocate data for sockaddr pointer
-	nor it will delete it. Use this structure in with SocketAddress and AddrInfoIterator
+	nor it will delete it. Use this structure in with SocketAddress and SocketAddressInfoIterator
 */
-struct SockAddrPair{
-	SockAddrPair(sockaddr *_pa = NULL, size_t _sz = 0):addr(_pa),sz(_sz){}
-	SockAddrPair(const AddrInfoIterator &_it);
-	SockAddrPair(const SocketAddress &_rsa);
-	SockAddrPair(const SocketAddress4 &_rsa);
-	AddrInfo::Family family()const{return (AddrInfo::Family)addr->sa_family;}
-	SockAddrPair& operator=(const AddrInfoIterator &_it);
-	SockAddrPair& operator=(const SocketAddress &_rsa);
-	SockAddrPair& operator=(const SocketAddress4 &_rsa);
+struct SocketAddressPair{
+	SocketAddressPair(sockaddr *_pa = NULL, size_t _sz = 0):addr(_pa),sz(_sz){}
+	SocketAddressPair(const SocketAddressInfoIterator &_it);
+	SocketAddressPair(const SocketAddress &_rsa);
+	SocketAddressPair(const SocketAddress4 &_rsa);
+	SocketAddressInfo::Family family()const{return (SocketAddressInfo::Family)addr->sa_family;}
+	SocketAddressPair& operator=(const SocketAddressInfoIterator &_it);
+	SocketAddressPair& operator=(const SocketAddress &_rsa);
+	SocketAddressPair& operator=(const SocketAddress4 &_rsa);
 	bool isInet4()const{
 		return sz == sizeof(sockaddr_in);
 	}
@@ -171,7 +171,7 @@ struct SockAddrPair{
 	void size(socklen_t _sz){
 		sz = _sz;
 	}
-	//bool operator<(const SockAddrPair &_addr)const;
+	//bool operator<(const SocketAddressPair &_addr)const;
 	const sockaddr	*addr;
 	socklen_t	sz;
 };
@@ -179,16 +179,16 @@ struct SockAddrPair{
 //! A pair of a sockaddr_in pointer and a size
 /*!
 	It is a commodity structure, it will not allocate data for sockaddr pointer
-	nor it will delete it. Use this structure in with SocketAddress and AddrInfoIterator
+	nor it will delete it. Use this structure in with SocketAddress and SocketAddressInfoIterator
 */
 
-struct Inet4SockAddrPair{
-	Inet4SockAddrPair(const SockAddrPair &_rsap);
-	Inet4SockAddrPair(const SocketAddress &_rsa);
+struct SocketAddressPair4{
+	SocketAddressPair4(const SocketAddressPair &_rsap);
+	SocketAddressPair4(const SocketAddress &_rsa);
 	int port()const;
 	void port(uint16 _port);
-	bool operator<(const Inet4SockAddrPair &_addr)const;
-	AddrInfo::Family family()const{return (AddrInfo::Family)addr->sin_family;}
+	bool operator<(const SocketAddressPair4 &_addr)const;
+	SocketAddressInfo::Family family()const{return (SocketAddressInfo::Family)addr->sin_family;}
 	sockaddr_in	*addr;
 	socklen_t	size()const{return sizeof(sockaddr_in);}
 };
@@ -196,15 +196,15 @@ struct Inet4SockAddrPair{
 //! A pair of a sockaddr_in6 pointer and a size
 /*!
 	It is a commodity structure, it will not allocate data for sockaddr pointer
-	nor it will delete it. Use this structure in with SocketAddress and AddrInfoIterator
+	nor it will delete it. Use this structure in with SocketAddress and SocketAddressInfoIterator
 */
-struct Inet6SockAddrPair{
-	Inet6SockAddrPair(const SockAddrPair &_rsa);
-	Inet6SockAddrPair(const SocketAddress &_rsa);
+struct SocketAddressPair6{
+	SocketAddressPair6(const SocketAddressPair &_rsa);
+	SocketAddressPair6(const SocketAddress &_rsa);
 	int port()const;
 	void port(uint16 _port);
-	bool operator<(const Inet6SockAddrPair &_addr)const;
-	AddrInfo::Family family()const{return (AddrInfo::Family)addr->sin6_family;}
+	bool operator<(const SocketAddressPair6 &_addr)const;
+	SocketAddressInfo::Family family()const{return (SocketAddressInfo::Family)addr->sin6_family;}
 	sockaddr_in6	*addr;
 	socklen_t	size()const{return sizeof(sockaddr_in6);}
 };
@@ -225,13 +225,13 @@ struct SocketAddress{
 		NumericService = NI_NUMERICSERV	//!< Generate only the port number
 	};
 	SocketAddress():sz(0){clear();}
-	SocketAddress(const AddrInfoIterator &);
-	SocketAddress(const SockAddrPair &);
-	SocketAddress(const Inet4SockAddrPair &);
-	SocketAddress(const Inet6SockAddrPair &);
-	SocketAddress& operator=(const AddrInfoIterator &);
-	SocketAddress& operator=(const SockAddrPair &);
-	AddrInfo::Family family()const{return (AddrInfo::Family)addr()->sa_family;}
+	SocketAddress(const SocketAddressInfoIterator &);
+	SocketAddress(const SocketAddressPair &);
+	SocketAddress(const SocketAddressPair4 &);
+	SocketAddress(const SocketAddressPair6 &);
+	SocketAddress& operator=(const SocketAddressInfoIterator &);
+	SocketAddress& operator=(const SocketAddressPair &);
+	SocketAddressInfo::Family family()const{return (SocketAddressInfo::Family)addr()->sa_family;}
 	const socklen_t&	size()const {return sz;}
 	socklen_t&	size(){return sz;}
 	const socklen_t&	size(const socklen_t &_rsz){
@@ -302,12 +302,12 @@ struct SocketAddress4{
 		NumericService = NI_NUMERICSERV	//!< Generate only the port number
 	};
 	SocketAddress4(){clear();}
-	SocketAddress4(const AddrInfoIterator &);
-	SocketAddress4(const SockAddrPair &);
-	SocketAddress4(const Inet4SockAddrPair &);
-	SocketAddress4& operator=(const AddrInfoIterator &);
-	SocketAddress4& operator=(const SockAddrPair &);
-	AddrInfo::Family family()const{return (AddrInfo::Family)addr()->sa_family;}
+	SocketAddress4(const SocketAddressInfoIterator &);
+	SocketAddress4(const SocketAddressPair &);
+	SocketAddress4(const SocketAddressPair4 &);
+	SocketAddress4& operator=(const SocketAddressInfoIterator &);
+	SocketAddress4& operator=(const SocketAddressPair &);
+	SocketAddressInfo::Family family()const{return (SocketAddressInfo::Family)addr()->sa_family;}
 	socklen_t	size()const {return Capacity;}
 	//socklen_t&	size(){return sz;}
 	sockaddr* addr(){return reinterpret_cast<sockaddr*>(buf);}

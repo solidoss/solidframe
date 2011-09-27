@@ -194,21 +194,21 @@ int Service::basePort()const{
 //---------------------------------------------------------------------
 int Service::doSendSignal(
 	DynamicPointer<Signal> &_psig,//the signal to be sent
-	const SockAddrPair &_rsap,
+	const SocketAddressPair &_rsap,
 	ConnectionUid *_pconid,
 	uint32	_flags
 ){
 	
 	if(
-		_rsap.family() != AddrInfo::Inet4 && 
-		_rsap.family() != AddrInfo::Inet6
+		_rsap.family() != SocketAddressInfo::Inet4 && 
+		_rsap.family() != SocketAddressInfo::Inet6
 	) return -1;
 	
 	Mutex::Locker	lock(serviceMutex());
 	
-	if(_rsap.family() == AddrInfo::Inet4){
+	if(_rsap.family() == SocketAddressInfo::Inet4){
 		
-		Inet4SockAddrPair 					inaddr(_rsap);
+		SocketAddressPair4 					inaddr(_rsap);
 		Session::Addr4PairT					baddr(&inaddr, inaddr.port());
 		Data::SessionAddr4MapT::iterator	it(d.sessionaddr4map.find(&baddr));
 		
@@ -370,7 +370,7 @@ int Service::acceptSession(Session *_pses){
 	return OK;
 }
 //---------------------------------------------------------------------
-void Service::connectSession(const Inet4SockAddrPair &_raddr){
+void Service::connectSession(const SocketAddressPair4 &_raddr){
 	Mutex::Locker	lock(serviceMutex());
 	int				tkrid(allocateTalkerForNewSession());
 	IndexT			tkrpos;
@@ -436,7 +436,7 @@ int Service::createNewTalker(IndexT &_tkrpos, uint32 &_tkruid){
 	uint			oldport(d.firstaddr.port());
 	
 	d.firstaddr.port(0);//bind to any available port
-	sd.create(d.firstaddr.family(), AddrInfo::Datagram, 0);
+	sd.create(d.firstaddr.family(), SocketAddressInfo::Datagram, 0);
 	sd.bind(d.firstaddr);
 
 	if(sd.ok()){
@@ -469,7 +469,7 @@ int Service::insertConnection(
 }
 //---------------------------------------------------------------------
 int Service::insertListener(
-	const AddrInfoIterator &_rai
+	const SocketAddressInfoIterator &_rai
 ){
 /*	test::Listener *plis = new test::Listener(_pst, 100, 0);
 	if(this->insert(*plis, _serviceid)){
@@ -481,7 +481,7 @@ int Service::insertListener(
 }
 //---------------------------------------------------------------------
 int Service::insertTalker(
-	const AddrInfoIterator &_rai
+	const SocketAddressInfoIterator &_rai
 ){	
 	SocketDevice	sd;
 	sd.create(_rai);
@@ -508,7 +508,7 @@ int Service::insertTalker(
 }
 //---------------------------------------------------------------------
 int Service::insertConnection(
-	const AddrInfoIterator &_rai
+	const SocketAddressInfoIterator &_rai
 ){
 	
 /*	Connection *pcon = new Connection(_pch, _node, _svc);

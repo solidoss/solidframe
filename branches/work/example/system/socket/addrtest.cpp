@@ -62,17 +62,17 @@ int main(int argc, char *argv[]){
 	const char *srv = NULL;
 	if(strlen(argv[2])) srv = argv[2];
 	int flags = 0;
-	int family = AddrInfo::Inet4;
-	int type = AddrInfo::Stream;
+	int family = SocketAddressInfo::Inet4;
+	int type = SocketAddressInfo::Stream;
 	int proto = 0;
 	
 	//list all the local interfaces
 	listLocalInterfaces();
 	
 	
-	//AddrInfo ai(node, srv);
-	AddrInfo ai(node, srv, flags, family, type, proto);
-	AddrInfoIterator it(ai.begin());
+	//SocketAddressInfo ai(node, srv);
+	SocketAddressInfo ai(node, srv, flags, family, type, proto);
+	SocketAddressInfoIterator it(ai.begin());
 	while(it){
 		int sd = socket(it.family(), it.type(), it.protocol());
 		struct timeval tosnd;
@@ -129,7 +129,7 @@ void listLocalInterfaces(){
 		MAX_IFS = 64
 	};
 	SocketDevice s;
-	s.create(AddrInfo::Inet4, AddrInfo::Stream, 0);
+	s.create(SocketAddressInfo::Inet4, SocketAddressInfo::Stream, 0);
 	
 	ifreq *ifrp, *ifend;
 	struct ifconf ifc;

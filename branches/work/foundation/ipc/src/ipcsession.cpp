@@ -238,7 +238,7 @@ struct Session::Data{
 	};
 	
 	typedef std::pair<
-		const SockAddrPair*,
+		const SocketAddressPair*,
 		int
 	>											BaseAddrT;
 	typedef Queue<uint32>						UInt32QueueT;
@@ -256,12 +256,12 @@ struct Session::Data{
 	typedef Queue<SignalPairT>					SignalQueueT;
 public:
 	Data(
-		const Inet4SockAddrPair &_raddr,
+		const SocketAddressPair4 &_raddr,
 		uint32 _keepalivetout
 	);
 	
 	Data(
-		const Inet4SockAddrPair &_raddr,
+		const SocketAddressPair4 &_raddr,
 		int _baseport,
 		uint32 _keepalivetout
 	);
@@ -326,7 +326,7 @@ public:
 	bool moveToNextSendSignal();
 public:
 	SocketAddress4			addr;
-	SockAddrPair			pairaddr;
+	SocketAddressPair			pairaddr;
 	BaseAddrT				baseaddr;
 	uint32					rcvexpectedid;
 	uint8					state;
@@ -359,7 +359,7 @@ public:
 
 //---------------------------------------------------------------------
 Session::Data::Data(
-	const Inet4SockAddrPair &_raddr,
+	const SocketAddressPair4 &_raddr,
 	uint32 _keepalivetout
 ):	addr(_raddr), pairaddr(addr), 
 	baseaddr(&pairaddr, addr.port()),
@@ -380,7 +380,7 @@ Session::Data::Data(
 }
 //---------------------------------------------------------------------
 Session::Data::Data(
-	const Inet4SockAddrPair &_raddr,
+	const SocketAddressPair4 &_raddr,
 	int _baseport,
 	uint32 _keepalivetout
 ):	addr(_raddr), pairaddr(addr), baseaddr(&pairaddr, _baseport),
@@ -797,14 +797,14 @@ bool Session::Data::moveToNextSendSignal(){
 }
 //---------------------------------------------------------------------
 Session::Session(
-	const Inet4SockAddrPair &_raddr,
+	const SocketAddressPair4 &_raddr,
 	uint32 _keepalivetout
 ):d(*(new Data(_raddr, _keepalivetout))){
 	vdbgx(Dbg::ipc, "Created connect session "<<(void*)this);
 }
 //---------------------------------------------------------------------
 Session::Session(
-	const Inet4SockAddrPair &_raddr,
+	const SocketAddressPair4 &_raddr,
 	int _basport,
 	uint32 _keepalivetout
 ):d(*(new Data(_raddr, _basport, _keepalivetout))){
@@ -816,18 +816,18 @@ Session::~Session(){
 	delete &d;
 }
 //---------------------------------------------------------------------
-const Inet4SockAddrPair* Session::peerAddr4()const{
-	const SockAddrPair *p = &(d.pairaddr);
-	return reinterpret_cast<const Inet4SockAddrPair*>(p);
+const SocketAddressPair4* Session::peerAddr4()const{
+	const SocketAddressPair *p = &(d.pairaddr);
+	return reinterpret_cast<const SocketAddressPair4*>(p);
 }
 //---------------------------------------------------------------------
 const Session::Addr4PairT* Session::baseAddr4()const{
 	const Data::BaseAddrT *p = &(d.baseaddr);
-	return reinterpret_cast<const std::pair<const Inet4SockAddrPair*, int>*>(p);
+	return reinterpret_cast<const std::pair<const SocketAddressPair4*, int>*>(p);
 }
 //---------------------------------------------------------------------
-const SockAddrPair* Session::peerSockAddr()const{
-	const SockAddrPair *p = &(d.pairaddr);
+const SocketAddressPair* Session::peerSockAddr()const{
+	const SocketAddressPair *p = &(d.pairaddr);
 	return p;
 }
 //---------------------------------------------------------------------

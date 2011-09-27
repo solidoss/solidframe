@@ -121,9 +121,9 @@ struct SignalResultWaiter{
 	bool		s;
 };
 
-struct AddrInfoSignal: concept::AddrInfoSignal{
-	AddrInfoSignal(uint32 _v, SignalResultWaiter &_rwait):concept::AddrInfoSignal(_v), pwait(&_rwait){}
-	~AddrInfoSignal(){
+struct SocketAddressInfoSignal: concept::SocketAddressInfoSignal{
+	SocketAddressInfoSignal(uint32 _v, SignalResultWaiter &_rwait):concept::SocketAddressInfoSignal(_v), pwait(&_rwait){}
+	~SocketAddressInfoSignal(){
 		if(pwait)
 			pwait->signal(-2);
 	}
@@ -219,7 +219,7 @@ int main(int argc, char* argv[]){
 		
 		if(true){
 			int port = p.start_port + 222;
-			AddrInfo ai("0.0.0.0", port, 0, AddrInfo::Inet4, AddrInfo::Datagram);
+			SocketAddressInfo ai("0.0.0.0", port, 0, SocketAddressInfo::Inet4, SocketAddressInfo::Datagram);
 			if(!ai.empty() && !(rv = foundation::ipc::Service::the().insertTalker(ai.begin()))){
 				cout<<"[ipc] Added talker on port "<<port<<endl;
 			}else{
@@ -301,9 +301,9 @@ void printHelp(){
 }
 
 void insertListener(SignalResultWaiter &_rw, const char *_name, IndexT _idx, const char *_addr, int _port, bool _secure){
-	concept::AddrInfoSignal *psig(new AddrInfoSignal(_secure? concept::Service::AddSslListener : concept::Service::AddListener, _rw));
+	concept::SocketAddressInfoSignal *psig(new SocketAddressInfoSignal(_secure? concept::Service::AddSslListener : concept::Service::AddListener, _rw));
 
-	psig->init(_addr, _port, 0, AddrInfo::Inet4, AddrInfo::Stream);
+	psig->init(_addr, _port, 0, SocketAddressInfo::Inet4, SocketAddressInfo::Stream);
 	DynamicPointer<foundation::Signal> dp(psig);
 	_rw.prepare();
 	concept::m().signalService(_idx, dp);
@@ -400,7 +400,7 @@ int insertConnection(char *_pc, int _len,concept::Manager &_rtm){
 		srv += *_pc;
 		++_pc;
 	}
-	AddrInfo ai("0.0.0.0","");
+	SocketAddressInfo ai("0.0.0.0","");
 // 	if(ai.empty() || _rtm.insertConnection(srvname.c_str(), ai.begin(), node.c_str(), srv.c_str())){
 // 		cout<<"Failed adding connection"<<endl;
 // 	}

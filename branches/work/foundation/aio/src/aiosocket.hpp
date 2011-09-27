@@ -26,7 +26,7 @@
 #include "system/common.hpp"
 
 struct SocketAddress;
-struct SockAddrPair;
+struct SocketAddressPair;
 class SocketDevice;
 
 namespace foundation{
@@ -58,9 +58,9 @@ public:
 	//!Returns true if the filedescriptor is valid
 	bool ok()const;
 	//! Create the socket
-	int create(const AddrInfoIterator& _rai);
+	int create(const SocketAddressInfoIterator& _rai);
 	//! Asynchronous connect request
-	int connect(const AddrInfoIterator& _rai);
+	int connect(const SocketAddressInfoIterator& _rai);
 	int accept(SocketDevice &_rsd);
 	int accept(Socket &_rs);
 	//! Send a buffer
@@ -85,9 +85,9 @@ public:
 	//! Asynchrounous recv_from  call
 	int recvFrom(char *_pb, uint32 _bl, uint32 _flags = 0);
 	//! Asynchrounous send_to call
-	int sendTo(const char *_pb, uint32 _bl, const SockAddrPair &_sap, uint32 _flags = 0);
+	int sendTo(const char *_pb, uint32 _bl, const SocketAddressPair &_sap, uint32 _flags = 0);
 	//! The sender address for last received data.
-	const SockAddrPair &recvAddr() const;
+	const SocketAddressPair &recvAddr() const;
 	//! Setter for the secure socket
 	void secureSocket(SecureSocket *_pss);
 	//! Getter for the secure socket

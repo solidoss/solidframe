@@ -99,7 +99,7 @@ struct TestD{
 		int _a = 4
 	):a(_a){
 		if(_paddr){
-			AddrInfo ai(_paddr, _port, 0, AddrInfo::Inet4, AddrInfo::Datagram);
+			SocketAddressInfo ai(_paddr, _port, 0, SocketAddressInfo::Inet4, SocketAddressInfo::Datagram);
 			if(!ai.empty()){
 				sa = ai.begin();
 			}

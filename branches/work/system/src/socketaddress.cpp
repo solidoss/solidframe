@@ -29,14 +29,14 @@
 #include "system/socketaddress.hpp"
 #include "system/exception.hpp"
 
-AddrInfo::~AddrInfo(){
+SocketAddressInfo::~SocketAddressInfo(){
 	if(!empty()){
 		freeaddrinfo(ib.paddr);
 		ib.paddr = NULL;
 	}
 }
 
-void AddrInfo::reinit(const char *_node, const char *_service){
+void SocketAddressInfo::reinit(const char *_node, const char *_service){
 	if(!empty()){
 		freeaddrinfo(ib.paddr);
 		ib.paddr = NULL;
@@ -51,7 +51,7 @@ void AddrInfo::reinit(const char *_node, const char *_service){
 	}
 }
 
-void AddrInfo::reinit(
+void SocketAddressInfo::reinit(
 	const char *_node, 
 	const char *_service,
 	int _flags,
@@ -79,13 +79,13 @@ void AddrInfo::reinit(
 	getaddrinfo(_node, _service, &h, &ib.paddr);
 }
 
-void AddrInfo::reinit(const char *_node, int _port){
+void SocketAddressInfo::reinit(const char *_node, int _port){
 	char buf[12];
 	sprintf(buf, "%u", _port);
 	reinit(_node, buf);
 }
 
-void AddrInfo::reinit(
+void SocketAddressInfo::reinit(
 	const char *_node, 
 	int _port,
 	int _flags,
@@ -98,37 +98,37 @@ void AddrInfo::reinit(
 	reinit(_node, buf, _flags, _family, _type, _proto);
 }
 
-// bool SockAddrPair::operator<(const SockAddrPair &_addr)const{
+// bool SocketAddressPair::operator<(const SocketAddressPair &_addr)const{
 // 
 // }
 
-Inet4SockAddrPair::Inet4SockAddrPair(const SockAddrPair &_rsap):addr((sockaddr_in*)_rsap.addr)/*, size(_rsap.size)*/{
-	cassert(_rsap.family() == AddrInfo::Inet4);
+SocketAddressPair4::SocketAddressPair4(const SocketAddressPair &_rsap):addr((sockaddr_in*)_rsap.addr)/*, size(_rsap.size)*/{
+	cassert(_rsap.family() == SocketAddressInfo::Inet4);
 	cassert(_rsap.size() == size());
 }
-Inet4SockAddrPair::Inet4SockAddrPair(const SocketAddress &_rsa):addr((sockaddr_in*)_rsa.addr())/*, size(_rsa.size())*/{
-	cassert(_rsa.family() == AddrInfo::Inet4);
+SocketAddressPair4::SocketAddressPair4(const SocketAddress &_rsa):addr((sockaddr_in*)_rsa.addr())/*, size(_rsa.size())*/{
+	cassert(_rsa.family() == SocketAddressInfo::Inet4);
 	cassert(_rsa.size() == size());
 }
-int Inet4SockAddrPair::port()const{
+int SocketAddressPair4::port()const{
 	return htons(addr->sin_port);
 }
-void Inet4SockAddrPair::port(uint16 _port){
+void SocketAddressPair4::port(uint16 _port){
 	addr->sin_port = ntohs(_port);
 }
-bool Inet4SockAddrPair::operator<(const Inet4SockAddrPair &_addr)const{
+bool SocketAddressPair4::operator<(const SocketAddressPair4 &_addr)const{
 	return addr->sin_addr.s_addr < _addr.addr->sin_addr.s_addr;
 }
 
-Inet6SockAddrPair::Inet6SockAddrPair(const SockAddrPair &_rsap):addr((sockaddr_in6*)_rsap.addr)/*, size(_rsap.size)*/{
-	cassert(_rsap.family() == AddrInfo::Inet6);
+SocketAddressPair6::SocketAddressPair6(const SocketAddressPair &_rsap):addr((sockaddr_in6*)_rsap.addr)/*, size(_rsap.size)*/{
+	cassert(_rsap.family() == SocketAddressInfo::Inet6);
 	cassert(_rsap.size() == size());
 }
-Inet6SockAddrPair::Inet6SockAddrPair(const SocketAddress &_rsa):addr((sockaddr_in6*)_rsa.addr())/*,size(_rsa.size())*/{
-	cassert(_rsa.family() == AddrInfo::Inet6);
+SocketAddressPair6::SocketAddressPair6(const SocketAddress &_rsa):addr((sockaddr_in6*)_rsa.addr())/*,size(_rsa.size())*/{
+	cassert(_rsa.family() == SocketAddressInfo::Inet6);
 	cassert(_rsa.size() == size());
 }
-bool Inet6SockAddrPair::operator<(const Inet6SockAddrPair &_addr)const{
+bool SocketAddressPair6::operator<(const SocketAddressPair6 &_addr)const{
 	//return addr->sin6_addr.s_addr < _addr.addr->sin6_addr.s_addr;
 	return memcmp(
 		(const void*)addr->sin6_addr.s6_addr,
@@ -136,10 +136,10 @@ bool Inet6SockAddrPair::operator<(const Inet6SockAddrPair &_addr)const{
 		sizeof(in6_addr)
 	) < 0;
 }
-int Inet6SockAddrPair::port()const{
+int SocketAddressPair6::port()const{
 	return htons(addr->sin6_port);
 }
-void Inet6SockAddrPair::port(uint16 _port){
+void SocketAddressPair6::port(uint16 _port){
 	addr->sin6_port = ntohs(_port);
 }
 
@@ -177,14 +177,14 @@ bool SocketAddress::operator==(const SocketAddress &_raddr)const{
 		return false;
 	}
 }
-SocketAddress::SocketAddress(const Inet4SockAddrPair &_sp){
+SocketAddress::SocketAddress(const SocketAddressPair4 &_sp){
 	addr((sockaddr*)_sp.addr, _sp.size());
 }
-SocketAddress::SocketAddress(const Inet6SockAddrPair &_sp){
+SocketAddress::SocketAddress(const SocketAddressPair6 &_sp){
 	addr((sockaddr*)_sp.addr, _sp.size());
 }
 
-SocketAddress::SocketAddress(const SockAddrPair &_sp){
+SocketAddress::SocketAddress(const SocketAddressPair &_sp){
 	addr(_sp.addr, _sp.size());
 }
 
@@ -251,11 +251,11 @@ bool SocketAddress4::operator==(const SocketAddress4 &_raddr)const{
 	addrin()->sin_port == _raddr.addrin()->sin_port;
 }
 
-SocketAddress4::SocketAddress4(const Inet4SockAddrPair &_sp){
+SocketAddress4::SocketAddress4(const SocketAddressPair4 &_sp){
 	addr((sockaddr*)_sp.addr, _sp.size());
 }
 
-SocketAddress4::SocketAddress4(const SockAddrPair &_sp){
+SocketAddress4::SocketAddress4(const SocketAddressPair &_sp){
 	addr(_sp.addr, _sp.size());
 }
 

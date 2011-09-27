@@ -184,16 +184,16 @@ struct Talker::Data{
 	typedef std::vector<SessionStub>			SessionStubVectorT;
 	typedef Queue<uint16>						UInt16QueueT;
 	typedef std::pair<
-		const Inet4SockAddrPair*,
+		const SocketAddressPair4*,
 		int
 	>											BaseAddr4;
 	typedef std::pair<
-		const Inet6SockAddrPair*,
+		const SocketAddressPair6*,
 		int
 	>											BaseAddr6;
 #ifdef HAVE_CPP11
 	typedef std::unordered_map<
-		const Inet4SockAddrPair*,
+		const SocketAddressPair4*,
 		uint32,
 		SockAddrHash,
 		SockAddrEqual
@@ -206,7 +206,7 @@ struct Talker::Data{
 	>											BaseAddr4MapT;
 	
 	typedef std::unordered_map<
-		const Inet6SockAddrPair*, 
+		const SocketAddressPair6*, 
 		uint32,
 		SockAddrHash,
 		SockAddrEqual
@@ -221,7 +221,7 @@ struct Talker::Data{
 
 #else
 	typedef std::map<
-		const Inet4SockAddrPair*,
+		const SocketAddressPair4*,
 		uint32,
 		Inet4AddrPtrCmp
 	>											PeerAddr4MapT;
@@ -232,7 +232,7 @@ struct Talker::Data{
 	>											BaseAddr4MapT;
 	
 	typedef std::map<
-		const Inet6SockAddrPair*, 
+		const SocketAddressPair6*, 
 		uint32,
 		Inet6AddrPtrCmp
 	>											PeerAddr6MapT;
@@ -428,7 +428,7 @@ bool Talker::doProcessReceivedBuffers(const TimeSpec &_rts){
 	return false;
 }
 //----------------------------------------------------------------------
-void Talker::doDispatchReceivedBuffer(char *_pbuf, const uint32 _bufsz, const SockAddrPair &_rsap){
+void Talker::doDispatchReceivedBuffer(char *_pbuf, const uint32 _bufsz, const SocketAddressPair &_rsap){
 	Buffer buf(_pbuf, Buffer::ReadCapacity);
 	buf.bufferSize(_bufsz);
 	vdbgx(Dbg::ipc, " RECEIVED "<<buf);
@@ -438,7 +438,7 @@ void Talker::doDispatchReceivedBuffer(char *_pbuf, const uint32 _bufsz, const So
 		case Buffer::DataType:{
 			COLLECT_DATA_0(d.statistics.receivedData);
 			idbgx(Dbg::ipc, "data buffer");
-			Inet4SockAddrPair				inaddr(_rsap);
+			SocketAddressPair4				inaddr(_rsap);
 			Data::PeerAddr4MapT::iterator	pit(d.peeraddr4map.find(&inaddr));
 			if(pit != d.peeraddr4map.end()){
 				idbgx(Dbg::ipc, "found session for buffer");
@@ -457,7 +457,7 @@ void Talker::doDispatchReceivedBuffer(char *_pbuf, const uint32 _bufsz, const So
 		
 		case Buffer::ConnectingType:{
 			COLLECT_DATA_0(d.statistics.receivedConnecting);
-			Inet4SockAddrPair	inaddr(_rsap);
+			SocketAddressPair4	inaddr(_rsap);
 			int					baseport(Session::parseConnectingBuffer(buf));
 			
 			idbgx(Dbg::ipc, "connecting buffer with baseport "<<baseport);
@@ -482,7 +482,7 @@ void Talker::doDispatchReceivedBuffer(char *_pbuf, const uint32 _bufsz, const So
 			
 			if(baseport >= 0){
 				
-				Inet4SockAddrPair				inaddr(_rsap);
+				SocketAddressPair4				inaddr(_rsap);
 				Data::BaseAddr4					ppa(&inaddr, baseport);
 				Data::BaseAddr4MapT::iterator	bit(d.baseaddr4map.find(&ppa));
 				if(bit != d.baseaddr4map.end()){

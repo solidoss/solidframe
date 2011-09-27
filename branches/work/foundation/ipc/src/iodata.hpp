@@ -36,11 +36,11 @@ namespace ipc{
 #ifdef HAVE_CPP11
 
 struct SockAddrHash{
-	size_t operator()(const Inet4SockAddrPair*const &_psa)const{
+	size_t operator()(const SocketAddressPair4*const &_psa)const{
 		return _psa->addr->sin_addr.s_addr ^ _psa->addr->sin_port;
 	}
 	
-	typedef std::pair<const Inet4SockAddrPair*, int>	PairProcAddr;
+	typedef std::pair<const SocketAddressPair4*, int>	PairProcAddr;
 	
 	size_t operator()(const PairProcAddr* const &_psa)const{
 		return _psa->first->addr->sin_addr.s_addr ^ _psa->second;
@@ -48,12 +48,12 @@ struct SockAddrHash{
 };
 
 struct SockAddrEqual{
-	bool operator()(const Inet4SockAddrPair*const &_psa1, const Inet4SockAddrPair*const &_psa2)const{
+	bool operator()(const SocketAddressPair4*const &_psa1, const SocketAddressPair4*const &_psa2)const{
 		return _psa1->addr->sin_addr.s_addr == _psa2->addr->sin_addr.s_addr &&
 		_psa1->addr->sin_port == _psa2->addr->sin_port;
 	}
 	
-	typedef std::pair<const Inet4SockAddrPair*, int>	PairProcAddr;
+	typedef std::pair<const SocketAddressPair4*, int>	PairProcAddr;
 	
 	bool operator()(const PairProcAddr* const &_psa1, const PairProcAddr* const &_psa2)const{
 		return _psa1->first->addr->sin_addr.s_addr == _psa2->first->addr->sin_addr.s_addr &&
@@ -65,7 +65,7 @@ struct SockAddrEqual{
 
 struct Inet4AddrPtrCmp{
 	
-	bool operator()(const Inet4SockAddrPair*const &_sa1, const Inet4SockAddrPair*const &_sa2)const{
+	bool operator()(const SocketAddressPair4*const &_sa1, const SocketAddressPair4*const &_sa2)const{
 		//TODO: optimize
 		cassert(_sa1 && _sa2); 
 		if(*_sa1 < *_sa2){
@@ -76,7 +76,7 @@ struct Inet4AddrPtrCmp{
 		return false;
 	}
 	
-	typedef std::pair<const Inet4SockAddrPair*, int>	PairProcAddr;
+	typedef std::pair<const SocketAddressPair4*, int>	PairProcAddr;
 	
 	bool operator()(const PairProcAddr* const &_sa1, const PairProcAddr* const &_sa2)const{
 		cassert(_sa1 && _sa2); 
@@ -92,7 +92,7 @@ struct Inet4AddrPtrCmp{
 
 struct Inet6AddrPtrCmp{
 	
-	bool operator()(const Inet6SockAddrPair*const &_sa1, const Inet6SockAddrPair*const &_sa2)const{
+	bool operator()(const SocketAddressPair6*const &_sa1, const SocketAddressPair6*const &_sa2)const{
 		//TODO: optimize
 		cassert(_sa1 && _sa2); 
 		if(*_sa1 < *_sa2){
@@ -103,7 +103,7 @@ struct Inet6AddrPtrCmp{
 		return false;
 	}
 	
-	typedef std::pair<const Inet6SockAddrPair*, int>	PairProcAddr;
+	typedef std::pair<const SocketAddressPair6*, int>	PairProcAddr;
 	
 	bool operator()(const PairProcAddr* const &_sa1, const PairProcAddr* const &_sa2)const{
 		cassert(_sa1 && _sa2); 

@@ -70,8 +70,8 @@ private:
 	const char			*bend;
 	char				*brpos;
 	const char			*bwpos;
-	AddrInfo			*pai;
-	AddrInfoIterator	it;
+	SocketAddressInfo			*pai;
+	SocketAddressInfoIterator	it;
 	bool				b;
 };
 
@@ -89,7 +89,7 @@ private:
 	enum {INIT,READ, READ_TOUT, WRITE, WRITE_TOUT, WRITE2, WRITE_TOUT2};
 	char			bbeg[BUFSZ];
 	uint			sz;
-	AddrInfo		*pai;
+	SocketAddressInfo		*pai;
 };
 
 //------------------------------------------------------------------
@@ -167,7 +167,7 @@ int main(int argc, char *argv[]){
 }
 
 void insertListener(const char *_name, IndexT _idx, const char *_addr, int _port, bool _secure){
-	AddrInfo		ai(_addr, _port, 0, AddrInfo::Inet4, AddrInfo::Stream);
+	SocketAddressInfo		ai(_addr, _port, 0, SocketAddressInfo::Inet4, SocketAddressInfo::Stream);
 	SocketDevice	sd;
 	
 	sd.create(ai.begin());
@@ -196,7 +196,7 @@ void insertListener(const char *_name, IndexT _idx, const char *_addr, int _port
 }
 
 void insertTalker(const char *_name, IndexT _idx, const char *_addr, int _port){
-	AddrInfo		ai(_addr, _port, 0, AddrInfo::Inet4, AddrInfo::Datagram);
+	SocketAddressInfo		ai(_addr, _port, 0, SocketAddressInfo::Inet4, SocketAddressInfo::Datagram);
 	SocketDevice	sd;
 	
 	sd.create(ai.begin());
@@ -307,7 +307,7 @@ Connection::Connection(const char *_node, const char *_srv):
 	pai(NULL),b(false)
 {
 	cassert(_node && _srv);
-	pai = new AddrInfo(_node, _srv);
+	pai = new SocketAddressInfo(_node, _srv);
 	it = pai->begin();
 	state(CONNECT);
 	
@@ -410,7 +410,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 
 Talker::Talker(const char *_node, const char *_srv):pai(NULL){
 	if(_node){
-		pai = new AddrInfo(_node, _srv);
+		pai = new SocketAddressInfo(_node, _srv);
 		strcpy(bbeg, hellostr);
 		sz = strlen(hellostr);
 		state(INIT);
@@ -473,8 +473,8 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 					idbg("Invalid address");
 					return BAD;
 				}
-				AddrInfoIterator it(pai->begin());
-				switch(socketSendTo(bbeg, sz, SockAddrPair(it))){
+				SocketAddressInfoIterator it(pai->begin());
+				switch(socketSendTo(bbeg, sz, SocketAddressPair(it))){
 					case BAD: return BAD;
 					case OK: state(READ); break;
 					case NOK:

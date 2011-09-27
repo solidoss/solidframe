@@ -137,7 +137,7 @@ int main(int argc, char *argv[]){
 	}
 	SocketAddress4 sa;
 	{
-		AddrInfo	ai;
+		SocketAddressInfo	ai;
 		char		buf[128];
 		sprintf(buf, "%d.%d.%d.%d", (int)100, (int)100, (int)100, (int)100);
 		ai.reinit(buf, 4010);
@@ -182,7 +182,7 @@ void generate_addresses(
 	vec[1] = _start[1];
 	vec[2] = _start[2];
 	vec[3] = _start[3];
-	AddrInfo ai;
+	SocketAddressInfo ai;
 	for(size_t i(0); i < _cnt; ++i){
 		sprintf(buf, "%d.%d.%d.%d", (int)vec[0], (int)vec[1], (int)vec[2], (int)vec[3]);
 		uint32 maxport(_portstart + _portcount * _portstep);

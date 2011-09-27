@@ -54,7 +54,7 @@ bool Service::insertConnection(
 }
 
 bool Service::insertConnection(
-	const AddrInfoIterator &_rai,
+	const SocketAddressInfoIterator &_rai,
 	const char *_node,
 	const char *_svc
 ){

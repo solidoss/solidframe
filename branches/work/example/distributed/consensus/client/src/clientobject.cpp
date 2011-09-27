@@ -33,7 +33,7 @@ bool ClientParams::init(){
 			return false;
 		}
 		s[pos] = 0;
-		AddrInfo ai(s.c_str(), s.c_str() + pos + 1, 0, AddrInfo::Inet4, AddrInfo::Datagram);
+		SocketAddressInfo ai(s.c_str(), s.c_str() + pos + 1, 0, SocketAddressInfo::Inet4, SocketAddressInfo::Datagram);
 		if(!ai.empty()){
 			addrvec.push_back(SocketAddress4(ai.begin()));
 		}else{
@@ -341,7 +341,7 @@ uint32 ClientObject::sendSignal(consensus::RequestSignal *_psig){
 	sigptr->id.senderuid = this->uid();
 	for(ClientParams::AddressVectorT::iterator it(params.addrvec.begin()); it != params.addrvec.end(); ++it){
 		DynamicPointer<foundation::Signal>	sp(sigptr);
-		foundation::ipc::Service::the().sendSignal(sp, SockAddrPair(*it));
+		foundation::ipc::Service::the().sendSignal(sp, SocketAddressPair(*it));
 	}
 	return 0;
 }

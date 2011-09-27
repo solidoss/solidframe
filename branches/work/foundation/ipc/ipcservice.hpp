@@ -26,10 +26,10 @@
 #include "foundation/signal.hpp"
 #include "foundation/ipc/ipcconnectionuid.hpp"
 
-struct SockAddrPair;
+struct SocketAddressPair;
 struct SocketDevice;
-struct AddrInfoIterator;
-struct Inet4SockAddrPair;
+struct SocketAddressInfoIterator;
+struct SocketAddressPair4;
 
 namespace foundation{
 
@@ -148,7 +148,7 @@ public:
 	*/
 	int sendSignal(
 		DynamicPointer<Signal> &_psig,//the signal to be sent
-		const SockAddrPair &_rsap,
+		const SocketAddressPair &_rsap,
 		ConnectionUid &_rconid,
 		uint32	_flags = 0
 	);
@@ -162,7 +162,7 @@ public:
 	*/
 	int sendSignal(
 		DynamicPointer<Signal> &_psig,//the signal to be sent
-		const SockAddrPair &_rsap,
+		const SocketAddressPair &_rsap,
 		uint32	_flags = 0
 	);
 	//! Not used for now - will be used when ipc will use tcp connections
@@ -171,7 +171,7 @@ public:
 	);
 	//! Not used for now - will be used when ipc will use tcp connections
 	int insertListener(
-		const AddrInfoIterator &_rai
+		const SocketAddressInfoIterator &_rai
 	);
 	//! Use this method to add the base talker
 	/*!
@@ -182,11 +182,11 @@ public:
 		\param _svc Service/Port to connect to
 	*/
 	int insertTalker(
-		const AddrInfoIterator &_rai
+		const SocketAddressInfoIterator &_rai
 	);
 	//! Not used for now - will be used when ipc will use tcp connections
 	int insertConnection(
-		const AddrInfoIterator &_rai
+		const SocketAddressInfoIterator &_rai
 	);
 	//! Not used for now - will be used when ipc will use tcp connections
 	int removeConnection(Connection &);
@@ -200,7 +200,7 @@ private:
 	friend class Talker;
 	int doSendSignal(
 		DynamicPointer<Signal> &_psig,//the signal to be sent
-		const SockAddrPair &_rsap,
+		const SocketAddressPair &_rsap,
 		ConnectionUid *_pconid,
 		uint32	_flags = 0
 	);
@@ -210,7 +210,7 @@ private:
 	int createNewTalker(IndexT &_tkrpos, uint32 &_tkruid);
 	int allocateTalkerForNewSession(bool _force = false);
 	uint32 keepAliveTimeout()const;
-	void connectSession(const Inet4SockAddrPair &_raddr);
+	void connectSession(const SocketAddressPair4 &_raddr);
 private:
 	struct Data;
 	friend struct Data;
@@ -219,7 +219,7 @@ private:
 
 inline int Service::sendSignal(
 	DynamicPointer<Signal> &_psig,//the signal to be sent
-	const SockAddrPair &_rsap,
+	const SocketAddressPair &_rsap,
 	ConnectionUid &_rconid,
 	uint32	_flags
 ){
@@ -228,7 +228,7 @@ inline int Service::sendSignal(
 
 inline int Service::sendSignal(
 	DynamicPointer<Signal> &_psig,//the signal to be sent
-	const SockAddrPair &_rsap,
+	const SocketAddressPair &_rsap,
 	uint32	_flags
 ){
 	return doSendSignal(_psig, _rsap, NULL, _flags);

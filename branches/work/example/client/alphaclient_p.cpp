@@ -126,7 +126,7 @@ public:
 		int _port = -1,
 		int _repeatcnt= 0,
 		int _cnt = ((unsigned)(0xfffffff)),
-                int _sleep = 1):ai(_node, _svice, 0, AddrInfo::Inet4, AddrInfo::Stream), wr(-1),sd(-1),cnt(_cnt),slp(_sleep),
+                int _sleep = 1):ai(_node, _svice, 0, SocketAddressInfo::Inet4, SocketAddressInfo::Stream), wr(-1),sd(-1),cnt(_cnt),slp(_sleep),
 			path(_path), pos(_pos),addr(_addr?_addr:""),port(_port),repeatcnt(_repeatcnt){}
 	void run();
 private:
@@ -134,7 +134,7 @@ private:
 	int list(char *_pb);
 	int fetch(unsigned _idx, char *_pb);
 	typedef std::deque<string> StrDqT;
-	AddrInfo    ai;
+	SocketAddressInfo    ai;
 	Writer      wr;
 	int         sd;
 	int         cnt;
@@ -154,7 +154,7 @@ void AlphaThread::run(){
 		idbg("No such address");
 		return;
 	}
-	AddrInfoIterator it(ai.begin());
+	SocketAddressInfoIterator it(ai.begin());
 	sd = socket(it.family(), it.type(), it.protocol());
 	if(sd < 0){
 		idbg("error creating socket");
