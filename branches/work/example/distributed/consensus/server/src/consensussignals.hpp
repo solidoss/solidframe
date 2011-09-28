@@ -50,7 +50,7 @@ struct OperationSignal<2>: Dynamic<OperationSignal<2>, Signal>{
 	template <class S>
 	S& operator&(S &_s){
 		static_cast<Signal*>(this)->operator&<S>(_s);
-		_s.push(op[1], "operation1");
+		_s.push(op[0], "operation1");
 		_s.push(op[1], "operation2");
 		return _s;
 	}

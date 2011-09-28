@@ -140,7 +140,7 @@ void ServerObject::dynamicExecute(DynamicPointer<StoreRequest> &_rsig, int){
 	
 	_rsig->v = this->acceptId();
 
-	idbg("StoreSignal request: v = "<<_rsig->v);
+	idbg("StoreSignalRequest: v = "<<_rsig->v<<" for request "<<_rsig->id);
 	
 	DynamicPointer<foundation::Signal>		sigptr(_rsig);
 	foundation::ipc::Service::the().sendSignal(sigptr, ipcconid);

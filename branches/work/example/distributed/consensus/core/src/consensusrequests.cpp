@@ -66,7 +66,7 @@ size_t RequestId::senderHash()const{
 }
 #ifdef UDEBUG
 std::ostream &operator<<(std::ostream& _ros, const RequestId &_rreqid){
-	_ros<<_rreqid.requid<<','<<' '<<_rreqid.senderuid.first<<','<<' '<<_rreqid.senderuid.first<<','<<' ';
+	_ros<<_rreqid.requid<<','<<' '<<_rreqid.senderuid.first<<','<<' '<<_rreqid.senderuid.second<<','<<' ';
 	const SocketAddress4 &ra(_rreqid.sockaddr);
 	char				host[SocketAddress::HostNameCapacity];
 	char				port[SocketAddress::ServiceNameCapacity];
