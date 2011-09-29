@@ -1,5 +1,5 @@
-#ifndef CONSENSUSREQUEST_HPP
-#define CONSENSUSREQUEST_HPP
+#ifndef DISTRIBUTED_CONSENSUS_CONSENSUSREQUEST_HPP
+#define DISTRIBUTED_CONSENSUS_CONSENSUSREQUEST_HPP
 
 
 #include "foundation/signal.hpp"
@@ -7,8 +7,9 @@
 #include "utility/dynamicpointer.hpp"
 #include "system/socketaddress.hpp"
 
-#include "consensusrequestid.hpp"
+#include "distributed/consensus/consensusrequestid.hpp"
 
+namespace distributed{
 namespace consensus{
 
 struct RequestSignal: Dynamic<RequestSignal, DynamicShared<foundation::Signal> >{
@@ -23,6 +24,9 @@ struct RequestSignal: Dynamic<RequestSignal, DynamicShared<foundation::Signal> >
 	void ipcReceived(
 		foundation::ipc::SignalUid &_rsiguid
 	);
+	
+	virtual void sendThisToConsensusObject() = 0;
+	
 	template <class S>
 	S& operator&(S &_s){
 		_s.push(id.requid, "id.requid").push(id.senderuid, "sender");
@@ -55,5 +59,6 @@ struct RequestSignal: Dynamic<RequestSignal, DynamicShared<foundation::Signal> >
 
 
 }//namespace consensus
+}//namespace distributed
 
 #endif

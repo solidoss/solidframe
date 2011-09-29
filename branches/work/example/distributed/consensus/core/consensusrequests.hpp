@@ -1,7 +1,7 @@
 #ifndef CONSENSUSREQUESTS_HPP
 #define CONSENSUSREQUESTS_HPP
 
-#include "consensusrequest.hpp"
+#include "distributed/consensus/consensusrequest.hpp"
 
 #include <string>
 
@@ -21,34 +21,42 @@ S& operator&(foundation::ObjectUidT &_v, S &_s){
 void mapSignals();
 
 
-struct StoreRequest: Dynamic<StoreRequest, consensus::RequestSignal>{
+struct StoreRequest: Dynamic<StoreRequest, distributed::consensus::RequestSignal>{
 	StoreRequest(const std::string&, uint32 _pos);
 	StoreRequest();
 	
+	/*virtual*/ void sendThisToConsensusObject();
+	
 	template <class S>
 	S& operator&(S &_s){
-		static_cast<consensus::RequestSignal*>(this)->operator&<S>(_s);
+		static_cast<distributed::consensus::RequestSignal*>(this)->operator&<S>(_s);
 		_s.push(v,"value");
 		return _s;
 	}
 	uint32	v;
 };
 
-struct FetchRequest: Dynamic<FetchRequest, consensus::RequestSignal>{
+struct FetchRequest: Dynamic<FetchRequest, distributed::consensus::RequestSignal>{
 	FetchRequest(const std::string&);
     FetchRequest();
+	
+	/*virtual*/ void sendThisToConsensusObject();
+	
 	template <class S>
 	S& operator&(S &_s){
-		return static_cast<consensus::RequestSignal*>(this)->operator&<S>(_s);
+		return static_cast<distributed::consensus::RequestSignal*>(this)->operator&<S>(_s);
 	}
 };
 
-struct EraseRequest: Dynamic<EraseRequest, consensus::RequestSignal>{
+struct EraseRequest: Dynamic<EraseRequest, distributed::consensus::RequestSignal>{
 	EraseRequest(const std::string&);
 	EraseRequest();
+	
+	/*virtual*/ void sendThisToConsensusObject();
+	
 	template <class S>
 	S& operator&(S &_s){
-		return static_cast<consensus::RequestSignal*>(this)->operator&<S>(_s);
+		return static_cast<distributed::consensus::RequestSignal*>(this)->operator&<S>(_s);
 	}
 };
 

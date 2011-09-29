@@ -369,5 +369,5 @@ add_subdirectory (test)
 add_subdirectory (example)
 add_subdirectory (library)
 add_subdirectory (application)
-add_subdirectory(distributed)
+add_subdirectory (distributed)
 #-----------------------------------------------------------------

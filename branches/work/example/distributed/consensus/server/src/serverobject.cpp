@@ -119,7 +119,7 @@ ServerObject::~ServerObject(){
 	
 }
 
-/*virtual*/ void ServerObject::accept(DynamicPointer<consensus::RequestSignal> &_rsig){
+/*virtual*/ void ServerObject::accept(DynamicPointer<distributed::consensus::RequestSignal> &_rsig){
 	idbg("accepting consensus::RequestSignal request");
 	DynamicPointer<>	dp(_rsig);
 	exeex.execute(*this, dp, 1);

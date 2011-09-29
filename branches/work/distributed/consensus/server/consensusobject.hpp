@@ -1,15 +1,19 @@
-#ifndef CONSENSUSOBJECT_HPP
-#define CONSENSUSOBJECT_HPP
+#ifndef DISTRIBUTED_CONSENSUS_CONSENSUSOBJECT_HPP
+#define DISTRIBUTED_CONSENSUS_CONSENSUSOBJECT_HPP
 
 #include <vector>
 
 #include "system/socketaddress.hpp"
 #include "foundation/object.hpp"
 
+namespace distributed{
 namespace consensus{
 
 struct RequestSignal;
 struct RequestId;
+
+namespace server{
+
 template <uint16 Count>
 struct OperationSignal;
 struct OperationStub;
@@ -95,7 +99,7 @@ private:
 	Data	&d;
 };
 
-
+}//namespace server
 }//namespace consensus
-
+}//namespace distributed
 #endif

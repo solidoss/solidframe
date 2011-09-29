@@ -1,10 +1,12 @@
-#ifndef CONSENSUSSIGNAL_HPP
-#define CONSENSUSSIGNAL_HPP
+#ifndef DISTRIBUTED_CONSENSUS_CONSENSUSSIGNAL_HPP
+#define DISTRIBUTED_CONSENSUS_CONSENSUSSIGNAL_HPP
 
 #include "foundation/signal.hpp"
 #include "foundation/ipc/ipcconnectionuid.hpp"
 
+namespace distributed{
 namespace consensus{
+namespace server{
 
 struct Signal: Dynamic<Signal, DynamicShared<foundation::Signal> >{
 	enum{
@@ -34,7 +36,7 @@ struct Signal: Dynamic<Signal, DynamicShared<foundation::Signal> >{
 	uint8							state;
 };
 
-
+}//namespace server
 }//namespace consensus
-
+}//namespace distributed
 #endif

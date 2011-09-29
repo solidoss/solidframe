@@ -1,13 +1,11 @@
-#ifndef DISTRIBUTED_CONCEPT_CORE_SIGNAL_IDENTIFIER_HPP
-#define DISTRIBUTED_CONCEPT_CORE_SIGNAL_IDENTIFIER_HPP
+#ifndef DISTRIBUTED_CONCEPT_SIGNALREQUEST_IDENTIFIER_HPP
+#define DISTRIBUTED_CONCEPT_SIGNALREQUEST_IDENTIFIER_HPP
 
 #include "foundation/ipc/ipcconnectionuid.hpp"
 #include "foundation/common.hpp"
-
-#ifdef UDEBUG
 #include <ostream>
-#endif
 
+namespace distributed{
 namespace consensus{
 
 struct RequestId{
@@ -34,10 +32,9 @@ struct RequestId{
 	SocketAddress4				sockaddr;
 };
 
-#ifdef UDEBUG
 std::ostream &operator<<(std::ostream& _ros, const RequestId &_rreqid);
-#endif
 
 }//namespace consensus
+}//namespace distributed
 
 #endif

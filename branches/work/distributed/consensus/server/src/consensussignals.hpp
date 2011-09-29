@@ -1,12 +1,12 @@
-#ifndef CONSENSUSSIGNALS_HPP
-#define CONSENSUSSIGNALS_HPP
+#ifndef DISTRIBUTED_CONSENSUS_CONSENSUSSIGNALS_HPP
+#define DISTRIBUTED_CONSENSUS_CONSENSUSSIGNALS_HPP
 
 #include "foundation/signal.hpp"
 #include "foundation/ipc/ipcconnectionuid.hpp"
 #include "utility/dynamicpointer.hpp"
 #include "system/socketaddress.hpp"
 
-#include "example/distributed/consensus/core/consensusrequestid.hpp"
+#include "distributed/consensus/consensusrequestid.hpp"
 #include "consensussignal.hpp"
 
 #ifdef HAVE_CPP11
@@ -15,8 +15,11 @@
 #include <vector>
 #endif
 
+using namespace distributed::consensus;
 
+namespace distributed{
 namespace consensus{
+namespace server{
 
 struct OperationStub{
 	template <class S>
@@ -25,7 +28,7 @@ struct OperationStub{
 		return _s;
 	}
 	uint8		operation;
-	RequestId	reqid;
+	distributed::consensus::RequestId	reqid;
 	uint32		proposeid;
 	uint32		acceptid;
 };
@@ -74,6 +77,8 @@ struct OperationSignal: Dynamic<OperationSignal<Count>, Signal>{
 	size_t				opsz;
 };
 
+}//namespace server
 }//namespace consensus
+}//namespace distributed
 
 #endif

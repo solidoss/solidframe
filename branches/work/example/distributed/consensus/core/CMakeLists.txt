@@ -3,8 +3,6 @@ set(Sources
 )
 
 set(Headers
-	consensusrequestid.hpp
-	consensusrequest.hpp
 	consensusrequests.hpp
 	consensusmanager.hpp
 )
@@ -12,7 +10,7 @@ set(Headers
 set(Inlines
 )
 
-add_library (example_distributed_core
+add_library (example_distributed_consensus_core
 	${Sources} ${Headers} ${Inlines}
 )
 

@@ -6,8 +6,10 @@
 
 #include "system/debug.hpp"
 
-
+namespace distributed{
 namespace consensus{
+namespace server{
+
 Signal::Signal():state(OnSender){}
 Signal::~Signal(){
 	
@@ -65,4 +67,7 @@ int Signal::release(){
 	idbg((void*)this<<" usecount = "<<usecount);
 	return rv;
 }
+
+}//namespace server
 }//namespace consensus
+}//namespace distributed

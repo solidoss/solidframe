@@ -3,14 +3,14 @@
 
 #include <string>
 
-#include "example/distributed/consensus/server/consensusobject.hpp"
+#include "distributed/consensus/server/consensusobject.hpp"
 
 struct StoreRequest;
 struct FetchRequest;
 struct EraseRequest;
 
 
-struct ServerParams: consensus::Parameters{
+struct ServerParams: distributed::consensus::server::Parameters{
 	typedef std::vector<std::string>	StringVectorT;
 	
 	bool init(int _ipc_port);
@@ -26,7 +26,7 @@ private:
 std::ostream& operator<<(std::ostream &_ros, const ServerParams &_rsp);
 
 
-class ServerObject: public Dynamic<ServerObject, consensus::Object>{
+class ServerObject: public Dynamic<ServerObject, distributed::consensus::server::Object>{
 	typedef DynamicExecuter<void, ServerObject, int>	DynamicExecuterExT;
 public:
 	static void dynamicRegister();
@@ -39,7 +39,7 @@ public:
 	void dynamicExecute(DynamicPointer<FetchRequest> &_rsig, int);
 	void dynamicExecute(DynamicPointer<EraseRequest> &_rsig, int);
 private:
-	/*virtual*/ void accept(DynamicPointer<consensus::RequestSignal> &_rsig);
+	/*virtual*/ void accept(DynamicPointer<distributed::consensus::RequestSignal> &_rsig);
 	/*virtual*/ int recovery();
 private:
 	DynamicExecuterExT		exeex;

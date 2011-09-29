@@ -333,8 +333,8 @@ void ClientObject::deleteRequestId(uint32 _v){
 	reqidvec.erase(reqidvec.begin() + rv);
 }
 //------------------------------------------------------------
-uint32 ClientObject::sendSignal(consensus::RequestSignal *_psig){
-	DynamicSharedPointer<consensus::RequestSignal>	sigptr(_psig);
+uint32 ClientObject::sendSignal(distributed::consensus::RequestSignal *_psig){
+	DynamicSharedPointer<distributed::consensus::RequestSignal>	sigptr(_psig);
 	//sigptr->requestId(newRequestId(-1));
 	sigptr->waitresponse = true;
 	sigptr->id.requid = newRequestId(-1);

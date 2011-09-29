@@ -27,16 +27,17 @@
 #include "utility/stack.hpp"
 #include "utility/queue.hpp"
 
-#include "example/distributed/consensus/core/consensusrequest.hpp"
-#include "example/distributed/consensus/server/consensusobject.hpp"
+#include "distributed/consensus/consensusrequest.hpp"
+#include "distributed/consensus/server/consensusobject.hpp"
 #include "timerqueue.hpp"
 #include "consensussignals.hpp"
 
 namespace fdt=foundation;
 using namespace std;
 
+namespace distributed{
 namespace consensus{
-
+namespace server{
 
 /*static*/ const Parameters& Parameters::the(Parameters *_p){
 	static Parameters &r(*_p);
@@ -432,12 +433,18 @@ bool Object::Data::canSendFastAccept()const{
 	idbg("continuousacceptedproposes = "<<continuousacceptedproposes<<" ct.sec = "<<ct.seconds());
 	return (continuousacceptedproposes >= 5) && ct.seconds() < 60;
 }
+
+struct DummyRequestSignal: public RequestSignal{
+	DummyRequestSignal(const consensus::RequestId &_reqid):RequestSignal(_reqid){}
+	/*virtual*/ void sendThisToConsensusObject(){}
+};
+
 RequestStub& Object::Data::safeRequestStub(const consensus::RequestId &_reqid, size_t &_rreqidx){
 	auto	it(reqmap.find(&_reqid));
 	if(it != reqmap.end()){
 		_rreqidx = it->second;
 	}else{
-		DynamicPointer<RequestSignal> reqsig(new RequestSignal(_reqid));
+		DynamicPointer<RequestSignal> reqsig(new DummyRequestSignal(_reqid));
 		insertRequestStub(reqsig, _rreqidx);
 	}
 	return requestStub(_rreqidx);
@@ -1578,4 +1585,7 @@ void Object::enterRunState(){
 	state(PrepareRunState);
 }
 //========================================================
+
+}//namespace server
 }//namespace consensus
+}//namespace distributed
