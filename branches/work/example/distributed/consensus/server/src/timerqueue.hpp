@@ -33,11 +33,14 @@ private:
 	struct TimerDataCmp{
 		bool operator()(const TimerData &_rtd1, const TimerData &_rtd2)const;
 	};
+	
 	typedef std::priority_queue<
 		TimerData,
 		std::vector<TimerData>,
 		TimerDataCmp
-	>						TimerPriorityQueueT;
+	>	TimerPriorityQueueT;
+
+private:	
 	TimerQueue(const TimerQueue&);
 	TimerQueue& operator=(const TimerQueue&);
 private:

@@ -127,8 +127,10 @@ void RequestStub::state(uint8 _st){
 		case AcceptState:
 			if(
 				st == InitState ||
+				st == WaitProposeState ||
 				st == WaitAcceptConfirmState ||
-				st == WaitAcceptState
+				st == WaitAcceptState ||
+				st == AcceptPendingState
 			){
 				break;
 			}else{
@@ -427,6 +429,7 @@ bool Object::Data::checkAlreadyReceived(DynamicPointer<RequestSignal> &_rsig){
 bool Object::Data::canSendFastAccept()const{
 	TimeSpec ct(fdt::Object::currentTime());
 	ct -= lastaccepttime;
+	idbg("continuousacceptedproposes = "<<continuousacceptedproposes<<" ct.sec = "<<ct.seconds());
 	return (continuousacceptedproposes >= 5) && ct.seconds() < 60;
 }
 RequestStub& Object::Data::safeRequestStub(const consensus::RequestId &_reqid, size_t &_rreqidx){
@@ -667,7 +670,7 @@ void Object::doExecuteProposeConfirmOperation(RunData &_rd, const uint8 _replica
 		return;
 	}
 	if(!preq->isValidProposeConfirmState()){
-		wdbg("Invalid state "<<preq->state()<<" for reqidx "<<reqidx);
+		wdbg("Invalid state "<<(int)preq->state()<<" for reqidx "<<reqidx);
 		return;
 	}
 	cassert(preq->flags & RequestStub::HaveAcceptFlag);
@@ -711,7 +714,7 @@ void Object::doExecuteProposeDeclineOperation(RunData &_rd, const uint8 _replica
 	}
 	
 	if(!preq->isValidProposeDeclineState()){
-		wdbg("Invalid state "<<preq->state()<<" for reqidx "<<reqidx);
+		wdbg("Invalid state "<<(int)preq->state()<<" for reqidx "<<reqidx);
 		return;
 	}
 	if(
@@ -755,7 +758,7 @@ void Object::doExecuteAcceptOperation(RunData &_rd, const uint8 _replicaidx, Ope
 	}
 	
 	if(!preq->isValidAcceptState() && !isRecoveryState()){
-		wdbg("Invalid state "<<preq->state()<<" for reqidx "<<reqidx);
+		wdbg("Invalid state "<<(int)preq->state()<<" for reqidx "<<reqidx);
 		return;
 	}
 	
@@ -787,7 +790,7 @@ void Object::doExecuteFastAcceptOperation(RunData &_rd, const uint8 _replicaidx,
 	RequestStub &rreq(d.safeRequestStub(_rop.reqid, reqidx));
 	
 	if(!rreq.isValidFastAcceptState() && !isRecoveryState()){
-		wdbg("Invalid state "<<rreq.state()<<" for reqidx "<<reqidx);
+		wdbg("Invalid state "<<(int)rreq.state()<<" for reqidx "<<reqidx);
 		return;
 	}
 	
@@ -1121,7 +1124,7 @@ void Object::doProcessRequest(RunData &_rd, const size_t _reqidx){
 				}
 				break;
 			}
-			
+			d.lastaccepttime = fdt::Object::currentTime();
 			++_rd.crtacceptincrement;
 			//we cannot do erase or Accept here, we must wait for the
 			//send operations to be flushed away
@@ -1132,12 +1135,6 @@ void Object::doProcessRequest(RunData &_rd, const size_t _reqidx){
 				d.reqq.push(_reqidx);
 			}
 			
-			if(d.acceptpendingcnt){
-				if(d.pendingacceptwaitidx == _reqidx){
-					d.pendingacceptwaitidx = -1;
-				}
-				doScanPendingRequests(_rd);
-			}
 			break;
 		case RequestStub::AcceptPendingState:
 			idbg("AcceptPendingState "<<rreq.sig->id);
@@ -1150,6 +1147,12 @@ void Object::doProcessRequest(RunData &_rd, const size_t _reqidx){
 			break;
 		case RequestStub::AcceptRunState:
 			doAcceptRequest(_rd, _reqidx);
+			if(d.acceptpendingcnt){
+				if(d.pendingacceptwaitidx == _reqidx){
+					d.pendingacceptwaitidx = -1;
+				}
+				doScanPendingRequests(_rd);
+			}
 		case RequestStub::EraseState:
 			doEraseRequest(_rd, _reqidx);
 			break;
@@ -1498,6 +1501,7 @@ void Object::doScanPendingRequests(RunData &_rd){
 				break;
 			}
 		}
+		idbg("d.acceptpendingcnt = "<<(int)d.acceptpendingcnt<<" d.pendingacceptwaitidx = "<<d.pendingacceptwaitidx);
 	}else{
 		std::deque<size_t>	posvec;
 		for(auto it(d.reqvec.begin()); it != d.reqvec.end(); ++it){
@@ -1529,6 +1533,7 @@ void Object::doScanPendingRequests(RunData &_rd){
 			}else{
 				size_t sz(it - posvec.begin());
 				size_t tmp = cnt + posvec.size() - sz;
+				d.acceptpendingcnt = tmp <= 255 ? tmp : 255;;
 				if(tmp != cnt && d.pendingacceptwaitidx == -1){
 					//we have at least one pending request wich is not in waitrequest state
 					RequestStub	&rreq(d.requestStub(*it));
@@ -1541,7 +1546,6 @@ void Object::doScanPendingRequests(RunData &_rd){
 			}
 		}
 	}
-	d.acceptpendingcnt = 0;
 }
 void Object::doAcceptRequest(RunData &_rd, const size_t _reqidx){
 	idbg(""<<_reqidx);
@@ -1552,6 +1556,8 @@ void Object::doAcceptRequest(RunData &_rd, const size_t _reqidx){
 	
 	d.reqmap.erase(&rreq.sig->id);
 	this->accept(rreq.sig);
+	rreq.sig.clear();
+	rreq.flags &= (~RequestStub::HaveRequestFlag);
 }
 void Object::doEraseRequest(RunData &_rd, const size_t _reqidx){
 	idbg(""<<_reqidx);
