@@ -1,6 +1,6 @@
 #include "timerqueue.hpp"
 
-inline bool TimerQueue::TimerDataCmp::operator()(
+bool TimerQueue::TimerDataCmp::operator()(
 	const TimerData &_rtd1, const TimerData &_rtd2
 )const{
 	return _rtd1.timepos > _rtd2.timepos;

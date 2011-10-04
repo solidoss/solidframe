@@ -27,7 +27,16 @@ struct Parameters{
 	uint8			idx;
 	uint8			quorum;
 };
-
+//! The base class for distributed objects needing consensus on processing requests
+/*!
+ * Inherit this class and implement accept, [init,] [prepareRun,] [prepareRecovery,] and
+ * recovery to have a replicated object which needs consensus on the order it(they) process
+ * the incomming requests from clients.<br>
+ * The distributed::consensus::Object implements fast multi Paxos algorithm.<br>
+ * 
+ * \see example/distributed/consensus for a proof-of-concept
+ * 
+ */
 class Object: public Dynamic<Object, foundation::Object>{
 	struct RunData;
 	typedef DynamicExecuter<void, Object, RunData&>			DynamicExecuterT;
@@ -62,10 +71,15 @@ protected:
 private:
 	/*virtual*/ int execute(ulong _sig, TimeSpec &_tout);
 	/*virtual*/ bool signal(DynamicPointer<foundation::Signal> &_sig);
+	//! It should dynamically cast the signal to an accepted Request and process it.
 	virtual void accept(DynamicPointer<RequestSignal> &_rsig) = 0;
+	//! Called once while initializing the Object
 	virtual void init();
+	//! Called once before entering RunState
 	virtual void prepareRun();
+	//! Called once before entering RecoveryState
 	virtual void prepareRecovery();
+	//! Called continuously by execute method until exiting RecoveryState
 	virtual int recovery() = 0;
 	int doInit(RunData &_rd);
 	int doPrepareRun(RunData &_rd);

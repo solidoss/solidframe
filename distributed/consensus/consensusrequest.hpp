@@ -11,7 +11,14 @@
 
 namespace distributed{
 namespace consensus{
-
+//! A base class for all write distributed consensus requests
+/*!
+ * Inherit RequestSignal if you want a distributed request to be 
+ * used with a distributed/replicated consensus object.<br>
+ * 
+ * \see example/distributed/consensus for a proof-of-concept
+ * 
+ */ 
 struct RequestSignal: Dynamic<RequestSignal, DynamicShared<foundation::Signal> >{
 	enum{
 		OnSender,
@@ -24,7 +31,18 @@ struct RequestSignal: Dynamic<RequestSignal, DynamicShared<foundation::Signal> >
 	void ipcReceived(
 		foundation::ipc::SignalUid &_rsiguid
 	);
-	
+	//! Implement this to send "this" to a distributed::consensus::Object when on peer
+	/*!
+	 * While on peer (the process containing the needed distributed::consensus::Object)
+	 * this RequestSignal will use this call to signal itself to the needed
+	 * distributed::consensus::Object:<br>
+	 * <code><br>
+	 * void StoreRequest::sendThisToConsensusObject(){<br>
+	 *     DynamicPointer<fdt::Signal> sig(this);<br>
+	 *     m().signal(sig, serverUid());<br>
+	 * }<br>
+	 * </code>
+	 */
 	virtual void sendThisToConsensusObject() = 0;
 	
 	template <class S>
