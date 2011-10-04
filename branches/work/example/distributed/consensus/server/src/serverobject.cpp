@@ -41,7 +41,7 @@ bool ServerParams::init(int _ipc_port){
 	std::sort(addrvec.begin(), addrvec.end());
 	BinarySeeker<> bs;
 	
-	struct ifaddrs* ifap;
+	struct ifaddrs* ifap(NULL);
 	if(::getifaddrs(&ifap)){
 		err = "getifaddrs did not work";
 		return false;
