@@ -112,7 +112,7 @@ int Serializer::store<uint32>(Base &_rb, FncData &_rfd){
 }
 template <>
 int Serializer::store<int64>(Base &_rb, FncData &_rfd){
-	idbgx(Dbg::ser_bin, ""<<_rfd.n);
+	idbgx(Dbg::ser_bin, "");
 	_rfd.s = sizeof(int64);
 	_rfd.f = &Serializer::storeBinary;
 	return CONTINUE;

@@ -53,7 +53,7 @@ int StreamErrorSignal::execute(DynamicPointer<Signal> &_rthis_ptr, uint32 _evs, 
 	return fdt::LEAVE;
 }
 //----------------------------------------------------------------------
-void AddrInfoSignal::init(
+void SocketAddressInfoSignal::init(
 	const char *_node,
 	int _port, 
 	int _flags,
@@ -64,7 +64,7 @@ void AddrInfoSignal::init(
 	addrinfo.reinit(_node, _port, _flags, _family, _type, _proto);
 }
 
-void AddrInfoSignal::result(int _rv){
+void SocketAddressInfoSignal::result(int _rv){
 }
 
 }//namespace concept

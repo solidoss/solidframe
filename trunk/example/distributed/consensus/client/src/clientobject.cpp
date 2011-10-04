@@ -1,6 +1,6 @@
 #include "example/distributed/consensus/client/clientobject.hpp"
-#include "example/distributed/consensus/core/manager.hpp"
-#include "example/distributed/consensus/core/signals.hpp"
+#include "example/distributed/consensus/core/consensusmanager.hpp"
+#include "example/distributed/consensus/core/consensusrequests.hpp"
 
 #include "foundation/common.hpp"
 #include "foundation/ipc/ipcservice.hpp"
@@ -33,9 +33,9 @@ bool ClientParams::init(){
 			return false;
 		}
 		s[pos] = 0;
-		AddrInfo ai(s.c_str(), s.c_str() + pos + 1, 0, AddrInfo::Inet4, AddrInfo::Stream);
+		SocketAddressInfo ai(s.c_str(), s.c_str() + pos + 1, 0, SocketAddressInfo::Inet4, SocketAddressInfo::Datagram);
 		if(!ai.empty()){
-			addrvec.push_back(SocketAddress(ai.begin()));
+			addrvec.push_back(SocketAddress4(ai.begin()));
 		}else{
 			err = "No such address [";
 			err += s.c_str();
@@ -143,15 +143,15 @@ void ClientParams::print(std::ostream &_ros){
 	_ros<<"Parsed parameters:"<<endl;
 	_ros<<"Addresses: ";
 	for(AddressVectorT::iterator it(addrvec.begin()); it != addrvec.end(); ++it){
-		SocketAddress &ra(*it);
-		char				host[SocketAddress::MaxSockHostSz];
-		char				port[SocketAddress::MaxSockServSz];
+		SocketAddress4 &ra(*it);
+		char				host[SocketAddress::HostNameCapacity];
+		char				port[SocketAddress::ServiceNameCapacity];
 		ra.name(
 			host,
-			SocketAddress::MaxSockHostSz,
+			SocketAddress4::HostNameCapacity,
 			port,
-			SocketAddress::MaxSockServSz,
-			SocketAddress::NumericService | SocketAddress::NumericHost
+			SocketAddress4::ServiceNameCapacity,
+			SocketAddress4::NumericService | SocketAddress4::NumericHost
 		);
 		_ros<<host<<':'<<port<<' ';
 	}
@@ -173,9 +173,9 @@ namespace{
 static const DynamicRegisterer<ClientObject>	dre;
 }
 /*static*/ void ClientObject::dynamicRegister(){
-	DynamicExecuterT::registerDynamic<StoreSignal, ClientObject>();
-	DynamicExecuterT::registerDynamic<FetchSignal, ClientObject>();
-	DynamicExecuterT::registerDynamic<EraseSignal, ClientObject>();
+	DynamicExecuterT::registerDynamic<StoreRequest, ClientObject>();
+	DynamicExecuterT::registerDynamic<FetchRequest, ClientObject>();
+	DynamicExecuterT::registerDynamic<EraseRequest, ClientObject>();
 	//DynamicExecuterT::registerDynamic<InsertSignal, ClientObject>();
 }
 //------------------------------------------------------------
@@ -186,7 +186,7 @@ ClientObject::ClientObject(
 }
 //------------------------------------------------------------
 ClientObject::~ClientObject(){
-	
+	idbg("");
 }
 //------------------------------------------------------------
 int ClientObject::execute(ulong _sig, TimeSpec &_tout){
@@ -223,7 +223,7 @@ int ClientObject::execute(ulong _sig, TimeSpec &_tout){
 			case 'i':{
 				idbg("sending a storesingal");
 				const string	&s(getString(rr.u.u32s.u32_1, crtpos));
-				uint32			sid(sendSignal(new StoreSignal(s, crtpos)));
+				uint32			sid(sendSignal(new StoreRequest(s, crtpos)));
 				expectStore(sid, s, crtpos, params.addrvec.size());
 				break;
 			}
@@ -248,18 +248,18 @@ int ClientObject::execute(ulong _sig, TimeSpec &_tout){
 				}
 			case 'f':{
 				const string	&s(params.strvec[rr.u.u32s.u32_1]);
-				uint32			sid(sendSignal(new FetchSignal(s)));
+				uint32			sid(sendSignal(new FetchRequest(s)));
 				expectFetch(sid, s, params.addrvec.size());
 				break;
 			}	
 			case 'e':{
 				const string	&s(params.strvec[rr.u.u32s.u32_1]);
-				uint32			sid(sendSignal(new EraseSignal(s)));
+				uint32			sid(sendSignal(new EraseRequest(s)));
 				expectErase(sid, s, params.addrvec.size());
 				break;
 			}
 			case 'E':{
-				uint32	sid(sendSignal(new EraseSignal));
+				uint32	sid(sendSignal(new EraseRequest));
 				expectErase(sid, params.addrvec.size());
 				break;
 			}
@@ -276,8 +276,12 @@ int ClientObject::execute(ulong _sig, TimeSpec &_tout){
 		}
 		return OK;
 	}else if(waitresponsecount){
-		idbg("waiting for "<<waitresponsecount<<" responses");
-		_tout.add(10);
+		if(_sig & fdt::TIMEOUT){
+			m().signalStop();
+		}else{
+			idbg("waiting for "<<waitresponsecount<<" responses");
+			_tout.add(1 * 60);
+		}
 	}else{
 		m().signalStop();
 	}
@@ -329,15 +333,15 @@ void ClientObject::deleteRequestId(uint32 _v){
 	reqidvec.erase(reqidvec.begin() + rv);
 }
 //------------------------------------------------------------
-uint32 ClientObject::sendSignal(ConceptSignal *_psig){
-	DynamicSharedPointer<ConceptSignal>	sigptr(_psig);
+uint32 ClientObject::sendSignal(distributed::consensus::RequestSignal *_psig){
+	DynamicSharedPointer<distributed::consensus::RequestSignal>	sigptr(_psig);
 	//sigptr->requestId(newRequestId(-1));
 	sigptr->waitresponse = true;
-	sigptr->requid = newRequestId(-1);
-	sigptr->senderuid = this->uid();
+	sigptr->id.requid = newRequestId(-1);
+	sigptr->id.senderuid = this->uid();
 	for(ClientParams::AddressVectorT::iterator it(params.addrvec.begin()); it != params.addrvec.end(); ++it){
 		DynamicPointer<foundation::Signal>	sp(sigptr);
-		foundation::ipc::Service::the().sendSignal(sp, SockAddrPair(*it));
+		foundation::ipc::Service::the().sendSignal(sp, SocketAddressPair(*it));
 	}
 	return 0;
 }
@@ -372,21 +376,21 @@ void ClientObject::dynamicExecute(DynamicPointer<ClientSignal> &_rsig){
 	idbg("received ClientSignal response");
 }
 //------------------------------------------------------------
-void ClientObject::dynamicExecute(DynamicPointer<StoreSignal> &_rsig){
-	idbg("received StoreSignal response with value "<<_rsig->v);
+void ClientObject::dynamicExecute(DynamicPointer<StoreRequest> &_rsig){
 	--waitresponsecount;
+	idbg("received StoreSignal response with value "<<_rsig->v<<" waitresponsecount = "<<waitresponsecount);
 }
 //------------------------------------------------------------
-void ClientObject::dynamicExecute(DynamicPointer<FetchSignal> &_rsig){
+void ClientObject::dynamicExecute(DynamicPointer<FetchRequest> &_rsig){
 	idbg("received FetchSignal response");
 }
 //------------------------------------------------------------
-void ClientObject::dynamicExecute(DynamicPointer<EraseSignal> &_rsig){
+void ClientObject::dynamicExecute(DynamicPointer<EraseRequest> &_rsig){
 	idbg("received EraseSignal response");
 }
 //------------------------------------------------------------
 void ClientObject::expectStore(uint32 _rid, const string &_rs, uint32 _v, uint32 _cnt){
-	++waitresponsecount;
+	waitresponsecount += (_cnt);
 }
 //------------------------------------------------------------
 void ClientObject::expectFetch(uint32 _rid, const string &_rs, uint32 _cnt){

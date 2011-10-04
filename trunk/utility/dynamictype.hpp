@@ -270,8 +270,12 @@ struct Dynamic: T{
 	
 	
 */
+template <class R, class Exe, class P = void>
+struct DynamicExecuter;
+
+//! Specialization for DynamicExecuter with no extra parameter to dynamicExecute
 template <class R, class Exe>
-struct DynamicExecuter{
+struct DynamicExecuter<R, Exe, void>{
 private:
 	typedef R (*FncT)(const DynamicPointer<DynamicBase> &, void*);
 	
@@ -350,11 +354,20 @@ public:
 		return _re.dynamicExecute(*crtit);
 	}
 	
-	void execute(Exe &_re){
+	void executeAll(Exe &_re){
 		while(hasCurrent()){
 			executeCurrent(_re);
 			next();
 		}
+	}
+	
+	R execute(Exe &_re, DynamicPointer<DynamicBase> &_rdp){
+		DynamicRegistererBase	dr;
+		dr.lock();
+		FncT	pf = reinterpret_cast<FncT>(_rdp->callback(*dynamicMap()));
+		dr.unlock();
+		if(pf) return (*pf)(_rdp, &_re);
+		return _re.dynamicExecute(_rdp);
 	}
 	
 	static DynamicMap* dynamicMap(DynamicMap *_pdm = NULL){
@@ -367,8 +380,134 @@ public:
 	/*!
 		Usage:<br>
 		<code>
-		DynamicReceiverT::add\<ASignal, ExeOne>();<br>
-		DynamicReceiverT::add\<BSignal, ExeOne>();<br>
+		DynamicReceiverT::registerDynamic\<ASignal, ExeOne>();<br>
+		DynamicReceiverT::registerDynamic\<BSignal, ExeOne>();<br>
+		</code>
+	*/
+	template <class S, class E>
+	static void registerDynamic(){
+		FncT	pf = &doExecute<S, E>;
+		dynamicMapEx<E>().callback(S::staticTypeId(), reinterpret_cast<DynamicMap::FncT>(pf));
+	}
+	
+private:
+	DynamicPointerVectorT						v[2];
+	DynamicPointerVectorT::iterator				crtit;
+	uint										pushid;
+	uint										execid;
+};
+
+
+//! DynamicExecuter with an extra parameter to dynamicExecute
+template <class R, class Exe, class P>
+struct DynamicExecuter{
+private:
+	typedef R (*FncT)(const DynamicPointer<DynamicBase> &, void*, P);
+	
+	template <class S, class E>
+	static R doExecute(const DynamicPointer<DynamicBase> &_dp, void *_e, P _p){
+		E *pe = reinterpret_cast<E*>(_e);
+		DynamicPointer<S>	ds(_dp);
+		return pe->dynamicExecute(ds, _p);
+	}
+	
+	typedef std::vector<DynamicPointer<DynamicBase> > DynamicPointerVectorT;
+	template <class E>
+	static DynamicMap& dynamicMapEx(){
+		static DynamicMap	dm(dynamicMap());
+		dynamicMap(&dm);
+		return dm;
+	}
+public:
+	//! Basic constructor
+	DynamicExecuter():pushid(0), execid(1){}
+	
+	//! Push a new object for later execution
+	/*! 
+		This method and prepareExecute should be synchronized.
+		\param _dp a DynamicPointer to a DynamicBase object
+	*/
+	void push(const DynamicPointer<DynamicBase> &_dp){
+		v[pushid].push_back(_dp);
+	}
+	//! Move the objects from push queue to execute queue.
+	uint prepareExecute(){
+		v[execid].clear();
+		uint tmp = execid;
+		execid = pushid;
+		pushid = tmp;
+		crtit = v[execid].begin();
+		return v[execid].size();
+	}
+	
+	//! Use this method to iterate through the objects from the execution queue
+	/*!
+		<code>
+		lock();<br>
+		dr.prepareExecute();<br>
+		unlock();<br>
+		while(dr.hasCurrent()){<br>
+			dr.executeCurrent(*this);<br>
+			dr.next();<br>
+		}<br>
+		</code>
+	*/
+	inline bool hasCurrent()const{
+		return crtit != v[execid].end();
+	}
+	//! Iterate forward through execution queue
+	inline void next(){
+		cassert(crtit != v[execid].end());
+		crtit->clear();
+		++crtit;
+	}
+	//! Execute the current object from execution queue
+	/*!
+		I.e., call the coresponding this->dynamicExecute(DynamicPointer\<RealObjectType>&).<br>
+		If there is no dynamicExecute method registered for the current object,
+		it will call _re.dynamicExecuteDefault(DynamicPointer\<> &).
+		\param _re Reference to the executer, usually *this.
+		\retval R the return value for dynamicExecute methods.
+	*/
+	R executeCurrent(Exe &_re, P _p){
+		cassert(crtit != v[execid].end());
+		DynamicRegistererBase	dr;
+		dr.lock();
+		FncT	pf = reinterpret_cast<FncT>((*crtit)->callback(*dynamicMap()));
+		dr.unlock();
+		if(pf) return (*pf)(*crtit, &_re, _p);
+		return _re.dynamicExecute(*crtit, _p);
+	}
+	
+	void executeAll(Exe &_re, P _p){
+		while(hasCurrent()){
+			executeCurrent(_re, _p);
+			next();
+		}
+	}
+	
+	R execute(Exe &_re, DynamicPointer<> &_rdp, P _p){
+		DynamicRegistererBase	dr;
+		dr.lock();
+		FncT	pf = reinterpret_cast<FncT>(_rdp->callback(*dynamicMap()));
+		dr.unlock();
+		if(pf) return (*pf)(_rdp, &_re, _p);
+		
+		return _re.dynamicExecute(_rdp, _p);
+	}
+	
+	static DynamicMap* dynamicMap(DynamicMap *_pdm = NULL){
+		static DynamicMap *pdm(_pdm);
+		if(_pdm) pdm = _pdm;
+		return pdm;
+	}
+	
+	//! Register a new dynamicExecute method
+	/*!
+		Usage:<br>
+		<code>
+		DynamicReceiverT::registerDynamic\<ASignal, ExeOne>();<br>
+		DynamicReceiverT::registerDynamic\<BSignal, ExeOne>();<br>
 		</code>
 	*/
 	template <class S, class E>

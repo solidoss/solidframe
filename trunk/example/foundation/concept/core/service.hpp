@@ -27,7 +27,7 @@
 #include "signals.hpp"
 #include "common.hpp"
 
-struct AddrInfoIterator;
+struct SocketAddressInfoIterator;
 struct SocketDevice;
 
 namespace foundation{
@@ -55,20 +55,20 @@ public:
 		AddConnection,
 		AddSslConnection,
 		AddTalker
-	};//use with AddrInfoSignal
+	};//use with SocketAddressInfoSignal
 	
 	static void dynamicRegister();
 	
 	Service();
 	~Service();
 	
-	void dynamicExecute(DynamicPointer<AddrInfoSignal> &_rsig);
+	void dynamicExecute(DynamicPointer<SocketAddressInfoSignal> &_rsig);
 	void insertObject(Listener &_ro, const ObjectUidT &_ruid);
 	void eraseObject(const Listener &_ro);
 protected:
 	friend class Listener;
 	bool insertListener(
-		const AddrInfoIterator &_rai,
+		const SocketAddressInfoIterator &_rai,
 		bool _secure = false
 	);
 	virtual bool insertConnection(
@@ -78,12 +78,12 @@ protected:
 	);
 	
 	virtual bool insertTalker(
-		const AddrInfoIterator &_rai,
+		const SocketAddressInfoIterator &_rai,
 		const char *_node,
 		const char *_svc
 	);
 	virtual bool insertConnection(
-		const AddrInfoIterator &_rai,
+		const SocketAddressInfoIterator &_rai,
 		const char *_node,
 		const char *_svc
 	);

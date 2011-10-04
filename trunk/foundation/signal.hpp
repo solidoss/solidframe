@@ -34,7 +34,7 @@ class TimeSpec;
 template <class T, class C>
 class DynamicPointer;
 
-struct SockAddrPair;
+struct SocketAddressPair;
 
 namespace foundation{
 

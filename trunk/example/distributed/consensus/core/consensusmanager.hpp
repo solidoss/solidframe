@@ -1,5 +1,5 @@
-#ifndef DISTRIBUTED_CONCEPT_MANAGER_HPP
-#define DISTRIBUTED_CONCEPT_MANAGER_HPP
+#ifndef CONSENSUSMANAGER_HPP
+#define CONSENSUSMANAGER_HPP
 
 #include "foundation/manager.hpp"
 #include "foundation/common.hpp"

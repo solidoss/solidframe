@@ -45,10 +45,7 @@ namespace ipc{
 
 struct BufCmp{
 	bool operator()(const uint32 id1, const uint32 id2)const{
-		if(id1 > id2)
-			return (id1 - id2) <= (uint32)(0xffffffff/2);
-		else
-			return (id2 - id1) > (uint32)(0xffffffff/2);
+		return overflow_safe_less(id2, id1);
 	}
 	bool operator()(const Buffer &_rbuf1, const Buffer &_rbuf2)const{
 		return operator()(_rbuf1.id(), _rbuf2.id());
@@ -219,12 +216,7 @@ struct Session::Data{
 				}else return true;
 			}else return false;
 			
-			
-			if(id < _owc.id){
-				return (_owc.id - id) <= (uint32)(0xffffffff/2);
-			}else{
-				return (id - _owc.id) > (uint32)(0xffffffff/2);
-			}
+			return overflow_safe_less(id, _owc.id);
 		}
 		DynamicSignalPointerT	signal;
 		BinSerializerT			*pserializer;
@@ -246,7 +238,7 @@ struct Session::Data{
 	};
 	
 	typedef std::pair<
-		const SockAddrPair*,
+		const SocketAddressPair*,
 		int
 	>											BaseAddrT;
 	typedef Queue<uint32>						UInt32QueueT;
@@ -264,12 +256,12 @@ struct Session::Data{
 	typedef Queue<SignalPairT>					SignalQueueT;
 public:
 	Data(
-		const Inet4SockAddrPair &_raddr,
+		const SocketAddressPair4 &_raddr,
 		uint32 _keepalivetout
 	);
 	
 	Data(
-		const Inet4SockAddrPair &_raddr,
+		const SocketAddressPair4 &_raddr,
 		int _baseport,
 		uint32 _keepalivetout
 	);
@@ -333,8 +325,8 @@ public:
 	//returns false if there is no other signal but the current one
 	bool moveToNextSendSignal();
 public:
-	SocketAddress			addr;
-	SockAddrPair			pairaddr;
+	SocketAddress4			addr;
+	SocketAddressPair			pairaddr;
 	BaseAddrT				baseaddr;
 	uint32					rcvexpectedid;
 	uint8					state;
@@ -367,7 +359,7 @@ public:
 
 //---------------------------------------------------------------------
 Session::Data::Data(
-	const Inet4SockAddrPair &_raddr,
+	const SocketAddressPair4 &_raddr,
 	uint32 _keepalivetout
 ):	addr(_raddr), pairaddr(addr), 
 	baseaddr(&pairaddr, addr.port()),
@@ -388,7 +380,7 @@ Session::Data::Data(
 }
 //---------------------------------------------------------------------
 Session::Data::Data(
-	const Inet4SockAddrPair &_raddr,
+	const SocketAddressPair4 &_raddr,
 	int _baseport,
 	uint32 _keepalivetout
 ):	addr(_raddr), pairaddr(addr), baseaddr(&pairaddr, _baseport),
@@ -565,7 +557,7 @@ void Session::Data::popSentWaitSignals(Session::Data::SendBufferData &_rsbd){
 			popSentWaitSignal(_rsbd.signalidxvec[0]);
 			popSentWaitSignal(_rsbd.signalidxvec[1]);
 			popSentWaitSignal(_rsbd.signalidxvec[2]);
-			popSentWaitSignal(_rsbd.signalidxvec[4]);
+			popSentWaitSignal(_rsbd.signalidxvec[3]);
 			break;
 		default:
 			for(
@@ -805,14 +797,14 @@ bool Session::Data::moveToNextSendSignal(){
 }
 //---------------------------------------------------------------------
 Session::Session(
-	const Inet4SockAddrPair &_raddr,
+	const SocketAddressPair4 &_raddr,
 	uint32 _keepalivetout
 ):d(*(new Data(_raddr, _keepalivetout))){
 	vdbgx(Dbg::ipc, "Created connect session "<<(void*)this);
 }
 //---------------------------------------------------------------------
 Session::Session(
-	const Inet4SockAddrPair &_raddr,
+	const SocketAddressPair4 &_raddr,
 	int _basport,
 	uint32 _keepalivetout
 ):d(*(new Data(_raddr, _basport, _keepalivetout))){
@@ -824,18 +816,18 @@ Session::~Session(){
 	delete &d;
 }
 //---------------------------------------------------------------------
-const Inet4SockAddrPair* Session::peerAddr4()const{
-	const SockAddrPair *p = &(d.pairaddr);
-	return reinterpret_cast<const Inet4SockAddrPair*>(p);
+const SocketAddressPair4* Session::peerAddr4()const{
+	const SocketAddressPair *p = &(d.pairaddr);
+	return reinterpret_cast<const SocketAddressPair4*>(p);
 }
 //---------------------------------------------------------------------
 const Session::Addr4PairT* Session::baseAddr4()const{
 	const Data::BaseAddrT *p = &(d.baseaddr);
-	return reinterpret_cast<const std::pair<const Inet4SockAddrPair*, int>*>(p);
+	return reinterpret_cast<const std::pair<const SocketAddressPair4*, int>*>(p);
 }
 //---------------------------------------------------------------------
-const SockAddrPair* Session::peerSockAddr()const{
-	const SockAddrPair *p = &(d.pairaddr);
+const SocketAddressPair* Session::peerSockAddr()const{
+	const SocketAddressPair *p = &(d.pairaddr);
 	return p;
 }
 //---------------------------------------------------------------------

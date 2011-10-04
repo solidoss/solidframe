@@ -31,6 +31,7 @@
 #include "algorithm/serialization/typemapper.hpp"
 #include "algorithm/serialization/binary.hpp"
 #include "algorithm/serialization/idtypemap.hpp"
+#include "system/socketaddress.hpp"
 using namespace std;
 
 // template <class S>
@@ -90,6 +91,44 @@ struct TestC{
 	int32 	a;
 	void print()const{cout<<"testc: a = "<<a<<endl;}
 };
+
+struct TestD{
+	TestD(
+		const char *_paddr = NULL,
+		uint _port = 0,
+		int _a = 4
+	):a(_a){
+		if(_paddr){
+			SocketAddressInfo ai(_paddr, _port, 0, SocketAddressInfo::Inet4, SocketAddressInfo::Datagram);
+			if(!ai.empty()){
+				sa = ai.begin();
+			}
+		}
+	}
+	int32			a;
+	SocketAddress4	sa;
+	void print()const {
+		cout<<"testd: a  = "<<a<<endl;
+		char				host[SocketAddress::HostNameCapacity];
+		char				port[SocketAddress::ServiceNameCapacity];
+		sa.name(
+			host,
+			SocketAddress::HostNameCapacity,
+			port,
+			SocketAddress::ServiceNameCapacity
+			,
+			SocketAddress::NumericService | SocketAddress::NumericHost
+		);
+		cout<<"testd: sa = "<<host<<':'<<port<<endl;
+		
+	}
+	template <class S>
+	S& operator&(S &_s){
+		_s.push(a, "b::a");
+		return _s.pushBinary(sa.addr(), SocketAddress4::Capacity, "sockaddr");
+	}
+};
+
 
 struct Base{
 	virtual ~Base(){}
@@ -154,7 +193,6 @@ struct IntegerVector: Base{
 	IntVecT	*piv2;
 };
 
-
 void IntegerVector::print()const{
 	cout<<"IntegerVector{"<<endl;
 	for(IntVecT::const_iterator it(iv.begin()); it != iv.end(); ++it){
@@ -170,8 +208,90 @@ void IntegerVector::print()const{
 template <class S>
 S& operator&(IntegerVector &_iv, S &_s){
 	return _s.pushContainer(_iv.iv, "IntegerVector::iv").pushContainer(_iv.piv1,"piv1").pushContainer(_iv.piv2, "piv2");
-	//return _s;
 }
+
+
+struct Array: Base{
+	Array(){
+		pta = NULL;
+		ptasz = -1;
+		pta1 = (TestA*)1;
+		pta1sz = -1;
+	}
+	Array(bool){
+		sasz = 3;
+		sa[0] = "first";
+		sa[1] = "second";
+		sa[2] = "third";
+		pta1 = NULL;
+		pta1sz = 0;
+		pta = new TestA[10];
+		ptasz = 10;
+		for(int i(0); i < 10; ++i){
+			pta[i].a += i;
+			pta[i].b += i;
+			pta[i].c += i;
+		}
+		td[0] = TestD("192.168.200.1",1111, 1);
+		td[1] = TestD("192.168.200.2",1112, 2);
+		td[2] = TestD("192.168.200.3",1113, 3);
+		td[3] = TestD("192.168.200.4",1114, 4);
+		tdsz = 4;
+	}
+	~Array(){
+		delete []pta;
+		delete []pta1;
+	}
+	template <class S>
+	S& operator&(S &_s){
+		_s.pushArray(sa, sasz, "sa");
+		_s.pushDynamicArray(pta, ptasz, "pta");
+		_s.pushDynamicArray(pta1, pta1sz, "pta1");
+		_s.pushArray(td, tdsz, "td");
+		return _s;
+	}
+	void print()const;
+	
+	std::string sa[3];
+	uint8		sasz;
+	
+	TestA		*pta;
+	uint16		ptasz;
+	
+	TestA		*pta1;
+	uint16		pta1sz;
+	
+	TestD		td[4];
+	uint32		tdsz;
+};
+
+void Array::print() const{
+	cout<<"Array{"<<endl;
+	cout<<"sasz = "<<(int)sasz<<endl;
+	for(int i(0); i < sasz; ++i){
+		cout<<"\""<<sa[i]<<"\" ";
+	}
+	cout<<endl;
+	cout<<"ptasz = "<<ptasz<<endl;
+	cout<<"pta = "<<(void*)pta<<"{"<<endl;
+	for(int i(0); i < ptasz; ++i){
+		pta[i].print();
+	}
+	cout<<"}pta"<<endl;
+	cout<<"pta1 = "<<(void*)pta1<<"{"<<endl;
+	for(int i(0); i < pta1sz; ++i){
+		pta1[i].print();
+	}
+	cout<<"}pta1"<<endl;
+	cout<<"tdsz = "<<tdsz<<endl;
+	cout<<"td{"<<endl;
+	for(int i(0); i < tdsz; ++i){
+		td[i].print();
+	}
+	cout<<"}td"<<endl;
+	cout<<"}array"<<endl;
+}
+
 
 template <class S>
 S& operator&(Base &, S &_s){
@@ -183,6 +303,10 @@ template <class S>
 S& operator&(TestC &_tb, S &_s){
 	return _s.push(_tb.a, "c::a");
 }
+
+
+
+
 namespace std{
 template <class S>
 S& operator&(pair<int32,int32> &_tb, S &_s){
@@ -201,7 +325,7 @@ int main(int argc, char *argv[]){
 #ifdef UDEBUG
 	Dbg::instance().levelMask();
 	Dbg::instance().moduleMask();
-	Dbg::instance().initStdErr();
+	Dbg::instance().initStdErr(false);
 #endif
 	cout<<"sizeof(map<int , string>::iterator): "<<sizeof(map<int32 , string>::iterator)<<endl;
 	cout<<"sizeof(list<string>::iterator): "<<sizeof(list<string>::iterator)<<endl;
@@ -228,6 +352,7 @@ int main(int argc, char *argv[]){
 	TypeMapper::map<String, BinSerializer, BinDeserializer>();
 	TypeMapper::map<UnsignedInteger, BinSerializer, BinDeserializer>();
 	TypeMapper::map<IntegerVector, BinSerializer, BinDeserializer>();
+	TypeMapper::map<Array, BinSerializer, BinDeserializer>();
 	//const char* str = NULL;
 	{	
 		idbg("");
@@ -248,6 +373,7 @@ int main(int argc, char *argv[]){
 		Base			*b2 = new UnsignedInteger(-2, 10);
 		IntegerVector	*iv;
 		Base			*b3 = iv = new IntegerVector(true);
+		Base			*b4 = new Array(true);
 		
 		for(int i = 1; i < 20; ++i){
 			iv->iv.push_back(i);
@@ -263,12 +389,13 @@ int main(int argc, char *argv[]){
 		b1->print();
 		b2->print();
 		b3->print();
+		b4->print();
 		
 		ser.push(ta, "testa").push(tb, "testb").push(tc, "testc");
 		idbg("");
 		ser.push(s, "string").pushContainer(sdq, "names");
 		idbg("");
-		ser.push(b1, "basestring").push(b2, "baseui").push(b3, "baseiv");
+		ser.push(b1, "basestring").push(b2, "baseui").push(b3, "baseiv").push(b4, "basea");
 		
 		PairIntDeqT pidq;
 		pidq.push_back(pair<int32, int32>(1,2));
@@ -302,12 +429,13 @@ int main(int argc, char *argv[]){
 		Base		*b1 = NULL;
 		Base		*b2 = NULL;
 		Base		*b3 = NULL;
+		Base		*b4 = NULL;
 		
 		des.push(ta, "testa").push(tb, "testb").push(tc, "testc");
 		idbg("");
 		des.push(s, "string").pushContainer(sdq, "names");
 		idbg("");
-		des.push(b1, "basestring").push(b2, "baseui").push(b3, "baseiv");
+		des.push(b1, "basestring").push(b2, "baseui").push(b3, "baseiv").push(b4, "basea");
 		idbg("");
 		int v = 0;
 		int cnt = 0;
@@ -329,6 +457,7 @@ int main(int argc, char *argv[]){
 		if(b1)b1->print();
 		if(b2)b2->print();
 		b3->print();
+		if(b4)b4->print();
 		for(PairIntDeqT::const_iterator it(pidq.begin()); it != pidq.end(); ++it){
 			cout<<"("<<it->first<<','<<it->second<<')';
 		}

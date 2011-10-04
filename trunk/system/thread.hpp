@@ -125,7 +125,7 @@ private:
 #endif
 	int				dtchd;
 	unsigned        thcrtstatid;
-	SpecVecT       specvec;
+	SpecVecT		specvec;
 	ConditionPairT	*pcndpair;
 
 };

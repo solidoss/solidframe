@@ -1,16 +1,16 @@
 set(Sources
-	src/signals.cpp
+	src/consensusrequests.cpp
 )
 
 set(Headers
-	signals.hpp
-	manager.hpp
+	consensusrequests.hpp
+	consensusmanager.hpp
 )
 
 set(Inlines
 )
 
-add_library (example_distributed_core
+add_library (example_distributed_consensus_core
 	${Sources} ${Headers} ${Inlines}
 )
 

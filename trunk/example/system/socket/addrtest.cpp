@@ -22,6 +22,7 @@
 #include <poll.h>
 #include "system/socketaddress.hpp"
 #include "system/socketdevice.hpp"
+#include "system/timespec.hpp"
 #include <unistd.h>
 #include <fcntl.h>
 #include <cerrno>
@@ -61,21 +62,35 @@ int main(int argc, char *argv[]){
 	const char *srv = NULL;
 	if(strlen(argv[2])) srv = argv[2];
 	int flags = 0;
-	int family = AddrInfo::Inet4;
-	int type = AddrInfo::Stream;
+	int family = SocketAddressInfo::Inet4;
+	int type = SocketAddressInfo::Stream;
 	int proto = 0;
 	
 	//list all the local interfaces
 	listLocalInterfaces();
 	
 	
-	//AddrInfo ai(node, srv);
-	AddrInfo ai(node, srv, flags, family, type, proto);
-	AddrInfoIterator it(ai.begin());
+	//SocketAddressInfo ai(node, srv);
+	SocketAddressInfo ai(node, srv, flags, family, type, proto);
+	SocketAddressInfoIterator it(ai.begin());
 	while(it){
 		int sd = socket(it.family(), it.type(), it.protocol());
+		struct timeval tosnd;
+		struct timeval torcv;
+		
+		tosnd.tv_sec = -1;
+		tosnd.tv_usec = -1;
+		
+		torcv.tv_sec = -1;
+		torcv.tv_usec = -1;
+		socklen_t socklen(sizeof(torcv));
 		if(sd > 0){
 			cout<<"Connecting..."<<endl;
+			getsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, (char*)&torcv, &socklen);
+			socklen = sizeof(tosnd);
+			getsockopt(sd, SOL_SOCKET, SO_SNDTIMEO, (char*)&tosnd, &socklen);
+			cout<<"rcvtimeo "<<torcv.tv_sec<<"."<<torcv.tv_usec<<endl;
+			cout<<"sndtimeo "<<tosnd.tv_sec<<"."<<tosnd.tv_usec<<endl;
 			fcntl(sd, F_SETFL, O_NONBLOCK);
 			if(!connect(sd, it.addr(), it.size())){
 				cout<<"Connected!"<<endl;
@@ -114,7 +129,7 @@ void listLocalInterfaces(){
 		MAX_IFS = 64
 	};
 	SocketDevice s;
-	s.create(AddrInfo::Inet4, AddrInfo::Stream, 0);
+	s.create(SocketAddressInfo::Inet4, SocketAddressInfo::Stream, 0);
 	
 	ifreq *ifrp, *ifend;
 	struct ifconf ifc;

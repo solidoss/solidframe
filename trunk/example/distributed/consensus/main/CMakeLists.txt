@@ -10,8 +10,9 @@ target_link_libraries (multi_launcher
 add_executable (consensus_client src/consensusclient.cpp)
 
 target_link_libraries (consensus_client
-	example_distributed_client
-	example_distributed_core
+	example_distributed_consensus_client
+	example_distributed_consensus_core
+	distributed_consensus_core
 	foundation_ipc
 	foundation_aio
 	foundation_core
@@ -26,8 +27,10 @@ target_link_libraries (consensus_client
 add_executable (consensus_server src/consensusserver.cpp)
 
 target_link_libraries (consensus_server
-	example_distributed_server
-	example_distributed_core
+	example_distributed_consensus_server
+	example_distributed_consensus_core
+	distributed_consensus_server
+	distributed_consensus_core
 	foundation_ipc
 	foundation_aio
 	foundation_core

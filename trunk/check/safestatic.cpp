@@ -1,6 +1,5 @@
 //TODO: usefull comment
 #include <cstdlib>
-#include <cassert>
 using namespace std;
 
 void ssleep();
@@ -21,11 +20,44 @@ int getV(){
 	return a.v;
 }
 
-#ifdef __WIN32
+#ifdef _WIN32
+#include <Windows.h>
+
+static CRITICAL_SECTION cs;
+
 void init(){
 	//on windows allways a problem with the static
-	assert(false);
+	//assert(false);
+	InitializeCriticalSection(&cs);
 }
+DWORD th_run(void *_pv){
+	int v = getV();
+	//assert(v);
+	if(v == 0){
+		exit(-3);
+	}
+	return 0;
+}
+void create_thread(){
+	CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)&th_run, NULL, 0, NULL);
+}
+
+void ssleep(){
+	EnterCriticalSection(&cs);
+	//assert(!counter);
+	if(counter != 0){
+		exit(-2);
+	}
+	counter = 1;
+	LeaveCriticalSection(&cs);
+	Sleep(1000);
+}
+
+void sssleep(){
+	Sleep(2000);
+}
+
+
 #else
 
 #include <pthread.h>
@@ -44,7 +76,10 @@ void init(){
 
 void ssleep(){
 	pthread_mutex_lock(&mut);
-	assert(!counter);
+	//assert(!counter);
+	if(counter != 0){
+		exit(-3);
+	}
 	counter = 1;
 	pthread_mutex_unlock(&mut);
 	sleep(1);
@@ -55,7 +90,13 @@ void sssleep(){
 }
 
 void* th_run(void *pv){
-	assert(getV());
+	//assert(getV());
+	int v = getV();
+	//assert(v);
+	if(v == 0){
+		exit(-2);
+	}
+	return NULL;
 }
 
 void create_thread(){
@@ -67,7 +108,11 @@ void create_thread(){
 int main(){
 	init();
 	create_thread();
-	assert(getV());
+	int v = getV();
+	//assert(v);
+	if(v == 0){
+		return -1;
+	}
 	sssleep();
 	return 0;
 }

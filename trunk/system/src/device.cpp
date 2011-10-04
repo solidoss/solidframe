@@ -144,19 +144,19 @@ void SocketDevice::shutdownWrite(){
 void SocketDevice::shutdownReadWrite(){
 	if(ok()) shutdown(descriptor(), SHUT_RDWR);
 }
-int SocketDevice::create(const AddrInfoIterator &_rai){
+int SocketDevice::create(const SocketAddressInfoIterator &_rai){
 	Device::descriptor(socket(_rai.family(), _rai.type(), _rai.protocol()));
 	if(ok()) return OK;
 	edbgx(Dbg::system, "socket create: "<<strerror(errno));
 	return BAD;
 }
-int SocketDevice::create(AddrInfo::Family _family, AddrInfo::Type _type, int _proto){
+int SocketDevice::create(SocketAddressInfo::Family _family, SocketAddressInfo::Type _type, int _proto){
 	Device::descriptor(socket(_family, _type, _proto));
 	if(ok()) return OK;
 	edbgx(Dbg::system, "socket create: "<<strerror(errno));
 	return BAD;
 }
-int SocketDevice::connect(const AddrInfoIterator &_rai){
+int SocketDevice::connect(const SocketAddressInfoIterator &_rai){
 	int rv = ::connect(descriptor(), _rai.addr(), _rai.size());
 	if (rv < 0) { // sau rv == -1 ...
 		if(errno == EINPROGRESS) return NOK;
@@ -166,7 +166,7 @@ int SocketDevice::connect(const AddrInfoIterator &_rai){
 	}
 	return OK;
 }
-int SocketDevice::prepareAccept(const AddrInfoIterator &_rai, unsigned _listencnt){
+int SocketDevice::prepareAccept(const SocketAddressInfoIterator &_rai, unsigned _listencnt){
 	int yes = 1;
 	int rv = setsockopt(descriptor(), SOL_SOCKET, SO_REUSEADDR, (char *) &yes, sizeof(yes));
 	if(rv < 0) {
@@ -206,7 +206,7 @@ int SocketDevice::accept(SocketDevice &_dev){
 	_dev.Device::descriptor(rv);
 	return OK;
 }
-int SocketDevice::bind(const AddrInfoIterator &_rai){
+int SocketDevice::bind(const SocketAddressInfoIterator &_rai){
 	if(!ok()) return BAD;
 	int rv = ::bind(descriptor(), _rai.addr(), _rai.size());
 	if(rv < 0){
@@ -217,7 +217,7 @@ int SocketDevice::bind(const AddrInfoIterator &_rai){
 	}
 	return OK;
 }
-int SocketDevice::bind(const SockAddrPair &_rsa){
+int SocketDevice::bind(const SocketAddressPair &_rsa){
 	if(!ok()) return BAD;
 	int rv = ::bind(descriptor(), _rsa.addr, _rsa.size());
 	if(rv < 0){
@@ -284,17 +284,17 @@ int SocketDevice::send(const char* _pb, unsigned _ul, unsigned){
 int SocketDevice::recv(char *_pb, unsigned _ul, unsigned){
 	return ::recv(descriptor(), _pb, _ul, 0);
 }
-int SocketDevice::send(const char* _pb, unsigned _ul, const SockAddrPair &_sap){
+int SocketDevice::send(const char* _pb, unsigned _ul, const SocketAddressPair &_sap){
 	return ::sendto(descriptor(), _pb, _ul, 0, _sap.addr, _sap.size());
 }
 int SocketDevice::recv(char *_pb, unsigned _ul, SocketAddress &_rsa){
 	_rsa.clear();
-	_rsa.size() = SocketAddress::MaxSockAddrSz;
+	_rsa.size(SocketAddress::Capacity);
 	return ::recvfrom(descriptor(), _pb, _ul, 0, _rsa.addr(), &_rsa.size());
 }
 int SocketDevice::remoteAddress(SocketAddress &_rsa)const{
 	_rsa.clear();
-	_rsa.size() = SocketAddress::MaxSockAddrSz;
+	_rsa.size(SocketAddress::Capacity);
 	int rv = getpeername(descriptor(), _rsa.addr(), &_rsa.size());
 	if(rv){
 		edbgx(Dbg::system, "socket getpeername: "<<strerror(errno));
@@ -304,7 +304,7 @@ int SocketDevice::remoteAddress(SocketAddress &_rsa)const{
 }
 int SocketDevice::localAddress(SocketAddress &_rsa)const{
 	_rsa.clear();
-	_rsa.size() = SocketAddress::MaxSockAddrSz;
+	_rsa.size(SocketAddress::Capacity);
 	int rv = getsockname(descriptor(), _rsa.addr(), &_rsa.size());
 	if(rv){
 		edbgx(Dbg::system, "socket getsockname: "<<strerror(errno));

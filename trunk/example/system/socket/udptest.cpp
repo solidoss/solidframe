@@ -4,24 +4,24 @@
 using namespace std;
 
 int main(){
-	AddrInfo ai("0.0.0.0", "0", 0, AddrInfo::Inet4, AddrInfo::Datagram, 0);
-	AddrInfoIterator it(ai.begin());
+	SocketAddressInfo ai("0.0.0.0", "0", 0, SocketAddressInfo::Inet4, SocketAddressInfo::Datagram, 0);
+	SocketAddressInfoIterator it(ai.begin());
 	
 	SocketDevice sd;
 	sd.create(it);
 	sd.bind(it);
 	
 	if(sd.ok()){
-		char				host[SocketAddress::MaxSockHostSz];
-		char				port[SocketAddress::MaxSockServSz];
+		char				host[SocketAddress::HostNameCapacity];
+		char				port[SocketAddress::ServiceNameCapacity];
 		SocketAddress		addr;
 		
 		sd.localAddress(addr);
 		addr.name(
 			host,
-			SocketAddress::MaxSockHostSz,
+			SocketAddress::HostNameCapacity,
 			port,
-			SocketAddress::MaxSockServSz,
+			SocketAddress::ServiceNameCapacity,
 			SocketAddress::NumericService | SocketAddress::NumericHost
 		);
 		cout<<host<<':'<<port<<endl;

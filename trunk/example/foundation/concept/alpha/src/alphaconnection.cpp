@@ -208,8 +208,8 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			IndexT				svcid(fdt::compute_service_id(objid));
 			IndexT				objidx(fdt::compute_index(objid));
 			uint32				objuid(this->uid().second);
-			char				host[SocketAddress::MaxSockHostSz];
-			char				port[SocketAddress::MaxSockServSz];
+			char				host[SocketAddress::HostNameCapacity];
+			char				port[SocketAddress::ServiceNameCapacity];
 			SocketAddress		addr;
 			
 			
@@ -218,18 +218,18 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			socketLocalAddress(addr);
 			addr.name(
 				host,
-				SocketAddress::MaxSockHostSz,
+				SocketAddress::HostNameCapacity,
 				port,
-				SocketAddress::MaxSockServSz,
+				SocketAddress::ServiceNameCapacity,
 				SocketAddress::NumericService | SocketAddress::NumericHost
 			);
 			writer()<<host<<':'<<port<<" -> ";
 			socketRemoteAddress(addr);
 			addr.name(
 				host,
-				SocketAddress::MaxSockHostSz,
+				SocketAddress::HostNameCapacity,
 				port,
-				SocketAddress::MaxSockServSz,
+				SocketAddress::ServiceNameCapacity,
 				SocketAddress::NumericService | SocketAddress::NumericHost
 			);
 			writer()<<host<<':'<<port<<"]"<<'\r'<<'\n';

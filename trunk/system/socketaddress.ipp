@@ -23,16 +23,17 @@
 #define inline
 #endif
 
-inline SockAddrPair::SockAddrPair(const AddrInfoIterator &_it){
+inline SocketAddressPair::SocketAddressPair(const SocketAddressInfoIterator &_it){
 	if(_it){
 		addr = _it.addr(); sz = _it.size();
 	}else{
 		addr = NULL; sz = 0;
 	}
 }
-inline SockAddrPair::SockAddrPair(SocketAddress &_rsa):addr(_rsa.addr()), sz(_rsa.size()){}
+inline SocketAddressPair::SocketAddressPair(const SocketAddress &_rsa):addr(_rsa.addr()), sz(_rsa.size()){}
+inline SocketAddressPair::SocketAddressPair(const SocketAddress4 &_rsa):addr(_rsa.addr()), sz(_rsa.size()){}
 
-inline SockAddrPair& SockAddrPair::operator=(const AddrInfoIterator &_it){
+inline SocketAddressPair& SocketAddressPair::operator=(const SocketAddressInfoIterator &_it){
 	if(_it){
 		addr = _it.addr(); sz = _it.size();
 	}else{
@@ -41,20 +42,24 @@ inline SockAddrPair& SockAddrPair::operator=(const AddrInfoIterator &_it){
 	return *this;
 }
 
-inline SockAddrPair& SockAddrPair::operator=(SocketAddress &_rsa){
+inline SocketAddressPair& SocketAddressPair::operator=(const SocketAddress &_rsa){
+	addr = _rsa.addr();	sz = _rsa.size();
+	return *this;
+}
+inline SocketAddressPair& SocketAddressPair::operator=(const SocketAddress4 &_rsa){
 	addr = _rsa.addr();	sz = _rsa.size();
 	return *this;
 }
 
 //----------------------------------------------------------------------------
-inline SocketAddress::SocketAddress(const AddrInfoIterator &_it){
+inline SocketAddress::SocketAddress(const SocketAddressInfoIterator &_it){
 	if(_it){
 		addr(_it.addr(), _it.size());
 	}else{
 		sz = 0;
 	}
 }
-inline SocketAddress& SocketAddress::operator=(const AddrInfoIterator &_it){
+inline SocketAddress& SocketAddress::operator=(const SocketAddressInfoIterator &_it){
 	if(_it){
 		addr(_it.addr(), _it.size());
 	}else{
@@ -62,9 +67,43 @@ inline SocketAddress& SocketAddress::operator=(const AddrInfoIterator &_it){
 	}
 	return *this;
 }
-inline SocketAddress& SocketAddress::operator=(const SockAddrPair &_sp){
+inline SocketAddress& SocketAddress::operator=(const SocketAddressPair &_sp){
 	addr(_sp.addr, _sp.size());
 	return *this;
+}
+inline size_t SocketAddress::hash()const{
+	if(sz == sizeof(sockaddr_in)){
+		//TODO: improve
+		return addrin()->sin_addr.s_addr ^ addrin()->sin_port;
+	}else{//ipv6
+		//TODO:
+		return 0;
+	}
+}
+
+//----------------------------------------------------------------------------
+inline SocketAddress4::SocketAddress4(const SocketAddressInfoIterator &_it){
+	if(_it){
+		addr(_it.addr(), _it.size());
+	}else{
+		clear();
+	}
+}
+inline SocketAddress4& SocketAddress4::operator=(const SocketAddressInfoIterator &_it){
+	if(_it){
+		addr(_it.addr(), _it.size());
+	}else{
+		clear();
+	}
+	return *this;
+}
+inline SocketAddress4& SocketAddress4::operator=(const SocketAddressPair &_sp){
+	addr(_sp.addr, _sp.size());
+	return *this;
+}
+inline size_t SocketAddress4::hash()const{
+	//TODO: improve
+	return addrin()->sin_addr.s_addr ^ addrin()->sin_port;
 }
 
 

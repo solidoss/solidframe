@@ -304,7 +304,7 @@ int RemoteList::execute(Connection &_rc){
 		const String &straddr(it->first);
 		const uint32 &port(it->second);
 		idbg("addr"<<straddr<<" port = "<<port);
-		AddrInfo ai(straddr.c_str(), port, 0, AddrInfo::Inet4, AddrInfo::Stream);
+		SocketAddressInfo ai(straddr.c_str(), port, 0, SocketAddressInfo::Inet4, SocketAddressInfo::Stream);
 		if(!ai.empty()){
 			state = Wait;
 			DynamicPointer<fdt::Signal> sigptr(sig_sp);
@@ -450,7 +450,7 @@ int Fetch::doGetTempStream(uint32 _sz){
 
 void Fetch::doSendMaster(const FileUidT &_fuid){
 	idbg(""<<(void*)this);
-	AddrInfo ai(straddr.c_str(), port, 0, AddrInfo::Inet4, AddrInfo::Stream);
+	SocketAddressInfo ai(straddr.c_str(), port, 0, SocketAddressInfo::Inet4, SocketAddressInfo::Stream);
 	idbg("addr"<<straddr<<" port = "<<port);
 	if(!ai.empty()){
 		//send the master remote command
@@ -771,7 +771,7 @@ int SendString::execute(alpha::Connection &_rc){
 	Manager &rm(Manager::the());
 	ulong	fromobjid(_rc.id());//the id of the current connection
 	uint32	fromobjuid(rm.uid(_rc));//the uid of the current connection
-	AddrInfo ai(addr.c_str(), port, 0, AddrInfo::Inet4, AddrInfo::Stream);
+	SocketAddressInfo ai(addr.c_str(), port, 0, SocketAddressInfo::Inet4, SocketAddressInfo::Stream);
 	idbg("addr"<<addr<<"str = "<<str<<" port = "<<port<<" objid = "<<" objuid = "<<objuid);
 	protocol::Parameter &rp = _rc.writer().push(&Writer::putStatus);
 	if(!ai.empty()){
@@ -821,7 +821,7 @@ int SendStream::execute(Connection &_rc){
 			rp = protocol::Parameter(StrDef(" NO SENDSTRING: stream wait not implemented yet@"));
 			break;
 		case OK:{
-			AddrInfo ai(addr.c_str(), port, 0, AddrInfo::Inet4, AddrInfo::Stream);
+			SocketAddressInfo ai(addr.c_str(), port, 0, SocketAddressInfo::Inet4, SocketAddressInfo::Stream);
 			idbg("addr"<<addr<<"str = "<<srcstr<<" port = "<<port<<" objid = "<<" objuid = "<<objuid);
 			if(!ai.empty()){
 				rp = protocol::Parameter(StrDef(" OK Done SENDSTRING@"));

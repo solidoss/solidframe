@@ -395,7 +395,7 @@ uint32 Service::uid(const IndexT &_idx)const{
 			}
 		}
 		if(sm & fdt::S_SIG){//we've grabed signals, execute them
-			de.execute(*this);
+			de.executeAll(*this);
 		}
 		if(sm & S_KILL){
 			if(state() < Data::ExeDying){
@@ -619,7 +619,7 @@ ObjectUidT Service::doInsertObject(Object &_ro, uint32 _tid, const IndexT &_ridx
 			while(cnt--){
 				d.mtxstore.safeAt(d.objvec.size());
 				d.idxque.push(initialsize + 254 - cnt);
-				d.objvec.push_back(Data::ObjectPairT(NULL, 0));
+				d.objvec.push_back(Data::ObjectPairT(static_cast<fdt::Object*>(NULL), 0));
 			}
 			
 			d.mtxstore.visit(sz, visit_unlock);//unlock all mutexes
@@ -648,7 +648,7 @@ ObjectUidT Service::doInsertObject(Object &_ro, uint32 _tid, const IndexT &_ridx
 		}else{
 			//worst case scenario
 			const IndexT	initialsize(d.objvec.size());
-			d.objvec.resize(smart_resize(d.objvec, 256));
+			d.objvec.resize(fast_smart_resize(d.objvec, 8/*256*/));
 			const IndexT	sz(d.objvec.size());
 			const IndexT	diffsz(sz - initialsize - 1);
 			
@@ -698,7 +698,7 @@ void Service::invalidateService(){
 }
 //---------------------------------------------------------
 bool Service::doSignalAll(ulong _sm){
-	ulong	oc(d.objcnt);
+	long	oc(d.objcnt);
 	ulong	i(0);
 	long	mi(-1);
 	bool	signaled(false);
@@ -706,7 +706,9 @@ bool Service::doSignalAll(ulong _sm){
 	
 	idbgx(Dbg::fdt, "signalling "<<oc<<" objects");
 	
-	for(Data::ObjectVectorT::iterator it(d.objvec.begin()); oc && it != d.objvec.end(); ++it, ++i){
+	cassert((d.objvec.size() % 4) == 0);
+	
+	for(Data::ObjectVectorT::iterator it(d.objvec.begin()); oc > 0 && it != d.objvec.end(); it += 4, i += 4){
 		if(it->first){
 			if(d.mtxstore.isRangeBegin(i)){
 				if(mi >= 0)	d.mtxstore[mi].unlock();
@@ -715,6 +717,42 @@ bool Service::doSignalAll(ulong _sm){
 			}
 			if(it->first->signal(_sm)){
 				rm.raiseObject(*it->first);
+			}
+			signaled = true;
+			--oc;
+		}
+		if((it + 1)->first){
+			if(d.mtxstore.isRangeBegin(i + 1)){
+				if(mi >= 0)	d.mtxstore[mi].unlock();
+				++mi;
+				d.mtxstore[mi].lock();
+			}
+			if((it + 1)->first->signal(_sm)){
+				rm.raiseObject(*(it + 1)->first);
+			}
+			signaled = true;
+			--oc;
+		}
+		if((it + 2)->first){
+			if(d.mtxstore.isRangeBegin(i + 2)){
+				if(mi >= 0)	d.mtxstore[mi].unlock();
+				++mi;
+				d.mtxstore[mi].lock();
+			}
+			if((it + 2)->first->signal(_sm)){
+				rm.raiseObject(*(it + 2)->first);
+			}
+			signaled = true;
+			--oc;
+		}
+		if((it + 3)->first){
+			if(d.mtxstore.isRangeBegin(i + 3)){
+				if(mi >= 0)	d.mtxstore[mi].unlock();
+				++mi;
+				d.mtxstore[mi].lock();
+			}
+			if((it + 3)->first->signal(_sm)){
+				rm.raiseObject(*(it + 3)->first);
 			}
 			signaled = true;
 			--oc;

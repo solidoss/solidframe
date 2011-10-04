@@ -33,7 +33,7 @@
 class  Mutex;
 class  SpecificMapper;
 class  GlobalMapper;
-struct AddrInfoIterator;
+struct SocketAddressInfoIterator;
 
 namespace fdt = foundation;
 

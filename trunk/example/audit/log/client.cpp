@@ -20,7 +20,7 @@ int main(int argc, char *argv[]){
 	Log::instance().reinit(argv[0], Log::AllLevels, "any");
 	{
 		SocketOStream	*pos(new SocketOStream);
-		AddrInfo ai("localhost", 3333, 0, AddrInfo::Inet4, AddrInfo::Stream);
+		SocketAddressInfo ai("localhost", 3333, 0, SocketAddressInfo::Inet4, SocketAddressInfo::Stream);
 		if(!ai.empty()){
 			pos->sd.create(ai.begin());
 			pos->sd.connect(ai.begin());

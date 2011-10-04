@@ -39,7 +39,7 @@ namespace concept{
 
 /*static*/ void Service::dynamicRegister(){
 	BaseT::dynamicRegister();
-	DynamicExecuterT::registerDynamic<AddrInfoSignal, Service>();
+	DynamicExecuterT::registerDynamic<SocketAddressInfoSignal, Service>();
 }
 
 static const DynamicRegisterer<Service>	dre;
@@ -51,7 +51,7 @@ Service::Service(){
 Service::~Service(){
 }
 
-void Service::dynamicExecute(DynamicPointer<AddrInfoSignal> &_rsig){
+void Service::dynamicExecute(DynamicPointer<SocketAddressInfoSignal> &_rsig){
 	idbg(_rsig->id);
 	int rv;
 	switch(_rsig->id){
@@ -89,7 +89,7 @@ void Service::eraseObject(const Listener &_ro){
 }
 
 bool Service::insertListener(
-	const AddrInfoIterator &_rai,
+	const SocketAddressInfoIterator &_rai,
 	bool _secure
 ){
 	SocketDevice sd;
@@ -120,7 +120,7 @@ bool Service::insertListener(
 
 
 bool Service::insertTalker(
-	const AddrInfoIterator &_rai,
+	const SocketAddressInfoIterator &_rai,
 	const char *_node,
 	const char *_svc
 ){
@@ -129,7 +129,7 @@ bool Service::insertTalker(
 }
 
 bool Service::insertConnection(
-	const AddrInfoIterator &_rai,
+	const SocketAddressInfoIterator &_rai,
 	const char *_node,
 	const char *_svc
 ){	

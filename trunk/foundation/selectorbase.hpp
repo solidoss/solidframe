@@ -22,6 +22,7 @@ protected:
 	void associateObjectToCurrentThread(Object &_robj);
 	void setObjectThread(Object &_robj, uint32 _objidx);
 	int executeObject(Object &_robj, ulong _evs, TimeSpec &_rtout);
+	void setCurrentTimeSpecific(const TimeSpec &_rtout);
 	void id(uint32 _id);
 private:
 	friend class Manager;
@@ -40,6 +41,9 @@ inline int SelectorBase::executeObject(Object &_robj, ulong _evs, TimeSpec &_rto
 
 inline void SelectorBase::id(uint32 _id){
 	selid = _id;
+}
+inline void SelectorBase::setCurrentTimeSpecific(const TimeSpec &_rtout){
+	Object::doSetCurrentTime(&_rtout);
 }
 
 }//namespace foundation

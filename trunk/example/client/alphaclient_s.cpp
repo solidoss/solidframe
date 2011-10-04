@@ -127,7 +127,7 @@ private:
 	int list(char *_pb);
 	int fetch(unsigned _idx, char *_pb);
 	typedef std::deque<string> StrDqT;
-	AddrInfo    ai;
+	SocketAddressInfo    ai;
 	Writer      wr;
 	int         sd;
 	int         cnt;
@@ -147,7 +147,7 @@ void AlphaThread::run(){
 		idbg("No such address");
 		return;
 	}
-	AddrInfoIterator it(ai.begin());
+	SocketAddressInfoIterator it(ai.begin());
 	sd = socket(it.family(), it.type(), it.protocol());
 	if(sd < 0){
 		idbg("error creating socket");

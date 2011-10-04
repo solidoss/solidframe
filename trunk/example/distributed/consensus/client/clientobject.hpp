@@ -11,10 +11,15 @@
 #include <ostream>
 
 class ClientObject;
-struct ConceptSignal;
-struct StoreSignal;
-struct FetchSignal;
-struct EraseSignal;
+struct StoreRequest;
+struct FetchRequest;
+struct EraseRequest;
+
+namespace distributed{
+namespace consensus{
+struct RequestSignal;
+}
+}
 
 struct ClientSignal: Dynamic<ClientSignal, foundation::Signal>{
 	ClientSignal();
@@ -24,7 +29,7 @@ struct ClientSignal: Dynamic<ClientSignal, foundation::Signal>{
 
 struct ClientParams{
 	typedef std::vector<std::string>	StringVectorT;
-	typedef std::vector<SocketAddress>	AddressVectorT;
+	typedef std::vector<SocketAddress4>	AddressVectorT;
 	struct Request{
 		Request(uint8 _opp = 0):opp(_opp){
 			u.u64 = 0;
@@ -77,9 +82,9 @@ public:
 	~ClientObject();
 	void dynamicExecute(DynamicPointer<> &_dp);
 	void dynamicExecute(DynamicPointer<ClientSignal> &_rsig);
-	void dynamicExecute(DynamicPointer<StoreSignal> &_rsig);
-	void dynamicExecute(DynamicPointer<FetchSignal> &_rsig);
-	void dynamicExecute(DynamicPointer<EraseSignal> &_rsig);
+	void dynamicExecute(DynamicPointer<StoreRequest> &_rsig);
+	void dynamicExecute(DynamicPointer<FetchRequest> &_rsig);
+	void dynamicExecute(DynamicPointer<EraseRequest> &_rsig);
 	
 	int execute(ulong _sig, TimeSpec &_tout);
 	
@@ -87,7 +92,7 @@ public:
 	bool   isRequestIdExpected(uint32 _v, int &_rpos)const;
 	void   deleteRequestId(uint32 _v);
 private:
-	uint32 sendSignal(ConceptSignal *_psig);
+	uint32 sendSignal(distributed::consensus::RequestSignal *_psig);
 	const std::string& getString(uint32 _pos, uint32 _crtpos);
 	void expectStore(uint32 _rid, const std::string &_rs, uint32 _v, uint32 _cnt);
 	void expectFetch(uint32 _rid, const std::string &_rs, uint32 _cnt);

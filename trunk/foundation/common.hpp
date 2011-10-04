@@ -169,6 +169,13 @@ IndexT smart_resize(V &_rv, const IndexT &_rby){
 	return _rv.size();
 }
 
+template <class V>
+IndexT fast_smart_resize(V &_rv, const size_t _bitby){
+	_rv.resize(((_rv.size() >> _bitby) + 1) << _bitby);
+	return _rv.size();
+}
+
+
 }//namespace foundation
 
 #endif
