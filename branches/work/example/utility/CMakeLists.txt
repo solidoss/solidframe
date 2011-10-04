@@ -1,0 +1,6 @@
+add_subdirectory(binaryseeker)
+add_subdirectory(workpool)
+add_subdirectory(queue)
+add_subdirectory(dynamictest)
+add_subdirectory(functortest)
+add_subdirectory(polycontainer)
