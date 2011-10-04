@@ -7,7 +7,18 @@
 
 namespace distributed{
 namespace consensus{
-
+//! A distributed consensus request identifier
+/*!
+ * RequestId is a way to uniquely identify requests comming from
+ * clients by a distributed::consensus::Object. It contains:<br>
+ * - senderuid: the identifier for a foundation::Object within a process<br>
+ * - requid: an id incrementaly given by the sending foundation::Object,
+ * to every Request<br>
+ * - sockaddr: the foundation::ipc base address<br>
+ * 
+ * \see example/distributed/consensus for a proof-of-concept
+ * 
+ */
 struct RequestId{
 	RequestId():requid(-1){}
 	
