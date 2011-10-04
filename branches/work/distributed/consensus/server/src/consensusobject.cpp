@@ -366,7 +366,7 @@ void Object::Data::coordinatorId(int8 _coordid){
 	}
 }
 bool Object::Data::insertRequestStub(DynamicPointer<RequestSignal> &_rsig, size_t &_ridx){
-	auto	it(reqmap.find(&_rsig->id));
+	RequestStubMapT::const_iterator	it(reqmap.find(&_rsig->id));
 	if(it != reqmap.end()){
 		_ridx = it->second;
 		reqmap.erase(it);
@@ -440,7 +440,7 @@ struct DummyRequestSignal: public RequestSignal{
 };
 
 RequestStub& Object::Data::safeRequestStub(const consensus::RequestId &_reqid, size_t &_rreqidx){
-	auto	it(reqmap.find(&_reqid));
+	RequestStubMapT::const_iterator	it(reqmap.find(&_reqid));
 	if(it != reqmap.end()){
 		_rreqidx = it->second;
 	}else{
@@ -450,7 +450,7 @@ RequestStub& Object::Data::safeRequestStub(const consensus::RequestId &_reqid, s
 	return requestStub(_rreqidx);
 }
 RequestStub* Object::Data::requestStubPointer(const consensus::RequestId &_reqid, size_t &_rreqidx){
-	auto	it(reqmap.find(&_reqid));
+	RequestStubMapT::const_iterator	it(reqmap.find(&_reqid));
 	if(it != reqmap.end()){
 		_rreqidx = it->second;
 		return &requestStub(it->second);
@@ -582,14 +582,6 @@ void Object::dynamicExecute(DynamicPointer<OperationSignal<32> > &_rsig, RunData
 	}
 }
 void Object::doExecuteOperation(RunData &_rd, const uint8 _replicaidx, OperationStub &_rop){
-// 	auto	it(d.reqmap.find(&_rop.reqid));
-// 	size_t	reqidx;
-// 	if(it != d.reqmap.end()){
-// 		reqidx = it->second;
-// 	}else{
-// 		DynamicPointer<RequestSignal> reqsig(new RequestSignal(_rop.reqid));
-// 		d.insertRequestStub(reqsig, reqidx);
-// 	}
 	switch(_rop.operation){
 		case Data::ProposeOperation:
 			doExecuteProposeOperation(_rd, _replicaidx, _rop);
@@ -997,8 +989,8 @@ int Object::doRun(RunData &_rd){
 //---------------------------------------------------------
 int Object::doPrepareRecovery(RunData &_rd){
 	//erase all requests in erase state
-	for(auto it(d.reqvec.begin()); it != d.reqvec.end(); ++it){
-		RequestStub &rreq(*it);
+	for(RequestStubVectorT::const_iterator it(d.reqvec.begin()); it != d.reqvec.end(); ++it){
+		const RequestStub &rreq(*it);
 		if(rreq.state() == RequestStub::EraseState){
 			d.eraseRequestStub(it - d.reqvec.begin());
 		}
@@ -1466,8 +1458,8 @@ void Object::doScanPendingRequests(RunData &_rd){
 		size_t	idx(0);
 		
 		
-		for(auto it(d.reqvec.begin()); it != d.reqvec.end(); ++it){
-			RequestStub	&rreq(*it);
+		for(RequestStubVectorT::const_iterator it(d.reqvec.begin()); it != d.reqvec.end(); ++it){
+			const RequestStub	&rreq(*it);
 			if(
 				rreq.state() == RequestStub::AcceptPendingState
 			){
@@ -1511,8 +1503,8 @@ void Object::doScanPendingRequests(RunData &_rd){
 		idbg("d.acceptpendingcnt = "<<(int)d.acceptpendingcnt<<" d.pendingacceptwaitidx = "<<d.pendingacceptwaitidx);
 	}else{
 		std::deque<size_t>	posvec;
-		for(auto it(d.reqvec.begin()); it != d.reqvec.end(); ++it){
-			RequestStub	&rreq(*it);
+		for(RequestStubVectorT::const_iterator it(d.reqvec.begin()); it != d.reqvec.end(); ++it){
+			const RequestStub	&rreq(*it);
 			if(rreq.state() == RequestStub::AcceptPendingState){
 				posvec.push_back(it - d.reqvec.begin());
 			}else if(rreq.state() == RequestStub::AcceptWaitRequestState){
@@ -1525,7 +1517,7 @@ void Object::doScanPendingRequests(RunData &_rd){
 		
 		uint32 crtacceptid(d.acceptid);
 		
-		for(auto it(posvec.begin()); it != posvec.end(); ++it){
+		for(std::deque<size_t>::const_iterator it(posvec.begin()); it != posvec.end(); ++it){
 			RequestStub	&rreq(d.reqvec[*it]);
 			++crtacceptid;
 			if(crtacceptid == rreq.acceptid){
