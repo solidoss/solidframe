@@ -227,7 +227,7 @@ void LogManager::runListener(ListenerWorker &_w){
 	//first we need to create the socket device:
 	SocketDevice sd;
 	{
-		AddrInfo ai(_w.addr.c_str(), _w.port.c_str(), 0, AddrInfo::Inet4, AddrInfo::Stream);
+		SocketAddressInfo ai(_w.addr.c_str(), _w.port.c_str(), 0, SocketAddressInfo::Inet4, SocketAddressInfo::Stream);
 		if(!ai.empty()){
 			sd.create(ai.begin());
 			sd.prepareAccept(ai.begin(), 10);

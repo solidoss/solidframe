@@ -205,7 +205,7 @@ int Selector::reserve(ulong _cp){
 	d.objcp = _cp;
 	d.sockcp = _cp;
 	
-	Object::doSetCurrentTime(&d.ctimepos);
+	setCurrentTimeSpecific(d.ctimepos);
 	
 	//first create the epoll descriptor:
 	cassert(d.epollfd < 0);
@@ -252,7 +252,7 @@ int Selector::reserve(ulong _cp){
 #endif
 	//allocate the events
 	d.events = new epoll_event[d.sockcp];
-	for(uint i = 0; i < d.sockcp; ++i){
+	for(ulong i = 0; i < d.sockcp; ++i){
 		d.events[i].events = 0;
 		d.events[i].data.u64 = 0L;
 	}
@@ -260,7 +260,7 @@ int Selector::reserve(ulong _cp){
 	//because of aio::Object::ptimeout
 	d.stubs.reserve(d.objcp);
 	//add the pipe stub:
-	d.stubs.push_back(Stub());
+	doAddNewStub();
 	
 	d.ctimepos.set(0);
 	d.ntimepos = TimeSpec::max;
@@ -270,15 +270,15 @@ int Selector::reserve(ulong _cp){
 }
 
 void Selector::prepare(){
-	Object::doSetCurrentTime(&d.ctimepos);
+	setCurrentTimeSpecific(d.ctimepos);
 }
 void Selector::unprepare(){
 }
 
-void Selector::raise(uint _pos){
+void Selector::raise(uint32 _pos){
 #ifdef UPIPESIGNAL
 	idbgx(Dbg::aio, "signal connection pipe: "<<_pos<<" this "<<(void*)this);
-	write(d.pipefds[1], &_pos, sizeof(uint));
+	write(d.pipefds[1], &_pos, sizeof(uint32));
 #else
 	idbgx(Dbg::aio, "signal connection evnt: "<<_pos<<" this "<<(void*)this);
 	uint64 v(1);
@@ -306,7 +306,7 @@ bool Selector::full()const{
 
 void Selector::push(const JobT &_objptr){
 	cassert(!full());
-	uint stubpos = doNewStub();
+	uint stubpos = doAddNewStub();
 	Stub &stub = d.stubs[stubpos];
 	
 	this->setObjectThread(*_objptr, stubpos);
@@ -358,9 +358,9 @@ void Selector::push(const JobT &_objptr){
 	}
 }
 
-inline uint Selector::doExecuteQueue(){
-	uint		flags = 0;
-	uint		qsz(d.execq.size());
+inline ulong Selector::doExecuteQueue(){
+	ulong		flags = 0;
+	ulong		qsz(d.execq.size());
 	while(qsz){//we only do a single scan:
 		const uint pos = d.execq.front();
 		d.execq.pop();
@@ -427,14 +427,14 @@ void Selector::run(){
 }
 
 //-------------------------------------------------------------
-uint Selector::doReadPipe(){
+ulong Selector::doReadPipe(){
 #ifdef UPIPESIGNAL
-	enum {BUFSZ = 128, BUFLEN = BUFSZ * sizeof(uint)};
-	uint		buf[128];
-	uint		rv(0);//no
-	int			rsz(0);
-	int			j(0);
-	int			maxcnt((d.objcp / BUFSZ) + 1);
+	enum {BUFSZ = 128, BUFLEN = BUFSZ * sizeof(uint32)};
+	uint32		buf[128];
+	ulong		rv(0);//no
+	long		rsz(0);
+	long		j(0);
+	long		maxcnt((d.objcp / BUFSZ) + 1);
 	Stub		*pstub(NULL);
 	
 	while((++j <= maxcnt) && ((rsz = read(d.pipefds[0], buf, BUFLEN)) == BUFLEN)){
@@ -540,7 +540,7 @@ void Selector::doUnregisterObject(Object &_robj, int _lastfailpos){
 	}
 }
 
-inline uint Selector::doIo(Socket &_rsock, ulong _evs){
+inline ulong Selector::doIo(Socket &_rsock, ulong _evs){
 	if(_evs & (EPOLLERR | EPOLLHUP)){
 		_rsock.doClear();
 		int err(0);
@@ -550,7 +550,7 @@ inline uint Selector::doIo(Socket &_rsock, ulong _evs){
 		wdbgx(Dbg::aio, "rv = "<<rv<<" "<<strerror(errno)<<" desc"<<_rsock.descriptor());
 		return ERRDONE;
 	}
-	int rv = 0;
+	ulong rv = 0;
 	if(_evs & EPOLLIN){
 		rv = _rsock.doRecv();
 	}
@@ -560,14 +560,14 @@ inline uint Selector::doIo(Socket &_rsock, ulong _evs){
 	return rv;
 }
 
-uint Selector::doAllIo(){
-	uint		flags = 0;
+ulong Selector::doAllIo(){
+	ulong		flags = 0;
 	TimeSpec	crttout;
 	uint32		evs;
 	uint32		stubpos;
 	uint32		sockpos;
-	const uint	selcnt = d.selcnt;
-	for(uint i = 0; i < selcnt; ++i){
+	const ulong	selcnt = d.selcnt;
+	for(ulong i = 0; i < selcnt; ++i){
 		d.stub(stubpos, sockpos, d.events[i]);
 		vdbgx(Dbg::aio, "stubpos = "<<stubpos);
 		if(stubpos){
@@ -607,60 +607,71 @@ uint Selector::doAllIo(){
 	}
 	return flags;
 }
-uint Selector::doFullScan(){
-	uint		evs;
+void Selector::doFullScanCheck(Stub &_rstub, const ulong _pos){
+	ulong	evs = 0;
+	if(d.ctimepos >= _rstub.itimepos){
+		evs |= _rstub.objptr->doOnTimeoutRecv(d.ctimepos);
+		if(d.ntimepos > _rstub.itimepos){
+			d.ntimepos = _rstub.itimepos;
+		}
+	}else if(d.ntimepos > _rstub.itimepos){
+		d.ntimepos = _rstub.itimepos;
+	}
+	
+	if(d.ctimepos >= _rstub.otimepos){
+		evs |= _rstub.objptr->doOnTimeoutSend(d.ctimepos);
+		if(d.ntimepos > _rstub.otimepos){
+			d.ntimepos = _rstub.otimepos;
+		}
+	}else if(d.ntimepos > _rstub.otimepos){
+		d.ntimepos = _rstub.otimepos;
+	}
+	
+	if(d.ctimepos >= _rstub.timepos){
+		evs |= TIMEOUT;
+	}else if(d.ntimepos > _rstub.timepos){
+		d.ntimepos = _rstub.timepos;
+	}
+	
+	if(_rstub.objptr->signaled(S_RAISE)){
+		evs |= SIGNALED;//should not be checked by objs
+	}
+	if(evs){
+		_rstub.events |= evs;
+		if(_rstub.state == Stub::OutExecQueue){
+			d.execq.push(_pos);
+			_rstub.state = Stub::InExecQueue;
+		}
+	}
+}
+ulong Selector::doFullScan(){
 	++d.rep_fullscancount;
 	idbgx(Dbg::aio, "fullscan count "<<d.rep_fullscancount);
 	d.ntimepos = TimeSpec::max;
-	for(Data::StubVectorT::iterator it(d.stubs.begin() + 1); it != d.stubs.end(); ++it){
-		Stub &stub = *it;
-		if(!stub.objptr) continue;
-		evs = 0;
-		if(d.ctimepos >= stub.itimepos){
-			evs |= stub.objptr->doOnTimeoutRecv(d.ctimepos);
-			if(d.ntimepos > stub.itimepos){
-				d.ntimepos = stub.itimepos;
-			}
-		}else if(d.ntimepos > stub.itimepos){
-			d.ntimepos = stub.itimepos;
+	for(Data::StubVectorT::iterator it(d.stubs.begin()); it != d.stubs.end(); it += 4){
+		if(it->objptr){
+			doFullScanCheck(*it, it - d.stubs.begin());
 		}
-		
-		if(d.ctimepos >= stub.otimepos){
-			evs |= stub.objptr->doOnTimeoutSend(d.ctimepos);
-			if(d.ntimepos > stub.otimepos){
-				d.ntimepos = stub.otimepos;
-			}
-		}else if(d.ntimepos > stub.otimepos){
-			d.ntimepos = stub.otimepos;
+		if((it + 1)->objptr){
+			doFullScanCheck(*(it + 1), it - d.stubs.begin() + 1);
 		}
-		
-		if(d.ctimepos >= stub.timepos){
-			evs |= TIMEOUT;
-		}else if(d.ntimepos > stub.timepos){
-			d.ntimepos = stub.timepos;
+		if((it + 2)->objptr){
+			doFullScanCheck(*(it + 2), it - d.stubs.begin() + 2);
 		}
-		
-		if(stub.objptr->signaled(S_RAISE)){
-			evs |= SIGNALED;//should not be checked by objs
-		}
-		if(evs){
-			stub.events |= evs;
-			if(stub.state == Stub::OutExecQueue){
-				d.execq.push(it - d.stubs.begin());
-				stub.state = Stub::InExecQueue;
-			}
+		if((it + 3)->objptr){
+			doFullScanCheck(*(it + 3), it - d.stubs.begin() + 3);
 		}
 	}
 	return 0;
 }
-uint Selector::doExecute(const uint _pos){
+ulong Selector::doExecute(const ulong _pos){
 	Stub &stub(d.stubs[_pos]);
 	cassert(stub.state == Stub::InExecQueue);
 	stub.state = Stub::OutExecQueue;
-	uint	rv(0);
+	ulong	rv(0);
 	stub.timepos = TimeSpec::max;
 	TimeSpec timepos(d.ctimepos);
-	uint evs = stub.events;
+	ulong evs = stub.events;
 	stub.events = 0;
 	stub.objptr->doClearRequests();//clears the requests from object to selector
 	idbgx(Dbg::aio, "execute object "<<_pos);
@@ -697,7 +708,7 @@ uint Selector::doExecute(const uint _pos){
 	}
 	return rv;
 }
-void Selector::doPrepareObjectWait(const uint _pos, const TimeSpec &_timepos){
+void Selector::doPrepareObjectWait(const ulong _pos, const TimeSpec &_timepos){
 	Stub &stub(d.stubs[_pos]);
 	const int32 * const pend(stub.objptr->reqpos);
 	bool mustwait = true;
@@ -774,24 +785,41 @@ void Selector::doPrepareObjectWait(const uint _pos, const TimeSpec &_timepos){
 	}
 }
 
-uint Selector::doNewStub(){
-	uint pos = 0;
+ulong Selector::doAddNewStub(){
+	ulong pos = 0;
 	if(d.freestubsstk.size()){
 		pos = d.freestubsstk.top();
 		d.freestubsstk.pop();
 	}else{
-		uint cp = d.stubs.capacity();
+		size_t cp = d.stubs.capacity();
 		pos = d.stubs.size();
+		size_t nextsize(fast_padding_size(pos, 2));
 		d.stubs.push_back(Stub());
+		for(size_t i(pos + 1); i < nextsize; ++i){
+			d.stubs.push_back(Stub());
+			d.freestubsstk.push(i);
+		}
 		if(cp != d.stubs.capacity()){
 			//we need to reset the aioobject's pointer to timepos
-			for(Data::StubVectorT::iterator it(d.stubs.begin()); it != d.stubs.end(); ++it){
+			for(Data::StubVectorT::iterator it(d.stubs.begin()); it != d.stubs.end(); it += 4){
 				if(it->objptr){
 					//TODO: is it ok commenting the following lines?!
 					//it->timepos  = TimeSpec::max;
 					//it->itimepos = TimeSpec::max;
 					//it->otimepos = TimeSpec::max;
 					it->objptr->doPrepare(&it->itimepos, &it->otimepos);
+				}
+				if((it + 1)->objptr){
+					//TODO: see above
+					(it + 1)->objptr->doPrepare(&(it + 1)->itimepos, &(it + 1)->otimepos);
+				}
+				if((it + 2)->objptr){
+					//TODO: see above
+					(it + 2)->objptr->doPrepare(&(it + 2)->itimepos, &(it + 2)->otimepos);
+				}
+				if((it + 3)->objptr){
+					//TODO: see above
+					(it + 3)->objptr->doPrepare(&(it + 3)->itimepos, &(it + 3)->otimepos);
 				}
 			}
 		}

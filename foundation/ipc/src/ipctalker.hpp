@@ -67,7 +67,7 @@ public:
 private:
 	int doReceiveBuffers(uint32 _atmost, const ulong _sig);
 	bool doProcessReceivedBuffers(const TimeSpec &_rts);
-	void doDispatchReceivedBuffer(char *_pbuf, const uint32 _bufsz, const SockAddrPair &_rsap);
+	void doDispatchReceivedBuffer(char *_pbuf, const uint32 _bufsz, const SocketAddressPair &_rsap);
 	void doInsertNewSessions();
 	void doDispatchSignals();
 	int doSendBuffers(const ulong _sig, const TimeSpec &_rcrttimepos);

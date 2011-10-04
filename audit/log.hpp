@@ -45,7 +45,7 @@ class OStream;
 	<code><br>
 	{<br>
 		SocketOStream	*pos(new SocketOStream);<br>
-		AddrInfo ai("localhost", 3333, 0, AddrInfo::Inet4, AddrInfo::Stream);<br>
+		SocketAddressInfo ai("localhost", 3333, 0, SocketAddressInfo::Inet4, SocketAddressInfo::Stream);<br>
 		if(!ai.empty()){<br>
 			pos->sd.create(ai.begin());<br>
 			pos->sd.connect(ai.begin());<br>

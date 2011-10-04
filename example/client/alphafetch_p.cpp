@@ -60,12 +60,12 @@ int main(int argc, char *argv[]){
 	//initDebug(s.c_str());
 	}
 #endif
-	AddrInfo    ai(argv[1], argv[2]);
+	SocketAddressInfo    ai(argv[1], argv[2]);
 	if(ai.empty()){
 		idbg("No such address");
 		return 0;
 	}
-	AddrInfoIterator it(ai.begin());
+	SocketAddressInfoIterator it(ai.begin());
 	int sd = socket(it.family(), it.type(), it.protocol());
 	if(sd < 0){
 		idbg("error creating socket");

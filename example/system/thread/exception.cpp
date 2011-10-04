@@ -1,7 +1,10 @@
 #include "system/exception.hpp"
 #include <iostream>
+#include "system/common.hpp"
 
 using namespace std;
+
+
 
 struct TwoInts{
 	TwoInts(int _a, int _b):a(_a), b(_b){}
@@ -19,7 +22,7 @@ int main(){
 	Dbg::instance().initStdErr();
 #endif
 	try{
-		THROW_EXCEPTION("best exception ever");
+		THROW_EXCEPTION("simple exception ever");
 		//create_exeption("best exception ever", __FILE__, __LINE__);
 		//throw Exception("best exception ever", __FILE__, __LINE__);
 	}catch(exception& e){
@@ -27,7 +30,7 @@ int main(){
 	}
 	
 	try{
-		THROW_EXCEPTION_EX("twoints exception", TwoInts(2,3));
+		THROW_EXCEPTION_EX("3-tuple exception", make_tuple(2,TwoInts(9,10),static_cast<const char*>("a string")));
 	}catch(exception& e){
 		cout<<"caught exeption: "<<e.what()<<endl;
 	}

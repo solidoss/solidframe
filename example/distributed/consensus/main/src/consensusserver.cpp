@@ -1,6 +1,6 @@
 #include "example/distributed/consensus/server/serverobject.hpp"
-#include "example/distributed/consensus/core/manager.hpp"
-#include "example/distributed/consensus/core/signals.hpp"
+#include "example/distributed/consensus/core/consensusmanager.hpp"
+#include "example/distributed/consensus/core/consensusrequests.hpp"
 
 #include "foundation/service.hpp"
 #include "foundation/scheduler.hpp"
@@ -31,14 +31,15 @@ typedef foundation::Scheduler<foundation::ObjectSelector>	SchedulerT;
 //------------------------------------------------------------------
 
 struct Params{
-	int			ipc_port;
-	string		dbg_levels;
-	string		dbg_modules;
-	string		dbg_addr;
-	string		dbg_port;
-	bool		dbg_buffered;
-	bool		dbg_console;
-	bool		log;
+	int				ipc_port;
+	string			dbg_levels;
+	string			dbg_modules;
+	string			dbg_addr;
+	string			dbg_port;
+	bool			dbg_buffered;
+	bool			dbg_console;
+	bool			log;
+	ServerParams	p;
 };
 
 struct IpcServiceController: foundation::ipc::Service::Controller{
@@ -99,6 +100,16 @@ int main(int argc, char *argv[]){
 	}
 #endif
 	{
+		if(!p.p.init(p.ipc_port)){
+		//cout<<"Failed ServerParams::init: "<<p.p.errorString()<<endl;
+		idbg("Failed ServerParams::init: "<<p.p.errorString());
+		return 0;
+	}
+	
+		//cout<<p.p;
+		idbg(p.p);
+	}
+	{
 		typedef serialization::TypeMapper					TypeMapper;
 		typedef serialization::IdTypeMap					IdTypeMap;
 		typedef serialization::bin::Serializer				BinSerializer;
@@ -107,6 +118,7 @@ int main(int argc, char *argv[]){
 		TypeMapper::registerSerializer<BinSerializer>();
 		
 		mapSignals();
+		ServerObject::registerSignals();
 	}
 	IpcServiceController	ipcctrl;
 	{
@@ -118,12 +130,12 @@ int main(int argc, char *argv[]){
 		
 		//const IndexT svcidx = 
 		m.registerService<SchedulerT>(new foundation::Service, 0, fdt::compute_service_id(serverUid().first));
-		m.registerService<SchedulerT>(new foundation::ipc::Service(&ipcctrl, 500, 2, 2), 0, ipcid);
+		m.registerService<SchedulerT>(new foundation::ipc::Service(&ipcctrl, 0, 2, 2), 0, ipcid);
 		
 		m.start();
 		
 		if(true){
-			AddrInfo ai("0.0.0.0", p.ipc_port, 0, AddrInfo::Inet4, AddrInfo::Datagram);
+			SocketAddressInfo ai("0.0.0.0", p.ipc_port, 0, SocketAddressInfo::Inet4, SocketAddressInfo::Datagram);
 			foundation::ipc::Service::the().insertTalker(ai.begin());
 		}
 		
@@ -157,6 +169,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 			("debug_console,c", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")
 			("debug_unbuffered,s", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered")
 			("use_log,L", value<bool>(&_par.log)->implicit_value(true)->default_value(false), "Debug buffered")
+			("server_addrs,A", value< vector<string> >(&_par.p.addrstrvec), "Server addresses")
 	/*		("verbose,v", po::value<int>()->implicit_value(1),
 					"enable verbosity (optionally specify level)")*/
 	/*		("listen,l", po::value<int>(&portnum)->implicit_value(1001)

@@ -99,7 +99,7 @@ int MultiConnection::execute(ulong _sig, TimeSpec &_tout){
 			return doReadAddress();
 		case REGISTER_CONNECTION:{
 			idbgx(Dbg::any, "REGISTER_CONNECTION");
-			pai = new AddrInfo(addr.c_str(), port.c_str());
+			pai = new SocketAddressInfo(addr.c_str(), port.c_str());
 			it = pai->begin();
 			SocketDevice	sd;
 			sd.create(it);

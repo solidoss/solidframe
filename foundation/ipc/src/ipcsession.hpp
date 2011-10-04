@@ -29,11 +29,11 @@
 #include "utility/dynamicpointer.hpp"
 
 struct SocketAddress;
-struct SockAddrPair;
-struct Inet4SockAddrPair;
-struct Inet6SockAddrPair;
+struct SocketAddressPair;
+struct SocketAddressPair4;
+struct SocketAddressPair6;
 struct TimeSpec;
-struct AddrInfoIterator;
+struct SocketAddressInfoIterator;
 
 
 namespace foundation{
@@ -52,28 +52,28 @@ struct Context{
 
 class Session{
 public:
-	typedef std::pair<const Inet4SockAddrPair*, int> Addr4PairT;
-	typedef std::pair<const Inet6SockAddrPair*, int> Addr6PairT;
+	typedef std::pair<const SocketAddressPair4*, int> Addr4PairT;
+	typedef std::pair<const SocketAddressPair6*, int> Addr6PairT;
 public:
 	static void init();
 	static int parseAcceptedBuffer(const Buffer &_rbuf);
 	static int parseConnectingBuffer(const Buffer &_rbuf);
 	
 	Session(
-		const Inet4SockAddrPair &_raddr,
+		const SocketAddressPair4 &_raddr,
 		uint32 _keepalivetout
 	);
 	Session(
-		const Inet4SockAddrPair &_raddr,
+		const SocketAddressPair4 &_raddr,
 		int _basport,
 		uint32 _keepalivetout
 	);
 	
 	~Session();
 	
-	const Inet4SockAddrPair* peerAddr4()const;
+	const SocketAddressPair4* peerAddr4()const;
 	const Addr4PairT* baseAddr4()const;
-	const SockAddrPair* peerSockAddr()const;
+	const SocketAddressPair* peerSockAddr()const;
 	
 	bool isConnected()const;
 	bool isDisconnecting()const;

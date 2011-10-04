@@ -71,8 +71,8 @@ struct StreamErrorSignal: Dynamic<StreamErrorSignal, foundation::Signal>{
 	RequestUidT		requid;
 };
 
-struct AddrInfoSignal: Dynamic<AddrInfoSignal, foundation::Signal>{
-	AddrInfoSignal(uint32 _id = 0):id(_id){}
+struct SocketAddressInfoSignal: Dynamic<SocketAddressInfoSignal, foundation::Signal>{
+	SocketAddressInfoSignal(uint32 _id = 0):id(_id){}
 	void init(
 		const char *_node, 
 		int _port, 
@@ -83,7 +83,7 @@ struct AddrInfoSignal: Dynamic<AddrInfoSignal, foundation::Signal>{
 	);
 	virtual void result(int _rv);
 	uint32			id;
-	AddrInfo		addrinfo;
+	SocketAddressInfo		addrinfo;
 	std::string		node;
 	std::string		service;
 };

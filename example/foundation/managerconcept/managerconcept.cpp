@@ -97,7 +97,7 @@ int main(int argc, char *argv[]){
 		m.start();
 		
 		if(true){
-			AddrInfo ai("0.0.0.0", p.start_port, 0, AddrInfo::Inet4, AddrInfo::Datagram);
+			SocketAddressInfo ai("0.0.0.0", p.start_port, 0, SocketAddressInfo::Inet4, SocketAddressInfo::Datagram);
 			foundation::ipc::Service::the().insertTalker(ai.begin());
 		}
 		

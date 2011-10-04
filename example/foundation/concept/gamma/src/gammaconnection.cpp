@@ -289,26 +289,26 @@ int Connection::doSocketPrepareBanner(const uint _sid, SocketData &_rsd){
 	uint32				myport(rm.ipc().basePort());
 	ulong				objid(this->id());
 	uint32				objuid(rm.uid(*this));
-	char				host[SocketAddress::MaxSockHostSz];
-	char				port[SocketAddress::MaxSockServSz];
+	char				host[SocketAddress::HostNameCapacity];
+	char				port[SocketAddress::ServiceNameCapacity];
 	SocketAddress		addr;
 	
 	_rsd.w<<"* Hello from gamma server ("<<myport<<" "<<(uint32)objid<<" "<<objuid<<") [";
 	socketLocalAddress(_sid, addr);
 	addr.name(
 		host,
-		SocketAddress::MaxSockHostSz,
+		SocketAddress::HostNameCapacity,
 		port,
-		SocketAddress::MaxSockServSz,
+		SocketAddress::ServiceNameCapacity,
 		SocketAddress::NumericService | SocketAddress::NumericHost
 	);
 	_rsd.w<<host<<':'<<port<<" -> ";
 	socketRemoteAddress(_sid, addr);
 	addr.name(
 		host,
-		SocketAddress::MaxSockHostSz,
+		SocketAddress::HostNameCapacity,
 		port,
-		SocketAddress::MaxSockServSz,
+		SocketAddress::ServiceNameCapacity,
 		SocketAddress::NumericService | SocketAddress::NumericHost
 	);
 	_rsd.w<<host<<':'<<port<<"]"<<'\r'<<'\n';

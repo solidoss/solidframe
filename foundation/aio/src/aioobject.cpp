@@ -34,14 +34,6 @@ namespace foundation{
 
 namespace aio{
 
-namespace {
-
-static const uint crtTimeThreadSpec(){
-	static const uint id(Thread::specificId());
-	return id;
-}
-}
-
 //======================== aio::SocketPointer ===========================
 void SocketPointer::clear(Socket *_ps)const{
 	delete ps;
@@ -49,13 +41,6 @@ void SocketPointer::clear(Socket *_ps)const{
 }
 
 //======================== aio::Object ==================================
-
-/*static*/ const TimeSpec& Object::currentTime(){
-	return *reinterpret_cast<const TimeSpec*>(Thread::specific(crtTimeThreadSpec()));
-}
-/*static*/ void Object::doSetCurrentTime(const TimeSpec *_pcrtts){
-	Thread::specific(crtTimeThreadSpec(), const_cast<TimeSpec *>(_pcrtts));
-}
 
 Object::SocketStub::~SocketStub(){
 	delete psock;
@@ -250,7 +235,7 @@ int SingleObject::socketAccept(SocketDevice &_rsd){
 	return rv;
 }
 
-int SingleObject::socketConnect(const AddrInfoIterator& _rai){
+int SingleObject::socketConnect(const SocketAddressInfoIterator& _rai){
 	cassert(stub.psock);
 	int rv = stub.psock->connect(_rai);
 	if(rv == NOK){
@@ -271,7 +256,7 @@ int SingleObject::socketSend(const char* _pb, uint32 _bl, uint32 _flags){
 	return rv;
 }
 
-int SingleObject::socketSendTo(const char* _pb, uint32 _bl, const SockAddrPair &_sap, uint32 _flags){
+int SingleObject::socketSendTo(const char* _pb, uint32 _bl, const SocketAddressPair &_sap, uint32 _flags){
 	//ensure that we dont have double request
 	//cassert(stub.request <= SocketStub::Response);
 	cassert(stub.psock);
@@ -308,7 +293,7 @@ int SingleObject::socketRecvFrom(char *_pb, uint32 _bl, uint32 _flags){
 uint32 SingleObject::socketRecvSize()const{
 	return stub.psock->recvSize();
 }
-const SockAddrPair &SingleObject::socketRecvAddr() const{
+const SocketAddressPair &SingleObject::socketRecvAddr() const{
 	return stub.psock->recvAddr();
 }
 const uint64& SingleObject::socketSendCount()const{
@@ -369,9 +354,9 @@ int SingleObject::socketInsert(const SocketDevice &_rsd){
 		Socket::Type tp;
 		if(_rsd.isListening()){
 			tp = Socket::ACCEPTOR;
-		}else if(_rsd.type() == AddrInfo::Stream){
+		}else if(_rsd.type() == SocketAddressInfo::Stream){
 			tp = Socket::CHANNEL;
-		}else if(_rsd.type() == AddrInfo::Datagram){
+		}else if(_rsd.type() == SocketAddressInfo::Datagram){
 			tp = Socket::STATION;
 		}else return -1;
 		stub.psock = new Socket(tp, _rsd);
@@ -481,7 +466,7 @@ int MultiObject::socketAccept(const uint _pos, SocketDevice &_rsd){
 	return rv;
 }
 
-int MultiObject::socketConnect(const uint _pos, const AddrInfoIterator& _rai){
+int MultiObject::socketConnect(const uint _pos, const SocketAddressInfoIterator& _rai){
 	cassert(_pos < stubcp);
 	int rv = pstubs[_pos].psock->connect(_rai);
 	if(rv == NOK){
@@ -490,7 +475,7 @@ int MultiObject::socketConnect(const uint _pos, const AddrInfoIterator& _rai){
 	return rv;
 }
 
-const SockAddrPair &MultiObject::socketRecvAddr(uint _pos) const{
+const SocketAddressPair &MultiObject::socketRecvAddr(uint _pos) const{
 	return pstubs[_pos].psock->recvAddr();
 }
 
@@ -512,7 +497,7 @@ int MultiObject::socketSendTo(
 	const uint _pos,
 	const char* _pb,
 	uint32 _bl,
-	const SockAddrPair &_sap,
+	const SocketAddressPair &_sap,
 	uint32 _flags
 ){
 	cassert(_pos < stubcp);
@@ -623,9 +608,9 @@ int MultiObject::socketInsert(const SocketDevice &_rsd){
 		Socket::Type tp;
 		if(_rsd.isListening()){
 			tp = Socket::ACCEPTOR;
-		}else if(_rsd.type() == AddrInfo::Stream){
+		}else if(_rsd.type() == SocketAddressInfo::Stream){
 			tp = Socket::CHANNEL;
-		}else if(_rsd.type() == AddrInfo::Datagram){
+		}else if(_rsd.type() == SocketAddressInfo::Datagram){
 			tp = Socket::STATION;
 		}else return -1;
 		

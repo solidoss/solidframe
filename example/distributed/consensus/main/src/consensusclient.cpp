@@ -1,6 +1,6 @@
 #include "example/distributed/consensus/client/clientobject.hpp"
-#include "example/distributed/consensus/core/manager.hpp"
-#include "example/distributed/consensus/core/signals.hpp"
+#include "example/distributed/consensus/core/consensusmanager.hpp"
+#include "example/distributed/consensus/core/consensusrequests.hpp"
 
 
 #include "foundation/service.hpp"
@@ -146,7 +146,7 @@ int main(int argc, char *argv[]){
 		m.start();
 		
 		if(true){
-			AddrInfo ai("0.0.0.0", p.ipc_port, 0, AddrInfo::Inet4, AddrInfo::Datagram);
+			SocketAddressInfo ai("0.0.0.0", p.ipc_port, 0, SocketAddressInfo::Inet4, SocketAddressInfo::Datagram);
 			foundation::ipc::Service::the().insertTalker(ai.begin());
 		}
 		

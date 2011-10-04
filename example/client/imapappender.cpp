@@ -134,7 +134,7 @@ int main(int argc, char *argv[]){
 	SocketDevice sd;
 	
 	{
-		AddrInfo    ai(p.host.c_str(), p.port.c_str());
+		SocketAddressInfo    ai(p.host.c_str(), p.port.c_str());
 		if(ai.empty()){
 			cout<<"No such address: "<<p.host<<":"<<p.port<<endl;
 			return 0;

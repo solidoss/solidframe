@@ -22,14 +22,6 @@
 #ifndef FOUNDATION_OBJECT_SELECTOR_HPP
 #define FOUNDATION_OBJECT_SELECTOR_HPP
 
-#include <vector>
-#include <stack>
-
-#include "system/timespec.hpp"
-#include "system/condition.hpp"
-#include "system/mutex.hpp"
-
-#include "utility/queue.hpp"
 
 #include "foundation/objectpointer.hpp"
 
@@ -60,11 +52,11 @@ public:
 	//signal a specific object
 	void raise(uint32 _pos);
 	void run();
-	uint capacity()const	{return sv.size();}
-	uint size() const		{return sz;}
-	int  empty()const		{return !sz;}
-	int  full()const		{return sz == sv.size();}
-	void prepare(){}
+	ulong capacity()const;
+	ulong size() const;
+	bool  empty()const;
+	bool  full()const;
+	void prepare();
 	void unprepare(){}
 	
 	void push(const ObjectPtrT &_rlis);
@@ -72,25 +64,8 @@ private:
 	int doWait(int _wt);
 	int doExecute(unsigned _i, ulong _evs, TimeSpec _crttout);
 private:
-	enum {EXIT_LOOP = 1, FULL_SCAN = 2, READ_PIPE = 4};
-	struct SelObject{
-		ObjectPtrT	objptr;
-		TimeSpec	timepos;
-		int			state;
-	};
-	typedef std::vector<SelObject>					SelVecT;
-	typedef std::stack<uint, std::vector<uint> >	FreeStackT;
-	typedef Queue<uint>								ObjQueueT;
-	uint 		sz;
-	SelVecT	sv;
-	Queue<uint>	uiq;
-	FreeStackT	fstk;
-	Mutex		mtx;
-	Condition	cnd;
-	uint64		btimepos;//begin time pos
-    TimeSpec	ntimepos;//next timepos == next timeout
-    TimeSpec	ctimepos;//current time pos
-    ObjQueueT	objq;
+	struct Data;
+	Data	&d;
 };
 
 }

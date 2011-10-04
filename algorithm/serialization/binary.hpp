@@ -54,7 +54,7 @@ S& operator&(std::string &_t, S &_s){
 }
 
 enum {
-	MAXITSZ = sizeof(int64) + sizeof(int64) + sizeof(int64),//!< Max sizeof(iterator) for serialized containers
+	MAXITSZ = sizeof(int64) + sizeof(int64) + sizeof(int64) + sizeof(int64),//!< Max sizeof(iterator) for serialized containers
 	MINSTREAMBUFLEN = 128//if the free space for current buffer is less than this value
 						//storring a stream will end up returning NOK
 };
@@ -133,10 +133,23 @@ protected:
 		uint64& u64(){return *reinterpret_cast<uint64*>(buf);}
 		const int32& i32()const{return *reinterpret_cast<const int32*>(buf);}
 		int32& i32(){return *reinterpret_cast<int32*>(buf);}
+		int64& i64(){return *reinterpret_cast<int64*>(buf);}
+		const int64& i64()const{return *reinterpret_cast<const int64*>(buf);}
+		int64& i64_1(){return *reinterpret_cast<int64*>(buf + sizeof(int64));}
+		const int64& i64_1()const{return *reinterpret_cast<const int64*>(buf + sizeof(int64));}
+		void*& pv_2(){return *reinterpret_cast<void**>(buf + 2 * sizeof(int64));}
+		const void* const& pv_2()const{return *reinterpret_cast<void const * const*>(buf + 2 * sizeof(int64));}
 		
 		ExtData(){}
 		ExtData(uint32 _u32){u32() = _u32;}
 		ExtData(int32 _i32){i32() = _i32;}
+		ExtData(int64 _i64){i64() = _i64;}
+		ExtData(int64 _i64_0, int64 _i64_1){i64() = _i64_0; i64_1() = _i64_1;}
+		ExtData(int64 _i64_0, int64 _i64_1, void *_pv){
+			i64() = _i64_0;
+			i64_1() = _i64_1;
+			pv_2() = _pv;
+		}
 	};
 	struct IStreamData{
 		IStreamData(
@@ -186,12 +199,15 @@ class Serializer: public Base{
 		TypeMapper::map<TM, Serializer>(_rfd.p, rs, _rfd.n, rs.tmpstr);
 		return CONTINUE;
 	}
+	
 	template <typename T>
 	static int store(Base &_rs, FncData &_rfd);
+	
 	static int storeBinary(Base &_rs, FncData &_rfd);
+	
 	template <typename T>
 	static int storeContainer(Base &_rs, FncData &_rfd){
-		idbgx(Dbg::ser_bin, "store generic non pointer container sizeof(iterator) = "<<sizeof(typename T::iterator));
+		idbgx(Dbg::ser_bin, "store generic container sizeof(iterator) = "<<sizeof(typename T::iterator)<<" "<<_rfd.n);
 		Serializer &rs(static_cast<Serializer&>(_rs));
 		if(!rs.cpb) return OK;
 		T * c = reinterpret_cast<T*>(_rfd.p);
@@ -201,14 +217,15 @@ class Serializer: public Base{
 			typename T::iterator *pit(new(rs.estk.top().buf) typename T::iterator(c->begin()));
 			//typename T::const_iterator &pit = *reinterpret_cast<typename T::const_iterator*>(estk.top().buf);
 			*pit = c->begin();
-			rs.estk.push(ExtData((int32)c->size()));
+			rs.estk.push(ExtData((int64)c->size()));
 			_rfd.f = &Serializer::storeContainerContinue<T>;
 			rs.fstk.push(FncData(&Base::popEStack, NULL));
-			rs.fstk.push(FncData(&Serializer::template store<int32>, &rs.estk.top().i32()));
+			rs.fstk.push(FncData(&Serializer::template store<int64>, &rs.estk.top().i64()));
 		}else{
-			rs.estk.push(ExtData((int32)(-1)));
+			rs.estk.push(ExtData((int64)(-1)));
 			rs.fstk.pop();
-			rs.fstk.push(FncData(&Serializer::template store<int32>, &rs.estk.top().i32()));
+			rs.fstk.push(FncData(&Base::popEStack, NULL));
+			rs.fstk.push(FncData(&Serializer::template store<int64>, &rs.estk.top().i64()));
 		}
 		return CONTINUE;
 	}
@@ -222,13 +239,54 @@ class Serializer: public Base{
 			rs.push(*rit);
 			++rit;
 			return CONTINUE;
-		}else{
-			//TODO:?!how
-			//rit.T::~const_iterator();//only call the destructor
+		}
+		//TODO:?!how
+		//rit.T::~const_iterator();//only call the destructor
+		rs.estk.pop();
+		return OK;
+	}
+	
+	template <typename T>
+	static int storeArray(Base &_rs, FncData &_rfd){
+		idbgx(Dbg::ser_bin, "store generic array "<<_rfd.n);
+		Serializer &rs(static_cast<Serializer&>(_rs));
+		if(!rs.cpb){
 			rs.estk.pop();
 			return OK;
 		}
+		T * c = reinterpret_cast<T*>(_rfd.p);
+		if(c){
+			_rfd.f = &Serializer::storeArrayContinue<T>;
+			//rs.fstk.push(FncData(&Base::popEStack, NULL));
+			rs.fstk.push(FncData(&Serializer::template store<int64>, &rs.estk.top().i64()));
+		}else{
+			rs.estk.top().i64() = -1;
+			rs.fstk.pop();
+			rs.fstk.push(FncData(&Base::popEStack, NULL));
+			rs.fstk.push(FncData(&Serializer::template store<int64>, &rs.estk.top().i64()));
+		}
+		return CONTINUE;
 	}
+	
+	template <typename T>
+	static int storeArrayContinue(Base &_rs, FncData &_rfd){
+		Serializer	&rs(static_cast<Serializer&>(_rs));
+		T 			*c = reinterpret_cast<T*>(_rfd.p);
+		const int64	&rsz(rs.estk.top().i64());
+		int64 		&ri(rs.estk.top().i64_1());
+		idbgx(Dbg::ser_bin, "store generic array cont "<<_rfd.n<<" rsz = "<<rsz<<" ri = "<<ri);
+		
+		if(rs.cpb && ri < rsz){
+			rs.push(c[ri]);
+			++ri;
+			return CONTINUE;
+		}
+		//TODO:?!how
+		//rit.T::~const_iterator();//only call the destructor
+		rs.estk.pop();
+		return OK;
+	}
+	
 	template <typename T>
 	static int storeStreamBegin(Base &_rs, FncData &_rfd){
 		idbgx(Dbg::ser_bin, "store stream begin");
@@ -335,6 +393,22 @@ public:
 		fstk.push(FncData(&Serializer::template storeStreamBegin<T>, _p, _name, 0));
 		return *this;
 	}
+	Serializer& pushBinary(void *_p, size_t _sz, const char *_name = NULL){
+		fstk.push(FncData(&Serializer::storeBinary, _p, _name, _sz));
+		return *this;
+	}
+	template <typename T, typename ST>
+	Serializer& pushArray(T *_p, const ST &_rsz, const char *_name = NULL){
+		fstk.push(FncData(&Serializer::template storeArray<T>, (void*)_p, _name));
+		estk.push(ExtData((int64)_rsz, (int64)0));
+		return *this;
+	}
+	template <typename T, typename ST>
+	Serializer& pushDynamicArray(T* &_rp, const ST &_rsz, const char *_name = NULL){
+		fstk.push(FncData(&Serializer::template storeArray<T>, (void*)_rp, _name));
+		estk.push(ExtData((int64)_rsz, (int64)0));
+		return *this;
+	}
 private:
 	friend class TypeMapper;
 	FncT		ptypeidf;
@@ -400,25 +474,32 @@ class Deserializer: public Base{
 	static int parseBinaryString(Base &_rb, FncData &_rfd);
 	template <typename T>
 	static int parseContainer(Base &_rb, FncData &_rfd){
-		idbgx(Dbg::ser_bin, "parse generic non pointer container");
+		idbgx(Dbg::ser_bin, "parse generic non pointer container "<<_rfd.n);
 		Deserializer &rd(static_cast<Deserializer&>(_rb));
 		if(!rd.cpb) return OK;
 		_rfd.f = &Deserializer::parseContainerBegin<T>;
-		rd.estk.push(ExtData((int32)0));
-		rd.fstk.push(FncData(&Deserializer::parse<int32>, &rd.estk.top().i32()));
+		rd.estk.push(ExtData((int64)0));
+		rd.fstk.push(FncData(&Deserializer::parse<int64>, &rd.estk.top().i64()));
 		return CONTINUE;
 	}
 	template <typename T>
 	static int parseContainerBegin(Base &_rb, FncData &_rfd){
-		Deserializer &rd(static_cast<Deserializer&>(_rb));
-		if(!rd.cpb) return OK;
-		int32 i = rd.estk.top().i32();
+		Deserializer	&rd(static_cast<Deserializer&>(_rb));
+		
+		if(!rd.cpb){
+			rd.estk.pop();
+			return OK;
+		}
+		
+		const int64		i = rd.estk.top().i64();
+		
 		vdbgx(Dbg::ser_bin, "i = "<<i);
-		rd.estk.pop();
+		
+		//rd.estk.pop();
 		if(i < 0){
+			cassert(!_rfd.s);
 			T **c = reinterpret_cast<T**>(_rfd.p);
-			cassert(!*c);
-			//*c = NULL;
+			*c = NULL;
 			return OK;
 		}else if(!_rfd.s){
 			T **c = reinterpret_cast<T**>(_rfd.p);
@@ -428,7 +509,7 @@ class Deserializer: public Base{
 		}
 		if(i){
 			_rfd.f = &Deserializer::parseContainerContinue<T>;
-			_rfd.s = (uint32)i;
+			_rfd.s = 0;//(uint32)i;
 			return CONTINUE;
 		}
 		return OK;
@@ -436,15 +517,64 @@ class Deserializer: public Base{
 	template <typename T>
 	static int parseContainerContinue(Base &_rb, FncData &_rfd){
 		Deserializer &rd(static_cast<Deserializer&>(_rb));
-		if(rd.cpb && _rfd.s){
+		int64	&ri = rd.estk.top().i64();
+		if(rd.cpb && ri){
 			T *c = reinterpret_cast<T*>(_rfd.p);
 			c->push_back(typename T::value_type());
 			rd.push(c->back());
-			--_rfd.s;
+			--ri;
 			return CONTINUE;	
 		}
+		rd.estk.pop();
 		return OK;
 	}
+	
+	template <typename T, typename ST>
+	static int parseArray(Base &_rb, FncData &_rfd){
+		idbgx(Dbg::ser_bin, "parse generic array");
+		Deserializer &rd(static_cast<Deserializer&>(_rb));
+		if(!rd.cpb){
+			rd.estk.pop();
+			return OK;
+		}
+		const int64	&rsz(rd.estk.top().i64());
+		//int64		&ri(rd.estk.top().i64_1());
+		ST			&rextsz(*reinterpret_cast<ST*>(rd.estk.top().pv_2()));
+		
+		
+		if(rsz < 0){
+			cassert(!_rfd.s);
+			T **c = reinterpret_cast<T**>(_rfd.p);
+			*c = NULL;
+			rd.estk.pop();
+			rextsz = 0;
+			return OK;
+		}else if(!_rfd.s){
+			T **c = reinterpret_cast<T**>(_rfd.p);
+			vdbgx(Dbg::ser_bin, "");
+			*c = new T[rsz];
+			_rfd.p = *c;
+		}
+		rextsz = rsz;
+		_rfd.f = &Deserializer::parseArrayContinue<T>;
+		return CONTINUE;
+	}
+	template <typename T>
+	static int parseArrayContinue(Base &_rb, FncData &_rfd){
+		idbgx(Dbg::ser_bin, "parse generic array continue");
+		Deserializer &rd(static_cast<Deserializer&>(_rb));
+		const int64	&rsz = rd.estk.top().i64();
+		int64		&ri = rd.estk.top().i64_1();
+		if(rd.cpb && ri < rsz){
+			T *c = reinterpret_cast<T*>(_rfd.p);
+			rd.push(c[ri]);
+			++ri;
+			return CONTINUE;	
+		}
+		rd.estk.pop();
+		return OK;
+	}
+	
 	template <typename T>
 	static int parseStreamBegin(Base &_rb,FncData &_rfd){
 		idbgx(Dbg::ser_bin, "parse stream begin");
@@ -538,6 +668,24 @@ public:
 	template <typename T>
 	Deserializer& pushStreammer(T *_p, const char *_name = NULL){
 		fstk.push(FncData(&Deserializer::template parseStreamBegin<T>, _p, _name, 0));
+		return *this;
+	}
+	Deserializer& pushBinary(void *_p, size_t _sz, const char *_name = NULL){
+		fstk.push(FncData(&Deserializer::parseBinary, _p, _name, _sz));
+		return *this;
+	}
+	template <typename T, typename ST>
+	Deserializer& pushArray(T* _p, ST &_rsz, const char *_name = NULL){
+		fstk.push(FncData(&Deserializer::template parseArray<T, ST>, (void*)_p, _name));
+		estk.push(ExtData((int64)0, (int64)0, (void*)&_rsz));
+		fstk.push(FncData(&Deserializer::parse<int64>, &estk.top().i64()));
+		return *this;
+	}
+	template <typename T, typename ST>
+	Deserializer& pushDynamicArray(T* &_p, ST &_rsz, const char *_name = NULL){
+		fstk.push(FncData(&Deserializer::template parseArray<T, ST>, (void*)&_p, _name, 0));
+		estk.push(ExtData((int64)0, (int64)0, (void*)&_rsz));
+		fstk.push(FncData(&Deserializer::parse<int64>, &estk.top().i64()));
 		return *this;
 	}
 private:

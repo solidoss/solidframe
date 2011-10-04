@@ -153,7 +153,7 @@ int main(int argc, char* argv[]){
 	
 	//create a connection
 	handles.reserve(2048);
-	AddrInfo ai(argv[1], argv[2]);
+	SocketAddressInfo ai(argv[1], argv[2]);
 	
 	if(ai.empty()){
 		cout<<"no such address"<<endl;

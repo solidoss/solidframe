@@ -41,12 +41,12 @@ public:
 		bool _secure
 	);
 /*	int insertTalker(
-		const AddrInfoIterator &_rai,
+		const SocketAddressInfoIterator &_rai,
 		const char *_node,
 		const char *_svc
 	);*/
 	bool insertConnection(
-		const AddrInfoIterator &_rai,
+		const SocketAddressInfoIterator &_rai,
 		const char *_node,
 		const char *_svc
 	);
