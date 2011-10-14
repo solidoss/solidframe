@@ -1,3 +1,24 @@
+/* Implementation file consensusobject.cpp
+	
+	Copyright 2011, 2012 Valentin Palade 
+	vipalade@gmail.com
+
+	This file is part of SolidFrame framework.
+
+	SolidFrame is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	SolidFrame is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include <deque>
 #include <queue>
 #include <vector>
@@ -42,6 +63,8 @@ namespace distributed{
 namespace consensus{
 namespace server{
 
+typedef DynamicPointer<consensus::WriteRequestSignal> WriteRequestSignalPointerT;
+
 /*static*/ const Parameters& Parameters::the(Parameters *_p){
 	static Parameters &r(*_p);
 	return r;
@@ -81,7 +104,7 @@ struct RequestStub{
 		evs(0), flags(0), proposeid(0xffffffff/2), acceptid(-1),
 		timerid(0), recvpropconf(0), recvpropdecl(0), st(InitState){}
 	RequestStub(
-		DynamicPointer<consensus::RequestSignal> &_rsig
+		DynamicPointer<consensus::WriteRequestSignal> &_rsig
 	):
 		sig(_rsig), evs(0), flags(0), proposeid(-1), acceptid(-1), timerid(0),
 		recvpropconf(0), recvpropdecl(0), st(InitState){}
@@ -109,16 +132,16 @@ struct RequestStub{
 	bool isValidAcceptConfirmState()const;
 	bool isValidAcceptDeclineState()const;
 	
-	DynamicPointer<consensus::RequestSignal>	sig;
-	uint16										evs;
-	uint16										flags;
-	uint32										proposeid;
-	uint32										acceptid;
-	uint16										timerid;
-	uint8										recvpropconf;//received accepts for propose
-	uint8										recvpropdecl;//received accepts for propose
+	WriteRequestSignalPointerT		sig;
+	uint16							evs;
+	uint16							flags;
+	uint32							proposeid;
+	uint32							acceptid;
+	uint16							timerid;
+	uint8							recvpropconf;//received accepts for propose
+	uint8							recvpropdecl;//received accepts for propose
 private:
-	uint8										st;
+	uint8							st;
 };
 
 void RequestStub::state(uint8 _st){
@@ -265,13 +288,13 @@ struct Object::Data{
 	Data();
 	~Data();
 	
-	bool insertRequestStub(DynamicPointer<RequestSignal> &_rsig, size_t &_ridx);
+	bool insertRequestStub(DynamicPointer<WriteRequestSignal> &_rsig, size_t &_ridx);
 	void eraseRequestStub(const size_t _idx);
 	RequestStub& requestStub(const size_t _idx);
 	RequestStub& safeRequestStub(const consensus::RequestId &_reqid, size_t &_rreqidx);
 	RequestStub* requestStubPointer(const consensus::RequestId &_reqid, size_t &_rreqidx);
 	const RequestStub& requestStub(const size_t _idx)const;
-	bool checkAlreadyReceived(DynamicPointer<RequestSignal> &_rsig);
+	bool checkAlreadyReceived(DynamicPointer<WriteRequestSignal> &_rsig);
 	bool isCoordinator()const;
 	bool canSendFastAccept()const;
 	void coordinatorId(int8 _coordid);
@@ -368,7 +391,7 @@ void Object::Data::coordinatorId(int8 _coordid){
 		idbg("coordinator");
 	}
 }
-bool Object::Data::insertRequestStub(DynamicPointer<RequestSignal> &_rsig, size_t &_ridx){
+bool Object::Data::insertRequestStub(DynamicPointer<WriteRequestSignal> &_rsig, size_t &_ridx){
 	RequestStubMapT::const_iterator	it(reqmap.find(&_rsig->id));
 	if(it != reqmap.end()){
 		_ridx = it->second;
@@ -417,7 +440,7 @@ inline const RequestStub& Object::Data::requestStub(const size_t _idx)const{
 inline bool Object::Data::isCoordinator()const{
 	return coordinatorid == -1;
 }
-bool Object::Data::checkAlreadyReceived(DynamicPointer<RequestSignal> &_rsig){
+bool Object::Data::checkAlreadyReceived(DynamicPointer<WriteRequestSignal> &_rsig){
 	SenderSetT::iterator it(senderset.find(_rsig->id));
 	if(it != senderset.end()){
 		if(overflow_safe_less(_rsig->id.requid, it->requid)){
@@ -437,8 +460,8 @@ bool Object::Data::canSendFastAccept()const{
 	return (continuousacceptedproposes >= 5) && ct.seconds() < 60;
 }
 
-struct DummyRequestSignal: public RequestSignal{
-	DummyRequestSignal(const consensus::RequestId &_reqid):RequestSignal(_reqid){}
+struct DummyWriteRequestSignal: public WriteRequestSignal{
+	DummyWriteRequestSignal(const consensus::RequestId &_reqid):WriteRequestSignal(_reqid){}
 	/*virtual*/ void sendThisToConsensusObject(){}
 };
 
@@ -447,7 +470,7 @@ RequestStub& Object::Data::safeRequestStub(const consensus::RequestId &_reqid, s
 	if(it != reqmap.end()){
 		_rreqidx = it->second;
 	}else{
-		DynamicPointer<RequestSignal> reqsig(new DummyRequestSignal(_reqid));
+		DynamicPointer<WriteRequestSignal> reqsig(new DummyWriteRequestSignal(_reqid));
 		insertRequestStub(reqsig, _rreqidx);
 	}
 	return requestStub(_rreqidx);
@@ -499,7 +522,8 @@ static const DynamicRegisterer<Object>	dre;
 }
 
 /*static*/ void Object::dynamicRegister(){
-	DynamicExecuterT::registerDynamic<RequestSignal, Object>();
+	DynamicExecuterT::registerDynamic<WriteRequestSignal, Object>();
+	DynamicExecuterT::registerDynamic<ReadRequestSignal, Object>();
 	DynamicExecuterT::registerDynamic<OperationSignal<1>, Object>();
 	DynamicExecuterT::registerDynamic<OperationSignal<2>, Object>();
 	DynamicExecuterT::registerDynamic<OperationSignal<4>, Object>();
@@ -537,7 +561,7 @@ void Object::dynamicExecute(DynamicPointer<> &_dp, RunData &_rrd){
 	
 }
 //---------------------------------------------------------
-void Object::dynamicExecute(DynamicPointer<RequestSignal> &_rsig, RunData &_rrd){
+void Object::dynamicExecute(DynamicPointer<WriteRequestSignal> &_rsig, RunData &_rrd){
 	if(d.checkAlreadyReceived(_rsig)) return;
 	size_t	idx;
 	bool	alreadyexisted(!d.insertRequestStub(_rsig, idx));
@@ -550,6 +574,9 @@ void Object::dynamicExecute(DynamicPointer<RequestSignal> &_rsig, RunData &_rrd)
 		rreq.evs |= RequestStub::SignaledEvent;
 		d.reqq.push(idx);
 	}
+}
+void Object::dynamicExecute(DynamicPointer<ReadRequestSignal> &_rsig, RunData &_rrd){
+	
 }
 void Object::dynamicExecute(DynamicPointer<OperationSignal<1> > &_rsig, RunData &_rrd){
 	idbg("opcount = 1");

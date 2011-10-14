@@ -39,7 +39,7 @@ public:
 	void dynamicExecute(DynamicPointer<FetchRequest> &_rsig, int);
 	void dynamicExecute(DynamicPointer<EraseRequest> &_rsig, int);
 private:
-	/*virtual*/ void accept(DynamicPointer<distributed::consensus::RequestSignal> &_rsig);
+	/*virtual*/ void accept(DynamicPointer<distributed::consensus::WriteRequestSignal> &_rsig);
 	/*virtual*/ int recovery();
 private:
 	DynamicExecuterExT		exeex;
