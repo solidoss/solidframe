@@ -39,6 +39,7 @@ public:
 	void addWait(){lock();++waitcnt;unlock();}
 	void subWait(){lock();--waitcnt;unlock();}
 	int minId();
+	void errorFetch(const char *_err, const char *_fname, const char *_pb, unsigned _sz);
 private:
 	vector<ulong>   v;
 	uint32			concnt;
@@ -112,7 +113,14 @@ int Info::minId(){
 	}
 	return idx;
 }
-
+void Info::errorFetch(const char *_err, const char *_fnm, const char *_pb, unsigned _sz){
+	lock();
+	cout<<"Fetch error: "<<_err<<" file = "<<_fnm<<endl;
+	cout.write(_pb, _sz);
+	cout.flush();
+	//assert(false);
+	unlock();
+}
 static Info inf;
 
 class AlphaThread: public Thread{
@@ -498,9 +506,7 @@ int AlphaThread::fetch(unsigned _idx, char *_pb){
 			}
 		}
 	}
-	cout<<"err "<<strerror(errno)<<endl;
-	cout.write(_pb, BufLen);
-	cout.flush();
+	inf.errorFetch(strerror(errno), sdq[_idx].c_str(), _pb, BufLen);
 	return -9;
 }
 
