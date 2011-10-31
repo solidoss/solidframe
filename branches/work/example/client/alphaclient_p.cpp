@@ -181,7 +181,7 @@ void AlphaThread::run(){
 	char buf[BufLen];
 	if(port>0 && port < 1200){
 		cout<<"Using proxy..."<<endl;
-		wr<<"localhost ";
+		wr<<addr.c_str()<<" ";
 		wr<<(uint32)port<<crlf;
 		wr.flush();
 	}
@@ -241,7 +241,7 @@ inline T* findNot(T *_pc){
 //----------------------------------------------------------------------------
 
 int AlphaThread::list(char *_pb){
-	if(addr.size()){
+	if(addr.size() && port > 1200){
 		//remote list
 		wr<<"s1 remotelist \""<<path<<"\" \""<<addr<<"\" "<<(uint32)port<<crlf;
 	}else{
@@ -365,7 +365,7 @@ int AlphaThread::list(char *_pb){
 int AlphaThread::fetch(unsigned _idx, char *_pb){
 	wr<<"s2 fetch "<<sdq[_idx];
 	//cout<<_idx<<" "<<sdq[_idx]<<endl;
-	if(addr.size()){
+	if(addr.size() && port > 1200){
 		wr<<" \""<<addr<<"\" "<<(uint32)port;
 	}
 	wr<<crlf;
