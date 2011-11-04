@@ -197,7 +197,7 @@ int main(int argc, char* argv[]){
 	srand(stime);
 	
 	idbg("Built on SolidFrame version "<<SF_MAJOR<<'.'<<SF_MINOR<<'.'<<SF_PATCH);
-	idbg("sizeof(IndexT) = "<<sizeof(foundation::IndexT)<<" SERVICEBITCNT = "<<foundation::SERVICEBITCNT<<" INDEXBITCNT = "<<foundation::INDEXBITCNT);
+	
 	idbg("sizeof ulong = "<<sizeof(long));
 #ifdef _LP64
 	idbg("64bit architecture");

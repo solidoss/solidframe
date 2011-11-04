@@ -26,7 +26,7 @@
 
 #include "foundation/common.hpp"
 #include "foundation/objectpointer.hpp"
-#include "foundation/service.hpp"
+//#include "foundation/service.hpp"
 
 #include "utility/dynamicpointer.hpp"
 
@@ -39,7 +39,7 @@ namespace fdt = foundation;
 
 namespace foundation{
 
-//class	Service;
+class	Service;
 class	Object;
 class	Signal;
 class	SchedulerBase;
@@ -62,10 +62,21 @@ public:
 	
 	Manager(
 		const IndexT &_startdynamicidx = 1,
+#ifndef USERVICEBITS
+		const uint _servicebits = sizeof(IndexT) == 4 ? 5 : 8,
+#endif
 		uint _selcnt = 1024
 	);
 	
 	virtual ~Manager();
+	
+	const IndexT& firstDynamicIndex()const;
+	const IndexT& maxServiceCount()const;
+	IndexT computeId(const IndexT &_srvidx, const IndexT &_objidx)const;
+	UidT makeObjectUid(const IndexT &_srvidx, const IndexT &_objidx, const uint32 _uid)const;
+	IndexT computeIndex(const IndexT &_fullid)const;
+	IndexT computeServiceId(const IndexT &_fullid)const;
+	
 	
 	void start();
 	void stop(bool _waitsignal = false);
@@ -227,13 +238,22 @@ private:
 	Manager& operator=(const Manager&);
 private:
 	class ServicePtr;
+#ifndef USERVICEBITS
+	const uint		service_bit_cnt;
+	const uint		index_bit_cnt;
+	const IndexT	max_srvc_cnt;
+#endif
 	struct Data;
-	Data &d;
+	Data	&d;
 };
 
 inline Manager& m(){
 	return Manager::the();
 }
+
+#ifndef NINLINES
+#include "foundation/manager.ipp"
+#endif
 
 }//namespace
 #endif
