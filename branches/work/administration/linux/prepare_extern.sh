@@ -13,8 +13,8 @@ printUsage()
 	echo
 }
 
-BOOST_ADDR="http://garr.dl.sourceforge.net/project/boost/boost/1.47.0/boost_1_47_0.tar.bz2"
-OPENSSL_ADDR="http://www.openssl.org/source/openssl-1.0.0d.tar.gz"
+BOOST_ADDR="http://garr.dl.sourceforge.net/project/boost/boost/1.48.0/boost_1_48_0.tar.bz2"
+OPENSSL_ADDR="http://www.openssl.org/source/openssl-1.0.0e.tar.gz"
 
 downloadArchive()
 {
