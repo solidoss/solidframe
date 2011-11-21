@@ -1,6 +1,6 @@
-/* Implementation file aioselector_sun.cpp
+/* Implementation file aioselector_kqueue.cpp
 	
-	Copyright 2007, 2008 Valentin Palade 
+	Copyright 2011, 2012 Valentin Palade 
 	vipalade@gmail.com
 
 	This file is part of SolidFrame framework.
