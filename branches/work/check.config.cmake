@@ -18,13 +18,14 @@ set(CMAKE_REQUIRED_LIBRARIES ${SYS_BASIC_LIBS})
 
 CHECK_CXX_SOURCE_RUNS("${source_code}" IS_SAFE_FUNCTION_STATIC)
 
+file (READ "${CMAKE_CURRENT_SOURCE_DIR}/check/kqueue.cpp" source_code)
+
+CHECK_CXX_SOURCE_RUNS("${source_code}" HAVE_KQUEUE)
+
+
 file (READ "${CMAKE_CURRENT_SOURCE_DIR}/check/unorderedmap.cpp" source_code)
 
 set(CMAKE_REQUIRED_FLAGS -std=c++0x)
 
 CHECK_CXX_SOURCE_RUNS("${source_code}" HAVE_CPP11)
-
-file (READ "${CMAKE_CURRENT_SOURCE_DIR}/check/kqueue.cpp" source_code)
-
-CHECK_CXX_SOURCE_RUNS("${source_code}" HAVE_KQUEUE)
 

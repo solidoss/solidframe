@@ -9,7 +9,7 @@
 #include <cstring>
 
 
-#ifndef ON_SOLARIS
+#ifdef HAVE_EPOLL
 
 #include <sys/epoll.h>
 
@@ -18,7 +18,18 @@ enum{
 	FLAG_POLL_OUT = EPOLLOUT 
 };
 
-#else
+#endif
+
+#ifdef HAVE_KQUEUE
+
+#include <sys/event.h>
+#include <sys/time.h>
+#include <fcntl.h>
+
+enum{
+	FLAG_POLL_IN  = EVFILT_READ,
+	FLAG_POLL_OUT = EVFILT_WRITE 
+};
 
 #endif
 

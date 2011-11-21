@@ -92,7 +92,8 @@ struct Selector::Data{
 		MAXPOLLWAIT = 0x7FFFFFFF,
 		EXIT_LOOP = 1,
 		FULL_SCAN = 2,
-		READ_PIPE = 4
+		READ_PIPE = 4,
+		MAX_EVENTS_COUNT = 1024 * 2,
 	};
 	typedef Stack<uint32>			Uint32StackT;
 	typedef Queue<uint32>			Uint32QueueT;
@@ -100,11 +101,11 @@ struct Selector::Data{
 	
 	ulong				objcp;
 	ulong				objsz;
-	ulong				sockcp;
-	ulong				socksz;
+//	ulong				sockcp;
+//	ulong				socksz;
 	int					selcnt;
 	int					epollfd;
-	epoll_event 		*events;
+	epoll_event 		events[MAX_EVENTS_COUNT];
 	StubVectorT			stubs;
 	Uint32QueueT		execq;
 	Uint32StackT		freestubsstk;
@@ -132,7 +133,7 @@ public://methods:
 };
 //-------------------------------------------------------------
 Selector::Data::Data():
-	objcp(0), objsz(0), sockcp(0), socksz(0), selcnt(0), epollfd(-1), events(NULL),
+	objcp(0), objsz(0), /*sockcp(0), socksz(0),*/ selcnt(0), epollfd(-1),
 	rep_fullscancount(0){
 #ifdef UPIPESIGNAL
 	pipefds[0] = -1;
@@ -168,18 +169,18 @@ int Selector::Data::computeWaitTimeout()const{
 	return rv;
 }
 void Selector::Data::addNewSocket(){
-	++socksz;
+/*	++socksz;
 	if(socksz > sockcp){
 		uint oldcp = sockcp;
 		sockcp += 64;//TODO: improve!!
 		epoll_event *pevs = new epoll_event[sockcp];
 		memcpy(pevs, events, oldcp * sizeof(epoll_event));
-		delete []events;
+		delete []events;*/
 // 		for(uint i = 0; i < sockcp; ++i){
 // 			pevs[i].events = 0;
 // 			pevs[i].data.u64 = 0;
 // 		}
-	}
+//	}
 }
 inline epoll_event* Selector::Data::eventPrepare(
 	epoll_event &_ev, const uint32 _objpos, const uint32 _sockpos
@@ -251,8 +252,8 @@ int Selector::reserve(ulong _cp){
 	}
 #endif
 	//allocate the events
-	d.events = new epoll_event[d.sockcp];
-	for(ulong i = 0; i < d.sockcp; ++i){
+	//d.events = new epoll_event[d.sockcp];
+	for(ulong i = 0; i < MAX_EVENTS_COUNT; ++i){
 		d.events[i].events = 0;
 		d.events[i].data.u64 = 0L;
 	}
@@ -265,7 +266,7 @@ int Selector::reserve(ulong _cp){
 	d.ctimepos.set(0);
 	d.ntimepos = TimeSpec::max;
 	d.objsz = 1;
-	d.socksz = 1;
+	//d.socksz = 1;
 	return OK;
 }
 
@@ -418,7 +419,7 @@ void Selector::run(){
 			nbcnt = -1;
         }
 		
-		d.selcnt = epoll_wait(d.epollfd, d.events, d.socksz, pollwait);
+		d.selcnt = epoll_wait(d.epollfd, d.events, MAX_EVENTS_COUNT, pollwait);
 		vdbgx(Dbg::aio, "epollwait = "<<d.selcnt);
 #ifdef UDEBUG
 		if(d.selcnt < 0) d.selcnt = 0;
@@ -587,7 +588,8 @@ ulong Selector::doAllIo(){
 				if((sockstub.selevents & Data::EPOLLMASK) != t){
 					sockstub.selevents = t;
 					ev.events = t | EPOLLET;
-					check_call(Dbg::aio, 0, epoll_ctl(d.epollfd, EPOLL_CTL_MOD, sockstub.psock->descriptor(), d.eventPrepare(ev, stubpos, sockpos)));
+					ev.data.u64 = d.events[i].data.u64;
+					check_call(Dbg::aio, 0, epoll_ctl(d.epollfd, EPOLL_CTL_MOD, sockstub.psock->descriptor(), &ev));
 				}
 			}
 			if(evs){
