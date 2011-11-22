@@ -102,7 +102,7 @@ struct Selector::Data{
 	ulong				objcp;
 	ulong				objsz;
 //	ulong				sockcp;
-//	ulong				socksz;
+	ulong				socksz;
 	int					selcnt;
 	int					epollfd;
 	epoll_event 		events[MAX_EVENTS_COUNT];
@@ -133,7 +133,7 @@ public://methods:
 };
 //-------------------------------------------------------------
 Selector::Data::Data():
-	objcp(0), objsz(0), /*sockcp(0), socksz(0),*/ selcnt(0), epollfd(-1),
+	objcp(0), objsz(0), /*sockcp(0),*/ socksz(0), selcnt(0), epollfd(-1),
 	rep_fullscancount(0){
 #ifdef UPIPESIGNAL
 	pipefds[0] = -1;
@@ -169,13 +169,13 @@ int Selector::Data::computeWaitTimeout()const{
 	return rv;
 }
 void Selector::Data::addNewSocket(){
-/*	++socksz;
-	if(socksz > sockcp){
-		uint oldcp = sockcp;
-		sockcp += 64;//TODO: improve!!
-		epoll_event *pevs = new epoll_event[sockcp];
-		memcpy(pevs, events, oldcp * sizeof(epoll_event));
-		delete []events;*/
+	++socksz;
+// 	if(socksz > sockcp){
+// 		uint oldcp = sockcp;
+// 		sockcp += 64;//TODO: improve!!
+// 		epoll_event *pevs = new epoll_event[sockcp];
+// 		memcpy(pevs, events, oldcp * sizeof(epoll_event));
+// 		delete []events;
 // 		for(uint i = 0; i < sockcp; ++i){
 // 			pevs[i].events = 0;
 // 			pevs[i].data.u64 = 0;
@@ -204,13 +204,13 @@ int Selector::reserve(ulong _cp){
 	idbgx(Dbg::aio, "aio::Selector "<<(void*)this);
 	cassert(_cp);
 	d.objcp = _cp;
-	d.sockcp = _cp;
+	//d.sockcp = _cp;
 	
 	setCurrentTimeSpecific(d.ctimepos);
 	
 	//first create the epoll descriptor:
 	cassert(d.epollfd < 0);
-	d.epollfd = epoll_create(d.sockcp);
+	d.epollfd = epoll_create(_cp);
 	if(d.epollfd < 0){
 		edbgx(Dbg::aio, "epoll_create: "<<strerror(errno));
 		cassert(false);
@@ -253,7 +253,7 @@ int Selector::reserve(ulong _cp){
 #endif
 	//allocate the events
 	//d.events = new epoll_event[d.sockcp];
-	for(ulong i = 0; i < MAX_EVENTS_COUNT; ++i){
+	for(ulong i = 0; i < Data::MAX_EVENTS_COUNT; ++i){
 		d.events[i].events = 0;
 		d.events[i].data.u64 = 0L;
 	}
@@ -266,7 +266,7 @@ int Selector::reserve(ulong _cp){
 	d.ctimepos.set(0);
 	d.ntimepos = TimeSpec::max;
 	d.objsz = 1;
-	//d.socksz = 1;
+	d.socksz = 1;
 	return OK;
 }
 
@@ -419,7 +419,7 @@ void Selector::run(){
 			nbcnt = -1;
         }
 		
-		d.selcnt = epoll_wait(d.epollfd, d.events, MAX_EVENTS_COUNT, pollwait);
+		d.selcnt = epoll_wait(d.epollfd, d.events, Data::MAX_EVENTS_COUNT, pollwait);
 		vdbgx(Dbg::aio, "epollwait = "<<d.selcnt);
 #ifdef UDEBUG
 		if(d.selcnt < 0) d.selcnt = 0;
