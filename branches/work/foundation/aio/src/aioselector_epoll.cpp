@@ -145,7 +145,6 @@ Selector::Data::Data():
 }
 
 Selector::Data::~Data(){
-	delete []events;
 	if(epollfd >= 0){
 		close(epollfd);
 	}
