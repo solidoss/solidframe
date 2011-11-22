@@ -73,7 +73,7 @@ private:
 	ulong doAddNewStub();
 	
 	void doUnregisterObject(Object &_robj, int _lastfailpos = -1);
-	ulong doIo(Socket &_rsock, ulong _evs);
+	ulong doIo(Socket &_rsock, ulong _evs, ulong _filter = 0);
 	ulong doExecute(const ulong _pos);
 	void doPrepareObjectWait(const ulong _pos, const TimeSpec &_timepos);
 private://data

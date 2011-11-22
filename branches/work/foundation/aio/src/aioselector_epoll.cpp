@@ -540,7 +540,7 @@ void Selector::doUnregisterObject(Object &_robj, int _lastfailpos){
 	}
 }
 
-inline ulong Selector::doIo(Socket &_rsock, ulong _evs){
+inline ulong Selector::doIo(Socket &_rsock, ulong _evs, ulong){
 	if(_evs & (EPOLLERR | EPOLLHUP)){
 		_rsock.doClear();
 		int err(0);
@@ -582,10 +582,11 @@ ulong Selector::doAllIo(){
 			vdbgx(Dbg::aio, "io events stubpos = "<<stubpos<<" events = "<<d.events[i].events);
 			evs = doIo(sock, d.events[i].events);
 			{
-				epoll_event ev;
-				uint t = sockstub.psock->ioRequest();
+				const uint t = sockstub.psock->ioRequest();
 				if((sockstub.selevents & Data::EPOLLMASK) != t){
 					sockstub.selevents = t;
+					
+					epoll_event ev;
 					ev.events = t | EPOLLET;
 					ev.data.u64 = d.events[i].data.u64;
 					check_call(Dbg::aio, 0, epoll_ctl(d.epollfd, EPOLL_CTL_MOD, sockstub.psock->descriptor(), &ev));
@@ -721,11 +722,11 @@ void Selector::doPrepareObjectWait(const ulong _pos, const TimeSpec &_timepos){
 		sockstub.requesttype = 0;
 		switch(reqtp){
 			case Object::SocketStub::IORequest:{
-				epoll_event ev;
 				uint t = sockstub.psock->ioRequest();
 				vdbgx(Dbg::aio, "sockstub "<<*pit<<" ioreq "<<t);
 				if((sockstub.selevents & Data::EPOLLMASK) != t){
 					vdbgx(Dbg::aio, "sockstub "<<*pit);
+					epoll_event ev;
 					sockstub.selevents = t;
 					ev.events = t | EPOLLET;
 					check_call(Dbg::aio, 0, epoll_ctl(d.epollfd, EPOLL_CTL_MOD, sockstub.psock->descriptor(), d.eventPrepare(ev, _pos, *pit)));

@@ -27,8 +27,8 @@ enum{
 #include <fcntl.h>
 
 enum{
-	FLAG_POLL_IN  = EVFILT_READ,
-	FLAG_POLL_OUT = EVFILT_WRITE 
+	FLAG_POLL_IN  = 1,
+	FLAG_POLL_OUT = 2 
 };
 
 #endif
