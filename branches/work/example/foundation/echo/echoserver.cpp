@@ -66,13 +66,13 @@ public:
 private:
 	enum {BUFSZ = 4*1024};
 	enum {INIT,READ, READ_TOUT, WRITE, WRITE_TOUT, CONNECT, CONNECT_TOUT};
-	char				bbeg[BUFSZ];
-	const char			*bend;
-	char				*brpos;
-	const char			*bwpos;
+	char						bbeg[BUFSZ];
+	const char					*bend;
+	char						*brpos;
+	const char					*bwpos;
 	SocketAddressInfo			*pai;
 	SocketAddressInfoIterator	it;
-	bool				b;
+	bool						b;
 };
 
 //------------------------------------------------------------------
@@ -319,7 +319,9 @@ Connection::Connection(const SocketDevice &_rsd):
 	state(INIT);
 }
 Connection::~Connection(){
+	state(-1);
 	delete pai;
+	idbg("");
 }
 
 int Connection::execute(ulong _sig, TimeSpec &_tout){
