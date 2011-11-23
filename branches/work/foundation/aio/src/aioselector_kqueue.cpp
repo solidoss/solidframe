@@ -195,7 +195,7 @@ void uncompact_to_void_pointer(uint32 &_ru1, uint32 &_ru2, const void* _pv);
 
 
 template <>
-void *compact_to_void_pointer<4>(const uint32 _u1, const uint32 _u2){
+inline void *compact_to_void_pointer<4>(const uint32 _u1, const uint32 _u2){
 	uint32 val;
 	uint16 u1(_u1);
 	uint16 u2(_u2);
@@ -206,7 +206,7 @@ void *compact_to_void_pointer<4>(const uint32 _u1, const uint32 _u2){
 }
 
 template <>
-void *compact_to_void_pointer<8>(const uint32 _u1, const uint32 _u2){
+inline void *compact_to_void_pointer<8>(const uint32 _u1, const uint32 _u2){
 	uint64 val;
 	val = _u1;
 	val <<= 32;
@@ -216,14 +216,14 @@ void *compact_to_void_pointer<8>(const uint32 _u1, const uint32 _u2){
 
 
 template <>
-void uncompact_to_void_pointer<4>(uint32 &_ru1, uint32 &_ru2, const void* _pv){
+inline void uncompact_to_void_pointer<4>(uint32 &_ru1, uint32 &_ru2, const void* _pv){
 	uint32 val(reinterpret_cast<const uint64>(_pv));
 	_ru1 = val >> 16;
 	_ru2 = val & 0xffff;
 }
 
 template <>
-void uncompact_to_void_pointer<8>(uint32 &_ru1, uint32 &_ru2, const void* _pv){
+inline void uncompact_to_void_pointer<8>(uint32 &_ru1, uint32 &_ru2, const void* _pv){
 	uint64 val(reinterpret_cast<const uint64>(_pv));
 	_ru1 = val >> 32;
 	_ru2 = val & 0xffffffff;
@@ -585,8 +585,8 @@ void Selector::doUnregisterObject(Object &_robj, int _lastfailpos){
 			struct kevent	evr,evw;
 			EV_SET (&evr, psock->descriptor(), EVFILT_READ, EV_DELETE, 0, 0, NULL);
 			EV_SET (&evw, psock->descriptor(), EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
-			kevent (d.kqfd, &evr, 1, NULL, 0, NULL);
-			kevent (d.kqfd, &evw, 1, NULL, 0, NULL);
+			check_call(Dbg::aio, 0, kevent (d.kqfd, &evr, 1, NULL, 0, NULL));
+			check_call(Dbg::aio, 0, kevent (d.kqfd, &evw, 1, NULL, 0, NULL));
 			--d.socksz;
 			psock->doUnprepare();
 		}
@@ -640,11 +640,11 @@ ulong Selector::doAllIo(){
 					if(t & Data::EVENT_IN){
 						struct kevent	ev;
 						EV_SET (&ev, sockstub.psock->descriptor(), EVFILT_READ, EV_ENABLE, 0, 0, pv);
-						kevent (d.kqfd, &ev, 1, NULL, 0, NULL);
+						check_call(Dbg::aio, 0, kevent (d.kqfd, &ev, 1, NULL, 0, NULL));
 					}else{
 						struct kevent	ev;
 						EV_SET (&ev, sockstub.psock->descriptor(), EVFILT_READ, EV_DISABLE, 0, 0, pv);
-						kevent (d.kqfd, &ev, 1, NULL, 0, NULL);
+						check_call(Dbg::aio, 0, kevent (d.kqfd, &ev, 1, NULL, 0, NULL));
 					}
 					sockstub.selevents = t;
 				}
@@ -652,11 +652,11 @@ ulong Selector::doAllIo(){
 					if(t & Data::EVENT_OUT){
 						struct kevent	ev;
 						EV_SET (&ev, sockstub.psock->descriptor(), EVFILT_WRITE, EV_ENABLE, 0, 0, pv);
-						kevent (d.kqfd, &ev, 1, NULL, 0, NULL);
+						check_call(Dbg::aio, 0, kevent (d.kqfd, &ev, 1, NULL, 0, NULL));
 					}else{
 						struct kevent	ev;
 						EV_SET (&ev, sockstub.psock->descriptor(), EVFILT_WRITE, EV_DISABLE, 0, 0, pv);
-						kevent (d.kqfd, &ev, 1, NULL, 0, NULL);
+						check_call(Dbg::aio, 0, kevent (d.kqfd, &ev, 1, NULL, 0, NULL));
 					}
 					sockstub.selevents = t;
 				}
@@ -798,11 +798,11 @@ void Selector::doPrepareObjectWait(const ulong _pos, const TimeSpec &_timepos){
 					if(t & Data::EVENT_IN){
 						struct kevent	ev;
 						EV_SET (&ev, sockstub.psock->descriptor(), EVFILT_READ, EV_ENABLE, 0, 0, pv);
-						kevent (d.kqfd, &ev, 1, NULL, 0, NULL);
+						check_call(Dbg::aio, 0, kevent (d.kqfd, &ev, 1, NULL, 0, NULL));
 					}else{
 						struct kevent	ev;
 						EV_SET (&ev, sockstub.psock->descriptor(), EVFILT_READ, EV_DISABLE, 0, 0, pv);
-						kevent (d.kqfd, &ev, 1, NULL, 0, NULL);
+						check_call(Dbg::aio, 0, kevent (d.kqfd, &ev, 1, NULL, 0, NULL));
 					}
 					sockstub.selevents = t;
 				}
@@ -810,11 +810,11 @@ void Selector::doPrepareObjectWait(const ulong _pos, const TimeSpec &_timepos){
 					if(t & Data::EVENT_OUT){
 						struct kevent	ev;
 						EV_SET (&ev, sockstub.psock->descriptor(), EVFILT_WRITE, EV_ENABLE, 0, 0, pv);
-						kevent (d.kqfd, &ev, 1, NULL, 0, NULL);
+						check_call(Dbg::aio, 0, kevent (d.kqfd, &ev, 1, NULL, 0, NULL));
 					}else{
 						struct kevent	ev;
 						EV_SET (&ev, sockstub.psock->descriptor(), EVFILT_WRITE, EV_DISABLE, 0, 0, pv);
-						kevent (d.kqfd, &ev, 1, NULL, 0, NULL);
+						check_call(Dbg::aio, 0, kevent (d.kqfd, &ev, 1, NULL, 0, NULL));
 					}
 					sockstub.selevents = t;
 				}
@@ -832,8 +832,8 @@ void Selector::doPrepareObjectWait(const ulong _pos, const TimeSpec &_timepos){
 				struct kevent	evr,evw;
 				EV_SET (&evr, sockstub.psock->descriptor(), EVFILT_READ, EV_ADD | EV_DISABLE, 0, 0, NULL);
 				EV_SET (&evw, sockstub.psock->descriptor(), EVFILT_WRITE, EV_ADD | EV_DISABLE, 0, 0, NULL);
-				kevent (d.kqfd, &evr, 1, NULL, 0, NULL);
-				kevent (d.kqfd, &evw, 1, NULL, 0, NULL);
+				check_call(Dbg::aio, 0, kevent (d.kqfd, &evr, 1, NULL, 0, NULL));
+				check_call(Dbg::aio, 0, kevent (d.kqfd, &evw, 1, NULL, 0, NULL));
 				stub.objptr->socketPostEvents(*pit, OKDONE);
 				d.addNewSocket();
 				mustwait = false;
@@ -844,8 +844,8 @@ void Selector::doPrepareObjectWait(const ulong _pos, const TimeSpec &_timepos){
 					struct kevent	evr,evw;
 					EV_SET (&evr, sockstub.psock->descriptor(), EVFILT_READ, EV_DELETE, 0, 0, NULL);
 					EV_SET (&evw, sockstub.psock->descriptor(), EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
-					kevent (d.kqfd, &evr, 1, NULL, 0, NULL);
-					kevent (d.kqfd, &evw, 1, NULL, 0, NULL);
+					check_call(Dbg::aio, 0, kevent (d.kqfd, &evr, 1, NULL, 0, NULL));
+					check_call(Dbg::aio, 0, kevent (d.kqfd, &evw, 1, NULL, 0, NULL));
 					--d.socksz;
 					sockstub.psock->doUnprepare();
 					stub.objptr->socketPostEvents(*pit, OKDONE);

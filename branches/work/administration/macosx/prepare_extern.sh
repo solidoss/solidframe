@@ -73,7 +73,7 @@ buildBoost()
 	cd "$BOOST_DIR"
 	#cd tools/jam
 	cd tools/build/v2/engine/
-	sh build_dist.sh
+	sh build.sh
 	cd ../../../../
 	JAMTOOL=`find . -name bjam`
 	VARIANT_BUILD=
