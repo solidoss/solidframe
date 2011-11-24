@@ -333,6 +333,9 @@ bool SocketDevice::isListening()const{
 	}
 	edbgx(Dbg::system, "socket getsockopt: "<<strerror(errno));
 	//try work-arround
+	if(this->type() == SocketAddressInfo::Datagram){
+		return false;
+	}
 	SocketAddress	sa;
 	rv = ::accept(descriptor(), sa.addr(), &sa.size());
 	if(rv < 0){

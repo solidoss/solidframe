@@ -48,7 +48,7 @@ struct Socket::StationData{
 	void specificRelease(){
 		sndaddrpair.addr = NULL;
 	}
-	SocketAddress	rcvaddr;
+	SocketAddress		rcvaddr;
 	SocketAddressPair	rcvaddrpair;
 	SocketAddressPair	sndaddrpair;
 };
@@ -183,7 +183,6 @@ int Socket::remoteAddress(SocketAddress &_rsa)const{
 int Socket::recvFrom(char *_pb, uint32 _bl, uint32 _flags){
 	if(!_bl) return OK;
 	cassert(!isRecvPending());
-	d.psd->rcvaddr.size() = SocketAddress::Capacity;
 	int rv = sd.recv(_pb, _bl, d.psd->rcvaddr);
 	if(rv > 0){
 		rcvlen = rv;

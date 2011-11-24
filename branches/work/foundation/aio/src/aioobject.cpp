@@ -370,13 +370,18 @@ int SingleObject::socketInsert(const SocketDevice &_rsd){
 	cassert(!stub.psock);
 	if(_rsd.ok()){
 		Socket::Type tp;
-		if(_rsd.isListening()){
-			tp = Socket::ACCEPTOR;
-		}else if(_rsd.type() == SocketAddressInfo::Stream){
-			tp = Socket::CHANNEL;
-		}else if(_rsd.type() == SocketAddressInfo::Datagram){
+		
+		if(_rsd.type() == SocketAddressInfo::Datagram){
 			tp = Socket::STATION;
+		}else if(_rsd.type() == SocketAddressInfo::Stream){
+			if(_rsd.isListening()){
+				tp = Socket::ACCEPTOR;
+			}else{
+				tp = Socket::CHANNEL;
+			}
+			
 		}else return -1;
+		
 		stub.psock = new Socket(tp, _rsd);
 		return 0;
 	}
@@ -643,12 +648,15 @@ int MultiObject::socketInsert(const SocketDevice &_rsd){
 	if(_rsd.ok()){
 		uint pos = newStub();
 		Socket::Type tp;
-		if(_rsd.isListening()){
-			tp = Socket::ACCEPTOR;
-		}else if(_rsd.type() == SocketAddressInfo::Stream){
-			tp = Socket::CHANNEL;
-		}else if(_rsd.type() == SocketAddressInfo::Datagram){
+		if(_rsd.type() == SocketAddressInfo::Datagram){
 			tp = Socket::STATION;
+		}else if(_rsd.type() == SocketAddressInfo::Stream){
+			if(_rsd.isListening()){
+				tp = Socket::ACCEPTOR;
+			}else{
+				tp = Socket::CHANNEL;
+			}
+			
 		}else return -1;
 		
 		pstubs[pos].psock = new Socket(tp, _rsd);
