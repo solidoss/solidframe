@@ -1402,7 +1402,7 @@ int Session::doExecuteConnected(Talker::TalkerStub &_rstub){
 			break;
 		}
 		//we can still send buffers
-		Buffer 					buf(Buffer::allocateDataForReading(), Buffer::capacityForReading());
+		Buffer 					buf(Buffer::allocateDataForReading(), Buffer::ReadCapacity);
 		
 		const uint32			bufidx(d.registerBuffer(buf));
 		Data::SendBufferData	&rsbd(d.sendbuffervec[bufidx]);
