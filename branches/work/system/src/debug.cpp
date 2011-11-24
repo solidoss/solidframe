@@ -600,11 +600,11 @@ std::ostream& Dbg::print(
 	if(d.respinsz && d.respinsz <= d.sz){
 		d.doRespin();
 	}
-	char buf[128];
-	TimeSpec ts_now(TimeSpec::createRealTime());
+	char		buf[128];
+	TimeSpec	ts_now(TimeSpec::createRealTime());
 	//ts_now = ts_now - d.begts;
-	time_t t_now = ts_now.seconds();
-	tm loctm;
+	time_t		t_now = ts_now.seconds();
+	tm			loctm;
 	localtime_r(&t_now, &loctm);
 	sprintf(
 		buf,

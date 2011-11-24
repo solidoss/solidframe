@@ -180,6 +180,7 @@ const TimeSpec& TimeSpec::currentMonotonic(){
 }
 
 #elif	defined(ON_MACOS)
+
 struct TimeStartData{
 	TimeStartData(){
 		st = time(NULL);
