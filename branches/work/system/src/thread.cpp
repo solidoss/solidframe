@@ -144,47 +144,50 @@ const TimeSpec& TimeSpec::currentRealTime(){
 	uint32						secs  = 0;
 	uint32						nsecs = 0;
 	
-    if(d.sc <= cc){
-        secs = (cc - d.sc)/CLOCKS_PER_SEC;
-        nsecs = ((((cc - d.sc) % CLOCKS_PER_SEC) * 1000)/CLOCKS_PER_SEC) * 1000000;
-    }else{
-        //NOTE: find a better way
-        UnsignedType<clock_t>::Type tc = cc + (0xffffffff - d.sc);
-        secs = (tc)/CLOCKS_PER_SEC;
-        nsecs = ((((tc) % CLOCKS_PER_SEC) * 1000)/CLOCKS_PER_SEC) * 1000000;
-        d.sc = cc;
-        d.st = time(NULL);
-    }
-    this->set(d.st + secs, nsecs);
+	if(tsd.sc <= cc){
+		secs = (cc - tsd.sc)/CLOCKS_PER_SEC;
+		nsecs = ((((cc - d.sc) % CLOCKS_PER_SEC) * 1000)/CLOCKS_PER_SEC) * 1000000;
+	}else{
+		//NOTE: find a better way
+		UnsignedType<clock_t>::Type tc = cc + (0xffffffff - tsd.sc);
+		secs = (tc)/CLOCKS_PER_SEC;
+		nsecs = ((((tc) % CLOCKS_PER_SEC) * 1000)/CLOCKS_PER_SEC) * 1000000;
+		tsd.sc = cc;
+		tsd.st = time(NULL);
+	}
+	this->set(tsd.st + secs, nsecs);
 	return *this;
 }
 
 const TimeSpec& TimeSpec::currentMonotonic(){
 	static TimeStartData		tsd;
 	UnsignedType<clock_t>::Type	cc = clock();
-    uint32						secs  = 0;
-    uint32						nsecs = 0;
-    if(d.sc <= cc){
-        secs = (cc - d.sc)/CLOCKS_PER_SEC;
-        nsecs = ((((cc - d.sc) % CLOCKS_PER_SEC) * 1000)/CLOCKS_PER_SEC) * 1000000;
-    }else{
-        //NOTE: find a better way
-        UnsignedType<clock_t>::Type tc = cc + (0xffffffff - d.sc);
-        secs = (tc)/CLOCKS_PER_SEC;
-        nsecs = ((((tc) % CLOCKS_PER_SEC) * 1000)/CLOCKS_PER_SEC) * 1000000;
-        d.sc = cc;
-        d.st = time(NULL);
-    }
-    this->set(d.st + secs, nsecs);
+	uint32						secs  = 0;
+	uint32						nsecs = 0;
+	if(tsd.sc <= cc){
+		secs = (cc - tsd.sc)/CLOCKS_PER_SEC;
+		nsecs = ((((cc - tsd.sc) % CLOCKS_PER_SEC) * 1000)/CLOCKS_PER_SEC) * 1000000;
+	}else{
+		//NOTE: find a better way
+		UnsignedType<clock_t>::Type tc = cc + (0xffffffff - tsd.sc);
+		secs = (tc)/CLOCKS_PER_SEC;
+		nsecs = ((((tc) % CLOCKS_PER_SEC) * 1000)/CLOCKS_PER_SEC) * 1000000;
+		tsd.sc = cc;
+		tsd.st = time(NULL);
+	}
+	this->set(d.st + secs, nsecs);
 	return *this;
 }
 
 #elif	defined(ON_MACOS)
 struct TimeStartData{
 	TimeStartData(){
-		st = mach_absolute_time();
+		st = time(NULL);
+		stns = mach_absolute_time();
+		stns -= (stns % 1000000000);
 	}
-	uint64	st;
+	uint64	stns;
+	time_t	st;
 };
 struct HelperMatchTimeBase: mach_timebase_info_data_t{
     HelperMatchTimeBase(){
@@ -196,24 +199,24 @@ struct HelperMatchTimeBase: mach_timebase_info_data_t{
 const TimeSpec& TimeSpec::currentRealTime(){
 	static TimeStartData		tsd;
 	static HelperMatchTimeBase	info;
-	uint64 difference = mach_absolute_time() - d.st;
+	uint64				difference = mach_absolute_time() - tsd.stns;
 
 	uint64 elapsednano = difference * (info.numer / info.denom);
 
-	this->seconds(elapsednano * 1e-9);
-	this->nanoSeconds(elapsednano - (this->seconds() * 1e9));
+	this->seconds(tsd.st + elapsednano / 1000000000);
+	this->nanoSeconds(elapsednano % 1000000000);
 	return *this;
 }
 
 const TimeSpec& TimeSpec::currentMonotonic(){
-	static TimeStartData		tsd;
+	static uint64			tsd(mach_absolute_time());
 	static HelperMatchTimeBase	info;
-	uint64 difference = mach_absolute_time() - d.st;
+	uint64				difference = mach_absolute_time() - tsd;
 
 	uint64 elapsednano = difference * (info.numer / info.denom);
 
-	this->seconds(elapsednano * 1e-9);
-	this->nanoSeconds(elapsednano - (this->seconds() * 1e9));
+	this->seconds(elapsednano / 1000000000);
+	this->nanoSeconds(elapsednano % 1000000000);
 	return *this;
 }
 

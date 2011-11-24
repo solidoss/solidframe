@@ -167,7 +167,9 @@ Selector::Data::~Data(){
 }
 
 TimeSpec* Selector::Data::computeWaitTimeout(TimeSpec &_rts)const{
-	if(ntimepos.isMax()) return NULL;//return MAXPOLLWAIT;
+	if(ntimepos.isMax()){
+		return NULL;//return MAXPOLLWAIT;
+	}
 	_rts = ntimepos;
 	_rts -= ctimepos;
 	return &_rts;
@@ -455,18 +457,19 @@ void Selector::run(){
 		if(empty()) flags |= Data::EXIT_LOOP;
 		
 		TimeSpec ts(0, 0);
+		TimeSpec *pts(&ts);
 		
 		if(flags || d.execq.size()){
 			--nbcnt;
 		}else{
-			d.computeWaitTimeout(ts);
+			pts = d.computeWaitTimeout(ts);
 			vdbgx(Dbg::aio, "ntimepos.s = "<<d.ntimepos.seconds()<<" ntimepos.ns = "<<d.ntimepos.nanoSeconds());
 			vdbgx(Dbg::aio, "ctimepos.s = "<<d.ctimepos.seconds()<<" ctimepos.ns = "<<d.ctimepos.nanoSeconds());
 			nbcnt = -1;
         }
 		
 		//d.selcnt = epoll_wait(d.epollfd, d.events, d.socksz, pollwait);
-		d.selcnt = kevent(d.kqfd, NULL, 0, d.events, Data::MAX_EVENTS_COUNT, &ts);
+		d.selcnt = kevent(d.kqfd, NULL, 0, d.events, Data::MAX_EVENTS_COUNT, pts);
 		vdbgx(Dbg::aio, "kqueue = "<<d.selcnt);
 #ifdef UDEBUG
 		if(d.selcnt < 0) d.selcnt = 0;
