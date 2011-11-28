@@ -1,0 +1,21 @@
+#summary Release log
+
+<wiki:toc max_depth="1" />
+
+This is main release log for SolidFrame.
+
+
+= 0.9.850 =
+
+Main changes:
+  * Added support for kqueue enabling support for FreeBSD and MacOSX (tested on MacOSX 10.6)
+  * Added support for real time and monotonic time in system/TimeSpec
+
+= 0.9.824 =
+
+Main changes:
+  * The biggest addition is the new distributed/consensus/Object enabling support for distributed replicated consensual objects - implementing Fast Multi PAXOS algorithm.
+  * Big fix in ipcsession.
+  * Improved objectselector and fixed aioselector.
+  * Added HAVE_CPP11 compilation flag and cmake check.
+  * Incipient windows build support.
