@@ -97,11 +97,12 @@ struct Manager::Data{
 	typedef std::vector<SchedulerTypeStub>		SchedulerTypeStubVectorT;
 	
 	Data(
-		uint _selcnt
+		uint	_selcnt,
+		IndexT	startdynamicidx
 	);
 	Service& masterService();
 	
-	IndexT						startdynamicidx;
+	const IndexT				startdynamicidx;
 	IndexT						currentdynamicidx;
 	uint						currentservicecount;
 	uint						currentobjectcount;
@@ -126,8 +127,9 @@ struct Manager::Data{
 };
 //---------------------------------------------------------
 Manager::Data::Data(
-	uint _selcnt
-)	:startdynamicidx(0), currentdynamicidx(0), currentservicecount(0),
+	uint _selcnt,
+	IndexT	_startdynamicidx
+)	:startdynamicidx(_startdynamicidx), currentdynamicidx(0), currentservicecount(0),
 	currentobjectcount(0), currentselectoridx(0),
 	currentschedulertypeid(0), currentobjecttypeid(0),
 	objtpcnt(1024), schtpcnt(16), schcnt(32), selcnt(_selcnt), st(Stopped){
@@ -156,20 +158,32 @@ namespace{
 }
 #endif
 //---------------------------------------------------------
+const IndexT compute_start_dynamic_index(const IndexT &_ridx, const IndexT &_maxsvccnt){
+	IndexT idx(_ridx);
+	if(idx > _maxsvccnt){
+		idx = _maxsvccnt;
+	}
+	if(idx == 0){
+		idx = 1;
+	}
+	return idx;
+}
 Manager::Manager(
 	const IndexT &_startdynamicidx,
+#ifndef USERVICEBITS
+	const uint _servicebits,
+#endif
 	uint _selcnt
-):d(*(new Data(_selcnt))){
+):	
+#ifndef USERVICEBITS
+	service_bit_cnt(_servicebits),
+	index_bit_cnt(sizeof(IndexT) * 8 - service_bit_cnt),
+	max_srvc_cnt(IndexT(ID_MASK) >> index_bit_cnt),
+#endif
+	d(*(new Data(_selcnt, compute_start_dynamic_index(_startdynamicidx, maxServiceCount())))){
 #ifndef NSINGLETON_MANAGER
 	globalpm = this;
 #endif
-	d.startdynamicidx = _startdynamicidx;
-	if(d.startdynamicidx > max_service_count()){
-		d.startdynamicidx = max_service_count();
-	}
-	if(d.startdynamicidx == 0){
-		d.startdynamicidx = 1;
-	}
 	d.currentdynamicidx = d.startdynamicidx;
 	d.selvec.push_back(&d.dummysel);
 	d.svcvec.push_back(Data::ServiceStub());
@@ -179,8 +193,8 @@ Manager::Manager(
 	d.svcvec.front().tpid = Object::staticTypeId();
 	//d.svcvec.back().second = Object::staticTypeId();
 	//TODO: refactor
-	d.svcvec.resize(max_service_count());
-	d.objvec.resize(max_service_count());
+	d.svcvec.resize(maxServiceCount());
+	d.objvec.resize(maxServiceCount());
 	d.objtpvec.reserve(d.objtpcnt);
 	d.schtpvec.reserve(d.schtpcnt);
 	d.selvec.resize(d.selcnt);
@@ -201,6 +215,14 @@ Manager::Manager(
 	d.svcvec.front().ptr.release();
 	delete &d;
 }
+//---------------------------------------------------------
+const IndexT& Manager::firstDynamicIndex()const{
+	return d.startdynamicidx;
+}
+//---------------------------------------------------------
+#ifdef NINLINES
+#include "foundation/manager.ipp"
+#endif
 //---------------------------------------------------------
 void Manager::start(){
 	{
@@ -363,13 +385,13 @@ void Manager::signalStop(){
 //---------------------------------------------------------
 void Manager::erase(Object &_robj){
 	IndexT	idx(_robj.id());
-	IndexT	svcidx(compute_service_id(idx));
+	IndexT	svcidx(computeServiceId(idx));
 	service(svcidx).erase(_robj);
 }
 //---------------------------------------------------------
 void Manager::eraseObject(Object &_robj){
 	IndexT	idx(_robj.id());
-	IndexT	svcidx(compute_service_id(idx));
+	IndexT	svcidx(computeServiceId(idx));
 	service(svcidx).erase(_robj);
 }
 //---------------------------------------------------------
@@ -384,7 +406,7 @@ bool Manager::signal(ulong _sm){
 }
 //---------------------------------------------------------
 bool Manager::signal(ulong _sm, const ObjectUidT &_ruid){
-	const IndexT	svcidx(compute_service_id(_ruid.first));
+	const IndexT	svcidx(computeServiceId(_ruid.first));
 	Service			*ps(servicePointer(svcidx));
 	if(ps){
 		return ps->signal(_sm, _ruid);
@@ -393,7 +415,7 @@ bool Manager::signal(ulong _sm, const ObjectUidT &_ruid){
 }
 //---------------------------------------------------------
 bool Manager::signal(ulong _sm, IndexT _fullid, uint32 _uid){
-	const IndexT	svcidx(compute_service_id(_fullid));
+	const IndexT	svcidx(computeServiceId(_fullid));
 	Service			*ps(servicePointer(svcidx));
 	if(ps){
 		return ps->signal(_sm, _fullid, _uid);
@@ -416,7 +438,7 @@ bool Manager::signal(DynamicSharedPointer<Signal> &_rsig){
 }
 //---------------------------------------------------------
 bool Manager::signal(DynamicPointer<Signal> &_rsig, const ObjectUidT &_ruid){
-	const IndexT	svcidx(compute_service_id(_ruid.first));
+	const IndexT	svcidx(computeServiceId(_ruid.first));
 	Service			*ps(servicePointer(svcidx));
 	if(ps){
 		return ps->signal(_rsig, _ruid);
@@ -425,7 +447,7 @@ bool Manager::signal(DynamicPointer<Signal> &_rsig, const ObjectUidT &_ruid){
 }
 //---------------------------------------------------------
 bool Manager::signal(DynamicPointer<Signal> &_rsig, IndexT _fullid, uint32 _uid){
-	const IndexT	svcidx(compute_service_id(_fullid));
+	const IndexT	svcidx(computeServiceId(_fullid));
 	Service			*ps(servicePointer(svcidx));
 	if(ps){
 		return ps->signal(_rsig, _fullid, _uid);
@@ -610,7 +632,7 @@ IndexT Manager::doRegisterService(
 		static_cast<Object*>(_ps)->id(0, _idx);
 		return _ps->index();
 	}else{
-		if(d.currentdynamicidx >= max_service_count()){
+		if(d.currentdynamicidx >= maxServiceCount()){
 			THROW_EXCEPTION_EX("Error: invalid dynamic index for service", d.currentdynamicidx);
 			return invalid_uid().first;
 		}
@@ -664,7 +686,7 @@ IndexT Manager::doRegisterObject(
 		_po->id(0, _idx);
 		return _po->index();
 	}else{
-		if(d.currentdynamicidx >= max_service_count()){
+		if(d.currentdynamicidx >= maxServiceCount()){
 			THROW_EXCEPTION_EX("Error: invalid dynamic index for service", d.currentdynamicidx);
 			return invalid_uid().first;
 		}
@@ -765,11 +787,11 @@ void Manager::stopObject(const IndexT &_ridx){
 }
 //---------------------------------------------------------
 ObjectUidT Manager::serviceUid(const IndexT &_idx){
-	return make_object_uid(0, _idx, 0);
+	return makeObjectUid(0, _idx, 0);
 }
 //---------------------------------------------------------
 ObjectUidT Manager::objectUid(const IndexT &_idx){
-	return make_object_uid(0, _idx, 0);
+	return makeObjectUid(0, _idx, 0);
 }
 //---------------------------------------------------------
 Manager::ThisGuard::ThisGuard(Manager *_pm){

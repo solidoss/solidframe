@@ -229,8 +229,6 @@ struct Dbg::Data{
 	BitSetT					bs;
 	unsigned				lvlmsk;
 	NameVectorT				nv;
-	time_t					begt;
-	TimeSpec				begts;
 	uint64					sz;
 	uint64					respinsz;
 	uint32					respincnt;
@@ -344,7 +342,9 @@ void Dbg::Data::setModuleMask(const char *_opt){
 void filePath(string &_out, uint32 _pos, ulong _pid, const string &_path, const string &_name){
 	_out = _path;
 	_out += _name;
-	char buf[128];
+	
+	char	buf[128];
+	
 	if(_pos){
 		sprintf(buf, "_%lu_%u.dbg", _pid, _pos);
 	}else{
@@ -600,11 +600,10 @@ std::ostream& Dbg::print(
 	if(d.respinsz && d.respinsz <= d.sz){
 		d.doRespin();
 	}
-	char buf[128];
-	TimeSpec ts_now(TimeSpec::createRealTime());
-	//ts_now = ts_now - d.begts;
-	time_t t_now = ts_now.seconds();
-	tm loctm;
+	char		buf[128];
+	TimeSpec	ts_now(TimeSpec::createRealTime());
+	time_t		t_now = ts_now.seconds();
+	tm			loctm;
 	localtime_r(&t_now, &loctm);
 	sprintf(
 		buf,
@@ -646,11 +645,10 @@ std::ostream& Dbg::printTraceIn(
 	if(d.respinsz && d.respinsz <= d.sz){
 		d.doRespin();
 	}
-	char buf[128];
-	TimeSpec ts_now(TimeSpec::createRealTime());
-	//ts_now = ts_now - d.begts;
-	time_t t_now = ts_now.seconds();
-	tm loctm;
+	char		buf[128];
+	TimeSpec	ts_now(TimeSpec::createRealTime());
+	time_t		t_now = ts_now.seconds();
+	tm			loctm;
 	localtime_r(&t_now, &loctm);
 	sprintf(
 		buf,
@@ -684,11 +682,10 @@ std::ostream& Dbg::printTraceOut(
 	if(d.respinsz && d.respinsz <= d.sz){
 		d.doRespin();
 	}
-	char buf[128];
-	TimeSpec ts_now(TimeSpec::createRealTime());
-	//ts_now = ts_now - d.begts;
-	time_t t_now = ts_now.seconds();
-	tm loctm;
+	char		buf[128];
+	TimeSpec	ts_now(TimeSpec::createRealTime());
+	time_t		t_now = ts_now.seconds();
+	tm			loctm;
 	localtime_r(&t_now, &loctm);
 	sprintf(
 		buf,
@@ -730,8 +727,6 @@ bool Dbg::isSet(Level _lvl, unsigned _v)const{
 	return (d.lvlmsk & _lvl) && d.bs[_v];
 }
 Dbg::Dbg():d(*(new Data)){
-	d.begt = time(NULL);
-	d.begts.currentRealTime();
 	setAllModuleBits();
 	levelMask();
 }

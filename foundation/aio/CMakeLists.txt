@@ -3,20 +3,22 @@
 #FILE(GLOB Sources RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} src/*.cpp)
 #FILE(GLOB Headers RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.hpp)
 
-IF(${ON_SOLARIS})
-	set(Sources
-		src/aioobject.cpp
-		src/aioselector_sun.cpp
-		src/aiosocket.cpp
-	)
+if(${HAVE_EPOLL})
+	set(selector_source src/aioselector_epoll.cpp)
+endif(${HAVE_EPOLL})
 
-ELSE(${ON_SOLARIS})
-	set(Sources
-		src/aioobject.cpp
-		src/aioselector_lin.cpp
-		src/aiosocket.cpp
-	)
-ENDIF(${ON_SOLARIS})
+
+if(${HAVE_KQUEUE})
+	set(selector_source src/aioselector_kqueue.cpp)
+endif(${HAVE_KQUEUE})
+
+
+set(Sources
+	src/aioobject.cpp
+	${selector_source}
+	src/aiosocket.cpp
+)
+
 set(Headers
 	aioobject.hpp
 	aiosecuresocket.hpp

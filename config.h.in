@@ -1,5 +1,7 @@
 #cmakedefine HAVE_PTHREAD_H
 #cmakedefine HAVE_EVENTFD_H
 #cmakedefine HAVE_CPP11
+#cmakedefine HAVE_EPOLL
+#cmakedefine HAVE_KQUEUE
 #cmakedefine IS_SAFE_FUNCTION_STATIC
 

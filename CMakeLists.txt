@@ -223,9 +223,10 @@ endif(NOT ON_FOUND)
 #-----------------------------------------------------------------
 include(check.config.cmake)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
-if(HAVE_CPP11FLAG)
+
+if(HAVE_CPP11FLAG AND HAVE_CPP11)
 	add_definitions(-std=c++0x)
-endif(HAVE_CPP11FLAG)
+endif(HAVE_CPP11FLAG AND HAVE_CPP11)
 #-----------------------------------------------------------------
 
 #-----------------------------------------------------------------

@@ -94,6 +94,7 @@ struct Params{
 	string		dbg_addr;
 	string		dbg_port;
 	bool		dbg_buffered;
+	bool		dbg_console;
 	bool		log;
 };
 
@@ -163,6 +164,11 @@ int main(int argc, char* argv[]){
 			p.dbg_buffered,
 			&dbgout
 		);
+	}else if(p.dbg_console){
+		Dbg::instance().initStdErr(
+			p.dbg_buffered,
+			&dbgout
+		);
 	}else{
 		Dbg::instance().initFile(
 			*argv[0] == '.' ? argv[0] + 2 : argv[0],
@@ -197,7 +203,7 @@ int main(int argc, char* argv[]){
 	srand(stime);
 	
 	idbg("Built on SolidFrame version "<<SF_MAJOR<<'.'<<SF_MINOR<<'.'<<SF_PATCH);
-	idbg("sizeof(IndexT) = "<<sizeof(foundation::IndexT)<<" SERVICEBITCNT = "<<foundation::SERVICEBITCNT<<" INDEXBITCNT = "<<foundation::INDEXBITCNT);
+	
 	idbg("sizeof ulong = "<<sizeof(long));
 #ifdef _LP64
 	idbg("64bit architecture");
@@ -461,6 +467,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 			("debug_modules,m", value<string>(&_par.dbg_modules),"Debug logging modules")
 			("debug_address,a", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")
 			("debug_port,p", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")
+			("debug_console,c", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")
 			("debug_unbuffered,s", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered")
 			("use_log,L", value<bool>(&_par.log)->implicit_value(true)->default_value(false), "Debug buffered")
 	/*		("verbose,v", po::value<int>()->implicit_value(1),

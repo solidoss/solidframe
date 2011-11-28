@@ -173,7 +173,7 @@ int Service::sendSignal(
 	cassert(_rconid.tid < d.tkrvec.size());
 	
 	Mutex::Locker		lock(serviceMutex());
-	IndexT				idx(compute_index(d.tkrvec[_rconid.tid].uid.first));
+	IndexT				idx(Manager::the().computeIndex(d.tkrvec[_rconid.tid].uid.first));
 	Mutex::Locker		lock2(this->mutex(idx));
 	Talker				*ptkr(static_cast<Talker*>(this->objectAt(idx)));
 	
@@ -217,7 +217,7 @@ int Service::doSendSignal(
 			vdbgx(Dbg::ipc, "");
 			
 			ConnectionUid		conid(it->second);
-			IndexT				idx(compute_index(d.tkrvec[conid.tid].uid.first));
+			IndexT				idx(Manager::the().computeIndex(d.tkrvec[conid.tid].uid.first));
 			Mutex::Locker		lock2(this->mutex(idx));
 			Talker				*ptkr(static_cast<Talker*>(this->objectAt(idx)));
 			
@@ -256,7 +256,7 @@ int Service::doSendSignal(
 				tkruid = d.tkrvec[tkrid].uid.second;
 			}
 			
-			tkrpos = compute_index(tkrpos);
+			tkrpos = Manager::the().computeIndex(tkrpos);
 			Mutex::Locker		lock2(this->mutex(tkrpos));
 			Talker				*ptkr(static_cast<Talker*>(this->objectAt(tkrpos)));
 			cassert(ptkr);
@@ -320,7 +320,7 @@ int Service::acceptSession(Session *_pses){
 		
 		if(it != d.sessionaddr4map.end()){
 			//a connection still exists
-			IndexT			tkrpos(compute_index(d.tkrvec[it->second.tid].uid.first));
+			IndexT			tkrpos(Manager::the().computeIndex(d.tkrvec[it->second.tid].uid.first));
 			Mutex::Locker	lock2(this->mutex(tkrpos));
 			Talker			*ptkr(static_cast<Talker*>(this->objectAt(tkrpos)));
 			
@@ -352,7 +352,7 @@ int Service::acceptSession(Session *_pses){
 		tkruid = d.tkrvec[tkrid].uid.second;
 	}
 	
-	tkrpos = compute_index(tkrpos);
+	tkrpos = Manager::the().computeIndex(tkrpos);
 	
 	Mutex::Locker	lock2(this->mutex(tkrpos));
 	Talker			*ptkr(static_cast<Talker*>(this->objectAt(tkrpos)));
@@ -389,7 +389,7 @@ void Service::connectSession(const SocketAddressPair4 &_raddr){
 		tkrpos = d.tkrvec[tkrid].uid.first;
 		tkruid = d.tkrvec[tkrid].uid.second;
 	}
-	tkrpos = compute_index(tkrpos);
+	tkrpos = Manager::the().computeIndex(tkrpos);
 	
 	Mutex::Locker		lock2(this->mutex(tkrpos));
 	Talker				*ptkr(static_cast<Talker*>(this->objectAt(tkrpos)));
@@ -562,7 +562,7 @@ Buffer::~Buffer(){
 void Buffer::optimize(uint16 _cp){
 	const uint32	bufsz(this->bufferSize());
 	const uint		id(Specific::sizeToId(bufsz));
-	const uint		mid(Specific::capacityToId(_cp ? _cp : Buffer::capacityForReading()));
+	const uint		mid(Specific::capacityToId(_cp ? _cp : Buffer::ReadCapacity));
 	if(mid > id){
 		uint32 datasz = this->dataSize();//the size
 		

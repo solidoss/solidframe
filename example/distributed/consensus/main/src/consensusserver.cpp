@@ -129,7 +129,7 @@ int main(int argc, char *argv[]){
 		m.registerScheduler(new AioSchedulerT(m));
 		
 		//const IndexT svcidx = 
-		m.registerService<SchedulerT>(new foundation::Service, 0, fdt::compute_service_id(serverUid().first));
+		m.registerService<SchedulerT>(new foundation::Service, 0, m.computeServiceId(serverUid().first));
 		m.registerService<SchedulerT>(new foundation::ipc::Service(&ipcctrl, 0, 2, 2), 0, ipcid);
 		
 		m.start();
@@ -140,8 +140,8 @@ int main(int argc, char *argv[]){
 		}
 		
 		foundation::ObjectPointer<ServerObject>	op(new ServerObject);
-		const fdt::IndexT						svcidx(fdt::compute_service_id(serverUid().first));
-		const fdt::IndexT						srvidx(fdt::compute_index(serverUid().first));
+		const fdt::IndexT						svcidx(m.computeServiceId(serverUid().first));
+		const fdt::IndexT						srvidx(m.computeIndex(serverUid().first));
 		
 		m.service(svcidx).insert<SchedulerT>(op, 0, srvidx);
 		

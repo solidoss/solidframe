@@ -9,7 +9,7 @@
 #include <cstring>
 
 
-#ifndef ON_SOLARIS
+#ifdef HAVE_EPOLL
 
 #include <sys/epoll.h>
 
@@ -18,7 +18,18 @@ enum{
 	FLAG_POLL_OUT = EPOLLOUT 
 };
 
-#else
+#endif
+
+#ifdef HAVE_KQUEUE
+
+#include <sys/event.h>
+#include <sys/time.h>
+#include <fcntl.h>
+
+enum{
+	FLAG_POLL_IN  = 1,
+	FLAG_POLL_OUT = 2 
+};
 
 #endif
 
@@ -37,7 +48,7 @@ struct Socket::StationData{
 	void specificRelease(){
 		sndaddrpair.addr = NULL;
 	}
-	SocketAddress	rcvaddr;
+	SocketAddress		rcvaddr;
 	SocketAddressPair	rcvaddrpair;
 	SocketAddressPair	sndaddrpair;
 };
@@ -172,7 +183,6 @@ int Socket::remoteAddress(SocketAddress &_rsa)const{
 int Socket::recvFrom(char *_pb, uint32 _bl, uint32 _flags){
 	if(!_bl) return OK;
 	cassert(!isRecvPending());
-	d.psd->rcvaddr.size() = SocketAddress::Capacity;
 	int rv = sd.recv(_pb, _bl, d.psd->rcvaddr);
 	if(rv > 0){
 		rcvlen = rv;

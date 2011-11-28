@@ -17,7 +17,7 @@ struct EraseRequest;
 
 namespace distributed{
 namespace consensus{
-struct RequestSignal;
+struct WriteRequestSignal;
 }
 }
 
@@ -92,7 +92,7 @@ public:
 	bool   isRequestIdExpected(uint32 _v, int &_rpos)const;
 	void   deleteRequestId(uint32 _v);
 private:
-	uint32 sendSignal(distributed::consensus::RequestSignal *_psig);
+	uint32 sendSignal(distributed::consensus::WriteRequestSignal *_psig);
 	const std::string& getString(uint32 _pos, uint32 _crtpos);
 	void expectStore(uint32 _rid, const std::string &_rs, uint32 _v, uint32 _cnt);
 	void expectFetch(uint32 _rid, const std::string &_rs, uint32 _cnt);

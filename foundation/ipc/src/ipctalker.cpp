@@ -383,7 +383,7 @@ int Talker::doReceiveBuffers(uint32 _atmost, const ulong _sig){
 	}
 	while(_atmost--){
 		char 			*pbuf(Buffer::allocateDataForReading());
-		const uint32	bufsz(Buffer::capacityForReading());
+		const uint32	bufsz(Buffer::ReadCapacity);
 		switch(socketRecvFrom(pbuf, bufsz)){
 			case BAD:
 				Buffer::deallocateDataForReading(pbuf);
@@ -407,7 +407,7 @@ bool Talker::doProcessReceivedBuffers(const TimeSpec &_rts){
 		
 		const Data::RecvBuffer	&rcvbuf(*it);
 		Data::SessionStub		&rss(d.sessionvec[rcvbuf.sessionidx]);
-		Buffer					buf(rcvbuf.data, Buffer::capacityForReading());
+		Buffer					buf(rcvbuf.data, Buffer::ReadCapacity);
 		
 		buf.bufferSize(rcvbuf.size);
 		

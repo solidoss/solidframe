@@ -51,7 +51,7 @@ bool Service::insertConnection(
 
 void Service::eraseObject(const Connection &_ro){
 	ObjectUidT objuid(_ro.uid());
-	idbg("gamma "<<fdt::compute_service_id(objuid.first)<<' '<<fdt::compute_index(objuid.first)<<' '<<objuid.second);
+	idbg("gamma "<<fdt::Manager::the().computeServiceId(objuid.first)<<' '<<fdt::Manager::the().computeIndex(objuid.first)<<' '<<objuid.second);
 }
 
 }//namespace gamma

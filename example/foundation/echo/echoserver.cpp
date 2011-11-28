@@ -34,6 +34,7 @@ struct Params{
 	string		dbg_modules;
 	string		dbg_addr;
 	string		dbg_port;
+	bool		dbg_console;
 	bool		dbg_buffered;
 	bool		log;
 };
@@ -66,13 +67,13 @@ public:
 private:
 	enum {BUFSZ = 4*1024};
 	enum {INIT,READ, READ_TOUT, WRITE, WRITE_TOUT, CONNECT, CONNECT_TOUT};
-	char				bbeg[BUFSZ];
-	const char			*bend;
-	char				*brpos;
-	const char			*bwpos;
+	char						bbeg[BUFSZ];
+	const char					*bend;
+	char						*brpos;
+	const char					*bwpos;
 	SocketAddressInfo			*pai;
 	SocketAddressInfoIterator	it;
-	bool				b;
+	bool						b;
 };
 
 //------------------------------------------------------------------
@@ -117,6 +118,11 @@ int main(int argc, char *argv[]){
 		Dbg::instance().initSocket(
 			p.dbg_addr.c_str(),
 			p.dbg_port.c_str(),
+			p.dbg_buffered,
+			&dbgout
+		);
+	}else if(p.dbg_console){
+		Dbg::instance().initStdErr(
 			p.dbg_buffered,
 			&dbgout
 		);
@@ -227,6 +233,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 			("debug_modules,m", value<string>(&_par.dbg_modules),"Debug logging modules")
 			("debug_address,a", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")
 			("debug_port,p", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")
+			("debug_console,c", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")
 			("debug_unbuffered,s", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered")
 			("use_log,L", value<bool>(&_par.log)->implicit_value(true)->default_value(false), "Debug buffered")
 	/*		("verbose,v", po::value<int>()->implicit_value(1),
@@ -319,7 +326,9 @@ Connection::Connection(const SocketDevice &_rsd):
 	state(INIT);
 }
 Connection::~Connection(){
+	state(-1);
 	delete pai;
+	idbg("");
 }
 
 int Connection::execute(ulong _sig, TimeSpec &_tout){
