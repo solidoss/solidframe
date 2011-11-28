@@ -73,12 +73,12 @@ bool Service::insertConnection(
 }
 
 void Service::insertObject(Connection &_ro, const ObjectUidT &_ruid){
-	idbg("alpha "<<fdt::compute_service_id(_ruid.first)<<' '<<fdt::compute_index(_ruid.first)<<' '<<_ruid.second);
+	idbg("alpha "<<fdt::Manager::the().computeServiceId(_ruid.first)<<' '<<fdt::Manager::the().computeIndex(_ruid.first)<<' '<<_ruid.second);
 }
 
 void Service::eraseObject(const Connection &_ro){
 	ObjectUidT objuid(_ro.uid());
-	idbg("alpha "<<fdt::compute_service_id(objuid.first)<<' '<<fdt::compute_index(objuid.first)<<' '<<objuid.second);
+	idbg("alpha "<<fdt::Manager::the().computeServiceId(objuid.first)<<' '<<fdt::Manager::the().computeIndex(objuid.first)<<' '<<objuid.second);
 }
 }//namespace alpha
 }//namespace concept

@@ -17,7 +17,7 @@ foundation::Manager& m(){
 }
 //--------------------------------------------------------------
 const foundation::ObjectUidT& serverUid(){
-	static const foundation::ObjectUidT uid(fdt::make_object_uid(11, 10, 0));
+	static const foundation::ObjectUidT uid(fdt::Manager::the().makeObjectUid(11, 10, 0));
 	return uid;
 }
 //--------------------------------------------------------------

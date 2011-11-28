@@ -63,7 +63,7 @@ bool Service::insertConnection(
 
 void Service::eraseObject(const MultiConnection &_ro){
 	ObjectUidT objuid(_ro.uid());
-	idbg("proxy "<<fdt::compute_service_id(objuid.first)<<' '<<fdt::compute_index(objuid.first)<<' '<<objuid.second);
+	idbg("proxy "<<fdt::Manager::the().computeServiceId(objuid.first)<<' '<<fdt::Manager::the().computeIndex(objuid.first)<<' '<<objuid.second);
 }
 
 }//namespace proxy

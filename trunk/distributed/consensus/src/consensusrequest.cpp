@@ -1,3 +1,24 @@
+/* Implementation file consensusrequest.cpp
+	
+	Copyright 2011, 2012 Valentin Palade 
+	vipalade@gmail.com
+
+	This file is part of SolidFrame framework.
+
+	SolidFrame is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	SolidFrame is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include "distributed/consensus/consensusrequest.hpp"
 
 #include "foundation/ipc/ipcservice.hpp"
@@ -61,22 +82,22 @@ std::ostream &operator<<(std::ostream& _ros, const RequestId &_rreqid){
 	return _ros;
 }
 //--------------------------------------------------------------
-RequestSignal::RequestSignal():waitresponse(false), st(OnSender), sentcount(0){
-	idbg("RequestSignal "<<(void*)this);
+WriteRequestSignal::WriteRequestSignal():waitresponse(false), st(OnSender), sentcount(0){
+	idbg("WriteRequestSignal "<<(void*)this);
 }
-RequestSignal::RequestSignal(const RequestId &_rreqid):waitresponse(false), st(OnSender), sentcount(0),id(_rreqid){
-	idbg("RequestSignal "<<(void*)this);
+WriteRequestSignal::WriteRequestSignal(const RequestId &_rreqid):waitresponse(false), st(OnSender), sentcount(0),id(_rreqid){
+	idbg("WriteRequestSignal "<<(void*)this);
 }
 
-RequestSignal::~RequestSignal(){
-	idbg("~RequestSignal "<<(void*)this);
+WriteRequestSignal::~WriteRequestSignal(){
+	idbg("~WriteRequestSignal "<<(void*)this);
 	if(waitresponse && !sentcount){
 		idbg("failed receiving response "/*<<sentcnt*/);
 		fdt::m().signal(fdt::S_KILL | fdt::S_RAISE, id.senderuid);
 	}
 }
 
-void RequestSignal::ipcReceived(
+void WriteRequestSignal::ipcReceived(
 	foundation::ipc::SignalUid &_rsiguid
 ){
 	//_rsiguid = this->ipcsiguid;
@@ -115,9 +136,9 @@ void RequestSignal::ipcReceived(
 		cassert(false);
 	}
 }
-// void RequestSignal::sendThisToConsensusObject(){
+// void WriteRequestSignal::sendThisToConsensusObject(){
 // }
-uint32 RequestSignal::ipcPrepare(){
+uint32 WriteRequestSignal::ipcPrepare(){
 	uint32	rv(0);
 	idbg((void*)this);
 	if(st == OnSender){
@@ -130,26 +151,116 @@ uint32 RequestSignal::ipcPrepare(){
 	return rv;
 }
 
-void RequestSignal::ipcFail(int _err){
+void WriteRequestSignal::ipcFail(int _err){
 	idbg((void*)this<<" sentcount = "<<(int)sentcount<<" err = "<<_err);
 }
 
-void RequestSignal::ipcSuccess(){
+void WriteRequestSignal::ipcSuccess(){
 	Mutex::Locker lock(mutex());
 	++sentcount;
 	idbg((void*)this<<" sentcount = "<<(int)sentcount);
 }
 
 
-void RequestSignal::use(){
+void WriteRequestSignal::use(){
 	DynamicShared<fdt::Signal>::use();
 	idbg((void*)this<<" usecount = "<<usecount);
 }
-int RequestSignal::release(){
+int WriteRequestSignal::release(){
 	int rv = DynamicShared<fdt::Signal>::release();
 	idbg((void*)this<<" usecount = "<<usecount);
 	return rv;
 }
 //--------------------------------------------------------------
+//--------------------------------------------------------------
+ReadRequestSignal::ReadRequestSignal():waitresponse(false), st(OnSender), sentcount(0){
+	idbg("ReadRequestSignal "<<(void*)this);
+}
+ReadRequestSignal::ReadRequestSignal(const RequestId &_rreqid):waitresponse(false), st(OnSender), sentcount(0),id(_rreqid){
+	idbg("ReadRequestSignal "<<(void*)this);
+}
+
+ReadRequestSignal::~ReadRequestSignal(){
+	idbg("~ReadRequestSignal "<<(void*)this);
+	if(waitresponse && !sentcount){
+		idbg("failed receiving response "/*<<sentcnt*/);
+		fdt::m().signal(fdt::S_KILL | fdt::S_RAISE, id.senderuid);
+	}
+}
+
+void ReadRequestSignal::ipcReceived(
+	foundation::ipc::SignalUid &_rsiguid
+){
+	//_rsiguid = this->ipcsiguid;
+	ipcconid = fdt::ipc::SignalContext::the().connectionuid;
+	
+	char				host[SocketAddress::HostNameCapacity];
+	char				port[SocketAddress::ServiceNameCapacity];
+	
+	id.sockaddr = fdt::ipc::SignalContext::the().pairaddr;
+	
+	id.sockaddr.name(
+		host,
+		SocketAddress::HostNameCapacity,
+		port,
+		SocketAddress::ServiceNameCapacity,
+		SocketAddress::NumericService | SocketAddress::NumericHost
+	);
+	
+	waitresponse = false;
+	
+	if(st == OnSender){
+		st = OnPeer;
+		idbg((void*)this<<" on peer: baseport = "<<fdt::ipc::SignalContext::the().baseport<<" host = "<<host<<":"<<port);
+		id.sockaddr.port(fdt::ipc::SignalContext::the().baseport);
+		//fdt::m().signal(sig, serverUid());
+		this->sendThisToConsensusObject();
+	}else if(st == OnPeer){
+		st = BackOnSender;
+		idbg((void*)this<<" back on sender: baseport = "<<fdt::ipc::SignalContext::the().baseport<<" host = "<<host<<":"<<port);
+		
+		DynamicPointer<fdt::Signal> sig(this);
+		
+		fdt::m().signal(sig, id.senderuid);
+		_rsiguid = this->ipcsiguid;
+	}else{
+		cassert(false);
+	}
+}
+// void ReadRequestSignal::sendThisToConsensusObject(){
+// }
+uint32 ReadRequestSignal::ipcPrepare(){
+	uint32	rv(0);
+	idbg((void*)this);
+	if(st == OnSender){
+		if(waitresponse){
+			rv |= foundation::ipc::Service::WaitResponseFlag;
+		}
+		rv |= foundation::ipc::Service::SynchronousSendFlag;
+		rv |= foundation::ipc::Service::SameConnectorFlag;
+	}
+	return rv;
+}
+
+void ReadRequestSignal::ipcFail(int _err){
+	idbg((void*)this<<" sentcount = "<<(int)sentcount<<" err = "<<_err);
+}
+
+void ReadRequestSignal::ipcSuccess(){
+	Mutex::Locker lock(mutex());
+	++sentcount;
+	idbg((void*)this<<" sentcount = "<<(int)sentcount);
+}
+
+
+void ReadRequestSignal::use(){
+	DynamicShared<fdt::Signal>::use();
+	idbg((void*)this<<" usecount = "<<usecount);
+}
+int ReadRequestSignal::release(){
+	int rv = DynamicShared<fdt::Signal>::release();
+	idbg((void*)this<<" usecount = "<<usecount);
+	return rv;
+}
 }//namespace consensus
 }//namespace distributed

@@ -1,6 +1,6 @@
-/* Implementation file aioselector_lin.cpp
+/* Implementation file aioselector_kqueue.cpp
 	
-	Copyright 2007, 2008 Valentin Palade 
+	Copyright 2011, 2012 Valentin Palade 
 	vipalade@gmail.com
 
 	This file is part of SolidFrame framework.
@@ -19,17 +19,19 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-//#include <unistd.h>
+
 #include "system/common.hpp"
 #include <fcntl.h>
-#include <sys/epoll.h>
+#include <sys/types.h>
+#include <sys/event.h>
+#include <sys/time.h>
 
 #ifndef UPIPESIGNAL
-	#ifdef HAVE_EVENTFD_H
+/*	#ifdef HAVE_EVENTFD_H
 		#include <sys/eventfd.h>
-	#else 
-		#define UPIPESIGNAL
-	#endif
+	#else */
+#define UPIPESIGNAL
+	//#endif
 #endif
 
 #include <vector>
@@ -88,23 +90,27 @@ struct Selector::Stub{
 
 struct Selector::Data{
 	enum{
-		EPOLLMASK = EPOLLET | EPOLLIN | EPOLLOUT,
+		EVENT_IN = 1,
+		EVENT_OUT = 2,
 		MAXPOLLWAIT = 0x7FFFFFFF,
 		EXIT_LOOP = 1,
 		FULL_SCAN = 2,
-		READ_PIPE = 4
+		READ_PIPE = 4,
+		MAX_EVENTS_COUNT = 1024 * 2,
 	};
-	typedef Stack<uint32>			Uint32StackT;
-	typedef Queue<uint32>			Uint32QueueT;
-	typedef std::vector<Stub>		StubVectorT;
+	typedef Stack<uint32>				Uint32StackT;
+	typedef Queue<uint32>				Uint32QueueT;
+	typedef std::vector<Stub>			StubVectorT;
+	typedef std::pair<uint32, uint32>	Uint32PairT;
+	typedef std::vector<Uint32PairT>	Uint32PairVectorT;
 	
 	ulong				objcp;
 	ulong				objsz;
-	ulong				sockcp;
+//	ulong				sockcp;
 	ulong				socksz;
 	int					selcnt;
-	int					epollfd;
-	epoll_event 		*events;
+	int					kqfd;
+	struct kevent 		events[MAX_EVENTS_COUNT];
 	StubVectorT			stubs;
 	Uint32QueueT		execq;
 	Uint32StackT		freestubsstk;
@@ -121,18 +127,19 @@ struct Selector::Data{
 	
 //reporting data:
 	uint				rep_fullscancount;
+	Uint32PairVectorT	sockids;
 	
 public://methods:
 	Data();
 	~Data();
-	int computeWaitTimeout()const;
+	TimeSpec* computeWaitTimeout(TimeSpec &_rts)const;
 	void addNewSocket();
-	epoll_event* eventPrepare(epoll_event &_ev, const uint32 _objpos, const uint32 _sockpos);
-	void stub(uint32 &_objpos, uint32 &_sockpos, const epoll_event &_ev);
+	void* eventPrepare(const uint32 _objpos, const uint32 _sockpos);
+	void stub(uint32 &_objpos, uint32 &_sockpos, const struct kevent &_ev);
 };
 //-------------------------------------------------------------
 Selector::Data::Data():
-	objcp(0), objsz(0), sockcp(0), socksz(0), selcnt(0), epollfd(-1), events(NULL),
+	objcp(0), objsz(0), /*sockcp(0),*/ socksz(0), selcnt(0), kqfd(-1),
 	rep_fullscancount(0){
 #ifdef UPIPESIGNAL
 	pipefds[0] = -1;
@@ -144,9 +151,8 @@ Selector::Data::Data():
 }
 
 Selector::Data::~Data(){
-	delete []events;
-	if(epollfd >= 0){
-		close(epollfd);
+	if(kqfd >= 0){
+		close(kqfd);
 	}
 #ifdef UPIPESIGNAL
 	if(pipefds[0] >= 0){
@@ -160,38 +166,80 @@ Selector::Data::~Data(){
 #endif
 }
 
-int Selector::Data::computeWaitTimeout()const{
-	if(ntimepos.isMax()) return -1;//return MAXPOLLWAIT;
-	int rv = (ntimepos.seconds() - ctimepos.seconds()) * 1000;
-	rv += ((long)ntimepos.nanoSeconds() - ctimepos.nanoSeconds()) / 1000000;
-	if(rv < 0) return MAXPOLLWAIT;
-	return rv;
+TimeSpec* Selector::Data::computeWaitTimeout(TimeSpec &_rts)const{
+	if(ntimepos.isMax()){
+		return NULL;//return MAXPOLLWAIT;
+	}
+	_rts = ntimepos;
+	_rts -= ctimepos;
+	return &_rts;
 }
 void Selector::Data::addNewSocket(){
 	++socksz;
-	if(socksz > sockcp){
-		uint oldcp = sockcp;
-		sockcp += 64;//TODO: improve!!
-		epoll_event *pevs = new epoll_event[sockcp];
-		memcpy(pevs, events, oldcp * sizeof(epoll_event));
-		delete []events;
+// 	if(socksz > sockcp){
+// 		uint oldcp = sockcp;
+// 		sockcp += 64;//TODO: improve!!
+// 		epoll_event *pevs = new epoll_event[sockcp];
+// 		memcpy(pevs, events, oldcp * sizeof(epoll_event));
+// 		delete []events;
 // 		for(uint i = 0; i < sockcp; ++i){
 // 			pevs[i].events = 0;
 // 			pevs[i].data.u64 = 0;
 // 		}
-	}
+//	}
 }
-inline epoll_event* Selector::Data::eventPrepare(
-	epoll_event &_ev, const uint32 _objpos, const uint32 _sockpos
+
+template <short X>
+void *compact_to_void_pointer(const uint32 _u1, const uint32 _u2);
+
+template <short X>
+void uncompact_to_void_pointer(uint32 &_ru1, uint32 &_ru2, const void* _pv);
+
+
+template <>
+inline void *compact_to_void_pointer<4>(const uint32 _u1, const uint32 _u2){
+	uint32 val;
+	uint16 u1(_u1);
+	uint16 u2(_u2);
+	val = u1;
+	val <<= 16;
+	val |= u2;
+	return reinterpret_cast<void*>(val);
+}
+
+template <>
+inline void *compact_to_void_pointer<8>(const uint32 _u1, const uint32 _u2){
+	uint64 val;
+	val = _u1;
+	val <<= 32;
+	val |= _u2;
+	return reinterpret_cast<void*>(val);
+}
+
+
+template <>
+inline void uncompact_to_void_pointer<4>(uint32 &_ru1, uint32 &_ru2, const void* _pv){
+	uint32 val(reinterpret_cast<const uint64>(_pv));
+	_ru1 = val >> 16;
+	_ru2 = val & 0xffff;
+}
+
+template <>
+inline void uncompact_to_void_pointer<8>(uint32 &_ru1, uint32 &_ru2, const void* _pv){
+	uint64 val(reinterpret_cast<const uint64>(_pv));
+	_ru1 = val >> 32;
+	_ru2 = val & 0xffffffff;
+}
+
+
+inline void* Selector::Data::eventPrepare(
+	const uint32 _objpos, const uint32 _sockpos
 ){
-	_ev.data.u64 = _objpos;
-	_ev.data.u64 <<= 32;
-	_ev.data.u64 |= _sockpos;
-	return &_ev;
+	
+	return compact_to_void_pointer<sizeof(void*)>(_objpos, _sockpos);
 }
-void Selector::Data::stub(uint32 &_objpos, uint32 &_sockpos, const epoll_event &_ev){
-	_objpos = (_ev.data.u64 >> 32);
-	_sockpos = (_ev.data.u64 & 0xffffffff);
+void Selector::Data::stub(uint32 &_objpos, uint32 &_sockpos, const struct kevent &_ev){
+	uncompact_to_void_pointer<sizeof(void*)>(_objpos, _sockpos, _ev.udata);
 }
 //=============================================================
 Selector::Selector():d(*(new Data)){
@@ -203,15 +251,15 @@ int Selector::reserve(ulong _cp){
 	idbgx(Dbg::aio, "aio::Selector "<<(void*)this);
 	cassert(_cp);
 	d.objcp = _cp;
-	d.sockcp = _cp;
+	//d.sockcp = _cp;
 	
 	setCurrentTimeSpecific(d.ctimepos);
 	
 	//first create the epoll descriptor:
-	cassert(d.epollfd < 0);
-	d.epollfd = epoll_create(d.sockcp);
-	if(d.epollfd < 0){
-		edbgx(Dbg::aio, "epoll_create: "<<strerror(errno));
+	cassert(d.kqfd < 0);
+	d.kqfd = kqueue();
+	if(d.kqfd < 0){
+		edbgx(Dbg::aio, "kqueue: "<<strerror(errno));
 		cassert(false);
 		return BAD;
 	}
@@ -228,12 +276,11 @@ int Selector::reserve(ulong _cp){
 	fcntl(d.pipefds[0], F_SETFL, O_NONBLOCK);
 	fcntl(d.pipefds[1], F_SETFL, O_NONBLOCK);
 	
-	//register the pipes onto epoll
-	epoll_event ev;
-	ev.data.u64 = 0;
-	ev.events = EPOLLIN | EPOLLPRI;//must be LevelTriggered
-	if(epoll_ctl(d.epollfd, EPOLL_CTL_ADD, d.pipefds[0], &ev)){
-		edbgx(Dbg::aio, "epoll_ctl: "<<strerror(errno));
+	//register the pipes onto kqueue
+	struct kevent ev;
+	EV_SET (&ev, d.pipefds[0], EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, 0);
+	if(kevent (d.kqfd, &ev, 1, NULL, 0, NULL)){
+		edbgx(Dbg::aio, "kevent: "<<strerror(errno));
 		cassert(false);
 		return BAD;
 	}
@@ -241,20 +288,20 @@ int Selector::reserve(ulong _cp){
 	cassert(d.efd < 0);
 	d.efd = eventfd(0, EFD_NONBLOCK);
 	//register the pipes onto epoll
-	epoll_event ev;
-	ev.data.u64 = 0;
-	ev.events = EPOLLIN | EPOLLPRI;//must be LevelTriggered
-	if(epoll_ctl(d.epollfd, EPOLL_CTL_ADD, d.efd, &ev)){
-		edbgx(Dbg::aio, "epoll_ctl: "<<strerror(errno));
+	struct kevent ev;
+	EV_SET (&ev, d.efd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, 0);
+	if(kevent (kqfd, &ev, 1, NULL, 0, NULL)){
+		edbgx(Dbg::aio, "kevent: "<<strerror(errno));
 		cassert(false);
 		return BAD;
 	}
 #endif
 	//allocate the events
-	d.events = new epoll_event[d.sockcp];
-	for(ulong i = 0; i < d.sockcp; ++i){
-		d.events[i].events = 0;
-		d.events[i].data.u64 = 0L;
+	for(ulong i = 0; i < Data::MAX_EVENTS_COUNT; ++i){
+		d.events[i].ident = -1;
+		d.events[i].flags = 0;
+		d.events[i].data = 0;
+		d.events[i].udata = 0;
 	}
 	//We need to have the stubs preallocated
 	//because of aio::Object::ptimeout
@@ -321,18 +368,21 @@ void Selector::push(const JobT &_objptr){
 	bool fail = false;
 	uint failpos = 0;
 	{
-		epoll_event ev;
-		ev.data.u64 = 0L;
-		ev.events = 0;
 		
 		Object::SocketStub *psockstub = _objptr->pstubs;
 		for(uint i = 0; i < _objptr->stubcp; ++i, ++psockstub){
 			Socket *psock = psockstub->psock;
 			if(psock && psock->descriptor() >= 0){
+				
+				struct kevent	evr,evw;
+				//void 			*pv(d.eventPrepare(stubpos, i));
+				EV_SET (&evr, psock->descriptor(), EVFILT_READ, EV_ADD | EV_DISABLE, 0, 0, NULL);
+				EV_SET (&evw, psock->descriptor(), EVFILT_WRITE, EV_ADD | EV_DISABLE, 0, 0, NULL);
 				if(
-					epoll_ctl(d.epollfd, EPOLL_CTL_ADD, psock->descriptor(), d.eventPrepare(ev, stubpos, i))
+					kevent (d.kqfd, &evr, 1, NULL, 0, NULL) ||
+					kevent (d.kqfd, &evw, 1, NULL, 0, NULL)
 				){
-					edbgx(Dbg::aio, "epoll_ctl adding filedesc "<<psock->descriptor()<<" stubpos = "<<stubpos<<" pos = "<<i<<" err = "<<strerror(errno));
+					edbgx(Dbg::aio, "kqueue adding filedesc "<<psock->descriptor()<<" stubpos = "<<stubpos<<" pos = "<<i<<" err = "<<strerror(errno));
 					fail = true;
 					failpos = i;
 					break;
@@ -377,8 +427,6 @@ void Selector::run(){
 	uint 				flags;
 	int					nbcnt = -1;	//non blocking opperations count,
 									//used to reduce the number of calls for the system time.
-	int 				pollwait = 0;
-	
 	do{
 		flags = 0;
 		if(nbcnt < 0){
@@ -408,18 +456,21 @@ void Selector::run(){
 		
 		if(empty()) flags |= Data::EXIT_LOOP;
 		
+		TimeSpec ts(0, 0);
+		TimeSpec *pts(&ts);
+		
 		if(flags || d.execq.size()){
-			pollwait = 0;
 			--nbcnt;
 		}else{
-			pollwait = d.computeWaitTimeout();
-			vdbgx(Dbg::aio, "pollwait "<<pollwait<<" ntimepos.s = "<<d.ntimepos.seconds()<<" ntimepos.ns = "<<d.ntimepos.nanoSeconds());
+			pts = d.computeWaitTimeout(ts);
+			vdbgx(Dbg::aio, "ntimepos.s = "<<d.ntimepos.seconds()<<" ntimepos.ns = "<<d.ntimepos.nanoSeconds());
 			vdbgx(Dbg::aio, "ctimepos.s = "<<d.ctimepos.seconds()<<" ctimepos.ns = "<<d.ctimepos.nanoSeconds());
 			nbcnt = -1;
         }
 		
-		d.selcnt = epoll_wait(d.epollfd, d.events, d.socksz, pollwait);
-		vdbgx(Dbg::aio, "epollwait = "<<d.selcnt);
+		//d.selcnt = epoll_wait(d.epollfd, d.events, d.socksz, pollwait);
+		d.selcnt = kevent(d.kqfd, NULL, 0, d.events, Data::MAX_EVENTS_COUNT, pts);
+		vdbgx(Dbg::aio, "kqueue = "<<d.selcnt);
 #ifdef UDEBUG
 		if(d.selcnt < 0) d.selcnt = 0;
 #endif
@@ -533,29 +584,33 @@ void Selector::doUnregisterObject(Object &_robj, int _lastfailpos){
 	for(uint i = 0; i < to; ++i, ++psockstub){
 		Socket *psock = psockstub->psock;
 		if(psock && psock->descriptor() >= 0){
-			check_call(Dbg::aio, 0, epoll_ctl(d.epollfd, EPOLL_CTL_DEL, psock->descriptor(), NULL));
+			//check_call(Dbg::aio, 0, epoll_ctl(d.epollfd, EPOLL_CTL_DEL, psock->descriptor(), NULL));
+			struct kevent	evr,evw;
+			EV_SET (&evr, psock->descriptor(), EVFILT_READ, EV_DELETE, 0, 0, NULL);
+			EV_SET (&evw, psock->descriptor(), EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
+			check_call(Dbg::aio, 0, kevent (d.kqfd, &evr, 1, NULL, 0, NULL));
+			check_call(Dbg::aio, 0, kevent (d.kqfd, &evw, 1, NULL, 0, NULL));
 			--d.socksz;
 			psock->doUnprepare();
 		}
 	}
 }
 
-inline ulong Selector::doIo(Socket &_rsock, ulong _evs){
-	if(_evs & (EPOLLERR | EPOLLHUP)){
+inline ulong Selector::doIo(Socket &_rsock, ulong _flags, ulong _filter){
+	if(_flags & (EV_EOF | EV_ERROR)){
 		_rsock.doClear();
 		int err(0);
 		socklen_t len(sizeof(err));
 		int rv = getsockopt(_rsock.descriptor(), SOL_SOCKET, SO_ERROR, &err, &len);
-		wdbgx(Dbg::aio, "sock error evs = "<<_evs<<" err = "<<err<<" errstr = "<<strerror(err));
+		wdbgx(Dbg::aio, "sock error flags = "<<_flags<<" filter = "<<_filter<<" err = "<<err<<" errstr = "<<strerror(err));
 		wdbgx(Dbg::aio, "rv = "<<rv<<" "<<strerror(errno)<<" desc"<<_rsock.descriptor());
 		return ERRDONE;
 	}
 	ulong rv = 0;
-	if(_evs & EPOLLIN){
+	if(_filter == EVFILT_READ){
 		rv = _rsock.doRecv();
-	}
-	if(!(rv & ERRDONE) && (_evs & EPOLLOUT)){
-		rv |= _rsock.doSend();
+	}else if(_filter == EVFILT_WRITE){
+		rv = _rsock.doSend();
 	}
 	return rv;
 }
@@ -579,15 +634,34 @@ ulong Selector::doAllIo(){
 			cassert(sockpos < stub.objptr->stubcp);
 			cassert(stub.objptr->pstubs[sockpos].psock);
 			
-			vdbgx(Dbg::aio, "io events stubpos = "<<stubpos<<" events = "<<d.events[i].events);
-			evs = doIo(sock, d.events[i].events);
+			vdbgx(Dbg::aio, "io events stubpos = "<<stubpos<<" flags = "<<d.events[i].flags<<" filter = "<<d.events[i].filter);
+			evs = doIo(sock, d.events[i].flags, d.events[i].filter);
 			{
-				epoll_event ev;
-				uint t = sockstub.psock->ioRequest();
-				if((sockstub.selevents & Data::EPOLLMASK) != t){
+				const uint	t = sockstub.psock->ioRequest();
+				void 		*pv(d.events[i].udata);
+				if((t & Data::EVENT_IN) != (sockstub.selevents & Data::EVENT_IN)){
+					if(t & Data::EVENT_IN){
+						struct kevent	ev;
+						EV_SET (&ev, sockstub.psock->descriptor(), EVFILT_READ, EV_ENABLE, 0, 0, pv);
+						check_call(Dbg::aio, 0, kevent (d.kqfd, &ev, 1, NULL, 0, NULL));
+					}else{
+						struct kevent	ev;
+						EV_SET (&ev, sockstub.psock->descriptor(), EVFILT_READ, EV_DISABLE, 0, 0, pv);
+						check_call(Dbg::aio, 0, kevent (d.kqfd, &ev, 1, NULL, 0, NULL));
+					}
 					sockstub.selevents = t;
-					ev.events = t | EPOLLET;
-					check_call(Dbg::aio, 0, epoll_ctl(d.epollfd, EPOLL_CTL_MOD, sockstub.psock->descriptor(), d.eventPrepare(ev, stubpos, sockpos)));
+				}
+				if((t & Data::EVENT_OUT) != (sockstub.selevents & Data::EVENT_OUT)){
+					if(t & Data::EVENT_OUT){
+						struct kevent	ev;
+						EV_SET (&ev, sockstub.psock->descriptor(), EVFILT_WRITE, EV_ENABLE, 0, 0, pv);
+						check_call(Dbg::aio, 0, kevent (d.kqfd, &ev, 1, NULL, 0, NULL));
+					}else{
+						struct kevent	ev;
+						EV_SET (&ev, sockstub.psock->descriptor(), EVFILT_WRITE, EV_DISABLE, 0, 0, pv);
+						check_call(Dbg::aio, 0, kevent (d.kqfd, &ev, 1, NULL, 0, NULL));
+					}
+					sockstub.selevents = t;
 				}
 			}
 			if(evs){
@@ -720,15 +794,34 @@ void Selector::doPrepareObjectWait(const ulong _pos, const TimeSpec &_timepos){
 		sockstub.requesttype = 0;
 		switch(reqtp){
 			case Object::SocketStub::IORequest:{
-				epoll_event ev;
-				uint t = sockstub.psock->ioRequest();
+				uint		 t(sockstub.psock->ioRequest());
 				vdbgx(Dbg::aio, "sockstub "<<*pit<<" ioreq "<<t);
-				if((sockstub.selevents & Data::EPOLLMASK) != t){
-					vdbgx(Dbg::aio, "sockstub "<<*pit);
+				void	*pv(d.eventPrepare(_pos, *pit));
+				if((t & Data::EVENT_IN) != (sockstub.selevents & Data::EVENT_IN)){
+					if(t & Data::EVENT_IN){
+						struct kevent	ev;
+						EV_SET (&ev, sockstub.psock->descriptor(), EVFILT_READ, EV_ENABLE, 0, 0, pv);
+						check_call(Dbg::aio, 0, kevent (d.kqfd, &ev, 1, NULL, 0, NULL));
+					}else{
+						struct kevent	ev;
+						EV_SET (&ev, sockstub.psock->descriptor(), EVFILT_READ, EV_DISABLE, 0, 0, pv);
+						check_call(Dbg::aio, 0, kevent (d.kqfd, &ev, 1, NULL, 0, NULL));
+					}
 					sockstub.selevents = t;
-					ev.events = t | EPOLLET;
-					check_call(Dbg::aio, 0, epoll_ctl(d.epollfd, EPOLL_CTL_MOD, sockstub.psock->descriptor(), d.eventPrepare(ev, _pos, *pit)));
 				}
+				if((t & Data::EVENT_OUT) != (sockstub.selevents & Data::EVENT_OUT)){
+					if(t & Data::EVENT_OUT){
+						struct kevent	ev;
+						EV_SET (&ev, sockstub.psock->descriptor(), EVFILT_WRITE, EV_ENABLE, 0, 0, pv);
+						check_call(Dbg::aio, 0, kevent (d.kqfd, &ev, 1, NULL, 0, NULL));
+					}else{
+						struct kevent	ev;
+						EV_SET (&ev, sockstub.psock->descriptor(), EVFILT_WRITE, EV_DISABLE, 0, 0, pv);
+						check_call(Dbg::aio, 0, kevent (d.kqfd, &ev, 1, NULL, 0, NULL));
+					}
+					sockstub.selevents = t;
+				}
+				
 			}break;
 			case Object::SocketStub::RegisterRequest:{
 				vdbgx(Dbg::aio, "sockstub "<<*pit<<" regreq");
@@ -737,11 +830,13 @@ void Selector::doPrepareObjectWait(const ulong _pos, const TimeSpec &_timepos){
 					Epoll doesn't like sockets that are only created, it signals
 					EPOLLET on them.
 				*/
-				epoll_event ev;
 				sockstub.psock->doPrepare();
 				sockstub.selevents = 0;
-				ev.events = (EPOLLET);
-				check_call(Dbg::aio, 0, epoll_ctl(d.epollfd, EPOLL_CTL_ADD, sockstub.psock->descriptor(), d.eventPrepare(ev, _pos, *pit)));
+				struct kevent	evr,evw;
+				EV_SET (&evr, sockstub.psock->descriptor(), EVFILT_READ, EV_ADD | EV_DISABLE, 0, 0, NULL);
+				EV_SET (&evw, sockstub.psock->descriptor(), EVFILT_WRITE, EV_ADD | EV_DISABLE, 0, 0, NULL);
+				check_call(Dbg::aio, 0, kevent (d.kqfd, &evr, 1, NULL, 0, NULL));
+				check_call(Dbg::aio, 0, kevent (d.kqfd, &evw, 1, NULL, 0, NULL));
 				stub.objptr->socketPostEvents(*pit, OKDONE);
 				d.addNewSocket();
 				mustwait = false;
@@ -749,7 +844,11 @@ void Selector::doPrepareObjectWait(const ulong _pos, const TimeSpec &_timepos){
 			case Object::SocketStub::UnregisterRequest:{
 				vdbgx(Dbg::aio, "sockstub "<<*pit<<" unregreq");
 				if(sockstub.psock->ok()){
-					check_call(Dbg::aio, 0, epoll_ctl(d.epollfd, EPOLL_CTL_DEL, sockstub.psock->descriptor(), NULL));
+					struct kevent	evr,evw;
+					EV_SET (&evr, sockstub.psock->descriptor(), EVFILT_READ, EV_DELETE, 0, 0, NULL);
+					EV_SET (&evw, sockstub.psock->descriptor(), EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
+					check_call(Dbg::aio, 0, kevent (d.kqfd, &evr, 1, NULL, 0, NULL));
+					check_call(Dbg::aio, 0, kevent (d.kqfd, &evw, 1, NULL, 0, NULL));
 					--d.socksz;
 					sockstub.psock->doUnprepare();
 					stub.objptr->socketPostEvents(*pit, OKDONE);

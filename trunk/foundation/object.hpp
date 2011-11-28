@@ -183,17 +183,11 @@ inline int Object::state()	const {
 inline IndexT Object::id()	const {
 	return fullid;
 }
-// inline void Object::typeId(const uint16 _tid){
-// 	tid = _tid;
-// }
-// inline const uint Object::typeId()const{
-// 	return tid;
-// }
+
+}//namespace
 
 #ifndef NINLINES
 #include "foundation/object.ipp"
 #endif
-
-}//namespace
 
 #endif

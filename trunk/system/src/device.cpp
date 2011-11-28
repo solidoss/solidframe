@@ -329,9 +329,24 @@ bool SocketDevice::isListening()const{
 	socklen_t valsz = sizeof(int);
 	int rv = getsockopt(descriptor(), SOL_SOCKET, SO_ACCEPTCONN, &val, &valsz);
 	if(rv == 0){
-		return val;
+		return val != 0;
 	}
 	edbgx(Dbg::system, "socket getsockopt: "<<strerror(errno));
-	return false;
+	//try work-arround
+	if(this->type() == SocketAddressInfo::Datagram){
+		return false;
+	}
+	SocketAddress	sa;
+	rv = ::accept(descriptor(), sa.addr(), &sa.size());
+	if(rv < 0){
+		if(errno == EINVAL){
+			return false;
+		}
+		return true;
+	}
+	SocketDevice	sd;
+	sd.Device::descriptor(rv);//:( we loose a connection
+		
+	return true;
 }
 

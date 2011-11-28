@@ -179,7 +179,7 @@ bool Service::signal(ulong _sm, const ObjectUidT &_ruid){
 }
 //---------------------------------------------------------
 bool Service::signal(ulong _sm, IndexT _fullid, uint32 _uid){
-	const IndexT	oidx(compute_index(_fullid));
+	const IndexT	oidx(Manager::the().computeIndex(_fullid));
 	
 	if(oidx >= d.objvec.size()){
 		return false;
@@ -253,7 +253,7 @@ bool Service::signal(DynamicPointer<Signal> &_rsig, const ObjectUidT &_ruid){
 }
 //---------------------------------------------------------
 bool Service::signal(DynamicPointer<Signal> &_rsig, IndexT _fullid, uint32 _uid){
-	const IndexT	oidx(compute_index(_fullid));
+	const IndexT	oidx(Manager::the().computeIndex(_fullid));
 	
 	if(oidx >= d.objvec.size()){
 		return false;
@@ -549,13 +549,13 @@ Mutex& Service::serviceMutex()const{
 //---------------------------------------------------------
 void Service::insertObject(Object &_ro, const ObjectUidT &_ruid){
 	//by default do nothing
-	vdbgx(Dbg::fdt, "insert object "<<compute_service_id(_ruid.first)<<' '<<compute_index(_ruid.first)<<' '<<_ruid.second);
+	vdbgx(Dbg::fdt, "insert object "<<Manager::the().computeServiceId(_ruid.first)<<' '<<Manager::the().computeIndex(_ruid.first)<<' '<<_ruid.second);
 }
 //---------------------------------------------------------
 void Service::eraseObject(const Object &_ro){
 	//by default do nothing
 	ObjectUidT objuid(_ro.uid());
-	vdbgx(Dbg::fdt, "erase object "<<compute_service_id(objuid.first)<<' '<<compute_index(objuid.first)<<' '<<objuid.second);
+	vdbgx(Dbg::fdt, "erase object "<<Manager::the().computeServiceId(objuid.first)<<' '<<Manager::the().computeIndex(objuid.first)<<' '<<objuid.second);
 }
 //---------------------------------------------------------
 void Service::expectedCount(const IndexT &_rcnt){
@@ -829,7 +829,7 @@ bool Service::doVisit(Visitor &_rv, uint _visidx){
 }
 //---------------------------------------------------------
 bool Service::doVisit(Visitor &_rv, uint _visidx, const ObjectUidT &_ruid){
-	const IndexT	oidx(compute_index(_ruid.first));
+	const IndexT	oidx(Manager::the().computeIndex(_ruid.first));
 	
 	if(oidx >= d.objvec.size()){
 		return false;

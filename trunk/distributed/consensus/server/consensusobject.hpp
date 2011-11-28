@@ -1,3 +1,24 @@
+/* Declarations file consensusobject.hpp
+	
+	Copyright 2011, 2012 Valentin Palade 
+	vipalade@gmail.com
+
+	This file is part of SolidFrame framework.
+
+	SolidFrame is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	SolidFrame is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #ifndef DISTRIBUTED_CONSENSUS_CONSENSUSOBJECT_HPP
 #define DISTRIBUTED_CONSENSUS_CONSENSUSOBJECT_HPP
 
@@ -9,7 +30,8 @@
 namespace distributed{
 namespace consensus{
 
-struct RequestSignal;
+struct WriteRequestSignal;
+struct ReadRequestSignal;
 struct RequestId;
 
 namespace server{
@@ -47,7 +69,8 @@ public:
 	~Object();
 	void dynamicExecute(DynamicPointer<> &_dp, RunData &_rrd);
 	
-	void dynamicExecute(DynamicPointer<RequestSignal> &_rsig, RunData &_rrd);
+	void dynamicExecute(DynamicPointer<WriteRequestSignal> &_rsig, RunData &_rrd);
+	void dynamicExecute(DynamicPointer<ReadRequestSignal> &_rsig, RunData &_rrd);
 	void dynamicExecute(DynamicPointer<OperationSignal<1> > &_rsig, RunData &_rrd);
 	void dynamicExecute(DynamicPointer<OperationSignal<2> > &_rsig, RunData &_rrd);
 	void dynamicExecute(DynamicPointer<OperationSignal<4> > &_rsig, RunData &_rrd);
@@ -72,7 +95,7 @@ private:
 	/*virtual*/ int execute(ulong _sig, TimeSpec &_tout);
 	/*virtual*/ bool signal(DynamicPointer<foundation::Signal> &_sig);
 	//! It should dynamically cast the signal to an accepted Request and process it.
-	virtual void accept(DynamicPointer<RequestSignal> &_rsig) = 0;
+	virtual void accept(DynamicPointer<WriteRequestSignal> &_rsig) = 0;
 	//! Called once while initializing the Object
 	virtual void init();
 	//! Called once before entering RunState

@@ -91,20 +91,12 @@ typedef uint32 IndexT;
 
 #endif
 
-typedef std::pair<IndexT, uint32> ObjectUidT;
-typedef std::pair<IndexT, uint32> SignalUidT;
-typedef std::pair<IndexT, uint32> FileUidT;
-typedef std::pair<IndexT, uint32> RequestUidT;
+#define INVALID_INDEX ID_MASK
 
-#ifndef USERVICEBITS
-//by default we have at most 32 services for x86 bits machines and 256 for x64
-#define USERVICEBITS (sizeof(IndexT) == 4 ? 5 : 8)
-#endif
-
-enum ObjectDefs{
-	SERVICEBITCNT = USERVICEBITS,
-	INDEXBITCNT	= sizeof(IndexT) * 8 - SERVICEBITCNT,
-};
+typedef std::pair<IndexT, uint32>	ObjectUidT;
+typedef std::pair<IndexT, uint32>	SignalUidT;
+typedef std::pair<IndexT, uint32>	FileUidT;
+typedef std::pair<IndexT, uint32>	RequestUidT;
 
 typedef std::pair<IndexT, uint32>	UidT;
 typedef UidT						ObjectUidT;
@@ -112,45 +104,26 @@ typedef UidT						SignalUidT;
 typedef UidT						FileUidT;
 typedef UidT						RequestUidT;
 
-inline const IndexT& max_service_count(){
-	static const IndexT idx(IndexT(ID_MASK) >> INDEXBITCNT);
-	return idx;
-}
 
 inline const UidT& invalid_uid(){
-	static const UidT u(ID_MASK, 0xffffffff);
+	static const UidT u(INVALID_INDEX, 0xffffffff);
 	return u;
 }
 
 inline bool is_valid_uid(const UidT &_ruid){
-	return _ruid.first != ID_MASK;
+	return _ruid.first != INVALID_INDEX;
 }
 
 inline bool is_invalid_uid(const UidT &_ruid){
-	return _ruid.first == ID_MASK;
+	return _ruid.first == INVALID_INDEX;
 }
 
 inline bool is_valid_index(const IndexT &_idx){
-	return _idx != ID_MASK;
+	return _idx != INVALID_INDEX;
 }
 
 inline bool is_invalid_index(const IndexT &_idx){
-	return _idx == ID_MASK;
-}
-
-inline IndexT compute_id(const IndexT &_srvidx, const IndexT &_objidx){
-	return (_srvidx << INDEXBITCNT) | _objidx;
-}
-
-inline UidT make_object_uid(const IndexT &_srvidx, const IndexT &_objidx, const uint32 _uid){
-	return UidT(compute_id(_srvidx, _objidx), _uid);
-}
-
-inline IndexT compute_index(const IndexT &_fullid){
-	return _fullid & (ID_MASK >> SERVICEBITCNT);
-}
-inline IndexT compute_service_id(const IndexT &_fullid){
-	return _fullid >> INDEXBITCNT;
+	return _idx == INVALID_INDEX;
 }
 
 template <class V>

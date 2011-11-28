@@ -77,6 +77,50 @@ enum RetVal{
 struct EmptyType{};
 class NullType{};
 
+template <class T>
+struct UnsignedType;
+
+template <>
+struct UnsignedType<int16>{
+    typedef uint16 Type;
+};
+
+template <>
+struct UnsignedType<int32>{
+    typedef uint32 Type;
+};
+
+template <>
+struct UnsignedType<long>{
+    typedef ulong Type;
+};
+
+template <>
+struct UnsignedType<ulong>{
+    typedef ulong Type;
+};
+
+
+template <>
+struct UnsignedType<int64>{
+    typedef uint64 Type;
+};
+
+template <>
+struct UnsignedType<uint16>{
+    typedef uint16 Type;
+};
+
+template <>
+struct UnsignedType<uint32>{
+    typedef uint32 Type;
+};
+
+template <>
+struct UnsignedType<uint64>{
+    typedef uint64 Type;
+};
+
 const char* src_file_name(char const *_fname);
 
 

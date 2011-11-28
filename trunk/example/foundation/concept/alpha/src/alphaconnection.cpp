@@ -205,8 +205,8 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			concept::Manager	&rm = concept::Manager::the();
 			uint32				myport(rm.ipc().basePort());
 			IndexT				objid(this->id());
-			IndexT				svcid(fdt::compute_service_id(objid));
-			IndexT				objidx(fdt::compute_index(objid));
+			IndexT				svcid(fdt::Manager::the().computeServiceId(objid));
+			IndexT				objidx(fdt::Manager::the().computeIndex(objid));
 			uint32				objuid(this->uid().second);
 			char				host[SocketAddress::HostNameCapacity];
 			char				port[SocketAddress::ServiceNameCapacity];

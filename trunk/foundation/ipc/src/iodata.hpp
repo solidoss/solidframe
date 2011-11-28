@@ -163,7 +163,7 @@ struct Buffer{
 	static uint32 minSize();
 	static char* allocateDataForReading();
 	static void deallocateDataForReading(char *_buf);
-	static const uint capacityForReading();
+	//static const uint capacityForReading();
 	
 	Buffer(
 		char *_pb = NULL,
@@ -245,9 +245,9 @@ inline uint32 Buffer::Header::size()const{
 inline /*static*/ uint32 Buffer::minSize(){
 		return sizeof(Header);
 	}
-inline /*static*/ const uint Buffer::capacityForReading(){
-	return ReadCapacity;
-}
+// inline /*static*/ const uint Buffer::capacityForReading(){
+// 	return ReadCapacity;
+// }
 
 inline Buffer::Buffer(
 	char *_pb,
