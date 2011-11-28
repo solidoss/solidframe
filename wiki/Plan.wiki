@@ -1,0 +1,13 @@
+#summary Planned additions and changes
+
+<wiki:toc max_depth="1" />
+
+This is a pool of pending features and changes
+ # Try to optimize the memory usage for foundation::Object, related to the signal queue, by moving the queue onto the foundation::Service.
+ # Add new class foundation::AccessManager: a container which will manage read/write access to its objects.
+ # Re-factor foundation::file::Manager to be based on foundation::AccessManager.
+ # Foundation concept sample application doesn't stop when vmware virtual is suspended then resumed.
+ # Test and improve binary serialization performance.
+ # Add support for Unix domain addresses.
+ # Consensus algorithm:add support for read requests which must be completed only by the coordinator.
+ # Add support to foundation::Service to start the unique part of Object::uid() from a random value - like time-stamp.
