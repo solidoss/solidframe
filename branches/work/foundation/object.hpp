@@ -37,7 +37,28 @@ class Service;
 class ObjectPointerBase;
 class Signal;
 class SelectorBase;
+class Object;
 
+struct DynamicServicePointerStore{
+	void pushBack(
+		const Object *_pobj,
+		const uint _idx,
+		const DynamicPointer<DynamicBase> &_dp
+	);
+	size_t size(const Object *_pobj, const uint _idx)const;
+	bool isNotLast(const Object *_pobj, const uint _idx, const uint _pos)const;
+	const DynamicPointer<DynamicBase>& pointer(
+		const Object *_pobj,
+		const uint _idx,
+		const uint _pos
+	)const;
+	DynamicPointer<DynamicBase>& pointer(
+		const Object *_pobj,
+		const uint _idx,
+		const uint _pos
+	);
+	void clear(const Object *_pobj, const uint _idx);
+};
 
 //! A pseudo-active object class
 /*!

@@ -27,7 +27,7 @@ std::ostream& operator<<(std::ostream &_ros, const ServerParams &_rsp);
 
 
 class ServerObject: public Dynamic<ServerObject, distributed::consensus::server::Object>{
-	typedef DynamicExecuter<void, ServerObject, int>	DynamicExecuterExT;
+	typedef DynamicExecuter<void, ServerObject, DynamicDefaultPointerStore, int>	DynamicExecuterExT;
 public:
 	static void dynamicRegister();
 	static void registerSignals();

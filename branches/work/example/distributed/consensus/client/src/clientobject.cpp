@@ -203,13 +203,13 @@ int ClientObject::execute(ulong _sig, TimeSpec &_tout){
 				return BAD;
 			}
 			if(sm & fdt::S_SIG){//we have signals
-				exe.prepareExecute();
+				exe.prepareExecute(this);
 			}
 		}
 		if(sm & fdt::S_SIG){//we've grabed signals, execute them
-			while(exe.hasCurrent()){
-				exe.executeCurrent(*this);
-				exe.next();
+			while(exe.hasCurrent(this)){
+				exe.executeCurrent(this);
+				exe.next(this);
 			}
 		}
 		//now we determine if we return with NOK or we continue
@@ -364,7 +364,7 @@ const string& ClientObject::getString(uint32 _pos, uint32 _crtpos){
 		_sig.clear();
 		return false;//no reason to raise the pool thread!!
 	}
-	exe.push(DynamicPointer<>(_sig));
+	exe.push(this, DynamicPointer<>(_sig));
 	return Object::signal(fdt::S_SIG | fdt::S_RAISE);
 }
 //------------------------------------------------------------

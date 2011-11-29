@@ -905,7 +905,7 @@ void Object::doExecuteAcceptDeclineOperation(RunData &_rd, const uint8 _replicai
 		_sig.clear();
 		return false;//no reason to raise the pool thread!!
 	}
-	d.exe.push(DynamicPointer<>(_sig));
+	d.exe.push(this, DynamicPointer<>(_sig));
 	return fdt::Object::signal(fdt::S_SIG | fdt::S_RAISE);
 }
 
@@ -931,13 +931,13 @@ int Object::execute(ulong _sig, TimeSpec &_tout){
 			sm = grabSignalMask(0);//grab all bits of the signal mask
 			if(sm & fdt::S_KILL) return BAD;
 			if(sm & fdt::S_SIG){//we have signals
-				d.exe.prepareExecute();
+				d.exe.prepareExecute(this);
 			}
 		}
 		if(sm & fdt::S_SIG){//we've grabed signals, execute them
-			while(d.exe.hasCurrent()){
-				d.exe.executeCurrent(*this, rd);
-				d.exe.next();
+			while(d.exe.hasCurrent(this)){
+				d.exe.executeCurrent(this, rd);
+				d.exe.next(this);
 			}
 		}
 	}

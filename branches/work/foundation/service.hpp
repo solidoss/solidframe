@@ -287,6 +287,36 @@ private:
 	//this is called by manager 
 	void invalidateService();
 	/*virtual*/ void init(Mutex *);
+private:
+	friend struct DynamicServicePointerStore;
+	void pointerStorePushBack(
+		const IndexT &_ridx,
+		const uint _idx,
+		const DynamicPointer<DynamicBase> &_dp
+	);
+	size_t pointerStoreSize(
+		const IndexT &_ridx,
+		const uint _idx
+	)const;
+	bool pointerStoreIsNotLast(
+		const IndexT &_ridx,
+		const uint _idx,
+		const uint _pos
+	)const;
+	const DynamicPointer<DynamicBase> &pointerStorePointer(
+		const IndexT &_ridx,
+		const uint _idx,
+		const uint _pos
+	)const;
+	DynamicPointer<DynamicBase> &pointerStorePointer(
+		const IndexT &_ridx,
+		const uint _idx,
+		const uint _pos
+	);
+	void pointerStoreClear(
+		const IndexT &_ridx,
+		const uint _idx
+	);
 protected:
 	typedef DynamicExecuter<void, Service>	DynamicExecuterT;
 	DynamicExecuterT		de;

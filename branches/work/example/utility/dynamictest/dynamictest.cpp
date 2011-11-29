@@ -37,7 +37,7 @@ public:
 		IntDynamicExecuterT::registerDynamic<BObject, FirstExecuter>();
 	}
 	void push(const DynamicPointer<> &_dp){
-		de.push(_dp);
+		de.push(this, _dp);
 	}
 	int dynamicExecute(DynamicPointer<> &_dp);
 	int dynamicExecute(const DynamicPointer<AObject> &_rdp);
@@ -83,12 +83,12 @@ public:
 
 
 void SecondExecuter::run(){
-	int rv = de.prepareExecute();
+	int rv = de.prepareExecute(this);
 	idbg("Executing "<<rv<<" calls");
-	while(de.hasCurrent()){
-		rv = de.executeCurrent(*this);
+	while(de.hasCurrent(this)){
+		rv = de.executeCurrent(this);
 		idbg("call returned "<<rv);
-		de.next();
+		de.next(this);
 	}
 	//dr.executeCurrent(*this);
 }

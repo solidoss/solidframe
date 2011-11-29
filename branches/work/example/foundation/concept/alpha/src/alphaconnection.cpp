@@ -122,7 +122,7 @@ Connection::~Connection(){
 		_sig.clear();
 		return false;//no reason to raise the pool thread!!
 	}
-	dr.push(DynamicPointer<>(_sig));
+	dr.push(this, DynamicPointer<>(_sig));
 	return Object::signal(fdt::S_SIG | fdt::S_RAISE);
 }
 
@@ -158,13 +158,13 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			sm = grabSignalMask(0);//grab all bits of the signal mask
 			if(sm & fdt::S_KILL) return BAD;
 			if(sm & fdt::S_SIG){//we have signals
-				dr.prepareExecute();
+				dr.prepareExecute(this);
 			}
 		}
 		if(sm & fdt::S_SIG){//we've grabed signals, execute them
-			while(dr.hasCurrent()){
-				dr.executeCurrent(*this);
-				dr.next();
+			while(dr.hasCurrent(this)){
+				dr.executeCurrent(this);
+				dr.next(this);
 			}
 		}
 		//now we determine if we return with NOK or we continue

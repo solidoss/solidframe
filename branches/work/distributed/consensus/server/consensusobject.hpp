@@ -61,7 +61,7 @@ struct Parameters{
  */
 class Object: public Dynamic<Object, foundation::Object>{
 	struct RunData;
-	typedef DynamicExecuter<void, Object, RunData&>			DynamicExecuterT;
+	typedef DynamicExecuter<void, Object, DynamicDefaultPointerStore, RunData&>	DynamicExecuterT;
 public:
 	static void dynamicRegister();
 	static void registerSignals();

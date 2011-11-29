@@ -180,6 +180,37 @@ int Signal::receiveSignal(
 /*virtual*/ void Object::init(Mutex*){
 }
 
+void DynamicServicePointerStore::pushBack(
+	const Object *_pobj,
+	const uint _idx,
+	const DynamicPointer<DynamicBase> &_dp
+){
+	m().service(_pobj->serviceId()).pointerStorePushBack(_pobj->index(), _idx, _dp);
+}
+size_t DynamicServicePointerStore::size(const Object *_pobj, const uint _idx)const{
+	return m().service(_pobj->serviceId()).pointerStoreSize(_pobj->index(), _idx);
+}
+bool DynamicServicePointerStore::isNotLast(const Object *_pobj, const uint _idx, const uint _pos)const{
+	return m().service(_pobj->serviceId()).pointerStoreIsNotLast(_pobj->index(), _idx, _pos);
+}
+const DynamicPointer<DynamicBase>& DynamicServicePointerStore::pointer(
+	const Object *_pobj,
+	const uint _idx,
+	const uint _pos
+)const{
+	return m().service(_pobj->serviceId()).pointerStorePointer(_pobj->index(), _idx, _pos);
+}
+DynamicPointer<DynamicBase>& DynamicServicePointerStore::pointer(
+	const Object *_pobj,
+	const uint _idx,
+	const uint _pos
+){
+	return m().service(_pobj->serviceId()).pointerStorePointer(_pobj->index(), _idx, _pos);
+}
+void DynamicServicePointerStore::clear(const Object *_pobj, const uint _idx){
+	m().service(_pobj->serviceId()).pointerStoreClear(_pobj->index(), _idx);
+}
+
 
 }//namespace
 
