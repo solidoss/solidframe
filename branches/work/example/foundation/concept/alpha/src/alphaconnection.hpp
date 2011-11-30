@@ -74,8 +74,8 @@ protected:
 	protocol communication. 
 */
 class Connection: public Dynamic<Connection, foundation::aio::SingleObject>{
-	//typedef DynamicExecuter<void, Connection, foundation::DynamicServicePointerStore, void>	DynamicExecuterT;
-	typedef DynamicExecuter<void, Connection, DynamicDefaultPointerStore, void>	DynamicExecuterT;
+	typedef DynamicExecuter<void, Connection, foundation::DynamicServicePointerStore, void>	DynamicExecuterT;
+	//typedef DynamicExecuter<void, Connection, DynamicDefaultPointerStore, void>	DynamicExecuterT;
 public:
 	typedef Service	ServiceT;
 	

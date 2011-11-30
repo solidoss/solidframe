@@ -22,6 +22,7 @@
 #include <deque>
 #include <vector>
 #include <algorithm>
+#include <cstring>
 
 #include "system/debug.hpp"
 #include "system/mutex.hpp"
@@ -50,25 +51,126 @@ struct BufferNode{
 };
 
 struct MutualStub{
-		
-	typedef std::vector<BufferNode>	BufferNodeVectorT;
+	typedef std::pair<BufferNode*, uint>	BufferPairT;
+	typedef std::vector<BufferPairT>		BufferNodeVectorT;
 	Mutex				mtx;
 	BufferNodeVectorT	nodevec;
 	
 	~MutualStub();
 	
-	void* popBuffer(const uint _sz);
-	void pushBuffer(void *_pb, const uint _sz);
+	void* popBuffer(const uint32 _sz, uint32 &_rcp);
+	void pushBuffer(void *_pb, const uint32 _cp);
 	
 	
-	static uint sizeToIndex(const uint _sz);
+	static int sizeToIndex(const uint _sz);
 	static uint capacityToIndex(const uint _cp);
+	static uint indexToCapacity(const uint _idx);
 	
 };
 
 
 MutualStub::~MutualStub(){
-	
+	for(BufferNodeVectorT::iterator it(nodevec.begin()); it != nodevec.end(); ++it){
+		if(it->first){
+			BufferNode	*pbn(it->first);
+			BufferNode	*pnbn;
+			uint 		cnt(0);
+			do{
+				pnbn = pbn->pnext;
+				delete []reinterpret_cast<char*>(pbn);
+				++cnt;
+				pbn = pnbn;
+			}while(pbn);
+			if(cnt != it->second){
+				THROW_EXCEPTION_EX("Memory leak ", (uint)(it - nodevec.begin()));
+			}
+		}else if(it->second){
+			THROW_EXCEPTION_EX("Memory leak ", (uint)(it - nodevec.begin()));
+		}
+	}
+}
+
+/*static*/ int MutualStub::sizeToIndex(const uint _sz){
+	if(_sz <= sizeof(BufferNode)){
+		return 0;
+	}else if(_sz <= (2 * sizeof(BufferNode))){
+		return 1;
+	}else if(_sz <= (4 * sizeof(BufferNode))){
+		return 2;
+	}else if(_sz <= (8 * sizeof(BufferNode))){
+		return 3;
+	}else if(_sz <= (16 * sizeof(BufferNode))){
+		return 4;
+	}else if(_sz <= (32 * sizeof(BufferNode))){
+		return 5;
+	}else if(_sz <= (64 * sizeof(BufferNode))){
+		return 6;
+	}else if(_sz <= (128 * sizeof(BufferNode))){
+		return 7;
+	}else{
+		return -1;
+	}
+		
+}
+/*static*/ uint MutualStub::capacityToIndex(const uint _cp){
+	switch(_cp){
+		case sizeof(BufferNode):		return 0;
+		case 2 * sizeof(BufferNode):	return 1;
+		case 4 * sizeof(BufferNode):	return 2;
+		case 8 * sizeof(BufferNode):	return 3;
+		case 16 * sizeof(BufferNode):	return 4;
+		case 32 * sizeof(BufferNode):	return 5;
+		case 64 * sizeof(BufferNode):	return 6;
+		case 128 * sizeof(BufferNode):	return 7;
+		default: return -1;
+	}
+}
+/*static*/ uint MutualStub::indexToCapacity(const uint _idx){
+	static const uint cps[] = {
+		sizeof(BufferNode),
+		2 * sizeof(BufferNode),
+		4 * sizeof(BufferNode),
+		8 * sizeof(BufferNode),
+		16 * sizeof(BufferNode),
+		32 * sizeof(BufferNode),
+		64 * sizeof(BufferNode),
+		128 * sizeof(BufferNode)
+	};
+	return cps[_idx];
+}
+
+void* MutualStub::popBuffer(const uint32 _sz, uint32 &_rcp){
+	int idx = sizeToIndex(_sz);
+	if(idx < 0){
+		_rcp = ((_sz >> 7) + 1) << 7;//((_sz / 128) + 1) * 128;
+		char *pbuf = new char[_rcp];
+		return pbuf;
+	}
+	_rcp = indexToCapacity(idx);
+	if(idx >= nodevec.size()){
+		nodevec.resize(idx + 1);
+	}
+	BufferNode	*pbn(nodevec[idx].first);
+	if(pbn){
+		BufferNode	*pnbn(pbn->pnext);
+		nodevec[idx].first = pnbn;
+		return pbn;
+	}else{
+		char *pbuf = new char[_rcp];
+		++nodevec[idx].second;
+		return pbuf;
+	}
+}
+void MutualStub::pushBuffer(void *_pb, const uint32 _cp){
+	int idx = capacityToIndex(_cp);
+	if(idx < 0){
+		delete []reinterpret_cast<char*>(_pb);
+	}else{
+		cassert(idx < nodevec.size());
+		BufferNode *pbn(reinterpret_cast<BufferNode*>(_pb));
+		pbn->pnext = nodevec[idx].first;
+		nodevec[idx].first = pbn;
+	}
 }
 
 struct Service::Data{
@@ -94,14 +196,15 @@ struct Service::Data{
 			Object *_pobj = NULL,
 			const uint32 _uid = 0
 		):pobj(_pobj), uid(_uid){
-			v[0] = v[1] = NULL;
-			vsz[0] = vsz[1] = 0;
+			v[1] = v[0] = NULL;
+			vsz[1] = vsz[0] = 0;
+			vcp[1] = vcp[0] = 0;
 		}
 		Object				*pobj;
 		uint32				uid;
 		DynamicPointer<>	*v[2];
 		uint32				vsz[2];
-		
+		uint32				vcp[2];
 	};
 	//typedef std::pair<Object*, uint32>		ObjectPairT;
 	typedef std::deque<ObjectStub>			ObjectVectorT;
@@ -189,6 +292,10 @@ void Service::erase(const Object &_robj){
 		
 		rop.pobj = NULL;
 		++rop.uid;
+		
+		pointerStoreClear(oidx, 0);
+		pointerStoreClear(oidx, 1);
+		
 		--d.objcnt;
 		vdbgx(Dbg::fdt, "erase object "<<d.objcnt<<" state "<<d.st);
 		d.idxque.push(oidx);
@@ -907,14 +1014,28 @@ void Service::pointerStorePushBack(
 	const uint _idx,
 	const DynamicPointer<DynamicBase> &_dp
 ){
-	
+	Data::ObjectStub	&ros(d.objvec[_ridx]);
+	MutualStub			&rms(d.mutualstore.at(_ridx));
+	if(ros.vsz[_idx] == (ros.vcp[_idx] / sizeof(DynamicPointer<>))){
+		uint32	newcp(0);
+		uint32	newsz(ros.vsz[_idx] + 1);
+		void	*pnewbuf = rms.popBuffer(newsz * sizeof(DynamicPointer<>), newcp);
+		memcpy(pnewbuf, ros.v[_idx], ros.vsz[_idx] * sizeof(DynamicPointer<>));
+		rms.pushBuffer(ros.v[_idx], ros.vcp[_idx]);
+		ros.v[_idx] = reinterpret_cast<DynamicPointer<>*>(pnewbuf);
+		ros.vcp[_idx] = newcp;
+		new(reinterpret_cast<void*>(&ros.v[_idx][ros.vsz[_idx]])) DynamicPointer<>;
+	}
+	ros.v[_idx][ros.vsz[_idx]] = _dp;
+	++ros.vsz[_idx];
 }
 //---------------------------------------------------------
 size_t Service::pointerStoreSize(
 	const IndexT &_ridx,
 	const uint _idx
 )const{
-	return 0;
+	const Data::ObjectStub	&ros(d.objvec[_ridx]);
+	return ros.vsz[_idx];
 }
 //---------------------------------------------------------
 bool Service::pointerStoreIsNotLast(
@@ -922,7 +1043,8 @@ bool Service::pointerStoreIsNotLast(
 	const uint _idx,
 	const uint _pos
 )const{
-	return false;
+	const Data::ObjectStub	&ros(d.objvec[_ridx]);
+	return  _pos < ros.vsz[_pos];
 }
 //---------------------------------------------------------
 const DynamicPointer<DynamicBase> &Service::pointerStorePointer(
@@ -930,8 +1052,8 @@ const DynamicPointer<DynamicBase> &Service::pointerStorePointer(
 	const uint _idx,
 	const uint _pos
 )const{
-	static DynamicPointer<DynamicBase> db;
-	return db;
+	const Data::ObjectStub	&ros(d.objvec[_ridx]);
+	return ros.v[_idx][_pos];
 }
 //---------------------------------------------------------
 DynamicPointer<DynamicBase> &Service::pointerStorePointer(
@@ -939,15 +1061,22 @@ DynamicPointer<DynamicBase> &Service::pointerStorePointer(
 	const uint _idx,
 	const uint _pos
 ){
-	static DynamicPointer<DynamicBase> db;
-	return db;
+	Data::ObjectStub	&ros(d.objvec[_ridx]);
+	return ros.v[_idx][_pos];
 }
 //---------------------------------------------------------
 void Service::pointerStoreClear(
 	const IndexT &_ridx,
 	const uint _idx
 ){
-	
+	Data::ObjectStub	&ros(d.objvec[_ridx]);
+	MutualStub			&rms(d.mutualstore.at(_ridx));
+	for(uint32 i(0); i < ros.vsz[_idx]; ++i){
+		ros.v[_idx][i].clear();
+	}
+	rms.pushBuffer(ros.v[_idx], ros.vcp[_idx]);
+	ros.vcp[_idx] = ros.vsz[_idx] = 0;
+	ros.v[_idx] = NULL;
 }
 //---------------------------------------------------------
 }//namespace fundation

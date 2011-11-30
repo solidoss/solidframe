@@ -540,16 +540,16 @@ bool Buffer::check()const{
 }
 //---------------------------------------------------------------------
 /*static*/ char* Buffer::allocateDataForReading(){
-	return Specific::popBuffer(Specific::capacityToId(ReadCapacity));
+	return Specific::popBuffer(Specific::capacityToIndex(ReadCapacity));
 }
 //---------------------------------------------------------------------
 /*static*/ void Buffer::deallocateDataForReading(char *_buf){
-	Specific::pushBuffer(_buf, Specific::capacityToId(ReadCapacity));
+	Specific::pushBuffer(_buf, Specific::capacityToIndex(ReadCapacity));
 }
 //---------------------------------------------------------------------
 void Buffer::clear(){
 	if(pb){
-		Specific::pushBuffer(pb, Specific::capacityToId(bc));
+		Specific::pushBuffer(pb, Specific::capacityToIndex(bc));
 		pb = NULL;
 		bc = 0;
 	}
@@ -561,8 +561,8 @@ Buffer::~Buffer(){
 //---------------------------------------------------------------------
 void Buffer::optimize(uint16 _cp){
 	const uint32	bufsz(this->bufferSize());
-	const uint		id(Specific::sizeToId(bufsz));
-	const uint		mid(Specific::capacityToId(_cp ? _cp : Buffer::ReadCapacity));
+	const uint		id(Specific::sizeToIndex(bufsz));
+	const uint		mid(Specific::capacityToIndex(_cp ? _cp : Buffer::ReadCapacity));
 	if(mid > id){
 		uint32 datasz = this->dataSize();//the size
 		
@@ -574,7 +574,7 @@ void Buffer::optimize(uint16 _cp){
 		
 		this->pb = newbuf;
 		this->dl = datasz;
-		this->bc = Specific::idToCapacity(id);
+		this->bc = Specific::indexToCapacity(id);
 	}
 }
 //---------------------------------------------------------------------

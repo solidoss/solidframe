@@ -124,22 +124,16 @@ public:
 		object<T>((T*)_rp);
 		_rp = NULL;
 	}
-	enum {Count = BUF_CACHE_CAP};
-	//8,16,32,64,128,256,512,1024,2048,4096
-	//! Returns the maximum capacity of cacheable buffers
-	static unsigned maxCapacity(){return 1 << (Count + 2);}
-	//! Returns the id asociated to the maximum capacity
-	static unsigned maxCapacityToId(){return Count - 1;}
 	//! Returns the id associated to a certain capacity
-	static unsigned capacityToId(unsigned _sz);
+	static int capacityToIndex(unsigned _sz);
 	//! Return the id associated to a certain size
 	/*!
 		A capacity is a power of 2. While a size can have any value.
 		Basicaly it return the id of the first capacity greater then size.
 	*/
-	static unsigned sizeToId(unsigned _sz);
+	static int sizeToIndex(unsigned _sz);
 	//! Returns the capacity associated to an id.
-	static unsigned idToCapacity(unsigned _id){return 4 << _id;}
+	static unsigned indexToCapacity(unsigned _id);
 	
 	//! pop a buffer given its id
 	static char* popBuffer(unsigned _id);

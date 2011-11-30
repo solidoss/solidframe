@@ -853,8 +853,8 @@ bool Session::isAccepting()const{
 //---------------------------------------------------------------------
 void Session::prepare(){
 	Buffer b(
-		Specific::popBuffer(Specific::sizeToId(Buffer::minSize())),
-		Specific::idToCapacity(Specific::sizeToId(Buffer::minSize()))
+		Specific::popBuffer(Specific::sizeToIndex(Buffer::minSize())),
+		Specific::indexToCapacity(Specific::sizeToIndex(Buffer::minSize()))
 	);
 	b.resetHeader();
 	b.type(Buffer::KeepAliveType);
@@ -1320,8 +1320,8 @@ void Session::doParseBuffer(const Buffer &_rbuf/*, const ConnectionUid &_rconid*
 }
 //---------------------------------------------------------------------
 int Session::doExecuteConnecting(Talker::TalkerStub &_rstub){
-	const uint32	bufid(Specific::sizeToId(64));
-	Buffer			buf(Specific::popBuffer(bufid), Specific::idToCapacity(bufid));
+	const uint32	bufid(Specific::sizeToIndex(64));
+	Buffer			buf(Specific::popBuffer(bufid), Specific::indexToCapacity(bufid));
 	
 	buf.resetHeader();
 	buf.type(Buffer::ConnectingType);
@@ -1357,8 +1357,8 @@ int Session::doExecuteConnecting(Talker::TalkerStub &_rstub){
 }
 //---------------------------------------------------------------------
 int Session::doExecuteAccepting(Talker::TalkerStub &_rstub){
-	const uint32	bufid(Specific::sizeToId(64));
-	Buffer			buf(Specific::popBuffer(bufid), Specific::idToCapacity(bufid));
+	const uint32	bufid(Specific::sizeToIndex(64));
+	Buffer			buf(Specific::popBuffer(bufid), Specific::indexToCapacity(bufid));
 	
 	buf.resetHeader();
 	buf.type(Buffer::AcceptingType);
@@ -1444,8 +1444,8 @@ int Session::doExecuteConnected(Talker::TalkerStub &_rstub){
 	}
 	if(d.rcvdidq.size() && d.updatesbuffer.empty() && d.mustSendUpdates()){
 		//send an updates buffer
-		const uint32	bufid(Specific::sizeToId(256));
-		Buffer			buf(Specific::popBuffer(bufid), Specific::idToCapacity(bufid));
+		const uint32	bufid(Specific::sizeToIndex(256));
+		Buffer			buf(Specific::popBuffer(bufid), Specific::indexToCapacity(bufid));
 		
 		buf.resetHeader();
 		buf.type(Buffer::DataType);
