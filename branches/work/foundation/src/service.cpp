@@ -1044,7 +1044,7 @@ bool Service::pointerStoreIsNotLast(
 	const uint _pos
 )const{
 	const Data::ObjectStub	&ros(d.objvec[_ridx]);
-	return  _pos < ros.vsz[_pos];
+	return  _pos < ros.vsz[_idx];
 }
 //---------------------------------------------------------
 const DynamicPointer<DynamicBase> &Service::pointerStorePointer(

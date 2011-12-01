@@ -269,10 +269,7 @@ public:
 	~Data();
 	
 	BinSerializerT* popSerializer(){
-		BinSerializerT* p = Specific::tryUncache<BinSerializerT>();
-		if(!p){
-			p = new BinSerializerT;
-		}
+		BinSerializerT* p = Specific::uncache<BinSerializerT>();
 		return p;
 	}
 
@@ -282,10 +279,7 @@ public:
 	}
 
 	BinDeserializerT* popDeserializer(){
-		BinDeserializerT* p = Specific::tryUncache<BinDeserializerT>();
-		if(!p){
-			p = new BinDeserializerT;
-		}
+		BinDeserializerT* p = Specific::uncache<BinDeserializerT>();
 		return p;
 	}
 
