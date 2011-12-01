@@ -83,9 +83,13 @@ class Specific{
 	*/
 	template <typename T>
 	static T* object(T *_p = NULL){
+		//TODO: staticproblem
 		static const unsigned id(stackid(&Specific::cleaner<T>));
 		if(_p){
-			if(push(_p, id, T::specificCount())) delete _p;
+			if(push(_p, id, T::specificCount())){
+				_p->~T();
+				doDeallocateBuffer(_p);
+			}
 		}else{
 			_p = reinterpret_cast<T*>(pop(id));
 		}
@@ -104,18 +108,17 @@ public:
 	template <class T>
 	inline static T* uncache(){
 		T *p = object<T>();
-		if(!p) p = new T; 
+		if(!p) p = new(doAllocateBuffer(sizeof(T))) T; 
 		return p;
 	}
-	//! Tries to uncache an object
-	/*! 
-		If no object was previously cached NULL is returned.
-	*/
-	template <class T>
-	inline static T* tryUncache(){
-		T *p = object<T>();
-		return p;
-	}
+	
+// 	template <class T, typename P1>
+// 	inline static T* uncache(P1 &_rp1){
+// 		T *p = object<T>();
+// 		if(!p) p = new T; 
+// 		return p;
+// 	}
+	
 	//! Caches an object
 	template <class T>
 	inline static void cache(T *&_rp){
@@ -139,19 +142,20 @@ public:
 	static char* popBuffer(unsigned _id);
 	//! pushes a buffer given its id
 	static void pushBuffer(char *&, unsigned _id);
-// 	static char* allocateBuffer(unsigned _sz);
-// 	static void releaseBuffer(char *&, unsigned);
 	
 private:
 	//! One cannot create a Specific object - use prepareThread instead
 	Specific();
 	Specific(const Specific&);
 	~Specific();
+	static void *doAllocateBuffer(size_t _sz);
+	static void doDeallocateBuffer(void *_p);
 private:
 	static unsigned stackid(FncT _pf);
 	template<class T>
 	static void cleaner(void *_p){
-		delete reinterpret_cast<T*>(_p);
+		reinterpret_cast<T*>(_p)->~T();
+		doDeallocateBuffer(_p);
 	}
 	static int push(void *, unsigned, unsigned);
 	static void* pop(unsigned);

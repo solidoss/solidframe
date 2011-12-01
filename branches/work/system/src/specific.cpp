@@ -46,15 +46,13 @@ static const unsigned specificPosition(){
 }
 
 //static unsigned		stkid = 0;
-struct CleanVector: std::vector<Specific::FncT>{
-	CleanVector(){
+struct CleaningVector: std::vector<Specific::FncT>{
+	CleaningVector(){
 		this->reserve(OBJ_CACHE_CAP);
 	}
 };
 
-static CleanVector	cv;
-
-typedef std::stack<void*,std::vector<void*> > StackT;
+static CleaningVector	cv;
 
 //This is what is holded on a thread
 struct SpecificData{
@@ -68,16 +66,22 @@ struct SpecificData{
 		uint32			sz;
 	};
 	struct ObjectCachePoint{
-		ObjectCachePoint(Specific::FncT _pf = NULL):ps(NULL),cp(0){}
-		StackT		*ps;
-		uint32		cp;
+		ObjectCachePoint():pnode(NULL),cp(0), sz(0){}
+		BufferNode		*pnode;
+		uint32			cp;
+		uint32			sz;
 	};
+	
 	typedef std::vector<ObjectCachePoint>	ObjCachePointVecT;
+	
 	SpecificData(SpecificCacheControl *_pcc);
+	
 	~SpecificData();
+	
 	inline static SpecificData& current(){
 		return *reinterpret_cast<SpecificData*>(Thread::specific(specificPosition()));
 	}
+	
 	CachePoint 				cps[Count];
 	ObjCachePointVecT		ops;
 	SpecificCacheControl	*pcc;
@@ -113,6 +117,25 @@ unsigned SpecificCacheControl::stackCapacity(unsigned _bufid)const{
 bool BasicCacheControl::release(){
 	return false;//do not delete this object
 }
+
+static inline BufferNode* bufferNodePointer(void *_p){
+	char *p = reinterpret_cast<char*>(_p);
+	return reinterpret_cast<BufferNode*>(p - sizeof(BufferNode));
+}
+
+static inline void* voidPointer(BufferNode *_pv){
+	char *p(reinterpret_cast<char*>(_pv));
+	return p + sizeof(BufferNode);
+}
+char* checkObjectBuffer(void *_p){
+	char *p = reinterpret_cast<char*>(_p);
+	p -= sizeof(BufferNode);
+	void **pv = reinterpret_cast<void**>(p);
+	if(*pv != reinterpret_cast<void*>(p)){
+		THROW_EXCEPTION_EX("Array Bounds Write or Caching a non unchached object ", _p);
+	}
+	return p;
+}
 //****************************************************************************************************
 //		SpecificData
 //****************************************************************************************************
@@ -135,8 +158,8 @@ SpecificData::~SpecificData(){
 			pbn = pnbn;
 		}
 		
-		if(cnt != cps[i].sz){
-			THROW_EXCEPTION_EX("Memory leak ", i);
+		if(cnt != cps[i].sz || cnt != cps[i].cp){
+			THROW_EXCEPTION_EX("Memory leak specific buffers ", i);
 		}
 	}
 	
@@ -144,13 +167,20 @@ SpecificData::~SpecificData(){
 	Mutex::Locker lock(Thread::gmutex());
 	for(ObjCachePointVecT::iterator it(ops.begin()); it != ops.end(); ++it){
 		vdbgx(Dbg::specific, "it->cp = "<<it->cp);
-		if(it->ps){
-			cassert(!(it->cp - it->ps->size()));
-			while(it->ps->size()){
-				(*cv[it - ops.begin()])(it->ps->top());
-				it->ps->pop();
-			}
-			delete it->ps;
+		BufferNode	*pbn(it->pnode);
+		BufferNode	*pnbn;
+		uint32 		cnt(0);
+		while(pbn){
+			pnbn = pbn->pnext;
+			void **pv = reinterpret_cast<void**>(pbn);
+			*pv = pbn;
+			++cnt;
+			(*cv[it - ops.begin()])(voidPointer(pbn));
+			
+			pbn = pnbn;
+		}
+		if(cnt != it->sz || cnt != it->cp){
+			THROW_EXCEPTION_EX("Memory leak specific objects ", (int)(it - ops.begin()));
 		}
 	}
 }
@@ -270,13 +300,18 @@ void destroy(void *_pv){
 	cv.push_back(_pf);
 	return cv.size() - 1;
 }
+
 /*static*/ int Specific::push(void *_pv, unsigned _id, unsigned _maxcp){
-	SpecificData &rsd(SpecificData::current());
+	SpecificData					&rsd(SpecificData::current());
 	cassert(_pv);
 	cassert(_id < rsd.ops.size());
-	cassert(rsd.ops[_id].ps);
-	if(rsd.ops[_id].ps->size() < _maxcp){
-		rsd.ops[_id].ps->push(_pv);
+	SpecificData::ObjectCachePoint	&rocp(rsd.ops[_id]);
+	if(rocp.sz < _maxcp){
+		checkObjectBuffer(_pv);
+		BufferNode *pbn(bufferNodePointer(_pv));
+		pbn->pnext = rocp.pnode;
+		rocp.pnode = pbn;
+		++rocp.sz;
 		return 0;
 	}
 	--rsd.ops[_id].cp;
@@ -286,17 +321,28 @@ void destroy(void *_pv){
 	SpecificData &rsd(SpecificData::current());
 	if(_id >= rsd.ops.size()){
 		rsd.ops.resize(_id + 1);
-		rsd.ops[_id].ps = new StackT;
-	}else if(rsd.ops[_id].ps){
-		if(rsd.ops[_id].ps->size()){
-			void *pv = rsd.ops[_id].ps->top();
-			rsd.ops[_id].ps->pop();
-			return pv;
-		}
-	}else{
-		rsd.ops[_id].ps = new StackT;
+	}else if(rsd.ops[_id].pnode){
+		BufferNode	*pbn(rsd.ops[_id].pnode);
+		void 		*pv(voidPointer(pbn));
+		rsd.ops[_id].pnode = pbn->pnext;
+		--rsd.ops[_id].sz;
+		void **ppv = reinterpret_cast<void**>(pbn);
+		*ppv = pbn;
+		return pv;
 	}
 	++rsd.ops[_id].cp;
 	return NULL;
+}
+
+/*static*/ void* Specific::doAllocateBuffer(size_t _sz){
+	_sz += sizeof(BufferNode);
+	char *p = new char[_sz];
+	void **pv = reinterpret_cast<void**>(p);
+	*pv = p;
+	return p + sizeof(BufferNode);
+}
+
+/*static*/ void Specific::doDeallocateBuffer(void *_p){
+	delete []checkObjectBuffer(_p);
 }
 
