@@ -3,7 +3,8 @@
 <wiki:toc max_depth="1" />
 
 This is a pool of pending features and changes
- # Try to optimize the memory usage for foundation::Object, related to the signal queue, by moving the queue onto the foundation::Service.
+ # DONE: Try to optimize the memory usage for foundation::Object, related to the signal queue, by moving the queue onto the foundation::Service.
+ # DONE: Optimize specific memory cache dropping usage of queues and using a simple linked list.
  # Add new class foundation::AccessManager: a container which will manage read/write access to its objects.
  # Re-factor foundation::file::Manager to be based on foundation::AccessManager.
  # Foundation concept sample application doesn't stop when vmware virtual is suspended then resumed.
