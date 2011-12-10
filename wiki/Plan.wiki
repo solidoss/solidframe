@@ -16,7 +16,7 @@ TypeMapper::map<BinSerializer, BinDeserializer, RemoteListSignal, void >(100);
 TypeMapper::map<BinSerializer, BinDeserializer, RemoteListSignal, Type<1> >();
 TypeMapper::map<BinSerializer, BinDeserializer, RemoteListSignal, Type<2> >(101);
 }}}
-this way one can register the same structure/class multiple times, every time being constructed with different constructor: RemoteListSignal() for first, RemoteListSignal(const Type\<1\>&) for second and RemoteListSignal(const Type\<2\>&) for the third. Also we need to be able to specify the position on which the map will be registered.
+this way one can register the same structure/class multiple times, every time being constructed with different constructor: `RemoteListSignal()` for first, `RemoteListSignal(const Type<1>&)` for second and RemoteListSignal(const Type<2>&) for the third. Also we need to be able to specify the position on which the map will be registered.
  # Add support for Unix domain addresses.
  # Consensus algorithm:add support for read requests which must be completed only by the coordinator.
  # Add support to foundation::Service to start the unique part of Object::uid() from a random value - like time-stamp.
