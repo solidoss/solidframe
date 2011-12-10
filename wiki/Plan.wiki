@@ -8,7 +8,8 @@ This is a pool of pending features and changes
  # Add new class foundation::AccessManager: a container which will manage read/write access to its objects.
  # Re-factor foundation::file::Manager to be based on foundation::AccessManager.
  # Foundation concept sample application doesn't stop when vmware virtual is suspended then resumed.
- # Create better test applications for, and improve binary serialization performance: {{{
+ # Create better test applications for, and improve binary serialization performance:
+{{{
 TypeMapper::map<RemoteListSignal, BinSerializer, BinDeserializer>();
 change to something like:
 TypeMapper::map<BinSerializer, BinDeserializer, RemoteListSignal, void >(100);
