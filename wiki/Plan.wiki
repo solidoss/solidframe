@@ -4,11 +4,17 @@
 
 This is a pool of pending features and changes
  # DONE: Try to optimize the memory usage for foundation::Object, related to the signal queue, by moving the queue onto the foundation::Service.
- # DONE: Optimize specific memory cache dropping usage of queues and using a simple linked list.
+ # DONE: Optimize specific memory cache by dropping usage of queues and using a simple linked list.
  # Add new class foundation::AccessManager: a container which will manage read/write access to its objects.
  # Re-factor foundation::file::Manager to be based on foundation::AccessManager.
  # Foundation concept sample application doesn't stop when vmware virtual is suspended then resumed.
- # Test and improve binary serialization performance.
+ # Create better test applications for, and improve binary serialization performance: {{{
+TypeMapper::map<RemoteListSignal, BinSerializer, BinDeserializer>();
+change to something like:
+TypeMapper::map<BinSerializer, BinDeserializer, RemoteListSignal, void >(100);
+TypeMapper::map<BinSerializer, BinDeserializer, RemoteListSignal, Type<1> >();
+TypeMapper::map<BinSerializer, BinDeserializer, RemoteListSignal, Type<2> >(101);
+}}} this way one can register the same structure/class multiple times, every time being constructed with different constructor: RemoteListSignal() for first, RemoteListSignal(const Type<1>&) for second and RemoteListSignal(const Type<2>&) for the third. Also we need to be able to specify the position on which the map will be registered.
  # Add support for Unix domain addresses.
  # Consensus algorithm:add support for read requests which must be completed only by the coordinator.
  # Add support to foundation::Service to start the unique part of Object::uid() from a random value - like time-stamp.
