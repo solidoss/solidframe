@@ -21,17 +21,58 @@
 
 #include <deque>
 #include <vector>
+
+#include "system/common.hpp"
+#include "system/exception.hpp"
+
+#ifdef HAVE_CPP11
+#include <unordered_map>
+#else
 #include <map>
+#endif
 
 #include "system/cassert.hpp"
 #include "system/mutex.hpp"
 #include "algorithm/serialization_new/idtypemapper.hpp"
 
+
 namespace serialization_new{
 //================================================================
 struct TypeMapperBase::Data{
-	Data(){}
+	struct FunctionStub{
+		FunctionStub():pf(NULL), name(NULL), id(-1){}
+		FncT 		pf;
+		const char 	*name;
+		uint32		id;
+	};
+	struct PointerHash{
+		size_t operator()(const char* const & _p)const{
+			return reinterpret_cast<size_t>(_p);
+		}
+	};
+	struct PointerCmpEqual{
+		bool operator()(const char * const &_p1, const char * const &_p2)const{
+			return _p1 == _p2;
+		}
+	};
+	struct PointerCmpLess{
+		bool operator()(const char * const &_p1, const char * const &_p2)const{
+			return _p1 < _p2;
+		}
+	};
+	typedef std::deque<FunctionStub>	FunctionVectorT;
+#ifdef HAVE_CPP11
+	typedef std::unordered_map<const char *, size_t, PointerHash, PointerCmpEqual>		FunctionStubMapT;
+#else
+	typedef std::map<const char*, size_t, PointerCmpLess>								FunctionStubMapT;
+#endif
+
+	Data():crtpos(0){}
 	~Data();
+	Mutex				mtx;
+	FunctionVectorT		fncvec;
+	FunctionStubMapT	fncmap;
+	size_t				crtpos;
 };
 //================================================================
 TypeMapperBase::Data::~Data(){
@@ -44,25 +85,66 @@ TypeMapperBase::~TypeMapperBase(){
 	delete &d;
 }
 
+TypeMapperBase::FncT TypeMapperBase::function(const uint32 _id, uint32* &_rpid)const{
+	Mutex::Locker				lock(d.mtx);
+	const Data::FunctionStub	&rfs(d.fncvec[_id]);
+	
+	_rpid = const_cast<uint32*>(&rfs.id);
+	
+	return rfs.pf;
+}
+TypeMapperBase::FncT TypeMapperBase::function(const char *_pid, uint32* &_rpid)const{
+	Mutex::Locker				lock(d.mtx);
+	const Data::FunctionStub	&rfs(d.fncvec[d.fncmap[_pid]]);
+	
+	_rpid = const_cast<uint32*>(&rfs.id);
+	
+	return rfs.pf;
+}
+TypeMapperBase::FncT TypeMapperBase::function(const uint32 _id)const{
+	Mutex::Locker				lock(d.mtx);
+	const Data::FunctionStub	&rfs(d.fncvec[_id]);
+	return rfs.pf;
+}
+
+uint32 TypeMapperBase::insertFunction(FncT _f, uint32 _pos, const char *_name){
+	Mutex::Locker lock(d.mtx);
+	if(_pos == (uint32)-1){
+		while(d.crtpos < d.fncvec.size() && d.fncvec[d.crtpos].pf != NULL){
+			++d.crtpos;
+		}
+		if(d.crtpos == d.fncvec.size()){
+			d.fncvec.push_back(Data::FunctionStub());
+		}
+		_pos = d.crtpos;
+		++d.crtpos;
+	}else{
+		if(_pos >= d.fncvec.size()){
+			d.fncvec.resize(_pos + 1);
+		}
+		if(d.fncvec[_pos].pf){
+			THROW_EXCEPTION_EX("Overlapping identifiers", _pos);
+			return _pos;
+		}
+	}
+	Data::FunctionStub	&rfs(d.fncvec[_pos]);
+	rfs.pf = _f;
+	rfs.name = _name;
+	rfs.id = _pos;
+	d.fncmap[rfs.name] = _pos;
+	return rfs.id;
+}
+
 /*virtual*/ void TypeMapperBase::prepareStorePointer(
 	void *_pser, void *_p,
 	uint32 _rid, const char *_name
 ){
 }
+
 /*virtual*/ void TypeMapperBase::prepareStorePointer(
 	void *_pser, void *_p,
 	const char *_pid, const char *_name
 ){
-}
-
-TypeMapperBase::FncT TypeMapperBase::function(const uint32 _id, uint32* &_rpid){
-	return NULL;
-}
-TypeMapperBase::FncT TypeMapperBase::function(const char *_pid, uint32* &_rpid){
-	return NULL;
-}
-TypeMapperBase::FncT TypeMapperBase::function(const uint32 _id){
-	return NULL;
 }
 
 /*virtual*/ void TypeMapperBase::prepareParsePointer(
@@ -75,9 +157,6 @@ TypeMapperBase::FncT TypeMapperBase::function(const uint32 _id){
 	void *_pdes, std::string &_rs,
 	const char *_name
 ){
-	
-}
-uint32 TypeMapperBase::insertFunction(FncT _f, uint32 _pos, const char *_name){
 	
 }
 

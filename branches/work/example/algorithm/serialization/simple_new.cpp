@@ -415,7 +415,7 @@ int main(int argc, char *argv[]){
 		idbg("");
 		ser.push(s, "string").pushContainer(sdq, "names");
 		idbg("");
-		ser.push(b1, tm, STRING_DEFAULT_TYPE_INDEX, "basestring").push(b2, "baseui").push(b3, "baseiv").push(b4, "basea");
+		ser.push(b1, /*tm, STRING_DEFAULT_TYPE_INDEX,*/ "basestring").push(b2, "baseui").push(b3, "baseiv").push(b4, "basea");
 		
 		PairIntDeqT pidq;
 		pidq.push_back(pair<int32, int32>(1,2));
@@ -436,7 +436,7 @@ int main(int argc, char *argv[]){
 		}
 		idbg("");
 		cnt += rv;
-		cout<<"Write count: "<<cnt<<endl;
+		cout<<"Write count: "<<cnt<<" buffnct = "<<v<<endl;
 	}
 	cout<<"Deserialization: =================================== "<<endl;
 	{

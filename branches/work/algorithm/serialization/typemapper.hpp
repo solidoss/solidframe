@@ -150,11 +150,11 @@ private:
 	static void doMapCallback(void *_p, void *_ps, void *_pd){
 		if(_ps){
 			Ser &rs(*reinterpret_cast<Ser*>(_ps));
-			T   &rt(*reinterpret_cast<T*>(_p));
+			T	&rt(*reinterpret_cast<T*>(_p));
 			rt & rs;
 		}else{
 			Des &rd(*reinterpret_cast<Des*>(_pd));
-			T*  &rpt(*reinterpret_cast<T**>(_p));
+			T*	&rpt(*reinterpret_cast<T**>(_p));
 			rpt = new T;
 			*rpt & rd;
 		}

@@ -63,9 +63,9 @@ protected:
 	virtual ~TypeMapperBase();
 	//! Insert a function callback
 	uint32 insertFunction(FncT, uint32 _pos, const char *_name);
-	FncT function(const uint32 _id, uint32* &_rpid);
-	FncT function(const char *_pid, uint32* &_rpid);
-	FncT function(const uint32 _id);
+	FncT function(const uint32 _id, uint32* &_rpid)const;
+	FncT function(const char *_pid, uint32* &_rpid)const;
+	FncT function(const uint32 _id)const;
 private:
 	struct Data;
 	Data &d;

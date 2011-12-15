@@ -27,8 +27,6 @@
 #include "system/common.hpp"
 #include "system/exception.hpp"
 
-#undef HAVE_CPP11
-
 #ifdef HAVE_CPP11
 #include <unordered_map>
 #include <unordered_set>

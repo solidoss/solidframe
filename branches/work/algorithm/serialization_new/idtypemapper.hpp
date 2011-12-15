@@ -48,14 +48,14 @@ private:
 	static void doMap(void *_p, void *_ps, void *_pd, void *_pid, const char *_name){
 		if(_ps){
 			Ser &rs(*reinterpret_cast<Ser*>(_ps));
-			T   &rt(*reinterpret_cast<T*>(_p));
+			T	&rt(*reinterpret_cast<T*>(_p));
 			Int &rid(*reinterpret_cast<Int*>(_pid));
 			
 			rt & rs;
 			rs.push(rid, _name);
 		}else{
 			Des &rd(*reinterpret_cast<Des*>(_pd));
-			T*  &rpt(*reinterpret_cast<T**>(_p));
+			T*	&rpt(*reinterpret_cast<T**>(_p));
 			rpt = new T;
 			*rpt & rd;
 		}
