@@ -34,17 +34,33 @@ public:
 	IdTypeMapper(){}
 	template <class T>
 	uint32 insert(uint32 _idx = -1){
-		return 0;
+		return this->insertFunction(&doMap<T>, _idx, typeid(T).name());
 	}
 	template <class T, typename CT>
 	uint32 insert(uint32 _idx = -1){
-		return 0;
+		return this->insertFunction(&doMap<T, CT>, _idx, typeid(T).name());
 	}
 	uint32 realIdentifier(uint32 _idx){
 		return _idx;
 	}
 private:
-	template <class T, typename CT>
+	template <class T>
+	static void doMap(void *_p, void *_ps, void *_pd, void *_pid, const char *_name){
+		if(_ps){
+			Ser &rs(*reinterpret_cast<Ser*>(_ps));
+			T   &rt(*reinterpret_cast<T*>(_p));
+			Int &rid(*reinterpret_cast<Int*>(_pid));
+			
+			rt & rs;
+			rs.push(rid, _name);
+		}else{
+			Des &rd(*reinterpret_cast<Des*>(_pd));
+			T*  &rpt(*reinterpret_cast<T**>(_p));
+			rpt = new T;
+			*rpt & rd;
+		}
+	}
+	template <class T, class CT>
 	static void doMap(void *_p, void *_ps, void *_pd, void *_pid, const char *_name){
 		if(_ps){
 			Ser &rs(*reinterpret_cast<Ser*>(_ps));

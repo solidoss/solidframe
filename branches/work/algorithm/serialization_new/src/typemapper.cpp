@@ -77,5 +77,8 @@ TypeMapperBase::FncT TypeMapperBase::function(const uint32 _id){
 ){
 	
 }
+uint32 TypeMapperBase::insertFunction(FncT _f, uint32 _pos, const char *_name){
+	
+}
 
 }//namespace serialization
