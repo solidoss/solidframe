@@ -106,35 +106,6 @@ int Serializer::storeBinary<2>(Base &_rb, FncData &_rfd){
 }
 
 template <>
-int Serializer::storeBinary<3>(Base &_rb, FncData &_rfd){
-	idbgx(Dbg::ser_bin, "");
-	Serializer &rs(static_cast<Serializer&>(_rb));
-	if(!rs.cpb) return OK;
-	const unsigned	len = rs.be - rs.cpb;
-	const char		*ps = reinterpret_cast<const char*>(_rfd.p);
-	if(len >= 3){
-		*(rs.cpb + 0) = *(ps + 0);
-		*(rs.cpb + 1) = *(ps + 1);
-		*(rs.cpb + 2) = *(ps + 2);
-		rs.cpb += 3;
-		return OK;
-	}else if(len >= 2){
-		*(rs.cpb + 0) = *(ps + 0);
-		*(rs.cpb + 1) = *(ps + 1);
-		_rfd.f = &Serializer::storeBinary<1>;
-		_rfd.p = const_cast<char*>(ps + 2);
-		rs.cpb += 2;
-	}else if(len >= 1){
-		*(rs.cpb + 0) = *(ps + 0);
-		_rfd.f = &Serializer::storeBinary<2>;
-		_rfd.p = const_cast<char*>(ps + 1);
-		++rs.cpb;
-	}
-	return NOK;
-}
-
-
-template <>
 int Serializer::storeBinary<4>(Base &_rb, FncData &_rfd){
 	idbgx(Dbg::ser_bin, "");
 	Serializer &rs(static_cast<Serializer&>(_rb));
@@ -152,189 +123,26 @@ int Serializer::storeBinary<4>(Base &_rb, FncData &_rfd){
 		*(rs.cpb + 0) = *(ps + 0);
 		*(rs.cpb + 1) = *(ps + 1);
 		*(rs.cpb + 2) = *(ps + 2);
-		_rfd.f = &Serializer::storeBinary<1>;
 		_rfd.p = const_cast<char*>(ps + 3);
+		_rfd.f = &Serializer::storeBinary<1>;
 		rs.cpb += 3;
+		return NOK;
 	}else if(len >= 2){
 		*(rs.cpb + 0) = *(ps + 0);
 		*(rs.cpb + 1) = *(ps + 1);
-		_rfd.f = &Serializer::storeBinary<2>;
 		_rfd.p = const_cast<char*>(ps + 2);
 		rs.cpb += 2;
+		_rfd.f = &Serializer::storeBinary<2>;
+		return NOK;
 	}else if(len >= 1){
 		*(rs.cpb + 0) = *(ps + 0);
-		_rfd.f = &Serializer::storeBinary<3>;
 		_rfd.p = const_cast<char*>(ps + 1);
 		rs.cpb += 1;
 	}
+	_rfd.f = &Serializer::storeBinary<0>;
 	return NOK;
 }
 
-template <>
-int Serializer::storeBinary<5>(Base &_rb, FncData &_rfd){
-	idbgx(Dbg::ser_bin, "");
-	Serializer &rs(static_cast<Serializer&>(_rb));
-	if(!rs.cpb) return OK;
-	const unsigned	len = rs.be - rs.cpb;
-	const char		*ps = reinterpret_cast<const char*>(_rfd.p);
-	if(len >= 5){
-		*(rs.cpb + 0) = *(ps + 0);
-		*(rs.cpb + 1) = *(ps + 1);
-		*(rs.cpb + 2) = *(ps + 2);
-		*(rs.cpb + 3) = *(ps + 3);
-		*(rs.cpb + 4) = *(ps + 4);
-		rs.cpb += 4;
-		return OK;
-	}else if(len >= 4){
-		*(rs.cpb + 0) = *(ps + 0);
-		*(rs.cpb + 1) = *(ps + 1);
-		*(rs.cpb + 2) = *(ps + 2);
-		*(rs.cpb + 3) = *(ps + 3);
-		_rfd.f = &Serializer::storeBinary<1>;
-		_rfd.p = const_cast<char*>(ps + 4);
-		rs.cpb += 4;
-	}else if(len >= 3){
-		*(rs.cpb + 0) = *(ps + 0);
-		*(rs.cpb + 1) = *(ps + 1);
-		*(rs.cpb + 2) = *(ps + 2);
-		_rfd.f = &Serializer::storeBinary<2>;
-		_rfd.p = const_cast<char*>(ps + 3);
-		rs.cpb += 3;
-	}else if(len >= 2){
-		*(rs.cpb + 0) = *(ps + 0);
-		*(rs.cpb + 1) = *(ps + 1);
-		_rfd.f = &Serializer::storeBinary<3>;
-		_rfd.p = const_cast<char*>(ps + 2);
-		rs.cpb += 2;
-	}else if(len >= 1){
-		*(rs.cpb + 0) = *(ps + 0);
-		_rfd.f = &Serializer::storeBinary<4>;
-		_rfd.p = const_cast<char*>(ps + 1);
-		rs.cpb += 1;
-	}
-	return NOK;
-}
-
-template <>
-int Serializer::storeBinary<6>(Base &_rb, FncData &_rfd){
-	idbgx(Dbg::ser_bin, "");
-	Serializer &rs(static_cast<Serializer&>(_rb));
-	if(!rs.cpb) return OK;
-	const unsigned	len = rs.be - rs.cpb;
-	const char		*ps = reinterpret_cast<const char*>(_rfd.p);
-	if(len >= 6){
-		*(rs.cpb + 0) = *(ps + 0);
-		*(rs.cpb + 1) = *(ps + 1);
-		*(rs.cpb + 2) = *(ps + 2);
-		*(rs.cpb + 3) = *(ps + 3);
-		*(rs.cpb + 4) = *(ps + 4);
-		*(rs.cpb + 5) = *(ps + 5);
-		rs.cpb += 6;
-		return OK;
-	}else if(len >= 5){
-		*(rs.cpb + 0) = *(ps + 0);
-		*(rs.cpb + 1) = *(ps + 1);
-		*(rs.cpb + 2) = *(ps + 2);
-		*(rs.cpb + 3) = *(ps + 3);
-		*(rs.cpb + 4) = *(ps + 4);
-		_rfd.f = &Serializer::storeBinary<1>;
-		_rfd.p = const_cast<char*>(ps + 5);
-		rs.cpb += 5;
-	}else if(len >= 4){
-		*(rs.cpb + 0) = *(ps + 0);
-		*(rs.cpb + 1) = *(ps + 1);
-		*(rs.cpb + 2) = *(ps + 2);
-		*(rs.cpb + 3) = *(ps + 3);
-		_rfd.f = &Serializer::storeBinary<2>;
-		_rfd.p = const_cast<char*>(ps + 4);
-		rs.cpb += 4;
-	}else if(len >= 3){
-		*(rs.cpb + 0) = *(ps + 0);
-		*(rs.cpb + 1) = *(ps + 1);
-		*(rs.cpb + 2) = *(ps + 2);
-		_rfd.f = &Serializer::storeBinary<3>;
-		_rfd.p = const_cast<char*>(ps + 3);
-		rs.cpb += 3;
-	}else if(len >= 2){
-		*(rs.cpb + 0) = *(ps + 0);
-		*(rs.cpb + 1) = *(ps + 1);
-		_rfd.f = &Serializer::storeBinary<4>;
-		_rfd.p = const_cast<char*>(ps + 2);
-		rs.cpb += 2;
-	}else if(len >= 1){
-		*(rs.cpb + 0) = *(ps + 0);
-		_rfd.f = &Serializer::storeBinary<5>;
-		_rfd.p = const_cast<char*>(ps + 1);
-		rs.cpb += 1;
-	}
-	return NOK;
-}
-
-template <>
-int Serializer::storeBinary<7>(Base &_rb, FncData &_rfd){
-	idbgx(Dbg::ser_bin, "");
-	Serializer &rs(static_cast<Serializer&>(_rb));
-	if(!rs.cpb) return OK;
-	const unsigned	len = rs.be - rs.cpb;
-	const char		*ps = reinterpret_cast<const char*>(_rfd.p);
-	if(len >= 7){
-		*(rs.cpb + 0) = *(ps + 0);
-		*(rs.cpb + 1) = *(ps + 1);
-		*(rs.cpb + 2) = *(ps + 2);
-		*(rs.cpb + 3) = *(ps + 3);
-		*(rs.cpb + 4) = *(ps + 4);
-		*(rs.cpb + 5) = *(ps + 5);
-		*(rs.cpb + 6) = *(ps + 6);
-		rs.cpb += 7;
-		return OK;
-	}else if(len >= 6){
-		*(rs.cpb + 0) = *(ps + 0);
-		*(rs.cpb + 1) = *(ps + 1);
-		*(rs.cpb + 2) = *(ps + 2);
-		*(rs.cpb + 3) = *(ps + 3);
-		*(rs.cpb + 4) = *(ps + 4);
-		*(rs.cpb + 5) = *(ps + 5);
-		_rfd.f = &Serializer::storeBinary<1>;
-		_rfd.p = const_cast<char*>(ps + 6);
-		rs.cpb += 6;
-	}else if(len >= 5){
-		*(rs.cpb + 0) = *(ps + 0);
-		*(rs.cpb + 1) = *(ps + 1);
-		*(rs.cpb + 2) = *(ps + 2);
-		*(rs.cpb + 3) = *(ps + 3);
-		*(rs.cpb + 4) = *(ps + 4);
-		_rfd.f = &Serializer::storeBinary<2>;
-		_rfd.p = const_cast<char*>(ps + 5);
-		rs.cpb += 5;
-	}else if(len >= 4){
-		*(rs.cpb + 0) = *(ps + 0);
-		*(rs.cpb + 1) = *(ps + 1);
-		*(rs.cpb + 2) = *(ps + 2);
-		*(rs.cpb + 3) = *(ps + 3);
-		_rfd.f = &Serializer::storeBinary<3>;
-		_rfd.p = const_cast<char*>(ps + 4);
-		rs.cpb += 4;
-	}else if(len >= 3){
-		*(rs.cpb + 0) = *(ps + 0);
-		*(rs.cpb + 1) = *(ps + 1);
-		*(rs.cpb + 2) = *(ps + 2);
-		_rfd.f = &Serializer::storeBinary<4>;
-		_rfd.p = const_cast<char*>(ps + 3);
-		rs.cpb += 3;
-	}else if(len >= 2){
-		*(rs.cpb + 0) = *(ps + 0);
-		*(rs.cpb + 1) = *(ps + 1);
-		_rfd.f = &Serializer::storeBinary<5>;
-		_rfd.p = const_cast<char*>(ps + 2);
-		rs.cpb += 2;
-	}else if(len >= 1){
-		*(rs.cpb + 0) = *(ps + 0);
-		_rfd.f = &Serializer::storeBinary<6>;
-		_rfd.p = const_cast<char*>(ps + 1);
-		rs.cpb += 1;
-	}
-	return NOK;
-}
 
 template <>
 int Serializer::storeBinary<8>(Base &_rb, FncData &_rfd){
@@ -362,9 +170,10 @@ int Serializer::storeBinary<8>(Base &_rb, FncData &_rfd){
 		*(rs.cpb + 4) = *(ps + 4);
 		*(rs.cpb + 5) = *(ps + 5);
 		*(rs.cpb + 6) = *(ps + 6);
-		_rfd.f = &Serializer::storeBinary<1>;
 		_rfd.p = const_cast<char*>(ps + 7);
+		_rfd.f = &Serializer::storeBinary<1>;
 		rs.cpb += 7;
+		return NOK;
 	}else if(len >= 6){
 		*(rs.cpb + 0) = *(ps + 0);
 		*(rs.cpb + 1) = *(ps + 1);
@@ -372,16 +181,16 @@ int Serializer::storeBinary<8>(Base &_rb, FncData &_rfd){
 		*(rs.cpb + 3) = *(ps + 3);
 		*(rs.cpb + 4) = *(ps + 4);
 		*(rs.cpb + 5) = *(ps + 5);
-		_rfd.f = &Serializer::storeBinary<2>;
 		_rfd.p = const_cast<char*>(ps + 6);
+		_rfd.f = &Serializer::storeBinary<2>;
 		rs.cpb += 6;
+		return NOK;
 	}else if(len >= 5){
 		*(rs.cpb + 0) = *(ps + 0);
 		*(rs.cpb + 1) = *(ps + 1);
 		*(rs.cpb + 2) = *(ps + 2);
 		*(rs.cpb + 3) = *(ps + 3);
 		*(rs.cpb + 4) = *(ps + 4);
-		_rfd.f = &Serializer::storeBinary<3>;
 		_rfd.p = const_cast<char*>(ps + 5);
 		rs.cpb += 5;
 	}else if(len >= 4){
@@ -389,28 +198,27 @@ int Serializer::storeBinary<8>(Base &_rb, FncData &_rfd){
 		*(rs.cpb + 1) = *(ps + 1);
 		*(rs.cpb + 2) = *(ps + 2);
 		*(rs.cpb + 3) = *(ps + 3);
-		_rfd.f = &Serializer::storeBinary<4>;
 		_rfd.p = const_cast<char*>(ps + 4);
+		_rfd.f = &Serializer::storeBinary<4>;
 		rs.cpb += 4;
+		return NOK;
 	}else if(len >= 3){
 		*(rs.cpb + 0) = *(ps + 0);
 		*(rs.cpb + 1) = *(ps + 1);
 		*(rs.cpb + 2) = *(ps + 2);
-		_rfd.f = &Serializer::storeBinary<5>;
 		_rfd.p = const_cast<char*>(ps + 3);
 		rs.cpb += 3;
 	}else if(len >= 2){
 		*(rs.cpb + 0) = *(ps + 0);
 		*(rs.cpb + 1) = *(ps + 1);
-		_rfd.f = &Serializer::storeBinary<6>;
 		_rfd.p = const_cast<char*>(ps + 2);
 		rs.cpb += 2;
 	}else if(len >= 1){
 		*(rs.cpb + 0) = *(ps + 0);
-		_rfd.f = &Serializer::storeBinary<7>;
 		_rfd.p = const_cast<char*>(ps + 1);
 		rs.cpb += 1;
 	}
+	_rfd.f = &Serializer::storeBinary<0>;
 	return NOK;
 }
 
