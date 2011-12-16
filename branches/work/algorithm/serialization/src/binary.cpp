@@ -140,7 +140,7 @@ int Serializer::store<std::string>(Base &_rb, FncData &_rfd){
 	rs.estk.push(ExtData((uint32)c->size()));
 	rs.replace(FncData(&Serializer::storeBinary, (void*)c->data(), _rfd.n, c->size()));
 	rs.fstk.push(FncData(&Base::popEStack, NULL));
-	rs.fstk.push(FncData(&Serializer::store<uint32>, &rs.estk.top().u32()));
+	rs.fstk.push(FncData(&Serializer::store<uint32>, &rs.estk.top().u32(), _rfd.n));
 	return CONTINUE;
 }
 

@@ -236,7 +236,7 @@ class Serializer: public Base{
 		typename T::iterator &rit = *reinterpret_cast<typename T::iterator*>(rs.estk.top().buf);
 		T * c = reinterpret_cast<T*>(_rfd.p);
 		if(rs.cpb && rit != c->end()){
-			rs.push(*rit);
+			rs.push(*rit, _rfd.n);
 			++rit;
 			return CONTINUE;
 		}
@@ -277,7 +277,7 @@ class Serializer: public Base{
 		idbgx(Dbg::ser_bin, "store generic array cont "<<_rfd.n<<" rsz = "<<rsz<<" ri = "<<ri);
 		
 		if(rs.cpb && ri < rsz){
-			rs.push(c[ri]);
+			rs.push(c[ri],_rfd.n);
 			++ri;
 			return CONTINUE;
 		}

@@ -188,10 +188,11 @@ protected:
 	See serialization::bin::Base for details
 */
 class Serializer: public Base{
+	template <uint S>
+	static int storeBinary(Base &_rs, FncData &_rfd);
+	
 	template <typename T>
 	static int store(Base &_rs, FncData &_rfd);
-	
-	static int storeBinary(Base &_rs, FncData &_rfd);
 	
 	template <typename T>
 	static int storeContainer(Base &_rs, FncData &_rfd){
@@ -224,7 +225,7 @@ class Serializer: public Base{
 		typename T::iterator &rit = *reinterpret_cast<typename T::iterator*>(rs.estk.top().buf);
 		T * c = reinterpret_cast<T*>(_rfd.p);
 		if(rs.cpb && rit != c->end()){
-			rs.push(*rit);
+			rs.push(*rit, _rfd.n);
 			++rit;
 			return CONTINUE;
 		}
@@ -265,7 +266,7 @@ class Serializer: public Base{
 		idbgx(Dbg::ser_bin, "store generic array cont "<<_rfd.n<<" rsz = "<<rsz<<" ri = "<<ri);
 		
 		if(rs.cpb && ri < rsz){
-			rs.push(c[ri]);
+			rs.push(c[ri], _rfd.n);
 			++ri;
 			return CONTINUE;
 		}
@@ -303,7 +304,7 @@ class Serializer: public Base{
 		if(rsp.pis){
 			rs.fstk.push(FncData(&Serializer::storeStream, NULL));
 		}
-		rs.fstk.push(FncData(&Serializer::storeBinary, &rsp.sz, _rfd.n, sizeof(int64)));
+		rs.fstk.push(FncData(&Serializer::storeBinary<0>, &rsp.sz, _rfd.n, sizeof(int64)));
 		return CONTINUE;
 	}
 	template <typename T>
@@ -385,10 +386,7 @@ public:
 		fstk.push(FncData(&Serializer::template storeStreamBegin<T>, _p, _name, 0));
 		return *this;
 	}
-	Serializer& pushBinary(void *_p, size_t _sz, const char *_name = NULL){
-		fstk.push(FncData(&Serializer::storeBinary, _p, _name, _sz));
-		return *this;
-	}
+	Serializer& pushBinary(void *_p, size_t _sz, const char *_name = NULL);
 	template <typename T, typename ST>
 	Serializer& pushArray(T *_p, const ST &_rsz, const char *_name = NULL){
 		fstk.push(FncData(&Serializer::template storeArray<T>, (void*)_p, _name));
@@ -459,10 +457,15 @@ class Deserializer: public Base{
 		_rfd.f = &parseTypeIdDone;
 		return CONTINUE;
 	}
+	
 	template <typename T>
 	static int parse(Base& _rd, FncData &_rfd);
+	
+	template <uint S = 0>
 	static int parseBinary(Base &_rb, FncData &_rfd);
+	
 	static int parseBinaryString(Base &_rb, FncData &_rfd);
+	
 	template <typename T>
 	static int parseContainer(Base &_rb, FncData &_rfd){
 		idbgx(Dbg::ser_bin, "parse generic non pointer container "<<_rfd.n);
@@ -660,10 +663,8 @@ public:
 		fstk.push(FncData(&Deserializer::template parseStreamBegin<T>, _p, _name, 0));
 		return *this;
 	}
-	Deserializer& pushBinary(void *_p, size_t _sz, const char *_name = NULL){
-		fstk.push(FncData(&Deserializer::parseBinary, _p, _name, _sz));
-		return *this;
-	}
+	Deserializer& pushBinary(void *_p, size_t _sz, const char *_name = NULL);
+	
 	template <typename T, typename ST>
 	Deserializer& pushArray(T* _p, ST &_rsz, const char *_name = NULL){
 		fstk.push(FncData(&Deserializer::template parseArray<T, ST>, (void*)_p, _name));

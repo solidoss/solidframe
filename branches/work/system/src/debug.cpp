@@ -710,6 +710,7 @@ std::ostream& Dbg::printTraceOut(
 
 void Dbg::done(){
 	(*d.pos)<<std::endl;
+	cassert(d.pos->good());
 	d.m.unlock();
 }
 
