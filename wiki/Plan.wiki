@@ -19,6 +19,7 @@ change to something like:
 TypeMapper::map<BinSerializer, BinDeserializer, RemoteListSignal, void >(100);
 TypeMapper::map<BinSerializer, BinDeserializer, RemoteListSignal, Type<1> >();
 TypeMapper::map<BinSerializer, BinDeserializer, RemoteListSignal, Type<2> >(101);
-}}}this way one can register the same structure/class multiple times, every time being constructed with different constructor:
+}}}
+this way one can register the same structure/class multiple times, every time being constructed with different constructor:
 `RemoteListSignal()` for first, `RemoteListSignal(const Type<1>&)` for second and `RemoteListSignal(const Type<2>&)` for the third. Also we need to be able to specify the position on which the map will be registered.
  
