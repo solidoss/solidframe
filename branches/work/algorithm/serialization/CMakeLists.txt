@@ -12,6 +12,6 @@ set(Headers
 set(Inlines
 )
 
-add_library(algorithm_serialization_new
+add_library(algorithm_serialization
 	${Sources} ${Headers} ${Inlines}
 )

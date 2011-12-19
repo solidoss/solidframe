@@ -24,8 +24,9 @@
 #include <string>
 #include <typeinfo>
 #include "utility/common.hpp"
-#include "algorithm/serialization_new/typemapperbase.hpp"
-namespace serialization_new{
+#include "algorithm/serialization/typemapperbase.hpp"
+
+namespace serialization{
 
 template <class Ser, class Des, typename Int>
 class IdTypeMapper: public TypeMapperBase{
@@ -76,12 +77,18 @@ private:
 			*rpt & rd;
 		}
 	}
-	/*virtual*/ void prepareStorePointer(void *_pser, void *_pt, uint32 _id, const char *_name){
+	/*virtual*/ void prepareStorePointer(
+		void *_pser, void *_pt,
+		uint32 _id, const char *_name
+	)const{
 		uint32	*pid;
 		(*this->function(_id, pid))(_pt, _pser, NULL, pid, _name);
 		
 	}
-	/*virtual*/ void prepareStorePointer(void *_pser, void *_pt, const char *_pid, const char *_name){
+	/*virtual*/ void prepareStorePointer(
+		void *_pser, void *_pt,
+		const char *_pid, const char *_name
+	)const{
 		uint32	*pid;
 		(*this->function(_pid, pid))(_pt, _pser, NULL, pid, _name);
 	}
@@ -89,7 +96,7 @@ private:
 	/*virtual*/ void prepareParsePointer(
 		void *_pdes, std::string &_rs,
 		void *_p, const char *_name
-	){
+	)const{
 		const Int	&rid(*reinterpret_cast<const Int*>(_rs.data()));
 		uint32		id(rid);
 		(*this->function(id))(_p, NULL, _pdes, NULL, _name);
@@ -97,7 +104,7 @@ private:
 	/*virtual*/ void prepareParsePointerId(
 		void *_pdes, std::string &_rs,
 		const char *_name
-	){
+	)const{
 		Des		&rd(*reinterpret_cast<Des*>(_pdes));
 		Int		&rid(*reinterpret_cast<Int*>(const_cast<char*>(_rs.data())));
 		rd.push(rid, _name);

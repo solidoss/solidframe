@@ -38,8 +38,6 @@
 #include "system/timespec.hpp"
 
 #include "algorithm/serialization/binary.hpp"
-#include "algorithm/serialization/idtypemap.hpp"
-
 
 #include "foundation/object.hpp"
 #include "foundation/manager.hpp"
@@ -531,16 +529,12 @@ static const DynamicRegisterer<Object>	dre;
 	//TODO: add here the other consensus Signals
 }
 /*static*/ void Object::registerSignals(){
-	typedef serialization::TypeMapper					TypeMapper;
-	typedef serialization::bin::Serializer				BinSerializer;
-	typedef serialization::bin::Deserializer			BinDeserializer;
-
-	TypeMapper::map<OperationSignal<1>, BinSerializer, BinDeserializer>();
-	TypeMapper::map<OperationSignal<2>, BinSerializer, BinDeserializer>();
-	TypeMapper::map<OperationSignal<4>, BinSerializer, BinDeserializer>();
-	TypeMapper::map<OperationSignal<8>, BinSerializer, BinDeserializer>();
-	TypeMapper::map<OperationSignal<16>, BinSerializer, BinDeserializer>();
-	TypeMapper::map<OperationSignal<32>, BinSerializer, BinDeserializer>();
+	fdt::ipc::Service::the().registerSerializationType<OperationSignal<1> >();
+	fdt::ipc::Service::the().registerSerializationType<OperationSignal<2> >();
+	fdt::ipc::Service::the().registerSerializationType<OperationSignal<4> >();
+	fdt::ipc::Service::the().registerSerializationType<OperationSignal<8> >();
+	fdt::ipc::Service::the().registerSerializationType<OperationSignal<16> >();
+	fdt::ipc::Service::the().registerSerializationType<OperationSignal<32> >();
 }
 Object::Object():d(*(new Data)){
 	idbg((void*)this);

@@ -30,7 +30,7 @@ S& operator&(tp &_t, S &_s){\
 }
 
 
-namespace serialization_new{
+namespace serialization{
 //! A base class for mapping types to callbacks
 class TypeMapperBase{
 public:
@@ -41,19 +41,19 @@ public:
 	virtual void prepareStorePointer(
 		void *_pser, void *_p,
 		uint32 _rid, const char *_name
-	);
+	)const;
 	virtual void prepareStorePointer(
 		void *_pser, void *_p,
 		const char *_pid, const char *_name
-	);
+	)const;
 	virtual void prepareParsePointer(
 		void *_pdes, std::string &_rs,
 		void *_p, const char *_name
-	);
+	)const;
 	virtual void prepareParsePointerId(
 		void *_pdes, std::string &_rs,
 		const char *_name
-	);
+	)const;
 protected:
 	typedef void (*FncT)(void *, void *, void *, void *, const char *);
 	typedef void (*PrepareIdFncT)(void *, void *, void *, uint32, const char *);

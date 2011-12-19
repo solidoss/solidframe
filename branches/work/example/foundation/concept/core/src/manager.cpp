@@ -27,9 +27,6 @@
 #include "utility/iostream.hpp"
 #include "utility/dynamictype.hpp"
 
-#include "algorithm/serialization/binary.hpp"
-#include "algorithm/serialization/idtypemap.hpp"
-
 #include "core/manager.hpp"
 #include "core/service.hpp"
 #include "core/signals.hpp"
@@ -125,18 +122,11 @@ struct Manager::Data{
 };
 
 //--------------------------------------------------------------------------
-typedef serialization::TypeMapper					TypeMapper;
-typedef serialization::IdTypeMap					IdTypeMap;
-typedef serialization::bin::Serializer				BinSerializer;
-
 Manager::Manager():foundation::Manager(16), d(*(new Data())){
 	//NOTE: Use the following line instead of ThisGuard if you only have one Manager per process, else use the ThisGuard for any function
 	// that may be called from a thread that has access to other managers.
 	//this->prepareThread();
 	ThisGuard	tg(this);
-	
-	TypeMapper::registerMap<IdTypeMap>(new IdTypeMap);
-	TypeMapper::registerSerializer<BinSerializer>();
 	
 	registerScheduler(new SchedulerT(*this));
 	registerScheduler(new AioSchedulerT(*this));

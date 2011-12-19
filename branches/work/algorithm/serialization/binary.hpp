@@ -20,7 +20,7 @@
 */
 
 #ifndef ALGORITHM_SERIALIZATION_BINARY_HPP
-#define ALGORITHM_SERIALIZATION__BINARY_HPP
+#define ALGORITHM_SERIALIZATION_BINARY_HPP
 
 #include <typeinfo>
 #include <string>
@@ -29,13 +29,13 @@
 #include "system/debug.hpp"
 #include "utility/common.hpp"
 #include "utility/stack.hpp"
-#include "algorithm/serialization_new/typemapperbase.hpp"
+#include "algorithm/serialization/typemapperbase.hpp"
 
 class IStream;
 class OStream;
 
-namespace serialization_new{
-namespace bin{
+namespace serialization{
+namespace binary{
 
 BASIC_DECL(int8);
 BASIC_DECL(uint8);
@@ -321,7 +321,7 @@ class Serializer: public Base{
 	static int storeStream(Base &_rs, FncData &_rfd);
 public:
 	enum {IsSerializer = true, IsDeserializer = false};
-	Serializer(TypeMapperBase &_rtm):rtm(_rtm), pb(NULL), cpb(NULL), be(NULL){
+	Serializer(const TypeMapperBase &_rtm):rtm(_rtm), pb(NULL), cpb(NULL), be(NULL){
 		tmpstr.reserve(sizeof(ulong));
 	}
 	~Serializer();
@@ -401,11 +401,11 @@ public:
 	}
 private:
 	friend class TypeMapperBase;
-	TypeMapperBase	&rtm;
-	char			*pb;
-	char			*cpb;
-	char			*be;
-	std::string		tmpstr;
+	const TypeMapperBase	&rtm;
+	char					*pb;
+	char					*cpb;
+	char					*be;
+	std::string				tmpstr;
 };
 //===============================================================
 template <>
@@ -619,7 +619,7 @@ class Deserializer: public Base{
 	static int parseDummyStream(Base &_rb, FncData &_rfd);
 public:
 	enum {IsSerializer = false, IsDeserializer = true};
-	Deserializer(TypeMapperBase &_rtm):rtm(_rtm), pb(NULL), cpb(NULL), be(NULL){
+	Deserializer(const TypeMapperBase &_rtm):rtm(_rtm), pb(NULL), cpb(NULL), be(NULL){
 		tmpstr.reserve(sizeof(uint32));
 	}
 	~Deserializer();
@@ -680,11 +680,11 @@ public:
 		return *this;
 	}
 private:
-	TypeMapperBase	&rtm;
-	const char		*pb;
-	const char		*cpb;
-	const char		*be;
-	std::string		tmpstr;
+	const TypeMapperBase	&rtm;
+	const char				*pb;
+	const char				*cpb;
+	const char				*be;
+	std::string				tmpstr;
 };
 
 template <>
@@ -714,7 +714,7 @@ int Deserializer::parse(Base& _rd, FncData &_rfd){
 }
 
 
-}//namespace bin
+}//namespace binary
 }//namespace serialization
 
 

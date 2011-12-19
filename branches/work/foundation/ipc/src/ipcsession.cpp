@@ -29,7 +29,6 @@
 #include "system/thread.hpp"
 #include "utility/queue.hpp"
 #include "algorithm/serialization/binary.hpp"
-#include "algorithm/serialization/idtypemap.hpp"
 #include "foundation/signal.hpp"
 #include "foundation/manager.hpp"
 #include "foundation/ipc/ipcservice.hpp"
@@ -154,7 +153,6 @@ std::ostream& operator<<(std::ostream &_ros, const StatisticData &_rsd);
 #endif
 
 //== Session::Data ====================================================
-typedef serialization::IdTypeMap					IdTypeMap;
 typedef DynamicPointer<foundation::Signal>			DynamicSignalPointerT;
 
 struct Session::Data{
@@ -175,14 +173,14 @@ struct Session::Data{
 		MaxSendSignalQueueSize = 32,//max count of signals sent in paralell
 		MaxOutOfOrder = 4,//please also change moveToNextOutOfOrderBuffer
 	};
-	struct BinSerializer:serialization::bin::Serializer{
-		BinSerializer():serialization::bin::Serializer(IdTypeMap::the()){}
+	struct BinSerializer:serialization::binary::Serializer{
+		BinSerializer():serialization::binary::Serializer(Service::the().typeMapper()){}
 		static unsigned specificCount(){return MaxSendSignalQueueSize;}
 		void specificRelease(){}
 	};
 
-	struct BinDeserializer:serialization::bin::Deserializer{
-		BinDeserializer():serialization::bin::Deserializer(IdTypeMap::the()){}
+	struct BinDeserializer:serialization::binary::Deserializer{
+		BinDeserializer():serialization::binary::Deserializer(Service::the().typeMapper()){}
 		static unsigned specificCount(){return MaxSendSignalQueueSize;}
 		void specificRelease(){}
 	};

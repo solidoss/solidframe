@@ -28,7 +28,6 @@
 #include "utility/iostream.hpp"
 
 #include "algorithm/protocol/namematcher.hpp"
-#include "algorithm/serialization/binary.hpp"
 
 #include "foundation/ipc/ipcservice.hpp"
 #include "foundation/ipc/ipcservice.hpp"
@@ -948,17 +947,13 @@ int Idle::receiveString(
 //---------------------------------------------------------------
 // Command Base
 //---------------------------------------------------------------
-typedef serialization::TypeMapper					TypeMapper;
-typedef serialization::bin::Serializer				BinSerializer;
-typedef serialization::bin::Deserializer			BinDeserializer;
-
 Command::Command(){}
 void Command::initStatic(Manager &_rm){
-	TypeMapper::map<SendStringSignal, BinSerializer, BinDeserializer>();
-	TypeMapper::map<SendStreamSignal, BinSerializer, BinDeserializer>();
-	TypeMapper::map<FetchMasterSignal, BinSerializer, BinDeserializer>();
-	TypeMapper::map<FetchSlaveSignal, BinSerializer, BinDeserializer>();
-	TypeMapper::map<RemoteListSignal, BinSerializer, BinDeserializer>();
+	fdt::ipc::Service::the().registerSerializationType<SendStringSignal>();
+	fdt::ipc::Service::the().registerSerializationType<SendStreamSignal>();
+	fdt::ipc::Service::the().registerSerializationType<FetchMasterSignal>();
+	fdt::ipc::Service::the().registerSerializationType<FetchSlaveSignal>();
+	fdt::ipc::Service::the().registerSerializationType<RemoteListSignal>();
 }
 /*virtual*/ Command::~Command(){}
 

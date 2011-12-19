@@ -19,13 +19,13 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "algorithm/serialization_new/binary.hpp"
+#include "algorithm/serialization/binary.hpp"
 #include "utility/ostream.hpp"
 #include "utility/istream.hpp"
 #include <string.h>
 
-namespace serialization_new{
-namespace bin{
+namespace serialization{
+namespace binary{
 //========================================================================
 void Base::replace(const FncData &_rfd){
 	fstk.top() = _rfd;
@@ -868,7 +868,7 @@ Deserializer& Deserializer::pushBinary(void *_p, size_t _sz, const char *_name){
 }
 //========================================================================
 //========================================================================
-}//namespace bin
+}//namespace binary
 }//namespace serialization
 
 

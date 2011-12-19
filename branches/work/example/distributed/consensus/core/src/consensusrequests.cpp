@@ -3,10 +3,6 @@
 
 #include "foundation/ipc/ipcservice.hpp"
 
-#include "algorithm/serialization/binary.hpp"
-#include "algorithm/serialization/idtypemap.hpp"
-
-
 #include "system/debug.hpp"
 
 namespace fdt=foundation;
@@ -22,13 +18,9 @@ const foundation::ObjectUidT& serverUid(){
 }
 //--------------------------------------------------------------
 void mapSignals(){
-	typedef serialization::TypeMapper					TypeMapper;
-	typedef serialization::bin::Serializer				BinSerializer;
-	typedef serialization::bin::Deserializer			BinDeserializer;
-
-	TypeMapper::map<StoreRequest, BinSerializer, BinDeserializer>();
-	TypeMapper::map<FetchRequest, BinSerializer, BinDeserializer>();
-	TypeMapper::map<EraseRequest, BinSerializer, BinDeserializer>();
+	fdt::ipc::Service::the().registerSerializationType<StoreRequest>();
+	fdt::ipc::Service::the().registerSerializationType<FetchRequest>();
+	fdt::ipc::Service::the().registerSerializationType<EraseRequest>();
 }
 //--------------------------------------------------------------
 StoreRequest::StoreRequest(const std::string&, uint32 _pos):v(0){

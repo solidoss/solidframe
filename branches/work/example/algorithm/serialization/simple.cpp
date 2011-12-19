@@ -1,4 +1,4 @@
-/* Implementation file simple_new.cpp
+/* Implementation file simple.cpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
@@ -28,8 +28,8 @@
 //#undef UDEBUG
 #include "system/thread.hpp"
 #include "system/debug.hpp"
-#include "algorithm/serialization_new/idtypemapper.hpp"
-#include "algorithm/serialization_new/binary.hpp"
+#include "algorithm/serialization/idtypemapper.hpp"
+#include "algorithm/serialization/binary.hpp"
 #include "system/socketaddress.hpp"
 using namespace std;
 
@@ -363,9 +363,9 @@ int main(int argc, char *argv[]){
 	int rv = 3;
 	//TestA ta;
 	//cout<<ta<<endl;
-	typedef serialization_new::bin::Serializer											BinSerializer;
-	typedef serialization_new::bin::Deserializer										BinDeserializer;
-	typedef serialization_new::IdTypeMapper<BinSerializer, BinDeserializer, uint16>		UInt16TypeMapper;
+	typedef serialization::binary::Serializer										BinSerializer;
+	typedef serialization::binary::Deserializer										BinDeserializer;
+	typedef serialization::IdTypeMapper<BinSerializer, BinDeserializer, uint16>		UInt16TypeMapper;
 	
 	
 	UInt16TypeMapper		tm;

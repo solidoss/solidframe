@@ -30,8 +30,7 @@
 #undef UDEBUG
 #include "system/thread.hpp"
 #include "algorithm/serialization/binary.hpp"
-#include "algorithm/serialization/typemapper.hpp"
-#include "algorithm/serialization/idtypemap.hpp"
+#include "algorithm/serialization/idtypemapper.hpp"
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <cerrno>
@@ -157,11 +156,16 @@ void parentRun(int _sd, const char *_fn);
 void childRun(int _sd);
 
 
-typedef serialization::TypeMapper					TypeMapper;
-//typedef serialization::NameTypeMap					NameTypeMap;
-typedef serialization::IdTypeMap					IdTypeMap;
-typedef serialization::bin::Serializer				BinSerializer;
-typedef serialization::bin::Deserializer			BinDeserializer;
+typedef serialization::binary::Serializer			BinSerializer;
+typedef serialization::binary::Deserializer			BinDeserializer;
+typedef serialization::IdTypeMapper<
+	BinSerializer,
+	BinDeserializer,
+	uint32
+>													TypeMapper;
+
+static TypeMapper		tm;
+
 ///\endcond
 
 int main(int argc, char *argv[]){
@@ -176,8 +180,6 @@ int main(int argc, char *argv[]){
 		cout<<"error creating socketpair: "<<strerror(errno)<<endl;
 		return 0;
 	}
-	TypeMapper::registerMap<IdTypeMap>(new IdTypeMap);
-	TypeMapper::registerSerializer<BinSerializer>();
 
 	rv = fork();
 	if(rv){//the parent
@@ -195,7 +197,7 @@ enum {BUFSZ = 4 * 1024};
 void parentRun(int _sd, const char *_fn){
 	char buf[BUFSZ];
 	Test t(_fn);
-	BinSerializer	ser(IdTypeMap::the());
+	BinSerializer	ser(tm);
 	ser.push(t, "test");
 	t.print();
 	int rv;
@@ -213,7 +215,7 @@ void parentRun(int _sd, const char *_fn){
 void childRun(int _sd){
 	char buf[BUFSZ];
 	Test t;
-	BinDeserializer	des(IdTypeMap::the());
+	BinDeserializer	des(tm);
 	des.push(t, "test");
 	int rv;
 	cout<<"Client reading"<<endl;

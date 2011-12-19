@@ -33,10 +33,10 @@
 
 #include "system/cassert.hpp"
 #include "system/mutex.hpp"
-#include "algorithm/serialization_new/idtypemapper.hpp"
+#include "algorithm/serialization/idtypemapper.hpp"
 
 
-namespace serialization_new{
+namespace serialization{
 //================================================================
 struct TypeMapperBase::Data{
 	struct FunctionStub{
@@ -140,25 +140,25 @@ uint32 TypeMapperBase::insertFunction(FncT _f, uint32 _pos, const char *_name){
 /*virtual*/ void TypeMapperBase::prepareStorePointer(
 	void *_pser, void *_p,
 	uint32 _rid, const char *_name
-){
+)const{
 }
 
 /*virtual*/ void TypeMapperBase::prepareStorePointer(
 	void *_pser, void *_p,
 	const char *_pid, const char *_name
-){
+)const{
 }
 
 /*virtual*/ void TypeMapperBase::prepareParsePointer(
 	void *_pdes, std::string &_rs,
 	void *_p, const char *_name
-){
+)const{
 	
 }
 /*virtual*/ void TypeMapperBase::prepareParsePointerId(
 	void *_pdes, std::string &_rs,
 	const char *_name
-){
+)const{
 	
 }
 
