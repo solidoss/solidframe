@@ -123,6 +123,7 @@ struct StatisticData{
 	void sendAsynchronousWhileSynchronous();
 	void sendSynchronousWhileSynchronous(ulong _sz);
 	void sendAsynchronous();
+	void failedDecompression();
 	
 	ulong reconnectcnt;
 	ulong pushsignalcnt;
@@ -145,7 +146,7 @@ struct StatisticData{
 	ulong sendsynchronouswhilesynchronous;
 	ulong maxsendsynchronouswhilesynchronous;
 	ulong sendasynchronous;
-
+	ulong faileddecompressions;
 };
 
 std::ostream& operator<<(std::ostream &_ros, const StatisticData &_rsd);
@@ -985,6 +986,11 @@ bool Session::pushReceivedBuffer(
 	COLLECT_DATA_0(d.statistics.pushReceivedBuffer);
 	d.rcvtimepos = _rstub.currentTime();
 	d.resetKeepAlive();
+	if(!_rbuf.decompress(_rstub.service().controller())){
+		_rbuf.clear();//silently drop invalid buffer
+		COLLECT_DATA_0(d.statistics.failedDecompression);
+		return false;
+	}
 	if(_rbuf.id() == d.rcvexpectedid){
 		return doPushExpectedReceivedBuffer(_rbuf, _rstub/*, _rconuid*/);
 	}else{
@@ -1415,7 +1421,7 @@ int Session::doExecuteConnected(Talker::TalkerStub &_rstub){
 		
 		doFillSendBuffer(bufidx);
 		
-		rsbd.buffer.optimize();
+		rsbd.buffer.compress(_rstub.service().controller());
 		
 		d.resetKeepAlive();
 		
@@ -1698,6 +1704,10 @@ void StatisticData::sendAsynchronous(){
 	++sendasynchronous;
 }
 
+void StatisticData::failedDecompression(){
+	++faileddecompressions;
+}
+
 std::ostream& operator<<(std::ostream &_ros, const StatisticData &_rsd){
 	_ros<<"reconnectcnt                         = "<<_rsd.reconnectcnt<<std::endl;
 	_ros<<"pushsignalcnt                        = "<<_rsd.pushsignalcnt<<std::endl;
@@ -1720,7 +1730,7 @@ std::ostream& operator<<(std::ostream &_ros, const StatisticData &_rsd){
 	_ros<<"sendsynchronouswhilesynchronous      = "<<_rsd.sendsynchronouswhilesynchronous<<std::endl;
 	_ros<<"maxsendsynchronouswhilesynchronous   = "<<_rsd.maxsendsynchronouswhilesynchronous<<std::endl;
 	_ros<<"sendasynchronous                     = "<<_rsd.sendasynchronous<<std::endl;
-
+	_ros<<"faileddecompressions                 = "<<_rsd.faileddecompressions<<std::endl;
 	return _ros;
 }
 }//namespace

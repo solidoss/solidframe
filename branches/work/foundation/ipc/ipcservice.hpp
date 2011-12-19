@@ -47,6 +47,7 @@ class Talker;
 class Connection;
 struct Buffer;
 struct ConnectionUid;
+struct BufferContext;
 
 class Service;
 
@@ -109,18 +110,23 @@ public:
 		SynchronousSendFlag = 4,//!< Make the signal synchronous
 		SentFlag = 8,//!< The signal was successfully sent
 	};
-	struct BufferContext;
 	struct Controller{
-		virtual ~Controller(){}
+		virtual ~Controller();
 		virtual bool release() = 0;
 		virtual void scheduleTalker(foundation::aio::Object *_ptkr) = 0;
-// 		virtual void compressBuffer(
-// 			BufferContext &_rbc,
-// 			char* &_rpb,
-// 			uint32 &_bl
-// 		);
+		virtual bool compressBuffer(
+			BufferContext &_rbc,
+			const uint32 _bufsz,
+			char* &_rpb,
+			uint32 &_bl
+		);
+		virtual bool decompressBuffer(
+			BufferContext &_rbc,
+			char* &_rpb,
+			uint32 &_bl
+		);
 	protected:
-		//char * allocateNewBuffer(BufferContext &_rbc, uint32 &_cp);
+		char * allocateBuffer(BufferContext &_rbc, uint32 &_cp);
 	};
 	
 	static Service& the();
@@ -237,6 +243,7 @@ private:
 	uint32 keepAliveTimeout()const;
 	void connectSession(const SocketAddressPair4 &_raddr);
 	const serialization::TypeMapperBase& typeMapper() const;
+	Controller& controller();
 private:
 	typedef serialization::IdTypeMapper<
 		serialization::binary::Serializer,

@@ -527,6 +527,11 @@ void Service::insertObject(Talker &_ro, const ObjectUidT &_ruid){
 void Service::eraseObject(const Talker &_ro){
 	vdbgx(Dbg::ipc, "erasing talker");
 }
+//---------------------------------------------------------------------
+Service::Controller& Service::controller(){
+	return *d.pc;
+}
+
 //=======	Buffer		=============================================
 bool Buffer::check()const{
 	cassert(bc >= 32);
@@ -577,6 +582,87 @@ void Buffer::optimize(uint16 _cp){
 		this->bc = Specific::indexToCapacity(id);
 	}
 }
+struct BufferContext{
+	BufferContext(uint _offset):offset(_offset), reqbufid(-1){}
+	uint	offset;
+	uint	reqbufid;
+};
+bool Buffer::compress(Service::Controller &_rctrl){
+	BufferContext	bctx(this->minSize());
+	uint32			datasz(this->dataSize() + updatesCount() * sizeof(uint32));
+	char			*pd(this->data() - updatesCount() * sizeof(uint32));
+	
+	uint32			tmpdatasz(datasz);
+	char			*tmppd(pd);
+	if(_rctrl.compressBuffer(bctx, this->bufferSize(),tmppd, tmpdatasz)){
+		if(tmppd != pd){
+			if(bctx.reqbufid == (uint)-1){
+				THROW_EXCEPTION("Invalid buffer pointer returned");
+			}
+			tmppd -= bctx.offset;
+			memcpy(tmppd, pb, sizeof(Header));
+			Specific::pushBuffer(this->pb, Specific::capacityToIndex(this->bc));
+			this->bc = Specific::indexToCapacity(bctx.reqbufid);
+			this->pb = tmppd;
+		}else{
+			//the compression was done on-place
+		}
+		this->header().flags |= CompressedFlag;
+		this->dl -= (tmpdatasz - datasz);
+	}else{
+		if(bctx.reqbufid != (uint)-1){
+			if(pd == tmppd){
+				THROW_EXCEPTION("Allocated buffer must be returned even on no compression");
+			}
+			tmppd -= bctx.offset;
+			Specific::pushBuffer(tmppd, bctx.reqbufid);
+		}
+	}
+	optimize();
+	return true;
+}
+bool Buffer::decompress(Service::Controller &_rctrl){
+	if(!(flags() & CompressedFlag)){
+		return true;
+	}
+	BufferContext	bctx(this->minSize());
+	
+	uint32			datasz(dl + updatesCount() * sizeof(uint32));
+	char			*pd(pb + this->minSize());
+	
+	uint32			tmpdatasz(datasz);
+	char			*tmppd(pd);
+	if(_rctrl.decompressBuffer(bctx, tmppd, tmpdatasz)){
+		if(bctx.reqbufid != (uint)-1){
+			if(tmppd == pd){
+				THROW_EXCEPTION("Requested buffer not returned");
+			}
+			tmppd -= bctx.offset;
+			memcpy(tmppd, pb, sizeof(Header));
+			Specific::pushBuffer(this->pb, Specific::capacityToIndex(this->bc));
+			this->bc = Specific::indexToCapacity(bctx.reqbufid);
+			this->pb = tmppd;
+		}else{
+			//on-place decompression
+			if(tmppd != pd){
+				THROW_EXCEPTION("Invalid buffer pointer returned");
+			}
+		}
+		this->header().flags &= (~CompressedFlag);
+		this->dl += (tmpdatasz - datasz);
+	}else{
+		//decompression failed
+		if(bctx.reqbufid != (uint)-1){
+			if(pd == tmppd){
+				THROW_EXCEPTION("Allocated buffer must be returned even on failed compression");
+			}
+			tmppd -= bctx.offset;
+			Specific::pushBuffer(tmppd, bctx.reqbufid);
+		}
+		return false;
+	}
+	return true;
+}
 //---------------------------------------------------------------------
 std::ostream& operator<<(std::ostream &_ros, const Buffer &_rb){
 	_ros<<"BUFFER ver = "<<(int)_rb.header().version;
@@ -601,6 +687,38 @@ std::ostream& operator<<(std::ostream &_ros, const Buffer &_rb){
 	_ros<<']';
 	return _ros;
 	
+}
+//------------------------------------------------------------------
+//		Controller
+//------------------------------------------------------------------
+/*virtual*/ Service::Controller::~Controller(){
+	
+}
+/*virtual*/ bool Service::Controller::compressBuffer(
+	BufferContext &_rbc,
+	const uint32 _bufsz,
+	char* &_rpb,
+	uint32 &_bl
+){
+	return false;
+}
+/*virtual*/ bool Service::Controller::decompressBuffer(
+	BufferContext &_rbc,
+	char* &_rpb,
+	uint32 &_bl
+){
+	return true;
+}
+char * Service::Controller::allocateBuffer(BufferContext &_rbc, uint32 &_cp){
+	const uint	mid(Specific::capacityToIndex(Buffer::ReadCapacity));
+	char		*newbuf(Specific::popBuffer(mid));
+	_cp = Buffer::ReadCapacity - _rbc.offset;
+	if(_rbc.reqbufid != (uint)-1){
+		THROW_EXCEPTION("Requesting more than one buffer");
+		return NULL;
+	}
+	_rbc.reqbufid = mid;
+	return newbuf + _rbc.offset;
 }
 
 }//namespace ipc

@@ -402,7 +402,7 @@ int Talker::doReceiveBuffers(uint32 _atmost, const ulong _sig){
 //----------------------------------------------------------------------
 bool Talker::doProcessReceivedBuffers(const TimeSpec &_rts){
 	//ConnectionUid	conuid(d.tkrid);
-	TalkerStub		ts(*this, _rts);
+	TalkerStub		ts(*this, d.rservice, _rts);
 	for(Data::RecvBufferVectorT::const_iterator it(d.receivedbufvec.begin()); it != d.receivedbufvec.end(); ++it){
 		
 		const Data::RecvBuffer	&rcvbuf(*it);
@@ -513,7 +513,7 @@ void Talker::doDispatchReceivedBuffer(char *_pbuf, const uint32 _bufsz, const So
 }
 //----------------------------------------------------------------------
 bool Talker::doExecuteSessions(const TimeSpec &_rcrttimepos){
-	TalkerStub ts(*this, _rcrttimepos);
+	TalkerStub ts(*this, d.rservice, _rcrttimepos);
 	COLLECT_DATA_1(d.statistics.maxTimerQueueSize, d.timerq.size());
 	//first we consider all timers
 	while(d.timerq.size() && d.timerq.top().timepos <= _rcrttimepos){
@@ -560,7 +560,7 @@ int Talker::doSendBuffers(const ulong _sig, const TimeSpec &_rcrttimepos){
 		return NOK;
 	}
 	
-	TalkerStub ts(*this, _rcrttimepos);
+	TalkerStub ts(*this, d.rservice, _rcrttimepos);
 	
 	if(_sig & fdt::OUTDONE){
 		cassert(d.sendq.size());

@@ -47,12 +47,21 @@ public:
 			return crttime;
 		}
 		int basePort()const;
+		Service& service(){
+			return rs;
+		}
 	private:
 		friend class Talker;
-		TalkerStub(Talker &_rt, const TimeSpec &_rcrttime):rt(_rt), sessionidx(0), crttime(_rcrttime){}
+		TalkerStub(
+			Talker &_rt,
+			Service &_rs,
+			 const TimeSpec &_rcrttime
+		):rt(_rt), rs(_rs), sessionidx(0), crttime(_rcrttime){}
 		Talker			&rt;
+		Service			&rs;
 		uint16			sessionidx;
 		const TimeSpec	&crttime;
+		
 	};
 	typedef Service							ServiceT;
 	

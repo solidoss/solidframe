@@ -30,6 +30,7 @@
 #include "core/manager.hpp"
 #include "core/service.hpp"
 #include "core/signals.hpp"
+#include "quicklz.h"
 
 #include "foundation/aio/aioselector.hpp"
 #include "foundation/aio/aioobject.hpp"
@@ -102,8 +103,52 @@ protected:
 struct IpcServiceController: foundation::ipc::Service::Controller{
 	/*virtual*/ void scheduleTalker(foundation::aio::Object *_po);
 	/*virtual*/ bool release();
+	/*virtual*/ bool compressBuffer(
+		foundation::ipc::BufferContext &_rbc,
+		const uint32 _bufsz,
+		char* &_rpb,
+		uint32 &_bl
+	);
+	/*virtual*/ bool decompressBuffer(
+		foundation::ipc::BufferContext &_rbc,
+		char* &_rpb,
+		uint32 &_bl
+	);
+private:
+	qlz_state_compress		qlz_comp_ctx;
+	qlz_state_decompress	qlz_decomp_ctx;
 };
 
+
+/*virtual*/ bool IpcServiceController::compressBuffer(
+	foundation::ipc::BufferContext &_rbc,
+	const uint32 _bufsz,
+	char* &_rpb,
+	uint32 &_bl
+){
+// 	if(_bufsz < 1024){
+// 		return false;
+// 	}
+	uint32	destcp(0);
+	char 	*pdest =  allocateBuffer(_rbc, destcp);
+	size_t	len = qlz_compress(_rpb, pdest, _bl, &qlz_comp_ctx);
+	_rpb = pdest;
+	_bl = len;
+	return true;
+}
+
+/*virtual*/ bool IpcServiceController::decompressBuffer(
+	foundation::ipc::BufferContext &_rbc,
+	char* &_rpb,
+	uint32 &_bl
+){
+	uint32	destcp(0);
+	char 	*pdest =  allocateBuffer(_rbc, destcp);
+	size_t	len = qlz_decompress(_rpb, pdest, &qlz_decomp_ctx);
+	_rpb = pdest;
+	_bl = len;
+	return true;
+}
 //------------------------------------------------------
 //		Manager::Data
 //------------------------------------------------------
