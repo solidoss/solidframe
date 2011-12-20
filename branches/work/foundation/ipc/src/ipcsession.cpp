@@ -124,29 +124,33 @@ struct StatisticData{
 	void sendSynchronousWhileSynchronous(ulong _sz);
 	void sendAsynchronous();
 	void failedDecompression();
+	void sendUncompressed(ulong _sz);
+	void sendCompressed(ulong _sz);
 	
-	ulong reconnectcnt;
-	ulong pushsignalcnt;
-	ulong pushreceivedbuffercnt;
-	ulong maxretransmitid;
-	ulong sendkeepalivecnt;
-	ulong sendpendingcnt;
-	ulong pushexpectedreceivedbuffercnt;
-	ulong alreadyreceivedcnt;
-	ulong toomanybuffersoutofordercnt;
-	ulong maxsendupdatessize;
-	ulong sendonlyupdatescnt;
-	ulong maxsendonlyupdatessize;
-	ulong maxsendsignalidxqueuesize;
-	ulong tryschedulekeepalivecnt;
-	ulong schedulekeepalivecnt;
-	ulong failedtimeoutcnt;
-	ulong timeoutcnt;
-	ulong sendasynchronouswhilesynchronous;
-	ulong sendsynchronouswhilesynchronous;
-	ulong maxsendsynchronouswhilesynchronous;
-	ulong sendasynchronous;
-	ulong faileddecompressions;
+	ulong	reconnectcnt;
+	ulong	pushsignalcnt;
+	ulong	pushreceivedbuffercnt;
+	ulong	 maxretransmitid;
+	ulong	sendkeepalivecnt;
+	ulong	sendpendingcnt;
+	ulong	pushexpectedreceivedbuffercnt;
+	ulong	alreadyreceivedcnt;
+	ulong	toomanybuffersoutofordercnt;
+	ulong	maxsendupdatessize;
+	ulong	sendonlyupdatescnt;
+	ulong	maxsendonlyupdatessize;
+	ulong	maxsendsignalidxqueuesize;
+	ulong	tryschedulekeepalivecnt;
+	ulong	schedulekeepalivecnt;
+	ulong	failedtimeoutcnt;
+	ulong	timeoutcnt;
+	ulong	sendasynchronouswhilesynchronous;
+	ulong	sendsynchronouswhilesynchronous;
+	ulong	maxsendsynchronouswhilesynchronous;
+	ulong	sendasynchronous;
+	ulong	faileddecompressions;
+	uint64	senduncompressed;
+	uint64	sendcompressed;
 };
 
 std::ostream& operator<<(std::ostream &_ros, const StatisticData &_rsd);
@@ -1421,7 +1425,11 @@ int Session::doExecuteConnected(Talker::TalkerStub &_rstub){
 		
 		doFillSendBuffer(bufidx);
 		
+		COLLECT_DATA_1(d.statistics.sendUncompressed, rsbd.buffer.bufferSize());
+		
 		rsbd.buffer.compress(_rstub.service().controller());
+		
+		COLLECT_DATA_1(d.statistics.sendCompressed, rsbd.buffer.bufferSize());
 		
 		d.resetKeepAlive();
 		
@@ -1708,6 +1716,14 @@ void StatisticData::failedDecompression(){
 	++faileddecompressions;
 }
 
+void StatisticData::sendUncompressed(ulong _sz){
+	senduncompressed += _sz;
+}
+
+void StatisticData::sendCompressed(ulong _sz){
+	sendcompressed += _sz;
+}
+
 std::ostream& operator<<(std::ostream &_ros, const StatisticData &_rsd){
 	_ros<<"reconnectcnt                         = "<<_rsd.reconnectcnt<<std::endl;
 	_ros<<"pushsignalcnt                        = "<<_rsd.pushsignalcnt<<std::endl;
@@ -1731,6 +1747,8 @@ std::ostream& operator<<(std::ostream &_ros, const StatisticData &_rsd){
 	_ros<<"maxsendsynchronouswhilesynchronous   = "<<_rsd.maxsendsynchronouswhilesynchronous<<std::endl;
 	_ros<<"sendasynchronous                     = "<<_rsd.sendasynchronous<<std::endl;
 	_ros<<"faileddecompressions                 = "<<_rsd.faileddecompressions<<std::endl;
+	_ros<<"senduncompressed                     = "<<_rsd.senduncompressed<<std::endl;
+	_ros<<"sendcompressed                       = "<<_rsd.sendcompressed<<std::endl;
 	return _ros;
 }
 }//namespace
