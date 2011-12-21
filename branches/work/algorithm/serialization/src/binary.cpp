@@ -863,7 +863,7 @@ int Deserializer::parseDummyStream(Base &_rb, FncData &_rfd){
 	return OK;
 }
 Deserializer& Deserializer::pushBinary(void *_p, size_t _sz, const char *_name){
-	fstk.push(FncData(&Deserializer::parseBinary<>, _p, _name, _sz));
+	fstk.push(FncData(&Deserializer::parseBinary<0>, _p, _name, _sz));
 	return *this;
 }
 //========================================================================

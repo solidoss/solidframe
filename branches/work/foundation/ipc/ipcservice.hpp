@@ -225,7 +225,7 @@ public:
 	int basePort()const;
 	void insertObject(Talker &_ro, const ObjectUidT &_ruid);
 	void eraseObject(const Talker &_ro);
-	
+	const serialization::TypeMapperBase& typeMapper() const;
 private:
 	friend class Talker;
 	friend class Session;
@@ -242,7 +242,6 @@ private:
 	int allocateTalkerForNewSession(bool _force = false);
 	uint32 keepAliveTimeout()const;
 	void connectSession(const SocketAddressPair4 &_raddr);
-	const serialization::TypeMapperBase& typeMapper() const;
 	Controller& controller();
 private:
 	typedef serialization::IdTypeMapper<

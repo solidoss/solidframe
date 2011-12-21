@@ -461,7 +461,7 @@ class Deserializer: public Base{
 	template <typename T>
 	static int parse(Base& _rd, FncData &_rfd);
 	
-	template <uint S = 0>
+	template <uint S>
 	static int parseBinary(Base &_rb, FncData &_rfd);
 	
 	static int parseBinaryString(Base &_rb, FncData &_rfd);
@@ -595,7 +595,7 @@ class Deserializer: public Base{
 		else
 			rd.fstk.push(FncData(&Deserializer::parseDummyStream, NULL));
 		//TODO: move this line - so it is called before parseStreamBegin
-		rd.fstk.push(FncData(&Deserializer::parseBinary, &rsp.sz, _rfd.n, sizeof(int64)));
+		rd.fstk.push(FncData(&Deserializer::parseBinary<0>, &rsp.sz, _rfd.n, sizeof(int64)));
 		return CONTINUE;
 	}
 	template <typename T>
