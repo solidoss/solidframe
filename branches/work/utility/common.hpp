@@ -109,4 +109,75 @@ inline size_t fast_padding_size(const size_t _sz, const size_t _bitpad){
 	return ((_sz >> _bitpad) + 1) << _bitpad;
 }
 
+uint8 bit_count(const uint8 _v);
+uint16 bit_count(const uint16 _v);
+uint32 bit_count(const uint32 _v);
+
+template <typename T>
+struct CRCIndex;
+
+
+template<>
+struct CRCIndex<uint8>{
+	CRCIndex(uint8 _idx);
+	CRCIndex(uint8 _v, bool):v(_v){}
+	bool ok()const{
+		return v != (uint8)-1;
+	}
+	uint8 value()const{
+		return v;
+	}
+	
+	uint8 crc()const{
+		return v >> 27;
+	}
+	
+	uint8 index()const{
+		return v & ((1 << 28) - 1);
+	}
+private:
+	uint8	v;
+};
+
+template<>
+struct CRCIndex<uint16>{
+	CRCIndex(uint16 _idx);
+	CRCIndex(uint16 _v, bool):v(_v){}
+	bool ok()const{
+		return v != (uint16)-1;
+	}
+	uint16 value()const{
+		return v;
+	}
+	uint16 crc()const{
+		return v >> 12;
+	}
+	uint16 index()const{
+		return v & ((1 << 13) - 1);
+	}
+private:
+	uint16	v;
+};
+
+template<>
+struct CRCIndex<uint32>{
+	CRCIndex(uint32 _idx);
+	CRCIndex(uint32 _v, bool):v(_v){}
+	bool ok()const{
+		return v != (uint32)-1;
+	}
+	uint32 value()const{
+		return v;
+	}
+	uint32 crc()const{
+		return v >> 5;
+	}
+	uint32 index()const{
+		return v & ((1 << 6) - 1);
+	}
+private:
+	uint32	v;
+};
+
+
 #endif

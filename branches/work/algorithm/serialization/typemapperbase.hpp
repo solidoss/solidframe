@@ -46,7 +46,7 @@ public:
 		void *_pser, void *_p,
 		const char *_pid, const char *_name
 	)const;
-	virtual void prepareParsePointer(
+	virtual bool prepareParsePointer(
 		void *_pdes, std::string &_rs,
 		void *_p, const char *_name
 	)const;
@@ -63,9 +63,13 @@ protected:
 	virtual ~TypeMapperBase();
 	//! Insert a function callback
 	uint32 insertFunction(FncT, uint32 _pos, const char *_name);
+	uint32 insertFunction(FncT, uint16 _pos, const char *_name);
+	uint32 insertFunction(FncT, uint8  _pos, const char *_name);
 	FncT function(const uint32 _id, uint32* &_rpid)const;
 	FncT function(const char *_pid, uint32* &_rpid)const;
 	FncT function(const uint32 _id)const;
+	FncT function(const uint16 _id)const;
+	FncT function(const uint8  _id)const;
 private:
 	struct Data;
 	Data &d;

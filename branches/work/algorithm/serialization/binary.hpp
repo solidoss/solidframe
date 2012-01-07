@@ -448,8 +448,11 @@ class Deserializer: public Base{
 		void		*p = _rfd.p;
 		const char	*n = _rfd.n;
 		rd.fstk.pop();
-		rd.rtm.prepareParsePointer(&rd, rd.tmpstr, p, n);
-		return CONTINUE;
+		if(rd.rtm.prepareParsePointer(&rd, rd.tmpstr, p, n)){
+			return CONTINUE;
+		}else{
+			return BAD;
+		}
 	}
 	static int parseTypeId(Base& _rd, FncData &_rfd){
 		Deserializer &rd(static_cast<Deserializer&>(_rd));

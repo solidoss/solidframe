@@ -89,4 +89,70 @@ const char * charToString(unsigned _c){
 #endif
 }
 
+uint8 bit_count(const uint8 _v){
+	static const uint8 cnts[] = {
+		0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4, 
+		1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5, 
+		1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5, 
+		2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 
+		1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5, 
+		2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 
+		2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 
+		3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7, 
+		1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5, 
+		2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 
+		2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 
+		3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7, 
+		2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 
+		3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7, 
+		3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7, 
+		4, 5, 5, 6, 5, 6, 6, 7, 5, 6, 6, 7, 6, 7, 7, 8
+	};
+	return cnts[_v];
+}
+
+uint16 bit_count(const uint16 _v){
+	return bit_count((uint8)(_v & 0xff)) + bit_count((uint8)(_v >> 8));
+}
+
+uint32 bit_count(const uint32 _v){
+	return bit_count((uint8)(_v & 0xff)) +
+		bit_count((uint8)((_v >> 8) & 0xff)) +
+		bit_count((uint8)((_v >> 16) & 0xff)) +
+		bit_count((uint8)((_v >> 24) & 0xff));
+}
+
+uint8 compute_crc_value(uint8 _pos){
+	if(_pos < (1 << 5)){
+		return (bit_count(_pos) << 5) | _pos;
+	}else{
+		return 0xff;
+	}
+}
+
+uint16 compute_crc_value(uint16 _pos){
+	if(_pos < (1 << 12)){
+		return (bit_count(_pos) << 12) | _pos;
+	}else{
+		return 0xffff;
+	}
+}
+
+uint32 compute_crc_value(uint32 _pos){
+	if(_pos < (1 << 27)){
+		return (bit_count(_pos) << 27) | _pos;
+	}else{
+		return 0xffffffff;
+	}
+}
+
+
+CRCIndex<uint8>::CRCIndex(uint8 _idx):v(compute_crc_value(_idx)){
+}
+
+CRCIndex<uint16>::CRCIndex(uint16 _idx):v(compute_crc_value(_idx)){
+}
+
+CRCIndex<uint32>::CRCIndex(uint32 _idx):v(compute_crc_value(_idx)){
+}
 

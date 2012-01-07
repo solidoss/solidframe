@@ -35,11 +35,13 @@ public:
 	IdTypeMapper(){}
 	template <class T>
 	uint32 insert(uint32 _idx = -1){
-		return this->insertFunction(&doMap<T>, _idx, typeid(T).name());
+		typename UnsignedType<Int>::Type idx(_idx);
+		return this->insertFunction(&doMap<T>, idx, typeid(T).name());
 	}
 	template <class T, typename CT>
 	uint32 insert(uint32 _idx = -1){
-		return this->insertFunction(&doMap<T, CT>, _idx, typeid(T).name());
+		typename UnsignedType<Int>::Type idx(_idx);
+		return this->insertFunction(&doMap<T, CT>, idx, typeid(T).name());
 	}
 	uint32 realIdentifier(uint32 _idx){
 		return _idx;
@@ -83,7 +85,6 @@ private:
 	)const{
 		uint32	*pid;
 		(*this->function(_id, pid))(_pt, _pser, NULL, pid, _name);
-		
 	}
 	/*virtual*/ void prepareStorePointer(
 		void *_pser, void *_pt,
@@ -93,13 +94,20 @@ private:
 		(*this->function(_pid, pid))(_pt, _pser, NULL, pid, _name);
 	}
 	
-	/*virtual*/ void prepareParsePointer(
+	/*virtual*/ bool prepareParsePointer(
 		void *_pdes, std::string &_rs,
 		void *_p, const char *_name
 	)const{
-		const Int	&rid(*reinterpret_cast<const Int*>(_rs.data()));
-		uint32		id(rid);
-		(*this->function(id))(_p, NULL, _pdes, NULL, _name);
+		const Int							&rid(*reinterpret_cast<const Int*>(_rs.data()));
+		typename UnsignedType<Int>::Type	idx(rid);
+		FncT								pf(this->function(idx));
+		
+		if(pf){
+			(*pf)(_p, NULL, _pdes, NULL, _name);
+			return true;
+		}else{
+			return false;
+		}
 	}
 	/*virtual*/ void prepareParsePointerId(
 		void *_pdes, std::string &_rs,

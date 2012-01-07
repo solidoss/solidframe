@@ -23,6 +23,7 @@
 #include <iostream>
 #include <cstring>
 
+#include "system/exception.hpp"
 #include "system/debug.hpp"
 #include "system/socketaddress.hpp"
 #include "system/specific.hpp"
@@ -1294,7 +1295,11 @@ void Session::doParseBuffer(const Buffer &_rbuf/*, const ConnectionUid &_rconid*
 		
 		rv = rrsd.pdeserializer->run(bpos, blen);
 		
-		cassert(rv >= 0);
+		if(rv < 0){
+			THROW_EXCEPTION("Deserialization error");
+			cassert(false);
+		}
+		
 		blen -= rv;
 		bpos += rv;
 		
@@ -1330,7 +1335,7 @@ int Session::doExecuteConnecting(Talker::TalkerStub &_rstub){
 	buf.id(d.sendid);
 	d.incrementSendId();
 	
-	int32			*pi = (int32*)buf.dataEnd();
+	int32					*pi = (int32*)buf.dataEnd();
 	
 	*pi = htonl(_rstub.basePort());
 	buf.dataSize(buf.dataSize() + sizeof(int32));
@@ -1518,7 +1523,10 @@ void Session::doFillSendBuffer(const uint32 _bufidx){
 			
 			vdbgx(Dbg::ipc, "d.crtsigbufcnt = "<<d.currentbuffersignalcount<<" serialized len = "<<rv);
 			
-			cassert(rv >= 0);//TODO: deal with the situation!
+			if(rv < 0){
+				THROW_EXCEPTION("Serialization error");
+				cassert(false);
+			}
 			
 			rsbd.buffer.dataSize(rsbd.buffer.dataSize() + rv);
 			

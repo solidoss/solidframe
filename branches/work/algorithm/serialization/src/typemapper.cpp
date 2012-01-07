@@ -103,8 +103,39 @@ TypeMapperBase::FncT TypeMapperBase::function(const char *_pid, uint32* &_rpid)c
 }
 TypeMapperBase::FncT TypeMapperBase::function(const uint32 _id)const{
 	Mutex::Locker				lock(d.mtx);
-	const Data::FunctionStub	&rfs(d.fncvec[_id]);
-	return rfs.pf;
+	const CRCIndex<uint32>		crcidx(_id, true);
+	const uint32				idx(crcidx.index());
+	if(idx < d.fncvec.size()){
+		const Data::FunctionStub	&rfs(d.fncvec[idx]);
+		if(_id == rfs.id){
+			return rfs.pf;
+		}
+	}
+	return NULL;
+}
+
+TypeMapperBase::FncT TypeMapperBase::function(const uint16 _id)const{
+	const CRCIndex<uint16>		crcidx(_id, true);
+	const uint16				idx(crcidx.index());
+	if(idx < d.fncvec.size()){
+		const Data::FunctionStub	&rfs(d.fncvec[idx]);
+		if(_id == rfs.id){
+			return rfs.pf;
+		}
+	}
+	return NULL;
+}
+
+TypeMapperBase::FncT TypeMapperBase::function(const uint8  _id)const{
+	const CRCIndex<uint8>		crcidx(_id, true);
+	const uint8					idx(crcidx.index());
+	if(idx < d.fncvec.size()){
+		const Data::FunctionStub	&rfs(d.fncvec[idx]);
+		if(_id == rfs.id){
+			return rfs.pf;
+		}
+	}
+	return NULL;
 }
 
 uint32 TypeMapperBase::insertFunction(FncT _f, uint32 _pos, const char *_name){
@@ -127,10 +158,89 @@ uint32 TypeMapperBase::insertFunction(FncT _f, uint32 _pos, const char *_name){
 			return _pos;
 		}
 	}
+	
+	CRCIndex<uint32>	crcval(_pos);
+	if(!crcval.ok()){
+		THROW_EXCEPTION_EX("Invalid CRCValue", _pos);
+	}
+	
 	Data::FunctionStub	&rfs(d.fncvec[_pos]);
 	rfs.pf = _f;
 	rfs.name = _name;
-	rfs.id = _pos;
+	rfs.id = crcval.value();
+	if(d.fncmap.find(_name) == d.fncmap.end()){
+		d.fncmap[rfs.name] = _pos;
+	}
+	return rfs.id;
+}
+
+uint32 TypeMapperBase::insertFunction(FncT _f, uint16 _pos, const char *_name){
+	Mutex::Locker lock(d.mtx);
+	if(_pos == (uint32)-1){
+		while(d.crtpos < d.fncvec.size() && d.fncvec[d.crtpos].pf != NULL){
+			++d.crtpos;
+		}
+		if(d.crtpos == d.fncvec.size()){
+			d.fncvec.push_back(Data::FunctionStub());
+		}
+		_pos = d.crtpos;
+		++d.crtpos;
+	}else{
+		if(_pos >= d.fncvec.size()){
+			d.fncvec.resize(_pos + 1);
+		}
+		if(d.fncvec[_pos].pf){
+			THROW_EXCEPTION_EX("Overlapping identifiers", _pos);
+			return _pos;
+		}
+	}
+	
+	CRCIndex<uint16>	crcval(_pos);
+	
+	if(!crcval.ok()){
+		THROW_EXCEPTION_EX("Invalid CRCValue", _pos);
+	}
+	
+	Data::FunctionStub	&rfs(d.fncvec[_pos]);
+	rfs.pf = _f;
+	rfs.name = _name;
+	rfs.id = crcval.value();
+	if(d.fncmap.find(_name) == d.fncmap.end()){
+		d.fncmap[rfs.name] = _pos;
+	}
+	return rfs.id;
+}
+
+uint32 TypeMapperBase::insertFunction(FncT _f, uint8  _pos, const char *_name){
+	Mutex::Locker lock(d.mtx);
+	if(_pos == (uint8)-1){
+		while(d.crtpos < d.fncvec.size() && d.fncvec[d.crtpos].pf != NULL){
+			++d.crtpos;
+		}
+		if(d.crtpos == d.fncvec.size()){
+			d.fncvec.push_back(Data::FunctionStub());
+		}
+		_pos = d.crtpos;
+		++d.crtpos;
+	}else{
+		if(_pos >= d.fncvec.size()){
+			d.fncvec.resize(_pos + 1);
+		}
+		if(d.fncvec[_pos].pf){
+			THROW_EXCEPTION_EX("Overlapping identifiers", _pos);
+			return _pos;
+		}
+	}
+	
+	CRCIndex<uint8>	crcval(_pos);
+	if(!crcval.ok()){
+		THROW_EXCEPTION_EX("Invalid CRCValue", _pos);
+	}
+	
+	Data::FunctionStub	&rfs(d.fncvec[_pos]);
+	rfs.pf = _f;
+	rfs.name = _name;
+	rfs.id = crcval.value();
 	if(d.fncmap.find(_name) == d.fncmap.end()){
 		d.fncmap[rfs.name] = _pos;
 	}
@@ -149,11 +259,11 @@ uint32 TypeMapperBase::insertFunction(FncT _f, uint32 _pos, const char *_name){
 )const{
 }
 
-/*virtual*/ void TypeMapperBase::prepareParsePointer(
+/*virtual*/ bool TypeMapperBase::prepareParsePointer(
 	void *_pdes, std::string &_rs,
 	void *_p, const char *_name
 )const{
-	
+	return false;
 }
 /*virtual*/ void TypeMapperBase::prepareParsePointerId(
 	void *_pdes, std::string &_rs,
