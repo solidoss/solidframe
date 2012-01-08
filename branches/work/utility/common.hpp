@@ -178,7 +178,7 @@ struct CRCValue<uint8>{
 	CRCValue(uint8 _idx);
 	CRCValue(const CRCValue<uint8> &_v):v(_v.v){}
 	bool ok()const{
-		return v != (uint32)-1;
+		return v != (uint8)-1;
 	}
 	uint8 value()const{
 		return v & ((1 << 5) - 1);
