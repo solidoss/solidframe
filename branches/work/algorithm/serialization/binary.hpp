@@ -115,13 +115,13 @@ protected:
 			FncT _f,
 			void *_p,
 			const char *_n = NULL,
-			uint32 _s = -1
+			uint64 _s = -1
 		):f(_f),p(_p),n(_n),s(_s){}
 		
 		FncT		f;	//!< Pointer to function
 		void		*p;	//!< Pointer to data
 		const char 	*n;	//!< Some name - of the item serialized
-		uint32		s;	//!< Some size
+		uint64		s;	//!< Some size
 	};
 	
 	struct ExtData{
