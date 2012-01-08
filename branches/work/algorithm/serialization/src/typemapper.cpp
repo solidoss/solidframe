@@ -103,8 +103,8 @@ TypeMapperBase::FncT TypeMapperBase::function(const char *_pid, uint32* &_rpid)c
 }
 TypeMapperBase::FncT TypeMapperBase::function(const uint32 _id)const{
 	Mutex::Locker				lock(d.mtx);
-	const CRCIndex<uint32>		crcidx(_id, true);
-	const uint32				idx(crcidx.index());
+	const CRCValue<uint32>		crcval(CRCValue<uint32>::check_and_create(_id));
+	const uint32				idx(crcval.value());
 	if(idx < d.fncvec.size()){
 		const Data::FunctionStub	&rfs(d.fncvec[idx]);
 		if(_id == rfs.id){
@@ -115,8 +115,9 @@ TypeMapperBase::FncT TypeMapperBase::function(const uint32 _id)const{
 }
 
 TypeMapperBase::FncT TypeMapperBase::function(const uint16 _id)const{
-	const CRCIndex<uint16>		crcidx(_id, true);
-	const uint16				idx(crcidx.index());
+	Mutex::Locker				lock(d.mtx);
+	const CRCValue<uint16>		crcval(CRCValue<uint16>::check_and_create(_id));
+	const uint16				idx(crcval.value());
 	if(idx < d.fncvec.size()){
 		const Data::FunctionStub	&rfs(d.fncvec[idx]);
 		if(_id == rfs.id){
@@ -127,8 +128,9 @@ TypeMapperBase::FncT TypeMapperBase::function(const uint16 _id)const{
 }
 
 TypeMapperBase::FncT TypeMapperBase::function(const uint8  _id)const{
-	const CRCIndex<uint8>		crcidx(_id, true);
-	const uint8					idx(crcidx.index());
+	Mutex::Locker				lock(d.mtx);
+	const CRCValue<uint8>		crcval(CRCValue<uint8>::check_and_create(_id));
+	const uint8					idx(crcval.value());
 	if(idx < d.fncvec.size()){
 		const Data::FunctionStub	&rfs(d.fncvec[idx]);
 		if(_id == rfs.id){
@@ -159,7 +161,8 @@ uint32 TypeMapperBase::insertFunction(FncT _f, uint32 _pos, const char *_name){
 		}
 	}
 	
-	CRCIndex<uint32>	crcval(_pos);
+	CRCValue<uint32>	crcval(_pos);
+	
 	if(!crcval.ok()){
 		THROW_EXCEPTION_EX("Invalid CRCValue", _pos);
 	}
@@ -167,7 +170,7 @@ uint32 TypeMapperBase::insertFunction(FncT _f, uint32 _pos, const char *_name){
 	Data::FunctionStub	&rfs(d.fncvec[_pos]);
 	rfs.pf = _f;
 	rfs.name = _name;
-	rfs.id = crcval.value();
+	rfs.id = (uint32)crcval;
 	if(d.fncmap.find(_name) == d.fncmap.end()){
 		d.fncmap[rfs.name] = _pos;
 	}
@@ -195,7 +198,7 @@ uint32 TypeMapperBase::insertFunction(FncT _f, uint16 _pos, const char *_name){
 		}
 	}
 	
-	CRCIndex<uint16>	crcval(_pos);
+	CRCValue<uint16>	crcval(_pos);
 	
 	if(!crcval.ok()){
 		THROW_EXCEPTION_EX("Invalid CRCValue", _pos);
@@ -204,7 +207,7 @@ uint32 TypeMapperBase::insertFunction(FncT _f, uint16 _pos, const char *_name){
 	Data::FunctionStub	&rfs(d.fncvec[_pos]);
 	rfs.pf = _f;
 	rfs.name = _name;
-	rfs.id = crcval.value();
+	rfs.id = (uint16)crcval;
 	if(d.fncmap.find(_name) == d.fncmap.end()){
 		d.fncmap[rfs.name] = _pos;
 	}
@@ -232,7 +235,8 @@ uint32 TypeMapperBase::insertFunction(FncT _f, uint8  _pos, const char *_name){
 		}
 	}
 	
-	CRCIndex<uint8>	crcval(_pos);
+	CRCValue<uint8>		crcval(_pos);
+	
 	if(!crcval.ok()){
 		THROW_EXCEPTION_EX("Invalid CRCValue", _pos);
 	}
@@ -240,7 +244,7 @@ uint32 TypeMapperBase::insertFunction(FncT _f, uint8  _pos, const char *_name){
 	Data::FunctionStub	&rfs(d.fncvec[_pos]);
 	rfs.pf = _f;
 	rfs.name = _name;
-	rfs.id = crcval.value();
+	rfs.id = (uint8)crcval;
 	if(d.fncmap.find(_name) == d.fncmap.end()){
 		d.fncmap[rfs.name] = _pos;
 	}

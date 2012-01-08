@@ -1232,12 +1232,18 @@ bool Session::doFreeSentBuffers(const Buffer &_rbuf/*, const ConnectionUid &_rco
 }
 //---------------------------------------------------------------------
 void Session::doParseBufferDataType(const char *&_bpos, int &_blen, int _firstblen){
-	uint8	datatype(*_bpos);
+	uint8				datatype(*_bpos);
+	CRCValue<uint8>		crcval(CRCValue<uint8>::check_and_create(datatype));
+	
+	if(!crcval.ok()){
+		THROW_EXCEPTION("Deserialization error");
+		cassert(false);
+	}
 	
 	++_bpos;
 	--_blen;
 	
-	switch(datatype){
+	switch(crcval.value()){
 		case Buffer::ContinuedSignal:
 			vdbgx(Dbg::ipc, "continuedsignal");
 			cassert(_blen == _firstblen);
@@ -1272,6 +1278,7 @@ void Session::doParseBufferDataType(const char *&_bpos, int &_blen, int _firstbl
 			d.rcvdsignalq.pop();
 			break;
 		default:{
+			THROW_EXCEPTION("Deserialization error");
 			cassert(false);
 		}
 	}

@@ -334,8 +334,9 @@ inline uint32 Buffer::dataFreeSize()const{
 }
 
 inline void Buffer::dataType(DataTypes _dt){
-	uint8 dt = _dt;
-	*reinterpret_cast<uint8*>(dataEnd()) = dt;
+	uint8				dt = _dt;
+	CRCValue<uint8>		crcval(dt);
+	*reinterpret_cast<uint8*>(dataEnd()) = (uint8)crcval;
 	++dl;
 }
 

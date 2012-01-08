@@ -114,69 +114,84 @@ uint16 bit_count(const uint16 _v);
 uint32 bit_count(const uint32 _v);
 
 template <typename T>
-struct CRCIndex;
+struct CRCValue;
 
 
 template<>
-struct CRCIndex<uint8>{
-	CRCIndex(uint8 _idx);
-	CRCIndex(uint8 _v, bool):v(_v){}
-	bool ok()const{
-		return v != (uint8)-1;
-	}
-	uint8 value()const{
-		return v;
-	}
+struct CRCValue<uint32>{
+	static CRCValue<uint32> check_and_create(uint32 _v);
+	static bool check(uint32 _v);
 	
-	uint8 crc()const{
-		return v >> 27;
-	}
+	CRCValue(uint32 _v);
+	CRCValue(const CRCValue<uint32> &_v):v(_v.v){}
 	
-	uint8 index()const{
-		return v & ((1 << 28) - 1);
-	}
-private:
-	uint8	v;
-};
-
-template<>
-struct CRCIndex<uint16>{
-	CRCIndex(uint16 _idx);
-	CRCIndex(uint16 _v, bool):v(_v){}
-	bool ok()const{
-		return v != (uint16)-1;
-	}
-	uint16 value()const{
-		return v;
-	}
-	uint16 crc()const{
-		return v >> 12;
-	}
-	uint16 index()const{
-		return v & ((1 << 13) - 1);
-	}
-private:
-	uint16	v;
-};
-
-template<>
-struct CRCIndex<uint32>{
-	CRCIndex(uint32 _idx);
-	CRCIndex(uint32 _v, bool):v(_v){}
 	bool ok()const{
 		return v != (uint32)-1;
 	}
 	uint32 value()const{
+		return v & ((1 << 27) - 1);
+	}
+	
+	uint32 crc()const{
+		return v >> 27;
+	}
+	
+	operator uint32()const{
 		return v;
 	}
-	uint32 crc()const{
-		return v >> 5;
+	
+private:
+	CRCValue(uint32 _v, bool):v(_v){}
+	const uint32	v;
+};
+
+template<>
+struct CRCValue<uint16>{
+	static CRCValue<uint16> check_and_create(uint16 _v);
+	static bool check(uint16 _v);
+	
+	CRCValue(uint16 _idx);
+	CRCValue(const CRCValue<uint16> &_v):v(_v.v){}
+	
+	bool ok()const{
+		return v != (uint16)-1;
 	}
-	uint32 index()const{
-		return v & ((1 << 6) - 1);
+	uint16 value()const{
+		return v & ((1 << 12) - 1);
+	}
+	uint16 crc()const{
+		return v >> 12;
+	}
+	operator uint16()const{
+		return v;
 	}
 private:
-	uint32	v;
+	CRCValue(uint16 _v, bool):v(_v){}
+	const uint16	v;
+};
+
+template<>
+struct CRCValue<uint8>{
+	static CRCValue<uint8> check_and_create(uint8 _v);
+	static bool check(uint8 _v);
+	
+	CRCValue(uint8 _idx);
+	CRCValue(const CRCValue<uint8> &_v):v(_v.v){}
+	bool ok()const{
+		return v != (uint32)-1;
+	}
+	uint8 value()const{
+		return v & ((1 << 5) - 1);
+	}
+	uint8 crc()const{
+		return v >> 5;
+	}
+	operator uint8()const{
+		return v;
+	}
+private:
+	CRCValue(uint8 _v, bool):v(_v){}
+	const uint8	v;
 };
 
 
