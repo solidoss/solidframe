@@ -16,4 +16,12 @@ This is a pool of pending features and changes
     * One should be able to register the same structure/class multiple times, every time being constructed on creation with a different constructor.
     * Also we need to be able to specify the position on which the map will be registered.
  # Modify the ipc::Service to make use of the changes in serialization. We need to be able to specify the type id of a signal to be sent.
+ # Add support for pushUtf8(std::string&) to binary::serialization - the string will be serialized as null terminated data, i.e. no size.
+ # Add support for limits to binary::serialization. Add the following methods and changes to both serializer and deserializer:
+   * constructor(const Limits *_pdefaultlimits); 
+   * resetLimits(); //reset all limits to default
+   * pushStringLimit(uint32(256)) / pushStringLimit(), reset to default.
+   * pushStreamLimit(uint64(200000000)) / pushStreamLimit(), reset to default.
+   * pushContainerLimit(uint32()) - pushContainerLimit(), reset to default.
+
  
