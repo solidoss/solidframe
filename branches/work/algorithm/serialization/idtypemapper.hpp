@@ -43,7 +43,7 @@ public:
 		typename UnsignedType<Int>::Type idx(_idx);
 		return this->insertFunction(&doMap<T, CT>, idx, typeid(T).name());
 	}
-	uint32 realIdentifier(uint32 _idx){
+	uint32 realIdentifier(uint32 _idx)const{
 		return _idx;
 	}
 private:

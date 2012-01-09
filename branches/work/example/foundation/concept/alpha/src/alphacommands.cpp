@@ -949,11 +949,18 @@ int Idle::receiveString(
 //---------------------------------------------------------------
 Command::Command(){}
 void Command::initStatic(Manager &_rm){
+	SignalTypeIds ids;
 	fdt::ipc::Service::the().registerSerializationType<SendStringSignal>();
 	fdt::ipc::Service::the().registerSerializationType<SendStreamSignal>();
-	fdt::ipc::Service::the().registerSerializationType<FetchMasterSignal>();
-	fdt::ipc::Service::the().registerSerializationType<FetchSlaveSignal>();
-	fdt::ipc::Service::the().registerSerializationType<RemoteListSignal>();
+	ids.fetchmastercommand =  fdt::ipc::Service::the().registerSerializationType<FetchMasterSignal>();
+	ids.fetchslavecommand = fdt::ipc::Service::the().registerSerializationType<FetchSlaveSignal>();
+	ids.remotelistcommand = fdt::ipc::Service::the().registerSerializationType<RemoteListSignal>();
+	ids.remotelistresponse = fdt::ipc::Service::the().registerSerializationType<RemoteListSignal, NumberType<1> >();
+	idbg("ids.fetchmastercommand = "<<ids.fetchmastercommand);
+	idbg("ids.fetchslavecommand = "<<ids.fetchslavecommand);
+	idbg("ids.remotelistcommand = "<<ids.remotelistcommand);
+	idbg("ids.remotelistresponse = "<<ids.remotelistresponse);
+	SignalTypeIds::the(&ids);
 }
 /*virtual*/ Command::~Command(){}
 

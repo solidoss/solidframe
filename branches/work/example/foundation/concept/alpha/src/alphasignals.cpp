@@ -26,12 +26,22 @@ namespace concept{
 
 namespace alpha{
 
+const SignalTypeIds& SignalTypeIds::the(const SignalTypeIds *_pids){
+	static const SignalTypeIds ids(*_pids);
+	return ids;
+}
+	
 //-----------------------------------------------------------------------------------
 // RemoteListSignal
 //-----------------------------------------------------------------------------------
 RemoteListSignal::RemoteListSignal(
 	uint32 _tout, uint16 _sentcnt
 ): ppthlst(NULL),err(-1),tout(_tout), success(0), ipcstatus(IpcOnSender){
+	idbg(""<<(void*)this);
+}
+RemoteListSignal::RemoteListSignal(
+	const NumberType<1>&
+):ppthlst(NULL), err(-1),tout(0), success(0), ipcstatus(IpcOnSender){
 	idbg(""<<(void*)this);
 }
 RemoteListSignal::~RemoteListSignal(){
@@ -92,7 +102,7 @@ void RemoteListSignal::ipcFail(int _err){
 void RemoteListSignal::ipcSuccess(){
 	Mutex::Locker lock(mutex());
 	success = 2;
-	idbg("failed on peer");
+	idbg("");
 }
 
 int RemoteListSignal::execute(
@@ -130,7 +140,7 @@ int RemoteListSignal::execute(
 		idbg("dir_iterator exception :"<<ex.what());
 		err = -1;
 		strpth = ex.what();
-		if(Manager::the().ipc().sendSignal(_rthis_ptr, conid)){
+		if(Manager::the().ipc().sendSignal(_rthis_ptr, SignalTypeIds::the().remotelistresponse, conid)){
 			idbg("connector was destroyed");
 		}
 		return BAD;
@@ -146,7 +156,7 @@ int RemoteListSignal::execute(
 	}
 	err = 0;
 	//Thread::sleep(1000 * 20);
-	if(Manager::the().ipc().sendSignal(_rthis_ptr, conid)){
+	if(Manager::the().ipc().sendSignal(_rthis_ptr, SignalTypeIds::the().remotelistresponse, conid)){
 		idbg("connector was destroyed "<<conid.tid<<' '<<conid.idx<<' '<<conid.uid);
 	}else{
 		idbg("signal sent "<<conid.tid<<' '<<conid.idx<<' '<<conid.uid);

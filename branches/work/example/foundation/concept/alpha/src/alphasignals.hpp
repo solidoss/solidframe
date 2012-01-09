@@ -55,11 +55,21 @@ S& operator&(ObjectUidT &_v, S &_s){
 namespace concept{
 namespace alpha{
 
+struct SignalTypeIds{
+	static const SignalTypeIds& the(const SignalTypeIds *_pids = NULL);
+	uint32 fetchmastercommand;
+	uint32 fetchslavecommand;
+	uint32 fetchslaveresponse;
+	uint32 remotelistcommand;
+	uint32 remotelistresponse;
+};
+
 //---------------------------------------------------------------
 // RemoteListSignal
 //---------------------------------------------------------------
 struct RemoteListSignal: Dynamic<RemoteListSignal, DynamicShared<foundation::Signal> >{
 	RemoteListSignal(uint32 _tout = 0, uint16 _sentcnt = 1);
+	RemoteListSignal(const NumberType<1>&);
 	~RemoteListSignal();
 	int execute(
 		DynamicPointer<Signal> &_rthis_ptr,

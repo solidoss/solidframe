@@ -194,5 +194,12 @@ private:
 	const uint8	v;
 };
 
+template <int N>
+struct NumberType{
+	enum{
+		Number = N
+	};
+};
+
 
 #endif

@@ -23,7 +23,7 @@
 #define FOUNDATION_IPC_SRC_IPC_TALKER_HPP
 
 #include "foundation/aio/aiosingleobject.hpp"
-
+#include "foundation/ipc/ipcconnectionuid.hpp"
 struct TimeSpec;
 
 namespace foundation{
@@ -70,7 +70,12 @@ public:
 	int execute(ulong _sig, TimeSpec &_tout);
 	int execute();
 	int accept(foundation::Visitor &);
-	int pushSignal(DynamicPointer<Signal> &_psig, const ConnectionUid &_rconid, uint32 _flags);
+	int pushSignal(
+		DynamicPointer<Signal> &_psig,
+		const SerializationTypeIdT &_rtid,
+		const ConnectionUid &_rconid,
+		uint32 _flags
+	);
 	void pushSession(Session *_ps, ConnectionUid &_rconid, bool _exists = false);
 	void disconnectSessions();
 private:

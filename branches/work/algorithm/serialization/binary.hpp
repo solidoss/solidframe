@@ -358,7 +358,7 @@ public:
 		return *this;
 	}
 	template <typename T, typename TM, typename ID>
-	Serializer& push(T* _t, TM & _rtm, const ID &_rid, const char *_name = NULL){
+	Serializer& push(T* _t, const TM & _rtm, const ID &_rid, const char *_name = NULL){
 		rtm.prepareStorePointer(this, _t, _rtm.realIdentifier(_rid), _name);
 		return *this;
 	}

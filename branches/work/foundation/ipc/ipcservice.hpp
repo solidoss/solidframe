@@ -151,6 +151,15 @@ public:
 		return typemapper.insert<T>();
 	}
 	
+	template <class T, typename P>
+	uint32 registerSerializationType(uint32 _pos){
+		return typemapper.insert<T, P>(_pos);
+	}
+	
+	template <class T, typename P>
+	uint32 registerSerializationType(){
+		return typemapper.insert<T, P>();
+	}
 	//!Send a signal (usually a response) to a peer process using a previously saved ConnectionUid
 	/*!
 		The signal is send only if the connector exists. If the peer process,
@@ -194,6 +203,46 @@ public:
 		const SocketAddressPair &_rsap,
 		uint32	_flags = 0
 	);
+	
+	///////
+	int sendSignal(
+		DynamicPointer<Signal> &_psig,//the signal to be sent
+		const SerializationTypeIdT &_rtid,
+		const ConnectionUid &_rconid,//the id of the process connector
+		uint32	_flags = 0
+	);
+	
+	//!Send a signal to a peer process using it's base address.
+	/*!
+		The base address of a process is the address on which the process listens for new UDP connections.
+		If the connection does not already exist, it will be created.
+		\param _rsap The base socket address of the peer.
+		\param _psig The signal.
+		\param _rconid An output value, which on success will contain the uid of the connector.
+		\param _flags Control flags
+	*/
+	int sendSignal(
+		DynamicPointer<Signal> &_psig,//the signal to be sent
+		const SerializationTypeIdT &_rtid,
+		const SocketAddressPair &_rsap,
+		ConnectionUid &_rconid,
+		uint32	_flags = 0
+	);
+	//!Send a signal to a peer process using it's base address.
+	/*!
+		The base address of a process is the address on which the process listens for new UDP connections.
+		If the connection does not already exist, it will be created.
+		\param _rsap The base socket address of the peer.
+		\param _psig The signal.
+		\param _flags Control flags
+	*/
+	int sendSignal(
+		DynamicPointer<Signal> &_psig,//the signal to be sent
+		const SerializationTypeIdT &_rtid,
+		const SocketAddressPair &_rsap,
+		uint32	_flags = 0
+	);
+	
 	//! Not used for now - will be used when ipc will use tcp connections
 	int insertConnection(
 		const SocketDevice &_rsd
@@ -231,6 +280,7 @@ private:
 	friend class Session;
 	int doSendSignal(
 		DynamicPointer<Signal> &_psig,//the signal to be sent
+		const SerializationTypeIdT &_rtid,
 		const SocketAddressPair &_rsap,
 		ConnectionUid *_pconid,
 		uint32	_flags = 0
@@ -247,7 +297,7 @@ private:
 	typedef serialization::IdTypeMapper<
 		serialization::binary::Serializer,
 		serialization::binary::Deserializer,
-		uint32
+		SerializationTypeIdT
 	> IdTypeMapper;
 	struct Data;
 	friend struct Data;
@@ -261,7 +311,7 @@ inline int Service::sendSignal(
 	ConnectionUid &_rconid,
 	uint32	_flags
 ){
-	return doSendSignal(_psig, _rsap, &_rconid, _flags);
+	return doSendSignal(_psig, 0xffffffff, _rsap, &_rconid, _flags);
 }
 
 inline int Service::sendSignal(
@@ -269,7 +319,26 @@ inline int Service::sendSignal(
 	const SocketAddressPair &_rsap,
 	uint32	_flags
 ){
-	return doSendSignal(_psig, _rsap, NULL, _flags);
+	return doSendSignal(_psig, 0xffffffff, _rsap, NULL, _flags);
+}
+
+inline int Service::sendSignal(
+	DynamicPointer<Signal> &_psig,//the signal to be sent
+	const SerializationTypeIdT &_rtid,
+	const SocketAddressPair &_rsap,
+	ConnectionUid &_rconid,
+	uint32	_flags
+){
+	return doSendSignal(_psig, _rtid, _rsap, &_rconid, _flags);
+}
+
+inline int Service::sendSignal(
+	DynamicPointer<Signal> &_psig,//the signal to be sent
+	const SerializationTypeIdT &_rtid,
+	const SocketAddressPair &_rsap,
+	uint32	_flags
+){
+	return doSendSignal(_psig, _rtid, _rsap, NULL, _flags);
 }
 
 inline const serialization::TypeMapperBase& Service::typeMapper() const{

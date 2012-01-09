@@ -28,6 +28,8 @@
 
 #include "utility/dynamicpointer.hpp"
 
+#include "foundation/ipc/ipcconnectionuid.hpp"
+
 struct SocketAddress;
 struct SocketAddressPair;
 struct SocketAddressPair4;
@@ -83,7 +85,11 @@ public:
 
 	void prepare();
 	void reconnect(Session *_pses);	
-	int pushSignal(DynamicPointer<Signal> &_rsig, uint32 _flags);
+	int pushSignal(
+		DynamicPointer<Signal> &_rsig,
+		const SerializationTypeIdT &_rtid,
+		uint32 _flags
+	);
 	bool pushReceivedBuffer(
 		Buffer &_rbuf,
 		Talker::TalkerStub &_rstub/*,

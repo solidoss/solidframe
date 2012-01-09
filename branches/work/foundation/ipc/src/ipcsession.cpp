@@ -207,10 +207,11 @@ struct Session::Data{
 	struct SendSignalData{
 		SendSignalData(
 			const DynamicPointer<Signal>& _rsig,
+			const SerializationTypeIdT	&_rtid,
 			uint16 _bufid,
 			uint16 _flags,
 			uint32 _id
-		):signal(_rsig), pserializer(NULL), bufid(_bufid), flags(_flags), id(_id), uid(0){}
+		):signal(_rsig), tid(_rtid), pserializer(NULL), bufid(_bufid), flags(_flags), id(_id), uid(0){}
 		~SendSignalData(){
 			//cassert(!pserializer);
 		}
@@ -223,6 +224,7 @@ struct Session::Data{
 			return overflow_safe_less(id, _owc.id);
 		}
 		DynamicSignalPointerT	signal;
+		SerializationTypeIdT	tid;
 		BinSerializerT			*pserializer;
 		uint16					bufid;
 		uint16					flags;
@@ -253,11 +255,18 @@ struct Session::Data{
 	typedef Queue<RecvSignalData>				RecvSignalQueueT;
 	typedef std::vector<SendSignalData>			SendSignalVectorT;
 	typedef std::vector<SendBufferData>			SendBufferVectorT;
-	typedef std::pair<
-		DynamicPointer<Signal>,
-		uint32
-	>											SignalPairT;
-	typedef Queue<SignalPairT>					SignalQueueT;
+	struct SignalStub{
+		SignalStub():tid(0xffffffff),flags(0){}
+		SignalStub(
+			const DynamicPointer<Signal>	&_rsig,
+			const SerializationTypeIdT &_rtid,
+			uint32 _flags
+		):signal(_rsig), tid(_rtid), flags(_flags){}
+		DynamicPointer<Signal>	signal;
+		SerializationTypeIdT	tid;
+		uint32					flags;
+	};
+	typedef Queue<SignalStub>					SignalQueueT;
 public:
 	Data(
 		const SocketAddressPair4 &_raddr,
@@ -298,6 +307,7 @@ public:
 	void incrementSendId();
 	SignalUid pushSendWaitSignal(
 		DynamicPointer<Signal> &_sig,
+		const SerializationTypeIdT &_rtid,
 		uint16 _bufid,
 		uint16 _flags,
 		uint32 _id
@@ -402,7 +412,7 @@ Session::Data::~Data(){
 	Context::the().sigctx.signaluid.idx = 0xffffffff;
 	Context::the().sigctx.signaluid.uid = 0xffffffff;
 	while(signalq.size()){
-		signalq.front().first->ipcFail(0);
+		signalq.front().signal->ipcFail(0);
 		signalq.pop();
 	}
 	while(this->rcvdsignalq.size()){
@@ -433,6 +443,7 @@ Session::Data::~Data(){
 			pushSerializer(rssd.pserializer);
 			rssd.pserializer = NULL;
 		}
+		rssd.tid = 0xffffffff;
 	}
 }
 //---------------------------------------------------------------------
@@ -503,6 +514,7 @@ inline void Session::Data::incrementSendId(){
 //---------------------------------------------------------------------
 SignalUid Session::Data::pushSendWaitSignal(
 	DynamicPointer<Signal> &_sig,
+	const SerializationTypeIdT &_rtid,
 	uint16 _bufid,
 	uint16 _flags,
 	uint32 _id
@@ -519,6 +531,8 @@ SignalUid Session::Data::pushSendWaitSignal(
 		rssd.bufid = _bufid;
 		cassert(!rssd.signal.ptr());
 		rssd.signal = _sig;
+		rssd.tid = _rtid;
+		
 		//rssd.signal.context().waitid = SignalUid(idx, rssd.uid);
 		cassert(!_sig.ptr());
 		rssd.flags = _flags;
@@ -528,7 +542,7 @@ SignalUid Session::Data::pushSendWaitSignal(
 		return SignalUid(idx, rssd.uid);
 	}else{
 		
-		sendsignalvec.push_back(SendSignalData(_sig, _bufid, _flags, _id));
+		sendsignalvec.push_back(SendSignalData(_sig, _rtid, _bufid, _flags, _id));
 		cassert(!_sig.ptr());
 		//sendsignalvec.back().signal.context().waitid = SignalUid(sendsignalvec.size() - 1, 0);
 		//return sendsignalvec.back().signal.context().waitid;
@@ -708,9 +722,9 @@ uint32 Session::Data::registerBuffer(Buffer &_rbuf){
 //----------------------------------------------------------------------
 void Session::Data::moveSignalsToSendQueue(){
 	while(signalq.size() && sendsignalidxq.size() < Data::MaxSendSignalQueueSize){
-		uint32 			flags(signalq.front().second);
-		cassert(signalq.front().first.ptr());
-		const SignalUid	uid(pushSendWaitSignal(signalq.front().first, 0, flags, sendsignalid++));
+		uint32 			flags(signalq.front().flags);
+		cassert(signalq.front().signal.ptr());
+		const SignalUid	uid(pushSendWaitSignal(signalq.front().signal, signalq.front().tid, 0, flags, sendsignalid++));
 		SendSignalData 	&rssd(sendsignalvec[uid.idx]);
 		Context::the().sigctx.signaluid = uid;
 		
@@ -883,7 +897,7 @@ void Session::reconnect(Session *_pses){
 	}
 	//keep sending signals that do not require the same connector
 	for(int sz(d.signalq.size()); sz; --sz){
-		if(!(d.signalq.front().second & Service::SameConnectorFlag)) {
+		if(!(d.signalq.front().flags & Service::SameConnectorFlag)) {
 			vdbgx(Dbg::ipc, "signal scheduled for resend");
 			d.signalq.push(d.signalq.front());
 		}else{
@@ -938,7 +952,7 @@ void Session::reconnect(Session *_pses){
 		if(rssd.signal.ptr()){
 			//the sendsignalvec may contain signals sent successfully, waiting for a response
 			//those signals are not queued in the scq
-			d.signalq.push(Data::SignalPairT(rssd.signal, rssd.flags));
+			d.signalq.push(Data::SignalStub(rssd.signal, rssd.tid, rssd.flags));
 		}else break;
 	}
 	
@@ -976,9 +990,13 @@ void Session::reconnect(Session *_pses){
 	d.sendbuffervec[0].buffer.retransmitId(0);
 }
 //---------------------------------------------------------------------
-int Session::pushSignal(DynamicPointer<Signal> &_rsig, uint32 _flags){
+int Session::pushSignal(
+	DynamicPointer<Signal> &_rsig,
+	const SerializationTypeIdT &_rtid,
+	uint32 _flags
+){
 	COLLECT_DATA_0(d.statistics.pushSignal);
-	d.signalq.push(Data::SignalPairT(_rsig, _flags));
+	d.signalq.push(Data::SignalStub(_rsig, _rtid, _flags));
 	if(d.signalq.size() == 1) return NOK;
 	return OK;
 }
@@ -1521,7 +1539,11 @@ void Session::doFillSendBuffer(const uint32 _bufidx){
 					rssd.pserializer = d.popSerializer();
 				}
 				Signal *psig(rssd.signal.ptr());
-				rssd.pserializer->push(psig);
+				if(rssd.tid == 0xffffffff){
+					rssd.pserializer->push(psig,"signal");
+				}else{
+					rssd.pserializer->push(psig,Service::the().typemapper, rssd.tid, "signal");
+				}	
 			}
 			--d.currentbuffersignalcount;
 			

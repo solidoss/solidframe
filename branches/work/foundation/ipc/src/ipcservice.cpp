@@ -179,7 +179,31 @@ int Service::sendSignal(
 	
 	cassert(ptkr);
 	
-	if(ptkr->pushSignal(_psig, _rconid, _flags | SameConnectorFlag)){
+	if(ptkr->pushSignal(_psig, 0xffffffff, _rconid, _flags | SameConnectorFlag)){
+		//the talker must be signaled
+		if(ptkr->signal(fdt::S_RAISE)){
+			Manager::the().raiseObject(*ptkr);
+		}
+	}
+	return OK;
+}
+//---------------------------------------------------------------------
+int Service::sendSignal(
+	DynamicPointer<Signal> &_psig,//the signal to be sent
+	const SerializationTypeIdT &_rtid,
+	const ConnectionUid &_rconid,//the id of the process connector
+	uint32	_flags
+){
+	cassert(_rconid.tid < d.tkrvec.size());
+	
+	Mutex::Locker		lock(serviceMutex());
+	IndexT				idx(Manager::the().computeIndex(d.tkrvec[_rconid.tid].uid.first));
+	Mutex::Locker		lock2(this->mutex(idx));
+	Talker				*ptkr(static_cast<Talker*>(this->objectAt(idx)));
+	
+	cassert(ptkr);
+	
+	if(ptkr->pushSignal(_psig, _rtid, _rconid, _flags | SameConnectorFlag)){
 		//the talker must be signaled
 		if(ptkr->signal(fdt::S_RAISE)){
 			Manager::the().raiseObject(*ptkr);
@@ -194,6 +218,7 @@ int Service::basePort()const{
 //---------------------------------------------------------------------
 int Service::doSendSignal(
 	DynamicPointer<Signal> &_psig,//the signal to be sent
+	const SerializationTypeIdT &_rtid,
 	const SocketAddressPair &_rsap,
 	ConnectionUid *_pconid,
 	uint32	_flags
@@ -224,7 +249,7 @@ int Service::doSendSignal(
 			cassert(conid.tid < d.tkrvec.size());
 			cassert(ptkr);
 			
-			if(ptkr->pushSignal(_psig, conid, _flags)){
+			if(ptkr->pushSignal(_psig, _rtid, conid, _flags)){
 				//the talker must be signaled
 				if(ptkr->signal(fdt::S_RAISE)){
 					Manager::the().raiseObject(*ptkr);
@@ -267,7 +292,7 @@ int Service::doSendSignal(
 			ptkr->pushSession(pses, conid);
 			d.sessionaddr4map[pses->baseAddr4()] = conid;
 			
-			ptkr->pushSignal(_psig, conid, _flags);
+			ptkr->pushSignal(_psig, _rtid, conid, _flags);
 			
 			if(ptkr->signal(fdt::S_RAISE)){
 				Manager::the().raiseObject(*ptkr);

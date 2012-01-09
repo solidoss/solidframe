@@ -109,13 +109,15 @@ struct Talker::Data{
 	struct SignalData{
 		SignalData(
 			DynamicPointer<Signal> &_psig,
+			const SerializationTypeIdT &_rtid,
 			uint16 _sesidx,
 			uint16 _sesuid,
 			uint32 _flags
-		):	psig(_psig), sessionidx(_sesidx),
+		):	psig(_psig), tid(_rtid), sessionidx(_sesidx),
 			sessionuid(_sesuid), flags(_flags){}
 		
 		DynamicPointer<Signal>	psig;
+		SerializationTypeIdT 	tid;
 		uint16					sessionidx;
 		uint16					sessionuid;
 		uint32					flags;
@@ -611,11 +613,12 @@ int Talker::doSendBuffers(const ulong _sig, const TimeSpec &_rcrttimepos){
 //return ok if the talker should be signaled
 int Talker::pushSignal(
 	DynamicPointer<Signal> &_psig,
+	const SerializationTypeIdT &_rtid,
 	const ConnectionUid &_rconid,
 	uint32 _flags
 ){
 	COLLECT_DATA_0(d.statistics.signaled);
-	d.sigq.push(Data::SignalData(_psig, _rconid.idx, _rconid.uid, _flags));
+	d.sigq.push(Data::SignalData(_psig, _rtid, _rconid.idx, _rconid.uid, _flags));
 	return d.sigq.size() == 1 ? NOK : OK;
 }
 
@@ -707,7 +710,7 @@ void Talker::doDispatchSignals(){
 			)
 		){
 			
-			rss.psession->pushSignal(rsd.psig, flags);
+			rss.psession->pushSignal(rsd.psig, rsd.tid, flags);
 			if(!rss.inexeq){
 				d.sessionexecq.push(rsd.sessionidx);
 				rss.inexeq = true;

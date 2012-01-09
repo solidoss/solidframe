@@ -85,6 +85,8 @@ private:
 	SignalContext(uint32 _tkrid):connectionuid(_tkrid), baseport(-1){}
 };
 
+typedef uint32 SerializationTypeIdT;
+
 }//namespace ipc
 }//namespace foundation
 

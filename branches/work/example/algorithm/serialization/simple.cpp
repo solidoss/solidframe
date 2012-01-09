@@ -33,13 +33,6 @@
 #include "system/socketaddress.hpp"
 using namespace std;
 
-template <int N>
-struct IndexType{
-	enum{
-		Index = N
-	};
-};
-
 // template <class S>
 // S& operator&(string &, S &_s){
 // 	cassert(false);
