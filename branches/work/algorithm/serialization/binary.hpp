@@ -58,6 +58,15 @@ enum {
 	MINSTREAMBUFLEN = 128//if the free space for current buffer is less than this value
 						//storring a stream will end up returning NOK
 };
+
+struct Limits{
+	static Limits const& the();
+	Limits():stringlimit(0), containerlimit(0), streamlimit(0){}//unlimited by default
+	uint32 stringlimit;
+	uint32 containerlimit;
+	uint64 streamlimit;
+};
+
 //===============================================================
 //! A base class for binary serializer and deserializer
 /*!
@@ -106,6 +115,10 @@ enum {
 	e.g. from a file or a socket etc.
 */
 class Base{
+public:
+	void resetLimits(){
+		limits = rdefaultlimits;
+	}
 protected:
 	struct FncData;
 	typedef int (*FncT)(Base &, FncData &);
@@ -172,12 +185,16 @@ protected:
 		uint64	off;
 	};
 protected:
+	Base():rdefaultlimits(Limits::the()), limits(rdefaultlimits){}
+	Base(Limits const &_rdefaultlimits):rdefaultlimits(_rdefaultlimits){}
 	//! Replace the top callback from the stack
 	void replace(const FncData &_rfd);
 	static int popEStack(Base &_rs, FncData &_rfd);
 protected:
 	typedef Stack<FncData>	FncDataStackT;
 	typedef Stack<ExtData>	ExtDataStackT;
+	const Limits		&rdefaultlimits;
+	Limits				limits;
 	ulong				ul;
 	FncDataStackT		fstk;
 	ExtDataStackT		estk;
@@ -324,10 +341,20 @@ public:
 	Serializer(const TypeMapperBase &_rtm):rtm(_rtm), pb(NULL), cpb(NULL), be(NULL){
 		tmpstr.reserve(sizeof(ulong));
 	}
+	Serializer(const TypeMapperBase &_rtm, Limits const & _rdefaultlimits):Base(_rdefaultlimits), rtm(_rtm), pb(NULL), cpb(NULL), be(NULL){
+		tmpstr.reserve(sizeof(ulong));
+	}
 	~Serializer();
 	void clear();
 	bool empty()const {return fstk.empty();}
 	int run(char *_pb, unsigned _bl);
+	
+    Serializer& pushStringLimit();
+	Serializer& pushStringLimit(uint32 _v);
+	Serializer& pushStreamLimit();
+	Serializer& pushStreamLimit(uint64 _v);
+	Serializer& pushContainerLimit();
+	Serializer& pushContainerLimit(uint32 _v);
 	
 	//! Schedule a non pointer object for serialization
 	/*!
@@ -625,10 +652,20 @@ public:
 	Deserializer(const TypeMapperBase &_rtm):rtm(_rtm), pb(NULL), cpb(NULL), be(NULL){
 		tmpstr.reserve(sizeof(uint32));
 	}
+	Deserializer(const TypeMapperBase &_rtm, Limits const & _rdefaultlimits):Base(_rdefaultlimits), rtm(_rtm), pb(NULL), cpb(NULL), be(NULL){
+		tmpstr.reserve(sizeof(uint32));
+	}
 	~Deserializer();
 	void clear();
 	bool empty()const {return fstk.empty();}
 	int run(const char *_pb, unsigned _bl);
+	
+	Deserializer& pushStringLimit();
+	Deserializer& pushStringLimit(uint32 _v);
+	Deserializer& pushStreamLimit();
+	Deserializer& pushStreamLimit(uint64 _v);
+	Deserializer& pushContainerLimit();
+	Deserializer& pushContainerLimit(uint32 _v);
 	
 	template <typename T>
 	Deserializer& push(T &_t, const char *_name = NULL){

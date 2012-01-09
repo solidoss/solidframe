@@ -26,6 +26,11 @@
 
 namespace serialization{
 namespace binary{
+
+/*static*/ Limits const& Limits::the(){
+	static const Limits l;
+	return l;
+}
 //========================================================================
 void Base::replace(const FncData &_rfd){
 	fstk.top() = _rfd;
@@ -40,6 +45,25 @@ Serializer::~Serializer(){
 void Serializer::clear(){
 	run(NULL, 0);
 }
+Serializer& Serializer::pushStringLimit(){
+	return *this;
+}
+Serializer& Serializer::pushStringLimit(uint32 _v){
+	return *this;
+}
+Serializer& Serializer::pushStreamLimit(){
+	return *this;
+}
+Serializer& Serializer::pushStreamLimit(uint64 _v){
+	return *this;
+}
+Serializer& Serializer::pushContainerLimit(){
+	return *this;
+}
+Serializer& Serializer::pushContainerLimit(uint32 _v){
+	return *this;
+}
+
 int Serializer::run(char *_pb, unsigned _bl){
 	cpb = pb = _pb;
 	be = cpb + _bl;
@@ -49,9 +73,12 @@ int Serializer::run(char *_pb, unsigned _bl){
 			case CONTINUE: continue;
 			case OK: fstk.pop(); break;
 			case NOK: goto Done;
-			case BAD: return -1;
+			case BAD: 
+				resetLimits();
+				return -1;
 		}
 	}
+	resetLimits();
 	Done:
 	return cpb - pb;
 }
@@ -337,6 +364,26 @@ void Deserializer::clear(){
 	idbgx(Dbg::ser_bin, "clear_deser");
 	run(NULL, 0);
 }
+
+Deserializer& Deserializer::pushStringLimit(){
+	return *this;
+}
+Deserializer& Deserializer::pushStringLimit(uint32 _v){
+	return *this;
+}
+Deserializer& Deserializer::pushStreamLimit(){
+	return *this;
+}
+Deserializer& Deserializer::pushStreamLimit(uint64 _v){
+	return *this;
+}
+Deserializer& Deserializer::pushContainerLimit(){
+	return *this;
+}
+Deserializer& Deserializer::pushContainerLimit(uint32 _v){
+	return *this;
+}
+
 int Deserializer::run(const char *_pb, unsigned _bl){
 	cpb = pb = _pb;
 	be = pb + _bl;
@@ -346,9 +393,12 @@ int Deserializer::run(const char *_pb, unsigned _bl){
 			case CONTINUE: continue;
 			case OK: fstk.pop(); break;
 			case NOK: goto Done;
-			case BAD: return -1;
+			case BAD:
+				resetLimits();
+				return -1;
 		}
 	}
+	resetLimits();
 	Done:
 	return cpb - pb;
 }
