@@ -156,6 +156,7 @@ protected:
 		ExtData(){}
 		ExtData(uint32 _u32){u32() = _u32;}
 		ExtData(int32 _i32){i32() = _i32;}
+		ExtData(int32 _i32, int64 _i64_1){i32() = _i32; i64_1() = _i64_1;}
 		ExtData(int64 _i64){i64() = _i64;}
 		ExtData(int64 _i64_0, int64 _i64_1){i64() = _i64_0; i64_1() = _i64_1;}
 		ExtData(int64 _i64_0, int64 _i64_1, void *_pv){
@@ -263,26 +264,27 @@ class Serializer: public Base{
 	template <typename T>
 	static int storeArray(Base &_rs, FncData &_rfd){
 		idbgx(Dbg::ser_bin, "store generic array "<<_rfd.n);
-		Serializer &rs(static_cast<Serializer&>(_rs));
+		Serializer	&rs(static_cast<Serializer&>(_rs));
 		if(!rs.cpb){
 			rs.estk.pop();
 			return OK;
 		}
 		
-		T * c = reinterpret_cast<T*>(_rfd.p);
+		T			*c = reinterpret_cast<T*>(_rfd.p);
+		const char	*n = _rfd.n;
 		if(c){
-			if(rs.limits.containerlimit && rs.estk.top().i32() <= rs.limits.containerlimit){
+			if(rs.limits.containerlimit && rs.estk.top().i32() > rs.limits.containerlimit){
+				return BAD;
+			}else{
 				_rfd.f = &Serializer::storeArrayContinue<T>;
 				//rs.fstk.push(FncData(&Base::popEStack, NULL));
-				rs.fstk.push(FncData(&Serializer::template store<int32>, &rs.estk.top().i32()));
-			}else{
-				return BAD;
+				rs.fstk.push(FncData(&Serializer::template store<int32>, &rs.estk.top().i32(), n));
 			}
 		}else{
 			rs.estk.top().i32() = -1;
 			rs.fstk.pop();
 			rs.fstk.push(FncData(&Base::popEStack, NULL));
-			rs.fstk.push(FncData(&Serializer::template store<int32>, &rs.estk.top().i32()));
+			rs.fstk.push(FncData(&Serializer::template store<int32>, &rs.estk.top().i32(), n));
 		}
 		return CONTINUE;
 	}
@@ -434,13 +436,13 @@ public:
 	template <typename T, typename ST>
 	Serializer& pushArray(T *_p, const ST &_rsz, const char *_name = NULL){
 		fstk.push(FncData(&Serializer::template storeArray<T>, (void*)_p, _name));
-		estk.push(ExtData((int64)_rsz, (int64)0));
+		estk.push(ExtData((int32)_rsz, (int64)0));
 		return *this;
 	}
 	template <typename T, typename ST>
 	Serializer& pushDynamicArray(T* &_rp, const ST &_rsz, const char *_name = NULL){
 		fstk.push(FncData(&Serializer::template storeArray<T>, (void*)_rp, _name));
-		estk.push(ExtData((int64)_rsz, (int64)0));
+		estk.push(ExtData((int32)_rsz, (int64)0));
 		return *this;
 	}
 private:
@@ -522,6 +524,7 @@ class Deserializer: public Base{
 		vdbgx(Dbg::ser_bin, "i = "<<i);
 		
 		if(i > 0 && rd.limits.containerlimit && i > rd.limits.containerlimit){
+			idbgx(Dbg::ser_bin, "error");
 			return BAD;
 		}
 		
@@ -570,7 +573,8 @@ class Deserializer: public Base{
 		const int32	&rsz(rd.estk.top().i32());
 		//int64		&ri(rd.estk.top().i64_1());
 		ST			&rextsz(*reinterpret_cast<ST*>(rd.estk.top().pv_2()));
-		if(rsz > 0 && rd.limits.containerlimit && rsz >= rd.limits.containerlimit){
+		if(rsz > 0 && rd.limits.containerlimit && rsz > rd.limits.containerlimit){
+			idbgx(Dbg::ser_bin, "error");
 			return BAD;
 		}
 		
@@ -593,7 +597,7 @@ class Deserializer: public Base{
 	}
 	template <typename T>
 	static int parseArrayContinue(Base &_rb, FncData &_rfd){
-		idbgx(Dbg::ser_bin, "parse generic array continue");
+		idbgx(Dbg::ser_bin, "parse generic array continue "<<_rfd.n);
 		Deserializer &rd(static_cast<Deserializer&>(_rb));
 		const int64	&rsz = rd.estk.top().i64();
 		int64		&ri = rd.estk.top().i64_1();

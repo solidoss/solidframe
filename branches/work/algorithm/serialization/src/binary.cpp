@@ -394,6 +394,7 @@ void Deserializer::clear(){
 	if(rd.rtm.prepareParsePointer(&rd, rd.tmpstr, p, n)){
 		return CONTINUE;
 	}else{
+		idbgx(Dbg::ser_bin, "error");
 		return BAD;
 	}
 }
@@ -439,6 +440,7 @@ int Deserializer::run(const char *_pb, unsigned _bl){
 			case OK: fstk.pop(); break;
 			case NOK: goto Done;
 			case BAD:
+				idbgx(Dbg::ser_bin, "error");
 				resetLimits();
 				return -1;
 		}
@@ -894,6 +896,7 @@ int Deserializer::parseBinaryString(Base &_rb, FncData &_rfd){
 	int32 ul = rd.estk.top().i32();
 	
 	if(ul > 0 && rd.limits.stringlimit && ul >= rd.limits.stringlimit){
+		idbgx(Dbg::ser_bin, "error");
 		return BAD;
 	}
 	if(ul < 0){
@@ -919,6 +922,7 @@ int Deserializer::parseStream(Base &_rb, FncData &_rfd){
 	OStreamData &rsp(*reinterpret_cast<OStreamData*>(rd.estk.top().buf));
 	if(rsp.sz < 0) return OK;
 	if(rd.limits.streamlimit && rsp.sz > rd.limits.streamlimit){
+		idbgx(Dbg::ser_bin, "error");
 		return BAD;
 	}
 	int32 towrite = rd.be - rd.cpb;
@@ -956,6 +960,7 @@ int Deserializer::parseDummyStream(Base &_rb, FncData &_rfd){
 	OStreamData &rsp(*reinterpret_cast<OStreamData*>(rd.estk.top().buf));
 	if(rsp.sz < 0) return OK;
 	if(rd.limits.streamlimit && rsp.sz > rd.limits.streamlimit){
+		idbgx(Dbg::ser_bin, "error");
 		return BAD;
 	}
 	int32 towrite = rd.be - rd.cpb;

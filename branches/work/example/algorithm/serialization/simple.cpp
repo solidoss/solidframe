@@ -376,7 +376,7 @@ int main(int argc, char *argv[]){
 	tm.insert<IntegerVector>(INTEGER_VECTOR_TYPE_INDEX);
 	tm.insert<Array>(ARRAY_TYPE_INDEX);
 	//const char* str = NULL;
-	for(int i = 0; i < 100; ++i){
+	for(int i = 0; i < 1; ++i){
 		{	
 			idbg("");
 			BinSerializer 	ser(tm);
@@ -392,7 +392,7 @@ int main(int argc, char *argv[]){
 			sdq.push_back("third");
 			sdq.push_back("fourth");
 			
-			Base			*b1 = new String(/*"some base string"*/);
+			Base			*b1 = new String("some base string");
 			Base			*b2 = new UnsignedInteger(-2, 10);
 			IntegerVector	*iv;
 			Base			*b3 = iv = new IntegerVector(true);
@@ -438,6 +438,10 @@ int main(int argc, char *argv[]){
 				cnt += rv;
 				++v;
 			}
+			if(rv < 0){
+				cout<<"ERROR: serialization"<<endl;
+				return 0;
+			}
 			idbg("");
 			cnt += rv;
 			cout<<"Write count: "<<cnt<<" buffnct = "<<v<<endl;
@@ -461,7 +465,8 @@ int main(int argc, char *argv[]){
 			idbg("");
 			des.pushStringLimit();
 			des.push(b1, "basestring");
-			des.pushStringLimit(11).push(b2, "baseui").push(b3, "baseiv").push(b4, "basea");
+			des.pushStringLimit(20);
+			des.push(b2, "baseui").push(b3, "baseiv").push(b4, "basea");
 			idbg("");
 			int v = 0;
 			int cnt = 0;
