@@ -311,7 +311,7 @@ inline int Service::sendSignal(
 	ConnectionUid &_rconid,
 	uint32	_flags
 ){
-	return doSendSignal(_psig, 0xffffffff, _rsap, &_rconid, _flags);
+	return doSendSignal(_psig, SERIALIZATION_INVALIDID, _rsap, &_rconid, _flags);
 }
 
 inline int Service::sendSignal(
@@ -319,7 +319,7 @@ inline int Service::sendSignal(
 	const SocketAddressPair &_rsap,
 	uint32	_flags
 ){
-	return doSendSignal(_psig, 0xffffffff, _rsap, NULL, _flags);
+	return doSendSignal(_psig, SERIALIZATION_INVALIDID, _rsap, NULL, _flags);
 }
 
 inline int Service::sendSignal(

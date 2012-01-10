@@ -86,6 +86,7 @@ private:
 };
 
 typedef uint32 SerializationTypeIdT;
+#define SERIALIZATION_INVALIDID ((SerializationTypeIdT)0)
 
 }//namespace ipc
 }//namespace foundation

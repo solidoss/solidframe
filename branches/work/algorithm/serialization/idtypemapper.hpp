@@ -34,12 +34,12 @@ class IdTypeMapper: public TypeMapperBase{
 public:
 	IdTypeMapper(){}
 	template <class T>
-	uint32 insert(uint32 _idx = -1){
+	uint32 insert(uint32 _idx = 0){
 		typename UnsignedType<Int>::Type idx(_idx);
 		return this->insertFunction(&doMap<T>, idx, typeid(T).name());
 	}
 	template <class T, typename CT>
-	uint32 insert(uint32 _idx = -1){
+	uint32 insert(uint32 _idx = 0){
 		typename UnsignedType<Int>::Type idx(_idx);
 		return this->insertFunction(&doMap<T, CT>, idx, typeid(T).name());
 	}

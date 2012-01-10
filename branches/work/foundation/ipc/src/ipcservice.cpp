@@ -179,7 +179,7 @@ int Service::sendSignal(
 	
 	cassert(ptkr);
 	
-	if(ptkr->pushSignal(_psig, 0xffffffff, _rconid, _flags | SameConnectorFlag)){
+	if(ptkr->pushSignal(_psig, SERIALIZATION_INVALIDID, _rconid, _flags | SameConnectorFlag)){
 		//the talker must be signaled
 		if(ptkr->signal(fdt::S_RAISE)){
 			Manager::the().raiseObject(*ptkr);

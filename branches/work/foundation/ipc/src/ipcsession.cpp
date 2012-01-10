@@ -256,7 +256,7 @@ struct Session::Data{
 	typedef std::vector<SendSignalData>			SendSignalVectorT;
 	typedef std::vector<SendBufferData>			SendBufferVectorT;
 	struct SignalStub{
-		SignalStub():tid(0xffffffff),flags(0){}
+		SignalStub():tid(SERIALIZATION_INVALIDID),flags(0){}
 		SignalStub(
 			const DynamicPointer<Signal>	&_rsig,
 			const SerializationTypeIdT &_rtid,
@@ -443,7 +443,7 @@ Session::Data::~Data(){
 			pushSerializer(rssd.pserializer);
 			rssd.pserializer = NULL;
 		}
-		rssd.tid = 0xffffffff;
+		rssd.tid = SERIALIZATION_INVALIDID;
 	}
 }
 //---------------------------------------------------------------------
@@ -1539,7 +1539,7 @@ void Session::doFillSendBuffer(const uint32 _bufidx){
 					rssd.pserializer = d.popSerializer();
 				}
 				Signal *psig(rssd.signal.ptr());
-				if(rssd.tid == 0xffffffff){
+				if(rssd.tid == SERIALIZATION_INVALIDID){
 					rssd.pserializer->push(psig,"signal");
 				}else{
 					rssd.pserializer->push(psig,Service::the().typemapper, rssd.tid, "signal");

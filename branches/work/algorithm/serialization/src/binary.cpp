@@ -32,6 +32,18 @@ namespace binary{
 	return l;
 }
 //========================================================================
+/*static*/ int Base::setStringLimit(Base& _rb, FncData &_rfd){
+	_rb.limits.stringlimit = _rfd.s;
+	return OK;
+}
+/*static*/ int Base::setStreamLimit(Base& _rb, FncData &_rfd){
+	_rb.limits.streamlimit = _rfd.s;
+	return OK;
+}
+/*static*/ int Base::setContainerLimit(Base& _rb, FncData &_rfd){
+	_rb.limits.containerlimit = _rfd.s;
+	return OK;
+}
 void Base::replace(const FncData &_rfd){
 	fstk.top() = _rfd;
 }
@@ -46,21 +58,27 @@ void Serializer::clear(){
 	run(NULL, 0);
 }
 Serializer& Serializer::pushStringLimit(){
+	fstk.push(FncData(&Base::setStringLimit, 0, 0, rdefaultlimits.stringlimit));
 	return *this;
 }
 Serializer& Serializer::pushStringLimit(uint32 _v){
+	fstk.push(FncData(&Base::setStringLimit, 0, 0, _v));
 	return *this;
 }
 Serializer& Serializer::pushStreamLimit(){
+	fstk.push(FncData(&Base::setStreamLimit, 0, 0, rdefaultlimits.streamlimit));
 	return *this;
 }
 Serializer& Serializer::pushStreamLimit(uint64 _v){
+	fstk.push(FncData(&Base::setStreamLimit, 0, 0, _v));
 	return *this;
 }
 Serializer& Serializer::pushContainerLimit(){
+	fstk.push(FncData(&Base::setContainerLimit, 0, 0, rdefaultlimits.containerlimit));
 	return *this;
 }
 Serializer& Serializer::pushContainerLimit(uint32 _v){
+	fstk.push(FncData(&Base::setContainerLimit, 0, 0, _v));
 	return *this;
 }
 
@@ -319,6 +337,9 @@ int Serializer::store<std::string>(Base &_rb, FncData &_rfd){
 	idbgx(Dbg::ser_bin, "");
 	if(!rs.cpb) return OK;
 	std::string * c = reinterpret_cast<std::string*>(_rfd.p);
+	if(rs.limits.stringlimit && c->size() > rs.limits.stringlimit){
+		return BAD;
+	}
 	rs.estk.push(ExtData((uint32)c->size()));
 	rs.replace(FncData(&Serializer::storeBinary<0>, (void*)c->data(), _rfd.n, c->size()));
 	rs.fstk.push(FncData(&Base::popEStack, NULL, _rfd.n));
@@ -365,22 +386,46 @@ void Deserializer::clear(){
 	run(NULL, 0);
 }
 
+/*static*/ int Deserializer::parseTypeIdDone(Base& _rd, FncData &_rfd){
+	Deserializer &rd(static_cast<Deserializer&>(_rd));
+	void		*p = _rfd.p;
+	const char	*n = _rfd.n;
+	rd.fstk.pop();
+	if(rd.rtm.prepareParsePointer(&rd, rd.tmpstr, p, n)){
+		return CONTINUE;
+	}else{
+		return BAD;
+	}
+}
+/*static*/ int Deserializer::parseTypeId(Base& _rd, FncData &_rfd){
+	Deserializer &rd(static_cast<Deserializer&>(_rd));
+	rd.rtm.prepareParsePointerId(&rd, rd.tmpstr, _rfd.n);
+	_rfd.f = &parseTypeIdDone;
+	return CONTINUE;
+}
+
 Deserializer& Deserializer::pushStringLimit(){
+	fstk.push(FncData(&Base::setStringLimit, 0, 0, rdefaultlimits.stringlimit));
 	return *this;
 }
 Deserializer& Deserializer::pushStringLimit(uint32 _v){
+	fstk.push(FncData(&Base::setStringLimit, 0, 0, _v));
 	return *this;
 }
 Deserializer& Deserializer::pushStreamLimit(){
+	fstk.push(FncData(&Base::setStreamLimit, 0, 0, rdefaultlimits.streamlimit));
 	return *this;
 }
 Deserializer& Deserializer::pushStreamLimit(uint64 _v){
+	fstk.push(FncData(&Base::setStreamLimit, 0, 0, _v));
 	return *this;
 }
 Deserializer& Deserializer::pushContainerLimit(){
+	fstk.push(FncData(&Base::setContainerLimit, 0, 0, rdefaultlimits.containerlimit));
 	return *this;
 }
 Deserializer& Deserializer::pushContainerLimit(uint32 _v){
+	fstk.push(FncData(&Base::setContainerLimit, 0, 0, _v));
 	return *this;
 }
 
@@ -834,7 +879,7 @@ int Deserializer::parse<std::string>(Base &_rb, FncData &_rfd){
 	if(!rd.cpb) return OK;
 	rd.estk.push(ExtData((int32)0));
 	rd.replace(FncData(&Deserializer::parseBinaryString, _rfd.p, _rfd.n));
-	rd.fstk.push(FncData(&Deserializer::parse<uint32>, &rd.estk.top().u32()));
+	rd.fstk.push(FncData(&Deserializer::parse<int32>, &rd.estk.top().i32()));
 	return CONTINUE;
 }
 int Deserializer::parseBinaryString(Base &_rb, FncData &_rfd){
@@ -844,14 +889,25 @@ int Deserializer::parseBinaryString(Base &_rb, FncData &_rfd){
 		rd.estk.pop();
 		return OK;
 	}
+	
 	unsigned len = rd.be - rd.cpb;
-	uint32 ul = rd.estk.top().u32();
+	int32 ul = rd.estk.top().i32();
+	
+	if(ul > 0 && rd.limits.stringlimit && ul >= rd.limits.stringlimit){
+		return BAD;
+	}
+	if(ul < 0){
+		return OK;
+	}
 	if(len > ul) len = ul;
 	std::string *ps = reinterpret_cast<std::string*>(_rfd.p);
 	ps->append(rd.cpb, len);
 	rd.cpb += len;
 	ul -= len;
-	if(ul){rd.estk.top().u32() = ul; return NOK;}
+	if(ul){
+		rd.estk.top().i32() = ul;
+		return NOK;
+	}
 	rd.estk.pop();
 	return OK;
 }
@@ -862,6 +918,9 @@ int Deserializer::parseStream(Base &_rb, FncData &_rfd){
 	if(!rd.cpb) return OK;
 	OStreamData &rsp(*reinterpret_cast<OStreamData*>(rd.estk.top().buf));
 	if(rsp.sz < 0) return OK;
+	if(rd.limits.streamlimit && rsp.sz > rd.limits.streamlimit){
+		return BAD;
+	}
 	int32 towrite = rd.be - rd.cpb;
 	if(towrite < 2){
 		cassert(towrite == 0);
@@ -896,6 +955,9 @@ int Deserializer::parseDummyStream(Base &_rb, FncData &_rfd){
 	if(!rd.cpb) return OK;
 	OStreamData &rsp(*reinterpret_cast<OStreamData*>(rd.estk.top().buf));
 	if(rsp.sz < 0) return OK;
+	if(rd.limits.streamlimit && rsp.sz > rd.limits.streamlimit){
+		return BAD;
+	}
 	int32 towrite = rd.be - rd.cpb;
 	cassert(towrite > 2);
 	towrite -= 2;

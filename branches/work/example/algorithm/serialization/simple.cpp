@@ -62,6 +62,12 @@ using namespace std;
 // 	cassert(false);
 // 	return _s;
 // }
+
+template <int T>
+struct IndexType{
+	enum{ Index = T};
+};
+
 ///\cond 0
 struct TestA{
 	TestA(int _a = 1, short _b = 2, unsigned _c = 3):a(_a), b(_b), c(_c){}
@@ -453,7 +459,9 @@ int main(int argc, char *argv[]){
 			idbg("");
 			des.push(s, "string").pushContainer(sdq, "names");
 			idbg("");
-			des.push(b1, "basestring").push(b2, "baseui").push(b3, "baseiv").push(b4, "basea");
+			des.pushStringLimit();
+			des.push(b1, "basestring");
+			des.pushStringLimit(11).push(b2, "baseui").push(b3, "baseiv").push(b4, "basea");
 			idbg("");
 			int v = 0;
 			int cnt = 0;
@@ -464,6 +472,10 @@ int main(int argc, char *argv[]){
 			while((rv = des.run(bufs[v], blen)) == blen){
 				cnt += rv;
 				++v;
+			}
+			if(rv < 0){
+				cout<<"ERROR: deserialization"<<endl;
+				return 0;
 			}
 			cnt += rv;
 			cout<<"Read count: "<<cnt<<endl;
