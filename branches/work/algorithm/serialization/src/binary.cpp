@@ -22,7 +22,8 @@
 #include "algorithm/serialization/binary.hpp"
 #include "utility/ostream.hpp"
 #include "utility/istream.hpp"
-#include <string.h>
+#include "utility/string.hpp"
+#include "cstring"
 
 namespace serialization{
 namespace binary{
@@ -32,6 +33,26 @@ namespace binary{
 	return l;
 }
 //========================================================================
+/*static*/ const char *Base::errorString(const uint16 _err){
+	switch(_err){
+		case ERR_NOERROR:
+			return "No error";
+		case ERR_ARRAY_LIMIT:
+			return "Array limit";
+		case ERR_CONTAINER_LIMIT:
+			return "Container limit";
+		case ERR_STREAM_LIMIT:
+			return "Stream limit";
+		case ERR_STRING_LIMIT:
+			return "String limit";
+		case ERR_UTF8_LIMIT:
+			return "Utf8 limit";
+		case ERR_POINTER_UNKNOWN:
+			return "Unknown pointer type id";
+		default:
+			return "Unknown error";
+	};
+}
 /*static*/ int Base::setStringLimit(Base& _rb, FncData &_rfd){
 	_rb.limits.stringlimit = _rfd.s;
 	return OK;
@@ -338,6 +359,7 @@ int Serializer::store<std::string>(Base &_rb, FncData &_rfd){
 	if(!rs.cpb) return OK;
 	std::string * c = reinterpret_cast<std::string*>(_rfd.p);
 	if(rs.limits.stringlimit && c->size() > rs.limits.stringlimit){
+		rs.err = ERR_STRING_LIMIT;
 		return BAD;
 	}
 	rs.estk.push(ExtData((uint32)c->size()));
@@ -374,8 +396,21 @@ int Serializer::storeStream(Base &_rb, FncData &_rfd){
 	if(rsp.sz) return NOK;
 	return OK;
 }
+/*static*/ int Serializer::storeUtf8(Base &_rs, FncData &_rfd){
+	Serializer &rs(static_cast<Serializer&>(_rs));
+	if(rs.limits.stringlimit && (_rfd.s - 1) > rs.limits.stringlimit){
+		rs.err = ERR_UTF8_LIMIT;
+		return BAD;
+	}
+	_rfd.f = &Serializer::storeBinary<0>;
+	return CONTINUE;
+}
 Serializer& Serializer::pushBinary(void *_p, size_t _sz, const char *_name){
 	fstk.push(FncData(&Serializer::storeBinary<0>, _p, _name, _sz));
+	return *this;
+}
+Serializer& Serializer::pushUtf8(const std::string& _str, const char *_name){
+	fstk.push(FncData(&Serializer::storeUtf8, const_cast<char*>(_str.c_str()), _name, _str.length() + 1));
 	return *this;
 }
 //========================================================================
@@ -395,6 +430,7 @@ void Deserializer::clear(){
 		return CONTINUE;
 	}else{
 		idbgx(Dbg::ser_bin, "error");
+		rd.err = ERR_POINTER_UNKNOWN;
 		return BAD;
 	}
 }
@@ -897,6 +933,7 @@ int Deserializer::parseBinaryString(Base &_rb, FncData &_rfd){
 	
 	if(ul > 0 && rd.limits.stringlimit && ul >= rd.limits.stringlimit){
 		idbgx(Dbg::ser_bin, "error");
+		rd.err = ERR_STRING_LIMIT;
 		return BAD;
 	}
 	if(ul < 0){
@@ -923,6 +960,7 @@ int Deserializer::parseStream(Base &_rb, FncData &_rfd){
 	if(rsp.sz < 0) return OK;
 	if(rd.limits.streamlimit && rsp.sz > rd.limits.streamlimit){
 		idbgx(Dbg::ser_bin, "error");
+		rd.err = ERR_STREAM_LIMIT;
 		return BAD;
 	}
 	int32 towrite = rd.be - rd.cpb;
@@ -961,6 +999,7 @@ int Deserializer::parseDummyStream(Base &_rb, FncData &_rfd){
 	if(rsp.sz < 0) return OK;
 	if(rd.limits.streamlimit && rsp.sz > rd.limits.streamlimit){
 		idbgx(Dbg::ser_bin, "error");
+		rd.err = ERR_STREAM_LIMIT;
 		return BAD;
 	}
 	int32 towrite = rd.be - rd.cpb;
@@ -979,8 +1018,32 @@ int Deserializer::parseDummyStream(Base &_rb, FncData &_rfd){
 	rsp.sz = -1;//the write was not complete
 	return OK;
 }
+int Deserializer::parseUtf8(Base &_rb, FncData &_rfd){
+	Deserializer	&rd(static_cast<Deserializer&>(_rb));
+	idbgx(Dbg::ser_bin, "");
+	std::string		*ps = reinterpret_cast<std::string*>(_rfd.p);
+	unsigned		len = rd.be - rd.cpb;
+	size_t			slen = cstring::nlen(rd.cpb, len);
+	size_t			totlen = ps->size() + slen;
+	if(rd.limits.stringlimit && totlen > rd.limits.stringlimit){
+		rd.err = ERR_UTF8_LIMIT;
+		return BAD;
+	}
+	ps->append(rd.cpb, slen);
+	rd.cpb += slen;
+	if(slen == len){
+		return NOK;
+	}
+	++rd.cpb;
+	return OK;
+}
 Deserializer& Deserializer::pushBinary(void *_p, size_t _sz, const char *_name){
 	fstk.push(FncData(&Deserializer::parseBinary<0>, _p, _name, _sz));
+	return *this;
+}
+Deserializer& Deserializer::pushUtf8(std::string& _str, const char *_name){
+	_str.clear();
+	fstk.push(FncData(&Deserializer::parseUtf8, &_str, _name, 0));
 	return *this;
 }
 //========================================================================

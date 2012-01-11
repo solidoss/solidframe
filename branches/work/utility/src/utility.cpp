@@ -89,6 +89,10 @@ const char * charToString(unsigned _c){
 #endif
 }
 
+/*static*/ size_t cstring::nlen(const char *s, size_t maxlen){
+	return strnlen(s, maxlen);
+}
+
 uint8 bit_count(const uint8 _v){
 	static const uint8 cnts[] = {
 		0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4, 

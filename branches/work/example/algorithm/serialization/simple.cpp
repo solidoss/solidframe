@@ -149,7 +149,7 @@ struct String: Base{
 		if(dflt){
 			return _s;
 		}else{
-			return _s.push(str, "String::str");
+			return _s.pushUtf8(str, "String::str");
 		}
 	}
 	void print()const{
@@ -392,7 +392,7 @@ int main(int argc, char *argv[]){
 			sdq.push_back("third");
 			sdq.push_back("fourth");
 			
-			Base			*b1 = new String("some base string");
+			Base			*b1 = new String("some mega base string that is more than few buffers spawned");
 			Base			*b2 = new UnsignedInteger(-2, 10);
 			IntegerVector	*iv;
 			Base			*b3 = iv = new IntegerVector(true);
@@ -439,7 +439,7 @@ int main(int argc, char *argv[]){
 				++v;
 			}
 			if(rv < 0){
-				cout<<"ERROR: serialization"<<endl;
+				cout<<"ERROR: serialization: "<<ser.errorString()<<endl;
 				return 0;
 			}
 			idbg("");
@@ -465,7 +465,7 @@ int main(int argc, char *argv[]){
 			idbg("");
 			des.pushStringLimit();
 			des.push(b1, "basestring");
-			des.pushStringLimit(20);
+			des.pushStringLimit(100);
 			des.push(b2, "baseui").push(b3, "baseiv").push(b4, "basea");
 			idbg("");
 			int v = 0;
@@ -479,7 +479,7 @@ int main(int argc, char *argv[]){
 				++v;
 			}
 			if(rv < 0){
-				cout<<"ERROR: deserialization"<<endl;
+				cout<<"ERROR: deserialization "<<des.errorString()<<endl;
 				return 0;
 			}
 			cnt += rv;
