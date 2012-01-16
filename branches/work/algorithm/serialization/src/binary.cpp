@@ -426,7 +426,7 @@ void Deserializer::clear(){
 	void		*p = _rfd.p;
 	const char	*n = _rfd.n;
 	rd.fstk.pop();
-	if(rd.rtm.prepareParsePointer(&rd, rd.tmpstr, p, n)){
+	if(rd.typeMapper().prepareParsePointer(&rd, rd.tmpstr, p, n)){
 		return CONTINUE;
 	}else{
 		idbgx(Dbg::ser_bin, "error");
@@ -436,7 +436,7 @@ void Deserializer::clear(){
 }
 /*static*/ int Deserializer::parseTypeId(Base& _rd, FncData &_rfd){
 	Deserializer &rd(static_cast<Deserializer&>(_rd));
-	rd.rtm.prepareParsePointerId(&rd, rd.tmpstr, _rfd.n);
+	rd.typeMapper().prepareParsePointerId(&rd, rd.tmpstr, _rfd.n);
 	_rfd.f = &parseTypeIdDone;
 	return CONTINUE;
 }

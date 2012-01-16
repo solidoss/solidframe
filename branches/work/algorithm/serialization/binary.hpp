@@ -127,6 +127,9 @@ public:
 	const char* errorString()const{
 		return errorString(err);
 	}
+	void typeMapper(const TypeMapperBase &_rtm){
+		ptm = &_rtm;
+	}
 protected:
 	enum Errors{
 		ERR_NOERROR = 0,
@@ -207,20 +210,24 @@ protected:
 	static int setStreamLimit(Base& _rd, FncData &_rfd);
 	static int setContainerLimit(Base& _rd, FncData &_rfd);
 
-	Base():rdefaultlimits(Limits::the()), limits(rdefaultlimits){}
-	Base(Limits const &_rdefaultlimits):rdefaultlimits(_rdefaultlimits){}
+	Base():rdefaultlimits(Limits::the()), limits(rdefaultlimits), ptm(NULL){}
+	Base(Limits const &_rdefaultlimits):rdefaultlimits(_rdefaultlimits), ptm(NULL){}
 	//! Replace the top callback from the stack
 	void replace(const FncData &_rfd);
 	static int popEStack(Base &_rs, FncData &_rfd);
+	const TypeMapperBase& typeMapper(){
+		return *ptm;
+	}
 protected:
 	typedef Stack<FncData>	FncDataStackT;
 	typedef Stack<ExtData>	ExtDataStackT;
-	const Limits		&rdefaultlimits;
-	Limits				limits;
-	uint16				err;
-	ulong				ul;
-	FncDataStackT		fstk;
-	ExtDataStackT		estk;
+	const Limits			&rdefaultlimits;
+	Limits					limits;
+	const TypeMapperBase	*ptm;
+	uint16					err;
+	ulong					ul;
+	FncDataStackT			fstk;
+	ExtDataStackT			estk;
 };
 //===============================================================
 //! A fast reentrant binary serializer
@@ -380,10 +387,18 @@ class Serializer: public Base{
 	static int storeStream(Base &_rs, FncData &_rfd);
 public:
 	enum {IsSerializer = true, IsDeserializer = false};
-	Serializer(const TypeMapperBase &_rtm):rtm(_rtm), pb(NULL), cpb(NULL), be(NULL){
+	Serializer(const TypeMapperBase &_rtm):pb(NULL), cpb(NULL), be(NULL){
+		tmpstr.reserve(sizeof(ulong));
+		typeMapper(_rtm);
+	}
+	Serializer(const TypeMapperBase &_rtm, Limits const & _rdefaultlimits):Base(_rdefaultlimits), pb(NULL), cpb(NULL), be(NULL){
+		tmpstr.reserve(sizeof(ulong));
+		typeMapper(_rtm);
+	}
+	Serializer():pb(NULL), cpb(NULL), be(NULL){
 		tmpstr.reserve(sizeof(ulong));
 	}
-	Serializer(const TypeMapperBase &_rtm, Limits const & _rdefaultlimits):Base(_rdefaultlimits), rtm(_rtm), pb(NULL), cpb(NULL), be(NULL){
+	Serializer(Limits const & _rdefaultlimits):Base(_rdefaultlimits), pb(NULL), cpb(NULL), be(NULL){
 		tmpstr.reserve(sizeof(ulong));
 	}
 	~Serializer();
@@ -423,12 +438,12 @@ public:
 	*/
 	template <typename T>
 	Serializer& push(T* _t, const char *_name = NULL){
-		rtm.prepareStorePointer(this, _t, TypeMapperBase::typeName<T>(_t), _name);
+		typeMapper().prepareStorePointer(this, _t, TypeMapperBase::typeName<T>(_t), _name);
 		return *this;
 	}
 	template <typename T, typename TM, typename ID>
 	Serializer& push(T* _t, const TM & _rtm, const ID &_rid, const char *_name = NULL){
-		rtm.prepareStorePointer(this, _t, _rtm.realIdentifier(_rid), _name);
+		typeMapper().prepareStorePointer(this, _t, _rtm.realIdentifier(_rid), _name);
 		return *this;
 	}
 	//! Schedules a stl style container for serialization
@@ -471,7 +486,6 @@ public:
 	Serializer& pushUtf8(const std::string& _str, const char *_name = NULL);
 private:
 	friend class TypeMapperBase;
-	const TypeMapperBase	&rtm;
 	char					*pb;
 	char					*cpb;
 	char					*be;
@@ -690,10 +704,18 @@ class Deserializer: public Base{
 	static int parseDummyStream(Base &_rb, FncData &_rfd);
 public:
 	enum {IsSerializer = false, IsDeserializer = true};
-	Deserializer(const TypeMapperBase &_rtm):rtm(_rtm), pb(NULL), cpb(NULL), be(NULL){
+	Deserializer(const TypeMapperBase &_rtm):pb(NULL), cpb(NULL), be(NULL){
+		tmpstr.reserve(sizeof(uint32));
+		typeMapper(_rtm);
+	}
+	Deserializer(const TypeMapperBase &_rtm, Limits const & _rdefaultlimits):Base(_rdefaultlimits), pb(NULL), cpb(NULL), be(NULL){
+		tmpstr.reserve(sizeof(uint32));
+		typeMapper(_rtm);
+	}
+	Deserializer():pb(NULL), cpb(NULL), be(NULL){
 		tmpstr.reserve(sizeof(uint32));
 	}
-	Deserializer(const TypeMapperBase &_rtm, Limits const & _rdefaultlimits):Base(_rdefaultlimits), rtm(_rtm), pb(NULL), cpb(NULL), be(NULL){
+	Deserializer(Limits const & _rdefaultlimits):Base(_rdefaultlimits), pb(NULL), cpb(NULL), be(NULL){
 		tmpstr.reserve(sizeof(uint32));
 	}
 	~Deserializer();
@@ -762,7 +784,6 @@ public:
 	}
 	Deserializer& pushUtf8(std::string& _str, const char *_name = NULL);
 private:
-	const TypeMapperBase	&rtm;
 	const char				*pb;
 	const char				*cpb;
 	const char				*be;

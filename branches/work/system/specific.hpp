@@ -112,6 +112,13 @@ public:
 		return p;
 	}
 	
+	template <class T, typename P>
+	inline static T* uncache(P &_rp){
+		T *p = object<T>();
+		if(!p) p = new(doAllocateBuffer(sizeof(T))) T(_rp); 
+		return p;
+	}
+	
 // 	template <class T, typename P1>
 // 	inline static T* uncache(P1 &_rp1){
 // 		T *p = object<T>();
