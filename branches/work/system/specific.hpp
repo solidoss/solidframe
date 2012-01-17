@@ -23,6 +23,7 @@
 #define SYSTEM_SPECIFIC_HPP
 
 #include <cstddef>
+#include <new>
 // #include "common.h"
 // #include "debug.h"
 
