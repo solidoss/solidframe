@@ -970,7 +970,7 @@ int Deserializer::parseStream(Base &_rb, FncData &_rfd){
 	}
 	towrite -= 2;
 	if(towrite > rsp.sz) towrite = rsp.sz;
-	uint16 &rsz = *((uint16*)rd.cpb);
+	const uint16 rsz = *((uint16*)rd.cpb);
 	rd.cpb += 2;
 	idbgx(Dbg::ser_bin, "rsz = "<<rsz);
 	if(rsz == 0xffff){//error on storing side - the stream is incomplete
