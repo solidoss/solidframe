@@ -1006,7 +1006,7 @@ int Deserializer::parseDummyStream(Base &_rb, FncData &_rfd){
 	cassert(towrite > 2);
 	towrite -= 2;
 	if(towrite > rsp.sz) towrite = rsp.sz;
-	uint16 &rsz = *((uint16*)rd.cpb);
+	const uint16 rsz = *((uint16*)rd.cpb);
 	rd.cpb += 2;
 	if(rsz == 0xffff){//error on storing side - the stream is incomplete
 		rsp.sz = -1;
