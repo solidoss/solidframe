@@ -471,9 +471,7 @@ void Selector::run(){
 		//d.selcnt = epoll_wait(d.epollfd, d.events, d.socksz, pollwait);
 		d.selcnt = kevent(d.kqfd, NULL, 0, d.events, Data::MAX_EVENTS_COUNT, pts);
 		vdbgx(Dbg::aio, "kqueue = "<<d.selcnt);
-#ifdef UDEBUG
 		if(d.selcnt < 0) d.selcnt = 0;
-#endif
 	}while(!(flags & Data::EXIT_LOOP));
 }
 

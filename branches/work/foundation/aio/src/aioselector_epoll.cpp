@@ -420,9 +420,7 @@ void Selector::run(){
 		
 		d.selcnt = epoll_wait(d.epollfd, d.events, Data::MAX_EVENTS_COUNT, pollwait);
 		vdbgx(Dbg::aio, "epollwait = "<<d.selcnt);
-#ifdef UDEBUG
 		if(d.selcnt < 0) d.selcnt = 0;
-#endif
 	}while(!(flags & Data::EXIT_LOOP));
 }
 
