@@ -126,6 +126,11 @@ uint32 bit_count(const uint32 _v){
 		bit_count((uint8)((_v >> 24) & 0xff));
 }
 
+uint64 bit_count(const uint64 _v){
+	return bit_count((uint32)(_v & 0xffffffff)) +
+		bit_count((uint32)(_v >> 32));
+}
+
 inline uint8 compute_crc_value(uint8 _pos){
 	if(_pos < (1 << 5)){
 		return (bit_count(_pos) << 5) | _pos;
@@ -149,6 +154,15 @@ inline uint32 compute_crc_value(uint32 _pos){
 		return 0xffffffff;
 	}
 }
+
+inline uint64 compute_crc_value(uint64 _pos){
+	if(_pos < (1ULL << 58)){
+		return (bit_count(_pos) << 58) | _pos;
+	}else{
+		return -1LL;
+	}
+}
+
 
 /*static*/ CRCValue<uint8> CRCValue<uint8>::check_and_create(uint8 _v){
 	CRCValue<uint8> crcv(_v, true);
@@ -197,3 +211,18 @@ CRCValue<uint16>::CRCValue(uint16 _v):v(compute_crc_value(_v)){
 CRCValue<uint32>::CRCValue(uint32 _v):v(compute_crc_value(_v)){
 }
 
+/*static*/ CRCValue<uint64> CRCValue<uint64>::check_and_create(uint64 _v){
+	CRCValue<uint64> crcv(_v, true);
+	if(crcv.crc() == bit_count(crcv.value())){
+		return crcv;
+	}else{
+		return CRCValue<uint64>(-1LL, true);
+	}
+}
+/*static*/ bool CRCValue<uint64>::check(uint64 _v){
+	CRCValue<uint64> crcv(_v, true);
+	return crcv.crc() == bit_count(crcv.value());
+}
+
+CRCValue<uint64>::CRCValue(uint64 _v):v(compute_crc_value(_v)){
+}

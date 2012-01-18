@@ -134,10 +134,16 @@ protected:
 	enum Errors{
 		ERR_NOERROR = 0,
 		ERR_ARRAY_LIMIT,
+		ERR_ARRAY_MAX_LIMIT,
 		ERR_CONTAINER_LIMIT,
+		ERR_CONTAINER_MAX_LIMIT,
 		ERR_STREAM_LIMIT,
+		ERR_STREAM_MAX_LIMIT,
+		ERR_STREAM_CHUNK_MAX_LIMIT,
 		ERR_STRING_LIMIT,
+		ERR_STRING_MAX_LIMIT,
 		ERR_UTF8_LIMIT,
+		ERR_UTF8_MAX_LIMIT,
 		ERR_POINTER_UNKNOWN,
 	};
 	struct FncData;
@@ -177,6 +183,7 @@ protected:
 		ExtData(uint32 _u32){u32() = _u32;}
 		ExtData(int32 _i32){i32() = _i32;}
 		ExtData(int32 _i32, int64 _i64_1){i32() = _i32; i64_1() = _i64_1;}
+		ExtData(uint32 _u32, int64 _i64_1){u32() = _u32; i64_1() = _i64_1;}
 		ExtData(int64 _i64){i64() = _i64;}
 		ExtData(int64 _i64_0, int64 _i64_1){i64() = _i64_0; i64_1() = _i64_1;}
 		ExtData(int64 _i64_0, int64 _i64_1, void *_pv){
@@ -256,19 +263,24 @@ class Serializer: public Base{
 				rs.err = ERR_CONTAINER_LIMIT;
 				return BAD;
 			}
+			if(c->size() > CRCValue<uint32>::max()){
+				rs.err = ERR_CONTAINER_MAX_LIMIT;
+				return BAD;
+			}
 			rs.estk.push(ExtData());
 			typename T::iterator *pit(new(rs.estk.top().buf) typename T::iterator(c->begin()));
 			//typename T::const_iterator &pit = *reinterpret_cast<typename T::const_iterator*>(estk.top().buf);
 			*pit = c->begin();
-			rs.estk.push(ExtData((int32)c->size()));
+			const CRCValue<uint32>	crcsz(c->size());
+			rs.estk.push(ExtData((uint32)crcsz));
 			_rfd.f = &Serializer::storeContainerContinue<T>;
 			rs.fstk.push(FncData(&Base::popEStack, NULL));
-			rs.fstk.push(FncData(&Serializer::template store<int32>, &rs.estk.top().i32(), n));
+			rs.fstk.push(FncData(&Serializer::template store<uint32>, &rs.estk.top().u32(), n));
 		}else{
-			rs.estk.push(ExtData((int64)(-1)));
+			rs.estk.push(ExtData((int32)(-1)));
 			rs.fstk.pop();
 			rs.fstk.push(FncData(&Base::popEStack, NULL));
-			rs.fstk.push(FncData(&Serializer::template store<int32>, &rs.estk.top().i32(), n));
+			rs.fstk.push(FncData(&Serializer::template store<uint32>, &rs.estk.top().u32(), n));
 		}
 		return CONTINUE;
 	}
@@ -300,14 +312,19 @@ class Serializer: public Base{
 		
 		T			*c = reinterpret_cast<T*>(_rfd.p);
 		const char	*n = _rfd.n;
-		if(c){
+		if(c && rs.estk.top().i32() != -1){
 			if(rs.limits.containerlimit && rs.estk.top().i32() > rs.limits.containerlimit){
 				rs.err = ERR_ARRAY_LIMIT;
 				return BAD;
-			}else{
+			}else if(rs.estk.top().u32() <= CRCValue<uint32>::max()){
 				_rfd.f = &Serializer::storeArrayContinue<T>;
-				//rs.fstk.push(FncData(&Base::popEStack, NULL));
-				rs.fstk.push(FncData(&Serializer::template store<int32>, &rs.estk.top().i32(), n));
+				const CRCValue<uint32>	crcsz(rs.estk.top().u32());
+				rs.estk.push(ExtData((uint32)crcsz));
+				rs.fstk.push(FncData(&Base::popEStack, NULL));
+				rs.fstk.push(FncData(&Serializer::template store<uint32>, &rs.estk.top().u32(), n));
+			}else{
+				rs.err = ERR_ARRAY_MAX_LIMIT;
+				return BAD;
 			}
 		}else{
 			rs.estk.top().i32() = -1;
@@ -345,7 +362,7 @@ class Serializer: public Base{
 		T *pt = reinterpret_cast<T*>(_rfd.p);
 		
 		IStreamData	isd;
-		int cpidx = _rfd.s;
+		int 		cpidx = _rfd.s;
 		++_rfd.s;
 		switch(pt->createSerializationStream(isd.pis, isd.sz, isd.off, cpidx)){
 			case BAD: isd.sz = -1;break;//send -1
@@ -353,15 +370,18 @@ class Serializer: public Base{
 			case OK:
 				cassert(isd.pis);
 				cassert(isd.sz >= 0);
-				if(rs.limits.streamlimit && isd.sz > rs.limits.streamlimit){
-					rs.err = ERR_STREAM_LIMIT;
-					return BAD;
-				}
 				break;
 			default:
 				cassert(false);
 		}
-		
+		if(isd.sz < 0 || isd.sz > CRCValue<uint64>::max()){
+			rs.err = ERR_STREAM_MAX_LIMIT;
+			return BAD;
+		}
+		if(rs.limits.streamlimit && isd.sz > rs.limits.streamlimit){
+			rs.err = ERR_STREAM_LIMIT;
+			return BAD;
+		}
 		rs.estk.push(ExtData());
 		IStreamData &rsp(*reinterpret_cast<IStreamData*>(rs.estk.top().buf));
 		rsp = isd;
@@ -370,7 +390,10 @@ class Serializer: public Base{
 		if(rsp.pis){
 			rs.fstk.push(FncData(&Serializer::storeStream, NULL));
 		}
-		rs.fstk.push(FncData(&Serializer::storeBinary<0>, &rsp.sz, _rfd.n, sizeof(int64)));
+		const CRCValue<uint64> crcsz(isd.sz);
+		rs.estk.push(ExtData((int64)crcsz, (int64)0));
+		rs.fstk.push(FncData(&Base::popEStack, NULL));
+		rs.fstk.push(FncData(&Serializer::store<uint64>, &rs.estk.top().u64(), _rfd.n, sizeof(uint64)));
 		return CONTINUE;
 	}
 	template <typename T>
@@ -474,7 +497,7 @@ public:
 	template <typename T, typename ST>
 	Serializer& pushArray(T *_p, const ST &_rsz, const char *_name = NULL){
 		fstk.push(FncData(&Serializer::template storeArray<T>, (void*)_p, _name));
-		estk.push(ExtData((int32)_rsz, (int64)0));
+		estk.push(ExtData((uint32)_rsz, (int64)0));
 		return *this;
 	}
 	template <typename T, typename ST>
@@ -537,6 +560,7 @@ class Deserializer: public Base{
 	static int parseBinary(Base &_rb, FncData &_rfd);
 	
 	static int parseBinaryString(Base &_rb, FncData &_rfd);
+	static int parseBinaryStringCheck(Base &_rb, FncData &_rfd);
 	static int parseUtf8(Base &_rb, FncData &_rfd);
 	
 	template <typename T>
@@ -557,9 +581,19 @@ class Deserializer: public Base{
 			rd.estk.pop();
 			return OK;
 		}
-		
-		const int32		i = rd.estk.top().i32();
-		
+		{
+			const int32		i = rd.estk.top().i32();
+			if(i != -1){
+				const CRCValue<uint32> crcsz(CRCValue<uint32>::check_and_create((uint32)i));
+				if(crcsz.ok()){
+					rd.estk.top().i32() = crcsz.value();
+				}else{
+					rd.err = ERR_CONTAINER_MAX_LIMIT;
+					return BAD;
+				}
+			}
+		}
+		const int32 i(rd.estk.top().i32());
 		vdbgx(Dbg::ser_bin, "i = "<<i);
 		
 		if(i > 0 && rd.limits.containerlimit && i > rd.limits.containerlimit){
@@ -609,6 +643,18 @@ class Deserializer: public Base{
 		if(!rd.cpb){
 			rd.estk.pop();
 			return OK;
+		}
+		{
+			const int32	&rsz(rd.estk.top().i32());
+			if(rsz != -1){
+				const CRCValue<uint32> crcsz(CRCValue<uint32>::check_and_create((uint32)rsz));
+				if(crcsz.ok()){
+					rd.estk.top().i32() = crcsz.value();
+				}else{
+					rd.err = ERR_ARRAY_MAX_LIMIT;
+					return BAD;
+				}
+			}
 		}
 		const int32	&rsz(rd.estk.top().i32());
 		//int64		&ri(rd.estk.top().i64_1());
@@ -679,8 +725,9 @@ class Deserializer: public Base{
 		}else{
 			rd.fstk.push(FncData(&Deserializer::parseDummyStream, NULL));
 		}
+		rd.fstk.push(FncData(&Deserializer::parseStreamCheck, NULL, _rfd.n));
 		//TODO: move this line - so it is called before parseStreamBegin
-		rd.fstk.push(FncData(&Deserializer::parseBinary<0>, &rsp.sz, _rfd.n, sizeof(int64)));
+		rd.fstk.push(FncData(&Deserializer::parse<uint64>, &rsp.sz, _rfd.n));
 		return CONTINUE;
 	}
 	template <typename T>
@@ -695,6 +742,7 @@ class Deserializer: public Base{
 	}
 	//! Internal callback for parsing a stream
 	static int parseStream(Base &_rb, FncData &_rfd);
+	static int parseStreamCheck(Base &_rb, FncData &_rfd);
 	//! Internal callback for parsign a dummy stream
 	/*!
 		This is internally called when a deserialization destionation
