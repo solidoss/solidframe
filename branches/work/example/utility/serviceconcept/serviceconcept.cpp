@@ -141,7 +141,7 @@ public:
 	
 	template <class O>
 	ObjectUidT insert(O *_po, const ObjectUidT &_ruid = invalid_uid()){
-		Mutex::Locker		lock(mutex());
+		Locker<Mutex>		lock(mutex());
 		const uint16		tid(objectTypeId<O>());
 		ObjectTypeStub		&rots(objectTypeStub(tid));
 		const IndexT 		objidx(doInsertObject(*_po, tid, _ruid));
@@ -195,7 +195,7 @@ public:
 		if(visidx < 0) return;
 		
 		IndexT			idx(compute_index(_ruid.first));
-		Mutex::Locker	lock(mutex(idx));
+		Locker<Mutex>	lock(mutex(idx));
 		Object			*po(objectAt(idx, _ruid.second));
 		
 		doVisit(po, _rv, visidx);

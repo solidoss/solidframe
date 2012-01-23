@@ -307,7 +307,7 @@ uint32 parseLevels(const char *_lvl){
 
 void Dbg::Data::setModuleMask(const char *_opt){
 	{
-		Mutex::Locker lock(m);
+		Locker<Mutex> lock(m);
 		bs.reset();
 		if(_opt){
 			const char *pbeg = _opt;
@@ -407,7 +407,7 @@ void Dbg::initStdErr(
 	bool _buffered,
 	std::string *_output
 ){
-	Mutex::Locker lock(d.m);
+	Locker<Mutex> lock(d.m);
 
 	d.dos.close();
 	d.dbos.close();
@@ -434,7 +434,7 @@ void Dbg::initFile(
 	ulong _respinsize,
 	std::string *_output
 ){
-	Mutex::Locker lock(d.m);
+	Locker<Mutex> lock(d.m);
 	d.respinsz = 0;
 
 	d.dos.close();
@@ -494,7 +494,7 @@ void Dbg::initSocket(
 		sd.close();//make sure the socket is closed
 	}
 	
-	Mutex::Locker lock(d.m);
+	Locker<Mutex> lock(d.m);
 	d.respinsz = 0;
 	
 	d.dos.close();
@@ -542,7 +542,7 @@ void Dbg::initSocket(
 }
 
 void Dbg::levelMask(const char *_msk){
-	Mutex::Locker lock(d.m);
+	Locker<Mutex> lock(d.m);
 	if(!_msk){
 		_msk = "iewrvt";
 	}
@@ -556,30 +556,30 @@ void Dbg::moduleMask(const char *_msk){
 }
 
 void Dbg::moduleBits(std::string &_ros){
-	Mutex::Locker lock(d.m);
+	Locker<Mutex> lock(d.m);
 	for(Data::NameVectorT::const_iterator it(d.nv.begin()); it != d.nv.end(); ++it){
 		_ros += *it;
 		_ros += ' ';
 	}
 }
 void Dbg::setAllModuleBits(){
-	Mutex::Locker lock(d.m);
+	Locker<Mutex> lock(d.m);
 	d.bs.set();
 }
 void Dbg::resetAllModuleBits(){
-	Mutex::Locker lock(d.m);
+	Locker<Mutex> lock(d.m);
 	d.bs.reset();
 }
 void Dbg::setModuleBit(unsigned _v){
-	Mutex::Locker lock(d.m);
+	Locker<Mutex> lock(d.m);
 	d.bs.set(_v);
 }
 void Dbg::resetModuleBit(unsigned _v){
-	Mutex::Locker lock(d.m);
+	Locker<Mutex> lock(d.m);
 	d.bs.reset(_v);
 }
 unsigned Dbg::registerModule(const char *_name){
-	Mutex::Locker lock(d.m);
+	Locker<Mutex> lock(d.m);
 	d.nv.push_back(_name);
 	return d.nv.size() - 1;
 }

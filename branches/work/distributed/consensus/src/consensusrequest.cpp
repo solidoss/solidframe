@@ -153,7 +153,7 @@ void WriteRequestSignal::ipcFail(int _err){
 }
 
 void WriteRequestSignal::ipcSuccess(){
-	Mutex::Locker lock(mutex());
+	Locker<Mutex> lock(mutex());
 	++sentcount;
 	idbg((void*)this<<" sentcount = "<<(int)sentcount);
 }
@@ -244,7 +244,7 @@ void ReadRequestSignal::ipcFail(int _err){
 }
 
 void ReadRequestSignal::ipcSuccess(){
-	Mutex::Locker lock(mutex());
+	Locker<Mutex> lock(mutex());
 	++sentcount;
 	idbg((void*)this<<" sentcount = "<<(int)sentcount);
 }

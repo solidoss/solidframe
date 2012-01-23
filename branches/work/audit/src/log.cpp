@@ -196,7 +196,7 @@ Log::~Log(){
 }
 
 bool Log::reinit(const char* _procname, uint32 _lvlmsk, const char *_modopt, OStream *_pos){
-	Mutex::Locker lock(d.m);
+	Locker<Mutex> lock(d.m);
 	delete d.pos;
 	d.pos = _pos;
 	d.lvlmsk_set = _lvlmsk;
@@ -210,7 +210,7 @@ bool Log::reinit(const char* _procname, uint32 _lvlmsk, const char *_modopt, OSt
 }
 
 void Log::reinit(OStream *_pos){
-	Mutex::Locker lock(d.m);
+	Locker<Mutex> lock(d.m);
 	delete d.pos;
 	d.pos = _pos;
 	if(d.pos) d.lvlmsk = d.lvlmsk_set;
@@ -219,30 +219,30 @@ void Log::reinit(OStream *_pos){
 }
 
 void Log::moduleNames(std::string &_ros){
-	Mutex::Locker lock(d.m);
+	Locker<Mutex> lock(d.m);
 	for(Data::NameVectorT::const_iterator it(d.nv.begin()); it != d.nv.end(); ++it){
 		_ros += *it;
 		_ros += ' ';
 	}
 }
 void Log::setAllModuleBits(){
-	Mutex::Locker lock(d.m);
+	Locker<Mutex> lock(d.m);
 	d.bs.set();
 }
 void Log::resetAllModuleBits(){
-	Mutex::Locker lock(d.m);
+	Locker<Mutex> lock(d.m);
 	d.bs.reset();
 }
 void Log::setModuleBit(unsigned _v){
-	Mutex::Locker lock(d.m);
+	Locker<Mutex> lock(d.m);
 	d.bs.set(_v);
 }
 void Log::resetModuleBit(unsigned _v){
-	Mutex::Locker lock(d.m);
+	Locker<Mutex> lock(d.m);
 	d.bs.reset(_v);
 }
 unsigned Log::registerModule(const char *_name){
-	Mutex::Locker lock(d.m);
+	Locker<Mutex> lock(d.m);
 	d.nv.push_back(_name);
 	return d.nv.size() - 1;
 }

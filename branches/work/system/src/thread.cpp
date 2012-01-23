@@ -30,6 +30,7 @@
 #include "system/debug.hpp"
 #include "system/condition.hpp"
 #include "system/exception.hpp"
+#include "system/cassert.hpp"
 
 #include "mutexpool.hpp"
 
@@ -107,10 +108,6 @@ static ThreadData& threadData(){
 
 Cleaner             			cleaner;
 //static unsigned 				crtspecid = 0;
-//*************************************************************************
-int Condition::wait(Mutex &_mut, const TimeSpec &_ts){
-	return pthread_cond_timedwait(&cond,&_mut.mut, &_ts);
-}
 //*************************************************************************
 /*static*/ const TimeSpec TimeSpec::max(0xffffffff, 0xffffffff);
 #ifdef NINLINES
@@ -235,6 +232,9 @@ const TimeSpec& TimeSpec::currentMonotonic(){
 
 #endif
 
+#if 	defined(USTLMUTEX)
+#elif	defined(UBOOSTMUTEX)
+#else
 //*************************************************************************
 #ifdef NINLINES
 #include "system/mutex.ipp"
@@ -248,6 +248,10 @@ const TimeSpec& TimeSpec::currentMonotonic(){
 #include "system/synchronization.ipp"
 #endif
 //-------------------------------------------------------------------------
+int Condition::wait(Locker<Mutex> &_lock, const TimeSpec &_ts){
+	return pthread_cond_timedwait(&cond,&_lock.m.mut, &_ts);
+}
+//-------------------------------------------------------------------------
 int Mutex::timedLock(const TimeSpec &_rts){
 #if defined (ON_MACOS)
     return -1;
@@ -257,12 +261,17 @@ int Mutex::timedLock(const TimeSpec &_rts){
 }
 //-------------------------------------------------------------------------
 int Mutex::reinit(Type _type){
+#ifdef UPOSIXMUTEX
 	pthread_mutex_destroy(&mut);
 	pthread_mutexattr_t att;
 	pthread_mutexattr_init(&att);
 	pthread_mutexattr_settype(&att, (int)_type);
 	return pthread_mutex_init(&mut,&att);
+#else
+	return -1;
+#endif
 }
+#endif
 //*************************************************************************
 struct MainThread: Thread{
 #ifdef _WIN32
@@ -342,12 +351,12 @@ int Thread::join(){
 }
 //-------------------------------------------------------------------------
 int Thread::detached() const{
-	//Mutex::Locker lock(mutex());
+	//Locker<Mutex> lock(mutex());
 	return dtchd;
 }
 //-------------------------------------------------------------------------
 int Thread::detach(){
-	Mutex::Locker lock(mutex());
+	Locker<Mutex> lock(mutex());
 	if(detached()) return OK;
 	int rcode = pthread_detach(this->th);
 	if(rcode == OK)	dtchd = 1;
@@ -357,7 +366,7 @@ int Thread::detach(){
 unsigned Thread::specificId(){
 	//TODO: staticproblem
 	static unsigned sid = ThreadData::FirstSpecificId - 1;
-	Mutex::Locker lock(gmutex());
+	Locker<Mutex> lock(gmutex());
 	return ++sid;
 }
 //-------------------------------------------------------------------------
@@ -400,7 +409,7 @@ Mutex& Thread::mutex()const{
 #define PTHREAD_STACK_MIN 4096
 #endif
 int Thread::start(int _wait, int _detached, ulong _stacksz){	
-	Mutex::Locker locker(mutex());
+	Locker<Mutex> locker(mutex());
 	idbgx(Dbg::system, "starting thread "<<th);
 	if(th) return BAD;
 	pthread_attr_t attr;
@@ -426,26 +435,31 @@ int Thread::start(int _wait, int _detached, ulong _stacksz){
 	ConditionPairT cndpair;
 	cndpair.second = 1;
 	if(_wait){
-		gmutex().lock();
+		Locker<Mutex>	lock2(gmutex());
 		pcndpair = &cndpair;
 		Thread::enter();
-	}else{
-		gmutex().lock();
-		Thread::enter();
-		gmutex().unlock();
-	}
-	if(pthread_create(&th,&attr,&Thread::th_run,this)){
-		pthread_attr_destroy(&attr);
-		edbgx(Dbg::system, "pthread_create: "<<strerror(errno));
-		Thread::exit();
-		return BAD;
-	}
-	//NOTE: DO not access any thread member from now - the thread may be detached
-	if(_wait){
-		while(cndpair.second){
-			cndpair.first.wait(gmutex());
+		//NOTE: DO not access any thread member from now - the thread may be detached
+		if(pthread_create(&th,&attr,&Thread::th_run,this)){
+			pthread_attr_destroy(&attr);
+			edbgx(Dbg::system, "pthread_create: "<<strerror(errno));
+			Thread::exit();
+			return BAD;
 		}
-		gmutex().unlock();
+		while(cndpair.second){
+			cndpair.first.wait(lock2);
+		}
+	}else{
+		{
+			Locker<Mutex>	lock2(gmutex());
+			Thread::enter();
+		}
+		//NOTE: DO not access any thread member from now - the thread may be detached
+		if(pthread_create(&th,&attr,&Thread::th_run,this)){
+			pthread_attr_destroy(&attr);
+			edbgx(Dbg::system, "pthread_create: "<<strerror(errno));
+			Thread::exit();
+			return BAD;
+		}
 	}
 	pthread_attr_destroy(&attr);
 	vdbgx(Dbg::system, "");
@@ -464,9 +478,8 @@ int Thread::waited(){
 //-------------------------------------------------------------------------
 void Thread::waitAll(){
 	ThreadData &td(threadData());
-    td.gmut.lock();
-    while(td.thcnt != 0) td.gcon.wait(td.gmut);
-    td.gmut.unlock();
+    Locker<Mutex> lock(td.gmut);
+    while(td.thcnt != 0) td.gcon.wait(lock);
 }
 //-------------------------------------------------------------------------
 void* Thread::th_run(void *pv){

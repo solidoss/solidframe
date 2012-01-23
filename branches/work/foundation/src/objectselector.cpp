@@ -100,7 +100,7 @@ void ObjectSelector::prepare(){
 	setCurrentTimeSpecific(d.ctimepos);
 }
 void ObjectSelector::raise(uint32 _pos){
-	Mutex::Locker lock(d.mtx);
+	Locker<Mutex> lock(d.mtx);
 	d.uiq.push(_pos);
 	d.cnd.signal();
 }
@@ -237,7 +237,7 @@ void ObjectSelector::push(const ObjectPtrT &_robj){
 int ObjectSelector::doWait(int _wt){
 	vdbgx(Dbg::fdt, "wt = "<<_wt);
 	int rv = 0;
-	d.mtx.lock();
+	Locker<Mutex> lock(d.mtx);
 	if(_wt){
 		if(_wt > 0){
 			TimeSpec ts(d.ctimepos);
@@ -248,7 +248,7 @@ int ObjectSelector::doWait(int _wt){
 			vdbgx(Dbg::fdt, "uiq.size = "<<d.uiq.size());
 			while(d.uiq.empty()){
 				vdbgx(Dbg::fdt, "before cond wait");
-				if(d.cnd.wait(d.mtx, ts)){
+				if(d.cnd.wait(lock, ts)){
 					vdbgx(Dbg::fdt, "after 1 cond wait");
 					d.ctimepos.currentRealTime();
 					rv |= Data::FULL_SCAN;
@@ -263,7 +263,7 @@ int ObjectSelector::doWait(int _wt){
 			}
 		}else{
 			while(d.uiq.empty()){
-				d.cnd.wait(d.mtx);
+				d.cnd.wait(lock);
 			}
 			d.ctimepos.currentRealTime();
 		}
@@ -282,7 +282,6 @@ int ObjectSelector::doWait(int _wt){
 			}else rv |= Data::EXIT_LOOP;
 		}while(d.uiq.size());
 	}else{if(_wt) rv |= Data::FULL_SCAN;}
-	d.mtx.unlock();
 	vdbgx(Dbg::fdt, "rv = "<<rv);
 	return rv;
 }

@@ -226,7 +226,7 @@ const IndexT& Manager::firstDynamicIndex()const{
 //---------------------------------------------------------
 void Manager::start(){
 	{
-		Mutex::Locker	lock(d.mtx);
+		Locker<Mutex>	lock(d.mtx);
 		bool reenter;
 		do{
 			reenter = false;
@@ -236,12 +236,12 @@ void Manager::start(){
 				return;
 			}else if(d.st == Data::Starting){
 				do{
-					d.cnd.wait(d.mtx);
+					d.cnd.wait(lock);
 				}while(d.st == Data::Starting);
 				reenter = true;
 			}else if(d.st == Data::Stopping || d.st == Data::MustStop){
 				do{
-					d.cnd.wait(d.mtx);
+					d.cnd.wait(lock);
 				}while(d.st == Data::Stopping || d.st == Data::MustStop);
 				reenter = true;
 			}
@@ -298,7 +298,7 @@ void Manager::start(){
 	doStart();
 	
 	{
-		Mutex::Locker	lock(d.mtx);
+		Locker<Mutex>	lock(d.mtx);
 		d.st = Data::Running;
 		d.cnd.broadcast();
 	}
@@ -306,7 +306,7 @@ void Manager::start(){
 //---------------------------------------------------------
 void Manager::stop(bool _waitsignal){
 	{
-		Mutex::Locker	lock(d.mtx);
+		Locker<Mutex>	lock(d.mtx);
 		bool reenter;
 		do{
 			reenter = false;
@@ -314,19 +314,19 @@ void Manager::stop(bool _waitsignal){
 				return;
 			}else if(d.st == Data::Stopping){
 				do{
-					d.cnd.wait(d.mtx);
+					d.cnd.wait(lock);
 				}while(d.st == Data::Stopping);
 				reenter = true;
 			}else if(d.st == Data::Starting){
 				do{
-					d.cnd.wait(d.mtx);
+					d.cnd.wait(lock);
 				}while(d.st == Data::Starting);
 				reenter = true;
 			}else /*if(d.st == Data::Running || d.st == Data::MustStop)*/{
 				if(_waitsignal){
 					_waitsignal = false;
 					while(d.st == Data::Running){
-						d.cnd.wait(d.mtx);
+						d.cnd.wait(lock);
 					}
 					reenter = true;
 				}
@@ -369,14 +369,14 @@ void Manager::stop(bool _waitsignal){
 	}
 	
 	{
-		Mutex::Locker	lock(d.mtx);
+		Locker<Mutex>	lock(d.mtx);
 		d.st = Data::Stopped;
 		d.cnd.broadcast();
 	}
 }
 //---------------------------------------------------------
 void Manager::signalStop(){
-	Mutex::Locker	lock(d.mtx);
+	Locker<Mutex>	lock(d.mtx);
 	if(d.st == Data::Starting || d.st == Data::Running){
 		d.st = Data::MustStop;
 		d.cnd.broadcast();
@@ -524,7 +524,7 @@ void Manager::prepareThread(SelectorBase *_ps){
 	Specific::prepareThread();
 	requestuidptr.prepareThread();
 	if(_ps){
-		Mutex::Locker lock(d.mtx);
+		Locker<Mutex> lock(d.mtx);
 		if(d.currentselectoridx >= d.selvec.size()){
 			THROW_EXCEPTION("Too many open threads - increase manager's selcnt");
 			cassert(false);
@@ -559,7 +559,7 @@ void Manager::unprepareThis(){
 }
 //---------------------------------------------------------
 uint Manager::newSchedulerTypeId()const{
-	Mutex::Locker	lock(d.mtx);
+	Locker<Mutex>	lock(d.mtx);
 	++d.currentschedulertypeid;
 	return d.currentschedulertypeid;
 }
@@ -569,7 +569,7 @@ uint Manager::newServiceTypeId(){
 }
 //---------------------------------------------------------
 uint Manager::newObjectTypeId(){
-	Mutex::Locker	lock(d.mtx);
+	Locker<Mutex>	lock(d.mtx);
 	++d.currentobjecttypeid;
 	return d.currentobjecttypeid;
 }
@@ -580,7 +580,7 @@ uint Manager::doRegisterScheduler(
 	uint _objtypeid,
 	SchedCbkT _schcbk
  ){
-	Mutex::Locker	lock(d.mtx);
+	Locker<Mutex>	lock(d.mtx);
 	if(d.st != Data::Stopped){
 		THROW_EXCEPTION("Error: Register scheduler while not in stopped state");
 		return -1;
@@ -604,7 +604,7 @@ IndexT Manager::doRegisterService(
 	SchedCbkT _schcbk,
 	uint _schidx
 ){
-	Mutex::Locker			lock(d.mtx);
+	Locker<Mutex>			lock(d.mtx);
 	uint					tpid(_ps->dynamicTypeId());
 	
 	if(d.st != Data::Stopped){
@@ -657,7 +657,7 @@ IndexT Manager::doRegisterObject(
 	SchedCbkT _schcbk,
 	uint _schidx
 ){
-	Mutex::Locker			lock(d.mtx);
+	Locker<Mutex>			lock(d.mtx);
 	uint					tpid(_po->dynamicTypeId());
 	
 	if(d.st != Data::Stopped){

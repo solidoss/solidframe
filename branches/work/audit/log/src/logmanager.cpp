@@ -120,7 +120,7 @@ LogManager::~LogManager(){
 }
 
 LogManager::UidT LogManager::insertChannel(IStream *_pins){
-	Mutex::Locker lock(d.m);
+	Locker<Mutex> lock(d.m);
 	if(d.state != Data::Running){return UidT(0xffffffff, 0xffffffff);}
 	UidT	uid;
 	if(d.chns.size()){
@@ -137,7 +137,7 @@ LogManager::UidT LogManager::insertChannel(IStream *_pins){
 	return uid;
 }
 LogManager::UidT LogManager::insertListener(const char *_addr, const char *_port){
-	Mutex::Locker lock(d.m);
+	Locker<Mutex> lock(d.m);
 	if(d.state != Data::Running){return UidT(0xffffffff, 0xffffffff);}
 	UidT	uid;
 	if(d.lsns.size()){
@@ -157,13 +157,13 @@ LogManager::UidT LogManager::insertListener(const char *_addr, const char *_port
 }
 
 void LogManager::eraseClient(const LogManager::UidT &_ruid){
-	Mutex::Locker lock(d.m);
+	Locker<Mutex> lock(d.m);
 	if(_ruid.first < d.chnv.size() && _ruid.second != d.chnv[_ruid.first].uid){
 		d.chnv[_ruid.first].pins->close();
 	}
 }
 void LogManager::eraseListener(const LogManager::UidT &_ruid){
-	Mutex::Locker lock(d.m);
+	Locker<Mutex> lock(d.m);
 	if(_ruid.first < d.lsnv.size() && _ruid.second != d.lsnv[_ruid.first].uid){
 		d.lsnv[_ruid.first].sd.close();
 		d.lsnv[_ruid.first].ready = false;
@@ -179,7 +179,7 @@ int LogManager::start(){
 	return OK;
 }
 void LogManager::stop(bool _wait){
-	Mutex::Locker lock(d.m);
+	Locker<Mutex> lock(d.m);
 	if(d.state == Data::Running){
 		d.state = Data::Stopping;
 		for(Data::ChannelVectorT::const_iterator it(d.chnv.begin()); it != d.chnv.end(); ++it){
@@ -195,13 +195,13 @@ void LogManager::stop(bool _wait){
 	}
 	if(_wait){
 		while(d.lsnv.size() != d.lsns.size() || d.chnv.size() != d.chns.size()){
-			d.statecnd.wait(d.m);
+			d.statecnd.wait(lock);
 		}
 		d.state = Data::Stopped;
 	}
 }
 LogManager::UidT LogManager::insertConnector(LogConnector *_plc){
-	Mutex::Locker lock(d.m);
+	Locker<Mutex> lock(d.m);
 	UidT	uid;
 	if(d.cons.size()){
 		d.conv[d.cons.top()].first = _plc;
@@ -215,7 +215,7 @@ LogManager::UidT LogManager::insertConnector(LogConnector *_plc){
 	return uid;
 }
 void LogManager::eraseConnector(const UidT &_ruid){
-	Mutex::Locker lock(d.m);
+	Locker<Mutex> lock(d.m);
 	if(_ruid.first < d.conv.size() && _ruid.second != d.conv[_ruid.first].second){
 		if(d.conv[_ruid.first].first && d.conv[_ruid.first].first->destroy()){
 			delete d.conv[_ruid.first].first;
@@ -252,7 +252,7 @@ void LogManager::runListener(ListenerWorker &_w){
 		rsd.close();
 	}
 	//in the end we unregister the listener
-	Mutex::Locker lock(d.m);
+	Locker<Mutex> lock(d.m);
 	++d.lsnv[_w.idx].uid;
 	d.lsns.push(_w.idx);
 	d.statecnd.signal();
@@ -278,7 +278,7 @@ void LogManager::runChannel(ChannelWorker &_w){
 	LogClientData	cd;
 	cd.idx = _w.idx;
 	{
-		Mutex::Locker lock(d.m);
+		Locker<Mutex> lock(d.m);
 		pis = d.chnv[_w.idx].pins;
 		cd.uid = d.chnv[_w.idx].uid;
 	}
@@ -310,7 +310,7 @@ void LogManager::runChannel(ChannelWorker &_w){
 				(*it)->record(cd, rec);
 			}
 			rv.clear();
-			Mutex::Locker lock(d.m);
+			Locker<Mutex> lock(d.m);
 			//done with the repositories:
 			for(IndexVectorT::const_iterator it(indexv.begin()); it != indexv.end(); ++it){
 				if(d.conv[*it].first->receiveDone()){
@@ -324,7 +324,7 @@ void LogManager::runChannel(ChannelWorker &_w){
 			indexv.clear();
 		}
 	}
-	Mutex::Locker lock(d.m);
+	Locker<Mutex> lock(d.m);
 	for(Data::ConnectorVectorT::const_iterator it(d.conv.begin()); it != d.conv.end(); ++it){
 		if(it->first){
 			it->first->eraseClient(cd.idx, cd.uid);

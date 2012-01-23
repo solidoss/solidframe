@@ -85,7 +85,7 @@ int MultiConnection::execute(ulong _sig, TimeSpec &_tout){
 	if(signaled()){
 		concept::Manager &rm = concept::Manager::the();
 		{
-		Mutex::Locker	lock(rm.mutex(*this));
+		Locker<Mutex>	lock(rm.mutex(*this));
 		ulong sm = grabSignalMask();
 		if(sm & fdt::S_KILL) return BAD;
 		}

@@ -56,7 +56,7 @@ void ObjectPointerBase::clear(Object *_pobj){
 	cassert(_pobj);
 	int usecnt = 0;
 	{
-		Mutex::Locker lock(Manager::the().mutex(*_pobj));
+		Locker<Mutex> lock(Manager::the().mutex(*_pobj));
 		usecnt = --_pobj->usecnt;
 	}
 	if(!usecnt){
@@ -70,7 +70,7 @@ void ObjectPointerBase::use(Object *_pobj){
 	//NOTE: the first mutex will be the first mutex from the first service
 	//which is a valid mutex. The valid mutex will be received only
 	//after objects registration within a service.
-	Mutex::Locker lock(Manager::the().mutex(*_pobj));
+	Locker<Mutex> lock(Manager::the().mutex(*_pobj));
 	++_pobj->usecnt;
 }
 void ObjectPointerBase::destroy(Object *_pobj){

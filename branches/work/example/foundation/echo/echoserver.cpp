@@ -275,7 +275,7 @@ int Listener::execute(ulong, TimeSpec&){
 	cassert(this->socketOk());
 	if(signaled()){
 		{
-		Mutex::Locker	lock(this->mutex());
+		Locker<Mutex>	lock(this->mutex());
 		ulong sm = this->grabSignalMask();
 		if(sm & foundation::S_KILL) return BAD;
 		}
@@ -346,7 +346,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 
 	if(signaled()){
 		{
-		Mutex::Locker	lock(mutex());
+		Locker<Mutex>	lock(mutex());
 		ulong sm = grabSignalMask();
 		if(sm & fdt::S_KILL) return BAD;
 		}
@@ -439,7 +439,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 	}
 	if(signaled()){
 		{
-		Mutex::Locker	lock(mutex());
+		Locker<Mutex>	lock(mutex());
 		ulong sm = grabSignalMask(0);
 		if(sm & fdt::S_KILL) return BAD;
 		}

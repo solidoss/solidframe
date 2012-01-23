@@ -138,12 +138,12 @@ DynamicMap::FncT DynamicBase::callback(const DynamicMap &_rdm){
 
 void DynamicSharedImpl::doUse(){
 	idbgx(Dbg::utility, "DynamicSharedImpl");
-	Mutex::Locker	lock(this->mutex());
+	Locker<Mutex>	lock(this->mutex());
 	++usecount;
 }
 int DynamicSharedImpl::doRelease(){
 	idbgx(Dbg::utility, "DynamicSharedImpl");
-	Mutex::Locker	lock(this->mutex());
+	Locker<Mutex>	lock(this->mutex());
 	--usecount;
 	return usecount;
 }

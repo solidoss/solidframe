@@ -281,8 +281,8 @@ void Service::erase(const Object &_robj){
 	ObjectUidT u;
 	{
 		const IndexT		oidx(_robj.index());
-		Mutex::Locker		lock1(*d.mtx);
-		Mutex::Locker		lock2(d.mutualstore.at(oidx).mtx);
+		Locker<Mutex>		lock1(*d.mtx);
+		Locker<Mutex>		lock2(d.mutualstore.at(oidx).mtx);
 		
 		ObjectTypeStub		&rots(objectTypeStub(_robj.dynamicTypeId()));
 		
@@ -317,7 +317,7 @@ bool Service::signal(DynamicPointer<Signal> &_rsig){
 }
 //---------------------------------------------------------
 bool Service::signal(ulong _sm){
-	Mutex::Locker lock(*d.mtx);
+	Locker<Mutex> lock(*d.mtx);
 	return doSignalAll(_sm);
 }
 //---------------------------------------------------------
@@ -332,7 +332,7 @@ bool Service::signal(ulong _sm, IndexT _fullid, uint32 _uid){
 		return false;
 	}
 	
-	Mutex::Locker	lock(d.mutualstore.at(oidx).mtx);
+	Locker<Mutex>	lock(d.mutualstore.at(oidx).mtx);
 	
 	if(_uid != d.objvec[oidx].uid){
 		return false;
@@ -355,7 +355,7 @@ bool Service::signal(ulong _sm, const Object &_robj){
 	
 	cassert(oidx < d.objvec.size());
 	
-	Mutex::Locker	lock(d.mutualstore.at(oidx).mtx);
+	Locker<Mutex>	lock(d.mutualstore.at(oidx).mtx);
 	
 	//if(_uid != d.objvec[oidx].second) return false;
 	
@@ -372,7 +372,7 @@ bool Service::signal(ulong _sm, const Object &_robj){
 }
 //---------------------------------------------------------
 bool Service::signal(DynamicSharedPointer<Signal> &_rsig){
-	Mutex::Locker lock(*d.mtx);
+	Locker<Mutex> lock(*d.mtx);
 	return doSignalAll(_rsig);
 }
 //---------------------------------------------------------
@@ -381,7 +381,7 @@ bool Service::signal(DynamicPointer<Signal> &_rsig, const Object &_robj){
 	
 	cassert(oidx < d.objvec.size());
 	
-	Mutex::Locker	lock(d.mutualstore.at(oidx).mtx);
+	Locker<Mutex>	lock(d.mutualstore.at(oidx).mtx);
 	
 	//if(_uid != d.objvec[oidx].second) return false;
 	
@@ -406,7 +406,7 @@ bool Service::signal(DynamicPointer<Signal> &_rsig, IndexT _fullid, uint32 _uid)
 		return false;
 	}
 	
-	Mutex::Locker	lock(d.mutualstore.at(oidx).mtx);
+	Locker<Mutex>	lock(d.mutualstore.at(oidx).mtx);
 	
 	if(_uid != d.objvec[oidx].uid){
 		return false;
@@ -442,7 +442,7 @@ uint32 Service::uid(const IndexT &_idx)const{
 //---------------------------------------------------------
 /*virtual*/ int Service::start(bool _wait){
 	{
-		Mutex::Locker	lock(*d.mtx);
+		Locker<Mutex>	lock(*d.mtx);
 		bool			reenter;
 		do{
 			reenter = false;
@@ -451,7 +451,7 @@ uint32 Service::uid(const IndexT &_idx)const{
 			}else if(d.st < Data::Running){
 				if(!_wait) return NOK;
 				do{
-					d.cnd.wait(*d.mtx);
+					d.cnd.wait(lock);
 				}while(d.st != Data::Running && d.st != Data::Stopped);
 				if(d.st == Data::Running){
 					return OK;
@@ -460,7 +460,7 @@ uint32 Service::uid(const IndexT &_idx)const{
 			}else if(d.st < Data::Stopped){
 				//if(!_wait) return false;
 				do{
-					d.cnd.wait(*d.mtx);
+					d.cnd.wait(lock);
 				}while(d.st != Data::Stopped && d.st != Data::Running);
 				if(d.st == Data::Running){
 					reenter = true;
@@ -477,9 +477,9 @@ uint32 Service::uid(const IndexT &_idx)const{
 	
 	if(!_wait) return NOK;
 	{
-		Mutex::Locker	lock(*d.mtx);
+		Locker<Mutex>	lock(*d.mtx);
 		do{
-			d.cnd.wait(*d.mtx);
+			d.cnd.wait(lock);
 		}while(d.st != Data::Running && d.st != Data::Stopped);
 		if(d.st == Data::Running){
 			return OK;
@@ -490,13 +490,13 @@ uint32 Service::uid(const IndexT &_idx)const{
 //---------------------------------------------------------
 /*virtual*/ int Service::stop(bool _wait){
 	{
-		Mutex::Locker	lock(*d.mtx);
+		Locker<Mutex>	lock(*d.mtx);
 		
 		if(d.st == Data::Stopped){
 			return OK;
 		}else if(d.st < Data::Running){
 			do{
-				d.cnd.wait(*d.mtx);
+				d.cnd.wait(lock);
 			}while(d.st != Data::Running && d.st != Data::Stopped);
 			if(d.st == Data::Stopped){
 				return OK;
@@ -505,7 +505,7 @@ uint32 Service::uid(const IndexT &_idx)const{
 			
 		}else if(d.st < Data::Stopped){
 			do{
-				d.cnd.wait(*d.mtx);
+				d.cnd.wait(lock);
 			}while(d.st != Data::Stopped && d.st != Data::Running);
 			if(d.st == Data::Stopped){
 				return OK;
@@ -520,9 +520,9 @@ uint32 Service::uid(const IndexT &_idx)const{
 	
 	if(!_wait) return NOK;
 	{
-		Mutex::Locker	lock(*d.mtx);
+		Locker<Mutex>	lock(*d.mtx);
 		do{
-			d.cnd.wait(*d.mtx);
+			d.cnd.wait(lock);
 		}while(d.st != Data::Stopped && d.st != Data::Running);
 		if(d.st == Data::Running){
 			return BAD;
@@ -535,7 +535,7 @@ uint32 Service::uid(const IndexT &_idx)const{
 	ulong sm(0);
 	if(signaled()){
 		{
-			Mutex::Locker	lock(Object::mutex());
+			Locker<Mutex>	lock(Object::mutex());
 			sm = grabSignalMask();
 			if(sm & fdt::S_SIG){//we have signals
 				de.prepareExecute(this);
@@ -556,13 +556,13 @@ uint32 Service::uid(const IndexT &_idx)const{
 			idbgx(Dbg::fdt, "ExeStarting");
 			switch(doStart(_evs, _rtout)){
 				case BAD:{
-					Mutex::Locker	lock(*d.mtx);
+					Locker<Mutex>	lock(*d.mtx);
 					state(Data::ExeStopping);
 					d.st = Data::Stopping;
 					return OK;
 				}	
 				case OK:{
-					Mutex::Locker	lock(*d.mtx);
+					Locker<Mutex>	lock(*d.mtx);
 					state(Data::ExeRunning);
 					d.st = Data::Running;
 					d.cnd.broadcast();
@@ -575,7 +575,7 @@ uint32 Service::uid(const IndexT &_idx)const{
 			idbgx(Dbg::fdt, "ExeRunning");
 			if(sm & S_UPDATE){
 				if(state() == Data::ExeRunning){
-					Mutex::Locker	lock(*d.mtx);
+					Locker<Mutex>	lock(*d.mtx);
 					if(d.st == Data::Stopping){
 						state(Data::ExeStopping);
 						return OK;
@@ -584,7 +584,7 @@ uint32 Service::uid(const IndexT &_idx)const{
 			}
 			switch(doRun(_evs, _rtout)){
 				case BAD:{
-					Mutex::Locker	lock(*d.mtx);
+					Locker<Mutex>	lock(*d.mtx);
 					state(Data::ExeStopping);
 					d.st = Data::Stopping;
 					return OK;
@@ -599,7 +599,7 @@ uint32 Service::uid(const IndexT &_idx)const{
 			switch(doStop(_evs, _rtout)){
 				case BAD:
 				case OK:{
-					Mutex::Locker	lock(*d.mtx);
+					Locker<Mutex>	lock(*d.mtx);
 					if(d.objcnt > d.expcnt){
 						state(Data::ExeStoppingWait);
 					}else{
@@ -616,7 +616,7 @@ uint32 Service::uid(const IndexT &_idx)const{
 		case Data::ExeStoppingWait:
 			idbgx(Dbg::fdt, "ExeStoppingWait");
 			if(sm & S_UPDATE){
-				Mutex::Locker	lock(*d.mtx);
+				Locker<Mutex>	lock(*d.mtx);
 				if(d.st == Data::StoppingDone){
 					d.st = Data::Stopped;
 					state(Data::ExeStopped);
@@ -629,7 +629,7 @@ uint32 Service::uid(const IndexT &_idx)const{
 		case Data::ExeStopped:
 			idbgx(Dbg::fdt, "ExeStopped");
 			if(sm & S_UPDATE){
-				Mutex::Locker	lock(*d.mtx);
+				Locker<Mutex>	lock(*d.mtx);
 				if(d.st == Data::Starting){
 					state(Data::ExeStarting);
 					return OK;
@@ -641,7 +641,7 @@ uint32 Service::uid(const IndexT &_idx)const{
 			switch(doStop(_evs, _rtout)){
 				case BAD:
 				case OK:{
-					Mutex::Locker	lock(*d.mtx);
+					Locker<Mutex>	lock(*d.mtx);
 					if(d.objcnt > d.expcnt){
 						state(Data::ExeDyingWait);
 						d.st = Data::Stopping;
@@ -657,7 +657,7 @@ uint32 Service::uid(const IndexT &_idx)const{
 		case Data::ExeDyingWait:
 			idbgx(Dbg::fdt, "ExeDyingWait");
 			if(sm & S_UPDATE){
-				Mutex::Locker	lock(*d.mtx);
+				Locker<Mutex>	lock(*d.mtx);
 				if(d.st == Data::StoppingDone){
 					d.st = Data::Stopped;
 					state(Data::ExeDie);
@@ -737,7 +737,7 @@ ObjectUidT Service::doInsertObject(Object &_ro, uint32 _tid, const IndexT &_ridx
 			{
 				const IndexT		idx(d.idxque.front());
 				Mutex 				&rmut(d.mutualstore.at(idx).mtx);
-				Mutex::Locker		lock(rmut);
+				Locker<Mutex>		lock(rmut);
 				Data::ObjectStub	&rop(d.objvec[idx]);
 				
 				d.idxque.pop();
@@ -777,7 +777,7 @@ ObjectUidT Service::doInsertObject(Object &_ro, uint32 _tid, const IndexT &_ridx
 		if(_ridx < d.objvec.size()){
 			{
 				Mutex 				&rmut(d.mutualstore.at(_ridx).mtx);
-				Mutex::Locker		lock(rmut);
+				Locker<Mutex>		lock(rmut);
 				Data::ObjectStub	&rop(d.objvec[_ridx]);
 				if(!rop.pobj){
 					rop.pobj = &_ro;
@@ -982,7 +982,7 @@ bool Service::doVisit(Visitor &_rv, uint _visidx, const ObjectUidT &_ruid){
 		return false;
 	}
 	
-	Mutex::Locker	lock(d.mutualstore.at(oidx).mtx);
+	Locker<Mutex>	lock(d.mutualstore.at(oidx).mtx);
 	
 	if(_ruid.second != d.objvec[oidx].uid){
 		return false;

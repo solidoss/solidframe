@@ -313,7 +313,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 	Context		ctx(d.tkrid);
 	idbgx(Dbg::ipc, "this = "<<(void*)this<<" &d = "<<(void*)&d);
 	if(signaled() || d.closingsessionvec.size()){
-		Mutex::Locker	lock(rm.mutex(*this));
+		Locker<Mutex>	lock(rm.mutex(*this));
 		ulong			sm = grabSignalMask(0);
 		
 		if(sm & fdt::S_KILL){
@@ -724,7 +724,7 @@ void Talker::doDispatchSignals(){
 //this should be called under ipc service's mutex lock
 void Talker::disconnectSessions(){
 	Manager 		&rm(Manager::the());
-	Mutex::Locker	lock(rm.mutex(*this));
+	Locker<Mutex>	lock(rm.mutex(*this));
 	//delete sessions
 	
 	for(Data::UInt16VectorT::const_iterator it(d.closingsessionvec.begin()); it != d.closingsessionvec.end(); ++it){

@@ -919,7 +919,7 @@ int Object::execute(ulong _sig, TimeSpec &_tout){
 	if(signaled()){//we've received a signal
 		ulong sm(0);
 		if(state() != InitState && state() != PrepareRunState && state() != PrepareRecoveryState){
-			Mutex::Locker	lock(rm.mutex(*this));
+			Locker<Mutex>	lock(rm.mutex(*this));
 			sm = grabSignalMask(0);//grab all bits of the signal mask
 			if(sm & fdt::S_KILL) return BAD;
 			if(sm & fdt::S_SIG){//we have signals

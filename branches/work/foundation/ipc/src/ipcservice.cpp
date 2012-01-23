@@ -172,9 +172,9 @@ int Service::sendSignal(
 ){
 	cassert(_rconid.tid < d.tkrvec.size());
 	
-	Mutex::Locker		lock(serviceMutex());
+	Locker<Mutex>		lock(serviceMutex());
 	IndexT				idx(Manager::the().computeIndex(d.tkrvec[_rconid.tid].uid.first));
-	Mutex::Locker		lock2(this->mutex(idx));
+	Locker<Mutex>		lock2(this->mutex(idx));
 	Talker				*ptkr(static_cast<Talker*>(this->objectAt(idx)));
 	
 	cassert(ptkr);
@@ -196,9 +196,9 @@ int Service::sendSignal(
 ){
 	cassert(_rconid.tid < d.tkrvec.size());
 	
-	Mutex::Locker		lock(serviceMutex());
+	Locker<Mutex>		lock(serviceMutex());
 	IndexT				idx(Manager::the().computeIndex(d.tkrvec[_rconid.tid].uid.first));
-	Mutex::Locker		lock2(this->mutex(idx));
+	Locker<Mutex>		lock2(this->mutex(idx));
 	Talker				*ptkr(static_cast<Talker*>(this->objectAt(idx)));
 	
 	cassert(ptkr);
@@ -229,7 +229,7 @@ int Service::doSendSignal(
 		_rsap.family() != SocketAddressInfo::Inet6
 	) return -1;
 	
-	Mutex::Locker	lock(serviceMutex());
+	Locker<Mutex>	lock(serviceMutex());
 	
 	if(_rsap.family() == SocketAddressInfo::Inet4){
 		
@@ -243,7 +243,7 @@ int Service::doSendSignal(
 			
 			ConnectionUid		conid(it->second);
 			IndexT				idx(Manager::the().computeIndex(d.tkrvec[conid.tid].uid.first));
-			Mutex::Locker		lock2(this->mutex(idx));
+			Locker<Mutex>		lock2(this->mutex(idx));
 			Talker				*ptkr(static_cast<Talker*>(this->objectAt(idx)));
 			
 			cassert(conid.tid < d.tkrvec.size());
@@ -282,7 +282,7 @@ int Service::doSendSignal(
 			}
 			
 			tkrpos = Manager::the().computeIndex(tkrpos);
-			Mutex::Locker		lock2(this->mutex(tkrpos));
+			Locker<Mutex>		lock2(this->mutex(tkrpos));
 			Talker				*ptkr(static_cast<Talker*>(this->objectAt(tkrpos)));
 			cassert(ptkr);
 			Session				*pses(new Session(inaddr, d.keepalivetout));
@@ -337,7 +337,7 @@ int Service::allocateTalkerForNewSession(bool _force){
 }
 //---------------------------------------------------------------------
 int Service::acceptSession(Session *_pses){
-	Mutex::Locker	lock(serviceMutex());
+	Locker<Mutex>	lock(serviceMutex());
 	{
 		//TODO: see if the locking is ok!!!
 		
@@ -346,7 +346,7 @@ int Service::acceptSession(Session *_pses){
 		if(it != d.sessionaddr4map.end()){
 			//a connection still exists
 			IndexT			tkrpos(Manager::the().computeIndex(d.tkrvec[it->second.tid].uid.first));
-			Mutex::Locker	lock2(this->mutex(tkrpos));
+			Locker<Mutex>	lock2(this->mutex(tkrpos));
 			Talker			*ptkr(static_cast<Talker*>(this->objectAt(tkrpos)));
 			
 			vdbgx(Dbg::ipc, "");
@@ -379,7 +379,7 @@ int Service::acceptSession(Session *_pses){
 	
 	tkrpos = Manager::the().computeIndex(tkrpos);
 	
-	Mutex::Locker	lock2(this->mutex(tkrpos));
+	Locker<Mutex>	lock2(this->mutex(tkrpos));
 	Talker			*ptkr(static_cast<Talker*>(this->objectAt(tkrpos)));
 	cassert(ptkr);
 	ConnectionUid	conid(tkrid, 0xffff, 0xffff);
@@ -396,7 +396,7 @@ int Service::acceptSession(Session *_pses){
 }
 //---------------------------------------------------------------------
 void Service::connectSession(const SocketAddressPair4 &_raddr){
-	Mutex::Locker	lock(serviceMutex());
+	Locker<Mutex>	lock(serviceMutex());
 	int				tkrid(allocateTalkerForNewSession());
 	IndexT			tkrpos;
 	uint32			tkruid;
@@ -416,7 +416,7 @@ void Service::connectSession(const SocketAddressPair4 &_raddr){
 	}
 	tkrpos = Manager::the().computeIndex(tkrpos);
 	
-	Mutex::Locker		lock2(this->mutex(tkrpos));
+	Locker<Mutex>		lock2(this->mutex(tkrpos));
 	Talker				*ptkr(static_cast<Talker*>(this->objectAt(tkrpos)));
 	cassert(ptkr);
 	Session				*pses(new Session(_raddr, d.keepalivetout));
@@ -432,7 +432,7 @@ void Service::connectSession(const SocketAddressPair4 &_raddr){
 }
 //---------------------------------------------------------------------
 void Service::disconnectTalkerSessions(Talker &_rtkr){
-	Mutex::Locker	lock(serviceMutex());
+	Locker<Mutex>	lock(serviceMutex());
 	_rtkr.disconnectSessions();
 }
 //---------------------------------------------------------------------
@@ -517,13 +517,13 @@ int Service::insertTalker(
 	if(sd.localAddress(sa) != OK){
 		return BAD;
 	}
-	//Mutex::Locker	lock(serviceMutex());
+	//Locker<Mutex>	lock(serviceMutex());
 	cassert(!d.tkrvec.size());//only the first tkr must be inserted from outside
 	Talker			*ptkr(new Talker(sd, *this, 0));
 	
 	ObjectUidT		objuid(this->insert(ptkr));
 	
-	Mutex::Locker	lock(serviceMutex());
+	Locker<Mutex>	lock(serviceMutex());
 	d.firstaddr = _rai;
 	d.baseport = sa.port();
 	d.tkrvec.push_back(Data::TalkerStub(objuid));

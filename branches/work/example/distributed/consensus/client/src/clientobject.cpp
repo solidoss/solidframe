@@ -195,7 +195,7 @@ int ClientObject::execute(ulong _sig, TimeSpec &_tout){
 	if(signaled()){//we've received a signal
 		ulong sm(0);
 		{
-			Mutex::Locker	lock(rm.mutex(*this));
+			Locker<Mutex>	lock(rm.mutex(*this));
 			sm = grabSignalMask(0);//grab all bits of the signal mask
 			if(sm & fdt::S_KILL){
 				idbg("die");

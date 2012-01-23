@@ -180,7 +180,7 @@ int File::execute(
 	Mutex	&_mtx
 ){
 	//NOTE: do not use state outside file::Manager's thread
-	Mutex::Locker lock(_mtx);
+	Locker<Mutex> lock(_mtx);
 	
 	if(_evs & Timeout){
 		if(iusecnt || ousecnt || iwq.size() || owq.size()){

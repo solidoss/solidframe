@@ -63,7 +63,7 @@ int RemoteListSignal::release(){
 }
 uint32 RemoteListSignal::ipcPrepare(){
 	const foundation::ipc::SignalContext	&rsigctx(foundation::ipc::SignalContext::the());
-	Mutex::Locker							lock(mutex());
+	Locker<Mutex>							lock(mutex());
 	
 	if(success == 0) success = 1;//wait
 	idbg(""<<(void*)this<<" siguid = "<<rsigctx.signaluid.idx<<' '<<rsigctx.signaluid.uid<<" ipcstatus = "<<(int)ipcstatus);
@@ -91,7 +91,7 @@ void RemoteListSignal::ipcReceived(
 	}
 }
 void RemoteListSignal::ipcFail(int _err){
-	Mutex::Locker lock(mutex());
+	Locker<Mutex> lock(mutex());
 	err = _err;
 	if(ipcstatus == IpcOnSender){
 		idbg("failed on sender "<<(void*)this);
@@ -100,7 +100,7 @@ void RemoteListSignal::ipcFail(int _err){
 	}
 }
 void RemoteListSignal::ipcSuccess(){
-	Mutex::Locker lock(mutex());
+	Locker<Mutex> lock(mutex());
 	success = 2;
 	idbg("");
 }

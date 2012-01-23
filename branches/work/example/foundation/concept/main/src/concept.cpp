@@ -104,15 +104,15 @@ struct SignalResultWaiter{
 		s = false;
 	}
 	void signal(int _v){
-		Mutex::Locker lock(m);
+		Locker<Mutex> lock(m);
 		v = _v;
 		s = true;
 		c.signal();
 	}
 	int wait(){
-		Mutex::Locker lock(m);
+		Locker<Mutex> lock(m);
 		while(!s){
-			c.wait(m);
+			c.wait(lock);
 		}
 		return v;
 	}

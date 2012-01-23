@@ -24,12 +24,18 @@
 #include "system/cassert.hpp"
 #endif
 
-inline Mutex::Locker::Locker(Mutex &_m):m(_m){
-	m.lock();
+inline Mutex::Mutex(){
+	pthread_mutexattr_t att;
+	pthread_mutexattr_init(&att);
+#ifdef UDEBUG
+	pthread_mutexattr_settype(&att, (int)ERRORCHECK);
+#else
+	pthread_mutexattr_settype(&att, (int)FAST);
+#endif
+	pthread_mutex_init(&mut,&att);
+	pthread_mutexattr_destroy(&att);
 }
-inline Mutex::Locker::~Locker(){
-	m.unlock();
-}
+
 inline Mutex::Mutex(Type _type){
 	pthread_mutexattr_t att;
 	pthread_mutexattr_init(&att);

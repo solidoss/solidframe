@@ -283,7 +283,7 @@ void Selector::raise(uint32 _pos){
 	idbgx(Dbg::aio, "signal connection evnt: "<<_pos<<" this "<<(void*)this);
 	uint64 v(1);
 	{
-		Mutex::Locker lock(d.m);
+		Locker<Mutex> lock(d.m);
 		d.sigq.push(_pos);
 	}
 	int rv = write(d.efd, &v, sizeof(v));
@@ -479,7 +479,7 @@ ulong Selector::doReadPipe(){
 	Stub		*pstub(NULL);
 	
 	while(read(d.efd, &v, sizeof(v)) == sizeof(v)){
-		Mutex::Locker lock(d.m);
+		Locker<Mutex> lock(d.m);
 		uint	limiter = 16;
 		while(d.sigq.size() && --limiter){
 			uint pos(d.sigq.front());
@@ -504,7 +504,7 @@ ulong Selector::doReadPipe(){
 		}
 	}
 	if(mustempty){
-		Mutex::Locker lock(d.m);
+		Locker<Mutex> lock(d.m);
 		while(d.sigq.size()){
 			uint pos(d.sigq.front());
 			d.sigq.pop();

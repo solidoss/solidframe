@@ -92,7 +92,7 @@ TypeMapperBase::~TypeMapperBase(){
 }
 
 TypeMapperBase::FncT TypeMapperBase::function(const uint32 _id, uint32* &_rpid)const{
-	Mutex::Locker				lock(d.mtx);
+	Locker<Mutex>				lock(d.mtx);
 	const Data::FunctionStub	&rfs(d.fncvec[_id]);
 	
 	_rpid = const_cast<uint32*>(&rfs.id);
@@ -100,7 +100,7 @@ TypeMapperBase::FncT TypeMapperBase::function(const uint32 _id, uint32* &_rpid)c
 	return rfs.pf;
 }
 TypeMapperBase::FncT TypeMapperBase::function(const char *_pid, uint32* &_rpid)const{
-	Mutex::Locker				lock(d.mtx);
+	Locker<Mutex>				lock(d.mtx);
 	const Data::FunctionStub	&rfs(d.fncvec[d.fncmap[_pid]]);
 	
 	_rpid = const_cast<uint32*>(&rfs.id);
@@ -108,7 +108,7 @@ TypeMapperBase::FncT TypeMapperBase::function(const char *_pid, uint32* &_rpid)c
 	return rfs.pf;
 }
 TypeMapperBase::FncT TypeMapperBase::function(const uint32 _id)const{
-	Mutex::Locker				lock(d.mtx);
+	Locker<Mutex>				lock(d.mtx);
 	const CRCValue<uint32>		crcval(CRCValue<uint32>::check_and_create(_id));
 	const uint32				idx(crcval.value());
 	if(idx < d.fncvec.size()){
@@ -121,7 +121,7 @@ TypeMapperBase::FncT TypeMapperBase::function(const uint32 _id)const{
 }
 
 TypeMapperBase::FncT TypeMapperBase::function(const uint16 _id)const{
-	Mutex::Locker				lock(d.mtx);
+	Locker<Mutex>				lock(d.mtx);
 	const CRCValue<uint16>		crcval(CRCValue<uint16>::check_and_create(_id));
 	const uint16				idx(crcval.value());
 	if(idx < d.fncvec.size()){
@@ -134,7 +134,7 @@ TypeMapperBase::FncT TypeMapperBase::function(const uint16 _id)const{
 }
 
 TypeMapperBase::FncT TypeMapperBase::function(const uint8  _id)const{
-	Mutex::Locker				lock(d.mtx);
+	Locker<Mutex>				lock(d.mtx);
 	const CRCValue<uint8>		crcval(CRCValue<uint8>::check_and_create(_id));
 	const uint8					idx(crcval.value());
 	if(idx < d.fncvec.size()){
@@ -147,7 +147,7 @@ TypeMapperBase::FncT TypeMapperBase::function(const uint8  _id)const{
 }
 
 uint32 TypeMapperBase::insertFunction(FncT _f, uint32 _pos, const char *_name){
-	Mutex::Locker lock(d.mtx);
+	Locker<Mutex> lock(d.mtx);
 	if(!_pos){
 		while(d.crtpos < d.fncvec.size() && d.fncvec[d.crtpos].pf != NULL){
 			++d.crtpos;
@@ -184,7 +184,7 @@ uint32 TypeMapperBase::insertFunction(FncT _f, uint32 _pos, const char *_name){
 }
 
 uint32 TypeMapperBase::insertFunction(FncT _f, uint16 _pos, const char *_name){
-	Mutex::Locker lock(d.mtx);
+	Locker<Mutex> lock(d.mtx);
 	if(!_pos){
 		while(d.crtpos < d.fncvec.size() && d.fncvec[d.crtpos].pf != NULL){
 			++d.crtpos;
@@ -221,7 +221,7 @@ uint32 TypeMapperBase::insertFunction(FncT _f, uint16 _pos, const char *_name){
 }
 
 uint32 TypeMapperBase::insertFunction(FncT _f, uint8  _pos, const char *_name){
-	Mutex::Locker lock(d.mtx);
+	Locker<Mutex> lock(d.mtx);
 	if(!_pos){
 		while(d.crtpos < d.fncvec.size() && d.fncvec[d.crtpos].pf != NULL){
 			++d.crtpos;

@@ -164,7 +164,7 @@ SpecificData::~SpecificData(){
 	}
 	
 	idbgx(Dbg::specific, "destroy all cached objects");
-	Mutex::Locker lock(Thread::gmutex());
+	Locker<Mutex> lock(Thread::gmutex());
 	for(ObjCachePointVecT::iterator it(ops.begin()); it != ops.end(); ++it){
 		vdbgx(Dbg::specific, "it->cp = "<<it->cp);
 		BufferNode	*pbn(it->pnode);
@@ -294,7 +294,7 @@ void destroy(void *_pv){
 //----------------------------------------------------------------------------------------------------
 //for caching objects
 /*static*/ unsigned Specific::stackid(FncT _pf){
-	Mutex::Locker lock(Thread::gmutex());
+	Locker<Mutex> lock(Thread::gmutex());
 	SpecificData &rsd(SpecificData::current());
 	cassert(rsd.ops.size() < rsd.ops.capacity());
 	cv.push_back(_pf);
