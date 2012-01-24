@@ -116,7 +116,7 @@ private:
 	int waited();
 private:
 	typedef std::pair<void*, SpecificFncT>	SpecPairT;
-	typedef std::pair<Condition, int>		ConditionPairT;
+	typedef std::pair<Condition&, int>		ConditionPairT;
 	typedef std::vector<SpecPairT>			SpecVecT;
 	
 #if		defined(ON_WINDOWS)

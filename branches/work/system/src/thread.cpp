@@ -432,8 +432,8 @@ int Thread::start(int _wait, int _detached, ulong _stacksz){
 			return BAD;
 		}
 	}
-	ConditionPairT cndpair;
-	cndpair.second = 1;
+	Condition		cnd;
+	ConditionPairT	cndpair(cnd, 1);
 	if(_wait){
 		Locker<Mutex>	lock2(gmutex());
 		pcndpair = &cndpair;
