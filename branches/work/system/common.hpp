@@ -26,8 +26,6 @@
 #include "config.h"
 
 
-#define UBOOSTMUTEX 1
-
 typedef unsigned char		uchar;
 typedef unsigned int		uint;
 

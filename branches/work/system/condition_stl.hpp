@@ -2,6 +2,8 @@
 #define SYSTEM_CONDITION_STL_HPP
 
 
+#if	defined(USTLMUTEX)
+
 #include <condition_variable>
 #include <chrono>
 #include "system/mutex.hpp"
@@ -37,11 +39,13 @@ public:
 		);
 		std::cv_status stat = wait_until(_lock, time_limit);
 		if(stat == std::cv_status::timeout){
-			return -1;
+			return 110;
 		}else{
 			return 0;
 		}
 	}
 };
+
+#endif
 
 #endif

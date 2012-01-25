@@ -20,9 +20,10 @@ struct RecursiveMutex: boost::recursive_mutex{
 
 struct TimedMutex: boost::timed_mutex{
 	int timedLock(const TimeSpec &_rts){
-		boost::system_time time_limit(
-			boost::posix_time::min_date_time
+				boost::system_time time_limit(
+			boost::posix_time::from_time_t(0)
 		);
+
 		time_limit += boost::posix_time::seconds(_rts.seconds());
 		time_limit += boost::posix_time::microseconds(_rts.nanoSeconds()/1000);
 		if(timed_lock(time_limit)){
@@ -36,7 +37,7 @@ struct TimedMutex: boost::timed_mutex{
 struct RecursiveTimedMutex: boost::recursive_timed_mutex{
 	int timedLock(const TimeSpec &_rts){
 		boost::system_time time_limit(
-			boost::posix_time::min_date_time
+			boost::posix_time::from_time_t(0)
 		);
 		time_limit += boost::posix_time::seconds(_rts.seconds());
 		time_limit += boost::posix_time::microseconds(_rts.nanoSeconds()/1000);

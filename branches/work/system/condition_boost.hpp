@@ -1,6 +1,7 @@
 #ifndef SYSTEM_CONDITION_BOOST_HPP
 #define SYSTEM_CONDITION_BOOST_HPP
 
+#if	defined(UBOOSTMUTEX)
 
 #include "boost/thread/condition_variable.hpp"
 #include "boost/chrono.hpp"
@@ -29,7 +30,7 @@ public:
 	//! Wait for a signal a certain amount of time
 	int wait(Locker<Mutex> &_lock, const TimeSpec &_ts){
 		boost::system_time time_limit(
-			boost::posix_time::min_date_time
+			boost::posix_time::from_time_t(0)
 		);
 		time_limit += boost::posix_time::seconds(_ts.seconds());
 		time_limit += boost::posix_time::microseconds(_ts.nanoSeconds()/1000);
@@ -41,5 +42,7 @@ public:
 		}
 	}
 };
+
+#endif
 
 #endif

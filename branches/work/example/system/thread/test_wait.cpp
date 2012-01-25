@@ -5,6 +5,7 @@
 #include "system/debug.hpp"
 
 #include <string>
+#include <iostream>
 using namespace std;
 
 
@@ -28,11 +29,11 @@ void MyThread::run(){
 	TimeSpec until(TimeSpec::createRealTime());
 	until += 1000;
 	idbg("lock aquired - wait condition");
-	int cnt(10);
+	int cnt(15);
 	while(cnt-- && rval != 0){
 		int rv = rcnd.wait(lock, until);
 		idbg("waiting "<<rv);
-		until += 1000;
+		until += 1110;
 	}
 	idbg("done wait "<<rval);
 	rval = 2;
