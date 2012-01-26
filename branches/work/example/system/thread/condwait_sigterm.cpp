@@ -15,7 +15,7 @@ struct Waiter{
 		Locker<Mutex> lock(mtx);
 		while(!v){
 			cout<<"before wait"<<endl;
-			cnd.wait(mtx);
+			cnd.wait(lock);
 			cout<<"after wait"<<endl;
 		}
 		if(v > 0) return true;

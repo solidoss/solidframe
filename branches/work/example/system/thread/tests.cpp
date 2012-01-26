@@ -109,7 +109,7 @@ void Runner::run(){
 	size_t  s1 = 10, s2 = 2000, s3 = 4000;
 
 	for(int i = 0; i < 20; ++i){
-		idbg("sizeToId("<<(1<<i)<<") = "<<Specific::sizeToId((1<<i))<<" "<<Specific::idToCapacity(Specific::sizeToId((1<<i))));
+		idbg("sizeToId("<<(1<<i)<<") = "<<Specific::sizeToIndex((1<<i))<<" "<<Specific::indexToCapacity(Specific::sizeToIndex((1<<i))));
 	}
 
 /*	b1 = Specific::popBuffer(Specific::s1);idbg(b1<<" "<<s1);
