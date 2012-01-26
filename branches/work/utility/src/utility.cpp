@@ -90,7 +90,11 @@ const char * charToString(unsigned _c){
 }
 
 /*static*/ size_t cstring::nlen(const char *s, size_t maxlen){
+#ifdef ON_MACOS
+    return strlen(s);
+#else
 	return strnlen(s, maxlen);
+#endif
 }
 
 uint8 bit_count(const uint8 _v){
