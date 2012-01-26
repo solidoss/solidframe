@@ -35,7 +35,6 @@
 #include "system/common.hpp"
 
 class Mutex;
-class Condition;
 
 //! A wrapper for system threads
 /*!
@@ -116,9 +115,8 @@ private:
 	int waited();
 private:
 	typedef std::pair<void*, SpecificFncT>	SpecPairT;
-	typedef std::pair<Condition&, int>		ConditionPairT;
 	typedef std::vector<SpecPairT>			SpecVecT;
-	
+	struct ThreadStub;
 #if		defined(ON_WINDOWS)
 #else
 	pthread_t       th;
@@ -126,8 +124,7 @@ private:
 	int				dtchd;
 	unsigned        thcrtstatid;
 	SpecVecT		specvec;
-	ConditionPairT	*pcndpair;
-
+	ThreadStub		*pthrstub;
 };
 
 inline void Thread::yield(){

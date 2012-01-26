@@ -164,7 +164,7 @@ typedef serialization::IdTypeMapper<
 	uint32
 >													TypeMapper;
 
-static TypeMapper		tm;
+static TypeMapper		tpmap;
 
 ///\endcond
 
@@ -197,7 +197,7 @@ enum {BUFSZ = 4 * 1024};
 void parentRun(int _sd, const char *_fn){
 	char buf[BUFSZ];
 	Test t(_fn);
-	BinSerializer	ser(tm);
+	BinSerializer	ser(tpmap);
 	ser.push(t, "test");
 	t.print();
 	int rv;
@@ -215,7 +215,7 @@ void parentRun(int _sd, const char *_fn){
 void childRun(int _sd){
 	char buf[BUFSZ];
 	Test t;
-	BinDeserializer	des(tm);
+	BinDeserializer	des(tpmap);
 	des.push(t, "test");
 	int rv;
 	cout<<"Client reading"<<endl;

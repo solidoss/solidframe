@@ -28,6 +28,9 @@
 #elif	defined(UBOOSTMUTEX)
 #include "system/condition_boost.hpp"
 #else
+
+#include <pthread.h>
+
 struct TimeSpec;
 struct Mutex;
 template <class M>

@@ -148,12 +148,14 @@ void Runner::run(){
 
 int main(int argc, char *argv[]){
 	cout<<"Built on SolidFrame version "<<SF_MAJOR<<'.'<<SF_MINOR<<'.'<<SF_PATCH<<endl;
+#ifdef UDEBUG
 	{
 	//initDebug(s.c_str());
 		Dbg::instance().initStdErr();
 		Dbg::instance().levelMask("iwe");
 		Dbg::instance().moduleMask("all");
 	}
+#endif
 	Thread::init();
 	idbg("current thread "<<(void*)Thread::current());
 	const unsigned specid(Thread::specificId());

@@ -316,7 +316,7 @@ long Thread::processId(){
 	return getpid();
 }
 //-------------------------------------------------------------------------
-Thread::Thread(bool _detached, pthread_t _th):th(_th), dtchd(_detached), pcndpair(NULL){
+Thread::Thread(bool _detached, pthread_t _th):th(_th), dtchd(_detached), pthrstub(NULL){
 }
 //-------------------------------------------------------------------------
 Thread::~Thread(){
@@ -408,6 +408,14 @@ Mutex& Thread::mutex()const{
 #ifndef PTHREAD_STACK_MIN
 #define PTHREAD_STACK_MIN 4096
 #endif
+struct Thread::ThreadStub{
+	ThreadStub(
+		Condition *_pcnd = NULL,
+		int *_pval = NULL
+	):pcnd(_pcnd), pval(_pval){}
+	Condition	*pcnd;
+	int			*pval;
+};
 int Thread::start(int _wait, int _detached, ulong _stacksz){	
 	Locker<Mutex> locker(mutex());
 	idbgx(Dbg::system, "starting thread "<<th);
@@ -433,10 +441,11 @@ int Thread::start(int _wait, int _detached, ulong _stacksz){
 		}
 	}
 	Condition		cnd;
-	ConditionPairT	cndpair(cnd, 1);
+	int				val(1);
+	ThreadStub		thrstub(&cnd, &val);
 	if(_wait){
 		Locker<Mutex>	lock2(gmutex());
-		pcndpair = &cndpair;
+		pthrstub = &thrstub;
 		Thread::enter();
 		//NOTE: DO not access any thread member from now - the thread may be detached
 		if(pthread_create(&th,&attr,&Thread::th_run,this)){
@@ -445,8 +454,8 @@ int Thread::start(int _wait, int _detached, ulong _stacksz){
 			Thread::exit();
 			return BAD;
 		}
-		while(cndpair.second){
-			cndpair.first.wait(lock2);
+		while(val){
+			cnd.wait(lock2);
 		}
 	}else{
 		{
@@ -467,13 +476,13 @@ int Thread::start(int _wait, int _detached, ulong _stacksz){
 }
 //-------------------------------------------------------------------------
 void Thread::signalWaiter(){
-	pcndpair->second = 0;
-	pcndpair->first.signal();
-	pcndpair = NULL;
+	*(pthrstub->pval) = 0;
+	pthrstub->pcnd->signal();
+	pthrstub = NULL;
 }
 //-------------------------------------------------------------------------
 int Thread::waited(){
-	return pcndpair != NULL;
+	return pthrstub != NULL;
 }
 //-------------------------------------------------------------------------
 void Thread::waitAll(){

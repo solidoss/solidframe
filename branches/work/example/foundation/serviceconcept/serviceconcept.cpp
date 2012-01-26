@@ -94,6 +94,7 @@ class Service: public Dynamic<Service, Object>{
 	typedef void (*InsertCbkT) (Object *, Service *, const ObjectUidT &);
 	typedef void (*VisitCbkT)(Object *, Visitor&);
 	
+	
 	template <class O, class S>
 	static void insert_cbk(Object *_po, Service *_ps, const ObjectUidT &_ruid){
 		static_cast<S*>(_ps)->insertObject(*static_cast<O*>(_po), _ruid);
@@ -108,9 +109,11 @@ class Service: public Dynamic<Service, Object>{
 	}
 	
 	struct ObjectTypeStub{
+		static const EraseCbkT	default_erase_cbk;
+		static const InsertCbkT	default_insert_cbk;
 		ObjectTypeStub(
-			EraseCbkT _pec = &erase_cbk<Object,Service>,
-			InsertCbkT _pic = &insert_cbk<Object,Service>
+			EraseCbkT _pec = default_erase_cbk,
+			InsertCbkT _pic = default_insert_cbk
 		):erase_callback(_pec), insert_callback(_pic){}
 		bool empty()const{
 			return erase_callback == NULL;
@@ -288,6 +291,9 @@ private:
 	uint					crtobjtypeid;
 	Mutex					*pmtx;
 };
+
+/*static*/ const Service::EraseCbkT		Service::ObjectTypeStub::default_erase_cbk(&Service::erase_cbk<Object, Service>);
+/*static*/ const Service::InsertCbkT	Service::ObjectTypeStub::default_insert_cbk(&Service::insert_cbk<Object, Service>);
 
 void Service::insertObject(Object &_ro, const ObjectUidT &_ruid){
 	

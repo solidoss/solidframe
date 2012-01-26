@@ -388,7 +388,7 @@ void Object::Data::coordinatorId(int8 _coordid){
 	}
 }
 bool Object::Data::insertRequestStub(DynamicPointer<WriteRequestSignal> &_rsig, size_t &_ridx){
-	RequestStubMapT::const_iterator	it(reqmap.find(&_rsig->id));
+	RequestStubMapT::iterator	it(reqmap.find(&_rsig->id));
 	if(it != reqmap.end()){
 		_ridx = it->second;
 		reqmap.erase(it);

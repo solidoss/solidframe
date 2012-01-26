@@ -1,5 +1,7 @@
 #include "system/debug.hpp"
 #include "system/common.hpp"
+#include <string>
+
 
 struct NoType{};
 
@@ -239,11 +241,13 @@ struct TestEFunctor{
 
 
 int main(int argc, char *argv[]){
+#ifdef UDEBUG
 	{
 		Dbg::instance().initStdErr();
 		Dbg::instance().levelMask("iwe");
 		Dbg::instance().moduleMask("all");
 	}
+#endif
 	//FunctorStub<NoType>				fnc0;
 	FunctorStub<4, int>								fnca;
 	FunctorStub<4, void, const std::string&>		fncb;

@@ -1,5 +1,6 @@
 #include "system/debug.hpp"
 #include "utility/functorstub.hpp"
+#include <string>
 
 struct TestAFunctor{
 	TestAFunctor(int _v):v(_v){
@@ -89,11 +90,13 @@ struct TestFFunctor{
 
 
 int main(int argc, char *argv[]){
+#ifdef UDEBUG
 	{
 		Dbg::instance().initStdErr();
 		Dbg::instance().levelMask("iwe");
 		Dbg::instance().moduleMask("all");
 	}
+#endif
 	//FunctorStub<NoType>				fnc0;
 	FunctorStub<3 * sizeof(int), int>							fnca;
 	FunctorStub<4, void, const std::string&>					fncb;
