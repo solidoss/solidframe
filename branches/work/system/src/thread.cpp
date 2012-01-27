@@ -22,7 +22,6 @@
 
 #include <cerrno>
 #include <cstring>
-#include <pthread.h>
 #include <limits.h>
 
 #include "system/timespec.hpp"
@@ -37,6 +36,7 @@
 #if defined(ON_FREEBSD)
 #include <pmc.h>
 #elif defined(ON_MACOS)
+#elif defined(ON_WINDOWS)
 #else
 #include <sys/sysinfo.h>
 #endif
@@ -47,9 +47,11 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <windows.h>
+#include <Process.h>
 //#include <io.h>
 #else
 #include <unistd.h>
+#include <pthread.h>
 #endif
 
 #if defined(ON_MACOS)
@@ -57,7 +59,6 @@
 #endif
 
 
-#include <unistd.h>
 #include <limits.h>
 
 struct Cleaner{
@@ -75,8 +76,9 @@ void throw_exception(const char* const _pt, const char * const _file, const int 
 	throw Exception<const char*>(_pt, _file, _line, _func);
 }
 
-
+#ifndef ON_WINDOWS
 static const pthread_once_t	oncek = PTHREAD_ONCE_INIT;
+#endif
 
 struct ThreadData{
 	enum {
@@ -85,13 +87,20 @@ struct ThreadData{
 	};
 	//ThreadData();
 	//ThreadData():crtthread_key(0), thcnt(0), once_key(PTHREAD_ONCE_INIT){}
+#ifndef ON_WINDOWS
 	pthread_key_t					crtthread_key;
-	uint32    						thcnt;
 	pthread_once_t					once_key;
+#endif
+	uint32    						thcnt;
 	Condition						gcon;
 	Mutex							gmut;
 	FastMutexPool<MutexPoolSize>	mutexpool;
-	ThreadData():crtthread_key(0), thcnt(0), once_key(oncek){
+	ThreadData():thcnt(0)
+#ifndef ON_WINDOWS
+		,crtthread_key(0)
+		,once_key(oncek)
+#endif
+	{
 	}
 };
 
@@ -109,7 +118,7 @@ static ThreadData& threadData(){
 Cleaner             			cleaner;
 //static unsigned 				crtspecid = 0;
 //*************************************************************************
-/*static*/ const TimeSpec TimeSpec::max(0xffffffff, 0xffffffff);
+/*static*/ const TimeSpec TimeSpec::maximum(0xffffffff, 0xffffffff);
 #ifdef NINLINES
 #include "system/timespec.ipp"
 #endif
@@ -143,7 +152,7 @@ const TimeSpec& TimeSpec::currentRealTime(){
 	
 	if(tsd.sc <= cc){
 		secs = (cc - tsd.sc)/CLOCKS_PER_SEC;
-		nsecs = ((((cc - d.sc) % CLOCKS_PER_SEC) * 1000)/CLOCKS_PER_SEC) * 1000000;
+		nsecs = ((((cc - tsd.sc) % CLOCKS_PER_SEC) * 1000)/CLOCKS_PER_SEC) * 1000000;
 	}else{
 		//NOTE: find a better way
 		UnsignedType<clock_t>::Type tc = cc + (0xffffffff - tsd.sc);
@@ -172,7 +181,7 @@ const TimeSpec& TimeSpec::currentMonotonic(){
 		tsd.sc = cc;
 		tsd.st = time(NULL);
 	}
-	this->set(d.st + secs, nsecs);
+	this->set(tsd.st + secs, nsecs);
 	return *this;
 }
 
@@ -281,17 +290,26 @@ struct MainThread: Thread{
 	void run(){}
 };
 /*static*/ void Thread::init(){
+#ifdef ON_WINDOWS
+#else
 	if(pthread_key_create(&threadData().crtthread_key, NULL)) throw -1;
 	static MainThread	t(false, pthread_self());
 	Thread::current(&t);
+#endif
 }
 //-------------------------------------------------------------------------
 void Thread::cleanup(){
+#ifdef ON_WINDOWS
+#else
 	pthread_key_delete(threadData().crtthread_key);
+#endif
 }
 //-------------------------------------------------------------------------
 void Thread::sleep(ulong _msec){
+#ifdef ON_WINDOWS
+#else
 	usleep(_msec*1000);
+#endif
 }
 //-------------------------------------------------------------------------
 inline void Thread::enter(){
@@ -309,15 +327,28 @@ inline void Thread::exit(){
 }
 //-------------------------------------------------------------------------
 Thread * Thread::current(){
+#ifdef ON_WINDOWS
+	return NULL;
+#else
 	return reinterpret_cast<Thread*>(pthread_getspecific(threadData().crtthread_key));
+#endif
 }
 //-------------------------------------------------------------------------
 long Thread::processId(){
+#ifdef ON_WINDOWS
+	return _getpid();
+#else
 	return getpid();
+#endif
 }
 //-------------------------------------------------------------------------
+#ifdef ON_WINDOWS
+Thread::Thread(bool _detached, void* _th):th(_th), dtchd(_detached), pthrstub(NULL){
+}
+#else
 Thread::Thread(bool _detached, pthread_t _th):th(_th), dtchd(_detached), pthrstub(NULL){
 }
+#endif
 //-------------------------------------------------------------------------
 Thread::~Thread(){
 	for(SpecVecT::iterator it(specvec.begin()); it != specvec.end(); ++it){
@@ -327,6 +358,13 @@ Thread::~Thread(){
 		}
 	}
 }
+//-------------------------------------------------------------------------
+#ifdef ON_WINDOWS
+inline long Thread::currentId(){
+	return 0;
+}
+#endif
+
 //-------------------------------------------------------------------------
 void Thread::dummySpecificDestroy(void*){
 }
@@ -338,16 +376,22 @@ void Thread::dummySpecificDestroy(void*){
 	return 1;//pmc_ncpu();//sysconf(_SC_NPROCESSORS_ONLN)
 #elif	defined(ON_MACOS)
     return 1;
+#elif	defined(ON_WINDOWS)
+	return 1;
 #else
 	return get_nprocs();
 #endif
 }
 //-------------------------------------------------------------------------
 int Thread::join(){
+#ifdef ON_WINDOWS
+	return -1;
+#else
 	if(pthread_equal(th, pthread_self())) return NOK;
 	if(detached()) return NOK;
 	int rcode =  pthread_join(this->th, NULL);
 	return rcode;
+#endif
 }
 //-------------------------------------------------------------------------
 int Thread::detached() const{
@@ -356,11 +400,15 @@ int Thread::detached() const{
 }
 //-------------------------------------------------------------------------
 int Thread::detach(){
+#ifdef ON_WINDOWS
+	return -1;
+#else
 	Locker<Mutex> lock(mutex());
 	if(detached()) return OK;
 	int rcode = pthread_detach(this->th);
 	if(rcode == OK)	dtchd = 1;
 	return rcode;
+#endif
 }
 //-------------------------------------------------------------------------
 unsigned Thread::specificId(){
@@ -397,8 +445,12 @@ Mutex& Thread::gmutex(){
 }
 //-------------------------------------------------------------------------
 int Thread::current(Thread *_ptb){
+#ifdef ON_WINDOWS
+	return BAD;
+#else
 	pthread_setspecific(threadData().crtthread_key, _ptb);
 	return OK;
+#endif
 }
 //-------------------------------------------------------------------------
 Mutex& Thread::mutex()const{
@@ -416,7 +468,10 @@ struct Thread::ThreadStub{
 	Condition	*pcnd;
 	int			*pval;
 };
-int Thread::start(int _wait, int _detached, ulong _stacksz){	
+int Thread::start(int _wait, int _detached, ulong _stacksz){
+#ifdef ON_WINDOWS
+	return -1;
+#else
 	Locker<Mutex> locker(mutex());
 	idbgx(Dbg::system, "starting thread "<<th);
 	if(th) return BAD;
@@ -473,6 +528,7 @@ int Thread::start(int _wait, int _detached, ulong _stacksz){
 	pthread_attr_destroy(&attr);
 	vdbgx(Dbg::system, "");
 	return OK;
+#endif
 }
 //-------------------------------------------------------------------------
 void Thread::signalWaiter(){
@@ -491,7 +547,8 @@ void Thread::waitAll(){
     while(td.thcnt != 0) td.gcon.wait(lock);
 }
 //-------------------------------------------------------------------------
-void* Thread::th_run(void *pv){
+#ifdef ON_WINDOWS
+unsigned long Thread::th_run(void *pv){
 	vdbgx(Dbg::system, "thrun enter "<<pv);
 	Thread	*pth(reinterpret_cast<Thread*>(pv));
 	//Thread::enter();
@@ -509,4 +566,23 @@ void* Thread::th_run(void *pv){
 	return NULL;
 }
 
+#else
+void* Thread::th_run(void *pv){
+	vdbgx(Dbg::system, "thrun enter "<<pv);
+	Thread	*pth(reinterpret_cast<Thread*>(pv));
+	//Thread::enter();
+	Thread::current(pth);
+	if(pth->waited()){
+		pth->signalWaiter();
+		Thread::yield();
+	}
+	pth->prepare();
+	pth->run();
+	pth->unprepare();
+	if(pth->detached()) delete pth;
+	vdbgx(Dbg::system, "thrun exit "<<pv);
+	Thread::exit();
+	return NULL;
+}
+#endif
 //-------------------------------------------------------------------------

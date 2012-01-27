@@ -38,7 +38,7 @@ public:
 	//! Truncate to a certain length
 	int truncate(int64 _len);
 protected:
-	SeekableDevice(int _desc = -1):Device(_desc){}
+	SeekableDevice(DescriptorT _desc = invalidDescriptor()):Device(_desc){}
 };
 
 #endif

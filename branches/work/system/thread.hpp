@@ -34,7 +34,7 @@
 #include <vector>
 #include "system/common.hpp"
 
-class Mutex;
+struct Mutex;
 
 //! A wrapper for system threads
 /*!
@@ -93,6 +93,7 @@ public:
 	Mutex& mutex()const;
 protected:
 #ifdef _WIN32
+	Thread(bool _detached = true, void* _th = NULL);
 #else
 	Thread(bool _detached = true, pthread_t _th = 0);
 #endif
@@ -107,7 +108,11 @@ private:
 	//a dummy function
 	static int current(Thread *_ptb);
 	Thread(const Thread&){}
+#ifdef ON_WINDOWS
+	static unsigned long th_run(void*);
+#else
 	static void* th_run(void*);
+#endif
 	static void enter();
 	static void exit();
 	
@@ -118,6 +123,7 @@ private:
 	typedef std::vector<SpecPairT>			SpecVecT;
 	struct ThreadStub;
 #if		defined(ON_WINDOWS)
+	void*			th;
 #else
 	pthread_t       th;
 #endif
@@ -135,13 +141,11 @@ inline void Thread::yield(){
 	pthread_yield();
 #endif
 }
-
+#ifndef ON_WINDOWS
 inline long Thread::currentId(){
-#ifdef ON_WINDOWS
-#else
 	return (long)pthread_self();
-#endif
 }
+#endif
 
 #endif
 

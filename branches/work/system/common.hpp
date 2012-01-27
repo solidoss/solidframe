@@ -25,6 +25,13 @@
 #include <cstdlib>
 #include "config.h"
 
+#ifdef ON_WINDOWS
+//#ifdef HAVE_CPP11
+//	#define USTLMUTEX
+//#else
+	#define UBOOSTMUTEX
+//#endif
+#endif
 
 typedef unsigned char		uchar;
 typedef unsigned int		uint;

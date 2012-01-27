@@ -22,7 +22,9 @@
 #ifdef UDEBUG
 
 #define DO_EXPORT_DLL 1
-
+#ifdef ON_WINDOWS
+#include <process.h>
+#else
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -32,6 +34,7 @@
 #include <iostream>
 #include <fstream>
 #include <bitset>
+#endif
 
 #include "system/timespec.hpp"
 #include "system/socketdevice.hpp"
@@ -42,10 +45,12 @@
 #include "system/mutex.hpp"
 #include "system/debug.hpp"
 #include "system/directory.hpp"
+#include "system/cstring.hpp"
 
 #ifdef ON_SOLARIS
 #include <strings.h>
 #endif
+#include <bitset>
 
 
 using namespace std;
@@ -259,12 +264,12 @@ Dbg::~Dbg(){
 }
 
 void Dbg::Data::setBit(const char *_pbeg, const char *_pend){
-	if(!strncasecmp(_pbeg, "all", _pend - _pbeg)){
+	if(!cstring::ncasecmp(_pbeg, "all", _pend - _pbeg)){
 		bs.set();
-	}else if(!strncasecmp(_pbeg, "none", _pend - _pbeg)){
+	}else if(!cstring::ncasecmp(_pbeg, "none", _pend - _pbeg)){
 		bs.reset();
 	}else for(NameVectorT::const_iterator it(nv.begin()); it != nv.end(); ++it){
-		if(!strncasecmp(_pbeg, *it, _pend - _pbeg) && (int)strlen(*it) == (_pend - _pbeg)){
+		if(!cstring::ncasecmp(_pbeg, *it, _pend - _pbeg) && (int)strlen(*it) == (_pend - _pbeg)){
 			bs.set(it - nv.begin());
 		}
 	}
@@ -358,7 +363,12 @@ bool Dbg::Data::initFile(FileDevice &_rfd, uint32 _respincnt, uint64 _respinsz, 
 	respinsz = _respinsz;
 	respinpos = 0;
 	string fpath;
-	filePath(fpath, 0, getpid(), path, name);
+#ifdef ON_WINDOWS
+	ulong pid(_getpid());
+#else
+	ulong pid(getpid());
+#endif
+	filePath(fpath, 0, pid, path, name);
 	if(_rfd.create(fpath.c_str(), FileDevice::WO)) return false;
 	if(_poutput){
 		*_poutput = fpath;
@@ -369,17 +379,24 @@ bool Dbg::Data::initFile(FileDevice &_rfd, uint32 _respincnt, uint64 _respinsz, 
 void Dbg::Data::doRespin(){
 	sz = 0;
 	string fname;
+#ifdef ON_WINDOWS
+	ulong pid(_getpid());
+#else
+	ulong pid(getpid());
+#endif
+
 	//first we erase the oldest file:
 	if(respinpos > respincnt){
-		filePath(fname, respinpos - respincnt, getpid(), path, name);
+		filePath(fname, respinpos - respincnt, pid, path, name);
 		Directory::eraseFile(fname.c_str());
 	}
 	fname.clear();
 	++respinpos;
+
 	//rename the curent file name_PID.dbg to name_PID_RESPINPOS.dbg
-	filePath(fname, respinpos, getpid(), path, name);
+	filePath(fname, respinpos, pid, path, name);
 	string crtname;
-	filePath(crtname, 0, getpid(), path, name);
+	filePath(crtname, 0, pid, path, name);
 	FileDevice fd;
 	if(pos == &dos){
 		dos.device(fd);//close the current file
@@ -603,18 +620,23 @@ std::ostream& Dbg::print(
 	char		buf[128];
 	TimeSpec	ts_now(TimeSpec::createRealTime());
 	time_t		t_now = ts_now.seconds();
+	tm			*ploctm;
+#ifdef ON_WINDOWS
+	ploctm = localtime(&t_now);
+#else
 	tm			loctm;
-	localtime_r(&t_now, &loctm);
+	ploctm = localtime_r(&t_now, &loctm);
+#endif
 	sprintf(
 		buf,
 		"%c[%04u-%02u-%02u %02u:%02u:%02u.%03u][%s]",
 		_t,
-		loctm.tm_year + 1900,
-		loctm.tm_mon + 1, 
-		loctm.tm_mday,
-		loctm.tm_hour,
-		loctm.tm_min,
-		loctm.tm_sec,
+		ploctm->tm_year + 1900,
+		ploctm->tm_mon + 1, 
+		ploctm->tm_mday,
+		ploctm->tm_hour,
+		ploctm->tm_min,
+		ploctm->tm_sec,
 		(uint)ts_now.nanoSeconds()/1000000,
 		d.nv[_module]//,
 		//Thread::currentId()
@@ -648,18 +670,23 @@ std::ostream& Dbg::printTraceIn(
 	char		buf[128];
 	TimeSpec	ts_now(TimeSpec::createRealTime());
 	time_t		t_now = ts_now.seconds();
+	tm			*ploctm;
+#ifdef ON_WINDOWS
+	ploctm = localtime(&t_now);
+#else
 	tm			loctm;
-	localtime_r(&t_now, &loctm);
+	ploctm = localtime_r(&t_now, &loctm);
+#endif
 	sprintf(
 		buf,
 		"%c[%04u-%02u-%02u %02u:%02u:%02u.%03u]",
 		_t,
-		loctm.tm_year + 1900,
-		loctm.tm_mon + 1, 
-		loctm.tm_mday,
-		loctm.tm_hour,
-		loctm.tm_min,
-		loctm.tm_sec,
+		ploctm->tm_year + 1900,
+		ploctm->tm_mon + 1, 
+		ploctm->tm_mday,
+		ploctm->tm_hour,
+		ploctm->tm_min,
+		ploctm->tm_sec,
 		(uint)ts_now.nanoSeconds()/1000000//,
 		//d.nv[_module],
 		//Thread::currentId()
@@ -685,18 +712,23 @@ std::ostream& Dbg::printTraceOut(
 	char		buf[128];
 	TimeSpec	ts_now(TimeSpec::createRealTime());
 	time_t		t_now = ts_now.seconds();
+	tm			*ploctm;
+#ifdef ON_WINDOWS
+	ploctm = localtime(&t_now);
+#else
 	tm			loctm;
-	localtime_r(&t_now, &loctm);
+	ploctm = localtime_r(&t_now, &loctm);
+#endif
 	sprintf(
 		buf,
 		"%c[%04u-%02u-%02u %02u:%02u:%02u.%03u]",
 		_t,
-		loctm.tm_year + 1900,
-		loctm.tm_mon + 1, 
-		loctm.tm_mday,
-		loctm.tm_hour,
-		loctm.tm_min,
-		loctm.tm_sec,
+		ploctm->tm_year + 1900,
+		ploctm->tm_mon + 1, 
+		ploctm->tm_mday,
+		ploctm->tm_hour,
+		ploctm->tm_min,
+		ploctm->tm_sec,
 		(uint)ts_now.nanoSeconds()/1000000//,
 		//d.nv[_module],
 		//Thread::currentId()
