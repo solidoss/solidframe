@@ -3,7 +3,7 @@
 
 #include "system/common.hpp"
 
-const char * char_to_ctring(unsigned _c);
+const char * char_to_cstring(unsigned _c);
 
 //! Some cross platform cstring utility functions
 struct cstring{

@@ -58,11 +58,11 @@ struct Manager::Data{
 	struct FileData{
 		FileData(
 			File *_pfile = NULL
-		):pfile(_pfile), /*toutidx(-1), */uid(0), tout(TimeSpec::max),inexecq(false), events(0){}
+		):pfile(_pfile), /*toutidx(-1), */uid(0), tout(TimeSpec::maximum),inexecq(false), events(0){}
 		void clear(){
 			pfile = NULL;
 			++uid;
-			tout = TimeSpec::max;
+			tout = TimeSpec::maximum;
 			inexecq = false;
 		}
 		File		*pfile;
@@ -316,7 +316,7 @@ void Manager::doExecuteFile(const IndexT &_idx, const TimeSpec &_rtout){
 	Stub 			s(*this);
 	uint16			evs(rfd.events);
 	
-	rfd.tout = TimeSpec::max;
+	rfd.tout = TimeSpec::maximum;
 	rfd.inexecq = false;
 	rfd.events = 0;
 	
@@ -343,7 +343,7 @@ void Manager::doExecuteFile(const IndexT &_idx, const TimeSpec &_rtout){
 					d.tout = rfd.tout;
 				}
 			}else{
-				rfd.tout = TimeSpec::max;
+				rfd.tout = TimeSpec::maximum;
 			}
 			break;
 	}
@@ -387,7 +387,7 @@ void Manager::doDeleteFiles(){
 //------------------------------------------------------------------
 void Manager::doScanTimeout(const TimeSpec &_rtout){
 	if(_rtout < d.tout) return;
-	d.tout = TimeSpec::max;
+	d.tout = TimeSpec::maximum;
 	for(Data::FileVectorT::iterator it(d.fv.begin()); it != d.fv.end(); ++it){
 		Data::FileData &rfd(*it);
 		if(rfd.pfile){

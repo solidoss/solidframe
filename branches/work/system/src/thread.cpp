@@ -87,11 +87,11 @@ struct ThreadData{
 	};
 	//ThreadData();
 	//ThreadData():crtthread_key(0), thcnt(0), once_key(PTHREAD_ONCE_INIT){}
+	uint32    						thcnt;
 #ifndef ON_WINDOWS
 	pthread_key_t					crtthread_key;
 	pthread_once_t					once_key;
 #endif
-	uint32    						thcnt;
 	Condition						gcon;
 	Mutex							gmut;
 	FastMutexPool<MutexPoolSize>	mutexpool;
