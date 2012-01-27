@@ -26,7 +26,7 @@
 
 #include "utility/queue.hpp"
 #include "utility/memoryfile.hpp"
-#include "utility/string.hpp"
+#include "system/cstring.hpp"
 
 #include "system/timespec.hpp"
 #include "system/filedevice.hpp"

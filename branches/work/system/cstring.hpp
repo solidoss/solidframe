@@ -1,9 +1,9 @@
-#ifndef UTILITY_STRING_HPP
-#define UTILITY_STRING_HPP
+#ifndef SYSTEM_CSTRING_HPP
+#define SYSTEM_CSTRING_HPP
 
 #include "system/common.hpp"
 
-const char * charToString(unsigned _c);
+const char * char_to_ctring(unsigned _c);
 
 //! Some cross platform cstring utility functions
 struct cstring{
