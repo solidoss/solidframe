@@ -82,7 +82,7 @@ public:
 		\param _detached If true create the thread in a detached state
 		\param _stacksz 
 	*/
-	int start(int _wait = false,int _detached = true, ulong _stacksz = 0);
+	int start(bool _wait = false, bool _detached = true, ulong _stacksz = 0);
 	//! Join the calling thread
 	int join();
 	//! Check if the thread is detached
@@ -133,15 +133,14 @@ private:
 	ThreadStub		*pthrstub;
 };
 
+#ifndef ON_WINDOWS
 inline void Thread::yield(){
-#if		defined(ON_WINDOWS)
-#elif	defined(ON_SOLARIS) || defined(ON_MACOS)
+#if	defined(ON_SOLARIS) || defined(ON_MACOS)
 	sched_yield();
 #else
 	pthread_yield();
 #endif
 }
-#ifndef ON_WINDOWS
 inline long Thread::currentId(){
 	return (long)pthread_self();
 }

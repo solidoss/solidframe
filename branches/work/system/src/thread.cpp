@@ -91,6 +91,8 @@ struct ThreadData{
 #ifndef ON_WINDOWS
 	pthread_key_t					crtthread_key;
 	pthread_once_t					once_key;
+#else
+	DWORD							crtthread_key;
 #endif
 	Condition						gcon;
 	Mutex							gmut;
@@ -101,6 +103,7 @@ struct ThreadData{
 		,once_key(oncek)
 #endif
 	{
+		crtthread_key = TlsAlloc();
 	}
 };
 
@@ -283,7 +286,8 @@ int Mutex::reinit(Type _type){
 #endif
 //*************************************************************************
 struct MainThread: Thread{
-#ifdef _WIN32
+#ifdef ON_WINDOWS
+	MainThread(bool _detached = true, HANDLE _th = NULL):Thread(_detached, _th){}
 #else
 	MainThread(bool _detached = true, pthread_t _th = 0):Thread(_detached, _th){}
 #endif
@@ -291,6 +295,9 @@ struct MainThread: Thread{
 };
 /*static*/ void Thread::init(){
 #ifdef ON_WINDOWS
+	TlsSetValue(threadData().crtthread_key, NULL);
+	static MainThread	t(false, GetCurrentThread());
+	Thread::current(&t);
 #else
 	if(pthread_key_create(&threadData().crtthread_key, NULL)) throw -1;
 	static MainThread	t(false, pthread_self());
@@ -300,6 +307,7 @@ struct MainThread: Thread{
 //-------------------------------------------------------------------------
 void Thread::cleanup(){
 #ifdef ON_WINDOWS
+	TlsFree(threadData().crtthread_key);
 #else
 	pthread_key_delete(threadData().crtthread_key);
 #endif
@@ -307,6 +315,7 @@ void Thread::cleanup(){
 //-------------------------------------------------------------------------
 void Thread::sleep(ulong _msec){
 #ifdef ON_WINDOWS
+	Sleep(_msec);
 #else
 	usleep(_msec*1000);
 #endif
@@ -360,8 +369,11 @@ Thread::~Thread(){
 }
 //-------------------------------------------------------------------------
 #ifdef ON_WINDOWS
-inline long Thread::currentId(){
-	return 0;
+long Thread::currentId(){
+	return (long)GetCurrentThread();
+}
+void Thread::yield(){
+	SwitchToThread();
 }
 #endif
 
@@ -385,7 +397,9 @@ void Thread::dummySpecificDestroy(void*){
 //-------------------------------------------------------------------------
 int Thread::join(){
 #ifdef ON_WINDOWS
-	return -1;
+	if(detached()) return NOK;
+	WaitForSingleObject(th, INFINITE);
+	return 0;
 #else
 	if(pthread_equal(th, pthread_self())) return NOK;
 	if(detached()) return NOK;
@@ -401,7 +415,10 @@ int Thread::detached() const{
 //-------------------------------------------------------------------------
 int Thread::detach(){
 #ifdef ON_WINDOWS
-	return -1;
+	Locker<Mutex> lock(mutex());
+	if(detached()) return OK;
+	dtchd = 1;
+	return 0;
 #else
 	Locker<Mutex> lock(mutex());
 	if(detached()) return OK;
@@ -446,7 +463,8 @@ Mutex& Thread::gmutex(){
 //-------------------------------------------------------------------------
 int Thread::current(Thread *_ptb){
 #ifdef ON_WINDOWS
-	return BAD;
+	TlsSetValue(threadData().crtthread_key, _ptb);
+	return OK;
 #else
 	pthread_setspecific(threadData().crtthread_key, _ptb);
 	return OK;
@@ -468,13 +486,59 @@ struct Thread::ThreadStub{
 	Condition	*pcnd;
 	int			*pval;
 };
-int Thread::start(int _wait, int _detached, ulong _stacksz){
+int Thread::start(bool _wait, bool _detached, ulong _stacksz){
 #ifdef ON_WINDOWS
-	return -1;
+	if(_wait){
+		Locker<Mutex>	lock(mutex());
+		Condition		cnd;
+		int				val(1);
+		ThreadStub		thrstub(&cnd, &val);
+		if(th){
+			return BAD;
+		}
+		pthrstub = &thrstub;
+		{
+			Locker<Mutex>	lock2(gmutex());
+			Thread::enter();
+		}
+		if(_detached){
+			dtchd = 1;
+		}
+		th = CreateThread(NULL, _stacksz, (LPTHREAD_START_ROUTINE)&Thread::th_run, this, 0, NULL);
+		if(th == NULL){
+			{
+				Locker<Mutex>	lock2(gmutex());
+				Thread::exit();
+			}
+			pthrstub = NULL;
+			return BAD;
+		}
+		while(val){
+			cnd.wait(lock);
+		}
+	}else{
+		Locker<Mutex>	lock(mutex());
+		if(th){
+			return BAD;
+		}
+		{
+			Locker<Mutex>	lock2(gmutex());
+			Thread::enter();
+		}
+		if(_detached){
+			dtchd = 1;
+		}
+		th = CreateThread(NULL, _stacksz, (LPTHREAD_START_ROUTINE)&Thread::th_run, this, 0, NULL);
+		if(th == NULL){
+			{
+				Locker<Mutex>	lock2(gmutex());
+				Thread::exit();
+			}
+			return BAD;
+		}
+	}
+	return OK;
 #else
-	Locker<Mutex> locker(mutex());
-	idbgx(Dbg::system, "starting thread "<<th);
-	if(th) return BAD;
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);
 	if(_detached){
@@ -495,36 +559,65 @@ int Thread::start(int _wait, int _detached, ulong _stacksz){
 			return BAD;
 		}
 	}
-	Condition		cnd;
-	int				val(1);
-	ThreadStub		thrstub(&cnd, &val);
+
 	if(_wait){
-		Locker<Mutex>	lock2(gmutex());
-		pthrstub = &thrstub;
-		Thread::enter();
-		//NOTE: DO not access any thread member from now - the thread may be detached
-		if(pthread_create(&th,&attr,&Thread::th_run,this)){
+		Locker<Mutex>	lock(mutex());
+		Condition		cnd;
+		volatile int	val(1);
+		ThreadStub		thrstub(&cnd, &val);
+		if(th){
 			pthread_attr_destroy(&attr);
-			edbgx(Dbg::system, "pthread_create: "<<strerror(errno));
-			Thread::exit();
 			return BAD;
 		}
-		while(val){
-			cnd.wait(lock2);
-		}
-	}else{
+		pthrstub = &thrstub;
 		{
 			Locker<Mutex>	lock2(gmutex());
 			Thread::enter();
 		}
-		//NOTE: DO not access any thread member from now - the thread may be detached
+		if(_detached){
+			dtchd = 1;
+		}
 		if(pthread_create(&th,&attr,&Thread::th_run,this)){
-			pthread_attr_destroy(&attr);
 			edbgx(Dbg::system, "pthread_create: "<<strerror(errno));
-			Thread::exit();
+			pthread_attr_destroy(&attr);
+			th = NULL;
+			pthrstub = NULL;
+			{
+				Locker<Mutex>	lock2(gmutex());
+				Thread::exit();
+			}
 			return BAD;
 		}
+		idbgx(Dbg::system, "started thread "<<th);
+		while(val){
+			cnd.wait(lock);
+		}
+	}else{
+		Locker<Mutex>	lock(mutex());
+		if(th){
+			pthread_attr_destroy(&attr);
+			return BAD;
+		}
+		{
+			Locker<Mutex>	lock2(gmutex());
+			Thread::enter();
+		}
+		if(_detached){
+			dtchd = 1;
+		}
+		if(pthread_create(&th,&attr,&Thread::th_run,this)){
+			edbgx(Dbg::system, "pthread_create: "<<strerror(errno));
+			pthread_attr_destroy(&attr);
+			th = NULL;
+			{
+				Locker<Mutex>	lock2(gmutex());
+				Thread::exit();
+			}
+			return BAD;
+		}
+		idbgx(Dbg::system, "started thread "<<th);
 	}
+
 	pthread_attr_destroy(&attr);
 	vdbgx(Dbg::system, "");
 	return OK;
