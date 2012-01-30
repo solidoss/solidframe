@@ -76,14 +76,13 @@ using namespace std;
 class DeviceOutBasicBuffer : public std::streambuf {
 public:
 	// constructor
-	DeviceOutBasicBuffer(uint64 &_rsz):sz(_rsz){}
-	DeviceOutBasicBuffer(const Device & _d, uint64 &_rsz) : d(_d), sz(_rsz){}
-	void device(const Device & _d){
-		d = _d;
+	DeviceOutBasicBuffer(uint64 &_rsz): pd(NULL), sz(_rsz){}
+	DeviceOutBasicBuffer(Device & _d, uint64 &_rsz) : pd(&_d), sz(_rsz){}
+	void device(Device & _d){
+		pd = &_d;
 	}
 	void close(){
-		//fsync(d.descriptor());
-		d.close();
+		pd = NULL;
 	}
 protected:
 	// write one character
@@ -91,7 +90,7 @@ protected:
 	int_type overflow(int_type c){
 		if(c != EOF){
 			char z = c;
-			if(d.write(&z, 1) != 1){
+			if(pd->write(&z, 1) != 1){
 				return EOF;
 			}
 			++sz;
@@ -102,10 +101,10 @@ protected:
 	virtual
 	std::streamsize xsputn(const char* s, std::streamsize num){
 		sz += num;
-		return d.write(s, num);
+		return pd->write(s, num);
 	}
 private:
-	Device		d;
+	Device		*pd;
 	uint64		&sz;
 };
 
@@ -115,16 +114,15 @@ class DeviceOutBuffer : public std::streambuf {
 public:
 	enum {BUFF_CP = 2048, BUFF_FLUSH = 1024};
 	// constructor
-	DeviceOutBuffer(uint64 &_rsz):sz(_rsz), bpos(bbeg){}
-	DeviceOutBuffer(const Device & _d, uint64 &_rsz): d(_d), sz(_rsz), bpos(bbeg){}
-	void device(const Device & _d){
-		d = _d;
+	DeviceOutBuffer(uint64 &_rsz):pd(NULL), sz(_rsz), bpos(bbeg){}
+	DeviceOutBuffer(Device & _d, uint64 &_rsz): pd(&_d), sz(_rsz), bpos(bbeg){}
+	void device(Device & _d){
+		pd = &_d;
 	}
 	void close(){
-		if(!d.ok()) return;
+		if(pd == NULL || !pd->ok()) return;
 		flush();
-		//fsync(d.descriptor());
-		d.close();
+		pd = NULL;
 	}
 protected:
 	// write one character
@@ -137,12 +135,12 @@ private:
 	bool flush(){
 		int towrite = bpos - bbeg;
 		bpos = bbeg;
-		if(d.write(bbeg, towrite) != towrite) return false;
+		if(pd->write(bbeg, towrite) != towrite) return false;
 		sz += towrite;
 		return true;
 	}
 private:
-	Device	d;
+	Device	*pd;
 	uint64	&sz;
 	char 	bbeg[BUFF_CP];
 	char 	*bpos;
@@ -175,7 +173,7 @@ std::streamsize DeviceOutBuffer::xsputn(const char* s, std::streamsize num){
 	num -= towrite;
 	s += towrite;
 	if(num >= BUFF_FLUSH){
-		return d.write(s, num);
+		return pd->write(s, num);
 	}
 	memcpy(bpos, s, num);
 	bpos += num;
@@ -186,13 +184,13 @@ class DeviceBasicOutStream : public std::ostream {
 protected:
 	DeviceOutBasicBuffer buf;
 public:
-	DeviceBasicOutStream(const Device &_d, uint64 &_rsz) : std::ostream(0), buf(_d, _rsz) {
+	DeviceBasicOutStream(Device &_d, uint64 &_rsz) : std::ostream(0), buf(_d, _rsz) {
 		rdbuf(&buf);
 	}
 	DeviceBasicOutStream(uint64 &_rsz):std::ostream(0), buf(_rsz){
 		rdbuf(&buf);
 	}
-	void device(const Device &_d){
+	void device(Device &_d){
 		buf.device(_d);
 	}
 	void close(){
@@ -207,10 +205,10 @@ public:
 	DeviceOutStream(uint64 &_rsz):std::ostream(0), buf(_rsz){
 		rdbuf(&buf);
 	}
-	DeviceOutStream(const Device &_d, uint64 &_rsz) : std::ostream(0), buf(_d, _rsz) {
+	DeviceOutStream(Device &_d, uint64 &_rsz) : std::ostream(0), buf(_d, _rsz) {
 		rdbuf(&buf);
 	}
-	void device(const Device &_d){
+	void device(Device &_d){
     	buf.device(_d);
     }
     void close(){
@@ -230,7 +228,7 @@ struct Dbg::Data{
 	
 	void setModuleMask(const char*);
 	void setBit(const char *_pbeg, const char *_pend);
-	bool initFile(FileDevice &_rfd, uint32 _respincnt, uint64 _respinsz, string *_poutput);
+	bool initFile(uint32 _respincnt, uint64 _respinsz, string *_poutput);
 	void doRespin();
 	bool isActive()const{return lvlmsk != 0 && !bs.none();}
 	Mutex					m;
@@ -243,6 +241,8 @@ struct Dbg::Data{
 	uint32					respinpos;
 	DeviceOutStream			dos;
 	DeviceBasicOutStream	dbos;
+	FileDevice				fd;
+	SocketDevice			sd;
 	//std::ofstream			ofs;
 	std::ostream			*pos;
 	string					path;
@@ -361,7 +361,7 @@ void filePath(string &_out, uint32 _pos, ulong _pid, const string &_path, const 
 	_out += buf;
 }
 
-bool Dbg::Data::initFile(FileDevice &_rfd, uint32 _respincnt, uint64 _respinsz, string *_poutput){
+bool Dbg::Data::initFile(uint32 _respincnt, uint64 _respinsz, string *_poutput){
 	respincnt = _respincnt;
 	respinsz = _respinsz;
 	respinpos = 0;
@@ -372,7 +372,7 @@ bool Dbg::Data::initFile(FileDevice &_rfd, uint32 _respincnt, uint64 _respinsz, 
 	ulong pid(getpid());
 #endif
 	filePath(fpath, 0, pid, path, name);
-	if(_rfd.create(fpath.c_str(), FileDevice::WO)) return false;
+	if(fd.create(fpath.c_str(), FileDevice::WO)) return false;
 	if(_poutput){
 		*_poutput = fpath;
 	}
@@ -467,16 +467,15 @@ void Dbg::initFile(
 			Directory::create("dbg");
 			d.path = "dbg/";
 		}
-		FileDevice fd;
-		if(d.initFile(fd, _respincnt, _respinsize, _output)){
+		if(d.initFile(_respincnt, _respinsize, _output)){
 			if(_buffered){
-				d.dos.device(fd);
+				d.dos.device(d.fd);
 				d.pos = &d.dos;
 				if(_output){
 					*_output += " (buffered)";
 				}
 			}else{
-				d.dbos.device(fd);
+				d.dbos.device(d.fd);
 				d.pos = &d.dbos;
 				if(_output){
 					*_output += " (unbuffered)";
@@ -508,10 +507,9 @@ void Dbg::initSocket(
 	if(!d.isActive()) return;
 	//do the connect outside locking
 	SocketAddressInfo ai(_addr, _port);
-	SocketDevice sd;
-	if(!ai.empty() && sd.create(ai.begin()) == OK && sd.connect(ai.begin()) == OK){
+	if(!ai.empty() && d.sd.create(ai.begin()) == OK && d.sd.connect(ai.begin()) == OK){
 	}else{
-		sd.close();//make sure the socket is closed
+		d.sd.close();//make sure the socket is closed
 	}
 	
 	Locker<Mutex> lock(d.m);
@@ -524,9 +522,9 @@ void Dbg::initSocket(
 		_addr = "localhost";
 	}
 	
-	if(sd.ok()){
+	if(d.sd.ok()){
 		if(_buffered){
-			d.dos.device(sd);
+			d.dos.device(d.sd);
 			d.pos = &d.dos;
 			if(_output){
 				*_output += _addr;
@@ -535,7 +533,7 @@ void Dbg::initSocket(
 				*_output += " (buffered)";
 			}
 		}else{
-			d.dbos.device(sd);
+			d.dbos.device(d.sd);
 			d.pos = &d.dbos;
 			if(_output){
 				*_output += _addr;
