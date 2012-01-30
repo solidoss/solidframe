@@ -24,7 +24,7 @@ struct TimedMutex: boost::timed_mutex{
 			boost::posix_time::from_time_t(0)
 		);
 
-		time_limit += boost::posix_time::seconds(_rts.seconds());
+		time_limit += boost::posix_time::seconds(static_cast<long>(_rts.seconds()));
 		time_limit += boost::posix_time::microseconds(_rts.nanoSeconds()/1000);
 		if(timed_lock(time_limit)){
 			return 0;
@@ -39,7 +39,7 @@ struct RecursiveTimedMutex: boost::recursive_timed_mutex{
 		boost::system_time time_limit(
 			boost::posix_time::from_time_t(0)
 		);
-		time_limit += boost::posix_time::seconds(_rts.seconds());
+		time_limit += boost::posix_time::seconds(static_cast<long>(_rts.seconds()));
 		time_limit += boost::posix_time::microseconds(_rts.nanoSeconds()/1000);
 		if(timed_lock(time_limit)){
 			return 0;

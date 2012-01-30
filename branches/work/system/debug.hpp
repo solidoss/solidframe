@@ -52,7 +52,7 @@
 #include "system/common.hpp"
 
 
-#ifdef ON_WINDOWS
+/*#ifdef ON_WINDOWS
 
 #ifdef DO_EXPORT_DLL
 #define EXPORT_DLL __declspec(dllexport)
@@ -65,10 +65,10 @@
 #ifndef EXPORT_DLL
 #define EXPORT_DLL
 #endif
+*/
 
 
-
-struct EXPORT_DLL Dbg{
+struct /*EXPORT_DLL*/ Dbg{
 	static const unsigned any;
 	static const unsigned system;
 	static const unsigned specific;

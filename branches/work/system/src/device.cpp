@@ -243,7 +243,7 @@ void SocketDevice::close(){
 	shutdownReadWrite();
 	if(ok()){
 		closesocket(descriptor());
-		descriptor(invalidDescriptor());
+		Device::descriptor((HANDLE)invalidDescriptor());
 	}
 #else
 	shutdownReadWrite();
@@ -252,7 +252,7 @@ void SocketDevice::close(){
 }
 int SocketDevice::create(const SocketAddressInfoIterator &_rai){
 #ifdef ON_WINDOWS
-	Device::descriptor(socket(_rai.family(), _rai.type(), _rai.protocol()));
+	Device::descriptor((HANDLE)socket(_rai.family(), _rai.type(), _rai.protocol()));
 	if(ok()) return OK;
 	edbgx(Dbg::system, "socket create");
 	return BAD;
@@ -265,7 +265,7 @@ int SocketDevice::create(const SocketAddressInfoIterator &_rai){
 }
 int SocketDevice::create(SocketAddressInfo::Family _family, SocketAddressInfo::Type _type, int _proto){
 #ifdef ON_WINDOWS
-	Device::descriptor(socket(_family, _type, _proto));
+	Device::descriptor((HANDLE)socket(_family, _type, _proto));
 	if(ok()) return OK;
 	edbgx(Dbg::system, "socket create");
 	return BAD;
@@ -545,7 +545,3 @@ bool SocketDevice::isListening()const{
 #endif
 }
 
-#ifdef ON_WINDOWS
-void SocketDevice::close(){
-}
-#endif

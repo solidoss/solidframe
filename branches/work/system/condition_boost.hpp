@@ -32,7 +32,7 @@ public:
 		boost::system_time time_limit(
 			boost::posix_time::from_time_t(0)
 		);
-		time_limit += boost::posix_time::seconds(_ts.seconds());
+		time_limit += boost::posix_time::seconds(static_cast<long>(_ts.seconds()));
 		time_limit += boost::posix_time::microseconds(_ts.nanoSeconds()/1000);
 		bool stat = timed_wait(_lock, time_limit);
 		if(!stat){

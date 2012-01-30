@@ -101,7 +101,7 @@ protected:
 	virtual
 	std::streamsize xsputn(const char* s, std::streamsize num){
 		sz += num;
-		return pd->write(s, num);
+		return pd->write(s, static_cast<uint32>(num));
 	}
 private:
 	Device		*pd;
@@ -163,7 +163,7 @@ std::streambuf::int_type DeviceOutBuffer::overflow(int_type c) {
 std::streamsize DeviceOutBuffer::xsputn(const char* s, std::streamsize num){
 	//we can safely put BUFF_FLUSH into the buffer
 	int towrite = BUFF_CP - BUFF_FLUSH;
-	if(towrite > num) towrite = num;
+	if(towrite > static_cast<int>(num)) towrite = static_cast<int>(num);
 	memcpy(bpos, s, towrite);
 	bpos += towrite;
 	if((bpos - bbeg) > BUFF_FLUSH && !flush()){
@@ -173,9 +173,9 @@ std::streamsize DeviceOutBuffer::xsputn(const char* s, std::streamsize num){
 	num -= towrite;
 	s += towrite;
 	if(num >= BUFF_FLUSH){
-		return pd->write(s, num);
+		return pd->write(s, static_cast<uint32>(num));
 	}
-	memcpy(bpos, s, num);
+	memcpy(bpos, s, static_cast<size_t>(num));
 	bpos += num;
 	return num;
 }
