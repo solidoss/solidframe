@@ -76,9 +76,8 @@ public:
 	bool ok()const{
 		return descriptor() != invalidDescriptor();
 	}
-	void close();
 #endif
-
+	void close();
 	//! Get the socket type
 	int type()const;
 	//! Return true if the socket is listening

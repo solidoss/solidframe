@@ -30,8 +30,8 @@
 #include <cerrno>
 #include <cstring>
 
-#include "system/filedevice.hpp"
 #include "system/socketdevice.hpp"
+#include "system/filedevice.hpp"
 #include "system/directory.hpp"
 #include "system/cassert.hpp"
 #include "system/debug.hpp"
@@ -215,28 +215,46 @@ SocketDevice& SocketDevice::operator=(const SocketDevice &_dev){
 	return *this;
 }
 SocketDevice::~SocketDevice(){
-	shutdownReadWrite();
+	close();
 }
 void SocketDevice::shutdownRead(){
 #ifdef ON_WINDOWS
+	if(ok()) shutdown(descriptor(), SD_RECEIVE);
 #else
 	if(ok()) shutdown(descriptor(), SHUT_RD);
 #endif
 }
 void SocketDevice::shutdownWrite(){
 #ifdef ON_WINDOWS
+	if(ok()) shutdown(descriptor(), SD_SEND);
 #else
 	if(ok()) shutdown(descriptor(), SHUT_WR);
 #endif
 }
 void SocketDevice::shutdownReadWrite(){
 #ifdef ON_WINDOWS
+	if(ok()) shutdown(descriptor(), SD_BOTH);
 #else
 	if(ok()) shutdown(descriptor(), SHUT_RDWR);
 #endif
 }
+void SocketDevice::close(){
+#ifdef ON_WINDOWS
+	shutdownReadWrite();
+	if(ok()){
+		closesocket(descriptor());
+		descriptor(invalidDescriptor());
+	}
+#else
+	shutdownReadWrite();
+	Device::close();
+#endif
+}
 int SocketDevice::create(const SocketAddressInfoIterator &_rai){
 #ifdef ON_WINDOWS
+	Device::descriptor(socket(_rai.family(), _rai.type(), _rai.protocol()));
+	if(ok()) return OK;
+	edbgx(Dbg::system, "socket create");
 	return BAD;
 #else
 	Device::descriptor(socket(_rai.family(), _rai.type(), _rai.protocol()));
@@ -247,6 +265,9 @@ int SocketDevice::create(const SocketAddressInfoIterator &_rai){
 }
 int SocketDevice::create(SocketAddressInfo::Family _family, SocketAddressInfo::Type _type, int _proto){
 #ifdef ON_WINDOWS
+	Device::descriptor(socket(_family, _type, _proto));
+	if(ok()) return OK;
+	edbgx(Dbg::system, "socket create");
 	return BAD;
 #else
 	Device::descriptor(socket(_family, _type, _proto));
@@ -257,7 +278,14 @@ int SocketDevice::create(SocketAddressInfo::Family _family, SocketAddressInfo::T
 }
 int SocketDevice::connect(const SocketAddressInfoIterator &_rai){
 #ifdef ON_WINDOWS
-	return BAD;
+	int rv = ::connect(descriptor(), _rai.addr(), _rai.size());
+	if (rv < 0) { // sau rv == -1 ...
+		if(WSAGetLastError() == WSAEWOULDBLOCK) return NOK;
+		edbgx(Dbg::system, "socket connect");
+		close();
+		return BAD;
+	}
+	return OK;
 #else
 	int rv = ::connect(descriptor(), _rai.addr(), _rai.size());
 	if (rv < 0) { // sau rv == -1 ...

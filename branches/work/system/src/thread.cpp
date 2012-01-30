@@ -100,11 +100,13 @@ struct ThreadData{
 	ThreadData():thcnt(0)
 #ifndef ON_WINDOWS
 		,crtthread_key(0)
-		,once_key(oncek)
-#endif
+		,once_key(oncek){
+	}
+#else
 	{
 		crtthread_key = TlsAlloc();
 	}
+#endif
 };
 
 //ThreadData::ThreadData(){
@@ -563,7 +565,7 @@ int Thread::start(bool _wait, bool _detached, ulong _stacksz){
 	if(_wait){
 		Locker<Mutex>	lock(mutex());
 		Condition		cnd;
-		volatile int	val(1);
+		int				val(1);
 		ThreadStub		thrstub(&cnd, &val);
 		if(th){
 			pthread_attr_destroy(&attr);
@@ -580,7 +582,7 @@ int Thread::start(bool _wait, bool _detached, ulong _stacksz){
 		if(pthread_create(&th,&attr,&Thread::th_run,this)){
 			edbgx(Dbg::system, "pthread_create: "<<strerror(errno));
 			pthread_attr_destroy(&attr);
-			th = NULL;
+			th = 0;
 			pthrstub = NULL;
 			{
 				Locker<Mutex>	lock2(gmutex());
@@ -608,7 +610,7 @@ int Thread::start(bool _wait, bool _detached, ulong _stacksz){
 		if(pthread_create(&th,&attr,&Thread::th_run,this)){
 			edbgx(Dbg::system, "pthread_create: "<<strerror(errno));
 			pthread_attr_destroy(&attr);
-			th = NULL;
+			th = 0;
 			{
 				Locker<Mutex>	lock2(gmutex());
 				Thread::exit();

@@ -48,7 +48,7 @@ struct LogManager::Data{
 		uint32 			uid;
 	};
 	typedef std::pair<LogConnector*, uint32> 	ConnectorPairT;
-	typedef std::vector<ConnectorPairT>		ConnectorVectorT;
+	typedef std::vector<ConnectorPairT>			ConnectorVectorT;
 	typedef std::vector<Channel>				ChannelVectorT;
 	typedef std::vector<Listener>				ListenerVectorT;
 	typedef Stack<uint32>						PosStackT;
@@ -65,7 +65,7 @@ struct LogManager::Data{
 	State					state;
 	ConnectorVectorT		conv;
 	PosStackT				cons;
-	ListenerVectorT		lsnv;
+	ListenerVectorT			lsnv;
 	PosStackT				lsns;
 	ChannelVectorT			chnv;
 	PosStackT				chns;
