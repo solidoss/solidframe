@@ -50,6 +50,7 @@
 #ifdef ON_SOLARIS
 #include <strings.h>
 #endif
+
 #include <bitset>
 
 

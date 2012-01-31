@@ -107,7 +107,11 @@ int Device::flush(){
 //-- SeekableDevice	----------------------------------------
 int SeekableDevice::read(char *_pb, uint32 _bl, int64 _off){
 #ifdef ON_WINDOWS
-	return -1;
+	int64 off(seek(0, SeekCur));
+	seek(_off);
+	int rv = Device::read(_pb, _bl);
+	seek(off);
+	return rv;
 #else
 	return pread(descriptor(), _pb, _bl, _off);
 #endif
@@ -115,17 +119,35 @@ int SeekableDevice::read(char *_pb, uint32 _bl, int64 _off){
 
 int SeekableDevice::write(const char *_pb, uint32 _bl, int64 _off){
 #ifdef ON_WINDOWS
-	return -1;
+	int64 off(seek(0, SeekCur));
+	seek(_off);
+	int rv = Device::write(_pb, _bl);
+	seek(off);
+	return rv;
 #else
 	return pwrite(descriptor(), _pb, _bl, _off);
 #endif
 }
 
+#ifdef ON_WINDOWS
+const DWORD seekmap[3]={FILE_BEGIN, FILE_CURRENT, FILE_END};
+#else
 const int seekmap[3]={SEEK_SET,SEEK_CUR,SEEK_END};
+#endif
 
 int64 SeekableDevice::seek(int64 _pos, SeekRef _ref){
 #ifdef ON_WINDOWS
-	return -1;
+	LARGE_INTEGER li;
+
+	li.QuadPart = _pos;
+	li.LowPart = SetFilePointer(descriptor(), li.LowPart, &li.HighPart, seekmap[_ref]);
+	
+	if(
+		li.LowPart == INVALID_SET_FILE_POINTER && GetLastError() != NO_ERROR
+	){
+		li.QuadPart = -1;
+	}
+	return li.QuadPart;
 #else
 	return ::lseek(descriptor(), _pos, seekmap[_ref]);
 #endif
@@ -133,6 +155,10 @@ int64 SeekableDevice::seek(int64 _pos, SeekRef _ref){
 
 int SeekableDevice::truncate(int64 _len){
 #ifdef ON_WINDOWS
+	seek(_len);
+	if(SetEndOfFile(descriptor())){
+		return 0;
+	}
 	return -1;
 #else
 	return ::ftruncate(descriptor(), _len);
@@ -144,12 +170,91 @@ int SeekableDevice::truncate(int64 _len){
 FileDevice::FileDevice(){
 }
 
+#ifdef ON_WINDOWS
+HANDLE do_open(WCHAR *_pwc, const char *_fname, const size_t _sz, const size_t _wcp, int _how){
+	WCHAR *pwctmp(NULL);
+	//first convert _fname to _pwc
+	int rv = MultiByteToWideChar(CP_UTF8, 0, _fname, _sz, _pwc, _wcp);
+	if(rv == 0){
+		if( GetLastError() == ERROR_INSUFFICIENT_BUFFER){
+			rv = MultiByteToWideChar(CP_UTF8, 0, _fname, _sz, _pwc, 0);
+			if(rv == 0){
+				return Device::invalidDescriptor();
+			}
+			pwctmp = new WCHAR[rv + 1];
+			rv = MultiByteToWideChar(CP_UTF8, 0, _fname, _sz, _pwc, rv + 1);
+			if(rv == 0){
+				return Device::invalidDescriptor();
+			}
+			pwctmp[rv] = 0;
+		}else{
+			return Device::invalidDescriptor();
+		}
+	}else{
+		_pwc[rv] = 0;
+		pwctmp = _pwc;
+	}
+	DWORD acc(0);
+	if(_how & FileDevice::RO){
+		acc |= GENERIC_READ;
+	}else if(_how & FileDevice::WO){
+		acc |= GENERIC_WRITE;
+	}else if(_how & FileDevice::RW){
+		acc |= (GENERIC_READ | GENERIC_WRITE);
+	}
+
+	DWORD creat(0);
+
+	if(_how & FileDevice::CR){
+		if(_how & FileDevice::TR){
+			creat |= CREATE_ALWAYS;
+		}else{
+			creat |= CREATE_NEW;
+		}
+	}else{
+		creat |=OPEN_EXISTING;
+		if(_how & FileDevice::AP){
+		}
+		if(_how & FileDevice::TR){
+			creat |= TRUNCATE_EXISTING;
+		}
+	}
+
+	HANDLE h = CreateFileW(pwctmp, acc, FILE_SHARE_READ, NULL, creat, FILE_ATTRIBUTE_NORMAL, NULL);
+	if(_pwc != pwctmp){
+		delete []pwctmp;
+	}
+	return h;
+}
+#endif
+
 int FileDevice::open(const char* _fname, int _how){
 #ifdef ON_WINDOWS
-	return -1;
+	//_fname is utf-8, so we need to convert it to WCHAR
+	const size_t sz(strlen(_fname));
+	const size_t szex = sz + 1;
+	if(szex < 256){
+		WCHAR pwc[512];
+		descriptor(do_open(pwc, _fname, sz, 512, _how));
+	}else if(szex < 512){
+		WCHAR pwc[1024];
+		descriptor(do_open(pwc, _fname, sz, 1024, _how));
+	}else if(szex < 1024){
+		WCHAR pwc[2048];
+		descriptor(do_open(pwc, _fname, sz, 2048, _how));
+	}else{
+		WCHAR pwc[4096];
+		descriptor(do_open(pwc, _fname, sz, 4096, _how));
+	}
+	if(ok()){
+		if(_how & AP){
+			seek(0, SeekEnd);
+		}
+	}
+	return ok() ? 0 : -1;
 #else
 	descriptor(::open(_fname, _how, 00666));
-	return descriptor() >= 0 ? 0 : -1;
+	return ok() ? 0 : -1;
 #endif
 }
 
@@ -159,7 +264,14 @@ int FileDevice::create(const char* _fname, int _how){
 
 int64 FileDevice::size()const{
 #ifdef ON_WINDOWS
-	return -1;
+	LARGE_INTEGER li;
+
+	li.QuadPart = 0;
+	if(GetFileSizeEx(descriptor(), &li)){
+		return li.QuadPart;
+	}else{
+		return -1;
+	}
 #else
 	struct stat st;
 	if(fstat(descriptor(), &st)) return -1;
@@ -175,7 +287,11 @@ bool FileDevice::canRetryOpen()const{
 }
 /*static*/ int64 FileDevice::size(const char *_fname){
 #ifdef ON_WINDOWS
-	return -1;
+	FileDevice fd;
+	if(fd.open(_fname, RO)){
+		return -1;
+	}
+	return fd.size();
 #else
 	struct stat st;
 	if(stat(_fname, &st)) return -1;
@@ -183,16 +299,116 @@ bool FileDevice::canRetryOpen()const{
 #endif
 }
 //-- Directory -------------------------------------
-/*static*/ int Directory::create(const char *_path){
 #ifdef ON_WINDOWS
+int do_create_directory(WCHAR *_pwc, const char *_path, size_t _sz, size_t _wcp){
+	WCHAR *pwctmp(NULL);
+	//first convert _fname to _pwc
+	int rv = MultiByteToWideChar(CP_UTF8, 0, _path, _sz, _pwc, _wcp);
+	if(rv == 0){
+		if( GetLastError() == ERROR_INSUFFICIENT_BUFFER){
+			rv = MultiByteToWideChar(CP_UTF8, 0, _path, _sz, _pwc, 0);
+			if(rv == 0){
+				return -1;
+			}
+			pwctmp = new WCHAR[rv + 1];
+			rv = MultiByteToWideChar(CP_UTF8, 0, _path, _sz, _pwc, rv + 1);
+			if(rv == 0){
+				return -1;
+			}
+			pwctmp[rv] = 0;
+		}else{
+			return -1;
+		}
+	}else{
+		_pwc[rv] = 0;
+		pwctmp = _pwc;
+	}
+	BOOL brv = CreateDirectoryW(pwctmp, NULL);
+	if(_pwc != pwctmp){
+		delete []pwctmp;
+	}
+	if(brv){
+		return 0;
+	}
+	return -1;
+}
+#endif
+/*static*/ int Directory::create(const char *_fname){
+#ifdef ON_WINDOWS
+	const size_t sz(strlen(_fname));
+	const size_t szex = sz + 1;
+	if(szex < 256){
+		WCHAR pwc[512];
+		return do_create_directory(pwc, _fname, sz, 512);
+	}else if(szex < 512){
+		WCHAR pwc[1024];
+		return do_create_directory(pwc, _fname, sz, 1024);
+	}else if(szex < 1024){
+		WCHAR pwc[2048];
+		return do_create_directory(pwc, _fname, sz, 2048);
+	}else{
+		WCHAR pwc[4096];
+		return do_create_directory(pwc, _fname, sz, 4096);
+	}
 	return -1;
 #else
 	return mkdir(_path,  S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 #endif
 }
 
-/*static*/ int Directory::eraseFile(const char *_path){
 #ifdef ON_WINDOWS
+int do_erase_file(WCHAR *_pwc, const char *_path, size_t _sz, size_t _wcp){
+	WCHAR *pwctmp(NULL);
+	//first convert _fname to _pwc
+	int rv = MultiByteToWideChar(CP_UTF8, 0, _path, _sz, _pwc, _wcp);
+	if(rv == 0){
+		if( GetLastError() == ERROR_INSUFFICIENT_BUFFER){
+			rv = MultiByteToWideChar(CP_UTF8, 0, _path, _sz, _pwc, 0);
+			if(rv == 0){
+				return -1;
+			}
+			pwctmp = new WCHAR[rv + 1];
+			rv = MultiByteToWideChar(CP_UTF8, 0, _path, _sz, _pwc, rv + 1);
+			if(rv == 0){
+				return -1;
+			}
+			pwctmp[rv] = 0;
+		}else{
+			return -1;
+		}
+	}else{
+		_pwc[rv] = 0;
+		pwctmp = _pwc;
+	}
+	BOOL brv = DeleteFileW(pwctmp);
+	if(_pwc != pwctmp){
+		delete []pwctmp;
+	}
+	if(brv){
+		return 0;
+	}
+	return -1;
+}
+#endif
+
+
+/*static*/ int Directory::eraseFile(const char *_fname){
+#ifdef ON_WINDOWS
+	const size_t sz(strlen(_fname));
+	const size_t szex = sz + 1;
+	if(szex < 256){
+		WCHAR pwc[512];
+		return do_erase_file(pwc, _fname, sz, 512);
+	}else if(szex < 512){
+		WCHAR pwc[1024];
+		return do_erase_file(pwc, _fname, sz, 1024);
+	}else if(szex < 1024){
+		WCHAR pwc[2048];
+		return do_erase_file(pwc, _fname, sz, 2048);
+	}else{
+		WCHAR pwc[4096];
+		return do_erase_file(pwc, _fname, sz, 4096);
+	}
 	return -1;
 #else
 	return unlink(_path);
@@ -200,7 +416,69 @@ bool FileDevice::canRetryOpen()const{
 }
 /*static*/ int Directory::renameFile(const char *_to, const char *_from){
 #ifdef ON_WINDOWS
-	return -1;
+	const size_t szto(strlen(_to));
+	const size_t szfr(strlen(_from));
+	WCHAR pwcto[4096];
+	WCHAR pwcfr[4096];
+	WCHAR *pwctmpto(NULL);
+	WCHAR *pwctmpfr(NULL);
+	
+	//first convert _to to _pwc
+	int rv = MultiByteToWideChar(CP_UTF8, 0, _to, szto, pwcto, 4096);
+	if(rv == 0){
+		if( GetLastError() == ERROR_INSUFFICIENT_BUFFER){
+			rv = MultiByteToWideChar(CP_UTF8, 0, _to, szto, pwcto, 0);
+			if(rv == 0){
+				return -1;
+			}
+			pwctmpto = new WCHAR[rv + 1];
+			rv = MultiByteToWideChar(CP_UTF8, 0, _to, szto, pwcto, rv + 1);
+			if(rv == 0){
+				return -1;
+			}
+			pwctmpto[rv] = 0;
+		}else{
+			return -1;
+		}
+	}else{
+		pwcto[rv] = 0;
+		pwctmpto = pwcto;
+	}
+
+	rv = MultiByteToWideChar(CP_UTF8, 0, _from, szfr, pwcfr, 4096);
+	if(rv == 0){
+		if( GetLastError() == ERROR_INSUFFICIENT_BUFFER){
+			rv = MultiByteToWideChar(CP_UTF8, 0, _from, szfr, pwcfr, 0);
+			if(rv == 0){
+				return -1;
+			}
+			pwctmpfr = new WCHAR[rv + 1];
+			rv = MultiByteToWideChar(CP_UTF8, 0, _from, szfr, pwcfr, rv + 1);
+			if(rv == 0){
+				return -1;
+			}
+			pwctmpfr[rv] = 0;
+		}else{
+			return -1;
+		}
+	}else{
+		pwcfr[rv] = 0;
+		pwctmpfr = pwcfr;
+	}
+
+	BOOL brv = MoveFileW(pwctmpfr, pwctmpto);
+
+	if(pwctmpfr != pwcfr){
+		delete []pwctmpfr;
+	}
+	if(pwctmpto != pwcto){
+		delete []pwctmpto;
+	}
+	if(brv){
+		return 0;
+	}else{
+		return -1;
+	}
 #else
 	return ::rename(_from, _to);
 #endif
