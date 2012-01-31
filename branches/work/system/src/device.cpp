@@ -352,7 +352,7 @@ int do_create_directory(WCHAR *_pwc, const char *_path, size_t _sz, size_t _wcp)
 	}
 	return -1;
 #else
-	return mkdir(_path,  S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+	return mkdir(_fname,  S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 #endif
 }
 
@@ -411,7 +411,7 @@ int do_erase_file(WCHAR *_pwc, const char *_path, size_t _sz, size_t _wcp){
 	}
 	return -1;
 #else
-	return unlink(_path);
+	return unlink(_fname);
 #endif
 }
 /*static*/ int Directory::renameFile(const char *_to, const char *_from){
