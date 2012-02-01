@@ -70,6 +70,10 @@ int Device::write(const char* _pb, uint32 _bl){
 	cassert(ok());
 #ifdef ON_WINDOWS
 	DWORD cnt;
+	/*OVERLAPPED ovp;
+	ovp.Offset = 0;
+	ovp.OffsetHigh = 0;
+	ovp.hEvent = NULL;*/
 	if(WriteFile(desc, const_cast<char*>(_pb), _bl, &cnt, NULL)){
 		return cnt;
 	}else{
@@ -530,7 +534,9 @@ void SocketDevice::close(){
 }
 int SocketDevice::create(const SocketAddressInfoIterator &_rai){
 #ifdef ON_WINDOWS
-	Device::descriptor((HANDLE)socket(_rai.family(), _rai.type(), _rai.protocol()));
+	//SOCKET s = socket(_rai.family(), _rai.type(), _rai.protocol());
+	SOCKET s = WSASocket(_rai.family(), _rai.type(), _rai.protocol(), NULL, 0, 0);
+	Device::descriptor((HANDLE)s);
 	if(ok()) return OK;
 	edbgx(Dbg::system, "socket create");
 	return BAD;
@@ -543,7 +549,9 @@ int SocketDevice::create(const SocketAddressInfoIterator &_rai){
 }
 int SocketDevice::create(SocketAddressInfo::Family _family, SocketAddressInfo::Type _type, int _proto){
 #ifdef ON_WINDOWS
-	Device::descriptor((HANDLE)socket(_family, _type, _proto));
+	//SOCKET s = socket(_family, _type, _proto);
+	SOCKET s = WSASocket(_family, _type, _proto, NULL, 0, 0);
+	Device::descriptor((HANDLE)s);
 	if(ok()) return OK;
 	edbgx(Dbg::system, "socket create");
 	return BAD;
@@ -577,13 +585,10 @@ int SocketDevice::connect(const SocketAddressInfoIterator &_rai){
 }
 int SocketDevice::prepareAccept(const SocketAddressInfoIterator &_rai, unsigned _listencnt){
 #ifdef ON_WINDOWS
-	return BAD;
-#else
 	int yes = 1;
 	int rv = setsockopt(descriptor(), SOL_SOCKET, SO_REUSEADDR, (char *) &yes, sizeof(yes));
 	if(rv < 0) {
 		edbgx(Dbg::system, "socket setsockopt: "<<strerror(errno));
-		shutdownReadWrite();
 		close();
 		return BAD;
 	}
@@ -591,14 +596,34 @@ int SocketDevice::prepareAccept(const SocketAddressInfoIterator &_rai, unsigned 
 	rv = ::bind(descriptor(), _rai.addr(), _rai.size());
 	if(rv < 0) {
 		edbgx(Dbg::system, "socket bind: "<<strerror(errno));
-		shutdownReadWrite();
 		close();
 		return BAD;
 	}
 	rv = listen(descriptor(), _listencnt);
 	if(rv < 0){
 		edbgx(Dbg::system, "socket listen: "<<strerror(errno));
-		shutdownReadWrite();
+		close();
+		return BAD;
+	}
+	return OK;
+#else
+	int yes = 1;
+	int rv = setsockopt(descriptor(), SOL_SOCKET, SO_REUSEADDR, (char *) &yes, sizeof(yes));
+	if(rv < 0) {
+		edbgx(Dbg::system, "socket setsockopt: "<<strerror(errno));
+		close();
+		return BAD;
+	}
+
+	rv = ::bind(descriptor(), _rai.addr(), _rai.size());
+	if(rv < 0) {
+		edbgx(Dbg::system, "socket bind: "<<strerror(errno));
+		close();
+		return BAD;
+	}
+	rv = listen(descriptor(), _listencnt);
+	if(rv < 0){
+		edbgx(Dbg::system, "socket listen: "<<strerror(errno));
 		close();
 		return BAD;
 	}
@@ -607,7 +632,17 @@ int SocketDevice::prepareAccept(const SocketAddressInfoIterator &_rai, unsigned 
 }
 int SocketDevice::accept(SocketDevice &_dev){
 #ifdef ON_WINDOWS
-	return BAD;
+	if(!ok()) return BAD;
+	SocketAddress sa;
+	SOCKET rv = ::accept(descriptor(), sa.addr(), &sa.size());
+	if (rv == invalidDescriptor()) {
+		if(WSAGetLastError() == WSAEWOULDBLOCK) return NOK;
+		edbgx(Dbg::system, "socket accept: "<<WSAGetLastError());
+		close();
+		return BAD;
+	}
+	_dev.Device::descriptor((HANDLE)rv);
+	return OK;
 #else
 	if(!ok()) return BAD;
 	SocketAddress sa;
@@ -615,7 +650,6 @@ int SocketDevice::accept(SocketDevice &_dev){
 	if (rv < 0) {
 		if(errno == EAGAIN) return NOK;
 		edbgx(Dbg::system, "socket accept: "<<strerror(errno));
-		shutdownReadWrite();
 		close();
 		return BAD;
 	}
@@ -625,13 +659,19 @@ int SocketDevice::accept(SocketDevice &_dev){
 }
 int SocketDevice::bind(const SocketAddressInfoIterator &_rai){
 #ifdef ON_WINDOWS
-	return BAD;
+	if(!ok()) return BAD;
+	int rv = ::bind(descriptor(), _rai.addr(), _rai.size());
+	if(rv < 0){
+		edbgx(Dbg::system, "socket bind: "<<strerror(errno));
+		close();
+		return BAD;
+	}
+	return OK;
 #else
 	if(!ok()) return BAD;
 	int rv = ::bind(descriptor(), _rai.addr(), _rai.size());
 	if(rv < 0){
 		edbgx(Dbg::system, "socket bind: "<<strerror(errno));
-		shutdownReadWrite();
 		close();
 		return BAD;
 	}
@@ -640,13 +680,19 @@ int SocketDevice::bind(const SocketAddressInfoIterator &_rai){
 }
 int SocketDevice::bind(const SocketAddressPair &_rsa){
 #ifdef ON_WINDOWS
-	return BAD;
+	if(!ok()) return BAD;
+	int rv = ::bind(descriptor(), _rsa.addr, _rsa.size());
+	if(rv < 0){
+		edbgx(Dbg::system, "socket bind: "<<strerror(errno));
+		close();
+		return BAD;
+	}
+	return OK;
 #else
 	if(!ok()) return BAD;
 	int rv = ::bind(descriptor(), _rsa.addr, _rsa.size());
 	if(rv < 0){
 		edbgx(Dbg::system, "socket bind: "<<strerror(errno));
-		shutdownReadWrite();
 		close();
 		return BAD;
 	}
@@ -655,13 +701,37 @@ int SocketDevice::bind(const SocketAddressPair &_rsa){
 }
 int SocketDevice::makeBlocking(int _msec){
 #ifdef ON_WINDOWS
-	return BAD;
+	if(!ok()) return BAD;
+	u_long mode = 0;
+	int rv = ioctlsocket(descriptor(), FIONBIO, &mode);
+	if (rv != NO_ERROR){
+		edbgx(Dbg::system, "socket ioctlsocket fionbio: "<<WSAGetLastError());
+		close();
+		return BAD;
+	}
+	if(_msec < 0){
+		return OK;
+	}
+	DWORD tout(_msec);
+	rv = setsockopt(descriptor(), SOL_SOCKET, SO_RCVTIMEO, (char *) &tout, sizeof(tout));
+	if (rv == SOCKET_ERROR){
+		edbgx(Dbg::system, "error setsockopt rcvtimeo: "<<WSAGetLastError());
+		close();
+		return BAD;
+	}
+	tout = _msec;
+	rv = setsockopt(descriptor(), SOL_SOCKET, SO_SNDTIMEO, (char *) &tout, sizeof(tout));
+	if (rv == SOCKET_ERROR){
+		edbgx(Dbg::system, "error setsockopt sndtimeo: "<<WSAGetLastError());
+		close();
+		return BAD;
+	}
+	return OK;
 #else
 	if(!ok()) return BAD;
 	int flg = fcntl(descriptor(), F_GETFL);
 	if(flg == -1){
 		edbgx(Dbg::system, "socket fcntl getfl: "<<strerror(errno));
-		shutdownReadWrite();
 		close();
 		return BAD;
 	}
@@ -669,7 +739,6 @@ int SocketDevice::makeBlocking(int _msec){
 	int rv = fcntl(descriptor(), F_SETFL, flg);
 	if (rv < 0){
 		edbgx(Dbg::system, "error fcntl setfl: "<<strerror(errno));
-		shutdownReadWrite();
 		close();
 		return BAD;
 	}
@@ -678,43 +747,47 @@ int SocketDevice::makeBlocking(int _msec){
 }
 int SocketDevice::makeNonBlocking(){
 #ifdef ON_WINDOWS
-	return BAD;
+	if(!ok()) return BAD;
+	u_long mode = 1;
+	int rv = ioctlsocket(descriptor(), FIONBIO, &mode);
+	if (rv != NO_ERROR){
+		edbgx(Dbg::system, "socket fcntl ioctlsocket "<<WSAGetLastError());
+		close();
+		return BAD;
+	}
+	return OK;
 #else
 	if(!ok()) return BAD;
 	int flg = fcntl(descriptor(), F_GETFL);
 	if(flg == -1){
 		edbgx(Dbg::system, "socket fcntl getfl: "<<strerror(errno));
-		shutdownReadWrite();
 		close();
 		return BAD;
 	}
 	int rv = fcntl(descriptor(), F_SETFL, flg | O_NONBLOCK);
 	if(rv < 0){
 		edbgx(Dbg::system, "socket fcntl setfl: "<<strerror(errno));
-		shutdownReadWrite();
 		close();
 		return BAD;
 	}
 	return OK;
 #endif
 }
-bool SocketDevice::isBlocking(){
 #ifdef ON_WINDOWS
-	return true;
 #else
+bool SocketDevice::isBlocking(){
 	int flg = fcntl(descriptor(), F_GETFL);
 	if(flg == -1){
 		edbgx(Dbg::system, "socket fcntl getfl: "<<strerror(errno));
-		shutdownReadWrite();
 		close();
 		return false;
 	}
 	return !(flg & O_NONBLOCK);
-#endif
 }
+#endif
 bool SocketDevice::shouldWait()const{
 #ifdef ON_WINDOWS
-	return false;
+	return WSAGetLastError() == WSAEWOULDBLOCK;
 #else
 	return errno == EAGAIN;
 #endif

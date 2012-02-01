@@ -48,7 +48,9 @@ public:
 	//! Make the socket nonblocking
 	int makeNonBlocking();
 	//! Check if its blocking
+#ifndef ON_WINDOWS
 	bool isBlocking();
+#endif
 	//! Return true if nonblocking and the prevoious nonblocking opperation did not complete
 	/*!
 		In case of nonblocking sockets, use this method after:connect, accept, read, write,send

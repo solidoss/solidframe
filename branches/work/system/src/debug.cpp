@@ -226,7 +226,9 @@ struct Dbg::Data{
 	{
 		pos = &std::cerr;
 	}
-	
+	~Data(){
+		WSACleanup();
+	}
 	void setModuleMask(const char*);
 	void setBit(const char *_pbeg, const char *_pend);
 	bool initFile(uint32 _respincnt, uint64 _respinsz, string *_poutput);
@@ -352,7 +354,7 @@ void filePath(string &_out, uint32 _pos, ulong _pid, const string &_path, const 
 	_out = _path;
 	_out += _name;
 	
-	char	buf[128];
+	char	buf[2048];
 	
 	if(_pos){
 		sprintf(buf, "_%lu_%u.dbg", _pid, _pos);
@@ -507,7 +509,7 @@ void Dbg::initSocket(
 ){
 	if(!d.isActive()) return;
 	//do the connect outside locking
-	SocketAddressInfo ai(_addr, _port);
+	SocketAddressInfo ai(_addr, _port, 0, SocketAddressInfo::Inet4, SocketAddressInfo::Stream);
 	if(!ai.empty() && d.sd.create(ai.begin()) == OK && d.sd.connect(ai.begin()) == OK){
 	}else{
 		d.sd.close();//make sure the socket is closed
@@ -643,7 +645,11 @@ std::ostream& Dbg::print(
 		d.nv[_module]//,
 		//Thread::currentId()
 	);
+#ifdef ON_WINDOWS
+	return (*d.pos)<<buf<<'['<<src_file_name(_file)<<'('<<_line<<')'<<' '<<_fnc<<"]["<<Thread::currentId()<<']'<<' ';
+#else
 	return (*d.pos)<<buf<<'['<<src_file_name(_file)<<'('<<_line<<')'<<' '<<_fnc<<"][0x"<<std::hex<<Thread::currentId()<<std::dec<<']'<<' ';
+#endif
 }
 static const char tabs[]="\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t"
 						 "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t"
@@ -696,7 +702,11 @@ std::ostream& Dbg::printTraceIn(
 	(*d.pos)<<buf;
 	d.pos->write(tabs, d.trace_debth);
 	++d.trace_debth;
+#ifdef ON_WINDOWS
+	(*d.pos)<<'['<<d.nv[_module]<<']'<<'['<<src_file_name(_file)<<'('<<_line<<')'<<"]["<<Thread::currentId()<<']'<<' '<<_fnc<<'(';
+#else
 	(*d.pos)<<'['<<d.nv[_module]<<']'<<'['<<src_file_name(_file)<<'('<<_line<<')'<<"][0x"<<std::hex<<Thread::currentId()<<std::dec<<']'<<' '<<_fnc<<'(';
+#endif
 	return (*d.pos);
 }
 
@@ -738,7 +748,11 @@ std::ostream& Dbg::printTraceOut(
 	(*d.pos)<<buf;
 	--d.trace_debth;
 	d.pos->write(tabs, d.trace_debth);
-	(*d.pos)<<'['<<d.nv[_module]<<']'<<'['<<src_file_name(_file)<<'('<<_line<<')'<<']'<<'['<<Thread::currentId()<<']'<<' '<<'}'<<_fnc<<'(';
+#ifdef ON_WINDOWS
+	(*d.pos)<<'['<<d.nv[_module]<<']'<<'['<<src_file_name(_file)<<'('<<_line<<')'<<"]["<<Thread::currentId()<<']'<<' '<<'}'<<_fnc<<'(';
+#else
+	(*d.pos)<<'['<<d.nv[_module]<<']'<<'['<<src_file_name(_file)<<'('<<_line<<')'<<"][0x"<<std::hex<<Thread::currentId()<<std::dec<<']'<<' '<<'}'<<_fnc<<'(';
+#endif
 	return (*d.pos);
 }
 

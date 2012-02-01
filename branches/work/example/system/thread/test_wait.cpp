@@ -43,17 +43,34 @@ void MyThread::run(){
 
 int main(int argc, char *argv[]){
 	Thread::init();
-	
+#ifdef ON_WINDOWS
+	WSADATA	wsaData;
+    int		err;
+	WORD	wVersionRequested;
+/* Use the MAKEWORD(lowbyte, highbyte) macro declared in Windef.h */
+    wVersionRequested = MAKEWORD(2, 2);
+
+    err = WSAStartup(wVersionRequested, &wsaData);
+	if (err != 0) {
+        /* Tell the user that we could not find a usable */
+        /* Winsock DLL.                                  */
+        printf("WSAStartup failed with error: %d\n", err);
+        return 1;
+    }
+#endif
+
 #ifdef UDEBUG
 	{
 	string dbgout;
 	Dbg::instance().levelMask("view");
 	Dbg::instance().moduleMask("any");
 
-	Dbg::instance().initStdErr(
+	/*Dbg::instance().initStdErr(
 		false,
 		&dbgout
-	);
+	);*/
+	Dbg::instance().initSocket("192.168.201.100", "1114", false, &dbgout);
+	//Dbg::instance().initFile("test_wait",false);
 	cout<<"Debug output: "<<dbgout<<endl;
 	dbgout.clear();
 	Dbg::instance().moduleBits(dbgout);
@@ -85,5 +102,6 @@ int main(int argc, char *argv[]){
 			cnd.wait(lock);
 		}
 	}
+	Thread::waitAll();
 	return 0;
 }

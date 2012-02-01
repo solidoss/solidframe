@@ -376,7 +376,7 @@ Thread::~Thread(){
 //-------------------------------------------------------------------------
 #ifdef ON_WINDOWS
 long Thread::currentId(){
-	return (long)GetCurrentThread();
+	return (long)GetCurrentThreadId();
 }
 void Thread::yield(){
 	SwitchToThread();

@@ -42,7 +42,7 @@ public:
 #endif
 	static const DescriptorT invalidDescriptor(){
 #ifdef ON_WINDOWS
-		return NULL;
+		return INVALID_HANDLE_VALUE;
 #else
 		return -1;
 #endif
