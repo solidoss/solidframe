@@ -98,12 +98,7 @@ class Specific{
 	}
 #else
 	template <typename T>
-	static void once_cbk(){
-		
-	}
-	template <typename T>
-	static T* object(T *_p = NULL, ){
-		static boost::once_flag	once(BOOST_ONCE_INIT);
+	static T* object_stub(T *_p = NULL){
 		static unsigned			id(stackid(&Specific::cleaner<T>));
 		if(_p){
 			if(push(_p, id, T::specificCount())){
@@ -114,6 +109,17 @@ class Specific{
 			_p = reinterpret_cast<T*>(pop(id));
 		}
 		return _p;
+	}
+	template <typename T>
+	static void once_cbk(){
+			T *p = object_stub();
+			objec_stub(p);
+	}
+	template <typename T>
+	static T* object(T *_p = NULL){
+		static boost::once_flag	once(BOOST_ONCE_INIT);
+		boost::call_once(&once_cbk<T>, once);
+		return objec_stub<T>(_p);
 	}
 #endif
 public:
