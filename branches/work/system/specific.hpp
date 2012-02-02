@@ -24,8 +24,8 @@
 
 #include <cstddef>
 #include <new>
-// #include "common.h"
-// #include "debug.h"
+
+#include "system/common.hpp"
 
 #ifndef BUF_CACHE_CAP
 #define BUF_CACHE_CAP 11
@@ -82,9 +82,9 @@ class Specific{
 		would not be of too much help.
 		Also think of objects with sizes larger then max buf capacity
 	*/
+#ifdef HAVE_SAFE_STATIC
 	template <typename T>
 	static T* object(T *_p = NULL){
-		//TODO: staticproblem
 		static const unsigned id(stackid(&Specific::cleaner<T>));
 		if(_p){
 			if(push(_p, id, T::specificCount())){
@@ -96,6 +96,26 @@ class Specific{
 		}
 		return _p;
 	}
+#else
+	template <typename T>
+	static void once_cbk(){
+		
+	}
+	template <typename T>
+	static T* object(T *_p = NULL, ){
+		static boost::once_flag	once(BOOST_ONCE_INIT);
+		static unsigned			id(stackid(&Specific::cleaner<T>));
+		if(_p){
+			if(push(_p, id, T::specificCount())){
+				_p->~T();
+				doDeallocateBuffer(_p);
+			}
+		}else{
+			_p = reinterpret_cast<T*>(pop(id));
+		}
+		return _p;
+	}
+#endif
 public:
 	typedef void (*FncT) (void*);
 	//! call this method to prepare the current thread for caching
