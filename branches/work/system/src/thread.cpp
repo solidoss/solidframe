@@ -147,13 +147,14 @@ struct TimeStartData{
 	TimeStartData(){
 		st = time(NULL);
 		sc = clock();
+		sc -= (sc % CLOCKS_PER_SEC);
 	}
 	time_t							st;
 	UnsignedType<clock_t>::Type		sc;
 };
 
 const TimeSpec& TimeSpec::currentRealTime(){
-	//TODO: static problem
+	//TODO: staticproblem
 	static TimeStartData		tsd;
 	UnsignedType<clock_t>::Type	cc = clock();
 	uint32						secs  = 0;
