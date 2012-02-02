@@ -1,7 +1,9 @@
 #include <boost/thread/once.hpp>
 #include <boost/thread/thread.hpp>
 #include <iostream>
+#ifdef ON_WINDOWS
 #include <Windows.h>
+#endif
 using namespace std;
 
 struct Singleton{

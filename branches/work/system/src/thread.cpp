@@ -113,16 +113,28 @@ struct ThreadData{
 #endif
 };
 
-//ThreadData::ThreadData(){
-//	crtthread_key = 0;
-//	thcnt = 0;
-//	once_key = PTHREAD_ONCE_INIT;
-//}
+#ifdef HAVE_SAFE_STATIC
 static ThreadData& threadData(){
-	//TODO: staticproblem
 	static ThreadData td;
 	return td;
 }
+#else
+ThreadData& threadDataStub(){
+	static ThreadData td;
+	return td;
+}
+
+void once_cbk_thread_data(){
+	threadDataStub();
+}
+static ThreadData& threadData(){
+	static boost::once_flag once(BOOST_ONCE_INIT);
+	boost::call_once(&once_cbk_thread_data, once);
+	return threadDataStub();
+}
+
+
+#endif
 
 Cleaner             			cleaner;
 //static unsigned 				crtspecid = 0;
@@ -149,13 +161,28 @@ struct TimeStartData{
 		sc = clock();
 		sc -= (sc % CLOCKS_PER_SEC);
 	}
+	static TimeStartData& instance();
 	time_t							st;
 	UnsignedType<clock_t>::Type		sc;
 };
 
+TimeStartData& tsd_instance_stub(){
+	static TimeStartData tsd;
+	return tsd;
+}
+
+void once_cbk_tsd(){
+	tsd_instance_stub();
+}
+
+TimeStartData& TimeStartData::instance(){
+	static boost::once_flag once(BOOST_ONCE_INIT);
+	boost::call_once(&once_cbk_tsd, once);
+	return tsd_instance_stub();
+}
+
 const TimeSpec& TimeSpec::currentRealTime(){
-	//TODO: staticproblem
-	static TimeStartData		tsd;
+	TimeStartData				&tsd(TimeStartData::instance());
 	UnsignedType<clock_t>::Type	cc = clock();
 	uint32						secs  = 0;
 	uint32						nsecs = 0;
@@ -176,7 +203,7 @@ const TimeSpec& TimeSpec::currentRealTime(){
 }
 
 const TimeSpec& TimeSpec::currentMonotonic(){
-	static TimeStartData		tsd;
+	TimeStartData				&tsd(TimeStartData::instance());
 	UnsignedType<clock_t>::Type	cc = clock();
 	uint32						secs  = 0;
 	uint32						nsecs = 0;
@@ -435,12 +462,32 @@ int Thread::detach(){
 #endif
 }
 //-------------------------------------------------------------------------
+#ifdef HAVE_SAFE_STATIC
 unsigned Thread::specificId(){
 	//TODO: staticproblem
 	static unsigned sid = ThreadData::FirstSpecificId - 1;
 	Locker<Mutex> lock(gmutex());
 	return ++sid;
 }
+#else
+
+unsigned specificIdStub(){
+	static unsigned sid = ThreadData::FirstSpecificId - 2;
+	Locker<Mutex> lock(Thread::gmutex());
+	return ++sid;
+}
+
+void once_cbk_specific_id(){
+	specificIdStub();
+}
+
+unsigned Thread::specificId(){
+	static boost::once_flag once(BOOST_ONCE_INIT);
+	boost::call_once(&once_cbk_specific_id, once);
+	return specificIdStub();
+}
+
+#endif
 //-------------------------------------------------------------------------
 void Thread::specific(unsigned _pos, void *_psd, SpecificFncT _pf){
 	Thread *pct = current();

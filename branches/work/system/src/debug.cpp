@@ -257,11 +257,30 @@ struct Dbg::Data{
 //-----------------------------------------------------------------
 void splitPrefix(string &_path, string &_name, const char *_prefix);
 
+#ifdef HAVE_SAFE_STATIC
 /*static*/ Dbg& Dbg::instance(){
-	//TODO: staticproblem
 	static Dbg d;
 	return d;
 }
+#else
+
+Dbg& dbg_instance(){
+	static Dbg d;
+	return d;
+}
+
+void once_cbk(){
+	dbg_instance();
+}
+
+/*static*/ Dbg& Dbg::instance(){
+	static boost::once_flag once(BOOST_ONCE_INIT);
+	boost::call_once(&once_cbk, once);
+	return dbg_instance();
+}
+
+
+#endif
 	
 Dbg::~Dbg(){
 	(*d.pos)<<flush;

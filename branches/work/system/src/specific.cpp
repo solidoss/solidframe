@@ -38,13 +38,28 @@ struct BufferNode{
 	BufferNode *pnext;
 };
 
-
+#ifdef HAVE_SAFE_STATIC
 static const unsigned specificPosition(){
-	//TODO: staticproblem
+	static const unsigned	thrspecpos = Thread::specificId();
+	return thrspecpos;
+}
+#else
+const unsigned specificPositionStub(){
 	static const unsigned	thrspecpos = Thread::specificId();
 	return thrspecpos;
 }
 
+void once_cbk(){
+	specificPositionStub();
+}
+
+const unsigned specificPosition(){
+	static boost::once_flag once(BOOST_ONCE_INIT);
+	boost::call_once(&once_cbk, once);
+	return specificPositionStub();
+}
+
+#endif
 //static unsigned		stkid = 0;
 struct CleaningVector: std::vector<Specific::FncT>{
 	CleaningVector(){
