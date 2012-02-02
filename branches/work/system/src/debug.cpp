@@ -227,7 +227,9 @@ struct Dbg::Data{
 		pos = &std::cerr;
 	}
 	~Data(){
+#ifdef ON_WINDOWS
 		WSACleanup();
+#endif
 	}
 	void setModuleMask(const char*);
 	void setBit(const char *_pbeg, const char *_pend);
