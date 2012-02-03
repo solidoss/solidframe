@@ -31,8 +31,8 @@
 #include "utility/stack.hpp"
 #include "algorithm/serialization/typemapperbase.hpp"
 
-class IStream;
-class OStream;
+class InputStream;
+class OutputStream;
 
 namespace serialization{
 namespace binary{
@@ -192,23 +192,23 @@ protected:
 			pv_2() = _pv;
 		}
 	};
-	struct IStreamData{
-		IStreamData(
-			IStream *_pis = NULL,
+	struct InputStreamData{
+		InputStreamData(
+			InputStream *_pis = NULL,
 			int64 _sz = -1,
 			uint64 _off = 0
 		):pis(_pis), sz(_sz), off(_off){}
-		IStream *pis;
+		InputStream *pis;
 		int64	sz;
 		uint64	off;
 	};
-	struct OStreamData{
-		OStreamData(
-			OStream *_pos = NULL,
+	struct OutputStreamData{
+		OutputStreamData(
+			OutputStream *_pos = NULL,
 			int64 _sz = -1,
 			uint64 _off = 0
 		):pos(_pos), sz(_sz), off(_off){}
-		OStream *pos;
+		OutputStream *pos;
 		int64	sz;
 		uint64	off;
 	};
@@ -361,7 +361,7 @@ class Serializer: public Base{
 		if(!rs.cpb) return OK;
 		T *pt = reinterpret_cast<T*>(_rfd.p);
 		
-		IStreamData	isd;
+		InputStreamData	isd;
 		int 		cpidx = _rfd.s;
 		++_rfd.s;
 		switch(pt->createSerializationStream(isd.pis, isd.sz, isd.off, cpidx)){
@@ -383,7 +383,7 @@ class Serializer: public Base{
 			return BAD;
 		}
 		rs.estk.push(ExtData());
-		IStreamData &rsp(*reinterpret_cast<IStreamData*>(rs.estk.top().buf));
+		InputStreamData &rsp(*reinterpret_cast<InputStreamData*>(rs.estk.top().buf));
 		rsp = isd;
 		//_rfd.s is the id of the stream
 		rs.fstk.push(FncData(&Serializer::storeStreamDone<T>, _rfd.p, _rfd.n, _rfd.s - 1));
@@ -400,7 +400,7 @@ class Serializer: public Base{
 	static int storeStreamDone(Base &_rs, FncData &_rfd){
 		idbgx(Dbg::ser_bin, "store stream done");
 		Serializer &rs(static_cast<Serializer&>(_rs));
-		IStreamData &rsp(*reinterpret_cast<IStreamData*>(rs.estk.top().buf));
+		InputStreamData &rsp(*reinterpret_cast<InputStreamData*>(rs.estk.top().buf));
 		T *pt = reinterpret_cast<T*>(_rfd.p);
 		pt->destroySerializationStream(rsp.pis, rsp.sz, rsp.off, _rfd.s);
 		rs.estk.pop();
@@ -706,7 +706,7 @@ class Deserializer: public Base{
 		
 		int cpidx = _rfd.s;
 		++_rfd.s;
-		OStreamData sp;
+		OutputStreamData sp;
 		T	*pt = reinterpret_cast<T*>(_rfd.p);
 		//TODO: createDeserializationStream should be given the size of the stream
 		switch(pt->createDeserializationStream(sp.pos, sp.sz, sp.off, cpidx)){
@@ -716,7 +716,7 @@ class Deserializer: public Base{
 		}
 		
 		rd.estk.push(ExtData());
-		OStreamData &rsp(*reinterpret_cast<OStreamData*>(rd.estk.top().buf));
+		OutputStreamData &rsp(*reinterpret_cast<OutputStreamData*>(rd.estk.top().buf));
 		rsp = sp;
 		//_rfd.s is the id of the stream
 		rd.fstk.push(FncData(&Deserializer::template parseStreamDone<T>, _rfd.p, _rfd.n, _rfd.s - 1));
@@ -734,7 +734,7 @@ class Deserializer: public Base{
 	static int parseStreamDone(Base &_rb,FncData &_rfd){
 		idbgx(Dbg::ser_bin, "parse stream done");
 		Deserializer &rd(static_cast<Deserializer&>(_rb));
-		OStreamData &rsp(*reinterpret_cast<OStreamData*>(rd.estk.top().buf));
+		OutputStreamData &rsp(*reinterpret_cast<OutputStreamData*>(rd.estk.top().buf));
 		T	*pt = reinterpret_cast<T*>(_rfd.p);
 		pt->destroyDeserializationStream(rsp.pos, rsp.sz, rsp.off, _rfd.s);
 		rd.estk.pop();

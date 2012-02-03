@@ -45,9 +45,9 @@ class Visitor;
 class Manager;
 
 //signals
-struct IStreamSignal;
-struct OStreamSignal;
-struct IOStreamSignal;
+struct InputStreamSignal;
+struct OutputStreamSignal;
+struct IOutputStreamSignal;
 struct StreamErrorSignal;
 
 
@@ -127,9 +127,9 @@ public:
 	void dynamicExecute(DynamicPointer<FetchSlaveSignal> &_rsig);
 	void dynamicExecute(DynamicPointer<SendStringSignal> &_rsig);
 	void dynamicExecute(DynamicPointer<SendStreamSignal> &_rsig);
-	void dynamicExecute(DynamicPointer<IStreamSignal> &_rsig);
-	void dynamicExecute(DynamicPointer<OStreamSignal> &_rsig);
-	void dynamicExecute(DynamicPointer<IOStreamSignal> &_rsig);
+	void dynamicExecute(DynamicPointer<InputStreamSignal> &_rsig);
+	void dynamicExecute(DynamicPointer<OutputStreamSignal> &_rsig);
+	void dynamicExecute(DynamicPointer<IOutputStreamSignal> &_rsig);
 	void dynamicExecute(DynamicPointer<StreamErrorSignal> &_rsig);
 private:
 	void prepareReader();

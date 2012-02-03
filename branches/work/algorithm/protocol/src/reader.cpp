@@ -163,7 +163,7 @@ int Reader::run(){
 }
 
 /*static*/ int Reader::fetchLiteralStream(Reader &_rr, Parameter &_rp){
-	OStreamIterator	&osi(*static_cast<OStreamIterator*>(_rp.a.p));
+	OutputStreamIterator	&osi(*static_cast<OutputStreamIterator*>(_rp.a.p));
 	
 	cassert(osi.start() >= 0);
 	
@@ -205,7 +205,7 @@ int Reader::run(){
 }
 
 /*static*/ int Reader::fetchLiteralStreamContinue(Reader &_rr, Parameter &_rp){
-	OStreamIterator	&osi(*static_cast<OStreamIterator*>(_rp.a.p));
+	OutputStreamIterator	&osi(*static_cast<OutputStreamIterator*>(_rp.a.p));
 	uint64			&sz(*static_cast<uint64*>(_rp.b.p));
 	const ulong		bufsz(_rr.bh->pend - _rr.bh->pbeg);
 	ulong			toread;

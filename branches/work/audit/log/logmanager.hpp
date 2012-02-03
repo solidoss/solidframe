@@ -4,7 +4,7 @@
 #include <utility>
 #include "system/common.hpp"
 
-class IStream;
+class InputStream;
 
 namespace audit{
 
@@ -18,7 +18,7 @@ public:
 	LogManager();
 	~LogManager();
 	
-	UidT insertChannel(IStream *_pis);
+	UidT insertChannel(InputStream *_pis);
 	UidT insertListener(const char *_addr, const char *_port);
 	
 	void eraseClient(const UidT &_ruid);

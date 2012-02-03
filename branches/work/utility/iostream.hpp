@@ -26,18 +26,18 @@
 #include "utility/ostream.hpp"
 
 //! A stream for both input and output
-class IOStream: public IStream, public OStream{
+class IOutputStream: public InputStream, public OutputStream{
 public:
-	virtual ~IOStream();
+	virtual ~IOutputStream();
 };
-//! An IOStreamIterator - an offset within the stream: a pointer to an iostream
-struct IOStreamIterator{
-	IOStreamIterator(IOStream *_ps = NULL, int64 _off = 0);
-	void reinit(IOStream *_ps = NULL, int64 _off = 0);
+//! An IOutputStreamIterator - an offset within the stream: a pointer to an iostream
+struct IOutputStreamIterator{
+	IOutputStreamIterator(IOutputStream *_ps = NULL, int64 _off = 0);
+	void reinit(IOutputStream *_ps = NULL, int64 _off = 0);
 	int64 start();
-	IOStream* operator->() const{return ps;}
-	IOStream& operator*() {return *ps;}
-	IOStream	*ps;
+	IOutputStream* operator->() const{return ps;}
+	IOutputStream& operator*() {return *ps;}
+	IOutputStream	*ps;
 	int64		off;
 };
 

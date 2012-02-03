@@ -38,10 +38,10 @@
 
 using namespace std;
 ///\cond 0
-class FileIOStream: public IOStream{
+class FileIOutputStream: public IOutputStream{
 public:
-	FileIOStream();
-	~FileIOStream();
+	FileIOutputStream();
+	~FileIOutputStream();
 	int openRead(const char *_fn);
 	int openWrite(const char *_fn);
 	int read(char *, uint32, uint32 _flags = 0);
@@ -53,27 +53,27 @@ private:
 	FileDevice	fd;
 };
 ///\endcond
-FileIOStream::FileIOStream(){}
-FileIOStream::~FileIOStream(){}
-int FileIOStream::openRead(const char *_fn){
+FileIOutputStream::FileIOutputStream(){}
+FileIOutputStream::~FileIOutputStream(){}
+int FileIOutputStream::openRead(const char *_fn){
 	return fd.open(_fn, FileDevice::RO);
 }
-int FileIOStream::openWrite(const char *_fn){
+int FileIOutputStream::openWrite(const char *_fn){
 	return fd.open(_fn, FileDevice::WO | FileDevice::TR | FileDevice::CR);
 }
-int FileIOStream::read(char *_pb, uint32 _bl, uint32 _flags){
+int FileIOutputStream::read(char *_pb, uint32 _bl, uint32 _flags){
 	return fd.read(_pb, _bl);
 }
-int FileIOStream::write(const char *_pb, uint32 _bl, uint32 _flags){
+int FileIOutputStream::write(const char *_pb, uint32 _bl, uint32 _flags){
 	return fd.write(_pb, _bl);
 }
-int64 FileIOStream::seek(int64, SeekRef){
+int64 FileIOutputStream::seek(int64, SeekRef){
 	return -1;
 }
-int64 FileIOStream::size()const{
+int64 FileIOutputStream::size()const{
 	return fd.size();
 }
-void FileIOStream::close(){
+void FileIOutputStream::close(){
 	fd.close();
 }
 
@@ -84,27 +84,27 @@ struct Test{
 	S& operator&(S &_s){
 		return _s.template pushStreammer<Test>(this, "Test::fs").push(no, "Test::no").push(fn,"Test::fn");
 	}
-	int createDeserializationStream(OStream *&_rps, int64 &_rsz, uint64 &_roff, int _id);
-	void destroyDeserializationStream(OStream *_ps, int64 &_rsz, uint64 &_roff, int _id);
-	int createSerializationStream(IStream *&_rps, int64 &_rsz, uint64 &_roff, int _id);
-	void destroySerializationStream(IStream *_ps, int64 &_rsz, uint64 &_roff, int _id);
+	int createDeserializationStream(OutputStream *&_rps, int64 &_rsz, uint64 &_roff, int _id);
+	void destroyDeserializationStream(OutputStream *_ps, int64 &_rsz, uint64 &_roff, int _id);
+	int createSerializationStream(InputStream *&_rps, int64 &_rsz, uint64 &_roff, int _id);
+	void destroySerializationStream(InputStream *_ps, int64 &_rsz, uint64 &_roff, int _id);
 	void print();
 private:
 	int32 			no;
 	string			fn;
-	FileIOStream	fs;
+	FileIOutputStream	fs;
 };
 ///\endcond
 
 Test::Test(const char *_fn):fn(_fn?_fn:""){}
 //-----------------------------------------------------------------------------------
 void Test::destroyDeserializationStream(
-	OStream *_ps, int64 &_rsz, uint64 &_roff, int _id
+	OutputStream *_ps, int64 &_rsz, uint64 &_roff, int _id
 ){
 	cout<<"Destroy deserialization <"<<_id<<"> sz "<<_rsz<<endl;
 }
 int Test::createDeserializationStream(
-	OStream *&_rps, int64 &_rsz, uint64 &_roff, int _id
+	OutputStream *&_rps, int64 &_rsz, uint64 &_roff, int _id
 ){
 	if(_id) return NOK;
 	cout<<"Create deserialization <"<<_id<<"> sz "<<_rsz<<endl;
@@ -115,20 +115,20 @@ int Test::createDeserializationStream(
 		fn.clear();
 		cout<<"failed open des file"<<endl;
 	}else{
-		_rps = static_cast<OStream*>(&fs);
+		_rps = static_cast<OutputStream*>(&fs);
 		cout<<"success oppening des file"<<endl;
 	}
 	return OK;
 }
 void Test::destroySerializationStream(
-	IStream *_ps, int64 &_rsz, uint64 &_roff, int _id
+	InputStream *_ps, int64 &_rsz, uint64 &_roff, int _id
 ){
 	cout<<"doing nothing as the stream will be destroyed when the command will be destroyed"<<endl;
 	//fs.close();
 }
 
 int Test::createSerializationStream(
-	IStream *&_rps, int64 &_rsz, uint64 &_roff, int _id
+	InputStream *&_rps, int64 &_rsz, uint64 &_roff, int _id
 ){
 	if(_id) return NOK;
 	cout<<"Create serialization <"<<_id<<"> sz "<<_rsz<<endl;;
@@ -137,7 +137,7 @@ int Test::createSerializationStream(
 	if(fn.empty() || fs.openRead(fn.c_str())){
 		return BAD;
 	}
-	_rps = static_cast<IStream*>(&fs);
+	_rps = static_cast<InputStream*>(&fs);
 	_rsz = fs.size();
 	cout<<"serializing stream"<<endl;
 	return OK;

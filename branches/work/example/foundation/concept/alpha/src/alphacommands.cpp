@@ -581,8 +581,8 @@ int Fetch::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 	return BAD;
 }
 
-int Fetch::receiveIStream(
-	StreamPointer<IStream> &_sptr,
+int Fetch::receiveInputStream(
+	StreamPointer<InputStream> &_sptr,
 	const FileUidT &_fuid,
 	int			_which,
 	const ObjectUidT&,
@@ -721,8 +721,8 @@ int Store::execute(Connection &_rc){
 	return OK;
 }
 
-int Store::receiveOStream(
-	StreamPointer<OStream> &_sptr,
+int Store::receiveOutputStream(
+	StreamPointer<OutputStream> &_sptr,
 	const FileUidT &_fuid,
 	int			_which,
 	const ObjectUidT&,
@@ -809,7 +809,7 @@ int SendStream::execute(Connection &_rc){
 	uint32	fromobjid(_rc.id());
 	uint32	fromobjuid(rm.uid(_rc));
 	fdt::RequestUid reqid(_rc.id(), rm.uid(_rc), _rc.requestId()); 
-	StreamPointer<IOStream>	sp;
+	StreamPointer<IOutputStream>	sp;
 	int rv = Manager::the().fileManager().stream(sp, reqid, srcstr.c_str());
 	protocol::Parameter &rp = _rc.writer().push(&Writer::putStatus);
 	switch(rv){
@@ -904,8 +904,8 @@ int Idle::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 		return Writer::Ok;
 	}
 }
-int Idle::receiveIStream(
-	StreamPointer<IStream> &_sp,
+int Idle::receiveInputStream(
+	StreamPointer<InputStream> &_sp,
 	const FileUidT &,
 	int			_which,
 	const ObjectUidT&_from,
@@ -964,8 +964,8 @@ void Command::initStatic(Manager &_rm){
 }
 /*virtual*/ Command::~Command(){}
 
-int Command::receiveIStream(
-	StreamPointer<IStream> &_ps,
+int Command::receiveInputStream(
+	StreamPointer<InputStream> &_ps,
 	const FileUidT &,
 	int			_which,
 	const ObjectUidT&_from,
@@ -973,8 +973,8 @@ int Command::receiveIStream(
 ){
 	return BAD;
 }
-int Command::receiveOStream(
-	StreamPointer<OStream> &,
+int Command::receiveOutputStream(
+	StreamPointer<OutputStream> &,
 	const FileUidT &,
 	int			_which,
 	const ObjectUidT&_from,
@@ -982,8 +982,8 @@ int Command::receiveOStream(
 ){
 	return BAD;
 }
-int Command::receiveIOStream(
-	StreamPointer<IOStream> &, 
+int Command::receiveIOutputStream(
+	StreamPointer<IOutputStream> &, 
 	const FileUidT &,
 	int			_which,
 	const ObjectUidT&_from,

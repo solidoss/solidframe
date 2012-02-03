@@ -307,16 +307,16 @@ int FetchMasterSignal::receiveSignal(
 	const ObjectUidT& _from,
 	const fdt::ipc::ConnectionUid *_conid
 ){
-	if(_rsig->dynamicTypeId() == IStreamSignal::staticTypeId()){
+	if(_rsig->dynamicTypeId() == InputStreamSignal::staticTypeId()){
 		idbg((void*)this<<" Received stream");
-		IStreamSignal &rsig(*static_cast<IStreamSignal*>(_rsig.ptr()));
+		InputStreamSignal &rsig(*static_cast<InputStreamSignal*>(_rsig.ptr()));
 		ins = rsig.sptr;
 		fuid = rsig.fileuid;
 		state = SendFirstStream;
-	}else /*if(_rsig->dynamicTypeId() == OStreamSignal::staticTypeId()){
-		OStreamSignal &rsig(*static_cast<OStreamSignal*>(_rsig.ptr()));
-	}else if(_rsig->dynamicTypeId() == IOStreamSignal::staticTypeId()){
-		IOStreamSignal &rsig(*static_cast<IOStreamSignal*>(_rsig.ptr()));
+	}else /*if(_rsig->dynamicTypeId() == OutputStreamSignal::staticTypeId()){
+		OutputStreamSignal &rsig(*static_cast<OutputStreamSignal*>(_rsig.ptr()));
+	}else if(_rsig->dynamicTypeId() == IOutputStreamSignal::staticTypeId()){
+		IOutputStreamSignal &rsig(*static_cast<IOutputStreamSignal*>(_rsig.ptr()));
 	}else */if(_rsig->dynamicTypeId() == StreamErrorSignal::staticTypeId()){
 		//StreamErrorSignal &rsig(*static_cast<StreamErrorSignal*>(_rsig.ptr()));
 		state = SendError;
@@ -341,8 +341,8 @@ int FetchMasterSignal::receiveSignal(
 // 	state = SendNextStream;
 // 	return OK;
 // }
-// int FetchMasterSignal::receiveIStream(
-// 	StreamPointer<IStream> &_rins,
+// int FetchMasterSignal::receiveInputStream(
+// 	StreamPointer<InputStream> &_rins,
 // 	const FileUidT	& _fuid,
 // 	int			_which,
 // 	const ObjectUidT&,
@@ -428,7 +428,7 @@ int FetchSlaveSignal::execute(
 }
 
 void FetchSlaveSignal::destroyDeserializationStream(
-	OStream *&_rpos, int64 &_rsz, uint64 &_roff, int _id
+	OutputStream *&_rpos, int64 &_rsz, uint64 &_roff, int _id
 ){
 	idbg((void*)this<<" Destroy deserialization <"<<_id<<"> sz "<<_rsz<<" streamptr "<<(void*)_rpos);
 	if(_rsz < 0){
@@ -439,13 +439,13 @@ void FetchSlaveSignal::destroyDeserializationStream(
 }
 
 int FetchSlaveSignal::createDeserializationStream(
-	OStream *&_rpos, int64 &_rsz, uint64 &_roff, int _id
+	OutputStream *&_rpos, int64 &_rsz, uint64 &_roff, int _id
 ){
 	idbg((void*)this<<" "<<_id<<" "<<filesz<<' '<<fuid.first<<' '<<fuid.second);
 	if(_id) return NOK;
 	if(filesz <= 0) return NOK;
 	
-	StreamPointer<OStream>		sp;
+	StreamPointer<OutputStream>		sp;
 	fdt::RequestUid				requid;
 	Manager::the().fileManager().stream(sp, fuid, requid, fdt::file::Manager::Forced);
 	if(!sp){
@@ -462,13 +462,13 @@ int FetchSlaveSignal::createDeserializationStream(
 }
 
 void FetchSlaveSignal::destroySerializationStream(
-	IStream *&_rpis, int64 &_rsz, uint64 &_roff, int _id
+	InputStream *&_rpis, int64 &_rsz, uint64 &_roff, int _id
 ){
 	idbg((void*)this<<" doing nothing as the stream will be destroied when the signal will be destroyed");
 }
 
 int FetchSlaveSignal::createSerializationStream(
-	IStream *&_rpis, int64 &_rsz, uint64 &_roff, int _id
+	InputStream *&_rpis, int64 &_rsz, uint64 &_roff, int _id
 ){
 	if(_id || !ins.ptr()) return NOK;
 	idbg((void*)this<<" Create serialization <"<<_id<<"> sz "<<_rsz);
@@ -506,12 +506,12 @@ void SendStreamSignal::ipcReceived(
 }
 
 void SendStreamSignal::destroyDeserializationStream(
-	OStream *&_rpos, int64 &_rsz, uint64 &_roff, int _id
+	OutputStream *&_rpos, int64 &_rsz, uint64 &_roff, int _id
 ){
 	idbg("Destroy deserialization <"<<_id<<"> sz "<<_rsz);
 }
 int SendStreamSignal::createDeserializationStream(
-	OStream *&_rpos, int64 &_rsz, uint64 &_roff, int _id
+	OutputStream *&_rpos, int64 &_rsz, uint64 &_roff, int _id
 ){
 	if(_id) return NOK;
 	idbg("Create deserialization <"<<_id<<"> sz "<<_rsz);
@@ -523,31 +523,31 @@ int SendStreamSignal::createDeserializationStream(
 		idbg("Oops, could not open file");
 		return BAD;
 	}else{
-		_rpos = static_cast<OStream*>(this->iosp.ptr());
+		_rpos = static_cast<OutputStream*>(this->iosp.ptr());
 	}
 	return OK;
 }
 void SendStreamSignal::destroySerializationStream(
-	IStream *&_rpis, int64 &_rsz, uint64 &_roff, int _id
+	InputStream *&_rpis, int64 &_rsz, uint64 &_roff, int _id
 ){
 	idbg("doing nothing as the stream will be destroied when the signal will be destroyed");
 }
 int SendStreamSignal::createSerializationStream(
-	IStream *&_rpis, int64 &_rsz, uint64 &_roff, int _id
+	InputStream *&_rpis, int64 &_rsz, uint64 &_roff, int _id
 ){
 	if(_id) return NOK;
 	idbg("Create serialization <"<<_id<<"> sz "<<_rsz);
 	//The stream is already opened
-	_rpis = static_cast<IStream*>(this->iosp.ptr());
+	_rpis = static_cast<InputStream*>(this->iosp.ptr());
 	_rsz = this->iosp->size();
 	return OK;
 }
 
 // int SendStreamSignal::execute(concept::Connection &_rcon){
 // 	{
-// 	StreamPointer<IStream>	isp(static_cast<IStream*>(iosp.release()));
+// 	StreamPointer<InputStream>	isp(static_cast<InputStream*>(iosp.release()));
 // 	idbg("");
-// 	_rcon.receiveIStream(isp, concept::Connection::FileUidT(0,0), concept::Connection::RequestUidT(0, 0), 0, fromv, &conid);
+// 	_rcon.receiveInputStream(isp, concept::Connection::FileUidT(0,0), concept::Connection::RequestUidT(0, 0), 0, fromv, &conid);
 // 	idbg("");
 // 	}
 // 	return _rcon.receiveString(dststr, concept::Connection::RequestUidT(0, 0), 0, fromv, &conid);

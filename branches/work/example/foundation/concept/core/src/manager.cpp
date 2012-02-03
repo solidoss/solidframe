@@ -74,17 +74,17 @@ protected:
 	/*virtual*/ bool release();
 	
 	/*virtual*/ void sendStream(
-		StreamPointer<IStream> &_sptr,
+		StreamPointer<InputStream> &_sptr,
 		const FileUidT &_rfuid,
 		const fdt::RequestUid& _rrequid
 	);
 	/*virtual*/ void sendStream(
-		StreamPointer<OStream> &_sptr,
+		StreamPointer<OutputStream> &_sptr,
 		const FileUidT &_rfuid,
 		const fdt::RequestUid& _rrequid
 	);
 	/*virtual*/ void sendStream(
-		StreamPointer<IOStream> &_sptr,
+		StreamPointer<IOutputStream> &_sptr,
 		const FileUidT &_rfuid,
 		const fdt::RequestUid& _rrequid
 	);
@@ -229,31 +229,31 @@ bool IpcServiceController::release(){
 	return false;
 }
 void FileManagerController::sendStream(
-	StreamPointer<IStream> &_sptr,
+	StreamPointer<InputStream> &_sptr,
 	const FileUidT &_rfuid,
 	const fdt::RequestUid& _rrequid
 ){
 	RequestUidT	ru(_rrequid.reqidx, _rrequid.requid);
-	DynamicPointer<fdt::Signal>	cp(new IStreamSignal(_sptr, _rfuid, ru));
+	DynamicPointer<fdt::Signal>	cp(new InputStreamSignal(_sptr, _rfuid, ru));
 	Manager::the().signal(cp, _rrequid.objidx, _rrequid.objuid);
 }
 
 void FileManagerController::sendStream(
-	StreamPointer<OStream> &_sptr,
+	StreamPointer<OutputStream> &_sptr,
 	const FileUidT &_rfuid,
 	const fdt::RequestUid& _rrequid
 ){
 	RequestUidT	ru(_rrequid.reqidx, _rrequid.requid);
-	DynamicPointer<fdt::Signal>	cp(new OStreamSignal(_sptr, _rfuid, ru));
+	DynamicPointer<fdt::Signal>	cp(new OutputStreamSignal(_sptr, _rfuid, ru));
 	Manager::the().signal(cp, _rrequid.objidx, _rrequid.objuid);
 }
 void FileManagerController::sendStream(
-	StreamPointer<IOStream> &_sptr,
+	StreamPointer<IOutputStream> &_sptr,
 	const FileUidT &_rfuid,
 	const fdt::RequestUid& _rrequid
 ){
 	RequestUidT	ru(_rrequid.reqidx, _rrequid.requid);
-	DynamicPointer<fdt::Signal>	cp(new IOStreamSignal(_sptr, _rfuid, ru));
+	DynamicPointer<fdt::Signal>	cp(new IOutputStreamSignal(_sptr, _rfuid, ru));
 	Manager::the().signal(cp, _rrequid.objidx, _rrequid.objuid);
 }
 void FileManagerController::sendError(

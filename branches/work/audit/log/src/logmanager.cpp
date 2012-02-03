@@ -20,8 +20,8 @@ using namespace std;
 
 namespace audit{
 
-struct SocketIStream: IStream{
-	SocketIStream(SocketDevice &_rsd):sd(_rsd){}
+struct SocketInputStream: InputStream{
+	SocketInputStream(SocketDevice &_rsd):sd(_rsd){}
 	int read(char *_pb, uint32 _bl, uint32){
 		return sd.read(_pb, _bl);
 	}
@@ -37,8 +37,8 @@ struct SocketIStream: IStream{
 
 struct LogManager::Data{
 	struct Channel{
-		Channel(IStream *_pins):pins(_pins), uid(0){}
-		IStream		*pins;
+		Channel(InputStream *_pins):pins(_pins), uid(0){}
+		InputStream		*pins;
 		uint32		uid;
 	};
 	struct Listener{
@@ -119,7 +119,7 @@ LogManager::~LogManager(){
 	delete &d;
 }
 
-LogManager::UidT LogManager::insertChannel(IStream *_pins){
+LogManager::UidT LogManager::insertChannel(InputStream *_pins){
 	Locker<Mutex> lock(d.m);
 	if(d.state != Data::Running){return UidT(0xffffffff, 0xffffffff);}
 	UidT	uid;
@@ -244,7 +244,7 @@ void LogManager::runListener(ListenerWorker &_w){
 		SocketDevice &rsd(d.lsnv[_w.idx].sd);
 		SocketDevice csd;
 		while(rsd.accept(csd) == OK){
-			SocketIStream *pis = new SocketIStream(csd);
+			SocketInputStream *pis = new SocketInputStream(csd);
 			if(this->insertChannel(pis).first == 0xffffffff){
 				delete pis;
 			}
@@ -258,7 +258,7 @@ void LogManager::runListener(ListenerWorker &_w){
 	d.statecnd.signal();
 }
 
-void readClientData(LogClientData &_rcd, IStream &_ris){
+void readClientData(LogClientData &_rcd, InputStream &_ris){
 	if(!_ris.readAll((char*) &_rcd.head, sizeof(_rcd.head))) return;
 	_rcd.head.convertToHost();
 	_rcd.procname.resize(_rcd.head.procnamelen);
@@ -274,7 +274,7 @@ void readClientData(LogClientData &_rcd, IStream &_ris){
 }
 
 void LogManager::runChannel(ChannelWorker &_w){
-	IStream *pis = NULL;
+	InputStream *pis = NULL;
 	LogClientData	cd;
 	cd.idx = _w.idx;
 	{

@@ -420,7 +420,7 @@ int Serializer::storeStream(Base &_rb, FncData &_rfd){
 	Serializer &rs(static_cast<Serializer&>(_rb));
 	idbgx(Dbg::ser_bin, "");
 	if(!rs.cpb) return OK;
-	IStreamData &rsp(*reinterpret_cast<IStreamData*>(rs.estk.top().buf));
+	InputStreamData &rsp(*reinterpret_cast<InputStreamData*>(rs.estk.top().buf));
 	int32 toread = rs.be - rs.cpb;
 	if(toread < MINSTREAMBUFLEN) return NOK;
 	toread -= 2;//the buffsize
@@ -1031,7 +1031,7 @@ int Deserializer::parseStreamCheck(Base &_rb, FncData &_rfd){
 	
 	if(!rd.cpb) return OK;
 	
-	OStreamData		&rsp(*reinterpret_cast<OStreamData*>(rd.estk.top().buf));
+	OutputStreamData		&rsp(*reinterpret_cast<OutputStreamData*>(rd.estk.top().buf));
 	if(rsp.sz == -1LL){
 		rd.fstk.pop();//skip parse stream
 		return OK;
@@ -1058,7 +1058,7 @@ int Deserializer::parseStream(Base &_rb, FncData &_rfd){
 	Deserializer &rd(static_cast<Deserializer&>(_rb));
 	idbgx(Dbg::ser_bin, "");
 	if(!rd.cpb) return OK;
-	OStreamData &rsp(*reinterpret_cast<OStreamData*>(rd.estk.top().buf));
+	OutputStreamData &rsp(*reinterpret_cast<OutputStreamData*>(rd.estk.top().buf));
 	if(rsp.sz < 0) return OK;
 	
 	int32 towrite = rd.be - rd.cpb;
@@ -1101,7 +1101,7 @@ int Deserializer::parseDummyStream(Base &_rb, FncData &_rfd){
 	Deserializer &rd(static_cast<Deserializer&>(_rb));
 	idbgx(Dbg::ser_bin, "");
 	if(!rd.cpb) return OK;
-	OStreamData &rsp(*reinterpret_cast<OStreamData*>(rd.estk.top().buf));
+	OutputStreamData &rsp(*reinterpret_cast<OutputStreamData*>(rd.estk.top().buf));
 	if(rsp.sz < 0) return OK;
 	int32 towrite = rd.be - rd.cpb;
 	cassert(towrite > 2);

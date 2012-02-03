@@ -71,9 +71,9 @@ namespace{
 static const DynamicRegisterer<Connection>	dre;
 }
 /*static*/ void Connection::dynamicRegister(){
-	DynamicExecuterT::registerDynamic<IStreamSignal, Connection>();
-	DynamicExecuterT::registerDynamic<OStreamSignal, Connection>();
-	DynamicExecuterT::registerDynamic<IOStreamSignal, Connection>();
+	DynamicExecuterT::registerDynamic<InputStreamSignal, Connection>();
+	DynamicExecuterT::registerDynamic<OutputStreamSignal, Connection>();
+	DynamicExecuterT::registerDynamic<IOutputStreamSignal, Connection>();
 	DynamicExecuterT::registerDynamic<StreamErrorSignal, Connection>();
 	DynamicExecuterT::registerDynamic<RemoteListSignal, Connection>();
 	DynamicExecuterT::registerDynamic<FetchSlaveSignal, Connection>();
@@ -430,13 +430,13 @@ void Connection::dynamicExecute(DynamicPointer<SendStringSignal> &_psig){
 }
 void Connection::dynamicExecute(DynamicPointer<SendStreamSignal> &_psig){
 }
-void Connection::dynamicExecute(DynamicPointer<IStreamSignal> &_psig){
+void Connection::dynamicExecute(DynamicPointer<InputStreamSignal> &_psig){
 	idbg("");
 	if(_psig->requid.first && _psig->requid.first != reqid) return;
 	idbg("");
 	newRequestId();//prevent multiple responses with the same id
 	if(pcmd){
-		switch(pcmd->receiveIStream(_psig->sptr, _psig->fileuid, 0, ObjectUidT(), NULL)){
+		switch(pcmd->receiveInputStream(_psig->sptr, _psig->fileuid, 0, ObjectUidT(), NULL)){
 			case BAD:
 				idbg("");
 				break;
@@ -457,13 +457,13 @@ void Connection::dynamicExecute(DynamicPointer<IStreamSignal> &_psig){
 		}
 	}
 }
-void Connection::dynamicExecute(DynamicPointer<OStreamSignal> &_psig){
+void Connection::dynamicExecute(DynamicPointer<OutputStreamSignal> &_psig){
 	idbg("");
 	if(_psig->requid.first && _psig->requid.first != reqid) return;
 	idbg("");
 	newRequestId();//prevent multiple responses with the same id
 	if(pcmd){
-		switch(pcmd->receiveOStream(_psig->sptr, _psig->fileuid, 0, ObjectUidT(), NULL)){
+		switch(pcmd->receiveOutputStream(_psig->sptr, _psig->fileuid, 0, ObjectUidT(), NULL)){
 			case BAD:
 				idbg("");
 				break;
@@ -483,13 +483,13 @@ void Connection::dynamicExecute(DynamicPointer<OStreamSignal> &_psig){
 		}
 	}
 }
-void Connection::dynamicExecute(DynamicPointer<IOStreamSignal> &_psig){
+void Connection::dynamicExecute(DynamicPointer<IOutputStreamSignal> &_psig){
 	idbg("");
 	if(_psig->requid.first && _psig->requid.first != reqid) return;
 	idbg("");
 	newRequestId();//prevent multiple responses with the same id
 	if(pcmd){
-		switch(pcmd->receiveIOStream(_psig->sptr, _psig->fileuid, 0, ObjectUidT(), NULL)){
+		switch(pcmd->receiveIOutputStream(_psig->sptr, _psig->fileuid, 0, ObjectUidT(), NULL)){
 			case BAD:
 				idbg("");
 				break;

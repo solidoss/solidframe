@@ -23,13 +23,13 @@
 #define inline
 #endif
 
-inline IOStreamIterator::IOStreamIterator(IOStream *_ps, int64 _off):ps(_ps),off(_off){
+inline IOutputStreamIterator::IOutputStreamIterator(IOutputStream *_ps, int64 _off):ps(_ps),off(_off){
 }
-inline void IOStreamIterator::reinit(IOStream *_ps, int64 _off){
+inline void IOutputStreamIterator::reinit(IOutputStream *_ps, int64 _off){
 	ps = _ps;
 	off = _off;
 }
-inline int64 IOStreamIterator::start(){
+inline int64 IOutputStreamIterator::start(){
 	return ps->seek(off);
 }
 

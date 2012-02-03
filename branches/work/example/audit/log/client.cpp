@@ -3,7 +3,7 @@
 #include "system/debug.hpp"
 #include "utility/ostream.hpp"
 
-struct SocketOStream: OStream{
+struct SocketOutputStream: OutputStream{
 	/*virtual*/ void close(){
 		sd.close();
 	}
@@ -19,7 +19,7 @@ struct SocketOStream: OStream{
 int main(int argc, char *argv[]){
 	Log::instance().reinit(argv[0], Log::AllLevels, "any");
 	{
-		SocketOStream	*pos(new SocketOStream);
+		SocketOutputStream	*pos(new SocketOutputStream);
 		SocketAddressInfo ai("localhost", 3333, 0, SocketAddressInfo::Inet4, SocketAddressInfo::Stream);
 		if(!ai.empty()){
 			pos->sd.create(ai.begin());

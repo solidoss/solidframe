@@ -79,7 +79,7 @@ void Writer::put(uint32 _v){
 	}
 }
 
-void Writer::put(IStream *_ps, uint64 sz){
+void Writer::put(InputStream *_ps, uint64 sz){
 	const ulong bufsz = bend - bbeg;
 	ulong wr = 0;
 	while(sz){

@@ -91,7 +91,7 @@ struct Log::Data: std::ostream{
 //data:
 	uint32			lvlmsk;
 	uint32			lvlmsk_set;
-	OStream			*pos;
+	OutputStream			*pos;
 	stringoutbuf	outbuf;
 	BitSetT		bs;
 	NameVectorT	nv;
@@ -211,7 +211,7 @@ Log::~Log(){
 	delete &d;
 }
 
-bool Log::reinit(const char* _procname, uint32 _lvlmsk, const char *_modopt, OStream *_pos){
+bool Log::reinit(const char* _procname, uint32 _lvlmsk, const char *_modopt, OutputStream *_pos){
 	Locker<Mutex> lock(d.m);
 	delete d.pos;
 	d.pos = _pos;
@@ -225,7 +225,7 @@ bool Log::reinit(const char* _procname, uint32 _lvlmsk, const char *_modopt, OSt
 	return d.isActive();
 }
 
-void Log::reinit(OStream *_pos){
+void Log::reinit(OutputStream *_pos){
 	Locker<Mutex> lock(d.m);
 	delete d.pos;
 	d.pos = _pos;

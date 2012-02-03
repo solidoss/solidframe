@@ -11,8 +11,8 @@
 
 using namespace std;
 
-struct DeviceIOStream: IOStream{
-	DeviceIOStream(int _d, int _pd):d(_d), pd(_pd){}
+struct DeviceIOutputStream: IOutputStream{
+	DeviceIOutputStream(int _d, int _pd):d(_d), pd(_pd){}
 	void close(){
 		int tmp = d;
 		d = -1;
@@ -46,11 +46,11 @@ int main(int _argc, char *argv[]){
 #endif
 	audit::LogManager lm;
 	lm.start();
-	lm.insertChannel(new DeviceIOStream(pairfd[0], pairfd[1]));
+	lm.insertChannel(new DeviceIOutputStream(pairfd[0], pairfd[1]));
 	lm.insertListener("localhost", "3333");
 	Directory::create("log");
 	lm.insertConnector(new audit::LogBasicConnector("log"));
-	Log::instance().reinit(argv[0], Log::AllLevels, "ALL", new DeviceIOStream(pairfd[1],-1));
+	Log::instance().reinit(argv[0], Log::AllLevels, "ALL", new DeviceIOutputStream(pairfd[1],-1));
 	
 	string s;
 	while(true){

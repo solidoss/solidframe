@@ -23,27 +23,27 @@
 #define inline
 #endif
 
-inline bool IStream::iok()const{
+inline bool InputStream::iok()const{
 	return flags.flags == 0;
 }
-inline bool IStream::ieof()const{
+inline bool InputStream::ieof()const{
 	return flags.flags & StreamFlags::IEof;
 }
-inline bool IStream::ibad()const{
+inline bool InputStream::ibad()const{
 	return flags.flags & StreamFlags::IBad;
 }
-inline bool IStream::ifail()const{
+inline bool InputStream::ifail()const{
 	return ibad() | flags.flags & StreamFlags::IFail;
 }
 
-inline IStreamIterator::IStreamIterator(IStream *_ps, int64 _off):ps(_ps),off(_off){
+inline InputStreamIterator::InputStreamIterator(InputStream *_ps, int64 _off):ps(_ps),off(_off){
 }
 
-inline void IStreamIterator::reinit(IStream *_ps, int64 _off){
+inline void InputStreamIterator::reinit(InputStream *_ps, int64 _off){
 	ps = _ps;
 	off = _off;
 }
-inline int64 IStreamIterator::start(){
+inline int64 InputStreamIterator::start(){
 	return ps->seek(off);
 }
 

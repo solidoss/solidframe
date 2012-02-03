@@ -78,9 +78,9 @@ static const unsigned specificPosition(){
 }
 
 /*static*/ void Connection::dynamicRegister(){
-	DynamicExecuterT::registerDynamic<IStreamSignal, Connection>();
-	DynamicExecuterT::registerDynamic<OStreamSignal, Connection>();
-	DynamicExecuterT::registerDynamic<IOStreamSignal, Connection>();
+	DynamicExecuterT::registerDynamic<InputStreamSignal, Connection>();
+	DynamicExecuterT::registerDynamic<OutputStreamSignal, Connection>();
+	DynamicExecuterT::registerDynamic<IOutputStreamSignal, Connection>();
 	DynamicExecuterT::registerDynamic<StreamErrorSignal, Connection>();
 	DynamicExecuterT::registerDynamic<SocketMoveSignal, Connection>();
 }
@@ -425,20 +425,20 @@ void Connection::dynamicExecute(DynamicPointer<> &_dp){
 }
 
 
-void Connection::dynamicExecute(DynamicPointer<IStreamSignal> &_psig){
+void Connection::dynamicExecute(DynamicPointer<InputStreamSignal> &_psig){
 	int sid(-1);
 	if(!isRequestIdExpected(_psig->requid.first, sid)) return;
 	cassert(sid >= 0);
 	SocketData &rsd(socketData(sid));
-	int rv = rsd.pcmd->receiveIStream(_psig->sptr, _psig->fileuid, 0, ObjectUidT(), NULL);
+	int rv = rsd.pcmd->receiveInputStream(_psig->sptr, _psig->fileuid, 0, ObjectUidT(), NULL);
 	cassert(rv != OK);
 	this->socketPostEvents(sid, fdt::RESCHEDULED);
 }
 
-void Connection::dynamicExecute(DynamicPointer<OStreamSignal> &_psig){
+void Connection::dynamicExecute(DynamicPointer<OutputStreamSignal> &_psig){
 }
 
-void Connection::dynamicExecute(DynamicPointer<IOStreamSignal> &_psig){
+void Connection::dynamicExecute(DynamicPointer<IOutputStreamSignal> &_psig){
 }
 
 void Connection::dynamicExecute(DynamicPointer<StreamErrorSignal> &_psig){
@@ -505,8 +505,8 @@ void Command::initStatic(Manager &_rm){
 }
 /*virtual*/ Command::~Command(){}
 void Command::contextData(ObjectUidT &_robjuid){}
-int Command::receiveIStream(
-	StreamPointer<IStream> &_ps,
+int Command::receiveInputStream(
+	StreamPointer<InputStream> &_ps,
 	const FileUidT &,
 	int			_which,
 	const ObjectUidT&_from,
@@ -514,8 +514,8 @@ int Command::receiveIStream(
 ){
 	return BAD;
 }
-int Command::receiveOStream(
-	StreamPointer<OStream> &,
+int Command::receiveOutputStream(
+	StreamPointer<OutputStream> &,
 	const FileUidT &,
 	int			_which,
 	const ObjectUidT&_from,
@@ -523,8 +523,8 @@ int Command::receiveOStream(
 ){
 	return BAD;
 }
-int Command::receiveIOStream(
-	StreamPointer<IOStream> &, 
+int Command::receiveIOutputStream(
+	StreamPointer<IOutputStream> &, 
 	const FileUidT &,
 	int			_which,
 	const ObjectUidT&_from,
