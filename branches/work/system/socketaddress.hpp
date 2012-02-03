@@ -243,7 +243,7 @@ struct SocketAddress{
 	SocketAddressInfo::Family family()const{return (SocketAddressInfo::Family)addr()->sa_family;}
 	const socklen_t&	size()const {return sz;}
 	socklen_t&	size(){return sz;}
-	const socklen_t&	size(const socklen_t &_rsz){
+	socklen_t&	size(const socklen_t &_rsz){
 		sz = _rsz;
 		return sz;
 	}

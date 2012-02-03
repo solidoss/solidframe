@@ -16,7 +16,11 @@
 #endif
 
 using namespace std;
-const unsigned fileoff = (strstr(__FILE__, "audit/src") - __FILE__);
+#ifdef ON_WINDOWS
+const unsigned fileoff =  (strlen(__FILE__) - strlen(strstr(__FILE__, "audit\\src")));
+#else
+const unsigned fileoff =  (strlen(__FILE__) - strlen(strstr(__FILE__, "audit/src")));
+#endif
 
 class stringoutbuf : public std::streambuf {
 protected:
@@ -92,10 +96,10 @@ struct Log::Data: std::ostream{
 //data:
 	uint32			lvlmsk;
 	uint32			lvlmsk_set;
-	OutputStream			*pos;
+	OutputStream	*pos;
 	stringoutbuf	outbuf;
-	BitSetT		bs;
-	NameVectorT	nv;
+	BitSetT			bs;
+	NameVectorT		nv;
 	Mutex			m;
 	string			procname;
 };
@@ -192,9 +196,9 @@ void stringoutbuf::current(
 ){
 	_file += fileoff;
 	clear();
-	audit::LogRecordHead &lh(*((audit::LogRecordHead*)s.data()));
 	uint32	filenamelen = strlen(_file) + 1;//including the terminal \0
 	uint32	functionnamelen = strlen(_function) + 1;//including the terminal \0
+	audit::LogRecordHead &lh(*((audit::LogRecordHead*)s.data()));
 	TimeSpec tt;
 	tt.currentRealTime();
 	//tt -= ct;

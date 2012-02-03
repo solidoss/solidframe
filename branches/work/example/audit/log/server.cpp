@@ -66,8 +66,8 @@ struct DeviceInputOutputStream: InputOutputStream{
 		DescriptorT tmp = d;
 		d = invalid_descriptor;
 		if(pd != invalid_descriptor){
-			close_descriptor(tmp);
 			close_descriptor(pd);
+			close_descriptor(tmp);
 		}
 	}
 	/*virtual*/ int read(char *_pb, uint32 _bl, uint32 _flags = 0){
@@ -87,6 +87,22 @@ struct DeviceInputOutputStream: InputOutputStream{
 DescriptorT pairfd[2];
 
 int main(int _argc, char *argv[]){
+	Thread::init();
+#ifdef ON_WINDOWS
+	WSADATA	wsaData;
+    int		err;
+	WORD	wVersionRequested;
+/* Use the MAKEWORD(lowbyte, highbyte) macro declared in Windef.h */
+    wVersionRequested = MAKEWORD(2, 2);
+
+    err = WSAStartup(wVersionRequested, &wsaData);
+	if (err != 0) {
+        /* Tell the user that we could not find a usable */
+        /* Winsock DLL.                                  */
+        printf("WSAStartup failed with error: %d\n", err);
+        return 1;
+    }
+#endif
 	create_pipe(pairfd);
 #ifdef UDEBUG
 	Dbg::instance().levelMask();
@@ -96,7 +112,7 @@ int main(int _argc, char *argv[]){
 	audit::LogManager lm;
 	lm.start();
 	lm.insertChannel(new DeviceInputOutputStream(pairfd[0], pairfd[1]));
-	lm.insertListener("localhost", "3333");
+	lm.insertListener("localhost", "8888");
 	Directory::create("log");
 	lm.insertConnector(new audit::LogBasicConnector("log"));
 	Log::instance().reinit(argv[0], Log::AllLevels, "ALL", new DeviceInputOutputStream(pairfd[1],invalid_descriptor));
