@@ -68,12 +68,12 @@ public:
 	template <class T>
 	uint32 insert(uint32 _idx = 0){
 		typename UnsignedType<Int>::Type idx(_idx);
-		return this->insertFunction(&IdTypeMapper::doMap<T>, idx, typeid(T).name());
+		return this->insertFunction(&ThisT::template doMap<T>, idx, typeid(T).name());
 	}
 	template <class T, typename CT>
 	uint32 insert(uint32 _idx = 0){
 		typename UnsignedType<Int>::Type idx(_idx);
-		return this->insertFunction(&IdTypeMapper::doMap<T, CT>, idx, typeid(T).name());
+		return this->insertFunction(&ThisT::template doMap<T, CT>, idx, typeid(T).name());
 	}
 	uint32 realIdentifier(uint32 _idx)const{
 		return _idx;
