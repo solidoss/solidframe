@@ -49,10 +49,10 @@ void close_descriptor(int _d){
 	::close(_d);
 }
 int doread(DescriptorT _d, char *_pb, uint _sz){
-
+	return ::read(_d, _pb, _sz);
 }
 int dowrite(DescriptorT _d, const char *_pb, uint _sz){
-
+	return ::write(_d, _pb, _sz);
 }
 void create_pipe(DescriptorT *_ph){
 	pipe(_ph);
