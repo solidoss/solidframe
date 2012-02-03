@@ -84,7 +84,7 @@ protected:
 		const fdt::RequestUid& _rrequid
 	);
 	/*virtual*/ void sendStream(
-		StreamPointer<IOutputStream> &_sptr,
+		StreamPointer<InputOutputStream> &_sptr,
 		const FileUidT &_rfuid,
 		const fdt::RequestUid& _rrequid
 	);
@@ -248,12 +248,12 @@ void FileManagerController::sendStream(
 	Manager::the().signal(cp, _rrequid.objidx, _rrequid.objuid);
 }
 void FileManagerController::sendStream(
-	StreamPointer<IOutputStream> &_sptr,
+	StreamPointer<InputOutputStream> &_sptr,
 	const FileUidT &_rfuid,
 	const fdt::RequestUid& _rrequid
 ){
 	RequestUidT	ru(_rrequid.reqidx, _rrequid.requid);
-	DynamicPointer<fdt::Signal>	cp(new IOutputStreamSignal(_sptr, _rfuid, ru));
+	DynamicPointer<fdt::Signal>	cp(new InputOutputStreamSignal(_sptr, _rfuid, ru));
 	Manager::the().signal(cp, _rrequid.objidx, _rrequid.objuid);
 }
 void FileManagerController::sendError(

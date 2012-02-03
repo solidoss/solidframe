@@ -315,8 +315,8 @@ int FetchMasterSignal::receiveSignal(
 		state = SendFirstStream;
 	}else /*if(_rsig->dynamicTypeId() == OutputStreamSignal::staticTypeId()){
 		OutputStreamSignal &rsig(*static_cast<OutputStreamSignal*>(_rsig.ptr()));
-	}else if(_rsig->dynamicTypeId() == IOutputStreamSignal::staticTypeId()){
-		IOutputStreamSignal &rsig(*static_cast<IOutputStreamSignal*>(_rsig.ptr()));
+	}else if(_rsig->dynamicTypeId() == InputOutputStreamSignal::staticTypeId()){
+		InputOutputStreamSignal &rsig(*static_cast<InputOutputStreamSignal*>(_rsig.ptr()));
 	}else */if(_rsig->dynamicTypeId() == StreamErrorSignal::staticTypeId()){
 		//StreamErrorSignal &rsig(*static_cast<StreamErrorSignal*>(_rsig.ptr()));
 		state = SendError;

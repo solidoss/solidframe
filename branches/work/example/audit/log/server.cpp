@@ -60,8 +60,8 @@ void create_pipe(DescriptorT *_ph){
 #endif
 
 
-struct DeviceIOutputStream: IOutputStream{
-	DeviceIOutputStream(DescriptorT _d, DescriptorT _pd):d(_d), pd(_pd){}
+struct DeviceInputOutputStream: InputOutputStream{
+	DeviceInputOutputStream(DescriptorT _d, DescriptorT _pd):d(_d), pd(_pd){}
 	void close(){
 		DescriptorT tmp = d;
 		d = invalid_descriptor;
@@ -95,11 +95,11 @@ int main(int _argc, char *argv[]){
 #endif
 	audit::LogManager lm;
 	lm.start();
-	lm.insertChannel(new DeviceIOutputStream(pairfd[0], pairfd[1]));
+	lm.insertChannel(new DeviceInputOutputStream(pairfd[0], pairfd[1]));
 	lm.insertListener("localhost", "3333");
 	Directory::create("log");
 	lm.insertConnector(new audit::LogBasicConnector("log"));
-	Log::instance().reinit(argv[0], Log::AllLevels, "ALL", new DeviceIOutputStream(pairfd[1],invalid_descriptor));
+	Log::instance().reinit(argv[0], Log::AllLevels, "ALL", new DeviceInputOutputStream(pairfd[1],invalid_descriptor));
 	
 	string s;
 	while(true){

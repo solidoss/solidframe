@@ -32,7 +32,7 @@
 
 class InputStream;
 class OutputStream;
-class IOutputStream;
+class InputOutputStream;
 
 struct TimeSpec;
 

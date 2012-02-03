@@ -104,7 +104,7 @@ private:
 	String					flags;
 	uint32					reqid;
 	StreamPointer<InputStream>	isp;
-	StreamPointer<IOutputStream>	iosp;
+	StreamPointer<InputOutputStream>	iosp;
 	StreamPointer<OutputStream>	osp;
 };
 

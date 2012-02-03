@@ -38,10 +38,10 @@
 
 using namespace std;
 ///\cond 0
-class FileIOutputStream: public IOutputStream{
+class FileInputOutputStream: public InputOutputStream{
 public:
-	FileIOutputStream();
-	~FileIOutputStream();
+	FileInputOutputStream();
+	~FileInputOutputStream();
 	int openRead(const char *_fn);
 	int openWrite(const char *_fn);
 	int read(char *, uint32, uint32 _flags = 0);
@@ -53,27 +53,27 @@ private:
 	FileDevice	fd;
 };
 ///\endcond
-FileIOutputStream::FileIOutputStream(){}
-FileIOutputStream::~FileIOutputStream(){}
-int FileIOutputStream::openRead(const char *_fn){
+FileInputOutputStream::FileInputOutputStream(){}
+FileInputOutputStream::~FileInputOutputStream(){}
+int FileInputOutputStream::openRead(const char *_fn){
 	return fd.open(_fn, FileDevice::RO);
 }
-int FileIOutputStream::openWrite(const char *_fn){
+int FileInputOutputStream::openWrite(const char *_fn){
 	return fd.open(_fn, FileDevice::WO | FileDevice::TR | FileDevice::CR);
 }
-int FileIOutputStream::read(char *_pb, uint32 _bl, uint32 _flags){
+int FileInputOutputStream::read(char *_pb, uint32 _bl, uint32 _flags){
 	return fd.read(_pb, _bl);
 }
-int FileIOutputStream::write(const char *_pb, uint32 _bl, uint32 _flags){
+int FileInputOutputStream::write(const char *_pb, uint32 _bl, uint32 _flags){
 	return fd.write(_pb, _bl);
 }
-int64 FileIOutputStream::seek(int64, SeekRef){
+int64 FileInputOutputStream::seek(int64, SeekRef){
 	return -1;
 }
-int64 FileIOutputStream::size()const{
+int64 FileInputOutputStream::size()const{
 	return fd.size();
 }
-void FileIOutputStream::close(){
+void FileInputOutputStream::close(){
 	fd.close();
 }
 
@@ -92,7 +92,7 @@ struct Test{
 private:
 	int32 			no;
 	string			fn;
-	FileIOutputStream	fs;
+	FileInputOutputStream	fs;
 };
 ///\endcond
 

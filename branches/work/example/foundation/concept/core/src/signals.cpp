@@ -32,13 +32,13 @@ int OutputStreamSignal::execute(DynamicPointer<Signal> &_rthis_ptr, uint32 _evs,
 	return fdt::LEAVE;
 }
 //----------------------------------------------------------------------
-IOutputStreamSignal::IOutputStreamSignal(
-	StreamPointer<IOutputStream> &_sptr,
+InputOutputStreamSignal::InputOutputStreamSignal(
+	StreamPointer<InputOutputStream> &_sptr,
 	const FileUidT &_rfuid,
 	const RequestUidT &_requid
 ):sptr(_sptr), fileuid(_rfuid), requid(_requid){
 }
-int IOutputStreamSignal::execute(DynamicPointer<Signal> &_rthis_ptr, uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidT &, TimeSpec &){
+int InputOutputStreamSignal::execute(DynamicPointer<Signal> &_rthis_ptr, uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidT &, TimeSpec &){
 	_rce.sendSignal(_rthis_ptr, requid);
 	return fdt::LEAVE;
 }

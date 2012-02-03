@@ -47,7 +47,7 @@ class Manager;
 //signals
 struct InputStreamSignal;
 struct OutputStreamSignal;
-struct IOutputStreamSignal;
+struct InputOutputStreamSignal;
 struct StreamErrorSignal;
 
 
@@ -129,7 +129,7 @@ public:
 	void dynamicExecute(DynamicPointer<SendStreamSignal> &_rsig);
 	void dynamicExecute(DynamicPointer<InputStreamSignal> &_rsig);
 	void dynamicExecute(DynamicPointer<OutputStreamSignal> &_rsig);
-	void dynamicExecute(DynamicPointer<IOutputStreamSignal> &_rsig);
+	void dynamicExecute(DynamicPointer<InputOutputStreamSignal> &_rsig);
 	void dynamicExecute(DynamicPointer<StreamErrorSignal> &_rsig);
 private:
 	void prepareReader();

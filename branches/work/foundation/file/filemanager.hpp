@@ -30,7 +30,7 @@
 
 class InputStream;
 class OutputStream;
-class IOutputStream;
+class InputOutputStream;
 
 namespace foundation{
 
@@ -41,13 +41,13 @@ namespace file{
 struct Key;
 struct Mapper;
 struct FileInputStream;
-struct FileIOutputStream;
+struct FileInputOutputStream;
 struct FileOutputStream;
 class File;
 /*! An asynchronous manager for accessing files
 	
 	Accessing a file means getting a stream (either ISstream, OutputStream
-	or IOutputStream) to that file.
+	or InputOutputStream) to that file.
 	
 	The request is asynchronous, which means that you ask for the stream,
 	and the manager either gives or sends it to you when:<br>
@@ -91,7 +91,7 @@ public:
 		OpenW = 16,
 		OpenRW = 32,
 		Forced = 64, //!< Force the opperation
-		IOutputStreamRequest = 128, 
+		InputOutputStreamRequest = 128, 
 		NoWait = 256, //!< Fail if the opperation cannot be completed synchronously
 		ForcePending = 512,
 	};
@@ -121,7 +121,7 @@ public:
 			const RequestUid& _rrequid
 		) = 0;
 		virtual void sendStream(
-			StreamPointer<IOutputStream> &_sptr,
+			StreamPointer<InputOutputStream> &_sptr,
 			const FileUidT &_rfuid,
 			const RequestUid& _rrequid
 		) = 0;
@@ -137,7 +137,7 @@ public:
 	struct Stub{
 		InputStream* createInputStream(IndexT _fileid);
 		OutputStream* createOutputStream(IndexT _fileid);
-		IOutputStream* createIOutputStream(IndexT _fileid);
+		InputOutputStream* createInputOutputStream(IndexT _fileid);
 		
 		void pushFileTempExecQueue(const IndexT &_idx, uint16 _evs = 0);//called by mapper
 		Mapper &mapper(ulong _id);
@@ -149,7 +149,7 @@ public:
 			const RequestUid& _rrequid
 		);
 		void push(
-			const StreamPointer<IOutputStream> &_rsp,
+			const StreamPointer<InputOutputStream> &_rsp,
 			const FileUidT &_rfuid,
 			const RequestUid& _rrequid
 		);
@@ -203,7 +203,7 @@ public://stream funtions
 		uint32 _flags = 0
 	);
 	int stream(
-		StreamPointer<IOutputStream> &_sptr,
+		StreamPointer<InputOutputStream> &_sptr,
 		const RequestUid &_rrequid,
 		const char *_fn = NULL,
 		uint32 _flags = 0
@@ -221,7 +221,7 @@ public://stream funtions
 		uint32 _flags = 0
 	);
 	int streamSpecific(
-		StreamPointer<IOutputStream> &_sptr,
+		StreamPointer<InputOutputStream> &_sptr,
 		const char *_fn = NULL,
 		uint32 _flags = 0
 	);
@@ -243,7 +243,7 @@ public://stream funtions
 		uint32 _flags = 0
 	);
 	int stream(
-		StreamPointer<IOutputStream> &_sptr,
+		StreamPointer<InputOutputStream> &_sptr,
 		FileUidT &_rfuid,
 		const RequestUid &_rrequid,
 		const char *_fn,
@@ -264,7 +264,7 @@ public://stream funtions
 		uint32 _flags = 0
 	);
 	int streamSpecific(
-		StreamPointer<IOutputStream> &_sptr,
+		StreamPointer<InputOutputStream> &_sptr,
 		FileUidT &_rfuid,
 		const char *_fn,
 		uint32 _flags = 0
@@ -286,7 +286,7 @@ public://stream funtions
 		uint32 _flags = 0
 	);
 	int stream(
-		StreamPointer<IOutputStream> &_sptr,
+		StreamPointer<InputOutputStream> &_sptr,
 		FileUidT &_rfuid,
 		const RequestUid &_rrequid,
 		const Key &_rk,
@@ -307,7 +307,7 @@ public://stream funtions
 		uint32 _flags = 0
 	);
 	int streamSpecific(
-		StreamPointer<IOutputStream> &_sptr,
+		StreamPointer<InputOutputStream> &_sptr,
 		FileUidT &_rfuid,
 		const Key &_rk,
 		uint32 _flags = 0
@@ -327,7 +327,7 @@ public://stream funtions
 		uint32 _flags = 0
 	);
 	int stream(
-		StreamPointer<IOutputStream> &_sptr,
+		StreamPointer<InputOutputStream> &_sptr,
 		const FileUidT &_rfuid,
 		const RequestUid &_rrequid,
 		uint32 _flags = 0
@@ -345,7 +345,7 @@ public://stream funtions
 		uint32 _flags = 0
 	);
 	int streamSpecific(
-		StreamPointer<IOutputStream> &_sptr,
+		StreamPointer<InputOutputStream> &_sptr,
 		const FileUidT &_rfuid,
 		uint32 _flags = 0
 	);
@@ -362,7 +362,7 @@ public://stream funtions
 		uint32 _flags = 0
 	);
 	int stream(
-		StreamPointer<IOutputStream> &_sptr,
+		StreamPointer<InputOutputStream> &_sptr,
 		const char *_fn = NULL,
 		uint32 _flags = 0
 	);
@@ -378,7 +378,7 @@ public://stream funtions
 		uint32 _flags = 0
 	);
 	int stream(
-		StreamPointer<IOutputStream> &_sptr,
+		StreamPointer<InputOutputStream> &_sptr,
 		const Key &_rk,
 		uint32 _flags = 0
 	);
@@ -394,12 +394,12 @@ private:
 	);
 	
 	friend struct FileInputStream;
-	friend struct FileIOutputStream;
+	friend struct FileInputOutputStream;
 	friend struct FileOutputStream;
 
 	void releaseInputStream(IndexT _fileid);
 	void releaseOutputStream(IndexT _fileid);
-	void releaseIOutputStream(IndexT _fileid);
+	void releaseInputOutputStream(IndexT _fileid);
 	
 	int fileWrite(
 		IndexT _fileid,

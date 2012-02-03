@@ -29,7 +29,7 @@
 
 class InputStream;
 class OutputStream;
-class IOutputStream;
+class InputOutputStream;
 
 namespace concept{
 
@@ -54,10 +54,10 @@ struct OutputStreamSignal: Dynamic<OutputStreamSignal, foundation::Signal>{
 
 
 //!A signal for sending iostreams from the fileManager
-struct IOutputStreamSignal: Dynamic<IOutputStreamSignal, foundation::Signal>{
-	IOutputStreamSignal(StreamPointer<IOutputStream> &_sptr, const FileUidT &_rfuid, const foundation::RequestUidT &_requid);
+struct InputOutputStreamSignal: Dynamic<InputOutputStreamSignal, foundation::Signal>{
+	InputOutputStreamSignal(StreamPointer<InputOutputStream> &_sptr, const FileUidT &_rfuid, const foundation::RequestUidT &_requid);
 	int execute(DynamicPointer<Signal> &_rthis_ptr, uint32 _evs, foundation::SignalExecuter&, const SignalUidT &, TimeSpec &);
-	StreamPointer<IOutputStream>	sptr;
+	StreamPointer<InputOutputStream>	sptr;
 	FileUidT				fileuid;
 	RequestUidT				requid;
 };

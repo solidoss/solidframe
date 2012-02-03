@@ -363,8 +363,8 @@ public:
 // 		const FromPairT&_from,
 // 		const ipc::ConnectionUid *_conid
 // 	);
-// 	virtual int receiveIOutputStream(
-// 		StreamPointer<IOutputStream> &, 
+// 	virtual int receiveInputOutputStream(
+// 		StreamPointer<InputOutputStream> &, 
 // 		const FromPairT&_from,
 // 		const ipc::ConnectionUid *_conid
 // 	);

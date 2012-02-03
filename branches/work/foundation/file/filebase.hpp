@@ -84,7 +84,7 @@ public:
 	
 	int stream(
 		Manager::Stub &_rs,
-		StreamPointer<IOutputStream> &_sptr,
+		StreamPointer<InputOutputStream> &_sptr,
 		const RequestUid &_requid,
 		uint32 _flags
 	);

@@ -47,7 +47,7 @@ InputStream::~InputStream(){
 OutputStream::~OutputStream(){
 }
 
-IOutputStream::~IOutputStream(){
+InputOutputStream::~InputOutputStream(){
 }
 
 #ifdef NINLINES

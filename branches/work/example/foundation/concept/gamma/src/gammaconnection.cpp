@@ -80,7 +80,7 @@ static const unsigned specificPosition(){
 /*static*/ void Connection::dynamicRegister(){
 	DynamicExecuterT::registerDynamic<InputStreamSignal, Connection>();
 	DynamicExecuterT::registerDynamic<OutputStreamSignal, Connection>();
-	DynamicExecuterT::registerDynamic<IOutputStreamSignal, Connection>();
+	DynamicExecuterT::registerDynamic<InputOutputStreamSignal, Connection>();
 	DynamicExecuterT::registerDynamic<StreamErrorSignal, Connection>();
 	DynamicExecuterT::registerDynamic<SocketMoveSignal, Connection>();
 }
@@ -438,7 +438,7 @@ void Connection::dynamicExecute(DynamicPointer<InputStreamSignal> &_psig){
 void Connection::dynamicExecute(DynamicPointer<OutputStreamSignal> &_psig){
 }
 
-void Connection::dynamicExecute(DynamicPointer<IOutputStreamSignal> &_psig){
+void Connection::dynamicExecute(DynamicPointer<InputOutputStreamSignal> &_psig){
 }
 
 void Connection::dynamicExecute(DynamicPointer<StreamErrorSignal> &_psig){
@@ -523,8 +523,8 @@ int Command::receiveOutputStream(
 ){
 	return BAD;
 }
-int Command::receiveIOutputStream(
-	StreamPointer<IOutputStream> &, 
+int Command::receiveInputOutputStream(
+	StreamPointer<InputOutputStream> &, 
 	const FileUidT &,
 	int			_which,
 	const ObjectUidT&_from,

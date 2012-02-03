@@ -52,8 +52,8 @@ public:
 		const foundation::ipc::ConnectionUid *_conid
 	);
 	//! Receive an iostream
-	virtual int receiveIOutputStream(
-		StreamPointer<IOutputStream> &,
+	virtual int receiveInputOutputStream(
+		StreamPointer<InputOutputStream> &,
 		const FileUidT &,
 		int			_which,
 		const ObjectUidT&_from,

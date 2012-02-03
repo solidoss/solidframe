@@ -27,7 +27,7 @@ class Visitor;
 
 class InputStream;
 class OutputStream;
-class IOutputStream;
+class InputOutputStream;
 
 namespace concept{
 
@@ -37,7 +37,7 @@ class Manager;
 //signals
 struct InputStreamSignal;
 struct OutputStreamSignal;
-struct IOutputStreamSignal;
+struct InputOutputStreamSignal;
 struct StreamErrorSignal;
 
 
@@ -128,7 +128,7 @@ public:
 	void dynamicExecute(DynamicPointer<> &_dp);
 	void dynamicExecute(DynamicPointer<InputStreamSignal> &_rsig);
 	void dynamicExecute(DynamicPointer<OutputStreamSignal> &_rsig);
-	void dynamicExecute(DynamicPointer<IOutputStreamSignal> &_rsig);
+	void dynamicExecute(DynamicPointer<InputOutputStreamSignal> &_rsig);
 	void dynamicExecute(DynamicPointer<StreamErrorSignal> &_rsig);
 	void dynamicExecute(DynamicPointer<SocketMoveSignal> &_rsig);
 	
@@ -159,7 +159,7 @@ private:
 	struct StreamData{
 		StreamPointer<InputStream>	pis;
 		StreamPointer<OutputStream>	pos;
-		StreamPointer<IOutputStream>	pios;
+		StreamPointer<InputOutputStream>	pios;
 	};
 	typedef std::deque<StreamData>					StreamDataVectorT;
 	typedef Stack<uint32>							UIntStackT;

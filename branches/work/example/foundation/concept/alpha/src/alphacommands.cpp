@@ -809,7 +809,7 @@ int SendStream::execute(Connection &_rc){
 	uint32	fromobjid(_rc.id());
 	uint32	fromobjuid(rm.uid(_rc));
 	fdt::RequestUid reqid(_rc.id(), rm.uid(_rc), _rc.requestId()); 
-	StreamPointer<IOutputStream>	sp;
+	StreamPointer<InputOutputStream>	sp;
 	int rv = Manager::the().fileManager().stream(sp, reqid, srcstr.c_str());
 	protocol::Parameter &rp = _rc.writer().push(&Writer::putStatus);
 	switch(rv){
@@ -982,8 +982,8 @@ int Command::receiveOutputStream(
 ){
 	return BAD;
 }
-int Command::receiveIOutputStream(
-	StreamPointer<IOutputStream> &, 
+int Command::receiveInputOutputStream(
+	StreamPointer<InputOutputStream> &, 
 	const FileUidT &,
 	int			_which,
 	const ObjectUidT&_from,

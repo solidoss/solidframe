@@ -73,7 +73,7 @@ static const DynamicRegisterer<Connection>	dre;
 /*static*/ void Connection::dynamicRegister(){
 	DynamicExecuterT::registerDynamic<InputStreamSignal, Connection>();
 	DynamicExecuterT::registerDynamic<OutputStreamSignal, Connection>();
-	DynamicExecuterT::registerDynamic<IOutputStreamSignal, Connection>();
+	DynamicExecuterT::registerDynamic<InputOutputStreamSignal, Connection>();
 	DynamicExecuterT::registerDynamic<StreamErrorSignal, Connection>();
 	DynamicExecuterT::registerDynamic<RemoteListSignal, Connection>();
 	DynamicExecuterT::registerDynamic<FetchSlaveSignal, Connection>();
@@ -483,13 +483,13 @@ void Connection::dynamicExecute(DynamicPointer<OutputStreamSignal> &_psig){
 		}
 	}
 }
-void Connection::dynamicExecute(DynamicPointer<IOutputStreamSignal> &_psig){
+void Connection::dynamicExecute(DynamicPointer<InputOutputStreamSignal> &_psig){
 	idbg("");
 	if(_psig->requid.first && _psig->requid.first != reqid) return;
 	idbg("");
 	newRequestId();//prevent multiple responses with the same id
 	if(pcmd){
-		switch(pcmd->receiveIOutputStream(_psig->sptr, _psig->fileuid, 0, ObjectUidT(), NULL)){
+		switch(pcmd->receiveInputOutputStream(_psig->sptr, _psig->fileuid, 0, ObjectUidT(), NULL)){
 			case BAD:
 				idbg("");
 				break;

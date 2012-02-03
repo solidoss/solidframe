@@ -275,7 +275,7 @@ private:
 struct SendStreamSignal: Dynamic<SendStreamSignal, foundation::Signal>{
 	SendStreamSignal(){}
 	SendStreamSignal(
-		StreamPointer<IOutputStream> &_iosp,
+		StreamPointer<InputOutputStream> &_iosp,
 		const String &_str,
 		uint32 _myprocid,
 		ulong _toobjid,
@@ -306,7 +306,7 @@ private:
 	typedef std::pair<uint32, uint32> 	ObjPairT;
 	typedef std::pair<uint32, uint32> 	FileUidT;
 
-	StreamPointer<IOutputStream>		iosp;
+	StreamPointer<InputOutputStream>		iosp;
 	String						dststr;
 	ObjPairT					tov;
 	ObjPairT					fromv;

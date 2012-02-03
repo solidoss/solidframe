@@ -108,7 +108,7 @@ int File::stream(
 
 int File::stream(
 	Manager::Stub &_rs,
-	StreamPointer<IOutputStream> &_sptr,
+	StreamPointer<InputOutputStream> &_sptr,
 	const RequestUid &_requid,
 	uint32 _flags
 ){
@@ -125,11 +125,11 @@ int File::stream(
 		}
 	}else{// prepare for reading
 		openmoderequest |= (_flags | Manager::OpenRW);
-		owq.push(WaitData(_requid, _flags | Manager::IOutputStreamRequest));
+		owq.push(WaitData(_requid, _flags | Manager::InputOutputStreamRequest));
 		return (ousecnt || iusecnt || (owq.size() != 1)) ? MustWait : MustSignal;
 	}
 	++ousecnt;
-	_sptr = _rs.createIOutputStream(this->id());
+	_sptr = _rs.createInputOutputStream(this->id());
 	return OK;
 }
 bool File::isOpened()const{
@@ -205,11 +205,11 @@ int File::execute(
 		default:break;
 	}
 	if(owq.size()){//
-		if(owq.front().flags & Manager::IOutputStreamRequest){
+		if(owq.front().flags & Manager::InputOutputStreamRequest){
 			if(openmode & Manager::OpenRW){
 				++ousecnt;
 				//send iostream
-				StreamPointer<IOutputStream> sptr(_rs.createIOutputStream(id()));	
+				StreamPointer<InputOutputStream> sptr(_rs.createInputOutputStream(id()));	
 				_rs.push(sptr, FileUidT(id(), _rs.fileUid(id())), owq.front().requid);
 			}else{
 				//(re)open request
@@ -310,7 +310,7 @@ void File::doCheckOpenMode(Manager::Stub &_rs){
 		while(owsz--){
 			WaitData wd(owq.front());
 			owq.pop();
-			if(wd.flags & Manager::IOutputStreamRequest){
+			if(wd.flags & Manager::InputOutputStreamRequest){
 				_rs.push(-1, wd.requid);
 			}else{
 				owq.push(wd);
