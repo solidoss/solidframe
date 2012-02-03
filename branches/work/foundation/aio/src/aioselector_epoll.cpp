@@ -67,14 +67,14 @@ struct Selector::Stub{
 		OutExecQueue
 	};
 	Stub():
-		timepos(TimeSpec::maximum),
-		itimepos(TimeSpec::maximum),
-		otimepos(TimeSpec::maximum),
+		timepos(TimeSpec::maximal),
+		itimepos(TimeSpec::maximal),
+		otimepos(TimeSpec::maximal),
 		state(OutExecQueue),
 		events(0){
 	}
 	void reset(){
-		timepos = TimeSpec::maximum; 
+		timepos = TimeSpec::maximal; 
 		state = OutExecQueue;
 		events = 0;
 	}
@@ -263,7 +263,7 @@ int Selector::reserve(ulong _cp){
 	doAddNewStub();
 	
 	d.ctimepos.set(0);
-	d.ntimepos = TimeSpec::maximum;
+	d.ntimepos = TimeSpec::maximal;
 	d.objsz = 1;
 	d.socksz = 1;
 	return OK;
@@ -311,9 +311,9 @@ void Selector::push(const JobT &_objptr){
 	
 	this->setObjectThread(*_objptr, stubpos);
 	
-	stub.timepos  = TimeSpec::maximum;
-	stub.itimepos = TimeSpec::maximum;
-	stub.otimepos = TimeSpec::maximum;
+	stub.timepos  = TimeSpec::maximal;
+	stub.itimepos = TimeSpec::maximal;
+	stub.otimepos = TimeSpec::maximal;
 	
 	_objptr->doPrepare(&stub.itimepos, &stub.otimepos);
 	
@@ -372,7 +372,6 @@ inline ulong Selector::doExecuteQueue(){
 
 
 void Selector::run(){
-	//TODO: staticproblem?!
 	static const int	maxnbcnt = 16;
 	uint 				flags;
 	int					nbcnt = -1;	//non blocking opperations count,
@@ -647,7 +646,7 @@ void Selector::doFullScanCheck(Stub &_rstub, const ulong _pos){
 ulong Selector::doFullScan(){
 	++d.rep_fullscancount;
 	idbgx(Dbg::aio, "fullscan count "<<d.rep_fullscancount);
-	d.ntimepos = TimeSpec::maximum;
+	d.ntimepos = TimeSpec::maximal;
 	for(Data::StubVectorT::iterator it(d.stubs.begin()); it != d.stubs.end(); it += 4){
 		if(it->objptr){
 			doFullScanCheck(*it, it - d.stubs.begin());
@@ -669,7 +668,7 @@ ulong Selector::doExecute(const ulong _pos){
 	cassert(stub.state == Stub::InExecQueue);
 	stub.state = Stub::OutExecQueue;
 	ulong	rv(0);
-	stub.timepos = TimeSpec::maximum;
+	stub.timepos = TimeSpec::maximal;
 	TimeSpec timepos(d.ctimepos);
 	ulong evs = stub.events;
 	stub.events = 0;
@@ -684,7 +683,7 @@ ulong Selector::doExecute(const ulong _pos){
 			doUnregisterObject(*stub.objptr);
 			stub.objptr->doUnprepare();
 			stub.objptr.clear();
-			stub.timepos = TimeSpec::maximum;
+			stub.timepos = TimeSpec::maximal;
 			--d.objsz;
 			rv = Data::EXIT_LOOP;
 			break;
@@ -698,7 +697,7 @@ ulong Selector::doExecute(const ulong _pos){
 		case LEAVE:
 			d.freestubsstk.push(_pos);
 			doUnregisterObject(*stub.objptr);
-			stub.timepos = TimeSpec::maximum;
+			stub.timepos = TimeSpec::maximal;
 			--d.objsz;
 			stub.objptr->doUnprepare();
 			stub.objptr.release();
@@ -767,7 +766,7 @@ void Selector::doPrepareObjectWait(const ulong _pos, const TimeSpec &_timepos){
 		}
 		
 		if(stub.timepos == d.ctimepos){
-			stub.timepos = TimeSpec::maximum;
+			stub.timepos = TimeSpec::maximal;
 		}else if(d.ntimepos > stub.timepos){
 			d.ntimepos = stub.timepos;
 		}
@@ -804,9 +803,9 @@ ulong Selector::doAddNewStub(){
 			for(Data::StubVectorT::iterator it(d.stubs.begin()); it != d.stubs.end(); it += 4){
 				if(it->objptr){
 					//TODO: is it ok commenting the following lines?!
-					//it->timepos  = TimeSpec::maximum;
-					//it->itimepos = TimeSpec::maximum;
-					//it->otimepos = TimeSpec::maximum;
+					//it->timepos  = TimeSpec::maximal;
+					//it->itimepos = TimeSpec::maximal;
+					//it->otimepos = TimeSpec::maximal;
 					it->objptr->doPrepare(&it->itimepos, &it->otimepos);
 				}
 				if((it + 1)->objptr){

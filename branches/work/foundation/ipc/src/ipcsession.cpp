@@ -1632,12 +1632,25 @@ void Session::prepareContext(Context &_rctx){
 }
 //======================================================================
 namespace{
+#ifdef HAVE_SAFE_STATIC
 /*static*/ StaticData& StaticData::instance(){
-	//TODO: staticproblem
 	static StaticData sd;
 	return sd;
 }
-
+#else
+StaticData& static_data_instance(){
+	static StaticData sd;
+	return sd;
+}
+void once_static_data(){
+	static_data_instance();
+}
+/*static*/ StaticData& StaticData::instance(){
+	static boost::once_flag once(BOOST_ONCE_INIT);
+	boost::call_once(&once_static_data, once);
+	return static_data_instance();
+}
+#endif
 //----------------------------------------------------------------------
 StaticData::StaticData(){
 	const uint datsz = StaticData::DataRetransmitCount;
@@ -1668,11 +1681,27 @@ ulong StaticData::retransmitTimeout(uint _pos){
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
 namespace{
-	uint32 specificId(){
-		//TODO: staticproblem
-		static const uint32 id(Thread::specificId());
-		return id;
-	}
+#ifdef HAVE_SAFE_STATIC
+const uint32 specificId(){
+	static const uint32 id(Thread::specificId());
+	return id;
+}
+#else
+uint32 specificIdStub(){
+	static const uint32 id(Thread::specificId());
+	return id;
+}
+void once_stub(){
+	specificIdStub();
+}
+
+const uint32 specificId(){
+	static boost::once_flag once(BOOST_ONCE_INIT);
+	boost::call_once(&once_stub, once);
+	return specificIdStub();
+}
+
+#endif
 }
 /*static*/ Context& Context::the(){
 	return *reinterpret_cast<Context*>(Thread::specific(specificId()));

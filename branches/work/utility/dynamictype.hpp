@@ -205,11 +205,27 @@ struct Dynamic: T{
 	explicit Dynamic(const G1 &_g1, const G2 &_g2, const G3 &_g3, const G4 &_g4, const G5 &_g5, const G6 &_g6, const G7 &_g7):T(_g1, _g2, _g3, _g4, _g5, _g6, _g7){}
 	
 	//!The static type id
+#ifdef HAVE_SAFE_STATIC
 	static uint32 staticTypeId(){
-		//TODO: staticproblem
 		static uint32 id(DynamicMap::generateId());
 		return id;
 	}
+#else
+private:
+	static uint32 staticTypeIdStub(){
+		static uint32 id(DynamicMap::generateId());
+		return id;
+	}
+	static void once_cbk(){
+		staticTypeIdStub();
+	}
+public:
+	static uint32 staticTypeId(){
+		static boost::once_flag once(BOOST_ONCE_INIT);
+		boost::call_once(&once_cbk, once);
+		return staticTypeIdStub();
+	}
+#endif
 	//TODO: add:
 	//static bool isTypeExplicit(const DynamicBase*);
 	static bool isType(uint32 _id){

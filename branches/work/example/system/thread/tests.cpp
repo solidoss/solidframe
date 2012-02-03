@@ -31,12 +31,29 @@ using namespace std;
 
 struct SingleTest{
 	SingleTest();
-	static SingleTest& instance(){
-		static SingleTest st;
-		return st;
-	}
+	static SingleTest& instance();
 	int value;
 };
+
+#ifdef HAVE_SAFE_STATIC
+/*static*/ SingleTest& SingleTest::instance(){
+	static SingleTest st;
+	return st;
+}
+#else
+SingleTest& test_instance(){
+	static SingleTest st;
+	return st;
+}
+void once_test(){
+	test_instance();
+}
+/*static*/ SingleTest& SingleTest::instance(){
+	static boost::once_flag once(BOOST_ONCE_INIT);
+	boost::call_once(&once_test, once);
+	return test_instance();
+}
+#endif
 
 SingleTest::SingleTest():value(0){
 	value = 0;

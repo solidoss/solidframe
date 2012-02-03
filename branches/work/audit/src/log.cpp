@@ -159,11 +159,27 @@ void Log::Data::sendInfo(){
 	}
 }
 //=====================================================================
+#ifdef HAVE_SAFE_STATIC
 /*static*/ Log& Log::instance(){
-	//TODO: staticproblem
 	static Log l;
 	return l;
 }
+#else
+Log& log_instance(){
+	static Log l;
+	return l;
+}
+void once_log(){
+	log_instance();
+}
+
+/*static*/ Log& Log::instance(){
+	static boost::once_flag once(BOOST_ONCE_INIT);
+	boost::call_once(&once_log, once);
+	return log_instance();
+}
+
+#endif
 
 void stringoutbuf::current(
 	uint16 _level,

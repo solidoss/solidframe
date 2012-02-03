@@ -55,11 +55,26 @@ void Logger::doOutFlush(const char *_pb, unsigned _bl){
 
 namespace{
 static const DynamicRegisterer<Connection>	dre;
+#ifdef HAVE_SAFE_STATIC
 static const unsigned specificPosition(){
-	//TODO: staticproblem
 	static const unsigned	thrspecpos = Thread::specificId();
 	return thrspecpos;
 }
+#else
+const unsigned specificIdStub(){
+	static const uint id(Thread::specificId());
+	return id;
+}
+void once_stub(){
+	specificIdStub();
+}
+
+static const unsigned specificPosition(){
+	static boost::once_flag once(BOOST_ONCE_INIT);
+	boost::call_once(&once_stub, once);
+	return specificIdStub();
+}
+#endif
 }
 
 /*static*/ void Connection::dynamicRegister(){

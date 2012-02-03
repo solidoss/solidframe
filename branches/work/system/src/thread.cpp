@@ -139,7 +139,7 @@ static ThreadData& threadData(){
 Cleaner             			cleaner;
 //static unsigned 				crtspecid = 0;
 //*************************************************************************
-/*static*/ const TimeSpec TimeSpec::maximum(0xffffffff, 0xffffffff);
+/*static*/ const TimeSpec TimeSpec::maximal(0xffffffff, 0xffffffff);
 #ifdef NINLINES
 #include "system/timespec.ipp"
 #endif
@@ -464,7 +464,6 @@ int Thread::detach(){
 //-------------------------------------------------------------------------
 #ifdef HAVE_SAFE_STATIC
 unsigned Thread::specificId(){
-	//TODO: staticproblem
 	static unsigned sid = ThreadData::FirstSpecificId - 1;
 	Locker<Mutex> lock(gmutex());
 	return ++sid;

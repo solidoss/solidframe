@@ -137,12 +137,10 @@ int MemoryFile::truncate(int64 _len){
 	bv.clear();
 	return -1;
 }
-
 inline int MemoryFile::doFindBuffer(uint32 _idx)const{
-	static BinarySeeker<BuffCmp>	bs;
+	BinarySeeker<BuffCmp>	bs;
 	return bs(bv.begin(), bv.end(), _idx);
 }
-
 inline char *MemoryFile::doGetBuffer(uint32 _idx)const{
 	int pos(doLocateBuffer(_idx));
 	if(pos >= 0) return bv[pos].data;
