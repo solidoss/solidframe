@@ -27,13 +27,13 @@ inline bool InputStream::iok()const{
 	return flags.flags == 0;
 }
 inline bool InputStream::ieof()const{
-	return flags.flags & StreamFlags::IEof;
+	return (flags.flags & StreamFlags::IEof) != 0;
 }
 inline bool InputStream::ibad()const{
-	return flags.flags & StreamFlags::IBad;
+	return (flags.flags & StreamFlags::IBad) != 0;
 }
 inline bool InputStream::ifail()const{
-	return ibad() | flags.flags & StreamFlags::IFail;
+	return ibad() || ((flags.flags & StreamFlags::IFail) != 0);
 }
 
 inline InputStreamIterator::InputStreamIterator(InputStream *_ps, int64 _off):ps(_ps),off(_off){

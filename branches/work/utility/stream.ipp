@@ -29,13 +29,13 @@ inline bool Stream::ok()const{
 	return flags.flags == 0;
 }
 inline bool Stream::eof()const{
-	return flags.flags & (StreamFlags::IEof | StreamFlags::OEof);
+	return (flags.flags & (StreamFlags::IEof | StreamFlags::OEof)) != 0;
 }
 inline bool Stream::bad()const{
-	return flags.flags & (StreamFlags::IBad | StreamFlags::OBad);
+	return (flags.flags & (StreamFlags::IBad | StreamFlags::OBad)) != 0;
 }
 inline bool Stream::fail()const{
-	return bad() | flags.flags & (StreamFlags::IFail | StreamFlags::OFail);
+	return bad() | ((flags.flags & (StreamFlags::IFail | StreamFlags::OFail)) != 0);
 }
 
 #ifdef NINLINES

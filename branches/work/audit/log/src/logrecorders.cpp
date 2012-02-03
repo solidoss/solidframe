@@ -36,20 +36,25 @@ static const char* levelName(unsigned _lvl){
 }
 
 /*virtual*/ void LogFileRecorder::record(const LogClientData &_rcd, const LogRecord &_rrec){
-	char buf[128];
-	tm loctm;
-	time_t sec = _rrec.head.sec;
-	localtime_r(&sec, &loctm);
+	char	buf[128];
+	time_t	sec = _rrec.head.sec;
+	tm		*ploctm;
+#ifdef ON_WINDOWS
+	ploctm = localtime(&sec);
+#else
+	tm		loctm;
+	ploctm = localtime_r(&sec, &loctm);
+#endif
 	sprintf(
 		buf,
 		"%s[%04u-%02u-%02u %02u:%02u:%02u.%03u]",
 		levelName(_rrec.head.level),
-		loctm.tm_year + 1900,
-		loctm.tm_mon, 
-		loctm.tm_mday,
-		loctm.tm_hour,
-		loctm.tm_min,
-		loctm.tm_sec,
+		ploctm->tm_year + 1900,
+		ploctm->tm_mon + 1, 
+		ploctm->tm_mday,
+		ploctm->tm_hour,
+		ploctm->tm_min,
+		ploctm->tm_sec,
 		_rrec.head.nsec/1000000
 	);
 	

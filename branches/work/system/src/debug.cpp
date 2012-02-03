@@ -264,12 +264,12 @@ void splitPrefix(string &_path, string &_name, const char *_prefix);
 }
 #else
 
-Dbg& dbg_instance(){
+Dbg& Dbg::dbg_instance(){
 	static Dbg d;
 	return d;
 }
 
-void once_cbk(){
+void Dbg::once_cbk(){
 	dbg_instance();
 }
 

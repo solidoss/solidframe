@@ -9,6 +9,7 @@
 #include "utility/ostream.hpp"
 #include "audit/log/logdata.hpp"
 #include "system/debug.hpp"
+#include "system/cstring.hpp"
 
 #ifdef ON_SOLARIS
 #include <strings.h>
@@ -66,7 +67,7 @@ protected:
 		const char* _s,
 		std::streamsize _sz
 	){
-		s.append(_s, _sz);
+		s.append(_s, static_cast<size_t>(_sz));
 		return _sz;
 	}
 };
@@ -103,12 +104,12 @@ struct Log::Data: std::ostream{
 
 //=====================================================================
 void Log::Data::setModuleBit(const char *_pbeg, const char *_pend){
-	if(!strncasecmp(_pbeg, "NONE", _pend - _pbeg)){
+	if(!cstring::ncasecmp(_pbeg, "NONE", _pend - _pbeg)){
 		bs.reset();
-	}else if(!strncasecmp(_pbeg, "ALL", _pend - _pbeg)){
+	}else if(!cstring::ncasecmp(_pbeg, "ALL", _pend - _pbeg)){
 		bs.set();
 	}else for(NameVectorT::const_iterator it(nv.begin()); it != nv.end(); ++it){
-		if(!strncasecmp(_pbeg, *it, _pend - _pbeg) && (int)strlen(*it) == (_pend - _pbeg)){
+		if(!cstring::ncasecmp(_pbeg, *it, _pend - _pbeg) && (int)strlen(*it) == (_pend - _pbeg)){
 			bs.set(it - nv.begin());
 		}
 	}
@@ -165,11 +166,11 @@ void Log::Data::sendInfo(){
 	return l;
 }
 #else
-Log& log_instance(){
+/*static*/ Log& Log::log_instance(){
 	static Log l;
 	return l;
 }
-void once_log(){
+/*static*/void Log::once_log(){
 	log_instance();
 }
 
@@ -197,7 +198,7 @@ void stringoutbuf::current(
 	TimeSpec tt;
 	tt.currentRealTime();
 	//tt -= ct;
-	lh.set(_level, _module, _id, _line, tt.seconds(), tt.nanoSeconds());
+	lh.set(_level, _module, _id, _line, static_cast<uint32>(tt.seconds()), tt.nanoSeconds());
 	lh.set(filenamelen, functionnamelen);
 	//no function so we can overpass the bitorder conversion for datalen
 	lh.datalen = sizeof(audit::LogRecordHead);

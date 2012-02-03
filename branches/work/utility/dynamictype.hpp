@@ -112,7 +112,7 @@ struct DynamicBase{
 	virtual bool isTypeDynamic(uint32 _id)const;
 
 protected:
-	friend struct DynamicPointerBase;
+	friend class DynamicPointerBase;
 	virtual ~DynamicBase();
 };
 

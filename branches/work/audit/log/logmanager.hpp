@@ -31,8 +31,8 @@ public:
 private:
 	struct ListenerWorker;
 	struct ChannelWorker;
-	friend class ListenerWorker;
-	friend class ChannelWorker;
+	friend struct ListenerWorker;
+	friend struct ChannelWorker;
 private:
 	void runListener(ListenerWorker &_w);
 	void runChannel(ChannelWorker &_w);

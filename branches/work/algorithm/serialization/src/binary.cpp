@@ -94,7 +94,7 @@ void once_limits(){
 	};
 }
 /*static*/ int Base::setStringLimit(Base& _rb, FncData &_rfd){
-	_rb.limits.stringlimit = _rfd.s;
+	_rb.limits.stringlimit = static_cast<uint32>(_rfd.s);
 	return OK;
 }
 /*static*/ int Base::setStreamLimit(Base& _rb, FncData &_rfd){
@@ -102,7 +102,7 @@ void once_limits(){
 	return OK;
 }
 /*static*/ int Base::setContainerLimit(Base& _rb, FncData &_rfd){
-	_rb.limits.containerlimit = _rfd.s;
+	_rb.limits.containerlimit = static_cast<uint32>(_rfd.s);
 	return OK;
 }
 void Base::replace(const FncData &_rfd){
@@ -166,8 +166,8 @@ int Serializer::storeBinary<0>(Base &_rb, FncData &_rfd){
 	idbgx(Dbg::ser_bin, "");
 	Serializer &rs(static_cast<Serializer&>(_rb));
 	if(!rs.cpb) return OK;
-	unsigned len = rs.be - rs.cpb;
-	if(len > _rfd.s) len = _rfd.s;
+	uint32 len = rs.be - rs.cpb;
+	if(len > _rfd.s) len = static_cast<uint32>(_rfd.s);
 	memcpy(rs.cpb, _rfd.p, len);
 	rs.cpb += len;
 	_rfd.p = (char*)_rfd.p + len;
@@ -425,7 +425,7 @@ int Serializer::storeStream(Base &_rb, FncData &_rfd){
 	if(toread < MINSTREAMBUFLEN) return NOK;
 	toread -= 2;//the buffsize
 	if(toread > rsp.sz){
-		toread = rsp.sz;
+		toread = static_cast<int32>(rsp.sz);
 	}
 	if(toread > CRCValue<uint16>::maximum()){
 		toread = CRCValue<uint16>::maximum();
@@ -546,8 +546,8 @@ int Deserializer::parseBinary<0>(Base &_rb, FncData &_rfd){
 	Deserializer &rd(static_cast<Deserializer&>(_rb));
 	idbgx(Dbg::ser_bin, "");
 	if(!rd.cpb) return OK;
-	unsigned len = rd.be - rd.cpb;
-	if(len > _rfd.s) len = _rfd.s;
+	uint32 len = rd.be - rd.cpb;
+	if(len > _rfd.s) len = static_cast<uint32>(_rfd.s);
 	memcpy(_rfd.p, rd.cpb, len);
 	rd.cpb += len;
 	_rfd.p = (char*)_rfd.p + len;
@@ -992,7 +992,7 @@ int Deserializer::parseBinaryStringCheck(Base &_rb, FncData &_rfd){
 	}
 	int32 ul = rd.estk.top().i32();
 	
-	if(ul > 0 && rd.limits.stringlimit && ul >= rd.limits.stringlimit){
+	if(ul > 0 && rd.limits.stringlimit && ul >= static_cast<int32>(rd.limits.stringlimit)){
 		idbgx(Dbg::ser_bin, "error");
 		rd.err = ERR_STRING_LIMIT;
 		return BAD;
@@ -1007,13 +1007,13 @@ int Deserializer::parseBinaryString(Base &_rb, FncData &_rfd){
 		return OK;
 	}
 	
-	unsigned len = rd.be - rd.cpb;
+	uint32 len = rd.be - rd.cpb;
 	int32 ul = rd.estk.top().i32();
 	
 	if(ul < 0){
 		return OK;
 	}
-	if(len > ul) len = ul;
+	if(static_cast<int32>(len) > ul) len = static_cast<uint32>(ul);
 	std::string *ps = reinterpret_cast<std::string*>(_rfd.p);
 	ps->append(rd.cpb, len);
 	rd.cpb += len;
@@ -1046,7 +1046,7 @@ int Deserializer::parseStreamCheck(Base &_rb, FncData &_rfd){
 			return BAD;
 		}
 	}
-	if(rd.limits.streamlimit && rsp.sz > rd.limits.streamlimit){
+	if(rd.limits.streamlimit && rsp.sz > static_cast<int64>(rd.limits.streamlimit)){
 		idbgx(Dbg::ser_bin, "error");
 		rd.err = ERR_STREAM_LIMIT;
 		return BAD;
@@ -1067,7 +1067,7 @@ int Deserializer::parseStream(Base &_rb, FncData &_rfd){
 		return NOK;
 	}
 	towrite -= 2;
-	if(towrite > rsp.sz) towrite = rsp.sz;
+	if(towrite > rsp.sz) towrite = static_cast<int32>(rsp.sz);
 	uint16 sz(0);
 	rd.cpb = parseValue(rd.cpb, sz);
 	idbgx(Dbg::ser_bin, "sz = "<<sz);
@@ -1106,7 +1106,7 @@ int Deserializer::parseDummyStream(Base &_rb, FncData &_rfd){
 	int32 towrite = rd.be - rd.cpb;
 	cassert(towrite > 2);
 	towrite -= 2;
-	if(towrite > rsp.sz) towrite = rsp.sz;
+	if(towrite > rsp.sz) towrite = static_cast<int32>(rsp.sz);
 	const uint16 rsz = *((uint16*)rd.cpb);
 	rd.cpb += 2;
 	if(rsz == 0xffff){//error on storing side - the stream is incomplete

@@ -48,7 +48,7 @@ void once_cbk_specific(){
 	specificIdStub();
 }
 
-MutexStoreT &mutexStoreStub(){
+MutexStoreT &mutexStore(){
 	static boost::once_flag once = BOOST_ONCE_INIT;
 	boost::call_once(&once_cbk_store, once);
 	return mutexStoreStub();

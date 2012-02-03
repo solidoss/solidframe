@@ -115,8 +115,10 @@ int main(){
 	Dbg::instance().initStdErr(false);
 #endif
 	uint32 v = 2;
+#ifndef ON_WINDOWS
 	uint32 v2 = __sync_add_and_fetch(&v, 2);
 	idbg("v2 = "<<v2);
+#endif
 	{
 		DynamicSharedPointer<AObject> 	dsap(new AObject(1));
 		DynamicSharedPointer<>			dsbp;

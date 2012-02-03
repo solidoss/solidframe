@@ -66,6 +66,14 @@ endif(ExtAbsLen GREATER 0)
 message("EXTERN_PATH set as "${EXTERN_PATH})
 
 #-----------------------------------------------------------------
+# Find libraries
+#-----------------------------------------------------------------
+
+include(find_boost.cmake)
+include(find_openssl.cmake)
+
+
+#-----------------------------------------------------------------
 # Prepare the definitions for build types
 #-----------------------------------------------------------------
 
@@ -207,7 +215,7 @@ if(CMAKE_SYSTEM MATCHES "Windows*")
 	set(SYS_NOLOG_LINKER_FLAGS "")
 	set(SYS_RELEASE_LINKER_FLAGS "")
 
-	set(SYS_BASIC_LIBS Ws2_32)
+	set(SYS_BASIC_LIBS Ws2_32 ${BOOST_THREAD_LIB} ${BOOST_SYSTEM_LIB})
 endif(CMAKE_SYSTEM MATCHES "Windows*")
 
 message("")
@@ -323,13 +331,6 @@ set(CMAKE_BUILD_TYPE
     FORCE
 )
 #-----------------------------------------------------------------
-
-#-----------------------------------------------------------------
-# Find libraries
-#-----------------------------------------------------------------
-
-include(find_boost.cmake)
-include(find_openssl.cmake)
 
 #-----------------------------------------------------------------
 # Global include directories

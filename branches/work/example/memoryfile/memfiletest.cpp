@@ -5,6 +5,7 @@
 #include <cerrno>
 #include <cstring>
 #include <iostream>
+#include <ctime>
 using namespace std;
 
 
@@ -27,7 +28,7 @@ int main(int argc, char *argv[]){
 	int stime;
 	long ltime;
 
-	ltime = time(NULL); /* get current calendar time */
+	ltime = static_cast<long>(time(NULL)); /* get current calendar time */
 	stime = (unsigned int) ltime/2;
 	srand(stime);
 	

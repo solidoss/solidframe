@@ -7,38 +7,87 @@
 #include "system/directory.hpp"
 #include "system/debug.hpp"
 
+#ifdef ON_WINDOWS
+#include <Windows.h>
+#else
 #include <unistd.h>
+#endif
 
 using namespace std;
 
+#ifdef ON_WINDOWS
+typedef HANDLE DescriptorT;
+static const HANDLE invalid_descriptor = INVALID_HANDLE_VALUE;;
+void close_descriptor(HANDLE _d){
+	CloseHandle(_d);
+}
+int doread(DescriptorT _d, char *_pb, uint _sz){
+	DWORD cnt;
+	BOOL rv = ReadFile(_d, _pb, _sz, &cnt, NULL);
+	if(rv){
+		return cnt;
+	}else{
+		return -1;
+	}
+}
+int dowrite(DescriptorT _d, const char *_pb, uint _sz){
+	DWORD cnt;
+	BOOL rv = WriteFile(_d, _pb, _sz, &cnt, NULL);
+	if(rv){
+		return cnt;
+	}else{
+		return -1;
+	}
+}
+void create_pipe(HANDLE *_ph){
+	CreatePipe(_ph, _ph + 1, NULL, 2048);
+}
+#else
+typedef int DescriptorT;
+static const int invalid_descriptor = -1;
+void close_descriptor(int _d){
+	::close(_d);
+}
+int doread(DescriptorT _d, char *_pb, uint _sz){
+
+}
+int dowrite(DescriptorT _d, const char *_pb, uint _sz){
+
+}
+void create_pipe(DescriptorT *_ph){
+	pipe(_ph);
+}
+#endif
+
+
 struct DeviceIOutputStream: IOutputStream{
-	DeviceIOutputStream(int _d, int _pd):d(_d), pd(_pd){}
+	DeviceIOutputStream(DescriptorT _d, DescriptorT _pd):d(_d), pd(_pd){}
 	void close(){
-		int tmp = d;
-		d = -1;
-		if(pd > 0){
-			::close(tmp);
-			::close(pd);
+		DescriptorT tmp = d;
+		d = invalid_descriptor;
+		if(pd != invalid_descriptor){
+			close_descriptor(tmp);
+			close_descriptor(pd);
 		}
 	}
 	/*virtual*/ int read(char *_pb, uint32 _bl, uint32 _flags = 0){
-		int rv = ::read(d, _pb, _bl);
+		int rv = doread(d, _pb, _bl);
 		return rv;
 	}
 	/*virtual*/ int write(const char *_pb, uint32 _bl, uint32 _flags = 0){
-		return ::write(d, _pb, _bl);
+		return dowrite(d, _pb, _bl);
 	}
 	int64 seek(int64, SeekRef){
 		return -1;
 	}
-	int d;
-	int pd;
+	DescriptorT d;
+	DescriptorT pd;
 };
 
-int pairfd[2];
+DescriptorT pairfd[2];
 
 int main(int _argc, char *argv[]){
-	pipe(pairfd);
+	create_pipe(pairfd);
 #ifdef UDEBUG
 	Dbg::instance().levelMask();
 	Dbg::instance().moduleMask();
@@ -50,7 +99,7 @@ int main(int _argc, char *argv[]){
 	lm.insertListener("localhost", "3333");
 	Directory::create("log");
 	lm.insertConnector(new audit::LogBasicConnector("log"));
-	Log::instance().reinit(argv[0], Log::AllLevels, "ALL", new DeviceIOutputStream(pairfd[1],-1));
+	Log::instance().reinit(argv[0], Log::AllLevels, "ALL", new DeviceIOutputStream(pairfd[1],invalid_descriptor));
 	
 	string s;
 	while(true){

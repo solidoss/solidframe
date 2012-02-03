@@ -112,6 +112,8 @@ public:
 	void done();
 	bool isSet(unsigned _mod, unsigned _level)const;
 private:
+	static Log& log_instance();
+	static void once_log();
 	Log();
 	~Log();
 	struct Data;

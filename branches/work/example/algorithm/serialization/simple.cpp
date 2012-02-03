@@ -299,7 +299,7 @@ void Array::print() const{
 	cout<<"}pta1"<<endl;
 	cout<<"tdsz = "<<tdsz<<endl;
 	cout<<"td{"<<endl;
-	for(int i(0); i < tdsz; ++i){
+	for(uint i(0); i < tdsz; ++i){
 		td[i].print();
 	}
 	cout<<"}td"<<endl;

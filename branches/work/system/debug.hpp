@@ -92,7 +92,8 @@ struct /*EXPORT_DLL*/ Dbg{
 		Trace = 32,
 		AllLevels = 1 + 2 + 4 + 8 + 16 + 32
 	};
-	
+	static Dbg& dbg_instance();
+	static void once_cbk();
 	~Dbg();
 
 	void initStdErr(

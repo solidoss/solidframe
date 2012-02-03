@@ -31,34 +31,18 @@ namespace serialization{
 template <class Ser, class Des, typename Int>
 class IdTypeMapper: public TypeMapperBase{
 	typedef IdTypeMapper<Ser, Des, Int>	ThisT;
-public:
-	IdTypeMapper(){}
-	template <class T>
-	uint32 insert(uint32 _idx = 0){
-		typename UnsignedType<Int>::Type idx(_idx);
-		return this->insertFunction(&doMap<T>, idx, typeid(T).name());
-	}
-	template <class T, typename CT>
-	uint32 insert(uint32 _idx = 0){
-		typename UnsignedType<Int>::Type idx(_idx);
-		return this->insertFunction(&doMap<T, CT>, idx, typeid(T).name());
-	}
-	uint32 realIdentifier(uint32 _idx)const{
-		return _idx;
-	}
-private:
 	template <class T>
 	static void doMap(void *_p, void *_ps, void *_pd, void *_pid, const char *_name){
 		if(_ps){
-			Ser &rs(*reinterpret_cast<Ser*>(_ps));
-			T	&rt(*reinterpret_cast<T*>(_p));
-			Int &rid(*reinterpret_cast<Int*>(_pid));
+			Ser &rs = *reinterpret_cast<Ser*>(_ps);
+			T	&rt = *reinterpret_cast<T*>(_p);
+			Int &rid = *reinterpret_cast<Int*>(_pid);
 			
 			rt & rs;
 			rs.push(rid, _name);
 		}else{
-			Des &rd(*reinterpret_cast<Des*>(_pd));
-			T*	&rpt(*reinterpret_cast<T**>(_p));
+			Des &rd	= *reinterpret_cast<Des*>(_pd);
+			T*	&rpt = *reinterpret_cast<T**>(_p);
 			rpt = new T;
 			*rpt & rd;
 		}
@@ -66,31 +50,47 @@ private:
 	template <class T, class CT>
 	static void doMap(void *_p, void *_ps, void *_pd, void *_pid, const char *_name){
 		if(_ps){
-			Ser &rs(*reinterpret_cast<Ser*>(_ps));
-			T   &rt(*reinterpret_cast<T*>(_p));
-			Int &rid(*reinterpret_cast<Int*>(_pid));
+			Ser &rs = *reinterpret_cast<Ser*>(_ps);
+			T   &rt = *reinterpret_cast<T*>(_p);
+			Int &rid = *reinterpret_cast<Int*>(_pid);
 			
 			rt & rs;
 			rs.push(rid, _name);
 		}else{
-			Des &rd(*reinterpret_cast<Des*>(_pd));
-			T*  &rpt(*reinterpret_cast<T**>(_p));
+			Des &rd = *reinterpret_cast<Des*>(_pd);
+			T*  &rpt = *reinterpret_cast<T**>(_p);
 			rpt = new T(CT());
 			*rpt & rd;
 		}
 	}
+public:
+	IdTypeMapper(){}
+	template <class T>
+	uint32 insert(uint32 _idx = 0){
+		typename UnsignedType<Int>::Type idx(_idx);
+		return this->insertFunction(&IdTypeMapper::doMap<T>, idx, typeid(T).name());
+	}
+	template <class T, typename CT>
+	uint32 insert(uint32 _idx = 0){
+		typename UnsignedType<Int>::Type idx(_idx);
+		return this->insertFunction(&IdTypeMapper::doMap<T, CT>, idx, typeid(T).name());
+	}
+	uint32 realIdentifier(uint32 _idx)const{
+		return _idx;
+	}
+private:
 	/*virtual*/ void prepareStorePointer(
 		void *_pser, void *_pt,
 		uint32 _id, const char *_name
 	)const{
-		uint32	*pid;
+		uint32	*pid(NULL);
 		(*this->function(_id, pid))(_pt, _pser, NULL, pid, _name);
 	}
 	/*virtual*/ void prepareStorePointer(
 		void *_pser, void *_pt,
 		const char *_pid, const char *_name
 	)const{
-		uint32	*pid;
+		uint32	*pid(NULL);
 		(*this->function(_pid, pid))(_pt, _pser, NULL, pid, _name);
 	}
 	

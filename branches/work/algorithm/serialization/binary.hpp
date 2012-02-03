@@ -313,7 +313,7 @@ class Serializer: public Base{
 		T			*c = reinterpret_cast<T*>(_rfd.p);
 		const char	*n = _rfd.n;
 		if(c && rs.estk.top().i32() != -1){
-			if(rs.limits.containerlimit && rs.estk.top().i32() > rs.limits.containerlimit){
+			if(rs.limits.containerlimit && rs.estk.top().u32() > rs.limits.containerlimit){
 				rs.err = ERR_ARRAY_LIMIT;
 				return BAD;
 			}else if(rs.estk.top().u32() <= CRCValue<uint32>::maximum()){
@@ -566,7 +566,7 @@ class Deserializer: public Base{
 	template <typename T>
 	static int parseContainer(Base &_rb, FncData &_rfd){
 		idbgx(Dbg::ser_bin, "parse generic non pointer container "<<_rfd.n);
-		Deserializer &rd(static_cast<Deserializer&>(_rb));
+		Deserializer &rd = static_cast<Deserializer&>(_rb);
 		if(!rd.cpb) return OK;
 		_rfd.f = &Deserializer::parseContainerBegin<T>;
 		rd.estk.push(ExtData((int64)0));
@@ -575,7 +575,7 @@ class Deserializer: public Base{
 	}
 	template <typename T>
 	static int parseContainerBegin(Base &_rb, FncData &_rfd){
-		Deserializer	&rd(static_cast<Deserializer&>(_rb));
+		Deserializer	&rd = static_cast<Deserializer&>(_rb);
 		
 		if(!rd.cpb){
 			rd.estk.pop();
@@ -596,7 +596,10 @@ class Deserializer: public Base{
 		const int32 i(rd.estk.top().i32());
 		vdbgx(Dbg::ser_bin, "i = "<<i);
 		
-		if(i > 0 && rd.limits.containerlimit && i > rd.limits.containerlimit){
+		if(
+			i > 0 && static_cast<int32>(rd.limits.containerlimit) && 
+			i > static_cast<int32>(rd.limits.containerlimit)
+		){
 			idbgx(Dbg::ser_bin, "error");
 			rd.err = ERR_CONTAINER_LIMIT;
 			return BAD;
@@ -659,7 +662,7 @@ class Deserializer: public Base{
 		const int32	&rsz(rd.estk.top().i32());
 		//int64		&ri(rd.estk.top().i64_1());
 		ST			&rextsz(*reinterpret_cast<ST*>(rd.estk.top().pv_2()));
-		if(rsz > 0 && rd.limits.containerlimit && rsz > rd.limits.containerlimit){
+		if(rsz > 0 && rd.limits.containerlimit && rsz > static_cast<int32>(rd.limits.containerlimit)){
 			idbgx(Dbg::ser_bin, "error");
 			rd.err = ERR_ARRAY_LIMIT;
 			return BAD;

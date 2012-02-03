@@ -50,7 +50,7 @@ int main(){
 		cout<<"maxval uint16 = "<<CRCValue16T::maximum()<<" = "<<bs<<endl;
 	}
 	{
-		BitSet32T	bs(CRCValue32T::maximum());
+		BitSet32T	bs((int)CRCValue32T::maximum());
 		cout<<"maxval uint32 = "<<CRCValue32T::maximum()<<" = "<<bs<<endl;
 	}
 	{
@@ -60,7 +60,7 @@ int main(){
 	const uint8 *pu8(u8v);
 	do{
 		CRCValue8T	v(*pu8);
-		BitSet8T	bsv((ulong)*pu8);
+		BitSet8T	bsv((uint8)*pu8);
 		BitSet8T	bs((uint8)v);
 		cout<<(uint32)*pu8<<" = "<<bsv<<" ok = "<<v.ok()<<" crc = "<<(ulong)v.crc()<<" value = "<<(ulong)v.value()<<" storage = "<<bs<<endl;
 	}while(*(++pu8));
@@ -69,7 +69,7 @@ int main(){
 	const uint16 *pu16(u16v);
 	do{
 		CRCValue16T	v(*pu16);
-		BitSet16T	bsv((ulong)*pu16);
+		BitSet16T	bsv((int)*pu16);
 		BitSet16T	bs((uint16)v);
 		cout<<(uint32)*pu16<<" = "<<bsv<<" ok = "<<v.ok()<<" crc = "<<(ulong)v.crc()<<" value = "<<(ulong)v.value()<<" storage = "<<bs<<endl;		
 	}while(*(++pu16));
@@ -78,8 +78,8 @@ int main(){
 	const uint32 *pu32(u32v);
 	do{
 		CRCValue32T		v(*pu32);
-		BitSet32T		bsv((ulong)*pu32);
-		BitSet32T		bs((uint32)v);
+		BitSet32T		bsv((int)*pu32);
+		BitSet32T		bs((int)v);
 		cout<<(uint32)*pu32<<" = "<<bsv<<" ok = "<<v.ok()<<" crc = "<<(ulong)v.crc()<<" value = "<<(ulong)v.value()<<" storage = "<<bs<<endl;				
 	}while(*(++pu32));
 	
