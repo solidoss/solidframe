@@ -10,7 +10,11 @@ struct Singleton{
 	static void once_cbk();
 	static	Singleton& instance();
 	Singleton():val(0){
+#ifdef ON_WINDOWS
 		Sleep(1000*10);
+#else
+		sleep(10);
+#endif
 		val = 1;
 	}
 	int val;
