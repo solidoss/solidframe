@@ -174,7 +174,7 @@ void once_log(){
 }
 
 /*static*/ Log& Log::instance(){
-	static boost::once_flag once(BOOST_ONCE_INIT);
+	static boost::once_flag once = BOOST_ONCE_INIT;
 	boost::call_once(&once_log, once);
 	return log_instance();
 }

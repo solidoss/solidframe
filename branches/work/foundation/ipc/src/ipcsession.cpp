@@ -1646,7 +1646,7 @@ void once_static_data(){
 	static_data_instance();
 }
 /*static*/ StaticData& StaticData::instance(){
-	static boost::once_flag once(BOOST_ONCE_INIT);
+	static boost::once_flag once = BOOST_ONCE_INIT;
 	boost::call_once(&once_static_data, once);
 	return static_data_instance();
 }
@@ -1696,7 +1696,7 @@ void once_stub(){
 }
 
 const uint32 specificId(){
-	static boost::once_flag once(BOOST_ONCE_INIT);
+	static boost::once_flag once = BOOST_ONCE_INIT;
 	boost::call_once(&once_stub, once);
 	return specificIdStub();
 }

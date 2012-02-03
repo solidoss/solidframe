@@ -55,7 +55,7 @@ void once_limits(){
 }
 
 /*static*/ Limits const& Limits::the(){
-	static boost::once_flag once(BOOST_ONCE_INIT);
+	static boost::once_flag once = BOOST_ONCE_INIT;
 	boost::call_once(&once_limits, once);
 	return the_limits();
 }

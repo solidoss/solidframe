@@ -38,7 +38,7 @@ void once_cbk_memory(){
 
 template <class T>
 void objectCheck(bool _add, const char *_fncname){
-	static boost::once_flag once(BOOST_ONCE_INIT);
+	static boost::once_flag once = BOOST_ONCE_INIT;
 	boost::call_once(&once_cbk_memory<T>, once);
 	return objectCheckStub<T>(_add, _fncname);
 }

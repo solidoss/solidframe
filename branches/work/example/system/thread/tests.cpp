@@ -49,7 +49,7 @@ void once_test(){
 	test_instance();
 }
 /*static*/ SingleTest& SingleTest::instance(){
-	static boost::once_flag once(BOOST_ONCE_INIT);
+	static boost::once_flag once = BOOST_ONCE_INIT;
 	boost::call_once(&once_test, once);
 	return test_instance();
 }

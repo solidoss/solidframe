@@ -65,7 +65,7 @@ void once_initor(){
 	OpenSSL_add_all_algorithms();
 }
 /*static*/ Context* Context::create(){
-	static boost::once_flag once(BOOST_ONCE_INIT);
+	static boost::once_flag once = BOOST_ONCE_INIT;
 	boost::call_once(&once_initor, once);
 	SSL_CTX *pctx(SSL_CTX_new(SSLv23_server_method()));
 	if(!pctx) return NULL;

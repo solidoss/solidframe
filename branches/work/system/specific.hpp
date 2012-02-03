@@ -117,7 +117,7 @@ class Specific{
 	}
 	template <typename T>
 	static T* object(T *_p = NULL){
-		static boost::once_flag	once(BOOST_ONCE_INIT);
+		static boost::once_flag	once = BOOST_ONCE_INIT;
 		boost::call_once(&once_cbk<T>, once);
 		return objec_stub<T>(_p);
 	}

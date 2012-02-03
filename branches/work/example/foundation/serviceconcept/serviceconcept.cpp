@@ -281,7 +281,7 @@ private:
 	
 	template <class O>
 	uint objectTypeId(){
-		static boost::once_flag once(BOOST_ONCE_INIT);
+		static boost::once_flag once = BOOST_ONCE_INIT;
 		boost::call_once(&once_object<O>, once);
 		return objectTypeIdStub<O>();
 	}

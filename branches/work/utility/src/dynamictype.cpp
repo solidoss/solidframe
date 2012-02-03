@@ -49,13 +49,13 @@ void once_cbk_specific(){
 }
 
 MutexStoreT &mutexStoreStub(){
-	static boost::once_flag once(BOOST_ONCE_INIT);
+	static boost::once_flag once = BOOST_ONCE_INIT;
 	boost::call_once(&once_cbk_store, once);
 	return mutexStoreStub();
 }
 
 uint32 specificId(){
-	static boost::once_flag once(BOOST_ONCE_INIT);
+	static boost::once_flag once = BOOST_ONCE_INIT;
 	boost::call_once(&once_cbk_specific, once);
 	return specificIdStub();
 }
@@ -128,7 +128,7 @@ void once_cbk_dynamic(){
 }
 
 static Mutex & dynamicMutex(){
-	static boost::once_flag once(BOOST_ONCE_INIT);
+	static boost::once_flag once = BOOST_ONCE_INIT;
 	boost::call_once(&once_cbk_dynamic, once);
 	return dynamicMutexStub();
 }

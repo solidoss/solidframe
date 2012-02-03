@@ -128,7 +128,7 @@ void once_cbk_thread_data(){
 	threadDataStub();
 }
 static ThreadData& threadData(){
-	static boost::once_flag once(BOOST_ONCE_INIT);
+	static boost::once_flag once = BOOST_ONCE_INIT;
 	boost::call_once(&once_cbk_thread_data, once);
 	return threadDataStub();
 }
@@ -176,7 +176,7 @@ void once_cbk_tsd(){
 }
 
 TimeStartData& TimeStartData::instance(){
-	static boost::once_flag once(BOOST_ONCE_INIT);
+	static boost::once_flag once = BOOST_ONCE_INIT;
 	boost::call_once(&once_cbk_tsd, once);
 	return tsd_instance_stub();
 }
@@ -481,7 +481,7 @@ void once_cbk_specific_id(){
 }
 
 unsigned Thread::specificId(){
-	static boost::once_flag once(BOOST_ONCE_INIT);
+	static boost::once_flag once = BOOST_ONCE_INIT;
 	boost::call_once(&once_cbk_specific_id, once);
 	return specificIdStub();
 }

@@ -57,7 +57,7 @@ void once_init(){
 	Connection::initStatic(_rm);
 }
 Service* Service::create(Manager &_rm){
-	static boost::once_flag once(BOOST_ONCE_INIT);
+	static boost::once_flag once = BOOST_ONCE_INIT;
 	boost::call_once(&once_init, once);
 	return new Service();
 }

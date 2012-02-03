@@ -58,7 +58,7 @@ private:
 public:
 	template <typename T>
 	T* get(T *_p = NULL){
-		static boost::once_flag once(BOOST_ONCE_INIT);
+		static boost::once_flag once = BOOST_ONCE_INIT;
 		boost::call_once(&once_cbk<T>, once);
 		return getStub<T>(_p);
 	}

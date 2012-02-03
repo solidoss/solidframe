@@ -156,7 +156,7 @@ void once_stub(){
 }
 
 const unsigned specificPosition(){
-	static boost::once_flag once(BOOST_ONCE_INIT);
+	static boost::once_flag once = BOOST_ONCE_INIT;
 	boost::call_once(&once_stub, once);
 	return specificIdStub();
 }

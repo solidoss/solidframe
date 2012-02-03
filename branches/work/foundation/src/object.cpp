@@ -63,12 +63,12 @@ void once_time_stub(){
 }
 
 static const unsigned specificPosition(){
-	static boost::once_flag once(BOOST_ONCE_INIT);
+	static boost::once_flag once = BOOST_ONCE_INIT;
 	boost::call_once(&once_stub, once);
 	return specificIdStub();
 }
 static const uint currentTimeSpecificPosition(){
-	static boost::once_flag once(BOOST_ONCE_INIT);
+	static boost::once_flag once = BOOST_ONCE_INIT;
 	boost::call_once(&once_time_stub, once);
 	return timeSpecificIdStub();
 }

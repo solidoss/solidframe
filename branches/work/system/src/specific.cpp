@@ -54,7 +54,7 @@ void once_cbk(){
 }
 
 const unsigned specificPosition(){
-	static boost::once_flag once(BOOST_ONCE_INIT);
+	static boost::once_flag once = BOOST_ONCE_INIT;
 	boost::call_once(&once_cbk, once);
 	return specificPositionStub();
 }
