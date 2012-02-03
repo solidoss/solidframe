@@ -264,23 +264,23 @@ private:
 	}
 #ifdef HAVE_SAFE_STATIC
 	template <class O>
-	static uint objectTypeId(){
+	uint objectTypeId(){
 		static const uint v(newObjectTypeId());
 		return v;
 	}
 #else
 	template <class O>
-	static uint objectTypeIdStub(){
+	uint objectTypeIdStub(){
 		static const uint v(newObjectTypeId());
 		return v;
 	}
 	template <class O>
-	static void once_object(){
+	void once_object(){
 		objectTypeIdStub<O>();
 	}
 	
 	template <class O>
-	static uint objectTypeId(){
+	uint objectTypeId(){
 		static boost::once_flag once(BOOST_ONCE_INIT);
 		boost::call_once(&once_object<O>, once);
 		return objectTypeIdStub<O>();
