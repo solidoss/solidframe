@@ -122,7 +122,7 @@ template<>
 struct CRCValue<uint64>{
 	static CRCValue<uint64> check_and_create(uint64 _v);
 	static bool check(uint64 _v);
-	static const uint64 maximal(){
+	static const uint64 maximum(){
 		return (1ULL << 58) - 1ULL;
 	}
 	
@@ -154,7 +154,7 @@ template<>
 struct CRCValue<uint32>{
 	static CRCValue<uint32> check_and_create(uint32 _v);
 	static bool check(uint32 _v);
-	static const uint32 maximal(){
+	static const uint32 maximum(){
 		return (1UL << 27) - 1UL;
 	}
 	
@@ -185,7 +185,7 @@ template<>
 struct CRCValue<uint16>{
 	static CRCValue<uint16> check_and_create(uint16 _v);
 	static bool check(uint16 _v);
-	static const uint16 maximal(){
+	static const uint16 maximum(){
 		return ((1 << 12) - 1);
 	}
 	
@@ -213,7 +213,7 @@ template<>
 struct CRCValue<uint8>{
 	static CRCValue<uint8> check_and_create(uint8 _v);
 	static bool check(uint8 _v);
-	static const uint8 maximal(){
+	static const uint8 maximum(){
 		return ((1 << 5) - 1);
 	}
 	

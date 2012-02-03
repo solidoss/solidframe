@@ -139,7 +139,7 @@ static ThreadData& threadData(){
 Cleaner             			cleaner;
 //static unsigned 				crtspecid = 0;
 //*************************************************************************
-/*static*/ const TimeSpec TimeSpec::maximal(0xffffffff, 0xffffffff);
+/*static*/ const TimeSpec TimeSpec::maximum(0xffffffff, 0xffffffff);
 #ifdef NINLINES
 #include "system/timespec.ipp"
 #endif

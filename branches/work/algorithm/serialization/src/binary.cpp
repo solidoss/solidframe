@@ -402,7 +402,7 @@ int Serializer::store<std::string>(Base &_rb, FncData &_rfd){
 		rs.err = ERR_STRING_LIMIT;
 		return BAD;
 	}
-	if(c->size() > CRCValue<uint32>::max()){
+	if(c->size() > CRCValue<uint32>::maximum()){
 		rs.err = ERR_STRING_MAX_LIMIT;
 		return BAD;
 	}
@@ -427,8 +427,8 @@ int Serializer::storeStream(Base &_rb, FncData &_rfd){
 	if(toread > rsp.sz){
 		toread = rsp.sz;
 	}
-	if(toread > CRCValue<uint16>::max()){
-		toread = CRCValue<uint16>::max();
+	if(toread > CRCValue<uint16>::maximum()){
+		toread = CRCValue<uint16>::maximum();
 	}
 	idbgx(Dbg::ser_bin, "toread = "<<toread<<" MINSTREAMBUFLEN = "<<MINSTREAMBUFLEN);
 	int rv = rsp.pis->read(rsp.off, rs.cpb + 2, toread);
@@ -454,7 +454,7 @@ int Serializer::storeStream(Base &_rb, FncData &_rfd){
 		rs.err = ERR_UTF8_LIMIT;
 		return BAD;
 	}
-	if((_rfd.s - 1) > CRCValue<uint32>::max()){
+	if((_rfd.s - 1) > CRCValue<uint32>::maximum()){
 		rs.err = ERR_UTF8_MAX_LIMIT;
 		return BAD;
 	}
@@ -1130,7 +1130,7 @@ int Deserializer::parseUtf8(Base &_rb, FncData &_rfd){
 		rd.err = ERR_UTF8_LIMIT;
 		return BAD;
 	}
-	if(totlen > CRCValue<uint32>::max()){
+	if(totlen > CRCValue<uint32>::maximum()){
 		rd.err = ERR_UTF8_MAX_LIMIT;
 		return BAD;
 	}

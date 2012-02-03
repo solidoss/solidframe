@@ -1,6 +1,8 @@
 #ifndef UTILITY_MEMORY_HPP
 #define UTILITY_MEMORY_HPP
 
+#include "system/common.hpp"
+
 struct EmptyChecker{
 	EmptyChecker(const char *_fncname):v(0), fncname(_fncname){}
 	~EmptyChecker();

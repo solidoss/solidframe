@@ -39,7 +39,7 @@ struct timespec{
 struct TimeSpec: public timespec{
 	typedef UnsignedConvertor<time_t>::UnsignedType TimeT;
 	
-	static const TimeSpec maximal;
+	static const TimeSpec maximum;
 	
 	static TimeSpec createRealTime();
 	static TimeSpec createMonotonic();

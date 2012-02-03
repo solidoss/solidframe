@@ -263,7 +263,7 @@ class Serializer: public Base{
 				rs.err = ERR_CONTAINER_LIMIT;
 				return BAD;
 			}
-			if(c->size() > CRCValue<uint32>::max()){
+			if(c->size() > CRCValue<uint32>::maximum()){
 				rs.err = ERR_CONTAINER_MAX_LIMIT;
 				return BAD;
 			}
@@ -316,7 +316,7 @@ class Serializer: public Base{
 			if(rs.limits.containerlimit && rs.estk.top().i32() > rs.limits.containerlimit){
 				rs.err = ERR_ARRAY_LIMIT;
 				return BAD;
-			}else if(rs.estk.top().u32() <= CRCValue<uint32>::max()){
+			}else if(rs.estk.top().u32() <= CRCValue<uint32>::maximum()){
 				_rfd.f = &Serializer::storeArrayContinue<T>;
 				const CRCValue<uint32>	crcsz(rs.estk.top().u32());
 				rs.estk.push(ExtData((uint32)crcsz));
@@ -374,7 +374,7 @@ class Serializer: public Base{
 			default:
 				cassert(false);
 		}
-		if(isd.sz < 0 || isd.sz > CRCValue<uint64>::max()){
+		if(isd.sz < 0 || isd.sz > CRCValue<uint64>::maximum()){
 			rs.err = ERR_STREAM_MAX_LIMIT;
 			return BAD;
 		}
