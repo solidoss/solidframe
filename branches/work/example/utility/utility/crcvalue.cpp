@@ -15,25 +15,25 @@ int main(){
 	typedef CRCValue<uint32>	CRCValue32T;
 	typedef CRCValue<uint64>	CRCValue64T;
 	
-	const uint8 m8(CRCValue8T::max());
+	const uint8 m8(CRCValue8T::maximum());
 	const uint8 u8v[] = {
 		1,2,3,4,5,6,7,8,
 		m8, (uint8)(m8 - (uint8)1), (uint8)(m8 - (uint8)2), (uint8)(m8 - (uint8)3),
 		0
 	};
-	const uint16 m16(CRCValue16T::max());
+	const uint16 m16(CRCValue16T::maximum());
 	const uint16 u16v[] = {
 		1,2,3,4,5,6,7,8,
 		(uint16)m16,(uint16)(m16 -1),(uint16)(m16 -2), (uint16)(m16 -3),
 		0
 	};
-	const uint32 m32(CRCValue32T::max());
+	const uint32 m32(CRCValue32T::maximum());
 	const uint32 u32v[] = {
 		1,2,3,4,5,6,7,8,
 		(uint32)m32,(uint32)(m32 -1),(uint32)(m32 -2), (uint32)(m32 -3),
 		0
 	};
-	const uint64 m64(CRCValue64T::max());
+	const uint64 m64(CRCValue64T::maximum());
 	const uint64 u64v[] = {
 		1ULL,2ULL,3ULL,4ULL,5ULL,6ULL,7ULL,8ULL,
 		(uint64)m64,(uint64)(m64 -1),(uint64)(m64 -2), (uint64)(m64 -3),
@@ -42,20 +42,20 @@ int main(){
 	
 	
 	{
-		BitSet8T	bs(CRCValue8T::max());
-		cout<<"maxval uint8 = "<<(int)CRCValue8T::max()<<" = "<<bs<<endl;
+		BitSet8T	bs(CRCValue8T::maximum());
+		cout<<"maxval uint8 = "<<(int)CRCValue8T::maximum()<<" = "<<bs<<endl;
 	}
 	{
-		BitSet16T	bs(CRCValue16T::max());
-		cout<<"maxval uint16 = "<<CRCValue16T::max()<<" = "<<bs<<endl;
+		BitSet16T	bs(CRCValue16T::maximum());
+		cout<<"maxval uint16 = "<<CRCValue16T::maximum()<<" = "<<bs<<endl;
 	}
 	{
-		BitSet32T	bs(CRCValue32T::max());
-		cout<<"maxval uint32 = "<<CRCValue32T::max()<<" = "<<bs<<endl;
+		BitSet32T	bs(CRCValue32T::maximum());
+		cout<<"maxval uint32 = "<<CRCValue32T::maximum()<<" = "<<bs<<endl;
 	}
 	{
-		BitSet64T	bs(CRCValue64T::max());
-		cout<<"maxval uint64 = "<<CRCValue64T::max()<<" = "<<bs<<endl;
+		BitSet64T	bs(CRCValue64T::maximum());
+		cout<<"maxval uint64 = "<<CRCValue64T::maximum()<<" = "<<bs<<endl;
 	}
 	const uint8 *pu8(u8v);
 	do{
