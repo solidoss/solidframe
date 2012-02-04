@@ -51,6 +51,7 @@ public:
 #ifndef ON_WINDOWS
 	bool isBlocking();
 #endif
+	bool cancel();
 	//! Return true if nonblocking and the prevoious nonblocking opperation did not complete
 	/*!
 		In case of nonblocking sockets, use this method after:connect, accept, read, write,send

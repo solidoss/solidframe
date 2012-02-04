@@ -792,6 +792,13 @@ bool SocketDevice::shouldWait()const{
 	return errno == EAGAIN;
 #endif
 }
+bool SocketDevice::cancel(){
+#ifdef ON_WINDOWS
+	return CancelIoEx(Device::descriptor(), NULL);
+#else
+	return true;
+#endif
+}
 int SocketDevice::send(const char* _pb, unsigned _ul, unsigned){
 #ifdef ON_WINDOWS
 	return -1;

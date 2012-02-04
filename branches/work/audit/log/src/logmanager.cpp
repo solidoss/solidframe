@@ -188,6 +188,7 @@ void LogManager::stop(bool _wait){
 			}
 		}
 		for(Data::ListenerVectorT::iterator it(d.lsnv.begin()); it != d.lsnv.end(); ++it){
+			it->sd.cancel();
 			it->sd.shutdownReadWrite();
 			it->sd.close();
 			it->ready = false;
