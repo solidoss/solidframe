@@ -84,6 +84,14 @@ int Device::write(const char* _pb, uint32 _bl){
 #endif
 }
 
+bool Device::cancel(){
+#ifdef ON_WINDOWS
+	return CancelIoEx(Device::descriptor(), NULL) != 0;
+#else
+	return true;
+#endif
+}
+
 void Device::close(){
 	if(ok()){
 #ifdef ON_WINDOWS
@@ -790,13 +798,6 @@ bool SocketDevice::shouldWait()const{
 	return WSAGetLastError() == WSAEWOULDBLOCK;
 #else
 	return errno == EAGAIN;
-#endif
-}
-bool SocketDevice::cancel(){
-#ifdef ON_WINDOWS
-	return CancelIoEx(Device::descriptor(), NULL);
-#else
-	return true;
 #endif
 }
 int SocketDevice::send(const char* _pb, unsigned _ul, unsigned){

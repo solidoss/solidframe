@@ -55,6 +55,8 @@ public:
 	int read(char	*_pb, uint32 _bl);
 	//! Write call
 	int write(const char* _pb, uint32 _bl);
+	//! Cancels existing io operations
+	bool cancel();
 	//! Close the device
 	void close();
 	//! Flush the device
