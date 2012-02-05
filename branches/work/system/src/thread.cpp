@@ -182,23 +182,13 @@ TimeStartData& TimeStartData::instance(){
 }
 
 const TimeSpec& TimeSpec::currentRealTime(){
-	TimeStartData				&tsd(TimeStartData::instance());
-	UnsignedType<clock_t>::Type	cc = clock();
-	uint32						secs  = 0;
-	uint32						nsecs = 0;
-	
-	if(tsd.sc <= cc){
-		secs = (cc - tsd.sc)/CLOCKS_PER_SEC;
-		nsecs = ((((cc - tsd.sc) % CLOCKS_PER_SEC) * 1000)/CLOCKS_PER_SEC) * 1000000;
-	}else{
-		//NOTE: find a better way
-		UnsignedType<clock_t>::Type tc = cc + (0xffffffff - tsd.sc);
-		secs = (tc)/CLOCKS_PER_SEC;
-		nsecs = ((((tc) % CLOCKS_PER_SEC) * 1000)/CLOCKS_PER_SEC) * 1000000;
-		tsd.sc = cc;
-		tsd.st = time(NULL);
-	}
-	this->set(tsd.st + secs, nsecs);
+	SYSTEMTIME st;
+	::GetSystemTime(&st);
+	union{
+		FILETIME 		ft;
+		ULARGE_INTEGER	uli;
+	}	crttime;
+	SystemTimeToFileTime(&st, &crttime.ft);
 	return *this;
 }
 
