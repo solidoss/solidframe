@@ -155,43 +155,36 @@ Cleaner             			cleaner;
 
 #if		defined(ON_WINDOWS)
 
-// struct TimeStartData{
-// 	TimeStartData(){
-// 		st = time(NULL);
-// 		sc = clock();
-// 		sc -= (sc % CLOCKS_PER_SEC);
-// 	}
-// 	static TimeStartData& instance();
-// 	time_t							st;
-// 	UnsignedType<clock_t>::Type		sc;
-// };
-// 
-// TimeStartData& tsd_instance_stub(){
-// 	static TimeStartData tsd;
-// 	return tsd;
-// }
-// 
-// void once_cbk_tsd(){
-// 	tsd_instance_stub();
-// }
-// 
-// TimeStartData& TimeStartData::instance(){
-// 	static boost::once_flag once = BOOST_ONCE_INIT;
-// 	boost::call_once(&once_cbk_tsd, once);
-// 	return tsd_instance_stub();
-// }
+struct TimeStartData{
+	TimeStartData():start_time(time(NULL)), start_msec(::GetTickCount64()){
+	}
+	static TimeStartData& instance();
+	const time_t	start_time;
+	const uint64	start_msec;
+};
+ 
+TimeStartData& tsd_instance_stub(){
+	static TimeStartData tsd;
+	return tsd;
+}
+
+void once_cbk_tsd(){
+ 	tsd_instance_stub();
+}
+ 
+TimeStartData& TimeStartData::instance(){
+	static boost::once_flag once = BOOST_ONCE_INIT;
+	boost::call_once(&once_cbk_tsd, once);
+	return tsd_instance_stub();
+}
 
 const TimeSpec& TimeSpec::currentRealTime(){
-	union{
-		FILETIME 		ft;
-		ULARGE_INTEGER	uli;
-	}	crttime;
-	
-	::GetSystemTimeAsFileTime(&crttime.ft);
-	const ULONGLONG msecs = crttime.uli.QuadPart;
-	const ulong		secs = msecs / 1000;
+	const TimeStartData	&tsd = TimeStartData::instance();
+	const ULONGLONG	msecs = ::GetTickCount64() - tsd.start_msec;
+
+	const ulong		secs = static_cast<ulong>(msecs / 1000);
 	const ulong		nsecs = (msecs % 1000) * 1000 * 1000;
-	this->seconds(secs);
+	this->seconds(tsd.start_time + secs);
 	this->nanoSeconds(nsecs);
 	return *this;
 }
