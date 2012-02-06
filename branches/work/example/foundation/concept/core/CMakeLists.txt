@@ -24,7 +24,7 @@ set(Headers
 set(Inlines
 )
 
-add_library(concept_core
+add_library(example_concept_core
 	${Sources} ${Headers} ${Inlines}
 )
 
