@@ -7,9 +7,9 @@ set( MyTests
 
 create_test_sourcelist( Tests system_test.cpp ${MyTests})
 
-add_executable(system_test ${Tests})
+add_executable(test_system ${Tests})
 
-target_link_libraries(system_test system)
+target_link_libraries(test_system system)
 
 add_test( ThreadTest system_test
 	test_thread
