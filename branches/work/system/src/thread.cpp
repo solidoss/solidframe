@@ -156,11 +156,23 @@ Cleaner             			cleaner;
 #if		defined(ON_WINDOWS)
 
 struct TimeStartData{
+#ifdef NWINDOWSQPC
 	TimeStartData():start_time(time(NULL)), start_msec(::GetTickCount64()){
 	}
+#else
+	TimeStartData():start_time(time(NULL)){
+		QueryPerformanceCounter(&start_msec);
+		QueryPerformanceFrequency(&start_freq);
+	}
+#endif
 	static TimeStartData& instance();
 	const time_t	start_time;
+#ifndef NWINDOWSQPC
+	LARGE_INTEGER	start_msec;
+	LARGE_INTEGER	start_freq;
+#else
 	const uint64	start_msec;
+#endif
 };
  
 TimeStartData& tsd_instance_stub(){
@@ -179,6 +191,7 @@ TimeStartData& TimeStartData::instance(){
 }
 
 const TimeSpec& TimeSpec::currentRealTime(){
+#ifdef NWINDOWSQPC
 	const TimeStartData	&tsd = TimeStartData::instance();
 	const ULONGLONG	msecs = ::GetTickCount64() - tsd.start_msec;
 
@@ -186,15 +199,38 @@ const TimeSpec& TimeSpec::currentRealTime(){
 	const ulong		nsecs = (msecs % 1000) * 1000 * 1000;
 	this->seconds(tsd.start_time + secs);
 	this->nanoSeconds(nsecs);
+#else
+	const TimeStartData	&tsd = TimeStartData::instance();
+	LARGE_INTEGER		ms;
+	
+	QueryPerformanceCounter(&ms);
+	const uint64 qpc = ms.QuadPart - tsd.start_msec.QuadPart;
+	const uint32 secs = qpc / tsd.start_freq.QuadPart;
+	const uint32 nsecs = ((1000 * (qpc % tsd.start_freq.QuadPart))/tsd.start_freq.QuadPart) * 1000 * 1000;
+	this->seconds(tsd.start_time + secs);
+	this->nanoSeconds(nsecs);
+#endif
 	return *this;
 }
 
 const TimeSpec& TimeSpec::currentMonotonic(){
+#ifdef NWINDOWSQPC
 	const ULONGLONG	msecs = ::GetTickCount64();
 	const ulong		secs = msecs / 1000;
 	const ulong		nsecs = (msecs % 1000) * 1000 * 1000;
 	this->seconds(secs);
 	this->nanoSeconds(nsecs);
+#else
+	const TimeStartData	&tsd = TimeStartData::instance();
+	LARGE_INTEGER		ms;
+	
+	QueryPerformanceCounter(&ms);
+	const uint64 qpc = ms.QuadPart;
+	const uint32 secs = qpc / tsd.start_freq.QuadPart;
+	const uint32 nsecs = ((1000 * (qpc % tsd.start_freq.QuadPart))/tsd.start_freq.QuadPart) * 1000 * 1000;
+	this->seconds(secs);
+	this->nanoSeconds(nsecs);
+#endif
 	return *this;
 }
 
