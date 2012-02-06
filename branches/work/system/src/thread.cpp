@@ -155,60 +155,53 @@ Cleaner             			cleaner;
 
 #if		defined(ON_WINDOWS)
 
-struct TimeStartData{
-	TimeStartData(){
-		st = time(NULL);
-		sc = clock();
-		sc -= (sc % CLOCKS_PER_SEC);
-	}
-	static TimeStartData& instance();
-	time_t							st;
-	UnsignedType<clock_t>::Type		sc;
-};
-
-TimeStartData& tsd_instance_stub(){
-	static TimeStartData tsd;
-	return tsd;
-}
-
-void once_cbk_tsd(){
-	tsd_instance_stub();
-}
-
-TimeStartData& TimeStartData::instance(){
-	static boost::once_flag once = BOOST_ONCE_INIT;
-	boost::call_once(&once_cbk_tsd, once);
-	return tsd_instance_stub();
-}
+// struct TimeStartData{
+// 	TimeStartData(){
+// 		st = time(NULL);
+// 		sc = clock();
+// 		sc -= (sc % CLOCKS_PER_SEC);
+// 	}
+// 	static TimeStartData& instance();
+// 	time_t							st;
+// 	UnsignedType<clock_t>::Type		sc;
+// };
+// 
+// TimeStartData& tsd_instance_stub(){
+// 	static TimeStartData tsd;
+// 	return tsd;
+// }
+// 
+// void once_cbk_tsd(){
+// 	tsd_instance_stub();
+// }
+// 
+// TimeStartData& TimeStartData::instance(){
+// 	static boost::once_flag once = BOOST_ONCE_INIT;
+// 	boost::call_once(&once_cbk_tsd, once);
+// 	return tsd_instance_stub();
+// }
 
 const TimeSpec& TimeSpec::currentRealTime(){
-	SYSTEMTIME st;
-	::GetSystemTime(&st);
 	union{
 		FILETIME 		ft;
 		ULARGE_INTEGER	uli;
 	}	crttime;
-	SystemTimeToFileTime(&st, &crttime.ft);
+	
+	::GetSystemTimeAsFileTime(&crttime.ft);
+	const ULONGLONG msecs = crttime.uli.QuadPart;
+	const ulong		secs = msecs / 1000;
+	const ulong		nsecs = (msecs % 1000) * 1000 * 1000;
+	this->seconds(secs);
+	this->nanoSeconds(nsecs);
 	return *this;
 }
 
 const TimeSpec& TimeSpec::currentMonotonic(){
-	TimeStartData				&tsd(TimeStartData::instance());
-	UnsignedType<clock_t>::Type	cc = clock();
-	uint32						secs  = 0;
-	uint32						nsecs = 0;
-	if(tsd.sc <= cc){
-		secs = (cc - tsd.sc)/CLOCKS_PER_SEC;
-		nsecs = ((((cc - tsd.sc) % CLOCKS_PER_SEC) * 1000)/CLOCKS_PER_SEC) * 1000000;
-	}else{
-		//NOTE: find a better way
-		UnsignedType<clock_t>::Type tc = cc + (0xffffffff - tsd.sc);
-		secs = (tc)/CLOCKS_PER_SEC;
-		nsecs = ((((tc) % CLOCKS_PER_SEC) * 1000)/CLOCKS_PER_SEC) * 1000000;
-		tsd.sc = cc;
-		tsd.st = time(NULL);
-	}
-	this->set(tsd.st + secs, nsecs);
+	const ULONGLONG	msecs = ::GetTickCount64();
+	const ulong		secs = msecs / 1000;
+	const ulong		nsecs = (msecs % 1000) * 1000 * 1000;
+	this->seconds(secs);
+	this->nanoSeconds(nsecs);
 	return *this;
 }
 
