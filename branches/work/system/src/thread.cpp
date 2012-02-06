@@ -205,8 +205,8 @@ const TimeSpec& TimeSpec::currentRealTime(){
 	
 	QueryPerformanceCounter(&ms);
 	const uint64 qpc = ms.QuadPart - tsd.start_msec.QuadPart;
-	const uint32 secs = qpc / tsd.start_freq.QuadPart;
-	const uint32 nsecs = ((1000 * (qpc % tsd.start_freq.QuadPart))/tsd.start_freq.QuadPart) * 1000 * 1000;
+	const uint32 secs = static_cast<uint32>(qpc / tsd.start_freq.QuadPart);
+	const uint32 nsecs = static_cast<uint32>(((1000 * (qpc % tsd.start_freq.QuadPart))/tsd.start_freq.QuadPart) * 1000 * 1000);
 	this->seconds(tsd.start_time + secs);
 	this->nanoSeconds(nsecs);
 #endif
@@ -226,8 +226,8 @@ const TimeSpec& TimeSpec::currentMonotonic(){
 	
 	QueryPerformanceCounter(&ms);
 	const uint64 qpc = ms.QuadPart;
-	const uint32 secs = qpc / tsd.start_freq.QuadPart;
-	const uint32 nsecs = ((1000 * (qpc % tsd.start_freq.QuadPart))/tsd.start_freq.QuadPart) * 1000 * 1000;
+	const uint32 secs = static_cast<uint32>(qpc / tsd.start_freq.QuadPart);
+	const uint32 nsecs = static_cast<uint32>(((1000 * (qpc % tsd.start_freq.QuadPart))/tsd.start_freq.QuadPart) * 1000 * 1000);
 	this->seconds(secs);
 	this->nanoSeconds(nsecs);
 #endif
