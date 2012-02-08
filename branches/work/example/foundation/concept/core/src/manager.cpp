@@ -98,9 +98,46 @@ protected:
 //------------------------------------------------------
 //		IpcServiceController
 //------------------------------------------------------
+/*
+In this example we do:
+* accept only one connection from one other concept application
+* authenticate in X steps:
+	> concept1 -> request auth step 1 -> concept2
+	> concept2 -> auth step 2 -> concept1
+	> concept1 -> auth step 3 -> concept2
+	> concept2 accept authentication -> auth step 4 -> concept1 auth done
+*/
+
+
+struct AuthSignal: Dynamic<AuthSignal, DynamicShared<foundation::Signal> >{
+	AuthSignal():authidx(0), authcnt(0){}
+	~AuthSignal(){}
+	
+	template <class S>
+	S& operator&(S &_s){
+		_s.push(authidx, "authidx").push(authcnt, "authcnt");
+		if(S::IsDeserializer){
+			_s.push(siguid.idx, "siguid.idx").push(siguid.uid,"siguid.uid");
+		}else{//on sender
+			foundation::ipc::SignalUid &rsiguid(
+				const_cast<foundation::ipc::SignalUid &>(foundation::ipc::SignalContext::the().signaluid)
+			);
+			_s.push(rsiguid.idx, "siguid.idx").push(rsiguid.uid,"siguid.uid");
+		}
+		//_s.push(siguidpeer.idx, "siguidpeer.idx").push(siguidpeer.uid,"siguidpeer.uid");
+		return _s;
+	}
+//data:
+	int								authidx;
+	int								authcnt;
+	foundation::ipc::SignalUid		siguid;
+};
 
 
 struct IpcServiceController: foundation::ipc::Service::Controller{
+	IpcServiceController():foundation::ipc::Service::Controller(HasAuthenticationFlag), authidx(0){
+		
+	}
 	/*virtual*/ void scheduleTalker(foundation::aio::Object *_po);
 	/*virtual*/ bool release();
 	/*virtual*/ bool compressBuffer(
@@ -114,9 +151,16 @@ struct IpcServiceController: foundation::ipc::Service::Controller{
 		char* &_rpb,
 		uint32 &_bl
 	);
+	/*virtual*/ int authenticate(
+		DynamicPointer<fdt::Signal> &_sigptr,//the received signal
+		fdt::ipc::SignalUid &_rsiguid,
+		uint32 &_rflags,
+		fdt::ipc::SerializationTypeIdT &_rtid
+	);
 private:
 	qlz_state_compress		qlz_comp_ctx;
 	qlz_state_decompress	qlz_decomp_ctx;
+	int						authidx;
 };
 
 
@@ -149,6 +193,58 @@ private:
 	_bl = len;
 	return true;
 }
+
+/*virtual*/ int IpcServiceController::authenticate(
+	DynamicPointer<fdt::Signal> &_sigptr,//the received signal
+	fdt::ipc::SignalUid &_rsiguid,
+	uint32 &_rflags,
+	fdt::ipc::SerializationTypeIdT &_rtid
+){
+	if(!_sigptr.ptr()){
+		if(authidx){
+			idbg("");
+			return BAD;
+		}
+		//initiate authentication
+		_sigptr = new AuthSignal;
+		++authidx;
+		idbg("authidx = "<<authidx);
+		return NOK;
+	}
+	AuthSignal &rsig(static_cast<AuthSignal&>(*_sigptr));
+	
+	_rsiguid = rsig.siguid;
+	
+	idbg("sig = "<<(void*)_sigptr.ptr()<<" auth("<<rsig.authidx<<','<<rsig.authcnt<<") authidx = "<<this->authidx);
+	
+	if(rsig.authidx == 0){
+		if(this->authidx == 2){
+			idbg("");
+			return BAD;
+		}
+		++this->authidx;
+		rsig.authidx = this->authidx;
+	}
+	
+	++rsig.authcnt;
+	
+	if(rsig.authidx == 2 && rsig.authcnt == 3){
+		idbg("");
+		return BAD;
+	}
+	
+	
+	if(rsig.authcnt == 4){
+		return OK;
+	}
+	if(rsig.authcnt == 5){
+		_sigptr.clear();
+		return OK;
+	}
+	return NOK;
+}
+
+
 //------------------------------------------------------
 //		Manager::Data
 //------------------------------------------------------
@@ -182,6 +278,8 @@ Manager::Manager():foundation::Manager(16), d(*(new Data())){
 	registerObject<SchedulerT>(new fdt::SignalExecuter, 0, d.writesigexeidx);
 	
 	registerService<SchedulerT>(new foundation::ipc::Service(&ipcctrl), 0, d.ipcidx);
+	
+	fdt::ipc::Service::the().registerSerializationType<AuthSignal>();
 }
 
 Manager::~Manager(){

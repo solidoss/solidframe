@@ -111,6 +111,9 @@ public:
 		SentFlag = 8,//!< The signal was successfully sent
 	};
 	struct Controller{
+		enum{
+			HasAuthenticationFlag = 1,
+		};
 		virtual ~Controller();
 		virtual bool release() = 0;
 		virtual void scheduleTalker(foundation::aio::Object *_ptkr) = 0;
@@ -125,8 +128,32 @@ public:
 			char* &_rpb,
 			uint32 &_bl
 		);
+		bool hasAuthentication()const{
+			return (flags & HasAuthenticationFlag) != 0;
+		}
+		
+		virtual bool receive(
+			Signal *_psig,
+			ipc::SignalUid &_rsiguid
+		);
+		
+		//Must return:
+		// If _psig is NULL, the request is to initiate the authentication,
+		// and _psig must be filled with a command to be sent to peer.
+		// * OK for authentication competed with success - session enters in AUTHENTICATED state
+		// * NOK authentication not completed - session stays in AUTHENTICATED state
+		// * BAD authentication completed with error - session enters Disconnecting
+		virtual int authenticate(
+			DynamicPointer<Signal> &_sigptr,//the received signal
+			ipc::SignalUid &_rsiguid,
+			uint32 &_rflags,
+			SerializationTypeIdT &_rtid
+		);
 	protected:
+		Controller(const uint32 _flags = 0):flags(_flags){}
 		char * allocateBuffer(BufferContext &_rbc, uint32 &_cp);
+	private:
+		uint32		flags;
 	};
 	
 	static Service& the();

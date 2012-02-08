@@ -166,6 +166,7 @@ struct Session::Data{
 		Connecting = 0,//Connecting must be first see isConnecting
 		Accepting,
 		WaitAccept,
+		Authenticating,
 		Connected,
 		Disconnecting,
 		Reconnecting,
@@ -339,12 +340,17 @@ public:
 		return 0;
 	}
 	void moveSignalsToSendQueue();
+	void pushSignalToSendQueue(
+		DynamicPointer<Signal> &_sigptr,
+		const uint32 _flags,
+		const SerializationTypeIdT _tid
+	);
 	void resetKeepAlive();
 	//returns false if there is no other signal but the current one
 	bool moveToNextSendSignal();
 public:
 	SocketAddress4			addr;
-	SocketAddressPair			pairaddr;
+	SocketAddressPair		pairaddr;
 	BaseAddrT				baseaddr;
 	uint32					rcvexpectedid;
 	uint8					state;
@@ -732,10 +738,23 @@ uint32 Session::Data::registerBuffer(Buffer &_rbuf){
 //----------------------------------------------------------------------
 void Session::Data::moveSignalsToSendQueue(){
 	while(signalq.size() && sendsignalidxq.size() < Data::MaxSendSignalQueueSize){
-		uint32 			flags(signalq.front().flags);
-		cassert(signalq.front().signal.ptr());
-		const SignalUid	uid(pushSendWaitSignal(signalq.front().signal, signalq.front().tid, 0, flags, sendsignalid++));
+		pushSignalToSendQueue(
+			signalq.front().signal, 
+			signalq.front().flags,
+			signalq.front().tid
+		);
+		signalq.pop();
+	}
+}
+void Session::Data::pushSignalToSendQueue(
+	DynamicPointer<Signal> &_sigptr,
+	const uint32 _flags,
+	const SerializationTypeIdT _tid
+){
+		cassert(_sigptr.ptr());
+		const SignalUid	uid(pushSendWaitSignal(_sigptr, _tid, 0, _flags, sendsignalid++));
 		SendSignalData 	&rssd(sendsignalvec[uid.idx]);
+		
 		Context::the().sigctx.signaluid = uid;
 		
 		sendsignalidxq.push(uid.idx);
@@ -749,9 +768,7 @@ void Session::Data::moveSignalsToSendQueue(){
 		}else{
 			rssd.flags &= ~Service::WaitResponseFlag;
 		}
-		
-		signalq.pop();
-	}
+
 }
 //----------------------------------------------------------------------
 void Session::Data::resetKeepAlive(){
@@ -1031,11 +1048,48 @@ bool Session::pushReceivedBuffer(
 	}
 }
 //---------------------------------------------------------------------
-void Session::completeConnect(int _pairport){
+void Session::completeConnect(
+	Talker::TalkerStub &_rstub,
+	int _pairport
+){
 	if(d.state == Data::Connected) return;
+	if(d.state == Data::Authenticating) return;
 	
-	d.state = Data::Connected;
 	d.addr.port(_pairport);
+	
+	Service::Controller &rctrl = _rstub.service().controller();
+	
+	if(!rctrl.hasAuthentication()){
+		d.state = Data::Connected;
+	}else{
+		DynamicPointer<Signal>	sigptr;
+		SignalUid 				siguid(0xffffffff, 0xffffffff);
+		uint32					flags = 0;
+		SerializationTypeIdT 	tid = SERIALIZATION_INVALIDID;
+		const int				authrv = rctrl.authenticate(sigptr, siguid, flags, tid);
+		switch(authrv){
+			case BAD:
+				d.state = Data::Disconnecting;
+				break;
+			case OK:
+				d.state = Data::Connected;
+				d.keepalivetimeout = _rstub.service().keepAliveTimeout();
+				break;
+			case NOK:
+				d.state = Data::Authenticating;
+				d.state = Data::Connected;
+				d.keepalivetimeout = 500;
+				d.pushSignalToSendQueue(
+					sigptr,
+					flags,
+					tid
+				);
+				flags |= Service::WaitResponseFlag;
+				break;
+			default:
+				THROW_EXCEPTION_EX("Invalid return value for authenticate", authrv);
+		}
+	}
 	
 	d.freeSentBuffer(1);
 	//put the received accepting buffer from peer as update - it MUST have id 0
@@ -1072,9 +1126,12 @@ bool Session::executeTimeout(
 				d.state = Data::Disconnecting;
 				return true;//disconnecting
 			}
-		}else{
+		}else if(d.state != Data::Authenticating){
 			d.state = Data::Reconnecting;
 			return true;
+		}else{
+			d.state = Data::Disconnecting;
+			return true;//disconnecting
 		}
 	}
 	
@@ -1118,6 +1175,7 @@ int Session::execute(Talker::TalkerStub &_rstub){
 			return doExecuteAccepting(_rstub);
 		case Data::WaitAccept:
 			return NOK;
+		case Data::Authenticating:
 		case Data::Connected:
 			return doExecuteConnected(_rstub);
 		case Data::Disconnecting:
@@ -1340,11 +1398,40 @@ void Session::doParseBuffer(Talker::TalkerStub &_rstub, const Buffer &_rbuf/*, c
 		bpos += rv;
 		
 		if(rrsd.pdeserializer->empty()){//done one signal.
-			SignalUid 		siguid(0xffffffff, 0xffffffff);
-
-			rrsd.psignal->ipcReceived(siguid);
-			
+			SignalUid 				siguid(0xffffffff, 0xffffffff);
+			Service::Controller		&rctrl = _rstub.service().controller();
+			Signal					*psignal = rrsd.psignal;
 			rrsd.psignal = NULL;
+			
+			if(d.state == Data::Connected){
+				//rrsd.psignal->ipcReceived(siguid);
+				if(!rctrl.receive(psignal, siguid)){
+					d.state = Data::Disconnecting;
+				}
+			}else if(d.state == Data::Authenticating){
+				DynamicPointer<Signal>	sigptr(psignal);
+				uint32					flags = 0;
+				SerializationTypeIdT 	tid = SERIALIZATION_INVALIDID;
+				const int 				authrv = rctrl.authenticate(sigptr, siguid, flags, tid);
+				switch(authrv){
+					case BAD:
+						d.state = Data::Disconnecting;
+						break;
+					case OK:
+						d.state = Data::Connected;
+						d.keepalivetimeout = _rstub.service().keepAliveTimeout();
+						break;
+					case NOK:
+						if(sigptr.ptr()){
+							flags |= Service::WaitResponseFlag;
+							d.pushSignalToSendQueue(sigptr, flags, tid);
+						}
+						break;
+					default:
+						THROW_EXCEPTION_EX("Invalid return value for authenticate ", authrv);
+				}
+			}
+			
 			
 			idbgx(Dbg::ipc, "donesignal "<<siguid.idx<<','<<siguid.uid);
 			
@@ -1431,7 +1518,12 @@ int Session::doExecuteAccepting(Talker::TalkerStub &_rstub){
 		vdbgx(Dbg::ipc, "sent accepting "<<rsbd.buffer<<" pending");
 	}
 	
-	d.state = Data::Connected;
+	Service::Controller &rctrl = _rstub.service().controller();
+	if(!rctrl.hasAuthentication()){
+		d.state = Data::Connected;
+	}else{
+		d.state = Data::Authenticating;
+	}
 	return OK;
 }
 //---------------------------------------------------------------------
@@ -1461,8 +1553,11 @@ int Session::doExecuteConnected(Talker::TalkerStub &_rstub){
 		}
 		
 		COLLECT_DATA_1(d.statistics.sendUpdatesSize, rsbd.buffer.updatesCount());
-		
-		d.moveSignalsToSendQueue();
+		if(d.state == Data::Connected){
+			d.moveSignalsToSendQueue();
+		}else /*if(d.state == Data::Authenticating)*/{
+			
+		}
 		
 		doFillSendBuffer(_rstub, bufidx);
 		

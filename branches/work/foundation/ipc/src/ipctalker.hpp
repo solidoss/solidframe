@@ -79,13 +79,13 @@ public:
 	void pushSession(Session *_ps, ConnectionUid &_rconid, bool _exists = false);
 	void disconnectSessions();
 private:
-	int doReceiveBuffers(uint32 _atmost, const ulong _sig);
-	bool doProcessReceivedBuffers(const TimeSpec &_rts);
-	void doDispatchReceivedBuffer(char *_pbuf, const uint32 _bufsz, const SocketAddressPair &_rsap);
+	int doReceiveBuffers(TalkerStub &_rstub, uint32 _atmost, const ulong _sig);
+	bool doProcessReceivedBuffers(TalkerStub &_rstub);
+	void doDispatchReceivedBuffer(TalkerStub &_rstub, char *_pbuf, const uint32 _bufsz, const SocketAddressPair &_rsap);
 	void doInsertNewSessions();
 	void doDispatchSignals();
-	int doSendBuffers(const ulong _sig, const TimeSpec &_rcrttimepos);
-	bool doExecuteSessions(const TimeSpec &_rcrttimepos);
+	int doSendBuffers(TalkerStub &_rstub, const ulong _sig);
+	bool doExecuteSessions(TalkerStub &_rstub);
 private:
 	friend struct TalkerStub;
 	struct Data;

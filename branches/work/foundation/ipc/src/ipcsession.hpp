@@ -96,7 +96,7 @@ public:
 		const ConnectionUid &_rconid*/
 	);
 	
-	void completeConnect(int _port);
+	void completeConnect(Talker::TalkerStub &_rstub, int _port);
 	
 	bool executeTimeout(
 		Talker::TalkerStub &_rstub,

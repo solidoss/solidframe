@@ -751,7 +751,23 @@ char * Service::Controller::allocateBuffer(BufferContext &_rbc, uint32 &_cp){
 	_rbc.reqbufid = mid;
 	return newbuf + _rbc.offset;
 }
+bool Service::Controller::receive(
+	Signal *_psig,
+	ipc::SignalUid &_rsiguid
+){
+	_psig->ipcReceived(_rsiguid);
+	return true;
+}
 
+int Service::Controller::authenticate(
+	DynamicPointer<Signal> &_sigptr,
+	ipc::SignalUid &_rsiguid,
+	uint32 &_rflags,
+	SerializationTypeIdT &_rtid
+){
+	//use: SignalContext::the().connectionuid!!
+	return BAD;//by default no authentication
+}
 }//namespace ipc
 }//namespace foundation
 
