@@ -1077,7 +1077,6 @@ void Session::completeConnect(
 				break;
 			case NOK:
 				d.state = Data::Authenticating;
-				d.state = Data::Connected;
 				d.keepalivetimeout = 500;
 				d.pushSignalToSendQueue(
 					sigptr,

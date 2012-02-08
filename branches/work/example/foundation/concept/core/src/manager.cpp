@@ -124,13 +124,14 @@ struct AuthSignal: Dynamic<AuthSignal, DynamicShared<foundation::Signal> >{
 			);
 			_s.push(rsiguid.idx, "siguid.idx").push(rsiguid.uid,"siguid.uid");
 		}
-		//_s.push(siguidpeer.idx, "siguidpeer.idx").push(siguidpeer.uid,"siguidpeer.uid");
+		_s.push(siguidpeer.idx, "siguidpeer.idx").push(siguidpeer.uid,"siguidpeer.uid");
 		return _s;
 	}
 //data:
 	int								authidx;
 	int								authcnt;
 	foundation::ipc::SignalUid		siguid;
+	foundation::ipc::SignalUid		siguidpeer;
 };
 
 
@@ -211,9 +212,15 @@ private:
 		idbg("authidx = "<<authidx);
 		return NOK;
 	}
+	if(_sigptr->dynamicTypeId() != AuthSignal::staticTypeId()){
+		cassert(false);
+		return BAD;
+	}
 	AuthSignal &rsig(static_cast<AuthSignal&>(*_sigptr));
 	
-	_rsiguid = rsig.siguid;
+	_rsiguid = rsig.siguidpeer;
+	
+	rsig.siguidpeer = rsig.siguid;
 	
 	idbg("sig = "<<(void*)_sigptr.ptr()<<" auth("<<rsig.authidx<<','<<rsig.authcnt<<") authidx = "<<this->authidx);
 	
