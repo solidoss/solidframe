@@ -24,7 +24,6 @@ This is a pool of pending features and changes
    * pushStringLimit(uint32(256)) / pushStringLimit(), reset to default.
    * pushStreamLimit(uint64(200000000)) / pushStreamLimit(), reset to default.
    * pushContainerLimit(uint32()) - pushContainerLimit(), reset to default.
- # Make system library compile on windows
- # Find a fix for thread safe static member within static function.
- # Add support for boost aio and ipc in foundation. Add new folders: foundation/boost_aio and foundation/boost_ipc. The folders' content will mimic the foundation/aio and foundation/ipc respectively but will use boost libraries as their foundation. This will give better portability for SolidFrame without rediscovering the wheel.
- 
+ # DONE: Make system library compile on windows
+ # DONE: Find a fix for thread safe static member within static function.
+ # Add support for authenticating the ipc sessions.
