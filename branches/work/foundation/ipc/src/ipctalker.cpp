@@ -529,7 +529,7 @@ bool Talker::doExecuteSessions(TalkerStub &_rstub){
 		const Data::TimerData		&rtd(d.timerq.top());
 		Data::SessionStub			&rss(d.sessionvec[rtd.sessionidx]);
 		ts.sessionidx = rtd.sessionidx;
-		if(rss.psession->executeTimeout(ts, rtd.id)){
+		if(rss.psession && rss.psession->executeTimeout(ts, rtd.id)){
 			if(!rss.inexeq){
 				d.sessionexecq.push(ts.sessionidx);
 				rss.inexeq = true;

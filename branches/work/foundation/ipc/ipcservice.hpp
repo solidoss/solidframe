@@ -149,10 +149,17 @@ public:
 			uint32 &_rflags,
 			SerializationTypeIdT &_rtid
 		);
+		const uint32 reservedDataSize()const{
+			return resdatasz;
+		}
 	protected:
-		Controller(const uint32 _flags = 0):flags(_flags){}
+		Controller(
+			const uint32 _resdatasz = 0,
+			 const uint32 _flags = 0
+		): resdatasz(_resdatasz), flags(_flags){}
 		char * allocateBuffer(BufferContext &_rbc, uint32 &_cp);
 	private:
+		uint32 		resdatasz;
 		uint32		flags;
 	};
 	

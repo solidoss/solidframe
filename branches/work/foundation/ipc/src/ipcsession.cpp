@@ -1419,6 +1419,10 @@ void Session::doParseBuffer(Talker::TalkerStub &_rstub, const Buffer &_rbuf/*, c
 					case OK:
 						d.state = Data::Connected;
 						d.keepalivetimeout = _rstub.service().keepAliveTimeout();
+						if(sigptr.ptr()){
+							flags |= Service::WaitResponseFlag;
+							d.pushSignalToSendQueue(sigptr, flags, tid);
+						}
 						break;
 					case NOK:
 						if(sigptr.ptr()){
@@ -1528,13 +1532,22 @@ int Session::doExecuteAccepting(Talker::TalkerStub &_rstub){
 //---------------------------------------------------------------------
 int Session::doExecuteConnected(Talker::TalkerStub &_rstub){
 	vdbgx(Dbg::ipc, ""<<d.sendbufferfreeposstk.size());
+	Service::Controller 	&rctrl = _rstub.service().controller();
+	
 	while(d.sendbufferfreeposstk.size()){
-		if(
-			d.signalq.empty() &&
-			d.sendsignalidxq.empty()
-		){
-			break;
+		if(d.state == Data::Connected){
+			if(
+				d.signalq.empty() &&
+				d.sendsignalidxq.empty()
+			){
+				break;
+			}
+		}else{
+			if(d.sendsignalidxq.empty()){
+				break;
+			}
 		}
+		
 		//we can still send buffers
 		Buffer 					buf(Buffer::allocateDataForReading(), Buffer::ReadCapacity);
 		
@@ -1562,7 +1575,7 @@ int Session::doExecuteConnected(Talker::TalkerStub &_rstub){
 		
 		COLLECT_DATA_1(d.statistics.sendUncompressed, rsbd.buffer.bufferSize());
 		
-		rsbd.buffer.compress(_rstub.service().controller());
+		rsbd.buffer.compress(rctrl);
 		
 		COLLECT_DATA_1(d.statistics.sendCompressed, rsbd.buffer.bufferSize());
 		
@@ -1616,7 +1629,7 @@ int Session::doExecuteConnected(Talker::TalkerStub &_rstub){
 void Session::doFillSendBuffer(Talker::TalkerStub &_rstub, const uint32 _bufidx){
 	Data::SendBufferData	&rsbd(d.sendbuffervec[_bufidx]);
 	Data::BinSerializerT	*pser(NULL);
-	
+	Service::Controller 	&rctrl = _rstub.service().controller();
 	COLLECT_DATA_1(d.statistics.sendSignalIdxQueueSize, d.sendsignalidxq.size());
 	
 	while(d.sendsignalidxq.size()){
@@ -1653,12 +1666,18 @@ void Session::doFillSendBuffer(Talker::TalkerStub &_rstub, const uint32 _bufidx)
 			--d.currentbuffersignalcount;
 			
 			//rssd.signal.storeSpecific();
-			int rv = rssd.pserializer->run(rsbd.buffer.dataEnd(), rsbd.buffer.dataFreeSize());
+			const uint32 tofill = rsbd.buffer.dataFreeSize() - rctrl.reservedDataSize();
+			
+			int rv = rssd.pserializer->run(rsbd.buffer.dataEnd(), tofill);
 			
 			vdbgx(Dbg::ipc, "d.crtsigbufcnt = "<<d.currentbuffersignalcount<<" serialized len = "<<rv);
 			
 			if(rv < 0){
 				THROW_EXCEPTION("Serialization error");
+				cassert(false);
+			}
+			if(rv > tofill){
+				THROW_EXCEPTION_EX("Serialization error: invalid return value", tofill);
 				cassert(false);
 			}
 			
@@ -1678,7 +1697,12 @@ void Session::doFillSendBuffer(Talker::TalkerStub &_rstub, const uint32 _bufidx)
 				}
 				vdbgx(Dbg::ipc, "sendsignalidxq poped "<<d.sendsignalidxq.size());
 				d.currentbuffersignalcount = Data::MaxSignalBufferCount;
-				if(rsbd.buffer.dataFreeSize() < 16) break;
+				if(rsbd.buffer.dataFreeSize() <= rctrl.reservedDataSize()){
+					break;
+				}
+				if(rsbd.buffer.dataFreeSize() < 16){
+					break;
+				}
 			}else{
 				break;
 			}
