@@ -5,7 +5,9 @@
 This is a pool of pending features and changes
  # IPC: Add support for authenticating the ipc sessions.
  # IPC: add support for responding with TRY_RECONNECT buffer
- # IPC: find a better way to disconnect after a failed authentication
+ # IPC: Find a better way to disconnect after a failed authentication
+ # IPC: Add support for sending authentication commands while in authenticating state. Commands with AuthenticationFlag set.
+ # IPC: Check that a failed authentication, raises the objects waiting for commands to be sent. There seems to be a bug!!
  # Serialization: add support for specific objects: pushSpecificPointer().
  # Add new class foundation::AccessManager: a container which will manage read/write access to its objects.
  # Re-factor foundation::file::Manager to be based on foundation::AccessManager.
