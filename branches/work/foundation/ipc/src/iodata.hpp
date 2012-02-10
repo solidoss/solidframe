@@ -178,8 +178,8 @@ struct Buffer{
 
 	void optimize(uint16 _cp = 0);
 
-	bool compress(Service::Controller &_rctrl);
-	bool decompress(Service::Controller &_rctrl);
+	bool compress(Controller &_rctrl);
+	bool decompress(Controller &_rctrl);
 	
 	void reinit(char *_pb = NULL, uint16 _bc = 0, uint16 _dl = 0);
 	char *buffer()const;

@@ -135,8 +135,8 @@ struct AuthSignal: Dynamic<AuthSignal, DynamicShared<foundation::Signal> >{
 };
 
 
-struct IpcServiceController: foundation::ipc::Service::Controller{
-	IpcServiceController():foundation::ipc::Service::Controller(400, HasAuthenticationFlag), authidx(0){
+struct IpcServiceController: foundation::ipc::Controller{
+	IpcServiceController():foundation::ipc::Controller(400, HasAuthenticationFlag), authidx(0){
 		
 	}
 	/*virtual*/ void scheduleTalker(foundation::aio::Object *_po);

@@ -145,7 +145,7 @@ Service::Data::~Data(){
 }
 
 Service::Service(
-	Service::Controller *_pc,
+	Controller *_pc,
 	uint32 _keepalivetout,
 	uint32 _sespertkr,
 	uint32 _tkrmaxcnt
@@ -553,7 +553,7 @@ void Service::eraseObject(const Talker &_ro){
 	vdbgx(Dbg::ipc, "erasing talker");
 }
 //---------------------------------------------------------------------
-Service::Controller& Service::controller(){
+Controller& Service::controller(){
 	return *d.pc;
 }
 
@@ -612,7 +612,7 @@ struct BufferContext{
 	uint	offset;
 	uint	reqbufid;
 };
-bool Buffer::compress(Service::Controller &_rctrl){
+bool Buffer::compress(Controller &_rctrl){
 	BufferContext	bctx(this->minSize());
 	int32			datasz(this->dataSize() + updatesCount() * sizeof(uint32));
 	char			*pd(this->data() - updatesCount() * sizeof(uint32));
@@ -649,7 +649,7 @@ bool Buffer::compress(Service::Controller &_rctrl){
 	optimize();
 	return true;
 }
-bool Buffer::decompress(Service::Controller &_rctrl){
+bool Buffer::decompress(Controller &_rctrl){
 	if(!(flags() & CompressedFlag)){
 		return true;
 	}
@@ -722,10 +722,10 @@ std::ostream& operator<<(std::ostream &_ros, const Buffer &_rb){
 //------------------------------------------------------------------
 //		Controller
 //------------------------------------------------------------------
-/*virtual*/ Service::Controller::~Controller(){
+/*virtual*/ Controller::~Controller(){
 	
 }
-/*virtual*/ bool Service::Controller::compressBuffer(
+/*virtual*/ bool Controller::compressBuffer(
 	BufferContext &_rbc,
 	const uint32 _bufsz,
 	char* &_rpb,
@@ -733,14 +733,14 @@ std::ostream& operator<<(std::ostream &_ros, const Buffer &_rb){
 ){
 	return false;
 }
-/*virtual*/ bool Service::Controller::decompressBuffer(
+/*virtual*/ bool Controller::decompressBuffer(
 	BufferContext &_rbc,
 	char* &_rpb,
 	uint32 &_bl
 ){
 	return true;
 }
-char * Service::Controller::allocateBuffer(BufferContext &_rbc, uint32 &_cp){
+char * Controller::allocateBuffer(BufferContext &_rbc, uint32 &_cp){
 	const uint	mid(Specific::capacityToIndex(Buffer::ReadCapacity));
 	char		*newbuf(Specific::popBuffer(mid));
 	_cp = Buffer::ReadCapacity - _rbc.offset;
@@ -751,7 +751,7 @@ char * Service::Controller::allocateBuffer(BufferContext &_rbc, uint32 &_cp){
 	_rbc.reqbufid = mid;
 	return newbuf + _rbc.offset;
 }
-bool Service::Controller::receive(
+bool Controller::receive(
 	Signal *_psig,
 	ipc::SignalUid &_rsiguid
 ){
@@ -759,7 +759,7 @@ bool Service::Controller::receive(
 	return true;
 }
 
-int Service::Controller::authenticate(
+int Controller::authenticate(
 	DynamicPointer<Signal> &_sigptr,
 	ipc::SignalUid &_rsiguid,
 	uint32 &_rflags,

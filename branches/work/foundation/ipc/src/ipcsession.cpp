@@ -1057,7 +1057,7 @@ void Session::completeConnect(
 	
 	d.addr.port(_pairport);
 	
-	Service::Controller &rctrl = _rstub.service().controller();
+	Controller &rctrl = _rstub.service().controller();
 	
 	if(!rctrl.hasAuthentication()){
 		d.state = Data::Connected;
@@ -1175,10 +1175,11 @@ int Session::execute(Talker::TalkerStub &_rstub){
 		case Data::WaitAccept:
 			return NOK;
 		case Data::Authenticating:
+			return doExecuteAuthenticating(_rstub);
 		case Data::Connected:
 			return doExecuteConnected(_rstub);
 		case Data::Disconnecting:
-			return doExecuteDisconnect(_rstub);
+			return doExecuteDisconnecting(_rstub);
 		case Data::Reconnecting:
 			if(d.sendpendingcount) return NOK;
 			reconnect(NULL);
@@ -1398,7 +1399,7 @@ void Session::doParseBuffer(Talker::TalkerStub &_rstub, const Buffer &_rbuf/*, c
 		
 		if(rrsd.pdeserializer->empty()){//done one signal.
 			SignalUid 				siguid(0xffffffff, 0xffffffff);
-			Service::Controller		&rctrl = _rstub.service().controller();
+			Controller				&rctrl = _rstub.service().controller();
 			Signal					*psignal = rrsd.psignal;
 			rrsd.psignal = NULL;
 			
@@ -1521,7 +1522,7 @@ int Session::doExecuteAccepting(Talker::TalkerStub &_rstub){
 		vdbgx(Dbg::ipc, "sent accepting "<<rsbd.buffer<<" pending");
 	}
 	
-	Service::Controller &rctrl = _rstub.service().controller();
+	Controller &rctrl = _rstub.service().controller();
 	if(!rctrl.hasAuthentication()){
 		d.state = Data::Connected;
 	}else{
@@ -1530,72 +1531,7 @@ int Session::doExecuteAccepting(Talker::TalkerStub &_rstub){
 	return OK;
 }
 //---------------------------------------------------------------------
-int Session::doExecuteConnected(Talker::TalkerStub &_rstub){
-	vdbgx(Dbg::ipc, ""<<d.sendbufferfreeposstk.size());
-	Service::Controller 	&rctrl = _rstub.service().controller();
-	
-	while(d.sendbufferfreeposstk.size()){
-		if(d.state == Data::Connected){
-			if(
-				d.signalq.empty() &&
-				d.sendsignalidxq.empty()
-			){
-				break;
-			}
-		}else{
-			if(d.sendsignalidxq.empty()){
-				break;
-			}
-		}
-		
-		//we can still send buffers
-		Buffer 					buf(Buffer::allocateDataForReading(), Buffer::ReadCapacity);
-		
-		const uint32			bufidx(d.registerBuffer(buf));
-		Data::SendBufferData	&rsbd(d.sendbuffervec[bufidx]);
-		
-		rsbd.buffer.resetHeader();
-		rsbd.buffer.type(Buffer::DataType);
-		rsbd.buffer.id(d.sendid);
-		d.incrementSendId();
-		
-		while(d.rcvdidq.size() && rsbd.buffer.updatesCount() < 8){
-			rsbd.buffer.pushUpdate(d.rcvdidq.front());
-			d.rcvdidq.pop();
-		}
-		
-		COLLECT_DATA_1(d.statistics.sendUpdatesSize, rsbd.buffer.updatesCount());
-		if(d.state == Data::Connected){
-			d.moveSignalsToSendQueue();
-		}else /*if(d.state == Data::Authenticating)*/{
-			
-		}
-		
-		doFillSendBuffer(_rstub, bufidx);
-		
-		COLLECT_DATA_1(d.statistics.sendUncompressed, rsbd.buffer.bufferSize());
-		
-		rsbd.buffer.compress(rctrl);
-		
-		COLLECT_DATA_1(d.statistics.sendCompressed, rsbd.buffer.bufferSize());
-		
-		d.resetKeepAlive();
-		
-		if(_rstub.pushSendBuffer(bufidx, rsbd.buffer.buffer(), rsbd.buffer.bufferSize())){
-			//buffer sent - setting a timer for it
-			//schedule a timer for this buffer
-			TimeSpec tpos(_rstub.currentTime());
-			tpos += d.computeRetransmitTimeout(rsbd.buffer.retransmitId(), rsbd.buffer.id());
-			
-			_rstub.pushTimer(pack32(bufidx, rsbd.uid), tpos);
-			vdbgx(Dbg::ipc, "sent data "<<rsbd.buffer<<" pending");
-		}else{
-			COLLECT_DATA_0(d.statistics.sendPending);
-			rsbd.sending = 1;
-			++d.sendpendingcount;
-			vdbgx(Dbg::ipc, "sent data "<<rsbd.buffer<<" pending");
-		}
-	}
+void Session::doTrySendUpdates(Talker::TalkerStub &_rstub){
 	if(d.rcvdidq.size() && d.updatesbuffer.empty() && d.mustSendUpdates()){
 		//send an updates buffer
 		const uint32	bufid(Specific::sizeToIndex(256));
@@ -1622,14 +1558,130 @@ int Session::doExecuteConnected(Talker::TalkerStub &_rstub){
 			d.updatesbuffer = buf;
 			vdbgx(Dbg::ipc, "sent updates "<<buf<<" pending");
 		}
+	}	
+}
+//---------------------------------------------------------------------
+int Session::doExecuteAuthenticating(Talker::TalkerStub &_rstub){
+	vdbgx(Dbg::ipc, ""<<d.sendbufferfreeposstk.size());
+	Controller 	&rctrl = _rstub.service().controller();
+	
+	while(d.sendbufferfreeposstk.size()){
+		if(d.sendsignalidxq.empty()){
+			break;
+		}
+		
+		//we can still send buffers
+		Buffer 					buf(Buffer::allocateDataForReading(), Buffer::ReadCapacity);
+		
+		const uint32			bufidx(d.registerBuffer(buf));
+		Data::SendBufferData	&rsbd(d.sendbuffervec[bufidx]);
+		
+		rsbd.buffer.resetHeader();
+		rsbd.buffer.type(Buffer::DataType);
+		rsbd.buffer.id(d.sendid);
+		d.incrementSendId();
+		
+		while(d.rcvdidq.size() && rsbd.buffer.updatesCount() < 8){
+			rsbd.buffer.pushUpdate(d.rcvdidq.front());
+			d.rcvdidq.pop();
+		}
+		
+		COLLECT_DATA_1(d.statistics.sendUpdatesSize, rsbd.buffer.updatesCount());
+		
+		doFillSendBuffer(_rstub, bufidx);
+		
+		COLLECT_DATA_1(d.statistics.sendUncompressed, rsbd.buffer.bufferSize());
+		
+		rsbd.buffer.compress(rctrl);
+		
+		COLLECT_DATA_1(d.statistics.sendCompressed, rsbd.buffer.bufferSize());
+		
+		d.resetKeepAlive();
+		
+		if(_rstub.pushSendBuffer(bufidx, rsbd.buffer.buffer(), rsbd.buffer.bufferSize())){
+			//buffer sent - setting a timer for it
+			//schedule a timer for this buffer
+			TimeSpec tpos(_rstub.currentTime());
+			tpos += d.computeRetransmitTimeout(rsbd.buffer.retransmitId(), rsbd.buffer.id());
+			
+			_rstub.pushTimer(pack32(bufidx, rsbd.uid), tpos);
+			vdbgx(Dbg::ipc, "sent data "<<rsbd.buffer<<" pending");
+		}else{
+			COLLECT_DATA_0(d.statistics.sendPending);
+			rsbd.sending = 1;
+			++d.sendpendingcount;
+			vdbgx(Dbg::ipc, "sent data "<<rsbd.buffer<<" pending");
+		}
 	}
+	doTrySendUpdates(_rstub);
+	return NOK;
+}
+//---------------------------------------------------------------------
+int Session::doExecuteConnected(Talker::TalkerStub &_rstub){
+	vdbgx(Dbg::ipc, ""<<d.sendbufferfreeposstk.size());
+	Controller 	&rctrl = _rstub.service().controller();
+	
+	while(d.sendbufferfreeposstk.size()){
+		if(
+			d.signalq.empty() &&
+			d.sendsignalidxq.empty()
+		){
+			break;
+		}
+		
+		//we can still send buffers
+		Buffer 					buf(Buffer::allocateDataForReading(), Buffer::ReadCapacity);
+		
+		const uint32			bufidx(d.registerBuffer(buf));
+		Data::SendBufferData	&rsbd(d.sendbuffervec[bufidx]);
+		
+		rsbd.buffer.resetHeader();
+		rsbd.buffer.type(Buffer::DataType);
+		rsbd.buffer.id(d.sendid);
+		d.incrementSendId();
+		
+		while(d.rcvdidq.size() && rsbd.buffer.updatesCount() < 8){
+			rsbd.buffer.pushUpdate(d.rcvdidq.front());
+			d.rcvdidq.pop();
+		}
+		
+		COLLECT_DATA_1(d.statistics.sendUpdatesSize, rsbd.buffer.updatesCount());
+
+		d.moveSignalsToSendQueue();
+		
+		doFillSendBuffer(_rstub, bufidx);
+		
+		COLLECT_DATA_1(d.statistics.sendUncompressed, rsbd.buffer.bufferSize());
+		
+		rsbd.buffer.compress(rctrl);
+		
+		COLLECT_DATA_1(d.statistics.sendCompressed, rsbd.buffer.bufferSize());
+		
+		d.resetKeepAlive();
+		
+		if(_rstub.pushSendBuffer(bufidx, rsbd.buffer.buffer(), rsbd.buffer.bufferSize())){
+			//buffer sent - setting a timer for it
+			//schedule a timer for this buffer
+			TimeSpec tpos(_rstub.currentTime());
+			tpos += d.computeRetransmitTimeout(rsbd.buffer.retransmitId(), rsbd.buffer.id());
+			
+			_rstub.pushTimer(pack32(bufidx, rsbd.uid), tpos);
+			vdbgx(Dbg::ipc, "sent data "<<rsbd.buffer<<" pending");
+		}else{
+			COLLECT_DATA_0(d.statistics.sendPending);
+			rsbd.sending = 1;
+			++d.sendpendingcount;
+			vdbgx(Dbg::ipc, "sent data "<<rsbd.buffer<<" pending");
+		}
+	}
+	doTrySendUpdates(_rstub);
 	return NOK;
 }
 //---------------------------------------------------------------------
 void Session::doFillSendBuffer(Talker::TalkerStub &_rstub, const uint32 _bufidx){
 	Data::SendBufferData	&rsbd(d.sendbuffervec[_bufidx]);
 	Data::BinSerializerT	*pser(NULL);
-	Service::Controller 	&rctrl = _rstub.service().controller();
+	Controller 	&rctrl = _rstub.service().controller();
 	COLLECT_DATA_1(d.statistics.sendSignalIdxQueueSize, d.sendsignalidxq.size());
 	
 	while(d.sendsignalidxq.size()){
@@ -1717,7 +1769,7 @@ void Session::doFillSendBuffer(Talker::TalkerStub &_rstub, const uint32 _bufidx)
 	if(pser) d.pushSerializer(pser);
 }
 //---------------------------------------------------------------------
-int Session::doExecuteDisconnect(Talker::TalkerStub &_rstub){
+int Session::doExecuteDisconnecting(Talker::TalkerStub &_rstub){
 	d.state = Data::Disconnected;
 	return BAD;
 }
