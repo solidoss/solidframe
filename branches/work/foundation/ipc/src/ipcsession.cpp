@@ -1665,7 +1665,6 @@ void Session::doFillSendBuffer(Talker::TalkerStub &_rstub, const uint32 _bufidx)
 			}
 			--d.currentbuffersignalcount;
 			
-			//rssd.signal.storeSpecific();
 			const uint32 tofill = rsbd.buffer.dataFreeSize() - rctrl.reservedDataSize();
 			
 			int rv = rssd.pserializer->run(rsbd.buffer.dataEnd(), tofill);

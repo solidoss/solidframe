@@ -390,6 +390,7 @@ class Serializer: public Base{
 		if(rsp.pis){
 			rs.fstk.push(FncData(&Serializer::storeStream, NULL));
 		}
+		idbgx(Dbg::ser_bin, "store stream size "<<isd.sz);
 		const CRCValue<uint64> crcsz(isd.sz);
 		rs.estk.push(ExtData((int64)crcsz, (int64)0));
 		rs.fstk.push(FncData(&Base::popEStack, NULL));

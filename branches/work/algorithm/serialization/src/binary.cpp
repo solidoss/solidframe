@@ -34,9 +34,9 @@ inline char *storeValue(char *_pd, const uint16 _val){
 	return _pd + 2;
 }
 inline const char* parseValue(const char *_ps, uint16 &_val){
-	_val = *_ps;
+	_val = (uint8)(*_ps);
 	_val <<= 8;
-	_val += *(_ps + 1);
+	_val += (uint8)(*(_ps + 1));
 	return _ps + 2;
 }
 #ifdef HAVE_SAFE_STATIC
@@ -380,7 +380,7 @@ int Serializer::store<int64>(Base &_rb, FncData &_rfd){
 }
 template <>
 int Serializer::store<uint64>(Base &_rb, FncData &_rfd){
-	idbgx(Dbg::ser_bin, ""<<_rfd.n);
+	idbgx(Dbg::ser_bin, ""<<_rfd.n<<*((uint64*)_rfd.p));
 	_rfd.s = sizeof(uint64);
 	_rfd.f = &Serializer::storeBinary<8>;
 	return storeBinary<8>(_rb, _rfd);
@@ -437,6 +437,8 @@ int Serializer::storeStream(Base &_rb, FncData &_rfd){
 		
 		storeValue(rs.cpb, (uint16)crcsz);
 		
+		idbgx(Dbg::ser_bin, "store value "<<(uint16)crcsz);
+			  
 		rs.cpb += toread + 2;
 		rsp.off += toread;
 	}else{
@@ -532,7 +534,7 @@ int Deserializer::run(const char *_pb, unsigned _bl){
 			case OK: fstk.pop(); break;
 			case NOK: goto Done;
 			case BAD:
-				idbgx(Dbg::ser_bin, "error");
+				idbgx(Dbg::ser_bin, "error: "<<errorString());
 				resetLimits();
 				return -1;
 		}
@@ -1059,6 +1061,7 @@ int Deserializer::parseStream(Base &_rb, FncData &_rfd){
 	idbgx(Dbg::ser_bin, "");
 	if(!rd.cpb) return OK;
 	OutputStreamData &rsp(*reinterpret_cast<OutputStreamData*>(rd.estk.top().buf));
+	idbgx(Dbg::ser_bin, "rsp.sz = "<<rsp.sz);
 	if(rsp.sz < 0) return OK;
 	
 	int32 towrite = rd.be - rd.cpb;
@@ -1081,6 +1084,7 @@ int Deserializer::parseStream(Base &_rb, FncData &_rfd){
 			sz = crcsz.value();
 		}else{
 			rd.err = ERR_STREAM_CHUNK_MAX_LIMIT;
+			idbgx(Dbg::ser_bin, "crcval = "<<crcsz.value()<<" towrite = "<<towrite);
 			return BAD;
 		}
 	}
