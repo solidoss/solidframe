@@ -27,3 +27,5 @@ This is a pool of pending features and changes
  # DONE: Make system library compile on windows
  # DONE: Find a fix for thread safe static member within static function.
  # Add support for authenticating the ipc sessions.
+ # IPC: add support for responding with TRY_RECONNECT buffer
+ # IPC: find a better way to disconnect after a failed authentication
