@@ -340,6 +340,8 @@ public:
 		return 0;
 	}
 	void moveSignalsToSendQueue();
+	void moveAuthSignalsToSendQueue();
+	
 	void pushSignalToSendQueue(
 		DynamicPointer<Signal> &_sigptr,
 		const uint32 _flags,
@@ -618,6 +620,12 @@ void Session::Data::popSentWaitSignal(const SignalUid &_rsiguid){
 void Session::Data::popSentWaitSignal(const uint32 _idx){
 	SendSignalData &rssd(sendsignalvec[_idx]);
 	cassert(rssd.signal.ptr());
+	if(rssd.flags & Service::DisconnectAfterSendFlag){
+		++rssd.uid;
+		rssd.signal.clear();
+		sendsignalfreeposstk.push(_idx);
+		this->state = Disconnecting;
+	}
 	if(rssd.flags & Service::WaitResponseFlag){
 		//let it leave a little longer
 		idbgx(Dbg::ipc, "signal waits for response "<<_idx<<' '<<rssd.uid);
@@ -744,6 +752,26 @@ void Session::Data::moveSignalsToSendQueue(){
 			signalq.front().tid
 		);
 		signalq.pop();
+	}
+}
+void Session::Data::moveAuthSignalsToSendQueue(){
+	size_t qsz = signalq.size();
+	while(qsz){
+		if(
+			((signalq.front().flags & Service::AuthenticationFlag) != 0) &&
+			sendsignalidxq.size() < Data::MaxSendSignalQueueSize
+		){
+			pushSignalToSendQueue(
+				signalq.front().signal, 
+				signalq.front().flags,
+				signalq.front().tid
+			);
+			signalq.pop();
+		}else{
+			signalq.push(signalq.front());
+			signalq.pop();
+		}
+		--qsz;
 	}
 }
 void Session::Data::pushSignalToSendQueue(
@@ -1230,6 +1258,9 @@ bool Session::pushSentBuffer(
 	
 	if(rsbd.mustdelete){
 		d.clearSentBuffer(_id);
+		if(d.state == Data::Disconnecting){
+			b = true;
+		}
 		return b;
 	}
 	
@@ -1531,7 +1562,7 @@ int Session::doExecuteAccepting(Talker::TalkerStub &_rstub){
 	return OK;
 }
 //---------------------------------------------------------------------
-void Session::doTrySendUpdates(Talker::TalkerStub &_rstub){
+int Session::doTrySendUpdates(Talker::TalkerStub &_rstub){
 	if(d.rcvdidq.size() && d.updatesbuffer.empty() && d.mustSendUpdates()){
 		//send an updates buffer
 		const uint32	bufid(Specific::sizeToIndex(256));
@@ -1557,8 +1588,11 @@ void Session::doTrySendUpdates(Talker::TalkerStub &_rstub){
 		}else{
 			d.updatesbuffer = buf;
 			vdbgx(Dbg::ipc, "sent updates "<<buf<<" pending");
+			return NOK;
 		}
-	}	
+		return OK;
+	}
+	return BAD;
 }
 //---------------------------------------------------------------------
 int Session::doExecuteAuthenticating(Talker::TalkerStub &_rstub){
@@ -1566,7 +1600,10 @@ int Session::doExecuteAuthenticating(Talker::TalkerStub &_rstub){
 	Controller 	&rctrl = _rstub.service().controller();
 	
 	while(d.sendbufferfreeposstk.size()){
-		if(d.sendsignalidxq.empty()){
+		if(
+			d.signalq.empty() &&
+			d.sendsignalidxq.empty()
+		){
 			break;
 		}
 		
@@ -1587,6 +1624,8 @@ int Session::doExecuteAuthenticating(Talker::TalkerStub &_rstub){
 		}
 		
 		COLLECT_DATA_1(d.statistics.sendUpdatesSize, rsbd.buffer.updatesCount());
+		
+		d.moveAuthSignalsToSendQueue();
 		
 		doFillSendBuffer(_rstub, bufidx);
 		
@@ -1770,8 +1809,14 @@ void Session::doFillSendBuffer(Talker::TalkerStub &_rstub, const uint32 _bufidx)
 }
 //---------------------------------------------------------------------
 int Session::doExecuteDisconnecting(Talker::TalkerStub &_rstub){
-	d.state = Data::Disconnected;
-	return BAD;
+	//d.state = Data::Disconnected;
+	int rv;
+	while((rv = doTrySendUpdates(_rstub)) == OK){
+	}
+	if(rv == BAD){
+		d.state = Data::Disconnected;
+	}
+	return rv;
 }
 //---------------------------------------------------------------------
 void Session::doTryScheduleKeepAlive(Talker::TalkerStub &_rstub){

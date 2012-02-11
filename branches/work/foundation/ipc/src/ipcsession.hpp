@@ -131,7 +131,7 @@ private:
 	int doExecuteAccepting(Talker::TalkerStub &_rstub);
 	int doExecuteConnected(Talker::TalkerStub &_rstub);
 	int doExecuteAuthenticating(Talker::TalkerStub &_rstub);
-	void doTrySendUpdates(Talker::TalkerStub &_rstub);
+	int doTrySendUpdates(Talker::TalkerStub &_rstub);
 	int doExecuteDisconnecting(Talker::TalkerStub &_rstub);
 	void doFillSendBuffer(Talker::TalkerStub &_rstub, const uint32 _bufidx);
 	void doTryScheduleKeepAlive(Talker::TalkerStub &_rstub);

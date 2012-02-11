@@ -49,58 +49,58 @@ struct Buffer;
 struct ConnectionUid;
 struct BufferContext;
 
-	struct Controller{
-		enum{
-			HasAuthenticationFlag = 1,
-		};
-		virtual ~Controller();
-		virtual bool release() = 0;
-		virtual void scheduleTalker(foundation::aio::Object *_ptkr) = 0;
-		virtual bool compressBuffer(
-			BufferContext &_rbc,
-			const uint32 _bufsz,
-			char* &_rpb,
-			uint32 &_bl
-		);
-		virtual bool decompressBuffer(
-			BufferContext &_rbc,
-			char* &_rpb,
-			uint32 &_bl
-		);
-		bool hasAuthentication()const{
-			return (flags & HasAuthenticationFlag) != 0;
-		}
-		
-		virtual bool receive(
-			Signal *_psig,
-			ipc::SignalUid &_rsiguid
-		);
-		
-		//Must return:
-		// If _psig is NULL, the request is to initiate the authentication,
-		// and _psig must be filled with a command to be sent to peer.
-		// * OK for authentication competed with success - session enters in AUTHENTICATED state
-		// * NOK authentication not completed - session stays in AUTHENTICATED state
-		// * BAD authentication completed with error - session enters Disconnecting
-		virtual int authenticate(
-			DynamicPointer<Signal> &_sigptr,//the received signal
-			ipc::SignalUid &_rsiguid,
-			uint32 &_rflags,
-			SerializationTypeIdT &_rtid
-		);
-		const uint32 reservedDataSize()const{
-			return resdatasz;
-		}
-	protected:
-		Controller(
-			const uint32 _resdatasz = 0,
-			 const uint32 _flags = 0
-		): resdatasz(_resdatasz), flags(_flags){}
-		char * allocateBuffer(BufferContext &_rbc, uint32 &_cp);
-	private:
-		uint32 		resdatasz;
-		uint32		flags;
+struct Controller{
+	enum{
+		HasAuthenticationFlag = 1,
 	};
+	virtual ~Controller();
+	virtual bool release() = 0;
+	virtual void scheduleTalker(foundation::aio::Object *_ptkr) = 0;
+	virtual bool compressBuffer(
+		BufferContext &_rbc,
+		const uint32 _bufsz,
+		char* &_rpb,
+		uint32 &_bl
+	);
+	virtual bool decompressBuffer(
+		BufferContext &_rbc,
+		char* &_rpb,
+		uint32 &_bl
+	);
+	bool hasAuthentication()const{
+		return (flags & HasAuthenticationFlag) != 0;
+	}
+	
+	virtual bool receive(
+		Signal *_psig,
+		ipc::SignalUid &_rsiguid
+	);
+	
+	//Must return:
+	// If _psig is NULL, the request is to initiate the authentication,
+	// and _psig must be filled with a command to be sent to peer.
+	// * OK for authentication competed with success - session enters in AUTHENTICATED state
+	// * NOK authentication not completed - session stays in AUTHENTICATED state
+	// * BAD authentication completed with error - session enters Disconnecting
+	virtual int authenticate(
+		DynamicPointer<Signal> &_sigptr,//the received signal
+		ipc::SignalUid &_rsiguid,
+		uint32 &_rflags,
+		SerializationTypeIdT &_rtid
+	);
+	const uint32 reservedDataSize()const{
+		return resdatasz;
+	}
+protected:
+	Controller(
+		const uint32 _resdatasz = 0,
+			const uint32 _flags = 0
+	): resdatasz(_resdatasz), flags(_flags){}
+	char * allocateBuffer(BufferContext &_rbc, uint32 &_cp);
+private:
+	uint32 		resdatasz;
+	uint32		flags;
+};
 
 
 class Service;
@@ -163,6 +163,8 @@ public:
 		WaitResponseFlag = 2,
 		SynchronousSendFlag = 4,//!< Make the signal synchronous
 		SentFlag = 8,//!< The signal was successfully sent
+		AuthenticationFlag = 16,//!< The signal is for authentication
+		DisconnectAfterSendFlag = 32,//!< Disconnect the session after sending the signal
 	};
 	static Service& the();
 	static Service& the(const IndexT &_ridx);
@@ -171,7 +173,7 @@ public:
 		Controller *_pc,
 		uint32 _keepalivetout = 0/*no keepalive*/,
 		uint32 _sespertkr = 1024,
-		uint32 _tkrmaxcnt = 32
+		uint32 _tkrmaxcnt = 2
 	);
 	//! Destructor
 	~Service();
