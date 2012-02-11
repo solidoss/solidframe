@@ -242,12 +242,15 @@ private:
 	
 	
 	if(rsig.authcnt == 4){
+		idbg("");
 		return OK;
 	}
 	if(rsig.authcnt == 5){
 		_sigptr.clear();
+		idbg("");
 		return OK;
 	}
+	idbg("");
 	return NOK;
 }
 
