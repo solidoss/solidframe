@@ -760,6 +760,7 @@ void Talker::disconnectSessions(){
 			
 			delete rss.psession;
 			rss.psession = NULL;
+			rss.inexeq = false;
 			++rss.uid;
 			d.freesessionstack.push(Data::UInt16PairT(*it, rss.uid));
 		}

@@ -619,9 +619,11 @@ void Session::Data::popSentWaitSignal(const SignalUid &_rsiguid){
 }
 //---------------------------------------------------------------------
 void Session::Data::popSentWaitSignal(const uint32 _idx){
+	idbgx(Dbg::ipc, ""<<_idx);
 	SendSignalData &rssd(sendsignalvec[_idx]);
 	cassert(rssd.signal.ptr());
 	if(rssd.flags & Service::DisconnectAfterSendFlag){
+		idbgx(Dbg::ipc, "DisconnectAfterSendFlag - disconnecting");
 		++rssd.uid;
 		rssd.signal.clear();
 		sendsignalfreeposstk.push(_idx);
@@ -981,6 +983,7 @@ void Session::reconnect(Session *_pses){
 		if(!rssd.signal) continue;
 		
 		if((rssd.flags & Service::DisconnectAfterSendFlag) != 0){
+			idbgx(Dbg::ipc, "DisconnectAfterSendFlag");
 			mustdisconnect = true;
 		}
 		
@@ -1107,12 +1110,12 @@ void Session::completeConnect(
 				if(sigptr.ptr()){
 					d.state = Data::WaitDisconnecting;
 					d.keepalivetimeout = 0;
+					flags |= Service::DisconnectAfterSendFlag;
 					d.pushSignalToSendQueue(
 						sigptr,
 						flags,
 						tid
 					);
-					flags |= Service::DisconnectAfterSendFlag;
 				}else{
 					d.state = Data::Disconnecting;
 				}
@@ -1221,10 +1224,11 @@ int Session::execute(Talker::TalkerStub &_rstub){
 		case Data::WaitAccept:
 			return NOK;
 		case Data::Authenticating:
-			return doExecuteAuthenticating(_rstub);
+			return doExecuteConnectedLimited(_rstub);
 		case Data::Connected:
 			return doExecuteConnected(_rstub);
 		case Data::WaitDisconnecting:
+			return doExecuteConnectedLimited(_rstub);
 		case Data::Disconnecting:
 			return doExecuteDisconnecting(_rstub);
 		case Data::Reconnecting:
@@ -1360,6 +1364,9 @@ bool Session::doPushUnxpectedReceivedBuffer(
 		}
 	}else if(_rbuf.id() == Buffer::UpdateBufferId){//a buffer containing only updates
 		mustexecute = doFreeSentBuffers(_rbuf/*, _rconid*/);
+		if(d.state == Data::Disconnecting){
+			return true;
+		}
 		doTryScheduleKeepAlive(_rstub);
 	}
 	return mustexecute || d.mustSendUpdates();
@@ -1473,12 +1480,12 @@ void Session::doParseBuffer(Talker::TalkerStub &_rstub, const Buffer &_rbuf/*, c
 						if(sigptr.ptr()){
 							d.state = Data::WaitDisconnecting;
 							d.keepalivetimeout = 0;
+							flags |= Service::DisconnectAfterSendFlag;
 							d.pushSignalToSendQueue(
 								sigptr,
 								flags,
 								tid
 							);
-							flags |= Service::DisconnectAfterSendFlag;
 						}else{
 							d.state = Data::Disconnecting;
 						}
@@ -1630,13 +1637,14 @@ int Session::doTrySendUpdates(Talker::TalkerStub &_rstub){
 	return BAD;
 }
 //---------------------------------------------------------------------
-int Session::doExecuteAuthenticating(Talker::TalkerStub &_rstub){
+int Session::doExecuteConnectedLimited(Talker::TalkerStub &_rstub){
 	vdbgx(Dbg::ipc, ""<<d.sendbufferfreeposstk.size());
 	Controller 	&rctrl = _rstub.service().controller();
 	
-	d.moveAuthSignalsToSendQueue();
-	
 	while(d.sendbufferfreeposstk.size()){
+		if(d.state == Data::Authenticating){
+			d.moveAuthSignalsToSendQueue();
+		}
 		if(
 			d.sendsignalidxq.empty()
 		){

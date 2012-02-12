@@ -235,7 +235,7 @@ private:
 	
 	++rsig.authcnt;
 	
-	if(rsig.authidx == 2 && rsig.authcnt == 3){
+	if(rsig.authidx == 2 && rsig.authcnt >= 3){
 		idbg("");
 		return BAD;
 	}

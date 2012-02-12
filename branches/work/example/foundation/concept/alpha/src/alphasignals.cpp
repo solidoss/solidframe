@@ -45,8 +45,8 @@ RemoteListSignal::RemoteListSignal(
 	idbg(""<<(void*)this);
 }
 RemoteListSignal::~RemoteListSignal(){
-	idbg(""<<(void*)this);
-	if(ipcstatus == IpcOnSender && success == 1){
+	idbg(""<<(void*)this<<" success = "<<(int)success<<" ipcstatus = "<<(int)ipcstatus);
+	if(ipcstatus == IpcOnSender && success <= 1){
 		idbg("failed receiving response");
 		m().signal(fdt::S_KILL | fdt::S_RAISE, fromv.first, fromv.second);
 	}
