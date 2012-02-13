@@ -166,6 +166,12 @@ public:
 		AuthenticationFlag = 16,//!< The signal is for authentication
 		DisconnectAfterSendFlag = 32,//!< Disconnect the session after sending the signal
 	};
+	typedef serialization::IdTypeMapper<
+		serialization::binary::Serializer,
+		serialization::binary::Deserializer,
+		SerializationTypeIdT
+	> IdTypeMapper;
+	
 	static Service& the();
 	static Service& the(const IndexT &_ridx);
 	
@@ -178,25 +184,27 @@ public:
 	//! Destructor
 	~Service();
 	
-	template <class T>
-	uint32 registerSerializationType(uint32 _pos){
-		return typemapper.insert<T>(_pos);
-	}
+	IdTypeMapper& typeMapper();
 	
-	template <class T>
-	uint32 registerSerializationType(){
-		return typemapper.insert<T>();
-	}
-	
-	template <class T, typename P>
-	uint32 registerSerializationType(uint32 _pos){
-		return typemapper.insert<T, P>(_pos);
-	}
-	
-	template <class T, typename P>
-	uint32 registerSerializationType(){
-		return typemapper.insert<T, P>();
-	}
+// 	template <class T>
+// 	uint32 registerSerializationType(uint32 _pos){
+// 		return typemapper.insert<T>(_pos);
+// 	}
+// 	
+// 	template <class T>
+// 	uint32 registerSerializationType(){
+// 		return typemapper.insert<T>();
+// 	}
+// 	
+// 	template <class T, typename P>
+// 	uint32 registerSerializationType(uint32 _pos){
+// 		return typemapper.insert<T, P>(_pos);
+// 	}
+// 	
+// 	template <class T, typename P>
+// 	uint32 registerSerializationType(){
+// 		return typemapper.insert<T, P>();
+// 	}
 	//!Send a signal (usually a response) to a peer process using a previously saved ConnectionUid
 	/*!
 		The signal is send only if the connector exists. If the peer process,
@@ -311,7 +319,7 @@ public:
 	int basePort()const;
 	void insertObject(Talker &_ro, const ObjectUidT &_ruid);
 	void eraseObject(const Talker &_ro);
-	const serialization::TypeMapperBase& typeMapper() const;
+	const serialization::TypeMapperBase& typeMapperBase() const;
 private:
 	friend class Talker;
 	friend class Session;
@@ -331,11 +339,6 @@ private:
 	void connectSession(const SocketAddressPair4 &_raddr);
 	Controller& controller();
 private:
-	typedef serialization::IdTypeMapper<
-		serialization::binary::Serializer,
-		serialization::binary::Deserializer,
-		SerializationTypeIdT
-	> IdTypeMapper;
 	struct Data;
 	friend struct Data;
 	Data			&d;
@@ -378,7 +381,11 @@ inline int Service::sendSignal(
 	return doSendSignal(_psig, _rtid, _rsap, NULL, _flags);
 }
 
-inline const serialization::TypeMapperBase& Service::typeMapper() const{
+inline const serialization::TypeMapperBase& Service::typeMapperBase() const{
+	return typemapper;
+}
+
+inline Service::IdTypeMapper& Service::typeMapper(){
 	return typemapper;
 }
 

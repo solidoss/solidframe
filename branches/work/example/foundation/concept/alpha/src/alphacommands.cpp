@@ -950,12 +950,12 @@ int Idle::receiveString(
 Command::Command(){}
 void Command::initStatic(Manager &_rm){
 	SignalTypeIds ids;
-	fdt::ipc::Service::the().registerSerializationType<SendStringSignal>();
-	fdt::ipc::Service::the().registerSerializationType<SendStreamSignal>();
-	ids.fetchmastercommand =  fdt::ipc::Service::the().registerSerializationType<FetchMasterSignal>();
-	ids.fetchslavecommand = fdt::ipc::Service::the().registerSerializationType<FetchSlaveSignal>();
-	ids.remotelistcommand = fdt::ipc::Service::the().registerSerializationType<RemoteListSignal>();
-	ids.remotelistresponse = fdt::ipc::Service::the().registerSerializationType<RemoteListSignal, NumberType<1> >();
+	fdt::ipc::Service::the().typeMapper().insert<SendStringSignal>();
+	fdt::ipc::Service::the().typeMapper().insert<SendStreamSignal>();
+	ids.fetchmastercommand =  fdt::ipc::Service::the().typeMapper().insert<FetchMasterSignal>();
+	ids.fetchslavecommand = fdt::ipc::Service::the().typeMapper().insert<FetchSlaveSignal>();
+	ids.remotelistcommand = fdt::ipc::Service::the().typeMapper().insert<RemoteListSignal>();
+	ids.remotelistresponse = fdt::ipc::Service::the().typeMapper().insert<RemoteListSignal, NumberType<1> >();
 	idbg("ids.fetchmastercommand = "<<ids.fetchmastercommand);
 	idbg("ids.fetchslavecommand = "<<ids.fetchslavecommand);
 	idbg("ids.remotelistcommand = "<<ids.remotelistcommand);

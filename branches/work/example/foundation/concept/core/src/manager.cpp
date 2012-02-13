@@ -289,7 +289,7 @@ Manager::Manager():foundation::Manager(16), d(*(new Data())){
 	
 	registerService<SchedulerT>(new foundation::ipc::Service(&ipcctrl), 0, d.ipcidx);
 	
-	fdt::ipc::Service::the().registerSerializationType<AuthSignal>();
+	fdt::ipc::Service::the().typeMapper().insert<AuthSignal>();
 }
 
 Manager::~Manager(){

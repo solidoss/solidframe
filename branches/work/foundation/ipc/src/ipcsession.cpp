@@ -1410,11 +1410,11 @@ void Session::doParseBufferDataType(Talker::TalkerStub &_rstub, const char *&_bp
 					d.rcvdsignalq.push(rrsd);
 					rrsd.psignal = NULL;
 				}
-				rrsd.pdeserializer = d.popDeserializer(_rstub.service().typeMapper());
+				rrsd.pdeserializer = d.popDeserializer(_rstub.service().typeMapperBase());
 				rrsd.pdeserializer->push(rrsd.psignal);
 			}else{
 				idbgx(Dbg::ipc, "switch to new rcq.size = 0");
-				d.rcvdsignalq.push(Data::RecvSignalData(NULL, d.popDeserializer(_rstub.service().typeMapper())));
+				d.rcvdsignalq.push(Data::RecvSignalData(NULL, d.popDeserializer(_rstub.service().typeMapperBase())));
 				d.rcvdsignalq.front().pdeserializer->push(d.rcvdsignalq.front().psignal);
 			}
 			break;
@@ -1787,13 +1787,13 @@ void Session::doFillSendBuffer(Talker::TalkerStub &_rstub, const uint32 _bufidx)
 					rssd.pserializer = pser;
 					pser = NULL;
 				}else{
-					rssd.pserializer = d.popSerializer(_rstub.service().typeMapper());
+					rssd.pserializer = d.popSerializer(_rstub.service().typeMapperBase());
 				}
 				Signal *psig(rssd.signal.ptr());
 				if(rssd.tid == SERIALIZATION_INVALIDID){
 					rssd.pserializer->push(psig,"signal");
 				}else{
-					rssd.pserializer->push(psig,Service::the().typemapper, rssd.tid, "signal");
+					rssd.pserializer->push(psig,Service::the().typeMapper(), rssd.tid, "signal");
 				}	
 			}
 			--d.currentbuffersignalcount;

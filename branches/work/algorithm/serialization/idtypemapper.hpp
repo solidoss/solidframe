@@ -23,6 +23,7 @@
 
 #include <string>
 #include <typeinfo>
+#include "system/specific.hpp"
 #include "utility/common.hpp"
 #include "algorithm/serialization/typemapperbase.hpp"
 
@@ -63,6 +64,38 @@ class IdTypeMapper: public TypeMapperBase{
 			*rpt & rd;
 		}
 	}
+	template <class T>
+	static void doMapSpecific(void *_p, void *_ps, void *_pd, void *_pid, const char *_name){
+		if(_ps){
+			Ser &rs = *reinterpret_cast<Ser*>(_ps);
+			T	&rt = *reinterpret_cast<T*>(_p);
+			Int &rid = *reinterpret_cast<Int*>(_pid);
+			
+			rt & rs;
+			rs.push(rid, _name);
+		}else{
+			Des &rd	= *reinterpret_cast<Des*>(_pd);
+			T*	&rpt = *reinterpret_cast<T**>(_p);
+			rpt = Specific::template uncache<T>();
+			*rpt & rd;
+		}
+	}
+	template <class T, class CT>
+	static void doMapSpecific(void *_p, void *_ps, void *_pd, void *_pid, const char *_name){
+		if(_ps){
+			Ser &rs = *reinterpret_cast<Ser*>(_ps);
+			T   &rt = *reinterpret_cast<T*>(_p);
+			Int &rid = *reinterpret_cast<Int*>(_pid);
+			
+			rt & rs;
+			rs.push(rid, _name);
+		}else{
+			Des &rd = *reinterpret_cast<Des*>(_pd);
+			T*  &rpt = *reinterpret_cast<T**>(_p);
+			rpt = Specific::template uncache<T>(CT());
+			*rpt & rd;
+		}
+	}
 public:
 	IdTypeMapper(){}
 	template <class T>
@@ -74,6 +107,16 @@ public:
 	uint32 insert(uint32 _idx = 0){
 		typename UnsignedType<Int>::Type idx(_idx);
 		return this->insertFunction(&ThisT::template doMap<T, CT>, idx, typeid(T).name());
+	}
+	template <class T>
+	uint32 insertSpecific(uint32 _idx = 0){
+		typename UnsignedType<Int>::Type idx(_idx);
+		return this->insertFunction(&ThisT::template doMapSpecific<T>, idx, typeid(T).name());
+	}
+	template <class T, typename CT>
+	uint32 insertSpecific(uint32 _idx = 0){
+		typename UnsignedType<Int>::Type idx(_idx);
+		return this->insertFunction(&ThisT::template doMapSpecific<T, CT>, idx, typeid(T).name());
 	}
 	uint32 realIdentifier(uint32 _idx)const{
 		return _idx;
