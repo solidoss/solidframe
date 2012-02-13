@@ -3,12 +3,11 @@
 <wiki:toc max_depth="1" />
 
 This is a pool of pending features and changes
- # IPC: Add support for authenticating the ipc sessions.
- # IPC: add support for responding with TRY_RECONNECT buffer
- # IPC: Find a better way to disconnect after a failed authentication
+ # DONE:IPC: Add support for authenticating the ipc sessions.
+ # DONE:IPC: Find a better way to disconnect after a failed authentication
  # IPC: Add support for sending authentication commands while in authenticating state. Commands with AuthenticationFlag set.
- # IPC: Check that a failed authentication, raises the objects waiting for commands to be sent. There seems to be a bug!!
- # Serialization: add support for specific objects: pushSpecificPointer().
+ # DONE: IPC: Check that a failed authentication, raises the objects waiting for commands to be sent. There seems to be a bug!!
+ # DONE: Serialization: add support for specific objects: insertSpecific
  # Add new class foundation::AccessManager: a container which will manage read/write access to its objects.
  # Re-factor foundation::file::Manager to be based on foundation::AccessManager.
  # Foundation concept sample application doesn't stop when vmware virtual is suspended then resumed.
