@@ -5,7 +5,7 @@
 This is a pool of pending features and changes
  # DONE:IPC: Add support for authenticating the ipc sessions.
  # DONE:IPC: Find a better way to disconnect after a failed authentication
- # IPC: Add support for sending authentication commands while in authenticating state. Commands with AuthenticationFlag set.
+ # DONE:IPC: Add support for sending authentication commands while in authenticating state. Commands with AuthenticationFlag set.(NEEDS proper testing!!!!)
  # DONE: IPC: Check that a failed authentication, raises the objects waiting for commands to be sent. There seems to be a bug!!
  # DONE: Serialization: add support for specific objects: insertSpecific
  # Add new class foundation::AccessManager: a container which will manage read/write access to its objects.
