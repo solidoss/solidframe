@@ -3,6 +3,7 @@
 <wiki:toc max_depth="1" />
 
 This is a pool of pending features and changes
+ # Add support for atomic operations (gcc: __exchange_and_add - see boost::shared_ptr) to ObjectPointer and to system so it can be used in Dynamic::use/release.
  # Add new class foundation::AccessManager: a container which will manage read/write access to its objects.
  # Re-factor foundation::file::Manager to be based on foundation::AccessManager.
  # Foundation concept sample application doesn't stop when vmware virtual is suspended then resumed.
