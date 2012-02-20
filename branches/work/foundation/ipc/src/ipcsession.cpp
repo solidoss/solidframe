@@ -1452,7 +1452,7 @@ void Session::doParseBuffer(Talker::TalkerStub &_rstub, const Buffer &_rbuf/*, c
 		rv = rrsd.pdeserializer->run(bpos, blen);
 		
 		if(rv < 0){
-			THROW_EXCEPTION("Deserialization error");
+			THROW_EXCEPTION_EX("Deserialization error", rrsd.pdeserializer->error());
 			cassert(false);
 		}
 		

@@ -29,14 +29,16 @@ namespace serialization{
 namespace binary{
 
 inline char *storeValue(char *_pd, const uint16 _val){
-	*(_pd) 		= ((_val >> 8) & 0xff);
-	*(_pd + 1)	= (_val & 0xff);
+	uint8 *pd = reinterpret_cast<uint8*>(_pd);
+	*(pd) 		= ((_val >> 8) & 0xff);
+	*(pd + 1)	= (_val & 0xff);
 	return _pd + 2;
 }
 inline const char* parseValue(const char *_ps, uint16 &_val){
-	_val = (uint8)(*_ps);
+	const uint8 *ps = reinterpret_cast<const uint8*>(_ps);
+	_val = (uint8)(*ps);
 	_val <<= 8;
-	_val += (uint8)(*(_ps + 1));
+	_val += (uint8)(*(ps + 1));
 	return _ps + 2;
 }
 #ifdef HAVE_SAFE_STATIC
@@ -1085,6 +1087,7 @@ int Deserializer::parseStream(Base &_rb, FncData &_rfd){
 		}else{
 			rd.err = ERR_STREAM_CHUNK_MAX_LIMIT;
 			idbgx(Dbg::ser_bin, "crcval = "<<crcsz.value()<<" towrite = "<<towrite);
+			cassert(0);
 			return BAD;
 		}
 	}
