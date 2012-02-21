@@ -18,10 +18,10 @@ Main changes:
   * Serialization: Add support for pushUtf8(std::string&) to binary::serialization - the string will be serialized as null terminated data, i.e. no size.
   * Serialization: Add support for limits to binary::serialization. Add the following methods and changes to both serializer and deserializer:
 constructor(const Limits `*`pdefaultlimits);
-    * resetLimits(); //reset all limits to default
-    * pushStringLimit(uint32(256)) / pushStringLimit(), reset to default.
-    * pushStreamLimit(uint64(200000000)) / pushStreamLimit(), reset to default.
-    *pushContainerLimit(uint32()) - pushContainerLimit(), reset to default.
+     # resetLimits(); //reset all limits to default
+     # pushStringLimit(uint32(256)) / pushStringLimit(), reset to default.
+     # pushStreamLimit(uint64(200000000)) / pushStreamLimit(), reset to default.
+     # pushContainerLimit(uint32()) - pushContainerLimit(), reset to default.
 
   * Foundation: Try to optimize the memory usage for foundation::Object, related to the signal queue, by moving the queue onto the foundation::Service.
   * System: Optimize specific memory cache by dropping usage of queues and using a simple linked list.
