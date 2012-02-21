@@ -17,7 +17,7 @@ Main changes:
   * Serialization: Improve binary serialization performance and create better test applications.
   * Serialization: Add support for pushUtf8(std::string&) to binary::serialization - the string will be serialized as null terminated data, i.e. no size.
   * Serialization: Add support for limits to binary::serialization. Add the following methods and changes to both serializer and deserializer:
-constructor(const Limits `*`pdefaultlimits);
+     # constructor(const Limits `*`pdefaultlimits);
      # resetLimits(); //reset all limits to default
      # pushStringLimit(uint32(256)) / pushStringLimit(), reset to default.
      # pushStreamLimit(uint64(200000000)) / pushStreamLimit(), reset to default.
