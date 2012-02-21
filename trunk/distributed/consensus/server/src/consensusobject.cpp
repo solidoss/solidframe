@@ -529,12 +529,12 @@ static const DynamicRegisterer<Object>	dre;
 	//TODO: add here the other consensus Signals
 }
 /*static*/ void Object::registerSignals(){
-	fdt::ipc::Service::the().registerSerializationType<OperationSignal<1> >();
-	fdt::ipc::Service::the().registerSerializationType<OperationSignal<2> >();
-	fdt::ipc::Service::the().registerSerializationType<OperationSignal<4> >();
-	fdt::ipc::Service::the().registerSerializationType<OperationSignal<8> >();
-	fdt::ipc::Service::the().registerSerializationType<OperationSignal<16> >();
-	fdt::ipc::Service::the().registerSerializationType<OperationSignal<32> >();
+	fdt::ipc::Service::the().typeMapper().insert<OperationSignal<1> >();
+	fdt::ipc::Service::the().typeMapper().insert<OperationSignal<2> >();
+	fdt::ipc::Service::the().typeMapper().insert<OperationSignal<4> >();
+	fdt::ipc::Service::the().typeMapper().insert<OperationSignal<8> >();
+	fdt::ipc::Service::the().typeMapper().insert<OperationSignal<16> >();
+	fdt::ipc::Service::the().typeMapper().insert<OperationSignal<32> >();
 }
 Object::Object():d(*(new Data)){
 	idbg((void*)this);

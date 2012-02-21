@@ -41,7 +41,7 @@ struct Params{
 	ClientParams	p;
 };
 
-struct IpcServiceController: foundation::ipc::Service::Controller{
+struct IpcServiceController: foundation::ipc::Controller{
 	void scheduleTalker(foundation::aio::Object *_po){
 		idbg("");
 		foundation::ObjectPointer<foundation::aio::Object> op(_po);
