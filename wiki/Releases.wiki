@@ -4,6 +4,27 @@
 
 This is main release log for SolidFrame.
 
+= 0.9.977 =
+
+Main changes:
+  * IPC: Add support for authenticating the ipc sessions.
+  * IPC: Find a better way to disconnect after a failed authentication
+  * IPC: Add support for sending authentication commands while in authenticating state. Commands with AuthenticationFlag? set.(NEEDS proper testing!!!!)
+  * IPC: Check that a failed authentication, raises the objects waiting for commands to be sent.
+  * IPC: Add support for compressing buffers.
+  * Serialization: add support for specific objects
+  * Serialization: Improve binary serialization performance and create better test applications.
+  * Foundation: Try to optimize the memory usage for foundation::Object, related to the signal queue, by moving the queue onto the foundation::Service.
+  * System: Optimize specific memory cache by dropping usage of queues and using a simple linked list.
+  * IPC/Serialization: One should be able to register the same structure/class multiple times, every time being constructed on creation with a different constructor. Also we need to be able to specify the position on which the map will be registered.
+  * Serialization: Add support for pushUtf8(std::string&) to binary::serialization - the string will be serialized as null terminated data, i.e. no size.
+  * Serialization: Add support for limits to binary::serialization. Add the following methods and changes to both serializer and deserializer:
+constructor(const Limits *pdefaultlimits);
+resetLimits(); //reset all limits to default
+pushStringLimit(uint32(256)) / pushStringLimit(), reset to default.
+pushStreamLimit(uint64(200000000)) / pushStreamLimit(), reset to default.
+pushContainerLimit(uint32()) - pushContainerLimit(), reset to default.
+  * Find a fix for thread safe static member within static function.
 
 = 0.9.850 =
 
