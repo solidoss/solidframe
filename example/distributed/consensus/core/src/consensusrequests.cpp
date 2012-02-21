@@ -18,9 +18,9 @@ const foundation::ObjectUidT& serverUid(){
 }
 //--------------------------------------------------------------
 void mapSignals(){
-	fdt::ipc::Service::the().registerSerializationType<StoreRequest>();
-	fdt::ipc::Service::the().registerSerializationType<FetchRequest>();
-	fdt::ipc::Service::the().registerSerializationType<EraseRequest>();
+	fdt::ipc::Service::the().typeMapper().insert<StoreRequest>();
+	fdt::ipc::Service::the().typeMapper().insert<FetchRequest>();
+	fdt::ipc::Service::the().typeMapper().insert<EraseRequest>();
 }
 //--------------------------------------------------------------
 StoreRequest::StoreRequest(const std::string&, uint32 _pos):v(0){
