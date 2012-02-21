@@ -45,9 +45,9 @@ class Visitor;
 class Manager;
 
 //signals
-struct IStreamSignal;
-struct OStreamSignal;
-struct IOStreamSignal;
+struct InputStreamSignal;
+struct OutputStreamSignal;
+struct InputOutputStreamSignal;
 struct StreamErrorSignal;
 
 
@@ -74,7 +74,8 @@ protected:
 	protocol communication. 
 */
 class Connection: public Dynamic<Connection, foundation::aio::SingleObject>{
-	typedef DynamicExecuter<void, Connection>	DynamicExecuterT;
+	typedef DynamicExecuter<void, Connection, foundation::DynamicServicePointerStore, void>	DynamicExecuterT;
+	//typedef DynamicExecuter<void, Connection, DynamicDefaultPointerStore, void>	DynamicExecuterT;
 public:
 	typedef Service	ServiceT;
 	
@@ -126,9 +127,9 @@ public:
 	void dynamicExecute(DynamicPointer<FetchSlaveSignal> &_rsig);
 	void dynamicExecute(DynamicPointer<SendStringSignal> &_rsig);
 	void dynamicExecute(DynamicPointer<SendStreamSignal> &_rsig);
-	void dynamicExecute(DynamicPointer<IStreamSignal> &_rsig);
-	void dynamicExecute(DynamicPointer<OStreamSignal> &_rsig);
-	void dynamicExecute(DynamicPointer<IOStreamSignal> &_rsig);
+	void dynamicExecute(DynamicPointer<InputStreamSignal> &_rsig);
+	void dynamicExecute(DynamicPointer<OutputStreamSignal> &_rsig);
+	void dynamicExecute(DynamicPointer<InputOutputStreamSignal> &_rsig);
 	void dynamicExecute(DynamicPointer<StreamErrorSignal> &_rsig);
 private:
 	void prepareReader();

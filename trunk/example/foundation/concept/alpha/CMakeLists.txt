@@ -21,6 +21,6 @@ set(Headers
 set(Inlines
 )
 
-add_library(concept_alpha
+add_library(example_concept_alpha
 	${Sources} ${Headers} ${Inlines}
 )

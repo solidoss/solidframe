@@ -10,7 +10,7 @@
 #include "system/tuple.hpp"
 
 template <class T>
-class Exception;
+struct Exception;
 template <>
 struct Exception<const char*>;
 

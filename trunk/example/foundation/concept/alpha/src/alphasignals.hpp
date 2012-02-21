@@ -55,11 +55,21 @@ S& operator&(ObjectUidT &_v, S &_s){
 namespace concept{
 namespace alpha{
 
+struct SignalTypeIds{
+	static const SignalTypeIds& the(const SignalTypeIds *_pids = NULL);
+	uint32 fetchmastercommand;
+	uint32 fetchslavecommand;
+	uint32 fetchslaveresponse;
+	uint32 remotelistcommand;
+	uint32 remotelistresponse;
+};
+
 //---------------------------------------------------------------
 // RemoteListSignal
 //---------------------------------------------------------------
 struct RemoteListSignal: Dynamic<RemoteListSignal, DynamicShared<foundation::Signal> >{
 	RemoteListSignal(uint32 _tout = 0, uint16 _sentcnt = 1);
+	RemoteListSignal(const NumberType<1>&);
 	~RemoteListSignal();
 	int execute(
 		DynamicPointer<Signal> &_rthis_ptr,
@@ -163,7 +173,7 @@ struct FetchMasterSignal: Dynamic<FetchMasterSignal, foundation::Signal>{
 	FileUidT						fuid;
 	FileUidT						tmpfuid;
 	foundation::ipc::ConnectionUid	conid;
-	StreamPointer<IStream>			ins;
+	StreamPointer<InputStream>			ins;
 	int32							state;
 	uint32							streamsz;
 	int64							filesz;
@@ -194,10 +204,10 @@ struct FetchSlaveSignal: Dynamic<FetchSlaveSignal, foundation::Signal>{
 		const SignalUidT &, TimeSpec &_rts
 	);
 	uint32 ipcPrepare();
-	int createDeserializationStream(OStream *&_rpos, int64 &_rsz, uint64 &_roff, int _id);
-	void destroyDeserializationStream(OStream *&_rpos, int64 &_rsz, uint64 &_roff, int _id);
-	int createSerializationStream(IStream *&_rpis, int64 &_rsz, uint64 &_roff, int _id);
-	void destroySerializationStream(IStream *&_rpis, int64 &_rsz, uint64 &_roff, int _id);
+	int createDeserializationStream(OutputStream *&_rpos, int64 &_rsz, uint64 &_roff, int _id);
+	void destroyDeserializationStream(OutputStream *&_rpos, int64 &_rsz, uint64 &_roff, int _id);
+	int createSerializationStream(InputStream *&_rpis, int64 &_rsz, uint64 &_roff, int _id);
+	void destroySerializationStream(InputStream *&_rpis, int64 &_rsz, uint64 &_roff, int _id);
 	
 	template <class S>
 	S& operator&(S &_s){
@@ -217,7 +227,7 @@ struct FetchSlaveSignal: Dynamic<FetchSlaveSignal, foundation::Signal>{
 	FileUidT						fuid;
 	foundation::ipc::ConnectionUid	conid;
 	SignalUidT						siguid;
-	StreamPointer<IStream>			ins;
+	StreamPointer<InputStream>			ins;
 	int64							filesz;
 	int32							streamsz;
 	uint32							requid;
@@ -265,7 +275,7 @@ private:
 struct SendStreamSignal: Dynamic<SendStreamSignal, foundation::Signal>{
 	SendStreamSignal(){}
 	SendStreamSignal(
-		StreamPointer<IOStream> &_iosp,
+		StreamPointer<InputOutputStream> &_iosp,
 		const String &_str,
 		uint32 _myprocid,
 		ulong _toobjid,
@@ -281,10 +291,10 @@ struct SendStreamSignal: Dynamic<SendStreamSignal, foundation::Signal>{
 		foundation::ipc::SignalUid &_rsiguid
 	);
 
-	int createDeserializationStream(OStream *&_rpos, int64 &_rsz, uint64 &_roff, int _id);
-	void destroyDeserializationStream(OStream *&_rpos, int64 &_rsz, uint64 &_roff, int _id);
-	int createSerializationStream(IStream *&_rpis, int64 &_rsz, uint64 &_roff, int _id);
-	void destroySerializationStream(IStream *&_rpis, int64 &_rsz, uint64 &_roff, int _id);
+	int createDeserializationStream(OutputStream *&_rpos, int64 &_rsz, uint64 &_roff, int _id);
+	void destroyDeserializationStream(OutputStream *&_rpos, int64 &_rsz, uint64 &_roff, int _id);
+	int createSerializationStream(InputStream *&_rpis, int64 &_rsz, uint64 &_roff, int _id);
+	void destroySerializationStream(InputStream *&_rpis, int64 &_rsz, uint64 &_roff, int _id);
 	
 	template <class S>
 	S& operator&(S &_s){
@@ -296,7 +306,7 @@ private:
 	typedef std::pair<uint32, uint32> 	ObjPairT;
 	typedef std::pair<uint32, uint32> 	FileUidT;
 
-	StreamPointer<IOStream>		iosp;
+	StreamPointer<InputOutputStream>		iosp;
 	String						dststr;
 	ObjPairT					tov;
 	ObjPairT					fromv;

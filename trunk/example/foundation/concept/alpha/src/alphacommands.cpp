@@ -28,7 +28,6 @@
 #include "utility/iostream.hpp"
 
 #include "algorithm/protocol/namematcher.hpp"
-#include "algorithm/serialization/binary.hpp"
 
 #include "foundation/ipc/ipcservice.hpp"
 #include "foundation/ipc/ipcservice.hpp"
@@ -582,8 +581,8 @@ int Fetch::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 	return BAD;
 }
 
-int Fetch::receiveIStream(
-	StreamPointer<IStream> &_sptr,
+int Fetch::receiveInputStream(
+	StreamPointer<InputStream> &_sptr,
 	const FileUidT &_fuid,
 	int			_which,
 	const ObjectUidT&,
@@ -722,8 +721,8 @@ int Store::execute(Connection &_rc){
 	return OK;
 }
 
-int Store::receiveOStream(
-	StreamPointer<OStream> &_sptr,
+int Store::receiveOutputStream(
+	StreamPointer<OutputStream> &_sptr,
 	const FileUidT &_fuid,
 	int			_which,
 	const ObjectUidT&,
@@ -810,7 +809,7 @@ int SendStream::execute(Connection &_rc){
 	uint32	fromobjid(_rc.id());
 	uint32	fromobjuid(rm.uid(_rc));
 	fdt::RequestUid reqid(_rc.id(), rm.uid(_rc), _rc.requestId()); 
-	StreamPointer<IOStream>	sp;
+	StreamPointer<InputOutputStream>	sp;
 	int rv = Manager::the().fileManager().stream(sp, reqid, srcstr.c_str());
 	protocol::Parameter &rp = _rc.writer().push(&Writer::putStatus);
 	switch(rv){
@@ -905,8 +904,8 @@ int Idle::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 		return Writer::Ok;
 	}
 }
-int Idle::receiveIStream(
-	StreamPointer<IStream> &_sp,
+int Idle::receiveInputStream(
+	StreamPointer<InputStream> &_sp,
 	const FileUidT &,
 	int			_which,
 	const ObjectUidT&_from,
@@ -948,22 +947,25 @@ int Idle::receiveString(
 //---------------------------------------------------------------
 // Command Base
 //---------------------------------------------------------------
-typedef serialization::TypeMapper					TypeMapper;
-typedef serialization::bin::Serializer				BinSerializer;
-typedef serialization::bin::Deserializer			BinDeserializer;
-
 Command::Command(){}
 void Command::initStatic(Manager &_rm){
-	TypeMapper::map<SendStringSignal, BinSerializer, BinDeserializer>();
-	TypeMapper::map<SendStreamSignal, BinSerializer, BinDeserializer>();
-	TypeMapper::map<FetchMasterSignal, BinSerializer, BinDeserializer>();
-	TypeMapper::map<FetchSlaveSignal, BinSerializer, BinDeserializer>();
-	TypeMapper::map<RemoteListSignal, BinSerializer, BinDeserializer>();
+	SignalTypeIds ids;
+	fdt::ipc::Service::the().typeMapper().insert<SendStringSignal>();
+	fdt::ipc::Service::the().typeMapper().insert<SendStreamSignal>();
+	ids.fetchmastercommand =  fdt::ipc::Service::the().typeMapper().insert<FetchMasterSignal>();
+	ids.fetchslavecommand = fdt::ipc::Service::the().typeMapper().insert<FetchSlaveSignal>();
+	ids.remotelistcommand = fdt::ipc::Service::the().typeMapper().insert<RemoteListSignal>();
+	ids.remotelistresponse = fdt::ipc::Service::the().typeMapper().insert<RemoteListSignal, NumberType<1> >();
+	idbg("ids.fetchmastercommand = "<<ids.fetchmastercommand);
+	idbg("ids.fetchslavecommand = "<<ids.fetchslavecommand);
+	idbg("ids.remotelistcommand = "<<ids.remotelistcommand);
+	idbg("ids.remotelistresponse = "<<ids.remotelistresponse);
+	SignalTypeIds::the(&ids);
 }
 /*virtual*/ Command::~Command(){}
 
-int Command::receiveIStream(
-	StreamPointer<IStream> &_ps,
+int Command::receiveInputStream(
+	StreamPointer<InputStream> &_ps,
 	const FileUidT &,
 	int			_which,
 	const ObjectUidT&_from,
@@ -971,8 +973,8 @@ int Command::receiveIStream(
 ){
 	return BAD;
 }
-int Command::receiveOStream(
-	StreamPointer<OStream> &,
+int Command::receiveOutputStream(
+	StreamPointer<OutputStream> &,
 	const FileUidT &,
 	int			_which,
 	const ObjectUidT&_from,
@@ -980,8 +982,8 @@ int Command::receiveOStream(
 ){
 	return BAD;
 }
-int Command::receiveIOStream(
-	StreamPointer<IOStream> &, 
+int Command::receiveInputOutputStream(
+	StreamPointer<InputOutputStream> &, 
 	const FileUidT &,
 	int			_which,
 	const ObjectUidT&_from,

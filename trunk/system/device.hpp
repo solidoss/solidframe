@@ -21,40 +21,59 @@
 
 #ifndef SYSTEM_DEVICE_HPP
 #define SYSTEM_DEVICE_HPP
+#ifdef ON_WINDOWS
+#include <WinSock2.h>
+#include <Ws2tcpip.h>
+#include <Windows.h>
 
+#else
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-
+#endif
 #include "common.hpp"
 //! A wrapper for what on POSIX is a descriptor
 class Device{
 public:
+#ifdef ON_WINDOWS
+	typedef HANDLE DescriptorT;
+#else
+	typedef int DescriptorT;
+#endif
+	static const DescriptorT invalidDescriptor(){
+#ifdef ON_WINDOWS
+		return INVALID_HANDLE_VALUE;
+#else
+		return -1;
+#endif
+	}
 	//! The copy constructor which will grab the desc from the given device (like std::autoptr)
 	Device(const Device &_dev);
-	Device(int _desc = -1);
+	Device(DescriptorT _desc = invalidDescriptor());
 	~Device();
 	//! Read call
 	int read(char	*_pb, uint32 _bl);
 	//! Write call
 	int write(const char* _pb, uint32 _bl);
+	//! Cancels existing io operations
+	bool cancel();
 	//! Close the device
 	void close();
 	//! Flush the device
 	int flush();
 	//! Check if the device is valid
-	bool ok()const{return desc >= 0;}
+	bool ok()const{return desc != invalidDescriptor();}
 	Device& operator=(const Device &_dev);
 	//! The native descriptor associated to the socket
-	int descriptor()const;
+	DescriptorT descriptor()const;
 protected:
-	void descriptor(int _desc);
+	void descriptor(DescriptorT _desc);
 private:
-	mutable int	desc;
+	mutable DescriptorT desc;
 };
 
-inline int Device::descriptor()const{return desc;}
-inline void Device::descriptor(int _desc){
+inline Device::DescriptorT Device::descriptor()const{return desc;}
+inline void Device::descriptor(DescriptorT _desc){
 	desc = _desc;
 }
 

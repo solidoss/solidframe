@@ -22,7 +22,7 @@
 
 using namespace std;
 ///\cond 0
-class FileStream: public IStream{
+class FileStream: public InputStream{
 public:
 	FileStream(FileDevice &_rfd):fd(_rfd){}
 	int read(char *_pb, uint32 _sz, uint32 _flags = 0){

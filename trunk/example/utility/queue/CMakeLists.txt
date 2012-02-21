@@ -1,3 +1,3 @@
-add_executable(test test.cpp)
+add_executable(example_queue test.cpp)
 
-target_link_libraries (test system pthread rt)
+target_link_libraries (example_queue system ${SYS_BASIC_LIBS})

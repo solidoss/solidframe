@@ -25,6 +25,17 @@
 #include <cstdlib>
 #include "config.h"
 
+#ifndef HAVE_SAFE_STATIC
+#include <boost/thread/once.hpp>
+#endif
+
+#ifdef ON_WINDOWS
+//#ifdef HAVE_CPP11
+//	#define USTLMUTEX
+//#else
+	#define UBOOSTMUTEX
+//#endif
+#endif
 
 typedef unsigned char		uchar;
 typedef unsigned int		uint;
@@ -38,18 +49,18 @@ typedef unsigned long long	ulonglong;
 typedef signed char			int8;
 typedef unsigned char		uint8;
 
-typedef short				int16;
+typedef signed short		int16;
 typedef unsigned short		uint16;
 
 typedef unsigned int		uint32;
-typedef int					int32;
+typedef signed int			int32;
 // #if defined(U_WIN) && !defined(U_GCC)
 #if defined(U_WIN)
 typedef __int64				int64;
 typedef unsigned __int64	uint64;
 #else
 typedef unsigned long long	uint64;
-typedef long long 			int64;
+typedef signed long long 	int64;
 #endif
 
 #ifdef _LP64
@@ -81,6 +92,11 @@ template <class T>
 struct UnsignedType;
 
 template <>
+struct UnsignedType<int8>{
+    typedef uint8 Type;
+};
+
+template <>
 struct UnsignedType<int16>{
     typedef uint16 Type;
 };
@@ -104,6 +120,11 @@ struct UnsignedType<ulong>{
 template <>
 struct UnsignedType<int64>{
     typedef uint64 Type;
+};
+
+template <>
+struct UnsignedType<uint8>{
+    typedef uint8 Type;
 };
 
 template <>

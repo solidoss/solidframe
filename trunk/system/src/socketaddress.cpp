@@ -46,6 +46,8 @@ void SocketAddressInfo::reinit(const char *_node, const char *_service){
 	if(rv != 0){
 #ifdef ON_SOLARIS
 		edbgx(Dbg::system, "getaddrinfo "<<rv<<' '<<gai_strerror(rv));
+#elif ON_WINDOWS
+		edbgx(Dbg::system, "getaddrinfo "<<rv);
 #else
 #endif
 	}

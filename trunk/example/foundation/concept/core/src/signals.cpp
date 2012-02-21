@@ -10,35 +10,35 @@ namespace fdt=foundation;
 namespace concept{
 
 //----------------------------------------------------------------------
-IStreamSignal::IStreamSignal(
-	StreamPointer<IStream> &_sptr,
+InputStreamSignal::InputStreamSignal(
+	StreamPointer<InputStream> &_sptr,
 	const FileUidT &_rfuid,
 	const RequestUidT &_requid
 ):sptr(_sptr), fileuid(_rfuid), requid(_requid){
 }
-int IStreamSignal::execute(DynamicPointer<Signal> &_rthis_ptr, uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidT &, TimeSpec &){
+int InputStreamSignal::execute(DynamicPointer<Signal> &_rthis_ptr, uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidT &, TimeSpec &){
 	_rce.sendSignal(_rthis_ptr, requid);
 	return fdt::LEAVE;
 }
 //----------------------------------------------------------------------
-OStreamSignal::OStreamSignal(
-	StreamPointer<OStream> &_sptr,
+OutputStreamSignal::OutputStreamSignal(
+	StreamPointer<OutputStream> &_sptr,
 	const FileUidT &_rfuid,
 	const RequestUidT &_requid
 ):sptr(_sptr), fileuid(_rfuid), requid(_requid){
 }
-int OStreamSignal::execute(DynamicPointer<Signal> &_rthis_ptr, uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidT &, TimeSpec &){
+int OutputStreamSignal::execute(DynamicPointer<Signal> &_rthis_ptr, uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidT &, TimeSpec &){
 	_rce.sendSignal(_rthis_ptr, requid);
 	return fdt::LEAVE;
 }
 //----------------------------------------------------------------------
-IOStreamSignal::IOStreamSignal(
-	StreamPointer<IOStream> &_sptr,
+InputOutputStreamSignal::InputOutputStreamSignal(
+	StreamPointer<InputOutputStream> &_sptr,
 	const FileUidT &_rfuid,
 	const RequestUidT &_requid
 ):sptr(_sptr), fileuid(_rfuid), requid(_requid){
 }
-int IOStreamSignal::execute(DynamicPointer<Signal> &_rthis_ptr, uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidT &, TimeSpec &){
+int InputOutputStreamSignal::execute(DynamicPointer<Signal> &_rthis_ptr, uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidT &, TimeSpec &){
 	_rce.sendSignal(_rthis_ptr, requid);
 	return fdt::LEAVE;
 }

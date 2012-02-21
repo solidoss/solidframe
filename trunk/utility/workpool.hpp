@@ -167,12 +167,12 @@ public:
 	}
 	//! Starts the workpool, creating _minwkrcnt
 	void start(ushort _minwkrcnt = 0){
-		Mutex::Locker lock(mtx);
+		Locker<Mutex> lock(mtx);
 		if(state() == Running){
 			return;
 		}
 		if(state() != Stopped){
-			doStop(true);
+			doStop(lock, true);
 		}
 		wkrcnt = 0;
 		state(Running);
@@ -188,8 +188,8 @@ public:
 		for actual stoping (wp[i].stop(true))
 	*/
 	void stop(bool _wait = true){
-		Mutex::Locker	lock(mtx);
-		doStop(_wait);
+		Locker<Mutex>	lock(mtx);
+		doStop(lock, _wait);
 	}
 	ulong size()const{
 		return jobq.size();
@@ -215,24 +215,24 @@ public:
 private:
 	friend struct SingleWorker;
 	friend struct MultiWorker;
-	void doStop(bool _wait){
+	void doStop(Locker<Mutex> &_lock, bool _wait){
 		if(state() == Stopped) return;
 		state(Stopping);
 		sigcnd.broadcast();
 		ctrl.onStop();
 		if(!_wait) return;
 		while(wkrcnt){
-			thrcnd.wait(mtx);
+			thrcnd.wait(_lock);
 		}
 		state(Stopped);
 	}
 	bool pop(WorkerT &_rw, JobVectorT &_rjobvec, ulong _maxcnt){
-		Mutex::Locker lock(mtx);
+		Locker<Mutex> lock(mtx);
 		uint32 insertcount(ctrl.onPopStart(*this, _rw, _maxcnt));
 		if(!insertcount){
 			return true;
 		}
-		if(doWaitJob()){
+		if(doWaitJob(lock)){
 			do{
 				_rjobvec.push_back(jobq.front());
 				jobq.pop();
@@ -244,12 +244,12 @@ private:
 	}
 	
 	bool pop(WorkerT &_rw, JobT &_rjob){
-		Mutex::Locker lock(mtx);
+		Locker<Mutex> lock(mtx);
 		if(ctrl.onPopStart(*this, _rw, 1) == 0){
 			sigcnd.signal();
 			return false;
 		}
-		if(doWaitJob()){
+		if(doWaitJob(lock)){
 			_rjob = jobq.front();
 			jobq.pop();
 			ctrl.onPopDone(*this, _rw);
@@ -258,9 +258,9 @@ private:
 		return false;
 	}
 	
-	ulong doWaitJob(){
+	ulong doWaitJob(Locker<Mutex> &_lock){
 		while(jobq.empty() && isRunning()){
-			sigcnd.wait(mtx);
+			sigcnd.wait(_lock);
 		}
 		return jobq.size();
 	}

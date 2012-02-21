@@ -62,7 +62,7 @@ uint Object::doOnTimeoutRecv(const TimeSpec &_timepos){
 	const int32	*pend(itoutpos);
 	uint 		rv(0);
 	
-	*pitimepos = TimeSpec::max;
+	*pitimepos = TimeSpec::maximum;
 	
 	for(int32 *pit(itoutbeg); pit != pend;){
 		SocketStub &rss(pstubs[*pit]);
@@ -93,7 +93,7 @@ uint Object::doOnTimeoutSend(const TimeSpec &_timepos){
 	const int32	*pend(otoutpos);
 	uint 		rv(0);
 	
-	*potimepos = TimeSpec::max;
+	*potimepos = TimeSpec::maximum;
 	
 	for(int32 *pit(otoutbeg); pit != pend;){
 		SocketStub &rss(pstubs[*pit]);

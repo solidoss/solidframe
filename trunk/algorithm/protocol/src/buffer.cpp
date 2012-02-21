@@ -26,13 +26,13 @@ HeapBuffer::~HeapBuffer(){
 }
 
 SpecificBuffer::SpecificBuffer(uint32 _sz){
-	const uint32 id(Specific::sizeToId(_sz));
+	const uint32 id(Specific::sizeToIndex(_sz));
 	pbeg = Specific::popBuffer(id);
-	pend = pbeg + Specific::idToCapacity(id);
+	pend = pbeg + Specific::indexToCapacity(id);
 }
 SpecificBuffer::~SpecificBuffer(){
 	if(pbeg){
-		const uint32 id(Specific::sizeToId(pend - pbeg));
+		const uint32 id(Specific::sizeToIndex(pend - pbeg));
 		Specific::pushBuffer(pbeg, id);
 	}
 }
@@ -41,15 +41,15 @@ SpecificBuffer::~SpecificBuffer(){
 		memmove(pbeg, _rpos, _wpos - _rpos);
 		return true;
 	}
-	const uint32 id(Specific::sizeToId(_sz));
+	const uint32 id(Specific::sizeToIndex(_sz));
 	char *ptmp(Specific::popBuffer(id));
 	memcpy(ptmp, _rpos, _wpos - _rpos);
 	
-	const uint32 oldid(Specific::sizeToId(pend - pbeg));
+	const uint32 oldid(Specific::sizeToIndex(pend - pbeg));
 	Specific::pushBuffer(pbeg, oldid);
 	
 	pbeg = ptmp;
-	pend = pbeg + Specific::idToCapacity(id);
+	pend = pbeg + Specific::indexToCapacity(id);
 	return true;
 }
 

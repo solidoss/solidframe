@@ -277,8 +277,8 @@ int Open::doDoneLocal(Writer &_rw){
 }
 
 
-int Open::receiveIStream(
-	StreamPointer<IStream> &_sptr,
+int Open::receiveInputStream(
+	StreamPointer<InputStream> &_sptr,
 	const FileUidT &_fuid,
 	int _which,
 	const ObjectUidT&,

@@ -27,12 +27,10 @@
 #include "utility/iostream.hpp"
 #include "utility/dynamictype.hpp"
 
-#include "algorithm/serialization/binary.hpp"
-#include "algorithm/serialization/idtypemap.hpp"
-
 #include "core/manager.hpp"
 #include "core/service.hpp"
 #include "core/signals.hpp"
+#include "quicklz.h"
 
 #include "foundation/aio/aioselector.hpp"
 #include "foundation/aio/aioobject.hpp"
@@ -76,17 +74,17 @@ protected:
 	/*virtual*/ bool release();
 	
 	/*virtual*/ void sendStream(
-		StreamPointer<IStream> &_sptr,
+		StreamPointer<InputStream> &_sptr,
 		const FileUidT &_rfuid,
 		const fdt::RequestUid& _rrequid
 	);
 	/*virtual*/ void sendStream(
-		StreamPointer<OStream> &_sptr,
+		StreamPointer<OutputStream> &_sptr,
 		const FileUidT &_rfuid,
 		const fdt::RequestUid& _rrequid
 	);
 	/*virtual*/ void sendStream(
-		StreamPointer<IOStream> &_sptr,
+		StreamPointer<InputOutputStream> &_sptr,
 		const FileUidT &_rfuid,
 		const fdt::RequestUid& _rrequid
 	);
@@ -100,12 +98,162 @@ protected:
 //------------------------------------------------------
 //		IpcServiceController
 //------------------------------------------------------
+/*
+In this example we do:
+* accept only one connection from one other concept application
+* authenticate in X steps:
+	> concept1 -> request auth step 1 -> concept2
+	> concept2 -> auth step 2 -> concept1
+	> concept1 -> auth step 3 -> concept2
+	> concept2 accept authentication -> auth step 4 -> concept1 auth done
+*/
 
 
-struct IpcServiceController: foundation::ipc::Service::Controller{
+struct AuthSignal: Dynamic<AuthSignal, DynamicShared<foundation::Signal> >{
+	AuthSignal():authidx(0), authcnt(0){}
+	~AuthSignal(){}
+	
+	template <class S>
+	S& operator&(S &_s){
+		_s.push(authidx, "authidx").push(authcnt, "authcnt");
+		if(S::IsDeserializer){
+			_s.push(siguid.idx, "siguid.idx").push(siguid.uid,"siguid.uid");
+		}else{//on sender
+			foundation::ipc::SignalUid &rsiguid(
+				const_cast<foundation::ipc::SignalUid &>(foundation::ipc::SignalContext::the().signaluid)
+			);
+			_s.push(rsiguid.idx, "siguid.idx").push(rsiguid.uid,"siguid.uid");
+		}
+		_s.push(siguidpeer.idx, "siguidpeer.idx").push(siguidpeer.uid,"siguidpeer.uid");
+		return _s;
+	}
+//data:
+	int								authidx;
+	int								authcnt;
+	foundation::ipc::SignalUid		siguid;
+	foundation::ipc::SignalUid		siguidpeer;
+};
+
+
+struct IpcServiceController: foundation::ipc::Controller{
+	IpcServiceController():foundation::ipc::Controller(400, HasAuthenticationFlag), authidx(0){
+		
+	}
 	/*virtual*/ void scheduleTalker(foundation::aio::Object *_po);
 	/*virtual*/ bool release();
+	/*virtual*/ bool compressBuffer(
+		foundation::ipc::BufferContext &_rbc,
+		const uint32 _bufsz,
+		char* &_rpb,
+		uint32 &_bl
+	);
+	/*virtual*/ bool decompressBuffer(
+		foundation::ipc::BufferContext &_rbc,
+		char* &_rpb,
+		uint32 &_bl
+	);
+	/*virtual*/ int authenticate(
+		DynamicPointer<fdt::Signal> &_sigptr,//the received signal
+		fdt::ipc::SignalUid &_rsiguid,
+		uint32 &_rflags,
+		fdt::ipc::SerializationTypeIdT &_rtid
+	);
+private:
+	qlz_state_compress		qlz_comp_ctx;
+	qlz_state_decompress	qlz_decomp_ctx;
+	int						authidx;
 };
+
+
+/*virtual*/ bool IpcServiceController::compressBuffer(
+	foundation::ipc::BufferContext &_rbc,
+	const uint32 _bufsz,
+	char* &_rpb,
+	uint32 &_bl
+){
+// 	if(_bufsz < 1024){
+// 		return false;
+// 	}
+	uint32	destcp(0);
+	char 	*pdest =  allocateBuffer(_rbc, destcp);
+	size_t	len = qlz_compress(_rpb, pdest, _bl, &qlz_comp_ctx);
+	_rpb = pdest;
+	_bl = len;
+	return true;
+}
+
+/*virtual*/ bool IpcServiceController::decompressBuffer(
+	foundation::ipc::BufferContext &_rbc,
+	char* &_rpb,
+	uint32 &_bl
+){
+	uint32	destcp(0);
+	char 	*pdest =  allocateBuffer(_rbc, destcp);
+	size_t	len = qlz_decompress(_rpb, pdest, &qlz_decomp_ctx);
+	_rpb = pdest;
+	_bl = len;
+	return true;
+}
+
+/*virtual*/ int IpcServiceController::authenticate(
+	DynamicPointer<fdt::Signal> &_sigptr,//the received signal
+	fdt::ipc::SignalUid &_rsiguid,
+	uint32 &_rflags,
+	fdt::ipc::SerializationTypeIdT &_rtid
+){
+	if(!_sigptr.ptr()){
+		if(authidx){
+			idbg("");
+			return BAD;
+		}
+		//initiate authentication
+		_sigptr = new AuthSignal;
+		++authidx;
+		idbg("authidx = "<<authidx);
+		return NOK;
+	}
+	if(_sigptr->dynamicTypeId() != AuthSignal::staticTypeId()){
+		cassert(false);
+		return BAD;
+	}
+	AuthSignal &rsig(static_cast<AuthSignal&>(*_sigptr));
+	
+	_rsiguid = rsig.siguidpeer;
+	
+	rsig.siguidpeer = rsig.siguid;
+	
+	idbg("sig = "<<(void*)_sigptr.ptr()<<" auth("<<rsig.authidx<<','<<rsig.authcnt<<") authidx = "<<this->authidx);
+	
+	if(rsig.authidx == 0){
+		if(this->authidx == 2){
+			idbg("");
+			return BAD;
+		}
+		++this->authidx;
+		rsig.authidx = this->authidx;
+	}
+	
+	++rsig.authcnt;
+	
+	if(rsig.authidx == 2 && rsig.authcnt >= 3){
+		idbg("");
+		return BAD;
+	}
+	
+	
+	if(rsig.authcnt == 4){
+		idbg("");
+		return OK;
+	}
+	if(rsig.authcnt == 5){
+		_sigptr.clear();
+		idbg("");
+		return OK;
+	}
+	idbg("");
+	return NOK;
+}
+
 
 //------------------------------------------------------
 //		Manager::Data
@@ -125,18 +273,11 @@ struct Manager::Data{
 };
 
 //--------------------------------------------------------------------------
-typedef serialization::TypeMapper					TypeMapper;
-typedef serialization::IdTypeMap					IdTypeMap;
-typedef serialization::bin::Serializer				BinSerializer;
-
 Manager::Manager():foundation::Manager(16), d(*(new Data())){
 	//NOTE: Use the following line instead of ThisGuard if you only have one Manager per process, else use the ThisGuard for any function
 	// that may be called from a thread that has access to other managers.
 	//this->prepareThread();
 	ThisGuard	tg(this);
-	
-	TypeMapper::registerMap<IdTypeMap>(new IdTypeMap);
-	TypeMapper::registerSerializer<BinSerializer>();
 	
 	registerScheduler(new SchedulerT(*this));
 	registerScheduler(new AioSchedulerT(*this));
@@ -147,6 +288,8 @@ Manager::Manager():foundation::Manager(16), d(*(new Data())){
 	registerObject<SchedulerT>(new fdt::SignalExecuter, 0, d.writesigexeidx);
 	
 	registerService<SchedulerT>(new foundation::ipc::Service(&ipcctrl), 0, d.ipcidx);
+	
+	fdt::ipc::Service::the().typeMapper().insert<AuthSignal>();
 }
 
 Manager::~Manager(){
@@ -194,31 +337,31 @@ bool IpcServiceController::release(){
 	return false;
 }
 void FileManagerController::sendStream(
-	StreamPointer<IStream> &_sptr,
+	StreamPointer<InputStream> &_sptr,
 	const FileUidT &_rfuid,
 	const fdt::RequestUid& _rrequid
 ){
 	RequestUidT	ru(_rrequid.reqidx, _rrequid.requid);
-	DynamicPointer<fdt::Signal>	cp(new IStreamSignal(_sptr, _rfuid, ru));
+	DynamicPointer<fdt::Signal>	cp(new InputStreamSignal(_sptr, _rfuid, ru));
 	Manager::the().signal(cp, _rrequid.objidx, _rrequid.objuid);
 }
 
 void FileManagerController::sendStream(
-	StreamPointer<OStream> &_sptr,
+	StreamPointer<OutputStream> &_sptr,
 	const FileUidT &_rfuid,
 	const fdt::RequestUid& _rrequid
 ){
 	RequestUidT	ru(_rrequid.reqidx, _rrequid.requid);
-	DynamicPointer<fdt::Signal>	cp(new OStreamSignal(_sptr, _rfuid, ru));
+	DynamicPointer<fdt::Signal>	cp(new OutputStreamSignal(_sptr, _rfuid, ru));
 	Manager::the().signal(cp, _rrequid.objidx, _rrequid.objuid);
 }
 void FileManagerController::sendStream(
-	StreamPointer<IOStream> &_sptr,
+	StreamPointer<InputOutputStream> &_sptr,
 	const FileUidT &_rfuid,
 	const fdt::RequestUid& _rrequid
 ){
 	RequestUidT	ru(_rrequid.reqidx, _rrequid.requid);
-	DynamicPointer<fdt::Signal>	cp(new IOStreamSignal(_sptr, _rfuid, ru));
+	DynamicPointer<fdt::Signal>	cp(new InputOutputStreamSignal(_sptr, _rfuid, ru));
 	Manager::the().signal(cp, _rrequid.objidx, _rrequid.objuid);
 }
 void FileManagerController::sendError(

@@ -66,6 +66,14 @@ endif(ExtAbsLen GREATER 0)
 message("EXTERN_PATH set as "${EXTERN_PATH})
 
 #-----------------------------------------------------------------
+# Find libraries
+#-----------------------------------------------------------------
+
+include(find_boost.cmake)
+include(find_openssl.cmake)
+
+
+#-----------------------------------------------------------------
 # Prepare the definitions for build types
 #-----------------------------------------------------------------
 
@@ -84,7 +92,7 @@ set(SF_VERSION_FLAGS "-DSF_MAJOR=${VERSION_MAJOR} -DSF_MINOR=${VERSION_MINOR} -D
 
 set(SF_DEBUG_FLAGS "-DUDEBUG -DUASSERT -DNINLINES -DUSTATISTICS")
 set(SF_MAINTAIN_FLAGS "-DUDEBUG -DUASSERT -DUSTATISTICS")
-set(SF_OPTIMIZED_FLAGS "-DNINLINES")
+set(SF_OPTIMIZED_FLAGS "")
 set(SF_NOLOG_FLAGS "-DUASSERT -DNINLINES")
 set(SF_RELEASE_FLAGS "")
 
@@ -195,18 +203,19 @@ if(CMAKE_SYSTEM MATCHES "Windows*")
 	message("Detected system ON_WINDOWS")
 	set(ON_FOUND TRUE)
 	set(ON_WINDOWS TRUE)
-	set(SYS_DEBUG_FLAGS "-DON_WINDOWS -D_CRT_SECURE_NO_WARNINGS -D_WIN32_WINNT=0x0501")
-	set(SYS_MAINTAIN_FLAGS "-DON_WINDOWS -D_CRT_SECURE_NO_WARNINGS -D_WIN32_WINNT=0x0501")
-	set(SYS_OPTIMIZED_FLAGS "-DON_WINDOWS -D_CRT_SECURE_NO_WARNINGS -D_WIN32_WINNT=0x0501")
-	set(SYS_NOLOG_FLAGS "-DON_WINDOWS -D_CRT_SECURE_NO_WARNINGS -D_WIN32_WINNT=0x0501")
-	set(SYS_RELEASE_FLAGS "-DON_WINDOWS -D_CRT_SECURE_NO_WARNINGS -D_WIN32_WINNT=0x0501")
+	set(SYS_DEBUG_FLAGS "-DON_WINDOWS -D_CRT_SECURE_NO_WARNINGS -D_WIN32_WINNT=0x0600 /Zi /Od")
+	set(SYS_MAINTAIN_FLAGS "-DON_WINDOWS -D_CRT_SECURE_NO_WARNINGS -D_WIN32_WINNT=0x0600  /Zi /Od")
+	set(SYS_OPTIMIZED_FLAGS "-DON_WINDOWS -D_CRT_SECURE_NO_WARNINGS -D_WIN32_WINNT=0x0600 /Ox  /Zi")
+	set(SYS_NOLOG_FLAGS "-DON_WINDOWS -D_CRT_SECURE_NO_WARNINGS -D_WIN32_WINNT=0x0600 /Zi /Od")
+	set(SYS_RELEASE_FLAGS "-DON_WINDOWS -D_CRT_SECURE_NO_WARNINGS -D_WIN32_WINNT=0x0600 /Ox")
 
 	set(SYS_DEBUG_LINKER_FLAGS "")
 	set(SYS_MAINTAIN_LINKER_FLAGS "")
 	set(SYS_OPTIMIZED_LINKER_FLAGS "")
 	set(SYS_NOLOG_LINKER_FLAGS "")
 	set(SYS_RELEASE_LINKER_FLAGS "")
-	
+
+	set(SYS_BASIC_LIBS Ws2_32 ${BOOST_THREAD_LIB} ${BOOST_SYSTEM_LIB})
 endif(CMAKE_SYSTEM MATCHES "Windows*")
 
 message("")
@@ -225,13 +234,22 @@ include(check.config.cmake)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 
 if(HAVE_CPP11FLAG AND HAVE_CPP11)
-	add_definitions(-std=c++0x)
+	set(SYS_DEBUG_FLAGS "${SYS_DEBUG_FLAGS} -std=c++0x")
+	set(SYS_MAINTAIN_FLAGS "${SYS_MAINTAIN_FLAGS} -std=c++0x")
+	set(SYS_OPTIMIZED_FLAGS "${SYS_OPTIMIZED_FLAGS} -std=c++0x")
+	set(SYS_NOLOG_FLAGS "${SYS_NOLOG_FLAGS} -std=c++0x")
+	set(SYS_RELEASE_FLAGS "${SYS_RELEASE_FLAGS} -std=c++0x")
 endif(HAVE_CPP11FLAG AND HAVE_CPP11)
 #-----------------------------------------------------------------
 
 #-----------------------------------------------------------------
 # Debug build
 #-----------------------------------------------------------------
+set(CMAKE_CXX_FLAGS_DEBUG 
+	"${SYS_DEBUG_FLAGS} ${SF_DEBUG_FLAGS} ${SF_VERSION_FLAGS}"
+	CACHE STRING "Flags used by the C++ compiler during debug builds."
+	FORCE
+)
 set(CMAKE_CXX_FLAGS_DEBUG 
 	"${SYS_DEBUG_FLAGS} ${SF_DEBUG_FLAGS} ${SF_VERSION_FLAGS}"
 	CACHE STRING "Flags used by the C++ compiler during debug builds."
@@ -322,13 +340,6 @@ set(CMAKE_BUILD_TYPE
     FORCE
 )
 #-----------------------------------------------------------------
-
-#-----------------------------------------------------------------
-# Find libraries
-#-----------------------------------------------------------------
-
-include(find_boost.cmake)
-include(find_openssl.cmake)
 
 #-----------------------------------------------------------------
 # Global include directories

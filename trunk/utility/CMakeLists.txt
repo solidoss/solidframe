@@ -21,7 +21,6 @@ set(Headers
 	stack.hpp
 	stream.hpp
 	streampointer.hpp
-	string.hpp
 	workpool.hpp
 	dynamictype.hpp
 	dynamicpointer.hpp

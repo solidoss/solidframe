@@ -5,11 +5,11 @@
 #include "system/mutex.hpp"
 
 void EmptyChecker::add(){
-	Mutex::Locker lock(Thread::gmutex());
+	Locker<Mutex> lock(Thread::gmutex());
 	++v;
 }
 void EmptyChecker::sub(){
-	Mutex::Locker lock(Thread::gmutex());
+	Locker<Mutex> lock(Thread::gmutex());
 	--v;
 }
 

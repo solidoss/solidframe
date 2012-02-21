@@ -25,9 +25,9 @@ class Visitor;
 
 }
 
-class IStream;
-class OStream;
-class IOStream;
+class InputStream;
+class OutputStream;
+class InputOutputStream;
 
 namespace concept{
 
@@ -35,9 +35,9 @@ class Visitor;
 class Manager;
 
 //signals
-struct IStreamSignal;
-struct OStreamSignal;
-struct IOStreamSignal;
+struct InputStreamSignal;
+struct OutputStreamSignal;
+struct InputOutputStreamSignal;
 struct StreamErrorSignal;
 
 
@@ -126,9 +126,9 @@ public:
 	SocketData &socketData(const uint _sid);
 	
 	void dynamicExecute(DynamicPointer<> &_dp);
-	void dynamicExecute(DynamicPointer<IStreamSignal> &_rsig);
-	void dynamicExecute(DynamicPointer<OStreamSignal> &_rsig);
-	void dynamicExecute(DynamicPointer<IOStreamSignal> &_rsig);
+	void dynamicExecute(DynamicPointer<InputStreamSignal> &_rsig);
+	void dynamicExecute(DynamicPointer<OutputStreamSignal> &_rsig);
+	void dynamicExecute(DynamicPointer<InputOutputStreamSignal> &_rsig);
 	void dynamicExecute(DynamicPointer<StreamErrorSignal> &_rsig);
 	void dynamicExecute(DynamicPointer<SocketMoveSignal> &_rsig);
 	
@@ -157,9 +157,9 @@ private:
 	typedef std::vector<SocketData*>				SocketDataVectorT;
 	typedef std::vector<std::pair<uint32, int> >	RequestIdVectorT;
 	struct StreamData{
-		StreamPointer<IStream>	pis;
-		StreamPointer<OStream>	pos;
-		StreamPointer<IOStream>	pios;
+		StreamPointer<InputStream>	pis;
+		StreamPointer<OutputStream>	pos;
+		StreamPointer<InputOutputStream>	pios;
 	};
 	typedef std::deque<StreamData>					StreamDataVectorT;
 	typedef Stack<uint32>							UIntStackT;

@@ -26,9 +26,9 @@
 #include "utility/common.hpp"
 
 //! A stream for writing
-class OStream: virtual public Stream{
+class OutputStream: virtual public Stream{
 public:
-	virtual ~OStream();
+	virtual ~OutputStream();
 	virtual int write(const char *, uint32, uint32 _flags = 0) = 0;
 	virtual int write(uint64 _offset, const char *_pbuf, uint32 _blen, uint32 _flags = 0);
 	bool ook()const;
@@ -37,14 +37,14 @@ public:
 	bool ofail()const;
 };
 
-//! An OStreamIterator - an offset within the stream: a pointer to an ostream
-struct OStreamIterator{
-	OStreamIterator(OStream *_ps = NULL, int64 _off = 0);
-	void reinit(OStream *_ps = NULL, int64 _off = 0);
+//! An OutputStreamIterator - an offset within the stream: a pointer to an ostream
+struct OutputStreamIterator{
+	OutputStreamIterator(OutputStream *_ps = NULL, int64 _off = 0);
+	void reinit(OutputStream *_ps = NULL, int64 _off = 0);
 	int64 start();
-	OStream* operator->() const{return ps;}
-	OStream& operator*() {return *ps;}
-	OStream		*ps;
+	OutputStream* operator->() const{return ps;}
+	OutputStream& operator*() {return *ps;}
+	OutputStream		*ps;
 	int64		off;
 };
 

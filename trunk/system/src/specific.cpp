@@ -27,47 +27,77 @@
 #include "system/thread.hpp"
 #include "system/debug.hpp"
 #include "system/mutex.hpp"
+#include "system/exception.hpp"
 
 #ifndef OBJ_CACHE_CAP
 #define OBJ_CACHE_CAP 4096*2
 #endif
 
+
+struct BufferNode{
+	BufferNode *pnext;
+};
+
+#ifdef HAVE_SAFE_STATIC
 static const unsigned specificPosition(){
-	//TODO: staticproblem
 	static const unsigned	thrspecpos = Thread::specificId();
 	return thrspecpos;
 }
+#else
+const unsigned specificPositionStub(){
+	static const unsigned	thrspecpos = Thread::specificId();
+	return thrspecpos;
+}
+
+void once_cbk(){
+	specificPositionStub();
+}
+
+const unsigned specificPosition(){
+	static boost::once_flag once = BOOST_ONCE_INIT;
+	boost::call_once(&once_cbk, once);
+	return specificPositionStub();
+}
+
+#endif
 //static unsigned		stkid = 0;
-struct CleanVector: std::vector<Specific::FncT>{
-	CleanVector(){
+struct CleaningVector: std::vector<Specific::FncT>{
+	CleaningVector(){
 		this->reserve(OBJ_CACHE_CAP);
 	}
 };
 
-static CleanVector	cv;
-
-typedef std::stack<void*,std::vector<void*> > StackT;
+static CleaningVector	cv;
 
 //This is what is holded on a thread
 struct SpecificData{
+	enum{
+		Count = 11
+	};
 	struct CachePoint{
-		CachePoint():cp(0){}
-		typedef std::stack<char*, std::vector<char*> > CStackT;
-		CStackT		s;
+		CachePoint():pnode(0), cp(0), sz(0){}
+		BufferNode		*pnode;
 		uint32			cp;
+		uint32			sz;
 	};
 	struct ObjectCachePoint{
-		ObjectCachePoint(Specific::FncT _pf = NULL):ps(NULL),cp(0){}
-		StackT		*ps;
-		uint32		cp;
+		ObjectCachePoint():pnode(NULL),cp(0), sz(0){}
+		BufferNode		*pnode;
+		uint32			cp;
+		uint32			sz;
 	};
+	
 	typedef std::vector<ObjectCachePoint>	ObjCachePointVecT;
+	
 	SpecificData(SpecificCacheControl *_pcc);
+	
 	~SpecificData();
+	
 	inline static SpecificData& current(){
 		return *reinterpret_cast<SpecificData*>(Thread::specific(specificPosition()));
 	}
-	CachePoint 				cps[Specific::Count];
+	
+	CachePoint 				cps[Count];
 	ObjCachePointVecT		ops;
 	SpecificCacheControl	*pcc;
 };
@@ -78,8 +108,8 @@ struct BasicCacheControl:SpecificCacheControl{
 
 //----------------------------------------------------------------------------------------------------
 void SpecificObject::operator delete (void *_pv, std::size_t _sz){
-	unsigned id = Specific::sizeToId(_sz);
-	if(id != (unsigned)-1){
+	int id = Specific::sizeToIndex(_sz);
+	if(id >= 0){
 		char * pc = (char*)_pv;
 		Specific::pushBuffer(pc, id);
 	}else{
@@ -87,8 +117,8 @@ void SpecificObject::operator delete (void *_pv, std::size_t _sz){
 	}
 }
 void* SpecificObject::operator new (std::size_t _sz){
-	unsigned id = Specific::sizeToId(_sz);
-	if(id != (unsigned)-1){
+	int id = Specific::sizeToIndex(_sz);
+	if(id >= 0){
 		return Specific::popBuffer(id);
 	}else{
 		return new char[_sz];
@@ -102,6 +132,25 @@ unsigned SpecificCacheControl::stackCapacity(unsigned _bufid)const{
 bool BasicCacheControl::release(){
 	return false;//do not delete this object
 }
+
+static inline BufferNode* bufferNodePointer(void *_p){
+	char *p = reinterpret_cast<char*>(_p);
+	return reinterpret_cast<BufferNode*>(p - sizeof(BufferNode));
+}
+
+static inline void* voidPointer(BufferNode *_pv){
+	char *p(reinterpret_cast<char*>(_pv));
+	return p + sizeof(BufferNode);
+}
+char* checkObjectBuffer(void *_p){
+	char *p = reinterpret_cast<char*>(_p);
+	p -= sizeof(BufferNode);
+	void **pv = reinterpret_cast<void**>(p);
+	if(*pv != reinterpret_cast<void*>(p)){
+		THROW_EXCEPTION_EX("Array Bounds Write or Caching a non unchached object ", _p);
+	}
+	return p;
+}
 //****************************************************************************************************
 //		SpecificData
 //****************************************************************************************************
@@ -111,26 +160,42 @@ SpecificData::SpecificData(SpecificCacheControl *_pcc):pcc(_pcc){
 SpecificData::~SpecificData(){
 	if(pcc->release()) delete pcc;
 	idbgx(Dbg::specific, "destroy all cached buffers");
-	for(int i(0); i < Specific::Count; ++i){
-		vdbgx(Dbg::specific, i<<" cp = "<<cps[i].cp<<" sz = "<<cps[i].s.size()<<" specific_id = "<<Specific::sizeToId((1<<i)));
-		cassert(!(cps[i].cp - cps[i].s.size()));
-		while(cps[i].s.size()){
-			delete []cps[i].s.top();
-			cps[i].s.pop();
+	for(int i(0); i < Count; ++i){
+		vdbgx(Dbg::specific, i<<" cp = "<<cps[i].cp<<" sz = "<<cps[i].sz<<" specific_id = "<<Specific::sizeToIndex((1<<i)));
+		
+		BufferNode	*pbn(cps[i].pnode);
+		BufferNode	*pnbn;
+		uint32 		cnt(0);
+		while(pbn){
+			pnbn = pbn->pnext;
+			delete []reinterpret_cast<char*>(pbn);
+			++cnt;
+			pbn = pnbn;
+		}
+		
+		if(cnt != cps[i].sz || cnt != cps[i].cp){
+			THROW_EXCEPTION_EX("Memory leak specific buffers ", i);
 		}
 	}
 	
 	idbgx(Dbg::specific, "destroy all cached objects");
-	Mutex::Locker lock(Thread::gmutex());
+	Locker<Mutex> lock(Thread::gmutex());
 	for(ObjCachePointVecT::iterator it(ops.begin()); it != ops.end(); ++it){
 		vdbgx(Dbg::specific, "it->cp = "<<it->cp);
-		if(it->ps){
-			cassert(!(it->cp - it->ps->size()));
-			while(it->ps->size()){
-				(*cv[it - ops.begin()])(it->ps->top());
-				it->ps->pop();
-			}
-			delete it->ps;
+		BufferNode	*pbn(it->pnode);
+		BufferNode	*pnbn;
+		uint32 		cnt(0);
+		while(pbn){
+			pnbn = pbn->pnext;
+			void **pv = reinterpret_cast<void**>(pbn);
+			*pv = pbn;
+			++cnt;
+			(*cv[it - ops.begin()])(voidPointer(pbn));
+			
+			pbn = pnbn;
+		}
+		if(cnt != it->sz || cnt != it->cp){
+			THROW_EXCEPTION_EX("Memory leak specific objects ", (int)(it - ops.begin()));
 		}
 	}
 }
@@ -138,7 +203,6 @@ SpecificData::~SpecificData(){
 //		Specific
 //****************************************************************************************************
 static BasicCacheControl bcc;
-
 void destroy(void *_pv){
 	SpecificData *psd = reinterpret_cast<SpecificData*>(_pv);
 	delete psd;
@@ -148,60 +212,94 @@ void destroy(void *_pv){
 	Thread::specific(specificPosition(), new SpecificData(_pcc), &destroy);
 }
 //----------------------------------------------------------------------------------------------------
-/*static*/ unsigned Specific::sizeToId(unsigned _sz){
-	if(_sz > 4096)	return -1;
-	if(_sz > 2048)	return 10;
-	if(_sz > 1024)	return 9;
-	if(_sz > 512)	return 8;
-	if(_sz > 256)	return 7;
-	if(_sz > 128)	return 6;
-	if(_sz > 64)	return 5;
-	if(_sz > 32)	return 4;
-	if(_sz > 16)	return 3;
-	if(_sz > 8)		return 2;
-	if(_sz > 4)		return 1;
-	return 0;
+/*static*/ int Specific::sizeToIndex(unsigned _sz){
+	if(_sz <= (1 * sizeof(BufferNode))){
+		return 0;
+	}else if(_sz <= 2 * sizeof(BufferNode)){
+		return 1;
+	}else if(_sz <= 4 * sizeof(BufferNode)){
+		return 2;
+	}else if(_sz <= 8 * sizeof(BufferNode)){
+		return 3;
+	}else if(_sz <= 16 * sizeof(BufferNode)){
+		return 4;
+	}else if(_sz <= 32 * sizeof(BufferNode)){
+		return 5;
+	}else if(_sz <= 64 * sizeof(BufferNode)){
+		return 6;
+	}else if(_sz <= 128 * sizeof(BufferNode)){
+		return 7;
+	}else if(_sz <= 256 * sizeof(BufferNode)){
+		return 8;
+	}else if(_sz <= 512 * sizeof(BufferNode)){
+		return 9;
+	}else if(_sz <= 1024 * sizeof(BufferNode)){
+		return 10;
+	}
+	return -1;
 }
-/*static*/ unsigned Specific::capacityToId(unsigned _sz){
+/*static*/ int Specific::capacityToIndex(unsigned _sz){
 	switch(_sz){
-		case 4:		return 0;
-		case 8:		return 1;
-		case 16:	return 2;
-		case 32:	return 3;
-		case 64:	return 4;
-		case 128:	return 5;
-		case 256:	return 6;
-		case 512:	return 7;
-		case 1024:	return 8;
-		case 2048:	return 9;
-		case 4096:	return 10;
-		default:{ cassert(false);}
+		case (1 * sizeof(BufferNode)):		return 0;
+		case (2 * sizeof(BufferNode)):		return 1;
+		case (4 * sizeof(BufferNode)):		return 2;
+		case (8 * sizeof(BufferNode)):		return 3;
+		case (16 * sizeof(BufferNode)):		return 4;
+		case (32 * sizeof(BufferNode)):		return 5;
+		case (64 * sizeof(BufferNode)):		return 6;
+		case (128 * sizeof(BufferNode)):	return 7;
+		case (256 * sizeof(BufferNode)):	return 8;
+		case (512 * sizeof(BufferNode)):	return 9;
+		case (1024 * sizeof(BufferNode)):	return 10;
+		default:return -1;
 	}
 }
+
+/*static*/ unsigned Specific::indexToCapacity(unsigned _id){
+	static const uint cps[] = {
+		sizeof(BufferNode),
+		2 * sizeof(BufferNode),
+		4 * sizeof(BufferNode),
+		8 * sizeof(BufferNode),
+		16 * sizeof(BufferNode),
+		32 * sizeof(BufferNode),
+		64 * sizeof(BufferNode),
+		128 * sizeof(BufferNode),
+		256 * sizeof(BufferNode),
+		512 * sizeof(BufferNode),
+		1024 * sizeof(BufferNode)
+	};
+	return cps[_id];
+}
+
 /*static*/ char* Specific::popBuffer(unsigned _id){
-	cassert(_id < Count);
-	cassert(_id != 0);
-	SpecificData &rsd(SpecificData::current());
-	SpecificData::CachePoint &rcp(rsd.cps[_id]);
+	cassert(_id < SpecificData::Count);
+	SpecificData				&rsd(SpecificData::current());
+	SpecificData::CachePoint	&rcp(rsd.cps[_id]);
 	char *tb;
-	if(rcp.s.size()){
-		tb = rcp.s.top();
-		rcp.s.pop();
+	if(rcp.pnode){
+		BufferNode *pnbn = rcp.pnode->pnext;
+		tb = reinterpret_cast<char*>(rcp.pnode);
+		rcp.pnode = pnbn;
+		--rcp.sz;
 	}else{
 		++rcp.cp;
-		tb = new char[idToCapacity(_id)];
+		tb = new char[indexToCapacity(_id)];
 	}
 	idbgx(Dbg::specific,"popBuffer "<<_id<<" cp "<<rcp.cp<<' '<<(void*)tb);
 	return tb;
 }
 /*static*/ void Specific::pushBuffer(char *&_pb, unsigned _id){
 	cassert(_pb);
-	cassert(_id < Count);
-	SpecificData &rsd(SpecificData::current());
-	SpecificData::CachePoint &rcp(rsd.cps[_id]);
-	idbgx(Dbg::specific,"pushBuffer "<<_id<<" cp "<<rcp.cp<<" stackCap "<<rsd.pcc->stackCapacity(_id)<<' '<<(void*)_pb);
-	if(rcp.s.size() < rsd.pcc->stackCapacity(_id)){
-		rcp.s.push(_pb);
+	cassert(_id < SpecificData::Count);
+	SpecificData				&rsd(SpecificData::current());
+	SpecificData::CachePoint	&rcp(rsd.cps[_id]);
+	idbgx(Dbg::specific,"pushBuffer "<<_id<<" cp "<<rcp.cp<<' '<<(void*)_pb);
+	if(rcp.sz < rsd.pcc->stackCapacity(_id)){
+		BufferNode *pbn(reinterpret_cast<BufferNode*>(_pb));
+		++rcp.sz;
+		pbn->pnext = rcp.pnode;
+		rcp.pnode = pbn;
 	}else{
 		--rcp.cp;
 		delete []_pb;
@@ -211,19 +309,24 @@ void destroy(void *_pv){
 //----------------------------------------------------------------------------------------------------
 //for caching objects
 /*static*/ unsigned Specific::stackid(FncT _pf){
-	Mutex::Locker lock(Thread::gmutex());
+	Locker<Mutex> lock(Thread::gmutex());
 	SpecificData &rsd(SpecificData::current());
 	cassert(rsd.ops.size() < rsd.ops.capacity());
 	cv.push_back(_pf);
 	return cv.size() - 1;
 }
+
 /*static*/ int Specific::push(void *_pv, unsigned _id, unsigned _maxcp){
-	SpecificData &rsd(SpecificData::current());
+	SpecificData					&rsd(SpecificData::current());
 	cassert(_pv);
 	cassert(_id < rsd.ops.size());
-	cassert(rsd.ops[_id].ps);
-	if(rsd.ops[_id].ps->size() < _maxcp){
-		rsd.ops[_id].ps->push(_pv);
+	SpecificData::ObjectCachePoint	&rocp(rsd.ops[_id]);
+	if(rocp.sz < _maxcp){
+		checkObjectBuffer(_pv);
+		BufferNode *pbn(bufferNodePointer(_pv));
+		pbn->pnext = rocp.pnode;
+		rocp.pnode = pbn;
+		++rocp.sz;
 		return 0;
 	}
 	--rsd.ops[_id].cp;
@@ -233,17 +336,28 @@ void destroy(void *_pv){
 	SpecificData &rsd(SpecificData::current());
 	if(_id >= rsd.ops.size()){
 		rsd.ops.resize(_id + 1);
-		rsd.ops[_id].ps = new StackT;
-	}else if(rsd.ops[_id].ps){
-		if(rsd.ops[_id].ps->size()){
-			void *pv = rsd.ops[_id].ps->top();
-			rsd.ops[_id].ps->pop();
-			return pv;
-		}
-	}else{
-		rsd.ops[_id].ps = new StackT;
+	}else if(rsd.ops[_id].pnode){
+		BufferNode	*pbn(rsd.ops[_id].pnode);
+		void 		*pv(voidPointer(pbn));
+		rsd.ops[_id].pnode = pbn->pnext;
+		--rsd.ops[_id].sz;
+		void **ppv = reinterpret_cast<void**>(pbn);
+		*ppv = pbn;
+		return pv;
 	}
 	++rsd.ops[_id].cp;
 	return NULL;
+}
+
+/*static*/ void* Specific::doAllocateBuffer(size_t _sz){
+	_sz += sizeof(BufferNode);
+	char *p = new char[_sz];
+	void **pv = reinterpret_cast<void**>(p);
+	*pv = p;
+	return p + sizeof(BufferNode);
+}
+
+/*static*/ void Specific::doDeallocateBuffer(void *_p){
+	delete []checkObjectBuffer(_p);
 }
 

@@ -113,8 +113,8 @@ public:
 		- and so forth
 	*/
 	int reinitWriter(Writer &, protocol::Parameter &);
-	int receiveIStream(
-		StreamPointer<IStream> &_sptr,
+	int receiveInputStream(
+		StreamPointer<InputStream> &_sptr,
 		const FileUidT &_fuid,
 		int			_which,
 		const ObjectUidT&,
@@ -165,9 +165,9 @@ private:
 	protocol::Parameter				*pp;
 	//FileUidT						fuid;
 	
-	StreamPointer<IStream>			sp_in;
-	StreamPointer<IStream>			sp_out;
-	IStreamIterator					it;
+	StreamPointer<InputStream>			sp_in;
+	StreamPointer<InputStream>			sp_out;
+	InputStreamIterator					it;
 	foundation::ipc::ConnectionUid	ipcconuid;
 	SignalUidT						mastersiguid;
 	uint32							tmpstreamcp;//temp stream capacity
@@ -188,8 +188,8 @@ public:
 	void initReader(Reader &);
 	int reinitReader(Reader &, protocol::Parameter &);
 	int execute(Connection &);
-	int receiveOStream(
-		StreamPointer<OStream> &_sptr,
+	int receiveOutputStream(
+		StreamPointer<OutputStream> &_sptr,
 		const FileUidT &_fuid,
 		int			_which,
 		const ObjectUidT&,
@@ -203,8 +203,8 @@ public:
 	int reinitWriter(Writer &, protocol::Parameter &);
 private:
 	String					strpth;//the file path
-	StreamPointer<OStream>	sp;
-	OStreamIterator			it;
+	StreamPointer<OutputStream>	sp;
+	OutputStreamIterator			it;
 	Connection				&rc;
 	int 					st;
 	uint32					litsz;
@@ -351,20 +351,20 @@ public:
 	void initReader(Reader &);
 	int execute(Connection &);
 	int reinitWriter(Writer &, protocol::Parameter &);
-	/*virtual*/ int receiveIStream(
-		StreamPointer<IStream> &,
+	/*virtual*/ int receiveInputStream(
+		StreamPointer<InputStream> &,
 		const FileUidT&,
 		int			_which,
 		const ObjectUidT&_from,
 		const foundation::ipc::ConnectionUid *_conid
 	);
-// 	virtual int receiveOStream(
-// 		StreamPointer<OStream> &,
+// 	virtual int receiveOutputStream(
+// 		StreamPointer<OutputStream> &,
 // 		const FromPairT&_from,
 // 		const ipc::ConnectionUid *_conid
 // 	);
-// 	virtual int receiveIOStream(
-// 		StreamPointer<IOStream> &, 
+// 	virtual int receiveInputOutputStream(
+// 		StreamPointer<InputOutputStream> &, 
 // 		const FromPairT&_from,
 // 		const ipc::ConnectionUid *_conid
 // 	);
@@ -380,9 +380,9 @@ private:
 	Queue<String>				stringq;
 	Queue<ObjectUidT>			fromq;
 	Queue<foundation::ipc::ConnectionUid>	conidq;
-	Queue<StreamPointer<IStream> >	streamq;
+	Queue<StreamPointer<InputStream> >	streamq;
 	Connection					&rc;
-	IStreamIterator				it;
+	InputStreamIterator				it;
 	uint64						litsz64;
 };
 

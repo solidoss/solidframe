@@ -7,6 +7,11 @@
 //! A wrapper for berkeley sockets
 class SocketDevice: public Device{
 public:
+#ifdef ON_WINDOWS
+	typedef SOCKET DescriptorT;
+#else
+	typedef int DescriptorT;
+#endif
 	//!Copy constructor
 	SocketDevice(const SocketDevice &_sd);
 	//!Basic constructor
@@ -43,7 +48,9 @@ public:
 	//! Make the socket nonblocking
 	int makeNonBlocking();
 	//! Check if its blocking
+#ifndef ON_WINDOWS
 	bool isBlocking();
+#endif
 	//! Return true if nonblocking and the prevoious nonblocking opperation did not complete
 	/*!
 		In case of nonblocking sockets, use this method after:connect, accept, read, write,send
@@ -63,7 +70,16 @@ public:
 	int remoteAddress(SocketAddress &_rsa)const;
 	//! Gets the local address for a socket
 	int localAddress(SocketAddress &_rsa)const;
-	int descriptor()const{return Device::descriptor();}
+#ifdef ON_WINDOWS
+	static const DescriptorT invalidDescriptor(){
+		return INVALID_SOCKET;
+	}
+	DescriptorT descriptor()const{return reinterpret_cast<DescriptorT>(Device::descriptor());}
+	bool ok()const{
+		return descriptor() != invalidDescriptor();
+	}
+#endif
+	void close();
 	//! Get the socket type
 	int type()const;
 	//! Return true if the socket is listening

@@ -77,13 +77,16 @@ struct SignalContext{
 	static const SignalContext& the();
 	ConnectionUid 		connectionuid;
 	SignalUid			signaluid;
-	SocketAddressPair		pairaddr;
+	SocketAddressPair	pairaddr;
 	int 				baseport;
 private:
 	friend class Context;
 	
 	SignalContext(uint32 _tkrid):connectionuid(_tkrid), baseport(-1){}
 };
+
+typedef uint32 SerializationTypeIdT;
+#define SERIALIZATION_INVALIDID ((SerializationTypeIdT)0)
 
 }//namespace ipc
 }//namespace foundation

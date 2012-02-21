@@ -28,6 +28,8 @@
 
 #include "utility/dynamicpointer.hpp"
 
+#include "foundation/ipc/ipcconnectionuid.hpp"
+
 struct SocketAddress;
 struct SocketAddressPair;
 struct SocketAddressPair4;
@@ -83,14 +85,18 @@ public:
 
 	void prepare();
 	void reconnect(Session *_pses);	
-	int pushSignal(DynamicPointer<Signal> &_rsig, uint32 _flags);
+	int pushSignal(
+		DynamicPointer<Signal> &_rsig,
+		const SerializationTypeIdT &_rtid,
+		uint32 _flags
+	);
 	bool pushReceivedBuffer(
 		Buffer &_rbuf,
 		Talker::TalkerStub &_rstub/*,
 		const ConnectionUid &_rconid*/
 	);
 	
-	void completeConnect(int _port);
+	void completeConnect(Talker::TalkerStub &_rstub, int _port);
 	
 	bool executeTimeout(
 		Talker::TalkerStub &_rstub,
@@ -106,24 +112,28 @@ public:
 	void prepareContext(Context &_rctx);
 private:
 	bool doPushExpectedReceivedBuffer(
-		Buffer &_rbuf,
-		Talker::TalkerStub &_rstub/*,
+		Talker::TalkerStub &_rstub,
+		Buffer &_rbuf
+		/*,
 		const ConnectionUid &_rconid*/
 	);
 	bool doPushUnxpectedReceivedBuffer(
-		Buffer &_rbuf,
-		Talker::TalkerStub &_rstub/*,
+		Talker::TalkerStub &_rstub,
+		Buffer &_rbuf
+		/*,
 		const ConnectionUid &_rconid*/
 	);
 	bool doFreeSentBuffers(const Buffer &_rbuf/*, const ConnectionUid &_rconid*/);
-	void doParseBufferDataType(const char *&_bpos, int &_blen, int _firstblen);
-	void doParseBuffer(const Buffer &_rbuf/*, const ConnectionUid &_rconid*/);
+	void doParseBufferDataType(Talker::TalkerStub &_rstub, const char *&_bpos, int &_blen, int _firstblen);
+	void doParseBuffer(Talker::TalkerStub &_rstub, const Buffer &_rbuf/*, const ConnectionUid &_rconid*/);
 	
 	int doExecuteConnecting(Talker::TalkerStub &_rstub);
 	int doExecuteAccepting(Talker::TalkerStub &_rstub);
 	int doExecuteConnected(Talker::TalkerStub &_rstub);
-	int doExecuteDisconnect(Talker::TalkerStub &_rstub);
-	void doFillSendBuffer(const uint32 _bufidx);
+	int doExecuteConnectedLimited(Talker::TalkerStub &_rstub);
+	int doTrySendUpdates(Talker::TalkerStub &_rstub);
+	int doExecuteDisconnecting(Talker::TalkerStub &_rstub);
+	void doFillSendBuffer(Talker::TalkerStub &_rstub, const uint32 _bufidx);
 	void doTryScheduleKeepAlive(Talker::TalkerStub &_rstub);
 private:
 	struct Data;

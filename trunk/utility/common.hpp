@@ -109,4 +109,139 @@ inline size_t fast_padding_size(const size_t _sz, const size_t _bitpad){
 	return ((_sz >> _bitpad) + 1) << _bitpad;
 }
 
+uint8 bit_count(const uint8 _v);
+uint16 bit_count(const uint16 _v);
+uint32 bit_count(const uint32 _v);
+uint64 bit_count(const uint64 _v);
+
+template <typename T>
+struct CRCValue;
+
+
+template<>
+struct CRCValue<uint64>{
+	static CRCValue<uint64> check_and_create(uint64 _v);
+	static bool check(uint64 _v);
+	static const uint64 maximum(){
+		return (1ULL << 58) - 1ULL;
+	}
+	
+	CRCValue(uint64 _v);
+	CRCValue(const CRCValue<uint64> &_v):v(_v.v){}
+	
+	bool ok()const{
+		return v != (uint64)-1;
+	}
+	const uint64 value()const{
+		return v & ((1ULL << 58) - 1);
+	}
+	
+	const uint64 crc()const{
+		return v >> 58;
+	}
+	
+	operator uint64()const{
+		return v;
+	}
+	
+private:
+	CRCValue(uint64 _v, bool):v(_v){}
+	const uint64	v;
+};
+
+
+template<>
+struct CRCValue<uint32>{
+	static CRCValue<uint32> check_and_create(uint32 _v);
+	static bool check(uint32 _v);
+	static const uint32 maximum(){
+		return (1UL << 27) - 1UL;
+	}
+	
+	CRCValue(uint32 _v);
+	CRCValue(const CRCValue<uint32> &_v):v(_v.v){}
+	
+	bool ok()const{
+		return v != (uint32)-1;
+	}
+	uint32 value()const{
+		return v & ((1UL << 27) - 1);
+	}
+	
+	uint32 crc()const{
+		return v >> 27;
+	}
+	
+	operator uint32()const{
+		return v;
+	}
+	
+private:
+	CRCValue(uint32 _v, bool):v(_v){}
+	const uint32	v;
+};
+
+template<>
+struct CRCValue<uint16>{
+	static CRCValue<uint16> check_and_create(uint16 _v);
+	static bool check(uint16 _v);
+	static const uint16 maximum(){
+		return ((1 << 12) - 1);
+	}
+	
+	CRCValue(uint16 _idx);
+	CRCValue(const CRCValue<uint16> &_v):v(_v.v){}
+	
+	bool ok()const{
+		return v != (uint16)-1;
+	}
+	uint16 value()const{
+		return v & ((1 << 12) - 1);
+	}
+	uint16 crc()const{
+		return v >> 12;
+	}
+	operator uint16()const{
+		return v;
+	}
+private:
+	CRCValue(uint16 _v, bool):v(_v){}
+	const uint16	v;
+};
+
+template<>
+struct CRCValue<uint8>{
+	static CRCValue<uint8> check_and_create(uint8 _v);
+	static bool check(uint8 _v);
+	static const uint8 maximum(){
+		return ((1 << 5) - 1);
+	}
+	
+	CRCValue(uint8 _idx);
+	CRCValue(const CRCValue<uint8> &_v):v(_v.v){}
+	bool ok()const{
+		return v != (uint8)-1;
+	}
+	uint8 value()const{
+		return v & ((1 << 5) - 1);
+	}
+	uint8 crc()const{
+		return v >> 5;
+	}
+	operator uint8()const{
+		return v;
+	}
+private:
+	CRCValue(uint8 _v, bool):v(_v){}
+	const uint8	v;
+};
+
+template <int N>
+struct NumberType{
+	enum{
+		Number = N
+	};
+};
+
+
 #endif

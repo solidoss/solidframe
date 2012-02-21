@@ -24,9 +24,6 @@
 #include "foundation/ipc/ipcservice.hpp"
 #include "foundation/manager.hpp"
 
-#include "algorithm/serialization/binary.hpp"
-#include "algorithm/serialization/idtypemap.hpp"
-
 namespace fdt=foundation;
 
 namespace distributed{
@@ -156,7 +153,7 @@ void WriteRequestSignal::ipcFail(int _err){
 }
 
 void WriteRequestSignal::ipcSuccess(){
-	Mutex::Locker lock(mutex());
+	Locker<Mutex> lock(mutex());
 	++sentcount;
 	idbg((void*)this<<" sentcount = "<<(int)sentcount);
 }
@@ -247,7 +244,7 @@ void ReadRequestSignal::ipcFail(int _err){
 }
 
 void ReadRequestSignal::ipcSuccess(){
-	Mutex::Locker lock(mutex());
+	Locker<Mutex> lock(mutex());
 	++sentcount;
 	idbg((void*)this<<" sentcount = "<<(int)sentcount);
 }

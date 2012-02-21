@@ -30,8 +30,7 @@
 #undef UDEBUG
 #include "system/thread.hpp"
 #include "algorithm/serialization/binary.hpp"
-#include "algorithm/serialization/typemapper.hpp"
-#include "algorithm/serialization/idtypemap.hpp"
+#include "algorithm/serialization/idtypemapper.hpp"
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <cerrno>
@@ -39,10 +38,10 @@
 
 using namespace std;
 ///\cond 0
-class FileIOStream: public IOStream{
+class FileInputOutputStream: public InputOutputStream{
 public:
-	FileIOStream();
-	~FileIOStream();
+	FileInputOutputStream();
+	~FileInputOutputStream();
 	int openRead(const char *_fn);
 	int openWrite(const char *_fn);
 	int read(char *, uint32, uint32 _flags = 0);
@@ -54,27 +53,27 @@ private:
 	FileDevice	fd;
 };
 ///\endcond
-FileIOStream::FileIOStream(){}
-FileIOStream::~FileIOStream(){}
-int FileIOStream::openRead(const char *_fn){
+FileInputOutputStream::FileInputOutputStream(){}
+FileInputOutputStream::~FileInputOutputStream(){}
+int FileInputOutputStream::openRead(const char *_fn){
 	return fd.open(_fn, FileDevice::RO);
 }
-int FileIOStream::openWrite(const char *_fn){
+int FileInputOutputStream::openWrite(const char *_fn){
 	return fd.open(_fn, FileDevice::WO | FileDevice::TR | FileDevice::CR);
 }
-int FileIOStream::read(char *_pb, uint32 _bl, uint32 _flags){
+int FileInputOutputStream::read(char *_pb, uint32 _bl, uint32 _flags){
 	return fd.read(_pb, _bl);
 }
-int FileIOStream::write(const char *_pb, uint32 _bl, uint32 _flags){
+int FileInputOutputStream::write(const char *_pb, uint32 _bl, uint32 _flags){
 	return fd.write(_pb, _bl);
 }
-int64 FileIOStream::seek(int64, SeekRef){
+int64 FileInputOutputStream::seek(int64, SeekRef){
 	return -1;
 }
-int64 FileIOStream::size()const{
+int64 FileInputOutputStream::size()const{
 	return fd.size();
 }
-void FileIOStream::close(){
+void FileInputOutputStream::close(){
 	fd.close();
 }
 
@@ -85,27 +84,27 @@ struct Test{
 	S& operator&(S &_s){
 		return _s.template pushStreammer<Test>(this, "Test::fs").push(no, "Test::no").push(fn,"Test::fn");
 	}
-	int createDeserializationStream(OStream *&_rps, int64 &_rsz, uint64 &_roff, int _id);
-	void destroyDeserializationStream(OStream *_ps, int64 &_rsz, uint64 &_roff, int _id);
-	int createSerializationStream(IStream *&_rps, int64 &_rsz, uint64 &_roff, int _id);
-	void destroySerializationStream(IStream *_ps, int64 &_rsz, uint64 &_roff, int _id);
+	int createDeserializationStream(OutputStream *&_rps, int64 &_rsz, uint64 &_roff, int _id);
+	void destroyDeserializationStream(OutputStream *_ps, int64 &_rsz, uint64 &_roff, int _id);
+	int createSerializationStream(InputStream *&_rps, int64 &_rsz, uint64 &_roff, int _id);
+	void destroySerializationStream(InputStream *_ps, int64 &_rsz, uint64 &_roff, int _id);
 	void print();
 private:
 	int32 			no;
 	string			fn;
-	FileIOStream	fs;
+	FileInputOutputStream	fs;
 };
 ///\endcond
 
 Test::Test(const char *_fn):fn(_fn?_fn:""){}
 //-----------------------------------------------------------------------------------
 void Test::destroyDeserializationStream(
-	OStream *_ps, int64 &_rsz, uint64 &_roff, int _id
+	OutputStream *_ps, int64 &_rsz, uint64 &_roff, int _id
 ){
 	cout<<"Destroy deserialization <"<<_id<<"> sz "<<_rsz<<endl;
 }
 int Test::createDeserializationStream(
-	OStream *&_rps, int64 &_rsz, uint64 &_roff, int _id
+	OutputStream *&_rps, int64 &_rsz, uint64 &_roff, int _id
 ){
 	if(_id) return NOK;
 	cout<<"Create deserialization <"<<_id<<"> sz "<<_rsz<<endl;
@@ -116,20 +115,20 @@ int Test::createDeserializationStream(
 		fn.clear();
 		cout<<"failed open des file"<<endl;
 	}else{
-		_rps = static_cast<OStream*>(&fs);
+		_rps = static_cast<OutputStream*>(&fs);
 		cout<<"success oppening des file"<<endl;
 	}
 	return OK;
 }
 void Test::destroySerializationStream(
-	IStream *_ps, int64 &_rsz, uint64 &_roff, int _id
+	InputStream *_ps, int64 &_rsz, uint64 &_roff, int _id
 ){
 	cout<<"doing nothing as the stream will be destroyed when the command will be destroyed"<<endl;
 	//fs.close();
 }
 
 int Test::createSerializationStream(
-	IStream *&_rps, int64 &_rsz, uint64 &_roff, int _id
+	InputStream *&_rps, int64 &_rsz, uint64 &_roff, int _id
 ){
 	if(_id) return NOK;
 	cout<<"Create serialization <"<<_id<<"> sz "<<_rsz<<endl;;
@@ -138,7 +137,7 @@ int Test::createSerializationStream(
 	if(fn.empty() || fs.openRead(fn.c_str())){
 		return BAD;
 	}
-	_rps = static_cast<IStream*>(&fs);
+	_rps = static_cast<InputStream*>(&fs);
 	_rsz = fs.size();
 	cout<<"serializing stream"<<endl;
 	return OK;
@@ -157,11 +156,16 @@ void parentRun(int _sd, const char *_fn);
 void childRun(int _sd);
 
 
-typedef serialization::TypeMapper					TypeMapper;
-//typedef serialization::NameTypeMap					NameTypeMap;
-typedef serialization::IdTypeMap					IdTypeMap;
-typedef serialization::bin::Serializer				BinSerializer;
-typedef serialization::bin::Deserializer			BinDeserializer;
+typedef serialization::binary::Serializer			BinSerializer;
+typedef serialization::binary::Deserializer			BinDeserializer;
+typedef serialization::IdTypeMapper<
+	BinSerializer,
+	BinDeserializer,
+	uint32
+>													TypeMapper;
+
+static TypeMapper		tpmap;
+
 ///\endcond
 
 int main(int argc, char *argv[]){
@@ -176,8 +180,6 @@ int main(int argc, char *argv[]){
 		cout<<"error creating socketpair: "<<strerror(errno)<<endl;
 		return 0;
 	}
-	TypeMapper::registerMap<IdTypeMap>(new IdTypeMap);
-	TypeMapper::registerSerializer<BinSerializer>();
 
 	rv = fork();
 	if(rv){//the parent
@@ -195,7 +197,7 @@ enum {BUFSZ = 4 * 1024};
 void parentRun(int _sd, const char *_fn){
 	char buf[BUFSZ];
 	Test t(_fn);
-	BinSerializer	ser(IdTypeMap::the());
+	BinSerializer	ser(tpmap);
 	ser.push(t, "test");
 	t.print();
 	int rv;
@@ -213,7 +215,7 @@ void parentRun(int _sd, const char *_fn){
 void childRun(int _sd){
 	char buf[BUFSZ];
 	Test t;
-	BinDeserializer	des(IdTypeMap::the());
+	BinDeserializer	des(tpmap);
 	des.push(t, "test");
 	int rv;
 	cout<<"Client reading"<<endl;

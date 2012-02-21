@@ -169,7 +169,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 /*virtual*/ int ThirdObject::execute(ulong _evs, TimeSpec &_rtout){
 	ulong sm(0);
 	if(signaled()){
-		Mutex::Locker lock(mutex());
+		Locker<Mutex> lock(mutex());
 		sm = grabSignalMask();
 		if(sm & foundation::S_KILL){
 			idbg("killing thirdobject");

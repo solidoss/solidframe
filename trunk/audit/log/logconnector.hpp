@@ -5,9 +5,9 @@
 
 namespace audit{
 
-class LogRecorderVector;
-class LogRecord;
-class LogClientData;
+struct LogRecorderVector;
+struct LogRecord;
+struct LogClientData;
 
 //! A log connector is a container of log client connections and a filter for log records
 /*!

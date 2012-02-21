@@ -3,7 +3,7 @@
 #include "system/debug.hpp"
 #include "utility/ostream.hpp"
 
-struct SocketOStream: OStream{
+struct SocketOutputStream: OutputStream{
 	/*virtual*/ void close(){
 		sd.close();
 	}
@@ -17,10 +17,25 @@ struct SocketOStream: OStream{
 };
 
 int main(int argc, char *argv[]){
+#ifdef ON_WINDOWS
+	WSADATA	wsaData;
+    int		err;
+	WORD	wVersionRequested;
+/* Use the MAKEWORD(lowbyte, highbyte) macro declared in Windef.h */
+    wVersionRequested = MAKEWORD(2, 2);
+
+    err = WSAStartup(wVersionRequested, &wsaData);
+	if (err != 0) {
+        /* Tell the user that we could not find a usable */
+        /* Winsock DLL.                                  */
+        printf("WSAStartup failed with error: %d\n", err);
+        return 1;
+    }
+#endif
 	Log::instance().reinit(argv[0], Log::AllLevels, "any");
 	{
-		SocketOStream	*pos(new SocketOStream);
-		SocketAddressInfo ai("localhost", 3333, 0, SocketAddressInfo::Inet4, SocketAddressInfo::Stream);
+		SocketOutputStream	*pos(new SocketOutputStream);
+		SocketAddressInfo ai("localhost", "8888", 0, SocketAddressInfo::Inet4, SocketAddressInfo::Stream);
 		if(!ai.empty()){
 			pos->sd.create(ai.begin());
 			pos->sd.connect(ai.begin());

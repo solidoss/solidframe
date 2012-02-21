@@ -1,4 +1,4 @@
-add_executable(printchars printchars.cpp)
+add_executable(example_printchars printchars.cpp)
 
-target_link_libraries (printchars system pthread rt)
+target_link_libraries (example_printchars system ${SYS_BASIC_LIBS})
 

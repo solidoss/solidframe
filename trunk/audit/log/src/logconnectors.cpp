@@ -5,6 +5,10 @@
 #include <vector>
 #include <string>
 
+#ifdef ON_WINDOWS
+#include <time.h>
+#endif
+
 using namespace std;
 
 namespace audit{
@@ -89,21 +93,26 @@ LogBasicConnector::~LogBasicConnector(){
 	_outrv.push_back(plr);
 }
 LogRecorder* LogBasicConnector::createRecorder(const LogClientData &_rcl){
-	string pth(d.prfx);
+	string	pth(d.prfx);
 	pth += _rcl.procname;
-	char buf[128];
-	tm loctm;
-	time_t t = time(NULL);
-	localtime_r(&t, &loctm);
+	char	buf[128];
+	time_t	t = time(NULL);
+	tm		*ploctm;
+#ifdef ON_WINDOWS
+	ploctm = localtime(&t);
+#else
+	tm		loctm;
+	ploctm = localtime_r(&t, &loctm);
+#endif
 	sprintf(
 		buf,
 		"_%04u-%02u-%02u__%02u_%02u_%02u__%06u",
-		loctm.tm_year + 1900,
-		loctm.tm_mon + 1, 
-		loctm.tm_mday,
-		loctm.tm_hour,
-		loctm.tm_min,
-		loctm.tm_sec,
+		ploctm->tm_year + 1900,
+		ploctm->tm_mon + 1, 
+		ploctm->tm_mday,
+		ploctm->tm_hour,
+		ploctm->tm_min,
+		ploctm->tm_sec,
 		_rcl.head.procid
 	);
 	pth += buf;

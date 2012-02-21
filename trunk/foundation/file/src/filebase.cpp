@@ -54,7 +54,7 @@ File::File(
 
 int File::stream(
 	Manager::Stub &_rs,
-	StreamPointer<IStream> &_sptr,
+	StreamPointer<InputStream> &_sptr,
 	const RequestUid &_requid,
 	uint32 _flags
 ){
@@ -75,13 +75,13 @@ int File::stream(
 		return (ousecnt || owq.size()) ? MustWait : MustSignal;
 	}
 	++iusecnt;
-	_sptr = _rs.createIStream(this->id());
+	_sptr = _rs.createInputStream(this->id());
 	return OK;
 }
 
 int File::stream(
 	Manager::Stub &_rs,
-	StreamPointer<OStream> &_sptr,
+	StreamPointer<OutputStream> &_sptr,
 	const RequestUid &_requid,
 	uint32 _flags
 ){
@@ -102,13 +102,13 @@ int File::stream(
 		return (ousecnt || iusecnt || (owq.size() != 1)) ? MustWait : MustSignal;
 	}
 	++ousecnt;
-	_sptr = _rs.createOStream(this->id());
+	_sptr = _rs.createOutputStream(this->id());
 	return OK;
 }
 
 int File::stream(
 	Manager::Stub &_rs,
-	StreamPointer<IOStream> &_sptr,
+	StreamPointer<InputOutputStream> &_sptr,
 	const RequestUid &_requid,
 	uint32 _flags
 ){
@@ -125,11 +125,11 @@ int File::stream(
 		}
 	}else{// prepare for reading
 		openmoderequest |= (_flags | Manager::OpenRW);
-		owq.push(WaitData(_requid, _flags | Manager::IOStreamRequest));
+		owq.push(WaitData(_requid, _flags | Manager::InputOutputStreamRequest));
 		return (ousecnt || iusecnt || (owq.size() != 1)) ? MustWait : MustSignal;
 	}
 	++ousecnt;
-	_sptr = _rs.createIOStream(this->id());
+	_sptr = _rs.createInputOutputStream(this->id());
 	return OK;
 }
 bool File::isOpened()const{
@@ -180,7 +180,7 @@ int File::execute(
 	Mutex	&_mtx
 ){
 	//NOTE: do not use state outside file::Manager's thread
-	Mutex::Locker lock(_mtx);
+	Locker<Mutex> lock(_mtx);
 	
 	if(_evs & Timeout){
 		if(iusecnt || ousecnt || iwq.size() || owq.size()){
@@ -205,11 +205,11 @@ int File::execute(
 		default:break;
 	}
 	if(owq.size()){//
-		if(owq.front().flags & Manager::IOStreamRequest){
+		if(owq.front().flags & Manager::InputOutputStreamRequest){
 			if(openmode & Manager::OpenRW){
 				++ousecnt;
 				//send iostream
-				StreamPointer<IOStream> sptr(_rs.createIOStream(id()));	
+				StreamPointer<InputOutputStream> sptr(_rs.createInputOutputStream(id()));	
 				_rs.push(sptr, FileUidT(id(), _rs.fileUid(id())), owq.front().requid);
 			}else{
 				//(re)open request
@@ -219,7 +219,7 @@ int File::execute(
 			if(openmode & Manager::OpenW){
 				//send ostream
 				++ousecnt;
-				StreamPointer<OStream> sptr(_rs.createOStream(id()));	
+				StreamPointer<OutputStream> sptr(_rs.createOutputStream(id()));	
 				_rs.push(sptr, FileUidT(id(), _rs.fileUid(id())), owq.front().requid);
 			}else{
 				//(re)open request
@@ -234,7 +234,7 @@ int File::execute(
 			return doRequestOpen(_rs);
 		while(iwq.size()){
 			++iusecnt;
-			StreamPointer<IStream> sptr(_rs.createIStream(id()));	
+			StreamPointer<InputStream> sptr(_rs.createInputStream(id()));	
 			_rs.push(sptr, FileUidT(id(), _rs.fileUid(id())), iwq.front().requid);
 			iwq.pop();
 		}
@@ -310,7 +310,7 @@ void File::doCheckOpenMode(Manager::Stub &_rs){
 		while(owsz--){
 			WaitData wd(owq.front());
 			owq.pop();
-			if(wd.flags & Manager::IOStreamRequest){
+			if(wd.flags & Manager::InputOutputStreamRequest){
 				_rs.push(-1, wd.requid);
 			}else{
 				owq.push(wd);

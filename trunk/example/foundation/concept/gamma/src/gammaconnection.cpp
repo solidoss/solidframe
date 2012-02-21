@@ -55,17 +55,32 @@ void Logger::doOutFlush(const char *_pb, unsigned _bl){
 
 namespace{
 static const DynamicRegisterer<Connection>	dre;
+#ifdef HAVE_SAFE_STATIC
 static const unsigned specificPosition(){
-	//TODO: staticproblem
 	static const unsigned	thrspecpos = Thread::specificId();
 	return thrspecpos;
 }
+#else
+const unsigned specificIdStub(){
+	static const uint id(Thread::specificId());
+	return id;
+}
+void once_stub(){
+	specificIdStub();
+}
+
+static const unsigned specificPosition(){
+	static boost::once_flag once = BOOST_ONCE_INIT;
+	boost::call_once(&once_stub, once);
+	return specificIdStub();
+}
+#endif
 }
 
 /*static*/ void Connection::dynamicRegister(){
-	DynamicExecuterT::registerDynamic<IStreamSignal, Connection>();
-	DynamicExecuterT::registerDynamic<OStreamSignal, Connection>();
-	DynamicExecuterT::registerDynamic<IOStreamSignal, Connection>();
+	DynamicExecuterT::registerDynamic<InputStreamSignal, Connection>();
+	DynamicExecuterT::registerDynamic<OutputStreamSignal, Connection>();
+	DynamicExecuterT::registerDynamic<InputOutputStreamSignal, Connection>();
 	DynamicExecuterT::registerDynamic<StreamErrorSignal, Connection>();
 	DynamicExecuterT::registerDynamic<SocketMoveSignal, Connection>();
 }
@@ -110,7 +125,7 @@ Connection::~Connection(){
 		_sig.clear();
 		return false;//no reason to raise the pool thread!!
 	}
-	dr.push(DynamicPointer<>(_sig));
+	dr.push(this, DynamicPointer<>(_sig));
 	return Object::signal(fdt::S_SIG | fdt::S_RAISE);
 }
 
@@ -135,17 +150,17 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 	if(signaled()){//we've received a signal
 		ulong sm(0);
 		{
-			Mutex::Locker	lock(rm.mutex(*this));
+			Locker<Mutex>	lock(rm.mutex(*this));
 			sm = grabSignalMask(0);//grab all bits of the signal mask
 			if(sm & fdt::S_KILL) return BAD;
 			if(sm & fdt::S_SIG){//we have signals
-				dr.prepareExecute();
+				dr.prepareExecute(this);
 			}
 		}
 		if(sm & fdt::S_SIG){//we've grabed signals, execute them
-			while(dr.hasCurrent()){
-				dr.executeCurrent(*this);
-				dr.next();
+			while(dr.hasCurrent(this)){
+				dr.executeCurrent(this);
+				dr.next(this);
 			}
 		}
 		//now we determine if we return with NOK or we continue
@@ -410,20 +425,20 @@ void Connection::dynamicExecute(DynamicPointer<> &_dp){
 }
 
 
-void Connection::dynamicExecute(DynamicPointer<IStreamSignal> &_psig){
+void Connection::dynamicExecute(DynamicPointer<InputStreamSignal> &_psig){
 	int sid(-1);
 	if(!isRequestIdExpected(_psig->requid.first, sid)) return;
 	cassert(sid >= 0);
 	SocketData &rsd(socketData(sid));
-	int rv = rsd.pcmd->receiveIStream(_psig->sptr, _psig->fileuid, 0, ObjectUidT(), NULL);
+	int rv = rsd.pcmd->receiveInputStream(_psig->sptr, _psig->fileuid, 0, ObjectUidT(), NULL);
 	cassert(rv != OK);
 	this->socketPostEvents(sid, fdt::RESCHEDULED);
 }
 
-void Connection::dynamicExecute(DynamicPointer<OStreamSignal> &_psig){
+void Connection::dynamicExecute(DynamicPointer<OutputStreamSignal> &_psig){
 }
 
-void Connection::dynamicExecute(DynamicPointer<IOStreamSignal> &_psig){
+void Connection::dynamicExecute(DynamicPointer<InputOutputStreamSignal> &_psig){
 }
 
 void Connection::dynamicExecute(DynamicPointer<StreamErrorSignal> &_psig){
@@ -490,8 +505,8 @@ void Command::initStatic(Manager &_rm){
 }
 /*virtual*/ Command::~Command(){}
 void Command::contextData(ObjectUidT &_robjuid){}
-int Command::receiveIStream(
-	StreamPointer<IStream> &_ps,
+int Command::receiveInputStream(
+	StreamPointer<InputStream> &_ps,
 	const FileUidT &,
 	int			_which,
 	const ObjectUidT&_from,
@@ -499,8 +514,8 @@ int Command::receiveIStream(
 ){
 	return BAD;
 }
-int Command::receiveOStream(
-	StreamPointer<OStream> &,
+int Command::receiveOutputStream(
+	StreamPointer<OutputStream> &,
 	const FileUidT &,
 	int			_which,
 	const ObjectUidT&_from,
@@ -508,8 +523,8 @@ int Command::receiveOStream(
 ){
 	return BAD;
 }
-int Command::receiveIOStream(
-	StreamPointer<IOStream> &, 
+int Command::receiveInputOutputStream(
+	StreamPointer<InputOutputStream> &, 
 	const FileUidT &,
 	int			_which,
 	const ObjectUidT&_from,

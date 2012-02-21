@@ -5,16 +5,13 @@ set(Sources
 )
 
 set(Headers
-	basetypemap.hpp
 	binary.hpp
-	idtypemap.hpp
-	nametypemap.hpp
-	typemapper.hpp
+	idtypemapper.hpp
 )
 
 set(Inlines
 )
 
-add_library(algorithm_serialization 
+add_library(algorithm_serialization
 	${Sources} ${Headers} ${Inlines}
 )

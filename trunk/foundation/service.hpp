@@ -110,7 +110,7 @@ public:
 	
 	template <typename O>
 	ObjectUidT insert(O *_po, const IndexT &_ridx = invalid_uid().first){
-		Mutex::Locker		lock(serviceMutex());
+		Locker<Mutex>		lock(serviceMutex());
 		const uint			tid(O::staticTypeId());
 		ObjectTypeStub		&rots(objectTypeStub(tid));
 		const ObjectUidT	objuid(doInsertObject(*_po, tid, _ridx));
@@ -122,7 +122,7 @@ public:
 	
 	template <typename S, class O>
 	ObjectUidT insert(ObjectPointer<O> &_op, uint _schidx = 0, const IndexT &_ridx = invalid_uid().first){
-		Mutex::Locker		lock(serviceMutex());
+		Locker<Mutex>		lock(serviceMutex());
 		const uint			tid(O::staticTypeId());
 		ObjectTypeStub		&rots(objectTypeStub(tid));
 		const ObjectUidT	objuid(doInsertObject(*_op, tid, _ridx));
@@ -287,6 +287,36 @@ private:
 	//this is called by manager 
 	void invalidateService();
 	/*virtual*/ void init(Mutex *);
+private:
+	friend struct DynamicServicePointerStore;
+	void pointerStorePushBack(
+		const IndexT &_ridx,
+		const uint _idx,
+		const DynamicPointer<DynamicBase> &_dp
+	);
+	size_t pointerStoreSize(
+		const IndexT &_ridx,
+		const uint _idx
+	)const;
+	bool pointerStoreIsNotLast(
+		const IndexT &_ridx,
+		const uint _idx,
+		const uint _pos
+	)const;
+	const DynamicPointer<DynamicBase> &pointerStorePointer(
+		const IndexT &_ridx,
+		const uint _idx,
+		const uint _pos
+	)const;
+	DynamicPointer<DynamicBase> &pointerStorePointer(
+		const IndexT &_ridx,
+		const uint _idx,
+		const uint _pos
+	);
+	void pointerStoreClear(
+		const IndexT &_ridx,
+		const uint _idx
+	);
 protected:
 	typedef DynamicExecuter<void, Service>	DynamicExecuterT;
 	DynamicExecuterT		de;

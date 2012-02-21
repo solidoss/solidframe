@@ -112,7 +112,7 @@ struct DynamicBase{
 	virtual bool isTypeDynamic(uint32 _id)const;
 
 protected:
-	friend struct DynamicPointerBase;
+	friend class DynamicPointerBase;
 	virtual ~DynamicBase();
 };
 
@@ -205,11 +205,27 @@ struct Dynamic: T{
 	explicit Dynamic(const G1 &_g1, const G2 &_g2, const G3 &_g3, const G4 &_g4, const G5 &_g5, const G6 &_g6, const G7 &_g7):T(_g1, _g2, _g3, _g4, _g5, _g6, _g7){}
 	
 	//!The static type id
+#ifdef HAVE_SAFE_STATIC
 	static uint32 staticTypeId(){
-		//TODO: staticproblem
 		static uint32 id(DynamicMap::generateId());
 		return id;
 	}
+#else
+private:
+	static uint32 staticTypeIdStub(){
+		static uint32 id(DynamicMap::generateId());
+		return id;
+	}
+	static void once_cbk(){
+		staticTypeIdStub();
+	}
+public:
+	static uint32 staticTypeId(){
+		static boost::once_flag once = BOOST_ONCE_INIT;
+		boost::call_once(&once_cbk, once);
+		return staticTypeIdStub();
+	}
+#endif
 	//TODO: add:
 	//static bool isTypeExplicit(const DynamicBase*);
 	static bool isType(uint32 _id){
@@ -238,7 +254,33 @@ struct Dynamic: T{
 	}
 };
 
-//! A templated dynamic receiver
+
+struct DynamicDefaultPointerStore{
+protected:
+	void pushBack(void *, const uint _idx, const DynamicPointer<DynamicBase> &_dp){
+		v[_idx].push_back(_dp);
+	}
+	size_t size(void *, const uint _idx)const{
+		return v[_idx].size();
+	}
+	bool isNotLast(void *, const uint _idx, const uint _pos)const{
+		return _pos < v[_idx].size();
+	}
+	const DynamicPointer<DynamicBase>& pointer(void *, const uint _idx, const uint _pos)const{
+		return v[_idx][_pos];
+	}
+	DynamicPointer<DynamicBase>& pointer(void *, const uint _idx, const uint _pos){
+		return v[_idx][_pos];
+	}
+	void clear(void *, const uint _idx){
+		v[_idx].clear();
+	}
+private:
+	typedef std::vector<DynamicPointer<DynamicBase> > DynamicPointerVectorT;
+	DynamicPointerVectorT	v[2];
+};
+
+//! A templated dynamic executer
 /*!
 	The ideea of this class is to ease the following process:<br>
 	You want to signal an object with different types of signals.<br>
@@ -270,23 +312,22 @@ struct Dynamic: T{
 	
 	
 */
-template <class R, class Exe, class P = void>
+template <class R, class Exe, class S = DynamicDefaultPointerStore, class P = void>
 struct DynamicExecuter;
 
 //! Specialization for DynamicExecuter with no extra parameter to dynamicExecute
-template <class R, class Exe>
-struct DynamicExecuter<R, Exe, void>{
+template <class R, class Exe, class S>
+struct DynamicExecuter<R, Exe , S, void>: public S{
 private:
 	typedef R (*FncT)(const DynamicPointer<DynamicBase> &, void*);
 	
-	template <class S, class E>
+	template <class Q, class E>
 	static R doExecute(const DynamicPointer<DynamicBase> &_dp, void *_e){
 		E *pe = reinterpret_cast<E*>(_e);
-		DynamicPointer<S>	ds(_dp);
+		DynamicPointer<Q>	ds(_dp);
 		return pe->dynamicExecute(ds);
 	}
 	
-	typedef std::vector<DynamicPointer<DynamicBase> > DynamicPointerVectorT;
 	template <class E>
 	static DynamicMap& dynamicMapEx(){
 		static DynamicMap	dm(dynamicMap());
@@ -295,24 +336,24 @@ private:
 	}
 public:
 	//! Basic constructor
-	DynamicExecuter():pushid(0), execid(1){}
+	DynamicExecuter():pushid(0), execid(1), crtpos(0){}
 	
 	//! Push a new object for later execution
 	/*! 
 		This method and prepareExecute should be synchronized.
 		\param _dp a DynamicPointer to a DynamicBase object
 	*/
-	void push(const DynamicPointer<DynamicBase> &_dp){
-		v[pushid].push_back(_dp);
+	void push(Exe *_pexe, const DynamicPointer<DynamicBase> &_dp){
+		this->pushBack(_pexe, pushid, _dp);
 	}
 	//! Move the objects from push queue to execute queue.
-	uint prepareExecute(){
-		v[execid].clear();
+	uint prepareExecute(Exe *_pexe){
+		this->clear(_pexe, execid);
 		uint tmp = execid;
 		execid = pushid;
 		pushid = tmp;
-		crtit = v[execid].begin();
-		return v[execid].size();
+		crtpos = 0;
+		return this->size(_pexe, execid);
 	}
 	
 	//! Use this method to iterate through the objects from the execution queue
@@ -327,14 +368,14 @@ public:
 		}<br>
 		</code>
 	*/
-	inline bool hasCurrent()const{
-		return crtit != v[execid].end();
+	inline bool hasCurrent(Exe *_pexe)const{
+		return this->isNotLast(_pexe, execid, crtpos);
 	}
 	//! Iterate forward through execution queue
-	inline void next(){
-		cassert(crtit != v[execid].end());
-		crtit->clear();
-		++crtit;
+	inline void next(Exe *_pexe){
+		cassert(hasCurrent(_pexe));
+		this->pointer(_pexe, execid, crtpos).clear();
+		++crtpos;
 	}
 	//! Execute the current object from execution queue
 	/*!
@@ -344,30 +385,31 @@ public:
 		\param _re Reference to the executer, usually *this.
 		\retval R the return value for dynamicExecute methods.
 	*/
-	R executeCurrent(Exe &_re){
-		cassert(crtit != v[execid].end());
-		DynamicRegistererBase	dr;
+	R executeCurrent(Exe *_pexe){
+		cassert(hasCurrent(_pexe));
+		DynamicRegistererBase			dr;
+		DynamicPointer<DynamicBase>		&rdp(this->pointer(_pexe, execid, crtpos));
 		dr.lock();
-		FncT	pf = reinterpret_cast<FncT>((*crtit)->callback(*dynamicMap()));
+		FncT	pf = reinterpret_cast<FncT>(rdp->callback(*dynamicMap()));
 		dr.unlock();
-		if(pf) return (*pf)(*crtit, &_re);
-		return _re.dynamicExecute(*crtit);
+		if(pf) return (*pf)(rdp, _pexe);
+		return _pexe->dynamicExecute(rdp);
 	}
 	
-	void executeAll(Exe &_re){
-		while(hasCurrent()){
-			executeCurrent(_re);
-			next();
+	void executeAll(Exe *_pexe){
+		while(hasCurrent(_pexe)){
+			executeCurrent(_pexe);
+			next(_pexe);
 		}
 	}
 	
-	R execute(Exe &_re, DynamicPointer<DynamicBase> &_rdp){
+	R execute(Exe *_pexe, DynamicPointer<DynamicBase> &_rdp){
 		DynamicRegistererBase	dr;
 		dr.lock();
 		FncT	pf = reinterpret_cast<FncT>(_rdp->callback(*dynamicMap()));
 		dr.unlock();
-		if(pf) return (*pf)(_rdp, &_re);
-		return _re.dynamicExecute(_rdp);
+		if(pf) return (*pf)(_rdp, _pexe);
+		return _pexe->dynamicExecute(_rdp);
 	}
 	
 	static DynamicMap* dynamicMap(DynamicMap *_pdm = NULL){
@@ -384,30 +426,29 @@ public:
 		DynamicReceiverT::registerDynamic\<BSignal, ExeOne>();<br>
 		</code>
 	*/
-	template <class S, class E>
+	template <class Q, class E>
 	static void registerDynamic(){
-		FncT	pf = &doExecute<S, E>;
-		dynamicMapEx<E>().callback(S::staticTypeId(), reinterpret_cast<DynamicMap::FncT>(pf));
+		FncT	pf = &doExecute<Q, E>;
+		dynamicMapEx<E>().callback(Q::staticTypeId(), reinterpret_cast<DynamicMap::FncT>(pf));
 	}
 	
 private:
-	DynamicPointerVectorT						v[2];
-	DynamicPointerVectorT::iterator				crtit;
-	uint										pushid;
-	uint										execid;
+	uint				pushid;
+	uint				execid;
+	uint				crtpos;
 };
 
 
 //! DynamicExecuter with an extra parameter to dynamicExecute
-template <class R, class Exe, class P>
-struct DynamicExecuter{
+template <class R, class Exe, class S, class P>
+struct DynamicExecuter: public S{
 private:
 	typedef R (*FncT)(const DynamicPointer<DynamicBase> &, void*, P);
 	
-	template <class S, class E>
+	template <class Q, class E>
 	static R doExecute(const DynamicPointer<DynamicBase> &_dp, void *_e, P _p){
 		E *pe = reinterpret_cast<E*>(_e);
-		DynamicPointer<S>	ds(_dp);
+		DynamicPointer<Q>	ds(_dp);
 		return pe->dynamicExecute(ds, _p);
 	}
 	
@@ -420,24 +461,24 @@ private:
 	}
 public:
 	//! Basic constructor
-	DynamicExecuter():pushid(0), execid(1){}
+	DynamicExecuter():pushid(0), execid(1), crtpos(0){}
 	
 	//! Push a new object for later execution
 	/*! 
 		This method and prepareExecute should be synchronized.
 		\param _dp a DynamicPointer to a DynamicBase object
 	*/
-	void push(const DynamicPointer<DynamicBase> &_dp){
-		v[pushid].push_back(_dp);
+	void push(Exe *_pexe, const DynamicPointer<DynamicBase> &_dp){
+		this->pushBack(_pexe, pushid, _dp);
 	}
 	//! Move the objects from push queue to execute queue.
-	uint prepareExecute(){
-		v[execid].clear();
+	uint prepareExecute(Exe *_pexe){
+		this->clear(_pexe, execid);
 		uint tmp = execid;
 		execid = pushid;
 		pushid = tmp;
-		crtit = v[execid].begin();
-		return v[execid].size();
+		crtpos = 0;
+		return this->size(_pexe, execid);
 	}
 	
 	//! Use this method to iterate through the objects from the execution queue
@@ -452,14 +493,14 @@ public:
 		}<br>
 		</code>
 	*/
-	inline bool hasCurrent()const{
-		return crtit != v[execid].end();
+	inline bool hasCurrent(Exe *_pexe)const{
+		return this->isNotLast(_pexe, execid, crtpos);
 	}
 	//! Iterate forward through execution queue
-	inline void next(){
-		cassert(crtit != v[execid].end());
-		crtit->clear();
-		++crtit;
+	inline void next(Exe *_pexe){
+		cassert(hasCurrent(_pexe));
+		this->pointer(_pexe, execid, crtpos).clear();
+		++crtpos;
 	}
 	//! Execute the current object from execution queue
 	/*!
@@ -469,20 +510,21 @@ public:
 		\param _re Reference to the executer, usually *this.
 		\retval R the return value for dynamicExecute methods.
 	*/
-	R executeCurrent(Exe &_re, P _p){
-		cassert(crtit != v[execid].end());
-		DynamicRegistererBase	dr;
+	R executeCurrent(Exe *_pexe, P _p){
+		cassert(hasCurrent(_pexe));
+		DynamicRegistererBase			dr;
+		DynamicPointer<DynamicBase>		&rdp(this->pointer(_pexe, execid, crtpos));
 		dr.lock();
-		FncT	pf = reinterpret_cast<FncT>((*crtit)->callback(*dynamicMap()));
+		FncT	pf = reinterpret_cast<FncT>(rdp->callback(*dynamicMap()));
 		dr.unlock();
-		if(pf) return (*pf)(*crtit, &_re, _p);
-		return _re.dynamicExecute(*crtit, _p);
+		if(pf) return (*pf)(rdp, _pexe, _p);
+		return _pexe->dynamicExecute(rdp, _p);
 	}
 	
-	void executeAll(Exe &_re, P _p){
-		while(hasCurrent()){
-			executeCurrent(_re, _p);
-			next();
+	void executeAll(Exe *_pexe, P _p){
+		while(hasCurrent(_pexe)){
+			executeCurrent(_pexe, _p);
+			next(_pexe);
 		}
 	}
 	
@@ -510,17 +552,16 @@ public:
 		DynamicReceiverT::registerDynamic\<BSignal, ExeOne>();<br>
 		</code>
 	*/
-	template <class S, class E>
+	template <class Q, class E>
 	static void registerDynamic(){
-		FncT	pf = &doExecute<S, E>;
-		dynamicMapEx<E>().callback(S::staticTypeId(), reinterpret_cast<DynamicMap::FncT>(pf));
+		FncT	pf = &doExecute<Q, E>;
+		dynamicMapEx<E>().callback(Q::staticTypeId(), reinterpret_cast<DynamicMap::FncT>(pf));
 	}
 	
 private:
-	DynamicPointerVectorT						v[2];
-	DynamicPointerVectorT::iterator				crtit;
-	uint										pushid;
-	uint										execid;
+	uint				pushid;
+	uint				execid;
+	uint				crtpos;
 };
 
 

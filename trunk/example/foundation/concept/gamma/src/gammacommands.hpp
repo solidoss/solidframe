@@ -79,8 +79,8 @@ public:
 private:
 	int doInitLocal(const uint _sid);
 	int doDoneLocal(Writer &_rw);
-	int receiveIStream(
-		StreamPointer<IStream> &_sptr,
+	int receiveInputStream(
+		StreamPointer<InputStream> &_sptr,
 		const FileUidT &_fuid,
 		int _which,
 		const ObjectUidT&,
@@ -103,9 +103,9 @@ private:
 	String					path;
 	String					flags;
 	uint32					reqid;
-	StreamPointer<IStream>	isp;
-	StreamPointer<IOStream>	iosp;
-	StreamPointer<OStream>	osp;
+	StreamPointer<InputStream>	isp;
+	StreamPointer<InputOutputStream>	iosp;
+	StreamPointer<OutputStream>	osp;
 };
 
 }//namespace gamma

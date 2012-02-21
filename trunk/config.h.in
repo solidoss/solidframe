@@ -3,5 +3,5 @@
 #cmakedefine HAVE_CPP11
 #cmakedefine HAVE_EPOLL
 #cmakedefine HAVE_KQUEUE
-#cmakedefine IS_SAFE_FUNCTION_STATIC
+#cmakedefine HAVE_SAFE_STATIC
 

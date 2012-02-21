@@ -70,21 +70,21 @@ public:
 	
 	int stream(
 		Manager::Stub &_rs,
-		StreamPointer<IStream> &_sptr,
+		StreamPointer<InputStream> &_sptr,
 		const RequestUid &_requid,
 		uint32 _flags
 	);
 	
 	int stream(
 		Manager::Stub &_rs,
-		StreamPointer<OStream> &_sptr,
+		StreamPointer<OutputStream> &_sptr,
 		const RequestUid &_requid,
 		uint32 _flags
 	);
 	
 	int stream(
 		Manager::Stub &_rs,
-		StreamPointer<IOStream> &_sptr,
+		StreamPointer<InputOutputStream> &_sptr,
 		const RequestUid &_requid,
 		uint32 _flags
 	);

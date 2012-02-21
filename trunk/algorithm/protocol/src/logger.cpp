@@ -20,7 +20,7 @@
 */
 
 #include "algorithm/protocol/logger.hpp"
-#include "utility/string.hpp"
+#include "system/cstring.hpp"
 #include "system/cassert.hpp"
 
 using namespace std;
@@ -38,7 +38,7 @@ void appendLiteral(string &_rs, const char *_pb, unsigned _bl){
 				_pb = from;
 				_bl -= sz;
 			}
-			_rs += charToString(*from);
+			_rs += char_to_cstring(*from);
 			--sz;
 			++_pb;
 		}
@@ -69,7 +69,7 @@ void Logger::inChar(int _c){
 	if(_c == ' ')
 		ins += _c;
 	else
-		ins += charToString(_c);
+		ins += char_to_cstring(_c);
 }
 void Logger::inAtom(const char *_pb, unsigned _bl){
 	while(_bl){
@@ -125,7 +125,7 @@ void Logger::outChar(int _c1){
 	if(_c1 == ' ')
 		outs += _c1;
 	else
-		outs += charToString(_c1);
+		outs += char_to_cstring(_c1);
 }
 void Logger::outChar(int _c1, int _c2){
 	if(outs.size() + 12 > linesz){
@@ -137,11 +137,11 @@ void Logger::outChar(int _c1, int _c2){
 	if(_c1 == ' ')
 		outs += _c1;
 	else
-		outs += charToString(_c1);
+		outs += char_to_cstring(_c1);
 	if(_c2 == ' ')
 		outs += _c2;
 	else
-		outs += charToString(_c2);
+		outs += char_to_cstring(_c2);
 }
 void Logger::outChar(int _c1, int _c2, int _c3){
 	if(outs.size() + 12 > linesz){
@@ -153,15 +153,15 @@ void Logger::outChar(int _c1, int _c2, int _c3){
 	if(_c1 == ' ')
 		outs += _c1;
 	else
-		outs += charToString(_c1);
+		outs += char_to_cstring(_c1);
 	if(_c2 == ' ')
 		outs += _c2;
 	else
-		outs += charToString(_c2);
+		outs += char_to_cstring(_c2);
 	if(_c3 == ' ')
 		outs += _c3;
 	else
-		outs += charToString(_c3);
+		outs += char_to_cstring(_c3);
 }
 void Logger::outChar(int _c1, int _c2, int _c3, int _c4){
 	if(outs.size() + 12 > linesz){
@@ -173,19 +173,19 @@ void Logger::outChar(int _c1, int _c2, int _c3, int _c4){
 	if(_c1 == ' ')
 		outs += _c1;
 	else
-		outs += charToString(_c1);
+		outs += char_to_cstring(_c1);
 	if(_c2 == ' ')
 		outs += _c2;
 	else
-		outs += charToString(_c2);
+		outs += char_to_cstring(_c2);
 	if(_c3 == ' ')
 		outs += _c3;
 	else
-		outs += charToString(_c3);
+		outs += char_to_cstring(_c3);
 	if(_c4 == ' ')
 		outs += _c4;
 	else
-		outs += charToString(_c4);
+		outs += char_to_cstring(_c4);
 }
 void Logger::outAtom(const char *_pb, unsigned _bl){
 	while(_bl){

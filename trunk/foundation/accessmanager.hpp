@@ -1,6 +1,6 @@
-/* Declarations file nametypemap.hpp
+/* Declarations file accessmanager.hpp
 	
-	Copyright 2007, 2008 Valentin Palade 
+	Copyright 2011, 2012 Valentin Palade 
 	vipalade@gmail.com
 
 	This file is part of SolidFrame framework.
@@ -19,7 +19,16 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef NAME_TYPE_MAP_HPP
-#define NAME_TYPE_MAP_HPP
+#ifndef FOUNDATION_ACCESS_MANAGER_HPP
+#define FOUNDATION_ACCESS_MANAGER_HPP
+
+namespace foundation{
+
+class AccessManager{
+public:
+private:
+};
+
+}//namespace foundation
 
 #endif

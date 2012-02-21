@@ -308,7 +308,7 @@ template <>
 }
 
 /*static*/ int Writer::putStream(Writer &_rw, Parameter &_rp){
-	IStreamIterator &isi = *reinterpret_cast<IStreamIterator*>(_rp.a.p);
+	InputStreamIterator &isi = *reinterpret_cast<InputStreamIterator*>(_rp.a.p);
 	uint64			&sz = *static_cast<uint64*>(_rp.b.p);
 	if(isi.start() < 0) return Bad;
 	if(sz < FlushLength){
@@ -332,7 +332,7 @@ template <>
 
 /*static*/ int Writer::putStreamDone(Writer &_rw, Parameter &_rp){
 	doneFlush(_rw, _rp);
-	IStreamIterator &isi = *reinterpret_cast<IStreamIterator*>(_rp.a.p);
+	InputStreamIterator &isi = *reinterpret_cast<InputStreamIterator*>(_rp.a.p);
 	uint64			&sz = *static_cast<uint64*>(_rp.b.p);
 	ulong 			toread;
 	const ulong		blen = _rw.bh->pend - _rw.bh->pbeg;

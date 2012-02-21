@@ -22,12 +22,18 @@
 #ifndef SYSTEM_SOCKETADDRESS_HPP
 #define SYSTEM_SOCKETADDRESS_HPP
 
+#include "common.hpp"
+
+#ifdef ON_WINDOWS
+#include <WinSock2.h>
+#include <Ws2tcpip.h>
+#include <Windows.h>
+#else
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
-#include "common.hpp"
-
+#endif
 struct SocketAddressInfo;
 //struct sockaddr_in;
 //struct sockaddr_in6;
@@ -47,7 +53,7 @@ struct SocketAddressInfoIterator{
 	operator bool()const{return paddr != NULL;}
 	SocketAddressInfoIterator &operator++(){return next();}
 private:
-	friend class SocketAddressInfo;
+	friend struct SocketAddressInfo;
 	SocketAddressInfoIterator(addrinfo *_pa):paddr(_pa){}
 	addrinfo	*paddr;
 };
@@ -145,6 +151,9 @@ private:
 
 struct SocketAddress;
 struct SocketAddress4;
+#ifdef ON_WINDOWS
+typedef int socklen_t;
+#endif
 //! A pair of a sockaddr pointer and a size
 /*!
 	It is a commodity structure, it will not allocate data for sockaddr pointer
@@ -234,7 +243,7 @@ struct SocketAddress{
 	SocketAddressInfo::Family family()const{return (SocketAddressInfo::Family)addr()->sa_family;}
 	const socklen_t&	size()const {return sz;}
 	socklen_t&	size(){return sz;}
-	const socklen_t&	size(const socklen_t &_rsz){
+	socklen_t&	size(const socklen_t &_rsz){
 		sz = _rsz;
 		return sz;
 	}

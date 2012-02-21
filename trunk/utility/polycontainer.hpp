@@ -22,13 +22,14 @@
 #ifndef UTILITY_POLYCONTAINER_HPP
 #define UTILITY_POLYCONTAINER_HPP
 
+#include "system/common.hpp"
 
 class MultiContainer{	
 	typedef void (*FncT) (void*);
 public:
+#ifdef HAVE_SAFE_STATIC
 	template <typename T>
 	T* get(T *_p = NULL){
-		//TODO: staticproblem
 		static unsigned id(stackid(&MultiContainer::cleaner<T>));
 		if(_p){
 			if(push(_p, id)){ delete _p; _p = NULL;}
@@ -37,6 +38,32 @@ public:
 		}
 		return _p;
 	}
+#else
+private:
+	template <typename T>
+	T* getStub(T *_p = NULL){
+		static unsigned id(stackid(&MultiContainer::cleaner<T>));
+		if(_p){
+			if(push(_p, id)){ delete _p; _p = NULL;}
+		}else{
+			_p = reinterpret_cast<T*>(get(id));
+		}
+		return _p;
+	}
+	template <typename T>
+	void once_cbk(){
+		T *p = getStub<T>();
+		getStub(p);
+	}
+public:
+	template <typename T>
+	T* get(T *_p = NULL){
+		static boost::once_flag once = BOOST_ONCE_INIT;
+		boost::call_once(&once_cbk<T>, once);
+		return getStub<T>(_p);
+	}
+		
+#endif
 private:
 	static unsigned objectid(FncT _pf);
 	template<class T>

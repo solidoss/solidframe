@@ -22,6 +22,9 @@
 #ifndef FOUNDATION_IPC_IPCSERVICE_HPP
 #define FOUNDATION_IPC_IPCSERVICE_HPP
 
+#include "algorithm/serialization/idtypemapper.hpp"
+#include "algorithm/serialization/binary.hpp"
+
 #include "foundation/service.hpp"
 #include "foundation/signal.hpp"
 #include "foundation/ipc/ipcconnectionuid.hpp"
@@ -44,6 +47,61 @@ class Talker;
 class Connection;
 struct Buffer;
 struct ConnectionUid;
+struct BufferContext;
+
+struct Controller{
+	enum{
+		HasAuthenticationFlag = 1,
+	};
+	virtual ~Controller();
+	virtual bool release() = 0;
+	virtual void scheduleTalker(foundation::aio::Object *_ptkr) = 0;
+	virtual bool compressBuffer(
+		BufferContext &_rbc,
+		const uint32 _bufsz,
+		char* &_rpb,
+		uint32 &_bl
+	);
+	virtual bool decompressBuffer(
+		BufferContext &_rbc,
+		char* &_rpb,
+		uint32 &_bl
+	);
+	bool hasAuthentication()const{
+		return (flags & HasAuthenticationFlag) != 0;
+	}
+	
+	virtual bool receive(
+		Signal *_psig,
+		ipc::SignalUid &_rsiguid
+	);
+	
+	//Must return:
+	// If _psig is NULL, the request is to initiate the authentication,
+	// and _psig must be filled with a command to be sent to peer.
+	// * OK for authentication competed with success - session enters in AUTHENTICATED state
+	// * NOK authentication not completed - session stays in AUTHENTICATED state
+	// * BAD authentication completed with error - session enters Disconnecting
+	virtual int authenticate(
+		DynamicPointer<Signal> &_sigptr,//the received signal
+		ipc::SignalUid &_rsiguid,
+		uint32 &_rflags,
+		SerializationTypeIdT &_rtid
+	);
+	const uint32 reservedDataSize()const{
+		return resdatasz;
+	}
+protected:
+	Controller(
+		const uint32 _resdatasz = 0,
+			const uint32 _flags = 0
+	): resdatasz(_resdatasz), flags(_flags){}
+	char * allocateBuffer(BufferContext &_rbc, uint32 &_cp);
+private:
+	uint32 		resdatasz;
+	uint32		flags;
+};
+
 
 class Service;
 
@@ -105,25 +163,48 @@ public:
 		WaitResponseFlag = 2,
 		SynchronousSendFlag = 4,//!< Make the signal synchronous
 		SentFlag = 8,//!< The signal was successfully sent
+		AuthenticationFlag = 16,//!< The signal is for authentication
+		DisconnectAfterSendFlag = 32,//!< Disconnect the session after sending the signal
 	};
-	struct Controller{
-		virtual ~Controller(){}
-		virtual bool release() = 0;
-		virtual void scheduleTalker(foundation::aio::Object *_ptkr) = 0;
-	};
+	typedef serialization::IdTypeMapper<
+		serialization::binary::Serializer,
+		serialization::binary::Deserializer,
+		SerializationTypeIdT
+	> IdTypeMapper;
 	
 	static Service& the();
 	static Service& the(const IndexT &_ridx);
-	
 	
 	Service(
 		Controller *_pc,
 		uint32 _keepalivetout = 0/*no keepalive*/,
 		uint32 _sespertkr = 1024,
-		uint32 _tkrmaxcnt = 32
+		uint32 _tkrmaxcnt = 2
 	);
 	//! Destructor
 	~Service();
+	
+	IdTypeMapper& typeMapper();
+	
+// 	template <class T>
+// 	uint32 registerSerializationType(uint32 _pos){
+// 		return typemapper.insert<T>(_pos);
+// 	}
+// 	
+// 	template <class T>
+// 	uint32 registerSerializationType(){
+// 		return typemapper.insert<T>();
+// 	}
+// 	
+// 	template <class T, typename P>
+// 	uint32 registerSerializationType(uint32 _pos){
+// 		return typemapper.insert<T, P>(_pos);
+// 	}
+// 	
+// 	template <class T, typename P>
+// 	uint32 registerSerializationType(){
+// 		return typemapper.insert<T, P>();
+// 	}
 	//!Send a signal (usually a response) to a peer process using a previously saved ConnectionUid
 	/*!
 		The signal is send only if the connector exists. If the peer process,
@@ -132,11 +213,13 @@ public:
 		\param _psig A DynamicPointer with the signal to be sent.
 		\param _flags Control flags
 	*/
+	
 	int sendSignal(
 		DynamicPointer<Signal> &_psig,//the signal to be sent
 		const ConnectionUid &_rconid,//the id of the process connector
 		uint32	_flags = 0
 	);
+	
 	//!Send a signal to a peer process using it's base address.
 	/*!
 		The base address of a process is the address on which the process listens for new UDP connections.
@@ -165,6 +248,46 @@ public:
 		const SocketAddressPair &_rsap,
 		uint32	_flags = 0
 	);
+	
+	///////
+	int sendSignal(
+		DynamicPointer<Signal> &_psig,//the signal to be sent
+		const SerializationTypeIdT &_rtid,
+		const ConnectionUid &_rconid,//the id of the process connector
+		uint32	_flags = 0
+	);
+	
+	//!Send a signal to a peer process using it's base address.
+	/*!
+		The base address of a process is the address on which the process listens for new UDP connections.
+		If the connection does not already exist, it will be created.
+		\param _rsap The base socket address of the peer.
+		\param _psig The signal.
+		\param _rconid An output value, which on success will contain the uid of the connector.
+		\param _flags Control flags
+	*/
+	int sendSignal(
+		DynamicPointer<Signal> &_psig,//the signal to be sent
+		const SerializationTypeIdT &_rtid,
+		const SocketAddressPair &_rsap,
+		ConnectionUid &_rconid,
+		uint32	_flags = 0
+	);
+	//!Send a signal to a peer process using it's base address.
+	/*!
+		The base address of a process is the address on which the process listens for new UDP connections.
+		If the connection does not already exist, it will be created.
+		\param _rsap The base socket address of the peer.
+		\param _psig The signal.
+		\param _flags Control flags
+	*/
+	int sendSignal(
+		DynamicPointer<Signal> &_psig,//the signal to be sent
+		const SerializationTypeIdT &_rtid,
+		const SocketAddressPair &_rsap,
+		uint32	_flags = 0
+	);
+	
 	//! Not used for now - will be used when ipc will use tcp connections
 	int insertConnection(
 		const SocketDevice &_rsd
@@ -196,10 +319,13 @@ public:
 	int basePort()const;
 	void insertObject(Talker &_ro, const ObjectUidT &_ruid);
 	void eraseObject(const Talker &_ro);
+	const serialization::TypeMapperBase& typeMapperBase() const;
 private:
 	friend class Talker;
+	friend class Session;
 	int doSendSignal(
 		DynamicPointer<Signal> &_psig,//the signal to be sent
+		const SerializationTypeIdT &_rtid,
 		const SocketAddressPair &_rsap,
 		ConnectionUid *_pconid,
 		uint32	_flags = 0
@@ -211,10 +337,12 @@ private:
 	int allocateTalkerForNewSession(bool _force = false);
 	uint32 keepAliveTimeout()const;
 	void connectSession(const SocketAddressPair4 &_raddr);
+	Controller& controller();
 private:
 	struct Data;
 	friend struct Data;
-	Data	&d;
+	Data			&d;
+	IdTypeMapper	typemapper;
 };
 
 inline int Service::sendSignal(
@@ -223,7 +351,7 @@ inline int Service::sendSignal(
 	ConnectionUid &_rconid,
 	uint32	_flags
 ){
-	return doSendSignal(_psig, _rsap, &_rconid, _flags);
+	return doSendSignal(_psig, SERIALIZATION_INVALIDID, _rsap, &_rconid, _flags);
 }
 
 inline int Service::sendSignal(
@@ -231,7 +359,34 @@ inline int Service::sendSignal(
 	const SocketAddressPair &_rsap,
 	uint32	_flags
 ){
-	return doSendSignal(_psig, _rsap, NULL, _flags);
+	return doSendSignal(_psig, SERIALIZATION_INVALIDID, _rsap, NULL, _flags);
+}
+
+inline int Service::sendSignal(
+	DynamicPointer<Signal> &_psig,//the signal to be sent
+	const SerializationTypeIdT &_rtid,
+	const SocketAddressPair &_rsap,
+	ConnectionUid &_rconid,
+	uint32	_flags
+){
+	return doSendSignal(_psig, _rtid, _rsap, &_rconid, _flags);
+}
+
+inline int Service::sendSignal(
+	DynamicPointer<Signal> &_psig,//the signal to be sent
+	const SerializationTypeIdT &_rtid,
+	const SocketAddressPair &_rsap,
+	uint32	_flags
+){
+	return doSendSignal(_psig, _rtid, _rsap, NULL, _flags);
+}
+
+inline const serialization::TypeMapperBase& Service::typeMapperBase() const{
+	return typemapper;
+}
+
+inline Service::IdTypeMapper& Service::typeMapper(){
+	return typemapper;
 }
 
 }//namespace ipc

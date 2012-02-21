@@ -24,7 +24,14 @@
 
 #include <time.h>
 #include "convertors.hpp"
-//#include <sys/times.h>
+
+#ifdef ON_WINDOWS
+struct timespec{
+	time_t	tv_sec;
+	long	tv_nsec;
+};
+#endif
+
 //! A timespec wrapper
 /*!
 	Basicaly it is a pair of seconds and nanoseconds.
@@ -32,7 +39,7 @@
 struct TimeSpec: public timespec{
 	typedef UnsignedConvertor<time_t>::UnsignedType TimeT;
 	
-	static const TimeSpec max;
+	static const TimeSpec maximum;
 	
 	static TimeSpec createRealTime();
 	static TimeSpec createMonotonic();
@@ -59,7 +66,7 @@ struct TimeSpec: public timespec{
 	bool operator <(const TimeSpec &_ts)const;
 	TimeSpec& operator += (const TimeSpec &_ts);
 	TimeSpec& operator -= (const TimeSpec &_ts);
-	operator bool () const{	return tv_sec | tv_nsec;}
+	operator bool () const{	return (tv_sec | tv_nsec) != 0;}
 	TimeSpec& operator += (unsigned _msec);
 };
 
