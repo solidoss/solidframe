@@ -30,9 +30,9 @@
 
 #include <string>
 
-class IStream;
-class OStream;
-class IOStream;
+class InputStream;
+class OutputStream;
+class InputOutputStream;
 
 struct TimeSpec;
 

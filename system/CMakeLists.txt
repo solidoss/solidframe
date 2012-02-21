@@ -4,6 +4,7 @@ set(Sources
 	src/socketaddress.cpp
 	src/specific.cpp
 	src/thread.cpp
+	src/cstring.cpp
 )
 
 set(Headers
@@ -23,6 +24,7 @@ set(Headers
 	socketdevice.hpp
 	synchronization.hpp
 	timespec.hpp
+	cstring.hpp
 	src/atomic.hpp
 	src/mutexpool.hpp
 )

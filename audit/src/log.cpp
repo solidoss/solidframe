@@ -9,13 +9,18 @@
 #include "utility/ostream.hpp"
 #include "audit/log/logdata.hpp"
 #include "system/debug.hpp"
+#include "system/cstring.hpp"
 
 #ifdef ON_SOLARIS
 #include <strings.h>
 #endif
 
 using namespace std;
-const unsigned fileoff = (strstr(__FILE__, "audit/src") - __FILE__);
+#ifdef ON_WINDOWS
+const unsigned fileoff =  (strlen(__FILE__) - strlen(strstr(__FILE__, "audit\\src")));
+#else
+const unsigned fileoff =  (strlen(__FILE__) - strlen(strstr(__FILE__, "audit/src")));
+#endif
 
 class stringoutbuf : public std::streambuf {
 protected:
@@ -66,7 +71,7 @@ protected:
 		const char* _s,
 		std::streamsize _sz
 	){
-		s.append(_s, _sz);
+		s.append(_s, static_cast<size_t>(_sz));
 		return _sz;
 	}
 };
@@ -91,10 +96,10 @@ struct Log::Data: std::ostream{
 //data:
 	uint32			lvlmsk;
 	uint32			lvlmsk_set;
-	OStream			*pos;
+	OutputStream	*pos;
 	stringoutbuf	outbuf;
-	BitSetT		bs;
-	NameVectorT	nv;
+	BitSetT			bs;
+	NameVectorT		nv;
 	Mutex			m;
 	string			procname;
 };
@@ -103,12 +108,12 @@ struct Log::Data: std::ostream{
 
 //=====================================================================
 void Log::Data::setModuleBit(const char *_pbeg, const char *_pend){
-	if(!strncasecmp(_pbeg, "NONE", _pend - _pbeg)){
+	if(!cstring::ncasecmp(_pbeg, "NONE", _pend - _pbeg)){
 		bs.reset();
-	}else if(!strncasecmp(_pbeg, "ALL", _pend - _pbeg)){
+	}else if(!cstring::ncasecmp(_pbeg, "ALL", _pend - _pbeg)){
 		bs.set();
 	}else for(NameVectorT::const_iterator it(nv.begin()); it != nv.end(); ++it){
-		if(!strncasecmp(_pbeg, *it, _pend - _pbeg) && (int)strlen(*it) == (_pend - _pbeg)){
+		if(!cstring::ncasecmp(_pbeg, *it, _pend - _pbeg) && (int)strlen(*it) == (_pend - _pbeg)){
 			bs.set(it - nv.begin());
 		}
 	}
@@ -159,11 +164,27 @@ void Log::Data::sendInfo(){
 	}
 }
 //=====================================================================
+#ifdef HAVE_SAFE_STATIC
 /*static*/ Log& Log::instance(){
-	//TODO: staticproblem
 	static Log l;
 	return l;
 }
+#else
+/*static*/ Log& Log::log_instance(){
+	static Log l;
+	return l;
+}
+/*static*/void Log::once_log(){
+	log_instance();
+}
+
+/*static*/ Log& Log::instance(){
+	static boost::once_flag once = BOOST_ONCE_INIT;
+	boost::call_once(&once_log, once);
+	return log_instance();
+}
+
+#endif
 
 void stringoutbuf::current(
 	uint16 _level,
@@ -175,13 +196,13 @@ void stringoutbuf::current(
 ){
 	_file += fileoff;
 	clear();
-	audit::LogRecordHead &lh(*((audit::LogRecordHead*)s.data()));
 	uint32	filenamelen = strlen(_file) + 1;//including the terminal \0
 	uint32	functionnamelen = strlen(_function) + 1;//including the terminal \0
+	audit::LogRecordHead &lh(*((audit::LogRecordHead*)s.data()));
 	TimeSpec tt;
 	tt.currentRealTime();
 	//tt -= ct;
-	lh.set(_level, _module, _id, _line, tt.seconds(), tt.nanoSeconds());
+	lh.set(_level, _module, _id, _line, static_cast<uint32>(tt.seconds()), tt.nanoSeconds());
 	lh.set(filenamelen, functionnamelen);
 	//no function so we can overpass the bitorder conversion for datalen
 	lh.datalen = sizeof(audit::LogRecordHead);
@@ -195,8 +216,8 @@ Log::~Log(){
 	delete &d;
 }
 
-bool Log::reinit(const char* _procname, uint32 _lvlmsk, const char *_modopt, OStream *_pos){
-	Mutex::Locker lock(d.m);
+bool Log::reinit(const char* _procname, uint32 _lvlmsk, const char *_modopt, OutputStream *_pos){
+	Locker<Mutex> lock(d.m);
 	delete d.pos;
 	d.pos = _pos;
 	d.lvlmsk_set = _lvlmsk;
@@ -209,8 +230,8 @@ bool Log::reinit(const char* _procname, uint32 _lvlmsk, const char *_modopt, OSt
 	return d.isActive();
 }
 
-void Log::reinit(OStream *_pos){
-	Mutex::Locker lock(d.m);
+void Log::reinit(OutputStream *_pos){
+	Locker<Mutex> lock(d.m);
 	delete d.pos;
 	d.pos = _pos;
 	if(d.pos) d.lvlmsk = d.lvlmsk_set;
@@ -219,30 +240,30 @@ void Log::reinit(OStream *_pos){
 }
 
 void Log::moduleNames(std::string &_ros){
-	Mutex::Locker lock(d.m);
+	Locker<Mutex> lock(d.m);
 	for(Data::NameVectorT::const_iterator it(d.nv.begin()); it != d.nv.end(); ++it){
 		_ros += *it;
 		_ros += ' ';
 	}
 }
 void Log::setAllModuleBits(){
-	Mutex::Locker lock(d.m);
+	Locker<Mutex> lock(d.m);
 	d.bs.set();
 }
 void Log::resetAllModuleBits(){
-	Mutex::Locker lock(d.m);
+	Locker<Mutex> lock(d.m);
 	d.bs.reset();
 }
 void Log::setModuleBit(unsigned _v){
-	Mutex::Locker lock(d.m);
+	Locker<Mutex> lock(d.m);
 	d.bs.set(_v);
 }
 void Log::resetModuleBit(unsigned _v){
-	Mutex::Locker lock(d.m);
+	Locker<Mutex> lock(d.m);
 	d.bs.reset(_v);
 }
 unsigned Log::registerModule(const char *_name){
-	Mutex::Locker lock(d.m);
+	Locker<Mutex> lock(d.m);
 	d.nv.push_back(_name);
 	return d.nv.size() - 1;
 }

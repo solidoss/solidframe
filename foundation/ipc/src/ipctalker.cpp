@@ -109,13 +109,15 @@ struct Talker::Data{
 	struct SignalData{
 		SignalData(
 			DynamicPointer<Signal> &_psig,
+			const SerializationTypeIdT &_rtid,
 			uint16 _sesidx,
 			uint16 _sesuid,
 			uint32 _flags
-		):	psig(_psig), sessionidx(_sesidx),
+		):	psig(_psig), tid(_rtid), sessionidx(_sesidx),
 			sessionuid(_sesuid), flags(_flags){}
 		
 		DynamicPointer<Signal>	psig;
+		SerializationTypeIdT 	tid;
 		uint16					sessionidx;
 		uint16					sessionuid;
 		uint32					flags;
@@ -309,9 +311,10 @@ Talker::~Talker(){
 int Talker::execute(ulong _sig, TimeSpec &_tout){
 	Manager		&rm = Manager::the();
 	Context		ctx(d.tkrid);
+	TalkerStub	ts(*this, d.rservice, _tout);
 	idbgx(Dbg::ipc, "this = "<<(void*)this<<" &d = "<<(void*)&d);
 	if(signaled() || d.closingsessionvec.size()){
-		Mutex::Locker	lock(rm.mutex(*this));
+		Locker<Mutex>	lock(rm.mutex(*this));
 		ulong			sm = grabSignalMask(0);
 		
 		if(sm & fdt::S_KILL){
@@ -347,23 +350,23 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 		d.rservice.disconnectTalkerSessions(*this);
 	}
 	
-	rv = doReceiveBuffers(4, _sig);
+	rv = doReceiveBuffers(ts, 4, _sig);
 	if(rv == OK){
 		must_reenter = true;
 	}else if(rv == BAD){
 		return BAD;
 	}
 	
-	must_reenter = doProcessReceivedBuffers(_tout) || must_reenter;
+	must_reenter = doProcessReceivedBuffers(ts) || must_reenter;
 	
-	rv = doSendBuffers(_sig, _tout);
+	rv = doSendBuffers(ts, _sig);
 	if(rv == OK){
 		must_reenter = true;
 	}else if(rv == BAD){
 		return BAD;
 	}
 	
-	must_reenter = doExecuteSessions(_tout) || must_reenter;
+	must_reenter = doExecuteSessions(ts) || must_reenter;
 	
 	if(d.timerq.size()){
 		_tout = d.timerq.top().timepos;
@@ -373,12 +376,12 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 }
 
 //----------------------------------------------------------------------
-int Talker::doReceiveBuffers(uint32 _atmost, const ulong _sig){
+int Talker::doReceiveBuffers(TalkerStub &_rstub, uint32 _atmost, const ulong _sig){
 	if(this->socketHasPendingRecv()){
 		return NOK;
 	}
 	if(_sig & fdt::INDONE){
-		doDispatchReceivedBuffer(d.pendingreadbuffer, socketRecvSize(), socketRecvAddr());
+		doDispatchReceivedBuffer(_rstub, d.pendingreadbuffer, socketRecvSize(), socketRecvAddr());
 		d.pendingreadbuffer = NULL;
 	}
 	while(_atmost--){
@@ -389,7 +392,7 @@ int Talker::doReceiveBuffers(uint32 _atmost, const ulong _sig){
 				Buffer::deallocateDataForReading(pbuf);
 				return BAD;
 			case OK:
-				doDispatchReceivedBuffer(pbuf, socketRecvSize(), socketRecvAddr());
+				doDispatchReceivedBuffer(_rstub, pbuf, socketRecvSize(), socketRecvAddr());
 				break;
 			case NOK:
 				d.pendingreadbuffer = pbuf;
@@ -400,9 +403,10 @@ int Talker::doReceiveBuffers(uint32 _atmost, const ulong _sig){
 	return OK;//can still read from socket
 }
 //----------------------------------------------------------------------
-bool Talker::doProcessReceivedBuffers(const TimeSpec &_rts){
+bool Talker::doProcessReceivedBuffers(TalkerStub &_rstub){
 	//ConnectionUid	conuid(d.tkrid);
-	TalkerStub		ts(*this, _rts);
+	TalkerStub		&ts = _rstub;
+	
 	for(Data::RecvBufferVectorT::const_iterator it(d.receivedbufvec.begin()); it != d.receivedbufvec.end(); ++it){
 		
 		const Data::RecvBuffer	&rcvbuf(*it);
@@ -428,7 +432,12 @@ bool Talker::doProcessReceivedBuffers(const TimeSpec &_rts){
 	return false;
 }
 //----------------------------------------------------------------------
-void Talker::doDispatchReceivedBuffer(char *_pbuf, const uint32 _bufsz, const SocketAddressPair &_rsap){
+void Talker::doDispatchReceivedBuffer(
+	TalkerStub &_rstub,
+	char *_pbuf,
+	const uint32 _bufsz,
+	const SocketAddressPair &_rsap
+){
 	Buffer buf(_pbuf, Buffer::ReadCapacity);
 	buf.bufferSize(_bufsz);
 	vdbgx(Dbg::ipc, " RECEIVED "<<buf);
@@ -488,7 +497,7 @@ void Talker::doDispatchReceivedBuffer(char *_pbuf, const uint32 _bufsz, const So
 				if(bit != d.baseaddr4map.end()){
 					Data::SessionStub	&rss(d.sessionvec[bit->second]);
 					if(rss.psession){
-						rss.psession->completeConnect(inaddr.port());
+						rss.psession->completeConnect(_rstub, inaddr.port());
 						//register in peer map
 						d.peeraddr4map[rss.psession->peerAddr4()] = bit->second;
 						//the connector has at least some updates to send
@@ -512,15 +521,15 @@ void Talker::doDispatchReceivedBuffer(char *_pbuf, const uint32 _bufsz, const So
 	}
 }
 //----------------------------------------------------------------------
-bool Talker::doExecuteSessions(const TimeSpec &_rcrttimepos){
-	TalkerStub ts(*this, _rcrttimepos);
+bool Talker::doExecuteSessions(TalkerStub &_rstub){
+	TalkerStub &ts = _rstub;
 	COLLECT_DATA_1(d.statistics.maxTimerQueueSize, d.timerq.size());
 	//first we consider all timers
-	while(d.timerq.size() && d.timerq.top().timepos <= _rcrttimepos){
+	while(d.timerq.size() && d.timerq.top().timepos <= ts.currentTime()){
 		const Data::TimerData		&rtd(d.timerq.top());
 		Data::SessionStub			&rss(d.sessionvec[rtd.sessionidx]);
 		ts.sessionidx = rtd.sessionidx;
-		if(rss.psession->executeTimeout(ts, rtd.id)){
+		if(rss.psession && rss.psession->executeTimeout(ts, rtd.id)){
 			if(!rss.inexeq){
 				d.sessionexecq.push(ts.sessionidx);
 				rss.inexeq = true;
@@ -555,12 +564,12 @@ bool Talker::doExecuteSessions(const TimeSpec &_rcrttimepos){
 	return d.sessionexecq.size() != 0 || d.closingsessionvec.size() != 0;
 }
 //----------------------------------------------------------------------
-int Talker::doSendBuffers(const ulong _sig, const TimeSpec &_rcrttimepos){
+int Talker::doSendBuffers(TalkerStub &_rstub, const ulong _sig){
 	if(socketHasPendingSend()){
 		return NOK;
 	}
 	
-	TalkerStub ts(*this, _rcrttimepos);
+	TalkerStub &ts = _rstub;
 	
 	if(_sig & fdt::OUTDONE){
 		cassert(d.sendq.size());
@@ -611,11 +620,12 @@ int Talker::doSendBuffers(const ulong _sig, const TimeSpec &_rcrttimepos){
 //return ok if the talker should be signaled
 int Talker::pushSignal(
 	DynamicPointer<Signal> &_psig,
+	const SerializationTypeIdT &_rtid,
 	const ConnectionUid &_rconid,
 	uint32 _flags
 ){
 	COLLECT_DATA_0(d.statistics.signaled);
-	d.sigq.push(Data::SignalData(_psig, _rconid.idx, _rconid.uid, _flags));
+	d.sigq.push(Data::SignalData(_psig, _rtid, _rconid.idx, _rconid.uid, _flags));
 	return d.sigq.size() == 1 ? NOK : OK;
 }
 
@@ -707,7 +717,7 @@ void Talker::doDispatchSignals(){
 			)
 		){
 			
-			rss.psession->pushSignal(rsd.psig, flags);
+			rss.psession->pushSignal(rsd.psig, rsd.tid, flags);
 			if(!rss.inexeq){
 				d.sessionexecq.push(rsd.sessionidx);
 				rss.inexeq = true;
@@ -721,7 +731,7 @@ void Talker::doDispatchSignals(){
 //this should be called under ipc service's mutex lock
 void Talker::disconnectSessions(){
 	Manager 		&rm(Manager::the());
-	Mutex::Locker	lock(rm.mutex(*this));
+	Locker<Mutex>	lock(rm.mutex(*this));
 	//delete sessions
 	
 	for(Data::UInt16VectorT::const_iterator it(d.closingsessionvec.begin()); it != d.closingsessionvec.end(); ++it){
@@ -750,6 +760,7 @@ void Talker::disconnectSessions(){
 			
 			delete rss.psession;
 			rss.psession = NULL;
+			rss.inexeq = false;
 			++rss.uid;
 			d.freesessionstack.push(Data::UInt16PairT(*it, rss.uid));
 		}

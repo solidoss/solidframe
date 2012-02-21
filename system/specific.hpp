@@ -23,8 +23,9 @@
 #define SYSTEM_SPECIFIC_HPP
 
 #include <cstddef>
-// #include "common.h"
-// #include "debug.h"
+#include <new>
+
+#include "system/common.hpp"
 
 #ifndef BUF_CACHE_CAP
 #define BUF_CACHE_CAP 11
@@ -81,16 +82,46 @@ class Specific{
 		would not be of too much help.
 		Also think of objects with sizes larger then max buf capacity
 	*/
+#ifdef HAVE_SAFE_STATIC
 	template <typename T>
 	static T* object(T *_p = NULL){
 		static const unsigned id(stackid(&Specific::cleaner<T>));
 		if(_p){
-			if(push(_p, id, T::specificCount())) delete _p;
+			if(push(_p, id, T::specificCount())){
+				_p->~T();
+				doDeallocateBuffer(_p);
+			}
 		}else{
 			_p = reinterpret_cast<T*>(pop(id));
 		}
 		return _p;
 	}
+#else
+	template <typename T>
+	static T* object_stub(T *_p = NULL){
+		static unsigned			id(stackid(&Specific::cleaner<T>));
+		if(_p){
+			if(push(_p, id, T::specificCount())){
+				_p->~T();
+				doDeallocateBuffer(_p);
+			}
+		}else{
+			_p = reinterpret_cast<T*>(pop(id));
+		}
+		return _p;
+	}
+	template <typename T>
+	static void once_cbk(){
+			T *p = object_stub();
+			objec_stub(p);
+	}
+	template <typename T>
+	static T* object(T *_p = NULL){
+		static boost::once_flag	once = BOOST_ONCE_INIT;
+		boost::call_once(&once_cbk<T>, once);
+		return objec_stub<T>(_p);
+	}
+#endif
 public:
 	typedef void (*FncT) (void*);
 	//! call this method to prepare the current thread for caching
@@ -104,18 +135,24 @@ public:
 	template <class T>
 	inline static T* uncache(){
 		T *p = object<T>();
-		if(!p) p = new T; 
+		if(!p) p = new(doAllocateBuffer(sizeof(T))) T; 
 		return p;
 	}
-	//! Tries to uncache an object
-	/*! 
-		If no object was previously cached NULL is returned.
-	*/
-	template <class T>
-	inline static T* tryUncache(){
+	
+	template <class T, typename P>
+	inline static T* uncache(P &_rp){
 		T *p = object<T>();
+		if(!p) p = new(doAllocateBuffer(sizeof(T))) T(_rp); 
 		return p;
 	}
+	
+// 	template <class T, typename P1>
+// 	inline static T* uncache(P1 &_rp1){
+// 		T *p = object<T>();
+// 		if(!p) p = new T; 
+// 		return p;
+// 	}
+	
 	//! Caches an object
 	template <class T>
 	inline static void cache(T *&_rp){
@@ -124,40 +161,35 @@ public:
 		object<T>((T*)_rp);
 		_rp = NULL;
 	}
-	enum {Count = BUF_CACHE_CAP};
-	//8,16,32,64,128,256,512,1024,2048,4096
-	//! Returns the maximum capacity of cacheable buffers
-	static unsigned maxCapacity(){return 1 << (Count + 2);}
-	//! Returns the id asociated to the maximum capacity
-	static unsigned maxCapacityToId(){return Count - 1;}
 	//! Returns the id associated to a certain capacity
-	static unsigned capacityToId(unsigned _sz);
+	static int capacityToIndex(unsigned _sz);
 	//! Return the id associated to a certain size
 	/*!
 		A capacity is a power of 2. While a size can have any value.
 		Basicaly it return the id of the first capacity greater then size.
 	*/
-	static unsigned sizeToId(unsigned _sz);
+	static int sizeToIndex(unsigned _sz);
 	//! Returns the capacity associated to an id.
-	static unsigned idToCapacity(unsigned _id){return 4 << _id;}
+	static unsigned indexToCapacity(unsigned _id);
 	
 	//! pop a buffer given its id
 	static char* popBuffer(unsigned _id);
 	//! pushes a buffer given its id
 	static void pushBuffer(char *&, unsigned _id);
-// 	static char* allocateBuffer(unsigned _sz);
-// 	static void releaseBuffer(char *&, unsigned);
 	
 private:
 	//! One cannot create a Specific object - use prepareThread instead
 	Specific();
 	Specific(const Specific&);
 	~Specific();
+	static void *doAllocateBuffer(size_t _sz);
+	static void doDeallocateBuffer(void *_p);
 private:
 	static unsigned stackid(FncT _pf);
 	template<class T>
 	static void cleaner(void *_p){
-		delete reinterpret_cast<T*>(_p);
+		reinterpret_cast<T*>(_p)->~T();
+		doDeallocateBuffer(_p);
 	}
 	static int push(void *, unsigned, unsigned);
 	static void* pop(unsigned);

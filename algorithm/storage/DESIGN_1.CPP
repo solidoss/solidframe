@@ -36,10 +36,10 @@ public:
 	int insert(const std::vector<Key*> &_key, DataPointer &, const RequestUid &_rrequid, Transaction &_rt);
 	
 	int dataOut(const DataPointer &, const char *_buf, uint32 _sz);
-	int dataOut(const DataPointer &, StreamPointer<OStream> &_pos);
+	int dataOut(const DataPointer &, StreamPointer<OutputStream> &_pos);
 	
 	int dataIn(const DataPointer &, char *_buf, uint32 _sz);
-	int dataIn(const DataPointer &, StreamPointer<IStream> &_pos);
+	int dataIn(const DataPointer &, StreamPointer<InputStream> &_pos);
 	
 	int find(Iterator &, DataPointer &, const RequestUid &_rrequid, Transaction &_rt);
 	//the iterator will contain a vector with key pointers

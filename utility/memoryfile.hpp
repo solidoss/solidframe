@@ -23,10 +23,27 @@ public:
 	};
 	template <uint Sz = 4096>
 	struct BasicAllocator: Allocator{
+#ifdef HAVE_SAFE_STATIC
 		static BasicAllocator<Sz>& instance(){
 			static BasicAllocator<Sz> ba;
 			return ba;
 		}
+#else
+	private:
+		static BasicAllocator<Sz>& instanceStub(){
+			static BasicAllocator<Sz> ba;
+			return ba;
+		}
+		static void once_cbk(){
+			instanceStub();
+		}
+	public:
+		static BasicAllocator<Sz>& instance(){
+			static boost::once_flag once = BOOST_ONCE_INIT;
+			boost::call_once(&once_cbk, once);
+			return instanceStub();
+		}
+#endif
 		/*virtual*/ uint  bufferSize()const{return Sz;}
 		/*virtual*/ char* allocate(){
 			return new char[Sz];

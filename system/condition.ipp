@@ -41,8 +41,8 @@ inline int Condition::signal(){
 inline int Condition::broadcast(){
 	return pthread_cond_broadcast(&cond);
 }
-inline int Condition::wait(Mutex &_mut){
-	return pthread_cond_wait(&cond,&_mut.mut);
+inline int Condition::wait(Locker<Mutex> &_lock){
+	return pthread_cond_wait(&cond, &_lock.m.mut);
 }
 
 #ifdef NINLINES

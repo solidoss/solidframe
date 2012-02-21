@@ -10,9 +10,6 @@
 #include "foundation/objectselector.hpp"
 #include "foundation/ipc/ipcservice.hpp"
 
-#include "algorithm/serialization/binary.hpp"
-#include "algorithm/serialization/idtypemap.hpp"
-
 #include "system/debug.hpp"
 #include "system/socketaddress.hpp"
 #include <iostream>
@@ -109,17 +106,6 @@ int main(int argc, char *argv[]){
 		//cout<<p.p;
 		idbg(p.p);
 	}
-	{
-		typedef serialization::TypeMapper					TypeMapper;
-		typedef serialization::IdTypeMap					IdTypeMap;
-		typedef serialization::bin::Serializer				BinSerializer;
-		
-		TypeMapper::registerMap<IdTypeMap>(new IdTypeMap);
-		TypeMapper::registerSerializer<BinSerializer>();
-		
-		mapSignals();
-		ServerObject::registerSignals();
-	}
 	IpcServiceController	ipcctrl;
 	{
 		
@@ -131,6 +117,9 @@ int main(int argc, char *argv[]){
 		//const IndexT svcidx = 
 		m.registerService<SchedulerT>(new foundation::Service, 0, m.computeServiceId(serverUid().first));
 		m.registerService<SchedulerT>(new foundation::ipc::Service(&ipcctrl, 0, 2, 2), 0, ipcid);
+		
+		mapSignals();
+		ServerObject::registerSignals();
 		
 		m.start();
 		

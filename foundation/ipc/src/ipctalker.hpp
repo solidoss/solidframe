@@ -23,7 +23,7 @@
 #define FOUNDATION_IPC_SRC_IPC_TALKER_HPP
 
 #include "foundation/aio/aiosingleobject.hpp"
-
+#include "foundation/ipc/ipcconnectionuid.hpp"
 struct TimeSpec;
 
 namespace foundation{
@@ -47,12 +47,21 @@ public:
 			return crttime;
 		}
 		int basePort()const;
+		Service& service(){
+			return rs;
+		}
 	private:
 		friend class Talker;
-		TalkerStub(Talker &_rt, const TimeSpec &_rcrttime):rt(_rt), sessionidx(0), crttime(_rcrttime){}
+		TalkerStub(
+			Talker &_rt,
+			Service &_rs,
+			 const TimeSpec &_rcrttime
+		):rt(_rt), rs(_rs), sessionidx(0), crttime(_rcrttime){}
 		Talker			&rt;
+		Service			&rs;
 		uint16			sessionidx;
 		const TimeSpec	&crttime;
+		
 	};
 	typedef Service							ServiceT;
 	
@@ -61,17 +70,22 @@ public:
 	int execute(ulong _sig, TimeSpec &_tout);
 	int execute();
 	int accept(foundation::Visitor &);
-	int pushSignal(DynamicPointer<Signal> &_psig, const ConnectionUid &_rconid, uint32 _flags);
+	int pushSignal(
+		DynamicPointer<Signal> &_psig,
+		const SerializationTypeIdT &_rtid,
+		const ConnectionUid &_rconid,
+		uint32 _flags
+	);
 	void pushSession(Session *_ps, ConnectionUid &_rconid, bool _exists = false);
 	void disconnectSessions();
 private:
-	int doReceiveBuffers(uint32 _atmost, const ulong _sig);
-	bool doProcessReceivedBuffers(const TimeSpec &_rts);
-	void doDispatchReceivedBuffer(char *_pbuf, const uint32 _bufsz, const SocketAddressPair &_rsap);
+	int doReceiveBuffers(TalkerStub &_rstub, uint32 _atmost, const ulong _sig);
+	bool doProcessReceivedBuffers(TalkerStub &_rstub);
+	void doDispatchReceivedBuffer(TalkerStub &_rstub, char *_pbuf, const uint32 _bufsz, const SocketAddressPair &_rsap);
 	void doInsertNewSessions();
 	void doDispatchSignals();
-	int doSendBuffers(const ulong _sig, const TimeSpec &_rcrttimepos);
-	bool doExecuteSessions(const TimeSpec &_rcrttimepos);
+	int doSendBuffers(TalkerStub &_rstub, const ulong _sig);
+	bool doExecuteSessions(TalkerStub &_rstub);
 private:
 	friend struct TalkerStub;
 	struct Data;

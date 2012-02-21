@@ -145,7 +145,7 @@ Service::Data::~Data(){
 }
 
 Service::Service(
-	Service::Controller *_pc,
+	Controller *_pc,
 	uint32 _keepalivetout,
 	uint32 _sespertkr,
 	uint32 _tkrmaxcnt
@@ -172,14 +172,38 @@ int Service::sendSignal(
 ){
 	cassert(_rconid.tid < d.tkrvec.size());
 	
-	Mutex::Locker		lock(serviceMutex());
+	Locker<Mutex>		lock(serviceMutex());
 	IndexT				idx(Manager::the().computeIndex(d.tkrvec[_rconid.tid].uid.first));
-	Mutex::Locker		lock2(this->mutex(idx));
+	Locker<Mutex>		lock2(this->mutex(idx));
 	Talker				*ptkr(static_cast<Talker*>(this->objectAt(idx)));
 	
 	cassert(ptkr);
 	
-	if(ptkr->pushSignal(_psig, _rconid, _flags | SameConnectorFlag)){
+	if(ptkr->pushSignal(_psig, SERIALIZATION_INVALIDID, _rconid, _flags | SameConnectorFlag)){
+		//the talker must be signaled
+		if(ptkr->signal(fdt::S_RAISE)){
+			Manager::the().raiseObject(*ptkr);
+		}
+	}
+	return OK;
+}
+//---------------------------------------------------------------------
+int Service::sendSignal(
+	DynamicPointer<Signal> &_psig,//the signal to be sent
+	const SerializationTypeIdT &_rtid,
+	const ConnectionUid &_rconid,//the id of the process connector
+	uint32	_flags
+){
+	cassert(_rconid.tid < d.tkrvec.size());
+	
+	Locker<Mutex>		lock(serviceMutex());
+	IndexT				idx(Manager::the().computeIndex(d.tkrvec[_rconid.tid].uid.first));
+	Locker<Mutex>		lock2(this->mutex(idx));
+	Talker				*ptkr(static_cast<Talker*>(this->objectAt(idx)));
+	
+	cassert(ptkr);
+	
+	if(ptkr->pushSignal(_psig, _rtid, _rconid, _flags | SameConnectorFlag)){
 		//the talker must be signaled
 		if(ptkr->signal(fdt::S_RAISE)){
 			Manager::the().raiseObject(*ptkr);
@@ -194,6 +218,7 @@ int Service::basePort()const{
 //---------------------------------------------------------------------
 int Service::doSendSignal(
 	DynamicPointer<Signal> &_psig,//the signal to be sent
+	const SerializationTypeIdT &_rtid,
 	const SocketAddressPair &_rsap,
 	ConnectionUid *_pconid,
 	uint32	_flags
@@ -204,7 +229,7 @@ int Service::doSendSignal(
 		_rsap.family() != SocketAddressInfo::Inet6
 	) return -1;
 	
-	Mutex::Locker	lock(serviceMutex());
+	Locker<Mutex>	lock(serviceMutex());
 	
 	if(_rsap.family() == SocketAddressInfo::Inet4){
 		
@@ -218,13 +243,13 @@ int Service::doSendSignal(
 			
 			ConnectionUid		conid(it->second);
 			IndexT				idx(Manager::the().computeIndex(d.tkrvec[conid.tid].uid.first));
-			Mutex::Locker		lock2(this->mutex(idx));
+			Locker<Mutex>		lock2(this->mutex(idx));
 			Talker				*ptkr(static_cast<Talker*>(this->objectAt(idx)));
 			
 			cassert(conid.tid < d.tkrvec.size());
 			cassert(ptkr);
 			
-			if(ptkr->pushSignal(_psig, conid, _flags)){
+			if(ptkr->pushSignal(_psig, _rtid, conid, _flags)){
 				//the talker must be signaled
 				if(ptkr->signal(fdt::S_RAISE)){
 					Manager::the().raiseObject(*ptkr);
@@ -257,7 +282,7 @@ int Service::doSendSignal(
 			}
 			
 			tkrpos = Manager::the().computeIndex(tkrpos);
-			Mutex::Locker		lock2(this->mutex(tkrpos));
+			Locker<Mutex>		lock2(this->mutex(tkrpos));
 			Talker				*ptkr(static_cast<Talker*>(this->objectAt(tkrpos)));
 			cassert(ptkr);
 			Session				*pses(new Session(inaddr, d.keepalivetout));
@@ -267,7 +292,7 @@ int Service::doSendSignal(
 			ptkr->pushSession(pses, conid);
 			d.sessionaddr4map[pses->baseAddr4()] = conid;
 			
-			ptkr->pushSignal(_psig, conid, _flags);
+			ptkr->pushSignal(_psig, _rtid, conid, _flags);
 			
 			if(ptkr->signal(fdt::S_RAISE)){
 				Manager::the().raiseObject(*ptkr);
@@ -312,7 +337,7 @@ int Service::allocateTalkerForNewSession(bool _force){
 }
 //---------------------------------------------------------------------
 int Service::acceptSession(Session *_pses){
-	Mutex::Locker	lock(serviceMutex());
+	Locker<Mutex>	lock(serviceMutex());
 	{
 		//TODO: see if the locking is ok!!!
 		
@@ -321,7 +346,7 @@ int Service::acceptSession(Session *_pses){
 		if(it != d.sessionaddr4map.end()){
 			//a connection still exists
 			IndexT			tkrpos(Manager::the().computeIndex(d.tkrvec[it->second.tid].uid.first));
-			Mutex::Locker	lock2(this->mutex(tkrpos));
+			Locker<Mutex>	lock2(this->mutex(tkrpos));
 			Talker			*ptkr(static_cast<Talker*>(this->objectAt(tkrpos)));
 			
 			vdbgx(Dbg::ipc, "");
@@ -354,7 +379,7 @@ int Service::acceptSession(Session *_pses){
 	
 	tkrpos = Manager::the().computeIndex(tkrpos);
 	
-	Mutex::Locker	lock2(this->mutex(tkrpos));
+	Locker<Mutex>	lock2(this->mutex(tkrpos));
 	Talker			*ptkr(static_cast<Talker*>(this->objectAt(tkrpos)));
 	cassert(ptkr);
 	ConnectionUid	conid(tkrid, 0xffff, 0xffff);
@@ -371,7 +396,7 @@ int Service::acceptSession(Session *_pses){
 }
 //---------------------------------------------------------------------
 void Service::connectSession(const SocketAddressPair4 &_raddr){
-	Mutex::Locker	lock(serviceMutex());
+	Locker<Mutex>	lock(serviceMutex());
 	int				tkrid(allocateTalkerForNewSession());
 	IndexT			tkrpos;
 	uint32			tkruid;
@@ -391,7 +416,7 @@ void Service::connectSession(const SocketAddressPair4 &_raddr){
 	}
 	tkrpos = Manager::the().computeIndex(tkrpos);
 	
-	Mutex::Locker		lock2(this->mutex(tkrpos));
+	Locker<Mutex>		lock2(this->mutex(tkrpos));
 	Talker				*ptkr(static_cast<Talker*>(this->objectAt(tkrpos)));
 	cassert(ptkr);
 	Session				*pses(new Session(_raddr, d.keepalivetout));
@@ -407,7 +432,7 @@ void Service::connectSession(const SocketAddressPair4 &_raddr){
 }
 //---------------------------------------------------------------------
 void Service::disconnectTalkerSessions(Talker &_rtkr){
-	Mutex::Locker	lock(serviceMutex());
+	Locker<Mutex>	lock(serviceMutex());
 	_rtkr.disconnectSessions();
 }
 //---------------------------------------------------------------------
@@ -492,13 +517,13 @@ int Service::insertTalker(
 	if(sd.localAddress(sa) != OK){
 		return BAD;
 	}
-	//Mutex::Locker	lock(serviceMutex());
+	//Locker<Mutex>	lock(serviceMutex());
 	cassert(!d.tkrvec.size());//only the first tkr must be inserted from outside
 	Talker			*ptkr(new Talker(sd, *this, 0));
 	
 	ObjectUidT		objuid(this->insert(ptkr));
 	
-	Mutex::Locker	lock(serviceMutex());
+	Locker<Mutex>	lock(serviceMutex());
 	d.firstaddr = _rai;
 	d.baseport = sa.port();
 	d.tkrvec.push_back(Data::TalkerStub(objuid));
@@ -527,6 +552,11 @@ void Service::insertObject(Talker &_ro, const ObjectUidT &_ruid){
 void Service::eraseObject(const Talker &_ro){
 	vdbgx(Dbg::ipc, "erasing talker");
 }
+//---------------------------------------------------------------------
+Controller& Service::controller(){
+	return *d.pc;
+}
+
 //=======	Buffer		=============================================
 bool Buffer::check()const{
 	cassert(bc >= 32);
@@ -540,16 +570,16 @@ bool Buffer::check()const{
 }
 //---------------------------------------------------------------------
 /*static*/ char* Buffer::allocateDataForReading(){
-	return Specific::popBuffer(Specific::capacityToId(ReadCapacity));
+	return Specific::popBuffer(Specific::capacityToIndex(ReadCapacity));
 }
 //---------------------------------------------------------------------
 /*static*/ void Buffer::deallocateDataForReading(char *_buf){
-	Specific::pushBuffer(_buf, Specific::capacityToId(ReadCapacity));
+	Specific::pushBuffer(_buf, Specific::capacityToIndex(ReadCapacity));
 }
 //---------------------------------------------------------------------
 void Buffer::clear(){
 	if(pb){
-		Specific::pushBuffer(pb, Specific::capacityToId(bc));
+		Specific::pushBuffer(pb, Specific::capacityToIndex(bc));
 		pb = NULL;
 		bc = 0;
 	}
@@ -561,8 +591,8 @@ Buffer::~Buffer(){
 //---------------------------------------------------------------------
 void Buffer::optimize(uint16 _cp){
 	const uint32	bufsz(this->bufferSize());
-	const uint		id(Specific::sizeToId(bufsz));
-	const uint		mid(Specific::capacityToId(_cp ? _cp : Buffer::ReadCapacity));
+	const uint		id(Specific::sizeToIndex(bufsz));
+	const uint		mid(Specific::capacityToIndex(_cp ? _cp : Buffer::ReadCapacity));
 	if(mid > id){
 		uint32 datasz = this->dataSize();//the size
 		
@@ -574,8 +604,95 @@ void Buffer::optimize(uint16 _cp){
 		
 		this->pb = newbuf;
 		this->dl = datasz;
-		this->bc = Specific::idToCapacity(id);
+		this->bc = Specific::indexToCapacity(id);
 	}
+}
+struct BufferContext{
+	BufferContext(uint _offset):offset(_offset), reqbufid(-1){}
+	uint	offset;
+	uint	reqbufid;
+};
+bool Buffer::compress(Controller &_rctrl){
+	BufferContext	bctx(this->minSize());
+	int32			datasz(this->dataSize() + updatesCount() * sizeof(uint32));
+	char			*pd(this->data() - updatesCount() * sizeof(uint32));
+	
+	uint32			tmpdatasz(datasz);
+	char			*tmppd(pd);
+	vdbgx(Dbg::ipc, "buffer before compress id = "<<this->id()<<" dl = "<<this->dl<<" size = "<<bufferSize());
+	if(_rctrl.compressBuffer(bctx, this->bufferSize(),tmppd, tmpdatasz)){
+		if(tmppd != pd){
+			if(bctx.reqbufid == (uint)-1){
+				THROW_EXCEPTION("Invalid buffer pointer returned");
+			}
+			tmppd -= bctx.offset;
+			memcpy(tmppd, pb, sizeof(Header));
+			Specific::pushBuffer(this->pb, Specific::capacityToIndex(this->bc));
+			this->bc = Specific::indexToCapacity(bctx.reqbufid);
+			this->pb = tmppd;
+		}else{
+			//the compression was done on-place
+		}
+		this->header().flags |= CompressedFlag;
+		this->dl -= (datasz - tmpdatasz);
+		vdbgx(Dbg::ipc, "buffer success compress id = "<<this->id()<<" dl = "<<this->dl<<" size = "<<bufferSize());
+	}else{
+		if(bctx.reqbufid != (uint)-1){
+			if(pd == tmppd){
+				THROW_EXCEPTION("Allocated buffer must be returned even on no compression");
+			}
+			tmppd -= bctx.offset;
+			Specific::pushBuffer(tmppd, bctx.reqbufid);
+		}
+		vdbgx(Dbg::ipc, "buffer failed compress id = "<<this->id()<<" dl = "<<this->dl<<" size = "<<bufferSize());
+	}
+	optimize();
+	return true;
+}
+bool Buffer::decompress(Controller &_rctrl){
+	if(!(flags() & CompressedFlag)){
+		return true;
+	}
+	BufferContext	bctx(this->minSize());
+	
+	uint32			datasz(dl + updatesCount() * sizeof(uint32));
+	char			*pd(pb + this->minSize());
+	
+	uint32			tmpdatasz(datasz);
+	char			*tmppd(pd);
+	vdbgx(Dbg::ipc, "buffer before decompress id = "<<this->id()<<" dl = "<<this->dl<<" size = "<<bufferSize());
+	if(_rctrl.decompressBuffer(bctx, tmppd, tmpdatasz)){
+		if(bctx.reqbufid != (uint)-1){
+			if(tmppd == pd){
+				THROW_EXCEPTION("Requested buffer not returned");
+			}
+			tmppd -= bctx.offset;
+			memcpy(tmppd, pb, sizeof(Header));
+			Specific::pushBuffer(this->pb, Specific::capacityToIndex(this->bc));
+			this->bc = Specific::indexToCapacity(bctx.reqbufid);
+			this->pb = tmppd;
+		}else{
+			//on-place decompression
+			if(tmppd != pd){
+				THROW_EXCEPTION("Invalid buffer pointer returned");
+			}
+		}
+		this->header().flags &= (~CompressedFlag);
+		this->dl += (tmpdatasz - datasz);
+		vdbgx(Dbg::ipc, "buffer success decompress id = "<<this->id()<<" dl = "<<this->dl<<" size = "<<bufferSize());
+	}else{
+		//decompression failed
+		if(bctx.reqbufid != (uint)-1){
+			if(pd == tmppd){
+				THROW_EXCEPTION("Allocated buffer must be returned even on failed compression");
+			}
+			tmppd -= bctx.offset;
+			Specific::pushBuffer(tmppd, bctx.reqbufid);
+		}
+		vdbgx(Dbg::ipc, "buffer failed decompress id = "<<this->id()<<" dl = "<<this->dl<<" size = "<<bufferSize());
+		return false;
+	}
+	return true;
 }
 //---------------------------------------------------------------------
 std::ostream& operator<<(std::ostream &_ros, const Buffer &_rb){
@@ -602,7 +719,55 @@ std::ostream& operator<<(std::ostream &_ros, const Buffer &_rb){
 	return _ros;
 	
 }
+//------------------------------------------------------------------
+//		Controller
+//------------------------------------------------------------------
+/*virtual*/ Controller::~Controller(){
+	
+}
+/*virtual*/ bool Controller::compressBuffer(
+	BufferContext &_rbc,
+	const uint32 _bufsz,
+	char* &_rpb,
+	uint32 &_bl
+){
+	return false;
+}
+/*virtual*/ bool Controller::decompressBuffer(
+	BufferContext &_rbc,
+	char* &_rpb,
+	uint32 &_bl
+){
+	return true;
+}
+char * Controller::allocateBuffer(BufferContext &_rbc, uint32 &_cp){
+	const uint	mid(Specific::capacityToIndex(Buffer::ReadCapacity));
+	char		*newbuf(Specific::popBuffer(mid));
+	_cp = Buffer::ReadCapacity - _rbc.offset;
+	if(_rbc.reqbufid != (uint)-1){
+		THROW_EXCEPTION("Requesting more than one buffer");
+		return NULL;
+	}
+	_rbc.reqbufid = mid;
+	return newbuf + _rbc.offset;
+}
+bool Controller::receive(
+	Signal *_psig,
+	ipc::SignalUid &_rsiguid
+){
+	_psig->ipcReceived(_rsiguid);
+	return true;
+}
 
+int Controller::authenticate(
+	DynamicPointer<Signal> &_sigptr,
+	ipc::SignalUid &_rsiguid,
+	uint32 &_rflags,
+	SerializationTypeIdT &_rtid
+){
+	//use: SignalContext::the().connectionuid!!
+	return BAD;//by default no authentication
+}
 }//namespace ipc
 }//namespace foundation
 

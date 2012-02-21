@@ -94,6 +94,7 @@ class Service: public Dynamic<Service, Object>{
 	typedef void (*InsertCbkT) (Object *, Service *, const ObjectUidT &);
 	typedef void (*VisitCbkT)(Object *, Visitor&);
 	
+	
 	template <class O, class S>
 	static void insert_cbk(Object *_po, Service *_ps, const ObjectUidT &_ruid){
 		static_cast<S*>(_ps)->insertObject(*static_cast<O*>(_po), _ruid);
@@ -108,9 +109,11 @@ class Service: public Dynamic<Service, Object>{
 	}
 	
 	struct ObjectTypeStub{
+		static const EraseCbkT	default_erase_cbk;
+		static const InsertCbkT	default_insert_cbk;
 		ObjectTypeStub(
-			EraseCbkT _pec = &erase_cbk<Object,Service>,
-			InsertCbkT _pic = &insert_cbk<Object,Service>
+			EraseCbkT _pec = default_erase_cbk,
+			InsertCbkT _pic = default_insert_cbk
 		):erase_callback(_pec), insert_callback(_pic){}
 		bool empty()const{
 			return erase_callback == NULL;
@@ -141,7 +144,7 @@ public:
 	
 	template <class O>
 	ObjectUidT insert(O *_po, const ObjectUidT &_ruid = invalid_uid()){
-		Mutex::Locker		lock(mutex());
+		Locker<Mutex>		lock(mutex());
 		const uint16		tid(objectTypeId<O>());
 		ObjectTypeStub		&rots(objectTypeStub(tid));
 		const IndexT 		objidx(doInsertObject(*_po, tid, _ruid));
@@ -157,7 +160,7 @@ public:
 	
 	template <class O>
 	O* object(const ObjectUidT &_ruid){
-		Mutex::Locker		lock(mutex());
+		Locker<Mutex>		lock(mutex());
 		const uint16		tid(objectTypeId<O>());
 		Object 				*po(objectAt(_ruid.first, _ruid.second));
 		if(po && po->tid == tid){
@@ -206,7 +209,7 @@ public:
 		if(visidx < 0) return;
 		
 		IndexT			idx(compute_index(_ruid.first));
-		Mutex::Locker	lock(mutex(idx));
+		Locker<Mutex>	lock(mutex(idx));
 		Object			*po(objectAt(idx, _ruid.second));
 		
 		doVisit(po, _rv, visidx);
@@ -259,11 +262,30 @@ private:
 		if(_tid >= objtpvec.size()) _tid = 0;
 		return objtpvec[_tid];
 	}
+#ifdef HAVE_SAFE_STATIC
 	template <class O>
 	uint objectTypeId(){
 		static const uint v(newObjectTypeId());
 		return v;
 	}
+#else
+	template <class O>
+	uint objectTypeIdStub(){
+		static const uint v(newObjectTypeId());
+		return v;
+	}
+	template <class O>
+	void once_object(){
+		objectTypeIdStub<O>();
+	}
+	
+	template <class O>
+	uint objectTypeId(){
+		static boost::once_flag once = BOOST_ONCE_INIT;
+		boost::call_once(&once_object<O>, once);
+		return objectTypeIdStub<O>();
+	}
+#endif
 	IndexT index(){
 		return 0;
 	}
@@ -288,6 +310,9 @@ private:
 	uint					crtobjtypeid;
 	Mutex					*pmtx;
 };
+
+/*static*/ const Service::EraseCbkT		Service::ObjectTypeStub::default_erase_cbk(&Service::erase_cbk<Object, Service>);
+/*static*/ const Service::InsertCbkT	Service::ObjectTypeStub::default_insert_cbk(&Service::insert_cbk<Object, Service>);
 
 void Service::insertObject(Object &_ro, const ObjectUidT &_ruid){
 	

@@ -21,9 +21,20 @@
 
 #ifndef SYSTEM_CONDITION_HPP
 #define SYSTEM_CONDITION_HPP
+#include "system/common.hpp"
+
+#if 	defined(USTLMUTEX)
+#include "system/condition_stl.hpp"
+#elif	defined(UBOOSTMUTEX)
+#include "system/condition_boost.hpp"
+#else
+
+#include <pthread.h>
 
 struct TimeSpec;
 struct Mutex;
+template <class M>
+struct Locker;
 //! A simple posix condition wrapper
 class Condition{
 public:
@@ -34,9 +45,9 @@ public:
 	//! Try to wake all waiting threads
 	int broadcast();
 	//! Wait for a signal
-	int wait(Mutex &_mut);
+	int wait(Locker<Mutex> &_lock);
 	//! Wait for a signal a certain amount of time
-	int wait(Mutex &_mut, const TimeSpec &_ts);
+	int wait(Locker<Mutex> &_lock, const TimeSpec &_ts);
 private:
 	pthread_cond_t cond;
 };
@@ -45,5 +56,6 @@ private:
 #include "system/condition.ipp"
 #endif
 
+#endif
 
 #endif

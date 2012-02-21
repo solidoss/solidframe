@@ -34,7 +34,7 @@ public:
                 for(ulong i=0;i<(sz+1);++i) pool[i] = NULL;
         }
         ~FastMutexPool(){
-                Mutex::Locker lock(mutex);
+                Locker<Mutex> lock(mutex);
                 for(ulong i=0;i<(sz+1);++i) delete pool[i];
         }
         Mutex *getp(const void *_ptr){

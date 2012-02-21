@@ -21,138 +21,265 @@
 
 #include <deque>
 #include <vector>
+
+#include "system/common.hpp"
+#include "system/exception.hpp"
+
+#ifdef HAVE_CPP11
+#include <unordered_map>
+#else
 #include <map>
+#endif
 
 #include "system/cassert.hpp"
 #include "system/mutex.hpp"
-#include "algorithm/serialization/typemapper.hpp"
-#include "algorithm/serialization/idtypemap.hpp"
+#include "algorithm/serialization/idtypemapper.hpp"
+
 
 namespace serialization{
 //================================================================
-struct TypeMapper::Data{
-	typedef std::vector<BaseTypeMap*> TypeMapVectorT;
-	Data();
-	~Data();
-	ulong 			sercnt;
-	TypeMapVectorT	tmvec;
-#ifndef N_SERIALIZATION_MUTEX
-	Mutex			m;
-#endif
-/*#else
-#ifdef U_SERIALIZATION_RWMUTEX
-	RWMutex			m;
-#else
-#endif*/
-
-};
-//================================================================
-TypeMapper::Data::Data():sercnt(0){}
-TypeMapper::Data::~Data(){
-	for(TypeMapVectorT::const_iterator it(tmvec.begin()); it != tmvec.end(); ++it){
-		delete *it;
-	}
-}
-TypeMapper::TypeMapper():d(*(new Data)){
-}
-
-TypeMapper::~TypeMapper(){
-	delete &d;
-}
-
-/*static*/ unsigned TypeMapper::newMapId(){
-	//TODO: staticproblem
-	static unsigned d(-1);
-	return ++d;
-}
-
-/*static*/ unsigned TypeMapper::newSerializerId(){
-	//TODO: staticproblem
-	static unsigned d(-1);
-	return ++d;
-}
-
-void TypeMapper::doRegisterMap(unsigned _id, BaseTypeMap *_pbm){
-	cassert(_id == d.tmvec.size());
-	d.tmvec.push_back(_pbm);
-}
-
-void TypeMapper::doMap(FncT _pf, unsigned _pos, const char *_name){
-	for(Data::TypeMapVectorT::const_iterator it(d.tmvec.begin()); it != d.tmvec.end(); ++it){
-		(*it)->insert(_pf, _pos, _name, d.sercnt);
-	}
-}
-
-void TypeMapper::serializerCount(unsigned _cnt){
-	d.sercnt = _cnt + 1;
-}
-
-BaseTypeMap &TypeMapper::getMap(unsigned _id){
-	return *d.tmvec[_id];
-}
-
-void TypeMapper::lock(){
-#ifndef N_SERIALIZATION_MUTEX
-	d.m.lock();
-#endif
-}
-void TypeMapper::unlock(){
-#ifndef N_SERIALIZATION_MUTEX
-	d.m.unlock();
-#endif
-}
-//================================================================
-
-BaseTypeMap::~BaseTypeMap(){
-}
-
-//================================================================
-
-struct IdTypeMap::Data{
-	typedef std::deque<IdTypeMap::FncT>	FncVectorT;
-	typedef std::map<const char*, uint32>	NameMapT;
-	NameMapT	nmap;
-	FncVectorT	fncvec;
-};
-
-IdTypeMap::IdTypeMap():d(*(new Data)){
-}
-
-IdTypeMap::~IdTypeMap(){
-	delete &d;
-}
-
-BaseTypeMap::FncT IdTypeMap::parseTypeIdDone(const std::string &_rstr, ulong _serid){
-	const uint32 *const pu = reinterpret_cast<const uint32*>(_rstr.data());
-	cassert(*pu < d.fncvec.size());
-	cassert(d.fncvec[*pu]);
-	return d.fncvec[*pu];
-}
-
-/*virtual*/ void IdTypeMap::insert(FncT _pf, unsigned _pos, const char *_name, unsigned _maxcnt){
-	uint32 sz = d.fncvec.size();
-	std::pair<Data::NameMapT::iterator, bool> p(d.nmap.insert(Data::NameMapT::value_type(_name, sz)));
-	if(p.second){//key inserted
-		d.fncvec.resize(sz + _maxcnt);
-		for(uint32 i = sz; i < d.fncvec.size(); ++i){
-			d.fncvec[i] = NULL;
+struct TypeMapperBase::Data{
+	struct FunctionStub{
+		FunctionStub(
+			FncT _pf = NULL,
+			const char *_name = NULL,
+			const uint32 _id = 0
+		):pf(_pf), name(_name), id(_id){}
+		FncT 		pf;
+		const char 	*name;
+		uint32		id;
+	};
+	struct PointerHash{
+		size_t operator()(const char* const & _p)const{
+			return reinterpret_cast<size_t>(_p);
 		}
-		d.fncvec[sz + _pos] = _pf;
-	}else{//key already mapped
-		d.fncvec[p.first->second + _pos] = _pf;
+	};
+	struct PointerCmpEqual{
+		bool operator()(const char * const &_p1, const char * const &_p2)const{
+			return _p1 == _p2;
+		}
+	};
+	struct PointerCmpLess{
+		bool operator()(const char * const &_p1, const char * const &_p2)const{
+			return _p1 < _p2;
+		}
+	};
+	typedef std::deque<FunctionStub>	FunctionVectorT;
+#ifdef HAVE_CPP11
+	typedef std::unordered_map<const char *, size_t, PointerHash, PointerCmpEqual>		FunctionStubMapT;
+#else
+	typedef std::map<const char*, size_t, PointerCmpLess>								FunctionStubMapT;
+#endif
+
+	Data():crtpos(1){
+		fncvec.push_back(FunctionStub(NULL, NULL, 1));
 	}
-}
-
-uint32 &IdTypeMap::getFunction(FncT &_rpf, const char *_name, std::string &_rstr, ulong _serid){
-	Data::NameMapT::const_iterator it(d.nmap.find(_name));
-	cassert(it != d.nmap.end());
-	uint32 *pu = reinterpret_cast<uint32*>(const_cast<char*>(_rstr.data()));
-	*pu = it->second + _serid;
-	_rpf = d.fncvec[*pu];
-	cassert(_rpf != NULL);
-	return *pu;
-}
-
+	~Data();
+	Mutex				mtx;
+	FunctionVectorT		fncvec;
+	FunctionStubMapT	fncmap;
+	size_t				crtpos;
+};
 //================================================================
+TypeMapperBase::Data::~Data(){
+	
+}
+TypeMapperBase::TypeMapperBase():d(*(new Data())){
+}
+
+TypeMapperBase::~TypeMapperBase(){
+	delete &d;
+}
+
+TypeMapperBase::FncT TypeMapperBase::function(const uint32 _id, uint32* &_rpid)const{
+	Locker<Mutex>				lock(d.mtx);
+	const Data::FunctionStub	&rfs(d.fncvec[_id]);
+	
+	_rpid = const_cast<uint32*>(&rfs.id);
+	
+	return rfs.pf;
+}
+TypeMapperBase::FncT TypeMapperBase::function(const char *_pid, uint32* &_rpid)const{
+	Locker<Mutex>				lock(d.mtx);
+	const Data::FunctionStub	&rfs(d.fncvec[d.fncmap[_pid]]);
+	
+	_rpid = const_cast<uint32*>(&rfs.id);
+	
+	return rfs.pf;
+}
+TypeMapperBase::FncT TypeMapperBase::function(const uint32 _id)const{
+	Locker<Mutex>				lock(d.mtx);
+	const CRCValue<uint32>		crcval(CRCValue<uint32>::check_and_create(_id));
+	const uint32				idx(crcval.value());
+	if(idx < d.fncvec.size()){
+		const Data::FunctionStub	&rfs(d.fncvec[idx]);
+		if(_id == rfs.id){
+			return rfs.pf;
+		}
+	}
+	return NULL;
+}
+
+TypeMapperBase::FncT TypeMapperBase::function(const uint16 _id)const{
+	Locker<Mutex>				lock(d.mtx);
+	const CRCValue<uint16>		crcval(CRCValue<uint16>::check_and_create(_id));
+	const uint16				idx(crcval.value());
+	if(idx < d.fncvec.size()){
+		const Data::FunctionStub	&rfs(d.fncvec[idx]);
+		if(_id == rfs.id){
+			return rfs.pf;
+		}
+	}
+	return NULL;
+}
+
+TypeMapperBase::FncT TypeMapperBase::function(const uint8  _id)const{
+	Locker<Mutex>				lock(d.mtx);
+	const CRCValue<uint8>		crcval(CRCValue<uint8>::check_and_create(_id));
+	const uint8					idx(crcval.value());
+	if(idx < d.fncvec.size()){
+		const Data::FunctionStub	&rfs(d.fncvec[idx]);
+		if(_id == rfs.id){
+			return rfs.pf;
+		}
+	}
+	return NULL;
+}
+
+uint32 TypeMapperBase::insertFunction(FncT _f, uint32 _pos, const char *_name){
+	Locker<Mutex> lock(d.mtx);
+	if(!_pos){
+		while(d.crtpos < d.fncvec.size() && d.fncvec[d.crtpos].pf != NULL){
+			++d.crtpos;
+		}
+		if(d.crtpos == d.fncvec.size()){
+			d.fncvec.push_back(Data::FunctionStub());
+		}
+		_pos = d.crtpos;
+		++d.crtpos;
+	}else{
+		if(_pos >= d.fncvec.size()){
+			d.fncvec.resize(_pos + 1);
+		}
+		if(d.fncvec[_pos].pf){
+			THROW_EXCEPTION_EX("Overlapping identifiers", _pos);
+			return _pos;
+		}
+	}
+	
+	CRCValue<uint32>	crcval(_pos);
+	
+	if(!crcval.ok()){
+		THROW_EXCEPTION_EX("Invalid CRCValue", _pos);
+	}
+	
+	Data::FunctionStub	&rfs(d.fncvec[_pos]);
+	rfs.pf = _f;
+	rfs.name = _name;
+	rfs.id = (uint32)crcval;
+	if(d.fncmap.find(_name) == d.fncmap.end()){
+		d.fncmap[rfs.name] = _pos;
+	}
+	return _pos;
+}
+
+uint32 TypeMapperBase::insertFunction(FncT _f, uint16 _pos, const char *_name){
+	Locker<Mutex> lock(d.mtx);
+	if(!_pos){
+		while(d.crtpos < d.fncvec.size() && d.fncvec[d.crtpos].pf != NULL){
+			++d.crtpos;
+		}
+		if(d.crtpos == d.fncvec.size()){
+			d.fncvec.push_back(Data::FunctionStub());
+		}
+		_pos = d.crtpos;
+		++d.crtpos;
+	}else{
+		if(_pos >= d.fncvec.size()){
+			d.fncvec.resize(_pos + 1);
+		}
+		if(d.fncvec[_pos].pf){
+			THROW_EXCEPTION_EX("Overlapping identifiers", _pos);
+			return _pos;
+		}
+	}
+	
+	CRCValue<uint16>	crcval(_pos);
+	
+	if(!crcval.ok()){
+		THROW_EXCEPTION_EX("Invalid CRCValue", _pos);
+	}
+	
+	Data::FunctionStub	&rfs(d.fncvec[_pos]);
+	rfs.pf = _f;
+	rfs.name = _name;
+	rfs.id = (uint16)crcval;
+	if(d.fncmap.find(_name) == d.fncmap.end()){
+		d.fncmap[rfs.name] = _pos;
+	}
+	return _pos;
+}
+
+uint32 TypeMapperBase::insertFunction(FncT _f, uint8  _pos, const char *_name){
+	Locker<Mutex> lock(d.mtx);
+	if(!_pos){
+		while(d.crtpos < d.fncvec.size() && d.fncvec[d.crtpos].pf != NULL){
+			++d.crtpos;
+		}
+		if(d.crtpos == d.fncvec.size()){
+			d.fncvec.push_back(Data::FunctionStub());
+		}
+		_pos = d.crtpos;
+		++d.crtpos;
+	}else{
+		if(_pos >= d.fncvec.size()){
+			d.fncvec.resize(_pos + 1);
+		}
+		if(d.fncvec[_pos].pf){
+			THROW_EXCEPTION_EX("Overlapping identifiers", _pos);
+			return _pos;
+		}
+	}
+	
+	CRCValue<uint8>		crcval(_pos);
+	
+	if(!crcval.ok()){
+		THROW_EXCEPTION_EX("Invalid CRCValue", _pos);
+	}
+	
+	Data::FunctionStub	&rfs(d.fncvec[_pos]);
+	rfs.pf = _f;
+	rfs.name = _name;
+	rfs.id = (uint8)crcval;
+	if(d.fncmap.find(_name) == d.fncmap.end()){
+		d.fncmap[rfs.name] = _pos;
+	}
+	return _pos;
+}
+
+/*virtual*/ void TypeMapperBase::prepareStorePointer(
+	void *_pser, void *_p,
+	uint32 _rid, const char *_name
+)const{
+}
+
+/*virtual*/ void TypeMapperBase::prepareStorePointer(
+	void *_pser, void *_p,
+	const char *_pid, const char *_name
+)const{
+}
+
+/*virtual*/ bool TypeMapperBase::prepareParsePointer(
+	void *_pdes, std::string &_rs,
+	void *_p, const char *_name
+)const{
+	return false;
+}
+/*virtual*/ void TypeMapperBase::prepareParsePointerId(
+	void *_pdes, std::string &_rs,
+	const char *_name
+)const{
+	
+}
 
 }//namespace serialization

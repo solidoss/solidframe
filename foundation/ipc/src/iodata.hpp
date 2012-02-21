@@ -25,6 +25,8 @@
 #include "system/cassert.hpp"
 #include "system/socketaddress.hpp"
 
+#include "foundation/ipc/ipcservice.hpp"
+
 namespace foundation{
 class Visitor;
 }
@@ -149,11 +151,8 @@ struct Buffer{
 		Unknown
 	};
 	enum Flags{
-		RequestReceipt = 1,//the buffer received update is sent imediately
-		SwitchToNew = 1 << 1,
-		SwitchToOld = 1 << 2,
-		Connecting = 1 << 30,
-		Accepted = 1 << 31	
+		RequestReceiptFlag = 1,//the buffer received update is sent imediately
+		CompressedFlag = 2
 	};
 	enum DataTypes{
 		ContinuedSignal = 0,
@@ -176,7 +175,12 @@ struct Buffer{
 	bool empty()const;
 	void resetHeader();
 	void clear();
+
 	void optimize(uint16 _cp = 0);
+
+	bool compress(Controller &_rctrl);
+	bool decompress(Controller &_rctrl);
+	
 	void reinit(char *_pb = NULL, uint16 _bc = 0, uint16 _dl = 0);
 	char *buffer()const;
 	char *data()const ;
@@ -224,7 +228,7 @@ struct Buffer{
 public:
 //data
 	mutable uint16	bc;//buffer capacity
-	mutable uint16	dl;//data length
+	mutable int16	dl;//data length
 	mutable char	*pb;
 };
 
@@ -302,7 +306,7 @@ inline uint32 Buffer::bufferSize()const{
 
 inline void Buffer::bufferSize(uint32 _sz){
 	cassert(_sz >= header().size());
-	dl = _sz - header().size();
+	dl = ((int16)_sz) - header().size();
 }
 
 inline uint32 Buffer::bufferCapacity()const{
@@ -330,8 +334,9 @@ inline uint32 Buffer::dataFreeSize()const{
 }
 
 inline void Buffer::dataType(DataTypes _dt){
-	uint8 dt = _dt;
-	*reinterpret_cast<uint8*>(dataEnd()) = dt;
+	uint8				dt = _dt;
+	CRCValue<uint8>		crcval(dt);
+	*reinterpret_cast<uint8*>(dataEnd()) = (uint8)crcval;
 	++dl;
 }
 

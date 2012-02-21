@@ -1,9 +1,9 @@
-add_executable(addrtest addrtest.cpp)
+add_executable(example_addrtest addrtest.cpp)
 
 
-target_link_libraries (addrtest system ${SYS_BASIC_LIBS})
+target_link_libraries (example_addrtest system ${SYS_BASIC_LIBS})
 
-add_executable(udptest udptest.cpp)
+add_executable(example_udptest udptest.cpp)
 
 
-target_link_libraries (udptest system ${SYS_BASIC_LIBS})
+target_link_libraries (example_udptest system ${SYS_BASIC_LIBS})

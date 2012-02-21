@@ -34,8 +34,7 @@
 #include <vector>
 #include "system/common.hpp"
 
-class Mutex;
-class Condition;
+struct Mutex;
 
 //! A wrapper for system threads
 /*!
@@ -83,7 +82,7 @@ public:
 		\param _detached If true create the thread in a detached state
 		\param _stacksz 
 	*/
-	int start(int _wait = false,int _detached = true, ulong _stacksz = 0);
+	int start(bool _wait = false, bool _detached = true, ulong _stacksz = 0);
 	//! Join the calling thread
 	int join();
 	//! Check if the thread is detached
@@ -94,6 +93,7 @@ public:
 	Mutex& mutex()const;
 protected:
 #ifdef _WIN32
+	Thread(bool _detached = true, void* _th = NULL);
 #else
 	Thread(bool _detached = true, pthread_t _th = 0);
 #endif
@@ -108,7 +108,11 @@ private:
 	//a dummy function
 	static int current(Thread *_ptb);
 	Thread(const Thread&){}
+#ifdef ON_WINDOWS
+	static unsigned long th_run(void*);
+#else
 	static void* th_run(void*);
+#endif
 	static void enter();
 	static void exit();
 	
@@ -116,35 +120,31 @@ private:
 	int waited();
 private:
 	typedef std::pair<void*, SpecificFncT>	SpecPairT;
-	typedef std::pair<Condition, int>		ConditionPairT;
 	typedef std::vector<SpecPairT>			SpecVecT;
-	
+	struct ThreadStub;
 #if		defined(ON_WINDOWS)
+	void*			th;
 #else
 	pthread_t       th;
 #endif
 	int				dtchd;
 	unsigned        thcrtstatid;
 	SpecVecT		specvec;
-	ConditionPairT	*pcndpair;
-
+	ThreadStub		*pthrstub;
 };
 
+#ifndef ON_WINDOWS
 inline void Thread::yield(){
-#if		defined(ON_WINDOWS)
-#elif	defined(ON_SOLARIS) || defined(ON_MACOS)
+#if	defined(ON_SOLARIS) || defined(ON_MACOS)
 	sched_yield();
 #else
 	pthread_yield();
 #endif
 }
-
 inline long Thread::currentId(){
-#ifdef ON_WINDOWS
-#else
 	return (long)pthread_self();
-#endif
 }
+#endif
 
 #endif
 

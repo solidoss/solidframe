@@ -33,6 +33,8 @@ namespace aio{
 
 namespace openssl{
 
+#ifdef HAVE_SAFE_STATIC
+
 struct Initor{
 	Initor();
 	~Initor();
@@ -47,13 +49,31 @@ Initor::Initor(){
 Initor::~Initor(){
 }
 
+
 /*static*/ Context* Context::create(){
-	//TODO: staticproblem
 	static Initor init;
 	SSL_CTX *pctx(SSL_CTX_new(SSLv23_server_method()));
 	if(!pctx) return NULL;
 	return new Context(pctx);
 }
+#else
+
+void once_initor(){
+	SSL_library_init();
+	SSL_load_error_strings();
+	ERR_load_BIO_strings();
+	OpenSSL_add_all_algorithms();
+}
+/*static*/ Context* Context::create(){
+	static boost::once_flag once = BOOST_ONCE_INIT;
+	boost::call_once(&once_initor, once);
+	SSL_CTX *pctx(SSL_CTX_new(SSLv23_server_method()));
+	if(!pctx) return NULL;
+	return new Context(pctx);
+}
+
+
+#endif
 Context::~Context(){
 	SSL_CTX_free(pctx);
 }

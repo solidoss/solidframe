@@ -22,6 +22,18 @@
 #ifndef SYSTEM_MUTEX_HPP
 #define SYSTEM_MUTEX_HPP
 
+#include "common.hpp"
+
+#if		defined(USTLMUTEX)
+
+#include "system/mutex_stl.hpp"
+
+#elif	defined(UBOOSTMUTEX)
+
+#include "system/mutex_boost.hpp"
+
+#else
+
 #include <pthread.h>
 
 class Condition;
@@ -30,39 +42,62 @@ struct TimeSpec;
 //! A simple wrapper for POSIX mutex synchronizatin objects.
 class Mutex{
 public:
-	struct Locker{
-		Locker(Mutex &_m);
-		~Locker();
-		Mutex &m;
-	};
-	enum Type{
-		FAST = PTHREAD_MUTEX_NORMAL, 
-		RECURSIVE = PTHREAD_MUTEX_RECURSIVE,
-		ERRORCHECK = PTHREAD_MUTEX_ERRORCHECK
-	};
-#ifdef UDEBUG	
-	Mutex(Type _type = ERRORCHECK);
-#else
-	Mutex(Type _type = FAST);
-#endif
+	Mutex();
 	~Mutex();
 	//! Lock for current thread
 	void lock();
 	//! Unlock for current thread
 	void unlock();
-	//! Timed lock for current thread
-	int timedLock(const TimeSpec &_rts);
 	//! Try lock for current thread
 	bool tryLock();
-	//! Reinit with a new tipe
+protected:
+	enum Type{
+		FAST = PTHREAD_MUTEX_NORMAL, 
+		RECURSIVE = PTHREAD_MUTEX_RECURSIVE,
+		ERRORCHECK = PTHREAD_MUTEX_ERRORCHECK
+	};
+	Mutex(Type _type);
+	//! Timed lock for current thread
+	int timedLock(const TimeSpec &_rts);
 	int reinit(Type _type = FAST);
 private:
 	friend class Condition;
 	pthread_mutex_t mut;
 };
 
+struct RecursiveMutex: public Mutex{
+    RecursiveMutex():Mutex(RECURSIVE){}
+};
+
+struct TimedMutex: public Mutex{
+	int timedLock(const TimeSpec &_rts){
+		return Mutex::timedLock(_rts);
+	}
+};
+
+struct RecursiveTimedMutex: public Mutex{
+	RecursiveTimedMutex():Mutex(RECURSIVE){}
+	
+	int timedLock(const TimeSpec &_rts){
+		return Mutex::timedLock(_rts);
+	}
+};
+
+template <class M>
+struct Locker{
+	Locker(M &_m):m(_m){
+		m.lock();
+	}
+	~Locker(){
+		m.unlock();
+	}
+	M &m;
+};
+
 #ifndef NINLINES
 #include "system/mutex.ipp"
+#endif
+
 #endif
 
 #endif

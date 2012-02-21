@@ -17,7 +17,7 @@ namespace fdt=foundation;
 
 namespace concept{
 namespace gamma{
-
+#ifdef HAVE_SAFE_STATIC
 struct InitServiceOnce{
 	InitServiceOnce(Manager &_rm);
 };
@@ -27,11 +27,19 @@ InitServiceOnce::InitServiceOnce(Manager &_rm){
 }
 
 /*static*/ concept::gamma::Service* Service::create(){
-	//TODO: staticproblem
 	static InitServiceOnce	init(m());
 	return new Service();
 }
-
+#else
+void once_init(){
+	Connection::initStatic(_rm);
+}
+/*static*/ concept::gamma::Service* Service::create(){
+	static boost::once_flag once = BOOST_ONCE_INIT;
+	boost::call_once(&once_init, once);
+	return new Service();
+}
+#endif
 Service::Service(){
 }
 

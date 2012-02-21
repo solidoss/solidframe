@@ -41,13 +41,13 @@ int Stream::release(){return -1;}
 
 int64 Stream::size()const{return -1;}
 
-IStream::~IStream(){
+InputStream::~InputStream(){
 }
 
-OStream::~OStream(){
+OutputStream::~OutputStream(){
 }
 
-IOStream::~IOStream(){
+InputOutputStream::~InputOutputStream(){
 }
 
 #ifdef NINLINES
@@ -57,7 +57,7 @@ IOStream::~IOStream(){
 #include "utility/iostream.ipp"
 #endif
 
-bool IStream::readAll(char *_pd, uint32 _dl, uint32){
+bool InputStream::readAll(char *_pd, uint32 _dl, uint32){
 	int rv;
 	char *pd = (char*)_pd;
 	while(_dl && (rv = this->read(pd, _dl)) != (int)_dl){
@@ -69,7 +69,7 @@ bool IStream::readAll(char *_pd, uint32 _dl, uint32){
 	return true;
 }
 
- int IStream::read(uint64 _offset, char* _pbuf, uint32 _blen, uint32 _flags){
+ int InputStream::read(uint64 _offset, char* _pbuf, uint32 _blen, uint32 _flags){
 	 const int64	crtoff(seek(0, SeekCur));
 	 
 	 if(crtoff < 0) return -1;
@@ -82,7 +82,7 @@ bool IStream::readAll(char *_pd, uint32 _dl, uint32){
  }
 
 
-int OStream::write(uint64 _offset, const char *_pbuf, uint32 _blen, uint32 _flags){
+int OutputStream::write(uint64 _offset, const char *_pbuf, uint32 _blen, uint32 _flags){
 	 const int64	crtoff(seek(0, SeekCur));
 	 
 	 if(crtoff < 0) return -1;

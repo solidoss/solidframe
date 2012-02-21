@@ -23,7 +23,11 @@
 #define SYSTEM_CONVERTORS_HPP
 
 #include "common.hpp"
+#ifdef ON_WINDOWS
+#include <WinSock2.h>
+#else
 #include <arpa/inet.h>
+#endif
 
 //!A template convertor to an unsigned
 /*!

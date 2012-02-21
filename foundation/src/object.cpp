@@ -35,8 +35,8 @@
 
 //--------------------------------------------------------------
 namespace{
+#ifdef HAVE_SAFE_STATIC
 static const unsigned specificPosition(){
-	//TODO: staticproblem
 	static const unsigned	thrspecpos = Thread::specificId();
 	return thrspecpos;
 }
@@ -44,6 +44,35 @@ static const uint currentTimeSpecificPosition(){
 	static const uint id(Thread::specificId());
 	return id;
 }
+#else
+const uint specificIdStub(){
+	static const uint id(Thread::specificId());
+	return id;
+}
+const uint timeSpecificIdStub(){
+	static const uint id(Thread::specificId());
+	return id;
+}
+
+void once_stub(){
+	specificIdStub();
+}
+
+void once_time_stub(){
+	timeSpecificIdStub();
+}
+
+static const unsigned specificPosition(){
+	static boost::once_flag once = BOOST_ONCE_INIT;
+	boost::call_once(&once_stub, once);
+	return specificIdStub();
+}
+static const uint currentTimeSpecificPosition(){
+	static boost::once_flag once = BOOST_ONCE_INIT;
+	boost::call_once(&once_time_stub, once);
+	return timeSpecificIdStub();
+}
+#endif
 }
 
 
@@ -56,7 +85,7 @@ void ObjectPointerBase::clear(Object *_pobj){
 	cassert(_pobj);
 	int usecnt = 0;
 	{
-		Mutex::Locker lock(Manager::the().mutex(*_pobj));
+		Locker<Mutex> lock(Manager::the().mutex(*_pobj));
 		usecnt = --_pobj->usecnt;
 	}
 	if(!usecnt){
@@ -70,7 +99,7 @@ void ObjectPointerBase::use(Object *_pobj){
 	//NOTE: the first mutex will be the first mutex from the first service
 	//which is a valid mutex. The valid mutex will be received only
 	//after objects registration within a service.
-	Mutex::Locker lock(Manager::the().mutex(*_pobj));
+	Locker<Mutex> lock(Manager::the().mutex(*_pobj));
 	++_pobj->usecnt;
 }
 void ObjectPointerBase::destroy(Object *_pobj){
@@ -178,6 +207,37 @@ int Signal::receiveSignal(
 }
 
 /*virtual*/ void Object::init(Mutex*){
+}
+
+void DynamicServicePointerStore::pushBack(
+	const Object *_pobj,
+	const uint _idx,
+	const DynamicPointer<DynamicBase> &_dp
+){
+	m().service(_pobj->serviceId()).pointerStorePushBack(_pobj->index(), _idx, _dp);
+}
+size_t DynamicServicePointerStore::size(const Object *_pobj, const uint _idx)const{
+	return m().service(_pobj->serviceId()).pointerStoreSize(_pobj->index(), _idx);
+}
+bool DynamicServicePointerStore::isNotLast(const Object *_pobj, const uint _idx, const uint _pos)const{
+	return m().service(_pobj->serviceId()).pointerStoreIsNotLast(_pobj->index(), _idx, _pos);
+}
+const DynamicPointer<DynamicBase>& DynamicServicePointerStore::pointer(
+	const Object *_pobj,
+	const uint _idx,
+	const uint _pos
+)const{
+	return m().service(_pobj->serviceId()).pointerStorePointer(_pobj->index(), _idx, _pos);
+}
+DynamicPointer<DynamicBase>& DynamicServicePointerStore::pointer(
+	const Object *_pobj,
+	const uint _idx,
+	const uint _pos
+){
+	return m().service(_pobj->serviceId()).pointerStorePointer(_pobj->index(), _idx, _pos);
+}
+void DynamicServicePointerStore::clear(const Object *_pobj, const uint _idx){
+	m().service(_pobj->serviceId()).pointerStoreClear(_pobj->index(), _idx);
 }
 
 

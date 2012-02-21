@@ -69,16 +69,16 @@ protected:
 		};
 		SocketStub(Socket *_psock = NULL):
 			psock(_psock),
-			itimepos(TimeSpec::max),
-			otimepos(TimeSpec::max),
+			itimepos(TimeSpec::maximum),
+			otimepos(TimeSpec::maximum),
 			itoutpos(-1),
 			otoutpos(-1),
 			hasresponse(false),requesttype(0), chnevents(0), selevents(0){}
 		~SocketStub();
 		void reset(){
 			psock = NULL;
-			itimepos = TimeSpec::max;
-			otimepos = TimeSpec::max;
+			itimepos = TimeSpec::maximum;
+			otimepos = TimeSpec::maximum;
 			itoutpos = -1;
 			otoutpos = -1;
 			hasresponse = false;

@@ -14,7 +14,7 @@ set(Headers
 set(Inlines
 )
 
-add_library(concept_proxy
+add_library(example_concept_proxy
 	${Sources} ${Headers} ${Inlines}
 )
 

@@ -61,8 +61,8 @@ int insertTalker(char *_pc, int _len, concept::Manager &_rtm);
 int insertConnection(char *_pc, int _len, concept::Manager &_rtm);
 
 
-struct DeviceIOStream: IOStream{
-	DeviceIOStream(int _d, int _pd):d(_d), pd(_pd){}
+struct DeviceInputOutputStream: InputOutputStream{
+	DeviceInputOutputStream(int _d, int _pd):d(_d), pd(_pd){}
 	void close(){
 		int tmp = d;
 		d = -1;
@@ -104,15 +104,15 @@ struct SignalResultWaiter{
 		s = false;
 	}
 	void signal(int _v){
-		Mutex::Locker lock(m);
+		Locker<Mutex> lock(m);
 		v = _v;
 		s = true;
 		c.signal();
 	}
 	int wait(){
-		Mutex::Locker lock(m);
+		Locker<Mutex> lock(m);
 		while(!s){
-			c.wait(m);
+			c.wait(lock);
 		}
 		return v;
 	}
@@ -189,11 +189,11 @@ int main(int argc, char* argv[]){
 	audit::LogManager lm;
 	if(p.log){
 		lm.start();
-		lm.insertChannel(new DeviceIOStream(pairfd[0], pairfd[1]));
+		lm.insertChannel(new DeviceInputOutputStream(pairfd[0], pairfd[1]));
 		lm.insertListener("localhost", "3333");
 		Directory::create("log");
 		lm.insertConnector(new audit::LogBasicConnector("log"));
-		Log::instance().reinit(argv[0], Log::AllLevels, "ALL", new DeviceIOStream(pairfd[1],-1));
+		Log::instance().reinit(argv[0], Log::AllLevels, "ALL", new DeviceInputOutputStream(pairfd[1],-1));
 	}
 	int stime;
 	long ltime;

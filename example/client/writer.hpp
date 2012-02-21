@@ -11,7 +11,7 @@
 #define APPSTR(str) str, sizeof(str) - 1
 ///\cond 0
 typedef std::string String;
-class IStream;
+class InputStream;
 
 class Writer{
 public://nonstatic methods
@@ -39,7 +39,7 @@ public://nonstatic methods
     void put(const char* _str){
         put(_str,strlen(_str));
     }
-    void put(IStream *_ps, uint64 _len);
+    void put(InputStream *_ps, uint64 _len);
     uint32 getWriteCount(bool){
         uint32  rc = count;
         count = 0;
@@ -112,7 +112,7 @@ public://nonstatic methods
     }
     struct littp{
         uint32       len;
-        IStream      *pstream;
+        InputStream      *pstream;
     };
     Writer& operator<<(littp _t){
         put('{');
@@ -192,7 +192,7 @@ inline Writer::astring astr(const String &_str){
     return qs;
 }
 
-inline Writer::littp lit(IStream* _ps, const uint32 &_len){
+inline Writer::littp lit(InputStream* _ps, const uint32 &_len){
     Writer::littp l; l.pstream = _ps; l.len = _len;
     return l;
 }

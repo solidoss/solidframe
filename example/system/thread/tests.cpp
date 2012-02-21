@@ -31,12 +31,29 @@ using namespace std;
 
 struct SingleTest{
 	SingleTest();
-	static SingleTest& instance(){
-		static SingleTest st;
-		return st;
-	}
+	static SingleTest& instance();
 	int value;
 };
+
+#ifdef HAVE_SAFE_STATIC
+/*static*/ SingleTest& SingleTest::instance(){
+	static SingleTest st;
+	return st;
+}
+#else
+SingleTest& test_instance(){
+	static SingleTest st;
+	return st;
+}
+void once_test(){
+	test_instance();
+}
+/*static*/ SingleTest& SingleTest::instance(){
+	static boost::once_flag once = BOOST_ONCE_INIT;
+	boost::call_once(&once_test, once);
+	return test_instance();
+}
+#endif
 
 SingleTest::SingleTest():value(0){
 	value = 0;
@@ -109,7 +126,7 @@ void Runner::run(){
 	size_t  s1 = 10, s2 = 2000, s3 = 4000;
 
 	for(int i = 0; i < 20; ++i){
-		idbg("sizeToId("<<(1<<i)<<") = "<<Specific::sizeToId((1<<i))<<" "<<Specific::idToCapacity(Specific::sizeToId((1<<i))));
+		idbg("sizeToId("<<(1<<i)<<") = "<<Specific::sizeToIndex((1<<i))<<" "<<Specific::indexToCapacity(Specific::sizeToIndex((1<<i))));
 	}
 
 /*	b1 = Specific::popBuffer(Specific::s1);idbg(b1<<" "<<s1);
@@ -148,12 +165,14 @@ void Runner::run(){
 
 int main(int argc, char *argv[]){
 	cout<<"Built on SolidFrame version "<<SF_MAJOR<<'.'<<SF_MINOR<<'.'<<SF_PATCH<<endl;
+#ifdef UDEBUG
 	{
 	//initDebug(s.c_str());
 		Dbg::instance().initStdErr();
 		Dbg::instance().levelMask("iwe");
 		Dbg::instance().moduleMask("all");
 	}
+#endif
 	Thread::init();
 	idbg("current thread "<<(void*)Thread::current());
 	const unsigned specid(Thread::specificId());

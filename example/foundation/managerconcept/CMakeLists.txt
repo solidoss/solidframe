@@ -1,6 +1,6 @@
-add_executable (managerconcept managerconcept.cpp)
+add_executable (example_managerconcept managerconcept.cpp)
 
-target_link_libraries (managerconcept
+target_link_libraries (example_managerconcept
 	foundation_ipc
 	foundation_aio
 	foundation_core

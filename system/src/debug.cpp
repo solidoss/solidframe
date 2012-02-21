@@ -22,7 +22,9 @@
 #ifdef UDEBUG
 
 #define DO_EXPORT_DLL 1
-
+#ifdef ON_WINDOWS
+#include <process.h>
+#else
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -32,6 +34,7 @@
 #include <iostream>
 #include <fstream>
 #include <bitset>
+#endif
 
 #include "system/timespec.hpp"
 #include "system/socketdevice.hpp"
@@ -42,10 +45,13 @@
 #include "system/mutex.hpp"
 #include "system/debug.hpp"
 #include "system/directory.hpp"
+#include "system/cstring.hpp"
 
 #ifdef ON_SOLARIS
 #include <strings.h>
 #endif
+
+#include <bitset>
 
 
 using namespace std;
@@ -71,14 +77,13 @@ using namespace std;
 class DeviceOutBasicBuffer : public std::streambuf {
 public:
 	// constructor
-	DeviceOutBasicBuffer(uint64 &_rsz):sz(_rsz){}
-	DeviceOutBasicBuffer(const Device & _d, uint64 &_rsz) : d(_d), sz(_rsz){}
-	void device(const Device & _d){
-		d = _d;
+	DeviceOutBasicBuffer(uint64 &_rsz): pd(NULL), sz(_rsz){}
+	DeviceOutBasicBuffer(Device & _d, uint64 &_rsz) : pd(&_d), sz(_rsz){}
+	void device(Device & _d){
+		pd = &_d;
 	}
 	void close(){
-		//fsync(d.descriptor());
-		d.close();
+		pd = NULL;
 	}
 protected:
 	// write one character
@@ -86,7 +91,7 @@ protected:
 	int_type overflow(int_type c){
 		if(c != EOF){
 			char z = c;
-			if(d.write(&z, 1) != 1){
+			if(pd->write(&z, 1) != 1){
 				return EOF;
 			}
 			++sz;
@@ -97,10 +102,10 @@ protected:
 	virtual
 	std::streamsize xsputn(const char* s, std::streamsize num){
 		sz += num;
-		return d.write(s, num);
+		return pd->write(s, static_cast<uint32>(num));
 	}
 private:
-	Device		d;
+	Device		*pd;
 	uint64		&sz;
 };
 
@@ -110,16 +115,15 @@ class DeviceOutBuffer : public std::streambuf {
 public:
 	enum {BUFF_CP = 2048, BUFF_FLUSH = 1024};
 	// constructor
-	DeviceOutBuffer(uint64 &_rsz):sz(_rsz), bpos(bbeg){}
-	DeviceOutBuffer(const Device & _d, uint64 &_rsz): d(_d), sz(_rsz), bpos(bbeg){}
-	void device(const Device & _d){
-		d = _d;
+	DeviceOutBuffer(uint64 &_rsz):pd(NULL), sz(_rsz), bpos(bbeg){}
+	DeviceOutBuffer(Device & _d, uint64 &_rsz): pd(&_d), sz(_rsz), bpos(bbeg){}
+	void device(Device & _d){
+		pd = &_d;
 	}
 	void close(){
-		if(!d.ok()) return;
+		if(pd == NULL || !pd->ok()) return;
 		flush();
-		//fsync(d.descriptor());
-		d.close();
+		pd = NULL;
 	}
 protected:
 	// write one character
@@ -132,12 +136,12 @@ private:
 	bool flush(){
 		int towrite = bpos - bbeg;
 		bpos = bbeg;
-		if(d.write(bbeg, towrite) != towrite) return false;
+		if(pd->write(bbeg, towrite) != towrite) return false;
 		sz += towrite;
 		return true;
 	}
 private:
-	Device	d;
+	Device	*pd;
 	uint64	&sz;
 	char 	bbeg[BUFF_CP];
 	char 	*bpos;
@@ -160,7 +164,7 @@ std::streambuf::int_type DeviceOutBuffer::overflow(int_type c) {
 std::streamsize DeviceOutBuffer::xsputn(const char* s, std::streamsize num){
 	//we can safely put BUFF_FLUSH into the buffer
 	int towrite = BUFF_CP - BUFF_FLUSH;
-	if(towrite > num) towrite = num;
+	if(towrite > static_cast<int>(num)) towrite = static_cast<int>(num);
 	memcpy(bpos, s, towrite);
 	bpos += towrite;
 	if((bpos - bbeg) > BUFF_FLUSH && !flush()){
@@ -170,9 +174,9 @@ std::streamsize DeviceOutBuffer::xsputn(const char* s, std::streamsize num){
 	num -= towrite;
 	s += towrite;
 	if(num >= BUFF_FLUSH){
-		return d.write(s, num);
+		return pd->write(s, static_cast<uint32>(num));
 	}
-	memcpy(bpos, s, num);
+	memcpy(bpos, s, static_cast<size_t>(num));
 	bpos += num;
 	return num;
 }
@@ -181,13 +185,13 @@ class DeviceBasicOutStream : public std::ostream {
 protected:
 	DeviceOutBasicBuffer buf;
 public:
-	DeviceBasicOutStream(const Device &_d, uint64 &_rsz) : std::ostream(0), buf(_d, _rsz) {
+	DeviceBasicOutStream(Device &_d, uint64 &_rsz) : std::ostream(0), buf(_d, _rsz) {
 		rdbuf(&buf);
 	}
 	DeviceBasicOutStream(uint64 &_rsz):std::ostream(0), buf(_rsz){
 		rdbuf(&buf);
 	}
-	void device(const Device &_d){
+	void device(Device &_d){
 		buf.device(_d);
 	}
 	void close(){
@@ -202,10 +206,10 @@ public:
 	DeviceOutStream(uint64 &_rsz):std::ostream(0), buf(_rsz){
 		rdbuf(&buf);
 	}
-	DeviceOutStream(const Device &_d, uint64 &_rsz) : std::ostream(0), buf(_d, _rsz) {
+	DeviceOutStream(Device &_d, uint64 &_rsz) : std::ostream(0), buf(_d, _rsz) {
 		rdbuf(&buf);
 	}
-	void device(const Device &_d){
+	void device(Device &_d){
     	buf.device(_d);
     }
     void close(){
@@ -216,13 +220,20 @@ public:
 struct Dbg::Data{
 	typedef std::bitset<DEBUG_BITSET_SIZE>	BitSetT;
 	typedef std::vector<const char*>		NameVectorT;
-	Data():lvlmsk(0), sz(0), respinsz(0), respincnt(0), respinpos(0), dos(sz), dbos(sz), trace_debth(0){
+	Data():
+		lvlmsk(0), sz(0), respinsz(0), respincnt(0),
+		respinpos(0), dos(sz), dbos(sz), trace_debth(0)
+	{
 		pos = &std::cerr;
 	}
-	
+	~Data(){
+#ifdef ON_WINDOWS
+		WSACleanup();
+#endif
+	}
 	void setModuleMask(const char*);
 	void setBit(const char *_pbeg, const char *_pend);
-	bool initFile(FileDevice &_rfd, uint32 _respincnt, uint64 _respinsz, string *_poutput);
+	bool initFile(uint32 _respincnt, uint64 _respinsz, string *_poutput);
 	void doRespin();
 	bool isActive()const{return lvlmsk != 0 && !bs.none();}
 	Mutex					m;
@@ -235,6 +246,8 @@ struct Dbg::Data{
 	uint32					respinpos;
 	DeviceOutStream			dos;
 	DeviceBasicOutStream	dbos;
+	FileDevice				fd;
+	SocketDevice			sd;
 	//std::ofstream			ofs;
 	std::ostream			*pos;
 	string					path;
@@ -244,11 +257,30 @@ struct Dbg::Data{
 //-----------------------------------------------------------------
 void splitPrefix(string &_path, string &_name, const char *_prefix);
 
+#ifdef HAVE_SAFE_STATIC
 /*static*/ Dbg& Dbg::instance(){
-	//TODO: staticproblem
 	static Dbg d;
 	return d;
 }
+#else
+
+Dbg& Dbg::dbg_instance(){
+	static Dbg d;
+	return d;
+}
+
+void Dbg::once_cbk(){
+	dbg_instance();
+}
+
+/*static*/ Dbg& Dbg::instance(){
+	static boost::once_flag once = BOOST_ONCE_INIT;
+	boost::call_once(&once_cbk, once);
+	return dbg_instance();
+}
+
+
+#endif
 	
 Dbg::~Dbg(){
 	(*d.pos)<<flush;
@@ -259,12 +291,12 @@ Dbg::~Dbg(){
 }
 
 void Dbg::Data::setBit(const char *_pbeg, const char *_pend){
-	if(!strncasecmp(_pbeg, "all", _pend - _pbeg)){
+	if(!cstring::ncasecmp(_pbeg, "all", _pend - _pbeg)){
 		bs.set();
-	}else if(!strncasecmp(_pbeg, "none", _pend - _pbeg)){
+	}else if(!cstring::ncasecmp(_pbeg, "none", _pend - _pbeg)){
 		bs.reset();
 	}else for(NameVectorT::const_iterator it(nv.begin()); it != nv.end(); ++it){
-		if(!strncasecmp(_pbeg, *it, _pend - _pbeg) && (int)strlen(*it) == (_pend - _pbeg)){
+		if(!cstring::ncasecmp(_pbeg, *it, _pend - _pbeg) && (int)strlen(*it) == (_pend - _pbeg)){
 			bs.set(it - nv.begin());
 		}
 	}
@@ -307,7 +339,7 @@ uint32 parseLevels(const char *_lvl){
 
 void Dbg::Data::setModuleMask(const char *_opt){
 	{
-		Mutex::Locker lock(m);
+		Locker<Mutex> lock(m);
 		bs.reset();
 		if(_opt){
 			const char *pbeg = _opt;
@@ -343,7 +375,7 @@ void filePath(string &_out, uint32 _pos, ulong _pid, const string &_path, const 
 	_out = _path;
 	_out += _name;
 	
-	char	buf[128];
+	char	buf[2048];
 	
 	if(_pos){
 		sprintf(buf, "_%lu_%u.dbg", _pid, _pos);
@@ -353,13 +385,18 @@ void filePath(string &_out, uint32 _pos, ulong _pid, const string &_path, const 
 	_out += buf;
 }
 
-bool Dbg::Data::initFile(FileDevice &_rfd, uint32 _respincnt, uint64 _respinsz, string *_poutput){
+bool Dbg::Data::initFile(uint32 _respincnt, uint64 _respinsz, string *_poutput){
 	respincnt = _respincnt;
 	respinsz = _respinsz;
 	respinpos = 0;
 	string fpath;
-	filePath(fpath, 0, getpid(), path, name);
-	if(_rfd.create(fpath.c_str(), FileDevice::WO)) return false;
+#ifdef ON_WINDOWS
+	ulong pid(_getpid());
+#else
+	ulong pid(getpid());
+#endif
+	filePath(fpath, 0, pid, path, name);
+	if(fd.create(fpath.c_str(), FileDevice::WO)) return false;
 	if(_poutput){
 		*_poutput = fpath;
 	}
@@ -369,17 +406,24 @@ bool Dbg::Data::initFile(FileDevice &_rfd, uint32 _respincnt, uint64 _respinsz, 
 void Dbg::Data::doRespin(){
 	sz = 0;
 	string fname;
+#ifdef ON_WINDOWS
+	ulong pid(_getpid());
+#else
+	ulong pid(getpid());
+#endif
+
 	//first we erase the oldest file:
 	if(respinpos > respincnt){
-		filePath(fname, respinpos - respincnt, getpid(), path, name);
+		filePath(fname, respinpos - respincnt, pid, path, name);
 		Directory::eraseFile(fname.c_str());
 	}
 	fname.clear();
 	++respinpos;
+
 	//rename the curent file name_PID.dbg to name_PID_RESPINPOS.dbg
-	filePath(fname, respinpos, getpid(), path, name);
+	filePath(fname, respinpos, pid, path, name);
 	string crtname;
-	filePath(crtname, 0, getpid(), path, name);
+	filePath(crtname, 0, pid, path, name);
 	FileDevice fd;
 	if(pos == &dos){
 		dos.device(fd);//close the current file
@@ -407,7 +451,7 @@ void Dbg::initStdErr(
 	bool _buffered,
 	std::string *_output
 ){
-	Mutex::Locker lock(d.m);
+	Locker<Mutex> lock(d.m);
 
 	d.dos.close();
 	d.dbos.close();
@@ -434,7 +478,7 @@ void Dbg::initFile(
 	ulong _respinsize,
 	std::string *_output
 ){
-	Mutex::Locker lock(d.m);
+	Locker<Mutex> lock(d.m);
 	d.respinsz = 0;
 
 	d.dos.close();
@@ -447,16 +491,15 @@ void Dbg::initFile(
 			Directory::create("dbg");
 			d.path = "dbg/";
 		}
-		FileDevice fd;
-		if(d.initFile(fd, _respincnt, _respinsize, _output)){
+		if(d.initFile(_respincnt, _respinsize, _output)){
 			if(_buffered){
-				d.dos.device(fd);
+				d.dos.device(d.fd);
 				d.pos = &d.dos;
 				if(_output){
 					*_output += " (buffered)";
 				}
 			}else{
-				d.dbos.device(fd);
+				d.dbos.device(d.fd);
 				d.pos = &d.dbos;
 				if(_output){
 					*_output += " (unbuffered)";
@@ -487,14 +530,13 @@ void Dbg::initSocket(
 ){
 	if(!d.isActive()) return;
 	//do the connect outside locking
-	SocketAddressInfo ai(_addr, _port);
-	SocketDevice sd;
-	if(!ai.empty() && sd.create(ai.begin()) == OK && sd.connect(ai.begin()) == OK){
+	SocketAddressInfo ai(_addr, _port, 0, SocketAddressInfo::Inet4, SocketAddressInfo::Stream);
+	if(!ai.empty() && d.sd.create(ai.begin()) == OK && d.sd.connect(ai.begin()) == OK){
 	}else{
-		sd.close();//make sure the socket is closed
+		d.sd.close();//make sure the socket is closed
 	}
 	
-	Mutex::Locker lock(d.m);
+	Locker<Mutex> lock(d.m);
 	d.respinsz = 0;
 	
 	d.dos.close();
@@ -504,9 +546,9 @@ void Dbg::initSocket(
 		_addr = "localhost";
 	}
 	
-	if(sd.ok()){
+	if(d.sd.ok()){
 		if(_buffered){
-			d.dos.device(sd);
+			d.dos.device(d.sd);
 			d.pos = &d.dos;
 			if(_output){
 				*_output += _addr;
@@ -515,7 +557,7 @@ void Dbg::initSocket(
 				*_output += " (buffered)";
 			}
 		}else{
-			d.dbos.device(sd);
+			d.dbos.device(d.sd);
 			d.pos = &d.dbos;
 			if(_output){
 				*_output += _addr;
@@ -542,7 +584,7 @@ void Dbg::initSocket(
 }
 
 void Dbg::levelMask(const char *_msk){
-	Mutex::Locker lock(d.m);
+	Locker<Mutex> lock(d.m);
 	if(!_msk){
 		_msk = "iewrvt";
 	}
@@ -556,30 +598,30 @@ void Dbg::moduleMask(const char *_msk){
 }
 
 void Dbg::moduleBits(std::string &_ros){
-	Mutex::Locker lock(d.m);
+	Locker<Mutex> lock(d.m);
 	for(Data::NameVectorT::const_iterator it(d.nv.begin()); it != d.nv.end(); ++it){
 		_ros += *it;
 		_ros += ' ';
 	}
 }
 void Dbg::setAllModuleBits(){
-	Mutex::Locker lock(d.m);
+	Locker<Mutex> lock(d.m);
 	d.bs.set();
 }
 void Dbg::resetAllModuleBits(){
-	Mutex::Locker lock(d.m);
+	Locker<Mutex> lock(d.m);
 	d.bs.reset();
 }
 void Dbg::setModuleBit(unsigned _v){
-	Mutex::Locker lock(d.m);
+	Locker<Mutex> lock(d.m);
 	d.bs.set(_v);
 }
 void Dbg::resetModuleBit(unsigned _v){
-	Mutex::Locker lock(d.m);
+	Locker<Mutex> lock(d.m);
 	d.bs.reset(_v);
 }
 unsigned Dbg::registerModule(const char *_name){
-	Mutex::Locker lock(d.m);
+	Locker<Mutex> lock(d.m);
 	d.nv.push_back(_name);
 	return d.nv.size() - 1;
 }
@@ -603,23 +645,32 @@ std::ostream& Dbg::print(
 	char		buf[128];
 	TimeSpec	ts_now(TimeSpec::createRealTime());
 	time_t		t_now = ts_now.seconds();
+	tm			*ploctm;
+#ifdef ON_WINDOWS
+	ploctm = localtime(&t_now);
+#else
 	tm			loctm;
-	localtime_r(&t_now, &loctm);
+	ploctm = localtime_r(&t_now, &loctm);
+#endif
 	sprintf(
 		buf,
 		"%c[%04u-%02u-%02u %02u:%02u:%02u.%03u][%s]",
 		_t,
-		loctm.tm_year + 1900,
-		loctm.tm_mon + 1, 
-		loctm.tm_mday,
-		loctm.tm_hour,
-		loctm.tm_min,
-		loctm.tm_sec,
+		ploctm->tm_year + 1900,
+		ploctm->tm_mon + 1, 
+		ploctm->tm_mday,
+		ploctm->tm_hour,
+		ploctm->tm_min,
+		ploctm->tm_sec,
 		(uint)ts_now.nanoSeconds()/1000000,
 		d.nv[_module]//,
 		//Thread::currentId()
 	);
+#ifdef ON_WINDOWS
+	return (*d.pos)<<buf<<'['<<src_file_name(_file)<<'('<<_line<<')'<<' '<<_fnc<<"]["<<Thread::currentId()<<']'<<' ';
+#else
 	return (*d.pos)<<buf<<'['<<src_file_name(_file)<<'('<<_line<<')'<<' '<<_fnc<<"][0x"<<std::hex<<Thread::currentId()<<std::dec<<']'<<' ';
+#endif
 }
 static const char tabs[]="\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t"
 						 "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t"
@@ -648,18 +699,23 @@ std::ostream& Dbg::printTraceIn(
 	char		buf[128];
 	TimeSpec	ts_now(TimeSpec::createRealTime());
 	time_t		t_now = ts_now.seconds();
+	tm			*ploctm;
+#ifdef ON_WINDOWS
+	ploctm = localtime(&t_now);
+#else
 	tm			loctm;
-	localtime_r(&t_now, &loctm);
+	ploctm = localtime_r(&t_now, &loctm);
+#endif
 	sprintf(
 		buf,
 		"%c[%04u-%02u-%02u %02u:%02u:%02u.%03u]",
 		_t,
-		loctm.tm_year + 1900,
-		loctm.tm_mon + 1, 
-		loctm.tm_mday,
-		loctm.tm_hour,
-		loctm.tm_min,
-		loctm.tm_sec,
+		ploctm->tm_year + 1900,
+		ploctm->tm_mon + 1, 
+		ploctm->tm_mday,
+		ploctm->tm_hour,
+		ploctm->tm_min,
+		ploctm->tm_sec,
 		(uint)ts_now.nanoSeconds()/1000000//,
 		//d.nv[_module],
 		//Thread::currentId()
@@ -667,7 +723,11 @@ std::ostream& Dbg::printTraceIn(
 	(*d.pos)<<buf;
 	d.pos->write(tabs, d.trace_debth);
 	++d.trace_debth;
+#ifdef ON_WINDOWS
+	(*d.pos)<<'['<<d.nv[_module]<<']'<<'['<<src_file_name(_file)<<'('<<_line<<')'<<"]["<<Thread::currentId()<<']'<<' '<<_fnc<<'(';
+#else
 	(*d.pos)<<'['<<d.nv[_module]<<']'<<'['<<src_file_name(_file)<<'('<<_line<<')'<<"][0x"<<std::hex<<Thread::currentId()<<std::dec<<']'<<' '<<_fnc<<'(';
+#endif
 	return (*d.pos);
 }
 
@@ -685,18 +745,23 @@ std::ostream& Dbg::printTraceOut(
 	char		buf[128];
 	TimeSpec	ts_now(TimeSpec::createRealTime());
 	time_t		t_now = ts_now.seconds();
+	tm			*ploctm;
+#ifdef ON_WINDOWS
+	ploctm = localtime(&t_now);
+#else
 	tm			loctm;
-	localtime_r(&t_now, &loctm);
+	ploctm = localtime_r(&t_now, &loctm);
+#endif
 	sprintf(
 		buf,
 		"%c[%04u-%02u-%02u %02u:%02u:%02u.%03u]",
 		_t,
-		loctm.tm_year + 1900,
-		loctm.tm_mon + 1, 
-		loctm.tm_mday,
-		loctm.tm_hour,
-		loctm.tm_min,
-		loctm.tm_sec,
+		ploctm->tm_year + 1900,
+		ploctm->tm_mon + 1, 
+		ploctm->tm_mday,
+		ploctm->tm_hour,
+		ploctm->tm_min,
+		ploctm->tm_sec,
 		(uint)ts_now.nanoSeconds()/1000000//,
 		//d.nv[_module],
 		//Thread::currentId()
@@ -704,12 +769,17 @@ std::ostream& Dbg::printTraceOut(
 	(*d.pos)<<buf;
 	--d.trace_debth;
 	d.pos->write(tabs, d.trace_debth);
-	(*d.pos)<<'['<<d.nv[_module]<<']'<<'['<<src_file_name(_file)<<'('<<_line<<')'<<']'<<'['<<Thread::currentId()<<']'<<' '<<'}'<<_fnc<<'(';
+#ifdef ON_WINDOWS
+	(*d.pos)<<'['<<d.nv[_module]<<']'<<'['<<src_file_name(_file)<<'('<<_line<<')'<<"]["<<Thread::currentId()<<']'<<' '<<'}'<<_fnc<<'(';
+#else
+	(*d.pos)<<'['<<d.nv[_module]<<']'<<'['<<src_file_name(_file)<<'('<<_line<<')'<<"][0x"<<std::hex<<Thread::currentId()<<std::dec<<']'<<' '<<'}'<<_fnc<<'(';
+#endif
 	return (*d.pos);
 }
 
 void Dbg::done(){
 	(*d.pos)<<std::endl;
+	cassert(d.pos->good());
 	d.m.unlock();
 }
 

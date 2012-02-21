@@ -1,4 +1,4 @@
-/* Implementation file simple_new.cpp
+/* Implementation file simple.cpp
 	
 	Copyright 2007, 2008 Valentin Palade 
 	vipalade@gmail.com
@@ -28,9 +28,8 @@
 //#undef UDEBUG
 #include "system/thread.hpp"
 #include "system/debug.hpp"
-#include "algorithm/serialization/typemapper.hpp"
+#include "algorithm/serialization/idtypemapper.hpp"
 #include "algorithm/serialization/binary.hpp"
-#include "algorithm/serialization/idtypemap.hpp"
 #include "system/socketaddress.hpp"
 using namespace std;
 
@@ -63,6 +62,12 @@ using namespace std;
 // 	cassert(false);
 // 	return _s;
 // }
+
+template <int T>
+struct IndexType{
+	enum{ Index = T};
+};
+
 ///\cond 0
 struct TestA{
 	TestA(int _a = 1, short _b = 2, unsigned _c = 3):a(_a), b(_b), c(_c){}
@@ -136,16 +141,25 @@ struct Base{
 };
 
 struct String: Base{
-	String(){}
-	String(const char *_str):str(_str){}
+	String():dflt(false){}
+	String(const IndexType<1>&):dflt(true), str("default"){}
+	String(const char *_str):dflt(false), str(_str){}
 	template <class S>
 	S& operator&(S &_s){
-		return _s.push(str, "String::str");
+		if(dflt){
+			return _s;
+		}else{
+			return _s.pushUtf8(str, "String::str");
+		}
 	}
 	void print()const{
 		cout<<"String: "<<str<<endl;
 	}
+	void makeDefault(){
+		dflt = true;
+	}
 private:
+	bool	dflt;
 	string	str;
 };
 
@@ -285,7 +299,7 @@ void Array::print() const{
 	cout<<"}pta1"<<endl;
 	cout<<"tdsz = "<<tdsz<<endl;
 	cout<<"td{"<<endl;
-	for(int i(0); i < tdsz; ++i){
+	for(uint i(0); i < tdsz; ++i){
 		td[i].print();
 	}
 	cout<<"}td"<<endl;
@@ -320,6 +334,15 @@ typedef std::deque<std::pair<int32,int32> > PairIntDeqT;
 void print(StrDeqT &_rsdq);
 ///\endcond
 
+
+enum{
+	STRING_TYPE_INDEX = 1,
+	STRING_DEFAULT_TYPE_INDEX,
+	UNSIGNED_TYPE_INDEX,
+	INTEGER_VECTOR_TYPE_INDEX,
+	ARRAY_TYPE_INDEX
+};
+
 int main(int argc, char *argv[]){
 	Thread::init();
 #ifdef UDEBUG
@@ -339,131 +362,144 @@ int main(int argc, char *argv[]){
 	int rv = 3;
 	//TestA ta;
 	//cout<<ta<<endl;
-	typedef serialization::TypeMapper					TypeMapper;
-	//typedef serialization::NameTypeMap					NameTypeMap;
-	typedef serialization::IdTypeMap					IdTypeMap;
-	typedef serialization::bin::Serializer				BinSerializer;
-	typedef serialization::bin::Deserializer			BinDeserializer;
+	typedef serialization::binary::Serializer										BinSerializer;
+	typedef serialization::binary::Deserializer										BinDeserializer;
+	typedef serialization::IdTypeMapper<BinSerializer, BinDeserializer, uint16>		UInt16TypeMapper;
 	
-	TypeMapper::registerMap<IdTypeMap>(new IdTypeMap);
 	
-	TypeMapper::registerSerializer<BinSerializer>();
+	UInt16TypeMapper		tm;
 	
-	TypeMapper::map<String, BinSerializer, BinDeserializer>();
-	TypeMapper::map<UnsignedInteger, BinSerializer, BinDeserializer>();
-	TypeMapper::map<IntegerVector, BinSerializer, BinDeserializer>();
-	TypeMapper::map<Array, BinSerializer, BinDeserializer>();
+	
+	tm.insert<String>(STRING_TYPE_INDEX);
+	tm.insert<String, IndexType<1> >(STRING_DEFAULT_TYPE_INDEX);
+	tm.insert<UnsignedInteger>(UNSIGNED_TYPE_INDEX);
+	tm.insert<IntegerVector>(INTEGER_VECTOR_TYPE_INDEX);
+	tm.insert<Array>(ARRAY_TYPE_INDEX);
 	//const char* str = NULL;
-	{	
-		idbg("");
-		BinSerializer 	ser(IdTypeMap::the());
-		
-		TestA 			ta;
-		TestB 			tb;// = new TestB;
-		TestC 			tc;
-		StrDeqT		sdq;
-		string			s("some string");
-		
-		sdq.push_back("first");
-		sdq.push_back("second");
-		sdq.push_back("third");
-		sdq.push_back("fourth");
-		
-		Base			*b1 = new String("some base string");
-		Base			*b2 = new UnsignedInteger(-2, 10);
-		IntegerVector	*iv;
-		Base			*b3 = iv = new IntegerVector(true);
-		Base			*b4 = new Array(true);
-		
-		for(int i = 1; i < 20; ++i){
-			iv->iv.push_back(i);
-		}
-		
-		ta.print();
-		tb.print();
-		tc.print();
-		
-		cout<<"string: "<<s<<endl;
-		print(sdq);
-		
-		b1->print();
-		b2->print();
-		b3->print();
-		b4->print();
-		
-		ser.push(ta, "testa").push(tb, "testb").push(tc, "testc");
-		idbg("");
-		ser.push(s, "string").pushContainer(sdq, "names");
-		idbg("");
-		ser.push(b1, "basestring").push(b2, "baseui").push(b3, "baseiv").push(b4, "basea");
-		
-		PairIntDeqT pidq;
-		pidq.push_back(pair<int32, int32>(1,2));
-		pidq.push_back(pair<int32, int32>(2,3));
-		pidq.push_back(pair<int32, int32>(3,4));
-		ser.pushContainer(pidq, "pidq");
-		pair<int32,int32> ppi(1,2);
-		ser.push(ppi, "pi");
-		for(PairIntDeqT::const_iterator it(pidq.begin()); it != pidq.end(); ++it){
-			cout<<"("<<it->first<<','<<it->second<<')';
-		}
-		cout<<endl;
-		int v = 0, cnt = 0;
-		idbg("");
-		while((rv = ser.run(bufs[v], blen)) == blen){
+	for(int i = 0; i < 1; ++i){
+		{	
+			idbg("");
+			BinSerializer 	ser(tm);
+			
+			TestA 			ta;
+			TestB 			tb;// = new TestB;
+			TestC 			tc;
+			StrDeqT			sdq;
+			string			s("some string");
+			
+			sdq.push_back("first");
+			sdq.push_back("second");
+			sdq.push_back("third");
+			sdq.push_back("fourth");
+			
+			Base			*b1 = new String("some mega base string that is more than few buffers spawned");
+			Base			*b2 = new UnsignedInteger(-2, 10);
+			IntegerVector	*iv;
+			Base			*b3 = iv = new IntegerVector(true);
+			Base			*b4 = new Array(true);
+			
+			for(int i = 1; i < 20; ++i){
+				iv->iv.push_back(i);
+			}
+			//static_cast<String*>(b1)->makeDefault();
+			
+			ta.print();
+			tb.print();
+			tc.print();
+			
+			cout<<"string: "<<s<<endl;
+			print(sdq);
+			
+			b1->print();
+			b2->print();
+			b3->print();
+			b4->print();
+			
+			ser.push(ta, "testa").push(tb, "testb").push(tc, "testc");
+			idbg("");
+			ser.push(s, "string").pushContainer(sdq, "names");
+			idbg("");
+			ser.push(b1, /*tm, STRING_DEFAULT_TYPE_INDEX,*/ "basestring").push(b2, "baseui").push(b3, "baseiv").push(b4, "basea");
+			
+			PairIntDeqT pidq;
+			pidq.push_back(pair<int32, int32>(1,2));
+			pidq.push_back(pair<int32, int32>(2,3));
+			pidq.push_back(pair<int32, int32>(3,4));
+			ser.pushContainer(pidq, "pidq");
+			pair<int32,int32> ppi(1,2);
+			ser.push(ppi, "pi");
+			for(PairIntDeqT::const_iterator it(pidq.begin()); it != pidq.end(); ++it){
+				cout<<"("<<it->first<<','<<it->second<<')';
+			}
+			cout<<endl;
+			int v = 0, cnt = 0;
+			idbg("");
+			while((rv = ser.run(bufs[v], blen)) == blen){
+				cnt += rv;
+				++v;
+			}
+			if(rv < 0){
+				cout<<"ERROR: serialization: "<<ser.errorString()<<endl;
+				return 0;
+			}
+			idbg("");
 			cnt += rv;
-			++v;
+			cout<<"Write count: "<<cnt<<" buffnct = "<<v<<endl;
 		}
-		idbg("");
-		cnt += rv;
-		cout<<"Write count: "<<cnt<<endl;
-	}
-	cout<<"Deserialization: =================================== "<<endl;
-	{
-		BinDeserializer des(IdTypeMap::the());
-		TestA		ta;
-		TestB		tb;// = new TestB;
-		TestC		tc;
-		StrDeqT	sdq;
-		string		s;
-		Base		*b1 = NULL;
-		Base		*b2 = NULL;
-		Base		*b3 = NULL;
-		Base		*b4 = NULL;
-		
-		des.push(ta, "testa").push(tb, "testb").push(tc, "testc");
-		idbg("");
-		des.push(s, "string").pushContainer(sdq, "names");
-		idbg("");
-		des.push(b1, "basestring").push(b2, "baseui").push(b3, "baseiv").push(b4, "basea");
-		idbg("");
-		int v = 0;
-		int cnt = 0;
-		PairIntDeqT pidq;
-		des.pushContainer(pidq, "pidq");
-		pair<int32,int32> ppi;
-		des.push(ppi, "pi");
-		while((rv = des.run(bufs[v], blen)) == blen){
+		cout<<"Deserialization: =================================== "<<endl;
+		{
+			BinDeserializer		des(tm);
+			TestA				ta;
+			TestB				tb;// = new TestB;
+			TestC				tc;
+			StrDeqT				sdq;
+			string				s;
+			Base				*b1 = NULL;
+			Base				*b2 = NULL;
+			Base				*b3 = NULL;
+			Base				*b4 = NULL;
+			
+			des.push(ta, "testa").push(tb, "testb").push(tc, "testc");
+			idbg("");
+			des.push(s, "string").pushContainer(sdq, "names");
+			idbg("");
+			des.pushStringLimit();
+			des.push(b1, "basestring");
+			des.pushStringLimit(100);
+			des.push(b2, "baseui").push(b3, "baseiv").push(b4, "basea");
+			idbg("");
+			int v = 0;
+			int cnt = 0;
+			PairIntDeqT pidq;
+			des.pushContainer(pidq, "pidq");
+			pair<int32,int32> ppi;
+			des.push(ppi, "pi");
+			while((rv = des.run(bufs[v], blen)) == blen){
+				cnt += rv;
+				++v;
+			}
+			if(rv < 0){
+				cout<<"ERROR: deserialization "<<des.errorString()<<endl;
+				return 0;
+			}
 			cnt += rv;
-			++v;
+			cout<<"Read count: "<<cnt<<endl;
+			ta.print();
+			tb.print();
+			tc.print();
+			cout<<"string: "<<s<<endl;
+			print(sdq);
+			if(b1)b1->print();
+			if(b2)b2->print();
+			b3->print();
+			if(b4)b4->print();
+			for(PairIntDeqT::const_iterator it(pidq.begin()); it != pidq.end(); ++it){
+				cout<<"("<<it->first<<','<<it->second<<')';
+			}
+			cout<<endl;
+			cout<<"pi.first "<<ppi.first<<" pi.second "<<ppi.second<<endl;
 		}
-		cnt += rv;
-		cout<<"Read count: "<<cnt<<endl;
-		ta.print();
-		tb.print();
-		tc.print();
-		cout<<"string: "<<s<<endl;
-		print(sdq);
-		if(b1)b1->print();
-		if(b2)b2->print();
-		b3->print();
-		if(b4)b4->print();
-		for(PairIntDeqT::const_iterator it(pidq.begin()); it != pidq.end(); ++it){
-			cout<<"("<<it->first<<','<<it->second<<')';
-		}
-		cout<<endl;
-		cout<<"pi.first "<<ppi.first<<" pi.second "<<ppi.second<<endl;
-	}
+	}//for
 	idbg("Done");
 	return 0;
 }

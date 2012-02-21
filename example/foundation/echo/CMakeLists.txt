@@ -1,8 +1,8 @@
-add_executable (echoserver echoserver.cpp)
+add_executable (example_echoserver echoserver.cpp)
 
 set_source_files_properties(echoserver.cpp COMPILE_FLAGS -DOSSL_SOURCE_PATH='"${EXTERN_PATH}"')
 
-target_link_libraries (echoserver
+target_link_libraries (example_echoserver
 	foundation_aio
 	foundation_aio_openssl
 	foundation_core

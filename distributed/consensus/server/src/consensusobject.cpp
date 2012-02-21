@@ -27,8 +27,6 @@
 #include "system/common.hpp"
 #include "system/exception.hpp"
 
-#undef HAVE_CPP11
-
 #ifdef HAVE_CPP11
 #include <unordered_map>
 #include <unordered_set>
@@ -40,8 +38,6 @@
 #include "system/timespec.hpp"
 
 #include "algorithm/serialization/binary.hpp"
-#include "algorithm/serialization/idtypemap.hpp"
-
 
 #include "foundation/object.hpp"
 #include "foundation/manager.hpp"
@@ -392,7 +388,7 @@ void Object::Data::coordinatorId(int8 _coordid){
 	}
 }
 bool Object::Data::insertRequestStub(DynamicPointer<WriteRequestSignal> &_rsig, size_t &_ridx){
-	RequestStubMapT::const_iterator	it(reqmap.find(&_rsig->id));
+	RequestStubMapT::iterator	it(reqmap.find(&_rsig->id));
 	if(it != reqmap.end()){
 		_ridx = it->second;
 		reqmap.erase(it);
@@ -533,16 +529,12 @@ static const DynamicRegisterer<Object>	dre;
 	//TODO: add here the other consensus Signals
 }
 /*static*/ void Object::registerSignals(){
-	typedef serialization::TypeMapper					TypeMapper;
-	typedef serialization::bin::Serializer				BinSerializer;
-	typedef serialization::bin::Deserializer			BinDeserializer;
-
-	TypeMapper::map<OperationSignal<1>, BinSerializer, BinDeserializer>();
-	TypeMapper::map<OperationSignal<2>, BinSerializer, BinDeserializer>();
-	TypeMapper::map<OperationSignal<4>, BinSerializer, BinDeserializer>();
-	TypeMapper::map<OperationSignal<8>, BinSerializer, BinDeserializer>();
-	TypeMapper::map<OperationSignal<16>, BinSerializer, BinDeserializer>();
-	TypeMapper::map<OperationSignal<32>, BinSerializer, BinDeserializer>();
+	fdt::ipc::Service::the().registerSerializationType<OperationSignal<1> >();
+	fdt::ipc::Service::the().registerSerializationType<OperationSignal<2> >();
+	fdt::ipc::Service::the().registerSerializationType<OperationSignal<4> >();
+	fdt::ipc::Service::the().registerSerializationType<OperationSignal<8> >();
+	fdt::ipc::Service::the().registerSerializationType<OperationSignal<16> >();
+	fdt::ipc::Service::the().registerSerializationType<OperationSignal<32> >();
 }
 Object::Object():d(*(new Data)){
 	idbg((void*)this);
@@ -905,7 +897,7 @@ void Object::doExecuteAcceptDeclineOperation(RunData &_rd, const uint8 _replicai
 		_sig.clear();
 		return false;//no reason to raise the pool thread!!
 	}
-	d.exe.push(DynamicPointer<>(_sig));
+	d.exe.push(this, DynamicPointer<>(_sig));
 	return fdt::Object::signal(fdt::S_SIG | fdt::S_RAISE);
 }
 
@@ -927,17 +919,17 @@ int Object::execute(ulong _sig, TimeSpec &_tout){
 	if(signaled()){//we've received a signal
 		ulong sm(0);
 		if(state() != InitState && state() != PrepareRunState && state() != PrepareRecoveryState){
-			Mutex::Locker	lock(rm.mutex(*this));
+			Locker<Mutex>	lock(rm.mutex(*this));
 			sm = grabSignalMask(0);//grab all bits of the signal mask
 			if(sm & fdt::S_KILL) return BAD;
 			if(sm & fdt::S_SIG){//we have signals
-				d.exe.prepareExecute();
+				d.exe.prepareExecute(this);
 			}
 		}
 		if(sm & fdt::S_SIG){//we've grabed signals, execute them
-			while(d.exe.hasCurrent()){
-				d.exe.executeCurrent(*this, rd);
-				d.exe.next();
+			while(d.exe.hasCurrent(this)){
+				d.exe.executeCurrent(this, rd);
+				d.exe.next(this);
 			}
 		}
 	}

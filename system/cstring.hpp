@@ -1,9 +1,9 @@
-#ifndef UTILITY_STRING_HPP
-#define UTILITY_STRING_HPP
+#ifndef SYSTEM_CSTRING_HPP
+#define SYSTEM_CSTRING_HPP
 
 #include "system/common.hpp"
 
-const char * charToString(unsigned _c);
+const char * char_to_cstring(unsigned _c);
 
 //! Some cross platform cstring utility functions
 struct cstring{
@@ -15,6 +15,7 @@ struct cstring{
     static int casecmp(const char* _s1, const char *_s2);
     //! Equivalent to strncasecmp
     static int ncasecmp(const char* _s1, const char *_s2, uint _len);
+	static size_t nlen(const char *s, size_t maxlen);
     template <class T, T C1>
 	static T* find(T *_pc){
 		while(*_pc != C1) ++_pc;

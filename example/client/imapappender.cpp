@@ -432,7 +432,7 @@ int doneOutput(ofstream &_os){
 
 int readAtLeast(int _minsz, SSL *_pssl, char *_pb, unsigned _sz);
 
-class FileStream: public IStream{
+class FileStream: public InputStream{
 public:
 	FileStream(FileDevice &_rfd):fd(_rfd){}
 	int read(char *_pb, uint32 _sz, uint32 _flags = 0){

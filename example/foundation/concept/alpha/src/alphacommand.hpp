@@ -27,8 +27,8 @@
 #include "core/tstring.hpp"
 #include "system/specific.hpp"
 
-class IStream;
-class OStream;
+class InputStream;
+class OutputStream;
 
 namespace concept{
 
@@ -53,24 +53,24 @@ public:
 	virtual int execute(Connection &) = 0;
 	//received from filemanager
 	//! Receive an istream
-	virtual int receiveIStream(
-		StreamPointer<IStream> &,
+	virtual int receiveInputStream(
+		StreamPointer<InputStream> &,
 		const FileUidT &,
 		int			_which,
 		const ObjectUidT&_from,
 		const foundation::ipc::ConnectionUid *_conid
 	);
 	//! Receive an ostream
-	virtual int receiveOStream(
-		StreamPointer<OStream> &,
+	virtual int receiveOutputStream(
+		StreamPointer<OutputStream> &,
 		const FileUidT &,
 		int			_which,
 		const ObjectUidT&_from,
 		const foundation::ipc::ConnectionUid *_conid
 	);
 	//! Receive an iostream
-	virtual int receiveIOStream(
-		StreamPointer<IOStream> &,
+	virtual int receiveInputOutputStream(
+		StreamPointer<InputOutputStream> &,
 		const FileUidT &,
 		int			_which,
 		const ObjectUidT&_from,

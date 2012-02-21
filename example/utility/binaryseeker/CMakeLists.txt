@@ -1,3 +1,3 @@
-add_executable(testbs testbs.cpp)
+add_executable(example_binary_seeker testbs.cpp)
 
-target_link_libraries (testbs system)
+target_link_libraries (example_binary_seeker system)

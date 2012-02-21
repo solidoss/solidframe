@@ -24,26 +24,26 @@
 #endif
 
 
-inline bool OStream::ook()const{
+inline bool OutputStream::ook()const{
 	return flags.flags == 0;
 }
-inline bool OStream::oeof()const{
-	return flags.flags & StreamFlags::OEof;
+inline bool OutputStream::oeof()const{
+	return (flags.flags & StreamFlags::OEof) != 0;
 }
-inline bool OStream::obad()const{
-	return flags.flags & StreamFlags::OBad;
+inline bool OutputStream::obad()const{
+	return (flags.flags & StreamFlags::OBad) != 0;
 }
-inline bool OStream::ofail()const{
-	return obad() | flags.flags & StreamFlags::OFail;
+inline bool OutputStream::ofail()const{
+	return obad() || ((flags.flags & StreamFlags::OFail) != 0);
 }
 
-inline OStreamIterator::OStreamIterator(OStream *_ps, int64 _off):ps(_ps),off(_off){
+inline OutputStreamIterator::OutputStreamIterator(OutputStream *_ps, int64 _off):ps(_ps),off(_off){
 }
-inline void OStreamIterator::reinit(OStream *_ps, int64 _off){
+inline void OutputStreamIterator::reinit(OutputStream *_ps, int64 _off){
 	ps = _ps;
 	off = _off;
 }
-inline int64 OStreamIterator::start(){
+inline int64 OutputStreamIterator::start(){
 	return ps->seek(off);
 }
 

@@ -28,7 +28,7 @@
 
 #define LOG_BITSET_SIZE 256
 
-class OStream;
+class OutputStream;
 //! A class for logging
 /*!
 	This is not to be used directly.
@@ -44,7 +44,7 @@ class OStream;
 	following example we do this on a socket:
 	<code><br>
 	{<br>
-		SocketOStream	*pos(new SocketOStream);<br>
+		SocketOutputStream	*pos(new SocketOutputStream);<br>
 		SocketAddressInfo ai("localhost", 3333, 0, SocketAddressInfo::Inet4, SocketAddressInfo::Stream);<br>
 		if(!ai.empty()){<br>
 			pos->sd.create(ai.begin());<br>
@@ -90,9 +90,9 @@ public:
 	
 	static Log& instance();
 	
-	bool reinit(const char* _procname, uint32 _lvlmsk = 0, const char *_modopt = NULL, OStream *_pos = NULL);
+	bool reinit(const char* _procname, uint32 _lvlmsk = 0, const char *_modopt = NULL, OutputStream *_pos = NULL);
 	
-	void reinit(OStream *_pos);
+	void reinit(OutputStream *_pos);
 	
 	void moduleNames(std::string &_ros);
 	void setAllModuleBits();
@@ -112,6 +112,8 @@ public:
 	void done();
 	bool isSet(unsigned _mod, unsigned _level)const;
 private:
+	static Log& log_instance();
+	static void once_log();
 	Log();
 	~Log();
 	struct Data;

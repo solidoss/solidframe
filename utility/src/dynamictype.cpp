@@ -16,19 +16,52 @@
 
 namespace{
 typedef MutualStore<Mutex>	MutexStoreT;
-
+#ifdef HAVE_SAFE_STATIC
 MutexStoreT &mutexStore(){
-	//TODO: staticproblem
 	static MutexStoreT		mtxstore(3, 2, 2);
 	return mtxstore;
 }
 
 uint32 specificId(){
-	//TODO: staticproblem
 	static const uint32 id(Thread::specificId());
 	return id;
 }
 
+#else
+
+MutexStoreT &mutexStoreStub(){
+	static MutexStoreT		mtxstore(3, 2, 2);
+	return mtxstore;
+}
+
+uint32 specificIdStub(){
+	static const uint32 id(Thread::specificId());
+	return id;
+}
+
+
+void once_cbk_store(){
+	mutexStoreStub();
+}
+
+void once_cbk_specific(){
+	specificIdStub();
+}
+
+MutexStoreT &mutexStore(){
+	static boost::once_flag once = BOOST_ONCE_INIT;
+	boost::call_once(&once_cbk_store, once);
+	return mutexStoreStub();
+}
+
+uint32 specificId(){
+	static boost::once_flag once = BOOST_ONCE_INIT;
+	boost::call_once(&once_cbk_specific, once);
+	return specificIdStub();
+}
+	
+
+#endif
 
 }//namespace
 
@@ -71,21 +104,35 @@ struct DynamicMap::Data{
 	FncVectorT fncvec;
 };
 
-
 /*static*/ uint32 DynamicMap::generateId(){
-	//TODO: staticproblem
 	static uint32 u(0);
 	Thread::gmutex().lock();
 	uint32 v = ++u;
 	Thread::gmutex().unlock();
 	return v;
 }
+#ifdef HAVE_SAFE_STATIC
 
 static Mutex & dynamicMutex(){
-	//TODO: staticproblem
 	static Mutex mtx;
 	return mtx;
 }
+#else
+static Mutex & dynamicMutexStub(){
+	static Mutex mtx;
+	return mtx;
+}
+
+void once_cbk_dynamic(){
+	dynamicMutexStub();
+}
+
+static Mutex & dynamicMutex(){
+	static boost::once_flag once = BOOST_ONCE_INIT;
+	boost::call_once(&once_cbk_dynamic, once);
+	return dynamicMutexStub();
+}
+#endif
 
 void DynamicRegistererBase::lock(){
 	dynamicMutex().lock();
@@ -138,12 +185,12 @@ DynamicMap::FncT DynamicBase::callback(const DynamicMap &_rdm){
 
 void DynamicSharedImpl::doUse(){
 	idbgx(Dbg::utility, "DynamicSharedImpl");
-	Mutex::Locker	lock(this->mutex());
+	Locker<Mutex>	lock(this->mutex());
 	++usecount;
 }
 int DynamicSharedImpl::doRelease(){
 	idbgx(Dbg::utility, "DynamicSharedImpl");
-	Mutex::Locker	lock(this->mutex());
+	Locker<Mutex>	lock(this->mutex());
 	--usecount;
 	return usecount;
 }

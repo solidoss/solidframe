@@ -27,37 +27,37 @@
 #include "foundation/signal.hpp"
 #include "common.hpp"
 
-class IStream;
-class OStream;
-class IOStream;
+class InputStream;
+class OutputStream;
+class InputOutputStream;
 
 namespace concept{
 
 
 //!	A signal for sending istreams from the fileManager
-struct IStreamSignal: Dynamic<IStreamSignal, foundation::Signal>{
-	IStreamSignal(StreamPointer<IStream> &_sptr, const FileUidT &_rfuid, const foundation::RequestUidT &_requid);
+struct InputStreamSignal: Dynamic<InputStreamSignal, foundation::Signal>{
+	InputStreamSignal(StreamPointer<InputStream> &_sptr, const FileUidT &_rfuid, const foundation::RequestUidT &_requid);
 	int execute(DynamicPointer<Signal> &_rthis_ptr, uint32 _evs, foundation::SignalExecuter&, const SignalUidT &, TimeSpec &);
-	StreamPointer<IStream>	sptr;
+	StreamPointer<InputStream>	sptr;
 	FileUidT				fileuid;
 	RequestUidT				requid;
 };
 
 //!A signal for sending ostreams from the fileManager
-struct OStreamSignal: Dynamic<OStreamSignal, foundation::Signal>{
-	OStreamSignal(StreamPointer<OStream> &_sptr, const FileUidT &_rfuid, const foundation::RequestUidT &_requid);
+struct OutputStreamSignal: Dynamic<OutputStreamSignal, foundation::Signal>{
+	OutputStreamSignal(StreamPointer<OutputStream> &_sptr, const FileUidT &_rfuid, const foundation::RequestUidT &_requid);
 	int execute(DynamicPointer<Signal> &_rthis_ptr, uint32 _evs, foundation::SignalExecuter&, const SignalUidT &, TimeSpec &);
-	StreamPointer<OStream>	sptr;
+	StreamPointer<OutputStream>	sptr;
 	FileUidT				fileuid;
 	RequestUidT				requid;
 };
 
 
 //!A signal for sending iostreams from the fileManager
-struct IOStreamSignal: Dynamic<IOStreamSignal, foundation::Signal>{
-	IOStreamSignal(StreamPointer<IOStream> &_sptr, const FileUidT &_rfuid, const foundation::RequestUidT &_requid);
+struct InputOutputStreamSignal: Dynamic<InputOutputStreamSignal, foundation::Signal>{
+	InputOutputStreamSignal(StreamPointer<InputOutputStream> &_sptr, const FileUidT &_rfuid, const foundation::RequestUidT &_requid);
 	int execute(DynamicPointer<Signal> &_rthis_ptr, uint32 _evs, foundation::SignalExecuter&, const SignalUidT &, TimeSpec &);
-	StreamPointer<IOStream>	sptr;
+	StreamPointer<InputOutputStream>	sptr;
 	FileUidT				fileuid;
 	RequestUidT				requid;
 };

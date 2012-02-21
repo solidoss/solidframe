@@ -50,12 +50,12 @@ int MemoryFile::write(const char *_pb, uint32 _bl){
 }
 
 int MemoryFile::read(char *_pb, uint32 _bl, int64 _off){
-	uint32		buffidx(_off / bufsz);
+	uint32		buffidx(static_cast<uint32>(_off / bufsz));
 	uint32		buffoff(_off % bufsz);
 	int 		rd(0);
-	if(_off >= sz) return -1;
-	if((_off + _bl) > sz){
-		_bl = sz - _off;
+	if(_off >= static_cast<int64>(sz)) return -1;
+	if((_off + _bl) > static_cast<int64>(sz)){
+		_bl = static_cast<uint32>(sz - _off);
 	}
 	while(_bl){
 		char *bf(doGetBuffer(buffidx));
@@ -79,7 +79,7 @@ int MemoryFile::read(char *_pb, uint32 _bl, int64 _off){
 }
 
 int MemoryFile::write(const char *_pb, uint32 _bl, int64 _off){
-	uint32		buffidx(_off / bufsz);
+	uint32		buffidx(static_cast<uint32>(_off / bufsz));
 	uint32		buffoff(_off % bufsz);
 	int			wd(0);
 	while(_bl){
@@ -104,14 +104,14 @@ int MemoryFile::write(const char *_pb, uint32 _bl, int64 _off){
 		return -1;
 	}
 	
-	if(sz < _off + wd) sz = _off + wd;
+	if(static_cast<int64>(sz) < _off + wd) sz = _off + wd;
 	return wd;
 }
 
 int64 MemoryFile::seek(int64 _pos, SeekRef _ref){
 	switch(_ref){
 		case SeekBeg:
-			if(_pos >= cp) return -1;
+			if(_pos >= static_cast<int64>(cp)) return -1;
 			return off = _pos;
 		case SeekCur:
 			if(off + _pos > cp) return -1;
@@ -137,12 +137,10 @@ int MemoryFile::truncate(int64 _len){
 	bv.clear();
 	return -1;
 }
-
 inline int MemoryFile::doFindBuffer(uint32 _idx)const{
-	static BinarySeeker<BuffCmp>	bs;
+	BinarySeeker<BuffCmp>	bs;
 	return bs(bv.begin(), bv.end(), _idx);
 }
-
 inline char *MemoryFile::doGetBuffer(uint32 _idx)const{
 	int pos(doLocateBuffer(_idx));
 	if(pos >= 0) return bv[pos].data;
@@ -168,14 +166,15 @@ char *MemoryFile::doCreateBuffer(uint32 _idx, bool &_created){
 int MemoryFile::doLocateBuffer(uint32 _idx)const{
 	if(bv.empty() || _idx > bv.back().idx){//append
 		crtbuffidx = bv.size();
-		return -bv.size() - 1;
+		long s = bv.size();
+		return -s - 1;
 	}
 	//see if it's arround the current buffer:
 	if(crtbuffidx < bv.size()){
 		if(bv[crtbuffidx].idx == _idx) return crtbuffidx;
 		//see if its the next buffer:
 		int nextidx(crtbuffidx + 1);
-		if(nextidx < bv.size() && bv[nextidx].idx == _idx){
+		if(static_cast<uint>(nextidx) < bv.size() && bv[nextidx].idx == _idx){
 			crtbuffidx = nextidx;
 			return nextidx;
 		}
