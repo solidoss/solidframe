@@ -8,7 +8,7 @@ This is main release log for SolidFrame.
 
 Main changes:
   * OS: improved support for PC/Free-BSD and MacOS
-  * OS: partial support for windows - everything but foundation.
+  * OS: partial support for windows (with help from boost library) - everything but foundation.
   * IPC: Add support for authenticating the ipc sessions.
   * IPC: Find a better way to disconnect after a failed authentication
   * IPC: Add support for sending authentication commands while in authenticating state. Commands with AuthenticationFlag? set.(NEEDS proper testing!!!!)
