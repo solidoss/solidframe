@@ -509,7 +509,9 @@ struct wsa_cleaner{
 //---- SocketDevice ---------------------------------
 SocketDevice::SocketDevice(const SocketDevice &_sd):Device(_sd){
 #ifndef UDEBUG
+#ifdef ON_WINDOWS
 	static const wsa_cleaner wsaclean;
+#endif
 #endif
 }
 SocketDevice::SocketDevice(){
