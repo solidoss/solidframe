@@ -502,7 +502,7 @@ struct wsa_cleaner{
 	~wsa_cleaner(){
 		WSACleanup();
 	}
-}
+};
 #endif
 #endif
 
