@@ -250,11 +250,6 @@ set(CMAKE_CXX_FLAGS_DEBUG
 	CACHE STRING "Flags used by the C++ compiler during debug builds."
 	FORCE
 )
-set(CMAKE_CXX_FLAGS_DEBUG 
-	"${SYS_DEBUG_FLAGS} ${SF_DEBUG_FLAGS} ${SF_VERSION_FLAGS}"
-	CACHE STRING "Flags used by the C++ compiler during debug builds."
-	FORCE
-)
 #-----------------------------------------------------------------
 
 #-----------------------------------------------------------------
@@ -265,7 +260,6 @@ set(CMAKE_CXX_FLAGS_MAINTAIN
 	CACHE STRING "Flags used by the C++ compiler during maintain builds."
 	FORCE
 )
-#set(CMAKE_C_FLAGS_MAINTAIN "" CACHE STRING "Flags used by the C compiler during maintain builds." FORCE)
 set(CMAKE_EXE_LINKER_FLAGS_MAINTAIN
     "${SYS_MAINTAIN_LINKER_FLAGS}"
 	CACHE STRING "Flags used for linking binaries during maintain builds."
