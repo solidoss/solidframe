@@ -1829,10 +1829,7 @@ void Session::doFillSendBuffer(Talker::TalkerStub &_rstub, const uint32 _bufidx)
 				}
 				vdbgx(Dbg::ipc, "sendsignalidxq poped "<<d.sendsignalidxq.size());
 				d.currentbuffersignalcount = Data::MaxSignalBufferCount;
-				if(rsbd.buffer.dataFreeSize() <= rctrl.reservedDataSize()){
-					break;
-				}
-				if(rsbd.buffer.dataFreeSize() < 16){
+				if(rsbd.buffer.dataFreeSize() < (rctrl.reservedDataSize() + 16)){
 					break;
 				}
 			}else{
