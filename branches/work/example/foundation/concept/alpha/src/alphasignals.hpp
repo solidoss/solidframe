@@ -227,7 +227,7 @@ struct FetchSlaveSignal: Dynamic<FetchSlaveSignal, foundation::Signal>{
 	FileUidT						fuid;
 	foundation::ipc::ConnectionUid	conid;
 	SignalUidT						siguid;
-	StreamPointer<InputStream>			ins;
+	StreamPointer<InputStream>		ins;
 	int64							filesz;
 	int32							streamsz;
 	uint32							requid;

@@ -1,6 +1,6 @@
-/* Implementation file fork.cpp
+/* Implementation file forkoffset.cpp
 	
-	Copyright 2007, 2008 Valentin Palade 
+	Copyright 2012 Valentin Palade 
 	vipalade@gmail.com
 
 	This file is part of SolidFrame framework.
@@ -82,68 +82,54 @@ struct Test{
 	Test(const char *_fn = NULL);
 	template <class S>
 	S& operator&(S &_s){
-		return _s.template pushStreammer<Test>(this, "Test::fs").push(no, "Test::no").push(fn,"Test::fn");
+		
+		
+		return _s.template pushReinit<Test, 0>(this, 0, "Test::reinit").push(no, "Test::no").push(fn,"Test::fn");
 	}
-	int createDeserializationStream(OutputStream *&_rps, int64 &_rsz, uint64 &_roff, int _id);
-	void destroyDeserializationStream(OutputStream *_ps, int64 &_rsz, uint64 &_roff, int _id);
-	int createSerializationStream(InputStream *&_rps, int64 &_rsz, uint64 &_roff, int _id);
-	void destroySerializationStream(InputStream *_ps, int64 &_rsz, uint64 &_roff, int _id);
+	
+	template <class S, uint32 I>
+	int serializationReinit(S &_rs, const uint64 &_rv){
+		if(_rv == 0){
+			if(S::IsSerializer){
+				fs.openRead(fn.c_str());
+				_rs.pop();
+				offset = fs.size()/2;
+				_rs.template pushReinit<Test, 0>(this, 1, "Test::reinit");
+				_rs.push(offset, "offset");
+			}else{
+				_rs.pop();
+				_rs.template pushReinit<Test, 0>(this, 1, "Test::reinit");
+				_rs.push(offset, "offset");
+			}
+		}else{
+			if(S::IsSerializer){
+				_rs.pop();
+				//_rs.pushStream(fs, offset, _rs.size()/2, "Test::istream");
+			}else{
+				fs.openWrite(fn.c_str());
+				_rs.pop();
+				//_rs.pushStream(fs, offset, 0/*not used*/, "Test::ostream");
+			}
+		}
+		return CONTINUE;
+	}
+	
+	template <class S, class T>
+	void serializationStreamComplete(S &_rs, const T *_ps, const uint64 &_rsz, int _err){
+		cout<<"stream complete size = "<<_rsz<<" error = "<<S::errorString(_err)<<endl;
+	}
+	
 	void print();
 private:
 	int32 					no;
 	string					fn;
+	uint64					offset;
 	FileInputOutputStream	fs;
 };
 ///\endcond
 
 Test::Test(const char *_fn):fn(_fn?_fn:""){}
 //-----------------------------------------------------------------------------------
-void Test::destroyDeserializationStream(
-	OutputStream *_ps, int64 &_rsz, uint64 &_roff, int _id
-){
-	cout<<"Destroy deserialization <"<<_id<<"> sz "<<_rsz<<endl;
-}
-int Test::createDeserializationStream(
-	OutputStream *&_rps, int64 &_rsz, uint64 &_roff, int _id
-){
-	if(_id) return NOK;
-	cout<<"Create deserialization <"<<_id<<"> sz "<<_rsz<<endl;
-	if(fn.empty() /*|| _rps.second < 0*/) return BAD;
-	fn += ".xxx";
-	cout<<"File name <"<<fn<<endl;
-	if(fs.openWrite(fn.c_str())){	
-		fn.clear();
-		cout<<"failed open des file"<<endl;
-	}else{
-		_rps = static_cast<OutputStream*>(&fs);
-		cout<<"success oppening des file"<<endl;
-	}
-	return OK;
-}
-void Test::destroySerializationStream(
-	InputStream *_ps, int64 &_rsz, uint64 &_roff, int _id
-){
-	cout<<"doing nothing as the stream will be destroyed when the command will be destroyed"<<endl;
-	//fs.close();
-}
-
-int Test::createSerializationStream(
-	InputStream *&_rps, int64 &_rsz, uint64 &_roff, int _id
-){
-	if(_id) return NOK;
-	cout<<"Create serialization <"<<_id<<"> sz "<<_rsz<<endl;;
-	//The stream is already opened
-	cout<<"File name "<<fn<<endl;
-	if(fn.empty() || fs.openRead(fn.c_str())){
-		return BAD;
-	}
-	_rps = static_cast<InputStream*>(&fs);
-	_rsz = fs.size();
-	cout<<"serializing stream"<<endl;
-	return OK;
-}
-//-----------------------------------------------------------------------------------
-
 
 void Test::print(){
 	cout<<endl<<"Test:"<<endl;

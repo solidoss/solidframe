@@ -130,6 +130,9 @@ public:
 	void typeMapper(const TypeMapperBase &_rtm){
 		ptm = &_rtm;
 	}
+	void pop(){
+		fstk.pop();
+	}
 protected:
 	enum Errors{
 		ERR_NOERROR = 0,
@@ -159,7 +162,7 @@ protected:
 		
 		FncT		f;	//!< Pointer to function
 		void		*p;	//!< Pointer to data
-		const char 	*n;	//!< Some name - of the item serialized
+		const char	*n;	//!< Some name - of the item serialized
 		uint64		s;	//!< Some size
 	};
 	
@@ -357,12 +360,15 @@ class Serializer: public Base{
 	template <typename T>
 	static int storeStreamBegin(Base &_rs, FncData &_rfd){
 		idbgx(Dbg::ser_bin, "store stream begin");
-		Serializer &rs(static_cast<Serializer&>(_rs));
+		
+		Serializer		&rs(static_cast<Serializer&>(_rs));
+		
 		if(!rs.cpb) return OK;
-		T *pt = reinterpret_cast<T*>(_rfd.p);
+		
+		T				*pt = reinterpret_cast<T*>(_rfd.p);
 		
 		InputStreamData	isd;
-		int 		cpidx = _rfd.s;
+		int 			cpidx = _rfd.s;
 		++_rfd.s;
 		switch(pt->createSerializationStream(isd.pis, isd.sz, isd.off, cpidx)){
 			case BAD: isd.sz = -1;break;//send -1
@@ -407,8 +413,17 @@ class Serializer: public Base{
 		rs.estk.pop();
 		return OK;
 	}
+	
 	//! Internal callback for storing a stream
 	static int storeStream(Base &_rs, FncData &_rfd);
+	
+	template <class T, uint32 I>
+	static int storeReinit(Base &_rs, FncData &_rfd){
+		Serializer		&rs(static_cast<Serializer&>(_rs));
+		const uint32	val = _rfd.s;
+		
+		return reinterpret_cast<T*>(_rfd.p)->template serializationReinit<Serializer, I>(rs, val);
+	}
 public:
 	enum {IsSerializer = true, IsDeserializer = false};
 	Serializer(const TypeMapperBase &_rtm):pb(NULL), cpb(NULL), be(NULL){
@@ -508,6 +523,11 @@ public:
 		return *this;
 	}
 	Serializer& pushUtf8(const std::string& _str, const char *_name = NULL);
+	template <class T, uint32 I>
+	Serializer& pushReinit(T *_pt, const uint64 &_rval = 0, const char *_name = NULL){
+		fstk.push(FncData(&Serializer::template storeReinit<T, I>, _pt, _name));
+		return *this;
+	}
 private:
 	friend class TypeMapperBase;
 	char					*pb;
@@ -735,7 +755,7 @@ class Deserializer: public Base{
 		return CONTINUE;
 	}
 	template <typename T>
-	static int parseStreamDone(Base &_rb,FncData &_rfd){
+	static int parseStreamDone(Base &_rb, FncData &_rfd){
 		idbgx(Dbg::ser_bin, "parse stream done");
 		Deserializer &rd(static_cast<Deserializer&>(_rb));
 		OutputStreamData &rsp(*reinterpret_cast<OutputStreamData*>(rd.estk.top().buf));
@@ -754,6 +774,14 @@ class Deserializer: public Base{
 		writing to destination stream.
 	*/
 	static int parseDummyStream(Base &_rb, FncData &_rfd);
+	
+	template <class T, uint32 I>
+	static int parseReinit(Base &_rb, FncData &_rfd){
+		Deserializer	&rd(static_cast<Deserializer&>(_rb));
+		const uint32	val = _rfd.s;
+		
+		return reinterpret_cast<T*>(_rfd.p)->template serializationReinit<Deserializer, I>(rd, val);
+	}
 public:
 	enum {IsSerializer = false, IsDeserializer = true};
 	Deserializer(const TypeMapperBase &_rtm):pb(NULL), cpb(NULL), be(NULL){
@@ -835,6 +863,12 @@ public:
 		return *this;
 	}
 	Deserializer& pushUtf8(std::string& _str, const char *_name = NULL);
+	
+	template <class T, uint32 I>
+	Deserializer& pushReinit(T *_pt, const uint64 &_rval = 0, const char *_name = NULL){
+		fstk.push(FncData(&Deserializer::template parseReinit<T, I>, _pt, _name));
+		return *this;
+	}
 private:
 	const char				*pb;
 	const char				*cpb;
