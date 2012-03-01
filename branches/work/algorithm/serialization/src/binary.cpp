@@ -417,7 +417,21 @@ int Serializer::store<std::string>(Base &_rb, FncData &_rfd){
 	rs.fstk.push(FncData(&Serializer::store<uint32>, &rs.estk.top().u32(), _rfd.n));
 	return CONTINUE;
 }
-
+int Serializer::storeStreamBegin(Base &_rb, FncData &_rfd){
+	Serializer &rs(static_cast<Serializer&>(_rb));
+	if(!rs.cpb) return OK;
+	rs.streamerr = 0;
+	rs.streamsz = 0;
+	if(_rfd.s){
+		if(
+			static_cast<int64>(_rfd.s) != 
+			reinterpret_cast<InputStream*>(_rfd.p)->seek(_rfd.s)
+		){
+			rs.streamerr = ERR_STREAM_SEEK;
+		}
+	}
+	return OK;
+}
 int Serializer::storeStream(Base &_rb, FncData &_rfd){
 	Serializer &rs(static_cast<Serializer&>(_rb));
 	idbgx(Dbg::ser_bin, "");
@@ -471,6 +485,23 @@ Serializer& Serializer::pushBinary(void *_p, size_t _sz, const char *_name){
 }
 Serializer& Serializer::pushUtf8(const std::string& _str, const char *_name){
 	fstk.push(FncData(&Serializer::storeUtf8, const_cast<char*>(_str.c_str()), _name, _str.length() + 1));
+	return *this;
+}
+Serializer& Serializer::pushStream(
+	InputStream &_rs, const char *_name = NULL
+){
+	fstk.push(FncData(&Serializer::storeStream, &_rs, _name, -1));
+	fstk.push(FncData(&Serializer::storeStreamBegin, &_rs, _name, 0));
+	return *this;
+}
+Serializer& Serializer::pushStream(
+	InputStream &_rs,
+	const uint64 &_rfrom,
+	const uint64 &_rlen,
+	const char *_name
+){
+	fstk.push(FncData(&Serializer::storeStream, &_rs, _name, _rlen));
+	fstk.push(FncData(&Serializer::storeStreamBegin, &_rs, _name, _rfrom));
 	return *this;
 }
 //========================================================================
