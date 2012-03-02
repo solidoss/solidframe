@@ -27,7 +27,7 @@
 #include <list>
 #include "system/filedevice.hpp"
 #include "utility/iostream.hpp"
-#undef UDEBUG
+#include "system/debug.hpp"
 #include "system/thread.hpp"
 #include "algorithm/serialization/binary.hpp"
 #include "algorithm/serialization/idtypemapper.hpp"
@@ -82,28 +82,29 @@ struct Test{
 	Test(const char *_fn = NULL);
 	template <class S>
 	S& operator&(S &_s){
-		
-		
-		return _s.template pushReinit<Test, 0>(this, 0, "Test::reinit").push(no, "Test::no").push(fn,"Test::fn");
+		return _s.push(no, "Test::no").template pushReinit<Test, 0>(this, 0, "Test::reinit").push(fn,"Test::fn");
 	}
 	
 	template <class S, uint32 I>
 	int serializationReinit(S &_rs, const uint64 &_rv){
+		idbg("_rv = "<<_rv);
+		if(_rv == 1){
+			idbg("Done Stream: size = "<<_rs.streamSize()<<" error = "<<_rs.streamErrorString());
+			return OK;
+		}
 		if(S::IsSerializer){
 			fs.openRead(fn.c_str());
 			_rs.pop();
-			//_rs.pushStream(fs, "Test::istream");
+			_rs.template pushReinit<Test, 0>(this, 1, "Test::reinit");
+			_rs.pushStream(&fs, "Test::istream");
 		}else{
+			fn += ".xxx";
 			fs.openWrite(fn.c_str());
 			_rs.pop();
-			//_rs.pushStream(fs, "Test::ostream");
+			_rs.template pushReinit<Test, 0>(this, 1, "Test::reinit");
+			_rs.pushStream(&fs, "Test::ostream");
 		}
 		return CONTINUE;
-	}
-	
-	template <class S, class T>
-	void serializationStreamComplete(S &_rs, const T *_ps, const uint64 &_rsz, int _err){
-		cout<<"stream complete size = "<<_rsz<<" error = "<<S::errorString(_err)<<endl;
 	}
 	
 	void print();
@@ -114,7 +115,9 @@ private:
 };
 ///\endcond
 
-Test::Test(const char *_fn):fn(_fn?_fn:""){}
+Test::Test(const char *_fn):fn(_fn?_fn:""){
+	if(_fn) no = 11111;
+}
 //-----------------------------------------------------------------------------------
 
 
@@ -157,10 +160,25 @@ int main(int argc, char *argv[]){
 	rv = fork();
 	if(rv){//the parent
 		Thread::init();
+#ifdef UDEBUG
+		std::string dbgout;
+		Dbg::instance().levelMask("view");
+		Dbg::instance().moduleMask("ser_bin any");
+		Dbg::instance().initFile(argv[0], false, 3, 1024 * 1024 * 64, &dbgout);
+		cout<<"debug log to: "<<dbgout<<endl;
+#endif
 		childRun(sps[1]);
 		//close(sps[1]);
 	}else{//the child
 		Thread::init();
+#ifdef UDEBUG
+		std::string dbgout;
+		Dbg::instance().levelMask("view");
+		Dbg::instance().moduleMask("ser_bin any");
+		Dbg::instance().initFile(argv[0], false, 3, 1024 * 1024 * 64, &dbgout);
+		cout<<"debug log to: "<<dbgout<<endl;
+#endif
+
 		parentRun(sps[0], argv[1]);
 		//close(sps[0]);
 	}

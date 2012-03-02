@@ -55,7 +55,7 @@ S& operator&(std::string &_t, S &_s){
 
 enum {
 	MAXITSZ = sizeof(int64) + sizeof(int64) + sizeof(int64) + sizeof(int64),//!< Max sizeof(iterator) for serialized containers
-	MINSTREAMBUFLEN = 128//if the free space for current buffer is less than this value
+	MINSTREAMBUFLEN = 16//if the free space for current buffer is less than this value
 						//storring a stream will end up returning NOK
 };
 
@@ -150,14 +150,17 @@ protected:
 		ERR_CONTAINER_LIMIT,
 		ERR_CONTAINER_MAX_LIMIT,
 		ERR_STREAM_LIMIT,
-		ERR_STREAM_MAX_LIMIT,
 		ERR_STREAM_CHUNK_MAX_LIMIT,
+		ERR_STREAM_SEEK,
+		ERR_STREAM_READ,
+		ERR_STREAM_WRITE,
+		ERR_STREAM_SENDER,
 		ERR_STRING_LIMIT,
 		ERR_STRING_MAX_LIMIT,
 		ERR_UTF8_LIMIT,
 		ERR_UTF8_MAX_LIMIT,
 		ERR_POINTER_UNKNOWN,
-		ERR_STREAM_SEEK
+		ERR_REINIT,
 	};
 	struct FncData;
 	typedef int (*FncT)(Base &, FncData &);
@@ -204,26 +207,6 @@ protected:
 			i64_1() = _i64_1;
 			pv_2() = _pv;
 		}
-	};
-	struct InputStreamData{
-		InputStreamData(
-			InputStream *_pis = NULL,
-			int64 _sz = -1,
-			uint64 _off = 0
-		):pis(_pis), sz(_sz), off(_off){}
-		InputStream *pis;
-		int64	sz;
-		uint64	off;
-	};
-	struct OutputStreamData{
-		OutputStreamData(
-			OutputStream *_pos = NULL,
-			int64 _sz = -1,
-			uint64 _off = 0
-		):pos(_pos), sz(_sz), off(_off){}
-		OutputStream *pos;
-		int64	sz;
-		uint64	off;
 	};
 protected:
 	static int setStringLimit(Base& _rd, FncData &_rfd);
@@ -370,17 +353,21 @@ class Serializer: public Base{
 	}
 	
 	static int storeStreamBegin(Base &_rs, FncData &_rfd);
+	static int storeStreamCheck(Base &_rs, FncData &_rfd);
 	
 	//! Internal callback for storing a stream
 	static int storeStream(Base &_rs, FncData &_rfd);
-	static int storeStreamEx(Base &_rs, FncData &_rfd);
 	
 	template <class T, uint32 I>
 	static int storeReinit(Base &_rs, FncData &_rfd){
 		Serializer		&rs(static_cast<Serializer&>(_rs));
 		const uint32	val = _rfd.s;
 		
-		return reinterpret_cast<T*>(_rfd.p)->template serializationReinit<Serializer, I>(rs, val);
+		int rv = reinterpret_cast<T*>(_rfd.p)->template serializationReinit<Serializer, I>(rs, val);
+		if(rv == BAD){
+			rs.err = ERR_REINIT;
+		}
+		return rv;
 	}
 public:
 	enum {IsSerializer = true, IsDeserializer = false};
@@ -465,18 +452,6 @@ public:
 		fstk.push(FncData(&Serializer::template storeContainer<T>, (void*)_t, _name));
 		return *this;
 	}
-	//! Schedules the serialization of an object containing streams.
-	/*!
-		Unfortunately this must be intrussive, that is the given streammer object must
-		export a required interface.
-		Please see the test/algorithm/serialization/fork.cpp example or 
-		test::alpha::FetchSlaveCommand.
-	*/
-	template <typename T>
-	Serializer& pushStreammer(T *_p, const char *_name = NULL){
-		fstk.push(FncData(&Serializer::template storeStreamBegin<T>, _p, _name, 0));
-		return *this;
-	}
 	Serializer& pushBinary(void *_p, size_t _sz, const char *_name = NULL);
 	template <typename T, typename ST>
 	Serializer& pushArray(T *_p, const ST &_rsz, const char *_name = NULL){
@@ -499,14 +474,23 @@ public:
 	Serializer& pushReinit(
 		T *_pt, const uint64 &_rval = 0, const char *_name = NULL
 	){
-		fstk.push(FncData(&Serializer::template storeReinit<T, I>, _pt, _name));
+		fstk.push(FncData(&Serializer::template storeReinit<T, I>, _pt, _name, _rval));
 		return *this;
 	}
 	Serializer& pushStream(
-		InputStream &_rs, const char *_name = NULL
+		InputStream *_ps, const char *_name = NULL
 	);
 	Serializer& pushStream(
-		InputStream &_rs,
+		InputStream *_ps,
+		const uint64 &_rfrom,
+		const uint64 &_rlen,
+		const char *_name = NULL
+	);
+	Serializer& pushStream(
+		OutputStream *_ps, const char *_name = NULL
+	);
+	Serializer& pushStream(
+		OutputStream *_ps,
 		const uint64 &_rfrom,
 		const uint64 &_rlen,
 		const char *_name = NULL
@@ -705,50 +689,9 @@ class Deserializer: public Base{
 		return OK;
 	}
 	
-	template <typename T>
-	static int parseStreamBegin(Base &_rb,FncData &_rfd){
-		idbgx(Dbg::ser_bin, "parse stream begin");
-		Deserializer &rd(static_cast<Deserializer&>(_rb));
-		if(!rd.cpb) return OK;
-		
-		int cpidx = _rfd.s;
-		++_rfd.s;
-		OutputStreamData sp;
-		T	*pt = reinterpret_cast<T*>(_rfd.p);
-		//TODO: createDeserializationStream should be given the size of the stream
-		switch(pt->createDeserializationStream(sp.pos, sp.sz, sp.off, cpidx)){
-			case BAD:	
-			case OK: 	break;
-			case NOK:	return OK;
-		}
-		
-		rd.estk.push(ExtData());
-		OutputStreamData &rsp(*reinterpret_cast<OutputStreamData*>(rd.estk.top().buf));
-		rsp = sp;
-		//_rfd.s is the id of the stream
-		rd.fstk.push(FncData(&Deserializer::template parseStreamDone<T>, _rfd.p, _rfd.n, _rfd.s - 1));
-		if(sp.pos){
-			rd.fstk.push(FncData(&Deserializer::parseStream, NULL));
-		}else{
-			rd.fstk.push(FncData(&Deserializer::parseDummyStream, NULL));
-		}
-		rd.fstk.push(FncData(&Deserializer::parseStreamCheck, NULL, _rfd.n));
-		//TODO: move this line - so it is called before parseStreamBegin
-		rd.fstk.push(FncData(&Deserializer::parse<uint64>, &rsp.sz, _rfd.n));
-		return CONTINUE;
-	}
-	template <typename T>
-	static int parseStreamDone(Base &_rb, FncData &_rfd){
-		idbgx(Dbg::ser_bin, "parse stream done");
-		Deserializer &rd(static_cast<Deserializer&>(_rb));
-		OutputStreamData &rsp(*reinterpret_cast<OutputStreamData*>(rd.estk.top().buf));
-		T	*pt = reinterpret_cast<T*>(_rfd.p);
-		pt->destroyDeserializationStream(rsp.pos, rsp.sz, rsp.off, _rfd.s);
-		rd.estk.pop();
-		return OK;
-	}
 	//! Internal callback for parsing a stream
 	static int parseStream(Base &_rb, FncData &_rfd);
+	static int parseStreamBegin(Base &_rb, FncData &_rfd);
 	static int parseStreamCheck(Base &_rb, FncData &_rfd);
 	//! Internal callback for parsign a dummy stream
 	/*!
@@ -763,7 +706,11 @@ class Deserializer: public Base{
 		Deserializer	&rd(static_cast<Deserializer&>(_rb));
 		const uint32	val = _rfd.s;
 		
-		return reinterpret_cast<T*>(_rfd.p)->template serializationReinit<Deserializer, I>(rd, val);
+		int rv = reinterpret_cast<T*>(_rfd.p)->template serializationReinit<Deserializer, I>(rd, val);
+		if(rv == BAD){
+			rd.err = ERR_REINIT;
+		}
+		return rv;
 	}
 public:
 	enum {IsSerializer = false, IsDeserializer = true};
@@ -824,18 +771,6 @@ public:
 		fstk.push(FncData(&Deserializer::template parseContainer<T>, (void*)&_t, _name, 0));
 		return *this;
 	}
-	//! Schedules the deserialization of an object containing streams.
-	/*!
-		Unfortunately this must be intrussive, that is the given streammer object must
-		export a required interface.
-		Please see the test/algorithm/serialization/fork.cpp example and/or 
-		test::alpha::FetchSlaveCommand.
-	*/
-	template <typename T>
-	Deserializer& pushStreammer(T *_p, const char *_name = NULL){
-		fstk.push(FncData(&Deserializer::template parseStreamBegin<T>, _p, _name, 0));
-		return *this;
-	}
 	Deserializer& pushBinary(void *_p, size_t _sz, const char *_name = NULL);
 	
 	template <typename T, typename ST>
@@ -860,14 +795,23 @@ public:
 	Deserializer& pushReinit(
 		T *_pt, const uint64 &_rval = 0, const char *_name = NULL
 	){
-		fstk.push(FncData(&Deserializer::template parseReinit<T, I>, _pt, _name));
+		fstk.push(FncData(&Deserializer::template parseReinit<T, I>, _pt, _name, _rval));
 		return *this;
 	}
 	Deserializer& pushStream(
-		OutputStream &_rs, const char *_name = NULL
+		OutputStream *_ps, const char *_name = NULL
 	);
 	Deserializer& pushStream(
-		OutputStream &_rs,
+		OutputStream *_ps,
+		const uint64 &_rat,
+		const uint64 &,
+		const char *_name = NULL
+	);
+	Deserializer& pushStream(
+		InputStream *_ps, const char *_name = NULL
+	);
+	Deserializer& pushStream(
+		InputStream *_ps,
 		const uint64 &_rat,
 		const uint64 &,
 		const char *_name = NULL

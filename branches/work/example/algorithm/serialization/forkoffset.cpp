@@ -27,7 +27,6 @@
 #include <list>
 #include "system/filedevice.hpp"
 #include "utility/iostream.hpp"
-#undef UDEBUG
 #include "system/thread.hpp"
 #include "algorithm/serialization/binary.hpp"
 #include "algorithm/serialization/idtypemapper.hpp"
@@ -67,8 +66,8 @@ int FileInputOutputStream::read(char *_pb, uint32 _bl, uint32 _flags){
 int FileInputOutputStream::write(const char *_pb, uint32 _bl, uint32 _flags){
 	return fd.write(_pb, _bl);
 }
-int64 FileInputOutputStream::seek(int64, SeekRef){
-	return -1;
+int64 FileInputOutputStream::seek(int64 _v, SeekRef){
+	return fd.seek(_v);
 }
 int64 FileInputOutputStream::size()const{
 	return fd.size();
@@ -84,11 +83,12 @@ struct Test{
 	S& operator&(S &_s){
 		
 		
-		return _s.template pushReinit<Test, 0>(this, 0, "Test::reinit").push(no, "Test::no").push(fn,"Test::fn");
+		return _s.push(no, "Test::no").template pushReinit<Test, 0>(this, 0, "Test::reinit").push(fn,"Test::fn");
 	}
 	
 	template <class S, uint32 I>
 	int serializationReinit(S &_rs, const uint64 &_rv){
+		idbg("_rv = "<<_rv);
 		if(_rv == 0){
 			if(S::IsSerializer){
 				fs.openRead(fn.c_str());
@@ -101,22 +101,25 @@ struct Test{
 				_rs.template pushReinit<Test, 0>(this, 1, "Test::reinit");
 				_rs.push(offset, "offset");
 			}
-		}else{
+		}else if(_rv == 1){
 			if(S::IsSerializer){
 				_rs.pop();
-				//_rs.pushStream(fs, offset, _rs.size()/2, "Test::istream");
+				_rs.template pushReinit<Test, 0>(this, 2, "Test::reinit");
+				idbg("put stream from "<<offset<<" len = "<<fs.size()/2);
+				_rs.pushStream(&fs, offset, fs.size()/2, "Test::istream");
 			}else{
+				fn += ".xxx";
 				fs.openWrite(fn.c_str());
 				_rs.pop();
-				//_rs.pushStream(fs, offset, 0/*not used*/, "Test::ostream");
-			}
+				_rs.template pushReinit<Test, 0>(this, 2, "Test::reinit");
+				_rs.pushStream(&fs, 0, 1000, "Test::ostream");
+			}	
+		}else{
+			idbg("Done Stream: size = "<<_rs.streamSize()<<" error = "<<_rs.streamErrorString());
+			return OK;
 		}
+		
 		return CONTINUE;
-	}
-	
-	template <class S, class T>
-	void serializationStreamComplete(S &_rs, const T *_ps, const uint64 &_rsz, int _err){
-		cout<<"stream complete size = "<<_rsz<<" error = "<<S::errorString(_err)<<endl;
 	}
 	
 	void print();
@@ -128,13 +131,16 @@ private:
 };
 ///\endcond
 
-Test::Test(const char *_fn):fn(_fn?_fn:""){}
+Test::Test(const char *_fn):fn(_fn?_fn:""){
+	if(_fn) no = 1111;
+}
 //-----------------------------------------------------------------------------------
 
 void Test::print(){
 	cout<<endl<<"Test:"<<endl;
 	cout<<"no = "<<no<<endl;
 	cout<<"fn = "<<fn<<endl<<endl;
+	cout<<"offset = "<<offset<<endl;
 }
 
 ///\cond 0
@@ -170,10 +176,25 @@ int main(int argc, char *argv[]){
 	rv = fork();
 	if(rv){//the parent
 		Thread::init();
+#ifdef UDEBUG
+		std::string dbgout;
+		Dbg::instance().levelMask("view");
+		Dbg::instance().moduleMask("ser_bin any");
+		Dbg::instance().initFile(argv[0], false, 3, 1024 * 1024 * 64, &dbgout);
+		cout<<"debug log to: "<<dbgout<<endl;
+#endif
 		childRun(sps[1]);
 		//close(sps[1]);
 	}else{//the child
 		Thread::init();
+#ifdef UDEBUG
+		std::string dbgout;
+		Dbg::instance().levelMask("view");
+		Dbg::instance().moduleMask("ser_bin any");
+		Dbg::instance().initFile(argv[0], false, 3, 1024 * 1024 * 64, &dbgout);
+		cout<<"debug log to: "<<dbgout<<endl;
+#endif
+
 		parentRun(sps[0], argv[1]);
 		//close(sps[0]);
 	}

@@ -1,6 +1,6 @@
-/* Implementation file fork.cpp
+/* Implementation file forkreinit.cpp
 	
-	Copyright 2007, 2008 Valentin Palade 
+	Copyright 2012 Valentin Palade 
 	vipalade@gmail.com
 
 	This file is part of SolidFrame framework.
@@ -27,7 +27,7 @@
 #include <list>
 #include "system/filedevice.hpp"
 #include "utility/iostream.hpp"
-#undef UDEBUG
+#include "system/debug.hpp"
 #include "system/thread.hpp"
 #include "algorithm/serialization/binary.hpp"
 #include "algorithm/serialization/idtypemapper.hpp"
@@ -82,12 +82,8 @@ struct Test{
 	Test(const char *_fn = NULL);
 	template <class S>
 	S& operator&(S &_s){
-		return _s.template pushStreammer<Test>(this, "Test::fs").push(no, "Test::no").push(fn,"Test::fn");
+		return _s.push(no, "Test::no").pushStream(&fs, "Test::istream").push(fn,"Test::fn");
 	}
-	int createDeserializationStream(OutputStream *&_rps, int64 &_rsz, uint64 &_roff, int _id);
-	void destroyDeserializationStream(OutputStream *_ps, int64 &_rsz, uint64 &_roff, int _id);
-	int createSerializationStream(InputStream *&_rps, int64 &_rsz, uint64 &_roff, int _id);
-	void destroySerializationStream(InputStream *_ps, int64 &_rsz, uint64 &_roff, int _id);
 	void print();
 private:
 	int32 					no;
@@ -96,51 +92,13 @@ private:
 };
 ///\endcond
 
-Test::Test(const char *_fn):fn(_fn?_fn:""){}
-//-----------------------------------------------------------------------------------
-void Test::destroyDeserializationStream(
-	OutputStream *_ps, int64 &_rsz, uint64 &_roff, int _id
-){
-	cout<<"Destroy deserialization <"<<_id<<"> sz "<<_rsz<<endl;
-}
-int Test::createDeserializationStream(
-	OutputStream *&_rps, int64 &_rsz, uint64 &_roff, int _id
-){
-	if(_id) return NOK;
-	cout<<"Create deserialization <"<<_id<<"> sz "<<_rsz<<endl;
-	if(fn.empty() /*|| _rps.second < 0*/) return BAD;
-	fn += ".xxx";
-	cout<<"File name <"<<fn<<endl;
-	if(fs.openWrite(fn.c_str())){	
-		fn.clear();
-		cout<<"failed open des file"<<endl;
+Test::Test(const char *_fn):fn(_fn?_fn:""){
+	if(_fn){
+		no = 11111;
+		fs.openRead(_fn);
 	}else{
-		_rps = static_cast<OutputStream*>(&fs);
-		cout<<"success oppening des file"<<endl;
+		fs.openWrite("output.out");
 	}
-	return OK;
-}
-void Test::destroySerializationStream(
-	InputStream *_ps, int64 &_rsz, uint64 &_roff, int _id
-){
-	cout<<"doing nothing as the stream will be destroyed when the command will be destroyed"<<endl;
-	//fs.close();
-}
-
-int Test::createSerializationStream(
-	InputStream *&_rps, int64 &_rsz, uint64 &_roff, int _id
-){
-	if(_id) return NOK;
-	cout<<"Create serialization <"<<_id<<"> sz "<<_rsz<<endl;;
-	//The stream is already opened
-	cout<<"File name "<<fn<<endl;
-	if(fn.empty() || fs.openRead(fn.c_str())){
-		return BAD;
-	}
-	_rps = static_cast<InputStream*>(&fs);
-	_rsz = fs.size();
-	cout<<"serializing stream"<<endl;
-	return OK;
 }
 //-----------------------------------------------------------------------------------
 
@@ -184,10 +142,25 @@ int main(int argc, char *argv[]){
 	rv = fork();
 	if(rv){//the parent
 		Thread::init();
+#ifdef UDEBUG
+		std::string dbgout;
+		Dbg::instance().levelMask("view");
+		Dbg::instance().moduleMask("ser_bin any");
+		Dbg::instance().initFile(argv[0], false, 3, 1024 * 1024 * 64, &dbgout);
+		cout<<"debug log to: "<<dbgout<<endl;
+#endif
 		childRun(sps[1]);
 		//close(sps[1]);
 	}else{//the child
 		Thread::init();
+#ifdef UDEBUG
+		std::string dbgout;
+		Dbg::instance().levelMask("view");
+		Dbg::instance().moduleMask("ser_bin any");
+		Dbg::instance().initFile(argv[0], false, 3, 1024 * 1024 * 64, &dbgout);
+		cout<<"debug log to: "<<dbgout<<endl;
+#endif
+
 		parentRun(sps[0], argv[1]);
 		//close(sps[0]);
 	}
