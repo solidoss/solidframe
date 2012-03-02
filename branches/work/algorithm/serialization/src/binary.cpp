@@ -1146,6 +1146,7 @@ int Deserializer::parseStreamBegin(Base &_rb, FncData &_rfd){
 	if(_rfd.p == NULL){
 		rd.pop();
 		rd.fstk.top().f = &Deserializer::parseDummyStream;
+		rd.fstk.top().s = 0;
 		return CONTINUE;
 	}
 	
@@ -1157,6 +1158,7 @@ int Deserializer::parseStreamBegin(Base &_rb, FncData &_rfd){
 			rd.streamerr = ERR_STREAM_SEEK;
 			rd.pop();
 			rd.fstk.top().f = &Deserializer::parseDummyStream;
+			rd.fstk.top().s = 0;
 			return CONTINUE;
 		}
 	}
@@ -1222,12 +1224,14 @@ int Deserializer::parseStream(Base &_rb, FncData &_rfd){
 		idbgx(Dbg::ser_bin, "_rfd.s = "<<_rfd.s);
 		if(_rfd.s == 0){
 			_rfd.f = &parseDummyStream;
+			_rfd.s = rd.streamsz + sz;
 		}
 	}
 	
 	if(rv != towrite){
 		rd.streamerr = ERR_STREAM_WRITE;
 		_rfd.f = &parseDummyStream;
+		_rfd.s = rd.streamsz + sz;
 	}else{
 		rd.streamsz += rv;
 	}
@@ -1268,6 +1272,12 @@ int Deserializer::parseDummyStream(Base &_rb, FncData &_rfd){
 		}
 	}
 	rd.cpb += sz;
+	_rfd.s += sz;
+	if(rd.limits.streamlimit && _rfd.s > rd.limits.streamlimit){
+		idbgx(Dbg::ser_bin, "ERR_STREAM_LIMIT");
+		rd.streamerr = rd.err = ERR_STREAM_LIMIT;
+		return BAD;
+	}
 	return CONTINUE;
 }
 int Deserializer::parseUtf8(Base &_rb, FncData &_rfd){
