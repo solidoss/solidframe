@@ -10,7 +10,11 @@ enum { max_length = 1024 };
 struct NatP2PClient{
 	enum States{
 		Init,
+		InitWait,
 		Connect,
+		ConnectWait,
+		ConnectAcceptWait,
+		RunStart,
 		Run
 	};
 	NatP2PClient(
@@ -21,21 +25,31 @@ struct NatP2PClient{
 	):	io_service(_io_service),
 		sock(_io_service, udp::endpoint(udp::v4(), _port)),
 		server_endpoint(_server_endpoint),
-		connect_endpoint(_connect_endpoint){}
+		connect_endpoint(_connect_endpoint),state(Init){}
 	
 	
 	void run();
+	void runSend();
 private:
 	void parseRequest(const char *_data, unsigned _len);
 	void initCommand(istringstream &_iss);
 	void connectCommand(istringstream &_iss);
+	void acceptCommand(istringstream &_iss);
 	void send(udp::endpoint &_endpoint, ostringstream &_ros);
+	void sendInit();
+	void sendConnect();
+	void sendAccept();
+	void startSendThread();
+ 
 private:
 	boost::asio::io_service	&io_service;
 	udp::socket				sock;
 	udp::endpoint			sender_endpoint;
 	udp::endpoint			server_endpoint;
 	udp::endpoint			connect_endpoint;
+	udp::endpoint			exit_endpoint;
+	boost::thread			thread;
+	int						state;
 };
 
 
@@ -81,13 +95,101 @@ void NatP2PClient::run(){
 	char data[max_length];
 	for (;;)
 	{
-		size_t length = sock.receive_from(
-			boost::asio::buffer(data, max_length),
-			sender_endpoint
-		);
-		//sock.send_to(boost::asio::buffer(data, length), sender_endpoint);
-		parseRequest(data, length);
+		switch(state){
+			case Init:
+				sendInit();
+				break;
+			case InitWait:{
+				size_t length = sock.receive_from(
+					boost::asio::buffer(data, max_length),
+					sender_endpoint
+				);
+				parseRequest(data, length);
+			}break;
+			case Connect:
+				sendConnect();
+				break;
+			case ConnectWait:{
+				size_t length = sock.receive_from(
+					boost::asio::buffer(data, max_length),
+					sender_endpoint
+				);
+				parseRequest(data, length);
+			}break;
+			case ConnectAcceptWait:{
+				size_t length = sock.receive_from(
+					boost::asio::buffer(data, max_length),
+					sender_endpoint
+				);
+				parseRequest(data, length);
+			}break;
+			case RunStart:
+				startSendThread();
+				state = Run;
+			case Run:{
+				size_t length = sock.receive_from(
+					boost::asio::buffer(data, max_length),
+					sender_endpoint
+				);
+				cout<<"Received "<<length<<" bytes from ["<<sender_endpoint<<"] ";
+				cout.write(data, length);
+				break;
+			}
+		}
 	}
+}
+
+void NatP2PClient::runSend(){
+	string s;
+	while(true){
+		cin>>s;
+		sock.send_to(boost::asio::buffer(s.data(), s.size()), connect_endpoint);
+	}
+}
+void NatP2PClient::sendInit(){
+	ostringstream oss;
+	oss<<'i'<<endl;
+	send(server_endpoint, oss);
+	state = InitWait;
+}
+void NatP2PClient::sendConnect(){
+	static const boost::asio::ip::address	noaddr;
+	if(connect_endpoint.address() == noaddr){
+		state = ConnectWait;
+		return;
+	}
+	{	
+		ostringstream oss;
+		oss<<'c'<<' '<<connect_endpoint.address()<<' '<<connect_endpoint.port()<<endl;
+		send(server_endpoint, oss);
+	}
+	{
+		ostringstream oss;
+		oss<<'c'<<' '<<exit_endpoint.address()<<' '<<exit_endpoint.port()<<endl;
+		send(connect_endpoint, oss);
+	}
+	state = ConnectAcceptWait;
+}
+void NatP2PClient::sendAccept(){
+	ostringstream oss;
+	oss<<'a'<<endl;
+	send(connect_endpoint, oss);
+	state = RunStart;
+}
+
+struct Runner{
+	NatP2PClient	&client;
+	Runner(NatP2PClient &_client):client(_client){
+	}
+	void operator()(){
+		client.runSend();
+	}
+};
+
+void NatP2PClient::startSendThread(){
+	Runner			r(*this);
+	//boost::thread	thrd(sr);
+	this->thread = boost::thread(r);
 }
 void NatP2PClient::parseRequest(const char *_data, unsigned _len){
 	string 			str(_data, _len);
@@ -103,16 +205,23 @@ void NatP2PClient::parseRequest(const char *_data, unsigned _len){
 		case 'C':
 			connectCommand(iss);
 			break;
+		case 'a':
+		case 'A':
+			acceptCommand(iss);
+			break;
 		default:
 			cout<<"skip command: "<<cmd<<" from "<<sender_endpoint<<endl;
 			break;
 	}
 }
 void NatP2PClient::initCommand(istringstream &_iss){
-	cout<<"initCommand"<<endl;
-	ostringstream oss;
-	oss<<'i'<<' '<<sender_endpoint.address()<<' '<<sender_endpoint.port()<<endl;
-	send(sender_endpoint, oss);
+	string	addr;
+	int 	port;
+	_iss>>addr>>port;
+	cout<<"initCommand("<<addr<<','<<port<<')'<<endl;
+	state = Connect;
+	exit_endpoint.address(boost::asio::ip::address::from_string(addr.c_str()));
+	exit_endpoint.port(port);
 }
 void NatP2PClient::connectCommand(istringstream &_iss){
 	string	addr;
@@ -124,14 +233,15 @@ void NatP2PClient::connectCommand(istringstream &_iss){
 	udp::endpoint endpoint;
 	endpoint.address(boost::asio::ip::address::from_string(addr.c_str()));
 	endpoint.port(port);
+	connect_endpoint = endpoint;
 	
-	ostringstream oss;
-	
-	oss<<'C'<<' '<<sender_endpoint.address()<<' '<<sender_endpoint.port()<<endl;
-	
-	send(endpoint, oss);
+	sendAccept();
 }
-
+void NatP2PClient::acceptCommand(istringstream &_iss){
+	//connect_endpoint = sender_endpoint;
+	cout<<"acceptCommand connect_endpoint = "<<connect_endpoint<<" sender_endpoint = "<<sender_endpoint<<endl;
+	state = RunStart;
+}
 void NatP2PClient::send(udp::endpoint &_endpoint, ostringstream &_ros){
 	string str = _ros.str();
 	sock.send_to(boost::asio::buffer(str.c_str(), str.size()), sender_endpoint);
