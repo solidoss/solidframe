@@ -62,11 +62,15 @@ void NatP2PServer::run(){
 		parseRequest(data, length);
 	}
 }
+
 void NatP2PServer::parseRequest(const char *_data, unsigned _len){
 	string 			str(_data, _len);
 	istringstream	iss;
+	cout<<"parseRequest[";
+	cout.write(_data, _len)<<']'<<endl;
 	iss.str(str);
 	char			cmd;
+	iss>>cmd;
 	switch(cmd){
 		case 'i':
 		case 'I':

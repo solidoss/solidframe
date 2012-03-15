@@ -139,8 +139,8 @@ void NatP2PClient::run(){
 					boost::asio::buffer(data, max_length),
 					sender_endpoint
 				);
-				cout<<"Received "<<length<<" bytes from ["<<sender_endpoint<<"] ";
-				cout.write(data, length);
+				cout<<"Received "<<length<<" bytes from ["<<sender_endpoint<<"] [";
+				cout.write(data, length)<<']'<<endl;
 				break;
 			}
 		}
@@ -205,6 +205,7 @@ void NatP2PClient::parseRequest(const char *_data, unsigned _len){
 	istringstream	iss;
 	iss.str(str);
 	char			cmd;
+	iss>>cmd;
 	switch(cmd){
 		case 'i':
 		case 'I':
