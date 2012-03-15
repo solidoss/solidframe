@@ -38,8 +38,8 @@ int main(int argc, char* argv[])
 		}
 
 		boost::asio::io_service	io_service;
-		NatP2PServer			server(io_service, atoi(argv[1]));
-		server.run();
+		NatP2PServer			srvr(io_service, atoi(argv[1]));
+		srvr.run();
 	}
 	catch (std::exception& e)
 	{
@@ -108,5 +108,5 @@ void NatP2PServer::connectCommand(istringstream &_iss){
 
 void NatP2PServer::send(udp::endpoint &_endpoint, ostringstream &_ros){
 	string str = _ros.str();
-	sock.send_to(boost::asio::buffer(str.c_str(), str.size()), sender_endpoint);
+	sock.send_to(boost::asio::buffer(str.c_str(), str.size()), _endpoint);
 }
