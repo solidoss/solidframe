@@ -254,6 +254,7 @@ void NatP2PClient::acceptCommand(istringstream &_iss){
 }
 void NatP2PClient::send(udp::endpoint &_endpoint, ostringstream &_ros){
 	string str = _ros.str();
+	cout<<"send data ["<<str<<']'<<endl;
 	sock.send_to(boost::asio::buffer(str.c_str(), str.size()), _endpoint);
 }
 
