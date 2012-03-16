@@ -68,7 +68,7 @@ public:
 protected:
 	friend class Listener;
 	bool insertListener(
-		const SocketAddressInfoIterator &_rai,
+		SocketAddressInfo &_rai,
 		bool _secure = false
 	);
 	virtual bool insertConnection(
@@ -78,14 +78,14 @@ protected:
 	);
 	
 	virtual bool insertTalker(
-		const SocketAddressInfoIterator &_rai,
-		const char *_node,
-		const char *_svc
+		SocketAddressInfo &_rai,
+		foundation::aio::openssl::Context *_pctx = NULL,
+		bool _secure = false
 	);
 	virtual bool insertConnection(
-		const SocketAddressInfoIterator &_rai,
-		const char *_node,
-		const char *_svc
+		SocketAddressInfo &_rai,
+		foundation::aio::openssl::Context *_pctx = NULL,
+		bool _secure = false
 	);
 };
 

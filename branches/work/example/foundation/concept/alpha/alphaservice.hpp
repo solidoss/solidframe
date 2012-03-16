@@ -44,6 +44,11 @@ public:
 		foundation::aio::openssl::Context *_pctx,
 		bool _secure
 	);
+	bool insertConnection(
+		SocketAddressInfo &_rai,
+		foundation::aio::openssl::Context *_pctx,
+		bool _secure
+	);
 	
 	void insertObject(Connection &_ro, const ObjectUidT &_ruid);
 	void eraseObject(const Connection &_ro);

@@ -85,6 +85,20 @@ bool Service::insertConnection(
 	return true;
 }
 
+bool Service::insertConnection(
+	SocketAddressInfo &_rai,
+	foundation::aio::openssl::Context *_pctx,
+	bool _secure
+){
+	fdt::ObjectPointer<Connection> conptr(new Connection(_rai));
+	if(_pctx){
+		conptr->socketSecureSocket(_pctx->createSocket());
+	}
+	//register it into the service
+	this->insert<AioSchedulerT>(conptr, 0);
+	return true;
+}
+
 void Service::insertObject(Connection &_ro, const ObjectUidT &_ruid){
 	idbg("alpha "<<fdt::Manager::the().computeServiceId(_ruid.first)<<' '<<fdt::Manager::the().computeIndex(_ruid.first)<<' '<<_ruid.second);
 }
