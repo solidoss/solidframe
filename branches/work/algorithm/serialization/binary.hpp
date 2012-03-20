@@ -371,6 +371,11 @@ class Serializer: public Base{
 	}
 public:
 	enum {IsSerializer = true, IsDeserializer = false};
+	
+	static char* storeValue(char *_pd, const uint16 _val);
+	static char* storeValue(char *_pd, const uint32 _val);
+	static char* storeValue(char *_pd, const uint64 _val);
+	
 	Serializer(
 		const TypeMapperBase &_rtm
 	):pb(NULL), cpb(NULL), be(NULL){
@@ -714,6 +719,9 @@ class Deserializer: public Base{
 	}
 public:
 	enum {IsSerializer = false, IsDeserializer = true};
+	static const char* parseValue(const char *_ps, uint16 &_val);
+	static const char* parseValue(const char *_ps, uint32 &_val);
+	static const char* parseValue(const char *_ps, uint64 &_val);
 	Deserializer(
 		const TypeMapperBase &_rtm
 	):pb(NULL), cpb(NULL), be(NULL){

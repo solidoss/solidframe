@@ -34,13 +34,52 @@ inline char *storeValue(char *_pd, const uint16 _val){
 	*(pd + 1)	= (_val & 0xff);
 	return _pd + 2;
 }
+
+inline char *storeValue(char *_pd, const uint32 _val){
+	
+	_pd = storeValue(_pd, static_cast<uint16>(_val >> 16));
+	
+	return storeValue(_pd, static_cast<uint16>(_val & 0xffff));;
+}
+
+inline char *storeValue(char *_pd, const uint64 _val){
+	
+	_pd = storeValue(_pd, static_cast<uint32>(_val >> 32));
+	
+	return storeValue(_pd, static_cast<uint32>(_val & 0xffffffffULL));;
+}
+
 inline const char* parseValue(const char *_ps, uint16 &_val){
 	const uint8 *ps = reinterpret_cast<const uint8*>(_ps);
 	_val = (uint8)(*ps);
 	_val <<= 8;
-	_val += (uint8)(*(ps + 1));
+	_val |= (uint8)(*(ps + 1));
 	return _ps + 2;
 }
+
+inline const char* parseValue(const char *_ps, uint32 &_val){
+	uint16	upper;
+	uint16	lower;
+	_ps = parseValue(_ps, upper);
+	_ps = parseValue(_ps, lower);
+	_val = upper;
+	_val <<= 16;
+	_val |= lower;
+	return _ps;
+}
+
+inline const char* parseValue(const char *_ps, uint64 &_val){
+	uint32	upper;
+	uint32	lower;
+	_ps = parseValue(_ps, upper);
+	_ps = parseValue(_ps, lower);
+	_val = upper;
+	_val <<= 32;
+	_val |= lower;
+	return _ps;
+}
+
+
 #ifdef HAVE_SAFE_STATIC
 /*static*/ Limits const& Limits::the(){
 	static const Limits l;
@@ -123,6 +162,15 @@ int Base::popEStack(Base &_rb, FncData &){
 	return OK;
 }
 //========================================================================
+/*static*/ char* Serializer::storeValue(char *_pd, const uint16 _val){
+	return serialization::binary::storeValue(_pd, _val);
+}
+/*static*/ char* Serializer::storeValue(char *_pd, const uint32 _val){
+	return serialization::binary::storeValue(_pd, _val);
+}
+/*static*/ char* Serializer::storeValue(char *_pd, const uint64 _val){
+	return serialization::binary::storeValue(_pd, _val);
+}
 Serializer::~Serializer(){
 }
 void Serializer::clear(){
@@ -568,6 +616,15 @@ Serializer& Serializer::pushStream(
 	return *this;
 }
 //========================================================================
+/*static*/ const char* Deserializer::parseValue(const char *_ps, uint16 &_val){
+	return serialization::binary::parseValue(_ps, _val);
+}
+/*static*/ const char* Deserializer::parseValue(const char *_ps, uint32 &_val){
+	return serialization::binary::parseValue(_ps, _val);
+}
+/*static*/ const char* Deserializer::parseValue(const char *_ps, uint64 &_val){
+	return serialization::binary::parseValue(_ps, _val);
+}
 Deserializer::~Deserializer(){
 }
 void Deserializer::clear(){
