@@ -20,7 +20,7 @@ public:
 	~Service();
 	void eraseObject(const Connection &);
 private:
-	bool insertConnection(
+	ObjectUidT insertConnection(
 		const SocketDevice &_rsd,
 		foundation::aio::openssl::Context *_pctx,
 		bool _secure

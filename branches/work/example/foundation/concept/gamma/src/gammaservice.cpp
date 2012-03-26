@@ -46,15 +46,14 @@ Service::Service(){
 Service::~Service(){
 }
 
-bool Service::insertConnection(
+ObjectUidT Service::insertConnection(
 	const SocketDevice &_rsd,
 	foundation::aio::openssl::Context *_pctx,
 	bool _secure
 ){
 	//create a new connection with the given channel
 	fdt::ObjectPointer<Connection> conptr(new Connection(_rsd));
-	this->insert<AioSchedulerT>(conptr, 0);
-	return true;
+	return this->insert<AioSchedulerT>(conptr, 0);
 }
 
 void Service::eraseObject(const Connection &_ro){

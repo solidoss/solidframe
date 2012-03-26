@@ -93,11 +93,6 @@ typedef uint32 IndexT;
 
 #define INVALID_INDEX ID_MASK
 
-typedef std::pair<IndexT, uint32>	ObjectUidT;
-typedef std::pair<IndexT, uint32>	SignalUidT;
-typedef std::pair<IndexT, uint32>	FileUidT;
-typedef std::pair<IndexT, uint32>	RequestUidT;
-
 typedef std::pair<IndexT, uint32>	UidT;
 typedef UidT						ObjectUidT;
 typedef UidT						SignalUidT;

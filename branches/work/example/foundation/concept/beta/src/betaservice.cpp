@@ -1,6 +1,6 @@
-/* Implementation file alphaservice.cpp
+/* Implementation file betaservice.cpp
 	
-	Copyright 2007, 2008 Valentin Palade 
+	Copyright 2012 Valentin Palade 
 	vipalade@gmail.com
 
 	This file is part of SolidFrame framework.
@@ -30,13 +30,14 @@
 
 #include "core/listener.hpp"
 
-#include "alpha/alphaservice.hpp"
-#include "alphaconnection.hpp"
+#include "beta/betaservice.hpp"
+#include "betaclientconnection.hpp"
+#include "betaserverconnection.hpp"
 
 namespace fdt=foundation;
 
 namespace concept{
-namespace alpha{
+namespace beta{
 
 #ifdef HAVE_SAFE_STATIC
 
@@ -45,7 +46,8 @@ struct InitServiceOnce{
 };
 
 InitServiceOnce::InitServiceOnce(Manager &_rm){
-	Connection::initStatic(_rm);
+	client::Connection::initStatic(_rm);
+	server::Connection::initStatic(_rm);
 }
 
 Service* Service::create(Manager &_rm){
@@ -54,7 +56,8 @@ Service* Service::create(Manager &_rm){
 }
 #else
 void once_init(){
-	Connection::initStatic(_rm);
+	client::Connection::initStatic(_rm);
+	server::Connection::initStatic(_rm);
 }
 Service* Service::create(Manager &_rm){
 	static boost::once_flag once = BOOST_ONCE_INIT;
@@ -76,7 +79,7 @@ ObjectUidT Service::insertConnection(
 	bool _secure
 ){
 	//create a new connection with the given channel
-	fdt::ObjectPointer<Connection> conptr(new Connection(_rsd));
+	fdt::ObjectPointer<Connection> conptr(new server::Connection(_rsd));
 	if(_pctx){
 		conptr->socketSecureSocket(_pctx->createSocket());
 	}
@@ -89,7 +92,7 @@ ObjectUidT Service::insertConnection(
 	foundation::aio::openssl::Context *_pctx,
 	bool _secure
 ){
-	fdt::ObjectPointer<Connection> conptr(new Connection(_rai));
+	fdt::ObjectPointer<Connection> conptr(new client::Connection(_rai));
 	if(_pctx){
 		conptr->socketSecureSocket(_pctx->createSocket());
 	}
@@ -98,13 +101,13 @@ ObjectUidT Service::insertConnection(
 }
 
 void Service::insertObject(Connection &_ro, const ObjectUidT &_ruid){
-	idbg("alpha "<<fdt::Manager::the().computeServiceId(_ruid.first)<<' '<<fdt::Manager::the().computeIndex(_ruid.first)<<' '<<_ruid.second);
+	idbg("beta "<<fdt::Manager::the().computeServiceId(_ruid.first)<<' '<<fdt::Manager::the().computeIndex(_ruid.first)<<' '<<_ruid.second);
 }
 
 void Service::eraseObject(const Connection &_ro){
 	ObjectUidT objuid(_ro.uid());
-	idbg("alpha "<<fdt::Manager::the().computeServiceId(objuid.first)<<' '<<fdt::Manager::the().computeIndex(objuid.first)<<' '<<objuid.second);
+	idbg("beta "<<fdt::Manager::the().computeServiceId(objuid.first)<<' '<<fdt::Manager::the().computeIndex(objuid.first)<<' '<<objuid.second);
 }
-}//namespace alpha
+}//namespace beta
 }//namespace concept
 
