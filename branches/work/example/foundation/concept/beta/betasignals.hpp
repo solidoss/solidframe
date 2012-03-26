@@ -22,11 +22,33 @@
 #ifndef BETASIGNALS_HPP
 #define BETASIGNALS_HPP
 
+#include <string>
+#include <sstream>
+
+#include "foundation/signal.hpp"
+
 namespace concept{
 namespace beta{
 
 struct SignalWaiter{
+	virtual void signal() = 0;
 	
+	std::ostringstream	oss;
+};
+
+struct LoginSignal: Dynamic<LoginSignal, foundation::Signal>{
+	LoginSignal(SignalWaiter &_rsw):rsw(_rsw){}
+	int release();
+	SignalWaiter	&rsw;
+	std::string		user;
+	std::string		pass;
+};
+
+struct CancelSignal:Dynamic<CancelSignal, foundation::Signal>{
+	CancelSignal(SignalWaiter &_rsw):rsw(_rsw){}
+	int release();
+	SignalWaiter	&rsw;
+	uint32			tag;
 };
 
 }//namespace beta

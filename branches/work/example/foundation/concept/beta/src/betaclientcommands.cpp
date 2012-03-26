@@ -47,6 +47,7 @@ namespace command{
 }
 /*virtual*/ int Noop::executeDone(uint32 _cmdidx){
 	idbg("noop response "<<_cmdidx<<": "<<response.error);
+	
 	return OK;
 }
 //--------------------------------------------------------------------------
@@ -75,6 +76,8 @@ Login::Login(
 }
 /*virtual*/ int Login::executeDone(uint32 _cmdidx){
 	idbg("login response "<<_cmdidx<<": "<<response.error);
+	signal->rsw.oss<<"login response "<<_cmdidx<<": "<<response.error;
+	signal->rsw.signal();
 	return OK;
 }
 //--------------------------------------------------------------------------

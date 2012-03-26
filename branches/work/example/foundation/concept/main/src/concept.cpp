@@ -97,7 +97,7 @@ struct Params{
 	bool		log;
 };
 
-struct SignalResultWaiter{
+struct SignalResultWaiter: concept::beta::SignalWaiter{
 	SignalResultWaiter():s(false){}
 	void prepare(){
 		s = false;
@@ -105,6 +105,11 @@ struct SignalResultWaiter{
 	void signal(const ObjectUidT &_v){
 		Locker<Mutex> lock(m);
 		v = _v;
+		s = true;
+		c.signal();
+	}
+	void signal(){
+		Locker<Mutex> lock(m);
 		s = true;
 		c.signal();
 	}
@@ -164,6 +169,7 @@ int insertConnection(
 	int _len
 );
 
+int sendBetaLogin(SignalResultWaiter &_rw, char *_pc, int _len);
 
 int main(int argc, char* argv[]){
 	signal(SIGPIPE, SIG_IGN);
@@ -304,6 +310,10 @@ int main(int argc, char* argv[]){
 				rc = insertConnection(rw, "beta", betaidx, buf + 17, cin.gcount() - 17);
 				continue;
 			}
+			if(!strncasecmp(buf,"betalogin", 9)){
+				rc = sendBetaLogin(rw, buf + 9, cin.gcount() - 9);
+				continue;
+			}
 			cout<<"Error parsing command line"<<endl;
 		}
 	}
@@ -317,6 +327,8 @@ void printHelp(){
 	cout<<"[quit]:\tStops the server and exits the application"<<endl;
 	cout<<"[help]:\tPrint this text"<<endl;
 	cout<<"[addbetaconnection SP addr SP port]: adds new alpha connection"<<endl;
+	cout<<"[betalogin SP user SP pass]: send a beta::login command"<<endl;
+	cout<<"[betacancel SP tag]: send a beta::cancel command"<<endl;
 }
 
 void insertListener(
@@ -341,6 +353,8 @@ void insertListener(
 		cout<<"["<<_name<<"] Added listener on port "<<_port<<" objid = "<<rv.first<<','<<rv.second<<endl;
 	}
 }
+
+static ObjectUidT crtcon(foundation::invalid_uid());
 
 void insertConnection(
 	SignalResultWaiter &_rw,
@@ -367,6 +381,7 @@ void insertConnection(
 		cout<<"["<<_name<<"] Failed adding connection to "<<_addr<<':'<<_port<<endl;
 	}else{
 		cout<<"["<<_name<<"] Added connection to "<<_addr<<':'<<_port<<" objid = "<<rv.first<<','<<rv.second<<endl;
+		crtcon = rv;
 	}
 }
 
@@ -451,6 +466,37 @@ int insertConnection(
 		++_pc;
 	}
 	insertConnection(_rw, _name,  _idx, node.c_str(), srv.c_str(), false);
+	return 0;
+}
+
+int sendBetaLogin(SignalResultWaiter &_rw, char *_pc, int _len){
+	if(*_pc != ' ') return -1;
+	++_pc;
+	string user;
+	while(*_pc != ' ' && *_pc != 0){
+		user += *_pc;
+		++_pc;
+	}
+	if(*_pc != ' ') return -1;
+	++_pc;
+	string pass;
+	while(*_pc != ' ' && *_pc != 0){
+		pass += *_pc;
+		++_pc;
+	}
+	
+	_rw.prepare();
+	
+	concept::beta::LoginSignal		login(_rw);
+	DynamicPointer<fdt::Signal>		dp(&login);
+	login.user = user;
+	login.pass = pass;
+	
+	concept::m().signal(dp, crtcon);
+	
+	_rw.wait();
+	
+	cout<<_rw.oss.str()<<endl;
 	return 0;
 }
 

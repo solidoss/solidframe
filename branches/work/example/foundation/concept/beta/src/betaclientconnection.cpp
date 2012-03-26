@@ -41,6 +41,8 @@
 
 #include "algorithm/serialization/typemapperbase.hpp"
 
+#include "beta/betasignals.hpp"
+
 #include "betaclientconnection.hpp"
 #include "betaclientcommands.hpp"
 
@@ -60,6 +62,8 @@ static const DynamicRegisterer<Connection>	dre;
 
 /*static*/ void Connection::dynamicRegister(){
 	//DynamicExecuterT::registerDynamic<SendStreamSignal, Connection>();
+	DynamicExecuterT::registerDynamic<LoginSignal, Connection>();
+	DynamicExecuterT::registerDynamic<CancelSignal, Connection>();
 }
 
 Connection::Connection(
@@ -382,6 +386,15 @@ int Connection::accept(fdt::Visitor &_rov){
 }
 void Connection::pushCommand(Command *_pcmd){
 	cmdque.push(_pcmd);
+}
+
+void Connection::dynamicExecute(DynamicPointer<LoginSignal> &_rsig){
+	command::Login *pcmd = new command::Login(_rsig->user, _rsig->pass);
+	pcmd->signal = _rsig;
+	cmdque.push(pcmd);
+}
+void Connection::dynamicExecute(DynamicPointer<CancelSignal> &_rsig){
+	
 }
 
 }//namespace client

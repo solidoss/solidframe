@@ -39,6 +39,9 @@ class Manager;
 
 namespace beta{
 
+struct LoginSignal;
+struct CancelSignal;
+
 namespace client{
 
 class Command;
@@ -74,6 +77,9 @@ public:
 	int serializationReinit(S &_rs, const uint64 &_rv);
 	void pushCommand(Command *_pcmd);
 	uint32 commandUid(const uint32 _cmdidx)const;
+	
+	void dynamicExecute(DynamicPointer<LoginSignal> &_rsig);
+	void dynamicExecute(DynamicPointer<CancelSignal> &_rsig);
 private:
 	bool useEncryption()const;
 	bool useCompression()const;

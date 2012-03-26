@@ -22,7 +22,8 @@
 #ifndef BETACLIENTCOMMANDS_HPP
 #define BETACLIENTCOMMANDS_HPP
 
-
+#include "beta/betaservice.hpp"
+#include "beta/betasignals.hpp"
 
 #include "betaclientcommand.hpp"
 #include "betarequests.hpp"
@@ -62,8 +63,9 @@ struct Login: Command{
 	
 	/*virtual*/ int executeDone(uint32 _cmdidx);
 	
-	request::Login	request;
-	response::Basic	response;
+	request::Login					request;
+	response::Basic					response;
+	DynamicPointer<LoginSignal>		signal;
 };
 
 struct Cancel: Command{
@@ -78,9 +80,10 @@ struct Cancel: Command{
 	/*virtual*/ int executeStart(uint32 _cmdidx);
 	/*virtual*/ int executeDone(uint32 _cmdidx);
 	
-	request::Cancel	request;
-	response::Basic	response;
-	uint32			uid;
+	request::Cancel					request;
+	response::Basic					response;
+	uint32							uid;
+	DynamicPointer<CancelSignal>	signal;
 };
 
 struct Test: Command{

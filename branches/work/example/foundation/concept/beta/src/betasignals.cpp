@@ -18,3 +18,19 @@
 	You should have received a copy of the GNU General Public License
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
+
+#include "beta/betasignals.hpp"
+
+
+namespace concept{
+namespace beta{
+int LoginSignal::release(){
+	return 1;
+}
+
+int CancelSignal::release(){
+	return 1;
+}
+
+}
+}
