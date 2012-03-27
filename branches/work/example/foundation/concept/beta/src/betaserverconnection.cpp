@@ -194,7 +194,11 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			bool reenter = false;
 			if(!socketHasPendingRecv()){
 				if(_sig & fdt::INDONE){
-					doParseBuffer(socketRecvCount());
+					const int rv = doParseBuffer(socketRecvCount());
+					if(rv == BAD && exception != 0){
+						state(SendException);
+						return OK;
+					}
 				}
 				switch(socketRecv(recvbufwr, recvbufend - recvbufwr)){
 					case BAD: return BAD;
@@ -207,7 +211,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 				}
 			}
 			if(!socketHasPendingSend()){
-				int sz = doFillSendBuffer(useCompression(), useEncryption());
+				const int sz = doFillSendBuffer(useCompression(), useEncryption());
 				if(sz > 0){
 					switch(socketSend(sendbufbeg, sz)){
 						case BAD: return BAD;
@@ -218,6 +222,10 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 							break;
 					}
 				}else if(sz < 0){
+					if(exception != 0){
+						state(SendException);
+						return OK;
+					}
 					return BAD;
 				}else if(_sig & fdt::OUTDONE){
 					doReleaseSendBuffer();
@@ -226,6 +234,23 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			
 			if(reenter) return OK;
 		}break;
+		case SendException:
+			if(!socketHasPendingSend()){
+				const int sz = doFillSendException();
+				switch(socketSend(sendbufbeg, sz)){
+					case BAD:
+					case OK:
+						return BAD;
+					case NOK:
+						state(SendExceptionDone);
+						break;
+				}
+			}break;
+		case SendExceptionDone:
+			if(!socketHasPendingSend()){
+				return BAD;
+			}
+			break;
 	}
 	return NOK;
 }
@@ -247,6 +272,7 @@ int Connection::doFillSendBufferData(char* _sendbufpos){
 			);
 			if(rv < 0){
 				idbg("Serialization error: "<<ser.errorString());
+				exception = ExceptionFill;
 				return BAD;
 			}
 			sendbufpos += rv;

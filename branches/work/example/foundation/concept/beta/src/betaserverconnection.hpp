@@ -75,7 +75,9 @@ private:
 private:
 	enum {
 		Init,
-		Run
+		Run,
+		SendException,
+		SendExceptionDone
 	};
 	
 	struct CommandStub{
@@ -92,9 +94,7 @@ private:
 	DynamicExecuterT			de;
 	CommandVectorT				cmdvec;
 	UInt32QueueT				cmdque;
-	uint32						crtcmdrecvidx;
 	uint16						crtcmdrecvtype;
-	uint32						crtcmdsendidx;
 	UInt32PairVectorT			reqvec;
 };
 

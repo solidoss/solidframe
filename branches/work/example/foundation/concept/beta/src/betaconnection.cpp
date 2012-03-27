@@ -50,15 +50,15 @@ const TypeMapper tm;
 
 
 Connection::Connection():
-	ser(typemapper), des(typemapper), readstate(0),
+	ser(typemapper), des(typemapper), readstate(0), exception(0),
 	recvbufbeg(NULL), recvbufrd(NULL), recvbufwr(NULL), recvbufend(NULL),
-	sendbufbeg(NULL), sendbufend(NULL){
+	sendbufbeg(NULL), sendbufend(NULL), crtcmdrecvidx(0), crtcmdsendidx(0){
 }
 
 Connection::Connection(const SocketDevice &_rsd):BaseT(_rsd),
-	ser(typemapper), des(typemapper), readstate(0),
+	ser(typemapper), des(typemapper), readstate(0), exception(0),
 	recvbufbeg(NULL), recvbufrd(NULL), recvbufwr(NULL), recvbufend(NULL),
-	sendbufbeg(NULL), sendbufend(NULL){
+	sendbufbeg(NULL), sendbufend(NULL), crtcmdrecvidx(0), crtcmdsendidx(0){
 }
 
 Connection::~Connection(){
@@ -102,6 +102,7 @@ int Connection::doFillSendBuffer(bool _usecompression, bool _useencryption){
 		char *tmpbuf = Specific::popBuffer(sendbufferid);
 		int rv = doCompressBuffer(tmpbuf + BufferHeader::Size, sendbufbeg + BufferHeader::Size, writesize);
 		if(rv < 0){
+			exception = ExceptionCompress;
 			return BAD;
 		}
 		writesize = rv;
@@ -114,6 +115,7 @@ int Connection::doFillSendBuffer(bool _usecompression, bool _useencryption){
 		char *tmpbuf = Specific::popBuffer(sendbufferid);
 		int rv = doEncryptBuffer(tmpbuf + BufferHeader::Size, sendbufbeg + BufferHeader::Size, writesize);
 		if(rv < 0){
+			exception = ExceptionEncrypt;
 			return BAD;
 		}
 		writesize = rv;
@@ -176,6 +178,7 @@ int Connection::doParseBuffer(ulong _size){
 			);
 			
 			if(sz < 0){
+				exception = ExceptionDecrypt;
 				return BAD;
 			}
 			if(bufhead.isCompressed()){
@@ -183,10 +186,12 @@ int Connection::doParseBuffer(ulong _size){
 				int sz2 = doDecompressBuffer(tmpbuf2, tmpbuf, sz);
 				
 				if(sz < 0){
+					exception = ExceptionDecompress;
 					return BAD;
 				}
 				
 				if(!doParseBufferData(tmpbuf2, sz2)){
+					exception = ExceptionParse;
 					return BAD;
 				}
 			}else if(!doParseBufferData(tmpbuf, sz)){
@@ -202,21 +207,33 @@ int Connection::doParseBuffer(ulong _size){
 			);
 			
 			if(sz < 0){
+				exception = ExceptionDecompress;
 				return BAD;
 			}
 			
 			if(!doParseBufferData(tmpbuf, sz)){
+				exception = ExceptionParse;
 				return BAD;
 			}
-		}else{
+		}else if(bufhead.isData()){
+			
 			if(
 				!doParseBufferData(
 					recvbufrd + BufferHeader::Size,
 					bufhead.size()
 				)
 			){
+				exception = ExceptionParse;
 				return BAD;
 			}
+		}else if(bufhead.isException()){
+			return doParseBufferException(
+				recvbufrd + BufferHeader::Size,
+				bufhead.size()
+			);
+		}else{
+			exception = ExceptionParseBuffer;
+			return BAD;
 		}
 		recvbufrd += BufferHeader::Size + bufhead.size();
 		readstate = ParseBufferHeader;
@@ -225,6 +242,11 @@ int Connection::doParseBuffer(ulong _size){
 	recvbufrd = recvbufwr = recvbufbeg;
 	
 	return OK;
+}
+
+int Connection::doParseBufferException(const char *_pbuf, ulong _len){
+	exception = ExceptionParseBuffer;
+	return BAD;
 }
 
 int Connection::doDecompressBuffer(char *_to, const char *_from, ulong _fromlen){
@@ -246,6 +268,26 @@ int Connection::doEncryptBuffer(char *_to, const char *_from, ulong _fromlen){
 void Connection::dynamicExecute(DynamicPointer<> &_dp){
 	wdbg("Received unknown signal on ipcservice");
 }
+
+int Connection::doFillSendException(){
+	if(sendbufbeg == NULL){
+		sendbufbeg =  Specific::popBuffer(sendbufferid);
+		sendbufend = sendbufbeg + sendbuffercapacity;
+	}
+	char	*sendbufpos = sendbufbeg + BufferHeader::Size;
+	uint32	tmp_val = exception;
+	char	*pos = sendbufpos;
+	pos = SerializerT::storeValue(pos, tmp_val);
+	pos = SerializerT::storeValue(pos, crtcmdrecvidx);
+	pos = SerializerT::storeValue(pos, crtcmdsendidx);
+	int		writesize(pos - sendbufpos);
+	BufferHeader	bufhead(static_cast<uint16>(writesize),	BufferHeader::Exception, 0);
+
+	SerializerT::storeValue(sendbufbeg, bufhead.value);
+	
+	return writesize + BufferHeader::Size;
+}
+
 
 }//namespace beta
 }//namespace concept

@@ -67,6 +67,16 @@ protected:
 		ParseBufferHeader = 1,
 		ParseBufferData
 	};
+	enum{
+		ExceptionCompress = 1,
+		ExceptionDecompress,
+		ExceptionEncrypt,
+		ExceptionDecrypt,
+		ExceptionParse,
+		ExceptionFill,
+		ExceptionParseBuffer,
+		
+	};
 	
 	static const serialization::TypeMapperBase	&typemapper;
 	static const uint32							recvbufferid;
@@ -89,7 +99,9 @@ protected:
 	int doFillSendBuffer(bool _usecompression, bool _useencryption);
 	virtual bool doParseBufferData(const char *_pbuf, ulong _len) = 0;
 	virtual int	doFillSendBufferData(char *_sendbufpos) = 0;
+	virtual int doParseBufferException(const char *_pbuf, ulong _len);
 	void doReleaseSendBuffer();
+	int doFillSendException();
 private:
 	void doOptimizeReadBuffer();
 protected:
@@ -97,12 +109,15 @@ protected:
 	DeserializerT				des;
 	DynamicExecuterT			de;
 	uint8						readstate;
+	uint8						exception;
 	char						*recvbufbeg;
 	char						*recvbufrd;
 	char						*recvbufwr;
 	char						*recvbufend;
 	char						*sendbufbeg;
 	char						*sendbufend;
+	uint32						crtcmdrecvidx;
+	uint32						crtcmdsendidx;
 };
 
 

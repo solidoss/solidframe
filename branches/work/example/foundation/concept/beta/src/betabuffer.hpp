@@ -32,6 +32,7 @@ namespace beta{
 struct BufferHeader{
 	enum Types{
 		Data = 1,
+		Exception = 2
 	};
 	enum Flags{
 		Compressed = 1,
@@ -61,6 +62,12 @@ struct BufferHeader{
 	}
 	uint16 size()const{
 		return value & 0xffff;
+	}
+	bool isData()const{
+		return type() == Data;
+	}
+	bool isException()const{
+		return type() == Exception;
 	}
 	bool isCompressed()const{
 		return flags() & Compressed;

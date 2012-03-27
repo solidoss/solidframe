@@ -113,9 +113,7 @@ private:
 	CommandVectorT				cmdvec;
 	CommandQueueT				cmdque;
 	UInt32StackT				cmdvecfreestk;
-	uint32						crtcmdsendidx;
 	uint16						crtcmdsendtype;
-	uint32						crtcmdrecvidx;
 };
 
 inline uint32 Connection::commandUid(const uint32 _cmdidx)const{
