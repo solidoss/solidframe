@@ -45,7 +45,7 @@ namespace command{
 	idbg("noop");
 	_rdes.push(response, "noop_response");
 }
-/*virtual*/ int Noop::executeDone(uint32 _cmdidx){
+/*virtual*/ int Noop::executeRecv(uint32 _cmdidx){
 	idbg("noop response "<<_cmdidx<<": "<<response.error);
 	
 	return OK;
@@ -74,10 +74,11 @@ Login::Login(
 	idbg("login");
 	_rdes.push(response, "login_response");
 }
-/*virtual*/ int Login::executeDone(uint32 _cmdidx){
+/*virtual*/ int Login::executeRecv(uint32 _cmdidx){
 	idbg("login response "<<_cmdidx<<": "<<response.error);
 	signal->rsw.oss<<"login response "<<_cmdidx<<": "<<response.error;
-	signal->rsw.signal();
+	LoginSignal *psig = signal.release();
+	psig->rsw.signal();
 	return OK;
 }
 //--------------------------------------------------------------------------
@@ -98,7 +99,7 @@ Cancel::Cancel(uint32	_tag, uint32 _uid):uid(_uid){
 	idbg("cancel");
 	_rdes.push(response, "cancel_response");
 }
-/*virtual*/ int Cancel::executeStart(uint32 _cmdidx){
+/*virtual*/ int Cancel::executeSend(uint32 _cmdidx){
 	if(Connection::the().commandUid(request.tag) == uid){
 		//the command did not complete
 		idbg("cancel");
@@ -108,7 +109,7 @@ Cancel::Cancel(uint32	_tag, uint32 _uid):uid(_uid){
 		return OK;
 	}
 }
-/*virtual*/ int Cancel::executeDone(uint32 _cmdidx){
+/*virtual*/ int Cancel::executeRecv(uint32 _cmdidx){
 	idbg("cancel response "<<_cmdidx<<": "<<response.error);
 	return OK;
 }
@@ -135,13 +136,13 @@ Test::Test(
 /*virtual*/ void Test::prepareDeserialization(DeserializerT &_rdes){
 	_rdes.push(response, "test_response");
 }
-/*virtual*/ int Test::executeStart(uint32 _cmdidx){
+/*virtual*/ int Test::executeSend(uint32 _cmdidx){
 	idbg("test response: "<<response.count<<' '<<response.token);
 	response.token.clear();
 	Connection::the().pushCommand(new Cancel(_cmdidx, Connection::the().commandUid(_cmdidx)));
 	return CONTINUE;
 }
-/*virtual*/ int Test::executeDone(uint32 _cmdidx){
+/*virtual*/ int Test::executeRecv(uint32 _cmdidx){
 	idbg("test response "<<_cmdidx<<": "<<response.count<<' '<<response.token);
 	response.token.clear();
 	return response.count <= 0 ? OK : NOK;
@@ -158,10 +159,10 @@ Command::Command(){
 Command::~Command(){
 	
 }
-/*virtual*/ int Command::executeStart(uint32 _cmdidx){
+/*virtual*/ int Command::executeSend(uint32 _cmdidx){
 	return CONTINUE;
 }
-/*virtual*/ int Command::executeDone(uint32 _cmdidx){
+/*virtual*/ int Command::executeRecv(uint32 _cmdidx){
 	return OK;
 }
 

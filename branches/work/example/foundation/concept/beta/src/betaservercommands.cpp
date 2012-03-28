@@ -43,7 +43,7 @@ namespace command{
 	_rdes.push(request, "noop_request");
 }
 
-/*virtual*/ int Noop::executeStart(uint32 _cmdidx){
+/*virtual*/ int Noop::executeRecv(uint32 _cmdidx){
 	idbg("noop "<<_cmdidx);
 	return CONTINUE;
 }
@@ -63,7 +63,7 @@ namespace command{
 	idbg("login");
 	_rdes.push(request, "login_request");
 }
-/*virtual*/ int Login::executeStart(uint32 _cmdidx){
+/*virtual*/ int Login::executeRecv(uint32 _cmdidx){
 	idbg("login "<<_cmdidx<<": "<<request.user<<' '<<request.password);
 	return CONTINUE;
 }
@@ -82,7 +82,7 @@ namespace command{
 	idbg("cancel");
 	_rdes.push(request, "cancel_request");
 }
-/*virtual*/ int Cancel::executeStart(uint32 _cmdidx){
+/*virtual*/ int Cancel::executeRecv(uint32 _cmdidx){
 	idbg("cancel "<<_cmdidx<<": "<<request.tag);
 	return CONTINUE;
 }
@@ -101,14 +101,14 @@ namespace command{
 	idbg("test");
 	_rdes.push(request, "test_request");
 }
-/*virtual*/ int Test::executeStart(uint32 _cmdidx){
+/*virtual*/ int Test::executeRecv(uint32 _cmdidx){
 	idbg("test "<<_cmdidx<<": "<<request.count<<' '<<request.timeout<<' '<<request.token);
 	
 	response.token = request.token;
 	response.count = request.count;
 	return CONTINUE;
 }
-/*virtual*/ int Test::executeDone(uint32 _cmdidx){
+/*virtual*/ int Test::executeSend(uint32 _cmdidx){
 	idbg("test "<<_cmdidx<<": "<<request.count<<' '<<request.timeout<<' '<<request.token);
 	if(response.count >= 0){
 		--response.count;
@@ -130,11 +130,11 @@ Command::~Command(){
 	
 }
 
-/*virtual*/ int Command::executeStart(uint32){
+/*virtual*/ int Command::executeRecv(uint32){
 	return CONTINUE;
 }
 
-/*virtual*/ int Command::executeDone(uint32){
+/*virtual*/ int Command::executeSend(uint32){
 	return OK;
 }
 

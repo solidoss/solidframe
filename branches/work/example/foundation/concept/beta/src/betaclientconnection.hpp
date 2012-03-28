@@ -87,6 +87,7 @@ private:
 	void doPrepareRun();
 	/*virtual*/ int	doFillSendBufferData(char *_sendbufpos);
 	/*virtual*/ bool doParseBufferData(const char *_pbuf, ulong _len);
+	/*virtual*/ int doParseBufferException(const char *_pbuf, ulong _len);
 private:
 	enum {
 		Init,
@@ -98,12 +99,13 @@ private:
 	};
 	
 	struct CommandStub{
-		CommandStub(Command *_pcmd = NULL, uint32 _uid = 0):pcmd(_pcmd), uid(_uid){}
+		CommandStub(Command *_pcmd = NULL, uint32 _uid = 0):pcmd(_pcmd), uid(_uid), sendtype(true){}
 		Command *pcmd;
 		uint32 	uid;
+		bool	sendtype;
 	};
 	typedef std::vector<CommandStub>			CommandVectorT;
-	typedef Queue<Command*>						CommandQueueT;
+	typedef Queue<uint32>						UInt32QueueT;
 	typedef Stack<uint32>						UInt32StackT;
 	
 	SocketAddressInfo			addrinfo;
@@ -111,7 +113,7 @@ private:
 	uint32						reqid;
 	DynamicExecuterT			de;
 	CommandVectorT				cmdvec;
-	CommandQueueT				cmdque;
+	UInt32QueueT				cmdque;
 	UInt32StackT				cmdvecfreestk;
 	uint16						crtcmdsendtype;
 };

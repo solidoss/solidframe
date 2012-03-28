@@ -70,8 +70,8 @@ private:
 	void doPrepareRun();
 	/*virtual*/ int	doFillSendBufferData(char *_sendbufpos);
 	/*virtual*/ bool doParseBufferData(const char *_pbuf, ulong _len);
-	void doCommandExecuteStart(uint32 _cmdidx);
-	bool doCommandExecuteDone(uint32 _cmdidx);
+	void doCommandExecuteRecv(uint32 _cmdidx);
+	bool doCommandExecuteSend(uint32 _cmdidx);
 private:
 	enum {
 		Init,

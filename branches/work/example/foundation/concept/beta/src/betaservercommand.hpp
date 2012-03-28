@@ -47,8 +47,8 @@ public:
 		DeserializerT &_rdes
 	) = 0;
 	
-	virtual int executeStart(uint32 _cmdidx);
-	virtual int executeDone(uint32 _cmdidx);
+	virtual int executeRecv(uint32 _cmdidx);
+	virtual int executeSend(uint32 _cmdidx);
 	
 	virtual uint32 dynamicType() const = 0;
 protected:

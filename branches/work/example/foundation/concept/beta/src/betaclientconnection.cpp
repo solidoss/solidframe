@@ -92,10 +92,6 @@ NOTE:
 
 Connection::~Connection(){
 	idbg("destroy connection id "<<this->id());
-	while(cmdque.size()){
-		delete cmdque.front();
-		cmdque.pop();
-	}
 	for(CommandVectorT::const_iterator it(cmdvec.begin()); it != cmdvec.end(); ++it){
 		delete it->pcmd;
 	}
@@ -236,8 +232,6 @@ void Connection::doPrepareRun(){
 	BaseT::doPrepareRun();
 }
 
-
-
 int Connection::doFillSendBufferData(char *_sendbufpos){
 	int		writesize = 0;
 	char	*sendbufpos = _sendbufpos;
@@ -264,22 +258,13 @@ int Connection::doFillSendBufferData(char *_sendbufpos){
 			break;
 		}
 		
-		uint32		cmdidx;
-		
-		if(cmdvecfreestk.size()){
-			cmdidx = cmdvecfreestk.top();
-			cmdvecfreestk.pop();
-			cmdvec[cmdidx].pcmd = cmdque.front();
-		}else{
-			cmdidx = cmdvec.size();
-			cmdvec.push_back(CommandStub(cmdque.front()));
-		}
+		uint32		cmdidx = cmdque.front();
 		
 		cmdque.pop();
 		
 		CommandStub	&rcmdstub(cmdvec[cmdidx]);
 		
-		const int	rv = rcmdstub.pcmd->executeStart(cmdidx);
+		const int	rv = rcmdstub.pcmd->executeSend(cmdidx);
 		
 		if(rv == OK){
 			//no reason to send the request
@@ -300,7 +285,10 @@ int Connection::doFillSendBufferData(char *_sendbufpos){
 		rcmdstub.pcmd->prepareSerialization(ser);
 		
 		ser.push(crtcmdsendtype, "command_type");
-		ser.push(crtcmdsendidx, "command_tag");
+		if(rcmdstub.sendtype){
+			ser.push(crtcmdsendidx, "command_tag");
+			rcmdstub.sendtype = false;
+		}
 	}
 	
 	return writesize;
@@ -310,7 +298,8 @@ int Connection::doFillSendBufferData(char *_sendbufpos){
 bool Connection::doParseBufferData(const char *_pbuf, ulong _len){
 	do{
 		if(des.empty()){
-			des.pushReinit<Connection, 0>(this, 0).push(crtcmdrecvidx, "command_tag");
+			des.pushReinit<Connection, 0>(this, 0);
+			des.push(crtcmdrecvidx, "command_tag");
 		}
 		int rv = des.run(_pbuf, _len);
 		if(rv < 0){
@@ -319,7 +308,7 @@ bool Connection::doParseBufferData(const char *_pbuf, ulong _len){
 		
 		if(des.empty()){
 			CommandStub	&rcmdstub(cmdvec[crtcmdrecvidx]);
-			const int	rv = rcmdstub.pcmd->executeDone(crtcmdrecvidx);
+			const int	rv = rcmdstub.pcmd->executeRecv(crtcmdrecvidx);
 			switch(rv){
 				case BAD:
 					delete rcmdstub.pcmd;
@@ -336,10 +325,7 @@ bool Connection::doParseBufferData(const char *_pbuf, ulong _len){
 				case NOK:
 					break;
 				case CONTINUE:
-					cmdque.push(rcmdstub.pcmd);
-					rcmdstub.pcmd = NULL;
-					++rcmdstub.uid;
-					cmdvecfreestk.push(crtcmdrecvidx);
+					cmdque.push(crtcmdrecvidx);
 					break;
 				default:
 					THROW_EXCEPTION_EX("Unknown command execute return value ", rv);
@@ -351,6 +337,30 @@ bool Connection::doParseBufferData(const char *_pbuf, ulong _len){
 		_pbuf += rv;
 	}while(_len != 0);
 	return true;
+}
+
+int Connection::doParseBufferException(const char *_pbuf, ulong _len){
+	exception = 0;
+	uint32	error = 0;
+	uint32	recvcmdidx = 0;
+	uint32	sendcmdidx = 0;
+	uint32	ser_err = 0;
+	uint32	des_err = 0;
+	const bool rv = BaseT::doParseBufferException(
+		_pbuf, _len,
+		error,
+		recvcmdidx,
+		sendcmdidx,
+		ser_err,
+		des_err
+	);
+	if(rv){
+		edbg("Exception on server side 1: "<<error<<" recvcmdidx = "<<recvcmdidx<<" sendcmdidx = "<<sendcmdidx);
+		edbg("Exception on server side 2: ["<<SerializerT::errorString(ser_err)<<"] ["<<DeserializerT::errorString(des_err)<<']');
+	}else{
+		edbg("Exception - unable to parse exception buffer");
+	}
+	return BAD;
 }
 
 bool Connection::useEncryption()const{
@@ -385,13 +395,23 @@ int Connection::accept(fdt::Visitor &_rov){
 	return OK;
 }
 void Connection::pushCommand(Command *_pcmd){
-	cmdque.push(_pcmd);
+	uint32	cmdidx;
+	if(cmdvecfreestk.size()){
+		cmdidx = cmdvecfreestk.top();
+		cmdvecfreestk.pop();
+		cmdvec[cmdidx].pcmd = _pcmd;
+	}else{
+		cmdidx = cmdvec.size();
+		cmdvec.push_back(CommandStub(_pcmd));
+	}
+	cmdque.push(cmdidx);
+	
 }
 
 void Connection::dynamicExecute(DynamicPointer<LoginSignal> &_rsig){
 	command::Login *pcmd = new command::Login(_rsig->user, _rsig->pass);
 	pcmd->signal = _rsig;
-	cmdque.push(pcmd);
+	pushCommand(pcmd);
 }
 void Connection::dynamicExecute(DynamicPointer<CancelSignal> &_rsig){
 	

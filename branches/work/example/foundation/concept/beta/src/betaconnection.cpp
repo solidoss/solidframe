@@ -276,10 +276,14 @@ int Connection::doFillSendException(){
 	}
 	char	*sendbufpos = sendbufbeg + BufferHeader::Size;
 	uint32	tmp_val = exception;
+	uint32	ser_err = ser.error();
+	uint32	des_err = des.error();
 	char	*pos = sendbufpos;
 	pos = SerializerT::storeValue(pos, tmp_val);
 	pos = SerializerT::storeValue(pos, crtcmdrecvidx);
 	pos = SerializerT::storeValue(pos, crtcmdsendidx);
+	pos = SerializerT::storeValue(pos, ser_err);
+	pos = SerializerT::storeValue(pos, des_err);
 	int		writesize(pos - sendbufpos);
 	BufferHeader	bufhead(static_cast<uint16>(writesize),	BufferHeader::Exception, 0);
 
@@ -287,7 +291,26 @@ int Connection::doFillSendException(){
 	
 	return writesize + BufferHeader::Size;
 }
-
+bool Connection::doParseBufferException(
+	const char *_pbuf, ulong _len,
+	uint32 _error,
+	uint32 _recvcmdidx,
+	uint32 _sendcmdidx,
+	uint32 _ser_err,
+	uint32 _des_err
+){
+	if(_len != 5 * sizeof(uint32)){
+		return false;
+	}
+	
+	_pbuf = DeserializerT::parseValue(_pbuf, _error);
+	_pbuf = DeserializerT::parseValue(_pbuf, _recvcmdidx);
+	_pbuf = DeserializerT::parseValue(_pbuf, _sendcmdidx);
+	_pbuf = DeserializerT::parseValue(_pbuf, _ser_err);
+	_pbuf = DeserializerT::parseValue(_pbuf, _des_err);
+	
+	return true;
+}
 
 }//namespace beta
 }//namespace concept

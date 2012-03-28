@@ -281,7 +281,7 @@ int Connection::doFillSendBufferData(char* _sendbufpos){
 				break;
 			}
 			cassert(ser.empty());
-			if(!doCommandExecuteDone(crtcmdsendidx)){
+			if(!doCommandExecuteSend(crtcmdsendidx)){
 				return BAD;
 			}
 		}
@@ -311,7 +311,6 @@ bool Connection::doParseBufferData(const char *_pbuf, ulong _len){
 	do{
 		if(des.empty()){
 			des.pushReinit<Connection, 0>(this, 0);
-			des.push(crtcmdrecvtype, "command_type");
 			des.push(crtcmdrecvidx, "command_tag");
 		}
 		int rv = des.run(_pbuf, _len);
@@ -320,7 +319,7 @@ bool Connection::doParseBufferData(const char *_pbuf, ulong _len){
 		}
 		
 		if(des.empty()){
-			doCommandExecuteStart(crtcmdrecvidx);
+			doCommandExecuteRecv(crtcmdrecvidx);
 		}
 		
 		_len  -= rv;
@@ -329,9 +328,9 @@ bool Connection::doParseBufferData(const char *_pbuf, ulong _len){
 	return true;
 }
 
-void Connection::doCommandExecuteStart(uint32 _cmdidx){
+void Connection::doCommandExecuteRecv(uint32 _cmdidx){
 	CommandStub	&rcmdstub(cmdvec[_cmdidx]);
-	const int	rv = rcmdstub.pcmd->executeStart(_cmdidx);
+	const int	rv = rcmdstub.pcmd->executeRecv(_cmdidx);
 	switch(rv){
 		case NOK:
 			break;
@@ -345,9 +344,9 @@ void Connection::doCommandExecuteStart(uint32 _cmdidx){
 }
 
 
-bool Connection::doCommandExecuteDone(uint32 _cmdidx){
+bool Connection::doCommandExecuteSend(uint32 _cmdidx){
 	CommandStub	&rcmdstub(cmdvec[_cmdidx]);
-	const int	rv = rcmdstub.pcmd->executeDone(_cmdidx);
+	const int	rv = rcmdstub.pcmd->executeSend(_cmdidx);
 	switch(rv){
 		case BAD:
 			delete rcmdstub.pcmd;
@@ -392,7 +391,22 @@ int Connection::serializationReinit<Connection::DeserializerT, 0>(
 	CommandStub	&rcmdstub(cmdvec[crtcmdrecvidx]);
 	
 	_rdes.pop();
+	if(!rcmdstub.pcmd){
+		des.pushReinit<Connection, 1>(this, 0);
+		des.push(crtcmdrecvtype, "command_type");
+	}else{
+		rcmdstub.pcmd->prepareDeserialization(_rdes);
+	}
+	return CONTINUE;
+}
+
+template <>
+int Connection::serializationReinit<Connection::DeserializerT, 1>(
+	Connection::DeserializerT &_rdes, const uint64 &_rv
+){
+	CommandStub	&rcmdstub(cmdvec[crtcmdrecvidx]);
 	
+	_rdes.pop();
 	switch(crtcmdrecvtype){
 		case request::Login::Identifier:{
 			rcmdstub.pcmd = new command::Login;

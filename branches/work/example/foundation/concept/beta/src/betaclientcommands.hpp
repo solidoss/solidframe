@@ -46,7 +46,7 @@ struct Noop: Command{
 	/*virtual*/ void prepareSerialization(SerializerT &_rser);
 	/*virtual*/ void prepareDeserialization(DeserializerT &_rdes);
 	
-	/*virtual*/ int executeDone(uint32 _cmdidx);
+	/*virtual*/ int executeRecv(uint32 _cmdidx);
 	
 	request::Noop		request;
 	response::Basic		response;
@@ -61,7 +61,7 @@ struct Login: Command{
 	/*virtual*/ void prepareSerialization(SerializerT &_rser);
 	/*virtual*/ void prepareDeserialization(DeserializerT &_rdes);
 	
-	/*virtual*/ int executeDone(uint32 _cmdidx);
+	/*virtual*/ int executeRecv(uint32 _cmdidx);
 	
 	request::Login					request;
 	response::Basic					response;
@@ -77,8 +77,8 @@ struct Cancel: Command{
 	/*virtual*/ void prepareSerialization(SerializerT &_rser);
 	/*virtual*/ void prepareDeserialization(DeserializerT &_rdes);
 	
-	/*virtual*/ int executeStart(uint32 _cmdidx);
-	/*virtual*/ int executeDone(uint32 _cmdidx);
+	/*virtual*/ int executeSend(uint32 _cmdidx);
+	/*virtual*/ int executeRecv(uint32 _cmdidx);
 	
 	request::Cancel					request;
 	response::Basic					response;
@@ -95,8 +95,8 @@ struct Test: Command{
 	/*virtual*/ void prepareSerialization(SerializerT &_rser);
 	/*virtual*/ void prepareDeserialization(DeserializerT &_rdes);
 	
-	/*virtual*/ int executeStart(uint32 _cmdidx);
-	/*virtual*/ int executeDone(uint32 _cmdidx);
+	/*virtual*/ int executeSend(uint32 _cmdidx);
+	/*virtual*/ int executeRecv(uint32 _cmdidx);
 	
 	request::Test	request;
 	response::Test	response;

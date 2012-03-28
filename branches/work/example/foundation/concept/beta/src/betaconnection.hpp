@@ -102,6 +102,14 @@ protected:
 	virtual int doParseBufferException(const char *_pbuf, ulong _len);
 	void doReleaseSendBuffer();
 	int doFillSendException();
+	bool doParseBufferException(
+		const char *_pbuf, ulong _len,
+		uint32 _error,
+		uint32 _recvcmdidx,
+		uint32 _sendcmdidx,
+		uint32 _ser_err,
+		uint32 _des_err
+	);
 private:
 	void doOptimizeReadBuffer();
 protected:
