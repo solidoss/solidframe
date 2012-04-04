@@ -82,18 +82,17 @@ static const DynamicRegisterer<Connection>	dre;
 }
 
 Connection::Connection(
-	SocketAddress *_paddr
+	SocketAddressInfo &_rai
 ):	wtr(&logger), rdr(wtr, &logger),
-	pcmd(NULL), paddr(_paddr), reqid(1){
-		
-	cassert(paddr);
+	pcmd(NULL), ai(_rai), reqid(1){
+	aiit = ai.begin();
 	state(Connect);
 }
 
 Connection::Connection(
 	const SocketDevice &_rsd
 ):	BaseT(_rsd), wtr(&logger),rdr(wtr, &logger),
-	pcmd(NULL), paddr(NULL), reqid(1){
+	pcmd(NULL), reqid(1){
 	
 	state(Init);
 }
@@ -139,9 +138,8 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 	fdt::requestuidptr->set(this->uid());
 	//_tout.add(2400);
 	if(_sig & (fdt::TIMEOUT | fdt::ERRDONE)){
-		if(state() == ConnectTout){
+		if(state() == ConnectWait){
 			state(Connect);
-			return fdt::UNREGISTER;
 		}else
 			if(_sig & fdt::TIMEOUT){
 				edbg("timeout occured - destroy connection "<<state());
@@ -308,14 +306,25 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 				return OK;
 			}return NOK;
 		case Connect:
-			/*
-			switch(channel().connect(*paddr)){
-				case BAD: return BAD;
-				case OK:  state(Init);break;
-				case NOK: state(ConnectTout); return REGISTER;
-			};*/
+			switch(socketConnect(aiit)){
+				case BAD:
+					if(++aiit){
+						state(Connect);
+						return OK;
+					}
+					return BAD;
+				case OK:
+					idbg("");
+					state(Init);
+					//idbg("");
+					return NOK;//for register
+				case NOK:
+					state(ConnectWait);
+					idbg("");
+					return NOK;
+			}
 			break;
-		case ConnectTout:
+		case ConnectWait:
 			state(Init);
 			//delete(paddr); paddr = NULL;
 			break;

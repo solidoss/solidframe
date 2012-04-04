@@ -31,7 +31,7 @@
 #include "alphareader.hpp"
 #include "alphawriter.hpp"
 
-class SocketAddress;
+#include "system/socketaddress.hpp"
 
 namespace foundation{
 
@@ -85,7 +85,7 @@ public:
 		return static_cast<Connection&>(Object::the());
 	}
 	
-	Connection(SocketAddress *_paddr);
+	Connection(SocketAddressInfo &_rai);
 	Connection(const SocketDevice &_rsd);
 	
 	~Connection();
@@ -143,19 +143,20 @@ private:
 		IdleExecute,
 		Execute,
 		Connect,
-		ConnectTout,
+		ConnectWait,
 		ParseTout,
 		ExecuteTout,
 		ExecuteIOTout,
 		
 	};
-	Logger				logger;
-	Writer				wtr;
-	Reader				rdr;
-	Command				*pcmd;
-	SocketAddress		*paddr;
-	uint32				reqid;
-	DynamicExecuterT	dr;
+	Logger						logger;
+	Writer						wtr;
+	Reader						rdr;
+	Command						*pcmd;
+	SocketAddressInfo			ai;
+	SocketAddressInfoIterator	aiit;
+	uint32						reqid;
+	DynamicExecuterT			dr;
 };
 
 }//namespace alpha

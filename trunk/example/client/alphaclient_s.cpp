@@ -501,6 +501,17 @@ int AlphaThread::fetch(unsigned _idx, char *_pb){
 	return -9;
 }
 
+const char *certificate_path(){
+	const char	*path = OSSL_SOURCE_PATH;
+	const size_t path_len = strlen(path);
+	if(path_len){
+		if(path[path_len - 1] == '/'){
+			return OSSL_SOURCE_PATH"ssl_/certs/A-client.pem";
+		}else{
+			return OSSL_SOURCE_PATH"/ssl_/certs/A-client.pem";
+		}
+	}else return "A-client.pem";
+}
 
 int main(int argc, char *argv[]){
 	if(argc != 7 && argc != 9){
@@ -536,7 +547,7 @@ int main(int argc, char *argv[]){
 	sslctx = SSL_CTX_new(SSLv23_client_method());
 	
 	//const char *pcertpath = "../../../../extern/linux/openssl/demos/tunala/A-client.pem";
-	const char *pcertpath = OSSL_SOURCE_PATH"ssl_/certs/A-client.pem";
+	const char *pcertpath = certificate_path();
 	cout<<"Client certificate path: "<<pcertpath<<endl;
 	
 	if(!sslctx){

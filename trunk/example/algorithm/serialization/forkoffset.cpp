@@ -1,4 +1,4 @@
-/* Implementation file forkreinit.cpp
+/* Implementation file forkoffset.cpp
 	
 	Copyright 2012 Valentin Palade 
 	vipalade@gmail.com
@@ -27,7 +27,6 @@
 #include <list>
 #include "system/filedevice.hpp"
 #include "utility/iostream.hpp"
-#include "system/debug.hpp"
 #include "system/thread.hpp"
 #include "algorithm/serialization/binary.hpp"
 #include "algorithm/serialization/idtypemapper.hpp"
@@ -67,8 +66,8 @@ int FileInputOutputStream::read(char *_pb, uint32 _bl, uint32 _flags){
 int FileInputOutputStream::write(const char *_pb, uint32 _bl, uint32 _flags){
 	return fd.write(_pb, _bl);
 }
-int64 FileInputOutputStream::seek(int64, SeekRef){
-	return -1;
+int64 FileInputOutputStream::seek(int64 _v, SeekRef){
+	return fd.seek(_v);
 }
 int64 FileInputOutputStream::size()const{
 	return fd.size();
@@ -82,39 +81,68 @@ struct Test{
 	Test(const char *_fn = NULL);
 	template <class S>
 	S& operator&(S &_s){
-		_s.push(no, "Test::no");
-		if(S::IsSerializer){
-			InputStream *ps = &fs;
-			_s.pushStream(ps, "Test::istream");
-		}else{
-			OutputStream *ps= &fs;
-			_s.pushStream(ps, "Test::ostream");
-		}
-		return _s.push(fn,"Test::fn");
+		
+		
+		return _s.push(no, "Test::no").template pushReinit<Test, 0>(this, 0, "Test::reinit").push(fn,"Test::fn");
 	}
+	
+	template <class S, uint32 I>
+	int serializationReinit(S &_rs, const uint64 &_rv){
+		idbg("_rv = "<<_rv);
+		if(_rv == 0){
+			if(S::IsSerializer){
+				fs.openRead(fn.c_str());
+				_rs.pop();
+				offset = fs.size()/2;
+				_rs.template pushReinit<Test, 0>(this, 1, "Test::reinit");
+				_rs.push(offset, "offset");
+			}else{
+				_rs.pop();
+				_rs.template pushReinit<Test, 0>(this, 1, "Test::reinit");
+				_rs.push(offset, "offset");
+			}
+		}else if(_rv == 1){
+			if(S::IsSerializer){
+				_rs.pop();
+				_rs.template pushReinit<Test, 0>(this, 2, "Test::reinit");
+				idbg("put stream from "<<offset<<" len = "<<fs.size()/2);
+				InputStream *ps = &fs;
+				_rs.pushStream(ps, offset, fs.size()/2, "Test::istream");
+			}else{
+				fn += ".xxx";
+				fs.openWrite(fn.c_str());
+				_rs.pop();
+				_rs.template pushReinit<Test, 0>(this, 2, "Test::reinit");
+				OutputStream *ps = &fs;
+				_rs.pushStream(ps, 0, 1000, "Test::ostream");
+			}	
+		}else{
+			idbg("Done Stream: size = "<<_rs.streamSize()<<" error = "<<_rs.streamErrorString());
+			return OK;
+		}
+		
+		return CONTINUE;
+	}
+	
 	void print();
 private:
 	int32 					no;
 	string					fn;
+	uint64					offset;
 	FileInputOutputStream	fs;
 };
 ///\endcond
 
 Test::Test(const char *_fn):fn(_fn?_fn:""){
-	if(_fn){
-		no = 11111;
-		fs.openRead(_fn);
-	}else{
-		fs.openWrite("output.out");
-	}
+	if(_fn) no = 1111;
 }
 //-----------------------------------------------------------------------------------
-
 
 void Test::print(){
 	cout<<endl<<"Test:"<<endl;
 	cout<<"no = "<<no<<endl;
 	cout<<"fn = "<<fn<<endl<<endl;
+	cout<<"offset = "<<offset<<endl;
 }
 
 ///\cond 0

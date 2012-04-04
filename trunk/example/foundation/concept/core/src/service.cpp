@@ -53,18 +53,18 @@ Service::~Service(){
 
 void Service::dynamicExecute(DynamicPointer<SocketAddressInfoSignal> &_rsig){
 	idbg(_rsig->id);
-	int rv;
+	ObjectUidT rv;
 	switch(_rsig->id){
 		case AddListener:
-			rv = this->insertListener(_rsig->addrinfo.begin(), false);
+			rv = this->insertListener(_rsig->addrinfo, false);
 			_rsig->result(rv);
 			break;
 		case AddSslListener:
-			rv = this->insertListener(_rsig->addrinfo.begin(), true);
+			rv = this->insertListener(_rsig->addrinfo, true);
 			_rsig->result(rv);
 			break;
 		case AddConnection:
-			rv = this->insertConnection(_rsig->addrinfo.begin(), _rsig->node.c_str(), _rsig->service.c_str());
+			rv = this->insertConnection(_rsig->addrinfo);
 			_rsig->result(rv);
 			break;
 		case AddSslConnection:
@@ -72,7 +72,7 @@ void Service::dynamicExecute(DynamicPointer<SocketAddressInfoSignal> &_rsig){
 			//TODO:
 			break;
 		case AddTalker:
-			rv = this->insertTalker(_rsig->addrinfo.begin(), _rsig->node.c_str(), _rsig->service.c_str());
+			rv = this->insertTalker(_rsig->addrinfo);
 			_rsig->result(rv);
 			break;
 		default:
@@ -88,16 +88,28 @@ void Service::eraseObject(const Listener &_ro){
 	
 }
 
-bool Service::insertListener(
-	const SocketAddressInfoIterator &_rai,
+const char *certificate_path(){
+	const char	*path = OSSL_SOURCE_PATH;
+	const size_t path_len = strlen(path);
+	if(path_len){
+		if(path[path_len - 1] == '/'){
+			return OSSL_SOURCE_PATH"ssl_/certs/A-server.pem";
+		}else{
+			return OSSL_SOURCE_PATH"/ssl_/certs/A-server.pem";
+		}
+	}else return "A-client.pem";
+}
+
+ObjectUidT Service::insertListener(
+	SocketAddressInfo &_rai,
 	bool _secure
 ){
 	SocketDevice sd;
-	sd.create(_rai);
+	sd.create(_rai.begin());
 	sd.makeNonBlocking();
-	sd.prepareAccept(_rai, 100);
+	sd.prepareAccept(_rai.begin(), 100);
 	if(!sd.ok()){
-		return false;
+		return fdt::invalid_uid();
 	}
 	
 	foundation::aio::openssl::Context *pctx = NULL;
@@ -105,7 +117,7 @@ bool Service::insertListener(
 		pctx = foundation::aio::openssl::Context::create();
 	}
 	if(pctx){
-		const char *pcertpath(OSSL_SOURCE_PATH"ssl_/certs/A-server.pem");
+		const char *pcertpath = certificate_path();
 		
 		pctx->loadCertificateFile(pcertpath);
 		pctx->loadPrivateKeyFile(pcertpath);
@@ -113,36 +125,34 @@ bool Service::insertListener(
 	
 	fdt::ObjectPointer<Listener> lisptr(new Listener(sd, pctx));
 	
-	insert<AioSchedulerT>(lisptr, 1);
-		
-	return true;
+	return insert<AioSchedulerT>(lisptr, 1);
 }
 
 
-bool Service::insertTalker(
-	const SocketAddressInfoIterator &_rai,
-	const char *_node,
-	const char *_svc
+ObjectUidT Service::insertTalker(
+	SocketAddressInfo &_rai,
+	foundation::aio::openssl::Context *_pctx,
+	bool _secure
 ){
 	
-	return BAD;
+	return fdt::invalid_uid();
 }
 
-bool Service::insertConnection(
-	const SocketAddressInfoIterator &_rai,
-	const char *_node,
-	const char *_svc
+ObjectUidT Service::insertConnection(
+	SocketAddressInfo &_rai,
+	foundation::aio::openssl::Context *_pctx,
+	bool _secure
 ){	
-	return BAD;
+	return fdt::invalid_uid();
 }
 
-bool Service::insertConnection(
+ObjectUidT Service::insertConnection(
 	const SocketDevice &_rsd,
 	foundation::aio::openssl::Context *_pctx,
 	bool _secure
 ){	
 	cassert(false);
-	return BAD;
+	return fdt::invalid_uid();
 }
 
 

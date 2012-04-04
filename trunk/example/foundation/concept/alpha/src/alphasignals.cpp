@@ -427,54 +427,14 @@ int FetchSlaveSignal::execute(
 	return BAD;
 }
 
-void FetchSlaveSignal::destroyDeserializationStream(
-	OutputStream *&_rpos, int64 &_rsz, uint64 &_roff, int _id
-){
-	idbg((void*)this<<" Destroy deserialization <"<<_id<<"> sz "<<_rsz<<" streamptr "<<(void*)_rpos);
-	if(_rsz < 0){
-		//there was an error
-		filesz = -1;
-	}
-	delete _rpos;
+void FetchSlaveSignal::initOutputStream(){
+	fdt::RequestUid					requid;
+	Manager::the().fileManager().stream(outs, fuid, requid, fdt::file::Manager::Forced);
+	idbg((void*)this<<" Create deserialization streamptr "<<(void*)outs.ptr());
 }
 
-int FetchSlaveSignal::createDeserializationStream(
-	OutputStream *&_rpos, int64 &_rsz, uint64 &_roff, int _id
-){
-	idbg((void*)this<<" "<<_id<<" "<<filesz<<' '<<fuid.first<<' '<<fuid.second);
-	if(_id) return NOK;
-	if(filesz <= 0) return NOK;
-	
-	StreamPointer<OutputStream>		sp;
-	fdt::RequestUid				requid;
-	Manager::the().fileManager().stream(sp, fuid, requid, fdt::file::Manager::Forced);
-	if(!sp){
-		idbg("");
-		return BAD;
-	}
-	
-	idbg((void*)this<<" Create deserialization <"<<_id<<"> sz "<<_rsz<<" streamptr "<<(void*)sp.ptr());
-	
-	cassert(sp);
-	_rpos = sp.release();
-	_rsz = streamsz;
-	return OK;
-}
-
-void FetchSlaveSignal::destroySerializationStream(
-	InputStream *&_rpis, int64 &_rsz, uint64 &_roff, int _id
-){
-	idbg((void*)this<<" doing nothing as the stream will be destroied when the signal will be destroyed");
-}
-
-int FetchSlaveSignal::createSerializationStream(
-	InputStream *&_rpis, int64 &_rsz, uint64 &_roff, int _id
-){
-	if(_id || !ins.ptr()) return NOK;
-	idbg((void*)this<<" Create serialization <"<<_id<<"> sz "<<_rsz);
-	_rpis = ins.ptr();
-	_rsz = streamsz;
-	return OK;
+void FetchSlaveSignal::clearOutputStream(){
+	outs.clear();
 }
 
 //-----------------------------------------------------------------------------------

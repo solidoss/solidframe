@@ -1,6 +1,6 @@
-/* Declarations file proxyservice.hpp
+/* Declarations file betaclientcommand.hpp
 	
-	Copyright 2007, 2008 Valentin Palade 
+	Copyright 2012 Valentin Palade 
 	vipalade@gmail.com
 
 	This file is part of SolidFrame framework.
@@ -19,40 +19,40 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef PROXYSERVICE_HPP
-#define PROXYSERVICE_HPP
+#ifndef BETACLIENTCOMMAND_HPP
+#define BETACLIENTCOMMAND_HPP
 
-#include "core/service.hpp"
+
+#include "algorithm/serialization/binary.hpp"
+#include "system/specific.hpp"
 
 namespace concept{
-namespace proxy{
 
-class MultiConnection;
-//class Talker;
+namespace beta{
 
-class Service: public Dynamic<Service, concept::Service>{
+namespace client{
+
+class Command: public SpecificObject{
 public:
-	static concept::proxy::Service* create();
-	Service();
-	~Service();
-	ObjectUidT insertConnection(
-		const SocketDevice &_rsd,
-		foundation::aio::openssl::Context *_pctx,
-		bool _secure
-	);
-/*	int insertTalker(
-		const SocketAddressInfoIterator &_rai,
-		const char *_node,
-		const char *_svc
-	);*/
-	ObjectUidT insertConnection(
-		const SocketAddressInfoIterator &_rai,
-		const char *_node,
-		const char *_svc
-	);
-	void eraseObject(const MultiConnection &_ro);
+	typedef serialization::binary::Serializer	SerializerT;
+	typedef serialization::binary::Deserializer	DeserializerT;
+	
+	virtual ~Command();
+	virtual uint32 dynamicType() const = 0;
+	
+	virtual void prepareSerialization(SerializerT &_rser) = 0;
+	virtual void prepareDeserialization(DeserializerT &_rdes) = 0;
+	virtual int executeSend(uint32 _cmdidx);
+	virtual int executeRecv(uint32 _cmdidx);
+protected:
+	Command();
 };
 
-}//namespace echo
+}//namespace client
+
+}//namespace beta
+
 }//namespace concept
+
+
 #endif

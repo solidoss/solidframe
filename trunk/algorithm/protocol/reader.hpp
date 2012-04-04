@@ -172,7 +172,7 @@ public:
 	//!Callback for refilling the input buffers
 	static int refill(Reader &_rr, Parameter &_rp);
 	static int refillDone(Reader &_rr, Parameter &_rp);
-	//!Callback for popping certain calbacks from the stack
+	//!Callback for popping certain callbacks from the stack
 	static int pop(Reader &_rr, Parameter &_rp);
 	//!Callback for returning a certain value
 	template <bool B>

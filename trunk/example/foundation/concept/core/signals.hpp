@@ -81,11 +81,20 @@ struct SocketAddressInfoSignal: Dynamic<SocketAddressInfoSignal, foundation::Sig
 		int _type = -1,
 		int _proto = -1
 	);
-	virtual void result(int _rv);
-	uint32			id;
+	void init(
+		const char *_node, 
+		const char *_port, 
+		int _flags,
+		int _family = -1,
+		int _type = -1,
+		int _proto = -1
+	);
+	virtual void result(const ObjectUidT &_rv);
+	uint32					id;
 	SocketAddressInfo		addrinfo;
-	std::string		node;
-	std::string		service;
+	std::string				node;
+	std::string				service;
+	
 };
 
 }//namespace concept

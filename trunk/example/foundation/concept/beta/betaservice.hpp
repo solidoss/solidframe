@@ -1,6 +1,6 @@
-/* Declarations file proxyservice.hpp
+/* Declarations file betaservice.hpp
 	
-	Copyright 2007, 2008 Valentin Palade 
+	Copyright 2012 Valentin Palade 
 	vipalade@gmail.com
 
 	This file is part of SolidFrame framework.
@@ -19,20 +19,24 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef PROXYSERVICE_HPP
-#define PROXYSERVICE_HPP
+#ifndef BETASERVICE_HPP
+#define BETASERVICE_HPP
 
 #include "core/service.hpp"
 
-namespace concept{
-namespace proxy{
+class SocketDevice;
 
-class MultiConnection;
-//class Talker;
+namespace concept{
+
+class Manager;
+
+namespace beta{
+
+class Connection;
 
 class Service: public Dynamic<Service, concept::Service>{
 public:
-	static concept::proxy::Service* create();
+	static Service* create(Manager &);
 	Service();
 	~Service();
 	ObjectUidT insertConnection(
@@ -40,19 +44,18 @@ public:
 		foundation::aio::openssl::Context *_pctx,
 		bool _secure
 	);
-/*	int insertTalker(
-		const SocketAddressInfoIterator &_rai,
-		const char *_node,
-		const char *_svc
-	);*/
 	ObjectUidT insertConnection(
-		const SocketAddressInfoIterator &_rai,
-		const char *_node,
-		const char *_svc
+		SocketAddressInfo &_rai,
+		foundation::aio::openssl::Context *_pctx,
+		bool _secure
 	);
-	void eraseObject(const MultiConnection &_ro);
+	
+	void insertObject(Connection &_ro, const ObjectUidT &_ruid);
+	void eraseObject(const Connection &_ro);
 };
 
-}//namespace echo
+}//namespace beta
 }//namespace concept
+
+
 #endif

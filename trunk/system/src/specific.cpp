@@ -72,7 +72,7 @@ static CleaningVector	cv;
 //This is what is holded on a thread
 struct SpecificData{
 	enum{
-		Count = 11
+		Capacity = 13
 	};
 	struct CachePoint{
 		CachePoint():pnode(0), cp(0), sz(0){}
@@ -97,7 +97,7 @@ struct SpecificData{
 		return *reinterpret_cast<SpecificData*>(Thread::specific(specificPosition()));
 	}
 	
-	CachePoint 				cps[Count];
+	CachePoint 				cps[Capacity];
 	ObjCachePointVecT		ops;
 	SpecificCacheControl	*pcc;
 };
@@ -160,7 +160,7 @@ SpecificData::SpecificData(SpecificCacheControl *_pcc):pcc(_pcc){
 SpecificData::~SpecificData(){
 	if(pcc->release()) delete pcc;
 	idbgx(Dbg::specific, "destroy all cached buffers");
-	for(int i(0); i < Count; ++i){
+	for(int i(0); i < Capacity; ++i){
 		vdbgx(Dbg::specific, i<<" cp = "<<cps[i].cp<<" sz = "<<cps[i].sz<<" specific_id = "<<Specific::sizeToIndex((1<<i)));
 		
 		BufferNode	*pbn(cps[i].pnode);
@@ -235,6 +235,10 @@ void destroy(void *_pv){
 		return 9;
 	}else if(_sz <= 1024 * sizeof(BufferNode)){
 		return 10;
+	}else if(_sz <= 2048 * sizeof(BufferNode)){
+		return 11;
+	}else if(_sz <= 4096 * sizeof(BufferNode)){
+		return 12;
 	}
 	return -1;
 }
@@ -251,6 +255,8 @@ void destroy(void *_pv){
 		case (256 * sizeof(BufferNode)):	return 8;
 		case (512 * sizeof(BufferNode)):	return 9;
 		case (1024 * sizeof(BufferNode)):	return 10;
+		case (2048 * sizeof(BufferNode)):	return 11;
+		case (4096 * sizeof(BufferNode)):	return 12;
 		default:return -1;
 	}
 }
@@ -267,13 +273,15 @@ void destroy(void *_pv){
 		128 * sizeof(BufferNode),
 		256 * sizeof(BufferNode),
 		512 * sizeof(BufferNode),
-		1024 * sizeof(BufferNode)
+		1024 * sizeof(BufferNode),
+		2048 * sizeof(BufferNode),
+		4096 * sizeof(BufferNode)
 	};
 	return cps[_id];
 }
 
 /*static*/ char* Specific::popBuffer(unsigned _id){
-	cassert(_id < SpecificData::Count);
+	cassert(_id < SpecificData::Capacity);
 	SpecificData				&rsd(SpecificData::current());
 	SpecificData::CachePoint	&rcp(rsd.cps[_id]);
 	char *tb;
@@ -291,7 +299,7 @@ void destroy(void *_pv){
 }
 /*static*/ void Specific::pushBuffer(char *&_pb, unsigned _id){
 	cassert(_pb);
-	cassert(_id < SpecificData::Count);
+	cassert(_id < SpecificData::Capacity);
 	SpecificData				&rsd(SpecificData::current());
 	SpecificData::CachePoint	&rcp(rsd.cps[_id]);
 	idbgx(Dbg::specific,"pushBuffer "<<_id<<" cp "<<rcp.cp<<' '<<(void*)_pb);

@@ -204,14 +204,10 @@ struct FetchSlaveSignal: Dynamic<FetchSlaveSignal, foundation::Signal>{
 		const SignalUidT &, TimeSpec &_rts
 	);
 	uint32 ipcPrepare();
-	int createDeserializationStream(OutputStream *&_rpos, int64 &_rsz, uint64 &_roff, int _id);
-	void destroyDeserializationStream(OutputStream *&_rpos, int64 &_rsz, uint64 &_roff, int _id);
-	int createSerializationStream(InputStream *&_rpis, int64 &_rsz, uint64 &_roff, int _id);
-	void destroySerializationStream(InputStream *&_rpis, int64 &_rsz, uint64 &_roff, int _id);
 	
 	template <class S>
 	S& operator&(S &_s){
-		_s.template pushStreammer<FetchSlaveSignal>(this, "FetchStreamResponse::isp");
+		_s.template pushReinit<FetchSlaveSignal, 0>(this, 0, "reinit");
 		_s.push(tov.first, "toobjectid").push(tov.second, "toobjectuid");
 		//_s.push(fromv.first, "fromobjectid").push(fromv.second, "fromobjectuid");
 		_s.push(streamsz, "streamsize").push(requid, "requestuid");
@@ -220,6 +216,29 @@ struct FetchSlaveSignal: Dynamic<FetchSlaveSignal, foundation::Signal>{
 		serialized = true;
 		return _s;
 	}
+	
+	template <class S, uint32 I>
+	int serializationReinit(S &_rs, const uint64 &_rv){
+		if(_rv == 1){
+			clearOutputStream();
+			return OK;
+		}
+		if(S::IsSerializer){
+			InputStream *ps = ins.ptr();
+			//cassert(ps != NULL);
+			_rs.pop();
+			_rs.pushStream(ps, 0, streamsz, "stream");
+		}else{
+			initOutputStream();
+			OutputStream *ps = outs.ptr();
+			_rs.pop();
+			_rs.template pushReinit<FetchSlaveSignal, 0>(this, 1, "reinit");
+			_rs.pushStream(ps, (uint64)0, (uint64)streamsz, "stream");
+		}
+		return CONTINUE;
+	}
+	void initOutputStream();
+	void clearOutputStream();
 	void print()const;
 //data:	
 	ObjectUidT						fromv;
@@ -227,7 +246,8 @@ struct FetchSlaveSignal: Dynamic<FetchSlaveSignal, foundation::Signal>{
 	FileUidT						fuid;
 	foundation::ipc::ConnectionUid	conid;
 	SignalUidT						siguid;
-	StreamPointer<InputStream>			ins;
+	StreamPointer<InputStream>		ins;
+	StreamPointer<OutputStream>		outs;
 	int64							filesz;
 	int32							streamsz;
 	uint32							requid;
@@ -298,7 +318,7 @@ struct SendStreamSignal: Dynamic<SendStreamSignal, foundation::Signal>{
 	
 	template <class S>
 	S& operator&(S &_s){
-		_s.template pushStreammer<SendStreamSignal>(this, "SendStreamSignal::iosp").push(dststr, "dststr");
+		_s.push(dststr, "dststr");
 		_s.push(tov.first, "toobjectid").push(tov.second, "toobjectuid");
 		return _s.push(fromv.first, "fromobjectid").push(fromv.second, "fromobjectuid");
 	}

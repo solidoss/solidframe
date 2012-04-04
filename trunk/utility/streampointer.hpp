@@ -40,7 +40,7 @@ protected:
 template <class SO>
 class StreamPointer: StreamPointerBase{
 public:
-	typedef SO 				ObjectT;
+	typedef SO 					ObjectT;
 	typedef StreamPointer<SO>	ThisT;
 	StreamPointer():pobj(NULL){}
 	StreamPointer(ObjectT *_pobj):pobj(_pobj) {}
