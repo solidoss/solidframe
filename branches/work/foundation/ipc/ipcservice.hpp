@@ -186,25 +186,6 @@ public:
 	
 	IdTypeMapper& typeMapper();
 	
-// 	template <class T>
-// 	uint32 registerSerializationType(uint32 _pos){
-// 		return typemapper.insert<T>(_pos);
-// 	}
-// 	
-// 	template <class T>
-// 	uint32 registerSerializationType(){
-// 		return typemapper.insert<T>();
-// 	}
-// 	
-// 	template <class T, typename P>
-// 	uint32 registerSerializationType(uint32 _pos){
-// 		return typemapper.insert<T, P>(_pos);
-// 	}
-// 	
-// 	template <class T, typename P>
-// 	uint32 registerSerializationType(){
-// 		return typemapper.insert<T, P>();
-// 	}
 	//!Send a signal (usually a response) to a peer process using a previously saved ConnectionUid
 	/*!
 		The signal is send only if the connector exists. If the peer process,

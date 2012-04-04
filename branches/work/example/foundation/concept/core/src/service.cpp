@@ -88,6 +88,18 @@ void Service::eraseObject(const Listener &_ro){
 	
 }
 
+const char *certificate_path(){
+	const char	*path = OSSL_SOURCE_PATH;
+	const size_t path_len = strlen(path);
+	if(path_len){
+		if(path[path_len - 1] == '/'){
+			return OSSL_SOURCE_PATH"ssl_/certs/A-server.pem";
+		}else{
+			return OSSL_SOURCE_PATH"/ssl_/certs/A-server.pem";
+		}
+	}else return "A-client.pem";
+}
+
 ObjectUidT Service::insertListener(
 	SocketAddressInfo &_rai,
 	bool _secure
@@ -105,7 +117,7 @@ ObjectUidT Service::insertListener(
 		pctx = foundation::aio::openssl::Context::create();
 	}
 	if(pctx){
-		const char *pcertpath(OSSL_SOURCE_PATH"ssl_/certs/A-server.pem");
+		const char *pcertpath = certificate_path();
 		
 		pctx->loadCertificateFile(pcertpath);
 		pctx->loadPrivateKeyFile(pcertpath);
