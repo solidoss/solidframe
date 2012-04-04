@@ -496,8 +496,24 @@ int do_erase_file(WCHAR *_pwc, const char *_path, size_t _sz, size_t _wcp){
 #endif
 }
 
+#ifndef UDEBUG
+#ifdef ON_WINDOWS
+struct wsa_cleaner{
+	~wsa_cleaner(){
+		WSACleanup();
+	}
+};
+#endif
+#endif
+
 //---- SocketDevice ---------------------------------
-SocketDevice::SocketDevice(const SocketDevice &_sd):Device(_sd){}
+SocketDevice::SocketDevice(const SocketDevice &_sd):Device(_sd){
+#ifndef UDEBUG
+#ifdef ON_WINDOWS
+	static const wsa_cleaner wsaclean;
+#endif
+#endif
+}
 SocketDevice::SocketDevice(){
 }
 SocketDevice& SocketDevice::operator=(const SocketDevice &_dev){

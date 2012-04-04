@@ -55,7 +55,7 @@ S& operator&(std::string &_t, S &_s){
 
 enum {
 	MAXITSZ = sizeof(int64) + sizeof(int64) + sizeof(int64) + sizeof(int64),//!< Max sizeof(iterator) for serialized containers
-	MINSTREAMBUFLEN = 128//if the free space for current buffer is less than this value
+	MINSTREAMBUFLEN = 16//if the free space for current buffer is less than this value
 						//storring a stream will end up returning NOK
 };
 
@@ -124,11 +124,23 @@ public:
 	uint16 error()const{
 		return err;
 	}
+	uint16 streamError()const{
+		return streamerr;
+	}
 	const char* errorString()const{
 		return errorString(err);
 	}
+	const char* streamErrorString()const{
+		return errorString(streamerr);
+	}
 	void typeMapper(const TypeMapperBase &_rtm){
 		ptm = &_rtm;
+	}
+	void pop(){
+		fstk.pop();
+	}
+	uint64 const& streamSize()const{
+		return streamsz;
 	}
 protected:
 	enum Errors{
@@ -138,13 +150,17 @@ protected:
 		ERR_CONTAINER_LIMIT,
 		ERR_CONTAINER_MAX_LIMIT,
 		ERR_STREAM_LIMIT,
-		ERR_STREAM_MAX_LIMIT,
 		ERR_STREAM_CHUNK_MAX_LIMIT,
+		ERR_STREAM_SEEK,
+		ERR_STREAM_READ,
+		ERR_STREAM_WRITE,
+		ERR_STREAM_SENDER,
 		ERR_STRING_LIMIT,
 		ERR_STRING_MAX_LIMIT,
 		ERR_UTF8_LIMIT,
 		ERR_UTF8_MAX_LIMIT,
 		ERR_POINTER_UNKNOWN,
+		ERR_REINIT,
 	};
 	struct FncData;
 	typedef int (*FncT)(Base &, FncData &);
@@ -159,7 +175,7 @@ protected:
 		
 		FncT		f;	//!< Pointer to function
 		void		*p;	//!< Pointer to data
-		const char 	*n;	//!< Some name - of the item serialized
+		const char	*n;	//!< Some name - of the item serialized
 		uint64		s;	//!< Some size
 	};
 	
@@ -192,26 +208,6 @@ protected:
 			pv_2() = _pv;
 		}
 	};
-	struct InputStreamData{
-		InputStreamData(
-			InputStream *_pis = NULL,
-			int64 _sz = -1,
-			uint64 _off = 0
-		):pis(_pis), sz(_sz), off(_off){}
-		InputStream *pis;
-		int64	sz;
-		uint64	off;
-	};
-	struct OutputStreamData{
-		OutputStreamData(
-			OutputStream *_pos = NULL,
-			int64 _sz = -1,
-			uint64 _off = 0
-		):pos(_pos), sz(_sz), off(_off){}
-		OutputStream *pos;
-		int64	sz;
-		uint64	off;
-	};
 protected:
 	static int setStringLimit(Base& _rd, FncData &_rfd);
 	static int setStreamLimit(Base& _rd, FncData &_rfd);
@@ -232,6 +228,8 @@ protected:
 	Limits					limits;
 	const TypeMapperBase	*ptm;
 	uint16					err;
+	uint16					streamerr;
+	uint64					streamsz;
 	ulong					ul;
 	FncDataStackT			fstk;
 	ExtDataStackT			estk;
@@ -354,75 +352,49 @@ class Serializer: public Base{
 		return OK;
 	}
 	
-	template <typename T>
-	static int storeStreamBegin(Base &_rs, FncData &_rfd){
-		idbgx(Dbg::ser_bin, "store stream begin");
-		Serializer &rs(static_cast<Serializer&>(_rs));
-		if(!rs.cpb) return OK;
-		T *pt = reinterpret_cast<T*>(_rfd.p);
-		
-		InputStreamData	isd;
-		int 		cpidx = _rfd.s;
-		++_rfd.s;
-		switch(pt->createSerializationStream(isd.pis, isd.sz, isd.off, cpidx)){
-			case BAD: isd.sz = -1;break;//send -1
-			case NOK: return OK;//no more streams
-			case OK:
-				cassert(isd.pis);
-				cassert(isd.sz >= 0);
-				break;
-			default:
-				cassert(false);
-		}
-		if(isd.sz < 0 || isd.sz > CRCValue<uint64>::maximum()){
-			rs.err = ERR_STREAM_MAX_LIMIT;
-			return BAD;
-		}
-		if(rs.limits.streamlimit && isd.sz > rs.limits.streamlimit){
-			rs.err = ERR_STREAM_LIMIT;
-			return BAD;
-		}
-		rs.estk.push(ExtData());
-		InputStreamData &rsp(*reinterpret_cast<InputStreamData*>(rs.estk.top().buf));
-		rsp = isd;
-		//_rfd.s is the id of the stream
-		rs.fstk.push(FncData(&Serializer::storeStreamDone<T>, _rfd.p, _rfd.n, _rfd.s - 1));
-		if(rsp.pis){
-			rs.fstk.push(FncData(&Serializer::storeStream, NULL));
-		}
-		idbgx(Dbg::ser_bin, "store stream size "<<isd.sz);
-		const CRCValue<uint64> crcsz(isd.sz);
-		rs.estk.push(ExtData((int64)crcsz, (int64)0));
-		rs.fstk.push(FncData(&Base::popEStack, NULL));
-		rs.fstk.push(FncData(&Serializer::store<uint64>, &rs.estk.top().u64(), _rfd.n, sizeof(uint64)));
-		return CONTINUE;
-	}
-	template <typename T>
-	static int storeStreamDone(Base &_rs, FncData &_rfd){
-		idbgx(Dbg::ser_bin, "store stream done");
-		Serializer &rs(static_cast<Serializer&>(_rs));
-		InputStreamData &rsp(*reinterpret_cast<InputStreamData*>(rs.estk.top().buf));
-		T *pt = reinterpret_cast<T*>(_rfd.p);
-		pt->destroySerializationStream(rsp.pis, rsp.sz, rsp.off, _rfd.s);
-		rs.estk.pop();
-		return OK;
-	}
+	static int storeStreamBegin(Base &_rs, FncData &_rfd);
+	static int storeStreamCheck(Base &_rs, FncData &_rfd);
+	
 	//! Internal callback for storing a stream
 	static int storeStream(Base &_rs, FncData &_rfd);
+	
+	template <class T, uint32 I>
+	static int storeReinit(Base &_rs, FncData &_rfd){
+		Serializer		&rs(static_cast<Serializer&>(_rs));
+		const uint32	val = _rfd.s;
+		
+		int rv = reinterpret_cast<T*>(_rfd.p)->template serializationReinit<Serializer, I>(rs, val);
+		if(rv == BAD){
+			rs.err = ERR_REINIT;
+		}
+		return rv;
+	}
 public:
 	enum {IsSerializer = true, IsDeserializer = false};
-	Serializer(const TypeMapperBase &_rtm):pb(NULL), cpb(NULL), be(NULL){
+	
+	static char* storeValue(char *_pd, const uint16 _val);
+	static char* storeValue(char *_pd, const uint32 _val);
+	static char* storeValue(char *_pd, const uint64 _val);
+	
+	Serializer(
+		const TypeMapperBase &_rtm
+	):pb(NULL), cpb(NULL), be(NULL){
 		tmpstr.reserve(sizeof(ulong));
 		typeMapper(_rtm);
 	}
-	Serializer(const TypeMapperBase &_rtm, Limits const & _rdefaultlimits):Base(_rdefaultlimits), pb(NULL), cpb(NULL), be(NULL){
+	Serializer(
+		const TypeMapperBase &_rtm,
+		Limits const & _rdefaultlimits
+	):Base(_rdefaultlimits), pb(NULL), cpb(NULL), be(NULL){
 		tmpstr.reserve(sizeof(ulong));
 		typeMapper(_rtm);
 	}
 	Serializer():pb(NULL), cpb(NULL), be(NULL){
 		tmpstr.reserve(sizeof(ulong));
 	}
-	Serializer(Limits const & _rdefaultlimits):Base(_rdefaultlimits), pb(NULL), cpb(NULL), be(NULL){
+	Serializer(
+		Limits const & _rdefaultlimits
+	):Base(_rdefaultlimits), pb(NULL), cpb(NULL), be(NULL){
 		tmpstr.reserve(sizeof(ulong));
 	}
 	~Serializer();
@@ -466,7 +438,10 @@ public:
 		return *this;
 	}
 	template <typename T, typename TM, typename ID>
-	Serializer& push(T* _t, const TM & _rtm, const ID &_rid, const char *_name = NULL){
+	Serializer& push(
+		T* _t, const TM & _rtm,
+		const ID &_rid, const char *_name = NULL
+	){
 		typeMapper().prepareStorePointer(this, _t, _rtm.realIdentifier(_rid), _name);
 		return *this;
 	}
@@ -482,18 +457,6 @@ public:
 		fstk.push(FncData(&Serializer::template storeContainer<T>, (void*)_t, _name));
 		return *this;
 	}
-	//! Schedules the serialization of an object containing streams.
-	/*!
-		Unfortunately this must be intrussive, that is the given streammer object must
-		export a required interface.
-		Please see the test/algorithm/serialization/fork.cpp example or 
-		test::alpha::FetchSlaveCommand.
-	*/
-	template <typename T>
-	Serializer& pushStreammer(T *_p, const char *_name = NULL){
-		fstk.push(FncData(&Serializer::template storeStreamBegin<T>, _p, _name, 0));
-		return *this;
-	}
 	Serializer& pushBinary(void *_p, size_t _sz, const char *_name = NULL);
 	template <typename T, typename ST>
 	Serializer& pushArray(T *_p, const ST &_rsz, const char *_name = NULL){
@@ -502,12 +465,41 @@ public:
 		return *this;
 	}
 	template <typename T, typename ST>
-	Serializer& pushDynamicArray(T* &_rp, const ST &_rsz, const char *_name = NULL){
+	Serializer& pushDynamicArray(
+		T* &_rp, const ST &_rsz, const char *_name = NULL
+	){
 		fstk.push(FncData(&Serializer::template storeArray<T>, (void*)_rp, _name));
 		estk.push(ExtData((int32)_rsz, (int64)0));
 		return *this;
 	}
-	Serializer& pushUtf8(const std::string& _str, const char *_name = NULL);
+	Serializer& pushUtf8(
+		const std::string& _str, const char *_name = NULL
+	);
+	template <class T, uint32 I>
+	Serializer& pushReinit(
+		T *_pt, const uint64 &_rval = 0, const char *_name = NULL
+	){
+		fstk.push(FncData(&Serializer::template storeReinit<T, I>, _pt, _name, _rval));
+		return *this;
+	}
+	Serializer& pushStream(
+		InputStream *_ps, const char *_name = NULL
+	);
+	Serializer& pushStream(
+		InputStream *_ps,
+		const uint64 &_rfrom,
+		const uint64 &_rlen,
+		const char *_name = NULL
+	);
+	Serializer& pushStream(
+		OutputStream *_ps, const char *_name = NULL
+	);
+	Serializer& pushStream(
+		OutputStream *_ps,
+		const uint64 &_rfrom,
+		const uint64 &_rlen,
+		const char *_name = NULL
+	);
 private:
 	friend class TypeMapperBase;
 	char					*pb;
@@ -702,50 +694,9 @@ class Deserializer: public Base{
 		return OK;
 	}
 	
-	template <typename T>
-	static int parseStreamBegin(Base &_rb,FncData &_rfd){
-		idbgx(Dbg::ser_bin, "parse stream begin");
-		Deserializer &rd(static_cast<Deserializer&>(_rb));
-		if(!rd.cpb) return OK;
-		
-		int cpidx = _rfd.s;
-		++_rfd.s;
-		OutputStreamData sp;
-		T	*pt = reinterpret_cast<T*>(_rfd.p);
-		//TODO: createDeserializationStream should be given the size of the stream
-		switch(pt->createDeserializationStream(sp.pos, sp.sz, sp.off, cpidx)){
-			case BAD:	
-			case OK: 	break;
-			case NOK:	return OK;
-		}
-		
-		rd.estk.push(ExtData());
-		OutputStreamData &rsp(*reinterpret_cast<OutputStreamData*>(rd.estk.top().buf));
-		rsp = sp;
-		//_rfd.s is the id of the stream
-		rd.fstk.push(FncData(&Deserializer::template parseStreamDone<T>, _rfd.p, _rfd.n, _rfd.s - 1));
-		if(sp.pos){
-			rd.fstk.push(FncData(&Deserializer::parseStream, NULL));
-		}else{
-			rd.fstk.push(FncData(&Deserializer::parseDummyStream, NULL));
-		}
-		rd.fstk.push(FncData(&Deserializer::parseStreamCheck, NULL, _rfd.n));
-		//TODO: move this line - so it is called before parseStreamBegin
-		rd.fstk.push(FncData(&Deserializer::parse<uint64>, &rsp.sz, _rfd.n));
-		return CONTINUE;
-	}
-	template <typename T>
-	static int parseStreamDone(Base &_rb,FncData &_rfd){
-		idbgx(Dbg::ser_bin, "parse stream done");
-		Deserializer &rd(static_cast<Deserializer&>(_rb));
-		OutputStreamData &rsp(*reinterpret_cast<OutputStreamData*>(rd.estk.top().buf));
-		T	*pt = reinterpret_cast<T*>(_rfd.p);
-		pt->destroyDeserializationStream(rsp.pos, rsp.sz, rsp.off, _rfd.s);
-		rd.estk.pop();
-		return OK;
-	}
 	//! Internal callback for parsing a stream
 	static int parseStream(Base &_rb, FncData &_rfd);
+	static int parseStreamBegin(Base &_rb, FncData &_rfd);
 	static int parseStreamCheck(Base &_rb, FncData &_rfd);
 	//! Internal callback for parsign a dummy stream
 	/*!
@@ -754,20 +705,42 @@ class Deserializer: public Base{
 		writing to destination stream.
 	*/
 	static int parseDummyStream(Base &_rb, FncData &_rfd);
+	
+	template <class T, uint32 I>
+	static int parseReinit(Base &_rb, FncData &_rfd){
+		Deserializer	&rd(static_cast<Deserializer&>(_rb));
+		const uint32	val = _rfd.s;
+		
+		int rv = reinterpret_cast<T*>(_rfd.p)->template serializationReinit<Deserializer, I>(rd, val);
+		if(rv == BAD){
+			rd.err = ERR_REINIT;
+		}
+		return rv;
+	}
 public:
 	enum {IsSerializer = false, IsDeserializer = true};
-	Deserializer(const TypeMapperBase &_rtm):pb(NULL), cpb(NULL), be(NULL){
+	static const char* parseValue(const char *_ps, uint16 &_val);
+	static const char* parseValue(const char *_ps, uint32 &_val);
+	static const char* parseValue(const char *_ps, uint64 &_val);
+	Deserializer(
+		const TypeMapperBase &_rtm
+	):pb(NULL), cpb(NULL), be(NULL){
 		tmpstr.reserve(sizeof(uint32));
 		typeMapper(_rtm);
 	}
-	Deserializer(const TypeMapperBase &_rtm, Limits const & _rdefaultlimits):Base(_rdefaultlimits), pb(NULL), cpb(NULL), be(NULL){
+	Deserializer(
+		const TypeMapperBase &_rtm,
+		Limits const & _rdefaultlimits
+	):Base(_rdefaultlimits), pb(NULL), cpb(NULL), be(NULL){
 		tmpstr.reserve(sizeof(uint32));
 		typeMapper(_rtm);
 	}
 	Deserializer():pb(NULL), cpb(NULL), be(NULL){
 		tmpstr.reserve(sizeof(uint32));
 	}
-	Deserializer(Limits const & _rdefaultlimits):Base(_rdefaultlimits), pb(NULL), cpb(NULL), be(NULL){
+	Deserializer(
+		Limits const & _rdefaultlimits
+	):Base(_rdefaultlimits), pb(NULL), cpb(NULL), be(NULL){
 		tmpstr.reserve(sizeof(uint32));
 	}
 	~Deserializer();
@@ -806,18 +779,6 @@ public:
 		fstk.push(FncData(&Deserializer::template parseContainer<T>, (void*)&_t, _name, 0));
 		return *this;
 	}
-	//! Schedules the deserialization of an object containing streams.
-	/*!
-		Unfortunately this must be intrussive, that is the given streammer object must
-		export a required interface.
-		Please see the test/algorithm/serialization/fork.cpp example and/or 
-		test::alpha::FetchSlaveCommand.
-	*/
-	template <typename T>
-	Deserializer& pushStreammer(T *_p, const char *_name = NULL){
-		fstk.push(FncData(&Deserializer::template parseStreamBegin<T>, _p, _name, 0));
-		return *this;
-	}
 	Deserializer& pushBinary(void *_p, size_t _sz, const char *_name = NULL);
 	
 	template <typename T, typename ST>
@@ -834,7 +795,35 @@ public:
 		fstk.push(FncData(&Deserializer::parse<int32>, &estk.top().i32()));
 		return *this;
 	}
-	Deserializer& pushUtf8(std::string& _str, const char *_name = NULL);
+	Deserializer& pushUtf8(
+		std::string& _str, const char *_name = NULL
+	);
+	
+	template <class T, uint32 I>
+	Deserializer& pushReinit(
+		T *_pt, const uint64 &_rval = 0, const char *_name = NULL
+	){
+		fstk.push(FncData(&Deserializer::template parseReinit<T, I>, _pt, _name, _rval));
+		return *this;
+	}
+	Deserializer& pushStream(
+		OutputStream *_ps, const char *_name = NULL
+	);
+	Deserializer& pushStream(
+		OutputStream *_ps,
+		const uint64 &_rat,
+		const uint64 &,
+		const char *_name = NULL
+	);
+	Deserializer& pushStream(
+		InputStream *_ps, const char *_name = NULL
+	);
+	Deserializer& pushStream(
+		InputStream *_ps,
+		const uint64 &_rat,
+		const uint64 &,
+		const char *_name = NULL
+	);
 private:
 	const char				*pb;
 	const char				*cpb;

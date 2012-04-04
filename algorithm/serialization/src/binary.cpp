@@ -34,13 +34,52 @@ inline char *storeValue(char *_pd, const uint16 _val){
 	*(pd + 1)	= (_val & 0xff);
 	return _pd + 2;
 }
+
+inline char *storeValue(char *_pd, const uint32 _val){
+	
+	_pd = storeValue(_pd, static_cast<uint16>(_val >> 16));
+	
+	return storeValue(_pd, static_cast<uint16>(_val & 0xffff));;
+}
+
+inline char *storeValue(char *_pd, const uint64 _val){
+	
+	_pd = storeValue(_pd, static_cast<uint32>(_val >> 32));
+	
+	return storeValue(_pd, static_cast<uint32>(_val & 0xffffffffULL));;
+}
+
 inline const char* parseValue(const char *_ps, uint16 &_val){
 	const uint8 *ps = reinterpret_cast<const uint8*>(_ps);
 	_val = (uint8)(*ps);
 	_val <<= 8;
-	_val += (uint8)(*(ps + 1));
+	_val |= (uint8)(*(ps + 1));
 	return _ps + 2;
 }
+
+inline const char* parseValue(const char *_ps, uint32 &_val){
+	uint16	upper;
+	uint16	lower;
+	_ps = parseValue(_ps, upper);
+	_ps = parseValue(_ps, lower);
+	_val = upper;
+	_val <<= 16;
+	_val |= lower;
+	return _ps;
+}
+
+inline const char* parseValue(const char *_ps, uint64 &_val){
+	uint32	upper;
+	uint32	lower;
+	_ps = parseValue(_ps, upper);
+	_ps = parseValue(_ps, lower);
+	_val = upper;
+	_val <<= 32;
+	_val |= lower;
+	return _ps;
+}
+
+
 #ifdef HAVE_SAFE_STATIC
 /*static*/ Limits const& Limits::the(){
 	static const Limits l;
@@ -77,10 +116,16 @@ void once_limits(){
 			return "Container max limit";
 		case ERR_STREAM_LIMIT:
 			return "Stream limit";
-		case ERR_STREAM_MAX_LIMIT:
-			return "Stream max limit";
 		case ERR_STREAM_CHUNK_MAX_LIMIT:
 			return "Stream chunk max limit";
+		case ERR_STREAM_SEEK:
+			return "Stream seek";
+		case ERR_STREAM_READ:
+			return "Stream read";
+		case ERR_STREAM_WRITE:
+			return "Stream write";
+		case ERR_STREAM_SENDER:
+			return "Stream sender";
 		case ERR_STRING_LIMIT:
 			return "String limit";
 		case ERR_STRING_MAX_LIMIT:
@@ -91,6 +136,8 @@ void once_limits(){
 			return "Utf8 max limit";
 		case ERR_POINTER_UNKNOWN:
 			return "Unknown pointer type id";
+		case ERR_REINIT:
+			return "Reinit error";
 		default:
 			return "Unknown error";
 	};
@@ -115,6 +162,15 @@ int Base::popEStack(Base &_rb, FncData &){
 	return OK;
 }
 //========================================================================
+/*static*/ char* Serializer::storeValue(char *_pd, const uint16 _val){
+	return serialization::binary::storeValue(_pd, _val);
+}
+/*static*/ char* Serializer::storeValue(char *_pd, const uint32 _val){
+	return serialization::binary::storeValue(_pd, _val);
+}
+/*static*/ char* Serializer::storeValue(char *_pd, const uint64 _val){
+	return serialization::binary::storeValue(_pd, _val);
+}
 Serializer::~Serializer(){
 }
 void Serializer::clear(){
@@ -417,40 +473,108 @@ int Serializer::store<std::string>(Base &_rb, FncData &_rfd){
 	rs.fstk.push(FncData(&Serializer::store<uint32>, &rs.estk.top().u32(), _rfd.n));
 	return CONTINUE;
 }
-
-int Serializer::storeStream(Base &_rb, FncData &_rfd){
+int Serializer::storeStreamBegin(Base &_rb, FncData &_rfd){
 	Serializer &rs(static_cast<Serializer&>(_rb));
+	if(!rs.cpb) return OK;
+	int32		toread = rs.be - rs.cpb;
+	
+	if(toread < MINSTREAMBUFLEN) return NOK;
+	
+	rs.streamerr = 0;
+	rs.streamsz = 0;
+	if(_rfd.p == NULL){
+		rs.cpb = storeValue(rs.cpb, (uint16)0xffff);
+		rs.pop();//returning ok will also pop storeStream
+		return OK;
+	}
+	if(_rfd.s != -1ULL){
+		if(
+			static_cast<int64>(_rfd.s) != 
+			reinterpret_cast<InputStream*>(_rfd.p)->seek(_rfd.s)
+		){
+			rs.streamerr = ERR_STREAM_SEEK;
+			rs.cpb = storeValue(rs.cpb, (uint16)0xffff);
+			rs.pop();//returning ok will also pop storeStream
+		}
+	}
+	return OK;
+}
+int Serializer::storeStreamCheck(Base &_rb, FncData &_rfd){
+	Serializer &rs(static_cast<Serializer&>(_rb));
+	if(!rs.cpb) return OK;
+	if(rs.limits.streamlimit && _rfd.s > rs.limits.streamlimit){
+		rs.streamerr = rs.err = ERR_STREAM_LIMIT;
+		return BAD;
+	}
+	return OK;
+}
+int Serializer::storeStream(Base &_rb, FncData &_rfd){
+	Serializer	&rs(static_cast<Serializer&>(_rb));
+	
 	idbgx(Dbg::ser_bin, "");
 	if(!rs.cpb) return OK;
-	InputStreamData &rsp(*reinterpret_cast<InputStreamData*>(rs.estk.top().buf));
-	int32 toread = rs.be - rs.cpb;
+	
+	int32		toread = rs.be - rs.cpb;
+	
 	if(toread < MINSTREAMBUFLEN) return NOK;
+	
 	toread -= 2;//the buffsize
-	if(toread > rsp.sz){
-		toread = static_cast<int32>(rsp.sz);
+	
+	if(toread > _rfd.s){
+		toread = static_cast<int32>(_rfd.s);
 	}
+	
 	if(toread > CRCValue<uint16>::maximum()){
 		toread = CRCValue<uint16>::maximum();
 	}
-	idbgx(Dbg::ser_bin, "toread = "<<toread<<" MINSTREAMBUFLEN = "<<MINSTREAMBUFLEN);
-	int rv = rsp.pis->read(rsp.off, rs.cpb + 2, toread);
-	if(rv == toread){
+	
+	if(toread == 0){
+		rs.cpb = storeValue(rs.cpb, (uint16)0);
+		return OK;
+	}
+	
+	int rv = reinterpret_cast<InputStream*>(_rfd.p)->read(rs.cpb + 2, toread);
+	
+	idbgx(Dbg::ser_bin, "toread = "<<toread<<" rv = "<<rv);
+	
+	if(rv > 0){
+		
+		if(rs.limits.streamlimit && (rs.streamsz + rv) > rs.limits.streamlimit){
+			rs.streamerr = rs.err = ERR_STREAM_LIMIT;
+			idbgx(Dbg::ser_bin, "ERR_STREAM_LIMIT");
+			return BAD;
+		}
+		
+		toread = rv;
+		
 		const CRCValue<uint16> crcsz((uint16)toread);
 		
 		storeValue(rs.cpb, (uint16)crcsz);
+		idbgx(Dbg::ser_bin, "store crcsz = "<<crcsz<<" sz = "<<toread);
 		
 		idbgx(Dbg::ser_bin, "store value "<<(uint16)crcsz);
 			  
 		rs.cpb += toread + 2;
-		rsp.off += toread;
+		rs.streamsz += toread;
+	}else if(rv == 0){
+		idbgx(Dbg::ser_bin, "done storing stream");
+		rs.cpb = storeValue(rs.cpb, (uint16)0);
+		return OK;
 	}else{
+		rs.streamerr = ERR_STREAM_READ;
+		idbgx(Dbg::ser_bin, "ERR_STREAM_READ");
 		rs.cpb = storeValue(rs.cpb, (uint16)0xffff);
 		return OK;
 	}
-	rsp.sz -= toread;
-	idbgx(Dbg::ser_bin, "rsp.sz = "<<rsp.sz);
-	if(rsp.sz) return NOK;
-	return OK;
+	
+	if(_rfd.s != -1ULL){
+		_rfd.s -= toread;
+		if(_rfd.s == 0){
+			return CONTINUE;
+		}
+	}
+	idbgx(Dbg::ser_bin, "streamsz = "<<rs.streamsz);
+	return CONTINUE;
 }
 /*static*/ int Serializer::storeUtf8(Base &_rs, FncData &_rfd){
 	Serializer &rs(static_cast<Serializer&>(_rs));
@@ -473,7 +597,34 @@ Serializer& Serializer::pushUtf8(const std::string& _str, const char *_name){
 	fstk.push(FncData(&Serializer::storeUtf8, const_cast<char*>(_str.c_str()), _name, _str.length() + 1));
 	return *this;
 }
+Serializer& Serializer::pushStream(
+	InputStream *_ps, const char *_name
+){
+	fstk.push(FncData(&Serializer::storeStream, _ps, _name, -1ULL));
+	fstk.push(FncData(&Serializer::storeStreamBegin, _ps, _name, -1ULL));
+	return *this;
+}
+Serializer& Serializer::pushStream(
+	InputStream *_ps,
+	const uint64 &_rfrom,
+	const uint64 &_rlen,
+	const char *_name
+){
+	fstk.push(FncData(&Serializer::storeStream, _ps, _name, _rlen));
+	fstk.push(FncData(&Serializer::storeStreamBegin, _ps, _name, _rfrom));
+	fstk.push(FncData(&Serializer::storeStreamCheck, _ps, _name, _rlen));
+	return *this;
+}
 //========================================================================
+/*static*/ const char* Deserializer::parseValue(const char *_ps, uint16 &_val){
+	return serialization::binary::parseValue(_ps, _val);
+}
+/*static*/ const char* Deserializer::parseValue(const char *_ps, uint32 &_val){
+	return serialization::binary::parseValue(_ps, _val);
+}
+/*static*/ const char* Deserializer::parseValue(const char *_ps, uint64 &_val){
+	return serialization::binary::parseValue(_ps, _val);
+}
 Deserializer::~Deserializer(){
 }
 void Deserializer::clear(){
@@ -1029,102 +1180,162 @@ int Deserializer::parseBinaryString(Base &_rb, FncData &_rfd){
 	rd.estk.pop();
 	return OK;
 }
-
 int Deserializer::parseStreamCheck(Base &_rb, FncData &_rfd){
 	Deserializer	&rd(static_cast<Deserializer&>(_rb));
 	
 	if(!rd.cpb) return OK;
 	
-	OutputStreamData		&rsp(*reinterpret_cast<OutputStreamData*>(rd.estk.top().buf));
-	if(rsp.sz == -1LL){
-		rd.fstk.pop();//skip parse stream
-		return OK;
-	}
-	{
-		const CRCValue<uint64> crcsz(CRCValue<uint64>::check_and_create((uint64)rsp.sz));
-		if(crcsz.ok()){
-			rsp.sz = crcsz.value();
-		}else{
-			idbgx(Dbg::ser_bin, "error");
-			rd.err = ERR_STREAM_MAX_LIMIT;
-			return BAD;
-		}
-	}
-	if(rd.limits.streamlimit && rsp.sz > static_cast<int64>(rd.limits.streamlimit)){
+	if(rd.limits.streamlimit && _rfd.s > static_cast<int64>(rd.limits.streamlimit)){
 		idbgx(Dbg::ser_bin, "error");
 		rd.err = ERR_STREAM_LIMIT;
 		return BAD;
 	}
 	return OK;
 }
+int Deserializer::parseStreamBegin(Base &_rb, FncData &_rfd){
+	Deserializer	&rd(static_cast<Deserializer&>(_rb));
+	
+	if(!rd.cpb) return OK;
+	
+	rd.streamerr = 0;
+	rd.streamsz = 0;
+	
+	if(_rfd.p == NULL){
+		rd.pop();
+		rd.fstk.top().f = &Deserializer::parseDummyStream;
+		rd.fstk.top().s = 0;
+		return CONTINUE;
+	}
+	
+	if(_rfd.s != -1ULL){
+		if(
+			static_cast<int64>(_rfd.s) != 
+			reinterpret_cast<OutputStream*>(_rfd.p)->seek(_rfd.s)
+		){
+			rd.streamerr = ERR_STREAM_SEEK;
+			rd.pop();
+			rd.fstk.top().f = &Deserializer::parseDummyStream;
+			rd.fstk.top().s = 0;
+			return CONTINUE;
+		}
+	}
+	return OK;
+}
 
 int Deserializer::parseStream(Base &_rb, FncData &_rfd){
-	Deserializer &rd(static_cast<Deserializer&>(_rb));
 	idbgx(Dbg::ser_bin, "");
-	if(!rd.cpb) return OK;
-	OutputStreamData &rsp(*reinterpret_cast<OutputStreamData*>(rd.estk.top().buf));
-	idbgx(Dbg::ser_bin, "rsp.sz = "<<rsp.sz);
-	if(rsp.sz < 0) return OK;
 	
-	int32 towrite = rd.be - rd.cpb;
+	Deserializer	&rd(static_cast<Deserializer&>(_rb));
+	
+	if(!rd.cpb) return OK;
+	
+	int32			towrite = rd.be - rd.cpb;
+	
 	if(towrite < 2){
 		cassert(towrite == 0);
 		return NOK;
 	}
 	towrite -= 2;
-	if(towrite > rsp.sz) towrite = static_cast<int32>(rsp.sz);
-	uint16 sz(0);
+	
+	
+	if(towrite > _rfd.s){
+		towrite = static_cast<int32>(_rfd.s);
+	}
+	
+	uint16	sz(0);
 	rd.cpb = parseValue(rd.cpb, sz);
 	idbgx(Dbg::ser_bin, "sz = "<<sz);
+	
 	if(sz == 0xffff){//error on storing side - the stream is incomplete
 		idbgx(Dbg::ser_bin, "error on storing side");
-		rsp.sz = -1;
+		rd.streamerr = ERR_STREAM_SENDER;
 		return OK;
 	}else{
 		CRCValue<uint16> crcsz(CRCValue<uint16>::check_and_create(sz));
-		if(crcsz.ok() && crcsz.value() == towrite){
+		if(crcsz.ok()){
 			sz = crcsz.value();
 		}else{
-			rd.err = ERR_STREAM_CHUNK_MAX_LIMIT;
+			rd.streamerr = rd.err = ERR_STREAM_CHUNK_MAX_LIMIT;
 			idbgx(Dbg::ser_bin, "crcval = "<<crcsz.value()<<" towrite = "<<towrite);
-			cassert(0);
 			return BAD;
 		}
 	}
+	if(towrite > sz) towrite = sz;
 	idbgx(Dbg::ser_bin, "towrite = "<<towrite);
-	cassert(sz <= rsp.sz);
-	int rv = rsp.pos->write(rsp.off, rd.cpb, towrite);
-	rd.cpb += towrite;
-	rsp.sz -= towrite;
-	rsp.off += towrite;
-	idbgx(Dbg::ser_bin, "rsp.sz = "<<rsp.sz);
-	if(rv != towrite){
-		_rfd.f = &parseDummyStream;
-	}
-	if(rsp.sz) return NOK;
-	return OK;
-}
-int Deserializer::parseDummyStream(Base &_rb, FncData &_rfd){
-	Deserializer &rd(static_cast<Deserializer&>(_rb));
-	idbgx(Dbg::ser_bin, "");
-	if(!rd.cpb) return OK;
-	OutputStreamData &rsp(*reinterpret_cast<OutputStreamData*>(rd.estk.top().buf));
-	if(rsp.sz < 0) return OK;
-	int32 towrite = rd.be - rd.cpb;
-	cassert(towrite > 2);
-	towrite -= 2;
-	if(towrite > rsp.sz) towrite = static_cast<int32>(rsp.sz);
-	const uint16 rsz = *((uint16*)rd.cpb);
-	rd.cpb += 2;
-	if(rsz == 0xffff){//error on storing side - the stream is incomplete
-		rsp.sz = -1;
+	if(towrite == 0){
 		return OK;
 	}
-	rd.cpb += towrite;
-	rsp.sz -= towrite;
-	if(rsp.sz) return NOK;
-	rsp.sz = -1;//the write was not complete
-	return OK;
+	
+	if(rd.limits.streamlimit && (rd.streamsz + towrite) > rd.limits.streamlimit){
+		idbgx(Dbg::ser_bin, "ERR_STREAM_LIMIT");
+		rd.streamerr = rd.err = ERR_STREAM_LIMIT;
+		return BAD;
+	}
+	
+	int rv = reinterpret_cast<OutputStream*>(_rfd.p)->write(rd.cpb, towrite);
+	
+	rd.cpb += sz;
+	
+	if(_rfd.s != -1ULL){
+		_rfd.s -= towrite;
+		idbgx(Dbg::ser_bin, "_rfd.s = "<<_rfd.s);
+		if(_rfd.s == 0){
+			_rfd.f = &parseDummyStream;
+			_rfd.s = rd.streamsz + sz;
+		}
+	}
+	
+	if(rv != towrite){
+		rd.streamerr = ERR_STREAM_WRITE;
+		_rfd.f = &parseDummyStream;
+		_rfd.s = rd.streamsz + sz;
+	}else{
+		rd.streamsz += rv;
+	}
+	idbgx(Dbg::ser_bin, "streamsz = "<<rd.streamsz);
+	return CONTINUE;
+}
+int Deserializer::parseDummyStream(Base &_rb, FncData &_rfd){
+	idbgx(Dbg::ser_bin, "");
+	
+	Deserializer &rd(static_cast<Deserializer&>(_rb));
+	
+	if(!rd.cpb) return OK;
+	
+	int32 towrite = rd.be - rd.cpb;
+	if(towrite < 2){
+		return NOK;
+	}
+	towrite -= 2;
+	if(towrite > _rfd.s){
+		towrite = static_cast<int32>(_rfd.s);
+	}
+	uint16	sz(0);
+	rd.cpb = parseValue(rd.cpb, sz);
+	idbgx(Dbg::ser_bin, "sz = "<<sz);
+	if(sz == 0xffff){//error on storing side - the stream is incomplete
+		rd.streamerr = ERR_STREAM_SENDER;
+		return OK;
+	}else if(sz == 0){
+		return OK;
+	}else{
+		CRCValue<uint16> crcsz(CRCValue<uint16>::check_and_create(sz));
+		if(crcsz.ok()){
+			sz = crcsz.value();
+		}else{
+			rd.streamerr = rd.err = ERR_STREAM_CHUNK_MAX_LIMIT;
+			idbgx(Dbg::ser_bin, "crcval = "<<crcsz.value()<<" towrite = "<<towrite);
+			return BAD;
+		}
+	}
+	rd.cpb += sz;
+	_rfd.s += sz;
+	if(rd.limits.streamlimit && _rfd.s > rd.limits.streamlimit){
+		idbgx(Dbg::ser_bin, "ERR_STREAM_LIMIT");
+		rd.streamerr = rd.err = ERR_STREAM_LIMIT;
+		return BAD;
+	}
+	return CONTINUE;
 }
 int Deserializer::parseUtf8(Base &_rb, FncData &_rfd){
 	Deserializer	&rd(static_cast<Deserializer&>(_rb));
@@ -1156,6 +1367,32 @@ Deserializer& Deserializer::pushBinary(void *_p, size_t _sz, const char *_name){
 Deserializer& Deserializer::pushUtf8(std::string& _str, const char *_name){
 	_str.clear();
 	fstk.push(FncData(&Deserializer::parseUtf8, &_str, _name, 0));
+	return *this;
+}
+Deserializer& Deserializer::pushStream(
+	OutputStream *_ps, const char *_name
+){
+	if(_ps){
+		fstk.push(FncData(&Deserializer::parseStream, _ps, _name, -1ULL));
+	}else{
+		fstk.push(FncData(&Deserializer::parseDummyStream, _ps, _name, -1ULL));
+	}
+	fstk.push(FncData(&Deserializer::parseStreamBegin, _ps, _name, 0));
+	return *this;
+}
+Deserializer& Deserializer::pushStream(
+	OutputStream *_ps,
+	const uint64 &_rat,
+	const uint64 &_rlen,
+	const char *_name
+){
+	if(_ps){
+		fstk.push(FncData(&Deserializer::parseStream, _ps, _name, _rlen));
+	}else{
+		fstk.push(FncData(&Deserializer::parseDummyStream, _ps, _name, _rlen));
+	}
+	fstk.push(FncData(&Deserializer::parseStreamBegin, _ps, _name, _rat));
+	fstk.push(FncData(&Deserializer::parseStreamCheck, _ps, _name, _rlen));
 	return *this;
 }
 //========================================================================

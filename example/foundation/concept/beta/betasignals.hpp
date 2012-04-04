@@ -1,6 +1,6 @@
-/* Declarations file alphaservice.hpp
+/* Declarations file betasignals.hpp
 	
-	Copyright 2007, 2008 Valentin Palade 
+	Copyright 2012 Valentin Palade 
 	vipalade@gmail.com
 
 	This file is part of SolidFrame framework.
@@ -19,42 +19,39 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef ALPHASERVICE_HPP
-#define ALPHASERVICE_HPP
+#ifndef BETASIGNALS_HPP
+#define BETASIGNALS_HPP
 
-#include "core/service.hpp"
+#include <string>
+#include <sstream>
 
-class SocketDevice;
+#include "foundation/signal.hpp"
 
 namespace concept{
+namespace beta{
 
-class Manager;
-
-namespace alpha{
-
-class Connection;
-
-class Service: public Dynamic<Service, concept::Service>{
-public:
-	static Service* create(Manager &);
-	Service();
-	~Service();
-	ObjectUidT insertConnection(
-		const SocketDevice &_rsd,
-		foundation::aio::openssl::Context *_pctx,
-		bool _secure
-	);
-	ObjectUidT insertConnection(
-		SocketAddressInfo &_rai,
-		foundation::aio::openssl::Context *_pctx,
-		bool _secure
-	);
+struct SignalWaiter{
+	virtual void signal() = 0;
 	
-	void insertObject(Connection &_ro, const ObjectUidT &_ruid);
-	void eraseObject(const Connection &_ro);
+	std::ostringstream	oss;
 };
 
-}//namespace alpha
+struct LoginSignal: Dynamic<LoginSignal, foundation::Signal>{
+	LoginSignal(SignalWaiter &_rsw):rsw(_rsw){}
+	int release();
+	SignalWaiter	&rsw;
+	std::string		user;
+	std::string		pass;
+};
+
+struct CancelSignal:Dynamic<CancelSignal, foundation::Signal>{
+	CancelSignal(SignalWaiter &_rsw):rsw(_rsw){}
+	int release();
+	SignalWaiter	&rsw;
+	uint32			tag;
+};
+
+}//namespace beta
 }//namespace concept
 
 

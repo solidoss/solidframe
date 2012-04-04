@@ -55,7 +55,7 @@ struct SocketAddressInfoIterator{
 private:
 	friend struct SocketAddressInfo;
 	SocketAddressInfoIterator(addrinfo *_pa):paddr(_pa){}
-	addrinfo	*paddr;
+	mutable addrinfo	*paddr;
 };
 //! A wrapper for POSIX getaddrinfo (see man getaddrinfo)
 /*!
@@ -83,6 +83,9 @@ struct SocketAddressInfo{
 		Datagram = SOCK_DGRAM
 	};
 	SocketAddressInfo(){}
+	SocketAddressInfo(const SocketAddressInfo &_rai):ib(_rai.ib.paddr){
+		_rai.ib.paddr = NULL;
+	}
 	//! Create an addr info using a name and a service name
 	SocketAddressInfo(const char *_node, const char *_service){
 		reinit(_node, _service);
@@ -145,6 +148,11 @@ struct SocketAddressInfo{
 	SocketAddressInfoIterator begin(){ return ib;}
 	//! Check if the returned list of ip addresses is empty
 	bool empty()const{return ib.paddr == NULL;}
+	SocketAddressInfo& operator=(const SocketAddressInfo &_rai){
+		ib.paddr = _rai.ib.paddr;
+		_rai.ib.paddr = NULL;
+		return *this;
+	}
 private:
 	SocketAddressInfoIterator	ib;
 };

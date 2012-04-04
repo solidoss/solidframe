@@ -27,9 +27,9 @@
 
 #include "system/common.hpp"
 
-#ifndef BUF_CACHE_CAP
-#define BUF_CACHE_CAP 11
-#endif
+// #ifndef BUF_CACHE_CAP
+// #define BUF_CACHE_CAP 11
+// #endif
 
 
 template <class T, unsigned V = 32>

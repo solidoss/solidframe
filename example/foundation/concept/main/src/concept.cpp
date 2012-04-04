@@ -30,7 +30,8 @@
 #include "core/manager.hpp"
 //#include "echo/echoservice.hpp"
 #include "alpha/alphaservice.hpp"
-//#include "beta/betaservice.hpp"
+#include "beta/betaservice.hpp"
+#include "beta/betasignals.hpp"
 #include "proxy/proxyservice.hpp"
 #include "gamma/gammaservice.hpp"
 #include "audit/log/logmanager.hpp"
@@ -57,8 +58,6 @@ using namespace std;
 void printHelp();
 // inserts a new talker
 int insertTalker(char *_pc, int _len, concept::Manager &_rtm);
-// inserts a new connection
-int insertConnection(char *_pc, int _len, concept::Manager &_rtm);
 
 
 struct DeviceInputOutputStream: InputOutputStream{
@@ -98,18 +97,23 @@ struct Params{
 	bool		log;
 };
 
-struct SignalResultWaiter{
+struct SignalResultWaiter: concept::beta::SignalWaiter{
 	SignalResultWaiter():s(false){}
 	void prepare(){
 		s = false;
 	}
-	void signal(int _v){
+	void signal(const ObjectUidT &_v){
 		Locker<Mutex> lock(m);
 		v = _v;
 		s = true;
 		c.signal();
 	}
-	int wait(){
+	void signal(){
+		Locker<Mutex> lock(m);
+		s = true;
+		c.signal();
+	}
+	ObjectUidT wait(){
 		Locker<Mutex> lock(m);
 		while(!s){
 			c.wait(lock);
@@ -118,7 +122,7 @@ struct SignalResultWaiter{
 	}
 	Mutex		m;
 	Condition	c;
-	int			v;
+	ObjectUidT	v;
 	bool		s;
 };
 
@@ -126,9 +130,9 @@ struct SocketAddressInfoSignal: concept::SocketAddressInfoSignal{
 	SocketAddressInfoSignal(uint32 _v, SignalResultWaiter &_rwait):concept::SocketAddressInfoSignal(_v), pwait(&_rwait){}
 	~SocketAddressInfoSignal(){
 		if(pwait)
-			pwait->signal(-2);
+			pwait->signal(fdt::invalid_uid());
 	}
-	void result(int _rv){
+	void result(const ObjectUidT &_rv){
 		pwait->signal(_rv);
 		pwait = NULL;
 	}
@@ -137,7 +141,35 @@ struct SocketAddressInfoSignal: concept::SocketAddressInfoSignal{
 
 bool parseArguments(Params &_par, int argc, char *argv[]);
 
-void insertListener(SignalResultWaiter &_rw, const char *_name, IndexT _idx, const char *_addr, int _port, bool _secure);
+void insertListener(
+	SignalResultWaiter &_rw,
+	const char *_name,
+	IndexT _idx,
+	const char *_addr,
+	int _port,
+	bool _secure
+);
+
+void insertConnection(
+	SignalResultWaiter &_rw,
+	const char *_name,
+	IndexT _idx,
+	const char *_addr,
+	const char *_port,
+	bool _secure
+);
+
+//cli:
+// inserts a new connection
+int insertConnection(
+	SignalResultWaiter &_rw,
+	const char *_name,
+	IndexT _idx,
+	char *_pc,
+	int _len
+);
+
+int sendBetaLogin(SignalResultWaiter &_rw, char *_pc, int _len);
 
 int main(int argc, char* argv[]){
 	signal(SIGPIPE, SIG_IGN);
@@ -220,6 +252,7 @@ int main(int argc, char* argv[]){
 		const IndexT alphaidx = m.registerService<concept::SchedulerT>(concept::alpha::Service::create(m));
 		const IndexT proxyidx = m.registerService<concept::SchedulerT>(concept::proxy::Service::create());
 		const IndexT gammaidx = m.registerService<concept::SchedulerT>(concept::gamma::Service::create());
+		const IndexT betaidx = m.registerService<concept::SchedulerT>(concept::beta::Service::create(m));
 		
 		m.start();
 		
@@ -248,6 +281,10 @@ int main(int argc, char* argv[]){
 			//insertListener(rw, "alpha", alphaidx, "0.0.0.0", p.start_port + 124, true);
 		}
 		
+		if(true){//creates and registers a new alpha service
+			insertListener(rw, "beta", betaidx, "0.0.0.0", p.start_port + 414, false);
+		}
+		
 		char buf[2048];
 		int rc = 0;
 		// the small CLI loop
@@ -265,28 +302,16 @@ int main(int argc, char* argv[]){
 				cout<<"signalled to stop"<<endl;
 				break;
 			}
-			if(!strncasecmp(buf,"fetchobj",8)){
-				//rc = fetchobj(buf + 8,cin.gcount() - 8,tm,ti);
-				continue;
-			}
-			if(!strncasecmp(buf,"printobj",8)){
-				//rc = printobj(buf + 8,cin.gcount() - 8,tm,ti);
-				continue;
-			}
-			if(!strncasecmp(buf,"signalobj",9)){
-				//rc = signalobj(buf + 9,cin.gcount() - 9,tm,ti);
-				continue;
-			}
 			if(!strncasecmp(buf,"help",4)){
 				printHelp();
 				continue;
 			}
-			if(!strncasecmp(buf,"addtalker",9)){
-				rc = insertTalker(buf + 9,cin.gcount() - 9,m);
+			if(!strncasecmp(buf,"addbetaconnection", 17)){
+				rc = insertConnection(rw, "beta", betaidx, buf + 17, cin.gcount() - 17);
 				continue;
 			}
-			if(!strncasecmp(buf,"addconnection", 13)){
-				rc = insertConnection(buf + 13, cin.gcount() - 13, m);
+			if(!strncasecmp(buf,"betalogin", 9)){
+				rc = sendBetaLogin(rw, buf + 9, cin.gcount() - 9);
 				continue;
 			}
 			cout<<"Error parsing command line"<<endl;
@@ -301,30 +326,65 @@ void printHelp(){
 	cout<<"Server commands:"<<endl;
 	cout<<"[quit]:\tStops the server and exits the application"<<endl;
 	cout<<"[help]:\tPrint this text"<<endl;
-	cout<<"[fetchobj SP service_name SP object_type]: Fetches the list of object_type (int) objects from service named service_name (string)"<<endl;
-	cout<<"[printobj]: Prints the list of objects previously fetched"<<endl;
-	cout<<"[signalobj SP fetch_list_index SP signal]: Signals an object in the list previuously fetched"<<endl;
+	cout<<"[addbetaconnection SP addr SP port]: adds new alpha connection"<<endl;
+	cout<<"[betalogin SP user SP pass]: send a beta::login command"<<endl;
+	cout<<"[betacancel SP tag]: send a beta::cancel command"<<endl;
 }
 
-void insertListener(SignalResultWaiter &_rw, const char *_name, IndexT _idx, const char *_addr, int _port, bool _secure){
+void insertListener(
+	SignalResultWaiter &_rw,
+	const char *_name,
+	IndexT _idx,
+	const char *_addr,
+	int _port,
+	bool _secure
+){
 	concept::SocketAddressInfoSignal *psig(new SocketAddressInfoSignal(_secure? concept::Service::AddSslListener : concept::Service::AddListener, _rw));
 
 	psig->init(_addr, _port, 0, SocketAddressInfo::Inet4, SocketAddressInfo::Stream);
 	DynamicPointer<foundation::Signal> dp(psig);
 	_rw.prepare();
 	concept::m().signalService(_idx, dp);
-	int rv;
-	switch((rv = _rw.wait())){
-		case -2:
-			cout<<"["<<_name<<"] No such service"<<endl;
-			break;
-		case true:
-			cout<<"["<<_name<<"] Added listener on port "<<_port<<endl;
-			break;
-		default:
-			cout<<"["<<_name<<"] Failed adding listener on port "<<_port<<" rv = "<<rv<<endl;
+	ObjectUidT rv = _rw.wait();
+	
+	if(fdt::is_invalid_uid(rv)){
+		cout<<"["<<_name<<"] Failed adding listener on port "<<_port<<endl;
+	}else{
+		cout<<"["<<_name<<"] Added listener on port "<<_port<<" objid = "<<rv.first<<','<<rv.second<<endl;
 	}
 }
+
+static ObjectUidT crtcon(foundation::invalid_uid());
+
+void insertConnection(
+	SignalResultWaiter &_rw,
+	const char *_name,
+	IndexT _idx,
+	const char *_addr,
+	const char *_port,
+	bool _secure
+){
+	concept::SocketAddressInfoSignal *psig(
+		new SocketAddressInfoSignal(
+			_secure? concept::Service::Service::AddSslConnection : concept::Service::AddConnection,
+			_rw
+		)
+	);
+
+	psig->init(_addr, _port, 0, SocketAddressInfo::Inet4, SocketAddressInfo::Stream);
+	DynamicPointer<foundation::Signal> dp(psig);
+	_rw.prepare();
+	concept::m().signalService(_idx, dp);
+	ObjectUidT rv = _rw.wait();
+	
+	if(fdt::is_invalid_uid(rv)){
+		cout<<"["<<_name<<"] Failed adding connection to "<<_addr<<':'<<_port<<endl;
+	}else{
+		cout<<"["<<_name<<"] Added connection to "<<_addr<<':'<<_port<<" objid = "<<rv.first<<','<<rv.second<<endl;
+		crtcon = rv;
+	}
+}
+
 //>fetchobj servicename type
 /*
 int fetchobj(char *_pc, int _len,TestServer &_rts,TheInspector &_rti){
@@ -384,14 +444,13 @@ int insertTalker(char *_pc, int _len,concept::Manager &_rtm){
 // 	}
 	return 0;
 }
-int insertConnection(char *_pc, int _len,concept::Manager &_rtm){
-	if(*_pc != ' ') return -1;
-	++_pc;
-	string srvname;
-	while(*_pc != ' ' && *_pc != 0){
-		srvname += *_pc;
-		++_pc;
-	}
+int insertConnection(
+	SignalResultWaiter &_rw,
+	const char *_name,
+	IndexT _idx,
+	char *_pc,
+	int _len
+){
 	if(*_pc != ' ') return -1;
 	++_pc;
 	string node;
@@ -406,14 +465,38 @@ int insertConnection(char *_pc, int _len,concept::Manager &_rtm){
 		srv += *_pc;
 		++_pc;
 	}
-	SocketAddressInfo ai("0.0.0.0","");
-// 	if(ai.empty() || _rtm.insertConnection(srvname.c_str(), ai.begin(), node.c_str(), srv.c_str())){
-// 		cout<<"Failed adding connection"<<endl;
-// 	}
-	//TODO:
-// 	if(_rts.insertConnection(srvname.c_str(), new fdt::tcp::Channel, node.c_str(), srv.c_str())){
-// 		cout<<"Failed adding connection"<<endl;
-// 	}
+	insertConnection(_rw, _name,  _idx, node.c_str(), srv.c_str(), false);
+	return 0;
+}
+
+int sendBetaLogin(SignalResultWaiter &_rw, char *_pc, int _len){
+	if(*_pc != ' ') return -1;
+	++_pc;
+	string user;
+	while(*_pc != ' ' && *_pc != 0){
+		user += *_pc;
+		++_pc;
+	}
+	if(*_pc != ' ') return -1;
+	++_pc;
+	string pass;
+	while(*_pc != ' ' && *_pc != 0){
+		pass += *_pc;
+		++_pc;
+	}
+	
+	_rw.prepare();
+	
+	concept::beta::LoginSignal		login(_rw);
+	DynamicPointer<fdt::Signal>		dp(&login);
+	login.user = user;
+	login.pass = pass;
+	
+	concept::m().signal(dp, crtcon);
+	
+	_rw.wait();
+	
+	cout<<_rw.oss.str()<<endl;
 	return 0;
 }
 

@@ -67,25 +67,25 @@ public:
 	void eraseObject(const Listener &_ro);
 protected:
 	friend class Listener;
-	bool insertListener(
-		const SocketAddressInfoIterator &_rai,
+	ObjectUidT insertListener(
+		SocketAddressInfo &_rai,
 		bool _secure = false
 	);
-	virtual bool insertConnection(
+	virtual ObjectUidT insertConnection(
 		const SocketDevice &_rsd,
 		foundation::aio::openssl::Context *_pctx = NULL,
 		bool _secure = false
 	);
 	
-	virtual bool insertTalker(
-		const SocketAddressInfoIterator &_rai,
-		const char *_node,
-		const char *_svc
+	virtual ObjectUidT insertTalker(
+		SocketAddressInfo &_rai,
+		foundation::aio::openssl::Context *_pctx = NULL,
+		bool _secure = false
 	);
-	virtual bool insertConnection(
-		const SocketAddressInfoIterator &_rai,
-		const char *_node,
-		const char *_svc
+	virtual ObjectUidT insertConnection(
+		SocketAddressInfo &_rai,
+		foundation::aio::openssl::Context *_pctx = NULL,
+		bool _secure = false
 	);
 };
 

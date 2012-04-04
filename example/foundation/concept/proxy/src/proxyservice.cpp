@@ -43,22 +43,21 @@ Service::Service(){
 Service::~Service(){
 }
 
-bool Service::insertConnection(
+ObjectUidT Service::insertConnection(
 	const SocketDevice &_rsd,
 	foundation::aio::openssl::Context *_pctx,
 	bool _secure
 ){
 	fdt::ObjectPointer<MultiConnection> conptr(new MultiConnection(_rsd));
-	this->insert<AioSchedulerT>(conptr, 0);
-	return true;
+	return this->insert<AioSchedulerT>(conptr, 0);
 }
 
-bool Service::insertConnection(
+ObjectUidT Service::insertConnection(
 	const SocketAddressInfoIterator &_rai,
 	const char *_node,
 	const char *_svc
 ){
-	return true;
+	return fdt::invalid_uid();
 }
 
 void Service::eraseObject(const MultiConnection &_ro){

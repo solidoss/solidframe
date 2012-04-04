@@ -63,8 +63,18 @@ void SocketAddressInfoSignal::init(
 ){
 	addrinfo.reinit(_node, _port, _flags, _family, _type, _proto);
 }
+void SocketAddressInfoSignal::init(
+	const char *_node,
+	const char *_port, 
+	int _flags,
+	int _family,
+	int _type,
+	int _proto
+){
+	addrinfo.reinit(_node, _port, _flags, _family, _type, _proto);
+}
 
-void SocketAddressInfoSignal::result(int _rv){
+void SocketAddressInfoSignal::result(const ObjectUidT &_rv){
 }
 
 }//namespace concept
