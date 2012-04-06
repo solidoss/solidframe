@@ -51,7 +51,8 @@ struct BufferContext;
 
 struct Controller{
 	enum{
-		HasAuthenticationFlag = 1,
+		AuthenticationFlag = 1,
+		GatewayFlag = 2
 	};
 	virtual ~Controller();
 	virtual bool release() = 0;
@@ -68,7 +69,11 @@ struct Controller{
 		uint32 &_bl
 	);
 	bool hasAuthentication()const{
-		return (flags & HasAuthenticationFlag) != 0;
+		return (flags & AuthenticationFlag) != 0;
+	}
+	
+	bool isGateway()const{
+		return (flags & GatewayFlag) != 0;
 	}
 	
 	virtual bool receive(
@@ -98,8 +103,8 @@ protected:
 	): resdatasz(_resdatasz), flags(_flags){}
 	char * allocateBuffer(BufferContext &_rbc, uint32 &_cp);
 private:
-	uint32 		resdatasz;
-	uint32		flags;
+	const uint32	resdatasz;
+	uint32			flags;
 };
 
 
@@ -269,6 +274,41 @@ public:
 		uint32	_flags = 0
 	);
 	
+	
+	//-- the relay sends
+	
+	int sendSignal(
+		DynamicPointer<Signal> &_psig,//the signal to be sent
+		const SocketAddressPair &_rsap_gate,
+		const SocketAddressPair &_rsap_dest,
+		ConnectionUid &_rconid,
+		uint32	_flags = 0
+	);
+	int sendSignal(
+		DynamicPointer<Signal> &_psig,//the signal to be sent
+		const SocketAddressPair &_rsap_gate,
+		const SocketAddressPair &_rsap_dest,
+		uint32	_flags = 0
+	);
+	
+	int sendSignal(
+		DynamicPointer<Signal> &_psig,//the signal to be sent
+		const SerializationTypeIdT &_rtid,
+		const SocketAddressPair &_rsap_gate,
+		const SocketAddressPair &_rsap_dest,
+		ConnectionUid &_rconid,
+		uint32	_flags = 0
+	);
+	int sendSignal(
+		DynamicPointer<Signal> &_psig,//the signal to be sent
+		const SerializationTypeIdT &_rtid,
+		const SocketAddressPair &_rsap_gate,
+		const SocketAddressPair &_rsap_dest,
+		uint32	_flags = 0
+	);
+	
+	
+	
 	//! Not used for now - will be used when ipc will use tcp connections
 	int insertConnection(
 		const SocketDevice &_rsd
@@ -308,6 +348,14 @@ private:
 		DynamicPointer<Signal> &_psig,//the signal to be sent
 		const SerializationTypeIdT &_rtid,
 		const SocketAddressPair &_rsap,
+		ConnectionUid *_pconid,
+		uint32	_flags = 0
+	);
+	int doSendSignal(
+		DynamicPointer<Signal> &_psig,//the signal to be sent
+		const SerializationTypeIdT &_rtid,
+		const SocketAddressPair &_rsap_gate,
+		const SocketAddressPair &_rsap_dest,
 		ConnectionUid *_pconid,
 		uint32	_flags = 0
 	);
@@ -368,6 +416,46 @@ inline const serialization::TypeMapperBase& Service::typeMapperBase() const{
 
 inline Service::IdTypeMapper& Service::typeMapper(){
 	return typemapper;
+}
+
+//-- relay sends
+
+int Service::sendSignal(
+	DynamicPointer<Signal> &_psig,//the signal to be sent
+	const SocketAddressPair &_rsap_gate,
+	const SocketAddressPair &_rsap_dest,
+	ConnectionUid &_rconid,
+	uint32	_flags
+){
+	return doSendSignal(_psig, SERIALIZATION_INVALIDID, _rsap_gate, _rsap_dest, &_rconid, _flags);
+}
+int Service::sendSignal(
+	DynamicPointer<Signal> &_psig,//the signal to be sent
+	const SocketAddressPair &_rsap_gate,
+	const SocketAddressPair &_rsap_dest,
+	uint32	_flags
+){
+	return doSendSignal(_psig, SERIALIZATION_INVALIDID, _rsap_gate, _rsap_dest, NULL, _flags);
+}
+
+int Service::sendSignal(
+	DynamicPointer<Signal> &_psig,//the signal to be sent
+	const SerializationTypeIdT &_rtid,
+	const SocketAddressPair &_rsap_gate,
+	const SocketAddressPair &_rsap_dest,
+	ConnectionUid &_rconid,
+	uint32	_flags
+){
+	return doSendSignal(_psig, _rtid, _rsap_gate, _rsap_dest, &_rconid, _flags);
+}
+int Service::sendSignal(
+	DynamicPointer<Signal> &_psig,//the signal to be sent
+	const SerializationTypeIdT &_rtid,
+	const SocketAddressPair &_rsap_gate,
+	const SocketAddressPair &_rsap_dest,
+	uint32	_flags
+){
+	return doSendSignal(_psig, _rtid, _rsap_gate, _rsap_dest, NULL, _flags);
 }
 
 }//namespace ipc

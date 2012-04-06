@@ -404,6 +404,10 @@ Session::Data::Data(
 		sendbufferfreeposstk.push(i);
 	}
 	sendsignalvec.reserve(Data::MaxSendSignalQueueSize);
+	idbgx(Dbg::ipc, "Sizeof(Session::Data) = "<<sizeof(*this));
+#ifdef USTATISTICS
+	idbgx(Dbg::ipc, "Sizeof(StatisticData) = "<<sizeof(this->statistics));
+#endif
 }
 //---------------------------------------------------------------------
 Session::Data::Data(

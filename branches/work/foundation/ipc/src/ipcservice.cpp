@@ -227,7 +227,7 @@ int Service::doSendSignal(
 	if(
 		_rsap.family() != SocketAddressInfo::Inet4 && 
 		_rsap.family() != SocketAddressInfo::Inet6
-	) return -1;
+	) return BAD;
 	
 	Locker<Mutex>	lock(serviceMutex());
 	
@@ -306,6 +306,128 @@ int Service::doSendSignal(
 	}else{//inet6
 		cassert(false);
 		//TODO:
+	}
+	return OK;
+}
+//---------------------------------------------------------------------
+int Service::doSendSignal(
+	DynamicPointer<Signal> &_psig,//the signal to be sent
+	const SerializationTypeIdT &_rtid,
+	const SocketAddressPair &_rsap_gate,
+	const SocketAddressPair &_rsap_dest,
+	ConnectionUid *_pconid,
+	uint32	_flags
+){
+	
+	if(
+		_rsap_gate.family() != SocketAddressInfo::Inet4 /*&& 
+		_rsap_gate.family() != SocketAddressInfo::Inet6*/
+	) return BAD;
+	if(
+		_rsap_dest.family() != SocketAddressInfo::Inet4 /*&& 
+		_rsap_dest.family() != SocketAddressInfo::Inet6*/
+	) return BAD;
+	
+	Locker<Mutex>							lock(serviceMutex());
+	SocketAddressPair4 						addr_gate(_rsap_gate);
+	SocketAddressPair4 						addr_dest(_rsap_dest);
+	Data::RelayAddr4PairT					relay_addr(
+		&addr_gate, addr_gate.port()
+		&addr_dest, addr_dest.port()
+	);
+	Data::RelaySessionAddr4MapT::iterator	it(d.relaysessionaddr4map.find(&relay_addr));
+	
+	if(it != d.relaysessionaddr4map.end()){
+	
+		vdbgx(Dbg::ipc, "");
+		
+		ConnectionUid		conid(it->second);
+		IndexT				idx(Manager::the().computeIndex(d.tkrvec[conid.tid].uid.first));
+		Locker<Mutex>		lock2(this->mutex(idx));
+		Talker				*ptkr(static_cast<Talker*>(this->objectAt(idx)));
+		
+		cassert(conid.tid < d.tkrvec.size());
+		cassert(ptkr);
+		
+		if(ptkr->pushSignal(_psig, _rtid, conid, _flags)){
+			//the talker must be signaled
+			if(ptkr->signal(fdt::S_RAISE)){
+				Manager::the().raiseObject(*ptkr);
+			}
+		}
+		if(_pconid){
+			*_pconid = conid;
+		}
+		return OK;
+	
+	}
+	
+	Session::Addr4PairT					baddr(&addr_gate, addr_gate.port());
+	Data::SessionAddr4MapT::iterator	it(d.sessionaddr4map.find(&baddr));
+		
+	if(it != d.sessionaddr4map.end()){
+		
+		vdbgx(Dbg::ipc, "");
+		
+		ConnectionUid		conid(it->second);
+		IndexT				idx(Manager::the().computeIndex(d.tkrvec[conid.tid].uid.first));
+		Locker<Mutex>		lock2(this->mutex(idx));
+		Talker				*ptkr(static_cast<Talker*>(this->objectAt(idx)));
+		
+		cassert(conid.tid < d.tkrvec.size());
+		cassert(ptkr);
+		
+		if(ptkr->pushSignal(_psig, _rtid, conid, _flags)){
+			//the talker must be signaled
+			if(ptkr->signal(fdt::S_RAISE)){
+				Manager::the().raiseObject(*ptkr);
+			}
+		}
+		if(_pconid){
+			*_pconid = conid;
+		}
+		return OK;
+	}
+	vdbgx(Dbg::ipc, "");
+		
+	int16	tkrid(allocateTalkerForNewSession());
+	IndexT	tkrpos;
+	uint32	tkruid;
+	
+	if(tkrid >= 0){
+		//the talker exists
+		tkrpos = d.tkrvec[tkrid].uid.first;
+		tkruid = d.tkrvec[tkrid].uid.second;
+	}else{
+		//create new talker
+		tkrid = createNewTalker(tkrpos, tkruid);
+		if(tkrid < 0){
+			tkrid = allocateTalkerForNewSession(true/*force*/);
+		}
+		tkrpos = d.tkrvec[tkrid].uid.first;
+		tkruid = d.tkrvec[tkrid].uid.second;
+	}
+	
+	tkrpos = Manager::the().computeIndex(tkrpos);
+	
+	Locker<Mutex>		lock2(this->mutex(tkrpos));
+	Talker				*ptkr(static_cast<Talker*>(this->objectAt(tkrpos)));
+	cassert(ptkr);
+	Session				*pses(new Session(inaddr, d.keepalivetout));
+	ConnectionUid		conid(tkrid);
+	
+	vdbgx(Dbg::ipc, "");
+	ptkr->pushSession(pses, conid);
+	d.sessionaddr4map[pses->baseAddr4()] = conid;
+	
+	ptkr->pushSignal(_psig, _rtid, conid, _flags);
+	
+	if(ptkr->signal(fdt::S_RAISE)){
+		Manager::the().raiseObject(*ptkr);
+	}
+	
+	if(_pconid){
+		*_pconid = conid;
 	}
 	return OK;
 }
