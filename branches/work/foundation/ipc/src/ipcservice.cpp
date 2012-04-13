@@ -318,7 +318,7 @@ int Service::doSendSignal(
 	ConnectionUid *_pconid,
 	uint32	_flags
 ){
-	
+#if 0
 	if(
 		_rsap_gate.family() != SocketAddressInfo::Inet4 /*&& 
 		_rsap_gate.family() != SocketAddressInfo::Inet6*/
@@ -430,6 +430,7 @@ int Service::doSendSignal(
 		*_pconid = conid;
 	}
 	return OK;
+#endif
 }
 //---------------------------------------------------------------------
 int Service::allocateTalkerForNewSession(bool _force){

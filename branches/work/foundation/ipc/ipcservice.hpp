@@ -420,7 +420,7 @@ inline Service::IdTypeMapper& Service::typeMapper(){
 
 //-- relay sends
 
-int Service::sendSignal(
+inline int Service::sendSignal(
 	DynamicPointer<Signal> &_psig,//the signal to be sent
 	const SocketAddressPair &_rsap_gate,
 	const SocketAddressPair &_rsap_dest,
@@ -429,7 +429,7 @@ int Service::sendSignal(
 ){
 	return doSendSignal(_psig, SERIALIZATION_INVALIDID, _rsap_gate, _rsap_dest, &_rconid, _flags);
 }
-int Service::sendSignal(
+inline int Service::sendSignal(
 	DynamicPointer<Signal> &_psig,//the signal to be sent
 	const SocketAddressPair &_rsap_gate,
 	const SocketAddressPair &_rsap_dest,
@@ -438,7 +438,7 @@ int Service::sendSignal(
 	return doSendSignal(_psig, SERIALIZATION_INVALIDID, _rsap_gate, _rsap_dest, NULL, _flags);
 }
 
-int Service::sendSignal(
+inline int Service::sendSignal(
 	DynamicPointer<Signal> &_psig,//the signal to be sent
 	const SerializationTypeIdT &_rtid,
 	const SocketAddressPair &_rsap_gate,
@@ -448,7 +448,7 @@ int Service::sendSignal(
 ){
 	return doSendSignal(_psig, _rtid, _rsap_gate, _rsap_dest, &_rconid, _flags);
 }
-int Service::sendSignal(
+inline int Service::sendSignal(
 	DynamicPointer<Signal> &_psig,//the signal to be sent
 	const SerializationTypeIdT &_rtid,
 	const SocketAddressPair &_rsap_gate,

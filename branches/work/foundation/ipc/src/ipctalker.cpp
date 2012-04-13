@@ -164,15 +164,20 @@ struct Talker::Data{
 			return _rtd1.timepos > _rtd2.timepos;
 		}
 	};
-	
+	enum{
+		SessionNormal = 0,
+		SessionRelayed,
+	};
 	struct SessionStub{
 		SessionStub(
 			Session *_psession = NULL,
-			uint16 _uid = 0
+			uint16 _uid = 0,
+			uint8 _type = SessionNormal
 		):psession(_psession), uid(_uid), inexeq(false){}
 		Session		*psession;
 		uint16		uid;
 		bool		inexeq;
+		uint8		type;
 	};
 	
 	
