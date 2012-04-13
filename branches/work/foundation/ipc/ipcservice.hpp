@@ -280,6 +280,7 @@ public:
 	int sendSignal(
 		DynamicPointer<Signal> &_psig,//the signal to be sent
 		const SocketAddressPair &_rsap_gate,
+		const uint32 _netidx_dest,
 		const SocketAddressPair &_rsap_dest,
 		ConnectionUid &_rconid,
 		uint32	_flags = 0
@@ -287,6 +288,7 @@ public:
 	int sendSignal(
 		DynamicPointer<Signal> &_psig,//the signal to be sent
 		const SocketAddressPair &_rsap_gate,
+		const uint32 _netidx_dest,
 		const SocketAddressPair &_rsap_dest,
 		uint32	_flags = 0
 	);
@@ -295,6 +297,7 @@ public:
 		DynamicPointer<Signal> &_psig,//the signal to be sent
 		const SerializationTypeIdT &_rtid,
 		const SocketAddressPair &_rsap_gate,
+		const uint32 _netidx_dest,
 		const SocketAddressPair &_rsap_dest,
 		ConnectionUid &_rconid,
 		uint32	_flags = 0
@@ -303,6 +306,7 @@ public:
 		DynamicPointer<Signal> &_psig,//the signal to be sent
 		const SerializationTypeIdT &_rtid,
 		const SocketAddressPair &_rsap_gate,
+		const uint32 _netidx_dest,
 		const SocketAddressPair &_rsap_dest,
 		uint32	_flags = 0
 	);
@@ -355,6 +359,7 @@ private:
 		DynamicPointer<Signal> &_psig,//the signal to be sent
 		const SerializationTypeIdT &_rtid,
 		const SocketAddressPair &_rsap_gate,
+		const uint32 _netidx_dest,
 		const SocketAddressPair &_rsap_dest,
 		ConnectionUid *_pconid,
 		uint32	_flags = 0
@@ -423,39 +428,43 @@ inline Service::IdTypeMapper& Service::typeMapper(){
 inline int Service::sendSignal(
 	DynamicPointer<Signal> &_psig,//the signal to be sent
 	const SocketAddressPair &_rsap_gate,
+	const uint32 _netidx_dest,
 	const SocketAddressPair &_rsap_dest,
 	ConnectionUid &_rconid,
 	uint32	_flags
 ){
-	return doSendSignal(_psig, SERIALIZATION_INVALIDID, _rsap_gate, _rsap_dest, &_rconid, _flags);
+	return doSendSignal(_psig, SERIALIZATION_INVALIDID, _rsap_gate, _netidx_dest, _rsap_dest, &_rconid, _flags);
 }
 inline int Service::sendSignal(
 	DynamicPointer<Signal> &_psig,//the signal to be sent
 	const SocketAddressPair &_rsap_gate,
+	const uint32 _netidx_dest,
 	const SocketAddressPair &_rsap_dest,
 	uint32	_flags
 ){
-	return doSendSignal(_psig, SERIALIZATION_INVALIDID, _rsap_gate, _rsap_dest, NULL, _flags);
+	return doSendSignal(_psig, SERIALIZATION_INVALIDID, _rsap_gate, _netidx_dest, _rsap_dest, NULL, _flags);
 }
 
 inline int Service::sendSignal(
 	DynamicPointer<Signal> &_psig,//the signal to be sent
 	const SerializationTypeIdT &_rtid,
 	const SocketAddressPair &_rsap_gate,
+	const uint32 _netidx_dest,
 	const SocketAddressPair &_rsap_dest,
 	ConnectionUid &_rconid,
 	uint32	_flags
 ){
-	return doSendSignal(_psig, _rtid, _rsap_gate, _rsap_dest, &_rconid, _flags);
+	return doSendSignal(_psig, _rtid, _rsap_gate, _netidx_dest, _rsap_dest, &_rconid, _flags);
 }
 inline int Service::sendSignal(
 	DynamicPointer<Signal> &_psig,//the signal to be sent
 	const SerializationTypeIdT &_rtid,
 	const SocketAddressPair &_rsap_gate,
+	const uint32 _netidx_dest,
 	const SocketAddressPair &_rsap_dest,
 	uint32	_flags
 ){
-	return doSendSignal(_psig, _rtid, _rsap_gate, _rsap_dest, NULL, _flags);
+	return doSendSignal(_psig, _rtid, _rsap_gate, _netidx_dest, _rsap_dest, NULL, _flags);
 }
 
 }//namespace ipc

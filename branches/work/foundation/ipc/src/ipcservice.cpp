@@ -314,6 +314,7 @@ int Service::doSendSignal(
 	DynamicPointer<Signal> &_psig,//the signal to be sent
 	const SerializationTypeIdT &_rtid,
 	const SocketAddressPair &_rsap_gate,
+	const uint32 _netidx_dest,
 	const SocketAddressPair &_rsap_dest,
 	ConnectionUid *_pconid,
 	uint32	_flags
@@ -429,8 +430,8 @@ int Service::doSendSignal(
 	if(_pconid){
 		*_pconid = conid;
 	}
-	return OK;
 #endif
+	return OK;
 }
 //---------------------------------------------------------------------
 int Service::allocateTalkerForNewSession(bool _force){

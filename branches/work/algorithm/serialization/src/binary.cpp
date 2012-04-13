@@ -1126,18 +1126,18 @@ int Deserializer::parse<std::string>(Base &_rb, FncData &_rfd){
 	idbgx(Dbg::ser_bin, "parse generic non pointer string");
 	Deserializer &rd(static_cast<Deserializer&>(_rb));
 	if(!rd.cpb) return OK;
-	rd.estk.push(ExtData((int32)0));
+	rd.estk.push(ExtData((uint32)0));
 	rd.replace(FncData(&Deserializer::parseBinaryString, _rfd.p, _rfd.n));
 	rd.fstk.push(FncData(&Deserializer::parseBinaryStringCheck, NULL, _rfd.n));
-	rd.fstk.push(FncData(&Deserializer::parse<int32>, &rd.estk.top().i32()));
+	rd.fstk.push(FncData(&Deserializer::parse<uint32>, &rd.estk.top().u32()));
 	return CONTINUE;
 }
 int Deserializer::parseBinaryStringCheck(Base &_rb, FncData &_rfd){
 	Deserializer &rd(static_cast<Deserializer&>(_rb));
 	if(!rd.cpb) return OK;
-	const int32 len = rd.estk.top().i32();
-	if(len != -1){
-		const CRCValue<uint32> crcsz(CRCValue<uint32>::check_and_create((uint32)len));
+	const uint32 len = rd.estk.top().u32();
+	if(len != static_cast<uint32>(-1)){
+		const CRCValue<uint32> crcsz(CRCValue<uint32>::check_and_create(len));
 		if(crcsz.ok()){
 			rd.estk.top().u32() = crcsz.value();
 		}else{
@@ -1145,9 +1145,9 @@ int Deserializer::parseBinaryStringCheck(Base &_rb, FncData &_rfd){
 			return BAD;
 		}
 	}
-	int32 ul = rd.estk.top().i32();
+	uint32 ul = rd.estk.top().i32();
 	
-	if(ul > 0 && rd.limits.stringlimit && ul >= static_cast<int32>(rd.limits.stringlimit)){
+	if(rd.limits.stringlimit && ul >= static_cast<uint32>(rd.limits.stringlimit)){
 		idbgx(Dbg::ser_bin, "error");
 		rd.err = ERR_STRING_LIMIT;
 		return BAD;
