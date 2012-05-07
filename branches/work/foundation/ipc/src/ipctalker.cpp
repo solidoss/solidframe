@@ -356,6 +356,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 	}
 	
 	rv = doReceiveBuffers(ts, 4, _sig);
+	
 	if(rv == OK){
 		must_reenter = true;
 	}else if(rv == BAD){

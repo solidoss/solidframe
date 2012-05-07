@@ -311,8 +311,6 @@ public:
 		uint32	_flags = 0
 	);
 	
-	
-	
 	//! Not used for now - will be used when ipc will use tcp connections
 	int insertConnection(
 		const SocketDevice &_rsd
