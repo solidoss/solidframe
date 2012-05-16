@@ -6,7 +6,7 @@ add_executable (example_imapappender imapappender.cpp base64stream.cpp writer.cp
 set_source_files_properties(imapappender.cpp COMPILE_FLAGS -DOSSL_SOURCE_PATH='"${EXTERN_PATH}"')
 
 set_source_files_properties(
-	alphaclient_s.cpp COMPILE_FLAGS -DOSSL_SOURCE_PATH='"${EXTERN_PATH}"'
+	alphaclient.cpp COMPILE_FLAGS -DOSSL_SOURCE_PATH='"${EXTERN_PATH}"'
 )
 
 
