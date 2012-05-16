@@ -250,10 +250,10 @@ void RemoteList::initReader(Reader &_rr){
 	typedef CharFilter<' '>				SpaceFilterT;
 	typedef NotFilter<SpaceFilterT> 	NotSpaceFilterT;
 	
-	hostvec.push_back(HostAddrPairT("", 0xffffffff));
+	hostvec.push_back(HostAddrPairT());
 	
 	_rr.push(&Reader::reinitExtended<RemoteList, 0>, protocol::Parameter(this));
-	_rr.push(&Reader::fetchUInt32, protocol::Parameter(&hostvec.back().second));
+	_rr.push(&Reader::fetchAString, protocol::Parameter(&hostvec.back().second));
 	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
 	_rr.push(&Reader::fetchAString, protocol::Parameter(&hostvec.back().first));
 	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
@@ -266,14 +266,14 @@ int RemoteList::reinitReader<OK>(Reader &_rr, protocol::Parameter &){
 	typedef CharFilter<' '>				SpaceFilterT;
 	typedef NotFilter<SpaceFilterT> 	NotSpaceFilterT;
 	
-	hostvec.push_back(HostAddrPairT("", 0xffffffff));
+	hostvec.push_back(HostAddrPairT());
 	
 	_rr.push(&Reader::returnValue<true>, protocol::Parameter(Reader::Ok));
 	_rr.push(&Reader::fetchUInt32, protocol::Parameter(&pausems));
 	
 	//the pause amount
 	_rr.push(&Reader::pop, protocol::Parameter(2));
-	_rr.push(&Reader::fetchUInt32, protocol::Parameter(&hostvec.back().second));
+	_rr.push(&Reader::fetchAString, protocol::Parameter(&hostvec.back().second));
 	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
 	_rr.push(&Reader::fetchAString, protocol::Parameter(&hostvec.back().first));
 	
@@ -301,9 +301,9 @@ int RemoteList::execute(Connection &_rc){
 	
 	for(HostAddrVectorT::const_iterator it(hostvec.begin()); it != hostvec.end(); ++it){
 		const String &straddr(it->first);
-		const uint32 &port(it->second);
+		const String &port(it->second);
 		idbg("addr"<<straddr<<" port = "<<port);
-		SocketAddressInfo ai(straddr.c_str(), port, 0, SocketAddressInfo::Inet4, SocketAddressInfo::Stream);
+		SocketAddressInfo ai(straddr.c_str(), port.c_str(), 0, SocketAddressInfo::Inet4, SocketAddressInfo::Stream);
 		if(!ai.empty()){
 			state = Wait;
 			DynamicPointer<fdt::Signal> sigptr(sig_sp);
@@ -369,7 +369,7 @@ int RemoteList::receiveError(
 //---------------------------------------------------------------
 // Fetch command
 //---------------------------------------------------------------
-Fetch::Fetch(Connection &_rc):port(-1), rc(_rc), state(0), litsz(-1){
+Fetch::Fetch(Connection &_rc):rc(_rc), state(0), litsz(-1){
 }
 Fetch::~Fetch(){
 	idbg(""<<(void*)this<<' '<<(void*)sp_in.ptr());
@@ -379,7 +379,7 @@ Fetch::~Fetch(){
 void Fetch::initReader(Reader &_rr){
 	typedef CharFilter<' '>				SpaceFilterT;
 	typedef NotFilter<SpaceFilterT> 	NotSpaceFilterT;
-	_rr.push(&Reader::fetchUInt32, protocol::Parameter(&port));
+	_rr.push(&Reader::fetchAString, protocol::Parameter(&port));
 	_rr.push(&Reader::dropChar);
 	_rr.push(&Reader::checkIfCharThenPop<NotSpaceFilterT>, protocol::Parameter(2));
 	_rr.push(&Reader::fetchAString, protocol::Parameter(&straddr));
@@ -394,7 +394,7 @@ int Fetch::execute(Connection &_rc){
 	protocol::Parameter &rp = _rc.writer().push(&Writer::putStatus);
 	pp = &rp;
 	rp = protocol::Parameter(StrDef(" OK Done FETCH@"));
-	if(port == (uint)-1) port = 1222;//default ipc port
+	if(port.empty()) port = "1222";//default ipc port
 	if(straddr.empty()){
 		state = InitLocal;
 	}else{
@@ -449,7 +449,7 @@ int Fetch::doGetTempStream(uint32 _sz){
 
 void Fetch::doSendMaster(const FileUidT &_fuid){
 	idbg(""<<(void*)this);
-	SocketAddressInfo ai(straddr.c_str(), port, 0, SocketAddressInfo::Inet4, SocketAddressInfo::Stream);
+	SocketAddressInfo ai(straddr.c_str(), port.c_str(), 0, SocketAddressInfo::Inet4, SocketAddressInfo::Stream);
 	idbg("addr"<<straddr<<" port = "<<port);
 	if(!ai.empty()){
 		//send the master remote command

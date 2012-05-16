@@ -546,7 +546,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 			("help,h", "List program options")
 			("base_port,b", value<int>(&_par.start_port)->default_value(1000),
 					"Base port")
-			("debug_levels,l", value<string>(&_par.dbg_levels)->default_value("iew"),"Debug logging levels")
+			("debug_levels,l", value<string>(&_par.dbg_levels)->default_value("view"),"Debug logging levels")
 			("debug_modules,m", value<string>(&_par.dbg_modules),"Debug logging modules")
 			("debug_address,a", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")
 			("debug_port,p", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")

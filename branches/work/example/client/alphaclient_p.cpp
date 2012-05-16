@@ -20,10 +20,36 @@
 #include "system/timespec.hpp"
 #include "writer.hpp"
 
+#include "boost/program_options.hpp"
+
 using namespace std;
 //typedef unsigned long long uint64;
 enum {BSIZE = 1024};
-static int sleeptout = 0;
+
+struct Params{
+	string		dbg_levels;
+	string		dbg_modules;
+	string		dbg_addr;
+	string		dbg_port;
+	bool		dbg_buffered;
+	bool		dbg_console;
+	
+	uint32		con_cnt;
+	string		srv_addr;
+	string		srv_port;
+	string		path;
+	uint32		sleep;
+	uint32		repeat;
+	string		proxy_addr;
+	string		proxy_port;
+	string		peer_addr;
+	string		peer_port;
+	string		gateway_addr;
+	string		gateway_port;
+	uint32		gateway_id;
+};
+
+
 ///\cond 0
 class Info{
 public:
@@ -126,34 +152,36 @@ static Info inf;
 class AlphaThread: public Thread{
 public:
 	AlphaThread(
-		const char *_node, 
-		const char* _svice, 
-		const char *_path,
+		const Params &_rp,
 		unsigned _pos,
-		const char* _addr = NULL,
-		int _port = -1,
-		int _repeatcnt= 0,
-		int _cnt = ((unsigned)(0xfffffff)),
-                int _sleep = 1):ai(_node, _svice, 0, SocketAddressInfo::Inet4, SocketAddressInfo::Stream), wr(-1),sd(-1),cnt(_cnt),slp(_sleep),
-			path(_path), pos(_pos),addr(_addr?_addr:""),port(_port),repeatcnt(_repeatcnt){}
+		int _cnt = ((unsigned)(0xfffffff))
+	):
+		rp(_rp),
+		ai(
+			_rp.proxy_addr.size() ? _rp.proxy_addr.c_str() : _rp.srv_addr.c_str(),
+		   _rp.proxy_port.size() ? _rp.proxy_port.c_str() : _rp.srv_port.c_str(),
+			0, SocketAddressInfo::Inet4, SocketAddressInfo::Stream
+		),
+		wr(-1),sd(-1),cnt(_cnt),
+		pos(_pos){
+			repeatcnt = _rp.repeat;
+		}
 	void run();
 private:
 	enum {BufLen = 2*1024};
 	int list(char *_pb);
 	int fetch(unsigned _idx, char *_pb);
 	typedef std::deque<string> StrDqT;
-	SocketAddressInfo    ai;
-	Writer      wr;
-	int         sd;
-	int         cnt;
-	int         slp;
-	const char  *path;
-	StrDqT		sdq;
-	unsigned    pos;
-	ulong       readc;
-	string		addr;
-	int 		port;
-	int			repeatcnt;
+	
+	const Params		&rp;
+	SocketAddressInfo	ai;
+	Writer      		wr;
+	int					sd;
+	int					cnt;
+	StrDqT				sdq;
+	unsigned			pos;
+	ulong				readc;
+	ulong				repeatcnt;
 };
 
 void AlphaThread::run(){
@@ -187,10 +215,10 @@ void AlphaThread::run(){
 	readc = 0;
 	wr.reinit(sd);
 	char buf[BufLen];
-	if(port>0 && port < 1200){
+	if(rp.proxy_addr.size()){
 		cout<<"Using proxy..."<<endl;
-		wr<<addr.c_str()<<" ";
-		wr<<(uint32)port<<crlf;
+		wr<<rp.srv_addr.c_str()<<' ';
+		wr<<rp.srv_port.c_str()<<crlf;
 		wr.flush();
 	}
 	int rv = list(buf);
@@ -212,7 +240,7 @@ void AlphaThread::run(){
 		ulong cnt = m;
 		while(cnt--  && !(rv = fetch(ul % m, buf))){
 			++ul;
-			Thread::sleep(sleeptout);
+			Thread::sleep(rp.sleep);
 		}
 	}
 	idbg("return value "<<rv);
@@ -249,12 +277,17 @@ inline T* findNot(T *_pc){
 //----------------------------------------------------------------------------
 
 int AlphaThread::list(char *_pb){
-	if(addr.size() && port > 1200){
+	if(rp.peer_addr.size()){
 		//remote list
-		wr<<"s1 remotelist \""<<path<<"\" \""<<addr<<"\" "<<(uint32)port<<crlf;
+		wr<<"s1 remotelist \""<<rp.path.c_str()<<"\" \""<<rp.peer_addr.c_str()<<"\" \""<<rp.peer_port.c_str()<<'\"'<<crlf;
+	}else if(rp.gateway_addr.size()){
+		wr<<"s1 remotelist \""<<rp.path.c_str()<<"\" \"";
+		wr<<rp.peer_addr.c_str()<<"\" \""<<rp.peer_port.c_str()<<"\" \"";
+		wr<<rp.gateway_addr.c_str()<<"\" \""<<rp.gateway_port.c_str()<<"\" ";
+		wr<<rp.gateway_id<<crlf;
 	}else{
 		//local list
-		wr<<"s1 list \""<<path<<'\"'<<crlf;
+		wr<<"s1 list \""<<rp.path.c_str()<<'\"'<<crlf;
 	}
 	if(wr.flush()) return -1;
 	enum {
@@ -372,9 +405,14 @@ int AlphaThread::list(char *_pb){
 
 int AlphaThread::fetch(unsigned _idx, char *_pb){
 	wr<<"s2 fetch "<<sdq[_idx];
-	//cout<<_idx<<" "<<sdq[_idx]<<endl;
-	if(addr.size() && port > 1200){
-		wr<<" \""<<addr<<"\" "<<(uint32)port;
+	if(rp.peer_addr.size()){
+		//remote list
+		wr<<" \""<<rp.peer_addr.c_str()<<"\" \""<<rp.peer_port.c_str()<<'\"';
+	}else if(rp.gateway_addr.size()){
+		wr<<" \""<<rp.peer_addr.c_str()<<"\" \""<<rp.peer_port.c_str()<<"\" \"";
+		wr<<rp.gateway_addr.c_str()<<"\" \""<<rp.gateway_port.c_str()<<"\" ";
+		wr<<rp.gateway_id;
+	}else{
 	}
 	wr<<crlf;
 	if(wr.flush()) return -1;
@@ -537,56 +575,127 @@ int AlphaThread::fetch(unsigned _idx, char *_pb){
 // 	return A(a1.v + a2.v);
 // }
 
+bool parseArguments(Params &_par, int argc, char *argv[]);
+
 int main(int argc, char *argv[]){
-	if(argc != 7 && argc != 9){
-//		test(test_a(), test_b());
-// 		int c(test_a() + test_b());
-// 		cout<<(A(3) + A(4)).v<<endl;
-		cout<<"Plain alpha connection stress test"<<endl;
-		cout<<"Usage: alphaclient thcnt addr port path tout repeat_count [peer_addr peer_port]"<<endl;
-		cout<<"Where:"<<endl;
-		cout<<"tout is the amount of time in msec between commands"<<endl;
-		cout<<"if the given port is < 1200 then the connection is considered through a proxy server"<<endl;
-		return 0;
-	}
+	Params	p;
+	
+	if(parseArguments(p, argc, argv)) return 0;
+	
 	signal(SIGPIPE, SIG_IGN);
 	Thread::init();
 	
 #ifdef UDEBUG
 	{
-	string s;
-	Dbg::instance().levelMask("iew");
-	Dbg::instance().moduleMask();
-	Dbg::instance().initStdErr(false, &s);
-	cout<<"Debug output: "<<s<<endl;
-	s.clear();
-	Dbg::instance().moduleBits(s);
-	cout<<"Debug bits: "<<s<<endl;
+	string dbgout;
+	Dbg::instance().levelMask(p.dbg_levels.c_str());
+	Dbg::instance().moduleMask(p.dbg_modules.c_str());
+	if(p.dbg_addr.size() && p.dbg_port.size()){
+		Dbg::instance().initSocket(
+			p.dbg_addr.c_str(),
+			p.dbg_port.c_str(),
+			p.dbg_buffered,
+			&dbgout
+		);
+	}else if(p.dbg_console){
+		Dbg::instance().initStdErr(
+			p.dbg_buffered,
+			&dbgout
+		);
+	}else{
+		Dbg::instance().initFile(
+			*argv[0] == '.' ? argv[0] + 2 : argv[0],
+			p.dbg_buffered,
+			3,
+			1024 * 1024 * 64,
+			&dbgout
+		);
+	}
+	cout<<"Debug output: "<<dbgout<<endl;
+	dbgout.clear();
+	Dbg::instance().moduleBits(dbgout);
+	cout<<"Debug modules: "<<dbgout<<endl;
 	}
 #endif
 	
-	sleeptout = atoi(argv[5]);
-	int cnt = atoi(argv[1]);
-	int repeatcnt = atoi(argv[6]);
-	const char* addr = NULL;
-	int port = -1;
-	if(argc == 9){
-		addr = argv[7];
-		port = atoi(argv[8]);
-	}
-	for(int i = 0; i < cnt; ++i){
-		AlphaThread *pt = new AlphaThread(argv[2], argv[3], argv[4], inf.pushBack(), addr, port, repeatcnt);
+	for(int i = 0; i < p.con_cnt; ++i){
+		AlphaThread *pt = new AlphaThread(p, inf.pushBack());
 		inf.addWait();
 		pt->start(true, true, 24*1024);
 	}
-	//clock_gettime(CLOCK_MONOTONIC, &inf.ft);
 	inf.ft.currentMonotonic();
+	
 	while(inf.print()){
 		Thread::sleep(500);
 	}
 	Thread::waitAll();
 	cout<<"done"<<endl;
 	return 0;
+}
+
+/*
+	uint32		con_cnt;
+	string		srv_addr;
+	string		srv_port;
+	string		path;
+	uint32		sleep;
+	uint32		repeat;
+	string		proxy_addr;
+	string		proxy_port;
+	string		peer_addr;
+	string		peer_port;
+	string		gateway_addr;
+	string		gateway_port;
+	string		gateway_id;
+*/
+
+bool parseArguments(Params &_par, int argc, char *argv[]){
+	using namespace boost::program_options;
+	try{
+		options_description desc("alphaclient_p application");
+		desc.add_options()
+			("help,h", "List program options")
+			//("base_port,b", value<int>(&_par.start_port)->default_value(1000), "Base port")
+			("debug_levels,L", value<string>(&_par.dbg_levels)->default_value("view"),"Debug logging levels")
+			("debug_modules,M", value<string>(&_par.dbg_modules),"Debug logging modules")
+			("debug_addr,A", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")
+			("debug_port,P", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")
+			("debug_console,C", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")
+			("debug_unbuffered,S", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered")
+			("connection_count,c", value<uint32>(&_par.con_cnt)->default_value(1), "The number of connections to create")
+			("server_addr,s", value<string>(&_par.srv_addr)->default_value("localhost"), "The address of the server")
+			("server_port,p", value<string>(&_par.srv_port)->default_value("1114"), "The port of the server")
+			("path", value<string>(&_par.path), "The path on the server")
+			("sleep", value<uint32>(&_par.sleep)->default_value(1), "The number of milliseconds to sleep between commands")
+			("repeat", value<uint32>(&_par.repeat)->default_value(1), "Repeat count")
+			("proxy_addr", value<string>(&_par.proxy_addr), "The address of the proxy server")
+			("proxy_port", value<string>(&_par.proxy_port), "The port of the proxy server")
+			("peer_addr", value<string>(&_par.peer_addr), "The ipc address of the peer alpha server")
+			("peer_port", value<string>(&_par.peer_port), "The ipc port of the  peer alpha server")
+			("gateway_addr", value<string>(&_par.gateway_addr), "The address of the ipc gateway")
+			("gateway_port", value<string>(&_par.gateway_port), "The port of the ipc gateway")
+			("gateway_id", value<uint32>(&_par.gateway_id)->default_value(1), "The id of the network id on the gateway")
+	/*		("verbose,v", po::value<int>()->implicit_value(1),
+					"enable verbosity (optionally specify level)")*/
+	/*		("listen,l", po::value<int>(&portnum)->implicit_value(1001)
+					->default_value(0,"no"),
+					"listen on a port.")
+			("include-path,I", po::value< vector<string> >(),
+					"include path")
+			("input-file", po::value< vector<string> >(), "input file")*/
+		;
+		variables_map vm;
+		store(parse_command_line(argc, argv, desc), vm);
+		notify(vm);
+		if (vm.count("help")) {
+			cout << desc << "\n";
+			return true;
+		}
+		return false;
+	}catch(exception& e){
+		cout << e.what() << "\n";
+		return true;
+	}
 }
 
 
