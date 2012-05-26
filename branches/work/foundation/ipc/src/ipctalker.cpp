@@ -382,7 +382,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 }
 
 //----------------------------------------------------------------------
-int Talker::doReceiveBuffers(TalkerStub &_rstub, uint32 _atmost, const ulong _sig){
+int Talker::doReceiveBuffers(TalkerStub &_rstub, uint _atmost, const ulong _sig){
 	if(this->socketHasPendingRecv()){
 		return NOK;
 	}

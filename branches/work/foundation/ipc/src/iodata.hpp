@@ -123,7 +123,7 @@ struct Inet6AddrPtrCmp{
 
 struct Buffer{
 	enum{
-		ReadCapacity = 4096,
+		Capacity = 4096,
 		LastBufferId = 0xffffffff - 32,
 		UpdateBufferId = 0xffffffff,//the id of a buffer containing only updates
 	};
