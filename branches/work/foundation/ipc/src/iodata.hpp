@@ -34,6 +34,8 @@ class Visitor;
 namespace foundation{
 namespace ipc{
 
+
+
 //*******	AddrPtrCmp		******************************************************************
 #ifdef HAVE_CPP11
 
@@ -133,11 +135,17 @@ struct Buffer{
 		uint16		flags;
 		uint32		id;
 		uint16		retransid;
-		uint16		updatescnt;//16B
+		uint16		updatescount;//16B
 		
-		const uint32& update(uint32 _pos)const;//the buffers that were received by peer
+		const uint32& relayId()const;
 		
-		uint32& update(uint32 _pos);//the buffers that were received by peer
+		const uint relayIdSize()const;
+		
+		uint32& relayId();
+		
+		const uint32& update(const uint _pos)const;//the buffers that were received by peer
+		
+		uint32& update(const uint _pos);//the buffers that were received by peer
 		
 		void pushUpdate(uint32 _upd);
 		
@@ -152,14 +160,16 @@ struct Buffer{
 	};
 	enum Flags{
 		RequestReceiptFlag = 1,//the buffer received update is sent imediately
-		CompressedFlag = 2
+		CompressedFlag = 2,
+		RelayedFlag = 4, //DONOT change the value!!!
 	};
 	enum DataTypes{
 		ContinuedSignal = 0,
 		NewSignal,
 		OldSignal
 	};
-	static uint32 minSize();
+	static uint32 minimumSizeNormal();
+	static uint32 minimumSizeRelay();
 	static char* allocateDataForReading();
 	static void deallocateDataForReading(char *_buf);
 	//static const uint capacityForReading();
@@ -175,7 +185,9 @@ struct Buffer{
 	bool empty()const;
 	void resetHeader();
 	void clear();
-
+	
+	uint32 minimumSize()const;
+	
 	void optimize(uint16 _cp = 0);
 
 	bool compress(Controller &_rctrl);
@@ -186,7 +198,9 @@ struct Buffer{
 	char *data()const ;
 	
 	uint32 bufferSize()const;
+	
 	void bufferSize(uint32 _sz);
+	
 	uint32 bufferCapacity()const;
 	
 	uint32 dataSize()const;
@@ -217,7 +231,11 @@ struct Buffer{
 	void type(uint8 _tp);
 	
 	uint32 updatesCount()const;
-	uint32 update(uint32 _pos)const;
+	
+	uint32 relayId()const;
+	void relayId(const uint32 _relayid);
+	
+	uint32 update(const uint _pos)const;
 	void pushUpdate(uint32 _upd);
 	
 	Header& header();
@@ -233,22 +251,48 @@ public:
 };
 
 //inlines:
-inline const uint32& Buffer::Header::update(uint32 _pos)const{
-	return *(reinterpret_cast<uint32*>(((char*)this) + sizeof(Header)) + _pos);
-}
-inline uint32& Buffer::Header::update(uint32 _pos){
-	return *(reinterpret_cast<uint32*>(((char*)this) + sizeof(Header)) + _pos);
-}
-inline void Buffer::Header::pushUpdate(uint32 _upd){
-	update(updatescnt++) = _upd;
-}
-inline uint32 Buffer::Header::size()const{
-	return sizeof(Header) + updatescnt * sizeof(uint32);
+inline const uint32& Buffer::Header::update(const uint _pos)const{
+	return *(reinterpret_cast<uint32*>(((char*)this) + sizeof(Header) + relayIdSize()) + _pos);
 }
 
-inline /*static*/ uint32 Buffer::minSize(){
-		return sizeof(Header);
-	}
+inline uint32& Buffer::Header::update(const uint _pos){
+	return *(reinterpret_cast<uint32*>(((char*)this) + sizeof(Header) +  relayIdSize()) + _pos);
+}
+
+inline void Buffer::Header::pushUpdate(uint32 _upd){
+	update(updatescount++) = _upd;
+}
+
+inline uint32 Buffer::Header::size()const{
+	return sizeof(Header) + relayIdSize() + updatescount * sizeof(uint32);
+}
+
+inline const uint Buffer::Header::relayIdSize()const{
+	return (this->flags & RelayedFlag);//((this->flags & RelayedFlag) >> 2) * 4
+}
+
+
+inline const uint32& Buffer::Header::relayId()const{
+	cassert(relayIdSize() != 0);
+	return *(reinterpret_cast<uint32*>(((char*)this) + sizeof(Header)));
+}
+		
+inline uint32& Buffer::Header::relayId(){
+	cassert(relayIdSize() != 0);
+	this->flags |= RelayedFlag;
+	return *(reinterpret_cast<uint32*>(((char*)this) + sizeof(Header)));
+}
+
+inline /*static*/ uint32 Buffer::minimumSizeNormal(){
+	return sizeof(Header);
+}
+inline /*static*/ uint32 Buffer::minimumSizeRelay(){
+	return sizeof(Header) + sizeof(uint32);
+}
+
+inline uint32 Buffer::minimumSize()const{
+	return sizeof(Header) + header().relayIdSize();
+}
 // inline /*static*/ const uint Buffer::capacityForReading(){
 // 	return ReadCapacity;
 // }
@@ -282,7 +326,7 @@ inline void Buffer::resetHeader(){
 	header().id = 0;
 	header().flags = 0;
 	header().type = Unknown;
-	header().updatescnt = 0;
+	header().updatescount = 0;
 }
 
 inline void Buffer::reinit(char *_pb, uint16 _bc, uint16 _dl){
@@ -392,10 +436,17 @@ inline void Buffer::type(uint8 _tp){
 }
 
 inline uint32 Buffer::updatesCount()const{
-	return header().updatescnt;
+	return header().updatescount;
 }
 
-inline uint32 Buffer::update(uint32 _pos)const{
+inline uint32 Buffer::relayId()const{
+	return header().relayId();
+}
+inline void Buffer::relayId(const uint32 _relayid){
+	header().relayId() = _relayid;
+}
+
+inline uint32 Buffer::update(const uint _pos)const{
 	return header().update(_pos);
 }
 
@@ -410,6 +461,8 @@ inline Buffer::Header& Buffer::header(){
 inline const Buffer::Header& Buffer::header()const{
 	return *reinterpret_cast<Header*>(pb);
 }
+
+
 
 
 std::ostream& operator<<(std::ostream &_ros, const Buffer &_rb);

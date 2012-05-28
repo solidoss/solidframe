@@ -24,6 +24,7 @@
 #include <Windows.h>
 #else
 #include <unistd.h>
+#include <netinet/tcp.h>
 #endif
 
 #include <cstdio>
@@ -799,14 +800,13 @@ int SocketDevice::makeNonBlocking(){
 }
 #ifdef ON_WINDOWS
 #else
-bool SocketDevice::isBlocking(){
+int SocketDevice::isBlocking()const{
 	int flg = fcntl(descriptor(), F_GETFL);
 	if(flg == -1){
 		edbgx(Dbg::system, "socket fcntl getfl: "<<strerror(errno));
-		close();
-		return false;
+		return BAD;
 	}
-	return !(flg & O_NONBLOCK);
+	return (flg & O_NONBLOCK) ? NOK : OK;
 }
 #endif
 bool SocketDevice::shouldWait()const{
@@ -917,6 +917,155 @@ bool SocketDevice::isListening()const{
 	sd.Device::descriptor(rv);//:( we loose a connection
 		
 	return true;
+#endif
+}
+
+int SocketDevice::enableNoDelay(){
+#ifdef ON_WINDOWS
+	return BAD;
+#else
+	int flag = 1;
+	int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, sizeof(flag));
+	if(rv < 0){
+		edbgx(Dbg::system, "socket setsockopt TCP_NODELAY: "<<strerror(errno));
+		close();
+		return BAD;
+	}
+	return OK;
+#endif
+}
+
+int SocketDevice::disableNoDelay(){
+#ifdef ON_WINDOWS
+	return BAD;
+#else
+	int flag = 0;
+	int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, sizeof(flag));
+	if(rv < 0){
+		edbgx(Dbg::system, "socket setsockopt TCP_NODELAY: "<<strerror(errno));
+		close();
+		return BAD;
+	}
+	return OK;
+#endif
+}
+
+int SocketDevice::hasNoDelay()const{
+#ifdef ON_WINDOWS
+	return BAD;
+#else
+	int			flag = 0;
+	socklen_t	sz(sizeof(flag));
+	int rv = getsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, &sz);
+	if(rv < 0){
+		edbgx(Dbg::system, "socket getsockopt TCP_NODELAY: "<<strerror(errno));
+		return BAD;
+	}
+	return rv ? OK : NOK;
+#endif
+}
+	
+int SocketDevice::enableCork(){
+#ifdef ON_WINDOWS
+	return BAD;
+#elif defined(ON_LINUX)
+	int flag = 1;
+	int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_CORK, (char*)&flag, sizeof(flag));
+	if(rv < 0){
+		edbgx(Dbg::system, "socket setsockopt TCP_CORK: "<<strerror(errno));
+		close();
+		return BAD;
+	}
+	return OK;
+#endif
+}
+
+int SocketDevice::disableCork(){
+#ifdef ON_WINDOWS
+	return BAD;
+#elif defined(ON_LINUX)
+	int flag = 0;
+	int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_CORK, (char*)&flag, sizeof(flag));
+	if(rv < 0){
+		edbgx(Dbg::system, "socket setsockopt TCP_CORK: "<<strerror(errno));
+		close();
+		return BAD;
+	}
+	return OK;
+#endif
+}
+
+int SocketDevice::hasCork()const{
+#ifdef ON_WINDOWS
+	return BAD;
+#else
+	int			flag = 0;
+	socklen_t	sz(sizeof(flag));
+	int rv = getsockopt(descriptor(), IPPROTO_TCP, TCP_CORK, (char*)&flag, &sz);
+	if(rv < 0){
+		edbgx(Dbg::system, "socket getsockopt TCP_CORK: "<<strerror(errno));
+		return BAD;
+	}
+	return rv ? OK : NOK;
+#endif
+}
+
+int SocketDevice::sendBufferSize(size_t _sz){
+#ifdef ON_WINDOWS
+	return BAD;
+#else
+	int sockbufsz(_sz);
+	int rv;
+	rv = setsockopt(descriptor(), SOL_SOCKET, SO_SNDBUF, (char*)&sockbufsz, sizeof(sockbufsz));
+	if(rv < 0){
+		edbgx(Dbg::system, "socket setsockopt SO_SNDBUF: "<<strerror(errno));
+		return BAD;
+	}
+	return OK;
+#endif
+}
+int SocketDevice::recvBufferSize(size_t _sz){
+#ifdef ON_WINDOWS
+	return BAD;
+#else
+	int sockbufsz(_sz);
+	int rv;
+	rv = setsockopt(descriptor(), SOL_SOCKET, SO_RCVBUF, (char*)&sockbufsz, sizeof(sockbufsz));
+	if(rv < 0){
+		edbgx(Dbg::system, "socket setsockopt SO_RCVBUF: "<<strerror(errno));
+		return BAD;
+	}
+	return OK;
+#endif
+}
+int SocketDevice::sendBufferSize()const{
+#ifdef ON_WINDOWS
+	return BAD;
+#else
+	int 		sockbufsz(0);
+	socklen_t	sz(sizeof(sockbufsz));
+	int 		rv;
+	rv = getsockopt(descriptor(), SOL_SOCKET, SO_SNDBUF, (char*)&sockbufsz, &sz);
+	if(rv < 0){
+		edbgx(Dbg::system, "socket setsockopt SO_SNDBUF: "<<strerror(errno));
+		return BAD;
+	}
+	return sockbufsz;
+#endif
+}
+int SocketDevice::recvBufferSize()const{
+#ifdef ON_WINDOWS
+	return BAD;
+#else
+	int 		sockbufsz(0);
+	socklen_t	sz(sizeof(sockbufsz));
+	int 		rv;
+	rv = getsockopt(descriptor(), SOL_SOCKET, SO_RCVBUF, (char*)&sockbufsz, &sz);
+	if(rv < 0){
+		edbgx(Dbg::system, "socket setsockopt SO_RCVBUF: "<<strerror(errno));
+		return BAD;
+	}
+	return sockbufsz;
 #endif
 }
 

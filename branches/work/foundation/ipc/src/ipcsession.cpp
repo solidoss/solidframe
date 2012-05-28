@@ -358,15 +358,16 @@ public:
 	uint32					rcvexpectedid;
 	uint8					state;
 	uint8					sendpendingcount;
-	uint16					outoforderbufcnt;
+	uint16					outoforderbufcount;
 	uint32					sentsignalwaitresponse;
 	uint32					retansmittimepos;
 	uint32					sendsignalid;
-	uint16					currentbuffersignalcount;//MaxSignalBufferCount
 	uint32					sendid;
 	uint32					keepalivetimeout;
 	uint32					currentsyncid;
 	uint32					currentsendsyncid;
+	uint16					currentbuffersignalcount;//MaxSignalBufferCount
+	uint8					type;
 	
 	UInt32QueueT			rcvdidq;
 	BufferVectorT			outoforderbufvec;
@@ -391,11 +392,10 @@ Session::Data::Data(
 ):	addr(_raddr), pairaddr(addr), 
 	baseaddr(&pairaddr, addr.port()),
 	rcvexpectedid(2), state(Connecting), sendpendingcount(0),
-	outoforderbufcnt(0), sentsignalwaitresponse(0),
+	outoforderbufcount(0), sentsignalwaitresponse(0),
 	retansmittimepos(0), sendsignalid(0), 
-	currentbuffersignalcount(MaxSignalBufferCount), sendid(1),
-	keepalivetimeout(_keepalivetout),
-	currentsendsyncid(-1)
+	sendid(1), keepalivetimeout(_keepalivetout),
+	currentsendsyncid(-1), currentbuffersignalcount(MaxSignalBufferCount)
 {
 	outoforderbufvec.resize(MaxOutOfOrder);
 	//first buffer is for keepalive
@@ -416,11 +416,10 @@ Session::Data::Data(
 	uint32 _keepalivetout
 ):	addr(_raddr), pairaddr(addr), baseaddr(&pairaddr, _baseport),
 	rcvexpectedid(2), state(Accepting), sendpendingcount(0),
-	outoforderbufcnt(0), sentsignalwaitresponse(0),
+	outoforderbufcount(0), sentsignalwaitresponse(0),
 	retansmittimepos(0), sendsignalid(0), 
-	currentbuffersignalcount(MaxSignalBufferCount), sendid(1),
-	keepalivetimeout(_keepalivetout),
-	currentsendsyncid(-1)
+	sendid(1), keepalivetimeout(_keepalivetout),
+	currentsendsyncid(-1),currentbuffersignalcount(MaxSignalBufferCount)
 {
 	outoforderbufvec.resize(MaxOutOfOrder);
 	//first buffer is for keepalive
@@ -504,16 +503,16 @@ bool Session::Data::moveToNextOutOfOrderBuffer(Buffer &_rb){
 	return false;
 	Success:
 	_rb = outoforderbufvec[idx];
-	outoforderbufvec[idx] = outoforderbufvec[outoforderbufcnt - 1];
+	outoforderbufvec[idx] = outoforderbufvec[outoforderbufcount - 1];
 	incrementExpectedId();
-	--outoforderbufcnt;
+	--outoforderbufcount;
 	return true;
 }
 //---------------------------------------------------------------------
 bool Session::Data::keepOutOfOrderBuffer(Buffer &_rb){
-	if(outoforderbufcnt == MaxOutOfOrder) return false;
-	outoforderbufvec[outoforderbufcnt] = _rb;
-	++outoforderbufcnt;
+	if(outoforderbufcount == MaxOutOfOrder) return false;
+	outoforderbufvec[outoforderbufcount] = _rb;
+	++outoforderbufcount;
 	return true;
 }
 //---------------------------------------------------------------------
@@ -927,8 +926,8 @@ bool Session::isAccepting()const{
 //---------------------------------------------------------------------
 void Session::prepare(){
 	Buffer b(
-		Specific::popBuffer(Specific::sizeToIndex(Buffer::minSize())),
-		Specific::indexToCapacity(Specific::sizeToIndex(Buffer::minSize()))
+		Specific::popBuffer(Specific::sizeToIndex(Buffer::minimumSizeNormal())),
+		Specific::indexToCapacity(Specific::sizeToIndex(Buffer::minimumSizeNormal()))
 	);
 	b.resetHeader();
 	b.type(Buffer::KeepAliveType);
@@ -1363,7 +1362,7 @@ bool Session::doPushUnxpectedReceivedBuffer(
 			vdbgx(Dbg::ipc, "out of order buffer");
 			d.rcvdidq.push(bufid);//for peer updates
 		}else{
-			vdbgx(Dbg::ipc, "too many buffers out-of-order "<<d.outoforderbufcnt);
+			vdbgx(Dbg::ipc, "too many buffers out-of-order "<<d.outoforderbufcount);
 			COLLECT_DATA_0(d.statistics.tooManyBuffersOutOfOrder);
 		}
 	}else if(_rbuf.id() == Buffer::UpdateBufferId){//a buffer containing only updates
@@ -1656,7 +1655,7 @@ int Session::doExecuteConnectedLimited(Talker::TalkerStub &_rstub){
 		}
 		
 		//we can still send buffers
-		Buffer 					buf(Buffer::allocateDataForReading(), Buffer::ReadCapacity);
+		Buffer 					buf(Buffer::allocateDataForReading(), Buffer::Capacity);
 		
 		const uint32			bufidx(d.registerBuffer(buf));
 		Data::SendBufferData	&rsbd(d.sendbuffervec[bufidx]);
@@ -1715,7 +1714,7 @@ int Session::doExecuteConnected(Talker::TalkerStub &_rstub){
 		}
 		
 		//we can still send buffers
-		Buffer 					buf(Buffer::allocateDataForReading(), Buffer::ReadCapacity);
+		Buffer 					buf(Buffer::allocateDataForReading(), Buffer::Capacity);
 		
 		const uint32			bufidx(d.registerBuffer(buf));
 		Data::SendBufferData	&rsbd(d.sendbuffervec[bufidx]);

@@ -74,18 +74,19 @@ struct Service::Data{
 		SockAddrHash,
 		SockAddrEqual
 	>	SessionAddr6MapT;
+	
 #else
 	typedef std::map<
 		const Session::Addr4PairT*, 
 		ConnectionUid, 
 		Inet4AddrPtrCmp
-		>												SessionAddr4MapT;
+	>	SessionAddr4MapT;
 	
 	typedef std::map<
 		const Session::Addr6PairT*,
 		ConnectionUid,
 		Inet6AddrPtrCmp
-		>												SessionAddr6MapT;
+	>	SessionAddr6MapT;
 #endif	
 	struct TalkerStub{
 		TalkerStub():cnt(0){}
@@ -319,7 +320,8 @@ int Service::doSendSignal(
 	ConnectionUid *_pconid,
 	uint32	_flags
 ){
-		if(
+#if 0
+	if(
 		_rsap_gate.family() != SocketAddressInfo::Inet4 ||
 		_rsap_dest.family() != SocketAddressInfo::Inet4
 		
@@ -403,6 +405,7 @@ int Service::doSendSignal(
 		}
 		return OK;
 	}
+#endif
 	return OK;
 }
 //---------------------------------------------------------------------
@@ -659,18 +662,18 @@ bool Buffer::check()const{
 	//TODO:
 	if(this->pb){
 		if(header().size() < sizeof(Header)) return false;
-		if(header().size() > ReadCapacity) return false;
+		if(header().size() > Capacity) return false;
 		return true;
 	}
 	return false;
 }
 //---------------------------------------------------------------------
 /*static*/ char* Buffer::allocateDataForReading(){
-	return Specific::popBuffer(Specific::capacityToIndex(ReadCapacity));
+	return Specific::popBuffer(Specific::capacityToIndex(Capacity));
 }
 //---------------------------------------------------------------------
 /*static*/ void Buffer::deallocateDataForReading(char *_buf){
-	Specific::pushBuffer(_buf, Specific::capacityToIndex(ReadCapacity));
+	Specific::pushBuffer(_buf, Specific::capacityToIndex(Capacity));
 }
 //---------------------------------------------------------------------
 void Buffer::clear(){
@@ -688,7 +691,7 @@ Buffer::~Buffer(){
 void Buffer::optimize(uint16 _cp){
 	const uint32	bufsz(this->bufferSize());
 	const uint		id(Specific::sizeToIndex(bufsz));
-	const uint		mid(Specific::capacityToIndex(_cp ? _cp : Buffer::ReadCapacity));
+	const uint		mid(Specific::capacityToIndex(_cp ? _cp : Buffer::Capacity));
 	if(mid > id){
 		uint32 datasz = this->dataSize();//the size
 		
@@ -709,7 +712,7 @@ struct BufferContext{
 	uint	reqbufid;
 };
 bool Buffer::compress(Controller &_rctrl){
-	BufferContext	bctx(this->minSize());
+	BufferContext	bctx(this->minimumSize());
 	int32			datasz(this->dataSize() + updatesCount() * sizeof(uint32));
 	char			*pd(this->data() - updatesCount() * sizeof(uint32));
 	
@@ -749,10 +752,10 @@ bool Buffer::decompress(Controller &_rctrl){
 	if(!(flags() & CompressedFlag)){
 		return true;
 	}
-	BufferContext	bctx(this->minSize());
+	BufferContext	bctx(this->minimumSize());
 	
 	uint32			datasz(dl + updatesCount() * sizeof(uint32));
-	char			*pd(pb + this->minSize());
+	char			*pd(pb + this->minimumSize());
 	
 	uint32			tmpdatasz(datasz);
 	char			*tmppd(pd);
@@ -806,9 +809,9 @@ std::ostream& operator<<(std::ostream &_ros, const Buffer &_rb){
 	}
 	_ros<<" buffer_cp = "<<_rb.bc;
 	_ros<<" datalen = "<<_rb.dl;
-	_ros<<" updatescnt = "<<_rb.header().updatescnt;
+	_ros<<" updatescnt = "<<_rb.header().updatescount;
 	_ros<<" updates [";
-	for(int i = 0; i < _rb.header().updatescnt; ++i){
+	for(int i = 0; i < _rb.header().updatescount; ++i){
 		_ros<<_rb.update(i)<<',';
 	}
 	_ros<<']';
@@ -837,9 +840,9 @@ std::ostream& operator<<(std::ostream &_ros, const Buffer &_rb){
 	return true;
 }
 char * Controller::allocateBuffer(BufferContext &_rbc, uint32 &_cp){
-	const uint	mid(Specific::capacityToIndex(Buffer::ReadCapacity));
+	const uint	mid(Specific::capacityToIndex(Buffer::Capacity));
 	char		*newbuf(Specific::popBuffer(mid));
-	_cp = Buffer::ReadCapacity - _rbc.offset;
+	_cp = Buffer::Capacity - _rbc.offset;
 	if(_rbc.reqbufid != (uint)-1){
 		THROW_EXCEPTION("Requesting more than one buffer");
 		return NULL;

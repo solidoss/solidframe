@@ -49,8 +49,21 @@ public:
 	int makeNonBlocking();
 	//! Check if its blocking
 #ifndef ON_WINDOWS
-	bool isBlocking();
+	int isBlocking()const;
 #endif
+	
+	int enableNoDelay();
+	int disableNoDelay();
+	int hasNoDelay()const;
+	
+	int enableCork();//TCP_CORK - only on linux, TCP_NOPUSH on FreeBSD
+	int disableCork();
+	int hasCork()const;
+	
+	int sendBufferSize(size_t _sz);
+	int recvBufferSize(size_t _sz);
+	int sendBufferSize()const;
+	int recvBufferSize()const;
 	//! Return true if nonblocking and the prevoious nonblocking opperation did not complete
 	/*!
 		In case of nonblocking sockets, use this method after:connect, accept, read, write,send

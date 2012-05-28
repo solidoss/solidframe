@@ -102,13 +102,16 @@ public:
 		Talker::TalkerStub &_rstub,
 		uint32 _id
 	);
+	
 	int execute(Talker::TalkerStub &_rstub);
+	
 	bool pushSentBuffer(
 		Talker::TalkerStub &_rstub,
 		uint32 _id,
 		const char *_data,
 		const uint16 _size
 	);
+	
 	void prepareContext(Context &_rctx);
 private:
 	bool doPushExpectedReceivedBuffer(

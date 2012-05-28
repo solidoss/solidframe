@@ -164,20 +164,14 @@ struct Talker::Data{
 			return _rtd1.timepos > _rtd2.timepos;
 		}
 	};
-	enum{
-		SessionNormal = 0,
-		SessionRelayed,
-	};
 	struct SessionStub{
 		SessionStub(
 			Session *_psession = NULL,
-			uint16 _uid = 0,
-			uint8 _type = SessionNormal
+			uint16 _uid = 0
 		):psession(_psession), uid(_uid), inexeq(false){}
 		Session		*psession;
 		uint16		uid;
 		bool		inexeq;
-		uint8		type;
 	};
 	
 	
@@ -392,7 +386,7 @@ int Talker::doReceiveBuffers(TalkerStub &_rstub, uint _atmost, const ulong _sig)
 	}
 	while(_atmost--){
 		char 			*pbuf(Buffer::allocateDataForReading());
-		const uint32	bufsz(Buffer::ReadCapacity);
+		const uint32	bufsz(Buffer::Capacity);
 		switch(socketRecvFrom(pbuf, bufsz)){
 			case BAD:
 				Buffer::deallocateDataForReading(pbuf);
@@ -417,7 +411,7 @@ bool Talker::doProcessReceivedBuffers(TalkerStub &_rstub){
 		
 		const Data::RecvBuffer	&rcvbuf(*it);
 		Data::SessionStub		&rss(d.sessionvec[rcvbuf.sessionidx]);
-		Buffer					buf(rcvbuf.data, Buffer::ReadCapacity);
+		Buffer					buf(rcvbuf.data, Buffer::Capacity);
 		
 		buf.bufferSize(rcvbuf.size);
 		
@@ -444,7 +438,7 @@ void Talker::doDispatchReceivedBuffer(
 	const uint32 _bufsz,
 	const SocketAddressPair &_rsap
 ){
-	Buffer buf(_pbuf, Buffer::ReadCapacity);
+	Buffer buf(_pbuf, Buffer::Capacity);
 	buf.bufferSize(_bufsz);
 	vdbgx(Dbg::ipc, " RECEIVED "<<buf);
 	switch(buf.type()){
