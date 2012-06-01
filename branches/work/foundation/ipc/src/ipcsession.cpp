@@ -162,6 +162,14 @@ std::ostream& operator<<(std::ostream &_ros, const StatisticData &_rsd);
 typedef DynamicPointer<foundation::Signal>			DynamicSignalPointerT;
 
 struct Session::Data{
+	enum Types{
+		Direct4,
+		//Direct6,
+		Relayed44,
+		//Relayed66
+		//Relayed46
+		//Relayed64
+	};
 	enum States{
 		Connecting = 0,//Connecting must be first see isConnecting
 		Accepting,
@@ -253,10 +261,6 @@ struct Session::Data{
 		uint8				mustdelete;
 	};
 	
-	typedef std::pair<
-		const SocketAddressPair*,
-		int
-	>											BaseAddrT;
 	typedef Queue<uint32>						UInt32QueueT;
 	typedef Stack<uint32>						UInt32StackT;
 	typedef Stack<uint16>						UInt16StackT;
@@ -265,6 +269,7 @@ struct Session::Data{
 	typedef Queue<RecvSignalData>				RecvSignalQueueT;
 	typedef std::vector<SendSignalData>			SendSignalVectorT;
 	typedef std::vector<SendBufferData>			SendBufferVectorT;
+	
 	struct SignalStub{
 		SignalStub():tid(SERIALIZATION_INVALIDID),flags(0){}
 		SignalStub(
@@ -277,6 +282,7 @@ struct Session::Data{
 		uint32					flags;
 	};
 	typedef Queue<SignalStub>					SignalQueueT;
+
 public:
 	Data(
 		const SocketAddressPair4 &_raddr,
@@ -352,13 +358,12 @@ public:
 	//returns false if there is no other signal but the current one
 	bool moveToNextSendSignal();
 public:
-	SocketAddress4			addr;
-	SocketAddressPair		pairaddr;
-	BaseAddrT				baseaddr;
-	uint32					rcvexpectedid;
+	uint8					type;
 	uint8					state;
 	uint8					sendpendingcount;
-	uint16					outoforderbufcount;
+	uint8					outoforderbufcount;
+	
+	uint32					rcvexpectedid;
 	uint32					sentsignalwaitresponse;
 	uint32					retansmittimepos;
 	uint32					sendsignalid;
@@ -367,7 +372,6 @@ public:
 	uint32					currentsyncid;
 	uint32					currentsendsyncid;
 	uint16					currentbuffersignalcount;//MaxSignalBufferCount
-	uint8					type;
 	
 	UInt32QueueT			rcvdidq;
 	BufferVectorT			outoforderbufvec;
@@ -384,7 +388,14 @@ public:
 	StatisticData			statistics;
 #endif
 };
-
+//---------------------------------------------------------------------
+struct Session::DataDirect4: Session::Data{
+	
+};
+//---------------------------------------------------------------------
+struct Session::DataRelayed44: Session::Data{
+	
+};
 //---------------------------------------------------------------------
 Session::Data::Data(
 	const SocketAddressPair4 &_raddr,

@@ -54,9 +54,6 @@ struct Context{
 
 class Session{
 public:
-	typedef std::pair<const SocketAddressPair4*, int> Addr4PairT;
-	typedef std::pair<const SocketAddressPair6*, int> Addr6PairT;
-public:
 	static void init();
 	static int parseAcceptedBuffer(const Buffer &_rbuf);
 	static int parseConnectingBuffer(const Buffer &_rbuf);
@@ -67,15 +64,19 @@ public:
 	);
 	Session(
 		const SocketAddressPair4 &_raddr,
-		int _basport,
+		uint16 _baseport,
 		uint32 _keepalivetout
 	);
 	
 	~Session();
 	
-	const SocketAddressPair4* peerAddr4()const;
-	const Addr4PairT* baseAddr4()const;
-	const SocketAddressPair* peerSockAddr()const;
+	const SocketAddress4* peerSocketAddress4Pointer()const;
+	const SocketAddress6* peerSocketAddress6Pointer()const;
+	
+	uint16	peerBasePort()const;
+	
+	//used by talker for sendto
+	const SocketAddressPair* peerSocketAddressPairPointer()const;
 	
 	bool isConnected()const;
 	bool isDisconnecting()const;
@@ -85,18 +86,20 @@ public:
 
 	void prepare();
 	void reconnect(Session *_pses);	
+	
 	int pushSignal(
 		DynamicPointer<Signal> &_rsig,
 		const SerializationTypeIdT &_rtid,
 		uint32 _flags
 	);
+	
 	bool pushReceivedBuffer(
 		Buffer &_rbuf,
 		Talker::TalkerStub &_rstub/*,
 		const ConnectionUid &_rconid*/
 	);
 	
-	void completeConnect(Talker::TalkerStub &_rstub, int _port);
+	void completeConnect(Talker::TalkerStub &_rstub, uint16 _port);
 	
 	bool executeTimeout(
 		Talker::TalkerStub &_rstub,
@@ -140,6 +143,8 @@ private:
 	void doTryScheduleKeepAlive(Talker::TalkerStub &_rstub);
 private:
 	struct Data;
+	struct DataDirect4;
+	struct DataRelayed44;
 	Data	&d;
 };
 

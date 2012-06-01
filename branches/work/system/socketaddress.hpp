@@ -190,7 +190,7 @@ struct SocketAddressPair{
 	}
 	//bool operator<(const SocketAddressPair &_addr)const;
 	const sockaddr	*addr;
-	socklen_t	sz;
+	socklen_t		sz;
 };
 
 //! A pair of a sockaddr_in pointer and a size
