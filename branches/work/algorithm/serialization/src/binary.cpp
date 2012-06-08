@@ -20,6 +20,7 @@
 */
 
 #include "algorithm/serialization/binary.hpp"
+#include "algorithm/serialization/binarybasic.hpp"
 #include "utility/ostream.hpp"
 #include "utility/istream.hpp"
 #include "system/cstring.hpp"
@@ -27,58 +28,6 @@
 
 namespace serialization{
 namespace binary{
-
-inline char *storeValue(char *_pd, const uint16 _val){
-	uint8 *pd = reinterpret_cast<uint8*>(_pd);
-	*(pd) 		= ((_val >> 8) & 0xff);
-	*(pd + 1)	= (_val & 0xff);
-	return _pd + 2;
-}
-
-inline char *storeValue(char *_pd, const uint32 _val){
-	
-	_pd = storeValue(_pd, static_cast<uint16>(_val >> 16));
-	
-	return storeValue(_pd, static_cast<uint16>(_val & 0xffff));;
-}
-
-inline char *storeValue(char *_pd, const uint64 _val){
-	
-	_pd = storeValue(_pd, static_cast<uint32>(_val >> 32));
-	
-	return storeValue(_pd, static_cast<uint32>(_val & 0xffffffffULL));;
-}
-
-inline const char* loadValue(const char *_ps, uint16 &_val){
-	const uint8 *ps = reinterpret_cast<const uint8*>(_ps);
-	_val = *ps;
-	_val <<= 8;
-	_val |= *(ps + 1);
-	return _ps + 2;
-}
-
-inline const char* loadValue(const char *_ps, uint32 &_val){
-	uint16	upper;
-	uint16	lower;
-	_ps = loadValue(_ps, upper);
-	_ps = loadValue(_ps, lower);
-	_val = upper;
-	_val <<= 16;
-	_val |= lower;
-	return _ps;
-}
-
-inline const char* loadValue(const char *_ps, uint64 &_val){
-	uint32	upper;
-	uint32	lower;
-	_ps = loadValue(_ps, upper);
-	_ps = loadValue(_ps, lower);
-	_val = upper;
-	_val <<= 32;
-	_val |= lower;
-	return _ps;
-}
-
 
 #ifdef HAVE_SAFE_STATIC
 /*static*/ Limits const& Limits::the(){
@@ -163,13 +112,13 @@ int Base::popEStack(Base &_rb, FncData &){
 }
 //========================================================================
 /*static*/ char* Serializer::storeValue(char *_pd, const uint16 _val){
-	return serialization::binary::storeValue(_pd, _val);
+	return serialization::binary::store(_pd, _val);
 }
 /*static*/ char* Serializer::storeValue(char *_pd, const uint32 _val){
-	return serialization::binary::storeValue(_pd, _val);
+	return serialization::binary::store(_pd, _val);
 }
 /*static*/ char* Serializer::storeValue(char *_pd, const uint64 _val){
-	return serialization::binary::storeValue(_pd, _val);
+	return serialization::binary::store(_pd, _val);
 }
 Serializer::~Serializer(){
 }
@@ -617,13 +566,13 @@ Serializer& Serializer::pushStream(
 }
 //========================================================================
 /*static*/ const char* Deserializer::loadValue(const char *_ps, uint16 &_val){
-	return serialization::binary::loadValue(_ps, _val);
+	return serialization::binary::load(_ps, _val);
 }
 /*static*/ const char* Deserializer::loadValue(const char *_ps, uint32 &_val){
-	return serialization::binary::loadValue(_ps, _val);
+	return serialization::binary::load(_ps, _val);
 }
 /*static*/ const char* Deserializer::loadValue(const char *_ps, uint64 &_val){
-	return serialization::binary::loadValue(_ps, _val);
+	return serialization::binary::load(_ps, _val);
 }
 Deserializer::~Deserializer(){
 }

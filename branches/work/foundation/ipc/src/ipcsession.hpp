@@ -22,7 +22,7 @@
 #ifndef FOUNDATION_IPC_SRC_IPC_SESSION_HPP
 #define FOUNDATION_IPC_SRC_IPC_SESSION_HPP
 
-#include "iodata.hpp"
+//#include "ipcdata.hpp"
 #include "ipctalker.hpp"
 #include "system/timespec.hpp"
 
@@ -31,6 +31,7 @@
 #include "foundation/ipc/ipcconnectionuid.hpp"
 
 struct SocketAddress;
+struct SocketAddress6;
 struct SocketAddressPair;
 struct SocketAddressPair4;
 struct SocketAddressPair6;

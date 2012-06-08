@@ -21,7 +21,6 @@
 
 #include <vector>
 #include <cstring>
-#include <ostream>
 
 #include "system/debug.hpp"
 #include "system/mutex.hpp"
@@ -39,8 +38,9 @@
 #include "foundation/ipc/ipcconnectionuid.hpp"
 
 #include "ipctalker.hpp"
-#include "iodata.hpp"
 #include "ipcsession.hpp"
+#include "ipcbuffer.hpp"
+#include "ipcutility.hpp"
 
 #ifdef HAVE_CPP11
 #include <unordered_map>
@@ -655,169 +655,6 @@ void Service::eraseObject(const Talker &_ro){
 Controller& Service::controller(){
 	return *d.pc;
 }
-
-//=======	Buffer		=============================================
-bool Buffer::check()const{
-	cassert(bc >= 32);
-	//TODO:
-	if(this->pb){
-		if(header().size() < sizeof(Header)) return false;
-		if(header().size() > Capacity) return false;
-		return true;
-	}
-	return false;
-}
-//---------------------------------------------------------------------
-/*static*/ char* Buffer::allocateDataForReading(){
-	return Specific::popBuffer(Specific::capacityToIndex(Capacity));
-}
-//---------------------------------------------------------------------
-/*static*/ void Buffer::deallocateDataForReading(char *_buf){
-	Specific::pushBuffer(_buf, Specific::capacityToIndex(Capacity));
-}
-//---------------------------------------------------------------------
-void Buffer::clear(){
-	if(pb){
-		Specific::pushBuffer(pb, Specific::capacityToIndex(bc));
-		pb = NULL;
-		bc = 0;
-	}
-}
-//---------------------------------------------------------------------
-Buffer::~Buffer(){
-	clear();
-}
-//---------------------------------------------------------------------
-void Buffer::optimize(uint16 _cp){
-	const uint32	bufsz(this->bufferSize());
-	const uint		id(Specific::sizeToIndex(bufsz));
-	const uint		mid(Specific::capacityToIndex(_cp ? _cp : Buffer::Capacity));
-	if(mid > id){
-		uint32 datasz = this->dataSize();//the size
-		
-		char *newbuf(Specific::popBuffer(id));
-		memcpy(newbuf, this->buffer(), bufsz);//copy to the new buffer
-		
-		char *pb = this->release();
-		Specific::pushBuffer(pb, mid);
-		
-		this->pb = newbuf;
-		this->dl = datasz;
-		this->bc = Specific::indexToCapacity(id);
-	}
-}
-struct BufferContext{
-	BufferContext(uint _offset):offset(_offset), reqbufid(-1){}
-	uint	offset;
-	uint	reqbufid;
-};
-bool Buffer::compress(Controller &_rctrl){
-	BufferContext	bctx(this->minimumSize());
-	int32			datasz(this->dataSize() + updatesCount() * sizeof(uint32));
-	char			*pd(this->data() - updatesCount() * sizeof(uint32));
-	
-	uint32			tmpdatasz(datasz);
-	char			*tmppd(pd);
-	vdbgx(Dbg::ipc, "buffer before compress id = "<<this->id()<<" dl = "<<this->dl<<" size = "<<bufferSize());
-	if(_rctrl.compressBuffer(bctx, this->bufferSize(),tmppd, tmpdatasz)){
-		if(tmppd != pd){
-			if(bctx.reqbufid == (uint)-1){
-				THROW_EXCEPTION("Invalid buffer pointer returned");
-			}
-			tmppd -= bctx.offset;
-			memcpy(tmppd, pb, sizeof(Header));
-			Specific::pushBuffer(this->pb, Specific::capacityToIndex(this->bc));
-			this->bc = Specific::indexToCapacity(bctx.reqbufid);
-			this->pb = tmppd;
-		}else{
-			//the compression was done on-place
-		}
-		this->header().flags |= CompressedFlag;
-		this->dl -= (datasz - tmpdatasz);
-		vdbgx(Dbg::ipc, "buffer success compress id = "<<this->id()<<" dl = "<<this->dl<<" size = "<<bufferSize());
-	}else{
-		if(bctx.reqbufid != (uint)-1){
-			if(pd == tmppd){
-				THROW_EXCEPTION("Allocated buffer must be returned even on no compression");
-			}
-			tmppd -= bctx.offset;
-			Specific::pushBuffer(tmppd, bctx.reqbufid);
-		}
-		vdbgx(Dbg::ipc, "buffer failed compress id = "<<this->id()<<" dl = "<<this->dl<<" size = "<<bufferSize());
-	}
-	optimize();
-	return true;
-}
-bool Buffer::decompress(Controller &_rctrl){
-	if(!(flags() & CompressedFlag)){
-		return true;
-	}
-	BufferContext	bctx(this->minimumSize());
-	
-	uint32			datasz(dl + updatesCount() * sizeof(uint32));
-	char			*pd(pb + this->minimumSize());
-	
-	uint32			tmpdatasz(datasz);
-	char			*tmppd(pd);
-	vdbgx(Dbg::ipc, "buffer before decompress id = "<<this->id()<<" dl = "<<this->dl<<" size = "<<bufferSize());
-	if(_rctrl.decompressBuffer(bctx, tmppd, tmpdatasz)){
-		if(bctx.reqbufid != (uint)-1){
-			if(tmppd == pd){
-				THROW_EXCEPTION("Requested buffer not returned");
-			}
-			tmppd -= bctx.offset;
-			memcpy(tmppd, pb, sizeof(Header));
-			Specific::pushBuffer(this->pb, Specific::capacityToIndex(this->bc));
-			this->bc = Specific::indexToCapacity(bctx.reqbufid);
-			this->pb = tmppd;
-		}else{
-			//on-place decompression
-			if(tmppd != pd){
-				THROW_EXCEPTION("Invalid buffer pointer returned");
-			}
-		}
-		this->header().flags &= (~CompressedFlag);
-		this->dl += (tmpdatasz - datasz);
-		vdbgx(Dbg::ipc, "buffer success decompress id = "<<this->id()<<" dl = "<<this->dl<<" size = "<<bufferSize());
-	}else{
-		//decompression failed
-		if(bctx.reqbufid != (uint)-1){
-			if(pd == tmppd){
-				THROW_EXCEPTION("Allocated buffer must be returned even on failed compression");
-			}
-			tmppd -= bctx.offset;
-			Specific::pushBuffer(tmppd, bctx.reqbufid);
-		}
-		vdbgx(Dbg::ipc, "buffer failed decompress id = "<<this->id()<<" dl = "<<this->dl<<" size = "<<bufferSize());
-		return false;
-	}
-	return true;
-}
-//---------------------------------------------------------------------
-std::ostream& operator<<(std::ostream &_ros, const Buffer &_rb){
-	_ros<<"BUFFER ver = "<<(int)_rb.header().version;
-	_ros<<" id = "<<_rb.header().id;
-	_ros<<" retransmit = "<<_rb.header().retransid;
-	_ros<<" type = ";
-	switch(_rb.header().type){
-		case Buffer::KeepAliveType: _ros<<"KeepAliveType";break;
-		case Buffer::DataType: _ros<<"DataType";break;
-		case Buffer::ConnectingType: _ros<<"ConnectingType";break;
-		case Buffer::AcceptingType: _ros<<"AcceptingType";break;
-		case Buffer::Unknown: _ros<<"Unknown";break;
-		default: _ros<<"[INVALID TYPE]";
-	}
-	_ros<<" buffer_cp = "<<_rb.bc;
-	_ros<<" datalen = "<<_rb.dl;
-	_ros<<" updatescnt = "<<_rb.header().updatescount;
-	_ros<<" updates [";
-	for(int i = 0; i < _rb.header().updatescount; ++i){
-		_ros<<_rb.update(i)<<',';
-	}
-	_ros<<']';
-	return _ros;
-	
-}
 //------------------------------------------------------------------
 //		Controller
 //------------------------------------------------------------------
@@ -840,8 +677,7 @@ std::ostream& operator<<(std::ostream &_ros, const Buffer &_rb){
 	return true;
 }
 char * Controller::allocateBuffer(BufferContext &_rbc, uint32 &_cp){
-	const uint	mid(Specific::capacityToIndex(Buffer::Capacity));
-	char		*newbuf(Specific::popBuffer(mid));
+	char		*newbuf(Buffer::allocate());
 	_cp = Buffer::Capacity - _rbc.offset;
 	if(_rbc.reqbufid != (uint)-1){
 		THROW_EXCEPTION("Requesting more than one buffer");
