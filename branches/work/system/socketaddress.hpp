@@ -188,6 +188,7 @@ struct SocketAddressPair{
 	void size(socklen_t _sz){
 		sz = _sz;
 	}
+	uint16 port()const;
 	//bool operator<(const SocketAddressPair &_addr)const;
 	const sockaddr	*addr;
 	socklen_t		sz;
@@ -200,14 +201,26 @@ struct SocketAddressPair{
 */
 
 struct SocketAddressPair4{
+	static bool equalAdresses(
+		SocketAddressPair4 const & _rsa1,
+		SocketAddressPair4 const & _rsa2
+	);
+	static bool compareAddressesLess(
+		SocketAddressPair4 const & _rsa1,
+		SocketAddressPair4 const & _rsa2
+	);
 	SocketAddressPair4(const SocketAddressPair &_rsap);
 	SocketAddressPair4(const SocketAddress &_rsa);
+	SocketAddressPair4(const SocketAddress4 &_rsa);
 	int port()const;
 	void port(uint16 _port);
 	bool operator<(const SocketAddressPair4 &_addr)const;
+	bool operator==(const SocketAddressPair4 &_addr)const;
 	SocketAddressInfo::Family family()const{return (SocketAddressInfo::Family)addr->sin_family;}
+	size_t hash()const;
+	size_t addressHash()const;
 	sockaddr_in	*addr;
-	socklen_t	size()const{return sizeof(sockaddr_in);}
+	static socklen_t	size(){return sizeof(sockaddr_in);}
 };
 
 //! A pair of a sockaddr_in6 pointer and a size
@@ -216,12 +229,23 @@ struct SocketAddressPair4{
 	nor it will delete it. Use this structure in with SocketAddress and SocketAddressInfoIterator
 */
 struct SocketAddressPair6{
+	static bool equalAdresses(
+		SocketAddressPair6 const & _rsa1,
+		SocketAddressPair6 const & _rsa2
+	);
+	static bool compareAddressesLess(
+		SocketAddressPair6 const & _rsa1,
+		SocketAddressPair6 const & _rsa2
+	);
 	SocketAddressPair6(const SocketAddressPair &_rsa);
 	SocketAddressPair6(const SocketAddress &_rsa);
 	int port()const;
 	void port(uint16 _port);
 	bool operator<(const SocketAddressPair6 &_addr)const;
+	bool operator==(const SocketAddressPair4 &_addr)const;
 	SocketAddressInfo::Family family()const{return (SocketAddressInfo::Family)addr->sin6_family;}
+	size_t hash()const;
+	size_t addressHash()const;
 	sockaddr_in6	*addr;
 	socklen_t	size()const{return sizeof(sockaddr_in6);}
 };
@@ -241,6 +265,16 @@ struct SocketAddress{
 		NameRequest = NI_NAMEREQD,		//!< Force name lookup - fail if not found
 		NumericService = NI_NUMERICSERV	//!< Generate only the port number
 	};
+	
+	static bool equalAdresses(
+		SocketAddress const & _rsa1,
+		SocketAddress const & _rsa2
+	);
+	static bool compareAddressesLess(
+		SocketAddress const & _rsa1,
+		SocketAddress const & _rsa2
+	);
+	
 	SocketAddress():sz(0){clear();}
 	SocketAddress(const SocketAddressInfoIterator &);
 	SocketAddress(const SocketAddressPair &);
@@ -301,6 +335,7 @@ struct SocketAddress{
 	void port(int _port);
 	void clear();
 	size_t hash()const;
+	size_t addressHash()const;
 private:
 	sockaddr_in* addrin(){return reinterpret_cast<sockaddr_in*>(buf);}
 	const sockaddr_in* addrin()const{return reinterpret_cast<const sockaddr_in*>(buf);}
@@ -318,6 +353,16 @@ struct SocketAddress4{
 		NameRequest = NI_NAMEREQD,		//!< Force name lookup - fail if not found
 		NumericService = NI_NUMERICSERV	//!< Generate only the port number
 	};
+	
+	static bool equalAdresses(
+		SocketAddress4 const & _rsa1,
+		SocketAddress4 const & _rsa2
+	);
+	static bool compareAddressesLess(
+		SocketAddress4 const & _rsa1,
+		SocketAddress4 const & _rsa2
+	);
+	
 	SocketAddress4(){clear();}
 	SocketAddress4(const SocketAddressInfoIterator &);
 	SocketAddress4(const SocketAddressPair &);
@@ -373,12 +418,14 @@ struct SocketAddress4{
 	void port(int _port);
 	void clear();
 	size_t hash()const;
+	size_t addressHash()const;
 private:
 	sockaddr_in* addrin(){return reinterpret_cast<sockaddr_in*>(buf);}
 	const sockaddr_in* addrin()const{return reinterpret_cast<const sockaddr_in*>(buf);}
 	char 		buf[Capacity];
 };
 
+typedef SocketAddress SocketAddress6;
 
 #ifndef NINLINES
 #include "system/socketaddress.ipp"

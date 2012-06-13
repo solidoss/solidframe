@@ -34,88 +34,67 @@ class Visitor;
 namespace foundation{
 namespace ipc{
 
-
+typedef std::pair<const SocketAddressPair4, uint16>	BaseAddress4T;
+typedef std::pair<const SocketAddressPair6, uint16>	BaseAddress6T;
 
 //*******	AddrPtrCmp		******************************************************************
 #ifdef HAVE_CPP11
 
-struct SockAddrHash{
-	size_t operator()(const SocketAddressPair4*const &_psa)const{
-		return _psa->addr->sin_addr.s_addr ^ _psa->addr->sin_port;
+struct SocketAddressHash{
+	size_t operator()(SocketAddressPair4 const &_rsa)const{
+		return _rsa.hash();
 	}
 	
-	typedef std::pair<const SocketAddressPair4*, int>	PairProcAddr;
-	
-	size_t operator()(const PairProcAddr* const &_psa)const{
-		return _psa->first->addr->sin_addr.s_addr ^ _psa->second;
+	size_t operator()(BaseAddress4T const &_rsa)const{
+		return _rsa.first.addressHash() ^ _rsa.second;
+	}
+	size_t operator()(BaseAddress6T const &_rsa)const{
+		return _rsa.first.addressHash() ^ _rsa.second;
 	}
 };
 
-struct SockAddrEqual{
-	bool operator()(const SocketAddressPair4*const &_psa1, const SocketAddressPair4*const &_psa2)const{
-		return _psa1->addr->sin_addr.s_addr == _psa2->addr->sin_addr.s_addr &&
-		_psa1->addr->sin_port == _psa2->addr->sin_port;
+struct SocketAddressEqual{
+	bool operator()(
+		SocketAddressPair4 const &_rsa1,
+		SocketAddressPair4 const &_rsa2
+	)const{
+		return _rsa1 == _rsa2;
 	}
 	
-	typedef std::pair<const SocketAddressPair4*, int>	PairProcAddr;
-	
-	bool operator()(const PairProcAddr* const &_psa1, const PairProcAddr* const &_psa2)const{
-		return _psa1->first->addr->sin_addr.s_addr == _psa2->first->addr->sin_addr.s_addr &&
-		_psa1->second == _psa2->second;
+	bool operator()(BaseAddress4T const &_rsa1, BaseAddress4T const &_rsa2)const{
+		return SocketAddress4::equalAdresses(_rsa1.first, _rsa2.first) &&
+		_rsa1.second == _rsa2.second;
+	}
+	bool operator()(BaseAddress6T const &_rsa1, BaseAddress6T const &_rsa2)const{
+		return SocketAddress6::equalAdresses(_rsa1.first, _rsa2.first) &&
+		_rsa1.second == _rsa2.second;
 	}
 };
 
 #else
 
-struct Inet4AddrPtrCmp{
+struct SocketAddressCompare{
 	
-	bool operator()(const SocketAddressPair4*const &_sa1, const SocketAddressPair4*const &_sa2)const{
-		//TODO: optimize
-		cassert(_sa1 && _sa2); 
-		if(*_sa1 < *_sa2){
+	bool operator()(
+		SocketAddressPair4 const &_sa1,
+		SocketAddressPair4 const &_sa2
+	)const{
+		return _sa1 < _sa2;
+	}
+	
+	bool operator()(BaseAddress4T const &_rsa1, BaseAddress4T const &_rsa2)const{
+		if(SocketAddress4::compareAddressesLess(_rsa1.first, _rsa2.first)){
 			return true;
-		}else if(!(*_sa2 < *_sa1)){
-			return _sa1->port() < _sa2->port();
+		}else if(!SocketAddress4::compareAddressesLess(_rsa2.first, _rsa1.first)){
+			return _rsa1.second < _rsa2.second;
 		}
 		return false;
 	}
-	
-	typedef std::pair<const SocketAddressPair4*, int>	PairProcAddr;
-	
-	bool operator()(const PairProcAddr* const &_sa1, const PairProcAddr* const &_sa2)const{
-		cassert(_sa1 && _sa2); 
-		cassert(_sa1->first && _sa2->first); 
-		if(*_sa1->first < *_sa2->first){
+	bool operator()(BaseAddress6T const &_rsa1, BaseAddress6T const &_rsa2)const{
+		if(SocketAddress6::compareAddressesLess(_rsa1.first, _rsa2.first)){
 			return true;
-		}else if(!(*_sa2->first < *_sa1->first)){
-			return _sa1->second < _sa2->second;
-		}
-		return false;
-	}
-};
-
-struct Inet6AddrPtrCmp{
-	
-	bool operator()(const SocketAddressPair6*const &_sa1, const SocketAddressPair6*const &_sa2)const{
-		//TODO: optimize
-		cassert(_sa1 && _sa2); 
-		if(*_sa1 < *_sa2){
-			return true;
-		}else if(!(*_sa2 < *_sa1)){
-			return _sa1->port() < _sa2->port();
-		}
-		return false;
-	}
-	
-	typedef std::pair<const SocketAddressPair6*, int>	PairProcAddr;
-	
-	bool operator()(const PairProcAddr* const &_sa1, const PairProcAddr* const &_sa2)const{
-		cassert(_sa1 && _sa2); 
-		cassert(_sa1->first && _sa2->first); 
-		if(*_sa1->first < *_sa2->first){
-			return true;
-		}else if(!(*_sa2->first < *_sa1->first)){
-			return _sa1->second < _sa2->second;
+		}else if(!SocketAddress6::compareAddressesLess(_rsa2.first, _rsa1.first)){
+			return _rsa1.second < _rsa2.second;
 		}
 		return false;
 	}

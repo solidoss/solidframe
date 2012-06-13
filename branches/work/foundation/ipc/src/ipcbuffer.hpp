@@ -35,6 +35,12 @@ namespace ipc{
 
 struct Controller;
 
+struct BufferContext{
+	BufferContext(uint _offset):offset(_offset), reqbufid(-1){}
+	uint	offset;
+	uint	reqbufid;
+};
+
 struct Buffer{
 	enum{
 		Capacity = UIPCBUFFERCAPACITY,

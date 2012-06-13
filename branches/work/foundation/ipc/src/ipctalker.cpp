@@ -41,6 +41,7 @@
 
 #include "ipctalker.hpp"
 #include "ipcsession.hpp"
+#include "ipcbuffer.hpp"
 
 #ifdef HAVE_CPP11
 
@@ -194,54 +195,54 @@ struct Talker::Data{
 	>											BaseAddr6;
 #ifdef HAVE_CPP11
 	typedef std::unordered_map<
-		const SocketAddressPair4*,
+		const SocketAddressPair4,
 		uint32,
-		SockAddrHash,
-		SockAddrEqual
+		SocketAddressHash,
+		SocketAddressEqual
 	>											PeerAddr4MapT;
 	typedef std::unordered_map<
-		const BaseAddr4*,
+		const BaseAddress4T,
 		uint32,
-		SockAddrHash,
-		SockAddrEqual
+		SocketAddressHash,
+		SocketAddressEqual
 	>											BaseAddr4MapT;
 	
 	typedef std::unordered_map<
-		const SocketAddressPair6*, 
+		const SocketAddressPair6, 
 		uint32,
-		SockAddrHash,
-		SockAddrEqual
+		SocketAddressHash,
+		SocketAddressEqual
 	>											PeerAddr6MapT;
 	
 	typedef std::unordered_map<
-		const BaseAddr6*,
+		const BaseAddress6T,
 		uint32,
-		SockAddrHash,
-		SockAddrEqual
+		SocketAddressHash,
+		SocketAddressEqual
 	>											BaseAddr6MapT;
 
 #else
 	typedef std::map<
-		const SocketAddressPair4*,
+		const SocketAddressPair4,
 		uint32,
-		Inet4AddrPtrCmp
+		SocketAddressCompare
 	>											PeerAddr4MapT;
 	typedef std::map<
-		const BaseAddr4*,
+		const BaseAddress4T,
 		uint32,
-		Inet4AddrPtrCmp
+		SocketAddressCompare
 	>											BaseAddr4MapT;
 	
 	typedef std::map<
-		const SocketAddressPair6*, 
+		const SocketAddressPair6, 
 		uint32,
-		Inet6AddrPtrCmp
+		SocketAddressCompare
 	>											PeerAddr6MapT;
 	
 	typedef std::map<
-		const BaseAddr6*,
+		const BaseAddress6T,
 		uint32,
-		Inet6AddrPtrCmp
+		SocketAddressCompare
 	>											BaseAddr6MapT;
 #endif
 	typedef std::priority_queue<
@@ -280,10 +281,10 @@ public:
 };
 Talker::Data::~Data(){
 	if(pendingreadbuffer){
-		Buffer::deallocateDataForReading(pendingreadbuffer);
+		Buffer::deallocate(pendingreadbuffer);
 	}
 	for(RecvBufferVectorT::const_iterator it(receivedbufvec.begin()); it != receivedbufvec.end(); ++it){
-		Buffer::deallocateDataForReading(it->data);
+		Buffer::deallocate(it->data);
 	}
 	for(SessionPairVectorT::const_iterator it(newsessionvec.begin()); it != newsessionvec.end(); ++it){
 		delete it->first;
@@ -385,11 +386,11 @@ int Talker::doReceiveBuffers(TalkerStub &_rstub, uint _atmost, const ulong _sig)
 		d.pendingreadbuffer = NULL;
 	}
 	while(_atmost--){
-		char 			*pbuf(Buffer::allocateDataForReading());
+		char 			*pbuf(Buffer::allocate());
 		const uint32	bufsz(Buffer::Capacity);
 		switch(socketRecvFrom(pbuf, bufsz)){
 			case BAD:
-				Buffer::deallocateDataForReading(pbuf);
+				Buffer::deallocate(pbuf);
 				return BAD;
 			case OK:
 				doDispatchReceivedBuffer(_rstub, pbuf, socketRecvSize(), socketRecvAddr());
@@ -448,7 +449,7 @@ void Talker::doDispatchReceivedBuffer(
 			COLLECT_DATA_0(d.statistics.receivedData);
 			idbgx(Dbg::ipc, "data buffer");
 			SocketAddressPair4				inaddr(_rsap);
-			Data::PeerAddr4MapT::iterator	pit(d.peeraddr4map.find(&inaddr));
+			Data::PeerAddr4MapT::iterator	pit(d.peeraddr4map.find(inaddr));
 			if(pit != d.peeraddr4map.end()){
 				idbgx(Dbg::ipc, "found session for buffer");
 				d.receivedbufvec.push_back(Data::RecvBuffer(_pbuf, _bufsz, pit->second));
@@ -459,7 +460,7 @@ void Talker::doDispatchReceivedBuffer(
 					d.rservice.connectSession(inaddr);
 				}
 				//proc
-				Buffer::deallocateDataForReading(buf.release());
+				Buffer::deallocate(buf.release());
 			}
 		
 		}break;
@@ -480,7 +481,7 @@ void Talker::doDispatchReceivedBuffer(
 			}else{
 				COLLECT_DATA_0(d.statistics.receivedConnectingError);
 			}
-			Buffer::deallocateDataForReading(buf.release());
+			Buffer::deallocate(buf.release());
 		}break;
 		
 		case Buffer::AcceptingType:{
@@ -491,15 +492,14 @@ void Talker::doDispatchReceivedBuffer(
 			
 			if(baseport >= 0){
 				
-				SocketAddressPair4				inaddr(_rsap);
-				Data::BaseAddr4					ppa(&inaddr, baseport);
-				Data::BaseAddr4MapT::iterator	bit(d.baseaddr4map.find(&ppa));
+				BaseAddress4T					ba(_rsap, baseport);
+				Data::BaseAddr4MapT::iterator	bit(d.baseaddr4map.find(ba));
 				if(bit != d.baseaddr4map.end()){
 					Data::SessionStub	&rss(d.sessionvec[bit->second]);
 					if(rss.psession){
-						rss.psession->completeConnect(_rstub, inaddr.port());
+						rss.psession->completeConnect(_rstub, _rsap.port());
 						//register in peer map
-						d.peeraddr4map[rss.psession->peerAddr4()] = bit->second;
+						d.peeraddr4map[rss.psession->peerAddress4()] = bit->second;
 						//the connector has at least some updates to send
 						if(!rss.inexeq){
 							d.sessionexecq.push(bit->second);
@@ -511,12 +511,12 @@ void Talker::doDispatchReceivedBuffer(
 				COLLECT_DATA_0(d.statistics.receivedAcceptingError);
 			}
 			
-			Buffer::deallocateDataForReading(buf.release());
+			Buffer::deallocate(buf.release());
 		}break;
 		
 		default:
 			COLLECT_DATA_0(d.statistics.receivedUnknown);
-			Buffer::deallocateDataForReading(buf.release());
+			Buffer::deallocate(buf.release());
 			cassert(false);
 	}
 }
@@ -594,7 +594,7 @@ int Talker::doSendBuffers(TalkerStub &_rstub, const ulong _sig){
 		Data::SendBuffer	&rsb(d.sendq.front());
 		Data::SessionStub	&rss(d.sessionvec[rsb.sessionidx]);
 		
-		switch(socketSendTo(rsb.data, rsb.size, *rss.psession->peerSockAddr())){
+		switch(socketSendTo(rsb.data, rsb.size, rss.psession->peerAddress())){
 			case BAD: return BAD;
 			case OK:
 				Context::the().sigctx.connectionuid.idx = rsb.sessionidx;
@@ -667,9 +667,9 @@ void Talker::doInsertNewSessions(){
 		if(rss.psession == NULL){
 			rss.psession = it->first;
 			rss.psession->prepare();
-			d.baseaddr4map[rss.psession->baseAddr4()] = it->second;
+			d.baseaddr4map[rss.psession->peerBaseAddress4()] = it->second;
 			if(rss.psession->isConnected()){
-				d.peeraddr4map[rss.psession->peerAddr4()] = it->second;
+				d.peeraddr4map[rss.psession->peerAddress4()] = it->second;
 			}
 			if(!rss.inexeq){
 				d.sessionexecq.push(it->second);
@@ -679,10 +679,10 @@ void Talker::doInsertNewSessions(){
 			rss.psession->prepareContext(Context::the());
 			if(!rss.psession->isAccepting()){
 				//a reconnect
-				d.peeraddr4map.erase(rss.psession->peerAddr4());
+				d.peeraddr4map.erase(rss.psession->peerAddress4());
 				rss.psession->reconnect(it->first);
 				++rss.uid;
-				d.peeraddr4map[rss.psession->peerAddr4()] = it->second;
+				d.peeraddr4map[rss.psession->peerAddress4()] = it->second;
 				if(!rss.inexeq){
 					d.sessionexecq.push(it->second);
 					rss.inexeq = true;
@@ -747,15 +747,13 @@ void Talker::disconnectSessions(){
 			idbgx(Dbg::ipc, "deleting session "<<(void*)rss.psession<<" on pos "<<*it);
 			d.rservice.disconnectSession(rss.psession);
 			//unregister from base and peer:
-			if(rss.psession->peerAddr4() && rss.psession->peerAddr4()->addr){
-				d.peeraddr4map.erase(rss.psession->peerAddr4());
+			if(rss.psession->peerAddress4().addr){
+				d.peeraddr4map.erase(rss.psession->peerAddress4());
 			}
 			if(
-				rss.psession->baseAddr4() &&
-				rss.psession->baseAddr4()->first &&
-				rss.psession->baseAddr4()->first->addr
+				rss.psession->peerBaseAddress4().first.addr
 			){
-				d.baseaddr4map.erase(rss.psession->baseAddr4());
+				d.baseaddr4map.erase(rss.psession->peerBaseAddress4());
 			}
 			
 			delete rss.psession;
@@ -783,7 +781,7 @@ bool Talker::TalkerStub::pushSendBuffer(uint32 _id, const char *_pb, uint32 _bl)
 	}
 	Talker::Data::SessionStub &rss(rt.d.sessionvec[this->sessionidx]);
 	//try to send the buffer right now:
-	switch(rt.socketSendTo(_pb, _bl, *rss.psession->peerSockAddr())){
+	switch(rt.socketSendTo(_pb, _bl, rss.psession->peerAddress())){
 		case BAD:
 		case NOK:
 			rt.d.sendq.push(Talker::Data::SendBuffer(_pb, _bl, this->sessionidx, _id));

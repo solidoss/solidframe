@@ -63,29 +63,29 @@ struct Service::Data{
 	};
 #ifdef HAVE_CPP11
 	typedef std::unordered_map<
-		const Session::Addr4PairT*,
+		const BaseAddress4T,
 		ConnectionUid,
-		SockAddrHash,
-		SockAddrEqual
+		SocketAddressHash,
+		SocketAddressEqual
 	>	SessionAddr4MapT;
 	typedef std::unordered_map<
-		const Session::Addr6PairT*,
+		const BaseAddress6T,
 		ConnectionUid,
-		SockAddrHash,
-		SockAddrEqual
+		SocketAddressHash,
+		SocketAddressEqual
 	>	SessionAddr6MapT;
 	
 #else
 	typedef std::map<
-		const Session::Addr4PairT*, 
+		const Session::BaseAddress4T,
 		ConnectionUid, 
-		Inet4AddrPtrCmp
+		SocketAddressCompare,
 	>	SessionAddr4MapT;
 	
 	typedef std::map<
-		const Session::Addr6PairT*,
+		const Session::BaseAddress6T,
 		ConnectionUid,
-		Inet6AddrPtrCmp
+		SocketAddressCompare,
 	>	SessionAddr6MapT;
 #endif	
 	struct TalkerStub{
@@ -234,9 +234,9 @@ int Service::doSendSignal(
 	
 	if(_rsap.family() == SocketAddressInfo::Inet4){
 		
-		SocketAddressPair4 					inaddr(_rsap);
-		Session::Addr4PairT					baddr(&inaddr, inaddr.port());
-		Data::SessionAddr4MapT::iterator	it(d.sessionaddr4map.find(&baddr));
+		const BaseAddress4T					baddr(_rsap, _rsap.port());
+		
+		Data::SessionAddr4MapT::iterator	it(d.sessionaddr4map.find(baddr));
 		
 		if(it != d.sessionaddr4map.end()){
 		
@@ -286,12 +286,12 @@ int Service::doSendSignal(
 			Locker<Mutex>		lock2(this->mutex(tkrpos));
 			Talker				*ptkr(static_cast<Talker*>(this->objectAt(tkrpos)));
 			cassert(ptkr);
-			Session				*pses(new Session(inaddr, d.keepalivetout));
+			Session				*pses(new Session(baddr.first, d.keepalivetout));
 			ConnectionUid		conid(tkrid);
 			
 			vdbgx(Dbg::ipc, "");
 			ptkr->pushSession(pses, conid);
-			d.sessionaddr4map[pses->baseAddr4()] = conid;
+			d.sessionaddr4map[pses->peerBaseAddress4()] = conid;
 			
 			ptkr->pushSignal(_psig, _rtid, conid, _flags);
 			
@@ -440,7 +440,7 @@ int Service::acceptSession(Session *_pses){
 	{
 		//TODO: see if the locking is ok!!!
 		
-		Data::SessionAddr4MapT::iterator	it(d.sessionaddr4map.find(_pses->baseAddr4()));
+		Data::SessionAddr4MapT::iterator	it(d.sessionaddr4map.find(_pses->peerBaseAddress4()));
 		
 		if(it != d.sessionaddr4map.end()){
 			//a connection still exists
@@ -486,7 +486,7 @@ int Service::acceptSession(Session *_pses){
 	vdbgx(Dbg::ipc, "");
 	
 	ptkr->pushSession(_pses, conid);
-	d.sessionaddr4map[_pses->baseAddr4()] = conid;
+	d.sessionaddr4map[_pses->peerBaseAddress4()] = conid;
 	
 	if(ptkr->signal(fdt::S_RAISE)){
 		Manager::the().raiseObject(*ptkr);
@@ -523,7 +523,7 @@ void Service::connectSession(const SocketAddressPair4 &_raddr){
 	
 	vdbgx(Dbg::ipc, "");
 	ptkr->pushSession(pses, conid);
-	d.sessionaddr4map[pses->baseAddr4()] = conid;
+	d.sessionaddr4map[pses->peerBaseAddress4()] = conid;
 	
 	if(ptkr->signal(fdt::S_RAISE)){
 		Manager::the().raiseObject(*ptkr);
@@ -536,7 +536,7 @@ void Service::disconnectTalkerSessions(Talker &_rtkr){
 }
 //---------------------------------------------------------------------
 void Service::disconnectSession(Session *_pses){
-	d.sessionaddr4map.erase(_pses->baseAddr4());
+	d.sessionaddr4map.erase(_pses->peerBaseAddress4());
 	//Use:Context::the().sigctx.connectionuid.tid
 	int tkrid(Context::the().sigctx.connectionuid.tid);
 	Data::TalkerStub &rts(d.tkrvec[tkrid]);
@@ -677,6 +677,7 @@ Controller& Service::controller(){
 	return true;
 }
 char * Controller::allocateBuffer(BufferContext &_rbc, uint32 &_cp){
+	const uint	mid(Specific::capacityToIndex(_cp ? _cp : Buffer::Capacity));
 	char		*newbuf(Buffer::allocate());
 	_cp = Buffer::Capacity - _rbc.offset;
 	if(_rbc.reqbufid != (uint)-1){

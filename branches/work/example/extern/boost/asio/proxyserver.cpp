@@ -67,8 +67,8 @@ public:
         --pending;
         if(!error)
         {
-            boost::asio::socket_base::send_buffer_size option(0);
-            socketTwo().set_option(option);
+            //boost::asio::socket_base::send_buffer_size option(0);
+            //socketTwo().set_option(option);
             pending+=2;
             //issue async read on both sockets:
             socket_1.async_read_some(

@@ -76,12 +76,6 @@ void Buffer::optimize(uint16 _cp){
 	}
 }
 
-struct BufferContext{
-	BufferContext(uint _offset):offset(_offset), reqbufid(-1){}
-	uint	offset;
-	uint	reqbufid;
-};
-
 bool Buffer::compress(Controller &_rctrl){
 	const uint32 	updatesz = updateCount() * sizeof(uint32);
 	const uint32	headersize = headerSize() - updatesz;

@@ -29,9 +29,9 @@
 #include "utility/dynamicpointer.hpp"
 
 #include "foundation/ipc/ipcconnectionuid.hpp"
+#include "ipcutility.hpp"
 
 struct SocketAddress;
-struct SocketAddress6;
 struct SocketAddressPair;
 struct SocketAddressPair4;
 struct SocketAddressPair6;
@@ -55,6 +55,7 @@ struct Context{
 
 class Session{
 public:
+	
 	static void init();
 	static int parseAcceptedBuffer(const Buffer &_rbuf);
 	static int parseConnectingBuffer(const Buffer &_rbuf);
@@ -71,13 +72,13 @@ public:
 	
 	~Session();
 	
-	const SocketAddress4* peerSocketAddress4Pointer()const;
-	const SocketAddress6* peerSocketAddress6Pointer()const;
-	
-	uint16	peerBasePort()const;
+	const BaseAddress4T peerBaseAddress4()const;
+	const BaseAddress6T peerBaseAddress6()const;
 	
 	//used by talker for sendto
-	const SocketAddressPair* peerSocketAddressPairPointer()const;
+	const SocketAddressPair& peerAddress()const;
+	const SocketAddressPair4 peerAddress4()const;
+	const SocketAddressPair6 peerAddress6()const;
 	
 	bool isConnected()const;
 	bool isDisconnecting()const;
