@@ -45,7 +45,7 @@ namespace ipc{
 
 struct BufCmp{
 	bool operator()(const uint32 id1, const uint32 id2)const{
-		return overflow_safe_less(id2, id1);
+		return overflow_safe_less(id1, id2);
 	}
 	bool operator()(const Buffer &_rbuf1, const Buffer &_rbuf2)const{
 		return operator()(_rbuf1.id(), _rbuf2.id());
@@ -164,7 +164,7 @@ typedef DynamicPointer<foundation::Signal>			DynamicSignalPointerT;
 struct Session::Data{
 	enum Types{
 		Direct4,
-		//Direct6,
+		Direct6,
 		Relayed44,
 		//Relayed66
 		//Relayed46
@@ -285,13 +285,8 @@ struct Session::Data{
 
 public:
 	Data(
-		const SocketAddressPair4 &_raddr,
-		uint32 _keepalivetout
-	);
-	
-	Data(
-		const SocketAddressPair4 &_raddr,
-		int _baseport,
+		uint8 _type,
+		uint8 _state,
 		uint32 _keepalivetout
 	);
 	
@@ -318,6 +313,13 @@ public:
 		cassert(_p->empty());
 		Specific::cache(_p);
 	}
+	
+	Session::DataDirect4& direct4();
+	Session::DataDirect4 const& direct4()const;
+	
+	Session::DataDirect6& direct6();
+	Session::DataDirect6 const& direct6()const;
+	
 	bool moveToNextOutOfOrderBuffer(Buffer &_rb);
 	bool keepOutOfOrderBuffer(Buffer &_rb);
 	bool mustSendUpdates();
@@ -391,17 +393,68 @@ public:
 };
 //---------------------------------------------------------------------
 struct Session::DataDirect4: Session::Data{
+	DataDirect4(
+		const SocketAddressPair4 &_raddr,
+		uint32 _keepalivetout
+	):Data(Direct4, Connecting, _keepalivetout), addr(_raddr), baseport(_raddr.port()){
+		Data::pairaddr = addr;
+	}
+	DataDirect4(
+		const SocketAddressPair4 &_raddr,
+		uint16 _baseport,
+		uint32 _keepalivetout
+	):Data(Direct4, Accepting, _keepalivetout), addr(_raddr), baseport(_baseport){
+		Data::pairaddr = addr;
+	}
 	SocketAddress4		addr;
+	uint16				baseport;
+};
+//---------------------------------------------------------------------
+struct Session::DataDirect6: Session::Data{
+	DataDirect6(
+		const SocketAddressPair6 &_raddr,
+		uint32 _keepalivetout
+	):Data(Direct6, Connecting, _keepalivetout), addr(_raddr), baseport(_raddr.port()){
+		Data::pairaddr = addr;
+	}
+	DataDirect6(
+		const SocketAddressPair6 &_raddr,
+		uint16 _baseport,
+		uint32 _keepalivetout
+	):Data(Direct6, Accepting, _keepalivetout), addr(_raddr), baseport(_baseport){
+		Data::pairaddr = addr;
+	}
+	SocketAddress6		addr;
+	uint16				baseport;
 };
 //---------------------------------------------------------------------
 struct Session::DataRelayed44: Session::Data{
 	
 };
 //---------------------------------------------------------------------
+inline Session::DataDirect4& Session::Data::direct4(){
+	cassert(this->type == Direct4);
+	return static_cast<Session::DataDirect4&>(*this);
+}
+inline Session::DataDirect4 const& Session::Data::direct4()const{
+	cassert(this->type == Direct4);
+	return static_cast<Session::DataDirect4 const&>(*this);
+}
+//---------------------------------------------------------------------
+inline Session::DataDirect6& Session::Data::direct6(){
+	cassert(this->type == Direct6);
+	return static_cast<Session::DataDirect6&>(*this);
+}
+inline Session::DataDirect6 const& Session::Data::direct6()const{
+	cassert(this->type == Direct6);
+	return static_cast<Session::DataDirect6 const&>(*this);
+}
+//---------------------------------------------------------------------
 Session::Data::Data(
-	const SocketAddressPair4 &_raddr,
+	uint8 _type,
+	uint8 _state,
 	uint32 _keepalivetout
-):	state(Connecting), sendpendingcount(0),
+):	type(_type), state(_state), sendpendingcount(0),
 	outoforderbufcount(0), rcvexpectedid(2), sentsignalwaitresponse(0),
 	retansmittimepos(0), sendsignalid(0), 
 	sendid(1), keepalivetimeout(_keepalivetout),
@@ -418,25 +471,6 @@ Session::Data::Data(
 #ifdef USTATISTICS
 	idbgx(Dbg::ipc, "Sizeof(StatisticData) = "<<sizeof(this->statistics));
 #endif
-}
-//---------------------------------------------------------------------
-Session::Data::Data(
-	const SocketAddressPair4 &_raddr,
-	int _baseport,
-	uint32 _keepalivetout
-):	state(Accepting), sendpendingcount(0),
-	outoforderbufcount(0), rcvexpectedid(2), sentsignalwaitresponse(0), 
-	retansmittimepos(0), sendsignalid(0), 
-	sendid(1), keepalivetimeout(_keepalivetout),
-	currentsendsyncid(-1),currentbuffersignalcount(MaxSignalBufferCount)
-{
-	outoforderbufvec.resize(MaxOutOfOrder);
-	//first buffer is for keepalive
-	sendbuffervec.resize(MaxSendBufferCount + 1);
-	for(uint32 i(MaxSendBufferCount); i >= 1; --i){
-		sendbufferfreeposstk.push(i);
-	}
-	sendsignalvec.reserve(Data::MaxSendSignalQueueSize);
 }
 //---------------------------------------------------------------------
 Session::Data::~Data(){
@@ -881,7 +915,7 @@ bool Session::Data::moveToNextSendSignal(){
 Session::Session(
 	const SocketAddressPair4 &_raddr,
 	uint32 _keepalivetout
-):d(*(new Data(_raddr, _keepalivetout))){
+):d(*(new DataDirect4(_raddr, _keepalivetout))){
 	vdbgx(Dbg::ipc, "Created connect session "<<(void*)this);
 }
 //---------------------------------------------------------------------
@@ -889,7 +923,7 @@ Session::Session(
 	const SocketAddressPair4 &_raddr,
 	uint16 _baseport,
 	uint32 _keepalivetout
-):d(*(new Data(_raddr, _baseport, _keepalivetout))){
+):d(*(new DataDirect4(_raddr, _baseport, _keepalivetout))){
 	vdbgx(Dbg::ipc, "Created accept session "<<(void*)this);
 }
 //---------------------------------------------------------------------
@@ -899,11 +933,11 @@ Session::~Session(){
 }
 //---------------------------------------------------------------------
 const BaseAddress4T Session::peerBaseAddress4()const{
-	
+	return BaseAddress4T(d.direct4().addr, d.direct4().baseport);
 }
 //---------------------------------------------------------------------
 const BaseAddress6T Session::peerBaseAddress6()const{
-	
+	return BaseAddress6T(d.direct6().addr, d.direct6().baseport);
 }
 //---------------------------------------------------------------------
 const SocketAddressPair& Session::peerAddress()const{
@@ -954,8 +988,8 @@ void Session::reconnect(Session *_pses){
 	vdbgx(Dbg::ipc, "reconnecting session "<<(void*)_pses);
 	//first we reset the peer addresses
 	if(_pses){
-		d.addr = _pses->d.addr;
-		d.pairaddr = d.addr;
+		d.direct4().addr = _pses->d.direct4().addr;
+		d.pairaddr = d.direct4().addr;
 		d.state = Data::Accepting;
 	}else{
 		d.state = Data::Connecting;
@@ -1091,12 +1125,12 @@ bool Session::pushReceivedBuffer(
 	COLLECT_DATA_0(d.statistics.pushReceivedBuffer);
 	d.rcvtimepos = _rstub.currentTime();
 	d.resetKeepAlive();
-	if(!_rbuf.decompress(_rstub.service().controller())){
-		_rbuf.clear();//silently drop invalid buffer
-		COLLECT_DATA_0(d.statistics.failedDecompression);
-		return false;
-	}
 	if(_rbuf.id() == d.rcvexpectedid){
+		if(!_rbuf.decompress(_rstub.service().controller())){
+			_rbuf.clear();//silently drop invalid buffer
+			COLLECT_DATA_0(d.statistics.failedDecompression);
+			return false;
+		}
 		return doPushExpectedReceivedBuffer(_rstub, _rbuf/*, _rconuid*/);
 	}else{
 		return doPushUnxpectedReceivedBuffer(_rstub, _rbuf/*, _rconuid*/);
@@ -1110,7 +1144,7 @@ void Session::completeConnect(
 	if(d.state == Data::Connected) return;
 	if(d.state == Data::Authenticating) return;
 	
-	d.addr.port(_pairport);
+	d.direct4().addr.port(_pairport);
 	
 	Controller &rctrl = _rstub.service().controller();
 	
@@ -1361,25 +1395,38 @@ bool Session::doPushUnxpectedReceivedBuffer(
 	if(d.state == Data::Connecting){
 		return false;
 	}
-	if(bc(_rbuf.id(), d.rcvexpectedid)){
-		COLLECT_DATA_0(d.statistics.alreadyReceived);
-		//the peer doesnt know that we've already received the buffer
-		//add it as update
-		d.rcvdidq.push(_rbuf.id());
-	}else if(_rbuf.id() <= Buffer::LastBufferId){
-		if(_rbuf.updateCount()){//we have updates
-			mustexecute = doFreeSentBuffers(_rbuf/*, _rconid*/);
-		}
-		//try to keep the buffer for future parsing
-		uint32 bufid(_rbuf.id());
-		if(d.keepOutOfOrderBuffer(_rbuf)){
-			vdbgx(Dbg::ipc, "out of order buffer");
-			d.rcvdidq.push(bufid);//for peer updates
+	
+	if(_rbuf.id() <= Buffer::LastBufferId){
+		if(bc(_rbuf.id(), d.rcvexpectedid)){
+			COLLECT_DATA_0(d.statistics.alreadyReceived);
+			//the peer doesnt know that we've already received the buffer
+			//add it as update
+			d.rcvdidq.push(_rbuf.id());
 		}else{
-			vdbgx(Dbg::ipc, "too many buffers out-of-order "<<d.outoforderbufcount);
-			COLLECT_DATA_0(d.statistics.tooManyBuffersOutOfOrder);
+			if(!_rbuf.decompress(_rstub.service().controller())){
+				_rbuf.clear();//silently drop invalid buffer
+				COLLECT_DATA_0(d.statistics.failedDecompression);
+				return false;
+			}
+			if(_rbuf.updateCount()){//we have updates
+				mustexecute = doFreeSentBuffers(_rbuf/*, _rconid*/);
+			}
+			//try to keep the buffer for future parsing
+			uint32 bufid(_rbuf.id());
+			if(d.keepOutOfOrderBuffer(_rbuf)){
+				vdbgx(Dbg::ipc, "out of order buffer");
+				d.rcvdidq.push(bufid);//for peer updates
+			}else{
+				vdbgx(Dbg::ipc, "too many buffers out-of-order "<<d.outoforderbufcount);
+				COLLECT_DATA_0(d.statistics.tooManyBuffersOutOfOrder);
+			}
 		}
 	}else if(_rbuf.id() == Buffer::UpdateBufferId){//a buffer containing only updates
+		if(!_rbuf.decompress(_rstub.service().controller())){
+			_rbuf.clear();//silently drop invalid buffer
+			COLLECT_DATA_0(d.statistics.failedDecompression);
+			return false;
+		}
 		mustexecute = doFreeSentBuffers(_rbuf/*, _rconid*/);
 		if(d.state == Data::Disconnecting){
 			return true;
@@ -1633,6 +1680,10 @@ int Session::doTrySendUpdates(Talker::TalkerStub &_rstub){
 		
 		d.resetKeepAlive();
 		
+		if(d.rcvdidq.size()){
+			buf.updateInit();
+		}
+		
 		while(d.rcvdidq.size() && buf.updateCount() < 16){
 			buf.updatePush(d.rcvdidq.front());
 			d.rcvdidq.pop();
@@ -1678,6 +1729,10 @@ int Session::doExecuteConnectedLimited(Talker::TalkerStub &_rstub){
 		rsbd.buffer.type(Buffer::DataType);
 		rsbd.buffer.id(d.sendid);
 		d.incrementSendId();
+		
+		if(d.rcvdidq.size()){
+			rsbd.buffer.updateInit();
+		}
 		
 		while(d.rcvdidq.size() && rsbd.buffer.updateCount() < 8){
 			rsbd.buffer.updatePush(d.rcvdidq.front());
@@ -1736,7 +1791,12 @@ int Session::doExecuteConnected(Talker::TalkerStub &_rstub){
 		rsbd.buffer.reset();
 		rsbd.buffer.type(Buffer::DataType);
 		rsbd.buffer.id(d.sendid);
+		
 		d.incrementSendId();
+		
+		if(d.rcvdidq.size()){
+			rsbd.buffer.updateInit();
+		}
 		
 		while(d.rcvdidq.size() && rsbd.buffer.updateCount() < 8){
 			rsbd.buffer.updatePush(d.rcvdidq.front());
@@ -1900,8 +1960,8 @@ void Session::doTryScheduleKeepAlive(Talker::TalkerStub &_rstub){
 	}
 }
 void Session::prepareContext(Context &_rctx){
-	_rctx.sigctx.pairaddr = d.addr;
-	_rctx.sigctx.baseport = d.baseport;
+	_rctx.sigctx.pairaddr = d.direct4().addr;
+	_rctx.sigctx.baseport = d.direct4().baseport;
 }
 //======================================================================
 namespace{

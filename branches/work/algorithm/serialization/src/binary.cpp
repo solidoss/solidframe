@@ -1091,6 +1091,7 @@ int Deserializer::loadBinaryStringCheck(Base &_rb, FncData &_rfd){
 			rd.estk.top().u32() = crcsz.value();
 		}else{
 			rd.err = ERR_STRING_MAX_LIMIT;
+			cassert(0);
 			return BAD;
 		}
 	}
@@ -1206,6 +1207,7 @@ int Deserializer::loadStream(Base &_rb, FncData &_rfd){
 		}else{
 			rd.streamerr = rd.err = ERR_STREAM_CHUNK_MAX_LIMIT;
 			idbgx(Dbg::ser_bin, "crcval = "<<crcsz.value()<<" towrite = "<<towrite);
+			cassert(0);
 			return BAD;
 		}
 	}

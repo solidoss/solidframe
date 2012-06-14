@@ -182,6 +182,7 @@ inline uint32 Buffer::update(const uint _pos)const{
 }
 
 inline void Buffer::updatePush(uint32 _upd){
+	cassert(updateSize());
 	uint8 *pu = reinterpret_cast<uint8*>(pb + BaseSize + relaySize());
 	serialization::binary::store(pb + BaseSize + relaySize() + updateSize() + ((*pu) * sizeof(uint32)), _upd);
 	++(*pu);
@@ -196,7 +197,7 @@ inline uint32 Buffer::updateSize()const{
 }
 
 inline uint32 Buffer::headerSize()const{
-	return BaseSize + relaySize() + (updateCount() * sizeof(uint32));
+	return BaseSize + relaySize() + updateSize() + (updateCount() * sizeof(uint32));
 }
 #ifdef NINLINES
 #undef inline

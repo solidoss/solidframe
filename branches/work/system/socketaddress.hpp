@@ -242,7 +242,7 @@ struct SocketAddressPair6{
 	int port()const;
 	void port(uint16 _port);
 	bool operator<(const SocketAddressPair6 &_addr)const;
-	bool operator==(const SocketAddressPair4 &_addr)const;
+	bool operator==(const SocketAddressPair6 &_addr)const;
 	SocketAddressInfo::Family family()const{return (SocketAddressInfo::Family)addr->sin6_family;}
 	size_t hash()const;
 	size_t addressHash()const;

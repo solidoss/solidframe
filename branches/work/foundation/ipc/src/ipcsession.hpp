@@ -146,6 +146,7 @@ private:
 private:
 	struct Data;
 	struct DataDirect4;
+	struct DataDirect6;
 	struct DataRelayed44;
 	Data	&d;
 };

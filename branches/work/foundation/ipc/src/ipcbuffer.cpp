@@ -80,13 +80,14 @@ bool Buffer::compress(Controller &_rctrl){
 	const uint32 	updatesz = updateCount() * sizeof(uint32);
 	const uint32	headersize = headerSize() - updatesz;
 	BufferContext	bctx(headersize);
-	int32			datasz(dataSize() + updateCount() * sizeof(uint32));
-	char			*pd(data() - updateCount() * sizeof(uint32));
+	int32			datasz(dataSize() + updatesz);
+	char			*pd(data() - updatesz);
 	
 	uint32			tmpdatasz(datasz);
 	char			*tmppd(pd);
+	
 	vdbgx(Dbg::ipc, "buffer before compress id = "<<this->id()<<" dl = "<<this->dl<<" size = "<<bufferSize());
-	if(_rctrl.compressBuffer(bctx, this->bufferSize(),tmppd, tmpdatasz)){
+	if(_rctrl.compressBuffer(bctx, this->bufferSize(), tmppd, tmpdatasz)){
 		if(tmppd != pd){
 			if(bctx.reqbufid == (uint)-1){
 				THROW_EXCEPTION("Invalid buffer pointer returned");
@@ -123,11 +124,12 @@ bool Buffer::decompress(Controller &_rctrl){
 	const uint32 	updatesz = updateCount() * sizeof(uint32);
 	const uint32	headersize = headerSize() - updatesz;
 	BufferContext	bctx(headersize);
-	uint32			datasz(dl + updatesz);
-	char			*pd(pb + headersize);
+	uint32			datasz = dl + updatesz;
+	char			*pd = pb + headersize;
 	
-	uint32			tmpdatasz(datasz);
+	uint32			tmpdatasz = datasz;
 	char			*tmppd(pd);
+	
 	vdbgx(Dbg::ipc, "buffer before decompress id = "<<this->id()<<" dl = "<<this->dl<<" size = "<<bufferSize());
 	if(_rctrl.decompressBuffer(bctx, tmppd, tmpdatasz)){
 		if(bctx.reqbufid != (uint)-1){
@@ -185,15 +187,16 @@ std::ostream& operator<<(std::ostream &_ros, const Buffer &_rb){
 		default: _ros<<"[INVALID TYPE]";
 	}
 	_ros<<" id = "<<_rb.id();
-	_ros<<" retransmit = "<<_rb.resend();
+	_ros<<" retransmit = "<<(int)_rb.resend();
+	_ros<<" flags = "<<(int)_rb.flags();
 	if(_rb.flags() & Buffer::RelayFlag){
-		_ros<<" no_relay";
-	}else{
 		_ros<<" relay = "<<_rb.relay();
+	}else{
+		_ros<<" no_relay";
 	}
 	_ros<<" buffer_cp = "<<_rb.bufferCapacity();
 	_ros<<" datalen = "<<_rb.dataSize();
-	_ros<<" updatescnt = "<<_rb.updateCount();
+	_ros<<" updatescnt = "<<(int)_rb.updateCount();
 	_ros<<" updates [";
 	for(int i = 0; i < _rb.updateCount(); ++i){
 		_ros<<_rb.update(i)<<',';

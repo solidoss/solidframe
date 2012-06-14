@@ -168,13 +168,16 @@ std::streamsize DeviceOutBuffer::xsputn(const char* s, std::streamsize num){
 	memcpy(bpos, s, towrite);
 	bpos += towrite;
 	if((bpos - bbeg) > BUFF_FLUSH && !flush()){
+		cassert(0);
 		return -1;
 	}
 	if(num == towrite) return num;
 	num -= towrite;
 	s += towrite;
 	if(num >= BUFF_FLUSH){
-		return pd->write(s, static_cast<uint32>(num));
+		std::streamsize retv = pd->write(s, static_cast<uint32>(num));
+		cassert(retv != num);
+		return retv;
 	}
 	memcpy(bpos, s, static_cast<size_t>(num));
 	bpos += num;
@@ -424,7 +427,7 @@ void Dbg::Data::doRespin(){
 	filePath(fname, respinpos, pid, path, name);
 	string crtname;
 	filePath(crtname, 0, pid, path, name);
-	FileDevice fd;
+	fd.close();
 	if(pos == &dos){
 		dos.device(fd);//close the current file
 	}else if(pos == &dbos){

@@ -54,7 +54,7 @@ inline uint16 SocketAddressPair::port()const{
 	if(sz == SocketAddressPair4::size()){
 		return htons(reinterpret_cast<const sockaddr_in*>(addr)->sin_port);
 	}else{
-		return htons(reinterpret_cast<const sockaddr_in6*>(addr)->sin_port);
+		return htons(reinterpret_cast<const sockaddr_in6*>(addr)->sin6_port);
 	}
 }
 //----------------------------------------------------------------------------
