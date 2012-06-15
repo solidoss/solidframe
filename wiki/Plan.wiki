@@ -15,7 +15,8 @@ This is a pool of pending features and changes
  # Add support to foundation::Service to start the unique part of Object::uid() from a given value.
 
 Bugs:
-# Foundation concept sample application doesn't stop when virtual machine is suspended then resumed.
+
+ # Foundation concept sample application doesn't stop when virtual machine is suspended then resumed.
 
 
 Done:
