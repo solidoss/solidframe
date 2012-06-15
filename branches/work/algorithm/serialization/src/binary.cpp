@@ -24,7 +24,7 @@
 #include "utility/ostream.hpp"
 #include "utility/istream.hpp"
 #include "system/cstring.hpp"
-#include "cstring"
+#include <cstring>
 
 namespace serialization{
 namespace binary{
@@ -170,7 +170,7 @@ int Serializer::run(char *_pb, unsigned _bl){
 }
 template <>
 int Serializer::storeBinary<0>(Base &_rb, FncData &_rfd){
-	idbgx(Dbg::ser_bin, "");
+	idbgx(Dbg::ser_bin, ""<<_rfd.s);
 	Serializer &rs(static_cast<Serializer&>(_rb));
 	if(!rs.cpb) return OK;
 	uint32 len = rs.be - rs.cpb;
@@ -179,6 +179,7 @@ int Serializer::storeBinary<0>(Base &_rb, FncData &_rfd){
 	rs.cpb += len;
 	_rfd.p = (char*)_rfd.p + len;
 	_rfd.s -= len;
+	idbgx(Dbg::ser_bin, ""<<len);
 	if(_rfd.s) return NOK;
 	return OK;
 }
@@ -251,6 +252,9 @@ int Serializer::storeBinary<4>(Base &_rb, FncData &_rfd){
 		*(rs.cpb + 0) = *(ps + 0);
 		_rfd.p = const_cast<char*>(ps + 1);
 		rs.cpb += 1;
+		_rfd.s = 3;
+	}else{
+		_rfd.s = 4;
 	}
 	_rfd.f = &Serializer::storeBinary<0>;
 	return NOK;
@@ -306,6 +310,7 @@ int Serializer::storeBinary<8>(Base &_rb, FncData &_rfd){
 		*(rs.cpb + 4) = *(ps + 4);
 		_rfd.p = const_cast<char*>(ps + 5);
 		rs.cpb += 5;
+		_rfd.s = 3;
 	}else if(len >= 4){
 		*(rs.cpb + 0) = *(ps + 0);
 		*(rs.cpb + 1) = *(ps + 1);
@@ -321,15 +326,20 @@ int Serializer::storeBinary<8>(Base &_rb, FncData &_rfd){
 		*(rs.cpb + 2) = *(ps + 2);
 		_rfd.p = const_cast<char*>(ps + 3);
 		rs.cpb += 3;
+		_rfd.s = 5;
 	}else if(len >= 2){
 		*(rs.cpb + 0) = *(ps + 0);
 		*(rs.cpb + 1) = *(ps + 1);
 		_rfd.p = const_cast<char*>(ps + 2);
 		rs.cpb += 2;
+		_rfd.s = 6;
 	}else if(len >= 1){
 		*(rs.cpb + 0) = *(ps + 0);
 		_rfd.p = const_cast<char*>(ps + 1);
 		rs.cpb += 1;
+		_rfd.s = 7;
+	}else{
+		_rfd.s = 8;
 	}
 	_rfd.f = &Serializer::storeBinary<0>;
 	return NOK;
@@ -648,7 +658,7 @@ int Deserializer::run(const char *_pb, unsigned _bl){
 template <>
 int Deserializer::loadBinary<0>(Base &_rb, FncData &_rfd){
 	Deserializer &rd(static_cast<Deserializer&>(_rb));
-	idbgx(Dbg::ser_bin, "");
+	idbgx(Dbg::ser_bin, ""<<_rfd.s);
 	if(!rd.cpb) return OK;
 	uint32 len = rd.be - rd.cpb;
 	if(len > _rfd.s) len = static_cast<uint32>(_rfd.s);
@@ -656,6 +666,7 @@ int Deserializer::loadBinary<0>(Base &_rb, FncData &_rfd){
 	rd.cpb += len;
 	_rfd.p = (char*)_rfd.p + len;
 	_rfd.s -= len;
+	idbgx(Dbg::ser_bin, ""<<len);
 	if(_rfd.s) return NOK;
 	return OK;
 }
@@ -1091,7 +1102,6 @@ int Deserializer::loadBinaryStringCheck(Base &_rb, FncData &_rfd){
 			rd.estk.top().u32() = crcsz.value();
 		}else{
 			rd.err = ERR_STRING_MAX_LIMIT;
-			cassert(0);
 			return BAD;
 		}
 	}
@@ -1114,7 +1124,6 @@ int Deserializer::loadBinaryString(Base &_rb, FncData &_rfd){
 	
 	uint32 len = rd.be - rd.cpb;
 	int32 ul = rd.estk.top().i32();
-	
 	if(ul < 0){
 		return OK;
 	}
@@ -1182,7 +1191,6 @@ int Deserializer::loadStream(Base &_rb, FncData &_rfd){
 	int32			towrite = rd.be - rd.cpb;
 	
 	if(towrite < 2){
-		cassert(towrite == 0);
 		return NOK;
 	}
 	towrite -= 2;
@@ -1207,7 +1215,6 @@ int Deserializer::loadStream(Base &_rb, FncData &_rfd){
 		}else{
 			rd.streamerr = rd.err = ERR_STREAM_CHUNK_MAX_LIMIT;
 			idbgx(Dbg::ser_bin, "crcval = "<<crcsz.value()<<" towrite = "<<towrite);
-			cassert(0);
 			return BAD;
 		}
 	}

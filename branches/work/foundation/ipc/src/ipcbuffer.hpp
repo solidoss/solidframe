@@ -139,8 +139,8 @@ struct Buffer{
 	
 	uint32 update(const uint _pos)const;
 	void updatePush(const uint32 _upd);
-private:
 	uint32 headerSize()const;
+private:
 	uint32 relaySize()const;
 	uint32 updateSize()const;
 //data

@@ -35,6 +35,7 @@
 #include "foundation/ipc/ipcservice.hpp"
 #include "ipcsession.hpp"
 #include "ipcbuffer.hpp"
+#include <boost/concept_check.hpp>
 
 
 namespace fdt = foundation;
@@ -320,6 +321,9 @@ public:
 	Session::DataDirect6& direct6();
 	Session::DataDirect6 const& direct6()const;
 	
+	Session::DataRelayed44& relayed44();
+	Session::DataRelayed44 const& relayed44()const;
+	
 	bool moveToNextOutOfOrderBuffer(Buffer &_rb);
 	bool keepOutOfOrderBuffer(Buffer &_rb);
 	bool mustSendUpdates();
@@ -449,6 +453,14 @@ inline Session::DataDirect6 const& Session::Data::direct6()const{
 	cassert(this->type == Direct6);
 	return static_cast<Session::DataDirect6 const&>(*this);
 }
+inline Session::DataRelayed44& Session::Data::relayed44(){
+	cassert(this->type == Relayed44);
+	return static_cast<Session::DataRelayed44&>(*this);
+}
+inline Session::DataRelayed44 const& Session::Data::relayed44()const{
+	cassert(this->type == Relayed44);
+	return static_cast<Session::DataRelayed44 const&>(*this);
+}
 //---------------------------------------------------------------------
 Session::Data::Data(
 	uint8 _type,
@@ -481,18 +493,23 @@ Session::Data::~Data(){
 		signalq.pop();
 	}
 	while(this->rcvdsignalq.size()){
-		delete rcvdsignalq.front().psignal;
 		if(rcvdsignalq.front().pdeserializer){
 			rcvdsignalq.front().pdeserializer->clear();
 			pushDeserializer(rcvdsignalq.front().pdeserializer);
 			rcvdsignalq.front().pdeserializer = NULL;
 		}
+		delete rcvdsignalq.front().psignal;
 		rcvdsignalq.pop();
 	}
 	for(Data::SendSignalVectorT::iterator it(sendsignalvec.begin()); it != sendsignalvec.end(); ++it){
 		SendSignalData &rssd(*it);
 		Context::the().sigctx.signaluid.idx = it - sendsignalvec.begin();
 		Context::the().sigctx.signaluid.uid = rssd.uid;
+		if(rssd.pserializer){
+			rssd.pserializer->clear();
+			pushSerializer(rssd.pserializer);
+			rssd.pserializer = NULL;
+		}
 		if(rssd.signal.ptr()){
 			if((rssd.flags & Service::WaitResponseFlag) && (rssd.flags & Service::SentFlag)){
 				//the was successfully sent but the response did not arrive
@@ -502,11 +519,6 @@ Session::Data::~Data(){
 				rssd.signal->ipcFail(0);
 			}
 			rssd.signal.clear();
-		}
-		if(rssd.pserializer){
-			rssd.pserializer->clear();
-			pushSerializer(rssd.pserializer);
-			rssd.pserializer = NULL;
 		}
 		rssd.tid = SERIALIZATION_INVALIDID;
 	}
@@ -929,7 +941,20 @@ Session::Session(
 //---------------------------------------------------------------------
 Session::~Session(){
 	vdbgx(Dbg::ipc, "delete session "<<(void*)this);
-	delete &d;
+	switch(d.type){
+		case Data::Direct4:
+			delete &d.direct4();
+			break;
+		case Data::Direct6:
+			delete &d.direct6();
+			break;
+		case Data::Relayed44:
+			delete &d.relayed44();
+			break;
+		default:
+			THROW_EXCEPTION_EX("Unknown data type ", (int)d.type);
+	}
+	
 }
 //---------------------------------------------------------------------
 const BaseAddress4T Session::peerBaseAddress4()const{
@@ -1591,8 +1616,8 @@ void Session::doParseBuffer(Talker::TalkerStub &_rstub, const Buffer &_rbuf/*, c
 }
 //---------------------------------------------------------------------
 int Session::doExecuteConnecting(Talker::TalkerStub &_rstub){
-	const uint32	bufid(Specific::sizeToIndex(64));
-	Buffer			buf(Specific::popBuffer(bufid), Specific::indexToCapacity(bufid));
+	const uint32			bufid(Specific::sizeToIndex(64));
+	Buffer					buf(Specific::popBuffer(bufid), Specific::indexToCapacity(bufid));
 	
 	buf.reset();
 	buf.type(Buffer::ConnectingType);
@@ -1854,7 +1879,7 @@ void Session::doFillSendBuffer(Talker::TalkerStub &_rstub, const uint32 _bufidx)
 					vdbgx(Dbg::ipc, "oldsignal data size "<<rsbd.buffer.dataSize());
 					rsbd.buffer.dataType(Buffer::OldSignal);
 				}else{
-					vdbgx(Dbg::ipc, "continuedsignal data size "<<rsbd.buffer.dataSize());
+					vdbgx(Dbg::ipc, "continuedsignal data size "<<rsbd.buffer.dataSize()<<" headsize = "<<rsbd.buffer.headerSize());
 					rsbd.buffer.dataType(Buffer::ContinuedSignal);
 				}
 			}else{//a new commnad
