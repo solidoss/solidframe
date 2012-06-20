@@ -3,10 +3,10 @@ add_executable (example_alphafetch_p alphafetch_p.cpp writer.cpp)
 add_executable (example_alphastore_p alphastore_p.cpp writer.cpp)
 add_executable (example_imapappender imapappender.cpp base64stream.cpp writer.cpp)
 
-set_source_files_properties(imapappender.cpp COMPILE_FLAGS -DOSSL_SOURCE_PATH='"${EXTERN_PATH}"')
+set_source_files_properties(imapappender.cpp COMPILE_FLAGS -DOSSL_SOURCE_PATH="\\\"${EXTERN_PATH}\\\"")
 
 set_source_files_properties(
-	alphaclient.cpp COMPILE_FLAGS -DOSSL_SOURCE_PATH='"${EXTERN_PATH}"'
+	alphaclient.cpp COMPILE_FLAGS -DOSSL_SOURCE_PATH="\\\"${EXTERN_PATH}\\\""
 )
 
 
