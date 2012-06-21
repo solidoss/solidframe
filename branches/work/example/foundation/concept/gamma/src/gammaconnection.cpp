@@ -125,7 +125,8 @@ Connection::~Connection(){
 		_sig.clear();
 		return false;//no reason to raise the pool thread!!
 	}
-	dr.push(this, DynamicPointer<>(_sig));
+	DynamicPointer<>	dp(_sig);
+	dr.push(this, dp);
 	return Object::signal(fdt::S_SIG | fdt::S_RAISE);
 }
 

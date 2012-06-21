@@ -897,7 +897,8 @@ void Object::doExecuteAcceptDeclineOperation(RunData &_rd, const uint8 _replicai
 		_sig.clear();
 		return false;//no reason to raise the pool thread!!
 	}
-	d.exe.push(this, DynamicPointer<>(_sig));
+	DynamicPointer<>	dp(_sig);
+	d.exe.push(this, dp);
 	return fdt::Object::signal(fdt::S_SIG | fdt::S_RAISE);
 }
 
