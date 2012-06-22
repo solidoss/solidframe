@@ -49,8 +49,8 @@ struct Socket::StationData{
 		sndaddrpair.addr = NULL;
 	}
 	SocketAddress		rcvaddr;
-	SocketAddressPair	rcvaddrpair;
-	SocketAddressPair	sndaddrpair;
+	SocketAddressStub	rcvaddrpair;
+	SocketAddressStub	sndaddrpair;
 };
 
 struct Socket::AcceptorData{
@@ -199,7 +199,7 @@ int Socket::recvFrom(char *_pb, uint32 _bl, uint32 _flags){
 	ioreq |= FLAG_POLL_IN;
 	return NOK;
 }
-int Socket::sendTo(const char *_pb, uint32 _bl, const SocketAddressPair &_sap, uint32 _flags){	
+int Socket::sendTo(const char *_pb, uint32 _bl, const SocketAddressStub &_sap, uint32 _flags){	
 	cassert(!isSendPending());
 	int rv = sd.send(_pb, _bl, _sap);
 	if(rv == (ssize_t)_bl){
@@ -216,7 +216,7 @@ int Socket::sendTo(const char *_pb, uint32 _bl, const SocketAddressPair &_sap, u
 	d.psd->sndaddrpair = _sap;
 	return NOK;
 }
-const SocketAddressPair &Socket::recvAddr()const{
+const SocketAddressStub &Socket::recvAddr()const{
 	return d.psd->rcvaddrpair;
 }
 

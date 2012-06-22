@@ -60,7 +60,7 @@ bool ServerParams::init(int _ipc_port){
 				idbg("inaddr: name = "<<it->ifa_name<<", addr = "<<host<<":"<<srvc);
 				
             }
-            SocketAddress4 sa(SocketAddressPair(it->ifa_addr, sizeof(sockaddr_in)));
+            SocketAddress4 sa(SocketAddressStub(it->ifa_addr, sizeof(sockaddr_in)));
 			sa.port(_ipc_port);
 			int pos = bs(addrvec.begin(), addrvec.end(), sa);
 			if(pos >= 0){

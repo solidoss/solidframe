@@ -483,7 +483,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 					return BAD;
 				}
 				SocketAddressInfoIterator it(pai->begin());
-				switch(socketSendTo(bbeg, sz, SocketAddressPair(it))){
+				switch(socketSendTo(bbeg, sz, SocketAddressStub(it))){
 					case BAD: return BAD;
 					case OK: state(READ); break;
 					case NOK:

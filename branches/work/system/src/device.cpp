@@ -703,7 +703,7 @@ int SocketDevice::bind(const SocketAddressInfoIterator &_rai){
 	return OK;
 #endif
 }
-int SocketDevice::bind(const SocketAddressPair &_rsa){
+int SocketDevice::bind(const SocketAddressStub &_rsa){
 #ifdef ON_WINDOWS
 	if(!ok()) return BAD;
 	int rv = ::bind(descriptor(), _rsa.addr, _rsa.size());
@@ -830,7 +830,7 @@ int SocketDevice::recv(char *_pb, unsigned _ul, unsigned){
 	return ::recv(descriptor(), _pb, _ul, 0);
 #endif
 }
-int SocketDevice::send(const char* _pb, unsigned _ul, const SocketAddressPair &_sap){
+int SocketDevice::send(const char* _pb, unsigned _ul, const SocketAddressStub &_sap){
 #ifdef ON_WINDOWS
 	return -1;
 #else

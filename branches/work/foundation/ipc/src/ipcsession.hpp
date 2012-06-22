@@ -32,9 +32,9 @@
 #include "ipcutility.hpp"
 
 struct SocketAddress;
-struct SocketAddressPair;
-struct SocketAddressPair4;
-struct SocketAddressPair6;
+struct SocketAddressStub;
+struct SocketAddressStub4;
+struct SocketAddressStub6;
 struct TimeSpec;
 struct SocketAddressInfoIterator;
 
@@ -61,11 +61,11 @@ public:
 	static int parseConnectingBuffer(const Buffer &_rbuf);
 	
 	Session(
-		const SocketAddressPair4 &_raddr,
+		const SocketAddressStub4 &_raddr,
 		uint32 _keepalivetout
 	);
 	Session(
-		const SocketAddressPair4 &_raddr,
+		const SocketAddressStub4 &_raddr,
 		uint16 _baseport,
 		uint32 _keepalivetout
 	);
@@ -76,9 +76,9 @@ public:
 	const BaseAddress6T peerBaseAddress6()const;
 	
 	//used by talker for sendto
-	const SocketAddressPair& peerAddress()const;
-	const SocketAddressPair4 peerAddress4()const;
-	const SocketAddressPair6 peerAddress6()const;
+	const SocketAddressStub& peerAddress()const;
+	const SocketAddressStub4 peerAddress4()const;
+	const SocketAddressStub6 peerAddress6()const;
 	
 	bool isConnected()const;
 	bool isDisconnecting()const;

@@ -35,7 +35,7 @@ public:
 	//! Bind the socket to a specific addr:port
 	int bind(const SocketAddressInfoIterator &_rai);
 	//! Bind the socket to a specific addr:port
-	int bind(const SocketAddressPair &_rsa);
+	int bind(const SocketAddressStub &_rsa);
 	//! Prepares the socket for accepting
 	int prepareAccept(const SocketAddressInfoIterator &_rai, unsigned _listencnt = 10);
 	//! Accept an incomming connection
@@ -76,7 +76,7 @@ public:
 	//! Reads data from a socket
 	int recv(char *_pb, unsigned _ul, unsigned _flags = 0);
 	//! Send a datagram to a socket
-	int send(const char* _pb, unsigned _ul, const SocketAddressPair &_sap);
+	int send(const char* _pb, unsigned _ul, const SocketAddressStub &_sap);
 	//! Recv data from a socket
 	int recv(char *_pb, unsigned _ul, SocketAddress &_rsa);
 	//! Gets the remote address for a connected socket

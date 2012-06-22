@@ -265,7 +265,7 @@ int SingleObject::socketSend(const char* _pb, uint32 _bl, uint32 _flags){
 	return rv;
 }
 
-int SingleObject::socketSendTo(const char* _pb, uint32 _bl, const SocketAddressPair &_sap, uint32 _flags){
+int SingleObject::socketSendTo(const char* _pb, uint32 _bl, const SocketAddressStub &_sap, uint32 _flags){
 	//ensure that we dont have double request
 	//cassert(stub.request <= SocketStub::Response);
 	cassert(stub.psock);
@@ -304,7 +304,7 @@ uint32 SingleObject::socketRecvSize()const{
 	return stub.psock->recvSize();
 }
 
-const SocketAddressPair &SingleObject::socketRecvAddr() const{
+const SocketAddressStub &SingleObject::socketRecvAddr() const{
 	return stub.psock->recvAddr();
 }
 
@@ -504,7 +504,7 @@ int MultiObject::socketConnect(const uint _pos, const SocketAddressInfoIterator&
 	return rv;
 }
 
-const SocketAddressPair &MultiObject::socketRecvAddr(uint _pos) const{
+const SocketAddressStub &MultiObject::socketRecvAddr(uint _pos) const{
 	return pstubs[_pos].psock->recvAddr();
 }
 
@@ -526,7 +526,7 @@ int MultiObject::socketSendTo(
 	const uint _pos,
 	const char* _pb,
 	uint32 _bl,
-	const SocketAddressPair &_sap,
+	const SocketAddressStub &_sap,
 	uint32 _flags
 ){
 	cassert(_pos < stubcp);

@@ -29,10 +29,10 @@
 #include "foundation/signal.hpp"
 #include "foundation/ipc/ipcconnectionuid.hpp"
 
-struct SocketAddressPair;
+struct SocketAddressStub;
 struct SocketDevice;
 struct SocketAddressInfoIterator;
-struct SocketAddressPair4;
+struct SocketAddressStub4;
 
 namespace foundation{
 
@@ -217,7 +217,7 @@ public:
 	*/
 	int sendSignal(
 		DynamicPointer<Signal> &_psig,//the signal to be sent
-		const SocketAddressPair &_rsap,
+		const SocketAddressStub &_rsap,
 		ConnectionUid &_rconid,
 		uint32	_flags = 0
 	);
@@ -231,7 +231,7 @@ public:
 	*/
 	int sendSignal(
 		DynamicPointer<Signal> &_psig,//the signal to be sent
-		const SocketAddressPair &_rsap,
+		const SocketAddressStub &_rsap,
 		uint32	_flags = 0
 	);
 	
@@ -255,7 +255,7 @@ public:
 	int sendSignal(
 		DynamicPointer<Signal> &_psig,//the signal to be sent
 		const SerializationTypeIdT &_rtid,
-		const SocketAddressPair &_rsap,
+		const SocketAddressStub &_rsap,
 		ConnectionUid &_rconid,
 		uint32	_flags = 0
 	);
@@ -270,7 +270,7 @@ public:
 	int sendSignal(
 		DynamicPointer<Signal> &_psig,//the signal to be sent
 		const SerializationTypeIdT &_rtid,
-		const SocketAddressPair &_rsap,
+		const SocketAddressStub &_rsap,
 		uint32	_flags = 0
 	);
 	
@@ -279,35 +279,35 @@ public:
 	
 	int sendSignal(
 		DynamicPointer<Signal> &_psig,//the signal to be sent
-		const SocketAddressPair &_rsap_gate,
+		const SocketAddressStub &_rsap_gate,
 		const uint32 _netidx_dest,
-		const SocketAddressPair &_rsap_dest,
+		const SocketAddressStub &_rsap_dest,
 		ConnectionUid &_rconid,
 		uint32	_flags = 0
 	);
 	int sendSignal(
 		DynamicPointer<Signal> &_psig,//the signal to be sent
-		const SocketAddressPair &_rsap_gate,
+		const SocketAddressStub &_rsap_gate,
 		const uint32 _netidx_dest,
-		const SocketAddressPair &_rsap_dest,
+		const SocketAddressStub &_rsap_dest,
 		uint32	_flags = 0
 	);
 	
 	int sendSignal(
 		DynamicPointer<Signal> &_psig,//the signal to be sent
 		const SerializationTypeIdT &_rtid,
-		const SocketAddressPair &_rsap_gate,
+		const SocketAddressStub &_rsap_gate,
 		const uint32 _netidx_dest,
-		const SocketAddressPair &_rsap_dest,
+		const SocketAddressStub &_rsap_dest,
 		ConnectionUid &_rconid,
 		uint32	_flags = 0
 	);
 	int sendSignal(
 		DynamicPointer<Signal> &_psig,//the signal to be sent
 		const SerializationTypeIdT &_rtid,
-		const SocketAddressPair &_rsap_gate,
+		const SocketAddressStub &_rsap_gate,
 		const uint32 _netidx_dest,
-		const SocketAddressPair &_rsap_dest,
+		const SocketAddressStub &_rsap_dest,
 		uint32	_flags = 0
 	);
 	
@@ -349,16 +349,16 @@ private:
 	int doSendSignal(
 		DynamicPointer<Signal> &_psig,//the signal to be sent
 		const SerializationTypeIdT &_rtid,
-		const SocketAddressPair &_rsap,
+		const SocketAddressStub &_rsap,
 		ConnectionUid *_pconid,
 		uint32	_flags = 0
 	);
 	int doSendSignal(
 		DynamicPointer<Signal> &_psig,//the signal to be sent
 		const SerializationTypeIdT &_rtid,
-		const SocketAddressPair &_rsap_gate,
+		const SocketAddressStub &_rsap_gate,
 		const uint32 _netidx_dest,
-		const SocketAddressPair &_rsap_dest,
+		const SocketAddressStub &_rsap_dest,
 		ConnectionUid *_pconid,
 		uint32	_flags = 0
 	);
@@ -368,7 +368,7 @@ private:
 	int createNewTalker(IndexT &_tkrpos, uint32 &_tkruid);
 	int allocateTalkerForNewSession(bool _force = false);
 	uint32 keepAliveTimeout()const;
-	void connectSession(const SocketAddressPair4 &_raddr);
+	void connectSession(const SocketAddressStub4 &_raddr);
 	Controller& controller();
 private:
 	struct Data;
@@ -379,7 +379,7 @@ private:
 
 inline int Service::sendSignal(
 	DynamicPointer<Signal> &_psig,//the signal to be sent
-	const SocketAddressPair &_rsap,
+	const SocketAddressStub &_rsap,
 	ConnectionUid &_rconid,
 	uint32	_flags
 ){
@@ -388,7 +388,7 @@ inline int Service::sendSignal(
 
 inline int Service::sendSignal(
 	DynamicPointer<Signal> &_psig,//the signal to be sent
-	const SocketAddressPair &_rsap,
+	const SocketAddressStub &_rsap,
 	uint32	_flags
 ){
 	return doSendSignal(_psig, SERIALIZATION_INVALIDID, _rsap, NULL, _flags);
@@ -397,7 +397,7 @@ inline int Service::sendSignal(
 inline int Service::sendSignal(
 	DynamicPointer<Signal> &_psig,//the signal to be sent
 	const SerializationTypeIdT &_rtid,
-	const SocketAddressPair &_rsap,
+	const SocketAddressStub &_rsap,
 	ConnectionUid &_rconid,
 	uint32	_flags
 ){
@@ -407,7 +407,7 @@ inline int Service::sendSignal(
 inline int Service::sendSignal(
 	DynamicPointer<Signal> &_psig,//the signal to be sent
 	const SerializationTypeIdT &_rtid,
-	const SocketAddressPair &_rsap,
+	const SocketAddressStub &_rsap,
 	uint32	_flags
 ){
 	return doSendSignal(_psig, _rtid, _rsap, NULL, _flags);
@@ -425,9 +425,9 @@ inline Service::IdTypeMapper& Service::typeMapper(){
 
 inline int Service::sendSignal(
 	DynamicPointer<Signal> &_psig,//the signal to be sent
-	const SocketAddressPair &_rsap_gate,
+	const SocketAddressStub &_rsap_gate,
 	const uint32 _netidx_dest,
-	const SocketAddressPair &_rsap_dest,
+	const SocketAddressStub &_rsap_dest,
 	ConnectionUid &_rconid,
 	uint32	_flags
 ){
@@ -435,9 +435,9 @@ inline int Service::sendSignal(
 }
 inline int Service::sendSignal(
 	DynamicPointer<Signal> &_psig,//the signal to be sent
-	const SocketAddressPair &_rsap_gate,
+	const SocketAddressStub &_rsap_gate,
 	const uint32 _netidx_dest,
-	const SocketAddressPair &_rsap_dest,
+	const SocketAddressStub &_rsap_dest,
 	uint32	_flags
 ){
 	return doSendSignal(_psig, SERIALIZATION_INVALIDID, _rsap_gate, _netidx_dest, _rsap_dest, NULL, _flags);
@@ -446,9 +446,9 @@ inline int Service::sendSignal(
 inline int Service::sendSignal(
 	DynamicPointer<Signal> &_psig,//the signal to be sent
 	const SerializationTypeIdT &_rtid,
-	const SocketAddressPair &_rsap_gate,
+	const SocketAddressStub &_rsap_gate,
 	const uint32 _netidx_dest,
-	const SocketAddressPair &_rsap_dest,
+	const SocketAddressStub &_rsap_dest,
 	ConnectionUid &_rconid,
 	uint32	_flags
 ){
@@ -457,9 +457,9 @@ inline int Service::sendSignal(
 inline int Service::sendSignal(
 	DynamicPointer<Signal> &_psig,//the signal to be sent
 	const SerializationTypeIdT &_rtid,
-	const SocketAddressPair &_rsap_gate,
+	const SocketAddressStub &_rsap_gate,
 	const uint32 _netidx_dest,
-	const SocketAddressPair &_rsap_dest,
+	const SocketAddressStub &_rsap_dest,
 	uint32	_flags
 ){
 	return doSendSignal(_psig, _rtid, _rsap_gate, _netidx_dest, _rsap_dest, NULL, _flags);

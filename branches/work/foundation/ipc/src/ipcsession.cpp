@@ -378,7 +378,7 @@ public:
 	uint32					currentsyncid;
 	uint32					currentsendsyncid;
 	uint16					currentbuffersignalcount;//MaxSignalBufferCount
-	SocketAddressPair		pairaddr;
+	SocketAddressStub		pairaddr;
 	
 	UInt32QueueT			rcvdidq;
 	BufferVectorT			outoforderbufvec;
@@ -398,13 +398,13 @@ public:
 //---------------------------------------------------------------------
 struct Session::DataDirect4: Session::Data{
 	DataDirect4(
-		const SocketAddressPair4 &_raddr,
+		const SocketAddressStub4 &_raddr,
 		uint32 _keepalivetout
 	):Data(Direct4, Connecting, _keepalivetout), addr(_raddr), baseport(_raddr.port()){
 		Data::pairaddr = addr;
 	}
 	DataDirect4(
-		const SocketAddressPair4 &_raddr,
+		const SocketAddressStub4 &_raddr,
 		uint16 _baseport,
 		uint32 _keepalivetout
 	):Data(Direct4, Accepting, _keepalivetout), addr(_raddr), baseport(_baseport){
@@ -416,13 +416,13 @@ struct Session::DataDirect4: Session::Data{
 //---------------------------------------------------------------------
 struct Session::DataDirect6: Session::Data{
 	DataDirect6(
-		const SocketAddressPair6 &_raddr,
+		const SocketAddressStub6 &_raddr,
 		uint32 _keepalivetout
 	):Data(Direct6, Connecting, _keepalivetout), addr(_raddr), baseport(_raddr.port()){
 		Data::pairaddr = addr;
 	}
 	DataDirect6(
-		const SocketAddressPair6 &_raddr,
+		const SocketAddressStub6 &_raddr,
 		uint16 _baseport,
 		uint32 _keepalivetout
 	):Data(Direct6, Accepting, _keepalivetout), addr(_raddr), baseport(_baseport){
@@ -925,14 +925,14 @@ bool Session::Data::moveToNextSendSignal(){
 }
 //---------------------------------------------------------------------
 Session::Session(
-	const SocketAddressPair4 &_raddr,
+	const SocketAddressStub4 &_raddr,
 	uint32 _keepalivetout
 ):d(*(new DataDirect4(_raddr, _keepalivetout))){
 	vdbgx(Dbg::ipc, "Created connect session "<<(void*)this);
 }
 //---------------------------------------------------------------------
 Session::Session(
-	const SocketAddressPair4 &_raddr,
+	const SocketAddressStub4 &_raddr,
 	uint16 _baseport,
 	uint32 _keepalivetout
 ):d(*(new DataDirect4(_raddr, _baseport, _keepalivetout))){
@@ -965,15 +965,15 @@ const BaseAddress6T Session::peerBaseAddress6()const{
 	return BaseAddress6T(d.direct6().addr, d.direct6().baseport);
 }
 //---------------------------------------------------------------------
-const SocketAddressPair& Session::peerAddress()const{
+const SocketAddressStub& Session::peerAddress()const{
 	return d.pairaddr;
 }
 //---------------------------------------------------------------------
-const SocketAddressPair4 Session::peerAddress4()const{
+const SocketAddressStub4 Session::peerAddress4()const{
 	return d.pairaddr;
 }
 //---------------------------------------------------------------------
-const SocketAddressPair6 Session::peerAddress6()const{
+const SocketAddressStub6 Session::peerAddress6()const{
 	return d.pairaddr;
 }
 //---------------------------------------------------------------------

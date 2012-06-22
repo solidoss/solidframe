@@ -26,7 +26,7 @@
 #include "system/common.hpp"
 
 struct SocketAddress;
-struct SocketAddressPair;
+struct SocketAddressStub;
 class SocketDevice;
 
 namespace foundation{
@@ -85,9 +85,9 @@ public:
 	//! Asynchrounous recv_from  call
 	int recvFrom(char *_pb, uint32 _bl, uint32 _flags = 0);
 	//! Asynchrounous send_to call
-	int sendTo(const char *_pb, uint32 _bl, const SocketAddressPair &_sap, uint32 _flags = 0);
+	int sendTo(const char *_pb, uint32 _bl, const SocketAddressStub &_sap, uint32 _flags = 0);
 	//! The sender address for last received data.
-	const SocketAddressPair &recvAddr() const;
+	const SocketAddressStub &recvAddr() const;
 	//! Setter for the secure socket
 	void secureSocket(SecureSocket *_pss);
 	//! Getter for the secure socket

@@ -220,7 +220,7 @@ int Service::basePort()const{
 int Service::doSendSignal(
 	DynamicPointer<Signal> &_psig,//the signal to be sent
 	const SerializationTypeIdT &_rtid,
-	const SocketAddressPair &_rsap,
+	const SocketAddressStub &_rsap,
 	ConnectionUid *_pconid,
 	uint32	_flags
 ){
@@ -314,9 +314,9 @@ int Service::doSendSignal(
 int Service::doSendSignal(
 	DynamicPointer<Signal> &_psig,//the signal to be sent
 	const SerializationTypeIdT &_rtid,
-	const SocketAddressPair &_rsap_gate,
+	const SocketAddressStub &_rsap_gate,
 	const uint32 _netidx_dest,
-	const SocketAddressPair &_rsap_dest,
+	const SocketAddressStub &_rsap_dest,
 	ConnectionUid *_pconid,
 	uint32	_flags
 ){
@@ -329,8 +329,8 @@ int Service::doSendSignal(
 	
 	Locker<Mutex>						lock(serviceMutex());
 	
-	SocketAddressPair4 					inaddr_gate(_rsap_gate);
-	SocketAddressPair4 					inaddr_dest(_rsap_dest);
+	SocketAddressStub4 					inaddr_gate(_rsap_gate);
+	SocketAddressStub4 					inaddr_dest(_rsap_dest);
 	RelaySession::Key4T					relaykey(
 		&inaddr_gate, inaddr_gate.port(),
 		_netidx_dest,
@@ -494,7 +494,7 @@ int Service::acceptSession(Session *_pses){
 	return OK;
 }
 //---------------------------------------------------------------------
-void Service::connectSession(const SocketAddressPair4 &_raddr){
+void Service::connectSession(const SocketAddressStub4 &_raddr){
 	Locker<Mutex>	lock(serviceMutex());
 	int				tkrid(allocateTalkerForNewSession());
 	IndexT			tkrpos;

@@ -341,7 +341,7 @@ uint32 ClientObject::sendSignal(distributed::consensus::WriteRequestSignal *_psi
 	sigptr->id.senderuid = this->uid();
 	for(ClientParams::AddressVectorT::iterator it(params.addrvec.begin()); it != params.addrvec.end(); ++it){
 		DynamicPointer<foundation::Signal>	sp(sigptr);
-		foundation::ipc::Service::the().sendSignal(sp, SocketAddressPair(*it));
+		foundation::ipc::Service::the().sendSignal(sp, SocketAddressStub(*it));
 	}
 	return 0;
 }

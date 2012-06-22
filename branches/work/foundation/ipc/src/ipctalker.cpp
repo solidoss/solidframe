@@ -186,16 +186,16 @@ struct Talker::Data{
 	typedef std::vector<SessionStub>			SessionStubVectorT;
 	typedef Queue<uint16>						UInt16QueueT;
 	typedef std::pair<
-		const SocketAddressPair4*,
+		const SocketAddressStub4*,
 		int
 	>											BaseAddr4;
 	typedef std::pair<
-		const SocketAddressPair6*,
+		const SocketAddressStub6*,
 		int
 	>											BaseAddr6;
 #ifdef HAVE_CPP11
 	typedef std::unordered_map<
-		const SocketAddressPair4,
+		const SocketAddressStub4,
 		uint32,
 		SocketAddressHash,
 		SocketAddressEqual
@@ -208,7 +208,7 @@ struct Talker::Data{
 	>											BaseAddr4MapT;
 	
 	typedef std::unordered_map<
-		const SocketAddressPair6, 
+		const SocketAddressStub6, 
 		uint32,
 		SocketAddressHash,
 		SocketAddressEqual
@@ -223,7 +223,7 @@ struct Talker::Data{
 
 #else
 	typedef std::map<
-		const SocketAddressPair4,
+		const SocketAddressStub4,
 		uint32,
 		SocketAddressCompare
 	>											PeerAddr4MapT;
@@ -234,7 +234,7 @@ struct Talker::Data{
 	>											BaseAddr4MapT;
 	
 	typedef std::map<
-		const SocketAddressPair6, 
+		const SocketAddressStub6, 
 		uint32,
 		SocketAddressCompare
 	>											PeerAddr6MapT;
@@ -437,7 +437,7 @@ void Talker::doDispatchReceivedBuffer(
 	TalkerStub &_rstub,
 	char *_pbuf,
 	const uint32 _bufsz,
-	const SocketAddressPair &_rsap
+	const SocketAddressStub &_rsap
 ){
 	Buffer buf(_pbuf, Buffer::Capacity);
 	buf.bufferSize(_bufsz);
@@ -448,7 +448,7 @@ void Talker::doDispatchReceivedBuffer(
 		case Buffer::DataType:{
 			COLLECT_DATA_0(d.statistics.receivedData);
 			idbgx(Dbg::ipc, "data buffer");
-			SocketAddressPair4				inaddr(_rsap);
+			SocketAddressStub4				inaddr(_rsap);
 			Data::PeerAddr4MapT::iterator	pit(d.peeraddr4map.find(inaddr));
 			if(pit != d.peeraddr4map.end()){
 				idbgx(Dbg::ipc, "found session for buffer");
@@ -467,7 +467,7 @@ void Talker::doDispatchReceivedBuffer(
 		
 		case Buffer::ConnectingType:{
 			COLLECT_DATA_0(d.statistics.receivedConnecting);
-			SocketAddressPair4	inaddr(_rsap);
+			SocketAddressStub4	inaddr(_rsap);
 			int					baseport(Session::parseConnectingBuffer(buf));
 			
 			idbgx(Dbg::ipc, "connecting buffer with baseport "<<baseport);

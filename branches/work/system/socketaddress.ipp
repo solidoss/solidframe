@@ -23,17 +23,17 @@
 #define inline
 #endif
 
-inline SocketAddressPair::SocketAddressPair(const SocketAddressInfoIterator &_it){
+inline SocketAddressStub::SocketAddressStub(const SocketAddressInfoIterator &_it){
 	if(_it){
 		addr = _it.addr(); sz = _it.size();
 	}else{
 		addr = NULL; sz = 0;
 	}
 }
-inline SocketAddressPair::SocketAddressPair(const SocketAddress &_rsa):addr(_rsa.addr()), sz(_rsa.size()){}
-inline SocketAddressPair::SocketAddressPair(const SocketAddress4 &_rsa):addr(_rsa.addr()), sz(_rsa.size()){}
+inline SocketAddressStub::SocketAddressStub(const SocketAddress &_rsa):addr(_rsa.addr()), sz(_rsa.size()){}
+inline SocketAddressStub::SocketAddressStub(const SocketAddress4 &_rsa):addr(_rsa.addr()), sz(_rsa.size()){}
 
-inline SocketAddressPair& SocketAddressPair::operator=(const SocketAddressInfoIterator &_it){
+inline SocketAddressStub& SocketAddressStub::operator=(const SocketAddressInfoIterator &_it){
 	if(_it){
 		addr = _it.addr(); sz = _it.size();
 	}else{
@@ -42,59 +42,59 @@ inline SocketAddressPair& SocketAddressPair::operator=(const SocketAddressInfoIt
 	return *this;
 }
 
-inline SocketAddressPair& SocketAddressPair::operator=(const SocketAddress &_rsa){
+inline SocketAddressStub& SocketAddressStub::operator=(const SocketAddress &_rsa){
 	addr = _rsa.addr();	sz = _rsa.size();
 	return *this;
 }
-inline SocketAddressPair& SocketAddressPair::operator=(const SocketAddress4 &_rsa){
+inline SocketAddressStub& SocketAddressStub::operator=(const SocketAddress4 &_rsa){
 	addr = _rsa.addr();	sz = _rsa.size();
 	return *this;
 }
-inline uint16 SocketAddressPair::port()const{
-	if(sz == SocketAddressPair4::size()){
+inline uint16 SocketAddressStub::port()const{
+	if(sz == SocketAddressStub4::size()){
 		return htons(reinterpret_cast<const sockaddr_in*>(addr)->sin_port);
 	}else{
 		return htons(reinterpret_cast<const sockaddr_in6*>(addr)->sin6_port);
 	}
 }
 //----------------------------------------------------------------------------
-inline /*static*/ bool SocketAddressPair4::equalAdresses(
-	SocketAddressPair4 const & _rsa1,
-	SocketAddressPair4 const & _rsa2
+inline /*static*/ bool SocketAddressStub4::equalAdresses(
+	SocketAddressStub4 const & _rsa1,
+	SocketAddressStub4 const & _rsa2
 ){
 	return _rsa1.addr->sin_addr.s_addr == _rsa2.addr->sin_addr.s_addr;
 }
-inline /*static*/ bool SocketAddressPair4::compareAddressesLess(
-	SocketAddressPair4 const & _rsa1,
-	SocketAddressPair4 const & _rsa2
+inline /*static*/ bool SocketAddressStub4::compareAddressesLess(
+	SocketAddressStub4 const & _rsa1,
+	SocketAddressStub4 const & _rsa2
 ){
 	return _rsa1.addr->sin_addr.s_addr < _rsa2.addr->sin_addr.s_addr;
 }
 
-inline SocketAddressPair4::SocketAddressPair4(
-	const SocketAddressPair &_rsap
+inline SocketAddressStub4::SocketAddressStub4(
+	const SocketAddressStub &_rsap
 ):addr((sockaddr_in*)_rsap.addr)/*, size(_rsap.size)*/{
 	cassert(_rsap.family() == SocketAddressInfo::Inet4);
 	cassert(_rsap.size() == size());
 }
-inline SocketAddressPair4::SocketAddressPair4(
+inline SocketAddressStub4::SocketAddressStub4(
 	const SocketAddress &_rsa
 ):addr((sockaddr_in*)_rsa.addr())/*, size(_rsa.size())*/{
 	cassert(_rsa.family() == SocketAddressInfo::Inet4);
 	cassert(_rsa.size() == size());
 }
-inline SocketAddressPair4::SocketAddressPair4(
+inline SocketAddressStub4::SocketAddressStub4(
 	const SocketAddress4 &_rsa
 ):addr((sockaddr_in*)_rsa.addr()){
 }
-inline int SocketAddressPair4::port()const{
+inline int SocketAddressStub4::port()const{
 	return htons(addr->sin_port);
 }
-inline void SocketAddressPair4::port(uint16 _port){
+inline void SocketAddressStub4::port(uint16 _port){
 	addr->sin_port = ntohs(_port);
 }
-inline bool SocketAddressPair4::operator<(
-	const SocketAddressPair4 &_addr
+inline bool SocketAddressStub4::operator<(
+	const SocketAddressStub4 &_addr
 )const{
 	//return addr->sin_addr.s_addr < _addr.addr->sin_addr.s_addr;
 	if(addr->sin_addr.s_addr < _addr.addr->sin_addr.s_addr){
@@ -103,22 +103,22 @@ inline bool SocketAddressPair4::operator<(
 		return false;
 	}else return port() < _addr.port();
 }
-inline bool SocketAddressPair4::operator==(
-	const SocketAddressPair4 &_addr
+inline bool SocketAddressStub4::operator==(
+	const SocketAddressStub4 &_addr
 )const{
 	return (addr->sin_addr.s_addr == _addr.addr->sin_addr.s_addr) && (port() == _addr.port());
 }
-inline size_t SocketAddressPair4::hash()const{
+inline size_t SocketAddressStub4::hash()const{
 	return addr->sin_addr.s_addr ^ addr->sin_port;
 }
-inline size_t SocketAddressPair4::addressHash()const{
+inline size_t SocketAddressStub4::addressHash()const{
 	return addr->sin_addr.s_addr;
 }
 //----------------------------------------------------------------------------
 
-inline /*static*/ bool SocketAddressPair6::equalAdresses(
-	SocketAddressPair6 const & _rsa1,
-	SocketAddressPair6 const & _rsa2
+inline /*static*/ bool SocketAddressStub6::equalAdresses(
+	SocketAddressStub6 const & _rsa1,
+	SocketAddressStub6 const & _rsa2
 ){
 	return memcmp(
 		(const void*)_rsa1.addr->sin6_addr.s6_addr,
@@ -126,9 +126,9 @@ inline /*static*/ bool SocketAddressPair6::equalAdresses(
 		sizeof(in6_addr)
 	) == 0;
 }
-inline /*static*/ bool SocketAddressPair6::compareAddressesLess(
-	SocketAddressPair6 const & _rsa1,
-	SocketAddressPair6 const & _rsa2
+inline /*static*/ bool SocketAddressStub6::compareAddressesLess(
+	SocketAddressStub6 const & _rsa1,
+	SocketAddressStub6 const & _rsa2
 ){
 	return memcmp(
 		(const void*)_rsa1.addr->sin6_addr.s6_addr,
@@ -137,20 +137,20 @@ inline /*static*/ bool SocketAddressPair6::compareAddressesLess(
 	) < 0;
 }
 
-inline SocketAddressPair6::SocketAddressPair6(
-	const SocketAddressPair &_rsap
+inline SocketAddressStub6::SocketAddressStub6(
+	const SocketAddressStub &_rsap
 ):addr((sockaddr_in6*)_rsap.addr)/*, size(_rsap.size)*/{
 	cassert(_rsap.family() == SocketAddressInfo::Inet6);
 	cassert(_rsap.size() == size());
 }
-inline SocketAddressPair6::SocketAddressPair6(
+inline SocketAddressStub6::SocketAddressStub6(
 	const SocketAddress &_rsa
 ):addr((sockaddr_in6*)_rsa.addr())/*,size(_rsa.size())*/{
 	cassert(_rsa.family() == SocketAddressInfo::Inet6);
 	cassert(_rsa.size() == size());
 }
-inline bool SocketAddressPair6::operator<(
-	const SocketAddressPair6 &_addr
+inline bool SocketAddressStub6::operator<(
+	const SocketAddressStub6 &_addr
 )const{
 	//return addr->sin6_addr.s_addr < _addr.addr->sin6_addr.s_addr;
 	//TODO:
@@ -160,8 +160,8 @@ inline bool SocketAddressPair6::operator<(
 		sizeof(in6_addr)
 	) < 0);
 }
-inline bool SocketAddressPair6::operator==(
-	const SocketAddressPair6 &_addr
+inline bool SocketAddressStub6::operator==(
+	const SocketAddressStub6 &_addr
 )const{
 	return (memcmp(
 		(const void*)addr->sin6_addr.s6_addr,
@@ -169,17 +169,17 @@ inline bool SocketAddressPair6::operator==(
 		sizeof(in6_addr)
 	) < 0) && (port() == _addr.port());
 }
-inline int SocketAddressPair6::port()const{
+inline int SocketAddressStub6::port()const{
 	return htons(addr->sin6_port);
 }
-inline void SocketAddressPair6::port(uint16 _port){
+inline void SocketAddressStub6::port(uint16 _port){
 	addr->sin6_port = ntohs(_port);
 }
 
-inline size_t SocketAddressPair6::hash()const{
+inline size_t SocketAddressStub6::hash()const{
 	return 0;
 }
-inline size_t SocketAddressPair6::addressHash()const{
+inline size_t SocketAddressStub6::addressHash()const{
 	return 0;
 }
 //----------------------------------------------------------------------------
@@ -198,7 +198,7 @@ inline SocketAddress& SocketAddress::operator=(const SocketAddressInfoIterator &
 	}
 	return *this;
 }
-inline SocketAddress& SocketAddress::operator=(const SocketAddressPair &_sp){
+inline SocketAddress& SocketAddress::operator=(const SocketAddressStub &_sp){
 	addr(_sp.addr, _sp.size());
 	return *this;
 }
@@ -238,7 +238,7 @@ inline SocketAddress4& SocketAddress4::operator=(const SocketAddressInfoIterator
 	}
 	return *this;
 }
-inline SocketAddress4& SocketAddress4::operator=(const SocketAddressPair &_sp){
+inline SocketAddress4& SocketAddress4::operator=(const SocketAddressStub &_sp){
 	addr(_sp.addr, _sp.size());
 	return *this;
 }

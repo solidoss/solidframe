@@ -34,14 +34,14 @@ class Visitor;
 namespace foundation{
 namespace ipc{
 
-typedef std::pair<const SocketAddressPair4, uint16>	BaseAddress4T;
-typedef std::pair<const SocketAddressPair6, uint16>	BaseAddress6T;
+typedef std::pair<const SocketAddressStub4, uint16>	BaseAddress4T;
+typedef std::pair<const SocketAddressStub6, uint16>	BaseAddress6T;
 
 //*******	AddrPtrCmp		******************************************************************
 #ifdef HAVE_CPP11
 
 struct SocketAddressHash{
-	size_t operator()(SocketAddressPair4 const &_rsa)const{
+	size_t operator()(SocketAddressStub4 const &_rsa)const{
 		return _rsa.hash();
 	}
 	
@@ -55,8 +55,8 @@ struct SocketAddressHash{
 
 struct SocketAddressEqual{
 	bool operator()(
-		SocketAddressPair4 const &_rsa1,
-		SocketAddressPair4 const &_rsa2
+		SocketAddressStub4 const &_rsa1,
+		SocketAddressStub4 const &_rsa2
 	)const{
 		return _rsa1 == _rsa2;
 	}
@@ -76,8 +76,8 @@ struct SocketAddressEqual{
 struct SocketAddressCompare{
 	
 	bool operator()(
-		SocketAddressPair4 const &_sa1,
-		SocketAddressPair4 const &_sa2
+		SocketAddressStub4 const &_sa1,
+		SocketAddressStub4 const &_sa2
 	)const{
 		return _sa1 < _sa2;
 	}

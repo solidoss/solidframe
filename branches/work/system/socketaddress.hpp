@@ -167,15 +167,15 @@ typedef int socklen_t;
 	It is a commodity structure, it will not allocate data for sockaddr pointer
 	nor it will delete it. Use this structure in with SocketAddress and SocketAddressInfoIterator
 */
-struct SocketAddressPair{
-	SocketAddressPair(sockaddr *_pa = NULL, size_t _sz = 0):addr(_pa),sz(_sz){}
-	SocketAddressPair(const SocketAddressInfoIterator &_it);
-	SocketAddressPair(const SocketAddress &_rsa);
-	SocketAddressPair(const SocketAddress4 &_rsa);
+struct SocketAddressStub{
+	SocketAddressStub(sockaddr *_pa = NULL, size_t _sz = 0):addr(_pa),sz(_sz){}
+	SocketAddressStub(const SocketAddressInfoIterator &_it);
+	SocketAddressStub(const SocketAddress &_rsa);
+	SocketAddressStub(const SocketAddress4 &_rsa);
 	SocketAddressInfo::Family family()const{return (SocketAddressInfo::Family)addr->sa_family;}
-	SocketAddressPair& operator=(const SocketAddressInfoIterator &_it);
-	SocketAddressPair& operator=(const SocketAddress &_rsa);
-	SocketAddressPair& operator=(const SocketAddress4 &_rsa);
+	SocketAddressStub& operator=(const SocketAddressInfoIterator &_it);
+	SocketAddressStub& operator=(const SocketAddress &_rsa);
+	SocketAddressStub& operator=(const SocketAddress4 &_rsa);
 	bool isInet4()const{
 		return sz == sizeof(sockaddr_in);
 	}
@@ -189,7 +189,7 @@ struct SocketAddressPair{
 		sz = _sz;
 	}
 	uint16 port()const;
-	//bool operator<(const SocketAddressPair &_addr)const;
+	//bool operator<(const SocketAddressStub &_addr)const;
 	const sockaddr	*addr;
 	socklen_t		sz;
 };
@@ -200,22 +200,22 @@ struct SocketAddressPair{
 	nor it will delete it. Use this structure in with SocketAddress and SocketAddressInfoIterator
 */
 
-struct SocketAddressPair4{
+struct SocketAddressStub4{
 	static bool equalAdresses(
-		SocketAddressPair4 const & _rsa1,
-		SocketAddressPair4 const & _rsa2
+		SocketAddressStub4 const & _rsa1,
+		SocketAddressStub4 const & _rsa2
 	);
 	static bool compareAddressesLess(
-		SocketAddressPair4 const & _rsa1,
-		SocketAddressPair4 const & _rsa2
+		SocketAddressStub4 const & _rsa1,
+		SocketAddressStub4 const & _rsa2
 	);
-	SocketAddressPair4(const SocketAddressPair &_rsap);
-	SocketAddressPair4(const SocketAddress &_rsa);
-	SocketAddressPair4(const SocketAddress4 &_rsa);
+	SocketAddressStub4(const SocketAddressStub &_rsap);
+	SocketAddressStub4(const SocketAddress &_rsa);
+	SocketAddressStub4(const SocketAddress4 &_rsa);
 	int port()const;
 	void port(uint16 _port);
-	bool operator<(const SocketAddressPair4 &_addr)const;
-	bool operator==(const SocketAddressPair4 &_addr)const;
+	bool operator<(const SocketAddressStub4 &_addr)const;
+	bool operator==(const SocketAddressStub4 &_addr)const;
 	SocketAddressInfo::Family family()const{return (SocketAddressInfo::Family)addr->sin_family;}
 	size_t hash()const;
 	size_t addressHash()const;
@@ -228,21 +228,21 @@ struct SocketAddressPair4{
 	It is a commodity structure, it will not allocate data for sockaddr pointer
 	nor it will delete it. Use this structure in with SocketAddress and SocketAddressInfoIterator
 */
-struct SocketAddressPair6{
+struct SocketAddressStub6{
 	static bool equalAdresses(
-		SocketAddressPair6 const & _rsa1,
-		SocketAddressPair6 const & _rsa2
+		SocketAddressStub6 const & _rsa1,
+		SocketAddressStub6 const & _rsa2
 	);
 	static bool compareAddressesLess(
-		SocketAddressPair6 const & _rsa1,
-		SocketAddressPair6 const & _rsa2
+		SocketAddressStub6 const & _rsa1,
+		SocketAddressStub6 const & _rsa2
 	);
-	SocketAddressPair6(const SocketAddressPair &_rsa);
-	SocketAddressPair6(const SocketAddress &_rsa);
+	SocketAddressStub6(const SocketAddressStub &_rsa);
+	SocketAddressStub6(const SocketAddress &_rsa);
 	int port()const;
 	void port(uint16 _port);
-	bool operator<(const SocketAddressPair6 &_addr)const;
-	bool operator==(const SocketAddressPair6 &_addr)const;
+	bool operator<(const SocketAddressStub6 &_addr)const;
+	bool operator==(const SocketAddressStub6 &_addr)const;
 	SocketAddressInfo::Family family()const{return (SocketAddressInfo::Family)addr->sin6_family;}
 	size_t hash()const;
 	size_t addressHash()const;
@@ -277,11 +277,11 @@ struct SocketAddress{
 	
 	SocketAddress():sz(0){clear();}
 	SocketAddress(const SocketAddressInfoIterator &);
-	SocketAddress(const SocketAddressPair &);
-	SocketAddress(const SocketAddressPair4 &);
-	SocketAddress(const SocketAddressPair6 &);
+	SocketAddress(const SocketAddressStub &);
+	SocketAddress(const SocketAddressStub4 &);
+	SocketAddress(const SocketAddressStub6 &);
 	SocketAddress& operator=(const SocketAddressInfoIterator &);
-	SocketAddress& operator=(const SocketAddressPair &);
+	SocketAddress& operator=(const SocketAddressStub &);
 	SocketAddressInfo::Family family()const{return (SocketAddressInfo::Family)addr()->sa_family;}
 	const socklen_t&	size()const {return sz;}
 	socklen_t&	size(){return sz;}
@@ -365,10 +365,10 @@ struct SocketAddress4{
 	
 	SocketAddress4(){clear();}
 	SocketAddress4(const SocketAddressInfoIterator &);
-	SocketAddress4(const SocketAddressPair &);
-	SocketAddress4(const SocketAddressPair4 &);
+	SocketAddress4(const SocketAddressStub &);
+	SocketAddress4(const SocketAddressStub4 &);
 	SocketAddress4& operator=(const SocketAddressInfoIterator &);
-	SocketAddress4& operator=(const SocketAddressPair &);
+	SocketAddress4& operator=(const SocketAddressStub &);
 	SocketAddressInfo::Family family()const{return (SocketAddressInfo::Family)addr()->sa_family;}
 	socklen_t	size()const {return Capacity;}
 	//socklen_t&	size(){return sz;}

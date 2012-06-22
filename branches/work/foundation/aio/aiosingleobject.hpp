@@ -27,7 +27,7 @@
 
 class SocketDevice;
 class SocketAddress;
-class SocketAddressPair;
+class SocketAddressStub;
 class SocketAddressInfoIterator;
 
 
@@ -72,7 +72,7 @@ public:
 	//! Asynchronous send
 	int socketSend(const char* _pb, uint32 _bl, uint32 _flags = 0);
 	//! Asynchronous send to a specific address
-	int socketSendTo(const char *_pb, uint32 _bl, const SocketAddressPair &_sap, uint32 _flags = 0);
+	int socketSendTo(const char *_pb, uint32 _bl, const SocketAddressStub &_sap, uint32 _flags = 0);
 	//! Asynchronous receive
 	int socketRecv(char *_pb, uint32 _bl, uint32 _flags = 0);
 	//! Asynchronous receive
@@ -86,7 +86,7 @@ public:
 	/*!
 		Call this on successful completion of socketRecv
 	*/
-	const SocketAddressPair &socketRecvAddr() const;
+	const SocketAddressStub &socketRecvAddr() const;
 	
 	
 	//! The ammount of data sent

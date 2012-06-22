@@ -100,7 +100,7 @@ void SocketAddressInfo::reinit(
 	reinit(_node, buf, _flags, _family, _type, _proto);
 }
 
-// bool SocketAddressPair::operator<(const SocketAddressPair &_addr)const{
+// bool SocketAddressStub::operator<(const SocketAddressStub &_addr)const{
 // 
 // }
 
@@ -161,14 +161,14 @@ bool SocketAddress::operator==(const SocketAddress &_raddr)const{
 		return false;
 	}
 }
-SocketAddress::SocketAddress(const SocketAddressPair4 &_sp){
+SocketAddress::SocketAddress(const SocketAddressStub4 &_sp){
 	addr((sockaddr*)_sp.addr, _sp.size());
 }
-SocketAddress::SocketAddress(const SocketAddressPair6 &_sp){
+SocketAddress::SocketAddress(const SocketAddressStub6 &_sp){
 	addr((sockaddr*)_sp.addr, _sp.size());
 }
 
-SocketAddress::SocketAddress(const SocketAddressPair &_sp){
+SocketAddress::SocketAddress(const SocketAddressStub &_sp){
 	addr(_sp.addr, _sp.size());
 }
 
@@ -246,11 +246,11 @@ bool SocketAddress4::operator==(const SocketAddress4 &_raddr)const{
 	addrin()->sin_port == _raddr.addrin()->sin_port;
 }
 
-SocketAddress4::SocketAddress4(const SocketAddressPair4 &_sp){
+SocketAddress4::SocketAddress4(const SocketAddressStub4 &_sp){
 	addr((sockaddr*)_sp.addr, _sp.size());
 }
 
-SocketAddress4::SocketAddress4(const SocketAddressPair &_sp){
+SocketAddress4::SocketAddress4(const SocketAddressStub &_sp){
 	addr(_sp.addr, _sp.size());
 }
 int SocketAddress4::port()const{

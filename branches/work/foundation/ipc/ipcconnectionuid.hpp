@@ -77,7 +77,7 @@ struct SignalContext{
 	static const SignalContext& the();
 	ConnectionUid 		connectionuid;
 	SignalUid			signaluid;
-	SocketAddressPair	pairaddr;
+	SocketAddressStub	pairaddr;
 	int 				baseport;
 private:
 	friend class Context;
