@@ -29,6 +29,11 @@
 struct C;
 namespace foundation{
 namespace ipc{
+
+enum{
+	LocalNetworkId = 0
+};
+
 //! A structure to uniquely indetify an IPC connection/session
 /*!
 	<b>Overview:</b><br>

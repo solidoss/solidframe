@@ -220,16 +220,34 @@ int Service::basePort()const{
 int Service::doSendSignal(
 	DynamicPointer<Signal> &_psig,//the signal to be sent
 	const SerializationTypeIdT &_rtid,
-	const SocketAddressStub &_rsap,
 	ConnectionUid *_pconid,
+	const SocketAddressStub &_rsa_dest,
+	const uint32 _netid_dest,
 	uint32	_flags
 ){
 	
 	if(
-		_rsap.family() != SocketAddressInfo::Inet4/* && 
+		_rsa_dest.family() != SocketAddressInfo::Inet4/* && 
 		_rsap.family() != SocketAddressInfo::Inet6*/
 	) return BAD;
 	
+	Controller::SocketAddressIterator	it(controller().gatewayIteratorBegin(_rsa_dest, _netid_dest));
+	
+	if(it == controller().gatewayIteratorEnd()){
+		return doSendSignalLocal(_psig, _rtid, _pconid, _rsa_dest, _netid_dest, _flags);
+	}else{
+		return doSendSignalRelay(_psig, _rtid, _pconid, _rsa_dest, _netid_dest, _flags, it);
+	}
+}
+//---------------------------------------------------------------------
+int Service::doSendSignalLocal(
+	DynamicPointer<Signal> &_psig,//the signal to be sent
+	const SerializationTypeIdT &_rtid,
+	ConnectionUid *_pconid,
+	const SocketAddressStub &_rsap,
+	const uint32 _netid_dest,
+	uint32	_flags
+){
 	Locker<Mutex>	lock(serviceMutex());
 	
 	if(_rsap.family() == SocketAddressInfo::Inet4){
@@ -311,102 +329,16 @@ int Service::doSendSignal(
 	return OK;
 }
 //---------------------------------------------------------------------
-int Service::doSendSignal(
+int Service::doSendSignalRelay(
 	DynamicPointer<Signal> &_psig,//the signal to be sent
 	const SerializationTypeIdT &_rtid,
-	const SocketAddressStub &_rsap_gate,
-	const uint32 _netidx_dest,
-	const SocketAddressStub &_rsap_dest,
 	ConnectionUid *_pconid,
-	uint32	_flags
+	const SocketAddressStub &_rsap,
+	const uint32 _netid_dest,
+	uint32	_flags,
+	const Controller::SocketAddressIterator& _addrit
 ){
-#if 0
-	if(
-		_rsap_gate.family() != SocketAddressInfo::Inet4 ||
-		_rsap_dest.family() != SocketAddressInfo::Inet4
-		
-	) return BAD;
-	
-	Locker<Mutex>						lock(serviceMutex());
-	
-	SocketAddressStub4 					inaddr_gate(_rsap_gate);
-	SocketAddressStub4 					inaddr_dest(_rsap_dest);
-	RelaySession::Key4T					relaykey(
-		&inaddr_gate, inaddr_gate.port(),
-		_netidx_dest,
-		&inaddr_dest, inaddr_dest.port(),
-	);
-	Data::SessionAddr4MapT::iterator	it(d.sessionrelayaddr4map.find(&relaykey));
-	
-	if(it != d.sessionrelayaddr4map.end()){
-	
-		vdbgx(Dbg::ipc, "");
-		
-		ConnectionUid		conid(it->second);
-		IndexT				idx(Manager::the().computeIndex(d.tkrvec[conid.tid].uid.first));
-		Locker<Mutex>		lock2(this->mutex(idx));
-		Talker				*ptkr(static_cast<Talker*>(this->objectAt(idx)));
-		
-		cassert(conid.tid < d.tkrvec.size());
-		cassert(ptkr);
-		
-		if(ptkr->pushSignal(_psig, _rtid, conid, _flags)){
-			//the talker must be signaled
-			if(ptkr->signal(fdt::S_RAISE)){
-				Manager::the().raiseObject(*ptkr);
-			}
-		}
-		if(_pconid){
-			*_pconid = conid;
-		}
-		return OK;
-	
-	}else{//the connection/session does not exist
-		vdbgx(Dbg::ipc, "");
-		
-		int16	tkrid(allocateTalkerForNewSession());
-		IndexT	tkrpos;
-		uint32	tkruid;
-		
-		if(tkrid >= 0){
-			//the talker exists
-			tkrpos = d.tkrvec[tkrid].uid.first;
-			tkruid = d.tkrvec[tkrid].uid.second;
-		}else{
-			//create new talker
-			tkrid = createNewTalker(tkrpos, tkruid);
-			if(tkrid < 0){
-				tkrid = allocateTalkerForNewSession(true/*force*/);
-			}
-			tkrpos = d.tkrvec[tkrid].uid.first;
-			tkruid = d.tkrvec[tkrid].uid.second;
-		}
-		
-		tkrpos = Manager::the().computeIndex(tkrpos);
-		
-		Locker<Mutex>		lock2(this->mutex(tkrpos));
-		Talker				*ptkr(static_cast<Talker*>(this->objectAt(tkrpos)));
-		cassert(ptkr);
-		Session				*pses(new Session(inaddr, d.keepalivetout));
-		ConnectionUid		conid(tkrid);
-		
-		vdbgx(Dbg::ipc, "");
-		ptkr->pushSession(pses, conid);
-		d.sessionaddr4map[pses->baseAddr4()] = conid;
-		
-		ptkr->pushSignal(_psig, _rtid, conid, _flags);
-		
-		if(ptkr->signal(fdt::S_RAISE)){
-			Manager::the().raiseObject(*ptkr);
-		}
-		
-		if(_pconid){
-			*_pconid = conid;
-		}
-		return OK;
-	}
-#endif
-	return OK;
+	return BAD;
 }
 //---------------------------------------------------------------------
 int Service::allocateTalkerForNewSession(bool _force){
@@ -571,7 +503,7 @@ int Service::createNewTalker(IndexT &_tkrpos, uint32 &_tkruid){
 		ObjectUidT	objuid(this->insertLockless(ptkr));
 		d.tkrq.push(d.tkrvec.size());
 		d.tkrvec.push_back(objuid);
-		d.pc->scheduleTalker(ptkr);
+		controller().scheduleTalker(ptkr);
 		return tkrid;
 	}else{
 		edbgx(Dbg::ipc, "Could not bind to random port");
@@ -627,7 +559,7 @@ int Service::insertTalker(
 	d.baseport = sa.port();
 	d.tkrvec.push_back(Data::TalkerStub(objuid));
 	d.tkrq.push(0);
-	d.pc->scheduleTalker(ptkr);
+	controller().scheduleTalker(ptkr);
 	return OK;
 }
 //---------------------------------------------------------------------
@@ -704,6 +636,23 @@ int Controller::authenticate(
 	//use: SignalContext::the().connectionuid!!
 	return BAD;//by default no authentication
 }
+
+/*virtual*/ Controller::SocketAddressIterator Controller::gatewayIteratorBegin(
+	const SocketAddressStub &_rsas_dest,
+	const uint32 _netid_dest
+){
+	return SocketAddressIterator();
+}
+/*virtual*/ const Controller::SocketAddressIterator& Controller::gatewayIteratorEnd(){
+	static const SocketAddressIterator endit;
+	return endit;
+}
+	
+	
+/*virtual*/ uint32 Controller::localNetworkId()const{
+	return LocalNetworkId;
+}
+
 }//namespace ipc
 }//namespace foundation
 
