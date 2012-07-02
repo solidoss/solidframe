@@ -13,14 +13,6 @@ using boost::asio::ip::tcp;
 using namespace std;
 
 static tcp::resolver::iterator resolved_endpoint;
-boost::xtime delay(int secs)
-{
-    //Create an xtime that is secs seconds from now
-    boost::xtime ret;
-    boost::xtime_get(&ret, boost::TIME_UTC);
-    ret.sec += secs;
-    return ret;
-}
 
 class session
 {
