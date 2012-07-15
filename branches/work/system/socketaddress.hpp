@@ -23,17 +23,8 @@
 #define SYSTEM_SOCKETADDRESS_HPP
 
 #include "common.hpp"
+#include "socketinfo.hpp"
 
-#ifdef ON_WINDOWS
-#include <WinSock2.h>
-#include <Ws2tcpip.h>
-#include <Windows.h>
-#else
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#endif
 struct SocketAddressInfo;
 //struct sockaddr_in;
 //struct sockaddr_in6;
@@ -73,15 +64,7 @@ struct SocketAddressInfo{
 		V4Mapped  = AI_V4MAPPED,
 		NumericServ = AI_NUMERICSERV
 	};
-	enum Family{
-		Local = AF_UNIX,
-		Inet4 = AF_INET,
-		Inet6 = AF_INET6
-	};
-	enum Type{
-		Stream = SOCK_STREAM,
-		Datagram = SOCK_DGRAM
-	};
+	
 	SocketAddressInfo(){}
 	SocketAddressInfo(const SocketAddressInfo &_rai):ib(_rai.ib.paddr){
 		_rai.ib.paddr = NULL;
@@ -165,14 +148,14 @@ typedef int socklen_t;
 //! A pair of a sockaddr pointer and a size
 /*!
 	It is a commodity structure, it will not allocate data for sockaddr pointer
-	nor it will delete it. Use this structure in with SocketAddress and SocketAddressInfoIterator
+	nor it will delete it. Use this structure with SocketAddress and SocketAddressInfoIterator
 */
 struct SocketAddressStub{
 	SocketAddressStub(sockaddr *_pa = NULL, size_t _sz = 0):addr(_pa),sz(_sz){}
 	SocketAddressStub(const SocketAddressInfoIterator &_it);
 	SocketAddressStub(const SocketAddress &_rsa);
 	SocketAddressStub(const SocketAddress4 &_rsa);
-	SocketAddressInfo::Family family()const{return (SocketAddressInfo::Family)addr->sa_family;}
+	SocketInfo::Family family()const{return (SocketInfo::Family)addr->sa_family;}
 	SocketAddressStub& operator=(const SocketAddressInfoIterator &_it);
 	SocketAddressStub& operator=(const SocketAddress &_rsa);
 	SocketAddressStub& operator=(const SocketAddress4 &_rsa);
@@ -182,6 +165,9 @@ struct SocketAddressStub{
 	bool isInet6()const{
 		return sz == sizeof(sockaddr_in6);
 	}
+	bool isLocal()const{
+		return false;
+	}
 	socklen_t size()const{
 		return sz;
 	}
@@ -189,71 +175,18 @@ struct SocketAddressStub{
 		sz = _sz;
 	}
 	uint16 port()const;
-	//bool operator<(const SocketAddressStub &_addr)const;
+	const sockaddr	*address()const{
+		return addr;
+	}
+private:
 	const sockaddr	*addr;
 	socklen_t		sz;
 };
 
-//! A pair of a sockaddr_in pointer and a size
-/*!
-	It is a commodity structure, it will not allocate data for sockaddr pointer
-	nor it will delete it. Use this structure in with SocketAddress and SocketAddressInfoIterator
-*/
 
-struct SocketAddressStub4{
-	static bool equalAdresses(
-		SocketAddressStub4 const & _rsa1,
-		SocketAddressStub4 const & _rsa2
-	);
-	static bool compareAddressesLess(
-		SocketAddressStub4 const & _rsa1,
-		SocketAddressStub4 const & _rsa2
-	);
-	SocketAddressStub4(const SocketAddressStub &_rsap);
-	SocketAddressStub4(const SocketAddress &_rsa);
-	SocketAddressStub4(const SocketAddress4 &_rsa);
-	int port()const;
-	void port(uint16 _port);
-	bool operator<(const SocketAddressStub4 &_addr)const;
-	bool operator==(const SocketAddressStub4 &_addr)const;
-	SocketAddressInfo::Family family()const{return (SocketAddressInfo::Family)addr->sin_family;}
-	size_t hash()const;
-	size_t addressHash()const;
-	sockaddr_in	*addr;
-	static socklen_t	size(){return sizeof(sockaddr_in);}
-};
-
-//! A pair of a sockaddr_in6 pointer and a size
+//! Holds a generic socket address
 /*!
-	It is a commodity structure, it will not allocate data for sockaddr pointer
-	nor it will delete it. Use this structure in with SocketAddress and SocketAddressInfoIterator
-*/
-struct SocketAddressStub6{
-	static bool equalAdresses(
-		SocketAddressStub6 const & _rsa1,
-		SocketAddressStub6 const & _rsa2
-	);
-	static bool compareAddressesLess(
-		SocketAddressStub6 const & _rsa1,
-		SocketAddressStub6 const & _rsa2
-	);
-	SocketAddressStub6(const SocketAddressStub &_rsa);
-	SocketAddressStub6(const SocketAddress &_rsa);
-	int port()const;
-	void port(uint16 _port);
-	bool operator<(const SocketAddressStub6 &_addr)const;
-	bool operator==(const SocketAddressStub6 &_addr)const;
-	SocketAddressInfo::Family family()const{return (SocketAddressInfo::Family)addr->sin6_family;}
-	size_t hash()const;
-	size_t addressHash()const;
-	sockaddr_in6	*addr;
-	socklen_t	size()const{return sizeof(sockaddr_in6);}
-};
-
-//! Holds a socket address
-/*!
-	The address will be hold within a buffer of size,
-	sizeof(sockaddr_in6).
+	The address will be hold within a buffer of size.
 */
 struct SocketAddress{
 	enum {Capacity = sizeof(sockaddr_in6)};
@@ -278,8 +211,6 @@ struct SocketAddress{
 	SocketAddress():sz(0){clear();}
 	SocketAddress(const SocketAddressInfoIterator &);
 	SocketAddress(const SocketAddressStub &);
-	SocketAddress(const SocketAddressStub4 &);
-	SocketAddress(const SocketAddressStub6 &);
 	SocketAddress& operator=(const SocketAddressInfoIterator &);
 	SocketAddress& operator=(const SocketAddressStub &);
 	SocketAddressInfo::Family family()const{return (SocketAddressInfo::Family)addr()->sa_family;}
@@ -343,6 +274,19 @@ private:
 	char 		buf[Capacity];
 };
 
+struct SocketAddressInet{
+};
+
+struct SocketAddressInet4{
+};
+
+struct SocketAddressInet6{
+};
+
+struct SocketAddressLocal{
+};
+
+
 struct SocketAddress4{
 	enum {Capacity = sizeof(sockaddr_in)};
 	enum {HostNameCapacity = NI_MAXHOST};
@@ -366,7 +310,7 @@ struct SocketAddress4{
 	SocketAddress4(){clear();}
 	SocketAddress4(const SocketAddressInfoIterator &);
 	SocketAddress4(const SocketAddressStub &);
-	SocketAddress4(const SocketAddressStub4 &);
+	
 	SocketAddress4& operator=(const SocketAddressInfoIterator &);
 	SocketAddress4& operator=(const SocketAddressStub &);
 	SocketAddressInfo::Family family()const{return (SocketAddressInfo::Family)addr()->sa_family;}

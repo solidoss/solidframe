@@ -87,7 +87,7 @@ public:
 	//! Asynchrounous send_to call
 	int sendTo(const char *_pb, uint32 _bl, const SocketAddressStub &_sap, uint32 _flags = 0);
 	//! The sender address for last received data.
-	const SocketAddressStub &recvAddr() const;
+	const SocketAddress &recvAddr() const;
 	//! Setter for the secure socket
 	void secureSocket(SecureSocket *_pss);
 	//! Getter for the secure socket

@@ -572,7 +572,11 @@ int SocketDevice::create(const SocketAddressInfoIterator &_rai){
 	return BAD;
 #endif
 }
-int SocketDevice::create(SocketAddressInfo::Family _family, SocketAddressInfo::Type _type, int _proto){
+int SocketDevice::create(
+	SocketInfo::Family _family,
+	SocketInfo::Type _type,
+	int _proto
+){
 #ifdef ON_WINDOWS
 	//SOCKET s = socket(_family, _type, _proto);
 	SOCKET s = WSASocket(_family, _type, _proto, NULL, 0, 0);
@@ -586,6 +590,28 @@ int SocketDevice::create(SocketAddressInfo::Family _family, SocketAddressInfo::T
 	edbgx(Dbg::system, "socket create: "<<strerror(errno));
 	return BAD;
 #endif
+}
+int SocketDevice::connect(const SocketAddressStub &_rsas){
+#ifdef ON_WINDOWS
+	int rv = ::connect(descriptor(), _rsas.address(), _rsas.size());
+	if (rv < 0) { // sau rv == -1 ...
+		if(WSAGetLastError() == WSAEWOULDBLOCK) return NOK;
+		edbgx(Dbg::system, "socket connect");
+		close();
+		return BAD;
+	}
+	return OK;
+#else
+	int rv = ::connect(descriptor(), _rsas.address(), _rsas.size());
+	if (rv < 0) { // sau rv == -1 ...
+		if(errno == EINPROGRESS) return NOK;
+		edbgx(Dbg::system, "socket connect: "<<strerror(errno));
+		close();
+		return BAD;
+	}
+	return OK;
+#endif
+	
 }
 int SocketDevice::connect(const SocketAddressInfoIterator &_rai){
 #ifdef ON_WINDOWS

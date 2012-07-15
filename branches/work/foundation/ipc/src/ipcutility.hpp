@@ -38,7 +38,7 @@ typedef std::pair<const SocketAddressStub4, uint16>	BaseAddress4T;
 typedef std::pair<const SocketAddressStub6, uint16>	BaseAddress6T;
 
 //*******	AddrPtrCmp		******************************************************************
-#ifdef HAVE_CPP11
+#ifdef HAS_CPP11
 
 struct SocketAddressHash{
 	size_t operator()(SocketAddressStub4 const &_rsa)const{

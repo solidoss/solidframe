@@ -1990,7 +1990,7 @@ void Session::prepareContext(Context &_rctx){
 }
 //======================================================================
 namespace{
-#ifdef HAVE_SAFE_STATIC
+#ifdef HAS_SAFE_STATIC
 /*static*/ StaticData& StaticData::instance(){
 	static StaticData sd;
 	return sd;
@@ -2039,7 +2039,7 @@ ulong StaticData::retransmitTimeout(uint _pos){
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
 namespace{
-#ifdef HAVE_SAFE_STATIC
+#ifdef HAS_SAFE_STATIC
 const uint32 specificId(){
 	static const uint32 id(Thread::specificId());
 	return id;

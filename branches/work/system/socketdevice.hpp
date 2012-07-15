@@ -29,9 +29,14 @@ public:
 	//! Create a socket based on SocketAddressInfo iterator (use SocketAddressInfo to create one)
 	int create(const SocketAddressInfoIterator &_rai);
 	//! Create a socket given its family, its type and its protocol type
-	int create(SocketAddressInfo::Family = SocketAddressInfo::Inet4, SocketAddressInfo::Type _type = SocketAddressInfo::Stream, int _proto = 0);
+	int create(
+		SocketInfo::Family = SocketInfo::Inet4,
+		SocketInfo::Type _type = SocketInfo::Stream,
+		int _proto = 0
+	);
 	//! Connect the socket
 	int connect(const SocketAddressInfoIterator &_rai);
+	int connect(const SocketAddressStub &_rai);
 	//! Bind the socket to a specific addr:port
 	int bind(const SocketAddressInfoIterator &_rai);
 	//! Bind the socket to a specific addr:port

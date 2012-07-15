@@ -93,7 +93,7 @@ private:
 		would not be of too much help.
 		Also think of objects with sizes larger then max buf capacity
 	*/
-#ifdef HAVE_SAFE_STATIC
+#ifdef HAS_SAFE_STATIC
 	template <typename T>
 	static T* object(T *_p = NULL){
 		static const unsigned id = stackid(&Specific::template cleaner<T>);

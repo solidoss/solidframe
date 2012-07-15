@@ -42,7 +42,7 @@
 #include "ipcbuffer.hpp"
 #include "ipcutility.hpp"
 
-#ifdef HAVE_CPP11
+#ifdef HAS_CPP11
 #include <unordered_map>
 #else
 #include <map>
@@ -61,7 +61,7 @@ struct Service::Data{
 		Session*	pses;
 		uint32		uid;
 	};
-#ifdef HAVE_CPP11
+#ifdef HAS_CPP11
 	typedef std::unordered_map<
 		const BaseAddress4T,
 		ConnectionUid,

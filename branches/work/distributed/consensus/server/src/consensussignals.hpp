@@ -31,7 +31,7 @@
 #include "distributed/consensus/consensusrequestid.hpp"
 #include "consensussignal.hpp"
 
-#ifdef HAVE_CPP11
+#ifdef HAS_CPP11
 #include <array>
 #else
 #include <vector>

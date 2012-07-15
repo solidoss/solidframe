@@ -27,7 +27,7 @@
 #include "system/common.hpp"
 #include "system/exception.hpp"
 
-#ifdef HAVE_CPP11
+#ifdef HAS_CPP11
 #include <unordered_map>
 #include <unordered_set>
 #else
@@ -270,7 +270,7 @@ struct Object::Data{
 		size_t operator()(const consensus::RequestId& _req1)const;
 	};
 	
-#ifdef HAVE_CPP11
+#ifdef HAS_CPP11
 	typedef std::unordered_map<const consensus::RequestId*, size_t, ReqHash, ReqCmpEqual>		RequestStubMapT;
 	typedef std::unordered_set<consensus::RequestId, SenderHash, SenderCmpEqual>				SenderSetT;
 #else

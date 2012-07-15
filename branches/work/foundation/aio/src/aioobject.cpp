@@ -304,7 +304,7 @@ uint32 SingleObject::socketRecvSize()const{
 	return stub.psock->recvSize();
 }
 
-const SocketAddressStub &SingleObject::socketRecvAddr() const{
+const SocketAddress &SingleObject::socketRecvAddr() const{
 	return stub.psock->recvAddr();
 }
 
@@ -504,7 +504,7 @@ int MultiObject::socketConnect(const uint _pos, const SocketAddressInfoIterator&
 	return rv;
 }
 
-const SocketAddressStub &MultiObject::socketRecvAddr(uint _pos) const{
+const SocketAddress &MultiObject::socketRecvAddr(uint _pos) const{
 	return pstubs[_pos].psock->recvAddr();
 }
 

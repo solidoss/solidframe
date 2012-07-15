@@ -17,7 +17,7 @@ namespace fdt=foundation;
 
 namespace concept{
 namespace gamma{
-#ifdef HAVE_SAFE_STATIC
+#ifdef HAS_SAFE_STATIC
 struct InitServiceOnce{
 	InitServiceOnce(Manager &_rm);
 };

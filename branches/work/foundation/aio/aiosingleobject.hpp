@@ -86,7 +86,7 @@ public:
 	/*!
 		Call this on successful completion of socketRecv
 	*/
-	const SocketAddressStub &socketRecvAddr() const;
+	const SocketAddress &socketRecvAddr() const;
 	
 	
 	//! The ammount of data sent

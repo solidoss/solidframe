@@ -33,7 +33,7 @@ namespace aio{
 
 namespace openssl{
 
-#ifdef HAVE_SAFE_STATIC
+#ifdef HAS_SAFE_STATIC
 
 struct Initor{
 	Initor();

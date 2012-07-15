@@ -260,7 +260,7 @@ struct Dbg::Data{
 //-----------------------------------------------------------------
 void splitPrefix(string &_path, string &_name, const char *_prefix);
 
-#ifdef HAVE_SAFE_STATIC
+#ifdef HAS_SAFE_STATIC
 /*static*/ Dbg& Dbg::instance(){
 	static Dbg d;
 	return d;

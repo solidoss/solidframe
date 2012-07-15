@@ -29,7 +29,7 @@
 namespace serialization{
 namespace binary{
 
-#ifdef HAVE_SAFE_STATIC
+#ifdef HAS_SAFE_STATIC
 /*static*/ Limits const& Limits::the(){
 	static const Limits l;
 	return l;

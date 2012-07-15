@@ -164,7 +164,7 @@ void Log::Data::sendInfo(){
 	}
 }
 //=====================================================================
-#ifdef HAVE_SAFE_STATIC
+#ifdef HAS_SAFE_STATIC
 /*static*/ Log& Log::instance(){
 	static Log l;
 	return l;

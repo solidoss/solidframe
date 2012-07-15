@@ -262,7 +262,7 @@ private:
 		if(_tid >= objtpvec.size()) _tid = 0;
 		return objtpvec[_tid];
 	}
-#ifdef HAVE_SAFE_STATIC
+#ifdef HAS_SAFE_STATIC
 	template <class O>
 	uint objectTypeId(){
 		static const uint v(newObjectTypeId());

@@ -15,7 +15,7 @@ private:
 
 #ifdef UDEBUG
 
-#ifdef HAVE_SAFE_STATIC
+#ifdef HAS_SAFE_STATIC
 template <class T>
 void objectCheck(bool _add, const char *_fncname){
 	static EmptyChecker ec(_fncname);

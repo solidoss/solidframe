@@ -8,7 +8,7 @@ struct SpecificRequestUid::ForcedCreate{
 
 SpecificRequestUid requestuidptr;//(SpecificRequestUid::ForcedCreate);
 
-#ifdef HAVE_SAFE_STATIC
+#ifdef HAS_SAFE_STATIC
 static const unsigned specificPosition(){
 	static const unsigned	thrspecpos = Thread::specificId();
 	return thrspecpos;
