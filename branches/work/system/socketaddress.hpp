@@ -34,20 +34,20 @@ struct SocketAddressInfo;
 	Usually it will hold all data needed for creating and connecting 
 	a socket
 */
-struct SocketAddressInfoIterator{
-	SocketAddressInfoIterator():paddr(NULL){}
-	SocketAddressInfoIterator& next(){paddr = paddr->ai_next; return *this;}
+struct ResolveIterator{
+	ResolveIterator():paddr(NULL){}
+	ResolveIterator& next(){paddr = paddr->ai_next; return *this;}
 	int family()const {return paddr->ai_family;}
 	int type()const {return paddr->ai_socktype;}
 	int protocol()const{return paddr->ai_protocol;}
 	size_t size()const{return paddr->ai_addrlen;}
 	sockaddr* address()const{return paddr->ai_addr;}
 	operator bool()const{return paddr != NULL;}
-	SocketAddressInfoIterator &operator++(){return next();}
+	ResolveIterator &operator++(){return next();}
 private:
-	friend struct SocketAddressInfo;
-	SocketAddressInfoIterator(addrinfo *_pa):paddr(_pa){}
-	mutable addrinfo	*paddr;
+	friend struct ResolveData;
+	ResolveIterator(addrinfo *_pa):paddr(_pa){}
+	const addrinfo	*paddr;
 };
 //==================================================================
 //! A wrapper for POSIX getaddrinfo (see man getaddrinfo)
@@ -57,7 +57,7 @@ private:
 	It is a blocking resolver, so use it with care expecially when combined with
 	nonblocking/asynchronous IO.
 */
-struct SocketAddressInfo{
+struct ResolveData{
 	enum Flags{
 		CannonName = AI_CANONNAME,
 		NumericHost = AI_NUMERICHOST,
@@ -66,81 +66,40 @@ struct SocketAddressInfo{
 		V4Mapped  = AI_V4MAPPED,
 		NumericService = AI_NUMERICSERV
 	};
+	typedef ResoveIterator const_iterator;
 	
-	SocketAddressInfo(){}
-	SocketAddressInfo(const SocketAddressInfo &_rai):ib(_rai.ib.paddr){
-		_rai.ib.paddr = NULL;
-	}
-	//! Create an addr info using a name and a service name
-	SocketAddressInfo(const char *_node, const char *_service){
-		reinit(_node, _service);
-	}
-	//! Create an addr info using a name and a service name and extra parameters
-	/*!
-		Using this constructor you can request certain connection family, type protocol.
-	*/
-	SocketAddressInfo(
-		const char *_node, 
-		const char *_service, 
-		int _flags,
-		int _family = -1,
-		int _type = -1,
-		int _proto = -1
-	){
-		reinit(_node, _service, _flags, _family, _type, _proto);
-	}
-	//! Create an addr info using a name and a service port
-	SocketAddressInfo(const char *_node, int _port);
-	//! Create an addr info using a name and a service port and extra parameters
-	/*!
-		Using this constructor you can request certain connection family, type protocol.
-	*/
-	SocketAddressInfo(
-		const char *_node, 
-		int _port,
-		int _flags,
-		int _family = -1,
-		int _type = -1,
-		int _proto = -1
-	){
-		reinit(_node, _port, _flags, _family, _type, _proto);
-	}
+	ResolveData(){}
+	ResolveData(const ResolveData &_rai);
 	
-	~SocketAddressInfo();
-	//! Initiate an addr info using a name and a service name
-	void reinit(const char *_node, const char *_service);
-	//! Initiate an addr info using a name and a service name and extra parameters
-	void reinit(
-		const char *_node, 
-		const char *_service,
-		int _flags,
-		int _family = -1,
-		int _type = -1,
-		int _proto = -1	
-	);
-	//! Initiate an addr info using a name and a service port
-	void reinit(const char *_node, int _port);
-	//! Initiate an addr info using a name and a service port and extra parameters
-	void reinit(
-		const char *_node, 
-		int _port,
-		int _flags,
-		int _family = -1,
-		int _type = -1,
-		int _proto = -1
-	);
+	~ResolveData();
 	//! Get an iterator to he first resolved ip address
-	SocketAddressInfoIterator begin(){ return ib;}
+	const_iterator begin()const;
+	const_iterator end()const;
 	//! Check if the returned list of ip addresses is empty
-	bool empty()const{return ib.paddr == NULL;}
-	SocketAddressInfo& operator=(const SocketAddressInfo &_rai){
-		ib.paddr = _rai.ib.paddr;
-		_rai.ib.paddr = NULL;
-		return *this;
-	}
+	bool empty()const;
+	ResolveData& operator=(const ResolveData &_rrd);
 private:
-	SocketAddressInfoIterator	ib;
+	SharedStub	*pss;
 };
+
+ResolveData synchronous_resolve(
+	const char *_node, 
+	const char *_service, 
+	int _flags,
+	int _family = -1,
+	int _type = -1,
+	int _proto = -1
+);	
+
+ResolveData synchronous_resolve(const char *_node, int _port);
+ResolveData synchronous_resolve(
+	const char *_node, 
+	int _port,
+	int _flags,
+	int _family = -1,
+	int _type = -1,
+	int _proto = -1
+);
 //==================================================================
 struct SocketAddress;
 struct SocketAddressInet;

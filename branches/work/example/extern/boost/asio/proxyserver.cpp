@@ -4,6 +4,7 @@
 #include <boost/asio.hpp>
 #include <boost/thread/thread.hpp>
 #include <boost/thread/xtime.hpp>
+#include "boost/shared_ptr.hpp"
 
 #ifdef _WIN32
 #include "winsock2.h"
@@ -291,6 +292,10 @@ int main(int argc, char* argv[])
 {
     try
     {
+		shared_ptr<string>			strptr;
+		boost::shared_ptr<string>	bstrptr;
+		cout<<"sizeof(shared_ptr<string> = "<<sizeof(strptr)<<endl;
+		cout<<"sizeof(boost::shared_ptr<string> = "<<sizeof(bstrptr)<<endl;
         if (argc != 4)
         {
         std::cerr << "Usage: proxyserver listen_port proxy_host proxy_port\n";
