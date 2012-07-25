@@ -533,8 +533,8 @@ void Dbg::initSocket(
 ){
 	if(!d.isActive()) return;
 	//do the connect outside locking
-	SocketAddressInfo ai(_addr, _port, 0, SocketAddressInfo::Inet4, SocketAddressInfo::Stream);
-	if(!ai.empty() && d.sd.create(ai.begin()) == OK && d.sd.connect(ai.begin()) == OK){
+	ResolveData		rd = synchronous_resolve(_addr, _port, 0, SocketInfo::Inet4, SocketInfo::Stream);
+	if(!rd.empty() && d.sd.create(rd.begin()) == OK && d.sd.connect(rd.begin()) == OK){
 	}else{
 		d.sd.close();//make sure the socket is closed
 	}

@@ -26,8 +26,9 @@ public:
 	void shutdownWrite();
 	//! Shutdown reading and writing 
 	void shutdownReadWrite();
+	int create(const ResolveIterator &_rri);
 	//! Create a socket based on SocketAddressInfo iterator (use SocketAddressInfo to create one)
-	int create(const SocketAddressInfoIterator &_rai);
+	int create(const SocketAddressStub &_rsas);
 	//! Create a socket given its family, its type and its protocol type
 	int create(
 		SocketInfo::Family = SocketInfo::Inet4,
@@ -35,14 +36,11 @@ public:
 		int _proto = 0
 	);
 	//! Connect the socket
-	int connect(const SocketAddressInfoIterator &_rai);
-	int connect(const SocketAddressStub &_rai);
-	//! Bind the socket to a specific addr:port
-	int bind(const SocketAddressInfoIterator &_rai);
+	int connect(const SocketAddressStub &_rsas);
 	//! Bind the socket to a specific addr:port
 	int bind(const SocketAddressStub &_rsa);
 	//! Prepares the socket for accepting
-	int prepareAccept(const SocketAddressInfoIterator &_rai, unsigned _listencnt = 10);
+	int prepareAccept(const SocketAddressStub &_rsas, unsigned _listencnt = 10);
 	//! Accept an incomming connection
 	int accept(SocketDevice &_dev);
 	//! Make a connection blocking

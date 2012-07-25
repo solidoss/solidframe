@@ -22,10 +22,14 @@
 #ifndef SYSTEM_SOCKETADDRESS_HPP
 #define SYSTEM_SOCKETADDRESS_HPP
 
+#include <sys/un.h>
+
 #include "common.hpp"
 #include "socketinfo.hpp"
+#include "sharedbackend.hpp"
 
 struct SocketAddressInfo;
+struct SocketDevice;
 //struct sockaddr_in;
 //struct sockaddr_in6;
 //==================================================================
@@ -66,7 +70,7 @@ struct ResolveData{
 		V4Mapped  = AI_V4MAPPED,
 		NumericService = AI_NUMERICSERV
 	};
-	typedef ResoveIterator const_iterator;
+	typedef ResolveIterator const_iterator;
 	
 	ResolveData(){}
 	ResolveData(const ResolveData &_rai);
@@ -118,7 +122,7 @@ typedef int socklen_t;
 struct SocketAddressStub{
 	SocketAddressStub(sockaddr *_pa = NULL, size_t _sz = 0):addr(_pa),sz(_sz){}
 	
-	SocketAddressStub(const SocketAddressInfoIterator &_it);
+	SocketAddressStub(const ResolveIterator &_it);
 	SocketAddressStub(const SocketAddress &_rsa);
 	SocketAddressStub(const SocketAddressInet &_rsa);
 	SocketAddressStub(const SocketAddressInet4 &_rsa);
@@ -126,8 +130,7 @@ struct SocketAddressStub{
 	SocketAddressStub(const SocketAddressLocal &_rsa);
 	
 	SocketInfo::Family family()const{return (SocketInfo::Family)addr->sa_family;}
-	
-	SocketAddressStub& operator=(const SocketAddressInfoIterator &_it);
+	SocketAddressStub& operator=(const ResolveIterator &_it);
 	SocketAddressStub& operator=(const SocketAddress &_rsa);
 	SocketAddressStub& operator=(const SocketAddressInet &_rsa);
 	SocketAddressStub& operator=(const SocketAddressInet4 &_rsa);
@@ -177,15 +180,15 @@ public:
 	enum {Capacity = sizeof(AddrUnion)};
 	
 	SocketAddress():sz(0){clear();}
-	SocketAddress(const SocketAddressInfoIterator &);
+	SocketAddress(const ResolveIterator &);
 	SocketAddress(const SocketAddressStub &);
 	SocketAddress(const char* _addr, int _port = 0);
 	
-	SocketAddress& operator=(const SocketAddressInfoIterator &);
+	SocketAddress& operator=(const ResolveIterator &);
 	SocketAddress& operator=(const SocketAddressStub &);
 	
-	SocketAddressInfo::Family family()const{
-		return (SocketAddressInfo::Family)sockAddr()->sa_family;
+	SocketInfo::Family family()const{
+		return (SocketInfo::Family)sockAddr()->sa_family;
 	}
 	
 	bool isInet4()const{
@@ -270,6 +273,7 @@ public:
 	void path(const char*_pth);
 	const char* path()const;
 private:
+	friend struct SocketDevice;
 	AddrUnion	d;
 	socklen_t	sz;
 };
@@ -283,13 +287,13 @@ struct SocketAddressInet4{
 struct SocketAddressInet6{
 };
 //==================================================================
-bool operator<(const in_addr &_inaddr1, const in_addr &_inaddr1);
+bool operator<(const in_addr &_inaddr1, const in_addr &_inaddr2);
 
-bool operator==(const in_addr &_inaddr1, const in_addr &_inaddr1);
+bool operator==(const in_addr &_inaddr1, const in_addr &_inaddr2);
 
-bool operator<(const in6_addr &_inaddr1, const in6_addr &_inaddr1);
+bool operator<(const in6_addr &_inaddr1, const in6_addr &_inaddr2);
 
-bool operator==(const in6_addr &_inaddr1, const in6_addr &_inaddr1);
+bool operator==(const in6_addr &_inaddr1, const in6_addr &_inaddr2);
 
 size_t hash(const in_addr &_inaddr);
 

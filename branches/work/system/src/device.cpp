@@ -557,21 +557,23 @@ void SocketDevice::close(){
 	Device::close();
 #endif
 }
-int SocketDevice::create(const SocketAddressInfoIterator &_rai){
+
+int SocketDevice::create(const ResolveIterator &_rri){
 #ifdef ON_WINDOWS
 	//SOCKET s = socket(_rai.family(), _rai.type(), _rai.protocol());
-	SOCKET s = WSASocket(_rai.family(), _rai.type(), _rai.protocol(), NULL, 0, 0);
+	SOCKET s = WSASocket(_rri.family(), _rri.type(), _rri.protocol(), NULL, 0, 0);
 	Device::descriptor((HANDLE)s);
 	if(ok()) return OK;
 	edbgx(Dbg::system, "socket create");
 	return BAD;
 #else
-	Device::descriptor(socket(_rai.family(), _rai.type(), _rai.protocol()));
+	Device::descriptor(socket(_rri.family(), _rri.type(), _rri.protocol()));
 	if(ok()) return OK;
 	edbgx(Dbg::system, "socket create: "<<strerror(errno));
 	return BAD;
 #endif
 }
+
 int SocketDevice::create(
 	SocketInfo::Family _family,
 	SocketInfo::Type _type,
@@ -593,7 +595,7 @@ int SocketDevice::create(
 }
 int SocketDevice::connect(const SocketAddressStub &_rsas){
 #ifdef ON_WINDOWS
-	int rv = ::connect(descriptor(), _rsas.address(), _rsas.size());
+	int rv = ::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
 	if (rv < 0) { // sau rv == -1 ...
 		if(WSAGetLastError() == WSAEWOULDBLOCK) return NOK;
 		edbgx(Dbg::system, "socket connect");
@@ -602,7 +604,7 @@ int SocketDevice::connect(const SocketAddressStub &_rsas){
 	}
 	return OK;
 #else
-	int rv = ::connect(descriptor(), _rsas.address(), _rsas.size());
+	int rv = ::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
 	if (rv < 0) { // sau rv == -1 ...
 		if(errno == EINPROGRESS) return NOK;
 		edbgx(Dbg::system, "socket connect: "<<strerror(errno));
@@ -613,28 +615,28 @@ int SocketDevice::connect(const SocketAddressStub &_rsas){
 #endif
 	
 }
-int SocketDevice::connect(const SocketAddressInfoIterator &_rai){
-#ifdef ON_WINDOWS
-	int rv = ::connect(descriptor(), _rai.addr(), _rai.size());
-	if (rv < 0) { // sau rv == -1 ...
-		if(WSAGetLastError() == WSAEWOULDBLOCK) return NOK;
-		edbgx(Dbg::system, "socket connect");
-		close();
-		return BAD;
-	}
-	return OK;
-#else
-	int rv = ::connect(descriptor(), _rai.addr(), _rai.size());
-	if (rv < 0) { // sau rv == -1 ...
-		if(errno == EINPROGRESS) return NOK;
-		edbgx(Dbg::system, "socket connect: "<<strerror(errno));
-		close();
-		return BAD;
-	}
-	return OK;
-#endif
-}
-int SocketDevice::prepareAccept(const SocketAddressInfoIterator &_rai, unsigned _listencnt){
+// int SocketDevice::connect(const SocketAddressInfoIterator &_rai){
+// #ifdef ON_WINDOWS
+// 	int rv = ::connect(descriptor(), _rai.addr(), _rai.size());
+// 	if (rv < 0) { // sau rv == -1 ...
+// 		if(WSAGetLastError() == WSAEWOULDBLOCK) return NOK;
+// 		edbgx(Dbg::system, "socket connect");
+// 		close();
+// 		return BAD;
+// 	}
+// 	return OK;
+// #else
+// 	int rv = ::connect(descriptor(), _rai.addr(), _rai.size());
+// 	if (rv < 0) { // sau rv == -1 ...
+// 		if(errno == EINPROGRESS) return NOK;
+// 		edbgx(Dbg::system, "socket connect: "<<strerror(errno));
+// 		close();
+// 		return BAD;
+// 	}
+// 	return OK;
+// #endif
+// }
+int SocketDevice::prepareAccept(const SocketAddressStub &_rsas, unsigned _listencnt){
 #ifdef ON_WINDOWS
 	int yes = 1;
 	int rv = setsockopt(descriptor(), SOL_SOCKET, SO_REUSEADDR, (char *) &yes, sizeof(yes));
@@ -644,7 +646,7 @@ int SocketDevice::prepareAccept(const SocketAddressInfoIterator &_rai, unsigned 
 		return BAD;
 	}
 
-	rv = ::bind(descriptor(), _rai.addr(), _rai.size());
+	rv = ::bind(descriptor(), _rsas.sockAddr(), _rsas.size());
 	if(rv < 0) {
 		edbgx(Dbg::system, "socket bind: "<<strerror(errno));
 		close();
@@ -666,7 +668,7 @@ int SocketDevice::prepareAccept(const SocketAddressInfoIterator &_rai, unsigned 
 		return BAD;
 	}
 
-	rv = ::bind(descriptor(), _rai.addr(), _rai.size());
+	rv = ::bind(descriptor(), _rsas.sockAddr(), _rsas.size());
 	if(rv < 0) {
 		edbgx(Dbg::system, "socket bind: "<<strerror(errno));
 		close();
@@ -685,7 +687,7 @@ int SocketDevice::accept(SocketDevice &_dev){
 #ifdef ON_WINDOWS
 	if(!ok()) return BAD;
 	SocketAddress sa;
-	SOCKET rv = ::accept(descriptor(), sa.addr(), &sa.size(SocketAddress::Capacity));
+	SOCKET rv = ::accept(descriptor(), sa.sockAddr(), &sa.size(SocketAddress::Capacity));
 	if (rv == invalidDescriptor()) {
 		if(WSAGetLastError() == WSAEWOULDBLOCK) return NOK;
 		edbgx(Dbg::system, "socket accept: "<<WSAGetLastError());
@@ -697,7 +699,7 @@ int SocketDevice::accept(SocketDevice &_dev){
 #else
 	if(!ok()) return BAD;
 	SocketAddress sa;
-	int rv = ::accept(descriptor(), sa.addr(), &sa.size());
+	int rv = ::accept(descriptor(), sa.sockAddr(), &sa.sz);
 	if (rv < 0) {
 		if(errno == EAGAIN) return NOK;
 		edbgx(Dbg::system, "socket accept: "<<strerror(errno));
@@ -708,31 +710,10 @@ int SocketDevice::accept(SocketDevice &_dev){
 	return OK;
 #endif
 }
-int SocketDevice::bind(const SocketAddressInfoIterator &_rai){
-#ifdef ON_WINDOWS
-	if(!ok()) return BAD;
-	int rv = ::bind(descriptor(), _rai.addr(), _rai.size());
-	if(rv < 0){
-		edbgx(Dbg::system, "socket bind: "<<strerror(errno));
-		close();
-		return BAD;
-	}
-	return OK;
-#else
-	if(!ok()) return BAD;
-	int rv = ::bind(descriptor(), _rai.addr(), _rai.size());
-	if(rv < 0){
-		edbgx(Dbg::system, "socket bind: "<<strerror(errno));
-		close();
-		return BAD;
-	}
-	return OK;
-#endif
-}
 int SocketDevice::bind(const SocketAddressStub &_rsa){
 #ifdef ON_WINDOWS
 	if(!ok()) return BAD;
-	int rv = ::bind(descriptor(), _rsa.addr, _rsa.size());
+	int rv = ::bind(descriptor(), _rsa.sockAddr(), _rsa.size());
 	if(rv < 0){
 		edbgx(Dbg::system, "socket bind: "<<strerror(errno));
 		close();
@@ -741,7 +722,7 @@ int SocketDevice::bind(const SocketAddressStub &_rsa){
 	return OK;
 #else
 	if(!ok()) return BAD;
-	int rv = ::bind(descriptor(), _rsa.addr, _rsa.size());
+	int rv = ::bind(descriptor(), _rsa.sockAddr(), _rsa.size());
 	if(rv < 0){
 		edbgx(Dbg::system, "socket bind: "<<strerror(errno));
 		close();
@@ -860,7 +841,7 @@ int SocketDevice::send(const char* _pb, unsigned _ul, const SocketAddressStub &_
 #ifdef ON_WINDOWS
 	return -1;
 #else
-	return ::sendto(descriptor(), _pb, _ul, 0, _sap.addr, _sap.size());
+	return ::sendto(descriptor(), _pb, _ul, 0, _sap.sockAddr(), _sap.size());
 #endif
 }
 int SocketDevice::recv(char *_pb, unsigned _ul, SocketAddress &_rsa){
@@ -868,8 +849,8 @@ int SocketDevice::recv(char *_pb, unsigned _ul, SocketAddress &_rsa){
 	return -1;
 #else
 	_rsa.clear();
-	_rsa.size(SocketAddress::Capacity);
-	return ::recvfrom(descriptor(), _pb, _ul, 0, _rsa.addr(), &_rsa.size());
+	_rsa.sz = SocketAddress::Capacity;
+	return ::recvfrom(descriptor(), _pb, _ul, 0, _rsa.sockAddr(), &_rsa.sz);
 #endif
 }
 int SocketDevice::remoteAddress(SocketAddress &_rsa)const{
@@ -877,8 +858,8 @@ int SocketDevice::remoteAddress(SocketAddress &_rsa)const{
 	return BAD;
 #else
 	_rsa.clear();
-	_rsa.size(SocketAddress::Capacity);
-	int rv = getpeername(descriptor(), _rsa.addr(), &_rsa.size());
+	_rsa.sz = SocketAddress::Capacity;
+	int rv = getpeername(descriptor(), _rsa.sockAddr(), &_rsa.sz);
 	if(rv){
 		edbgx(Dbg::system, "socket getpeername: "<<strerror(errno));
 		return BAD;
@@ -891,8 +872,8 @@ int SocketDevice::localAddress(SocketAddress &_rsa)const{
 	return BAD;
 #else
 	_rsa.clear();
-	_rsa.size(SocketAddress::Capacity);
-	int rv = getsockname(descriptor(), _rsa.addr(), &_rsa.size());
+	_rsa.sz = SocketAddress::Capacity;
+	int rv = getsockname(descriptor(), _rsa.sockAddr(), &_rsa.sz);
 	if(rv){
 		edbgx(Dbg::system, "socket getsockname: "<<strerror(errno));
 		return BAD;
@@ -928,11 +909,11 @@ bool SocketDevice::isListening()const{
 	}
 	edbgx(Dbg::system, "socket getsockopt: "<<strerror(errno));
 	//try work-arround
-	if(this->type() == SocketAddressInfo::Datagram){
+	if(this->type() == SocketInfo::Datagram){
 		return false;
 	}
 	SocketAddress	sa;
-	rv = ::accept(descriptor(), sa.addr(), &sa.size());
+	rv = ::accept(descriptor(), sa.sockAddr(), &sa.sz);
 	if(rv < 0){
 		if(errno == EINVAL){
 			return false;

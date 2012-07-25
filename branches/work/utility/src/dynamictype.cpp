@@ -3,7 +3,7 @@
 #include "system/cassert.hpp"
 #include "system/mutex.hpp"
 
-#include "utility/mutualstore.hpp"
+#include "system/mutualstore.hpp"
 #include "utility/dynamictype.hpp"
 #include "utility/dynamicpointer.hpp"
 #include "utility/shared.hpp"

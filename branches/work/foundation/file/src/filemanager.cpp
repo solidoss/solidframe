@@ -30,7 +30,7 @@
 #include "system/thread.hpp"
 #include "system/timespec.hpp"
 
-#include "utility/mutualstore.hpp"
+#include "system/mutualstore.hpp"
 #include "utility/iostream.hpp"
 #include "utility/queue.hpp"
 #include "utility/stack.hpp"

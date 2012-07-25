@@ -19,10 +19,10 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef UTILITY_MUTUALSTORE_HPP
-#define UTILITY_MUTUALSTORE_HPP
+#ifndef SYSTEM_MUTUALSTORE_HPP
+#define SYSTEM_MUTUALSTORE_HPP
 
-#include "utility/common.hpp"
+#include "system/common.hpp"
 #include "system/convertors.hpp"
 
 //! A container of shared objects
