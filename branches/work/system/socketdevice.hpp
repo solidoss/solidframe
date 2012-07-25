@@ -26,9 +26,8 @@ public:
 	void shutdownWrite();
 	//! Shutdown reading and writing 
 	void shutdownReadWrite();
+	//! Create a socket based ResolveIterator
 	int create(const ResolveIterator &_rri);
-	//! Create a socket based on SocketAddressInfo iterator (use SocketAddressInfo to create one)
-	int create(const SocketAddressStub &_rsas);
 	//! Create a socket given its family, its type and its protocol type
 	int create(
 		SocketInfo::Family = SocketInfo::Inet4,

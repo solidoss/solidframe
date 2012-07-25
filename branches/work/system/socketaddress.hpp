@@ -45,7 +45,7 @@ struct ResolveIterator{
 	int type()const {return paddr->ai_socktype;}
 	int protocol()const{return paddr->ai_protocol;}
 	size_t size()const{return paddr->ai_addrlen;}
-	sockaddr* address()const{return paddr->ai_addr;}
+	sockaddr* sockAddr()const{return paddr->ai_addr;}
 	operator bool()const{return paddr != NULL;}
 	ResolveIterator &operator++(){return next();}
 private:
@@ -129,7 +129,6 @@ struct SocketAddressStub{
 	SocketAddressStub(const SocketAddressInet6 &_rsa);
 	SocketAddressStub(const SocketAddressLocal &_rsa);
 	
-	SocketInfo::Family family()const{return (SocketInfo::Family)addr->sa_family;}
 	SocketAddressStub& operator=(const ResolveIterator &_it);
 	SocketAddressStub& operator=(const SocketAddress &_rsa);
 	SocketAddressStub& operator=(const SocketAddressInet &_rsa);
@@ -137,10 +136,15 @@ struct SocketAddressStub{
 	SocketAddressStub& operator=(const SocketAddressInet6 &_rsa);
 	SocketAddressStub& operator=(const SocketAddressLocal &_rsa);
 	
+	operator const sockaddr*()const{return sockAddr();}
+	
 	void clear(){
 		addr = NULL;
 		sz = 0;
 	}
+	
+	SocketInfo::Family family()const{return (SocketInfo::Family)addr->sa_family;}
+	
 	bool isInet4()const{
 		return addr->sa_family == AF_INET;
 	}
@@ -215,7 +219,7 @@ public:
 	const sockaddr* sockAddr()const{
 		return &d.addr;
 	}
-	operator sockaddr*(){return sockAddr();}
+	//operator sockaddr*(){return sockAddr();}
 	operator const sockaddr*()const{return sockAddr();}
 	//! Get the name associated to the address
 	/*!
@@ -236,14 +240,14 @@ public:
 			SocketAddress::NumericService<br>
 		);<br>
 		</CODE>
-		\retval BAD for error, OK for success.
+		\retval true for success, false for error.
 		\param _host An output buffer to keep the host name.
 		\param _hostcp The capacity of the output host buffer.
 		\param _serv An output buffer to keep the service name/port.
 		\param _servcp The capacity of the output service buffer.
 		\param _flags Some request flags
 	*/
-	int toString(
+	bool toString(
 		char* _host,
 		unsigned _hostcp,
 		char* _serv,
@@ -256,14 +260,12 @@ public:
 	
 	void address(const char*_str);
 	
-	in_addr& address(){
+	const in_addr& address4()const{
 		return d.inaddr4.sin_addr;
 	}
-	
-	const in_addr& address()const{
-		return d.inaddr4.sin_addr;
+	const in6_addr& address6()const{
+		return d.inaddr6.sin6_addr;
 	}
-	
 	int port()const;
 	void port(int _port);
 	void clear();
@@ -279,12 +281,211 @@ private:
 };
 //==================================================================
 struct SocketAddressInet{
+private:
+	union AddrUnion{
+		sockaddr		addr;
+		sockaddr_in 	inaddr4;
+		sockaddr_in6 	inaddr6;
+	};
+public:
+	enum {Capacity = sizeof(AddrUnion)};
+	
+	SocketAddressInet():sz(0){clear();}
+	SocketAddressInet(const ResolveIterator &);
+	SocketAddressInet(const SocketAddressStub &);
+	SocketAddressInet(const char* _addr, int _port = 0);
+	
+	SocketAddressInet& operator=(const ResolveIterator &);
+	SocketAddressInet& operator=(const SocketAddressStub &);
+	
+	SocketInfo::Family family()const{
+		return (SocketInfo::Family)sockAddr()->sa_family;
+	}
+	
+	bool isInet4()const{
+		return sockAddr()->sa_family == AF_INET;
+	}
+	bool isInet6()const{
+		return sockAddr()->sa_family == AF_INET6;
+	}
+	
+	bool isLoopback()const;
+	bool isInvalid()const;
+	bool isBroadcast()const;
+	
+	bool empty()const;
+	
+	const socklen_t&	size()const {return sz;}
+
+	sockaddr* sockAddr(){
+		return &d.addr;
+	}
+	const sockaddr* sockAddr()const{
+		return &d.addr;
+	}
+	//operator sockaddr*(){return sockAddr();}
+	operator const sockaddr*()const{return sockAddr();}
+	//! Get the name associated to the address
+	//! \see SocketAddress::toString
+	bool toString(
+		char* _host,
+		unsigned _hostcp,
+		char* _serv,
+		unsigned _servcp,
+		uint32	_flags = 0
+	)const;
+	
+	bool operator<(const SocketAddressInet &_raddr)const;
+	bool operator==(const SocketAddressInet &_raddr)const;
+	
+	void address(const char*_str);
+	
+	const in_addr& address4()const{
+		return d.inaddr4.sin_addr;
+	}
+	const in6_addr& address6()const{
+		return d.inaddr6.sin6_addr;
+	}
+	
+	int port()const;
+	void port(int _port);
+	void clear();
+	size_t hash()const;
+	size_t addressHash()const;
+	
+private:
+	friend struct SocketDevice;
+	AddrUnion	d;
+	socklen_t	sz;
 };
 //==================================================================
 struct SocketAddressInet4{
+private:
+	union AddrUnion{
+		sockaddr		addr;
+		sockaddr_in 	inaddr4;
+	};
+public:
+	enum {Capacity = sizeof(AddrUnion)};
+	
+	SocketAddressInet4():sz(0){clear();}
+	SocketAddressInet4(const ResolveIterator &);
+	SocketAddressInet4(const SocketAddressStub &);
+	SocketAddressInet4(const char* _addr, int _port = 0);
+	
+	SocketAddressInet4& operator=(const ResolveIterator &);
+	SocketAddressInet4& operator=(const SocketAddressStub &);
+			
+	bool isLoopback()const;
+	bool isInvalid()const;
+	bool isBroadcast()const;
+	
+	bool empty()const;
+	
+	const socklen_t&	size()const {return sz;}
+
+	sockaddr* sockAddr(){
+		return &d.addr;
+	}
+	const sockaddr* sockAddr()const{
+		return &d.addr;
+	}
+	//operator sockaddr*(){return sockAddr();}
+	operator const sockaddr*()const{return sockAddr();}
+	//! Get the name associated to the address
+	//! \see SocketAddress::toString
+	bool toString(
+		char* _host,
+		unsigned _hostcp,
+		char* _serv,
+		unsigned _servcp,
+		uint32	_flags = 0
+	)const;
+	
+	bool operator<(const SocketAddressInet4 &_raddr)const;
+	bool operator==(const SocketAddressInet4 &_raddr)const;
+	
+	void address(const char*_str);
+	
+	const in_addr& address()const{
+		return d.inaddr4.sin_addr;
+	}
+	
+	int port()const;
+	void port(int _port);
+	void clear();
+	size_t hash()const;
+	size_t addressHash()const;
+	
+private:
+	friend struct SocketDevice;
+	AddrUnion	d;
+	socklen_t	sz;
 };
 //==================================================================
 struct SocketAddressInet6{
+private:
+	union AddrUnion{
+		sockaddr		addr;
+		sockaddr_in6 	inaddr6;
+	};
+public:
+	enum {Capacity = sizeof(AddrUnion)};
+	
+	SocketAddressInet6():sz(0){clear();}
+	SocketAddressInet6(const ResolveIterator &);
+	SocketAddressInet6(const SocketAddressStub &);
+	SocketAddressInet6(const char* _addr, int _port = 0);
+	
+	SocketAddressInet6& operator=(const ResolveIterator &);
+	SocketAddressInet6& operator=(const SocketAddressStub &);
+		
+	bool isLoopback()const;
+	bool isInvalid()const;
+	bool isBroadcast()const;
+	
+	bool empty()const;
+	
+	const socklen_t&	size()const {return sz;}
+
+	sockaddr* sockAddr(){
+		return &d.addr;
+	}
+	const sockaddr* sockAddr()const{
+		return &d.addr;
+	}
+	//operator sockaddr*(){return sockAddr();}
+	operator const sockaddr*()const{return sockAddr();}
+	
+	//! Get the name associated to the address
+	//! \see SocketAddress::toString
+	bool toString(
+		char* _host,
+		unsigned _hostcp,
+		char* _serv,
+		unsigned _servcp,
+		uint32	_flags = 0
+	)const;
+	
+	bool operator<(const SocketAddressInet6 &_raddr)const;
+	bool operator==(const SocketAddressInet6 &_raddr)const;
+	
+	void address(const char*_str);
+	
+	const in_addr& address()const{
+		return d.inaddr6.sin6_addr;
+	}
+	
+	int port()const;
+	void port(int _port);
+	void clear();
+	size_t hash()const;
+	size_t addressHash()const;
+	
+private:
+	friend struct SocketDevice;
+	AddrUnion	d;
+	socklen_t	sz;
 };
 //==================================================================
 bool operator<(const in_addr &_inaddr1, const in_addr &_inaddr2);
@@ -300,6 +501,50 @@ size_t hash(const in_addr &_inaddr);
 size_t hash(const in6_addr &_inaddr);
 //==================================================================
 struct SocketAddressLocal{
+private:
+	union AddrUnion{
+		sockaddr		addr;
+		sockaddr_un		localaddr;
+	};
+public:
+	enum {Capacity = sizeof(AddrUnion)};
+	
+	SocketAddressLocal():sz(0){clear();}
+	SocketAddressLocal(const char* _path);
+	
+	SocketAddressLocal& operator=(const ResolveIterator &);
+	SocketAddressLocal& operator=(const SocketAddressStub &);
+	
+	SocketInfo::Family family()const{
+		return (SocketInfo::Family)sockAddr()->sa_family;
+	}
+	
+	bool empty()const;
+	
+	const socklen_t&	size()const {return sz;}
+
+	sockaddr* sockAddr(){
+		return &d.addr;
+	}
+	const sockaddr* sockAddr()const{
+		return &d.addr;
+	}
+	//operator sockaddr*(){return sockAddr();}
+	operator const sockaddr*()const{return sockAddr();}
+	
+	bool operator<(const SocketAddressLocal &_raddr)const;
+	bool operator==(const SocketAddressLocal &_raddr)const;
+	
+	void clear();
+	size_t hash()const;
+	size_t addressHash()const;
+	
+	void path(const char*_pth);
+	const char* path()const;
+private:
+	friend struct SocketDevice;
+	AddrUnion	d;
+	socklen_t	sz;
 };
 //==================================================================
 #ifndef NINLINES
