@@ -62,8 +62,8 @@ int main(int argc, char *argv[]){
 	const char *srv = NULL;
 	if(strlen(argv[2])) srv = argv[2];
 	int flags = 0;
-	int family = SocketAddressInfo::Inet4;
-	int type = SocketAddressInfo::Stream;
+	int family = SocketInfo::Inet4;
+	int type = SocketInfo::Stream;
 	int proto = 0;
 	
 	//list all the local interfaces
@@ -71,9 +71,9 @@ int main(int argc, char *argv[]){
 	
 	
 	//SocketAddressInfo ai(node, srv);
-	SocketAddressInfo ai(node, srv, flags, family, type, proto);
-	SocketAddressInfoIterator it(ai.begin());
-	while(it){
+	ResolveData rd =  synchronous_resolve(node, srv, flags, family, type, proto);
+	ResolveIterator it(rd.begin());
+	while(it == rd.end()){
 		int sd = socket(it.family(), it.type(), it.protocol());
 		struct timeval tosnd;
 		struct timeval torcv;
@@ -92,7 +92,7 @@ int main(int argc, char *argv[]){
 			cout<<"rcvtimeo "<<torcv.tv_sec<<"."<<torcv.tv_usec<<endl;
 			cout<<"sndtimeo "<<tosnd.tv_sec<<"."<<tosnd.tv_usec<<endl;
 			fcntl(sd, F_SETFL, O_NONBLOCK);
-			if(!connect(sd, it.addr(), it.size())){
+			if(!connect(sd, it.sockAddr(), it.size())){
 				cout<<"Connected!"<<endl;
 			}else{
 				if(errno != EINPROGRESS){
@@ -176,7 +176,7 @@ void listLocalInterfaces(){
 	char srvc[128];
 	
 	while(it){
-		sockaddr_in *addr;
+		//sockaddr_in *addr;
 		if(it->ifa_addr && it->ifa_addr->sa_family == AF_INET)
         {
             struct sockaddr_in* addr = reinterpret_cast<struct sockaddr_in*>(it->ifa_addr);

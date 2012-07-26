@@ -29,6 +29,71 @@
 #include "system/socketaddress.hpp"
 #include "system/exception.hpp"
 
+#ifdef NINLINES
+#include "system/socketaddress.ipp"
+#endif
+
+
+//-----------------------------------------------------------------------
+//			synchronous_resolve
+//-----------------------------------------------------------------------
+
+ResolveData synchronous_resolve(const char *_node, const char *_service){
+	if(!_node && !_service){
+		return ResolveData();
+	}
+	addrinfo *paddr = NULL;
+	getaddrinfo(_node, _service, NULL, &paddr);
+	return ResolveData(paddr);
+}
+ResolveData synchronous_resolve(
+	const char *_node, 
+	const char *_service, 
+	int _flags,
+	int _family,
+	int _type,
+	int _proto
+){
+	if(!_node && !_service){
+		return ResolveData();
+	}
+	if(_family < 0) _family = AF_UNSPEC;
+	if(_type < 0) _type = 0;
+	if(_proto < 0) _proto = 0;
+	addrinfo h;
+	h.ai_flags = _flags;
+	h.ai_family = _family;
+	h.ai_socktype = _type;
+	h.ai_protocol = _proto;
+	h.ai_addrlen = 0;
+	h.ai_addr = NULL;
+	h.ai_canonname = NULL;
+	h.ai_next = NULL;
+	addrinfo *paddr = NULL;
+	getaddrinfo(_node, _service, &h, &paddr);
+	return ResolveData(paddr);
+}
+
+
+ResolveData synchronous_resolve(const char *_node, int _port){
+	char buf[12];
+	sprintf(buf, "%u", _port);
+	return synchronous_resolve(_node, buf);
+}
+ResolveData synchronous_resolve(
+	const char *_node, 
+	int _port,
+	int _flags,
+	int _family,
+	int _type,
+	int _proto
+){
+	char buf[12];
+	sprintf(buf, "%u", _port);
+	return synchronous_resolve(_node, buf, _flags, _family, _type, _proto);
+}
+
+#if 0
 SocketAddressInfo::~SocketAddressInfo(){
 	if(!empty()){
 		freeaddrinfo(ib.paddr);
@@ -278,7 +343,4 @@ int SocketAddress4::name(
 	}
 	return OK;
 }
-
-#ifdef NINLINES
-#include "system/socketaddress.ipp"
 #endif

@@ -687,7 +687,7 @@ int SocketDevice::accept(SocketDevice &_dev){
 #ifdef ON_WINDOWS
 	if(!ok()) return BAD;
 	SocketAddress sa;
-	SOCKET rv = ::accept(descriptor(), sa.sockAddr(), &sa.size(SocketAddress::Capacity));
+	SOCKET rv = ::accept(descriptor(), sa, &sa.size(SocketAddress::Capacity));
 	if (rv == invalidDescriptor()) {
 		if(WSAGetLastError() == WSAEWOULDBLOCK) return NOK;
 		edbgx(Dbg::system, "socket accept: "<<WSAGetLastError());
@@ -699,7 +699,7 @@ int SocketDevice::accept(SocketDevice &_dev){
 #else
 	if(!ok()) return BAD;
 	SocketAddress sa;
-	int rv = ::accept(descriptor(), sa.sockAddr(), &sa.sz);
+	int rv = ::accept(descriptor(), sa, &sa.sz);
 	if (rv < 0) {
 		if(errno == EAGAIN) return NOK;
 		edbgx(Dbg::system, "socket accept: "<<strerror(errno));
