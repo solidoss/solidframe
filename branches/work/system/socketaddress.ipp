@@ -339,26 +339,37 @@ inline bool SocketAddress::operator<(const SocketAddress &_raddr)const{
 	}
 	
 	if(isInet6()){
-		return memcmp(
+		const int rv = memcmp(
 			(const void*)this->d.inaddr6.sin6_addr.s6_addr,
 			(const void*)_raddr.d.inaddr6.sin6_addr.s6_addr,
 			sizeof(in6_addr)
-		) < 0;
+		);
+		if(rv < 0){
+			return true;
+		}else if(rv > 0){
+			return false;
+		}
+		return d.inaddr6.sin6_port < _raddr.d.inaddr6.sin6_port;
 	}
 	
-	return address4().s_addr < _raddr.address4().s_addr;
+	if(address4().s_addr < _raddr.address4().s_addr){
+		return true;
+	}else if(address4().s_addr > _raddr.address4().s_addr){
+		return false;
+	}
+	return d.inaddr4.sin_port < _raddr.d.inaddr4.sin_port;
 }
 inline bool SocketAddress::operator==(const SocketAddress &_raddr)const{
 	if(sockAddr()->sa_family == _raddr.sockAddr()->sa_family){
 		if(isInet6()){
-			return memcmp(
+			return (memcmp(
 				(const void*)this->d.inaddr6.sin6_addr.s6_addr,
 				(const void*)_raddr.d.inaddr6.sin6_addr.s6_addr,
 				sizeof(in6_addr)
-			) == 0;
+			) == 0) && (d.inaddr6.sin6_port == _raddr.d.inaddr6.sin6_port);
 		}
 		
-		return address4().s_addr == _raddr.address4().s_addr;
+		return (address4().s_addr == _raddr.address4().s_addr) && (d.inaddr4.sin_port == _raddr.d.inaddr4.sin_port);
 	}else{
 		return false;
 	}
@@ -445,8 +456,10 @@ inline SocketAddressInet::SocketAddressInet():sz(0){
 }
 inline SocketAddressInet::SocketAddressInet(const SocketAddressStub &_rsas):sz(0){
 	clear();
-	memcpy(&d.addr, _rsas.sockAddr(), _rsas.size());
-	sz = _rsas.size();
+	if(_rsas.isInet4() || _rsas.isInet6()){
+		memcpy(&d.addr, _rsas.sockAddr(), _rsas.size());
+		sz = _rsas.size();
+	}
 }
 inline SocketAddressInet::SocketAddressInet(const char* _addr, int _port):sz(0){
 	clear();
@@ -456,8 +469,10 @@ inline SocketAddressInet::SocketAddressInet(const char* _addr, int _port):sz(0){
 
 inline SocketAddressInet& SocketAddressInet::operator=(const SocketAddressStub &_rsas){
 	clear();
-	memcpy(&d.addr, _rsas.sockAddr(), _rsas.size());
-	sz = _rsas.size();
+	if(_rsas.isInet4() || _rsas.isInet6()){
+		memcpy(&d.addr, _rsas.sockAddr(), _rsas.size());
+		sz = _rsas.size();
+	}
 	return *this;
 }
 
@@ -545,26 +560,37 @@ inline bool SocketAddressInet::operator<(const SocketAddressInet &_raddr)const{
 	}
 	
 	if(isInet6()){
-		return memcmp(
+		const int rv = memcmp(
 			(const void*)this->d.inaddr6.sin6_addr.s6_addr,
 			(const void*)_raddr.d.inaddr6.sin6_addr.s6_addr,
 			sizeof(in6_addr)
-		) < 0;
+		);
+		if(rv < 0){
+			return true;
+		}else if(rv > 0){
+			return false;
+		}
+		return d.inaddr6.sin6_port < _raddr.d.inaddr6.sin6_port;
 	}
 	
-	return address4().s_addr < _raddr.address4().s_addr;
+	if(address4().s_addr < _raddr.address4().s_addr){
+		return true;
+	}else if(address4().s_addr > _raddr.address4().s_addr){
+		return false;
+	}
+	return d.inaddr4.sin_port < _raddr.d.inaddr4.sin_port;
 }
 inline bool SocketAddressInet::operator==(const SocketAddressInet &_raddr)const{
 	if(sockAddr()->sa_family == _raddr.sockAddr()->sa_family){
 		if(isInet6()){
-			return memcmp(
+			return (memcmp(
 				(const void*)this->d.inaddr6.sin6_addr.s6_addr,
 				(const void*)_raddr.d.inaddr6.sin6_addr.s6_addr,
 				sizeof(in6_addr)
-			) == 0;
+			) == 0) && (d.inaddr6.sin6_port == _raddr.d.inaddr6.sin6_port);
 		}
 		
-		return address4().s_addr == _raddr.address4().s_addr;
+		return (address4().s_addr == _raddr.address4().s_addr) && (d.inaddr4.sin_port == _raddr.d.inaddr4.sin_port);
 	}else{
 		return false;
 	}
@@ -636,14 +662,380 @@ inline sockaddr* SocketAddressInet::sockAddr(){
 }
 
 //-----------------------------------------------------------------------
-//			SocketAddressStub
+//			SocketAddressInet4
 //-----------------------------------------------------------------------
 
+inline SocketAddressInet4::SocketAddressInet4(){
+	clear();
+}
+inline SocketAddressInet4::SocketAddressInet4(const SocketAddressStub &_rsas){
+	clear();
+	if(_rsas.isInet4()){
+		memcpy(&d.addr, _rsas.sockAddr(), _rsas.size());
+	}
+}
+inline SocketAddressInet4::SocketAddressInet4(const char* _addr, int _port){
+	clear();
+	address(_addr);
+	port(_port);
+}
+
+inline SocketAddressInet4& SocketAddressInet4::operator=(const SocketAddressStub &_rsas){
+	clear();
+	if(_rsas.isInet4()){
+		memcpy(&d.addr, _rsas.sockAddr(), _rsas.size());
+	}
+	return *this;
+}
+
+inline SocketInfo::Family SocketAddressInet4::family()const{
+	return (SocketInfo::Family)sockAddr()->sa_family;
+}
+
+inline bool SocketAddressInet4::isInet4()const{
+	return sockAddr()->sa_family == AF_INET;
+}
+
+inline bool SocketAddressInet4::isLoopback()const{
+	if(isInet4()){
+		return ((uint32)ntohl(address().s_addr) & 0xFF000000) == 0x7F000000;
+	}
+	return false;
+}
+inline bool SocketAddressInet4::isInvalid()const{
+	if(isInet4()){
+		return (uint32)ntohl(address().s_addr) == 0;
+	}
+	return false;
+}
+
+inline socklen_t	SocketAddressInet4::size()const {
+	return sizeof(d);
+}
+
+inline const sockaddr* SocketAddressInet4::sockAddr()const{
+	return &d.addr;
+}
+//operator sockaddr*(){return sockAddr();}
+inline SocketAddressInet4::operator const sockaddr*()const{
+	return sockAddr();
+}
+inline bool SocketAddressInet4::toString(
+	char* _host,
+	unsigned _hostcp,
+	char* _serv,
+	unsigned _servcp,
+	uint32	_flags
+)const{
+	if(!_hostcp || !_servcp) return false;
+	_host[0] = 0;
+	_serv[0] = 0;
+	int rv = getnameinfo(sockAddr(), size(), _host, _hostcp, _serv, _servcp, _flags);
+	if(rv){
+		edbgx(Dbg::system, "getnameinfo: "<<strerror(errno));
+		return false;
+	}
+	return true;
+}
+inline bool SocketAddressInet4::operator<(const SocketAddressInet4 &_raddr)const{
+	if(address().s_addr < _raddr.address().s_addr){
+		return true;
+	}else if(address().s_addr > _raddr.address().s_addr){
+		return false;
+	}
+	return d.inaddr4.sin_port < _raddr.d.inaddr4.sin_port;
+}
+inline bool SocketAddressInet4::operator==(const SocketAddressInet4 &_raddr)const{
+	return (address().s_addr == _raddr.address().s_addr) && (d.inaddr4.sin_port == _raddr.d.inaddr4.sin_port);
+}
+
+inline void SocketAddressInet4::address(const char*_str){
+	d.addr.sa_family = AF_INET;
+	d.inaddr4.sin_addr.s_addr = 0;
+	int rv = inet_pton(AF_INET, _str, (void*)this->d.inaddr4.sin_addr.s_addr);
+	if(rv == 1){
+		sockAddr()->sa_family = AF_INET;
+		return;
+	}
+}
+
+inline const in_addr& SocketAddressInet4::address()const{
+	return d.inaddr4.sin_addr;
+}
+inline int SocketAddressInet4::port()const{
+	return htons(d.inaddr4.sin_port);
+}
+inline void SocketAddressInet4::port(int _port){
+	d.inaddr4.sin_port = ntohs(_port);
+}
+inline void SocketAddressInet4::clear(){
+	d.addr.sa_family = AF_INET;
+	d.inaddr4.sin_addr.s_addr = 0;
+	port(0);
+}
+inline size_t SocketAddressInet4::hash()const{
+	return ::hash(address()) ^ d.inaddr4.sin_port;
+}
+inline size_t SocketAddressInet4::addressHash()const{
+	return ::hash(address());
+}
+
+inline SocketAddressInet4::operator sockaddr*(){
+	return sockAddr();
+}
+inline sockaddr* SocketAddressInet4::sockAddr(){
+	return &d.addr;
+}
+
 //-----------------------------------------------------------------------
-//			SocketAddressStub
+//			SocketAddressInet6
+//-----------------------------------------------------------------------
+inline SocketAddressInet6::SocketAddressInet6(){
+	clear();
+}
+inline SocketAddressInet6::SocketAddressInet6(const SocketAddressStub &_rsas){
+	clear();
+	if(_rsas.isInet6()){
+		memcpy(&d.addr, _rsas.sockAddr(), _rsas.size());
+	}
+}
+inline SocketAddressInet6::SocketAddressInet6(const char* _addr, int _port){
+	clear();
+	address(_addr);
+	port(_port);
+}
+
+inline SocketAddressInet6& SocketAddressInet6::operator=(const SocketAddressStub &_rsas){
+	clear();
+	if(_rsas.isInet6()){
+		memcpy(&d.addr, _rsas.sockAddr(), _rsas.size());
+	}
+	return *this;
+}
+
+inline SocketInfo::Family SocketAddressInet6::family()const{
+	return (SocketInfo::Family)sockAddr()->sa_family;
+}
+
+inline bool SocketAddressInet6::isInet6()const{
+	return sockAddr()->sa_family == AF_INET6;
+}
+
+inline bool SocketAddressInet6::isLoopback()const{
+	return ((address().s6_addr[0] == 0) && (address().s6_addr[1] == 0)
+			&& (address().s6_addr[2] == 0) && (address().s6_addr[3] == 0)
+			&& (address().s6_addr[4] == 0) && (address().s6_addr[5] == 0)
+			&& (address().s6_addr[6] == 0) && (address().s6_addr[7] == 0)
+			&& (address().s6_addr[8] == 0) && (address().s6_addr[9] == 0)
+			&& (address().s6_addr[10] == 0) && (address().s6_addr[11] == 0)
+			&& (address().s6_addr[12] == 0) && (address().s6_addr[13] == 0)
+			&& (address().s6_addr[14] == 0) && (address().s6_addr[15] == 1));
+}
+inline bool SocketAddressInet6::isInvalid()const{
+	return ((address().s6_addr[0] == 0) && (address().s6_addr[1] == 0)
+			&& (address().s6_addr[2] == 0) && (address().s6_addr[3] == 0)
+			&& (address().s6_addr[4] == 0) && (address().s6_addr[5] == 0)
+			&& (address().s6_addr[6] == 0) && (address().s6_addr[7] == 0)
+			&& (address().s6_addr[8] == 0) && (address().s6_addr[9] == 0)
+			&& (address().s6_addr[10] == 0) && (address().s6_addr[11] == 0)
+			&& (address().s6_addr[12] == 0) && (address().s6_addr[13] == 0)
+			&& (address().s6_addr[14] == 0) && (address().s6_addr[15] == 0));
+}
+
+
+inline socklen_t	SocketAddressInet6::size()const {
+	return sizeof(d);
+}
+
+inline const sockaddr* SocketAddressInet6::sockAddr()const{
+	return &d.addr;
+}
+//operator sockaddr*(){return sockAddr();}
+inline SocketAddressInet6::operator const sockaddr*()const{
+	return sockAddr();
+}
+inline bool SocketAddressInet6::toString(
+	char* _host,
+	unsigned _hostcp,
+	char* _serv,
+	unsigned _servcp,
+	uint32	_flags
+)const{
+	if(!_hostcp || !_servcp) return false;
+	_host[0] = 0;
+	_serv[0] = 0;
+	int rv = getnameinfo(sockAddr(), size(), _host, _hostcp, _serv, _servcp, _flags);
+	if(rv){
+		edbgx(Dbg::system, "getnameinfo: "<<strerror(errno));
+		return false;
+	}
+	return true;
+}
+inline bool SocketAddressInet6::operator<(const SocketAddressInet6 &_raddr)const{
+	const int rv = memcmp(
+		(const void*)this->d.inaddr6.sin6_addr.s6_addr,
+		(const void*)_raddr.d.inaddr6.sin6_addr.s6_addr,
+		sizeof(in6_addr)
+	);
+	if(rv < 0){
+		return true;
+	}else if(rv > 0){
+		return false;
+	}
+	return d.inaddr6.sin6_port < _raddr.d.inaddr6.sin6_port;
+}
+inline bool SocketAddressInet6::operator==(const SocketAddressInet6 &_raddr)const{
+	return (memcmp(
+		(const void*)this->d.inaddr6.sin6_addr.s6_addr,
+		(const void*)_raddr.d.inaddr6.sin6_addr.s6_addr,
+		sizeof(in6_addr)
+	) == 0) && (d.inaddr6.sin6_port == _raddr.d.inaddr6.sin6_port);
+}
+
+inline void SocketAddressInet6::address(const char*_str){
+	d.addr.sa_family = AF_INET6;
+	memset(d.inaddr6.sin6_addr.s6_addr, 0, sizeof(d.inaddr6.sin6_addr.s6_addr));
+	int rv = inet_pton(AF_INET6, _str, (void*)this->d.inaddr6.sin6_addr.s6_addr);
+	if(rv == 1){
+		sockAddr()->sa_family = AF_INET6;
+		return;
+	}
+}
+
+inline const in6_addr& SocketAddressInet6::address()const{
+	return d.inaddr6.sin6_addr;
+}
+inline int SocketAddressInet6::port()const{
+	return htons(d.inaddr6.sin6_port);
+}
+inline void SocketAddressInet6::port(int _port){
+	d.inaddr6.sin6_port = ntohs(_port);
+}
+inline void SocketAddressInet6::clear(){
+	d.addr.sa_family = AF_INET6;
+	memset(d.inaddr6.sin6_addr.s6_addr, 0, sizeof(d.inaddr6.sin6_addr.s6_addr));
+	port(0);
+}
+inline size_t SocketAddressInet6::hash()const{
+	return ::hash(address()) ^ d.inaddr6.sin6_port;
+}
+inline size_t SocketAddressInet6::addressHash()const{
+	return ::hash(address());
+}
+
+inline SocketAddressInet6::operator sockaddr*(){
+	return sockAddr();
+}
+inline sockaddr* SocketAddressInet6::sockAddr(){
+	return &d.addr;
+}
+
+//-----------------------------------------------------------------------
+//			hash
 //-----------------------------------------------------------------------
 
+inline bool operator<(const in_addr &_inaddr1, const in_addr &_inaddr2){
+	return _inaddr1.s_addr < _inaddr2.s_addr;
+}
+
+inline bool operator==(const in_addr &_inaddr1, const in_addr &_inaddr2){
+	return _inaddr1.s_addr == _inaddr2.s_addr;
+}
+
+inline bool operator<(const in6_addr &_inaddr1, const in6_addr &_inaddr2){
+	return memcmp(
+		(const void*)_inaddr1.s6_addr,
+		(const void*)_inaddr2.s6_addr,
+		sizeof(in6_addr)
+	) < 0;
+}
+
+inline bool operator==(const in6_addr &_inaddr1, const in6_addr &_inaddr2){
+	return memcmp(
+		(const void*)_inaddr1.s6_addr,
+		(const void*)_inaddr2.s6_addr,
+		sizeof(in6_addr)
+	) == 0;
+}
+
+inline size_t hash(const in_addr &_inaddr){
+	return _inaddr.s_addr;
+}
+
+inline size_t hash(const in6_addr &_inaddr){
+	//TODO
+	return 0;
+}
+
+//-----------------------------------------------------------------------
+//			SocketAddressLocal
+//-----------------------------------------------------------------------
+
+inline SocketAddressLocal::SocketAddressLocal(){
 	
+}
+inline SocketAddressLocal::SocketAddressLocal(const char* _path){
+	
+}
+
+inline SocketAddressLocal& SocketAddressLocal::operator=(const SocketAddressStub &){
+	return *this;
+}
+
+inline SocketInfo::Family SocketAddressLocal::family()const{
+	return (SocketInfo::Family)sockAddr()->sa_family;
+}
+
+inline bool SocketAddressLocal::empty()const{
+	return sz == 0;
+}
+
+inline const socklen_t&	SocketAddressLocal::size()const{
+	return sz;
+}
+
+inline const sockaddr* SocketAddressLocal::sockAddr()const{
+	return &d.addr;
+}
+inline SocketAddressLocal::operator const sockaddr*()const{
+	return sockAddr();
+}
+
+inline bool SocketAddressLocal::operator<(const SocketAddressLocal &_raddr)const{
+	//TODO
+	return false;
+}
+inline bool SocketAddressLocal::operator==(const SocketAddressLocal &_raddr)const{
+	//TODO
+	return false;
+}
+
+inline void SocketAddressLocal::clear(){
+	//TODO
+}
+inline size_t SocketAddressLocal::hash()const{
+	//TODO
+	return 0;
+}
+inline size_t SocketAddressLocal::addressHash()const{
+	//TODO
+	return 0;
+}
+
+inline void SocketAddressLocal::path(const char*_pth){
+	//TODO
+}
+inline const char* SocketAddressLocal::path()const{
+	//TODO
+	return NULL;
+}
+inline SocketAddressLocal::operator sockaddr*(){
+	return sockAddr();
+}
+inline sockaddr* SocketAddressLocal::sockAddr(){
+	return &d.addr;
+}
+
 #if 0
 
 inline SocketAddressStub::SocketAddressStub(const SocketAddressInfoIterator &_it){

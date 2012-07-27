@@ -19,4 +19,29 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "system/sharedbackend.hpp"
 
+
+struct SharedBackend::Data{
+	
+};
+
+/*static*/ SharedBackend& SharedBackend::the(){
+	static SharedBackend sb;
+	return sb;
+}
+	
+SharedStub* SharedBackend::create(void *_pv, SharedStub::DelFncT _cbk){
+	return NULL;
+}
+
+void SharedBackend::use(SharedStub &_rss){
+	
+}
+void SharedBackend::release(SharedStub &_rss){
+	
+}
+
+SharedBackend::SharedBackend():d(*(new Data)){
+	
+}

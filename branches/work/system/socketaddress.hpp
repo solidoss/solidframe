@@ -324,25 +324,23 @@ public:
 	enum {Capacity = sizeof(AddrUnion)};
 	
 	SocketAddressInet4();
-	SocketAddressInet4(const ResolveIterator &);
 	SocketAddressInet4(const SocketAddressStub &);
 	SocketAddressInet4(const char* _addr, int _port = 0);
 	
 	SocketAddressInet4& operator=(const ResolveIterator &);
 	SocketAddressInet4& operator=(const SocketAddressStub &);
 			
+	SocketInfo::Family family()const;
+	bool isInet4()const;
+		
 	bool isLoopback()const;
 	bool isInvalid()const;
 	
-	bool empty()const;
-	
-	const socklen_t&	size()const;
+	socklen_t	size()const;
 
-	const sockaddr* sockAddr()const{
-		return &d.addr;
-	}
+	const sockaddr* sockAddr()const;
 	//operator sockaddr*(){return sockAddr();}
-	operator const sockaddr*()const{return sockAddr();}
+	operator const sockaddr*()const;
 	//! Get the name associated to the address
 	//! \see SocketAddress::toString
 	bool toString(
@@ -358,9 +356,7 @@ public:
 	
 	void address(const char*_str);
 	
-	const in_addr& address()const{
-		return d.inaddr4.sin_addr;
-	}
+	const in_addr& address()const;
 	
 	int port()const;
 	void port(int _port);
@@ -385,25 +381,23 @@ public:
 	enum {Capacity = sizeof(AddrUnion)};
 	
 	SocketAddressInet6();
-	SocketAddressInet6(const ResolveIterator &);
 	SocketAddressInet6(const SocketAddressStub &);
 	SocketAddressInet6(const char* _addr, int _port = 0);
 	
-	SocketAddressInet6& operator=(const ResolveIterator &);
 	SocketAddressInet6& operator=(const SocketAddressStub &);
 		
+	SocketInfo::Family family()const;
+	bool isInet6()const;
+	
 	bool isLoopback()const;
 	bool isInvalid()const;
 	
 	bool empty()const;
 	
-	const socklen_t&	size()const;
+	socklen_t size()const;
 
-	const sockaddr* sockAddr()const{
-		return &d.addr;
-	}
-	//operator sockaddr*(){return sockAddr();}
-	operator const sockaddr*()const{return sockAddr();}
+	const sockaddr* sockAddr()const;
+	operator const sockaddr*()const;
 	
 	//! Get the name associated to the address
 	//! \see SocketAddress::toString
@@ -420,9 +414,7 @@ public:
 	
 	void address(const char*_str);
 	
-	const in6_addr& address()const{
-		return d.inaddr6.sin6_addr;
-	}
+	const in6_addr& address()const;
 	
 	int port()const;
 	void port(int _port);
@@ -458,28 +450,19 @@ private:
 public:
 	enum {Capacity = sizeof(AddrUnion)};
 	
-	SocketAddressLocal():sz(0){clear();}
+	SocketAddressLocal();
 	SocketAddressLocal(const char* _path);
 	
-	SocketAddressLocal& operator=(const ResolveIterator &);
 	SocketAddressLocal& operator=(const SocketAddressStub &);
 	
-	SocketInfo::Family family()const{
-		return (SocketInfo::Family)sockAddr()->sa_family;
-	}
+	SocketInfo::Family family()const;
 	
 	bool empty()const;
 	
-	const socklen_t&	size()const {return sz;}
+	const socklen_t&	size()const;
 
-	sockaddr* sockAddr(){
-		return &d.addr;
-	}
-	const sockaddr* sockAddr()const{
-		return &d.addr;
-	}
-	//operator sockaddr*(){return sockAddr();}
-	operator const sockaddr*()const{return sockAddr();}
+	const sockaddr* sockAddr()const;
+	operator const sockaddr*()const;
 	
 	bool operator<(const SocketAddressLocal &_raddr)const;
 	bool operator==(const SocketAddressLocal &_raddr)const;
@@ -492,6 +475,8 @@ public:
 	const char* path()const;
 private:
 	friend struct SocketDevice;
+	operator sockaddr*();
+	sockaddr* sockAddr();
 	AddrUnion	d;
 	socklen_t	sz;
 };

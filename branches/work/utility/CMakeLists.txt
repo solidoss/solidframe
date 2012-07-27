@@ -14,7 +14,6 @@ set(Headers
 	istream.hpp
 	list.hpp
 	memory.hpp
-	mutualstore.hpp
 	ostream.hpp
 	polycontainer.hpp
 	queue.hpp
