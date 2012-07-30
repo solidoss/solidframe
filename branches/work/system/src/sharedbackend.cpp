@@ -27,14 +27,14 @@
 #include <stack>
 
 struct SharedBackend::Data{
-    typedef std::deque<SharedStub>  StubVectorT;
-    typedef std::stack<ulong>       UlongStackT;
-    typedef MutualStore<Mutex>      MutexStoreT;
-    
-	Mutex           mtx;
-    StubVectorT     stubvec;
-    UlongStackT     freestk;
-    MutexStoreT     mtxstore;
+	typedef std::deque<SharedStub>	StubVectorT;
+	typedef std::stack<ulong>		UlongStackT;
+	typedef MutualStore<Mutex>		MutexStoreT;
+	
+	Mutex			mtx;
+	StubVectorT		stubvec;
+	UlongStackT		freestk;
+	MutexStoreT		mtxstore;
 };
 
 /*static*/ SharedBackend& SharedBackend::the(){
@@ -43,26 +43,31 @@ struct SharedBackend::Data{
 }
 	
 SharedStub* SharedBackend::create(void *_pv, SharedStub::DelFncT _cbk){
-    Locker<Mutex> lock(d.mtx);
-    
-    if(d.freestk.size()){
-        const ulong     pos = d.freestk.top();
-        d.freestk.pop();
-        Mutex           &rmtx = d.mtxstore.at(pos);
-        Locker<Mutex>   lock(rmtx);
-        SharedStub      &rss(d.stubvec[pos]);
-        rss.cbk = _cbk;
-        rss.ptr = _pv;
-        rss.use = 1;
-    }else{
-        const ulong     pos = d.stubvec.size();
-        Mutex           &rmtx = d.mtxstore.safeAt(pos);
-        Locker<Mutex>   lock(rmtx);
-        
-        d.stubvec.push_back(SharedStub(pos));
-        
-    }
-	return NULL;
+	SharedStub		*pss;
+	Locker<Mutex>	lock(d.mtx);
+	if(d.freestk.size()){
+		const ulong		pos = d.freestk.top();
+		d.freestk.pop();
+		Mutex			&rmtx = d.mtxstore.at(pos);
+		Locker<Mutex>	lock(rmtx);
+		SharedStub		&rss(d.stubvec[pos]);
+		rss.cbk = _cbk;
+		rss.ptr = _pv;
+		rss.use = 1;
+		pss = &rss;
+	}else{
+		const ulong		pos = d.stubvec.size();
+		Mutex			&rmtx = d.mtxstore.safeAt(pos);
+		Locker<Mutex>	lock(rmtx);
+		
+		d.stubvec.push_back(SharedStub(pos));
+		SharedStub		&rss(d.stubvec[pos]);
+		rss.cbk = _cbk;
+		rss.ptr = _pv;
+		rss.use = 1;
+		pss = &rss;
+	}
+	return pss;
 }
 
 void SharedBackend::use(SharedStub &_rss){
@@ -72,21 +77,24 @@ void SharedBackend::use(SharedStub &_rss){
 }
 void SharedBackend::release(SharedStub &_rss){
 	Mutex &rmtx = d.mtxstore.at(_rss.idx);
-    ulong v;
-    {
-        Locker<Mutex> lock(rmtx);
-        --_rss.use;
-        v = _rss.use;
-    }
-    if(v == 0){
-        (*_rss.cbk)(_rss.ptr);
-        Locker<Mutex>   lock(d.mtx);
-        Locker<Mutex>   lock2(rmtx);
-        d.freestk.push(_rss.idx);
-        ++_rss.uid;
-    }
+	ulong v;
+	{
+		Locker<Mutex> lock(rmtx);
+		--_rss.use;
+		v = _rss.use;
+	}
+	if(v == 0){
+		(*_rss.cbk)(_rss.ptr);
+		Locker<Mutex>	lock(d.mtx);
+		Locker<Mutex>	lock2(rmtx);
+		d.freestk.push(_rss.idx);
+		++_rss.uid;
+	}
 }
 
 SharedBackend::SharedBackend():d(*(new Data)){
-	
 }
+SharedBackend::~SharedBackend(){
+	delete &d;
+}
+

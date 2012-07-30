@@ -45,6 +45,7 @@ public:
 	
 private:
 	SharedBackend();
+	~SharedBackend();
 	SharedBackend(const SharedBackend&);
 	SharedBackend& operator=(const SharedBackend&);
 private:

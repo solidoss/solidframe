@@ -482,6 +482,8 @@ private:
 };
 //==================================================================
 #ifndef NINLINES
+#include "system/cassert.hpp"
+#include "system/debug.hpp"
 #include "system/socketaddress.ipp"
 #endif
 //==================================================================

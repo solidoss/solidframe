@@ -36,7 +36,9 @@ public:
     
     SharedPtr(const ThisT& _rptr):pss(NULL){
         pss = _rptr.pss;
-        SharedBackend::the().use(*pss);
+		if(pss){
+			SharedBackend::the().use(*pss);
+		}
     }
     ~SharedPtr(){
         if(!empty()){
@@ -104,7 +106,7 @@ int main(int argc, char *argv[]){
     
     ThreadVectorT thrvec;
     
-    while(--repcnt){
+    while(repcnt--){
         idbg("create "<<objcnt<<" objects:");
         for(int i = 0; i < objcnt; ++i){
             TestSharedPtrT sp(new Test(i));
@@ -129,7 +131,7 @@ int main(int argc, char *argv[]){
 
 void Runner::operator()(){
     TestVectorT  testvec;
-    idbg("thread started");
+    //idbg("thread started");
     for(TestDequeT::const_iterator it(testdeq.begin()); it != testdeq.end(); ++it){
         testvec.push_back(*it);
     }
@@ -137,5 +139,5 @@ void Runner::operator()(){
     for(TestVectorT::const_iterator it(testvec.begin()); it != testvec.end(); ++it){
         i += (*it)->test(it - testvec.begin());
     }
-    idbg("thread done "<<i);
+    //idbg("thread done "<<i);
 }
