@@ -26,10 +26,11 @@
 
 struct SharedStub{
 	typedef void (*DelFncT)(void*);
-	SharedStub(const ulong _idx):ptr(NULL), idx(_idx), uid(0), cbk(0){}
+	SharedStub(const ulong _idx):ptr(NULL), idx(_idx), uid(0), use(0), cbk(0){}
 	void			*ptr;
 	const ulong		idx;
 	uint32			uid;
+    ulong           use;
 	DelFncT			cbk;
 };
 
