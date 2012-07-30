@@ -14,7 +14,12 @@ using namespace std;
 
 struct Test{
     int v;
-    Test(int _v = 0):v(_v){}
+    Test(int _v = 0):v(_v){
+		idbg("");
+	}
+	~Test(){
+		idbg("");
+	}
     
     int test(int _x){
         return v * _x;
@@ -56,7 +61,8 @@ public:
     }
     
     void release(){
-        
+        SharedBackend::the().release(*pss);
+		pss = NULL;
     }
     
     bool empty()const{
