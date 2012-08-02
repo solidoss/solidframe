@@ -27,7 +27,6 @@
 
 #include "common.hpp"
 #include "socketinfo.hpp"
-#include "sharedbackend.hpp"
 
 #ifdef HAS_CPP11
 #include <memory>
