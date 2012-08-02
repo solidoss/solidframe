@@ -23,15 +23,18 @@
 #define SYSTEM_SHAREDBACKEND_HPP
 
 #include "common.hpp"
+#include <ext/atomicity.h>
+
 
 struct SharedStub{
 	typedef void (*DelFncT)(void*);
-	SharedStub(const ulong _idx):ptr(NULL), idx(_idx), uid(0), use(0), cbk(0){}
-	void			*ptr;
-	const ulong		idx;
-	uint32			uid;
-    ulong           use;
-	DelFncT			cbk;
+	SharedStub(const ulong _idx):ptr(NULL), idx(_idx)/*, uid(0)*/, use(0), cbk(0){}
+	
+	void				*ptr;
+	const ulong			idx;
+	//uint32				uid;
+	ulong				use;
+	DelFncT				cbk;
 };
 
 class SharedBackend{
@@ -40,10 +43,21 @@ public:
 	
 	SharedStub* create(void *_pv, SharedStub::DelFncT _cbk);
 	
-	void use(SharedStub &_rss);
-	void release(SharedStub &_rss);
+	inline void use(SharedStub &_rss){
+		__sync_add_and_fetch(&_rss.use, 1);
+		//__gnu_cxx:: __atomic_add_dispatch(&_rss.use, 1);
+	}
+	
+	inline void release(SharedStub &_rss){
+		if(__sync_sub_and_fetch(&_rss.use, 1) == 0){
+		//if(__gnu_cxx::__exchange_and_add_dispatch(&_rss.use, -1) == 1){
+			doRelease(_rss);
+		}
+	}
 	
 private:
+	void doRelease(SharedStub &_rss);
+	
 	SharedBackend();
 	~SharedBackend();
 	SharedBackend(const SharedBackend&);

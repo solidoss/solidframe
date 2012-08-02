@@ -22,6 +22,7 @@
 #include "system/sharedbackend.hpp"
 #include "system/mutex.hpp"
 #include "system/mutualstore.hpp"
+#include <ext/concurrence.h>
 
 #include <deque>
 #include <stack>
@@ -30,11 +31,11 @@ struct SharedBackend::Data{
 	typedef std::deque<SharedStub>	StubVectorT;
 	typedef std::stack<ulong>		UlongStackT;
 	typedef MutualStore<Mutex>		MutexStoreT;
-	
+	Data(){}
 	Mutex			mtx;
 	StubVectorT		stubvec;
 	UlongStackT		freestk;
-	MutexStoreT		mtxstore;
+	//MutexStoreT		mtxstore;
 };
 
 /*static*/ SharedBackend& SharedBackend::the(){
@@ -48,8 +49,8 @@ SharedStub* SharedBackend::create(void *_pv, SharedStub::DelFncT _cbk){
 	if(d.freestk.size()){
 		const ulong		pos = d.freestk.top();
 		d.freestk.pop();
-		Mutex			&rmtx = d.mtxstore.at(pos);
-		Locker<Mutex>	lock(rmtx);
+		//Mutex			&rmtx = d.mtxstore.at(pos);
+		//Locker<Mutex>	lock(rmtx);
 		SharedStub		&rss(d.stubvec[pos]);
 		rss.cbk = _cbk;
 		rss.ptr = _pv;
@@ -57,8 +58,8 @@ SharedStub* SharedBackend::create(void *_pv, SharedStub::DelFncT _cbk){
 		pss = &rss;
 	}else{
 		const ulong		pos = d.stubvec.size();
-		Mutex			&rmtx = d.mtxstore.safeAt(pos);
-		Locker<Mutex>	lock(rmtx);
+		//Mutex			&rmtx = d.mtxstore.safeAt(pos);
+		//Locker<Mutex>	lock(rmtx);
 		
 		d.stubvec.push_back(SharedStub(pos));
 		SharedStub		&rss(d.stubvec[pos]);
@@ -70,26 +71,18 @@ SharedStub* SharedBackend::create(void *_pv, SharedStub::DelFncT _cbk){
 	return pss;
 }
 
-void SharedBackend::use(SharedStub &_rss){
-    Mutex &rmtx = d.mtxstore.at(_rss.idx);
-    Locker<Mutex> lock(rmtx);
-    ++_rss.use;
-}
-void SharedBackend::release(SharedStub &_rss){
-	Mutex &rmtx = d.mtxstore.at(_rss.idx);
-	ulong v;
-	{
-		Locker<Mutex> lock(rmtx);
-		--_rss.use;
-		v = _rss.use;
-	}
-	if(v == 0){
-		(*_rss.cbk)(_rss.ptr);
-		Locker<Mutex>	lock(d.mtx);
-		Locker<Mutex>	lock2(rmtx);
-		d.freestk.push(_rss.idx);
-		++_rss.uid;
-	}
+// void SharedBackend::use(SharedStub &_rss){
+//     //Mutex &rmtx = d.mtxstore.at(_rss.idx);
+//     //Locker<Mutex> lock(rmtx);
+//     __sync_fetch_and_add(&_rss.use, 1);
+//     //++_rss.use;
+// }
+void SharedBackend::doRelease(SharedStub &_rss){
+	(*_rss.cbk)(_rss.ptr);
+	Locker<Mutex>	lock(d.mtx);
+	//Locker<Mutex>	lock2(rmtx);
+	d.freestk.push(_rss.idx);
+	//++_rss.uid;
 }
 
 SharedBackend::SharedBackend():d(*(new Data)){

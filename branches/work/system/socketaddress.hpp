@@ -29,6 +29,12 @@
 #include "socketinfo.hpp"
 #include "sharedbackend.hpp"
 
+#ifdef HAS_CPP11
+#include <memory>
+#else
+#include "boost/shared_ptr.hpp"
+#endif
+
 struct SocketAddressInfo;
 struct SocketDevice;
 //struct sockaddr_in;
@@ -84,7 +90,14 @@ struct ResolveData{
 	bool empty()const;
 	ResolveData& operator=(const ResolveData &_rrd);
 private:
-	SharedStub	*pss;
+	static void delete_addrinfo(void *_pv);
+#ifdef HAS_CPP11
+	typedef std::shared_ptr<addrinfo>	AddrInfoSharedPtrT;
+#else
+	typedef boost::shared_ptr<addrinfo>	AddrInfoSharedPtrT;
+#endif
+	//SharedStub	*pss;
+	AddrInfoSharedPtrT		aiptr;
 };
 
 ResolveData synchronous_resolve(const char *_node, const char *_service);

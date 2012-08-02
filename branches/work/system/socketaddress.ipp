@@ -63,9 +63,10 @@ inline ResolveIterator::ResolveIterator(addrinfo *_pa):paddr(_pa){
 //-----------------------------------------------------------------------
 //			ResolveData
 //-----------------------------------------------------------------------
-
-void delete_addrinfo(void *_pv){
+#if 0
+void ResolveData::delete_addrinfo(void *_pv){
 	freeaddrinfo(reinterpret_cast<addrinfo*>(_pv));
+	//freeaddrinfo(_pv);
 }
 
 inline ResolveData::ResolveData():pss(NULL){}
@@ -110,6 +111,37 @@ inline ResolveData& ResolveData::operator=(const ResolveData &_rrd){
 	}
 	return *this;
 }
+#else
+void ResolveData::delete_addrinfo(void *_pv){
+	freeaddrinfo(reinterpret_cast<addrinfo*>(_pv));
+	//freeaddrinfo(_pv);
+}
+inline ResolveData::ResolveData(){}
+inline ResolveData::ResolveData(addrinfo *_pai):aiptr(_pai, &delete_addrinfo){
+}
+inline ResolveData::ResolveData(const ResolveData &_rai):aiptr(_rai.aiptr){
+}
+inline ResolveData::~ResolveData(){
+}
+inline ResolveData::const_iterator ResolveData::begin()const{
+	if(aiptr.get()){
+		return const_iterator(aiptr.get());
+	}else{
+		return end();
+	}
+}
+inline ResolveData::const_iterator ResolveData::end()const{
+	const static const_iterator emptyit;
+	return emptyit; 
+}
+inline bool ResolveData::empty()const{
+	return aiptr.get() == NULL;
+}
+inline ResolveData& ResolveData::operator=(const ResolveData &_rrd){
+	aiptr = _rrd.aiptr;
+	return *this;
+}
+#endif
 
 //-----------------------------------------------------------------------
 //			SocketAddressStub
