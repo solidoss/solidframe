@@ -22,7 +22,7 @@
 #ifndef SYSTEM_SHAREDBACKEND_HPP
 #define SYSTEM_SHAREDBACKEND_HPP
 
-#include "common.hpp"
+#include "system/common.hpp"
 #include <ext/atomicity.h>
 
 
@@ -44,12 +44,12 @@ public:
 	
 	SharedStub* create(void *_pv, SharedStub::DelFncT _cbk);
 	
-	inline static void use(SharedStub &_rss)noexcept{
+	inline static void use(SharedStub &_rss){
 		//__sync_add_and_fetch(&_rss.use, 1);
 		__gnu_cxx:: __atomic_add_dispatch(&_rss.use, 1);
 	}
 	
-	inline bool release(SharedStub &_rss)noexcept{
+	inline bool release(SharedStub &_rss){
 		//if(__sync_sub_and_fetch(&_rss.use, 1) == 0){
 		if(__gnu_cxx::__exchange_and_add_dispatch(&_rss.use, -1) == 1){
 			doRelease(_rss);

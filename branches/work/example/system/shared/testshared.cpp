@@ -3,7 +3,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/iterator/iterator_concepts.hpp>
 
-#include "system/sharedbackend.hpp"
+#include "sharedbackend.hpp"
 
 #include "system/debug.hpp"
 

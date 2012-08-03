@@ -5,7 +5,6 @@ set(Sources
 	src/specific.cpp
 	src/thread.cpp
 	src/cstring.cpp
-	src/sharedbackend.cpp
 )
 
 set(Headers
