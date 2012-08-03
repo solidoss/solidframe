@@ -27,6 +27,8 @@ struct Test{
 	}
 };
 
+static SharedStub	ss(0);
+
 template <class T>
 class SharedPtr{
 public:
@@ -34,50 +36,62 @@ public:
 		delete reinterpret_cast<T*>(_pv);
 	}
 	typedef SharedPtr<T> ThisT;
-	SharedPtr():pss(NULL){}
+	SharedPtr():pss(&ss){}
 	
-	SharedPtr(T *_pt):pss(NULL){
-		pss = SharedBackend::the().create(_pt, &delT);
+	SharedPtr(T *_pt):pss(SharedBackend::the.create(_pt, &delT)){
 	}
 	
-	SharedPtr(const ThisT& _rptr):pss(NULL){
-		pss = _rptr.pss;
-		if(pss){
-			SharedBackend::the().use(*pss);
-		}
+	SharedPtr(const ThisT& _rptr):pss(_rptr.pss){
+		idbg("");
+		SharedBackend::use(*pss);
+	}
+	SharedPtr(SharedPtr&& __r) noexcept
+      : ThisT(std::move(__r)) {
+		  idbg("");
 	}
 	~SharedPtr(){
-		if(!empty()){
-			release();
+		T* pt = get();
+		if(SharedBackend::the.release(*pss)){
+			delete pt;
 		}
 	}
 	
 	ThisT& operator=(const ThisT&_rptr){
-		if(!empty()){
-			release();
-		}
+		idbg("");
+		release();
 		pss = _rptr.pss;
-		SharedBackend::the().use(*pss);
+		SharedBackend::the.use(*pss);
 		return *this;
 	}
 	
-	void release(){
-		SharedBackend::the().release(*pss);
-		pss = NULL;
+	ThisT& operator=(ThisT&& __r) noexcept{
+		this->ThisT::operator=(std::move(__r));
+		idbg("");
+		return *this;
 	}
 	
-	bool empty()const{
-		return pss == NULL;
+	void release()noexcept{
+		T* pt = get();
+		if(SharedBackend::the.release(*pss)){
+			delete pt;
+		}
+		pss = &ss;
 	}
-	T* ptr()const{
+	
+	bool empty()const noexcept{
+		return pss->ptr == NULL;
+	}
+	T* ptr()const noexcept{
 		return reinterpret_cast<T*>(pss->ptr);
 	}
-	
-	T* operator->()const{
+	T* get()const{
+		return reinterpret_cast<T*>(pss->ptr);
+	}
+	T* operator->()const noexcept{
 		return ptr();
 	}
 private:
-	mutable SharedStub *pss;
+	SharedStub *pss;
 };
 template <class T>
 class WeakPtr;
@@ -186,7 +200,7 @@ struct Runner{
 	void operator()();
 };
 
-static TestDequeT testdeq;
+static TestDequeT &testdeq = *(new TestDequeT);
 
 int main(int argc, char *argv[]){
 	if(argc != 4){
@@ -231,20 +245,25 @@ int main(int argc, char *argv[]){
 			delete thrvec[i];
 		}
 		thrvec.clear();
+// 		for(TestDequeT::const_iterator it(testdeq.begin()); it != testdeq.end(); ++it){
+// 			delete (*it).get();
+// 		}
 		testdeq.clear();
 	}
+	delete &testdeq;
 	return 0;
 }
 
 void Runner::operator()(){
-	TestVectorT  testvec;
+	TestVectorT  &testvec(*(new TestVectorT));
 	//idbg("thread started");
 	for(TestDequeT::const_iterator it(testdeq.begin()); it != testdeq.end(); ++it){
 		testvec.push_back(*it);
 	}
-	int i = 0;
-	for(TestVectorT::const_iterator it(testvec.begin()); it != testvec.end(); ++it){
-		i += (*it)->test(it - testvec.begin());
-	}
+// 	int i = 0;
+// 	for(TestVectorT::const_iterator it(testvec.begin()); it != testvec.end(); ++it){
+// 		i += (*it)->test(it - testvec.begin());
+// 	}
 	//idbg("thread done "<<i);
+	delete &testvec;
 }

@@ -31,21 +31,25 @@ struct SharedBackend::Data{
 	typedef std::deque<SharedStub>	StubVectorT;
 	typedef std::stack<ulong>		UlongStackT;
 	typedef MutualStore<Mutex>		MutexStoreT;
-	Data(){}
+	Data(){
+		stubvec.push_back(SharedStub(0));
+	}
 	Mutex			mtx;
 	StubVectorT		stubvec;
 	UlongStackT		freestk;
 	//MutexStoreT		mtxstore;
 };
 
-/*static*/ SharedBackend& SharedBackend::the(){
-	static SharedBackend sb;
-	return sb;
-}
+SharedBackend SharedBackend::the;
+
+// /*static*/ SharedBackend& SharedBackend::the(){
+// 	static SharedBackend sb;
+// 	return sb;
+// }
 	
 SharedStub* SharedBackend::create(void *_pv, SharedStub::DelFncT _cbk){
 	SharedStub		*pss;
-	Locker<Mutex>	lock(d.mtx);
+	//Locker<Mutex>	lock(d.mtx);
 	if(d.freestk.size()){
 		const ulong		pos = d.freestk.top();
 		d.freestk.pop();
@@ -78,8 +82,8 @@ SharedStub* SharedBackend::create(void *_pv, SharedStub::DelFncT _cbk){
 //     //++_rss.use;
 // }
 void SharedBackend::doRelease(SharedStub &_rss){
-	(*_rss.cbk)(_rss.ptr);
-	Locker<Mutex>	lock(d.mtx);
+	//(*_rss.cbk)(_rss.ptr);
+	//Locker<Mutex>	lock(d.mtx);
 	//Locker<Mutex>	lock2(rmtx);
 	d.freestk.push(_rss.idx);
 	//++_rss.uid;

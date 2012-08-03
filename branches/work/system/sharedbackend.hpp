@@ -33,26 +33,29 @@ struct SharedStub{
 	void				*ptr;
 	const ulong			idx;
 	//uint32				uid;
-	ulong				use;
+	int					use;
 	DelFncT				cbk;
 };
 
 class SharedBackend{
 public:
-	static SharedBackend& the();
+	//static SharedBackend& the();
+	static SharedBackend	the;
 	
 	SharedStub* create(void *_pv, SharedStub::DelFncT _cbk);
 	
-	inline void use(SharedStub &_rss){
-		__sync_add_and_fetch(&_rss.use, 1);
-		//__gnu_cxx:: __atomic_add_dispatch(&_rss.use, 1);
+	inline static void use(SharedStub &_rss)noexcept{
+		//__sync_add_and_fetch(&_rss.use, 1);
+		__gnu_cxx:: __atomic_add_dispatch(&_rss.use, 1);
 	}
 	
-	inline void release(SharedStub &_rss){
-		if(__sync_sub_and_fetch(&_rss.use, 1) == 0){
-		//if(__gnu_cxx::__exchange_and_add_dispatch(&_rss.use, -1) == 1){
+	inline bool release(SharedStub &_rss)noexcept{
+		//if(__sync_sub_and_fetch(&_rss.use, 1) == 0){
+		if(__gnu_cxx::__exchange_and_add_dispatch(&_rss.use, -1) == 1){
 			doRelease(_rss);
+			return true;
 		}
+		return false;
 	}
 	
 private:
