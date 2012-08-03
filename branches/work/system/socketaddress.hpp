@@ -87,6 +87,7 @@ struct ResolveData{
 	const_iterator end()const;
 	//! Check if the returned list of ip addresses is empty
 	bool empty()const;
+	void clear();
 	ResolveData& operator=(const ResolveData &_rrd);
 private:
 	static void delete_addrinfo(void *_pv);
@@ -95,7 +96,6 @@ private:
 #else
 	typedef boost::shared_ptr<addrinfo>	AddrInfoSharedPtrT;
 #endif
-	//SharedStub	*pss;
 	AddrInfoSharedPtrT		aiptr;
 };
 
@@ -131,7 +131,7 @@ typedef int socklen_t;
 /*!
 	It is a commodity structure, it will not allocate data
 	for sockaddr pointer nor it will delete it. Use this 
-	structure with SocketAddress and SocketAddressInfoIterator
+	structure with SocketAddress and ResolveIterator
 */
 struct SocketAddressStub{
 	SocketAddressStub(sockaddr *_pa = NULL, size_t _sz = 0);

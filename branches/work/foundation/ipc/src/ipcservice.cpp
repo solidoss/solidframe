@@ -525,7 +525,7 @@ int Service::insertConnection(
 }
 //---------------------------------------------------------------------
 int Service::insertListener(
-	const SocketAddressInfoIterator &_rai
+	const ResolveIterator &_rai
 ){
 /*	test::Listener *plis = new test::Listener(_pst, 100, 0);
 	if(this->insert(*plis, _serviceid)){
@@ -537,7 +537,7 @@ int Service::insertListener(
 }
 //---------------------------------------------------------------------
 int Service::insertTalker(
-	const SocketAddressInfoIterator &_rai
+	const ResolveIterator &_rai
 ){	
 	SocketDevice	sd;
 	sd.create(_rai);
@@ -564,7 +564,7 @@ int Service::insertTalker(
 }
 //---------------------------------------------------------------------
 int Service::insertConnection(
-	const SocketAddressInfoIterator &_rai
+	const ResolveIterator &_rai
 ){
 	
 /*	Connection *pcon = new Connection(_pch, _node, _svc);

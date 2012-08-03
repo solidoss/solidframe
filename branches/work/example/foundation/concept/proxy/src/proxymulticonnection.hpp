@@ -80,7 +80,7 @@ private:
 		Buffer			recvbuf;
 	};
 	SocketAddressInfo			*pai;
-	SocketAddressInfoIterator	it;
+	ResolveIterator	it;
 	bool				b;
 	std::string			addr;
 	std::string			port;

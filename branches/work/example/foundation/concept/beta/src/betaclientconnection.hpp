@@ -109,7 +109,7 @@ private:
 	typedef Stack<uint32>						UInt32StackT;
 	
 	SocketAddressInfo			addrinfo;
-	SocketAddressInfoIterator	addrit;
+	ResolveIterator	addrit;
 	uint32						reqid;
 	DynamicExecuterT			de;
 	CommandVectorT				cmdvec;

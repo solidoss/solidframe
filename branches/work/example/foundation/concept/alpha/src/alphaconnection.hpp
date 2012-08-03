@@ -154,7 +154,7 @@ private:
 	Reader						rdr;
 	Command						*pcmd;
 	SocketAddressInfo			ai;
-	SocketAddressInfoIterator	aiit;
+	ResolveIterator	aiit;
 	uint32						reqid;
 	DynamicExecuterT			dr;
 };

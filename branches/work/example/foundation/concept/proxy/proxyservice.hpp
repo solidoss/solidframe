@@ -41,12 +41,12 @@ public:
 		bool _secure
 	);
 /*	int insertTalker(
-		const SocketAddressInfoIterator &_rai,
+		const ResolveIterator &_rai,
 		const char *_node,
 		const char *_svc
 	);*/
 	ObjectUidT insertConnection(
-		const SocketAddressInfoIterator &_rai,
+		const ResolveIterator &_rai,
 		const char *_node,
 		const char *_svc
 	);

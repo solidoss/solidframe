@@ -28,7 +28,7 @@
 class SocketDevice;
 class SocketAddress;
 class SocketAddressStub;
-class SocketAddressInfoIterator;
+class ResolveIterator;
 
 
 namespace foundation{
@@ -67,7 +67,7 @@ public:
 	/*!
 		\param _rai An SocketAddressInfo iterator holding the destination address.
 	*/
-	int socketConnect(const SocketAddressInfoIterator& _rai);
+	int socketConnect(const ResolveIterator& _rai);
 	
 	//! Asynchronous send
 	int socketSend(const char* _pb, uint32 _bl, uint32 _flags = 0);

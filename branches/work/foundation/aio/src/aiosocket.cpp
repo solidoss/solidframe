@@ -46,7 +46,7 @@ struct Socket::StationData{
 	StationData()/*:rcvaddrpair(rcvaddr)*/{}
 	static unsigned specificCount(){return 0xffffff;}
 	void specificRelease(){
-		sndaddrpair.addr = NULL;
+		sndaddrpair.clear();
 	}
 	SocketAddress		rcvaddr;
 	//SocketAddressStub	rcvaddrpair;
@@ -85,10 +85,10 @@ Socket::~Socket(){
 }
 
 
-int Socket::create(const SocketAddressInfoIterator& _rai){
+int Socket::create(const ResolveIterator& _rai){
 	return sd.create(_rai);
 }
-int Socket::connect(const SocketAddressInfoIterator& _rai){
+int Socket::connect(const ResolveIterator& _rai){
 	cassert(!isSendPending());
 	cassert(type == CHANNEL);
 	int rv = sd.connect(_rai);

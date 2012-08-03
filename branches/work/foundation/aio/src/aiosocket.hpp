@@ -58,9 +58,9 @@ public:
 	//!Returns true if the filedescriptor is valid
 	bool ok()const;
 	//! Create the socket
-	int create(const SocketAddressInfoIterator& _rai);
+	int create(const ResolveIterator& _rai);
 	//! Asynchronous connect request
-	int connect(const SocketAddressInfoIterator& _rai);
+	int connect(const ResolveIterator& _rai);
 	int accept(SocketDevice &_rsd);
 	int accept(Socket &_rs);
 	//! Send a buffer

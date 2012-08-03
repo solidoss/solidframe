@@ -36,7 +36,7 @@ struct SocketAddressStub;
 struct SocketAddressStub4;
 struct SocketAddressStub6;
 struct TimeSpec;
-struct SocketAddressInfoIterator;
+struct ResolveIterator;
 
 
 namespace foundation{

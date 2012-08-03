@@ -29,7 +29,7 @@
 class SocketDevice;
 class SocketAddress;
 class SocketAddressStub;
-class SocketAddressInfoIterator;
+class ResolveIterator;
 
 
 namespace foundation{
@@ -76,7 +76,7 @@ public:
 		\param _pos The socket identifier
 		\param _rai An SocketAddressInfo iterator holding the destination address.
 	*/
-	int socketConnect(const uint _pos, const SocketAddressInfoIterator& _rai);
+	int socketConnect(const uint _pos, const ResolveIterator& _rai);
 	
 	//! Asynchronous send for socket on position _pos
 	int socketSend(const uint _pos, const char* _pb, uint32 _bl, uint32 _flags = 0);

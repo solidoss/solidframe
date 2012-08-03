@@ -31,7 +31,7 @@
 
 struct SocketAddressStub;
 struct SocketDevice;
-struct SocketAddressInfoIterator;
+struct ResolveIterator;
 struct SocketAddressStub4;
 
 namespace foundation{
@@ -297,7 +297,7 @@ public:
 	);
 	//! Not used for now - will be used when ipc will use tcp connections
 	int insertListener(
-		const SocketAddressInfoIterator &_rai
+		const ResolveIterator &_rai
 	);
 	//! Use this method to add the base talker
 	/*!
@@ -308,11 +308,11 @@ public:
 		\param _svc Service/Port to connect to
 	*/
 	int insertTalker(
-		const SocketAddressInfoIterator &_rai
+		const ResolveIterator &_rai
 	);
 	//! Not used for now - will be used when ipc will use tcp connections
 	int insertConnection(
-		const SocketAddressInfoIterator &_rai
+		const ResolveIterator &_rai
 	);
 	//! Not used for now - will be used when ipc will use tcp connections
 	int removeConnection(Connection &);

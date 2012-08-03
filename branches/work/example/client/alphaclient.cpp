@@ -181,7 +181,7 @@ void AlphaThread::run(){
 		idbg("No such address");
 		return;
 	}
-	SocketAddressInfoIterator it(ai.begin());
+	ResolveIterator it(ai.begin());
 	sd = socket(it.family(), it.type(), it.protocol());
 	if(sd < 0){
 		idbg("error creating socket");

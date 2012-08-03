@@ -56,7 +56,7 @@ int main(int argc, char *argv[]){
 		idbg("No such address");
 		return 0;
 	}
-	SocketAddressInfoIterator it(ai.begin());
+	ResolveIterator it(ai.begin());
 	int sd = socket(it.family(), it.type(), it.protocol());
 	if(sd < 0){
 		idbg("error creating socket");

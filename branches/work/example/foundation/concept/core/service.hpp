@@ -27,7 +27,7 @@
 #include "signals.hpp"
 #include "common.hpp"
 
-struct SocketAddressInfoIterator;
+struct ResolveIterator;
 struct SocketDevice;
 
 namespace foundation{

@@ -63,59 +63,6 @@ inline ResolveIterator::ResolveIterator(addrinfo *_pa):paddr(_pa){
 //-----------------------------------------------------------------------
 //			ResolveData
 //-----------------------------------------------------------------------
-#if 0
-void ResolveData::delete_addrinfo(void *_pv){
-	freeaddrinfo(reinterpret_cast<addrinfo*>(_pv));
-	//freeaddrinfo(_pv);
-}
-
-inline ResolveData::ResolveData():pss(NULL){}
-inline ResolveData::ResolveData(addrinfo *_pai):pss(NULL){
-	if(_pai){
-		pss = SharedBackend::the().create(_pai, &delete_addrinfo);
-	}
-}
-inline ResolveData::ResolveData(const ResolveData &_rai):pss(NULL){
-	pss = _rai.pss;
-	if(pss){
-		SharedBackend::the().use(*pss);
-	}
-}
-inline ResolveData::~ResolveData(){
-	if(pss){
-		SharedBackend::the().release(*pss);
-	}
-}
-inline ResolveData::const_iterator ResolveData::begin()const{
-	if(pss){
-		return const_iterator(reinterpret_cast<addrinfo*>(pss->ptr));
-	}else{
-		return end();
-	}
-}
-inline ResolveData::const_iterator ResolveData::end()const{
-	const static const_iterator emptyit;
-	return emptyit; 
-}
-inline bool ResolveData::empty()const{
-	return pss == NULL;
-}
-inline ResolveData& ResolveData::operator=(const ResolveData &_rrd){
-	if(pss){
-		SharedBackend::the().release(*pss);
-		pss = NULL;
-	}
-	pss = _rrd.pss;
-	if(pss){
-		SharedBackend::the().use(*pss);
-	}
-	return *this;
-}
-#else
-void ResolveData::delete_addrinfo(void *_pv){
-	freeaddrinfo(reinterpret_cast<addrinfo*>(_pv));
-	//freeaddrinfo(_pv);
-}
 inline ResolveData::ResolveData(){}
 inline ResolveData::ResolveData(addrinfo *_pai):aiptr(_pai, &delete_addrinfo){
 }
@@ -137,11 +84,13 @@ inline ResolveData::const_iterator ResolveData::end()const{
 inline bool ResolveData::empty()const{
 	return aiptr.get() == NULL;
 }
+inline void ResolveData::clear(){
+	aiptr.reset();
+}
 inline ResolveData& ResolveData::operator=(const ResolveData &_rrd){
 	aiptr = _rrd.aiptr;
 	return *this;
 }
-#endif
 
 //-----------------------------------------------------------------------
 //			SocketAddressStub

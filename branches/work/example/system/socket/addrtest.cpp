@@ -73,51 +73,78 @@ int main(int argc, char *argv[]){
 	//SocketAddressInfo ai(node, srv);
 	ResolveData rd =  synchronous_resolve(node, srv, flags, family, type, proto);
 	ResolveIterator it(rd.begin());
-	while(it == rd.end()){
-		int sd = socket(it.family(), it.type(), it.protocol());
-		struct timeval tosnd;
-		struct timeval torcv;
+	while(it != rd.end()){
 		
-		tosnd.tv_sec = -1;
-		tosnd.tv_usec = -1;
+		SocketAddress	sa(it);
 		
-		torcv.tv_sec = -1;
-		torcv.tv_usec = -1;
-		socklen_t socklen(sizeof(torcv));
-		if(sd > 0){
-			cout<<"Connecting..."<<endl;
-			getsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, (char*)&torcv, &socklen);
-			socklen = sizeof(tosnd);
-			getsockopt(sd, SOL_SOCKET, SO_SNDTIMEO, (char*)&tosnd, &socklen);
-			cout<<"rcvtimeo "<<torcv.tv_sec<<"."<<torcv.tv_usec<<endl;
-			cout<<"sndtimeo "<<tosnd.tv_sec<<"."<<tosnd.tv_usec<<endl;
-			fcntl(sd, F_SETFL, O_NONBLOCK);
-			if(!connect(sd, it.sockAddr(), it.size())){
-				cout<<"Connected!"<<endl;
-			}else{
-				if(errno != EINPROGRESS){
-					cout<<"Failed connect"<<endl;
-				}else{
-					cout<<"Polling ..."<<endl;
-					pollfd pfd;
-					pfd.fd = sd;
-					pfd.events = 0;//POLLOUT;
-					int rv = poll(&pfd, 1, -1);
-					cout<<"pollrv = "<<rv<<endl;
-					if(pfd.revents & (POLLERR | POLLHUP | POLLNVAL)){
-						
-						cout<<"poll err "<<(pfd.revents & POLLERR)<<' '<<(pfd.revents & POLLHUP)<<' '<<(pfd.revents & POLLNVAL)<<' '<<endl;
-					}
-				}
-			}
-			socklen_t len = 4;
-			int v = 0;
-			int rv = getsockopt(sd, SOL_SOCKET, SO_ERROR, &v, &len);
-			cout<<"getsockopt rv = "<<rv<<" v = "<<v<<" err = "<<strerror(v)<<" len = "<<len<<endl;
-			
-		}else{
-			cout<<"failed socket"<<endl;
+		char			host[SocketInfo::HostStringCapacity];
+		char			port[SocketInfo::ServiceStringCapacity];
+		
+		sa.toString(
+			host, SocketInfo::HostStringCapacity,
+			port, SocketInfo::ServiceStringCapacity,
+			SocketInfo::NumericService | SocketInfo::NumericHost
+		);
+		
+		cout<<"host = "<<host<<":"<<port<<endl;
+		
+		SocketDevice sd;
+		sd.create(it);
+		
+		int rv = sd.connect(it);
+		
+		cout<<"rv = "<<rv<<endl;
+		
+		if(rv == OK){
+			sd.write("hello word\r\n", strlen("hello word\r\n"));
 		}
+		
+		
+		
+// 		int sd = socket(it.family(), it.type(), it.protocol());
+// 		struct timeval tosnd;
+// 		struct timeval torcv;
+// 		
+// 		tosnd.tv_sec = -1;
+// 		tosnd.tv_usec = -1;
+// 		
+// 		torcv.tv_sec = -1;
+// 		torcv.tv_usec = -1;
+// 		socklen_t socklen(sizeof(torcv));
+// 		if(sd > 0){
+// 			cout<<"Connecting..."<<endl;
+// 			getsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, (char*)&torcv, &socklen);
+// 			socklen = sizeof(tosnd);
+// 			getsockopt(sd, SOL_SOCKET, SO_SNDTIMEO, (char*)&tosnd, &socklen);
+// 			cout<<"rcvtimeo "<<torcv.tv_sec<<"."<<torcv.tv_usec<<endl;
+// 			cout<<"sndtimeo "<<tosnd.tv_sec<<"."<<tosnd.tv_usec<<endl;
+// 			fcntl(sd, F_SETFL, O_NONBLOCK);
+// 			if(!connect(sd, it.sockAddr(), it.size())){
+// 				cout<<"Connected!"<<endl;
+// 			}else{
+// 				if(errno != EINPROGRESS){
+// 					cout<<"Failed connect"<<endl;
+// 				}else{
+// 					cout<<"Polling ..."<<endl;
+// 					pollfd pfd;
+// 					pfd.fd = sd;
+// 					pfd.events = 0;//POLLOUT;
+// 					int rv = poll(&pfd, 1, -1);
+// 					cout<<"pollrv = "<<rv<<endl;
+// 					if(pfd.revents & (POLLERR | POLLHUP | POLLNVAL)){
+// 						
+// 						cout<<"poll err "<<(pfd.revents & POLLERR)<<' '<<(pfd.revents & POLLHUP)<<' '<<(pfd.revents & POLLNVAL)<<' '<<endl;
+// 					}
+// 				}
+// 			}
+// 			socklen_t len = 4;
+// 			int v = 0;
+// 			int rv = getsockopt(sd, SOL_SOCKET, SO_ERROR, &v, &len);
+// 			cout<<"getsockopt rv = "<<rv<<" v = "<<v<<" err = "<<strerror(v)<<" len = "<<len<<endl;
+// 			
+// 		}else{
+// 			cout<<"failed socket"<<endl;
+// 		}
 		++it;
 	}
 	return 0;

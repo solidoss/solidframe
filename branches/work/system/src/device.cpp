@@ -615,7 +615,7 @@ int SocketDevice::connect(const SocketAddressStub &_rsas){
 #endif
 	
 }
-// int SocketDevice::connect(const SocketAddressInfoIterator &_rai){
+// int SocketDevice::connect(const ResolveIterator &_rai){
 // #ifdef ON_WINDOWS
 // 	int rv = ::connect(descriptor(), _rai.addr(), _rai.size());
 // 	if (rv < 0) { // sau rv == -1 ...

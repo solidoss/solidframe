@@ -4,25 +4,25 @@
 using namespace std;
 
 int main(){
-	SocketAddressInfo ai("0.0.0.0", "0", 0, SocketAddressInfo::Inet4, SocketAddressInfo::Datagram, 0);
-	SocketAddressInfoIterator it(ai.begin());
+	ResolveData rd =  synchronous_resolve("0.0.0.0", "0", 0, SocketInfo::Inet4, SocketInfo::Datagram, 0);
+	ResolveIterator it(rd.begin());
 	
 	SocketDevice sd;
 	sd.create(it);
 	sd.bind(it);
 	
 	if(sd.ok()){
-		char				host[SocketAddress::HostNameCapacity];
-		char				port[SocketAddress::ServiceNameCapacity];
+		char				host[SocketInfo::HostStringCapacity];
+		char				port[SocketInfo::ServiceStringCapacity];
 		SocketAddress		addr;
 		
 		sd.localAddress(addr);
-		addr.name(
+		addr.toString(
 			host,
-			SocketAddress::HostNameCapacity,
+			SocketInfo::HostStringCapacity,
 			port,
-			SocketAddress::ServiceNameCapacity,
-			SocketAddress::NumericService | SocketAddress::NumericHost
+			SocketInfo::ServiceStringCapacity,
+			SocketInfo::NumericService | SocketInfo::NumericHost
 		);
 		cout<<host<<':'<<port<<endl;
 	}
