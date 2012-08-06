@@ -28,10 +28,12 @@
 #include "common.hpp"
 #include "socketinfo.hpp"
 
-#ifdef HAS_CPP11
+#if defined(HAS_CPP11) && !defined(USHAREDBACKEND)
 #include <memory>
-#else
+#elif defined(UBOOSTSHAREDPTR) && !defined(USHAREDBACKEND)
 #include "boost/shared_ptr.hpp"
+#else
+#include "sharedbackend.hpp"
 #endif
 
 struct SocketAddressInfo;
@@ -91,12 +93,15 @@ struct ResolveData{
 	ResolveData& operator=(const ResolveData &_rrd);
 private:
 	static void delete_addrinfo(void *_pv);
-#ifdef HAS_CPP11
+#if defined(HAS_CPP11) && !defined(USHAREDBACKEND)
 	typedef std::shared_ptr<addrinfo>	AddrInfoSharedPtrT;
-#else
-	typedef boost::shared_ptr<addrinfo>	AddrInfoSharedPtrT;
-#endif
 	AddrInfoSharedPtrT		aiptr;
+#elif defined(UBOOSTSHAREDPTR) && !defined(USHAREDBACKEND)
+	typedef boost::shared_ptr<addrinfo>	AddrInfoSharedPtrT;
+	AddrInfoSharedPtrT		aiptr;
+#else
+	SharedStub				*pss;
+#endif
 };
 
 ResolveData synchronous_resolve(const char *_node, const char *_service);

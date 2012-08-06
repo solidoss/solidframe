@@ -4,4 +4,6 @@
 #cmakedefine HAS_EPOLL
 #cmakedefine HAS_KQUEUE
 #cmakedefine HAS_SAFE_STATIC
+#cmakedefine HAS_GNU_ATOMIC
+
 

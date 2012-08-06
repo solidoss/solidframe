@@ -28,35 +28,38 @@
 
 struct SharedStub{
 	typedef void (*DelFncT)(void*);
-	SharedStub(const ulong _idx):ptr(NULL), idx(_idx)/*, uid(0)*/, use(0), cbk(0){}
-	
+	SharedStub(const ulong _idx):use(0), ptr(NULL), idx(_idx)/*, uid(0)*/, cbk(0){}
+	SharedStub(const ulong _idx, int _use):use(_use), ptr(NULL), idx(_idx)/*, uid(0)*/, cbk(0){}
+	int					use;
 	void				*ptr;
 	const ulong			idx;
-	//uint32				uid;
-	int					use;
+	//uint32				uid
 	DelFncT				cbk;
 };
 
 class SharedBackend{
 public:
-	//static SharedBackend& the();
-	static SharedBackend	the;
+	static SharedBackend& the();
+	static SharedStub& emptyStub();
 	
-	SharedStub* create(void *_pv, SharedStub::DelFncT _cbk);
-	
+	static SharedStub* create(void *_pv, SharedStub::DelFncT _cbk);
+#ifdef HAS_GNU_ATOMIC
 	inline static void use(SharedStub &_rss){
 		//__sync_add_and_fetch(&_rss.use, 1);
 		__gnu_cxx:: __atomic_add_dispatch(&_rss.use, 1);
 	}
 	
-	inline bool release(SharedStub &_rss){
+	inline static void release(SharedStub &_rss){
 		//if(__sync_sub_and_fetch(&_rss.use, 1) == 0){
 		if(__gnu_cxx::__exchange_and_add_dispatch(&_rss.use, -1) == 1){
-			doRelease(_rss);
-			return true;
+			the().doRelease(_rss);
 		}
-		return false;
 	}
+#else
+	static void use(SharedStub &_rss);
+	
+	static void release(SharedStub &_rss);
+#endif
 	
 private:
 	void doRelease(SharedStub &_rss);

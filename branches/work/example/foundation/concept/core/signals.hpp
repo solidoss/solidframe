@@ -91,7 +91,7 @@ struct SocketAddressInfoSignal: Dynamic<SocketAddressInfoSignal, foundation::Sig
 	);
 	virtual void result(const ObjectUidT &_rv);
 	uint32					id;
-	SocketAddressInfo		addrinfo;
+	ResolveData				resolvedata;
 	std::string				node;
 	std::string				service;
 	

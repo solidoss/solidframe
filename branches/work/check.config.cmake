@@ -29,3 +29,8 @@ set(CMAKE_REQUIRED_FLAGS -std=c++0x)
 
 CHECK_CXX_SOURCE_RUNS("${source_code}" HAS_CPP11)
 
+
+file (READ "${CMAKE_CURRENT_SOURCE_DIR}/check/gnuatomic.cpp" source_code)
+
+CHECK_CXX_SOURCE_RUNS("${source_code}" HAS_GNU_ATOMIC)
+

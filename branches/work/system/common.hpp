@@ -34,6 +34,7 @@
 //	#define USTLMUTEX
 //#else
 	#define UBOOSTMUTEX
+	#define UBOOSTSHAREDPTR
 //#endif
 #endif
 

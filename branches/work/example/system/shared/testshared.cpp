@@ -3,9 +3,10 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/iterator/iterator_concepts.hpp>
 
-#include "sharedbackend.hpp"
+#include "system/sharedbackend.hpp"
 
 #include "system/debug.hpp"
+#include "system/mutex.hpp"
 
 #include <memory>
 #include <iostream>
@@ -38,43 +39,37 @@ public:
 	typedef SharedPtr<T> ThisT;
 	SharedPtr():pss(&ss){}
 	
-	SharedPtr(T *_pt):pss(SharedBackend::the.create(_pt, &delT)){
+	SharedPtr(T *_pt):pss(SharedBackend::create(_pt, &delT)){
 	}
 	
 	SharedPtr(const ThisT& _rptr):pss(_rptr.pss){
-		idbg("");
+		//idbg("");
 		SharedBackend::use(*pss);
 	}
 	SharedPtr(SharedPtr&& __r) noexcept
       : ThisT(std::move(__r)) {
-		  idbg("");
+		  //idbg("");
 	}
 	~SharedPtr(){
-		T* pt = get();
-		if(SharedBackend::the.release(*pss)){
-			delete pt;
-		}
+		SharedBackend::release(*pss);
 	}
 	
 	ThisT& operator=(const ThisT&_rptr){
-		idbg("");
+		//idbg("");
 		release();
 		pss = _rptr.pss;
-		SharedBackend::the.use(*pss);
+		SharedBackend::use(*pss);
 		return *this;
 	}
 	
 	ThisT& operator=(ThisT&& __r) noexcept{
 		this->ThisT::operator=(std::move(__r));
-		idbg("");
+		//idbg("");
 		return *this;
 	}
 	
 	void release()noexcept{
-		T* pt = get();
-		if(SharedBackend::the.release(*pss)){
-			delete pt;
-		}
+		SharedBackend::release(*pss);
 		pss = &ss;
 	}
 	
@@ -196,15 +191,26 @@ typedef deque<TestSharedPtrT>		TestDequeT;
 typedef vector<TestSharedPtrT>		TestVectorT;
 typedef deque<boost::thread*>		ThreadVectorT;
 
+struct RunnerCreate{
+	void operator()();
+};
+
+
+
 struct Runner{
 	void operator()();
 };
 
-static TestDequeT &testdeq = *(new TestDequeT);
+static TestDequeT	testdeq;
+static Mutex		mtx;
+static int			objcnt;
 
 int main(int argc, char *argv[]){
 	if(argc != 4){
 		cout<<"Use: ./example_testshare repeatcnt objcnt thrcnt"<<endl;
+		
+		cout<<"sizeof(SharedStub) = "<<sizeof(SharedStub)<<endl;
+		
 		return 0;
 	}
 #ifdef UDEBUG
@@ -217,7 +223,7 @@ int main(int argc, char *argv[]){
 	);
 #endif
 	int repcnt = atoi(argv[1]);
-	int objcnt = atoi(argv[2]);
+	objcnt = atoi(argv[2]);
 	int thrcnt = atoi(argv[3]);
 	
 	TestSharedPtrT		t1(new Test(1));
@@ -228,14 +234,9 @@ int main(int argc, char *argv[]){
 	ThreadVectorT thrvec;
 	
 	while(repcnt--){
-		idbg("create "<<objcnt<<" objects:");
-		for(int i = 0; i < objcnt; ++i){
-			TestSharedPtrT sp(new Test(i));
-			testdeq.push_back(sp);
-		}
 		idbg("create "<<thrcnt<<" threads:");
 		for(int i = 0; i < thrcnt; ++i){
-			Runner          r;
+			RunnerCreate    r;
 			boost::thread   *pthr = new boost::thread(r);
 			thrvec.push_back(pthr);
 		}
@@ -245,25 +246,40 @@ int main(int argc, char *argv[]){
 			delete thrvec[i];
 		}
 		thrvec.clear();
-// 		for(TestDequeT::const_iterator it(testdeq.begin()); it != testdeq.end(); ++it){
-// 			delete (*it).get();
-// 		}
+		for(int i = 0; i < thrcnt; ++i){
+			Runner		    r;
+			boost::thread   *pthr = new boost::thread(r);
+			thrvec.push_back(pthr);
+		}
+		idbg("wait for all threads");
+		for(int i = 0; i < thrcnt; ++i){
+			thrvec[i]->join();
+			delete thrvec[i];
+		}
 		testdeq.clear();
+		thrvec.clear();
 	}
-	delete &testdeq;
 	return 0;
 }
 
+void RunnerCreate::operator()(){
+	for(int i = 0; i < objcnt; ++i){
+		TestSharedPtrT	tstptr(new Test(i));
+		Locker<Mutex>	lock(mtx);
+		testdeq.push_back(tstptr);
+	}
+}
+
+
 void Runner::operator()(){
-	TestVectorT  &testvec(*(new TestVectorT));
+	TestVectorT  testvec;//(*(new TestVectorT));
 	//idbg("thread started");
 	for(TestDequeT::const_iterator it(testdeq.begin()); it != testdeq.end(); ++it){
 		testvec.push_back(*it);
 	}
-// 	int i = 0;
-// 	for(TestVectorT::const_iterator it(testvec.begin()); it != testvec.end(); ++it){
-// 		i += (*it)->test(it - testvec.begin());
-// 	}
+	int i = 0;
+	for(TestVectorT::const_iterator it(testvec.begin()); it != testvec.end(); ++it){
+		i += (*it)->test(it - testvec.begin());
+	}
 	//idbg("thread done "<<i);
-	delete &testvec;
 }

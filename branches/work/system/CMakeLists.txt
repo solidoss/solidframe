@@ -5,6 +5,7 @@ set(Sources
 	src/specific.cpp
 	src/thread.cpp
 	src/cstring.cpp
+	src/sharedbackend.cpp
 )
 
 set(Headers
@@ -26,6 +27,7 @@ set(Headers
 	timespec.hpp
 	cstring.hpp
 	mutualstore.hpp
+	sharedbackend.hpp
 	src/atomic.hpp
 	src/mutexpool.hpp
 )
