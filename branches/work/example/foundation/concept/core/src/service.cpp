@@ -101,7 +101,7 @@ const char *certificate_path(){
 }
 
 ObjectUidT Service::insertListener(
-	SocketAddressInfo &_rai,
+	const ResolveData &_rai,
 	bool _secure
 ){
 	SocketDevice sd;
@@ -130,7 +130,7 @@ ObjectUidT Service::insertListener(
 
 
 ObjectUidT Service::insertTalker(
-	SocketAddressInfo &_rai,
+	const ResolveData &_rai,
 	foundation::aio::openssl::Context *_pctx,
 	bool _secure
 ){
@@ -139,7 +139,7 @@ ObjectUidT Service::insertTalker(
 }
 
 ObjectUidT Service::insertConnection(
-	SocketAddressInfo &_rai,
+	const ResolveData &_rai,
 	foundation::aio::openssl::Context *_pctx,
 	bool _secure
 ){	
@@ -154,7 +154,5 @@ ObjectUidT Service::insertConnection(
 	cassert(false);
 	return fdt::invalid_uid();
 }
-
-
 
 }//namespace alpha

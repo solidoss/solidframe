@@ -67,12 +67,12 @@ static const DynamicRegisterer<Connection>	dre;
 }
 
 Connection::Connection(
-	const SocketAddressInfo &_raddrinfo
+	const ResolveData &_raddrinfo
 ):	addrinfo(_raddrinfo), reqid(1){
 	
 	state(Init);
 	addrit = addrinfo.begin();
-	while(addrit && addrit.type() != SocketAddressInfo::Stream){
+	while(addrit && addrit.type() != SocketInfo::Stream){
 		++addrit;
 	}
 }
@@ -151,7 +151,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			
 		}return NOK;
 		case ConnectNext:
-			while(addrit && addrit.type() != SocketAddressInfo::Stream){
+			while(addrit && addrit.type() != SocketInfo::Stream){
 				++addrit;
 			}
 			if(!addrit) return BAD;

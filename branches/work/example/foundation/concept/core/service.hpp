@@ -68,7 +68,7 @@ public:
 protected:
 	friend class Listener;
 	ObjectUidT insertListener(
-		SocketAddressInfo &_rai,
+		const ResolveData &_rai,
 		bool _secure = false
 	);
 	virtual ObjectUidT insertConnection(
@@ -78,12 +78,12 @@ protected:
 	);
 	
 	virtual ObjectUidT insertTalker(
-		SocketAddressInfo &_rai,
+		const ResolveData &_rai,
 		foundation::aio::openssl::Context *_pctx = NULL,
 		bool _secure = false
 	);
 	virtual ObjectUidT insertConnection(
-		SocketAddressInfo &_rai,
+		const ResolveData &_rai,
 		foundation::aio::openssl::Context *_pctx = NULL,
 		bool _secure = false
 	);

@@ -36,7 +36,6 @@
 #include "sharedbackend.hpp"
 #endif
 
-struct SocketAddressInfo;
 struct SocketDevice;
 //struct sockaddr_in;
 //struct sockaddr_in6;
