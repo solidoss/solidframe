@@ -32,7 +32,6 @@
 struct SocketAddressStub;
 struct SocketDevice;
 struct ResolveIterator;
-struct SocketAddressStub4;
 
 namespace foundation{
 
@@ -357,7 +356,7 @@ private:
 	int createNewTalker(IndexT &_tkrpos, uint32 &_tkruid);
 	int allocateTalkerForNewSession(bool _force = false);
 	uint32 keepAliveTimeout()const;
-	void connectSession(const SocketAddressStub4 &_raddr);
+	void connectSession(const SocketAddressInet4 &_raddr);
 	Controller& controller();
 private:
 	struct Data;

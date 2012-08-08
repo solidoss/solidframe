@@ -193,7 +193,6 @@ public:
 	SocketAddress(const char* _addr, int _port);
 	SocketAddress(const char* _path);
 	
-	SocketAddress& operator=(const ResolveIterator &);
 	SocketAddress& operator=(const SocketAddressStub &);
 	
 	SocketInfo::Family family()const;

@@ -42,6 +42,7 @@
 #include "alphasignals.hpp"
 #include "alphaprotocolfilters.hpp"
 #include "audit/log.hpp"
+#include <boost/concept_check.hpp>
 
 namespace fdt=foundation;
 //static const char	*hellostr = "Welcome to alpha service!!!\r\n"; 
@@ -82,7 +83,7 @@ static const DynamicRegisterer<Connection>	dre;
 }
 
 Connection::Connection(
-	SocketAddressInfo &_rai
+	ResolveData &_rai
 ):	wtr(&logger), rdr(wtr, &logger),
 	pcmd(NULL), ai(_rai), reqid(1){
 	aiit = ai.begin();
@@ -206,29 +207,29 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			IndexT				svcid(fdt::Manager::the().computeServiceId(objid));
 			IndexT				objidx(fdt::Manager::the().computeIndex(objid));
 			uint32				objuid(this->uid().second);
-			char				host[SocketAddress::HostNameCapacity];
-			char				port[SocketAddress::ServiceNameCapacity];
+			char				host[SocketInfo::HostStringCapacity];
+			char				port[SocketInfo::ServiceStringCapacity];
 			SocketAddress		addr;
 			
 			
 			
 			writer()<<"* Hello from alpha server ("<<myport<<' '<<svcid<<' '<<objidx<<' '<< objid<<' '<<objuid<<") [";
 			socketLocalAddress(addr);
-			addr.name(
+			addr.toString(
 				host,
-				SocketAddress::HostNameCapacity,
+				SocketInfo::HostStringCapacity,
 				port,
-				SocketAddress::ServiceNameCapacity,
-				SocketAddress::NumericService | SocketAddress::NumericHost
+				SocketInfo::ServiceStringCapacity,
+				SocketInfo::NumericService | SocketInfo::NumericHost
 			);
 			writer()<<host<<':'<<port<<" -> ";
 			socketRemoteAddress(addr);
-			addr.name(
+			addr.toString(
 				host,
-				SocketAddress::HostNameCapacity,
+				SocketInfo::HostStringCapacity,
 				port,
-				SocketAddress::ServiceNameCapacity,
-				SocketAddress::NumericService | SocketAddress::NumericHost
+				SocketInfo::ServiceStringCapacity,
+				SocketInfo::NumericService | SocketInfo::NumericHost
 			);
 			writer()<<host<<':'<<port<<"]"<<'\r'<<'\n';
 			writer().push(&Writer::flushAll);

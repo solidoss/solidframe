@@ -195,7 +195,7 @@ struct Talker::Data{
 	>											BaseAddr6;
 #ifdef HAS_CPP11
 	typedef std::unordered_map<
-		const SocketAddressStub4,
+		const SocketAddressInet4*,
 		uint32,
 		SocketAddressHash,
 		SocketAddressEqual
@@ -208,7 +208,7 @@ struct Talker::Data{
 	>											BaseAddr4MapT;
 	
 	typedef std::unordered_map<
-		const SocketAddressStub6, 
+		const SocketAddressInet6, 
 		uint32,
 		SocketAddressHash,
 		SocketAddressEqual
@@ -223,7 +223,7 @@ struct Talker::Data{
 
 #else
 	typedef std::map<
-		const SocketAddressStub4,
+		const SocketAddressInet4*,
 		uint32,
 		SocketAddressCompare
 	>											PeerAddr4MapT;
@@ -234,7 +234,7 @@ struct Talker::Data{
 	>											BaseAddr4MapT;
 	
 	typedef std::map<
-		const SocketAddressStub6, 
+		const SocketAddressInet6*, 
 		uint32,
 		SocketAddressCompare
 	>											PeerAddr6MapT;
@@ -448,8 +448,8 @@ void Talker::doDispatchReceivedBuffer(
 		case Buffer::DataType:{
 			COLLECT_DATA_0(d.statistics.receivedData);
 			idbgx(Dbg::ipc, "data buffer");
-			SocketAddressStub4				inaddr(_rsap);
-			Data::PeerAddr4MapT::iterator	pit(d.peeraddr4map.find(inaddr));
+			SocketAddressInet4				inaddr(_rsap);
+			Data::PeerAddr4MapT::iterator	pit(d.peeraddr4map.find(&inaddr));
 			if(pit != d.peeraddr4map.end()){
 				idbgx(Dbg::ipc, "found session for buffer");
 				d.receivedbufvec.push_back(Data::RecvBuffer(_pbuf, _bufsz, pit->second));
@@ -467,7 +467,7 @@ void Talker::doDispatchReceivedBuffer(
 		
 		case Buffer::ConnectingType:{
 			COLLECT_DATA_0(d.statistics.receivedConnecting);
-			SocketAddressStub4	inaddr(_rsap);
+			SocketAddressInet4	inaddr(_rsap);
 			int					baseport(Session::parseConnectingBuffer(buf));
 			
 			idbgx(Dbg::ipc, "connecting buffer with baseport "<<baseport);
@@ -491,15 +491,15 @@ void Talker::doDispatchReceivedBuffer(
 			idbgx(Dbg::ipc, "accepting buffer with baseport "<<baseport);
 			
 			if(baseport >= 0){
-				
-				BaseAddress4T					ba(_rsap, baseport);
+				SocketAddressInet4				sa(_rsap);
+				BaseAddress4T					ba(sa, baseport);
 				Data::BaseAddr4MapT::iterator	bit(d.baseaddr4map.find(ba));
 				if(bit != d.baseaddr4map.end()){
 					Data::SessionStub	&rss(d.sessionvec[bit->second]);
 					if(rss.psession){
 						rss.psession->completeConnect(_rstub, _rsap.port());
 						//register in peer map
-						d.peeraddr4map[rss.psession->peerAddress4()] = bit->second;
+						d.peeraddr4map[&rss.psession->peerAddress4()] = bit->second;
 						//the connector has at least some updates to send
 						if(!rss.inexeq){
 							d.sessionexecq.push(bit->second);
@@ -669,7 +669,7 @@ void Talker::doInsertNewSessions(){
 			rss.psession->prepare();
 			d.baseaddr4map[rss.psession->peerBaseAddress4()] = it->second;
 			if(rss.psession->isConnected()){
-				d.peeraddr4map[rss.psession->peerAddress4()] = it->second;
+				d.peeraddr4map[&rss.psession->peerAddress4()] = it->second;
 			}
 			if(!rss.inexeq){
 				d.sessionexecq.push(it->second);
@@ -679,10 +679,10 @@ void Talker::doInsertNewSessions(){
 			rss.psession->prepareContext(Context::the());
 			if(!rss.psession->isAccepting()){
 				//a reconnect
-				d.peeraddr4map.erase(rss.psession->peerAddress4());
+				d.peeraddr4map.erase(&rss.psession->peerAddress4());
 				rss.psession->reconnect(it->first);
 				++rss.uid;
-				d.peeraddr4map[rss.psession->peerAddress4()] = it->second;
+				d.peeraddr4map[&rss.psession->peerAddress4()] = it->second;
 				if(!rss.inexeq){
 					d.sessionexecq.push(it->second);
 					rss.inexeq = true;
@@ -747,11 +747,11 @@ void Talker::disconnectSessions(){
 			idbgx(Dbg::ipc, "deleting session "<<(void*)rss.psession<<" on pos "<<*it);
 			d.rservice.disconnectSession(rss.psession);
 			//unregister from base and peer:
-			if(rss.psession->peerAddress4().addr){
-				d.peeraddr4map.erase(rss.psession->peerAddress4());
+			if(!rss.psession->peerAddress4().isInvalid()){
+				d.peeraddr4map.erase(&rss.psession->peerAddress4());
 			}
 			if(
-				rss.psession->peerBaseAddress4().first.addr
+				!rss.psession->peerBaseAddress4().first.isInvalid()
 			){
 				d.baseaddr4map.erase(rss.psession->peerBaseAddress4());
 			}

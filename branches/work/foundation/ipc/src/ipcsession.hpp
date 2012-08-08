@@ -61,11 +61,22 @@ public:
 	static int parseConnectingBuffer(const Buffer &_rbuf);
 	
 	Session(
-		const SocketAddressStub4 &_raddr,
+		const SocketAddressInet4 &_raddr,
 		uint32 _keepalivetout
 	);
 	Session(
-		const SocketAddressStub4 &_raddr,
+		const SocketAddressInet4 &_raddr,
+		uint16 _baseport,
+		uint32 _keepalivetout
+	);
+	
+	
+	Session(
+		const SocketAddressInet6 &_raddr,
+		uint32 _keepalivetout
+	);
+	Session(
+		const SocketAddressInet6 &_raddr,
 		uint16 _baseport,
 		uint32 _keepalivetout
 	);
@@ -77,8 +88,9 @@ public:
 	
 	//used by talker for sendto
 	const SocketAddressStub& peerAddress()const;
-	const SocketAddressStub4 peerAddress4()const;
-	const SocketAddressStub6 peerAddress6()const;
+	
+	const SocketAddressInet4& peerAddress4()const;
+	const SocketAddressInet6& peerAddress6()const;
 	
 	bool isConnected()const;
 	bool isDisconnecting()const;

@@ -303,11 +303,11 @@ int RemoteList::execute(Connection &_rc){
 		const String &straddr(it->first);
 		const String &port(it->second);
 		idbg("addr"<<straddr<<" port = "<<port);
-		SocketAddressInfo ai(straddr.c_str(), port.c_str(), 0, SocketAddressInfo::Inet4, SocketAddressInfo::Stream);
-		if(!ai.empty()){
+		ResolveData rd = synchronous_resolve(straddr.c_str(), port.c_str(), 0, SocketInfo::Inet4, SocketInfo::Stream);
+		if(!rd.empty()){
 			state = Wait;
 			DynamicPointer<fdt::Signal> sigptr(sig_sp);
-			Manager::the().ipc().sendSignal(sigptr, ai.begin()/*, fdt::ipc::Service::SameConnectorFlag*/);
+			Manager::the().ipc().sendSignal(sigptr, rd.begin()/*, fdt::ipc::Service::SameConnectorFlag*/);
 			_rc.writer().push(&Writer::reinit<RemoteList>, protocol::Parameter(this));
 		}else{
 			*pp = protocol::Parameter(StrDef(" NO REMOTELIST: no such peer address@"));
@@ -449,9 +449,9 @@ int Fetch::doGetTempStream(uint32 _sz){
 
 void Fetch::doSendMaster(const FileUidT &_fuid){
 	idbg(""<<(void*)this);
-	SocketAddressInfo ai(straddr.c_str(), port.c_str(), 0, SocketAddressInfo::Inet4, SocketAddressInfo::Stream);
+	ResolveData rd = synchronous_resolve(straddr.c_str(), port.c_str(), 0, SocketInfo::Inet4, SocketInfo::Stream);
 	idbg("addr"<<straddr<<" port = "<<port);
-	if(!ai.empty()){
+	if(!rd.empty()){
 		//send the master remote command
 		FetchMasterSignal *psig(new FetchMasterSignal);
 		//TODO: add a convenient init method to fetchmastercommand
@@ -463,7 +463,7 @@ void Fetch::doSendMaster(const FileUidT &_fuid){
 		psig->streamsz = streamsz_in;
 		state = WaitRemoteStream;
 		DynamicPointer<fdt::Signal> sigptr(psig);
-		Manager::the().ipc().sendSignal(sigptr, ai.begin());
+		Manager::the().ipc().sendSignal(sigptr, rd.begin());
 	}else{
 		*pp = protocol::Parameter(StrDef(" NO FETCH: no such peer address@"));
 		state = ReturnOk;
@@ -770,13 +770,13 @@ int SendString::execute(alpha::Connection &_rc){
 	Manager &rm(Manager::the());
 	ulong	fromobjid(_rc.id());//the id of the current connection
 	uint32	fromobjuid(rm.uid(_rc));//the uid of the current connection
-	SocketAddressInfo ai(addr.c_str(), port, 0, SocketAddressInfo::Inet4, SocketAddressInfo::Stream);
+	ResolveData rd = synchronous_resolve(addr.c_str(), port, 0, SocketInfo::Inet4, SocketInfo::Stream);
 	idbg("addr"<<addr<<"str = "<<str<<" port = "<<port<<" objid = "<<" objuid = "<<objuid);
 	protocol::Parameter &rp = _rc.writer().push(&Writer::putStatus);
-	if(!ai.empty()){
+	if(!rd.empty()){
 		rp = protocol::Parameter(StrDef(" OK Done SENDSTRING@"));
 		DynamicPointer<fdt::Signal> sigptr(new SendStringSignal(str, objid, objuid, fromobjid, fromobjuid));
-		rm.ipc().sendSignal(sigptr, ai.begin());
+		rm.ipc().sendSignal(sigptr, rd.begin());
 	}else{
 		rp = protocol::Parameter(StrDef(" NO SENDSTRING no such address@"));
 	}
@@ -820,12 +820,12 @@ int SendStream::execute(Connection &_rc){
 			rp = protocol::Parameter(StrDef(" NO SENDSTRING: stream wait not implemented yet@"));
 			break;
 		case OK:{
-			SocketAddressInfo ai(addr.c_str(), port, 0, SocketAddressInfo::Inet4, SocketAddressInfo::Stream);
+			ResolveData rd = synchronous_resolve(addr.c_str(), port, 0, SocketInfo::Inet4, SocketInfo::Stream);
 			idbg("addr"<<addr<<"str = "<<srcstr<<" port = "<<port<<" objid = "<<" objuid = "<<objuid);
-			if(!ai.empty()){
+			if(!rd.empty()){
 				rp = protocol::Parameter(StrDef(" OK Done SENDSTRING@"));
 				DynamicPointer<fdt::Signal> sigptr(new SendStreamSignal(sp, dststr, myprocid, objid, objuid, fromobjid, fromobjuid));
-				rm.ipc().sendSignal(sigptr, ai.begin());
+				rm.ipc().sendSignal(sigptr, rd.begin());
 			}else{
 				rp = protocol::Parameter(StrDef(" NO SENDSTRING no such address@"));
 			}

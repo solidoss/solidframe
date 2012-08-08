@@ -34,39 +34,39 @@ class Visitor;
 namespace foundation{
 namespace ipc{
 
-typedef std::pair<const SocketAddressStub4, uint16>	BaseAddress4T;
-typedef std::pair<const SocketAddressStub6, uint16>	BaseAddress6T;
+typedef std::pair<const SocketAddressInet4&, uint16>	BaseAddress4T;
+typedef std::pair<const SocketAddressInet6&, uint16>	BaseAddress6T;
 
 //*******	AddrPtrCmp		******************************************************************
 #ifdef HAS_CPP11
 
 struct SocketAddressHash{
-	size_t operator()(SocketAddressStub4 const &_rsa)const{
-		return _rsa.hash();
+	size_t operator()(const SocketAddressInet4* const &_rsa)const{
+		return _rsa->hash();
 	}
 	
 	size_t operator()(BaseAddress4T const &_rsa)const{
-		return _rsa.first.addressHash() ^ _rsa.second;
+		return hash(_rsa.first.address()) ^ _rsa.second;
 	}
 	size_t operator()(BaseAddress6T const &_rsa)const{
-		return _rsa.first.addressHash() ^ _rsa.second;
+		return hash(_rsa.first.address()) ^ _rsa.second;
 	}
 };
 
 struct SocketAddressEqual{
 	bool operator()(
-		SocketAddressStub4 const &_rsa1,
-		SocketAddressStub4 const &_rsa2
+		const SocketAddressInet4* const &_rsa1,
+		const SocketAddressInet4* const &_rsa2
 	)const{
-		return _rsa1 == _rsa2;
+		return *_rsa1 == *_rsa2;
 	}
 	
 	bool operator()(BaseAddress4T const &_rsa1, BaseAddress4T const &_rsa2)const{
-		return SocketAddress4::equalAdresses(_rsa1.first, _rsa2.first) &&
+		return _rsa1.first.address() == _rsa2.first.address() &&
 		_rsa1.second == _rsa2.second;
 	}
 	bool operator()(BaseAddress6T const &_rsa1, BaseAddress6T const &_rsa2)const{
-		return SocketAddress6::equalAdresses(_rsa1.first, _rsa2.first) &&
+		return _rsa1.first.address() == _rsa2.first.address() &&
 		_rsa1.second == _rsa2.second;
 	}
 };

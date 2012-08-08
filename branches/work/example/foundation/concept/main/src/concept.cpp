@@ -126,9 +126,9 @@ struct SignalResultWaiter: concept::beta::SignalWaiter{
 	bool		s;
 };
 
-struct SocketAddressInfoSignal: concept::SocketAddressInfoSignal{
-	SocketAddressInfoSignal(uint32 _v, SignalResultWaiter &_rwait):concept::SocketAddressInfoSignal(_v), pwait(&_rwait){}
-	~SocketAddressInfoSignal(){
+struct ResolveDataSignal: concept::ResolveDataSignal{
+	ResolveDataSignal(uint32 _v, SignalResultWaiter &_rwait):concept::ResolveDataSignal(_v), pwait(&_rwait){}
+	~ResolveDataSignal(){
 		if(pwait)
 			pwait->signal(fdt::invalid_uid());
 	}
@@ -258,8 +258,8 @@ int main(int argc, char* argv[]){
 		
 		if(true){
 			int port = p.start_port + 222;
-			SocketAddressInfo ai("0.0.0.0", port, 0, SocketAddressInfo::Inet4, SocketAddressInfo::Datagram);
-			if(!ai.empty() && !(rv = foundation::ipc::Service::the().insertTalker(ai.begin()))){
+			ResolveData rd = synchronous_resolve("0.0.0.0", port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
+			if(!rd.empty() && !(rv = foundation::ipc::Service::the().insertTalker(rd.begin()))){
 				cout<<"[ipc] Added talker on port "<<port<<endl;
 			}else{
 				cout<<"[ipc] Failed adding talker on port "<<port<<" rv = "<<rv<<endl;
@@ -339,9 +339,9 @@ void insertListener(
 	int _port,
 	bool _secure
 ){
-	concept::SocketAddressInfoSignal *psig(new SocketAddressInfoSignal(_secure? concept::Service::AddSslListener : concept::Service::AddListener, _rw));
+	concept::ResolveDataSignal *psig(new ResolveDataSignal(_secure? concept::Service::AddSslListener : concept::Service::AddListener, _rw));
 
-	psig->init(_addr, _port, 0, SocketAddressInfo::Inet4, SocketAddressInfo::Stream);
+	psig->init(_addr, _port, 0, SocketInfo::Inet4, SocketInfo::Stream);
 	DynamicPointer<foundation::Signal> dp(psig);
 	_rw.prepare();
 	concept::m().signalService(_idx, dp);
@@ -364,14 +364,14 @@ void insertConnection(
 	const char *_port,
 	bool _secure
 ){
-	concept::SocketAddressInfoSignal *psig(
-		new SocketAddressInfoSignal(
+	concept::ResolveDataSignal *psig(
+		new ResolveDataSignal(
 			_secure? concept::Service::Service::AddSslConnection : concept::Service::AddConnection,
 			_rw
 		)
 	);
 
-	psig->init(_addr, _port, 0, SocketAddressInfo::Inet4, SocketAddressInfo::Stream);
+	psig->init(_addr, _port, 0, SocketInfo::Inet4, SocketInfo::Stream);
 	DynamicPointer<foundation::Signal> dp(psig);
 	_rw.prepare();
 	concept::m().signalService(_idx, dp);

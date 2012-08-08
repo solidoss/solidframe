@@ -85,7 +85,7 @@ ObjectUidT Service::insertConnection(
 }
 
 ObjectUidT Service::insertConnection(
-	SocketAddressInfo &_rai,
+	ResolveData &_rai,
 	foundation::aio::openssl::Context *_pctx,
 	bool _secure
 ){

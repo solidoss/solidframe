@@ -227,7 +227,7 @@ int Service::doSendSignal(
 ){
 	
 	if(
-		_rsa_dest.family() != SocketAddressInfo::Inet4/* && 
+		_rsa_dest.family() != SocketInfo::Inet4/* && 
 		_rsap.family() != SocketAddressInfo::Inet6*/
 	) return BAD;
 	
@@ -250,9 +250,9 @@ int Service::doSendSignalLocal(
 ){
 	Locker<Mutex>	lock(serviceMutex());
 	
-	if(_rsap.family() == SocketAddressInfo::Inet4){
-		
-		const BaseAddress4T					baddr(_rsap, _rsap.port());
+	if(_rsap.family() == SocketInfo::Inet4){
+		const SocketAddressInet4			sa(_rsap);
+		const BaseAddress4T					baddr(sa, _rsap.port());
 		
 		Data::SessionAddr4MapT::iterator	it(d.sessionaddr4map.find(baddr));
 		
@@ -304,7 +304,7 @@ int Service::doSendSignalLocal(
 			Locker<Mutex>		lock2(this->mutex(tkrpos));
 			Talker				*ptkr(static_cast<Talker*>(this->objectAt(tkrpos)));
 			cassert(ptkr);
-			Session				*pses(new Session(baddr.first, d.keepalivetout));
+			Session				*pses(new Session(sa, d.keepalivetout));
 			ConnectionUid		conid(tkrid);
 			
 			vdbgx(Dbg::ipc, "");
@@ -426,7 +426,7 @@ int Service::acceptSession(Session *_pses){
 	return OK;
 }
 //---------------------------------------------------------------------
-void Service::connectSession(const SocketAddressStub4 &_raddr){
+void Service::connectSession(const SocketAddressInet4 &_raddr){
 	Locker<Mutex>	lock(serviceMutex());
 	int				tkrid(allocateTalkerForNewSession());
 	IndexT			tkrpos;
@@ -492,7 +492,7 @@ int Service::createNewTalker(IndexT &_tkrpos, uint32 &_tkruid){
 	uint			oldport(d.firstaddr.port());
 	
 	d.firstaddr.port(0);//bind to any available port
-	sd.create(d.firstaddr.family(), SocketAddressInfo::Datagram, 0);
+	sd.create(d.firstaddr.family(), SocketInfo::Datagram, 0);
 	sd.bind(d.firstaddr);
 
 	if(sd.ok()){

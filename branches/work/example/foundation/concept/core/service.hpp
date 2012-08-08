@@ -62,7 +62,7 @@ public:
 	Service();
 	~Service();
 	
-	void dynamicExecute(DynamicPointer<SocketAddressInfoSignal> &_rsig);
+	void dynamicExecute(DynamicPointer<ResolveDataSignal> &_rsig);
 	void insertObject(Listener &_ro, const ObjectUidT &_ruid);
 	void eraseObject(const Listener &_ro);
 protected:

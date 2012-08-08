@@ -228,10 +228,10 @@ void LogManager::runListener(ListenerWorker &_w){
 	//first we need to create the socket device:
 	SocketDevice sd;
 	{
-		SocketAddressInfo ai(_w.addr.c_str(), _w.port.c_str(), 0, SocketAddressInfo::Inet4, SocketAddressInfo::Stream);
-		if(!ai.empty()){
-			sd.create(ai.begin());
-			sd.prepareAccept(ai.begin(), 10);
+		ResolveData rd =  synchronous_resolve(_w.addr.c_str(), _w.port.c_str(), 0, SocketInfo::Inet4, SocketInfo::Stream);
+		if(!rd.empty()){
+			sd.create(rd.begin());
+			sd.prepareAccept(rd.begin(), 10);
 		}else{
 			edbgx(Dbg::log, "create address "<<_w.addr<<'.'<<_w.port);
 		}

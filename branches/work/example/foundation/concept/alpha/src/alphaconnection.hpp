@@ -85,7 +85,7 @@ public:
 		return static_cast<Connection&>(Object::the());
 	}
 	
-	Connection(SocketAddressInfo &_rai);
+	Connection(ResolveData &_rai);
 	Connection(const SocketDevice &_rsd);
 	
 	~Connection();
@@ -153,8 +153,8 @@ private:
 	Writer						wtr;
 	Reader						rdr;
 	Command						*pcmd;
-	SocketAddressInfo			ai;
-	ResolveIterator	aiit;
+	ResolveData					ai;
+	ResolveIterator				aiit;
 	uint32						reqid;
 	DynamicExecuterT			dr;
 };
