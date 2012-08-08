@@ -140,11 +140,11 @@ public:
 		int _cnt = ((unsigned)(0xfffffff))
 	):
 		rp(_rp),
-		ai(
+		rd(synchronous_resolve(
 			_rp.proxy_addr.size() ? _rp.proxy_addr.c_str() : _rp.srv_addr.c_str(),
 		   _rp.proxy_port.size() ? _rp.proxy_port.c_str() : _rp.srv_port.c_str(),
-			0, SocketAddressInfo::Inet4, SocketAddressInfo::Stream
-		),
+			0, SocketInfo::Inet4, SocketInfo::Stream
+		)),
 		wr(-1),sd(-1),cnt(_cnt),
 		pos(_pos), pssl(NULL){
 			repeatcnt = _rp.repeat;
@@ -164,7 +164,7 @@ private:
 	int fetch(unsigned _idx, char *_pb);
 	typedef std::deque<string> StrDqT;
 	const Params		&rp;
-	SocketAddressInfo	ai;
+	ResolveData			rd;
 	Writer      		wr;
 	int					sd;
 	int					cnt;
@@ -177,11 +177,11 @@ private:
 };
 
 void AlphaThread::run(){
-	if(ai.empty()){
+	if(rd.empty()){
 		idbg("No such address");
 		return;
 	}
-	ResolveIterator it(ai.begin());
+	ResolveIterator it(rd.begin());
 	sd = socket(it.family(), it.type(), it.protocol());
 	if(sd < 0){
 		idbg("error creating socket");
@@ -189,7 +189,7 @@ void AlphaThread::run(){
 		return;
 	}
 	//cout<<"before connect "<<pos<<endl;
-	if(connect(sd, it.addr(), it.size())){
+	if(connect(sd, it.sockAddr(), it.size())){
 		idbg("failed connect");
 		cout<<"failed connect "<<pos<<": "<<strerror(errno)<<endl;
 		return;
