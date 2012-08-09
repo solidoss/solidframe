@@ -77,15 +77,15 @@ struct Service::Data{
 	
 #else
 	typedef std::map<
-		const Session::BaseAddress4T,
+		const BaseAddress4T,
 		ConnectionUid, 
-		SocketAddressCompare,
+		SocketAddressCompare
 	>	SessionAddr4MapT;
 	
 	typedef std::map<
-		const Session::BaseAddress6T,
+		const BaseAddress6T,
 		ConnectionUid,
-		SocketAddressCompare,
+		SocketAddressCompare
 	>	SessionAddr6MapT;
 #endif	
 	struct TalkerStub{

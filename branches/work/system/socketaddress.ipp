@@ -93,7 +93,9 @@ inline ResolveData& ResolveData::operator=(const ResolveData &_rrd){
 	return *this;
 }
 #else
-inline ResolveData::ResolveData():pss(&SharedBackend::emptyStub()){}
+inline ResolveData::ResolveData():pss(&SharedBackend::emptyStub()){
+	SharedBackend::use(*pss);
+}
 inline ResolveData::ResolveData(addrinfo *_pai):pss(SharedBackend::create(_pai, &delete_addrinfo)){
 }
 inline ResolveData::ResolveData(const ResolveData &_rai):pss(_rai.pss){

@@ -76,24 +76,24 @@ struct SocketAddressEqual{
 struct SocketAddressCompare{
 	
 	bool operator()(
-		SocketAddressStub4 const &_sa1,
-		SocketAddressStub4 const &_sa2
+		const SocketAddressInet4* const &_sa1,
+		const SocketAddressInet4* const &_sa2
 	)const{
-		return _sa1 < _sa2;
+		return *_sa1 < *_sa2;
 	}
 	
 	bool operator()(BaseAddress4T const &_rsa1, BaseAddress4T const &_rsa2)const{
-		if(SocketAddress4::compareAddressesLess(_rsa1.first, _rsa2.first)){
+		if(_rsa1.first.address() < _rsa2.first.address()){
 			return true;
-		}else if(!SocketAddress4::compareAddressesLess(_rsa2.first, _rsa1.first)){
+		}else if(_rsa2.first.address() < _rsa1.first.address()){
 			return _rsa1.second < _rsa2.second;
 		}
 		return false;
 	}
 	bool operator()(BaseAddress6T const &_rsa1, BaseAddress6T const &_rsa2)const{
-		if(SocketAddress6::compareAddressesLess(_rsa1.first, _rsa2.first)){
+		if(_rsa1.first.address() < _rsa2.first.address()){
 			return true;
-		}else if(!SocketAddress6::compareAddressesLess(_rsa2.first, _rsa1.first)){
+		}else if(_rsa2.first.address() < _rsa1.first.address()){
 			return _rsa1.second < _rsa2.second;
 		}
 		return false;
