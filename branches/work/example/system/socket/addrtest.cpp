@@ -23,6 +23,8 @@
 #include "system/socketaddress.hpp"
 #include "system/socketdevice.hpp"
 #include "system/timespec.hpp"
+#include "system/cassert.hpp"
+#include <boost/concept_check.hpp>
 #include <unistd.h>
 #include <fcntl.h>
 #include <cerrno>
@@ -99,7 +101,54 @@ int main(int argc, char *argv[]){
 			sd.write("hello word\r\n", strlen("hello word\r\n"));
 		}
 		
+		SocketAddressInet4 sa4_0(it);
 		
+		sa4_0.toString(
+			host, SocketInfo::HostStringCapacity,
+			port, SocketInfo::ServiceStringCapacity,
+			SocketInfo::NumericService | SocketInfo::NumericHost
+		);
+		
+		cout<<"sa4_0 host = "<<host<<":"<<port<<endl;
+		
+		uint16 portx;
+		uint32 addr;
+		
+		sa4_0.toUInt(addr, portx);
+		
+		++addr;
+		
+		SocketAddressInet4 sa4_1(addr, portx);
+		
+		sa4_1.toString(
+			host, SocketInfo::HostStringCapacity,
+			port, SocketInfo::ServiceStringCapacity,
+			SocketInfo::NumericService | SocketInfo::NumericHost
+		);
+		
+		cout<<"sa4_1 host = "<<host<<":"<<port<<endl;
+		
+		cassert(sa4_0 < sa4_1);
+		
+		cassert(sa4_0.address() < sa4_1.address());
+		
+		SocketAddressInet4::BinaryT	binaddr4;
+		sa4_0.toBinary(binaddr4, portx);
+		
+		SocketAddressInet4 sa4_2(binaddr4, portx);
+		
+		sa4_2.toString(
+			host, SocketInfo::HostStringCapacity,
+			port, SocketInfo::ServiceStringCapacity,
+			SocketInfo::NumericService | SocketInfo::NumericHost
+		);
+		
+		cout<<"sa4_2 host = "<<host<<":"<<port<<endl;
+		
+		cassert(!(sa4_1 == sa4_2));
+		cassert(sa4_0 == sa4_2);
+		cassert(!(sa4_0 < sa4_2));
+		cassert(!(sa4_2 < sa4_0));
 		
 // 		int sd = socket(it.family(), it.type(), it.protocol());
 // 		struct timeval tosnd;

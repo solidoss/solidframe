@@ -25,15 +25,16 @@
 #include <sys/un.h>
 #include <arpa/inet.h>
 
-#include "common.hpp"
-#include "socketinfo.hpp"
+#include "system/common.hpp"
+#include "system/socketinfo.hpp"
+#include "system/binary.hpp"
 
 #if defined(HAS_CPP11) && !defined(USHAREDBACKEND)
 #include <memory>
 #elif defined(UBOOSTSHAREDPTR) && !defined(USHAREDBACKEND)
 #include "boost/shared_ptr.hpp"
 #else
-#include "sharedbackend.hpp"
+#include "system/sharedbackend.hpp"
 #endif
 
 struct SocketDevice;
@@ -337,10 +338,13 @@ private:
 	};
 public:
 	enum {Capacity = sizeof(AddrUnion)};
+	typedef Binary<4>	BinaryT;
 	
 	SocketAddressInet4();
 	SocketAddressInet4(const SocketAddressStub &);
 	SocketAddressInet4(const char* _addr, int _port = 0);
+	SocketAddressInet4(uint32 _addr, int _port);
+	SocketAddressInet4(const BinaryT &_addr, int _port = 0);
 	
 	SocketAddressInet4& operator=(const ResolveIterator &);
 	SocketAddressInet4& operator=(const SocketAddressStub &);
@@ -365,6 +369,14 @@ public:
 		unsigned _servcp,
 		uint32	_flags = 0
 	)const;
+	
+	void toBinary(BinaryT &_bin, uint16 &_port)const;
+	
+	void toUInt(uint32 &_addr, uint16 &_port)const;
+	
+	void fromBinary(const BinaryT &_bin, uint16 _port = 0);
+	void fromUInt(uint32 _addr, uint16 _port = 0);
+	
 	
 	bool operator<(const SocketAddressInet4 &_raddr)const;
 	bool operator==(const SocketAddressInet4 &_raddr)const;
@@ -394,10 +406,12 @@ private:
 	};
 public:
 	enum {Capacity = sizeof(AddrUnion)};
+	typedef Binary<16>	BinaryT;
 	
 	SocketAddressInet6();
 	SocketAddressInet6(const SocketAddressStub &);
 	SocketAddressInet6(const char* _addr, int _port = 0);
+	SocketAddressInet6(const BinaryT &_addr, int _port = 0);
 	
 	SocketAddressInet6& operator=(const SocketAddressStub &);
 		
@@ -423,6 +437,10 @@ public:
 		unsigned _servcp,
 		uint32	_flags = 0
 	)const;
+	
+	void toBinary(BinaryT &_bin, uint16 &_port)const;
+	
+	void fromBinary(const BinaryT &_bin, uint16 _port = 0);
 	
 	bool operator<(const SocketAddressInet6 &_raddr)const;
 	bool operator==(const SocketAddressInet6 &_raddr)const;
