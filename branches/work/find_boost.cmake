@@ -51,3 +51,12 @@ FIND_LIBRARY(BOOST_SYSTEM_LIB
                 PATHS
                     ${EXTERN_PATH}/lib
                 NO_DEFAULT_PATH)
+                
+FIND_LIBRARY(BOOST_CHRONO_LIB
+                NAMES
+                    libboost_chrono.lib
+                    libboost_chrono.a
+                    boost_chrono
+                PATHS
+                    ${EXTERN_PATH}/lib
+                NO_DEFAULT_PATH)
