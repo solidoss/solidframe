@@ -22,6 +22,17 @@
 #include <poll.h>
 #include <unistd.h>
 #include <unistd.h>
+
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
+
+#include <ifaddrs.h>
+
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
 #endif
 #include "system/socketaddress.hpp"
 #include "system/socketdevice.hpp"
@@ -38,17 +49,6 @@
 #include <string.h>
 #include <errno.h>
 
-/*
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/ioctl.h>
-#include <net/if.h>
-
-#include <ifaddrs.h>
-
-#include <netinet/in.h>
-#include <arpa/inet.h>
-*/
 using namespace std;
 
 void listLocalInterfaces();
