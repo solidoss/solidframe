@@ -44,12 +44,12 @@ RequestUid* SpecificRequestUid::operator->()const{
 	return reinterpret_cast<RequestUid*>(Thread::specific(specificPosition()));
 }
 
-RequestUid* SpecificRequestUid::ptr() const{
+RequestUid* SpecificRequestUid::get() const{
 	return reinterpret_cast<RequestUid*>(Thread::specific(specificPosition()));
 }
 
 RequestUid& SpecificRequestUid::operator*()const{
-	return *ptr();
+	return *get();
 }
 
 

@@ -40,7 +40,7 @@ void Signal::ipcReceived(
 ){
 	DynamicPointer<fdt::Signal> sig(this);
 	//_rsiguid = this->ipcsiguid;
-	//ipcconid = fdt::ipc::SignalContext::the().connectionuid;
+	//ipcconid = fdt::ipc::ConnectionContext::the().connectionuid;
 	
 	char				host[SocketAddress::HostNameCapacity];
 	char				port[SocketAddress::ServiceNameCapacity];
@@ -57,10 +57,10 @@ void Signal::ipcReceived(
 	
 	if(state == OnSender){
 		state = OnPeer;
-		idbg((void*)this<<" on peer: baseport = "<<fdt::ipc::SignalContext::the().baseport<<" host = "<<host<<":"<<port);
+		idbg((void*)this<<" on peer: baseport = "<<fdt::ipc::ConnectionContext::the().baseport<<" host = "<<host<<":"<<port);
 	}else if(state == OnPeer){
 		state == BackOnSender;
-		idbg((void*)this<<" back on sender: baseport = "<<fdt::ipc::SignalContext::the().baseport<<" host = "<<host<<":"<<port);
+		idbg((void*)this<<" back on sender: baseport = "<<fdt::ipc::ConnectionContext::the().baseport<<" host = "<<host<<":"<<port);
 	}else{
 		cassert(false);
 	}

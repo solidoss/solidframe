@@ -76,14 +76,14 @@ public:
 	bool empty()const noexcept{
 		return pss->ptr == NULL;
 	}
-	T* ptr()const noexcept{
+	T* get()const noexcept{
 		return reinterpret_cast<T*>(pss->ptr);
 	}
 	T* get()const{
 		return reinterpret_cast<T*>(pss->ptr);
 	}
 	T* operator->()const noexcept{
-		return ptr();
+		return get();
 	}
 private:
 	SharedStub *pss;
@@ -125,12 +125,12 @@ public:
 	bool empty()const{
 		return p == NULL;
 	}
-	T* ptr()const{
+	T* get()const{
 		return p;
 	}
 	
 	T* operator->()const{
-		return ptr();
+		return get();
 	}
 private:
 	friend class WeakPtr<T>;
@@ -169,12 +169,12 @@ public:
 	bool empty()const{
 		return p == NULL;
 	}
-	T* ptr()const{
+	T* get()const{
 		return p;
 	}
 	
 	T* operator->()const{
-		return ptr();
+		return get();
 	}
 private:
 	mutable T *p;

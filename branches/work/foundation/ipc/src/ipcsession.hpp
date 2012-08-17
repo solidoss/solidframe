@@ -50,7 +50,7 @@ struct Context{
 	static Context& the();
 	Context(uint32 _tkrid);
 	~Context();
-	SignalContext sigctx;
+	ConnectionContext sigctx;
 };
 
 class Session{

@@ -55,7 +55,7 @@ struct SpecificRequestUid{
 	void prepareThread();
 	void unprepareThread();
 	RequestUid* operator->()const;
-	RequestUid* ptr() const;
+	RequestUid* get() const;
 	RequestUid& operator*()const;
 private:
 	SpecificRequestUid(const SpecificRequestUid&);

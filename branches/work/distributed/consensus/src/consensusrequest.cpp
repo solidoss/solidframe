@@ -98,12 +98,12 @@ void WriteRequestSignal::ipcReceived(
 	foundation::ipc::SignalUid &_rsiguid
 ){
 	//_rsiguid = this->ipcsiguid;
-	ipcconid = fdt::ipc::SignalContext::the().connectionuid;
+	ipcconid = fdt::ipc::ConnectionContext::the().connectionuid;
 	
 	char				host[SocketAddress::HostNameCapacity];
 	char				port[SocketAddress::ServiceNameCapacity];
 	
-	id.sockaddr = fdt::ipc::SignalContext::the().pairaddr;
+	id.sockaddr = fdt::ipc::ConnectionContext::the().pairaddr;
 	
 	id.sockaddr.name(
 		host,
@@ -117,13 +117,13 @@ void WriteRequestSignal::ipcReceived(
 	
 	if(st == OnSender){
 		st = OnPeer;
-		idbg((void*)this<<" on peer: baseport = "<<fdt::ipc::SignalContext::the().baseport<<" host = "<<host<<":"<<port);
-		id.sockaddr.port(fdt::ipc::SignalContext::the().baseport);
+		idbg((void*)this<<" on peer: baseport = "<<fdt::ipc::ConnectionContext::the().baseport<<" host = "<<host<<":"<<port);
+		id.sockaddr.port(fdt::ipc::ConnectionContext::the().baseport);
 		//fdt::m().signal(sig, serverUid());
 		this->sendThisToConsensusObject();
 	}else if(st == OnPeer){
 		st = BackOnSender;
-		idbg((void*)this<<" back on sender: baseport = "<<fdt::ipc::SignalContext::the().baseport<<" host = "<<host<<":"<<port);
+		idbg((void*)this<<" back on sender: baseport = "<<fdt::ipc::ConnectionContext::the().baseport<<" host = "<<host<<":"<<port);
 		
 		DynamicPointer<fdt::Signal> sig(this);
 		
@@ -189,12 +189,12 @@ void ReadRequestSignal::ipcReceived(
 	foundation::ipc::SignalUid &_rsiguid
 ){
 	//_rsiguid = this->ipcsiguid;
-	ipcconid = fdt::ipc::SignalContext::the().connectionuid;
+	ipcconid = fdt::ipc::ConnectionContext::the().connectionuid;
 	
 	char				host[SocketAddress::HostNameCapacity];
 	char				port[SocketAddress::ServiceNameCapacity];
 	
-	id.sockaddr = fdt::ipc::SignalContext::the().pairaddr;
+	id.sockaddr = fdt::ipc::ConnectionContext::the().pairaddr;
 	
 	id.sockaddr.name(
 		host,
@@ -208,13 +208,13 @@ void ReadRequestSignal::ipcReceived(
 	
 	if(st == OnSender){
 		st = OnPeer;
-		idbg((void*)this<<" on peer: baseport = "<<fdt::ipc::SignalContext::the().baseport<<" host = "<<host<<":"<<port);
-		id.sockaddr.port(fdt::ipc::SignalContext::the().baseport);
+		idbg((void*)this<<" on peer: baseport = "<<fdt::ipc::ConnectionContext::the().baseport<<" host = "<<host<<":"<<port);
+		id.sockaddr.port(fdt::ipc::ConnectionContext::the().baseport);
 		//fdt::m().signal(sig, serverUid());
 		this->sendThisToConsensusObject();
 	}else if(st == OnPeer){
 		st = BackOnSender;
-		idbg((void*)this<<" back on sender: baseport = "<<fdt::ipc::SignalContext::the().baseport<<" host = "<<host<<":"<<port);
+		idbg((void*)this<<" back on sender: baseport = "<<fdt::ipc::ConnectionContext::the().baseport<<" host = "<<host<<":"<<port);
 		
 		DynamicPointer<fdt::Signal> sig(this);
 		

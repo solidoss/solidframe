@@ -62,7 +62,7 @@ int RemoteListSignal::release(){
 	return rv;
 }
 uint32 RemoteListSignal::ipcPrepare(){
-	const foundation::ipc::SignalContext	&rsigctx(foundation::ipc::SignalContext::the());
+	const foundation::ipc::ConnectionContext	&rsigctx(foundation::ipc::ConnectionContext::the());
 	Locker<Mutex>							lock(mutex());
 	
 	if(success == 0) success = 1;//wait
@@ -78,7 +78,7 @@ void RemoteListSignal::ipcReceived(
 ){
 	DynamicPointer<fdt::Signal> psig(this);
 	idbg(""<<(void*)this<<" siguid = "<<siguid.idx<<' '<<siguid.uid);
-	conid = fdt::ipc::SignalContext::the().connectionuid;
+	conid = fdt::ipc::ConnectionContext::the().connectionuid;
 	++ipcstatus;
 	if(ipcstatus == IpcOnPeer){//on peer
 		idbg("Received RemoteListSignal on peer");
@@ -194,7 +194,7 @@ void FetchMasterSignal::ipcReceived(
 	fdt::ipc::SignalUid &_rsiguid
 ){
 	DynamicPointer<fdt::Signal> sig(this);
-	conid = fdt::ipc::SignalContext::the().connectionuid;;
+	conid = fdt::ipc::ConnectionContext::the().connectionuid;;
 	state = Received;
 	idbg("received master signal");
 	print();
@@ -309,19 +309,19 @@ int FetchMasterSignal::receiveSignal(
 ){
 	if(_rsig->dynamicTypeId() == InputStreamSignal::staticTypeId()){
 		idbg((void*)this<<" Received stream");
-		InputStreamSignal &rsig(*static_cast<InputStreamSignal*>(_rsig.ptr()));
+		InputStreamSignal &rsig(*static_cast<InputStreamSignal*>(_rsig.get()));
 		ins = rsig.sptr;
 		fuid = rsig.fileuid;
 		state = SendFirstStream;
 	}else /*if(_rsig->dynamicTypeId() == OutputStreamSignal::staticTypeId()){
-		OutputStreamSignal &rsig(*static_cast<OutputStreamSignal*>(_rsig.ptr()));
+		OutputStreamSignal &rsig(*static_cast<OutputStreamSignal*>(_rsig.get()));
 	}else if(_rsig->dynamicTypeId() == InputOutputStreamSignal::staticTypeId()){
-		InputOutputStreamSignal &rsig(*static_cast<InputOutputStreamSignal*>(_rsig.ptr()));
+		InputOutputStreamSignal &rsig(*static_cast<InputOutputStreamSignal*>(_rsig.get()));
 	}else */if(_rsig->dynamicTypeId() == StreamErrorSignal::staticTypeId()){
-		//StreamErrorSignal &rsig(*static_cast<StreamErrorSignal*>(_rsig.ptr()));
+		//StreamErrorSignal &rsig(*static_cast<StreamErrorSignal*>(_rsig.get()));
 		state = SendError;
 	}else if(_rsig->dynamicTypeId() == FetchSlaveSignal::staticTypeId()){
-		//FetchSlaveSignal &rsig(*static_cast<FetchSlaveSignal*>(_rsig.ptr()));
+		//FetchSlaveSignal &rsig(*static_cast<FetchSlaveSignal*>(_rsig.get()));
 		psig = static_cast<FetchSlaveSignal*>(_rsig.release());
 		idbg((void*)this<<" Received slavesignal");
 		state = SendNextStream;
@@ -401,7 +401,7 @@ void FetchSlaveSignal::ipcReceived(
 	fdt::ipc::SignalUid &_rsiguid
 ){
 	DynamicPointer<fdt::Signal> psig(this);
-	conid = fdt::ipc::SignalContext::the().connectionuid;
+	conid = fdt::ipc::ConnectionContext::the().connectionuid;
 	if(filesz == -10){
 		idbg((void*)this<<" Received FetchSlaveSignal on peer");
 		print();
@@ -430,7 +430,7 @@ int FetchSlaveSignal::execute(
 void FetchSlaveSignal::initOutputStream(){
 	fdt::RequestUid					requid;
 	Manager::the().fileManager().stream(outs, fuid, requid, fdt::file::Manager::Forced);
-	idbg((void*)this<<" Create deserialization streamptr "<<(void*)outs.ptr());
+	idbg((void*)this<<" Create deserialization streamptr "<<(void*)outs.get());
 }
 
 void FetchSlaveSignal::clearOutputStream(){
@@ -445,7 +445,7 @@ void SendStringSignal::ipcReceived(
 	fdt::ipc::SignalUid &_rsiguid
 ){
 	DynamicPointer<fdt::Signal> psig(this);
-	conid = fdt::ipc::SignalContext::the().connectionuid;;
+	conid = fdt::ipc::ConnectionContext::the().connectionuid;;
 	m().signal(psig, tov.first, tov.second);
 }
 
@@ -461,7 +461,7 @@ void SendStreamSignal::ipcReceived(
 	fdt::ipc::SignalUid &_rsiguid
 ){
 	DynamicPointer<fdt::Signal> psig(this);
-	conid = fdt::ipc::SignalContext::the().connectionuid;;
+	conid = fdt::ipc::ConnectionContext::the().connectionuid;;
 	m().signal(psig, tov.first, tov.second);
 }
 
@@ -483,7 +483,7 @@ int SendStreamSignal::createDeserializationStream(
 		idbg("Oops, could not open file");
 		return BAD;
 	}else{
-		_rpos = static_cast<OutputStream*>(this->iosp.ptr());
+		_rpos = static_cast<OutputStream*>(this->iosp.get());
 	}
 	return OK;
 }
@@ -498,7 +498,7 @@ int SendStreamSignal::createSerializationStream(
 	if(_id) return NOK;
 	idbg("Create serialization <"<<_id<<"> sz "<<_rsz);
 	//The stream is already opened
-	_rpis = static_cast<InputStream*>(this->iosp.ptr());
+	_rpis = static_cast<InputStream*>(this->iosp.get());
 	_rsz = this->iosp->size();
 	return OK;
 }

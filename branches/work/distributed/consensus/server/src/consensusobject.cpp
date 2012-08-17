@@ -416,8 +416,8 @@ bool Object::Data::insertRequestStub(DynamicPointer<WriteRequestSignal> &_rsig, 
 }
 void Object::Data::eraseRequestStub(const size_t _idx){
 	RequestStub &rreq(requestStub(_idx));
-	//cassert(rreq.sig.ptr());
-	if(rreq.sig.ptr()){
+	//cassert(rreq.sig.get());
+	if(rreq.sig.get()){
 		reqmap.erase(&rreq.sig->id);
 	}
 	rreq.sig.clear();

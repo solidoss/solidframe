@@ -372,7 +372,7 @@ int RemoteList::receiveError(
 Fetch::Fetch(Connection &_rc):rc(_rc), state(0), litsz(-1){
 }
 Fetch::~Fetch(){
-	idbg(""<<(void*)this<<' '<<(void*)sp_in.ptr());
+	idbg(""<<(void*)this<<' '<<(void*)sp_in.get());
 	sp_in.clear();
 	sp_out.clear();
 }
@@ -524,7 +524,7 @@ int Fetch::doSendNextData(Writer &_rw){
 	litsz -= streamsz_out;
 	sp_out = sp_in;
 	cassert(sp_out);
-	it.reinit(sp_out.ptr());
+	it.reinit(sp_out.get());
 	//_rw.push(&Writer::putCrlf);
 	_rw.push(&Writer::putStream, protocol::Parameter(&it, &streamsz_out));
 	return Writer::Continue;
@@ -534,7 +534,7 @@ int Fetch::doSendLiteral(Writer &_rw, bool _local){
 	idbg("send literal "<<litsz<<" "<<streamsz_out);
 	//send local stream
 	cassert(sp_out);
-	it.reinit(sp_out.ptr());
+	it.reinit(sp_out.get());
 	_rw<<"* DATA {"<<litsz<<"}\r\n";
 	litsz -= streamsz_out;
 	if(_local){
@@ -692,7 +692,7 @@ int Store::reinitReader(Reader &_rr, protocol::Parameter &_rp){
 		case SendWait:
 			if(sp){
 				idbg("sending wait and preparing fetch");
-				it.reinit(sp.ptr());
+				it.reinit(sp.get());
 				rc.writer()<<"* Expecting "<<litsz<<" CHARs\r\n";
 				litsz64 = litsz;
 				_rr.replace(&Reader::fetchLiteralStream, protocol::Parameter(&it, &litsz64));
@@ -878,7 +878,7 @@ int Idle::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 	}else if(_rp.b.i == 2){
 		streamq.front()->seek(0);//go to begining
 		litsz64 = streamq.front()->size();
-		it.reinit(streamq.front().ptr());
+		it.reinit(streamq.front().get());
 		_rw<<" DATA {"<<(uint32)streamq.front()->size()<<"}\r\n";
 		_rw.replace(&Writer::putStream, protocol::Parameter(&it, &litsz64));
 		return Writer::Continue;

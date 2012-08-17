@@ -127,7 +127,7 @@ public:
 		ObjectTypeStub		&rots(objectTypeStub(tid));
 		const ObjectUidT	objuid(doInsertObject(*_op, tid, _ridx));
 		
-		(*rots.insert_callback)(_op.ptr(), this, objuid);
+		(*rots.insert_callback)(_op.get(), this, objuid);
 		
 		S::schedule(_op, _schidx);
 		
@@ -231,7 +231,7 @@ protected:
 		ObjectTypeStub		&rots(objectTypeStub(tid));
 		const ObjectUidT	objuid(doInsertObject(*_op, tid, _ridx));
 		
-		(*rots.insert_callback)(_op.ptr(), this, objuid);
+		(*rots.insert_callback)(_op.get(), this, objuid);
 		
 		S::schedule(_op, _schidx);
 		

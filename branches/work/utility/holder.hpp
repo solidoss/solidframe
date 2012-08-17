@@ -56,13 +56,13 @@ struct Holder{
 		Only call the objects destructor
 	*/
 	~Holder(){
-		ptr()->~B();
+		get()->~B();
 	}
 	
 	//! A template assertion operator
 	template <class C>
 	Holder& operator=(const C &_c){
-		ptr()->~B();
+		get()->~B();
 		cstatic_assert(sizeof(C) <= Capacity);
 		cassert(&static_cast<const B&>(_c) == &_c);
 		new(b) C(_c);
@@ -70,21 +70,21 @@ struct Holder{
 	}
 	//! Gets a reference to the internal object
 	B& operator*(){
-		return *ptr();
+		return *get();
 	}
 	
 	//! Gets a const reference to the internal object
 	const B& operator*()const{
-		return *ptr();
+		return *get();
 	}
 	
-	B* ptr()const{
+	B* get()const{
 		return reinterpret_cast<B*>(const_cast<char*>(b));
 	}
 	
 	//! The interface for a pointer
 	B* operator->()const{
-		return ptr();
+		return get();
 	}
 private:
 	char	b[Capacity];

@@ -633,7 +633,7 @@ int Controller::authenticate(
 	uint32 &_rflags,
 	SerializationTypeIdT &_rtid
 ){
-	//use: SignalContext::the().connectionuid!!
+	//use: ConnectionContext::the().connectionuid!!
 	return BAD;//by default no authentication
 }
 

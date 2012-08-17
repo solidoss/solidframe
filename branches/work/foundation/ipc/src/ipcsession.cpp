@@ -235,8 +235,8 @@ struct Session::Data{
 			//cassert(!pserializer);
 		}
 		bool operator<(const SendSignalData &_owc)const{
-			if(signal.ptr()){
-				if(_owc.signal.ptr()){
+			if(signal.get()){
+				if(_owc.signal.get()){
 				}else return true;
 			}else return false;
 			
@@ -510,7 +510,7 @@ Session::Data::~Data(){
 			pushSerializer(rssd.pserializer);
 			rssd.pserializer = NULL;
 		}
-		if(rssd.signal.ptr()){
+		if(rssd.signal.get()){
 			if((rssd.flags & Service::WaitResponseFlag) && (rssd.flags & Service::SentFlag)){
 				//the was successfully sent but the response did not arrive
 				rssd.signal->ipcFail(1);
@@ -606,12 +606,12 @@ SignalUid Session::Data::pushSendWaitSignal(
 		sendsignalfreeposstk.pop();
 		
 		rssd.bufid = _bufid;
-		cassert(!rssd.signal.ptr());
+		cassert(!rssd.signal.get());
 		rssd.signal = _sig;
 		rssd.tid = _rtid;
 		
 		//rssd.signal.context().waitid = SignalUid(idx, rssd.uid);
-		cassert(!_sig.ptr());
+		cassert(!_sig.get());
 		rssd.flags = _flags;
 		rssd.id = _id;
 		
@@ -620,7 +620,7 @@ SignalUid Session::Data::pushSendWaitSignal(
 	}else{
 		
 		sendsignalvec.push_back(SendSignalData(_sig, _rtid, _bufid, _flags, _id));
-		cassert(!_sig.ptr());
+		cassert(!_sig.get());
 		//sendsignalvec.back().signal.context().waitid = SignalUid(sendsignalvec.size() - 1, 0);
 		//return sendsignalvec.back().signal.context().waitid;
 		return SignalUid(sendsignalvec.size() - 1, 0);
@@ -679,7 +679,7 @@ void Session::Data::popSentWaitSignal(const SignalUid &_rsiguid){
 void Session::Data::popSentWaitSignal(const uint32 _idx){
 	idbgx(Dbg::ipc, ""<<_idx);
 	SendSignalData &rssd(sendsignalvec[_idx]);
-	cassert(rssd.signal.ptr());
+	cassert(rssd.signal.get());
 	if(rssd.flags & Service::DisconnectAfterSendFlag){
 		idbgx(Dbg::ipc, "DisconnectAfterSendFlag - disconnecting");
 		++rssd.uid;
@@ -840,7 +840,7 @@ void Session::Data::pushSignalToSendQueue(
 	const uint32 _flags,
 	const SerializationTypeIdT _tid
 ){
-		cassert(_sigptr.ptr());
+		cassert(_sigptr.get());
 		const SignalUid	uid(pushSendWaitSignal(_sigptr, _tid, 0, _flags, sendsignalid++));
 		SendSignalData 	&rssd(sendsignalvec[uid.idx]);
 		
@@ -1104,7 +1104,7 @@ void Session::reconnect(Session *_pses){
 	//then we push into signalq the signals from sendsignalvec
 	for(Data::SendSignalVectorT::const_iterator it(d.sendsignalvec.begin()); it != d.sendsignalvec.end(); ++it){
 		const Data::SendSignalData &rssd(*it);
-		if(rssd.signal.ptr()){
+		if(rssd.signal.get()){
 			//the sendsignalvec may contain signals sent successfully, waiting for a response
 			//those signals are not queued in the scq
 			d.signalq.push(Data::SignalStub(rssd.signal, rssd.tid, rssd.flags));
@@ -1198,7 +1198,7 @@ void Session::completeConnect(
 		const int				authrv = rctrl.authenticate(sigptr, siguid, flags, tid);
 		switch(authrv){
 			case BAD:
-				if(sigptr.ptr()){
+				if(sigptr.get()){
 					d.state = Data::WaitDisconnecting;
 					d.keepalivetimeout = 0;
 					flags |= Service::DisconnectAfterSendFlag;
@@ -1581,7 +1581,7 @@ void Session::doParseBuffer(Talker::TalkerStub &_rstub, const Buffer &_rbuf/*, c
 				const int 				authrv = rctrl.authenticate(sigptr, siguid, flags, tid);
 				switch(authrv){
 					case BAD:
-						if(sigptr.ptr()){
+						if(sigptr.get()){
 							d.state = Data::WaitDisconnecting;
 							d.keepalivetimeout = 0;
 							flags |= Service::DisconnectAfterSendFlag;
@@ -1597,13 +1597,13 @@ void Session::doParseBuffer(Talker::TalkerStub &_rstub, const Buffer &_rbuf/*, c
 					case OK:
 						d.state = Data::Connected;
 						d.keepalivetimeout = _rstub.service().keepAliveTimeout();
-						if(sigptr.ptr()){
+						if(sigptr.get()){
 							flags |= Service::WaitResponseFlag;
 							d.pushSignalToSendQueue(sigptr, flags, tid);
 						}
 						break;
 					case NOK:
-						if(sigptr.ptr()){
+						if(sigptr.get()){
 							flags |= Service::WaitResponseFlag;
 							d.pushSignalToSendQueue(sigptr, flags, tid);
 						}
@@ -1906,7 +1906,7 @@ void Session::doFillSendBuffer(Talker::TalkerStub &_rstub, const uint32 _bufidx)
 				}else{
 					rssd.pserializer = d.popSerializer(_rstub.service().typeMapperBase());
 				}
-				Signal *psig(rssd.signal.ptr());
+				Signal *psig(rssd.signal.get());
 				if(rssd.tid == SERIALIZATION_INVALIDID){
 					rssd.pserializer->push(psig,"signal");
 				}else{
@@ -2089,7 +2089,7 @@ Context::~Context(){
 }
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
-/*static*/ const SignalContext& SignalContext::the(){
+/*static*/ const ConnectionContext& ConnectionContext::the(){
 	return Context::the().sigctx;
 }
 
