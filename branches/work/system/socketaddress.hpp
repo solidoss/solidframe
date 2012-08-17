@@ -22,7 +22,7 @@
 #ifndef SYSTEM_SOCKETADDRESS_HPP
 #define SYSTEM_SOCKETADDRESS_HPP
 
-#include <sys/un.h>
+//#include <sys/un.h>
 #include <arpa/inet.h>
 
 #include "system/common.hpp"
