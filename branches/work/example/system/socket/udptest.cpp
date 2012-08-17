@@ -4,6 +4,21 @@
 using namespace std;
 
 int main(){
+#ifdef ON_WINDOWS
+	WSADATA	wsaData;
+    int		err;
+	WORD	wVersionRequested;
+/* Use the MAKEWORD(lowbyte, highbyte) macro declared in Windef.h */
+    wVersionRequested = MAKEWORD(2, 2);
+
+    err = WSAStartup(wVersionRequested, &wsaData);
+	if (err != 0) {
+        /* Tell the user that we could not find a usable */
+        /* Winsock DLL.                                  */
+        printf("WSAStartup failed with error: %d\n", err);
+        return 1;
+    }
+#endif
 	ResolveData rd =  synchronous_resolve("0.0.0.0", "0", 0, SocketInfo::Inet4, SocketInfo::Datagram, 0);
 	ResolveIterator it(rd.begin());
 	

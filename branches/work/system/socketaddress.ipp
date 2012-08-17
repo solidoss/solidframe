@@ -156,9 +156,11 @@ inline SocketAddressStub::SocketAddressStub(const SocketAddressInet4 &_rsa):addr
 inline SocketAddressStub::SocketAddressStub(const SocketAddressInet6 &_rsa):addr(_rsa.sockAddr()), sz(_rsa.size()){
 	
 }
+#ifndef ON_WINDOWS
 inline SocketAddressStub::SocketAddressStub(const SocketAddressLocal &_rsa):addr(_rsa.sockAddr()), sz(_rsa.size()){
 	
 }
+#endif
 inline SocketAddressStub& SocketAddressStub::operator=(const ResolveIterator &_it){
 	if(_it){
 		addr = _it.sockAddr(); sz = _it.size();
@@ -187,12 +189,13 @@ inline SocketAddressStub& SocketAddressStub::operator=(const SocketAddressInet6 
 	sz = _rsa.size();
 	return *this;
 }
+#ifndef ON_WINDOWS
 inline SocketAddressStub& SocketAddressStub::operator=(const SocketAddressLocal &_rsa){
 	addr = _rsa.sockAddr();
 	sz = _rsa.size();
 	return *this;
 }
-
+#endif
 inline SocketAddressStub::operator const sockaddr*()const{
 	return sockAddr();
 }
@@ -1030,7 +1033,7 @@ inline size_t hash(const in6_addr &_inaddr){
 //-----------------------------------------------------------------------
 //			SocketAddressLocal
 //-----------------------------------------------------------------------
-
+#ifndef ON_WINDOWS
 inline SocketAddressLocal::SocketAddressLocal(){
 	
 }
@@ -1095,6 +1098,7 @@ inline SocketAddressLocal::operator sockaddr*(){
 inline sockaddr* SocketAddressLocal::sockAddr(){
 	return &d.addr;
 }
+#endif
 
 #ifdef NINLINES
 #undef inline

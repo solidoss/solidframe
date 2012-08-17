@@ -22,8 +22,10 @@
 #ifndef SYSTEM_SOCKETADDRESS_HPP
 #define SYSTEM_SOCKETADDRESS_HPP
 
-//#include <sys/un.h>
+#ifndef ON_WINDOWS
+#include <sys/un.h>
 #include <arpa/inet.h>
+#endif
 
 #include "system/common.hpp"
 #include "system/socketinfo.hpp"
@@ -37,7 +39,7 @@
 #include "system/sharedbackend.hpp"
 #endif
 
-struct SocketDevice;
+class SocketDevice;
 //struct sockaddr_in;
 //struct sockaddr_in6;
 //==================================================================
@@ -184,7 +186,9 @@ private:
 		sockaddr		addr;
 		sockaddr_in 	inaddr4;
 		sockaddr_in6 	inaddr6;
+#ifndef ON_WINDOWS
 		sockaddr_un		localaddr;
+#endif
 	};
 public:
 	enum {Capacity = sizeof(AddrUnion)};
@@ -261,7 +265,7 @@ public:
 	void path(const char*_pth);
 	const char* path()const;
 private:
-	friend struct SocketDevice;
+	friend class SocketDevice;
 	operator sockaddr*();
 	sockaddr* sockAddr();
 	AddrUnion	d;
@@ -323,7 +327,7 @@ public:
 	size_t addressHash()const;
 	
 private:
-	friend struct SocketDevice;
+	friend class SocketDevice;
 	operator sockaddr*();
 	sockaddr* sockAddr();
 	AddrUnion	d;
@@ -392,7 +396,7 @@ public:
 	size_t addressHash()const;
 	
 private:
-	friend struct SocketDevice;
+	friend class SocketDevice;
 	operator sockaddr*();
 	sockaddr* sockAddr();
 	AddrUnion	d;
@@ -456,7 +460,7 @@ public:
 	size_t addressHash()const;
 	
 private:
-	friend struct SocketDevice;
+	friend class SocketDevice;
 	operator sockaddr*();
 	sockaddr* sockAddr();
 	AddrUnion	d;
@@ -474,6 +478,7 @@ size_t hash(const in_addr &_inaddr);
 
 size_t hash(const in6_addr &_inaddr);
 //==================================================================
+#ifndef ON_WINDOWS
 struct SocketAddressLocal{
 private:
 	union AddrUnion{
@@ -513,6 +518,7 @@ private:
 	AddrUnion	d;
 	socklen_t	sz;
 };
+#endif
 //==================================================================
 #ifndef NINLINES
 #include "system/cassert.hpp"

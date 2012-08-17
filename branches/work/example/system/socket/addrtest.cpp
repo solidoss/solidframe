@@ -18,14 +18,16 @@
 	You should have received a copy of the GNU General Public License
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
-
+#ifndef ON_WINDOWS
 #include <poll.h>
+#include <unistd.h>
+#include <unistd.h>
+#endif
 #include "system/socketaddress.hpp"
 #include "system/socketdevice.hpp"
 #include "system/timespec.hpp"
 #include "system/cassert.hpp"
 #include <boost/concept_check.hpp>
-#include <unistd.h>
 #include <fcntl.h>
 #include <cerrno>
 #include <iostream>
@@ -34,9 +36,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <errno.h>
 
+/*
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
@@ -46,7 +48,7 @@
 
 #include <netinet/in.h>
 #include <arpa/inet.h>
-
+*/
 using namespace std;
 
 void listLocalInterfaces();
@@ -54,6 +56,21 @@ void listLocalInterfaces();
 void testLiterals();
 
 int main(int argc, char *argv[]){
+#ifdef ON_WINDOWS
+	WSADATA	wsaData;
+    int		err;
+	WORD	wVersionRequested;
+/* Use the MAKEWORD(lowbyte, highbyte) macro declared in Windef.h */
+    wVersionRequested = MAKEWORD(2, 2);
+
+    err = WSAStartup(wVersionRequested, &wsaData);
+	if (err != 0) {
+        /* Tell the user that we could not find a usable */
+        /* Winsock DLL.                                  */
+        printf("WSAStartup failed with error: %d\n", err);
+        return 1;
+    }
+#endif
 	testLiterals();
 	if(argc < 3){
 		cout<<"error too few arguments"<<endl;
@@ -241,6 +258,7 @@ void listLocalInterfaces(){
 #endif
 
 void listLocalInterfaces(){
+#ifndef ON_WINDOWS
 	struct ifaddrs* ifap;
 	if(::getifaddrs(&ifap)){
 		cout<<"getifaddrs did not work"<<endl;
@@ -264,6 +282,7 @@ void listLocalInterfaces(){
 		it = it->ifa_next;
 	}
 	freeifaddrs(ifap);
+#endif
 }
 
 

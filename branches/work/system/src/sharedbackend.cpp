@@ -22,8 +22,9 @@
 #include "system/sharedbackend.hpp"
 #include "system/mutex.hpp"
 #include "system/mutualstore.hpp"
+#ifdef HAS_GNU_ATOMIC
 #include <ext/concurrence.h>
-
+#endif
 #include <deque>
 #include <stack>
 #include <queue>

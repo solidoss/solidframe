@@ -23,8 +23,9 @@
 #define SYSTEM_SHAREDBACKEND_HPP
 
 #include "system/common.hpp"
+#ifdef HAS_GNU_ATOMIC
 #include <ext/atomicity.h>
-
+#endif
 
 struct SharedStub{
 	typedef void (*DelFncT)(void*);
