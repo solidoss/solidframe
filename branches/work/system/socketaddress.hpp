@@ -222,15 +222,15 @@ public:
 		getnameinfo.
 		Usage:<br>
 		<CODE>
-		char			host[SocketAddress::HostNameCapacity];<br>
+		char			host[SocketAddress::HostStringCapacity];<br>
 		char			port[SocketAddress::ServerNameCapacity];<br>
 		SocketAddress	addr;<br>
 		channel().localAddress(addr);<br>
 		addr.name(<br>
 			host,<br>
-			SocketAddress::HostNameCapacity,<br>
+			SocketAddress::HostStringCapacity,<br>
 			port,<br>
-			SocketAddress::ServiceNameCapacity,<br>
+			SocketAddress::ServiceStringCapacity,<br>
 			SocketAddress::NumericService<br>
 		);<br>
 		</CODE>
@@ -350,7 +350,7 @@ public:
 	SocketAddressInet4(uint32 _addr, int _port);
 	SocketAddressInet4(const BinaryT &_addr, int _port = 0);
 	
-	SocketAddressInet4& operator=(const ResolveIterator &);
+	//SocketAddressInet4& operator=(const ResolveIterator &);
 	SocketAddressInet4& operator=(const SocketAddressStub &);
 			
 	SocketInfo::Family family()const;

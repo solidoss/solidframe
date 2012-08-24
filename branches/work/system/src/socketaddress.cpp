@@ -73,7 +73,7 @@ ResolveData synchronous_resolve(
 	h.ai_canonname = NULL;
 	h.ai_next = NULL;
 	addrinfo *paddr = NULL;
-	int rv = getaddrinfo(_node, _service, &h, &paddr);
+	getaddrinfo(_node, _service, &h, &paddr);
 	return ResolveData(paddr);
 }
 

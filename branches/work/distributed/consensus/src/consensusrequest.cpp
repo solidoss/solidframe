@@ -64,16 +64,15 @@ size_t RequestId::senderHash()const{
 }
 std::ostream &operator<<(std::ostream& _ros, const RequestId &_rreqid){
 	_ros<<_rreqid.requid<<','<<' '<<_rreqid.senderuid.first<<','<<' '<<_rreqid.senderuid.second<<','<<' ';
-	const SocketAddress4 &ra(_rreqid.sockaddr);
-	char				host[SocketAddress::HostNameCapacity];
-	char				port[SocketAddress::ServiceNameCapacity];
-	ra.name(
+	const SocketAddressInet4	&ra(_rreqid.sockaddr);
+	char						host[SocketInfo::HostStringCapacity];
+	char						port[SocketInfo::ServiceStringCapacity];
+	ra.toString(
 		host,
-		SocketAddress::HostNameCapacity,
+		SocketInfo::HostStringCapacity,
 		port,
-		SocketAddress::ServiceNameCapacity
-		,
-		SocketAddress::NumericService | SocketAddress::NumericHost
+		SocketInfo::ServiceStringCapacity,
+		SocketInfo::NumericService | SocketInfo::NumericHost
 	);
 	_ros<<host<<':'<<port;
 	return _ros;
@@ -100,17 +99,17 @@ void WriteRequestSignal::ipcReceived(
 	//_rsiguid = this->ipcsiguid;
 	ipcconid = fdt::ipc::ConnectionContext::the().connectionuid;
 	
-	char				host[SocketAddress::HostNameCapacity];
-	char				port[SocketAddress::ServiceNameCapacity];
+	char				host[SocketInfo::HostStringCapacity];
+	char				port[SocketInfo::ServiceStringCapacity];
 	
 	id.sockaddr = fdt::ipc::ConnectionContext::the().pairaddr;
 	
-	id.sockaddr.name(
+	id.sockaddr.toString(
 		host,
-		SocketAddress::HostNameCapacity,
+		SocketInfo::HostStringCapacity,
 		port,
-		SocketAddress::ServiceNameCapacity,
-		SocketAddress::NumericService | SocketAddress::NumericHost
+		SocketInfo::ServiceStringCapacity,
+		SocketInfo::NumericService | SocketInfo::NumericHost
 	);
 	
 	waitresponse = false;
@@ -191,17 +190,17 @@ void ReadRequestSignal::ipcReceived(
 	//_rsiguid = this->ipcsiguid;
 	ipcconid = fdt::ipc::ConnectionContext::the().connectionuid;
 	
-	char				host[SocketAddress::HostNameCapacity];
-	char				port[SocketAddress::ServiceNameCapacity];
+	char				host[SocketInfo::HostStringCapacity];
+	char				port[SocketInfo::ServiceStringCapacity];
 	
 	id.sockaddr = fdt::ipc::ConnectionContext::the().pairaddr;
 	
-	id.sockaddr.name(
+	id.sockaddr.toString(
 		host,
-		SocketAddress::HostNameCapacity,
+		SocketInfo::HostStringCapacity,
 		port,
-		SocketAddress::ServiceNameCapacity,
-		SocketAddress::NumericService | SocketAddress::NumericHost
+		SocketInfo::ServiceStringCapacity,
+		SocketInfo::NumericService | SocketInfo::NumericHost
 	);
 	
 	waitresponse = false;

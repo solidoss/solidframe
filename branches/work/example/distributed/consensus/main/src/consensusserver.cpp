@@ -124,8 +124,10 @@ int main(int argc, char *argv[]){
 		m.start();
 		
 		if(true){
-			SocketAddressInfo ai("0.0.0.0", p.ipc_port, 0, SocketAddressInfo::Inet4, SocketAddressInfo::Datagram);
-			foundation::ipc::Service::the().insertTalker(ai.begin());
+			ResolveData rd = synchronous_resolve(
+				"0.0.0.0", p.ipc_port, 0, SocketInfo::Inet4, SocketInfo::Datagram
+			);
+			foundation::ipc::Service::the().insertTalker(rd.begin());
 		}
 		
 		foundation::ObjectPointer<ServerObject>	op(new ServerObject);

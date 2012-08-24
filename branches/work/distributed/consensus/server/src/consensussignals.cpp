@@ -42,17 +42,18 @@ void Signal::ipcReceived(
 	//_rsiguid = this->ipcsiguid;
 	//ipcconid = fdt::ipc::ConnectionContext::the().connectionuid;
 	
-	char				host[SocketAddress::HostNameCapacity];
-	char				port[SocketAddress::ServiceNameCapacity];
+	char				host[SocketInfo::HostStringCapacity];
+	char				port[SocketInfo::ServiceStringCapacity];
 	
-	SocketAddress4		sa;
+	//TODO:!! sa not initialized !?
+	SocketAddressInet4	sa;
 	
-	sa.name(
+	sa.toString(
 		host,
-		SocketAddress::HostNameCapacity,
+		SocketInfo::HostStringCapacity,
 		port,
-		SocketAddress::ServiceNameCapacity,
-		SocketAddress::NumericService | SocketAddress::NumericHost
+		SocketInfo::ServiceStringCapacity,
+		SocketInfo::NumericService | SocketInfo::NumericHost
 	);
 	
 	if(state == OnSender){
