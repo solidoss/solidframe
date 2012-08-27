@@ -984,6 +984,8 @@ int SocketDevice::enableCork(){
 		return BAD;
 	}
 	return OK;
+#else
+	return BAD;
 #endif
 }
 
@@ -999,13 +1001,15 @@ int SocketDevice::disableCork(){
 		return BAD;
 	}
 	return OK;
+#else
+	return BAD;
 #endif
 }
 
 int SocketDevice::hasCork()const{
 #ifdef ON_WINDOWS
 	return BAD;
-#else
+#elif defined(ON_LINUX)
 	int			flag = 0;
 	socklen_t	sz(sizeof(flag));
 	int rv = getsockopt(descriptor(), IPPROTO_TCP, TCP_CORK, (char*)&flag, &sz);
@@ -1014,6 +1018,8 @@ int SocketDevice::hasCork()const{
 		return BAD;
 	}
 	return rv ? OK : NOK;
+#else
+	return BAD;
 #endif
 }
 

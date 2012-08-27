@@ -54,6 +54,7 @@ struct Controller{
 		GatewayFlag = 2
 	};
 	struct SocketAddressIterator{
+		SocketAddressIterator(){}
 		bool operator==(const SocketAddressIterator &_rit){
 			return true;
 		}
