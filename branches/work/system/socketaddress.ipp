@@ -361,8 +361,8 @@ inline bool SocketAddress::operator<(const SocketAddress &_raddr)const{
 	
 	if(isInet6()){
 		const int rv = memcmp(
-			(const void*)this->d.inaddr6.sin6_addr.s6_addr,
-			(const void*)_raddr.d.inaddr6.sin6_addr.s6_addr,
+			(const void*)&this->d.inaddr6.sin6_addr.s6_addr,
+			(const void*)&_raddr.d.inaddr6.sin6_addr.s6_addr,
 			sizeof(in6_addr)
 		);
 		if(rv < 0){
@@ -384,8 +384,8 @@ inline bool SocketAddress::operator==(const SocketAddress &_raddr)const{
 	if(sockAddr()->sa_family == _raddr.sockAddr()->sa_family){
 		if(isInet6()){
 			return (memcmp(
-				(const void*)this->d.inaddr6.sin6_addr.s6_addr,
-				(const void*)_raddr.d.inaddr6.sin6_addr.s6_addr,
+				(const void*)&this->d.inaddr6.sin6_addr.s6_addr,
+				(const void*)&_raddr.d.inaddr6.sin6_addr.s6_addr,
 				sizeof(in6_addr)
 			) == 0) && (d.inaddr6.sin6_port == _raddr.d.inaddr6.sin6_port);
 		}
@@ -400,13 +400,13 @@ inline void SocketAddress::address(const char*_str){
 	d.addr.sa_family = 0;
 	d.inaddr4.sin_addr.s_addr = 0;
 	sz = 0;
-	int rv = inet_pton(AF_INET6, _str, (void*)this->d.inaddr6.sin6_addr.s6_addr);
+	int rv = inet_pton(AF_INET6, _str, (void*)&this->d.inaddr6.sin6_addr.s6_addr);
 	if(rv == 1){
 		sockAddr()->sa_family = AF_INET6;
 		sz = sizeof(d.inaddr6);
 		return;
 	}
-	rv = inet_pton(AF_INET, _str, (void*)this->d.inaddr4.sin_addr.s_addr);
+	rv = inet_pton(AF_INET, _str, (void*)&this->d.inaddr4.sin_addr.s_addr);
 	if(rv == 1){
 		sockAddr()->sa_family = AF_INET;
 		sz = sizeof(d.inaddr4);
@@ -582,8 +582,8 @@ inline bool SocketAddressInet::operator<(const SocketAddressInet &_raddr)const{
 	
 	if(isInet6()){
 		const int rv = memcmp(
-			(const void*)this->d.inaddr6.sin6_addr.s6_addr,
-			(const void*)_raddr.d.inaddr6.sin6_addr.s6_addr,
+			(const void*)&this->d.inaddr6.sin6_addr.s6_addr,
+			(const void*)&_raddr.d.inaddr6.sin6_addr.s6_addr,
 			sizeof(in6_addr)
 		);
 		if(rv < 0){
@@ -605,8 +605,8 @@ inline bool SocketAddressInet::operator==(const SocketAddressInet &_raddr)const{
 	if(sockAddr()->sa_family == _raddr.sockAddr()->sa_family){
 		if(isInet6()){
 			return (memcmp(
-				(const void*)this->d.inaddr6.sin6_addr.s6_addr,
-				(const void*)_raddr.d.inaddr6.sin6_addr.s6_addr,
+				(const void*)&this->d.inaddr6.sin6_addr.s6_addr,
+				(const void*)&_raddr.d.inaddr6.sin6_addr.s6_addr,
 				sizeof(in6_addr)
 			) == 0) && (d.inaddr6.sin6_port == _raddr.d.inaddr6.sin6_port);
 		}
@@ -621,13 +621,13 @@ inline void SocketAddressInet::address(const char*_str){
 	d.addr.sa_family = 0;
 	d.inaddr4.sin_addr.s_addr = 0;
 	sz = 0;
-	int rv = inet_pton(AF_INET6, _str, (void*)this->d.inaddr6.sin6_addr.s6_addr);
+	int rv = inet_pton(AF_INET6, _str, (void*)&this->d.inaddr6.sin6_addr.s6_addr);
 	if(rv == 1){
 		sockAddr()->sa_family = AF_INET6;
 		sz = sizeof(d.inaddr6);
 		return;
 	}
-	rv = inet_pton(AF_INET, _str, (void*)this->d.inaddr4.sin_addr.s_addr);
+	rv = inet_pton(AF_INET, _str, (void*)&this->d.inaddr4.sin_addr.s_addr);
 	if(rv == 1){
 		sockAddr()->sa_family = AF_INET;
 		sz = sizeof(d.inaddr4);
@@ -799,7 +799,7 @@ inline bool SocketAddressInet4::operator==(const SocketAddressInet4 &_raddr)cons
 inline void SocketAddressInet4::address(const char*_str){
 	d.addr.sa_family = AF_INET;
 	d.inaddr4.sin_addr.s_addr = 0;
-	int rv = inet_pton(AF_INET, _str, (void*)this->d.inaddr4.sin_addr.s_addr);
+	int rv = inet_pton(AF_INET, _str, (void*)&this->d.inaddr4.sin_addr.s_addr);
 	if(rv == 1){
 		sockAddr()->sa_family = AF_INET;
 		return;
@@ -936,8 +936,8 @@ inline void SocketAddressInet6::fromBinary(const BinaryT &_bin, uint16 _port){
 
 inline bool SocketAddressInet6::operator<(const SocketAddressInet6 &_raddr)const{
 	const int rv = memcmp(
-		(const void*)this->d.inaddr6.sin6_addr.s6_addr,
-		(const void*)_raddr.d.inaddr6.sin6_addr.s6_addr,
+		(const void*)&this->d.inaddr6.sin6_addr.s6_addr,
+		(const void*)&_raddr.d.inaddr6.sin6_addr.s6_addr,
 		sizeof(in6_addr)
 	);
 	if(rv < 0){
@@ -949,8 +949,8 @@ inline bool SocketAddressInet6::operator<(const SocketAddressInet6 &_raddr)const
 }
 inline bool SocketAddressInet6::operator==(const SocketAddressInet6 &_raddr)const{
 	return (memcmp(
-		(const void*)this->d.inaddr6.sin6_addr.s6_addr,
-		(const void*)_raddr.d.inaddr6.sin6_addr.s6_addr,
+		(const void*)&this->d.inaddr6.sin6_addr.s6_addr,
+		(const void*)&_raddr.d.inaddr6.sin6_addr.s6_addr,
 		sizeof(in6_addr)
 	) == 0) && (d.inaddr6.sin6_port == _raddr.d.inaddr6.sin6_port);
 }
@@ -958,7 +958,7 @@ inline bool SocketAddressInet6::operator==(const SocketAddressInet6 &_raddr)cons
 inline void SocketAddressInet6::address(const char*_str){
 	d.addr.sa_family = AF_INET6;
 	memset(d.inaddr6.sin6_addr.s6_addr, 0, sizeof(d.inaddr6.sin6_addr.s6_addr));
-	int rv = inet_pton(AF_INET6, _str, (void*)this->d.inaddr6.sin6_addr.s6_addr);
+	int rv = inet_pton(AF_INET6, _str, (void*)&this->d.inaddr6.sin6_addr.s6_addr);
 	if(rv == 1){
 		sockAddr()->sa_family = AF_INET6;
 		return;
@@ -1007,16 +1007,16 @@ inline bool operator==(const in_addr &_inaddr1, const in_addr &_inaddr2){
 
 inline bool operator<(const in6_addr &_inaddr1, const in6_addr &_inaddr2){
 	return memcmp(
-		(const void*)_inaddr1.s6_addr,
-		(const void*)_inaddr2.s6_addr,
+		(const void*)&_inaddr1.s6_addr,
+		(const void*)&_inaddr2.s6_addr,
 		sizeof(in6_addr)
 	) < 0;
 }
 
 inline bool operator==(const in6_addr &_inaddr1, const in6_addr &_inaddr2){
 	return memcmp(
-		(const void*)_inaddr1.s6_addr,
-		(const void*)_inaddr2.s6_addr,
+		(const void*)&_inaddr1.s6_addr,
+		(const void*)&_inaddr2.s6_addr,
 		sizeof(in6_addr)
 	) == 0;
 }
