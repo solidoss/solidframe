@@ -137,6 +137,7 @@ public:
 	AlphaThread(
 		const Params &_rp,
 		unsigned _pos,
+		int _thrid = 0,
 		int _cnt = ((unsigned)(0xfffffff))
 	):
 		rp(_rp),
@@ -148,6 +149,7 @@ public:
 		wr(-1),sd(-1),cnt(_cnt),
 		pos(_pos), pssl(NULL){
 			repeatcnt = _rp.repeat;
+			thrid = _thrid;
 		}
 	void run();
 private:
@@ -174,6 +176,7 @@ private:
 	ulong				readc;
 	int					repeatcnt;
 	SSL					*pssl;
+	int					thrid;
 };
 
 void AlphaThread::run(){
@@ -430,7 +433,7 @@ int AlphaThread::fetch(unsigned _idx, char *_pb){
 	const char *bp;
 	string lit;
 	ulong litlen = 0;
-	
+	deque<int>	states;
 	while((rc = this->read(_pb, BufLen - 1)) > 0){
 		readc += rc;
 		inf.update(pos, readc);
@@ -443,6 +446,7 @@ int AlphaThread::fetch(unsigned _idx, char *_pb){
 		_pb[rc] = '\0';
 		//cout<<'[';cout.write(_pb, rc);cout<<']'<<endl;
 		while(b){
+			if(thrid == 1) states.push_back(state);
 			switch(state){
 				case StartLine:
 					if(!*bpos){b = false; break;}
@@ -546,6 +550,7 @@ int AlphaThread::fetch(unsigned _idx, char *_pb){
 			}
 		}
 	}
+	//if(thrid == 1) cout<<"exit"<<endl;
 	cout<<"err "<<strerror(errno)<<endl;
 	cout.write(_pb, BufLen);
 	cout.flush();
@@ -639,7 +644,7 @@ int main(int argc, char *argv[]){
 	//done with ssl context stuff
 	
 	for(int i = 0; i < p.con_cnt; ++i){
-		AlphaThread *pt = new AlphaThread(p, inf.pushBack());
+		AlphaThread *pt = new AlphaThread(p, inf.pushBack(), i);
 		inf.addWait();
 		pt->start(true, true, 24*1024);
 	}
