@@ -216,7 +216,7 @@ int main(int argc, char *argv[]){
 #ifdef UDEBUG
 	std::string s;
 	Dbg::instance().levelMask("view");
-	Dbg::instance().moduleMask("any");
+	Dbg::instance().moduleMask("any system");
 	Dbg::instance().initStdErr(
 		false,
 		&s

@@ -125,6 +125,6 @@ void SharedBackend::doRelease(SharedStub &_rss){
 SharedBackend::SharedBackend():d(*(new Data)){
 }
 SharedBackend::~SharedBackend(){
-	delete &d;
+	//delete &d;
 }
 

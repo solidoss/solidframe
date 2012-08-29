@@ -177,6 +177,8 @@ private:
 	int					repeatcnt;
 	SSL					*pssl;
 	int					thrid;
+	deque<int>			states;
+	deque<uint32>		literals;
 };
 
 void AlphaThread::run(){
@@ -252,6 +254,7 @@ void AlphaThread::run(){
 	idbg("return value "<<rv);
 	cout<<endl<<"return value"<<rv<<endl;
 	inf.subWait();
+	close(sd);
 }
 
 //----------------------------------------------------------------------------
@@ -423,8 +426,8 @@ int AlphaThread::fetch(unsigned _idx, char *_pb){
 	if(wr.flush()) return -1;
 	enum{
 		StartLine, FirstSpace, SecondSpace, LiteralStart,LiteralNumber,
-		ReadCR, ReadLF, ReadLit, ReadLitFinalCR, ReadLitFinalLF,
-		SkipLine, SkipLineLF, ReadFinalCR, ReadFinalLF
+		ReadCR, ReadLF, ReadLit/*7*/, ReadLitFinalCR, ReadLitFinalLF,
+		SkipLine/*10*/, SkipLineLF, ReadFinalCR/*12*/, ReadFinalLF
 	};
 	int rc;
 	int state = StartLine;
@@ -433,7 +436,7 @@ int AlphaThread::fetch(unsigned _idx, char *_pb){
 	const char *bp;
 	string lit;
 	ulong litlen = 0;
-	deque<int>	states;
+	states.push_back(-1);
 	while((rc = this->read(_pb, BufLen - 1)) > 0){
 		readc += rc;
 		inf.update(pos, readc);
@@ -446,7 +449,9 @@ int AlphaThread::fetch(unsigned _idx, char *_pb){
 		_pb[rc] = '\0';
 		//cout<<'[';cout.write(_pb, rc);cout<<']'<<endl;
 		while(b){
-			if(thrid == 1) states.push_back(state);
+			if(states.empty() || states.back() != state){
+				states.push_back(state);
+			}
 			switch(state){
 				case StartLine:
 					if(!*bpos){b = false; break;}
@@ -480,6 +485,7 @@ int AlphaThread::fetch(unsigned _idx, char *_pb){
 						bpos = bp + 1;
 						state = ReadCR;
 						litlen = atoi(lit.c_str());
+						literals.push_back(litlen);
 					}else{
 						b = false; break;
 					}

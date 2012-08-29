@@ -82,20 +82,35 @@ static const DynamicRegisterer<Connection>	dre;
 	DynamicExecuterT::registerDynamic<SendStreamSignal, Connection>();
 }
 
+#ifdef UDEBUG
+/*static*/ Connection::ConnectionsVectorT& Connection::connections(){
+	static ConnectionsVectorT cv;
+	return cv;
+}
+#endif
+
+
 Connection::Connection(
 	ResolveData &_rai
 ):	wtr(&logger), rdr(wtr, &logger),
 	pcmd(NULL), ai(_rai), reqid(1){
 	aiit = ai.begin();
 	state(Connect);
+#ifdef UDEBUG
+	connections().push_back(this);
+#endif
 }
 
 Connection::Connection(
 	const SocketDevice &_rsd
 ):	BaseT(_rsd), wtr(&logger),rdr(wtr, &logger),
 	pcmd(NULL), reqid(1){
-	
+
 	state(Init);
+#ifdef UDEBUG
+	connections().push_back(this);
+#endif
+
 }
 
 
@@ -114,6 +129,19 @@ NOTE:
 Connection::~Connection(){
 	idbg("destroy connection id "<<this->id()<<" pcmd "<<pcmd);
 	delete pcmd; pcmd = NULL;
+#ifdef UDEBUG
+	for(
+		ConnectionsVectorT::iterator it(connections().begin());
+		it != connections().end();
+		++it
+	){
+		if(*it == this){
+			*it = connections().back();
+			connections().pop_back();
+			break;
+		}
+	}
+#endif
 }
 
 

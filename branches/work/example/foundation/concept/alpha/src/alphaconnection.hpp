@@ -78,7 +78,10 @@ class Connection: public Dynamic<Connection, foundation::aio::SingleObject>{
 	//typedef DynamicExecuter<void, Connection, DynamicDefaultPointerStore, void>	DynamicExecuterT;
 public:
 	typedef Service	ServiceT;
-	
+#ifdef UDEBUG
+	typedef std::vector<Connection*> ConnectionsVectorT;
+	static ConnectionsVectorT& connections(); 
+#endif
 	static void initStatic(Manager &_rm);
 	static void dynamicRegister();
 	static Connection& the(){
