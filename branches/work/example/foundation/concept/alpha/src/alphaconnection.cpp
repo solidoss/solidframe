@@ -96,6 +96,7 @@ Connection::Connection(
 	pcmd(NULL), ai(_rai), reqid(1){
 	aiit = ai.begin();
 	state(Connect);
+	failedistreams = 0;
 #ifdef UDEBUG
 	connections().push_back(this);
 #endif
@@ -107,6 +108,7 @@ Connection::Connection(
 	pcmd(NULL), reqid(1){
 
 	state(Init);
+	failedistreams = 0;
 #ifdef UDEBUG
 	connections().push_back(this);
 #endif
@@ -470,7 +472,10 @@ void Connection::dynamicExecute(DynamicPointer<SendStreamSignal> &_psig){
 }
 void Connection::dynamicExecute(DynamicPointer<InputStreamSignal> &_psig){
 	idbg("");
-	if(_psig->requid.first && _psig->requid.first != reqid) return;
+	if(_psig->requid.first && _psig->requid.first != reqid){
+		++failedistreams;
+		return;
+	}
 	idbg("");
 	newRequestId();//prevent multiple responses with the same id
 	if(pcmd){

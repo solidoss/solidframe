@@ -288,7 +288,7 @@ inline T* findNot(T *_pc){
 int AlphaThread::list(char *_pb){
 	if(rp.peer_addr.size()){
 		//remote list
-		wr<<"s1 remotelist \""<<rp.path.c_str()<<"\" \""<<rp.peer_addr.c_str()<<"\" \""<<rp.peer_port.c_str()<<'\"'<<crlf;
+		wr<<"s1 remotelist \""<<rp.path.c_str()<<"\" \""<<rp.peer_addr.c_str()<<"\" "<<rp.peer_port.c_str()<<crlf;
 	}else if(rp.gateway_addr.size()){
 		wr<<"s1 remotelist \""<<rp.path.c_str()<<"\" \"";
 		wr<<rp.peer_addr.c_str()<<"\" \""<<rp.peer_port.c_str()<<"\" \"";
@@ -415,7 +415,7 @@ int AlphaThread::fetch(unsigned _idx, char *_pb){
 	wr<<"s2 fetch "<<sdq[_idx];
 	if(rp.peer_addr.size()){
 		//remote list
-		wr<<" \""<<rp.peer_addr.c_str()<<"\" \""<<rp.peer_port.c_str()<<'\"';
+		wr<<" \""<<rp.peer_addr.c_str()<<"\" "<<rp.peer_port.c_str();
 	}else if(rp.gateway_addr.size()){
 		wr<<" \""<<rp.peer_addr.c_str()<<"\" \""<<rp.peer_port.c_str()<<"\" \"";
 		wr<<rp.gateway_addr.c_str()<<"\" \""<<rp.gateway_port.c_str()<<"\" ";

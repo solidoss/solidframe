@@ -179,10 +179,10 @@ Manager::~Manager(){
 
 int Manager::execute(ulong _evs, TimeSpec &_rtout){
 	d.mtx->lock();
-	idbgx(Dbg::file, "signalmask "<<_evs);
+	//idbgx(Dbg::file, "signalmask "<<_evs);
 	if(signaled()){
 		ulong sm = grabSignalMask(0);
-		idbgx(Dbg::file, "signalmask "<<sm);
+		//idbgx(Dbg::file, "signalmask "<<sm);
 		if(sm & fdt::S_KILL){
 			state(Data::Stopping);
 			vdbgx(Dbg::file, "kill "<<d.sz);
@@ -297,7 +297,7 @@ void Manager::doPrepareStop(){
 }
 //------------------------------------------------------------------
 void Manager::doExecuteMappers(){
-	idbgx(Dbg::file, "");
+	//idbgx(Dbg::file, "");
 	uint32	tmpqsz(d.meq.size());
 	Stub 	s(*this);
 	cassert(!(tmpqsz && state() != Data::Running));
@@ -511,11 +511,11 @@ int Manager::doGetStream(
 		_rfuid.first = fid;
 		_rfuid.second = d.fv[fid].uid; 
 		rv = pf->stream(s, _sptr, _requid, _flags);
-		idbgx(Dbg::file, ""<<_rk.path());
+		//idbgx(Dbg::file, ""<<_rk.path());
 	}else{
 		//delay stream creation until successfull file open
 		rv = pf->stream(s, _sptr, _requid, _flags | Manager::ForcePending);
-		idbgx(Dbg::file, ""<<_rk.path());
+		//idbgx(Dbg::file, ""<<_rk.path());
 	}
 	
 	switch(rv){

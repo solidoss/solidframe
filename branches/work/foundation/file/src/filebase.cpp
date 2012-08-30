@@ -79,6 +79,7 @@ int File::stream(
 		return (ousecnt || owq.size()) ? MustWait : MustSignal;
 	}
 	++iusecnt;
+	idbgx(Dbg::file, "iusecnt = "<<iusecnt<<' '<<rk.path());	
 	_sptr = _rs.createInputStream(this->id());
 	return OK;
 }
@@ -197,8 +198,13 @@ int File::execute(
 	if(_evs & MustDie){
 		state = Destroy;
 	}
-	if(ousecnt || iusecnt)
+	if(ousecnt){
+		idbgx(Dbg::file, "ousecnt = "<<ousecnt<<" iusecnt = "<<iusecnt<<' '<<rk.path());
 		return No;
+	}
+	if(iusecnt && ((state != Running) || iwq.empty())){
+		return No;
+	}
 	
 	switch(state){
 		case Destroy:
