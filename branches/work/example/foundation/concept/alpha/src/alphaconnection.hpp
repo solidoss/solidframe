@@ -160,7 +160,6 @@ private:
 	ResolveIterator				aiit;
 	uint32						reqid;
 	DynamicExecuterT			dr;
-	int					failedistreams;
 };
 
 }//namespace alpha
