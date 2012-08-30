@@ -271,6 +271,7 @@ void Manager::doSendStreams(){
 }
 //------------------------------------------------------------------
 void Manager::doPrepareStop(){
+	idbgx(Dbg::file, "");
 	//call stop for all mappers:
 	for(Data::MapperVectorT::const_iterator it(d.mv.begin()); it != d.mv.end(); ++it){
 		(*it)->stop();
@@ -296,6 +297,7 @@ void Manager::doPrepareStop(){
 }
 //------------------------------------------------------------------
 void Manager::doExecuteMappers(){
+	idbgx(Dbg::file, "");
 	uint32	tmpqsz(d.meq.size());
 	Stub 	s(*this);
 	cassert(!(tmpqsz && state() != Data::Running));
@@ -310,6 +312,7 @@ void Manager::doExecuteMappers(){
 }
 //------------------------------------------------------------------
 void Manager::doExecuteFile(const IndexT &_idx, const TimeSpec &_rtout){
+	idbgx(Dbg::file, "");
 	Mutex			&rm(d.mtxstore.at(_idx));
 	Data::FileData	&rfd(d.fv[_idx]);
 	TimeSpec 		ts(_rtout);
@@ -508,9 +511,11 @@ int Manager::doGetStream(
 		_rfuid.first = fid;
 		_rfuid.second = d.fv[fid].uid; 
 		rv = pf->stream(s, _sptr, _requid, _flags);
+		idbgx(Dbg::file, ""<<_rk.path());
 	}else{
 		//delay stream creation until successfull file open
 		rv = pf->stream(s, _sptr, _requid, _flags | Manager::ForcePending);
+		idbgx(Dbg::file, ""<<_rk.path());
 	}
 	
 	switch(rv){
