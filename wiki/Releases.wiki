@@ -4,6 +4,13 @@
 
 This is main release log for SolidFrame.
 
+= 0.9.1084 =
+
+Changes:
+ * Refactor the socketaddress interface.
+ * Fix foundation::file library
+ * Small improvements in ipc library
+
 = 0.9.977 =
 
 Main changes:
