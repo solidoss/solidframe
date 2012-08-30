@@ -35,7 +35,7 @@ struct SingleTest{
 	int value;
 };
 
-#ifdef HAVE_SAFE_STATIC
+#ifdef HAS_SAFE_STATIC
 /*static*/ SingleTest& SingleTest::instance(){
 	static SingleTest st;
 	return st;

@@ -33,9 +33,12 @@ bool ClientParams::init(){
 			return false;
 		}
 		s[pos] = 0;
-		SocketAddressInfo ai(s.c_str(), s.c_str() + pos + 1, 0, SocketAddressInfo::Inet4, SocketAddressInfo::Datagram);
-		if(!ai.empty()){
-			addrvec.push_back(SocketAddress4(ai.begin()));
+		ResolveData rd = synchronous_resolve(
+			s.c_str(), s.c_str() + pos + 1, 0,
+			SocketInfo::Inet4, SocketInfo::Datagram
+		);
+		if(!rd.empty()){
+			addrvec.push_back(SocketAddressInet4(rd.begin()));
 		}else{
 			err = "No such address [";
 			err += s.c_str();
@@ -143,15 +146,15 @@ void ClientParams::print(std::ostream &_ros){
 	_ros<<"Parsed parameters:"<<endl;
 	_ros<<"Addresses: ";
 	for(AddressVectorT::iterator it(addrvec.begin()); it != addrvec.end(); ++it){
-		SocketAddress4 &ra(*it);
-		char				host[SocketAddress::HostNameCapacity];
-		char				port[SocketAddress::ServiceNameCapacity];
-		ra.name(
+		SocketAddressInet4 &ra(*it);
+		char				host[SocketInfo::HostStringCapacity];
+		char				port[SocketInfo::ServiceStringCapacity];
+		ra.toString(
 			host,
-			SocketAddress4::HostNameCapacity,
+			SocketInfo::HostStringCapacity,
 			port,
-			SocketAddress4::ServiceNameCapacity,
-			SocketAddress4::NumericService | SocketAddress4::NumericHost
+			SocketInfo::ServiceStringCapacity,
+			SocketInfo::NumericService | SocketInfo::NumericHost
 		);
 		_ros<<host<<':'<<port<<' ';
 	}
@@ -341,7 +344,7 @@ uint32 ClientObject::sendSignal(distributed::consensus::WriteRequestSignal *_psi
 	sigptr->id.senderuid = this->uid();
 	for(ClientParams::AddressVectorT::iterator it(params.addrvec.begin()); it != params.addrvec.end(); ++it){
 		DynamicPointer<foundation::Signal>	sp(sigptr);
-		foundation::ipc::Service::the().sendSignal(sp, SocketAddressPair(*it));
+		foundation::ipc::Service::the().sendSignal(sp, SocketAddressStub(*it));
 	}
 	return 0;
 }

@@ -59,7 +59,7 @@ namespace server{
 }
 
 namespace{
-static const DynamicRegisterer<Connection>	dre;
+const DynamicRegisterer<Connection>	dre;
 struct ReqCmp{
 	int operator()(const std::pair<uint32, uint32> &_v1, const uint32 _v2)const{
 		if(overflow_safe_less(_v1.first, _v2)){
@@ -69,7 +69,9 @@ struct ReqCmp{
 		}else return 0;
 	}
 };
-static const BinarySeeker<ReqCmp>	reqbs;
+
+const BinarySeeker<ReqCmp>	reqbs = BinarySeeker<ReqCmp>();
+
 }//namespace
 
 /*static*/ void Connection::dynamicRegister(){
@@ -108,7 +110,8 @@ Connection::~Connection(){
 		_sig.clear();
 		return false;//no reason to raise the pool thread!!
 	}
-	de.push(this, DynamicPointer<>(_sig));
+	DynamicPointer<>	dp(_sig);
+	de.push(this, dp);
 	return Object::signal(fdt::S_SIG | fdt::S_RAISE);
 }
 

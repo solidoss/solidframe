@@ -97,8 +97,13 @@ int main(int argc, char *argv[]){
 		m.start();
 		
 		if(true){
-			SocketAddressInfo ai("0.0.0.0", p.start_port, 0, SocketAddressInfo::Inet4, SocketAddressInfo::Datagram);
-			foundation::ipc::Service::the().insertTalker(ai.begin());
+			ResolveData rd = synchronous_resolve(
+				"0.0.0.0",
+				p.start_port, 0,
+				SocketInfo::Inet4,
+				SocketInfo::Datagram
+			);
+			foundation::ipc::Service::the().insertTalker(rd.begin());
 		}
 		
 		//m.service(firstid).start();
@@ -115,9 +120,10 @@ int main(int argc, char *argv[]){
 		}
 		
 		if(true){
-			ThirdObject	*po(new ThirdObject(20, 2));
+			ThirdObject						*po(new ThirdObject(20, 2));
 			m.service(secondid).insert(po);
-			SchedulerT::schedule(foundation::ObjectPointer<>(po), 1);
+			foundation::ObjectPointer<>		op(po);
+			SchedulerT::schedule(op, 1);
 		}
 		
 		char c;

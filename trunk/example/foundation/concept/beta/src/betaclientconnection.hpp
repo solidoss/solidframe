@@ -57,7 +57,7 @@ public:
 		return static_cast<Connection&>(Object::the());
 	}
 	
-	Connection(const SocketAddressInfo &_raddrinfo);
+	Connection(const ResolveData &_raddrinfo);
 	
 	~Connection();
 	
@@ -108,8 +108,8 @@ private:
 	typedef Queue<uint32>						UInt32QueueT;
 	typedef Stack<uint32>						UInt32StackT;
 	
-	SocketAddressInfo			addrinfo;
-	SocketAddressInfoIterator	addrit;
+	ResolveData					addrinfo;
+	ResolveIterator				addrit;
 	uint32						reqid;
 	DynamicExecuterT			de;
 	CommandVectorT				cmdvec;

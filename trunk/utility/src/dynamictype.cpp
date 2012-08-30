@@ -3,7 +3,7 @@
 #include "system/cassert.hpp"
 #include "system/mutex.hpp"
 
-#include "utility/mutualstore.hpp"
+#include "system/mutualstore.hpp"
 #include "utility/dynamictype.hpp"
 #include "utility/dynamicpointer.hpp"
 #include "utility/shared.hpp"
@@ -16,7 +16,7 @@
 
 namespace{
 typedef MutualStore<Mutex>	MutexStoreT;
-#ifdef HAVE_SAFE_STATIC
+#ifdef HAS_SAFE_STATIC
 MutexStoreT &mutexStore(){
 	static MutexStoreT		mtxstore(3, 2, 2);
 	return mtxstore;
@@ -111,7 +111,7 @@ struct DynamicMap::Data{
 	Thread::gmutex().unlock();
 	return v;
 }
-#ifdef HAVE_SAFE_STATIC
+#ifdef HAS_SAFE_STATIC
 
 static Mutex & dynamicMutex(){
 	static Mutex mtx;

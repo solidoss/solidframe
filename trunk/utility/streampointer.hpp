@@ -65,7 +65,7 @@ public:
 	}
 	inline ObjectT& operator*()const throw() {return *pobj;}
 	inline ObjectT* operator->()const throw() {return pobj;}
-	ObjectT* ptr() const throw() {return pobj;}
+	ObjectT* get() const throw() {return pobj;}
 	operator bool () const throw() {return pobj;}
 	bool operator!()const throw() {return !pobj;}
 	void clear(){if(pobj){StreamPointerBase::clear(pobj);pobj = NULL;}}

@@ -7,8 +7,6 @@ class SocketDevice;
 
 namespace concept{
 
-struct SocketAddressInfoSignal;
-
 namespace gamma{
 
 class Connection;

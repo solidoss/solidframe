@@ -22,20 +22,21 @@
 #ifndef FOUNDATION_IPC_SRC_IPC_SESSION_HPP
 #define FOUNDATION_IPC_SRC_IPC_SESSION_HPP
 
-#include "iodata.hpp"
+//#include "ipcdata.hpp"
 #include "ipctalker.hpp"
 #include "system/timespec.hpp"
 
 #include "utility/dynamicpointer.hpp"
 
 #include "foundation/ipc/ipcconnectionuid.hpp"
+#include "ipcutility.hpp"
 
 struct SocketAddress;
-struct SocketAddressPair;
-struct SocketAddressPair4;
-struct SocketAddressPair6;
+struct SocketAddressStub;
+struct SocketAddressStub4;
+struct SocketAddressStub6;
 struct TimeSpec;
-struct SocketAddressInfoIterator;
+struct ResolveIterator;
 
 
 namespace foundation{
@@ -49,33 +50,47 @@ struct Context{
 	static Context& the();
 	Context(uint32 _tkrid);
 	~Context();
-	SignalContext sigctx;
+	ConnectionContext sigctx;
 };
 
 class Session{
 public:
-	typedef std::pair<const SocketAddressPair4*, int> Addr4PairT;
-	typedef std::pair<const SocketAddressPair6*, int> Addr6PairT;
-public:
+	
 	static void init();
 	static int parseAcceptedBuffer(const Buffer &_rbuf);
 	static int parseConnectingBuffer(const Buffer &_rbuf);
 	
 	Session(
-		const SocketAddressPair4 &_raddr,
+		const SocketAddressInet4 &_raddr,
 		uint32 _keepalivetout
 	);
 	Session(
-		const SocketAddressPair4 &_raddr,
-		int _basport,
+		const SocketAddressInet4 &_raddr,
+		uint16 _baseport,
+		uint32 _keepalivetout
+	);
+	
+	
+	Session(
+		const SocketAddressInet6 &_raddr,
+		uint32 _keepalivetout
+	);
+	Session(
+		const SocketAddressInet6 &_raddr,
+		uint16 _baseport,
 		uint32 _keepalivetout
 	);
 	
 	~Session();
 	
-	const SocketAddressPair4* peerAddr4()const;
-	const Addr4PairT* baseAddr4()const;
-	const SocketAddressPair* peerSockAddr()const;
+	const BaseAddress4T peerBaseAddress4()const;
+	const BaseAddress6T peerBaseAddress6()const;
+	
+	//used by talker for sendto
+	const SocketAddressStub& peerAddress()const;
+	
+	const SocketAddressInet4& peerAddress4()const;
+	const SocketAddressInet6& peerAddress6()const;
 	
 	bool isConnected()const;
 	bool isDisconnecting()const;
@@ -85,30 +100,35 @@ public:
 
 	void prepare();
 	void reconnect(Session *_pses);	
+	
 	int pushSignal(
 		DynamicPointer<Signal> &_rsig,
 		const SerializationTypeIdT &_rtid,
 		uint32 _flags
 	);
+	
 	bool pushReceivedBuffer(
 		Buffer &_rbuf,
 		Talker::TalkerStub &_rstub/*,
 		const ConnectionUid &_rconid*/
 	);
 	
-	void completeConnect(Talker::TalkerStub &_rstub, int _port);
+	void completeConnect(Talker::TalkerStub &_rstub, uint16 _port);
 	
 	bool executeTimeout(
 		Talker::TalkerStub &_rstub,
 		uint32 _id
 	);
+	
 	int execute(Talker::TalkerStub &_rstub);
+	
 	bool pushSentBuffer(
 		Talker::TalkerStub &_rstub,
 		uint32 _id,
 		const char *_data,
 		const uint16 _size
 	);
+	
 	void prepareContext(Context &_rctx);
 private:
 	bool doPushExpectedReceivedBuffer(
@@ -137,6 +157,9 @@ private:
 	void doTryScheduleKeepAlive(Talker::TalkerStub &_rstub);
 private:
 	struct Data;
+	struct DataDirect4;
+	struct DataDirect6;
+	struct DataRelayed44;
 	Data	&d;
 };
 

@@ -74,7 +74,7 @@ struct WriteRequestSignal: Dynamic<WriteRequestSignal, DynamicShared<foundation:
 			_s.push(ipcsiguid.idx, "siguid.idx").push(ipcsiguid.uid,"siguid.uid");
 		}else{//on sender
 			foundation::ipc::SignalUid &rsiguid(
-				const_cast<foundation::ipc::SignalUid &>(foundation::ipc::SignalContext::the().signaluid)
+				const_cast<foundation::ipc::SignalUid &>(foundation::ipc::ConnectionContext::the().signaluid)
 			);
 			_s.push(rsiguid.idx, "siguid.idx").push(rsiguid.uid,"siguid.uid");
 		}
@@ -138,7 +138,7 @@ struct ReadRequestSignal: Dynamic<ReadRequestSignal, DynamicShared<foundation::S
 			_s.push(ipcsiguid.idx, "siguid.idx").push(ipcsiguid.uid,"siguid.uid");
 		}else{//on sender
 			foundation::ipc::SignalUid &rsiguid(
-				const_cast<foundation::ipc::SignalUid &>(foundation::ipc::SignalContext::the().signaluid)
+				const_cast<foundation::ipc::SignalUid &>(foundation::ipc::ConnectionContext::the().signaluid)
 			);
 			_s.push(rsiguid.idx, "siguid.idx").push(rsiguid.uid,"siguid.uid");
 		}

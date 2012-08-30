@@ -34,7 +34,7 @@ class TimeSpec;
 template <class T, class C>
 class DynamicPointer;
 
-struct SocketAddressPair;
+struct SocketAddressStub;
 
 namespace foundation{
 
@@ -52,8 +52,8 @@ class Object;
 	Also the signal can be used with an foundation::SignalExecuter,
 	in which case the posibilities widen.
 	\see test::alpha::FetchMasterSignal
-	\see foundation::ipc::SignalContext
-	\note use foundation::ipc::SignalContext for other information about current ipc session.
+	\see foundation::ipc::ConnectionContext
+	\note use foundation::ipc::ConnectionContext for other information about current ipc session.
 */
 struct Signal: Dynamic<Signal>{
 	enum IPCStatus{

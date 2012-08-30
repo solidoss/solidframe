@@ -29,6 +29,11 @@
 struct C;
 namespace foundation{
 namespace ipc{
+
+enum{
+	LocalNetworkId = 0
+};
+
 //! A structure to uniquely indetify an IPC connection/session
 /*!
 	<b>Overview:</b><br>
@@ -62,7 +67,7 @@ struct SignalUid{
 	- the unique id of the signal<br>
 	<br>
 	Remember that signals can be broadcasted to multiple destinations.
-	The SignalContext helps a signal know which ipc sessions calls its
+	The ConnectionContext helps a signal know which ipc sessions calls its
 	callbacks (Signal::ipcFail, Signal::ipcSuccess, Signal::ipcReceive).<br>
 	Also for the case when we want to wait for response, on signal
 	serialization we need to use the signaluid from the current context.
@@ -73,16 +78,16 @@ struct SignalUid{
 	
 */
 	
-struct SignalContext{
-	static const SignalContext& the();
+struct ConnectionContext{
+	static const ConnectionContext& the();
 	ConnectionUid 		connectionuid;
 	SignalUid			signaluid;
-	SocketAddressPair	pairaddr;
+	SocketAddressStub	pairaddr;
 	int 				baseport;
 private:
 	friend class Context;
 	
-	SignalContext(uint32 _tkrid):connectionuid(_tkrid), baseport(-1){}
+	ConnectionContext(uint32 _tkrid):connectionuid(_tkrid), baseport(-1){}
 };
 
 typedef uint32 SerializationTypeIdT;

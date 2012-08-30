@@ -51,12 +51,12 @@ int main(int argc, char *argv[]){
 	//initDebug(s.c_str());
 	}
 #endif
-	SocketAddressInfo    ai(argv[1], argv[2]);
-	if(ai.empty()){
+	ResolveData    rd = synchronous_resolve(argv[1], argv[2]);
+	if(rd.empty()){
 		idbg("No such address");
 		return 0;
 	}
-	SocketAddressInfoIterator it(ai.begin());
+	ResolveIterator it(rd.begin());
 	int sd = socket(it.family(), it.type(), it.protocol());
 	if(sd < 0){
 		idbg("error creating socket");
@@ -64,7 +64,7 @@ int main(int argc, char *argv[]){
 		return 0;
 	}
 	//cout<<"before connect "<<pos<<endl;
-	if(connect(sd, it.addr(), it.size())){
+	if(connect(sd, it.sockAddr(), it.size())){
 		idbg("failed connect");
 		//cout<<"failed connect "<<pos<<endl;
 		return 0;

@@ -25,15 +25,16 @@
 #include <cstdlib>
 #include "config.h"
 
-#ifndef HAVE_SAFE_STATIC
+#ifndef HAS_SAFE_STATIC
 #include <boost/thread/once.hpp>
 #endif
 
 #ifdef ON_WINDOWS
-//#ifdef HAVE_CPP11
+//#ifdef HAS_CPP11
 //	#define USTLMUTEX
 //#else
 	#define UBOOSTMUTEX
+	#define UBOOSTSHAREDPTR
 //#endif
 #endif
 

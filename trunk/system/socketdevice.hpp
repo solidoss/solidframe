@@ -26,18 +26,20 @@ public:
 	void shutdownWrite();
 	//! Shutdown reading and writing 
 	void shutdownReadWrite();
-	//! Create a socket based on SocketAddressInfo iterator (use SocketAddressInfo to create one)
-	int create(const SocketAddressInfoIterator &_rai);
+	//! Create a socket based ResolveIterator
+	int create(const ResolveIterator &_rri);
 	//! Create a socket given its family, its type and its protocol type
-	int create(SocketAddressInfo::Family = SocketAddressInfo::Inet4, SocketAddressInfo::Type _type = SocketAddressInfo::Stream, int _proto = 0);
+	int create(
+		SocketInfo::Family = SocketInfo::Inet4,
+		SocketInfo::Type _type = SocketInfo::Stream,
+		int _proto = 0
+	);
 	//! Connect the socket
-	int connect(const SocketAddressInfoIterator &_rai);
+	int connect(const SocketAddressStub &_rsas);
 	//! Bind the socket to a specific addr:port
-	int bind(const SocketAddressInfoIterator &_rai);
-	//! Bind the socket to a specific addr:port
-	int bind(const SocketAddressPair &_rsa);
+	int bind(const SocketAddressStub &_rsa);
 	//! Prepares the socket for accepting
-	int prepareAccept(const SocketAddressInfoIterator &_rai, unsigned _listencnt = 10);
+	int prepareAccept(const SocketAddressStub &_rsas, unsigned _listencnt = 10);
 	//! Accept an incomming connection
 	int accept(SocketDevice &_dev);
 	//! Make a connection blocking
@@ -49,8 +51,21 @@ public:
 	int makeNonBlocking();
 	//! Check if its blocking
 #ifndef ON_WINDOWS
-	bool isBlocking();
+	int isBlocking()const;
 #endif
+	
+	int enableNoDelay();
+	int disableNoDelay();
+	int hasNoDelay()const;
+	
+	int enableCork();//TCP_CORK - only on linux, TCP_NOPUSH on FreeBSD
+	int disableCork();
+	int hasCork()const;
+	
+	int sendBufferSize(size_t _sz);
+	int recvBufferSize(size_t _sz);
+	int sendBufferSize()const;
+	int recvBufferSize()const;
 	//! Return true if nonblocking and the prevoious nonblocking opperation did not complete
 	/*!
 		In case of nonblocking sockets, use this method after:connect, accept, read, write,send
@@ -63,7 +78,7 @@ public:
 	//! Reads data from a socket
 	int recv(char *_pb, unsigned _ul, unsigned _flags = 0);
 	//! Send a datagram to a socket
-	int send(const char* _pb, unsigned _ul, const SocketAddressPair &_sap);
+	int send(const char* _pb, unsigned _ul, const SocketAddressStub &_sap);
 	//! Recv data from a socket
 	int recv(char *_pb, unsigned _ul, SocketAddress &_rsa);
 	//! Gets the remote address for a connected socket

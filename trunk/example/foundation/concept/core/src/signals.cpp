@@ -53,7 +53,7 @@ int StreamErrorSignal::execute(DynamicPointer<Signal> &_rthis_ptr, uint32 _evs, 
 	return fdt::LEAVE;
 }
 //----------------------------------------------------------------------
-void SocketAddressInfoSignal::init(
+void ResolveDataSignal::init(
 	const char *_node,
 	int _port, 
 	int _flags,
@@ -61,9 +61,9 @@ void SocketAddressInfoSignal::init(
 	int _type,
 	int _proto
 ){
-	addrinfo.reinit(_node, _port, _flags, _family, _type, _proto);
+	resolvedata = synchronous_resolve(_node, _port, _flags, _family, _type, _proto);
 }
-void SocketAddressInfoSignal::init(
+void ResolveDataSignal::init(
 	const char *_node,
 	const char *_port, 
 	int _flags,
@@ -71,10 +71,10 @@ void SocketAddressInfoSignal::init(
 	int _type,
 	int _proto
 ){
-	addrinfo.reinit(_node, _port, _flags, _family, _type, _proto);
+	resolvedata = synchronous_resolve(_node, _port, _flags, _family, _type, _proto);
 }
 
-void SocketAddressInfoSignal::result(const ObjectUidT &_rv){
+void ResolveDataSignal::result(const ObjectUidT &_rv){
 }
 
 }//namespace concept

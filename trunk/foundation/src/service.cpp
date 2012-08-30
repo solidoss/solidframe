@@ -29,7 +29,7 @@
 #include "system/condition.hpp"
 #include "system/exception.hpp"
 
-#include "utility/mutualstore.hpp"
+#include "system/mutualstore.hpp"
 #include "utility/queue.hpp"
 #include "utility/stack.hpp"
 

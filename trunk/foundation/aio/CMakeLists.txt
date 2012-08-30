@@ -3,14 +3,14 @@
 #FILE(GLOB Sources RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} src/*.cpp)
 #FILE(GLOB Headers RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.hpp)
 
-if(${HAVE_EPOLL})
+if(${HAS_EPOLL})
 	set(selector_source src/aioselector_epoll.cpp)
-endif(${HAVE_EPOLL})
+endif(${HAS_EPOLL})
 
 
-if(${HAVE_KQUEUE})
+if(${HAS_KQUEUE})
 	set(selector_source src/aioselector_kqueue.cpp)
-endif(${HAVE_KQUEUE})
+endif(${HAS_KQUEUE})
 
 
 set(Sources

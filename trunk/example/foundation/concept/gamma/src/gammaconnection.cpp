@@ -55,7 +55,7 @@ void Logger::doOutFlush(const char *_pb, unsigned _bl){
 
 namespace{
 static const DynamicRegisterer<Connection>	dre;
-#ifdef HAVE_SAFE_STATIC
+#ifdef HAS_SAFE_STATIC
 static const unsigned specificPosition(){
 	static const unsigned	thrspecpos = Thread::specificId();
 	return thrspecpos;
@@ -125,7 +125,8 @@ Connection::~Connection(){
 		_sig.clear();
 		return false;//no reason to raise the pool thread!!
 	}
-	dr.push(this, DynamicPointer<>(_sig));
+	DynamicPointer<>	dp(_sig);
+	dr.push(this, dp);
 	return Object::signal(fdt::S_SIG | fdt::S_RAISE);
 }
 
@@ -304,27 +305,27 @@ int Connection::doSocketPrepareBanner(const uint _sid, SocketData &_rsd){
 	uint32				myport(rm.ipc().basePort());
 	ulong				objid(this->id());
 	uint32				objuid(rm.uid(*this));
-	char				host[SocketAddress::HostNameCapacity];
-	char				port[SocketAddress::ServiceNameCapacity];
+	char				host[SocketInfo::HostStringCapacity];
+	char				port[SocketInfo::ServiceStringCapacity];
 	SocketAddress		addr;
 	
 	_rsd.w<<"* Hello from gamma server ("<<myport<<" "<<(uint32)objid<<" "<<objuid<<") [";
 	socketLocalAddress(_sid, addr);
-	addr.name(
+	addr.toString(
 		host,
-		SocketAddress::HostNameCapacity,
+		SocketInfo::HostStringCapacity,
 		port,
-		SocketAddress::ServiceNameCapacity,
-		SocketAddress::NumericService | SocketAddress::NumericHost
+		SocketInfo::ServiceStringCapacity,
+		SocketInfo::NumericService | SocketInfo::NumericHost
 	);
 	_rsd.w<<host<<':'<<port<<" -> ";
 	socketRemoteAddress(_sid, addr);
-	addr.name(
+	addr.toString(
 		host,
-		SocketAddress::HostNameCapacity,
+		SocketInfo::HostStringCapacity,
 		port,
-		SocketAddress::ServiceNameCapacity,
-		SocketAddress::NumericService | SocketAddress::NumericHost
+		SocketInfo::ServiceStringCapacity,
+		SocketInfo::NumericService | SocketInfo::NumericHost
 	);
 	_rsd.w<<host<<':'<<port<<"]"<<'\r'<<'\n';
 	_rsd.w.push(&Writer::flushAll);

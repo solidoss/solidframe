@@ -126,9 +126,9 @@ int main(){
 		{
 			DynamicPointer<AObject>			dap(dsap);
 			DynamicSharedPointer<>			dsaap(dap);
-			cout<<"ptr = "<<(void*)dap.ptr()<<" ptr = "<<(void*)dsaap.ptr()<<endl;
+			cout<<"ptr = "<<(void*)dap.get()<<" ptr = "<<(void*)dsaap.get()<<endl;
 		}
-		cout<<"ptr = "<<(void*)dsap.ptr()<<" ptr = "<<(void*)dsbp.ptr()<<endl;
+		cout<<"ptr = "<<(void*)dsap.get()<<" ptr = "<<(void*)dsbp.get()<<endl;
 	}
 	
 	SecondExecuter	e;

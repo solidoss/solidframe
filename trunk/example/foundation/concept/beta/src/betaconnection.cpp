@@ -163,7 +163,7 @@ int Connection::doParseBuffer(ulong _size){
 			}
 			readstate = ParseBufferData;
 		}
-		DeserializerT::parseValue(recvbufrd, bufhead.value);
+		DeserializerT::loadValue(recvbufrd, bufhead.value);
 		if(bufhead.size() > (datasize - BufferHeader::Size)){
 			doOptimizeReadBuffer();
 			return NOK;
@@ -303,11 +303,11 @@ bool Connection::doParseBufferException(
 		return false;
 	}
 	
-	_pbuf = DeserializerT::parseValue(_pbuf, _error);
-	_pbuf = DeserializerT::parseValue(_pbuf, _recvcmdidx);
-	_pbuf = DeserializerT::parseValue(_pbuf, _sendcmdidx);
-	_pbuf = DeserializerT::parseValue(_pbuf, _ser_err);
-	_pbuf = DeserializerT::parseValue(_pbuf, _des_err);
+	_pbuf = DeserializerT::loadValue(_pbuf, _error);
+	_pbuf = DeserializerT::loadValue(_pbuf, _recvcmdidx);
+	_pbuf = DeserializerT::loadValue(_pbuf, _sendcmdidx);
+	_pbuf = DeserializerT::loadValue(_pbuf, _ser_err);
+	_pbuf = DeserializerT::loadValue(_pbuf, _des_err);
 	
 	return true;
 }

@@ -38,7 +38,7 @@ namespace fdt=foundation;
 namespace concept{
 namespace alpha{
 
-#ifdef HAVE_SAFE_STATIC
+#ifdef HAS_SAFE_STATIC
 
 struct InitServiceOnce{
 	InitServiceOnce(Manager &_rm);
@@ -85,7 +85,7 @@ ObjectUidT Service::insertConnection(
 }
 
 ObjectUidT Service::insertConnection(
-	SocketAddressInfo &_rai,
+	ResolveData &_rai,
 	foundation::aio::openssl::Context *_pctx,
 	bool _secure
 ){

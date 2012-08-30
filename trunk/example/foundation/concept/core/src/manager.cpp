@@ -120,7 +120,7 @@ struct AuthSignal: Dynamic<AuthSignal, DynamicShared<foundation::Signal> >{
 			_s.push(siguid.idx, "siguid.idx").push(siguid.uid,"siguid.uid");
 		}else{//on sender
 			foundation::ipc::SignalUid &rsiguid(
-				const_cast<foundation::ipc::SignalUid &>(foundation::ipc::SignalContext::the().signaluid)
+				const_cast<foundation::ipc::SignalUid &>(foundation::ipc::ConnectionContext::the().signaluid)
 			);
 			_s.push(rsiguid.idx, "siguid.idx").push(rsiguid.uid,"siguid.uid");
 		}
@@ -136,7 +136,7 @@ struct AuthSignal: Dynamic<AuthSignal, DynamicShared<foundation::Signal> >{
 
 
 struct IpcServiceController: foundation::ipc::Controller{
-	IpcServiceController():foundation::ipc::Controller(400, HasAuthenticationFlag), authidx(0){
+	IpcServiceController():foundation::ipc::Controller(400, AuthenticationFlag), authidx(0){
 		
 	}
 	/*virtual*/ void scheduleTalker(foundation::aio::Object *_po);
@@ -201,7 +201,7 @@ private:
 	uint32 &_rflags,
 	fdt::ipc::SerializationTypeIdT &_rtid
 ){
-	if(!_sigptr.ptr()){
+	if(!_sigptr.get()){
 		if(authidx){
 			idbg("");
 			return BAD;
@@ -222,7 +222,7 @@ private:
 	
 	rsig.siguidpeer = rsig.siguid;
 	
-	idbg("sig = "<<(void*)_sigptr.ptr()<<" auth("<<rsig.authidx<<','<<rsig.authcnt<<") authidx = "<<this->authidx);
+	idbg("sig = "<<(void*)_sigptr.get()<<" auth("<<rsig.authidx<<','<<rsig.authcnt<<") authidx = "<<this->authidx);
 	
 	if(rsig.authidx == 0){
 		if(this->authidx == 2){

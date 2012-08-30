@@ -57,14 +57,19 @@ int main(int argc, char *argv[]){
 	
 	//create a connection
 	
-	SocketAddressInfo ai(argv[1], argv[2], 0, SocketAddressInfo::Inet4, SocketAddressInfo::Stream, 0);
+	ResolveData rd = synchronous_resolve(
+		argv[1],
+		argv[2],
+		0,
+		SocketInfo::Inet4, SocketInfo::Stream, 0
+	);
 	
-	if(ai.empty()){
+	if(rd.empty()){
 		cout<<"no such address"<<endl;
 		return 0;
 	}
 	SocketDevice sd;
-	sd.create(ai.begin());
+	sd.create(rd.begin());
 	
 	pollfd pfds[2];
 	
@@ -103,7 +108,7 @@ int main(int argc, char *argv[]){
 		return 0;
 	}
 	cout<<"before connect"<<endl;
-	if(sd.connect(ai.begin()) == BAD){
+	if(sd.connect(rd.begin()) == BAD){
 		cout<<"could not connect = "<<strerror(errno)<<endl;
 		return 0;
 	}

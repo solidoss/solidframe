@@ -96,7 +96,7 @@ struct RemoteListSignal: Dynamic<RemoteListSignal, DynamicShared<foundation::Sig
 			_s.push(siguid.idx, "siguid.idx").push(siguid.uid,"siguid.uid");
 		}else{//on sender
 			foundation::ipc::SignalUid &rsiguid(
-				const_cast<foundation::ipc::SignalUid &>(foundation::ipc::SignalContext::the().signaluid)
+				const_cast<foundation::ipc::SignalUid &>(foundation::ipc::ConnectionContext::the().signaluid)
 			);
 			_s.push(rsiguid.idx, "siguid.idx").push(rsiguid.uid,"siguid.uid");
 		}
@@ -224,13 +224,13 @@ struct FetchSlaveSignal: Dynamic<FetchSlaveSignal, foundation::Signal>{
 			return OK;
 		}
 		if(S::IsSerializer){
-			InputStream *ps = ins.ptr();
+			InputStream *ps = ins.get();
 			//cassert(ps != NULL);
 			_rs.pop();
 			_rs.pushStream(ps, 0, streamsz, "stream");
 		}else{
 			initOutputStream();
-			OutputStream *ps = outs.ptr();
+			OutputStream *ps = outs.get();
 			_rs.pop();
 			_rs.template pushReinit<FetchSlaveSignal, 0>(this, 1, "reinit");
 			_rs.pushStream(ps, (uint64)0, (uint64)streamsz, "stream");

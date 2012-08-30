@@ -134,15 +134,15 @@ int main(int argc, char *argv[]){
 	SocketDevice sd;
 	
 	{
-		SocketAddressInfo    ai(p.host.c_str(), p.port.c_str());
-		if(ai.empty()){
+		ResolveData    rd = synchronous_resolve(p.host.c_str(), p.port.c_str());
+		if(rd.empty()){
 			cout<<"No such address: "<<p.host<<":"<<p.port<<endl;
 			return 0;
 		}
 		
 		
-		sd.create(ai.begin());
-		if(sd.connect(ai.begin())){
+		sd.create(rd.begin());
+		if(sd.connect(rd.begin())){
 			cout<<"Unable to connect to: "<<p.host<<":"<<p.port<<endl;
 			return 0;
 		}
@@ -152,7 +152,7 @@ int main(int argc, char *argv[]){
 		sd.remoteAddress(sa);
 		char host[64];
 		char serv[64];
-		sa.name(host, 64, serv, 64);
+		sa.toString(host, 64, serv, 64);
 		cout<<"Successfully connected to: "<<host<<':'<<serv<<endl;
 	}
 	Writer      wr;

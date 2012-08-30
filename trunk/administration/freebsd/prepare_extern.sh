@@ -13,8 +13,8 @@ printUsage()
 	echo
 }
 
-BOOST_ADDR="http://garr.dl.sourceforge.net/project/boost/boost/1.48.0/boost_1_48_0.tar.bz2"
-OPENSSL_ADDR="http://www.openssl.org/source/openssl-1.0.0e.tar.gz"
+BOOST_ADDR="http://garr.dl.sourceforge.net/project/boost/boost/1.51.0/boost_1_51_0.tar.bz2"
+OPENSSL_ADDR="http://www.openssl.org/source/openssl-1.0.1c.tar.gz"
 
 downloadArchive()
 {
@@ -50,21 +50,21 @@ buildBoost()
 	echo
 	echo "Prepare the boost archive..."
 	echo
-# 	BOOST_ARCH=`find . -name "boost_*.tar.bz2" | grep -v "old/"`
-# 
-# 	if [ -z "$BOOST_ARCH" -o -n "$DOWNLOAD" ] ; then
-# 		mkdir old
-# 		mv $BOOST_ARCH old/
-# 		echo "No boost archive found - try download: $BOOST_ADDR"
-# 		downloadArchive $BOOST_ADDR
-# 		BOOST_ARCH=`find . -name "boost_*.tar.bz2" | grep -v "old/"`
-# 	fi
-# 
-# 	echo
-# 	echo "Extracting boost [$BOOST_ARCH]..."
-# 	echo
-# 
-# 	extractTarBz2 $BOOST_ARCH
+	BOOST_ARCH=`find . -name "boost_*.tar.bz2" | grep -v "old/"`
+
+	if [ -z "$BOOST_ARCH" -o -n "$DOWNLOAD" ] ; then
+		mkdir old
+		mv $BOOST_ARCH old/
+		echo "No boost archive found - try download: $BOOST_ADDR"
+		downloadArchive $BOOST_ADDR
+		BOOST_ARCH=`find . -name "boost_*.tar.bz2" | grep -v "old/"`
+	fi
+
+	echo
+	echo "Extracting boost [$BOOST_ARCH]..."
+	echo
+
+	extractTarBz2 $BOOST_ARCH
 	BOOST_DIR=`ls . | grep "boost" | grep -v "tar"`
 	echo
 	echo "Making boost [$BOOST_DIR]..."

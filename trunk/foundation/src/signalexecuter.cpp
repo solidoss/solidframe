@@ -159,7 +159,7 @@ int SignalExecuter::execute(ulong _evs, TimeSpec &_rtout){
 		}
 	}else{
 		for(Data::SignalDequeT::iterator it(d.sdq.begin()); it != d.sdq.end(); ++it){
-			if(it->sig.ptr()){
+			if(it->sig.get()){
 				//TODO: should you use clear?!
 				delete it->sig.release();
 			}

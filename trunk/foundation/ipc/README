@@ -2,29 +2,29 @@ Here are some explanations on the IPC module.
 
 The IPC module is designed to be the central lightweight way of communicating between processes, whether they are found on the same machine, or on an X thousands machines cluster.
 
-So everything a process sends to another is a command, implementing a certain interface.
+Everything a process sends to another is packed as a command, implementing a certain interface.
 The command knows: how to serialize/deserialize itself; if a response is awaited on the sender side and what to do on the peer side.
 
 The IPC module is designed on three levels:
 
  # The top level and the interface is on the ipc:Service.
  # The midle level is the actual asynchrounous communication engine, ipc:Talker. One talker serves/(communicates with) multiple processes.
- # The bottom layer is that of ipc::ProcessConnector. It handles connection establisment, connection reestablishment, commanad serialization, deserialization, command multiplexing/demultiplexing, connection keep-alive etc.
+ # The bottom layer is that of ipc::Session. It handles connection establisment, connection reestablishment, commanad serialization, deserialization, command multiplexing/demultiplexing, connection keep-alive etc.
 
 Notable is that the bottom layer also implements reliable communication over UDP.
 
-Due to the flexibility of the serialization engine one can send huge commands (e.g. containing files), that will take lot of time to transfer on the peer side. So considering that there is one single connection between two processes (for simplicity) the command multiplexing support comes as a must.
+Due to the flexibility of the serialization engine one can send huge commands (e.g. containing files), that will take lot of time to transfer on the peer side. So, considering that there is a single connection/session between two processes (for simplicity) the command multiplexing support comes as a must.
 
-There are two ways of specifying the channel/processconnector on which a command can be sent.
-First is by specifying the peer's *base address and port* (see below about base address) and the second is by specifing the connector's unique id.
-Usually Commands are sent using the base address and Responses are sent using the connector unique id. This is a way to protect against sending a response to a restarted process.
+There are two ways of specifying the session on which a command can be sent.
+First is by specifying the peer's *base address and port* (see below about base address) and the second is by specifing the session's unique id.
+Usually Commands are sent using the base address and Responses are sent using the session unique id. This is a way to protect against sending a response to a restarted process.
 
 A Command can instruct the sender IPC, that a response is expected from peer. So the command will have a callback method which will be called in case that the IPC module detects (using the keep-alive functionality) that the peer process died.
 
 A command is/can be instructed that either it was not successfully transmited to peer or that it was successfully transmited but while waiting
 for a response, the peer died.
 
-On peer restart detection, if the command was not yet sent and it was NOT queued using the connector's id but base address, the ipc module will
+On peer restart detection, if the command was not yet sent and it was NOT queued using the session's id, the ipc module will
 retry sending the command.
 A command is considered that it successfully reatched peer when the sender receives confirmation for the command's last buffer.
 
@@ -34,12 +34,12 @@ The keep-alive functionality will consist in repeatedly sending a data packets w
  # There are no update buffers to be sent.
  # At least one response is expected
 
-Although there are multiple ways a command can be signalled for some failure: unable to sent the command because the peer has already been restarted (there is another connector unique id), unable to sent the command because of communication problem, unable to receive the response because the peer has restarted, the sender of the command (usually an Object) must also wait for a response with a timeout. Here is a situation:
+Although there are multiple ways a command can be signalled for some failure: unable to sent the command because the peer has already been restarted (there is another session unique id), unable to sent the command because of communication problem, unable to receive the response because the peer has restarted, the sender of the command (usually an Object) must also wait for a response with a timeout. Here is a situation:
  - deadlock on peer, the ipc module is up and functional, but other module is deadlock-ed :(
  - the commputations really take too long.
 
 *Base Address*
 
-The base address may be viewed as listening (address, port) pair. Is the (address, port) to which a connect request is first sent. The rest of the communication may take place on another port. Also, the rest of the ports are higher than base port. Its this way, so that one can start multiple processes on the same machine, partitioning the port numbers first_process(1000 and above), second_process(2000 and above) ...etc.
+The base address may be viewed as listening (address, port) pair. Is the (address, port) to which a connect request is first sent. The rest of the communication may take place on another port. Also, the rest of the ports are higher than base port. It is this way because we want to be able to start multiple processes on the same machine.
 
 

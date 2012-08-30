@@ -42,6 +42,7 @@
 #include "alphasignals.hpp"
 #include "alphaprotocolfilters.hpp"
 #include "audit/log.hpp"
+#include <boost/concept_check.hpp>
 
 namespace fdt=foundation;
 //static const char	*hellostr = "Welcome to alpha service!!!\r\n"; 
@@ -81,20 +82,35 @@ static const DynamicRegisterer<Connection>	dre;
 	DynamicExecuterT::registerDynamic<SendStreamSignal, Connection>();
 }
 
+#ifdef UDEBUG
+/*static*/ Connection::ConnectionsVectorT& Connection::connections(){
+	static ConnectionsVectorT cv;
+	return cv;
+}
+#endif
+
+
 Connection::Connection(
-	SocketAddressInfo &_rai
+	ResolveData &_rai
 ):	wtr(&logger), rdr(wtr, &logger),
 	pcmd(NULL), ai(_rai), reqid(1){
 	aiit = ai.begin();
 	state(Connect);
+#ifdef UDEBUG
+	connections().push_back(this);
+#endif
 }
 
 Connection::Connection(
 	const SocketDevice &_rsd
 ):	BaseT(_rsd), wtr(&logger),rdr(wtr, &logger),
 	pcmd(NULL), reqid(1){
-	
+
 	state(Init);
+#ifdef UDEBUG
+	connections().push_back(this);
+#endif
+
 }
 
 
@@ -113,6 +129,19 @@ NOTE:
 Connection::~Connection(){
 	idbg("destroy connection id "<<this->id()<<" pcmd "<<pcmd);
 	delete pcmd; pcmd = NULL;
+#ifdef UDEBUG
+	for(
+		ConnectionsVectorT::iterator it(connections().begin());
+		it != connections().end();
+		++it
+	){
+		if(*it == this){
+			*it = connections().back();
+			connections().pop_back();
+			break;
+		}
+	}
+#endif
 }
 
 
@@ -206,29 +235,29 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			IndexT				svcid(fdt::Manager::the().computeServiceId(objid));
 			IndexT				objidx(fdt::Manager::the().computeIndex(objid));
 			uint32				objuid(this->uid().second);
-			char				host[SocketAddress::HostNameCapacity];
-			char				port[SocketAddress::ServiceNameCapacity];
+			char				host[SocketInfo::HostStringCapacity];
+			char				port[SocketInfo::ServiceStringCapacity];
 			SocketAddress		addr;
 			
 			
 			
 			writer()<<"* Hello from alpha server ("<<myport<<' '<<svcid<<' '<<objidx<<' '<< objid<<' '<<objuid<<") [";
 			socketLocalAddress(addr);
-			addr.name(
+			addr.toString(
 				host,
-				SocketAddress::HostNameCapacity,
+				SocketInfo::HostStringCapacity,
 				port,
-				SocketAddress::ServiceNameCapacity,
-				SocketAddress::NumericService | SocketAddress::NumericHost
+				SocketInfo::ServiceStringCapacity,
+				SocketInfo::NumericService | SocketInfo::NumericHost
 			);
 			writer()<<host<<':'<<port<<" -> ";
 			socketRemoteAddress(addr);
-			addr.name(
+			addr.toString(
 				host,
-				SocketAddress::HostNameCapacity,
+				SocketInfo::HostStringCapacity,
 				port,
-				SocketAddress::ServiceNameCapacity,
-				SocketAddress::NumericService | SocketAddress::NumericHost
+				SocketInfo::ServiceStringCapacity,
+				SocketInfo::NumericService | SocketInfo::NumericHost
 			);
 			writer()<<host<<':'<<port<<"]"<<'\r'<<'\n';
 			writer().push(&Writer::flushAll);
@@ -441,7 +470,9 @@ void Connection::dynamicExecute(DynamicPointer<SendStreamSignal> &_psig){
 }
 void Connection::dynamicExecute(DynamicPointer<InputStreamSignal> &_psig){
 	idbg("");
-	if(_psig->requid.first && _psig->requid.first != reqid) return;
+	if(_psig->requid.first && _psig->requid.first != reqid){
+		return;
+	}
 	idbg("");
 	newRequestId();//prevent multiple responses with the same id
 	if(pcmd){

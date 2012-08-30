@@ -53,7 +53,7 @@ ObjectUidT Service::insertConnection(
 }
 
 ObjectUidT Service::insertConnection(
-	const SocketAddressInfoIterator &_rai,
+	const ResolveIterator &_rai,
 	const char *_node,
 	const char *_svc
 ){

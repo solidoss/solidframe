@@ -1,5 +1,6 @@
 #include "audit/log.hpp"
 #include "system/socketdevice.hpp"
+#include "system/socketaddress.hpp"
 #include "system/debug.hpp"
 #include "utility/ostream.hpp"
 
@@ -35,10 +36,10 @@ int main(int argc, char *argv[]){
 	Log::instance().reinit(argv[0], Log::AllLevels, "any");
 	{
 		SocketOutputStream	*pos(new SocketOutputStream);
-		SocketAddressInfo ai("localhost", "8888", 0, SocketAddressInfo::Inet4, SocketAddressInfo::Stream);
-		if(!ai.empty()){
-			pos->sd.create(ai.begin());
-			pos->sd.connect(ai.begin());
+		ResolveData			rd = synchronous_resolve("localhost", "8888", 0, SocketInfo::Inet4, SocketInfo::Stream);
+		if(!rd.empty()){
+			pos->sd.create(rd.begin());
+			pos->sd.connect(rd.begin());
 			Log::instance().reinit(pos);
 			idbg("Logging");
 		}else{

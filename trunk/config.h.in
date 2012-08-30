@@ -1,7 +1,9 @@
-#cmakedefine HAVE_PTHREAD_H
-#cmakedefine HAVE_EVENTFD_H
-#cmakedefine HAVE_CPP11
-#cmakedefine HAVE_EPOLL
-#cmakedefine HAVE_KQUEUE
-#cmakedefine HAVE_SAFE_STATIC
+#cmakedefine HAS_PTHREAD_H
+#cmakedefine HAS_EVENTFD_H
+#cmakedefine HAS_CPP11
+#cmakedefine HAS_EPOLL
+#cmakedefine HAS_KQUEUE
+#cmakedefine HAS_SAFE_STATIC
+#cmakedefine HAS_GNU_ATOMIC
+
 

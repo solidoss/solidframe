@@ -71,11 +71,11 @@ public:
 		return *this;
 	}
 	ThisT& operator=(ObjectT *_pobj){
-		clear();ptr(_pobj);	return *this;
+		clear();set(_pobj);	return *this;
 	}
 	ObjectT& operator*()const  {return *pobj;}
 	ObjectT* operator->()const {return pobj;}
-	ObjectT* ptr()	const	{return pobj;}
+	ObjectT* get()	const	{return pobj;}
 	operator bool ()const	{return pobj != NULL;}
 	bool operator!()const	{return pobj == NULL;}
 	void clear(){
@@ -85,7 +85,7 @@ public:
 		}
 	}
 protected:
-	void ptr(ObjectT *_pobj){
+	void set(ObjectT *_pobj){
 		pobj = _pobj;
 		if(_pobj){
 			use(static_cast<Object*>(pobj));
