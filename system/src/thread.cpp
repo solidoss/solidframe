@@ -113,7 +113,7 @@ struct ThreadData{
 #endif
 };
 
-#ifdef HAVE_SAFE_STATIC
+#ifdef HAS_SAFE_STATIC
 static ThreadData& threadData(){
 	static ThreadData td;
 	return td;
@@ -474,7 +474,7 @@ int Thread::detach(){
 #endif
 }
 //-------------------------------------------------------------------------
-#ifdef HAVE_SAFE_STATIC
+#ifdef HAS_SAFE_STATIC
 unsigned Thread::specificId(){
 	static unsigned sid = ThreadData::FirstSpecificId - 1;
 	Locker<Mutex> lock(gmutex());

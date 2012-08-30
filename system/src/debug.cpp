@@ -168,13 +168,16 @@ std::streamsize DeviceOutBuffer::xsputn(const char* s, std::streamsize num){
 	memcpy(bpos, s, towrite);
 	bpos += towrite;
 	if((bpos - bbeg) > BUFF_FLUSH && !flush()){
+		cassert(0);
 		return -1;
 	}
 	if(num == towrite) return num;
 	num -= towrite;
 	s += towrite;
 	if(num >= BUFF_FLUSH){
-		return pd->write(s, static_cast<uint32>(num));
+		std::streamsize retv = pd->write(s, static_cast<uint32>(num));
+		cassert(retv != num);
+		return retv;
 	}
 	memcpy(bpos, s, static_cast<size_t>(num));
 	bpos += num;
@@ -257,7 +260,7 @@ struct Dbg::Data{
 //-----------------------------------------------------------------
 void splitPrefix(string &_path, string &_name, const char *_prefix);
 
-#ifdef HAVE_SAFE_STATIC
+#ifdef HAS_SAFE_STATIC
 /*static*/ Dbg& Dbg::instance(){
 	static Dbg d;
 	return d;
@@ -424,7 +427,7 @@ void Dbg::Data::doRespin(){
 	filePath(fname, respinpos, pid, path, name);
 	string crtname;
 	filePath(crtname, 0, pid, path, name);
-	FileDevice fd;
+	fd.close();
 	if(pos == &dos){
 		dos.device(fd);//close the current file
 	}else if(pos == &dbos){
@@ -530,8 +533,8 @@ void Dbg::initSocket(
 ){
 	if(!d.isActive()) return;
 	//do the connect outside locking
-	SocketAddressInfo ai(_addr, _port, 0, SocketAddressInfo::Inet4, SocketAddressInfo::Stream);
-	if(!ai.empty() && d.sd.create(ai.begin()) == OK && d.sd.connect(ai.begin()) == OK){
+	ResolveData		rd = synchronous_resolve(_addr, _port, 0, SocketInfo::Inet4, SocketInfo::Stream);
+	if(!rd.empty() && d.sd.create(rd.begin()) == OK && d.sd.connect(rd.begin()) == OK){
 	}else{
 		d.sd.close();//make sure the socket is closed
 	}

@@ -48,7 +48,8 @@ struct RequestId{
 		_s.push(requid, "opp").push(requid, "reqid");
 		_s.push(senderuid.first, "senderuid_first");
 		_s.push(senderuid.second, "senderuid_second");
-		_s.pushBinary(sockaddr.addr(), SocketAddress4::Capacity, "sockaddr");
+		const SocketAddressInet4 &rsa = sockaddr;
+		_s.pushBinary((void*)rsa.sockAddr(), SocketAddressInet4::Capacity, "sockaddr");
 		return _s;
 	}
 	
@@ -61,7 +62,7 @@ struct RequestId{
 	
 	uint32 						requid;
 	foundation::ObjectUidT		senderuid;
-	SocketAddress4				sockaddr;
+	SocketAddressInet4			sockaddr;
 };
 
 std::ostream &operator<<(std::ostream& _ros, const RequestId &_rreqid);

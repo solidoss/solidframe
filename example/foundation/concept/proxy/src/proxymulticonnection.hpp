@@ -34,8 +34,6 @@ namespace foundation{
 class Visitor;
 }
 
-class SocketAddressInfo;
-
 namespace concept{
 
 class Visitor;
@@ -79,8 +77,8 @@ private:
 	struct Stub{
 		Buffer			recvbuf;
 	};
-	SocketAddressInfo			*pai;
-	SocketAddressInfoIterator	it;
+	ResolveData			rd;
+	ResolveIterator		it;
 	bool				b;
 	std::string			addr;
 	std::string			port;

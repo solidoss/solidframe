@@ -104,25 +104,25 @@ struct TestD{
 		int _a = 4
 	):a(_a){
 		if(_paddr){
-			SocketAddressInfo ai(_paddr, _port, 0, SocketAddressInfo::Inet4, SocketAddressInfo::Datagram);
-			if(!ai.empty()){
-				sa = ai.begin();
+			ResolveData rd = synchronous_resolve(_paddr, _port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
+			if(!rd.empty()){
+				sa = rd.begin();
 			}
 		}
 	}
-	int32			a;
-	SocketAddress4	sa;
+	int32				a;
+	SocketAddressInet4	sa;
 	void print()const {
 		cout<<"testd: a  = "<<a<<endl;
-		char				host[SocketAddress::HostNameCapacity];
-		char				port[SocketAddress::ServiceNameCapacity];
-		sa.name(
+		char				host[SocketInfo::HostStringCapacity];
+		char				port[SocketInfo::ServiceStringCapacity];
+		sa.toString(
 			host,
-			SocketAddress::HostNameCapacity,
+			SocketInfo::HostStringCapacity,
 			port,
-			SocketAddress::ServiceNameCapacity
+			SocketInfo::ServiceStringCapacity
 			,
-			SocketAddress::NumericService | SocketAddress::NumericHost
+			SocketInfo::NumericService | SocketInfo::NumericHost
 		);
 		cout<<"testd: sa = "<<host<<':'<<port<<endl;
 		
@@ -130,7 +130,9 @@ struct TestD{
 	template <class S>
 	S& operator&(S &_s){
 		_s.push(a, "b::a");
-		return _s.pushBinary(sa.addr(), SocketAddress4::Capacity, "sockaddr");
+		const SocketAddressInet4 &rsa = sa;
+		const sockaddr *psa = rsa;
+		return _s.pushBinary((void*)psa, SocketAddressInet4::Capacity, "sockaddr");
 	}
 };
 

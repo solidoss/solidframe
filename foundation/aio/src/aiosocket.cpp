@@ -9,7 +9,7 @@
 #include <cstring>
 
 
-#ifdef HAVE_EPOLL
+#ifdef HAS_EPOLL
 
 #include <sys/epoll.h>
 
@@ -20,7 +20,7 @@ enum{
 
 #endif
 
-#ifdef HAVE_KQUEUE
+#ifdef HAS_KQUEUE
 
 #include <sys/event.h>
 #include <sys/time.h>
@@ -43,14 +43,14 @@ namespace aio{
 
 
 struct Socket::StationData{
-	StationData():rcvaddrpair(rcvaddr){}
+	StationData()/*:rcvaddrpair(rcvaddr)*/{}
 	static unsigned specificCount(){return 0xffffff;}
 	void specificRelease(){
-		sndaddrpair.addr = NULL;
+		sndaddrpair.clear();
 	}
 	SocketAddress		rcvaddr;
-	SocketAddressPair	rcvaddrpair;
-	SocketAddressPair	sndaddrpair;
+	//SocketAddressStub	rcvaddrpair;
+	SocketAddressStub	sndaddrpair;
 };
 
 struct Socket::AcceptorData{
@@ -85,10 +85,10 @@ Socket::~Socket(){
 }
 
 
-int Socket::create(const SocketAddressInfoIterator& _rai){
+int Socket::create(const ResolveIterator& _rai){
 	return sd.create(_rai);
 }
-int Socket::connect(const SocketAddressInfoIterator& _rai){
+int Socket::connect(const ResolveIterator& _rai){
 	cassert(!isSendPending());
 	cassert(type == CHANNEL);
 	int rv = sd.connect(_rai);
@@ -187,7 +187,7 @@ int Socket::recvFrom(char *_pb, uint32 _bl, uint32 _flags){
 	if(rv > 0){
 		rcvlen = rv;
 		rcvcnt += rv;
-		d.psd->rcvaddrpair.size(d.psd->rcvaddr.size());
+		//d.psd->rcvaddrpair.size(d.psd->rcvaddr.size());
 		//d.pad->rcvaddrpair.addr = rcvsa.addr();
 		//d.pad->rcvaddrpair.size = rcvsa.size();
 		return OK;
@@ -199,7 +199,7 @@ int Socket::recvFrom(char *_pb, uint32 _bl, uint32 _flags){
 	ioreq |= FLAG_POLL_IN;
 	return NOK;
 }
-int Socket::sendTo(const char *_pb, uint32 _bl, const SocketAddressPair &_sap, uint32 _flags){	
+int Socket::sendTo(const char *_pb, uint32 _bl, const SocketAddressStub &_sap, uint32 _flags){	
 	cassert(!isSendPending());
 	int rv = sd.send(_pb, _bl, _sap);
 	if(rv == (ssize_t)_bl){
@@ -216,8 +216,8 @@ int Socket::sendTo(const char *_pb, uint32 _bl, const SocketAddressPair &_sap, u
 	d.psd->sndaddrpair = _sap;
 	return NOK;
 }
-const SocketAddressPair &Socket::recvAddr()const{
-	return d.psd->rcvaddrpair;
+const SocketAddress &Socket::recvAddr()const{
+	return d.psd->rcvaddr;
 }
 
 void Socket::doPrepare(){
@@ -311,7 +311,7 @@ int Socket::doRecvPlain(){
 				if(rv <= 0) return ERRDONE;
 				rcvcnt += rv;
 				rcvlen = rv;
-				d.psd->rcvaddrpair.size(d.psd->rcvaddr.size());
+				//d.psd->rcvaddrpair.size(d.psd->rcvaddr.size());
 			}
 			rcvbuf = NULL;
 			ioreq &= ~FLAG_POLL_IN;

@@ -158,16 +158,16 @@ private:
 private:
 	String							strpth;
 	String							straddr;
-	uint32							port;
+	String							port;
 	Connection						&rc;
 	int16 							state;
 	uint64							litsz;
 	protocol::Parameter				*pp;
 	//FileUidT						fuid;
 	
-	StreamPointer<InputStream>			sp_in;
-	StreamPointer<InputStream>			sp_out;
-	InputStreamIterator					it;
+	StreamPointer<InputStream>		sp_in;
+	StreamPointer<InputStream>		sp_out;
+	InputStreamIterator				it;
 	foundation::ipc::ConnectionUid	ipcconuid;
 	SignalUidT						mastersiguid;
 	uint32							tmpstreamcp;//temp stream capacity
@@ -270,7 +270,7 @@ public:
 	template <int U>
 	int reinitReader(Reader &, protocol::Parameter &);
 private:
-	typedef std::pair<String, uint32>	HostAddrPairT;
+	typedef std::pair<String, String>	HostAddrPairT;
 	typedef std::vector<HostAddrPairT>	HostAddrVectorT;
 	String						strpth;
 	HostAddrVectorT				hostvec;

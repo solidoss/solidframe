@@ -27,6 +27,7 @@
 #include "foundation/file/filekey.hpp"
 
 
+#include "system/debug.hpp"
 #include "system/mutex.hpp"
 #include "system/directory.hpp"
 
@@ -64,17 +65,21 @@ int File::stream(
 	}else if(openmode & Manager::OpenR){
 		if(_flags & Manager::ForcePending){
 			iwq.push(WaitData(_requid, _flags));
+			idbgx(Dbg::file, "ousecnt = "<<ousecnt<<" owq = "<<owq.size()<<" rk = "<<rk.path());
 			return (ousecnt || owq.size()) ? MustWait : MustSignal;
 		}else if(ousecnt || owq.size()){
 			iwq.push(WaitData(_requid, _flags));
+			idbgx(Dbg::file, ""<<" rk = "<<rk.path());
 			return MustWait;
 		}
 	}else{// prepare for reading
 		openmoderequest |= (_flags | Manager::OpenR);
 		iwq.push(WaitData(_requid, _flags));
+		idbgx(Dbg::file, "ousecnt = "<<ousecnt<<" owq = "<<owq.size()<<" rk = "<<rk.path());
 		return (ousecnt || owq.size()) ? MustWait : MustSignal;
 	}
 	++iusecnt;
+	idbgx(Dbg::file, "iusecnt = "<<iusecnt<<' '<<rk.path());	
 	_sptr = _rs.createInputStream(this->id());
 	return OK;
 }
@@ -180,6 +185,7 @@ int File::execute(
 	Mutex	&_mtx
 ){
 	//NOTE: do not use state outside file::Manager's thread
+	idbgx(Dbg::file, ""<<rk.path());
 	Locker<Mutex> lock(_mtx);
 	
 	if(_evs & Timeout){
@@ -192,14 +198,21 @@ int File::execute(
 	if(_evs & MustDie){
 		state = Destroy;
 	}
-	if(ousecnt || iusecnt)
+	if(ousecnt){
+		idbgx(Dbg::file, "ousecnt = "<<ousecnt<<" iusecnt = "<<iusecnt<<' '<<rk.path());
 		return No;
+	}
+	if(iusecnt && ((state != Running) || iwq.empty())){
+		return No;
+	}
 	
 	switch(state){
 		case Destroy:
+			idbgx(Dbg::file, "");
 			//signall error for all requests
 			return doDestroy(_rs);
 		case Opening:
+			idbgx(Dbg::file, "");
 			if(!(_evs & RetryOpen)) return No;
 			return doRequestOpen(_rs);
 		default:break;
@@ -208,6 +221,7 @@ int File::execute(
 		if(owq.front().flags & Manager::InputOutputStreamRequest){
 			if(openmode & Manager::OpenRW){
 				++ousecnt;
+				idbgx(Dbg::file, "");
 				//send iostream
 				StreamPointer<InputOutputStream> sptr(_rs.createInputOutputStream(id()));	
 				_rs.push(sptr, FileUidT(id(), _rs.fileUid(id())), owq.front().requid);
@@ -230,9 +244,12 @@ int File::execute(
 		return No;
 	}
 	if(iwq.size()){
-		if(!(openmode & Manager::OpenR))
+		if(!(openmode & Manager::OpenR)){
+			idbgx(Dbg::file, "");
 			return doRequestOpen(_rs);
+		}
 		while(iwq.size()){
+			idbgx(Dbg::file, "");
 			++iusecnt;
 			StreamPointer<InputStream> sptr(_rs.createInputStream(id()));	
 			_rs.push(sptr, FileUidT(id(), _rs.fileUid(id())), iwq.front().requid);

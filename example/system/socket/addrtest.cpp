@@ -18,22 +18,10 @@
 	You should have received a copy of the GNU General Public License
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
-
+#ifndef ON_WINDOWS
 #include <poll.h>
-#include "system/socketaddress.hpp"
-#include "system/socketdevice.hpp"
-#include "system/timespec.hpp"
 #include <unistd.h>
-#include <fcntl.h>
-#include <cerrno>
-#include <iostream>
-#include <cstring>
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
-#include <errno.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -45,6 +33,22 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#endif
+#include "system/socketaddress.hpp"
+#include "system/socketdevice.hpp"
+#include "system/timespec.hpp"
+#include "system/cassert.hpp"
+#include <boost/concept_check.hpp>
+#include <fcntl.h>
+#include <cerrno>
+#include <iostream>
+#include <cstring>
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
+
 using namespace std;
 
 void listLocalInterfaces();
@@ -52,6 +56,21 @@ void listLocalInterfaces();
 void testLiterals();
 
 int main(int argc, char *argv[]){
+#ifdef ON_WINDOWS
+	WSADATA	wsaData;
+    int		err;
+	WORD	wVersionRequested;
+/* Use the MAKEWORD(lowbyte, highbyte) macro declared in Windef.h */
+    wVersionRequested = MAKEWORD(2, 2);
+
+    err = WSAStartup(wVersionRequested, &wsaData);
+	if (err != 0) {
+        /* Tell the user that we could not find a usable */
+        /* Winsock DLL.                                  */
+        printf("WSAStartup failed with error: %d\n", err);
+        return 1;
+    }
+#endif
 	testLiterals();
 	if(argc < 3){
 		cout<<"error too few arguments"<<endl;
@@ -62,8 +81,8 @@ int main(int argc, char *argv[]){
 	const char *srv = NULL;
 	if(strlen(argv[2])) srv = argv[2];
 	int flags = 0;
-	int family = SocketAddressInfo::Inet4;
-	int type = SocketAddressInfo::Stream;
+	int family = SocketInfo::Inet4;
+	int type = SocketInfo::Stream;
 	int proto = 0;
 	
 	//list all the local interfaces
@@ -71,53 +90,127 @@ int main(int argc, char *argv[]){
 	
 	
 	//SocketAddressInfo ai(node, srv);
-	SocketAddressInfo ai(node, srv, flags, family, type, proto);
-	SocketAddressInfoIterator it(ai.begin());
-	while(it){
-		int sd = socket(it.family(), it.type(), it.protocol());
-		struct timeval tosnd;
-		struct timeval torcv;
+	ResolveData rd =  synchronous_resolve(node, srv, flags, family, type, proto);
+	ResolveIterator it(rd.begin());
+	while(it != rd.end()){
 		
-		tosnd.tv_sec = -1;
-		tosnd.tv_usec = -1;
+		SocketAddress	sa(it);
 		
-		torcv.tv_sec = -1;
-		torcv.tv_usec = -1;
-		socklen_t socklen(sizeof(torcv));
-		if(sd > 0){
-			cout<<"Connecting..."<<endl;
-			getsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, (char*)&torcv, &socklen);
-			socklen = sizeof(tosnd);
-			getsockopt(sd, SOL_SOCKET, SO_SNDTIMEO, (char*)&tosnd, &socklen);
-			cout<<"rcvtimeo "<<torcv.tv_sec<<"."<<torcv.tv_usec<<endl;
-			cout<<"sndtimeo "<<tosnd.tv_sec<<"."<<tosnd.tv_usec<<endl;
-			fcntl(sd, F_SETFL, O_NONBLOCK);
-			if(!connect(sd, it.addr(), it.size())){
-				cout<<"Connected!"<<endl;
-			}else{
-				if(errno != EINPROGRESS){
-					cout<<"Failed connect"<<endl;
-				}else{
-					cout<<"Polling ..."<<endl;
-					pollfd pfd;
-					pfd.fd = sd;
-					pfd.events = 0;//POLLOUT;
-					int rv = poll(&pfd, 1, -1);
-					cout<<"pollrv = "<<rv<<endl;
-					if(pfd.revents & (POLLERR | POLLHUP | POLLNVAL)){
-						
-						cout<<"poll err "<<(pfd.revents & POLLERR)<<' '<<(pfd.revents & POLLHUP)<<' '<<(pfd.revents & POLLNVAL)<<' '<<endl;
-					}
-				}
-			}
-			socklen_t len = 4;
-			int v = 0;
-			int rv = getsockopt(sd, SOL_SOCKET, SO_ERROR, &v, &len);
-			cout<<"getsockopt rv = "<<rv<<" v = "<<v<<" err = "<<strerror(v)<<" len = "<<len<<endl;
-			
-		}else{
-			cout<<"failed socket"<<endl;
+		char			host[SocketInfo::HostStringCapacity];
+		char			port[SocketInfo::ServiceStringCapacity];
+		
+		sa.toString(
+			host, SocketInfo::HostStringCapacity,
+			port, SocketInfo::ServiceStringCapacity,
+			SocketInfo::NumericService | SocketInfo::NumericHost
+		);
+		
+		cout<<"host = "<<host<<":"<<port<<endl;
+		
+		SocketDevice sd;
+		sd.create(it);
+		
+		int rv = sd.connect(it);
+		
+		cout<<"rv = "<<rv<<endl;
+		
+		if(rv == OK){
+			sd.write("hello word\r\n", strlen("hello word\r\n"));
 		}
+		
+		SocketAddressInet4 sa4_0(it);
+		
+		sa4_0.toString(
+			host, SocketInfo::HostStringCapacity,
+			port, SocketInfo::ServiceStringCapacity,
+			SocketInfo::NumericService | SocketInfo::NumericHost
+		);
+		
+		cout<<"sa4_0 host = "<<host<<":"<<port<<endl;
+		
+		uint16 portx;
+		uint32 addr;
+		
+		sa4_0.toUInt(addr, portx);
+		
+		++addr;
+		
+		SocketAddressInet4 sa4_1(addr, portx);
+		
+		sa4_1.toString(
+			host, SocketInfo::HostStringCapacity,
+			port, SocketInfo::ServiceStringCapacity,
+			SocketInfo::NumericService | SocketInfo::NumericHost
+		);
+		
+		cout<<"sa4_1 host = "<<host<<":"<<port<<endl;
+		
+		cassert(sa4_0 < sa4_1);
+		
+		cassert(sa4_0.address() < sa4_1.address());
+		
+		SocketAddressInet4::BinaryT	binaddr4;
+		sa4_0.toBinary(binaddr4, portx);
+		
+		SocketAddressInet4 sa4_2(binaddr4, portx);
+		
+		sa4_2.toString(
+			host, SocketInfo::HostStringCapacity,
+			port, SocketInfo::ServiceStringCapacity,
+			SocketInfo::NumericService | SocketInfo::NumericHost
+		);
+		
+		cout<<"sa4_2 host = "<<host<<":"<<port<<endl;
+		
+		cassert(!(sa4_1 == sa4_2));
+		cassert(sa4_0 == sa4_2);
+		cassert(!(sa4_0 < sa4_2));
+		cassert(!(sa4_2 < sa4_0));
+		
+// 		int sd = socket(it.family(), it.type(), it.protocol());
+// 		struct timeval tosnd;
+// 		struct timeval torcv;
+// 		
+// 		tosnd.tv_sec = -1;
+// 		tosnd.tv_usec = -1;
+// 		
+// 		torcv.tv_sec = -1;
+// 		torcv.tv_usec = -1;
+// 		socklen_t socklen(sizeof(torcv));
+// 		if(sd > 0){
+// 			cout<<"Connecting..."<<endl;
+// 			getsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, (char*)&torcv, &socklen);
+// 			socklen = sizeof(tosnd);
+// 			getsockopt(sd, SOL_SOCKET, SO_SNDTIMEO, (char*)&tosnd, &socklen);
+// 			cout<<"rcvtimeo "<<torcv.tv_sec<<"."<<torcv.tv_usec<<endl;
+// 			cout<<"sndtimeo "<<tosnd.tv_sec<<"."<<tosnd.tv_usec<<endl;
+// 			fcntl(sd, F_SETFL, O_NONBLOCK);
+// 			if(!connect(sd, it.sockAddr(), it.size())){
+// 				cout<<"Connected!"<<endl;
+// 			}else{
+// 				if(errno != EINPROGRESS){
+// 					cout<<"Failed connect"<<endl;
+// 				}else{
+// 					cout<<"Polling ..."<<endl;
+// 					pollfd pfd;
+// 					pfd.fd = sd;
+// 					pfd.events = 0;//POLLOUT;
+// 					int rv = poll(&pfd, 1, -1);
+// 					cout<<"pollrv = "<<rv<<endl;
+// 					if(pfd.revents & (POLLERR | POLLHUP | POLLNVAL)){
+// 						
+// 						cout<<"poll err "<<(pfd.revents & POLLERR)<<' '<<(pfd.revents & POLLHUP)<<' '<<(pfd.revents & POLLNVAL)<<' '<<endl;
+// 					}
+// 				}
+// 			}
+// 			socklen_t len = 4;
+// 			int v = 0;
+// 			int rv = getsockopt(sd, SOL_SOCKET, SO_ERROR, &v, &len);
+// 			cout<<"getsockopt rv = "<<rv<<" v = "<<v<<" err = "<<strerror(v)<<" len = "<<len<<endl;
+// 			
+// 		}else{
+// 			cout<<"failed socket"<<endl;
+// 		}
 		++it;
 	}
 	return 0;
@@ -165,6 +258,7 @@ void listLocalInterfaces(){
 #endif
 
 void listLocalInterfaces(){
+#ifndef ON_WINDOWS
 	struct ifaddrs* ifap;
 	if(::getifaddrs(&ifap)){
 		cout<<"getifaddrs did not work"<<endl;
@@ -176,7 +270,7 @@ void listLocalInterfaces(){
 	char srvc[128];
 	
 	while(it){
-		sockaddr_in *addr;
+		//sockaddr_in *addr;
 		if(it->ifa_addr && it->ifa_addr->sa_family == AF_INET)
         {
             struct sockaddr_in* addr = reinterpret_cast<struct sockaddr_in*>(it->ifa_addr);
@@ -188,6 +282,7 @@ void listLocalInterfaces(){
 		it = it->ifa_next;
 	}
 	freeifaddrs(ifap);
+#endif
 }
 
 

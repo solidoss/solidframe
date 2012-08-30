@@ -20,67 +20,16 @@
 */
 
 #include "algorithm/serialization/binary.hpp"
+#include "algorithm/serialization/binarybasic.hpp"
 #include "utility/ostream.hpp"
 #include "utility/istream.hpp"
 #include "system/cstring.hpp"
-#include "cstring"
+#include <cstring>
 
 namespace serialization{
 namespace binary{
 
-inline char *storeValue(char *_pd, const uint16 _val){
-	uint8 *pd = reinterpret_cast<uint8*>(_pd);
-	*(pd) 		= ((_val >> 8) & 0xff);
-	*(pd + 1)	= (_val & 0xff);
-	return _pd + 2;
-}
-
-inline char *storeValue(char *_pd, const uint32 _val){
-	
-	_pd = storeValue(_pd, static_cast<uint16>(_val >> 16));
-	
-	return storeValue(_pd, static_cast<uint16>(_val & 0xffff));;
-}
-
-inline char *storeValue(char *_pd, const uint64 _val){
-	
-	_pd = storeValue(_pd, static_cast<uint32>(_val >> 32));
-	
-	return storeValue(_pd, static_cast<uint32>(_val & 0xffffffffULL));;
-}
-
-inline const char* parseValue(const char *_ps, uint16 &_val){
-	const uint8 *ps = reinterpret_cast<const uint8*>(_ps);
-	_val = (uint8)(*ps);
-	_val <<= 8;
-	_val |= (uint8)(*(ps + 1));
-	return _ps + 2;
-}
-
-inline const char* parseValue(const char *_ps, uint32 &_val){
-	uint16	upper;
-	uint16	lower;
-	_ps = parseValue(_ps, upper);
-	_ps = parseValue(_ps, lower);
-	_val = upper;
-	_val <<= 16;
-	_val |= lower;
-	return _ps;
-}
-
-inline const char* parseValue(const char *_ps, uint64 &_val){
-	uint32	upper;
-	uint32	lower;
-	_ps = parseValue(_ps, upper);
-	_ps = parseValue(_ps, lower);
-	_val = upper;
-	_val <<= 32;
-	_val |= lower;
-	return _ps;
-}
-
-
-#ifdef HAVE_SAFE_STATIC
+#ifdef HAS_SAFE_STATIC
 /*static*/ Limits const& Limits::the(){
 	static const Limits l;
 	return l;
@@ -163,13 +112,13 @@ int Base::popEStack(Base &_rb, FncData &){
 }
 //========================================================================
 /*static*/ char* Serializer::storeValue(char *_pd, const uint16 _val){
-	return serialization::binary::storeValue(_pd, _val);
+	return serialization::binary::store(_pd, _val);
 }
 /*static*/ char* Serializer::storeValue(char *_pd, const uint32 _val){
-	return serialization::binary::storeValue(_pd, _val);
+	return serialization::binary::store(_pd, _val);
 }
 /*static*/ char* Serializer::storeValue(char *_pd, const uint64 _val){
-	return serialization::binary::storeValue(_pd, _val);
+	return serialization::binary::store(_pd, _val);
 }
 Serializer::~Serializer(){
 }
@@ -221,7 +170,7 @@ int Serializer::run(char *_pb, unsigned _bl){
 }
 template <>
 int Serializer::storeBinary<0>(Base &_rb, FncData &_rfd){
-	idbgx(Dbg::ser_bin, "");
+	idbgx(Dbg::ser_bin, ""<<_rfd.s);
 	Serializer &rs(static_cast<Serializer&>(_rb));
 	if(!rs.cpb) return OK;
 	uint32 len = rs.be - rs.cpb;
@@ -230,6 +179,7 @@ int Serializer::storeBinary<0>(Base &_rb, FncData &_rfd){
 	rs.cpb += len;
 	_rfd.p = (char*)_rfd.p + len;
 	_rfd.s -= len;
+	idbgx(Dbg::ser_bin, ""<<len);
 	if(_rfd.s) return NOK;
 	return OK;
 }
@@ -302,6 +252,9 @@ int Serializer::storeBinary<4>(Base &_rb, FncData &_rfd){
 		*(rs.cpb + 0) = *(ps + 0);
 		_rfd.p = const_cast<char*>(ps + 1);
 		rs.cpb += 1;
+		_rfd.s = 3;
+	}else{
+		_rfd.s = 4;
 	}
 	_rfd.f = &Serializer::storeBinary<0>;
 	return NOK;
@@ -357,6 +310,7 @@ int Serializer::storeBinary<8>(Base &_rb, FncData &_rfd){
 		*(rs.cpb + 4) = *(ps + 4);
 		_rfd.p = const_cast<char*>(ps + 5);
 		rs.cpb += 5;
+		_rfd.s = 3;
 	}else if(len >= 4){
 		*(rs.cpb + 0) = *(ps + 0);
 		*(rs.cpb + 1) = *(ps + 1);
@@ -372,15 +326,20 @@ int Serializer::storeBinary<8>(Base &_rb, FncData &_rfd){
 		*(rs.cpb + 2) = *(ps + 2);
 		_rfd.p = const_cast<char*>(ps + 3);
 		rs.cpb += 3;
+		_rfd.s = 5;
 	}else if(len >= 2){
 		*(rs.cpb + 0) = *(ps + 0);
 		*(rs.cpb + 1) = *(ps + 1);
 		_rfd.p = const_cast<char*>(ps + 2);
 		rs.cpb += 2;
+		_rfd.s = 6;
 	}else if(len >= 1){
 		*(rs.cpb + 0) = *(ps + 0);
 		_rfd.p = const_cast<char*>(ps + 1);
 		rs.cpb += 1;
+		_rfd.s = 7;
+	}else{
+		_rfd.s = 8;
 	}
 	_rfd.f = &Serializer::storeBinary<0>;
 	return NOK;
@@ -616,14 +575,14 @@ Serializer& Serializer::pushStream(
 	return *this;
 }
 //========================================================================
-/*static*/ const char* Deserializer::parseValue(const char *_ps, uint16 &_val){
-	return serialization::binary::parseValue(_ps, _val);
+/*static*/ const char* Deserializer::loadValue(const char *_ps, uint16 &_val){
+	return serialization::binary::load(_ps, _val);
 }
-/*static*/ const char* Deserializer::parseValue(const char *_ps, uint32 &_val){
-	return serialization::binary::parseValue(_ps, _val);
+/*static*/ const char* Deserializer::loadValue(const char *_ps, uint32 &_val){
+	return serialization::binary::load(_ps, _val);
 }
-/*static*/ const char* Deserializer::parseValue(const char *_ps, uint64 &_val){
-	return serialization::binary::parseValue(_ps, _val);
+/*static*/ const char* Deserializer::loadValue(const char *_ps, uint64 &_val){
+	return serialization::binary::load(_ps, _val);
 }
 Deserializer::~Deserializer(){
 }
@@ -632,7 +591,7 @@ void Deserializer::clear(){
 	run(NULL, 0);
 }
 
-/*static*/ int Deserializer::parseTypeIdDone(Base& _rd, FncData &_rfd){
+/*static*/ int Deserializer::loadTypeIdDone(Base& _rd, FncData &_rfd){
 	Deserializer &rd(static_cast<Deserializer&>(_rd));
 	void		*p = _rfd.p;
 	const char	*n = _rfd.n;
@@ -645,10 +604,10 @@ void Deserializer::clear(){
 		return BAD;
 	}
 }
-/*static*/ int Deserializer::parseTypeId(Base& _rd, FncData &_rfd){
+/*static*/ int Deserializer::loadTypeId(Base& _rd, FncData &_rfd){
 	Deserializer &rd(static_cast<Deserializer&>(_rd));
 	rd.typeMapper().prepareParsePointerId(&rd, rd.tmpstr, _rfd.n);
-	_rfd.f = &parseTypeIdDone;
+	_rfd.f = &loadTypeIdDone;
 	return CONTINUE;
 }
 
@@ -697,9 +656,9 @@ int Deserializer::run(const char *_pb, unsigned _bl){
 	return cpb - pb;
 }
 template <>
-int Deserializer::parseBinary<0>(Base &_rb, FncData &_rfd){
+int Deserializer::loadBinary<0>(Base &_rb, FncData &_rfd){
 	Deserializer &rd(static_cast<Deserializer&>(_rb));
-	idbgx(Dbg::ser_bin, "");
+	idbgx(Dbg::ser_bin, ""<<_rfd.s);
 	if(!rd.cpb) return OK;
 	uint32 len = rd.be - rd.cpb;
 	if(len > _rfd.s) len = static_cast<uint32>(_rfd.s);
@@ -707,12 +666,13 @@ int Deserializer::parseBinary<0>(Base &_rb, FncData &_rfd){
 	rd.cpb += len;
 	_rfd.p = (char*)_rfd.p + len;
 	_rfd.s -= len;
+	idbgx(Dbg::ser_bin, ""<<len);
 	if(_rfd.s) return NOK;
 	return OK;
 }
 
 template <>
-int Deserializer::parseBinary<1>(Base &_rb, FncData &_rfd){
+int Deserializer::loadBinary<1>(Base &_rb, FncData &_rfd){
 	Deserializer &rd(static_cast<Deserializer&>(_rb));
 	idbgx(Dbg::ser_bin, "");
 	if(!rd.cpb) return OK;
@@ -728,7 +688,7 @@ int Deserializer::parseBinary<1>(Base &_rb, FncData &_rfd){
 
 
 template <>
-int Deserializer::parseBinary<2>(Base &_rb, FncData &_rfd){
+int Deserializer::loadBinary<2>(Base &_rb, FncData &_rfd){
 	Deserializer &rd(static_cast<Deserializer&>(_rb));
 	idbgx(Dbg::ser_bin, "");
 	if(!rd.cpb) return OK;
@@ -743,13 +703,13 @@ int Deserializer::parseBinary<2>(Base &_rb, FncData &_rfd){
 		*(ps + 0) = *(rd.cpb + 0);
 		rd.cpb += 1;
 		_rfd.p = ps + 1;
-		_rfd.f = &Deserializer::parseBinary<1>;
+		_rfd.f = &Deserializer::loadBinary<1>;
 	}
 	return NOK;
 }
 
 template <>
-int Deserializer::parseBinary<3>(Base &_rb, FncData &_rfd){
+int Deserializer::loadBinary<3>(Base &_rb, FncData &_rfd){
 	Deserializer &rd(static_cast<Deserializer&>(_rb));
 	idbgx(Dbg::ser_bin, "");
 	if(!rd.cpb) return OK;
@@ -766,18 +726,18 @@ int Deserializer::parseBinary<3>(Base &_rb, FncData &_rfd){
 		*(ps + 1) = *(rd.cpb + 1);
 		rd.cpb += 2;
 		_rfd.p = ps + 2;
-		_rfd.f = &Deserializer::parseBinary<1>;
+		_rfd.f = &Deserializer::loadBinary<1>;
 	}else if(len >= 1){
 		*(ps + 0) = *(rd.cpb + 0);
 		rd.cpb += 1;
 		_rfd.p = ps + 1;
-		_rfd.f = &Deserializer::parseBinary<2>;
+		_rfd.f = &Deserializer::loadBinary<2>;
 	}
 	return NOK;
 }
 
 template <>
-int Deserializer::parseBinary<4>(Base &_rb, FncData &_rfd){
+int Deserializer::loadBinary<4>(Base &_rb, FncData &_rfd){
 	Deserializer &rd(static_cast<Deserializer&>(_rb));
 	idbgx(Dbg::ser_bin, "");
 	if(!rd.cpb) return OK;
@@ -796,24 +756,24 @@ int Deserializer::parseBinary<4>(Base &_rb, FncData &_rfd){
 		*(ps + 2) = *(rd.cpb + 2);
 		rd.cpb += 3;
 		_rfd.p = ps + 3;
-		_rfd.f = &Deserializer::parseBinary<1>;
+		_rfd.f = &Deserializer::loadBinary<1>;
 	}else if(len >= 2){
 		*(ps + 0) = *(rd.cpb + 0);
 		*(ps + 1) = *(rd.cpb + 1);
 		rd.cpb += 2;
 		_rfd.p = ps + 2;
-		_rfd.f = &Deserializer::parseBinary<2>;
+		_rfd.f = &Deserializer::loadBinary<2>;
 	}else if(len >= 1){
 		*(ps + 0) = *(rd.cpb + 0);
 		rd.cpb += 1;
 		_rfd.p = ps + 1;
-		_rfd.f = &Deserializer::parseBinary<3>;
+		_rfd.f = &Deserializer::loadBinary<3>;
 	}
 	return NOK;
 }
 
 template <>
-int Deserializer::parseBinary<5>(Base &_rb, FncData &_rfd){
+int Deserializer::loadBinary<5>(Base &_rb, FncData &_rfd){
 	Deserializer &rd(static_cast<Deserializer&>(_rb));
 	idbgx(Dbg::ser_bin, "");
 	if(!rd.cpb) return OK;
@@ -834,31 +794,31 @@ int Deserializer::parseBinary<5>(Base &_rb, FncData &_rfd){
 		*(ps + 3) = *(rd.cpb + 3);
 		rd.cpb += 4;
 		_rfd.p = ps + 4;
-		_rfd.f = &Deserializer::parseBinary<1>;
+		_rfd.f = &Deserializer::loadBinary<1>;
 	}else if(len >= 3){
 		*(ps + 0) = *(rd.cpb + 0);
 		*(ps + 1) = *(rd.cpb + 1);
 		*(ps + 2) = *(rd.cpb + 2);
 		rd.cpb += 3;
 		_rfd.p = ps + 3;
-		_rfd.f = &Deserializer::parseBinary<2>;
+		_rfd.f = &Deserializer::loadBinary<2>;
 	}else if(len >= 2){
 		*(ps + 0) = *(rd.cpb + 0);
 		*(ps + 1) = *(rd.cpb + 1);
 		rd.cpb += 2;
 		_rfd.p = ps + 2;
-		_rfd.f = &Deserializer::parseBinary<3>;
+		_rfd.f = &Deserializer::loadBinary<3>;
 	}else if(len >= 1){
 		*(ps + 0) = *(rd.cpb + 0);
 		rd.cpb += 1;
 		_rfd.p = ps + 1;
-		_rfd.f = &Deserializer::parseBinary<4>;
+		_rfd.f = &Deserializer::loadBinary<4>;
 	}
 	return NOK;
 }
 
 template <>
-int Deserializer::parseBinary<6>(Base &_rb, FncData &_rfd){
+int Deserializer::loadBinary<6>(Base &_rb, FncData &_rfd){
 	Deserializer &rd(static_cast<Deserializer&>(_rb));
 	idbgx(Dbg::ser_bin, "");
 	if(!rd.cpb) return OK;
@@ -881,7 +841,7 @@ int Deserializer::parseBinary<6>(Base &_rb, FncData &_rfd){
 		*(ps + 4) = *(rd.cpb + 4);
 		rd.cpb += 5;
 		_rfd.p = ps + 5;
-		_rfd.f = &Deserializer::parseBinary<1>;
+		_rfd.f = &Deserializer::loadBinary<1>;
 	}else if(len >= 4){
 		*(ps + 0) = *(rd.cpb + 0);
 		*(ps + 1) = *(rd.cpb + 1);
@@ -889,31 +849,31 @@ int Deserializer::parseBinary<6>(Base &_rb, FncData &_rfd){
 		*(ps + 3) = *(rd.cpb + 3);
 		rd.cpb += 4;
 		_rfd.p = ps + 4;
-		_rfd.f = &Deserializer::parseBinary<2>;
+		_rfd.f = &Deserializer::loadBinary<2>;
 	}else if(len >= 3){
 		*(ps + 0) = *(rd.cpb + 0);
 		*(ps + 1) = *(rd.cpb + 1);
 		*(ps + 2) = *(rd.cpb + 2);
 		rd.cpb += 3;
 		_rfd.p = ps + 3;
-		_rfd.f = &Deserializer::parseBinary<3>;
+		_rfd.f = &Deserializer::loadBinary<3>;
 	}else if(len >= 2){
 		*(ps + 0) = *(rd.cpb + 0);
 		*(ps + 1) = *(rd.cpb + 1);
 		rd.cpb += 2;
 		_rfd.p = ps + 2;
-		_rfd.f = &Deserializer::parseBinary<4>;
+		_rfd.f = &Deserializer::loadBinary<4>;
 	}else if(len >= 1){
 		*(ps + 0) = *(rd.cpb + 0);
 		rd.cpb += 1;
 		_rfd.p = ps + 1;
-		_rfd.f = &Deserializer::parseBinary<5>;
+		_rfd.f = &Deserializer::loadBinary<5>;
 	}
 	return NOK;
 }
 
 template <>
-int Deserializer::parseBinary<7>(Base &_rb, FncData &_rfd){
+int Deserializer::loadBinary<7>(Base &_rb, FncData &_rfd){
 	Deserializer &rd(static_cast<Deserializer&>(_rb));
 	idbgx(Dbg::ser_bin, "");
 	if(!rd.cpb) return OK;
@@ -938,7 +898,7 @@ int Deserializer::parseBinary<7>(Base &_rb, FncData &_rfd){
 		*(ps + 5) = *(rd.cpb + 5);
 		rd.cpb += 6;
 		_rfd.p = ps + 6;
-		_rfd.f = &Deserializer::parseBinary<1>;
+		_rfd.f = &Deserializer::loadBinary<1>;
 	}else if(len >= 5){
 		*(ps + 0) = *(rd.cpb + 0);
 		*(ps + 1) = *(rd.cpb + 1);
@@ -947,7 +907,7 @@ int Deserializer::parseBinary<7>(Base &_rb, FncData &_rfd){
 		*(ps + 4) = *(rd.cpb + 4);
 		rd.cpb += 5;
 		_rfd.p = ps + 5;
-		_rfd.f = &Deserializer::parseBinary<2>;
+		_rfd.f = &Deserializer::loadBinary<2>;
 	}else if(len >= 4){
 		*(ps + 0) = *(rd.cpb + 0);
 		*(ps + 1) = *(rd.cpb + 1);
@@ -955,31 +915,31 @@ int Deserializer::parseBinary<7>(Base &_rb, FncData &_rfd){
 		*(ps + 3) = *(rd.cpb + 3);
 		rd.cpb += 4;
 		_rfd.p = ps + 4;
-		_rfd.f = &Deserializer::parseBinary<3>;
+		_rfd.f = &Deserializer::loadBinary<3>;
 	}else if(len >= 3){
 		*(ps + 0) = *(rd.cpb + 0);
 		*(ps + 1) = *(rd.cpb + 1);
 		*(ps + 2) = *(rd.cpb + 2);
 		rd.cpb += 3;
 		_rfd.p = ps + 3;
-		_rfd.f = &Deserializer::parseBinary<4>;
+		_rfd.f = &Deserializer::loadBinary<4>;
 	}else if(len >= 2){
 		*(ps + 0) = *(rd.cpb + 0);
 		*(ps + 1) = *(rd.cpb + 1);
 		rd.cpb += 2;
 		_rfd.p = ps + 2;
-		_rfd.f = &Deserializer::parseBinary<5>;
+		_rfd.f = &Deserializer::loadBinary<5>;
 	}else if(len >= 1){
 		*(ps + 0) = *(rd.cpb + 0);
 		rd.cpb += 1;
 		_rfd.p = ps + 1;
-		_rfd.f = &Deserializer::parseBinary<6>;
+		_rfd.f = &Deserializer::loadBinary<6>;
 	}
 	return NOK;
 }
 
 template <>
-int Deserializer::parseBinary<8>(Base &_rb, FncData &_rfd){
+int Deserializer::loadBinary<8>(Base &_rb, FncData &_rfd){
 	Deserializer &rd(static_cast<Deserializer&>(_rb));
 	idbgx(Dbg::ser_bin, "");
 	if(!rd.cpb) return OK;
@@ -1006,7 +966,7 @@ int Deserializer::parseBinary<8>(Base &_rb, FncData &_rfd){
 		*(ps + 6) = *(rd.cpb + 6);
 		rd.cpb += 7;
 		_rfd.p = ps + 7;
-		_rfd.f = &Deserializer::parseBinary<1>;
+		_rfd.f = &Deserializer::loadBinary<1>;
 	}else if(len >= 6){
 		*(ps + 0) = *(rd.cpb + 0);
 		*(ps + 1) = *(rd.cpb + 1);
@@ -1016,7 +976,7 @@ int Deserializer::parseBinary<8>(Base &_rb, FncData &_rfd){
 		*(ps + 5) = *(rd.cpb + 5);
 		rd.cpb += 6;
 		_rfd.p = ps + 6;
-		_rfd.f = &Deserializer::parseBinary<2>;
+		_rfd.f = &Deserializer::loadBinary<2>;
 	}else if(len >= 5){
 		*(ps + 0) = *(rd.cpb + 0);
 		*(ps + 1) = *(rd.cpb + 1);
@@ -1025,7 +985,7 @@ int Deserializer::parseBinary<8>(Base &_rb, FncData &_rfd){
 		*(ps + 4) = *(rd.cpb + 4);
 		rd.cpb += 5;
 		_rfd.p = ps + 5;
-		_rfd.f = &Deserializer::parseBinary<3>;
+		_rfd.f = &Deserializer::loadBinary<3>;
 	}else if(len >= 4){
 		*(ps + 0) = *(rd.cpb + 0);
 		*(ps + 1) = *(rd.cpb + 1);
@@ -1033,111 +993,111 @@ int Deserializer::parseBinary<8>(Base &_rb, FncData &_rfd){
 		*(ps + 3) = *(rd.cpb + 3);
 		rd.cpb += 4;
 		_rfd.p = ps + 4;
-		_rfd.f = &Deserializer::parseBinary<4>;
+		_rfd.f = &Deserializer::loadBinary<4>;
 	}else if(len >= 3){
 		*(ps + 0) = *(rd.cpb + 0);
 		*(ps + 1) = *(rd.cpb + 1);
 		*(ps + 2) = *(rd.cpb + 2);
 		rd.cpb += 3;
 		_rfd.p = ps + 3;
-		_rfd.f = &Deserializer::parseBinary<5>;
+		_rfd.f = &Deserializer::loadBinary<5>;
 	}else if(len >= 2){
 		*(ps + 0) = *(rd.cpb + 0);
 		*(ps + 1) = *(rd.cpb + 1);
 		rd.cpb += 2;
 		_rfd.p = ps + 2;
-		_rfd.f = &Deserializer::parseBinary<6>;
+		_rfd.f = &Deserializer::loadBinary<6>;
 	}else if(len >= 1){
 		*(ps + 0) = *(rd.cpb + 0);
 		rd.cpb += 1;
 		_rfd.p = ps + 1;
-		_rfd.f = &Deserializer::parseBinary<7>;
+		_rfd.f = &Deserializer::loadBinary<7>;
 	}
 	return NOK;
 }
 
 
 template <>
-int Deserializer::parse<int8>(Base &_rb, FncData &_rfd){
+int Deserializer::load<int8>(Base &_rb, FncData &_rfd){
 	idbgx(Dbg::ser_bin, "");
 	_rfd.s = sizeof(int8);
-	_rfd.f = &Deserializer::parseBinary<1>;
-	return parseBinary<1>(_rb, _rfd);
+	_rfd.f = &Deserializer::loadBinary<1>;
+	return loadBinary<1>(_rb, _rfd);
 }
 template <>
-int Deserializer::parse<uint8>(Base &_rb, FncData &_rfd){	
+int Deserializer::load<uint8>(Base &_rb, FncData &_rfd){	
 	idbgx(Dbg::ser_bin, "");
 	_rfd.s = sizeof(uint8);
-	_rfd.f = &Deserializer::parseBinary<1>;
-	return parseBinary<1>(_rb, _rfd);
+	_rfd.f = &Deserializer::loadBinary<1>;
+	return loadBinary<1>(_rb, _rfd);
 }
 template <>
-int Deserializer::parse<int16>(Base &_rb, FncData &_rfd){
+int Deserializer::load<int16>(Base &_rb, FncData &_rfd){
 	idbgx(Dbg::ser_bin, "");
 	_rfd.s = sizeof(int16);
-	_rfd.f = &Deserializer::parseBinary<2>;
-	return parseBinary<2>(_rb, _rfd);
+	_rfd.f = &Deserializer::loadBinary<2>;
+	return loadBinary<2>(_rb, _rfd);
 }
 template <>
-int Deserializer::parse<uint16>(Base &_rb, FncData &_rfd){	
+int Deserializer::load<uint16>(Base &_rb, FncData &_rfd){	
 	idbgx(Dbg::ser_bin, "");
 	_rfd.s = sizeof(uint16);
-	_rfd.f = &Deserializer::parseBinary<2>;
-	return parseBinary<2>(_rb, _rfd);
+	_rfd.f = &Deserializer::loadBinary<2>;
+	return loadBinary<2>(_rb, _rfd);
 }
 template <>
-int Deserializer::parse<int32>(Base &_rb, FncData &_rfd){
+int Deserializer::load<int32>(Base &_rb, FncData &_rfd){
 	idbgx(Dbg::ser_bin, "");
 	_rfd.s = sizeof(int32);
-	_rfd.f = &Deserializer::parseBinary<4>;
-	return parseBinary<4>(_rb, _rfd);
+	_rfd.f = &Deserializer::loadBinary<4>;
+	return loadBinary<4>(_rb, _rfd);
 }
 template <>
-int Deserializer::parse<uint32>(Base &_rb, FncData &_rfd){
+int Deserializer::load<uint32>(Base &_rb, FncData &_rfd){
 	idbgx(Dbg::ser_bin, "");
 	_rfd.s = sizeof(uint32);
-	_rfd.f = &Deserializer::parseBinary<4>;
-	return parseBinary<4>(_rb, _rfd);
+	_rfd.f = &Deserializer::loadBinary<4>;
+	return loadBinary<4>(_rb, _rfd);
 }
 
 template <>
-int Deserializer::parse<int64>(Base &_rb, FncData &_rfd){
+int Deserializer::load<int64>(Base &_rb, FncData &_rfd){
 	idbgx(Dbg::ser_bin, "");
 	_rfd.s = sizeof(int64);
-	_rfd.f = &Deserializer::parseBinary<8>;
-	return parseBinary<8>(_rb, _rfd);
+	_rfd.f = &Deserializer::loadBinary<8>;
+	return loadBinary<8>(_rb, _rfd);
 }
 template <>
-int Deserializer::parse<uint64>(Base &_rb, FncData &_rfd){
+int Deserializer::load<uint64>(Base &_rb, FncData &_rfd){
 	idbgx(Dbg::ser_bin, "");
 	_rfd.s = sizeof(uint64);
-	_rfd.f = &Deserializer::parseBinary<8>;
-	return parseBinary<8>(_rb, _rfd);
+	_rfd.f = &Deserializer::loadBinary<8>;
+	return loadBinary<8>(_rb, _rfd);
 }
 /*template <>
-int Deserializer::parse<ulong>(Base &_rb, FncData &_rfd){
+int Deserializer::load<ulong>(Base &_rb, FncData &_rfd){
 	idbgx(Dbg::ser_bin, "");
 	_rfd.s = sizeof(ulong);
-	_rfd.f = &Deserializer::parseBinary;
+	_rfd.f = &Deserializer::loadBinary;
 	return CONTINUE;
 }*/
 template <>
-int Deserializer::parse<std::string>(Base &_rb, FncData &_rfd){
-	idbgx(Dbg::ser_bin, "parse generic non pointer string");
+int Deserializer::load<std::string>(Base &_rb, FncData &_rfd){
+	idbgx(Dbg::ser_bin, "load generic non pointer string");
 	Deserializer &rd(static_cast<Deserializer&>(_rb));
 	if(!rd.cpb) return OK;
-	rd.estk.push(ExtData((int32)0));
-	rd.replace(FncData(&Deserializer::parseBinaryString, _rfd.p, _rfd.n));
-	rd.fstk.push(FncData(&Deserializer::parseBinaryStringCheck, NULL, _rfd.n));
-	rd.fstk.push(FncData(&Deserializer::parse<int32>, &rd.estk.top().i32()));
+	rd.estk.push(ExtData((uint32)0));
+	rd.replace(FncData(&Deserializer::loadBinaryString, _rfd.p, _rfd.n));
+	rd.fstk.push(FncData(&Deserializer::loadBinaryStringCheck, NULL, _rfd.n));
+	rd.fstk.push(FncData(&Deserializer::load<uint32>, &rd.estk.top().u32()));
 	return CONTINUE;
 }
-int Deserializer::parseBinaryStringCheck(Base &_rb, FncData &_rfd){
+int Deserializer::loadBinaryStringCheck(Base &_rb, FncData &_rfd){
 	Deserializer &rd(static_cast<Deserializer&>(_rb));
 	if(!rd.cpb) return OK;
-	const int32 len = rd.estk.top().i32();
-	if(len != -1){
-		const CRCValue<uint32> crcsz(CRCValue<uint32>::check_and_create((uint32)len));
+	const uint32 len = rd.estk.top().u32();
+	if(len != static_cast<uint32>(-1)){
+		const CRCValue<uint32> crcsz(CRCValue<uint32>::check_and_create(len));
 		if(crcsz.ok()){
 			rd.estk.top().u32() = crcsz.value();
 		}else{
@@ -1145,16 +1105,16 @@ int Deserializer::parseBinaryStringCheck(Base &_rb, FncData &_rfd){
 			return BAD;
 		}
 	}
-	int32 ul = rd.estk.top().i32();
+	uint32 ul = rd.estk.top().i32();
 	
-	if(ul > 0 && rd.limits.stringlimit && ul >= static_cast<int32>(rd.limits.stringlimit)){
+	if(rd.limits.stringlimit && ul >= static_cast<uint32>(rd.limits.stringlimit)){
 		idbgx(Dbg::ser_bin, "error");
 		rd.err = ERR_STRING_LIMIT;
 		return BAD;
 	}
 	return OK;
 }
-int Deserializer::parseBinaryString(Base &_rb, FncData &_rfd){
+int Deserializer::loadBinaryString(Base &_rb, FncData &_rfd){
 	Deserializer &rd(static_cast<Deserializer&>(_rb));
 	idbgx(Dbg::ser_bin, "");
 	if(!rd.cpb){
@@ -1164,7 +1124,6 @@ int Deserializer::parseBinaryString(Base &_rb, FncData &_rfd){
 	
 	uint32 len = rd.be - rd.cpb;
 	int32 ul = rd.estk.top().i32();
-	
 	if(ul < 0){
 		return OK;
 	}
@@ -1180,7 +1139,7 @@ int Deserializer::parseBinaryString(Base &_rb, FncData &_rfd){
 	rd.estk.pop();
 	return OK;
 }
-int Deserializer::parseStreamCheck(Base &_rb, FncData &_rfd){
+int Deserializer::loadStreamCheck(Base &_rb, FncData &_rfd){
 	Deserializer	&rd(static_cast<Deserializer&>(_rb));
 	
 	if(!rd.cpb) return OK;
@@ -1192,7 +1151,7 @@ int Deserializer::parseStreamCheck(Base &_rb, FncData &_rfd){
 	}
 	return OK;
 }
-int Deserializer::parseStreamBegin(Base &_rb, FncData &_rfd){
+int Deserializer::loadStreamBegin(Base &_rb, FncData &_rfd){
 	Deserializer	&rd(static_cast<Deserializer&>(_rb));
 	
 	if(!rd.cpb) return OK;
@@ -1202,7 +1161,7 @@ int Deserializer::parseStreamBegin(Base &_rb, FncData &_rfd){
 	
 	if(_rfd.p == NULL){
 		rd.pop();
-		rd.fstk.top().f = &Deserializer::parseDummyStream;
+		rd.fstk.top().f = &Deserializer::loadDummyStream;
 		rd.fstk.top().s = 0;
 		return CONTINUE;
 	}
@@ -1214,7 +1173,7 @@ int Deserializer::parseStreamBegin(Base &_rb, FncData &_rfd){
 		){
 			rd.streamerr = ERR_STREAM_SEEK;
 			rd.pop();
-			rd.fstk.top().f = &Deserializer::parseDummyStream;
+			rd.fstk.top().f = &Deserializer::loadDummyStream;
 			rd.fstk.top().s = 0;
 			return CONTINUE;
 		}
@@ -1222,7 +1181,7 @@ int Deserializer::parseStreamBegin(Base &_rb, FncData &_rfd){
 	return OK;
 }
 
-int Deserializer::parseStream(Base &_rb, FncData &_rfd){
+int Deserializer::loadStream(Base &_rb, FncData &_rfd){
 	idbgx(Dbg::ser_bin, "");
 	
 	Deserializer	&rd(static_cast<Deserializer&>(_rb));
@@ -1232,7 +1191,6 @@ int Deserializer::parseStream(Base &_rb, FncData &_rfd){
 	int32			towrite = rd.be - rd.cpb;
 	
 	if(towrite < 2){
-		cassert(towrite == 0);
 		return NOK;
 	}
 	towrite -= 2;
@@ -1243,7 +1201,7 @@ int Deserializer::parseStream(Base &_rb, FncData &_rfd){
 	}
 	
 	uint16	sz(0);
-	rd.cpb = parseValue(rd.cpb, sz);
+	rd.cpb = loadValue(rd.cpb, sz);
 	idbgx(Dbg::ser_bin, "sz = "<<sz);
 	
 	if(sz == 0xffff){//error on storing side - the stream is incomplete
@@ -1280,14 +1238,14 @@ int Deserializer::parseStream(Base &_rb, FncData &_rfd){
 		_rfd.s -= towrite;
 		idbgx(Dbg::ser_bin, "_rfd.s = "<<_rfd.s);
 		if(_rfd.s == 0){
-			_rfd.f = &parseDummyStream;
+			_rfd.f = &loadDummyStream;
 			_rfd.s = rd.streamsz + sz;
 		}
 	}
 	
 	if(rv != towrite){
 		rd.streamerr = ERR_STREAM_WRITE;
-		_rfd.f = &parseDummyStream;
+		_rfd.f = &loadDummyStream;
 		_rfd.s = rd.streamsz + sz;
 	}else{
 		rd.streamsz += rv;
@@ -1295,7 +1253,7 @@ int Deserializer::parseStream(Base &_rb, FncData &_rfd){
 	idbgx(Dbg::ser_bin, "streamsz = "<<rd.streamsz);
 	return CONTINUE;
 }
-int Deserializer::parseDummyStream(Base &_rb, FncData &_rfd){
+int Deserializer::loadDummyStream(Base &_rb, FncData &_rfd){
 	idbgx(Dbg::ser_bin, "");
 	
 	Deserializer &rd(static_cast<Deserializer&>(_rb));
@@ -1311,7 +1269,7 @@ int Deserializer::parseDummyStream(Base &_rb, FncData &_rfd){
 		towrite = static_cast<int32>(_rfd.s);
 	}
 	uint16	sz(0);
-	rd.cpb = parseValue(rd.cpb, sz);
+	rd.cpb = loadValue(rd.cpb, sz);
 	idbgx(Dbg::ser_bin, "sz = "<<sz);
 	if(sz == 0xffff){//error on storing side - the stream is incomplete
 		rd.streamerr = ERR_STREAM_SENDER;
@@ -1337,7 +1295,7 @@ int Deserializer::parseDummyStream(Base &_rb, FncData &_rfd){
 	}
 	return CONTINUE;
 }
-int Deserializer::parseUtf8(Base &_rb, FncData &_rfd){
+int Deserializer::loadUtf8(Base &_rb, FncData &_rfd){
 	Deserializer	&rd(static_cast<Deserializer&>(_rb));
 	idbgx(Dbg::ser_bin, "");
 	std::string		*ps = reinterpret_cast<std::string*>(_rfd.p);
@@ -1361,23 +1319,23 @@ int Deserializer::parseUtf8(Base &_rb, FncData &_rfd){
 	return OK;
 }
 Deserializer& Deserializer::pushBinary(void *_p, size_t _sz, const char *_name){
-	fstk.push(FncData(&Deserializer::parseBinary<0>, _p, _name, _sz));
+	fstk.push(FncData(&Deserializer::loadBinary<0>, _p, _name, _sz));
 	return *this;
 }
 Deserializer& Deserializer::pushUtf8(std::string& _str, const char *_name){
 	_str.clear();
-	fstk.push(FncData(&Deserializer::parseUtf8, &_str, _name, 0));
+	fstk.push(FncData(&Deserializer::loadUtf8, &_str, _name, 0));
 	return *this;
 }
 Deserializer& Deserializer::pushStream(
 	OutputStream *_ps, const char *_name
 ){
 	if(_ps){
-		fstk.push(FncData(&Deserializer::parseStream, _ps, _name, -1ULL));
+		fstk.push(FncData(&Deserializer::loadStream, _ps, _name, -1ULL));
 	}else{
-		fstk.push(FncData(&Deserializer::parseDummyStream, _ps, _name, -1ULL));
+		fstk.push(FncData(&Deserializer::loadDummyStream, _ps, _name, -1ULL));
 	}
-	fstk.push(FncData(&Deserializer::parseStreamBegin, _ps, _name, 0));
+	fstk.push(FncData(&Deserializer::loadStreamBegin, _ps, _name, 0));
 	return *this;
 }
 Deserializer& Deserializer::pushStream(
@@ -1387,12 +1345,12 @@ Deserializer& Deserializer::pushStream(
 	const char *_name
 ){
 	if(_ps){
-		fstk.push(FncData(&Deserializer::parseStream, _ps, _name, _rlen));
+		fstk.push(FncData(&Deserializer::loadStream, _ps, _name, _rlen));
 	}else{
-		fstk.push(FncData(&Deserializer::parseDummyStream, _ps, _name, _rlen));
+		fstk.push(FncData(&Deserializer::loadDummyStream, _ps, _name, _rlen));
 	}
-	fstk.push(FncData(&Deserializer::parseStreamBegin, _ps, _name, _rat));
-	fstk.push(FncData(&Deserializer::parseStreamCheck, _ps, _name, _rlen));
+	fstk.push(FncData(&Deserializer::loadStreamBegin, _ps, _name, _rat));
+	fstk.push(FncData(&Deserializer::loadStreamCheck, _ps, _name, _rlen));
 	return *this;
 }
 //========================================================================

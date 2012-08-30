@@ -28,8 +28,8 @@ struct ClientSignal: Dynamic<ClientSignal, foundation::Signal>{
 };
 
 struct ClientParams{
-	typedef std::vector<std::string>	StringVectorT;
-	typedef std::vector<SocketAddress4>	AddressVectorT;
+	typedef std::vector<std::string>		StringVectorT;
+	typedef std::vector<SocketAddressInet4>	AddressVectorT;
 	struct Request{
 		Request(uint8 _opp = 0):opp(_opp){
 			u.u64 = 0;

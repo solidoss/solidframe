@@ -27,7 +27,7 @@
 #include "system/common.hpp"
 #include "system/exception.hpp"
 
-#ifdef HAVE_CPP11
+#ifdef HAS_CPP11
 #include <unordered_map>
 #include <unordered_set>
 #else
@@ -270,7 +270,7 @@ struct Object::Data{
 		size_t operator()(const consensus::RequestId& _req1)const;
 	};
 	
-#ifdef HAVE_CPP11
+#ifdef HAS_CPP11
 	typedef std::unordered_map<const consensus::RequestId*, size_t, ReqHash, ReqCmpEqual>		RequestStubMapT;
 	typedef std::unordered_set<consensus::RequestId, SenderHash, SenderCmpEqual>				SenderSetT;
 #else
@@ -416,8 +416,8 @@ bool Object::Data::insertRequestStub(DynamicPointer<WriteRequestSignal> &_rsig, 
 }
 void Object::Data::eraseRequestStub(const size_t _idx){
 	RequestStub &rreq(requestStub(_idx));
-	//cassert(rreq.sig.ptr());
-	if(rreq.sig.ptr()){
+	//cassert(rreq.sig.get());
+	if(rreq.sig.get()){
 		reqmap.erase(&rreq.sig->id);
 	}
 	rreq.sig.clear();
@@ -897,7 +897,8 @@ void Object::doExecuteAcceptDeclineOperation(RunData &_rd, const uint8 _replicai
 		_sig.clear();
 		return false;//no reason to raise the pool thread!!
 	}
-	d.exe.push(this, DynamicPointer<>(_sig));
+	DynamicPointer<>	dp(_sig);
+	d.exe.push(this, dp);
 	return fdt::Object::signal(fdt::S_SIG | fdt::S_RAISE);
 }
 

@@ -28,8 +28,8 @@
 
 class SocketDevice;
 class SocketAddress;
-class SocketAddressPair;
-class SocketAddressInfoIterator;
+class SocketAddressStub;
+class ResolveIterator;
 
 
 namespace foundation{
@@ -76,12 +76,12 @@ public:
 		\param _pos The socket identifier
 		\param _rai An SocketAddressInfo iterator holding the destination address.
 	*/
-	int socketConnect(const uint _pos, const SocketAddressInfoIterator& _rai);
+	int socketConnect(const uint _pos, const ResolveIterator& _rai);
 	
 	//! Asynchronous send for socket on position _pos
 	int socketSend(const uint _pos, const char* _pb, uint32 _bl, uint32 _flags = 0);
 	//! Asynchronous send for socket on position _pos
-	int socketSendTo(const uint _pos, const char* _pb, uint32 _bl, const SocketAddressPair &_sap, uint32 _flags = 0);
+	int socketSendTo(const uint _pos, const char* _pb, uint32 _bl, const SocketAddressStub &_sap, uint32 _flags = 0);
 	//! Asynchronous receive for socket on position _pos
 	int socketRecv(const uint _pos, char *_pb, uint32 _bl, uint32 _flags = 0);
 	//! Asynchronous receive for socket on position _pos
@@ -96,7 +96,7 @@ public:
 	/*!
 		Call this on successful completion of socketRecv
 	*/
-	const SocketAddressPair &socketRecvAddr(uint _pos) const;
+	const SocketAddress &socketRecvAddr(uint _pos) const;
 	
 	
 	//! The ammount of data sent on socket on position _pos

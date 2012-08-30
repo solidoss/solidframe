@@ -29,6 +29,74 @@
 #include "system/socketaddress.hpp"
 #include "system/exception.hpp"
 
+#ifdef NINLINES
+#include "system/socketaddress.ipp"
+#endif
+
+
+//-----------------------------------------------------------------------
+//			synchronous_resolve
+//-----------------------------------------------------------------------
+void ResolveData::delete_addrinfo(void *_pv){
+	freeaddrinfo(reinterpret_cast<addrinfo*>(_pv));
+}
+
+ResolveData synchronous_resolve(const char *_node, const char *_service){
+	if(!_node && !_service){
+		return ResolveData();
+	}
+	addrinfo *paddr = NULL;
+	getaddrinfo(_node, _service, NULL, &paddr);
+	return ResolveData(paddr);
+}
+ResolveData synchronous_resolve(
+	const char *_node, 
+	const char *_service, 
+	int _flags,
+	int _family,
+	int _type,
+	int _proto
+){
+	if(!_node && !_service){
+		return ResolveData();
+	}
+	if(_family < 0) _family = AF_UNSPEC;
+	if(_type < 0) _type = 0;
+	if(_proto < 0) _proto = 0;
+	addrinfo h;
+	h.ai_flags = _flags;
+	h.ai_family = _family;
+	h.ai_socktype = _type;
+	h.ai_protocol = _proto;
+	h.ai_addrlen = 0;
+	h.ai_addr = NULL;
+	h.ai_canonname = NULL;
+	h.ai_next = NULL;
+	addrinfo *paddr = NULL;
+	getaddrinfo(_node, _service, &h, &paddr);
+	return ResolveData(paddr);
+}
+
+
+ResolveData synchronous_resolve(const char *_node, int _port){
+	char buf[12];
+	sprintf(buf, "%u", _port);
+	return synchronous_resolve(_node, buf);
+}
+ResolveData synchronous_resolve(
+	const char *_node, 
+	int _port,
+	int _flags,
+	int _family,
+	int _type,
+	int _proto
+){
+	char buf[12];
+	sprintf(buf, "%u", _port);
+	return synchronous_resolve(_node, buf, _flags, _family, _type, _proto);
+}
+
+#if 0
 SocketAddressInfo::~SocketAddressInfo(){
 	if(!empty()){
 		freeaddrinfo(ib.paddr);
@@ -100,52 +168,34 @@ void SocketAddressInfo::reinit(
 	reinit(_node, buf, _flags, _family, _type, _proto);
 }
 
-// bool SocketAddressPair::operator<(const SocketAddressPair &_addr)const{
+// bool SocketAddressStub::operator<(const SocketAddressStub &_addr)const{
 // 
 // }
 
-SocketAddressPair4::SocketAddressPair4(const SocketAddressPair &_rsap):addr((sockaddr_in*)_rsap.addr)/*, size(_rsap.size)*/{
-	cassert(_rsap.family() == SocketAddressInfo::Inet4);
-	cassert(_rsap.size() == size());
-}
-SocketAddressPair4::SocketAddressPair4(const SocketAddress &_rsa):addr((sockaddr_in*)_rsa.addr())/*, size(_rsa.size())*/{
-	cassert(_rsa.family() == SocketAddressInfo::Inet4);
-	cassert(_rsa.size() == size());
-}
-int SocketAddressPair4::port()const{
-	return htons(addr->sin_port);
-}
-void SocketAddressPair4::port(uint16 _port){
-	addr->sin_port = ntohs(_port);
-}
-bool SocketAddressPair4::operator<(const SocketAddressPair4 &_addr)const{
-	return addr->sin_addr.s_addr < _addr.addr->sin_addr.s_addr;
-}
-
-SocketAddressPair6::SocketAddressPair6(const SocketAddressPair &_rsap):addr((sockaddr_in6*)_rsap.addr)/*, size(_rsap.size)*/{
-	cassert(_rsap.family() == SocketAddressInfo::Inet6);
-	cassert(_rsap.size() == size());
-}
-SocketAddressPair6::SocketAddressPair6(const SocketAddress &_rsa):addr((sockaddr_in6*)_rsa.addr())/*,size(_rsa.size())*/{
-	cassert(_rsa.family() == SocketAddressInfo::Inet6);
-	cassert(_rsa.size() == size());
-}
-bool SocketAddressPair6::operator<(const SocketAddressPair6 &_addr)const{
-	//return addr->sin6_addr.s_addr < _addr.addr->sin6_addr.s_addr;
-	return memcmp(
-		(const void*)addr->sin6_addr.s6_addr,
-		(const void*)_addr.addr->sin6_addr.s6_addr,
-		sizeof(in6_addr)
-	) < 0;
-}
-int SocketAddressPair6::port()const{
-	return htons(addr->sin6_port);
-}
-void SocketAddressPair6::port(uint16 _port){
-	addr->sin6_port = ntohs(_port);
-}
-
 //-----------------------------------------------------------------
+/*static*/ bool SocketAddress::equalAdresses(
+	SocketAddress const & _rsa1,
+	SocketAddress const & _rsa2
+){
+	if(_rsa1.sz == sizeof(sockaddr_in) && _rsa2.sz == sizeof(sockaddr_in)){
+		return _rsa1.addrin()->sin_addr.s_addr == _rsa2.addrin()->sin_addr.s_addr;
+	}else{//sockadd_in16
+		cassert(false);
+		return false;
+	}
+}
+
+/*static*/ bool SocketAddress::compareAddressesLess(
+	SocketAddress const & _rsa1,
+	SocketAddress const & _rsa2
+){
+	if(_rsa1.sz == sizeof(sockaddr_in) && _rsa2.sz == sizeof(sockaddr_in)){
+		return _rsa1.addrin()->sin_addr.s_addr < _rsa2.addrin()->sin_addr.s_addr;
+	}else{//sockadd_in16
+		cassert(false);
+		return false;
+	}
+}
 
 void SocketAddress::addr(const sockaddr* _sa, size_t _sz){
 	if(_sa && _sz){
@@ -179,14 +229,14 @@ bool SocketAddress::operator==(const SocketAddress &_raddr)const{
 		return false;
 	}
 }
-SocketAddress::SocketAddress(const SocketAddressPair4 &_sp){
+SocketAddress::SocketAddress(const SocketAddressStub4 &_sp){
 	addr((sockaddr*)_sp.addr, _sp.size());
 }
-SocketAddress::SocketAddress(const SocketAddressPair6 &_sp){
+SocketAddress::SocketAddress(const SocketAddressStub6 &_sp){
 	addr((sockaddr*)_sp.addr, _sp.size());
 }
 
-SocketAddress::SocketAddress(const SocketAddressPair &_sp){
+SocketAddress::SocketAddress(const SocketAddressStub &_sp){
 	addr(_sp.addr, _sp.size());
 }
 
@@ -226,7 +276,18 @@ int SocketAddress::name(
 }
 
 //-----------------------------------------------------------------
-
+/*static*/ bool SocketAddress4::equalAdresses(
+	SocketAddress4 const & _rsa1,
+	SocketAddress4 const & _rsa2
+){
+	return _rsa1.addrin()->sin_addr.s_addr == _rsa2.addrin()->sin_addr.s_addr;
+}
+/*static*/ bool SocketAddress4::compareAddressesLess(
+	SocketAddress4 const & _rsa1,
+	SocketAddress4 const & _rsa2
+){
+	return _rsa1.addrin()->sin_addr.s_addr < _rsa2.addrin()->sin_addr.s_addr;
+}
 void SocketAddress4::addr(const sockaddr* _sa, size_t _sz){
 	if(_sa && _sz == Capacity){
 		memcpy(buf, _sa, _sz);
@@ -253,14 +314,13 @@ bool SocketAddress4::operator==(const SocketAddress4 &_raddr)const{
 	addrin()->sin_port == _raddr.addrin()->sin_port;
 }
 
-SocketAddress4::SocketAddress4(const SocketAddressPair4 &_sp){
+SocketAddress4::SocketAddress4(const SocketAddressStub4 &_sp){
 	addr((sockaddr*)_sp.addr, _sp.size());
 }
 
-SocketAddress4::SocketAddress4(const SocketAddressPair &_sp){
+SocketAddress4::SocketAddress4(const SocketAddressStub &_sp){
 	addr(_sp.addr, _sp.size());
 }
-
 int SocketAddress4::port()const{
 	return htons(addrin()->sin_port);
 }
@@ -286,7 +346,4 @@ int SocketAddress4::name(
 	}
 	return OK;
 }
-
-#ifdef NINLINES
-#include "system/socketaddress.ipp"
 #endif

@@ -26,9 +26,12 @@ bool ServerParams::init(int _ipc_port){
 			return false;
 		}
 		s[pos] = 0;
-		SocketAddressInfo ai(s.c_str(), s.c_str() + pos + 1, 0, SocketAddressInfo::Inet4, SocketAddressInfo::Datagram);
-		if(!ai.empty()){
-			addrvec.push_back(SocketAddress4(ai.begin()));
+		ResolveData rd = synchronous_resolve(
+			s.c_str(), s.c_str() + pos + 1, 0,
+			SocketInfo::Inet4, SocketInfo::Datagram
+		);
+		if(!rd.empty()){
+			addrvec.push_back(SocketAddressInet4(rd.begin()));
 		}else{
 			err = "No such address [";
 			err += s.c_str();
@@ -60,7 +63,7 @@ bool ServerParams::init(int _ipc_port){
 				idbg("inaddr: name = "<<it->ifa_name<<", addr = "<<host<<":"<<srvc);
 				
             }
-            SocketAddress4 sa(SocketAddressPair(it->ifa_addr, sizeof(sockaddr_in)));
+            SocketAddressInet4 sa(SocketAddressStub(it->ifa_addr, sizeof(sockaddr_in)));
 			sa.port(_ipc_port);
 			int pos = bs(addrvec.begin(), addrvec.end(), sa);
 			if(pos >= 0){
@@ -79,16 +82,16 @@ bool ServerParams::init(int _ipc_port){
 std::ostream& ServerParams::print(std::ostream &_ros)const{
 	_ros<<"Addresses: [";
 	for(AddressVectorT::const_iterator it(addrvec.begin()); it != addrvec.end(); ++it){
-		const SocketAddress4 &ra(*it);
-		char				host[SocketAddress::HostNameCapacity];
-		char				port[SocketAddress::ServiceNameCapacity];
-		ra.name(
+		const SocketAddressInet4	&ra(*it);
+		char						host[SocketInfo::HostStringCapacity];
+		char						port[SocketInfo::ServiceStringCapacity];
+		ra.toString(
 			host,
-			SocketAddress::HostNameCapacity,
+			SocketInfo::HostStringCapacity,
 			port,
-			SocketAddress::ServiceNameCapacity
+			SocketInfo::ServiceStringCapacity
 			,
-			SocketAddress::NumericService | SocketAddress::NumericHost
+			SocketInfo::NumericService | SocketInfo::NumericHost
 		);
 		_ros<<host<<':'<<port<<' ';
 	}

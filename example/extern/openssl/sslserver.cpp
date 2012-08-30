@@ -153,9 +153,9 @@ int main(int argc, char* argv[]){
 	
 	//create a connection
 	handles.reserve(2048);
-	SocketAddressInfo ai(argv[1], argv[2]);
+	ResolveData rd = synchronous_resolve(argv[1], argv[2]);
 	
-	if(ai.empty()){
+	if(rd.empty()){
 		cout<<"no such address"<<endl;
 		return 0;
 	}
@@ -165,8 +165,8 @@ int main(int argc, char* argv[]){
 	epollfd = epoll_create(epoll_cp);
 	{
 		SocketDevice sd;
-		sd.create(ai.begin());
-		sd.prepareAccept(ai.begin());
+		sd.create(rd.begin());
+		sd.prepareAccept(rd.begin());
 		sd.makeNonBlocking();
 		if(!sd.ok()){
 			cout<<"Error preparing accept"<<endl;

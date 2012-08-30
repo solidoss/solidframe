@@ -27,7 +27,7 @@
 class MultiContainer{	
 	typedef void (*FncT) (void*);
 public:
-#ifdef HAVE_SAFE_STATIC
+#ifdef HAS_SAFE_STATIC
 	template <typename T>
 	T* get(T *_p = NULL){
 		static unsigned id(stackid(&MultiContainer::cleaner<T>));

@@ -87,7 +87,7 @@ public:
 			return *this;
 		}
 		if(pdyn) clear();
-		ptr(p);
+		set(p);
 		return *this;
 	}
 	template <class O>
@@ -105,12 +105,12 @@ public:
 			return *this;
 		}
 		clear();
-		ptr(_pdyn);
+		set(_pdyn);
 		return *this;
 	}
 	DynamicT& operator*()const	{return *pdyn;}
 	DynamicT* operator->()const	{return pdyn;}
-	DynamicT* ptr() const		{return pdyn;}
+	DynamicT* get() const		{return pdyn;}
 	//operator bool () const	{return psig;}
 	bool operator!()const		{return !pdyn;}
 	bool empty()const			{return !pdyn;}
@@ -121,7 +121,7 @@ public:
 		}
 	}
 protected:
-	void ptr(DynamicT *_pdyn){
+	void set(DynamicT *_pdyn){
 		pdyn = _pdyn;
 		if(pdyn){
 			use(static_cast<DynamicBase*>(pdyn));
@@ -224,7 +224,7 @@ public:
 	}
 	DynamicT& operator*()const	{return *pdyn;}
 	DynamicT* operator->()const	{return pdyn;}
-	DynamicT* ptr() const		{return pdyn;}
+	DynamicT* get() const		{return pdyn;}
 	//operator bool () const	{return psig;}
 	bool operator!()const		{return !pdyn;}
 	void clear(){
@@ -338,7 +338,7 @@ public:
 			return *this;
 		}
 		if(pdyn) clear();
-		ptr(p);
+		set(p);
 		return *this;
 	}
 	DynamicPointerT& operator=(DynamicT *_pdyn){
@@ -346,7 +346,7 @@ public:
 			return *this;
 		}
 		clear();
-		ptr(_pdyn);
+		set(_pdyn);
 		return *this;
 	}
 	DynamicT& operator*()const	{
@@ -357,7 +357,7 @@ public:
 		storeSpecific();
 		return pdyn;
 	}
-	DynamicT* ptr() const		{
+	DynamicT* get() const		{
 		storeSpecific();
 		return pdyn;
 	}
@@ -382,7 +382,7 @@ public:
 		DynamicPointerBase::storeSpecific(&ctx);
 	}
 protected:
-	void ptr(DynamicT *_pdyn){
+	void set(DynamicT *_pdyn){
 		pdyn = _pdyn;
 		if(pdyn){
 			use(static_cast<DynamicBase*>(pdyn));

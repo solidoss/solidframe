@@ -78,14 +78,17 @@ class Connection: public Dynamic<Connection, foundation::aio::SingleObject>{
 	//typedef DynamicExecuter<void, Connection, DynamicDefaultPointerStore, void>	DynamicExecuterT;
 public:
 	typedef Service	ServiceT;
-	
+#ifdef UDEBUG
+	typedef std::vector<Connection*> ConnectionsVectorT;
+	static ConnectionsVectorT& connections(); 
+#endif
 	static void initStatic(Manager &_rm);
 	static void dynamicRegister();
 	static Connection& the(){
 		return static_cast<Connection&>(Object::the());
 	}
 	
-	Connection(SocketAddressInfo &_rai);
+	Connection(ResolveData &_rai);
 	Connection(const SocketDevice &_rsd);
 	
 	~Connection();
@@ -153,8 +156,8 @@ private:
 	Writer						wtr;
 	Reader						rdr;
 	Command						*pcmd;
-	SocketAddressInfo			ai;
-	SocketAddressInfoIterator	aiit;
+	ResolveData					ai;
+	ResolveIterator				aiit;
 	uint32						reqid;
 	DynamicExecuterT			dr;
 };

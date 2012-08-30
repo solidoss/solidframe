@@ -1,5 +1,6 @@
 
 set(Sources
+	src/ipcbuffer.cpp
 	src/ipcservice.cpp
 	src/ipctalker.cpp
 	src/ipcsession.cpp
@@ -8,7 +9,8 @@ set(Sources
 set(Headers
 	ipcconnectionuid.hpp
 	ipcservice.hpp
-	src/iodata.hpp
+	src/ipcutility.hpp
+	src/ipcbuffer.hpp
 	src/ipctalker.hpp
 	src/ipcsession.hpp
 )

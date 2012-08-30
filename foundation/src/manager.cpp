@@ -141,7 +141,7 @@ Service& Manager::Data::masterService(){
 //---------------------------------------------------------
 
 #ifdef NSINGLETON_MANAGER
-#ifdef HAVE_SAFE_STATIC
+#ifdef HAS_SAFE_STATIC
 static const unsigned specificPosition(){
 	static const unsigned thrspecpos = Thread::specificId();
 	return thrspecpos;
@@ -284,11 +284,11 @@ void Manager::start(){
 		}
 	}
 	
-	(*d.svcvec.front().schcbk)(d.svcvec.front().schidx, d.svcvec.front().ptr.ptr());
+	(*d.svcvec.front().schcbk)(d.svcvec.front().schidx, d.svcvec.front().ptr.get());
 	
 	d.masterService().start();
 	
-	d.masterService().insert(d.svcvec.front().ptr.ptr(), 0);
+	d.masterService().insert(d.svcvec.front().ptr.get(), 0);
 	
 	for(
 		Data::ServiceVectorT::iterator it(d.svcvec.begin() + 1);
@@ -296,8 +296,8 @@ void Manager::start(){
 		++it
 	){
 		if(!it->ptr) continue;
-		d.masterService().insert(it->ptr.ptr(), it - d.svcvec.begin());
-		(*it->schcbk)(it->schidx, it->ptr.ptr());
+		d.masterService().insert(it->ptr.get(), it - d.svcvec.begin());
+		(*it->schcbk)(it->schidx, it->ptr.get());
 	}
 	
 	for(
@@ -306,8 +306,8 @@ void Manager::start(){
 		++it
 	){
 		if(!it->ptr) continue;
-		d.masterService().insert(it->ptr.ptr(), it - d.objvec.begin());
-		(*it->schcbk)(it->schidx, it->ptr.ptr());
+		d.masterService().insert(it->ptr.get(), it - d.objvec.begin());
+		(*it->schcbk)(it->schidx, it->ptr.get());
 	}
 	
 	doStart();
@@ -498,7 +498,7 @@ Object& Manager::object(const IndexT &_i)const{
 Service* Manager::servicePointer(const IndexT &_ridx)const{
 	if(_ridx < d.svcvec.size()){
 		Data::ServiceStub &rsp(d.svcvec[_ridx]);
-		return rsp.ptr.ptr();
+		return rsp.ptr.get();
 	}
 	return NULL;
 }
@@ -506,7 +506,7 @@ Service* Manager::servicePointer(const IndexT &_ridx)const{
 Object* Manager::objectPointer(const IndexT &_ridx)const{
 	if(_ridx < d.svcvec.size()){
 		Data::ObjectStub &rop(d.objvec[_ridx]);
-		return rop.ptr.ptr();
+		return rop.ptr.get();
 	}
 	return NULL;
 }
@@ -734,10 +734,10 @@ Object* Manager::doGetObject(uint _typeid, const IndexT &_ridx)const{
 	if(_ridx < d.objvec.size()){
 		Data::ObjectStub	&rop(d.objvec[_ridx]);
 		if(rop.tpid == _typeid){
-			return rop.ptr.ptr();
+			return rop.ptr.get();
 		}
-		if(rop.ptr.ptr() && rop.ptr->isTypeDynamic(_typeid)){
-			return rop.ptr.ptr();
+		if(rop.ptr.get() && rop.ptr->isTypeDynamic(_typeid)){
+			return rop.ptr.get();
 		}
 	}
 	return NULL;
@@ -747,10 +747,10 @@ Service* Manager::doGetService(uint _typeid, const IndexT &_ridx)const{
 	if(_ridx < d.svcvec.size()){
 		Data::ServiceStub	&rsp(d.svcvec[_ridx]);
 		if(rsp.tpid == _typeid){
-			return rsp.ptr.ptr();
+			return rsp.ptr.get();
 		}
-		if(rsp.ptr.ptr() && rsp.ptr->isTypeDynamic(_typeid)){
-			return rsp.ptr.ptr();
+		if(rsp.ptr.get() && rsp.ptr->isTypeDynamic(_typeid)){
+			return rsp.ptr.get();
 		}
 	}
 	return NULL;
@@ -760,7 +760,7 @@ Object* Manager::doGetObject(uint _typeid)const{
 	if(_typeid < d.objtpvec.size()){
 		Data::ObjectTypeStub	&rts(d.objtpvec[_typeid]);
 		if(rts.objidx > 0){
-			return d.objvec[rts.objidx].ptr.ptr();
+			return d.objvec[rts.objidx].ptr.get();
 		}
 	}
 	return NULL;
@@ -770,7 +770,7 @@ Service* Manager::doGetService(uint _typeid)const{
 	if(_typeid < d.objtpvec.size()){
 		Data::ObjectTypeStub	&rts(d.objtpvec[_typeid]);
 		if(rts.objidx > 0){
-			return d.svcvec[rts.objidx].ptr.ptr();
+			return d.svcvec[rts.objidx].ptr.get();
 		}
 	}
 	return NULL;

@@ -81,7 +81,7 @@ public:
 private:
 	int doReceiveBuffers(TalkerStub &_rstub, uint32 _atmost, const ulong _sig);
 	bool doProcessReceivedBuffers(TalkerStub &_rstub);
-	void doDispatchReceivedBuffer(TalkerStub &_rstub, char *_pbuf, const uint32 _bufsz, const SocketAddressPair &_rsap);
+	void doDispatchReceivedBuffer(TalkerStub &_rstub, char *_pbuf, const uint32 _bufsz, const SocketAddressStub &_rsap);
 	void doInsertNewSessions();
 	void doDispatchSignals();
 	int doSendBuffers(TalkerStub &_rstub, const ulong _sig);

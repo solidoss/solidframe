@@ -33,7 +33,7 @@ namespace aio{
 
 namespace openssl{
 
-#ifdef HAVE_SAFE_STATIC
+#ifdef HAS_SAFE_STATIC
 
 struct Initor{
 	Initor();
@@ -135,7 +135,7 @@ Socket::~Socket(){
 	}return BAD;
 }
 /*virtual*/ int Socket::secureConnect(){
-	int rv = SSL_accept(pssl);
+	int rv = SSL_connect(pssl);
 	if(rv == 0) return BAD;
 	if(rv > 0) return OK;
 	if(shouldWait()){

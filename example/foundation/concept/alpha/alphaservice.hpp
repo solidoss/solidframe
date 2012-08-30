@@ -45,7 +45,7 @@ public:
 		bool _secure
 	);
 	ObjectUidT insertConnection(
-		SocketAddressInfo &_rai,
+		ResolveData &_rai,
 		foundation::aio::openssl::Context *_pctx,
 		bool _secure
 	);

@@ -37,11 +37,11 @@ namespace proxy{
 
 MultiConnection::MultiConnection(const char *_node, const char *_srv): 
 									//bend(bbeg + BUFSZ),brpos(bbeg),bwpos(bbeg),
-									pai(NULL),b(false){
+									b(false){
 	cassert(false);
 }
 MultiConnection::MultiConnection(const SocketDevice &_rsd):
-	BaseT(_rsd), pai(NULL), b(false)
+	BaseT(_rsd), b(false)
 {
 	bp = be = NULL;
 	state(READ_ADDR);
@@ -59,7 +59,6 @@ NOTE:
 */
 
 MultiConnection::~MultiConnection(){
-	delete pai;
 }
 enum{
 		Receive,
@@ -99,8 +98,8 @@ int MultiConnection::execute(ulong _sig, TimeSpec &_tout){
 			return doReadAddress();
 		case REGISTER_CONNECTION:{
 			idbgx(Dbg::any, "REGISTER_CONNECTION");
-			pai = new SocketAddressInfo(addr.c_str(), port.c_str());
-			it = pai->begin();
+			rd = synchronous_resolve(addr.c_str(), port.c_str());
+			it = rd.begin();
 			SocketDevice	sd;
 			sd.create(it);
 			sd.makeNonBlocking();

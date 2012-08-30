@@ -71,8 +71,8 @@ private:
 	const char					*bend;
 	char						*brpos;
 	const char					*bwpos;
-	SocketAddressInfo			*pai;
-	SocketAddressInfoIterator	it;
+	ResolveData					rd;
+	ResolveIterator				it;
 	bool						b;
 };
 
@@ -90,7 +90,7 @@ private:
 	enum {INIT,READ, READ_TOUT, WRITE, WRITE_TOUT, WRITE2, WRITE_TOUT2};
 	char			bbeg[BUFSZ];
 	uint			sz;
-	SocketAddressInfo		*pai;
+	ResolveData		rd;
 };
 
 //------------------------------------------------------------------
@@ -173,12 +173,13 @@ int main(int argc, char *argv[]){
 }
 
 void insertListener(const char *_name, IndexT _idx, const char *_addr, int _port, bool _secure){
-	SocketAddressInfo		ai(_addr, _port, 0, SocketAddressInfo::Inet4, SocketAddressInfo::Stream);
+	ResolveData		rd =  synchronous_resolve(_addr, _port, 0, SocketInfo::Inet4, SocketInfo::Stream);
+	
 	SocketDevice	sd;
 	
-	sd.create(ai.begin());
+	sd.create(rd.begin());
 	sd.makeNonBlocking();
-	sd.prepareAccept(ai.begin(), 100);
+	sd.prepareAccept(rd.begin(), 100);
 	if(!sd.ok()){
 		cout<<"error creating listener for "<<_name<<endl;
 		return;
@@ -202,11 +203,11 @@ void insertListener(const char *_name, IndexT _idx, const char *_addr, int _port
 }
 
 void insertTalker(const char *_name, IndexT _idx, const char *_addr, int _port){
-	SocketAddressInfo		ai(_addr, _port, 0, SocketAddressInfo::Inet4, SocketAddressInfo::Datagram);
+	ResolveData		rd =  synchronous_resolve(_addr, _port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
 	SocketDevice	sd;
 	
-	sd.create(ai.begin());
-	sd.bind(ai.begin());
+	sd.create(rd.begin());
+	sd.bind(rd.begin());
 	
 	if(!sd.ok()){
 		cout<<"error creating talker for "<<_name<<endl;
@@ -310,24 +311,21 @@ int Listener::execute(ulong, TimeSpec&){
 static const char	*hellostr = "Welcome to echo service!!!\r\n"; 
 
 Connection::Connection(const char *_node, const char *_srv): 
-	BaseT(),bend(bbeg + BUFSZ),brpos(bbeg),bwpos(bbeg),
-	pai(NULL),b(false)
+	BaseT(), bend(bbeg + BUFSZ), brpos(bbeg), bwpos(bbeg), b(false)
 {
 	cassert(_node && _srv);
-	pai = new SocketAddressInfo(_node, _srv);
-	it = pai->begin();
+	rd = synchronous_resolve(_node, _srv);
+	it = rd.begin();
 	state(CONNECT);
 	
 }
 Connection::Connection(const SocketDevice &_rsd):
-	BaseT(_rsd),bend(bbeg + BUFSZ),brpos(bbeg),bwpos(bbeg),
-	pai(NULL),b(false)
+	BaseT(_rsd), bend(bbeg + BUFSZ), brpos(bbeg), bwpos(bbeg), b(false)
 {
 	state(INIT);
 }
 Connection::~Connection(){
 	state(-1);
-	delete pai;
 	idbg("");
 }
 
@@ -393,7 +391,8 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			case CONNECT:
 				switch(socketConnect(it)){
 					case BAD:
-						if(++it){
+						++it;
+						if(it != rd.end()){
 							state(CONNECT);
 							return OK;
 						}
@@ -403,7 +402,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 				};
 				break;
 			case CONNECT_TOUT:
-				delete pai; pai = NULL;
+				rd.clear();
 			case INIT:
 				socketSend(hellostr, strlen(hellostr));
 				state(READ);
@@ -417,21 +416,20 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 //------------------------------------------------------------------
 //------------------------------------------------------------------
 
-Talker::Talker(const char *_node, const char *_srv):pai(NULL){
+Talker::Talker(const char *_node, const char *_srv){
 	if(_node){
-		pai = new SocketAddressInfo(_node, _srv);
+		rd = synchronous_resolve(_node, _srv);
 		strcpy(bbeg, hellostr);
 		sz = strlen(hellostr);
 		state(INIT);
 	}
 }
 
-Talker::Talker(const SocketDevice &_rsd):BaseT(_rsd), pai(NULL){
+Talker::Talker(const SocketDevice &_rsd):BaseT(_rsd){
 	state(READ);
 }
 
 Talker::~Talker(){
-	delete pai;
 }
 int Talker::execute(ulong _sig, TimeSpec &_tout){
 	if(_sig & (fdt::TIMEOUT | fdt::ERRDONE | fdt::TIMEOUT_SEND | fdt::TIMEOUT_RECV)){
@@ -478,12 +476,12 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 					return OK;
 				}
 			case INIT:
-				if(pai->empty()){
+				if(rd.empty()){
 					idbg("Invalid address");
 					return BAD;
 				}
-				SocketAddressInfoIterator it(pai->begin());
-				switch(socketSendTo(bbeg, sz, SocketAddressPair(it))){
+				ResolveIterator it(rd.begin());
+				switch(socketSendTo(bbeg, sz, SocketAddressStub(it))){
 					case BAD: return BAD;
 					case OK: state(READ); break;
 					case NOK:

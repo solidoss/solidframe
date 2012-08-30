@@ -30,7 +30,7 @@
 #include "system/thread.hpp"
 #include "system/timespec.hpp"
 
-#include "utility/mutualstore.hpp"
+#include "system/mutualstore.hpp"
 #include "utility/iostream.hpp"
 #include "utility/queue.hpp"
 #include "utility/stack.hpp"
@@ -179,10 +179,10 @@ Manager::~Manager(){
 
 int Manager::execute(ulong _evs, TimeSpec &_rtout){
 	d.mtx->lock();
-	idbgx(Dbg::file, "signalmask "<<_evs);
+	//idbgx(Dbg::file, "signalmask "<<_evs);
 	if(signaled()){
 		ulong sm = grabSignalMask(0);
-		idbgx(Dbg::file, "signalmask "<<sm);
+		//idbgx(Dbg::file, "signalmask "<<sm);
 		if(sm & fdt::S_KILL){
 			state(Data::Stopping);
 			vdbgx(Dbg::file, "kill "<<d.sz);
@@ -271,6 +271,7 @@ void Manager::doSendStreams(){
 }
 //------------------------------------------------------------------
 void Manager::doPrepareStop(){
+	idbgx(Dbg::file, "");
 	//call stop for all mappers:
 	for(Data::MapperVectorT::const_iterator it(d.mv.begin()); it != d.mv.end(); ++it){
 		(*it)->stop();
@@ -296,6 +297,7 @@ void Manager::doPrepareStop(){
 }
 //------------------------------------------------------------------
 void Manager::doExecuteMappers(){
+	//idbgx(Dbg::file, "");
 	uint32	tmpqsz(d.meq.size());
 	Stub 	s(*this);
 	cassert(!(tmpqsz && state() != Data::Running));
@@ -310,6 +312,7 @@ void Manager::doExecuteMappers(){
 }
 //------------------------------------------------------------------
 void Manager::doExecuteFile(const IndexT &_idx, const TimeSpec &_rtout){
+	idbgx(Dbg::file, "");
 	Mutex			&rm(d.mtxstore.at(_idx));
 	Data::FileData	&rfd(d.fv[_idx]);
 	TimeSpec 		ts(_rtout);
@@ -508,9 +511,11 @@ int Manager::doGetStream(
 		_rfuid.first = fid;
 		_rfuid.second = d.fv[fid].uid; 
 		rv = pf->stream(s, _sptr, _requid, _flags);
+		//idbgx(Dbg::file, ""<<_rk.path());
 	}else{
 		//delay stream creation until successfull file open
 		rv = pf->stream(s, _sptr, _requid, _flags | Manager::ForcePending);
+		//idbgx(Dbg::file, ""<<_rk.path());
 	}
 	
 	switch(rv){

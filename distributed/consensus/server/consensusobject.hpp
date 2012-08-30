@@ -41,7 +41,7 @@ struct OperationSignal;
 struct OperationStub;
 
 struct Parameters{
-	typedef std::vector<SocketAddress4>	AddressVectorT;
+	typedef std::vector<SocketAddressInet4>	AddressVectorT;
 	static const Parameters& the(Parameters *_p = NULL);
 	Parameters();
 	

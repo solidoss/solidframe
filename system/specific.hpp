@@ -76,16 +76,27 @@ struct SpecificCacheControl{
 	- buffers of size power of 2
 */
 class Specific{
+public:
+	typedef void (*FncT) (void*);
+private:
+	static unsigned stackid(FncT _pf);
+	template<class T>
+	static void cleaner(void *_p){
+		reinterpret_cast<T*>(_p)->~T();
+		doDeallocateBuffer(_p);
+	}
+	static int push(void *, unsigned, unsigned);
+	static void* pop(unsigned);
 	/*
 		Why it is not a good idea to save only the sizeof a type.
 		Think of a btree object.. lots of buffers loaded, saving only the size of an object
 		would not be of too much help.
 		Also think of objects with sizes larger then max buf capacity
 	*/
-#ifdef HAVE_SAFE_STATIC
+#ifdef HAS_SAFE_STATIC
 	template <typename T>
 	static T* object(T *_p = NULL){
-		static const unsigned id(stackid(&Specific::cleaner<T>));
+		static const unsigned id = stackid(&Specific::template cleaner<T>);
 		if(_p){
 			if(push(_p, id, T::specificCount())){
 				_p->~T();
@@ -123,7 +134,6 @@ class Specific{
 	}
 #endif
 public:
-	typedef void (*FncT) (void*);
 	//! call this method to prepare the current thread for caching
 	static void prepareThread(SpecificCacheControl *_pscc = NULL);
 	//object caching
@@ -184,15 +194,6 @@ private:
 	~Specific();
 	static void *doAllocateBuffer(size_t _sz);
 	static void doDeallocateBuffer(void *_p);
-private:
-	static unsigned stackid(FncT _pf);
-	template<class T>
-	static void cleaner(void *_p){
-		reinterpret_cast<T*>(_p)->~T();
-		doDeallocateBuffer(_p);
-	}
-	static int push(void *, unsigned, unsigned);
-	static void* pop(unsigned);
 };
 
 

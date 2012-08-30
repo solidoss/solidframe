@@ -25,13 +25,37 @@
 //#include "common/utils.h"
 #include "writer.hpp"
 
+#include "boost/program_options.hpp"
+
 using namespace std;
 //typedef unsigned long long uint64;
 enum {BSIZE = 1024};
 
-static int sleeptout = 0;
-
 static SSL_CTX *sslctx = NULL;
+
+struct Params{
+	string		dbg_levels;
+	string		dbg_modules;
+	string		dbg_addr;
+	string		dbg_port;
+	bool		dbg_buffered;
+	bool		dbg_console;
+	
+	uint32		con_cnt;
+	string		srv_addr;
+	string		srv_port;
+	string		path;
+	uint32		sleep;
+	uint32		repeat;
+	string		proxy_addr;
+	string		proxy_port;
+	string		peer_addr;
+	string		peer_port;
+	string		gateway_addr;
+	string		gateway_port;
+	uint32		gateway_id;
+	bool		ssl;
+};
 
 ///\cond 0
 class Info{
@@ -111,43 +135,58 @@ static Info inf;
 class AlphaThread: public Thread{
 public:
 	AlphaThread(
-		const char *_node, 
-		const char* _svice, 
-		const char *_path,
+		const Params &_rp,
 		unsigned _pos,
-		const char* _addr = NULL,
-		int _port = -1,
-		int _repeatcnt= 0,
-		int _cnt = ((unsigned)(0xfffffff)),
-		int _sleep = 1):ai(_node, _svice), wr(-1),sd(-1), cnt(_cnt), slp(_sleep),path(_path),pos(_pos),addr(_addr?_addr:""),
-		port(_port),repeatcnt(_repeatcnt),pssl(NULL){}
+		int _thrid = 0,
+		int _cnt = ((unsigned)(0xfffffff))
+	):
+		rp(_rp),
+		rd(synchronous_resolve(
+			_rp.proxy_addr.size() ? _rp.proxy_addr.c_str() : _rp.srv_addr.c_str(),
+		   _rp.proxy_port.size() ? _rp.proxy_port.c_str() : _rp.srv_port.c_str(),
+			0, SocketInfo::Inet4, SocketInfo::Stream
+		)),
+		wr(-1),sd(-1),cnt(_cnt),
+		pos(_pos), pssl(NULL){
+			repeatcnt = _rp.repeat;
+			thrid = _thrid;
+		}
 	void run();
+private:
+	int read(char *_pb, unsigned _bl){
+		if(pssl){
+			return SSL_read(pssl, _pb, _bl);
+		}else{
+			return ::read(sd, _pb, _bl);
+		}
+	}
 private:
 	enum {BufLen = 2*1024};
 	int list(char *_pb);
 	int fetch(unsigned _idx, char *_pb);
 	typedef std::deque<string> StrDqT;
-	SocketAddressInfo    ai;
-	Writer      wr;
-	int         sd;
-	int         cnt;
-	int         slp;
-	const char  *path;
-	StrDqT     sdq;
-	unsigned    pos;
-	ulong       readc;
-	string		addr;
-	int 		port;
-	int			repeatcnt;
-	SSL			*pssl;
+	const Params		&rp;
+	ResolveData			rd;
+	Writer      		wr;
+	int					sd;
+	int					cnt;
+	int					slp;
+	StrDqT				sdq;
+	unsigned			pos;
+	ulong				readc;
+	int					repeatcnt;
+	SSL					*pssl;
+	int					thrid;
+	deque<int>			states;
+	deque<uint32>		literals;
 };
 
 void AlphaThread::run(){
-	if(ai.empty()){
+	if(rd.empty()){
 		idbg("No such address");
 		return;
 	}
-	SocketAddressInfoIterator it(ai.begin());
+	ResolveIterator it(rd.begin());
 	sd = socket(it.family(), it.type(), it.protocol());
 	if(sd < 0){
 		idbg("error creating socket");
@@ -155,7 +194,7 @@ void AlphaThread::run(){
 		return;
 	}
 	//cout<<"before connect "<<pos<<endl;
-	if(connect(sd, it.addr(), it.size())){
+	if(connect(sd, it.sockAddr(), it.size())){
 		idbg("failed connect");
 		cout<<"failed connect "<<pos<<": "<<strerror(errno)<<endl;
 		return;
@@ -164,16 +203,17 @@ void AlphaThread::run(){
 	cout<<pos<<" connected"<<endl;
 	inf.doneConnect();
 	inf.unlock();
-	
+	int rv;
 	//do ssl stuffs
-	pssl = SSL_new(sslctx);
-	SSL_set_fd(pssl, sd);
-	int rv = SSL_connect(pssl);
-	if(rv <= 0){
-		cout<<"error ssl connect"<<endl;
-		return;
+	if(rp.ssl){
+		pssl = SSL_new(sslctx);
+		SSL_set_fd(pssl, sd);
+		rv = SSL_connect(pssl);
+		if(rv <= 0){
+			cout<<"error ssl connect"<<endl;
+			return;
+		}
 	}
-	
 	
 	//timeval tv;
 // 	memset(&tv, 0, sizeof(timeval));
@@ -183,6 +223,12 @@ void AlphaThread::run(){
 	readc = 0;
 	wr.reinit(sd, pssl);
 	char buf[BufLen];
+	if(rp.proxy_addr.size()){
+		cout<<"Using proxy..."<<endl;
+		wr<<rp.srv_addr.c_str()<<' ';
+		wr<<rp.srv_port.c_str()<<crlf;
+		wr.flush();
+	}
 	rv = list(buf);
 	idbg("return value "<<rv);
 	inf.update(pos, readc);
@@ -202,12 +248,13 @@ void AlphaThread::run(){
 		ulong cnt = m;
 		while(cnt--  && !(rv = fetch(ul % m, buf))){
 			++ul;
-			Thread::sleep(sleeptout);
+			Thread::sleep(rp.sleep);
 		}
 	}
 	idbg("return value "<<rv);
 	cout<<endl<<"return value"<<rv<<endl;
 	inf.subWait();
+	close(sd);
 }
 
 //----------------------------------------------------------------------------
@@ -239,12 +286,17 @@ inline T* findNot(T *_pc){
 //----------------------------------------------------------------------------
 
 int AlphaThread::list(char *_pb){
-	if(addr.size()){
+	if(rp.peer_addr.size()){
 		//remote list
-		wr<<"s1 remotelist \""<<path<<"\" \""<<addr<<"\" "<<(uint32)port<<crlf;
+		wr<<"s1 remotelist \""<<rp.path.c_str()<<"\" \""<<rp.peer_addr.c_str()<<"\" "<<rp.peer_port.c_str()<<crlf;
+	}else if(rp.gateway_addr.size()){
+		wr<<"s1 remotelist \""<<rp.path.c_str()<<"\" \"";
+		wr<<rp.peer_addr.c_str()<<"\" \""<<rp.peer_port.c_str()<<"\" \"";
+		wr<<rp.gateway_addr.c_str()<<"\" \""<<rp.gateway_port.c_str()<<"\" ";
+		wr<<rp.gateway_id<<crlf;
 	}else{
 		//local list
-		wr<<"s1 list \""<<path<<'\"'<<crlf;
+		wr<<"s1 list \""<<rp.path.c_str()<<'\"'<<crlf;
 	}
 	if(wr.flush()) return -1;
 	enum {
@@ -265,7 +317,7 @@ int AlphaThread::list(char *_pb){
 	const char *bpos;
 	const char *bend;
 	const char *bp;
-	while((rc = SSL_read(pssl, _pb, BufLen - 1)) > 0){
+	while((rc = this->read(_pb, BufLen - 1)) > 0){
 		bool b = true;
 		readc += rc;
 		inf.update(pos, readc);
@@ -361,16 +413,21 @@ int AlphaThread::list(char *_pb){
 
 int AlphaThread::fetch(unsigned _idx, char *_pb){
 	wr<<"s2 fetch "<<sdq[_idx];
-	//cout<<_idx<<" "<<sdq[_idx]<<endl;
-	if(addr.size()){
-		wr<<" \""<<addr<<"\" "<<(uint32)port;
+	if(rp.peer_addr.size()){
+		//remote list
+		wr<<" \""<<rp.peer_addr.c_str()<<"\" "<<rp.peer_port.c_str();
+	}else if(rp.gateway_addr.size()){
+		wr<<" \""<<rp.peer_addr.c_str()<<"\" \""<<rp.peer_port.c_str()<<"\" \"";
+		wr<<rp.gateway_addr.c_str()<<"\" \""<<rp.gateway_port.c_str()<<"\" ";
+		wr<<rp.gateway_id;
+	}else{
 	}
 	wr<<crlf;
 	if(wr.flush()) return -1;
 	enum{
 		StartLine, FirstSpace, SecondSpace, LiteralStart,LiteralNumber,
-		ReadCR, ReadLF, ReadLit, ReadLitFinalCR, ReadLitFinalLF,
-		SkipLine, SkipLineLF, ReadFinalCR, ReadFinalLF
+		ReadCR, ReadLF, ReadLit/*7*/, ReadLitFinalCR, ReadLitFinalLF,
+		SkipLine/*10*/, SkipLineLF, ReadFinalCR/*12*/, ReadFinalLF
 	};
 	int rc;
 	int state = StartLine;
@@ -379,8 +436,8 @@ int AlphaThread::fetch(unsigned _idx, char *_pb){
 	const char *bp;
 	string lit;
 	ulong litlen = 0;
-	
-	while((rc = SSL_read(pssl, _pb, BufLen - 1)) > 0){
+	states.push_back(-1);
+	while((rc = this->read(_pb, BufLen - 1)) > 0){
 		readc += rc;
 		inf.update(pos, readc);
 /*		idbg("-----------------------------");
@@ -392,6 +449,9 @@ int AlphaThread::fetch(unsigned _idx, char *_pb){
 		_pb[rc] = '\0';
 		//cout<<'[';cout.write(_pb, rc);cout<<']'<<endl;
 		while(b){
+			if(states.empty() || states.back() != state){
+				states.push_back(state);
+			}
 			switch(state){
 				case StartLine:
 					if(!*bpos){b = false; break;}
@@ -425,6 +485,7 @@ int AlphaThread::fetch(unsigned _idx, char *_pb){
 						bpos = bp + 1;
 						state = ReadCR;
 						litlen = atoi(lit.c_str());
+						literals.push_back(litlen);
 					}else{
 						b = false; break;
 					}
@@ -495,6 +556,7 @@ int AlphaThread::fetch(unsigned _idx, char *_pb){
 			}
 		}
 	}
+	//if(thrid == 1) cout<<"exit"<<endl;
 	cout<<"err "<<strerror(errno)<<endl;
 	cout.write(_pb, BufLen);
 	cout.flush();
@@ -513,81 +575,144 @@ const char *certificate_path(){
 	}else return "A-client.pem";
 }
 
+bool parseArguments(Params &_par, int argc, char *argv[]);
+
 int main(int argc, char *argv[]){
-	if(argc != 7 && argc != 9){
-		cout<<"Secure (SSL) alpha connection stress test"<<endl;
-		cout<<"Usage: alphaclient thcnt addr port path tout repeat_count [peer_addr peer_port]"<<endl;
-		cout<<"Where:"<<endl;
-		cout<<"tout is the amount of time in msec between commands"<<endl;
-		return 0;
-	}
+	Params	p;
+	
+	if(parseArguments(p, argc, argv)) return 0;
+	
 	signal(SIGPIPE, SIG_IGN);
 	Thread::init();
 	
 #ifdef UDEBUG
 	{
-	string s;
-	Dbg::instance().levelMask();
-	Dbg::instance().moduleMask();
-	Dbg::instance().initStdErr(false, &s);
-	cout<<"Debug output: "<<s<<endl;
-	s.clear();
-	Dbg::instance().moduleBits(s);
-	cout<<"Debug bits: "<<s<<endl;
+	string dbgout;
+	Dbg::instance().levelMask(p.dbg_levels.c_str());
+	Dbg::instance().moduleMask(p.dbg_modules.c_str());
+	if(p.dbg_addr.size() && p.dbg_port.size()){
+		Dbg::instance().initSocket(
+			p.dbg_addr.c_str(),
+			p.dbg_port.c_str(),
+			p.dbg_buffered,
+			&dbgout
+		);
+	}else if(p.dbg_console){
+		Dbg::instance().initStdErr(
+			p.dbg_buffered,
+			&dbgout
+		);
+	}else{
+		Dbg::instance().initFile(
+			*argv[0] == '.' ? argv[0] + 2 : argv[0],
+			p.dbg_buffered,
+			3,
+			1024 * 1024 * 64,
+			&dbgout
+		);
+	}
+	cout<<"Debug output: "<<dbgout<<endl;
+	dbgout.clear();
+	Dbg::instance().moduleBits(dbgout);
+	cout<<"Debug modules: "<<dbgout<<endl;
 	}
 #endif
-	
-	//Initializing OpenSSL
-	//------------------------------------------
-	SSL_library_init();
-	SSL_load_error_strings();
-	ERR_load_BIO_strings();
-	OpenSSL_add_all_algorithms();
-	
-	sslctx = SSL_CTX_new(SSLv23_client_method());
-	
-	//const char *pcertpath = "../../../../extern/linux/openssl/demos/tunala/A-client.pem";
-	const char *pcertpath = certificate_path();
-	cout<<"Client certificate path: "<<pcertpath<<endl;
-	
-	if(!sslctx){
-		cout<<"failed SSL_CTX_new: "<<ERR_error_string(ERR_get_error(), NULL)<<endl;
-		return 0;
-	}
-	if(!SSL_CTX_load_verify_locations(sslctx, pcertpath, NULL)){
-    	cout<<"failed SSL_CTX_load_verify_locations 1 "<<ERR_error_string(ERR_get_error(), NULL)<<endl;;
-    	return 0;
-	}
-	system("mkdir certs");
-	
-	if(!SSL_CTX_load_verify_locations(sslctx, NULL, "certs")){
-		cout<<"failed SSL_CTX_load_verify_locations 2 "<<ERR_error_string(ERR_get_error(), NULL)<<endl;;
-		return 0;
+	if(p.ssl){
+		//Initializing OpenSSL
+		//------------------------------------------
+		SSL_library_init();
+		SSL_load_error_strings();
+		ERR_load_BIO_strings();
+		OpenSSL_add_all_algorithms();
+		
+		sslctx = SSL_CTX_new(SSLv23_client_method());
+		
+		//const char *pcertpath = "../../../../extern/linux/openssl/demos/tunala/A-client.pem";
+		const char *pcertpath = certificate_path();
+		cout<<"Client certificate path: "<<pcertpath<<endl;
+		
+		if(!sslctx){
+			cout<<"failed SSL_CTX_new: "<<ERR_error_string(ERR_get_error(), NULL)<<endl;
+			return 0;
+		}
+		if(!SSL_CTX_load_verify_locations(sslctx, pcertpath, NULL)){
+			cout<<"failed SSL_CTX_load_verify_locations 1 "<<ERR_error_string(ERR_get_error(), NULL)<<endl;;
+			return 0;
+		}
+		system("mkdir certs");
+		
+		if(!SSL_CTX_load_verify_locations(sslctx, NULL, "certs")){
+			cout<<"failed SSL_CTX_load_verify_locations 2 "<<ERR_error_string(ERR_get_error(), NULL)<<endl;;
+			return 0;
+		}
 	}
 	//------------------------------------------
 	//done with ssl context stuff
 	
-	sleeptout = atoi(argv[5]);
-	int cnt = atoi(argv[1]);
-	int repeatcnt = atoi(argv[6]);
-	const char* addr = NULL;
-	int port = -1;
-	if(argc == 9){
-		addr = argv[7];
-		port = atoi(argv[8]);
-	}
-	for(int i = 0; i < cnt; ++i){
-		AlphaThread *pt = new AlphaThread(argv[2], argv[3], argv[4], inf.pushBack(), addr, port, repeatcnt);
+	for(int i = 0; i < p.con_cnt; ++i){
+		AlphaThread *pt = new AlphaThread(p, inf.pushBack(), i);
 		inf.addWait();
 		pt->start(true, true, 24*1024);
 	}
+	
 	inf.ft.currentMonotonic();
+	
 	while(inf.print()){
 		Thread::sleep(500);
 	}
+	
 	Thread::waitAll();
 	cout<<"done"<<endl;
 	return 0;
 }
 
+bool parseArguments(Params &_par, int argc, char *argv[]){
+	using namespace boost::program_options;
+	try{
+		options_description desc("alphaclient_p application");
+		desc.add_options()
+			("help,h", "List program options")
+			//("base_port,b", value<int>(&_par.start_port)->default_value(1000), "Base port")
+			("debug_levels,L", value<string>(&_par.dbg_levels)->default_value("view"),"Debug logging levels")
+			("debug_modules,M", value<string>(&_par.dbg_modules),"Debug logging modules")
+			("debug_addr,A", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")
+			("debug_port,P", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")
+			("debug_console,C", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")
+			("debug_unbuffered,S", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered")
+			("connection_count,c", value<uint32>(&_par.con_cnt)->default_value(1), "The number of connections to create")
+			("server_addr,s", value<string>(&_par.srv_addr)->default_value("localhost"), "The address of the server")
+			("server_port,p", value<string>(&_par.srv_port)->default_value("1114"), "The port of the server")
+			("path", value<string>(&_par.path), "The path on the server")
+			("sleep", value<uint32>(&_par.sleep)->default_value(1), "The number of milliseconds to sleep between commands")
+			("repeat", value<uint32>(&_par.repeat)->default_value(1), "Repeat count")
+			("proxy_addr", value<string>(&_par.proxy_addr), "The address of the proxy server")
+			("proxy_port", value<string>(&_par.proxy_port), "The port of the proxy server")
+			("peer_addr", value<string>(&_par.peer_addr), "The ipc address of the peer alpha server")
+			("peer_port", value<string>(&_par.peer_port), "The ipc port of the  peer alpha server")
+			("gateway_addr", value<string>(&_par.gateway_addr), "The address of the ipc gateway")
+			("gateway_port", value<string>(&_par.gateway_port), "The port of the ipc gateway")
+			("gateway_id", value<uint32>(&_par.gateway_id)->default_value(1), "The id of the network id on the gateway")
+			("ssl", value<bool>(&_par.ssl)->implicit_value(true)->default_value(false), "Use SSL")
+	/*		("verbose,v", po::value<int>()->implicit_value(1),
+					"enable verbosity (optionally specify level)")*/
+	/*		("listen,l", po::value<int>(&portnum)->implicit_value(1001)
+					->default_value(0,"no"),
+					"listen on a port.")
+			("include-path,I", po::value< vector<string> >(),
+					"include path")
+			("input-file", po::value< vector<string> >(), "input file")*/
+		;
+		variables_map vm;
+		store(parse_command_line(argc, argv, desc), vm);
+		notify(vm);
+		if (vm.count("help")) {
+			cout << desc << "\n";
+			return true;
+		}
+		return false;
+	}catch(exception& e){
+		cout << e.what() << "\n";
+		return true;
+	}
+}
 

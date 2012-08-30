@@ -27,7 +27,7 @@
 #include "signals.hpp"
 #include "common.hpp"
 
-struct SocketAddressInfoIterator;
+struct ResolveIterator;
 struct SocketDevice;
 
 namespace foundation{
@@ -62,13 +62,13 @@ public:
 	Service();
 	~Service();
 	
-	void dynamicExecute(DynamicPointer<SocketAddressInfoSignal> &_rsig);
+	void dynamicExecute(DynamicPointer<ResolveDataSignal> &_rsig);
 	void insertObject(Listener &_ro, const ObjectUidT &_ruid);
 	void eraseObject(const Listener &_ro);
 protected:
 	friend class Listener;
 	ObjectUidT insertListener(
-		SocketAddressInfo &_rai,
+		const ResolveData &_rai,
 		bool _secure = false
 	);
 	virtual ObjectUidT insertConnection(
@@ -78,12 +78,12 @@ protected:
 	);
 	
 	virtual ObjectUidT insertTalker(
-		SocketAddressInfo &_rai,
+		const ResolveData &_rai,
 		foundation::aio::openssl::Context *_pctx = NULL,
 		bool _secure = false
 	);
 	virtual ObjectUidT insertConnection(
-		SocketAddressInfo &_rai,
+		const ResolveData &_rai,
 		foundation::aio::openssl::Context *_pctx = NULL,
 		bool _secure = false
 	);

@@ -8,21 +8,21 @@
 
 using namespace std;
 
-typedef std::deque<SocketAddress4>		SocketAddressVectorT;
-typedef std::pair<size_t, size_t>		PositionHashPairT;
-typedef std::deque<PositionHashPairT>	PositionHashVectorT;
+typedef std::deque<SocketAddressInet4>		SocketAddressVectorT;
+typedef std::pair<size_t, size_t>			PositionHashPairT;
+typedef std::deque<PositionHashPairT>		PositionHashVectorT;
 
 
 namespace{
 
 struct SockAddrHash{
-	size_t operator()(const SocketAddress4* const &_psa)const{
+	size_t operator()(const SocketAddressInet4* const &_psa)const{
 		return _psa->hash();
 	}
 };
 
 struct SockAddrEqual{
-	bool operator()(const SocketAddress4* const &_psa1, const SocketAddress4* const &_psa2)const{
+	bool operator()(const SocketAddressInet4* const &_psa1, const SocketAddressInet4* const &_psa2)const{
 		return *_psa1 == *_psa2;
 	}
 };
@@ -35,7 +35,7 @@ struct PositionHashPairLess{
 
 }
 
-typedef std::unordered_map<SocketAddress4*, uint32, SockAddrHash, SockAddrEqual>	SocketAddressUnorderedMapT;
+typedef std::unordered_map<SocketAddressInet4*, uint32, SockAddrHash, SockAddrEqual>	SocketAddressUnorderedMapT;
 
 void generate_addresses(
 	size_t _cnt,
@@ -46,16 +46,16 @@ void generate_addresses(
 	SocketAddressVectorT &_outv
 );
 
-ostream& operator<<(ostream &_ros, const SocketAddress4 &_rsa){
-	char				host[SocketAddress::HostNameCapacity];
-	char				port[SocketAddress::ServiceNameCapacity];
+ostream& operator<<(ostream &_ros, const SocketAddressInet4 &_rsa){
+	char				host[SocketInfo::HostStringCapacity];
+	char				port[SocketInfo::ServiceStringCapacity];
 	
-	_rsa.name(
+	_rsa.toString(
 		host,
-		SocketAddress::HostNameCapacity,
+		SocketInfo::HostStringCapacity,
 		port,
-		SocketAddress::ServiceNameCapacity,
-		SocketAddress::NumericService | SocketAddress::NumericHost
+		SocketInfo::ServiceStringCapacity,
+		SocketInfo::NumericService | SocketInfo::NumericHost
 	);
 	_ros<<host<<':'<<port;
 	return _ros;
@@ -135,14 +135,14 @@ int main(int argc, char *argv[]){
 			cout<<"address not found: "<<addr_vec[i]<<endl;
 		}
 	}
-	SocketAddress4 sa;
+	SocketAddressInet4 sa;
 	{
-		SocketAddressInfo	ai;
+		ResolveData	rd;
 		char		buf[128];
 		sprintf(buf, "%d.%d.%d.%d", (int)100, (int)100, (int)100, (int)100);
-		ai.reinit(buf, 4010);
-		if(!ai.empty()){
-			sa = ai.begin();
+		rd = synchronous_resolve(buf, 4010);
+		if(!rd.empty()){
+			sa = rd.begin();
 			cout<<"created address "<<sa<<endl;
 		}
 	}
@@ -182,14 +182,14 @@ void generate_addresses(
 	vec[1] = _start[1];
 	vec[2] = _start[2];
 	vec[3] = _start[3];
-	SocketAddressInfo ai;
+	ResolveData rd;
 	for(size_t i(0); i < _cnt; ++i){
 		sprintf(buf, "%d.%d.%d.%d", (int)vec[0], (int)vec[1], (int)vec[2], (int)vec[3]);
 		uint32 maxport(_portstart + _portcount * _portstep);
 		for(uint16 p(_portstart); p < maxport; p += _portstep){
-			ai.reinit(buf, p);
-			if(!ai.empty()){
-				_outv.push_back(SocketAddress4(ai.begin()));
+			rd = synchronous_resolve(buf, p);
+			if(!rd.empty()){
+				_outv.push_back(SocketAddressInet4(rd.begin()));
 				//cout<<"created address "<<_outv.back()<<endl;
 			}
 		}

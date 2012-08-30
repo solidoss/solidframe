@@ -233,13 +233,13 @@ endif(NOT ON_FOUND)
 include(check.config.cmake)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 
-if(HAVE_CPP11FLAG AND HAVE_CPP11)
+if(HAS_CPP11FLAG AND HAS_CPP11)
 	set(SYS_DEBUG_FLAGS "${SYS_DEBUG_FLAGS} -std=c++0x")
 	set(SYS_MAINTAIN_FLAGS "${SYS_MAINTAIN_FLAGS} -std=c++0x")
 	set(SYS_OPTIMIZED_FLAGS "${SYS_OPTIMIZED_FLAGS} -std=c++0x")
 	set(SYS_NOLOG_FLAGS "${SYS_NOLOG_FLAGS} -std=c++0x")
 	set(SYS_RELEASE_FLAGS "${SYS_RELEASE_FLAGS} -std=c++0x")
-endif(HAVE_CPP11FLAG AND HAVE_CPP11)
+endif(HAS_CPP11FLAG AND HAS_CPP11)
 #-----------------------------------------------------------------
 
 #-----------------------------------------------------------------
