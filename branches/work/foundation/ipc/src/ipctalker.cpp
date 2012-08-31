@@ -490,6 +490,7 @@ void Talker::doDispatchReceivedBuffer(
 		case Buffer::ConnectingType:{
 			COLLECT_DATA_0(d.statistics.receivedConnecting);
 			SocketAddressInet4	inaddr(_rsa);
+			int					error(-1);
 			int					baseport(Session::parseConnectingBuffer(buf));
 			
 			idbgx(Dbg::ipc, "connecting buffer with baseport "<<baseport);
@@ -502,6 +503,7 @@ void Talker::doDispatchReceivedBuffer(
 				}
 			}else{
 				COLLECT_DATA_0(d.statistics.receivedConnectingError);
+				d.sessionvec.front().psession->dummySend(error, _rsa);
 			}
 			Buffer::deallocate(buf.release());
 		}break;
