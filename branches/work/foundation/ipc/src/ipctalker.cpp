@@ -114,13 +114,27 @@ struct Talker::Data{
 			uint16 _sesidx,
 			uint16 _sesuid,
 			uint32 _flags
-		):	psig(_psig), tid(_rtid), sessionidx(_sesidx),
+		):	psig(_psig), stid(_rtid), sessionidx(_sesidx),
 			sessionuid(_sesuid), flags(_flags){}
 		
 		DynamicPointer<Signal>	psig;
-		SerializationTypeIdT 	tid;
+		SerializationTypeIdT 	stid;
 		uint16					sessionidx;
 		uint16					sessionuid;
+		uint32					flags;
+	};
+	struct EventData{
+		EventData(
+			uint16 _sessionidx = 0xffff,
+			uint16 _sessionuid = 0xffff,
+			int32 _event = 0,
+			uint32 _flags = 0
+		):	sessionidx(_sessionidx), sessionuid(_sessionuid),
+			event(_event), flags(_flags){}
+		
+		uint16					sessionidx;
+		uint16					sessionuid;
+		int32					event;
 		uint32					flags;
 	};
 	struct RecvBuffer{
@@ -178,6 +192,7 @@ struct Talker::Data{
 	
 	typedef std::vector<RecvBuffer>				RecvBufferVectorT;
 	typedef Queue<SignalData>					SignalQueueT;
+	typedef Queue<EventData>					EventQueueT;
 	typedef std::pair<uint16, uint16>			UInt16PairT;
 	typedef Stack<UInt16PairT>					UInt16PairStackT;
 	typedef std::pair<Session*, uint16>			SessionPairT;
@@ -256,7 +271,7 @@ public:
 	Data(
 		Service &_rservice,
 		uint16 _id
-	):	rservice(_rservice), tkrid(_id), pendingreadbuffer(NULL), nextsessionidx(0){
+	):	rservice(_rservice), tkrid(_id), pendingreadbuffer(NULL), nextsessionidx(1){
 	}
 	~Data();
 public:
@@ -265,6 +280,7 @@ public:
 	RecvBufferVectorT		receivedbufvec;
 	char					*pendingreadbuffer;
 	SignalQueueT			sigq;
+	EventQueueT				eventq;
 	UInt16PairStackT		freesessionstack;
 	uint16					nextsessionidx;
 	SessionPairVectorT		newsessionvec;
@@ -300,17 +316,20 @@ Talker::Talker(
 	Service &_rservice,
 	uint16 _id
 ):BaseT(_rsd), d(*new Data(_rservice, _id)){
+	d.sessionvec.push_back(
+		Data::SessionStub(new Session())
+	);
 }
 
 //----------------------------------------------------------------------
 Talker::~Talker(){
-	Context		ctx(d.tkrid);
+	Context		ctx(d.tkrid, Manager::the().uid(*this));
 	delete &d;
 }
 //----------------------------------------------------------------------
 int Talker::execute(ulong _sig, TimeSpec &_tout){
 	Manager		&rm = Manager::the();
-	Context		ctx(d.tkrid);
+	Context		ctx(d.tkrid, rm.uid(*this));
 	TalkerStub	ts(*this, d.rservice, _tout);
 	idbgx(Dbg::ipc, "this = "<<(void*)this<<" &d = "<<(void*)&d);
 	if(signaled() || d.closingsessionvec.size()){
@@ -333,6 +352,9 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 		}
 		if(d.sigq.size()){
 			doDispatchSignals();
+		}
+		if(d.eventq.size()){
+			doDispatchEvents();
 		}
 	}
 	
@@ -437,7 +459,7 @@ void Talker::doDispatchReceivedBuffer(
 	TalkerStub &_rstub,
 	char *_pbuf,
 	const uint32 _bufsz,
-	const SocketAddressStub &_rsap
+	const SocketAddress &_rsa
 ){
 	Buffer buf(_pbuf, Buffer::Capacity);
 	buf.bufferSize(_bufsz);
@@ -448,7 +470,7 @@ void Talker::doDispatchReceivedBuffer(
 		case Buffer::DataType:{
 			COLLECT_DATA_0(d.statistics.receivedData);
 			idbgx(Dbg::ipc, "data buffer");
-			SocketAddressInet4				inaddr(_rsap);
+			SocketAddressInet4				inaddr(_rsa);
 			Data::PeerAddr4MapT::iterator	pit(d.peeraddr4map.find(&inaddr));
 			if(pit != d.peeraddr4map.end()){
 				idbgx(Dbg::ipc, "found session for buffer");
@@ -467,7 +489,7 @@ void Talker::doDispatchReceivedBuffer(
 		
 		case Buffer::ConnectingType:{
 			COLLECT_DATA_0(d.statistics.receivedConnecting);
-			SocketAddressInet4	inaddr(_rsap);
+			SocketAddressInet4	inaddr(_rsa);
 			int					baseport(Session::parseConnectingBuffer(buf));
 			
 			idbgx(Dbg::ipc, "connecting buffer with baseport "<<baseport);
@@ -491,13 +513,13 @@ void Talker::doDispatchReceivedBuffer(
 			idbgx(Dbg::ipc, "accepting buffer with baseport "<<baseport);
 			
 			if(baseport >= 0){
-				SocketAddressInet4				sa(_rsap);
+				SocketAddressInet4				sa(_rsa);
 				BaseAddress4T					ba(sa, baseport);
 				Data::BaseAddr4MapT::iterator	bit(d.baseaddr4map.find(ba));
 				if(bit != d.baseaddr4map.end()){
 					Data::SessionStub	&rss(d.sessionvec[bit->second]);
 					if(rss.psession){
-						rss.psession->completeConnect(_rstub, _rsap.port());
+						rss.psession->completeConnect(_rstub, _rsa.port());
 						//register in peer map
 						d.peeraddr4map[&rss.psession->peerAddress4()] = bit->second;
 						//the connector has at least some updates to send
@@ -618,7 +640,7 @@ int Talker::doSendBuffers(TalkerStub &_rstub, const ulong _sig){
 //----------------------------------------------------------------------
 //The talker's mutex should be locked
 //return ok if the talker should be signaled
-int Talker::pushSignal(
+bool Talker::pushSignal(
 	DynamicPointer<Signal> &_psig,
 	const SerializationTypeIdT &_rtid,
 	const ConnectionUid &_rconid,
@@ -626,9 +648,17 @@ int Talker::pushSignal(
 ){
 	COLLECT_DATA_0(d.statistics.signaled);
 	d.sigq.push(Data::SignalData(_psig, _rtid, _rconid.idx, _rconid.uid, _flags));
-	return d.sigq.size() == 1 ? NOK : OK;
+	return (d.sigq.size() == 1 && d.eventq.empty());
 }
-
+//----------------------------------------------------------------------
+bool Talker::pushEvent(
+	const ConnectionUid &_rconid,
+	int32 _event,
+	uint32 _flags
+){
+	d.eventq.push(Data::EventData(_rconid.idx, _rconid.uid, _event, _flags));
+	return (d.eventq.size() == 1 && d.sigq.empty());
+}
 //----------------------------------------------------------------------
 //The talker's mutex should be locked
 //Return's the new process connector's id
@@ -708,7 +738,7 @@ void Talker::doDispatchSignals(){
 		
 		Context::the().sigctx.connectionuid.idx = rsd.sessionidx;
 		Context::the().sigctx.connectionuid.uid = rss.uid;
-		rss.psession->prepareContext(Context::the());
+
 		if(
 			rss.psession && 
 			(
@@ -716,10 +746,35 @@ void Talker::doDispatchSignals(){
 				rss.uid == rsd.sessionuid
 			)
 		){
-			
-			rss.psession->pushSignal(rsd.psig, rsd.tid, flags);
+			rss.psession->prepareContext(Context::the());
+			rss.psession->pushSignal(rsd.psig, rsd.stid, flags);
 			if(!rss.inexeq){
 				d.sessionexecq.push(rsd.sessionidx);
+				rss.inexeq = true;
+			}
+		}
+		
+		d.sigq.pop();
+	}
+}
+//----------------------------------------------------------------------
+void Talker::doDispatchEvents(){
+	while(d.eventq.size()){
+		cassert(d.eventq.front().sessionidx < d.sessionvec.size());
+		Data::EventData		&red(d.eventq.front());
+		Data::SessionStub	&rss(d.sessionvec[red.sessionidx]);
+		
+		Context::the().sigctx.connectionuid.idx = red.sessionidx;
+		Context::the().sigctx.connectionuid.uid = rss.uid;
+
+		if(
+			rss.psession && 
+			rss.uid == red.sessionuid
+		){
+			rss.psession->prepareContext(Context::the());
+			rss.psession->pushEvent(red.event, red.flags);
+			if(!rss.inexeq){
+				d.sessionexecq.push(red.sessionidx);
 				rss.inexeq = true;
 			}
 		}

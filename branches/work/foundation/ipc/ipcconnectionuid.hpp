@@ -43,17 +43,20 @@ enum{
 */
 struct ConnectionUid{
 	ConnectionUid(
-		uint32 _id = 0,
-		uint16 _sesidx = 0,
-		uint16 _sesuid = 0
-	):tid(_id), idx(_sesidx), uid(_sesuid){}
-	uint32	tid;
+		const IndexT &_tid = 0,
+		const uint16 _sesidx = 0,
+		const uint16 _sesuid = 0
+	):tid(_tid), idx(_sesidx), uid(_sesuid){}
+	IndexT	tid;
 	uint16	idx;
 	uint16	uid;
 };
 
 struct SignalUid{
-	SignalUid(uint32 _idx = 0xffffffff, uint32 _uid = 0xffffffff):idx(_idx), uid(_uid){}
+	SignalUid(
+		const uint32 _idx = 0xffffffff,
+		const uint32 _uid = 0xffffffff
+	):idx(_idx), uid(_uid){}
 	uint32	idx;
 	uint32	uid;
 };
@@ -81,13 +84,21 @@ struct SignalUid{
 struct ConnectionContext{
 	static const ConnectionContext& the();
 	ConnectionUid 		connectionuid;
+	const uint32		tkruid;
+	int 				baseport;
 	SignalUid			signaluid;
 	SocketAddressStub	pairaddr;
-	int 				baseport;
+	
+	ObjectUidT talkerUid()const{
+		return ObjectUidT(connectionuid.tid, tkruid);
+	}
 private:
 	friend class Context;
 	
-	ConnectionContext(uint32 _tkrid):connectionuid(_tkrid), baseport(-1){}
+	ConnectionContext(
+		const IndexT &_tkridx,
+		const uint32 _tkruid
+	):connectionuid(_tkridx), tkruid(_tkridx), baseport(-1){}
 };
 
 typedef uint32 SerializationTypeIdT;

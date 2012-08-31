@@ -48,7 +48,7 @@ namespace ipc{
 
 struct Context{
 	static Context& the();
-	Context(uint32 _tkrid);
+	Context(const IndexT &_tkrid, const uint32 _uid);
 	~Context();
 	ConnectionContext sigctx;
 };
@@ -81,6 +81,8 @@ public:
 		uint32 _keepalivetout
 	);
 	
+	Session();
+	
 	~Session();
 	
 	const BaseAddress4T peerBaseAddress4()const;
@@ -101,9 +103,14 @@ public:
 	void prepare();
 	void reconnect(Session *_pses);	
 	
-	int pushSignal(
+	bool pushSignal(
 		DynamicPointer<Signal> &_rsig,
 		const SerializationTypeIdT &_rtid,
+		uint32 _flags
+	);
+	
+	bool pushEvent(
+		int32 _event,
 		uint32 _flags
 	);
 	
@@ -157,6 +164,7 @@ private:
 	void doTryScheduleKeepAlive(Talker::TalkerStub &_rstub);
 private:
 	struct Data;
+	struct DataDummy;
 	struct DataDirect4;
 	struct DataDirect6;
 	struct DataRelayed44;

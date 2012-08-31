@@ -51,6 +51,8 @@ inline void Buffer::reset(){
 	this->resend(0);
 	this->flags(0);
 	this->id(0);
+	uint8 *pu = reinterpret_cast<uint8*>(pb + BaseSize + relaySize());
+	*pu = 0;
 }
 
 inline void Buffer::reinit(char *_pb, uint16 _bc, uint16 _dl){

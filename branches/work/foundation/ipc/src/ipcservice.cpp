@@ -190,6 +190,26 @@ int Service::sendSignal(
 	return OK;
 }
 //---------------------------------------------------------------------
+void Service::doSendEvent(
+	const ConnectionUid &_rconid,//the id of the process connectors
+	int32 _event,
+	uint32 _flags
+){
+	Locker<Mutex>		lock(serviceMutex());
+	IndexT				idx(Manager::the().computeIndex(d.tkrvec[_rconid.tid].uid.first));
+	Locker<Mutex>		lock2(this->mutex(idx));
+	Talker				*ptkr(static_cast<Talker*>(this->objectAt(idx)));
+	
+	cassert(ptkr);
+	
+	if(ptkr->pushEvent(_rconid, _event, _flags)){
+		//the talker must be signaled
+		if(ptkr->signal(fdt::S_RAISE)){
+			Manager::the().raiseObject(*ptkr);
+		}
+	}
+}
+//---------------------------------------------------------------------
 int Service::sendSignal(
 	DynamicPointer<Signal> &_psig,//the signal to be sent
 	const SerializationTypeIdT &_rtid,
@@ -232,12 +252,10 @@ int Service::doSendSignal(
 		_rsap.family() != SocketAddressInfo::Inet6*/
 	) return BAD;
 	
-	Controller::SocketAddressIterator	it(controller().gatewayIteratorBegin(_rsa_dest, _netid_dest));
-	
-	if(it == controller().gatewayIteratorEnd()){
+	if(controller().isLocalNetwork(_rsa_dest, _netid_dest)){
 		return doSendSignalLocal(_psig, _rtid, _pconid, _rsa_dest, _netid_dest, _flags);
 	}else{
-		return doSendSignalRelay(_psig, _rtid, _pconid, _rsa_dest, _netid_dest, _flags, it);
+		return doSendSignalRelay(_psig, _rtid, _pconid, _rsa_dest, _netid_dest, _flags);
 	}
 }
 //---------------------------------------------------------------------
@@ -336,9 +354,9 @@ int Service::doSendSignalRelay(
 	ConnectionUid *_pconid,
 	const SocketAddressStub &_rsap,
 	const uint32 _netid_dest,
-	uint32	_flags,
-	const Controller::SocketAddressIterator& _addrit
+	uint32	_flags
 ){
+	//TODO:
 	return BAD;
 }
 //---------------------------------------------------------------------
@@ -638,11 +656,12 @@ int Controller::authenticate(
 	return BAD;//by default no authentication
 }
 
-/*virtual*/ Controller::SocketAddressIterator Controller::gatewayIteratorBegin(
+/*virtual*/ int Controller::gatewayIteratorBegin(
+	SocketAddressIterator &_roit,
 	const SocketAddressStub &_rsas_dest,
 	const uint32 _netid_dest
 ){
-	return SocketAddressIterator();
+	return BAD;
 }
 /*virtual*/ const Controller::SocketAddressIterator& Controller::gatewayIteratorEnd(){
 	static const SocketAddressIterator endit;
@@ -652,6 +671,21 @@ int Controller::authenticate(
 	
 /*virtual*/ uint32 Controller::localNetworkId()const{
 	return LocalNetworkId;
+}
+bool Controller::isLocalNetwork(
+	const SocketAddressStub &,
+	const uint32 _netid_dest
+)const{
+	return _netid_dest == LocalNetworkId || _netid_dest == localNetworkId();
+}
+
+void Controller::sendEvent(
+	Service &_rs,
+	const ConnectionUid &_rconid,//the id of the process connectors
+	int32 _event,
+	uint32 _flags
+){
+	_rs.doSendEvent(_rconid, _event, _flags);
 }
 
 }//namespace ipc

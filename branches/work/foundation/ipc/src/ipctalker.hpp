@@ -24,6 +24,7 @@
 
 #include "foundation/aio/aiosingleobject.hpp"
 #include "foundation/ipc/ipcconnectionuid.hpp"
+#include <boost/concept_check.hpp>
 struct TimeSpec;
 
 namespace foundation{
@@ -70,20 +71,32 @@ public:
 	int execute(ulong _sig, TimeSpec &_tout);
 	int execute();
 	int accept(foundation::Visitor &);
-	int pushSignal(
+	bool pushSignal(
 		DynamicPointer<Signal> &_psig,
 		const SerializationTypeIdT &_rtid,
 		const ConnectionUid &_rconid,
 		uint32 _flags
 	);
+	bool pushEvent(
+		const ConnectionUid &_rconid,
+		int32 _event,
+		uint32 _flags
+	);
+		
 	void pushSession(Session *_ps, ConnectionUid &_rconid, bool _exists = false);
 	void disconnectSessions();
 private:
 	int doReceiveBuffers(TalkerStub &_rstub, uint32 _atmost, const ulong _sig);
 	bool doProcessReceivedBuffers(TalkerStub &_rstub);
-	void doDispatchReceivedBuffer(TalkerStub &_rstub, char *_pbuf, const uint32 _bufsz, const SocketAddressStub &_rsap);
+	void doDispatchReceivedBuffer(
+		TalkerStub &_rstub,
+		char *_pbuf,
+		const uint32 _bufsz,
+		const SocketAddress &_rsap
+	);
 	void doInsertNewSessions();
 	void doDispatchSignals();
+	void doDispatchEvents();
 	int doSendBuffers(TalkerStub &_rstub, const ulong _sig);
 	bool doExecuteSessions(TalkerStub &_rstub);
 private:

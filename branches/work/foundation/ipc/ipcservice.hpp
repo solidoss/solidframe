@@ -47,6 +47,7 @@ class Connection;
 struct Buffer;
 struct ConnectionUid;
 struct BufferContext;
+class Service;
 
 struct Controller{
 	enum{
@@ -73,11 +74,17 @@ struct Controller{
 		char* &_rpb,
 		uint32 &_bl
 	);
-	virtual SocketAddressIterator gatewayIteratorBegin(
+	virtual int gatewayIteratorBegin(
+		SocketAddressIterator &_roit,
 		const SocketAddressStub &_rsas_dest,
 		const uint32 _netid_dest
 	);
 	virtual const SocketAddressIterator& gatewayIteratorEnd();
+	
+	bool isLocalNetwork(
+		const SocketAddressStub &_rsas_dest,
+		const uint32 _netid_dest
+	)const;
 	
 	bool hasAuthentication()const{
 		return (flags & AuthenticationFlag) != 0;
@@ -115,13 +122,17 @@ protected:
 			const uint32 _flags = 0
 	): resdatasz(_resdatasz), flags(_flags){}
 	char * allocateBuffer(BufferContext &_rbc, uint32 &_cp);
+	
+	void sendEvent(
+		Service &_rs,
+		const ConnectionUid &_rconid,//the id of the process connectors
+		int32 _event,
+		uint32 _flags
+	);
 private:
 	const uint32	resdatasz;
 	uint32			flags;
 };
-
-
-class Service;
 
 //! A Inter Process Communication service
 /*!
@@ -326,6 +337,14 @@ public:
 private:
 	friend class Talker;
 	friend class Session;
+	friend class Controller;
+	
+	void doSendEvent(
+		const ConnectionUid &_rconid,//the id of the process connectors
+		int32 _event,
+		uint32 _flags = 0
+	);
+	
 	int doSendSignal(
 		DynamicPointer<Signal> &_psig,//the signal to be sent
 		const SerializationTypeIdT &_rtid,
@@ -348,8 +367,7 @@ private:
 		ConnectionUid *_pconid,
 		const SocketAddressStub &_rsap,
 		const uint32 _netid_dest,
-		uint32	_flags,
-		const Controller::SocketAddressIterator& _addrit
+		uint32	_flags
 	);
 	int acceptSession(Session *_pses);
 	void disconnectSession(Session *_pses);

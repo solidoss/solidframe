@@ -164,6 +164,7 @@ typedef DynamicPointer<foundation::Signal>			DynamicSignalPointerT;
 
 struct Session::Data{
 	enum Types{
+		Dummy,
 		Direct4,
 		Direct6,
 		Relayed44,
@@ -315,6 +316,9 @@ public:
 		Specific::cache(_p);
 	}
 	
+	Session::DataDummy& dummy();
+	Session::DataDummy const& dummy()const;
+	
 	Session::DataDirect4& direct4();
 	Session::DataDirect4 const& direct4()const;
 	
@@ -396,6 +400,10 @@ public:
 #endif
 };
 //---------------------------------------------------------------------
+struct Session::DataDummy: Session::Data{
+	DataDummy():Session::Data(Dummy, Disconnected, 0){}
+};
+//---------------------------------------------------------------------
 struct Session::DataDirect4: Session::Data{
 	DataDirect4(
 		const SocketAddressInet4 &_raddr,
@@ -433,8 +441,12 @@ struct Session::DataDirect6: Session::Data{
 };
 //---------------------------------------------------------------------
 struct Session::DataRelayed44: Session::Data{
-	
+	DataRelayed44(
+		uint32 _keepalivetout
+	):Data(Relayed44, Connecting, _keepalivetout){
+	}
 };
+
 //---------------------------------------------------------------------
 inline Session::DataDirect4& Session::Data::direct4(){
 	cassert(this->type == Direct4);
@@ -443,6 +455,15 @@ inline Session::DataDirect4& Session::Data::direct4(){
 inline Session::DataDirect4 const& Session::Data::direct4()const{
 	cassert(this->type == Direct4);
 	return static_cast<Session::DataDirect4 const&>(*this);
+}
+//---------------------------------------------------------------------
+inline Session::DataDummy& Session::Data::dummy(){
+	cassert(this->type == Dummy);
+	return static_cast<Session::DataDummy&>(*this);
+}
+inline Session::DataDummy const& Session::Data::dummy()const{
+	cassert(this->type == Dummy);
+	return static_cast<Session::DataDummy const&>(*this);
 }
 //---------------------------------------------------------------------
 inline Session::DataDirect6& Session::Data::direct6(){
@@ -954,9 +975,17 @@ Session::Session(
 	vdbgx(Dbg::ipc, "Created accept session "<<(void*)this);
 }
 //---------------------------------------------------------------------
+Session::Session(
+):d(*(new DataDummy)){
+	vdbgx(Dbg::ipc, "Created dummy session "<<(void*)this);
+}
+//---------------------------------------------------------------------
 Session::~Session(){
 	vdbgx(Dbg::ipc, "delete session "<<(void*)this);
 	switch(d.type){
+		case Data::Dummy:
+			delete &d.dummy();
+			break;
 		case Data::Direct4:
 			delete &d.direct4();
 			break;
@@ -1146,16 +1175,24 @@ void Session::reconnect(Session *_pses){
 	d.state = Data::Disconnecting;
 }
 //---------------------------------------------------------------------
-int Session::pushSignal(
+bool Session::pushSignal(
 	DynamicPointer<Signal> &_rsig,
 	const SerializationTypeIdT &_rtid,
 	uint32 _flags
 ){
 	COLLECT_DATA_0(d.statistics.pushSignal);
 	d.signalq.push(Data::SignalStub(_rsig, _rtid, _flags));
-	if(d.signalq.size() == 1) return NOK;
-	return OK;
+	return d.signalq.size() == 1;
 }
+//---------------------------------------------------------------------
+bool Session::pushEvent(
+	int32 _event,
+	uint32 _flags
+){
+	//TODO:
+	return true;
+}
+
 //---------------------------------------------------------------------
 bool Session::pushReceivedBuffer(
 	Buffer &_rbuf,
@@ -2080,7 +2117,7 @@ const uint32 specificId(){
 	return *reinterpret_cast<Context*>(Thread::specific(specificId()));
 }
 //----------------------------------------------------------------------
-Context::Context(uint32 _tkrid):sigctx(_tkrid){
+Context::Context(const IndexT &_tkrid, uint32 _uid):sigctx(_tkrid, _uid){
 	Thread::specific(specificId(), this);
 }
 //----------------------------------------------------------------------
