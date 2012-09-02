@@ -442,6 +442,7 @@ bool Talker::doProcessReceivedBuffers(TalkerStub &_rstub){
 		//conuid.sessionuid = rss.uid;
 		Context::the().sigctx.connectionuid.idx = rcvbuf.sessionidx;
 		Context::the().sigctx.connectionuid.uid = rss.uid;
+		ts.sessionidx = rcvbuf.sessionidx;
 		rss.psession->prepareContext(Context::the());
 		
 		if(rss.psession->pushReceivedBuffer(buf, ts/*, conuid*/)){
@@ -503,7 +504,7 @@ void Talker::doDispatchReceivedBuffer(
 				}
 			}else{
 				COLLECT_DATA_0(d.statistics.receivedConnectingError);
-				d.sessionvec.front().psession->dummySend(error, _rsa);
+				//d.sessionvec.front().psession->dummySend(error, _rsa);
 			}
 			Buffer::deallocate(buf.release());
 		}break;
@@ -521,6 +522,7 @@ void Talker::doDispatchReceivedBuffer(
 				if(bit != d.baseaddr4map.end()){
 					Data::SessionStub	&rss(d.sessionvec[bit->second]);
 					if(rss.psession){
+						_rstub.sessionidx = bit->second;
 						rss.psession->completeConnect(_rstub, _rsa.port());
 						//register in peer map
 						d.peeraddr4map[&rss.psession->peerAddress4()] = bit->second;
@@ -601,6 +603,8 @@ int Talker::doSendBuffers(TalkerStub &_rstub, const ulong _sig){
 		Data::SendBuffer	&rsb(d.sendq.front());
 		Data::SessionStub	&rss(d.sessionvec[rsb.sessionidx]);
 		
+		ts.sessionidx = rsb.sessionidx;
+		
 		Context::the().sigctx.connectionuid.idx = rsb.sessionidx;
 		Context::the().sigctx.connectionuid.uid = rss.uid;
 		rss.psession->prepareContext(Context::the());
@@ -624,6 +628,8 @@ int Talker::doSendBuffers(TalkerStub &_rstub, const ulong _sig){
 				Context::the().sigctx.connectionuid.idx = rsb.sessionidx;
 				Context::the().sigctx.connectionuid.uid = rss.uid;
 				rss.psession->prepareContext(Context::the());
+				
+				ts.sessionidx = rsb.sessionidx;
 				
 				if(rss.psession->pushSentBuffer(ts, rsb.id, rsb.data, rsb.size)){
 					if(!rss.inexeq){

@@ -1283,7 +1283,7 @@ bool Session::executeTimeout(
 	
 	COLLECT_DATA_0(d.statistics.timeout);
 	if(rsbd.uid != uid){
-		vdbgx(Dbg::ipc, "timeout for ("<<idx<<','<<uid<<')');
+		vdbgx(Dbg::ipc, "timeout for ("<<idx<<','<<uid<<')'<<' '<<rsbd.uid);
 		COLLECT_DATA_0(d.statistics.failedTimeout);
 		return false;
 	}
@@ -1772,6 +1772,7 @@ int Session::doTrySendUpdates(Talker::TalkerStub &_rstub){
 		
 		if(_rstub.pushSendBuffer(-1, buf.buffer(), buf.bufferSize())){
 			vdbgx(Dbg::ipc, "sent updates "<<buf<<" done");
+			doTryScheduleKeepAlive(_rstub);
 		}else{
 			d.updatesbuffer = buf;
 			vdbgx(Dbg::ipc, "sent updates "<<buf<<" pending");
@@ -2022,7 +2023,6 @@ void Session::doTryScheduleKeepAlive(Talker::TalkerStub &_rstub){
 	if(d.canSendKeepAlive(_rstub.currentTime())){
 		
 		COLLECT_DATA_0(d.statistics.scheduleKeepAlive);
-		vdbgx(Dbg::ipc, "can send keepalive");
 		
 		const uint32 			idx(d.keepAliveBufferIndex());
 		Data::SendBufferData	&rsbd(d.sendbuffervec[idx]);
@@ -2032,6 +2032,8 @@ void Session::doTryScheduleKeepAlive(Talker::TalkerStub &_rstub){
 		//schedule a timer for this buffer
 		TimeSpec tpos(_rstub.currentTime());
 		tpos += d.keepalivetimeout;
+		
+		vdbgx(Dbg::ipc, "can send keepalive "<<idx<<' '<<rsbd.uid);
 		
 		_rstub.pushTimer(pack32(idx, rsbd.uid), tpos);
 	}

@@ -119,7 +119,7 @@ struct Controller{
 protected:
 	Controller(
 		const uint32 _resdatasz = 0,
-			const uint32 _flags = 0
+		const uint32 _flags = 0
 	): resdatasz(_resdatasz), flags(_flags){}
 	char * allocateBuffer(BufferContext &_rbc, uint32 &_cp);
 	
