@@ -47,6 +47,7 @@ class Connection;
 struct Buffer;
 struct ConnectionUid;
 struct BufferContext;
+struct ConnectData;
 class Service;
 
 struct Controller{
@@ -369,7 +370,7 @@ private:
 		const uint32 _netid_dest,
 		uint32	_flags
 	);
-	int acceptSession(Session *_pses);
+	int acceptSession(const SocketAddress &_rsa, const ConnectData &_rconndata);
 	void disconnectSession(Session *_pses);
 	void disconnectTalkerSessions(Talker &);
 	int createNewTalker(IndexT &_tkrpos, uint32 &_tkruid);

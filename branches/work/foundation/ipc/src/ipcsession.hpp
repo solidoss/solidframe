@@ -57,8 +57,8 @@ class Session{
 public:
 	
 	static void init();
-	static int parseAcceptedBuffer(const Buffer &_rbuf);
-	static int parseConnectingBuffer(const Buffer &_rbuf);
+	static int parseAcceptedBuffer(const Buffer &_rbuf, AcceptData &_raccdata);
+	static int parseConnectingBuffer(const Buffer &_rbuf, ConnectData &_rconndata);
 	
 	Session(
 		const SocketAddressInet4 &_raddr,
@@ -116,8 +116,12 @@ public:
 	
 	bool pushReceivedBuffer(
 		Buffer &_rbuf,
-		Talker::TalkerStub &_rstub/*,
-		const ConnectionUid &_rconid*/
+		Talker::TalkerStub &_rstub
+	);
+	
+	bool pushReceivedErrorBuffer(
+		Buffer &_rbuf,
+		Talker::TalkerStub &_rstub
 	);
 	
 	void completeConnect(Talker::TalkerStub &_rstub, uint16 _port);
@@ -137,6 +141,8 @@ public:
 	);
 	
 	void prepareContext(Context &_rctx);
+	
+	void dummySendError(Talker::TalkerStub &_rstub, const SocketAddress &_rsa, int _error);
 private:
 	bool doPushExpectedReceivedBuffer(
 		Talker::TalkerStub &_rstub,
@@ -160,8 +166,15 @@ private:
 	int doExecuteConnectedLimited(Talker::TalkerStub &_rstub);
 	int doTrySendUpdates(Talker::TalkerStub &_rstub);
 	int doExecuteDisconnecting(Talker::TalkerStub &_rstub);
+	int doExecuteDummy(Talker::TalkerStub &_rstub);
 	void doFillSendBuffer(Talker::TalkerStub &_rstub, const uint32 _bufidx);
 	void doTryScheduleKeepAlive(Talker::TalkerStub &_rstub);
+	bool doDummyPushSentBuffer(
+		Talker::TalkerStub &_rstub,
+		uint32 _id,
+		const char *_data,
+		const uint16 _size
+	);
 private:
 	struct Data;
 	struct DataDummy;

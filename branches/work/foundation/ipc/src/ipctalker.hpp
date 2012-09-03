@@ -25,6 +25,8 @@
 #include "foundation/aio/aiosingleobject.hpp"
 #include "foundation/ipc/ipcconnectionuid.hpp"
 #include <boost/concept_check.hpp>
+
+class C;
 struct TimeSpec;
 
 namespace foundation{
@@ -36,6 +38,16 @@ namespace ipc{
 class Service;
 struct ConnectionUid;
 class Session;
+
+struct ConnectData{
+	ConnectData():baseport(0){}
+	uint16	baseport;
+};
+
+struct AcceptData{
+	AcceptData():baseport(0){}
+	uint16	baseport;
+};
 
 //! A talker for io requests
 class Talker: public Dynamic<Talker, foundation::aio::SingleObject>{

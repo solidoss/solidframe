@@ -386,12 +386,19 @@ int Service::allocateTalkerForNewSession(bool _force){
 	}
 }
 //---------------------------------------------------------------------
-int Service::acceptSession(Session *_pses){
-	Locker<Mutex>	lock(serviceMutex());
+int Service::acceptSession(const SocketAddress &_rsa, const ConnectData &_rconndata){
+	return NOK;
+	Locker<Mutex>				lock(serviceMutex());
+	SocketAddressInet4			inaddr(_rsa);
+	Session						*pses = new Session(
+		inaddr,
+		_rconndata.baseport,
+		keepAliveTimeout()
+	);
 	{
 		//TODO: see if the locking is ok!!!
 		
-		Data::SessionAddr4MapT::iterator	it(d.sessionaddr4map.find(_pses->peerBaseAddress4()));
+		Data::SessionAddr4MapT::iterator	it(d.sessionaddr4map.find(pses->peerBaseAddress4()));
 		
 		if(it != d.sessionaddr4map.end()){
 			//a connection still exists
@@ -401,7 +408,7 @@ int Service::acceptSession(Session *_pses){
 			
 			vdbgx(Dbg::ipc, "");
 			
-			ptkr->pushSession(_pses, it->second, true);
+			ptkr->pushSession(pses, it->second, true);
 			
 			if(ptkr->signal(fdt::S_RAISE)){
 				Manager::the().raiseObject(*ptkr);
@@ -436,8 +443,8 @@ int Service::acceptSession(Session *_pses){
 	
 	vdbgx(Dbg::ipc, "");
 	
-	ptkr->pushSession(_pses, conid);
-	d.sessionaddr4map[_pses->peerBaseAddress4()] = conid;
+	ptkr->pushSession(pses, conid);
+	d.sessionaddr4map[pses->peerBaseAddress4()] = conid;
 	
 	if(ptkr->signal(fdt::S_RAISE)){
 		Manager::the().raiseObject(*ptkr);

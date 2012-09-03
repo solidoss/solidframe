@@ -183,6 +183,7 @@ std::ostream& operator<<(std::ostream &_ros, const Buffer &_rb){
 		case Buffer::DataType: _ros<<"DataType";break;
 		case Buffer::ConnectingType: _ros<<"ConnectingType";break;
 		case Buffer::AcceptingType: _ros<<"AcceptingType";break;
+		case Buffer::ErrorType: _ros<<"ErrorType";break;
 		case Buffer::Unknown: _ros<<"Unknown";break;
 		default: _ros<<"[INVALID TYPE]";
 	}

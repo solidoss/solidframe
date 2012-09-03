@@ -54,6 +54,7 @@ struct Buffer{
 		DataType,
 		ConnectingType,
 		AcceptingType,
+		ErrorType,
 		Unknown
 	};
 	enum Flags{

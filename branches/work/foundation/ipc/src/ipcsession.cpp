@@ -182,6 +182,7 @@ struct Session::Data{
 		Disconnecting,
 		Reconnecting,
 		Disconnected,
+		DummyExecute,
 	};
 	enum{
 		UpdateBufferId = 0xffffffff,//the id of a buffer containing only updates
@@ -289,7 +290,8 @@ public:
 	Data(
 		uint8 _type,
 		uint8 _state,
-		uint32 _keepalivetout
+		uint32 _keepalivetout,
+		uint16 _baseport = 0
 	);
 	
 	~Data();
@@ -382,6 +384,7 @@ public:
 	uint32					currentsyncid;
 	uint32					currentsendsyncid;
 	uint16					currentbuffersignalcount;//MaxSignalBufferCount
+	uint16					baseport;
 	SocketAddressStub		pairaddr;
 	
 	UInt32QueueT			rcvdidq;
@@ -401,43 +404,64 @@ public:
 };
 //---------------------------------------------------------------------
 struct Session::DataDummy: Session::Data{
-	DataDummy():Session::Data(Dummy, Disconnected, 0){}
+	enum{
+		UnknownSendType,
+		ErrorSendType
+	};
+	
+	struct SendStub{
+		SendStub(uint8 _sendtype = UnknownSendType): sendtype(_sendtype){}
+		uint8			sendtype;
+		SocketAddress	sa;
+	};
+	
+	struct ErrorStub{
+		ErrorStub(int _error = 0):error(_error){}
+		int		error;
+	};
+	
+	typedef Queue<SendStub>		SendQueueT;
+	typedef Queue<ErrorStub>	ErrorQueueT;
+	
+	Buffer		crtbuf;
+	SendQueueT	sendq;
+	ErrorQueueT	errorq;
+	
+	DataDummy():Session::Data(Dummy, DummyExecute, 0){}
 };
 //---------------------------------------------------------------------
 struct Session::DataDirect4: Session::Data{
 	DataDirect4(
 		const SocketAddressInet4 &_raddr,
 		uint32 _keepalivetout
-	):Data(Direct4, Connecting, _keepalivetout), addr(_raddr), baseport(_raddr.port()){
+	):Data(Direct4, Connecting, _keepalivetout, _raddr.port()), addr(_raddr){
 		Data::pairaddr = addr;
 	}
 	DataDirect4(
 		const SocketAddressInet4 &_raddr,
 		uint16 _baseport,
 		uint32 _keepalivetout
-	):Data(Direct4, Accepting, _keepalivetout), addr(_raddr), baseport(_baseport){
+	):Data(Direct4, Accepting, _keepalivetout, _baseport), addr(_raddr){
 		Data::pairaddr = addr;
 	}
 	SocketAddressInet4	addr;
-	uint16				baseport;
 };
 //---------------------------------------------------------------------
 struct Session::DataDirect6: Session::Data{
 	DataDirect6(
 		const SocketAddressInet6 &_raddr,
 		uint32 _keepalivetout
-	):Data(Direct6, Connecting, _keepalivetout), addr(_raddr), baseport(_raddr.port()){
+	):Data(Direct6, Connecting, _keepalivetout, _raddr.port()), addr(_raddr){
 		Data::pairaddr = addr;
 	}
 	DataDirect6(
 		const SocketAddressInet6 &_raddr,
 		uint16 _baseport,
 		uint32 _keepalivetout
-	):Data(Direct6, Accepting, _keepalivetout), addr(_raddr), baseport(_baseport){
+	):Data(Direct6, Accepting, _keepalivetout, _baseport), addr(_raddr){
 		Data::pairaddr = addr;
 	}
 	SocketAddressInet6	addr;
-	uint16				baseport;
 };
 //---------------------------------------------------------------------
 struct Session::DataRelayed44: Session::Data{
@@ -486,12 +510,13 @@ inline Session::DataRelayed44 const& Session::Data::relayed44()const{
 Session::Data::Data(
 	uint8 _type,
 	uint8 _state,
-	uint32 _keepalivetout
+	uint32 _keepalivetout,
+	uint16 _baseport
 ):	type(_type), state(_state), sendpendingcount(0),
 	outoforderbufcount(0), rcvexpectedid(2), sentsignalwaitresponse(0),
 	retansmittimepos(0), sendsignalid(0), 
 	sendid(1), keepalivetimeout(_keepalivetout),
-	currentsendsyncid(-1), currentbuffersignalcount(MaxSignalBufferCount)
+	currentsendsyncid(-1), currentbuffersignalcount(MaxSignalBufferCount), baseport(_baseport)
 {
 	outoforderbufvec.resize(MaxOutOfOrder);
 	//first buffer is for keepalive
@@ -929,18 +954,20 @@ bool Session::Data::moveToNextSendSignal(){
 //	Session
 //=====================================================================
 
-/*static*/ int Session::parseAcceptedBuffer(const Buffer &_rbuf){
+/*static*/ int Session::parseAcceptedBuffer(const Buffer &_rbuf, AcceptData &_raccdata){
 	if(_rbuf.dataSize() == sizeof(int32)){
 		int32 *pp((int32*)_rbuf.data());
-		return (int)ntohl((uint32)*pp);
+		_raccdata.baseport = (int)ntohl((uint32)*pp);
+		return OK;
 	}
 	return BAD;
 }
 //---------------------------------------------------------------------
-/*static*/ int Session::parseConnectingBuffer(const Buffer &_rbuf){
+/*static*/ int Session::parseConnectingBuffer(const Buffer &_rbuf, ConnectData &_rconndata){
 	if(_rbuf.dataSize() == sizeof(int32)){
 		int32 *pp((int32*)_rbuf.data());
-		return (int)ntohl((uint32)*pp);
+		_rconndata.baseport = (int)ntohl((uint32)*pp);
+		return OK;
 	}
 	return BAD;
 }
@@ -1363,6 +1390,8 @@ int Session::execute(Talker::TalkerStub &_rstub){
 			if(d.sendpendingcount) return NOK;
 			reconnect(NULL);
 			return OK;//reschedule
+		case Data::DummyExecute:
+			return doExecuteDummy(_rstub);
 	}
 	return BAD;
 }
@@ -1373,6 +1402,9 @@ bool Session::pushSentBuffer(
 	const char *_data,
 	const uint16 _size
 ){
+	if(d.type == Data::Dummy){
+		return doDummyPushSentBuffer(_rstub, _id, _data, _size);
+	}
 	if(_id == -1){//an update buffer
 		//free it right away
 		d.updatesbuffer.clear();
@@ -2038,9 +2070,97 @@ void Session::doTryScheduleKeepAlive(Talker::TalkerStub &_rstub){
 		_rstub.pushTimer(pack32(idx, rsbd.uid), tpos);
 	}
 }
+//---------------------------------------------------------------------
 void Session::prepareContext(Context &_rctx){
-	_rctx.sigctx.pairaddr = d.direct4().addr;
-	_rctx.sigctx.baseport = d.direct4().baseport;
+	_rctx.sigctx.pairaddr = d.pairaddr;
+	_rctx.sigctx.baseport = d.baseport;
+}
+//---------------------------------------------------------------------
+void Session::dummySendError(
+	Talker::TalkerStub &_rstub,
+	const SocketAddress &_rsa,
+	int _error
+){
+	cassert(d.type == Data::Dummy);
+	d.dummy().errorq.push(DataDummy::ErrorStub(_error));
+	d.dummy().sendq.push(DataDummy::SendStub(DataDummy::ErrorSendType));
+	d.dummy().sendq.back().sa = _rsa;
+}
+//---------------------------------------------------------------------
+bool Session::doDummyPushSentBuffer(
+	Talker::TalkerStub &_rstub,
+	uint32 _id,
+	const char *_data,
+	const uint16 _size
+){
+	DataDummy &rdd = d.dummy();
+	rdd.sendq.pop();
+	d.pairaddr.clear();
+	return rdd.sendq.size() != 0;
+}
+//---------------------------------------------------------------------
+int Session::doExecuteDummy(Talker::TalkerStub &_rstub){
+	cassert(d.type == Data::Dummy);
+	DataDummy &rdd = d.dummy();
+	if(rdd.sendq.empty()) return NOK;
+	
+	if(rdd.crtbuf.empty()){
+		const uint32	bufid(Specific::sizeToIndex(128));
+		Buffer			buf(Specific::popBuffer(bufid), Specific::indexToCapacity(bufid));
+		
+		
+		
+		rdd.crtbuf = buf;
+	}
+	
+	while(rdd.sendq.size()){
+		DataDummy::SendStub &rss = rdd.sendq.front();
+		
+		d.pairaddr = rss.sa;
+		
+		if(rss.sendtype == DataDummy::ErrorSendType){
+			rdd.crtbuf.reset();
+			rdd.crtbuf.type(Buffer::ErrorType);
+			rdd.crtbuf.id(0);
+		
+			int32		*pi = (int32*)rdd.crtbuf.dataEnd();
+			
+			*pi = htonl(rdd.errorq.front().error);
+			rdd.crtbuf.dataSize(rdd.crtbuf.dataSize() + sizeof(int32));
+			rdd.errorq.pop();
+			
+			if(_rstub.pushSendBuffer(0, rdd.crtbuf.buffer(), rdd.crtbuf.bufferSize())){
+				vdbgx(Dbg::ipc, "sent error buffer done");
+				rdd.sendq.pop();
+			}else{
+				return NOK;
+			}
+		}else{
+			edbgx(Dbg::ipc, "unsupported sendtype = "<<rss.sendtype);
+			rdd.sendq.pop();
+		}
+		
+	}
+	
+	d.pairaddr.clear();
+	
+	return NOK;
+}
+//---------------------------------------------------------------------
+bool Session::pushReceivedErrorBuffer(
+	Buffer &_rbuf,
+	Talker::TalkerStub &_rstub
+){
+	int error = 0;
+	if(_rbuf.dataSize() == sizeof(int32)){
+		int32 *pp((int32*)_rbuf.data());
+		error = (int)ntohl((uint32)*pp);
+		idbgx(Dbg::ipc, "Received error "<<error);
+	}
+	
+	d.state = Data::Disconnecting;
+	
+	return true;
 }
 //======================================================================
 namespace{

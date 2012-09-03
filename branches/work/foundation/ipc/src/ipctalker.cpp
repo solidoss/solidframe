@@ -490,34 +490,46 @@ void Talker::doDispatchReceivedBuffer(
 		
 		case Buffer::ConnectingType:{
 			COLLECT_DATA_0(d.statistics.receivedConnecting);
-			SocketAddressInet4	inaddr(_rsa);
-			int					error(-1);
-			int					baseport(Session::parseConnectingBuffer(buf));
+			ConnectData			conndata;
 			
-			idbgx(Dbg::ipc, "connecting buffer with baseport "<<baseport);
+			int					error = Session::parseConnectingBuffer(buf, conndata);
 			
-			if(baseport >= 0){
-				Session *ps(new Session(inaddr, baseport, d.rservice.keepAliveTimeout()));
-				if(d.rservice.acceptSession(ps)){	
-					COLLECT_DATA_0(d.statistics.failedAcceptSession);
-					delete ps;
-				}
-			}else{
-				COLLECT_DATA_0(d.statistics.receivedConnectingError);
-				//d.sessionvec.front().psession->dummySend(error, _rsa);
-			}
 			Buffer::deallocate(buf.release());
+			
+			if(error){
+				edbgx(Dbg::ipc, "connecting buffer: parse "<<error);
+				COLLECT_DATA_0(d.statistics.receivedConnectingError);
+			}else{
+				error = d.rservice.acceptSession(_rsa, conndata);
+				if(error < 0){	
+					COLLECT_DATA_0(d.statistics.failedAcceptSession);
+					wdbgx(Dbg::ipc, "connecting buffer: silent drop "<<error);
+				}else if(error > 0){
+					wdbgx(Dbg::ipc, "connecting buffer: send error "<<error);
+					d.sessionvec.front().psession->dummySendError(_rstub, _rsa, error);
+					if(!d.sessionvec.front().inexeq){
+						d.sessionexecq.push(0);
+						d.sessionvec.front().inexeq = true;
+					}
+				}
+			}
+			
 		}break;
 		
 		case Buffer::AcceptingType:{
 			COLLECT_DATA_0(d.statistics.receivedAccepting);
-			int baseport = Session::parseAcceptedBuffer(buf);
+			AcceptData			accdata;
 			
-			idbgx(Dbg::ipc, "accepting buffer with baseport "<<baseport);
+			int					error = Session::parseAcceptedBuffer(buf, accdata);
 			
-			if(baseport >= 0){
+			Buffer::deallocate(buf.release());
+			
+			if(error){
+				edbgx(Dbg::ipc, "accepted buffer: error parse "<<error);
+				COLLECT_DATA_0(d.statistics.receivedAcceptingError);
+			}else{
 				SocketAddressInet4				sa(_rsa);
-				BaseAddress4T					ba(sa, baseport);
+				BaseAddress4T					ba(sa, accdata.baseport);
 				Data::BaseAddr4MapT::iterator	bit(d.baseaddr4map.find(ba));
 				if(bit != d.baseaddr4map.end()){
 					Data::SessionStub	&rss(d.sessionvec[bit->second]);
@@ -533,13 +545,29 @@ void Talker::doDispatchReceivedBuffer(
 						}
 					}
 				}
-			}else{
-				COLLECT_DATA_0(d.statistics.receivedAcceptingError);
 			}
-			
+		}break;
+		case Buffer::ErrorType:{
+			SocketAddressInet4				sa(_rsa);
+			BaseAddress4T					ba(sa, _rsa.port());
+			Data::BaseAddr4MapT::iterator	bit(d.baseaddr4map.find(ba));
+			if(bit != d.baseaddr4map.end()){
+				Data::SessionStub	&rss(d.sessionvec[bit->second]);
+				if(rss.psession){
+					_rstub.sessionidx = bit->second;
+					
+					if(rss.psession->pushReceivedErrorBuffer(buf, _rstub) && !rss.inexeq){
+						d.sessionexecq.push(bit->second);
+						rss.inexeq = true;
+					}
+				}else{
+					wdbgx(Dbg::ipc, "no session for error buffer");
+				}
+			}else{
+				wdbgx(Dbg::ipc, "no session for error buffer");
+			}
 			Buffer::deallocate(buf.release());
 		}break;
-		
 		default:
 			COLLECT_DATA_0(d.statistics.receivedUnknown);
 			Buffer::deallocate(buf.release());
