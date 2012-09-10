@@ -8,7 +8,7 @@ This is a pool of pending features and changes
  # (20) Add a new example binary protocol - using serialization - to example_concept. Adding beta service to example_concept test application.
  # Add support for atomic operations (gcc: __exchange_and_add - see boost::shared_ptr) to ObjectPointer and to system so it can be used in Dynamic::use/release.
  # Add new class foundation::AccessManager: a container which will manage read/write access to its objects.
- # Add support for adaptive use of compression in ipc. For every ipc we'll keep information about previous buffers compression rate. If the compression rate is too small we'd better not use compression for following buffers.
+ # Add support for adaptive use of compression in ipc. For every ipc command we'll keep information about previous buffers compression rate. If the compression rate is very small for a continuous number of buffer we'd better disable compression for following buffers. Also the other way round, if the compression rate is high for a number of buffers we enable the compression.
  # Investigate using boost as back-end for foundation and system.
  # Re-factor foundation::file::Manager to be based on foundation::AccessManager.
  # Add support for Unix domain addresses.
