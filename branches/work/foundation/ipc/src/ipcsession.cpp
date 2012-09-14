@@ -954,7 +954,7 @@ bool Session::Data::moveToNextSendSignal(){
 //	Session
 //=====================================================================
 
-/*static*/ int Session::parseAcceptedBuffer(const Buffer &_rbuf, AcceptData &_raccdata){
+/*static*/ int Session::parseAcceptBuffer(const Buffer &_rbuf, AcceptData &_raccdata){
 	if(_rbuf.dataSize() == sizeof(int32)){
 		int32 *pp((int32*)_rbuf.data());
 		_raccdata.baseport = (int)ntohl((uint32)*pp);
@@ -963,7 +963,7 @@ bool Session::Data::moveToNextSendSignal(){
 	return BAD;
 }
 //---------------------------------------------------------------------
-/*static*/ int Session::parseConnectingBuffer(const Buffer &_rbuf, ConnectData &_rconndata){
+/*static*/ int Session::parseConnectBuffer(const Buffer &_rbuf, ConnectData &_rconndata){
 	if(_rbuf.dataSize() == sizeof(int32)){
 		int32 *pp((int32*)_rbuf.data());
 		_rconndata.baseport = (int)ntohl((uint32)*pp);

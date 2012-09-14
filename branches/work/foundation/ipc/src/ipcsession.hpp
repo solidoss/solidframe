@@ -57,8 +57,8 @@ class Session{
 public:
 	
 	static void init();
-	static int parseAcceptedBuffer(const Buffer &_rbuf, AcceptData &_raccdata);
-	static int parseConnectingBuffer(const Buffer &_rbuf, ConnectData &_rconndata);
+	static int parseAcceptBuffer(const Buffer &_rbuf, AcceptData &_raccdata);
+	static int parseConnectBuffer(const Buffer &_rbuf, ConnectData &_rconndata);
 	
 	Session(
 		const SocketAddressInet4 &_raddr,

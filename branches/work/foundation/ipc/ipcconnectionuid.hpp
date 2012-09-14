@@ -26,7 +26,6 @@
 #include "system/socketaddress.hpp"
 #include "utility/dynamicpointer.hpp"
 
-struct C;
 namespace foundation{
 namespace ipc{
 
@@ -76,8 +75,6 @@ struct SignalUid{
 	serialization we need to use the signaluid from the current context.
 	
 	See concept::alpha::RemoteListSignal from alphasignals.hpp for an example.
-	
-	
 	
 */
 	

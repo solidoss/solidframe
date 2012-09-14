@@ -492,7 +492,7 @@ void Talker::doDispatchReceivedBuffer(
 			COLLECT_DATA_0(d.statistics.receivedConnecting);
 			ConnectData			conndata;
 			
-			int					error = Session::parseConnectingBuffer(buf, conndata);
+			int					error = Session::parseConnectBuffer(buf, conndata);
 			
 			Buffer::deallocate(buf.release());
 			
@@ -520,7 +520,7 @@ void Talker::doDispatchReceivedBuffer(
 			COLLECT_DATA_0(d.statistics.receivedAccepting);
 			AcceptData			accdata;
 			
-			int					error = Session::parseAcceptedBuffer(buf, accdata);
+			int					error = Session::parseAcceptBuffer(buf, accdata);
 			
 			Buffer::deallocate(buf.release());
 			

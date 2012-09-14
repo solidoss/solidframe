@@ -39,6 +39,8 @@ namespace ipc{
 
 typedef std::pair<const SocketAddressInet4&, uint16>	BaseAddress4T;
 typedef std::pair<const SocketAddressInet6&, uint16>	BaseAddress6T;
+typedef std::pair<BaseAddress4T, uint32>				RelayAddress4T;
+typedef std::pair<BaseAddress6T, uint32>				RelayAddress6T;
 
 struct SocketAddressHash{
 	size_t operator()(const SocketAddressInet4* const &_rsa)const{
@@ -50,6 +52,12 @@ struct SocketAddressHash{
 	}
 	size_t operator()(BaseAddress6T const &_rsa)const{
 		return hash(_rsa.first.address()) ^ _rsa.second;
+	}
+	size_t operator()(RelayAddress4T const &_rsa)const{
+		return hash(_rsa.first.first.address()) ^ _rsa.first.second ^ _rsa.second;
+	}
+	size_t operator()(RelayAddress6T const &_rsa)const{
+		return hash(_rsa.first.first.address()) ^ _rsa.first.second ^ _rsa.second;
 	}
 };
 
@@ -69,6 +77,16 @@ struct SocketAddressEqual{
 		return _rsa1.first.address() == _rsa2.first.address() &&
 		_rsa1.second == _rsa2.second;
 	}
+	bool operator()(RelayAddress4T const &_rsa1, RelayAddress4T const &_rsa2)const{
+		return _rsa1.first.first.address() == _rsa2.first.first.address() &&
+		_rsa1.first.second == _rsa2.first.second && 
+		_rsa1.second == _rsa2.second;
+	}
+	bool operator()(RelayAddress6T const &_rsa1, RelayAddress6T const &_rsa2)const{
+		return _rsa1.first.first.address() == _rsa2.first.first.address() &&
+		_rsa1.first.second == _rsa2.first.second && 
+		_rsa1.second == _rsa2.second;
+	}
 };
 
 #else
@@ -80,8 +98,6 @@ struct BaseAddress4Pair{
 	uint16						second;
 };
 
-typedef BaseAddress4Pair BaseAddress4T;
-
 struct BaseAddress6Pair{
 	BaseAddress6Pair(const SocketAddressInet6&	_first, uint16 _second):first(_first), second(_second){}
 	BaseAddress6Pair(const BaseAddress6Pair &_rba):first(_rba.first), second(_rba.second){}
@@ -89,7 +105,11 @@ struct BaseAddress6Pair{
 	uint16						second;
 };
 
-typedef BaseAddress6Pair BaseAddress6T;
+typedef BaseAddress4Pair 					BaseAddress4T;
+typedef BaseAddress6Pair 					BaseAddress6T;
+
+typedef std::pair<BaseAddress4T, uint32>	RelayAddress4T;
+typedef std::pair<BaseAddress6T, uint32>	RelayAddress6T;
 
 
 struct SocketAddressCompare{
@@ -114,6 +134,31 @@ struct SocketAddressCompare{
 			return true;
 		}else if(_rsa2.first.address() < _rsa1.first.address()){
 			return _rsa1.second < _rsa2.second;
+		}
+		return false;
+	}
+	
+	bool operator()(RelayAddress4T const &_rsa1, RelayAddress4T const &_rsa2)const{
+		if(_rsa1.first.first.address() < _rsa2.first.first.address()){
+			return true;
+		}else if(_rsa2.first.first.address() < _rsa1.first.first.address()){
+			if(_rsa1.first.second < _rsa2.first.second){
+				return true;
+			}else if(_rsa2.first.second < _rsa1.first.second){
+				return _rsa1.second < _rsa2.second;
+			}
+		}
+		return false;
+	}
+	bool operator()(RelayAddress6T const &_rsa1, RelayAddress6T const &_rsa2)const{
+		if(_rsa1.first.first.address() < _rsa2.first.first.address()){
+			return true;
+		}else if(_rsa2.first.first.address() < _rsa1.first.first.address()){
+			if(_rsa1.first.second < _rsa2.first.second){
+				return true;
+			}else if(_rsa2.first.second < _rsa1.first.second){
+				return _rsa1.second < _rsa2.second;
+			}
 		}
 		return false;
 	}
