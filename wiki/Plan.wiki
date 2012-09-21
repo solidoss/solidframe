@@ -3,7 +3,9 @@
 <wiki:toc max_depth="1" />
 
 This is a pool of pending features and changes
- # (1) STARTED: Extend the foundation::ipc module with relay support. Currently, the ipc module is designed to work within a single site private network. This feature will allow relaying communication between two machines on different sites, through (secure) TCP connections between the sites.  
+ # (1) STARTED: Extend the foundation::ipc module with relay support. Currently, the ipc module is designed to work within a single site private network. This feature will allow relaying communication between two machines on different sites, through (secure) TCP connections between the sites.
+ # (10) (IPC) add nocompression signal flag. The ipc module will try to send most of signal's buffers without compression. This is for signals containing already compressed data.
+ # (10) (IPC) add support for adaptable compression. A signal is started with with compression. If a certain continuous buffers have a compression ration below a certain threshold the compression is switched off for the signal. 
  # (30) Add support for GnuTLS, test performance against boost, solidframe::openssl.
  # (20) Add a new example binary protocol - using serialization - to example_concept. Adding beta service to example_concept test application.
  # Add support for atomic operations (gcc: __exchange_and_add - see boost::shared_ptr) to ObjectPointer and to system so it can be used in Dynamic::use/release.
