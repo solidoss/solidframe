@@ -181,8 +181,8 @@ std::ostream& operator<<(std::ostream &_ros, const Buffer &_rb){
 	switch(_rb.type()){
 		case Buffer::KeepAliveType: _ros<<"KeepAliveType";break;
 		case Buffer::DataType: _ros<<"DataType";break;
-		case Buffer::ConnectingType: _ros<<"ConnectingType";break;
-		case Buffer::AcceptingType: _ros<<"AcceptingType";break;
+		case Buffer::ConnectType: _ros<<"ConnectType";break;
+		case Buffer::AcceptType: _ros<<"AcceptType";break;
 		case Buffer::ErrorType: _ros<<"ErrorType";break;
 		case Buffer::Unknown: _ros<<"Unknown";break;
 		default: _ros<<"[INVALID TYPE]";

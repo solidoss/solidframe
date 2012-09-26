@@ -117,11 +117,25 @@ struct Controller{
 	const uint32 reservedDataSize()const{
 		return resdatasz;
 	}
+	
+	const uint32 responseKeepAlive()const;
+	const uint32 sessionKeepAlive()const;
 protected:
 	Controller(
 		const uint32 _resdatasz = 0,
-		const uint32 _flags = 0
-	): resdatasz(_resdatasz), flags(_flags){}
+		const uint32 _flags = 0,
+		const uint32 _reskeepalive = 0,
+		const uint32 _seskeepalive = 60 * 1000
+	):	resdatasz(_resdatasz), flags(_flags),
+		reskeepalive(
+			_reskeepalive < _seskeepalive 
+			? 
+			(_reskeepalive == 0 ? _seskeepalive : _reskeepalive )
+			: 
+			(_seskeepalive == 0 ? _reskeepalive : _seskeepalive)
+		),
+		seskeepalive(_seskeepalive){}
+	
 	char * allocateBuffer(BufferContext &_rbc, uint32 &_cp);
 	
 	void sendEvent(
@@ -133,6 +147,8 @@ protected:
 private:
 	const uint32	resdatasz;
 	uint32			flags;
+	const uint32	reskeepalive;
+	const uint32	seskeepalive;
 };
 
 //! A Inter Process Communication service
@@ -207,7 +223,6 @@ public:
 	
 	Service(
 		Controller *_pc,
-		uint32 _keepalivetout = 0/*no keepalive*/,
 		uint32 _sespertkr = 1024,
 		uint32 _tkrmaxcnt = 2
 	);
@@ -377,7 +392,10 @@ private:
 	int allocateTalkerForNewSession(bool _force = false);
 	uint32 keepAliveTimeout()const;
 	void connectSession(const SocketAddressInet4 &_raddr);
+	
 	Controller& controller();
+	
+	const Controller& controller()const;
 private:
 	struct Data;
 	friend struct Data;
@@ -393,6 +411,13 @@ inline int Service::sendSignal(
 	uint32	_flags
 ){
 	return doSendSignal(_psig, SERIALIZATION_INVALIDID, &_rconid, _rsa_dest, _netid_dest, _flags);
+}
+
+inline const uint32 Controller::responseKeepAlive()const{
+	return reskeepalive;
+}
+inline const uint32 Controller::sessionKeepAlive()const{
+	return seskeepalive;
 }
 
 inline int Service::sendSignal(
@@ -432,6 +457,8 @@ inline const serialization::TypeMapperBase& Service::typeMapperBase() const{
 inline Service::IdTypeMapper& Service::typeMapper(){
 	return typemapper;
 }
+
+
 
 }//namespace ipc
 }//namespace foundation

@@ -488,7 +488,7 @@ void Talker::doDispatchReceivedBuffer(
 		
 		}break;
 		
-		case Buffer::ConnectingType:{
+		case Buffer::ConnectType:{
 			COLLECT_DATA_0(d.statistics.receivedConnecting);
 			ConnectData			conndata;
 			
@@ -516,7 +516,7 @@ void Talker::doDispatchReceivedBuffer(
 			
 		}break;
 		
-		case Buffer::AcceptingType:{
+		case Buffer::AcceptType:{
 			COLLECT_DATA_0(d.statistics.receivedAccepting);
 			AcceptData			accdata;
 			

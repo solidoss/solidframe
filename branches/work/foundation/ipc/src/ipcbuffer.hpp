@@ -52,8 +52,10 @@ struct Buffer{
 	enum Types{
 		KeepAliveType = 1,
 		DataType,
-		ConnectingType,
-		AcceptingType,
+		ConnectType,
+		RelayConnectType,
+		AcceptType,
+		RelayAcceptType,
 		ErrorType,
 		Unknown
 	};

@@ -61,32 +61,42 @@ public:
 	static int parseConnectBuffer(const Buffer &_rbuf, ConnectData &_rconndata);
 	
 	Session(
-		const SocketAddressInet4 &_raddr,
-		uint32 _keepalivetout
+		const SocketAddressInet4 &_raddr
 	);
 	Session(
 		const SocketAddressInet4 &_raddr,
-		uint16 _baseport,
-		uint32 _keepalivetout
+		uint16 _baseport
 	);
 	
+	Session(
+		uint32 _netid,
+		const SocketAddressInet4 &_raddr
+	);
+	Session(
+		uint32 _netid,
+		const SocketAddressInet4 &_raddr,
+		uint16 _baseport
+	);
 	
 	Session(
-		const SocketAddressInet6 &_raddr,
-		uint32 _keepalivetout
+		const SocketAddressInet6 &_raddr
 	);
 	Session(
 		const SocketAddressInet6 &_raddr,
-		uint16 _baseport,
-		uint32 _keepalivetout
+		uint16 _baseport
 	);
 	
 	Session();
 	
 	~Session();
 	
+	bool isRelayType()const;
+	
 	const BaseAddress4T peerBaseAddress4()const;
 	const BaseAddress6T peerBaseAddress6()const;
+	
+	const RelayAddress4T peerRelayAddress4()const;
+	//const RelayAddress6T peerRelayAddress6()const;
 	
 	//used by talker for sendto
 	const SocketAddressStub& peerAddress()const;
@@ -147,21 +157,20 @@ private:
 	bool doPushExpectedReceivedBuffer(
 		Talker::TalkerStub &_rstub,
 		Buffer &_rbuf
-		/*,
-		const ConnectionUid &_rconid*/
 	);
 	bool doPushUnxpectedReceivedBuffer(
 		Talker::TalkerStub &_rstub,
 		Buffer &_rbuf
-		/*,
-		const ConnectionUid &_rconid*/
 	);
-	bool doFreeSentBuffers(const Buffer &_rbuf/*, const ConnectionUid &_rconid*/);
+	bool doFreeSentBuffers(const Buffer &_rbuf);
 	void doParseBufferDataType(Talker::TalkerStub &_rstub, const char *&_bpos, int &_blen, int _firstblen);
-	void doParseBuffer(Talker::TalkerStub &_rstub, const Buffer &_rbuf/*, const ConnectionUid &_rconid*/);
+	void doParseBuffer(Talker::TalkerStub &_rstub, const Buffer &_rbuf);
 	
+	int doExecuteRelayInit(Talker::TalkerStub &_rstub);
 	int doExecuteConnecting(Talker::TalkerStub &_rstub);
+	int doExecuteRelayConnecting(Talker::TalkerStub &_rstub);
 	int doExecuteAccepting(Talker::TalkerStub &_rstub);
+	int doExecuteRelayAccepting(Talker::TalkerStub &_rstub);
 	int doExecuteConnected(Talker::TalkerStub &_rstub);
 	int doExecuteConnectedLimited(Talker::TalkerStub &_rstub);
 	int doTrySendUpdates(Talker::TalkerStub &_rstub);

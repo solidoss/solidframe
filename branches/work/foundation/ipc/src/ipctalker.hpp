@@ -60,9 +60,10 @@ public:
 			return crttime;
 		}
 		int basePort()const;
-		Service& service(){
+		Service& service()const{
 			return rs;
 		}
+		
 	private:
 		friend class Talker;
 		TalkerStub(

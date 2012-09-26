@@ -173,8 +173,11 @@ struct Session::Data{
 		//Relayed64
 	};
 	enum States{
-		Connecting = 0,//Connecting must be first see isConnecting
+		RelayInit = 0,
+		Connecting,//Connecting must be first see isConnecting
+		RelayConnecting,
 		Accepting,
+		RelayAccepting,
 		WaitAccept,
 		Authenticating,
 		Connected,
@@ -290,7 +293,6 @@ public:
 	Data(
 		uint8 _type,
 		uint8 _state,
-		uint32 _keepalivetout,
 		uint16 _baseport = 0
 	);
 	
@@ -349,7 +351,7 @@ public:
 	void clearSentBuffer(const uint32 _idx);
 	
 	uint32 computeRetransmitTimeout(const uint32 _retrid, const uint32 _bufid);
-	bool canSendKeepAlive(const TimeSpec &_tpos)const;
+	uint32 currentKeepAlive(const Talker::TalkerStub &_rstub)const;
 	uint32 registerBuffer(Buffer &_rbuf);
 	
 	bool isExpectingImmediateDataFromPeer()const{
@@ -380,7 +382,7 @@ public:
 	uint32					retansmittimepos;
 	uint32					sendsignalid;
 	uint32					sendid;
-	uint32					keepalivetimeout;
+	//uint32					keepalivetimeout;
 	uint32					currentsyncid;
 	uint32					currentsendsyncid;
 	uint16					currentbuffersignalcount;//MaxSignalBufferCount
@@ -427,21 +429,19 @@ struct Session::DataDummy: Session::Data{
 	SendQueueT	sendq;
 	ErrorQueueT	errorq;
 	
-	DataDummy():Session::Data(Dummy, DummyExecute, 0){}
+	DataDummy():Session::Data(Dummy, DummyExecute){}
 };
 //---------------------------------------------------------------------
 struct Session::DataDirect4: Session::Data{
 	DataDirect4(
-		const SocketAddressInet4 &_raddr,
-		uint32 _keepalivetout
-	):Data(Direct4, Connecting, _keepalivetout, _raddr.port()), addr(_raddr){
+		const SocketAddressInet4 &_raddr
+	):Data(Direct4, Connecting, _raddr.port()), addr(_raddr){
 		Data::pairaddr = addr;
 	}
 	DataDirect4(
 		const SocketAddressInet4 &_raddr,
-		uint16 _baseport,
-		uint32 _keepalivetout
-	):Data(Direct4, Accepting, _keepalivetout, _baseport), addr(_raddr){
+		uint16 _baseport
+	):Data(Direct4, Accepting, _baseport), addr(_raddr){
 		Data::pairaddr = addr;
 	}
 	SocketAddressInet4	addr;
@@ -449,16 +449,14 @@ struct Session::DataDirect4: Session::Data{
 //---------------------------------------------------------------------
 struct Session::DataDirect6: Session::Data{
 	DataDirect6(
-		const SocketAddressInet6 &_raddr,
-		uint32 _keepalivetout
-	):Data(Direct6, Connecting, _keepalivetout, _raddr.port()), addr(_raddr){
+		const SocketAddressInet6 &_raddr
+	):Data(Direct6, Connecting, _raddr.port()), addr(_raddr){
 		Data::pairaddr = addr;
 	}
 	DataDirect6(
 		const SocketAddressInet6 &_raddr,
-		uint16 _baseport,
-		uint32 _keepalivetout
-	):Data(Direct6, Accepting, _keepalivetout, _baseport), addr(_raddr){
+		uint16 _baseport
+	):Data(Direct6, Accepting, _baseport), addr(_raddr){
 		Data::pairaddr = addr;
 	}
 	SocketAddressInet6	addr;
@@ -466,9 +464,13 @@ struct Session::DataDirect6: Session::Data{
 //---------------------------------------------------------------------
 struct Session::DataRelayed44: Session::Data{
 	DataRelayed44(
-		uint32 _keepalivetout
-	):Data(Relayed44, Connecting, _keepalivetout){
+		uint32 _netid,
+		const SocketAddressInet4 &_raddr
+	):Data(Relayed44, RelayInit), relayaddr(_raddr), netid(_netid){
 	}
+	SocketAddressInet4	addr;
+	SocketAddressInet4	relayaddr;
+	const uint32		netid;
 };
 
 //---------------------------------------------------------------------
@@ -510,12 +512,11 @@ inline Session::DataRelayed44 const& Session::Data::relayed44()const{
 Session::Data::Data(
 	uint8 _type,
 	uint8 _state,
-	uint32 _keepalivetout,
 	uint16 _baseport
 ):	type(_type), state(_state), sendpendingcount(0),
 	outoforderbufcount(0), rcvexpectedid(2), sentsignalwaitresponse(0),
 	retansmittimepos(0), sendsignalid(0), 
-	sendid(1), keepalivetimeout(_keepalivetout),
+	sendid(1)/*, keepalivetimeout(_keepalivetout)*/,
 	currentsendsyncid(-1), currentbuffersignalcount(MaxSignalBufferCount), baseport(_baseport)
 {
 	outoforderbufvec.resize(MaxOutOfOrder);
@@ -832,10 +833,40 @@ inline uint32 Session::Data::computeRetransmitTimeout(const uint32 _retrid, cons
 	}
 }
 //----------------------------------------------------------------------
-inline bool Session::Data::canSendKeepAlive(const TimeSpec &_tpos)const{
-	return keepalivetimeout && sentsignalwaitresponse &&
-		(rcvdsignalq.empty() || rcvdsignalq.size() == 1 && !rcvdsignalq.front().psignal) && 
-		signalq.empty() && sendsignalidxq.empty() && _tpos >= rcvtimepos;
+inline uint32 Session::Data::currentKeepAlive(const Talker::TalkerStub &_rstub)const{
+// 	return	keepalivetimeout && sentsignalwaitresponse &&
+// 			(rcvdsignalq.empty() || rcvdsignalq.size() == 1 && !rcvdsignalq.front().psignal) && 
+// 			signalq.empty() && sendsignalidxq.empty() && _tpos >= rcvtimepos;
+	const uint32 seskeepalive = _rstub.service().controller().sessionKeepAlive();
+	const uint32 reskeepalive = _rstub.service().controller().responseKeepAlive();
+	
+	uint32 keepalive(0);
+	if(sentsignalwaitresponse && reskeepalive){
+		keepalive = reskeepalive;
+	}else if(seskeepalive){
+		keepalive = seskeepalive;
+	}
+	
+	switch(state){
+		case WaitDisconnecting:
+			keepalive = 0;
+			break;
+		case Authenticating:
+			keepalive = 1000;
+			break;
+		default:;
+	}
+	
+	if(
+		keepalive && 
+		(rcvdsignalq.empty() || (rcvdsignalq.size() == 1 && !rcvdsignalq.front().psignal)) && 
+		signalq.empty() && sendsignalidxq.empty() && _rstub.currentTime() >= rcvtimepos
+	){
+		return keepalive;
+	}else{
+		return 0;
+	}
+		
 }
 //----------------------------------------------------------------------
 uint32 Session::Data::registerBuffer(Buffer &_rbuf){
@@ -973,34 +1004,41 @@ bool Session::Data::moveToNextSendSignal(){
 }
 //---------------------------------------------------------------------
 Session::Session(
-	const SocketAddressInet4 &_raddr,
-	uint32 _keepalivetout
-):d(*(new DataDirect4(_raddr, _keepalivetout))){
+	const SocketAddressInet4 &_raddr
+):d(*(new DataDirect4(_raddr))){
 	vdbgx(Dbg::ipc, "Created connect session "<<(void*)this);
 }
 //---------------------------------------------------------------------
 Session::Session(
 	const SocketAddressInet4 &_raddr,
-	uint16 _baseport,
-	uint32 _keepalivetout
-):d(*(new DataDirect4(_raddr, _baseport, _keepalivetout))){
+	uint16 _baseport
+):d(*(new DataDirect4(_raddr, _baseport))){
 	vdbgx(Dbg::ipc, "Created accept session "<<(void*)this);
 }
 //---------------------------------------------------------------------
 Session::Session(
-	const SocketAddressInet6 &_raddr,
-	uint32 _keepalivetout
-):d(*(new DataDirect6(_raddr, _keepalivetout))){
+	const SocketAddressInet6 &_raddr
+):d(*(new DataDirect6(_raddr))){
 	vdbgx(Dbg::ipc, "Created connect session "<<(void*)this);
 }
 //---------------------------------------------------------------------
 Session::Session(
 	const SocketAddressInet6 &_raddr,
-	uint16 _baseport,
-	uint32 _keepalivetout
-):d(*(new DataDirect6(_raddr, _baseport, _keepalivetout))){
+	uint16 _baseport
+):d(*(new DataDirect6(_raddr, _baseport))){
 	vdbgx(Dbg::ipc, "Created accept session "<<(void*)this);
 }
+//---------------------------------------------------------------------
+Session::Session(
+	uint32 _netid,
+	const SocketAddressInet4 &_raddr
+):d(*(new DataRelayed44(_netid, _raddr))){}
+//---------------------------------------------------------------------
+Session::Session(
+	uint32 _netid,
+	const SocketAddressInet4 &_raddr,
+	uint16 _baseport
+):d(*(new DataRelayed44(_netid, _raddr))){}
 //---------------------------------------------------------------------
 Session::Session(
 ):d(*(new DataDummy)){
@@ -1028,6 +1066,10 @@ Session::~Session(){
 	
 }
 //---------------------------------------------------------------------
+bool Session::isRelayType()const{
+	return d.type == Data::Relayed44;
+}
+//---------------------------------------------------------------------
 const BaseAddress4T Session::peerBaseAddress4()const{
 	return BaseAddress4T(d.direct4().addr, d.direct4().baseport);
 }
@@ -1035,6 +1077,14 @@ const BaseAddress4T Session::peerBaseAddress4()const{
 const BaseAddress6T Session::peerBaseAddress6()const{
 	return BaseAddress6T(d.direct6().addr, d.direct6().baseport);
 }
+//---------------------------------------------------------------------
+const RelayAddress4T Session::peerRelayAddress4()const{
+	return RelayAddress4T(BaseAddress4T(d.relayed44().addr, d.relayed44().baseport), d.relayed44().netid);
+}
+//---------------------------------------------------------------------
+// const RelayAddress6T Session::peerRelayAddress6()const{
+// 	return BaseAddress6T(d.direct6().addr, d.direct6().baseport);
+// }
 //---------------------------------------------------------------------
 const SocketAddressStub& Session::peerAddress()const{
 	return d.pairaddr;
@@ -1264,7 +1314,7 @@ void Session::completeConnect(
 			case BAD:
 				if(sigptr.get()){
 					d.state = Data::WaitDisconnecting;
-					d.keepalivetimeout = 0;
+					//d.keepalivetimeout = 0;
 					flags |= Service::DisconnectAfterSendFlag;
 					d.pushSignalToSendQueue(
 						sigptr,
@@ -1277,11 +1327,11 @@ void Session::completeConnect(
 				break;
 			case OK:
 				d.state = Data::Connected;
-				d.keepalivetimeout = _rstub.service().keepAliveTimeout();
+				//d.keepalivetimeout = _rstub.service().keepAliveTimeout();
 				break;
 			case NOK:
 				d.state = Data::Authenticating;
-				d.keepalivetimeout = 1000;
+				//d.keepalivetimeout = 1000;
 				d.pushSignalToSendQueue(
 					sigptr,
 					flags,
@@ -1322,7 +1372,7 @@ bool Session::executeTimeout(
 	COLLECT_DATA_1(d.statistics.retransmitId, rsbd.buffer.resend());
 	
 	if(rsbd.buffer.resend() > StaticData::DataRetransmitCount){
-		if(rsbd.buffer.type() == Buffer::ConnectingType){
+		if(rsbd.buffer.type() == Buffer::ConnectType){
 			if(rsbd.buffer.resend() > StaticData::ConnectRetransmitCount){//too many resends for connect type
 				vdbgx(Dbg::ipc, "preparing to disconnect process");
 				cassert(d.state != Data::Disconnecting);
@@ -1338,9 +1388,11 @@ bool Session::executeTimeout(
 		}
 	}
 	
-	if(!rsbd.sending/* && (idx || d.canSendKeepAlive(_rstub.currentTime()))*/){
-		if(!idx){
-			if(d.canSendKeepAlive(_rstub.currentTime())){
+	if(!rsbd.sending){
+		uint32 keepalive = 0;
+		if(idx == d.keepAliveBufferIndex()){
+			keepalive = d.currentKeepAlive(_rstub);
+			if(keepalive){
 				rsbd.buffer.id(d.sendid);
 				d.incrementSendId();
 				COLLECT_DATA_0(d.statistics.sendKeepAlive);
@@ -1351,12 +1403,8 @@ bool Session::executeTimeout(
 		//resend the buffer
 		if(_rstub.pushSendBuffer(idx, rsbd.buffer.buffer(), rsbd.buffer.bufferSize())){
 			TimeSpec tpos(_rstub.currentTime());
-			if(idx){
-				tpos += d.computeRetransmitTimeout(rsbd.buffer.resend(), rsbd.buffer.id());
-			}else{
-				tpos += d.keepalivetimeout;
-			}
-	
+			tpos += d.computeRetransmitTimeout(rsbd.buffer.resend(), rsbd.buffer.id());
+
 			_rstub.pushTimer(_id, tpos);
 			vdbgx(Dbg::ipc, "send buffer"<<rsbd.buffer.id()<<" done");
 		}else{
@@ -1372,10 +1420,16 @@ bool Session::executeTimeout(
 //---------------------------------------------------------------------
 int Session::execute(Talker::TalkerStub &_rstub){
 	switch(d.state){
+		case Data::RelayInit:
+			return doExecuteRelayInit(_rstub);
 		case Data::Connecting:
 			return doExecuteConnecting(_rstub);
+		case Data::RelayConnecting:
+			return doExecuteRelayConnecting(_rstub);
 		case Data::Accepting:
 			return doExecuteAccepting(_rstub);
+		case Data::RelayAccepting:
+			return doExecuteRelayAccepting(_rstub);
 		case Data::WaitAccept:
 			return NOK;
 		case Data::Authenticating:
@@ -1415,15 +1469,15 @@ bool Session::pushSentBuffer(
 	//all we do is set a timer for this buffer
 	Data::SendBufferData &rsbd(d.sendbuffervec[_id]);
 	
-	if(_id == 0){//the keepalive buffer
+	if(_id == d.keepAliveBufferIndex()){
 		vdbgx(Dbg::ipc, "sent keep alive buffer done");
 		if(rsbd.mustdelete){
 			rsbd.mustdelete = 0;
 			rsbd.buffer.resend(0);
 		}
 		TimeSpec tpos(_rstub.currentTime());
-		tpos += d.keepalivetimeout;
-
+		tpos += d.computeRetransmitTimeout(rsbd.buffer.resend(), rsbd.buffer.id());
+	
 		_rstub.pushTimer(pack32(_id, rsbd.uid), tpos);
 		return false;
 	}
@@ -1652,7 +1706,7 @@ void Session::doParseBuffer(Talker::TalkerStub &_rstub, const Buffer &_rbuf/*, c
 					case BAD:
 						if(sigptr.get()){
 							d.state = Data::WaitDisconnecting;
-							d.keepalivetimeout = 0;
+							//d.keepalivetimeout = 0;
 							flags |= Service::DisconnectAfterSendFlag;
 							d.pushSignalToSendQueue(
 								sigptr,
@@ -1665,7 +1719,7 @@ void Session::doParseBuffer(Talker::TalkerStub &_rstub, const Buffer &_rbuf/*, c
 						break;
 					case OK:
 						d.state = Data::Connected;
-						d.keepalivetimeout = _rstub.service().keepAliveTimeout();
+						//d.keepalivetimeout = _rstub.service().keepAliveTimeout();
 						if(sigptr.get()){
 							flags |= Service::WaitResponseFlag;
 							d.pushSignalToSendQueue(sigptr, flags, tid);
@@ -1699,12 +1753,16 @@ void Session::doParseBuffer(Talker::TalkerStub &_rstub, const Buffer &_rbuf/*, c
 
 }
 //---------------------------------------------------------------------
+int Session::doExecuteRelayInit(Talker::TalkerStub &_rstub){
+	return NOK;
+}
+//---------------------------------------------------------------------
 int Session::doExecuteConnecting(Talker::TalkerStub &_rstub){
 	const uint32			bufid(Specific::sizeToIndex(64));
 	Buffer					buf(Specific::popBuffer(bufid), Specific::indexToCapacity(bufid));
 	
 	buf.reset();
-	buf.type(Buffer::ConnectingType);
+	buf.type(Buffer::ConnectType);
 	buf.id(d.sendid);
 	d.incrementSendId();
 	
@@ -1736,12 +1794,16 @@ int Session::doExecuteConnecting(Talker::TalkerStub &_rstub){
 	return NOK;
 }
 //---------------------------------------------------------------------
+int Session::doExecuteRelayConnecting(Talker::TalkerStub &_rstub){
+	return NOK;
+}
+//---------------------------------------------------------------------
 int Session::doExecuteAccepting(Talker::TalkerStub &_rstub){
 	const uint32	bufid(Specific::sizeToIndex(64));
 	Buffer			buf(Specific::popBuffer(bufid), Specific::indexToCapacity(bufid));
 	
 	buf.reset();
-	buf.type(Buffer::AcceptingType);
+	buf.type(Buffer::AcceptType);
 	buf.id(d.sendid);
 	d.incrementSendId();
 	int32 			*pi = (int32*)buf.dataEnd();
@@ -1775,6 +1837,10 @@ int Session::doExecuteAccepting(Talker::TalkerStub &_rstub){
 		d.state = Data::Authenticating;
 	}
 	return OK;
+}
+//---------------------------------------------------------------------
+int Session::doExecuteRelayAccepting(Talker::TalkerStub &_rstub){
+	return NOK;
 }
 //---------------------------------------------------------------------
 int Session::doTrySendUpdates(Talker::TalkerStub &_rstub){
@@ -2052,7 +2118,8 @@ void Session::doTryScheduleKeepAlive(Talker::TalkerStub &_rstub){
 	d.resetKeepAlive();
 	COLLECT_DATA_0(d.statistics.tryScheduleKeepAlive);
 	vdbgx(Dbg::ipc, "try send keepalive");
-	if(d.canSendKeepAlive(_rstub.currentTime())){
+	const uint32 keepalive = d.currentKeepAlive(_rstub);
+	if(keepalive){
 		
 		COLLECT_DATA_0(d.statistics.scheduleKeepAlive);
 		
@@ -2063,7 +2130,7 @@ void Session::doTryScheduleKeepAlive(Talker::TalkerStub &_rstub){
 		
 		//schedule a timer for this buffer
 		TimeSpec tpos(_rstub.currentTime());
-		tpos += d.keepalivetimeout;
+		tpos += keepalive;
 		
 		vdbgx(Dbg::ipc, "can send keepalive "<<idx<<' '<<rsbd.uid);
 		

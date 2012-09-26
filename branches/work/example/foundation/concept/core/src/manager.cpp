@@ -136,7 +136,7 @@ struct AuthSignal: Dynamic<AuthSignal, DynamicShared<foundation::Signal> >{
 
 
 struct IpcServiceController: foundation::ipc::Controller{
-	IpcServiceController():foundation::ipc::Controller(400/*, AuthenticationFlag*/), authidx(0){
+	IpcServiceController():foundation::ipc::Controller(400, 0/* AuthenticationFlag*/, 1000, 10 * 1000), authidx(0){
 		
 	}
 	/*virtual*/ void scheduleTalker(foundation::aio::Object *_po);
@@ -287,7 +287,7 @@ Manager::Manager():foundation::Manager(16), d(*(new Data())){
 	registerObject<SchedulerT>(new fdt::SignalExecuter, 0, d.readsigexeidx);
 	registerObject<SchedulerT>(new fdt::SignalExecuter, 0, d.writesigexeidx);
 	
-	registerService<SchedulerT>(new foundation::ipc::Service(&ipcctrl, 1000), 0, d.ipcidx);
+	registerService<SchedulerT>(new foundation::ipc::Service(&ipcctrl), 0, d.ipcidx);
 	
 	fdt::ipc::Service::the().typeMapper().insert<AuthSignal>();
 }
