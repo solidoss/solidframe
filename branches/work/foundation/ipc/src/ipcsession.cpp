@@ -1393,14 +1393,17 @@ bool Session::executeTimeout(
 		if(idx == d.keepAliveBufferIndex()){
 			keepalive = d.currentKeepAlive(_rstub);
 			if(keepalive){
-				rsbd.buffer.id(d.sendid);
-				d.incrementSendId();
+				if(rsbd.buffer.resend() == 1){
+					rsbd.buffer.id(d.sendid);
+					d.incrementSendId();
+				}
 				COLLECT_DATA_0(d.statistics.sendKeepAlive);
 			}else{
 				return false;
 			}
 		}
 		//resend the buffer
+		vdbgx(Dbg::ipc, "resending "<<rsbd.buffer);
 		if(_rstub.pushSendBuffer(idx, rsbd.buffer.buffer(), rsbd.buffer.bufferSize())){
 			TimeSpec tpos(_rstub.currentTime());
 			tpos += d.computeRetransmitTimeout(rsbd.buffer.resend(), rsbd.buffer.id());
@@ -1774,7 +1777,7 @@ int Session::doExecuteConnecting(Talker::TalkerStub &_rstub){
 	const uint32			bufidx(d.registerBuffer(buf));
 	Data::SendBufferData	&rsbd(d.sendbuffervec[bufidx]);
 	cassert(bufidx == 1);
-	
+	vdbgx(Dbg::ipc, "send "<<rsbd.buffer);
 	if(_rstub.pushSendBuffer(bufidx, rsbd.buffer.buffer(), rsbd.buffer.bufferSize())){
 		//buffer sent - setting a timer for it
 		//schedule a timer for this buffer
@@ -1815,6 +1818,7 @@ int Session::doExecuteAccepting(Talker::TalkerStub &_rstub){
 	Data::SendBufferData	&rsbd(d.sendbuffervec[bufidx]);
 	cassert(bufidx == 1);
 	
+	vdbgx(Dbg::ipc, "send "<<rsbd.buffer);
 	if(_rstub.pushSendBuffer(bufidx, rsbd.buffer.buffer(), rsbd.buffer.bufferSize())){
 		//buffer sent - setting a timer for it
 		//schedule a timer for this buffer
@@ -1867,6 +1871,8 @@ int Session::doTrySendUpdates(Talker::TalkerStub &_rstub){
 		buf.optimize(256);
 		
 		COLLECT_DATA_1(d.statistics.sendOnlyUpdatesSize, buf.updateCount());
+		
+		vdbgx(Dbg::ipc, "send "<<buf);
 		
 		if(_rstub.pushSendBuffer(-1, buf.buffer(), buf.bufferSize())){
 			vdbgx(Dbg::ipc, "sent updates "<<buf<<" done");
@@ -1926,6 +1932,8 @@ int Session::doExecuteConnectedLimited(Talker::TalkerStub &_rstub){
 		COLLECT_DATA_1(d.statistics.sendCompressed, rsbd.buffer.bufferSize());
 		
 		d.resetKeepAlive();
+		
+		vdbgx(Dbg::ipc, "send "<<rsbd.buffer);
 		
 		if(_rstub.pushSendBuffer(bufidx, rsbd.buffer.buffer(), rsbd.buffer.bufferSize())){
 			//buffer sent - setting a timer for it
@@ -1992,6 +2000,8 @@ int Session::doExecuteConnected(Talker::TalkerStub &_rstub){
 		COLLECT_DATA_1(d.statistics.sendCompressed, rsbd.buffer.bufferSize());
 		
 		d.resetKeepAlive();
+		
+		vdbgx(Dbg::ipc, "send "<<rsbd.buffer);
 		
 		if(_rstub.pushSendBuffer(bufidx, rsbd.buffer.buffer(), rsbd.buffer.bufferSize())){
 			//buffer sent - setting a timer for it
@@ -2195,6 +2205,8 @@ int Session::doExecuteDummy(Talker::TalkerStub &_rstub){
 			*pi = htonl(rdd.errorq.front().error);
 			rdd.crtbuf.dataSize(rdd.crtbuf.dataSize() + sizeof(int32));
 			rdd.errorq.pop();
+			
+			vdbgx(Dbg::ipc, "send "<<rdd.crtbuf);
 			
 			if(_rstub.pushSendBuffer(0, rdd.crtbuf.buffer(), rdd.crtbuf.bufferSize())){
 				vdbgx(Dbg::ipc, "sent error buffer done");

@@ -177,7 +177,7 @@ bool Buffer::check()const{
 //---------------------------------------------------------------------
 std::ostream& operator<<(std::ostream &_ros, const Buffer &_rb){
 	_ros<<"BUFFER(";
-	_ros<<" type = ";
+	_ros<<"type = ";
 	switch(_rb.type()){
 		case Buffer::KeepAliveType: _ros<<"KeepAliveType";break;
 		case Buffer::DataType: _ros<<"DataType";break;
