@@ -26,7 +26,6 @@
 #include "foundation/ipc/ipcconnectionuid.hpp"
 #include <boost/concept_check.hpp>
 
-class C;
 struct TimeSpec;
 
 namespace foundation{
