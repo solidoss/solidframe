@@ -758,19 +758,6 @@ int Controller::authenticate(
 	return BAD;//by default no authentication
 }
 
-/*virtual*/ int Controller::gatewayIteratorBegin(
-	SocketAddressIterator &_roit,
-	const SocketAddressStub &_rsas_dest,
-	const uint32 _netid_dest
-){
-	return BAD;
-}
-/*virtual*/ const Controller::SocketAddressIterator& Controller::gatewayIteratorEnd(){
-	static const SocketAddressIterator endit;
-	return endit;
-}
-	
-	
 /*virtual*/ uint32 Controller::localNetworkId()const{
 	return LocalNetworkId;
 }
@@ -788,6 +775,43 @@ void Controller::sendEvent(
 	uint32 _flags
 ){
 	_rs.doSendEvent(_rconid, _event, _flags);
+}
+
+
+/*virtual*/ const SocketAddress& Controller::gatewayAddress(
+	const uint32 _idx,
+	const uint32 _netid_dest,
+	const SocketAddressStub &_rsas_dest
+){
+	const SocketAddress *psa = NULL;
+	return *psa;
+}
+
+//retval:
+// -1 : wait for asynchrounous event and retry
+// 0: no gateway
+// > 0: the count
+/*virtual*/ int Controller::gatewayCount(
+	const uint32 _netid_dest,
+	const SocketAddressStub &_rsas_dest
+)const{
+	return 0;
+}
+
+//called on the gateway to find out where to connect for relaying data to _rsas_dest
+/*virtual*/ const SocketAddress& Controller::relayAddress(
+	const uint32 _netid_dest,
+	const SocketAddressStub &_rsas_dest
+){
+	const SocketAddress *psa = NULL;
+	return *psa;
+}
+
+/*virtual*/ uint32 Controller::relayCount(
+	const uint32 _netid_dest,
+	const SocketAddressStub &_rsas_dest
+)const{
+	return 0;
 }
 
 }//namespace ipc

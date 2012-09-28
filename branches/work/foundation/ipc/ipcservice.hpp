@@ -55,12 +55,6 @@ struct Controller{
 		AuthenticationFlag = 1,
 		GatewayFlag = 2
 	};
-	struct SocketAddressIterator{
-		SocketAddressIterator(){}
-		bool operator==(const SocketAddressIterator &_rit){
-			return true;
-		}
-	};
 	virtual ~Controller();
 	virtual bool release() = 0;
 	virtual void scheduleTalker(foundation::aio::Object *_ptkr) = 0;
@@ -75,12 +69,33 @@ struct Controller{
 		char* &_rpb,
 		uint32 &_bl
 	);
-	virtual int gatewayIteratorBegin(
-		SocketAddressIterator &_roit,
-		const SocketAddressStub &_rsas_dest,
-		const uint32 _netid_dest
+	
+	virtual const SocketAddress& gatewayAddress(
+		const uint32 _idx,
+		const uint32 _netid_dest,
+		const SocketAddressStub &_rsas_dest
 	);
-	virtual const SocketAddressIterator& gatewayIteratorEnd();
+	
+	//retval:
+	// -1 : wait for asynchrounous event and retry
+	// 0: no gateway
+	// > 0: the count
+	virtual int gatewayCount(
+		const uint32 _netid_dest,
+		const SocketAddressStub &_rsas_dest
+	)const;
+	
+	//called on the gateway to find out where to connect for relaying data to _rsas_dest
+	virtual const SocketAddress& relayAddress(
+		const uint32 _netid_dest,
+		const SocketAddressStub &_rsas_dest
+	);
+	
+	//called on the gateway to find out where to connect for relaying data to _rsas_dest
+	virtual uint32 relayCount(
+		const uint32 _netid_dest,
+		const SocketAddressStub &_rsas_dest
+	)const;
 	
 	bool isLocalNetwork(
 		const SocketAddressStub &_rsas_dest,
