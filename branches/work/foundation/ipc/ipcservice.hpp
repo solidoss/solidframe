@@ -48,6 +48,7 @@ struct Buffer;
 struct ConnectionUid;
 struct BufferContext;
 struct ConnectData;
+struct AcceptData;
 class Service;
 
 struct Controller{
@@ -245,6 +246,7 @@ public:
 	~Service();
 	
 	IdTypeMapper& typeMapper();
+	const TimeSpec& timeStamp()const;
 	
 	//!Send a signal (usually a response) to a peer process using a previously saved ConnectionUid
 	/*!
@@ -401,6 +403,7 @@ private:
 		uint32	_flags
 	);
 	int acceptSession(const SocketAddress &_rsa, const ConnectData &_rconndata);
+	bool checkAcceptData(const SocketAddress &_rsa, const AcceptData &_raccdata);
 	void disconnectSession(Session *_pses);
 	void disconnectTalkerSessions(Talker &);
 	int createNewTalker(IndexT &_tkrpos, uint32 &_tkruid);

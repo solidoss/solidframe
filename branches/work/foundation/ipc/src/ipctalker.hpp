@@ -39,13 +39,25 @@ struct ConnectionUid;
 class Session;
 
 struct ConnectData{
+	enum{
+		BaseSize = 2 + 2 + 4 + 4
+	};
 	ConnectData():baseport(0){}
+	uint16	flags;
 	uint16	baseport;
+	uint32	timestamp_s;
+	uint32	timestamp_n;
 };
 
 struct AcceptData{
+	enum{
+		BaseSize = 2 + 2 + 4 + 4
+	};
 	AcceptData():baseport(0){}
+	uint16	flags;
 	uint16	baseport;
+	uint32	timestamp_s;
+	uint32	timestamp_n;
 };
 
 //! A talker for io requests

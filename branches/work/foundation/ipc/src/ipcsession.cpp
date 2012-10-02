@@ -72,6 +72,13 @@ private:
 };
 
 
+struct ConnectDataSignal: foundation::Signal{
+    ConnectDataSignal(){}
+    ConnectDataSignal(const ConnectData& _rcd):data(_rcd){}
+    
+	ConnectData data;
+};
+
 union UInt32Pair{
 	uint32	u32;
 	uint16	u16[2];
@@ -986,21 +993,35 @@ bool Session::Data::moveToNextSendSignal(){
 //=====================================================================
 
 /*static*/ int Session::parseAcceptBuffer(const Buffer &_rbuf, AcceptData &_raccdata){
-	if(_rbuf.dataSize() == sizeof(int32)){
-		int32 *pp((int32*)_rbuf.data());
-		_raccdata.baseport = (int)ntohl((uint32)*pp);
-		return OK;
+	if(_rbuf.dataSize() < AcceptData::BaseSize){
+		return BAD;
 	}
-	return BAD;
+	
+	const char *pos = _rbuf.data();
+	
+	pos = serialization::binary::load(pos, _raccdata.flags);
+	pos = serialization::binary::load(pos, _raccdata.baseport);
+	pos = serialization::binary::load(pos, _raccdata.timestamp_s);
+	pos = serialization::binary::load(pos, _raccdata.timestamp_n);
+	
+	vdbgx(Dbg::ipc, "AcceptData: flags = "<<_raccdata.flags<<" baseport = "<<_raccdata.baseport<<" ts_s = "<<_raccdata.timestamp_s<<" ts_n = "<<_raccdata.timestamp_n);
+	return OK;
 }
 //---------------------------------------------------------------------
 /*static*/ int Session::parseConnectBuffer(const Buffer &_rbuf, ConnectData &_rconndata){
-	if(_rbuf.dataSize() == sizeof(int32)){
-		int32 *pp((int32*)_rbuf.data());
-		_rconndata.baseport = (int)ntohl((uint32)*pp);
-		return OK;
+	if(_rbuf.dataSize() < ConnectData::BaseSize){
+		return BAD;
 	}
-	return BAD;
+	
+	const char *pos = _rbuf.data();
+	
+	pos = serialization::binary::load(pos, _rconndata.flags);
+	pos = serialization::binary::load(pos, _rconndata.baseport);
+	pos = serialization::binary::load(pos, _rconndata.timestamp_s);
+	pos = serialization::binary::load(pos, _rconndata.timestamp_n);
+	
+	vdbgx(Dbg::ipc, "ConnectData: flags = "<<_rconndata.flags<<" baseport = "<<_rconndata.baseport<<" ts_s = "<<_rconndata.timestamp_s<<" ts_n = "<<_rconndata.timestamp_n);
+	return OK;
 }
 //---------------------------------------------------------------------
 Session::Session(
@@ -1011,8 +1032,12 @@ Session::Session(
 //---------------------------------------------------------------------
 Session::Session(
 	const SocketAddressInet4 &_raddr,
-	uint16 _baseport
-):d(*(new DataDirect4(_raddr, _baseport))){
+	const ConnectData &_rconndata
+):d(*(new DataDirect4(_raddr, _rconndata.baseport))){
+	
+	DynamicPointer<Signal>	psig(new ConnectDataSignal(_rconndata));
+	pushSignal(psig, 0, 0);
+	
 	vdbgx(Dbg::ipc, "Created accept session "<<(void*)this);
 }
 //---------------------------------------------------------------------
@@ -1024,8 +1049,12 @@ Session::Session(
 //---------------------------------------------------------------------
 Session::Session(
 	const SocketAddressInet6 &_raddr,
-	uint16 _baseport
-):d(*(new DataDirect6(_raddr, _baseport))){
+	const ConnectData &_rconndata
+):d(*(new DataDirect6(_raddr, _rconndata.baseport))){
+	
+	DynamicPointer<Signal>	psig(new ConnectDataSignal(_rconndata));
+	pushSignal(psig, 0, 0);
+	
 	vdbgx(Dbg::ipc, "Created accept session "<<(void*)this);
 }
 //---------------------------------------------------------------------
@@ -1037,8 +1066,13 @@ Session::Session(
 Session::Session(
 	uint32 _netid,
 	const SocketAddressInet4 &_raddr,
-	uint16 _baseport
-):d(*(new DataRelayed44(_netid, _raddr))){}
+	const ConnectData &_rconndata
+):d(*(new DataRelayed44(_netid, _raddr))){
+	
+	DynamicPointer<Signal>	psig(new ConnectDataSignal(_rconndata));
+	pushSignal(psig, 0, 0);
+	
+}
 //---------------------------------------------------------------------
 Session::Session(
 ):d(*(new DataDummy)){
@@ -1132,14 +1166,27 @@ void Session::prepare(){
 void Session::reconnect(Session *_pses){
 	COLLECT_DATA_0(d.statistics.reconnect);
 	vdbgx(Dbg::ipc, "reconnecting session "<<(void*)_pses);
+	
+	int adjustcount = 0;
+	
 	//first we reset the peer addresses
 	if(_pses){
 		d.direct4().addr = _pses->d.direct4().addr;
 		d.pairaddr = d.direct4().addr;
+		
+		if(d.state == Data::Accepting){
+			d.signalq.front().signal = _pses->d.signalq.front().signal;
+		}else{
+			d.signalq.push(_pses->d.signalq.front());
+		}
+		
+		adjustcount = 1;
+		
 		d.state = Data::Accepting;
 	}else{
 		d.state = Data::Connecting;
 	}
+	
 	//clear the receive queue
 	while(d.rcvdsignalq.size()){
 		Data::RecvSignalData	&rrsd(d.rcvdsignalq.front());
@@ -1150,8 +1197,9 @@ void Session::reconnect(Session *_pses){
 		}
 		d.rcvdsignalq.pop();
 	}
+	
 	//keep sending signals that do not require the same connector
-	for(int sz(d.signalq.size()); sz; --sz){
+	for(int sz(d.signalq.size() - adjustcount); sz; --sz){
 		if(!(d.signalq.front().flags & Service::SameConnectorFlag)) {
 			vdbgx(Dbg::ipc, "signal scheduled for resend");
 			d.signalq.push(d.signalq.front());
@@ -1769,15 +1817,31 @@ int Session::doExecuteConnecting(Talker::TalkerStub &_rstub){
 	buf.id(d.sendid);
 	d.incrementSendId();
 	
-	int32					*pi = (int32*)buf.dataEnd();
 	
-	*pi = htonl(_rstub.basePort());
-	buf.dataSize(buf.dataSize() + sizeof(int32));
-	
+	{
+		char 				*ppos = buf.dataEnd();
+		
+		ConnectData			cd;
+		
+		cd.flags = 0;
+		cd.baseport = _rstub.basePort();
+		cd.timestamp_s = _rstub.service().timeStamp().seconds();
+		cd.timestamp_n = _rstub.service().timeStamp().nanoSeconds();
+		
+		ppos = serialization::binary::store(ppos, cd.flags);
+		ppos = serialization::binary::store(ppos, cd.baseport);
+		ppos = serialization::binary::store(ppos, cd.timestamp_s);
+		ppos = serialization::binary::store(ppos, cd.timestamp_n);
+		
+		buf.dataSize(buf.dataSize() + (ppos - buf.dataEnd()));
+	}
+		
 	const uint32			bufidx(d.registerBuffer(buf));
 	Data::SendBufferData	&rsbd(d.sendbuffervec[bufidx]);
+	
 	cassert(bufidx == 1);
 	vdbgx(Dbg::ipc, "send "<<rsbd.buffer);
+	
 	if(_rstub.pushSendBuffer(bufidx, rsbd.buffer.buffer(), rsbd.buffer.bufferSize())){
 		//buffer sent - setting a timer for it
 		//schedule a timer for this buffer
@@ -1809,10 +1873,22 @@ int Session::doExecuteAccepting(Talker::TalkerStub &_rstub){
 	buf.type(Buffer::AcceptType);
 	buf.id(d.sendid);
 	d.incrementSendId();
-	int32 			*pi = (int32*)buf.dataEnd();
 	
-	*pi = htonl(_rstub.basePort());
-	buf.dataSize(buf.dataSize() + sizeof(int32));
+	
+	{
+		char 				*ppos = buf.dataEnd();
+		const ConnectData	&rcd = static_cast<ConnectDataSignal*>(d.signalq.front().signal.get())->data;
+		uint16				flags = 0;
+		uint16				baseport = _rstub.basePort();
+		ppos = serialization::binary::store(ppos, flags);
+		ppos = serialization::binary::store(ppos, baseport);
+		ppos = serialization::binary::store(ppos, rcd.timestamp_s);
+		ppos = serialization::binary::store(ppos, rcd.timestamp_n);
+	
+		buf.dataSize(buf.dataSize() + (ppos - buf.dataEnd()));
+		
+		d.signalq.pop();//the connectdatasignal
+	}
 	
 	const uint32			bufidx(d.registerBuffer(buf));
 	Data::SendBufferData	&rsbd(d.sendbuffervec[bufidx]);
@@ -1835,6 +1911,7 @@ int Session::doExecuteAccepting(Talker::TalkerStub &_rstub){
 	}
 	
 	Controller &rctrl = _rstub.service().controller();
+	
 	if(!rctrl.hasAuthentication()){
 		d.state = Data::Connected;
 	}else{

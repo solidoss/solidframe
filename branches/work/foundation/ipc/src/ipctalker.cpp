@@ -527,7 +527,8 @@ void Talker::doDispatchReceivedBuffer(
 			if(error){
 				edbgx(Dbg::ipc, "accepted buffer: error parse "<<error);
 				COLLECT_DATA_0(d.statistics.receivedAcceptingError);
-			}else{
+			}else if(d.rservice.checkAcceptData(_rsa, accdata)){
+				
 				SocketAddressInet4				sa(_rsa);
 				BaseAddress4T					ba(sa, accdata.baseport);
 				Data::BaseAddr4MapT::iterator	bit(d.baseaddr4map.find(ba));
@@ -545,6 +546,8 @@ void Talker::doDispatchReceivedBuffer(
 						}
 					}
 				}
+			}else{
+				//TODO:...
 			}
 		}break;
 		case Buffer::ErrorType:{
@@ -741,18 +744,15 @@ void Talker::doInsertNewSessions(){
 				d.sessionexecq.push(it->second);
 				rss.inexeq = true;
 			}
-		}else{
+		}else{//a reconnect
 			rss.psession->prepareContext(Context::the());
-			if(!rss.psession->isAccepting()){
-				//a reconnect
-				d.peeraddr4map.erase(&rss.psession->peerAddress4());
-				rss.psession->reconnect(it->first);
-				++rss.uid;
-				d.peeraddr4map[&rss.psession->peerAddress4()] = it->second;
-				if(!rss.inexeq){
-					d.sessionexecq.push(it->second);
-					rss.inexeq = true;
-				}
+			d.peeraddr4map.erase(&rss.psession->peerAddress4());
+			rss.psession->reconnect(it->first);
+			++rss.uid;
+			d.peeraddr4map[&rss.psession->peerAddress4()] = it->second;
+			if(!rss.inexeq){
+				d.sessionexecq.push(it->second);
+				rss.inexeq = true;
 			}
 			Context::the().sigctx.connectionuid.idx = 0xffff;
 			Context::the().sigctx.connectionuid.uid = 0xffff;

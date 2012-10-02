@@ -65,7 +65,7 @@ public:
 	);
 	Session(
 		const SocketAddressInet4 &_raddr,
-		uint16 _baseport
+		const ConnectData &_rconndata
 	);
 	
 	Session(
@@ -75,7 +75,7 @@ public:
 	Session(
 		uint32 _netid,
 		const SocketAddressInet4 &_raddr,
-		uint16 _baseport
+		const ConnectData &_rconndata
 	);
 	
 	Session(
@@ -83,7 +83,7 @@ public:
 	);
 	Session(
 		const SocketAddressInet6 &_raddr,
-		uint16 _baseport
+		const ConnectData &_rconndata
 	);
 	
 	Session();

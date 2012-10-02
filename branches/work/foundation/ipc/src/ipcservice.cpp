@@ -144,6 +144,7 @@ struct Service::Data{
 	SessionAddr4MapT		sessionaddr4map;
 	SessionRelayAddr4MapT	sessionrelayaddr4map;
 	Uint32QueueT			tkrq;
+	TimeSpec				timestamp;
 };
 
 //=======	ServiceData		===========================================
@@ -156,6 +157,7 @@ Service::Data::Data(
 	rc(*_pc), sespertkr(_sespertkr), tkrmaxcnt(_tkrmaxcnt),
 	tkrcrt(0), baseport(-1)
 {
+	timestamp.currentRealTime();
 }
 
 Service::Data::~Data(){
@@ -183,6 +185,10 @@ Service::~Service(){
 		delete &d.rc;
 	}
 	delete &d;
+}
+//---------------------------------------------------------------------
+const TimeSpec& Service::timeStamp()const{
+	return d.timestamp;
 }
 //---------------------------------------------------------------------
 int Service::sendSignal(
@@ -484,7 +490,7 @@ int Service::acceptSession(const SocketAddress &_rsa, const ConnectData &_rconnd
 	SocketAddressInet4			inaddr(_rsa);
 	Session						*pses = new Session(
 		inaddr,
-		_rconndata.baseport
+		_rconndata
 	);
 	{
 		//TODO: see if the locking is ok!!!
@@ -700,7 +706,14 @@ void Service::insertObject(Talker &_ro, const ObjectUidT &_ruid){
 void Service::eraseObject(const Talker &_ro){
 	vdbgx(Dbg::ipc, "erasing talker");
 }
+bool Service::checkAcceptData(const SocketAddress &/*_rsa*/, const AcceptData &_raccdata){
+	return _raccdata.timestamp_s == timeStamp().seconds() && _raccdata.timestamp_n == timeStamp().nanoSeconds();
+}
+
 //---------------------------------------------------------------------
+//			Controller
+//---------------------------------------------------------------------
+
 Controller& Service::controller(){
 	return d.rc;
 }
