@@ -33,6 +33,12 @@
 #include "utility/memory.hpp"
 #include "utility/dynamicpointer.hpp"
 
+
+#ifdef HAS_GNU_ATOMIC
+#include <ext/atomicity.h>
+#endif
+
+
 //--------------------------------------------------------------
 namespace{
 #ifdef HAS_SAFE_STATIC
@@ -83,24 +89,32 @@ namespace foundation{
 
 void ObjectPointerBase::clear(Object *_pobj){
 	cassert(_pobj);
+#ifdef HAS_GNU_ATOMIC
+	const int usecnt = __gnu_cxx::__exchange_and_add_dispatch(&_pobj->usecnt, -1) - 1;
+#else
 	int usecnt = 0;
 	{
 		Locker<Mutex> lock(Manager::the().mutex(*_pobj));
 		usecnt = --_pobj->usecnt;
 	}
-	if(!usecnt){
+#endif
+	if(usecnt == 0){
 		m().erase(*_pobj);
 		delete _pobj;
 	}
 }
 
-//NOTE: No locking so Be carefull!!
 void ObjectPointerBase::use(Object *_pobj){
+#ifdef HAS_GNU_ATOMIC
+	__gnu_cxx:: __atomic_add_dispatch(&_pobj->usecnt, 1);
+#else
+
 	//NOTE: the first mutex will be the first mutex from the first service
 	//which is a valid mutex. The valid mutex will be received only
 	//after objects registration within a service.
 	Locker<Mutex> lock(Manager::the().mutex(*_pobj));
 	++_pobj->usecnt;
+#endif
 }
 void ObjectPointerBase::destroy(Object *_pobj){
 	delete _pobj;

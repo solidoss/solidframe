@@ -228,6 +228,7 @@ struct Dbg::Data{
 		respinpos(0), dos(sz), dbos(sz), trace_debth(0)
 	{
 		pos = &std::cerr;
+		bs.reset();
 	}
 	~Data(){
 #ifdef ON_WINDOWS
@@ -797,10 +798,10 @@ void Dbg::doneTraceOut(){
 }
 
 bool Dbg::isSet(Level _lvl, unsigned _v)const{
-	return (d.lvlmsk & _lvl) && d.bs[_v];
+	return (d.lvlmsk & _lvl) && _v < d.bs.size() && d.bs[_v];
 }
 Dbg::Dbg():d(*(new Data)){
-	setAllModuleBits();
+	resetAllModuleBits();
 	levelMask();
 }
 

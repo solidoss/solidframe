@@ -77,9 +77,6 @@ public:
 			DynamicPointerBase::clear(static_cast<DynamicBase*>(pdyn));
 		}
 	}
-	DynamicT* release() const{
-		return pdyn;
-	}
 	template <class O>
 	DynamicPointerT& operator=(const DynamicSharedPointer<O> &_rcp){
 		DynamicT *p(_rcp.release());
@@ -170,7 +167,7 @@ public:
 	}
 	
 	template <class B>
-	explicit DynamicPointer(const DynamicSharedPointer<B> &_rcp):pdyn(static_cast<T*>(_rcp.release())){
+	explicit DynamicPointer(const DynamicSharedPointer<B> &_rcp):pdyn(static_cast<T*>(_rcp.get())){
 		if(pdyn){
 			use(static_cast<DynamicBase*>(pdyn));
 		}
@@ -206,7 +203,7 @@ public:
 	}
 	template <class O>
 	DynamicPointerT& operator=(const DynamicSharedPointer<O> &_rcp){
-		DynamicT *p(_rcp.release());
+		DynamicT *p(_rcp.get());
 		if(p == pdyn){
 			return *this;
 		}
@@ -244,7 +241,7 @@ private:
 	mutable DynamicT *pdyn;
 	
 };
-
+#if 0
 //! An autoptr like smartpointer for DynamicBase objects
 template <class T, class C>
 class DynamicPointer: DynamicPointerBase{
@@ -357,7 +354,7 @@ public:
 		storeSpecific();
 		return pdyn;
 	}
-	DynamicT* get() const		{
+	DynamicT* get() const{
 		storeSpecific();
 		return pdyn;
 	}
@@ -393,6 +390,6 @@ private:
 	mutable ContextT	ctx;
 };
 
-
+#endif
 
 #endif

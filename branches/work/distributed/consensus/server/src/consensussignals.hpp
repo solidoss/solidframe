@@ -49,10 +49,10 @@ struct OperationStub{
 		_s.push(operation, "opp").push(reqid, "reqid").push(proposeid, "proposeid").push(acceptid, "acceptid");
 		return _s;
 	}
-	uint8		operation;
+	uint8								operation;
 	distributed::consensus::RequestId	reqid;
-	uint32		proposeid;
-	uint32		acceptid;
+	uint32								proposeid;
+	uint32								acceptid;
 };
 
 template <uint16 Count>

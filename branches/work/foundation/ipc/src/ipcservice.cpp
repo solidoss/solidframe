@@ -123,7 +123,7 @@ struct Service::Data{
 	typedef Queue<uint32>								Uint32QueueT;
 	
 	Data(
-		Controller *_pc,
+		const DynamicPointer<Controller> &_rctrlptr,
 		uint32 _sespertkr,
 		uint32 _tkrmaxcnt
 	);
@@ -134,27 +134,27 @@ struct Service::Data{
 		return sessionaddr4map.size();
 	}
 	
-	Controller				&rc;
-	const uint32			sespertkr;
-	const uint32			tkrmaxcnt;
-	uint32					tkrcrt;
-	int						baseport;
-	SocketAddress			firstaddr;
-	TalkerStubVectorT		tkrvec;
-	SessionAddr4MapT		sessionaddr4map;
-	SessionRelayAddr4MapT	sessionrelayaddr4map;
-	Uint32QueueT			tkrq;
-	TimeSpec				timestamp;
+	DynamicPointer<Controller>	ctrlptr;
+	const uint32				sespertkr;
+	const uint32				tkrmaxcnt;
+	uint32						tkrcrt;
+	int							baseport;
+	SocketAddress				firstaddr;
+	TalkerStubVectorT			tkrvec;
+	SessionAddr4MapT			sessionaddr4map;
+	SessionRelayAddr4MapT		sessionrelayaddr4map;
+	Uint32QueueT				tkrq;
+	TimeSpec					timestamp;
 };
 
 //=======	ServiceData		===========================================
 
 Service::Data::Data(
-	Controller *_pc,
+	const DynamicPointer<Controller> &_rctrlptr,
 	uint32 _sespertkr,
 	uint32 _tkrmaxcnt
 ):
-	rc(*_pc), sespertkr(_sespertkr), tkrmaxcnt(_tkrmaxcnt),
+	ctrlptr(_rctrlptr), sespertkr(_sespertkr), tkrmaxcnt(_tkrmaxcnt),
 	tkrcrt(0), baseport(-1)
 {
 	timestamp.currentRealTime();
@@ -173,17 +173,14 @@ Service::Data::~Data(){
 }
 
 Service::Service(
-	Controller *_pc,
+	const DynamicPointer<Controller> &_rctrlptr,
 	uint32 _sespertkr,
 	uint32 _tkrmaxcnt
-):d(*(new Data(_pc, _sespertkr, _tkrmaxcnt))){
+):d(*(new Data(_rctrlptr, _sespertkr, _tkrmaxcnt))){
 	registerObjectType<Talker>(this);
 }
 //---------------------------------------------------------------------
 Service::~Service(){
-	if(d.rc.release()){
-		delete &d.rc;
-	}
 	delete &d;
 }
 //---------------------------------------------------------------------
@@ -715,11 +712,11 @@ bool Service::checkAcceptData(const SocketAddress &/*_rsa*/, const AcceptData &_
 //---------------------------------------------------------------------
 
 Controller& Service::controller(){
-	return d.rc;
+	return *d.ctrlptr;
 }
 //---------------------------------------------------------------------
 const Controller& Service::controller()const{
-	return d.rc;
+	return *d.ctrlptr;
 }
 //------------------------------------------------------------------
 //		Controller

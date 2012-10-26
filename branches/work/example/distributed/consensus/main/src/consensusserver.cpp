@@ -116,7 +116,7 @@ int main(int argc, char *argv[]){
 		
 		//const IndexT svcidx = 
 		m.registerService<SchedulerT>(new foundation::Service, 0, m.computeServiceId(serverUid().first));
-		m.registerService<SchedulerT>(new foundation::ipc::Service(&ipcctrl, 0, 2, 2), 0, ipcid);
+		m.registerService<SchedulerT>(new foundation::ipc::Service(&ipcctrl, 2, 2), 0, ipcid);
 		
 		mapSignals();
 		ServerObject::registerSignals();

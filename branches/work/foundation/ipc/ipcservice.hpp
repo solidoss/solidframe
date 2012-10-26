@@ -51,13 +51,14 @@ struct ConnectData;
 struct AcceptData;
 class Service;
 
-struct Controller{
+struct Controller: Dynamic<Controller, DynamicShared<> >{
 	enum{
 		AuthenticationFlag = 1,
 		GatewayFlag = 2
 	};
+	
 	virtual ~Controller();
-	virtual bool release() = 0;
+	
 	virtual void scheduleTalker(foundation::aio::Object *_ptkr) = 0;
 	virtual bool compressBuffer(
 		BufferContext &_rbc,
@@ -136,6 +137,11 @@ struct Controller{
 	
 	const uint32 responseKeepAlive()const;
 	const uint32 sessionKeepAlive()const;
+	
+	DynamicPointer<Controller> pointer(){
+		return DynamicPointer<Controller>(this);
+	}
+	
 protected:
 	Controller(
 		const uint32 _resdatasz = 0,
@@ -232,20 +238,21 @@ public:
 		serialization::binary::Serializer,
 		serialization::binary::Deserializer,
 		SerializationTypeIdT
-	> IdTypeMapper;
+	> IdTypeMapperT;
+	
 	
 	static Service& the();
 	static Service& the(const IndexT &_ridx);
 	
 	Service(
-		Controller *_pc,
+		const DynamicPointer<Controller> &_rctrlptr,
 		uint32 _sespertkr = 1024,
 		uint32 _tkrmaxcnt = 2
 	);
 	//! Destructor
 	~Service();
 	
-	IdTypeMapper& typeMapper();
+	IdTypeMapperT& typeMapper();
 	const TimeSpec& timeStamp()const;
 	
 	//!Send a signal (usually a response) to a peer process using a previously saved ConnectionUid
@@ -418,7 +425,7 @@ private:
 	struct Data;
 	friend struct Data;
 	Data			&d;
-	IdTypeMapper	typemapper;
+	IdTypeMapperT	typemapper;
 };
 
 inline int Service::sendSignal(
@@ -472,7 +479,7 @@ inline const serialization::TypeMapperBase& Service::typeMapperBase() const{
 	return typemapper;
 }
 
-inline Service::IdTypeMapper& Service::typeMapper(){
+inline Service::IdTypeMapperT& Service::typeMapper(){
 	return typemapper;
 }
 

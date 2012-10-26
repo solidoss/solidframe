@@ -188,8 +188,7 @@ private:
 	volatile ulong	smask;
 	volatile uint32	thrid;//the current thread which (may) execute(s) the object
 	volatile uint32	thrpos;//
-	uint16			usecnt;//
-	uint16			dummy;//
+	int				usecnt;//
 	int32			crtstate;// < 0 -> must die
 };
 

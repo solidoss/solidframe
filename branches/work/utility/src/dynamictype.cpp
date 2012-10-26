@@ -10,6 +10,10 @@
 
 #include <vector>
 
+#ifdef HAS_GNU_ATOMIC
+#include <ext/atomicity.h>
+#endif
+
 //---------------------------------------------------------------------
 //----	Shared	----
 //---------------------------------------------------------------------
@@ -171,26 +175,39 @@ DynamicBase::~DynamicBase(){}
 DynamicMap::FncT DynamicBase::callback(const DynamicMap &_rdm){
 	return NULL;
 }
+
 /*virtual*/ void DynamicBase::use(){
 	idbgx(Dbg::utility, "DynamicBase");
 }
+
 //! Used by DynamicPointer to know if the object must be deleted
 /*virtual*/ int DynamicBase::release(){
 	idbgx(Dbg::utility, "DynamicBase");
 	return 0;
 }
+
 /*virtual*/ bool DynamicBase::isTypeDynamic(uint32 _id)const{
 	return false;
 }
 
 void DynamicSharedImpl::doUse(){
 	idbgx(Dbg::utility, "DynamicSharedImpl");
+#ifdef HAS_GNU_ATOMIC
+	__gnu_cxx:: __atomic_add_dispatch(&usecount, 1);
+#else
 	Locker<Mutex>	lock(this->mutex());
 	++usecount;
+#endif
 }
+
 int DynamicSharedImpl::doRelease(){
 	idbgx(Dbg::utility, "DynamicSharedImpl");
+#ifdef HAS_GNU_ATOMIC
+	const int rv = __gnu_cxx::__exchange_and_add_dispatch(&usecount, -1) - 1;
+#else
 	Locker<Mutex>	lock(this->mutex());
 	--usecount;
-	return usecount;
+	const int rv = usecount;
+#endif
+	return rv;
 }

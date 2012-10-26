@@ -137,10 +137,9 @@ struct AuthSignal: Dynamic<AuthSignal, DynamicShared<foundation::Signal> >{
 
 struct IpcServiceController: foundation::ipc::Controller{
 	IpcServiceController():foundation::ipc::Controller(400, 0/* AuthenticationFlag*/, 1000, 10 * 1000), authidx(0){
-		
+		use();
 	}
 	/*virtual*/ void scheduleTalker(foundation::aio::Object *_po);
-	/*virtual*/ bool release();
 	/*virtual*/ bool compressBuffer(
 		foundation::ipc::BufferContext &_rbc,
 		const uint32 _bufsz,
@@ -158,6 +157,7 @@ struct IpcServiceController: foundation::ipc::Controller{
 		uint32 &_rflags,
 		fdt::ipc::SerializationTypeIdT &_rtid
 	);
+	
 private:
 	qlz_state_compress		qlz_comp_ctx;
 	qlz_state_decompress	qlz_decomp_ctx;
@@ -165,6 +165,73 @@ private:
 };
 
 
+//------------------------------------------------------
+//		Manager::Data
+//------------------------------------------------------
+
+namespace{
+	FileManagerController	fmctrl;
+	IpcServiceController	ipcctrl;
+}
+
+struct Manager::Data{
+	Data():filemanageridx(1), readsigexeidx(2), writesigexeidx(3), ipcidx(4){}
+	const IndexT			filemanageridx;
+	const IndexT			readsigexeidx;
+	const IndexT			writesigexeidx;
+	const IndexT			ipcidx;
+};
+
+//--------------------------------------------------------------------------
+Manager::Manager():foundation::Manager(16), d(*(new Data())){
+	//NOTE: Use the following line instead of ThisGuard if you only have one Manager per process, else use the ThisGuard for any function
+	// that may be called from a thread that has access to other managers.
+	//this->prepareThread();
+	ThisGuard	tg(this);
+	
+	registerScheduler(new SchedulerT(*this));
+	registerScheduler(new AioSchedulerT(*this));
+	registerScheduler(new AioSchedulerT(*this));
+	
+	registerObject<SchedulerT>(new fdt::file::Manager(&fmctrl), 0, d.filemanageridx);
+	registerObject<SchedulerT>(new fdt::SignalExecuter, 0, d.readsigexeidx);
+	registerObject<SchedulerT>(new fdt::SignalExecuter, 0, d.writesigexeidx);
+	
+	registerService<SchedulerT>(new foundation::ipc::Service(ipcctrl.pointer()), 0, d.ipcidx);
+	
+	fdt::ipc::Service::the().typeMapper().insert<AuthSignal>();
+}
+
+Manager::~Manager(){
+	delete &d;
+}
+
+ObjectUidT Manager::readSignalExecuterUid()const{
+	return object(d.readsigexeidx).uid();
+}
+	
+ObjectUidT Manager::writeSignalExecuterUid()const{
+	return object(d.writesigexeidx).uid();
+}
+
+foundation::ipc::Service&	Manager::ipc()const{
+	return static_cast<foundation::ipc::Service&>(foundation::Manager::service(d.ipcidx));
+}
+foundation::file::Manager&	Manager::fileManager()const{
+	return static_cast<foundation::file::Manager&>(foundation::Manager::object(d.filemanageridx));
+}
+void Manager::signalService(const IndexT &_ridx, DynamicPointer<foundation::Signal> &_rsig){
+	signal(_rsig, serviceUid(_ridx));
+}
+
+//------------------------------------------------------
+//		IpcServiceController
+//------------------------------------------------------
+void IpcServiceController::scheduleTalker(foundation::aio::Object *_po){
+	idbg("");
+	foundation::ObjectPointer<foundation::aio::Object> op(_po);
+	AioSchedulerT::schedule(op, 1);
+}
 /*virtual*/ bool IpcServiceController::compressBuffer(
 	foundation::ipc::BufferContext &_rbc,
 	const uint32 _bufsz,
@@ -255,76 +322,6 @@ private:
 }
 
 
-//------------------------------------------------------
-//		Manager::Data
-//------------------------------------------------------
-
-namespace{
-	FileManagerController	fmctrl;
-	IpcServiceController	ipcctrl;
-}
-
-struct Manager::Data{
-	Data():filemanageridx(1), readsigexeidx(2), writesigexeidx(3), ipcidx(4){}
-	const IndexT			filemanageridx;
-	const IndexT			readsigexeidx;
-	const IndexT			writesigexeidx;
-	const IndexT			ipcidx;
-};
-
-//--------------------------------------------------------------------------
-Manager::Manager():foundation::Manager(16), d(*(new Data())){
-	//NOTE: Use the following line instead of ThisGuard if you only have one Manager per process, else use the ThisGuard for any function
-	// that may be called from a thread that has access to other managers.
-	//this->prepareThread();
-	ThisGuard	tg(this);
-	
-	registerScheduler(new SchedulerT(*this));
-	registerScheduler(new AioSchedulerT(*this));
-	registerScheduler(new AioSchedulerT(*this));
-	
-	registerObject<SchedulerT>(new fdt::file::Manager(&fmctrl), 0, d.filemanageridx);
-	registerObject<SchedulerT>(new fdt::SignalExecuter, 0, d.readsigexeidx);
-	registerObject<SchedulerT>(new fdt::SignalExecuter, 0, d.writesigexeidx);
-	
-	registerService<SchedulerT>(new foundation::ipc::Service(&ipcctrl), 0, d.ipcidx);
-	
-	fdt::ipc::Service::the().typeMapper().insert<AuthSignal>();
-}
-
-Manager::~Manager(){
-	delete &d;
-}
-
-ObjectUidT Manager::readSignalExecuterUid()const{
-	return object(d.readsigexeidx).uid();
-}
-	
-ObjectUidT Manager::writeSignalExecuterUid()const{
-	return object(d.writesigexeidx).uid();
-}
-
-foundation::ipc::Service&	Manager::ipc()const{
-	return static_cast<foundation::ipc::Service&>(foundation::Manager::service(d.ipcidx));
-}
-foundation::file::Manager&	Manager::fileManager()const{
-	return static_cast<foundation::file::Manager&>(foundation::Manager::object(d.filemanageridx));
-}
-void Manager::signalService(const IndexT &_ridx, DynamicPointer<foundation::Signal> &_rsig){
-	signal(_rsig, serviceUid(_ridx));
-}
-
-//------------------------------------------------------
-//		IpcServiceController
-//------------------------------------------------------
-void IpcServiceController::scheduleTalker(foundation::aio::Object *_po){
-	idbg("");
-	foundation::ObjectPointer<foundation::aio::Object> op(_po);
-	AioSchedulerT::schedule(op, 1);
-}
-bool IpcServiceController::release(){
-	return false;
-}
 //------------------------------------------------------
 //		FileManagerController
 //------------------------------------------------------
