@@ -243,5 +243,21 @@ struct NumberType{
 	};
 };
 
+inline void pack(uint32 &_v, const uint16 _v1, const uint16 _v2){
+	_v = _v2;
+	_v <<= 16;
+	_v |= _v1;
+}
 
+inline uint32 pack(const uint16 _v1, const uint16 _v2){
+	uint32 v;
+	pack(v, _v1, _v2);
+	return v;
+}
+
+
+inline void unpack(uint16 &_v1, uint16 &_v2, const uint32 _v){
+	_v1 = _v & 0xffffUL;
+	_v2 = (_v >> 16) & 0xffffUL;
+}
 #endif

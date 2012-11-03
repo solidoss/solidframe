@@ -282,6 +282,9 @@ private:
 public:
 	enum {Capacity = sizeof(AddrUnion)};
 	
+	typedef Binary<4>	Binary4T;
+	typedef Binary<16>	Binary6T;
+	
 	SocketAddressInet();
 	SocketAddressInet(const SocketAddressStub &);
 	SocketAddressInet(const char* _addr, int _port = 0);
@@ -311,6 +314,11 @@ public:
 		unsigned _servcp,
 		uint32	_flags = 0
 	)const;
+	
+	bool toBinary(Binary4T &_bin, uint16 &_port)const;
+	bool toBinary(Binary6T &_bin, uint16 &_port)const;
+	void fromBinary(const Binary4T &_bin, uint16 _port = 0);
+	void fromBinary(const Binary6T &_bin, uint16 _port = 0);
 	
 	bool operator<(const SocketAddressInet &_raddr)const;
 	bool operator==(const SocketAddressInet &_raddr)const;

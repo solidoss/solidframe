@@ -73,7 +73,7 @@ struct Controller: Dynamic<Controller, DynamicShared<> >{
 	);
 	
 	virtual const SocketAddress& gatewayAddress(
-		const uint32 _idx,
+		const uint _idx,
 		const uint32 _netid_dest,
 		const SocketAddressStub &_rsas_dest
 	);

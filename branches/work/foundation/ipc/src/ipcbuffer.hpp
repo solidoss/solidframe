@@ -53,9 +53,7 @@ struct Buffer{
 		KeepAliveType = 1,
 		DataType,
 		ConnectType,
-		RelayConnectType,
 		AcceptType,
-		RelayAcceptType,
 		ErrorType,
 		Unknown
 	};
@@ -136,6 +134,7 @@ struct Buffer{
 	uint32 relay()const;
 	void relay(const uint32 _id);
 	
+	bool isRelay()const;
 	
 	uint8 updateCount()const;
 	void updateInit();

@@ -573,6 +573,38 @@ inline bool SocketAddressInet::toString(
 	return true;
 }
 
+inline bool SocketAddressInet::toBinary(Binary4T &_bin, uint16 &_port)const{
+	if(isInet4()){
+		memcpy(_bin.data, &address4().s_addr, 4);
+		_port = d.inaddr4.sin_port;
+		return true;
+	}
+	return false;
+}
+
+inline bool SocketAddressInet::toBinary(Binary6T &_bin, uint16 &_port)const{
+	if(isInet6()){
+		memcpy(_bin.data, &address6().s6_addr, 16);
+		_port = d.inaddr6.sin6_port;
+		return true;
+	}
+	return false;
+}
+
+inline void SocketAddressInet::fromBinary(const Binary4T &_bin, uint16 _port){
+	sockAddr()->sa_family = AF_INET;
+	sz = sizeof(d.inaddr4);
+	memcpy(&d.inaddr4.sin_addr.s_addr, _bin.data, 4);
+	d.inaddr4.sin_port = _port;
+}
+
+inline void SocketAddressInet::fromBinary(const Binary6T &_bin, uint16 _port){
+	sockAddr()->sa_family = AF_INET6;
+	sz = sizeof(d.inaddr6);
+	memcpy(&d.inaddr6.sin6_addr.s6_addr, _bin.data, 16);
+	d.inaddr6.sin6_port = _port;
+}
+
 inline bool SocketAddressInet::operator<(const SocketAddressInet &_raddr)const{
 	if(sockAddr()->sa_family < _raddr.sockAddr()->sa_family){
 		return true;

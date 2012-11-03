@@ -168,6 +168,10 @@ inline void Buffer::relay(const uint32 _relayid){
 	serialization::binary::store(pb + BaseSize, _relayid);
 }
 
+inline bool Buffer::isRelay()const{
+	return flags() & RelayFlag;
+}
+
 inline uint8 Buffer::updateCount()const{
 	return updateSize() * reinterpret_cast<uint8*>(pb)[BaseSize + relaySize()];
 }

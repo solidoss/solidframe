@@ -295,6 +295,8 @@ public:
 	StatisticData			statistics;
 #endif
 };
+
+
 Talker::Data::~Data(){
 	if(pendingreadbuffer){
 		Buffer::deallocate(pendingreadbuffer);
@@ -521,6 +523,8 @@ void Talker::doDispatchReceivedBuffer(
 			AcceptData			accdata;
 			
 			int					error = Session::parseAcceptBuffer(buf, accdata);
+			const bool			isrelay = buf.isRelay();
+			const uint32		relayid = isrelay ? buf.relay() : 0;
 			
 			Buffer::deallocate(buf.release());
 			
@@ -528,13 +532,12 @@ void Talker::doDispatchReceivedBuffer(
 				edbgx(Dbg::ipc, "accepted buffer: error parse "<<error);
 				COLLECT_DATA_0(d.statistics.receivedAcceptingError);
 			}else if(d.rservice.checkAcceptData(_rsa, accdata)){
-				
-				SocketAddressInet4				sa(_rsa);
-				BaseAddress4T					ba(sa, accdata.baseport);
-				Data::BaseAddr4MapT::iterator	bit(d.baseaddr4map.find(ba));
-				if(bit != d.baseaddr4map.end()){
-					Data::SessionStub	&rss(d.sessionvec[bit->second]);
-					if(rss.psession){
+				if(!isrelay){
+					SocketAddressInet4				sa(_rsa);
+					BaseAddress4T					ba(sa, accdata.baseport);
+					Data::BaseAddr4MapT::iterator	bit(d.baseaddr4map.find(ba));
+					if(bit != d.baseaddr4map.end() && d.sessionvec[bit->second].psession){
+						Data::SessionStub	&rss(d.sessionvec[bit->second]);
 						_rstub.sessionidx = bit->second;
 						rss.psession->completeConnect(_rstub, _rsa.port());
 						//register in peer map
@@ -545,6 +548,26 @@ void Talker::doDispatchReceivedBuffer(
 							rss.inexeq = true;
 						}
 					}
+				}else{
+					uint16	sessidx;
+					uint16	sessuid;
+					unpack(sessidx, sessuid, relayid);
+					if(sessidx < d.sessionvec.size() && d.sessionvec[sessidx].uid == sessuid && d.sessionvec[sessidx].psession){
+						Data::SessionStub	&rss(d.sessionvec[sessidx]);
+						_rstub.sessionidx = sessidx;
+						rss.psession->completeConnect(_rstub, _rsa.port(), accdata.relayid);
+						//register in peer map
+						
+						//d.peeraddr4map[&rss.psession->peerAddress4()] = sessidx;
+						//TODO!!!
+						
+						//the connector has at least some updates to send
+						if(!rss.inexeq){
+							d.sessionexecq.push(sessidx);
+							rss.inexeq = true;
+						}
+					}
+					
 				}
 			}else{
 				//TODO:...
@@ -882,6 +905,9 @@ bool Talker::TalkerStub::pushSendBuffer(uint32 _id, const char *_pb, uint32 _bl)
 			break;
 	}
 	return true;//the buffer was written on socket
+}
+uint32 Talker::TalkerStub::relayId()const{
+	return pack(sessionidx, rt.d.sessionvec[sessionidx].uid);
 }
 //----------------------------------------------------------------------
 void Talker::TalkerStub::pushTimer(uint32 _id, const TimeSpec &_rtimepos){

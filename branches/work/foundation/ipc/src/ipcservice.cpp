@@ -377,6 +377,8 @@ int Service::doSendSignalRelay(
 	const uint32 _netid_dest,
 	uint32	_flags
 ){
+	Locker<Mutex>	lock(serviceMutex());
+	
 	if(_rsap.family() == SocketInfo::Inet4){
 		const SocketAddressInet4				sa(_rsap);
 		const RelayAddress4T					addr(BaseAddress4T(sa, _rsap.port()), _netid_dest);
@@ -789,7 +791,7 @@ void Controller::sendEvent(
 
 
 /*virtual*/ const SocketAddress& Controller::gatewayAddress(
-	const uint32 _idx,
+	const uint _idx,
 	const uint32 _netid_dest,
 	const SocketAddressStub &_rsas_dest
 ){

@@ -473,11 +473,15 @@ struct Session::DataRelayed44: Session::Data{
 	DataRelayed44(
 		uint32 _netid,
 		const SocketAddressInet4 &_raddr
-	):Data(Relayed44, RelayInit), relayaddr(_raddr), netid(_netid){
+	):	Data(Relayed44, RelayInit), relayaddr(_raddr), netid(_netid),
+		peerrelayid(0), crtgwidx(255){
 	}
+	
 	SocketAddressInet4	addr;
 	SocketAddressInet4	relayaddr;
 	const uint32		netid;
+	uint32				peerrelayid;
+	uint8				crtgwidx;
 };
 
 //---------------------------------------------------------------------
@@ -998,29 +1002,67 @@ bool Session::Data::moveToNextSendSignal(){
 	}
 	
 	const char *pos = _rbuf.data();
-	
+
 	pos = serialization::binary::load(pos, _raccdata.flags);
 	pos = serialization::binary::load(pos, _raccdata.baseport);
 	pos = serialization::binary::load(pos, _raccdata.timestamp_s);
 	pos = serialization::binary::load(pos, _raccdata.timestamp_n);
 	
+	if(_rbuf.isRelay()){
+		if(_rbuf.dataSize() != (AcceptData::BaseSize + sizeof(uint32))){
+			return BAD;
+		}
+		pos = serialization::binary::load(pos, _raccdata.relayid);
+	}
+	
 	vdbgx(Dbg::ipc, "AcceptData: flags = "<<_raccdata.flags<<" baseport = "<<_raccdata.baseport<<" ts_s = "<<_raccdata.timestamp_s<<" ts_n = "<<_raccdata.timestamp_n);
 	return OK;
 }
 //---------------------------------------------------------------------
-/*static*/ int Session::parseConnectBuffer(const Buffer &_rbuf, ConnectData &_rconndata){
+/*static*/ int Session::parseConnectBuffer(const Buffer &_rbuf, ConnectData &_rcd){
 	if(_rbuf.dataSize() < ConnectData::BaseSize){
 		return BAD;
 	}
 	
 	const char *pos = _rbuf.data();
+
+	pos = serialization::binary::load(pos, _rcd.s);
+	pos = serialization::binary::load(pos, _rcd.f);
+	pos = serialization::binary::load(pos, _rcd.i);
+	pos = serialization::binary::load(pos, _rcd.p);
+	pos = serialization::binary::load(pos, _rcd.c);
+	pos = serialization::binary::load(pos, _rcd.type);
+	pos = serialization::binary::load(pos, _rcd.version_major);
+	pos = serialization::binary::load(pos, _rcd.version_minor);
+	pos = serialization::binary::load(pos, _rcd.flags);
+	pos = serialization::binary::load(pos, _rcd.baseport);
+	pos = serialization::binary::load(pos, _rcd.timestamp_s);
+	pos = serialization::binary::load(pos, _rcd.timestamp_n);
+	if(_rcd.s != 's' || _rcd.f != 'f' || _rcd.i != 'i' || _rcd.p != 'p' || _rcd.c != 'c'){
+		return BAD;
+	}
 	
-	pos = serialization::binary::load(pos, _rconndata.flags);
-	pos = serialization::binary::load(pos, _rconndata.baseport);
-	pos = serialization::binary::load(pos, _rconndata.timestamp_s);
-	pos = serialization::binary::load(pos, _rconndata.timestamp_n);
+	if(_rcd.type == ConnectData::BasicType){
+		
+	}else if(_rcd.type == ConnectData::Relay4Type){
+		if(!_rbuf.isRelay()){
+			return BAD;
+		}
+		_rcd.relayid = _rbuf.relay();
+		pos = serialization::binary::load(pos, _rcd.networkid);
+		Binary<4>	bin;
+		uint16		port;
+		pos = serialization::binary::load(pos, bin);
+		pos = serialization::binary::load(pos, port);
+		_rcd.address.fromBinary(bin, port);
+		
+	}else if(_rcd.type == ConnectData::Relay6Type){
+		
+	}else{
+		return OK;
+	}
 	
-	vdbgx(Dbg::ipc, "ConnectData: flags = "<<_rconndata.flags<<" baseport = "<<_rconndata.baseport<<" ts_s = "<<_rconndata.timestamp_s<<" ts_n = "<<_rconndata.timestamp_n);
+	vdbgx(Dbg::ipc, "ConnectData: flags = "<<_rcd.flags<<" baseport = "<<_rcd.baseport<<" ts_s = "<<_rcd.timestamp_s<<" ts_n = "<<_rcd.timestamp_n);
 	return OK;
 }
 //---------------------------------------------------------------------
@@ -1348,8 +1390,21 @@ void Session::completeConnect(
 	
 	d.direct4().addr.port(_pairport);
 	
-	Controller &rctrl = _rstub.service().controller();
+	doCompleteConnect(_rstub);
+}
+//---------------------------------------------------------------------
+void Session::completeConnect(Talker::TalkerStub &_rstub, uint16 _pairport, uint32 _relayid){
+	if(d.state == Data::Connected) return;
+	if(d.state == Data::Authenticating) return;
 	
+	d.relayed44().addr.port(_pairport);
+	d.relayed44().peerrelayid = _relayid;
+	
+	doCompleteConnect(_rstub);
+}
+//---------------------------------------------------------------------
+void Session::doCompleteConnect(Talker::TalkerStub &_rstub){
+	Controller &rctrl = _rstub.service().controller();
 	if(!rctrl.hasAuthentication()){
 		d.state = Data::Connected;
 	}else{
@@ -1804,12 +1859,44 @@ void Session::doParseBuffer(Talker::TalkerStub &_rstub, const Buffer &_rbuf/*, c
 
 }
 //---------------------------------------------------------------------
+//we need to aquire the address of the relay
 int Session::doExecuteRelayInit(Talker::TalkerStub &_rstub){
-	return NOK;
+	DataRelayed44	&rd = d.relayed44();
+	int				rv = _rstub.service().controller().gatewayCount(rd.netid, rd.relayaddr);
+	if(rv < 0){
+		//must wait external signal
+		return NOK;
+	}
+	if(rv == 0){
+		//no relay for that destination - quit
+		d.state = Data::Disconnecting;
+		return OK;
+	}
+	
+	do{
+		if(rd.crtgwidx > rv){
+			rd.crtgwidx = rv - 1;
+		}else if(rd.crtgwidx == 0){
+			//tried all gws - no success
+			d.state = Data::Disconnecting;
+			return OK;
+		}else{
+			--rd.crtgwidx;
+		}
+		
+		rd.addr = _rstub.service().controller().gatewayAddress(rd.crtgwidx, rd.netid, rd.relayaddr);
+		
+	}while(rd.addr.isInvalid());
+	
+	d.pairaddr = rd.addr;
+	
+	d.state = Data::RelayConnecting;
+	
+	return OK;
 }
 //---------------------------------------------------------------------
 int Session::doExecuteConnecting(Talker::TalkerStub &_rstub){
-	const uint32			bufid(Specific::sizeToIndex(64));
+	const uint32			bufid(Specific::sizeToIndex(128));
 	Buffer					buf(Specific::popBuffer(bufid), Specific::indexToCapacity(bufid));
 	
 	buf.reset();
@@ -1823,11 +1910,19 @@ int Session::doExecuteConnecting(Talker::TalkerStub &_rstub){
 		
 		ConnectData			cd;
 		
-		cd.flags = 0;
+		cd.type = ConnectData::BasicType;
 		cd.baseport = _rstub.basePort();
 		cd.timestamp_s = _rstub.service().timeStamp().seconds();
 		cd.timestamp_n = _rstub.service().timeStamp().nanoSeconds();
 		
+		ppos = serialization::binary::store(ppos, cd.s);
+		ppos = serialization::binary::store(ppos, cd.f);
+		ppos = serialization::binary::store(ppos, cd.i);
+		ppos = serialization::binary::store(ppos, cd.p);
+		ppos = serialization::binary::store(ppos, cd.c);
+		ppos = serialization::binary::store(ppos, cd.type);
+		ppos = serialization::binary::store(ppos, cd.version_major);
+		ppos = serialization::binary::store(ppos, cd.version_minor);
 		ppos = serialization::binary::store(ppos, cd.flags);
 		ppos = serialization::binary::store(ppos, cd.baseport);
 		ppos = serialization::binary::store(ppos, cd.timestamp_s);
@@ -1862,6 +1957,77 @@ int Session::doExecuteConnecting(Talker::TalkerStub &_rstub){
 }
 //---------------------------------------------------------------------
 int Session::doExecuteRelayConnecting(Talker::TalkerStub &_rstub){
+	const uint32			bufid(Specific::sizeToIndex(128));
+	Buffer					buf(Specific::popBuffer(bufid), Specific::indexToCapacity(bufid));
+	
+	buf.reset();
+	buf.type(Buffer::ConnectType);
+	buf.relay(_rstub.relayId());
+	buf.id(d.sendid);
+	d.incrementSendId();
+	
+	
+	
+	
+	{
+		char 				*ppos = buf.dataEnd();
+		
+		ConnectData			cd;
+		
+		cd.type = ConnectData::Relay4Type;
+		cd.baseport = _rstub.basePort();
+		cd.timestamp_s = _rstub.service().timeStamp().seconds();
+		cd.timestamp_n = _rstub.service().timeStamp().nanoSeconds();
+		cd.networkid = d.relayed44().netid;
+		
+		
+		ppos = serialization::binary::store(ppos, cd.s);
+		ppos = serialization::binary::store(ppos, cd.f);
+		ppos = serialization::binary::store(ppos, cd.i);
+		ppos = serialization::binary::store(ppos, cd.p);
+		ppos = serialization::binary::store(ppos, cd.c);
+		ppos = serialization::binary::store(ppos, cd.type);
+		ppos = serialization::binary::store(ppos, cd.version_major);
+		ppos = serialization::binary::store(ppos, cd.version_minor);
+		ppos = serialization::binary::store(ppos, cd.flags);
+		ppos = serialization::binary::store(ppos, cd.baseport);
+		ppos = serialization::binary::store(ppos, cd.timestamp_s);
+		ppos = serialization::binary::store(ppos, cd.timestamp_n);
+		
+		Binary<4>	bin;
+		uint16		port;
+		
+		this->d.relayed44().relayaddr.toBinary(bin, port);
+		
+		ppos = serialization::binary::store(ppos, cd.networkid);
+		ppos = serialization::binary::store(ppos, bin);
+		ppos = serialization::binary::store(ppos, port);
+		
+		buf.dataSize(buf.dataSize() + (ppos - buf.dataEnd()));
+	}
+		
+	const uint32			bufidx(d.registerBuffer(buf));
+	Data::SendBufferData	&rsbd(d.sendbuffervec[bufidx]);
+	
+	cassert(bufidx == 1);
+	vdbgx(Dbg::ipc, "send "<<rsbd.buffer);
+	
+	if(_rstub.pushSendBuffer(bufidx, rsbd.buffer.buffer(), rsbd.buffer.bufferSize())){
+		//buffer sent - setting a timer for it
+		//schedule a timer for this buffer
+		TimeSpec tpos(_rstub.currentTime());
+		tpos += d.computeRetransmitTimeout(rsbd.buffer.resend(), rsbd.buffer.id());
+		
+		_rstub.pushTimer(pack32(bufidx, rsbd.uid) , tpos);
+		vdbgx(Dbg::ipc, "sent connecting "<<rsbd.buffer<<" done");
+	}else{
+		COLLECT_DATA_0(d.statistics.sendPending);
+		rsbd.sending = 1;
+		++d.sendpendingcount;
+		vdbgx(Dbg::ipc, "sent connecting "<<rsbd.buffer<<" pending");
+	}
+	
+	d.state = Data::WaitAccept;
 	return NOK;
 }
 //---------------------------------------------------------------------
@@ -1921,6 +2087,67 @@ int Session::doExecuteAccepting(Talker::TalkerStub &_rstub){
 }
 //---------------------------------------------------------------------
 int Session::doExecuteRelayAccepting(Talker::TalkerStub &_rstub){
+	const uint32	bufid(Specific::sizeToIndex(64));
+	Buffer			buf(Specific::popBuffer(bufid), Specific::indexToCapacity(bufid));
+	
+	buf.reset();
+	buf.type(Buffer::AcceptType);
+	//buf.relay();
+	buf.id(d.sendid);
+	d.incrementSendId();
+	
+	
+	{
+		
+		const ConnectData	&rcd = static_cast<ConnectDataSignal*>(d.signalq.front().signal.get())->data;
+		uint16				flags = 0;
+		uint16				baseport = _rstub.basePort();
+		uint32				relayid = _rstub.relayId();
+		
+		d.relayed44().peerrelayid = rcd.relayid;
+		buf.relay(rcd.relayid);
+		
+		char 				*ppos = buf.dataEnd();
+		
+		ppos = serialization::binary::store(ppos, flags);
+		ppos = serialization::binary::store(ppos, baseport);
+		ppos = serialization::binary::store(ppos, rcd.timestamp_s);
+		ppos = serialization::binary::store(ppos, rcd.timestamp_n);
+		ppos = serialization::binary::store(ppos, relayid);
+	
+		buf.dataSize(buf.dataSize() + (ppos - buf.dataEnd()));
+		
+		d.signalq.pop();//the connectdatasignal
+	}
+	
+	const uint32			bufidx(d.registerBuffer(buf));
+	Data::SendBufferData	&rsbd(d.sendbuffervec[bufidx]);
+	cassert(bufidx == 1);
+	
+	vdbgx(Dbg::ipc, "send "<<rsbd.buffer);
+	if(_rstub.pushSendBuffer(bufidx, rsbd.buffer.buffer(), rsbd.buffer.bufferSize())){
+		//buffer sent - setting a timer for it
+		//schedule a timer for this buffer
+		TimeSpec tpos(_rstub.currentTime());
+		tpos += d.computeRetransmitTimeout(rsbd.buffer.resend(), rsbd.buffer.id());
+		
+		_rstub.pushTimer(pack32(bufidx, rsbd.uid), tpos);
+		vdbgx(Dbg::ipc, "sent accepting "<<rsbd.buffer<<" done");
+	}else{
+		COLLECT_DATA_0(d.statistics.sendPending);
+		rsbd.sending = 1;
+		++d.sendpendingcount;
+		vdbgx(Dbg::ipc, "sent accepting "<<rsbd.buffer<<" pending");
+	}
+	
+	Controller &rctrl = _rstub.service().controller();
+	
+	if(!rctrl.hasAuthentication()){
+		d.state = Data::Connected;
+	}else{
+		d.state = Data::Authenticating;
+	}
+	return OK;
 	return NOK;
 }
 //---------------------------------------------------------------------

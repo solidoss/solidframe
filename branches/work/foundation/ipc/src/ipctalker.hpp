@@ -40,13 +40,40 @@ class Session;
 
 struct ConnectData{
 	enum{
-		BaseSize = 2 + 2 + 4 + 4
+		BaseSize = 5 + 1 + 2 + 2 + 2 + 2 + 4 + 4
 	};
-	ConnectData():baseport(0){}
-	uint16	flags;
-	uint16	baseport;
-	uint32	timestamp_s;
-	uint32	timestamp_n;
+	enum{
+		BasicType = 1,
+		Relay4Type = 2,
+		Relay6Type = 3
+	};
+	enum{
+		VersionMajor = 1,
+		VersionMinor = 0
+	};
+	
+	ConnectData():
+		s('s'), f('f'), i('i'), p('p'), c('c'), type(0),
+		version_major(VersionMajor), version_minor(VersionMinor),
+		flags(0), baseport(0), timestamp_s(0), timestamp_n(0),
+		relayid(0), networkid(0){}
+	
+	uint8					s;
+	uint8					f;
+	uint8					i;
+	uint8					p;
+	uint8					c;
+	uint8					type;
+	uint16					version_major;
+	uint16					version_minor;
+	uint16					flags;
+	uint16					baseport;
+	uint32					timestamp_s;
+	uint32					timestamp_n;
+	//relay
+	uint32					relayid;
+	uint32					networkid;
+	SocketAddressInet		address;
 };
 
 struct AcceptData{
@@ -58,6 +85,7 @@ struct AcceptData{
 	uint16	baseport;
 	uint32	timestamp_s;
 	uint32	timestamp_n;
+	uint32	relayid;
 };
 
 //! A talker for io requests
@@ -74,7 +102,7 @@ public:
 		Service& service()const{
 			return rs;
 		}
-		
+		uint32 relayId()const;
 	private:
 		friend class Talker;
 		TalkerStub(

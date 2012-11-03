@@ -23,9 +23,18 @@
 #define ALGORITHM_SERIALIZATION_BINARY_BASIC_HPP
 
 #include "system/common.hpp"
+#include "system/binary.hpp"
+#include <cstring>
 
 namespace serialization{
 namespace binary{
+
+
+inline char *store(char *_pd, const uint8 _val){
+	uint8 *pd = reinterpret_cast<uint8*>(_pd);
+	*pd = _val;
+	return _pd + 1;
+}
 
 inline char *store(char *_pd, const uint16 _val){
 	uint8 *pd = reinterpret_cast<uint8*>(_pd);
@@ -46,6 +55,19 @@ inline char *store(char *_pd, const uint64 _val){
 	_pd = store(_pd, static_cast<uint32>(_val >> 32));
 	
 	return store(_pd, static_cast<uint32>(_val & 0xffffffffULL));;
+}
+
+template <size_t S>
+inline char *store(char *_pd, const Binary<S> _val){
+	memcpy(_pd, _val.data, S);
+	return _pd + S;
+}
+
+
+inline const char* load(const char *_ps, uint8 &_val){
+	const uint8 *ps = reinterpret_cast<const uint8*>(_ps);
+	_val = *ps;
+	return _ps + 1;
 }
 
 inline const char* load(const char *_ps, uint16 &_val){
@@ -76,6 +98,11 @@ inline const char* load(const char *_ps, uint64 &_val){
 	_val <<= 32;
 	_val |= lower;
 	return _ps;
+}
+template <size_t S>
+inline const char *load(const char *_ps, Binary<S> &_val){
+	memcpy(_val.data, _ps, S);
+	return _ps + S;
 }
 
 }//namespace binary

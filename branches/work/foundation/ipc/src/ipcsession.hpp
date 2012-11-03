@@ -135,6 +135,7 @@ public:
 	);
 	
 	void completeConnect(Talker::TalkerStub &_rstub, uint16 _port);
+	void completeConnect(Talker::TalkerStub &_rstub, uint16 _port, uint32 _relayid);
 	
 	bool executeTimeout(
 		Talker::TalkerStub &_rstub,
@@ -184,6 +185,7 @@ private:
 		const char *_data,
 		const uint16 _size
 	);
+	void doCompleteConnect(Talker::TalkerStub &_rstub);
 private:
 	struct Data;
 	struct DataDummy;
