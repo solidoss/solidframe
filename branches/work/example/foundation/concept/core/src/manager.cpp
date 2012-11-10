@@ -158,10 +158,35 @@ struct IpcServiceController: foundation::ipc::Controller{
 		fdt::ipc::SerializationTypeIdT &_rtid
 	);
 	
+	void localNetworkId(uint32 _netid){
+		netid = _netid;
+	}
+	/*virtual*/ uint32 localNetworkId()const{
+		return netid;
+	}
+	/*virtual*/ SocketAddressStub gatewayAddress(
+		const uint _idx,
+		const uint32 _netid_dest,
+		const SocketAddressStub &_rsas_dest
+	){
+		return _rsas_dest;
+	}
+	
+	//retval:
+	// -1 : wait for asynchrounous event and retry
+	// 0: no gateway
+	// > 0: the count
+	/*virtual*/ int gatewayCount(
+		const uint32 _netid_dest,
+		const SocketAddressStub &_rsas_dest
+	)const{
+		return 1;
+	}
 private:
 	qlz_state_compress		qlz_comp_ctx;
 	qlz_state_decompress	qlz_decomp_ctx;
 	int						authidx;
+	uint32					netid;
 };
 
 
@@ -183,7 +208,7 @@ struct Manager::Data{
 };
 
 //--------------------------------------------------------------------------
-Manager::Manager():foundation::Manager(16), d(*(new Data())){
+Manager::Manager(uint32 _networkid):foundation::Manager(16), d(*(new Data())){
 	//NOTE: Use the following line instead of ThisGuard if you only have one Manager per process, else use the ThisGuard for any function
 	// that may be called from a thread that has access to other managers.
 	//this->prepareThread();
@@ -196,6 +221,8 @@ Manager::Manager():foundation::Manager(16), d(*(new Data())){
 	registerObject<SchedulerT>(new fdt::file::Manager(&fmctrl), 0, d.filemanageridx);
 	registerObject<SchedulerT>(new fdt::SignalExecuter, 0, d.readsigexeidx);
 	registerObject<SchedulerT>(new fdt::SignalExecuter, 0, d.writesigexeidx);
+	
+	ipcctrl.localNetworkId(_networkid);
 	
 	registerService<SchedulerT>(new foundation::ipc::Service(ipcctrl.pointer()), 0, d.ipcidx);
 	

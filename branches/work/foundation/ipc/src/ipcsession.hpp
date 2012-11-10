@@ -57,8 +57,16 @@ class Session{
 public:
 	
 	static void init();
-	static int parseAcceptBuffer(const Buffer &_rbuf, AcceptData &_raccdata);
-	static int parseConnectBuffer(const Buffer &_rbuf, ConnectData &_rconndata);
+	static int parseAcceptBuffer(
+		const Buffer &_rbuf,
+		AcceptData &_raccdata,
+		const SocketAddress &_rfromsa
+	);
+	static int parseConnectBuffer(
+		const Buffer &_rbuf,
+		ConnectData &_rconndata,
+		const SocketAddress &_rfromsa
+	);
 	
 	Session(
 		const SocketAddressInet4 &_raddr
@@ -110,7 +118,7 @@ public:
 	bool isConnecting()const;
 	bool isAccepting()const;
 
-	void prepare();
+	void prepare(Talker::TalkerStub &_rstub);
 	void reconnect(Session *_pses);	
 	
 	bool pushSignal(

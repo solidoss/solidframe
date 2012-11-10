@@ -78,32 +78,6 @@ struct ConnectDataSignal: foundation::Signal{
     
 	ConnectData data;
 };
-
-union UInt32Pair{
-	uint32	u32;
-	uint16	u16[2];
-};
-
-uint32 pack32(const uint16 _f, const uint16 _s){
-	UInt32Pair p;
-	p.u16[0] = _f;
-	p.u16[1] = _s;
-	return p.u32;
-}
-
-uint16 unpackFirst16(const uint32 _v){
-	UInt32Pair p;
-	p.u32 = _v;
-	return p.u16[0];
-}
-
-uint16 unpackSecond16(const uint32 _v){
-	UInt32Pair p;
-	p.u32 = _v;
-	return p.u16[1];
-}
-
-
 }//namespace
 
 #ifdef USTATISTICS
@@ -475,6 +449,15 @@ struct Session::DataRelayed44: Session::Data{
 		const SocketAddressInet4 &_raddr
 	):	Data(Relayed44, RelayInit), relayaddr(_raddr), netid(_netid),
 		peerrelayid(0), crtgwidx(255){
+	}
+	
+	DataRelayed44(
+		uint32 _netid,
+		const SocketAddressInet4 &_raddr,
+		const ConnectData &_rconndata
+	):	Data(Relayed44, RelayAccepting), addr(_raddr), relayaddr(_rconndata.senderaddress), netid(_netid),
+		peerrelayid(0), crtgwidx(255){
+		Data::pairaddr = addr;
 	}
 	
 	SocketAddressInet4	addr;
@@ -996,7 +979,11 @@ bool Session::Data::moveToNextSendSignal(){
 //	Session
 //=====================================================================
 
-/*static*/ int Session::parseAcceptBuffer(const Buffer &_rbuf, AcceptData &_raccdata){
+/*static*/ int Session::parseAcceptBuffer(
+	const Buffer &_rbuf,
+	AcceptData &_raccdata,
+	const SocketAddress &_rfromsa
+){
 	if(_rbuf.dataSize() < AcceptData::BaseSize){
 		return BAD;
 	}
@@ -1019,7 +1006,10 @@ bool Session::Data::moveToNextSendSignal(){
 	return OK;
 }
 //---------------------------------------------------------------------
-/*static*/ int Session::parseConnectBuffer(const Buffer &_rbuf, ConnectData &_rcd){
+/*static*/ int Session::parseConnectBuffer(
+	const Buffer &_rbuf, ConnectData &_rcd,
+	const SocketAddress &_rfromsa
+){
 	if(_rbuf.dataSize() < ConnectData::BaseSize){
 		return BAD;
 	}
@@ -1045,17 +1035,25 @@ bool Session::Data::moveToNextSendSignal(){
 	if(_rcd.type == ConnectData::BasicType){
 		
 	}else if(_rcd.type == ConnectData::Relay4Type){
-		if(!_rbuf.isRelay()){
-			return BAD;
-		}
-		_rcd.relayid = _rbuf.relay();
-		pos = serialization::binary::load(pos, _rcd.networkid);
 		Binary<4>	bin;
 		uint16		port;
+
+		pos = serialization::binary::load(pos, _rcd.relayid);
+		
+		pos = serialization::binary::load(pos, _rcd.receivernetworkid);
 		pos = serialization::binary::load(pos, bin);
 		pos = serialization::binary::load(pos, port);
-		_rcd.address.fromBinary(bin, port);
 		
+		_rcd.receiveraddress.fromBinary(bin, port);
+		
+		pos = serialization::binary::load(pos, _rcd.sendernetworkid);
+		pos = serialization::binary::load(pos, bin);
+		pos = serialization::binary::load(pos, port);
+		_rcd.senderaddress.fromBinary(bin, port);
+		if(_rcd.senderaddress.isInvalid()){
+			_rcd.senderaddress = _rfromsa;
+			_rcd.senderaddress.port(_rcd.baseport);
+		}
 	}else if(_rcd.type == ConnectData::Relay6Type){
 		
 	}else{
@@ -1064,6 +1062,10 @@ bool Session::Data::moveToNextSendSignal(){
 	
 	vdbgx(Dbg::ipc, "ConnectData: flags = "<<_rcd.flags<<" baseport = "<<_rcd.baseport<<" ts_s = "<<_rcd.timestamp_s<<" ts_n = "<<_rcd.timestamp_n);
 	return OK;
+}
+//---------------------------------------------------------------------
+inline bool Session::isRelayType()const{
+	return d.type == Data::Relayed44;
 }
 //---------------------------------------------------------------------
 Session::Session(
@@ -1109,7 +1111,7 @@ Session::Session(
 	uint32 _netid,
 	const SocketAddressInet4 &_raddr,
 	const ConnectData &_rconndata
-):d(*(new DataRelayed44(_netid, _raddr))){
+):d(*(new DataRelayed44(_netid, _raddr, _rconndata))){
 	
 	DynamicPointer<Signal>	psig(new ConnectDataSignal(_rconndata));
 	pushSignal(psig, 0, 0);
@@ -1140,10 +1142,6 @@ Session::~Session(){
 			THROW_EXCEPTION_EX("Unknown data type ", (int)d.type);
 	}
 	
-}
-//---------------------------------------------------------------------
-bool Session::isRelayType()const{
-	return d.type == Data::Relayed44;
 }
 //---------------------------------------------------------------------
 const BaseAddress4T Session::peerBaseAddress4()const{
@@ -1194,7 +1192,7 @@ bool Session::isAccepting()const{
 	return d.state == Data::Accepting;
 }
 //---------------------------------------------------------------------
-void Session::prepare(){
+void Session::prepare(Talker::TalkerStub &_rstub){
 	Buffer b(
 		Specific::popBuffer(Specific::sizeToIndex(Buffer::KeepAliveSize)),
 		Specific::indexToCapacity(Specific::sizeToIndex(Buffer::KeepAliveSize))
@@ -1202,6 +1200,7 @@ void Session::prepare(){
 	b.reset();
 	b.type(Buffer::KeepAliveType);
 	b.id(Buffer::UpdateBufferId);
+	b.relay(_rstub.relayId());
 	d.sendbuffervec[0].buffer = b;
 }
 //---------------------------------------------------------------------
@@ -1213,13 +1212,19 @@ void Session::reconnect(Session *_pses){
 	
 	//first we reset the peer addresses
 	if(_pses){
-		d.direct4().addr = _pses->d.direct4().addr;
-		d.pairaddr = d.direct4().addr;
+		if(!isRelayType()){
+			d.direct4().addr = _pses->d.direct4().addr;
+			d.pairaddr = d.direct4().addr;
+		}
 		
 		if(d.state == Data::Accepting){
 			d.signalq.front().signal = _pses->d.signalq.front().signal;
+		}else if(d.state == Data::RelayAccepting){
+			cassert(d.signalq.size());
+			d.signalq.front().signal = _pses->d.signalq.front().signal;
 		}else{
 			d.signalq.push(_pses->d.signalq.front());
+			_pses->d.signalq.pop();
 		}
 		
 		adjustcount = 1;
@@ -1456,8 +1461,9 @@ bool Session::executeTimeout(
 	Talker::TalkerStub &_rstub,
 	uint32 _id
 ){
-	uint16	idx(unpackFirst16(_id));
-	uint16	uid(unpackSecond16(_id));
+	uint16	idx;
+	uint16	uid;
+	unpack(idx, uid, _id);
 	
 	Data::SendBufferData &rsbd(d.sendbuffervec[idx]);
 	
@@ -1584,7 +1590,7 @@ bool Session::pushSentBuffer(
 		TimeSpec tpos(_rstub.currentTime());
 		tpos += d.computeRetransmitTimeout(rsbd.buffer.resend(), rsbd.buffer.id());
 	
-		_rstub.pushTimer(pack32(_id, rsbd.uid), tpos);
+		_rstub.pushTimer(pack(_id, rsbd.uid), tpos);
 		return false;
 	}
 	
@@ -1611,7 +1617,7 @@ bool Session::pushSentBuffer(
 	TimeSpec tpos(_rstub.currentTime());
 	tpos += d.computeRetransmitTimeout(rsbd.buffer.resend(), rsbd.buffer.id());
 	
-	_rstub.pushTimer(pack32(_id, rsbd.uid), tpos);
+	_rstub.pushTimer(pack(_id, rsbd.uid), tpos);
 	return b;
 }
 //---------------------------------------------------------------------
@@ -1863,6 +1869,7 @@ void Session::doParseBuffer(Talker::TalkerStub &_rstub, const Buffer &_rbuf/*, c
 int Session::doExecuteRelayInit(Talker::TalkerStub &_rstub){
 	DataRelayed44	&rd = d.relayed44();
 	int				rv = _rstub.service().controller().gatewayCount(rd.netid, rd.relayaddr);
+	idbgx(Dbg::ipc, "gatewayCount = "<<rv);
 	if(rv < 0){
 		//must wait external signal
 		return NOK;
@@ -1943,7 +1950,7 @@ int Session::doExecuteConnecting(Talker::TalkerStub &_rstub){
 		TimeSpec tpos(_rstub.currentTime());
 		tpos += d.computeRetransmitTimeout(rsbd.buffer.resend(), rsbd.buffer.id());
 		
-		_rstub.pushTimer(pack32(bufidx, rsbd.uid) , tpos);
+		_rstub.pushTimer(pack(bufidx, rsbd.uid) , tpos);
 		vdbgx(Dbg::ipc, "sent connecting "<<rsbd.buffer<<" done");
 	}else{
 		COLLECT_DATA_0(d.statistics.sendPending);
@@ -1962,10 +1969,8 @@ int Session::doExecuteRelayConnecting(Talker::TalkerStub &_rstub){
 	
 	buf.reset();
 	buf.type(Buffer::ConnectType);
-	buf.relay(_rstub.relayId());
 	buf.id(d.sendid);
 	d.incrementSendId();
-	
 	
 	
 	
@@ -1978,7 +1983,10 @@ int Session::doExecuteRelayConnecting(Talker::TalkerStub &_rstub){
 		cd.baseport = _rstub.basePort();
 		cd.timestamp_s = _rstub.service().timeStamp().seconds();
 		cd.timestamp_n = _rstub.service().timeStamp().nanoSeconds();
-		cd.networkid = d.relayed44().netid;
+		cd.receivernetworkid = d.relayed44().netid;
+		cd.sendernetworkid = _rstub.service().controller().localNetworkId();
+		
+		cd.relayid = _rstub.relayId();
 		
 		
 		ppos = serialization::binary::store(ppos, cd.s);
@@ -1999,7 +2007,16 @@ int Session::doExecuteRelayConnecting(Talker::TalkerStub &_rstub){
 		
 		this->d.relayed44().relayaddr.toBinary(bin, port);
 		
-		ppos = serialization::binary::store(ppos, cd.networkid);
+		ppos = serialization::binary::store(ppos, cd.relayid);
+		ppos = serialization::binary::store(ppos, cd.receivernetworkid);
+		ppos = serialization::binary::store(ppos, bin);
+		ppos = serialization::binary::store(ppos, port);
+		
+		SocketAddressInet4	sa;
+		sa.address("0.0.0.0");
+		sa.toBinary(bin, port);
+		
+		ppos = serialization::binary::store(ppos, cd.sendernetworkid);
 		ppos = serialization::binary::store(ppos, bin);
 		ppos = serialization::binary::store(ppos, port);
 		
@@ -2018,7 +2035,7 @@ int Session::doExecuteRelayConnecting(Talker::TalkerStub &_rstub){
 		TimeSpec tpos(_rstub.currentTime());
 		tpos += d.computeRetransmitTimeout(rsbd.buffer.resend(), rsbd.buffer.id());
 		
-		_rstub.pushTimer(pack32(bufidx, rsbd.uid) , tpos);
+		_rstub.pushTimer(pack(bufidx, rsbd.uid) , tpos);
 		vdbgx(Dbg::ipc, "sent connecting "<<rsbd.buffer<<" done");
 	}else{
 		COLLECT_DATA_0(d.statistics.sendPending);
@@ -2067,7 +2084,7 @@ int Session::doExecuteAccepting(Talker::TalkerStub &_rstub){
 		TimeSpec tpos(_rstub.currentTime());
 		tpos += d.computeRetransmitTimeout(rsbd.buffer.resend(), rsbd.buffer.id());
 		
-		_rstub.pushTimer(pack32(bufidx, rsbd.uid), tpos);
+		_rstub.pushTimer(pack(bufidx, rsbd.uid), tpos);
 		vdbgx(Dbg::ipc, "sent accepting "<<rsbd.buffer<<" done");
 	}else{
 		COLLECT_DATA_0(d.statistics.sendPending);
@@ -2107,6 +2124,9 @@ int Session::doExecuteRelayAccepting(Talker::TalkerStub &_rstub){
 		d.relayed44().peerrelayid = rcd.relayid;
 		buf.relay(rcd.relayid);
 		
+		vdbgx(Dbg::ipc, "relayid "<<rcd.relayid<<" bufrelay "<<buf.relay());
+		
+		
 		char 				*ppos = buf.dataEnd();
 		
 		ppos = serialization::binary::store(ppos, flags);
@@ -2120,6 +2140,8 @@ int Session::doExecuteRelayAccepting(Talker::TalkerStub &_rstub){
 		d.signalq.pop();//the connectdatasignal
 	}
 	
+	
+	
 	const uint32			bufidx(d.registerBuffer(buf));
 	Data::SendBufferData	&rsbd(d.sendbuffervec[bufidx]);
 	cassert(bufidx == 1);
@@ -2131,7 +2153,7 @@ int Session::doExecuteRelayAccepting(Talker::TalkerStub &_rstub){
 		TimeSpec tpos(_rstub.currentTime());
 		tpos += d.computeRetransmitTimeout(rsbd.buffer.resend(), rsbd.buffer.id());
 		
-		_rstub.pushTimer(pack32(bufidx, rsbd.uid), tpos);
+		_rstub.pushTimer(pack(bufidx, rsbd.uid), tpos);
 		vdbgx(Dbg::ipc, "sent accepting "<<rsbd.buffer<<" done");
 	}else{
 		COLLECT_DATA_0(d.statistics.sendPending);
@@ -2214,8 +2236,12 @@ int Session::doExecuteConnectedLimited(Talker::TalkerStub &_rstub){
 		rsbd.buffer.reset();
 		rsbd.buffer.type(Buffer::DataType);
 		rsbd.buffer.id(d.sendid);
-		d.incrementSendId();
 		
+		if(isRelayType()){
+			rsbd.buffer.relay(_rstub.relayId());
+		}
+
+		d.incrementSendId();
 		if(d.rcvdidq.size()){
 			rsbd.buffer.updateInit();
 		}
@@ -2245,7 +2271,7 @@ int Session::doExecuteConnectedLimited(Talker::TalkerStub &_rstub){
 			TimeSpec tpos(_rstub.currentTime());
 			tpos += d.computeRetransmitTimeout(rsbd.buffer.resend(), rsbd.buffer.id());
 			
-			_rstub.pushTimer(pack32(bufidx, rsbd.uid), tpos);
+			_rstub.pushTimer(pack(bufidx, rsbd.uid), tpos);
 			vdbgx(Dbg::ipc, "sent data "<<rsbd.buffer<<" pending");
 		}else{
 			COLLECT_DATA_0(d.statistics.sendPending);
@@ -2280,6 +2306,10 @@ int Session::doExecuteConnected(Talker::TalkerStub &_rstub){
 		rsbd.buffer.type(Buffer::DataType);
 		rsbd.buffer.id(d.sendid);
 		
+		if(isRelayType()){
+			rsbd.buffer.relay(_rstub.relayId());
+		}
+		
 		d.incrementSendId();
 		
 		if(d.rcvdidq.size()){
@@ -2313,7 +2343,7 @@ int Session::doExecuteConnected(Talker::TalkerStub &_rstub){
 			TimeSpec tpos(_rstub.currentTime());
 			tpos += d.computeRetransmitTimeout(rsbd.buffer.resend(), rsbd.buffer.id());
 			
-			_rstub.pushTimer(pack32(bufidx, rsbd.uid), tpos);
+			_rstub.pushTimer(pack(bufidx, rsbd.uid), tpos);
 			vdbgx(Dbg::ipc, "sent data "<<rsbd.buffer<<" pending");
 		}else{
 			COLLECT_DATA_0(d.statistics.sendPending);
@@ -2448,7 +2478,7 @@ void Session::doTryScheduleKeepAlive(Talker::TalkerStub &_rstub){
 		
 		vdbgx(Dbg::ipc, "can send keepalive "<<idx<<' '<<rsbd.uid);
 		
-		_rstub.pushTimer(pack32(idx, rsbd.uid), tpos);
+		_rstub.pushTimer(pack(idx, rsbd.uid), tpos);
 	}
 }
 //---------------------------------------------------------------------

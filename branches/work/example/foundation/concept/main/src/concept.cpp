@@ -88,6 +88,7 @@ int pairfd[2];
 
 struct Params{
 	int			start_port;
+	uint32		network_id;
 	string		dbg_levels;
 	string		dbg_modules;
 	string		dbg_addr;
@@ -245,7 +246,7 @@ int main(int argc, char* argv[]){
 
 	{
 
-		concept::Manager	m;
+		concept::Manager	m(p.network_id);
 		SignalResultWaiter	rw;
 		int 				rv;
 		
@@ -544,14 +545,14 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 		options_description desc("SolidFrame concept application");
 		desc.add_options()
 			("help,h", "List program options")
-			("base_port,b", value<int>(&_par.start_port)->default_value(1000),
-					"Base port")
+			("base_port,b", value<int>(&_par.start_port)->default_value(1000),"Base port")
+			("network_id,n", value<uint32>(&_par.network_id)->default_value(0), "Network id")
 			("debug_levels,l", value<string>(&_par.dbg_levels)->default_value("view"),"Debug logging levels")
 			("debug_modules,m", value<string>(&_par.dbg_modules),"Debug logging modules")
 			("debug_address,a", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")
 			("debug_port,p", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")
 			("debug_console,c", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")
-			("debug_unbuffered,s", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered")
+			("debug_unbuffered,s", value<bool>(&_par.dbg_buffered)->implicit_value(true)->default_value(false), "Debug unbuffered")
 			("use_log,L", value<bool>(&_par.log)->implicit_value(true)->default_value(false), "Debug buffered")
 	/*		("verbose,v", po::value<int>()->implicit_value(1),
 					"enable verbosity (optionally specify level)")*/

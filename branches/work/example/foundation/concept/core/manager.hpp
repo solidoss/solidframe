@@ -56,7 +56,7 @@ typedef foundation::Scheduler<foundation::ObjectSelector>	SchedulerT;
 */
 class Manager: public foundation::Manager{
 public:
-	Manager();
+	Manager(uint32 _networkid = 0);
 	
 	~Manager();
 	

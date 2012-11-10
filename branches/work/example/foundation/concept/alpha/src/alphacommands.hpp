@@ -270,8 +270,12 @@ public:
 	template <int U>
 	int reinitReader(Reader &, protocol::Parameter &);
 private:
-	typedef std::pair<String, String>	HostAddrPairT;
-	typedef std::vector<HostAddrPairT>	HostAddrVectorT;
+	struct HostAddr{
+		String	addr;
+		String	port;
+		uint32	netid;
+	};
+	typedef std::vector<HostAddr>	HostAddrVectorT;
 	String						strpth;
 	HostAddrVectorT				hostvec;
 	uint32						pausems;

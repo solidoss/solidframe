@@ -140,7 +140,7 @@ int main(int argc, char *argv[]){
 		cout<<"./file_open_pool /path/to/folder file-count folder-count"<<endl;
 		return 0;
 	}
-	char c;
+	//char c;
 	char name[1024];
 	int filecnt   = atoi(argv[2]);
 	int foldercnt   = atoi(argv[3]);

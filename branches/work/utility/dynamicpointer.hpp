@@ -79,7 +79,7 @@ public:
 	}
 	template <class O>
 	DynamicPointerT& operator=(const DynamicSharedPointer<O> &_rcp){
-		DynamicT *p(_rcp.release());
+		DynamicT *p(_rcp.get());
 		if(p == pdyn){
 			return *this;
 		}

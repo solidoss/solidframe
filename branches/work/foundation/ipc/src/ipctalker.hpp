@@ -56,7 +56,7 @@ struct ConnectData{
 		s('s'), f('f'), i('i'), p('p'), c('c'), type(0),
 		version_major(VersionMajor), version_minor(VersionMinor),
 		flags(0), baseport(0), timestamp_s(0), timestamp_n(0),
-		relayid(0), networkid(0){}
+		relayid(0), receivernetworkid(0), sendernetworkid(0){}
 	
 	uint8					s;
 	uint8					f;
@@ -72,8 +72,10 @@ struct ConnectData{
 	uint32					timestamp_n;
 	//relay
 	uint32					relayid;
-	uint32					networkid;
-	SocketAddressInet		address;
+	uint32					receivernetworkid;
+	SocketAddressInet		receiveraddress;
+	uint32					sendernetworkid;
+	SocketAddressInet		senderaddress;
 };
 
 struct AcceptData{
@@ -146,7 +148,7 @@ private:
 		const uint32 _bufsz,
 		const SocketAddress &_rsap
 	);
-	void doInsertNewSessions();
+	void doInsertNewSessions(TalkerStub &_rstub);
 	void doDispatchSignals();
 	void doDispatchEvents();
 	int doSendBuffers(TalkerStub &_rstub, const ulong _sig);

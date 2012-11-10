@@ -72,7 +72,7 @@ struct Controller: Dynamic<Controller, DynamicShared<> >{
 		uint32 &_bl
 	);
 	
-	virtual const SocketAddress& gatewayAddress(
+	virtual SocketAddressStub gatewayAddress(
 		const uint _idx,
 		const uint32 _netid_dest,
 		const SocketAddressStub &_rsas_dest
@@ -234,6 +234,11 @@ public:
 		AuthenticationFlag = 16,//!< The signal is for authentication
 		DisconnectAfterSendFlag = 32,//!< Disconnect the session after sending the signal
 	};
+	
+	enum Errors{
+		NoError = 0,
+		NoGatewayError = 100,
+	};
 	typedef serialization::IdTypeMapper<
 		serialization::binary::Serializer,
 		serialization::binary::Deserializer,
@@ -243,6 +248,8 @@ public:
 	
 	static Service& the();
 	static Service& the(const IndexT &_ridx);
+	
+	static const char* errorText(int _err);
 	
 	Service(
 		const DynamicPointer<Controller> &_rctrlptr,
@@ -374,6 +381,7 @@ public:
 	void insertObject(Talker &_ro, const ObjectUidT &_ruid);
 	void eraseObject(const Talker &_ro);
 	const serialization::TypeMapperBase& typeMapperBase() const;
+	
 private:
 	friend class Talker;
 	friend class Session;
@@ -410,6 +418,9 @@ private:
 		uint32	_flags
 	);
 	int acceptSession(const SocketAddress &_rsa, const ConnectData &_rconndata);
+	int doAcceptBasicSession(const SocketAddress &_rsa, const ConnectData &_rconndata);
+	int doAcceptRelaySession(const SocketAddress &_rsa, const ConnectData &_rconndata);
+	int doAcceptGatewaySession(const SocketAddress &_rsa, const ConnectData &_rconndata);
 	bool checkAcceptData(const SocketAddress &_rsa, const AcceptData &_raccdata);
 	void disconnectSession(Session *_pses);
 	void disconnectTalkerSessions(Talker &);

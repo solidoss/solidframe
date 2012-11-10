@@ -165,6 +165,7 @@ inline uint32 Buffer::relay()const{
 }
 
 inline void Buffer::relay(const uint32 _relayid){
+	this->flags(this->flags() | RelayFlag);
 	serialization::binary::store(pb + BaseSize, _relayid);
 }
 

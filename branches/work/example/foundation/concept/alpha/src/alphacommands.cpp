@@ -250,12 +250,14 @@ void RemoteList::initReader(Reader &_rr){
 	typedef CharFilter<' '>				SpaceFilterT;
 	typedef NotFilter<SpaceFilterT> 	NotSpaceFilterT;
 	
-	hostvec.push_back(HostAddrPairT());
+	hostvec.push_back(HostAddr());
 	
 	_rr.push(&Reader::reinitExtended<RemoteList, 0>, protocol::Parameter(this));
-	_rr.push(&Reader::fetchAString, protocol::Parameter(&hostvec.back().second));
+	_rr.push(&Reader::fetchUInt32, protocol::Parameter(&hostvec.back().netid));
 	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
-	_rr.push(&Reader::fetchAString, protocol::Parameter(&hostvec.back().first));
+	_rr.push(&Reader::fetchAString, protocol::Parameter(&hostvec.back().port));
+	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
+	_rr.push(&Reader::fetchAString, protocol::Parameter(&hostvec.back().addr));
 	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
 	_rr.push(&Reader::fetchAString, protocol::Parameter(&strpth));
 	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
@@ -266,21 +268,23 @@ int RemoteList::reinitReader<OK>(Reader &_rr, protocol::Parameter &){
 	typedef CharFilter<' '>				SpaceFilterT;
 	typedef NotFilter<SpaceFilterT> 	NotSpaceFilterT;
 	
-	hostvec.push_back(HostAddrPairT());
+	hostvec.push_back(HostAddr());
 	
 	_rr.push(&Reader::returnValue<true>, protocol::Parameter(Reader::Ok));
 	_rr.push(&Reader::fetchUInt32, protocol::Parameter(&pausems));
 	
 	//the pause amount
 	_rr.push(&Reader::pop, protocol::Parameter(2));
-	_rr.push(&Reader::fetchAString, protocol::Parameter(&hostvec.back().second));
+	_rr.push(&Reader::fetchUInt32, protocol::Parameter(&hostvec.back().netid));
 	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
-	_rr.push(&Reader::fetchAString, protocol::Parameter(&hostvec.back().first));
+	_rr.push(&Reader::fetchAString, protocol::Parameter(&hostvec.back().port));
+	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
+	_rr.push(&Reader::fetchAString, protocol::Parameter(&hostvec.back().addr));
 	
 	//not a digit
-	_rr.push(&Reader::checkIfCharThenPop<DigitFilter>, protocol::Parameter(4));
+	_rr.push(&Reader::checkIfCharThenPop<DigitFilter>, protocol::Parameter(6));
 	_rr.push(&Reader::dropChar);//SPACE
-	_rr.push(&Reader::checkIfCharThenPop<NotSpaceFilterT>, protocol::Parameter(7));
+	_rr.push(&Reader::checkIfCharThenPop<NotSpaceFilterT>, protocol::Parameter(9));
 	return Reader::Continue;
 }
 
@@ -288,7 +292,7 @@ int RemoteList::execute(Connection &_rc){
 	pp = &_rc.writer().push(&Writer::putStatus);
 	*pp = protocol::Parameter(StrDef(" OK Done REMOTELIST@"));
 	
-	if(hostvec.back().first.empty()){
+	if(hostvec.back().addr.empty()){
 		hostvec.pop_back();
 	}
 	
@@ -300,14 +304,14 @@ int RemoteList::execute(Connection &_rc){
 	sig_sp->fromv.second = Manager::the().uid(_rc);
 	
 	for(HostAddrVectorT::const_iterator it(hostvec.begin()); it != hostvec.end(); ++it){
-		const String &straddr(it->first);
-		const String &port(it->second);
+		const String &straddr(it->addr);
+		const String &port(it->port);
 		idbg("addr"<<straddr<<" port = "<<port);
 		ResolveData rd = synchronous_resolve(straddr.c_str(), port.c_str(), 0, SocketInfo::Inet4, SocketInfo::Stream);
 		if(!rd.empty()){
 			state = Wait;
 			DynamicPointer<fdt::Signal> sigptr(sig_sp);
-			Manager::the().ipc().sendSignal(sigptr, rd.begin()/*, fdt::ipc::Service::SameConnectorFlag*/);
+			Manager::the().ipc().sendSignal(sigptr, rd.begin(), it->netid/*, fdt::ipc::Service::SameConnectorFlag*/);
 			_rc.writer().push(&Writer::reinit<RemoteList>, protocol::Parameter(this));
 		}else{
 			*pp = protocol::Parameter(StrDef(" NO REMOTELIST: no such peer address@"));

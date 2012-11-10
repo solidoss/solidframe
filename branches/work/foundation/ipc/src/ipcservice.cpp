@@ -165,6 +165,19 @@ Service::Data::~Data(){
 
 //=======	Service		===============================================
 
+/*static*/ const char* Service::errorText(int _err){
+	switch(_err){
+		case BAD:
+			return "Generic Error";
+		case NoError:
+			return "No Error";
+		case NoGatewayError:
+			return "No Gateway Error";
+		default:
+			return "Unknown Error";
+	}
+}
+
 /*static*/ Service& Service::the(){
 	return *m().service<Service>();
 }
@@ -485,6 +498,18 @@ int Service::allocateTalkerForNewSession(bool _force){
 }
 //---------------------------------------------------------------------
 int Service::acceptSession(const SocketAddress &_rsa, const ConnectData &_rconndata){
+	if(_rconndata.type == ConnectData::BasicType){
+		return doAcceptBasicSession(_rsa, _rconndata);
+	}else if(controller().isLocalNetwork(_rconndata.receiveraddress, _rconndata.receivernetworkid)){
+		return doAcceptRelaySession(_rsa, _rconndata);
+	}else if(controller().isGateway()){
+		return doAcceptGatewaySession(_rsa, _rconndata);
+	}else{
+		return NoGatewayError;
+	}
+}
+//---------------------------------------------------------------------
+int Service::doAcceptBasicSession(const SocketAddress &_rsa, const ConnectData &_rconndata){
 	Locker<Mutex>				lock(serviceMutex());
 	SocketAddressInet4			inaddr(_rsa);
 	Session						*pses = new Session(
@@ -548,6 +573,77 @@ int Service::acceptSession(const SocketAddress &_rsa, const ConnectData &_rconnd
 	return OK;
 }
 //---------------------------------------------------------------------
+//accept session on destination, receiver
+int Service::doAcceptRelaySession(const SocketAddress &_rsa, const ConnectData &_rconndata){
+	Locker<Mutex>				lock(serviceMutex());
+	SocketAddressInet4			inaddr(_rsa);
+	Session						*pses = new Session(
+		_rconndata.sendernetworkid,
+		inaddr,
+		_rconndata
+	);
+	{
+		//TODO: see if the locking is ok!!!
+		
+		Data::SessionRelayAddr4MapT::iterator	it(d.sessionrelayaddr4map.find(pses->peerRelayAddress4()));
+		
+		if(it != d.sessionrelayaddr4map.end()){
+			//a connection still exists
+			IndexT			tkrpos(Manager::the().computeIndex(d.tkrvec[it->second.tid].uid.first));
+			Locker<Mutex>	lock2(this->mutex(tkrpos));
+			Talker			*ptkr(static_cast<Talker*>(this->objectAt(tkrpos)));
+			
+			vdbgx(Dbg::ipc, "");
+			
+			ptkr->pushSession(pses, it->second, true);
+			
+			if(ptkr->signal(fdt::S_RAISE)){
+				Manager::the().raiseObject(*ptkr);
+			}
+			return OK;
+		}
+	}
+	int		tkrid(allocateTalkerForNewSession());
+	IndexT	tkrpos;
+	uint32	tkruid;
+	
+	if(tkrid >= 0){
+		//the talker exists
+		tkrpos = d.tkrvec[tkrid].uid.first;
+		tkruid = d.tkrvec[tkrid].uid.second;
+	}else{
+		//create new talker
+		tkrid = createNewTalker(tkrpos, tkruid);
+		if(tkrid < 0){
+			tkrid = allocateTalkerForNewSession(true/*force*/);
+		}
+		tkrpos = d.tkrvec[tkrid].uid.first;
+		tkruid = d.tkrvec[tkrid].uid.second;
+	}
+	
+	tkrpos = Manager::the().computeIndex(tkrpos);
+	
+	Locker<Mutex>	lock2(this->mutex(tkrpos));
+	Talker			*ptkr(static_cast<Talker*>(this->objectAt(tkrpos)));
+	cassert(ptkr);
+	ConnectionUid	conid(tkrid, 0xffff, 0xffff);
+	
+	vdbgx(Dbg::ipc, "");
+	
+	ptkr->pushSession(pses, conid);
+	d.sessionrelayaddr4map[pses->peerRelayAddress4()] = conid;
+	
+	if(ptkr->signal(fdt::S_RAISE)){
+		Manager::the().raiseObject(*ptkr);
+	}
+	return OK;
+}
+//---------------------------------------------------------------------
+int Service::doAcceptGatewaySession(const SocketAddress &_rsa, const ConnectData &_rconndata){
+	
+	return BAD;
+}
+//---------------------------------------------------------------------
 void Service::connectSession(const SocketAddressInet4 &_raddr){
 	Locker<Mutex>	lock(serviceMutex());
 	int				tkrid(allocateTalkerForNewSession());
@@ -590,7 +686,11 @@ void Service::disconnectTalkerSessions(Talker &_rtkr){
 }
 //---------------------------------------------------------------------
 void Service::disconnectSession(Session *_pses){
-	d.sessionaddr4map.erase(_pses->peerBaseAddress4());
+	if(_pses->isRelayType()){
+		d.sessionrelayaddr4map.erase(_pses->peerRelayAddress4());
+	}else{
+		d.sessionaddr4map.erase(_pses->peerBaseAddress4());
+	}
 	//Use:Context::the().sigctx.connectionuid.tid
 	int tkrid(Context::the().sigctx.connectionuid.tid);
 	Data::TalkerStub &rts(d.tkrvec[tkrid]);
@@ -790,13 +890,12 @@ void Controller::sendEvent(
 }
 
 
-/*virtual*/ const SocketAddress& Controller::gatewayAddress(
+/*virtual*/ SocketAddressStub Controller::gatewayAddress(
 	const uint _idx,
 	const uint32 _netid_dest,
 	const SocketAddressStub &_rsas_dest
 ){
-	const SocketAddress *psa = NULL;
-	return *psa;
+	return SocketAddressStub();
 }
 
 //retval:

@@ -350,7 +350,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 			idbgx(Dbg::ipc, "unknown signal");
 		}
 		if(d.newsessionvec.size()){
-			doInsertNewSessions();
+			doInsertNewSessions(ts);
 		}
 		if(d.sigq.size()){
 			doDispatchSignals();
@@ -473,28 +473,40 @@ void Talker::doDispatchReceivedBuffer(
 		case Buffer::DataType:{
 			COLLECT_DATA_0(d.statistics.receivedData);
 			idbgx(Dbg::ipc, "data buffer");
-			SocketAddressInet4				inaddr(_rsa);
-			Data::PeerAddr4MapT::iterator	pit(d.peeraddr4map.find(&inaddr));
-			if(pit != d.peeraddr4map.end()){
-				idbgx(Dbg::ipc, "found session for buffer");
-				d.receivedbufvec.push_back(Data::RecvBuffer(_pbuf, _bufsz, pit->second));
-				buf.release();
-			}else{
-				COLLECT_DATA_0(d.statistics.receivedDataUnknown);
-				if(buf.check()){
-					d.rservice.connectSession(inaddr);
+			if(!buf.isRelay()){
+				SocketAddressInet4				inaddr(_rsa);
+				Data::PeerAddr4MapT::iterator	pit(d.peeraddr4map.find(&inaddr));
+				if(pit != d.peeraddr4map.end()){
+					idbgx(Dbg::ipc, "found session for buffer "<<pit->second);
+					d.receivedbufvec.push_back(Data::RecvBuffer(_pbuf, _bufsz, pit->second));
+					buf.release();
+				}else{
+					COLLECT_DATA_0(d.statistics.receivedDataUnknown);
+					if(buf.check()){
+						d.rservice.connectSession(inaddr);
+					}
+					//proc
+					Buffer::deallocate(buf.release());
 				}
-				//proc
-				Buffer::deallocate(buf.release());
+			}else{
+				uint16	sessidx;
+				uint16	sessuid;
+				unpack(sessidx, sessuid, buf.relay());
+				if(sessidx < d.sessionvec.size() && d.sessionvec[sessidx].uid == sessuid && d.sessionvec[sessidx].psession){
+					idbgx(Dbg::ipc, "found session for buffer "<<sessidx<<','<<sessuid);
+					d.receivedbufvec.push_back(Data::RecvBuffer(_pbuf, _bufsz, sessidx));
+					buf.release();
+				}else{
+					Buffer::deallocate(buf.release());
+				}
 			}
-		
 		}break;
 		
 		case Buffer::ConnectType:{
 			COLLECT_DATA_0(d.statistics.receivedConnecting);
 			ConnectData			conndata;
 			
-			int					error = Session::parseConnectBuffer(buf, conndata);
+			int					error = Session::parseConnectBuffer(buf, conndata, _rsa);
 			
 			Buffer::deallocate(buf.release());
 			
@@ -522,7 +534,7 @@ void Talker::doDispatchReceivedBuffer(
 			COLLECT_DATA_0(d.statistics.receivedAccepting);
 			AcceptData			accdata;
 			
-			int					error = Session::parseAcceptBuffer(buf, accdata);
+			int					error = Session::parseAcceptBuffer(buf, accdata, _rsa);
 			const bool			isrelay = buf.isRelay();
 			const uint32		relayid = isrelay ? buf.relay() : 0;
 			
@@ -537,6 +549,7 @@ void Talker::doDispatchReceivedBuffer(
 					BaseAddress4T					ba(sa, accdata.baseport);
 					Data::BaseAddr4MapT::iterator	bit(d.baseaddr4map.find(ba));
 					if(bit != d.baseaddr4map.end() && d.sessionvec[bit->second].psession){
+						idbgx(Dbg::ipc, "accept for session "<<bit->second);
 						Data::SessionStub	&rss(d.sessionvec[bit->second]);
 						_rstub.sessionidx = bit->second;
 						rss.psession->completeConnect(_rstub, _rsa.port());
@@ -547,12 +560,15 @@ void Talker::doDispatchReceivedBuffer(
 							d.sessionexecq.push(bit->second);
 							rss.inexeq = true;
 						}
+					}else{
+						idbgx(Dbg::ipc, "");
 					}
 				}else{
 					uint16	sessidx;
 					uint16	sessuid;
 					unpack(sessidx, sessuid, relayid);
 					if(sessidx < d.sessionvec.size() && d.sessionvec[sessidx].uid == sessuid && d.sessionvec[sessidx].psession){
+						idbgx(Dbg::ipc, "relay accept for session "<<sessidx<<','<<sessuid);
 						Data::SessionStub	&rss(d.sessionvec[sessidx]);
 						_rstub.sessionidx = sessidx;
 						rss.psession->completeConnect(_rstub, _rsa.port(), accdata.relayid);
@@ -566,11 +582,14 @@ void Talker::doDispatchReceivedBuffer(
 							d.sessionexecq.push(sessidx);
 							rss.inexeq = true;
 						}
+					}else{
+						idbgx(Dbg::ipc, "");
 					}
 					
 				}
 			}else{
 				//TODO:...
+				idbgx(Dbg::ipc, "");
 			}
 		}break;
 		case Buffer::ErrorType:{
@@ -745,7 +764,7 @@ void Talker::pushSession(Session *_pses, ConnectionUid &_rconid, bool _exists){
 	d.newsessionvec.push_back(Data::SessionPairT(_pses, _rconid.idx));
 }
 //----------------------------------------------------------------------
-void Talker::doInsertNewSessions(){
+void Talker::doInsertNewSessions(TalkerStub &_rstub){
 	for(Data::SessionPairVectorT::const_iterator it(d.newsessionvec.begin()); it != d.newsessionvec.end(); ++it){
 		vdbgx(Dbg::ipc, "newsession idx = "<<it->second<<" session vector size = "<<d.sessionvec.size());
 		
@@ -755,13 +774,16 @@ void Talker::doInsertNewSessions(){
 		Data::SessionStub &rss(d.sessionvec[it->second]);
 		Context::the().sigctx.connectionuid.idx = it->second;
 		Context::the().sigctx.connectionuid.uid = rss.uid;
+		_rstub.sessionidx = it->second;
 		
 		if(rss.psession == NULL){
 			rss.psession = it->first;
-			rss.psession->prepare();
-			d.baseaddr4map[rss.psession->peerBaseAddress4()] = it->second;
-			if(rss.psession->isConnected()){
-				d.peeraddr4map[&rss.psession->peerAddress4()] = it->second;
+			rss.psession->prepare(_rstub);
+			if(!rss.psession->isRelayType()){
+				d.baseaddr4map[rss.psession->peerBaseAddress4()] = it->second;
+				if(rss.psession->isConnected()){
+					d.peeraddr4map[&rss.psession->peerAddress4()] = it->second;
+				}
 			}
 			if(!rss.inexeq){
 				d.sessionexecq.push(it->second);
@@ -769,10 +791,14 @@ void Talker::doInsertNewSessions(){
 			}
 		}else{//a reconnect
 			rss.psession->prepareContext(Context::the());
-			d.peeraddr4map.erase(&rss.psession->peerAddress4());
+			if(!rss.psession->isRelayType()){
+				d.peeraddr4map.erase(&rss.psession->peerAddress4());
+			}
 			rss.psession->reconnect(it->first);
 			++rss.uid;
-			d.peeraddr4map[&rss.psession->peerAddress4()] = it->second;
+			if(!rss.psession->isRelayType()){
+				d.peeraddr4map[&rss.psession->peerAddress4()] = it->second;
+			}
 			if(!rss.inexeq){
 				d.sessionexecq.push(it->second);
 				rss.inexeq = true;
@@ -861,15 +887,16 @@ void Talker::disconnectSessions(){
 			idbgx(Dbg::ipc, "deleting session "<<(void*)rss.psession<<" on pos "<<*it);
 			d.rservice.disconnectSession(rss.psession);
 			//unregister from base and peer:
-			if(!rss.psession->peerAddress4().isInvalid()){
-				d.peeraddr4map.erase(&rss.psession->peerAddress4());
+			if(!rss.psession->isRelayType()){
+				if(!rss.psession->peerAddress4().isInvalid()){
+					d.peeraddr4map.erase(&rss.psession->peerAddress4());
+				}
+				if(
+					!rss.psession->peerBaseAddress4().first.isInvalid()
+				){
+					d.baseaddr4map.erase(rss.psession->peerBaseAddress4());
+				}
 			}
-			if(
-				!rss.psession->peerBaseAddress4().first.isInvalid()
-			){
-				d.baseaddr4map.erase(rss.psession->peerBaseAddress4());
-			}
-			
 			delete rss.psession;
 			rss.psession = NULL;
 			rss.inexeq = false;
