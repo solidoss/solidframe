@@ -173,55 +173,24 @@ private:
 	const uint32	seskeepalive;
 };
 
-//! A Inter Process Communication service
+//! An Inter Process Communication service
 /*!
-	<b>Overview:</b><br>
-	- In its current state it only uses UDP for communication.
-	- It can only send/receive signal objects (objects of a type
-	derived from foundation::Signal).
-	- It uses non portable, binary serialization, aiming for speed
-	not for versatility.
-	- For udp communication uses connectors which resembles somehow
-	the tcp connections.
-	- There can be at most one connector linking two processes, and it 
-	is created when first send something.
-	- More than one connectors are handled by a single 
-	foundation::udp::Talker. There is a base connector used for both
-	communication and accepting/creating new connectors. Also new talkers
-	can be created when the number of connectors increases.
-	- Because there can be only one connector to a peer process, and 
-	signals can be quite big (i.e. signals sending streams) a signal
-	multiplexing algorithm is implemented.
-	- An existing connector can be identified by it unique id: 
-	foundation::ipc::ConnectionUid or by its base address (inetaddr and port).
-	- The ipc service should (i.e. it is a bug if it doesnt) ensure that
-	 a response (or a signal sent using SameConnectorFlag) will not
-	 be sent if the a peer process restart is detected.
+	Allow for sending/receiving serializable foundation::Signal objects between
+	processes.
+	For processes within the same network, the signals are sent using a reliable
+	protocol based on UDP.
+	For processes within different networks, SolidFrame allows for configuring
+	gateway processes which will allow tunneling the ipc signals between 
+	networks over secure TCP connections.
+	A process is identified by a tuple [networkid, IP address, base port].<br>
+	+ networkid - the id of the network for the destination process. Default
+	value is LocalNetworkId in which case no relay is used.<br>
+	+ IPaddress:base port - because we want to scale up, the IPC service uses
+	multiple UPD sockets to communicate between processes. One of these sockets 
+	is opened on a defined port, and is the one receiving "Connect" messages.
+	After a session is established between two processes, the communication may
+	continue between other UDP sockets (on random ports).<br>
 	
-	<b>Usage:</b><br>
-	- On manager init, add the base taker to the ipc::Service
-	- Then make your signals serializable
-	- Send signals using a ipc::Service::sendSignal method.
-	
-	<b>Notes:</b><br>
-	- Despite it's simple interface, the ipc service is quite complex
-	software because it must ensure reliable communication over udp,
-	emulating somehow the tcp.<br>
-	- There is no implementation of keep alive, so a peer process restart
-	will only be detected when some communication happens in either way.<br>
-	- The ipc library is a nice example of how powerfull and flexible is the
-	asynchrounous communication engine.<br>
-	- When needed, new talkers will be created with ports values starting 
-	incrementally from baseaddress port + 1.<br>
-	- using SynchronousSendFlag flag a signal can be made synchronous, which
-	means that no other synchronous signals are sent while sending a synchronous
-	signal. A synchronous signal can still be multiplexed with non synchronous
-	ones. Here is the problem: suppose you have a big signal spanned over multiple
-	ipc buffers, another signal sent after the first one, can arrive on the 
-	peer side before the first bigger signal. If someone needs to ensure
-	that some signals are delivered one after another, all he needs to do
-	is make them Synchronous (using Synchronous). The signal will still be
-	multiplexed with non-synchronous signals.<br>
 */
 class Service: public Dynamic<Service, foundation::Service>{
 public:
