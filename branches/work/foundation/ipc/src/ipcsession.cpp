@@ -530,7 +530,7 @@ Session::Data::~Data(){
 	Context::the().sigctx.signaluid.idx = 0xffffffff;
 	Context::the().sigctx.signaluid.uid = 0xffffffff;
 	while(signalq.size()){
-		signalq.front().signal->ipcFail(0);
+		signalq.front().signal->ipcComplete(-1);
 		signalq.pop();
 	}
 	while(this->rcvdsignalq.size()){
@@ -554,10 +554,10 @@ Session::Data::~Data(){
 		if(rssd.signal.get()){
 			if((rssd.flags & Service::WaitResponseFlag) && (rssd.flags & Service::SentFlag)){
 				//the was successfully sent but the response did not arrive
-				rssd.signal->ipcFail(1);
+				rssd.signal->ipcComplete(-2);
 			}else{
 				//the signal was not successfully sent
-				rssd.signal->ipcFail(0);
+				rssd.signal->ipcComplete(-1);
 			}
 			rssd.signal.clear();
 		}
@@ -710,7 +710,7 @@ void Session::Data::popSentWaitSignal(const SignalUid &_rsiguid){
 		Context::the().sigctx.signaluid.idx = _rsiguid.idx;
 		Context::the().sigctx.signaluid.uid = rssd.uid;
 		++rssd.uid;
-		rssd.signal->ipcSuccess();
+		rssd.signal->ipcComplete(0);
 		rssd.signal.clear();
 		sendsignalfreeposstk.push(_rsiguid.idx);
 		--sentsignalwaitresponse;
@@ -1282,7 +1282,7 @@ void Session::reconnect(Session *_pses){
 		if(!(rssd.flags & Service::SameConnectorFlag)){
 			if(rssd.flags & Service::WaitResponseFlag && rssd.flags & Service::SentFlag){
 				//if the signal was sent and were waiting for response - were not sending twice
-				rssd.signal->ipcFail(1);
+				rssd.signal->ipcComplete(-2);
 				rssd.signal.clear();
 				++rssd.uid;
 			}
@@ -1290,9 +1290,9 @@ void Session::reconnect(Session *_pses){
 		}else{
 			vdbgx(Dbg::ipc, "signal not scheduled for resend");
 			if(rssd.flags & Service::WaitResponseFlag && rssd.flags & Service::SentFlag){
-				rssd.signal->ipcFail(1);
+				rssd.signal->ipcComplete(-2);
 			}else{
-				rssd.signal->ipcFail(0);
+				rssd.signal->ipcComplete(-1);
 			}
 			rssd.signal.clear();
 			++rssd.uid;
@@ -1805,7 +1805,7 @@ void Session::doParseBuffer(Talker::TalkerStub &_rstub, const Buffer &_rbuf/*, c
 			rrsd.psignal = NULL;
 			
 			if(d.state == Data::Connected){
-				//rrsd.psignal->ipcReceived(siguid);
+				//rrsd.psignal->ipcReceive(siguid);
 				if(!rctrl.receive(psignal, siguid)){
 					d.state = Data::Disconnecting;
 				}

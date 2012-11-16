@@ -70,7 +70,7 @@ struct SignalUid{
 	<br>
 	Remember that signals can be broadcasted to multiple destinations.
 	The ConnectionContext helps a signal know which ipc sessions calls its
-	callbacks (Signal::ipcFail, Signal::ipcSuccess, Signal::ipcReceive).<br>
+	callbacks (Signal::ipcComplete, Signal::ipcReceive).<br>
 	Also for the case when we want to wait for response, on signal
 	serialization we need to use the signaluid from the current context.
 	

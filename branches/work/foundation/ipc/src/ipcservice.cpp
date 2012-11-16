@@ -856,7 +856,7 @@ bool Controller::receive(
 	Signal *_psig,
 	ipc::SignalUid &_rsiguid
 ){
-	_psig->ipcReceived(_rsiguid);
+	_psig->ipcReceive(_rsiguid);
 	return true;
 }
 

@@ -37,18 +37,18 @@ struct Signal: Dynamic<Signal, DynamicShared<foundation::Signal> >{
 	};
 	Signal();
 	~Signal();
-	void ipcReceived(
-		foundation::ipc::SignalUid &_rsiguid
-	);
+	
 	template <class S>
 	S& operator&(S &_s){
 		_s.push(replicaidx, "replicaidx").push(state, "state");
 		return _s;
 	}
 	
-	uint32 ipcPrepare();
-	void ipcFail(int _err);
-	void ipcSuccess();
+	/*virtual*/ void ipcReceive(
+		foundation::ipc::SignalUid &_rsiguid
+	);
+	/*virtual*/ uint32 ipcPrepare();
+	/*virtual*/ void ipcComplete(int _err);
 	
 	void use();
 	int release();

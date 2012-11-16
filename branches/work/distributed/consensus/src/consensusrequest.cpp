@@ -93,7 +93,7 @@ WriteRequestSignal::~WriteRequestSignal(){
 	}
 }
 
-void WriteRequestSignal::ipcReceived(
+void WriteRequestSignal::ipcReceive(
 	foundation::ipc::SignalUid &_rsiguid
 ){
 	//_rsiguid = this->ipcsiguid;
@@ -147,17 +147,13 @@ uint32 WriteRequestSignal::ipcPrepare(){
 	return rv;
 }
 
-void WriteRequestSignal::ipcFail(int _err){
+void WriteRequestSignal::ipcComplete(int _err){
 	idbg((void*)this<<" sentcount = "<<(int)sentcount<<" err = "<<_err);
+	if(!_err){
+		Locker<Mutex> lock(mutex());
+		++sentcount;
+	}
 }
-
-void WriteRequestSignal::ipcSuccess(){
-	Locker<Mutex> lock(mutex());
-	++sentcount;
-	idbg((void*)this<<" sentcount = "<<(int)sentcount);
-}
-
-
 void WriteRequestSignal::use(){
 	DynamicShared<fdt::Signal>::use();
 	idbg((void*)this<<" usecount = "<<usecount);
@@ -184,7 +180,7 @@ ReadRequestSignal::~ReadRequestSignal(){
 	}
 }
 
-void ReadRequestSignal::ipcReceived(
+void ReadRequestSignal::ipcReceive(
 	foundation::ipc::SignalUid &_rsiguid
 ){
 	//_rsiguid = this->ipcsiguid;
@@ -238,16 +234,13 @@ uint32 ReadRequestSignal::ipcPrepare(){
 	return rv;
 }
 
-void ReadRequestSignal::ipcFail(int _err){
+void ReadRequestSignal::ipcComplete(int _err){
 	idbg((void*)this<<" sentcount = "<<(int)sentcount<<" err = "<<_err);
+	if(!_err){
+		Locker<Mutex> lock(mutex());
+		++sentcount;
+	}
 }
-
-void ReadRequestSignal::ipcSuccess(){
-	Locker<Mutex> lock(mutex());
-	++sentcount;
-	idbg((void*)this<<" sentcount = "<<(int)sentcount);
-}
-
 
 void ReadRequestSignal::use(){
 	DynamicShared<fdt::Signal>::use();

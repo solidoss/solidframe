@@ -74,14 +74,13 @@ struct Signal: Dynamic<Signal>{
 			so that when the response comes back, it gives it back to the 
 			ipc module.
 	*/
-	virtual void ipcReceived(
+	virtual void ipcReceive(
 		ipc::SignalUid &_waitingsignaluid
 	);
 	//! Called by ipc module, before the signal begins to be serialized
 	virtual uint32 ipcPrepare();
 	//! Called by ipc module on peer failure detection (disconnect,reconnect)
-	virtual void ipcFail(int _err);
-	virtual void ipcSuccess();
+	virtual void ipcComplete(int _error);
 	
 	//! Called by the SignalExecuter
 	virtual int execute(

@@ -78,12 +78,12 @@ struct RemoteListSignal: Dynamic<RemoteListSignal, DynamicShared<foundation::Sig
 		const SignalUidT &, TimeSpec &_rts
 	);
 	
-	void ipcReceived(
+	/*virtual*/ void ipcReceive(
 		foundation::ipc::SignalUid &_rsiguid
 	);
-	uint32 ipcPrepare();
-	void ipcFail(int _err);
-	void ipcSuccess();
+	/*virtual*/ uint32 ipcPrepare();
+	/*virtual*/ void ipcComplete(int _err);
+	
 	void use();
 	int release();
 
@@ -140,11 +140,11 @@ struct FetchMasterSignal: Dynamic<FetchMasterSignal, foundation::Signal>{
 	FetchMasterSignal():psig(NULL), fromv(0xffffffff, 0xffffffff), state(NotReceived), streamsz(0), filesz(0), filepos(0), requid(0){
 	}
 	~FetchMasterSignal();
-	uint32 ipcPrepare();
-	void ipcReceived(
+	/*virtual*/ uint32 ipcPrepare();
+	/*virtual*/ void ipcReceive(
 		foundation::ipc::SignalUid &_rsiguid
 	);
-	void ipcFail(int _err);
+	/*virtual*/ void ipcComplete(int _err);
 	
 	int execute(
 		DynamicPointer<Signal> &_rthis_ptr,
@@ -192,7 +192,7 @@ struct FetchMasterSignal: Dynamic<FetchMasterSignal, foundation::Signal>{
 struct FetchSlaveSignal: Dynamic<FetchSlaveSignal, foundation::Signal>{
 	FetchSlaveSignal();
 	~FetchSlaveSignal();
-	void ipcReceived(
+	void ipcReceive(
 		foundation::ipc::SignalUid &_rsiguid
 	);
 	int sent(const foundation::ipc::ConnectionUid &);
@@ -270,7 +270,7 @@ struct SendStringSignal: Dynamic<SendStringSignal, foundation::Signal>{
 		uint32 _fromobjuid
 	):str(_str), tov(_toobjid, _toobjuid), fromv(_fromobjid, _fromobjuid){}
 	
-	void ipcReceived(
+	void ipcReceive(
 		foundation::ipc::SignalUid &_rsiguid
 	);
 	template <class S>
@@ -307,7 +307,7 @@ struct SendStreamSignal: Dynamic<SendStreamSignal, foundation::Signal>{
 	}
 	std::pair<uint32, uint32> to()const{return tov;}
 	std::pair<uint32, uint32> from()const{return fromv;}
-	void ipcReceived(
+	void ipcReceive(
 		foundation::ipc::SignalUid &_rsiguid
 	);
 

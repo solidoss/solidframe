@@ -73,7 +73,7 @@ uint32 RemoteListSignal::ipcPrepare(){
 		return 0/*foundation::ipc::Service::SynchronousSendFlag*/;// on peer
 	}
 }
-void RemoteListSignal::ipcReceived(
+void RemoteListSignal::ipcReceive(
 	fdt::ipc::SignalUid &_rsiguid
 ){
 	DynamicPointer<fdt::Signal> psig(this);
@@ -90,19 +90,18 @@ void RemoteListSignal::ipcReceived(
 		m().signal(psig, fromv.first, fromv.second);
 	}
 }
-void RemoteListSignal::ipcFail(int _err){
+void RemoteListSignal::ipcComplete(int _err){
 	Locker<Mutex> lock(mutex());
 	err = _err;
-	if(ipcstatus == IpcOnSender){
-		idbg("failed on sender "<<(void*)this);
+	if(!_err){
+		success = 2;
 	}else{
-		idbg("failed on peer");
+		if(ipcstatus == IpcOnSender){
+			idbg("failed on sender "<<(void*)this);
+		}else{
+			idbg("failed on peer");
+		}
 	}
-}
-void RemoteListSignal::ipcSuccess(){
-	Locker<Mutex> lock(mutex());
-	success = 2;
-	idbg("");
 }
 
 int RemoteListSignal::execute(
@@ -173,9 +172,11 @@ FetchMasterSignal::~FetchMasterSignal(){
 	idbg((void*)this<<"");
 }
 
-void FetchMasterSignal::ipcFail(int _err){
+void FetchMasterSignal::ipcComplete(int _err){
 	idbg((void*)this<<"");
-	Manager::the().signal(fdt::S_RAISE | fdt::S_KILL, fromv.first, fromv.second);
+	if(_err){
+		Manager::the().signal(fdt::S_RAISE | fdt::S_KILL, fromv.first, fromv.second);
+	}
 }
 void FetchMasterSignal::print()const{
 	idbg((void*)this<<" FetchMasterSignal:");
@@ -190,7 +191,7 @@ uint32 FetchMasterSignal::ipcPrepare(){
 }
 
 
-void FetchMasterSignal::ipcReceived(
+void FetchMasterSignal::ipcReceive(
 	fdt::ipc::SignalUid &_rsiguid
 ){
 	DynamicPointer<fdt::Signal> sig(this);
@@ -397,7 +398,7 @@ int FetchSlaveSignal::sent(const fdt::ipc::ConnectionUid &_rconid){
 uint32 FetchSlaveSignal::ipcPrepare(){
 	return 0;//foundation::ipc::Service::SynchronousSendFlag;
 }
-void FetchSlaveSignal::ipcReceived(
+void FetchSlaveSignal::ipcReceive(
 	fdt::ipc::SignalUid &_rsiguid
 ){
 	DynamicPointer<fdt::Signal> psig(this);
@@ -441,7 +442,7 @@ void FetchSlaveSignal::clearOutputStream(){
 // SendStringSignal
 //-----------------------------------------------------------------------------------
 
-void SendStringSignal::ipcReceived(
+void SendStringSignal::ipcReceive(
 	fdt::ipc::SignalUid &_rsiguid
 ){
 	DynamicPointer<fdt::Signal> psig(this);
@@ -457,7 +458,7 @@ void SendStringSignal::ipcReceived(
 // SendStreamSignal
 //-----------------------------------------------------------------------------------
 
-void SendStreamSignal::ipcReceived(
+void SendStreamSignal::ipcReceive(
 	fdt::ipc::SignalUid &_rsiguid
 ){
 	DynamicPointer<fdt::Signal> psig(this);

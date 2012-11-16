@@ -35,7 +35,7 @@ Signal::Signal():state(OnSender){}
 Signal::~Signal(){
 	
 }
-void Signal::ipcReceived(
+void Signal::ipcReceive(
 	foundation::ipc::SignalUid &_rsiguid
 ){
 	DynamicPointer<fdt::Signal> sig(this);
@@ -73,11 +73,8 @@ uint32 Signal::ipcPrepare(){
 	rv |= foundation::ipc::Service::SameConnectorFlag;
 	return rv;
 }
-void Signal::ipcFail(int _err){
+void Signal::ipcComplete(int _err){
 	idbg((void*)this<<" err = "<<_err);
-}
-void Signal::ipcSuccess(){
-	idbg((void*)this<<"");
 }
 
 void Signal::use(){

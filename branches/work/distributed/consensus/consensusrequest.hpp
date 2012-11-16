@@ -49,9 +49,6 @@ struct WriteRequestSignal: Dynamic<WriteRequestSignal, DynamicShared<foundation:
 	WriteRequestSignal();
 	WriteRequestSignal(const RequestId &_rreqid);
 	~WriteRequestSignal();
-	void ipcReceived(
-		foundation::ipc::SignalUid &_rsiguid
-	);
 	//! Implement this to send "this" to a distributed::consensus::Object when on peer
 	/*!
 	 * While on peer (the process containing the needed distributed::consensus::Object)
@@ -81,9 +78,11 @@ struct WriteRequestSignal: Dynamic<WriteRequestSignal, DynamicShared<foundation:
 		return _s;
 	}
 	
-	uint32 ipcPrepare();
-	void ipcFail(int _err);
-	void ipcSuccess();
+	/*virtual*/ void ipcReceive(
+		foundation::ipc::SignalUid &_rsiguid
+	);
+	/*virtual*/ uint32 ipcPrepare();
+	/*virtual*/ void ipcComplete(int _err);
 	
 	void use();
 	int release();
@@ -113,9 +112,6 @@ struct ReadRequestSignal: Dynamic<ReadRequestSignal, DynamicShared<foundation::S
 	ReadRequestSignal();
 	ReadRequestSignal(const RequestId &_rreqid);
 	~ReadRequestSignal();
-	void ipcReceived(
-		foundation::ipc::SignalUid &_rsiguid
-	);
 	//! Implement this to send "this" to a distributed::consensus::Object when on peer
 	/*!
 	 * While on peer (the process containing the needed distributed::consensus::Object)
@@ -145,9 +141,11 @@ struct ReadRequestSignal: Dynamic<ReadRequestSignal, DynamicShared<foundation::S
 		return _s;
 	}
 	
-	uint32 ipcPrepare();
-	void ipcFail(int _err);
-	void ipcSuccess();
+	/*virtual*/ void ipcReceive(
+		foundation::ipc::SignalUid &_rsiguid
+	);
+	/*virtual*/ uint32 ipcPrepare();
+	/*virtual*/ void ipcComplete(int _err);
 	
 	void use();
 	int release();

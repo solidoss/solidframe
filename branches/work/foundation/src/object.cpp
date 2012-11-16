@@ -187,17 +187,14 @@ Signal::~Signal(){
 	vdbgx(Dbg::fdt, "memsub "<<(void*)this);
 }
 
-void Signal::ipcReceived(
+void Signal::ipcReceive(
 	ipc::SignalUid&
 ){
 }
 uint32 Signal::ipcPrepare(){
 	return 0;//do nothing - no wait for response
 }
-void Signal::ipcFail(int _err){
-	wdbgx(Dbg::fdt,"");
-}
-void Signal::ipcSuccess(){
+void Signal::ipcComplete(int _err){
 	wdbgx(Dbg::fdt,"");
 }
 int Signal::execute(
