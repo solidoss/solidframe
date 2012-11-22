@@ -83,7 +83,7 @@ bool  ObjectSelector::full()const{
 	return d.sz == d.sv.size();
 }
 
-int ObjectSelector::reserve(ulong _cp){
+int ObjectSelector::init(ulong _cp){
 	d.sv.resize(fast_padding_size(_cp, 2));
 	setCurrentTimeSpecific(d.ctimepos);
 	//objq.reserve(_cp);

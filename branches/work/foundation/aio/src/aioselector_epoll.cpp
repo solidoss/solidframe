@@ -23,6 +23,7 @@
 #include "system/common.hpp"
 #include <fcntl.h>
 #include <sys/epoll.h>
+#include "system/exception.hpp"
 
 #ifndef UPIPESIGNAL
 	#ifdef HAS_EVENTFD_H
@@ -199,7 +200,7 @@ Selector::Selector():d(*(new Data)){
 Selector::~Selector(){
 	delete &d;
 }
-int Selector::reserve(ulong _cp){
+int Selector::init(ulong _cp){
 	idbgx(Dbg::aio, "aio::Selector "<<(void*)this);
 	cassert(_cp);
 	d.objcp = _cp;
@@ -292,7 +293,7 @@ void Selector::raise(uint32 _pos){
 }
 
 ulong Selector::capacity()const{
-	return d.objcp - 1;
+	return d.objcp;
 }
 ulong Selector::size() const{
 	return d.objsz;
@@ -305,7 +306,11 @@ bool Selector::full()const{
 }
 
 void Selector::push(const JobT &_objptr){
-	cassert(!full());
+	if(full()){
+		//NOTE:we cannot increase selvec because, objects keep pointers to Stub structures from vector
+		//if we'd use deque instead, we'd have a performance penalty 
+		THROW_EXCEPTION("Selector full");
+	}
 	uint stubpos = doAddNewStub();
 	Stub &stub = d.stubs[stubpos];
 	

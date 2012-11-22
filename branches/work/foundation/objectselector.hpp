@@ -48,7 +48,7 @@ public:
 	
 	~ObjectSelector();
 	
-	int reserve(ulong _cp);
+	int init(ulong _cp);
 	//signal a specific object
 	void raise(uint32 _pos);
 	void run();

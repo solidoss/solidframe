@@ -21,6 +21,7 @@
 
 
 #include "system/common.hpp"
+#include "system/exception.hpp"
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/event.h>
@@ -247,7 +248,7 @@ Selector::Selector():d(*(new Data)){
 Selector::~Selector(){
 	delete &d;
 }
-int Selector::reserve(ulong _cp){
+int Selector::init(ulong _cp){
 	idbgx(Dbg::aio, "aio::Selector "<<(void*)this);
 	cassert(_cp);
 	d.objcp = _cp;
@@ -352,7 +353,9 @@ bool Selector::full()const{
 }
 
 void Selector::push(const JobT &_objptr){
-	cassert(!full());
+	if(full()){
+		THROW_EXCEPTION("Selector full");
+	}
 	uint stubpos = doAddNewStub();
 	Stub &stub = d.stubs[stubpos];
 	

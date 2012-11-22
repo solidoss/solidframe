@@ -76,8 +76,8 @@ public://definition
 	Scheduler(
 		Manager &_rm,
 		uint16 _startthrcnt = 0,
-		uint16 _maxthrcnt = 1,
-		const IndexT &_selcap = 1024
+		uint16 _maxthrcnt = 2,
+		const IndexT &_selcap = 1024 * 64
 	):SchedulerBase(_rm, _startthrcnt, _maxthrcnt, _selcap), wp(*this){
 		//slotvec.reserve(_maxthcnt > 1024 ? 1024 : _maxthcnt);
 	}
@@ -135,20 +135,23 @@ private:
 	
 	typedef std::vector<JobT>	JobVectorT;
 	bool createWorker(WorkPoolT &_rwp){
+		++crtwkrcnt;
 		Worker	*pw(_rwp.createMultiWorker(0));
 		if(pw && pw->start() != OK){
 			delete pw;
+			--crtwkrcnt;
 			return false;
 		}return true;
 	}
 	void prepareWorker(Worker &_rw){
 		prepareThread(&_rw.s);
 		_rw.s.prepare();
-		_rw.s.reserve(selcap);
+		_rw.s.init(selcap);
 	}
 	void unprepareWorker(Worker &_rw){
 		unprepareThread(&_rw.s);
 		_rw.s.unprepare();
+		--crtwkrcnt;
 	}
 	void onPush(WorkPoolT &_rwp){
 		if(_rwp.size() != 1) return;
@@ -164,14 +167,14 @@ private:
 	}
 	ulong onPopStart(WorkPoolT &_rwp, Worker &_rw, ulong){
 		if(_rw.s.full()){
+			markSelectorFull(_rw.s);
 			if(_rwp.size() && !tryRaiseOneSelector()){
 				if(crtwkrcnt < maxwkrcnt){
 					_rwp.createWorker();
 				}else{
-					return 64;//TODO:
+					raiseOneSelector();
 				}
 			}
-			markSelectorFull(_rw.s);
 			return 0;
 		}
 		markSelectorNotFull(_rw.s);

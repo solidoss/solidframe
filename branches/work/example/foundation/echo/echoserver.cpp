@@ -65,7 +65,7 @@ public:
 	int execute(ulong _sig, TimeSpec &_tout);
 	
 private:
-	enum {BUFSZ = 4*1024};
+	enum {BUFSZ = 1024};
 	enum {INIT,READ, READ_TOUT, WRITE, WRITE_TOUT, CONNECT, CONNECT_TOUT};
 	char						bbeg[BUFSZ];
 	const char					*bend;
@@ -147,7 +147,7 @@ int main(int argc, char *argv[]){
 		foundation::Manager 	m(16);
 		
 		m.registerScheduler(new SchedulerT(m));
-		m.registerScheduler(new AioSchedulerT(m));
+		m.registerScheduler(new AioSchedulerT(m/*, 0, 6, 1000*/));
 		
 		
 		const IndexT svcidx = m.registerService<SchedulerT>(new foundation::Service, 0);
@@ -404,7 +404,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			case CONNECT_TOUT:
 				rd.clear();
 			case INIT:
-				socketSend(hellostr, strlen(hellostr));
+				//socketSend(hellostr, strlen(hellostr));
 				state(READ);
 				break;
 		}
