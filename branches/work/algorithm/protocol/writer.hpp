@@ -66,7 +66,7 @@ namespace protocol{
 	<b>Notes:</b><br>
 		- You can safely use pointers to existing parameters within the stack.<br>
 		- As an example see test::alpha::Writer (test/foundation/alpha/src/alpha.(h/cpp)).<br>
-		- The << operators must be very carefully used, because althogh the internal buffer will resize accordigly,
+		- The << operators must be used with care, because although the internal buffer will resize accordigly,
 		this is not desirable when scalability is important. So it is the problem of the protocol implemetor
 		to ensure that the buffer gets flushed before it's filled/resized.<br>
 */
