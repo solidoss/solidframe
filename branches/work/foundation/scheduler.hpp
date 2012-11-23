@@ -33,17 +33,20 @@
 
 namespace foundation{
 
-//! A template active container for objects needing complex handeling
+//! A template active container for objects
 /*!
 	<b>Overview:</b><br>
-	Complex handeling means that objects can reside within the
-	pool for as much as they want, and are given processor time
-	as result of different events.
+	Objects can reside within the Scheduler for as much as they want,
+	and are given processor time as result of different events.
+	The Scheduler will handle as much as _maxthrcnt * _selcap objects.
+	The objects above this number, will wait in a queue.
+	This is due to a aio::Selector limitation imposed by performance reasons
+	(the deque is twice as slow as vector).
 	
 	<b>Usage:</b><br>
 	- Use the Scheduler together with a Selector, which will ensure
-	object handeling at thread level.
-	- Objects must implement "int execute(ulong _evs, TimeSpec &_rtout)" method.
+	object handeling at thread level.<br>
+	- Objects must implement "int execute(ulong _evs, TimeSpec &_rtout)" method.<br>
 */
 template <class S>
 class Scheduler: public SchedulerBase, public WorkPoolControllerBase{
