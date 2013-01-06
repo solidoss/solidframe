@@ -356,9 +356,10 @@ int Service::doSendSignalLocal(
 			tkrpos = Manager::the().computeIndex(tkrpos);
 			Locker<Mutex>		lock2(this->mutex(tkrpos));
 			Talker				*ptkr(static_cast<Talker*>(this->objectAt(tkrpos)));
-			cassert(ptkr);
 			Session				*pses(new Session(sa));
 			ConnectionUid		conid(tkrid);
+			
+			cassert(ptkr);
 			
 			vdbgx(Dbg::ipc, "");
 			ptkr->pushSession(pses, conid);
@@ -443,6 +444,7 @@ int Service::doSendSignalRelay(
 			}
 			
 			tkrpos = Manager::the().computeIndex(tkrpos);
+			
 			Locker<Mutex>		lock2(this->mutex(tkrpos));
 			Talker				*ptkr(static_cast<Talker*>(this->objectAt(tkrpos)));
 			cassert(ptkr);
@@ -510,12 +512,13 @@ int Service::acceptSession(const SocketAddress &_rsa, const ConnectData &_rconnd
 }
 //---------------------------------------------------------------------
 int Service::doAcceptBasicSession(const SocketAddress &_rsa, const ConnectData &_rconndata){
-	Locker<Mutex>				lock(serviceMutex());
-	SocketAddressInet4			inaddr(_rsa);
-	Session						*pses = new Session(
+	Locker<Mutex>		lock(serviceMutex());
+	SocketAddressInet4	inaddr(_rsa);
+	Session				*pses = new Session(
 		inaddr,
 		_rconndata
 	);
+	
 	{
 		//TODO: see if the locking is ok!!!
 		
@@ -537,6 +540,7 @@ int Service::doAcceptBasicSession(const SocketAddress &_rsa, const ConnectData &
 			return OK;
 		}
 	}
+	
 	int		tkrid(allocateTalkerForNewSession());
 	IndexT	tkrpos;
 	uint32	tkruid;
@@ -559,9 +563,9 @@ int Service::doAcceptBasicSession(const SocketAddress &_rsa, const ConnectData &
 	
 	Locker<Mutex>	lock2(this->mutex(tkrpos));
 	Talker			*ptkr(static_cast<Talker*>(this->objectAt(tkrpos)));
-	cassert(ptkr);
 	ConnectionUid	conid(tkrid, 0xffff, 0xffff);
 	
+	cassert(ptkr);
 	vdbgx(Dbg::ipc, "");
 	
 	ptkr->pushSession(pses, conid);
@@ -625,8 +629,9 @@ int Service::doAcceptRelaySession(const SocketAddress &_rsa, const ConnectData &
 	
 	Locker<Mutex>	lock2(this->mutex(tkrpos));
 	Talker			*ptkr(static_cast<Talker*>(this->objectAt(tkrpos)));
-	cassert(ptkr);
 	ConnectionUid	conid(tkrid, 0xffff, 0xffff);
+	
+	cassert(ptkr);
 	
 	vdbgx(Dbg::ipc, "");
 	
@@ -665,11 +670,12 @@ void Service::connectSession(const SocketAddressInet4 &_raddr){
 	}
 	tkrpos = Manager::the().computeIndex(tkrpos);
 	
-	Locker<Mutex>		lock2(this->mutex(tkrpos));
-	Talker				*ptkr(static_cast<Talker*>(this->objectAt(tkrpos)));
+	Locker<Mutex>	lock2(this->mutex(tkrpos));
+	Talker			*ptkr(static_cast<Talker*>(this->objectAt(tkrpos)));
+	Session			*pses(new Session(_raddr));
+	ConnectionUid	conid(tkrid);
+	
 	cassert(ptkr);
-	Session				*pses(new Session(_raddr));
-	ConnectionUid		conid(tkrid);
 	
 	vdbgx(Dbg::ipc, "");
 	ptkr->pushSession(pses, conid);
@@ -692,10 +698,13 @@ void Service::disconnectSession(Session *_pses){
 		d.sessionaddr4map.erase(_pses->peerBaseAddress4());
 	}
 	//Use:Context::the().sigctx.connectionuid.tid
-	int tkrid(Context::the().sigctx.connectionuid.tid);
-	Data::TalkerStub &rts(d.tkrvec[tkrid]);
+	int					tkrid(Context::the().sigctx.connectionuid.tid);
+	Data::TalkerStub	&rts(d.tkrvec[tkrid]);
+	
 	--rts.cnt;
+	
 	vdbgx(Dbg::ipc, "disconnected session for talker "<<tkrid<<" session count per talker = "<<rts.cnt);
+	
 	if(rts.cnt < d.sespertkr){
 		d.tkrq.push(tkrid);
 	}
@@ -720,9 +729,9 @@ int Service::createNewTalker(IndexT &_tkrpos, uint32 &_tkruid){
 	if(sd.ok()){
 		d.firstaddr.port(oldport);
 		vdbgx(Dbg::ipc, "Successful created talker");
-		Talker *ptkr(new Talker(sd, *this, tkrid));
-		
+		Talker		*ptkr(new Talker(sd, *this, tkrid));
 		ObjectUidT	objuid(this->insertLockless(ptkr));
+		
 		d.tkrq.push(d.tkrvec.size());
 		d.tkrvec.push_back(objuid);
 		controller().scheduleTalker(ptkr);
@@ -777,6 +786,7 @@ int Service::insertTalker(
 	ObjectUidT		objuid(this->insert(ptkr));
 	
 	Locker<Mutex>	lock(serviceMutex());
+	
 	d.firstaddr = _rai;
 	d.baseport = sa.port();
 	d.tkrvec.push_back(Data::TalkerStub(objuid));

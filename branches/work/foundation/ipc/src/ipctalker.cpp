@@ -333,7 +333,9 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 	Manager		&rm = Manager::the();
 	Context		ctx(d.tkrid, rm.uid(*this));
 	TalkerStub	ts(*this, d.rservice, _tout);
+	
 	idbgx(Dbg::ipc, "this = "<<(void*)this<<" &d = "<<(void*)&d);
+	
 	if(signaled() || d.closingsessionvec.size()){
 		Locker<Mutex>	lock(rm.mutex(*this));
 		ulong			sm = grabSignalMask(0);
@@ -771,7 +773,9 @@ void Talker::doInsertNewSessions(TalkerStub &_rstub){
 		if(it->second >= d.sessionvec.size()){
 			d.sessionvec.resize(it->second + 1);
 		}
+		
 		Data::SessionStub &rss(d.sessionvec[it->second]);
+		
 		Context::the().sigctx.connectionuid.idx = it->second;
 		Context::the().sigctx.connectionuid.uid = rss.uid;
 		_rstub.sessionidx = it->second;

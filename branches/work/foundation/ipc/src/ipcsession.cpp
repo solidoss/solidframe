@@ -831,10 +831,11 @@ inline uint32 Session::Data::currentKeepAlive(const Talker::TalkerStub &_rstub)c
 // 	return	keepalivetimeout && sentsignalwaitresponse &&
 // 			(rcvdsignalq.empty() || rcvdsignalq.size() == 1 && !rcvdsignalq.front().psignal) && 
 // 			signalq.empty() && sendsignalidxq.empty() && _tpos >= rcvtimepos;
-	const uint32 seskeepalive = _rstub.service().controller().sessionKeepAlive();
-	const uint32 reskeepalive = _rstub.service().controller().responseKeepAlive();
+	const uint32	seskeepalive = _rstub.service().controller().sessionKeepAlive();
+	const uint32	reskeepalive = _rstub.service().controller().responseKeepAlive();
 	
-	uint32 keepalive(0);
+	uint32			keepalive(0);
+	
 	if(sentsignalwaitresponse && reskeepalive){
 		keepalive = reskeepalive;
 	}else if(seskeepalive){
@@ -865,6 +866,7 @@ inline uint32 Session::Data::currentKeepAlive(const Talker::TalkerStub &_rstub)c
 //----------------------------------------------------------------------
 uint32 Session::Data::registerBuffer(Buffer &_rbuf){
 	if(sendbufferfreeposstk.empty()) return -1;
+	
 	const uint32	idx(sendbufferfreeposstk.top());
 	SendBufferData	&rsbd(sendbuffervec[idx]);
 	
@@ -1461,18 +1463,21 @@ bool Session::executeTimeout(
 	Talker::TalkerStub &_rstub,
 	uint32 _id
 ){
-	uint16	idx;
-	uint16	uid;
+	uint16					idx;
+	uint16					uid;
+	
 	unpack(idx, uid, _id);
 	
-	Data::SendBufferData &rsbd(d.sendbuffervec[idx]);
+	Data::SendBufferData	&rsbd(d.sendbuffervec[idx]);
 	
 	COLLECT_DATA_0(d.statistics.timeout);
+	
 	if(rsbd.uid != uid){
 		vdbgx(Dbg::ipc, "timeout for ("<<idx<<','<<uid<<')'<<' '<<rsbd.uid);
 		COLLECT_DATA_0(d.statistics.failedTimeout);
 		return false;
 	}
+	
 	vdbgx(Dbg::ipc, "timeout for ("<<idx<<','<<uid<<')'<<' '<<rsbd.buffer.id());
 	cassert(!rsbd.buffer.empty());
 	
@@ -1667,6 +1672,7 @@ bool Session::doPushUnxpectedReceivedBuffer(
 	vdbgx(Dbg::ipc, "unexpected "<<_rbuf<<" expectedid = "<<d.rcvexpectedid);
 	BufCmp	bc;
 	bool	mustexecute = false;
+	
 	if(d.state == Data::Connecting){
 		return false;
 	}
@@ -2063,6 +2069,7 @@ int Session::doExecuteAccepting(Talker::TalkerStub &_rstub){
 		const ConnectData	&rcd = static_cast<ConnectDataSignal*>(d.signalq.front().signal.get())->data;
 		uint16				flags = 0;
 		uint16				baseport = _rstub.basePort();
+		
 		ppos = serialization::binary::store(ppos, flags);
 		ppos = serialization::binary::store(ppos, baseport);
 		ppos = serialization::binary::store(ppos, rcd.timestamp_s);
@@ -2359,7 +2366,8 @@ int Session::doExecuteConnected(Talker::TalkerStub &_rstub){
 void Session::doFillSendBuffer(Talker::TalkerStub &_rstub, const uint32 _bufidx){
 	Data::SendBufferData	&rsbd(d.sendbuffervec[_bufidx]);
 	Data::BinSerializerT	*pser(NULL);
-	Controller 	&rctrl = _rstub.service().controller();
+	Controller				&rctrl = _rstub.service().controller();
+	
 	COLLECT_DATA_1(d.statistics.sendSignalIdxQueueSize, d.sendsignalidxq.size());
 	
 	while(d.sendsignalidxq.size()){
@@ -2446,7 +2454,7 @@ void Session::doFillSendBuffer(Talker::TalkerStub &_rstub, const uint32 _bufidx)
 //---------------------------------------------------------------------
 int Session::doExecuteDisconnecting(Talker::TalkerStub &_rstub){
 	//d.state = Data::Disconnected;
-	int rv;
+	int	rv;
 	while((rv = doTrySendUpdates(_rstub)) == OK){
 	}
 	if(rv == BAD){
@@ -2518,8 +2526,6 @@ int Session::doExecuteDummy(Talker::TalkerStub &_rstub){
 	if(rdd.crtbuf.empty()){
 		const uint32	bufid(Specific::sizeToIndex(128));
 		Buffer			buf(Specific::popBuffer(bufid), Specific::indexToCapacity(bufid));
-		
-		
 		
 		rdd.crtbuf = buf;
 	}
