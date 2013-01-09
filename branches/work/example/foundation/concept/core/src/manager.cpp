@@ -139,7 +139,12 @@ struct IpcServiceController: foundation::ipc::Controller{
 	IpcServiceController():foundation::ipc::Controller(400, 0/* AuthenticationFlag*/, 1000, 10 * 1000), authidx(0){
 		use();
 	}
+	
 	/*virtual*/ void scheduleTalker(foundation::aio::Object *_po);
+	/*virtual*/ void scheduleListener(foundation::aio::Object *_po);
+	/*virtual*/ void scheduleNode(foundation::aio::Object *_po);
+	
+	
 	/*virtual*/ bool compressBuffer(
 		foundation::ipc::BufferContext &_rbc,
 		const uint32 _bufsz,
@@ -259,6 +264,18 @@ void IpcServiceController::scheduleTalker(foundation::aio::Object *_po){
 	foundation::ObjectPointer<foundation::aio::Object> op(_po);
 	AioSchedulerT::schedule(op, 1);
 }
+
+void IpcServiceController::scheduleListener(foundation::aio::Object *_po){
+	idbg("");
+	foundation::ObjectPointer<foundation::aio::Object> op(_po);
+	AioSchedulerT::schedule(op, 1);
+}
+void IpcServiceController::scheduleNode(foundation::aio::Object *_po){
+	idbg("");
+	foundation::ObjectPointer<foundation::aio::Object> op(_po);
+	AioSchedulerT::schedule(op, 1);
+}
+
 /*virtual*/ bool IpcServiceController::compressBuffer(
 	foundation::ipc::BufferContext &_rbc,
 	const uint32 _bufsz,

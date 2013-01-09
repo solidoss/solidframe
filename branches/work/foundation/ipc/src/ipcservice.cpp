@@ -35,10 +35,13 @@
 #include "foundation/common.hpp"
 #include "foundation/manager.hpp"
 
+#include "foundation/aio/openssl/opensslsocket.hpp"
+
 #include "foundation/ipc/ipcservice.hpp"
 #include "foundation/ipc/ipcconnectionuid.hpp"
 
 #include "ipctalker.hpp"
+#include "ipclistener.hpp"
 #include "ipcsession.hpp"
 #include "ipcbuffer.hpp"
 #include "ipcutility.hpp"
@@ -744,8 +747,18 @@ int Service::createNewTalker(IndexT &_tkrpos, uint32 &_tkruid){
 }
 //---------------------------------------------------------------------
 int Service::insertConnection(
-	const SocketDevice &_rsd
+	const SocketDevice &_rsd,
+	const Types _type,
+	foundation::aio::openssl::Context */*_pctx*/,
+	bool _secure
 ){
+	if(_type == PlainType){
+		THROW_EXCEPTION("Not implemented yet!!!");
+	}else if(_type == RelayType){
+		
+	}else{
+		THROW_EXCEPTION("Not implemented yet!!!");
+	}
 /*	Connection *pcon = new Connection(_pch, 0);
 	if(this->insert(*pcon, _serviceid)){
 		delete pcon;
@@ -756,14 +769,33 @@ int Service::insertConnection(
 }
 //---------------------------------------------------------------------
 int Service::insertListener(
-	const ResolveIterator &_rai
+	const ResolveIterator &_rai,
+	const Types _type,
+	bool _secure
 ){
-/*	test::Listener *plis = new test::Listener(_pst, 100, 0);
-	if(this->insert(*plis, _serviceid)){
-		delete plis;
+	SocketDevice sd;
+	sd.create(_rai);
+	sd.makeNonBlocking();
+	sd.prepareAccept(_rai, 100);
+	if(!sd.ok()){
 		return BAD;
-	}	
-	_rm.pushJob((fdt::tcp::Listener*)plis);*/
+	}
+	
+	foundation::aio::openssl::Context *pctx = NULL;
+	if(_secure){
+		pctx = foundation::aio::openssl::Context::create();
+	}
+	if(pctx){
+		const char *pcertpath = NULL;//certificate_path();
+		
+		pctx->loadCertificateFile(pcertpath);
+		pctx->loadPrivateKeyFile(pcertpath);
+	}
+	
+	Listener 	*plis = new Listener(sd, _type, pctx);
+	ObjectUidT	objuid(this->insert(plis));
+	
+	controller().scheduleTalker(plis);
 	return OK;
 }
 //---------------------------------------------------------------------

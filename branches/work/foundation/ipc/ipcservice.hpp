@@ -37,6 +37,11 @@ namespace foundation{
 
 namespace aio{
 class Object;
+
+namespace openssl{
+class Context;
+}
+
 }
 
 namespace ipc{
@@ -60,6 +65,9 @@ struct Controller: Dynamic<Controller, DynamicShared<> >{
 	virtual ~Controller();
 	
 	virtual void scheduleTalker(foundation::aio::Object *_ptkr) = 0;
+	virtual void scheduleListener(foundation::aio::Object *_ptkr) = 0;
+	virtual void scheduleNode(foundation::aio::Object *_ptkr) = 0;
+	
 	virtual bool compressBuffer(
 		BufferContext &_rbc,
 		const uint32 _bufsz,
@@ -208,6 +216,11 @@ public:
 		NoError = 0,
 		NoGatewayError = 100,
 	};
+	
+	enum Types{
+		PlainType = 1,
+		RelayType
+	};
 	typedef serialization::IdTypeMapper<
 		serialization::binary::Serializer,
 		serialization::binary::Deserializer,
@@ -320,11 +333,16 @@ public:
 	
 	//! Not used for now - will be used when ipc will use tcp connections
 	int insertConnection(
-		const SocketDevice &_rsd
+		const SocketDevice &_rsd,
+		const Types _type = PlainType,
+		foundation::aio::openssl::Context *_pctx = NULL,
+		bool _secure = false
 	);
 	//! Not used for now - will be used when ipc will use tcp connections
 	int insertListener(
-		const ResolveIterator &_rai
+		const ResolveIterator &_rai,
+		const Types _type = PlainType,
+		bool _secure = false
 	);
 	//! Use this method to add the base talker
 	/*!
@@ -347,9 +365,13 @@ public:
 	int removeTalker(Talker&);
 	//! Returns the value of the base port as set for the basetalker
 	int basePort()const;
+	
 	void insertObject(Talker &_ro, const ObjectUidT &_ruid);
+	
 	void eraseObject(const Talker &_ro);
+	
 	const serialization::TypeMapperBase& typeMapperBase() const;
+	
 	
 private:
 	friend class Talker;

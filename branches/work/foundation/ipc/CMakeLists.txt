@@ -4,6 +4,7 @@ set(Sources
 	src/ipcservice.cpp
 	src/ipctalker.cpp
 	src/ipcsession.cpp
+	src/ipclistener.cpp
 )
 
 set(Headers
@@ -13,6 +14,7 @@ set(Headers
 	src/ipcbuffer.hpp
 	src/ipctalker.hpp
 	src/ipcsession.hpp
+	src/ipclistener.hpp
 )
 
 set(Inlines

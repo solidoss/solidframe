@@ -265,6 +265,13 @@ int main(int argc, char* argv[]){
 			}else{
 				cout<<"[ipc] Failed adding talker on port "<<port<<" rv = "<<rv<<endl;
 			}
+			port = p.start_port + 333;
+			rd = synchronous_resolve("0.0.0.0", port, 0, SocketInfo::Inet4, SocketInfo::Stream);
+			if(!rd.empty() && !(rv = foundation::ipc::Service::the().insertListener(rd.begin(), foundation::ipc::Service::RelayType))){
+				cout<<"[ipc] Added relay listener on port "<<port<<endl;
+			}else{
+				cout<<"[ipc] Failed adding relay listener on port "<<port<<" rv = "<<rv<<endl;
+			}
 		}
 		
 		if(true){//creates and registers a new alpha service
