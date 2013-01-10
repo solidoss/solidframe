@@ -24,7 +24,6 @@
 
 #include "foundation/aio/aiosingleobject.hpp"
 #include "foundation/ipc/ipcconnectionuid.hpp"
-#include <boost/concept_check.hpp>
 
 struct TimeSpec;
 
