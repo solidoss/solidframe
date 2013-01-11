@@ -29,6 +29,23 @@ namespace foundation{
 
 namespace ipc{
 
+class Service;
+
+class Node: public Dynamic<Node, foundation::aio::MultiObject>{
+public:
+	typedef Service							ServiceT;
+	
+	Node(
+		const SocketDevice &_rsd,
+		Service &_rservice,
+		uint16 _id
+	);
+	~Node();
+	int execute(ulong _sig, TimeSpec &_tout);
+private:
+	struct Data;
+	Data &d;
+};
 
 
 
@@ -36,3 +53,4 @@ namespace ipc{
 
 }//namespace foundation
 
+#endif

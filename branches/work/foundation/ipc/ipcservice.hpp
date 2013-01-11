@@ -235,8 +235,11 @@ public:
 	
 	Service(
 		const DynamicPointer<Controller> &_rctrlptr,
-		uint32 _sespertkr = 1024,
-		uint32 _tkrmaxcnt = 2
+		const uint32 _tkrsescnt = 1024,
+		const uint32 _tkrmaxcnt = 2,
+		const uint32 _nodesescnt = 1024,
+		const uint32 _nodesockcnt = 256,
+		const uint32 _nodemaxcnt = 2
 	);
 	//! Destructor
 	~Service();
@@ -415,8 +418,11 @@ private:
 	bool checkAcceptData(const SocketAddress &_rsa, const AcceptData &_raccdata);
 	void disconnectSession(Session *_pses);
 	void disconnectTalkerSessions(Talker &);
-	int createNewTalker(IndexT &_tkrpos, uint32 &_tkruid);
-	int allocateTalkerForNewSession(bool _force = false);
+	int createTalker(IndexT &_tkrpos, uint32 &_tkruid);
+	int allocateTalkerForSession(bool _force = false);
+	int createNode(IndexT &_nodepos, uint32 &_nodeuid);
+	int allocateNodeForSession(bool _force = false);
+	int allocateNodeForSocket(bool _force = false);
 	uint32 keepAliveTimeout()const;
 	void connectSession(const SocketAddressInet4 &_raddr);
 	

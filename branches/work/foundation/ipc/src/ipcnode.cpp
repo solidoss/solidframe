@@ -19,13 +19,35 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "ipcnode.hpp"
 
 namespace foundation{
 
 namespace ipc{
 
+struct Node::Data{
+	
+};
+
+//--------------------------------------------------------------------
+Node::Node(
+	const SocketDevice &_rsd,
+	Service &_rservice,
+	uint16 _id
+):d(*(new Data)){}
+//--------------------------------------------------------------------
+Node::~Node(){
+	
+}
+//--------------------------------------------------------------------
+int Node::execute(ulong _sig, TimeSpec &_tout){
+	return BAD;
+}
 
 
+//--------------------------------------------------------------------
+
+//--------------------------------------------------------------------
 
 }//namespace ipc
 
