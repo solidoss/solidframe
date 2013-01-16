@@ -325,13 +325,13 @@ Talker::Talker(
 
 //----------------------------------------------------------------------
 Talker::~Talker(){
-	Context		ctx(d.tkrid, Manager::the().uid(*this));
+	Context		ctx(d.rservice, d.tkrid, Manager::the().uid(*this));
 	delete &d;
 }
 //----------------------------------------------------------------------
 int Talker::execute(ulong _sig, TimeSpec &_tout){
 	Manager		&rm = Manager::the();
-	Context		ctx(d.tkrid, rm.uid(*this));
+	Context		ctx(d.rservice, d.tkrid, rm.uid(*this));
 	TalkerStub	ts(*this, d.rservice, _tout);
 	
 	idbgx(Dbg::ipc, "this = "<<(void*)this<<" &d = "<<(void*)&d);

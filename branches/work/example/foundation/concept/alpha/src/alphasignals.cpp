@@ -63,7 +63,7 @@ int RemoteListSignal::release(){
 }
 uint32 RemoteListSignal::ipcPrepare(){
 	const foundation::ipc::ConnectionContext	&rsigctx(foundation::ipc::ConnectionContext::the());
-	Locker<Mutex>							lock(mutex());
+	Locker<Mutex>								lock(mutex());
 	
 	if(success == 0) success = 1;//wait
 	idbg(""<<(void*)this<<" siguid = "<<rsigctx.signaluid.idx<<' '<<rsigctx.signaluid.uid<<" ipcstatus = "<<(int)ipcstatus);

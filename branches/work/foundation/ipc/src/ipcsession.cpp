@@ -733,7 +733,10 @@ void Session::Data::popSentWaitSignal(const uint32 _idx){
 		idbgx(Dbg::ipc, "signal waits for response "<<_idx<<' '<<rssd.uid);
 		rssd.flags |= Service::SentFlag;
 	}else{
+		Context::the().sigctx.signaluid.idx = _idx;
+		Context::the().sigctx.signaluid.uid = rssd.uid;
 		++rssd.uid;
+		rssd.signal->ipcComplete(0);
 		rssd.signal.clear();
 		sendsignalfreeposstk.push(_idx);
 	}	
@@ -913,24 +916,25 @@ void Session::Data::pushSignalToSendQueue(
 	const uint32 _flags,
 	const SerializationTypeIdT _tid
 ){
-		cassert(_sigptr.get());
-		const SignalUid	uid(pushSendWaitSignal(_sigptr, _tid, 0, _flags, sendsignalid++));
-		SendSignalData 	&rssd(sendsignalvec[uid.idx]);
-		
-		Context::the().sigctx.signaluid = uid;
-		
-		sendsignalidxq.push(uid.idx);
-		
-		const uint32 tmp_flgs(rssd.signal->ipcPrepare());
-		rssd.flags |= tmp_flgs;
-		vdbgx(Dbg::ipc, "flags = "<<(rssd.flags&Service::SentFlag)<<" tmpflgs = "<<(tmp_flgs & Service::SentFlag));
-		
-		if(tmp_flgs & Service::WaitResponseFlag){
-			++sentsignalwaitresponse;
-		}else{
-			rssd.flags &= ~Service::WaitResponseFlag;
-		}
-
+	cassert(_sigptr.get());
+	const SignalUid	uid(pushSendWaitSignal(_sigptr, _tid, 0, _flags, sendsignalid++));
+	SendSignalData 	&rssd(sendsignalvec[uid.idx]);
+	
+	Context::the().sigctx.signaluid = uid;
+	
+	sendsignalidxq.push(uid.idx);
+	
+	const uint32	tmp_flgs(rssd.signal->ipcPrepare());
+	
+	rssd.flags |= tmp_flgs;
+	
+	vdbgx(Dbg::ipc, "flags = "<<(rssd.flags&Service::SentFlag)<<" tmpflgs = "<<(tmp_flgs & Service::SentFlag));
+	
+	if(tmp_flgs & Service::WaitResponseFlag){
+		++sentsignalwaitresponse;
+	}else{
+		rssd.flags &= ~Service::WaitResponseFlag;
+	}
 }
 //----------------------------------------------------------------------
 void Session::Data::resetKeepAlive(){
@@ -1066,7 +1070,7 @@ bool Session::Data::moveToNextSendSignal(){
 	return OK;
 }
 //---------------------------------------------------------------------
-inline bool Session::isRelayType()const{
+bool Session::isRelayType()const{
 	return d.type == Data::Relayed44;
 }
 //---------------------------------------------------------------------
@@ -2658,7 +2662,7 @@ const uint32 specificId(){
 	return *reinterpret_cast<Context*>(Thread::specific(specificId()));
 }
 //----------------------------------------------------------------------
-Context::Context(const IndexT &_tkrid, uint32 _uid):sigctx(_tkrid, _uid){
+Context::Context(Service &_rsrv, const IndexT &_tkrid, uint32 _uid):sigctx(_rsrv, _tkrid, _uid){
 	Thread::specific(specificId(), this);
 }
 //----------------------------------------------------------------------
@@ -2670,8 +2674,6 @@ Context::~Context(){
 /*static*/ const ConnectionContext& ConnectionContext::the(){
 	return Context::the().sigctx;
 }
-
-
 //======================================================================
 #ifdef USTATISTICS
 namespace {

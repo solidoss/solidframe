@@ -60,6 +60,8 @@ struct SignalUid{
 	uint32	uid;
 };
 
+class Service;
+
 //! Thread specific information about current ipc context
 /*!
 	This should be used by signals to get information about the current
@@ -77,9 +79,10 @@ struct SignalUid{
 	See concept::alpha::RemoteListSignal from alphasignals.hpp for an example.
 	
 */
-	
 struct ConnectionContext{
 	static const ConnectionContext& the();
+	
+	Service				&rservice;
 	ConnectionUid 		connectionuid;
 	const uint32		tkruid;
 	int 				baseport;
@@ -89,13 +92,17 @@ struct ConnectionContext{
 	ObjectUidT talkerUid()const{
 		return ObjectUidT(connectionuid.tid, tkruid);
 	}
+	Service& service()const{
+		return rservice;
+	}
 private:
 	friend class Context;
 	
 	ConnectionContext(
+		Service &_rsrv,
 		const IndexT &_tkridx,
 		const uint32 _tkruid
-	):connectionuid(_tkridx), tkruid(_tkridx), baseport(-1){}
+	):rservice(_rsrv), connectionuid(_tkridx), tkruid(_tkridx), baseport(-1){}
 };
 
 typedef uint32 SerializationTypeIdT;

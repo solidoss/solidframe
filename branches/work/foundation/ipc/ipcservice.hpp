@@ -453,6 +453,7 @@ inline const uint32 Controller::sessionKeepAlive()const{
 	return seskeepalive;
 }
 
+
 inline int Service::sendSignal(
 	DynamicPointer<Signal> &_psig,//the signal to be sent
 	const SocketAddressStub &_rsa_dest,

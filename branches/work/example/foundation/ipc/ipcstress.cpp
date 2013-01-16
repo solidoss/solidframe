@@ -10,11 +10,14 @@
 #include "foundation/ipc/ipcservice.hpp"
 
 //#include "system/thread.hpp"
+#include "system/mutex.hpp"
+#include "system/condition.hpp"
 #include "system/socketaddress.hpp"
 //#include "system/socketdevice.hpp"
 
 #include "boost/program_options.hpp"
 
+#include <signal.h>
 #include <iostream>
 
 using namespace std;
@@ -25,26 +28,67 @@ typedef foundation::IndexT									IndexT;
 typedef foundation::Scheduler<foundation::aio::Selector>	AioSchedulerT;
 typedef foundation::Scheduler<foundation::ObjectSelector>	SchedulerT;
 
+
+ostream& operator<<(ostream& _ros, const SocketAddressInet4& _rsa){
+	char host[SocketInfo::HostStringCapacity];
+	char service[SocketInfo::ServiceStringCapacity];
+	_rsa.toString(host, SocketInfo::HostStringCapacity, service, SocketInfo::ServiceStringCapacity, SocketInfo::NumericHost | SocketInfo::NumericService);
+	_ros<<host<<':'<<service;
+	return _ros;
+}
+
 //------------------------------------------------------------------
 //------------------------------------------------------------------
 
+struct SocketAddressCmp{
+	bool operator()(
+		const SocketAddressInet4* const &_pa1,
+		const SocketAddressInet4* const &_pa2
+	)const{
+		return *_pa1 < *_pa2;
+	}
+};
+
 struct Params{
-	typedef std::vector<std::string>	StringVectorT;
-	int				start_port;
-	string			dbg_levels;
-	string			dbg_modules;
-	string			dbg_addr;
-	string			dbg_port;
-	bool			dbg_console;
-	bool			dbg_buffered;
-	bool			log;
-	StringVectorT	serverstringvec;
+	typedef std::vector<std::string>			StringVectorT;
+	typedef std::vector<SocketAddressInet4>		SocketAddressVectorT;
+	typedef std::map<
+		const SocketAddressInet4*,
+		uint32,
+		SocketAddressCmp
+	>											SocketAddressMapT;
+	string					dbg_levels;
+	string					dbg_modules;
+	string					dbg_addr;
+	string					dbg_port;
+	bool					dbg_console;
+	bool					dbg_buffered;
+	
+	int						listen_port;
+	bool					log;
+	StringVectorT			connectstringvec;
+	
+	uint32					repeat_count;
+    uint32					message_count;
+    uint32					min_size;
+    uint32					max_size;
+    
+    
+    SocketAddressVectorT	connectvec;
+    SocketAddressMapT		connectmap;
+	
+	void prepare();
+    uint32 server(const SocketAddressInet4 &_rsa)const;
 };
 
 //------------------------------------------------------------------
 
 struct IpcServiceController: foundation::ipc::Controller{
-	IpcServiceController():foundation::ipc::Controller(400, 0/* AuthenticationFlag*/, 1000, 10 * 1000), authidx(0){
+	IpcServiceController(
+		uint32 _netid = 0
+	):	foundation::ipc::Controller(400, 0/* AuthenticationFlag*/, 1000, 10 * 1000),
+		netid(_netid)
+	{
 		use();
 	}
 	
@@ -53,21 +97,6 @@ struct IpcServiceController: foundation::ipc::Controller{
 	/*virtual*/ void scheduleNode(foundation::aio::Object *_po);
 	
 	
-	/*virtual*/ bool compressBuffer(
-		foundation::ipc::BufferContext &_rbc,
-		const uint32 _bufsz,
-		char* &_rpb,
-		uint32 &_bl
-	);
-	/*virtual*/ bool decompressBuffer(
-		foundation::ipc::BufferContext &_rbc,
-		char* &_rpb,
-		uint32 &_bl
-	);
-	
-	void localNetworkId(uint32 _netid){
-		netid = _netid;
-	}
 	/*virtual*/ uint32 localNetworkId()const{
 		return netid;
 	}
@@ -90,14 +119,79 @@ struct IpcServiceController: foundation::ipc::Controller{
 		return 1;
 	}
 private:
-	//qlz_state_compress		qlz_comp_ctx;
-	//qlz_state_decompress	qlz_decomp_ctx;
-	int						authidx;
 	uint32					netid;
 };
 
+
+struct ServerStub{
+    ServerStub():minmsec(0xffffffff), maxmsec(0){}
+    uint64	minmsec;
+    uint64	maxmsec;
+};
+
+typedef std::vector<ServerStub>     ServerVectorT;
+
 namespace{
 	IpcServiceController	ipcctrl;
+	Mutex					mtx;
+	Condition				cnd;
+	bool					run(true);
+	uint32					wait_count = 0;
+	ServerVectorT			srvvec;
+	Params					p;
+}
+
+
+struct FirstMessage: Dynamic<FirstMessage, DynamicShared<foundation::Signal> >{
+	uint32							state;
+    uint32							sec;
+    uint32							nsec;
+    std::string						str;
+	foundation::ipc::SignalUid		siguid;
+	
+	
+	FirstMessage();
+	~FirstMessage();
+	
+	/*virtual*/ void ipcReceive(
+		foundation::ipc::SignalUid &_rsiguid
+	);
+	/*virtual*/ uint32 ipcPrepare();
+	/*virtual*/ void ipcComplete(int _err);
+	
+	bool isOnSender()const{
+		return (state % 2) == 0;
+	}
+	
+	template <class S>
+	S& operator&(S &_s){
+		_s.push(state, "state").push(sec, "seconds").push(nsec, "nanoseconds").push(str, "data");
+		if(!isOnSender() || S::IsDeserializer){
+			_s.push(siguid.idx, "siguid.idx").push(siguid.uid,"siguid.uid");
+		}else{//on sender
+			foundation::ipc::SignalUid &rsiguid(
+				const_cast<foundation::ipc::SignalUid &>(foundation::ipc::ConnectionContext::the().signaluid)
+			);
+			_s.push(rsiguid.idx, "siguid.idx").push(rsiguid.uid,"siguid.uid");
+		}
+		return _s;
+	}
+	
+};
+
+FirstMessage* create_message(uint32_t _idx, const bool _incremental = false);
+
+static void term_handler(int signum){
+    switch(signum) {
+		case SIGINT:
+		case SIGTERM:{
+			if(run){
+				Locker<Mutex>  lock(mtx);
+				run = false;
+				cnd.broadcast();
+			}
+		}
+    }
 }
 
 //------------------------------------------------------------------
@@ -106,8 +200,11 @@ bool parseArguments(Params &_par, int argc, char *argv[]);
 
 int main(int argc, char *argv[]){
 	
-	Params p;
 	if(parseArguments(p, argc, argv)) return 0;
+	
+	p.prepare();
+	
+	signal(SIGINT,term_handler); /* Die on SIGTERM */
 	
 	Thread::init();
 	
@@ -148,27 +245,70 @@ int main(int argc, char *argv[]){
 		
 		foundation::Manager 	m(16);
 		
-		//m.registerScheduler(new SchedulerT(m));
+		m.registerScheduler(new SchedulerT(m));
 		m.registerScheduler(new AioSchedulerT(m/*, 0, 6, 1000*/));
 		
 		
-		const IndexT svcidx = m.registerService<SchedulerT>(new foundation::Service, 0);
+		m.registerService<SchedulerT>(new foundation::Service, 0);
 		
-		ipcctrl.localNetworkId(0);
-	
 		m.registerService<SchedulerT>(new foundation::ipc::Service(ipcctrl.pointer()), 0);
 	
-		//fdt::ipc::Service::the().typeMapper().insert<AuthSignal>();
+		fdt::ipc::Service::the().typeMapper().insert<FirstMessage>();
 		
 		m.start();
 		
+		ResolveData rd = synchronous_resolve("0.0.0.0", p.listen_port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
+		int			rv;
+		if(!rd.empty() && !(rv = foundation::ipc::Service::the().insertTalker(rd.begin()))){
+			cout<<"[ipc] Added talker on port "<<p.listen_port<<endl;
+		}else{
+			cout<<"[ipc] Failed adding talker on port "<<p.listen_port<<" rv = "<<rv<<endl;
+		}
 		
-		char c;
-		cout<<"> "<<flush;
-		cin>>c;
-		//m.stop(true);
+		wait_count = p.message_count;
+        
+		srvvec.resize(p.connectvec.size());
+		
+		if(p.connectvec.size()){
+			for(uint32 i = 0; i < p.message_count; ++i){
+				
+				DynamicSharedPointer<FirstMessage>	msgptr(create_message(i));
+
+				for(Params::SocketAddressVectorT::iterator it(p.connectvec.begin()); it != p.connectvec.end(); ++it){
+					DynamicPointer<fdt::Signal>		sigptr(msgptr);
+					fdt::ipc::Service::the().sendSignal(sigptr, *it, fdt::ipc::LocalNetworkId, fdt::ipc::Service::WaitResponseFlag);
+				}
+			}
+		}
+		
+		{
+			Locker<Mutex>	lock(mtx);
+			while(run){
+				cnd.wait(lock);
+			}
+		}
+		
+		m.stop();
 	}
 	Thread::waitAll();
+	
+	{
+        uint64    minmsec = 0xffffffff;
+        uint64    maxmsec = 0;
+        
+        for(ServerVectorT::const_iterator it(srvvec.begin()); it != srvvec.end(); ++it){
+            const uint32_t idx = it - srvvec.begin();
+            cout<<"Server ["<<p.connectvec[idx]<<"] mintime = "<<it->minmsec<<" maxtime = "<<it->maxmsec<<endl;
+            if(minmsec > it->minmsec){
+                minmsec = it->minmsec;
+            }
+            if(maxmsec < it->maxmsec){
+                maxmsec = it->maxmsec;
+            }
+        }
+        cout<<"mintime = "<<minmsec<<" maxtime = "<<maxmsec<<endl;
+    }
+	
 	return 0;
 }
 
@@ -186,16 +326,12 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 			("debug_console,C", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")
 			("debug_unbuffered,S", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered")
 			("use_log,L", value<bool>(&_par.log)->implicit_value(true)->default_value(false), "Debug buffered")
-			("base_port,b", value<int>(&_par.start_port)->default_value(2000), "Base port")
-			("connect, c", value<vector<string> >(&_par.serverstringvec), "Peer to connect to: YYY.YYY.YYY.YYY:port")
-	/*		("verbose,v", po::value<int>()->implicit_value(1),
-					"enable verbosity (optionally specify level)")*/
-	/*		("listen,l", po::value<int>(&portnum)->implicit_value(1001)
-					->default_value(0,"no"),
-					"listen on a port.")
-			("include-path,I", po::value< vector<string> >(),
-					"include path")
-			("input-file", po::value< vector<string> >(), "input file")*/
+			("listen_port,l", value<int>(&_par.listen_port)->default_value(2000), "Listen port")
+			("connect,c", value<vector<string> >(&_par.connectstringvec), "Peer to connect to: YYY.YYY.YYY.YYY:port")
+			("repeat_count", value<uint32_t>(&_par.repeat_count)->default_value(10), "Per message trip count")
+            ("message_count", value<uint32_t>(&_par.message_count)->default_value(10), "Message count")
+            ("min_size", value<uint32_t>(&_par.min_size)->default_value(10), "Min message data size")
+            ("max_size", value<uint32_t>(&_par.max_size)->default_value(500000), "Max message data size")
 		;
 		variables_map vm;
 		store(parse_command_line(argc, argv, desc), vm);
@@ -210,7 +346,39 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 		return true;
 	}
 }
-//------------------------------------------------------------------
+//------------------------------------------------------
+void Params::prepare(){
+	const uint16 default_port = 2000;
+	size_t pos;
+	for(std::vector<std::string>::iterator it(connectstringvec.begin()); it != connectstringvec.end(); ++it){
+		pos = it->find(':');
+		if(pos == std::string::npos){
+			connectvec.push_back(SocketAddressInet4(it->c_str(), default_port));
+		}else{
+			(*it)[pos] = '\0';
+			int port = atoi(it->c_str() + pos + 1);
+			connectvec.push_back(SocketAddressInet4(it->c_str(), port));
+		}
+		idbg("added connect address "<<connectvec.back());
+	}
+	if(min_size > max_size){
+		uint32_t tmp = min_size;
+		min_size = max_size;
+		max_size = tmp;
+	}
+	
+	for(SocketAddressVectorT::const_iterator it(connectvec.begin()); it != connectvec.end(); ++it){
+		const uint32_t idx = it - connectvec.begin();
+		connectmap[&(*it)] = idx;
+	}
+}
+uint32 Params::server(const SocketAddressInet4 &_rsa)const{
+	SocketAddressMapT::const_iterator it = this->connectmap.find(&_rsa);
+	if(it != this->connectmap.end()){
+		return it->second;
+	}
+	return -1;
+}
 //------------------------------------------------------
 //		IpcServiceController
 //------------------------------------------------------
@@ -231,35 +399,119 @@ void IpcServiceController::scheduleNode(foundation::aio::Object *_po){
 	AioSchedulerT::schedule(op, 0);
 }
 
-/*virtual*/ bool IpcServiceController::compressBuffer(
-	foundation::ipc::BufferContext &_rbc,
-	const uint32 _bufsz,
-	char* &_rpb,
-	uint32 &_bl
-){
-// 	if(_bufsz < 1024){
-// 		return false;
-// 	}
-	return false;
-	uint32	destcp(0);
-	char 	*pdest =  allocateBuffer(_rbc, destcp);
-	size_t	len/* = qlz_compress(_rpb, pdest, _bl, &qlz_comp_ctx)*/;
-	_rpb = pdest;
-	_bl = len;
-	return true;
+//------------------------------------------------------
+//		FirstMessage
+//------------------------------------------------------
+
+FirstMessage::FirstMessage():state(-1){
+	idbg("CREATE ---------------- "<<(void*)this);
+}
+FirstMessage::~FirstMessage(){
+	idbg("DELETE ---------------- "<<(void*)this);
 }
 
-/*virtual*/ bool IpcServiceController::decompressBuffer(
-	foundation::ipc::BufferContext &_rbc,
-	char* &_rpb,
-	uint32 &_bl
+/*virtual*/ void FirstMessage::ipcReceive(
+	foundation::ipc::SignalUid &_rsiguid
 ){
-	uint32	destcp(0);
-	char 	*pdest =  allocateBuffer(_rbc, destcp);
-	size_t	len/* = qlz_decompress(_rpb, pdest, &qlz_decomp_ctx)*/;
-	_rpb = pdest;
-	_bl = len;
-	return true;
+	++state;
+	idbg("EXECUTE ---------------- "<<state);
+	DynamicPointer<fdt::Signal> psig(this);
+	if(!isOnSender()){
+		fdt::ipc::ConnectionContext::the().service().sendSignal(psig, fdt::ipc::ConnectionContext::the().connectionuid);
+	}else if(state <= p.repeat_count){
+		TimeSpec			crttime(TimeSpec::createRealTime());
+		TimeSpec			tmptime(this->sec, this->nsec);
+		SocketAddressInet4	sa(fdt::ipc::ConnectionContext::the().pairaddr);
+		
+		tmptime =  crttime - tmptime;
+		_rsiguid = siguid;
+		
+		sa.port(fdt::ipc::ConnectionContext::the().baseport);
+		const uint32		srvidx = p.server(sa);
+		
+		//dbgi("server endpoint = "<<_rctx.rendpoint<<" idx = "<<srvidx);
+		
+		ServerStub			&rss = srvvec[srvidx];
+		uint64				crtmsec = tmptime.seconds() * 1000;
+		
+		crtmsec += tmptime.nanoSeconds() / 1000000;
+		
+		if(crtmsec < rss.minmsec){
+			rss.minmsec = crtmsec;
+		}
+		if(crtmsec > rss.maxmsec){
+			rss.maxmsec = crtmsec;
+		}
+		
+		this->sec = crttime.seconds();
+		this->nsec = crttime.nanoSeconds();
+
+		
+		fdt::ipc::ConnectionContext::the().service().sendSignal(
+			psig,
+			fdt::ipc::ConnectionContext::the().connectionuid/*,
+			fdt::ipc::Service::WaitResponseFlag*/
+		);
+	}else{
+		_rsiguid = siguid;
+		Locker<Mutex>  lock(mtx);
+		--wait_count;
+		idbg("wait_count = "<<wait_count);
+		if(wait_count == 0){
+			run = false;
+			cnd.broadcast();
+		}
+	}
+}
+/*virtual*/ uint32 FirstMessage::ipcPrepare(){
+	if(isOnSender()){
+		return fdt::ipc::Service::WaitResponseFlag;
+	}else{
+		return 0;
+	}
+}
+/*virtual*/ void FirstMessage::ipcComplete(int _err){
+	if(!_err){
+        idbg("SUCCESS ----------------");
+    }else{
+        idbg("ERROR ------------------");
+    }
 }
 
+string create_string(){
+    string s;
+    for(char c = '0'; c <= '9'; ++c){
+        s += c;
+    }
+    for(char c = 'a'; c <= 'z'; ++c){
+        s += c;
+    }
+    for(char c = 'A'; c <= 'Z'; ++c){
+        s += c;
+    }
+    return s;
+}
 
+FirstMessage* create_message(uint32_t _idx, const bool _incremental){
+    static const string s(create_string());
+    FirstMessage *pmsg = new FirstMessage;
+    
+    pmsg->state = 0;
+    
+    if(!_incremental){
+        _idx = p.message_count - 1 - _idx;
+    }
+    
+    const uint32_t size = (p.min_size * (p.message_count - _idx - 1) + _idx * p.max_size) / (p.message_count - 1);
+    idbg("create message with size "<<size);
+    pmsg->str.resize(size);
+    for(uint32_t i = 0; i < size; ++i){
+        pmsg->str[i] = s[i % s.size()];
+    }
+    
+    TimeSpec    crttime(TimeSpec::createRealTime());
+    pmsg->sec = crttime.seconds();
+    pmsg->nsec = crttime.nanoSeconds();
+    
+    return pmsg;
+}
