@@ -124,9 +124,10 @@ private:
 
 
 struct ServerStub{
-    ServerStub():minmsec(0xffffffff), maxmsec(0){}
+    ServerStub():minmsec(0xffffffff), maxmsec(0), sz(0){}
     uint64	minmsec;
     uint64	maxmsec;
+	uint64	sz;
 };
 
 typedef std::vector<ServerStub>     ServerVectorT;
@@ -152,6 +153,10 @@ struct FirstMessage: Dynamic<FirstMessage, DynamicShared<foundation::Signal> >{
 	
 	FirstMessage();
 	~FirstMessage();
+	
+	uint32 size()const{
+		return sizeof(state) + sizeof(sec) + sizeof(nsec) + sizeof(siguid) + sizeof(uint32) + str.size();
+	}
 	
 	/*virtual*/ void ipcReceive(
 		foundation::ipc::SignalUid &_rsiguid
@@ -269,6 +274,8 @@ int main(int argc, char *argv[]){
         
 		srvvec.resize(p.connectvec.size());
 		
+		TimeSpec	begintime(TimeSpec::createRealTime()); 
+		
 		if(p.connectvec.size()){
 			for(uint32 i = 0; i < p.message_count; ++i){
 				
@@ -287,6 +294,16 @@ int main(int argc, char *argv[]){
 				cnd.wait(lock);
 			}
 		}
+		
+		TimeSpec	endtime(TimeSpec::createRealTime());
+		endtime -= begintime;
+		uint64		duration = endtime.seconds() * 1000;
+		
+		duration += endtime.nanoSeconds() / 1000000;
+		
+		uint64		speed = (srvvec.front().sz * 125) / (128 * duration);
+		
+		cout<<"Speed = "<<speed<<" KB/s"<<endl;
 		
 		m.stop();
 	}
@@ -427,12 +444,12 @@ FirstMessage::~FirstMessage(){
 		_rsiguid = siguid;
 		
 		sa.port(fdt::ipc::ConnectionContext::the().baseport);
+		
 		const uint32		srvidx = p.server(sa);
-		
-		//dbgi("server endpoint = "<<_rctx.rendpoint<<" idx = "<<srvidx);
-		
 		ServerStub			&rss = srvvec[srvidx];
 		uint64				crtmsec = tmptime.seconds() * 1000;
+		
+		rss.sz += this->size();
 		
 		crtmsec += tmptime.nanoSeconds() / 1000000;
 		
@@ -454,6 +471,13 @@ FirstMessage::~FirstMessage(){
 		);
 	}else{
 		_rsiguid = siguid;
+		SocketAddressInet4	sa(fdt::ipc::ConnectionContext::the().pairaddr);
+		sa.port(fdt::ipc::ConnectionContext::the().baseport);
+		const uint32		srvidx = p.server(sa);
+		ServerStub			&rss = srvvec[srvidx];
+		
+		rss.sz += this->size();
+		
 		Locker<Mutex>  lock(mtx);
 		--wait_count;
 		idbg("wait_count = "<<wait_count);
