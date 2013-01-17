@@ -435,7 +435,7 @@ FirstMessage::~FirstMessage(){
 	DynamicPointer<fdt::Signal> psig(this);
 	if(!isOnSender()){
 		fdt::ipc::ConnectionContext::the().service().sendSignal(psig, fdt::ipc::ConnectionContext::the().connectionuid);
-	}else if(state <= p.repeat_count){
+	}else{
 		TimeSpec			crttime(TimeSpec::createRealTime());
 		TimeSpec			tmptime(this->sec, this->nsec);
 		SocketAddressInet4	sa(fdt::ipc::ConnectionContext::the().pairaddr);
@@ -460,30 +460,24 @@ FirstMessage::~FirstMessage(){
 			rss.maxmsec = crtmsec;
 		}
 		
-		this->sec = crttime.seconds();
-		this->nsec = crttime.nanoSeconds();
-
+		if(state <= p.repeat_count){
 		
-		fdt::ipc::ConnectionContext::the().service().sendSignal(
-			psig,
-			fdt::ipc::ConnectionContext::the().connectionuid/*,
-			fdt::ipc::Service::WaitResponseFlag*/
-		);
-	}else{
-		_rsiguid = siguid;
-		SocketAddressInet4	sa(fdt::ipc::ConnectionContext::the().pairaddr);
-		sa.port(fdt::ipc::ConnectionContext::the().baseport);
-		const uint32		srvidx = p.server(sa);
-		ServerStub			&rss = srvvec[srvidx];
-		
-		rss.sz += this->size();
-		
-		Locker<Mutex>  lock(mtx);
-		--wait_count;
-		idbg("wait_count = "<<wait_count);
-		if(wait_count == 0){
-			run = false;
-			cnd.broadcast();
+			this->sec = crttime.seconds();
+			this->nsec = crttime.nanoSeconds();
+			
+			fdt::ipc::ConnectionContext::the().service().sendSignal(
+				psig,
+				fdt::ipc::ConnectionContext::the().connectionuid/*,
+				fdt::ipc::Service::WaitResponseFlag*/
+			);
+		}else{
+			Locker<Mutex>  lock(mtx);
+			--wait_count;
+			idbg("wait_count = "<<wait_count);
+			if(wait_count == 0){
+				run = false;
+				cnd.broadcast();
+			}
 		}
 	}
 }
