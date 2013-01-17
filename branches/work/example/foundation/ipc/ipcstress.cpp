@@ -294,17 +294,17 @@ int main(int argc, char *argv[]){
 				cnd.wait(lock);
 			}
 		}
-		
-		TimeSpec	endtime(TimeSpec::createRealTime());
-		endtime -= begintime;
-		uint64		duration = endtime.seconds() * 1000;
-		
-		duration += endtime.nanoSeconds() / 1000000;
-		
-		uint64		speed = (srvvec.front().sz * 125) / (128 * duration);
-		
-		cout<<"Speed = "<<speed<<" KB/s"<<endl;
-		
+		if(srvvec.size()){
+			TimeSpec	endtime(TimeSpec::createRealTime());
+			endtime -= begintime;
+			uint64		duration = endtime.seconds() * 1000;
+			
+			duration += endtime.nanoSeconds() / 1000000;
+			
+			uint64		speed = (srvvec.front().sz * 125) / (128 * duration);
+			
+			cout<<"Speed = "<<speed<<" KB/s"<<endl;
+		}
 		m.stop();
 	}
 	Thread::waitAll();
