@@ -346,7 +346,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 			("listen_port,l", value<int>(&_par.listen_port)->default_value(2000), "Listen port")
 			("connect,c", value<vector<string> >(&_par.connectstringvec), "Peer to connect to: YYY.YYY.YYY.YYY:port")
 			("repeat_count", value<uint32_t>(&_par.repeat_count)->default_value(10), "Per message trip count")
-            ("message_count", value<uint32_t>(&_par.message_count)->default_value(10), "Message count")
+            ("message_count", value<uint32_t>(&_par.message_count)->default_value(1000), "Message count")
             ("min_size", value<uint32_t>(&_par.min_size)->default_value(10), "Min message data size")
             ("max_size", value<uint32_t>(&_par.max_size)->default_value(500000), "Max message data size")
 		;
