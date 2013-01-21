@@ -374,8 +374,6 @@ public:
 	void eraseObject(const Talker &_ro);
 	
 	const serialization::TypeMapperBase& typeMapperBase() const;
-	
-	
 private:
 	friend class Talker;
 	friend class Session;

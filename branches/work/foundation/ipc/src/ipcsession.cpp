@@ -35,7 +35,6 @@
 #include "foundation/ipc/ipcservice.hpp"
 #include "ipcsession.hpp"
 #include "ipcbuffer.hpp"
-#include <boost/concept_check.hpp>
 
 
 namespace fdt = foundation;
@@ -98,6 +97,9 @@ struct StatisticData{
 	void tooManyBuffersOutOfOrder();
 	void sendUpdatesSize(const uint16 _sz);
 	void sendOnlyUpdatesSize(const uint16 _sz);
+	void sendOnlyUpdatesSize1();
+	void sendOnlyUpdatesSize2();
+	void sendOnlyUpdatesSize3();
 	void sendSignalIdxQueueSize(const ulong _sz);
 	void tryScheduleKeepAlive();
 	void scheduleKeepAlive();
@@ -121,6 +123,9 @@ struct StatisticData{
 	ulong	toomanybuffersoutofordercnt;
 	ulong	maxsendupdatessize;
 	ulong	sendonlyupdatescnt;
+	ulong	sendonlyupdates1;
+	ulong	sendonlyupdates2;
+	ulong	sendonlyupdates3;
 	ulong	maxsendonlyupdatessize;
 	ulong	maxsendsignalidxqueuesize;
 	ulong	tryschedulekeepalivecnt;
@@ -170,8 +175,8 @@ struct Session::Data{
 	};
 	enum{
 		UpdateBufferId = 0xffffffff,//the id of a buffer containing only updates
-		MaxSendBufferCount = 6,
-		MaxRecvNoUpdateCount = 4,// max number of buffers received, without sending update
+		MaxSendBufferCount = 4,
+		MaxRecvNoUpdateCount = 2,// max number of buffers received, without sending update
 		MaxSignalBufferCount = 8,//continuous buffers sent for a signal
 		MaxSendSignalQueueSize = 32,//max count of signals sent in paralell
 		MaxOutOfOrder = 4,//please also change moveToNextOutOfOrderBuffer
@@ -562,7 +567,7 @@ Session::Data::~Data(){
 			rssd.signal.clear();
 		}
 		rssd.tid = SERIALIZATION_INVALIDID;
-	}
+	}	
 }
 //---------------------------------------------------------------------
 bool Session::Data::moveToNextOutOfOrderBuffer(Buffer &_rb){
@@ -2208,7 +2213,15 @@ int Session::doTrySendUpdates(Talker::TalkerStub &_rstub){
 		buf.optimize(256);
 		
 		COLLECT_DATA_1(d.statistics.sendOnlyUpdatesSize, buf.updateCount());
-		
+		if(buf.updateCount() == 1){
+			COLLECT_DATA_0(d.statistics.sendOnlyUpdatesSize1);
+		}
+		if(buf.updateCount() == 2){
+			COLLECT_DATA_0(d.statistics.sendOnlyUpdatesSize2);
+		}
+		if(buf.updateCount() == 3){
+			COLLECT_DATA_0(d.statistics.sendOnlyUpdatesSize3);
+		}
 		vdbgx(Dbg::ipc, "send "<<buf);
 		
 		if(_rstub.pushSendBuffer(-1, buf.buffer(), buf.bufferSize())){
@@ -2714,6 +2727,16 @@ void StatisticData::sendOnlyUpdatesSize(const uint16 _sz){
 	++sendonlyupdatescnt;
 	if(maxsendonlyupdatessize < _sz) maxsendonlyupdatessize = _sz;
 }
+void StatisticData::sendOnlyUpdatesSize1(){
+	++sendonlyupdates1;
+}
+void StatisticData::sendOnlyUpdatesSize2(){
+	++sendonlyupdates2;
+}
+void StatisticData::sendOnlyUpdatesSize3(){
+	++sendonlyupdates3;
+}
+
 void StatisticData::sendSignalIdxQueueSize(const ulong _sz){
 	if(maxsendsignalidxqueuesize < _sz) maxsendsignalidxqueuesize = _sz;
 }
@@ -2766,6 +2789,9 @@ std::ostream& operator<<(std::ostream &_ros, const StatisticData &_rsd){
 	_ros<<"toomanybuffersoutofordercnt          = "<<_rsd.toomanybuffersoutofordercnt<<std::endl;
 	_ros<<"maxsendupdatessize                   = "<<_rsd.maxsendupdatessize<<std::endl;
 	_ros<<"sendonlyupdatescnt                   = "<<_rsd.sendonlyupdatescnt<<std::endl;
+	_ros<<"sendonlyupdates1                     = "<<_rsd.sendonlyupdates1<<std::endl;
+	_ros<<"sendonlyupdates2                     = "<<_rsd.sendonlyupdates2<<std::endl;
+	_ros<<"sendonlyupdates3                     = "<<_rsd.sendonlyupdates3<<std::endl;
 	_ros<<"maxsendonlyupdatessize               = "<<_rsd.maxsendonlyupdatessize<<std::endl;
 	_ros<<"maxsendsignalidxqueuesize            = "<<_rsd.maxsendsignalidxqueuesize<<std::endl;
 	_ros<<"tryschedulekeepalivecnt              = "<<_rsd.tryschedulekeepalivecnt<<std::endl;
@@ -2783,5 +2809,7 @@ std::ostream& operator<<(std::ostream &_ros, const StatisticData &_rsd){
 }
 }//namespace
 #endif
+
+
 }//namespace ipc
 }//namespace foundation

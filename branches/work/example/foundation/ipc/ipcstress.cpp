@@ -342,7 +342,6 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 			("debug_port,P", value<string>(&_par.dbg_port)->default_value("9999"), "Debug server port (e.g. on linux use: nc -l 9999)")
 			("debug_console,C", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")
 			("debug_unbuffered,S", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered")
-			("use_log,L", value<bool>(&_par.log)->implicit_value(true)->default_value(false), "Debug buffered")
 			("listen_port,l", value<int>(&_par.listen_port)->default_value(2000), "Listen port")
 			("connect,c", value<vector<string> >(&_par.connectstringvec), "Peer to connect to: YYY.YYY.YYY.YYY:port")
 			("repeat_count", value<uint32_t>(&_par.repeat_count)->default_value(10), "Per message trip count")
