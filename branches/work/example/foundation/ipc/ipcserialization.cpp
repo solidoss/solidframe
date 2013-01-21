@@ -3,8 +3,10 @@
 #include "system/timespec.hpp"
 #include "utility/dynamicpointer.hpp"
 #include "utility/dynamictype.hpp"
+#include "utility/queue.hpp"
 #include "foundation/signal.hpp"
-
+#include "algorithm/serialization/binary.hpp"
+#include "algorithm/serialization/idtypemapper.hpp"
 #include "boost/program_options.hpp"
 
 #include <string>
@@ -78,7 +80,26 @@ namespace{
 	Params p;
 }
 //------------------------------------------------------------------
+typedef DynamicSharedPointer<FirstMessage>	FirstMessageSharedPointerT;
+typedef Queue<FirstMessageSharedPointerT>	FirstMessageSharedPointerQueueT;
+typedef serialization::binary::Serializer										BinSerializerT;
+typedef serialization::binary::Deserializer										BinDeserializerT;
+typedef serialization::IdTypeMapper<BinSerializerT, BinDeserializerT, uint16>	UInt16TypeMapperT;
 
+
+struct Context{
+	enum{
+		BufferCapacity = 4 * 1024
+	};
+	Context(): ser(tm), des(tm), bufcp(BufferCapacity){}
+	UInt16TypeMapperT	tm;
+	BinSerializerT		ser;
+	BinDeserializerT	des;
+	const size_t		bufcp;
+	char				buf[BufferCapacity];
+};
+
+void execute_messages(FirstMessageSharedPointerQueueT	&_rmsgq, Context &_ctx);
 bool parseArguments(Params &_par, int argc, char *argv[]);
 
 int main(int argc, char *argv[]){
@@ -121,11 +142,30 @@ int main(int argc, char *argv[]){
 	}
 #endif
 	
+	FirstMessageSharedPointerQueueT		msgq;
+	Context								ctx;
+	ctx.tm.insert<FirstMessage>();
+	
 	for(uint32 i = 0; i < p.message_count; ++i){
 		
 		DynamicSharedPointer<FirstMessage>	msgptr(create_message(i));
-
+		msgq.push(msgptr);
 	}
+	
+	TimeSpec	begintime(TimeSpec::createRealTime()); 
+	
+	for(uint32 i = 0; i < p.repeat_count; ++i){
+		execute_messages(msgq, ctx);
+	}
+	
+	TimeSpec	endtime(TimeSpec::createRealTime());
+	endtime -= begintime;
+	uint64		duration = endtime.seconds() * 1000;
+	
+	duration += endtime.nanoSeconds() / 1000000;
+	
+	cout<<"Duration(msec) = "<<duration<<endl;
+	
 	Thread::waitAll();
 	return 0;
 }
@@ -228,4 +268,29 @@ FirstMessage* create_message(uint32_t _idx, const bool _incremental){
     return pmsg;
 }
 
+void execute_messages(FirstMessageSharedPointerQueueT	&_rmsgq, Context &_rctx){
+	const uint32		sz = _rmsgq.size();
+	
+	
+	for(uint32 i = 0; i < sz; ++i){
+		FirstMessageSharedPointerT	frmsgptr = _rmsgq.front();
+		FirstMessageSharedPointerT	tomsgptr(new FirstMessage);
+		
+		_rmsgq.pop();
+		
+		_rctx.ser.push(*frmsgptr, "msgptr");
+		_rctx.des.push(*tomsgptr, "msgptr");
+		
+		int rv;
+		while((rv = _rctx.ser.run(_rctx.buf, _rctx.bufcp)) == _rctx.bufcp){
+			_rctx.des.run(_rctx.buf, rv);
+		}
+		if(rv > 0){
+			_rctx.des.run(_rctx.buf, rv);
+		}
+		
+		_rmsgq.push(tomsgptr);
+		
+	}
+}
 

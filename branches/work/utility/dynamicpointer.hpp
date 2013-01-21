@@ -117,6 +117,10 @@ public:
 			pdyn = NULL;
 		}
 	}
+	DynamicT* release() const{
+		DynamicT *tmp = pdyn;
+		return tmp;
+	}
 protected:
 	void set(DynamicT *_pdyn){
 		pdyn = _pdyn;
