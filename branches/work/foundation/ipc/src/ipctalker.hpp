@@ -141,6 +141,7 @@ public:
 private:
 	int doReceiveBuffers(TalkerStub &_rstub, uint32 _atmost, const ulong _sig);
 	bool doProcessReceivedBuffers(TalkerStub &_rstub);
+	bool doPreprocessReceivedBuffers(TalkerStub &_rstub);
 	void doDispatchReceivedBuffer(
 		TalkerStub &_rstub,
 		char *_pbuf,

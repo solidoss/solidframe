@@ -384,7 +384,9 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 		return BAD;
 	}
 	
-	must_reenter = doProcessReceivedBuffers(ts) || must_reenter;
+	doPreprocessReceivedBuffers(ts);
+	
+	must_reenter = doExecuteSessions(ts) || must_reenter;
 	
 	rv = doSendBuffers(ts, _sig);
 	if(rv == OK){
@@ -393,7 +395,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 		return BAD;
 	}
 	
-	must_reenter = doExecuteSessions(ts) || must_reenter;
+	must_reenter = doProcessReceivedBuffers(ts) || must_reenter;
 	
 	if(d.timerq.size()){
 		_tout = d.timerq.top().timepos;
@@ -428,6 +430,33 @@ int Talker::doReceiveBuffers(TalkerStub &_rstub, uint _atmost, const ulong _sig)
 	}
 	COLLECT_DATA_0(d.statistics.receivedManyBuffers);
 	return OK;//can still read from socket
+}
+//----------------------------------------------------------------------
+bool Talker::doPreprocessReceivedBuffers(TalkerStub &_rstub){
+	for(Data::RecvBufferVectorT::const_iterator it(d.receivedbufvec.begin()); it != d.receivedbufvec.end(); ++it){
+		
+		const Data::RecvBuffer	&rcvbuf(*it);
+		Data::SessionStub		&rss(d.sessionvec[rcvbuf.sessionidx]);
+		Buffer					buf(rcvbuf.data, Buffer::Capacity);
+		
+		buf.bufferSize(rcvbuf.size);
+		
+		//conuid.sessionidx = rcvbuf.sessionidx;
+		//conuid.sessionuid = rss.uid;
+// 		Context::the().sigctx.connectionuid.idx = rcvbuf.sessionidx;
+// 		Context::the().sigctx.connectionuid.uid = rss.uid;
+// 		ts.sessionidx = rcvbuf.sessionidx;
+// 		rss.psession->prepareContext(Context::the());
+		
+		if(rss.psession->preprocessReceivedBuffer(buf, _rstub)){
+			if(!rss.inexeq){
+				d.sessionexecq.push(rcvbuf.sessionidx);
+				rss.inexeq = true;
+			}
+		}
+		buf.release();
+	}
+	return false;
 }
 //----------------------------------------------------------------------
 bool Talker::doProcessReceivedBuffers(TalkerStub &_rstub){

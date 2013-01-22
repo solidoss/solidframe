@@ -1377,6 +1377,14 @@ bool Session::pushEvent(
 }
 
 //---------------------------------------------------------------------
+bool Session::preprocessReceivedBuffer(
+	Buffer &_rbuf,
+	Talker::TalkerStub &_rstub
+){
+	d.rcvdidq.push(_rbuf.id());
+	return d.rcvdidq.size() >= Data::MaxRecvNoUpdateCount;
+}
+//---------------------------------------------------------------------
 bool Session::pushReceivedBuffer(
 	Buffer &_rbuf,
 	Talker::TalkerStub &_rstub/*,
@@ -1643,7 +1651,7 @@ bool Session::doPushExpectedReceivedBuffer(
 	COLLECT_DATA_0(d.statistics.pushExpectedReceivedBuffer);
 	vdbgx(Dbg::ipc, "expected "<<_rbuf);
 	//the expected buffer
-	d.rcvdidq.push(_rbuf.id());
+	//d.rcvdidq.push(_rbuf.id());
 	
 	bool mustexecute(false);
 	
@@ -1691,7 +1699,7 @@ bool Session::doPushUnxpectedReceivedBuffer(
 			COLLECT_DATA_0(d.statistics.alreadyReceived);
 			//the peer doesnt know that we've already received the buffer
 			//add it as update
-			d.rcvdidq.push(_rbuf.id());
+			//d.rcvdidq.push(_rbuf.id());
 		}else{
 			if(!_rbuf.decompress(_rstub.service().controller())){
 				_rbuf.clear();//silently drop invalid buffer
@@ -1705,7 +1713,7 @@ bool Session::doPushUnxpectedReceivedBuffer(
 			uint32 bufid(_rbuf.id());
 			if(d.keepOutOfOrderBuffer(_rbuf)){
 				vdbgx(Dbg::ipc, "out of order buffer");
-				d.rcvdidq.push(bufid);//for peer updates
+				//d.rcvdidq.push(bufid);//for peer updates
 			}else{
 				vdbgx(Dbg::ipc, "too many buffers out-of-order "<<d.outoforderbufcount);
 				COLLECT_DATA_0(d.statistics.tooManyBuffersOutOfOrder);

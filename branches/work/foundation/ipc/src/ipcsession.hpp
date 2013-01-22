@@ -132,6 +132,11 @@ public:
 		uint32 _flags
 	);
 	
+	bool preprocessReceivedBuffer(
+		Buffer &_rbuf,
+		Talker::TalkerStub &_rstub
+	);
+	
 	bool pushReceivedBuffer(
 		Buffer &_rbuf,
 		Talker::TalkerStub &_rstub
