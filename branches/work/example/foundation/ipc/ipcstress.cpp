@@ -86,7 +86,7 @@ struct Params{
 struct IpcServiceController: foundation::ipc::Controller{
 	IpcServiceController(
 		uint32 _netid = 0
-	):	foundation::ipc::Controller(400, 0/* AuthenticationFlag*/, 1000, 10 * 1000),
+	):	foundation::ipc::Controller(0, 0/* AuthenticationFlag*/, 0, 10 * 1000),
 		netid(_netid)
 	{
 		use();
