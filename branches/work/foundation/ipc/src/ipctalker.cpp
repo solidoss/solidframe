@@ -82,6 +82,11 @@ struct StatisticData{
 	void sendPending();
 	void signaled();
 	void pushTimer();
+	void receivedBuffers0();
+	void receivedBuffers1();
+	void receivedBuffers2();
+	void receivedBuffers3();
+	void receivedBuffers4();
 	
 	ulong	rcvdmannybuffers;
 	ulong	rcvdkeepalive;
@@ -99,6 +104,11 @@ struct StatisticData{
 	ulong	sendpending;
 	ulong	signaledcount;
 	ulong	pushtimercount;
+	ulong	receivedbuffers0;
+	ulong	receivedbuffers1;
+	ulong	receivedbuffers2;
+	ulong	receivedbuffers3;
+	ulong	receivedbuffers4;
 };
 
 std::ostream& operator<<(std::ostream &_ros, const StatisticData &_rsd);
@@ -384,9 +394,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 		return BAD;
 	}
 	
-	doPreprocessReceivedBuffers(ts);
-	
-	must_reenter = doExecuteSessions(ts) || must_reenter;
+	must_reenter = doProcessReceivedBuffers(ts) || must_reenter;
 	
 	rv = doSendBuffers(ts, _sig);
 	if(rv == OK){
@@ -395,7 +403,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 		return BAD;
 	}
 	
-	must_reenter = doProcessReceivedBuffers(ts) || must_reenter;
+	must_reenter = doExecuteSessions(ts) || must_reenter;
 	
 	if(d.timerq.size()){
 		_tout = d.timerq.top().timepos;
@@ -428,6 +436,7 @@ int Talker::doReceiveBuffers(TalkerStub &_rstub, uint _atmost, const ulong _sig)
 				return NOK;
 		}
 	}
+	
 	COLLECT_DATA_0(d.statistics.receivedManyBuffers);
 	return OK;//can still read from socket
 }
@@ -462,6 +471,19 @@ bool Talker::doPreprocessReceivedBuffers(TalkerStub &_rstub){
 bool Talker::doProcessReceivedBuffers(TalkerStub &_rstub){
 	//ConnectionUid	conuid(d.tkrid);
 	TalkerStub		&ts = _rstub;
+#ifdef USTATISTICS	
+	if(d.receivedbufvec.size() == 0){
+		COLLECT_DATA_0(d.statistics.receivedBuffers0);
+	}else if(d.receivedbufvec.size() == 1){
+		COLLECT_DATA_0(d.statistics.receivedBuffers1);
+	}else if(d.receivedbufvec.size() == 2){
+		COLLECT_DATA_0(d.statistics.receivedBuffers2);
+	}else if(d.receivedbufvec.size() == 3){
+		COLLECT_DATA_0(d.statistics.receivedBuffers3);
+	}else if(d.receivedbufvec.size() == 4){
+		COLLECT_DATA_0(d.statistics.receivedBuffers4);
+	}
+#endif
 	
 	for(Data::RecvBufferVectorT::const_iterator it(d.receivedbufvec.begin()); it != d.receivedbufvec.end(); ++it){
 		
@@ -1035,6 +1057,22 @@ void StatisticData::signaled(){
 void StatisticData::pushTimer(){
 	++pushtimercount;
 }
+void StatisticData::receivedBuffers0(){
+	++receivedbuffers0;
+}
+void StatisticData::receivedBuffers1(){
+	++receivedbuffers1;
+}
+void StatisticData::receivedBuffers2(){
+	++receivedbuffers2;
+}
+void StatisticData::receivedBuffers3(){
+	++receivedbuffers3;
+}
+void StatisticData::receivedBuffers4(){
+	++receivedbuffers4;
+}
+
 
 std::ostream& operator<<(std::ostream &_ros, const StatisticData &_rsd){
 	_ros<<"rcvdmannybuffers          "<<_rsd.rcvdmannybuffers<<std::endl;
@@ -1053,6 +1091,11 @@ std::ostream& operator<<(std::ostream &_ros, const StatisticData &_rsd){
 	_ros<<"sendpending               "<<_rsd.sendpending<<std::endl;
 	_ros<<"signaledcount             "<<_rsd.signaledcount<<std::endl;
 	_ros<<"pushtimercount            "<<_rsd.pushtimercount<<std::endl;
+	_ros<<"receivedbuffers0          "<<_rsd.receivedbuffers0<<std::endl;
+	_ros<<"receivedbuffers1          "<<_rsd.receivedbuffers1<<std::endl;
+	_ros<<"receivedbuffers2          "<<_rsd.receivedbuffers2<<std::endl;
+	_ros<<"receivedbuffers3          "<<_rsd.receivedbuffers3<<std::endl;
+	_ros<<"receivedbuffers4          "<<_rsd.receivedbuffers4<<std::endl;
 	return _ros;
 }
 }//namespace

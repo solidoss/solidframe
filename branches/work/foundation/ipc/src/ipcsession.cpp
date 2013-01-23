@@ -111,11 +111,16 @@ struct StatisticData{
 	void failedDecompression();
 	void sendUncompressed(ulong _sz);
 	void sendCompressed(ulong _sz);
+	void sendStackSize0();
+	void sendStackSize1();
+	void sendStackSize2();
+	void sendStackSize3();
+	void sendStackSize4();
 	
 	ulong	reconnectcnt;
 	ulong	pushsignalcnt;
 	ulong	pushreceivedbuffercnt;
-	ulong	 maxretransmitid;
+	ulong	maxretransmitid;
 	ulong	sendkeepalivecnt;
 	ulong	sendpendingcnt;
 	ulong	pushexpectedreceivedbuffercnt;
@@ -137,6 +142,11 @@ struct StatisticData{
 	ulong	maxsendsynchronouswhilesynchronous;
 	ulong	sendasynchronous;
 	ulong	faileddecompressions;
+	ulong	sendstacksize0;
+	ulong	sendstacksize1;
+	ulong	sendstacksize2;
+	ulong	sendstacksize3;
+	ulong	sendstacksize4;
 	uint64	senduncompressed;
 	uint64	sendcompressed;
 };
@@ -177,8 +187,8 @@ struct Session::Data{
 		UpdateBufferId = 0xffffffff,//the id of a buffer containing only updates
 		MaxSendBufferCount = 4,
 		MaxRecvNoUpdateCount = 2,// max number of buffers received, without sending update
-		MaxSignalBufferCount = 8,//continuous buffers sent for a signal
-		MaxSendSignalQueueSize = 32,//max count of signals sent in paralell
+		MaxSignalBufferCount = 16,//continuous buffers sent for a signal
+		MaxSendSignalQueueSize = 16,//max count of signals sent in paralell
 		MaxOutOfOrder = 4,//please also change moveToNextOutOfOrderBuffer
 	};
 	struct BinSerializer:serialization::binary::Serializer{
@@ -1651,7 +1661,7 @@ bool Session::doPushExpectedReceivedBuffer(
 	COLLECT_DATA_0(d.statistics.pushExpectedReceivedBuffer);
 	vdbgx(Dbg::ipc, "expected "<<_rbuf);
 	//the expected buffer
-	//d.rcvdidq.push(_rbuf.id());
+	d.rcvdidq.push(_rbuf.id());
 	
 	bool mustexecute(false);
 	
@@ -1699,7 +1709,7 @@ bool Session::doPushUnxpectedReceivedBuffer(
 			COLLECT_DATA_0(d.statistics.alreadyReceived);
 			//the peer doesnt know that we've already received the buffer
 			//add it as update
-			//d.rcvdidq.push(_rbuf.id());
+			d.rcvdidq.push(_rbuf.id());
 		}else{
 			if(!_rbuf.decompress(_rstub.service().controller())){
 				_rbuf.clear();//silently drop invalid buffer
@@ -1713,7 +1723,7 @@ bool Session::doPushUnxpectedReceivedBuffer(
 			uint32 bufid(_rbuf.id());
 			if(d.keepOutOfOrderBuffer(_rbuf)){
 				vdbgx(Dbg::ipc, "out of order buffer");
-				//d.rcvdidq.push(bufid);//for peer updates
+				d.rcvdidq.push(bufid);//for peer updates
 			}else{
 				vdbgx(Dbg::ipc, "too many buffers out-of-order "<<d.outoforderbufcount);
 				COLLECT_DATA_0(d.statistics.tooManyBuffersOutOfOrder);
@@ -2221,6 +2231,7 @@ int Session::doTrySendUpdates(Talker::TalkerStub &_rstub){
 		buf.optimize(256);
 		
 		COLLECT_DATA_1(d.statistics.sendOnlyUpdatesSize, buf.updateCount());
+#ifdef USTATISTICS
 		if(buf.updateCount() == 1){
 			COLLECT_DATA_0(d.statistics.sendOnlyUpdatesSize1);
 		}
@@ -2230,6 +2241,7 @@ int Session::doTrySendUpdates(Talker::TalkerStub &_rstub){
 		if(buf.updateCount() == 3){
 			COLLECT_DATA_0(d.statistics.sendOnlyUpdatesSize3);
 		}
+#endif
 		vdbgx(Dbg::ipc, "send "<<buf);
 		
 		if(_rstub.pushSendBuffer(-1, buf.buffer(), buf.bufferSize())){
@@ -2319,7 +2331,21 @@ int Session::doExecuteConnectedLimited(Talker::TalkerStub &_rstub){
 int Session::doExecuteConnected(Talker::TalkerStub &_rstub){
 	vdbgx(Dbg::ipc, ""<<d.sendbufferfreeposstk.size());
 	Controller 	&rctrl = _rstub.service().controller();
-	
+
+#ifdef USTATISTICS
+	if(d.sendbufferfreeposstk.size() == 0){
+		COLLECT_DATA_0(d.statistics.sendStackSize0);
+	}else if(d.sendbufferfreeposstk.size() == 1){
+		COLLECT_DATA_0(d.statistics.sendStackSize1);
+	}else if(d.sendbufferfreeposstk.size() == 2){
+		COLLECT_DATA_0(d.statistics.sendStackSize2);
+	}else if(d.sendbufferfreeposstk.size() == 3){
+		COLLECT_DATA_0(d.statistics.sendStackSize3);
+	}else if(d.sendbufferfreeposstk.size() == 4){
+		COLLECT_DATA_0(d.statistics.sendStackSize4);
+	}
+#endif
+
 	while(d.sendbufferfreeposstk.size()){
 		if(
 			d.signalq.empty() &&
@@ -2327,7 +2353,7 @@ int Session::doExecuteConnected(Talker::TalkerStub &_rstub){
 		){
 			break;
 		}
-		
+	//if(d.sendbufferfreeposstk.size() && (d.signalq.size() || d.sendsignalidxq.size())){
 		//we can still send buffers
 		Buffer 					buf(Buffer::allocate(), Buffer::Capacity);
 		
@@ -2385,6 +2411,7 @@ int Session::doExecuteConnected(Talker::TalkerStub &_rstub){
 		}
 	}
 	doTrySendUpdates(_rstub);
+	//return (d.sendbufferfreeposstk.size() && (d.signalq.size() || d.sendsignalidxq.size())) ? OK : NOK;
 	return NOK;
 }
 //---------------------------------------------------------------------
@@ -2785,6 +2812,26 @@ void StatisticData::sendCompressed(ulong _sz){
 	sendcompressed += _sz;
 }
 
+void StatisticData::sendStackSize0(){
+	++sendstacksize0;
+}
+
+void StatisticData::sendStackSize1(){
+	++sendstacksize1;
+}
+
+void StatisticData::sendStackSize2(){
+	++sendstacksize2;
+}
+
+void StatisticData::sendStackSize3(){
+	++sendstacksize3;
+}
+
+void StatisticData::sendStackSize4(){
+	++sendstacksize4;
+}
+
 std::ostream& operator<<(std::ostream &_ros, const StatisticData &_rsd){
 	_ros<<"reconnectcnt                         = "<<_rsd.reconnectcnt<<std::endl;
 	_ros<<"pushsignalcnt                        = "<<_rsd.pushsignalcnt<<std::endl;
@@ -2813,6 +2860,11 @@ std::ostream& operator<<(std::ostream &_ros, const StatisticData &_rsd){
 	_ros<<"faileddecompressions                 = "<<_rsd.faileddecompressions<<std::endl;
 	_ros<<"senduncompressed                     = "<<_rsd.senduncompressed<<std::endl;
 	_ros<<"sendcompressed                       = "<<_rsd.sendcompressed<<std::endl;
+	_ros<<"sendstacksize0                       = "<<_rsd.sendstacksize0<<std::endl;
+	_ros<<"sendstacksize1                       = "<<_rsd.sendstacksize1<<std::endl;
+	_ros<<"sendstacksize2                       = "<<_rsd.sendstacksize2<<std::endl;
+	_ros<<"sendstacksize3                       = "<<_rsd.sendstacksize3<<std::endl;
+	_ros<<"sendstacksize4                       = "<<_rsd.sendstacksize4<<std::endl;
 	return _ros;
 }
 }//namespace
