@@ -130,7 +130,14 @@ struct ServerStub{
 	uint64	sz;
 };
 
+
+struct MessageStub{
+	MessageStub():count(0){}
+	uint32 count;
+};
+
 typedef std::vector<ServerStub>     ServerVectorT;
+typedef std::vector<MessageStub>    MessageVectorT;
 
 namespace{
 	IpcServiceController	ipcctrl;
@@ -139,12 +146,14 @@ namespace{
 	bool					run(true);
 	uint32					wait_count = 0;
 	ServerVectorT			srvvec;
+	MessageVectorT			msgvec;
 	Params					p;
 }
 
 
 struct FirstMessage: Dynamic<FirstMessage, DynamicShared<foundation::Signal> >{
 	uint32							state;
+	uint32							idx;
     uint32							sec;
     uint32							nsec;
     std::string						str;
@@ -170,7 +179,7 @@ struct FirstMessage: Dynamic<FirstMessage, DynamicShared<foundation::Signal> >{
 	
 	template <class S>
 	S& operator&(S &_s){
-		_s.push(state, "state").push(sec, "seconds").push(nsec, "nanoseconds").push(str, "data");
+		_s.push(state, "state").push(idx, "index").push(sec, "seconds").push(nsec, "nanoseconds").push(str, "data");
 		if(!isOnSender() || S::IsDeserializer){
 			_s.push(siguid.idx, "siguid.idx").push(siguid.uid,"siguid.uid");
 		}else{//on sender
@@ -273,6 +282,7 @@ int main(int argc, char *argv[]){
 		wait_count = p.message_count;
         
 		srvvec.resize(p.connectvec.size());
+		msgvec.resize(p.message_count);
 		
 		TimeSpec	begintime(TimeSpec::createRealTime()); 
 		
@@ -328,6 +338,12 @@ int main(int argc, char *argv[]){
             }
         }
         cout<<"mintime = "<<minmsec<<" maxtime = "<<maxmsec<<endl;
+		
+		for(MessageVectorT::const_iterator it(msgvec.begin()); it != msgvec.end(); ++it){
+			size_t idx = it - msgvec.begin();
+			cout<<idx<<'('<<it->count<<')'<<' ';
+		}
+		cout<<endl;
     }
 	
 	return 0;
@@ -436,6 +452,13 @@ FirstMessage::~FirstMessage(){
 	++state;
 	idbg("EXECUTE ---------------- "<<state);
 	DynamicPointer<fdt::Signal> psig(this);
+	
+	if(this->idx >= msgvec.size()){
+		msgvec.resize(this->idx + 1);
+	}
+	
+	++msgvec[this->idx].count;
+	
 	if(!isOnSender()){
 		fdt::ipc::ConnectionContext::the().service().sendSignal(
 			psig,
@@ -475,7 +498,7 @@ FirstMessage::~FirstMessage(){
 			fdt::ipc::ConnectionContext::the().service().sendSignal(
 				psig,
 				fdt::ipc::ConnectionContext::the().connectionuid,
-				fdt::ipc::Service::WaitResponseFlag/* | fdt::ipc::Service::SynchronousSendFlag*/
+				fdt::ipc::Service::WaitResponseFlag// | fdt::ipc::Service::SynchronousSendFlag
 			);
 		}else{
 			Locker<Mutex>  lock(mtx);
@@ -522,6 +545,7 @@ FirstMessage* create_message(uint32_t _idx, const bool _incremental){
     FirstMessage *pmsg = new FirstMessage;
     
     pmsg->state = 0;
+	pmsg->idx = _idx;
     
     if(!_incremental){
         _idx = p.message_count - 1 - _idx;
