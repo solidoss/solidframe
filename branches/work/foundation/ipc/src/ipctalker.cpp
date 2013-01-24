@@ -698,6 +698,7 @@ bool Talker::doExecuteSessions(TalkerStub &_rstub){
 		Data::SessionStub	&rss(d.sessionvec[ts.sessionidx]);
 		Context::the().sigctx.connectionuid.idx = ts.sessionidx;
 		Context::the().sigctx.connectionuid.uid = rss.uid;
+		
 		rss.psession->prepareContext(Context::the());
 		
 		rss.inexeq = false;

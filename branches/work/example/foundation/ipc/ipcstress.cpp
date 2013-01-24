@@ -283,7 +283,11 @@ int main(int argc, char *argv[]){
 
 				for(Params::SocketAddressVectorT::iterator it(p.connectvec.begin()); it != p.connectvec.end(); ++it){
 					DynamicPointer<fdt::Signal>		sigptr(msgptr);
-					fdt::ipc::Service::the().sendSignal(sigptr, *it, fdt::ipc::LocalNetworkId, fdt::ipc::Service::WaitResponseFlag);
+					fdt::ipc::Service::the().sendSignal(
+						sigptr, *it,
+						fdt::ipc::LocalNetworkId,
+						fdt::ipc::Service::WaitResponseFlag// | fdt::ipc::Service::SynchronousSendFlag
+					);
 				}
 			}
 		}
@@ -433,7 +437,11 @@ FirstMessage::~FirstMessage(){
 	idbg("EXECUTE ---------------- "<<state);
 	DynamicPointer<fdt::Signal> psig(this);
 	if(!isOnSender()){
-		fdt::ipc::ConnectionContext::the().service().sendSignal(psig, fdt::ipc::ConnectionContext::the().connectionuid);
+		fdt::ipc::ConnectionContext::the().service().sendSignal(
+			psig,
+			fdt::ipc::ConnectionContext::the().connectionuid,
+			0//fdt::ipc::Service::SynchronousSendFlag
+		);
 	}else{
 		TimeSpec			crttime(TimeSpec::createRealTime());
 		TimeSpec			tmptime(this->sec, this->nsec);
@@ -466,8 +474,8 @@ FirstMessage::~FirstMessage(){
 			
 			fdt::ipc::ConnectionContext::the().service().sendSignal(
 				psig,
-				fdt::ipc::ConnectionContext::the().connectionuid/*,
-				fdt::ipc::Service::WaitResponseFlag*/
+				fdt::ipc::ConnectionContext::the().connectionuid,
+				fdt::ipc::Service::WaitResponseFlag/* | fdt::ipc::Service::SynchronousSendFlag*/
 			);
 		}else{
 			Locker<Mutex>  lock(mtx);
