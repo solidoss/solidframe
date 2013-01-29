@@ -61,9 +61,10 @@ struct Buffer{
 		UpdateFlag = 1,//fixed position 
 		CompressedFlag = 2,
 		RelayFlag = 4,//fixed position
+		DebugFlag = 8,
 	};
 	enum DataTypes{
-		ContinuedSignal = 0,
+		ContinuedSignal = 10,
 		NewSignal,
 		OldSignal
 	};

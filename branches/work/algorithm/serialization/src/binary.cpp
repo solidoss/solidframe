@@ -186,10 +186,11 @@ int Serializer::storeBinary<0>(Base &_rb, FncData &_rfd){
 
 template <>
 int Serializer::storeBinary<1>(Base &_rb, FncData &_rfd){
-	idbgx(Dbg::ser_bin, "");
+	edbgx(Dbg::ser_bin, "");
 	Serializer &rs(static_cast<Serializer&>(_rb));
 	if(!rs.cpb) return OK;
 	const unsigned len = rs.be - rs.cpb;
+	edbgx(Dbg::ser_bin, "rs = "<<(void*)&rs<<" len = "<<len);
 	if(len){
 		*rs.cpb = *reinterpret_cast<const char*>(_rfd.p);
 		++rs.cpb;
@@ -238,6 +239,7 @@ int Serializer::storeBinary<4>(Base &_rb, FncData &_rfd){
 		*(rs.cpb + 1) = *(ps + 1);
 		*(rs.cpb + 2) = *(ps + 2);
 		_rfd.p = const_cast<char*>(ps + 3);
+		edbgx(Dbg::ser_bin, "rs = "<<(void*)&rs<<" len = "<<len);
 		_rfd.f = &Serializer::storeBinary<1>;
 		rs.cpb += 3;
 		return NOK;
@@ -678,6 +680,7 @@ int Deserializer::loadBinary<1>(Base &_rb, FncData &_rfd){
 	if(!rd.cpb) return OK;
 	const unsigned	len = rd.be - rd.cpb;
 	char			*ps = reinterpret_cast<char*>(_rfd.p);
+	edbgx(Dbg::ser_bin, "rd = "<<(void*)&rd<<" len = "<<len);
 	if(len >= 1){
 		*(ps + 0) = *(rd.cpb + 0);
 		rd.cpb += 1;
@@ -756,6 +759,7 @@ int Deserializer::loadBinary<4>(Base &_rb, FncData &_rfd){
 		*(ps + 2) = *(rd.cpb + 2);
 		rd.cpb += 3;
 		_rfd.p = ps + 3;
+		edbgx(Dbg::ser_bin, "rd = "<<(void*)&rd<<" len = "<<len);
 		_rfd.f = &Deserializer::loadBinary<1>;
 	}else if(len >= 2){
 		*(ps + 0) = *(rd.cpb + 0);
