@@ -1761,20 +1761,24 @@ void Session::doParseBufferDataType(
 	CRCValue<uint8>		crcval(CRCValue<uint8>::check_and_create(datatype));
 	
 	if(!crcval.ok()){
+#ifdef ENABLE_MORE_DEBUG
 		while(d.rcvdsignalq.size()){
 			Data::RecvSignalData &rrsd(d.rcvdsignalq.front());
 			edbgx(Dbg::ipc, "rrsd.psignal = "<<(void*)rrsd.psignal<<" rrsd.pdeserializer = "<<(void*)rrsd.pdeserializer);
 			d.rcvdsignalq.pop();
 		}
+#endif
 		THROW_EXCEPTION("Deserialization error");
 		cassert(false);
 	}
 	
 	++_bpos;
 	--_blen;
+#ifdef ENABLE_MORE_DEBUG
 	if(_rbuf.flags() & Buffer::DebugFlag){
 		edbgx(Dbg::ipc, "value = "<<crcval.value()<<" sigqsz = "<<d.rcvdsignalq.size());
 	}
+#endif
 	switch(crcval.value()){
 		case Buffer::ContinuedSignal:
 			vdbgx(Dbg::ipc, "continuedsignal");
@@ -1810,11 +1814,13 @@ void Session::doParseBufferDataType(
 			d.rcvdsignalq.pop();
 			break;
 		default:{
+#ifdef ENABLE_MORE_DEBUG
 			while(d.rcvdsignalq.size()){
 				Data::RecvSignalData &rrsd(d.rcvdsignalq.front());
 				edbgx(Dbg::ipc, "rrsd.psignal = "<<(void*)rrsd.psignal<<" rrsd.pdeserializer = "<<(void*)rrsd.pdeserializer);
 				d.rcvdsignalq.pop();
 			}
+#endif
 			THROW_EXCEPTION("Deserialization error");
 			cassert(false);
 		}
@@ -1828,7 +1834,8 @@ void Session::doParseBuffer(Talker::TalkerStub &_rstub, const Buffer &_rbuf/*, c
 	int 		firstblen(blen - 1);
 	
 	idbgx(Dbg::ipc, "bufferid = "<<_rbuf.id());
-	
+
+#ifdef ENABLE_MORE_DEBUG
 	if(_rbuf.flags() & Buffer::DebugFlag){
 		//dump the wait queue
 		uint32 sz = d.rcvdsignalq.size();
@@ -1841,12 +1848,13 @@ void Session::doParseBuffer(Talker::TalkerStub &_rstub, const Buffer &_rbuf/*, c
 			--sz;
 		}
 	}
-	
+#endif
+
 	while(blen >= 2){
 		
 		idbgx(Dbg::ipc, "blen = "<<blen<<" bpos "<<(bpos - _rbuf.data()));
 		
-		doParseBufferDataType(_rstub, bpos, blen, firstblen);
+		doParseBufferDataType(_rstub, _rbuf, bpos, blen, firstblen);
 		
 		Data::RecvSignalData &rrsd(d.rcvdsignalq.front());
 		
@@ -1860,11 +1868,13 @@ void Session::doParseBuffer(Talker::TalkerStub &_rstub, const Buffer &_rbuf/*, c
 		blen -= rv;
 		bpos += rv;
 		
+#ifdef ENABLE_MORE_DEBUG		
 		if(rv == 1){
 			edbgx(Dbg::ipc, "bufid = "<<_rbuf.id()<<" blen = "<<blen<<" bpos "<<(bpos - _rbuf.data()));
 			edbgx(Dbg::ipc, "psig = "<<(void*)rrsd.psignal<<" pdes = "<<(void*)rrsd.pdeserializer);
 		}
-		
+#endif
+
 		if(rrsd.pdeserializer->empty()){//done one signal.
 			SignalUid 				siguid(0xffffffff, 0xffffffff);
 			Controller				&rctrl = _rstub.service().controller();
@@ -1910,8 +1920,9 @@ void Session::doParseBuffer(Talker::TalkerStub &_rstub, const Buffer &_rbuf/*, c
 							d.pushSignalToSendQueue(sigptr, flags, tid);
 						}
 						break;
-					default:
+					default:{
 						THROW_EXCEPTION_EX("Invalid return value for authenticate ", authrv);
+					}
 				}
 			}
 			
@@ -2454,8 +2465,6 @@ void Session::doFillSendBuffer(Talker::TalkerStub &_rstub, const uint32 _bufidx)
 	Data::BinSerializerT	*pser(NULL);
 	Controller				&rctrl = _rstub.service().controller();
 	
-	int						lastdatatype(-1);
-	
 	COLLECT_DATA_1(d.statistics.sendSignalIdxQueueSize, d.sendsignalidxq.size());
 	
 	while(d.sendsignalidxq.size()){
@@ -2469,16 +2478,13 @@ void Session::doFillSendBuffer(Talker::TalkerStub &_rstub, const uint32 _bufidx)
 				if(d.currentbuffersignalcount == Data::MaxSignalBufferCount){
 					vdbgx(Dbg::ipc, "oldsignal data size "<<rsbd.buffer.dataSize());
 					rsbd.buffer.dataType(Buffer::OldSignal);
-					lastdatatype = Buffer::OldSignal;
 				}else{
 					vdbgx(Dbg::ipc, "continuedsignal data size "<<rsbd.buffer.dataSize()<<" headsize = "<<rsbd.buffer.headerSize());
 					rsbd.buffer.dataType(Buffer::ContinuedSignal);
-					lastdatatype = Buffer::ContinuedSignal;
 				}
 			}else{//a new command
 				vdbgx(Dbg::ipc, "newsignal data size "<<rsbd.buffer.dataSize());
 				rsbd.buffer.dataType(Buffer::NewSignal);
-				lastdatatype = Buffer::NewSignal;
 				if(pser){
 					rssd.pserializer = pser;
 					pser = NULL;
@@ -2514,10 +2520,12 @@ void Session::doFillSendBuffer(Talker::TalkerStub &_rstub, const uint32 _bufidx)
 			rsbd.buffer.dataSize(rsbd.buffer.dataSize() + rv);
 			
 			if(rssd.pserializer->empty()){//finished with this signal
+#ifdef ENABLE_MORE_DEBUG
 				if(rv == 1){
-					edbgx(Dbg::ipc, "bufid = "<<rsbd.buffer.id()<<" size = "<<tofill<<" datatype = "<<lastdatatype);
+					edbgx(Dbg::ipc, "bufid = "<<rsbd.buffer.id()<<" size = "<<tofill<<" datatype = "/*<<lastdatatype*/);
 					rsbd.buffer.flags(rsbd.buffer.flags() | Buffer::DebugFlag);
 				}
+#endif
 				vdbgx(Dbg::ipc, "donesignal");
 				if(pser) d.pushSerializer(pser);
 				pser = rssd.pserializer;

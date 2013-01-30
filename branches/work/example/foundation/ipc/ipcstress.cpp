@@ -338,12 +338,29 @@ int main(int argc, char *argv[]){
             }
         }
         cout<<"mintime = "<<minmsec<<" maxtime = "<<maxmsec<<endl;
-		
-		for(MessageVectorT::const_iterator it(msgvec.begin()); it != msgvec.end(); ++it){
-			size_t idx = it - msgvec.begin();
-			cout<<idx<<'('<<it->count<<')'<<' ';
+		bool	doprint = false;
+		uint32	cnt(0);
+		if(msgvec.size() <= 16){
+			doprint = true;
+		}else{
+			cnt = msgvec.front().count;
+			
+			for(MessageVectorT::const_iterator it(msgvec.begin() + 1); it != msgvec.end(); ++it){
+				if(it->count != cnt){
+					doprint = true;
+					break;
+				}
+			}
 		}
-		cout<<endl;
+		if(doprint){
+			for(MessageVectorT::const_iterator it(msgvec.begin()); it != msgvec.end(); ++it){
+				size_t idx = it - msgvec.begin();
+				cout<<idx<<'('<<it->count<<')'<<' ';
+			}
+			cout<<endl;
+		}else{
+			cout<<"All messages have count: "<<cnt<<endl;
+		}
     }
 	
 	return 0;

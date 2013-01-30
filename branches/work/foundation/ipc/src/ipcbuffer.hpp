@@ -64,7 +64,7 @@ struct Buffer{
 		DebugFlag = 8,
 	};
 	enum DataTypes{
-		ContinuedSignal = 10,
+		ContinuedSignal = 1,
 		NewSignal,
 		OldSignal
 	};

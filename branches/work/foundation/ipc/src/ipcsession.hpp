@@ -177,7 +177,10 @@ private:
 		Buffer &_rbuf
 	);
 	bool doFreeSentBuffers(const Buffer &_rbuf);
-	void doParseBufferDataType(Talker::TalkerStub &_rstub, const char *&_bpos, int &_blen, int _firstblen);
+	void doParseBufferDataType(
+		Talker::TalkerStub &_rstub, const Buffer &_rbuf,
+		const char *&_bpos, int &_blen, int _firstblen
+	);
 	void doParseBuffer(Talker::TalkerStub &_rstub, const Buffer &_rbuf);
 	
 	int doExecuteRelayInit(Talker::TalkerStub &_rstub);
