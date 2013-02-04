@@ -883,7 +883,7 @@ void Talker::doDispatchSignals(){
 		if(
 			rss.psession && 
 			(
-				!(flags & Service::SameConnectorFlag) ||
+				!(flags & SameConnectorFlag) ||
 				rss.uid == rsd.sessionuid
 			)
 		){

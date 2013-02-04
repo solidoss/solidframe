@@ -68,7 +68,7 @@ uint32 RemoteListSignal::ipcPrepare(){
 	if(success == 0) success = 1;//wait
 	idbg(""<<(void*)this<<" siguid = "<<rsigctx.signaluid.idx<<' '<<rsigctx.signaluid.uid<<" ipcstatus = "<<(int)ipcstatus);
 	if(ipcstatus == IpcOnSender){//on sender
-		return foundation::ipc::Service::WaitResponseFlag /*| foundation::ipc::Service::SynchronousSendFlag*/;
+		return foundation::ipc::WaitResponseFlag /*| foundation::ipc::SynchronousSendFlag*/;
 	}else{
 		return 0/*foundation::ipc::Service::SynchronousSendFlag*/;// on peer
 	}

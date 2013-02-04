@@ -29,6 +29,7 @@
 #include "foundation/signal.hpp"
 #include "foundation/ipc/ipcconnectionuid.hpp"
 
+struct C;
 struct SocketAddressStub;
 struct SocketDevice;
 struct ResolveIterator;
@@ -55,6 +56,16 @@ struct BufferContext;
 struct ConnectData;
 struct AcceptData;
 class Service;
+
+enum {
+	SameConnectorFlag = 1, //!< Do not send signal to a restarted peer process
+	ResponseFlag	= SameConnectorFlag, //!< The sent signal is a response
+	WaitResponseFlag = 2,
+	SynchronousSendFlag = 4,//!< Make the signal synchronous
+	SentFlag = 8,//!< The signal was successfully sent
+	AuthenticationFlag = 16,//!< The signal is for authentication
+	DisconnectAfterSendFlag = 32,//!< Disconnect the session after sending the signal
+};
 
 struct Controller: Dynamic<Controller, DynamicShared<> >{
 	enum{
@@ -181,6 +192,21 @@ private:
 	const uint32	seskeepalive;
 };
 
+
+struct Configuration{
+	struct Service;
+	struct Talker;
+	struct Node;
+	struct Session;
+	
+	Configuration()
+	
+	Service	&rservice;
+	Talker	&rtalker;
+	Node&	&rnode;
+	Session	&rsession;
+};
+
 //! An Inter Process Communication service
 /*!
 	Allow for sending/receiving serializable foundation::Signal objects between
@@ -202,16 +228,6 @@ private:
 */
 class Service: public Dynamic<Service, foundation::Service>{
 public:
-	enum {
-		SameConnectorFlag = 1, //!< Do not send signal to a restarted peer process
-		ResponseFlag	= SameConnectorFlag, //!< The sent signal is a response
-		WaitResponseFlag = 2,
-		SynchronousSendFlag = 4,//!< Make the signal synchronous
-		SentFlag = 8,//!< The signal was successfully sent
-		AuthenticationFlag = 16,//!< The signal is for authentication
-		DisconnectAfterSendFlag = 32,//!< Disconnect the session after sending the signal
-	};
-	
 	enum Errors{
 		NoError = 0,
 		NoGatewayError = 100,

@@ -160,6 +160,16 @@ std::ostream& operator<<(std::ostream &_ros, const StatisticData &_rsd);
 typedef DynamicPointer<foundation::Signal>			DynamicSignalPointerT;
 
 struct Session::Data{
+	enum{
+		UpdateBufferId = 0xffffffff,//the id of a buffer containing only updates
+		MaxSendBufferCount = 4,
+		MaxRecvNoUpdateCount = 2,// max number of buffers received, without sending update
+		MaxSignalBufferCount = 16,//continuous buffers sent for a signal
+		MaxSendSignalQueueSize = 16,//max count of signals sent in paralell
+		MaxOutOfOrder = 4,//please also change moveToNextOutOfOrderBuffer
+		MinBufferDataSize = 8,
+	};
+	
 	enum Types{
 		Dummy,
 		Direct4,
@@ -168,6 +178,7 @@ struct Session::Data{
 		//Relayed66
 		//Relayed46
 		//Relayed64
+		LastType//add types above
 	};
 	enum States{
 		RelayInit = 0,
@@ -184,14 +195,7 @@ struct Session::Data{
 		Disconnected,
 		DummyExecute,
 	};
-	enum{
-		UpdateBufferId = 0xffffffff,//the id of a buffer containing only updates
-		MaxSendBufferCount = 4,
-		MaxRecvNoUpdateCount = 2,// max number of buffers received, without sending update
-		MaxSignalBufferCount = 16,//continuous buffers sent for a signal
-		MaxSendSignalQueueSize = 16,//max count of signals sent in paralell
-		MaxOutOfOrder = 4,//please also change moveToNextOutOfOrderBuffer
-	};
+	
 	struct BinSerializer:serialization::binary::Serializer{
 		BinSerializer(
 			const serialization::TypeMapperBase &_rtmb
@@ -531,8 +535,8 @@ Session::Data::Data(
 {
 	outoforderbufvec.resize(MaxOutOfOrder);
 	//first buffer is for keepalive
-	sendbuffervec.resize(MaxSendBufferCount + 1);
-	for(uint32 i(MaxSendBufferCount); i >= 1; --i){
+	sendbuffervec.resize(maxSendBufferCount() + 1);
+	for(uint32 i(maxSendBufferCount()); i >= 1; --i){
 		sendbufferfreeposstk.push(i);
 	}
 	sendsignalvec.reserve(Data::MaxSendSignalQueueSize);
@@ -568,7 +572,7 @@ Session::Data::~Data(){
 			rssd.pserializer = NULL;
 		}
 		if(rssd.signal.get()){
-			if((rssd.flags & Service::WaitResponseFlag) && (rssd.flags & Service::SentFlag)){
+			if((rssd.flags & WaitResponseFlag) && (rssd.flags & SentFlag)){
 				//the was successfully sent but the response did not arrive
 				rssd.signal->ipcComplete(-2);
 			}else{
@@ -653,8 +657,8 @@ SignalUid Session::Data::pushSendWaitSignal(
 	uint16 _flags,
 	uint32 _id
 ){
-	_flags &= ~Service::SentFlag;
-//	_flags &= ~Service::WaitResponseFlag;
+	_flags &= ~SentFlag;
+//	_flags &= ~WaitResponseFlag;
 	
 	if(sendsignalfreeposstk.size()){
 		const uint32	idx(sendsignalfreeposstk.top());
@@ -737,17 +741,17 @@ void Session::Data::popSentWaitSignal(const uint32 _idx){
 	idbgx(Dbg::ipc, ""<<_idx);
 	SendSignalData &rssd(sendsignalvec[_idx]);
 	cassert(rssd.signal.get());
-	if(rssd.flags & Service::DisconnectAfterSendFlag){
+	if(rssd.flags & DisconnectAfterSendFlag){
 		idbgx(Dbg::ipc, "DisconnectAfterSendFlag - disconnecting");
 		++rssd.uid;
 		rssd.signal.clear();
 		sendsignalfreeposstk.push(_idx);
 		this->state = Disconnecting;
 	}
-	if(rssd.flags & Service::WaitResponseFlag){
+	if(rssd.flags & WaitResponseFlag){
 		//let it leave a little longer
 		idbgx(Dbg::ipc, "signal waits for response "<<_idx<<' '<<rssd.uid);
-		rssd.flags |= Service::SentFlag;
+		rssd.flags |= SentFlag;
 	}else{
 		Context::the().sigctx.signaluid.idx = _idx;
 		Context::the().sigctx.signaluid.uid = rssd.uid;
@@ -911,7 +915,7 @@ void Session::Data::moveAuthSignalsToSendQueue(){
 	size_t qsz = signalq.size();
 	while(qsz){
 		if(
-			((signalq.front().flags & Service::AuthenticationFlag) != 0) &&
+			((signalq.front().flags & AuthenticationFlag) != 0) &&
 			sendsignalidxq.size() < Data::MaxSendSignalQueueSize
 		){
 			pushSignalToSendQueue(
@@ -944,12 +948,12 @@ void Session::Data::pushSignalToSendQueue(
 	
 	rssd.flags |= tmp_flgs;
 	
-	vdbgx(Dbg::ipc, "flags = "<<(rssd.flags&Service::SentFlag)<<" tmpflgs = "<<(tmp_flgs & Service::SentFlag));
+	vdbgx(Dbg::ipc, "flags = "<<(rssd.flags & SentFlag)<<" tmpflgs = "<<(tmp_flgs & SentFlag));
 	
-	if(tmp_flgs & Service::WaitResponseFlag){
+	if(tmp_flgs & WaitResponseFlag){
 		++sentsignalwaitresponse;
 	}else{
-		rssd.flags &= ~Service::WaitResponseFlag;
+		rssd.flags &= ~WaitResponseFlag;
 	}
 }
 //----------------------------------------------------------------------
@@ -968,20 +972,20 @@ bool Session::Data::moveToNextSendSignal(){
 	sendsignalidxq.push(crtidx);
 
 	if(currentsendsyncid != static_cast<uint32>(-1) && crtidx != currentsendsyncid){
-		cassert(!(sendsignalvec[crtidx].flags & Service::SynchronousSendFlag));
+		cassert(!(sendsignalvec[crtidx].flags & SynchronousSendFlag));
 		crtidx = currentsendsyncid;
 	}
 	
 	Data::SendSignalData	&rssd(sendsignalvec[crtidx]);
 	
-	vdbgx(Dbg::ipc, "flags = "<<(rssd.flags&Service::SentFlag));
+	vdbgx(Dbg::ipc, "flags = "<<(rssd.flags & SentFlag));
 	
-	if(rssd.flags & Service::SynchronousSendFlag){
+	if(rssd.flags & SynchronousSendFlag){
 		currentsendsyncid = crtidx;
 		uint32 tmpidx(sendsignalidxq.front());
 		while(tmpidx != crtidx){
 			Data::SendSignalData	&tmprssd(sendsignalvec[tmpidx]);
-			if(!(tmprssd.flags & Service::SynchronousSendFlag)){
+			if(!(tmprssd.flags & SynchronousSendFlag)){
 				COLLECT_DATA_0(statistics.sendAsynchronousWhileSynchronous);
 				return true;
 			}
@@ -1269,7 +1273,7 @@ void Session::reconnect(Session *_pses){
 	
 	//keep sending signals that do not require the same connector
 	for(int sz(d.signalq.size() - adjustcount); sz; --sz){
-		if(!(d.signalq.front().flags & Service::SameConnectorFlag)) {
+		if(!(d.signalq.front().flags & SameConnectorFlag)) {
 			vdbgx(Dbg::ipc, "signal scheduled for resend");
 			d.signalq.push(d.signalq.front());
 		}else{
@@ -1285,7 +1289,7 @@ void Session::reconnect(Session *_pses){
 	//see which sent/sending signals must be cleard
 	for(Data::SendSignalVectorT::iterator it(d.sendsignalvec.begin()); it != d.sendsignalvec.end(); ++it){
 		Data::SendSignalData &rssd(*it);
-		vdbgx(Dbg::ipc, "pos = "<<(it - d.sendsignalvec.begin())<<" flags = "<<(rssd.flags&Service::SentFlag));
+		vdbgx(Dbg::ipc, "pos = "<<(it - d.sendsignalvec.begin())<<" flags = "<<(rssd.flags & SentFlag));
 		Context::the().sigctx.signaluid.idx = it - d.sendsignalvec.begin();
 		Context::the().sigctx.signaluid.uid = rssd.uid;
 		
@@ -1296,13 +1300,13 @@ void Session::reconnect(Session *_pses){
 		}
 		if(!rssd.signal) continue;
 		
-		if((rssd.flags & Service::DisconnectAfterSendFlag) != 0){
+		if((rssd.flags & DisconnectAfterSendFlag) != 0){
 			idbgx(Dbg::ipc, "DisconnectAfterSendFlag");
 			mustdisconnect = true;
 		}
 		
-		if(!(rssd.flags & Service::SameConnectorFlag)){
-			if(rssd.flags & Service::WaitResponseFlag && rssd.flags & Service::SentFlag){
+		if(!(rssd.flags & SameConnectorFlag)){
+			if(rssd.flags & WaitResponseFlag && rssd.flags & SentFlag){
 				//if the signal was sent and were waiting for response - were not sending twice
 				rssd.signal->ipcComplete(-2);
 				rssd.signal.clear();
@@ -1311,7 +1315,7 @@ void Session::reconnect(Session *_pses){
 			//we can try resending the signal
 		}else{
 			vdbgx(Dbg::ipc, "signal not scheduled for resend");
-			if(rssd.flags & Service::WaitResponseFlag && rssd.flags & Service::SentFlag){
+			if(rssd.flags & WaitResponseFlag && rssd.flags & SentFlag){
 				rssd.signal->ipcComplete(-2);
 			}else{
 				rssd.signal->ipcComplete(-1);
@@ -1354,7 +1358,7 @@ void Session::reconnect(Session *_pses){
 	while(d.sendbufferfreeposstk.size()){
 		d.sendbufferfreeposstk.pop();
 	}
-	for(uint32 i(Data::MaxSendBufferCount); i >= 1; --i){
+	for(uint32 i(d.maxSendBufferCount()); i >= 1; --i){
 		d.sendbufferfreeposstk.push(i);
 	}
 	while(d.sendsignalfreeposstk.size()){
@@ -1453,7 +1457,7 @@ void Session::doCompleteConnect(Talker::TalkerStub &_rstub){
 				if(sigptr.get()){
 					d.state = Data::WaitDisconnecting;
 					//d.keepalivetimeout = 0;
-					flags |= Service::DisconnectAfterSendFlag;
+					flags |= DisconnectAfterSendFlag;
 					d.pushSignalToSendQueue(
 						sigptr,
 						flags,
@@ -1475,7 +1479,7 @@ void Session::doCompleteConnect(Talker::TalkerStub &_rstub){
 					flags,
 					tid
 				);
-				flags |= Service::WaitResponseFlag;
+				flags |= WaitResponseFlag;
 				break;
 			default:
 				THROW_EXCEPTION_EX("Invalid return value for authenticate", authrv);
@@ -1896,7 +1900,7 @@ void Session::doParseBuffer(Talker::TalkerStub &_rstub, const Buffer &_rbuf/*, c
 						if(sigptr.get()){
 							d.state = Data::WaitDisconnecting;
 							//d.keepalivetimeout = 0;
-							flags |= Service::DisconnectAfterSendFlag;
+							flags |= DisconnectAfterSendFlag;
 							d.pushSignalToSendQueue(
 								sigptr,
 								flags,
@@ -1910,13 +1914,13 @@ void Session::doParseBuffer(Talker::TalkerStub &_rstub, const Buffer &_rbuf/*, c
 						d.state = Data::Connected;
 						//d.keepalivetimeout = _rstub.service().keepAliveTimeout();
 						if(sigptr.get()){
-							flags |= Service::WaitResponseFlag;
+							flags |= WaitResponseFlag;
 							d.pushSignalToSendQueue(sigptr, flags, tid);
 						}
 						break;
 					case NOK:
 						if(sigptr.get()){
-							flags |= Service::WaitResponseFlag;
+							flags |= WaitResponseFlag;
 							d.pushSignalToSendQueue(sigptr, flags, tid);
 						}
 						break;
@@ -2534,12 +2538,12 @@ void Session::doFillSendBuffer(Talker::TalkerStub &_rstub, const uint32 _bufidx)
 				vdbgx(Dbg::ipc, "cached wait signal");
 				rsbd.signalidxvec.push_back(d.sendsignalidxq.front());
 				d.sendsignalidxq.pop();
-				if(rssd.flags & Service::SynchronousSendFlag){
+				if(rssd.flags & SynchronousSendFlag){
 					d.currentsendsyncid = -1;
 				}
 				vdbgx(Dbg::ipc, "sendsignalidxq poped "<<d.sendsignalidxq.size());
 				d.currentbuffersignalcount = Data::MaxSignalBufferCount;
-				if(rsbd.buffer.dataFreeSize() < (rctrl.reservedDataSize() + 16)){
+				if(rsbd.buffer.dataFreeSize() < (rctrl.reservedDataSize() + Data::MinBufferDataSize)){
 					break;
 				}
 			}else{

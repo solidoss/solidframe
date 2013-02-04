@@ -296,7 +296,7 @@ int main(int argc, char *argv[]){
 					fdt::ipc::Service::the().sendSignal(
 						sigptr, *it,
 						fdt::ipc::LocalNetworkId,
-						fdt::ipc::Service::WaitResponseFlag// | fdt::ipc::Service::SynchronousSendFlag
+						fdt::ipc::WaitResponseFlag// | fdt::ipc::Service::SynchronousSendFlag
 					);
 				}
 			}
@@ -515,7 +515,7 @@ FirstMessage::~FirstMessage(){
 			fdt::ipc::ConnectionContext::the().service().sendSignal(
 				psig,
 				fdt::ipc::ConnectionContext::the().connectionuid,
-				fdt::ipc::Service::WaitResponseFlag// | fdt::ipc::Service::SynchronousSendFlag
+				fdt::ipc::WaitResponseFlag// | fdt::ipc::Service::SynchronousSendFlag
 			);
 		}else{
 			Locker<Mutex>  lock(mtx);
@@ -530,7 +530,7 @@ FirstMessage::~FirstMessage(){
 }
 /*virtual*/ uint32 FirstMessage::ipcPrepare(){
 	if(isOnSender()){
-		return fdt::ipc::Service::WaitResponseFlag;
+		return fdt::ipc::WaitResponseFlag;
 	}else{
 		return 0;
 	}
