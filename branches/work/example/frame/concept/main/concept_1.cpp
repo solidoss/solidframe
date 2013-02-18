@@ -17,18 +17,26 @@ int main(int argc, char *argv[]){
 		concept::beta::Service		betasvc(m);
 		concept::gamma::Service		gammasvc(m);
 
-		m.registerService(ipcsrvlocal);
-		m.registerService(ipcsrvglobal);
+		m.registerService(ipcsvclocal);
+		m.registerService(ipcsvcglobal);
 		m.registerService(alphasvc);
 		m.registerService(betasvc);
 		m.registerService(gammasvc);
+		
+		m.registerObject(alphasvc.pointer());
+		m.registerObject(betasvc.pointer());
+		m.registerObject(gammasvc.pointer());
+		
+		objsched.push(alphasvc.pointer());
+		objsched.push(betasvc.pointer());
+		objsched.push(gammasvc.pointer());
 		
 		m.localIpc(ipcsrvlocal);
 		m.globalIpc(ipcsrvglobal);
 
 		Configuration				cfg;
 		
-		int rv;
+		int							rv;
 		
 		do{
 			cfg.load("concept.cfg");

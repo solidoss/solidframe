@@ -6,20 +6,11 @@ int main(int argc, char *argv[]){
 	{
 		solid::Manager			m;
 		solid::aio::SchedulerT	aiosched(m);
-		solid::ObjectSchedulerT	objsched(m);
-		solid::Service			srv(m, objsched);
 		
-		m.start();
-		srv.start();
 		{
-			Listener::SharedPointerT objptr(new Listener(srv, aiosched,/*sd, pctx*/));
-			aiosched.schedule(objptr);
-			
-			//the Object will register itself on constructor and unregister itself from the service on destructor
-			//so the id is guaranteed - its unique part is computed by manager
-			m.notify(m.id(*objptr), solid::RaiseSignal);
-			SupperMessage::SharedPointerT	msgptr(new SupperMessage());
-			m.notify(m.id(*objptr), msgptr);
+			Listener::SharedPointerT objptr(new Listener(m, aiosched,/*sd, pctx*/));
+			m.registerObject(objptr);
+			aiosched.push(objptr);
 		}
 		
 		wait_sig_term();

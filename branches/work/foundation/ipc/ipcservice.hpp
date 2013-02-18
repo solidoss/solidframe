@@ -192,21 +192,21 @@ private:
 	const uint32	seskeepalive;
 };
 
-
+/*
 struct Configuration{
 	struct Service;
 	struct Talker;
 	struct Node;
 	struct Session;
 	
-	Configuration()
+	Configuration();
 	
 	Service	&rservice;
 	Talker	&rtalker;
 	Node&	&rnode;
 	Session	&rsession;
 };
-
+*/
 //! An Inter Process Communication service
 /*!
 	Allow for sending/receiving serializable foundation::Signal objects between

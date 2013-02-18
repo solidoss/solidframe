@@ -56,6 +56,7 @@ public:
 		\param _mutcolsbts The number of mutexes in a row as bitcount (real count 1<<bitcount)
 	*/
 	MutualStore(
+		const bool _preload = false,
 		unsigned _objpermutbts = 6,
 		unsigned _mutrowsbts = 3,
 		unsigned _mutcolsbts = 3
@@ -69,8 +70,11 @@ public:
 		mutcolscnt(bitsToCnt(_mutcolsbts)),
 		objmat(new MutualObjectT*[mutrowscnt])
 	{
-		for(uint i = 0; i < mutrowscnt; ++i) objmat[i] = NULL;
+		for(uint i = 0; i < mutrowscnt; ++i){
+			objmat[i] = _preload ? new MutualObjectT[mutcolscnt] : NULL;
+		}
 	}
+	
 	~MutualStore(){
 		for(uint i(0); i < mutrowscnt; ++i){
 			delete []objmat[i];

@@ -1,0 +1,133 @@
+/* Implementation file manager.cpp
+	
+	Copyright 2007, 2008, 2010 Valentin Palade 
+	vipalade@gmail.com
+
+	This file is part of SolidFrame framework.
+
+	SolidFrame is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	SolidFrame is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+#include <vector>
+#include <deque>
+#include <atomic>
+
+#include "system/cassert.hpp"
+#include "system/debug.hpp"
+#include "system/thread.hpp"
+#include "system/mutex.hpp"
+#include "system/condition.hpp"
+#include "system/specific.hpp"
+#include "system/exception.hpp"
+
+#include "frame/manager.hpp"
+#include "frame/message.hpp"
+
+namespace solid{
+
+typedef std::atomic<size_t>			AtomicSizeT;
+struct ObjectStub{
+	
+};
+typedef std::deque<ObjectStub>		ObjectVectorT;
+
+
+struct ServiceStub{
+	AtomicSizeT		objvecsz;
+	
+};
+
+typedef std::vector<ServiceStub>	ServiceVectorT;
+
+struct Manager::Data{
+	Data(
+		const size_t _svcprovisioncp
+	):svcprovisioncp(_svcprovisioncp){
+		svcvec.resize(_svcprovisioncp);
+	}
+	
+	AtomicSizeT		marcker;
+	AtomicSizeT		svcvecsz;
+	const size_t	svcprovisioncp;
+	Mutex			mtx;
+	Condition		cnd;
+	ServiceVectorT	svcvec;
+};
+
+/*static*/ Manager& Manager::the(){
+	
+}
+	
+Manager::Manager(const size_t _svcprovisioncp):d(*(new Data(_svcprovisioncp))){
+}
+
+/*virtual*/ Manager::~Manager(){
+	delete &d;
+}
+
+//void start();
+//void stop(bool _wait = true);
+
+ObjectUidT	Manager::registerService(Service &_rs){
+	Lock<Mutex>	lock(d.mtx);
+}
+
+ObjectUidT	Manager::registerObject(Object &_ro){
+	Lock<Mutex>	lock(d.mtx);
+}
+
+ObjectUidT	Manager::registerObject(Object &_ro, Service &_rs){
+	Lock<Mutex>	lock(d.mtx);
+}
+
+bool Manager::notify(ulong _sm){
+	
+}
+bool Manager::notify(ulong _sm, const ObjectUidT &_ruid){
+	size_t		svcidx;
+	size_t		objidx;
+	
+	
+	_ruid.split(svcidx, objidx, d.marker.load());
+	
+	if(svcidx < d.svcprovisioncp){
+		//lock free at service level
+		if(svcidx < d.svcvecsz.load()){
+			ServiceStub &rss(d.svcvec[svcidx]);
+		}
+	}else{
+		
+	}
+}
+
+bool Manager::notify(MessageSharedPointerT &_rmsgptr){
+	
+}
+bool Manager::notify(MessagePointerT &_rmsgptr, const ObjectUidT &_ruid){
+	
+}
+
+void Manager::raise(const Object &_robj){
+	
+}
+
+Mutex& Manager::mutex(const Object &_robj)const{
+	
+}
+
+ObjectUidT  Manager::id(const Object &_robj)const{
+	
+}
+
+}//namespace solid

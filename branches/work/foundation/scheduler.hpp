@@ -84,6 +84,10 @@ public://definition
 	):SchedulerBase(_rm, _startthrcnt, _maxthrcnt, _selcap), wp(*this){
 		//slotvec.reserve(_maxthcnt > 1024 ? 1024 : _maxthcnt);
 	}
+	
+	~Scheduler(){
+		stop(true);
+	}
 	//! Constructor
 	/*!
 		\param _startthrcnt The number of threads to create at start
