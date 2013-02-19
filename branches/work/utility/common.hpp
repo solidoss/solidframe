@@ -260,4 +260,28 @@ inline void unpack(uint16 &_v1, uint16 &_v2, const uint32 _v){
 	_v1 = _v & 0xffffUL;
 	_v2 = (_v >> 16) & 0xffffUL;
 }
+
+extern const uint8 reverted_chars[];
+
+inline uint32 bit_revert(const uint32 _v){
+	uint32 r = (((uint32)reverted_chars[_v   & 0xff]) << 24);
+	r |= (((uint32)reverted_chars[(_v >>  8) & 0xff]) << 16);
+	r |= (((uint32)reverted_chars[(_v >> 16) & 0xff]) << 8);
+	r |= (((uint32)reverted_chars[(_v >> 24) & 0xff]) << 0);
+	return r;
+}
+
+inline uint64 bit_revert(const uint64 _v){
+	uint64 r = (((uint64)reverted_chars[_v   & 0xff]) << 56);
+	r |= (((uint64)reverted_chars[(_v >>  8) & 0xff]) << 48);
+	r |= (((uint64)reverted_chars[(_v >> 16) & 0xff]) << 40);
+	r |= (((uint64)reverted_chars[(_v >> 24) & 0xff]) << 32);
+	
+	r |= (((uint64)reverted_chars[(_v >> 32) & 0xff]) << 24);
+	r |= (((uint64)reverted_chars[(_v >> 40) & 0xff]) << 16);
+	r |= (((uint64)reverted_chars[(_v >> 48) & 0xff]) << 8);
+	r |= (((uint64)reverted_chars[(_v >> 56) & 0xff]) << 0);
+	return r;
+}
+
 #endif

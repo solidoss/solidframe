@@ -82,6 +82,9 @@ typedef UidT						SignalUidT;
 typedef UidT						FileUidT;
 typedef UidT						RequestUidT;
 
+enum{
+	IndexBitCount = sizeof(IndexT) * 8,
+};
 
 inline const UidT& invalid_uid(){
 	static const UidT u(INVALID_INDEX, 0xffffffff);
@@ -105,24 +108,34 @@ inline bool is_invalid_uid(const UidT &_ruid){
 	return is_invalid_index(_ruid.first);
 }
 
-inline IndexT build_index(IndexT _hi, const IndexT &_lo, const int _hibitcnt){
-	IndexT			rv = 0;
-	IndexT			bitpos = 0;
-	const IndexT	bitcnt = sizeof(IndexT) * 8;
-	
-	rv |= ((_hi & 1) << (bitcnt - 1);
-	rv |= ((_hi & (1 << 1)) << (bitcnt - 2);
-	rv |= ((_hi & (1 << 2)) << (bitcnt - 3);
-	rv |= ((_hi & (1 << 3)) << (bitcnt - 4);
-	rv |= ((_hi & (1 << 5)) << (bitcnt - 6);
-	
-	switch(_hibitcnt){
-		case 0:
-	}
+template <typename T>
+T unite_index(T _hi, const T &_lo, const int _hibitcnt);
+
+template <typename T>
+void split_index(T &_hi, T &_lo, const int _hibitcnt, const T &_v);
+
+template <>
+inline uint32 unite_index<uint32>(uint32 _hi, const uint32 &_lo, const int /*_hibitcnt*/){
+	return bit_revert(_hi) | _lo;
 }
 
-inline void split_index(IndexT &_hi, IndexT &_lo, const int _hibitcnt, const IndexT &_v){
-	
+template <>
+inline uint64 unite_index<uint64>(uint64 _hi, const uint64 &_lo, const int /*_hibitcnt*/){
+	return bit_revert(_hi) | _lo;
+}
+
+template <>
+inline void split_index<uint32>(uint32 &_hi, uint32 &_lo, const int _hibitcnt, const uint32 &_v){
+	const uint32 lomsk = (1 << (32 - _hibitcnt)) - 1;
+	_lo = _v & lomsk;
+	_hi = bit_revert(_v & (~lomsk));
+}
+
+template <>
+inline void split_index<uint64>(uint64 &_hi, uint64 &_lo, const int _hibitcnt, const uint64 &_v){
+	const uint64 lomsk = (1 << (64 - _hibitcnt)) - 1;
+	_lo = _v & lomsk;
+	_hi = bit_revert(_v & (~lomsk));
 }
 
 template <class V>
