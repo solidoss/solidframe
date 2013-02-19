@@ -25,7 +25,7 @@ int main(int argc, char *argv[]){
 	cassert(hv == h && lv == l);
 	
 	h = 7;
-	l = (1 << (IndexBitCount - 3)) - 1;
+	l = (1ULL << (IndexBitCount - 3)) - 1;
 	
 	uv = unite_index(h, l, 3);
 	split_index(hv, lv, 3, uv);

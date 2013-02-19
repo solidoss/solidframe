@@ -60,8 +60,8 @@ typedef signed int			int32;
 typedef __int64				int64;
 typedef unsigned __int64	uint64;
 #else
-typedef unsigned long long	uint64;
-typedef signed long long 	int64;
+typedef unsigned long		uint64;
+typedef signed long 		int64;
 #endif
 
 #ifdef _LP64
@@ -106,17 +106,6 @@ template <>
 struct UnsignedType<int32>{
     typedef uint32 Type;
 };
-
-template <>
-struct UnsignedType<long>{
-    typedef ulong Type;
-};
-
-template <>
-struct UnsignedType<ulong>{
-    typedef ulong Type;
-};
-
 
 template <>
 struct UnsignedType<int64>{

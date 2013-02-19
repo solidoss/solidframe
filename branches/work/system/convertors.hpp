@@ -51,17 +51,6 @@ struct UnsignedConvertor<int32>{
 };
 
 template <>
-struct UnsignedConvertor<long>{
-	typedef ulong UnsignedType;
-};
-
-template <>
-struct UnsignedConvertor<ulong>{
-	typedef ulong UnsignedType;
-};
-
-
-template <>
 struct UnsignedConvertor<int64>{
 	typedef uint64 UnsignedType;
 };

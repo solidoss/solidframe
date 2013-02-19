@@ -670,6 +670,10 @@ int Deserializer::loadBinary<0>(Base &_rb, FncData &_rfd){
 	rd.cpb += len;
 	_rfd.p = (char*)_rfd.p + len;
 	_rfd.s -= len;
+	if(len == 1){
+		edbgx(Dbg::ser_bin, "");
+	}
+	
 	idbgx(Dbg::ser_bin, ""<<len);
 	if(_rfd.s) return NOK;
 	return OK;
@@ -682,6 +686,7 @@ int Deserializer::loadBinary<1>(Base &_rb, FncData &_rfd){
 	if(!rd.cpb) return OK;
 	const unsigned	len = rd.be - rd.cpb;
 	char			*ps = reinterpret_cast<char*>(_rfd.p);
+	edbgx(Dbg::ser_bin, ""<<len<<' '<<(void*)rd.cpb);
 	if(len >= 1){
 		*(ps + 0) = *(rd.cpb + 0);
 		rd.cpb += 1;
@@ -760,6 +765,7 @@ int Deserializer::loadBinary<4>(Base &_rb, FncData &_rfd){
 		*(ps + 2) = *(rd.cpb + 2);
 		rd.cpb += 3;
 		_rfd.p = ps + 3;
+		edbgx(Dbg::ser_bin, ""<<len<<' '<<(void*)rd.cpb);
 		_rfd.f = &Deserializer::loadBinary<1>;
 	}else if(len >= 2){
 		*(ps + 0) = *(rd.cpb + 0);
@@ -1126,13 +1132,19 @@ int Deserializer::loadBinaryString(Base &_rb, FncData &_rfd){
 		return OK;
 	}
 	
-	uint32 len = rd.be - rd.cpb;
-	int32 ul = rd.estk.top().i32();
+	uint32			len = rd.be - rd.cpb;
+	int32			ul = rd.estk.top().i32();
+	
 	if(ul < 0){
+		edbgx(Dbg::ser_bin, "ul = "<<ul);
 		return OK;
 	}
-	if(static_cast<int32>(len) > ul) len = static_cast<uint32>(ul);
-	std::string *ps = reinterpret_cast<std::string*>(_rfd.p);
+	if(static_cast<int32>(len) > ul){
+		len = static_cast<uint32>(ul);
+	}
+	
+	std::string		*ps = reinterpret_cast<std::string*>(_rfd.p);
+	
 	ps->append(rd.cpb, len);
 	rd.cpb += len;
 	ul -= len;
