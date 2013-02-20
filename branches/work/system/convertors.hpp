@@ -70,6 +70,19 @@ struct UnsignedConvertor<uint64>{
 	typedef uint64 UnsignedType;
 };
 
+#if UWORDSIZE == 32
+template <>
+struct UnsignedConvertor<long>{
+	typedef ulong UnsignedType;
+};
+
+template <>
+struct UnsignedConvertor<ulong>{
+	typedef ulong UnsignedType;
+};
+
+#endif
+
 #define BitsToMsk(v) ((1 << (v)) - 1)
 #define BitsToCnt(v) (1 << (v))
 

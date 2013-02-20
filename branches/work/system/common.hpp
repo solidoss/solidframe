@@ -56,6 +56,9 @@ typedef unsigned short		uint16;
 typedef unsigned int		uint32;
 typedef signed int			int32;
 // #if defined(U_WIN) && !defined(U_GCC)
+
+#if UWORDSIZE == 64
+
 #if defined(U_WIN)
 typedef __int64				int64;
 typedef unsigned __int64	uint64;
@@ -64,9 +67,18 @@ typedef unsigned long		uint64;
 typedef signed long 		int64;
 #endif
 
-#ifdef _LP64
 #define MAX_ULONG			0xffffffffffffffffULL
+
 #else
+
+#if defined(U_WIN)
+typedef __int64				int64;
+typedef unsigned __int64	uint64;
+#else
+typedef unsigned long long	uint64;
+typedef signed long long	int64;
+#endif
+
 #define MAX_ULONG			0xffffffffUL
 #endif
 
