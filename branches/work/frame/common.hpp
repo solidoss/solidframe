@@ -19,13 +19,13 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef FOUNDATION_COMMON_HPP
-#define FOUNDATION_COMMON_HPP
+#ifndef SOLID_FRAME_COMMON_HPP
+#define SOLID_FRAME_COMMON_HPP
 
 #include <utility>
 #include "utility/common.hpp"
 
-namespace solid{
+namespace frame{
 
 //! Some return values
 enum RetValEx {
@@ -162,6 +162,6 @@ IndexT fast_smart_resize(V &_rv, const size_t _bitby){
 
 
 
-}//namespace foundation
+}//namespace frame
 
 #endif

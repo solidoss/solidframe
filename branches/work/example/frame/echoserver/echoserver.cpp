@@ -9,7 +9,7 @@ int main(int argc, char *argv[]){
 		
 		{
 			Listener::SharedPointerT objptr(new Listener(m, aiosched,/*sd, pctx*/));
-			m.registerObject(objptr);
+			m.registerObject(*objptr);
 			aiosched.push(objptr);
 		}
 		

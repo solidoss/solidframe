@@ -23,14 +23,6 @@ int main(int argc, char *argv[]){
 		m.registerService(betasvc);
 		m.registerService(gammasvc);
 		
-		m.registerObject(alphasvc.pointer());
-		m.registerObject(betasvc.pointer());
-		m.registerObject(gammasvc.pointer());
-		
-		objsched.push(alphasvc.pointer());
-		objsched.push(betasvc.pointer());
-		objsched.push(gammasvc.pointer());
-		
 		m.localIpc(ipcsrvlocal);
 		m.globalIpc(ipcsrvglobal);
 

@@ -1,6 +1,6 @@
 /* Implementation file manager.cpp
 	
-	Copyright 2007, 2008, 2010 Valentin Palade 
+	Copyright 2013 Valentin Palade 
 	vipalade@gmail.com
 
 	This file is part of SolidFrame framework.
@@ -34,7 +34,7 @@
 #include "frame/manager.hpp"
 #include "frame/message.hpp"
 
-namespace solid{
+namespace frame{
 
 typedef std::atomic<size_t>			AtomicSizeT;
 struct ObjectStub{
@@ -91,9 +91,6 @@ ObjectUidT	Manager::registerObject(Object &_ro, Service &_rs){
 	Lock<Mutex>	lock(d.mtx);
 }
 
-bool Manager::notify(ulong _sm){
-	
-}
 bool Manager::notify(ulong _sm, const ObjectUidT &_ruid){
 	size_t		svcidx;
 	size_t		objidx;
@@ -111,9 +108,6 @@ bool Manager::notify(ulong _sm, const ObjectUidT &_ruid){
 	}
 }
 
-bool Manager::notify(MessageSharedPointerT &_rmsgptr){
-	
-}
 bool Manager::notify(MessagePointerT &_rmsgptr, const ObjectUidT &_ruid){
 	
 }
@@ -130,4 +124,10 @@ ObjectUidT  Manager::id(const Object &_robj)const{
 	
 }
 
-}//namespace solid
+Mutex& Manager::serviceMutex(const Service &_rsvc){
+	
+}
+ObjectUidT Manager::registerServiceObject(const Service &_rsvc, Object &_robj);
+Object* Manager::nextServiceObject(const Service &_rsvc, VisitContext &_rctx);
+
+}//namespace frame
