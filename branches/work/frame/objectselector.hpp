@@ -1,6 +1,6 @@
 /* Declarations file objectselector.hpp
 	
-	Copyright 2007, 2008 Valentin Palade 
+	Copyright 2007, 2008, 2013 Valentin Palade 
 	vipalade@gmail.com
 
 	This file is part of SolidFrame framework.
@@ -19,18 +19,18 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef FOUNDATION_OBJECT_SELECTOR_HPP
-#define FOUNDATION_OBJECT_SELECTOR_HPP
+#ifndef SOLID_FRAME_OBJECT_SELECTOR_HPP
+#define SOLID_FRAME_OBJECT_SELECTOR_HPP
+
+#include "utility/dynamicpointer.hpp"
+#include "frame/common.hpp"
+#include "frame/selectorbase.hpp"
 
 
-#include "foundation/objectpointer.hpp"
+namespace solid{
+namespace frame{
 
-#include "foundation/common.hpp"
-#include "foundation/selectorbase.hpp"
-
-namespace foundation{
-
-typedef ObjectPointer<Object> ObjectPtrT;
+typedef DynamicPointer<Object> ObjectPtrT;
 
 //! An object selector to be used with the template SelectPool
 /*!
@@ -38,7 +38,7 @@ typedef ObjectPointer<Object> ObjectPtrT;
 	A selector must export a certain interface requested by the SelectPool,
 	and the pool will have one for its every thread.
 */
-class ObjectSelector: public foundation::SelectorBase{
+class ObjectSelector: public SelectorBase{
 public:
 	
 	typedef ObjectPtrT		JobT;
@@ -59,7 +59,7 @@ public:
 	void prepare();
 	void unprepare(){}
 	
-	void push(const ObjectPtrT &_rlis);
+	void push(const ObjectPtrT &_rjob);
 private:
 	int doWait(int _wt);
 	int doExecute(unsigned _i, ulong _evs, TimeSpec _crttout);
@@ -68,6 +68,7 @@ private:
 	Data	&d;
 };
 
-}
+}//namespace frame
+}//namespace solid
 
 #endif

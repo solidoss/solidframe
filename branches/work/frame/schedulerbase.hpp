@@ -19,12 +19,13 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef FOUNDATION_SCHEDULER_BASE_HPP
-#define FOUNDATION_SCHEDULER_BASE_HPP
+#ifndef SOLID_FRAME_SCHEDULER_BASE_HPP
+#define SOLID_FRAME_SCHEDULER_BASE_HPP
 
-#include "foundation/common.hpp"
+#include "frame/common.hpp"
 
-namespace foundation{
+namespace solid{
+namespace frame{
 
 class Manager;
 class SelectorBase;
@@ -61,7 +62,8 @@ protected:
 	IndexT	selcap;
 };
 
-}//namespace
+}//namespace frame
+}//namespace solid
 
 #endif
 

@@ -1,6 +1,6 @@
 /* Declarations file basicscheduler.hpp
 	
-	Copyright 2007, 2008 Valentin Palade 
+	Copyright 2007, 2008, 2013 Valentin Palade 
 	vipalade@gmail.com
 
 	This file is part of SolidFrame framework.
@@ -19,24 +19,25 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef FOUNDATION_BASICSCHEDULER_HPP
-#define FOUNDATION_BASICSCHEDULER_HPP
+#ifndef SOLID_FRAME_BASICSCHEDULER_HPP
+#define SOLID_FRAME_BASICSCHEDULER_HPP
 
-#include "foundation/schedulerbase.hpp"
-#include "foundation/objectpointer.hpp"
+#include "frame/schedulerbase.hpp"
+#include "utility/dynamicpointer.hpp"
 
-struct D;
-namespace foundation{
+namespace solid{
+namespace frame{
+
+class Object;
+
 //! A simple execution pool for one shot object execution
 /*!
 	It doesn't support object signaling and timeouts.
 */
 class BasicScheduler: public SchedulerBase{
 public:
-	typedef ObjectPointer<>	JobT;
-	typedef Object			ObjectT;
-	
-	static void schedule(const JobT &_rjb, uint _idx = 0);
+	typedef DynamicPointer<Object>		JobT;
+	typedef Object						ObjectT;
 	
 	BasicScheduler(uint16 _startthrcnt = 0,uint32 _maxthrcnt = 1);
 	~BasicScheduler();
@@ -52,6 +53,7 @@ private:
 };
 
 
-}//namespace
+}//namespace frame
+}//namespace solid
 
 #endif

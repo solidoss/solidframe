@@ -34,6 +34,7 @@
 #include "frame/manager.hpp"
 #include "frame/message.hpp"
 
+namespace solid{
 namespace frame{
 
 typedef std::atomic<size_t>			AtomicSizeT;
@@ -127,7 +128,12 @@ ObjectUidT  Manager::id(const Object &_robj)const{
 Mutex& Manager::serviceMutex(const Service &_rsvc){
 	
 }
-ObjectUidT Manager::registerServiceObject(const Service &_rsvc, Object &_robj);
-Object* Manager::nextServiceObject(const Service &_rsvc, VisitContext &_rctx);
+ObjectUidT Manager::registerServiceObject(const Service &_rsvc, Object &_robj){
+	
+}
+Object* Manager::nextServiceObject(const Service &_rsvc, VisitContext &_rctx){
+	
+}
 
 }//namespace frame
+}//namespace solid

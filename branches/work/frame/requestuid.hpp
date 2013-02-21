@@ -1,9 +1,10 @@
-#ifndef FOUNDATION_REQUESTUID_HPP
-#define FOUNDATION_REQUESTUID_HPP
+#ifndef SOLID_FRAME_REQUESTUID_HPP
+#define SOLID_FRAME_REQUESTUID_HPP
 
-#include "foundation/common.hpp"
+#include "frame/common.hpp"
 
-namespace foundation{
+namespace solid{
+namespace frame{
 
 //! Unique identifier for a request
 struct RequestUid{
@@ -64,7 +65,8 @@ private:
 
 extern SpecificRequestUid requestuidptr;
 
-}
+}//namespace frame
+}//namespace solid
 
 
 #endif

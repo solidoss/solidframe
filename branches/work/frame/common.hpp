@@ -25,6 +25,7 @@
 #include <utility>
 #include "utility/common.hpp"
 
+namespace solid{
 namespace frame{
 
 //! Some return values
@@ -163,5 +164,6 @@ IndexT fast_smart_resize(V &_rv, const size_t _bitby){
 
 
 }//namespace frame
+}//namespace solid
 
 #endif

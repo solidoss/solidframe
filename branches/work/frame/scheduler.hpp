@@ -1,6 +1,6 @@
 /* Declarations file scheduler.hpp
 	
-	Copyright 2007, 2008 Valentin Palade 
+	Copyright 2007, 2008, 2013 Valentin Palade 
 	vipalade@gmail.com
 
 	This file is part of SolidFrame framework.
@@ -19,19 +19,19 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef FOUNDATION_SCHEDULER_HPP
-#define FOUNDATION_SCHEDULER_HPP
+#ifndef SOLID_FRAME_SCHEDULER_HPP
+#define SOLID_FRAME_SCHEDULER_HPP
 
 #include <deque>
 
 #include "utility/workpool.hpp"
 #include "utility/list.hpp"
 
-#include "foundation/manager.hpp"
-#include "foundation/schedulerbase.hpp"
+#include "frame/manager.hpp"
+#include "frame/schedulerbase.hpp"
 
-
-namespace foundation{
+namespace solid{
+namespace frame{
 
 //! A template active container for objects
 /*!
@@ -218,7 +218,8 @@ private:
 	WorkPoolT		wp;
 };
 
-}//namesspace foundation
+}//namespace frame
+}//namespace solid
 
 #endif
 

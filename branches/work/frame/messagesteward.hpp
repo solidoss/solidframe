@@ -1,6 +1,6 @@
-/* Declarations file signalexecuter.hpp
+/* Declarations file messagesteward.hpp
 	
-	Copyright 2007, 2008 Valentin Palade 
+	Copyright 2013 Valentin Palade 
 	vipalade@gmail.com
 
 	This file is part of SolidFrame framework.
@@ -19,11 +19,11 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef FOUNDATION_SIGNAL_EXECUTER_HPP
-#define FOUNDATION_SIGNAL_EXECUTER_HPP
+#ifndef SOLID_FRAME_MESSAGE_STEWARD_HPP
+#define SOLID_FRAME_MESSAGE_STEWARD_HPP
 
-#include "foundation/object.hpp"
-#include "foundation/common.hpp"
+#include "frame/object.hpp"
+#include "frame/common.hpp"
 
 #include "utility/streampointer.hpp"
 #include "utility/dynamicpointer.hpp"
@@ -36,44 +36,36 @@ class InputOutputStream;
 
 struct TimeSpec;
 
-namespace foundation{
+namespace solid{
+namespace frame{
+
 namespace ipc{
 struct ConnectionUid;
 }
 //! An object which will only execute the received signals
 /*!
 	<b>Overview:</b><br>
-	- received signals are given an unique id (used for example
+	- received messages are given an unique id (used for example
 		with file manager as request id).
-	- execute the signals eventually repeatedly until the signals want to
-		be destroyed or want to leave the executer.
-	- also can execute a signal when receiving something for that signal
-		(a stream from FileManager, another signal, a string etc)
+	- execute the messages eventually repeatedly until the messages want to
+		be destroyed or want to leave the steward.
+	- also can execute a message when receiving something for that message
+		(a stream from FileManager, another message, a string etc)
 	- The _requid parameter of the receiveSomething methods, will uniquely
-		identify the signals and must be the same with SignalUidT parameter
+		identify the messages and must be the same with MessageUidT parameter
 		of the Signal::execute(SignalExecuter&, const SignalUidT &, TimeSpec &_rts).
-	- The receiveSomething methods are forwards to the actual signals identified by
-		_requid parameter.
 	
 	<b>Usage:</b><br>
-	- Inherit from SignalExecuter and implement removeFromManager
-		in which you should call Manager::the().removeObject(this);
-	- In your manager, create some signalexecuters and register them
-		using foundation::Manager::insertObject
-	- Implement for your signals execute(SignalExecuter&, const SignalUidT &, TimeSpec &_rts);
-	
-	\see test/foundation/src/server.cpp test/foundation/alpha/src/alphasignals.cpp
-	\see test::SignalExecuter test::alpha::FetchMasterSignal
-	\see foundation::Signal foundation::Object
+	TODO:...
 */
-class SignalExecuter: public Dynamic<SignalExecuter, Object>{
+class MessageSteward: public Dynamic<MessageSteward, Object>{
 public:
-	SignalExecuter();
-	~SignalExecuter();
-	bool signal(DynamicPointer<Signal> &_rsig);
+	MessageSteward();
+	~MessageSteward();
+	bool notify(DynamicPointer<Message> &_rmsgptr);
 	int execute(ulong _evs, TimeSpec &_rtout);
-	void sendSignal(
-		DynamicPointer<Signal> &_rsig,
+	void sendMessage(
+		DynamicPointer<Message> &_rmsgptr,
 		const RequestUidT &_requid,
 		const ObjectUidT& _from = ObjectUidT(),
 		const ipc::ConnectionUid *_conid = NULL
@@ -86,6 +78,7 @@ private:
 	Data	&d;
 };
 
-}//namespace foundation
+}//namespace frame
+}//namespace solid
 
 #endif
