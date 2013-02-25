@@ -20,9 +20,9 @@
 */
 
 
-#include "foundation/file/filemappers.hpp"
-#include "foundation/file/filekeys.hpp"
-#include "foundation/file/filebase.hpp"
+#include "frame/file/filemappers.hpp"
+#include "frame/file/filekeys.hpp"
+#include "frame/file/filebase.hpp"
 
 #include "utility/queue.hpp"
 #include "utility/memoryfile.hpp"

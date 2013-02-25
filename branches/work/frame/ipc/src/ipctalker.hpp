@@ -19,15 +19,15 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef FOUNDATION_IPC_SRC_IPC_TALKER_HPP
-#define FOUNDATION_IPC_SRC_IPC_TALKER_HPP
+#ifndef SOLID_FRAME_IPC_SRC_IPC_TALKER_HPP
+#define SOLID_FRAME_IPC_SRC_IPC_TALKER_HPP
 
-#include "foundation/aio/aiosingleobject.hpp"
-#include "foundation/ipc/ipcconnectionuid.hpp"
+#include "frame/aio/aiosingleobject.hpp"
+#include "frame/ipc/ipcconnectionuid.hpp"
 
 struct TimeSpec;
 
-namespace foundation{
+namespace frame{
 
 class Visitor;
 
@@ -160,7 +160,7 @@ private:
 };
 
 }//namespace ipc
-}//namespace foundation
+}//namespace frame
 
 #endif
 

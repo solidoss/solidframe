@@ -19,8 +19,8 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef FOUNDATION_AIO_SRC_SOCKET_HPP
-#define FOUNDATION_AIO_SRC_SOCKET_HPP
+#ifndef SOLID_FRAME_AIO_SRC_SOCKET_HPP
+#define SOLID_FRAME_AIO_SRC_SOCKET_HPP
 
 #include "system/socketdevice.hpp"
 #include "system/common.hpp"
@@ -29,8 +29,8 @@ struct SocketAddress;
 struct SocketAddressStub;
 class SocketDevice;
 
-namespace foundation{
-
+namespace solid{
+namespace frame{
 namespace aio{
 
 class Selector;
@@ -154,8 +154,8 @@ private:
 
 
 }//namespace aio
-}//namespace foundation
-
+}//namespace frame
+}//namespace solid
 
 #endif
 

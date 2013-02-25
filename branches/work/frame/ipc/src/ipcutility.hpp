@@ -19,19 +19,19 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef FOUNDATION_IPC_SRC_IPC_UTILITY_HPP
-#define FOUNDATION_IPC_SRC_IPC_UTILITY_HPP
+#ifndef SOLID_FRAME_IPC_SRC_IPC_UTILITY_HPP
+#define SOLID_FRAME_IPC_SRC_IPC_UTILITY_HPP
 
 #include "system/cassert.hpp"
 #include "system/socketaddress.hpp"
 
-#include "foundation/ipc/ipcservice.hpp"
+#include "frame/ipc/ipcservice.hpp"
 
-namespace foundation{
+namespace frame{
 class Visitor;
 }
 
-namespace foundation{
+namespace frame{
 namespace ipc{
 
 //*******	AddrPtrCmp		******************************************************************
@@ -167,6 +167,6 @@ struct SocketAddressCompare{
 #endif
 
 }//namespace ipc
-}//namespace foundation
+}//namespace frame
 
 #endif

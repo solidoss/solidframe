@@ -36,12 +36,12 @@
 #include "utility/stack.hpp"
 
 
-#include "foundation/manager.hpp"
+#include "frame/manager.hpp"
 
-#include "foundation/file/filemanager.hpp"
-#include "foundation/file/filekeys.hpp"
-#include "foundation/file/filebase.hpp"
-#include "foundation/file/filemapper.hpp"
+#include "frame/file/filemanager.hpp"
+#include "frame/file/filekeys.hpp"
+#include "frame/file/filebase.hpp"
+#include "frame/file/filemapper.hpp"
 
 namespace fdt = foundation;
 

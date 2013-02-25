@@ -1,6 +1,6 @@
 /* Declarations file ipcservice.hpp
 	
-	Copyright 2007, 2008 Valentin Palade 
+	Copyright 2007, 2008, 2013 Valentin Palade 
 	vipalade@gmail.com
 
 	This file is part of SolidFrame framework.
@@ -19,22 +19,22 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef FOUNDATION_IPC_IPCSERVICE_HPP
-#define FOUNDATION_IPC_IPCSERVICE_HPP
+#ifndef SOLID_FRAME_IPC_IPCSERVICE_HPP
+#define SOLID_FRAME_IPC_IPCSERVICE_HPP
 
 #include "algorithm/serialization/idtypemapper.hpp"
 #include "algorithm/serialization/binary.hpp"
 
-#include "foundation/service.hpp"
-#include "foundation/signal.hpp"
-#include "foundation/ipc/ipcconnectionuid.hpp"
+#include "frame/service.hpp"
+#include "frame/signal.hpp"
+#include "frame/ipc/ipcconnectionuid.hpp"
 
-struct C;
 struct SocketAddressStub;
 struct SocketDevice;
 struct ResolveIterator;
 
-namespace foundation{
+namespace solid{
+namespace frame{
 
 namespace aio{
 class Object;
@@ -226,7 +226,7 @@ struct Configuration{
 	continue between other UDP sockets (on random ports).<br>
 	
 */
-class Service: public Dynamic<Service, foundation::Service>{
+class Service: public Dynamic<Service, frame::Service>{
 public:
 	enum Errors{
 		NoError = 0,
@@ -244,9 +244,6 @@ public:
 	> IdTypeMapperT;
 	
 	
-	static Service& the();
-	static Service& the(const IndexT &_ridx);
-	
 	static const char* errorText(int _err);
 	
 	Service(
@@ -257,6 +254,7 @@ public:
 		const uint32 _nodesockcnt = 256,
 		const uint32 _nodemaxcnt = 2
 	);
+
 	//! Destructor
 	~Service();
 	
@@ -509,6 +507,7 @@ inline Service::IdTypeMapperT& Service::typeMapper(){
 
 
 }//namespace ipc
-}//namespace foundation
+}//namespace frame
+}//namespace solid
 
 #endif

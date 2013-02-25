@@ -1,6 +1,6 @@
 /* Declarations file aiosocketpointer.hpp
 	
-	Copyright 2010 Valentin Palade 
+	Copyright 2010, 2013 Valentin Palade 
 	vipalade@gmail.com
 
 	This file is part of SolidFrame framework.
@@ -19,10 +19,11 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef FOUNDATION_AIO_SOCKETPOINTER_HPP
-#define FOUNDATION_AIO_SOCKETPOINTER_HPP
+#ifndef SOLID_FRAME_AIO_SOCKETPOINTER_HPP
+#define SOLID_FRAME_AIO_SOCKETPOINTER_HPP
 
-namespace foundation{
+namespace solid{
+namespace frame{
 namespace aio{
 
 class Object;
@@ -53,6 +54,7 @@ private:
 };
 
 }//namespace aio
-}//namespace foundation
+}//namespace frame
+}//namespace solid
 
 #endif

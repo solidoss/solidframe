@@ -19,12 +19,12 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef FOUNDATION_FILE_FILE_KEYS_HPP
-#define FOUNDATION_FILE_FILE_KEYS_HPP
+#ifndef SOLID_FRAME_FILE_FILE_KEYS_HPP
+#define SOLID_FRAME_FILE_FILE_KEYS_HPP
 
-#include "foundation/file/filekey.hpp"
+#include "frame/file/filekey.hpp"
 
-namespace foundation{
+namespace frame{
 namespace file{
 
 //! A key for requesting disk files from a NameMapper
@@ -78,6 +78,6 @@ struct MemoryKey: Key{
 
 
 }//namespace file
-}//namespace foundation
+}//namespace frame
 
 #endif

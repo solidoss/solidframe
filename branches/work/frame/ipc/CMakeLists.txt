@@ -22,6 +22,6 @@ set(Headers
 set(Inlines
 )
 
-add_library (foundation_ipc
+add_library (solid_frame_ipc
 	${Sources} ${Headers} ${Inlines}
 )

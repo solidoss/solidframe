@@ -19,7 +19,7 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "foundation/aio/openssl/opensslsocket.hpp"
+#include "frame/aio/openssl/opensslsocket.hpp"
 #include "system/socketdevice.hpp"
 #include "system/common.hpp"
 
@@ -27,10 +27,9 @@
 #include "openssl/ssl.h"
 #include "openssl/err.h"
 
-namespace foundation{
-
+namespace solid{
+namespace frame{
 namespace aio{
-
 namespace openssl{
 
 #ifdef HAS_SAFE_STATIC
@@ -146,8 +145,7 @@ Socket::Socket(SSL *_pssl):pssl(_pssl){
 }
 
 }//namespace openssl
-
 }//namespace aio
-
-}//namespace foundation
+}//namespace frame
+}//namespace solid
 

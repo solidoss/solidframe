@@ -19,21 +19,19 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef FOUNDATION_AIO_SINGLE_OBJECT_HPP
-#define FOUNDATION_AIO_SINGLE_OBJECT_HPP
+#ifndef SOLID_FRAME_AIO_SINGLE_OBJECT_HPP
+#define SOLID_FRAME_AIO_SINGLE_OBJECT_HPP
 
-#include "foundation/aio/aioobject.hpp"
-#include "foundation/aio/aiosocketpointer.hpp"
+#include "frame/aio/aioobject.hpp"
+#include "frame/aio/aiosocketpointer.hpp"
 
 class SocketDevice;
 class SocketAddress;
 class SocketAddressStub;
 class ResolveIterator;
 
-
-namespace foundation{
-
-
+namespace solid{
+namespace frame{
 namespace aio{
 
 class SecureSocket;
@@ -50,7 +48,7 @@ class SecureSocket;
 */
 class SingleObject: public Dynamic<SingleObject, Object>{
 public:
-	static SingleObject& the();
+	static SingleObject& specific();
 	//! Constructor using an aio::Socket
 	SingleObject(const SocketPointer& _psock = SocketPointer());
 	//! Constructor using a SocketDevice
@@ -172,14 +170,14 @@ inline void SingleObject::socketTimeoutSend(ulong _addsec, ulong _addnsec){
 	socketTimeoutSend(Object::currentTime(), _addsec, _addnsec);
 }
 
-/*static*/ inline SingleObject& SingleObject::the(){
-	return static_cast<SingleObject&>(Object::the());
+/*static*/ inline SingleObject& SingleObject::specific(){
+	return static_cast<SingleObject&>(Object::specific());
 }
 
 
 }//namespace aio
-
-}//namespace foundation
+}//namespace frame
+}//namespace solid
 
 
 #endif

@@ -30,9 +30,9 @@
 #include "system/thread.hpp"
 #include "utility/queue.hpp"
 #include "algorithm/serialization/binary.hpp"
-#include "foundation/signal.hpp"
-#include "foundation/manager.hpp"
-#include "foundation/ipc/ipcservice.hpp"
+#include "frame/signal.hpp"
+#include "frame/manager.hpp"
+#include "frame/ipc/ipcservice.hpp"
 #include "ipcsession.hpp"
 #include "ipcbuffer.hpp"
 

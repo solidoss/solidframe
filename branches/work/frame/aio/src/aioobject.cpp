@@ -19,10 +19,10 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "foundation/aio/aioobject.hpp"
-#include "foundation/aio/aiosingleobject.hpp"
-#include "foundation/aio/aiomultiobject.hpp"
-#include "foundation/aio/src/aiosocket.hpp"
+#include "frame/aio/aioobject.hpp"
+#include "frame/aio/aiosingleobject.hpp"
+#include "frame/aio/aiomultiobject.hpp"
+#include "frame/aio/src/aiosocket.hpp"
 #include "system/cassert.hpp"
 #include "system/debug.hpp"
 #include "system/thread.hpp"

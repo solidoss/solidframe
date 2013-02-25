@@ -45,8 +45,8 @@ typedef std::deque<ObjectStub>		ObjectVectorT;
 
 
 struct ServiceStub{
-	AtomicSizeT		objvecsz;
-	
+
+	size_t		objvecsz;
 };
 
 typedef std::vector<ServiceStub>	ServiceVectorT;
@@ -66,11 +66,14 @@ struct Manager::Data{
 	ServiceVectorT	svcvec;
 };
 
-/*static*/ Manager& Manager::the(){
+/*static*/ Manager& Manager::specific(){
 	
 }
 	
-Manager::Manager(const size_t _svcprovisioncp):d(*(new Data(_svcprovisioncp))){
+Manager::Manager(
+	const size_t _svcprovisioncp,
+	int _objpermutbts, int _mutrowsbts, int _mutcolsbts
+):d(*(new Data(_svcprovisioncp))){
 }
 
 /*virtual*/ Manager::~Manager(){
@@ -80,16 +83,12 @@ Manager::Manager(const size_t _svcprovisioncp):d(*(new Data(_svcprovisioncp))){
 //void start();
 //void stop(bool _wait = true);
 
-ObjectUidT	Manager::registerService(Service &_rs){
-	Lock<Mutex>	lock(d.mtx);
+bool	Manager::registerService(Service &_rs){
+	Locker<Mutex>	lock(d.mtx);
 }
 
 ObjectUidT	Manager::registerObject(Object &_ro){
-	Lock<Mutex>	lock(d.mtx);
-}
-
-ObjectUidT	Manager::registerObject(Object &_ro, Service &_rs){
-	Lock<Mutex>	lock(d.mtx);
+	Locker<Mutex>	lock(d.mtx);
 }
 
 bool Manager::notify(ulong _sm, const ObjectUidT &_ruid){
@@ -97,16 +96,16 @@ bool Manager::notify(ulong _sm, const ObjectUidT &_ruid){
 	size_t		objidx;
 	
 	
-	_ruid.split(svcidx, objidx, d.marker.load());
-	
-	if(svcidx < d.svcprovisioncp){
-		//lock free at service level
-		if(svcidx < d.svcvecsz.load()){
-			ServiceStub &rss(d.svcvec[svcidx]);
-		}
-	}else{
-		
-	}
+// 	_ruid.split(svcidx, objidx, d.marker.load());
+// 	
+// 	if(svcidx < d.svcprovisioncp){
+// 		//lock free at service level
+// 		if(svcidx < d.svcvecsz.load()){
+// 			ServiceStub &rss(d.svcvec[svcidx]);
+// 		}
+// 	}else{
+// 		
+// 	}
 }
 
 bool Manager::notify(MessagePointerT &_rmsgptr, const ObjectUidT &_ruid){

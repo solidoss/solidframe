@@ -19,18 +19,18 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef FOUNDATION_IPC_BUFFER_HPP
-#define FOUNDATION_IPC_BUFFER_HPP
+#ifndef SOLID_FRAME_IPC_BUFFER_HPP
+#define SOLID_FRAME_IPC_BUFFER_HPP
 
 #include "system/cassert.hpp"
-#include "foundation/ipc/ipcservice.hpp"
+#include "frame/ipc/ipcservice.hpp"
 #include "algorithm/serialization/binarybasic.hpp"
 
 #ifndef UIPCBUFFERCAPACITY
 #define UIPCBUFFERCAPACITY 4096
 #endif
 
-namespace foundation{
+namespace frame{
 namespace ipc{
 
 struct Controller;
@@ -159,6 +159,6 @@ private:
 std::ostream& operator<<(std::ostream &_ros, const Buffer &_rb);
 
 }//namespace ipc
-}//namespace foundation
+}//namespace frame
 
 #endif

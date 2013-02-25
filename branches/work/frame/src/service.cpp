@@ -33,11 +33,11 @@
 #include "utility/queue.hpp"
 #include "utility/stack.hpp"
 
-#include "foundation/service.hpp"
-#include "foundation/object.hpp"
-#include "foundation/manager.hpp"
-#include "foundation/signal.hpp"
-#include "foundation/common.hpp"
+#include "frame/service.hpp"
+#include "frame/object.hpp"
+#include "frame/manager.hpp"
+#include "frame/signal.hpp"
+#include "frame/common.hpp"
 
 
 namespace foundation{

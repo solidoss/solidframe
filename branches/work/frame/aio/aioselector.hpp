@@ -1,6 +1,6 @@
 /* Declarations file selector.hpp
 	
-	Copyright 2007, 2008 Valentin Palade 
+	Copyright 2007, 2008, 2013 Valentin Palade 
 	vipalade@gmail.com
 
 	This file is part of SolidFrame framework.
@@ -19,18 +19,19 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef FOUNDATION_AIO_SELECTOR_HPP
-#define FOUNDATION_AIO_SELECTOR_HPP
+#ifndef SOLID_FRAME_AIO_SELECTOR_HPP
+#define SOLID_FRAME_AIO_SELECTOR_HPP
 
 #include "system/timespec.hpp"
-#include "foundation/common.hpp"
-#include "foundation/selectorbase.hpp"
-#include "foundation/objectpointer.hpp"
+#include "frame/common.hpp"
+#include "frame/selectorbase.hpp"
+#include "frame/objectpointer.hpp"
 
 
 struct TimeSpec;
 
-namespace foundation{
+namespace solid{
+namespace frame{
 namespace aio{
 
 class Object;
@@ -83,7 +84,8 @@ private://data
 
 
 }//namespace aio
-}//namespace foundation
+}//namespace frame
+}//namespace solid
 
 #endif
 

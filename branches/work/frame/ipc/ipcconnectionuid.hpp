@@ -19,14 +19,14 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef FOUNDATION_IPC_IPC_SESSION_UID_HPP
-#define FOUNDATION_IPC_IPC_SESSION_UID_HPP
+#ifndef SOLID_FRAME_IPC_IPC_SESSION_UID_HPP
+#define SOLID_FRAME_IPC_IPC_SESSION_UID_HPP
 
 #include "system/common.hpp"
 #include "system/socketaddress.hpp"
 #include "utility/dynamicpointer.hpp"
 
-namespace foundation{
+namespace frame{
 namespace ipc{
 
 enum{
@@ -109,6 +109,6 @@ typedef uint32 SerializationTypeIdT;
 #define SERIALIZATION_INVALIDID ((SerializationTypeIdT)0)
 
 }//namespace ipc
-}//namespace foundation
+}//namespace frame
 
 #endif

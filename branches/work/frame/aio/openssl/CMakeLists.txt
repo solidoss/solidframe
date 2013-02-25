@@ -14,7 +14,7 @@ set(Headers
 set(Inlines
 )
 
-add_library (foundation_aio_openssl
+add_library (solid_frame_aio_openssl
 	${Sources} ${Headers} ${Inlines}
 )
 

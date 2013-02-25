@@ -19,13 +19,13 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef FOUNDATION_FILE_FILE_KEY_HPP
-#define FOUNDATION_FILE_FILE_KEY_HPP
+#ifndef SOLID_FRAME_FILE_FILE_KEY_HPP
+#define SOLID_FRAME_FILE_FILE_KEY_HPP
 
 #include "system/common.hpp"
 #include <string>
 
-namespace foundation{
+namespace frame{
 namespace file{
 //! A key for requsting a file from file::Manager
 struct Key{

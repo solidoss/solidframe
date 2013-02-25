@@ -19,15 +19,15 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef FOUNDATION_FILE_FILE_BASE_HPP
-#define FOUNDATION_FILE_FILE_BASE_HPP
+#ifndef SOLID_FRAME_FILE_FILE_BASE_HPP
+#define SOLID_FRAME_FILE_FILE_BASE_HPP
 
-#include "foundation/file/filemanager.hpp"
-#include "foundation/requestuid.hpp"
+#include "frame/file/filemanager.hpp"
+#include "frame/requestuid.hpp"
 
 #include "utility/queue.hpp"
 
-namespace foundation{
+namespace frame{
 namespace file{
 //!The base class for all types of files - disk, temp, memory etc.
 class File{
@@ -130,6 +130,6 @@ protected:
 };
 
 }//namespace file
-}//namespace foundation
+}//namespace frame
 
 #endif

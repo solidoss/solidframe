@@ -19,14 +19,14 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef FOUNDATION_IPC_SRC_IPC_LISTENER_HPP
-#define FOUNDATION_IPC_SRC_IPC_LISTENER_HPP
+#ifndef SOLID_FRAME_IPC_SRC_IPC_LISTENER_HPP
+#define SOLID_FRAME_IPC_SRC_IPC_LISTENER_HPP
 
-#include "foundation/aio/aiosingleobject.hpp"
-#include "foundation/ipc/ipcservice.hpp"
+#include "frame/aio/aiosingleobject.hpp"
+#include "frame/ipc/ipcservice.hpp"
 #include "system/socketdevice.hpp"
 
-namespace foundation{
+namespace frame{
 
 namespace aio{
 namespace openssl{
@@ -55,6 +55,6 @@ private:
 
 }//namespace ipc
 
-}//namespace foundation
+}//namespace frame
 
 #endif

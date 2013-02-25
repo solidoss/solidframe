@@ -32,8 +32,8 @@
 
 #include "system/debug.hpp"
 
-#include "foundation/object.hpp"
-#include "foundation/objectselector.hpp"
+#include "frame/object.hpp"
+#include "frame/objectselector.hpp"
 
 namespace foundation{
 

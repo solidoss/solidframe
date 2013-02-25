@@ -19,8 +19,8 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef FOUNDATION_IPC_SRC_IPC_SESSION_HPP
-#define FOUNDATION_IPC_SRC_IPC_SESSION_HPP
+#ifndef SOLID_FRAME_IPC_SRC_IPC_SESSION_HPP
+#define SOLID_FRAME_IPC_SRC_IPC_SESSION_HPP
 
 //#include "ipcdata.hpp"
 #include "ipctalker.hpp"
@@ -28,7 +28,7 @@
 
 #include "utility/dynamicpointer.hpp"
 
-#include "foundation/ipc/ipcconnectionuid.hpp"
+#include "frame/ipc/ipcconnectionuid.hpp"
 #include "ipcutility.hpp"
 
 struct SocketAddress;
@@ -39,7 +39,7 @@ struct TimeSpec;
 struct ResolveIterator;
 
 
-namespace foundation{
+namespace frame{
 
 struct Signal;
 
@@ -212,7 +212,7 @@ private:
 };
 
 }//namespace ipc
-}//namespace foundation
+}//namespace frame
 
 
 #endif

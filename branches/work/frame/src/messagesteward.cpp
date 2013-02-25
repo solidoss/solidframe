@@ -1,8 +1,8 @@
 #include <deque>
 
-#include "foundation/signalexecuter.hpp"
-#include "foundation/signal.hpp"
-#include "foundation/manager.hpp"
+#include "frame/messagesteward.hpp"
+#include "frame/message.hpp"
+#include "frame/manager.hpp"
 
 #include "system/cassert.hpp"
 #include "system/mutex.hpp"
@@ -13,29 +13,31 @@
 #include "utility/queue.hpp"
 
 
-namespace foundation{
+namespace solid{
+namespace frame{
 
 
-struct SignalExecuter::Data{
+struct MessageSteward::Data{
 	Data():pm(NULL), extsz(0), sz(0){}
 	enum{
 		Running, Stopping
 	};
-	void push(DynamicPointer<Signal> &_sig);
+	void push(DynamicPointer<Message> &_sig);
 	void eraseToutPos(uint32 _pos);
 	struct SigData{
-		SigData(const DynamicPointer<Signal>& _rsig):sig(_rsig), toutidx(-1), uid(0),tout(0xffffffff){}
+		SigData(const DynamicPointer<Message>& _rsig):sig(_rsig), toutidx(-1), uid(0),tout(0xffffffff){}
 		SigData(){}
-		DynamicPointer<Signal>	sig;
+		DynamicPointer<Message>	sig;
 		int32					toutidx;
 		uint32					uid;
 		TimeSpec				tout;
 	};
-	typedef std::deque<int32>					TimeoutVectorT;
-	typedef std::deque<SigData >				SignalDequeT;
-	typedef std::deque<DynamicPointer<Signal> >	SignalExtDequeT;
-	typedef Queue<uint32>						ExecQueueT;
-	typedef Stack<uint32>						FreeStackT;
+	typedef std::deque<int32>						TimeoutVectorT;
+	typedef std::deque<SigData >					SignalDequeT;
+	typedef std::deque<DynamicPointer<Message> >	SignalExtDequeT;
+	typedef Queue<uint32>							ExecQueueT;
+	typedef Stack<uint32>							FreeStackT;
+	int					state;
 	Mutex 				*pm;
 	uint32				extsz;
 	uint32				sz;
@@ -49,7 +51,7 @@ struct SignalExecuter::Data{
 	TimeSpec			tout;
 };
 
-void SignalExecuter::Data::push(DynamicPointer<Signal> &_sig){
+void MessageSteward::Data::push(DynamicPointer<Message> &_sig){
 	if(fs.size()){
 		sdq[fs.top()].sig = _sig;
 		sq.push(fs.top());
@@ -61,31 +63,31 @@ void SignalExecuter::Data::push(DynamicPointer<Signal> &_sig){
 	}
 }
 
-void SignalExecuter::Data::eraseToutPos(uint32 _pos){
+void MessageSteward::Data::eraseToutPos(uint32 _pos){
 	cassert(_pos < toutv.size());
 	toutv[_pos] = toutv.back();
 	sdq[toutv.back()].toutidx = _pos;
 	toutv.pop_back();
 }
 
-SignalExecuter::SignalExecuter():d(*(new Data)){
-	state(Data::Running);
+MessageSteward::MessageSteward():d(*(new Data)){
+	d.state = Data::Running;
 	d.tout.set(0xffffffff);
 }
 
-SignalExecuter::~SignalExecuter(){
+MessageSteward::~MessageSteward(){
 	delete &d;
 }
 
-bool SignalExecuter::signal(DynamicPointer<Signal> &_sig){
+bool MessageSteward::notify(DynamicPointer<Message> &_sig){
 	cassert(!d.pm->tryLock());
 	
-	if(this->state() != Data::Running){
+	if(d.state != Data::Running){
 		_sig.clear();
 		return false;//no reason to raise the pool thread!!
 	}
 	d.push(_sig);
-	return Object::signal(S_SIG | S_RAISE);
+	return Object::notify(S_SIG | S_RAISE);
 }
 
 
@@ -97,7 +99,7 @@ NOTE:
 	wait forever, because the the destructor of the signal executer will be called
 	after all services/and managers have stopped - i.e. a mighty deadlock.
 */
-int SignalExecuter::execute(ulong _evs, TimeSpec &_rtout){
+int MessageSteward::execute(ulong _evs, TimeSpec &_rtout){
 	d.pm->lock();
 	vdbgx(Dbg::fdt, "d.extsz = "<<d.extsz);
 	if(d.extsz){
@@ -108,17 +110,17 @@ int SignalExecuter::execute(ulong _evs, TimeSpec &_rtout){
 		d.sedq.clear();
 		d.extsz = 0;
 	}
-	if(signaled()){
+	if(notified()){
 		ulong sm = grabSignalMask(0);
 		vdbgx(Dbg::fdt, "signalmask "<<sm);
 		if(sm & S_KILL){
-			state(Data::Stopping);
+			d.state = Data::Stopping;
 			if(!d.sz){//no signal
-				state(-1);
+				d.state = -1;
 				d.pm->unlock();
 				d.sdq.clear();
-				m().eraseObject(*this);
-				vdbgx(Dbg::fdt, "~SignalExecuter");
+				Manager::specific().unregisterObject(*this);
+				vdbgx(Dbg::fdt, "~MessageSteward");
 				return BAD;
 			}
 		}
@@ -130,7 +132,7 @@ int SignalExecuter::execute(ulong _evs, TimeSpec &_rtout){
 		}
 	}
 	d.pm->unlock();
-	if(state() == Data::Running){
+	if(d.state == Data::Running){
 		vdbgx(Dbg::fdt, "d.eq.size = "<<d.eq.size());
 		while(d.eq.size()){
 			uint32 pos = d.eq.front();
@@ -165,8 +167,8 @@ int SignalExecuter::execute(ulong _evs, TimeSpec &_rtout){
 			}
 		}
 		idbgx(Dbg::fdt, "remove signal executer from manager");
-		m().eraseObject(*this);
-		state(-1);
+		Manager::specific().unregisterObject(*this);
+		d.state = -1;
 		d.sdq.clear();
 		return BAD;
 	}
@@ -183,18 +185,18 @@ int SignalExecuter::execute(ulong _evs, TimeSpec &_rtout){
 	return NOK;
 }
 
-void SignalExecuter::init(Mutex *_pmtx){
+void MessageSteward::init(Mutex *_pmtx){
 	d.pm = _pmtx;
 }
 
-int SignalExecuter::execute(){
+int MessageSteward::execute(){
 	cassert(false);
 }
 
-void SignalExecuter::doExecute(uint _pos, uint32 _evs, const TimeSpec &_rtout){
+void MessageSteward::doExecute(uint _pos, uint32 _evs, const TimeSpec &_rtout){
 	Data::SigData &rcp(d.sdq[_pos]);
 	TimeSpec ts(_rtout);
-	int rv(rcp.sig->execute(rcp.sig, _evs, *this, SignalUidT(_pos, rcp.uid), ts));
+	int rv(rcp.sig->execute(rcp.sig, _evs, *this, MessageUidT(_pos, rcp.uid), ts));
 	if(!rcp.sig){
 		rv = BAD;
 	}
@@ -238,8 +240,8 @@ void SignalExecuter::doExecute(uint _pos, uint32 _evs, const TimeSpec &_rtout){
 	}
 }
 
-void SignalExecuter::sendSignal(
-	DynamicPointer<Signal> &_rsig,
+void MessageSteward::sendMessage(
+	DynamicPointer<Message> &_rsig,
 	const RequestUidT &_requid,
 	const ObjectUidT& _from,
 	const ipc::ConnectionUid *_conid
@@ -247,7 +249,7 @@ void SignalExecuter::sendSignal(
 	vdbgx(Dbg::fdt, "_requid.first = "<<_requid.first<<" _requid.second = "<<_requid.second<<" uid = "<<d.sdq[_requid.first].uid);
 	if(_requid.first < d.sdq.size() && d.sdq[_requid.first].uid == _requid.second){
 		vdbgx(Dbg::fdt, "");
-		if(d.sdq[_requid.first].sig->receiveSignal(_rsig, _from, _conid) == OK){
+		if(d.sdq[_requid.first].sig->receiveMessage(_rsig, _from, _conid) == OK){
 			vdbgx(Dbg::fdt, "");
 			d.eq.push(_requid.first);
 		}
@@ -257,7 +259,8 @@ void SignalExecuter::sendSignal(
 
 
 
-}//namespace foundation
+}//namespace frame
+}//namespace solid
 
 
 

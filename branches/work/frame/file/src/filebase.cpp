@@ -22,9 +22,9 @@
 
 #include "utility/iostream.hpp"
 
-#include "foundation/file/filebase.hpp"
-#include "foundation/file/filemapper.hpp"
-#include "foundation/file/filekey.hpp"
+#include "frame/file/filebase.hpp"
+#include "frame/file/filemapper.hpp"
+#include "frame/file/filekey.hpp"
 
 
 #include "system/debug.hpp"

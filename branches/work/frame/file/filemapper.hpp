@@ -19,14 +19,14 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef FOUNDATION_FILE_FILE_MAPPER_HPP
+#ifndef SOLID_FRAME_FILE_FILE_MAPPER_HPP
 #define FILE_MAPPER_HPP
 
-#include "foundation/file/filemanager.hpp"
+#include "frame/file/filemanager.hpp"
 
 struct TimeSpec;
 
-namespace foundation{
+namespace frame{
 namespace file{
 
 //! An interface class for all mappers
@@ -71,6 +71,6 @@ struct Mapper{
 };
 
 }//namespace file
-}//namespace foundation
+}//namespace frame
 
 #endif

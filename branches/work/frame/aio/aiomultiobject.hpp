@@ -19,11 +19,11 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef FOUNDATION_AIO_MULTI_OBJECT_HPP
-#define FOUNDATION_AIO_MULTI_OBJECT_HPP
+#ifndef SOLID_FRAME_AIO_MULTI_OBJECT_HPP
+#define SOLID_FRAME_AIO_MULTI_OBJECT_HPP
 
-#include "foundation/aio/aioobject.hpp"
-#include "foundation/aio/aiosocketpointer.hpp"
+#include "frame/aio/aioobject.hpp"
+#include "frame/aio/aiosocketpointer.hpp"
 #include "utility/stack.hpp"
 
 class SocketDevice;
@@ -31,9 +31,8 @@ class SocketAddress;
 class SocketAddressStub;
 class ResolveIterator;
 
-
-namespace foundation{
-
+namespace solid{
+namespace frame{
 namespace aio{
 
 class SecureSocket;
@@ -57,7 +56,7 @@ public:
 	//! Destructor
 	~MultiObject();
 	
-	static MultiObject& the();
+	static MultiObject& specific();
 	
 	uint count()const;
 	
@@ -190,12 +189,12 @@ inline void MultiObject::socketTimeoutSend(const uint _pos, ulong _addsec, ulong
 	socketTimeoutSend(_pos, Object::currentTime(), _addsec, _addnsec);
 }
 
-/*static*/ inline MultiObject& MultiObject::the(){
-	return static_cast<MultiObject&>(Object::the());
+/*static*/ inline MultiObject& MultiObject::specific(){
+	return static_cast<MultiObject&>(Object::specific());
 }
 
 }//namespace aio
-
-}//namespace foundation
+}//namespace frame
+}//namespace solid
 
 #endif

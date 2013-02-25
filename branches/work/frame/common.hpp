@@ -79,7 +79,7 @@ typedef size_t IndexT;
 
 typedef std::pair<IndexT, uint32>	UidT;
 typedef UidT						ObjectUidT;
-typedef UidT						SignalUidT;
+typedef UidT						MessageUidT;
 typedef UidT						FileUidT;
 typedef UidT						RequestUidT;
 

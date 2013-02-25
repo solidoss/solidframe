@@ -19,13 +19,13 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef FOUNDATION_FILE_FILE_MAPPERS_HPP
-#define FOUNDATION_FILE_FILE_MAPPERS_HPP
+#ifndef SOLID_FRAME_FILE_FILE_MAPPERS_HPP
+#define SOLID_FRAME_FILE_FILE_MAPPERS_HPP
 
-#include "foundation/file/filemanager.hpp"
-#include "foundation/file/filemapper.hpp"
+#include "frame/file/filemanager.hpp"
+#include "frame/file/filemapper.hpp"
 
-namespace foundation{
+namespace frame{
 namespace file{
 
 //! A mapper for disk files
@@ -95,7 +95,7 @@ private:
 };
 
 }//namespace file
-}//namespace foundation
+}//namespace frame
 
 
 #endif

@@ -1,6 +1,6 @@
 /* Implementation file aioselector_lin.cpp
 	
-	Copyright 2007, 2008 Valentin Palade 
+	Copyright 2007, 2008, 2013 Valentin Palade 
 	vipalade@gmail.com
 
 	This file is part of SolidFrame framework.
@@ -44,17 +44,17 @@
 #include "utility/queue.hpp"
 #include "utility/stack.hpp"
 
-#include "foundation/object.hpp"
-#include "foundation/common.hpp"
+#include "frame/object.hpp"
+#include "frame/common.hpp"
 
-#include "foundation/aio/aioselector.hpp"
-#include "foundation/aio/aioobject.hpp"
+#include "frame/aio/aioselector.hpp"
+#include "frame/aio/aioobject.hpp"
 
 #include "aiosocket.hpp"
 
 
-namespace foundation{
-
+namespace solid{
+namespace frame{
 namespace aio{
 //=============================================================
 // TODO:
@@ -833,6 +833,6 @@ ulong Selector::doAddNewStub(){
 
 //-------------------------------------------------------------
 }//namespace aio
-
-}//namespace foundation
+}//namespace frame
+}//namespace solid
 

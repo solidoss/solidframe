@@ -19,13 +19,13 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef FOUNDATION_IPC_SRC_IPC_NODE_HPP
-#define FOUNDATION_IPC_SRC_IPC_NODE_HPP
+#ifndef SOLID_FRAME_IPC_SRC_IPC_NODE_HPP
+#define SOLID_FRAME_IPC_SRC_IPC_NODE_HPP
 
-#include "foundation/aio/aiomultiobject.hpp"
-#include "foundation/ipc/ipcconnectionuid.hpp"
+#include "frame/aio/aiomultiobject.hpp"
+#include "frame/ipc/ipcconnectionuid.hpp"
 
-namespace foundation{
+namespace frame{
 
 namespace ipc{
 
@@ -51,6 +51,6 @@ private:
 
 }//namespace ipc
 
-}//namespace foundation
+}//namespace frame
 
 #endif

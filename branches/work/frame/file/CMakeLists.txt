@@ -15,6 +15,6 @@ set(Headers
 set(Inlines
 )
 
-add_library (foundation_file
+add_library (solid_frame_file
 	${Sources} ${Headers} ${Inlines}
 )

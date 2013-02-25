@@ -19,20 +19,20 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef FOUNDATION_FILE_FILE_MANAGER_HPP
-#define FOUNDATION_FILE_FILE_MANAGER_HPP
+#ifndef SOLID_FRAME_FILE_FILE_MANAGER_HPP
+#define SOLID_FRAME_FILE_FILE_MANAGER_HPP
 
 #include "utility/streampointer.hpp"
 
-#include "foundation/object.hpp"
+#include "frame/object.hpp"
 
-#include "foundation/common.hpp"
+#include "frame/common.hpp"
 
 class InputStream;
 class OutputStream;
 class InputOutputStream;
 
-namespace foundation{
+namespace frame{
 
 class RequestUid;
 
@@ -431,7 +431,7 @@ private:
 };
 
 }//namespace file
-}//namespace foundation
+}//namespace frame
 
 #endif
 

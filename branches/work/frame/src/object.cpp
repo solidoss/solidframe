@@ -1,6 +1,6 @@
 /* Implementation file object.cpp
 	
-	Copyright 2007, 2008 Valentin Palade 
+	Copyright 2013 Valentin Palade 
 	vipalade@gmail.com
 
 	This file is part of SolidFrame framework.
@@ -24,20 +24,13 @@
 #include "system/thread.hpp"
 #include "system/debug.hpp"
 
-#include "foundation/object.hpp"
-#include "foundation/objectpointer.hpp"
-#include "foundation/signal.hpp"
-#include "foundation/manager.hpp"
-#include "foundation/service.hpp"
+#include "frame/object.hpp"
+#include "frame/message.hpp"
+#include "frame/manager.hpp"
+#include "frame/service.hpp"
 
 #include "utility/memory.hpp"
 #include "utility/dynamicpointer.hpp"
-
-
-#ifdef HAS_GNU_ATOMIC
-#include <ext/atomicity.h>
-#endif
-
 
 //--------------------------------------------------------------
 namespace{
@@ -81,50 +74,14 @@ static const uint currentTimeSpecificPosition(){
 #endif
 }
 
-
-namespace foundation{
-//---------------------------------------------------------------------
-//----	ObjectPointerBase	----
-//---------------------------------------------------------------------
-
-void ObjectPointerBase::clear(Object *_pobj){
-	cassert(_pobj);
-#ifdef HAS_GNU_ATOMIC
-	const int usecnt = __gnu_cxx::__exchange_and_add_dispatch(&_pobj->usecnt, -1) - 1;
-#else
-	int usecnt = 0;
-	{
-		Locker<Mutex> lock(Manager::the().mutex(*_pobj));
-		usecnt = --_pobj->usecnt;
-	}
-#endif
-	if(usecnt == 0){
-		m().erase(*_pobj);
-		delete _pobj;
-	}
-}
-
-void ObjectPointerBase::use(Object *_pobj){
-#ifdef HAS_GNU_ATOMIC
-	__gnu_cxx:: __atomic_add_dispatch(&_pobj->usecnt, 1);
-#else
-
-	//NOTE: the first mutex will be the first mutex from the first service
-	//which is a valid mutex. The valid mutex will be received only
-	//after objects registration within a service.
-	Locker<Mutex> lock(Manager::the().mutex(*_pobj));
-	++_pobj->usecnt;
-#endif
-}
-void ObjectPointerBase::destroy(Object *_pobj){
-	delete _pobj;
-}
+namespace solid{
+namespace frame{
 //---------------------------------------------------------------------
 //----	Object	----
 //---------------------------------------------------------------------
 
 #ifdef NINLINES
-#include "foundation/object.ipp"
+#include "frame/object.ipp"
 #endif
 
 /*static*/ const TimeSpec& Object::currentTime(){
@@ -136,41 +93,25 @@ void ObjectPointerBase::destroy(Object *_pobj){
 
 Object::Object(IndexT _fullid):
 	fullid(_fullid), smask(0),
-	thrid(0),thrpos(0),usecnt(0),crtstate(0){
+	thrid(0){
 }
 
 Object::~Object(){
 }
 
 //--------------------------------------------------------------
-/*static*/ Object& Object::the(){
+/*static*/ Object& Object::specific(){
 	return *reinterpret_cast<Object*>(Thread::specific(specificPosition()));
 }
 //--------------------------------------------------------------
 void Object::associateToCurrentThread(){
 	Thread::specific(specificPosition(), this);
 }
-//--------------------------------------------------------------
-Mutex& Object::mutex()const{
-	return m().mutex(*this);
-}
-//--------------------------------------------------------------
-ObjectUidT  Object::uid()const{
-	return ObjectUidT(id(), m().uid(*this));
-}
 
-bool Object::signal(DynamicPointer<Signal> &_sig){
+bool Object::notify(DynamicPointer<Message> &_rmsgptr){
 	return false;//by default do not raise the object
 }
-/**
- * Returns true if the object must be executed.
- */
 
-bool Object::signal(ulong _smask){
-	ulong oldmask = smask;
-	smask |= _smask;
-	return (smask != oldmask) && signaled(S_RAISE);
-}
 
 int Object::execute(ulong _evs, TimeSpec &_rtout){
 	return BAD;
@@ -178,79 +119,45 @@ int Object::execute(ulong _evs, TimeSpec &_rtout){
 //---------------------------------------------------------------------
 //----	Signal	----
 //---------------------------------------------------------------------
-Signal::Signal(){
-	objectCheck<Signal>(true, __FUNCTION__);
+Message::Message(){
+	objectCheck<Message>(true, __FUNCTION__);
 	vdbgx(Dbg::fdt, "memadd "<<(void*)this);
 }
-Signal::~Signal(){
-	objectCheck<Signal>(false, __FUNCTION__);
+Message::~Message(){
+	objectCheck<Message>(false, __FUNCTION__);
 	vdbgx(Dbg::fdt, "memsub "<<(void*)this);
 }
 
-void Signal::ipcReceive(
-	ipc::SignalUid&
+void Message::ipcReceive(
+	ipc::MessageUid&
 ){
 }
-uint32 Signal::ipcPrepare(){
+uint32 Message::ipcPrepare(){
 	return 0;//do nothing - no wait for response
 }
-void Signal::ipcComplete(int _err){
+void Message::ipcComplete(int _err){
 	wdbgx(Dbg::fdt,"");
 }
-int Signal::execute(
-	DynamicPointer<Signal> &_rthis_ptr,
+int Message::execute(
+	DynamicPointer<Message> &_rthis_ptr,
 	uint32 _evs,
-	SignalExecuter &,
-	const SignalUidT &,
+	MessageSteward &,
+	const MessageUidT &,
 	TimeSpec &_rts
 ){
-	wdbgx(Dbg::fdt, "Unhandled signal");
+	wdbgx(Dbg::fdt, "Unhandled message");
 	return BAD;
 }
 
-int Signal::receiveSignal(
-	DynamicPointer<Signal> &_rsig,
+int Message::receiveMessage(
+	DynamicPointer<Message> &_rmsgptr,
 	const ObjectUidT& _from,
 	const ipc::ConnectionUid *_conid
 ){
-	wdbgx(Dbg::fdt, "Unhandled signal receive");
+	wdbgx(Dbg::fdt, "Unhandled receiveMessage");
 	return BAD;//no need for execution
 }
 
-/*virtual*/ void Object::init(Mutex*){
-}
-
-void DynamicServicePointerStore::pushBack(
-	const Object *_pobj,
-	const uint _idx,
-	const DynamicPointer<DynamicBase> &_dp
-){
-	m().service(_pobj->serviceId()).pointerStorePushBack(_pobj->index(), _idx, _dp);
-}
-size_t DynamicServicePointerStore::size(const Object *_pobj, const uint _idx)const{
-	return m().service(_pobj->serviceId()).pointerStoreSize(_pobj->index(), _idx);
-}
-bool DynamicServicePointerStore::isNotLast(const Object *_pobj, const uint _idx, const uint _pos)const{
-	return m().service(_pobj->serviceId()).pointerStoreIsNotLast(_pobj->index(), _idx, _pos);
-}
-const DynamicPointer<DynamicBase>& DynamicServicePointerStore::pointer(
-	const Object *_pobj,
-	const uint _idx,
-	const uint _pos
-)const{
-	return m().service(_pobj->serviceId()).pointerStorePointer(_pobj->index(), _idx, _pos);
-}
-DynamicPointer<DynamicBase>& DynamicServicePointerStore::pointer(
-	const Object *_pobj,
-	const uint _idx,
-	const uint _pos
-){
-	return m().service(_pobj->serviceId()).pointerStorePointer(_pobj->index(), _idx, _pos);
-}
-void DynamicServicePointerStore::clear(const Object *_pobj, const uint _idx){
-	m().service(_pobj->serviceId()).pointerStoreClear(_pobj->index(), _idx);
-}
-
-
-}//namespace
+}//namespace frame
+}//namespace solid
 

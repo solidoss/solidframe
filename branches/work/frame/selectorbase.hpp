@@ -57,7 +57,7 @@ inline void SelectorBase::associateObjectToCurrentThread(Object &_robj){
 	_robj.associateToCurrentThread();
 }
 inline void SelectorBase::setObjectThread(Object &_robj, uint32 _objidx){
-	_robj.setThread(selid, _objidx);
+	_robj.threadId(selid, _objidx);
 }
 inline int SelectorBase::executeObject(Object &_robj, ulong _evs, TimeSpec &_rtout){
 	return _robj.execute(_evs, _rtout);

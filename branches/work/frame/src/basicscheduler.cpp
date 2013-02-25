@@ -19,11 +19,11 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "foundation/schedulerbase.hpp"
-#include "foundation/selectorbase.hpp"
-#include "foundation/manager.hpp"
-#include "foundation/object.hpp"
-#include "foundation/basicscheduler.hpp"
+#include "frame/schedulerbase.hpp"
+#include "frame/selectorbase.hpp"
+#include "frame/manager.hpp"
+#include "frame/object.hpp"
+#include "frame/basicscheduler.hpp"
 
 #include "utility/workpool.hpp"
 

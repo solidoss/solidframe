@@ -30,7 +30,7 @@ set(Inlines
 	src/aiosocket.ipp
 )
 
-add_library (foundation_aio
+add_library (solid_frame_aio
 	${Sources} ${Headers} ${Inlines}
 )
 

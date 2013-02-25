@@ -20,7 +20,7 @@
 */
 
 #include "ipcbuffer.hpp"
-#include "foundation/ipc/ipcservice.hpp"
+#include "frame/ipc/ipcservice.hpp"
 #include "system/specific.hpp"
 #include "system/exception.hpp"
 #include "system/debug.hpp"

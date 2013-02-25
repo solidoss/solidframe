@@ -19,16 +19,15 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef FOUNDATION_AIO_OPENSSL_SOCKET_HPP
-#define FOUNDATION_AIO_OPENSSL_SOCKET_HPP
+#ifndef SOLID_FRAME_AIO_OPENSSL_SOCKET_HPP
+#define SOLID_FRAME_AIO_OPENSSL_SOCKET_HPP
 
-#include "foundation/aio/aiosecuresocket.hpp"
+#include "frame/aio/aiosecuresocket.hpp"
 #include "openssl/ssl.h"
 
-namespace foundation{
-
+namespace solid{
+namespace frame{
 namespace aio{
-
 namespace openssl{
 
 class Socket;
@@ -97,9 +96,8 @@ protected:
 };
 
 }//namespace openssl
-
 }//namespace aio
-
-}//namespace foundation
+}//namespace frame
+}//namespace solid
 
 #endif

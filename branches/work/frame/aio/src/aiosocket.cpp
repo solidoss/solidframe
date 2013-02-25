@@ -1,6 +1,6 @@
-#include "foundation/common.hpp"
-#include "foundation/aio/src/aiosocket.hpp"
-#include "foundation/aio/aiosecuresocket.hpp"
+#include "frame/common.hpp"
+#include "frame/aio/src/aiosocket.hpp"
+#include "frame/aio/aiosecuresocket.hpp"
 #include "system/socketaddress.hpp"
 #include "system/specific.hpp"
 #include "system/cassert.hpp"
@@ -34,7 +34,8 @@ enum{
 #endif
 
 
-namespace foundation{
+namespace solid{
+namespace frame{
 namespace aio{
 
 #ifdef NINLINES
@@ -564,5 +565,6 @@ void Socket::secureSocket(SecureSocket *_pss){
 }
 
 }//namespace aio
-}//namespace foundation
+}//namespace frame
+}//namespace solid
 

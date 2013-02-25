@@ -1,6 +1,6 @@
 /* Inline implementation file aiosocket.ipp
 	
-	Copyright 2007, 2008 Valentin Palade 
+	Copyright 2007, 2008, 2013 Valentin Palade 
 	vipalade@gmail.com
 
 	This file is part of SolidFrame framework.
@@ -22,7 +22,7 @@
 #ifdef NINLINES
 #define inline
 #else
-#include "foundation/aio/src/aiosocket.hpp"
+#include "frame/aio/src/aiosocket.hpp"
 #endif
 
 inline bool Socket::isSecure()const{

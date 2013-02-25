@@ -31,14 +31,14 @@
 
 #include "utility/queue.hpp"
 
-#include "foundation/objectpointer.hpp"
-#include "foundation/common.hpp"
-#include "foundation/manager.hpp"
+#include "frame/objectpointer.hpp"
+#include "frame/common.hpp"
+#include "frame/manager.hpp"
 
-#include "foundation/aio/openssl/opensslsocket.hpp"
+#include "frame/aio/openssl/opensslsocket.hpp"
 
-#include "foundation/ipc/ipcservice.hpp"
-#include "foundation/ipc/ipcconnectionuid.hpp"
+#include "frame/ipc/ipcservice.hpp"
+#include "frame/ipc/ipcconnectionuid.hpp"
 
 #include "ipctalker.hpp"
 #include "ipcnode.hpp"

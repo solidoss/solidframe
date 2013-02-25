@@ -13,7 +13,7 @@ printUsage()
 	echo
 }
 
-BOOST_ADDR="http://downloads.sourceforge.net/project/boost/boost/1.53.0/boost_1_53_0.tar.bz2?r=http%3A%2F%2Fsourceforge.net%2Fprojects%2Fboost%2Ffiles%2Fboost%2F1.53.0%2F&ts=1361551190&use_mirror=heanet"
+BOOST_ADDR="http://garr.dl.sourceforge.net/project/boost/boost/1.53.0/boost_1_53_0.tar.bz2"
 OPENSSL_ADDR="http://www.openssl.org/source/openssl-1.0.1c.tar.gz"
 
 downloadArchive()

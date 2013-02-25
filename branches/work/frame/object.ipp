@@ -21,52 +21,70 @@
 
 #ifdef NINLINES
 #define inline
-#else
-#include "foundation/manager.hpp"
-namespace foundation{
 #endif
 
 
 
-inline void Object::getThread(uint32 &_rthid, uint32 &_rthpos)const{
-	//which is better:
-	//new thread id and old pos, or
-	//new pos and old thread id
-	_rthpos = thrpos;
-	_rthid  = thrid;
+inline uint32 Object::threadId()const{
+#ifdef HAS_STDATOMIC
+	return thrid.load(std::memory_order_relaxed);
+#else
+	return thrid.load(boost::atomic::memory_order_relaxed);
+#endif
 }
-inline void Object::setThread(uint32 _thrid, uint32 _thrpos){
-	thrid  = _thrid;
-	thrpos = _thrpos;
+inline void Object::threadId(uint32 _thrid){
+#ifdef HAS_STDATOMIC
+	thrid.store(_thrid, std::memory_order_relaxed);
+#else
+	thrid.store(_thrid, boost::atomic::memory_order_relaxed);
+#endif
+
 }
 
 inline ulong Object::grabSignalMask(ulong _leave){
-	ulong sm = smask;
-	smask = sm & _leave;
-	return sm;
+// 	ulong sm = smask;
+// 	smask = sm & _leave;
+// 	return sm;
+#ifdef HAS_STDATOMIC
+	return smask.fetch_and(_leave, std::memory_order_relaxed);
+#else
+	return smask.fetch_and(_leave, boost::atomic::memory_order_relaxed);
+#endif
 }
-inline bool Object::signaled(ulong _s) const{
+inline bool Object::notified() const {
+#ifdef HAS_STDATOMIC
+	return smask.load(std::memory_order_relaxed) != 0;
+#else
+	return smask.load(boost::atomic::memory_order_relaxed) != 0;
+#endif
+}
+inline bool Object::notified(ulong _s) const{
 	return (smask & _s) != 0;
-}
-inline void Object::id(IndexT _fullid){
-	fullid = _fullid;
-}
-inline void Object::id(IndexT _srvidx, IndexT _objidx){
-	fullid = Manager::the().computeId(_srvidx, _objidx);
+#ifdef HAS_STDATOMIC
+	return (smask.load(std::memory_order_relaxed) & _s) != 0;
+#else
+	return (smask.load(boost::atomic::memory_order_relaxed) &_s) != 0;
+#endif
+
 }
 
-inline void Object::state(int _st){
-	crtstate = _st;//if state < 0 the object can be destroyed
+inline bool Object::notify(ulong _smask){
+// 	ulong oldmask = smask;
+// 	smask |= _smask;
+// 	return (smask != oldmask) && signaled(S_RAISE);
+#ifdef HAS_STDATOMIC
+	ulong osm = smask.fetch_or(_smask, std::memory_order_relaxed);
+#else
+	ulong osm = smask.fetch_or(_smask, boost::atomic::memory_order_relaxed);
+#endif
+	return (_smask & S_RAISE) && !(osm & S_RAISE); 
 }
-inline IndexT Object::serviceId()const{
-	return Manager::the().computeServiceId(fullid);
-}
-inline IndexT Object::index()const{
-	return Manager::the().computeIndex(fullid);
+
+
+inline void Object::id(IndexT _fullid){
+	fullid = _fullid;
 }
 
 #ifdef NINLINES
 #undef inline
-#else
-}//namespace
 #endif

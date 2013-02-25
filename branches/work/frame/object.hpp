@@ -19,131 +19,69 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef FOUNDATION_OBJECT_HPP
-#define FOUNDATION_OBJECT_HPP
+#ifndef SOLID_FRAME_OBJECT_HPP
+#define SOLID_FRAME_OBJECT_HPP
 
-#include "foundation/common.hpp"
+#include "frame/common.hpp"
 
 #include "utility/dynamictype.hpp"
 #include "utility/dynamicpointer.hpp"
 
+#ifdef HAS_STDATOMIC
+#include <atomic>
+#else
+#include "boost/atomic.hpp"
+#endif
+
+
 class Mutex;
 struct TimeSpec;
 
-namespace foundation{
+namespace solid{
+namespace frame{
 
 class Manager;
 class Service;
 class ObjectPointerBase;
-class Signal;
+class Message;
 class SelectorBase;
 class Object;
 
-struct DynamicServicePointerStore{
-	void pushBack(
-		const Object *_pobj,
-		const uint _idx,
-		const DynamicPointer<DynamicBase> &_dp
-	);
-	size_t size(const Object *_pobj, const uint _idx)const;
-	bool isNotLast(const Object *_pobj, const uint _idx, const uint _pos)const;
-	const DynamicPointer<DynamicBase>& pointer(
-		const Object *_pobj,
-		const uint _idx,
-		const uint _pos
-	)const;
-	DynamicPointer<DynamicBase>& pointer(
-		const Object *_pobj,
-		const uint _idx,
-		const uint _pos
-	);
-	void clear(const Object *_pobj, const uint _idx);
-};
 
-//! A pseudo-active object class
-/*!
-	<b>Overview:</b><br>
-	A pseudo-active object is one that altough it doesnt own a thread
-	it can reside within a workpool an receive processor/thread time
-	due to events.
-	
-	So an object:
-	- can receive signals
-	- can receive signals
-	- must reside both on a static container (foundation::Service) and 
-	an ActiveSet (usually foundation::SelectPool)
-	- has an associated mutex which can be requested from the service
-	- can be visited using a visitor<br>
-	
-	<b>Usage:</b><br>
-	- Inherit the object and implement execute, adding code for grabing
-	the signal mask and the signals under lock.
-	- Add code so that the object gets registered on service and inserted
-	into a proper workpool upon its creation.
-	
-	<b>Notes:</b><br>
-	- Every object have an associated unique id (a pair of uint32) wich 
-	uniquely identifies the object within the manager both on memory and on
-	time. The solidground architecture and the ones built upon it MUST NOT allow
-	access to object pointers, instead they do/should do permit limited access
-	using the unique id: sigaling and sending signals through the manager interface.
-	- Also an object will hold information about the thread in which it is currently
-	executed, so that the signaling is fast.
-*/
-class Object: public Dynamic<Object>{
+
+class Object: public Dynamic<Object, DynamicShared<> >{
 public:
-	typedef Signal	SignalT;
-	
 	static const TimeSpec& currentTime();
 	
-	//!Get the curent object associate to the current thread
-	static Object& the();
+	//!Get the curent object associated to the current thread
+	static Object& specific();
 	
 	//! Returns true if the object is signaled
-	bool signaled() const;
+	bool notified() const;
 	
-	//! Returns the state of the objec -a negative state means the object must be destroyed
-	int state() const;
-	
-	bool signaled(ulong _s) const;
+	bool notified(ulong _s) const;
 	
 	//! Get the id of the object
 	IndexT id() const;
 	
-	ObjectUidT uid()const;
-	
-	//! Get the associated mutex
-	Mutex& mutex()const;
-	
-	//! Get the id of the parent service
-	IndexT serviceId()const;
-	
-	//! Get the index of the object within service from an objectid
-	IndexT index()const;
 	
 	/**
 	 * Returns true if the signal should raise the object ASAP
 	 * \param _smask The signal bitmask
 	 */
-	bool signal(ulong _smask);
+	bool notify(ulong _smask);
 	
 	//! Signal the object with a signal
-	virtual bool signal(DynamicPointer<Signal> &_rsig);
+	virtual bool notify(DynamicPointer<Message> &_rmsgptr);
+	
 protected:
 	friend class Service;
 	friend class Manager;
-	friend class ObjectPointerBase;
 	friend class SelectorBase;
 	
 	//! Constructor
 	Object(IndexT _fullid = 0UL);
 	
-	//! Sets the current state.
-	/*! If your object will implement a state machine (and in an asynchronous
-	environments it most certanly will) use this base state setting it to
-	somethin negative on destruction
-	*/
-	void state(int _st);
 	
 	//! Grab the signal mask eventually leaving some bits set- CALL this inside lock!!
 	ulong grabSignalMask(ulong _leave = 0);
@@ -151,6 +89,13 @@ protected:
 	//! Virtual destructor
 	virtual ~Object();//only objptr base can destroy an object
 	
+private:
+	static void doSetCurrentTime(const TimeSpec *_pcrtts);
+	
+	//! Set the id
+	void id(IndexT _fullid);
+	//! Gets the id of the thread the object resides in
+	uint32 threadId()const;
 	//! Assigns the object to the current thread
 	/*!
 		This is usualy called by the pool's Selector.
@@ -165,49 +110,28 @@ protected:
 	virtual int execute(ulong _evs, TimeSpec &_rtout);
 	
 	//! Set the thread id
-	void setThread(uint32 _thrid, uint32 _thrpos);
-	
-	//! This is called by the service after the object was registered
-	/*!
-	 * Some objects may keep the mutex for faster access
-	 */
-	virtual void init(Mutex *_pm);
+	void threadId(uint32 _thrid);
 private:
-	//void typeId(const uint16 _tid);
-	//const uint typeId()const;
-	static void doSetCurrentTime(const TimeSpec *_pcrtts);
-	
-	//! Set the id
-	void id(IndexT _fullid);
-	//! Gets the id of the thread the object resides in
-	void getThread(uint32 &_rthid, uint32 &_rthpos)const;
-	//! Set the id given the service id and index
-	void id(IndexT _srvid, IndexT _ind);
-private:
-	IndexT			fullid;
-	volatile ulong	smask;
-	volatile uint32	thrid;//the current thread which (may) execute(s) the object
-	volatile uint32	thrpos;//
-	int				usecnt;//
-	int32			crtstate;// < 0 -> must die
+	IndexT					fullid;
+#ifdef HAS_STDATOMIC
+	std::atomic<ulong>		smask;
+	std::atomic<uint32>		thrid;
+#else
+	boost::atomic<ulong>	smask;
+	boost::atomic<uint32>	thrid;
+#endif
 };
-
-inline bool Object::signaled() const {
-	return smask != 0;
-}
-	
-inline int Object::state()	const {
-	return crtstate;
-}
 
 inline IndexT Object::id()	const {
 	return fullid;
 }
 
-}//namespace
-
 #ifndef NINLINES
-#include "foundation/object.ipp"
+#include "frame/object.ipp"
 #endif
+
+}//namespace frame
+}//namespace solid
+
 
 #endif

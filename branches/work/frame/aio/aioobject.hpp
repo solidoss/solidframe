@@ -19,13 +19,14 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef FOUNDATION_AIO_OBJECT_HPP
-#define FOUNDATION_AIO_OBJECT_HPP
+#ifndef SOLID_FRAME_AIO_OBJECT_HPP
+#define SOLID_FRAME_AIO_OBJECT_HPP
 
 #include "system/timespec.hpp"
-#include "foundation/object.hpp"
+#include "frame/object.hpp"
 
-namespace foundation{
+namespace solid{
+namespace frame{
 namespace aio{
 
 class Socket;
@@ -44,8 +45,6 @@ class Selector;
 class Object: public Dynamic<Object, foundation::Object>{
 public:
 	virtual ~Object();
-	//!Called by selector on certain events
-	virtual int execute(ulong _evs, TimeSpec &_rtout) = 0;
 protected:
 	//! Returns true if there are pending io requests
 	/*!
@@ -139,7 +138,8 @@ private:
 	
 	void doPopTimeoutRecv(uint32 _pos);
 	void doPopTimeoutSend(uint32 _pos);
-
+	//!Called by selector on certain events
+	virtual int execute(ulong _evs, TimeSpec &_rtout) = 0;
 protected:
 	void doPushTimeoutRecv(uint32 _pos, const TimeSpec &_crttime, ulong _addsec, ulong _addnsec);
 	void doPushTimeoutSend(uint32 _pos, const TimeSpec &_crttime, ulong _addsec, ulong _addnsec);
@@ -164,6 +164,7 @@ protected:
 };
 
 }//namespace aio
-}//namespace foundation
+}//namespace frame
+}//namespace solid
 
 #endif

@@ -19,15 +19,15 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef FOUNDATION_AIO_SECURE_SOCKET_HPP
-#define FOUNDATION_AIO_SECURE_SOCKET_HPP
+#ifndef SOLID_FRAME_AIO_SECURE_SOCKET_HPP
+#define SOLID_FRAME_AIO_SECURE_SOCKET_HPP
 
 #include "system/common.hpp"
 
 class SocketDevice;
 
-namespace foundation{
-
+namespace solid{
+namespace frame{
 namespace aio{
 //! Interface for secure socket (ssl sockets) used by aio::Socket
 /*!
@@ -36,7 +36,7 @@ namespace aio{
 	using its favorite ssl library.
 	The default ssl library, used by SolidFrame is OpenSSL
 	(http://www.openssl.org/).
-	See foundation/aio/openssl/opensslsocket.hpp for an implementation
+	See frame/aio/openssl/opensslsocket.hpp for an implementation
 	of SecureSocket interface as a wrapper for OpenSSL.
 */
 class SecureSocket{
@@ -106,8 +106,8 @@ public:
 };
 
 }//namespace aio
-
-}//namespace foundation
+}//namespace frame
+}//namespace solid
 
 
 #endif

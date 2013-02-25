@@ -19,7 +19,7 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "foundation/manager.hpp"
+#include "frame/manager.hpp"
 #include "ipclistener.hpp"
 
 namespace foundation{
