@@ -25,14 +25,14 @@
 
 
 
-inline uint32 Object::threadId()const{
+inline IndexT Object::threadId()const{
 #ifdef HAS_STDATOMIC
 	return thrid.load(std::memory_order_relaxed);
 #else
 	return thrid.load(boost::atomic::memory_order_relaxed);
 #endif
 }
-inline void Object::threadId(uint32 _thrid){
+inline void Object::threadId(const IndexT &_thrid){
 #ifdef HAS_STDATOMIC
 	thrid.store(_thrid, std::memory_order_relaxed);
 #else
@@ -81,7 +81,7 @@ inline bool Object::notify(ulong _smask){
 }
 
 
-inline void Object::id(IndexT _fullid){
+inline void Object::id(const IndexT &_fullid){
 	fullid = _fullid;
 }
 

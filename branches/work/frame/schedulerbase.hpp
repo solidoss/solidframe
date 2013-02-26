@@ -39,8 +39,12 @@ public:
 	virtual ~SchedulerBase();
 protected:
 	
-	SchedulerBase(uint16 _startwkrcnt, uint16 _maxwkrcnt, const IndexT &_selcap);
-	SchedulerBase(Manager &_rm, uint16 _startwkrcnt, uint16 _maxwkrcnt, const IndexT &_selcap);
+	SchedulerBase(
+		Manager &_rm,
+		uint16 _startwkrcnt,
+		uint16 _maxwkrcnt,
+		const IndexT &_selcap
+	);
 	
 	void prepareThread(SelectorBase *_ps = NULL);
 	void unprepareThread(SelectorBase *_ps = NULL);

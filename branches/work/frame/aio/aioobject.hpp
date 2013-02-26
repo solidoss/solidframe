@@ -42,7 +42,7 @@ class Selector;
 	i.e. inheritants - see aio::SingleObject or aio::MultiObject.
 	
 */
-class Object: public Dynamic<Object, foundation::Object>{
+class Object: public Dynamic<Object, frame::Object>{
 public:
 	virtual ~Object();
 protected:

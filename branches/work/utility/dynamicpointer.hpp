@@ -228,6 +228,7 @@ public:
 	DynamicT* get() const		{return pdyn;}
 	//operator bool () const	{return psig;}
 	bool operator!()const		{return !pdyn;}
+	bool empty() const			{return !pdyn;}
 	void clear(){
 		if(pdyn){
 			DynamicPointerBase::clear(static_cast<DynamicBase*>(pdyn));

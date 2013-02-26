@@ -88,20 +88,7 @@ public://definition
 	~Scheduler(){
 		stop(true);
 	}
-	//! Constructor
-	/*!
-		\param _startthrcnt The number of threads to create at start
-		\param _maxthcnt The maximum count of threads that can be created
-		\param _selcap The capacity of a selector - the total number
-		of objects handled would be _maxthcnt * _selcap
-	*/
-	Scheduler(
-		uint16 _startthrcnt = 0,
-		uint16 _maxthrcnt = 1,
-		const IndexT &_selcap = 1024
-	):SchedulerBase(_startthrcnt, _maxthrcnt, _selcap),wp(*this){
-		//slotvec.reserve(_maxthcnt > 1024 ? 1024 : _maxthcnt);
-	}
+	
 	
 	//! Schedule a job 
 	/*!
@@ -113,8 +100,8 @@ public://definition
 	 * parameter represents the registration number for schedulers with
 	 * the same type.
 	 */
-	static void schedule(const JobT &_rjb, uint _idx = 0){
-		static_cast<ThisT*>(m().scheduler<ThisT>(_idx))->wp.push(_rjb);
+	void schedule(const JobT &_rjb){
+		wp.push(_rjb);
 	}
 	
 	

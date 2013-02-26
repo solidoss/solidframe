@@ -39,7 +39,7 @@ public:
 	typedef DynamicPointer<Object>		JobT;
 	typedef Object						ObjectT;
 	
-	BasicScheduler(uint16 _startthrcnt = 0,uint32 _maxthrcnt = 1);
+	BasicScheduler(Manager &_rm, uint16 _startthrcnt = 0,uint32 _maxthrcnt = 1);
 	~BasicScheduler();
 	
 	void start(uint16 _startwkrcnt = 0);

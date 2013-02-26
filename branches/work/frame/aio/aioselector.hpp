@@ -25,8 +25,7 @@
 #include "system/timespec.hpp"
 #include "frame/common.hpp"
 #include "frame/selectorbase.hpp"
-#include "frame/objectpointer.hpp"
-
+#include "utility/dynamicpointer.hpp"
 
 struct TimeSpec;
 
@@ -37,7 +36,7 @@ namespace aio{
 class Object;
 class Socket;
 
-typedef ObjectPointer<Object>	ObjectPtrT;
+typedef DynamicPointer<Object>	ObjectPointerT;
 
 //! An asynchronous IO selector to be used with the template SelectPool
 /*!
@@ -45,10 +44,10 @@ typedef ObjectPointer<Object>	ObjectPtrT;
 	A selector must export a certain interface requested by the SelectPool,
 	and the pool will have one for its every thread.
 */
-class Selector: public foundation::SelectorBase{
+class Selector: public frame::SelectorBase{
 public:
-	typedef ObjectPtrT		JobT;
-	typedef Object			ObjectT;
+	typedef ObjectPointerT		JobT;
+	typedef Object				ObjectT;
 	
 	Selector();
 	~Selector();

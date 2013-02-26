@@ -28,7 +28,7 @@
 
 class  SpecificMapper;
 class  GlobalMapper;
-
+class  SelectorBase;
 
 namespace solid{
 namespace frame{
@@ -85,6 +85,7 @@ protected:
 	size_t serviceCount()const;
 private:
 	friend class Service;
+	
 	struct VisitContext{
 		
 	};
@@ -104,6 +105,14 @@ private:
 		}
 		return signaled;
 	}
+	
+	friend class SelectorBase;
+	friend class SchedulerBase;
+	
+	IndexT computeThreadId(const IndexT &_selidx, const IndexT &_objidx);
+	void prepareThread(SelectorBase *_ps = NULL);
+	void unprepareThread(SelectorBase *_ps = NULL);
+	
 private:
 	struct Data;
 	Data	&d;

@@ -30,8 +30,8 @@
 #include <memory>
 #include <cstring>
 
-namespace foundation{
-
+namespace solid{
+namespace frame{
 namespace aio{
 
 //======================== aio::SocketPointer ===========================
@@ -791,4 +791,5 @@ int MultiObject::socketSecureConnect(const uint _pos){
 }
 
 }//namespace aio;
-}//namespace foundation
+}//namespace frame
+}//namespace solid

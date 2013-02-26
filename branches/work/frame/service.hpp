@@ -22,6 +22,7 @@
 #ifndef SOLID_FRAME_SERVICE_HPP
 #define SOLID_FRAME_SERVICE_HPP
 
+#include "frame/common.hpp"
 #include "system/mutex.hpp"
 #include "utility/dynamictype.hpp"
 #include <vector>
@@ -31,6 +32,7 @@ namespace frame{
 
 class	Manager;
 struct	Message;
+class	Object;
 
 typedef DynamicSharedPointer<Message>	MessageSharedPointerT;
 typedef DynamicPointer<Message>			MessagePointerT;

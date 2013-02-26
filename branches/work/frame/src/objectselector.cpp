@@ -32,19 +32,21 @@
 
 #include "system/debug.hpp"
 
+#include "frame/manager.hpp"
 #include "frame/object.hpp"
 #include "frame/objectselector.hpp"
 
-namespace foundation{
+namespace solid{
+namespace frame{
 
 enum {MAXTIMEPOS = 0xffffffff};
 
 struct ObjectSelector::Data{
 	enum {EXIT_LOOP = 1, FULL_SCAN = 2, READ_PIPE = 4};
 	struct ObjectStub{
-		ObjectPtrT	objptr;
-		TimeSpec	timepos;
-		int			state;
+		ObjectPointerT	objptr;
+		TimeSpec		timepos;
+		int				state;
 	};
 	typedef std::vector<ObjectStub>					ObjectStubVectorT;
 	typedef Stack<ulong>							ULongStackT;
@@ -163,42 +165,42 @@ void ObjectSelector::run(){
 			ulong evs = 0;
 			d.ntimepos.set(0xffffffff);
 			for(Data::ObjectStubVectorT::iterator it(d.sv.begin()); it != d.sv.end(); it += 4){
-				if(it->objptr){
+				if(!it->objptr.empty()){
 					Data::ObjectStub &ro = *it;
 					evs = 0;
 					if(d.ctimepos >= ro.timepos) evs |= TIMEOUT;
 					else if(d.ntimepos > ro.timepos) d.ntimepos = ro.timepos;
-					if(ro.objptr->signaled(S_RAISE)) evs |= SIGNALED;//should not be checked by objs
+					if(ro.objptr->notified(S_RAISE)) evs |= SIGNALED;//should not be checked by objs
 					if(evs){
 						state |= doExecute(it - d.sv.begin(), evs, d.ctimepos);
 					}
 				}
-				if((it + 1)->objptr){
+				if(!(it + 1)->objptr.empty()){
 					Data::ObjectStub &ro = *(it + 1);
 					evs = 0;
 					if(d.ctimepos >= ro.timepos) evs |= TIMEOUT;
 					else if(d.ntimepos > ro.timepos) d.ntimepos = ro.timepos;
-					if(ro.objptr->signaled(S_RAISE)) evs |= SIGNALED;//should not be checked by objs
+					if(ro.objptr->notified(S_RAISE)) evs |= SIGNALED;//should not be checked by objs
 					if(evs){
 						state |= doExecute(it - d.sv.begin() + 1, evs, d.ctimepos);
 					}
 				}
-				if((it + 2)->objptr){
+				if(!(it + 2)->objptr.empty()){
 					Data::ObjectStub &ro = *(it + 2);
 					evs = 0;
 					if(d.ctimepos >= ro.timepos) evs |= TIMEOUT;
 					else if(d.ntimepos > ro.timepos) d.ntimepos = ro.timepos;
-					if(ro.objptr->signaled(S_RAISE)) evs |= SIGNALED;//should not be checked by objs
+					if(ro.objptr->notified(S_RAISE)) evs |= SIGNALED;//should not be checked by objs
 					if(evs){
 						state |= doExecute(it - d.sv.begin() + 2, evs, d.ctimepos);
 					}
 				}
-				if((it + 3)->objptr){
+				if(!(it + 3)->objptr.empty()){
 					Data::ObjectStub &ro = *(it + 3);
 					evs = 0;
 					if(d.ctimepos >= ro.timepos) evs |= TIMEOUT;
 					else if(d.ntimepos > ro.timepos) d.ntimepos = ro.timepos;
-					if(ro.objptr->signaled(S_RAISE)) evs |= SIGNALED;//should not be checked by objs
+					if(ro.objptr->notified(S_RAISE)) evs |= SIGNALED;//should not be checked by objs
 					if(evs){
 						state |= doExecute(it - d.sv.begin() + 3, evs, d.ctimepos);
 					}
@@ -223,7 +225,7 @@ void ObjectSelector::run(){
 	}while(state != Data::EXIT_LOOP);
 }
 
-void ObjectSelector::push(const ObjectPtrT &_robj){
+void ObjectSelector::push(const ObjectPointerT &_robj){
 	cassert(d.fstk.size());
 	uint pos = d.fstk.top(); d.fstk.pop();
 	this->setObjectThread(*_robj, pos);
@@ -274,7 +276,7 @@ int ObjectSelector::doWait(int _wt){
 			ulong id = d.uiq.front(); d.uiq.pop();
 			if(id){
 				Data::ObjectStub *pobj;
-				if(id < d.sv.size() && (pobj = &d.sv[id])->objptr && !pobj->state && pobj->objptr->signaled(S_RAISE)){
+				if(id < d.sv.size() && !(pobj = &d.sv[id])->objptr.empty() && !pobj->state && pobj->objptr->notified(S_RAISE)){
 					vdbgx(Dbg::fdt, "signaling object id = "<<id);
 					d.objq.push(id);
 					pobj->state = 1;
@@ -326,6 +328,14 @@ int ObjectSelector::doExecute(unsigned _i, ulong _evs, TimeSpec _crttout){
 	return rv;
 }
 
-}//namespace foundation
+//=====================================================================
+void SelectorBase::setObjectThread(Object &_robj, const IndexT &_objidx){
+	//we are sure that the method is called from within a Manager thread
+	_robj.threadId(Manager::specific().computeThreadId(selid, _objidx));
+}
+
+
+}//namespace frame
+}//namespace solid
 
 

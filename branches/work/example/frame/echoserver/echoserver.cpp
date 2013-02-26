@@ -61,12 +61,12 @@ static void term_handler(int signum){
 
 class Listener: public Dynamic<Listener, frame::aio::SingleObject>{
 public:
-	typedef foundation::Service		ServiceT;
-	Listener(frame::Manager &_rm, AioSchedulerT &_rsched, const SocketDevice &_rsd, foundation::aio::openssl::Context *_pctx = NULL);
+	Listener(frame::Manager &_rm, AioSchedulerT &_rsched, const SocketDevice &_rsd, frame::aio::openssl::Context *_pctx = NULL);
 	~Listener();
 	virtual int execute(ulong, TimeSpec&);
 private:
-	typedef std::auto_ptr<foundation::aio::openssl::Context> SslContextPtrT;
+	typedef std::auto_ptr<frame::aio::openssl::Context> SslContextPtrT;
+	int					state;
 	SocketDevice		sd;
 	SslContextPtrT		pctx;
 	frame::Manager		&rm;
@@ -75,10 +75,8 @@ private:
 
 //------------------------------------------------------------------
 //------------------------------------------------------------------
-class Connection: public Dynamic<Connection, foundation::aio::SingleObject>{
+class Connection: public Dynamic<Connection, frame::aio::SingleObject>{
 public:
-	typedef foundation::Service	ServiceT;
-	
 	Connection(const char *_node, const char *_srv);
 	Connection(const SocketDevice &_rsd);
 	~Connection();
@@ -87,6 +85,7 @@ public:
 private:
 	enum {BUFSZ = 1024};
 	enum {INIT,READ, READ_TOUT, WRITE, WRITE_TOUT, CONNECT, CONNECT_TOUT};
+	int							state;
 	char						bbeg[BUFSZ];
 	const char					*bend;
 	char						*brpos;
@@ -99,7 +98,7 @@ private:
 //------------------------------------------------------------------
 //------------------------------------------------------------------
 
-class Talker: public Dynamic<Talker, foundation::aio::SingleObject>{
+class Talker: public Dynamic<Talker, frame::aio::SingleObject>{
 public:
 	Talker(const SocketDevice &_rsd);
 	~Talker();
@@ -107,6 +106,7 @@ public:
 private:
 	enum {BUFSZ = 1024};
 	enum {INIT,READ, READ_TOUT, WRITE, WRITE_TOUT, WRITE2, WRITE_TOUT2};
+	int				state;
 	char			bbeg[BUFSZ];
 	uint			sz;
 	ResolveData		rd;
@@ -117,7 +117,7 @@ private:
 
 bool parseArguments(Params &_par, int argc, char *argv[]);
 void insertListener(frame::Manager &_rm, AioSchedulerT &_rsched, const char *_addr, int _port, bool _secure);
-void insertTalker(frame::Manager &_rm, AioSchedulerT &_rsched, const char *_addr, int _port, bool _secure);
+void insertTalker(frame::Manager &_rm, AioSchedulerT &_rsched, const char *_addr, int _port);
 //------------------------------------------------------------------
 //------------------------------------------------------------------
 
@@ -163,8 +163,8 @@ int main(int argc, char *argv[]){
 #endif
 	
 	{
-		solid::Manager			m;
-		solid::aio::SchedulerT	aiosched(m);
+		frame::Manager	m;
+		AioSchedulerT	aiosched(m);
 		
 		insertListener(m, aiosched, "0.0.0.0", p.start_port + 111, false);
 		insertTalker(m, aiosched, "0.0.0.0", p.start_port + 112);
@@ -182,7 +182,7 @@ int main(int argc, char *argv[]){
 				cnd.wait(lock);
 			}
 		}
-		m.stop(false);
+		m.stop();
 		
 	}
 	/*solid::*/Thread::waitAll();
@@ -201,14 +201,14 @@ void insertListener(frame::Manager &_rm, AioSchedulerT &_rsched, const char *_ad
 	sd.makeNonBlocking();
 	sd.prepareAccept(rd.begin(), 100);
 	if(!sd.ok()){
-		cout<<"error creating listener for "<<_name<<endl;
+		cout<<"error creating listener"<<endl;
 		return;
 	}
 	
-	foundation::aio::openssl::Context *pctx(NULL);
+	frame::aio::openssl::Context *pctx(NULL);
 	
 	if(_secure){
-		pctx = foundation::aio::openssl::Context::create();
+		pctx = frame::aio::openssl::Context::create();
 	}
 	if(pctx){
 		const char *pcertpath(OSSL_SOURCE_PATH"ssl_/certs/A-server.pem");
@@ -220,11 +220,11 @@ void insertListener(frame::Manager &_rm, AioSchedulerT &_rsched, const char *_ad
 	DynamicPointer<Listener> lsnptr(new Listener(_rm, _rsched, sd, pctx));
 	
 	_rm.registerObject(*lsnptr);
-	_rsched.push(lsnptr);
+	_rsched.schedule(lsnptr);
 	
-	cout<<"inserted listener on port "<<_port<<" for "<<_name<<endl;
+	cout<<"inserted listener on port "<<_port<<endl;
 }
-void insertTalker(frame::Manager &_rm, AioSchedulerT &_rsched, const char *_addr, int _port, bool _secure){
+void insertTalker(frame::Manager &_rm, AioSchedulerT &_rsched, const char *_addr, int _port){
 	ResolveData		rd =  synchronous_resolve(_addr, _port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
 	SocketDevice	sd;
 	
@@ -232,16 +232,16 @@ void insertTalker(frame::Manager &_rm, AioSchedulerT &_rsched, const char *_addr
 	sd.bind(rd.begin());
 	
 	if(!sd.ok()){
-		cout<<"error creating talker for "<<_name<<endl;
+		cout<<"error creating talker"<<endl;
 		return;
 	}
 	
 	DynamicPointer<Talker> tkrptr(new Talker(sd));
 	
 	_rm.registerObject(*tkrptr);
-	_rsched.push(tkrptr);
+	_rsched.schedule(tkrptr);
 	
-	cout<<"inserted talker on port "<<_port<<" for "<<_name<<endl;
+	cout<<"inserted talker on port "<<_port<<endl;
 }
 //------------------------------------------------------------------
 //------------------------------------------------------------------
@@ -288,9 +288,9 @@ Listener::Listener(
 	frame::Manager &_rm,
 	AioSchedulerT &_rsched,
 	const SocketDevice &_rsd,
-	foundation::aio::openssl::Context *_pctx
+	frame::aio::openssl::Context *_pctx
 ):BaseT(_rsd), pctx(_pctx), rm(_rm), rsched(_rsched){
-	state(0);
+	state = 0;
 }
 
 Listener::~Listener(){
@@ -299,35 +299,35 @@ Listener::~Listener(){
 int Listener::execute(ulong, TimeSpec&){
 	idbg("here");
 	cassert(this->socketOk());
-	if(signaled()){
+	if(notified()){
 		{
-		Locker<Mutex>	lock(this->mutex());
+		//Locker<Mutex>	lock(this->mutex());
 		ulong sm = this->grabSignalMask();
-		if(sm & foundation::S_KILL) return BAD;
+		if(sm & frame::S_KILL) return BAD;
 		}
 	}
 	uint cnt(10);
 	while(cnt--){
-		if(state() == 0){
+		if(state == 0){
 			switch(this->socketAccept(sd)){
 				case BAD: return BAD;
 				case OK:break;
 				case NOK:
-					state(1);
+					state = 1;
 					return NOK;
 			}
 		}
-		state(0);
+		state = 0;
 		cassert(sd.ok());
 		//TODO: one may do some filtering on sd based on sd.remoteAddress()
 		if(pctx.get()){
 			DynamicPointer<Connection> conptr(new Connection(sd));
 			rm.registerObject(*conptr);
-			rsched.push(conptr);
+			rsched.schedule(conptr);
 		}else{
-			fdt::ObjectPointer<Connection> conptr(new Connection(sd));
+			DynamicPointer<Connection> conptr(new Connection(sd));
 			rm.registerObject(*conptr);
-			rsched.push(conptr);
+			rsched.schedule(conptr);
 		}
 	}
 	return OK;
@@ -343,96 +343,96 @@ Connection::Connection(const char *_node, const char *_srv):
 	cassert(_node && _srv);
 	rd = synchronous_resolve(_node, _srv);
 	it = rd.begin();
-	state(CONNECT);
+	state = CONNECT;
 	
 }
 Connection::Connection(const SocketDevice &_rsd):
 	BaseT(_rsd), bend(bbeg + BUFSZ), brpos(bbeg), bwpos(bbeg), b(false)
 {
-	state(INIT);
+	state = INIT;
 }
 Connection::~Connection(){
-	state(-1);
+	//state(-1);
 	idbg("");
 }
 
 int Connection::execute(ulong _sig, TimeSpec &_tout){
 	idbg("time.sec "<<_tout.seconds()<<" time.nsec = "<<_tout.nanoSeconds());
-	if(_sig & (fdt::TIMEOUT | fdt::ERRDONE | fdt::TIMEOUT_RECV | fdt::TIMEOUT_SEND)){
+	if(_sig & (frame::TIMEOUT | frame::ERRDONE | frame::TIMEOUT_RECV | frame::TIMEOUT_SEND)){
 		idbg("connecton timeout or error");
-		if(state() == CONNECT_TOUT){
+		if(state == CONNECT_TOUT){
 			if(++it){
-				state(CONNECT);
-				return fdt::UNREGISTER;
+				state = CONNECT;
+				return frame::UNREGISTER;
 			}
 		}
 		return BAD;
 	}
 
-	if(signaled()){
+	if(notified()){
 		{
-		Locker<Mutex>	lock(mutex());
+		//Locker<Mutex>	lock(mutex());
 		ulong sm = grabSignalMask();
-		if(sm & fdt::S_KILL) return BAD;
+		if(sm & frame::S_KILL) return BAD;
 		}
 	}
 	const uint32 sevs(socketEventsGrab());
 	if(sevs){
-		if(sevs == fdt::ERRDONE){
+		if(sevs == frame::ERRDONE){
 			
 			return BAD;
 		}
-		if(state() == READ_TOUT){	
-			cassert(sevs & fdt::INDONE);
-		}else if(state() == WRITE_TOUT){	
-			cassert(sevs & fdt::OUTDONE);
+		if(state == READ_TOUT){	
+			cassert(sevs & frame::INDONE);
+		}else if(state == WRITE_TOUT){	
+			cassert(sevs & frame::OUTDONE);
 		}
 		
 	}
 	int rc = 512 * 1024;
 	do{
-		switch(state()){
+		switch(state){
 			case READ:
 				switch(socketRecv(bbeg, BUFSZ)){
 					case BAD: return BAD;
 					case OK: break;
 					case NOK: 
-						state(READ_TOUT); b=true; 
+						state = READ_TOUT; b=true; 
 						socketTimeoutRecv(30);
 						return NOK;
 				}
 			case READ_TOUT:
-				state(WRITE);
+				state = WRITE;
 			case WRITE:
 				switch(socketSend(bbeg, socketRecvSize())){
 					case BAD: return BAD;
 					case OK: break;
 					case NOK: 
-						state(WRITE_TOUT);
+						state = WRITE_TOUT;
 						socketTimeoutSend(10);
 						return NOK;
 				}
 			case WRITE_TOUT:
-				state(READ);
+				state = READ;
 				break;
 			case CONNECT:
 				switch(socketConnect(it)){
 					case BAD:
 						++it;
 						if(it != rd.end()){
-							state(CONNECT);
+							state = CONNECT;
 							return OK;
 						}
 						return BAD;
-					case OK:  state(INIT);break;
-					case NOK: state(CONNECT_TOUT); return fdt::REGISTER;
+					case OK:  state = INIT;break;
+					case NOK: state = CONNECT_TOUT; return frame::REGISTER;
 				};
 				break;
 			case CONNECT_TOUT:
 				rd.clear();
 			case INIT:
 				//socketSend(hellostr, strlen(hellostr));
-				state(READ);
+				state = READ;
 				break;
 		}
 		rc -= socketRecvSize();
@@ -453,45 +453,45 @@ Talker::Talker(const char *_node, const char *_srv){
 }*/
 
 Talker::Talker(const SocketDevice &_rsd):BaseT(_rsd){
-	state(READ);
+	state = READ;
 }
 
 Talker::~Talker(){
 }
 
 int Talker::execute(ulong _sig, TimeSpec &_tout){
-	if(_sig & (fdt::TIMEOUT | fdt::ERRDONE | fdt::TIMEOUT_SEND | fdt::TIMEOUT_RECV)){
+	if(_sig & (frame::TIMEOUT | frame::ERRDONE | frame::TIMEOUT_SEND | frame::TIMEOUT_RECV)){
 		return BAD;
 	}
-	if(signaled()){
+	if(notified()){
 		{
-		Locker<Mutex>	lock(mutex());
+		//Locker<Mutex>	lock(mutex());
 		ulong sm = grabSignalMask(0);
-		if(sm & fdt::S_KILL) return BAD;
+		if(sm & frame::S_KILL) return BAD;
 		}
 	}
 	const uint32 sevs(socketEventsGrab());
-	if(sevs & fdt::ERRDONE) return BAD;
+	if(sevs & frame::ERRDONE) return BAD;
 	int rc = 512 * 1024;
 	do{
-		switch(state()){
+		switch(state){
 			case READ:
 				switch(socketRecvFrom(bbeg, BUFSZ)){
 					case BAD: return BAD;
-					case OK: state(READ_TOUT);break;
+					case OK: state = READ_TOUT;break;
 					case NOK:
 						socketTimeoutRecv(5 * 60);
-						state(READ_TOUT); 
+						state = READ_TOUT; 
 						return NOK;
 				}
 			case READ_TOUT:
-				state(WRITE);
+				state = WRITE;
 			case WRITE:
 				//sprintf(bbeg + socketRecvSize() - 1," [%u:%d]\r\n", (unsigned)_tout.seconds(), (int)_tout.nanoSeconds());
 				switch(socketSendTo(bbeg, socketRecvSize(), socketRecvAddr())){
 					case BAD: return BAD;
 					case OK: break;
-					case NOK: state(WRITE_TOUT);
+					case NOK: state = WRITE_TOUT;
 						socketTimeoutSend(5 * 60);
 						return NOK;
 				}
@@ -500,7 +500,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 					socketTimeoutSend(_tout, 5 * 60);
 					return NOK;
 				}else{
-					state(READ);
+					state = READ;
 					return OK;
 				}
 			case INIT:
@@ -511,9 +511,9 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 				ResolveIterator it(rd.begin());
 				switch(socketSendTo(bbeg, sz, SocketAddressStub(it))){
 					case BAD: return BAD;
-					case OK: state(READ); break;
+					case OK: state = READ; break;
 					case NOK:
-						state(WRITE_TOUT);
+						state = WRITE_TOUT;
 						return NOK;
 				}
 				break;

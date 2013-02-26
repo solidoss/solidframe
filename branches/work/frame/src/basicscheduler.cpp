@@ -29,7 +29,8 @@
 
 #include "system/timespec.hpp"
 
-namespace foundation{
+namespace solid{
+namespace frame{
 
 //--------------------------------------------------------------------
 
@@ -89,14 +90,15 @@ void BasicScheduler::Data::execute(WorkerBase &_rw, BasicScheduler::JobT &_rjob)
 
 //--------------------------------------------------------------------
 
-/*static*/ void BasicScheduler::schedule(const JobT &_rjb, uint _idx){
-	static_cast<BasicScheduler*>(m().scheduler<BasicScheduler>(_idx))->d.wp.push(_rjb);
-}
+// void BasicScheduler::schedule(const JobT &_rjb){
+// 	d.wp.push(_rjb);
+// }
 	
 BasicScheduler::BasicScheduler(
+	Manager &_rm,
 	uint16 _startthrcnt,
 	uint32 _maxthrcnt
-):SchedulerBase(_startthrcnt, _maxthrcnt, 0), d(*(new Data(*this))){
+):SchedulerBase(_rm, _startthrcnt, _maxthrcnt, 0), d(*(new Data(*this))){
 	
 }
 BasicScheduler::~BasicScheduler(){
@@ -156,5 +158,6 @@ void BasicScheduler::stop(bool _wait){
 // 	return _cnt;
 // }
 
-}//namespace
+}//namespace frame
+}//namespace solid
 

@@ -46,17 +46,16 @@
 #include "utility/queue.hpp"
 #include "utility/stack.hpp"
 
-#include "foundation/object.hpp"
-#include "foundation/common.hpp"
+#include "frame/object.hpp"
+#include "frame/common.hpp"
 
-#include "foundation/aio/aioselector.hpp"
-#include "foundation/aio/aioobject.hpp"
+#include "frame/aio/aioselector.hpp"
+#include "frame/aio/aioobject.hpp"
 
 #include "aiosocket.hpp"
 
-
+namespace solid{
 namespace foundation{
-
 namespace aio{
 //=============================================================
 // TODO:
@@ -81,7 +80,7 @@ struct Selector::Stub{
 		state = OutExecQueue;
 		events = 0;
 	}
-	ObjectPtrT		objptr;
+	ObjectPointerT	objptr;
 	TimeSpec		timepos;//object timepos
 	TimeSpec		itimepos;//input timepos
 	TimeSpec		otimepos;//output timepos
@@ -928,6 +927,6 @@ ulong Selector::doAddNewStub(){
 
 //-------------------------------------------------------------
 }//namespace aio
-
-}//namespace foundation
+}//namespace frame
+}//namespace solid
 

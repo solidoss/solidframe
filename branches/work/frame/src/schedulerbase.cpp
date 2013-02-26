@@ -24,8 +24,8 @@
 #include "frame/manager.hpp"
 #include "utility/list.hpp"
 
-
-namespace foundation{
+namespace solid{
+namespace frame{
 
 struct SchedulerBase::Data{
 	Data():crtidx(0){}
@@ -41,13 +41,7 @@ struct SchedulerBase::Data{
 	uint16					crtidx;
 };
 
-SchedulerBase::SchedulerBase(
-	uint16 _startwkrcnt,
-	uint16 _maxwkrcnt,
-	const IndexT &_selcap
-):rm(m()), d(*(new Data)), startwkrcnt(_startwkrcnt), maxwkrcnt(_maxwkrcnt), crtwkrcnt(0), selcap(_selcap){
-	if(maxwkrcnt == 0) maxwkrcnt = 1;
-}
+
 SchedulerBase::SchedulerBase(
 	Manager &_rm,
 	uint16 _startwkrcnt,
@@ -111,4 +105,5 @@ void SchedulerBase::doStop(){
 	}
 }
 
-}//namespace foundation
+}//namespace frame
+}//namespace solid

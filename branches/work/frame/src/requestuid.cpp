@@ -1,7 +1,8 @@
 #include "frame/requestuid.hpp"
 #include "system/thread.hpp"
 
-namespace foundation{
+namespace solid{
+namespace frame{
 
 struct SpecificRequestUid::ForcedCreate{
 };
@@ -52,6 +53,7 @@ RequestUid& SpecificRequestUid::operator*()const{
 	return *get();
 }
 
+}//namespace frame
+}//namespace solid
 
-}
 

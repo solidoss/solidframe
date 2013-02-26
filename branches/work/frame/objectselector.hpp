@@ -30,7 +30,7 @@
 namespace solid{
 namespace frame{
 
-typedef DynamicPointer<Object> ObjectPtrT;
+typedef DynamicPointer<Object> ObjectPointerT;
 
 //! An object selector to be used with the template SelectPool
 /*!
@@ -41,7 +41,7 @@ typedef DynamicPointer<Object> ObjectPtrT;
 class ObjectSelector: public SelectorBase{
 public:
 	
-	typedef ObjectPtrT		JobT;
+	typedef ObjectPointerT	JobT;
 	typedef Object			ObjectT;
 	
 	ObjectSelector();
@@ -59,7 +59,7 @@ public:
 	void prepare();
 	void unprepare(){}
 	
-	void push(const ObjectPtrT &_rjob);
+	void push(const ObjectPointerT &_rjob);
 private:
 	int doWait(int _wt);
 	int doExecute(unsigned _i, ulong _evs, TimeSpec _crttout);

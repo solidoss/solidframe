@@ -93,9 +93,9 @@ private:
 	static void doSetCurrentTime(const TimeSpec *_pcrtts);
 	
 	//! Set the id
-	void id(IndexT _fullid);
+	void id(const IndexT &_fullid);
 	//! Gets the id of the thread the object resides in
-	uint32 threadId()const;
+	IndexT threadId()const;
 	//! Assigns the object to the current thread
 	/*!
 		This is usualy called by the pool's Selector.
@@ -110,15 +110,15 @@ private:
 	virtual int execute(ulong _evs, TimeSpec &_rtout);
 	
 	//! Set the thread id
-	void threadId(uint32 _thrid);
+	void threadId(const IndexT &_thrid);
 private:
 	IndexT					fullid;
 #ifdef HAS_STDATOMIC
 	std::atomic<ulong>		smask;
-	std::atomic<uint32>		thrid;
+	std::atomic<IndexT>		thrid;
 #else
 	boost::atomic<ulong>	smask;
-	boost::atomic<uint32>	thrid;
+	boost::atomic<IndexT>	thrid;
 #endif
 };
 

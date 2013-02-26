@@ -77,9 +77,13 @@ Manager::Manager(
 }
 
 /*virtual*/ Manager::~Manager(){
+	stop();
 	delete &d;
 }
 
+void Manager::stop(){
+	
+}
 //void start();
 //void stop(bool _wait = true);
 
@@ -108,6 +112,21 @@ bool Manager::notify(ulong _sm, const ObjectUidT &_ruid){
 // 	}
 }
 
+/*virtual*/ SpecificMapper*  Manager::specificMapper(){
+	return NULL;
+}
+	
+/*virtual*/ GlobalMapper* Manager::globalMapper(){
+	return NULL;
+}
+
+/*virtual*/ void Manager::doPrepareThread(){
+	
+}
+/*virtual*/ void Manager::doUnprepareThread(){
+	
+}
+
 bool Manager::notify(MessagePointerT &_rmsgptr, const ObjectUidT &_ruid){
 	
 }
@@ -131,6 +150,16 @@ ObjectUidT Manager::registerServiceObject(const Service &_rsvc, Object &_robj){
 	
 }
 Object* Manager::nextServiceObject(const Service &_rsvc, VisitContext &_rctx){
+	
+}
+
+IndexT Manager::computeThreadId(const IndexT &_selidx, const IndexT &_objidx){
+	return 0;
+}
+void Manager::prepareThread(SelectorBase *_ps){
+	
+}
+void Manager::unprepareThread(SelectorBase *_ps){
 	
 }
 
