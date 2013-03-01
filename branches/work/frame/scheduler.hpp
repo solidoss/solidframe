@@ -137,10 +137,13 @@ private:
 			return false;
 		}return true;
 	}
-	void prepareWorker(Worker &_rw){
-		prepareThread(&_rw.s);
+	bool prepareWorker(Worker &_rw){
+		if(!prepareThread(&_rw.s)){
+			return false;
+		}
 		_rw.s.prepare();
 		_rw.s.init(selcap);
+		return true;
 	}
 	void unprepareWorker(Worker &_rw){
 		unprepareThread(&_rw.s);

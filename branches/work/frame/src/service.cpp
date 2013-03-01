@@ -42,6 +42,76 @@
 namespace solid{
 namespace frame{
 
+Service::Service(
+	Manager &_rm
+):rm(_rm), idx(-1){}
+
+Service::~Service(){
+	if(isRegistered()){
+		stop(true);
+		rm.unregisterService(*this);
+	}
+}
+
+ObjectUidT Service::registerObject(Object &_robj){
+	if(isRegistered()){
+		
+	}else{
+		return ObjectUidT();
+	}
+}
+
+struct SignalNotifier{
+	SignalNotifier(Manager &_rm, ulong _sm):rm(_rm), sm(_sm){}
+	Manager	&rm;
+	ulong	sm;
+	
+	void operator()(Object &_robj){
+		if(_robj.notify(sm)){
+			rm.raise(_robj);
+		}
+	}
+};
+
+bool Service::notifyAll(ulong _sm){
+	if(isRegistered()){
+		return rm.forEachServiceObject(*this, SignalNotifier(rm, _sm));
+	}else{
+		return false;
+	}
+}
+struct MessageNotifier{
+	MessageNotifier(Manager &_rm, MessageSharedPointerT &_rmsgptr):rm(_rm), rmsgptr(_rmsgptr){}
+	Manager					&rm;
+	MessageSharedPointerT	&rmsgptr;
+	
+	void operator()(Object &_robj){
+		MessagePointerT msgptr(rmsgptr);
+		if(_robj.notify(msgptr)){
+			rm.raise(_robj);
+		}
+	}
+};
+bool Service::notifyAll(MessageSharedPointerT &_rmsgptr){
+	if(isRegistered()){
+		return rm.forEachServiceObject(*this, MessageNotifier(rm, _rmsgptr));
+	}else{
+		return false;
+	}
+}
+
+void Service::reset(){
+	if(isRegistered()){
+		rm.resetService(*this);
+	}
+}
+
+void Service::stop(bool _wait){
+	if(isRegistered()){
+		rm.stopService(*this, _wait);
+	}
+}
+
 }//namespace frame
 }//namespace solid
 

@@ -46,7 +46,7 @@ protected:
 		const IndexT &_selcap
 	);
 	
-	void prepareThread(SelectorBase *_ps = NULL);
+	bool prepareThread(SelectorBase *_ps = NULL);
 	void unprepareThread(SelectorBase *_ps = NULL);
 	
 	bool tryRaiseOneSelector()const;

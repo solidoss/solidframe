@@ -53,10 +53,14 @@ SchedulerBase::SchedulerBase(
 /*virtual*/ SchedulerBase::~SchedulerBase(){
 	delete &d;
 }
-void SchedulerBase::prepareThread(SelectorBase *_ps){
-	rm.prepareThread(_ps);
-	if(_ps){
-		safe_at(d.selvec, _ps->id()) = Data::SelectorPairT(_ps, d.idxlst.insert(d.idxlst.end(), _ps->id()));
+bool SchedulerBase::prepareThread(SelectorBase *_ps){
+	if(rm.prepareThread(_ps)){
+		if(_ps){
+			safe_at(d.selvec, _ps->id()) = Data::SelectorPairT(_ps, d.idxlst.insert(d.idxlst.end(), _ps->id()));
+		}
+		return true;
+	}else{
+		return false;
 	}
 }
 void SchedulerBase::unprepareThread(SelectorBase *_ps){

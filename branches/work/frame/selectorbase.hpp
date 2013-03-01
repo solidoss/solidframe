@@ -45,6 +45,7 @@ protected:
 	void setCurrentTimeSpecific(const TimeSpec &_rtout);
 	void id(uint32 _id);
 private:
+	friend class Manager;
 	uint32	selid;//given by manager
 };
 

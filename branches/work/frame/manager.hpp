@@ -51,14 +51,24 @@ public:
 	
 	Manager(
 		const size_t _svcprovisioncp = 1024,
-		int _objpermutbts = 6, int _mutrowsbts = 8, int _mutcolsbts = 8
+		const size_t _selprovisioncp = 1024,
+		int _objpermutbts = 6,
+		int _mutrowsbts = 8,
+		int _mutcolsbts = 8
 	);
 	
 	virtual ~Manager();
 
 	void stop();
 	
-	bool		registerService(Service &_rsvc);
+	bool registerService(
+		Service &_rsvc,
+		int _objpermutbts = 0,
+		int _mutrowsbts = 8,
+		int _mutcolsbts = 8
+	);
+	void unregisterService(Service &_rsvc);
+	
 	ObjectUidT	registerObject(Object &_robj);
 	
 	void unregisterObject(Object &_robj);
@@ -66,6 +76,11 @@ public:
 	bool notify(ulong _sm, const ObjectUidT &_ruid);
 
 	bool notify(MessagePointerT &_rmsgptr, const ObjectUidT &_ruid);
+	
+	bool notifyAll(ulong _sm);
+	
+	bool notifyAll(MessageSharedPointerT &_rmsgptr);
+	
 	
 	void raise(const Object &_robj);
 	
@@ -80,8 +95,6 @@ public:
 	virtual GlobalMapper* globalMapper();
 	
 protected:
-	virtual void doPrepareThread();
-	virtual void doUnprepareThread();
 	size_t serviceCount()const;
 private:
 	friend class Service;
@@ -110,9 +123,14 @@ private:
 	friend class SchedulerBase;
 	
 	IndexT computeThreadId(const IndexT &_selidx, const IndexT &_objidx);
-	void prepareThread(SelectorBase *_ps = NULL);
+	bool prepareThread(SelectorBase *_ps = NULL);
 	void unprepareThread(SelectorBase *_ps = NULL);
 	
+	void resetService(Service &_rsvc);
+	void stopService(Service &_rsvc, bool _wait);
+	
+	virtual bool doPrepareThread();
+	virtual void doUnprepareThread();
 private:
 	struct Data;
 	Data	&d;

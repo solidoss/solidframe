@@ -41,8 +41,8 @@ struct BasicScheduler::Data: WorkPoolControllerBase, SelectorBase{
 	
 	Data(BasicScheduler &_res):res(_res), wp(*this){}
 	
-	void prepareWorker(WorkerBase &_rw){
-		res.prepareThread();
+	bool prepareWorker(WorkerBase &_rw){
+		return res.prepareThread();
 	}
 	void unprepareWorker(WorkerBase &_rw){
 		res.unprepareThread();

@@ -67,7 +67,8 @@ protected:
  * a template parameter for WorkPool.
  */
 struct WorkPoolControllerBase{
-	void prepareWorker(WorkerBase &_rw){
+	bool prepareWorker(WorkerBase &_rw){
+		return true;
 	}
 	void unprepareWorker(WorkerBase &_rw){
 	}
@@ -102,8 +103,10 @@ class WorkPool: public WorkPoolBase{
 	struct SingleWorker: W{
 		SingleWorker(ThisT &_rw):rw(_rw){}
 		void run(){
+			if(!rw.enterWorker(*this)){
+				return;
+			}
 			J	job;
-			rw.enterWorker(*this);
 			while(rw.pop(*this, job)){
 				rw.execute(*this, job);
 			}
@@ -114,9 +117,11 @@ class WorkPool: public WorkPoolBase{
 	struct MultiWorker: W{
 		MultiWorker(ThisT &_rw, ulong _maxcnt):rw(_rw), maxcnt(_maxcnt){}
 		void run(){
+			if(!rw.enterWorker(*this)){
+				return;
+			}
 			JobVectorT	jobvec;
 			if(maxcnt == 0) maxcnt = 1;
-			rw.enterWorker(*this);
 			while(rw.pop(*this, jobvec, maxcnt)){
 				rw.execute(*this, jobvec);
 				jobvec.clear();
@@ -265,12 +270,14 @@ private:
 		return jobq.size();
 	}
 	
-	void enterWorker(WorkerT &_rw){
-		mtx.lock();
-		ctrl.prepareWorker(_rw);
+	bool enterWorker(WorkerT &_rw){
+		Locker<Mutex> lock(mtx);
+		if(!ctrl.prepareWorker(_rw)){
+			return false;
+		}
 		//++wkrcnt;
 		thrcnd.broadcast();
-		mtx.unlock();
+		return false;
 	}
 	void exitWorker(WorkerT &_rw){
 		mtx.lock();

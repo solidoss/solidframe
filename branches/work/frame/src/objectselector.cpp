@@ -227,8 +227,9 @@ void ObjectSelector::run(){
 
 void ObjectSelector::push(const ObjectPointerT &_robj){
 	cassert(d.fstk.size());
-	uint pos = d.fstk.top(); d.fstk.pop();
+	uint pos = d.fstk.top();
 	this->setObjectThread(*_robj, pos);
+	d.fstk.pop();
 	d.sv[pos].objptr = _robj;
 	d.sv[pos].timepos = 0;
 	d.sv[pos].state = 1;

@@ -26,6 +26,12 @@
 #include "system/mutex.hpp"
 #include "utility/dynamictype.hpp"
 #include <vector>
+#ifdef HAS_STDATOMIC
+#include <atomic>
+#else
+#include "boost/atomic.hpp"
+#endif
+
 
 namespace solid{
 namespace frame{
@@ -46,14 +52,38 @@ public:
 	
 	ObjectUidT registerObject(Object &_robj);
 	
+	bool isRegistered()const;
+	
 	bool notifyAll(ulong _sm);
 
-	bool notifyAll(MessagePointerT &_rmsgptr);
+	bool notifyAll(MessageSharedPointerT &_rmsgptr);
 	
 	void reset();
 	
 	void stop(bool _wait = true);
+	
+	Manager& manager();
+private:
+	friend class Manager;
+	Manager 				&rm;
+	#ifdef HAS_STDATOMIC
+	std::atomic<size_t>		idx;
+#else
+	boost::atomic<size_t>	idx;
+#endif
 };
+
+inline Manager& Service::manager(){
+	return rm;
+}
+inline bool Service::isRegistered()const{
+	//return idx != static_cast<size_t>(-1);
+#ifdef HAS_STDATOMIC
+	return idx.load(std::memory_order_relaxed) != static_cast<size_t>(-1);
+#else
+	return idx.load(boost::atomic::memory_order_relaxed) != static_cast<size_t>(-1);
+#endif
+}
 
 }//namespace frame
 }//namespace solid
