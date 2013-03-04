@@ -60,7 +60,7 @@ public:
 	bool empty()const;
 	bool full()const;
 	
-	void push(const JobT &_rcon);
+	bool push(JobT &_rcon);
 	void prepare();
 	void unprepare();
 private:

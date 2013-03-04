@@ -68,11 +68,12 @@ struct Manager::Data{
 		objpermutbts(_objpermutbts),
 		mutrowsbts(_mutrowsbts),
 		mutcolsbts(_mutcolsbts),
-		selbts(2), selidx(1)
+		selbts(1), selobjbts(1), selidx(0)
 	{
 		psvcarr = new ServiceStub[svcprovisioncp];
 		pselarr = new AtomicSelectorBaseT[_selprovisioncp];
 		pselarr[0].store(&dummysel, std::memory_order_relaxed);
+
 	}
 	
 	const size_t			svcprovisioncp;
@@ -83,6 +84,7 @@ struct Manager::Data{
 	AtomicSizeT				selbts;
 	AtomicSizeT				svcbts;
 	AtomicSizeT				svccnt;
+	AtomicSizeT				selobjbts;
 	size_t					selidx;
 	Mutex					mtx;
 	Condition				cnd;
@@ -203,23 +205,58 @@ Object* Manager::nextServiceObject(const Service &_rsvc, VisitContext &_rctx){
 }
 
 IndexT Manager::computeThreadId(const IndexT &_selidx, const IndexT &_objidx){
-	return unite_index(_selidx, _objidx, d.selbts.load(std::memory_order_relaxed));
+        const size_t selbts = d.selbts.load(std::memory_order_relaxed);
+        const size_t crtmaxobjcnt = (1 << d.selobjbts.load(std::memory_order_relaxed)) - 1;
+        const size_t objbts = (sizeof(IndexT) * 8) - selbts;
+        const IndexT selmaxcnt = ((1 << selbts) - 1);
+        const IndexT objmaxcnt = ((1 << objbts) - 1);
+
+        if(_objidx <= crtmaxobjcnt){
+
+        }else{
+                Locker<Mutex>   lock(d.mtx);
+                const size_t    selobjbts2 = d.selobjbts.load(std::memory_order_relaxed);
+                const size_t    selbts2 = d.selbts.load(std::memory_order_relaxed);
+                const size_t    crtmaxobjcnt2 = (1 << selobjbts2) - 1;
+                if(_objidx <= crtmaxobjcnt2){
+                }else{
+                        if((selobjbts2 + 1 + selbts2) <= (sizeof(IndexT) * 8)){
+                                d.selobjbts.fetch_add(1, std::memory_order_relaxed);
+                        }else{
+                                return 0;
+                        }
+                }
+        }
+
+        if(_objidx <= objmaxcnt && _selidx <= selmaxcnt){
+                return unite_index(_selidx, _objidx, selbts);
+        }else{
+                return 0;
+        }
 }
 
 bool Manager::prepareThread(SelectorBase *_ps){
 	if(_ps){
 		Locker<Mutex> lock(d.mtx);
-		if(d.selidx >= d.selprovisioncp){
+		if((d.selidx + 1) >= d.selprovisioncp){
 			return false;
 		}
-		_ps->selid = d.selidx;
-		d.pselarr[_ps->selid] = _ps;
-		++d.selidx;
 		const size_t	crtselbts = d.selbts.load(std::memory_order_relaxed);
 		const size_t	crtmaxselcnt = ((1 << crtselbts) - 1);
-		if(d.selidx > crtmaxselcnt){
-			d.selbts.fetch_add(1, std::memory_order_relaxed);
+		
+		if((d.selidx + 1) <= crtmaxselcnt){
+		}else{
+			const size_t	selobjbts2 = d.selobjbts.load(std::memory_order_relaxed);
+			if((selobjbts2 + crtselbts + 1) <= (sizeof(IndexT) * 8)){
+				d.selbts.fetch_add(1, std::memory_order_relaxed);
+			}else{
+				return false;
+			}
 		}
+		++d.selidx;
+		
+		_ps->selid = d.selidx;
+		d.pselarr[_ps->selid] = _ps;
 	}
 	if(!doPrepareThread()){
 		return false;
@@ -229,6 +266,7 @@ bool Manager::prepareThread(SelectorBase *_ps){
 	requestuidptr.prepareThread();
 	return true;
 }
+
 void Manager::unprepareThread(SelectorBase *_ps){
 	doUnprepareThread();
 	Thread::specific(specificPosition(), NULL);

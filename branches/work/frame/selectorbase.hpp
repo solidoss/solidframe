@@ -40,7 +40,7 @@ public:
 	virtual void raise(uint32 _objidx = 0) = 0;
 protected:
 	void associateObjectToCurrentThread(Object &_robj);
-	void setObjectThread(Object &_robj, const IndexT &_objidx);
+	bool setObjectThread(Object &_robj, const IndexT &_objidx);
 	int executeObject(Object &_robj, ulong _evs, TimeSpec &_rtout);
 	void setCurrentTimeSpecific(const TimeSpec &_rtout);
 	void id(uint32 _id);

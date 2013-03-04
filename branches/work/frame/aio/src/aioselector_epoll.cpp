@@ -305,7 +305,7 @@ bool Selector::full()const{
 	return d.objsz == d.objcp;
 }
 
-void Selector::push(const JobT &_objptr){
+bool Selector::push(JobT &_objptr){
 	if(full()){
 		//NOTE:we cannot increase selvec because, objects keep pointers to Stub structures from vector
 		//if we'd use deque instead, we'd have a performance penalty 
@@ -314,7 +314,9 @@ void Selector::push(const JobT &_objptr){
 	uint stubpos = doAddNewStub();
 	Stub &stub = d.stubs[stubpos];
 	
-	this->setObjectThread(*_objptr, stubpos);
+	if(!this->setObjectThread(*_objptr, stubpos)){
+		return false;
+	}
 	
 	stub.timepos  = TimeSpec::maximum;
 	stub.itimepos = TimeSpec::maximum;
@@ -353,6 +355,7 @@ void Selector::push(const JobT &_objptr){
 		doUnregisterObject(*_objptr, failpos);
 		stub.reset();
 		d.freestubsstk.push(stubpos);
+		return false;
 	}else{
 		++d.objsz;
 		stub.objptr = _objptr;
@@ -361,6 +364,7 @@ void Selector::push(const JobT &_objptr){
 		stub.state = Stub::InExecQueue;
 		d.execq.push(stubpos);
 	}
+	return true;
 }
 
 inline ulong Selector::doExecuteQueue(){

@@ -225,16 +225,19 @@ void ObjectSelector::run(){
 	}while(state != Data::EXIT_LOOP);
 }
 
-void ObjectSelector::push(const ObjectPointerT &_robj){
+bool ObjectSelector::push(ObjectPointerT &_robj){
 	cassert(d.fstk.size());
 	uint pos = d.fstk.top();
-	this->setObjectThread(*_robj, pos);
+	if(!this->setObjectThread(*_robj, pos)){
+		return false;
+	}
 	d.fstk.pop();
 	d.sv[pos].objptr = _robj;
 	d.sv[pos].timepos = 0;
 	d.sv[pos].state = 1;
 	++d.sz;
 	d.objq.push(pos);
+	return true;
 }
 
 int ObjectSelector::doWait(int _wt){
@@ -330,9 +333,10 @@ int ObjectSelector::doExecute(unsigned _i, ulong _evs, TimeSpec _crttout){
 }
 
 //=====================================================================
-void SelectorBase::setObjectThread(Object &_robj, const IndexT &_objidx){
+bool SelectorBase::setObjectThread(Object &_robj, const IndexT &_objidx){
 	//we are sure that the method is called from within a Manager thread
 	_robj.threadId(Manager::specific().computeThreadId(selid, _objidx));
+	return _robj.threadId() != 0;
 }
 
 

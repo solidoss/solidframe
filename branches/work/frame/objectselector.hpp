@@ -59,7 +59,7 @@ public:
 	void prepare();
 	void unprepare(){}
 	
-	void push(const ObjectPointerT &_rjob);
+	bool push(ObjectPointerT &_rjob);
 private:
 	int doWait(int _wt);
 	int doExecute(unsigned _i, ulong _evs, TimeSpec _crttout);

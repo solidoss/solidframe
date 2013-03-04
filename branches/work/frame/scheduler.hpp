@@ -196,8 +196,14 @@ private:
 		}
 	}
 	void execute(Worker &_rw, JobVectorT &_rjobvec){
+		bool err = false;
 		for(typename JobVectorT::iterator it(_rjobvec.begin()); it != _rjobvec.end(); ++it){
-			_rw.s.push(*it);
+			if(!_rw.s.push(*it)){
+				wp.push(*it);
+			}
+		}
+		if(err){
+			
 		}
 		_rw.s.run();
 	}
