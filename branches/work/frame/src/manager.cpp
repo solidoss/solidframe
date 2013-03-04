@@ -205,34 +205,33 @@ Object* Manager::nextServiceObject(const Service &_rsvc, VisitContext &_rctx){
 }
 
 IndexT Manager::computeThreadId(const IndexT &_selidx, const IndexT &_objidx){
-        const size_t selbts = d.selbts.load(std::memory_order_relaxed);
-        const size_t crtmaxobjcnt = (1 << d.selobjbts.load(std::memory_order_relaxed)) - 1;
-        const size_t objbts = (sizeof(IndexT) * 8) - selbts;
-        const IndexT selmaxcnt = ((1 << selbts) - 1);
-        const IndexT objmaxcnt = ((1 << objbts) - 1);
+	const size_t selbts = d.selbts.load(std::memory_order_relaxed);
+	const size_t crtmaxobjcnt = (1 << d.selobjbts.load(std::memory_order_relaxed)) - 1;
+	const size_t objbts = (sizeof(IndexT) * 8) - selbts;
+	const IndexT selmaxcnt = ((1 << selbts) - 1);
+	const IndexT objmaxcnt = ((1 << objbts) - 1);
 
-        if(_objidx <= crtmaxobjcnt){
+	if(_objidx <= crtmaxobjcnt){
+	}else{
+		Locker<Mutex>   lock(d.mtx);
+		const size_t	selobjbts2 = d.selobjbts.load(std::memory_order_relaxed);
+		const size_t	selbts2 = d.selbts.load(std::memory_order_relaxed);
+		const size_t	crtmaxobjcnt2 = (1 << selobjbts2) - 1;
+		if(_objidx <= crtmaxobjcnt2){
+		}else{
+			if((selobjbts2 + 1 + selbts2) <= (sizeof(IndexT) * 8)){
+				d.selobjbts.fetch_add(1, std::memory_order_relaxed);
+			}else{
+				return 0;
+			}
+		}
+	}
 
-        }else{
-                Locker<Mutex>   lock(d.mtx);
-                const size_t    selobjbts2 = d.selobjbts.load(std::memory_order_relaxed);
-                const size_t    selbts2 = d.selbts.load(std::memory_order_relaxed);
-                const size_t    crtmaxobjcnt2 = (1 << selobjbts2) - 1;
-                if(_objidx <= crtmaxobjcnt2){
-                }else{
-                        if((selobjbts2 + 1 + selbts2) <= (sizeof(IndexT) * 8)){
-                                d.selobjbts.fetch_add(1, std::memory_order_relaxed);
-                        }else{
-                                return 0;
-                        }
-                }
-        }
-
-        if(_objidx <= objmaxcnt && _selidx <= selmaxcnt){
-                return unite_index(_selidx, _objidx, selbts);
-        }else{
-                return 0;
-        }
+	if(_objidx <= objmaxcnt && _selidx <= selmaxcnt){
+		return unite_index(_selidx, _objidx, selbts);
+	}else{
+		return 0;
+	}
 }
 
 bool Manager::prepareThread(SelectorBase *_ps){
