@@ -2,4 +2,4 @@
 
 add_executable(boost_atomictest boostatomictest.cpp)
 
-target_link_libraries (boost_atomictest ${BOOST_ATOMIC_LIB} ${SYS_BASIC_LIBS})
+target_link_libraries (boost_atomictest ${SYS_BASIC_LIBS})
