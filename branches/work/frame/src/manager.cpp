@@ -30,11 +30,15 @@
 #include "system/condition.hpp"
 #include "system/specific.hpp"
 #include "system/exception.hpp"
+#include "system/mutualstore.hpp"
 
 #include "frame/manager.hpp"
 #include "frame/message.hpp"
 #include "frame/requestuid.hpp"
 #include "frame/selectorbase.hpp"
+
+#include "utility/stack.hpp"
+#include "utility/queue.hpp"
 
 namespace solid{
 namespace frame{
@@ -49,14 +53,32 @@ struct DummySelector: SelectorBase{
 };
 //---------------------------------------------------------
 struct ObjectStub{
+	ObjectStub(
+		Object *_pobj = NULL,
+		uint32 _uid = 0
+	): pobj(_pobj), uid(_uid){}
+	
+	void release(){
+		pobj = NULL;
+		++uid;
+	}
+	Object		*pobj;
+	uint32		uid;
 	
 };
-typedef std::deque<ObjectStub>		ObjectVectorT;
+typedef std::deque<ObjectStub>				ObjectVectorT;
+typedef Queue<size_t>						SizeQueueT;
+typedef Stack<size_t>						SizeStackT;
+typedef MutualStore<Mutex>					MutexMutualStoreT;
+typedef std::atomic<MutexMutualStoreT*>		AtomicMutexMutualStoreT;
 //---------------------------------------------------------
 
 struct ServiceStub{
 	ServiceStub():objvecsz(0){}
-	AtomicSizeT		objvecsz;
+	AtomicSizeT				objvecsz;
+	ObjectVectorT			objvec;
+	Mutex					mtx;
+	AtomicMutexMutualStoreT	pmtxms;
 };
 //---------------------------------------------------------
 struct Manager::Data{
@@ -70,10 +92,10 @@ struct Manager::Data{
 		mutcolsbts(_mutcolsbts),
 		selbts(1), selobjbts(1), selidx(0)
 	{
+		Lock<Mutex>		lock(mtx);
 		psvcarr = new ServiceStub[svcprovisioncp];
 		pselarr = new AtomicSelectorBaseT[_selprovisioncp];
 		pselarr[0].store(&dummysel, std::memory_order_relaxed);
-
 	}
 	
 	const size_t			svcprovisioncp;
@@ -134,8 +156,6 @@ Manager::Manager(
 void Manager::stop(){
 	
 }
-//void start();
-//void stop(bool _wait = true);
 
 bool Manager::registerService(
 	Service &_rs,
