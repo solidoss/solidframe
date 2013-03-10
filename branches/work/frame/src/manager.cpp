@@ -44,6 +44,7 @@ namespace solid{
 namespace frame{
 
 typedef std::atomic<size_t>			AtomicSizeT;
+typedef std::atomic<uint>			AtomicUintT;
 typedef std::atomic<SelectorBase*>	AtomicSelectorBaseT;
 typedef std::atomic<IndexT>			AtomicIndexT;
 
@@ -70,48 +71,57 @@ typedef std::deque<ObjectStub>				ObjectVectorT;
 typedef Queue<size_t>						SizeQueueT;
 typedef Stack<size_t>						SizeStackT;
 typedef MutualStore<Mutex>					MutexMutualStoreT;
-typedef std::atomic<MutexMutualStoreT*>		AtomicMutexMutualStoreT;
 //---------------------------------------------------------
 
 struct ServiceStub{
 	ServiceStub():objvecsz(0){}
 	AtomicSizeT				objvecsz;
+	AtomicUintT				objpermutbts;
 	ObjectVectorT			objvec;
 	Mutex					mtx;
-	AtomicMutexMutualStoreT	pmtxms;
+	MutexMutualStoreT		mtxstore;
 };
 //---------------------------------------------------------
 struct Manager::Data{
 	Data(
 		const size_t _svcprovisioncp,
 		const size_t _selprovisioncp,
-		int _objpermutbts, int _mutrowsbts, int _mutcolsbts
+		uint _objpermutbts, uint _mutrowsbts, uint _mutcolsbts
 	):	svcprovisioncp(_svcprovisioncp), selprovisioncp(_selprovisioncp),
 		objpermutbts(_objpermutbts),
 		mutrowsbts(_mutrowsbts),
 		mutcolsbts(_mutcolsbts),
-		selbts(1), selobjbts(1), selidx(0)
+		selbts(ATOMIC_VAR_INIT(1)), selobjbts(1)
 	{
-		Lock<Mutex>		lock(mtx);
+		cassert(svcprovisioncp);
+		cassert(selprovisioncp);
+		Locker<Mutex>		lock(mtx);
 		psvcarr = new ServiceStub[svcprovisioncp];
-		pselarr = new AtomicSelectorBaseT[_selprovisioncp];
+		pselarr = new AtomicSelectorBaseT[selprovisioncp];
+		for(size_t i = svcprovisioncp - 1; i > 0; --i){
+			svcfreestk.push(i);
+		}
+		for(size_t i = selprovisioncp - 1; i > 0; --i){
+			svcfreestk.push(i);
+		}
 		pselarr[0].store(&dummysel, std::memory_order_relaxed);
 	}
 	
 	const size_t			svcprovisioncp;
 	const size_t			selprovisioncp;
-	const int				objpermutbts;
-	const int				mutrowsbts;
-	const int				mutcolsbts;
+	const uint				objpermutbts;
+	const uint				mutrowsbts;
+	const uint				mutcolsbts;
 	AtomicSizeT				selbts;
 	AtomicSizeT				svcbts;
 	AtomicSizeT				svccnt;
 	AtomicSizeT				selobjbts;
-	size_t					selidx;
 	Mutex					mtx;
 	Condition				cnd;
 	ServiceStub				*psvcarr;
+	SizeStackT				svcfreestk;
 	AtomicSelectorBaseT		*pselarr;
+	SizeStackT				selfreestk;
 	DummySelector			dummysel;
 };
 
@@ -144,7 +154,7 @@ const unsigned specificPosition(){
 Manager::Manager(
 	const size_t _svcprovisioncp,
 	const size_t _selprovisioncp,
-	int _objpermutbts, int _mutrowsbts, int _mutcolsbts
+	uint _objpermutbts, uint _mutrowsbts, uint _mutcolsbts
 ):d(*(new Data(_svcprovisioncp, _selprovisioncp, _objpermutbts, _mutrowsbts, _mutcolsbts))){
 }
 
@@ -159,9 +169,7 @@ void Manager::stop(){
 
 bool Manager::registerService(
 	Service &_rs,
-	int _objpermutbts,
-	int _mutrowsbts,
-	int _mutcolsbts
+	uint _objpermutbts
 ){
 	Locker<Mutex>	lock(d.mtx);
 }
@@ -171,8 +179,8 @@ ObjectUidT	Manager::registerObject(Object &_ro){
 }
 
 bool Manager::notify(ulong _sm, const ObjectUidT &_ruid){
-	size_t		svcidx;
-	size_t		objidx;
+	IndexT		svcidx;
+	IndexT		objidx;
 	
 	
 // 	_ruid.split(svcidx, objidx, d.marker.load());
@@ -185,14 +193,6 @@ bool Manager::notify(ulong _sm, const ObjectUidT &_ruid){
 // 	}else{
 // 		
 // 	}
-}
-
-/*virtual*/ SpecificMapper*  Manager::specificMapper(){
-	return NULL;
-}
-	
-/*virtual*/ GlobalMapper* Manager::globalMapper(){
-	return NULL;
 }
 
 bool Manager::notify(MessagePointerT &_rmsgptr, const ObjectUidT &_ruid){
@@ -257,13 +257,14 @@ IndexT Manager::computeThreadId(const IndexT &_selidx, const IndexT &_objidx){
 bool Manager::prepareThread(SelectorBase *_ps){
 	if(_ps){
 		Locker<Mutex> lock(d.mtx);
-		if((d.selidx + 1) >= d.selprovisioncp){
+		if(d.selfreestk.empty()){
 			return false;
 		}
 		const size_t	crtselbts = d.selbts.load(std::memory_order_relaxed);
-		const size_t	crtmaxselcnt = ((1 << crtselbts) - 1);
+		const size_t	crtmaxselcnt = bitsToMask(crtselbts);
+		const size_t	selidx = d.selfreestk.top();
 		
-		if((d.selidx + 1) <= crtmaxselcnt){
+		if(selidx <= crtmaxselcnt){
 		}else{
 			const size_t	selobjbts2 = d.selobjbts.load(std::memory_order_relaxed);
 			if((selobjbts2 + crtselbts + 1) <= (sizeof(IndexT) * 8)){
@@ -272,9 +273,9 @@ bool Manager::prepareThread(SelectorBase *_ps){
 				return false;
 			}
 		}
-		++d.selidx;
+		d.selfreestk.pop();
 		
-		_ps->selid = d.selidx;
+		_ps->selid = selidx;
 		d.pselarr[_ps->selid] = _ps;
 	}
 	if(!doPrepareThread()){
@@ -290,7 +291,10 @@ void Manager::unprepareThread(SelectorBase *_ps){
 	doUnprepareThread();
 	Thread::specific(specificPosition(), NULL);
 	if(_ps){
+		Locker<Mutex> lock(d.mtx);
 		d.pselarr[_ps->selid] = NULL;
+		d.selfreestk.push(_ps->selid);
+		_ps->selid = 0;
 	}
 	//requestuidptr.unprepareThread();
 }

@@ -39,8 +39,8 @@
 template <class T, size_t NBits = 5>
 class Queue{
 	enum{
-		NodeMask = BitsToMsk(NBits),
-		NodeSize = BitsToCnt(NBits)
+		NodeMask = BitsToMask(NBits),
+		NodeSize = BitsToCount(NBits)
 	};
 	struct Node{
 		Node(Node *_pnext = NULL): next(_pnext){}

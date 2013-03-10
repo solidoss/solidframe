@@ -52,9 +52,9 @@ public:
 	Manager(
 		const size_t _svcprovisioncp = 1024,
 		const size_t _selprovisioncp = 1024,
-		int _objpermutbts = 6,
-		int _mutrowsbts = 8,
-		int _mutcolsbts = 8
+		uint _objpermutbts = 6,
+		uint _mutrowsbts = 4,
+		uint _mutcolsbts = 8
 	);
 	
 	virtual ~Manager();
@@ -63,9 +63,7 @@ public:
 	
 	bool registerService(
 		Service &_rsvc,
-		int _objpermutbts = 0,
-		int _mutrowsbts = 8,
-		int _mutcolsbts = 8
+		uint _objpermutbts = 0
 	);
 	void unregisterService(Service &_rsvc);
 	
@@ -89,10 +87,6 @@ public:
 	Service& service(const Object &_robj)const;
 	
 	ObjectUidT  id(const Object &_robj)const;
-	
-	virtual SpecificMapper*  specificMapper();
-	
-	virtual GlobalMapper* globalMapper();
 	
 protected:
 	size_t serviceCount()const;
