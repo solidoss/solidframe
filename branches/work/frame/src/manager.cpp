@@ -177,13 +177,27 @@ ObjectUidT	Manager::registerObject(Object &_ro){
 	Locker<Mutex>	lock(d.mtx);
 }
 
+
+/*
+ * NOTE:
+ * 1) rss.objpermuts & rss.objvecsz:
+ * 	[0,0] -> [X,0] -> [X,1] .. [X,a]  -> [0,0] -> [Y,0] -> [Y,1] .. [Y,b]
+ * Situations:
+ * Read:
+ * [0,0] OK
+ * [0,a] OK
+ * [X,0] OK
+ * [Y,a]\
+ *		prevented with memory_order_acquire
+ * [x,b]/ 
+*/
 bool Manager::notify(ulong _sm, const ObjectUidT &_ruid){
 	IndexT		svcidx;
 	IndexT		objidx;
 	split_index(svcidx, objidx, d.svcbts.load(std::memory_order_relaxed), _ruid.first);
 	if(svcidx < d.svcprovisioncp){
 		ServiceStub		&rss = d.psvcarr[svcidx];
-		const uint 		objpermutbts = rss.objpermutbts.load(std::memory_order_relaxed);
+		const uint 		objpermutbts = rss.objpermutbts.load(std::memory_order_acquire);//set it with release
 		const size_t	objcnt = rss.objvecsz.load(std::memory_order_relaxed);
 		
 		if(objpermutbts && objidx < objcnt){
@@ -195,20 +209,26 @@ bool Manager::notify(ulong _sm, const ObjectUidT &_ruid){
 		}
 	}
 	return false;
-// 	_ruid.split(svcidx, objidx, d.marker.load());
-// 	
-// 	if(svcidx < d.svcprovisioncp){
-// 		//lock free at service level
-// 		if(svcidx < d.svcvecsz.load()){
-// 			ServiceStub &rss(d.svcvec[svcidx]);
-// 		}
-// 	}else{
-// 		
-// 	}
 }
 
 bool Manager::notify(MessagePointerT &_rmsgptr, const ObjectUidT &_ruid){
-	
+	IndexT		svcidx;
+	IndexT		objidx;
+	split_index(svcidx, objidx, d.svcbts.load(std::memory_order_relaxed), _ruid.first);
+	if(svcidx < d.svcprovisioncp){
+		ServiceStub		&rss = d.psvcarr[svcidx];
+		const uint 		objpermutbts = rss.objpermutbts.load(std::memory_order_acquire);//set it with release
+		const size_t	objcnt = rss.objvecsz.load(std::memory_order_relaxed);
+		
+		if(objpermutbts && objidx < objcnt){
+			Locker<Mutex>	lock(rss.mtxstore.at(objidx, objpermutbts));
+			if(rss.objvec[objidx].pobj->notify(_rmsgptr)){
+				this->raise(*rss.objvec[objidx].pobj);
+			}
+			return true;
+		}
+	}
+	return false;
 }
 
 void Manager::raise(const Object &_robj){
