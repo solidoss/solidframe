@@ -74,7 +74,7 @@ typedef MutualStore<Mutex>					MutexMutualStoreT;
 //---------------------------------------------------------
 
 struct ServiceStub{
-	ServiceStub():objvecsz(0){}
+	ServiceStub():objvecsz(ATOMIC_VAR_INIT(0)), objpermutbts(ATOMIC_VAR_INIT(0)){}
 	AtomicSizeT				objvecsz;
 	AtomicUintT				objpermutbts;
 	ObjectVectorT			objvec;
@@ -91,7 +91,7 @@ struct Manager::Data{
 		objpermutbts(_objpermutbts),
 		mutrowsbts(_mutrowsbts),
 		mutcolsbts(_mutcolsbts),
-		selbts(ATOMIC_VAR_INIT(1)), selobjbts(1)
+		selbts(ATOMIC_VAR_INIT(1)), selobjbts(ATOMIC_VAR_INIT(1))
 	{
 		cassert(svcprovisioncp);
 		cassert(selprovisioncp);
@@ -112,10 +112,9 @@ struct Manager::Data{
 	const uint				objpermutbts;
 	const uint				mutrowsbts;
 	const uint				mutcolsbts;
-	AtomicSizeT				selbts;
-	AtomicSizeT				svcbts;
-	AtomicSizeT				svccnt;
-	AtomicSizeT				selobjbts;
+	AtomicUintT				selbts;
+	AtomicUintT				svcbts;
+	AtomicUintT				selobjbts;
 	Mutex					mtx;
 	Condition				cnd;
 	ServiceStub				*psvcarr;
@@ -181,8 +180,21 @@ ObjectUidT	Manager::registerObject(Object &_ro){
 bool Manager::notify(ulong _sm, const ObjectUidT &_ruid){
 	IndexT		svcidx;
 	IndexT		objidx;
-	
-	
+	split_index(svcidx, objidx, d.svcbts.load(std::memory_order_relaxed), _ruid.first);
+	if(svcidx < d.svcprovisioncp){
+		ServiceStub		&rss = d.psvcarr[svcidx];
+		const uint 		objpermutbts = rss.objpermutbts.load(std::memory_order_relaxed);
+		const size_t	objcnt = rss.objvecsz.load(std::memory_order_relaxed);
+		
+		if(objpermutbts && objidx < objcnt){
+			Locker<Mutex>	lock(rss.mtxstore.at(objidx, objpermutbts));
+			if(rss.objvec[objidx].pobj->notify(_sm)){
+				this->raise(*rss.objvec[objidx].pobj);
+			}
+			return true;
+		}
+	}
+	return false;
 // 	_ruid.split(svcidx, objidx, d.marker.load());
 // 	
 // 	if(svcidx < d.svcprovisioncp){
@@ -202,7 +214,7 @@ bool Manager::notify(MessagePointerT &_rmsgptr, const ObjectUidT &_ruid){
 void Manager::raise(const Object &_robj){
 	IndexT selidx;
 	IndexT objidx;
-	split_index(selidx, objidx, d.selbts.load(), _robj.thrid.load());
+	split_index(selidx, objidx, d.selbts.load(std::memory_order_relaxed), _robj.thrid.load(std::memory_order_relaxed));
 	d.pselarr[selidx].load()->raise(objidx);
 }
 
