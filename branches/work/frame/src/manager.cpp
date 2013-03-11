@@ -36,6 +36,7 @@
 #include "frame/message.hpp"
 #include "frame/requestuid.hpp"
 #include "frame/selectorbase.hpp"
+#include "frame/service.hpp"
 
 #include "utility/stack.hpp"
 #include "utility/queue.hpp"
@@ -74,7 +75,8 @@ typedef MutualStore<Mutex>					MutexMutualStoreT;
 //---------------------------------------------------------
 
 struct ServiceStub{
-	ServiceStub():objvecsz(ATOMIC_VAR_INIT(0)), objpermutbts(ATOMIC_VAR_INIT(0)){}
+	ServiceStub():psvc(NULL), objvecsz(ATOMIC_VAR_INIT(0)), objpermutbts(ATOMIC_VAR_INIT(0)){}
+	Service					*psvc;
 	AtomicSizeT				objvecsz;
 	AtomicUintT				objpermutbts;
 	ObjectVectorT			objvec;
@@ -239,20 +241,55 @@ void Manager::raise(const Object &_robj){
 }
 
 Mutex& Manager::mutex(const Object &_robj)const{
+	IndexT			svcidx;
+	IndexT			objidx;
 	
+	split_index(svcidx, objidx, d.svcbts.load(std::memory_order_relaxed), _robj.fullid);
+	cassert(svcidx < d.svcprovisioncp);
+	
+	ServiceStub		&rss = d.psvcarr[svcidx];
+	const uint 		objpermutbts = rss.objpermutbts.load(std::memory_order_relaxed);
+	cassert(objidx < rss.objvecsz.load(std::memory_order_relaxed));
+	return rss.mtxstore.at(objidx, objpermutbts);
 }
 
 ObjectUidT  Manager::id(const Object &_robj)const{
+	IndexT			svcidx;
+	IndexT			objidx;
 	
+	split_index(svcidx, objidx, d.svcbts.load(std::memory_order_relaxed), _robj.fullid);
+	cassert(svcidx < d.svcprovisioncp);
+	
+	ServiceStub		&rss = d.psvcarr[svcidx];
+	cassert(objidx < rss.objvecsz.load(std::memory_order_relaxed));
+	const uint 		objpermutbts = rss.objpermutbts.load(std::memory_order_relaxed);
+	Locker<Mutex>	lock(rss.mtxstore.at(objidx, objpermutbts));
+	return ObjectUidT(_robj.fullid, rss.objvec[objidx].uid);
 }
 
-Mutex& Manager::serviceMutex(const Service &_rsvc){
+ObjectUidT  Manager::unsafeId(const Object &_robj)const{
+	IndexT			svcidx;
+	IndexT			objidx;
 	
+	split_index(svcidx, objidx, d.svcbts.load(std::memory_order_relaxed), _robj.fullid);
+	cassert(svcidx < d.svcprovisioncp);
+	
+	ServiceStub		&rss = d.psvcarr[svcidx];
+	cassert(objidx < rss.objvecsz.load(std::memory_order_relaxed));
+	cassert(!rss.mtxstore.at(objidx, rss.objpermutbts.load(std::memory_order_relaxed)).tryLock());
+	return ObjectUidT(_robj.fullid, rss.objvec[objidx].uid);
+}
+
+Mutex& Manager::serviceMutex(const Service &_rsvc)const{
+	cassert(_rsvc.idx < d.svcprovisioncp);
+	ServiceStub		&rss = d.psvcarr[_rsvc.idx];
+	cassert(rss.psvc != &_rsvc);
+	return rss.mtx;
 }
 ObjectUidT Manager::registerServiceObject(const Service &_rsvc, Object &_robj){
 	
 }
-Object* Manager::nextServiceObject(const Service &_rsvc, VisitContext &_rctx){
+Object* Manager::nextServiceObject(const Service &_rsvc, VisitContext &_rctx)const{
 	
 }
 

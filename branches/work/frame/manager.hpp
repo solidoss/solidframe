@@ -87,6 +87,7 @@ public:
 	Service& service(const Object &_robj)const;
 	
 	ObjectUidT  id(const Object &_robj)const;
+	ObjectUidT  unsafeId(const Object &_robj)const;
 	
 protected:
 	size_t serviceCount()const;
@@ -96,9 +97,9 @@ private:
 	struct VisitContext{
 		
 	};
-	Mutex& serviceMutex(const Service &_rsvc);
+	Mutex& serviceMutex(const Service &_rsvc)const;
 	ObjectUidT registerServiceObject(const Service &_rsvc, Object &_robj);
-	Object* nextServiceObject(const Service &_rsvc, VisitContext &_rctx);
+	Object* nextServiceObject(const Service &_rsvc, VisitContext &_rctx)const;
 	
 	template <typename F>
 	bool forEachServiceObject(const Service &_rsvc, F _f){
