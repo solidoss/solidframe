@@ -75,16 +75,30 @@ typedef MutualStore<Mutex>					MutexMutualStoreT;
 //---------------------------------------------------------
 
 struct ServiceStub{
+	enum States{
+		StateStarting = 1,
+		StateRunning,
+		StateStopping,
+		StateStopped
+	};
 	ServiceStub():psvc(NULL), objvecsz(ATOMIC_VAR_INIT(0)), objpermutbts(ATOMIC_VAR_INIT(0)){}
 	Service					*psvc;
 	AtomicSizeT				objvecsz;
 	AtomicUintT				objpermutbts;
 	ObjectVectorT			objvec;
+	SizeStackT				objfreestk;
 	Mutex					mtx;
 	MutexMutualStoreT		mtxstore;
+	ushort					state;
 };
 //---------------------------------------------------------
 struct Manager::Data{
+	enum States{
+		StateStarting = 1,
+		StateRunning,
+		StateStopping,
+		StateStopped
+	};
 	Data(
 		const size_t _svcprovisioncp,
 		const size_t _selprovisioncp,
@@ -93,7 +107,7 @@ struct Manager::Data{
 		objpermutbts(_objpermutbts),
 		mutrowsbts(_mutrowsbts),
 		mutcolsbts(_mutcolsbts),
-		selbts(ATOMIC_VAR_INIT(1)), selobjbts(ATOMIC_VAR_INIT(1))
+		selbts(ATOMIC_VAR_INIT(1)), selobjbts(ATOMIC_VAR_INIT(1)), state(StateRunning)
 	{
 		cassert(svcprovisioncp);
 		cassert(selprovisioncp);
@@ -104,7 +118,7 @@ struct Manager::Data{
 			svcfreestk.push(i);
 		}
 		for(size_t i = selprovisioncp - 1; i > 0; --i){
-			svcfreestk.push(i);
+			selfreestk.push(i);
 		}
 		pselarr[0].store(&dummysel, std::memory_order_relaxed);
 	}
@@ -117,6 +131,7 @@ struct Manager::Data{
 	AtomicUintT				selbts;
 	AtomicUintT				svcbts;
 	AtomicUintT				selobjbts;
+	uint					state;
 	Mutex					mtx;
 	Condition				cnd;
 	ServiceStub				*psvcarr;
@@ -148,6 +163,25 @@ const unsigned specificPosition(){
 }
 #endif
 
+namespace{
+
+	void visit_lock(Mutex &_rm){
+		_rm.lock();
+	}
+
+	void visit_unlock(Mutex &_rm){
+		_rm.unlock();
+	}
+
+	void lock_all(MutexMutualStoreT &_rms, const size_t _sz, const uint _objpermutbts){
+		_rms.visit(_sz, visit_lock, _objpermutbts);
+	}
+
+	void unlock_all(MutexMutualStoreT &_rms, const size_t _sz, const uint _objpermutbts){
+		_rms.visit(_sz, visit_unlock, _objpermutbts);
+	}
+}//namespace
+
 /*static*/ Manager& Manager::specific(){
 	return *reinterpret_cast<Manager*>(Thread::specific(specificPosition()));
 }
@@ -172,7 +206,32 @@ bool Manager::registerService(
 	Service &_rs,
 	uint _objpermutbts
 ){
+	cassert(_rs.isRegistered());
+	if(_rs.isRegistered()){
+		return false;
+	}
 	Locker<Mutex>	lock(d.mtx);
+	if(d.svcfreestk.size()){
+		size_t idx = d.svcfreestk.top();
+		d.svcfreestk.pop();
+		_rs.idx.store(idx, std::memory_order_relaxed);
+		ServiceStub &rss = d.psvcarr[idx];
+		Locker<Mutex>	lock2(rss.mtx);
+		rss.psvc = &_rs;
+		if(!_objpermutbts){
+			_objpermutbts = d.objpermutbts;
+		}
+		rss.objvecsz.store(0, std::memory_order_relaxed);
+		rss.objpermutbts.store(_objpermutbts, std::memory_order_release);
+		rss.state = ServiceStub::StateRunning;
+		rss.objvec.clear();
+		while(rss.objfreestk.size()){
+			rss.objfreestk.pop();
+		}
+		return true;
+	}else{
+		return false;
+	}
 }
 
 ObjectUidT	Manager::registerObject(Object &_ro){
@@ -237,7 +296,7 @@ void Manager::raise(const Object &_robj){
 	IndexT selidx;
 	IndexT objidx;
 	split_index(selidx, objidx, d.selbts.load(std::memory_order_relaxed), _robj.thrid.load(std::memory_order_relaxed));
-	d.pselarr[selidx].load()->raise(objidx);
+	d.pselarr[selidx].load(std::memory_order_relaxed)->raise(objidx);
 }
 
 Mutex& Manager::mutex(const Object &_robj)const{
@@ -286,9 +345,11 @@ Mutex& Manager::serviceMutex(const Service &_rsvc)const{
 	cassert(rss.psvc != &_rsvc);
 	return rss.mtx;
 }
+
 ObjectUidT Manager::registerServiceObject(const Service &_rsvc, Object &_robj){
 	
 }
+
 Object* Manager::nextServiceObject(const Service &_rsvc, VisitContext &_rctx)const{
 	
 }

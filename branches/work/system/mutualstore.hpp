@@ -153,7 +153,7 @@ public:
 		const size_t cnt((_upto >> _objpermutbts) + 1);
 		const size_t end(cnt > mutcnt ? mutcnt : cnt);
 		for(size_t i(0); i < end; ++i){
-			_rv(doGetObject(i, _objpermutbts));
+			_rv(doGetObject(i/*, _objpermutbts*/));
 		}
 	}
 	template <typename V>
@@ -162,7 +162,7 @@ public:
 		const size_t cnt((_upto >> _objpermutbts) + 1);
 		const size_t end(cnt > mutcnt ? mutcnt : cnt);
 		for(size_t i(0); i < end; ++i){
-			_rv(doGetObject(i, _objpermutbts));
+			_rv(doGetObject(i/*, _objpermutbts*/));
 		}
 	}
 private:
