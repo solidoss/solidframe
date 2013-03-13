@@ -126,6 +126,7 @@ private:
 	
 	virtual bool doPrepareThread();
 	virtual void doUnprepareThread();
+	ObjectUidT doRegisterServiceObject(const IndexT _svcidx, Object &_robj);
 private:
 	struct Data;
 	Data	&d;

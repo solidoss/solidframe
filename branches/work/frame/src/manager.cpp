@@ -103,25 +103,7 @@ struct Manager::Data{
 		const size_t _svcprovisioncp,
 		const size_t _selprovisioncp,
 		uint _objpermutbts, uint _mutrowsbts, uint _mutcolsbts
-	):	svcprovisioncp(_svcprovisioncp), selprovisioncp(_selprovisioncp),
-		objpermutbts(_objpermutbts),
-		mutrowsbts(_mutrowsbts),
-		mutcolsbts(_mutcolsbts),
-		selbts(ATOMIC_VAR_INIT(1)), selobjbts(ATOMIC_VAR_INIT(1)), state(StateRunning)
-	{
-		cassert(svcprovisioncp);
-		cassert(selprovisioncp);
-		Locker<Mutex>		lock(mtx);
-		psvcarr = new ServiceStub[svcprovisioncp];
-		pselarr = new AtomicSelectorBaseT[selprovisioncp];
-		for(size_t i = svcprovisioncp - 1; i > 0; --i){
-			svcfreestk.push(i);
-		}
-		for(size_t i = selprovisioncp - 1; i > 0; --i){
-			selfreestk.push(i);
-		}
-		pselarr[0].store(&dummysel, std::memory_order_relaxed);
-	}
+	);
 	
 	const size_t			svcprovisioncp;
 	const size_t			selprovisioncp;
@@ -182,6 +164,31 @@ namespace{
 	}
 }//namespace
 
+
+Manager::Data::Data(
+	const size_t _svcprovisioncp,
+	const size_t _selprovisioncp,
+	uint _objpermutbts, uint _mutrowsbts, uint _mutcolsbts
+):	svcprovisioncp(_svcprovisioncp), selprovisioncp(_selprovisioncp),
+	objpermutbts(_objpermutbts),
+	mutrowsbts(_mutrowsbts),
+	mutcolsbts(_mutcolsbts),
+	selbts(ATOMIC_VAR_INIT(1)), selobjbts(ATOMIC_VAR_INIT(1)), state(StateRunning)
+{
+	cassert(svcprovisioncp);
+	cassert(selprovisioncp);
+	Locker<Mutex>		lock(mtx);
+	psvcarr = new ServiceStub[svcprovisioncp];
+	pselarr = new AtomicSelectorBaseT[selprovisioncp];
+	for(size_t i = svcprovisioncp - 1; i > 0; --i){
+		svcfreestk.push(i);
+	}
+	for(size_t i = selprovisioncp - 1; i > 0; --i){
+		selfreestk.push(i);
+	}
+	pselarr[0].store(&dummysel, std::memory_order_relaxed);
+}
+
 /*static*/ Manager& Manager::specific(){
 	return *reinterpret_cast<Manager*>(Thread::specific(specificPosition()));
 }
@@ -212,22 +219,36 @@ bool Manager::registerService(
 	}
 	Locker<Mutex>	lock(d.mtx);
 	if(d.svcfreestk.size()){
-		size_t idx = d.svcfreestk.top();
+		const size_t	idx = d.svcfreestk.top();
+		
 		d.svcfreestk.pop();
 		_rs.idx.store(idx, std::memory_order_relaxed);
-		ServiceStub &rss = d.psvcarr[idx];
+		
+		ServiceStub		&rss = d.psvcarr[idx];
 		Locker<Mutex>	lock2(rss.mtx);
+		
 		rss.psvc = &_rs;
 		if(!_objpermutbts){
 			_objpermutbts = d.objpermutbts;
 		}
-		rss.objvecsz.store(0, std::memory_order_relaxed);
-		rss.objpermutbts.store(_objpermutbts, std::memory_order_release);
+		
 		rss.state = ServiceStub::StateRunning;
-		rss.objvec.clear();
+		
+		const size_t	objcnt = rss.objvecsz.load(std::memory_order_relaxed);
+		const uint		oldobjpermutbts = rss.objpermutbts.load(std::memory_order_relaxed);
+		
+		lock_all(rss.mtxstore, objcnt, oldobjpermutbts);
+		
+		rss.objpermutbts.store(_objpermutbts, std::memory_order_relaxed);
+		
 		while(rss.objfreestk.size()){
 			rss.objfreestk.pop();
 		}
+		for(size_t i = objcnt - 1; i >= 0; --i){
+			rss.objfreestk.push(i);
+			rss.mtxstore.safeAt(i, _objpermutbts);
+		}
+		unlock_all(rss.mtxstore, objcnt, oldobjpermutbts);
 		return true;
 	}else{
 		return false;
@@ -236,9 +257,12 @@ bool Manager::registerService(
 
 ObjectUidT	Manager::registerObject(Object &_ro){
 	Locker<Mutex>	lock(d.mtx);
+	return doRegisterServiceObject(0, _ro);
 }
 
-
+void Manager::unregisterObject(Object &_robj){
+	
+}
 /*
  * NOTE:
  * 1) rss.objpermuts & rss.objvecsz:
@@ -255,18 +279,23 @@ ObjectUidT	Manager::registerObject(Object &_ro){
 bool Manager::notify(ulong _sm, const ObjectUidT &_ruid){
 	IndexT		svcidx;
 	IndexT		objidx;
+	
 	split_index(svcidx, objidx, d.svcbts.load(std::memory_order_relaxed), _ruid.first);
+	
 	if(svcidx < d.svcprovisioncp){
 		ServiceStub		&rss = d.psvcarr[svcidx];
-		const uint 		objpermutbts = rss.objpermutbts.load(std::memory_order_acquire);//set it with release
+		const uint 		objpermutbts = rss.objpermutbts.load(std::memory_order_relaxed);//set it with release
 		const size_t	objcnt = rss.objvecsz.load(std::memory_order_relaxed);
 		
 		if(objpermutbts && objidx < objcnt){
 			Locker<Mutex>	lock(rss.mtxstore.at(objidx, objpermutbts));
-			if(rss.objvec[objidx].pobj->notify(_sm)){
-				this->raise(*rss.objvec[objidx].pobj);
+			
+			if(rss.objpermutbts.load(std::memory_order_relaxed) == objpermutbts){
+				if(rss.objvec[objidx].pobj->notify(_sm)){
+					this->raise(*rss.objvec[objidx].pobj);
+				}
+				return true;
 			}
-			return true;
 		}
 	}
 	return false;
@@ -275,7 +304,9 @@ bool Manager::notify(ulong _sm, const ObjectUidT &_ruid){
 bool Manager::notify(MessagePointerT &_rmsgptr, const ObjectUidT &_ruid){
 	IndexT		svcidx;
 	IndexT		objidx;
+	
 	split_index(svcidx, objidx, d.svcbts.load(std::memory_order_relaxed), _ruid.first);
+	
 	if(svcidx < d.svcprovisioncp){
 		ServiceStub		&rss = d.psvcarr[svcidx];
 		const uint 		objpermutbts = rss.objpermutbts.load(std::memory_order_acquire);//set it with release
@@ -283,10 +314,13 @@ bool Manager::notify(MessagePointerT &_rmsgptr, const ObjectUidT &_ruid){
 		
 		if(objpermutbts && objidx < objcnt){
 			Locker<Mutex>	lock(rss.mtxstore.at(objidx, objpermutbts));
-			if(rss.objvec[objidx].pobj->notify(_rmsgptr)){
-				this->raise(*rss.objvec[objidx].pobj);
+			
+			if(rss.objpermutbts.load(std::memory_order_relaxed) == objpermutbts){
+				if(rss.objvec[objidx].pobj->notify(_rmsgptr)){
+					this->raise(*rss.objvec[objidx].pobj);
+				}
+				return true;
 			}
-			return true;
 		}
 	}
 	return false;
@@ -347,6 +381,37 @@ Mutex& Manager::serviceMutex(const Service &_rsvc)const{
 }
 
 ObjectUidT Manager::registerServiceObject(const Service &_rsvc, Object &_robj){
+	return doRegisterServiceObject(_rsvc.idx, _robj);
+}
+
+ObjectUidT Manager::doRegisterServiceObject(const IndexT _svcidx, Object &_robj){
+	cassert(_svcidx < d.svcprovisioncp);
+	ServiceStub		&rss = d.psvcarr[_svcidx];
+	cassert(rss.psvc != NULL);
+	Locker<Mutex>	lock(rss.mtx);
+	
+	if(rss.state != ServiceStub::StateRunning){
+		return ObjectUidT();
+	}
+	
+	if(rss.objfreestk.size()){
+		const IndexT	objidx = rss.objfreestk.top();
+		
+		rss.objfreestk.pop();
+		
+		const IndexT	fullid = unite_index(_svcidx, objidx, d.svcbts.load(std::memory_order_relaxed));
+		Locker<Mutex>	lock2(rss.mtxstore.at(objidx, rss.objpermutbts.load(std::memory_order_relaxed)));
+		
+		rss.objvec[objidx].pobj = &_robj;
+		_robj.fullid = fullid;
+		
+		return ObjectUidT(fullid, rss.objvec[objidx].uid);
+	}else{
+		const uint		objpermutbts = rss.objpermutbts.load(std::memory_order_relaxed);
+		const size_t	objpermutcnt = bitsToMask(objpermutbts);
+		
+		return ObjectUidT();
+	}
 	
 }
 
@@ -356,10 +421,10 @@ Object* Manager::nextServiceObject(const Service &_rsvc, VisitContext &_rctx)con
 
 IndexT Manager::computeThreadId(const IndexT &_selidx, const IndexT &_objidx){
 	const size_t selbts = d.selbts.load(std::memory_order_relaxed);
-	const size_t crtmaxobjcnt = (1 << d.selobjbts.load(std::memory_order_relaxed)) - 1;
+	const size_t crtmaxobjcnt = bitsToMask(d.selobjbts.load(std::memory_order_relaxed));
 	const size_t objbts = (sizeof(IndexT) * 8) - selbts;
-	const IndexT selmaxcnt = ((1 << selbts) - 1);
-	const IndexT objmaxcnt = ((1 << objbts) - 1);
+	const IndexT selmaxcnt = bitsToMask(selbts);
+	const IndexT objmaxcnt = bitsToMask(objbts);
 
 	if(_objidx <= crtmaxobjcnt){
 	}else{

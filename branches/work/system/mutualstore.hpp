@@ -102,14 +102,14 @@ public:
 		It will reallocate new mutexes if needed
 	*/
 	MutualObjectT& safeAt(const size_t i){
-		int mrow = getObjectRow(i);
+		const size_t mrow = getObjectRow(i);
 		if(!objmat[mrow]){
 			objmat[mrow] = new MutualObjectT[mutcolscnt];
 		}
 		return at(i);
 	}
 	MutualObjectT& safeAt(const size_t i, const unsigned _objpermutbts){
-		int mrow = getObjectRow(i, _objpermutbts);
+		const size_t mrow = getObjectRow(i, _objpermutbts);
 		if(!objmat[mrow]){
 			objmat[mrow] = new MutualObjectT[mutcolscnt];
 		}
