@@ -81,7 +81,10 @@ struct ServiceStub{
 		StateStopping,
 		StateStopped
 	};
-	ServiceStub():psvc(NULL), objvecsz(ATOMIC_VAR_INIT(0)), objpermutbts(ATOMIC_VAR_INIT(0)){}
+	ServiceStub():psvc(NULL), objvecsz(ATOMIC_VAR_INIT(0)), objpermutbts(ATOMIC_VAR_INIT(0)){
+		//mtxstore.safeAt(0);
+	}
+	
 	Service					*psvc;
 	AtomicSizeT				objvecsz;
 	AtomicUintT				objpermutbts;
@@ -105,11 +108,16 @@ struct Manager::Data{
 		uint _objpermutbts, uint _mutrowsbts, uint _mutcolsbts
 	);
 	
+	size_t computeObjectAddSize(const size_t _objvecsz, const size_t _objpermutcnt)const{
+		return mutcolscnt * _objpermutcnt;
+	}
+	
 	const size_t			svcprovisioncp;
 	const size_t			selprovisioncp;
 	const uint				objpermutbts;
 	const uint				mutrowsbts;
 	const uint				mutcolsbts;
+	const size_t			mutcolscnt;
 	AtomicUintT				selbts;
 	AtomicUintT				svcbts;
 	AtomicUintT				selobjbts;
@@ -173,6 +181,7 @@ Manager::Data::Data(
 	objpermutbts(_objpermutbts),
 	mutrowsbts(_mutrowsbts),
 	mutcolsbts(_mutcolsbts),
+	mutcolscnt(bitsToCount(_mutcolsbts)),
 	selbts(ATOMIC_VAR_INIT(1)), selobjbts(ATOMIC_VAR_INIT(1)), state(StateRunning)
 {
 	cassert(svcprovisioncp);
@@ -409,7 +418,7 @@ ObjectUidT Manager::doRegisterServiceObject(const IndexT _svcidx, Object &_robj)
 	}else{
 		const uint		objpermutbts = rss.objpermutbts.load(std::memory_order_relaxed);
 		const size_t	objpermutcnt = bitsToMask(objpermutbts);
-		
+		const size_t	objaddsz = d.computeObjectAddSize(rss.objvec.size(), objpermutcnt);
 		return ObjectUidT();
 	}
 	
