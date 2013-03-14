@@ -25,6 +25,7 @@
 #include "frame/common.hpp"
 #include "system/mutex.hpp"
 #include "utility/dynamicpointer.hpp"
+#include "utility/functorstub.hpp"
 
 class  SpecificMapper;
 class  GlobalMapper;
@@ -94,24 +95,16 @@ protected:
 private:
 	friend class Service;
 	
-	struct VisitContext{
-		
-	};
+	typedef FunctorStub<128, void, Object&>	ObjectVisitFunctorT;
+	
 	Mutex& serviceMutex(const Service &_rsvc)const;
 	ObjectUidT registerServiceObject(const Service &_rsvc, Object &_robj);
-	Object* nextServiceObject(const Service &_rsvc, VisitContext &_rctx)const;
 	
 	template <typename F>
-	bool forEachServiceObject(const Service &_rsvc, F _f){
-		Locker<Mutex>	lock(serviceMutex(_rsvc));
-		VisitContext	ctx;
-		Object			*pobj;
-		bool			signaled = false;
-		while((pobj = nextServiceObject(_rsvc, ctx)) != NULL){
-			_f(*pobj);
-			signaled = true;
-		}
-		return signaled;
+	bool forEachServiceObject(const Service &_rsvc, const F &_f){
+		ObjectVisitFunctorT fctor;
+		fctor = _f;
+		return doForEachServiceObject(_rsvc, fctor);
 	}
 	
 	friend class SelectorBase;
@@ -127,6 +120,8 @@ private:
 	virtual bool doPrepareThread();
 	virtual void doUnprepareThread();
 	ObjectUidT doRegisterServiceObject(const IndexT _svcidx, Object &_robj);
+	bool doForEachServiceObject(const Service &_rsvc, ObjectVisitFunctorT &_fctor);
+	bool doForEachServiceObject(const size_t _rsvcidx, Manager::ObjectVisitFunctorT &_fctor);
 private:
 	struct Data;
 	Data	&d;

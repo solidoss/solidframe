@@ -116,17 +116,17 @@ public:
 		return at(i);
 	}
 	//! Gets the mutex at pos i (the matrix is seen as a vector)
-	inline MutualObjectT& operator[](unsigned i){
+	inline MutualObjectT& operator[](const size_t i){
 		return doGetObject(i);
 	}
-	inline MutualObjectT const& operator[](unsigned i)const{
+	inline MutualObjectT const& operator[](const size_t i)const{
 		return doGetObject(i);
 	}
 	//! Will return true if i is the first index of a range sharing the same mutex
-	inline bool isRangeBegin(unsigned i)const{
+	inline bool isRangeBegin(const size_t i)const{
 		return !(i & objpermutmsk);
 	}
-	inline bool isRangeBegin(unsigned i, const unsigned _objpermutmsk)const{
+	inline bool isRangeBegin(const size_t i, const size_t _objpermutmsk)const{
 		return !(i & _objpermutmsk);
 	}
 	template <typename V>

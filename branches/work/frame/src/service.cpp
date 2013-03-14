@@ -55,7 +55,7 @@ Service::~Service(){
 
 ObjectUidT Service::registerObject(Object &_robj){
 	if(isRegistered()){
-		
+		return rm.registerServiceObject(*this, _robj);
 	}else{
 		return ObjectUidT();
 	}
