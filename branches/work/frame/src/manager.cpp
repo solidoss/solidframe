@@ -120,9 +120,11 @@ struct Manager::Data{
 	const size_t			mutcolscnt;
 	AtomicUintT				selbts;
 	AtomicUintT				svcbts;
+	AtomicUintT				objbts;
 	AtomicUintT				selobjbts;
 	uint					state;
 	Mutex					mtx;
+	Mutex					mtxobj;
 	Condition				cnd;
 	ServiceStub				*psvcarr;
 	SizeStackT				svcfreestk;
@@ -229,6 +231,21 @@ bool Manager::registerService(
 	Locker<Mutex>	lock(d.mtx);
 	if(d.svcfreestk.size()){
 		const size_t	idx = d.svcfreestk.top();
+		const uint		svcbts = d.svcbts.load(std::memory_order_relaxed);
+		const size_t	svcmaxcnt = bitsToMask(svcbts);
+		
+		if(idx >= svcmaxcnt){
+			Locker<Mutex>	lockt(d.mtxobj);
+			const uint		svcbtst = d.svcbts.load(std::memory_order_relaxed);
+			const size_t	svcmaxcntt = bitsToMask(svcbtst);
+			const uint		objbtst = d.objbts.load(std::memory_order_relaxed);
+			if(idx >= svcmaxcntt){
+				if((svcbtst + objbtst + 1) > (sizeof(IndexT) * 8)){
+					return false;
+				}
+				d.svcbts.store(svcbtst + 1, std::memory_order_relaxed);
+			}
+		}
 		
 		d.svcfreestk.pop();
 		_rs.idx.store(idx, std::memory_order_relaxed);
@@ -266,6 +283,15 @@ bool Manager::registerService(
 
 ObjectUidT	Manager::registerObject(Object &_ro){
 	return doRegisterServiceObject(0, _ro);
+}
+
+void Manager::unregisterService(Service &_rs){
+	cassert(_rs.isRegistered());
+	if(!_rs.isRegistered()){
+		return;
+	}
+	Locker<Mutex>	lock(d.mtx);
+
 }
 
 void Manager::unregisterObject(Object &_robj){
@@ -435,12 +461,39 @@ ObjectUidT Manager::doRegisterServiceObject(const IndexT _svcidx, Object &_robj)
 		
 		return ObjectUidT(fullid, rss.objvec[objidx].uid);
 	}else{
+		const size_t	objcnt = rss.objvecsz.load(std::memory_order_relaxed);
+		const uint		objbts = d.objbts.load(std::memory_order_relaxed);
+		const size_t	objmaxcnt = bitsToMask(objbts);
+		
 		const uint		objpermutbts = rss.objpermutbts.load(std::memory_order_relaxed);
 		const size_t	objpermutcnt = bitsToMask(objpermutbts);
 		const size_t	objaddsz = d.computeObjectAddSize(rss.objvec.size(), objpermutcnt);
-		const size_t	objcnt = rss.objvecsz.load(std::memory_order_relaxed);
-		const size_t	newobjcnt = objcnt + objaddsz;
+		size_t			newobjcnt = objcnt + objaddsz;
 		ObjectUidT		retval;
+		
+		if(newobjcnt >= objmaxcnt){
+			Locker<Mutex>	lockt(d.mtxobj);
+			const uint		svcbtst = d.svcbts.load(std::memory_order_relaxed);
+			uint			objbtst = d.objbts.load(std::memory_order_relaxed);
+			size_t			objmaxcntt = bitsToMask(objbtst);
+			
+			while(newobjcnt >= objmaxcntt){
+				if((objbtst + svcbtst + 1) > (sizeof(IndexT) * 8)){
+					break;
+				}
+				++objbtst;
+				objmaxcntt = bitsToMask(objbtst);
+			}
+			if(newobjcnt >=  objmaxcntt){
+				if(objmaxcntt > objcnt){
+					newobjcnt = objmaxcntt;
+				}else{
+					return retval;
+				}
+			}else{
+				d.objbts.store(objbtst, std::memory_order_relaxed);
+			}
+		}
 		
 		for(size_t i = objcnt; i < newobjcnt; ++i){
 			rss.mtxstore.safeAt(i, objpermutbts);
