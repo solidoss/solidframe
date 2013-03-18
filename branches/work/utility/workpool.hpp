@@ -277,7 +277,7 @@ private:
 		}
 		//++wkrcnt;
 		thrcnd.broadcast();
-		return false;
+		return true;
 	}
 	void exitWorker(WorkerT &_rw){
 		mtx.lock();

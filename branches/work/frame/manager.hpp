@@ -121,7 +121,8 @@ private:
 	virtual void doUnprepareThread();
 	ObjectUidT doRegisterServiceObject(const IndexT _svcidx, Object &_robj);
 	bool doForEachServiceObject(const Service &_rsvc, ObjectVisitFunctorT &_fctor);
-	bool doForEachServiceObject(const size_t _rsvcidx, Manager::ObjectVisitFunctorT &_fctor);
+	bool doForEachServiceObject(const size_t _svcidx, ObjectVisitFunctorT &_fctor);
+	void doWaitStopService(const size_t _svcidx, Locker<Mutex> &_rlock, bool _wait);
 private:
 	struct Data;
 	Data	&d;

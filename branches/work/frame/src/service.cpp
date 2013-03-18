@@ -48,7 +48,6 @@ Service::Service(
 
 Service::~Service(){
 	if(isRegistered()){
-		stop(true);
 		rm.unregisterService(*this);
 	}
 }
@@ -60,6 +59,8 @@ ObjectUidT Service::registerObject(Object &_robj){
 		return ObjectUidT();
 	}
 }
+
+namespace{
 
 struct SignalNotifier{
 	SignalNotifier(Manager &_rm, ulong _sm):rm(_rm), sm(_sm){}
@@ -73,13 +74,6 @@ struct SignalNotifier{
 	}
 };
 
-bool Service::notifyAll(ulong _sm){
-	if(isRegistered()){
-		return rm.forEachServiceObject(*this, SignalNotifier(rm, _sm));
-	}else{
-		return false;
-	}
-}
 struct MessageNotifier{
 	MessageNotifier(Manager &_rm, MessageSharedPointerT &_rmsgptr):rm(_rm), rmsgptr(_rmsgptr){}
 	Manager					&rm;
@@ -92,6 +86,18 @@ struct MessageNotifier{
 		}
 	}
 };
+
+
+}//namespace
+
+
+bool Service::notifyAll(ulong _sm){
+	if(isRegistered()){
+		return rm.forEachServiceObject(*this, SignalNotifier(rm, _sm));
+	}else{
+		return false;
+	}
+}
 bool Service::notifyAll(MessageSharedPointerT &_rmsgptr){
 	if(isRegistered()){
 		return rm.forEachServiceObject(*this, MessageNotifier(rm, _rmsgptr));

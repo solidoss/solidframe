@@ -176,11 +176,14 @@ int main(int argc, char *argv[]){
 		cout<<"For udp:"<<endl;
 		cout<<"\t$ nc -u localhost 2112"<<endl;
 		
-		{
+		if(0){
 			Locker<Mutex>	lock(mtx);
 			while(run){
 				cnd.wait(lock);
 			}
+		}else{
+			char c;
+			cin>>c;
 		}
 		m.stop();
 		

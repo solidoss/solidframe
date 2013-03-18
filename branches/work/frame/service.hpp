@@ -65,12 +65,8 @@ public:
 	Manager& manager();
 private:
 	friend class Manager;
-	Manager 				&rm;
-	#ifdef HAS_STDATOMIC
-	std::atomic<size_t>		idx;
-#else
-	boost::atomic<size_t>	idx;
-#endif
+	Manager 					&rm;
+	ATOMIC_NS::atomic<size_t>	idx;
 };
 
 inline Manager& Service::manager(){
@@ -78,11 +74,7 @@ inline Manager& Service::manager(){
 }
 inline bool Service::isRegistered()const{
 	//return idx != static_cast<size_t>(-1);
-#ifdef HAS_STDATOMIC
-	return idx.load(std::memory_order_relaxed) != static_cast<size_t>(-1);
-#else
-	return idx.load(boost::atomic::memory_order_relaxed) != static_cast<size_t>(-1);
-#endif
+	return idx.load(ATOMIC_NS::memory_order_relaxed) != static_cast<size_t>(-1);
 }
 
 }//namespace frame

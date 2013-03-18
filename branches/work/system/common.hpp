@@ -38,6 +38,12 @@
 //#endif
 #endif
 
+#ifdef HAS_STDATOMIC
+#define ATOMIC_NS std
+#else
+#define ATOMIC_NS boost
+#endif
+
 typedef unsigned char		uchar;
 typedef unsigned int		uint;
 
