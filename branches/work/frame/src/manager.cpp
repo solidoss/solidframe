@@ -170,17 +170,11 @@ namespace{
 	}
 
 	void lock_all(MutexMutualStoreT &_rms, const size_t _sz, const uint _objpermutbts){
-		//TODO: find a better way
-		if(_sz){
-			_rms.visit(_sz, visit_lock, _objpermutbts);
-		}
+		_rms.visit(_sz, visit_lock, _objpermutbts);
 	}
 
 	void unlock_all(MutexMutualStoreT &_rms, const size_t _sz, const uint _objpermutbts){
-		//TODO: find a better way
-		if(_sz){
-			_rms.visit(_sz, visit_unlock, _objpermutbts);
-		}
+		_rms.visit(_sz, visit_unlock, _objpermutbts);
 	}
 	
 	struct SignalNotifier{
