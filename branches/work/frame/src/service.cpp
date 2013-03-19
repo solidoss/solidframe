@@ -117,6 +117,9 @@ void Service::stop(bool _wait){
 		rm.stopService(*this, _wait);
 	}
 }
+Mutex& Service::mutex()const{
+	return rm.serviceMutex(*this);
+}
 
 }//namespace frame
 }//namespace solid

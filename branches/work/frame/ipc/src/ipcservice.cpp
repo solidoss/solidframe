@@ -31,7 +31,6 @@
 
 #include "utility/queue.hpp"
 
-#include "frame/objectpointer.hpp"
 #include "frame/common.hpp"
 #include "frame/manager.hpp"
 
@@ -53,9 +52,8 @@
 #include <map>
 #endif
 
-namespace fdt = foundation;
-
-namespace foundation{
+namespace solid{
+namespace frame{
 namespace ipc{
 
 //*******	Service::Data	******************************************************************
@@ -863,107 +861,6 @@ void Service::disconnectSession(Session *_pses){
 	}
 }
 //---------------------------------------------------------------------
-int Service::insertConnection(
-	const SocketDevice &_rsd,
-	const Types _type,
-	foundation::aio::openssl::Context */*_pctx*/,
-	bool _secure
-){
-	if(_type == PlainType){
-		THROW_EXCEPTION("Not implemented yet!!!");
-	}else if(_type == RelayType){
-		
-	}else{
-		THROW_EXCEPTION("Not implemented yet!!!");
-	}
-/*	Connection *pcon = new Connection(_pch, 0);
-	if(this->insert(*pcon, _serviceid)){
-		delete pcon;
-		return BAD;
-	}
-	_rm.pushJob((fdt::tcp::Connection*)pcon);*/
-	return OK;
-}
-//---------------------------------------------------------------------
-int Service::insertListener(
-	const ResolveIterator &_rai,
-	const Types _type,
-	bool _secure
-){
-	SocketDevice sd;
-	sd.create(_rai);
-	sd.makeNonBlocking();
-	sd.prepareAccept(_rai, 100);
-	if(!sd.ok()){
-		return BAD;
-	}
-	
-	foundation::aio::openssl::Context *pctx = NULL;
-	if(_secure){
-		pctx = foundation::aio::openssl::Context::create();
-	}
-	if(pctx){
-		const char *pcertpath = NULL;//certificate_path();
-		
-		pctx->loadCertificateFile(pcertpath);
-		pctx->loadPrivateKeyFile(pcertpath);
-	}
-	
-	Listener 	*plis = new Listener(sd, _type, pctx);
-	ObjectUidT	objuid(this->insert(plis));
-	
-	controller().scheduleTalker(plis);
-	return OK;
-}
-//---------------------------------------------------------------------
-int Service::insertTalker(
-	const ResolveIterator &_rai
-){	
-	SocketDevice	sd;
-	sd.create(_rai);
-	sd.bind(_rai);
-	
-	if(!sd.ok()) return BAD;
-	SocketAddress sa;
-	if(sd.localAddress(sa) != OK){
-		return BAD;
-	}
-	//Locker<Mutex>	lock(serviceMutex());
-	cassert(!d.tkrvec.size());//only the first tkr must be inserted from outside
-	Talker			*ptkr(new Talker(sd, *this, 0));
-	
-	ObjectUidT		objuid(this->insert(ptkr));
-	
-	Locker<Mutex>	lock(serviceMutex());
-	
-	d.firstaddr = _rai;
-	d.baseport = sa.port();
-	d.tkrvec.push_back(Data::TalkerStub(objuid));
-	d.tkrq.push(0);
-	controller().scheduleTalker(ptkr);
-	return OK;
-}
-//---------------------------------------------------------------------
-int Service::insertConnection(
-	const ResolveIterator &_rai
-){
-	
-/*	Connection *pcon = new Connection(_pch, _node, _svc);
-	if(this->insert(*pcon, _serviceid)){
-		delete pcon;
-		return BAD;
-	}
-	_rm.pushJob((fdt::tcp::Connection*)pcon);*/
-	return OK;
-}
-//---------------------------------------------------------------------
-void Service::insertObject(Talker &_ro, const ObjectUidT &_ruid){
-	vdbgx(Dbg::ipc, "inserting talker");
-}
-//---------------------------------------------------------------------
-void Service::eraseObject(const Talker &_ro){
-	vdbgx(Dbg::ipc, "erasing talker");
-}
 bool Service::checkAcceptData(const SocketAddress &/*_rsa*/, const AcceptData &_raccdata){
 	return _raccdata.timestamp_s == timeStamp().seconds() && _raccdata.timestamp_n == timeStamp().nanoSeconds();
 }
@@ -1085,5 +982,7 @@ void Controller::sendEvent(
 }
 
 }//namespace ipc
-}//namespace foundation
+}//namespace frame
+}//namespace solid
+
 

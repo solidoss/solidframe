@@ -63,6 +63,8 @@ public:
 	void stop(bool _wait = true);
 	
 	Manager& manager();
+	
+	Mutex& mutex()const;
 private:
 	friend class Manager;
 	Manager 					&rm;
