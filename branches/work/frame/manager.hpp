@@ -123,6 +123,10 @@ private:
 	bool doForEachServiceObject(const Service &_rsvc, ObjectVisitFunctorT &_fctor);
 	bool doForEachServiceObject(const size_t _svcidx, ObjectVisitFunctorT &_fctor);
 	void doWaitStopService(const size_t _svcidx, Locker<Mutex> &_rlock, bool _wait);
+	bool doRegisterService(
+		Service &_rsvc,
+		uint _objpermutbts = 0
+	);
 private:
 	struct Data;
 	Data	&d;

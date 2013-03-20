@@ -200,23 +200,10 @@ Manager::Data::Data(
 	objpermutbts(_objpermutbts),
 	mutrowsbts(_mutrowsbts),
 	mutcolsbts(_mutcolsbts),
-	mutcolscnt(bitsToCount(_mutcolsbts)),
+	mutcolscnt(bitsToMask(_mutcolsbts)),
 	svccnt(0),
 	selbts(ATOMIC_VAR_INIT(1)), selobjbts(ATOMIC_VAR_INIT(1)), state(StateRunning), dummysvc(_rm)
 {
-	cassert(svcprovisioncp);
-	cassert(selprovisioncp);
-	Locker<Mutex>		lock(mtx);
-	psvcarr = new ServiceStub[svcprovisioncp];
-	pselarr = new AtomicSelectorBaseT[selprovisioncp];
-	for(size_t i = svcprovisioncp - 1; i > 0; --i){
-		svcfreestk.push(i);
-	}
-	svcfreestk.push(0);
-	for(size_t i = selprovisioncp - 1; i > 0; --i){
-		selfreestk.push(i);
-	}
-	pselarr[0].store(&dummysel, ATOMIC_NS::memory_order_relaxed);
 }
 
 /*static*/ Manager& Manager::specific(){
@@ -228,7 +215,23 @@ Manager::Manager(
 	const size_t _selprovisioncp,
 	uint _objpermutbts, uint _mutrowsbts, uint _mutcolsbts
 ):d(*(new Data(*this, _svcprovisioncp, _selprovisioncp, _objpermutbts, _mutrowsbts, _mutcolsbts))){
-	registerService(d.dummysvc);
+	cassert(d.svcprovisioncp);
+	cassert(d.selprovisioncp);
+	Locker<Mutex>		lock(d.mtx);
+	d.psvcarr = new ServiceStub[d.svcprovisioncp];
+	d.pselarr = new AtomicSelectorBaseT[d.selprovisioncp];
+	
+	for(size_t i = d.svcprovisioncp - 1; i > 0; --i){
+		d.svcfreestk.push(i);
+	}
+	d.svcfreestk.push(0);
+	for(size_t i = d.selprovisioncp - 1; i > 0; --i){
+		d.selfreestk.push(i);
+	}
+	
+	d.pselarr[0].store(&d.dummysel, ATOMIC_NS::memory_order_relaxed);
+	
+	doRegisterService(d.dummysvc);
 }
 
 /*virtual*/ Manager::~Manager(){
@@ -277,57 +280,7 @@ bool Manager::registerService(
 		return false;
 	}
 	Locker<Mutex>	lock(d.mtx);
-	if(d.svcfreestk.size()){
-		const size_t	idx = d.svcfreestk.top();
-		const uint		svcbts = d.svcbts.load(ATOMIC_NS::memory_order_relaxed);
-		const size_t	svcmaxcnt = bitsToMask(svcbts);
-		
-		if(idx >= svcmaxcnt){
-			Locker<Mutex>	lockt(d.mtxobj);
-			const uint		svcbtst = d.svcbts.load(ATOMIC_NS::memory_order_relaxed);
-			const size_t	svcmaxcntt = bitsToMask(svcbtst);
-			const uint		objbtst = d.objbts.load(ATOMIC_NS::memory_order_relaxed);
-			if(idx >= svcmaxcntt){
-				if((svcbtst + objbtst + 1) > (sizeof(IndexT) * 8)){
-					return false;
-				}
-				d.svcbts.store(svcbtst + 1, ATOMIC_NS::memory_order_relaxed);
-			}
-		}
-		
-		d.svcfreestk.pop();
-		_rs.idx.store(idx, ATOMIC_NS::memory_order_relaxed);
-		
-		ServiceStub		&rss = d.psvcarr[idx];
-		Locker<Mutex>	lock2(rss.mtx);
-		
-		rss.psvc = &_rs;
-		if(!_objpermutbts){
-			_objpermutbts = d.objpermutbts;
-		}
-		
-		rss.state = ServiceStub::StateRunning;
-		
-		const size_t	objcnt = rss.objvecsz.load(ATOMIC_NS::memory_order_relaxed);
-		const uint		oldobjpermutbts = rss.objpermutbts.load(ATOMIC_NS::memory_order_relaxed);
-		
-		lock_all(rss.mtxstore, objcnt, oldobjpermutbts);
-		
-		rss.objpermutbts.store(_objpermutbts, ATOMIC_NS::memory_order_relaxed);
-		
-		while(rss.objfreestk.size()){
-			rss.objfreestk.pop();
-		}
-		for(size_t i = objcnt; i > 0; --i){
-			rss.objfreestk.push(i - 1);
-			rss.mtxstore.safeAt(i - 1, _objpermutbts);
-		}
-		unlock_all(rss.mtxstore, objcnt, oldobjpermutbts);
-		++d.svccnt;
-		return true;
-	}else{
-		return false;
-	}
+	return doRegisterService(_rs, _objpermutbts);
 }
 
 ObjectUidT	Manager::registerObject(Object &_ro){
@@ -501,6 +454,64 @@ Mutex& Manager::serviceMutex(const Service &_rsvc)const{
 
 ObjectUidT Manager::registerServiceObject(const Service &_rsvc, Object &_robj){
 	return doRegisterServiceObject(_rsvc.idx, _robj);
+}
+
+
+bool Manager::doRegisterService(
+	Service &_rs,
+	uint _objpermutbts
+){
+	if(d.svcfreestk.size()){
+		const size_t	idx = d.svcfreestk.top();
+		const uint		svcbts = d.svcbts.load(ATOMIC_NS::memory_order_relaxed);
+		const size_t	svcmaxcnt = bitsToMask(svcbts);
+		
+		if(idx >= svcmaxcnt){
+			Locker<Mutex>	lockt(d.mtxobj);
+			const uint		svcbtst = d.svcbts.load(ATOMIC_NS::memory_order_relaxed);
+			const size_t	svcmaxcntt = bitsToMask(svcbtst);
+			const uint		objbtst = d.objbts.load(ATOMIC_NS::memory_order_relaxed);
+			if(idx >= svcmaxcntt){
+				if((svcbtst + objbtst + 1) > (sizeof(IndexT) * 8)){
+					return false;
+				}
+				d.svcbts.store(svcbtst + 1, ATOMIC_NS::memory_order_relaxed);
+			}
+		}
+		
+		d.svcfreestk.pop();
+		_rs.idx.store(idx, ATOMIC_NS::memory_order_relaxed);
+		
+		ServiceStub		&rss = d.psvcarr[idx];
+		Locker<Mutex>	lock2(rss.mtx);
+		
+		rss.psvc = &_rs;
+		if(!_objpermutbts){
+			_objpermutbts = d.objpermutbts;
+		}
+		
+		rss.state = ServiceStub::StateRunning;
+		
+		const size_t	objcnt = rss.objvecsz.load(ATOMIC_NS::memory_order_relaxed);
+		const uint		oldobjpermutbts = rss.objpermutbts.load(ATOMIC_NS::memory_order_relaxed);
+		
+		lock_all(rss.mtxstore, objcnt, oldobjpermutbts);
+		
+		rss.objpermutbts.store(_objpermutbts, ATOMIC_NS::memory_order_relaxed);
+		
+		while(rss.objfreestk.size()){
+			rss.objfreestk.pop();
+		}
+		for(size_t i = objcnt; i > 0; --i){
+			rss.objfreestk.push(i - 1);
+			rss.mtxstore.safeAt(i - 1, _objpermutbts);
+		}
+		unlock_all(rss.mtxstore, objcnt, oldobjpermutbts);
+		++d.svccnt;
+		return true;
+	}else{
+		return false;
+	}
 }
 
 ObjectUidT Manager::doRegisterServiceObject(const IndexT _svcidx, Object &_robj){
