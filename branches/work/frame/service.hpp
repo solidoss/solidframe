@@ -65,6 +65,10 @@ public:
 	Manager& manager();
 	
 	Mutex& mutex()const;
+protected:
+	Mutex& mutex(const IndexT &_rfullid)const;
+	Object* object(const IndexT &_rfullid)const;
+	ObjectUidT unsafeRegisterObject(Object &_robj)const;
 private:
 	friend class Manager;
 	Manager 					&rm;

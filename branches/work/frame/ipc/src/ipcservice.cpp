@@ -138,12 +138,7 @@ struct Service::Data{
 	typedef Queue<uint32>								Uint32QueueT;
 	
 	Data(
-		const DynamicPointer<Controller> &_rctrlptr,
-		const uint32 _tkrsescnt,
-		const uint32 _tkrmaxcnt,
-		const uint32 _nodesescnt,
-		const uint32 _nodesockcnt,
-		const uint32 _nodemaxcnt
+		const DynamicPointer<Controller> &_rctrlptr
 	);
 	
 	~Data();
@@ -153,11 +148,7 @@ struct Service::Data{
 	}
 	
 	DynamicPointer<Controller>	ctrlptr;
-	const uint32				tkrsescnt;
-	const uint32				tkrmaxcnt;
-	const uint32				nodesescnt;
-	const uint32				nodesockcnt;
-	const uint32				nodemaxcnt;
+	Configuration				config;
 	uint32						tkrcrt;
 	uint32						nodecrt;
 	int							baseport;
@@ -175,15 +166,9 @@ struct Service::Data{
 //=======	ServiceData		===========================================
 
 Service::Data::Data(
-	const DynamicPointer<Controller> &_rctrlptr,
-	const uint32 _tkrsescnt,
-	const uint32 _tkrmaxcnt,
-	const uint32 _nodesescnt,
-	const uint32 _nodesockcnt,
-	const uint32 _nodemaxcnt
+	const DynamicPointer<Controller> &_rctrlptr
 ):
-	ctrlptr(_rctrlptr), tkrsescnt(_tkrsescnt), tkrmaxcnt(_tkrmaxcnt),
-	nodesescnt(_nodesescnt), nodesockcnt(_nodesockcnt), nodemaxcnt(_nodemaxcnt),
+	ctrlptr(_rctrlptr),
 	tkrcrt(0), nodecrt(0), baseport(-1)
 {
 	timestamp.currentRealTime();
@@ -207,22 +192,10 @@ Service::Data::~Data(){
 	}
 }
 
-/*static*/ Service& Service::the(){
-	return *m().service<Service>();
-}
-/*static*/ Service& Service::the(const IndexT &_ridx){
-	return *m().service<Service>(_ridx);
-}
-
 Service::Service(
-	const DynamicPointer<Controller> &_rctrlptr,
-	const uint32 _tkrsescnt,
-	const uint32 _tkrmaxcnt,
-	const uint32 _nodesescnt,
-	const uint32 _nodesockcnt,
-	const uint32 _nodemaxcnt
-):d(*(new Data(_rctrlptr, _tkrsescnt, _tkrmaxcnt, _nodesescnt, _nodesockcnt, _nodemaxcnt))){
-	registerObjectType<Talker>(this);
+	Manager &_rm,
+	const DynamicPointer<Controller> &_rctrlptr
+):frame::Service(_rm), d(*(new Data(_rctrlptr))){
 }
 //---------------------------------------------------------------------
 Service::~Service(){
@@ -233,24 +206,24 @@ const TimeSpec& Service::timeStamp()const{
 	return d.timestamp;
 }
 //---------------------------------------------------------------------
-int Service::sendSignal(
-	DynamicPointer<Signal> &_psig,//the signal to be sent
+void Service::sendMessage(
+	DynamicPointer<Message> &_rmsgptr,//the message to be sent
 	const ConnectionUid &_rconid,//the id of the process connector
 	uint32	_flags
 ){
 	cassert(_rconid.tid < d.tkrvec.size());
 	
-	Locker<Mutex>		lock(serviceMutex());
-	IndexT				idx(Manager::the().computeIndex(d.tkrvec[_rconid.tid].uid.first));
-	Locker<Mutex>		lock2(this->mutex(idx));
-	Talker				*ptkr(static_cast<Talker*>(this->objectAt(idx)));
+	Locker<Mutex>		lock(mutex());
+	const IndexT		fullid(d.tkrvec[_rconid.tid].uid.first);
+	Locker<Mutex>		lock2(this->mutex(fullid));
+	Talker				*ptkr(static_cast<Talker*>(this->object(fullid)));
 	
 	cassert(ptkr);
 	
-	if(ptkr->pushSignal(_psig, SERIALIZATION_INVALIDID, _rconid, _flags | SameConnectorFlag)){
+	if(ptkr->pushMessage(_rmsgptr, SERIALIZATION_INVALIDID, _rconid, _flags | SameConnectorFlag)){
 		//the talker must be signaled
-		if(ptkr->signal(fdt::S_RAISE)){
-			Manager::the().raiseObject(*ptkr);
+		if(ptkr->notify(frame::S_RAISE)){
+			manager().raise(*ptkr);
 		}
 	}
 	return OK;
@@ -261,40 +234,40 @@ void Service::doSendEvent(
 	int32 _event,
 	uint32 _flags
 ){
-	Locker<Mutex>		lock(serviceMutex());
-	IndexT				idx(Manager::the().computeIndex(d.tkrvec[_rconid.tid].uid.first));
-	Locker<Mutex>		lock2(this->mutex(idx));
-	Talker				*ptkr(static_cast<Talker*>(this->objectAt(idx)));
+	Locker<Mutex>		lock(mutex());
+	const IndexT		fullid(d.tkrvec[_rconid.tid].uid.first);
+	Locker<Mutex>		lock2(this->mutex(fullid));
+	Talker				*ptkr(static_cast<Talker*>(this->object(fullid)));
 	
 	cassert(ptkr);
 	
 	if(ptkr->pushEvent(_rconid, _event, _flags)){
 		//the talker must be signaled
-		if(ptkr->signal(fdt::S_RAISE)){
-			Manager::the().raiseObject(*ptkr);
+		if(ptkr->notify(frame::S_RAISE)){
+			manager().raise(*ptkr);
 		}
 	}
 }
 //---------------------------------------------------------------------
-int Service::sendSignal(
-	DynamicPointer<Signal> &_psig,//the signal to be sent
+void Service::sendMessage(
+	DynamicPointer<Message> &_rmsgptr,//the signal to be sent
 	const SerializationTypeIdT &_rtid,
 	const ConnectionUid &_rconid,//the id of the process connector
 	uint32	_flags
 ){
 	cassert(_rconid.tid < d.tkrvec.size());
 	
-	Locker<Mutex>		lock(serviceMutex());
-	IndexT				idx(Manager::the().computeIndex(d.tkrvec[_rconid.tid].uid.first));
-	Locker<Mutex>		lock2(this->mutex(idx));
-	Talker				*ptkr(static_cast<Talker*>(this->objectAt(idx)));
+	Locker<Mutex>		lock(mutex());
+	const IndexT		fullid(d.tkrvec[_rconid.tid].uid.first);
+	Locker<Mutex>		lock2(this->mutex(fullid));
+	Talker				*ptkr(static_cast<Talker*>(this->object(fullid)));
 	
 	cassert(ptkr);
 	
-	if(ptkr->pushSignal(_psig, _rtid, _rconid, _flags | SameConnectorFlag)){
+	if(ptkr->pushMessage(_rmsgptr, _rtid, _rconid, _flags | SameConnectorFlag)){
 		//the talker must be signaled
-		if(ptkr->signal(fdt::S_RAISE)){
-			Manager::the().raiseObject(*ptkr);
+		if(ptkr->notify(frame::S_RAISE)){
+			manager().raise(*ptkr);
 		}
 	}
 	return OK;
@@ -304,8 +277,8 @@ int Service::basePort()const{
 	return d.baseport;
 }
 //---------------------------------------------------------------------
-int Service::doSendSignal(
-	DynamicPointer<Signal> &_psig,//the signal to be sent
+void Service::doSendMessage(
+	DynamicPointer<Message> &_rmsgptr,//the signal to be sent
 	const SerializationTypeIdT &_rtid,
 	ConnectionUid *_pconid,
 	const SocketAddressStub &_rsa_dest,
@@ -316,24 +289,24 @@ int Service::doSendSignal(
 	if(
 		_rsa_dest.family() != SocketInfo::Inet4/* && 
 		_rsap.family() != SocketAddressInfo::Inet6*/
-	) return BAD;
+	)return;
 	
 	if(controller().isLocalNetwork(_rsa_dest, _netid_dest)){
-		return doSendSignalLocal(_psig, _rtid, _pconid, _rsa_dest, _netid_dest, _flags);
+		doSendMessageLocal(_rmsgptr, _rtid, _pconid, _rsa_dest, _netid_dest, _flags);
 	}else{
-		return doSendSignalRelay(_psig, _rtid, _pconid, _rsa_dest, _netid_dest, _flags);
+		doSendMessageRelay(_rmsgptr, _rtid, _pconid, _rsa_dest, _netid_dest, _flags);
 	}
 }
 //---------------------------------------------------------------------
-int Service::doSendSignalLocal(
-	DynamicPointer<Signal> &_psig,//the signal to be sent
+void Service::doSendMessageLocal(
+	DynamicPointer<Message> &_rmsgptr,//the signal to be sent
 	const SerializationTypeIdT &_rtid,
 	ConnectionUid *_pconid,
 	const SocketAddressStub &_rsap,
 	const uint32 /*_netid_dest*/,
 	uint32	_flags
 ){
-	Locker<Mutex>	lock(serviceMutex());
+	Locker<Mutex>	lock(mutex());
 	
 	if(_rsap.family() == SocketInfo::Inet4){
 		const SocketAddressInet4			sa(_rsap);
@@ -346,50 +319,47 @@ int Service::doSendSignalLocal(
 			vdbgx(Dbg::ipc, "");
 			
 			ConnectionUid		conid(it->second);
-			IndexT				idx(Manager::the().computeIndex(d.tkrvec[conid.tid].uid.first));
-			Locker<Mutex>		lock2(this->mutex(idx));
-			Talker				*ptkr(static_cast<Talker*>(this->objectAt(idx)));
+			const IndexT		fullidx(d.tkrvec[conid.tid].uid.first);
+			Locker<Mutex>		lock2(this->mutex(fullid));
+			Talker				*ptkr(static_cast<Talker*>(this->object(fullid)));
 			
 			cassert(conid.tid < d.tkrvec.size());
 			cassert(ptkr);
 			
-			if(ptkr->pushSignal(_psig, _rtid, conid, _flags)){
+			if(ptkr->pushMessage(_rmsgptr, _rtid, conid, _flags)){
 				//the talker must be signaled
-				if(ptkr->signal(fdt::S_RAISE)){
-					Manager::the().raiseObject(*ptkr);
+				if(ptkr->notify(frame::S_RAISE)){
+					manager().raise(*ptkr);
 				}
 			}
 			if(_pconid){
 				*_pconid = conid;
 			}
-			return OK;
-		
 		}else{//the connection/session does not exist
 			vdbgx(Dbg::ipc, "");
 			
-			int16	tkrid(allocateTalkerForSession());
-			IndexT	tkrpos;
+			int16	tkridx(allocateTalkerForSession());
+			IndexT	tkrfullid;
 			uint32	tkruid;
 			
-			if(tkrid >= 0){
+			if(tkridx >= 0){
 				//the talker exists
-				tkrpos = d.tkrvec[tkrid].uid.first;
-				tkruid = d.tkrvec[tkrid].uid.second;
+				tkrfullid = d.tkrvec[tkridx].uid.first;
+				tkruid = d.tkrvec[tkridx].uid.second;
 			}else{
 				//create new talker
-				tkrid = createTalker(tkrpos, tkruid);
-				if(tkrid < 0){
-					tkrid = allocateTalkerForSession(true/*force*/);
+				tkridx = createTalker(tkrfullid, tkruid);
+				if(tkridx < 0){
+					tkridx = allocateTalkerForSession(true/*force*/);
 				}
-				tkrpos = d.tkrvec[tkrid].uid.first;
-				tkruid = d.tkrvec[tkrid].uid.second;
+				tkrfullid = d.tkrvec[tkridx].uid.first;
+				tkruid = d.tkrvec[tkridx].uid.second;
 			}
 			
-			tkrpos = Manager::the().computeIndex(tkrpos);
-			Locker<Mutex>		lock2(this->mutex(tkrpos));
-			Talker				*ptkr(static_cast<Talker*>(this->objectAt(tkrpos)));
+			Locker<Mutex>		lock2(this->mutex(tkrfullid));
+			Talker				*ptkr(static_cast<Talker*>(this->object(tkrfullid)));
 			Session				*pses(new Session(sa));
-			ConnectionUid		conid(tkrid);
+			ConnectionUid		conid(tkridx);
 			
 			cassert(ptkr);
 			
@@ -397,33 +367,31 @@ int Service::doSendSignalLocal(
 			ptkr->pushSession(pses, conid);
 			d.sessionaddr4map[pses->peerBaseAddress4()] = conid;
 			
-			ptkr->pushSignal(_psig, _rtid, conid, _flags);
+			ptkr->pushMessage(_rmsgptr, _rtid, conid, _flags);
 			
-			if(ptkr->signal(fdt::S_RAISE)){
-				Manager::the().raiseObject(*ptkr);
+			if(ptkr->notify(frame::S_RAISE)){
+				manager().raise(*ptkr);
 			}
 			
 			if(_pconid){
 				*_pconid = conid;
 			}
-			return OK;
 		}
 	}else{//inet6
 		cassert(false);
 		//TODO:
 	}
-	return OK;
 }
 //---------------------------------------------------------------------
-int Service::doSendSignalRelay(
-	DynamicPointer<Signal> &_psig,//the signal to be sent
+int Service::doSendMessageRelay(
+	DynamicPointer<Message> &_rmsgptr,//the signal to be sent
 	const SerializationTypeIdT &_rtid,
 	ConnectionUid *_pconid,
 	const SocketAddressStub &_rsap,
 	const uint32 _netid_dest,
 	uint32	_flags
 ){
-	Locker<Mutex>	lock(serviceMutex());
+	Locker<Mutex>	lock(mutex());
 	
 	if(_rsap.family() == SocketInfo::Inet4){
 		const SocketAddressInet4				sa(_rsap);
@@ -436,76 +404,70 @@ int Service::doSendSignalRelay(
 			vdbgx(Dbg::ipc, "");
 			
 			ConnectionUid		conid(it->second);
-			IndexT				idx(Manager::the().computeIndex(d.tkrvec[conid.tid].uid.first));
-			Locker<Mutex>		lock2(this->mutex(idx));
-			Talker				*ptkr(static_cast<Talker*>(this->objectAt(idx)));
+			const IndexT		fullid(d.tkrvec[conid.tid].uid.first);
+			Locker<Mutex>		lock2(this->mutex(fullid));
+			Talker				*ptkr(static_cast<Talker*>(this->object(fullid)));
 			
 			cassert(conid.tid < d.tkrvec.size());
 			cassert(ptkr);
 			
-			if(ptkr->pushSignal(_psig, _rtid, conid, _flags)){
+			if(ptkr->pushMessage(_rmsgptr, _rtid, conid, _flags)){
 				//the talker must be signaled
-				if(ptkr->signal(fdt::S_RAISE)){
-					Manager::the().raiseObject(*ptkr);
+				if(ptkr->notify(frame::S_RAISE)){
+					manager().raise(*ptkr);
 				}
 			}
 			if(_pconid){
 				*_pconid = conid;
 			}
-			return OK;
-		
 		}else{//the connection/session does not exist
 			vdbgx(Dbg::ipc, "");
 			
-			int16	tkrid(allocateTalkerForSession());
-			IndexT	tkrpos;
+			int16	tkridx(allocateTalkerForSession());
+			IndexT	tkrfullid;
 			uint32	tkruid;
 			
-			if(tkrid >= 0){
+			if(tkridx >= 0){
 				//the talker exists
-				tkrpos = d.tkrvec[tkrid].uid.first;
-				tkruid = d.tkrvec[tkrid].uid.second;
+				tkrfullid = d.tkrvec[tkridx].uid.first;
+				tkruid = d.tkrvec[tkridx].uid.second;
 			}else{
 				//create new talker
-				tkrid = createTalker(tkrpos, tkruid);
-				if(tkrid < 0){
-					tkrid = allocateTalkerForSession(true/*force*/);
+				tkridx = createTalker(tkrfullid, tkruid);
+				if(tkridx < 0){
+					tkridx = allocateTalkerForSession(true/*force*/);
 				}
-				tkrpos = d.tkrvec[tkrid].uid.first;
+				tkrfullid = d.tkrvec[tkridx].uid.first;
 				tkruid = d.tkrvec[tkrid].uid.second;
 			}
 			
-			tkrpos = Manager::the().computeIndex(tkrpos);
-			
-			Locker<Mutex>		lock2(this->mutex(tkrpos));
-			Talker				*ptkr(static_cast<Talker*>(this->objectAt(tkrpos)));
+			Locker<Mutex>		lock2(this->mutex(tkrfullid));
+			Talker				*ptkr(static_cast<Talker*>(this->object(tkrfullid)));
 			cassert(ptkr);
 			Session				*pses(new Session(_netid_dest, sa));
-			ConnectionUid		conid(tkrid);
+			ConnectionUid		conid(tkridx);
 			
 			vdbgx(Dbg::ipc, "");
 			ptkr->pushSession(pses, conid);
 			d.sessionrelayaddr4map[pses->peerRelayAddress4()] = conid;
 			
-			ptkr->pushSignal(_psig, _rtid, conid, _flags);
+			ptkr->pushMessage(_rmsgptr, _rtid, conid, _flags);
 			
-			if(ptkr->signal(fdt::S_RAISE)){
-				Manager::the().raiseObject(*ptkr);
+			if(ptkr->notify(frame::S_RAISE)){
+				manager().raise(*ptkr);
 			}
 			
 			if(_pconid){
 				*_pconid = conid;
 			}
-			return OK;
 		}
 	}else{//inet6
 		cassert(false);
 		//TODO:
 	}
-	return OK;
 }
 //---------------------------------------------------------------------
-int Service::createTalker(IndexT &_tkrpos, uint32 &_tkruid){
+int Service::createTalker(IndexT &_tkrfullid, uint32 &_tkruid){
 	
 	if(d.tkrvec.size() >= d.tkrmaxcnt){
 		vdbgx(Dbg::ipc, "maximum talker count reached "<<d.tkrvec.size());
@@ -525,7 +487,7 @@ int Service::createTalker(IndexT &_tkrpos, uint32 &_tkruid){
 		d.firstaddr.port(oldport);
 		vdbgx(Dbg::ipc, "Successful created talker");
 		Talker		*ptkr(new Talker(sd, *this, tkrid));
-		ObjectUidT	objuid(this->insertLockless(ptkr));
+		ObjectUidT	objuid(this->unsafeRegisterObject(ptkr));
 		
 		d.tkrq.push(d.tkrvec.size());
 		d.tkrvec.push_back(objuid);
@@ -558,7 +520,7 @@ int Service::createNode(IndexT &_nodepos, uint32 &_nodeuid){
 		d.firstaddr.port(oldport);
 		vdbgx(Dbg::ipc, "Successful created node");
 		Node		*pnode(new Node(sd, *this, nodeid));
-		ObjectUidT	objuid(this->insertLockless(pnode));
+		ObjectUidT	objuid(this->unsafeRegisterObject(*pnode));
 		
 		d.sessnodeq.push(d.nodevec.size());
 		d.socknodeq.push(d.nodevec.size());
@@ -663,7 +625,7 @@ int Service::acceptSession(const SocketAddress &_rsa, const ConnectData &_rconnd
 }
 //---------------------------------------------------------------------
 int Service::doAcceptBasicSession(const SocketAddress &_rsa, const ConnectData &_rconndata){
-	Locker<Mutex>		lock(serviceMutex());
+	Locker<Mutex>		lock(mutex());
 	SocketAddressInet4	inaddr(_rsa);
 	Session				*pses = new Session(
 		inaddr,
@@ -677,44 +639,42 @@ int Service::doAcceptBasicSession(const SocketAddress &_rsa, const ConnectData &
 		
 		if(it != d.sessionaddr4map.end()){
 			//a connection still exists
-			IndexT			tkrpos(Manager::the().computeIndex(d.tkrvec[it->second.tid].uid.first));
-			Locker<Mutex>	lock2(this->mutex(tkrpos));
-			Talker			*ptkr(static_cast<Talker*>(this->objectAt(tkrpos)));
+			const IndexT	tkrfullid(d.tkrvec[it->second.tid].uid.first);
+			Locker<Mutex>	lock2(this->mutex(tkrfullid));
+			Talker			*ptkr(static_cast<Talker*>(this->object(tkrfullid)));
 			
 			vdbgx(Dbg::ipc, "");
 			
 			ptkr->pushSession(pses, it->second, true);
 			
-			if(ptkr->signal(fdt::S_RAISE)){
-				Manager::the().raiseObject(*ptkr);
+			if(ptkr->notify(frame::S_RAISE)){
+				manager.raise(*ptkr);
 			}
 			return OK;
 		}
 	}
 	
-	int		tkrid(allocateTalkerForSession());
-	IndexT	tkrpos;
+	int		tkridx(allocateTalkerForSession());
+	IndexT	tkrfullid;
 	uint32	tkruid;
 	
-	if(tkrid >= 0){
+	if(tkridx >= 0){
 		//the talker exists
-		tkrpos = d.tkrvec[tkrid].uid.first;
-		tkruid = d.tkrvec[tkrid].uid.second;
+		tkrfullid = d.tkrvec[tkridx].uid.first;
+		tkruid = d.tkrvec[tkridx].uid.second;
 	}else{
 		//create new talker
-		tkrid = createTalker(tkrpos, tkruid);
-		if(tkrid < 0){
-			tkrid = allocateTalkerForSession(true/*force*/);
+		tkridx = createTalker(tkrfullid, tkruid);
+		if(tkridx < 0){
+			tkridx = allocateTalkerForSession(true/*force*/);
 		}
-		tkrpos = d.tkrvec[tkrid].uid.first;
-		tkruid = d.tkrvec[tkrid].uid.second;
+		tkrfullid = d.tkrvec[tkridx].uid.first;
+		tkruid = d.tkrvec[tkridx].uid.second;
 	}
 	
-	tkrpos = Manager::the().computeIndex(tkrpos);
-	
-	Locker<Mutex>	lock2(this->mutex(tkrpos));
-	Talker			*ptkr(static_cast<Talker*>(this->objectAt(tkrpos)));
-	ConnectionUid	conid(tkrid, 0xffff, 0xffff);
+	Locker<Mutex>	lock2(this->mutex(tkrfullid));
+	Talker			*ptkr(static_cast<Talker*>(this->object(tkrfullid)));
+	ConnectionUid	conid(tkridx, 0xffff, 0xffff);
 	
 	cassert(ptkr);
 	vdbgx(Dbg::ipc, "");
@@ -722,15 +682,15 @@ int Service::doAcceptBasicSession(const SocketAddress &_rsa, const ConnectData &
 	ptkr->pushSession(pses, conid);
 	d.sessionaddr4map[pses->peerBaseAddress4()] = conid;
 	
-	if(ptkr->signal(fdt::S_RAISE)){
-		Manager::the().raiseObject(*ptkr);
+	if(ptkr->notify(frame::S_RAISE)){
+		manager().raise(*ptkr);
 	}
 	return OK;
 }
 //---------------------------------------------------------------------
 //accept session on destination, receiver
 int Service::doAcceptRelaySession(const SocketAddress &_rsa, const ConnectData &_rconndata){
-	Locker<Mutex>				lock(serviceMutex());
+	Locker<Mutex>				lock(mutex());
 	SocketAddressInet4			inaddr(_rsa);
 	Session						*pses = new Session(
 		_rconndata.sendernetworkid,
@@ -744,43 +704,41 @@ int Service::doAcceptRelaySession(const SocketAddress &_rsa, const ConnectData &
 		
 		if(it != d.sessionrelayaddr4map.end()){
 			//a connection still exists
-			IndexT			tkrpos(Manager::the().computeIndex(d.tkrvec[it->second.tid].uid.first));
-			Locker<Mutex>	lock2(this->mutex(tkrpos));
-			Talker			*ptkr(static_cast<Talker*>(this->objectAt(tkrpos)));
+			const IndexT	tkrfullid(d.tkrvec[it->second.tid].uid.first);
+			Locker<Mutex>	lock2(this->mutex(tkrfullid));
+			Talker			*ptkr(static_cast<Talker*>(this->object(tkrfullid)));
 			
 			vdbgx(Dbg::ipc, "");
 			
 			ptkr->pushSession(pses, it->second, true);
 			
-			if(ptkr->signal(fdt::S_RAISE)){
-				Manager::the().raiseObject(*ptkr);
+			if(ptkr->notify(frame::S_RAISE)){
+				manager().raise(*ptkr);
 			}
 			return OK;
 		}
 	}
-	int		tkrid(allocateTalkerForSession());
-	IndexT	tkrpos;
+	intx	tkridx(allocateTalkerForSession());
+	IndexT	tkrfullid;
 	uint32	tkruid;
 	
-	if(tkrid >= 0){
+	if(tkridx >= 0){
 		//the talker exists
-		tkrpos = d.tkrvec[tkrid].uid.first;
-		tkruid = d.tkrvec[tkrid].uid.second;
+		tkrfullid = d.tkrvec[tkridx].uid.first;
+		tkruid = d.tkrvec[tkridx].uid.second;
 	}else{
 		//create new talker
-		tkrid = createTalker(tkrpos, tkruid);
-		if(tkrid < 0){
-			tkrid = allocateTalkerForSession(true/*force*/);
+		tkridx = createTalker(tkrfullid, tkruid);
+		if(tkridx < 0){
+			tkridx = allocateTalkerForSession(true/*force*/);
 		}
-		tkrpos = d.tkrvec[tkrid].uid.first;
-		tkruid = d.tkrvec[tkrid].uid.second;
+		tkrfullid = d.tkrvec[tkridx].uid.first;
+		tkruid = d.tkrvec[tkridx].uid.second;
 	}
 	
-	tkrpos = Manager::the().computeIndex(tkrpos);
-	
-	Locker<Mutex>	lock2(this->mutex(tkrpos));
-	Talker			*ptkr(static_cast<Talker*>(this->objectAt(tkrpos)));
-	ConnectionUid	conid(tkrid, 0xffff, 0xffff);
+	Locker<Mutex>	lock2(this->mutex(tkrfullid));
+	Talker			*ptkr(static_cast<Talker*>(this->object(tkrfullid)));
+	ConnectionUid	conid(tkridx, 0xffff, 0xffff);
 	
 	cassert(ptkr);
 	
@@ -789,8 +747,8 @@ int Service::doAcceptRelaySession(const SocketAddress &_rsa, const ConnectData &
 	ptkr->pushSession(pses, conid);
 	d.sessionrelayaddr4map[pses->peerRelayAddress4()] = conid;
 	
-	if(ptkr->signal(fdt::S_RAISE)){
-		Manager::the().raiseObject(*ptkr);
+	if(ptkr->notify(frame::S_RAISE)){
+		manager().raise(*ptkr);
 	}
 	return OK;
 }
@@ -801,30 +759,29 @@ int Service::doAcceptGatewaySession(const SocketAddress &_rsa, const ConnectData
 }
 //---------------------------------------------------------------------
 void Service::connectSession(const SocketAddressInet4 &_raddr){
-	Locker<Mutex>	lock(serviceMutex());
-	int				tkrid(allocateTalkerForSession());
-	IndexT			tkrpos;
+	Locker<Mutex>	lock(mutex());
+	int				tkridx(allocateTalkerForSession());
+	IndexT			tkrfullid;
 	uint32			tkruid;
 	
-	if(tkrid >= 0){
+	if(tkridx >= 0){
 		//the talker exists
-		tkrpos = d.tkrvec[tkrid].uid.first;
-		tkruid = d.tkrvec[tkrid].uid.second;
+		tkrfullid = d.tkrvec[tkridx].uid.first;
+		tkruid = d.tkrvec[tkridx].uid.second;
 	}else{
 		//create new talker
-		tkrid = createTalker(tkrpos, tkruid);
-		if(tkrid < 0){
-			tkrid = allocateTalkerForSession(true/*force*/);
+		tkridx = createTalker(tkrfullid, tkruid);
+		if(tkridx < 0){
+			tkridx = allocateTalkerForSession(true/*force*/);
 		}
-		tkrpos = d.tkrvec[tkrid].uid.first;
-		tkruid = d.tkrvec[tkrid].uid.second;
+		tkrfullid = d.tkrvec[tkridx].uid.first;
+		tkruid = d.tkrvec[tkridx].uid.second;
 	}
-	tkrpos = Manager::the().computeIndex(tkrpos);
 	
-	Locker<Mutex>	lock2(this->mutex(tkrpos));
-	Talker			*ptkr(static_cast<Talker*>(this->objectAt(tkrpos)));
+	Locker<Mutex>	lock2(this->mutex(tkrfullid));
+	Talker			*ptkr(static_cast<Talker*>(this->object(tkrfullid)));
 	Session			*pses(new Session(_raddr));
-	ConnectionUid	conid(tkrid);
+	ConnectionUid	conid(tkridx);
 	
 	cassert(ptkr);
 	
@@ -832,13 +789,13 @@ void Service::connectSession(const SocketAddressInet4 &_raddr){
 	ptkr->pushSession(pses, conid);
 	d.sessionaddr4map[pses->peerBaseAddress4()] = conid;
 	
-	if(ptkr->signal(fdt::S_RAISE)){
-		Manager::the().raiseObject(*ptkr);
+	if(ptkr->notify(frame::S_RAISE)){
+		manager().raise(*ptkr);
 	}
 }
 //---------------------------------------------------------------------
 void Service::disconnectTalkerSessions(Talker &_rtkr){
-	Locker<Mutex>	lock(serviceMutex());
+	Locker<Mutex>	lock(mutex());
 	_rtkr.disconnectSessions();
 }
 //---------------------------------------------------------------------
@@ -849,15 +806,15 @@ void Service::disconnectSession(Session *_pses){
 		d.sessionaddr4map.erase(_pses->peerBaseAddress4());
 	}
 	//Use:Context::the().sigctx.connectionuid.tid
-	int					tkrid(Context::the().sigctx.connectionuid.tid);
-	Data::TalkerStub	&rts(d.tkrvec[tkrid]);
+	const int			tkridx(Context::the().sigctx.connectionuid.tid);
+	Data::TalkerStub	&rts(d.tkrvec[tkridx]);
 	
 	--rts.cnt;
 	
 	vdbgx(Dbg::ipc, "disconnected session for talker "<<tkrid<<" session count per talker = "<<rts.cnt);
 	
 	if(rts.cnt < d.tkrsescnt){
-		d.tkrq.push(tkrid);
+		d.tkrq.push(tkridx);
 	}
 }
 //---------------------------------------------------------------------
@@ -890,6 +847,7 @@ const Controller& Service::controller()const{
 ){
 	return false;
 }
+
 /*virtual*/ bool Controller::decompressBuffer(
 	BufferContext &_rbc,
 	char* &_rpb,
@@ -897,6 +855,7 @@ const Controller& Service::controller()const{
 ){
 	return true;
 }
+
 char * Controller::allocateBuffer(BufferContext &_rbc, uint32 &_cp){
 	const uint	mid(Specific::capacityToIndex(_cp ? _cp : Buffer::Capacity));
 	char		*newbuf(Buffer::allocate());
@@ -908,6 +867,7 @@ char * Controller::allocateBuffer(BufferContext &_rbc, uint32 &_cp){
 	_rbc.reqbufid = mid;
 	return newbuf + _rbc.offset;
 }
+
 bool Controller::receive(
 	Signal *_psig,
 	ipc::SignalUid &_rsiguid
@@ -929,6 +889,7 @@ int Controller::authenticate(
 /*virtual*/ uint32 Controller::localNetworkId()const{
 	return LocalNetworkId;
 }
+
 bool Controller::isLocalNetwork(
 	const SocketAddressStub &,
 	const uint32 _netid_dest

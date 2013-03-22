@@ -110,6 +110,9 @@ private:
 	friend class SelectorBase;
 	friend class SchedulerBase;
 	
+	Mutex& mutex(const IndexT &_rfullid)const;
+	Object* unsafeObject(const IndexT &_rfullid)const;
+	
 	IndexT computeThreadId(const IndexT &_selidx, const IndexT &_objidx);
 	bool prepareThread(SelectorBase *_ps = NULL);
 	void unprepareThread(SelectorBase *_ps = NULL);

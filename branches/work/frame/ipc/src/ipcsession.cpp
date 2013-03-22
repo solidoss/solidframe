@@ -1,6 +1,6 @@
 /* Implementation file ipcsession.cpp
 	
-	Copyright 2010 Valentin Palade
+	Copyright 2010,2013 Valentin Palade
 	vipalade@gmail.com
 
 	This file is part of SolidFrame framework.
@@ -30,17 +30,15 @@
 #include "system/thread.hpp"
 #include "utility/queue.hpp"
 #include "algorithm/serialization/binary.hpp"
-#include "frame/signal.hpp"
+#include "frame/message.hpp"
 #include "frame/manager.hpp"
 #include "frame/ipc/ipcservice.hpp"
 #include "ipcsession.hpp"
 #include "ipcbuffer.hpp"
 
 //#define ENABLE_MORE_DEBUG
-
-namespace fdt = foundation;
-
-namespace foundation{
+namespace solid{
+namespace frame{
 namespace ipc{
 
 
@@ -2929,4 +2927,5 @@ std::ostream& operator<<(std::ostream &_ros, const StatisticData &_rsd){
 
 
 }//namespace ipc
-}//namespace foundation
+}//namespace frame
+}//namespace solid

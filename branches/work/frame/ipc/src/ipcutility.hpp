@@ -27,10 +27,7 @@
 
 #include "frame/ipc/ipcservice.hpp"
 
-namespace frame{
-class Visitor;
-}
-
+namespace solid{
 namespace frame{
 namespace ipc{
 
@@ -168,5 +165,6 @@ struct SocketAddressCompare{
 
 }//namespace ipc
 }//namespace frame
+}//namespace solid
 
 #endif

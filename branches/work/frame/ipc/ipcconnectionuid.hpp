@@ -22,10 +22,11 @@
 #ifndef SOLID_FRAME_IPC_IPC_SESSION_UID_HPP
 #define SOLID_FRAME_IPC_IPC_SESSION_UID_HPP
 
-#include "system/common.hpp"
 #include "system/socketaddress.hpp"
 #include "utility/dynamicpointer.hpp"
+#include "frame/common.hpp"
 
+namespace solid{
 namespace frame{
 namespace ipc{
 
@@ -51,8 +52,8 @@ struct ConnectionUid{
 	uint16	uid;
 };
 
-struct SignalUid{
-	SignalUid(
+struct MessageUid{
+	MessageUid(
 		const uint32 _idx = 0xffffffff,
 		const uint32 _uid = 0xffffffff
 	):idx(_idx), uid(_uid){}
@@ -86,7 +87,7 @@ struct ConnectionContext{
 	ConnectionUid 		connectionuid;
 	const uint32		tkruid;
 	int 				baseport;
-	SignalUid			signaluid;
+	MessageUid			messageuid;
 	SocketAddressStub	pairaddr;
 	
 	ObjectUidT talkerUid()const{
@@ -110,5 +111,5 @@ typedef uint32 SerializationTypeIdT;
 
 }//namespace ipc
 }//namespace frame
-
+}//namespace solid
 #endif

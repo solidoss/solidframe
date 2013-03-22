@@ -249,6 +249,7 @@ public:
 	static const char* errorText(int _err);
 	
 	Service(
+		frame::Manager &_rm,
 		const DynamicPointer<Controller> &_rctrlptr
 	);
 
@@ -390,7 +391,7 @@ private:
 	bool checkAcceptData(const SocketAddress &_rsa, const AcceptData &_raccdata);
 	void disconnectSession(Session *_pses);
 	void disconnectTalkerSessions(Talker &);
-	int createTalker(IndexT &_tkrpos, uint32 &_tkruid);
+	int createTalker(IndexT &_tkrfullid, uint32 &_tkruid);
 	int allocateTalkerForSession(bool _force = false);
 	int createNode(IndexT &_nodepos, uint32 &_nodeuid);
 	int allocateNodeForSession(bool _force = false);

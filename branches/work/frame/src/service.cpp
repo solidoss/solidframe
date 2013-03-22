@@ -121,6 +121,17 @@ Mutex& Service::mutex()const{
 	return rm.serviceMutex(*this);
 }
 
+Mutex& Service::mutex(const IndexT &_rfullid)const{
+	return rm.mutex(_rfullid);
+}
+Object* Service::object(const IndexT &_rfullid)const{
+	return rm.unsafeObject(_rfullid);
+}
+
+ObjectUidT Service::unsafeRegisterObject(Object &_robj)const{
+	return rm.doRegisterServiceObject(idx, _robj);
+}
+
 }//namespace frame
 }//namespace solid
 

@@ -284,6 +284,8 @@ bool Manager::registerService(
 }
 
 ObjectUidT	Manager::registerObject(Object &_ro){
+	ServiceStub		&rss = d.psvcarr[0];
+	Locker<Mutex>	lock(rss.mtx);
 	return doRegisterServiceObject(0, _ro);
 }
 
@@ -361,7 +363,7 @@ bool Manager::notify(ulong _sm, const ObjectUidT &_ruid){
 		if(objpermutbts && objidx < objcnt){
 			Locker<Mutex>	lock(rss.mtxstore.at(objidx, objpermutbts));
 			
-			if(rss.objpermutbts.load(ATOMIC_NS::memory_order_relaxed) == objpermutbts){
+			if(rss.objpermutbts.load(ATOMIC_NS::memory_order_relaxed) == objpermutbts && rss.objvec[objidx].uid == _ruid.second){
 				if(rss.objvec[objidx].pobj->notify(_sm)){
 					this->raise(*rss.objvec[objidx].pobj);
 				}
@@ -386,7 +388,7 @@ bool Manager::notify(MessagePointerT &_rmsgptr, const ObjectUidT &_ruid){
 		if(objpermutbts && objidx < objcnt){
 			Locker<Mutex>	lock(rss.mtxstore.at(objidx, objpermutbts));
 			
-			if(rss.objpermutbts.load(ATOMIC_NS::memory_order_relaxed) == objpermutbts){
+			if(rss.objpermutbts.load(ATOMIC_NS::memory_order_relaxed) == objpermutbts && rss.objvec[objidx].uid == _ruid.second){
 				if(rss.objvec[objidx].pobj->notify(_rmsgptr)){
 					this->raise(*rss.objvec[objidx].pobj);
 				}
@@ -453,6 +455,10 @@ Mutex& Manager::serviceMutex(const Service &_rsvc)const{
 }
 
 ObjectUidT Manager::registerServiceObject(const Service &_rsvc, Object &_robj){
+	cassert(_rsvc.idx < d.svcprovisioncp);
+	ServiceStub		&rss = d.psvcarr[_rsvc.idx];
+	cassert(!_rsvc.idx || rss.psvc != NULL);
+	Locker<Mutex>	lock(rss.mtx);
 	return doRegisterServiceObject(_rsvc.idx, _robj);
 }
 
@@ -623,6 +629,39 @@ bool Manager::doForEachServiceObject(const size_t _svcidx, Manager::ObjectVisitF
 		}
 	}
 	return retval;
+}
+
+Mutex& Manager::mutex(const IndexT &_rfullid)const{
+	IndexT			svcidx;
+	IndexT			objidx;
+	
+	split_index(svcidx, objidx, d.svcbts.load(ATOMIC_NS::memory_order_relaxed), _rfullid);
+	cassert(svcidx < d.svcprovisioncp);
+	
+	ServiceStub		&rss = d.psvcarr[svcidx];
+	const uint 		objpermutbts = rss.objpermutbts.load(ATOMIC_NS::memory_order_relaxed);
+	cassert(objidx < rss.objvecsz.load(ATOMIC_NS::memory_order_acquire));
+	return rss.mtxstore.at(objidx, objpermutbts);
+}
+
+Object* Manager::unsafeObject(const IndexT &_rfullid)const{
+	IndexT		svcidx;
+	IndexT		objidx;
+	
+	split_index(svcidx, objidx, d.svcbts.load(ATOMIC_NS::memory_order_relaxed), _rfullid);
+	
+	if(svcidx < d.svcprovisioncp){
+		ServiceStub		&rss = d.psvcarr[svcidx];
+		const uint 		objpermutbts = rss.objpermutbts.load(ATOMIC_NS::memory_order_acquire);//set it with release
+		const size_t	objcnt = rss.objvecsz.load(ATOMIC_NS::memory_order_acquire);
+		
+		if(objpermutbts && objidx < objcnt){
+			if(rss.objpermutbts.load(ATOMIC_NS::memory_order_relaxed) == objpermutbts){
+				return rss.objvec[objidx].pobj;
+			}
+		}
+	}
+	return NULL;
 }
 
 IndexT Manager::computeThreadId(const IndexT &_selidx, const IndexT &_objidx){
