@@ -65,9 +65,9 @@ struct Buffer{
 		DebugFlag = 8,
 	};
 	enum DataTypes{
-		ContinuedSignal = 1,
-		NewSignal,
-		OldSignal
+		ContinuedMessage = 1,
+		NewMessage,
+		OldMessage
 	};
 	
 	static char* allocate();

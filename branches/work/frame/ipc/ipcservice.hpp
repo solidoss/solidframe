@@ -203,11 +203,17 @@ private:
 struct Configuration{
 	struct Talker{
 		Talker():sescnt(1024), maxcnt(2){}
+		bool operator==(const Talker &_rtkr)const{
+			return sescnt == _rtkr.sescnt && maxcnt == _rtkr.maxcnt;
+		}
 		uint32				sescnt;//TODO: move to parent
 		uint32				maxcnt;//TODO: move to parent
 	};
 	struct Node{
 		Node(): sescnt(1024), sockcnt(256), maxcnt(2){}
+		bool operator==(const Node &_rnod)const{
+			return sescnt == _rnod.sescnt && maxcnt == _rnod.maxcnt && sockcnt == _rnod.sockcnt;
+		}
 		uint32	sescnt;
 		uint32	sockcnt;
 		uint32	maxcnt;
@@ -229,7 +235,12 @@ struct Configuration{
 		maxmessagebuffercount(8),
 		maxsendmessagequeuesize(32)
 		{}
-		
+		bool operator==(const Session &_rses)const{
+			return responsekeepalive == _rses.responsekeepalive &&
+				keepalive == _rses.keepalive && maxrecvnoupdatecount == _rses.maxrecvnoupdatecount &&
+				maxsendbuffercount == _rses.maxsendbuffercount && maxmessagebuffercount == _rses.maxmessagebuffercount &&
+				maxsendmessagequeuesize == _rses.maxsendmessagequeuesize;
+		}
 		uint32		responsekeepalive;
 		uint32		keepalive;
 		uint32		maxsendbuffercount;
@@ -242,7 +253,9 @@ struct Configuration{
 		const uint32 _flags = 0
 	):	flags(_flags){}
 	
-	bool operator==(const Configuration &_rcfg)const;
+	bool operator==(const Configuration &_rcfg)const{
+		return flags == _rcfg.flags && baseaddr == _rcfg.baseaddr && talker == _rcfg.talker && node == _rcfg.node && session == _rcfg.session;
+	}
 	
 	uint32				flags;
 	SocketAddressInet	baseaddr;

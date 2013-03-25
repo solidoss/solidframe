@@ -145,7 +145,7 @@ private:
 		const SocketAddress &_rsap
 	);
 	void doInsertNewSessions(TalkerStub &_rstub);
-	void doDispatchSignals();
+	void doDispatchMessages();
 	void doDispatchEvents();
 	int doSendBuffers(TalkerStub &_rstub, const ulong _sig);
 	bool doExecuteSessions(TalkerStub &_rstub);

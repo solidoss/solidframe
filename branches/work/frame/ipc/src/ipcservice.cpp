@@ -218,7 +218,6 @@ int Service::reconfigure(const Configuration &_rcfg){
 	d.config = _rcfg;
 	
 	if(
-		!d.config.baseaddr.isInvalid() &&
 		d.config.baseaddr.isInet4()
 	){
 		SocketDevice	sd;
@@ -266,7 +265,7 @@ void Service::sendMessage(
 	cassert(ptkr);
 	
 	if(ptkr->pushMessage(_rmsgptr, SERIALIZATION_INVALIDID, _rconid, _flags | SameConnectorFlag)){
-		//the talker must be signaled
+		//the talker must be notified
 		if(ptkr->notify(frame::S_RAISE)){
 			manager().raise(*ptkr);
 		}
@@ -286,7 +285,7 @@ void Service::doSendEvent(
 	cassert(ptkr);
 	
 	if(ptkr->pushEvent(_rconid, _event, _flags)){
-		//the talker must be signaled
+		//the talker must be notified
 		if(ptkr->notify(frame::S_RAISE)){
 			manager().raise(*ptkr);
 		}
@@ -294,7 +293,7 @@ void Service::doSendEvent(
 }
 //---------------------------------------------------------------------
 void Service::sendMessage(
-	DynamicPointer<Message> &_rmsgptr,//the signal to be sent
+	DynamicPointer<Message> &_rmsgptr,//the message to be sent
 	const SerializationTypeIdT &_rtid,
 	const ConnectionUid &_rconid,//the id of the process connector
 	uint32	_flags
@@ -309,7 +308,7 @@ void Service::sendMessage(
 	cassert(ptkr);
 	
 	if(ptkr->pushMessage(_rmsgptr, _rtid, _rconid, _flags | SameConnectorFlag)){
-		//the talker must be signaled
+		//the talker must be notified
 		if(ptkr->notify(frame::S_RAISE)){
 			manager().raise(*ptkr);
 		}
@@ -321,7 +320,7 @@ int Service::basePort()const{
 }
 //---------------------------------------------------------------------
 void Service::doSendMessage(
-	DynamicPointer<Message> &_rmsgptr,//the signal to be sent
+	DynamicPointer<Message> &_rmsgptr,//the message to be sent
 	const SerializationTypeIdT &_rtid,
 	ConnectionUid *_pconid,
 	const SocketAddressStub &_rsa_dest,
@@ -342,7 +341,7 @@ void Service::doSendMessage(
 }
 //---------------------------------------------------------------------
 void Service::doSendMessageLocal(
-	DynamicPointer<Message> &_rmsgptr,//the signal to be sent
+	DynamicPointer<Message> &_rmsgptr,//the message to be sent
 	const SerializationTypeIdT &_rtid,
 	ConnectionUid *_pconid,
 	const SocketAddressStub &_rsap,
@@ -370,7 +369,7 @@ void Service::doSendMessageLocal(
 			cassert(ptkr);
 			
 			if(ptkr->pushMessage(_rmsgptr, _rtid, conid, _flags)){
-				//the talker must be signaled
+				//the talker must be notified
 				if(ptkr->notify(frame::S_RAISE)){
 					manager().raise(*ptkr);
 				}
@@ -427,7 +426,7 @@ void Service::doSendMessageLocal(
 }
 //---------------------------------------------------------------------
 void Service::doSendMessageRelay(
-	DynamicPointer<Message> &_rmsgptr,//the signal to be sent
+	DynamicPointer<Message> &_rmsgptr,//the message to be sent
 	const SerializationTypeIdT &_rtid,
 	ConnectionUid *_pconid,
 	const SocketAddressStub &_rsap,
@@ -455,7 +454,7 @@ void Service::doSendMessageRelay(
 			cassert(ptkr);
 			
 			if(ptkr->pushMessage(_rmsgptr, _rtid, conid, _flags)){
-				//the talker must be signaled
+				//the talker must be notified
 				if(ptkr->notify(frame::S_RAISE)){
 					manager().raise(*ptkr);
 				}
@@ -886,9 +885,6 @@ const Controller& Service::controller()const{
 //		Configuration
 //------------------------------------------------------------------
 
-bool Configuration::operator==(const Configuration &_rcfg)const{
-	return false;
-}
 //------------------------------------------------------------------
 //		Controller
 //------------------------------------------------------------------

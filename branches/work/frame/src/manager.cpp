@@ -297,7 +297,7 @@ void Manager::unregisterService(Service &_rsvc){
 	const size_t	svcidx = _rsvc.idx.load(ATOMIC_NS::memory_order_relaxed);
 	cassert(svcidx < d.svcprovisioncp);
 	ServiceStub		&rss = d.psvcarr[svcidx];
-	cassert(rss.psvc != &_rsvc);
+	cassert(rss.psvc == &_rsvc);
 	Locker<Mutex>	lock2(rss.mtx);
 	
 	doWaitStopService(svcidx, lock2, true);
@@ -450,7 +450,7 @@ Mutex& Manager::serviceMutex(const Service &_rsvc)const{
 	cassert(_rsvc.idx < d.svcprovisioncp);
 	const size_t	svcidx = _rsvc.idx.load(ATOMIC_NS::memory_order_relaxed);
 	ServiceStub		&rss = d.psvcarr[svcidx];
-	cassert(rss.psvc != &_rsvc);
+	cassert(rss.psvc == &_rsvc);
 	return rss.mtx;
 }
 
@@ -525,6 +525,11 @@ ObjectUidT Manager::doRegisterServiceObject(const IndexT _svcidx, Object &_robj)
 	ServiceStub		&rss = d.psvcarr[_svcidx];
 	cassert(!_svcidx || rss.psvc != NULL);
 	Locker<Mutex>	lock(rss.mtx);
+	return doUnsafeRegisterServiceObject(_svcidx, _robj);
+}
+
+ObjectUidT Manager::doUnsafeRegisterServiceObject(const IndexT _svcidx, Object &_robj){
+	ServiceStub		&rss = d.psvcarr[_svcidx];
 	
 	if(rss.state != ServiceStub::StateRunning){
 		return ObjectUidT();
@@ -582,14 +587,18 @@ ObjectUidT Manager::doRegisterServiceObject(const IndexT _svcidx, Object &_robj)
 			rss.objfreestk.push(newobjcnt - (i - objcnt) - 1);
 		}
 		
-		retval.first = rss.objfreestk.top();
+		const IndexT idx = rss.objfreestk.top();
+		
+		retval.first = unite_index(_svcidx, idx, d.svcbts.load(ATOMIC_NS::memory_order_relaxed));;
+		
 		rss.objfreestk.pop();
 		
 		lock_all(rss.mtxstore, newobjcnt, objpermutbts);
 		
 		rss.objvec.resize(newobjcnt);
-		rss.objvec[retval.first].pobj = &_robj;
-		retval.second = rss.objvec[retval.first].uid;
+		rss.objvec[idx].pobj = &_robj;
+		_robj.fullid = retval.first;
+		retval.second = rss.objvec[idx].uid;
 		rss.objvecsz.store(newobjcnt, ATOMIC_NS::memory_order_release);
 		
 		unlock_all(rss.mtxstore, newobjcnt, objpermutbts);
@@ -602,7 +611,7 @@ bool Manager::doForEachServiceObject(const Service &_rsvc, ObjectVisitFunctorT &
 	const size_t	svcidx = _rsvc.idx.load(ATOMIC_NS::memory_order_relaxed);
 	cassert(svcidx < d.svcprovisioncp);
 	ServiceStub		&rss = d.psvcarr[svcidx];
-	cassert(rss.psvc != &_rsvc);
+	cassert(rss.psvc == &_rsvc);
 	Locker<Mutex>	lock2(rss.mtx);
 	return doForEachServiceObject(svcidx, _fctor);
 }
@@ -751,7 +760,7 @@ void Manager::resetService(Service &_rsvc){
 	const size_t	svcidx = _rsvc.idx.load(ATOMIC_NS::memory_order_relaxed);
 	cassert(svcidx < d.svcprovisioncp);
 	ServiceStub		&rss = d.psvcarr[svcidx];
-	cassert(rss.psvc != &_rsvc);
+	cassert(rss.psvc == &_rsvc);
 	Locker<Mutex>	lock2(rss.mtx);
 	
 	doWaitStopService(svcidx, lock2, true);
@@ -765,7 +774,7 @@ void Manager::stopService(Service &_rsvc, bool _wait){
 	const size_t	svcidx = _rsvc.idx.load(ATOMIC_NS::memory_order_relaxed);
 	cassert(svcidx < d.svcprovisioncp);
 	ServiceStub		&rss = d.psvcarr[svcidx];
-	cassert(rss.psvc != &_rsvc);
+	cassert(rss.psvc == &_rsvc);
 	Locker<Mutex>	lock2(rss.mtx);
 	
 	doWaitStopService(svcidx, lock2, _wait);

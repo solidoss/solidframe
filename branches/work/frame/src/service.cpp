@@ -130,7 +130,7 @@ Object* Service::object(const IndexT &_rfullid)const{
 
 ObjectUidT Service::unsafeRegisterObject(Object &_robj)const{
 	const size_t	svcidx = idx.load(ATOMIC_NS::memory_order_relaxed);
-	return rm.doRegisterServiceObject(svcidx, _robj);
+	return rm.doUnsafeRegisterServiceObject(svcidx, _robj);
 }
 
 void Service::unsafeStop(Locker<Mutex> &_rlock, bool _wait){

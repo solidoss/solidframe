@@ -364,7 +364,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 			doInsertNewSessions(ts);
 		}
 		if(d.msgq.size()){
-			doDispatchSignals();
+			doDispatchMessages();
 		}
 		if(d.eventq.size()){
 			doDispatchEvents();
@@ -773,7 +773,7 @@ int Talker::doSendBuffers(TalkerStub &_rstub, const ulong _sig){
 }
 //----------------------------------------------------------------------
 //The talker's mutex should be locked
-//return ok if the talker should be signaled
+//return ok if the talker should be notified
 bool Talker::pushMessage(
 	DynamicPointer<Message> &_rmsgptr,
 	const SerializationTypeIdT &_rtid,
@@ -868,7 +868,7 @@ void Talker::doInsertNewSessions(TalkerStub &_rstub){
 	d.nextsessionidx = d.sessionvec.size();
 }
 //----------------------------------------------------------------------
-void Talker::doDispatchSignals(){
+void Talker::doDispatchMessages(){
 	//dispatch signals before disconnecting sessions
 	while(d.msgq.size()){
 		cassert(d.msgq.front().sessionidx < d.sessionvec.size());
