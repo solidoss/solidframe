@@ -69,6 +69,8 @@ protected:
 	Mutex& mutex(const IndexT &_rfullid)const;
 	Object* object(const IndexT &_rfullid)const;
 	ObjectUidT unsafeRegisterObject(Object &_robj)const;
+	void unsafeStop(Locker<Mutex> &_rlock, bool _wait);
+	void unsafeReset(Locker<Mutex> &_rlock);
 private:
 	friend class Manager;
 	Manager 					&rm;

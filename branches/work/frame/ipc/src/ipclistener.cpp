@@ -22,49 +22,51 @@
 #include "frame/manager.hpp"
 #include "ipclistener.hpp"
 
-namespace foundation{
+namespace solid{
+namespace frame{
 namespace ipc{
 
 Listener::Listener(
+	Service &_rsvc,
 	const SocketDevice &_rsd,
 	Service::Types	_type,
-	foundation::aio::openssl::Context *_pctx
-):BaseT(_rsd), type(_type), pctx(_pctx){
-	state(0);
+	frame::aio::openssl::Context *_pctx
+):BaseT(_rsd), rsvc(_rsvc), type(_type), pctx(_pctx){
+	state = 0;
 }
 
 int Listener::execute(ulong, TimeSpec&){
 	idbgx(Dbg::ipc, "");
 	cassert(this->socketOk());
-	if(signaled()){
+	if(notified()){
 		{
-		Locker<Mutex>	lock(this->mutex());
+		Locker<Mutex>	lock(rsvc.manager().mutex(*this));
 		ulong sm = this->grabSignalMask();
-		if(sm & foundation::S_KILL) return BAD;
+		if(sm & frame::S_KILL) return BAD;
 		}
 	}
 	uint cnt(10);
 	while(cnt--){
-		if(state() == 0){
+		if(state == 0){
 			switch(this->socketAccept(sd)){
 				case BAD: return BAD;
 				case OK:break;
 				case NOK:
-					state(1);
+					state = 1;
 					return NOK;
 			}
 		}
-		state(0);
+		state = 0;
 		cassert(sd.ok());
 		//TODO: one may do some filtering on sd based on sd.remoteAddress()
 		if(pctx.get()){
-			Manager::the().service(*this).insertConnection(sd, type, pctx.get(), true);
+			//rsvc.insertConnection(sd, type, pctx.get(), true);
 		}else{
-			Manager::the().service(*this).insertConnection(sd, type);
+			//Manager::the().service(*this).insertConnection(sd, type);
 		}
 	}
 	return OK;
 }
 }//namespace ipc
-
-}//namespace foundation
+}//namespace frame
+}//namespace solid

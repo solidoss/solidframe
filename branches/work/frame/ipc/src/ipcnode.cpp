@@ -21,8 +21,8 @@
 
 #include "ipcnode.hpp"
 
-namespace foundation{
-
+namespace solid{
+namespace frame{
 namespace ipc{
 
 struct Node::Data{
@@ -50,5 +50,5 @@ int Node::execute(ulong _sig, TimeSpec &_tout){
 //--------------------------------------------------------------------
 
 }//namespace ipc
-
-}//namespace foundation
+}//namespace frame
+}//namespace solid

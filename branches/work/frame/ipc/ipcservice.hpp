@@ -27,6 +27,8 @@
 
 #include "frame/service.hpp"
 #include "frame/message.hpp"
+#include "frame/aio/aioselector.hpp"
+#include "frame/scheduler.hpp"
 #include "frame/ipc/ipcconnectionuid.hpp"
 
 struct SocketAddressStub;
@@ -155,7 +157,10 @@ struct Controller: Dynamic<Controller, DynamicShared<> >{
 	}
 		
 protected:
-	Controller(const uint32 _resdatasz = 0):resdatasz(_resdatasz){}
+	Controller(
+		const uint32 _flags = 0,
+		const uint32 _resdatasz = 0
+	):flags(0), resdatasz(_resdatasz){}
 	
 	char * allocateBuffer(BufferContext &_rbc, uint32 &_cp);
 	
@@ -166,16 +171,40 @@ protected:
 		uint32 _flags
 	);
 private:
+	uint32		flags;
 	uint32		resdatasz;
+};
+
+typedef frame::Scheduler<frame::aio::Selector> AioSchedulerT;
+
+struct BasicController: Controller{
+    BasicController(
+		AioSchedulerT &_rsched,
+		const uint32 _flags = 0,
+		const uint32 _resdatasz = 0
+	);
+	BasicController(
+		AioSchedulerT &_rsched_t,
+		AioSchedulerT &_rsched_l,
+		AioSchedulerT &_rsched_n,
+		const uint32 _flags = 0,
+		const uint32 _resdatasz = 0
+	);
+	/*virtual*/ void scheduleTalker(frame::aio::Object *_ptkr);
+	/*virtual*/ void scheduleListener(frame::aio::Object *_plis);
+	/*virtual*/ void scheduleNode(frame::aio::Object *_pnod);
+private:
+	AioSchedulerT &rsched_t;
+	AioSchedulerT &rsched_l;
+	AioSchedulerT &rsched_n;
 };
 
 
 struct Configuration{
 	struct Talker{
 		Talker():sescnt(1024), maxcnt(2){}
-		uint32				sescnt;
-		uint32				maxcnt;
-		SocketAddressInet	baseaddr;
+		uint32				sescnt;//TODO: move to parent
+		uint32				maxcnt;//TODO: move to parent
 	};
 	struct Node{
 		Node(): sescnt(1024), sockcnt(256), maxcnt(2){}
@@ -184,29 +213,42 @@ struct Configuration{
 		uint32	maxcnt;
 	};
 	struct Session{
-		
-	};
-	
-	Configuration(
-		const uint32 _flags = 0,
-		const uint32 _reskeepalive = 0,
-		const uint32 _seskeepalive = 60 * 1000
-	):	flags(_flags),
-		reskeepalive(
+		Session(
+			const uint32 _reskeepalive = 0,
+			const uint32 _seskeepalive = 60 * 1000
+		):	responsekeepalive(
 			_reskeepalive < _seskeepalive 
 			? 
 			(_reskeepalive == 0 ? _seskeepalive : _reskeepalive )
 			: 
 			(_seskeepalive == 0 ? _reskeepalive : _seskeepalive)
 		),
-		seskeepalive(_seskeepalive){}
+		keepalive(_seskeepalive),
+		maxsendbuffercount(4),
+		maxrecvnoupdatecount(2),
+		maxmessagebuffercount(8),
+		maxsendmessagequeuesize(32)
+		{}
+		
+		uint32		responsekeepalive;
+		uint32		keepalive;
+		uint32		maxsendbuffercount;
+		uint32		maxrecvnoupdatecount;// max number of buffers received, without sending update
+		uint32		maxmessagebuffercount;//continuous buffers sent for a message
+		uint32		maxsendmessagequeuesize;//how many messages are sent in parallel
+	};
 	
-	uint32		flags;
-	uint32		reskeepalive;
-	uint32		seskeepalive;
-	Talker		talker;
-	Node&		node;
-	Session		session;
+	Configuration(
+		const uint32 _flags = 0
+	):	flags(_flags){}
+	
+	bool operator==(const Configuration &_rcfg)const;
+	
+	uint32				flags;
+	SocketAddressInet	baseaddr;
+	Talker				talker;
+	Node				node;
+	Session				session;
 };
 
 //! An Inter Process Communication service
@@ -244,7 +286,7 @@ public:
 		serialization::binary::Deserializer,
 		SerializationTypeIdT
 	> IdTypeMapperT;
-	
+	typedef Dynamic<Service, frame::Service> BaseT;
 	
 	static const char* errorText(int _err);
 	
@@ -252,14 +294,17 @@ public:
 		frame::Manager &_rm,
 		const DynamicPointer<Controller> &_rctrlptr
 	);
+	
 
 	//! Destructor
 	~Service();
 
-	int reset(const Configuration &_rcfg);
+	int reconfigure(const Configuration &_rcfg);
 	
 	IdTypeMapperT& typeMapper();
 	const TimeSpec& timeStamp()const;
+	
+	int basePort()const;
 	
 	//!Send a message (usually a response) to a peer process using a previously saved ConnectionUid
 	/*!
@@ -301,7 +346,7 @@ public:
 		\param _flags Control flags
 	*/
 	void sendMessage(
-		DynamicPointer<Signal> &_rmsgptr,//the message to be sent
+		DynamicPointer<Message> &_rmsgptr,//the message to be sent
 		const SocketAddressStub &_rsas_dest,
 		const uint32 _netid_dest = LocalNetworkId,
 		uint32	_flags = 0
@@ -325,7 +370,7 @@ public:
 		\param _flags Control flags
 	*/
 	void sendMessage(
-		DynamicPointer<Signal> &_psig,//the message to be sent
+		DynamicPointer<Message> &_pmsgptr,//the message to be sent
 		const SerializationTypeIdT &_rtid,
 		ConnectionUid &_rconid,
 		const SocketAddressStub &_rsa_dest,
@@ -349,6 +394,7 @@ public:
 	);
 	
 	const serialization::TypeMapperBase& typeMapperBase() const;
+	Configuration const& configuration()const;
 private:
 	friend class Talker;
 	friend class Session;
@@ -368,7 +414,7 @@ private:
 		const uint32 _netid_dest,
 		uint32	_flags = 0
 	);
-	int doSendMessageLocal(
+	void doSendMessageLocal(
 		DynamicPointer<Message> &_rmsgptr,//the message to be sent
 		const SerializationTypeIdT &_rtid,
 		ConnectionUid *_pconid,
@@ -376,7 +422,7 @@ private:
 		const uint32 _netid_dest,
 		uint32	_flags
 	);
-	int doSendMessageRelay(
+	void doSendMessageRelay(
 		DynamicPointer<Message> &_rmsgptr,//the message to be sent
 		const SerializationTypeIdT &_rtid,
 		ConnectionUid *_pconid,
@@ -411,7 +457,7 @@ private:
 
 
 inline void Service::sendMessage(
-	DynamicPointer<Signal> &_rmsgptr,//the message to be sent
+	DynamicPointer<Message> &_rmsgptr,//the message to be sent
 	ConnectionUid &_rconid,
 	const SocketAddressStub &_rsa_dest,
 	const uint32 _netid_dest,

@@ -28,10 +28,10 @@
 #include <cstring>
 #include <ostream>
 
-namespace fdt = foundation;
-
-namespace foundation{
+namespace solid{
+namespace frame{
 namespace ipc{
+
 //---------------------------------------------------------
 #ifdef NINLINES
 #include "ipcbuffer.ipp"
@@ -209,4 +209,5 @@ std::ostream& operator<<(std::ostream &_ros, const Buffer &_rb){
 
 
 }//namespace ipc
-}//namespace foundation
+}//namespace frame
+}//namespace solid

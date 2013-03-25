@@ -129,7 +129,17 @@ Object* Service::object(const IndexT &_rfullid)const{
 }
 
 ObjectUidT Service::unsafeRegisterObject(Object &_robj)const{
-	return rm.doRegisterServiceObject(idx, _robj);
+	const size_t	svcidx = idx.load(ATOMIC_NS::memory_order_relaxed);
+	return rm.doRegisterServiceObject(svcidx, _robj);
+}
+
+void Service::unsafeStop(Locker<Mutex> &_rlock, bool _wait){
+	const size_t	svcidx = idx.load(ATOMIC_NS::memory_order_relaxed);
+	rm.doWaitStopService(svcidx, _rlock, true);
+}
+void Service::unsafeReset(Locker<Mutex> &_rlock){
+	const size_t	svcidx = idx.load(ATOMIC_NS::memory_order_relaxed);
+	rm.doResetService(svcidx, _rlock);
 }
 
 }//namespace frame

@@ -38,10 +38,10 @@ struct SocketAddressStub6;
 struct TimeSpec;
 struct ResolveIterator;
 
-
+namespace solid{
 namespace frame{
 
-struct Signal;
+struct Message;
 
 namespace ipc{
 
@@ -50,7 +50,7 @@ struct Context{
 	static Context& the();
 	Context(Service &_srv, const IndexT &_tkrid, const uint32 _uid);
 	~Context();
-	ConnectionContext sigctx;
+	ConnectionContext msgctx;
 };
 
 class Session{
@@ -69,32 +69,38 @@ public:
 	);
 	
 	Session(
+		Service &_rsvc,
 		const SocketAddressInet4 &_raddr
 	);
 	Session(
+		Service &_rsvc,
 		const SocketAddressInet4 &_raddr,
 		const ConnectData &_rconndata
 	);
 	
 	Session(
+		Service &_rsvc,
 		uint32 _netid,
 		const SocketAddressInet4 &_raddr
 	);
 	Session(
+		Service &_rsvc,
 		uint32 _netid,
 		const SocketAddressInet4 &_raddr,
 		const ConnectData &_rconndata
 	);
 	
 	Session(
+		Service &_rsvc,
 		const SocketAddressInet6 &_raddr
 	);
 	Session(
+		Service &_rsvc,
 		const SocketAddressInet6 &_raddr,
 		const ConnectData &_rconndata
 	);
 	
-	Session();
+	Session(Service &_rsvc);
 	
 	~Session();
 	
@@ -121,8 +127,8 @@ public:
 	void prepare(Talker::TalkerStub &_rstub);
 	void reconnect(Session *_pses);	
 	
-	bool pushSignal(
-		DynamicPointer<Signal> &_rsig,
+	bool pushMessage(
+		DynamicPointer<Message> &_rmsgptr,
 		const SerializationTypeIdT &_rtid,
 		uint32 _flags
 	);
@@ -213,6 +219,6 @@ private:
 
 }//namespace ipc
 }//namespace frame
-
+}//namespace solid
 
 #endif

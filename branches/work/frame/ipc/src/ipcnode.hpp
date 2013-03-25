@@ -25,13 +25,13 @@
 #include "frame/aio/aiomultiobject.hpp"
 #include "frame/ipc/ipcconnectionuid.hpp"
 
+namespace solid{
 namespace frame{
-
 namespace ipc{
 
 class Service;
 
-class Node: public Dynamic<Node, foundation::aio::MultiObject>{
+class Node: public Dynamic<Node, frame::aio::MultiObject>{
 public:
 	typedef Service							ServiceT;
 	
@@ -50,7 +50,7 @@ private:
 
 
 }//namespace ipc
-
 }//namespace frame
+}//namespace solid
 
 #endif

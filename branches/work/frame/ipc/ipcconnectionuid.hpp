@@ -87,7 +87,7 @@ struct ConnectionContext{
 	ConnectionUid 		connectionuid;
 	const uint32		tkruid;
 	int 				baseport;
-	MessageUid			messageuid;
+	MessageUid			msgid;
 	SocketAddressStub	pairaddr;
 	
 	ObjectUidT talkerUid()const{

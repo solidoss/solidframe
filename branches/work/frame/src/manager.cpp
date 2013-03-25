@@ -806,6 +806,18 @@ void Manager::doWaitStopService(const size_t _svcidx, Locker<Mutex> &_rlock, boo
 	}
 }
 
+void Manager::doResetService(const size_t _svcidx, Locker<Mutex> &_rlock){
+	//Locker<Mutex>	lock1(d.mtx);
+	cassert(_svcidx < d.svcprovisioncp);
+	ServiceStub		&rss = d.psvcarr[_svcidx];
+	cassert(rss.psvc);
+	
+	doWaitStopService(_svcidx, _rlock, true);
+	
+	rss.state = ServiceStub::StateRunning;
+	rss.cnd.broadcast();
+}
+
 
 }//namespace frame
 }//namespace solid

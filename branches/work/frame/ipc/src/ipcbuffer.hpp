@@ -30,6 +30,7 @@
 #define UIPCBUFFERCAPACITY 4096
 #endif
 
+namespace solid{
 namespace frame{
 namespace ipc{
 
@@ -160,5 +161,6 @@ std::ostream& operator<<(std::ostream &_ros, const Buffer &_rb);
 
 }//namespace ipc
 }//namespace frame
+}//namespace solid
 
 #endif

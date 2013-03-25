@@ -70,9 +70,9 @@ private:
 };
 
 
-struct ConnectDataSignal: foundation::Signal{
-    ConnectDataSignal(){}
-    ConnectDataSignal(const ConnectData& _rcd):data(_rcd){}
+struct ConnectDataMessage: frame::Message{
+    ConnectDataMessage(){}
+    ConnectDataMessage(const ConnectData& _rcd):data(_rcd){}
     
 	ConnectData data;
 };
@@ -86,7 +86,7 @@ struct StatisticData{
 	}
 	~StatisticData();
 	void reconnect();
-	void pushSignal();
+	void pushMessage();
 	void pushReceivedBuffer();
 	void retransmitId(const uint16 _cnt);
 	void sendKeepAlive();
@@ -117,7 +117,7 @@ struct StatisticData{
 	void sendStackSize4();
 	
 	ulong	reconnectcnt;
-	ulong	pushsignalcnt;
+	ulong	pushmsgcnt;
 	ulong	pushreceivedbuffercnt;
 	ulong	maxretransmitid;
 	ulong	sendkeepalivecnt;
@@ -131,7 +131,7 @@ struct StatisticData{
 	ulong	sendonlyupdates2;
 	ulong	sendonlyupdates3;
 	ulong	maxsendonlyupdatessize;
-	ulong	maxsendsignalidxqueuesize;
+	ulong	maxsendmsgidxqueuesize;
 	ulong	tryschedulekeepalivecnt;
 	ulong	schedulekeepalivecnt;
 	ulong	failedtimeoutcnt;
@@ -155,15 +155,11 @@ std::ostream& operator<<(std::ostream &_ros, const StatisticData &_rsd);
 #endif
 
 //== Session::Data ====================================================
-typedef DynamicPointer<foundation::Signal>			DynamicSignalPointerT;
+typedef DynamicPointer<frame::Message>			DynamicMessagePointerT;
 
 struct Session::Data{
 	enum{
 		UpdateBufferId = 0xffffffff,//the id of a buffer containing only updates
-		MaxSendBufferCount = 4,
-		MaxRecvNoUpdateCount = 2,// max number of buffers received, without sending update
-		MaxSignalBufferCount = 16,//continuous buffers sent for a signal
-		MaxSendSignalQueueSize = 16,//max count of signals sent in paralell
 		MaxOutOfOrder = 4,//please also change moveToNextOutOfOrderBuffer
 		MinBufferDataSize = 8,
 	};
@@ -200,7 +196,10 @@ struct Session::Data{
 		):serialization::binary::Serializer(_rtmb){}
 		BinSerializer(
 		){}
-		static unsigned specificCount(){return MaxSendSignalQueueSize;}
+		static unsigned specificCount(){
+			//return MaxSendSignalQueueSize;
+			return ConnectionContext::the().service().configuration().session.maxsendmessagequeuesize;
+		}
 		void specificRelease(){}
 	};
 
@@ -210,7 +209,10 @@ struct Session::Data{
 		):serialization::binary::Deserializer(_rtmb){}
 		BinDeserializer(
 		){}
-		static unsigned specificCount(){return MaxSendSignalQueueSize;}
+		static unsigned specificCount(){
+			//return MaxSendSignalQueueSize;
+			return ConnectionContext::the().service().configuration().session.maxsendmessagequeuesize;
+		}
 		void specificRelease(){}
 	};
 	
@@ -218,35 +220,35 @@ struct Session::Data{
 	typedef BinDeserializer						BinDeserializerT;
 
 	
-	struct RecvSignalData{
-		RecvSignalData(
-			Signal *_psignal = NULL,
+	struct RecvMessageData{
+		RecvMessageData(
+			Message *_pmsg = NULL,
 			BinDeserializerT *_pdeserializer = NULL
-		):psignal(_psignal), pdeserializer(_pdeserializer){}
-		Signal					*psignal;
+		):pmsg(_pmsg), pdeserializer(_pdeserializer){}
+		Message					*pmsg;
 		BinDeserializerT		*pdeserializer;
 	};
 	
-	struct SendSignalData{
-		SendSignalData(
-			const DynamicPointer<Signal>& _rsig,
+	struct SendMessageData{
+		SendMessageData(
+			const DynamicPointer<Message>& _rmsgptr,
 			const SerializationTypeIdT	&_rtid,
 			uint16 _bufid,
 			uint16 _flags,
 			uint32 _id
-		):signal(_rsig), tid(_rtid), pserializer(NULL), bufid(_bufid), flags(_flags), id(_id), uid(0){}
-		~SendSignalData(){
+		):msgptr(_rmsgptr), tid(_rtid), pserializer(NULL), bufid(_bufid), flags(_flags), id(_id), uid(0){}
+		~SendMessageData(){
 			//cassert(!pserializer);
 		}
-		bool operator<(const SendSignalData &_owc)const{
-			if(signal.get()){
-				if(_owc.signal.get()){
+		bool operator<(const SendMessageData &_owc)const{
+			if(msgptr.get()){
+				if(_owc.msgptr.get()){
 				}else return true;
 			}else return false;
 			
 			return overflow_safe_less(id, _owc.id);
 		}
-		DynamicSignalPointerT	signal;
+		DynamicMessagePointerT	msgptr;
 		SerializationTypeIdT	tid;
 		BinSerializerT			*pserializer;
 		uint16					bufid;
@@ -260,7 +262,7 @@ struct Session::Data{
 	struct SendBufferData{
 		SendBufferData():uid(0), sending(0), mustdelete(0){}
 		Buffer				buffer;
-		UInt16VectorT		signalidxvec;
+		UInt16VectorT		msgidxvec;
 		uint16				uid;//we need uid for timer
 		uint8				sending;
 		uint8				mustdelete;
@@ -271,25 +273,26 @@ struct Session::Data{
 	typedef Stack<uint16>						UInt16StackT;
 	typedef Stack<uint8>						UInt8StackT;
 	typedef std::vector<Buffer>					BufferVectorT;
-	typedef Queue<RecvSignalData>				RecvSignalQueueT;
-	typedef std::vector<SendSignalData>			SendSignalVectorT;
+	typedef Queue<RecvMessageData>				RecvMessageQueueT;
+	typedef std::vector<SendMessageData>		SendMessageVectorT;
 	typedef std::vector<SendBufferData>			SendBufferVectorT;
 	
-	struct SignalStub{
-		SignalStub():tid(SERIALIZATION_INVALIDID),flags(0){}
-		SignalStub(
-			const DynamicPointer<Signal>	&_rsig,
+	struct MessageStub{
+		MessageStub():tid(SERIALIZATION_INVALIDID),flags(0){}
+		MessageStub(
+			const DynamicPointer<Message>	&_rmsgptr,
 			const SerializationTypeIdT &_rtid,
 			uint32 _flags
-		):signal(_rsig), tid(_rtid), flags(_flags){}
-		DynamicPointer<Signal>	signal;
+		):msgptr(_rmsgptr), tid(_rtid), flags(_flags){}
+		DynamicPointer<Message>	msgptr;
 		SerializationTypeIdT	tid;
 		uint32					flags;
 	};
-	typedef Queue<SignalStub>					SignalQueueT;
+	typedef Queue<MessageStub>					MessageQueueT;
 
 public:
 	Data(
+		Service &_rsvc,
 		uint8 _type,
 		uint8 _state,
 		uint16 _baseport = 0
@@ -336,16 +339,16 @@ public:
 	bool mustSendUpdates();
 	void incrementExpectedId();
 	void incrementSendId();
-	SignalUid pushSendWaitSignal(
-		DynamicPointer<Signal> &_sig,
+	MessageUid pushSendWaitMessage(
+		DynamicPointer<Message> &_rmsgptr,
 		const SerializationTypeIdT &_rtid,
 		uint16 _bufid,
 		uint16 _flags,
 		uint32 _id
 	);	
-	void popSentWaitSignals(SendBufferData &_rsbd);
-	void popSentWaitSignal(const SignalUid &_rsiguid);
-	void popSentWaitSignal(const uint32 _idx);
+	void popSentWaitMessages(SendBufferData &_rsbd);
+	void popSentWaitMessage(const MessageUid &_rmsguid);
+	void popSentWaitMessage(const uint32 _idx);
 	void freeSentBuffer(const uint32 _idx);
 	void clearSentBuffer(const uint32 _idx);
 	
@@ -354,22 +357,22 @@ public:
 	uint32 registerBuffer(Buffer &_rbuf);
 	
 	bool isExpectingImmediateDataFromPeer()const{
-		return rcvdsignalq.size() > 1 || ((rcvdsignalq.size() == 1) && rcvdsignalq.front().psignal);
+		return rcvdmsgq.size() > 1 || ((rcvdmsgq.size() == 1) && rcvdmsgq.front().pmsg);
 	}
 	uint16 keepAliveBufferIndex()const{
 		return 0;
 	}
-	void moveSignalsToSendQueue();
-	void moveAuthSignalsToSendQueue();
+	void moveMessagesToSendQueue();
+	void moveAuthMessagesToSendQueue();
 	
-	void pushSignalToSendQueue(
-		DynamicPointer<Signal> &_sigptr,
+	void pushMessageToSendQueue(
+		DynamicPointer<Message> &_rmsgptr,
 		const uint32 _flags,
 		const SerializationTypeIdT _tid
 	);
 	void resetKeepAlive();
 	//returns false if there is no other signal but the current one
-	bool moveToNextSendSignal();
+	bool moveToNextSendMessage();
 public:
 	uint8					type;
 	uint8					state;
@@ -377,26 +380,26 @@ public:
 	uint8					outoforderbufcount;
 	
 	uint32					rcvexpectedid;
-	uint32					sentsignalwaitresponse;
+	uint32					sentmsgwaitresponse;
 	uint32					retansmittimepos;
-	uint32					sendsignalid;
+	uint32					sendmsgid;
 	uint32					sendid;
 	//uint32					keepalivetimeout;
 	uint32					currentsyncid;
 	uint32					currentsendsyncid;
-	uint16					currentbuffersignalcount;//MaxSignalBufferCount
+	uint16					currentbuffermsgcount;//MaxSignalBufferCount
 	uint16					baseport;
 	SocketAddressStub		pairaddr;
 	
 	UInt32QueueT			rcvdidq;
 	BufferVectorT			outoforderbufvec;
-	RecvSignalQueueT		rcvdsignalq;
-	SendSignalVectorT		sendsignalvec;
-	UInt32StackT			sendsignalfreeposstk;
+	RecvMessageQueueT		rcvdmsgq;
+	SendMessageVectorT		sendmsgvec;
+	UInt32StackT			sendmsgfreeposstk;
 	SendBufferVectorT		sendbuffervec;//will have about 6 items
 	UInt8StackT				sendbufferfreeposstk;
-	SignalQueueT			signalq;
-	UInt32QueueT			sendsignalidxq;
+	MessageQueueT			msgq;
+	UInt32QueueT			sendmsgidxq;
 	Buffer					updatesbuffer;
 	TimeSpec				rcvtimepos;
 #ifdef USTATISTICS
@@ -428,19 +431,21 @@ struct Session::DataDummy: Session::Data{
 	SendQueueT	sendq;
 	ErrorQueueT	errorq;
 	
-	DataDummy():Session::Data(Dummy, DummyExecute){}
+	DataDummy(Service &_rsvc) :Session::Data(_rsvc, Dummy, DummyExecute){}
 };
 //---------------------------------------------------------------------
 struct Session::DataDirect4: Session::Data{
 	DataDirect4(
+		Service &_rsvc,
 		const SocketAddressInet4 &_raddr
-	):Data(Direct4, Connecting, _raddr.port()), addr(_raddr){
+	):Data(_rsvc, Direct4, Connecting, _raddr.port()), addr(_raddr){
 		Data::pairaddr = addr;
 	}
 	DataDirect4(
+		Service &_rsvc,
 		const SocketAddressInet4 &_raddr,
 		uint16 _baseport
-	):Data(Direct4, Accepting, _baseport), addr(_raddr){
+	):Data(_rsvc, Direct4, Accepting, _baseport), addr(_raddr){
 		Data::pairaddr = addr;
 	}
 	SocketAddressInet4	addr;
@@ -448,14 +453,16 @@ struct Session::DataDirect4: Session::Data{
 //---------------------------------------------------------------------
 struct Session::DataDirect6: Session::Data{
 	DataDirect6(
+		Service &_rsvc,
 		const SocketAddressInet6 &_raddr
-	):Data(Direct6, Connecting, _raddr.port()), addr(_raddr){
+	):Data(_rsvc, Direct6, Connecting, _raddr.port()), addr(_raddr){
 		Data::pairaddr = addr;
 	}
 	DataDirect6(
+		Service &_rsvc,
 		const SocketAddressInet6 &_raddr,
 		uint16 _baseport
-	):Data(Direct6, Accepting, _baseport), addr(_raddr){
+	):Data(_rsvc, Direct6, Accepting, _baseport), addr(_raddr){
 		Data::pairaddr = addr;
 	}
 	SocketAddressInet6	addr;
@@ -463,17 +470,19 @@ struct Session::DataDirect6: Session::Data{
 //---------------------------------------------------------------------
 struct Session::DataRelayed44: Session::Data{
 	DataRelayed44(
+		Service &_rsvc,
 		uint32 _netid,
 		const SocketAddressInet4 &_raddr
-	):	Data(Relayed44, RelayInit), relayaddr(_raddr), netid(_netid),
+	):	Data(_rsvc, Relayed44, RelayInit), relayaddr(_raddr), netid(_netid),
 		peerrelayid(0), crtgwidx(255){
 	}
 	
 	DataRelayed44(
+		Service &_rsvc,
 		uint32 _netid,
 		const SocketAddressInet4 &_raddr,
 		const ConnectData &_rconndata
-	):	Data(Relayed44, RelayAccepting), addr(_raddr), relayaddr(_rconndata.senderaddress), netid(_netid),
+	):	Data(_rsvc, Relayed44, RelayAccepting), addr(_raddr), relayaddr(_rconndata.senderaddress), netid(_netid),
 		peerrelayid(0), crtgwidx(255){
 		Data::pairaddr = addr;
 	}
@@ -522,22 +531,23 @@ inline Session::DataRelayed44 const& Session::Data::relayed44()const{
 }
 //---------------------------------------------------------------------
 Session::Data::Data(
+	Service &_rsvc,
 	uint8 _type,
 	uint8 _state,
 	uint16 _baseport
 ):	type(_type), state(_state), sendpendingcount(0),
-	outoforderbufcount(0), rcvexpectedid(2), sentsignalwaitresponse(0),
-	retansmittimepos(0), sendsignalid(0), 
+	outoforderbufcount(0), rcvexpectedid(2), sentmsgwaitresponse(0),
+	retansmittimepos(0), sendmsgid(0), 
 	sendid(1)/*, keepalivetimeout(_keepalivetout)*/,
-	currentsendsyncid(-1), currentbuffersignalcount(MaxSignalBufferCount), baseport(_baseport)
+	currentsendsyncid(-1), currentbuffermsgcount(_rsvc.configuration().session.maxmessagebuffercount), baseport(_baseport)
 {
 	outoforderbufvec.resize(MaxOutOfOrder);
 	//first buffer is for keepalive
-	sendbuffervec.resize(maxSendBufferCount() + 1);
-	for(uint32 i(maxSendBufferCount()); i >= 1; --i){
+	sendbuffervec.resize(_rsvc.configuration().session.maxsendbuffercount + 1);
+	for(uint32 i(_rsvc.configuration().session.maxsendbuffercount); i >= 1; --i){
 		sendbufferfreeposstk.push(i);
 	}
-	sendsignalvec.reserve(Data::MaxSendSignalQueueSize);
+	sendmsgvec.reserve(_rsvc.configuration().session.maxsendmessagequeuesize);
 	idbgx(Dbg::ipc, "Sizeof(Session::Data) = "<<sizeof(*this));
 #ifdef USTATISTICS
 	idbgx(Dbg::ipc, "Sizeof(StatisticData) = "<<sizeof(this->statistics));
@@ -545,41 +555,41 @@ Session::Data::Data(
 }
 //---------------------------------------------------------------------
 Session::Data::~Data(){
-	Context::the().sigctx.signaluid.idx = 0xffffffff;
-	Context::the().sigctx.signaluid.uid = 0xffffffff;
-	while(signalq.size()){
-		signalq.front().signal->ipcComplete(-1);
-		signalq.pop();
+	Context::the().msgctx.msgid.idx = 0xffffffff;
+	Context::the().msgctx.msgid.uid = 0xffffffff;
+	while(msgq.size()){
+		msgq.front().msgptr->ipcComplete(-1);
+		msgq.pop();
 	}
-	while(this->rcvdsignalq.size()){
-		if(rcvdsignalq.front().pdeserializer){
-			rcvdsignalq.front().pdeserializer->clear();
-			pushDeserializer(rcvdsignalq.front().pdeserializer);
-			rcvdsignalq.front().pdeserializer = NULL;
+	while(this->rcvdmsgq.size()){
+		if(rcvdmsgq.front().pdeserializer){
+			rcvdmsgq.front().pdeserializer->clear();
+			pushDeserializer(rcvdmsgq.front().pdeserializer);
+			rcvdmsgq.front().pdeserializer = NULL;
 		}
-		delete rcvdsignalq.front().psignal;
-		rcvdsignalq.pop();
+		delete rcvdmsgq.front().pmsg;
+		rcvdmsgq.pop();
 	}
-	for(Data::SendSignalVectorT::iterator it(sendsignalvec.begin()); it != sendsignalvec.end(); ++it){
-		SendSignalData &rssd(*it);
-		Context::the().sigctx.signaluid.idx = it - sendsignalvec.begin();
-		Context::the().sigctx.signaluid.uid = rssd.uid;
-		if(rssd.pserializer){
-			rssd.pserializer->clear();
-			pushSerializer(rssd.pserializer);
-			rssd.pserializer = NULL;
+	for(Data::SendMessageVectorT::iterator it(sendmsgvec.begin()); it != sendmsgvec.end(); ++it){
+		SendMessageData &rsmd(*it);
+		Context::the().msgctx.msgid.idx = it - sendmsgvec.begin();
+		Context::the().msgctx.msgid.uid = rsmd.uid;
+		if(rsmd.pserializer){
+			rsmd.pserializer->clear();
+			pushSerializer(rsmd.pserializer);
+			rsmd.pserializer = NULL;
 		}
-		if(rssd.signal.get()){
-			if((rssd.flags & WaitResponseFlag) && (rssd.flags & SentFlag)){
+		if(rsmd.msgptr.get()){
+			if((rsmd.flags & WaitResponseFlag) && (rsmd.flags & SentFlag)){
 				//the was successfully sent but the response did not arrive
-				rssd.signal->ipcComplete(-2);
+				rsmd.msgptr->ipcComplete(-2);
 			}else{
 				//the signal was not successfully sent
-				rssd.signal->ipcComplete(-1);
+				rsmd.msgptr->ipcComplete(-1);
 			}
-			rssd.signal.clear();
+			rsmd.msgptr.clear();
 		}
-		rssd.tid = SERIALIZATION_INVALIDID;
+		rsmd.tid = SERIALIZATION_INVALIDID;
 	}	
 }
 //---------------------------------------------------------------------
@@ -635,7 +645,7 @@ inline bool Session::Data::mustSendUpdates(){
 		//we are not expecting anything from the peer - send updates right away
 		(!isExpectingImmediateDataFromPeer() || 
 		//or we've already waited too long to send the updates
-		rcvdidq.size() >= Data::MaxRecvNoUpdateCount);
+		rcvdidq.size() >= ConnectionContext::the().service().configuration().session.maxrecvnoupdatecount);
 }
 //---------------------------------------------------------------------
 inline void Session::Data::incrementExpectedId(){
@@ -648,8 +658,8 @@ inline void Session::Data::incrementSendId(){
 	if(sendid > Buffer::LastBufferId) sendid = 0;
 }
 //---------------------------------------------------------------------
-SignalUid Session::Data::pushSendWaitSignal(
-	DynamicPointer<Signal> &_sig,
+MessageUid Session::Data::pushSendWaitMessage(
+	DynamicPointer<Message> &_rmsgptr,
 	const SerializationTypeIdT &_rtid,
 	uint16 _bufid,
 	uint16 _flags,
@@ -658,105 +668,104 @@ SignalUid Session::Data::pushSendWaitSignal(
 	_flags &= ~SentFlag;
 //	_flags &= ~WaitResponseFlag;
 	
-	if(sendsignalfreeposstk.size()){
-		const uint32	idx(sendsignalfreeposstk.top());
-		SendSignalData	&rssd(sendsignalvec[idx]);
+	if(sendmsgfreeposstk.size()){
+		const uint32	idx(sendmsgfreeposstk.top());
+		SendMessageData	&rsmd(sendmsgvec[idx]);
 		
-		sendsignalfreeposstk.pop();
+		sendmsgfreeposstk.pop();
 		
-		rssd.bufid = _bufid;
-		cassert(!rssd.signal.get());
-		rssd.signal = _sig;
-		rssd.tid = _rtid;
+		rsmd.bufid = _bufid;
+		cassert(!rsmd.msgptr.get());
+		rsmd.msgptr = _rmsgptr;
+		rsmd.tid = _rtid;
 		
-		//rssd.signal.context().waitid = SignalUid(idx, rssd.uid);
-		cassert(!_sig.get());
-		rssd.flags = _flags;
-		rssd.id = _id;
+		//rsmd.msgptr.context().waitid = SignalUid(idx, rsmd.uid);
+		cassert(!_rmsgptr.get());
+		rsmd.flags = _flags;
+		rsmd.id = _id;
 		
-		//return rssd.signal.context().waitid;
-		return SignalUid(idx, rssd.uid);
+		return MessageUid(idx, rsmd.uid);
 	}else{
 		
-		sendsignalvec.push_back(SendSignalData(_sig, _rtid, _bufid, _flags, _id));
-		cassert(!_sig.get());
-		//sendsignalvec.back().signal.context().waitid = SignalUid(sendsignalvec.size() - 1, 0);
-		//return sendsignalvec.back().signal.context().waitid;
-		return SignalUid(sendsignalvec.size() - 1, 0);
+		sendmsgvec.push_back(SendMessageData(_rmsgptr, _rtid, _bufid, _flags, _id));
+		cassert(!_rmsgptr.get());
+		//sendmsgvec.back().msgptr.context().waitid = SignalUid(sendmsgvec.size() - 1, 0);
+		//return sendmsgvec.back().msgptr.context().waitid;
+		return MessageUid(sendmsgvec.size() - 1, 0);
 	}
 }
 //---------------------------------------------------------------------
-void Session::Data::popSentWaitSignals(Session::Data::SendBufferData &_rsbd){
-	switch(_rsbd.signalidxvec.size()){
+void Session::Data::popSentWaitMessages(Session::Data::SendBufferData &_rsbd){
+	switch(_rsbd.msgidxvec.size()){
 		case 0:break;
 		case 1:
-			popSentWaitSignal(_rsbd.signalidxvec.front());
+			popSentWaitMessage(_rsbd.msgidxvec.front());
 			break;
 		case 2:
-			popSentWaitSignal(_rsbd.signalidxvec[0]);
-			popSentWaitSignal(_rsbd.signalidxvec[1]);
+			popSentWaitMessage(_rsbd.msgidxvec[0]);
+			popSentWaitMessage(_rsbd.msgidxvec[1]);
 			break;
 		case 3:
-			popSentWaitSignal(_rsbd.signalidxvec[0]);
-			popSentWaitSignal(_rsbd.signalidxvec[1]);
-			popSentWaitSignal(_rsbd.signalidxvec[2]);
+			popSentWaitMessage(_rsbd.msgidxvec[0]);
+			popSentWaitMessage(_rsbd.msgidxvec[1]);
+			popSentWaitMessage(_rsbd.msgidxvec[2]);
 			break;
 		case 4:
-			popSentWaitSignal(_rsbd.signalidxvec[0]);
-			popSentWaitSignal(_rsbd.signalidxvec[1]);
-			popSentWaitSignal(_rsbd.signalidxvec[2]);
-			popSentWaitSignal(_rsbd.signalidxvec[3]);
+			popSentWaitMessage(_rsbd.msgidxvec[0]);
+			popSentWaitMessage(_rsbd.msgidxvec[1]);
+			popSentWaitMessage(_rsbd.msgidxvec[2]);
+			popSentWaitMessage(_rsbd.msgidxvec[3]);
 			break;
 		default:
 			for(
-				UInt16VectorT::const_iterator it(_rsbd.signalidxvec.begin());
-				it != _rsbd.signalidxvec.end();
+				UInt16VectorT::const_iterator it(_rsbd.msgidxvec.begin());
+				it != _rsbd.msgidxvec.end();
 				++it
 			){
-				popSentWaitSignal(*it);
+				popSentWaitMessage(*it);
 			}
 			break;
 	}
-	_rsbd.signalidxvec.clear();
+	_rsbd.msgidxvec.clear();
 }
 //---------------------------------------------------------------------
-void Session::Data::popSentWaitSignal(const SignalUid &_rsiguid){
-	if(_rsiguid.idx < sendsignalvec.size()){
-		SendSignalData &rssd(sendsignalvec[_rsiguid.idx]);
+void Session::Data::popSentWaitMessage(const MessageUid &_rmsguid){
+	if(_rmsguid.idx < sendmsgvec.size()){
+		SendMessageData &rsmd(sendmsgvec[_rmsguid.idx]);
 		
-		if(rssd.uid != _rsiguid.uid) return;
-		Context::the().sigctx.signaluid.idx = _rsiguid.idx;
-		Context::the().sigctx.signaluid.uid = rssd.uid;
-		++rssd.uid;
-		rssd.signal->ipcComplete(0);
-		rssd.signal.clear();
-		sendsignalfreeposstk.push(_rsiguid.idx);
-		--sentsignalwaitresponse;
+		if(rsmd.uid != _rmsguid.uid) return;
+		Context::the().msgctx.msgid.idx = _rmsguid.idx;
+		Context::the().msgctx.msgid.uid = rsmd.uid;
+		++rsmd.uid;
+		rsmd.msgptr->ipcComplete(0);
+		rsmd.msgptr.clear();
+		sendmsgfreeposstk.push(_rmsguid.idx);
+		--sentmsgwaitresponse;
 	}
 }
 //---------------------------------------------------------------------
-void Session::Data::popSentWaitSignal(const uint32 _idx){
+void Session::Data::popSentWaitMessage(const uint32 _idx){
 	idbgx(Dbg::ipc, ""<<_idx);
-	SendSignalData &rssd(sendsignalvec[_idx]);
-	cassert(rssd.signal.get());
-	if(rssd.flags & DisconnectAfterSendFlag){
+	SendMessageData &rsmd(sendmsgvec[_idx]);
+	cassert(rsmd.msgptr.get());
+	if(rsmd.flags & DisconnectAfterSendFlag){
 		idbgx(Dbg::ipc, "DisconnectAfterSendFlag - disconnecting");
-		++rssd.uid;
-		rssd.signal.clear();
-		sendsignalfreeposstk.push(_idx);
+		++rsmd.uid;
+		rsmd.msgptr.clear();
+		sendmsgfreeposstk.push(_idx);
 		this->state = Disconnecting;
 	}
-	if(rssd.flags & WaitResponseFlag){
+	if(rsmd.flags & WaitResponseFlag){
 		//let it leave a little longer
-		idbgx(Dbg::ipc, "signal waits for response "<<_idx<<' '<<rssd.uid);
-		rssd.flags |= SentFlag;
+		idbgx(Dbg::ipc, "signal waits for response "<<_idx<<' '<<rsmd.uid);
+		rsmd.flags |= SentFlag;
 	}else{
-		Context::the().sigctx.signaluid.idx = _idx;
-		Context::the().sigctx.signaluid.uid = rssd.uid;
-		++rssd.uid;
-		rssd.signal->ipcComplete(0);
-		rssd.signal.clear();
-		sendsignalfreeposstk.push(_idx);
+		Context::the().msgctx.msgid.idx = _idx;
+		Context::the().msgctx.msgid.uid = rsmd.uid;
+		++rsmd.uid;
+		rsmd.msgptr->ipcComplete(0);
+		rsmd.msgptr.clear();
+		sendmsgfreeposstk.push(_idx);
 	}	
 }
 //---------------------------------------------------------------------
@@ -829,7 +838,7 @@ void Session::Data::freeSentBuffer(const uint32 _bufid){
 void Session::Data::clearSentBuffer(const uint32 _idx){
 	vdbgx(Dbg::ipc, ""<<sendbufferfreeposstk.size());
 	SendBufferData &rsbd(sendbuffervec[_idx]);
-	popSentWaitSignals(rsbd);
+	popSentWaitMessages(rsbd);
 	rsbd.buffer.clear();
 	++rsbd.uid;
 	sendbufferfreeposstk.push(_idx);
@@ -849,15 +858,15 @@ inline uint32 Session::Data::computeRetransmitTimeout(const uint32 _retrid, cons
 }
 //----------------------------------------------------------------------
 inline uint32 Session::Data::currentKeepAlive(const Talker::TalkerStub &_rstub)const{
-// 	return	keepalivetimeout && sentsignalwaitresponse &&
-// 			(rcvdsignalq.empty() || rcvdsignalq.size() == 1 && !rcvdsignalq.front().psignal) && 
-// 			signalq.empty() && sendsignalidxq.empty() && _tpos >= rcvtimepos;
-	const uint32	seskeepalive = _rstub.service().controller().sessionKeepAlive();
-	const uint32	reskeepalive = _rstub.service().controller().responseKeepAlive();
+// 	return	keepalivetimeout && sentmsgwaitresponse &&
+// 			(rcvdmsgq.empty() || rcvdmsgq.size() == 1 && !rcvdmsgq.front().psignal) && 
+// 			msgq.empty() && sendmsgidxq.empty() && _tpos >= rcvtimepos;
+	const uint32	seskeepalive = _rstub.service().configuration().session.keepalive;
+	const uint32	reskeepalive = _rstub.service().configuration().session.responsekeepalive;
 	
 	uint32			keepalive(0);
 	
-	if(sentsignalwaitresponse && reskeepalive){
+	if(sentmsgwaitresponse && reskeepalive){
 		keepalive = reskeepalive;
 	}else if(seskeepalive){
 		keepalive = seskeepalive;
@@ -875,8 +884,8 @@ inline uint32 Session::Data::currentKeepAlive(const Talker::TalkerStub &_rstub)c
 	
 	if(
 		keepalive && 
-		(rcvdsignalq.empty() || (rcvdsignalq.size() == 1 && !rcvdsignalq.front().psignal)) && 
-		signalq.empty() && sendsignalidxq.empty() && _rstub.currentTime() >= rcvtimepos
+		(rcvdmsgq.empty() || (rcvdmsgq.size() == 1 && !rcvdmsgq.front().pmsg)) && 
+		msgq.empty() && sendmsgidxq.empty() && _rstub.currentTime() >= rcvtimepos
 	){
 		return keepalive;
 	}else{
@@ -899,59 +908,59 @@ uint32 Session::Data::registerBuffer(Buffer &_rbuf){
 	return idx;
 }
 //----------------------------------------------------------------------
-void Session::Data::moveSignalsToSendQueue(){
-	while(signalq.size() && sendsignalidxq.size() < Data::MaxSendSignalQueueSize){
-		pushSignalToSendQueue(
-			signalq.front().signal, 
-			signalq.front().flags,
-			signalq.front().tid
+void Session::Data::moveMessagesToSendQueue(){
+	while(msgq.size() && sendmsgidxq.size() < ConnectionContext::the().service().configuration().session.maxsendmessagequeuesize){
+		pushMessageToSendQueue(
+			msgq.front().msgptr, 
+			msgq.front().flags,
+			msgq.front().tid
 		);
-		signalq.pop();
+		msgq.pop();
 	}
 }
-void Session::Data::moveAuthSignalsToSendQueue(){
-	size_t qsz = signalq.size();
+void Session::Data::moveAuthMessagesToSendQueue(){
+	size_t qsz = msgq.size();
 	while(qsz){
 		if(
-			((signalq.front().flags & AuthenticationFlag) != 0) &&
-			sendsignalidxq.size() < Data::MaxSendSignalQueueSize
+			((msgq.front().flags & AuthenticationFlag) != 0) &&
+			sendmsgidxq.size() <  ConnectionContext::the().service().configuration().session.maxsendmessagequeuesize
 		){
-			pushSignalToSendQueue(
-				signalq.front().signal, 
-				signalq.front().flags,
-				signalq.front().tid
+			pushMessageToSendQueue(
+				msgq.front().msgptr, 
+				msgq.front().flags,
+				msgq.front().tid
 			);
-			signalq.pop();
+			msgq.pop();
 		}else{
-			signalq.push(signalq.front());
-			signalq.pop();
+			msgq.push(msgq.front());
+			msgq.pop();
 		}
 		--qsz;
 	}
 }
-void Session::Data::pushSignalToSendQueue(
-	DynamicPointer<Signal> &_sigptr,
+void Session::Data::pushMessageToSendQueue(
+	DynamicPointer<Message> &_rmsgptr,
 	const uint32 _flags,
 	const SerializationTypeIdT _tid
 ){
-	cassert(_sigptr.get());
-	const SignalUid	uid(pushSendWaitSignal(_sigptr, _tid, 0, _flags, sendsignalid++));
-	SendSignalData 	&rssd(sendsignalvec[uid.idx]);
+	cassert(_rmsgptr.get());
+	const MessageUid	uid(pushSendWaitMessage(_rmsgptr, _tid, 0, _flags, sendmsgid++));
+	SendMessageData 	&rsmd(sendmsgvec[uid.idx]);
 	
-	Context::the().sigctx.signaluid = uid;
+	Context::the().msgctx.msgid = uid;
 	
-	sendsignalidxq.push(uid.idx);
+	sendmsgidxq.push(uid.idx);
 	
-	const uint32	tmp_flgs(rssd.signal->ipcPrepare());
+	const uint32	tmp_flgs(rsmd.msgptr->ipcPrepare());
 	
-	rssd.flags |= tmp_flgs;
+	rsmd.flags |= tmp_flgs;
 	
-	vdbgx(Dbg::ipc, "flags = "<<(rssd.flags & SentFlag)<<" tmpflgs = "<<(tmp_flgs & SentFlag));
+	vdbgx(Dbg::ipc, "flags = "<<(rsmd.flags & SentFlag)<<" tmpflgs = "<<(tmp_flgs & SentFlag));
 	
 	if(tmp_flgs & WaitResponseFlag){
-		++sentsignalwaitresponse;
+		++sentmsgwaitresponse;
 	}else{
-		rssd.flags &= ~WaitResponseFlag;
+		rsmd.flags &= ~WaitResponseFlag;
 	}
 }
 //----------------------------------------------------------------------
@@ -960,38 +969,38 @@ void Session::Data::resetKeepAlive(){
 	++rsbd.uid;
 }
 //----------------------------------------------------------------------
-bool Session::Data::moveToNextSendSignal(){
+bool Session::Data::moveToNextSendMessage(){
 	
-	if(sendsignalidxq.size() == 1) return false;
+	if(sendmsgidxq.size() == 1) return false;
 	
-	uint32 	crtidx(sendsignalidxq.front());
+	uint32 	crtidx(sendmsgidxq.front());
 	
-	sendsignalidxq.pop();
-	sendsignalidxq.push(crtidx);
+	sendmsgidxq.pop();
+	sendmsgidxq.push(crtidx);
 
 	if(currentsendsyncid != static_cast<uint32>(-1) && crtidx != currentsendsyncid){
-		cassert(!(sendsignalvec[crtidx].flags & SynchronousSendFlag));
+		cassert(!(sendmsgvec[crtidx].flags & SynchronousSendFlag));
 		crtidx = currentsendsyncid;
 	}
 	
-	Data::SendSignalData	&rssd(sendsignalvec[crtidx]);
+	Data::SendMessageData	&rsmd(sendmsgvec[crtidx]);
 	
-	vdbgx(Dbg::ipc, "flags = "<<(rssd.flags & SentFlag));
+	vdbgx(Dbg::ipc, "flags = "<<(rsmd.flags & SentFlag));
 	
-	if(rssd.flags & SynchronousSendFlag){
+	if(rsmd.flags & SynchronousSendFlag){
 		currentsendsyncid = crtidx;
-		uint32 tmpidx(sendsignalidxq.front());
+		uint32 tmpidx(sendmsgidxq.front());
 		while(tmpidx != crtidx){
-			Data::SendSignalData	&tmprssd(sendsignalvec[tmpidx]);
-			if(!(tmprssd.flags & SynchronousSendFlag)){
+			Data::SendMessageData	&tmprsmd(sendmsgvec[tmpidx]);
+			if(!(tmprsmd.flags & SynchronousSendFlag)){
 				COLLECT_DATA_0(statistics.sendAsynchronousWhileSynchronous);
 				return true;
 			}
-			sendsignalidxq.pop();
-			sendsignalidxq.push(tmpidx);
-			tmpidx = sendsignalidxq.front();
+			sendmsgidxq.pop();
+			sendmsgidxq.push(tmpidx);
+			tmpidx = sendmsgidxq.front();
 		}
-		COLLECT_DATA_1(statistics.sendSynchronousWhileSynchronous, sendsignalidxq.size());
+		COLLECT_DATA_1(statistics.sendSynchronousWhileSynchronous, sendmsgidxq.size());
 		return false;
 	}else{
 		COLLECT_DATA_0(statistics.sendAsynchronous);
@@ -1093,57 +1102,64 @@ bool Session::isRelayType()const{
 }
 //---------------------------------------------------------------------
 Session::Session(
+	Service &_rsvc,
 	const SocketAddressInet4 &_raddr
-):d(*(new DataDirect4(_raddr))){
+):d(*(new DataDirect4(_rsvc, _raddr))){
 	vdbgx(Dbg::ipc, "Created connect session "<<(void*)this);
 }
 //---------------------------------------------------------------------
 Session::Session(
+	Service &_rsvc,
 	const SocketAddressInet4 &_raddr,
 	const ConnectData &_rconndata
-):d(*(new DataDirect4(_raddr, _rconndata.baseport))){
+):d(*(new DataDirect4(_rsvc, _raddr, _rconndata.baseport))){
 	
-	DynamicPointer<Signal>	psig(new ConnectDataSignal(_rconndata));
-	pushSignal(psig, 0, 0);
+	DynamicPointer<Message>	msgptr(new ConnectDataMessage(_rconndata));
+	pushMessage(msgptr, 0, 0);
 	
 	vdbgx(Dbg::ipc, "Created accept session "<<(void*)this);
 }
 //---------------------------------------------------------------------
 Session::Session(
+	Service &_rsvc,
 	const SocketAddressInet6 &_raddr
-):d(*(new DataDirect6(_raddr))){
+):d(*(new DataDirect6(_rsvc, _raddr))){
 	vdbgx(Dbg::ipc, "Created connect session "<<(void*)this);
 }
 //---------------------------------------------------------------------
 Session::Session(
+	Service &_rsvc,
 	const SocketAddressInet6 &_raddr,
 	const ConnectData &_rconndata
-):d(*(new DataDirect6(_raddr, _rconndata.baseport))){
+):d(*(new DataDirect6(_rsvc, _raddr, _rconndata.baseport))){
 	
-	DynamicPointer<Signal>	psig(new ConnectDataSignal(_rconndata));
-	pushSignal(psig, 0, 0);
+	DynamicPointer<Message>	msgptr(new ConnectDataMessage(_rconndata));
+	pushMessage(msgptr, 0, 0);
 	
 	vdbgx(Dbg::ipc, "Created accept session "<<(void*)this);
 }
 //---------------------------------------------------------------------
 Session::Session(
+	Service &_rsvc,
 	uint32 _netid,
 	const SocketAddressInet4 &_raddr
-):d(*(new DataRelayed44(_netid, _raddr))){}
+):d(*(new DataRelayed44(_rsvc, _netid, _raddr))){}
 //---------------------------------------------------------------------
 Session::Session(
+	Service &_rsvc,
 	uint32 _netid,
 	const SocketAddressInet4 &_raddr,
 	const ConnectData &_rconndata
-):d(*(new DataRelayed44(_netid, _raddr, _rconndata))){
+):d(*(new DataRelayed44(_rsvc, _netid, _raddr, _rconndata))){
 	
-	DynamicPointer<Signal>	psig(new ConnectDataSignal(_rconndata));
-	pushSignal(psig, 0, 0);
+	DynamicPointer<Message>	msgptr(new ConnectDataMessage(_rconndata));
+	pushMessage(msgptr, 0, 0);
 	
 }
 //---------------------------------------------------------------------
 Session::Session(
-):d(*(new DataDummy)){
+	Service &_rsvc
+):d(*(new DataDummy(_rsvc))){
 	vdbgx(Dbg::ipc, "Created dummy session "<<(void*)this);
 }
 //---------------------------------------------------------------------
@@ -1242,13 +1258,13 @@ void Session::reconnect(Session *_pses){
 		}
 		
 		if(d.state == Data::Accepting){
-			d.signalq.front().signal = _pses->d.signalq.front().signal;
+			d.msgq.front().msgptr = _pses->d.msgq.front().msgptr;
 		}else if(d.state == Data::RelayAccepting){
-			cassert(d.signalq.size());
-			d.signalq.front().signal = _pses->d.signalq.front().signal;
+			cassert(d.msgq.size());
+			d.msgq.front().msgptr = _pses->d.msgq.front().msgptr;
 		}else{
-			d.signalq.push(_pses->d.signalq.front());
-			_pses->d.signalq.pop();
+			d.msgq.push(_pses->d.msgq.front());
+			_pses->d.msgq.pop();
 		}
 		
 		adjustcount = 1;
@@ -1259,84 +1275,84 @@ void Session::reconnect(Session *_pses){
 	}
 	
 	//clear the receive queue
-	while(d.rcvdsignalq.size()){
-		Data::RecvSignalData	&rrsd(d.rcvdsignalq.front());
-		delete rrsd.psignal;
-		if(rrsd.pdeserializer){
-			rrsd.pdeserializer->clear();
-			d.pushDeserializer(rrsd.pdeserializer);
+	while(d.rcvdmsgq.size()){
+		Data::RecvMessageData	&rrmd(d.rcvdmsgq.front());
+		delete rrmd.pmsg;
+		if(rrmd.pdeserializer){
+			rrmd.pdeserializer->clear();
+			d.pushDeserializer(rrmd.pdeserializer);
 		}
-		d.rcvdsignalq.pop();
+		d.rcvdmsgq.pop();
 	}
 	
 	//keep sending signals that do not require the same connector
-	for(int sz(d.signalq.size() - adjustcount); sz; --sz){
-		if(!(d.signalq.front().flags & SameConnectorFlag)) {
+	for(int sz(d.msgq.size() - adjustcount); sz; --sz){
+		if(!(d.msgq.front().flags & SameConnectorFlag)) {
 			vdbgx(Dbg::ipc, "signal scheduled for resend");
-			d.signalq.push(d.signalq.front());
+			d.msgq.push(d.msgq.front());
 		}else{
 			vdbgx(Dbg::ipc, "signal not scheduled for resend");
 		}
-		d.signalq.pop();
+		d.msgq.pop();
 	}
-	//clear the sendsignalidxq
-	while(d.sendsignalidxq.size()){
-		d.sendsignalidxq.pop();
+	//clear the sendmsgidxq
+	while(d.sendmsgidxq.size()){
+		d.sendmsgidxq.pop();
 	}
 	bool mustdisconnect = false;
 	//see which sent/sending signals must be cleard
-	for(Data::SendSignalVectorT::iterator it(d.sendsignalvec.begin()); it != d.sendsignalvec.end(); ++it){
-		Data::SendSignalData &rssd(*it);
-		vdbgx(Dbg::ipc, "pos = "<<(it - d.sendsignalvec.begin())<<" flags = "<<(rssd.flags & SentFlag));
-		Context::the().sigctx.signaluid.idx = it - d.sendsignalvec.begin();
-		Context::the().sigctx.signaluid.uid = rssd.uid;
+	for(Data::SendMessageVectorT::iterator it(d.sendmsgvec.begin()); it != d.sendmsgvec.end(); ++it){
+		Data::SendMessageData &rsmd(*it);
+		vdbgx(Dbg::ipc, "pos = "<<(it - d.sendmsgvec.begin())<<" flags = "<<(rsmd.flags & SentFlag));
+		Context::the().msgctx.msgid.idx = it - d.sendmsgvec.begin();
+		Context::the().msgctx.msgid.uid = rsmd.uid;
 		
-		if(rssd.pserializer){
-			rssd.pserializer->clear();
-			d.pushSerializer(rssd.pserializer);
-			rssd.pserializer = NULL;
+		if(rsmd.pserializer){
+			rsmd.pserializer->clear();
+			d.pushSerializer(rsmd.pserializer);
+			rsmd.pserializer = NULL;
 		}
-		if(!rssd.signal) continue;
+		if(!rsmd.msgptr) continue;
 		
-		if((rssd.flags & DisconnectAfterSendFlag) != 0){
+		if((rsmd.flags & DisconnectAfterSendFlag) != 0){
 			idbgx(Dbg::ipc, "DisconnectAfterSendFlag");
 			mustdisconnect = true;
 		}
 		
-		if(!(rssd.flags & SameConnectorFlag)){
-			if(rssd.flags & WaitResponseFlag && rssd.flags & SentFlag){
+		if(!(rsmd.flags & SameConnectorFlag)){
+			if(rsmd.flags & WaitResponseFlag && rsmd.flags & SentFlag){
 				//if the signal was sent and were waiting for response - were not sending twice
-				rssd.signal->ipcComplete(-2);
-				rssd.signal.clear();
-				++rssd.uid;
+				rsmd.msgptr->ipcComplete(-2);
+				rsmd.msgptr.clear();
+				++rsmd.uid;
 			}
 			//we can try resending the signal
 		}else{
 			vdbgx(Dbg::ipc, "signal not scheduled for resend");
-			if(rssd.flags & WaitResponseFlag && rssd.flags & SentFlag){
-				rssd.signal->ipcComplete(-2);
+			if(rsmd.flags & WaitResponseFlag && rsmd.flags & SentFlag){
+				rsmd.msgptr->ipcComplete(-2);
 			}else{
-				rssd.signal->ipcComplete(-1);
+				rsmd.msgptr->ipcComplete(-1);
 			}
-			rssd.signal.clear();
-			++rssd.uid;
+			rsmd.msgptr.clear();
+			++rsmd.uid;
 		}
 	}
-	//sort the sendsignalvec, so that we can insert into signalq the signals that can be resent
+	//sort the sendmsgvec, so that we can insert into msgq the signals that can be resent
 	//in the exact order they were inserted
-	std::sort(d.sendsignalvec.begin(), d.sendsignalvec.end());
+	std::sort(d.sendmsgvec.begin(), d.sendmsgvec.end());
 	
-	//then we push into signalq the signals from sendsignalvec
-	for(Data::SendSignalVectorT::const_iterator it(d.sendsignalvec.begin()); it != d.sendsignalvec.end(); ++it){
-		const Data::SendSignalData &rssd(*it);
-		if(rssd.signal.get()){
-			//the sendsignalvec may contain signals sent successfully, waiting for a response
+	//then we push into msgq the signals from sendmsgvec
+	for(Data::SendMessageVectorT::const_iterator it(d.sendmsgvec.begin()); it != d.sendmsgvec.end(); ++it){
+		const Data::SendMessageData &rsmd(*it);
+		if(rsmd.msgptr.get()){
+			//the sendmsgvec may contain signals sent successfully, waiting for a response
 			//those signals are not queued in the scq
-			d.signalq.push(Data::SignalStub(rssd.signal, rssd.tid, rssd.flags));
+			d.msgq.push(Data::MessageStub(rsmd.msgptr, rsmd.tid, rsmd.flags));
 		}else break;
 	}
 	
-	d.sendsignalvec.clear();
+	d.sendmsgvec.clear();
 	
 	//delete the sending buffers
 	for(Data::SendBufferVectorT::iterator it(d.sendbuffervec.begin()); it != d.sendbuffervec.end(); ++it){
@@ -1344,7 +1360,7 @@ void Session::reconnect(Session *_pses){
 		++rsbd.uid;
 		if(it != d.sendbuffervec.begin()){
 			rsbd.buffer.clear();
-			rsbd.signalidxvec.clear();
+			rsbd.msgidxvec.clear();
 			cassert(rsbd.sending == 0);
 		}
 	}
@@ -1356,29 +1372,29 @@ void Session::reconnect(Session *_pses){
 	while(d.sendbufferfreeposstk.size()){
 		d.sendbufferfreeposstk.pop();
 	}
-	for(uint32 i(d.maxSendBufferCount()); i >= 1; --i){
+	for(uint32 i(ConnectionContext::the().service().configuration().session.maxsendbuffercount); i >= 1; --i){
 		d.sendbufferfreeposstk.push(i);
 	}
-	while(d.sendsignalfreeposstk.size()){
-		d.sendsignalfreeposstk.pop();
+	while(d.sendmsgfreeposstk.size()){
+		d.sendmsgfreeposstk.pop();
 	}
 	d.rcvexpectedid = 2;
 	d.sendid = 1;
-	d.sentsignalwaitresponse = 0;
-	d.currentbuffersignalcount = Data::MaxSignalBufferCount;
+	d.sentmsgwaitresponse = 0;
+	d.currentbuffermsgcount = ConnectionContext::the().service().configuration().session.maxmessagebuffercount;
 	d.sendbuffervec[0].buffer.id(Buffer::UpdateBufferId);
 	d.sendbuffervec[0].buffer.resend(0);
 	d.state = Data::Disconnecting;
 }
 //---------------------------------------------------------------------
-bool Session::pushSignal(
-	DynamicPointer<Signal> &_rsig,
+bool Session::pushMessage(
+	DynamicPointer<Message> &_rmsgptr,
 	const SerializationTypeIdT &_rtid,
 	uint32 _flags
 ){
-	COLLECT_DATA_0(d.statistics.pushSignal);
-	d.signalq.push(Data::SignalStub(_rsig, _rtid, _flags));
-	return d.signalq.size() == 1;
+	COLLECT_DATA_0(d.statistics.pushMessage);
+	d.msgq.push(Data::MessageStub(_rmsgptr, _rtid, _flags));
+	return d.msgq.size() == 1;
 }
 //---------------------------------------------------------------------
 bool Session::pushEvent(
@@ -1395,7 +1411,7 @@ bool Session::preprocessReceivedBuffer(
 	Talker::TalkerStub &_rstub
 ){
 	d.rcvdidq.push(_rbuf.id());
-	return d.rcvdidq.size() >= Data::MaxRecvNoUpdateCount;
+	return d.rcvdidq.size() >= ConnectionContext::the().service().configuration().session.maxrecvnoupdatecount;
 }
 //---------------------------------------------------------------------
 bool Session::pushReceivedBuffer(
@@ -1445,19 +1461,19 @@ void Session::doCompleteConnect(Talker::TalkerStub &_rstub){
 	if(!rctrl.hasAuthentication()){
 		d.state = Data::Connected;
 	}else{
-		DynamicPointer<Signal>	sigptr;
-		SignalUid 				siguid(0xffffffff, 0xffffffff);
+		DynamicPointer<Message>	msgptr;
+		MessageUid 				msguid(0xffffffff, 0xffffffff);
 		uint32					flags = 0;
 		SerializationTypeIdT 	tid = SERIALIZATION_INVALIDID;
-		const int				authrv = rctrl.authenticate(sigptr, siguid, flags, tid);
+		const int				authrv = rctrl.authenticate(msgptr, msguid, flags, tid);
 		switch(authrv){
 			case BAD:
-				if(sigptr.get()){
+				if(msgptr.get()){
 					d.state = Data::WaitDisconnecting;
 					//d.keepalivetimeout = 0;
 					flags |= DisconnectAfterSendFlag;
-					d.pushSignalToSendQueue(
-						sigptr,
+					d.pushMessageToSendQueue(
+						msgptr,
 						flags,
 						tid
 					);
@@ -1472,8 +1488,8 @@ void Session::doCompleteConnect(Talker::TalkerStub &_rstub){
 			case NOK:
 				d.state = Data::Authenticating;
 				//d.keepalivetimeout = 1000;
-				d.pushSignalToSendQueue(
-					sigptr,
+				d.pushMessageToSendQueue(
+					msgptr,
 					flags,
 					tid
 				);
@@ -1764,10 +1780,10 @@ void Session::doParseBufferDataType(
 	
 	if(!crcval.ok()){
 #ifdef ENABLE_MORE_DEBUG
-		while(d.rcvdsignalq.size()){
-			Data::RecvSignalData &rrsd(d.rcvdsignalq.front());
+		while(d.rcvdmsgq.size()){
+			Data::RecvSignalData &rrsd(d.rcvdmsgq.front());
 			edbgx(Dbg::ipc, "rrsd.psignal = "<<(void*)rrsd.psignal<<" rrsd.pdeserializer = "<<(void*)rrsd.pdeserializer);
-			d.rcvdsignalq.pop();
+			d.rcvdmsgq.pop();
 		}
 #endif
 		THROW_EXCEPTION("Deserialization error");
@@ -1778,49 +1794,49 @@ void Session::doParseBufferDataType(
 	--_blen;
 #ifdef ENABLE_MORE_DEBUG
 	if(_rbuf.flags() & Buffer::DebugFlag){
-		edbgx(Dbg::ipc, "value = "<<crcval.value()<<" sigqsz = "<<d.rcvdsignalq.size());
+		edbgx(Dbg::ipc, "value = "<<crcval.value()<<" sigqsz = "<<d.rcvdmsgq.size());
 	}
 #endif
 	switch(crcval.value()){
 		case Buffer::ContinuedSignal:
 			vdbgx(Dbg::ipc, "continuedsignal");
 			cassert(_blen == _firstblen);
-			if(!d.rcvdsignalq.front().psignal){
-				d.rcvdsignalq.pop();
+			if(!d.rcvdmsgq.front().pmsg){
+				d.rcvdmsgq.pop();
 			}
 			//we cannot have a continued signal on the same buffer
 			break;
 		case Buffer::NewSignal:
 			vdbgx(Dbg::ipc, "newsignal");
-			if(d.rcvdsignalq.size()){
-				idbgx(Dbg::ipc, "switch to new rcq.size = "<<d.rcvdsignalq.size());
-				Data::RecvSignalData &rrsd(d.rcvdsignalq.front());
-				if(rrsd.psignal){//the previous signal didnt end, we reschedule
-					d.rcvdsignalq.push(rrsd);
-					rrsd.psignal = NULL;
+			if(d.rcvdmsgq.size()){
+				idbgx(Dbg::ipc, "switch to new rcq.size = "<<d.rcvdmsgq.size());
+				Data::RecvMessageData &rrmd(d.rcvdmsgq.front());
+				if(rrmd.pmsg){//the previous signal didnt end, we reschedule
+					d.rcvdmsgq.push(rrmd);
+					rrmd.pmsg = NULL;
 				}
-				rrsd.pdeserializer = d.popDeserializer(_rstub.service().typeMapperBase());
-				rrsd.pdeserializer->push(rrsd.psignal);
+				rrmd.pdeserializer = d.popDeserializer(_rstub.service().typeMapperBase());
+				rrmd.pdeserializer->push(rrmd.pmsg);
 			}else{
 				idbgx(Dbg::ipc, "switch to new rcq.size = 0");
-				d.rcvdsignalq.push(Data::RecvSignalData(NULL, d.popDeserializer(_rstub.service().typeMapperBase())));
-				d.rcvdsignalq.front().pdeserializer->push(d.rcvdsignalq.front().psignal);
+				d.rcvdmsgq.push(Data::RecvMessageData(NULL, d.popDeserializer(_rstub.service().typeMapperBase())));
+				d.rcvdmsgq.front().pdeserializer->push(d.rcvdmsgq.front().pmsg);
 			}
 			break;
 		case Buffer::OldSignal:
 			vdbgx(Dbg::ipc, "oldsignal");
-			cassert(d.rcvdsignalq.size() > 1);
-			if(d.rcvdsignalq.front().psignal){
-				d.rcvdsignalq.push(d.rcvdsignalq.front());
+			cassert(d.rcvdmsgq.size() > 1);
+			if(d.rcvdmsgq.front().pmsg){
+				d.rcvdmsgq.push(d.rcvdmsgq.front());
 			}
-			d.rcvdsignalq.pop();
+			d.rcvdmsgq.pop();
 			break;
 		default:{
 #ifdef ENABLE_MORE_DEBUG
-			while(d.rcvdsignalq.size()){
-				Data::RecvSignalData &rrsd(d.rcvdsignalq.front());
+			while(d.rcvdmsgq.size()){
+				Data::RecvSignalData &rrsd(d.rcvdmsgq.front());
 				edbgx(Dbg::ipc, "rrsd.psignal = "<<(void*)rrsd.psignal<<" rrsd.pdeserializer = "<<(void*)rrsd.pdeserializer);
-				d.rcvdsignalq.pop();
+				d.rcvdmsgq.pop();
 			}
 #endif
 			THROW_EXCEPTION("Deserialization error");
@@ -1840,13 +1856,13 @@ void Session::doParseBuffer(Talker::TalkerStub &_rstub, const Buffer &_rbuf/*, c
 #ifdef ENABLE_MORE_DEBUG
 	if(_rbuf.flags() & Buffer::DebugFlag){
 		//dump the wait queue
-		uint32 sz = d.rcvdsignalq.size();
+		uint32 sz = d.rcvdmsgq.size();
 		edbgx(Dbg::ipc, "bufidx = "<<_rbuf.id()<<" sz = "<<sz<<" blen = "<<blen);
 		while(sz){
-			Data::RecvSignalData &rrsd(d.rcvdsignalq.front());
+			Data::RecvSignalData &rrsd(d.rcvdmsgq.front());
 			edbgx(Dbg::ipc, "psig = "<<(void*)rrsd.psignal<<" pdes = "<<(void*)rrsd.pdeserializer);
-			d.rcvdsignalq.push(rrsd);
-			d.rcvdsignalq.pop();
+			d.rcvdmsgq.push(rrsd);
+			d.rcvdmsgq.pop();
 			--sz;
 		}
 	}
@@ -1858,7 +1874,7 @@ void Session::doParseBuffer(Talker::TalkerStub &_rstub, const Buffer &_rbuf/*, c
 		
 		doParseBufferDataType(_rstub, _rbuf, bpos, blen, firstblen);
 		
-		Data::RecvSignalData &rrsd(d.rcvdsignalq.front());
+		Data::RecvMessageData &rrsd(d.rcvdmsgq.front());
 		
 		rv = rrsd.pdeserializer->run(bpos, blen);
 		
@@ -1873,34 +1889,34 @@ void Session::doParseBuffer(Talker::TalkerStub &_rstub, const Buffer &_rbuf/*, c
 #ifdef ENABLE_MORE_DEBUG		
 		if(rv == 1){
 			edbgx(Dbg::ipc, "bufid = "<<_rbuf.id()<<" blen = "<<blen<<" bpos "<<(bpos - _rbuf.data()));
-			edbgx(Dbg::ipc, "psig = "<<(void*)rrsd.psignal<<" pdes = "<<(void*)rrsd.pdeserializer);
+			edbgx(Dbg::ipc, "pmsg = "<<(void*)rrsd.pmsg<<" pdes = "<<(void*)rrsd.pdeserializer);
 		}
 #endif
 
 		if(rrsd.pdeserializer->empty()){//done one signal.
-			SignalUid 				siguid(0xffffffff, 0xffffffff);
+			MessageUid 				msguid(0xffffffff, 0xffffffff);
 			Controller				&rctrl = _rstub.service().controller();
-			Signal					*psignal = rrsd.psignal;
-			rrsd.psignal = NULL;
+			Message					*pmsg = rrsd.pmsg;
+			rrsd.pmsg = NULL;
 			
 			if(d.state == Data::Connected){
 				//rrsd.psignal->ipcReceive(siguid);
-				if(!rctrl.receive(psignal, siguid)){
+				if(!rctrl.receive(pmsg, msguid)){
 					d.state = Data::Disconnecting;
 				}
 			}else if(d.state == Data::Authenticating){
-				DynamicPointer<Signal>	sigptr(psignal);
+				DynamicPointer<Message>	msgptr(pmsg);
 				uint32					flags = 0;
 				SerializationTypeIdT 	tid = SERIALIZATION_INVALIDID;
-				const int 				authrv = rctrl.authenticate(sigptr, siguid, flags, tid);
+				const int 				authrv = rctrl.authenticate(msgptr, msguid, flags, tid);
 				switch(authrv){
 					case BAD:
-						if(sigptr.get()){
+						if(msgptr.get()){
 							d.state = Data::WaitDisconnecting;
 							//d.keepalivetimeout = 0;
 							flags |= DisconnectAfterSendFlag;
-							d.pushSignalToSendQueue(
-								sigptr,
+							d.pushMessageToSendQueue(
+								msgptr,
 								flags,
 								tid
 							);
@@ -1911,15 +1927,15 @@ void Session::doParseBuffer(Talker::TalkerStub &_rstub, const Buffer &_rbuf/*, c
 					case OK:
 						d.state = Data::Connected;
 						//d.keepalivetimeout = _rstub.service().keepAliveTimeout();
-						if(sigptr.get()){
+						if(msgptr.get()){
 							flags |= WaitResponseFlag;
-							d.pushSignalToSendQueue(sigptr, flags, tid);
+							d.pushMessageToSendQueue(msgptr, flags, tid);
 						}
 						break;
 					case NOK:
-						if(sigptr.get()){
+						if(msgptr.get()){
 							flags |= WaitResponseFlag;
-							d.pushSignalToSendQueue(sigptr, flags, tid);
+							d.pushMessageToSendQueue(msgptr, flags, tid);
 						}
 						break;
 					default:{
@@ -1929,16 +1945,16 @@ void Session::doParseBuffer(Talker::TalkerStub &_rstub, const Buffer &_rbuf/*, c
 			}
 			
 			
-			idbgx(Dbg::ipc, "donesignal "<<siguid.idx<<','<<siguid.uid);
+			idbgx(Dbg::ipc, "done message "<<msguid.idx<<','<<msguid.uid);
 			
-			if(siguid.idx != 0xffffffff && siguid.uid != 0xffffffff){//a valid signal waiting for response
-				d.popSentWaitSignal(siguid);
+			if(msguid.idx != 0xffffffff && msguid.uid != 0xffffffff){//a valid signal waiting for response
+				d.popSentWaitMessage(msguid);
 			}
 			d.pushDeserializer(rrsd.pdeserializer);
 			//we do not pop it because in case of a new signal,
 			//we must know if the previous signal terminate
 			//so we dont mistakingly reschedule another signal!!
-			rrsd.psignal = NULL;
+			rrsd.pmsg = NULL;
 			rrsd.pdeserializer = NULL;
 		}
 	}
@@ -2140,7 +2156,7 @@ int Session::doExecuteAccepting(Talker::TalkerStub &_rstub){
 	
 	{
 		char 				*ppos = buf.dataEnd();
-		const ConnectData	&rcd = static_cast<ConnectDataSignal*>(d.signalq.front().signal.get())->data;
+		const ConnectData	&rcd = static_cast<ConnectDataMessage*>(d.msgq.front().msgptr.get())->data;
 		uint16				flags = 0;
 		uint16				baseport = _rstub.basePort();
 		
@@ -2151,7 +2167,7 @@ int Session::doExecuteAccepting(Talker::TalkerStub &_rstub){
 	
 		buf.dataSize(buf.dataSize() + (ppos - buf.dataEnd()));
 		
-		d.signalq.pop();//the connectdatasignal
+		d.msgq.pop();//the connectdatasignal
 	}
 	
 	const uint32			bufidx(d.registerBuffer(buf));
@@ -2197,7 +2213,7 @@ int Session::doExecuteRelayAccepting(Talker::TalkerStub &_rstub){
 	
 	{
 		
-		const ConnectData	&rcd = static_cast<ConnectDataSignal*>(d.signalq.front().signal.get())->data;
+		const ConnectData	&rcd = static_cast<ConnectDataMessage*>(d.msgq.front().msgptr.get())->data;
 		uint16				flags = 0;
 		uint16				baseport = _rstub.basePort();
 		uint32				relayid = _rstub.relayId();
@@ -2218,7 +2234,7 @@ int Session::doExecuteRelayAccepting(Talker::TalkerStub &_rstub){
 	
 		buf.dataSize(buf.dataSize() + (ppos - buf.dataEnd()));
 		
-		d.signalq.pop();//the connectdatasignal
+		d.msgq.pop();//the connectdatasignal
 	}
 	
 	
@@ -2310,10 +2326,10 @@ int Session::doExecuteConnectedLimited(Talker::TalkerStub &_rstub){
 	
 	while(d.sendbufferfreeposstk.size()){
 		if(d.state == Data::Authenticating){
-			d.moveAuthSignalsToSendQueue();
+			d.moveAuthMessagesToSendQueue();
 		}
 		if(
-			d.sendsignalidxq.empty()
+			d.sendmsgidxq.empty()
 		){
 			break;
 		}
@@ -2395,12 +2411,12 @@ int Session::doExecuteConnected(Talker::TalkerStub &_rstub){
 
 	while(d.sendbufferfreeposstk.size()){
 		if(
-			d.signalq.empty() &&
-			d.sendsignalidxq.empty()
+			d.msgq.empty() &&
+			d.sendmsgidxq.empty()
 		){
 			break;
 		}
-	//if(d.sendbufferfreeposstk.size() && (d.signalq.size() || d.sendsignalidxq.size())){
+	//if(d.sendbufferfreeposstk.size() && (d.msgq.size() || d.sendmsgidxq.size())){
 		//we can still send buffers
 		Buffer 					buf(Buffer::allocate(), Buffer::Capacity);
 		
@@ -2428,7 +2444,7 @@ int Session::doExecuteConnected(Talker::TalkerStub &_rstub){
 		
 		COLLECT_DATA_1(d.statistics.sendUpdatesSize, rsbd.buffer.updateCount());
 
-		d.moveSignalsToSendQueue();
+		d.moveMessagesToSendQueue();
 		
 		doFillSendBuffer(_rstub, bufidx);
 		
@@ -2458,7 +2474,7 @@ int Session::doExecuteConnected(Talker::TalkerStub &_rstub){
 		}
 	}
 	doTrySendUpdates(_rstub);
-	//return (d.sendbufferfreeposstk.size() && (d.signalq.size() || d.sendsignalidxq.size())) ? OK : NOK;
+	//return (d.sendbufferfreeposstk.size() && (d.msgq.size() || d.sendmsgidxq.size())) ? OK : NOK;
 	return NOK;
 }
 //---------------------------------------------------------------------
@@ -2467,17 +2483,17 @@ void Session::doFillSendBuffer(Talker::TalkerStub &_rstub, const uint32 _bufidx)
 	Data::BinSerializerT	*pser(NULL);
 	Controller				&rctrl = _rstub.service().controller();
 	
-	COLLECT_DATA_1(d.statistics.sendSignalIdxQueueSize, d.sendsignalidxq.size());
+	COLLECT_DATA_1(d.statistics.sendSignalIdxQueueSize, d.sendmsgidxq.size());
 	
-	while(d.sendsignalidxq.size()){
-		if(d.currentbuffersignalcount){
-			Data::SendSignalData	&rssd(d.sendsignalvec[d.sendsignalidxq.front()]);
+	while(d.sendmsgidxq.size()){
+		if(d.currentbuffermsgcount){
+			Data::SendMessageData	&rsmd(d.sendmsgvec[d.sendmsgidxq.front()]);
 			
-			Context::the().sigctx.signaluid.idx = d.sendsignalidxq.front();
-			Context::the().sigctx.signaluid.uid = rssd.uid;
+			Context::the().msgctx.msgid.idx = d.sendmsgidxq.front();
+			Context::the().msgctx.msgid.uid = rsmd.uid;
 			
-			if(rssd.pserializer){//a continued signal
-				if(d.currentbuffersignalcount == Data::MaxSignalBufferCount){
+			if(rsmd.pserializer){//a continued signal
+				if(d.currentbuffermsgcount == _rstub.service().configuration().session.maxmessagebuffercount){
 					vdbgx(Dbg::ipc, "oldsignal data size "<<rsbd.buffer.dataSize());
 					rsbd.buffer.dataType(Buffer::OldSignal);
 				}else{
@@ -2488,25 +2504,25 @@ void Session::doFillSendBuffer(Talker::TalkerStub &_rstub, const uint32 _bufidx)
 				vdbgx(Dbg::ipc, "newsignal data size "<<rsbd.buffer.dataSize());
 				rsbd.buffer.dataType(Buffer::NewSignal);
 				if(pser){
-					rssd.pserializer = pser;
+					rsmd.pserializer = pser;
 					pser = NULL;
 				}else{
-					rssd.pserializer = d.popSerializer(_rstub.service().typeMapperBase());
+					rsmd.pserializer = d.popSerializer(_rstub.service().typeMapperBase());
 				}
-				Signal *psig(rssd.signal.get());
-				if(rssd.tid == SERIALIZATION_INVALIDID){
-					rssd.pserializer->push(psig, "signal");
+				Message *pmsg(rsmd.msgptr.get());
+				if(rsmd.tid == SERIALIZATION_INVALIDID){
+					rsmd.pserializer->push(pmsg, "message");
 				}else{
-					rssd.pserializer->push(psig, Service::the().typeMapper(), rssd.tid, "signal");
+					rsmd.pserializer->push(pmsg, _rstub.service().typeMapper(), rsmd.tid, "message");
 				}	
 			}
-			--d.currentbuffersignalcount;
+			--d.currentbuffermsgcount;
 			
 			const uint32 tofill = rsbd.buffer.dataFreeSize() - rctrl.reservedDataSize();
 			
-			int rv = rssd.pserializer->run(rsbd.buffer.dataEnd(), tofill);
+			int rv = rsmd.pserializer->run(rsbd.buffer.dataEnd(), tofill);
 			
-			vdbgx(Dbg::ipc, "d.crtsigbufcnt = "<<d.currentbuffersignalcount<<" serialized len = "<<rv);
+			vdbgx(Dbg::ipc, "d.crtsigbufcnt = "<<d.currentbuffermsgcount<<" serialized len = "<<rv);
 			
 			if(rv < 0){
 				THROW_EXCEPTION("Serialization error");
@@ -2521,7 +2537,7 @@ void Session::doFillSendBuffer(Talker::TalkerStub &_rstub, const uint32 _bufidx)
 			
 			rsbd.buffer.dataSize(rsbd.buffer.dataSize() + rv);
 			
-			if(rssd.pserializer->empty()){//finished with this signal
+			if(rsmd.pserializer->empty()){//finished with this signal
 #ifdef ENABLE_MORE_DEBUG
 				if(rv == 1){
 					edbgx(Dbg::ipc, "bufid = "<<rsbd.buffer.id()<<" size = "<<tofill<<" datatype = "/*<<lastdatatype*/);
@@ -2530,17 +2546,17 @@ void Session::doFillSendBuffer(Talker::TalkerStub &_rstub, const uint32 _bufidx)
 #endif
 				vdbgx(Dbg::ipc, "donesignal");
 				if(pser) d.pushSerializer(pser);
-				pser = rssd.pserializer;
+				pser = rsmd.pserializer;
 				pser->clear();
-				rssd.pserializer = NULL;
+				rsmd.pserializer = NULL;
 				vdbgx(Dbg::ipc, "cached wait signal");
-				rsbd.signalidxvec.push_back(d.sendsignalidxq.front());
-				d.sendsignalidxq.pop();
-				if(rssd.flags & SynchronousSendFlag){
+				rsbd.msgidxvec.push_back(d.sendmsgidxq.front());
+				d.sendmsgidxq.pop();
+				if(rsmd.flags & SynchronousSendFlag){
 					d.currentsendsyncid = -1;
 				}
-				vdbgx(Dbg::ipc, "sendsignalidxq poped "<<d.sendsignalidxq.size());
-				d.currentbuffersignalcount = Data::MaxSignalBufferCount;
+				vdbgx(Dbg::ipc, "sendmsgidxq poped "<<d.sendmsgidxq.size());
+				d.currentbuffermsgcount = _rstub.service().configuration().session.maxmessagebuffercount;
 				if(rsbd.buffer.dataFreeSize() < (rctrl.reservedDataSize() + Data::MinBufferDataSize)){
 					break;
 				}
@@ -2548,11 +2564,11 @@ void Session::doFillSendBuffer(Talker::TalkerStub &_rstub, const uint32 _bufidx)
 				break;
 			}
 			
-		}else if(d.moveToNextSendSignal()){
-			vdbgx(Dbg::ipc, "scqpop "<<d.sendsignalidxq.size());
-			d.currentbuffersignalcount = Data::MaxSignalBufferCount;
+		}else if(d.moveToNextSendMessage()){
+			vdbgx(Dbg::ipc, "scqpop "<<d.sendmsgidxq.size());
+			d.currentbuffermsgcount = _rstub.service().configuration().session.maxmessagebuffercount;
 		}else{//we continue sending the current signal
-			d.currentbuffersignalcount = Data::MaxSignalBufferCount - 1;
+			d.currentbuffermsgcount = _rstub.service().configuration().session.maxmessagebuffercount - 1;
 		}
 	}//while
 	
@@ -2598,8 +2614,8 @@ void Session::doTryScheduleKeepAlive(Talker::TalkerStub &_rstub){
 }
 //---------------------------------------------------------------------
 void Session::prepareContext(Context &_rctx){
-	_rctx.sigctx.pairaddr = d.pairaddr;
-	_rctx.sigctx.baseport = d.baseport;
+	_rctx.msgctx.pairaddr = d.pairaddr;
+	_rctx.msgctx.baseport = d.baseport;
 }
 //---------------------------------------------------------------------
 void Session::dummySendError(
@@ -2765,7 +2781,7 @@ const uint32 specificId(){
 	return *reinterpret_cast<Context*>(Thread::specific(specificId()));
 }
 //----------------------------------------------------------------------
-Context::Context(Service &_rsrv, const IndexT &_tkrid, uint32 _uid):sigctx(_rsrv, _tkrid, _uid){
+Context::Context(Service &_rsrv, const IndexT &_tkrid, uint32 _uid):msgctx(_rsrv, _tkrid, _uid){
 	Thread::specific(specificId(), this);
 }
 //----------------------------------------------------------------------
@@ -2775,7 +2791,7 @@ Context::~Context(){
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
 /*static*/ const ConnectionContext& ConnectionContext::the(){
-	return Context::the().sigctx;
+	return Context::the().msgctx;
 }
 //======================================================================
 #ifdef USTATISTICS
@@ -2786,8 +2802,8 @@ StatisticData::~StatisticData(){
 void StatisticData::reconnect(){
 	++reconnectcnt;
 }
-void StatisticData::pushSignal(){
-	++pushsignalcnt;
+void StatisticData::pushMessage(){
+	++pushmsgcnt;
 }
 void StatisticData::pushReceivedBuffer(){
 	++pushreceivedbuffercnt;
@@ -2828,7 +2844,7 @@ void StatisticData::sendOnlyUpdatesSize3(){
 }
 
 void StatisticData::sendSignalIdxQueueSize(const ulong _sz){
-	if(maxsendsignalidxqueuesize < _sz) maxsendsignalidxqueuesize = _sz;
+	if(maxsendmsgidxqueuesize < _sz) maxsendmsgidxqueuesize = _sz;
 }
 void StatisticData::tryScheduleKeepAlive(){
 	++tryschedulekeepalivecnt;
@@ -2889,7 +2905,7 @@ void StatisticData::sendStackSize4(){
 
 std::ostream& operator<<(std::ostream &_ros, const StatisticData &_rsd){
 	_ros<<"reconnectcnt                         = "<<_rsd.reconnectcnt<<std::endl;
-	_ros<<"pushsignalcnt                        = "<<_rsd.pushsignalcnt<<std::endl;
+	_ros<<"pushmsgcnt                           = "<<_rsd.pushmsgcnt<<std::endl;
 	_ros<<"pushreceivedbuffercnt                = "<<_rsd.pushreceivedbuffercnt<<std::endl;
 	_ros<<"maxretransmitid                      = "<<_rsd.maxretransmitid<<std::endl;
 	_ros<<"sendkeepalivecnt                     = "<<_rsd.sendkeepalivecnt<<std::endl;
@@ -2903,7 +2919,7 @@ std::ostream& operator<<(std::ostream &_ros, const StatisticData &_rsd){
 	_ros<<"sendonlyupdates2                     = "<<_rsd.sendonlyupdates2<<std::endl;
 	_ros<<"sendonlyupdates3                     = "<<_rsd.sendonlyupdates3<<std::endl;
 	_ros<<"maxsendonlyupdatessize               = "<<_rsd.maxsendonlyupdatessize<<std::endl;
-	_ros<<"maxsendsignalidxqueuesize            = "<<_rsd.maxsendsignalidxqueuesize<<std::endl;
+	_ros<<"maxsendmsgidxqueuesize            = "<<_rsd.maxsendmsgidxqueuesize<<std::endl;
 	_ros<<"tryschedulekeepalivecnt              = "<<_rsd.tryschedulekeepalivecnt<<std::endl;
 	_ros<<"schedulekeepalivecnt                 = "<<_rsd.schedulekeepalivecnt<<std::endl;
 	_ros<<"failedtimeoutcnt                     = "<<_rsd.failedtimeoutcnt<<std::endl;

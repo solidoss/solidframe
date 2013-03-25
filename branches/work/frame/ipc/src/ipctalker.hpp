@@ -26,11 +26,8 @@
 #include "frame/ipc/ipcconnectionuid.hpp"
 
 struct TimeSpec;
-
+namespace solid{
 namespace frame{
-
-class Visitor;
-
 namespace ipc{
 
 class Service;
@@ -90,7 +87,7 @@ struct AcceptData{
 };
 
 //! A talker for io requests
-class Talker: public Dynamic<Talker, foundation::aio::SingleObject>{
+class Talker: public Dynamic<Talker, frame::aio::SingleObject>{
 public:
 	//! Interface from Talker to Session
 	struct TalkerStub{
@@ -123,9 +120,8 @@ public:
 	~Talker();
 	int execute(ulong _sig, TimeSpec &_tout);
 	int execute();
-	int accept(foundation::Visitor &);
-	bool pushSignal(
-		DynamicPointer<Signal> &_psig,
+	bool pushMessage(
+		DynamicPointer<Message> &_pmsgptr,
 		const SerializationTypeIdT &_rtid,
 		const ConnectionUid &_rconid,
 		uint32 _flags
@@ -161,6 +157,7 @@ private:
 
 }//namespace ipc
 }//namespace frame
+}//namespace solid
 
 #endif
 

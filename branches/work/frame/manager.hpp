@@ -88,7 +88,6 @@ public:
 	Service& service(const Object &_robj)const;
 	
 	ObjectUidT  id(const Object &_robj)const;
-	ObjectUidT  unsafeId(const Object &_robj)const;
 	
 protected:
 	size_t serviceCount()const;
@@ -96,6 +95,8 @@ private:
 	friend class Service;
 	
 	typedef FunctorStub<128, void, Object&>	ObjectVisitFunctorT;
+	
+	ObjectUidT  unsafeId(const Object &_robj)const;
 	
 	Mutex& serviceMutex(const Service &_rsvc)const;
 	ObjectUidT registerServiceObject(const Service &_rsvc, Object &_robj);
@@ -130,6 +131,7 @@ private:
 		Service &_rsvc,
 		uint _objpermutbts = 0
 	);
+	void doResetService(const size_t _svcidx, Locker<Mutex> &_rlock);
 private:
 	struct Data;
 	Data	&d;

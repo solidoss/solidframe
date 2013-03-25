@@ -26,8 +26,8 @@
 #include "frame/ipc/ipcservice.hpp"
 #include "system/socketdevice.hpp"
 
+namespace solid{
 namespace frame{
-
 namespace aio{
 namespace openssl{
 class Context;
@@ -36,25 +36,27 @@ class Context;
 
 namespace ipc{
 
-class Listener: public Dynamic<Listener, foundation::aio::SingleObject>{
+class Listener: public Dynamic<Listener, frame::aio::SingleObject>{
 public:
-	typedef Service		ServiceT;
 	Listener(
+		Service &_rsvc,
 		const SocketDevice &_rsd,
 		Service::Types	_type,
-		foundation::aio::openssl::Context *_pctx = NULL
+		frame::aio::openssl::Context *_pctx = NULL
 	);
 	/*virtual*/ int execute(ulong, TimeSpec&);
 private:
-	typedef std::auto_ptr<foundation::aio::openssl::Context> SslContextPtrT;
+	typedef std::auto_ptr<frame::aio::openssl::Context> SslContextPtrT;
+	Service				&rsvc;
 	SocketDevice		sd;
 	Service::Types		type;
 	SslContextPtrT		pctx;
+	int					state;
 };
 
 
 }//namespace ipc
-
 }//namespace frame
+}//namespace solid
 
 #endif

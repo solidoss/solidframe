@@ -96,7 +96,6 @@ typedef std::vector<ServerStub>     ServerVectorT;
 typedef std::vector<MessageStub>    MessageVectorT;
 
 namespace{
-	IpcServiceController	ipcctrl;
 	Mutex					mtx;
 	Condition				cnd;
 	bool					run(true);
@@ -140,7 +139,7 @@ struct FirstMessage: Dynamic<FirstMessage, DynamicShared<frame::Message> >{
 			_s.push(msguid.idx, "msguid.idx").push(msguid.uid,"msguid.uid");
 		}else{//on sender
 			frame::ipc::MessageUid &rmsguid(
-				const_cast<frame::ipc::MessageUid &>(frame::ipc::ConnectionContext::the().messageuid)
+				const_cast<frame::ipc::MessageUid &>(frame::ipc::ConnectionContext::the().msgid)
 			);
 			_s.push(rmsguid.idx, "msguid.idx").push(rmsguid.uid,"msguid.uid");
 		}
@@ -217,22 +216,24 @@ int main(int argc, char *argv[]){
 		
 		AioSchedulerT			aiosched(m);
 		
-		frame::ipc::Service		ipcsvc(m, aiosched);//template constructor which creates an ipc::Controller<AioSchedulerT>
+		frame::ipc::Service		ipcsvc(m, new frame::ipc::BasicController(aiosched));
 		
 		ipcsvc.typeMapper().insert<FirstMessage>();
 		
 		m.registerService(ipcsvc);
 		
 		{
-			frame::aio::Configuration	cfg;
+			frame::ipc::Configuration	cfg;
 			ResolveData					rd = synchronous_resolve("0.0.0.0", p.listen_port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
-			frame::aio::Error			err;
+			//frame::aio::Error			err;
+			int							err;
 			
 			cfg.baseaddr = rd.begin();
 			
-			err = ipcsvc.reset(cfg);
+			err = ipcsvc.reconfigure(cfg);
 			if(err){
-				cout<<"Error starting ipcservice: "<<err.toString()<<endl;
+				//TODO:
+				//cout<<"Error starting ipcservice: "<<err.toString()<<endl;
 				Thread::waitAll();
 				return 0;
 			}
@@ -471,7 +472,7 @@ FirstMessage::~FirstMessage(){
 }
 /*virtual*/ uint32 FirstMessage::ipcPrepare(){
 	if(isOnSender()){
-		return fdt::ipc::WaitResponseFlag;
+		return frame::ipc::WaitResponseFlag;
 	}else{
 		return 0;
 	}
