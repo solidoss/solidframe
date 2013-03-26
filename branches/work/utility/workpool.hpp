@@ -147,7 +147,7 @@ public:
 	}
 	
 	~WorkPool(){
-		
+		stop(true);
 	}
 	
 	//! Push a new job

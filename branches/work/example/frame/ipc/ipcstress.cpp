@@ -320,7 +320,7 @@ int main(int argc, char *argv[]){
 			}
 			cout<<endl;
 		}else{
-			cout<<"All messages have count: "<<cnt<<endl;
+			cout<<"All "<<msgvec.size()<<" messages have count: "<<cnt<<endl;
 		}
     }
 	

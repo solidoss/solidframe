@@ -78,15 +78,16 @@ public://definition
 	*/
 	Scheduler(
 		Manager &_rm,
-		uint16 _startthrcnt = 0,
+		int16 _startthrcnt = 0,
 		uint16 _maxthrcnt = 2,
 		const IndexT &_selcap = 1024 * 64
-	):SchedulerBase(_rm, _startthrcnt, _maxthrcnt, _selcap), wp(*this){
-		//slotvec.reserve(_maxthcnt > 1024 ? 1024 : _maxthcnt);
+	):SchedulerBase(_rm, _startthrcnt >= 0 ? _startthrcnt : -_startthrcnt, _maxthrcnt, _selcap), wp(*this){
+		if(_startthrcnt >= 0){
+			start(_startthrcnt);
+		}
 	}
 	
 	~Scheduler(){
-		stop(true);
 	}
 	
 	
