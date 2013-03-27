@@ -26,6 +26,8 @@
 #include "utility/iostream.hpp"
 #include "utility/streampointer.hpp"
 
+namespace solid{
+
 void StreamPointerBase::clear(Stream *_ps){
 	if(_ps->release()) delete _ps;
 }
@@ -93,3 +95,5 @@ int OutputStream::write(uint64 _offset, const char *_pbuf, uint32 _blen, uint32 
 	 seek(crtoff);
 	 return rv;
 }
+
+}//namespace solid

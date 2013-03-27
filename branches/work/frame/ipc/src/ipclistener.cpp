@@ -36,7 +36,7 @@ Listener::Listener(
 }
 
 int Listener::execute(ulong, TimeSpec&){
-	idbgx(Dbg::ipc, "");
+	idbgx(Debug::ipc, "");
 	cassert(this->socketOk());
 	if(notified()){
 		{

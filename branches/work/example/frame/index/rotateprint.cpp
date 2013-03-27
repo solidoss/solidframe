@@ -3,6 +3,7 @@
 #include <deque>
 #include <bitset>
 #include "system/common.hpp"
+using namespace solid;
 using namespace std;
 
 /*

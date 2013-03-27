@@ -3,6 +3,7 @@
 
 #include "system/common.hpp"
 
+namespace solid{
 namespace audit{
 
 struct LogRecorderVector;
@@ -31,5 +32,6 @@ private:
 };
 
 }//namespace audit
+}//namespace solid
 
 #endif

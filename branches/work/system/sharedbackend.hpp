@@ -27,6 +27,8 @@
 #include <ext/atomicity.h>
 #endif
 
+namespace solid{
+
 struct SharedStub{
 	typedef void (*DelFncT)(void*);
 	SharedStub(const ulong _idx):use(0), ptr(NULL), idx(_idx)/*, uid(0)*/, cbk(0){}
@@ -73,5 +75,7 @@ private:
 	struct Data;
 	Data &d;
 };
+
+}//namespace solid
 
 #endif

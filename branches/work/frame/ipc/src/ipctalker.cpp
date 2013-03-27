@@ -343,22 +343,22 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 	Context		ctx(d.rservice, d.tkrid, rm.id(*this).second);
 	TalkerStub	ts(*this, d.rservice, _tout);
 	
-	idbgx(Dbg::ipc, "this = "<<(void*)this<<" &d = "<<(void*)&d);
+	idbgx(Debug::ipc, "this = "<<(void*)this<<" &d = "<<(void*)&d);
 	
 	if(notified() || d.closingsessionvec.size()){
 		Locker<Mutex>	lock(rm.mutex(*this));
 		ulong			sm = grabSignalMask(0);
 		
 		if(sm & frame::S_KILL){
-			idbgx(Dbg::ipc, "talker - dying");
+			idbgx(Debug::ipc, "talker - dying");
 			return BAD;
 		}
 		
-		idbgx(Dbg::ipc, "talker - signaled");
+		idbgx(Debug::ipc, "talker - signaled");
 		if(sm == frame::S_RAISE){
 			_sig |= frame::SIGNALED;
 		}else{
-			idbgx(Dbg::ipc, "unknown signal");
+			idbgx(Debug::ipc, "unknown signal");
 		}
 		if(d.newsessionvec.size()){
 			doInsertNewSessions(ts);
@@ -518,18 +518,18 @@ void Talker::doDispatchReceivedBuffer(
 ){
 	Buffer buf(_pbuf, Buffer::Capacity);
 	buf.bufferSize(_bufsz);
-	vdbgx(Dbg::ipc, " RECEIVED "<<buf);
+	vdbgx(Debug::ipc, " RECEIVED "<<buf);
 	switch(buf.type()){
 		case Buffer::KeepAliveType:
 			COLLECT_DATA_0(d.statistics.receivedKeepAlive);
 		case Buffer::DataType:{
 			COLLECT_DATA_0(d.statistics.receivedData);
-			idbgx(Dbg::ipc, "data buffer");
+			idbgx(Debug::ipc, "data buffer");
 			if(!buf.isRelay()){
 				SocketAddressInet4				inaddr(_rsa);
 				Data::PeerAddr4MapT::iterator	pit(d.peeraddr4map.find(&inaddr));
 				if(pit != d.peeraddr4map.end()){
-					idbgx(Dbg::ipc, "found session for buffer "<<pit->second);
+					idbgx(Debug::ipc, "found session for buffer "<<pit->second);
 					d.receivedbufvec.push_back(Data::RecvBuffer(_pbuf, _bufsz, pit->second));
 					buf.release();
 				}else{
@@ -545,7 +545,7 @@ void Talker::doDispatchReceivedBuffer(
 				uint16	sessuid;
 				unpack(sessidx, sessuid, buf.relay());
 				if(sessidx < d.sessionvec.size() && d.sessionvec[sessidx].uid == sessuid && d.sessionvec[sessidx].psession){
-					idbgx(Dbg::ipc, "found session for buffer "<<sessidx<<','<<sessuid);
+					idbgx(Debug::ipc, "found session for buffer "<<sessidx<<','<<sessuid);
 					d.receivedbufvec.push_back(Data::RecvBuffer(_pbuf, _bufsz, sessidx));
 					buf.release();
 				}else{
@@ -563,15 +563,15 @@ void Talker::doDispatchReceivedBuffer(
 			Buffer::deallocate(buf.release());
 			
 			if(error){
-				edbgx(Dbg::ipc, "connecting buffer: parse "<<error);
+				edbgx(Debug::ipc, "connecting buffer: parse "<<error);
 				COLLECT_DATA_0(d.statistics.receivedConnectingError);
 			}else{
 				error = d.rservice.acceptSession(_rsa, conndata);
 				if(error < 0){	
 					COLLECT_DATA_0(d.statistics.failedAcceptSession);
-					wdbgx(Dbg::ipc, "connecting buffer: silent drop "<<error);
+					wdbgx(Debug::ipc, "connecting buffer: silent drop "<<error);
 				}else if(error > 0){
-					wdbgx(Dbg::ipc, "connecting buffer: send error "<<error);
+					wdbgx(Debug::ipc, "connecting buffer: send error "<<error);
 					d.sessionvec.front().psession->dummySendError(_rstub, _rsa, error);
 					if(!d.sessionvec.front().inexeq){
 						d.sessionexecq.push(0);
@@ -593,7 +593,7 @@ void Talker::doDispatchReceivedBuffer(
 			Buffer::deallocate(buf.release());
 			
 			if(error){
-				edbgx(Dbg::ipc, "accepted buffer: error parse "<<error);
+				edbgx(Debug::ipc, "accepted buffer: error parse "<<error);
 				COLLECT_DATA_0(d.statistics.receivedAcceptingError);
 			}else if(d.rservice.checkAcceptData(_rsa, accdata)){
 				if(!isrelay){
@@ -601,7 +601,7 @@ void Talker::doDispatchReceivedBuffer(
 					BaseAddress4T					ba(sa, accdata.baseport);
 					Data::BaseAddr4MapT::iterator	bit(d.baseaddr4map.find(ba));
 					if(bit != d.baseaddr4map.end() && d.sessionvec[bit->second].psession){
-						idbgx(Dbg::ipc, "accept for session "<<bit->second);
+						idbgx(Debug::ipc, "accept for session "<<bit->second);
 						Data::SessionStub	&rss(d.sessionvec[bit->second]);
 						_rstub.sessionidx = bit->second;
 						rss.psession->completeConnect(_rstub, _rsa.port());
@@ -613,14 +613,14 @@ void Talker::doDispatchReceivedBuffer(
 							rss.inexeq = true;
 						}
 					}else{
-						idbgx(Dbg::ipc, "");
+						idbgx(Debug::ipc, "");
 					}
 				}else{
 					uint16	sessidx;
 					uint16	sessuid;
 					unpack(sessidx, sessuid, relayid);
 					if(sessidx < d.sessionvec.size() && d.sessionvec[sessidx].uid == sessuid && d.sessionvec[sessidx].psession){
-						idbgx(Dbg::ipc, "relay accept for session "<<sessidx<<','<<sessuid);
+						idbgx(Debug::ipc, "relay accept for session "<<sessidx<<','<<sessuid);
 						Data::SessionStub	&rss(d.sessionvec[sessidx]);
 						_rstub.sessionidx = sessidx;
 						rss.psession->completeConnect(_rstub, _rsa.port(), accdata.relayid);
@@ -635,13 +635,13 @@ void Talker::doDispatchReceivedBuffer(
 							rss.inexeq = true;
 						}
 					}else{
-						idbgx(Dbg::ipc, "");
+						idbgx(Debug::ipc, "");
 					}
 					
 				}
 			}else{
 				//TODO:...
-				idbgx(Dbg::ipc, "");
+				idbgx(Debug::ipc, "");
 			}
 		}break;
 		case Buffer::ErrorType:{
@@ -658,10 +658,10 @@ void Talker::doDispatchReceivedBuffer(
 						rss.inexeq = true;
 					}
 				}else{
-					wdbgx(Dbg::ipc, "no session for error buffer");
+					wdbgx(Debug::ipc, "no session for error buffer");
 				}
 			}else{
-				wdbgx(Dbg::ipc, "no session for error buffer");
+				wdbgx(Debug::ipc, "no session for error buffer");
 			}
 			Buffer::deallocate(buf.release());
 		}break;
@@ -797,17 +797,17 @@ bool Talker::pushEvent(
 //The talker's mutex should be locked
 //Return's the new process connector's id
 void Talker::pushSession(Session *_pses, ConnectionUid &_rconid, bool _exists){
-	vdbgx(Dbg::ipc, "exists "<<_exists);
+	vdbgx(Debug::ipc, "exists "<<_exists);
 	if(_exists){
 		++_rconid.uid;
 	}else{
 		if(d.freesessionstack.size()){
-			vdbgx(Dbg::ipc, "");
+			vdbgx(Debug::ipc, "");
 			_rconid.idx = d.freesessionstack.top().first;
 			_rconid.uid = d.freesessionstack.top().second;
 			d.freesessionstack.pop();
 		}else{
-			vdbgx(Dbg::ipc, "");
+			vdbgx(Debug::ipc, "");
 			cassert(d.nextsessionidx < (uint16)0xffff);
 			_rconid.idx = d.nextsessionidx;
 			_rconid.uid = 0;
@@ -819,7 +819,7 @@ void Talker::pushSession(Session *_pses, ConnectionUid &_rconid, bool _exists){
 //----------------------------------------------------------------------
 void Talker::doInsertNewSessions(TalkerStub &_rstub){
 	for(Data::SessionPairVectorT::const_iterator it(d.newsessionvec.begin()); it != d.newsessionvec.end(); ++it){
-		vdbgx(Dbg::ipc, "newsession idx = "<<it->second<<" session vector size = "<<d.sessionvec.size());
+		vdbgx(Debug::ipc, "newsession idx = "<<it->second<<" session vector size = "<<d.sessionvec.size());
 		
 		if(it->second >= d.sessionvec.size()){
 			d.sessionvec.resize(it->second + 1);
@@ -931,7 +931,7 @@ void Talker::disconnectSessions(){
 	
 	for(Data::UInt16VectorT::const_iterator it(d.closingsessionvec.begin()); it != d.closingsessionvec.end(); ++it){
 		Data::SessionStub &rss(d.sessionvec[*it]);
-		vdbgx(Dbg::ipc, "disconnecting sessions "<<(void*)rss.psession);
+		vdbgx(Debug::ipc, "disconnecting sessions "<<(void*)rss.psession);
 		cassert(rss.psession);
 		
 		Context::the().msgctx.connectionuid.idx = *it;
@@ -939,7 +939,7 @@ void Talker::disconnectSessions(){
 		rss.psession->prepareContext(Context::the());
 		
 		if(rss.psession->isDisconnected()){
-			idbgx(Dbg::ipc, "deleting session "<<(void*)rss.psession<<" on pos "<<*it);
+			idbgx(Debug::ipc, "deleting session "<<(void*)rss.psession<<" on pos "<<*it);
 			d.rservice.disconnectSession(rss.psession);
 			//unregister from base and peer:
 			if(!rss.psession->isRelayType()){
@@ -1002,7 +1002,7 @@ int Talker::TalkerStub::basePort()const{
 namespace{
 
 StatisticData::~StatisticData(){
-	rdbgx(Dbg::ipc, "Statistics:\r\n"<<*this);
+	rdbgx(Debug::ipc, "Statistics:\r\n"<<*this);
 }
 	
 void StatisticData::receivedManyBuffers(){

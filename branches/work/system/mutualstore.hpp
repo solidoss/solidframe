@@ -25,6 +25,9 @@
 #include "system/common.hpp"
 #include "system/convertors.hpp"
 
+
+namespace solid{
+
 //! A container of shared objects
 /*!
 	Here's the concrete situation for which this object store was designed for:<br><br>
@@ -195,5 +198,7 @@ private:
 	const size_t 		mutcolscnt;//mutex columns count
 	MutualObjectT		**objmat;
 };
+
+}//namespace solid
 
 #endif

@@ -14,6 +14,7 @@
 #endif
 
 using namespace std;
+using namespace solid;
 
 #ifdef ON_WINDOWS
 typedef HANDLE DescriptorT;
@@ -105,9 +106,9 @@ int main(int _argc, char *argv[]){
 #endif
 	create_pipe(pairfd);
 #ifdef UDEBUG
-	Dbg::instance().levelMask();
-	Dbg::instance().moduleMask();
-	Dbg::instance().initStdErr();
+	Debug::the().levelMask();
+	Debug::the().moduleMask();
+	Debug::the().initStdErr();
 #endif
 	audit::LogManager lm;
 	lm.start();
@@ -115,7 +116,7 @@ int main(int _argc, char *argv[]){
 	lm.insertListener("localhost", "8888");
 	Directory::create("log");
 	lm.insertConnector(new audit::LogBasicConnector("log"));
-	Log::instance().reinit(argv[0], Log::AllLevels, "ALL", new DeviceInputOutputStream(pairfd[1],invalid_descriptor));
+	Log::the().reinit(argv[0], Log::AllLevels, "ALL", new DeviceInputOutputStream(pairfd[1],invalid_descriptor));
 	
 	string s;
 	while(true){

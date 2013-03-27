@@ -37,6 +37,8 @@
 #include "system/cassert.hpp"
 #include "system/debug.hpp"
 
+namespace solid{
+
 Device::Device(const Device &_dev):desc(_dev.descriptor()) {
 	_dev.desc = invalidDescriptor();
 }
@@ -564,12 +566,12 @@ int SocketDevice::create(const ResolveIterator &_rri){
 	SOCKET s = WSASocket(_rri.family(), _rri.type(), _rri.protocol(), NULL, 0, 0);
 	Device::descriptor((HANDLE)s);
 	if(ok()) return OK;
-	edbgx(Dbg::system, "socket create");
+	edbgx(Debug::system, "socket create");
 	return BAD;
 #else
 	Device::descriptor(socket(_rri.family(), _rri.type(), _rri.protocol()));
 	if(ok()) return OK;
-	edbgx(Dbg::system, "socket create: "<<strerror(errno));
+	edbgx(Debug::system, "socket create: "<<strerror(errno));
 	return BAD;
 #endif
 }
@@ -584,12 +586,12 @@ int SocketDevice::create(
 	SOCKET s = WSASocket(_family, _type, _proto, NULL, 0, 0);
 	Device::descriptor((HANDLE)s);
 	if(ok()) return OK;
-	edbgx(Dbg::system, "socket create");
+	edbgx(Debug::system, "socket create");
 	return BAD;
 #else
 	Device::descriptor(socket(_family, _type, _proto));
 	if(ok()) return OK;
-	edbgx(Dbg::system, "socket create: "<<strerror(errno));
+	edbgx(Debug::system, "socket create: "<<strerror(errno));
 	return BAD;
 #endif
 }
@@ -598,7 +600,7 @@ int SocketDevice::connect(const SocketAddressStub &_rsas){
 	int rv = ::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
 	if (rv < 0) { // sau rv == -1 ...
 		if(WSAGetLastError() == WSAEWOULDBLOCK) return NOK;
-		edbgx(Dbg::system, "socket connect");
+		edbgx(Debug::system, "socket connect");
 		close();
 		return BAD;
 	}
@@ -607,7 +609,7 @@ int SocketDevice::connect(const SocketAddressStub &_rsas){
 	int rv = ::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
 	if (rv < 0) { // sau rv == -1 ...
 		if(errno == EINPROGRESS) return NOK;
-		edbgx(Dbg::system, "socket connect: "<<strerror(errno));
+		edbgx(Debug::system, "socket connect: "<<strerror(errno));
 		close();
 		return BAD;
 	}
@@ -620,7 +622,7 @@ int SocketDevice::connect(const SocketAddressStub &_rsas){
 // 	int rv = ::connect(descriptor(), _rai.addr(), _rai.size());
 // 	if (rv < 0) { // sau rv == -1 ...
 // 		if(WSAGetLastError() == WSAEWOULDBLOCK) return NOK;
-// 		edbgx(Dbg::system, "socket connect");
+// 		edbgx(Debug::system, "socket connect");
 // 		close();
 // 		return BAD;
 // 	}
@@ -629,7 +631,7 @@ int SocketDevice::connect(const SocketAddressStub &_rsas){
 // 	int rv = ::connect(descriptor(), _rai.addr(), _rai.size());
 // 	if (rv < 0) { // sau rv == -1 ...
 // 		if(errno == EINPROGRESS) return NOK;
-// 		edbgx(Dbg::system, "socket connect: "<<strerror(errno));
+// 		edbgx(Debug::system, "socket connect: "<<strerror(errno));
 // 		close();
 // 		return BAD;
 // 	}
@@ -641,20 +643,20 @@ int SocketDevice::prepareAccept(const SocketAddressStub &_rsas, unsigned _listen
 	int yes = 1;
 	int rv = setsockopt(descriptor(), SOL_SOCKET, SO_REUSEADDR, (char *) &yes, sizeof(yes));
 	if(rv < 0) {
-		edbgx(Dbg::system, "socket setsockopt: "<<strerror(errno));
+		edbgx(Debug::system, "socket setsockopt: "<<strerror(errno));
 		close();
 		return BAD;
 	}
 
 	rv = ::bind(descriptor(), _rsas.sockAddr(), _rsas.size());
 	if(rv < 0) {
-		edbgx(Dbg::system, "socket bind: "<<strerror(errno));
+		edbgx(Debug::system, "socket bind: "<<strerror(errno));
 		close();
 		return BAD;
 	}
 	rv = listen(descriptor(), _listencnt);
 	if(rv < 0){
-		edbgx(Dbg::system, "socket listen: "<<strerror(errno));
+		edbgx(Debug::system, "socket listen: "<<strerror(errno));
 		close();
 		return BAD;
 	}
@@ -663,20 +665,20 @@ int SocketDevice::prepareAccept(const SocketAddressStub &_rsas, unsigned _listen
 	int yes = 1;
 	int rv = setsockopt(descriptor(), SOL_SOCKET, SO_REUSEADDR, (char *) &yes, sizeof(yes));
 	if(rv < 0) {
-		edbgx(Dbg::system, "socket setsockopt: "<<strerror(errno));
+		edbgx(Debug::system, "socket setsockopt: "<<strerror(errno));
 		close();
 		return BAD;
 	}
 
 	rv = ::bind(descriptor(), _rsas.sockAddr(), _rsas.size());
 	if(rv < 0) {
-		edbgx(Dbg::system, "socket bind: "<<strerror(errno));
+		edbgx(Debug::system, "socket bind: "<<strerror(errno));
 		close();
 		return BAD;
 	}
 	rv = listen(descriptor(), _listencnt);
 	if(rv < 0){
-		edbgx(Dbg::system, "socket listen: "<<strerror(errno));
+		edbgx(Debug::system, "socket listen: "<<strerror(errno));
 		close();
 		return BAD;
 	}
@@ -690,7 +692,7 @@ int SocketDevice::accept(SocketDevice &_dev){
 	SOCKET rv = ::accept(descriptor(), sa, &sa.sz);
 	if (rv == invalidDescriptor()) {
 		if(WSAGetLastError() == WSAEWOULDBLOCK) return NOK;
-		edbgx(Dbg::system, "socket accept: "<<WSAGetLastError());
+		edbgx(Debug::system, "socket accept: "<<WSAGetLastError());
 		close();
 		return BAD;
 	}
@@ -702,7 +704,7 @@ int SocketDevice::accept(SocketDevice &_dev){
 	int rv = ::accept(descriptor(), sa, &sa.sz);
 	if (rv < 0) {
 		if(errno == EAGAIN) return NOK;
-		edbgx(Dbg::system, "socket accept: "<<strerror(errno));
+		edbgx(Debug::system, "socket accept: "<<strerror(errno));
 		close();
 		return BAD;
 	}
@@ -715,7 +717,7 @@ int SocketDevice::bind(const SocketAddressStub &_rsa){
 	if(!ok()) return BAD;
 	int rv = ::bind(descriptor(), _rsa.sockAddr(), _rsa.size());
 	if(rv < 0){
-		edbgx(Dbg::system, "socket bind: "<<strerror(errno));
+		edbgx(Debug::system, "socket bind: "<<strerror(errno));
 		close();
 		return BAD;
 	}
@@ -724,7 +726,7 @@ int SocketDevice::bind(const SocketAddressStub &_rsa){
 	if(!ok()) return BAD;
 	int rv = ::bind(descriptor(), _rsa.sockAddr(), _rsa.size());
 	if(rv < 0){
-		edbgx(Dbg::system, "socket bind: "<<strerror(errno));
+		edbgx(Debug::system, "socket bind: "<<strerror(errno));
 		close();
 		return BAD;
 	}
@@ -737,7 +739,7 @@ int SocketDevice::makeBlocking(int _msec){
 	u_long mode = 0;
 	int rv = ioctlsocket(descriptor(), FIONBIO, &mode);
 	if (rv != NO_ERROR){
-		edbgx(Dbg::system, "socket ioctlsocket fionbio: "<<WSAGetLastError());
+		edbgx(Debug::system, "socket ioctlsocket fionbio: "<<WSAGetLastError());
 		close();
 		return BAD;
 	}
@@ -747,14 +749,14 @@ int SocketDevice::makeBlocking(int _msec){
 	DWORD tout(_msec);
 	rv = setsockopt(descriptor(), SOL_SOCKET, SO_RCVTIMEO, (char *) &tout, sizeof(tout));
 	if (rv == SOCKET_ERROR){
-		edbgx(Dbg::system, "error setsockopt rcvtimeo: "<<WSAGetLastError());
+		edbgx(Debug::system, "error setsockopt rcvtimeo: "<<WSAGetLastError());
 		close();
 		return BAD;
 	}
 	tout = _msec;
 	rv = setsockopt(descriptor(), SOL_SOCKET, SO_SNDTIMEO, (char *) &tout, sizeof(tout));
 	if (rv == SOCKET_ERROR){
-		edbgx(Dbg::system, "error setsockopt sndtimeo: "<<WSAGetLastError());
+		edbgx(Debug::system, "error setsockopt sndtimeo: "<<WSAGetLastError());
 		close();
 		return BAD;
 	}
@@ -763,14 +765,14 @@ int SocketDevice::makeBlocking(int _msec){
 	if(!ok()) return BAD;
 	int flg = fcntl(descriptor(), F_GETFL);
 	if(flg == -1){
-		edbgx(Dbg::system, "socket fcntl getfl: "<<strerror(errno));
+		edbgx(Debug::system, "socket fcntl getfl: "<<strerror(errno));
 		close();
 		return BAD;
 	}
 	flg &= ~O_NONBLOCK;
 	int rv = fcntl(descriptor(), F_SETFL, flg);
 	if (rv < 0){
-		edbgx(Dbg::system, "error fcntl setfl: "<<strerror(errno));
+		edbgx(Debug::system, "error fcntl setfl: "<<strerror(errno));
 		close();
 		return BAD;
 	}
@@ -783,7 +785,7 @@ int SocketDevice::makeNonBlocking(){
 	u_long mode = 1;
 	int rv = ioctlsocket(descriptor(), FIONBIO, &mode);
 	if (rv != NO_ERROR){
-		edbgx(Dbg::system, "socket fcntl ioctlsocket "<<WSAGetLastError());
+		edbgx(Debug::system, "socket fcntl ioctlsocket "<<WSAGetLastError());
 		close();
 		return BAD;
 	}
@@ -792,13 +794,13 @@ int SocketDevice::makeNonBlocking(){
 	if(!ok()) return BAD;
 	int flg = fcntl(descriptor(), F_GETFL);
 	if(flg == -1){
-		edbgx(Dbg::system, "socket fcntl getfl: "<<strerror(errno));
+		edbgx(Debug::system, "socket fcntl getfl: "<<strerror(errno));
 		close();
 		return BAD;
 	}
 	int rv = fcntl(descriptor(), F_SETFL, flg | O_NONBLOCK);
 	if(rv < 0){
-		edbgx(Dbg::system, "socket fcntl setfl: "<<strerror(errno));
+		edbgx(Debug::system, "socket fcntl setfl: "<<strerror(errno));
 		close();
 		return BAD;
 	}
@@ -810,7 +812,7 @@ int SocketDevice::makeNonBlocking(){
 int SocketDevice::isBlocking()const{
 	int flg = fcntl(descriptor(), F_GETFL);
 	if(flg == -1){
-		edbgx(Dbg::system, "socket fcntl getfl: "<<strerror(errno));
+		edbgx(Debug::system, "socket fcntl getfl: "<<strerror(errno));
 		return BAD;
 	}
 	return (flg & O_NONBLOCK) ? NOK : OK;
@@ -861,7 +863,7 @@ int SocketDevice::remoteAddress(SocketAddress &_rsa)const{
 	_rsa.sz = SocketAddress::Capacity;
 	int rv = getpeername(descriptor(), _rsa.sockAddr(), &_rsa.sz);
 	if(rv){
-		edbgx(Dbg::system, "socket getpeername: "<<strerror(errno));
+		edbgx(Debug::system, "socket getpeername: "<<strerror(errno));
 		return BAD;
 	}
 	return OK;
@@ -875,7 +877,7 @@ int SocketDevice::localAddress(SocketAddress &_rsa)const{
 	_rsa.sz = SocketAddress::Capacity;
 	int rv = getsockname(descriptor(), _rsa.sockAddr(), &_rsa.sz);
 	if(rv){
-		edbgx(Dbg::system, "socket getsockname: "<<strerror(errno));
+		edbgx(Debug::system, "socket getsockname: "<<strerror(errno));
 		return BAD;
 	}
 	return OK;
@@ -892,7 +894,7 @@ int SocketDevice::type()const{
 	if(rv == 0){
 		return val;
 	}
-	edbgx(Dbg::system, "socket getsockopt: "<<strerror(errno));
+	edbgx(Debug::system, "socket getsockopt: "<<strerror(errno));
 	return BAD;
 #endif
 }
@@ -907,7 +909,7 @@ bool SocketDevice::isListening()const{
 	if(rv == 0){
 		return val != 0;
 	}
-	edbgx(Dbg::system, "socket getsockopt: "<<strerror(errno));
+	edbgx(Debug::system, "socket getsockopt: "<<strerror(errno));
 	//try work-arround
 	if(this->type() == SocketInfo::Datagram){
 		return false;
@@ -934,7 +936,7 @@ int SocketDevice::enableNoDelay(){
 	int flag = 1;
 	int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, sizeof(flag));
 	if(rv < 0){
-		edbgx(Dbg::system, "socket setsockopt TCP_NODELAY: "<<strerror(errno));
+		edbgx(Debug::system, "socket setsockopt TCP_NODELAY: "<<strerror(errno));
 		close();
 		return BAD;
 	}
@@ -949,7 +951,7 @@ int SocketDevice::disableNoDelay(){
 	int flag = 0;
 	int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, sizeof(flag));
 	if(rv < 0){
-		edbgx(Dbg::system, "socket setsockopt TCP_NODELAY: "<<strerror(errno));
+		edbgx(Debug::system, "socket setsockopt TCP_NODELAY: "<<strerror(errno));
 		close();
 		return BAD;
 	}
@@ -965,7 +967,7 @@ int SocketDevice::hasNoDelay()const{
 	socklen_t	sz(sizeof(flag));
 	int rv = getsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, &sz);
 	if(rv < 0){
-		edbgx(Dbg::system, "socket getsockopt TCP_NODELAY: "<<strerror(errno));
+		edbgx(Debug::system, "socket getsockopt TCP_NODELAY: "<<strerror(errno));
 		return BAD;
 	}
 	return rv ? OK : NOK;
@@ -979,7 +981,7 @@ int SocketDevice::enableCork(){
 	int flag = 1;
 	int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_CORK, (char*)&flag, sizeof(flag));
 	if(rv < 0){
-		edbgx(Dbg::system, "socket setsockopt TCP_CORK: "<<strerror(errno));
+		edbgx(Debug::system, "socket setsockopt TCP_CORK: "<<strerror(errno));
 		close();
 		return BAD;
 	}
@@ -996,7 +998,7 @@ int SocketDevice::disableCork(){
 	int flag = 0;
 	int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_CORK, (char*)&flag, sizeof(flag));
 	if(rv < 0){
-		edbgx(Dbg::system, "socket setsockopt TCP_CORK: "<<strerror(errno));
+		edbgx(Debug::system, "socket setsockopt TCP_CORK: "<<strerror(errno));
 		close();
 		return BAD;
 	}
@@ -1014,7 +1016,7 @@ int SocketDevice::hasCork()const{
 	socklen_t	sz(sizeof(flag));
 	int rv = getsockopt(descriptor(), IPPROTO_TCP, TCP_CORK, (char*)&flag, &sz);
 	if(rv < 0){
-		edbgx(Dbg::system, "socket getsockopt TCP_CORK: "<<strerror(errno));
+		edbgx(Debug::system, "socket getsockopt TCP_CORK: "<<strerror(errno));
 		return BAD;
 	}
 	return rv ? OK : NOK;
@@ -1031,7 +1033,7 @@ int SocketDevice::sendBufferSize(size_t _sz){
 	int rv;
 	rv = setsockopt(descriptor(), SOL_SOCKET, SO_SNDBUF, (char*)&sockbufsz, sizeof(sockbufsz));
 	if(rv < 0){
-		edbgx(Dbg::system, "socket setsockopt SO_SNDBUF: "<<strerror(errno));
+		edbgx(Debug::system, "socket setsockopt SO_SNDBUF: "<<strerror(errno));
 		return BAD;
 	}
 	return OK;
@@ -1045,7 +1047,7 @@ int SocketDevice::recvBufferSize(size_t _sz){
 	int rv;
 	rv = setsockopt(descriptor(), SOL_SOCKET, SO_RCVBUF, (char*)&sockbufsz, sizeof(sockbufsz));
 	if(rv < 0){
-		edbgx(Dbg::system, "socket setsockopt SO_RCVBUF: "<<strerror(errno));
+		edbgx(Debug::system, "socket setsockopt SO_RCVBUF: "<<strerror(errno));
 		return BAD;
 	}
 	return OK;
@@ -1060,7 +1062,7 @@ int SocketDevice::sendBufferSize()const{
 	int 		rv;
 	rv = getsockopt(descriptor(), SOL_SOCKET, SO_SNDBUF, (char*)&sockbufsz, &sz);
 	if(rv < 0){
-		edbgx(Dbg::system, "socket setsockopt SO_SNDBUF: "<<strerror(errno));
+		edbgx(Debug::system, "socket setsockopt SO_SNDBUF: "<<strerror(errno));
 		return BAD;
 	}
 	return sockbufsz;
@@ -1075,10 +1077,12 @@ int SocketDevice::recvBufferSize()const{
 	int 		rv;
 	rv = getsockopt(descriptor(), SOL_SOCKET, SO_RCVBUF, (char*)&sockbufsz, &sz);
 	if(rv < 0){
-		edbgx(Dbg::system, "socket setsockopt SO_RCVBUF: "<<strerror(errno));
+		edbgx(Debug::system, "socket setsockopt SO_RCVBUF: "<<strerror(errno));
 		return BAD;
 	}
 	return sockbufsz;
 #endif
 }
+
+}//namespace solid
 

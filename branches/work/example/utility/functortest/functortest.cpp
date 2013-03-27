@@ -2,6 +2,7 @@
 #include "system/common.hpp"
 #include <string>
 
+using namespace solid;
 
 struct NoType{};
 
@@ -243,9 +244,9 @@ struct TestEFunctor{
 int main(int argc, char *argv[]){
 #ifdef UDEBUG
 	{
-		Dbg::instance().initStdErr();
-		Dbg::instance().levelMask("iwe");
-		Dbg::instance().moduleMask("all");
+		Debug::the().initStdErr();
+		Debug::the().levelMask("iwe");
+		Debug::the().moduleMask("all");
 	}
 #endif
 	//FunctorStub<NoType>				fnc0;

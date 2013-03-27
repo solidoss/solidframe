@@ -32,6 +32,8 @@
 // #endif
 
 
+namespace solid{
+
 template <class T, unsigned V = 32>
 struct Cacheable: T{
 	Cacheable(){}
@@ -196,6 +198,6 @@ private:
 	static void doDeallocateBuffer(void *_p);
 };
 
-
+}//namespace solid
 
 #endif

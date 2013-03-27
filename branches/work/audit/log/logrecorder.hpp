@@ -3,6 +3,7 @@
 
 #include <vector>
 
+namespace solid{
 namespace audit{
 
 class LogRecorder;
@@ -25,5 +26,6 @@ public:
 };
 
 }//namespace audit
+}//namespace solid
 
 #endif

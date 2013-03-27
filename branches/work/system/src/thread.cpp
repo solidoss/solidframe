@@ -30,6 +30,7 @@
 #include "system/condition.hpp"
 #include "system/exception.hpp"
 #include "system/cassert.hpp"
+#include "system/synchronization.hpp"
 
 #include "mutexpool.hpp"
 
@@ -60,6 +61,8 @@
 
 
 #include <limits.h>
+
+namespace solid{
 
 struct Cleaner{
 	~Cleaner(){
@@ -609,7 +612,7 @@ int Thread::start(bool _wait, bool _detached, ulong _stacksz){
 	if(_detached){
 		if(pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_DETACHED)){
 			pthread_attr_destroy(&attr);
-			edbgx(Dbg::system, "pthread_attr_setdetachstate: "<<strerror(errno));
+			edbgx(Debug::system, "pthread_attr_setdetachstate: "<<strerror(errno));
 			return BAD;
 		}
 	}
@@ -619,7 +622,7 @@ int Thread::start(bool _wait, bool _detached, ulong _stacksz){
 		}
 		int rv = pthread_attr_setstacksize(&attr, _stacksz);
 		if(rv){
-			edbgx(Dbg::system, "pthread_attr_setstacksize "<<_stacksz<<": "<<strerror(errno));
+			edbgx(Debug::system, "pthread_attr_setstacksize "<<_stacksz<<": "<<strerror(errno));
 			pthread_attr_destroy(&attr);
 			return BAD;
 		}
@@ -643,7 +646,7 @@ int Thread::start(bool _wait, bool _detached, ulong _stacksz){
 			dtchd = 1;
 		}
 		if(pthread_create(&th,&attr,&Thread::th_run,this)){
-			edbgx(Dbg::system, "pthread_create: "<<strerror(errno));
+			edbgx(Debug::system, "pthread_create: "<<strerror(errno));
 			pthread_attr_destroy(&attr);
 			th = 0;
 			pthrstub = NULL;
@@ -653,7 +656,7 @@ int Thread::start(bool _wait, bool _detached, ulong _stacksz){
 			}
 			return BAD;
 		}
-		idbgx(Dbg::system, "started thread "<<th);
+		idbgx(Debug::system, "started thread "<<th);
 		while(val){
 			cnd.wait(lock);
 		}
@@ -671,7 +674,7 @@ int Thread::start(bool _wait, bool _detached, ulong _stacksz){
 			dtchd = 1;
 		}
 		if(pthread_create(&th,&attr,&Thread::th_run,this)){
-			edbgx(Dbg::system, "pthread_create: "<<strerror(errno));
+			edbgx(Debug::system, "pthread_create: "<<strerror(errno));
 			pthread_attr_destroy(&attr);
 			th = 0;
 			{
@@ -680,11 +683,11 @@ int Thread::start(bool _wait, bool _detached, ulong _stacksz){
 			}
 			return BAD;
 		}
-		idbgx(Dbg::system, "started thread "<<th);
+		idbgx(Debug::system, "started thread "<<th);
 	}
 
 	pthread_attr_destroy(&attr);
-	vdbgx(Dbg::system, "");
+	vdbgx(Debug::system, "");
 	return OK;
 #endif
 }
@@ -707,7 +710,7 @@ void Thread::waitAll(){
 //-------------------------------------------------------------------------
 #ifdef ON_WINDOWS
 unsigned long Thread::th_run(void *pv){
-	vdbgx(Dbg::system, "thrun enter "<<pv);
+	vdbgx(Debug::system, "thrun enter "<<pv);
 	Thread	*pth(reinterpret_cast<Thread*>(pv));
 	//Thread::enter();
 	Thread::current(pth);
@@ -719,14 +722,14 @@ unsigned long Thread::th_run(void *pv){
 	pth->run();
 	pth->unprepare();
 	if(pth->detached()) delete pth;
-	vdbgx(Dbg::system, "thrun exit "<<pv);
+	vdbgx(Debug::system, "thrun exit "<<pv);
 	Thread::exit();
 	return NULL;
 }
 
 #else
 void* Thread::th_run(void *pv){
-	vdbgx(Dbg::system, "thrun enter "<<pv);
+	vdbgx(Debug::system, "thrun enter "<<pv);
 	Thread	*pth(reinterpret_cast<Thread*>(pv));
 	//Thread::enter();
 	Thread::current(pth);
@@ -738,9 +741,10 @@ void* Thread::th_run(void *pv){
 	pth->run();
 	pth->unprepare();
 	if(pth->detached()) delete pth;
-	vdbgx(Dbg::system, "thrun exit "<<pv);
+	vdbgx(Debug::system, "thrun exit "<<pv);
 	Thread::exit();
 	return NULL;
 }
 #endif
 //-------------------------------------------------------------------------
+}//namespace solid

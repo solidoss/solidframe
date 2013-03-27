@@ -25,6 +25,7 @@
 #include "system/convertors.hpp"
 #include "system/cassert.hpp"
 
+namespace solid{
 
 //! A simple and fast stack with interface similar to std one
 /*!
@@ -104,5 +105,7 @@ private:
 	T			*p;
 	Node		*ptn;
 };
+
+}//namespace solid
 
 #endif

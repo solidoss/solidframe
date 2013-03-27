@@ -25,6 +25,8 @@
 #include <iostream>
 #include "system/mutex.hpp"
 
+namespace solid{
+
 template <ushort V>
 class FastMutexPool{
         enum {sz = (V > 10)?1023:((V<2)?(2):((1<<V)-1))};
@@ -61,44 +63,8 @@ private:
         Mutex mutex;
         Mutex *pool[sz+1];
 };
-/*
-class MutexPool{
-public:
-	MutexPool(unsigned _objpermutbts = 6, unsigned _mutrowsbts = 8, unsigned _mutcolsbts = 8);
-	~MutexPool();
-	Mutex& mutex(unsigned i);
-	Mutex& safeMutex(unsigned i);
-	Mutex& operator[](unsigned i);
-	int isRangeEnd(unsigned i);
-private:
-	Mutex& doGetMutex(unsigned i);
-	unsigned getMutexRow(unsigned i);
-private:
-	const unsigned		objpermutbts;//objects per mutex mask
-	const unsigned		objpermutmsk;//objects per mutex count
-	const unsigned 		mutrowsbts;//mutex rows bits
-	const unsigned		mutrowsmsk;//mutex rows mask
-	const unsigned		mutrowscnt;//mutex rows count
-	const unsigned 		mutcolsmsk;//mutex columns mask
-	const unsigned 		mutcolscnt;//mutex columns count
-	Mutex				**mutmat;
-};
 
-inline Mutex& MutexPool::mutex(unsigned i){
-	return doGetMutex(i >> objpermutbts);
-}
-inline Mutex& MutexPool::doGetMutex(unsigned i){
-	return mutmat[(i >> mutrowsbts) & mutrowsmsk][i & mutcolsmsk];
-}
-inline unsigned MutexPool::getMutexRow(unsigned i){
-	return ((i >> objpermutbts) >> mutrowsbts) & mutrowsmsk;
-}
-inline Mutex& MutexPool::operator[](unsigned i){
-	return doGetMutex(i);
-}
-inline int MutexPool::isRangeEnd(unsigned i){
-	return !(i & objpermutmsk);
-}
-*/
+}//namespace solid
+
 #endif
 

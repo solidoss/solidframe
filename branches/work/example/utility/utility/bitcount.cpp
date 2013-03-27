@@ -2,6 +2,7 @@
 #include "utility/common.hpp"
 
 using namespace std;
+using namespace solid;
 
 uint32 compute_bit_count(uint32 _v){
 	uint32 cnt(0);

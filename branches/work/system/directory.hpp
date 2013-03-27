@@ -21,6 +21,9 @@
 
 #ifndef SYSTEM_DIRECTORY_HPP
 #define SYSTEM_DIRECTORY_HPP
+
+namespace solid{
+
 //! A wrapper for filesystem directory opperations
 class Directory{
 public:
@@ -31,5 +34,7 @@ public:
 	//! Rename a file
 	static int renameFile(const char *_to, const char *_from);
 };
+
+}//namespace solid
 
 #endif

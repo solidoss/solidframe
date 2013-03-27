@@ -14,6 +14,8 @@
 #include <ext/atomicity.h>
 #endif
 
+namespace solid{
+
 //---------------------------------------------------------------------
 //----	Shared	----
 //---------------------------------------------------------------------
@@ -177,12 +179,12 @@ DynamicMap::FncT DynamicBase::callback(const DynamicMap &_rdm){
 }
 
 /*virtual*/ void DynamicBase::use(){
-	idbgx(Dbg::utility, "DynamicBase");
+	idbgx(Debug::utility, "DynamicBase");
 }
 
 //! Used by DynamicPointer to know if the object must be deleted
 /*virtual*/ int DynamicBase::release(){
-	idbgx(Dbg::utility, "DynamicBase");
+	idbgx(Debug::utility, "DynamicBase");
 	return 0;
 }
 
@@ -191,7 +193,7 @@ DynamicMap::FncT DynamicBase::callback(const DynamicMap &_rdm){
 }
 
 void DynamicSharedImpl::doUse(){
-	idbgx(Dbg::utility, "DynamicSharedImpl");
+	idbgx(Debug::utility, "DynamicSharedImpl");
 #ifdef HAS_GNU_ATOMIC
 	__gnu_cxx:: __atomic_add_dispatch(&usecount, 1);
 #else
@@ -201,7 +203,7 @@ void DynamicSharedImpl::doUse(){
 }
 
 int DynamicSharedImpl::doRelease(){
-	idbgx(Dbg::utility, "DynamicSharedImpl");
+	idbgx(Debug::utility, "DynamicSharedImpl");
 #ifdef HAS_GNU_ATOMIC
 	const int rv = __gnu_cxx::__exchange_and_add_dispatch(&usecount, -1) - 1;
 #else
@@ -211,3 +213,5 @@ int DynamicSharedImpl::doRelease(){
 #endif
 	return rv;
 }
+
+}//namespace solid

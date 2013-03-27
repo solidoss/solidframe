@@ -3,6 +3,7 @@
 
 #include "audit/log/logconnector.hpp"
 
+namespace solid{
 namespace audit{
 
 class LogRecorder;
@@ -23,5 +24,6 @@ private:
 
 
 }//namespace audit
+}//namespace solid
 
 #endif

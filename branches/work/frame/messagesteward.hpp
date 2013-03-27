@@ -30,13 +30,14 @@
 
 #include <string>
 
+namespace solid{
+	
 class InputStream;
 class OutputStream;
 class InputOutputStream;
 
 struct TimeSpec;
 
-namespace solid{
 namespace frame{
 
 namespace ipc{

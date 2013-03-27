@@ -21,6 +21,8 @@
 
 #include "utility/list.hpp"
 
+namespace solid{
+
 Link* ListBase::doPushBack(Link *_pl){
 	++sz;
 	lend.pprev->pnext = _pl;
@@ -83,3 +85,5 @@ void ListBase::doClear(){
 		sz = 0;
 	}
 }
+
+}//namespace solid

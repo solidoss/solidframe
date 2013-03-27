@@ -1,4 +1,3 @@
-#include "writer.hpp"
 #include <sys/socket.h>
 #include <unistd.h>
 #include <iostream>
@@ -6,7 +5,11 @@
 #include "system/debug.hpp"
 #include "system/cassert.hpp"
 #include "utility/istream.hpp"
+
 using namespace std;
+using namespace solid;
+
+#include "writer.hpp"
 
 bool isquotedspecial(uint8 _c){
 	if(_c == '\\') return false;

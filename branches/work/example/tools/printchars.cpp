@@ -3,6 +3,7 @@
 #include <deque>
 #include "system/common.hpp"
 using namespace std;
+using namespace solid;
 
 /*
  Builds a table of strings containing either the character itself or its name

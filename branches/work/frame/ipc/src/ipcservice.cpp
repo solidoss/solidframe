@@ -358,7 +358,7 @@ void Service::doSendMessageLocal(
 		
 		if(it != d.sessionaddr4map.end()){
 		
-			vdbgx(Dbg::ipc, "");
+			vdbgx(Debug::ipc, "");
 			
 			ConnectionUid		conid(it->second);
 			const IndexT		fullid(d.tkrvec[conid.tid].uid.first);
@@ -378,7 +378,7 @@ void Service::doSendMessageLocal(
 				*_pconid = conid;
 			}
 		}else{//the connection/session does not exist
-			vdbgx(Dbg::ipc, "");
+			vdbgx(Debug::ipc, "");
 			
 			int16	tkridx(allocateTalkerForSession());
 			IndexT	tkrfullid;
@@ -405,7 +405,7 @@ void Service::doSendMessageLocal(
 			
 			cassert(ptkr);
 			
-			vdbgx(Dbg::ipc, "");
+			vdbgx(Debug::ipc, "");
 			ptkr->pushSession(pses, conid);
 			d.sessionaddr4map[pses->peerBaseAddress4()] = conid;
 			
@@ -443,7 +443,7 @@ void Service::doSendMessageRelay(
 		
 		if(it != d.sessionrelayaddr4map.end()){
 		
-			vdbgx(Dbg::ipc, "");
+			vdbgx(Debug::ipc, "");
 			
 			ConnectionUid		conid(it->second);
 			const IndexT		fullid(d.tkrvec[conid.tid].uid.first);
@@ -463,7 +463,7 @@ void Service::doSendMessageRelay(
 				*_pconid = conid;
 			}
 		}else{//the connection/session does not exist
-			vdbgx(Dbg::ipc, "");
+			vdbgx(Debug::ipc, "");
 			
 			int16	tkridx(allocateTalkerForSession());
 			IndexT	tkrfullid;
@@ -489,7 +489,7 @@ void Service::doSendMessageRelay(
 			Session				*pses(new Session(*this, _netid_dest, sa));
 			ConnectionUid		conid(tkridx);
 			
-			vdbgx(Dbg::ipc, "");
+			vdbgx(Debug::ipc, "");
 			ptkr->pushSession(pses, conid);
 			d.sessionrelayaddr4map[pses->peerRelayAddress4()] = conid;
 			
@@ -512,7 +512,7 @@ void Service::doSendMessageRelay(
 int Service::createTalker(IndexT &_tkrfullid, uint32 &_tkruid){
 	
 	if(d.tkrvec.size() >= d.config.talker.maxcnt){
-		vdbgx(Dbg::ipc, "maximum talker count reached "<<d.tkrvec.size());
+		vdbgx(Debug::ipc, "maximum talker count reached "<<d.tkrvec.size());
 		return BAD;
 	}
 	
@@ -527,7 +527,7 @@ int Service::createTalker(IndexT &_tkrfullid, uint32 &_tkruid){
 
 	if(sd.ok()){
 		d.firstaddr.port(oldport);
-		vdbgx(Dbg::ipc, "Successful created talker");
+		vdbgx(Debug::ipc, "Successful created talker");
 		Talker		*ptkr(new Talker(sd, *this, tkrid));
 		ObjectUidT	objuid(this->unsafeRegisterObject(*ptkr));
 		
@@ -536,7 +536,7 @@ int Service::createTalker(IndexT &_tkrfullid, uint32 &_tkruid){
 		controller().scheduleTalker(ptkr);
 		return tkrid;
 	}else{
-		edbgx(Dbg::ipc, "Could not bind to random port");
+		edbgx(Debug::ipc, "Could not bind to random port");
 	}
 	d.firstaddr.port(oldport);
 	return BAD;
@@ -545,7 +545,7 @@ int Service::createTalker(IndexT &_tkrfullid, uint32 &_tkruid){
 int Service::createNode(IndexT &_nodepos, uint32 &_nodeuid){
 	
 	if(d.nodevec.size() >= d.config.node.maxcnt){
-		vdbgx(Dbg::ipc, "maximum node count reached "<<d.nodevec.size());
+		vdbgx(Debug::ipc, "maximum node count reached "<<d.nodevec.size());
 		return BAD;
 	}
 	
@@ -560,7 +560,7 @@ int Service::createNode(IndexT &_nodepos, uint32 &_nodeuid){
 
 	if(sd.ok()){
 		d.firstaddr.port(oldport);
-		vdbgx(Dbg::ipc, "Successful created node");
+		vdbgx(Debug::ipc, "Successful created node");
 		Node		*pnode(new Node(sd, *this, nodeid));
 		ObjectUidT	objuid(this->unsafeRegisterObject(*pnode));
 		
@@ -570,7 +570,7 @@ int Service::createNode(IndexT &_nodepos, uint32 &_nodeuid){
 		controller().scheduleNode(pnode);
 		return nodeid;
 	}else{
-		edbgx(Dbg::ipc, "Could not bind to random port");
+		edbgx(Debug::ipc, "Could not bind to random port");
 	}
 	d.firstaddr.port(oldport);
 	return BAD;
@@ -585,10 +585,10 @@ int Service::allocateTalkerForSession(bool _force){
 			if(rts.cnt == d.config.talker.sescnt){
 				d.tkrq.pop();
 			}
-			vdbgx(Dbg::ipc, "non forced allocate talker: "<<rv<<" sessions per talker "<<rts.cnt);
+			vdbgx(Debug::ipc, "non forced allocate talker: "<<rv<<" sessions per talker "<<rts.cnt);
 			return rv;
 		}
-		vdbgx(Dbg::ipc, "non forced allocate talker failed");
+		vdbgx(Debug::ipc, "non forced allocate talker failed");
 		return -1;
 	}else{
 		int					rv(d.tkrcrt);
@@ -597,7 +597,7 @@ int Service::allocateTalkerForSession(bool _force){
 		cassert(d.tkrq.empty());
 		++d.tkrcrt;
 		d.tkrcrt %= d.config.talker.maxcnt;
-		vdbgx(Dbg::ipc, "forced allocate talker: "<<rv<<" sessions per talker "<<rts.cnt);
+		vdbgx(Debug::ipc, "forced allocate talker: "<<rv<<" sessions per talker "<<rts.cnt);
 		return rv;
 	}
 }
@@ -611,10 +611,10 @@ int Service::allocateNodeForSession(bool _force){
 			if(rns.sesscnt == d.config.node.sescnt){
 				d.sessnodeq.pop();
 			}
-			vdbgx(Dbg::ipc, "non forced allocate node: "<<rv<<" sessions per node "<<rns.sesscnt);
+			vdbgx(Debug::ipc, "non forced allocate node: "<<rv<<" sessions per node "<<rns.sesscnt);
 			return rv;
 		}
-		vdbgx(Dbg::ipc, "non forced allocate node failed");
+		vdbgx(Debug::ipc, "non forced allocate node failed");
 		return -1;
 	}else{
 		const int		rv(d.nodecrt);
@@ -623,7 +623,7 @@ int Service::allocateNodeForSession(bool _force){
 		cassert(d.sessnodeq.empty());
 		++d.nodecrt;
 		d.nodecrt %= d.config.node.maxcnt;
-		vdbgx(Dbg::ipc, "forced allocate node: "<<rv<<" sessions per node "<<rns.sesscnt);
+		vdbgx(Debug::ipc, "forced allocate node: "<<rv<<" sessions per node "<<rns.sesscnt);
 		return rv;
 	}
 }
@@ -637,10 +637,10 @@ int Service::allocateNodeForSocket(bool _force){
 			if(rns.sockcnt == d.config.node.sockcnt){
 				d.socknodeq.pop();
 			}
-			vdbgx(Dbg::ipc, "non forced allocate node: "<<rv<<" sockets per node "<<rns.sockcnt);
+			vdbgx(Debug::ipc, "non forced allocate node: "<<rv<<" sockets per node "<<rns.sockcnt);
 			return rv;
 		}
-		vdbgx(Dbg::ipc, "non forced allocate node failed");
+		vdbgx(Debug::ipc, "non forced allocate node failed");
 		return -1;
 	}else{
 		const int		rv(d.nodecrt);
@@ -649,7 +649,7 @@ int Service::allocateNodeForSocket(bool _force){
 		cassert(d.socknodeq.empty());
 		++d.nodecrt;
 		d.nodecrt %= d.config.node.maxcnt;
-		vdbgx(Dbg::ipc, "forced allocate node: "<<rv<<" socket per node "<<rns.sockcnt);
+		vdbgx(Debug::ipc, "forced allocate node: "<<rv<<" socket per node "<<rns.sockcnt);
 		return rv;
 	}
 }
@@ -686,7 +686,7 @@ int Service::doAcceptBasicSession(const SocketAddress &_rsa, const ConnectData &
 			Locker<Mutex>	lock2(this->mutex(tkrfullid));
 			Talker			*ptkr(static_cast<Talker*>(this->object(tkrfullid)));
 			
-			vdbgx(Dbg::ipc, "");
+			vdbgx(Debug::ipc, "");
 			
 			ptkr->pushSession(pses, it->second, true);
 			
@@ -720,7 +720,7 @@ int Service::doAcceptBasicSession(const SocketAddress &_rsa, const ConnectData &
 	ConnectionUid	conid(tkridx, 0xffff, 0xffff);
 	
 	cassert(ptkr);
-	vdbgx(Dbg::ipc, "");
+	vdbgx(Debug::ipc, "");
 	
 	ptkr->pushSession(pses, conid);
 	d.sessionaddr4map[pses->peerBaseAddress4()] = conid;
@@ -752,7 +752,7 @@ int Service::doAcceptRelaySession(const SocketAddress &_rsa, const ConnectData &
 			Locker<Mutex>	lock2(this->mutex(tkrfullid));
 			Talker			*ptkr(static_cast<Talker*>(this->object(tkrfullid)));
 			
-			vdbgx(Dbg::ipc, "");
+			vdbgx(Debug::ipc, "");
 			
 			ptkr->pushSession(pses, it->second, true);
 			
@@ -786,7 +786,7 @@ int Service::doAcceptRelaySession(const SocketAddress &_rsa, const ConnectData &
 	
 	cassert(ptkr);
 	
-	vdbgx(Dbg::ipc, "");
+	vdbgx(Debug::ipc, "");
 	
 	ptkr->pushSession(pses, conid);
 	d.sessionrelayaddr4map[pses->peerRelayAddress4()] = conid;
@@ -829,7 +829,7 @@ void Service::connectSession(const SocketAddressInet4 &_raddr){
 	
 	cassert(ptkr);
 	
-	vdbgx(Dbg::ipc, "");
+	vdbgx(Debug::ipc, "");
 	ptkr->pushSession(pses, conid);
 	d.sessionaddr4map[pses->peerBaseAddress4()] = conid;
 	
@@ -855,7 +855,7 @@ void Service::disconnectSession(Session *_pses){
 	
 	--rts.cnt;
 	
-	vdbgx(Dbg::ipc, "disconnected session for talker "<<tkridx<<" session count per talker = "<<rts.cnt);
+	vdbgx(Debug::ipc, "disconnected session for talker "<<tkridx<<" session count per talker = "<<rts.cnt);
 	
 	if(rts.cnt < d.config.talker.sescnt){
 		d.tkrq.push(tkridx);

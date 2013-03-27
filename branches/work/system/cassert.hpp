@@ -29,7 +29,7 @@
 #define cassert(a)
 #endif
 
-
+namespace solid{
 
 template <bool B>
 struct static_test;
@@ -44,6 +44,7 @@ template <>
 struct static_test<false>{
 };
 
+}//namespace solid
 
 #define cstatic_assert(e) static_test<(e)>::ok()
 

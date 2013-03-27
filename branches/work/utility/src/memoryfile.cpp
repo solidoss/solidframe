@@ -5,6 +5,7 @@
 #include "utility/binaryseeker.hpp"
 #include "system/cassert.hpp"
 
+namespace solid{
 
 struct MemoryFile::BuffCmp{
 	int operator()(const  uint32 &_k1, const MemoryFile::Buffer &_k2)const{
@@ -190,3 +191,4 @@ int MemoryFile::doLocateBuffer(uint32 _idx)const{
 	return pos;
 }
 
+}//namespace solid

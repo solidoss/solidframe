@@ -3,6 +3,8 @@
 
 #include "system/common.hpp"
 
+namespace solid{
+
 struct EmptyChecker{
 	EmptyChecker(const char *_fncname):v(0), fncname(_fncname){}
 	~EmptyChecker();
@@ -51,6 +53,8 @@ template <class T>
 void objectCheck(bool _add, const char *){
 }
 #endif
+
+}//namespace solid
 
 
 #endif

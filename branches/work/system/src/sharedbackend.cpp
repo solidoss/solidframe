@@ -29,6 +29,8 @@
 #include <stack>
 #include <queue>
 
+namespace solid{
+
 struct SharedBackend::Data{
 	typedef std::deque<SharedStub>	StubVectorT;
 	typedef std::stack<ulong>		UlongStackT;
@@ -127,4 +129,6 @@ SharedBackend::SharedBackend():d(*(new Data)){
 SharedBackend::~SharedBackend(){
 	//delete &d;
 }
+
+}//namespace solid
 

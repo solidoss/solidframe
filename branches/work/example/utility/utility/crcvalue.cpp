@@ -3,6 +3,7 @@
 #include "utility/common.hpp"
 
 using namespace std;
+using namespace solid;
 
 
 int main(){

@@ -23,6 +23,9 @@
 #define SYSTEM_FILE_DEVICE_HPP
 #include <fcntl.h>
 #include "seekabledevice.hpp"
+
+namespace solid{
+
 //! Wrapper for a file descriptor
 class FileDevice: public SeekableDevice{
 public:
@@ -55,5 +58,7 @@ public:
 	*/
 	bool canRetryOpen()const;
 };
+
+}//namespace solid
 
 #endif

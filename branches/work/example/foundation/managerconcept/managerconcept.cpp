@@ -68,9 +68,9 @@ int main(int argc, char *argv[]){
 #ifdef UDEBUG
 	{
 	string dbgout;
-	Dbg::instance().levelMask("view");
-	Dbg::instance().moduleMask("all");
-	Dbg::instance().initStdErr(false);
+	Debug::the().levelMask("view");
+	Debug::the().moduleMask("all");
+	Debug::the().initStdErr(false);
 	}
 #endif
 	

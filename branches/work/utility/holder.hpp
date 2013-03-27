@@ -25,6 +25,9 @@
 #include "system/common.hpp"
 #include "system/cassert.hpp"
 
+
+namespace solid{
+
 //! A template holder of objects derived from a base class
 /*!
 	The interface resembles somehow that of a smart/auto pointer, but while
@@ -90,5 +93,6 @@ private:
 	char	b[Capacity];
 };
 
+}//namespace solid
 
 #endif

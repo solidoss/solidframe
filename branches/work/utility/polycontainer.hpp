@@ -24,6 +24,8 @@
 
 #include "system/common.hpp"
 
+namespace solid{
+
 class MultiContainer{	
 	typedef void (*FncT) (void*);
 public:
@@ -116,7 +118,7 @@ protected:
 	}
 };
 
-//struct NullType{};
+}//namespace solid
 
 #define POLY1(a1)\
 	PolyContainer<PolyLayer<a1, NullType> >
@@ -143,5 +145,6 @@ protected:
 	ConstPolyContainer<PolyLayer<a1, PolyLayer<a2, PolyLayer<a3, PolyLayer<a4, PolyLayer<a5, NullType> > > > > >
 #define CONSTPOLY6(a1,a2,a3,a4,a5,a6)\
 	ConstPolyContainer<PolyLayer<a1, PolyLayer<a2, PolyLayer<a3, PolyLayer<a4, PolyLayer<a5, PolyLayer<a6, NullType> > > > > > >
+
 
 #endif

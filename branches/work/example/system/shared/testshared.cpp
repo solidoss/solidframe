@@ -13,6 +13,7 @@
 #include <deque>
 #include <vector>
 using namespace std;
+using namespace solid;
 
 struct Test{
 	int v;
@@ -79,9 +80,7 @@ public:
 	T* get()const noexcept{
 		return reinterpret_cast<T*>(pss->ptr);
 	}
-	T* get()const{
-		return reinterpret_cast<T*>(pss->ptr);
-	}
+	
 	T* operator->()const noexcept{
 		return get();
 	}
@@ -215,12 +214,9 @@ int main(int argc, char *argv[]){
 	}
 #ifdef UDEBUG
 	std::string s;
-	Dbg::instance().levelMask("view");
-	Dbg::instance().moduleMask("any system");
-	Dbg::instance().initStdErr(
-		false,
-		&s
-	);
+	Debug::the().levelMask("view");
+	Debug::the().moduleMask("any system");
+	Debug::the().initStdErr(false, &s);
 #endif
 	int repcnt = atoi(argv[1]);
 	objcnt = atoi(argv[2]);

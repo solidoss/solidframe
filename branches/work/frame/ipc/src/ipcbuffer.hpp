@@ -24,7 +24,7 @@
 
 #include "system/cassert.hpp"
 #include "frame/ipc/ipcservice.hpp"
-#include "algorithm/serialization/binarybasic.hpp"
+#include "serialization/binarybasic.hpp"
 
 #ifndef UIPCBUFFERCAPACITY
 #define UIPCBUFFERCAPACITY 4096

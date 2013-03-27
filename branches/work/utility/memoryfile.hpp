@@ -4,6 +4,7 @@
 #include "system/common.hpp"
 #include <deque>
 
+namespace solid{
 
 //! A class for storing in memory files
 /*!
@@ -100,5 +101,7 @@ private:
 	BufferVectorT	bv;
 };
 
+
+}//namespace solid
 
 #endif

@@ -25,6 +25,8 @@
 #include "utility/stream.hpp"
 #include "utility/common.hpp"
 
+namespace solid{
+
 //! A stream for reading 
 class InputStream: virtual public Stream{
 public:
@@ -52,5 +54,7 @@ struct InputStreamIterator{
 #ifndef NINLINES
 #include "utility/istream.ipp"
 #endif
+
+}//namespace solid
 
 #endif

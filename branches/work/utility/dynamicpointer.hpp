@@ -24,6 +24,8 @@
 
 #include "system/common.hpp"
 
+namespace solid{
+
 struct DynamicBase;
 
 class DynamicPointerBase{
@@ -396,5 +398,7 @@ private:
 };
 
 #endif
+
+}//namespace solid
 
 #endif

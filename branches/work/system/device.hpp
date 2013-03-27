@@ -31,7 +31,10 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #endif
-#include "common.hpp"
+#include "system/common.hpp"
+
+namespace solid{
+
 //! A wrapper for what on POSIX is a descriptor
 class Device{
 public:
@@ -76,5 +79,7 @@ inline Device::DescriptorT Device::descriptor()const{return desc;}
 inline void Device::descriptor(DescriptorT _desc){
 	desc = _desc;
 }
+
+}//namespace solid
 
 #endif

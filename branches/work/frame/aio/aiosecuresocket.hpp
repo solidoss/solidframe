@@ -24,9 +24,10 @@
 
 #include "system/common.hpp"
 
+namespace solid{
+
 class SocketDevice;
 
-namespace solid{
 namespace frame{
 namespace aio{
 //! Interface for secure socket (ssl sockets) used by aio::Socket

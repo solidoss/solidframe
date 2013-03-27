@@ -22,8 +22,8 @@
 #ifndef SOLID_FRAME_IPC_IPCSERVICE_HPP
 #define SOLID_FRAME_IPC_IPCSERVICE_HPP
 
-#include "algorithm/serialization/idtypemapper.hpp"
-#include "algorithm/serialization/binary.hpp"
+#include "serialization/idtypemapper.hpp"
+#include "serialization/binary.hpp"
 
 #include "frame/service.hpp"
 #include "frame/message.hpp"
@@ -31,11 +31,13 @@
 #include "frame/scheduler.hpp"
 #include "frame/ipc/ipcconnectionuid.hpp"
 
+namespace solid{
+
 struct SocketAddressStub;
 struct SocketDevice;
 struct ResolveIterator;
 
-namespace solid{
+
 namespace frame{
 
 namespace aio{

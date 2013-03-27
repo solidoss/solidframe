@@ -11,8 +11,9 @@
 #define APPSTR(str) str, sizeof(str) - 1
 ///\cond 0
 typedef std::string String;
+namespace solid{
 class InputStream;
-
+}
 class Writer{
 public://nonstatic methods
     enum{BUFFLEN = 1024};

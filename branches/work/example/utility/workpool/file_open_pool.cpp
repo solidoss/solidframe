@@ -29,7 +29,9 @@
 #include <deque>
 #include <cstring>
 #include <cerrno>
+
 using namespace std;
+using namespace solid;
 
 template <class T>
 static T align(T _v, ulong _by);

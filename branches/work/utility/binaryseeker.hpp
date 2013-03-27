@@ -21,6 +21,8 @@
 #ifndef UTILITY_BINARY_SEEKER_HPP
 #define UTILITY_BINARY_SEEKER_HPP
 
+namespace solid{
+
 //! A basic comparator for binary seeker using less (<) operator.
 /*!
 	As one can see, the keys may have different types.
@@ -146,5 +148,7 @@ struct BinarySeeker{
 private:
 	Cmp		cmp;
 };
+
+}//namespace solid
 
 #endif

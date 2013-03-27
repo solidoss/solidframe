@@ -21,6 +21,7 @@
 
 #ifndef SYSTEM_CONDITION_HPP
 #define SYSTEM_CONDITION_HPP
+
 #include "system/common.hpp"
 
 #if 	defined(USTLMUTEX)
@@ -30,6 +31,8 @@
 #else
 
 #include <pthread.h>
+
+namespace solid{
 
 struct TimeSpec;
 struct Mutex;
@@ -52,9 +55,15 @@ private:
 	pthread_cond_t cond;
 };
 
+}//namespace solid
+
 #ifndef NINLINES
+#include "system/mutex.hpp"
+namespace solid{
 #include "system/condition.ipp"
+}//namespace solid
 #endif
+
 
 #endif
 

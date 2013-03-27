@@ -3,6 +3,7 @@
 
 #include "system/convertors.hpp"
 
+namespace solid{
 namespace audit{
 //! The head of a log record - sent from client to server
 struct LogRecordHead{
@@ -72,7 +73,7 @@ struct LogHead{
 };
 
 }//namespace audit
-
+}//namespace solid
 
 
 #endif

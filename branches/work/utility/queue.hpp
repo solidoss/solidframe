@@ -28,6 +28,7 @@
 #include "system/cassert.hpp"
 #include "system/debug.hpp"
 
+namespace solid{
 
 //! A simple and fast queue with interface similar to std one
 /*!
@@ -141,5 +142,6 @@ private:
 	Node		*ptn;//empty nodes
 };
 
+}//namespace solid
 
 #endif

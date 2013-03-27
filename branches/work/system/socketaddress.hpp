@@ -39,6 +39,13 @@
 #include "system/sharedbackend.hpp"
 #endif
 
+#ifndef NINLINES
+#include "system/cassert.hpp"
+#include "system/debug.hpp"
+#endif
+
+namespace solid{
+
 class SocketDevice;
 //struct sockaddr_in;
 //struct sockaddr_in6;
@@ -482,9 +489,9 @@ bool operator<(const in6_addr &_inaddr1, const in6_addr &_inaddr2);
 
 bool operator==(const in6_addr &_inaddr1, const in6_addr &_inaddr2);
 
-size_t hash(const in_addr &_inaddr);
+size_t in_addr_hash(const in_addr &_inaddr);
 
-size_t hash(const in6_addr &_inaddr);
+size_t in_addr_hash(const in6_addr &_inaddr);
 //==================================================================
 #ifndef ON_WINDOWS
 struct SocketAddressLocal{
@@ -529,10 +536,10 @@ private:
 #endif
 //==================================================================
 #ifndef NINLINES
-#include "system/cassert.hpp"
-#include "system/debug.hpp"
 #include "system/socketaddress.ipp"
 #endif
 //==================================================================
+
+}//namespace solid
 
 #endif

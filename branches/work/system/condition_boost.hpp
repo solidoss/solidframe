@@ -8,6 +8,8 @@
 #include "system/mutex.hpp"
 #include "system/timespec.hpp"
 
+namespace solid{
+
 struct Condition: boost::condition_variable{
 public:
 	Condition(){}
@@ -42,6 +44,8 @@ public:
 		}
 	}
 };
+
+}//namespace solid
 
 #endif
 

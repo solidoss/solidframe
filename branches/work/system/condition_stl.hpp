@@ -9,6 +9,8 @@
 #include "system/mutex.hpp"
 #include "system/timespec.hpp"
 
+namespace solid{
+
 struct Condition: std::condition_variable{
 public:
 	Condition(){}
@@ -45,6 +47,8 @@ public:
 		}
 	}
 };
+
+}//namespace solid
 
 #endif
 

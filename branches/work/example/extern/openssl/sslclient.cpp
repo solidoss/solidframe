@@ -30,12 +30,12 @@ int main(int argc, char *argv[]){
 #ifdef UDEBUG
 	{
 	string s;
-	Dbg::instance().levelMask("iew");
-	Dbg::instance().moduleMask();
-	Dbg::instance().initStdErr(false, &s);
+	Debug::the().levelMask("iew");
+	Debug::the().moduleMask();
+	Debug::the().initStdErr(false, &s);
 	cout<<"Debug output: "<<s<<endl;
 	s.clear();
-	Dbg::instance().moduleBits(s);
+	Debug::the().moduleBits(s);
 	cout<<"Debug bits: "<<s<<endl;
 	}
 #endif

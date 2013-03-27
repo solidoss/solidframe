@@ -50,6 +50,7 @@
 #include <errno.h>
 
 using namespace std;
+using namespace solid;
 
 void listLocalInterfaces();
 

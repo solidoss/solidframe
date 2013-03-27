@@ -29,6 +29,8 @@
 
 #include <string>
 
+namespace solid{
+
 class TimeSpec;
 
 template <class T, class C>
@@ -36,7 +38,6 @@ class DynamicPointer;
 
 struct SocketAddressStub;
 
-namespace solid{
 namespace frame{
 
 namespace ipc{

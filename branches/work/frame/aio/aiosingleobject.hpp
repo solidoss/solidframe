@@ -25,12 +25,13 @@
 #include "frame/aio/aioobject.hpp"
 #include "frame/aio/aiosocketpointer.hpp"
 
+namespace solid{
+
 class SocketDevice;
 class SocketAddress;
 class SocketAddressStub;
 class ResolveIterator;
 
-namespace solid{
 namespace frame{
 namespace aio{
 

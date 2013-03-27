@@ -34,10 +34,11 @@
 #endif
 
 
+namespace solid{
+
 class Mutex;
 struct TimeSpec;
 
-namespace solid{
 namespace frame{
 
 class Manager;

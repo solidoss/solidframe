@@ -33,6 +33,8 @@
 #include <netdb.h>
 #endif
 
+namespace solid{
+
 struct SocketInfo{
 	enum Family{
 		Local = AF_UNIX,
@@ -56,5 +58,7 @@ private:
 	SocketInfo(const SocketInfo&);
 	SocketInfo& operator=(const SocketInfo&);
 };
+
+}//namespace solid
 
 #endif

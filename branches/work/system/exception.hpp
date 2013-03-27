@@ -9,6 +9,8 @@
 #include "system/debug.hpp"
 #include "system/tuple.hpp"
 
+namespace solid{
+
 template <class T>
 struct Exception;
 template <>
@@ -102,5 +104,6 @@ void throw_exception(const char* const _pt, const T& _rt, const char *const _fil
 #define THROW_EXCEPTION(x)\
 	throw_exception(static_cast<const char*>(x), __FILE__, __LINE__, CRT_FUNCTION_NAME);
 
+}//namespace solid
 
 #endif

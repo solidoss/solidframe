@@ -25,6 +25,8 @@
 
 #include "system/common.hpp"
 
+namespace solid{
+
 class Stream;
 
 struct StreamPointerBase{
@@ -72,5 +74,7 @@ public:
 private:
 	mutable ObjectT 	*pobj;
 };
+
+}//namespace solid
 
 #endif

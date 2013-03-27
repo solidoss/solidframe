@@ -18,9 +18,10 @@
 #include "system/thread.hpp"
 //#include "common/utils.h"
 #include "utility/istream.hpp"
-#include "writer.hpp"
 
 using namespace std;
+using namespace solid;
+#include "writer.hpp"
 ///\cond 0
 class FileStream: public InputStream{
 public:

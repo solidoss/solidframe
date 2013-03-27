@@ -44,6 +44,8 @@
 #define ATOMIC_NS boost
 #endif
 
+namespace solid{
+
 typedef unsigned char		uchar;
 typedef unsigned int		uint;
 
@@ -152,5 +154,6 @@ struct UnsignedType<uint64>{
 
 const char* src_file_name(char const *_fname);
 
+}//namespace solid
 
 #endif

@@ -33,6 +33,7 @@
 #define OBJ_CACHE_CAP 4096*2
 #endif
 
+namespace solid{
 
 struct BufferNode{
 	BufferNode *pnext;
@@ -159,9 +160,9 @@ SpecificData::SpecificData(SpecificCacheControl *_pcc):pcc(_pcc){
 }
 SpecificData::~SpecificData(){
 	if(pcc->release()) delete pcc;
-	idbgx(Dbg::specific, "destroy all cached buffers");
+	idbgx(Debug::specific, "destroy all cached buffers");
 	for(int i(0); i < Capacity; ++i){
-		vdbgx(Dbg::specific, i<<" cp = "<<cps[i].cp<<" sz = "<<cps[i].sz<<" specific_id = "<<Specific::sizeToIndex((1<<i)));
+		vdbgx(Debug::specific, i<<" cp = "<<cps[i].cp<<" sz = "<<cps[i].sz<<" specific_id = "<<Specific::sizeToIndex((1<<i)));
 		
 		BufferNode	*pbn(cps[i].pnode);
 		BufferNode	*pnbn;
@@ -178,10 +179,10 @@ SpecificData::~SpecificData(){
 		}
 	}
 	
-	idbgx(Dbg::specific, "destroy all cached objects");
+	idbgx(Debug::specific, "destroy all cached objects");
 	Locker<Mutex> lock(Thread::gmutex());
 	for(ObjCachePointVecT::iterator it(ops.begin()); it != ops.end(); ++it){
-		vdbgx(Dbg::specific, "it->cp = "<<it->cp);
+		vdbgx(Debug::specific, "it->cp = "<<it->cp);
 		BufferNode	*pbn(it->pnode);
 		BufferNode	*pnbn;
 		uint32 		cnt(0);
@@ -294,7 +295,7 @@ void destroy(void *_pv){
 		++rcp.cp;
 		tb = new char[indexToCapacity(_id)];
 	}
-	idbgx(Dbg::specific,"popBuffer "<<_id<<" cp "<<rcp.cp<<' '<<(void*)tb);
+	idbgx(Debug::specific,"popBuffer "<<_id<<" cp "<<rcp.cp<<' '<<(void*)tb);
 	return tb;
 }
 /*static*/ void Specific::pushBuffer(char *&_pb, unsigned _id){
@@ -302,7 +303,7 @@ void destroy(void *_pv){
 	cassert(_id < SpecificData::Capacity);
 	SpecificData				&rsd(SpecificData::current());
 	SpecificData::CachePoint	&rcp(rsd.cps[_id]);
-	idbgx(Dbg::specific,"pushBuffer "<<_id<<" cp "<<rcp.cp<<' '<<(void*)_pb);
+	idbgx(Debug::specific,"pushBuffer "<<_id<<" cp "<<rcp.cp<<' '<<(void*)_pb);
 	if(rcp.sz < rsd.pcc->stackCapacity(_id)){
 		BufferNode *pbn(reinterpret_cast<BufferNode*>(_pb));
 		++rcp.sz;
@@ -369,3 +370,4 @@ void destroy(void *_pv){
 	delete []checkObjectBuffer(_p);
 }
 
+}//namespace solid

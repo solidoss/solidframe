@@ -24,7 +24,8 @@
 
 #include "system/cassert.hpp"
 #include <semaphore.h>
-//#include "mutex.hpp"
+
+namespace solid{
 
 struct TimeSpec;
 
@@ -224,6 +225,7 @@ private:
 #include "system/synchronization.ipp"
 #endif
 
+}//namespace solid
 
 #endif
 

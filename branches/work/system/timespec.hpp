@@ -32,6 +32,8 @@ struct timespec{
 };
 #endif
 
+namespace solid{
+
 //! A timespec wrapper
 /*!
 	Basicaly it is a pair of seconds and nanoseconds.
@@ -76,5 +78,6 @@ TimeSpec operator-(const TimeSpec &_ts1, const TimeSpec &_ts2);
 #include "system/timespec.ipp"
 #endif
 
+}//namespace solid
 
 #endif

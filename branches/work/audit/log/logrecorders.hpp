@@ -4,6 +4,7 @@
 #include <fstream>
 #include "audit/log/logrecorder.hpp"
 
+namespace solid{
 namespace audit{
 //! A simple file recorder
 class LogFileRecorder: public LogRecorder{
@@ -23,5 +24,6 @@ protected:
 };
 
 }//namespace audit
+}//namespace solid
 
 #endif

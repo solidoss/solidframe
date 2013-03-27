@@ -1,0 +1,11 @@
+add_executable (example_serialization_simple simple.cpp)
+add_executable (example_serialization_fork fork.cpp)
+add_executable (example_serialization_forkreinit forkreinit.cpp)
+add_executable (example_serialization_forkoffset forkoffset.cpp)
+#add_executable (simple_new simple_new.cpp)
+
+target_link_libraries (example_serialization_simple solid_serialization solid_utility solid_system ${SYS_BASIC_LIBS})
+target_link_libraries (example_serialization_fork solid_serialization solid_utility solid_system ${SYS_BASIC_LIBS})
+target_link_libraries (example_serialization_forkreinit solid_serialization solid_utility solid_system ${SYS_BASIC_LIBS})
+target_link_libraries (example_serialization_forkoffset solid_serialization solid_utility solid_system ${SYS_BASIC_LIBS})
+#target_link_libraries (simple_new serialization utility system ${SYS_BASIC_LIBS})

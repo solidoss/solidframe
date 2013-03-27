@@ -4,8 +4,8 @@
 #include <utility>
 #include "system/common.hpp"
 
+namespace solid{
 class InputStream;
-
 namespace audit{
 
 class LogConnector;
@@ -42,5 +42,6 @@ private:
 };
 
 }//namespace audit
+}//namespace solid
 
 #endif

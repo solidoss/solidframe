@@ -25,8 +25,7 @@
 #include "system/cassert.hpp"
 #include <stdlib.h>
 
-typedef unsigned short ushort;
-typedef unsigned long  ulong;
+namespace solid{
 
 struct Link{
 	Link	*pprev;
@@ -281,6 +280,8 @@ public:
 	bool empty()const{return isEmpty();}
 	size_t size()const{return theSize();}
 };
+
+}//namespace solid
 
 #endif
 

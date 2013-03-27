@@ -30,7 +30,7 @@
 #include "system/timespec.hpp"
 #include "system/filedevice.hpp"
 //#include "common/utils.h"
-#include "writer.hpp"
+
 #include "base64stream.h"
 #include "system/common.hpp"
 #include "utility/istream.hpp"
@@ -41,6 +41,9 @@
 #include "boost/program_options.hpp"
 
 using namespace std;
+using namespace solid;
+
+#include "writer.hpp"
 
 namespace fs = boost::filesystem;
 using boost::filesystem::path;

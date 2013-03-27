@@ -45,16 +45,16 @@ struct SocketAddressHash{
 	}
 	
 	size_t operator()(BaseAddress4T const &_rsa)const{
-		return hash(_rsa.first.address()) ^ _rsa.second;
+		return in_addr_hash(_rsa.first.address()) ^ _rsa.second;
 	}
 	size_t operator()(BaseAddress6T const &_rsa)const{
-		return hash(_rsa.first.address()) ^ _rsa.second;
+		return in_addr_hash(_rsa.first.address()) ^ _rsa.second;
 	}
 	size_t operator()(RelayAddress4T const &_rsa)const{
-		return hash(_rsa.first.first.address()) ^ _rsa.first.second ^ _rsa.second;
+		return in_addr_hash(_rsa.first.first.address()) ^ _rsa.first.second ^ _rsa.second;
 	}
 	size_t operator()(RelayAddress6T const &_rsa)const{
-		return hash(_rsa.first.first.address()) ^ _rsa.first.second ^ _rsa.second;
+		return in_addr_hash(_rsa.first.first.address()) ^ _rsa.first.second ^ _rsa.second;
 	}
 };
 

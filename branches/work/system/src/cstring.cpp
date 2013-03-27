@@ -25,7 +25,11 @@
 #include <strings.h>
 #endif
 
-static const char* strs[] = {
+namespace solid{
+
+namespace {
+
+const char* strs[] = {
  "Ox00", "Ox01", "Ox02", "Ox03", "Ox04", "Ox05", "Ox06", "Ox07", "Ox08",  "TAB",
    "LF", "Ox0B", "Ox0C",   "CR", "Ox0E", "Ox0F", "Ox10", "Ox11", "Ox12", "Ox13",
  "Ox14", "Ox15", "Ox16", "Ox17", "Ox18", "Ox19", "Ox1A", "Ox1B", "Ox1C", "Ox1D",
@@ -54,6 +58,7 @@ static const char* strs[] = {
  "OxFA", "OxFB", "OxFC", "OxFD", "OxFE", "OxFF"
 };
 
+}//namespace
 
 const char * char_to_cstring(unsigned _c){
 	return strs[_c & 255];
@@ -92,3 +97,4 @@ const char * char_to_cstring(unsigned _c){
 #endif
 }
 
+}//namespace solid

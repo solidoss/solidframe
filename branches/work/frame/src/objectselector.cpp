@@ -161,7 +161,7 @@ void ObjectSelector::run(){
 		state |= doWait(pollwait);
 		
 		if(state & Data::FULL_SCAN){
-			idbgx(Dbg::fdt, "full_scan");
+			idbgx(Debug::fdt, "full_scan");
 			ulong evs = 0;
 			d.ntimepos.set(0xffffffff);
 			for(Data::ObjectStubVectorT::iterator it(d.sv.begin()); it != d.sv.end(); it += 4){
@@ -211,7 +211,7 @@ void ObjectSelector::run(){
 		{	
 			int qsz = d.objq.size();
 			while(qsz){//we only do a single scan:
-				vdbgx(Dbg::fdt, "qsz = "<<qsz<<" queuesz "<<d.objq.size());
+				vdbgx(Debug::fdt, "qsz = "<<qsz<<" queuesz "<<d.objq.size());
 				int pos = d.objq.front();d.objq.pop(); --qsz;
 				Data::ObjectStub &ro = d.sv[pos];
 				if(ro.state){
@@ -220,7 +220,7 @@ void ObjectSelector::run(){
 				}
 			}
 		}
-		vdbgx(Dbg::fdt, "sz = "<<d.sz);
+		vdbgx(Debug::fdt, "sz = "<<d.sz);
 		if(empty()) state |= Data::EXIT_LOOP;
 	}while(state != Data::EXIT_LOOP);
 }
@@ -241,7 +241,7 @@ bool ObjectSelector::push(ObjectPointerT &_robj){
 }
 
 int ObjectSelector::doWait(int _wt){
-	vdbgx(Dbg::fdt, "wt = "<<_wt);
+	vdbgx(Debug::fdt, "wt = "<<_wt);
 	int rv = 0;
 	Locker<Mutex> lock(d.mtx);
 	if(_wt){
@@ -251,16 +251,16 @@ int ObjectSelector::doWait(int _wt){
 			if(ts > d.ntimepos){
 				ts = d.ntimepos;
 			}
-			vdbgx(Dbg::fdt, "uiq.size = "<<d.uiq.size());
+			vdbgx(Debug::fdt, "uiq.size = "<<d.uiq.size());
 			while(d.uiq.empty()){
-				vdbgx(Dbg::fdt, "before cond wait");
+				vdbgx(Debug::fdt, "before cond wait");
 				if(d.cnd.wait(lock, ts)){
-					vdbgx(Dbg::fdt, "after 1 cond wait");
+					vdbgx(Debug::fdt, "after 1 cond wait");
 					d.ctimepos.currentRealTime();
 					rv |= Data::FULL_SCAN;
 					break;
 				}
-				vdbgx(Dbg::fdt, "after 2 cond wait");
+				vdbgx(Debug::fdt, "after 2 cond wait");
 				d.ctimepos.currentRealTime();
 				if(d.ctimepos >= d.ntimepos){
 					rv |= Data::FULL_SCAN;
@@ -281,14 +281,14 @@ int ObjectSelector::doWait(int _wt){
 			if(id){
 				Data::ObjectStub *pobj;
 				if(id < d.sv.size() && !(pobj = &d.sv[id])->objptr.empty() && !pobj->state && pobj->objptr->notified(S_RAISE)){
-					vdbgx(Dbg::fdt, "signaling object id = "<<id);
+					vdbgx(Debug::fdt, "signaling object id = "<<id);
 					d.objq.push(id);
 					pobj->state = 1;
 				}
 			}else rv |= Data::EXIT_LOOP;
 		}while(d.uiq.size());
 	}else{if(_wt) rv |= Data::FULL_SCAN;}
-	vdbgx(Dbg::fdt, "rv = "<<rv);
+	vdbgx(Debug::fdt, "rv = "<<rv);
 	return rv;
 }
 
@@ -304,12 +304,12 @@ int ObjectSelector::doExecute(unsigned _i, ulong _evs, TimeSpec _crttout){
 			if(empty()) rv = Data::EXIT_LOOP;
 			break;
 		case OK:
-			idbgx(Dbg::fdt, "OK: reentering object");
+			idbgx(Debug::fdt, "OK: reentering object");
 			if(!d.sv[_i].state) {d.objq.push(_i); d.sv[_i].state = 1;}
 			d.sv[_i].timepos.set(0xffffffff);
 			break;
 		case NOK:
-			idbgx(Dbg::fdt, "TOUT: object waits for signals");
+			idbgx(Debug::fdt, "TOUT: object waits for signals");
 			if(_crttout != d.ctimepos){
 				d.sv[_i].timepos = _crttout;
 				if(d.ntimepos > _crttout){
@@ -320,7 +320,7 @@ int ObjectSelector::doExecute(unsigned _i, ulong _evs, TimeSpec _crttout){
 			}
 			break;
 		case LEAVE:
-			idbgx(Dbg::fdt, "LEAVE: object leave");
+			idbgx(Debug::fdt, "LEAVE: object leave");
 			d.fstk.push(_i);
 			d.sv[_i].objptr.release();
 			d.sv[_i].state = 0;

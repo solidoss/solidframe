@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+namespace solid{
 namespace audit{
 //! Log data identifing a client for log server
 struct LogClientData{
@@ -18,5 +19,6 @@ struct LogClientData{
 };
 
 }//namespace audit
+}//namespace solid
 
 #endif

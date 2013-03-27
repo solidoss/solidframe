@@ -16,6 +16,9 @@
 #endif
 
 using namespace std;
+
+namespace solid{
+
 #ifdef ON_WINDOWS
 const unsigned fileoff =  (strlen(__FILE__) - strlen(strstr(__FILE__, "audit\\src")));
 #else
@@ -104,7 +107,7 @@ struct Log::Data: std::ostream{
 	string			procname;
 };
 
-/*static*/ const unsigned Log::any(Log::instance().registerModule("ANY"));
+/*static*/ const unsigned Log::any(Log::the().registerModule("ANY"));
 
 //=====================================================================
 void Log::Data::setModuleBit(const char *_pbeg, const char *_pend){
@@ -165,7 +168,7 @@ void Log::Data::sendInfo(){
 }
 //=====================================================================
 #ifdef HAS_SAFE_STATIC
-/*static*/ Log& Log::instance(){
+/*static*/ Log& Log::the(){
 	static Log l;
 	return l;
 }
@@ -178,7 +181,7 @@ void Log::Data::sendInfo(){
 	log_instance();
 }
 
-/*static*/ Log& Log::instance(){
+/*static*/ Log& Log::the(){
 	static boost::once_flag once = BOOST_ONCE_INIT;
 	boost::call_once(&once_log, once);
 	return log_instance();
@@ -289,3 +292,4 @@ bool Log::isSet(unsigned _mod, unsigned _level)const{
 	return (d.lvlmsk & _level) && d.bs[_mod];
 }
 
+}//namespace solid

@@ -19,8 +19,6 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifdef UDEBUG
-
 #define DO_EXPORT_DLL 1
 #ifdef ON_WINDOWS
 #include <process.h>
@@ -38,7 +36,6 @@
 
 #include "system/timespec.hpp"
 #include "system/socketdevice.hpp"
-#include "system/socketaddress.hpp"
 #include "system/filedevice.hpp"
 #include "system/cassert.hpp"
 #include "system/thread.hpp"
@@ -56,21 +53,23 @@
 
 using namespace std;
 
+namespace solid{
+
 //-----------------------------------------------------------------
 
-/*static*/ const unsigned Dbg::any(Dbg::instance().registerModule("ANY"));
-/*static*/ const unsigned Dbg::system(Dbg::instance().registerModule("SYSTEM"));
-/*static*/ const unsigned Dbg::specific(Dbg::instance().registerModule("SPECIFIC"));
-/*static*/ const unsigned Dbg::protocol(Dbg::instance().registerModule("PROTOCOL"));
-/*static*/ const unsigned Dbg::ser_bin(Dbg::instance().registerModule("SER_BIN"));
-/*static*/ const unsigned Dbg::utility(Dbg::instance().registerModule("UTILITY"));
-/*static*/ const unsigned Dbg::fdt(Dbg::instance().registerModule("FDT"));
-/*static*/ const unsigned Dbg::ipc(Dbg::instance().registerModule("FDT_IPC"));
-/*static*/ const unsigned Dbg::tcp(Dbg::instance().registerModule("FDT_TCP"));
-/*static*/ const unsigned Dbg::udp(Dbg::instance().registerModule("FDT_UDP"));
-/*static*/ const unsigned Dbg::log(Dbg::instance().registerModule("LOG"));
-/*static*/ const unsigned Dbg::aio(Dbg::instance().registerModule("FDT_AIO"));
-/*static*/ const unsigned Dbg::file(Dbg::instance().registerModule("FDT_FILE"));
+/*static*/ const unsigned Debug::any(Debug::the().registerModule("ANY"));
+/*static*/ const unsigned Debug::system(Debug::the().registerModule("SYSTEM"));
+/*static*/ const unsigned Debug::specific(Debug::the().registerModule("SPECIFIC"));
+/*static*/ const unsigned Debug::protocol(Debug::the().registerModule("PROTOCOL"));
+/*static*/ const unsigned Debug::ser_bin(Debug::the().registerModule("SER_BIN"));
+/*static*/ const unsigned Debug::utility(Debug::the().registerModule("UTILITY"));
+/*static*/ const unsigned Debug::fdt(Debug::the().registerModule("FDT"));
+/*static*/ const unsigned Debug::ipc(Debug::the().registerModule("FDT_IPC"));
+/*static*/ const unsigned Debug::tcp(Debug::the().registerModule("FDT_TCP"));
+/*static*/ const unsigned Debug::udp(Debug::the().registerModule("FDT_UDP"));
+/*static*/ const unsigned Debug::log(Debug::the().registerModule("LOG"));
+/*static*/ const unsigned Debug::aio(Debug::the().registerModule("FDT_AIO"));
+/*static*/ const unsigned Debug::file(Debug::the().registerModule("FDT_FILE"));
 
 //-----------------------------------------------------------------
 
@@ -220,7 +219,7 @@ public:
 	}
 };
 //-----------------------------------------------------------------
-struct Dbg::Data{
+struct Debug::Data{
 	typedef std::bitset<DEBUG_BITSET_SIZE>	BitSetT;
 	typedef std::vector<const char*>		NameVectorT;
 	Data():
@@ -262,31 +261,31 @@ struct Dbg::Data{
 void splitPrefix(string &_path, string &_name, const char *_prefix);
 
 #ifdef HAS_SAFE_STATIC
-/*static*/ Dbg& Dbg::instance(){
-	static Dbg d;
+/*static*/ Debug& Debug::the(){
+	static Debug d;
 	return d;
 }
 #else
 
-Dbg& Dbg::dbg_instance(){
-	static Dbg d;
+static Debug& Debug::dbg_the(){
+	static Debug d;
 	return d;
 }
 
-void Dbg::once_cbk(){
-	dbg_instance();
+void Debug::once_cbk(){
+	dbg_the();
 }
 
-/*static*/ Dbg& Dbg::instance(){
+/*static*/ Debug& Debug::the(){
 	static boost::once_flag once = BOOST_ONCE_INIT;
 	boost::call_once(&once_cbk, once);
-	return dbg_instance();
+	return dbg_the();
 }
 
 
 #endif
 	
-Dbg::~Dbg(){
+Debug::~Debug(){
 	(*d.pos)<<flush;
 	d.dos.close();
 	d.dbos.close();
@@ -294,7 +293,7 @@ Dbg::~Dbg(){
 	//delete &d;
 }
 
-void Dbg::Data::setBit(const char *_pbeg, const char *_pend){
+void Debug::Data::setBit(const char *_pbeg, const char *_pend){
 	if(!cstring::ncasecmp(_pbeg, "all", _pend - _pbeg)){
 		bs.set();
 	}else if(!cstring::ncasecmp(_pbeg, "none", _pend - _pbeg)){
@@ -313,27 +312,27 @@ uint32 parseLevels(const char *_lvl){
 		switch(*_lvl){
 			case 'i':
 			case 'I':
-				r |= Dbg::Info;
+				r |= Debug::Info;
 				break;
 			case 'e':
 			case 'E':
-				r |= Dbg::Error;
+				r |= Debug::Error;
 				break;
 			case 'w':
 			case 'W':
-				r |= Dbg::Warn;
+				r |= Debug::Warn;
 				break;
 			case 'r':
 			case 'R':
-				r |= Dbg::Report;
+				r |= Debug::Report;
 				break;
 			case 'v':
 			case 'V':
-				r |= Dbg::Verbose;
+				r |= Debug::Verbose;
 				break;
 			case 't':
 			case 'T':
-				r |= Dbg::Trace;
+				r |= Debug::Trace;
 				break;
 		}
 		++_lvl;
@@ -341,7 +340,7 @@ uint32 parseLevels(const char *_lvl){
 	return r;
 }
 
-void Dbg::Data::setModuleMask(const char *_opt){
+void Debug::Data::setModuleMask(const char *_opt){
 	{
 		Locker<Mutex> lock(m);
 		bs.reset();
@@ -389,7 +388,7 @@ void filePath(string &_out, uint32 _pos, ulong _pid, const string &_path, const 
 	_out += buf;
 }
 
-bool Dbg::Data::initFile(uint32 _respincnt, uint64 _respinsz, string *_poutput){
+bool Debug::Data::initFile(uint32 _respincnt, uint64 _respinsz, string *_poutput){
 	respincnt = _respincnt;
 	respinsz = _respinsz;
 	respinpos = 0;
@@ -407,7 +406,7 @@ bool Dbg::Data::initFile(uint32 _respincnt, uint64 _respinsz, string *_poutput){
 	return true;
 }
 
-void Dbg::Data::doRespin(){
+void Debug::Data::doRespin(){
 	sz = 0;
 	string fname;
 #ifdef ON_WINDOWS
@@ -451,7 +450,7 @@ void Dbg::Data::doRespin(){
 }
 
 
-void Dbg::initStdErr(
+void Debug::initStdErr(
 	bool _buffered,
 	std::string *_output
 ){
@@ -475,7 +474,7 @@ void Dbg::initStdErr(
 	}
 }
 
-void Dbg::initFile(
+void Debug::initFile(
 	const char * _prefix,
 	bool _buffered,
 	ulong _respincnt,
@@ -526,7 +525,7 @@ void Dbg::initFile(
 		}
 	}
 }
-void Dbg::initSocket(
+void Debug::initSocket(
 	const char * _addr,
 	const char * _port,
 	bool _buffered,
@@ -587,55 +586,55 @@ void Dbg::initSocket(
 	}
 }
 
-void Dbg::levelMask(const char *_msk){
+void Debug::levelMask(const char *_msk){
 	Locker<Mutex> lock(d.m);
 	if(!_msk){
 		_msk = "iewrvt";
 	}
 	d.lvlmsk = parseLevels(_msk);
 }
-void Dbg::moduleMask(const char *_msk){
+void Debug::moduleMask(const char *_msk){
 	if(!_msk){
 		_msk = "all";
 	}
 	d.setModuleMask(_msk);
 }
 
-void Dbg::moduleBits(std::string &_ros){
+void Debug::moduleBits(std::string &_ros){
 	Locker<Mutex> lock(d.m);
 	for(Data::NameVectorT::const_iterator it(d.nv.begin()); it != d.nv.end(); ++it){
 		_ros += *it;
 		_ros += ' ';
 	}
 }
-void Dbg::setAllModuleBits(){
+void Debug::setAllModuleBits(){
 	Locker<Mutex> lock(d.m);
 	d.bs.set();
 }
-void Dbg::resetAllModuleBits(){
+void Debug::resetAllModuleBits(){
 	Locker<Mutex> lock(d.m);
 	d.bs.reset();
 }
-void Dbg::setModuleBit(unsigned _v){
+void Debug::setModuleBit(unsigned _v){
 	Locker<Mutex> lock(d.m);
 	d.bs.set(_v);
 }
-void Dbg::resetModuleBit(unsigned _v){
+void Debug::resetModuleBit(unsigned _v){
 	Locker<Mutex> lock(d.m);
 	d.bs.reset(_v);
 }
-unsigned Dbg::registerModule(const char *_name){
+unsigned Debug::registerModule(const char *_name){
 	Locker<Mutex> lock(d.m);
 	d.nv.push_back(_name);
 	return d.nv.size() - 1;
 }
 
-std::ostream& Dbg::print(){
+std::ostream& Debug::print(){
 	d.m.lock();
 	return std::cerr;
 }
 
-std::ostream& Dbg::print(
+std::ostream& Debug::print(
 	const char _t,
 	unsigned _module,
 	const char *_file,
@@ -680,16 +679,14 @@ static const char tabs[]="\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t
 						 "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t"
 						 "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
 
-#ifdef UTRACE
-DbgTraceTest::~DbgTraceTest(){
+DebugTraceTest::~DebugTraceTest(){
 	if(v){
-		Dbg::instance().printTraceOut('T', mod, file, fnc, line)<<"???";
-		Dbg::instance().doneTraceOut();
+		Debug::the().printTraceOut('T', mod, file, fnc, line)<<"???";
+		Debug::the().doneTraceOut();
 	}
 }
-#endif
 
-std::ostream& Dbg::printTraceIn(
+std::ostream& Debug::printTraceIn(
 	const char _t,
 	unsigned _module,
 	const char *_file,
@@ -735,7 +732,7 @@ std::ostream& Dbg::printTraceIn(
 	return (*d.pos);
 }
 
-std::ostream& Dbg::printTraceOut(
+std::ostream& Debug::printTraceOut(
 	const char _t,
 	unsigned _module,
 	const char *_file,
@@ -781,26 +778,26 @@ std::ostream& Dbg::printTraceOut(
 	return (*d.pos);
 }
 
-void Dbg::done(){
+void Debug::done(){
 	(*d.pos)<<std::endl;
 	cassert(d.pos->good());
 	d.m.unlock();
 }
 
-void Dbg::doneTraceIn(){
+void Debug::doneTraceIn(){
 	(*d.pos)<<')'<<'{'<<std::endl;
 	d.m.unlock();
 }
 
-void Dbg::doneTraceOut(){
+void Debug::doneTraceOut(){
 	(*d.pos)<<')'<<std::endl;
 	d.m.unlock();
 }
 
-bool Dbg::isSet(Level _lvl, unsigned _v)const{
+bool Debug::isSet(Level _lvl, unsigned _v)const{
 	return (d.lvlmsk & _lvl) && _v < d.bs.size() && d.bs[_v];
 }
-Dbg::Dbg():d(*(new Data)){
+Debug::Debug():d(*(new Data)){
 	resetAllModuleBits();
 	levelMask();
 }
@@ -815,6 +812,4 @@ void splitPrefix(string &_path, string &_name, const char *_prefix){
 	}
 }
 
-#endif
-
-
+}//namespace solid

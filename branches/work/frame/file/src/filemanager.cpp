@@ -166,7 +166,7 @@ Manager::Manager(Controller *_pc):d(*(new Data(_pc))){
 }
 
 Manager::~Manager(){
-	idbgx(Dbg::file, "");
+	idbgx(Debug::file, "");
 	for(Data::MapperVectorT::const_iterator it(d.mv.begin()); it != d.mv.end(); ++it){
 		delete *it;
 	}
@@ -179,17 +179,17 @@ Manager::~Manager(){
 
 int Manager::execute(ulong _evs, TimeSpec &_rtout){
 	d.mtx->lock();
-	//idbgx(Dbg::file, "signalmask "<<_evs);
+	//idbgx(Debug::file, "signalmask "<<_evs);
 	if(signaled()){
 		ulong sm = grabSignalMask(0);
-		//idbgx(Dbg::file, "signalmask "<<sm);
+		//idbgx(Debug::file, "signalmask "<<sm);
 		if(sm & fdt::S_KILL){
 			state(Data::Stopping);
-			vdbgx(Dbg::file, "kill "<<d.sz);
+			vdbgx(Debug::file, "kill "<<d.sz);
 			if(!d.sz){//no file
 				state(-1);
 				d.mtx->unlock();
-				vdbgx(Dbg::file, "");
+				vdbgx(Debug::file, "");
 				m().eraseObject(*this);
 				return BAD;
 			}
@@ -271,7 +271,7 @@ void Manager::doSendStreams(){
 }
 //------------------------------------------------------------------
 void Manager::doPrepareStop(){
-	idbgx(Dbg::file, "");
+	idbgx(Debug::file, "");
 	//call stop for all mappers:
 	for(Data::MapperVectorT::const_iterator it(d.mv.begin()); it != d.mv.end(); ++it){
 		(*it)->stop();
@@ -297,7 +297,7 @@ void Manager::doPrepareStop(){
 }
 //------------------------------------------------------------------
 void Manager::doExecuteMappers(){
-	//idbgx(Dbg::file, "");
+	//idbgx(Debug::file, "");
 	uint32	tmpqsz(d.meq.size());
 	Stub 	s(*this);
 	cassert(!(tmpqsz && state() != Data::Running));
@@ -312,7 +312,7 @@ void Manager::doExecuteMappers(){
 }
 //------------------------------------------------------------------
 void Manager::doExecuteFile(const IndexT &_idx, const TimeSpec &_rtout){
-	idbgx(Dbg::file, "");
+	idbgx(Debug::file, "");
 	Mutex			&rm(d.mtxstore.at(_idx));
 	Data::FileData	&rfd(d.fv[_idx]);
 	TimeSpec 		ts(_rtout);
@@ -422,7 +422,7 @@ void Manager::releaseInputStream(IndexT _fileid){
 		Locker<Mutex>	lock(*d.mtx);
 		//we must signal the filemanager
 		d.feq.push(d.fv[_fileid].pfile);
-		vdbgx(Dbg::file, "sq.push "<<_fileid);
+		vdbgx(Debug::file, "sq.push "<<_fileid);
 		//if(static_cast<fdt::Object*>(this)->signal((int)fdt::S_RAISE)){
 		if(this->signal((int)fdt::S_RAISE)){
 			fdt::Manager::the().raiseObject(*this);
@@ -440,7 +440,7 @@ void Manager::releaseOutputStream(IndexT _fileid){
 		Locker<Mutex>	lock(*d.mtx);
 		//we must signal the filemanager
 		d.feq.push(d.fv[_fileid].pfile);
-		vdbgx(Dbg::file, "sq.push "<<_fileid);
+		vdbgx(Debug::file, "sq.push "<<_fileid);
 		if(this->signal((int)fdt::S_RAISE)){
 			fdt::Manager::the().raiseObject(*this);
 		}
@@ -472,9 +472,9 @@ int Manager::fileRead(
 	Locker<Mutex> lock(d.mtxstore.at(_fileid));
 	int rv = d.fv[_fileid].pfile->read(_pb, _bl, _off, _flags);
 	if(rv == 0){
-		vdbgx(Dbg::file, ""<<_fileid<<" "<<(void*)_pb<<' '<<_bl<<' '<<_off<<' '<<rv<<' '<<d.fv[_fileid].pfile->size());
+		vdbgx(Debug::file, ""<<_fileid<<" "<<(void*)_pb<<' '<<_bl<<' '<<_off<<' '<<rv<<' '<<d.fv[_fileid].pfile->size());
 	}else{
-		vdbgx(Dbg::file, ""<<_fileid<<" "<<(void*)_pb<<' '<<_bl<<' '<<_off<<' '<<rv);
+		vdbgx(Debug::file, ""<<_fileid<<" "<<(void*)_pb<<' '<<_bl<<' '<<_off<<' '<<rv);
 	}
 	return rv;
 }
@@ -511,11 +511,11 @@ int Manager::doGetStream(
 		_rfuid.first = fid;
 		_rfuid.second = d.fv[fid].uid; 
 		rv = pf->stream(s, _sptr, _requid, _flags);
-		//idbgx(Dbg::file, ""<<_rk.path());
+		//idbgx(Debug::file, ""<<_rk.path());
 	}else{
 		//delay stream creation until successfull file open
 		rv = pf->stream(s, _sptr, _requid, _flags | Manager::ForcePending);
-		//idbgx(Dbg::file, ""<<_rk.path());
+		//idbgx(Debug::file, ""<<_rk.path());
 	}
 	
 	switch(rv){

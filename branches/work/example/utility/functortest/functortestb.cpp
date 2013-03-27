@@ -2,6 +2,8 @@
 #include "utility/functorstub.hpp"
 #include <string>
 
+using namespace solid;
+
 struct TestAFunctor{
 	TestAFunctor(int _v):v(_v){
 		idbg("");
@@ -92,9 +94,9 @@ struct TestFFunctor{
 int main(int argc, char *argv[]){
 #ifdef UDEBUG
 	{
-		Dbg::instance().initStdErr();
-		Dbg::instance().levelMask("iwe");
-		Dbg::instance().moduleMask("all");
+		Debug::the().initStdErr();
+		Debug::the().levelMask("iwe");
+		Debug::the().moduleMask("all");
 	}
 #endif
 	//FunctorStub<NoType>				fnc0;

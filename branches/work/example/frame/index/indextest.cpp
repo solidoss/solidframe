@@ -4,7 +4,8 @@
 
 #include <iostream>
 using namespace std;
-using namespace frame;
+using namespace solid;
+using namespace solid::frame;
 
 
 int main(int argc, char *argv[]){

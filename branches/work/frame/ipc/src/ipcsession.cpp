@@ -29,7 +29,7 @@
 #include "system/specific.hpp"
 #include "system/thread.hpp"
 #include "utility/queue.hpp"
-#include "algorithm/serialization/binary.hpp"
+#include "serialization/binary.hpp"
 #include "frame/message.hpp"
 #include "frame/manager.hpp"
 #include "frame/ipc/ipcservice.hpp"
@@ -548,9 +548,9 @@ Session::Data::Data(
 		sendbufferfreeposstk.push(i);
 	}
 	sendmsgvec.reserve(_rsvc.configuration().session.maxsendmessagequeuesize);
-	idbgx(Dbg::ipc, "Sizeof(Session::Data) = "<<sizeof(*this));
+	idbgx(Debug::ipc, "Sizeof(Session::Data) = "<<sizeof(*this));
 #ifdef USTATISTICS
-	idbgx(Dbg::ipc, "Sizeof(StatisticData) = "<<sizeof(this->statistics));
+	idbgx(Debug::ipc, "Sizeof(StatisticData) = "<<sizeof(this->statistics));
 #endif
 }
 //---------------------------------------------------------------------
@@ -742,11 +742,11 @@ void Session::Data::popSentWaitMessage(const MessageUid &_rmsguid){
 }
 //---------------------------------------------------------------------
 void Session::Data::popSentWaitMessage(const uint32 _idx){
-	idbgx(Dbg::ipc, ""<<_idx);
+	idbgx(Debug::ipc, ""<<_idx);
 	SendMessageData &rsmd(sendmsgvec[_idx]);
 	cassert(rsmd.msgptr.get());
 	if(rsmd.flags & DisconnectAfterSendFlag){
-		idbgx(Dbg::ipc, "DisconnectAfterSendFlag - disconnecting");
+		idbgx(Debug::ipc, "DisconnectAfterSendFlag - disconnecting");
 		++rsmd.uid;
 		rsmd.msgptr.clear();
 		sendmsgfreeposstk.push(_idx);
@@ -754,7 +754,7 @@ void Session::Data::popSentWaitMessage(const uint32 _idx){
 	}
 	if(rsmd.flags & WaitResponseFlag){
 		//let it leave a little longer
-		idbgx(Dbg::ipc, "message waits for response "<<_idx<<' '<<rsmd.uid);
+		idbgx(Debug::ipc, "message waits for response "<<_idx<<' '<<rsmd.uid);
 		rsmd.flags |= SentFlag;
 	}else{
 		Context::the().msgctx.msgid.idx = _idx;
@@ -833,7 +833,7 @@ void Session::Data::freeSentBuffer(const uint32 _bufid){
 }
 //----------------------------------------------------------------------
 void Session::Data::clearSentBuffer(const uint32 _idx){
-	vdbgx(Dbg::ipc, ""<<sendbufferfreeposstk.size());
+	vdbgx(Debug::ipc, ""<<sendbufferfreeposstk.size());
 	SendBufferData &rsbd(sendbuffervec[_idx]);
 	popSentWaitMessages(rsbd);
 	rsbd.buffer.clear();
@@ -949,7 +949,7 @@ void Session::Data::pushMessageToSendQueue(
 	
 	rsmd.flags |= tmp_flgs;
 	
-	vdbgx(Dbg::ipc, "flags = "<<(rsmd.flags & SentFlag)<<" tmpflgs = "<<(tmp_flgs & SentFlag));
+	vdbgx(Debug::ipc, "flags = "<<(rsmd.flags & SentFlag)<<" tmpflgs = "<<(tmp_flgs & SentFlag));
 	
 	if(tmp_flgs & WaitResponseFlag){
 		++sentmsgwaitresponse;
@@ -979,7 +979,7 @@ bool Session::Data::moveToNextSendMessage(){
 	
 	Data::SendMessageData	&rsmd(sendmsgvec[crtidx]);
 	
-	vdbgx(Dbg::ipc, "flags = "<<(rsmd.flags & SentFlag));
+	vdbgx(Debug::ipc, "flags = "<<(rsmd.flags & SentFlag));
 	
 	if(rsmd.flags & SynchronousSendFlag){
 		currentsendsyncid = crtidx;
@@ -1029,7 +1029,7 @@ bool Session::Data::moveToNextSendMessage(){
 		pos = serialization::binary::load(pos, _raccdata.relayid);
 	}
 	
-	vdbgx(Dbg::ipc, "AcceptData: flags = "<<_raccdata.flags<<" baseport = "<<_raccdata.baseport<<" ts_s = "<<_raccdata.timestamp_s<<" ts_n = "<<_raccdata.timestamp_n);
+	vdbgx(Debug::ipc, "AcceptData: flags = "<<_raccdata.flags<<" baseport = "<<_raccdata.baseport<<" ts_s = "<<_raccdata.timestamp_s<<" ts_n = "<<_raccdata.timestamp_n);
 	return OK;
 }
 //---------------------------------------------------------------------
@@ -1087,7 +1087,7 @@ bool Session::Data::moveToNextSendMessage(){
 		return OK;
 	}
 	
-	vdbgx(Dbg::ipc, "ConnectData: flags = "<<_rcd.flags<<" baseport = "<<_rcd.baseport<<" ts_s = "<<_rcd.timestamp_s<<" ts_n = "<<_rcd.timestamp_n);
+	vdbgx(Debug::ipc, "ConnectData: flags = "<<_rcd.flags<<" baseport = "<<_rcd.baseport<<" ts_s = "<<_rcd.timestamp_s<<" ts_n = "<<_rcd.timestamp_n);
 	return OK;
 }
 //---------------------------------------------------------------------
@@ -1099,7 +1099,7 @@ Session::Session(
 	Service &_rsvc,
 	const SocketAddressInet4 &_raddr
 ):d(*(new DataDirect4(_rsvc, _raddr))){
-	vdbgx(Dbg::ipc, "Created connect session "<<(void*)this);
+	vdbgx(Debug::ipc, "Created connect session "<<(void*)this);
 }
 //---------------------------------------------------------------------
 Session::Session(
@@ -1111,14 +1111,14 @@ Session::Session(
 	DynamicPointer<Message>	msgptr(new ConnectDataMessage(_rconndata));
 	pushMessage(msgptr, 0, 0);
 	
-	vdbgx(Dbg::ipc, "Created accept session "<<(void*)this);
+	vdbgx(Debug::ipc, "Created accept session "<<(void*)this);
 }
 //---------------------------------------------------------------------
 Session::Session(
 	Service &_rsvc,
 	const SocketAddressInet6 &_raddr
 ):d(*(new DataDirect6(_rsvc, _raddr))){
-	vdbgx(Dbg::ipc, "Created connect session "<<(void*)this);
+	vdbgx(Debug::ipc, "Created connect session "<<(void*)this);
 }
 //---------------------------------------------------------------------
 Session::Session(
@@ -1130,7 +1130,7 @@ Session::Session(
 	DynamicPointer<Message>	msgptr(new ConnectDataMessage(_rconndata));
 	pushMessage(msgptr, 0, 0);
 	
-	vdbgx(Dbg::ipc, "Created accept session "<<(void*)this);
+	vdbgx(Debug::ipc, "Created accept session "<<(void*)this);
 }
 //---------------------------------------------------------------------
 Session::Session(
@@ -1154,11 +1154,11 @@ Session::Session(
 Session::Session(
 	Service &_rsvc
 ):d(*(new DataDummy(_rsvc))){
-	vdbgx(Dbg::ipc, "Created dummy session "<<(void*)this);
+	vdbgx(Debug::ipc, "Created dummy session "<<(void*)this);
 }
 //---------------------------------------------------------------------
 Session::~Session(){
-	vdbgx(Dbg::ipc, "delete session "<<(void*)this);
+	vdbgx(Debug::ipc, "delete session "<<(void*)this);
 	switch(d.type){
 		case Data::Dummy:
 			delete &d.dummy();
@@ -1240,7 +1240,7 @@ void Session::prepare(Talker::TalkerStub &_rstub){
 //---------------------------------------------------------------------
 void Session::reconnect(Session *_pses){
 	COLLECT_DATA_0(d.statistics.reconnect);
-	vdbgx(Dbg::ipc, "reconnecting session "<<(void*)_pses);
+	vdbgx(Debug::ipc, "reconnecting session "<<(void*)_pses);
 	
 	int adjustcount = 0;
 	
@@ -1282,10 +1282,10 @@ void Session::reconnect(Session *_pses){
 	//keep sending messages that do not require the same connector
 	for(int sz(d.msgq.size() - adjustcount); sz; --sz){
 		if(!(d.msgq.front().flags & SameConnectorFlag)) {
-			vdbgx(Dbg::ipc, "message scheduled for resend");
+			vdbgx(Debug::ipc, "message scheduled for resend");
 			d.msgq.push(d.msgq.front());
 		}else{
-			vdbgx(Dbg::ipc, "message not scheduled for resend");
+			vdbgx(Debug::ipc, "message not scheduled for resend");
 		}
 		d.msgq.pop();
 	}
@@ -1297,7 +1297,7 @@ void Session::reconnect(Session *_pses){
 	//see which sent/sending messages must be cleard
 	for(Data::SendMessageVectorT::iterator it(d.sendmsgvec.begin()); it != d.sendmsgvec.end(); ++it){
 		Data::SendMessageData &rsmd(*it);
-		vdbgx(Dbg::ipc, "pos = "<<(it - d.sendmsgvec.begin())<<" flags = "<<(rsmd.flags & SentFlag));
+		vdbgx(Debug::ipc, "pos = "<<(it - d.sendmsgvec.begin())<<" flags = "<<(rsmd.flags & SentFlag));
 		Context::the().msgctx.msgid.idx = it - d.sendmsgvec.begin();
 		Context::the().msgctx.msgid.uid = rsmd.uid;
 		
@@ -1309,7 +1309,7 @@ void Session::reconnect(Session *_pses){
 		if(!rsmd.msgptr) continue;
 		
 		if((rsmd.flags & DisconnectAfterSendFlag) != 0){
-			idbgx(Dbg::ipc, "DisconnectAfterSendFlag");
+			idbgx(Debug::ipc, "DisconnectAfterSendFlag");
 			mustdisconnect = true;
 		}
 		
@@ -1322,7 +1322,7 @@ void Session::reconnect(Session *_pses){
 			}
 			//we can try resending the message
 		}else{
-			vdbgx(Dbg::ipc, "message not scheduled for resend");
+			vdbgx(Debug::ipc, "message not scheduled for resend");
 			if(rsmd.flags & WaitResponseFlag && rsmd.flags & SentFlag){
 				rsmd.msgptr->ipcComplete(-2);
 			}else{
@@ -1513,12 +1513,12 @@ bool Session::executeTimeout(
 	COLLECT_DATA_0(d.statistics.timeout);
 	
 	if(rsbd.uid != uid){
-		vdbgx(Dbg::ipc, "timeout for ("<<idx<<','<<uid<<')'<<' '<<rsbd.uid);
+		vdbgx(Debug::ipc, "timeout for ("<<idx<<','<<uid<<')'<<' '<<rsbd.uid);
 		COLLECT_DATA_0(d.statistics.failedTimeout);
 		return false;
 	}
 	
-	vdbgx(Dbg::ipc, "timeout for ("<<idx<<','<<uid<<')'<<' '<<rsbd.buffer.id());
+	vdbgx(Debug::ipc, "timeout for ("<<idx<<','<<uid<<')'<<' '<<rsbd.buffer.id());
 	cassert(!rsbd.buffer.empty());
 	
 	rsbd.buffer.resend(rsbd.buffer.resend() + 1);
@@ -1528,7 +1528,7 @@ bool Session::executeTimeout(
 	if(rsbd.buffer.resend() > StaticData::DataRetransmitCount){
 		if(rsbd.buffer.type() == Buffer::ConnectType){
 			if(rsbd.buffer.resend() > StaticData::ConnectRetransmitCount){//too many resends for connect type
-				vdbgx(Dbg::ipc, "preparing to disconnect process");
+				vdbgx(Debug::ipc, "preparing to disconnect process");
 				cassert(d.state != Data::Disconnecting);
 				d.state = Data::Disconnecting;
 				return true;//disconnecting
@@ -1557,18 +1557,18 @@ bool Session::executeTimeout(
 			}
 		}
 		//resend the buffer
-		vdbgx(Dbg::ipc, "resending "<<rsbd.buffer);
+		vdbgx(Debug::ipc, "resending "<<rsbd.buffer);
 		if(_rstub.pushSendBuffer(idx, rsbd.buffer.buffer(), rsbd.buffer.bufferSize())){
 			TimeSpec tpos(_rstub.currentTime());
 			tpos += d.computeRetransmitTimeout(rsbd.buffer.resend(), rsbd.buffer.id());
 
 			_rstub.pushTimer(_id, tpos);
-			vdbgx(Dbg::ipc, "send buffer"<<rsbd.buffer.id()<<" done");
+			vdbgx(Debug::ipc, "send buffer"<<rsbd.buffer.id()<<" done");
 		}else{
 			COLLECT_DATA_0(d.statistics.sendPending);
 			rsbd.sending = 1;
 			++d.sendpendingcount;
-			vdbgx(Dbg::ipc, "send buffer"<<rsbd.buffer.id()<<" pending");
+			vdbgx(Debug::ipc, "send buffer"<<rsbd.buffer.id()<<" pending");
 		}
 	}
 	
@@ -1627,7 +1627,7 @@ bool Session::pushSentBuffer(
 	Data::SendBufferData &rsbd(d.sendbuffervec[_id]);
 	
 	if(_id == d.keepAliveBufferIndex()){
-		vdbgx(Dbg::ipc, "sent keep alive buffer done");
+		vdbgx(Debug::ipc, "sent keep alive buffer done");
 		if(rsbd.mustdelete){
 			rsbd.mustdelete = 0;
 			rsbd.buffer.resend(0);
@@ -1672,7 +1672,7 @@ bool Session::doPushExpectedReceivedBuffer(
 	const ConnectionUid &_rconid*/
 ){
 	COLLECT_DATA_0(d.statistics.pushExpectedReceivedBuffer);
-	vdbgx(Dbg::ipc, "expected "<<_rbuf);
+	vdbgx(Debug::ipc, "expected "<<_rbuf);
 	//the expected buffer
 	d.rcvdidq.push(_rbuf.id());
 	
@@ -1709,7 +1709,7 @@ bool Session::doPushUnxpectedReceivedBuffer(
 	/*,
 	const ConnectionUid &_rconid*/
 ){
-	vdbgx(Dbg::ipc, "unexpected "<<_rbuf<<" expectedid = "<<d.rcvexpectedid);
+	vdbgx(Debug::ipc, "unexpected "<<_rbuf<<" expectedid = "<<d.rcvexpectedid);
 	BufCmp	bc;
 	bool	mustexecute = false;
 	
@@ -1735,10 +1735,10 @@ bool Session::doPushUnxpectedReceivedBuffer(
 			//try to keep the buffer for future parsing
 			uint32 bufid(_rbuf.id());
 			if(d.keepOutOfOrderBuffer(_rbuf)){
-				vdbgx(Dbg::ipc, "out of order buffer");
+				vdbgx(Debug::ipc, "out of order buffer");
 				d.rcvdidq.push(bufid);//for peer updates
 			}else{
-				vdbgx(Dbg::ipc, "too many buffers out-of-order "<<d.outoforderbufcount);
+				vdbgx(Debug::ipc, "too many buffers out-of-order "<<d.outoforderbufcount);
 				COLLECT_DATA_0(d.statistics.tooManyBuffersOutOfOrder);
 			}
 		}
@@ -1776,7 +1776,7 @@ void Session::doParseBufferDataType(
 #ifdef ENABLE_MORE_DEBUG
 		while(d.rcvdmsgq.size()){
 			Data::RecvMessageData &rrmd(d.rcvdmsgq.front());
-			edbgx(Dbg::ipc, "rrmd. = "<<(void*)rrmd.pmsg<<" rrmd.pdeserializer = "<<(void*)rrmd.pdeserializer);
+			edbgx(Debug::ipc, "rrmd. = "<<(void*)rrmd.pmsg<<" rrmd.pdeserializer = "<<(void*)rrmd.pdeserializer);
 			d.rcvdmsgq.pop();
 		}
 #endif
@@ -1788,12 +1788,12 @@ void Session::doParseBufferDataType(
 	--_blen;
 #ifdef ENABLE_MORE_DEBUG
 	if(_rbuf.flags() & Buffer::DebugFlag){
-		edbgx(Dbg::ipc, "value = "<<crcval.value()<<" msgqsz = "<<d.rcvdmsgq.size());
+		edbgx(Debug::ipc, "value = "<<crcval.value()<<" msgqsz = "<<d.rcvdmsgq.size());
 	}
 #endif
 	switch(crcval.value()){
 		case Buffer::ContinuedMessage:
-			vdbgx(Dbg::ipc, "continuedmassage");
+			vdbgx(Debug::ipc, "continuedmassage");
 			cassert(_blen == _firstblen);
 			if(!d.rcvdmsgq.front().pmsg){
 				d.rcvdmsgq.pop();
@@ -1801,9 +1801,9 @@ void Session::doParseBufferDataType(
 			//we cannot have a continued signal on the same buffer
 			break;
 		case Buffer::NewMessage:
-			vdbgx(Dbg::ipc, "newmessage");
+			vdbgx(Debug::ipc, "newmessage");
 			if(d.rcvdmsgq.size()){
-				idbgx(Dbg::ipc, "switch to new rcq.size = "<<d.rcvdmsgq.size());
+				idbgx(Debug::ipc, "switch to new rcq.size = "<<d.rcvdmsgq.size());
 				Data::RecvMessageData &rrmd(d.rcvdmsgq.front());
 				if(rrmd.pmsg){//the previous signal didnt end, we reschedule
 					d.rcvdmsgq.push(rrmd);
@@ -1812,13 +1812,13 @@ void Session::doParseBufferDataType(
 				rrmd.pdeserializer = d.popDeserializer(_rstub.service().typeMapperBase());
 				rrmd.pdeserializer->push(rrmd.pmsg);
 			}else{
-				idbgx(Dbg::ipc, "switch to new rcq.size = 0");
+				idbgx(Debug::ipc, "switch to new rcq.size = 0");
 				d.rcvdmsgq.push(Data::RecvMessageData(NULL, d.popDeserializer(_rstub.service().typeMapperBase())));
 				d.rcvdmsgq.front().pdeserializer->push(d.rcvdmsgq.front().pmsg);
 			}
 			break;
 		case Buffer::OldMessage:
-			vdbgx(Dbg::ipc, "oldmessage");
+			vdbgx(Debug::ipc, "oldmessage");
 			cassert(d.rcvdmsgq.size() > 1);
 			if(d.rcvdmsgq.front().pmsg){
 				d.rcvdmsgq.push(d.rcvdmsgq.front());
@@ -1829,7 +1829,7 @@ void Session::doParseBufferDataType(
 #ifdef ENABLE_MORE_DEBUG
 			while(d.rcvdmsgq.size()){
 				Data::RecvMessageData &rrmd(d.rcvdmsgq.front());
-				edbgx(Dbg::ipc, "rrmd.pmsg = "<<(void*)rrmd.pmsg<<" rrmd.pdeserializer = "<<(void*)rrmd.pdeserializer);
+				edbgx(Debug::ipc, "rrmd.pmsg = "<<(void*)rrmd.pmsg<<" rrmd.pdeserializer = "<<(void*)rrmd.pdeserializer);
 				d.rcvdmsgq.pop();
 			}
 #endif
@@ -1845,16 +1845,16 @@ void Session::doParseBuffer(Talker::TalkerStub &_rstub, const Buffer &_rbuf/*, c
 	int			rv(0);
 	int 		firstblen(blen - 1);
 	
-	idbgx(Dbg::ipc, "bufferid = "<<_rbuf.id());
+	idbgx(Debug::ipc, "bufferid = "<<_rbuf.id());
 
 #ifdef ENABLE_MORE_DEBUG
 	if(_rbuf.flags() & Buffer::DebugFlag){
 		//dump the wait queue
 		uint32 sz = d.rcvdmsgq.size();
-		edbgx(Dbg::ipc, "bufidx = "<<_rbuf.id()<<" sz = "<<sz<<" blen = "<<blen);
+		edbgx(Debug::ipc, "bufidx = "<<_rbuf.id()<<" sz = "<<sz<<" blen = "<<blen);
 		while(sz){
 			Data::RecvMessageData &rrmd(d.rcvdmsgq.front());
-			edbgx(Dbg::ipc, "pmsg = "<<(void*)rrmd.pmsg<<" pdes = "<<(void*)rrsd.pdeserializer);
+			edbgx(Debug::ipc, "pmsg = "<<(void*)rrmd.pmsg<<" pdes = "<<(void*)rrsd.pdeserializer);
 			d.rcvdmsgq.push(rrsd);
 			d.rcvdmsgq.pop();
 			--sz;
@@ -1864,7 +1864,7 @@ void Session::doParseBuffer(Talker::TalkerStub &_rstub, const Buffer &_rbuf/*, c
 
 	while(blen >= 2){
 		
-		idbgx(Dbg::ipc, "blen = "<<blen<<" bpos "<<(bpos - _rbuf.data()));
+		idbgx(Debug::ipc, "blen = "<<blen<<" bpos "<<(bpos - _rbuf.data()));
 		
 		doParseBufferDataType(_rstub, _rbuf, bpos, blen, firstblen);
 		
@@ -1882,8 +1882,8 @@ void Session::doParseBuffer(Talker::TalkerStub &_rstub, const Buffer &_rbuf/*, c
 		
 #ifdef ENABLE_MORE_DEBUG		
 		if(rv == 1){
-			edbgx(Dbg::ipc, "bufid = "<<_rbuf.id()<<" blen = "<<blen<<" bpos "<<(bpos - _rbuf.data()));
-			edbgx(Dbg::ipc, "pmsg = "<<(void*)rrsd.pmsg<<" pdes = "<<(void*)rrsd.pdeserializer);
+			edbgx(Debug::ipc, "bufid = "<<_rbuf.id()<<" blen = "<<blen<<" bpos "<<(bpos - _rbuf.data()));
+			edbgx(Debug::ipc, "pmsg = "<<(void*)rrsd.pmsg<<" pdes = "<<(void*)rrsd.pdeserializer);
 		}
 #endif
 
@@ -1938,7 +1938,7 @@ void Session::doParseBuffer(Talker::TalkerStub &_rstub, const Buffer &_rbuf/*, c
 			}
 			
 			
-			idbgx(Dbg::ipc, "done message "<<msguid.idx<<','<<msguid.uid);
+			idbgx(Debug::ipc, "done message "<<msguid.idx<<','<<msguid.uid);
 			
 			if(msguid.idx != 0xffffffff && msguid.uid != 0xffffffff){//a valid message waiting for response
 				d.popSentWaitMessage(msguid);
@@ -1958,7 +1958,7 @@ void Session::doParseBuffer(Talker::TalkerStub &_rstub, const Buffer &_rbuf/*, c
 int Session::doExecuteRelayInit(Talker::TalkerStub &_rstub){
 	DataRelayed44	&rd = d.relayed44();
 	int				rv = _rstub.service().controller().gatewayCount(rd.netid, rd.relayaddr);
-	idbgx(Dbg::ipc, "gatewayCount = "<<rv);
+	idbgx(Debug::ipc, "gatewayCount = "<<rv);
 	if(rv < 0){
 		//must wait external message
 		return NOK;
@@ -2031,7 +2031,7 @@ int Session::doExecuteConnecting(Talker::TalkerStub &_rstub){
 	Data::SendBufferData	&rsbd(d.sendbuffervec[bufidx]);
 	
 	cassert(bufidx == 1);
-	vdbgx(Dbg::ipc, "send "<<rsbd.buffer);
+	vdbgx(Debug::ipc, "send "<<rsbd.buffer);
 	
 	if(_rstub.pushSendBuffer(bufidx, rsbd.buffer.buffer(), rsbd.buffer.bufferSize())){
 		//buffer sent - setting a timer for it
@@ -2040,12 +2040,12 @@ int Session::doExecuteConnecting(Talker::TalkerStub &_rstub){
 		tpos += d.computeRetransmitTimeout(rsbd.buffer.resend(), rsbd.buffer.id());
 		
 		_rstub.pushTimer(pack(bufidx, rsbd.uid) , tpos);
-		vdbgx(Dbg::ipc, "sent connecting "<<rsbd.buffer<<" done");
+		vdbgx(Debug::ipc, "sent connecting "<<rsbd.buffer<<" done");
 	}else{
 		COLLECT_DATA_0(d.statistics.sendPending);
 		rsbd.sending = 1;
 		++d.sendpendingcount;
-		vdbgx(Dbg::ipc, "sent connecting "<<rsbd.buffer<<" pending");
+		vdbgx(Debug::ipc, "sent connecting "<<rsbd.buffer<<" pending");
 	}
 	
 	d.state = Data::WaitAccept;
@@ -2116,7 +2116,7 @@ int Session::doExecuteRelayConnecting(Talker::TalkerStub &_rstub){
 	Data::SendBufferData	&rsbd(d.sendbuffervec[bufidx]);
 	
 	cassert(bufidx == 1);
-	vdbgx(Dbg::ipc, "send "<<rsbd.buffer);
+	vdbgx(Debug::ipc, "send "<<rsbd.buffer);
 	
 	if(_rstub.pushSendBuffer(bufidx, rsbd.buffer.buffer(), rsbd.buffer.bufferSize())){
 		//buffer sent - setting a timer for it
@@ -2125,12 +2125,12 @@ int Session::doExecuteRelayConnecting(Talker::TalkerStub &_rstub){
 		tpos += d.computeRetransmitTimeout(rsbd.buffer.resend(), rsbd.buffer.id());
 		
 		_rstub.pushTimer(pack(bufidx, rsbd.uid) , tpos);
-		vdbgx(Dbg::ipc, "sent connecting "<<rsbd.buffer<<" done");
+		vdbgx(Debug::ipc, "sent connecting "<<rsbd.buffer<<" done");
 	}else{
 		COLLECT_DATA_0(d.statistics.sendPending);
 		rsbd.sending = 1;
 		++d.sendpendingcount;
-		vdbgx(Dbg::ipc, "sent connecting "<<rsbd.buffer<<" pending");
+		vdbgx(Debug::ipc, "sent connecting "<<rsbd.buffer<<" pending");
 	}
 	
 	d.state = Data::WaitAccept;
@@ -2167,7 +2167,7 @@ int Session::doExecuteAccepting(Talker::TalkerStub &_rstub){
 	Data::SendBufferData	&rsbd(d.sendbuffervec[bufidx]);
 	cassert(bufidx == 1);
 	
-	vdbgx(Dbg::ipc, "send "<<rsbd.buffer);
+	vdbgx(Debug::ipc, "send "<<rsbd.buffer);
 	if(_rstub.pushSendBuffer(bufidx, rsbd.buffer.buffer(), rsbd.buffer.bufferSize())){
 		//buffer sent - setting a timer for it
 		//schedule a timer for this buffer
@@ -2175,12 +2175,12 @@ int Session::doExecuteAccepting(Talker::TalkerStub &_rstub){
 		tpos += d.computeRetransmitTimeout(rsbd.buffer.resend(), rsbd.buffer.id());
 		
 		_rstub.pushTimer(pack(bufidx, rsbd.uid), tpos);
-		vdbgx(Dbg::ipc, "sent accepting "<<rsbd.buffer<<" done");
+		vdbgx(Debug::ipc, "sent accepting "<<rsbd.buffer<<" done");
 	}else{
 		COLLECT_DATA_0(d.statistics.sendPending);
 		rsbd.sending = 1;
 		++d.sendpendingcount;
-		vdbgx(Dbg::ipc, "sent accepting "<<rsbd.buffer<<" pending");
+		vdbgx(Debug::ipc, "sent accepting "<<rsbd.buffer<<" pending");
 	}
 	
 	Controller &rctrl = _rstub.service().controller();
@@ -2214,7 +2214,7 @@ int Session::doExecuteRelayAccepting(Talker::TalkerStub &_rstub){
 		d.relayed44().peerrelayid = rcd.relayid;
 		buf.relay(rcd.relayid);
 		
-		vdbgx(Dbg::ipc, "relayid "<<rcd.relayid<<" bufrelay "<<buf.relay());
+		vdbgx(Debug::ipc, "relayid "<<rcd.relayid<<" bufrelay "<<buf.relay());
 		
 		
 		char 				*ppos = buf.dataEnd();
@@ -2236,7 +2236,7 @@ int Session::doExecuteRelayAccepting(Talker::TalkerStub &_rstub){
 	Data::SendBufferData	&rsbd(d.sendbuffervec[bufidx]);
 	cassert(bufidx == 1);
 	
-	vdbgx(Dbg::ipc, "send "<<rsbd.buffer);
+	vdbgx(Debug::ipc, "send "<<rsbd.buffer);
 	if(_rstub.pushSendBuffer(bufidx, rsbd.buffer.buffer(), rsbd.buffer.bufferSize())){
 		//buffer sent - setting a timer for it
 		//schedule a timer for this buffer
@@ -2244,12 +2244,12 @@ int Session::doExecuteRelayAccepting(Talker::TalkerStub &_rstub){
 		tpos += d.computeRetransmitTimeout(rsbd.buffer.resend(), rsbd.buffer.id());
 		
 		_rstub.pushTimer(pack(bufidx, rsbd.uid), tpos);
-		vdbgx(Dbg::ipc, "sent accepting "<<rsbd.buffer<<" done");
+		vdbgx(Debug::ipc, "sent accepting "<<rsbd.buffer<<" done");
 	}else{
 		COLLECT_DATA_0(d.statistics.sendPending);
 		rsbd.sending = 1;
 		++d.sendpendingcount;
-		vdbgx(Dbg::ipc, "sent accepting "<<rsbd.buffer<<" pending");
+		vdbgx(Debug::ipc, "sent accepting "<<rsbd.buffer<<" pending");
 	}
 	
 	Controller &rctrl = _rstub.service().controller();
@@ -2298,14 +2298,14 @@ int Session::doTrySendUpdates(Talker::TalkerStub &_rstub){
 			COLLECT_DATA_0(d.statistics.sendOnlyUpdatesSize3);
 		}
 #endif
-		vdbgx(Dbg::ipc, "send "<<buf);
+		vdbgx(Debug::ipc, "send "<<buf);
 		
 		if(_rstub.pushSendBuffer(-1, buf.buffer(), buf.bufferSize())){
-			vdbgx(Dbg::ipc, "sent updates "<<buf<<" done");
+			vdbgx(Debug::ipc, "sent updates "<<buf<<" done");
 			doTryScheduleKeepAlive(_rstub);
 		}else{
 			d.updatesbuffer = buf;
-			vdbgx(Dbg::ipc, "sent updates "<<buf<<" pending");
+			vdbgx(Debug::ipc, "sent updates "<<buf<<" pending");
 			return NOK;
 		}
 		return OK;
@@ -2314,7 +2314,7 @@ int Session::doTrySendUpdates(Talker::TalkerStub &_rstub){
 }
 //---------------------------------------------------------------------
 int Session::doExecuteConnectedLimited(Talker::TalkerStub &_rstub){
-	vdbgx(Dbg::ipc, ""<<d.sendbufferfreeposstk.size());
+	vdbgx(Debug::ipc, ""<<d.sendbufferfreeposstk.size());
 	Controller 	&rctrl = _rstub.service().controller();
 	
 	while(d.sendbufferfreeposstk.size()){
@@ -2363,7 +2363,7 @@ int Session::doExecuteConnectedLimited(Talker::TalkerStub &_rstub){
 		
 		d.resetKeepAlive();
 		
-		vdbgx(Dbg::ipc, "send "<<rsbd.buffer);
+		vdbgx(Debug::ipc, "send "<<rsbd.buffer);
 		
 		if(_rstub.pushSendBuffer(bufidx, rsbd.buffer.buffer(), rsbd.buffer.bufferSize())){
 			//buffer sent - setting a timer for it
@@ -2372,12 +2372,12 @@ int Session::doExecuteConnectedLimited(Talker::TalkerStub &_rstub){
 			tpos += d.computeRetransmitTimeout(rsbd.buffer.resend(), rsbd.buffer.id());
 			
 			_rstub.pushTimer(pack(bufidx, rsbd.uid), tpos);
-			vdbgx(Dbg::ipc, "sent data "<<rsbd.buffer<<" pending");
+			vdbgx(Debug::ipc, "sent data "<<rsbd.buffer<<" pending");
 		}else{
 			COLLECT_DATA_0(d.statistics.sendPending);
 			rsbd.sending = 1;
 			++d.sendpendingcount;
-			vdbgx(Dbg::ipc, "sent data "<<rsbd.buffer<<" pending");
+			vdbgx(Debug::ipc, "sent data "<<rsbd.buffer<<" pending");
 		}
 	}
 	doTrySendUpdates(_rstub);
@@ -2385,7 +2385,7 @@ int Session::doExecuteConnectedLimited(Talker::TalkerStub &_rstub){
 }
 //---------------------------------------------------------------------
 int Session::doExecuteConnected(Talker::TalkerStub &_rstub){
-	vdbgx(Dbg::ipc, ""<<d.sendbufferfreeposstk.size());
+	vdbgx(Debug::ipc, ""<<d.sendbufferfreeposstk.size());
 	Controller 	&rctrl = _rstub.service().controller();
 
 #ifdef USTATISTICS
@@ -2449,7 +2449,7 @@ int Session::doExecuteConnected(Talker::TalkerStub &_rstub){
 		
 		d.resetKeepAlive();
 		
-		vdbgx(Dbg::ipc, "send "<<rsbd.buffer);
+		vdbgx(Debug::ipc, "send "<<rsbd.buffer);
 		
 		if(_rstub.pushSendBuffer(bufidx, rsbd.buffer.buffer(), rsbd.buffer.bufferSize())){
 			//buffer sent - setting a timer for it
@@ -2458,12 +2458,12 @@ int Session::doExecuteConnected(Talker::TalkerStub &_rstub){
 			tpos += d.computeRetransmitTimeout(rsbd.buffer.resend(), rsbd.buffer.id());
 			
 			_rstub.pushTimer(pack(bufidx, rsbd.uid), tpos);
-			vdbgx(Dbg::ipc, "sent data "<<rsbd.buffer<<" pending");
+			vdbgx(Debug::ipc, "sent data "<<rsbd.buffer<<" pending");
 		}else{
 			COLLECT_DATA_0(d.statistics.sendPending);
 			rsbd.sending = 1;
 			++d.sendpendingcount;
-			vdbgx(Dbg::ipc, "sent data "<<rsbd.buffer<<" pending");
+			vdbgx(Debug::ipc, "sent data "<<rsbd.buffer<<" pending");
 		}
 	}
 	doTrySendUpdates(_rstub);
@@ -2487,14 +2487,14 @@ void Session::doFillSendBuffer(Talker::TalkerStub &_rstub, const uint32 _bufidx)
 			
 			if(rsmd.pserializer){//a continued message
 				if(d.currentbuffermsgcount == _rstub.service().configuration().session.maxmessagebuffercount){
-					vdbgx(Dbg::ipc, "oldmessage data size "<<rsbd.buffer.dataSize());
+					vdbgx(Debug::ipc, "oldmessage data size "<<rsbd.buffer.dataSize());
 					rsbd.buffer.dataType(Buffer::OldMessage);
 				}else{
-					vdbgx(Dbg::ipc, "continuedmessage data size "<<rsbd.buffer.dataSize()<<" headsize = "<<rsbd.buffer.headerSize());
+					vdbgx(Debug::ipc, "continuedmessage data size "<<rsbd.buffer.dataSize()<<" headsize = "<<rsbd.buffer.headerSize());
 					rsbd.buffer.dataType(Buffer::ContinuedMessage);
 				}
 			}else{//a new command
-				vdbgx(Dbg::ipc, "newmessage data size "<<rsbd.buffer.dataSize());
+				vdbgx(Debug::ipc, "newmessage data size "<<rsbd.buffer.dataSize());
 				rsbd.buffer.dataType(Buffer::NewMessage);
 				if(pser){
 					rsmd.pserializer = pser;
@@ -2515,7 +2515,7 @@ void Session::doFillSendBuffer(Talker::TalkerStub &_rstub, const uint32 _bufidx)
 			
 			int rv = rsmd.pserializer->run(rsbd.buffer.dataEnd(), tofill);
 			
-			vdbgx(Dbg::ipc, "d.crtmsgbufcnt = "<<d.currentbuffermsgcount<<" serialized len = "<<rv);
+			vdbgx(Debug::ipc, "d.crtmsgbufcnt = "<<d.currentbuffermsgcount<<" serialized len = "<<rv);
 			
 			if(rv < 0){
 				THROW_EXCEPTION("Serialization error");
@@ -2533,22 +2533,22 @@ void Session::doFillSendBuffer(Talker::TalkerStub &_rstub, const uint32 _bufidx)
 			if(rsmd.pserializer->empty()){//finished with this message
 #ifdef ENABLE_MORE_DEBUG
 				if(rv == 1){
-					edbgx(Dbg::ipc, "bufid = "<<rsbd.buffer.id()<<" size = "<<tofill<<" datatype = "/*<<lastdatatype*/);
+					edbgx(Debug::ipc, "bufid = "<<rsbd.buffer.id()<<" size = "<<tofill<<" datatype = "/*<<lastdatatype*/);
 					rsbd.buffer.flags(rsbd.buffer.flags() | Buffer::DebugFlag);
 				}
 #endif
-				vdbgx(Dbg::ipc, "donemessage");
+				vdbgx(Debug::ipc, "donemessage");
 				if(pser) d.pushSerializer(pser);
 				pser = rsmd.pserializer;
 				pser->clear();
 				rsmd.pserializer = NULL;
-				vdbgx(Dbg::ipc, "cached wait message");
+				vdbgx(Debug::ipc, "cached wait message");
 				rsbd.msgidxvec.push_back(d.sendmsgidxq.front());
 				d.sendmsgidxq.pop();
 				if(rsmd.flags & SynchronousSendFlag){
 					d.currentsendsyncid = -1;
 				}
-				vdbgx(Dbg::ipc, "sendmsgidxq poped "<<d.sendmsgidxq.size());
+				vdbgx(Debug::ipc, "sendmsgidxq poped "<<d.sendmsgidxq.size());
 				d.currentbuffermsgcount = _rstub.service().configuration().session.maxmessagebuffercount;
 				if(rsbd.buffer.dataFreeSize() < (rctrl.reservedDataSize() + Data::MinBufferDataSize)){
 					break;
@@ -2558,7 +2558,7 @@ void Session::doFillSendBuffer(Talker::TalkerStub &_rstub, const uint32 _bufidx)
 			}
 			
 		}else if(d.moveToNextSendMessage()){
-			vdbgx(Dbg::ipc, "scqpop "<<d.sendmsgidxq.size());
+			vdbgx(Debug::ipc, "scqpop "<<d.sendmsgidxq.size());
 			d.currentbuffermsgcount = _rstub.service().configuration().session.maxmessagebuffercount;
 		}else{//we continue sending the current message
 			d.currentbuffermsgcount = _rstub.service().configuration().session.maxmessagebuffercount - 1;
@@ -2585,7 +2585,7 @@ int Session::doExecuteDisconnecting(Talker::TalkerStub &_rstub){
 void Session::doTryScheduleKeepAlive(Talker::TalkerStub &_rstub){
 	d.resetKeepAlive();
 	COLLECT_DATA_0(d.statistics.tryScheduleKeepAlive);
-	vdbgx(Dbg::ipc, "try send keepalive");
+	vdbgx(Debug::ipc, "try send keepalive");
 	const uint32 keepalive = d.currentKeepAlive(_rstub);
 	if(keepalive){
 		
@@ -2600,7 +2600,7 @@ void Session::doTryScheduleKeepAlive(Talker::TalkerStub &_rstub){
 		TimeSpec tpos(_rstub.currentTime());
 		tpos += keepalive;
 		
-		vdbgx(Dbg::ipc, "can send keepalive "<<idx<<' '<<rsbd.uid);
+		vdbgx(Debug::ipc, "can send keepalive "<<idx<<' '<<rsbd.uid);
 		
 		_rstub.pushTimer(pack(idx, rsbd.uid), tpos);
 	}
@@ -2662,16 +2662,16 @@ int Session::doExecuteDummy(Talker::TalkerStub &_rstub){
 			rdd.crtbuf.dataSize(rdd.crtbuf.dataSize() + sizeof(int32));
 			rdd.errorq.pop();
 			
-			vdbgx(Dbg::ipc, "send "<<rdd.crtbuf);
+			vdbgx(Debug::ipc, "send "<<rdd.crtbuf);
 			
 			if(_rstub.pushSendBuffer(0, rdd.crtbuf.buffer(), rdd.crtbuf.bufferSize())){
-				vdbgx(Dbg::ipc, "sent error buffer done");
+				vdbgx(Debug::ipc, "sent error buffer done");
 				rdd.sendq.pop();
 			}else{
 				return NOK;
 			}
 		}else{
-			edbgx(Dbg::ipc, "unsupported sendtype = "<<rss.sendtype);
+			edbgx(Debug::ipc, "unsupported sendtype = "<<rss.sendtype);
 			rdd.sendq.pop();
 		}
 		
@@ -2690,7 +2690,7 @@ bool Session::pushReceivedErrorBuffer(
 	if(_rbuf.dataSize() == sizeof(int32)){
 		int32 *pp((int32*)_rbuf.data());
 		error = (int)ntohl((uint32)*pp);
-		idbgx(Dbg::ipc, "Received error "<<error);
+		idbgx(Debug::ipc, "Received error "<<error);
 	}
 	
 	d.state = Data::Disconnecting;
@@ -2790,7 +2790,7 @@ Context::~Context(){
 #ifdef USTATISTICS
 namespace {
 StatisticData::~StatisticData(){
-	rdbgx(Dbg::ipc, "Statistics:\r\n"<<*this);
+	rdbgx(Debug::ipc, "Statistics:\r\n"<<*this);
 }
 void StatisticData::reconnect(){
 	++reconnectcnt;

@@ -34,6 +34,8 @@
 #include <vector>
 #include "system/common.hpp"
 
+namespace solid{
+
 struct Mutex;
 
 //! A wrapper for system threads
@@ -145,6 +147,8 @@ inline long Thread::currentId(){
 	return (long)pthread_self();
 }
 #endif
+
+}//namespace solid
 
 #endif
 

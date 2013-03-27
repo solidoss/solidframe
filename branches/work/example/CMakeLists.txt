@@ -1,7 +1,7 @@
 add_subdirectory(system)
 add_subdirectory(utility)
 #add_subdirectory(foundation)
-add_subdirectory(algorithm)
+add_subdirectory(serialization)
 add_subdirectory(client)
 add_subdirectory(audit)
 add_subdirectory(tools)

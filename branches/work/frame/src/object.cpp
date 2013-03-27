@@ -32,6 +32,7 @@
 #include "utility/memory.hpp"
 #include "utility/dynamicpointer.hpp"
 
+namespace solid{
 //--------------------------------------------------------------
 namespace{
 #ifdef HAS_SAFE_STATIC
@@ -74,7 +75,6 @@ static const uint currentTimeSpecificPosition(){
 #endif
 }
 
-namespace solid{
 namespace frame{
 //---------------------------------------------------------------------
 //----	Object	----
@@ -121,11 +121,11 @@ int Object::execute(ulong _evs, TimeSpec &_rtout){
 //---------------------------------------------------------------------
 Message::Message(){
 	objectCheck<Message>(true, __FUNCTION__);
-	vdbgx(Dbg::fdt, "memadd "<<(void*)this);
+	vdbgx(Debug::fdt, "memadd "<<(void*)this);
 }
 Message::~Message(){
 	objectCheck<Message>(false, __FUNCTION__);
-	vdbgx(Dbg::fdt, "memsub "<<(void*)this);
+	vdbgx(Debug::fdt, "memsub "<<(void*)this);
 }
 
 void Message::ipcReceive(
@@ -136,7 +136,7 @@ uint32 Message::ipcPrepare(){
 	return 0;//do nothing - no wait for response
 }
 void Message::ipcComplete(int _err){
-	wdbgx(Dbg::fdt,"");
+	wdbgx(Debug::fdt,"");
 }
 int Message::execute(
 	DynamicPointer<Message> &_rthis_ptr,
@@ -145,7 +145,7 @@ int Message::execute(
 	const MessageUidT &,
 	TimeSpec &_rts
 ){
-	wdbgx(Dbg::fdt, "Unhandled message");
+	wdbgx(Debug::fdt, "Unhandled message");
 	return BAD;
 }
 
@@ -154,7 +154,7 @@ int Message::receiveMessage(
 	const ObjectUidT& _from,
 	const ipc::ConnectionUid *_conid
 ){
-	wdbgx(Dbg::fdt, "Unhandled receiveMessage");
+	wdbgx(Debug::fdt, "Unhandled receiveMessage");
 	return BAD;//no need for execution
 }
 

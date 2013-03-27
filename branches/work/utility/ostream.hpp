@@ -25,6 +25,8 @@
 #include "utility/stream.hpp"
 #include "utility/common.hpp"
 
+namespace solid{
+
 //! A stream for writing
 class OutputStream: virtual public Stream{
 public:
@@ -51,5 +53,7 @@ struct OutputStreamIterator{
 #ifndef NINLINES
 #include "utility/ostream.ipp"
 #endif
+
+}//namespace solid
 
 #endif

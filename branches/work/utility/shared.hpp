@@ -1,6 +1,8 @@
 #ifndef UTILITY_SHARED_HPP
 #define UTILITY_SHARED_HPP
 
+namespace solid{
+
 struct Mutex;
 
 struct Shared{
@@ -8,5 +10,7 @@ struct Shared{
 	Shared();
 	Mutex& mutex();
 };
+
+}//namespace solid
 
 #endif

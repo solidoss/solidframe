@@ -25,6 +25,8 @@
 
 #include "system/common.hpp"
 
+namespace solid{
+
 template <size_t S>
 struct Binary{
 	enum{
@@ -45,5 +47,7 @@ struct Binary{
 	uint8 data[Capacity];
 };
 
+
+}//namespace solid
 
 #endif

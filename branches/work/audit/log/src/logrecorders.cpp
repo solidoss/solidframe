@@ -5,6 +5,8 @@
 #include <ctime>
 #include <string>
 using namespace std;
+
+namespace solid{
 namespace audit{
 
 //--------------------------------------------------------
@@ -68,3 +70,4 @@ static const char* levelName(unsigned _lvl){
 
 
 }//namespace audit
+}//namespace solid

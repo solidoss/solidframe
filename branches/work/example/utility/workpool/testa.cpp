@@ -24,6 +24,7 @@
 #include <iostream>
 
 using namespace std;
+using namespace solid;
 
 struct MyWorkPoolController;
 
@@ -54,9 +55,9 @@ int main(int argc, char *argv[]){
 #ifdef UDEBUG
 	{
 	string dbgout;
-	Dbg::instance().levelMask("iew");
-	Dbg::instance().moduleMask("any");
-	Dbg::instance().initStdErr(true);
+	Debug::the().levelMask("iew");
+	Debug::the().moduleMask("any");
+	Debug::the().initStdErr(true);
 	}
 #endif
 	MyWorkPool	mwp;

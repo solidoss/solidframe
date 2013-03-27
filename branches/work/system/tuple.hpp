@@ -25,6 +25,7 @@
 #include "system/common.hpp"
 #include <ostream>
 
+namespace solid{
 
 template <
 	class T0, class T1 = NullType, class T2 = NullType, class T3 = NullType, class T4 = NullType,
@@ -378,6 +379,7 @@ std::ostream& operator<<(
 	return _rt.print(_ros);
 }
 
+}//namespace solid
 
 #endif
 

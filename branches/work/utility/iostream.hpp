@@ -25,6 +25,8 @@
 #include "utility/istream.hpp"
 #include "utility/ostream.hpp"
 
+namespace solid{
+
 //! A stream for both input and output
 class InputOutputStream: public InputStream, public OutputStream{
 public:
@@ -44,5 +46,7 @@ struct InputOutputStreamIterator{
 #ifndef NINLINES
 #include "utility/iostream.ipp"
 #endif
+
+}//namespace solid
 
 #endif

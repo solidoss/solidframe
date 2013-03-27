@@ -24,6 +24,7 @@
 
 #include "system/common.hpp"
 
+namespace solid{
 
 //--------------------------------------------------------------------------------------
 // 		FunctorBase
@@ -333,5 +334,6 @@ private:
 	char storebuf[StoreBufSize];
 };
 
+}//namespace solid
 
 #endif

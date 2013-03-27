@@ -6,6 +6,8 @@
 
 #include "system/timespec.hpp"
 
+namespace solid{
+
 struct Mutex: std::mutex{
 	typedef std::mutex base;
 	bool tryLock(){
@@ -64,5 +66,6 @@ struct Locker: std::unique_lock<typename M::base>{
 	Locker(M &_m):std::unique_lock<typename M::base>(_m){}
 };
 
+}//namespace solid
 
 #endif

@@ -132,22 +132,22 @@ int main(int argc, char *argv[]){
 #ifdef UDEBUG
 	{
 	string dbgout;
-	Dbg::instance().levelMask(p.dbg_levels.c_str());
-	Dbg::instance().moduleMask(p.dbg_modules.c_str());
+	Debug::the().levelMask(p.dbg_levels.c_str());
+	Debug::the().moduleMask(p.dbg_modules.c_str());
 	if(p.dbg_addr.size() && p.dbg_port.size()){
-		Dbg::instance().initSocket(
+		Debug::the().initSocket(
 			p.dbg_addr.c_str(),
 			p.dbg_port.c_str(),
 			p.dbg_buffered,
 			&dbgout
 		);
 	}else if(p.dbg_console){
-		Dbg::instance().initStdErr(
+		Debug::the().initStdErr(
 			p.dbg_buffered,
 			&dbgout
 		);
 	}else{
-		Dbg::instance().initFile(
+		Debug::the().initFile(
 			*argv[0] == '.' ? argv[0] + 2 : argv[0],
 			p.dbg_buffered,
 			3,
@@ -157,7 +157,7 @@ int main(int argc, char *argv[]){
 	}
 	cout<<"Debug output: "<<dbgout<<endl;
 	dbgout.clear();
-	Dbg::instance().moduleBits(dbgout);
+	Debug::the().moduleBits(dbgout);
 	cout<<"Debug modules: "<<dbgout<<endl;
 	}
 #endif

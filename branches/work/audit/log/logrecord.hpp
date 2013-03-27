@@ -3,6 +3,7 @@
 
 #include "audit/log/logdata.hpp"
 
+namespace solid{
 namespace audit{
 
 //! A log record class
@@ -32,5 +33,6 @@ private:
 };
 
 }//namespace audit
+}//namespace solid
 
 #endif

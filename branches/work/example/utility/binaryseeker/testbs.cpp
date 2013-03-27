@@ -23,6 +23,7 @@
 #include <vector>
 #include <iostream>
 using namespace std;
+using namespace solid;
 
 int main(){
 	vector<int> v;

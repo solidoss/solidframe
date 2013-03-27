@@ -86,7 +86,7 @@ bool Buffer::compress(Controller &_rctrl){
 	uint32			tmpdatasz(datasz);
 	char			*tmppd(pd);
 	
-	vdbgx(Dbg::ipc, "buffer before compress id = "<<this->id()<<" dl = "<<this->dl<<" size = "<<bufferSize());
+	vdbgx(Debug::ipc, "buffer before compress id = "<<this->id()<<" dl = "<<this->dl<<" size = "<<bufferSize());
 	if(_rctrl.compressBuffer(bctx, this->bufferSize(), tmppd, tmpdatasz)){
 		if(tmppd != pd){
 			if(bctx.reqbufid == (uint)-1){
@@ -102,7 +102,7 @@ bool Buffer::compress(Controller &_rctrl){
 		}
 		this->flags(this->flags() | CompressedFlag);
 		this->dl -= (datasz - tmpdatasz);
-		vdbgx(Dbg::ipc, "buffer success compress id = "<<this->id()<<" dl = "<<this->dl<<" size = "<<bufferSize());
+		vdbgx(Debug::ipc, "buffer success compress id = "<<this->id()<<" dl = "<<this->dl<<" size = "<<bufferSize());
 	}else{
 		if(bctx.reqbufid != (uint)-1){
 			if(pd == tmppd){
@@ -111,7 +111,7 @@ bool Buffer::compress(Controller &_rctrl){
 			tmppd -= bctx.offset;
 			Specific::pushBuffer(tmppd, bctx.reqbufid);
 		}
-		vdbgx(Dbg::ipc, "buffer failed compress id = "<<this->id()<<" dl = "<<this->dl<<" size = "<<bufferSize());
+		vdbgx(Debug::ipc, "buffer failed compress id = "<<this->id()<<" dl = "<<this->dl<<" size = "<<bufferSize());
 	}
 	optimize();
 	return true;
@@ -130,7 +130,7 @@ bool Buffer::decompress(Controller &_rctrl){
 	uint32			tmpdatasz = datasz;
 	char			*tmppd(pd);
 	
-	vdbgx(Dbg::ipc, "buffer before decompress id = "<<this->id()<<" dl = "<<this->dl<<" size = "<<bufferSize());
+	vdbgx(Debug::ipc, "buffer before decompress id = "<<this->id()<<" dl = "<<this->dl<<" size = "<<bufferSize());
 	if(_rctrl.decompressBuffer(bctx, tmppd, tmpdatasz)){
 		if(bctx.reqbufid != (uint)-1){
 			if(tmppd == pd){
@@ -149,7 +149,7 @@ bool Buffer::decompress(Controller &_rctrl){
 		}
 		this->flags(this->flags() & (~CompressedFlag));
 		this->dl += (tmpdatasz - datasz);
-		vdbgx(Dbg::ipc, "buffer success decompress id = "<<this->id()<<" dl = "<<this->dl<<" size = "<<bufferSize());
+		vdbgx(Debug::ipc, "buffer success decompress id = "<<this->id()<<" dl = "<<this->dl<<" size = "<<bufferSize());
 	}else{
 		//decompression failed
 		if(bctx.reqbufid != (uint)-1){
@@ -159,7 +159,7 @@ bool Buffer::decompress(Controller &_rctrl){
 			tmppd -= bctx.offset;
 			Specific::pushBuffer(tmppd, bctx.reqbufid);
 		}
-		vdbgx(Dbg::ipc, "buffer failed decompress id = "<<this->id()<<" dl = "<<this->dl<<" size = "<<bufferSize());
+		vdbgx(Debug::ipc, "buffer failed decompress id = "<<this->id()<<" dl = "<<this->dl<<" size = "<<bufferSize());
 		return false;
 	}
 	return true;

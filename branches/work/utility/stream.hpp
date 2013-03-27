@@ -25,6 +25,8 @@
 #include "utility/common.hpp"
 #include <cstdlib>
 
+namespace solid{
+
 struct StreamFlags{
 	enum{
 		IBad  = 1,
@@ -58,6 +60,7 @@ protected:
 #include "utility/stream.ipp"
 #endif
 
+}//namespace solid
 
 #endif
 

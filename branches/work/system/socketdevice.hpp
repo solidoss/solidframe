@@ -4,6 +4,8 @@
 #include "system/socketaddress.hpp"
 #include "system/device.hpp"
 
+namespace solid{
+
 //! A wrapper for berkeley sockets
 class SocketDevice: public Device{
 public:
@@ -101,5 +103,6 @@ public:
 	bool isListening()const;
 };
 
+}//namespace solid
 
 #endif

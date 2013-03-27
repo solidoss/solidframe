@@ -24,6 +24,8 @@
 
 #include "system/common.hpp"
 
+namespace solid{
+
 template <typename T>
 inline T tmax(const T &v1, const T &v2){
     return (v1 < v2) ? v2 : v1;
@@ -283,5 +285,7 @@ inline uint64 bit_revert(const uint64 _v){
 	r |= (((uint64)reverted_chars[(_v >> 56) & 0xff]) << 0);
 	return r;
 }
+
+}//namespace solid
 
 #endif

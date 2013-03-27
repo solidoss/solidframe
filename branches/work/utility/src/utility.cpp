@@ -21,6 +21,9 @@
 
 #include "utility/workpool.hpp"
 #include "utility/polycontainer.hpp"
+#include "utility/common.hpp"
+
+namespace solid{
 
 const uint8 reverted_chars[] = {
 	0x00,0x80,0x40,0xC0,0x20,0xA0,0x60,0xE0,0x10,0x90,
@@ -184,3 +187,5 @@ CRCValue<uint32>::CRCValue(uint32 _v):v(compute_crc_value(_v)){
 
 CRCValue<uint64>::CRCValue(uint64 _v):v(compute_crc_value(_v)){
 }
+	
+}//namespace solid

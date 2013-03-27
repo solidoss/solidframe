@@ -1,7 +1,9 @@
 #include "system/socketaddress.hpp"
 #include "system/socketdevice.hpp"
 #include <iostream>
+
 using namespace std;
+using namespace solid;
 
 int main(){
 #ifdef ON_WINDOWS

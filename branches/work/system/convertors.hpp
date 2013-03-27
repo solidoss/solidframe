@@ -28,7 +28,7 @@
 #else
 #include <arpa/inet.h>
 #endif
-
+namespace solid{
 //!A template convertor to an unsigned
 /*!
 	it convert a basic type to it unsigned equivalent:<br>
@@ -124,5 +124,6 @@ inline uint16 toHost(uint16 _v){
 	return ntohs(_v);
 }
 
+}//namespace solid
 
 #endif

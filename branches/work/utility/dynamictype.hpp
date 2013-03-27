@@ -30,6 +30,8 @@
 #include "utility/dynamicpointer.hpp"
 #include "utility/shared.hpp"
 
+namespace solid{
+
 //! Store a map from a typeid to a callback
 /*!
 	The type id is determined using Dynamic::dynamicTypeId() or Dynamic::staticTypeId().
@@ -609,5 +611,6 @@ private:
 	uint				crtpos;
 };
 
+}//namespace solid
 
 #endif

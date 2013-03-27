@@ -28,7 +28,6 @@ set(Headers
 	cstring.hpp
 	mutualstore.hpp
 	sharedbackend.hpp
-	src/atomic.hpp
 	src/mutexpool.hpp
 )
 set(Inlines
@@ -39,7 +38,7 @@ set(Inlines
 	timespec.ipp
 )
 
-add_library (system 
+add_library (solid_system 
 	${Sources} ${Headers} ${Inlines}
 )
 

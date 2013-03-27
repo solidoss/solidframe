@@ -3,6 +3,7 @@
 #include "utility/dynamictype.hpp"
 
 using namespace std;
+using namespace solid;
 
 struct AObject: Dynamic<AObject, DynamicShared<> >{
 	AObject(int _v):v(_v){}
@@ -110,9 +111,9 @@ static const DynamicRegisterer<SecondExecuter>	dre;
 
 int main(){
 #ifdef UDEBUG
-	Dbg::instance().levelMask();
-	Dbg::instance().moduleMask();
-	Dbg::instance().initStdErr(false);
+	Debug::the().levelMask();
+	Debug::the().moduleMask();
+	Debug::the().initStdErr(false);
 #endif
 	uint32 v = 2;
 #ifndef ON_WINDOWS

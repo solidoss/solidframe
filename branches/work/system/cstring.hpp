@@ -3,6 +3,8 @@
 
 #include "system/common.hpp"
 
+namespace solid{
+
 const char * char_to_cstring(unsigned _c);
 
 //! Some cross platform cstring utility functions
@@ -37,7 +39,9 @@ struct cstring{
 	static T* findNot(T *_pc){
 		while(*_pc == C2 || *_pc == C1 || *_pc == C3) ++_pc;
 		return _pc;
-}
+	}
 };
+
+}//namespace solid
 
 #endif

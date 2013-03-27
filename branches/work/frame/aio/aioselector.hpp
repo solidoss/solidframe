@@ -27,9 +27,10 @@
 #include "frame/selectorbase.hpp"
 #include "utility/dynamicpointer.hpp"
 
+namespace solid{
+
 struct TimeSpec;
 
-namespace solid{
 namespace frame{
 namespace aio{
 

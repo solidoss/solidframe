@@ -3,7 +3,7 @@
 #include "system/common.hpp"
 
 using namespace std;
-
+using namespace solid;
 
 
 struct TwoInts{
@@ -19,7 +19,7 @@ std::ostream& operator<<(std::ostream &_ros, const TwoInts &_r2i){
 
 int main(){
 #ifdef UDEBUG
-	Dbg::instance().initStdErr();
+	Debug::the().initStdErr();
 #endif
 	try{
 		THROW_EXCEPTION("simple exception ever");

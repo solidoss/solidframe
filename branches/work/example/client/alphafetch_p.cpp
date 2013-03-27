@@ -16,10 +16,10 @@
 #include "system/cassert.hpp"
 #include "system/socketaddress.hpp"
 #include "system/thread.hpp"
-//#include "common/utils.h"
-#include "writer.hpp"
 
 using namespace std;
+using namespace solid;
+#include "writer.hpp"
 
 //----------------------------------------------------------------------------
 template <class T, T C1>

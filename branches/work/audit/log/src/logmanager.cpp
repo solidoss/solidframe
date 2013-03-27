@@ -18,6 +18,7 @@
 
 using namespace std;
 
+namespace solid{
 namespace audit{
 
 struct SocketInputStream: InputStream{
@@ -233,7 +234,7 @@ void LogManager::runListener(ListenerWorker &_w){
 			sd.create(rd.begin());
 			sd.prepareAccept(rd.begin(), 10);
 		}else{
-			edbgx(Dbg::log, "create address "<<_w.addr<<'.'<<_w.port);
+			edbgx(Debug::log, "create address "<<_w.addr<<'.'<<_w.port);
 		}
 	}
 	if(sd.ok()){
@@ -345,5 +346,6 @@ char* LogRecord::data(uint32 _sz){
 	d = tmp;
 	return d;
 }
-}//namespace audit
 
+}//namespace audit
+}//namespace solid

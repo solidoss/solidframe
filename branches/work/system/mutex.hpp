@@ -36,6 +36,8 @@
 
 #include <pthread.h>
 
+namespace solid{
+
 class Condition;
 struct TimeSpec;
 
@@ -97,6 +99,8 @@ struct Locker{
 #ifndef NINLINES
 #include "system/mutex.ipp"
 #endif
+
+}//namespace solid
 
 #endif
 

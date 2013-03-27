@@ -24,6 +24,8 @@
 
 #include "device.hpp"
 
+namespace solid{
+
 //! A wrapper for devices with random access.
 class SeekableDevice: public Device{
 public:
@@ -40,5 +42,7 @@ public:
 protected:
 	SeekableDevice(DescriptorT _desc = invalidDescriptor()):Device(_desc){}
 };
+
+}//namespace solid
 
 #endif

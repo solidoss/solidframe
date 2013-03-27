@@ -11,6 +11,7 @@
 
 using namespace std;
 
+namespace solid{
 namespace audit{
 
 LogConnector::LogConnector():usecnt(0), mustdie(false){
@@ -122,3 +123,4 @@ LogRecorder* LogBasicConnector::createRecorder(const LogClientData &_rcl){
 }
 
 }//namespace audit
+}//namespace solid

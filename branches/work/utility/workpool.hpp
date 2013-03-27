@@ -29,6 +29,8 @@
 #include "utility/common.hpp"
 #include "utility/queue.hpp"
 
+namespace solid{
+
 //! Base class for every workpool workers
 struct WorkerBase: Thread{
 	uint32	wkrid;
@@ -299,6 +301,7 @@ private:
 	
 };
 
+}//namespace solid
 
 #endif
 

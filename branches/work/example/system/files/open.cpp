@@ -28,7 +28,9 @@
 #include <deque>
 #include <cstring>
 #include <cerrno>
+
 using namespace std;
+using namespace solid;
 
 ///\cond 0
 typedef std::deque<FileDevice>	FileDeuqeT;

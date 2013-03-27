@@ -28,6 +28,7 @@
 #include "specb.hpp"
 
 using namespace std;
+using namespace solid;
 
 struct SingleTest{
 	SingleTest();
@@ -168,9 +169,9 @@ int main(int argc, char *argv[]){
 #ifdef UDEBUG
 	{
 	//initDebug(s.c_str());
-		Dbg::instance().initStdErr();
-		Dbg::instance().levelMask("iwe");
-		Dbg::instance().moduleMask("all");
+		Debug::the().initStdErr();
+		Debug::the().levelMask("iwe");
+		Debug::the().moduleMask("all");
 	}
 #endif
 	Thread::init();

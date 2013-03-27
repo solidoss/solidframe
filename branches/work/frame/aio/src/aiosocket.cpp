@@ -263,7 +263,7 @@ int Socket::doSendPlain(){
 		case CHANNEL://tcp
 			if(sndlen && sndbuf){//NOTE: see the above note
 				int rv = sd.send(sndbuf, sndlen);
-				vdbgx(Dbg::aio, "send rv = "<<rv);
+				vdbgx(Debug::aio, "send rv = "<<rv);
 				if(rv <= 0) return ERRDONE;
 				sndbuf += rv;
 				sndlen -= rv;
@@ -298,7 +298,7 @@ int Socket::doRecvPlain(){
 		case CHANNEL://tcp
 			if(rcvlen && rcvbuf){//NOTE: see the above note
 				int rv = sd.recv(rcvbuf, rcvlen);
-				vdbgx(Dbg::aio, "recv rv = "<<rv<<" err = "<<strerror(errno)<<" rcvbuf = "<<(void*)rcvbuf<<" rcvlen = "<<rcvlen);
+				vdbgx(Debug::aio, "recv rv = "<<rv<<" err = "<<strerror(errno)<<" rcvbuf = "<<(void*)rcvbuf<<" rcvlen = "<<rcvlen);
 				if(rv <= 0) return ERRDONE;
 				rcvcnt += rv;
 				rcvlen = rv;
@@ -411,7 +411,7 @@ int Socket::doRecvSecure(char *_pb, uint32 _bl, uint32 _flags){
 
 int Socket::doSecureAccept(){
 	int rv = pss->secureAccept();
-	vdbgx(Dbg::aio, " secureaccept "<<rv);
+	vdbgx(Debug::aio, " secureaccept "<<rv);
 	ioreq = 0;
 	want = 0;
 	if(rv == OK){
@@ -448,7 +448,7 @@ int Socket::doSecureReadWrite(int _w){
 		want &= (~w);
 		if(sndlen && sndbuf){//NOTE: see the above note
 			int rv = pss->send(sndbuf, sndlen);
-			vdbgx(Dbg::aio, "send rv = "<<rv);
+			vdbgx(Debug::aio, "send rv = "<<rv);
 			if(rv == 0) return ERRDONE;
 			if(rv < 0){
 				
@@ -474,7 +474,7 @@ int Socket::doSecureReadWrite(int _w){
 		want &= (~w);
 		if(rcvlen && rcvbuf){//NOTE: see the above note
 			int rv = pss->recv(rcvbuf, rcvlen);
-			vdbgx(Dbg::aio, "recv rv = "<<rv);
+			vdbgx(Debug::aio, "recv rv = "<<rv);
 			if(rv == 0) return ERRDONE;
 			if(rv < 0){
 				int sw = pss->wantEvents();

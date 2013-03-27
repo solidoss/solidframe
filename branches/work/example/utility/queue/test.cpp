@@ -23,6 +23,7 @@
 #include <iostream>
 
 using namespace std;
+using namespace solid;
 
 int main(){
 	cout<<"This is a queue test program..."<<endl;
