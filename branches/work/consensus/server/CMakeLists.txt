@@ -1,20 +1,20 @@
 set(Sources
 	src/consensusobject.cpp
-	src/consensussignals.cpp
+	src/consensusmessages.cpp
 	src/timerqueue.cpp
 )
 
 set(Headers
 	consensusobject.hpp
-	src/consensussignal.hpp
-	src/consensussignals.hpp
+	src/consensusmessage.hpp
+	src/consensusmessages.hpp
 	src/timerqueue.hpp
 )
 
 set(Inlines
 )
 
-add_library (distributed_consensus_server
+add_library (solid_consensus_server
 	${Sources} ${Headers} ${Inlines}
 )
 

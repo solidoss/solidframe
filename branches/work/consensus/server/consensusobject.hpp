@@ -19,25 +19,25 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef DISTRIBUTED_CONSENSUS_CONSENSUSOBJECT_HPP
-#define DISTRIBUTED_CONSENSUS_CONSENSUSOBJECT_HPP
+#ifndef SOLID_CONSENSUS_CONSENSUSOBJECT_HPP
+#define SOLID_CONSENSUS_CONSENSUSOBJECT_HPP
 
 #include <vector>
 
 #include "system/socketaddress.hpp"
-#include "foundation/object.hpp"
+#include "frame/object.hpp"
 
-namespace distributed{
+namespace solid{
 namespace consensus{
 
-struct WriteRequestSignal;
-struct ReadRequestSignal;
+struct WriteRequestMessage;
+struct ReadRequestMessage;
 struct RequestId;
 
 namespace server{
 
 template <uint16 Count>
-struct OperationSignal;
+struct OperationMessage;
 struct OperationStub;
 
 struct Parameters{
@@ -59,7 +59,7 @@ struct Parameters{
  * \see example/distributed/consensus for a proof-of-concept
  * 
  */
-class Object: public Dynamic<Object, foundation::Object>{
+class Object: public Dynamic<Object, frame::Object>{
 	struct RunData;
 	typedef DynamicExecuter<void, Object, DynamicDefaultPointerStore, RunData&>	DynamicExecuterT;
 public:
@@ -69,14 +69,14 @@ public:
 	~Object();
 	void dynamicExecute(DynamicPointer<> &_dp, RunData &_rrd);
 	
-	void dynamicExecute(DynamicPointer<WriteRequestSignal> &_rsig, RunData &_rrd);
-	void dynamicExecute(DynamicPointer<ReadRequestSignal> &_rsig, RunData &_rrd);
-	void dynamicExecute(DynamicPointer<OperationSignal<1> > &_rsig, RunData &_rrd);
-	void dynamicExecute(DynamicPointer<OperationSignal<2> > &_rsig, RunData &_rrd);
-	void dynamicExecute(DynamicPointer<OperationSignal<4> > &_rsig, RunData &_rrd);
-	void dynamicExecute(DynamicPointer<OperationSignal<8> > &_rsig, RunData &_rrd);
-	void dynamicExecute(DynamicPointer<OperationSignal<16> > &_rsig, RunData &_rrd);
-	void dynamicExecute(DynamicPointer<OperationSignal<32> > &_rsig, RunData &_rrd);
+	void dynamicExecute(DynamicPointer<WriteRequestMessage> &_rmsgptr, RunData &_rrd);
+	void dynamicExecute(DynamicPointer<ReadRequestMessage> &_rmsgptr, RunData &_rrd);
+	void dynamicExecute(DynamicPointer<OperationMessage<1> > &_rmsgptr, RunData &_rrd);
+	void dynamicExecute(DynamicPointer<OperationMessage<2> > &_rmsgptr, RunData &_rrd);
+	void dynamicExecute(DynamicPointer<OperationMessage<4> > &_rmsgptr, RunData &_rrd);
+	void dynamicExecute(DynamicPointer<OperationMessage<8> > &_rmsgptr, RunData &_rrd);
+	void dynamicExecute(DynamicPointer<OperationMessage<16> > &_rmsgptr, RunData &_rrd);
+	void dynamicExecute(DynamicPointer<OperationMessage<32> > &_rmsgptr, RunData &_rrd);
 protected:
 	enum State{
 		InitState,
@@ -92,10 +92,12 @@ protected:
 	void enterRunState();
 	bool isRecoveryState()const;
 private:
+	void state(int _st);
+	int state()const;
 	/*virtual*/ int execute(ulong _sig, TimeSpec &_tout);
-	/*virtual*/ bool signal(DynamicPointer<foundation::Signal> &_sig);
+	/*virtual*/ bool notify(DynamicPointer<frame::Message> &_rmsgptr);
 	//! It should dynamically cast the signal to an accepted Request and process it.
-	virtual void accept(DynamicPointer<WriteRequestSignal> &_rsig) = 0;
+	virtual void accept(DynamicPointer<WriteRequestMessage> &_rmsgptr) = 0;
 	//! Called once while initializing the Object
 	virtual void init();
 	//! Called once before entering RunState

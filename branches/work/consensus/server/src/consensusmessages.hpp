@@ -20,16 +20,16 @@
 */
 
 
-#ifndef DISTRIBUTED_CONSENSUS_CONSENSUSSIGNALS_HPP
-#define DISTRIBUTED_CONSENSUS_CONSENSUSSIGNALS_HPP
+#ifndef SOLID_CONSENSUS_CONSENSUSSIGNALS_HPP
+#define SOLID_CONSENSUS_CONSENSUSSIGNALS_HPP
 
-#include "foundation/signal.hpp"
-#include "foundation/ipc/ipcconnectionuid.hpp"
+#include "frame/message.hpp"
+#include "frame/ipc/ipcconnectionuid.hpp"
 #include "utility/dynamicpointer.hpp"
 #include "system/socketaddress.hpp"
 
-#include "distributed/consensus/consensusrequestid.hpp"
-#include "consensussignal.hpp"
+#include "consensus/consensusrequestid.hpp"
+#include "consensusmessage.hpp"
 
 #ifdef HAS_CPP11
 #include <array>
@@ -37,9 +37,7 @@
 #include <vector>
 #endif
 
-using namespace distributed::consensus;
-
-namespace distributed{
+namespace solid{
 namespace consensus{
 namespace server{
 
@@ -49,20 +47,20 @@ struct OperationStub{
 		_s.push(operation, "opp").push(reqid, "reqid").push(proposeid, "proposeid").push(acceptid, "acceptid");
 		return _s;
 	}
-	uint8								operation;
-	distributed::consensus::RequestId	reqid;
-	uint32								proposeid;
-	uint32								acceptid;
+	uint8					operation;
+	consensus::RequestId	reqid;
+	uint32					proposeid;
+	uint32					acceptid;
 };
 
 template <uint16 Count>
-struct OperationSignal;
+struct OperationMessage;
 
 template <>
-struct OperationSignal<1>: Dynamic<OperationSignal<1>, Signal>{
+struct OperationMessage<1>: Dynamic<OperationMessage<1>, Message>{
 	template <class S>
 	S& operator&(S &_s){
-		static_cast<Signal*>(this)->operator&<S>(_s);
+		static_cast<Message*>(this)->operator&<S>(_s);
 		_s.push(op, "operation");
 		return _s;
 	}
@@ -71,10 +69,10 @@ struct OperationSignal<1>: Dynamic<OperationSignal<1>, Signal>{
 };
 
 template <>
-struct OperationSignal<2>: Dynamic<OperationSignal<2>, Signal>{
+struct OperationMessage<2>: Dynamic<OperationMessage<2>, Message>{
 	template <class S>
 	S& operator&(S &_s){
-		static_cast<Signal*>(this)->operator&<S>(_s);
+		static_cast<Message*>(this)->operator&<S>(_s);
 		_s.push(op[0], "operation1");
 		_s.push(op[1], "operation2");
 		return _s;
@@ -84,13 +82,13 @@ struct OperationSignal<2>: Dynamic<OperationSignal<2>, Signal>{
 };
 
 template <uint16 Count>
-struct OperationSignal: Dynamic<OperationSignal<Count>, Signal>{
-	OperationSignal(){
+struct OperationMessage: Dynamic<OperationMessage<Count>, Message>{
+	OperationMessage(){
 		opsz = 0;
 	}
 	template <class S>
 	S& operator&(S &_s){
-		static_cast<Signal*>(this)->operator&<S>(_s);
+		static_cast<Message*>(this)->operator&<S>(_s);
 		_s.pushArray(op, opsz, "operations");
 		return _s;
 	}
@@ -101,6 +99,6 @@ struct OperationSignal: Dynamic<OperationSignal<Count>, Signal>{
 
 }//namespace server
 }//namespace consensus
-}//namespace distributed
+}//namespace solid
 
 #endif

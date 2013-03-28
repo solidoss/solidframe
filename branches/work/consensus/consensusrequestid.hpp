@@ -19,14 +19,14 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef DISTRIBUTED_CONCEPT_SIGNALREQUEST_IDENTIFIER_HPP
-#define DISTRIBUTED_CONCEPT_SIGNALREQUEST_IDENTIFIER_HPP
+#ifndef SOLID_CONSENSUS_REQUESTID_HPP
+#define SOLID_CONSENSUS_REQUESTID_HPP
 
-#include "foundation/ipc/ipcconnectionuid.hpp"
-#include "foundation/common.hpp"
+#include "frame/ipc/ipcconnectionuid.hpp"
+#include "frame/common.hpp"
 #include <ostream>
 
-namespace distributed{
+namespace solid{
 namespace consensus{
 //! A distributed consensus request identifier
 /*!
@@ -61,13 +61,13 @@ struct RequestId{
 	size_t senderHash()const;
 	
 	uint32 						requid;
-	foundation::ObjectUidT		senderuid;
+	frame::ObjectUidT			senderuid;
 	SocketAddressInet4			sockaddr;
 };
 
 std::ostream &operator<<(std::ostream& _ros, const RequestId &_rreqid);
 
 }//namespace consensus
-}//namespace distributed
+}//namespace solid
 
 #endif

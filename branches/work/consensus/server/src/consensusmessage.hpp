@@ -1,4 +1,4 @@
-/* Declarations file consensussignal.hpp
+/* Declarations file consensusmessage.hpp
 	
 	Copyright 2011, 2012 Valentin Palade 
 	vipalade@gmail.com
@@ -19,24 +19,24 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef DISTRIBUTED_CONSENSUS_CONSENSUSSIGNAL_HPP
-#define DISTRIBUTED_CONSENSUS_CONSENSUSSIGNAL_HPP
+#ifndef SOLID_CONSENSUS_CONSENSUSMESSAGE_HPP
+#define SOLID_CONSENSUS_CONSENSUSMESSAGE_HPP
 
-#include "foundation/signal.hpp"
-#include "foundation/ipc/ipcconnectionuid.hpp"
+#include "frame/message.hpp"
+#include "frame/ipc/ipcconnectionuid.hpp"
 
-namespace distributed{
+namespace solid{
 namespace consensus{
 namespace server{
 
-struct Signal: Dynamic<Signal, DynamicShared<foundation::Signal> >{
+struct Message: Dynamic<Message, DynamicShared<frame::Message> >{
 	enum{
 		OnSender,
 		OnPeer,
 		BackOnSender
 	};
-	Signal();
-	~Signal();
+	Message();
+	~Message();
 	
 	template <class S>
 	S& operator&(S &_s){
@@ -45,7 +45,7 @@ struct Signal: Dynamic<Signal, DynamicShared<foundation::Signal> >{
 	}
 	
 	/*virtual*/ void ipcReceive(
-		foundation::ipc::SignalUid &_rsiguid
+		frame::ipc::MessageUid &_rmsguid
 	);
 	/*virtual*/ uint32 ipcPrepare();
 	/*virtual*/ void ipcComplete(int _err);
@@ -59,5 +59,5 @@ struct Signal: Dynamic<Signal, DynamicShared<foundation::Signal> >{
 
 }//namespace server
 }//namespace consensus
-}//namespace distributed
+}//namespace solid
 #endif

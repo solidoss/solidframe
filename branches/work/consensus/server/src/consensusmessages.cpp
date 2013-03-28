@@ -1,4 +1,4 @@
-/* Implementation file consensussignals.cpp
+/* Implementation file consensusmessages.cpp
 	
 	Copyright 2011, 2012 Valentin Palade 
 	vipalade@gmail.com
@@ -19,34 +19,31 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "consensussignals.hpp"
-#include "foundation/ipc/ipcservice.hpp"
-#include "example/distributed/consensus/core/consensusmanager.hpp"
+#include "consensusmessages.hpp"
+#include "frame/ipc/ipcservice.hpp"
+//#include "example/distributed/consensus/core/consensusmanager.hpp"
 
-#include "foundation/ipc/ipcservice.hpp"
+#include "frame/ipc/ipcservice.hpp"
 
 #include "system/debug.hpp"
 
-namespace distributed{
+namespace solid{
 namespace consensus{
 namespace server{
 
-Signal::Signal():state(OnSender){}
-Signal::~Signal(){
+Message::Message():state(OnSender){}
+Message::~Message(){
 	
 }
-void Signal::ipcReceive(
-	foundation::ipc::SignalUid &_rsiguid
+void Message::ipcReceive(
+	frame::ipc::MessageUid &_rmsguid
 ){
-	DynamicPointer<fdt::Signal> sig(this);
-	//_rsiguid = this->ipcsiguid;
-	//ipcconid = fdt::ipc::ConnectionContext::the().connectionuid;
-	
-	char				host[SocketInfo::HostStringCapacity];
-	char				port[SocketInfo::ServiceStringCapacity];
+	DynamicPointer<frame::Message>	msgptr(this);
+	char							host[SocketInfo::HostStringCapacity];
+	char							port[SocketInfo::ServiceStringCapacity];
 	
 	//TODO:!! sa not initialized !?
-	SocketAddressInet4	sa;
+	SocketAddressInet4				sa;
 	
 	sa.toString(
 		host,
@@ -58,31 +55,32 @@ void Signal::ipcReceive(
 	
 	if(state == OnSender){
 		state = OnPeer;
-		idbg((void*)this<<" on peer: baseport = "<<fdt::ipc::ConnectionContext::the().baseport<<" host = "<<host<<":"<<port);
+		idbg((void*)this<<" on peer: baseport = "<<frame::ipc::ConnectionContext::the().baseport<<" host = "<<host<<":"<<port);
 	}else if(state == OnPeer){
 		state == BackOnSender;
-		idbg((void*)this<<" back on sender: baseport = "<<fdt::ipc::ConnectionContext::the().baseport<<" host = "<<host<<":"<<port);
+		idbg((void*)this<<" back on sender: baseport = "<<frame::ipc::ConnectionContext::the().baseport<<" host = "<<host<<":"<<port);
 	}else{
 		cassert(false);
 	}
-	m().signal(sig, serverUid());
+	//TODO::
+	//frame::Manager::specific().notify(msgptr, serverUid());
 }
-uint32 Signal::ipcPrepare(){
+uint32 Message::ipcPrepare(){
 	uint32 rv(0);
-	rv |= foundation::ipc::Service::SynchronousSendFlag;
-	rv |= foundation::ipc::Service::SameConnectorFlag;
+	rv |= frame::ipc::SynchronousSendFlag;
+	rv |= frame::ipc::SameConnectorFlag;
 	return rv;
 }
-void Signal::ipcComplete(int _err){
+void Message::ipcComplete(int _err){
 	idbg((void*)this<<" err = "<<_err);
 }
 
-void Signal::use(){
-	DynamicShared<fdt::Signal>::use();
+void Message::use(){
+	DynamicShared<frame::Message>::use();
 	idbg((void*)this<<" usecount = "<<usecount);
 }
-int Signal::release(){
-	int rv = DynamicShared<fdt::Signal>::release();
+int Message::release(){
+	int rv = DynamicShared<frame::Message>::release();
 	idbg((void*)this<<" usecount = "<<usecount);
 	return rv;
 }

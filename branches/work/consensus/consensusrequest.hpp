@@ -19,18 +19,18 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef DISTRIBUTED_CONSENSUS_CONSENSUSREQUEST_HPP
-#define DISTRIBUTED_CONSENSUS_CONSENSUSREQUEST_HPP
+#ifndef SOLID_CONSENSUS_REQUEST_HPP
+#define SOLID_CONSENSUS_REQUEST_HPP
 
 
-#include "foundation/signal.hpp"
-#include "foundation/ipc/ipcconnectionuid.hpp"
+#include "frame/message.hpp"
+#include "frame/ipc/ipcconnectionuid.hpp"
 #include "utility/dynamicpointer.hpp"
 #include "system/socketaddress.hpp"
 
-#include "distributed/consensus/consensusrequestid.hpp"
+#include "consensus/consensusrequestid.hpp"
 
-namespace distributed{
+namespace solid{
 namespace consensus{
 //! A base class for all write distributed consensus requests
 /*!
@@ -40,20 +40,20 @@ namespace consensus{
  * \see example/distributed/consensus for a proof-of-concept
  * 
  */ 
-struct WriteRequestSignal: Dynamic<WriteRequestSignal, DynamicShared<foundation::Signal> >{
+struct WriteRequestMessage: Dynamic<WriteRequestMessage, DynamicShared<frame::Message> >{
 	enum{
 		OnSender,
 		OnPeer,
 		BackOnSender
 	};
-	WriteRequestSignal();
-	WriteRequestSignal(const RequestId &_rreqid);
-	~WriteRequestSignal();
-	//! Implement this to send "this" to a distributed::consensus::Object when on peer
+	WriteRequestMessage();
+	WriteRequestMessage(const RequestId &_rreqid);
+	~WriteRequestMessage();
+	//! Implement to send "this" to a consensus::Object when on peer
 	/*!
-	 * While on peer (the process containing the needed distributed::consensus::Object)
-	 * this WriteRequestSignal will use this call to signal itself to the needed
-	 * distributed::consensus::Object:<br>
+	 * While on peer (the process containing the needed consensus::Object)
+	 * this WriteRequestMessage will use this call to signal itself to the needed
+	 * consensus::Object:<br>
 	 * <code><br>
 	 * void StoreRequest::sendThisToConsensusObject(){<br>
 	 *     DynamicPointer<fdt::Signal> sig(this);<br>
@@ -61,25 +61,27 @@ struct WriteRequestSignal: Dynamic<WriteRequestSignal, DynamicShared<foundation:
 	 * }<br>
 	 * </code>
 	 */
-	virtual void sendThisToConsensusObject() = 0;
+	virtual void notifyConsensusObjectWithThis() = 0;
+	virtual void notifySenderObjectWithThis() = 0;
+	virtual void notifySenderObjectWithFail();
 	
 	template <class S>
 	S& operator&(S &_s){
 		_s.push(id.requid, "id.requid").push(id.senderuid, "sender");
 		_s.push(st, "state");
 		if(waitresponse || !S::IsSerializer){//on peer
-			_s.push(ipcsiguid.idx, "siguid.idx").push(ipcsiguid.uid,"siguid.uid");
+			_s.push(ipcmsguid.idx, "msguid.idx").push(ipcmsguid.uid,"msguid.uid");
 		}else{//on sender
-			foundation::ipc::SignalUid &rsiguid(
-				const_cast<foundation::ipc::SignalUid &>(foundation::ipc::ConnectionContext::the().signaluid)
+			frame::ipc::MessageUid &rmsguid(
+				const_cast<frame::ipc::MessageUid &>(frame::ipc::ConnectionContext::the().msgid)
 			);
-			_s.push(rsiguid.idx, "siguid.idx").push(rsiguid.uid,"siguid.uid");
+			_s.push(rmsguid.idx, "msguid.idx").push(rmsguid.uid,"msguid.uid");
 		}
 		return _s;
 	}
 	
 	/*virtual*/ void ipcReceive(
-		foundation::ipc::SignalUid &_rsiguid
+		frame::ipc::MessageUid &_rmsguid
 	);
 	/*virtual*/ uint32 ipcPrepare();
 	/*virtual*/ void ipcComplete(int _err);
@@ -90,8 +92,8 @@ struct WriteRequestSignal: Dynamic<WriteRequestSignal, DynamicShared<foundation:
 	bool							waitresponse;
 	uint8							st;
 	int8							sentcount;
-	foundation::ipc::ConnectionUid	ipcconid;
-	foundation::ipc::SignalUid		ipcsiguid;
+	frame::ipc::ConnectionUid		ipcconid;
+	frame::ipc::MessageUid			ipcmsguid;
 	RequestId						id;
 };
 
@@ -103,15 +105,15 @@ struct WriteRequestSignal: Dynamic<WriteRequestSignal, DynamicShared<foundation:
  * \see example/distributed/consensus for a proof-of-concept
  * 
  */ 
-struct ReadRequestSignal: Dynamic<ReadRequestSignal, DynamicShared<foundation::Signal> >{
+struct ReadRequestMessage: Dynamic<ReadRequestMessage, DynamicShared<frame::Message> >{
 	enum{
 		OnSender,
 		OnPeer,
 		BackOnSender
 	};
-	ReadRequestSignal();
-	ReadRequestSignal(const RequestId &_rreqid);
-	~ReadRequestSignal();
+	ReadRequestMessage();
+	ReadRequestMessage(const RequestId &_rreqid);
+	~ReadRequestMessage();
 	//! Implement this to send "this" to a distributed::consensus::Object when on peer
 	/*!
 	 * While on peer (the process containing the needed distributed::consensus::Object)
@@ -119,30 +121,32 @@ struct ReadRequestSignal: Dynamic<ReadRequestSignal, DynamicShared<foundation::S
 	 * distributed::consensus::Object:<br>
 	 * <code><br>
 	 * void FindRequest::sendThisToConsensusObject(){<br>
-	 *     DynamicPointer<fdt::Signal> sig(this);<br>
+	 *     DynamicPointer<frame::Message> msg(this);<br>
 	 *     m().signal(sig, serverUid());<br>
 	 * }<br>
 	 * </code>
 	 */
-	virtual void sendThisToConsensusObject() = 0;
+	virtual void notifyConsensusObjectWithThis() = 0;
+	virtual void notifySenderObjectWithThis() = 0;
+	virtual void notifySenderObjectWithFail();
 	
 	template <class S>
 	S& operator&(S &_s){
 		_s.push(id.requid, "id.requid").push(id.senderuid, "sender");
 		_s.push(st, "state");
 		if(waitresponse || !S::IsSerializer){//on peer
-			_s.push(ipcsiguid.idx, "siguid.idx").push(ipcsiguid.uid,"siguid.uid");
+			_s.push(ipcmsguid.idx, "msguid.idx").push(ipcmsguid.uid,"msguid.uid");
 		}else{//on sender
-			foundation::ipc::SignalUid &rsiguid(
-				const_cast<foundation::ipc::SignalUid &>(foundation::ipc::ConnectionContext::the().signaluid)
+			frame::ipc::MessageUid &rmsguid(
+				const_cast<frame::ipc::MessageUid &>(frame::ipc::ConnectionContext::the().msgid)
 			);
-			_s.push(rsiguid.idx, "siguid.idx").push(rsiguid.uid,"siguid.uid");
+			_s.push(rmsguid.idx, "msguid.idx").push(rmsguid.uid,"msguid.uid");
 		}
 		return _s;
 	}
 	
 	/*virtual*/ void ipcReceive(
-		foundation::ipc::SignalUid &_rsiguid
+		frame::ipc::MessageUid &_rmsguid
 	);
 	/*virtual*/ uint32 ipcPrepare();
 	/*virtual*/ void ipcComplete(int _err);
@@ -153,13 +157,13 @@ struct ReadRequestSignal: Dynamic<ReadRequestSignal, DynamicShared<foundation::S
 	bool							waitresponse;
 	uint8							st;
 	int8							sentcount;
-	foundation::ipc::ConnectionUid	ipcconid;
-	foundation::ipc::SignalUid		ipcsiguid;
+	frame::ipc::ConnectionUid		ipcconid;
+	frame::ipc::MessageUid			ipcmsguid;
 	RequestId						id;
 };
 
 
 }//namespace consensus
-}//namespace distributed
+}//namespace solid
 
 #endif

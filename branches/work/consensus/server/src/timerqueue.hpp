@@ -26,6 +26,8 @@
 #include "system/common.hpp"
 #include "system/timespec.hpp"
 
+namespace solid{
+
 class TimerQueue{
 public:
 	TimerQueue();
@@ -94,4 +96,5 @@ inline bool TimerQueue::empty()const{
 	return tq.empty();
 }
 
+}//namespace solid
 #endif
