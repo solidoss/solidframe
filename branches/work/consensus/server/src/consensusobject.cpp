@@ -466,7 +466,9 @@ bool Object::Data::canSendFastAccept()const{
 
 struct DummyWriteRequestMessage: public WriteRequestMessage{
 	DummyWriteRequestMessage(const consensus::RequestId &_reqid):WriteRequestMessage(_reqid){}
-	/*virtual*/ void sendThisToConsensusObject(){}
+	/*virtual*/ void notifyConsensusObjectWithThis(){}
+	/*virtual*/ void notifySenderObjectWithThis(){}
+	/*virtual*/ void notifySenderObjectWithFail(){}
 };
 
 RequestStub& Object::Data::safeRequestStub(const consensus::RequestId &_reqid, size_t &_rreqidx){
@@ -534,9 +536,9 @@ static const DynamicRegisterer<Object>	dre;
 	DynamicExecuterT::registerDynamic<OperationMessage<8>, Object>();
 	DynamicExecuterT::registerDynamic<OperationMessage<16>, Object>();
 	DynamicExecuterT::registerDynamic<OperationMessage<32>, Object>();
-	//TODO: add here the other consensus Signals
+	//TODO: add here the other consensus Messages
 }
-/*static*/ void Object::registerSignals(){
+/*static*/ void Object::registerMessages(){
 	//TODO:
 // 	fdt::ipc::Service::the().typeMapper().insert<OperationMessage<1> >();
 // 	fdt::ipc::Service::the().typeMapper().insert<OperationMessage<2> >();

@@ -1,15 +1,15 @@
-#include "example/distributed/consensus/client/clientobject.hpp"
-#include "example/distributed/consensus/core/consensusmanager.hpp"
-#include "example/distributed/consensus/core/consensusrequests.hpp"
+#include "example/consensus/client/clientobject.hpp"
+#include "example/consensus/core/consensusmanager.hpp"
+#include "example/consensus/core/consensusrequests.hpp"
 
 
-#include "foundation/service.hpp"
-#include "foundation/scheduler.hpp"
+#include "frame/service.hpp"
+#include "frame/scheduler.hpp"
 
-#include "foundation/aio/aioselector.hpp"
-#include "foundation/aio/aiosingleobject.hpp"
-#include "foundation/objectselector.hpp"
-#include "foundation/ipc/ipcservice.hpp"
+#include "frame/aio/aioselector.hpp"
+#include "frame/aio/aiosingleobject.hpp"
+#include "frame/objectselector.hpp"
+#include "frame/ipc/ipcservice.hpp"
 
 #include "system/debug.hpp"
 #include "system/socketaddress.hpp"
@@ -18,12 +18,12 @@
 #include "boost/program_options.hpp"
 
 using namespace std;
+using namespace solid;
 
-namespace fdt=foundation;
 
-typedef foundation::IndexT									IndexT;
-typedef foundation::Scheduler<foundation::aio::Selector>	AioSchedulerT;
-typedef foundation::Scheduler<foundation::ObjectSelector>	SchedulerT;
+typedef frame::IndexT							IndexT;
+typedef frame::Scheduler<frame::aio::Selector>	AioSchedulerT;
+typedef frame::Scheduler<frame::ObjectSelector>	SchedulerT;
 
 //------------------------------------------------------------------
 //------------------------------------------------------------------
@@ -40,23 +40,6 @@ struct Params{
 	bool			log;
 	ClientParams	p;
 };
-
-struct IpcServiceController: foundation::ipc::Controller{
-	void scheduleTalker(foundation::aio::Object *_po){
-		idbg("");
-		foundation::ObjectPointer<foundation::aio::Object> op(_po);
-		AioSchedulerT::schedule(op);
-	}
-	bool release(){
-		return false;
-	}
-};
-
-namespace {
-	const foundation::IndexT	ipcid(10);
-	const foundation::IndexT	svcid(11);
-}
-
 
 bool parseArguments(Params &_par, int argc, char *argv[]);
 
@@ -116,37 +99,44 @@ int main(int argc, char *argv[]){
 		}
 	}
 	
-	IpcServiceController	ipcctrl;
-	
 	if(true){
 		
-		foundation::Manager 	m(16);
+		frame::Manager 			m;
 		
-		m.registerScheduler(new SchedulerT(m));
-		m.registerScheduler(new AioSchedulerT(m));
+		AioSchedulerT			aiosched(m);
+		SchedulerT				objsched(m);
 		
-		//const IndexT svcidx = 
-		m.registerService<SchedulerT>(new foundation::Service, 0, svcid);
-		m.registerService<SchedulerT>(new foundation::ipc::Service(&ipcctrl), 0, ipcid);
+		frame::ipc::Service		ipcsvc(m, new frame::ipc::BasicController(aiosched));
+		
+		//ipcsvc.typeMapper().insert<FirstMessage>();
+		
+		m.registerService(ipcsvc);
+		
+		{
+			frame::ipc::Configuration	cfg;
+			ResolveData					rd = synchronous_resolve("0.0.0.0", p.ipc_port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
+			//frame::aio::Error			err;
+			int							err;
+			
+			cfg.baseaddr = rd.begin();
+			
+			err = ipcsvc.reconfigure(cfg);
+			if(err){
+				//TODO:
+				//cout<<"Error starting ipcservice: "<<err.toString()<<endl;
+				Thread::waitAll();
+				return 0;
+			}
+		}
 		
 		mapSignals();
 		
-		m.start();
-		
-		if(true){
-			ResolveData rd = synchronous_resolve(
-				"0.0.0.0",
-				p.ipc_port, 0,
-				SocketInfo::Inet4,
-				SocketInfo::Datagram
-			);
-			foundation::ipc::Service::the().insertTalker(rd.begin());
-		}
-		
-		foundation::ObjectPointer<ClientObject>	op(new ClientObject(p.p));
-		fdt::ObjectUidT objuid(m.service(svcid).insert<SchedulerT>(op));
-		
-		m.stop(true);//wait for m.signalStop(), to start stopping process
+		DynamicPointer<ClientObject> objptr(new ClientObject(p.p));
+	
+		m.registerObject(*objptr);
+		objsched.schedule(objptr);
+	
+		m.stop();
 	}
 	Thread::waitAll();
 	return 0;

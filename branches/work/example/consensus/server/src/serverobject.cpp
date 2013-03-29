@@ -1,10 +1,10 @@
-#include "example/distributed/consensus/server/serverobject.hpp"
-#include "example/distributed/consensus/core/consensusmanager.hpp"
-#include "example/distributed/consensus/core/consensusrequests.hpp"
+#include "example/consensus/server/serverobject.hpp"
+#include "example/consensus/core/consensusmanager.hpp"
+#include "example/consensus/core/consensusrequests.hpp"
 
-#include "foundation/ipc/ipcservice.hpp"
+#include "frame/ipc/ipcservice.hpp"
 
-#include "foundation/common.hpp"
+#include "frame/common.hpp"
 
 #include "system/thread.hpp"
 #include "system/debug.hpp"
@@ -14,8 +14,8 @@
 
 #include <algorithm>
 
-namespace fdt=foundation;
 using namespace std;
+using namespace solid;
 
 bool ServerParams::init(int _ipc_port){
 	for(StringVectorT::const_iterator it(addrstrvec.begin()); it != addrstrvec.end(); ++it){
@@ -112,8 +112,8 @@ static const DynamicRegisterer<ServerObject>	dre;
 	DynamicExecuterExT::registerDynamic<EraseRequest, ServerObject>();
 }
 //------------------------------------------------------------
-/*static*/void ServerObject::registerSignals(){
-	Object::registerSignals();
+/*static*/void ServerObject::registerMessages(){
+	Object::registerMessages();
 }
 ServerObject::ServerObject(){
 	
@@ -122,9 +122,9 @@ ServerObject::~ServerObject(){
 	
 }
 
-/*virtual*/ void ServerObject::accept(DynamicPointer<distributed::consensus::WriteRequestSignal> &_rsig){
-	idbg("accepting consensus::WriteRequestSignal request");
-	DynamicPointer<>	dp(_rsig);
+/*virtual*/ void ServerObject::accept(DynamicPointer<solid::consensus::WriteRequestMessage> &_rmsgptr){
+	idbg("accepting consensus::WriteRequestMessage request");
+	DynamicPointer<>	dp(_rmsgptr);
 	exeex.execute(*this, dp, 1);
 }
 
@@ -138,30 +138,32 @@ void ServerObject::dynamicExecute(DynamicPointer<> &_dp, int){
 	
 }
 
-void ServerObject::dynamicExecute(DynamicPointer<StoreRequest> &_rsig, int){
-	const foundation::ipc::ConnectionUid	ipcconid(_rsig->ipcconid);
+void ServerObject::dynamicExecute(DynamicPointer<StoreRequest> &_rmsgptr, int){
+	const frame::ipc::ConnectionUid	ipcconid(_rmsgptr->ipcconid);
 	
-	_rsig->v = this->acceptId();
+	_rmsgptr->v = this->acceptId();
 
-	idbg("StoreSignalRequest: v = "<<_rsig->v<<" for request "<<_rsig->id);
+	idbg("StoreRequest: v = "<<_rmsgptr->v<<" for request "<<_rmsgptr->id);
 	
-	DynamicPointer<foundation::Signal>		sigptr(_rsig);
-	foundation::ipc::Service::the().sendSignal(sigptr, ipcconid);
+	DynamicPointer<frame::Message>		msgptr(_rmsgptr);
+	//TODO
+	//foundation::ipc::Service::the().sendSignal(msgptr, ipcconid);
 }
 
-void ServerObject::dynamicExecute(DynamicPointer<FetchRequest> &_rsig, int){
-	idbg("received FetchSignal request");
-	const foundation::ipc::ConnectionUid	ipcconid(_rsig->ipcconid);
-	DynamicPointer<foundation::Signal>		sigptr(_rsig);
-	
-	foundation::ipc::Service::the().sendSignal(sigptr, ipcconid);
+void ServerObject::dynamicExecute(DynamicPointer<FetchRequest> &_rmsgptr, int){
+	idbg("received FetchRequest");
+	const frame::ipc::ConnectionUid	ipcconid(_rmsgptr->ipcconid);
+	DynamicPointer<frame::Message>	msgptr(_rmsgptr);
+	//TODO:
+	//foundation::ipc::Service::the().sendSignal(sigptr, ipcconid);
 }
 
-void ServerObject::dynamicExecute(DynamicPointer<EraseRequest> &_rsig, int){
-	idbg("received EraseSignal request");
-	const foundation::ipc::ConnectionUid	ipcconid(_rsig->ipcconid);
-	DynamicPointer<foundation::Signal>		sigptr(_rsig);
+void ServerObject::dynamicExecute(DynamicPointer<EraseRequest> &_rmsgptr, int){
+	idbg("received EraseRequest");
+	const frame::ipc::ConnectionUid	ipcconid(_rmsgptr->ipcconid);
+	DynamicPointer<frame::Message>	msgptr(_rmsgptr);
 	
-	foundation::ipc::Service::the().sendSignal(sigptr, ipcconid);
+	//TODO:
+	//foundation::ipc::Service::the().sendSignal(sigptr, ipcconid);
 }
 

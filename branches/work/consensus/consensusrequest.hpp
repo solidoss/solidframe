@@ -56,14 +56,14 @@ struct WriteRequestMessage: Dynamic<WriteRequestMessage, DynamicShared<frame::Me
 	 * consensus::Object:<br>
 	 * <code><br>
 	 * void StoreRequest::sendThisToConsensusObject(){<br>
-	 *     DynamicPointer<fdt::Signal> sig(this);<br>
-	 *     m().signal(sig, serverUid());<br>
+	 *     DynamicPointer<frame::Message> msgptr(this);<br>
+	 *     m().notify(msgptr, serverUid());<br>
 	 * }<br>
 	 * </code>
 	 */
 	virtual void notifyConsensusObjectWithThis() = 0;
 	virtual void notifySenderObjectWithThis() = 0;
-	virtual void notifySenderObjectWithFail();
+	virtual void notifySenderObjectWithFail() = 0;
 	
 	template <class S>
 	S& operator&(S &_s){
@@ -128,7 +128,7 @@ struct ReadRequestMessage: Dynamic<ReadRequestMessage, DynamicShared<frame::Mess
 	 */
 	virtual void notifyConsensusObjectWithThis() = 0;
 	virtual void notifySenderObjectWithThis() = 0;
-	virtual void notifySenderObjectWithFail();
+	virtual void notifySenderObjectWithFail() = 0;
 	
 	template <class S>
 	S& operator&(S &_s){

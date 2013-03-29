@@ -64,7 +64,7 @@ class Object: public Dynamic<Object, frame::Object>{
 	typedef DynamicExecuter<void, Object, DynamicDefaultPointerStore, RunData&>	DynamicExecuterT;
 public:
 	static void dynamicRegister();
-	static void registerSignals();
+	static void registerMessages();
 	Object();
 	~Object();
 	void dynamicExecute(DynamicPointer<> &_dp, RunData &_rrd);

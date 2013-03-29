@@ -9,7 +9,7 @@ set(Headers
 set(Inlines
 )
 
-add_library (example_distributed_consensus_server
+add_library (example_consensus_serverobject
 	${Sources} ${Headers} ${Inlines}
 )
 

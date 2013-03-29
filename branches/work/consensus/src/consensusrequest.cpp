@@ -84,11 +84,6 @@ WriteRequestMessage::WriteRequestMessage(const RequestId &_rreqid):waitresponse(
 
 WriteRequestMessage::~WriteRequestMessage(){
 	idbg("~WriteRequestMessage "<<(void*)this);
-	if(waitresponse && !sentcount){
-		idbg("failed receiving response "/*<<sentcnt*/);
-		//frame::Manager::specific().notify(frame::S_KILL | frame::S_RAISE, id.senderuid);
-		notifySenderObjectWithFail();
-	}
 }
 
 void WriteRequestMessage::ipcReceive(
@@ -160,6 +155,14 @@ void WriteRequestMessage::use(){
 int WriteRequestMessage::release(){
 	int rv = DynamicShared<frame::Message>::release();
 	idbg((void*)this<<" usecount = "<<usecount);
+	if(!rv){
+		if(waitresponse && !sentcount){
+			idbg("failed receiving response "/*<<sentcnt*/);
+			//We cannot call this on destructor - 
+			//the overwritten method will be on a destroyed object
+			notifySenderObjectWithFail();
+		}
+	}
 	return rv;
 }
 //--------------------------------------------------------------
@@ -173,11 +176,6 @@ ReadRequestMessage::ReadRequestMessage(const RequestId &_rreqid):waitresponse(fa
 
 ReadRequestMessage::~ReadRequestMessage(){
 	idbg("~ReadRequestMessage "<<(void*)this);
-	if(waitresponse && !sentcount){
-		idbg("failed receiving response "/*<<sentcnt*/);
-		//frame::Manager::specific().notify(frame::S_KILL | frame::S_RAISE, id.senderuid);
-		notifySenderObjectWithFail();
-	}
 }
 
 void ReadRequestMessage::ipcReceive(
@@ -246,6 +244,14 @@ void ReadRequestMessage::use(){
 int ReadRequestMessage::release(){
 	int rv = DynamicShared<frame::Message>::release();
 	idbg((void*)this<<" usecount = "<<usecount);
+	if(!rv){
+		if(waitresponse && !sentcount){
+			idbg("failed receiving response "/*<<sentcnt*/);
+			//We cannot call this on destructor - 
+			//the overwritten method will be on a destroyed object
+			notifySenderObjectWithFail();
+		}
+	}
 	return rv;
 }
 }//namespace consensus

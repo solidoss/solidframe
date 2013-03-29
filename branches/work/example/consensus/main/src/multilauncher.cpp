@@ -7,6 +7,7 @@
 #include <cstdio>
 
 using namespace std;
+using namespace solid;
 
 static uint32		crtidx;
 

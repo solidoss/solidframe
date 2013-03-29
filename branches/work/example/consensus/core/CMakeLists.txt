@@ -10,7 +10,7 @@ set(Headers
 set(Inlines
 )
 
-add_library (example_distributed_consensus_core
+add_library (example_consensus_core
 	${Sources} ${Headers} ${Inlines}
 )
 
