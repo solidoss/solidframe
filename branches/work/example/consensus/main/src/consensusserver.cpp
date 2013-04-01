@@ -2,6 +2,8 @@
 #include "example/consensus/core/consensusmanager.hpp"
 #include "example/consensus/core/consensusrequests.hpp"
 
+#include "consensus/consensusregistrar.hpp"
+
 #include "frame/service.hpp"
 #include "frame/scheduler.hpp"
 
@@ -99,9 +101,8 @@ int main(int argc, char *argv[]){
 		
 		frame::ipc::Service		ipcsvc(m, new frame::ipc::BasicController(aiosched));
 		
-		//ipcsvc.typeMapper().insert<FirstMessage>();
-		mapSignals(/*ipcsvc*/);
-		ServerObject::registerMessages(/*ipcsvc*/);
+		mapSignals(ipcsvc);
+		ServerObject::registerMessages(ipcsvc);
 		
 		m.registerService(ipcsvc);
 		
@@ -124,7 +125,8 @@ int main(int argc, char *argv[]){
 		
 		DynamicPointer<ServerObject>	objptr(new ServerObject);
 		
-		m.registerObject(*objptr);
+		objptr->serverIndex(consensus::Registrar::the().registerObject(m.registerObject(*objptr)));
+		
 		objsched.schedule(objptr);
 		
 		char c;

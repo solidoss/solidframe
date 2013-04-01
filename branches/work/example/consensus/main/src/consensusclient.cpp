@@ -151,7 +151,7 @@ int main(int argc, char *argv[]){
 			}
 		}
 		
-		mapSignals();
+		mapSignals(ipcsvc);
 		
 		DynamicPointer<ClientObject> objptr(new ClientObject(p.p, ipcsvc));
 	

@@ -112,8 +112,8 @@ static const DynamicRegisterer<ServerObject>	dre;
 	DynamicExecuterExT::registerDynamic<EraseRequest, ServerObject>();
 }
 //------------------------------------------------------------
-/*static*/void ServerObject::registerMessages(){
-	Object::registerMessages();
+/*static*/void ServerObject::registerMessages(solid::frame::ipc::Service &_ripcsvc){
+	Object::registerMessages(_ripcsvc);
 }
 ServerObject::ServerObject(){
 	

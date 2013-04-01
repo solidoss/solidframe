@@ -74,7 +74,7 @@ typedef uint64 IndexT;
 typedef size_t IndexT;
 #endif
 
-#define ID_MASK ((IndexT)-1)
+#define ID_MASK ((frame::IndexT)-1)
 
 #define INVALID_INDEX ID_MASK
 

@@ -30,7 +30,7 @@ class ServerObject: public solid::Dynamic<ServerObject, solid::consensus::server
 	typedef solid::DynamicExecuter<void, ServerObject, solid::DynamicDefaultPointerStore, int>	DynamicExecuterExT;
 public:
 	static void dynamicRegister();
-	static void registerMessages();
+	static void registerMessages(solid::frame::ipc::Service &_ripcsvc);
 	ServerObject();
 	~ServerObject();
 	void dynamicExecute(solid::DynamicPointer<> &_dp, int);

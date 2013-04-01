@@ -19,11 +19,10 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "consensus/consensusregistrar.hpp"
 #include "consensusmessages.hpp"
 #include "frame/ipc/ipcservice.hpp"
-//#include "example/distributed/consensus/core/consensusmanager.hpp"
-
-#include "frame/ipc/ipcservice.hpp"
+#include "frame/manager.hpp"
 
 #include "system/debug.hpp"
 
@@ -62,8 +61,7 @@ void Message::ipcReceive(
 	}else{
 		cassert(false);
 	}
-	//TODO::
-	//frame::Manager::specific().notify(msgptr, serverUid());
+	frame::Manager::specific().notify(msgptr, Registrar::the().objectUid(srvidx));
 }
 uint32 Message::ipcPrepare(){
 	uint32 rv(0);

@@ -28,6 +28,13 @@
 #include "frame/object.hpp"
 
 namespace solid{
+
+namespace frame{
+namespace ipc{
+class Service;
+}//namespace ipc
+}//namespace frame
+
 namespace consensus{
 
 struct WriteRequestMessage;
@@ -64,9 +71,11 @@ class Object: public Dynamic<Object, frame::Object>{
 	typedef DynamicExecuter<void, Object, DynamicDefaultPointerStore, RunData&>	DynamicExecuterT;
 public:
 	static void dynamicRegister();
-	static void registerMessages();
+	static void registerMessages(frame::ipc::Service &_ripcsvc);
 	Object();
 	~Object();
+	void serverIndex(const frame::IndexT &_ridx);
+	frame::IndexT serverIndex()const;
 	void dynamicExecute(DynamicPointer<> &_dp, RunData &_rrd);
 	
 	void dynamicExecute(DynamicPointer<WriteRequestMessage> &_rmsgptr, RunData &_rrd);

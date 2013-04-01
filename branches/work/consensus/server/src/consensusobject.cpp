@@ -298,6 +298,7 @@ struct Object::Data{
 //data:	
 	DynamicExecuterT		exe;
 	uint32					proposeid;
+	frame::IndexT			srvidx;
 		
 	uint32					acceptid;
 	uint32					proposedacceptid;
@@ -363,7 +364,7 @@ NOTE:
 	On overflow, the proposeid should skip the 0 value.
 */
 Object::Data::Data():
-	proposeid(0), acceptid(0), proposedacceptid(0), confirmedacceptid(0),
+	proposeid(0), srvidx(INVALID_INDEX), acceptid(0), proposedacceptid(0), confirmedacceptid(0),
 	continuousacceptedproposes(0), pendingacceptwaitidx(-1),
 	coordinatorid(-2), distancefromcoordinator(-1), acceptpendingcnt(0), isnotjuststarted(false)
 {
@@ -375,13 +376,6 @@ Object::Data::Data():
 }
 Object::Data::~Data(){
 	
-}
-
-void Object::state(int _st){
-	d.state = _st;
-}
-int Object::state()const{
-	return d.state;
 }
 
 void Object::Data::coordinatorId(int8 _coordid){
@@ -538,14 +532,13 @@ static const DynamicRegisterer<Object>	dre;
 	DynamicExecuterT::registerDynamic<OperationMessage<32>, Object>();
 	//TODO: add here the other consensus Messages
 }
-/*static*/ void Object::registerMessages(){
-	//TODO:
-// 	fdt::ipc::Service::the().typeMapper().insert<OperationMessage<1> >();
-// 	fdt::ipc::Service::the().typeMapper().insert<OperationMessage<2> >();
-// 	fdt::ipc::Service::the().typeMapper().insert<OperationMessage<4> >();
-// 	fdt::ipc::Service::the().typeMapper().insert<OperationMessage<8> >();
-// 	fdt::ipc::Service::the().typeMapper().insert<OperationMessage<16> >();
-// 	fdt::ipc::Service::the().typeMapper().insert<OperationMessage<32> >();
+/*static*/ void Object::registerMessages(frame::ipc::Service &_ripcsvc){
+	_ripcsvc.typeMapper().insert<OperationMessage<1> >();
+	_ripcsvc.typeMapper().insert<OperationMessage<2> >();
+	_ripcsvc.typeMapper().insert<OperationMessage<4> >();
+	_ripcsvc.typeMapper().insert<OperationMessage<8> >();
+	_ripcsvc.typeMapper().insert<OperationMessage<16> >();
+	_ripcsvc.typeMapper().insert<OperationMessage<32> >();
 }
 Object::Object():d(*(new Data)){
 	idbg((void*)this);
@@ -554,6 +547,22 @@ Object::Object():d(*(new Data)){
 Object::~Object(){
 	delete &d;
 	idbg((void*)this);
+}
+//---------------------------------------------------------
+void Object::state(int _st){
+	d.state = _st;
+}
+//---------------------------------------------------------
+int Object::state()const{
+	return d.state;
+}
+//---------------------------------------------------------
+void Object::serverIndex(const frame::IndexT &_ridx){
+	d.srvidx = _ridx;
+}
+//---------------------------------------------------------
+frame::IndexT Object::serverIndex()const{
+	return d.srvidx;
 }
 //---------------------------------------------------------
 bool Object::isRecoveryState()const{
@@ -1332,11 +1341,13 @@ void Object::doSendDeclinePropose(RunData &_rd, const uint8 _replicaidx, const O
 	OperationMessage<1>	*po(new OperationMessage<1>);
 	
 	po->replicaidx = Parameters::the().idx;
+	po->srvidx = serverIndex();
 	
 	po->op.operation = Data::ProposeDeclineOperation;
 	po->op.proposeid = d.proposeid;
 	po->op.acceptid = d.acceptid;
 	po->op.reqid = _rop.reqid;
+	
 	DynamicPointer<frame::Message>		msgptr(po);
 	
 	//TODO:
@@ -1379,6 +1390,7 @@ void Object::doSendDeclineAccept(RunData &_rd, const uint8 _replicaidx, const Op
 	OperationMessage<1>	*po(new OperationMessage<1>);
 	
 	po->replicaidx = Parameters::the().idx;
+	po->srvidx = serverIndex();
 	
 	po->op.operation = Data::AcceptDeclineOperation;
 	po->op.proposeid = d.proposeid;
@@ -1404,6 +1416,7 @@ void Object::doFlushOperations(RunData &_rd){
 		pm = po;
 		
 		po->replicaidx = Parameters::the().idx;
+		po->srvidx = serverIndex();
 		
 		po->op.operation = _rd.ops[0].operation;
 		po->op.acceptid = _rd.ops[0].acceptid;
@@ -1413,29 +1426,34 @@ void Object::doFlushOperations(RunData &_rd){
 		OperationMessage<2>	*po(new OperationMessage<2>);
 		pm = po;
 		po->replicaidx = Parameters::the().idx;
+		po->srvidx = serverIndex();
 		pos = po->op;
 	}else if(opcnt <= 4){
 		OperationMessage<4>	*po(new OperationMessage<4>);
 		pm = po;
 		po->replicaidx = Parameters::the().idx;
+		po->srvidx = serverIndex();
 		po->opsz = opcnt;
 		pos = po->op;
 	}else if(opcnt <= 8){
 		OperationMessage<8>	*po(new OperationMessage<8>);
 		pm = po;
 		po->replicaidx = Parameters::the().idx;
+		po->srvidx = serverIndex();
 		po->opsz = opcnt;
 		pos = po->op;
 	}else if(opcnt <= 16){
 		OperationMessage<16>	*po(new OperationMessage<16>);
 		pm = po;
 		po->replicaidx = Parameters::the().idx;
+		po->srvidx = serverIndex();
 		po->opsz = opcnt;
 		pos = po->op;
 	}else if(opcnt <= 32){
 		OperationMessage<32>	*po(new OperationMessage<32>);
 		pm = po;
 		po->replicaidx = Parameters::the().idx;
+		po->srvidx = serverIndex();
 		po->opsz = opcnt;
 		pos = po->op;
 	}else{

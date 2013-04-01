@@ -17,8 +17,15 @@ S& operator&(solid::frame::ObjectUidT &_v, S &_s){
 	return _s.push(_v.first, "first").push(_v.second, "second");
 }
 }
+namespace solid{
+namespace frame{
+namespace ipc{
+class Service;
+}//namespace ipc
+}//namespace frame
+}//namespace solid
 
-void mapSignals();
+void mapSignals(solid::frame::ipc::Service &);
 
 
 struct StoreRequest: solid::Dynamic<StoreRequest, solid::consensus::WriteRequestMessage>{

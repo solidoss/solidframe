@@ -40,7 +40,7 @@ struct Message: Dynamic<Message, DynamicShared<frame::Message> >{
 	
 	template <class S>
 	S& operator&(S &_s){
-		_s.push(replicaidx, "replicaidx").push(state, "state");
+		_s.push(replicaidx, "replicaidx").push(state, "state").push(srvidx, "srvidx");
 		return _s;
 	}
 	
@@ -55,6 +55,7 @@ struct Message: Dynamic<Message, DynamicShared<frame::Message> >{
 	
 	uint8							replicaidx;
 	uint8							state;
+	frame::IndexT					srvidx;
 	
 };
 

@@ -1,9 +1,11 @@
 set(Sources
 	src/consensusrequest.cpp
+	src/consensusregistrar.cpp
 )
 
 set(Headers
 	consensusrequest.hpp
+	consensusregistrar.hpp
 	consensusrequestid.hpp
 )
 
