@@ -13,6 +13,10 @@
 #include <cstdio>
 #include <cstring>
 
+#include <sys/types.h>
+#include <signal.h>
+#include <unistd.h>
+
 
 using namespace std;
 using namespace solid;
@@ -183,8 +187,9 @@ static const DynamicRegisterer<ClientObject>	dre;
 }
 //------------------------------------------------------------
 ClientObject::ClientObject(
-	const ClientParams &_rcp
-):params(_rcp), crtreqid(1),crtreqpos(0), crtpos(0),waitresponsecount(0){
+	const ClientParams &_rcp,
+	solid::frame::ipc::Service &_ripcsvc
+):params(_rcp), ripcsvc(_ripcsvc), crtreqid(1),crtreqpos(0), crtpos(0),waitresponsecount(0){
 	state(Execute);
 }
 //------------------------------------------------------------
@@ -202,8 +207,7 @@ int ClientObject::execute(ulong _sig, TimeSpec &_tout){
 			sm = grabSignalMask(0);//grab all bits of the signal mask
 			if(sm & frame::S_KILL){
 				idbg("die");
-				//TODO:
-				//rm.signalStop();
+				kill(getpid(), SIGTERM);
 				return BAD;
 			}
 			if(sm & frame::S_SIG){//we have signals
@@ -281,15 +285,13 @@ int ClientObject::execute(ulong _sig, TimeSpec &_tout){
 		return OK;
 	}else if(waitresponsecount){
 		if(_sig & frame::TIMEOUT){
-			//TODO:
-			//m().signalStop();
+			kill(getpid(), SIGTERM);
 		}else{
 			idbg("waiting for "<<waitresponsecount<<" responses");
 			_tout.add(1 * 60);
 		}
 	}else{
-		//TODO:
-		//m().signalStop();
+		kill(getpid(), SIGTERM);
 	}
 	return NOK;
 }
@@ -348,8 +350,7 @@ uint32 ClientObject::sendMessage(consensus::WriteRequestMessage *_pmsg){
 	
 	for(ClientParams::AddressVectorT::iterator it(params.addrvec.begin()); it != params.addrvec.end(); ++it){
 		DynamicPointer<frame::Message>	msgptr(reqptr);
-		//TODO:
-		//foundation::ipc::Service::the().sendSignal(msgptr, SocketAddressStub(*it));
+		ripcsvc.sendMessage(msgptr, SocketAddressStub(*it));
 	}
 	return 0;
 }

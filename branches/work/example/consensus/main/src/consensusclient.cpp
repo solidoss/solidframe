@@ -15,6 +15,8 @@
 #include "system/socketaddress.hpp"
 #include <iostream>
 
+#include <signal.h>
+
 #include "boost/program_options.hpp"
 
 using namespace std;
@@ -40,6 +42,26 @@ struct Params{
 	bool			log;
 	ClientParams	p;
 };
+
+namespace{
+	Mutex					mtx;
+	Condition				cnd;
+	bool					run(true);
+}
+
+static void term_handler(int signum){
+    switch(signum) {
+		case SIGINT:
+		case SIGTERM:{
+			if(run){
+				Locker<Mutex>  lock(mtx);
+				run = false;
+				cnd.broadcast();
+			}
+		}
+    }
+}
+
 
 bool parseArguments(Params &_par, int argc, char *argv[]);
 
@@ -131,10 +153,18 @@ int main(int argc, char *argv[]){
 		
 		mapSignals();
 		
-		DynamicPointer<ClientObject> objptr(new ClientObject(p.p));
+		DynamicPointer<ClientObject> objptr(new ClientObject(p.p, ipcsvc));
 	
 		m.registerObject(*objptr);
 		objsched.schedule(objptr);
+		
+		
+		{
+			Locker<Mutex>	lock(mtx);
+			while(run){
+				cnd.wait(lock);
+			}
+		}
 	
 		m.stop();
 	}

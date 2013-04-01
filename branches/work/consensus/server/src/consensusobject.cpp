@@ -566,9 +566,9 @@ void Object::dynamicExecute(DynamicPointer<> &_dp, RunData &_rrd){
 //---------------------------------------------------------
 void Object::dynamicExecute(DynamicPointer<WriteRequestMessage> &_rmsgptr, RunData &_rrd){
 	if(d.checkAlreadyReceived(_rmsgptr)) return;
-	size_t	idx;
-	bool	alreadyexisted(!d.insertRequestStub(_rmsgptr, idx));
-	RequestStub &rreq(d.requestStub(idx));
+	size_t			idx;
+	bool			alreadyexisted(!d.insertRequestStub(_rmsgptr, idx));
+	RequestStub		&rreq(d.requestStub(idx));
 	
 	idbg("adding new request "<<rreq.msgptr->id<<" on idx = "<<idx<<" existing = "<<alreadyexisted);
 	rreq.flags |= RequestStub::HaveRequestFlag;
@@ -1040,8 +1040,8 @@ int Object::doRecovery(RunData &_rd){
 }
 //---------------------------------------------------------
 void Object::doProcessRequest(RunData &_rd, const size_t _reqidx){
-	RequestStub &rreq(d.requestStub(_reqidx));
-	uint32 events = rreq.evs;
+	RequestStub		&rreq(d.requestStub(_reqidx));
+	uint32			events = rreq.evs;
 	rreq.evs = 0;
 	switch(rreq.state()){
 		case RequestStub::InitState://any
@@ -1488,9 +1488,11 @@ struct RequestStubAcceptCmp{
 
 void Object::doScanPendingRequests(RunData &_rd){
 	idbg(""<<(int)d.acceptpendingcnt);
-	const size_t accpendcnt = d.acceptpendingcnt;
+	const size_t	accpendcnt = d.acceptpendingcnt;
+	size_t			cnt(0);
+	
 	d.acceptpendingcnt = 0;
-	size_t	cnt(0);
+	
 	if(accpendcnt != 255){
 		size_t	posarr[256];
 		size_t	idx(0);
@@ -1508,10 +1510,12 @@ void Object::doScanPendingRequests(RunData &_rd){
 			}
 		}
 		
-		RequestStubAcceptCmp cmp(d.reqvec);
+		RequestStubAcceptCmp	cmp(d.reqvec);
+		
 		std::sort(posarr, posarr + idx, cmp);
 		
-		uint32 crtacceptid(d.acceptid);
+		uint32					crtacceptid(d.acceptid);
+		
 		for(size_t i(0); i < idx; ++i){
 			RequestStub	&rreq(d.reqvec[posarr[i]]);
 			++crtacceptid;
@@ -1540,7 +1544,7 @@ void Object::doScanPendingRequests(RunData &_rd){
 		}
 		idbg("d.acceptpendingcnt = "<<(int)d.acceptpendingcnt<<" d.pendingacceptwaitidx = "<<d.pendingacceptwaitidx);
 	}else{
-		std::deque<size_t>	posvec;
+		std::deque<size_t>		posvec;
 		for(RequestStubVectorT::const_iterator it(d.reqvec.begin()); it != d.reqvec.end(); ++it){
 			const RequestStub	&rreq(*it);
 			if(rreq.state() == RequestStub::AcceptPendingState){
@@ -1550,10 +1554,11 @@ void Object::doScanPendingRequests(RunData &_rd){
 			}
 		}
 		
-		RequestStubAcceptCmp cmp(d.reqvec);
+		RequestStubAcceptCmp	cmp(d.reqvec);
+		
 		std::sort(posvec.begin(), posvec.end(), cmp);
 		
-		uint32 crtacceptid(d.acceptid);
+		uint32					crtacceptid(d.acceptid);
 		
 		for(std::deque<size_t>::const_iterator it(posvec.begin()); it != posvec.end(); ++it){
 			RequestStub	&rreq(d.reqvec[*it]);

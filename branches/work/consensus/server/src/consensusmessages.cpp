@@ -44,7 +44,7 @@ void Message::ipcReceive(
 	
 	//TODO:!! sa not initialized !?
 	SocketAddressInet4				sa;
-	
+	sa = frame::ipc::ConnectionContext::the().pairaddr;
 	sa.toString(
 		host,
 		SocketInfo::HostStringCapacity,

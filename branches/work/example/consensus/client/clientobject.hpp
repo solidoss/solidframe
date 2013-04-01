@@ -18,8 +18,13 @@ struct EraseRequest;
 namespace solid{
 namespace consensus{
 struct WriteRequestMessage;
-}
-}
+}//namespace consensus
+namespace frame{
+namespace ipc{
+class Service;
+}//namespace ipc
+}//namespace frame
+}//namespace solid
 
 struct ClientMessage: solid::Dynamic<ClientMessage, solid::frame::Message>{
 	ClientMessage();
@@ -78,7 +83,7 @@ class ClientObject: public solid::Dynamic<ClientObject, solid::frame::Object>{
 	};
 public:
 	static void dynamicRegister();
-	ClientObject(const ClientParams &_rcp);
+	ClientObject(const ClientParams &_rcp, solid::frame::ipc::Service &_ripcsvc);
 	~ClientObject();
 	void dynamicExecute(solid::DynamicPointer<> &_dp);
 	void dynamicExecute(solid::DynamicPointer<ClientMessage> &_rmsgptr);
@@ -110,16 +115,18 @@ private:
 private:
 	typedef std::vector<std::pair<solid::uint32, int> >	RequestIdVectorT;
 	
-	ClientParams		params;
-	solid::uint32		crtreqid;
-	solid::uint32		crtreqpos;
-	solid::uint32		crtpos;
-	solid::uint32		waitresponsecount;
-	int					st;
 	
-	solid::TimeSpec		nexttimepos;
-	DynamicExecuterT	exe;
-	RequestIdVectorT	reqidvec;
+	ClientParams				params;
+	solid::frame::ipc::Service	&ripcsvc;
+	solid::uint32				crtreqid;
+	solid::uint32				crtreqpos;
+	solid::uint32				crtpos;
+	solid::uint32				waitresponsecount;
+	int							st;
+	
+	solid::TimeSpec				nexttimepos;
+	DynamicExecuterT			exe;
+	RequestIdVectorT			reqidvec;
 };
 
 

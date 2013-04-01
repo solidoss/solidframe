@@ -241,6 +241,7 @@ void ReadRequestMessage::use(){
 	DynamicShared<frame::Message>::use();
 	idbg((void*)this<<" usecount = "<<usecount);
 }
+
 int ReadRequestMessage::release(){
 	int rv = DynamicShared<frame::Message>::release();
 	idbg((void*)this<<" usecount = "<<usecount);
@@ -254,5 +255,7 @@ int ReadRequestMessage::release(){
 	}
 	return rv;
 }
+
+
 }//namespace consensus
 }//namespace solid

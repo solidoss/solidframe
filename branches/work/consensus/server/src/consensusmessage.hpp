@@ -55,6 +55,7 @@ struct Message: Dynamic<Message, DynamicShared<frame::Message> >{
 	
 	uint8							replicaidx;
 	uint8							state;
+	
 };
 
 }//namespace server
