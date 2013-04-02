@@ -144,16 +144,15 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 		options_description desc("SolidFrame distributed concept server application");
 		desc.add_options()
 			("help,h", "List program options")
-			("ipc_port,i", value<int>(&_par.ipc_port)->default_value(2000),
-					"Base port")
-			("debug_levels,l", value<string>(&_par.dbg_levels)->default_value("view"),"Debug logging levels")
-			("debug_modules,m", value<string>(&_par.dbg_modules)->default_value("any"),"Debug logging modules")
-			("debug_address,a", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")
-			("debug_port,p", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")
-			("debug_console,c", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")
-			("debug_unbuffered,s", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered")
-			("use_log,L", value<bool>(&_par.log)->implicit_value(true)->default_value(false), "Debug buffered")
-			("server_addrs,A", value< vector<string> >(&_par.p.addrstrvec), "Server addresses")
+			("ipc_port,i", value<int>(&_par.ipc_port)->default_value(2000),"Base port")
+			("debug_levels,L", value<string>(&_par.dbg_levels)->default_value("view"),"Debug logging levels")
+			("debug_modules,M", value<string>(&_par.dbg_modules)->default_value("any"),"Debug logging modules")
+			("debug_address,A", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")
+			("debug_port,P", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")
+			("debug_console,C", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")
+			("debug_unbuffered,S", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered")
+			("use_log,l", value<bool>(&_par.log)->implicit_value(true)->default_value(false), "Debug buffered")
+			("server_addrs,a", value< vector<string> >(&_par.p.addrstrvec), "Server addresses")
 	/*		("verbose,v", po::value<int>()->implicit_value(1),
 					"enable verbosity (optionally specify level)")*/
 	/*		("listen,l", po::value<int>(&portnum)->implicit_value(1001)
@@ -169,13 +168,13 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 		if (vm.count("help")) {
 			cout << desc << "\n\n";
 			cout<<"Examples:"<<endl<<endl;
-			cout<<"$ ./example_consensus_client -A 127.0.0.1:2000 -A 127.0.0.1:3000 -A 127.0.0.1:4000 -c -m \"any\" -S \"i10\""<<endl;
+			cout<<"$ ./example_consensus_client -a 127.0.0.1:2000 -a 127.0.0.1:3000 -a 127.0.0.1:4000 -C -M \"any\" -s \"i10\""<<endl;
 			cout<<"New terminal:"<<endl;
-			cout<<"$ ./example_consensus_server -i 2000 -A 127.0.0.1:2000 -A 127.0.0.1:3000 -A 127.0.0.1:4000 -c -m \"any\""<<endl;
+			cout<<"$ ./example_consensus_server -i 2000 -a 127.0.0.1:2000 -a 127.0.0.1:3000 -a 127.0.0.1:4000 -C -M \"any\""<<endl;
 			cout<<"New terminal:"<<endl;
-			cout<<"$ ./example_consensus_server -i 3000 -A 127.0.0.1:2000 -A 127.0.0.1:3000 -A 127.0.0.1:4000 -c -m \"any\""<<endl;
+			cout<<"$ ./example_consensus_server -i 3000 -a 127.0.0.1:2000 -a 127.0.0.1:3000 -a 127.0.0.1:4000 -C -M \"any\""<<endl;
 			cout<<"New terminal:"<<endl;
-			cout<<"$ ./example_consensus_server -i 4000 -A 127.0.0.1:2000 -A 127.0.0.1:3000 -A 127.0.0.1:4000 -c -m \"any\""<<endl;
+			cout<<"$ ./example_consensus_server -i 4000 -a 127.0.0.1:2000 -a 127.0.0.1:3000 -a 127.0.0.1:4000 -C -M \"any\""<<endl;
 			return true;
 		}
 		return false;
