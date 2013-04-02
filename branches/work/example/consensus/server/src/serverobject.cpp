@@ -115,7 +115,7 @@ static const DynamicRegisterer<ServerObject>	dre;
 /*static*/void ServerObject::registerMessages(solid::frame::ipc::Service &_ripcsvc){
 	Object::registerMessages(_ripcsvc);
 }
-ServerObject::ServerObject(){
+ServerObject::ServerObject(solid::frame::ipc::Service &_ripcsvc):ripcsvc(_ripcsvc){
 	
 }
 ServerObject::~ServerObject(){
@@ -134,6 +134,10 @@ ServerObject::~ServerObject(){
 	return OK;
 }
 
+/*virtual*/ void ServerObject::doSendMessage(DynamicPointer<frame::Message> &_rmsgptr, const SocketAddressInet4 &_raddr){
+	ripcsvc.sendMessage(_rmsgptr, _raddr);
+}
+
 void ServerObject::dynamicExecute(DynamicPointer<> &_dp, int){
 	
 }
@@ -146,24 +150,20 @@ void ServerObject::dynamicExecute(DynamicPointer<StoreRequest> &_rmsgptr, int){
 	idbg("StoreRequest: v = "<<_rmsgptr->v<<" for request "<<_rmsgptr->id);
 	
 	DynamicPointer<frame::Message>		msgptr(_rmsgptr);
-	//TODO
-	//foundation::ipc::Service::the().sendSignal(msgptr, ipcconid);
+	ripcsvc.sendMessage(msgptr, ipcconid);
 }
 
 void ServerObject::dynamicExecute(DynamicPointer<FetchRequest> &_rmsgptr, int){
 	idbg("received FetchRequest");
 	const frame::ipc::ConnectionUid	ipcconid(_rmsgptr->ipcconid);
 	DynamicPointer<frame::Message>	msgptr(_rmsgptr);
-	//TODO:
-	//foundation::ipc::Service::the().sendSignal(sigptr, ipcconid);
+	ripcsvc.sendMessage(msgptr, ipcconid);
 }
 
 void ServerObject::dynamicExecute(DynamicPointer<EraseRequest> &_rmsgptr, int){
 	idbg("received EraseRequest");
 	const frame::ipc::ConnectionUid	ipcconid(_rmsgptr->ipcconid);
 	DynamicPointer<frame::Message>	msgptr(_rmsgptr);
-	
-	//TODO:
-	//foundation::ipc::Service::the().sendSignal(sigptr, ipcconid);
+	ripcsvc.sendMessage(msgptr, ipcconid);
 }
 

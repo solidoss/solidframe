@@ -202,7 +202,8 @@ Manager::Data::Data(
 	mutcolsbts(_mutcolsbts),
 	mutcolscnt(bitsToMask(_mutcolsbts)),
 	svccnt(0),
-	selbts(ATOMIC_VAR_INIT(1)), selobjbts(ATOMIC_VAR_INIT(1)), state(StateRunning), dummysvc(_rm)
+	selbts(ATOMIC_VAR_INIT(1)), svcbts(ATOMIC_VAR_INIT(0)),objbts(ATOMIC_VAR_INIT(0)),
+	selobjbts(ATOMIC_VAR_INIT(1)), state(StateRunning), dummysvc(_rm)
 {
 }
 
@@ -286,7 +287,7 @@ bool Manager::registerService(
 ObjectUidT	Manager::registerObject(Object &_ro){
 	ServiceStub		&rss = d.psvcarr[0];
 	Locker<Mutex>	lock(rss.mtx);
-	return doRegisterServiceObject(0, _ro);
+	return doUnsafeRegisterServiceObject(0, _ro);
 }
 
 void Manager::unregisterService(Service &_rsvc){
@@ -459,7 +460,7 @@ ObjectUidT Manager::registerServiceObject(const Service &_rsvc, Object &_robj){
 	ServiceStub		&rss = d.psvcarr[_rsvc.idx];
 	cassert(!_rsvc.idx || rss.psvc != NULL);
 	Locker<Mutex>	lock(rss.mtx);
-	return doRegisterServiceObject(_rsvc.idx, _robj);
+	return doUnsafeRegisterServiceObject(_rsvc.idx, _robj);
 }
 
 
@@ -520,13 +521,13 @@ bool Manager::doRegisterService(
 	}
 }
 
-ObjectUidT Manager::doRegisterServiceObject(const IndexT _svcidx, Object &_robj){
-	cassert(_svcidx < d.svcprovisioncp);
-	ServiceStub		&rss = d.psvcarr[_svcidx];
-	cassert(!_svcidx || rss.psvc != NULL);
-	Locker<Mutex>	lock(rss.mtx);
-	return doUnsafeRegisterServiceObject(_svcidx, _robj);
-}
+// ObjectUidT Manager::doRegisterServiceObject(const IndexT _svcidx, Object &_robj){
+// 	cassert(_svcidx < d.svcprovisioncp);
+// 	ServiceStub		&rss = d.psvcarr[_svcidx];
+// 	cassert(!_svcidx || rss.psvc != NULL);
+// 	//Locker<Mutex>	lock(rss.mtx);
+// 	return doUnsafeRegisterServiceObject(_svcidx, _robj);
+// }
 
 ObjectUidT Manager::doUnsafeRegisterServiceObject(const IndexT _svcidx, Object &_robj){
 	ServiceStub		&rss = d.psvcarr[_svcidx];

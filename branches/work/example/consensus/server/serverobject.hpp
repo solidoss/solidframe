@@ -31,18 +31,21 @@ class ServerObject: public solid::Dynamic<ServerObject, solid::consensus::server
 public:
 	static void dynamicRegister();
 	static void registerMessages(solid::frame::ipc::Service &_ripcsvc);
-	ServerObject();
+	ServerObject(solid::frame::ipc::Service &_ripcsvc);
 	~ServerObject();
 	void dynamicExecute(solid::DynamicPointer<> &_dp, int);
 	
 	void dynamicExecute(solid::DynamicPointer<StoreRequest> &_rsig, int);
 	void dynamicExecute(solid::DynamicPointer<FetchRequest> &_rsig, int);
 	void dynamicExecute(solid::DynamicPointer<EraseRequest> &_rsig, int);
+protected:
+	/*virtual*/ void doSendMessage(solid::DynamicPointer<solid::frame::Message> &_rmsgptr, const solid::SocketAddressInet4 &_raddr);
 private:
 	/*virtual*/ void accept(solid::DynamicPointer<solid::consensus::WriteRequestMessage> &_rmsgptr);
 	/*virtual*/ int recovery();
 private:
-	DynamicExecuterExT		exeex;
+	DynamicExecuterExT				exeex;
+	solid::frame::ipc::Service		&ripcsvc;
 };
 
 #endif

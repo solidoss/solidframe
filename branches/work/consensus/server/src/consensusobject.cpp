@@ -47,6 +47,7 @@
 #include "utility/stack.hpp"
 #include "utility/queue.hpp"
 
+#include "consensus/consensusregistrar.hpp"
 #include "consensus/consensusrequest.hpp"
 #include "consensus/server/consensusobject.hpp"
 #include "timerqueue.hpp"
@@ -545,6 +546,7 @@ Object::Object():d(*(new Data)){
 }
 //---------------------------------------------------------
 Object::~Object(){
+	Registrar::the().unregisterObject(d.srvidx);
 	delete &d;
 	idbg((void*)this);
 }
@@ -1349,9 +1351,7 @@ void Object::doSendDeclinePropose(RunData &_rd, const uint8 _replicaidx, const O
 	po->op.reqid = _rop.reqid;
 	
 	DynamicPointer<frame::Message>		msgptr(po);
-	
-	//TODO:
-	//frame::ipc::Service::the().sendMessage(msgptr, Parameters::the().addrvec[_replicaidx]);
+	this->doSendMessage(msgptr, Parameters::the().addrvec[_replicaidx]);
 }
 
 void Object::doSendConfirmAccept(RunData &_rd, const uint8 _replicaidx, const size_t _reqidx){
@@ -1396,10 +1396,10 @@ void Object::doSendDeclineAccept(RunData &_rd, const uint8 _replicaidx, const Op
 	po->op.proposeid = d.proposeid;
 	po->op.acceptid = d.acceptid;
 	po->op.reqid = _rop.reqid;
+	
 	DynamicPointer<frame::Message>		msgptr(po);
 	
-	//TODO
-	//frame::ipc::Service::the().sendMessage(msgptr, Parameters::the().addrvec[_replicaidx]);
+	this->doSendMessage(msgptr, Parameters::the().addrvec[_replicaidx]);
 }
 void Object::doFlushOperations(RunData &_rd){
 	idbg("");
@@ -1479,16 +1479,13 @@ void Object::doFlushOperations(RunData &_rd){
 		for(uint i(0); i < Parameters::the().addrvec.size(); ++i){
 			if(i != Parameters::the().idx){
 				DynamicPointer<frame::Message>		msgptr(sharedmsgptr);
-				//TODO:
-				//frame::ipc::Service::the().sendSignal(msgptr, Parameters::the().addrvec[i]);
+				this->doSendMessage(msgptr, Parameters::the().addrvec[i]);
 			}
 		}
 	}else{
 		idbg("send to "<<(int)_rd.coordinatorid);
 		DynamicPointer<frame::Message>		msgptr(pm);
-		//reply to coordinator
-		//TODO:
-		//foundation::ipc::Service::the().sendSignal(sigptr, Parameters::the().addrvec[_rd.coordinatorid]);
+		this->doSendMessage(msgptr, Parameters::the().addrvec[_rd.coordinatorid]);
 	}
 }
 /*

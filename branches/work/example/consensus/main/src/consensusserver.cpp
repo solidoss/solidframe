@@ -123,7 +123,7 @@ int main(int argc, char *argv[]){
 			}
 		}
 		
-		DynamicPointer<ServerObject>	objptr(new ServerObject);
+		DynamicPointer<ServerObject>	objptr(new ServerObject(ipcsvc));
 		
 		objptr->serverIndex(consensus::Registrar::the().registerObject(m.registerObject(*objptr)));
 		
@@ -167,7 +167,15 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 		store(parse_command_line(argc, argv, desc), vm);
 		notify(vm);
 		if (vm.count("help")) {
-			cout << desc << "\n";
+			cout << desc << "\n\n";
+			cout<<"Examples:"<<endl<<endl;
+			cout<<"$ ./example_consensus_client -A 127.0.0.1:2000 -A 127.0.0.1:3000 -A 127.0.0.1:4000 -c -m \"any\" -S \"i10\""<<endl;
+			cout<<"New terminal:"<<endl;
+			cout<<"$ ./example_consensus_server -i 2000 -A 127.0.0.1:2000 -A 127.0.0.1:3000 -A 127.0.0.1:4000 -c -m \"any\""<<endl;
+			cout<<"New terminal:"<<endl;
+			cout<<"$ ./example_consensus_server -i 3000 -A 127.0.0.1:2000 -A 127.0.0.1:3000 -A 127.0.0.1:4000 -c -m \"any\""<<endl;
+			cout<<"New terminal:"<<endl;
+			cout<<"$ ./example_consensus_server -i 4000 -A 127.0.0.1:2000 -A 127.0.0.1:3000 -A 127.0.0.1:4000 -c -m \"any\""<<endl;
 			return true;
 		}
 		return false;

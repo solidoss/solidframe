@@ -123,7 +123,7 @@ private:
 	
 	virtual bool doPrepareThread();
 	virtual void doUnprepareThread();
-	ObjectUidT doRegisterServiceObject(const IndexT _svcidx, Object &_robj);
+	//ObjectUidT doRegisterServiceObject(const IndexT _svcidx, Object &_robj);
 	ObjectUidT doUnsafeRegisterServiceObject(const IndexT _svcidx, Object &_robj);
 	bool doForEachServiceObject(const Service &_rsvc, ObjectVisitFunctorT &_fctor);
 	bool doForEachServiceObject(const size_t _svcidx, ObjectVisitFunctorT &_fctor);
