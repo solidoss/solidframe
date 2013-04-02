@@ -35,7 +35,8 @@
 #include <map>
 #include <cstdio>
 
-namespace foundation{
+namespace solid{
+namespace frame{
 namespace file{
 
 //==================================================================
@@ -92,7 +93,7 @@ private:
 	/*virtual*/ bool close(const char *_path);
 	/*virtual*/ int64 capacity()const;
 private:
-	::MemoryFile	mf;
+	solid::MemoryFile	mf;
 };
 
 //==================================================================
@@ -710,4 +711,5 @@ MemoryKey::~MemoryKey(){
 }
 
 }//namespace file
-}//namespace foundation
+}//namespace frame
+}//namespace solid

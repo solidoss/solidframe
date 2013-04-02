@@ -24,6 +24,7 @@
 
 #include "frame/file/filekey.hpp"
 
+namespace solid{
 namespace frame{
 namespace file{
 
@@ -79,5 +80,6 @@ struct MemoryKey: Key{
 
 }//namespace file
 }//namespace frame
+}//namespace solid
 
 #endif

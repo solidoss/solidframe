@@ -25,6 +25,7 @@
 #include "system/common.hpp"
 #include <string>
 
+namespace solid{
 namespace frame{
 namespace file{
 //! A key for requsting a file from file::Manager
@@ -39,5 +40,6 @@ struct Key{
 };
 
 }//namespace file
-}//namepsace foundation
+}//namepsace frame
+}//namespace solid
 #endif

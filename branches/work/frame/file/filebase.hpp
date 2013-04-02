@@ -27,6 +27,7 @@
 
 #include "utility/queue.hpp"
 
+namespace solid{
 namespace frame{
 namespace file{
 //!The base class for all types of files - disk, temp, memory etc.
@@ -131,5 +132,6 @@ protected:
 
 }//namespace file
 }//namespace frame
+}//namespace solid
 
 #endif

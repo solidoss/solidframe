@@ -24,6 +24,8 @@
 
 #include "frame/file/filemanager.hpp"
 
+namespace solid{
+
 struct TimeSpec;
 
 namespace frame{
@@ -72,5 +74,6 @@ struct Mapper{
 
 }//namespace file
 }//namespace frame
+}//namespace solid
 
 #endif

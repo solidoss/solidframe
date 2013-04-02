@@ -43,9 +43,9 @@
 #include "frame/file/filebase.hpp"
 #include "frame/file/filemapper.hpp"
 
-namespace fdt = foundation;
 
-namespace foundation{
+namespace solid{
+namespace frame{
 namespace file{
 
 //------------------------------------------------------------------
@@ -105,23 +105,30 @@ struct Manager::Data{
 	Data(Controller *_pc):pc(_pc), sz(0), mtx(NULL), mtxstore(0, 3, 5){}
 	~Data(){}
 	void pushFileInTemp(File *_pf);
+	int state()const{
+		return st;
+	}
+	void state(int _st){
+		st = _st;
+	}
 //data:
-	Controller				*pc;//pointer to controller
-	uint32					sz;
-	Mutex					*mtx;
-	MutexStoreT				mtxstore;
-	FileVectorT				fv;//file vector
-	MapperVectorT			mv;//mapper vector
-	Index32QueueT			meq;//mapper execution queue
-	FileQueueT				feq;//file execution q
-	IndexQueueT				tmpfeq;//temp file execution q
-	IndexQueueT				delfq;//file delete  q
-	FreeStackT				fs;//free stack
-	TimeSpec				tout;
-	SendOutputStreamQueueT		sndosq;
+	Controller						*pc;//pointer to controller
+	uint32							sz;
+	int								st;
+	Mutex							*mtx;
+	MutexStoreT						mtxstore;
+	FileVectorT						fv;//file vector
+	MapperVectorT					mv;//mapper vector
+	Index32QueueT					meq;//mapper execution queue
+	FileQueueT						feq;//file execution q
+	IndexQueueT						tmpfeq;//temp file execution q
+	IndexQueueT						delfq;//file delete  q
+	FreeStackT						fs;//free stack
+	TimeSpec						tout;
+	SendOutputStreamQueueT			sndosq;
 	SendInputOutputStreamQueueT		sndiosq;
-	SendInputStreamQueueT		sndisq;
-	SendErrorQueueT			snderrq;
+	SendInputStreamQueueT			sndisq;
+	SendErrorQueueT					snderrq;
 };
 //------------------------------------------------------------------
 void Manager::Data::pushFileInTemp(File *_pf){
@@ -153,16 +160,9 @@ Manager::Controller::~Controller(){
 //------------------------------------------------------------------
 //------------------------------------------------------------------
 
-/*static*/ Manager& Manager::the(){
-	return *m().object<Manager>();
-}
-
-/*static*/ Manager& Manager::the(const IndexT &_ridx){
-	return *m().object<Manager>(_ridx);
-}
 Manager::Manager(Controller *_pc):d(*(new Data(_pc))){
 	_pc->init(InitStub(*this));
-	state(Data::Running);
+	d.state(Data::Running);
 }
 
 Manager::~Manager(){
@@ -180,17 +180,16 @@ Manager::~Manager(){
 int Manager::execute(ulong _evs, TimeSpec &_rtout){
 	d.mtx->lock();
 	//idbgx(Debug::file, "signalmask "<<_evs);
-	if(signaled()){
+	if(notified()){
 		ulong sm = grabSignalMask(0);
 		//idbgx(Debug::file, "signalmask "<<sm);
-		if(sm & fdt::S_KILL){
-			state(Data::Stopping);
+		if(sm & frame::S_KILL){
+			d.state(Data::Stopping);
 			vdbgx(Debug::file, "kill "<<d.sz);
 			if(!d.sz){//no file
-				state(-1);
+				d.state(-1);
 				d.mtx->unlock();
 				vdbgx(Debug::file, "");
-				m().eraseObject(*this);
 				return BAD;
 			}
 			doPrepareStop();
@@ -224,9 +223,8 @@ int Manager::execute(ulong _evs, TimeSpec &_rtout){
 	doSendStreams();
 	if(d.meq.size() || d.delfq.size() || d.tmpfeq.size()) return OK;
 	
-	if(!d.sz && state() == Data::Stopping){
-		state(-1);
-		m().eraseObject(*this);
+	if(!d.sz && d.state() == Data::Stopping){
+		d.state(-1);
 		return BAD;
 	}
 	
@@ -300,7 +298,7 @@ void Manager::doExecuteMappers(){
 	//idbgx(Debug::file, "");
 	uint32	tmpqsz(d.meq.size());
 	Stub 	s(*this);
-	cassert(!(tmpqsz && state() != Data::Running));
+	cassert(!(tmpqsz && d.state() != Data::Running));
 	//execute the enqued mappers
 	while(tmpqsz--){
 		const ulong 	v(d.meq.front());
@@ -382,7 +380,7 @@ void Manager::doDeleteFiles(){
 		uint32 mid(pfile->key().mapperId());
 		//mapper creates - mapper destroys files
 		if(s.mapper(mid).erase(pfile)){
-			cassert(state() == Data::Running);
+			cassert(d.state() == Data::Running);
 			d.meq.push(mid);
 		}
 	}
@@ -424,8 +422,8 @@ void Manager::releaseInputStream(IndexT _fileid){
 		d.feq.push(d.fv[_fileid].pfile);
 		vdbgx(Debug::file, "sq.push "<<_fileid);
 		//if(static_cast<fdt::Object*>(this)->signal((int)fdt::S_RAISE)){
-		if(this->signal((int)fdt::S_RAISE)){
-			fdt::Manager::the().raiseObject(*this);
+		if(this->notify(frame::S_RAISE)){
+			frame::Manager::specific().raise(*this);
 		}
 	}
 }
@@ -441,8 +439,8 @@ void Manager::releaseOutputStream(IndexT _fileid){
 		//we must signal the filemanager
 		d.feq.push(d.fv[_fileid].pfile);
 		vdbgx(Debug::file, "sq.push "<<_fileid);
-		if(this->signal((int)fdt::S_RAISE)){
-			fdt::Manager::the().raiseObject(*this);
+		if(this->notify(frame::S_RAISE)){
+			frame::Manager::specific().raise(*this);
 		}
 	}
 }
@@ -495,7 +493,7 @@ int Manager::doGetStream(
 ){
 	Locker<Mutex>	lock1(*d.mtx);
 	
-	if(state() != Data::Running) return BAD;
+	if(d.state() != Data::Running) return BAD;
 	
 	Stub			s(*this);
 	ulong			mid(_rk.mapperId());
@@ -521,8 +519,8 @@ int Manager::doGetStream(
 	switch(rv){
 		case File::MustSignal:
 			d.feq.push(pf);
-			if(this->signal((int)fdt::S_RAISE)){
-				fdt::Manager::the().raiseObject(*this);
+			if(this->notify(frame::S_RAISE)){
+				frame::Manager::specific().raise(*this);
 			}
 		case File::MustWait:
 			return NOK;
@@ -538,7 +536,7 @@ int Manager::stream(
 	const Key &_rk,
 	uint32 _flags
 ){
-	if(state() != Data::Running) return BAD;
+	if(d.state() != Data::Running) return BAD;
 	return doGetStream(_sptr, _rfuid, _requid, _rk, _flags);
 }
 int Manager::stream(
@@ -548,7 +546,7 @@ int Manager::stream(
 	const Key &_rk,
 	uint32 _flags
 ){	
-	if(state() != Data::Running) return BAD;
+	if(d.state() != Data::Running) return BAD;
 	return doGetStream(_sptr, _rfuid, _requid, _rk, _flags);
 }
 
@@ -559,7 +557,7 @@ int Manager::stream(
 	const Key &_rk,
 	uint32 _flags
 ){	
-	if(state() != Data::Running) return BAD;
+	if(d.state() != Data::Running) return BAD;
 	return doGetStream(_sptr, _rfuid, _requid, _rk, _flags);
 }
 
@@ -998,6 +996,7 @@ uint32 Manager::InitStub::registerMapper(Mapper *_pm)const{
 //=======================================================================
 
 }//namespace file
-}//namespace foundation
+}//namespace frame
+}//namespace solid
 
 

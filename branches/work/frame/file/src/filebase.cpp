@@ -33,10 +33,8 @@
 
 #include <cerrno>
 
-
-namespace fdt=foundation;
-
-namespace foundation{
+namespace solid{
+namespace frame{
 namespace file{
 
 //==================================================================
@@ -337,6 +335,7 @@ void File::doCheckOpenMode(Manager::Stub &_rs){
 }
 
 }//namespace file
-}//namespace foundation
+}//namespace frame
+}//namespace solid
 
 

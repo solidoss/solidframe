@@ -25,6 +25,7 @@
 #include "frame/file/filemanager.hpp"
 #include "frame/file/filemapper.hpp"
 
+namespace solid{
 namespace frame{
 namespace file{
 
@@ -96,6 +97,7 @@ private:
 
 }//namespace file
 }//namespace frame
+}//namespace solid
 
 
 #endif

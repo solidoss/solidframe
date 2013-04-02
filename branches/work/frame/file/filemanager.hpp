@@ -28,6 +28,8 @@
 
 #include "frame/common.hpp"
 
+namespace solid{
+	
 class InputStream;
 class OutputStream;
 class InputOutputStream;
@@ -432,6 +434,7 @@ private:
 
 }//namespace file
 }//namespace frame
+}//namespace solid
 
 #endif
 
