@@ -1,80 +1,84 @@
-#include "example/foundation/concept/core/signals.hpp"
-#include "example/foundation/concept/core/manager.hpp"
-#include "foundation/signalexecuter.hpp"
+#include "example/frame/concept/core/messages.hpp"
+#include "example/frame/concept/core/manager.hpp"
+#include "frame/messagesteward.hpp"
 #include "utility/iostream.hpp"
 #include "system/debug.hpp"
 
 
-namespace fdt=foundation;
+using namespace solid;
 
 namespace concept{
 
 //----------------------------------------------------------------------
-InputStreamSignal::InputStreamSignal(
-	StreamPointer<InputStream> &_sptr,
-	const FileUidT &_rfuid,
-	const RequestUidT &_requid
+InputStreamMessage::InputStreamMessage(
+	solid::StreamPointer<solid::InputStream> &_sptr,
+		const FileUidT &_rfuid,
+		const RequestUidT &_requid
 ):sptr(_sptr), fileuid(_rfuid), requid(_requid){
 }
-int InputStreamSignal::execute(DynamicPointer<Signal> &_rthis_ptr, uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidT &, TimeSpec &){
-	_rce.sendSignal(_rthis_ptr, requid);
-	return fdt::LEAVE;
+
+int InputStreamMessage::execute(
+	DynamicPointer<Message> &_rmsgptr,
+	uint32 _evs,
+	frame::MessageSteward& _rms,
+	const MessageUidT &,
+	TimeSpec &
+){
+	_rms.sendMessage(_rmsgptr, requid);
+	return frame::LEAVE;
 }
 //----------------------------------------------------------------------
-OutputStreamSignal::OutputStreamSignal(
+OutputStreamMessage::OutputStreamMessage(
 	StreamPointer<OutputStream> &_sptr,
 	const FileUidT &_rfuid,
 	const RequestUidT &_requid
 ):sptr(_sptr), fileuid(_rfuid), requid(_requid){
 }
-int OutputStreamSignal::execute(DynamicPointer<Signal> &_rthis_ptr, uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidT &, TimeSpec &){
-	_rce.sendSignal(_rthis_ptr, requid);
-	return fdt::LEAVE;
+
+int OutputStreamMessage::execute(
+	DynamicPointer<Message> &_rmsgptr,
+	uint32 _evs,
+	frame::MessageSteward& _rms,
+	const MessageUidT &,
+	TimeSpec &
+){
+	_rms.sendMessage(_rmsgptr, requid);
+	return frame::LEAVE;
 }
 //----------------------------------------------------------------------
-InputOutputStreamSignal::InputOutputStreamSignal(
+InputOutputStreamMessage::InputOutputStreamMessage(
 	StreamPointer<InputOutputStream> &_sptr,
 	const FileUidT &_rfuid,
 	const RequestUidT &_requid
 ):sptr(_sptr), fileuid(_rfuid), requid(_requid){
 }
-int InputOutputStreamSignal::execute(DynamicPointer<Signal> &_rthis_ptr, uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidT &, TimeSpec &){
-	_rce.sendSignal(_rthis_ptr, requid);
-	return fdt::LEAVE;
+
+int InputOutputStreamMessage::execute(
+	DynamicPointer<Message> &_rmsgptr,
+	uint32 _evs,
+	frame::MessageSteward& _rms,
+	const MessageUidT &,
+	TimeSpec &
+){
+	_rms.sendMessage(_rmsgptr, requid);
+	return frame::LEAVE;
 }
 //----------------------------------------------------------------------
-StreamErrorSignal::StreamErrorSignal(
+StreamErrorMessage::StreamErrorMessage(
 	int _errid,
 	const RequestUidT &_requid
 ):errid(_errid), requid(_requid){
 }
-int StreamErrorSignal::execute(DynamicPointer<Signal> &_rthis_ptr, uint32 _evs, fdt::SignalExecuter& _rce, const SignalUidT &, TimeSpec &){
-	_rce.sendSignal(_rthis_ptr, requid);
-	return fdt::LEAVE;
+
+int StreamErrorMessage::execute(
+	DynamicPointer<Message> &_rmsgptr,
+	uint32 _evs,
+	frame::MessageSteward& _rms,
+	const MessageUidT &,
+	TimeSpec &
+){
+	_rms.sendMessage(_rmsgptr, requid);
+	return frame::LEAVE;
 }
 //----------------------------------------------------------------------
-void ResolveDataSignal::init(
-	const char *_node,
-	int _port, 
-	int _flags,
-	int _family,
-	int _type,
-	int _proto
-){
-	resolvedata = synchronous_resolve(_node, _port, _flags, _family, _type, _proto);
-}
-void ResolveDataSignal::init(
-	const char *_node,
-	const char *_port, 
-	int _flags,
-	int _family,
-	int _type,
-	int _proto
-){
-	resolvedata = synchronous_resolve(_node, _port, _flags, _family, _type, _proto);
-}
-
-void ResolveDataSignal::result(const ObjectUidT &_rv){
-}
-
 }//namespace concept

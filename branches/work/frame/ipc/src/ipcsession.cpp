@@ -1957,7 +1957,9 @@ void Session::doParseBuffer(Talker::TalkerStub &_rstub, const Buffer &_rbuf/*, c
 //we need to aquire the address of the relay
 int Session::doExecuteRelayInit(Talker::TalkerStub &_rstub){
 	DataRelayed44	&rd = d.relayed44();
-	int				rv = _rstub.service().controller().gatewayCount(rd.netid, rd.relayaddr);
+						//TODO:
+	int				rv;	// = _rstub.service().controller().gatewayCount(rd.netid, rd.relayaddr);
+	
 	idbgx(Debug::ipc, "gatewayCount = "<<rv);
 	if(rv < 0){
 		//must wait external message
@@ -1979,8 +1981,8 @@ int Session::doExecuteRelayInit(Talker::TalkerStub &_rstub){
 		}else{
 			--rd.crtgwidx;
 		}
-		
-		rd.addr = _rstub.service().controller().gatewayAddress(rd.crtgwidx, rd.netid, rd.relayaddr);
+		//TODO:
+		//rd.addr = _rstub.service().controller().gatewayAddress(rd.crtgwidx, rd.netid, rd.relayaddr);
 		
 	}while(rd.addr.isInvalid());
 	

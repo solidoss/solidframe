@@ -22,31 +22,42 @@
 #ifndef EXAMPLE_CONCEPT_AIO_LISTENER_HPP
 #define EXAMPLE_CONCEPT_AIO_LISTENER_HPP
 
-#include "foundation/aio/aiosingleobject.hpp"
+#include "frame/aio/aiosingleobject.hpp"
 #include "system/socketdevice.hpp"
 #include <memory>
 
-namespace foundation{
+namespace solid{
+namespace frame{
 namespace aio{
 namespace openssl{
+
 class Context;
-}
-}
-}
+
+}//namespace openssl
+}//namespace aio
+}//namespace frame
+}//namespace solid
 
 namespace concept{
 
 class Service;
+
 //! A simple listener
-class Listener: public Dynamic<Listener, foundation::aio::SingleObject>{
+class Listener: public solid::Dynamic<Listener, solid::frame::aio::SingleObject>{
 public:
 	typedef Service		ServiceT;
-	Listener(const SocketDevice &_rsd, foundation::aio::openssl::Context *_pctx = NULL);
-	virtual int execute(ulong, TimeSpec&);
+	Listener(
+		Service &_rsvc,
+		const solid::SocketDevice &_rsd,
+		solid::frame::aio::openssl::Context *_pctx = NULL
+	);
+	virtual int execute(solid::ulong, solid::TimeSpec&);
 private:
 	typedef std::auto_ptr<foundation::aio::openssl::Context> SslContextPtrT;
-	SocketDevice		sd;
-	SslContextPtrT		pctx;
+	ServiceT			&rsvc;
+	solid::SocketDevice	sd;
+	SslContextPtrT		ctxptr;
+	int					state;
 };
 
 }//namespace concept

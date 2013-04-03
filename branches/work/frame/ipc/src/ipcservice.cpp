@@ -959,40 +959,40 @@ void Controller::sendEvent(
 }
 
 
-/*virtual*/ SocketAddressStub Controller::gatewayAddress(
-	const uint _idx,
-	const uint32 _netid_dest,
-	const SocketAddressStub &_rsas_dest
-){
-	return SocketAddressStub();
-}
-
-//retval:
-// -1 : wait for asynchrounous event and retry
-// 0: no gateway
-// > 0: the count
-/*virtual*/ int Controller::gatewayCount(
-	const uint32 _netid_dest,
-	const SocketAddressStub &_rsas_dest
-)const{
-	return 0;
-}
-
-//called on the gateway to find out where to connect for relaying data to _rsas_dest
-/*virtual*/ const SocketAddress& Controller::relayAddress(
-	const uint32 _netid_dest,
-	const SocketAddressStub &_rsas_dest
-){
-	const SocketAddress *psa = NULL;
-	return *psa;
-}
-
-/*virtual*/ uint32 Controller::relayCount(
-	const uint32 _netid_dest,
-	const SocketAddressStub &_rsas_dest
-)const{
-	return 0;
-}
+// /*virtual*/ SocketAddressStub Controller::gatewayAddress(
+// 	const uint _idx,
+// 	const uint32 _netid_dest,
+// 	const SocketAddressStub &_rsas_dest
+// ){
+// 	return SocketAddressStub();
+// }
+// 
+// //retval:
+// // -1 : wait for asynchrounous event and retry
+// // 0: no gateway
+// // > 0: the count
+// /*virtual*/ int Controller::gatewayCount(
+// 	const uint32 _netid_dest,
+// 	const SocketAddressStub &_rsas_dest
+// )const{
+// 	return 0;
+// }
+// 
+// //called on the gateway to find out where to connect for relaying data to _rsas_dest
+// /*virtual*/ const SocketAddress& Controller::relayAddress(
+// 	const uint32 _netid_dest,
+// 	const SocketAddressStub &_rsas_dest
+// ){
+// 	const SocketAddress *psa = NULL;
+// 	return *psa;
+// }
+// 
+// /*virtual*/ uint32 Controller::relayCount(
+// 	const uint32 _netid_dest,
+// 	const SocketAddressStub &_rsas_dest
+// )const{
+// 	return 0;
+// }
 //------------------------------------------------------------------
 //		BasicController
 //------------------------------------------------------------------

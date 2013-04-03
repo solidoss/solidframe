@@ -9,17 +9,17 @@ target_link_libraries (example_concept
 	example_concept_gamma
 	example_concept_proxy
 	example_concept_core
-	foundation_core
-	foundation_ipc
-	foundation_file
-	foundation_aio
-	foundation_aio_openssl
-	algorithm_protocol
-	audit_log_manager
-	audit_log
-	algorithm_serialization
-	utility
-	system
+	solid_frame_core
+	solid_frame_ipc
+	solid_frame_file
+	solid_frame_aio
+	solid_frame_aio_openssl
+	solid_protocol
+	solid_audit_log_manager
+	solid_audit_log
+	solid_serialization
+	solid_utility
+	solid_system
 	${OPENSSL_LIBS}
 	${BOOST_FILESYSTEM_LIB}
 	${BOOST_PROGRAM_OPTIONS_LIB}

@@ -19,71 +19,47 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef TESTSERVICE_HPP
-#define TESTSERVICE_HPP
+#ifndef CONCEPT_CORE_SERVICE_HPP
+#define CONCEPT_CORE_SERVICE_HPP
 
 #include "utility/dynamictype.hpp"
-#include "foundation/service.hpp"
-#include "signals.hpp"
+#include "frame/service.hpp"
 #include "common.hpp"
 
+namespace solid{
 struct ResolveIterator;
 struct SocketDevice;
 
-namespace foundation{
+namespace frame{
+
 namespace aio{
 namespace openssl{
+
 class Context;
-}
-}
-}
+
+}//namespace openssl
+}//namespace aio
+}//namespace frame
+}//namespace solid
 
 namespace concept{
 
-class Manager;
-class Visitor;
-
 class Listener;
-class Talker;
 
-
-class Service: public Dynamic<Service, foundation::Service>{
+class Service: public solid::frame::Service{
 public:
-	enum{
-		AddListener = 0,
-		AddSslListener,
-		AddConnection,
-		AddSslConnection,
-		AddTalker
-	};//use with SocketAddressInfoSignal
-	
-	static void dynamicRegister();
-	
 	Service();
 	~Service();
 	
-	void dynamicExecute(DynamicPointer<ResolveDataSignal> &_rsig);
-	void insertObject(Listener &_ro, const ObjectUidT &_ruid);
-	void eraseObject(const Listener &_ro);
-protected:
-	friend class Listener;
-	ObjectUidT insertListener(
+	void insertListener(
 		const ResolveData &_rai,
 		bool _secure = false
 	);
+private:
+	friend class Listener;
+
 	virtual ObjectUidT insertConnection(
 		const SocketDevice &_rsd,
-		foundation::aio::openssl::Context *_pctx = NULL,
-		bool _secure = false
-	);
-	
-	virtual ObjectUidT insertTalker(
-		const ResolveData &_rai,
-		foundation::aio::openssl::Context *_pctx = NULL,
-		bool _secure = false
-	);
-	virtual ObjectUidT insertConnection(
-		const ResolveData &_rai,
 		foundation::aio::openssl::Context *_pctx = NULL,
 		bool _secure = false
 	);

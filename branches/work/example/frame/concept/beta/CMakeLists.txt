@@ -4,13 +4,13 @@ set(Sources
 	src/betaconnection.cpp
 	src/betaclientconnection.cpp
 	src/betaserverconnection.cpp
-	src/betasignals.cpp
+	src/betamessages.cpp
 	src/betaservice.cpp
 )
 
 set(Headers
 	betaservice.hpp
-	betasignals.hpp
+	betamessages.hpp
 
 	src/betarequests.hpp
 	src/betaresponses.hpp

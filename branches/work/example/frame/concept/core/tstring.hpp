@@ -19,8 +19,8 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef TSTRING_HPP
-#define TSTRING_HPP
+#ifndef CONCEPT_CORE_TSTRING_HPP
+#define CONCEPT_CORE_TSTRING_HPP
 
 #include <string>
 #include "system/common.hpp"
@@ -29,6 +29,6 @@
 
 typedef std::string String;
 
-void append(String &_str, ulong _v);
+void append(String &_str, solid::ulong _v);
 
 #endif

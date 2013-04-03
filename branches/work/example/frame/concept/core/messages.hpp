@@ -1,6 +1,6 @@
-/* Declarations file signals.hpp
+/* Declarations file messages.hpp
 	
-	Copyright 2007, 2008 Valentin Palade 
+	Copyright 2007, 2008, 2013 Valentin Palade 
 	vipalade@gmail.com
 
 	This file is part of SolidFrame framework.
@@ -19,82 +19,97 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef TEST_CORE_SIGNALS_HPP
-#define TEST_CORE_SIGNALS_HPP
+#ifndef CONCEPT_CORE_MESSAGES_HPP
+#define CONCEPT_CORE_MESSAGES_HPP
 
 #include "system/socketaddress.hpp"
 #include "utility/streampointer.hpp"
-#include "foundation/signal.hpp"
+#include "frame/message.hpp"
 #include "common.hpp"
 
+namespace solid{
 class InputStream;
 class OutputStream;
 class InputOutputStream;
+}//namespace solid
 
 namespace concept{
-
-
 //!	A signal for sending istreams from the fileManager
-struct InputStreamSignal: Dynamic<InputStreamSignal, foundation::Signal>{
-	InputStreamSignal(StreamPointer<InputStream> &_sptr, const FileUidT &_rfuid, const foundation::RequestUidT &_requid);
-	int execute(DynamicPointer<Signal> &_rthis_ptr, uint32 _evs, foundation::SignalExecuter&, const SignalUidT &, TimeSpec &);
-	StreamPointer<InputStream>	sptr;
-	FileUidT				fileuid;
+struct InputStreamMessage: solid::Dynamic<InputStreamMessage, solid::frame::Message>{
+	InputStreamMessage(
+		solid::StreamPointer<solid::InputStream> &_sptr,
+		const FileUidT &_rfuid,
+		const RequestUidT &_requid
+	);
+	int execute(
+		solid::DynamicPointer<Message> &_rmsgptr,
+		solid::uint32 _evs,
+		solid::frame::MessageSteward&,
+		const MessageUidT &,
+		solid::TimeSpec &
+	);
+	solid::StreamPointer<solid::InputStream>	sptr;
+	FileUidT									fileuid;
 	RequestUidT				requid;
 };
 
 //!A signal for sending ostreams from the fileManager
-struct OutputStreamSignal: Dynamic<OutputStreamSignal, foundation::Signal>{
-	OutputStreamSignal(StreamPointer<OutputStream> &_sptr, const FileUidT &_rfuid, const foundation::RequestUidT &_requid);
-	int execute(DynamicPointer<Signal> &_rthis_ptr, uint32 _evs, foundation::SignalExecuter&, const SignalUidT &, TimeSpec &);
-	StreamPointer<OutputStream>	sptr;
-	FileUidT				fileuid;
-	RequestUidT				requid;
+struct OutputStreamMessage: solid::Dynamic<OutputStreamMessage, solid::frame::Message>{
+	OutputStreamMessage(
+		solid::StreamPointer<solid::OutputStream> &_sptr,
+		const FileUidT &_rfuid,
+		const RequestUidT &_requid
+	);
+	int execute(
+		solid::DynamicPointer<solid::frame::Message> &_rmsgptr,
+		solid::uint32 _evs,
+		solid::frame::MessageSteward&,
+		const MessageUidT &,
+		solid::TimeSpec &
+	);
+	solid::StreamPointer<solid::OutputStream>	sptr;
+	FileUidT									fileuid;
+	RequestUidT									requid;
 };
 
 
 //!A signal for sending iostreams from the fileManager
-struct InputOutputStreamSignal: Dynamic<InputOutputStreamSignal, foundation::Signal>{
-	InputOutputStreamSignal(StreamPointer<InputOutputStream> &_sptr, const FileUidT &_rfuid, const foundation::RequestUidT &_requid);
-	int execute(DynamicPointer<Signal> &_rthis_ptr, uint32 _evs, foundation::SignalExecuter&, const SignalUidT &, TimeSpec &);
-	StreamPointer<InputOutputStream>	sptr;
-	FileUidT				fileuid;
-	RequestUidT				requid;
+struct InputOutputStreamMessage: solid::Dynamic<InputOutputStreamMessage, solid::frame::Message>{
+	InputOutputStreamMessage(
+		solid::StreamPointer<solid::InputOutputStream> &_sptr,
+		const FileUidT &_rfuid,
+		const RequestUidT &_requid
+	);
+	int execute(
+		solid::DynamicPointer<solid::frame::Message> &_rmsgptr,
+		solid::uint32 _evs,
+		solid::frame::MessageSteward&,
+		const MessageUidT &,
+		solid::TimeSpec &
+	);
+	
+	solid::StreamPointer<solid::InputOutputStream>	sptr;
+	FileUidT										fileuid;
+	RequestUidT										requid;
 };
 
 
 //!A signal for sending errors from the fileManager
-struct StreamErrorSignal: Dynamic<StreamErrorSignal, foundation::Signal>{
-	StreamErrorSignal(int _errid, const RequestUidT &_requid);
-	int execute(DynamicPointer<Signal> &_rthis_ptr, uint32 _evs, foundation::SignalExecuter&, const SignalUidT &, TimeSpec &);
+struct StreamErrorMessage: solid::Dynamic<StreamErrorMessage, solid::frame::Message>{
+	StreamErrorMessage(
+		int _errid,
+		const RequestUidT &_requid
+	);
+	int execute(
+		solid::DynamicPointer<solid::frame::Message> &_rmsgptr,
+		solid::uint32 _evs,
+		solid::frame::MessageSteward&,
+		const SignalUidT &,
+		solid::TimeSpec &
+	);
+	
 	int				errid;
 	RequestUidT		requid;
-};
-
-struct ResolveDataSignal: Dynamic<ResolveDataSignal, foundation::Signal>{
-	ResolveDataSignal(uint32 _id = 0):id(_id){}
-	void init(
-		const char *_node, 
-		int _port, 
-		int _flags,
-		int _family = -1,
-		int _type = -1,
-		int _proto = -1
-	);
-	void init(
-		const char *_node, 
-		const char *_port, 
-		int _flags,
-		int _family = -1,
-		int _type = -1,
-		int _proto = -1
-	);
-	virtual void result(const ObjectUidT &_rv);
-	uint32					id;
-	ResolveData				resolvedata;
-	std::string				node;
-	std::string				service;
-	
 };
 
 }//namespace concept

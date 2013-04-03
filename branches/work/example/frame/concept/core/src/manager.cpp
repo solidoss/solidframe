@@ -29,35 +29,25 @@
 
 #include "core/manager.hpp"
 #include "core/service.hpp"
-#include "core/signals.hpp"
+#include "core/messages.hpp"
 #include "quicklz.h"
 
-#include "foundation/aio/aioselector.hpp"
-#include "foundation/aio/aioobject.hpp"
+#include "frame/aio/aioselector.hpp"
+#include "frame/aio/aioobject.hpp"
 
-#include "foundation/objectselector.hpp"
-#include "foundation/signalexecuter.hpp"
-#include "foundation/signal.hpp"
-#include "foundation/requestuid.hpp"
+#include "frame/objectselector.hpp"
+#include "frame/messagesteward.hpp"
+#include "frame/message.hpp"
+#include "frame/requestuid.hpp"
 
-#include "foundation/ipc/ipcservice.hpp"
-#include "foundation/file/filemanager.hpp"
-#include "foundation/file/filemappers.hpp"
+#include "frame/ipc/ipcservice.hpp"
+#include "frame/file/filemanager.hpp"
+#include "frame/file/filemappers.hpp"
 
 #include <iostream>
+
 using namespace std;
-
-//some forward declarations
-namespace foundation{
-
-class ObjectSelector;
-
-namespace aio{
-class Selector;
-}
-}//namespace foundation
-
-namespace fdt=foundation;
+using namespace solid;
 
 
 namespace concept{
@@ -65,32 +55,32 @@ namespace concept{
 //		FileManagerController
 //------------------------------------------------------
 
-class FileManagerController: public fdt::file::Manager::Controller{
+class FileManagerController: public solid::frame::file::Manager::Controller{
 public:
 	FileManagerController(){}
 protected:
-	/*virtual*/ void init(const fdt::file::Manager::InitStub &_ris);
+	/*virtual*/ void init(const frame::file::Manager::InitStub &_ris);
 	 
 	/*virtual*/ bool release();
 	
 	/*virtual*/ void sendStream(
 		StreamPointer<InputStream> &_sptr,
 		const FileUidT &_rfuid,
-		const fdt::RequestUid& _rrequid
+		const RequestUid& _rrequid
 	);
 	/*virtual*/ void sendStream(
 		StreamPointer<OutputStream> &_sptr,
 		const FileUidT &_rfuid,
-		const fdt::RequestUid& _rrequid
+		const RequestUid& _rrequid
 	);
 	/*virtual*/ void sendStream(
 		StreamPointer<InputOutputStream> &_sptr,
 		const FileUidT &_rfuid,
-		const fdt::RequestUid& _rrequid
+		const RequestUid& _rrequid
 	);
 	/*virtual*/ void sendError(
 		int _error,
-		const fdt::RequestUid& _rrequid
+		const RequestUid& _rrequid
 	);
 };
 
@@ -109,84 +99,60 @@ In this example we do:
 */
 
 
-struct AuthSignal: Dynamic<AuthSignal, DynamicShared<foundation::Signal> >{
-	AuthSignal():authidx(0), authcnt(0){}
-	~AuthSignal(){}
+struct AuthMessage: Dynamic<AuthMessage, DynamicShared<frame::Message> >{
+	AuthMessage():authidx(0), authcnt(0){}
+	~AuthMessage(){}
 	
 	template <class S>
 	S& operator&(S &_s){
 		_s.push(authidx, "authidx").push(authcnt, "authcnt");
 		if(S::IsDeserializer){
-			_s.push(siguid.idx, "siguid.idx").push(siguid.uid,"siguid.uid");
+			_s.push(msguid.idx, "msguid.idx").push(msguid.uid,"msguid.uid");
 		}else{//on sender
-			foundation::ipc::SignalUid &rsiguid(
-				const_cast<foundation::ipc::SignalUid &>(foundation::ipc::ConnectionContext::the().signaluid)
+			frame::ipc::MessageUid &rmsguid(
+				const_cast<frame::ipc::MessageUid &>(frame::ipc::ConnectionContext::the().msgid)
 			);
-			_s.push(rsiguid.idx, "siguid.idx").push(rsiguid.uid,"siguid.uid");
+			_s.push(rmsguid.idx, "msguid.idx").push(rmsguid.uid,"msguid.uid");
 		}
-		_s.push(siguidpeer.idx, "siguidpeer.idx").push(siguidpeer.uid,"siguidpeer.uid");
+		_s.push(msguidpeer.idx, "msguidpeer.idx").push(msguidpeer.uid,"msguidpeer.uid");
 		return _s;
 	}
 //data:
-	int								authidx;
-	int								authcnt;
-	foundation::ipc::SignalUid		siguid;
-	foundation::ipc::SignalUid		siguidpeer;
+	int							authidx;
+	int							authcnt;
+	frame::ipc::MessageUid		msguid;
+	frame::ipc::MessageUid		msguidpeer;
 };
 
 
-struct IpcServiceController: foundation::ipc::Controller{
-	IpcServiceController():foundation::ipc::Controller(400, 0/* AuthenticationFlag*/, 1000, 10 * 1000), authidx(0){
+struct IpcServiceController: frame::ipc::Controller{
+	IpcServiceController():frame::ipc::Controller(0, 400), authidx(0){
 		use();
 	}
 	
-	/*virtual*/ void scheduleTalker(foundation::aio::Object *_po);
-	/*virtual*/ void scheduleListener(foundation::aio::Object *_po);
-	/*virtual*/ void scheduleNode(foundation::aio::Object *_po);
+	/*virtual*/ void scheduleTalker(frame::aio::Object *_po);
+	/*virtual*/ void scheduleListener(frame::aio::Object *_po);
+	/*virtual*/ void scheduleNode(frame::aio::Object *_po);
 	
 	
 	/*virtual*/ bool compressBuffer(
-		foundation::ipc::BufferContext &_rbc,
+		frame::ipc::BufferContext &_rbc,
 		const uint32 _bufsz,
 		char* &_rpb,
 		uint32 &_bl
 	);
 	/*virtual*/ bool decompressBuffer(
-		foundation::ipc::BufferContext &_rbc,
+		frame::ipc::BufferContext &_rbc,
 		char* &_rpb,
 		uint32 &_bl
 	);
 	/*virtual*/ int authenticate(
-		DynamicPointer<fdt::Signal> &_sigptr,//the received signal
-		fdt::ipc::SignalUid &_rsiguid,
+		DynamicPointer<frame::Message> &_msgptr,//the received signal
+		frame::ipc::MessageUid &_rmsguid,
 		uint32 &_rflags,
-		fdt::ipc::SerializationTypeIdT &_rtid
+		frame::ipc::SerializationTypeIdT &_rtid
 	);
 	
-	void localNetworkId(uint32 _netid){
-		netid = _netid;
-	}
-	/*virtual*/ uint32 localNetworkId()const{
-		return netid;
-	}
-	/*virtual*/ SocketAddressStub gatewayAddress(
-		const uint _idx,
-		const uint32 _netid_dest,
-		const SocketAddressStub &_rsas_dest
-	){
-		return _rsas_dest;
-	}
-	
-	//retval:
-	// -1 : wait for asynchrounous event and retry
-	// 0: no gateway
-	// > 0: the count
-	/*virtual*/ int gatewayCount(
-		const uint32 _netid_dest,
-		const SocketAddressStub &_rsas_dest
-	)const{
-		return 1;
-	}
 private:
 	qlz_state_compress		qlz_comp_ctx;
 	qlz_state_decompress	qlz_decomp_ctx;
@@ -199,85 +165,85 @@ private:
 //		Manager::Data
 //------------------------------------------------------
 
-namespace{
-	FileManagerController	fmctrl;
-	IpcServiceController	ipcctrl;
-}
-
 struct Manager::Data{
-	Data():filemanageridx(1), readsigexeidx(2), writesigexeidx(3), ipcidx(4){}
-	const IndexT			filemanageridx;
-	const IndexT			readsigexeidx;
-	const IndexT			writesigexeidx;
-	const IndexT			ipcidx;
+	Data(Manager &_rm):
+		mainaiosched(_rm), scndaiosched(_rm), objsched(_rm),
+		ipcsvc(_rm, &ipcctrl), filemgr(&fmctrl){
+	}
+	
+	FileManagerController		fmctrl;
+	IpcServiceController		ipcctrl;
+	AioSchedulerT				mainaiosched;
+	AioSchedulerT				scndaiosched;
+	SchedulerT					objsched;
+	frame::ipc::Service			ipcsvc;
+	frame::file::Manager		filemgr;
+	ObjectUidT					readmsgstwuid;
+	ObjectUidT					writemsgstwuid;
 };
 
 //--------------------------------------------------------------------------
-Manager::Manager(uint32 _networkid):foundation::Manager(16), d(*(new Data())){
-	//NOTE: Use the following line instead of ThisGuard if you only have one Manager per process, else use the ThisGuard for any function
-	// that may be called from a thread that has access to other managers.
-	//this->prepareThread();
-	ThisGuard	tg(this);
-	
-	registerScheduler(new SchedulerT(*this));
-	registerScheduler(new AioSchedulerT(*this));
-	registerScheduler(new AioSchedulerT(*this));
-	
-	registerObject<SchedulerT>(new fdt::file::Manager(&fmctrl), 0, d.filemanageridx);
-	registerObject<SchedulerT>(new fdt::SignalExecuter, 0, d.readsigexeidx);
-	registerObject<SchedulerT>(new fdt::SignalExecuter, 0, d.writesigexeidx);
-	
-	ipcctrl.localNetworkId(_networkid);
-	
-	registerService<SchedulerT>(new foundation::ipc::Service(ipcctrl.pointer()), 0, d.ipcidx);
-	
-	fdt::ipc::Service::the().typeMapper().insert<AuthSignal>();
+Manager::Manager():frame::Manager(), d(*(new Data(*this))){
 }
 
 Manager::~Manager(){
 	delete &d;
 }
 
-ObjectUidT Manager::readSignalExecuterUid()const{
-	return object(d.readsigexeidx).uid();
-}
+void Manager::start(){
+	DynamicPointer<frame::Object>	msgptr(new frame::MessageSteward);
 	
-ObjectUidT Manager::writeSignalExecuterUid()const{
-	return object(d.writesigexeidx).uid();
+	d.readmsgstwuid = registerObject(*msgptr);
+	
+	d.objsched.schedule(msgptr);
+	
+	msgptr = new frame::MessageSteward;
+	d.writemsgstwuid = registerObject(*msgptr);
+	
+	d.objsched.schedule(msgptr);
+	
+	
+	d.ipcsvc.typeMapper().insert<AuthMessage>();
+
 }
 
-foundation::ipc::Service&	Manager::ipc()const{
-	return static_cast<foundation::ipc::Service&>(foundation::Manager::service(d.ipcidx));
+ObjectUidT Manager::readMessageStewardUid()const{
+	return d.readmsgstwuid;
 }
-foundation::file::Manager&	Manager::fileManager()const{
-	return static_cast<foundation::file::Manager&>(foundation::Manager::object(d.filemanageridx));
+	
+ObjectUidT Manager::writeMessageStewardUid()const{
+	return d.writemsgstwuid;
 }
-void Manager::signalService(const IndexT &_ridx, DynamicPointer<foundation::Signal> &_rsig){
-	signal(_rsig, serviceUid(_ridx));
+
+frame::ipc::Service&	Manager::ipc()const{
+	return d.ipcsvc;
+}
+frame::file::Manager&	Manager::fileManager()const{
+	return *d.filemgr;
 }
 
 //------------------------------------------------------
 //		IpcServiceController
 //------------------------------------------------------
-void IpcServiceController::scheduleTalker(foundation::aio::Object *_po){
+void IpcServiceController::scheduleTalker(frame::aio::Object *_po){
 	idbg("");
-	foundation::ObjectPointer<foundation::aio::Object> op(_po);
-	AioSchedulerT::schedule(op, 1);
+	DynamicPointer<frame::aio::Object> objptr(_po);
+	d.scndaiosched.schedule(objptr);
 }
 
-void IpcServiceController::scheduleListener(foundation::aio::Object *_po){
+void IpcServiceController::scheduleListener(frame::aio::Object *_po){
 	idbg("");
-	foundation::ObjectPointer<foundation::aio::Object> op(_po);
-	AioSchedulerT::schedule(op, 1);
+	DynamicPointer<frame::aio::Object> objptr(_po);
+	d.scndaiosched.schedule(objptr);
 }
-void IpcServiceController::scheduleNode(foundation::aio::Object *_po){
+void IpcServiceController::scheduleNode(frame::aio::Object *_po){
 	idbg("");
-	foundation::ObjectPointer<foundation::aio::Object> op(_po);
-	AioSchedulerT::schedule(op, 1);
+	DynamicPointer<frame::aio::Object> objptr(_po);
+	d.scndaiosched.schedule(objptr);
 }
 
 /*virtual*/ bool IpcServiceController::compressBuffer(
-	foundation::ipc::BufferContext &_rbc,
+	frame::ipc::BufferContext &_rbc,
 	const uint32 _bufsz,
 	char* &_rpb,
 	uint32 &_bl
@@ -308,7 +274,7 @@ void IpcServiceController::scheduleNode(foundation::aio::Object *_po){
 
 /*virtual*/ int IpcServiceController::authenticate(
 	DynamicPointer<fdt::Signal> &_sigptr,//the received signal
-	fdt::ipc::SignalUid &_rsiguid,
+	fdt::ipc::SignalUid &_rmsguid,
 	uint32 &_rflags,
 	fdt::ipc::SerializationTypeIdT &_rtid
 ){
@@ -329,9 +295,9 @@ void IpcServiceController::scheduleNode(foundation::aio::Object *_po){
 	}
 	AuthSignal &rsig(static_cast<AuthSignal&>(*_sigptr));
 	
-	_rsiguid = rsig.siguidpeer;
+	_rmsguid = rsig.msguidpeer;
 	
-	rsig.siguidpeer = rsig.siguid;
+	rsig.msguidpeer = rsig.msguid;
 	
 	idbg("sig = "<<(void*)_sigptr.get()<<" auth("<<rsig.authidx<<','<<rsig.authcnt<<") authidx = "<<this->authidx);
 	

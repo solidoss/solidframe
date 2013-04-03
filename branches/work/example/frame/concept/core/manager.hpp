@@ -19,30 +19,33 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef EXAMPLE_CONCEPT_MANAGER_HPP
-#define EXAMPLE_CONCEPT_MANAGER_HPP
+#ifndef CONCEPT_CORE_MANAGER_HPP
+#define CONCEPT_CORE_MANAGER_HPP
 
-#include "foundation/manager.hpp"
-#include "foundation/scheduler.hpp"
-#include "foundation/aio/aioselector.hpp"
-#include "foundation/objectselector.hpp"
+#include "frame/manager.hpp"
+#include "frame/scheduler.hpp"
+#include "frame/aio/aioselector.hpp"
+#include "frame/objectselector.hpp"
 #include "common.hpp"
 
+namespace solid{
+namespace frame{
 
-namespace foundation{
 namespace ipc{
 class Service;
-}
+}//namespace ipc
+
 namespace file{
 class Manager;
-}
-}
+}//namespace file
+}//namespace frame
+}//namespace solid
 
 
 namespace concept{
 
-typedef foundation::Scheduler<foundation::aio::Selector>	AioSchedulerT;
-typedef foundation::Scheduler<foundation::ObjectSelector>	SchedulerT;
+typedef solid::frame::Scheduler<solid::frame::aio::Selector>	AioSchedulerT;
+typedef solid::frame::Scheduler<solid::frame::ObjectSelector>	SchedulerT;
 
 
 //! A proof of concept server
@@ -54,39 +57,33 @@ typedef foundation::Scheduler<foundation::ObjectSelector>	SchedulerT;
 	To complicate things a little, it allso keeps a map service name to service,
 	so that services can be more naturally accessed by their names.
 */
-class Manager: public foundation::Manager{
+class Manager: public solid::frame::Manager{
 public:
-	Manager(uint32 _networkid = 0);
+	Manager();
 	
 	~Manager();
 	
+	void start();
+	
 	static Manager& the();
 	
-	template <typename O>
-	typename O::ServiceT & service(O &_ro){
-		return static_cast<typename O::ServiceT&>(foundation::Manager::service(_ro.serviceId()));
-	}
+	void scheduleListener(solid::DynamicPointer<solid::frame::aio::Object> &_objptr);
+	void scheduleTalker(solid::DynamicPointer<solid::frame::aio::Object> &_objptr);
+	void scheduleAioObject(solid::DynamicPointer<solid::frame::aio::Object> &_objptr);
+	void scheduleObject(solid::DynamicPointer<solid::frame::Object> &_objptr);
 	
-	void signalService(const IndexT &_ridx, DynamicPointer<foundation::Signal> &_rsig);
 	
-	ObjectUidT readSignalExecuterUid()const;
+	ObjectUidT readMessageStewardUid()const;
 	
-	ObjectUidT writeSignalExecuterUid()const;
+	ObjectUidT writeMessageStewardUid()const;
 	
-	foundation::ipc::Service 	&ipc()const;
-	foundation::file::Manager	&fileManager()const;
+	solid::frame::ipc::Service 	&ipc()const;
+	solid::frame::file::Manager	&fileManager()const;
 private:
 	struct Data;
 	Data	&d;
 };
 
-inline Manager& m(){
-	return Manager::the();
-}
-
-inline /*static*/ Manager& Manager::the(){
-	return static_cast<Manager&>(foundation::Manager::the());
-}
 
 }//namespace concept
 #endif

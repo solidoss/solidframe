@@ -1,6 +1,6 @@
 /* Implementation file listener.cpp
 	
-	Copyright 2007, 2008 Valentin Palade 
+	Copyright 2007, 2008, 2013 Valentin Palade 
 	vipalade@gmail.com
 
 	This file is part of SolidFrame framework.
@@ -19,7 +19,7 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "foundation/aio/openssl/opensslsocket.hpp"
+#include "frame/aio/openssl/opensslsocket.hpp"
 #include "system/cassert.hpp"
 #include "system/debug.hpp"
 #include "system/mutex.hpp"
@@ -27,47 +27,51 @@
 #include "core/common.hpp"
 #include "core/manager.hpp"
 #include "core/service.hpp"
-#include "core/listener.hpp"
+#include "listener.hpp"
+
+using namespace solid;
 
 namespace concept{
 
 Listener::Listener(
-	const SocketDevice &_rsd,
-	foundation::aio::openssl::Context *_pctx
-):BaseT(_rsd), pctx(_pctx){
-	state(0);
+	Service &_rsvc,
+	const solid::SocketDevice &_rsd,
+	solid::frame::aio::openssl::Context *_pctx
+):BaseT(_rsd), rsvc(_rsvc), ctxptr(_pctx){
+	state = 0;
 }
 
 int Listener::execute(ulong, TimeSpec&){
 	idbg("here");
 	cassert(this->socketOk());
-	if(signaled()){
-		{
+	if(notified()){
 		Locker<Mutex>	lock(this->mutex());
 		ulong sm = this->grabSignalMask();
-		if(sm & foundation::S_KILL) return BAD;
-		}
+		if(sm & frame::S_KILL) return BAD;
 	}
+	
 	uint cnt(10);
+	
 	while(cnt--){
-		if(state() == 0){
+		if(state == 0){
 			switch(this->socketAccept(sd)){
 				case BAD: return BAD;
 				case OK:break;
 				case NOK:
-					state(1);
+					state = 1;
 					return NOK;
 			}
 		}
-		state(0);
+		state = 0;
 		cassert(sd.ok());
 		//TODO: one may do some filtering on sd based on sd.remoteAddress()
 		if(pctx.get()){
-			m().service(*this).insertConnection(sd, pctx.get(), true);
+			rsvc.insertConnection(sd, ctxptr.get(), true);
 		}else{
-			m().service(*this).insertConnection(sd);
+			rsvc.insertConnection(sd);
 		}
 	}
+	
 	return OK;
 }
 

@@ -3,7 +3,7 @@
 #FILE(GLOB Headers RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.hpp)
 
 set(Sources
-	src/signals.cpp
+	src/messages.cpp
 	src/listener.cpp
 	src/manager.cpp
 	src/service.cpp
@@ -12,13 +12,13 @@ set(Sources
 )
 set_source_files_properties(src/service.cpp COMPILE_FLAGS -DOSSL_SOURCE_PATH="\\\"${EXTERN_PATH}\\\"")
 set(Headers
-	signals.hpp
+	messages.hpp
 	common.hpp
-	listener.hpp
 	manager.hpp
 	service.hpp
 	tstring.hpp
 	src/quicklz.h
+	src/listener.hpp
 )
 
 set(Inlines

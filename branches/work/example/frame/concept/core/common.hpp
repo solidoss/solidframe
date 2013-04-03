@@ -1,6 +1,6 @@
 /* Declarations file common.hpp
 	
-	Copyright 2007, 2008 Valentin Palade 
+	Copyright 2007, 2008, 2013 Valentin Palade 
 	vipalade@gmail.com
 
 	This file is part of SolidFrame framework.
@@ -19,18 +19,18 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef TESTCOMMON_HPP
-#define TESTCOMMON_HPP
+#ifndef CONCEPT_CORE_COMMON_HPP
+#define CONCEPT_CORE_COMMON_HPP
 
-#include "foundation/common.hpp"
+#include "frame/common.hpp"
 
 #include <string.h>
 
-typedef foundation::RequestUidT		RequestUidT;
-typedef foundation::FileUidT		FileUidT;
-typedef foundation::ObjectUidT		ObjectUidT;
-typedef foundation::SignalUidT		SignalUidT;
-typedef foundation::IndexT			IndexT;
+typedef solid::frame::RequestUidT		RequestUidT;
+typedef solid::frame::FileUidT			FileUidT;
+typedef solid::frame::ObjectUidT		ObjectUidT;
+typedef solid::frame::MessageUidT		MessageUidT;
+typedef solid::frame::IndexT			IndexT;
 
 struct StrLess{
 	bool operator()(const char* const &_str1, const char* const &_str2)const{

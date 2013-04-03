@@ -28,10 +28,9 @@
 #include "system/socketaddress.hpp"
 
 #include "core/manager.hpp"
-//#include "echo/echoservice.hpp"
 #include "alpha/alphaservice.hpp"
 #include "beta/betaservice.hpp"
-#include "beta/betasignals.hpp"
+#include "beta/betamessages.hpp"
 #include "proxy/proxyservice.hpp"
 #include "gamma/gammaservice.hpp"
 #include "audit/log/logmanager.hpp"
@@ -40,13 +39,13 @@
 #include "utility/iostream.hpp"
 #include "system/directory.hpp"
 
-#include "foundation/ipc/ipcservice.hpp"
+#include "frame/ipc/ipcservice.hpp"
 
 #include "boost/program_options.hpp"
 
 
-namespace fdt = foundation;
 using namespace std;
+using namespace solid;
 
 /*
 	The proof of concept application.
@@ -131,7 +130,7 @@ struct ResolveDataSignal: concept::ResolveDataSignal{
 	ResolveDataSignal(uint32 _v, SignalResultWaiter &_rwait):concept::ResolveDataSignal(_v), pwait(&_rwait){}
 	~ResolveDataSignal(){
 		if(pwait)
-			pwait->signal(fdt::invalid_uid());
+			pwait->signal(frame::invalid_uid());
 	}
 	void result(const ObjectUidT &_rv){
 		pwait->signal(_rv);
@@ -508,44 +507,6 @@ int sendBetaLogin(SignalResultWaiter &_rw, char *_pc, int _len){
 	return 0;
 }
 
-// bool parseArguments(Params &_par, int argc, char *argv[]){
-// 	try {  
-// 
-// 		TCLAP::CmdLine cmd("SolidFrame concept application", ' ', "0.8");
-// 		
-// 		TCLAP::ValueArg<uint16> port("b","base_port","Base port",false,1000,"integer");
-// 		
-// 		TCLAP::ValueArg<std::string> lvls("l","debug_levels","Debug logging levels",false,"","string");
-// 		TCLAP::ValueArg<std::string> mdls("m","debug_modules","Debug logging modules",false,"","string");
-// 		TCLAP::ValueArg<std::string> da("a","debug_address","Debug server address",false,"","string");
-// 		TCLAP::ValueArg<std::string> dp("p","debug_port","Debug server ports",false,"","string");
-// 		TCLAP::SwitchArg dl("s","debug_buffered", "Debug buffered output", false);
-// 	
-// 	
-// 		cmd.add(port);
-// 		cmd.add(lvls);
-// 		cmd.add(mdls);
-// 		cmd.add(da);
-// 		cmd.add(dp);
-// 		cmd.add(dl);
-// 	
-// 		// Parse the argv array.
-// 		cmd.parse( argc, argv );
-// 	
-// 		// Get the value parsed by each arg. 
-// 		_par.dbg_levels = lvls.getValue();
-// 		_par.start_port = port.getValue();
-// 		_par.dbg_modules = mdls.getValue();
-// 		_par.dbg_addr = da.getValue();
-// 		_par.dbg_port = dp.getValue();
-// 		_par.dbg_buffered = dl.getValue();
-// 		return false;
-// 	}catch (TCLAP::ArgException &e){// catch any exceptions
-// 		std::cerr << "error: " << e.error() << " for arg " << e.argId() << std::endl;
-// 		return true;
-// 	}
-// 
-// }
 bool parseArguments(Params &_par, int argc, char *argv[]){
 	using namespace boost::program_options;
 	try{

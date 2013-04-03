@@ -4,7 +4,7 @@ set(Sources
 	src/alphareader.cpp
 	src/alphaservice.cpp
 	src/alphawriter.cpp
-	src/alphasignals.cpp
+	src/alphamessages.cpp
 )
 
 set(Headers
@@ -15,7 +15,7 @@ set(Headers
 	src/alphaprotocolfilters.hpp
 	src/alphareader.hpp
 	src/alphawriter.hpp
-	src/alphasignals.hpp
+	src/alphamessages.hpp
 )
 
 set(Inlines
