@@ -51,7 +51,7 @@ public:
 	Service();
 	~Service();
 	
-	void insertListener(
+	bool insertListener(
 		const solid::ResolveData &_rai,
 		bool _secure = false
 	);

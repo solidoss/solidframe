@@ -24,7 +24,10 @@
 
 #include "core/service.hpp"
 
+namespace solid{
 class SocketDevice;
+}//namespace solid
+
 
 namespace concept{
 
@@ -34,24 +37,20 @@ namespace alpha{
 
 class Connection;
 
-class Service: public Dynamic<Service, concept::Service>{
+class Service: public solid::Dynamic<Service, concept::Service>{
 public:
-	static Service* create(Manager &);
-	Service();
+	Service(Manager &_rm);
 	~Service();
 	ObjectUidT insertConnection(
-		const SocketDevice &_rsd,
-		foundation::aio::openssl::Context *_pctx,
+		const solid::SocketDevice &_rsd,
+		solid::frame::aio::openssl::Context *_pctx,
 		bool _secure
 	);
 	ObjectUidT insertConnection(
-		ResolveData &_rai,
-		foundation::aio::openssl::Context *_pctx,
+		solid::ResolveData &_rai,
+		solid::frame::aio::openssl::Context *_pctx,
 		bool _secure
 	);
-	
-	void insertObject(Connection &_ro, const ObjectUidT &_ruid);
-	void eraseObject(const Connection &_ro);
 };
 
 }//namespace alpha

@@ -25,7 +25,7 @@
 #include <string>
 #include <sstream>
 
-#include "foundation/signal.hpp"
+#include "frame/message.hpp"
 
 namespace concept{
 namespace beta{
@@ -36,19 +36,19 @@ struct SignalWaiter{
 	std::ostringstream	oss;
 };
 
-struct LoginSignal: Dynamic<LoginSignal, foundation::Signal>{
-	LoginSignal(SignalWaiter &_rsw):rsw(_rsw){}
+struct LoginMessage: solid::Dynamic<LoginMessage, solid::frame::Message>{
+	LoginMessage(SignalWaiter &_rsw):rsw(_rsw){}
 	int release();
 	SignalWaiter	&rsw;
 	std::string		user;
 	std::string		pass;
 };
 
-struct CancelSignal:Dynamic<CancelSignal, foundation::Signal>{
-	CancelSignal(SignalWaiter &_rsw):rsw(_rsw){}
+struct CancelMessage: solid::Dynamic<CancelMessage, solid::frame::Message>{
+	CancelMessage(SignalWaiter &_rsw):rsw(_rsw){}
 	int release();
 	SignalWaiter	&rsw;
-	uint32			tag;
+	solid::uint32	tag;
 };
 
 }//namespace beta

@@ -192,6 +192,10 @@ Manager::~Manager(){
 }
 
 void Manager::start(){
+	d.ipcsvc.typeMapper().insert<AuthMessage>();
+	
+	registerService(d.ipcsvc);
+	
 	d.filemgrptr = new frame::file::Manager(&d.fmctrl);
 	
 	DynamicPointer<frame::Object>	msgptr(d.filemgrptr);
@@ -209,11 +213,6 @@ void Manager::start(){
 	d.writemsgstwuid = registerObject(*msgptr);
 	
 	d.objsched.schedule(msgptr);
-	
-	
-	
-	d.ipcsvc.typeMapper().insert<AuthMessage>();
-
 }
 
 ObjectUidT Manager::readMessageStewardUid()const{

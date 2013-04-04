@@ -1,6 +1,6 @@
 /* Implementation file concept.cpp
 	
-	Copyright 2007, 2008 Valentin Palade 
+	Copyright 2007, 2008, 2013 Valentin Palade 
 	vipalade@gmail.com
 
 	This file is part of SolidFrame framework.
@@ -97,8 +97,8 @@ struct Params{
 	bool		log;
 };
 
-struct SignalResultWaiter: concept::beta::SignalWaiter{
-	SignalResultWaiter():s(false){}
+struct ResultWaiter: concept::beta::SignalWaiter{
+	ResultWaiter():s(false){}
 	void prepare(){
 		s = false;
 	}
@@ -126,50 +126,33 @@ struct SignalResultWaiter: concept::beta::SignalWaiter{
 	bool		s;
 };
 
-struct ResolveDataSignal: concept::ResolveDataSignal{
-	ResolveDataSignal(uint32 _v, SignalResultWaiter &_rwait):concept::ResolveDataSignal(_v), pwait(&_rwait){}
-	~ResolveDataSignal(){
-		if(pwait)
-			pwait->signal(frame::invalid_uid());
-	}
-	void result(const ObjectUidT &_rv){
-		pwait->signal(_rv);
-		pwait = NULL;
-	}
-	SignalResultWaiter	*pwait;
-};
 
 bool parseArguments(Params &_par, int argc, char *argv[]);
 
 void insertListener(
-	SignalResultWaiter &_rw,
+	concept::Service &_rsvc,
 	const char *_name,
-	IndexT _idx,
 	const char *_addr,
 	int _port,
 	bool _secure
 );
 
 void insertConnection(
-	SignalResultWaiter &_rw,
+	concept::beta::Service &_rsvc,
 	const char *_name,
-	IndexT _idx,
 	const char *_addr,
 	const char *_port,
 	bool _secure
 );
 
-//cli:
-// inserts a new connection
 int insertConnection(
-	SignalResultWaiter &_rw,
+	concept::beta::Service &_rsvc,
 	const char *_name,
-	IndexT _idx,
 	char *_pc,
 	int _len
 );
 
-int sendBetaLogin(SignalResultWaiter &_rw, char *_pc, int _len);
+int sendBetaLogin(concept::Manager& _rm, ResultWaiter &_rw, char *_pc, int _len);
 
 int main(int argc, char* argv[]){
 	signal(SIGPIPE, SIG_IGN);
@@ -225,7 +208,7 @@ int main(int argc, char* argv[]){
 		lm.insertListener("localhost", "3333");
 		Directory::create("log");
 		lm.insertConnector(new audit::LogBasicConnector("log"));
-		Log::instance().reinit(argv[0], Log::AllLevels, "ALL", new DeviceInputOutputStream(pairfd[1],-1));
+		solid::Log::instance().reinit(argv[0], Log::AllLevels, "ALL", new DeviceInputOutputStream(pairfd[1],-1));
 	}
 	int stime;
 	long ltime;
@@ -243,53 +226,70 @@ int main(int argc, char* argv[]){
 	idbg("32bit architecture");
 #endif
 
-	{
+	do{
 
-		concept::Manager	m(p.network_id);
-		SignalResultWaiter	rw;
-		int 				rv;
-		
-		const IndexT alphaidx = m.registerService<concept::SchedulerT>(concept::alpha::Service::create(m));
-		const IndexT proxyidx = m.registerService<concept::SchedulerT>(concept::proxy::Service::create());
-		const IndexT gammaidx = m.registerService<concept::SchedulerT>(concept::gamma::Service::create());
-		const IndexT betaidx = m.registerService<concept::SchedulerT>(concept::beta::Service::create(m));
+		concept::Manager			m;
+		concept::alpha::Service		alphasvc(m);
+		concept::proxy::Service		proxysvc(m);
+		concept::gamma::Service		gammasvc(m);
+		concept::beta::Service		betasvc(m);
+		ResultWaiter				rw;
+		int 						rv;
 		
 		m.start();
 		
+		m.registerService(alphasvc);
+		m.registerService(proxysvc);
+		m.registerService(gammasvc);
+		m.registerService(betasvc);
+		
 		if(true){
 			int port = p.start_port + 222;
-			ResolveData rd = synchronous_resolve("0.0.0.0", port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
-			if(!rd.empty() && !(rv = foundation::ipc::Service::the().insertTalker(rd.begin()))){
-				cout<<"[ipc] Added talker on port "<<port<<endl;
-			}else{
-				cout<<"[ipc] Failed adding talker on port "<<port<<" rv = "<<rv<<endl;
+			frame::ipc::Configuration	cfg;
+			ResolveData					rd = synchronous_resolve("0.0.0.0", port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
+			int							err;
+			
+			cfg.baseaddr = rd.begin();
+			
+			err = m.ipc().reconfigure(cfg);
+			
+			if(err){
+				cout<<"Error configuring ipcservice: "/*<<err.toString()*/<<endl;
+				m.stop();
+				break;
 			}
-			port = p.start_port + 333;
-			rd = synchronous_resolve("0.0.0.0", port, 0, SocketInfo::Inet4, SocketInfo::Stream);
-			if(!rd.empty() && !(rv = foundation::ipc::Service::the().insertListener(rd.begin(), foundation::ipc::Service::RelayType))){
-				cout<<"[ipc] Added relay listener on port "<<port<<endl;
-			}else{
-				cout<<"[ipc] Failed adding relay listener on port "<<port<<" rv = "<<rv<<endl;
+		}
+		
+		if(true){//creates and registers a new alpha service
+			if(!insertListener(alphasvc, "0.0.0.0", p.start_port + 114, false)){
+				m.stop();
+				break;
+			}
+			if(!insertListener(alphasvc, "0.0.0.0", p.start_port + 124, true)){
+				m.stop();
+				break;
 			}
 		}
 		
 		if(true){//creates and registers a new alpha service
-			insertListener(rw, "alpha", alphaidx, "0.0.0.0", p.start_port + 114, false);
-			insertListener(rw, "alpha", alphaidx, "0.0.0.0", p.start_port + 124, true);
+			if(!insertListener(proxysvc, "0.0.0.0", p.start_port + 214, false)){
+				m.stop();
+				break;
+			}
 		}
 		
 		if(true){//creates and registers a new alpha service
-			insertListener(rw, "proxy", proxyidx, "0.0.0.0", p.start_port + 214, false);
-			//insertListener(rw, "alpha", alphaidx, "0.0.0.0", p.start_port + 124, true);
+			if(!insertListener(gammasvc, "0.0.0.0", p.start_port + 314, false)){
+				m.stop();
+				break;
+			}
 		}
 		
 		if(true){//creates and registers a new alpha service
-			insertListener(rw, "gamma", gammaidx, "0.0.0.0", p.start_port + 314, false);
-			//insertListener(rw, "alpha", alphaidx, "0.0.0.0", p.start_port + 124, true);
-		}
-		
-		if(true){//creates and registers a new alpha service
-			insertListener(rw, "beta", betaidx, "0.0.0.0", p.start_port + 414, false);
+			if(!insertListener(betasvc, "0.0.0.0", p.start_port + 414, false)){
+				m.stop();
+				break;
+			}
 		}
 		
 		char buf[2048];
@@ -314,16 +314,16 @@ int main(int argc, char* argv[]){
 				continue;
 			}
 			if(!strncasecmp(buf,"addbetaconnection", 17)){
-				rc = insertConnection(rw, "beta", betaidx, buf + 17, cin.gcount() - 17);
+				rc = insertConnection(betasvc, buf + 17, cin.gcount() - 17);
 				continue;
 			}
 			if(!strncasecmp(buf,"betalogin", 9)){
-				rc = sendBetaLogin(rw, buf + 9, cin.gcount() - 9);
+				rc = sendBetaLogin(rw, betasvc, buf + 9, cin.gcount() - 9);
 				continue;
 			}
 			cout<<"Error parsing command line"<<endl;
 		}
-	}
+	}while(false);
 	lm.stop();
 	Thread::waitAll();
 	return 0;
@@ -338,123 +338,45 @@ void printHelp(){
 	cout<<"[betacancel SP tag]: send a beta::cancel command"<<endl;
 }
 
-void insertListener(
-	SignalResultWaiter &_rw,
+bool insertListener(
+	concept::Service &_rsvc,
 	const char *_name,
-	IndexT _idx,
 	const char *_addr,
 	int _port,
 	bool _secure
 ){
-	concept::ResolveDataSignal *psig(new ResolveDataSignal(_secure? concept::Service::AddSslListener : concept::Service::AddListener, _rw));
-
-	psig->init(_addr, _port, 0, SocketInfo::Inet4, SocketInfo::Stream);
-	DynamicPointer<foundation::Signal> dp(psig);
-	_rw.prepare();
-	concept::m().signalService(_idx, dp);
-	ObjectUidT rv = _rw.wait();
+	ResolveData		rd = synchronous_resolve(_addr, _port, 0, SocketInfo::Inet4, SocketInfo::Stream);
 	
-	if(fdt::is_invalid_uid(rv)){
+	if(!_rsvc.insertListener(rd, _secure)){
 		cout<<"["<<_name<<"] Failed adding listener on port "<<_port<<endl;
+		return false;
 	}else{
-		cout<<"["<<_name<<"] Added listener on port "<<_port<<" objid = "<<rv.first<<','<<rv.second<<endl;
+		cout<<"["<<_name<<"] Added listener on port "<<_port<<" objid = "<<endl;
+		return true;
 	}
 }
 
-static ObjectUidT crtcon(foundation::invalid_uid());
+static concept::ObjectUidT crtcon(frame::invalid_uid());
 
 void insertConnection(
-	SignalResultWaiter &_rw,
+	concept::beta::Service &_rsvc,
 	const char *_name,
-	IndexT _idx,
 	const char *_addr,
 	const char *_port,
 	bool _secure
 ){
-	concept::ResolveDataSignal *psig(
-		new ResolveDataSignal(
-			_secure? concept::Service::Service::AddSslConnection : concept::Service::AddConnection,
-			_rw
-		)
-	);
-
-	psig->init(_addr, _port, 0, SocketInfo::Inet4, SocketInfo::Stream);
-	DynamicPointer<foundation::Signal> dp(psig);
-	_rw.prepare();
-	concept::m().signalService(_idx, dp);
-	ObjectUidT rv = _rw.wait();
+	ResolveData		rd = synchronous_resolve(_addr, _port, 0, SocketInfo::Inet4, SocketInfo::Stream);
 	
-	if(fdt::is_invalid_uid(rv)){
+	if(!_rsvc.insertConnection(rd, _secure)){
 		cout<<"["<<_name<<"] Failed adding connection to "<<_addr<<':'<<_port<<endl;
 	}else{
-		cout<<"["<<_name<<"] Added connection to "<<_addr<<':'<<_port<<" objid = "<<rv.first<<','<<rv.second<<endl;
-		crtcon = rv;
+		cout<<"["<<_name<<"] Added connection to "<<_addr<<':'<<_port<<endl;
 	}
 }
 
-//>fetchobj servicename type
-/*
-int fetchobj(char *_pc, int _len,TestServer &_rts,TheInspector &_rti){
-	if(*_pc != ' ') return -1;
-	++_pc;
-	string srvname;
-	while(*_pc != ' ' && *_pc != 0){
-		srvname += *_pc;
-		++_pc;
-	}
-	_rti.inspect(_rts, srvname.c_str());
-	_rti.print();
-	return 0;
-}
-int printobj(char *_pc, int _len, TestServer &_rts, TheInspector &_rti){
-	_rti.print();
-	return OK;
-}
-int signalobj(char *_pc, int _len,TestServer &_rts,TheInspector &_rti){
-	if(*_pc != ' ') return -1;
-	++_pc;
-	
-	long idx = strtol(_pc,&_pc,10);
-	if(*_pc != ' ') return -1;
-	++_pc;
-	long sig = strtol(_pc,&_pc,10);
-	_rti.signal(_rts,idx,sig);
-	return OK;
-}
-*/
-
-int insertTalker(char *_pc, int _len,concept::Manager &_rtm){
-	if(*_pc != ' ') return -1;
-	++_pc;
-	string srvname;
-	while(*_pc != ' ' && *_pc != 0){
-		srvname += *_pc;
-		++_pc;
-	}
-	if(*_pc != ' ') return -1;
-	++_pc;
-	string node;
-	while(*_pc != ' ' && *_pc != 0){
-		node += *_pc;
-		++_pc;
-	}
-	if(*_pc != ' ') return -1;
-	++_pc;
-	string srv;
-	while(*_pc != ' ' && *_pc != 0){
-		srv += *_pc;
-		++_pc;
-	}
-	//TODO:
-// 	if(_rts.insertTalker(srvname.c_str(), fdt::udp::Station::create(), node.c_str(), srv.c_str())){
-// 		cout<<"Failed adding talker"<<endl;
-// 	}
-	return 0;
-}
 int insertConnection(
-	SignalResultWaiter &_rw,
+	concept::beta::Service &_rsvc,
 	const char *_name,
-	IndexT _idx,
 	char *_pc,
 	int _len
 ){
@@ -472,11 +394,11 @@ int insertConnection(
 		srv += *_pc;
 		++_pc;
 	}
-	insertConnection(_rw, _name,  _idx, node.c_str(), srv.c_str(), false);
+	insertConnection(_rsvc, _name, node.c_str(), srv.c_str(), false);
 	return 0;
 }
 
-int sendBetaLogin(SignalResultWaiter &_rw, char *_pc, int _len){
+int sendBetaLogin(concept::Manager &_rm, ResultWaiter &_rw, char *_pc, int _len){
 	if(*_pc != ' ') return -1;
 	++_pc;
 	string user;
@@ -494,12 +416,12 @@ int sendBetaLogin(SignalResultWaiter &_rw, char *_pc, int _len){
 	
 	_rw.prepare();
 	
-	concept::beta::LoginSignal		login(_rw);
-	DynamicPointer<fdt::Signal>		dp(&login);
+	concept::beta::LoginMessage		login(_rw);
+	DynamicPointer<frame::Message>	dp(&login);
 	login.user = user;
 	login.pass = pass;
 	
-	concept::m().signal(dp, crtcon);
+	_rm.notify(dp, crtcon);
 	
 	_rw.wait();
 	

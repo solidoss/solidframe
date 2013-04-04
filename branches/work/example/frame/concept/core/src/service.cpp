@@ -58,7 +58,7 @@ const char *certificate_path(){
 	}else return "A-client.pem";
 }
 
-void Service::insertListener(
+bool Service::insertListener(
 	const ResolveData &_rai,
 	bool _secure
 ){
@@ -67,7 +67,7 @@ void Service::insertListener(
 	sd.makeNonBlocking();
 	sd.prepareAccept(_rai.begin(), 100);
 	if(!sd.ok()){
-		return;
+		return false;
 	}
 	
 	frame::aio::openssl::Context	*pctx = NULL;
@@ -88,6 +88,7 @@ void Service::insertListener(
 	this->registerObject(*lisptr);
 	
 	Manager::the().scheduleListener(lisptr);
+	return true;
 }
 
 }//namespace concept
