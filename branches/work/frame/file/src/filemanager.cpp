@@ -190,6 +190,7 @@ int Manager::execute(ulong _evs, TimeSpec &_rtout){
 				d.state(-1);
 				d.mtx->unlock();
 				vdbgx(Debug::file, "");
+				frame::Manager::specific().unregisterObject(*this);
 				return BAD;
 			}
 			doPrepareStop();
@@ -225,6 +226,7 @@ int Manager::execute(ulong _evs, TimeSpec &_rtout){
 	
 	if(!d.sz && d.state() == Data::Stopping){
 		d.state(-1);
+		frame::Manager::specific().unregisterObject(*this);
 		return BAD;
 	}
 	

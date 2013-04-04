@@ -27,7 +27,7 @@
 #include "common.hpp"
 
 namespace solid{
-struct ResolveIterator;
+struct ResolveData;
 struct SocketDevice;
 
 namespace frame{
@@ -52,15 +52,15 @@ public:
 	~Service();
 	
 	void insertListener(
-		const ResolveData &_rai,
+		const solid::ResolveData &_rai,
 		bool _secure = false
 	);
 private:
 	friend class Listener;
 
 	virtual ObjectUidT insertConnection(
-		const SocketDevice &_rsd,
-		foundation::aio::openssl::Context *_pctx = NULL,
+		const solid::SocketDevice &_rsd,
+		solid::frame::aio::openssl::Context *_pctx = NULL,
 		bool _secure = false
 	);
 };

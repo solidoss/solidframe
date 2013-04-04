@@ -66,21 +66,21 @@ protected:
 	/*virtual*/ void sendStream(
 		StreamPointer<InputStream> &_sptr,
 		const FileUidT &_rfuid,
-		const RequestUid& _rrequid
+		const solid::frame::RequestUid& _rrequid
 	);
 	/*virtual*/ void sendStream(
 		StreamPointer<OutputStream> &_sptr,
 		const FileUidT &_rfuid,
-		const RequestUid& _rrequid
+		const solid::frame::RequestUid& _rrequid
 	);
 	/*virtual*/ void sendStream(
 		StreamPointer<InputOutputStream> &_sptr,
 		const FileUidT &_rfuid,
-		const RequestUid& _rrequid
+		const solid::frame::RequestUid& _rrequid
 	);
 	/*virtual*/ void sendError(
 		int _error,
-		const RequestUid& _rrequid
+		const solid::frame::RequestUid& _rrequid
 	);
 };
 
@@ -168,8 +168,9 @@ private:
 struct Manager::Data{
 	Data(Manager &_rm):
 		mainaiosched(_rm), scndaiosched(_rm), objsched(_rm),
-		ipcsvc(_rm, &ipcctrl), filemgr(&fmctrl){
+		ipcsvc(_rm, &ipcctrl){
 	}
+	typedef DynamicSharedPointer<frame::file::Manager>	FileManagerSharedPointerT;
 	
 	FileManagerController		fmctrl;
 	IpcServiceController		ipcctrl;
@@ -177,7 +178,7 @@ struct Manager::Data{
 	AioSchedulerT				scndaiosched;
 	SchedulerT					objsched;
 	frame::ipc::Service			ipcsvc;
-	frame::file::Manager		filemgr;
+	FileManagerSharedPointerT	filemgrptr;
 	ObjectUidT					readmsgstwuid;
 	ObjectUidT					writemsgstwuid;
 };
@@ -191,7 +192,14 @@ Manager::~Manager(){
 }
 
 void Manager::start(){
-	DynamicPointer<frame::Object>	msgptr(new frame::MessageSteward);
+	d.filemgrptr = new frame::file::Manager(&d.fmctrl);
+	
+	DynamicPointer<frame::Object>	msgptr(d.filemgrptr);
+	
+	registerObject(*msgptr);
+	d.objsched.schedule(msgptr);
+	
+	msgptr = new frame::MessageSteward;
 	
 	d.readmsgstwuid = registerObject(*msgptr);
 	
@@ -201,6 +209,7 @@ void Manager::start(){
 	d.writemsgstwuid = registerObject(*msgptr);
 	
 	d.objsched.schedule(msgptr);
+	
 	
 	
 	d.ipcsvc.typeMapper().insert<AuthMessage>();
@@ -219,7 +228,21 @@ frame::ipc::Service&	Manager::ipc()const{
 	return d.ipcsvc;
 }
 frame::file::Manager&	Manager::fileManager()const{
-	return *d.filemgr;
+	return *d.filemgrptr;
+}
+
+void Manager::scheduleListener(solid::DynamicPointer<solid::frame::aio::Object> &_objptr){
+	d.scndaiosched.schedule(_objptr);
+}
+void Manager::scheduleTalker(solid::DynamicPointer<solid::frame::aio::Object> &_objptr){
+	d.scndaiosched.schedule(_objptr);
+}
+void Manager::scheduleAioObject(solid::DynamicPointer<solid::frame::aio::Object> &_objptr){
+	d.mainaiosched.schedule(_objptr);
+}
+
+void Manager::scheduleObject(solid::DynamicPointer<solid::frame::Object> &_objptr){
+	d.objsched.schedule(_objptr);
 }
 
 //------------------------------------------------------
@@ -228,18 +251,18 @@ frame::file::Manager&	Manager::fileManager()const{
 void IpcServiceController::scheduleTalker(frame::aio::Object *_po){
 	idbg("");
 	DynamicPointer<frame::aio::Object> objptr(_po);
-	d.scndaiosched.schedule(objptr);
+	Manager::the().scheduleTalker(objptr);
 }
 
 void IpcServiceController::scheduleListener(frame::aio::Object *_po){
 	idbg("");
 	DynamicPointer<frame::aio::Object> objptr(_po);
-	d.scndaiosched.schedule(objptr);
+	Manager::the().scheduleListener(objptr);
 }
 void IpcServiceController::scheduleNode(frame::aio::Object *_po){
 	idbg("");
 	DynamicPointer<frame::aio::Object> objptr(_po);
-	d.scndaiosched.schedule(objptr);
+	Manager::the().scheduleAioObject(objptr);
 }
 
 /*virtual*/ bool IpcServiceController::compressBuffer(
@@ -260,7 +283,7 @@ void IpcServiceController::scheduleNode(frame::aio::Object *_po){
 }
 
 /*virtual*/ bool IpcServiceController::decompressBuffer(
-	foundation::ipc::BufferContext &_rbc,
+	frame::ipc::BufferContext &_rbc,
 	char* &_rpb,
 	uint32 &_bl
 ){
@@ -273,57 +296,57 @@ void IpcServiceController::scheduleNode(frame::aio::Object *_po){
 }
 
 /*virtual*/ int IpcServiceController::authenticate(
-	DynamicPointer<fdt::Signal> &_sigptr,//the received signal
-	fdt::ipc::SignalUid &_rmsguid,
+	DynamicPointer<frame::Message> &_msgptr,//the received signal
+	frame::ipc::MessageUid &_rmsguid,
 	uint32 &_rflags,
-	fdt::ipc::SerializationTypeIdT &_rtid
+	frame::ipc::SerializationTypeIdT &_rtid
 ){
-	if(!_sigptr.get()){
+	if(!_msgptr.get()){
 		if(authidx){
 			idbg("");
 			return BAD;
 		}
 		//initiate authentication
-		_sigptr = new AuthSignal;
+		_msgptr = new AuthMessage;
 		++authidx;
 		idbg("authidx = "<<authidx);
 		return NOK;
 	}
-	if(_sigptr->dynamicTypeId() != AuthSignal::staticTypeId()){
+	if(_msgptr->dynamicTypeId() != AuthMessage::staticTypeId()){
 		cassert(false);
 		return BAD;
 	}
-	AuthSignal &rsig(static_cast<AuthSignal&>(*_sigptr));
+	AuthMessage &rmsg(static_cast<AuthMessage&>(*_msgptr));
 	
-	_rmsguid = rsig.msguidpeer;
+	_rmsguid = rmsg.msguidpeer;
 	
-	rsig.msguidpeer = rsig.msguid;
+	rmsg.msguidpeer = rmsg.msguid;
 	
-	idbg("sig = "<<(void*)_sigptr.get()<<" auth("<<rsig.authidx<<','<<rsig.authcnt<<") authidx = "<<this->authidx);
+	idbg("sig = "<<(void*)_msgptr.get()<<" auth("<<rmsg.authidx<<','<<rmsg.authcnt<<") authidx = "<<this->authidx);
 	
-	if(rsig.authidx == 0){
+	if(rmsg.authidx == 0){
 		if(this->authidx == 2){
 			idbg("");
 			return BAD;
 		}
 		++this->authidx;
-		rsig.authidx = this->authidx;
+		rmsg.authidx = this->authidx;
 	}
 	
-	++rsig.authcnt;
+	++rmsg.authcnt;
 	
-	if(rsig.authidx == 2 && rsig.authcnt >= 3){
+	if(rmsg.authidx == 2 && rmsg.authcnt >= 3){
 		idbg("");
 		return BAD;
 	}
 	
 	
-	if(rsig.authcnt == 4){
+	if(rmsg.authcnt == 4){
 		idbg("");
 		return OK;
 	}
-	if(rsig.authcnt == 5){
-		_sigptr.clear();
+	if(rmsg.authcnt == 5){
+		_msgptr.clear();
 		idbg("");
 		return OK;
 	}
@@ -335,10 +358,10 @@ void IpcServiceController::scheduleNode(frame::aio::Object *_po){
 //------------------------------------------------------
 //		FileManagerController
 //------------------------------------------------------
-/*virtual*/ void FileManagerController::init(const fdt::file::Manager::InitStub &_ris){
-	_ris.registerMapper(new fdt::file::NameMapper(10, 0));
-	_ris.registerMapper(new fdt::file::TempMapper(1024ULL * 1024 * 1024, "/tmp"));
-	_ris.registerMapper(new fdt::file::MemoryMapper(1024ULL * 1024 * 100));
+/*virtual*/ void FileManagerController::init(const frame::file::Manager::InitStub &_ris){
+	_ris.registerMapper(new frame::file::NameMapper(10, 0));
+	_ris.registerMapper(new frame::file::TempMapper(1024ULL * 1024 * 1024, "/tmp"));
+	_ris.registerMapper(new frame::file::MemoryMapper(1024ULL * 1024 * 100));
 }
 /*virtual*/ bool FileManagerController::release(){
 	return false;
@@ -346,38 +369,38 @@ void IpcServiceController::scheduleNode(frame::aio::Object *_po){
 void FileManagerController::sendStream(
 	StreamPointer<InputStream> &_sptr,
 	const FileUidT &_rfuid,
-	const fdt::RequestUid& _rrequid
+	const frame::RequestUid& _rrequid
 ){
-	RequestUidT	ru(_rrequid.reqidx, _rrequid.requid);
-	DynamicPointer<fdt::Signal>	cp(new InputStreamSignal(_sptr, _rfuid, ru));
-	Manager::the().signal(cp, _rrequid.objidx, _rrequid.objuid);
+	RequestUidT						ru(_rrequid.reqidx, _rrequid.requid);
+	DynamicPointer<frame::Message>	cp(new InputStreamMessage(_sptr, _rfuid, ru));
+	Manager::the().notify(cp, ObjectUidT(_rrequid.objidx, _rrequid.objuid));
 }
 
 void FileManagerController::sendStream(
 	StreamPointer<OutputStream> &_sptr,
 	const FileUidT &_rfuid,
-	const fdt::RequestUid& _rrequid
+	const frame::RequestUid& _rrequid
 ){
-	RequestUidT	ru(_rrequid.reqidx, _rrequid.requid);
-	DynamicPointer<fdt::Signal>	cp(new OutputStreamSignal(_sptr, _rfuid, ru));
-	Manager::the().signal(cp, _rrequid.objidx, _rrequid.objuid);
+	RequestUidT						ru(_rrequid.reqidx, _rrequid.requid);
+	DynamicPointer<frame::Message>	cp(new OutputStreamMessage(_sptr, _rfuid, ru));
+	Manager::the().notify(cp, ObjectUidT(_rrequid.objidx, _rrequid.objuid));
 }
 void FileManagerController::sendStream(
 	StreamPointer<InputOutputStream> &_sptr,
 	const FileUidT &_rfuid,
-	const fdt::RequestUid& _rrequid
+	const frame::RequestUid& _rrequid
 ){
-	RequestUidT	ru(_rrequid.reqidx, _rrequid.requid);
-	DynamicPointer<fdt::Signal>	cp(new InputOutputStreamSignal(_sptr, _rfuid, ru));
-	Manager::the().signal(cp, _rrequid.objidx, _rrequid.objuid);
+	RequestUidT						ru(_rrequid.reqidx, _rrequid.requid);
+	DynamicPointer<frame::Message>	cp(new InputOutputStreamMessage(_sptr, _rfuid, ru));
+	Manager::the().notify(cp, ObjectUidT(_rrequid.objidx, _rrequid.objuid));
 }
 void FileManagerController::sendError(
 	int _error,
-	const fdt::RequestUid& _rrequid
+	const frame::RequestUid& _rrequid
 ){
-	RequestUidT	ru(_rrequid.reqidx, _rrequid.requid);
-	DynamicPointer<fdt::Signal>	cp(new StreamErrorSignal(_error, ru));
-	Manager::the().signal(cp, _rrequid.objidx, _rrequid.objuid);
+	RequestUidT						ru(_rrequid.reqidx, _rrequid.requid);
+	DynamicPointer<frame::Message>	cp(new StreamErrorMessage(_error, ru));
+	Manager::the().notify(cp, ObjectUidT(_rrequid.objidx, _rrequid.objuid));
 }
 
 

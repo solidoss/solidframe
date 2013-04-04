@@ -83,7 +83,7 @@ void Service::insertListener(
 		pctx->loadPrivateKeyFile(pcertpath);
 	}
 	
-	solid::DynamicPointer<solid::frame::aio::Object> lisptr(new Listener(sd, pctx));
+	solid::DynamicPointer<solid::frame::aio::Object> lisptr(new Listener(*this, sd, pctx));
 	
 	this->registerObject(*lisptr);
 	

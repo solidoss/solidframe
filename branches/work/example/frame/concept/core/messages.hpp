@@ -104,7 +104,7 @@ struct StreamErrorMessage: solid::Dynamic<StreamErrorMessage, solid::frame::Mess
 		solid::DynamicPointer<solid::frame::Message> &_rmsgptr,
 		solid::uint32 _evs,
 		solid::frame::MessageSteward&,
-		const SignalUidT &,
+		const MessageUidT &,
 		solid::TimeSpec &
 	);
 	

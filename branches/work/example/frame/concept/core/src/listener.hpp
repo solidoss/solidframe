@@ -53,7 +53,7 @@ public:
 	);
 	virtual int execute(solid::ulong, solid::TimeSpec&);
 private:
-	typedef std::auto_ptr<foundation::aio::openssl::Context> SslContextPtrT;
+	typedef std::auto_ptr<solid::frame::aio::openssl::Context> SslContextPtrT;
 	ServiceT			&rsvc;
 	solid::SocketDevice	sd;
 	SslContextPtrT		ctxptr;
