@@ -23,6 +23,7 @@
 #include "alphaprotocolfilters.hpp"
 #include "alphaconnection.hpp"
 
+using namespace solid;
 
 namespace concept{
 namespace alpha{

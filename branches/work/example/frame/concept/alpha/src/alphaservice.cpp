@@ -23,17 +23,14 @@
 #include "core/manager.hpp"
 
 
-#include "algorithm/serialization/binary.hpp"
+#include "serialization/binary.hpp"
 
-#include "foundation/objectpointer.hpp"
-#include "foundation/aio/openssl/opensslsocket.hpp"
-
-#include "core/listener.hpp"
+#include "frame/aio/openssl/opensslsocket.hpp"
 
 #include "alpha/alphaservice.hpp"
 #include "alphaconnection.hpp"
 
-namespace fdt=foundation;
+using namespace solid;
 
 namespace concept{
 namespace alpha{
@@ -48,63 +45,47 @@ InitServiceOnce::InitServiceOnce(Manager &_rm){
 	Connection::initStatic(_rm);
 }
 
-Service* Service::create(Manager &_rm){
-	static InitServiceOnce	init(_rm);
-	return new Service();
+Service::Service(Manager &_rm):BaseT(_rm){
+	static InitServiceOnce once(_rm);
 }
+
 #else
 void once_init(){
 	Connection::initStatic(_rm);
 }
-Service* Service::create(Manager &_rm){
+
+Service::Service(Manager &_rm):BaseT(_rm){
 	static boost::once_flag once = BOOST_ONCE_INIT;
 	boost::call_once(&once_init, once);
-	return new Service();
 }
 
 #endif
 
-Service::Service(){
-}
-
 Service::~Service(){
 }
 
-ObjectUidT Service::insertConnection(
-	const SocketDevice &_rsd,
-	foundation::aio::openssl::Context *_pctx,
-	bool _secure
-){
-	//create a new connection with the given channel
-	fdt::ObjectPointer<Connection> conptr(new Connection(_rsd));
-	if(_pctx){
-		conptr->socketSecureSocket(_pctx->createSocket());
-	}
-	//register it into the service
-	return this->insert<AioSchedulerT>(conptr, 0);
-}
 
 ObjectUidT Service::insertConnection(
-	ResolveData &_rai,
-	foundation::aio::openssl::Context *_pctx,
+	solid::ResolveData &_rai,
+	solid::frame::aio::openssl::Context *_pctx,
 	bool _secure
 ){
-	fdt::ObjectPointer<Connection> conptr(new Connection(_rai));
-	if(_pctx){
-		conptr->socketSecureSocket(_pctx->createSocket());
-	}
-	//register it into the service
-	return this->insert<AioSchedulerT>(conptr, 0);
+	DynamicPointer<frame::aio::Object>	conptr(new Connection(_rai));
+	ObjectUidT rv = this->registerObject(*conptr);
+	Manager::the().scheduleAioObject(conptr);
+	return rv;
+}
+/*virtual*/ ObjectUidT Service::insertConnection(
+	const solid::SocketDevice &_rsd,
+	solid::frame::aio::openssl::Context *_pctx,
+	bool _secure
+){
+	DynamicPointer<frame::aio::Object>	conptr(new Connection(_rsd));
+	ObjectUidT rv = this->registerObject(*conptr);
+	Manager::the().scheduleAioObject(conptr);
+	return rv;
 }
 
-void Service::insertObject(Connection &_ro, const ObjectUidT &_ruid){
-	idbg("alpha "<<fdt::Manager::the().computeServiceId(_ruid.first)<<' '<<fdt::Manager::the().computeIndex(_ruid.first)<<' '<<_ruid.second);
-}
-
-void Service::eraseObject(const Connection &_ro){
-	ObjectUidT objuid(_ro.uid());
-	idbg("alpha "<<fdt::Manager::the().computeServiceId(objuid.first)<<' '<<fdt::Manager::the().computeIndex(objuid.first)<<' '<<objuid.second);
-}
 }//namespace alpha
 }//namespace concept
 

@@ -25,6 +25,8 @@
 #include "alphaconnection.hpp"
 #include <cerrno>
 
+using namespace solid;
+
 namespace concept{
 namespace alpha{
 

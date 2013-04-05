@@ -3,24 +3,21 @@
 
 #include "core/service.hpp"
 
+namespace solid{
 class SocketDevice;
+}
 
 namespace concept{
-
 namespace gamma{
 
-class Connection;
-
-class Service: public Dynamic<Service, concept::Service>{
+class Service: public solid::Dynamic<Service, concept::Service>{
 public:
-	static concept::gamma::Service* create();
-	Service();
+	Service(Manager &_rm);
 	~Service();
-	void eraseObject(const Connection &);
 private:
-	ObjectUidT insertConnection(
-		const SocketDevice &_rsd,
-		foundation::aio::openssl::Context *_pctx,
+	/*virtual*/ ObjectUidT insertConnection(
+		const solid::SocketDevice &_rsd,
+		solid::frame::aio::openssl::Context *_pctx,
 		bool _secure
 	);
 };

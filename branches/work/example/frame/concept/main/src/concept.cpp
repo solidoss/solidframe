@@ -129,7 +129,7 @@ struct ResultWaiter: concept::beta::SignalWaiter{
 
 bool parseArguments(Params &_par, int argc, char *argv[]);
 
-void insertListener(
+bool insertListener(
 	concept::Service &_rsvc,
 	const char *_name,
 	const char *_addr,
@@ -208,7 +208,7 @@ int main(int argc, char* argv[]){
 		lm.insertListener("localhost", "3333");
 		Directory::create("log");
 		lm.insertConnector(new audit::LogBasicConnector("log"));
-		solid::Log::instance().reinit(argv[0], Log::AllLevels, "ALL", new DeviceInputOutputStream(pairfd[1],-1));
+		solid::Log::the().reinit(argv[0], Log::AllLevels, "ALL", new DeviceInputOutputStream(pairfd[1],-1));
 	}
 	int stime;
 	long ltime;
@@ -234,7 +234,6 @@ int main(int argc, char* argv[]){
 		concept::gamma::Service		gammasvc(m);
 		concept::beta::Service		betasvc(m);
 		ResultWaiter				rw;
-		int 						rv;
 		
 		m.start();
 		
@@ -261,32 +260,32 @@ int main(int argc, char* argv[]){
 		}
 		
 		if(true){//creates and registers a new alpha service
-			if(!insertListener(alphasvc, "0.0.0.0", p.start_port + 114, false)){
+			if(!insertListener(alphasvc, "alpha", "0.0.0.0", p.start_port + 114, false)){
 				m.stop();
 				break;
 			}
-			if(!insertListener(alphasvc, "0.0.0.0", p.start_port + 124, true)){
-				m.stop();
-				break;
-			}
-		}
-		
-		if(true){//creates and registers a new alpha service
-			if(!insertListener(proxysvc, "0.0.0.0", p.start_port + 214, false)){
+			if(!insertListener(alphasvc, "alpha", "0.0.0.0", p.start_port + 124, true)){
 				m.stop();
 				break;
 			}
 		}
 		
 		if(true){//creates and registers a new alpha service
-			if(!insertListener(gammasvc, "0.0.0.0", p.start_port + 314, false)){
+			if(!insertListener(proxysvc, "proxy", "0.0.0.0", p.start_port + 214, false)){
 				m.stop();
 				break;
 			}
 		}
 		
 		if(true){//creates and registers a new alpha service
-			if(!insertListener(betasvc, "0.0.0.0", p.start_port + 414, false)){
+			if(!insertListener(gammasvc, "gamma", "0.0.0.0", p.start_port + 314, false)){
+				m.stop();
+				break;
+			}
+		}
+		
+		if(true){//creates and registers a new alpha service
+			if(!insertListener(betasvc, "beta", "0.0.0.0", p.start_port + 414, false)){
 				m.stop();
 				break;
 			}
@@ -314,11 +313,11 @@ int main(int argc, char* argv[]){
 				continue;
 			}
 			if(!strncasecmp(buf,"addbetaconnection", 17)){
-				rc = insertConnection(betasvc, buf + 17, cin.gcount() - 17);
+				rc = insertConnection(betasvc, "beta", buf + 17, cin.gcount() - 17);
 				continue;
 			}
 			if(!strncasecmp(buf,"betalogin", 9)){
-				rc = sendBetaLogin(rw, betasvc, buf + 9, cin.gcount() - 9);
+				rc = sendBetaLogin(m, rw, buf + 9, cin.gcount() - 9);
 				continue;
 			}
 			cout<<"Error parsing command line"<<endl;
@@ -356,7 +355,7 @@ bool insertListener(
 	}
 }
 
-static concept::ObjectUidT crtcon(frame::invalid_uid());
+static frame::ObjectUidT crtcon(frame::invalid_uid());
 
 void insertConnection(
 	concept::beta::Service &_rsvc,
@@ -367,11 +366,7 @@ void insertConnection(
 ){
 	ResolveData		rd = synchronous_resolve(_addr, _port, 0, SocketInfo::Inet4, SocketInfo::Stream);
 	
-	if(!_rsvc.insertConnection(rd, _secure)){
-		cout<<"["<<_name<<"] Failed adding connection to "<<_addr<<':'<<_port<<endl;
-	}else{
-		cout<<"["<<_name<<"] Added connection to "<<_addr<<':'<<_port<<endl;
-	}
+	crtcon = _rsvc.insertConnection(rd, NULL, _secure);
 }
 
 int insertConnection(
@@ -437,13 +432,13 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 			("help,h", "List program options")
 			("base_port,b", value<int>(&_par.start_port)->default_value(1000),"Base port")
 			("network_id,n", value<uint32>(&_par.network_id)->default_value(0), "Network id")
-			("debug_levels,l", value<string>(&_par.dbg_levels)->default_value("view"),"Debug logging levels")
-			("debug_modules,m", value<string>(&_par.dbg_modules),"Debug logging modules")
-			("debug_address,a", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")
-			("debug_port,p", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")
-			("debug_console,c", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")
-			("debug_unbuffered,s", value<bool>(&_par.dbg_buffered)->implicit_value(true)->default_value(false), "Debug unbuffered")
-			("use_log,L", value<bool>(&_par.log)->implicit_value(true)->default_value(false), "Debug buffered")
+			("debug_levels,L", value<string>(&_par.dbg_levels)->default_value("view"),"Debug logging levels")
+			("debug_modules,M", value<string>(&_par.dbg_modules),"Debug logging modules")
+			("debug_address,A", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")
+			("debug_port,P", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")
+			("debug_console,C", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")
+			("debug_unbuffered,S", value<bool>(&_par.dbg_buffered)->implicit_value(true)->default_value(false), "Debug unbuffered")
+			("use_log,l", value<bool>(&_par.log)->implicit_value(true)->default_value(false), "Debug buffered")
 	/*		("verbose,v", po::value<int>()->implicit_value(1),
 					"enable verbosity (optionally specify level)")*/
 	/*		("listen,l", po::value<int>(&portnum)->implicit_value(1001)

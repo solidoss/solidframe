@@ -23,7 +23,7 @@
 #define ALPHACONNECTION_HPP
 
 #include "utility/dynamictype.hpp"
-#include "foundation/aio/aiosingleobject.hpp"
+#include "frame/aio/aiosingleobject.hpp"
 
 #include "core/tstring.hpp"
 #include "core/common.hpp"
@@ -33,22 +33,18 @@
 
 #include "system/socketaddress.hpp"
 
-namespace foundation{
+using solid::uint32;
 
-class Visitor;
-
-}
 
 namespace concept{
 
-class Visitor;
 class Manager;
 
 //signals
-struct InputStreamSignal;
-struct OutputStreamSignal;
-struct InputOutputStreamSignal;
-struct StreamErrorSignal;
+struct InputStreamMessage;
+struct OutputStreamMessage;
+struct InputOutputStreamMessage;
+struct StreamErrorMessage;
 
 
 namespace alpha{
@@ -56,13 +52,13 @@ namespace alpha{
 class Service;
 class Command;
 
-//signals:
-struct RemoteListSignal;
-struct FetchSlaveSignal;
-struct SendStringSignal;
-struct SendStreamSignal;
+//messages:
+struct RemoteListMessage;
+struct FetchSlaveMessage;
+struct SendStringMessage;
+struct SendStreamMessage;
 
-class Logger: public protocol::Logger{
+class Logger: public solid::protocol::Logger{
 protected:
 	virtual void doInFlush(const char*, unsigned);
 	virtual void doOutFlush(const char*, unsigned);
@@ -73,11 +69,10 @@ protected:
 	It uses a reader and a writer to implement a state machine for the 
 	protocol communication. 
 */
-class Connection: public Dynamic<Connection, foundation::aio::SingleObject>{
-	typedef DynamicExecuter<void, Connection, foundation::DynamicServicePointerStore, void>	DynamicExecuterT;
+class Connection: public solid::Dynamic<Connection, solid::frame::aio::SingleObject>{
+	typedef solid::DynamicExecuter<void, Connection>	DynamicExecuterT;
 	//typedef DynamicExecuter<void, Connection, DynamicDefaultPointerStore, void>	DynamicExecuterT;
 public:
-	typedef Service	ServiceT;
 #ifdef UDEBUG
 	typedef std::vector<Connection*> ConnectionsVectorT;
 	static ConnectionsVectorT& connections(); 
@@ -85,26 +80,29 @@ public:
 	static void initStatic(Manager &_rm);
 	static void dynamicRegister();
 	static Connection& the(){
-		return static_cast<Connection&>(Object::the());
+		return static_cast<Connection&>(Object::specific());
 	}
 	
-	Connection(ResolveData &_rai);
-	Connection(const SocketDevice &_rsd);
+	Connection(solid::ResolveData &_rai);
+	Connection(const solid::SocketDevice &_rsd);
 	
 	~Connection();
 	
-	/*virtual*/ bool signal(DynamicPointer<foundation::Signal> &_sig);
+	/*virtual*/ bool notify(solid::DynamicPointer<solid::frame::Message> &_rmsgptr);
 	
 	//! The implementation of the protocol's state machine
 	/*!
-		The method will be called within a foundation::SelectPool by an
-		foundation::aio::Selector.
+		The method will be called within a solid::frame::SelectPool by an
+		solid::frame::aio::Selector.
 	*/
-	int execute(ulong _sig, TimeSpec &_tout);
-	//! Dummy inmplementation
-	int execute();
-	//! Dummy inmplementation
-	int accept(foundation::Visitor &);
+	int execute(ulong _sig, solid::TimeSpec &_tout);
+	
+	void state(int _st){
+		st = _st;
+	}
+	int state()const{
+		return st;
+	}
 	
 	//! creator method for new commands
 	Command* create(const String& _name, Reader &_rr);
@@ -125,15 +123,15 @@ public:
 		if(++reqid) return reqid;
 		return (reqid = 1);
 	}
-	void dynamicExecute(DynamicPointer<> &_dp);
-	void dynamicExecute(DynamicPointer<RemoteListSignal> &_rsig);
-	void dynamicExecute(DynamicPointer<FetchSlaveSignal> &_rsig);
-	void dynamicExecute(DynamicPointer<SendStringSignal> &_rsig);
-	void dynamicExecute(DynamicPointer<SendStreamSignal> &_rsig);
-	void dynamicExecute(DynamicPointer<InputStreamSignal> &_rsig);
-	void dynamicExecute(DynamicPointer<OutputStreamSignal> &_rsig);
-	void dynamicExecute(DynamicPointer<InputOutputStreamSignal> &_rsig);
-	void dynamicExecute(DynamicPointer<StreamErrorSignal> &_rsig);
+	void dynamicExecute(solid::DynamicPointer<> &_dp);
+	void dynamicExecute(solid::DynamicPointer<RemoteListMessage> &_rmsgptr);
+	void dynamicExecute(solid::DynamicPointer<FetchSlaveMessage> &_rmsgptr);
+	void dynamicExecute(solid::DynamicPointer<SendStringMessage> &_rmsgptr);
+	void dynamicExecute(solid::DynamicPointer<SendStreamMessage> &_rmsgptr);
+	void dynamicExecute(solid::DynamicPointer<InputStreamMessage> &_rmsgptr);
+	void dynamicExecute(solid::DynamicPointer<OutputStreamMessage> &_rmsgptr);
+	void dynamicExecute(solid::DynamicPointer<InputOutputStreamMessage> &_rmsgptr);
+	void dynamicExecute(solid::DynamicPointer<StreamErrorMessage> &_rmsgptr);
 private:
 	void prepareReader();
 private:
@@ -156,10 +154,11 @@ private:
 	Writer						wtr;
 	Reader						rdr;
 	Command						*pcmd;
-	ResolveData					ai;
-	ResolveIterator				aiit;
+	solid::ResolveData			ai;
+	solid::ResolveIterator		aiit;
 	uint32						reqid;
 	DynamicExecuterT			dr;
+	int							st;
 };
 
 }//namespace alpha

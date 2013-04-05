@@ -43,12 +43,12 @@ class Context;
 }//namespace solid
 
 namespace concept{
-
+class Manager;
 class Listener;
 
 class Service: public solid::frame::Service{
 public:
-	Service();
+	Service(Manager &_rm);
 	~Service();
 	
 	bool insertListener(

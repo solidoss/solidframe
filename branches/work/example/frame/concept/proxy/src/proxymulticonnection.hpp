@@ -25,36 +25,33 @@
 #include "utility/queue.hpp"
 #include <string>
 #include <deque>
-#include "foundation/aio/aiomultiobject.hpp"
+#include "frame/aio/aiomultiobject.hpp"
 #include "system/socketaddress.hpp"
-
+namespace solid{
 class SocketAddress;
-
-namespace foundation{
-class Visitor;
 }
-
 namespace concept{
-
-class Visitor;
 
 namespace proxy{
 
 class Service;
 
-class MultiConnection: public Dynamic<MultiConnection, foundation::aio::MultiObject>{
+class MultiConnection: public solid::Dynamic<MultiConnection, solid::frame::aio::MultiObject>{
 public:
-	typedef Service	ServiceT;
-	//typedef foundation::aio::MultiObject BaseT;
-	
 	MultiConnection(const char *_node = NULL, const char *_srv = NULL);
-	MultiConnection(const SocketDevice &_rsd);
+	MultiConnection(const solid::SocketDevice &_rsd);
 	~MultiConnection();
-	int execute(ulong _sig, TimeSpec &_tout);
+	int execute(ulong _sig, solid::TimeSpec &_tout);
 private:
 	int doReadAddress();
-	int doProxy(const TimeSpec &_tout);
+	int doProxy(const solid::TimeSpec &_tout);
 	int doRefill();
+	void state(int _st){
+		st  = _st;
+	}
+	int state()const{
+		return st;
+	}
 private:
 	enum{
 		READ_ADDR,
@@ -77,14 +74,15 @@ private:
 	struct Stub{
 		Buffer			recvbuf;
 	};
-	ResolveData			rd;
-	ResolveIterator		it;
-	bool				b;
-	std::string			addr;
-	std::string			port;
-	Stub				stubs[2];
-	char*				bp;
-	char*				be;
+	solid::ResolveData		rd;
+	solid::ResolveIterator	it;
+	int						st;
+	bool					b;
+	std::string				addr;
+	std::string				port;
+	Stub					stubs[2];
+	char*					bp;
+	char*					be;
 };
 
 }//namespace proxy

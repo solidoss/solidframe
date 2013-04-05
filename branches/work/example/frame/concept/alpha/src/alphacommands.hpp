@@ -32,7 +32,7 @@
 #include "utility/istream.hpp"
 #include "utility/ostream.hpp"
 
-#include "foundation/ipc/ipcconnectionuid.hpp"
+#include "frame/ipc/ipcconnectionuid.hpp"
 
 #include "core/common.hpp"
 #include "alphacommand.hpp"
@@ -42,9 +42,17 @@ using boost::filesystem::path;
 using boost::next;
 using boost::prior;
 
+using solid::uint32;
+using solid::int32;
+using solid::uint16;
+using solid::int16;
+using solid::uint64;
+using solid::int64;
 
+namespace solid{
 namespace protocol{
 struct Parameter;
+}
 }
 
 namespace concept{
@@ -112,24 +120,24 @@ public:
 			and write the first 1MB on socket
 		- and so forth
 	*/
-	int reinitWriter(Writer &, protocol::Parameter &);
+	int reinitWriter(Writer &, solid::protocol::Parameter &);
 	int receiveInputStream(
-		StreamPointer<InputStream> &_sptr,
+		solid::StreamPointer<solid::InputStream> &_sptr,
 		const FileUidT &_fuid,
 		int			_which,
 		const ObjectUidT&,
-		const foundation::ipc::ConnectionUid *
+		const solid::frame::ipc::ConnectionUid *
 	);
 	int receiveError(
 		int _errid,
 		const ObjectUidT&_from,
-		const foundation::ipc::ConnectionUid *
+		const solid::frame::ipc::ConnectionUid *
 	);
 	int receiveNumber(
 		const int64 &_no,
 		int			_which,
 		const ObjectUidT&_from,
-		const foundation::ipc::ConnectionUid *_conid
+		const solid::frame::ipc::ConnectionUid *_conid
 	);
 private:
 	enum State{
@@ -156,23 +164,23 @@ private:
 	int doSendFirstData(Writer &_rw);
 	int doSendNextData(Writer &_rw);
 private:
-	String							strpth;
-	String							straddr;
-	String							port;
-	Connection						&rc;
-	int16 							state;
-	uint64							litsz;
-	protocol::Parameter				*pp;
-	//FileUidT						fuid;
+	String										strpth;
+	String										straddr;
+	String										port;
+	Connection									&rc;
+	int16 										state;
+	uint64										litsz;
+	solid::protocol::Parameter					*pp;
 	
-	StreamPointer<InputStream>		sp_in;
-	StreamPointer<InputStream>		sp_out;
-	InputStreamIterator				it;
-	foundation::ipc::ConnectionUid	ipcconuid;
-	SignalUidT						mastersiguid;
-	uint32							tmpstreamcp;//temp stream capacity
-	uint64							streamsz_out;
-	uint32							streamsz_in;
+	
+	solid::StreamPointer<solid::InputStream>	sp_in;
+	solid::StreamPointer<solid::InputStream>	sp_out;
+	solid::InputStreamIterator					it;
+	solid::frame::ipc::ConnectionUid			ipcconuid;
+	MessageUidT									mastermsguid;
+	uint32										tmpstreamcp;//temp stream capacity
+	uint64										streamsz_out;
+	uint32										streamsz_in;
 };
 //! Store a file locally
 /*!
@@ -186,29 +194,29 @@ public:
 	Store(Connection &);
 	~Store();
 	void initReader(Reader &);
-	int reinitReader(Reader &, protocol::Parameter &);
+	int reinitReader(Reader &, solid::protocol::Parameter &);
 	int execute(Connection &);
 	int receiveOutputStream(
-		StreamPointer<OutputStream> &_sptr,
+		solid::StreamPointer<solid::OutputStream> &_sptr,
 		const FileUidT &_fuid,
 		int			_which,
 		const ObjectUidT&,
-		const foundation::ipc::ConnectionUid *
+		const solid::frame::ipc::ConnectionUid *
 	);
 	int receiveError(
 		int _errid,
 		const ObjectUidT&_from,
-		const foundation::ipc::ConnectionUid *
+		const solid::frame::ipc::ConnectionUid *
 	);
-	int reinitWriter(Writer &, protocol::Parameter &);
+	int reinitWriter(Writer &, solid::protocol::Parameter &);
 private:
-	String					strpth;//the file path
-	StreamPointer<OutputStream>	sp;
-	OutputStreamIterator			it;
-	Connection				&rc;
-	int 					st;
-	uint32					litsz;
-	uint64					litsz64;
+	String										strpth;//the file path
+	solid::StreamPointer<solid::OutputStream>	sp;
+	solid::OutputStreamIterator					it;
+	Connection									&rc;	
+	int 										st;
+	uint32										litsz;
+	uint64										litsz64;
 };
 
 //! Lists one level of the requested path
@@ -227,7 +235,7 @@ public:
 	void initReader(Reader &);
 	int execute(Connection &);
 	
-	int reinitWriter(Writer &, protocol::Parameter &);
+	int reinitWriter(Writer &, solid::protocol::Parameter &);
 private:
 	String					strpth;
 	fs::directory_iterator 	it,end;
@@ -254,21 +262,21 @@ public:
 	void initReader(Reader &);
 	int execute(Connection &);
 	
-	int reinitWriter(Writer &, protocol::Parameter &);
+	int reinitWriter(Writer &, solid::protocol::Parameter &);
 	int receiveData(
 		void *_pdata,
 		int _datasz,
 		int			_which, 
 		const ObjectUidT&_from,
-		const foundation::ipc::ConnectionUid *_conid
+		const solid::frame::ipc::ConnectionUid *_conid
 	);
 	int receiveError(
 		int _errid, 
 		const ObjectUidT&_from,
-		const foundation::ipc::ConnectionUid *_conid
+		const solid::frame::ipc::ConnectionUid *_conid
 	);
 	template <int U>
-	int reinitReader(Reader &, protocol::Parameter &);
+	int reinitReader(Reader &, solid::protocol::Parameter &);
 private:
 	struct HostAddr{
 		String	addr;
@@ -282,7 +290,7 @@ private:
 	PathListT					*ppthlst;
 	PathListT::const_iterator	it;
 	int							state;
-	protocol::Parameter			*pp;
+	solid::protocol::Parameter	*pp;
 };
 
 
@@ -354,13 +362,13 @@ public:
 	~Idle();
 	void initReader(Reader &);
 	int execute(Connection &);
-	int reinitWriter(Writer &, protocol::Parameter &);
+	int reinitWriter(Writer &, solid::protocol::Parameter &);
 	/*virtual*/ int receiveInputStream(
-		StreamPointer<InputStream> &,
+		solid::StreamPointer<solid::InputStream> &,
 		const FileUidT&,
 		int			_which,
 		const ObjectUidT&_from,
-		const foundation::ipc::ConnectionUid *_conid
+		const solid::frame::ipc::ConnectionUid *_conid
 	);
 // 	virtual int receiveOutputStream(
 // 		StreamPointer<OutputStream> &,
@@ -376,18 +384,18 @@ public:
 		const String &_str,
 		int			_which,
 		const ObjectUidT&_from,
-		const foundation::ipc::ConnectionUid *_conid
+		const solid::frame::ipc::ConnectionUid *_conid
 	);
 private:
 	enum Type{LocalStringType, PeerStringType, LocalStreamType, PeerStreamType};
-	Queue<Type>					typeq;
-	Queue<String>				stringq;
-	Queue<ObjectUidT>			fromq;
-	Queue<foundation::ipc::ConnectionUid>	conidq;
-	Queue<StreamPointer<InputStream> >	streamq;
-	Connection					&rc;
-	InputStreamIterator				it;
-	uint64						litsz64;
+	solid::Queue<Type>										typeq;
+	solid::Queue<String>									stringq;
+	solid::Queue<ObjectUidT>								fromq;
+	solid::Queue<solid::frame::ipc::ConnectionUid>			conidq;
+	solid::Queue<solid::StreamPointer<solid::InputStream> >	streamq;
+	Connection												&rc;
+	solid::InputStreamIterator								it;
+	uint64													litsz64;
 };
 
 }//namespace alpha

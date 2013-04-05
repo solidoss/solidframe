@@ -39,7 +39,7 @@ using namespace solid;
 namespace concept{
 
 
-Service::Service():frame::Service(Manager::the()){
+Service::Service(Manager &_rm):frame::Service(_rm){
 }
 
 Service::~Service(){

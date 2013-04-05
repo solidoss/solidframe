@@ -20,49 +20,40 @@
 */
 
 #include "system/debug.hpp"
-#include "foundation/objectpointer.hpp"
+#include "utility/dynamicpointer.hpp"
 
 #include "core/manager.hpp"
-#include "core/listener.hpp"
 
 #include "proxy/proxyservice.hpp"
 #include "proxymulticonnection.hpp"
 
-namespace fdt = foundation;
+using namespace solid;
 
 namespace concept{
 namespace proxy{
 
-concept::proxy::Service* Service::create(){
-	return new Service;
-}
-
-Service::Service(){
+Service::Service(Manager &_rm):BaseT(_rm){
 }
 
 Service::~Service(){
 }
 
 ObjectUidT Service::insertConnection(
-	const SocketDevice &_rsd,
-	foundation::aio::openssl::Context *_pctx,
+	const solid::ResolveData &_rai,
+	solid::frame::aio::openssl::Context *_pctx,
 	bool _secure
 ){
-	fdt::ObjectPointer<MultiConnection> conptr(new MultiConnection(_rsd));
-	return this->insert<AioSchedulerT>(conptr, 0);
+	return frame::invalid_uid();
 }
-
-ObjectUidT Service::insertConnection(
-	const ResolveIterator &_rai,
-	const char *_node,
-	const char *_svc
+/*virtual*/ ObjectUidT Service::insertConnection(
+	const solid::SocketDevice &_rsd,
+	solid::frame::aio::openssl::Context *_pctx,
+	bool _secure
 ){
-	return fdt::invalid_uid();
-}
-
-void Service::eraseObject(const MultiConnection &_ro){
-	ObjectUidT objuid(_ro.uid());
-	idbg("proxy "<<fdt::Manager::the().computeServiceId(objuid.first)<<' '<<fdt::Manager::the().computeIndex(objuid.first)<<' '<<objuid.second);
+	DynamicPointer<frame::aio::Object>	conptr(new MultiConnection(_rsd));
+	ObjectUidT rv = this->registerObject(*conptr);
+	Manager::the().scheduleAioObject(conptr);
+	return rv;
 }
 
 }//namespace proxy

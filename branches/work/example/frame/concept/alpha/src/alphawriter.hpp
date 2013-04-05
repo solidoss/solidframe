@@ -22,7 +22,10 @@
 #ifndef ALPHA_WRITER_HPP
 #define ALPHA_WRITER_HPP
 
-#include "algorithm/protocol/writer.hpp"
+#include "protocol/writer.hpp"
+#include "core/tstring.hpp"
+
+using solid::uint32;
 
 namespace concept{
 namespace alpha{
@@ -32,28 +35,28 @@ class Connection;
 	Extends the interface of the protocol::Writer, and implements
 	the requested virtual methods.
 */
-class Writer: public protocol::Writer{
+class Writer: public solid::protocol::Writer{
 public:
-	Writer(protocol::Logger *_plog = NULL);
+	Writer(solid::protocol::Logger *_plog = NULL);
 	~Writer();
 	void clear();
 	//! Asynchrounously writes an astring (atom/quoted/literal)
-	static int putAString(protocol::Writer &_rw, protocol::Parameter &_rp);
+	static int putAString(solid::protocol::Writer &_rw, solid::protocol::Parameter &_rp);
 	//! Asynchrounously writes the command's status (the last line of the command
-	static int putStatus(protocol::Writer &_rw, protocol::Parameter &_rp);
+	static int putStatus(solid::protocol::Writer &_rw, solid::protocol::Parameter &_rp);
 	//! Asynchrounously writes a CRLF
-	static int putCrlf(protocol::Writer &_rw, protocol::Parameter &_rp);
+	static int putCrlf(solid::protocol::Writer &_rw, solid::protocol::Parameter &_rp);
 	//! Asynchrounously clears the writer data
-	static int clear(protocol::Writer &_rw, protocol::Parameter &_rp);
+	static int clear(solid::protocol::Writer &_rw, solid::protocol::Parameter &_rp);
 	template <class C>
-	static int reinit(protocol::Writer &_rw, protocol::Parameter &_rp){
+	static int reinit(solid::protocol::Writer &_rw, solid::protocol::Parameter &_rp){
 		return reinterpret_cast<C*>(_rp.a.p)->reinitWriter(static_cast<Writer&>(_rw), _rp);
 	}
 	String &message(){return msgs;}
 	String &tag(){return tags;}
 private:
 	//! Asynchrounously writes a quoted string
-	static int putQString(protocol::Writer &_rw, protocol::Parameter &_rp);
+	static int putQString(solid::protocol::Writer &_rw, solid::protocol::Parameter &_rp);
 	/*virtual*/ int write(char *_pb, uint32 _bl);
 	//virtual int doManage(int _mo);
 private:

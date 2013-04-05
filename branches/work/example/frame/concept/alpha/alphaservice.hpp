@@ -42,15 +42,17 @@ public:
 	Service(Manager &_rm);
 	~Service();
 	ObjectUidT insertConnection(
-		const solid::SocketDevice &_rsd,
-		solid::frame::aio::openssl::Context *_pctx,
-		bool _secure
-	);
-	ObjectUidT insertConnection(
 		solid::ResolveData &_rai,
 		solid::frame::aio::openssl::Context *_pctx,
 		bool _secure
 	);
+private:
+	/*virtual*/ ObjectUidT insertConnection(
+		const solid::SocketDevice &_rsd,
+		solid::frame::aio::openssl::Context *_pctx,
+		bool _secure
+	);
+
 };
 
 }//namespace alpha

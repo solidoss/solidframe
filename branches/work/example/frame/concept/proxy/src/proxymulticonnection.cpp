@@ -28,16 +28,17 @@
 #include "system/mutex.hpp"
 #include "system/timespec.hpp"
 
-namespace fdt=foundation;
+using namespace solid;
 //static const char	*hellostr = "Welcome to proxy service!!!\r\n"; 
 
 namespace concept{
 
 namespace proxy{
 
-MultiConnection::MultiConnection(const char *_node, const char *_srv): 
-									//bend(bbeg + BUFSZ),brpos(bbeg),bwpos(bbeg),
-									b(false){
+MultiConnection::MultiConnection(
+	const char *_node,
+	const char *_srv
+): b(false){
 	cassert(false);
 }
 MultiConnection::MultiConnection(const SocketDevice &_rsd):
@@ -68,8 +69,8 @@ enum{
 	};
 int MultiConnection::execute(ulong _sig, TimeSpec &_tout){
 	idbg("time.sec "<<_tout.seconds()<<" time.nsec = "<<_tout.nanoSeconds());
-	if(_sig & (fdt::TIMEOUT | fdt::ERRDONE | fdt::TIMEOUT_RECV | fdt::TIMEOUT_SEND)){
-		idbg("connecton timeout or error : tout "<<fdt::TIMEOUT<<" err "<<fdt::ERRDONE<<" toutrecv "<<fdt::TIMEOUT_RECV<<" tout send "<<fdt::TIMEOUT_SEND);
+	if(_sig & (frame::TIMEOUT | frame::ERRDONE | frame::TIMEOUT_RECV | frame::TIMEOUT_SEND)){
+		idbg("connecton timeout or error : tout "<<frame::TIMEOUT<<" err "<<frame::ERRDONE<<" toutrecv "<<frame::TIMEOUT_RECV<<" tout send "<<frame::TIMEOUT_SEND);
 		//We really need this check as epoll upsets if we register an unconnected socket
 		if(state() != CONNECT){
 			//lets see which socket has timeout:
@@ -81,23 +82,23 @@ int MultiConnection::execute(ulong _sig, TimeSpec &_tout){
 			return BAD;
 		}
 	}
-	if(signaled()){
+	if(notified()){
 		concept::Manager &rm = concept::Manager::the();
 		{
 		Locker<Mutex>	lock(rm.mutex(*this));
 		ulong sm = grabSignalMask();
-		if(sm & fdt::S_KILL) return BAD;
+		if(sm & frame::S_KILL) return BAD;
 		}
 	}
 	int rv = NOK;
 	switch(state()){
 		case READ_ADDR:
-			idbgx(Dbg::any, "READ_ADDR");
+			idbgx(Debug::any, "READ_ADDR");
 		case READ_PORT:
-			idbgx(Dbg::any, "READ_PORT");
+			idbgx(Debug::any, "READ_PORT");
 			return doReadAddress();
 		case REGISTER_CONNECTION:{
-			idbgx(Dbg::any, "REGISTER_CONNECTION");
+			idbgx(Debug::any, "REGISTER_CONNECTION");
 			rd = synchronous_resolve(addr.c_str(), port.c_str());
 			it = rd.begin();
 			SocketDevice	sd;
@@ -111,48 +112,48 @@ int MultiConnection::execute(ulong _sig, TimeSpec &_tout){
 			while(this->signaledSize()){
 				this->signaledPop();
 			}
-			idbgx(Dbg::any, "CONNECT");
+			idbgx(Debug::any, "CONNECT");
 			switch(socketConnect(1, it)){
 				case BAD:
-					idbgx(Dbg::any, "BAD");
+					idbgx(Debug::any, "BAD");
 					return BAD;
 				case OK:
 					state(SEND_REMAINS);
-					idbgx(Dbg::any, "OK");
+					idbgx(Debug::any, "OK");
 					return OK;
 				case NOK:
 					state(CONNECT_TOUT);
-					idbgx(Dbg::any, "NOK");
+					idbgx(Debug::any, "NOK");
 					return NOK;
 			};
 		case CONNECT_TOUT:{
-			idbgx(Dbg::any, "CONNECT_TOUT");
+			idbgx(Debug::any, "CONNECT_TOUT");
 			uint32 evs = socketEvents(1);
 			socketState(0, Receive);
 			socketState(1, Receive);
-			if(!evs || !(evs & fdt::OUTDONE)) return BAD;
+			if(!evs || !(evs & frame::OUTDONE)) return BAD;
 			state(SEND_REMAINS);
 			}
 		case SEND_REMAINS:{
-			idbgx(Dbg::any, "SEND_REMAINS");
+			idbgx(Debug::any, "SEND_REMAINS");
 			state(PROXY);
 			if(bp != be){
 				switch(socketSend(1, bp, be - bp)){
 					case BAD:
-						idbgx(Dbg::any, "BAD");
+						idbgx(Debug::any, "BAD");
 						return BAD;
 					case OK:
-						idbgx(Dbg::any, "OK");
+						idbgx(Debug::any, "OK");
 						break;
 					case NOK:
 						stubs[0].recvbuf.usecnt = 1;
-						idbgx(Dbg::any, "NOK");
+						idbgx(Debug::any, "NOK");
 						return NOK;
 				}
 			}
 			}
 		case PROXY:
-			idbgx(Dbg::any, "PROXY");
+			idbgx(Debug::any, "PROXY");
 			rv =  doProxy(_tout);
 	}
 	while(this->signaledSize()){
@@ -165,7 +166,7 @@ int MultiConnection::doReadAddress(){
 	char *bb = bp;
 	switch(state()){
 		case READ_ADDR:
-			idbgx(Dbg::any, "READ_ADDR");
+			idbgx(Debug::any, "READ_ADDR");
 			while(bp != be){
 				if(*bp == ' ') break;
 				++bp;
@@ -177,7 +178,7 @@ int MultiConnection::doReadAddress(){
 			++bp;
 			state(READ_PORT);
 		case READ_PORT:
-			idbgx(Dbg::any, "READ_PORT");
+			idbgx(Debug::any, "READ_PORT");
 			bb = bp;
 			while(bp != be){
 				if(*bp == '\n') break;
@@ -199,8 +200,8 @@ int MultiConnection::doReadAddress(){
 }
 int MultiConnection::doProxy(const TimeSpec &_tout){
 	int retv = NOK;
-	if((socketEvents(0) & fdt::ERRDONE) || (socketEvents(1) & fdt::ERRDONE)){
-		idbg("bad errdone "<<socketEvents(1)<<' '<<fdt::ERRDONE);
+	if((socketEvents(0) & frame::ERRDONE) || (socketEvents(1) & frame::ERRDONE)){
+		idbg("bad errdone "<<socketEvents(1)<<' '<<frame::ERRDONE);
 		return BAD;
 	}
 	switch(socketState(0)){
@@ -224,7 +225,7 @@ int MultiConnection::doProxy(const TimeSpec &_tout){
 			break;
 		case ReceiveWait:
 			idbg("receivewait 0");
-			if(socketEvents(0) & fdt::INDONE){
+			if(socketEvents(0) & frame::INDONE){
 				socketState(0, Send);
 			}else break;
 		case Send:
@@ -247,7 +248,7 @@ int MultiConnection::doProxy(const TimeSpec &_tout){
 			break;
 		case SendWait:
 			idbg("sendwait 0");
-			if(socketEvents(1) & fdt::OUTDONE){
+			if(socketEvents(1) & frame::OUTDONE){
 				socketState(0, Receive);
 			}
 			break;
@@ -274,7 +275,7 @@ int MultiConnection::doProxy(const TimeSpec &_tout){
 			break;
 		case ReceiveWait:
 			idbg("receivewait 1");
-			if(socketEvents(1) & fdt::INDONE){
+			if(socketEvents(1) & frame::INDONE){
 				socketState(1, Send);
 			}else break;
 		case Send:
@@ -297,7 +298,7 @@ int MultiConnection::doProxy(const TimeSpec &_tout){
 			break;
 		case SendWait:
 			idbg("sendwait 1");
-			if(socketEvents(0) & fdt::OUTDONE){
+			if(socketEvents(0) & frame::OUTDONE){
 				socketState(1, Receive);
 				retv = OK;
 			}
@@ -308,7 +309,7 @@ int MultiConnection::doProxy(const TimeSpec &_tout){
 }
 
 int MultiConnection::doRefill(){
-	idbgx(Dbg::any, "");
+	idbgx(Debug::any, "");
 	if(bp == NULL){//we need to issue a read
 		switch(socketRecv(0, stubs[0].recvbuf.data, Buffer::Capacity)){
 			case BAD:	return BAD;
@@ -319,15 +320,15 @@ int MultiConnection::doRefill(){
 			case NOK:
 				be = NULL;
 				bp = stubs[0].recvbuf.data;
-				idbgx(Dbg::any, "NOK");
+				idbgx(Debug::any, "NOK");
 				return NOK;
 		}
 	}
 	if(be == NULL){
-		if(socketEvents(0) & fdt::INDONE){
+		if(socketEvents(0) & frame::INDONE){
 			be = stubs[0].recvbuf.data + socketRecvSize(0);
 		}else{
-			idbgx(Dbg::any, "NOK");
+			idbgx(Debug::any, "NOK");
 			return NOK;
 		}
 	}

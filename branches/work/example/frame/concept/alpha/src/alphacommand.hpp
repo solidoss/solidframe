@@ -27,8 +27,13 @@
 #include "core/tstring.hpp"
 #include "system/specific.hpp"
 
+namespace solid{
 class InputStream;
 class OutputStream;
+}
+
+using solid::int64;
+using solid::uint64;
 
 namespace concept{
 
@@ -39,7 +44,7 @@ namespace alpha{
 class Connection;
 class Reader;
 //! A base class for all alpha protocol commands
-class Command: public SpecificObject{
+class Command: public solid::SpecificObject{
 protected:
 	Command();
 public:
@@ -54,34 +59,34 @@ public:
 	//received from filemanager
 	//! Receive an istream
 	virtual int receiveInputStream(
-		StreamPointer<InputStream> &,
+		solid::StreamPointer<solid::InputStream> &,
 		const FileUidT &,
 		int			_which,
 		const ObjectUidT&_from,
-		const foundation::ipc::ConnectionUid *_conid
+		const solid::frame::ipc::ConnectionUid *_conid
 	);
 	//! Receive an ostream
 	virtual int receiveOutputStream(
-		StreamPointer<OutputStream> &,
+		solid::StreamPointer<solid::OutputStream> &,
 		const FileUidT &,
 		int			_which,
 		const ObjectUidT&_from,
-		const foundation::ipc::ConnectionUid *_conid
+		const solid::frame::ipc::ConnectionUid *_conid
 	);
 	//! Receive an iostream
 	virtual int receiveInputOutputStream(
-		StreamPointer<InputOutputStream> &,
+		solid::StreamPointer<solid::InputOutputStream> &,
 		const FileUidT &,
 		int			_which,
 		const ObjectUidT&_from,
-		const foundation::ipc::ConnectionUid *_conid
+		const solid::frame::ipc::ConnectionUid *_conid
 	);
 	//! Receive a string
 	virtual int receiveString(
 		const String &_str,
 		int			_which, 
 		const ObjectUidT&_from,
-		const foundation::ipc::ConnectionUid *_conid
+		const solid::frame::ipc::ConnectionUid *_conid
 	);
 	//! Receive data
 	virtual int receiveData(
@@ -89,20 +94,20 @@ public:
 		int _datasz,
 		int			_which, 
 		const ObjectUidT&_from,
-		const foundation::ipc::ConnectionUid *_conid
+		const solid::frame::ipc::ConnectionUid *_conid
 	);
 	//! Receive a number
 	virtual int receiveNumber(
 		const int64 &_no,
 		int			_which,
 		const ObjectUidT&_from,
-		const foundation::ipc::ConnectionUid *_conid
+		const solid::frame::ipc::ConnectionUid *_conid
 	);
 	//! Receive an error code
 	virtual int receiveError(
 		int _errid,
 		const ObjectUidT&_from,
-		const foundation::ipc::ConnectionUid *_conid
+		const solid::frame::ipc::ConnectionUid *_conid
 	);
 
 };

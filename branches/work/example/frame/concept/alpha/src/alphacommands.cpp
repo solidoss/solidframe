@@ -27,24 +27,24 @@
 
 #include "utility/iostream.hpp"
 
-#include "algorithm/protocol/namematcher.hpp"
+#include "protocol/namematcher.hpp"
 
-#include "foundation/ipc/ipcservice.hpp"
-#include "foundation/ipc/ipcservice.hpp"
-#include "foundation/file/filemanager.hpp"
-#include "foundation/file/filekeys.hpp"
-#include "foundation/signalexecuter.hpp"
-#include "foundation/requestuid.hpp"
+#include "frame/ipc/ipcservice.hpp"
+#include "frame/ipc/ipcservice.hpp"
+#include "frame/file/filemanager.hpp"
+#include "frame/file/filekeys.hpp"
+#include "frame/messagesteward.hpp"
+#include "frame/requestuid.hpp"
 
 #include "core/common.hpp"
 #include "core/tstring.hpp"
 #include "core/manager.hpp"
-#include "core/signals.hpp"
+#include "core/messages.hpp"
 
 
 #include "alphaconnection.hpp"
 #include "alphacommands.hpp"
-#include "alphasignals.hpp"
+#include "alphamessages.hpp"
 #include "alphawriter.hpp"
 #include "alphareader.hpp"
 #include "alphaconnection.hpp"
@@ -53,7 +53,7 @@
 
 #define StrDef(x) (void*)x, sizeof(x) - 1
 
-namespace fdt=foundation;
+using namespace solid;
 
 namespace concept{
 namespace alpha{
@@ -93,7 +93,7 @@ struct Cmd{
 static const protocol::NameMatcher cmdm(cmds);
 //---------------------------------------------------------------
 /*
-	The creator method called by fdt::Reader::fetchKey when the 
+	The creator method called by frame::Reader::fetchKey when the 
 	command name was parsed.
 	All it does is to create the proper command, which in turn,
 	will instruct the reader how to parse itself.
@@ -296,12 +296,12 @@ int RemoteList::execute(Connection &_rc){
 		hostvec.pop_back();
 	}
 	
-	DynamicSharedPointer<RemoteListSignal>	sig_sp(new RemoteListSignal(pausems, hostvec.size()));
+	DynamicSharedPointer<RemoteListMessage>	sig_sp(new RemoteListMessage(pausems, hostvec.size()));
 	
 	sig_sp->strpth = strpth;
 	sig_sp->requid = _rc.newRequestId();
 	sig_sp->fromv.first = _rc.id();
-	sig_sp->fromv.second = Manager::the().uid(_rc);
+	sig_sp->fromv.second = Manager::the().id(_rc).second;
 	
 	for(HostAddrVectorT::const_iterator it(hostvec.begin()); it != hostvec.end(); ++it){
 		const String &straddr(it->addr);
@@ -310,8 +310,8 @@ int RemoteList::execute(Connection &_rc){
 		ResolveData rd = synchronous_resolve(straddr.c_str(), port.c_str(), 0, SocketInfo::Inet4, SocketInfo::Stream);
 		if(!rd.empty()){
 			state = Wait;
-			DynamicPointer<fdt::Signal> sigptr(sig_sp);
-			Manager::the().ipc().sendSignal(sigptr, rd.begin(), it->netid/*, fdt::ipc::Service::SameConnectorFlag*/);
+			DynamicPointer<frame::Message> msgptr(sig_sp);
+			Manager::the().ipc().sendMessage(msgptr, rd.begin(), it->netid/*, frame::ipc::Service::SameConnectorFlag*/);
 			_rc.writer().push(&Writer::reinit<RemoteList>, protocol::Parameter(this));
 		}else{
 			*pp = protocol::Parameter(StrDef(" NO REMOTELIST: no such peer address@"));
@@ -351,7 +351,7 @@ int RemoteList::receiveData(
 	int _datasz,
 	int	_which, 
 	const ObjectUidT&_from,
-	const foundation::ipc::ConnectionUid *_conid
+	const solid::frame::ipc::ConnectionUid *_conid
 ){
 	ppthlst = reinterpret_cast<PathListT*>(_pdata);
 	if(ppthlst){
@@ -365,7 +365,7 @@ int RemoteList::receiveData(
 int RemoteList::receiveError(
 	int _errid, 
 	const ObjectUidT&_from,
-	const fdt::ipc::ConnectionUid *_conid
+	const frame::ipc::ConnectionUid *_conid
 ){
 	state = SendError;
 	return OK;
@@ -411,7 +411,7 @@ int Fetch::execute(Connection &_rc){
 int Fetch::doInitLocal(){
 	idbg(""<<(void*)this);
 	//try to open stream to localfile
-	fdt::RequestUid reqid(rc.id(), Manager::the().uid(rc), rc.newRequestId());
+	frame::RequestUid reqid(rc.id(), Manager::the().id(rc).second, rc.newRequestId());
 	int rv = Manager::the().fileManager().stream(sp_out, reqid, strpth.c_str());
 	switch(rv){
 		case BAD: 
@@ -432,8 +432,8 @@ int Fetch::doInitLocal(){
 
 int Fetch::doGetTempStream(uint32 _sz){
 	idbg(""<<(void*)this<<" "<<_sz);
-	fdt::file::MemoryKey	tk(_sz);
-	fdt::RequestUid		reqid(rc.id(), Manager::the().uid(rc), rc.newRequestId());
+	frame::file::MemoryKey	tk(_sz);
+	frame::RequestUid		reqid(rc.id(), Manager::the().id(rc).second, rc.newRequestId());
 	streamsz_in = _sz;
 	FileUidT	fuid;
 	int rv = Manager::the().fileManager().stream(sp_out, fuid, reqid, tk);
@@ -457,17 +457,17 @@ void Fetch::doSendMaster(const FileUidT &_fuid){
 	idbg("addr"<<straddr<<" port = "<<port);
 	if(!rd.empty()){
 		//send the master remote command
-		FetchMasterSignal *psig(new FetchMasterSignal);
+		FetchMasterMessage *pmsg(new FetchMasterMessage);
 		//TODO: add a convenient init method to fetchmastercommand
-		psig->fname = strpth;
-		psig->requid = rc.newRequestId();
-		psig->fromv.first = rc.id();
-		psig->fromv.second = Manager::the().uid(rc);
-		psig->tmpfuid = _fuid;
-		psig->streamsz = streamsz_in;
+		pmsg->fname = strpth;
+		pmsg->requid = rc.newRequestId();
+		pmsg->fromv.first = rc.id();
+		pmsg->fromv.second = Manager::the().id(rc).second;
+		pmsg->tmpfuid = _fuid;
+		pmsg->streamsz = streamsz_in;
 		state = WaitRemoteStream;
-		DynamicPointer<fdt::Signal> sigptr(psig);
-		Manager::the().ipc().sendSignal(sigptr, rd.begin());
+		DynamicPointer<frame::Message> msgptr(pmsg);
+		Manager::the().ipc().sendMessage(msgptr, rd.begin());
 	}else{
 		*pp = protocol::Parameter(StrDef(" NO FETCH: no such peer address@"));
 		state = ReturnOk;
@@ -476,20 +476,20 @@ void Fetch::doSendMaster(const FileUidT &_fuid){
 
 void Fetch::doSendSlave(const FileUidT &_fuid){
 	idbg(""<<(void*)this<<' '<<_fuid.first<<' '<<_fuid.second);
-	FetchSlaveSignal *psig(new FetchSlaveSignal);
-	psig->fromv.first = rc.id();
-	psig->fromv.second = Manager::the().uid(rc);
-	psig->requid = rc.newRequestId();
-	psig->siguid = mastersiguid;
-	psig->fuid = _fuid;
-	psig->streamsz = streamsz_in;
-	DynamicPointer<fdt::Signal> sigptr(psig);
-	int rv = Manager::the().ipc().sendSignal(sigptr, ipcconuid);
-	idbg("rv = "<<rv);
-	if(rv == BAD){
-		*pp = protocol::Parameter(StrDef(" NO FETCH: peer died@"));
-		state = ReturnBad;
-	}
+	FetchSlaveMessage *pmsg(new FetchSlaveMessage);
+	pmsg->fromv.first = rc.id();
+	pmsg->fromv.second = Manager::the().id(rc).second;
+	pmsg->requid = rc.newRequestId();
+	pmsg->msguid = mastermsguid;
+	pmsg->fuid = _fuid;
+	pmsg->streamsz = streamsz_in;
+	DynamicPointer<frame::Message> msgptr(pmsg);
+	Manager::the().ipc().sendMessage(msgptr, ipcconuid);
+//	idbg("rv = "<<rv);
+// 	if(rv == BAD){
+// 		*pp = protocol::Parameter(StrDef(" NO FETCH: peer died@"));
+// 		state = ReturnBad;
+// 	}
 }
 
 int Fetch::doSendFirstData(Writer &_rw){
@@ -590,7 +590,7 @@ int Fetch::receiveInputStream(
 	const FileUidT &_fuid,
 	int			_which,
 	const ObjectUidT&,
-	const foundation::ipc::ConnectionUid *
+	const solid::frame::ipc::ConnectionUid *
 ){
 	//sp_out =_sptr;
 	//fuid = _fuid;
@@ -615,9 +615,9 @@ int Fetch::receiveNumber(
 	const int64 &_no,
 	int			_which,
 	const ObjectUidT& _objuid,
-	const foundation::ipc::ConnectionUid *_pconuid
+	const solid::frame::ipc::ConnectionUid *_pconuid
 ){
-	mastersiguid = _objuid;
+	mastermsguid = _objuid;
 	cassert(_pconuid);
 	ipcconuid = *_pconuid;
 	if(litsz != -1){//continued
@@ -636,7 +636,7 @@ int Fetch::receiveNumber(
 int Fetch::receiveError(
 	int _errid,
 	const ObjectUidT&_from,
-	const foundation::ipc::ConnectionUid *
+	const solid::frame::ipc::ConnectionUid *
 ){
 	switch(state){
 		case WaitLocalStream:
@@ -679,8 +679,8 @@ void Store::initReader(Reader &_rr){
 int Store::reinitReader(Reader &_rr, protocol::Parameter &_rp){
 	switch(_rp.b.i){
 		case Init:{
-			fdt::RequestUid reqid(rc.id(), Manager::the().uid(rc), rc.newRequestId());
-			int rv = Manager::the().fileManager().stream(sp, reqid, strpth.c_str(), fdt::file::Manager::Create);
+			frame::RequestUid reqid(rc.id(), Manager::the().id(rc).second, rc.newRequestId());
+			int rv = Manager::the().fileManager().stream(sp, reqid, strpth.c_str(), frame::file::Manager::Create);
 			switch(rv){
 				case BAD: return Reader::Ok;
 				case OK:
@@ -730,7 +730,7 @@ int Store::receiveOutputStream(
 	const FileUidT &_fuid,
 	int			_which,
 	const ObjectUidT&,
-	const foundation::ipc::ConnectionUid *
+	const solid::frame::ipc::ConnectionUid *
 ){
 	idbg("received stream");
 	sp = _sptr;
@@ -741,7 +741,7 @@ int Store::receiveOutputStream(
 int Store::receiveError(
 	int _errid,
 	const ObjectUidT&_from,
-	const foundation::ipc::ConnectionUid *
+	const solid::frame::ipc::ConnectionUid *
 ){
 	idbg("received error");
 	st = BAD;
@@ -773,14 +773,14 @@ void SendString::initReader(Reader &_rr){
 int SendString::execute(alpha::Connection &_rc){
 	Manager &rm(Manager::the());
 	ulong	fromobjid(_rc.id());//the id of the current connection
-	uint32	fromobjuid(rm.uid(_rc));//the uid of the current connection
+	uint32	fromobjuid(rm.id(_rc).second);//the uid of the current connection
 	ResolveData rd = synchronous_resolve(addr.c_str(), port, 0, SocketInfo::Inet4, SocketInfo::Stream);
 	idbg("addr"<<addr<<"str = "<<str<<" port = "<<port<<" objid = "<<" objuid = "<<objuid);
 	protocol::Parameter &rp = _rc.writer().push(&Writer::putStatus);
 	if(!rd.empty()){
 		rp = protocol::Parameter(StrDef(" OK Done SENDSTRING@"));
-		DynamicPointer<fdt::Signal> sigptr(new SendStringSignal(str, objid, objuid, fromobjid, fromobjuid));
-		rm.ipc().sendSignal(sigptr, rd.begin());
+		DynamicPointer<frame::Message> msgptr(new SendStringMessage(str, objid, objuid, fromobjid, fromobjuid));
+		rm.ipc().sendMessage(msgptr, rd.begin());
 	}else{
 		rp = protocol::Parameter(StrDef(" NO SENDSTRING no such address@"));
 	}
@@ -811,8 +811,8 @@ int SendStream::execute(Connection &_rc){
 	Manager &rm(Manager::the());
 	uint32	myprocid(0);
 	uint32	fromobjid(_rc.id());
-	uint32	fromobjuid(rm.uid(_rc));
-	fdt::RequestUid reqid(_rc.id(), rm.uid(_rc), _rc.requestId()); 
+	uint32	fromobjuid(rm.id(_rc).second);
+	frame::RequestUid reqid(_rc.id(), rm.id(_rc).second, _rc.requestId()); 
 	StreamPointer<InputOutputStream>	sp;
 	int rv = Manager::the().fileManager().stream(sp, reqid, srcstr.c_str());
 	protocol::Parameter &rp = _rc.writer().push(&Writer::putStatus);
@@ -828,8 +828,8 @@ int SendStream::execute(Connection &_rc){
 			idbg("addr"<<addr<<"str = "<<srcstr<<" port = "<<port<<" objid = "<<" objuid = "<<objuid);
 			if(!rd.empty()){
 				rp = protocol::Parameter(StrDef(" OK Done SENDSTRING@"));
-				DynamicPointer<fdt::Signal> sigptr(new SendStreamSignal(sp, dststr, myprocid, objid, objuid, fromobjid, fromobjuid));
-				rm.ipc().sendSignal(sigptr, rd.begin());
+				DynamicPointer<frame::Message> msgptr(new SendStreamMessage(sp, dststr, myprocid, objid, objuid, fromobjid, fromobjuid));
+				rm.ipc().sendMessage(msgptr, rd.begin());
 			}else{
 				rp = protocol::Parameter(StrDef(" NO SENDSTRING no such address@"));
 			}
@@ -913,7 +913,7 @@ int Idle::receiveInputStream(
 	const FileUidT &,
 	int			_which,
 	const ObjectUidT&_from,
-	const fdt::ipc::ConnectionUid *_conid
+	const frame::ipc::ConnectionUid *_conid
 ){
 	if(_conid){
 		typeq.push(PeerStreamType);
@@ -931,7 +931,7 @@ int Idle::receiveString(
 	const String &_str,
 	int			_which,
 	const ObjectUidT&_from,
-	const fdt::ipc::ConnectionUid *_conid
+	const frame::ipc::ConnectionUid *_conid
 ){
 	if(typeq.size() && typeq.back() == PeerStreamType){
 		stringq.push(_str);
@@ -953,18 +953,18 @@ int Idle::receiveString(
 //---------------------------------------------------------------
 Command::Command(){}
 void Command::initStatic(Manager &_rm){
-	SignalTypeIds ids;
-	fdt::ipc::Service::the().typeMapper().insert<SendStringSignal>();
-	fdt::ipc::Service::the().typeMapper().insert<SendStreamSignal>();
-	ids.fetchmastercommand =  fdt::ipc::Service::the().typeMapper().insert<FetchMasterSignal>();
-	ids.fetchslavecommand = fdt::ipc::Service::the().typeMapper().insert<FetchSlaveSignal>();
-	ids.remotelistcommand = fdt::ipc::Service::the().typeMapper().insert<RemoteListSignal>();
-	ids.remotelistresponse = fdt::ipc::Service::the().typeMapper().insert<RemoteListSignal, NumberType<1> >();
+	MessageTypeIds ids;
+	Manager::the().ipc().typeMapper().insert<SendStringMessage>();
+	Manager::the().ipc().typeMapper().insert<SendStreamMessage>();
+	ids.fetchmastercommand =  Manager::the().ipc().typeMapper().insert<FetchMasterMessage>();
+	ids.fetchslavecommand = Manager::the().ipc().typeMapper().insert<FetchSlaveMessage>();
+	ids.remotelistcommand = Manager::the().ipc().typeMapper().insert<RemoteListMessage>();
+	ids.remotelistresponse = Manager::the().ipc().typeMapper().insert<RemoteListMessage, NumberType<1> >();
 	idbg("ids.fetchmastercommand = "<<ids.fetchmastercommand);
 	idbg("ids.fetchslavecommand = "<<ids.fetchslavecommand);
 	idbg("ids.remotelistcommand = "<<ids.remotelistcommand);
 	idbg("ids.remotelistresponse = "<<ids.remotelistresponse);
-	SignalTypeIds::the(&ids);
+	MessageTypeIds::the(&ids);
 }
 /*virtual*/ Command::~Command(){}
 
@@ -973,7 +973,7 @@ int Command::receiveInputStream(
 	const FileUidT &,
 	int			_which,
 	const ObjectUidT&_from,
-	const fdt::ipc::ConnectionUid *_conid
+	const frame::ipc::ConnectionUid *_conid
 ){
 	return BAD;
 }
@@ -982,7 +982,7 @@ int Command::receiveOutputStream(
 	const FileUidT &,
 	int			_which,
 	const ObjectUidT&_from,
-	const fdt::ipc::ConnectionUid *_conid
+	const frame::ipc::ConnectionUid *_conid
 ){
 	return BAD;
 }
@@ -991,7 +991,7 @@ int Command::receiveInputOutputStream(
 	const FileUidT &,
 	int			_which,
 	const ObjectUidT&_from,
-	const fdt::ipc::ConnectionUid *_conid
+	const frame::ipc::ConnectionUid *_conid
 ){
 	return BAD;
 }
@@ -999,7 +999,7 @@ int Command::receiveString(
 	const String &_str,
 	int			_which, 
 	const ObjectUidT&_from,
-	const fdt::ipc::ConnectionUid *_conid
+	const frame::ipc::ConnectionUid *_conid
 ){
 	return BAD;
 }
@@ -1008,7 +1008,7 @@ int receiveData(
 	int _datasz,
 	int			_which, 
 	const ObjectUidT&_from,
-	const foundation::ipc::ConnectionUid *_conid
+	const solid::frame::ipc::ConnectionUid *_conid
 ){
 	return BAD;
 }
@@ -1016,7 +1016,7 @@ int Command::receiveNumber(
 	const int64 &_no,
 	int			_which,
 	const ObjectUidT&_from,
-	const fdt::ipc::ConnectionUid *_conid
+	const frame::ipc::ConnectionUid *_conid
 ){
 	return BAD;
 }
@@ -1025,14 +1025,14 @@ int Command::receiveData(
 	int	_vsz,
 	int			_which,
 	const ObjectUidT&_from,
-	const fdt::ipc::ConnectionUid *_conid
+	const frame::ipc::ConnectionUid *_conid
 ){
 	return BAD;
 }
 int Command::receiveError(
 	int _errid,
 	const ObjectUidT&_from,
-	const foundation::ipc::ConnectionUid *_conid
+	const solid::frame::ipc::ConnectionUid *_conid
 ){
 	return BAD;
 }

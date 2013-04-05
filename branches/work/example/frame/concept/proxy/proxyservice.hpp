@@ -27,30 +27,21 @@
 namespace concept{
 namespace proxy{
 
-class MultiConnection;
-//class Talker;
-
-class Service: public Dynamic<Service, concept::Service>{
+class Service: public solid::Dynamic<Service, concept::Service>{
 public:
-	static concept::proxy::Service* create();
-	Service();
+	Service(Manager &_rm);
 	~Service();
 	ObjectUidT insertConnection(
-		const SocketDevice &_rsd,
-		foundation::aio::openssl::Context *_pctx,
+		const solid::ResolveData &_rai,
+		solid::frame::aio::openssl::Context *_pctx,
 		bool _secure
 	);
-/*	int insertTalker(
-		const ResolveIterator &_rai,
-		const char *_node,
-		const char *_svc
-	);*/
-	ObjectUidT insertConnection(
-		const ResolveIterator &_rai,
-		const char *_node,
-		const char *_svc
+private:
+	/*virtual*/ ObjectUidT insertConnection(
+		const solid::SocketDevice &_rsd,
+		solid::frame::aio::openssl::Context *_pctx,
+		bool _secure
 	);
-	void eraseObject(const MultiConnection &_ro);
 };
 
 }//namespace echo

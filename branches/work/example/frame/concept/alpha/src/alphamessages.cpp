@@ -7,90 +7,90 @@
 #include "system/filedevice.hpp"
 #include "system/mutex.hpp"
 
-#include "foundation/signalexecuter.hpp"
-#include "foundation/requestuid.hpp"
-#include "foundation/file/filemanager.hpp"
-#include "foundation/ipc/ipcservice.hpp"
+#include "frame/messagesteward.hpp"
+#include "frame/requestuid.hpp"
+#include "frame/file/filemanager.hpp"
+#include "frame/ipc/ipcservice.hpp"
 
 #include "core/common.hpp"
 #include "core/manager.hpp"
-#include "core/signals.hpp"
+#include "core/messages.hpp"
 
 
-#include "alphasignals.hpp"
+#include "alphamessages.hpp"
 #include "system/debug.hpp"
 
-namespace fdt=foundation;
+using namespace solid;
 
 namespace concept{
 
 namespace alpha{
 
-const SignalTypeIds& SignalTypeIds::the(const SignalTypeIds *_pids){
-	static const SignalTypeIds ids(*_pids);
+const MessageTypeIds& MessageTypeIds::the(const MessageTypeIds *_pids){
+	static const MessageTypeIds ids(*_pids);
 	return ids;
 }
 	
 //-----------------------------------------------------------------------------------
-// RemoteListSignal
+// RemoteListMessage
 //-----------------------------------------------------------------------------------
-RemoteListSignal::RemoteListSignal(
+RemoteListMessage::RemoteListMessage(
 	uint32 _tout, uint16 _sentcnt
 ): ppthlst(NULL),err(-1),tout(_tout), success(0), ipcstatus(IpcOnSender){
 	idbg(""<<(void*)this);
 }
-RemoteListSignal::RemoteListSignal(
+RemoteListMessage::RemoteListMessage(
 	const NumberType<1>&
 ):ppthlst(NULL), err(-1),tout(0), success(0), ipcstatus(IpcOnSender){
 	idbg(""<<(void*)this);
 }
-RemoteListSignal::~RemoteListSignal(){
+RemoteListMessage::~RemoteListMessage(){
 	idbg(""<<(void*)this<<" success = "<<(int)success<<" ipcstatus = "<<(int)ipcstatus);
 	if(ipcstatus == IpcOnSender && success <= 1){
 		idbg("failed receiving response");
-		m().signal(fdt::S_KILL | fdt::S_RAISE, fromv.first, fromv.second);
+		Manager::the().notify(frame::S_KILL | frame::S_RAISE, ObjectUidT(fromv.first, fromv.second));
 	}
 	delete ppthlst;
 }
-void RemoteListSignal::use(){
-	DynamicShared<fdt::Signal>::use();
+void RemoteListMessage::use(){
+	DynamicShared<frame::Message>::use();
 	idbg(""<<(void*)this<<" usecount = "<<usecount);
 }
-int RemoteListSignal::release(){
-	int rv = DynamicShared<fdt::Signal>::release();
+int RemoteListMessage::release(){
+	int rv = DynamicShared<frame::Message>::release();
 	idbg(""<<(void*)this<<" usecount = "<<usecount);
 	return rv;
 }
-uint32 RemoteListSignal::ipcPrepare(){
-	const foundation::ipc::ConnectionContext	&rsigctx(foundation::ipc::ConnectionContext::the());
-	Locker<Mutex>								lock(mutex());
+uint32 RemoteListMessage::ipcPrepare(){
+	const frame::ipc::ConnectionContext	&rmsgctx(frame::ipc::ConnectionContext::the());
+	Locker<Mutex>						lock(mutex());
 	
 	if(success == 0) success = 1;//wait
-	idbg(""<<(void*)this<<" siguid = "<<rsigctx.signaluid.idx<<' '<<rsigctx.signaluid.uid<<" ipcstatus = "<<(int)ipcstatus);
+	idbg(""<<(void*)this<<" msguid = "<<rmsgctx.msgid.idx<<' '<<rmsgctx.msgid.uid<<" ipcstatus = "<<(int)ipcstatus);
 	if(ipcstatus == IpcOnSender){//on sender
-		return foundation::ipc::WaitResponseFlag /*| foundation::ipc::SynchronousSendFlag*/;
+		return frame::ipc::WaitResponseFlag /*| frame::ipc::SynchronousSendFlag*/;
 	}else{
-		return 0/*foundation::ipc::Service::SynchronousSendFlag*/;// on peer
+		return 0/*frame::ipc::Service::SynchronousSendFlag*/;// on peer
 	}
 }
-void RemoteListSignal::ipcReceive(
-	fdt::ipc::SignalUid &_rsiguid
+void RemoteListMessage::ipcReceive(
+	frame::ipc::MessageUid &_rmsguid
 ){
-	DynamicPointer<fdt::Signal> psig(this);
-	idbg(""<<(void*)this<<" siguid = "<<siguid.idx<<' '<<siguid.uid);
-	conid = fdt::ipc::ConnectionContext::the().connectionuid;
+	DynamicPointer<frame::Message> msgptr(this);
+	idbg(""<<(void*)this<<" msguid = "<<msguid.idx<<' '<<msguid.uid);
+	conid = frame::ipc::ConnectionContext::the().connectionuid;
 	++ipcstatus;
 	if(ipcstatus == IpcOnPeer){//on peer
-		idbg("Received RemoteListSignal on peer");
-		m().signal(psig, m().readSignalExecuterUid());
+		idbg("Received RemoteListMessage on peer");
+		Manager::the().notify(msgptr, Manager::the().readMessageStewardUid());
 	}else{//on sender
 		cassert(ipcstatus == IpcBackOnSender);
-		idbg("Received RemoteListSignal back on sender");
-		_rsiguid = siguid;
-		m().signal(psig, fromv.first, fromv.second);
+		idbg("Received RemoteListMessage back on sender");
+		_rmsguid = msguid;
+		Manager::the().notify(msgptr, ObjectUidT(fromv.first, fromv.second));
 	}
 }
-void RemoteListSignal::ipcComplete(int _err){
+void RemoteListMessage::ipcComplete(int _err){
 	Locker<Mutex> lock(mutex());
 	err = _err;
 	if(!_err){
@@ -104,11 +104,11 @@ void RemoteListSignal::ipcComplete(int _err){
 	}
 }
 
-int RemoteListSignal::execute(
-	DynamicPointer<Signal> &_rthis_ptr,
+int RemoteListMessage::execute(
+	DynamicPointer<Message> &_rmsgptr,
 	uint32 _evs,
-	fdt::SignalExecuter&,
-	const SignalUidT &,
+	frame::MessageSteward&,
+	const MessageUidT &,
 	TimeSpec &_rts
 ){
 	if(tout){
@@ -127,9 +127,7 @@ int RemoteListSignal::execute(
 	
 	if(!exists( pth ) || !is_directory(pth)){
 		err = -1;
-		if(Manager::the().ipc().sendSignal(_rthis_ptr, conid)){
-			idbg("connector was destroyed");
-		}
+		Manager::the().ipc().sendMessage(_rmsgptr, conid);
 		return BAD;
 	}
 	
@@ -139,9 +137,7 @@ int RemoteListSignal::execute(
 		idbg("dir_iterator exception :"<<ex.what());
 		err = -1;
 		strpth = ex.what();
-		if(Manager::the().ipc().sendSignal(_rthis_ptr, SignalTypeIds::the().remotelistresponse, conid)){
-			idbg("connector was destroyed");
-		}
+		Manager::the().ipc().sendMessage(_rmsgptr, MessageTypeIds::the().remotelistresponse, conid);
 		return BAD;
 	}
 	
@@ -155,69 +151,65 @@ int RemoteListSignal::execute(
 	}
 	err = 0;
 	//Thread::sleep(1000 * 20);
-	if(Manager::the().ipc().sendSignal(_rthis_ptr, SignalTypeIds::the().remotelistresponse, conid)){
-		idbg("connector was destroyed "<<conid.tid<<' '<<conid.idx<<' '<<conid.uid);
-	}else{
-		idbg("signal sent "<<conid.tid<<' '<<conid.idx<<' '<<conid.uid);
-	}
+	Manager::the().ipc().sendMessage(_rmsgptr, MessageTypeIds::the().remotelistresponse, conid);
 	return BAD;
 }
 
 //-----------------------------------------------------------------------------------
-// FetchMasterSignal
+// FetchMasterMessage
 //-----------------------------------------------------------------------------------
 
-FetchMasterSignal::~FetchMasterSignal(){
-	delete psig;
+FetchMasterMessage::~FetchMasterMessage(){
+	delete pmsg;
 	idbg((void*)this<<"");
 }
 
-void FetchMasterSignal::ipcComplete(int _err){
+void FetchMasterMessage::ipcComplete(int _err){
 	idbg((void*)this<<"");
 	if(_err){
-		Manager::the().signal(fdt::S_RAISE | fdt::S_KILL, fromv.first, fromv.second);
+		Manager::the().notify(frame::S_RAISE | frame::S_KILL, ObjectUidT(fromv.first, fromv.second));
 	}
 }
-void FetchMasterSignal::print()const{
-	idbg((void*)this<<" FetchMasterSignal:");
+void FetchMasterMessage::print()const{
+	idbg((void*)this<<" FetchMasterMessage:");
 	idbg("state = "<<state<<" streamsz = "<<streamsz<<" requid = "<<requid<<" fname = "<<fname);
 	idbg("fromv.first = "<<fromv.first<<" fromv.second = "<<fromv.second);
 	idbg("fuid.first = "<<fuid.first<<" fuid.second = "<<fuid.second);
 	idbg("tmpfuid.first = "<<tmpfuid.first<<" tmpfuid.second = "<<tmpfuid.second);
 }
 
-uint32 FetchMasterSignal::ipcPrepare(){
-	return 0;//foundation::ipc::Service::SynchronousSendFlag;
+uint32 FetchMasterMessage::ipcPrepare(){
+	return 0;//frame::ipc::Service::SynchronousSendFlag;
 }
 
 
-void FetchMasterSignal::ipcReceive(
-	fdt::ipc::SignalUid &_rsiguid
+void FetchMasterMessage::ipcReceive(
+	frame::ipc::MessageUid &_rmsguid
 ){
-	DynamicPointer<fdt::Signal> sig(this);
-	conid = fdt::ipc::ConnectionContext::the().connectionuid;;
+	DynamicPointer<frame::Message> msgptr(this);
+	conid = frame::ipc::ConnectionContext::the().connectionuid;;
 	state = Received;
 	idbg("received master signal");
 	print();
-	m().signal(sig, m().readSignalExecuterUid());
+	Manager::the().notify(msgptr, Manager::the().readMessageStewardUid());
 }
 /*
 	The state machine running on peer
 */
-int FetchMasterSignal::execute(
-	DynamicPointer<Signal> &_rthis_ptr,
+int FetchMasterMessage::execute(
+	DynamicPointer<Message> &_rmsgptr,
 	uint32 _evs,
-	fdt::SignalExecuter& _rce,
-	const SignalUidT &_siguid,
+	frame::MessageSteward& _rce,
+	const MessageUidT &_msguid,
 	TimeSpec &_rts
 ){
 	Manager &rm(Manager::the());
-	cassert(!(_evs & fdt::TIMEOUT));
+	cassert(!(_evs & frame::TIMEOUT));
 	switch(state){
 		case Received:{
-			idbg((void*)this<<" try to open file "<<fname<<" _siguid = "<<_siguid.first<<","<<_siguid.second);
+			idbg((void*)this<<" try to open file "<<fname<<" _msguid = "<<_msguid.first<<","<<_msguid.second);
 			//try to get a stream for the file:
-			foundation::RequestUid reqid(_rce.id(), rm.uid(_rce), _siguid.first, _siguid.second);
+			frame::RequestUid reqid(_rce.id(), rm.id(_rce).second, _msguid.first, _msguid.second);
 			switch(rm.fileManager().stream(ins, fuid, reqid, fname.c_str())){
 				case BAD://ouch
 					state = SendError;
@@ -234,29 +226,31 @@ int FetchMasterSignal::execute(
 		}break;
 		case SendFirstStream:{
 			idbg((void*)this<<" send first stream");
-			FetchSlaveSignal			*psig(new FetchSlaveSignal);
-			DynamicPointer<fdt::Signal>	sigptr(psig);
+			FetchSlaveMessage				*pmsg(new FetchSlaveMessage);
+			DynamicPointer<frame::Message>	msgptr(pmsg);
 			
 			this->filesz = ins->size();
-			psig->tov = fromv;
-			psig->filesz = this->filesz;
-			psig->streamsz = this->streamsz;
-			if(psig->streamsz > psig->filesz){
-				psig->streamsz = psig->filesz;
+			pmsg->tov = fromv;
+			pmsg->filesz = this->filesz;
+			pmsg->streamsz = this->streamsz;
+			if(pmsg->streamsz > pmsg->filesz){
+				pmsg->streamsz = pmsg->filesz;
 			}
-			psig->siguid = _siguid;
-			psig->requid = requid;
-			psig->fuid = tmpfuid;
+			pmsg->msguid = _msguid;
+			pmsg->requid = requid;
+			pmsg->fuid = tmpfuid;
 			idbg("filesz = "<<this->filesz<<" inpos = "<<filepos);
-			this->filesz -= psig->streamsz;
-			this->filepos += psig->streamsz;
-			fdt::RequestUid reqid(_rce.id(), rm.uid(_rce), _siguid.first, _siguid.second);
-			rm.fileManager().stream(psig->ins, fuid, requid, fdt::file::Manager::NoWait);
-			psig = NULL;
-			if(rm.ipc().sendSignal(sigptr, conid) || !this->filesz){
+			this->filesz -= pmsg->streamsz;
+			this->filepos += pmsg->streamsz;
+			frame::RequestUid reqid(_rce.id(), rm.id(_rce).second, _msguid.first, _msguid.second);
+			rm.fileManager().stream(pmsg->ins, fuid, requid, frame::file::Manager::NoWait);
+			pmsg = NULL;
+			if(!this->filesz){
 				idbg("connector was destroyed or filesz = "<<this->filesz);
 				return BAD;
 			}
+			rm.ipc().sendMessage(msgptr, conid);
+			
 			idbg("wait for streams");
 			//TODO: put here timeout! - wait for signals
 			//_rts.add(30);
@@ -264,24 +258,25 @@ int FetchMasterSignal::execute(
 		}
 		case SendNextStream:{
 			idbg((void*)this<<" send next stream");
-			DynamicPointer<fdt::Signal> sigptr(psig);
-			psig->tov = fromv;
-			psig->filesz = this->filesz;
-			//psig->sz = FetchChunkSize;
-			if(psig->streamsz > this->filesz){
-				psig->streamsz = this->filesz;
+			DynamicPointer<frame::Message> msgptr(pmsg);
+			pmsg->tov = fromv;
+			pmsg->filesz = this->filesz;
+			//pmsg->sz = FetchChunkSize;
+			if(pmsg->streamsz > this->filesz){
+				pmsg->streamsz = this->filesz;
 			}
-			psig->siguid = _siguid;
-			//psig->fuid = tmpfuid;
+			pmsg->msguid = _msguid;
+			//pmsg->fuid = tmpfuid;
 			idbg("filesz = "<<this->filesz<<" filepos = "<<this->filepos);
-			this->filesz -= psig->streamsz;
-			fdt::RequestUid reqid(_rce.id(), rm.uid(_rce), _siguid.first, _siguid.second);
-			rm.fileManager().stream(psig->ins, fuid, requid, fdt::file::Manager::NoWait);
-			psig->ins->seek(this->filepos);
-			this->filepos += psig->streamsz;
-			cassert(psig->ins);
-			psig = NULL;
-			if(rm.ipc().sendSignal(sigptr, conid) || !this->filesz){
+			this->filesz -= pmsg->streamsz;
+			frame::RequestUid reqid(_rce.id(), rm.id(_rce).second, _msguid.first, _msguid.second);
+			rm.fileManager().stream(pmsg->ins, fuid, requid, frame::file::Manager::NoWait);
+			pmsg->ins->seek(this->filepos);
+			this->filepos += pmsg->streamsz;
+			cassert(pmsg->ins);
+			pmsg = NULL;
+			rm.ipc().sendMessage(msgptr, conid);
+			if(!this->filesz){
 				idbg("connector was destroyed or filesz = "<<this->filesz);
 				return BAD;
 			}
@@ -292,38 +287,38 @@ int FetchMasterSignal::execute(
 		}
 		case SendError:{
 			idbg((void*)this<<" sending error");
-			FetchSlaveSignal *psig = new FetchSlaveSignal;
-			DynamicPointer<fdt::Signal> sigptr(psig);
-			psig->tov = fromv;
-			psig->filesz = -1;
-			rm.ipc().sendSignal(sigptr, conid);
+			FetchSlaveMessage 				*pmsg = new FetchSlaveMessage;
+			DynamicPointer<frame::Message>	msgptr(pmsg);
+			pmsg->tov = fromv;
+			pmsg->filesz = -1;
+			rm.ipc().sendMessage(msgptr, conid);
 			return BAD;
 		}
 	}
 	return BAD;
 }
 
-int FetchMasterSignal::receiveSignal(
-	DynamicPointer<Signal> &_rsig,
+int FetchMasterMessage::receiveMessage(
+	DynamicPointer<Message> &_rmsgptr,
 	const ObjectUidT& _from,
-	const fdt::ipc::ConnectionUid *_conid
+	const frame::ipc::ConnectionUid *_conid
 ){
-	if(_rsig->dynamicTypeId() == InputStreamSignal::staticTypeId()){
+	if(_rmsgptr->dynamicTypeId() == InputStreamMessage::staticTypeId()){
 		idbg((void*)this<<" Received stream");
-		InputStreamSignal &rsig(*static_cast<InputStreamSignal*>(_rsig.get()));
+		InputStreamMessage &rsig(*static_cast<InputStreamMessage*>(_rmsgptr.get()));
 		ins = rsig.sptr;
 		fuid = rsig.fileuid;
 		state = SendFirstStream;
-	}else /*if(_rsig->dynamicTypeId() == OutputStreamSignal::staticTypeId()){
-		OutputStreamSignal &rsig(*static_cast<OutputStreamSignal*>(_rsig.get()));
-	}else if(_rsig->dynamicTypeId() == InputOutputStreamSignal::staticTypeId()){
-		InputOutputStreamSignal &rsig(*static_cast<InputOutputStreamSignal*>(_rsig.get()));
-	}else */if(_rsig->dynamicTypeId() == StreamErrorSignal::staticTypeId()){
-		//StreamErrorSignal &rsig(*static_cast<StreamErrorSignal*>(_rsig.get()));
+	}else /*if(_rmsgptr->dynamicTypeId() == OutputStreamMessage::staticTypeId()){
+		OutputStreamMessage &rsig(*static_cast<OutputStreamMessage*>(_rmsgptr.get()));
+	}else if(_rmsgptr->dynamicTypeId() == InputOutputStreamMessage::staticTypeId()){
+		InputOutputStreamMessage &rsig(*static_cast<InputOutputStreamMessage*>(_rmsgptr.get()));
+	}else */if(_rmsgptr->dynamicTypeId() == StreamErrorMessage::staticTypeId()){
+		//StreamErrorMessage &rsig(*static_cast<StreamErrorMessage*>(_rmsgptr.get()));
 		state = SendError;
-	}else if(_rsig->dynamicTypeId() == FetchSlaveSignal::staticTypeId()){
-		//FetchSlaveSignal &rsig(*static_cast<FetchSlaveSignal*>(_rsig.get()));
-		psig = static_cast<FetchSlaveSignal*>(_rsig.release());
+	}else if(_rmsgptr->dynamicTypeId() == FetchSlaveMessage::staticTypeId()){
+		//FetchSlaveMessage &rsig(*static_cast<FetchSlaveMessage*>(_rmsgptr.get()));
+		pmsg = static_cast<FetchSlaveMessage*>(_rmsgptr.release());
 		idbg((void*)this<<" Received slavesignal");
 		state = SendNextStream;
 	}else return NOK;
@@ -331,23 +326,23 @@ int FetchMasterSignal::receiveSignal(
 	return OK;//success reschedule command for execution
 }
 
-// int FetchMasterSignal::receiveSignal(
-// 	DynamicPointer<fdt::Signal> &_rsig,
+// int FetchMasterMessage::receiveMessage(
+// 	DynamicPointer<frame::Message> &_rmsgptr,
 // 	int			_which,
 // 	const ObjectUidT&_from,
-// 	const fdt::ipc::ConnectionUid *
+// 	const frame::ipc::ConnectionUid *
 // ){
-// 	psig = static_cast<FetchSlaveSignal*>(_rsig.release());
+// 	psig = static_cast<FetchSlaveMessage*>(_rmsgptr.release());
 // 	idbg("");
 // 	state = SendNextStream;
 // 	return OK;
 // }
-// int FetchMasterSignal::receiveInputStream(
+// int FetchMasterMessage::receiveInputStream(
 // 	StreamPointer<InputStream> &_rins,
 // 	const FileUidT	& _fuid,
 // 	int			_which,
 // 	const ObjectUidT&,
-// 	const fdt::ipc::ConnectionUid *
+// 	const frame::ipc::ConnectionUid *
 // ){
 // 	idbg("fuid = "<<_fuid.first<<","<<_fuid.second);
 // 	ins = _rins;
@@ -355,10 +350,10 @@ int FetchMasterSignal::receiveSignal(
 // 	state = SendFirstStream;
 // 	return OK;
 // }
-// int FetchMasterSignal::receiveError(
+// int FetchMasterMessage::receiveError(
 // 	int _errid, 
 // 	const ObjectUidT&_from,
-// 	const fdt::ipc::ConnectionUid *_conid
+// 	const frame::ipc::ConnectionUid *_conid
 // ){
 // 	idbg("");
 // 	state = SendError;
@@ -366,112 +361,111 @@ int FetchMasterSignal::receiveSignal(
 // }
 
 //-----------------------------------------------------------------------------------
-// FetchSlaveSignal
+// FetchSlaveMessage
 //-----------------------------------------------------------------------------------
 
-FetchSlaveSignal::FetchSlaveSignal(): fromv(0xffffffff, 0xffffffff), filesz(-10), streamsz(-1), requid(0){
+FetchSlaveMessage::FetchSlaveMessage(): fromv(0xffffffff, 0xffffffff), filesz(-10), streamsz(-1), requid(0){
 	idbg(""<<(void*)this);
 	serialized = false;
 }
 
-FetchSlaveSignal::~FetchSlaveSignal(){
+FetchSlaveMessage::~FetchSlaveMessage(){
 	idbg(""<<(void*)this);
 	cassert(serialized);
 	print();
 // 	if(fromv.first != 0xffffffff){
 // 		idbg("unsuccessfull sent");
 // 		//signal fromv object to die
-// 		Manager::the().signalObject(fromv.first, fromv.second, fdt::S_RAISE | fdt::S_KILL);
+// 		Manager::the().signalObject(fromv.first, fromv.second, frame::S_RAISE | frame::S_KILL);
 // 	}
 }
-void FetchSlaveSignal::print()const{
-	idbg((void*)this<<" FetchSlaveSignal:");
+void FetchSlaveMessage::print()const{
+	idbg((void*)this<<" FetchSlaveMessage:");
 	idbg("filesz = "<<this->filesz<<" streamsz = "<<this->streamsz<<" requid = "<<requid);
 	idbg("fuid.first = "<<fuid.first<<" fuid.second = "<<fuid.second);
-	idbg("siguid.first = "<<siguid.first<<" siguid.second = "<<siguid.second);
+	idbg("msguid.first = "<<msguid.first<<" msguid.second = "<<msguid.second);
 }
-int FetchSlaveSignal::sent(const fdt::ipc::ConnectionUid &_rconid){
+int FetchSlaveMessage::sent(const frame::ipc::ConnectionUid &_rconid){
 	idbg((void*)this<<"");
 	fromv.first = 0xffffffff;
 	return BAD;
 }
-uint32 FetchSlaveSignal::ipcPrepare(){
-	return 0;//foundation::ipc::Service::SynchronousSendFlag;
+uint32 FetchSlaveMessage::ipcPrepare(){
+	return 0;//frame::ipc::Service::SynchronousSendFlag;
 }
-void FetchSlaveSignal::ipcReceive(
-	fdt::ipc::SignalUid &_rsiguid
+void FetchSlaveMessage::ipcReceive(
+	frame::ipc::MessageUid &_rmsguid
 ){
-	DynamicPointer<fdt::Signal> psig(this);
-	conid = fdt::ipc::ConnectionContext::the().connectionuid;
+	DynamicPointer<frame::Message> psig(this);
+	conid = frame::ipc::ConnectionContext::the().connectionuid;
 	if(filesz == -10){
-		idbg((void*)this<<" Received FetchSlaveSignal on peer");
+		idbg((void*)this<<" Received FetchSlaveMessage on peer");
 		print();
 		ObjectUidT	ttov;
-		m().readSignalExecuterUid();
-		m().signal(psig, m().readSignalExecuterUid());
+		Manager::the().notify(psig, Manager::the().readMessageStewardUid());
 	}else{
-		idbg((void*)this<<" Received FetchSlaveSignal on sender");
+		idbg((void*)this<<" Received FetchSlaveMessage on sender");
 		print();
-		m().signal(psig, tov.first, tov.second);
+		Manager::the().notify(psig, ObjectUidT(tov.first, tov.second));
 	}
 }
 // Executed on peer within the signal executer
-int FetchSlaveSignal::execute(
-	DynamicPointer<Signal> &_rthis_ptr,
+int FetchSlaveMessage::execute(
+	DynamicPointer<Message> &_rmsgptr,
 	uint32 _evs,
-	fdt::SignalExecuter& _rce,
-	const SignalUidT &,
+	frame::MessageSteward& _rce,
+	const MessageUidT &,
 	TimeSpec &
 ){
 	idbg((void*)this<<"");
-	_rce.sendSignal(_rthis_ptr, siguid);
+	_rce.sendMessage(_rmsgptr, msguid);
 	return BAD;
 }
 
-void FetchSlaveSignal::initOutputStream(){
-	fdt::RequestUid					requid;
-	Manager::the().fileManager().stream(outs, fuid, requid, fdt::file::Manager::Forced);
+void FetchSlaveMessage::initOutputStream(){
+	frame::RequestUid					requid;
+	Manager::the().fileManager().stream(outs, fuid, requid, frame::file::Manager::Forced);
 	idbg((void*)this<<" Create deserialization streamptr "<<(void*)outs.get());
 }
 
-void FetchSlaveSignal::clearOutputStream(){
+void FetchSlaveMessage::clearOutputStream(){
 	outs.clear();
 }
 
 //-----------------------------------------------------------------------------------
-// SendStringSignal
+// SendStringMessage
 //-----------------------------------------------------------------------------------
 
-void SendStringSignal::ipcReceive(
-	fdt::ipc::SignalUid &_rsiguid
+void SendStringMessage::ipcReceive(
+	frame::ipc::MessageUid &_rmsguid
 ){
-	DynamicPointer<fdt::Signal> psig(this);
-	conid = fdt::ipc::ConnectionContext::the().connectionuid;;
-	m().signal(psig, tov.first, tov.second);
+	DynamicPointer<frame::Message> psig(this);
+	conid = frame::ipc::ConnectionContext::the().connectionuid;;
+	Manager::the().notify(psig, ObjectUidT(tov.first, tov.second));
 }
 
-// int SendStringSignal::execute(concept::Connection &_rcon){
+// int SendStringMessage::execute(concept::Connection &_rcon){
 // 	return _rcon.receiveString(str, concept::Connection::RequestUidT(0, 0), 0, fromv, &conid);
 // }
 
 //-----------------------------------------------------------------------------------
-// SendStreamSignal
+// SendStreamMessage
 //-----------------------------------------------------------------------------------
 
-void SendStreamSignal::ipcReceive(
-	fdt::ipc::SignalUid &_rsiguid
+void SendStreamMessage::ipcReceive(
+	frame::ipc::MessageUid &_rmsguid
 ){
-	DynamicPointer<fdt::Signal> psig(this);
-	conid = fdt::ipc::ConnectionContext::the().connectionuid;;
-	m().signal(psig, tov.first, tov.second);
+	DynamicPointer<frame::Message> psig(this);
+	conid = frame::ipc::ConnectionContext::the().connectionuid;;
+	Manager::the().notify(psig, ObjectUidT(tov.first, tov.second));
 }
 
-void SendStreamSignal::destroyDeserializationStream(
+void SendStreamMessage::destroyDeserializationStream(
 	OutputStream *&_rpos, int64 &_rsz, uint64 &_roff, int _id
 ){
 	idbg("Destroy deserialization <"<<_id<<"> sz "<<_rsz);
 }
-int SendStreamSignal::createDeserializationStream(
+int SendStreamMessage::createDeserializationStream(
 	OutputStream *&_rpos, int64 &_rsz, uint64 &_roff, int _id
 ){
 	if(_id) return NOK;
@@ -479,7 +473,7 @@ int SendStreamSignal::createDeserializationStream(
 	if(dststr.empty()/* || _rps.second < 0*/) return NOK;
 	idbg("File name: "<<this->dststr);
 	//TODO:
-	int rv = Manager::the().fileManager().stream(this->iosp, this->dststr.c_str(), fdt::file::Manager::NoWait);
+	int rv = Manager::the().fileManager().stream(this->iosp, this->dststr.c_str(), frame::file::Manager::NoWait);
 	if(rv){
 		idbg("Oops, could not open file");
 		return BAD;
@@ -488,12 +482,12 @@ int SendStreamSignal::createDeserializationStream(
 	}
 	return OK;
 }
-void SendStreamSignal::destroySerializationStream(
+void SendStreamMessage::destroySerializationStream(
 	InputStream *&_rpis, int64 &_rsz, uint64 &_roff, int _id
 ){
 	idbg("doing nothing as the stream will be destroied when the signal will be destroyed");
 }
-int SendStreamSignal::createSerializationStream(
+int SendStreamMessage::createSerializationStream(
 	InputStream *&_rpis, int64 &_rsz, uint64 &_roff, int _id
 ){
 	if(_id) return NOK;
@@ -504,7 +498,7 @@ int SendStreamSignal::createSerializationStream(
 	return OK;
 }
 
-// int SendStreamSignal::execute(concept::Connection &_rcon){
+// int SendStreamMessage::execute(concept::Connection &_rcon){
 // 	{
 // 	StreamPointer<InputStream>	isp(static_cast<InputStream*>(iosp.release()));
 // 	idbg("");
