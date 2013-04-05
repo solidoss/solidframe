@@ -11,7 +11,7 @@
 #include "utility/istream.hpp"
 #include "utility/ostream.hpp"
 
-#include "foundation/ipc/ipcconnectionuid.hpp"
+#include "frame/ipc/ipcconnectionuid.hpp"
 
 #include "core/common.hpp"
 
@@ -22,9 +22,12 @@ using boost::filesystem::path;
 using boost::next;
 using boost::prior;
 
+using solid::uint16;
 
+namespace solid{
 namespace protocol{
 struct Parameter;
+}
 }
 
 namespace concept{
@@ -75,21 +78,21 @@ public:
 	void initReader(Reader &);
 	int execute(const uint _sid);
 	
-	int reinitWriter(Writer &_rw, protocol::Parameter &_rp);
+	int reinitWriter(Writer &_rw, solid::protocol::Parameter &_rp);
 private:
 	int doInitLocal(const uint _sid);
 	int doDoneLocal(Writer &_rw);
 	int receiveInputStream(
-		StreamPointer<InputStream> &_sptr,
+		solid::StreamPointer<solid::InputStream> &_sptr,
 		const FileUidT &_fuid,
 		int _which,
 		const ObjectUidT&,
-		const foundation::ipc::ConnectionUid *
+		const solid::frame::ipc::ConnectionUid *
 	);
 	int receiveError(
 		int _errid,
 		const ObjectUidT&_from,
-		const foundation::ipc::ConnectionUid *
+		const solid::frame::ipc::ConnectionUid *
 	);
 private:
 	enum{
@@ -98,14 +101,14 @@ private:
 		WaitLocal,
 		SendError
 	};
-	uint16					state;
-	protocol::Parameter 	*pp;
-	String					path;
-	String					flags;
-	uint32					reqid;
-	StreamPointer<InputStream>	isp;
-	StreamPointer<InputOutputStream>	iosp;
-	StreamPointer<OutputStream>	osp;
+	uint16											state;
+	solid::protocol::Parameter 						*pp;
+	String											path;
+	String											flags;
+	uint32											reqid;
+	solid::StreamPointer<solid::InputStream>		isp;
+	solid::StreamPointer<solid::InputOutputStream>	iosp;
+	solid::StreamPointer<solid::OutputStream>		osp;
 };
 
 }//namespace gamma

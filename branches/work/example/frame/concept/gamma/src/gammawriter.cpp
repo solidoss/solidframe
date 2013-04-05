@@ -2,6 +2,7 @@
 #include "gammafilters.hpp"
 #include "gammaconnection.hpp"
 
+using namespace solid;
 
 namespace concept{
 namespace gamma{

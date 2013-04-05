@@ -23,18 +23,15 @@
 #include "core/manager.hpp"
 
 
-#include "algorithm/serialization/binary.hpp"
+#include "serialization/binary.hpp"
 
-#include "foundation/objectpointer.hpp"
-#include "foundation/aio/openssl/opensslsocket.hpp"
-
-#include "core/listener.hpp"
+#include "frame/aio/openssl/opensslsocket.hpp"
 
 #include "beta/betaservice.hpp"
 #include "betaclientconnection.hpp"
 #include "betaserverconnection.hpp"
 
-namespace fdt=foundation;
+using namespace solid;
 
 namespace concept{
 namespace beta{
@@ -49,10 +46,8 @@ InitServiceOnce::InitServiceOnce(Manager &_rm){
 	client::Connection::initStatic(_rm);
 	server::Connection::initStatic(_rm);
 }
-
-Service* Service::create(Manager &_rm){
+Service::Service(Manager &_rm):BaseT(_rm){
 	static InitServiceOnce	init(_rm);
-	return new Service();
 }
 #else
 void once_init(){
@@ -60,54 +55,52 @@ void once_init(){
 	server::Connection::initStatic(_rm);
 }
 Service* Service::create(Manager &_rm){
+	return new Service();
+}
+Service::Service(Manager &_rm):BaseT(_rm){
 	static boost::once_flag once = BOOST_ONCE_INIT;
 	boost::call_once(&once_init, once);
-	return new Service();
 }
 
 #endif
 
-Service::Service(){
-}
 
 Service::~Service(){
 }
 
 ObjectUidT Service::insertConnection(
 	const SocketDevice &_rsd,
-	foundation::aio::openssl::Context *_pctx,
+	frame::aio::openssl::Context *_pctx,
 	bool _secure
 ){
 	//create a new connection with the given channel
-	fdt::ObjectPointer<Connection> conptr(new server::Connection(_rsd));
+	DynamicPointer<server::Connection> conptr(new server::Connection(_rsd));
 	if(_pctx){
 		conptr->socketSecureSocket(_pctx->createSocket());
 	}
-	//register it into the service
-	return this->insert<AioSchedulerT>(conptr, 0);
+	ObjectUidT rv = this->registerObject(*conptr);
+	
+	DynamicPointer<frame::aio::Object> objptr(conptr);
+	Manager::the().scheduleAioObject(objptr);
+	return rv;
 }
 
 ObjectUidT Service::insertConnection(
 	const ResolveData&_rai,
-	foundation::aio::openssl::Context *_pctx,
+	frame::aio::openssl::Context *_pctx,
 	bool _secure
 ){
-	fdt::ObjectPointer<Connection> conptr(new client::Connection(_rai));
+	DynamicPointer<client::Connection> conptr(new client::Connection(_rai));
 	if(_pctx){
 		conptr->socketSecureSocket(_pctx->createSocket());
 	}
-	//register it into the service
-	return this->insert<AioSchedulerT>(conptr, 0);
+	ObjectUidT rv = this->registerObject(*conptr);
+	
+	DynamicPointer<frame::aio::Object> objptr(conptr);
+	Manager::the().scheduleAioObject(objptr);
+	return rv;
 }
 
-void Service::insertObject(Connection &_ro, const ObjectUidT &_ruid){
-	idbg("beta "<<fdt::Manager::the().computeServiceId(_ruid.first)<<' '<<fdt::Manager::the().computeIndex(_ruid.first)<<' '<<_ruid.second);
-}
-
-void Service::eraseObject(const Connection &_ro){
-	ObjectUidT objuid(_ro.uid());
-	idbg("beta "<<fdt::Manager::the().computeServiceId(objuid.first)<<' '<<fdt::Manager::the().computeIndex(objuid.first)<<' '<<objuid.second);
-}
 }//namespace beta
 }//namespace concept
 

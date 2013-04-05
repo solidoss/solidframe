@@ -19,16 +19,16 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "beta/betasignals.hpp"
+#include "beta/betamessages.hpp"
 
 
 namespace concept{
 namespace beta{
-int LoginSignal::release(){
+int LoginMessage::release(){
 	return 1;
 }
 
-int CancelSignal::release(){
+int CancelMessage::release(){
 	return 1;
 }
 

@@ -31,22 +31,22 @@
 #include "utility/istream.hpp"
 #include "utility/iostream.hpp"
 
-#include "foundation/ipc/ipcservice.hpp"
-#include "foundation/requestuid.hpp"
+#include "frame/ipc/ipcservice.hpp"
+#include "frame/requestuid.hpp"
 
 #include "betabuffer.hpp"
 
 #include "core/manager.hpp"
-#include "core/signals.hpp"
+#include "core/messages.hpp"
 
-#include "algorithm/serialization/typemapperbase.hpp"
+#include "serialization/typemapperbase.hpp"
 
-#include "beta/betasignals.hpp"
+#include "beta/betamessages.hpp"
 
 #include "betaclientconnection.hpp"
 #include "betaclientcommands.hpp"
 
-namespace fdt=foundation;
+using namespace solid;
 
 namespace concept{
 namespace beta{
@@ -62,8 +62,8 @@ static const DynamicRegisterer<Connection>	dre;
 
 /*static*/ void Connection::dynamicRegister(){
 	//DynamicExecuterT::registerDynamic<SendStreamSignal, Connection>();
-	DynamicExecuterT::registerDynamic<LoginSignal, Connection>();
-	DynamicExecuterT::registerDynamic<CancelSignal, Connection>();
+	DynamicExecuterT::registerDynamic<LoginMessage, Connection>();
+	DynamicExecuterT::registerDynamic<CancelMessage, Connection>();
 }
 
 Connection::Connection(
@@ -98,14 +98,14 @@ Connection::~Connection(){
 }
 
 
-/*virtual*/ bool Connection::signal(DynamicPointer<foundation::Signal> &_sig){
+/*virtual*/ bool Connection::notify(DynamicPointer<frame::Message> &_rmsgptr){
 	if(this->state() < 0){
-		_sig.clear();
+		_rmsgptr.clear();
 		return false;//no reason to raise the pool thread!!
 	}
-	DynamicPointer<>	dp(_sig);
+	DynamicPointer<>	dp(_rmsgptr);
 	de.push(this, dp);
-	return Object::signal(fdt::S_SIG | fdt::S_RAISE);
+	return frame::Object::notify(frame::S_SIG | frame::S_RAISE);
 }
 
 
@@ -117,19 +117,19 @@ Connection::~Connection(){
 */
 
 int Connection::execute(ulong _sig, TimeSpec &_tout){
-	fdt::requestuidptr->set(this->uid());
+	frame::requestuidptr->set(frame::Manager::specific().id(*this));
 	
-	if(signaled()){//we've received a signal
+	if(notified()){//we've received a signal
 		ulong sm(0);
 		{
 			Locker<Mutex>	lock(this->mutex());
 			sm = grabSignalMask(0);//grab all bits of the signal mask
-			if(sm & fdt::S_KILL) return BAD;
-			if(sm & fdt::S_SIG){//we have signals
+			if(sm & frame::S_KILL) return BAD;
+			if(sm & frame::S_SIG){//we have signals
 				de.prepareExecute(this);
 			}
 		}
-		if(sm & fdt::S_SIG){//we've grabed signals, execute them
+		if(sm & frame::S_SIG){//we've grabed signals, execute them
 			while(de.hasCurrent(this)){
 				de.executeCurrent(this);
 				de.next(this);
@@ -173,9 +173,9 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			}
 			break;
 		case ConnectWait:
-			if(_sig & (fdt::TIMEOUT | fdt::ERRDONE)){
+			if(_sig & (frame::TIMEOUT | frame::ERRDONE)){
 				state(ConnectNext);
-			}else if((sevs & fdt::OUTDONE) != 0){
+			}else if((sevs & frame::OUTDONE) != 0){
 				doPrepareRun();
 			}else{
 				return NOK;
@@ -183,7 +183,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			return OK;
 		case Run:{
 			idbg("");
-			if(_sig & (fdt::TIMEOUT | fdt::ERRDONE)){
+			if(_sig & (frame::TIMEOUT | frame::ERRDONE)){
 				return BAD;
 			}
 			bool reenter = false;
@@ -200,12 +200,12 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 					}
 				}else if(sz < 0){
 					return BAD;
-				}else if(_sig & fdt::OUTDONE){
+				}else if(_sig & frame::OUTDONE){
 					doReleaseSendBuffer();
 				}
 			}
 			if(!socketHasPendingRecv()){
-				if(_sig & fdt::INDONE){
+				if(_sig & frame::INDONE){
 					doParseBuffer(socketRecvCount());
 					if(cmdque.size()){
 						reenter = true;
@@ -387,14 +387,6 @@ int Connection::serializationReinit<Connection::DeserializerT, 0>(
 	return BAD;
 }
 
-int Connection::execute(){
-	return BAD;
-}
-
-int Connection::accept(fdt::Visitor &_rov){
-	//static_cast<TestInspector&>(_roi).inspectConnection(*this);
-	return OK;
-}
 void Connection::pushCommand(Command *_pcmd){
 	uint32	cmdidx;
 	if(cmdvecfreestk.size()){
@@ -409,12 +401,12 @@ void Connection::pushCommand(Command *_pcmd){
 	
 }
 
-void Connection::dynamicExecute(DynamicPointer<LoginSignal> &_rsig){
-	command::Login *pcmd = new command::Login(_rsig->user, _rsig->pass);
-	pcmd->signal = _rsig;
+void Connection::dynamicExecute(DynamicPointer<LoginMessage> &_rmsgptr){
+	command::Login *pcmd = new command::Login(_rmsgptr->user, _rmsgptr->pass);
+	pcmd->msgptr = _rmsgptr;
 	pushCommand(pcmd);
 }
-void Connection::dynamicExecute(DynamicPointer<CancelSignal> &_rsig){
+void Connection::dynamicExecute(DynamicPointer<CancelMessage> &_rmsgptr){
 	
 }
 

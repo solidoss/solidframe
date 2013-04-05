@@ -32,23 +32,23 @@
 #include "utility/iostream.hpp"
 #include "utility/binaryseeker.hpp"
 
-#include "foundation/ipc/ipcservice.hpp"
-#include "foundation/requestuid.hpp"
+#include "frame/ipc/ipcservice.hpp"
+#include "frame/requestuid.hpp"
 
 #include "betabuffer.hpp"
 
 #include "core/manager.hpp"
-#include "core/signals.hpp"
+#include "core/messages.hpp"
 
 #include "beta/betaservice.hpp"
 
 
-#include "algorithm/serialization/typemapperbase.hpp"
+#include "serialization/typemapperbase.hpp"
 
 #include "betaserverconnection.hpp"
 #include "betaservercommands.hpp"
 
-namespace fdt=foundation;
+using namespace solid;
 
 namespace concept{
 namespace beta{
@@ -105,14 +105,14 @@ Connection::~Connection(){
 }
 
 
-/*virtual*/ bool Connection::signal(DynamicPointer<foundation::Signal> &_sig){
+/*virtual*/ bool Connection::notify(DynamicPointer<frame::Message> &_rmsgptr){
 	if(this->state() < 0){
-		_sig.clear();
+		_rmsgptr.clear();
 		return false;//no reason to raise the pool thread!!
 	}
-	DynamicPointer<>	dp(_sig);
+	DynamicPointer<>	dp(_rmsgptr);
 	de.push(this, dp);
-	return Object::signal(fdt::S_SIG | fdt::S_RAISE);
+	return frame::Object::notify(frame::S_SIG | frame::S_RAISE);
 }
 
 uint32 Connection::newRequestId(uint32 _pos){
@@ -159,19 +159,19 @@ void   Connection::deleteRequestId(uint32 _v){
 */
 
 int Connection::execute(ulong _sig, TimeSpec &_tout){
-	fdt::requestuidptr->set(this->uid());
+	frame::requestuidptr->set(frame::Manager::specific().id(*this));
 	
-	if(signaled()){//we've received a signal
+	if(notified()){//we've received a signal
 		ulong sm(0);
 		{
-			Locker<Mutex>	lock(this->mutex());
+			Locker<Mutex>	lock(frame::Manager::specific().mutex(*this));
 			sm = grabSignalMask(0);//grab all bits of the signal mask
-			if(sm & fdt::S_KILL) return BAD;
-			if(sm & fdt::S_SIG){//we have signals
+			if(sm & frame::S_KILL) return BAD;
+			if(sm & frame::S_SIG){//we have signals
 				de.prepareExecute(this);
 			}
 		}
-		if(sm & fdt::S_SIG){//we've grabed signals, execute them
+		if(sm & frame::S_SIG){//we've grabed signals, execute them
 			while(de.hasCurrent(this)){
 				de.executeCurrent(this);
 				de.next(this);
@@ -191,12 +191,12 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			}
 		case Run:{
 			idbg("");
-			if(_sig & (fdt::TIMEOUT | fdt::ERRDONE)){
+			if(_sig & (frame::TIMEOUT | frame::ERRDONE)){
 				return BAD;
 			}
 			bool reenter = false;
 			if(!socketHasPendingRecv()){
-				if(_sig & fdt::INDONE){
+				if(_sig & frame::INDONE){
 					const int rv = doParseBuffer(socketRecvCount());
 					if(rv == BAD && exception != 0){
 						state(SendException);
@@ -230,7 +230,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 						return OK;
 					}
 					return BAD;
-				}else if(_sig & fdt::OUTDONE){
+				}else if(_sig & frame::OUTDONE){
 					doReleaseSendBuffer();
 				}
 			}
@@ -430,14 +430,6 @@ int Connection::serializationReinit<Connection::DeserializerT, 1>(
 	return CONTINUE;
 }
 
-int Connection::execute(){
-	return BAD;
-}
-
-int Connection::accept(fdt::Visitor &_rov){
-	//static_cast<TestInspector&>(_roi).inspectConnection(*this);
-	return OK;
-}
 }//namespace server
 }//namespace beta
 }//namespace concept

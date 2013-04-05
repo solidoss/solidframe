@@ -28,10 +28,9 @@
 #include "utility/stack.hpp"
 #include "betaconnection.hpp"
 
-
-namespace foundation{
-class Visitor;
-}
+using solid::uint16;
+using solid::uint32;
+using solid::uint64;
 
 namespace concept{
 
@@ -39,33 +38,29 @@ class Manager;
 
 namespace beta{
 
-struct LoginSignal;
-struct CancelSignal;
+struct LoginMessage;
+struct CancelMessage;
 
 namespace client{
 
 class Command;
 
-class Connection: public Dynamic<Connection, beta::Connection>{
+class Connection: public solid::Dynamic<Connection, beta::Connection>{
 public:
-	typedef Service	ServiceT;
-	
 	static void initStatic(Manager &_rm);
 	static void dynamicRegister();
 	
 	static Connection& the(){
-		return static_cast<Connection&>(Object::the());
+		return static_cast<Connection&>(solid::frame::Object::specific());
 	}
 	
-	Connection(const ResolveData &_raddrinfo);
+	Connection(const solid::ResolveData &_raddrinfo);
 	
 	~Connection();
 	
-	/*virtual*/ bool signal(DynamicPointer<foundation::Signal> &_sig);
+	/*virtual*/ bool notify(solid::DynamicPointer<solid::frame::Message> &_rmsgptr);
 	
-	int execute(ulong _sig, TimeSpec &_tout);
-	int execute();
-	int accept(foundation::Visitor &);
+	int execute(ulong _sig, solid::TimeSpec &_tout);
 	
 	uint32 requestId()const{return reqid;}
 	uint32 newRequestId(){
@@ -78,11 +73,18 @@ public:
 	void pushCommand(Command *_pcmd);
 	uint32 commandUid(const uint32 _cmdidx)const;
 	
-	void dynamicExecute(DynamicPointer<LoginSignal> &_rsig);
-	void dynamicExecute(DynamicPointer<CancelSignal> &_rsig);
+	void dynamicExecute(solid::DynamicPointer<LoginMessage> &_rmsgptr);
+	void dynamicExecute(solid::DynamicPointer<CancelMessage> &_rmsgptr);
 private:
 	bool useEncryption()const;
 	bool useCompression()const;
+	
+	void state(int _st){
+		st = _st;
+	}
+	int state()const{
+		return st;
+	}
 	
 	void doPrepareRun();
 	/*virtual*/ int	doFillSendBufferData(char *_sendbufpos);
@@ -105,11 +107,12 @@ private:
 		bool	sendtype;
 	};
 	typedef std::vector<CommandStub>			CommandVectorT;
-	typedef Queue<uint32>						UInt32QueueT;
-	typedef Stack<uint32>						UInt32StackT;
+	typedef solid::Queue<uint32>				UInt32QueueT;
+	typedef solid::Stack<uint32>				UInt32StackT;
 	
-	ResolveData					addrinfo;
-	ResolveIterator				addrit;
+	solid::ResolveData			addrinfo;
+	solid::ResolveIterator		addrit;
+	int							st;
 	uint32						reqid;
 	DynamicExecuterT			de;
 	CommandVectorT				cmdvec;

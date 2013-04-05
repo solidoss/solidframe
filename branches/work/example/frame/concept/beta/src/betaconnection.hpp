@@ -30,16 +30,19 @@
 #include "utility/stack.hpp"
 #include "utility/queue.hpp"
 
-#include "algorithm/serialization/binary.hpp"
+#include "serialization/binary.hpp"
 
-#include "foundation/aio/aiosingleobject.hpp"
+#include "frame/aio/aiosingleobject.hpp"
 
 #include <openssl/ossl_typ.h>
 
-
+namespace solid{
 namespace serialization{
 class TypeMapperBase;
 }
+}
+using solid::uint32;
+using solid::uint8;
 
 
 namespace concept{
@@ -48,20 +51,18 @@ namespace beta{
 
 class Service;
 
-class Connection: public Dynamic<Connection, foundation::aio::SingleObject>{
+class Connection: public solid::Dynamic<Connection, solid::frame::aio::SingleObject>{
 public:
 	typedef Service	ServiceT;
 	
-	void dynamicExecute(DynamicPointer<> &_dp);
+	void dynamicExecute(solid::DynamicPointer<> &_dp);
 protected:
-	typedef DynamicExecuter<
+	typedef solid::DynamicExecuter<
 		void,
-		Connection,
-		foundation::DynamicServicePointerStore,
-		void
+		Connection
 	>	DynamicExecuterT;
-	typedef serialization::binary::Serializer	SerializerT;
-	typedef serialization::binary::Deserializer	DeserializerT;
+	typedef solid::serialization::binary::Serializer	SerializerT;
+	typedef solid::serialization::binary::Deserializer	DeserializerT;
 	
 	enum{
 		ParseBufferHeader = 1,
@@ -78,16 +79,16 @@ protected:
 		
 	};
 	
-	static const serialization::TypeMapperBase	&typemapper;
-	static const uint32							recvbufferid;
-	static const uint32							recvbuffercapacity;
+	static const solid::serialization::TypeMapperBase	&typemapper;
+	static const uint32									recvbufferid;
+	static const uint32									recvbuffercapacity;
 
-	static const uint32							sendbufferid;
-	static const uint32							sendbuffercapacity;
+	static const uint32									sendbufferid;
+	static const uint32									sendbuffercapacity;
 
-	static const uint32							minsendsize;
+	static const uint32									minsendsize;
 protected:
-	Connection(const SocketDevice &_rsd);
+	Connection(const solid::SocketDevice &_rsd);
 	Connection();
 	~Connection();
 	void doPrepareRun();

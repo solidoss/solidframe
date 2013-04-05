@@ -11,23 +11,23 @@
 #include "utility/iostream.hpp"
 #include "utility/binaryseeker.hpp"
 
-#include "foundation/ipc/ipcservice.hpp"
-#include "foundation/requestuid.hpp"
+#include "frame/ipc/ipcservice.hpp"
+#include "frame/requestuid.hpp"
 
 
 #include "core/manager.hpp"
-#include "core/signals.hpp"
+#include "core/messages.hpp"
 
 #include "gamma/gammaservice.hpp"
 
 #include "gammaconnection.hpp"
 #include "gammacommand.hpp"
 #include "gammafilters.hpp"
-#include "gammasignals.hpp"
+#include "gammamessages.hpp"
 
 #include "audit/log.hpp"
 
-namespace fdt=foundation;
+using namespace solid;
 //static const char	*hellostr = "Welcome to gamma service!!!\r\n"; 
 //static const char *sigstr = "Signaled!!!\r\n";
 
@@ -35,16 +35,16 @@ namespace concept{
 namespace gamma{
 
 void Logger::doInFlush(const char *_pb, unsigned _bl){
-	if(Log::instance().isSet(Log::any, Log::Input)){
-		Log::instance().record(Log::Input, Log::any, 0, __FILE__, __FUNCTION__, __LINE__).write(_pb, _bl);
-		Log::instance().done();
+	if(Log::the().isSet(Log::any, Log::Input)){
+		Log::the().record(Log::Input, Log::any, 0, __FILE__, __FUNCTION__, __LINE__).write(_pb, _bl);
+		Log::the().done();
 	}
 }
 
 void Logger::doOutFlush(const char *_pb, unsigned _bl){
-	if(Log::instance().isSet(Log::any, Log::Output)){
-		Log::instance().record(Log::Output, Log::any, 0, __FILE__, __FUNCTION__, __LINE__).write(_pb, _bl);
-		Log::instance().done();
+	if(Log::the().isSet(Log::any, Log::Output)){
+		Log::the().record(Log::Output, Log::any, 0, __FILE__, __FUNCTION__, __LINE__).write(_pb, _bl);
+		Log::the().done();
 	}
 }
 
@@ -78,11 +78,11 @@ static const unsigned specificPosition(){
 }
 
 /*static*/ void Connection::dynamicRegister(){
-	DynamicExecuterT::registerDynamic<InputStreamSignal, Connection>();
-	DynamicExecuterT::registerDynamic<OutputStreamSignal, Connection>();
-	DynamicExecuterT::registerDynamic<InputOutputStreamSignal, Connection>();
-	DynamicExecuterT::registerDynamic<StreamErrorSignal, Connection>();
-	DynamicExecuterT::registerDynamic<SocketMoveSignal, Connection>();
+	DynamicExecuterT::registerDynamic<InputStreamMessage, Connection>();
+	DynamicExecuterT::registerDynamic<OutputStreamMessage, Connection>();
+	DynamicExecuterT::registerDynamic<InputOutputStreamMessage, Connection>();
+	DynamicExecuterT::registerDynamic<StreamErrorMessage, Connection>();
+	DynamicExecuterT::registerDynamic<SocketMoveMessage, Connection>();
 }
 
 Connection::Connection(const SocketDevice &_rsd):
@@ -92,12 +92,12 @@ Connection::Connection(const SocketDevice &_rsd):
 	sdv.back()->r.buffer(protocol::HeapBuffer(1024));
 	sdv.back()->w.buffer(protocol::HeapBuffer(1024));
 	socketState(0, SocketInit);
-	this->socketPostEvents(0, fdt::RESCHEDULED);
+	this->socketPostEvents(0, frame::RESCHEDULED);
 }
 
 
 /*static*/ Connection& Connection::the(){
-	return *reinterpret_cast<Connection*>(Thread::specific(specificPosition()));
+	return static_cast<Connection&>(frame::Object::specific());
 }
 
 /*
@@ -114,20 +114,19 @@ NOTE:
 
 Connection::~Connection(){
 	idbg("destroy connection id "<<this->id());
-	Thread::specific(specificPosition(), this);
 	for(SocketDataVectorT::const_iterator it(sdv.begin()); it != sdv.end(); ++it){
 		delete *it;
 	}
 }
 
-/*virtual*/ bool Connection::signal(DynamicPointer<foundation::Signal> &_sig){
+/*virtual*/ bool Connection::notify(DynamicPointer<frame::Message> &_msgptr){
 	if(this->state() < 0){
-		_sig.clear();
+		_msgptr.clear();
 		return false;//no reason to raise the pool thread!!
 	}
-	DynamicPointer<>	dp(_sig);
+	DynamicPointer<>	dp(_msgptr);
 	dr.push(this, dp);
-	return Object::signal(fdt::S_SIG | fdt::S_RAISE);
+	return Object::notify(frame::S_SIG | frame::S_RAISE);
 }
 
 /*
@@ -139,26 +138,25 @@ Connection::~Connection(){
 
 int Connection::execute(ulong _sig, TimeSpec &_tout){
 	//_tout.add(2400);
-	if(_sig & (fdt::TIMEOUT | fdt::ERRDONE)){
+	if(_sig & (frame::TIMEOUT | frame::ERRDONE)){
 		idbg("timeout occured - destroy connection "<<state());
 		return BAD;
 	}
 	
 	Manager &rm = Manager::the();
-	fdt::requestuidptr->set(this->id(), rm.uid(*this));
-	Thread::specific(specificPosition(), this);
+	frame::requestuidptr->set(this->id(), rm.id(*this).second);
 	
-	if(signaled()){//we've received a signal
+	if(notified()){//we've received a signal
 		ulong sm(0);
 		{
 			Locker<Mutex>	lock(rm.mutex(*this));
 			sm = grabSignalMask(0);//grab all bits of the signal mask
-			if(sm & fdt::S_KILL) return BAD;
-			if(sm & fdt::S_SIG){//we have signals
+			if(sm & frame::S_KILL) return BAD;
+			if(sm & frame::S_SIG){//we have signals
 				dr.prepareExecute(this);
 			}
 		}
-		if(sm & fdt::S_SIG){//we've grabed signals, execute them
+		if(sm & frame::S_SIG){//we've grabed signals, execute them
 			while(dr.hasCurrent(this)){
 				dr.executeCurrent(this);
 				dr.next(this);
@@ -183,11 +181,11 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 				if(!this->count()) return BAD;
 				break;
 			case OK:
-				this->socketPostEvents(sid, fdt::RESCHEDULED);
+				this->socketPostEvents(sid, frame::RESCHEDULED);
 				break;
 			case NOK:
 				break;
-			case fdt::LEAVE:
+			case frame::LEAVE:
 				return BAD;
 		}
 	}
@@ -241,7 +239,7 @@ void   Connection::deleteRequestId(uint32 _v){
 	
 int Connection::executeSocket(const uint _sid, const TimeSpec &_tout){
 	ulong evs(this->socketEvents(_sid));
-	if(evs & (fdt::TIMEOUT_SEND | fdt::TIMEOUT_RECV)) return BAD;
+	if(evs & (frame::TIMEOUT_SEND | frame::TIMEOUT_RECV)) return BAD;
 	SocketData &rsd(socketData(_sid));
 	switch(socketState(_sid)){
 		case SocketRegister:
@@ -263,7 +261,7 @@ int Connection::executeSocket(const uint _sid, const TimeSpec &_tout){
 		case SocketExecute:
 			return doSocketExecute(_sid, rsd);
 		case SocketParseWait:
-			if(evs & (fdt::INDONE | fdt::DONE |fdt::OUTDONE)){
+			if(evs & (frame::INDONE | frame::DONE |frame::OUTDONE)){
 				socketState(_sid, SocketParse);
 				return OK;
 			}
@@ -271,7 +269,7 @@ int Connection::executeSocket(const uint _sid, const TimeSpec &_tout){
 		case SocketIdleParse:
 			return doSocketParse(_sid, rsd, true);
 		case SocketIdleWait:
-			if(evs & (fdt::INDONE)){
+			if(evs & (frame::INDONE)){
 				socketState(_sid, SocketIdleParse);
 				return OK;
 			}
@@ -282,11 +280,11 @@ int Connection::executeSocket(const uint _sid, const TimeSpec &_tout){
 		case SocketIdleDone:
 			return doSocketExecute(_sid, rsd, SocketIdleDone);
 		case SocketLeave:
-			cassert(evs & fdt::DONE);
+			cassert(evs & frame::DONE);
 			//the socket is unregistered
 			//prepare a signal
-			doSendSocketSignal(_sid);
-			return fdt::LEAVE;
+			doSendSocketMessage(_sid);
+			return frame::LEAVE;
 		default:
 			edbg("unknown state "<<socketState(_sid));
 			cassert(false);
@@ -303,8 +301,8 @@ Command* Connection::create(const String& _name, Reader &_rr){
 int Connection::doSocketPrepareBanner(const uint _sid, SocketData &_rsd){
 	concept::Manager	&rm = concept::Manager::the();
 	uint32				myport(rm.ipc().basePort());
-	ulong				objid(this->id());
-	uint32				objuid(rm.uid(*this));
+	IndexT				objid(this->id());
+	uint32				objuid(rm.id(*this).second);
 	char				host[SocketInfo::HostStringCapacity];
 	char				port[SocketInfo::ServiceStringCapacity];
 	SocketAddress		addr;
@@ -426,63 +424,63 @@ void Connection::dynamicExecute(DynamicPointer<> &_dp){
 }
 
 
-void Connection::dynamicExecute(DynamicPointer<InputStreamSignal> &_psig){
+void Connection::dynamicExecute(DynamicPointer<InputStreamMessage> &_rmsgptr){
 	int sid(-1);
-	if(!isRequestIdExpected(_psig->requid.first, sid)) return;
+	if(!isRequestIdExpected(_rmsgptr->requid.first, sid)) return;
 	cassert(sid >= 0);
 	SocketData &rsd(socketData(sid));
-	int rv = rsd.pcmd->receiveInputStream(_psig->sptr, _psig->fileuid, 0, ObjectUidT(), NULL);
+	int rv = rsd.pcmd->receiveInputStream(_rmsgptr->sptr, _rmsgptr->fileuid, 0, ObjectUidT(), NULL);
 	cassert(rv != OK);
-	this->socketPostEvents(sid, fdt::RESCHEDULED);
+	this->socketPostEvents(sid, frame::RESCHEDULED);
 }
 
-void Connection::dynamicExecute(DynamicPointer<OutputStreamSignal> &_psig){
+void Connection::dynamicExecute(DynamicPointer<OutputStreamMessage> &_rmsgptr){
 }
 
-void Connection::dynamicExecute(DynamicPointer<InputOutputStreamSignal> &_psig){
+void Connection::dynamicExecute(DynamicPointer<InputOutputStreamMessage> &_rmsgptr){
 }
 
-void Connection::dynamicExecute(DynamicPointer<StreamErrorSignal> &_psig){
+void Connection::dynamicExecute(DynamicPointer<StreamErrorMessage> &_rmsgptr){
 }
 
-void Connection::dynamicExecute(DynamicPointer<SocketMoveSignal> &_psig){
+void Connection::dynamicExecute(DynamicPointer<SocketMoveMessage> &_rmsgptr){
 	vdbg("");
 	//insert the new socket
-	uint sid = this->socketInsert(_psig->sp);
+	uint sid = this->socketInsert(_rmsgptr->sp);
 	socketState(sid, SocketRegister);
-	this->socketPostEvents(sid, fdt::RESCHEDULED);
+	this->socketPostEvents(sid, frame::RESCHEDULED);
 	if(sdv.size() > sid){
-		sdv[sid] = _psig->psd;
+		sdv[sid] = _rmsgptr->psd;
 	}else{
-		sdv.push_back(_psig->psd);
+		sdv.push_back(_rmsgptr->psd);
 		sdv.back()->w.buffer(protocol::HeapBuffer(1024));
 		sdv.back()->r.buffer(protocol::HeapBuffer(1024));
 	}
-	_psig->psd = NULL;
+	_rmsgptr->psd = NULL;
 	sdv[sid]->r.socketId(sid);
 	sdv[sid]->w.socketId(sid);
 	
 }
 
 
-void Connection::doSendSocketSignal(const uint _sid){
+void Connection::doSendSocketMessage(const uint _sid){
 	ObjectUidT objuid;
 	SocketData &rsd(socketData(_sid));
 	rsd.pcmd->contextData(objuid);
 	vdbg("Context data ("<<objuid.first<<','<<objuid.second<<')');
 	concept::Manager	&rm = concept::Manager::the();
-	fdt::aio::SocketPointer sp;
+	frame::aio::SocketPointer sp;
 	this->socketGrab(_sid, sp);
-	DynamicPointer<fdt::Signal>	psig(new SocketMoveSignal(sp, sdv[_sid]));
+	DynamicPointer<frame::Message>	msgptr(new SocketMoveMessage(sp, sdv[_sid]));
 	sdv[_sid] = NULL;
-	rm.signal(psig, objuid.first, objuid.second);
+	rm.notify(msgptr, ObjectUidT(objuid.first, objuid.second));
 }
 
 void Connection::appendContextString(std::string &_str){
 	concept::Manager	&rm = concept::Manager::the();
 	char				buffer[256];
-	foundation::IndexT	objid(this->id());
-	uint32				objuid(rm.uid(*this));
+	IndexT				objid(this->id());
+	uint32				objuid(rm.id(*this).second);
 	
 	
 	if(sizeof(objid) == 8){
@@ -511,7 +509,7 @@ int Command::receiveInputStream(
 	const FileUidT &,
 	int			_which,
 	const ObjectUidT&_from,
-	const fdt::ipc::ConnectionUid *_conid
+	const frame::ipc::ConnectionUid *_conid
 ){
 	return BAD;
 }
@@ -520,7 +518,7 @@ int Command::receiveOutputStream(
 	const FileUidT &,
 	int			_which,
 	const ObjectUidT&_from,
-	const fdt::ipc::ConnectionUid *_conid
+	const frame::ipc::ConnectionUid *_conid
 ){
 	return BAD;
 }
@@ -529,7 +527,7 @@ int Command::receiveInputOutputStream(
 	const FileUidT &,
 	int			_which,
 	const ObjectUidT&_from,
-	const fdt::ipc::ConnectionUid *_conid
+	const frame::ipc::ConnectionUid *_conid
 ){
 	return BAD;
 }
@@ -537,7 +535,7 @@ int Command::receiveString(
 	const String &_str,
 	int			_which, 
 	const ObjectUidT&_from,
-	const fdt::ipc::ConnectionUid *_conid
+	const frame::ipc::ConnectionUid *_conid
 ){
 	return BAD;
 }
@@ -546,7 +544,7 @@ int receiveData(
 	int _datasz,
 	int			_which, 
 	const ObjectUidT&_from,
-	const foundation::ipc::ConnectionUid *_conid
+	const frame::ipc::ConnectionUid *_conid
 ){
 	return BAD;
 }
@@ -554,7 +552,7 @@ int Command::receiveNumber(
 	const int64 &_no,
 	int			_which,
 	const ObjectUidT&_from,
-	const fdt::ipc::ConnectionUid *_conid
+	const frame::ipc::ConnectionUid *_conid
 ){
 	return BAD;
 }
@@ -563,19 +561,19 @@ int Command::receiveData(
 	int	_vsz,
 	int			_which,
 	const ObjectUidT&_from,
-	const fdt::ipc::ConnectionUid *_conid
+	const frame::ipc::ConnectionUid *_conid
 ){
 	return BAD;
 }
 int Command::receiveError(
 	int _errid,
 	const ObjectUidT&_from,
-	const foundation::ipc::ConnectionUid *_conid
+	const frame::ipc::ConnectionUid *_conid
 ){
 	return BAD;
 }
 
-SocketMoveSignal::~SocketMoveSignal(){
+SocketMoveMessage::~SocketMoveMessage(){
 	if(psd){
 		delete psd->pcmd;
 		delete psd;

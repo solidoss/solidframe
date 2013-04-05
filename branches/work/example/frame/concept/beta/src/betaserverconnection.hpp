@@ -23,8 +23,12 @@
 #define BETASERVERCONNECTION_HPP
 
 #include "utility/dynamictype.hpp"
-#include "foundation/aio/aiosingleobject.hpp"
+#include "frame/aio/aiosingleobject.hpp"
 #include "betaconnection.hpp"
+
+using solid::uint16;
+using solid::uint32;
+using solid::uint64;
 
 namespace concept{
 
@@ -34,26 +38,22 @@ namespace server{
 
 class Command;
 
-class Connection: public Dynamic<Connection, beta::Connection>{
+class Connection: public solid::Dynamic<Connection, beta::Connection>{
 public:
-	typedef Service	ServiceT;
-	
 	static void initStatic(Manager &_rm);
 	static void dynamicRegister();
 	
 	static Connection& the(){
-		return static_cast<Connection&>(Object::the());
+		return static_cast<Connection&>(solid::frame::Object::specific());
 	}
 	
-	Connection(const SocketDevice &_rsd);
+	Connection(const solid::SocketDevice &_rsd);
 	
 	~Connection();
 	
-	/*virtual*/ bool signal(DynamicPointer<foundation::Signal> &_sig);
+	/*virtual*/ bool notify(solid::DynamicPointer<solid::frame::Message> &_rmsgptr);
 	
-	int execute(ulong _sig, TimeSpec &_tout);
-	int execute();
-	int accept(foundation::Visitor &);
+	int execute(ulong _sig, solid::TimeSpec &_tout);
 	
 	uint32 newRequestId(uint32 _pos = -1);
 	bool   isRequestIdExpected(uint32 _v, uint32 &_rpos);
@@ -66,6 +66,14 @@ public:
 private:
 	bool useEncryption()const;
 	bool useCompression()const;
+	
+	void state(int _st){
+		st = _st;
+	}
+	
+	int state()const{
+		return st;
+	}
 	
 	void doPrepareRun();
 	/*virtual*/ int	doFillSendBufferData(char *_sendbufpos);
@@ -85,12 +93,13 @@ private:
 		Command *pcmd;
 	};
 	typedef std::vector<CommandStub>			CommandVectorT;
-	typedef Queue<uint32>						UInt32QueueT;
-	typedef Stack<uint32>						UInt32StackT;
+	typedef solid::Queue<uint32>				UInt32QueueT;
+	typedef solid::Stack<uint32>				UInt32StackT;
 	typedef std::pair<uint32, uint32>			UInt32PairT;
 	typedef std::vector<UInt32PairT>			UInt32PairVectorT;
 	
 	uint32						reqid;
+	int							st;
 	DynamicExecuterT			de;
 	CommandVectorT				cmdvec;
 	UInt32QueueT				cmdque;

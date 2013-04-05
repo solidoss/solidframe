@@ -25,6 +25,8 @@
 #include "betarequests.hpp"
 #include "betaresponses.hpp"
 
+using namespace solid;
+
 namespace concept{
 namespace beta{
 namespace client{
@@ -76,9 +78,9 @@ Login::Login(
 }
 /*virtual*/ int Login::executeRecv(uint32 _cmdidx){
 	idbg("login response "<<_cmdidx<<": "<<response.error);
-	signal->rsw.oss<<"login response "<<_cmdidx<<": "<<response.error;
-	LoginSignal *psig = signal.release();
-	psig->rsw.signal();
+	msgptr->rsw.oss<<"login response "<<_cmdidx<<": "<<response.error;
+	LoginMessage *pmsg = msgptr.release();
+	pmsg->rsw.signal();
 	return OK;
 }
 //--------------------------------------------------------------------------

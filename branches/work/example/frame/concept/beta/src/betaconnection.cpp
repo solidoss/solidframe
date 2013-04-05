@@ -26,15 +26,18 @@
 #include <string>
 #include <cstring>
 
-#include "algorithm/serialization/typemapperbase.hpp"
+#include "serialization/typemapperbase.hpp"
+
+using namespace solid;
 
 namespace concept{
 namespace beta{
 
 
 namespace {
-struct TypeMapper: serialization::TypeMapperBase{
+struct TypeMapper: solid::serialization::TypeMapperBase{
 };
+
 const TypeMapper tm;
 }//namespace
 

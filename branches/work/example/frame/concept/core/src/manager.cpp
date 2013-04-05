@@ -184,7 +184,12 @@ struct Manager::Data{
 };
 
 //--------------------------------------------------------------------------
+/*static*/ Manager& Manager::the(Manager *_pm){
+	static Manager *pm(_pm);
+	return *pm;
+}
 Manager::Manager():frame::Manager(), d(*(new Data(*this))){
+	the(this);
 }
 
 Manager::~Manager(){

@@ -23,9 +23,10 @@
 #define BETASERVERCOMMAND_HPP
 
 
-#include "algorithm/serialization/binary.hpp"
+#include "serialization/binary.hpp"
 #include "system/specific.hpp"
 
+using solid::uint32;
 
 namespace concept{
 
@@ -33,10 +34,10 @@ namespace beta{
 
 namespace server{
 
-class Command: public SpecificObject{
+class Command: public solid::SpecificObject{
 public:
-	typedef serialization::binary::Serializer	SerializerT;
-	typedef serialization::binary::Deserializer	DeserializerT;
+	typedef solid::serialization::binary::Serializer	SerializerT;
+	typedef solid::serialization::binary::Deserializer	DeserializerT;
 	
 	virtual ~Command();
 	

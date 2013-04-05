@@ -8,19 +8,19 @@
 
 #include "utility/iostream.hpp"
 
-#include "algorithm/protocol/namematcher.hpp"
-#include "algorithm/serialization/binary.hpp"
+#include "protocol/namematcher.hpp"
+#include "serialization/binary.hpp"
 
-#include "foundation/ipc/ipcservice.hpp"
-#include "foundation/ipc/ipcservice.hpp"
-#include "foundation/file/filemanager.hpp"
-#include "foundation/signalexecuter.hpp"
-#include "foundation/requestuid.hpp"
+#include "frame/ipc/ipcservice.hpp"
+#include "frame/ipc/ipcservice.hpp"
+#include "frame/file/filemanager.hpp"
+#include "frame/messagesteward.hpp"
+#include "frame/requestuid.hpp"
 
 #include "core/common.hpp"
 #include "core/tstring.hpp"
 #include "core/manager.hpp"
-#include "core/signals.hpp"
+#include "core/messages.hpp"
 
 
 #include "gammaconnection.hpp"
@@ -32,7 +32,7 @@
 
 #define StrDef(x) (void*)x, sizeof(x) - 1
 
-namespace fdt=foundation;
+using namespace solid;
 
 namespace concept{
 namespace gamma{
@@ -59,7 +59,7 @@ struct Cmd{
 static const protocol::NameMatcher cmdm(cmds);
 //---------------------------------------------------------------
 /*
-	The creator method called by fdt::Reader::fetchKey when the 
+	The creator method called by frame::Reader::fetchKey when the 
 	command name was parsed.
 	All it does is to create the proper command, which in turn,
 	will instruct the reader how to parse itself.
@@ -228,7 +228,7 @@ int Open::doInitLocal(const uint _sid){
 	
 	//try to open stream to localfile
 	reqid = rc.newRequestId(_sid);
-	fdt::RequestUid rqid(rc.id(), Manager::the().uid(rc), reqid);
+	frame::RequestUid rqid(rc.id(), Manager::the().id(rc).second, reqid);
 	int rv = Manager::the().fileManager().stream(isp, reqid, path.c_str());
 	switch(rv){
 		case BAD: 
@@ -282,7 +282,7 @@ int Open::receiveInputStream(
 	const FileUidT &_fuid,
 	int _which,
 	const ObjectUidT&,
-	const foundation::ipc::ConnectionUid *
+	const solid::frame::ipc::ConnectionUid *
 ){
 	//sp_out =_sptr;
 	//fuid = _fuid;
@@ -299,7 +299,7 @@ int Open::receiveInputStream(
 int Open::receiveError(
 	int _errid,
 	const ObjectUidT&_from,
-	const foundation::ipc::ConnectionUid *
+	const solid::frame::ipc::ConnectionUid *
 ){
 	state = SendError;
 	return OK;

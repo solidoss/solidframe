@@ -13,32 +13,30 @@
 #include "gammareader.hpp"
 #include "gammawriter.hpp"
 
-#include "foundation/aio/aiomultiobject.hpp"
+#include "frame/aio/aiomultiobject.hpp"
 
 #include <deque>
 
+namespace solid{
 class SocketAddress;
-
-namespace foundation{
-
-class Visitor;
-
-}
-
 class InputStream;
 class OutputStream;
 class InputOutputStream;
+}
+
+
+using solid::ulong;
+using solid::uint32;
 
 namespace concept{
 
-class Visitor;
 class Manager;
 
 //signals
-struct InputStreamSignal;
-struct OutputStreamSignal;
-struct InputOutputStreamSignal;
-struct StreamErrorSignal;
+struct InputStreamMessage;
+struct OutputStreamMessage;
+struct InputOutputStreamMessage;
+struct StreamErrorMessage;
 
 
 namespace gamma{
@@ -47,9 +45,9 @@ class Service;
 class Command;
 
 //signals:
-struct SocketMoveSignal;
+struct SocketMoveMessage;
 
-class Logger: public protocol::Logger{
+class Logger: public solid::protocol::Logger{
 protected:
 	virtual void doInFlush(const char*, unsigned);
 	virtual void doOutFlush(const char*, unsigned);
@@ -69,8 +67,8 @@ struct SocketData{
 	It uses a reader and a writer to implement a state machine for the 
 	protocol communication. 
 */
-class Connection: public Dynamic<Connection, foundation::aio::MultiObject>{
-	typedef DynamicExecuter<void, Connection>	DynamicExecuterT;
+class Connection: public solid::Dynamic<Connection, solid::frame::aio::MultiObject>{
+	typedef solid::DynamicExecuter<void, Connection>	DynamicExecuterT;
 public:
 	enum{
 		SocketRegister,
@@ -88,25 +86,23 @@ public:
 		SocketLeave
 	};
 	
-	typedef Service	ServiceT;
-	
 	static void initStatic(Manager &_rm);
 	static void dynamicRegister();
 	
 	static Connection &the();
 	
-	Connection(const SocketDevice &_rsd);
+	Connection(const solid::SocketDevice &_rsd);
 	
 	~Connection();
 	
-	/*virtual*/ bool signal(DynamicPointer<foundation::Signal> &_sig);
+	/*virtual*/ bool notify(solid::DynamicPointer<solid::frame::Message> &_rmsgptr);
 	
 	//! The implementation of the protocol's state machine
 	/*!
 		The method will be called within a foundation::SelectPool by an
 		foundation::aio::Selector.
 	*/
-	int execute(ulong _sig, TimeSpec &_tout);
+	int execute(ulong _sig, solid::TimeSpec &_tout);
 	
 	//! creator method for new commands
 	Command* create(const String& _name, Reader &_rr);
@@ -125,16 +121,23 @@ public:
 	
 	SocketData &socketData(const uint _sid);
 	
-	void dynamicExecute(DynamicPointer<> &_dp);
-	void dynamicExecute(DynamicPointer<InputStreamSignal> &_rsig);
-	void dynamicExecute(DynamicPointer<OutputStreamSignal> &_rsig);
-	void dynamicExecute(DynamicPointer<InputOutputStreamSignal> &_rsig);
-	void dynamicExecute(DynamicPointer<StreamErrorSignal> &_rsig);
-	void dynamicExecute(DynamicPointer<SocketMoveSignal> &_rsig);
+	void dynamicExecute(solid::DynamicPointer<> &_dp);
+	void dynamicExecute(solid::DynamicPointer<InputStreamMessage> &_rmsgptr);
+	void dynamicExecute(solid::DynamicPointer<OutputStreamMessage> &_rmsgptr);
+	void dynamicExecute(solid::DynamicPointer<InputOutputStreamMessage> &_rmsgptr);
+	void dynamicExecute(solid::DynamicPointer<StreamErrorMessage> &_rmsgptr);
+	void dynamicExecute(solid::DynamicPointer<SocketMoveMessage> &_rmsgptr);
 	
 	void appendContextString(std::string &_str);
 private:
-	int executeSocket(const uint _sid, const TimeSpec &_tout);
+	void state(int _st){
+		st = _st;
+	}
+	int state()const{
+		return st;
+	}
+	
+	int executeSocket(const uint _sid, const solid::TimeSpec &_tout);
 	
 	void prepareReader(const uint _sid);
 	
@@ -151,21 +154,22 @@ private:
 	void doSocketPrepareParse(const uint _sid, SocketData &_rsd);
 	int doSocketParse(const uint _sid, SocketData &_rsd, const bool _isidle = false);
 	int doSocketExecute(const uint _sid, SocketData &_rsd, const int _state = 0);
-	void doSendSocketSignal(const uint _sid);
+	void doSendSocketMessage(const uint _sid);
 
 private:
 	typedef std::vector<SocketData*>				SocketDataVectorT;
 	typedef std::vector<std::pair<uint32, int> >	RequestIdVectorT;
 	struct StreamData{
-		StreamPointer<InputStream>	pis;
-		StreamPointer<OutputStream>	pos;
-		StreamPointer<InputOutputStream>	pios;
+		solid::StreamPointer<solid::InputStream>		pis;
+		solid::StreamPointer<solid::OutputStream>		pos;
+		solid::StreamPointer<solid::InputOutputStream>	pios;
 	};
 	typedef std::deque<StreamData>					StreamDataVectorT;
-	typedef Stack<uint32>							UIntStackT;
+	typedef solid::Stack<uint32>					UIntStackT;
 
 private:
 	bool				isslave;
+	int					st;
 	uint32				crtreqid;
 	DynamicExecuterT	dr;
 	SocketDataVectorT	sdv;

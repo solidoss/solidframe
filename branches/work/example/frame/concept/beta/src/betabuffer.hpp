@@ -25,6 +25,10 @@
 
 #include "system/common.hpp"
 
+using solid::uint32;
+using solid::uint8;
+using solid::uint16;
+
 namespace concept{
 
 namespace beta{

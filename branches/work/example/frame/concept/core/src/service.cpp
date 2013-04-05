@@ -90,5 +90,12 @@ bool Service::insertListener(
 	Manager::the().scheduleListener(lisptr);
 	return true;
 }
+/*virtual*/ ObjectUidT Service::insertConnection(
+	const solid::SocketDevice &_rsd,
+	solid::frame::aio::openssl::Context *_pctx,
+	bool _secure
+){
+	return frame::invalid_uid();
+}
 
 }//namespace concept

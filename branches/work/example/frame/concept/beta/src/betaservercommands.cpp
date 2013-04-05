@@ -21,6 +21,8 @@
 #include "betaservercommands.hpp"
 #include "system/debug.hpp"
 
+using namespace solid;
+
 namespace concept{
 namespace beta{
 namespace server{

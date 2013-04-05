@@ -26,6 +26,10 @@
 #include "system/common.hpp"
 #include <string>
 
+using solid::int32;
+using solid::uint32;
+using solid::uint64;
+
 namespace concept{
 namespace beta{
 namespace response{
@@ -59,7 +63,7 @@ struct Test{
 		if(count > 0){
 			_rs.push(token, "token");
 		}
-		return CONTINUE;
+		return solid::CONTINUE;
 	}
 };
 

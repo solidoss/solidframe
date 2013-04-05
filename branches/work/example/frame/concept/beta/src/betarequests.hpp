@@ -26,6 +26,8 @@
 #include "system/common.hpp"
 #include <string>
 
+using solid::uint32;
+
 namespace concept{
 namespace beta{
 namespace request{

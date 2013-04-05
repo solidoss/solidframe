@@ -5,6 +5,8 @@
 
 #include <cerrno>
 
+using namespace solid;
+
 namespace concept{
 namespace gamma{
 

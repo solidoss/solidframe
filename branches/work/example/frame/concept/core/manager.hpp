@@ -65,7 +65,7 @@ public:
 	
 	void start();
 	
-	static Manager& the();
+	static Manager& the(Manager *_pm = NULL);
 	
 	void scheduleListener(solid::DynamicPointer<solid::frame::aio::Object> &_objptr);
 	void scheduleTalker(solid::DynamicPointer<solid::frame::aio::Object> &_objptr);
