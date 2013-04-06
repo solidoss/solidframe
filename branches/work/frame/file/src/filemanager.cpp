@@ -102,7 +102,7 @@ struct Manager::Data{
 	typedef Queue<SendErrorDataT>		SendErrorQueueT;
 	
 	
-	Data(Controller *_pc):pc(_pc), sz(0), mtx(NULL), mtxstore(0, 3, 5){}
+	Data(Controller *_pc):pc(_pc), sz(0), mtxstore(0, 3, 5){}
 	~Data(){}
 	void pushFileInTemp(File *_pf);
 	int state()const{
@@ -115,7 +115,7 @@ struct Manager::Data{
 	Controller						*pc;//pointer to controller
 	uint32							sz;
 	int								st;
-	Mutex							*mtx;
+//	Mutex							*mtx;
 	MutexStoreT						mtxstore;
 	FileVectorT						fv;//file vector
 	MapperVectorT					mv;//mapper vector
@@ -178,7 +178,8 @@ Manager::~Manager(){
 //------------------------------------------------------------------
 
 int Manager::execute(ulong _evs, TimeSpec &_rtout){
-	d.mtx->lock();
+	Mutex &rmtx = frame::Manager::specific().mutex(*this);
+	rmtx.lock();
 	//idbgx(Debug::file, "signalmask "<<_evs);
 	if(notified()){
 		ulong sm = grabSignalMask(0);
@@ -188,7 +189,7 @@ int Manager::execute(ulong _evs, TimeSpec &_rtout){
 			vdbgx(Debug::file, "kill "<<d.sz);
 			if(!d.sz){//no file
 				d.state(-1);
-				d.mtx->unlock();
+				rmtx.unlock();
 				vdbgx(Debug::file, "");
 				frame::Manager::specific().unregisterObject(*this);
 				return BAD;
@@ -206,7 +207,7 @@ int Manager::execute(ulong _evs, TimeSpec &_rtout){
 	
 	doDeleteFiles();
 	
-	d.mtx->unlock();//done with the locking
+	rmtx.unlock();//done with the locking
 	
 	doScanTimeout(_rtout);
 	
@@ -407,9 +408,7 @@ void Manager::doScanTimeout(const TimeSpec &_rtout){
 	}
 }
 //------------------------------------------------------------------
-//overload from object
 void Manager::init(Mutex *_pmtx){
-	d.mtx = _pmtx;
 }
 //------------------------------------------------------------------
 void Manager::releaseInputStream(IndexT _fileid){
@@ -419,7 +418,8 @@ void Manager::releaseInputStream(IndexT _fileid){
 		b = d.fv[_fileid].pfile->decreaseInCount();
 	}
 	if(b){
-		Locker<Mutex>	lock(*d.mtx);
+		Mutex 			&rmtx = frame::Manager::specific().mutex(*this);
+		Locker<Mutex>	lock(rmtx);
 		//we must signal the filemanager
 		d.feq.push(d.fv[_fileid].pfile);
 		vdbgx(Debug::file, "sq.push "<<_fileid);
@@ -437,7 +437,8 @@ void Manager::releaseOutputStream(IndexT _fileid){
 		b = d.fv[_fileid].pfile->decreaseOutCount();
 	}
 	if(b){
-		Locker<Mutex>	lock(*d.mtx);
+		Mutex			&rmtx = frame::Manager::specific().mutex(*this);
+		Locker<Mutex>	lock(rmtx);
 		//we must signal the filemanager
 		d.feq.push(d.fv[_fileid].pfile);
 		vdbgx(Debug::file, "sq.push "<<_fileid);
@@ -493,7 +494,8 @@ int Manager::doGetStream(
 	const Key &_rk,
 	uint32 _flags
 ){
-	Locker<Mutex>	lock1(*d.mtx);
+	Mutex 			&rmtx = frame::Manager::specific().mutex(*this);
+	Locker<Mutex>	lock1(rmtx);
 	
 	if(d.state() != Data::Running) return BAD;
 	
@@ -739,7 +741,8 @@ int Manager::stream(
 	const RequestUid &_requid,
 	uint32 _flags
 ){
-	Locker<Mutex>	lock1(*d.mtx);
+	Mutex			&rmtx = frame::Manager::specific().mutex(*this);
+	Locker<Mutex>	lock1(rmtx);
 	if(_rfuid.first < d.fv.size() && d.fv[_rfuid.first].uid == _rfuid.second){
 		Locker<Mutex>	lock2(d.mtxstore.at(_rfuid.first));
 		Data::FileData	&rfd(d.fv[_rfuid.first]);
@@ -757,7 +760,8 @@ int Manager::stream(
 	const RequestUid &_requid,
 	uint32 _flags
 ){
-	Locker<Mutex>	lock1(*d.mtx);
+	Mutex			&rmtx = frame::Manager::specific().mutex(*this);
+	Locker<Mutex>	lock1(rmtx);
 	if(_rfuid.first < d.fv.size() && d.fv[_rfuid.first].uid == _rfuid.second){
 		Locker<Mutex>	lock2(d.mtxstore.at(_rfuid.first));
 		Data::FileData	&rfd(d.fv[_rfuid.first]);
@@ -775,7 +779,8 @@ int Manager::stream(
 	const RequestUid &_requid,
 	uint32 _flags
 ){
-	Locker<Mutex>	lock1(*d.mtx);
+	Mutex			&rmtx = frame::Manager::specific().mutex(*this);
+	Locker<Mutex>	lock1(rmtx);
 	if(_rfuid.first < d.fv.size() && d.fv[_rfuid.first].uid == _rfuid.second){
 		Locker<Mutex>	lock2(d.mtxstore.at(_rfuid.first));
 		Data::FileData	&rfd(d.fv[_rfuid.first]);

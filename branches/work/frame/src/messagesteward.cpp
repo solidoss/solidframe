@@ -18,7 +18,7 @@ namespace frame{
 
 
 struct MessageSteward::Data{
-	Data():pm(NULL), extsz(0), sz(0){}
+	Data():extsz(0), sz(0){}
 	enum{
 		Running, Stopping
 	};
@@ -38,7 +38,7 @@ struct MessageSteward::Data{
 	typedef Queue<uint32>							ExecQueueT;
 	typedef Stack<uint32>							FreeStackT;
 	int					state;
-	Mutex 				*pm;
+//	Mutex 				*pm;
 	uint32				extsz;
 	uint32				sz;
 	SignalDequeT		sdq;
@@ -80,7 +80,6 @@ MessageSteward::~MessageSteward(){
 }
 
 bool MessageSteward::notify(DynamicPointer<Message> &_sig){
-	cassert(!d.pm->tryLock());
 	
 	if(d.state != Data::Running){
 		_sig.clear();
@@ -100,7 +99,8 @@ NOTE:
 	after all services/and managers have stopped - i.e. a mighty deadlock.
 */
 int MessageSteward::execute(ulong _evs, TimeSpec &_rtout){
-	d.pm->lock();
+	Mutex &rmtx = frame::Manager::specific().mutex(*this);
+	rmtx.lock();
 	vdbgx(Debug::fdt, "d.extsz = "<<d.extsz);
 	if(d.extsz){
 		for(Data::SignalExtDequeT::const_iterator it(d.sedq.begin()); it != d.sedq.end(); ++it){
@@ -117,7 +117,7 @@ int MessageSteward::execute(ulong _evs, TimeSpec &_rtout){
 			d.state = Data::Stopping;
 			if(!d.sz){//no signal
 				d.state = -1;
-				d.pm->unlock();
+				rmtx.unlock();
 				d.sdq.clear();
 				Manager::specific().unregisterObject(*this);
 				vdbgx(Debug::fdt, "~MessageSteward");
@@ -131,7 +131,7 @@ int MessageSteward::execute(ulong _evs, TimeSpec &_rtout){
 			}
 		}
 	}
-	d.pm->unlock();
+	rmtx.unlock();
 	if(d.state == Data::Running){
 		vdbgx(Debug::fdt, "d.eq.size = "<<d.eq.size());
 		while(d.eq.size()){
@@ -173,20 +173,19 @@ int MessageSteward::execute(ulong _evs, TimeSpec &_rtout){
 		return BAD;
 	}
 	if(d.fs2.size()){
-		d.pm->lock();
+		rmtx.lock();
 		d.sz -= d.fs2.size();
 		while(d.fs2.size()){
 			d.fs.push(d.fs2.top());
 			d.fs2.pop();
 		}
-		d.pm->unlock();
+		rmtx.unlock();
 	}
 	_rtout = d.tout;
 	return NOK;
 }
 
 void MessageSteward::init(Mutex *_pmtx){
-	d.pm = _pmtx;
 }
 
 int MessageSteward::execute(){
