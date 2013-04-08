@@ -25,7 +25,6 @@
 #include "system/mutex.hpp"
 #endif
 
-#include "system/cassert.hpp"
 
 inline Condition::Condition(){
 	int rv = pthread_cond_init(&cond,NULL);

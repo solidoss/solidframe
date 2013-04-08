@@ -23,6 +23,7 @@
 #define SYSTEM_CONDITION_HPP
 
 #include "system/common.hpp"
+#include "system/cassert.hpp"
 
 #if 	defined(USTLMUTEX)
 #include "system/condition_stl.hpp"

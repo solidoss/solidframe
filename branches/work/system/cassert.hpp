@@ -46,6 +46,6 @@ struct static_test<false>{
 
 }//namespace solid
 
-#define cstatic_assert(e) static_test<(e)>::ok()
+#define cstatic_assert(e) solid::static_test<(e)>::ok()
 
 #endif
