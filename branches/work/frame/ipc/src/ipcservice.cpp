@@ -319,6 +319,17 @@ int Service::basePort()const{
 	return d.baseport;
 }
 //---------------------------------------------------------------------
+bool Service::isLocalNetwork(
+	const SocketAddressStub &_rsa_dest,
+	const uint32 _netid_dest
+){
+	return _netid_dest == LocalNetworkId || _netid_dest == configuration().localnetid;
+}
+//---------------------------------------------------------------------
+bool Service::isGateway()const{
+	return false;
+}
+//---------------------------------------------------------------------
 void Service::doSendMessage(
 	DynamicPointer<Message> &_rmsgptr,//the message to be sent
 	const SerializationTypeIdT &_rtid,
@@ -333,7 +344,7 @@ void Service::doSendMessage(
 		_rsap.family() != SocketAddressInfo::Inet6*/
 	)return;
 	
-	if(controller().isLocalNetwork(_rsa_dest, _netid_dest)){
+	if(isLocalNetwork(_rsa_dest, _netid_dest)){
 		doSendMessageLocal(_rmsgptr, _rtid, _pconid, _rsa_dest, _netid_dest, _flags);
 	}else{
 		doSendMessageRelay(_rmsgptr, _rtid, _pconid, _rsa_dest, _netid_dest, _flags);
@@ -657,9 +668,9 @@ int Service::allocateNodeForSocket(bool _force){
 int Service::acceptSession(const SocketAddress &_rsa, const ConnectData &_rconndata){
 	if(_rconndata.type == ConnectData::BasicType){
 		return doAcceptBasicSession(_rsa, _rconndata);
-	}else if(controller().isLocalNetwork(_rconndata.receiveraddress, _rconndata.receivernetworkid)){
+	}else if(isLocalNetwork(_rconndata.receiveraddress, _rconndata.receivernetworkid)){
 		return doAcceptRelaySession(_rsa, _rconndata);
-	}else if(controller().isGateway()){
+	}else if(isGateway()){
 		return doAcceptGatewaySession(_rsa, _rconndata);
 	}else{
 		return NoGatewayError;
@@ -936,17 +947,6 @@ int Controller::authenticate(
 ){
 	//use: ConnectionContext::the().connectionuid!!
 	return BAD;//by default no authentication
-}
-
-/*virtual*/ uint32 Controller::localNetworkId()const{
-	return LocalNetworkId;
-}
-
-bool Controller::isLocalNetwork(
-	const SocketAddressStub &,
-	const uint32 _netid_dest
-)const{
-	return _netid_dest == LocalNetworkId || _netid_dest == localNetworkId();
 }
 
 void Controller::sendEvent(

@@ -2075,7 +2075,7 @@ int Session::doExecuteRelayConnecting(Talker::TalkerStub &_rstub){
 		cd.timestamp_s = _rstub.service().timeStamp().seconds();
 		cd.timestamp_n = _rstub.service().timeStamp().nanoSeconds();
 		cd.receivernetworkid = d.relayed44().netid;
-		cd.sendernetworkid = _rstub.service().controller().localNetworkId();
+		cd.sendernetworkid = _rstub.service().configuration().localnetid;
 		
 		cd.relayid = _rstub.relayId();
 		

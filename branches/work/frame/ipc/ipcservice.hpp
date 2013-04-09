@@ -73,8 +73,7 @@ enum {
 
 struct Controller: Dynamic<Controller, DynamicShared<> >{
 	enum{
-		AuthenticationFlag = 1,
-		GatewayFlag = 2
+		AuthenticationFlag = 1
 	};
 	
 	virtual ~Controller();
@@ -95,52 +94,14 @@ struct Controller: Dynamic<Controller, DynamicShared<> >{
 		uint32 &_bl
 	);
 	
-// 	virtual SocketAddressStub gatewayAddress(
-// 		const uint _idx,
-// 		const uint32 _netid_dest,
-// 		const SocketAddressStub &_rsas_dest
-// 	);
-// 	
-// 	//retval:
-// 	// -1 : wait for asynchrounous event and retry
-// 	// 0: no gateway
-// 	// > 0: the count
-// 	virtual int gatewayCount(
-// 		const uint32 _netid_dest,
-// 		const SocketAddressStub &_rsas_dest
-// 	)const;
-// 	
-// 	//called on the gateway to find out where to connect for relaying data to _rsas_dest
-// 	virtual const SocketAddress& relayAddress(
-// 		const uint32 _netid_dest,
-// 		const SocketAddressStub &_rsas_dest
-// 	);
-// 	
-// 	//called on the gateway to find out where to connect for relaying data to _rsas_dest
-// 	virtual uint32 relayCount(
-// 		const uint32 _netid_dest,
-// 		const SocketAddressStub &_rsas_dest
-// 	)const;
-// 	
-	bool isLocalNetwork(
-		const SocketAddressStub &_rsas_dest,
-		const uint32 _netid_dest
-	)const;
-	
 	bool hasAuthentication()const{
 		return (flags & AuthenticationFlag) != 0;
-	}
-	
-	bool isGateway()const{
-		return (flags & GatewayFlag) != 0;
 	}
 	
 	virtual bool receive(
 		Message *_pmsg,
 		ipc::MessageUid &_rmsguid
 	);
-	
-	virtual uint32 localNetworkId()const;
 	
 	//Must return:
 	// If _psig is NULL, the request is to initiate the authentication,
@@ -253,13 +214,16 @@ struct Configuration{
 	
 	Configuration(
 		const uint32 _flags = 0
-	):	flags(_flags){}
+	):	flags(_flags), localnetid(LocalNetworkId){}
 	
 	bool operator==(const Configuration &_rcfg)const{
-		return flags == _rcfg.flags && baseaddr == _rcfg.baseaddr && talker == _rcfg.talker && node == _rcfg.node && session == _rcfg.session;
+		return	flags == _rcfg.flags && localnetid == _rcfg.localnetid &&
+				baseaddr == _rcfg.baseaddr && talker == _rcfg.talker &&
+				node == _rcfg.node && session == _rcfg.session;
 	}
 	
 	uint32				flags;
+	uint32				localnetid;
 	SocketAddressInet	baseaddr;
 	Talker				talker;
 	Node				node;
@@ -325,8 +289,8 @@ public:
 	/*!
 		The message is send only if the connector exists. If the peer process,
 		restarts the message is not sent.
-		\param _rconid A previously saved connectionuid
 		\param _rmsgptr A DynamicPointer with the message to be sent.
+		\param _rconid A previously saved connectionuid
 		\param _flags Control flags
 	*/
 	
@@ -414,6 +378,13 @@ private:
 	friend class Talker;
 	friend class Session;
 	friend class Controller;
+	
+	bool isLocalNetwork(
+		const SocketAddressStub &_rsa_dest,
+		const uint32 _netid_dest
+	);
+	
+	bool isGateway()const;
 	
 	void doSendEvent(
 		const ConnectionUid &_rconid,//the id of the process connectors
