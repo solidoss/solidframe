@@ -201,7 +201,8 @@ struct Configuration{
 		bool operator==(const Session &_rses)const{
 			return responsekeepalive == _rses.responsekeepalive &&
 				keepalive == _rses.keepalive && maxrecvnoupdatecount == _rses.maxrecvnoupdatecount &&
-				maxsendbuffercount == _rses.maxsendbuffercount && maxmessagebuffercount == _rses.maxmessagebuffercount &&
+				maxsendbuffercount == _rses.maxsendbuffercount &&
+				maxmessagebuffercount == _rses.maxmessagebuffercount &&
 				maxsendmessagequeuesize == _rses.maxsendmessagequeuesize;
 		}
 		uint32		responsekeepalive;
