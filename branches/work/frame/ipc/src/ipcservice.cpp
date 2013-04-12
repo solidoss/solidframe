@@ -181,12 +181,16 @@ Service::Data::~Data(){
 
 /*static*/ const char* Service::errorText(int _err){
 	switch(_err){
-		case BAD:
-			return "Generic Error";
 		case NoError:
 			return "No Error";
+		case GenericError:
+			return "Generic Error";
 		case NoGatewayError:
 			return "No Gateway Error";
+		case UnsupportedSocketFamilyError:
+			return "Unsupported socket family Error";
+		case NoConnectionError:
+			return "No such connection error";
 		default:
 			return "Unknown Error";
 	}
@@ -250,7 +254,7 @@ int Service::reconfigure(const Configuration &_rcfg){
 	}
 }
 //---------------------------------------------------------------------
-void Service::sendMessage(
+int Service::sendMessage(
 	DynamicPointer<Message> &_rmsgptr,//the message to be sent
 	const ConnectionUid &_rconid,//the id of the process connector
 	uint32	_flags
@@ -264,12 +268,17 @@ void Service::sendMessage(
 	
 	cassert(ptkr);
 	
+	if(ptkr == NULL){
+		return NoConnectionError;
+	}
+	
 	if(ptkr->pushMessage(_rmsgptr, SERIALIZATION_INVALIDID, _rconid, _flags | SameConnectorFlag)){
 		//the talker must be notified
 		if(ptkr->notify(frame::S_RAISE)){
 			manager().raise(*ptkr);
 		}
 	}
+	return OK;
 }
 //---------------------------------------------------------------------
 void Service::doSendEvent(
@@ -292,13 +301,16 @@ void Service::doSendEvent(
 	}
 }
 //---------------------------------------------------------------------
-void Service::sendMessage(
+int Service::sendMessage(
 	DynamicPointer<Message> &_rmsgptr,//the message to be sent
 	const SerializationTypeIdT &_rtid,
 	const ConnectionUid &_rconid,//the id of the process connector
 	uint32	_flags
 ){
 	cassert(_rconid.tid < d.tkrvec.size());
+	if(_rconid.tid >= d.tkrvec.size()){
+		return NoConnectionError;
+	}
 	
 	Locker<Mutex>		lock(mutex());
 	const IndexT		fullid(d.tkrvec[_rconid.tid].uid.first);
@@ -306,6 +318,9 @@ void Service::sendMessage(
 	Talker				*ptkr(static_cast<Talker*>(this->object(fullid)));
 	
 	cassert(ptkr);
+	if(ptkr == NULL){
+		return NoConnectionError;
+	}
 	
 	if(ptkr->pushMessage(_rmsgptr, _rtid, _rconid, _flags | SameConnectorFlag)){
 		//the talker must be notified
@@ -313,24 +328,38 @@ void Service::sendMessage(
 			manager().raise(*ptkr);
 		}
 	}
+	return OK;
 }
 //---------------------------------------------------------------------
 int Service::basePort()const{
 	return d.baseport;
 }
 //---------------------------------------------------------------------
+uint32 Service::computeNetworkId(
+	const SocketAddressStub &_rsa_dest,
+	const uint32 _netid_dest
+)const{
+	if(_netid_dest == LocalNetworkId || _netid_dest == configuration().localnetid){
+		return LocalNetworkId;
+	}else if(_netid_dest == InvalidNetworkId){
+		return controller().computeNetworkId(_rsa_dest);
+	}else{
+		return _netid_dest;
+	}
+}
+//---------------------------------------------------------------------
 bool Service::isLocalNetwork(
 	const SocketAddressStub &_rsa_dest,
 	const uint32 _netid_dest
-){
-	return _netid_dest == LocalNetworkId || _netid_dest == configuration().localnetid;
+)const{
+	return computeNetworkId(_rsa_dest, _netid_dest) == LocalNetworkId;
 }
 //---------------------------------------------------------------------
 bool Service::isGateway()const{
 	return false;
 }
 //---------------------------------------------------------------------
-void Service::doSendMessage(
+int Service::doSendMessage(
 	DynamicPointer<Message> &_rmsgptr,//the message to be sent
 	const SerializationTypeIdT &_rtid,
 	ConnectionUid *_pconid,
@@ -342,16 +371,20 @@ void Service::doSendMessage(
 	if(
 		_rsa_dest.family() != SocketInfo::Inet4/* && 
 		_rsap.family() != SocketAddressInfo::Inet6*/
-	)return;
+	){
+		return UnsupportedSocketFamilyError;
+	}
 	
-	if(isLocalNetwork(_rsa_dest, _netid_dest)){
-		doSendMessageLocal(_rmsgptr, _rtid, _pconid, _rsa_dest, _netid_dest, _flags);
+	const uint32 netid = computeNetworkId(_rsa_dest, _netid_dest);
+	
+	if(netid == LocalNetworkId){
+		return doSendMessageLocal(_rmsgptr, _rtid, _pconid, _rsa_dest, netid, _flags);
 	}else{
-		doSendMessageRelay(_rmsgptr, _rtid, _pconid, _rsa_dest, _netid_dest, _flags);
+		return doSendMessageRelay(_rmsgptr, _rtid, _pconid, _rsa_dest, netid, _flags);
 	}
 }
 //---------------------------------------------------------------------
-void Service::doSendMessageLocal(
+int Service::doSendMessageLocal(
 	DynamicPointer<Message> &_rmsgptr,//the message to be sent
 	const SerializationTypeIdT &_rtid,
 	ConnectionUid *_pconid,
@@ -433,10 +466,12 @@ void Service::doSendMessageLocal(
 	}else{//inet6
 		cassert(false);
 		//TODO:
+		return UnsupportedSocketFamilyError;
 	}
+	return OK;
 }
 //---------------------------------------------------------------------
-void Service::doSendMessageRelay(
+int Service::doSendMessageRelay(
 	DynamicPointer<Message> &_rmsgptr,//the message to be sent
 	const SerializationTypeIdT &_rtid,
 	ConnectionUid *_pconid,
@@ -475,6 +510,9 @@ void Service::doSendMessageRelay(
 			}
 		}else{//the connection/session does not exist
 			vdbgx(Debug::ipc, "");
+			if(configuration().gatewayaddrvec.empty()){
+				return NoGatewayError;
+			}
 			
 			int16	tkridx(allocateTalkerForSession());
 			IndexT	tkrfullid;
@@ -516,8 +554,10 @@ void Service::doSendMessageRelay(
 		}
 	}else{//inet6
 		cassert(false);
-		//TODO:
+		//TODO
+		return UnsupportedSocketFamilyError;
 	}
+	return OK;
 }
 //---------------------------------------------------------------------
 int Service::createTalker(IndexT &_tkrfullid, uint32 &_tkruid){
@@ -958,41 +998,12 @@ void Controller::sendEvent(
 	_rs.doSendEvent(_rconid, _event, _flags);
 }
 
+/*virtual*/ uint32 Controller::computeNetworkId(
+	const SocketAddressStub &_rsa_dest
+)const{
+	return LocalNetworkId;
+}
 
-// /*virtual*/ SocketAddressStub Controller::gatewayAddress(
-// 	const uint _idx,
-// 	const uint32 _netid_dest,
-// 	const SocketAddressStub &_rsas_dest
-// ){
-// 	return SocketAddressStub();
-// }
-// 
-// //retval:
-// // -1 : wait for asynchrounous event and retry
-// // 0: no gateway
-// // > 0: the count
-// /*virtual*/ int Controller::gatewayCount(
-// 	const uint32 _netid_dest,
-// 	const SocketAddressStub &_rsas_dest
-// )const{
-// 	return 0;
-// }
-// 
-// //called on the gateway to find out where to connect for relaying data to _rsas_dest
-// /*virtual*/ const SocketAddress& Controller::relayAddress(
-// 	const uint32 _netid_dest,
-// 	const SocketAddressStub &_rsas_dest
-// ){
-// 	const SocketAddress *psa = NULL;
-// 	return *psa;
-// }
-// 
-// /*virtual*/ uint32 Controller::relayCount(
-// 	const uint32 _netid_dest,
-// 	const SocketAddressStub &_rsas_dest
-// )const{
-// 	return 0;
-// }
 //------------------------------------------------------------------
 //		BasicController
 //------------------------------------------------------------------

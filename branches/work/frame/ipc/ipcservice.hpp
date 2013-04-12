@@ -71,6 +71,15 @@ enum {
 	DisconnectAfterSendFlag = 32,//!< Disconnect the session after sending the message
 };
 
+enum Error{
+	NoError = 0,
+	GenericError = -1,
+	NoGatewayError = -100,
+	UnsupportedSocketFamilyError = -101,
+	NoConnectionError = -102,
+	
+};
+
 struct Controller: Dynamic<Controller, DynamicShared<> >{
 	enum{
 		AuthenticationFlag = 1
@@ -118,7 +127,9 @@ struct Controller: Dynamic<Controller, DynamicShared<> >{
 	const uint32 reservedDataSize()const{
 		return resdatasz;
 	}
-		
+	virtual uint32 computeNetworkId(
+		const SocketAddressStub &_rsa_dest
+	)const;
 protected:
 	Controller(
 		const uint32 _flags = 0,
@@ -223,12 +234,15 @@ struct Configuration{
 				node == _rcfg.node && session == _rcfg.session;
 	}
 	
-	uint32				flags;
-	uint32				localnetid;
-	SocketAddressInet	baseaddr;
-	Talker				talker;
-	Node				node;
-	Session				session;
+	typedef std::vector<SocketAddressInet>	SocketAddressInetVectorT;
+	
+	uint32						flags;
+	uint32						localnetid;
+	SocketAddressInet			baseaddr;
+	SocketAddressInetVectorT	gatewayaddrvec;
+	Talker						talker;
+	Node						node;
+	Session						session;
 };
 
 //! An Inter Process Communication service
@@ -252,11 +266,7 @@ struct Configuration{
 */
 class Service: public Dynamic<Service, frame::Service>{
 public:
-	enum Errors{
-		NoError = 0,
-		NoGatewayError = 100,
-	};
-	
+		
 	enum Types{
 		PlainType = 1,
 		RelayType
@@ -279,10 +289,10 @@ public:
 	//! Destructor
 	~Service();
 
-	int reconfigure(const Configuration &_rcfg);
+	int reconfigure(Configuration const& _rcfg);
 	
 	IdTypeMapperT& typeMapper();
-	const TimeSpec& timeStamp()const;
+	TimeSpec const& timeStamp()const;
 	
 	int basePort()const;
 	
@@ -295,7 +305,7 @@ public:
 		\param _flags Control flags
 	*/
 	
-	void sendMessage(
+	int sendMessage(
 		DynamicPointer<Message> &_rmsgptr,//the message to be sent
 		const ConnectionUid &_rconid,//the id of the process connector
 		uint32	_flags = 0
@@ -310,7 +320,7 @@ public:
 		\param _rconid An output value, which on success will contain the uid of the connector.
 		\param _flags Control flags
 	*/
-	void sendMessage(
+	int sendMessage(
 		DynamicPointer<Message> &_rmsgptr,//the message to be sent
 		ConnectionUid &_rconid,
 		const SocketAddressStub &_rsa_dest,
@@ -325,7 +335,7 @@ public:
 		\param _rmsgptr The message.
 		\param _flags Control flags
 	*/
-	void sendMessage(
+	int sendMessage(
 		DynamicPointer<Message> &_rmsgptr,//the message to be sent
 		const SocketAddressStub &_rsas_dest,
 		const uint32 _netid_dest = LocalNetworkId,
@@ -333,7 +343,7 @@ public:
 	);
 	
 	///////
-	void sendMessage(
+	int sendMessage(
 		DynamicPointer<Message> &_rmsgptr,//the message to be sent
 		const SerializationTypeIdT &_rtid,
 		const ConnectionUid &_rconid,//the id of the process connector
@@ -349,7 +359,7 @@ public:
 		\param _rconid An output value, which on success will contain the uid of the connector.
 		\param _flags Control flags
 	*/
-	void sendMessage(
+	int sendMessage(
 		DynamicPointer<Message> &_pmsgptr,//the message to be sent
 		const SerializationTypeIdT &_rtid,
 		ConnectionUid &_rconid,
@@ -365,7 +375,7 @@ public:
 		\param _rmsgptr The message.
 		\param _flags Control flags
 	*/
-	void sendMessage(
+	int sendMessage(
 		DynamicPointer<Message> &_rmsgptr,//the message to be sent
 		const SerializationTypeIdT &_rtid,
 		const SocketAddressStub &_rsa_dest,
@@ -373,7 +383,7 @@ public:
 		uint32	_flags = 0
 	);
 	
-	const serialization::TypeMapperBase& typeMapperBase() const;
+	serialization::TypeMapperBase const& typeMapperBase() const;
 	Configuration const& configuration()const;
 private:
 	friend class Talker;
@@ -383,7 +393,13 @@ private:
 	bool isLocalNetwork(
 		const SocketAddressStub &_rsa_dest,
 		const uint32 _netid_dest
-	);
+	)const;
+	
+	
+	uint32 computeNetworkId(
+		const SocketAddressStub &_rsa_dest,
+		const uint32 _netid_dest
+	)const;
 	
 	bool isGateway()const;
 	
@@ -393,7 +409,7 @@ private:
 		uint32 _flags = 0
 	);
 	
-	void doSendMessage(
+	int doSendMessage(
 		DynamicPointer<Message> &_rmsgptr,//the message to be sent
 		const SerializationTypeIdT &_rtid,
 		ConnectionUid *_pconid,
@@ -401,7 +417,7 @@ private:
 		const uint32 _netid_dest,
 		uint32	_flags = 0
 	);
-	void doSendMessageLocal(
+	int doSendMessageLocal(
 		DynamicPointer<Message> &_rmsgptr,//the message to be sent
 		const SerializationTypeIdT &_rtid,
 		ConnectionUid *_pconid,
@@ -409,7 +425,7 @@ private:
 		const uint32 _netid_dest,
 		uint32	_flags
 	);
-	void doSendMessageRelay(
+	int doSendMessageRelay(
 		DynamicPointer<Message> &_rmsgptr,//the message to be sent
 		const SerializationTypeIdT &_rtid,
 		ConnectionUid *_pconid,
@@ -434,7 +450,7 @@ private:
 	
 	Controller& controller();
 	
-	const Controller& controller()const;
+	Controller const& controller()const;
 private:
 	struct Data;
 	friend struct Data;
@@ -443,26 +459,26 @@ private:
 };
 
 
-inline void Service::sendMessage(
+inline int Service::sendMessage(
 	DynamicPointer<Message> &_rmsgptr,//the message to be sent
 	ConnectionUid &_rconid,
 	const SocketAddressStub &_rsa_dest,
 	const uint32 _netid_dest,
 	uint32	_flags
 ){
-	doSendMessage(_rmsgptr, SERIALIZATION_INVALIDID, &_rconid, _rsa_dest, _netid_dest, _flags);
+	return doSendMessage(_rmsgptr, SERIALIZATION_INVALIDID, &_rconid, _rsa_dest, _netid_dest, _flags);
 }
 
-inline void Service::sendMessage(
+inline int Service::sendMessage(
 	DynamicPointer<Message> &_rmsgptr,//the message to be sent
 	const SocketAddressStub &_rsa_dest,
 	const uint32 _netid_dest,
 	uint32	_flags
 ){
-	doSendMessage(_rmsgptr, SERIALIZATION_INVALIDID, NULL, _rsa_dest, _netid_dest, _flags);
+	return doSendMessage(_rmsgptr, SERIALIZATION_INVALIDID, NULL, _rsa_dest, _netid_dest, _flags);
 }
 
-inline void Service::sendMessage(
+inline int Service::sendMessage(
 	DynamicPointer<Message> &_rmsgptr,//the message to be sent
 	const SerializationTypeIdT &_rtid,
 	ConnectionUid &_rconid,
@@ -470,17 +486,17 @@ inline void Service::sendMessage(
 	const uint32 _netid_dest,
 	uint32	_flags
 ){
-	doSendMessage(_rmsgptr, _rtid, &_rconid, _rsa_dest, _netid_dest, _flags);
+	return doSendMessage(_rmsgptr, _rtid, &_rconid, _rsa_dest, _netid_dest, _flags);
 }
 
-inline void Service::sendMessage(
+inline int Service::sendMessage(
 	DynamicPointer<Message> &_rmsgptr,//the message to be sent
 	const SerializationTypeIdT &_rtid,
 	const SocketAddressStub &_rsa_dest,
 	const uint32 _netid_dest,
 	uint32	_flags
 ){
-	doSendMessage(_rmsgptr, _rtid, NULL, _rsa_dest, _netid_dest, _flags);
+	return doSendMessage(_rmsgptr, _rtid, NULL, _rsa_dest, _netid_dest, _flags);
 }
 
 inline const serialization::TypeMapperBase& Service::typeMapperBase() const{

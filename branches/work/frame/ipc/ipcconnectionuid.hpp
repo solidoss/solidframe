@@ -31,7 +31,8 @@ namespace frame{
 namespace ipc{
 
 enum{
-	LocalNetworkId = 0
+	LocalNetworkId = 0,
+	InvalidNetworkId = -1
 };
 
 //! A structure to uniquely indetify an IPC connection/session
