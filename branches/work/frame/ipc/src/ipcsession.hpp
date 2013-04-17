@@ -80,14 +80,16 @@ public:
 	
 	Session(
 		Service &_rsvc,
-		uint32 _netid,
-		const SocketAddressInet4 &_raddr
+		const uint32 _netid,
+		const SocketAddressInet4 &_raddr,
+		const uint32 _gwidx
 	);
 	Session(
 		Service &_rsvc,
-		uint32 _netid,
+		const uint32 _netid,
 		const SocketAddressInet4 &_raddr,
-		const ConnectData &_rconndata
+		const ConnectData &_rconndata,
+		const uint32 _gwidx
 	);
 	
 	Session(

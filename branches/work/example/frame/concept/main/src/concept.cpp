@@ -85,16 +85,32 @@ struct DeviceInputOutputStream: InputOutputStream{
 
 int pairfd[2];
 
+ostream& operator<<(ostream& _ros, const SocketAddressInet4& _rsa){
+	char host[SocketInfo::HostStringCapacity];
+	char service[SocketInfo::ServiceStringCapacity];
+	_rsa.toString(host, SocketInfo::HostStringCapacity, service, SocketInfo::ServiceStringCapacity, SocketInfo::NumericHost | SocketInfo::NumericService);
+	_ros<<host<<':'<<service;
+	return _ros;
+}
+
+
 struct Params{
-	int			start_port;
-	uint32		network_id;
-	string		dbg_levels;
-	string		dbg_modules;
-	string		dbg_addr;
-	string		dbg_port;
-	bool		dbg_buffered;
-	bool		dbg_console;
-	bool		log;
+	typedef std::vector<std::string>		StringVectorT;
+	typedef std::vector<SocketAddressInet4>	SocketAddressInet4VectorT;
+	
+	bool prepare();
+	
+	int								start_port;
+	uint32							network_id;
+	string							dbg_levels;
+	string							dbg_modules;
+	string							dbg_addr;
+	string							dbg_port;
+	bool							dbg_buffered;
+	bool							dbg_console;
+	bool							log;
+	StringVectorT					ipcgwvec;
+	SocketAddressInet4VectorT		ipcgwaddrvec;
 };
 
 struct ResultWaiter: concept::beta::SignalWaiter{
@@ -159,6 +175,10 @@ int main(int argc, char* argv[]){
 	
 	Params p;
 	if(parseArguments(p, argc, argv)) return 0;
+	if(!p.prepare()){
+		cout<<"Error preparing the arguments"<<endl;
+		return 0;
+	}
 	
 	cout<<"Built on SolidFrame version "<<SF_MAJOR<<'.'<<SF_MINOR<<'.'<<SF_PATCH<<endl;
 	
@@ -249,6 +269,10 @@ int main(int argc, char* argv[]){
 			int							err;
 			
 			cfg.baseaddr = rd.begin();
+			
+			for(Params::SocketAddressInet4VectorT::iterator it(p.ipcgwaddrvec.begin()); it != p.ipcgwaddrvec.end(); ++it){
+				cfg.gatewayaddrvec.push_back(SocketAddressInet(*it));
+			}
 			
 			err = m.ipc().reconfigure(cfg);
 			
@@ -432,13 +456,14 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 			("help,h", "List program options")
 			("base_port,b", value<int>(&_par.start_port)->default_value(1000),"Base port")
 			("network_id,n", value<uint32>(&_par.network_id)->default_value(0), "Network id")
-			("debug_levels,L", value<string>(&_par.dbg_levels)->default_value("view"),"Debug logging levels")
-			("debug_modules,M", value<string>(&_par.dbg_modules),"Debug logging modules")
-			("debug_address,A", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")
-			("debug_port,P", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")
-			("debug_console,C", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")
-			("debug_unbuffered,S", value<bool>(&_par.dbg_buffered)->implicit_value(true)->default_value(false), "Debug unbuffered")
-			("use_log,l", value<bool>(&_par.log)->implicit_value(true)->default_value(false), "Debug buffered")
+			("debug-levels,L", value<string>(&_par.dbg_levels)->default_value("view"),"Debug logging levels")
+			("debug-modules,M", value<string>(&_par.dbg_modules),"Debug logging modules")
+			("debug-address,A", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")
+			("debug-port,P", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")
+			("debug-console,C", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")
+			("debug-unbuffered,S", value<bool>(&_par.dbg_buffered)->implicit_value(true)->default_value(false), "Debug unbuffered")
+			("use-log,l", value<bool>(&_par.log)->implicit_value(true)->default_value(false), "Debug buffered")
+			("gateway,g", value<vector<string> >(&_par.ipcgwvec), "IPC gateways")
 	/*		("verbose,v", po::value<int>()->implicit_value(1),
 					"enable verbosity (optionally specify level)")*/
 	/*		("listen,l", po::value<int>(&portnum)->implicit_value(1001)
@@ -462,3 +487,31 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 	}
 }
 
+bool Params::prepare(){
+	const int default_gw_ipc_port = 3333;
+	size_t pos;
+	for(std::vector<std::string>::iterator it(ipcgwvec.begin()); it != ipcgwvec.end(); ++it){
+		pos = it->find(':');
+		if(pos == std::string::npos){
+			ResolveData		rd = synchronous_resolve(it->c_str(), default_gw_ipc_port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
+			if(!rd.empty()){
+				ipcgwaddrvec.push_back(SocketAddressInet4(rd.begin()));
+			}else{
+				cout<<"Invalid address: "<<*it<<endl;
+				return false;
+			}
+		}else{
+			(*it)[pos] = '\0';
+			int port = atoi(it->c_str() + pos + 1);
+			ResolveData		rd = synchronous_resolve(it->c_str(), port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
+			if(!rd.empty()){
+				ipcgwaddrvec.push_back(SocketAddressInet4(rd.begin()));
+			}else{
+				cout<<"Invalid address: "<<*it<<endl;
+				return false;
+			}
+		}
+		cout<<"added ipc gateway address "<<ipcgwaddrvec.back()<<endl;
+	}
+	return true;
+}

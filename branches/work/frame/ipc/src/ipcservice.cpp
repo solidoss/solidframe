@@ -152,6 +152,7 @@ struct Service::Data{
 	uint32						tkrcrt;
 	uint32						nodecrt;
 	int							baseport;
+	uint32						crtgwidx;
 	SocketAddress				firstaddr;
 	TalkerStubVectorT			tkrvec;
 	NodeStubVectorT				nodevec;
@@ -169,7 +170,7 @@ Service::Data::Data(
 	const DynamicPointer<Controller> &_rctrlptr
 ):
 	ctrlptr(_rctrlptr),
-	tkrcrt(0), nodecrt(0), baseport(-1)
+	tkrcrt(0), nodecrt(0), baseport(-1), crtgwidx(0)
 {
 	timestamp.currentRealTime();
 }
@@ -535,8 +536,10 @@ int Service::doSendMessageRelay(
 			Locker<Mutex>		lock2(this->mutex(tkrfullid));
 			Talker				*ptkr(static_cast<Talker*>(this->object(tkrfullid)));
 			cassert(ptkr);
-			Session				*pses(new Session(*this, _netid_dest, sa));
+			Session				*pses(new Session(*this, _netid_dest, sa, d.crtgwidx));
 			ConnectionUid		conid(tkridx);
+			
+			d.crtgwidx = (d.crtgwidx + 1) % d.config.gatewayaddrvec.size();
 			
 			vdbgx(Debug::ipc, "");
 			ptkr->pushSession(pses, conid);
@@ -790,8 +793,11 @@ int Service::doAcceptRelaySession(const SocketAddress &_rsa, const ConnectData &
 		*this,
 		_rconndata.sendernetworkid,
 		inaddr,
-		_rconndata
+		_rconndata,
+		d.crtgwidx
 	);
+	
+	d.crtgwidx = (d.crtgwidx + 1) % d.config.gatewayaddrvec.size();
 	{
 		//TODO: see if the locking is ok!!!
 		

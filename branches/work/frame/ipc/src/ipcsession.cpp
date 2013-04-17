@@ -471,19 +471,22 @@ struct Session::DataDirect6: Session::Data{
 struct Session::DataRelayed44: Session::Data{
 	DataRelayed44(
 		Service &_rsvc,
-		uint32 _netid,
-		const SocketAddressInet4 &_raddr
+		const uint32 _netid,
+		const SocketAddressInet4 &_raddr,
+		const uint32 _gwidx
 	):	Data(_rsvc, Relayed44, RelayInit), relayaddr(_raddr), netid(_netid),
-		peerrelayid(0), crtgwidx(255){
+		peerrelayid(0), lstgwidx((_gwidx + _rsvc.configuration().gatewayaddrvec.size()) % _rsvc.configuration().gatewayaddrvec.size()), crtgwidx(_gwidx){
 	}
 	
 	DataRelayed44(
 		Service &_rsvc,
-		uint32 _netid,
+		const uint32 _netid,
 		const SocketAddressInet4 &_raddr,
-		const ConnectData &_rconndata
+		const ConnectData &_rconndata,
+		const uint32 _gwidx
 	):	Data(_rsvc, Relayed44, RelayAccepting), addr(_raddr), relayaddr(_rconndata.senderaddress), netid(_netid),
-		peerrelayid(0), crtgwidx(255){
+		peerrelayid(0), lstgwidx((_gwidx + _rsvc.configuration().gatewayaddrvec.size()) % _rsvc.configuration().gatewayaddrvec.size()), crtgwidx(_gwidx){
+		
 		Data::pairaddr = addr;
 	}
 	
@@ -491,6 +494,7 @@ struct Session::DataRelayed44: Session::Data{
 	SocketAddressInet4	relayaddr;
 	const uint32		netid;
 	uint32				peerrelayid;
+	const uint8			lstgwidx;
 	uint8				crtgwidx;
 };
 
@@ -1135,16 +1139,18 @@ Session::Session(
 //---------------------------------------------------------------------
 Session::Session(
 	Service &_rsvc,
-	uint32 _netid,
-	const SocketAddressInet4 &_raddr
-):d(*(new DataRelayed44(_rsvc, _netid, _raddr))){}
+	const uint32 _netid,
+	const SocketAddressInet4 &_raddr,
+	const uint32 _gwidx
+):d(*(new DataRelayed44(_rsvc, _netid, _raddr, _gwidx))){}
 //---------------------------------------------------------------------
 Session::Session(
 	Service &_rsvc,
-	uint32 _netid,
+	const uint32 _netid,
 	const SocketAddressInet4 &_raddr,
-	const ConnectData &_rconndata
-):d(*(new DataRelayed44(_rsvc, _netid, _raddr, _rconndata))){
+	const ConnectData &_rconndata,
+	const uint32 _gwidx
+):d(*(new DataRelayed44(_rsvc, _netid, _raddr, _rconndata, _gwidx))){
 	
 	DynamicPointer<Message>	msgptr(new ConnectDataMessage(_rconndata));
 	pushMessage(msgptr, 0, 0);
@@ -1956,37 +1962,32 @@ void Session::doParseBuffer(Talker::TalkerStub &_rstub, const Buffer &_rbuf/*, c
 //---------------------------------------------------------------------
 //we need to aquire the address of the relay
 int Session::doExecuteRelayInit(Talker::TalkerStub &_rstub){
-	DataRelayed44	&rd = d.relayed44();
-						//TODO:
-	int				rv;	// = _rstub.service().controller().gatewayCount(rd.netid, rd.relayaddr);
+	DataRelayed44		&rd = d.relayed44();
+	const Configuration	&rcfg = _rstub.service().configuration();
+	const  size_t		gwcnt = rcfg.gatewayaddrvec.size();
 	
-	idbgx(Debug::ipc, "gatewayCount = "<<rv);
-	if(rv < 0){
-		//must wait external message
-		return NOK;
-	}
-	if(rv == 0){
+	idbgx(Debug::ipc, "gatewayCount = "<<gwcnt);
+	
+	if(gwcnt == 0){
 		//no relay for that destination - quit
 		d.state = Data::Disconnecting;
 		return OK;
 	}
 	
-	do{
-		if(rd.crtgwidx > rv){
-			rd.crtgwidx = rv - 1;
-		}else if(rd.crtgwidx == 0){
-			//tried all gws - no success
-			d.state = Data::Disconnecting;
-			return OK;
-		}else{
-			--rd.crtgwidx;
-		}
-		//TODO:
-		//rd.addr = _rstub.service().controller().gatewayAddress(rd.crtgwidx, rd.netid, rd.relayaddr);
-		
-	}while(rd.addr.isInvalid());
+	bool found = true;
 	
-	d.pairaddr = rd.addr;
+	while(rcfg.gatewayaddrvec[rd.crtgwidx].isInvalid()){
+		rd.crtgwidx = (rd.crtgwidx + 1) % rcfg.gatewayaddrvec.size();
+		if(rd.crtgwidx == rd.lstgwidx){
+			found = false;
+			break;
+		}
+	}
+	
+	if(found){
+		rd.addr = rcfg.gatewayaddrvec[rd.crtgwidx];
+		d.pairaddr = rd.addr;
+	}
 	
 	d.state = Data::RelayConnecting;
 	
