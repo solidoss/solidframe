@@ -362,10 +362,10 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 }
 //------------------------------------------------------
 void Params::prepare(){
-	const uint16 default_port = 2000;
-	size_t pos;
+	const uint16	default_port = 2000;
+	size_t			pos;
 	for(std::vector<std::string>::iterator it(connectstringvec.begin()); it != connectstringvec.end(); ++it){
-		pos = it->find(':');
+		pos = it->rfind(':');
 		if(pos == std::string::npos){
 			connectvec.push_back(SocketAddressInet4(it->c_str(), default_port));
 		}else{

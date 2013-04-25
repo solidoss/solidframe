@@ -235,11 +235,19 @@ struct Configuration{
 	}
 	
 	typedef std::vector<SocketAddressInet>	SocketAddressInetVectorT;
+	struct RelayAddress{
+		RelayAddress():networkid(InvalidNetworkId){}
+		uint32 				networkid;
+		SocketAddressInet	address;
+	};
+	typedef std::vector<RelayAddress>		RelayAddressVectorT;
 	
 	uint32						flags;
 	uint32						localnetid;
 	SocketAddressInet			baseaddr;
+	SocketAddressInet			acceptaddr;
 	SocketAddressInetVectorT	gatewayaddrvec;
+	RelayAddressVectorT			relayaddrvec;
 	Talker						talker;
 	Node						node;
 	Session						session;
