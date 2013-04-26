@@ -113,14 +113,10 @@ private:
 	//! Set the thread id
 	void threadId(const IndexT &_thrid);
 private:
-	IndexT					fullid;
-#ifdef HAS_STDATOMIC
-	std::atomic<ulong>		smask;
-	std::atomic<IndexT>		thrid;
-#else
-	boost::atomic<ulong>	smask;
-	boost::atomic<IndexT>	thrid;
-#endif
+	IndexT						fullid;
+
+	ATOMIC_NS::atomic<ulong>	smask;
+	ATOMIC_NS::atomic<IndexT>	thrid;
 };
 
 inline IndexT Object::id()	const {

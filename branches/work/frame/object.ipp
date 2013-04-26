@@ -26,18 +26,10 @@
 
 
 inline IndexT Object::threadId()const{
-#ifdef HAS_STDATOMIC
-	return thrid.load(std::memory_order_relaxed);
-#else
-	return thrid.load(boost::atomic::memory_order_relaxed);
-#endif
+	return thrid.load(ATOMIC_NS::memory_order_relaxed);
 }
 inline void Object::threadId(const IndexT &_thrid){
-#ifdef HAS_STDATOMIC
-	thrid.store(_thrid, std::memory_order_relaxed);
-#else
-	thrid.store(_thrid, boost::atomic::memory_order_relaxed);
-#endif
+	thrid.store(_thrid, ATOMIC_NS::memory_order_relaxed);
 
 }
 
@@ -45,38 +37,20 @@ inline ulong Object::grabSignalMask(ulong _leave){
 // 	ulong sm = smask;
 // 	smask = sm & _leave;
 // 	return sm;
-#ifdef HAS_STDATOMIC
-	return smask.fetch_and(_leave, std::memory_order_relaxed);
-#else
-	return smask.fetch_and(_leave, boost::atomic::memory_order_relaxed);
-#endif
+	return smask.fetch_and(_leave, ATOMIC_NS::memory_order_relaxed);
 }
 inline bool Object::notified() const {
-#ifdef HAS_STDATOMIC
-	return smask.load(std::memory_order_relaxed) != 0;
-#else
-	return smask.load(boost::atomic::memory_order_relaxed) != 0;
-#endif
+	return smask.load(ATOMIC_NS::memory_order_relaxed) != 0;
 }
 inline bool Object::notified(ulong _s) const{
-	return (smask & _s) != 0;
-#ifdef HAS_STDATOMIC
-	return (smask.load(std::memory_order_relaxed) & _s) != 0;
-#else
-	return (smask.load(boost::atomic::memory_order_relaxed) &_s) != 0;
-#endif
-
+	return (smask.load(ATOMIC_NS::memory_order_relaxed) & _s) != 0;
 }
 
 inline bool Object::notify(ulong _smask){
 // 	ulong oldmask = smask;
 // 	smask |= _smask;
 // 	return (smask != oldmask) && signaled(S_RAISE);
-#ifdef HAS_STDATOMIC
-	ulong osm = smask.fetch_or(_smask, std::memory_order_relaxed);
-#else
-	ulong osm = smask.fetch_or(_smask, boost::atomic::memory_order_relaxed);
-#endif
+	ulong osm = smask.fetch_or(_smask, ATOMIC_NS::memory_order_relaxed);
 	return (_smask & S_RAISE) && !(osm & S_RAISE); 
 }
 

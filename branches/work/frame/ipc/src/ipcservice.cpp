@@ -225,8 +225,13 @@ int Service::reconfigure(const Configuration &_rcfg){
 	if(
 		d.config.baseaddr.isInet4()
 	){
+		
+		d.firstaddr = d.config.baseaddr;
+		
+	
 		SocketDevice	sd;
 		sd.create(SocketInfo::Inet4, SocketInfo::Datagram, 0);
+		sd.makeNonBlocking();
 		sd.bind(d.config.baseaddr);
 		
 		if(!sd.ok()){
@@ -238,17 +243,29 @@ int Service::reconfigure(const Configuration &_rcfg){
 		if(sd.localAddress(sa) != OK){
 			return BAD;
 		}
+		
+		d.baseport = sa.port();
+		
 		//Locker<Mutex>	lock(serviceMutex());
 		cassert(!d.tkrvec.size());//only the first tkr must be inserted from outside
 		Talker			*ptkr(new Talker(sd, *this, 0));
-		
-		ObjectUidT		objuid(this->unsafeRegisterObject(*ptkr));
-		
-		d.firstaddr = d.config.baseaddr;
-		d.baseport = sa.port();
+		ObjectUidT		objuid = this->unsafeRegisterObject(*ptkr);
+
 		d.tkrvec.push_back(Data::TalkerStub(objuid));
 		d.tkrq.push(0);
 		controller().scheduleTalker(ptkr);
+		if(d.config.acceptaddr.port() > 0){
+			sd.create(SocketInfo::Inet4, SocketInfo::Stream, 0);
+			sd.makeNonBlocking();
+			sd.prepareAccept(d.config.acceptaddr, 1000);
+			if(!sd.ok()){
+				return BAD;
+			}
+			Listener 		*plsn = new Listener(*this, sd, RelayType);
+			this->unsafeRegisterObject(*plsn);
+			controller().scheduleListener(plsn);
+		}
+		
 		return OK;
 	}else{
 		return BAD;
@@ -921,6 +938,14 @@ void Service::disconnectSession(Session *_pses){
 //---------------------------------------------------------------------
 bool Service::checkAcceptData(const SocketAddress &/*_rsa*/, const AcceptData &_raccdata){
 	return _raccdata.timestamp_s == timeStamp().seconds() && _raccdata.timestamp_n == timeStamp().nanoSeconds();
+}
+//---------------------------------------------------------------------
+void Service::insertConnection(
+	const solid::SocketDevice &_rsd,
+	solid::frame::aio::openssl::Context *_pctx,
+	bool _secure
+){
+	
 }
 
 //---------------------------------------------------------------------

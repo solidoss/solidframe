@@ -344,33 +344,33 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 	TalkerStub	ts(*this, d.rservice, _tout);
 	
 	idbgx(Debug::ipc, "this = "<<(void*)this<<" &d = "<<(void*)&d);
-	
-	if(notified() || d.closingsessionvec.size()){
-		Locker<Mutex>	lock(rm.mutex(*this));
-		ulong			sm = grabSignalMask(0);
-		
-		if(sm & frame::S_KILL){
-			idbgx(Debug::ipc, "talker - dying");
-			return BAD;
-		}
-		
-		idbgx(Debug::ipc, "talker - signaled");
-		if(sm == frame::S_RAISE){
-			_sig |= frame::SIGNALED;
-		}else{
-			idbgx(Debug::ipc, "unknown signal");
-		}
-		if(d.newsessionvec.size()){
-			doInsertNewSessions(ts);
-		}
-		if(d.msgq.size()){
-			doDispatchMessages();
-		}
-		if(d.eventq.size()){
-			doDispatchEvents();
+	{
+		const ulong		sm = grabSignalMask();
+		if(sm || d.closingsessionvec.size()){
+			if(sm & frame::S_KILL){
+				idbgx(Debug::ipc, "talker - dying");
+				return BAD;
+			}
+			
+			idbgx(Debug::ipc, "talker - signaled");
+			if(sm == frame::S_RAISE){
+				_sig |= frame::SIGNALED;
+				Locker<Mutex>	lock(rm.mutex(*this));
+			
+				if(d.newsessionvec.size()){
+					doInsertNewSessions(ts);
+				}
+				if(d.msgq.size()){
+					doDispatchMessages();
+				}
+				if(d.eventq.size()){
+					doDispatchEvents();
+				}
+			}else{
+				idbgx(Debug::ipc, "unknown signal");
+			}
 		}
 	}
-	
 	_sig |= socketEventsGrab();
 	
 	if(_sig & frame::ERRDONE){

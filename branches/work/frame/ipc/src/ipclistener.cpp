@@ -38,13 +38,13 @@ Listener::Listener(
 int Listener::execute(ulong, TimeSpec&){
 	idbgx(Debug::ipc, "");
 	cassert(this->socketOk());
-	if(notified()){
-		{
-		Locker<Mutex>	lock(rsvc.manager().mutex(*this));
+	{
 		ulong sm = this->grabSignalMask();
-		if(sm & frame::S_KILL) return BAD;
+		if(sm & frame::S_KILL){
+			return BAD;
 		}
 	}
+	
 	uint cnt(10);
 	while(cnt--){
 		if(state == 0){
@@ -58,11 +58,11 @@ int Listener::execute(ulong, TimeSpec&){
 		}
 		state = 0;
 		cassert(sd.ok());
-		//TODO: one may do some filtering on sd based on sd.remoteAddress()
+		//TODO: filtering on sd based on sd.remoteAddress()
 		if(pctx.get()){
-			//rsvc.insertConnection(sd, type, pctx.get(), true);
+			rsvc.insertConnection(sd, pctx.get(), true);
 		}else{
-			//Manager::the().service(*this).insertConnection(sd, type);
+			rsvc.insertConnection(sd, pctx.get(), false);
 		}
 	}
 	return OK;

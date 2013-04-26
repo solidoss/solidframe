@@ -397,6 +397,7 @@ private:
 	friend class Talker;
 	friend class Session;
 	friend class Controller;
+	friend class Listener;
 	
 	bool isLocalNetwork(
 		const SocketAddressStub &_rsa_dest,
@@ -455,6 +456,11 @@ private:
 	int allocateNodeForSocket(bool _force = false);
 	uint32 keepAliveTimeout()const;
 	void connectSession(const SocketAddressInet4 &_raddr);
+	void insertConnection(
+		const solid::SocketDevice &_rsd,
+		solid::frame::aio::openssl::Context *_pctx,
+		bool _secure
+	);
 	
 	Controller& controller();
 	
