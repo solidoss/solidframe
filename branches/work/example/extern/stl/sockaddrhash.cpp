@@ -7,6 +7,7 @@
 #include "system/socketaddress.hpp"
 
 using namespace std;
+using namespace solid;
 
 typedef std::deque<SocketAddressInet4>		SocketAddressVectorT;
 typedef std::pair<size_t, size_t>			PositionHashPairT;

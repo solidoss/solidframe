@@ -10,6 +10,7 @@
 using namespace boost::asio;
 using boost::asio::ip::tcp;
 using namespace std;
+using namespace solid;
 
 typedef boost::asio::ip::tcp::endpoint  TcpEndPointT;
 

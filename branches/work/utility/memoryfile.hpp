@@ -2,6 +2,7 @@
 #define UTILITY_MEMORY_FILE_HPP
 
 #include "system/common.hpp"
+#include "utility/binaryseeker.hpp"
 #include <deque>
 
 namespace solid{
@@ -78,8 +79,8 @@ public:
 	int64 size()const;
 	int64 capacity()const;
 private:
-	int doFindBuffer(uint32 _idx)const;
-	int doLocateBuffer(uint32 _idx)const;
+	BinarySeekerResultT doFindBuffer(uint32 _idx)const;
+	BinarySeekerResultT doLocateBuffer(uint32 _idx)const;
 	char *doGetBuffer(uint32 _idx)const;
 	char *doCreateBuffer(uint32 _idx, bool &_created);
 private:

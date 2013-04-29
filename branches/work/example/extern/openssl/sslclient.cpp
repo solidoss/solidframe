@@ -15,6 +15,7 @@
 #include <unistd.h>
 
 using namespace std;
+using namespace solid;
 
 #define CHK_SSL(err) if ((err)==-1) { ERR_print_errors_fp(stderr); exit(2); }
 

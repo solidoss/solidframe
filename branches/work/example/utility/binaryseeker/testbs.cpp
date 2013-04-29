@@ -25,6 +25,16 @@
 using namespace std;
 using namespace solid;
 
+std::ostream &operator<<(std::ostream &_ros, const BinarySeekerResultT &_r){
+	if(_r.first){
+		_ros<<"found: ";
+	}else{
+		_ros<<"not found: ";
+	}
+	_ros<<_r.second;
+	return _ros;
+}
+
 int main(){
 	vector<int> v;
 	for(int i = 1; i < 11; ++i){
@@ -35,7 +45,7 @@ int main(){
 	BinarySeeker<> bs;
 	const int *pd = v.data();
 	int rv(0);
-	cout<<"bs(10) = "<<v[rv]<<' '<<(rv = bs(pd, pd + v.size(), 10))<<endl;
+	cout<<"bs(10) = "<<v[rv]<<' '<<bs(pd, pd + v.size(), 10)<<endl;
 	cout<<"bs(12) = "<<bs(pd, pd + v.size(), 12)<<endl;
 	cout<<"bs(-1) = "<<bs(pd, pd + v.size(), -1)<<endl;
 	for(int i = 0; i < (v.size() + 2); ++i){

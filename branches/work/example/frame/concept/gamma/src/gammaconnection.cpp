@@ -215,26 +215,24 @@ uint32 Connection::newRequestId(int _pos){
 		ridv.push_back(std::pair<uint32, int>(rq, _pos));
 		
 	}else{
-		int rv = reqbs(ridv.begin(), ridv.end(), rq);
-		cassert(rv < 0);
-		rv = -rv - 1;
-		ridv.insert(ridv.begin() + rv, std::pair<uint32, int>(rq, _pos));
+		BinarySeekerResultT rv = reqbs(ridv.begin(), ridv.end(), rq);
+		cassert(!rv.first);
+		ridv.insert(ridv.begin() + rv.second, std::pair<uint32, int>(rq, _pos));
 	}
 	return rq;
 }
 bool   Connection::isRequestIdExpected(uint32 _v, int &_rpos)const{
-	int rv = reqbs(ridv.begin(), ridv.end(), _v);
-	if(rv >= 0){
-		_rpos = ridv[rv].second;
+	BinarySeekerResultT rv = reqbs(ridv.begin(), ridv.end(), _v);
+	if(rv.first){
+		_rpos = ridv[rv.second].second;
 		return true;
 	}else return false;
 }
 void   Connection::deleteRequestId(uint32 _v){
 	if(_v == 0) return;
-	int rv = reqbs(ridv.begin(), ridv.end(), _v);
-	cassert(rv < 0);
-	rv = -rv - 1;
-	ridv.erase(ridv.begin() + rv);
+	BinarySeekerResultT rv = reqbs(ridv.begin(), ridv.end(), _v);
+	cassert(!rv.first);
+	ridv.erase(ridv.begin() + rv.second);
 }
 	
 int Connection::executeSocket(const uint _sid, const TimeSpec &_tout){

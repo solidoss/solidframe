@@ -10,6 +10,7 @@
 #include "utility/queue.hpp"
 
 using namespace std;
+using namespace solid;
 
 struct Handle{
 	enum{

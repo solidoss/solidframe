@@ -124,20 +124,19 @@ uint32 Connection::newRequestId(uint32 _pos){
 		reqvec.push_back(UInt32PairT(rq, _pos));
 		
 	}else{
-		int rv = reqbs(reqvec.begin(), reqvec.end(), rq);
-		cassert(rv < 0);
-		rv = -rv - 1;
-		reqvec.insert(reqvec.begin() + rv, UInt32PairT(rq, _pos));
+		BinarySeekerResultT rv = reqbs(reqvec.begin(), reqvec.end(), rq);
+		cassert(!rv.first);
+		reqvec.insert(reqvec.begin() + rv.second, UInt32PairT(rq, _pos));
 	}
 	return rq;
 }
 
 bool   Connection::isRequestIdExpected(uint32 _v, uint32 &_rpos){
 	idbg(_v<<" "<<_rpos);
-	int rv = reqbs(reqvec.begin(), reqvec.end(), _v);
-	if(rv >= 0){
-		_rpos = reqvec[rv].second;
-		reqvec.erase(reqvec.begin() + rv);
+	BinarySeekerResultT rv = reqbs(reqvec.begin(), reqvec.end(), _v);
+	if(rv.first){
+		_rpos = reqvec[rv.second].second;
+		reqvec.erase(reqvec.begin() + rv.second);
 		return true;
 	}else return false;
 }
@@ -145,10 +144,9 @@ bool   Connection::isRequestIdExpected(uint32 _v, uint32 &_rpos){
 void   Connection::deleteRequestId(uint32 _v){
 	idbg(""<<_v);
 	if(_v == 0) return;
-	int rv = reqbs(reqvec.begin(), reqvec.end(), _v);
-	cassert(rv >= 0);
-	//rv = -rv - 1;
-	reqvec.erase(reqvec.begin() + rv);
+	BinarySeekerResultT rv = reqbs(reqvec.begin(), reqvec.end(), _v);
+	cassert(rv.first);
+	reqvec.erase(reqvec.begin() + rv.second);
 }
 
 /*

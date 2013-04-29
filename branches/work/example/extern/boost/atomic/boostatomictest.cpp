@@ -6,6 +6,7 @@
 
 
 using namespace std;
+using namespace solid;
 
 
 int main(int argc, char *argv[]){
