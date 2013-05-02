@@ -19,13 +19,14 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include <cstring>
-#include "protocol/writer.hpp"
+#include "protocol/text/writer.hpp"
 #include "utility/istream.hpp"
 
 #include "system/debug.hpp"
 
 namespace solid{
 namespace protocol{
+namespace text{
 
 Writer::Writer(Logger *_plog):plog(_plog), rpos(NULL), wpos(NULL){
 	dolog = isLogActive();
@@ -470,6 +471,7 @@ void Writer::doPrepareBuffer(char *_newbeg, const char *_newend){
 	wpos = rpos + sz;
 }
 
+}//namespace text
 }//namespace protocol
 }//namespace solid
 

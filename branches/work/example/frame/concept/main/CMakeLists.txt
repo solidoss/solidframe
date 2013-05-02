@@ -14,7 +14,7 @@ target_link_libraries (example_concept
 	solid_frame_file
 	solid_frame_aio
 	solid_frame_aio_openssl
-	solid_protocol
+	solid_protocol_text
 	solid_audit_log_manager
 	solid_audit_log
 	solid_serialization

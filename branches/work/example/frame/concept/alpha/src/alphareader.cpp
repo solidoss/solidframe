@@ -49,8 +49,8 @@ static const char *char2name[128] = {
 
 Reader::Reader(
 	Writer &_rw,
-	protocol::Logger *_plog
-):protocol::Reader(_plog), rw(_rw){
+	protocol::text::Logger *_plog
+):protocol::text::Reader(_plog), rw(_rw){
 }
 Reader::~Reader(){
 }
@@ -59,7 +59,7 @@ void Reader::clear(){
 	cassert(fs.empty());
 	tmp.clear();
 }
-/*static*/ int Reader::fetchAString(protocol::Reader &_rr, protocol::Parameter &_rp){
+/*static*/ int Reader::fetchAString(protocol::text::Reader &_rr, protocol::text::Parameter &_rp){
 	Reader &rr = static_cast<Reader&>(_rr);
 	int c;
     int rv = rr.peek(c);
@@ -72,18 +72,18 @@ void Reader::clear(){
 	if(c == '{'){
 		rr.drop();
 		rr.fs.top().first = &Reader::copyTmpString;
-		protocol::Parameter &rp = rr.push(&Reader::checkLiteral);
+		protocol::text::Parameter &rp = rr.push(&Reader::checkLiteral);
 		rp.b.i = 0;
-		rr.push(&Reader::checkChar, protocol::Parameter('\n'));
-		rr.push(&Reader::checkChar, protocol::Parameter('\r'));
-		rr.push(&Reader::checkChar, protocol::Parameter('}'));
-		rr.push(&Reader::saveCurrentChar, protocol::Parameter(&rp.b.i, (int)'+'));
-		rr.push(&Reader::fetchUInt32, protocol::Parameter(&rp.a.u32));
+		rr.push(&Reader::checkChar, protocol::text::Parameter('\n'));
+		rr.push(&Reader::checkChar, protocol::text::Parameter('\r'));
+		rr.push(&Reader::checkChar, protocol::text::Parameter('}'));
+		rr.push(&Reader::saveCurrentChar, protocol::text::Parameter(&rp.b.i, (int)'+'));
+		rr.push(&Reader::fetchUInt32, protocol::text::Parameter(&rp.a.u32));
 	}else if(c == '\"'){
 		rr.drop();
 		rr.fs.top().first = &Reader::copyTmpString;
-		rr.push(&Reader::checkChar, protocol::Parameter('\"'));
-		rr.push(&Reader::fetchQString, protocol::Parameter(&rr.tmp));
+		rr.push(&Reader::checkChar, protocol::text::Parameter('\"'));
+		rr.push(&Reader::fetchQString, protocol::text::Parameter(&rr.tmp));
 		
 	}else{//we have an atom
 		rr.fs.top().first = &Reader::fetchFilteredString<AtomFilter>;
@@ -91,7 +91,7 @@ void Reader::clear(){
 	}
 	return Continue;
 }
-/*static*/ int Reader::fetchQString(protocol::Reader &_rr, protocol::Parameter &_rp){
+/*static*/ int Reader::fetchQString(protocol::text::Reader &_rr, protocol::text::Parameter &_rp){
 	Reader &rr = static_cast<Reader&>(_rr);
 	while(true){
 		int rv = rr.fetch<QuotedFilter>(rr.tmp, 1024);
@@ -131,14 +131,14 @@ void Reader::clear(){
 	}
 	return Ok;
 }
-/*static*/ int Reader::copyTmpString(protocol::Reader &_rr, protocol::Parameter &_rp){
+/*static*/ int Reader::copyTmpString(protocol::text::Reader &_rr, protocol::text::Parameter &_rp){
 	Reader &rr = static_cast<Reader&>(_rr);
 	*static_cast<String*>(_rp.a.p) = rr.tmp;
 	rr.tmp.clear();
 	return Ok;
 }
 
-/*static*/ int Reader::flushWriter(protocol::Reader &_rr, protocol::Parameter &_rp){
+/*static*/ int Reader::flushWriter(protocol::text::Reader &_rr, protocol::text::Parameter &_rp){
 	Reader &rr = static_cast<Reader&>(_rr);
 	switch(rr.rw.flushAll()){
 		case Writer::Bad:
@@ -146,24 +146,24 @@ void Reader::clear(){
 			return Bad;
 		case Writer::Ok: return Ok;
 		case Writer::No:
-			rr.replace(&Reader::returnValue<true>, protocol::Parameter(Continue));
+			rr.replace(&Reader::returnValue<true>, protocol::text::Parameter(Continue));
 			return No;
 	}
 	cassert(false);
 	return Bad;
 }
 
-/*static*/ int Reader::checkLiteral(protocol::Reader &_rr, protocol::Parameter &_rp){
+/*static*/ int Reader::checkLiteral(protocol::text::Reader &_rr, protocol::text::Parameter &_rp){
 	//_rp.a contains the size of the literal
 	//_rp.b contains '+' or 0
 	Reader &rr = static_cast<Reader&>(_rr);
 	//TODO: check for too big literals
 	if(_rp.b.i){
 		cassert(_rp.b.i == '+');
-		rr.replace(&Reader::fetchLiteralString, protocol::Parameter(&rr.tmp, _rp.a.u32));
+		rr.replace(&Reader::fetchLiteralString, protocol::text::Parameter(&rr.tmp, _rp.a.u32));
 	}else{
 		rr.rw<<"+ Expecting "<<_rp.a.u32<<" Chars\r\n";
-		rr.replace(&Reader::fetchLiteralString, protocol::Parameter(&rr.tmp, _rp.a.u32));
+		rr.replace(&Reader::fetchLiteralString, protocol::text::Parameter(&rr.tmp, _rp.a.u32));
 		rr.push(&Reader::flushWriter);
 	}
 	return Continue;
@@ -182,9 +182,9 @@ void Reader::clear(){
 	return Connection::the().socketRecvSize();
 }
 /*virtual*/ void Reader::prepareErrorRecovery(){
-	push(&protocol::Reader::manage, protocol::Parameter(ResetLogging));
+	push(&protocol::text::Reader::manage, protocol::text::Parameter(ResetLogging));
 	push(&flushWriter);
-	push(&errorRecovery, protocol::Parameter(64 * 1024));
+	push(&errorRecovery, protocol::text::Parameter(64 * 1024));
 	push(&errorPrepare);
 }
 /*virtual*/ void Reader::charError(char _popc, char _expc){
@@ -232,12 +232,12 @@ void Reader::clear(){
 	}
 }
 
-/*static*/ int Reader::errorPrepare(protocol::Reader &_rr, protocol::Parameter &_rp){
+/*static*/ int Reader::errorPrepare(protocol::text::Reader &_rr, protocol::text::Parameter &_rp){
 	Reader &rr = static_cast<Reader&>(_rr);
 	rr.tmp.clear();
 	return Ok;
 }
-/*static*/ int Reader::errorRecovery(protocol::Reader &_rr, protocol::Parameter &_rp){
+/*static*/ int Reader::errorRecovery(protocol::text::Reader &_rr, protocol::text::Parameter &_rp){
 	Reader &rr = static_cast<Reader&>(_rr);
 	int rv = rr.locate<CharFilter<'\n'> >(rr.tmp, _rp.a.u32, 16);
 	if(rv == No){
@@ -264,7 +264,7 @@ void Reader::clear(){
 	
 	_rp.a.u32 = 64 * 1024;
 	rr.tmp.clear();
-	rr.push(&Reader::fetchLiteralDummy, protocol::Parameter(litlen));
+	rr.push(&Reader::fetchLiteralDummy, protocol::text::Parameter(litlen));
 	return Continue;
 }
 

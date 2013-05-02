@@ -19,12 +19,12 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef SOLID_PROTOCOL_READER_HPP
-#define SOLID_PROTOCOL_READER_HPP
+#ifndef SOLID_PROTOCOL_TEXT_READER_HPP
+#define SOLID_PROTOCOL_TEXT_READER_HPP
 
-#include "protocol/parameter.hpp"
-#include "protocol/logger.hpp"
-#include "protocol/buffer.hpp"
+#include "protocol/text/parameter.hpp"
+#include "protocol/text/logger.hpp"
+#include "protocol/text/buffer.hpp"
 #include "utility/stack.hpp"
 #include "utility/holder.hpp"
 #include <string>
@@ -32,6 +32,7 @@
 namespace solid{
 typedef std::string String;
 namespace protocol{
+namespace text{
 
 class Reader;
 //! A dummy key for usage with Reader::fetchKey
@@ -354,7 +355,7 @@ inline const Buffer& Reader::buffer()const{
 	return *bh;
 }
 
-
+}//namespace text
 }//namespace protocol
 }//namespace solid
 

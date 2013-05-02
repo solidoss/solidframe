@@ -19,12 +19,13 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef SOLID_PROTOCOL_NAME_MATCHER_HPP
-#define SOLID_PROTOCOL_NAME_MATCHER_HPP
+#ifndef SOLID_PROTOCOL_TEXT_NAME_MATCHER_HPP
+#define SOLID_PROTOCOL_TEXT_NAME_MATCHER_HPP
 
 
 namespace solid{
 namespace protocol{
+namespace text{
 //!A simple and fast runtime case-insensitive name matcher
 /*! Intended usage example:<br>
 <CODE>
@@ -74,6 +75,8 @@ private:
 	Data &d;
 };
 
+
+}//namespace text
 }//namespace protocol
 }//namespace solid
 

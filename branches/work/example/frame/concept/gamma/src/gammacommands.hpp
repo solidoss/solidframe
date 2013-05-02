@@ -78,7 +78,7 @@ public:
 	void initReader(Reader &);
 	int execute(const uint _sid);
 	
-	int reinitWriter(Writer &_rw, solid::protocol::Parameter &_rp);
+	int reinitWriter(Writer &_rw, solid::protocol::text::Parameter &_rp);
 private:
 	int doInitLocal(const uint _sid);
 	int doDoneLocal(Writer &_rw);
@@ -102,7 +102,7 @@ private:
 		SendError
 	};
 	uint16											state;
-	solid::protocol::Parameter 						*pp;
+	solid::protocol::text::Parameter 						*pp;
 	String											path;
 	String											flags;
 	uint32											reqid;

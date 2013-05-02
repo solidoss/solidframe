@@ -1,11 +1,11 @@
-#include "protocol/buffer.hpp"
+#include "protocol/text/buffer.hpp"
 #include "system/cassert.hpp"
 #include "system/specific.hpp"
 #include <cstring>
 
 namespace solid{
 namespace protocol{
-
+namespace text{
 
 /*virtual*/ Buffer::~Buffer(){
 }
@@ -54,5 +54,6 @@ SpecificBuffer::~SpecificBuffer(){
 	return true;
 }
 
+}//namespace text
 }//namespace protocol
 }//namespace solid

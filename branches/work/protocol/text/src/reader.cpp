@@ -19,7 +19,7 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "protocol/reader.hpp"
+#include "protocol/text/reader.hpp"
 #include "utility/ostream.hpp"
 #include "system/debug.hpp"
 #include <cstring>
@@ -27,6 +27,7 @@
 
 namespace solid{
 namespace protocol{
+namespace text{
 
 static DummyKey dk;
 
@@ -407,5 +408,6 @@ void Reader::doPrepareBuffer(char *_newbeg, const char *_newend){
 	wpos = rpos + sz;
 }
 
+}//namespace text
 }//namespace protocol
 }//namespace solid

@@ -47,7 +47,7 @@ class Command;
 //signals:
 struct SocketMoveMessage;
 
-class Logger: public solid::protocol::Logger{
+class Logger: public solid::protocol::text::Logger{
 protected:
 	virtual void doInFlush(const char*, unsigned);
 	virtual void doOutFlush(const char*, unsigned);

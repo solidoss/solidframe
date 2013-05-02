@@ -27,7 +27,7 @@
 
 #include "utility/iostream.hpp"
 
-#include "protocol/namematcher.hpp"
+#include "protocol/text/namematcher.hpp"
 
 #include "frame/ipc/ipcservice.hpp"
 #include "frame/ipc/ipcservice.hpp"
@@ -90,7 +90,7 @@ struct Cmd{
 	{"idle",Cmd::IdleCmd},
 	{NULL,Cmd::CmdCount},
 };
-static const protocol::NameMatcher cmdm(cmds);
+static const protocol::text::NameMatcher cmdm(cmds);
 //---------------------------------------------------------------
 /*
 	The creator method called by frame::Reader::fetchKey when the 
@@ -145,18 +145,18 @@ int Basic::execute(Connection &_rc){
 	return BAD;
 }
 int Basic::execNoop(Connection &_rc){
-	_rc.writer().push(&Writer::putStatus, protocol::Parameter(StrDef(" OK Done NOOP@")));
+	_rc.writer().push(&Writer::putStatus, protocol::text::Parameter(StrDef(" OK Done NOOP@")));
 	return OK;
 }
 int Basic::execLogout(Connection &_rc){
-	_rc.writer().push(&Writer::returnValue<true>, protocol::Parameter(Writer::Bad));
-	_rc.writer().push(&Writer::putStatus, protocol::Parameter(StrDef(" OK Done LOGOUT@")));
-	_rc.writer().push(&Writer::putAtom, protocol::Parameter(StrDef("* Alpha connection closing\r\n")));
+	_rc.writer().push(&Writer::returnValue<true>, protocol::text::Parameter(Writer::Bad));
+	_rc.writer().push(&Writer::putStatus, protocol::text::Parameter(StrDef(" OK Done LOGOUT@")));
+	_rc.writer().push(&Writer::putAtom, protocol::text::Parameter(StrDef("* Alpha connection closing\r\n")));
 	return NOK;
 }
 int Basic::execCapability(Connection &_rc){
-	_rc.writer().push(&Writer::putStatus, protocol::Parameter(StrDef(" OK Done CAPABILITY@")));
-	_rc.writer().push(&Writer::putAtom, protocol::Parameter(StrDef("* CAPABILITIES noop logout login\r\n")));
+	_rc.writer().push(&Writer::putStatus, protocol::text::Parameter(StrDef(" OK Done CAPABILITY@")));
+	_rc.writer().push(&Writer::putAtom, protocol::text::Parameter(StrDef("* CAPABILITIES noop logout login\r\n")));
 	return OK;
 }
 //---------------------------------------------------------------
@@ -167,15 +167,15 @@ Login::Login(){
 Login::~Login(){
 }
 void Login::initReader(Reader &_rr){
-	_rr.push(&Reader::manage, protocol::Parameter(Reader::ResetLogging));
-	_rr.push(&Reader::fetchAString, protocol::Parameter(&pass));
-	_rr.push(&Reader::manage, protocol::Parameter(Reader::ClearLogging));
-	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
-	_rr.push(&Reader::fetchAString, protocol::Parameter(&user));
-	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
+	_rr.push(&Reader::manage, protocol::text::Parameter(Reader::ResetLogging));
+	_rr.push(&Reader::fetchAString, protocol::text::Parameter(&pass));
+	_rr.push(&Reader::manage, protocol::text::Parameter(Reader::ClearLogging));
+	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
+	_rr.push(&Reader::fetchAString, protocol::text::Parameter(&user));
+	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
 }
 int Login::execute(Connection &_rc){
-	_rc.writer().push(&Writer::putStatus, protocol::Parameter(StrDef(" OK Done LOGIN@")));
+	_rc.writer().push(&Writer::putStatus, protocol::text::Parameter(StrDef(" OK Done LOGIN@")));
 	return OK;
 }
 //---------------------------------------------------------------
@@ -186,16 +186,16 @@ List::List(){
 List::~List(){
 }
 void List::initReader(Reader &_rr){
-	_rr.push(&Reader::fetchAString, protocol::Parameter(&strpth));
-	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
+	_rr.push(&Reader::fetchAString, protocol::text::Parameter(&strpth));
+	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
 }
 int List::execute(Connection &_rc){
 	idbg("path: "<<strpth);
 	fs::path pth(strpth.c_str()/*, fs::native*/);
-	protocol::Parameter &rp = _rc.writer().push(&Writer::putStatus);
-	rp = protocol::Parameter(StrDef(" OK Done LIST@"));
+	protocol::text::Parameter &rp = _rc.writer().push(&Writer::putStatus);
+	rp = protocol::text::Parameter(StrDef(" OK Done LIST@"));
 	if(!exists( pth ) || !is_directory(pth)){
-		rp = protocol::Parameter(StrDef(" NO LIST: Not a directory@"));
+		rp = protocol::text::Parameter(StrDef(" NO LIST: Not a directory@"));
 		return OK;
 	}
 	try{
@@ -204,10 +204,10 @@ int List::execute(Connection &_rc){
 		idbg("dir_iterator exception :"<<ex.what());
 		return OK;
 	}
-	_rc.writer().push(&Writer::reinit<List>, protocol::Parameter(this, Step));
+	_rc.writer().push(&Writer::reinit<List>, protocol::text::Parameter(this, Step));
 	if(it != end){
 		_rc.writer().push(&Writer::putCrlf);
-		_rc.writer().push(&Writer::putAString, protocol::Parameter((void*)it->path().c_str(), strlen(it->path().c_str())));
+		_rc.writer().push(&Writer::putAString, protocol::text::Parameter((void*)it->path().c_str(), strlen(it->path().c_str())));
 		if(is_directory(*it)){
 			_rc.writer()<<"* DIR ";
 		}else{
@@ -217,11 +217,11 @@ int List::execute(Connection &_rc){
 	return OK;
 }
 
-int List::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
+int List::reinitWriter(Writer &_rw, protocol::text::Parameter &_rp){
 	++it;
 	if(it != end){
 		_rw.push(&Writer::putCrlf);
-		_rw.push(&Writer::putAString, protocol::Parameter((void*)it->path().c_str(), strlen(it->path().c_str())));
+		_rw.push(&Writer::putAString, protocol::text::Parameter((void*)it->path().c_str(), strlen(it->path().c_str())));
 		if(is_directory(*it)){
 			_rw<<"* DIR ";
 		}else{
@@ -252,45 +252,45 @@ void RemoteList::initReader(Reader &_rr){
 	
 	hostvec.push_back(HostAddr());
 	
-	_rr.push(&Reader::reinitExtended<RemoteList, 0>, protocol::Parameter(this));
-	_rr.push(&Reader::fetchUInt32, protocol::Parameter(&hostvec.back().netid));
-	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
-	_rr.push(&Reader::fetchAString, protocol::Parameter(&hostvec.back().port));
-	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
-	_rr.push(&Reader::fetchAString, protocol::Parameter(&hostvec.back().addr));
-	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
-	_rr.push(&Reader::fetchAString, protocol::Parameter(&strpth));
-	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
+	_rr.push(&Reader::reinitExtended<RemoteList, 0>, protocol::text::Parameter(this));
+	_rr.push(&Reader::fetchUInt32, protocol::text::Parameter(&hostvec.back().netid));
+	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
+	_rr.push(&Reader::fetchAString, protocol::text::Parameter(&hostvec.back().port));
+	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
+	_rr.push(&Reader::fetchAString, protocol::text::Parameter(&hostvec.back().addr));
+	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
+	_rr.push(&Reader::fetchAString, protocol::text::Parameter(&strpth));
+	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
 }
 
 template <>
-int RemoteList::reinitReader<OK>(Reader &_rr, protocol::Parameter &){
+int RemoteList::reinitReader<OK>(Reader &_rr, protocol::text::Parameter &){
 	typedef CharFilter<' '>				SpaceFilterT;
 	typedef NotFilter<SpaceFilterT> 	NotSpaceFilterT;
 	
 	hostvec.push_back(HostAddr());
 	
-	_rr.push(&Reader::returnValue<true>, protocol::Parameter(Reader::Ok));
-	_rr.push(&Reader::fetchUInt32, protocol::Parameter(&pausems));
+	_rr.push(&Reader::returnValue<true>, protocol::text::Parameter(Reader::Ok));
+	_rr.push(&Reader::fetchUInt32, protocol::text::Parameter(&pausems));
 	
 	//the pause amount
-	_rr.push(&Reader::pop, protocol::Parameter(2));
-	_rr.push(&Reader::fetchUInt32, protocol::Parameter(&hostvec.back().netid));
-	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
-	_rr.push(&Reader::fetchAString, protocol::Parameter(&hostvec.back().port));
-	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
-	_rr.push(&Reader::fetchAString, protocol::Parameter(&hostvec.back().addr));
+	_rr.push(&Reader::pop, protocol::text::Parameter(2));
+	_rr.push(&Reader::fetchUInt32, protocol::text::Parameter(&hostvec.back().netid));
+	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
+	_rr.push(&Reader::fetchAString, protocol::text::Parameter(&hostvec.back().port));
+	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
+	_rr.push(&Reader::fetchAString, protocol::text::Parameter(&hostvec.back().addr));
 	
 	//not a digit
-	_rr.push(&Reader::checkIfCharThenPop<DigitFilter>, protocol::Parameter(6));
+	_rr.push(&Reader::checkIfCharThenPop<DigitFilter>, protocol::text::Parameter(6));
 	_rr.push(&Reader::dropChar);//SPACE
-	_rr.push(&Reader::checkIfCharThenPop<NotSpaceFilterT>, protocol::Parameter(9));
+	_rr.push(&Reader::checkIfCharThenPop<NotSpaceFilterT>, protocol::text::Parameter(9));
 	return Reader::Continue;
 }
 
 int RemoteList::execute(Connection &_rc){
 	pp = &_rc.writer().push(&Writer::putStatus);
-	*pp = protocol::Parameter(StrDef(" OK Done REMOTELIST@"));
+	*pp = protocol::text::Parameter(StrDef(" OK Done REMOTELIST@"));
 	
 	if(hostvec.back().addr.empty()){
 		hostvec.pop_back();
@@ -312,15 +312,15 @@ int RemoteList::execute(Connection &_rc){
 			state = Wait;
 			DynamicPointer<frame::Message> msgptr(sig_sp);
 			Manager::the().ipc().sendMessage(msgptr, rd.begin(), it->netid/*, frame::ipc::Service::SameConnectorFlag*/);
-			_rc.writer().push(&Writer::reinit<RemoteList>, protocol::Parameter(this));
+			_rc.writer().push(&Writer::reinit<RemoteList>, protocol::text::Parameter(this));
 		}else{
-			*pp = protocol::Parameter(StrDef(" NO REMOTELIST: no such peer address@"));
+			*pp = protocol::text::Parameter(StrDef(" NO REMOTELIST: no such peer address@"));
 		}
 	}
 	
 	return OK;
 }
-int RemoteList::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
+int RemoteList::reinitWriter(Writer &_rw, protocol::text::Parameter &_rp){
 	switch(state){
 		case Wait:
 			return Writer::No;
@@ -329,7 +329,7 @@ int RemoteList::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 		case SendList:
 			if(it != ppthlst->end()){
 				_rw.push(&Writer::putCrlf);
-				_rw.push(&Writer::putAString, protocol::Parameter((void*)it->first.data(), it->first.size()));
+				_rw.push(&Writer::putAString, protocol::text::Parameter((void*)it->first.data(), it->first.size()));
 				if(it->second < 0){
 					_rw<<"* DIR ";
 				}else{
@@ -340,7 +340,7 @@ int RemoteList::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 			}
 			return Writer::Ok;
 		case SendError:
-			*pp = protocol::Parameter(StrDef(" NO LIST: Not a directory@"));
+			*pp = protocol::text::Parameter(StrDef(" NO LIST: Not a directory@"));
 			return Writer::Ok;
 	};
 	cassert(false);
@@ -383,28 +383,28 @@ Fetch::~Fetch(){
 void Fetch::initReader(Reader &_rr){
 	typedef CharFilter<' '>				SpaceFilterT;
 	typedef NotFilter<SpaceFilterT> 	NotSpaceFilterT;
-	_rr.push(&Reader::fetchAString, protocol::Parameter(&port));
+	_rr.push(&Reader::fetchAString, protocol::text::Parameter(&port));
 	_rr.push(&Reader::dropChar);
-	_rr.push(&Reader::checkIfCharThenPop<NotSpaceFilterT>, protocol::Parameter(2));
-	_rr.push(&Reader::fetchAString, protocol::Parameter(&straddr));
+	_rr.push(&Reader::checkIfCharThenPop<NotSpaceFilterT>, protocol::text::Parameter(2));
+	_rr.push(&Reader::fetchAString, protocol::text::Parameter(&straddr));
 	_rr.push(&Reader::dropChar);
-	_rr.push(&Reader::checkIfCharThenPop<NotSpaceFilterT>, protocol::Parameter(5));
-	_rr.push(&Reader::fetchAString, protocol::Parameter(&strpth));
-	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
+	_rr.push(&Reader::checkIfCharThenPop<NotSpaceFilterT>, protocol::text::Parameter(5));
+	_rr.push(&Reader::fetchAString, protocol::text::Parameter(&strpth));
+	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
 	
 }
 int Fetch::execute(Connection &_rc){
 	idbg("path "<<strpth<<", address "<<straddr<<", port "<<port<<' '<<(void*)this);
-	protocol::Parameter &rp = _rc.writer().push(&Writer::putStatus);
+	protocol::text::Parameter &rp = _rc.writer().push(&Writer::putStatus);
 	pp = &rp;
-	rp = protocol::Parameter(StrDef(" OK Done FETCH@"));
+	rp = protocol::text::Parameter(StrDef(" OK Done FETCH@"));
 	if(port.empty()) port = "1222";//default ipc port
 	if(straddr.empty()){
 		state = InitLocal;
 	}else{
 		state = InitRemote;
 	}
-	_rc.writer().push(&Writer::reinit<Fetch>, protocol::Parameter(this));
+	_rc.writer().push(&Writer::reinit<Fetch>, protocol::text::Parameter(this));
 	return OK;
 }
 
@@ -415,7 +415,7 @@ int Fetch::doInitLocal(){
 	int rv = Manager::the().fileManager().stream(sp_out, reqid, strpth.c_str());
 	switch(rv){
 		case BAD: 
-			*pp = protocol::Parameter(StrDef(" NO FETCH: Unable to open file@"));
+			*pp = protocol::text::Parameter(StrDef(" NO FETCH: Unable to open file@"));
 			return Writer::Ok;
 		case OK: 
 			state = SendLocal;
@@ -439,7 +439,7 @@ int Fetch::doGetTempStream(uint32 _sz){
 	int rv = Manager::the().fileManager().stream(sp_out, fuid, reqid, tk);
 	switch(rv){
 		case BAD: 
-			*pp = protocol::Parameter(StrDef(" NO FETCH: Unable to open temp file@"));
+			*pp = protocol::text::Parameter(StrDef(" NO FETCH: Unable to open temp file@"));
 			return Writer::No;
 		case OK: 
 			cassert(false);
@@ -469,7 +469,7 @@ void Fetch::doSendMaster(const FileUidT &_fuid){
 		DynamicPointer<frame::Message> msgptr(pmsg);
 		Manager::the().ipc().sendMessage(msgptr, rd.begin());
 	}else{
-		*pp = protocol::Parameter(StrDef(" NO FETCH: no such peer address@"));
+		*pp = protocol::text::Parameter(StrDef(" NO FETCH: no such peer address@"));
 		state = ReturnOk;
 	}
 }
@@ -487,7 +487,7 @@ void Fetch::doSendSlave(const FileUidT &_fuid){
 	Manager::the().ipc().sendMessage(msgptr, ipcconuid);
 //	idbg("rv = "<<rv);
 // 	if(rv == BAD){
-// 		*pp = protocol::Parameter(StrDef(" NO FETCH: peer died@"));
+// 		*pp = protocol::text::Parameter(StrDef(" NO FETCH: peer died@"));
 // 		state = ReturnBad;
 // 	}
 }
@@ -501,7 +501,7 @@ int Fetch::doSendFirstData(Writer &_rw){
 		uint32 tmpsz =  512 * 1024;
 		if(remainsz < tmpsz) tmpsz = remainsz;
 		if(doGetTempStream(tmpsz) == Writer::Bad){
-			*pp = protocol::Parameter(StrDef(" NO FETCH: no temp stream@"));
+			*pp = protocol::text::Parameter(StrDef(" NO FETCH: no temp stream@"));
 			return Writer::Ok;
 		}
 	}else{
@@ -519,7 +519,7 @@ int Fetch::doSendNextData(Writer &_rw){
 		uint32 tmpsz = 2 * 512 * 1024;
 		if(remainsz < tmpsz) tmpsz = remainsz;
 		if(doGetTempStream(tmpsz) == Writer::Bad){
-			*pp = protocol::Parameter(StrDef(" NO FETCH: no temp stream@"));
+			*pp = protocol::text::Parameter(StrDef(" NO FETCH: no temp stream@"));
 			return Writer::Ok;
 		}
 	}else{
@@ -530,7 +530,7 @@ int Fetch::doSendNextData(Writer &_rw){
 	cassert(sp_out);
 	it.reinit(sp_out.get());
 	//_rw.push(&Writer::putCrlf);
-	_rw.push(&Writer::putStream, protocol::Parameter(&it, &streamsz_out));
+	_rw.push(&Writer::putStream, protocol::text::Parameter(&it, &streamsz_out));
 	return Writer::Continue;
 }
 
@@ -544,11 +544,11 @@ int Fetch::doSendLiteral(Writer &_rw, bool _local){
 	if(_local){
 		_rw.replace(&Writer::putCrlf);
 	}
-	_rw.push(&Writer::putStream, protocol::Parameter(&it, &streamsz_out));
+	_rw.push(&Writer::putStream, protocol::text::Parameter(&it, &streamsz_out));
 	return Writer::Continue;
 }
 
-int Fetch::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
+int Fetch::reinitWriter(Writer &_rw, protocol::text::Parameter &_rp){
 	switch(state){
 		case InitLocal:
 			return doInitLocal();
@@ -572,13 +572,13 @@ int Fetch::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 			_rw.replace(&Writer::putCrlf);
 			return Writer::Continue;
 		case SendError:
-			*pp = protocol::Parameter(StrDef(" NO FETCH: an error occured@"));
+			*pp = protocol::text::Parameter(StrDef(" NO FETCH: an error occured@"));
 			return Writer::Ok;
 		case SendTempError:
-			*pp = protocol::Parameter(StrDef(" NO FETCH: no temp stream@"));
+			*pp = protocol::text::Parameter(StrDef(" NO FETCH: no temp stream@"));
 			return Writer::Ok;
 		case SendRemoteError:
-			*pp = protocol::Parameter(StrDef(" NO FETCH: no remote stream@"));
+			*pp = protocol::text::Parameter(StrDef(" NO FETCH: no remote stream@"));
 			return Writer::Ok;
 	}
 	cassert(false);
@@ -668,15 +668,15 @@ Store::~Store(){
 	sp.clear();
 }
 void Store::initReader(Reader &_rr){
-	_rr.push(&Reader::reinit<Store>, protocol::Parameter(this, Init));
-	_rr.push(&Reader::checkChar, protocol::Parameter('}'));
-	_rr.push(&Reader::fetchUInt32, protocol::Parameter(&litsz));
-	_rr.push(&Reader::checkChar, protocol::Parameter('{'));
-	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
-	_rr.push(&Reader::fetchAString, protocol::Parameter(&strpth));
-	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
+	_rr.push(&Reader::reinit<Store>, protocol::text::Parameter(this, Init));
+	_rr.push(&Reader::checkChar, protocol::text::Parameter('}'));
+	_rr.push(&Reader::fetchUInt32, protocol::text::Parameter(&litsz));
+	_rr.push(&Reader::checkChar, protocol::text::Parameter('{'));
+	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
+	_rr.push(&Reader::fetchAString, protocol::text::Parameter(&strpth));
+	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
 }
-int Store::reinitReader(Reader &_rr, protocol::Parameter &_rp){
+int Store::reinitReader(Reader &_rr, protocol::text::Parameter &_rp){
 	switch(_rp.b.i){
 		case Init:{
 			frame::RequestUid reqid(rc.id(), Manager::the().id(rc).second, rc.newRequestId());
@@ -699,10 +699,10 @@ int Store::reinitReader(Reader &_rr, protocol::Parameter &_rp){
 				it.reinit(sp.get());
 				rc.writer()<<"* Expecting "<<litsz<<" CHARs\r\n";
 				litsz64 = litsz;
-				_rr.replace(&Reader::fetchLiteralStream, protocol::Parameter(&it, &litsz64));
+				_rr.replace(&Reader::fetchLiteralStream, protocol::text::Parameter(&it, &litsz64));
 				_rr.push(&Reader::flushWriter);
-				_rr.push(&Reader::checkChar, protocol::Parameter('\n'));
-				_rr.push(&Reader::checkChar, protocol::Parameter('\r'));
+				_rr.push(&Reader::checkChar, protocol::text::Parameter('\n'));
+				_rr.push(&Reader::checkChar, protocol::text::Parameter('\r'));
 				return Reader::Continue;
 			}else{
 				idbg("no stream");
@@ -716,11 +716,11 @@ int Store::reinitReader(Reader &_rr, protocol::Parameter &_rp){
 	return Reader::Bad;
 }
 int Store::execute(Connection &_rc){
-	protocol::Parameter &rp = _rc.writer().push(&Writer::putStatus);
+	protocol::text::Parameter &rp = _rc.writer().push(&Writer::putStatus);
 	if(sp && sp->ok()){
-		rp = protocol::Parameter(StrDef(" OK Done STORE@"));
+		rp = protocol::text::Parameter(StrDef(" OK Done STORE@"));
 	}else{
-		rp = protocol::Parameter(StrDef(" NO STORE: Failed opening file@"));
+		rp = protocol::text::Parameter(StrDef(" NO STORE: Failed opening file@"));
 	}
 	return OK;
 }
@@ -748,7 +748,7 @@ int Store::receiveError(
 	return OK;
 }
 
-int Store::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
+int Store::reinitWriter(Writer &_rw, protocol::text::Parameter &_rp){
 	return Writer::Bad;
 }
 
@@ -759,16 +759,16 @@ SendString::SendString():port(0), objid(0), objuid(0){}
 SendString::~SendString(){
 }
 void SendString::initReader(Reader &_rr){
-	_rr.push(&Reader::fetchAString, protocol::Parameter(&str));
-	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
-	_rr.push(&Reader::fetchUInt32, protocol::Parameter(&objuid));
-	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
-	_rr.push(&Reader::fetchUInt32, protocol::Parameter(&objid));
-	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
-	_rr.push(&Reader::fetchUInt32, protocol::Parameter(&port));
-	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
-	_rr.push(&Reader::fetchAString, protocol::Parameter(&addr));
-	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
+	_rr.push(&Reader::fetchAString, protocol::text::Parameter(&str));
+	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
+	_rr.push(&Reader::fetchUInt32, protocol::text::Parameter(&objuid));
+	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
+	_rr.push(&Reader::fetchUInt32, protocol::text::Parameter(&objid));
+	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
+	_rr.push(&Reader::fetchUInt32, protocol::text::Parameter(&port));
+	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
+	_rr.push(&Reader::fetchAString, protocol::text::Parameter(&addr));
+	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
 }
 int SendString::execute(alpha::Connection &_rc){
 	Manager &rm(Manager::the());
@@ -776,13 +776,13 @@ int SendString::execute(alpha::Connection &_rc){
 	uint32	fromobjuid(rm.id(_rc).second);//the uid of the current connection
 	ResolveData rd = synchronous_resolve(addr.c_str(), port, 0, SocketInfo::Inet4, SocketInfo::Stream);
 	idbg("addr"<<addr<<"str = "<<str<<" port = "<<port<<" objid = "<<" objuid = "<<objuid);
-	protocol::Parameter &rp = _rc.writer().push(&Writer::putStatus);
+	protocol::text::Parameter &rp = _rc.writer().push(&Writer::putStatus);
 	if(!rd.empty()){
-		rp = protocol::Parameter(StrDef(" OK Done SENDSTRING@"));
+		rp = protocol::text::Parameter(StrDef(" OK Done SENDSTRING@"));
 		DynamicPointer<frame::Message> msgptr(new SendStringMessage(str, objid, objuid, fromobjid, fromobjuid));
 		rm.ipc().sendMessage(msgptr, rd.begin());
 	}else{
-		rp = protocol::Parameter(StrDef(" NO SENDSTRING no such address@"));
+		rp = protocol::text::Parameter(StrDef(" NO SENDSTRING no such address@"));
 	}
 	return NOK;
 }
@@ -793,18 +793,18 @@ SendStream::SendStream():port(0), objid(0), objuid(0){}
 SendStream::~SendStream(){
 }
 void SendStream::initReader(Reader &_rr){
-	_rr.push(&Reader::fetchAString, protocol::Parameter(&dststr));
-	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
-	_rr.push(&Reader::fetchAString, protocol::Parameter(&srcstr));
-	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
-	_rr.push(&Reader::fetchUInt32, protocol::Parameter(&objuid));
-	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
-	_rr.push(&Reader::fetchUInt32, protocol::Parameter(&objid));
-	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
-	_rr.push(&Reader::fetchUInt32, protocol::Parameter(&port));
-	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
-	_rr.push(&Reader::fetchAString, protocol::Parameter(&addr));
-	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
+	_rr.push(&Reader::fetchAString, protocol::text::Parameter(&dststr));
+	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
+	_rr.push(&Reader::fetchAString, protocol::text::Parameter(&srcstr));
+	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
+	_rr.push(&Reader::fetchUInt32, protocol::text::Parameter(&objuid));
+	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
+	_rr.push(&Reader::fetchUInt32, protocol::text::Parameter(&objid));
+	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
+	_rr.push(&Reader::fetchUInt32, protocol::text::Parameter(&port));
+	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
+	_rr.push(&Reader::fetchAString, protocol::text::Parameter(&addr));
+	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
 }
 int SendStream::execute(Connection &_rc){
 	idbg("send file ["<<srcstr<<"] to: "<<dststr<<" ("<<addr<<' '<<port<<' '<<objid<<' '<<objuid<<')');
@@ -815,23 +815,23 @@ int SendStream::execute(Connection &_rc){
 	frame::RequestUid reqid(_rc.id(), rm.id(_rc).second, _rc.requestId()); 
 	StreamPointer<InputOutputStream>	sp;
 	int rv = Manager::the().fileManager().stream(sp, reqid, srcstr.c_str());
-	protocol::Parameter &rp = _rc.writer().push(&Writer::putStatus);
+	protocol::text::Parameter &rp = _rc.writer().push(&Writer::putStatus);
 	switch(rv){
 		case BAD:
-			rp = protocol::Parameter(StrDef(" NO SENDSTRING: unable to open file@"));
+			rp = protocol::text::Parameter(StrDef(" NO SENDSTRING: unable to open file@"));
 			break;
 		case NOK:
-			rp = protocol::Parameter(StrDef(" NO SENDSTRING: stream wait not implemented yet@"));
+			rp = protocol::text::Parameter(StrDef(" NO SENDSTRING: stream wait not implemented yet@"));
 			break;
 		case OK:{
 			ResolveData rd = synchronous_resolve(addr.c_str(), port, 0, SocketInfo::Inet4, SocketInfo::Stream);
 			idbg("addr"<<addr<<"str = "<<srcstr<<" port = "<<port<<" objid = "<<" objuid = "<<objuid);
 			if(!rd.empty()){
-				rp = protocol::Parameter(StrDef(" OK Done SENDSTRING@"));
+				rp = protocol::text::Parameter(StrDef(" OK Done SENDSTRING@"));
 				DynamicPointer<frame::Message> msgptr(new SendStreamMessage(sp, dststr, myprocid, objid, objuid, fromobjid, fromobjuid));
 				rm.ipc().sendMessage(msgptr, rd.begin());
 			}else{
-				rp = protocol::Parameter(StrDef(" NO SENDSTRING no such address@"));
+				rp = protocol::text::Parameter(StrDef(" NO SENDSTRING no such address@"));
 			}
 		}break;
 	}
@@ -843,18 +843,18 @@ int SendStream::execute(Connection &_rc){
 Idle::~Idle(){
 }
 void Idle::initReader(Reader &_rr){
-	_rr.push(&Reader::checkChar, protocol::Parameter('e'));
-	_rr.push(&Reader::checkChar, protocol::Parameter('n'));
-	_rr.push(&Reader::checkChar, protocol::Parameter('o'));
-	_rr.push(&Reader::checkChar, protocol::Parameter('d'));
-	_rr.push(&Reader::checkChar, protocol::Parameter('\n'));
-	_rr.push(&Reader::checkChar, protocol::Parameter('\r'));
+	_rr.push(&Reader::checkChar, protocol::text::Parameter('e'));
+	_rr.push(&Reader::checkChar, protocol::text::Parameter('n'));
+	_rr.push(&Reader::checkChar, protocol::text::Parameter('o'));
+	_rr.push(&Reader::checkChar, protocol::text::Parameter('d'));
+	_rr.push(&Reader::checkChar, protocol::text::Parameter('\n'));
+	_rr.push(&Reader::checkChar, protocol::text::Parameter('\r'));
 }
 int Idle::execute(Connection &_rc){
-	_rc.writer().push(&Writer::putStatus, protocol::Parameter(StrDef(" OK Done IDLE@")));
+	_rc.writer().push(&Writer::putStatus, protocol::text::Parameter(StrDef(" OK Done IDLE@")));
 	return OK;
 }
-int Idle::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
+int Idle::reinitWriter(Writer &_rw, protocol::text::Parameter &_rp){
 	if(_rp.b.i == 1){//prepare
 		cassert(typeq.size());
 		if(typeq.front() == PeerStringType){
@@ -862,19 +862,19 @@ int Idle::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 			_rw<<") ("<<(uint32)fromq.front().first<<' '<<(uint32)fromq.front().second<<") ";
 			_rp.b.i = 0;
 			_rw.push(&Writer::flushAll);
-			_rw.push(&Writer::putChar, protocol::Parameter('\n'));
-			_rw.push(&Writer::putChar, protocol::Parameter('\r'));
-			_rw.push(&Writer::putAString, protocol::Parameter((void*)stringq.front().data(), stringq.front().size()));
+			_rw.push(&Writer::putChar, protocol::text::Parameter('\n'));
+			_rw.push(&Writer::putChar, protocol::text::Parameter('\r'));
+			_rw.push(&Writer::putAString, protocol::text::Parameter((void*)stringq.front().data(), stringq.front().size()));
 		}else if(typeq.front() == PeerStreamType){
 			_rw<<"* RECEIVED STREAM ("<<(uint32)conidq.front().tid<<' '<<(uint32)conidq.front().idx<<' '<<(uint32)conidq.front().uid;
 			_rw<<") ("<<(uint32)fromq.front().first<<' '<<(uint32)fromq.front().second<<") PATH ";
 			_rp.b.i = 0;
 			_rw.push(&Writer::flushAll);
-			_rw.push(&Writer::putChar, protocol::Parameter('\n'));
-			_rw.push(&Writer::putChar, protocol::Parameter('\r'));
-			_rw.push(&Writer::reinit<Idle>, protocol::Parameter(this, 2));
+			_rw.push(&Writer::putChar, protocol::text::Parameter('\n'));
+			_rw.push(&Writer::putChar, protocol::text::Parameter('\r'));
+			_rw.push(&Writer::reinit<Idle>, protocol::text::Parameter(this, 2));
 			_rw.push(&Writer::flushAll);
-			_rw.push(&Writer::putAString, protocol::Parameter((void*)stringq.front().data(), stringq.front().size()));
+			_rw.push(&Writer::putAString, protocol::text::Parameter((void*)stringq.front().data(), stringq.front().size()));
 		}else{
 			cassert(false);
 		}
@@ -884,7 +884,7 @@ int Idle::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 		litsz64 = streamq.front()->size();
 		it.reinit(streamq.front().get());
 		_rw<<" DATA {"<<(uint32)streamq.front()->size()<<"}\r\n";
-		_rw.replace(&Writer::putStream, protocol::Parameter(&it, &litsz64));
+		_rw.replace(&Writer::putStream, protocol::text::Parameter(&it, &litsz64));
 		return Writer::Continue;
 	}else{//unprepare
 		if(typeq.front() == PeerStringType){
@@ -924,7 +924,7 @@ int Idle::receiveInputStream(
 	streamq.push(_sp);
 	_sp.release();
 	fromq.push(_from);
-	rc.writer().push(&Writer::reinit<Idle>, protocol::Parameter(this, 1));
+	rc.writer().push(&Writer::reinit<Idle>, protocol::text::Parameter(this, 1));
 	return OK;
 }
 int Idle::receiveString(
@@ -945,7 +945,7 @@ int Idle::receiveString(
 	}
 	stringq.push(_str);
 	fromq.push(_from);
-	rc.writer().push(&Writer::reinit<Idle>, protocol::Parameter(this, 1));
+	rc.writer().push(&Writer::reinit<Idle>, protocol::text::Parameter(this, 1));
 	return NOK;
 }
 //---------------------------------------------------------------

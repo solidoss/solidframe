@@ -22,7 +22,7 @@
 #ifndef ALPHA_WRITER_HPP
 #define ALPHA_WRITER_HPP
 
-#include "protocol/writer.hpp"
+#include "protocol/text/writer.hpp"
 #include "core/tstring.hpp"
 
 using solid::uint32;
@@ -35,28 +35,28 @@ class Connection;
 	Extends the interface of the protocol::Writer, and implements
 	the requested virtual methods.
 */
-class Writer: public solid::protocol::Writer{
+class Writer: public solid::protocol::text::Writer{
 public:
-	Writer(solid::protocol::Logger *_plog = NULL);
+	Writer(solid::protocol::text::Logger *_plog = NULL);
 	~Writer();
 	void clear();
 	//! Asynchrounously writes an astring (atom/quoted/literal)
-	static int putAString(solid::protocol::Writer &_rw, solid::protocol::Parameter &_rp);
+	static int putAString(solid::protocol::text::Writer &_rw, solid::protocol::text::Parameter &_rp);
 	//! Asynchrounously writes the command's status (the last line of the command
-	static int putStatus(solid::protocol::Writer &_rw, solid::protocol::Parameter &_rp);
+	static int putStatus(solid::protocol::text::Writer &_rw, solid::protocol::text::Parameter &_rp);
 	//! Asynchrounously writes a CRLF
-	static int putCrlf(solid::protocol::Writer &_rw, solid::protocol::Parameter &_rp);
+	static int putCrlf(solid::protocol::text::Writer &_rw, solid::protocol::text::Parameter &_rp);
 	//! Asynchrounously clears the writer data
-	static int clear(solid::protocol::Writer &_rw, solid::protocol::Parameter &_rp);
+	static int clear(solid::protocol::text::Writer &_rw, solid::protocol::text::Parameter &_rp);
 	template <class C>
-	static int reinit(solid::protocol::Writer &_rw, solid::protocol::Parameter &_rp){
+	static int reinit(solid::protocol::text::Writer &_rw, solid::protocol::text::Parameter &_rp){
 		return reinterpret_cast<C*>(_rp.a.p)->reinitWriter(static_cast<Writer&>(_rw), _rp);
 	}
 	String &message(){return msgs;}
 	String &tag(){return tags;}
 private:
 	//! Asynchrounously writes a quoted string
-	static int putQString(solid::protocol::Writer &_rw, solid::protocol::Parameter &_rp);
+	static int putQString(solid::protocol::text::Writer &_rw, solid::protocol::text::Parameter &_rp);
 	/*virtual*/ int write(char *_pb, uint32 _bl);
 	//virtual int doManage(int _mo);
 private:

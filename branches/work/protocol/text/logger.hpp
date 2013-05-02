@@ -19,14 +19,15 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef SOLID_PROTOCOL_LOGGER_HPP
-#define SOLID_PROTOCOL_LOGGER_HPP
+#ifndef SOLID_PROTOCOL_TEXT_LOGGER_HPP
+#define SOLID_PROTOCOL_TEXT_LOGGER_HPP
 
 #include "system/common.hpp"
 #include <string>
 
 namespace solid{
 namespace protocol{
+namespace text{
 
 //! A class for protocol level logging.
 /*!
@@ -99,6 +100,8 @@ private:
 	const uint32	linesz;
 };
 
+
+}//namespace text
 }//namespace protocol
 }//namespace solid
 

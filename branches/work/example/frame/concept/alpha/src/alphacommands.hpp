@@ -51,7 +51,9 @@ using solid::int64;
 
 namespace solid{
 namespace protocol{
+namespace text{
 struct Parameter;
+}
 }
 }
 
@@ -120,7 +122,7 @@ public:
 			and write the first 1MB on socket
 		- and so forth
 	*/
-	int reinitWriter(Writer &, solid::protocol::Parameter &);
+	int reinitWriter(Writer &, solid::protocol::text::Parameter &);
 	int receiveInputStream(
 		solid::StreamPointer<solid::InputStream> &_sptr,
 		const FileUidT &_fuid,
@@ -170,7 +172,7 @@ private:
 	Connection									&rc;
 	int16 										state;
 	uint64										litsz;
-	solid::protocol::Parameter					*pp;
+	solid::protocol::text::Parameter					*pp;
 	
 	
 	solid::StreamPointer<solid::InputStream>	sp_in;
@@ -194,7 +196,7 @@ public:
 	Store(Connection &);
 	~Store();
 	void initReader(Reader &);
-	int reinitReader(Reader &, solid::protocol::Parameter &);
+	int reinitReader(Reader &, solid::protocol::text::Parameter &);
 	int execute(Connection &);
 	int receiveOutputStream(
 		solid::StreamPointer<solid::OutputStream> &_sptr,
@@ -208,7 +210,7 @@ public:
 		const ObjectUidT&_from,
 		const solid::frame::ipc::ConnectionUid *
 	);
-	int reinitWriter(Writer &, solid::protocol::Parameter &);
+	int reinitWriter(Writer &, solid::protocol::text::Parameter &);
 private:
 	String										strpth;//the file path
 	solid::StreamPointer<solid::OutputStream>	sp;
@@ -235,7 +237,7 @@ public:
 	void initReader(Reader &);
 	int execute(Connection &);
 	
-	int reinitWriter(Writer &, solid::protocol::Parameter &);
+	int reinitWriter(Writer &, solid::protocol::text::Parameter &);
 private:
 	String					strpth;
 	fs::directory_iterator 	it,end;
@@ -262,7 +264,7 @@ public:
 	void initReader(Reader &);
 	int execute(Connection &);
 	
-	int reinitWriter(Writer &, solid::protocol::Parameter &);
+	int reinitWriter(Writer &, solid::protocol::text::Parameter &);
 	int receiveData(
 		void *_pdata,
 		int _datasz,
@@ -276,7 +278,7 @@ public:
 		const solid::frame::ipc::ConnectionUid *_conid
 	);
 	template <int U>
-	int reinitReader(Reader &, solid::protocol::Parameter &);
+	int reinitReader(Reader &, solid::protocol::text::Parameter &);
 private:
 	struct HostAddr{
 		String	addr;
@@ -290,7 +292,7 @@ private:
 	PathListT					*ppthlst;
 	PathListT::const_iterator	it;
 	int							state;
-	solid::protocol::Parameter	*pp;
+	solid::protocol::text::Parameter	*pp;
 };
 
 
@@ -362,7 +364,7 @@ public:
 	~Idle();
 	void initReader(Reader &);
 	int execute(Connection &);
-	int reinitWriter(Writer &, solid::protocol::Parameter &);
+	int reinitWriter(Writer &, solid::protocol::text::Parameter &);
 	/*virtual*/ int receiveInputStream(
 		solid::StreamPointer<solid::InputStream> &,
 		const FileUidT&,

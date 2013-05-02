@@ -29,8 +29,8 @@ namespace concept{
 namespace alpha{
 
 Writer::Writer(
-	protocol::Logger *_plog
-):protocol::Writer(_plog){
+	protocol::text::Logger *_plog
+):protocol::text::Writer(_plog){
 }
 
 Writer::~Writer(){
@@ -51,7 +51,7 @@ bool isLiteralString(const char *_pb, unsigned _bl){
 	return false;
 }
 
-/*static*/ int Writer::putAString(protocol::Writer &_rw, protocol::Parameter &_rp){
+/*static*/ int Writer::putAString(protocol::text::Writer &_rw, protocol::text::Parameter &_rp){
 	Writer &rw = static_cast<Writer&>(_rw);
 	const char *ps = (const char*)_rp.a.p;
 	if(_rp.b.u32 > 128 || isLiteralString(ps, _rp.b.u32)){
@@ -61,48 +61,48 @@ bool isLiteralString(const char *_pb, unsigned _bl){
 		rw.fs.top().first = &Writer::putAtom;
 	}else{//send quoted
 		rw<<'\"';
-		protocol::Parameter ppp(_rp);
+		protocol::text::Parameter ppp(_rp);
 		
-		rw.replace(&Writer::putChar, protocol::Parameter('\"'));
+		rw.replace(&Writer::putChar, protocol::text::Parameter('\"'));
 		rw.push(&Writer::putAtom, ppp);
 		rw.push(&Writer::flush);//only try to do a flush
 	}
 	return Continue;
 }
 //NOTE: to be used by the above method
-/*static*/ /*int Writer::putQString(protocol::Writer &_rw, protocol::Parameter &_rp){
+/*static*/ /*int Writer::putQString(protocol::text::Writer &_rw, protocol::text::Parameter &_rp){
 	return Bad;
 }*/
 
-/*static*/ int Writer::putStatus(protocol::Writer &_rw, protocol::Parameter &_rp){
+/*static*/ int Writer::putStatus(protocol::text::Writer &_rw, protocol::text::Parameter &_rp){
 	Writer &rw = static_cast<Writer&>(_rw);
-	protocol::Parameter rp = _rp;
+	protocol::text::Parameter rp = _rp;
 	rw.replace(&Writer::clear);
 	rw.push(&Writer::flushAll);
 	rw.push(&Writer::putCrlf);
 	if(rp.a.p){
 		rw.push(&Writer::putAtom, rp);
 	}else{//send the msg
-		rw.push(&Writer::putAtom, protocol::Parameter((void*)rw.msgs.data(), rw.msgs.size()));
+		rw.push(&Writer::putAtom, protocol::text::Parameter((void*)rw.msgs.data(), rw.msgs.size()));
 	}
-	//rw.push(&Writer::putChar, protocol::Parameter(' '));
+	//rw.push(&Writer::putChar, protocol::text::Parameter(' '));
 	if(rw.tags.size()){
-		rw.push(&Writer::putAtom, protocol::Parameter((void*)rw.tags.data(), rw.tags.size()));
+		rw.push(&Writer::putAtom, protocol::text::Parameter((void*)rw.tags.data(), rw.tags.size()));
 	}else{
-		rw.push(&Writer::putChar, protocol::Parameter('*'));
+		rw.push(&Writer::putChar, protocol::text::Parameter('*'));
 	}
 	return Continue;
 }
 
-/*static*/ int Writer::clear(protocol::Writer &_rw, protocol::Parameter &_rp){
+/*static*/ int Writer::clear(protocol::text::Writer &_rw, protocol::text::Parameter &_rp){
 	Writer &rw = static_cast<Writer&>(_rw);
 	rw.clear();
 	return Ok;
 }
 
-/*static*/ int Writer::putCrlf(protocol::Writer &_rw, protocol::Parameter &_rp){
-	_rw.replace(&Writer::putChar, protocol::Parameter('\n'));
-	_rw.push(&Writer::putChar, protocol::Parameter('\r'));
+/*static*/ int Writer::putCrlf(protocol::text::Writer &_rw, protocol::text::Parameter &_rp){
+	_rw.replace(&Writer::putChar, protocol::text::Parameter('\n'));
+	_rw.push(&Writer::putChar, protocol::text::Parameter('\r'));
 	return Continue;
 }
 

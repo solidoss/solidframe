@@ -217,8 +217,8 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 	int rc;
 	switch(state()){
 		case Init:
-			wtr.buffer(protocol::SpecificBuffer(2*1024));
-			rdr.buffer(protocol::SpecificBuffer(2*1024));
+			wtr.buffer(protocol::text::SpecificBuffer(2*1024));
+			rdr.buffer(protocol::text::SpecificBuffer(2*1024));
 			if(this->socketIsSecure()){
 				int rv = this->socketSecureAccept();
 				state(Banner);
@@ -376,11 +376,11 @@ void Connection::prepareReader(){
 	writer().clear();
 	reader().clear();
 	//logger.outFlush();
-	reader().push(&Reader::checkChar, protocol::Parameter('\n'));
-	reader().push(&Reader::checkChar, protocol::Parameter('\r'));
-	reader().push(&Reader::fetchKey<Reader, Connection, AtomFilter, Command>, protocol::Parameter(this, 64));
-	reader().push(&Reader::checkChar, protocol::Parameter(' '));
-	reader().push(&Reader::fetchFilteredString<TagFilter>, protocol::Parameter(&writer().tag(),64));
+	reader().push(&Reader::checkChar, protocol::text::Parameter('\n'));
+	reader().push(&Reader::checkChar, protocol::text::Parameter('\r'));
+	reader().push(&Reader::fetchKey<Reader, Connection, AtomFilter, Command>, protocol::text::Parameter(this, 64));
+	reader().push(&Reader::checkChar, protocol::text::Parameter(' '));
+	reader().push(&Reader::fetchFilteredString<TagFilter>, protocol::text::Parameter(&writer().tag(),64));
 }
 
 void Connection::dynamicExecute(DynamicPointer<> &_dp){

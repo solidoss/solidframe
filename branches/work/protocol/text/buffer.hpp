@@ -1,10 +1,11 @@
-#ifndef SOLID_PROTOCOL_BUFFER_HPP
-#define SOLID_PROTOCOL_BUFFER_HPP
+#ifndef SOLID_PROTOCOL_TEXT_BUFFER_HPP
+#define SOLID_PROTOCOL_TEXT_BUFFER_HPP
 
 #include "system/common.hpp"
 
 namespace solid{
 namespace protocol{
+namespace text{
 
 struct Buffer{
 	mutable char	*pbeg;
@@ -46,7 +47,7 @@ struct SpecificBuffer: Buffer{
 	/*virtual*/ bool resize(uint32 _sz, const char* _rpos, const char* _wpos);
 };
 
-
+}//namespace text
 }//namespace protocol
 }//namespace solid
 

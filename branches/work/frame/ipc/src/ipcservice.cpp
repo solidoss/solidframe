@@ -872,7 +872,8 @@ int Service::doAcceptRelaySession(const SocketAddress &_rsa, const ConnectData &
 }
 //---------------------------------------------------------------------
 int Service::doAcceptGatewaySession(const SocketAddress &_rsa, const ConnectData &_rconndata){
-	
+	Locker<Mutex>				lock(mutex());
+	SocketAddressInet4			inaddr(_rsa);
 	return BAD;
 }
 //---------------------------------------------------------------------

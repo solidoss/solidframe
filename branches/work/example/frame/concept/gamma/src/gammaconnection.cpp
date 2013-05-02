@@ -89,8 +89,8 @@ Connection::Connection(const SocketDevice &_rsd):
 	BaseT(_rsd),isslave(true),crtreqid(1)
 {
 	sdv.push_back(new SocketData(0));
-	sdv.back()->r.buffer(protocol::HeapBuffer(1024));
-	sdv.back()->w.buffer(protocol::HeapBuffer(1024));
+	sdv.back()->r.buffer(protocol::text::HeapBuffer(1024));
+	sdv.back()->w.buffer(protocol::text::HeapBuffer(1024));
 	socketState(0, SocketInit);
 	this->socketPostEvents(0, frame::RESCHEDULED);
 }
@@ -333,11 +333,11 @@ void Connection::doSocketPrepareParse(const uint _sid, SocketData &_rsd){
 	_rsd.w.clear();
 	_rsd.r.clear();
 	//logger.outFlush();
-	_rsd.r.push(&Reader::checkChar, protocol::Parameter('\n'));
-	_rsd.r.push(&Reader::checkChar, protocol::Parameter('\r'));
-	_rsd.r.push(&Reader::fetchKey<Reader, Connection, AtomFilter, Command>, protocol::Parameter(this, 64));
-	_rsd.r.push(&Reader::checkChar, protocol::Parameter(' '));
-	_rsd.r.push(&Reader::fetchFilteredString<TagFilter>, protocol::Parameter(&_rsd.w.tag(), 64));
+	_rsd.r.push(&Reader::checkChar, protocol::text::Parameter('\n'));
+	_rsd.r.push(&Reader::checkChar, protocol::text::Parameter('\r'));
+	_rsd.r.push(&Reader::fetchKey<Reader, Connection, AtomFilter, Command>, protocol::text::Parameter(this, 64));
+	_rsd.r.push(&Reader::checkChar, protocol::text::Parameter(' '));
+	_rsd.r.push(&Reader::fetchFilteredString<TagFilter>, protocol::text::Parameter(&_rsd.w.tag(), 64));
 	socketState(_sid, SocketParse);
 }
 
@@ -451,8 +451,8 @@ void Connection::dynamicExecute(DynamicPointer<SocketMoveMessage> &_rmsgptr){
 		sdv[sid] = _rmsgptr->psd;
 	}else{
 		sdv.push_back(_rmsgptr->psd);
-		sdv.back()->w.buffer(protocol::HeapBuffer(1024));
-		sdv.back()->r.buffer(protocol::HeapBuffer(1024));
+		sdv.back()->w.buffer(protocol::text::HeapBuffer(1024));
+		sdv.back()->r.buffer(protocol::text::HeapBuffer(1024));
 	}
 	_rmsgptr->psd = NULL;
 	sdv[sid]->r.socketId(sid);

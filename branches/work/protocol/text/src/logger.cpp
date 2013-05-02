@@ -19,8 +19,8 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "protocol/logger.hpp"
-#include "protocol/parameter.hpp"
+#include "protocol/text/logger.hpp"
+#include "protocol/text/parameter.hpp"
 #include "system/cstring.hpp"
 #include "system/cassert.hpp"
 
@@ -28,6 +28,7 @@ using namespace std;
 
 namespace solid{
 namespace protocol{
+namespace text{
 
 void appendLiteral(string &_rs, const char *_pb, unsigned _bl){
 	const char *from = _pb;
@@ -225,8 +226,9 @@ void Logger::outLiteral(const char *_pb, unsigned _bl){
 }
 //----------------------------------------------------------
 #ifdef NINLINES
-#include "protocol/parameter.ipp"
+#include "protocol/text/parameter.ipp"
 #endif
 
+}//namespace text
 }//namespace protocol
 }//namespace solid

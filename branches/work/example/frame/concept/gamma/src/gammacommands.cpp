@@ -8,7 +8,7 @@
 
 #include "utility/iostream.hpp"
 
-#include "protocol/namematcher.hpp"
+#include "protocol/text/namematcher.hpp"
 #include "serialization/binary.hpp"
 
 #include "frame/ipc/ipcservice.hpp"
@@ -56,7 +56,7 @@ struct Cmd{
 	{"open", Cmd::OpenCmd},
 	{NULL,Cmd::CmdCount},
 };
-static const protocol::NameMatcher cmdm(cmds);
+static const protocol::text::NameMatcher cmdm(cmds);
 //---------------------------------------------------------------
 /*
 	The creator method called by frame::Reader::fetchKey when the 
@@ -100,22 +100,22 @@ int Basic::execute(const uint _sid){
 	return BAD;
 }
 int Basic::execNoop(const uint _sid){
-	Connection::the().socketData(_sid).w.push(&Writer::putStatus, protocol::Parameter(StrDef(" OK Done NOOP@")));
+	Connection::the().socketData(_sid).w.push(&Writer::putStatus, protocol::text::Parameter(StrDef(" OK Done NOOP@")));
 	return OK;
 }
 int Basic::execLogout(const uint _sid){
 	Connection	&rc(Connection::the());
 	SocketData	&rsd(rc.socketData(_sid));
-	rsd.w.push(&Writer::returnValue<true>, protocol::Parameter(Writer::Bad));
-	rsd.w.push(&Writer::putStatus, protocol::Parameter(StrDef(" OK Done LOGOUT@")));
-	rsd.w.push(&Writer::putAtom, protocol::Parameter(StrDef("* Alpha connection closing\r\n")));
+	rsd.w.push(&Writer::returnValue<true>, protocol::text::Parameter(Writer::Bad));
+	rsd.w.push(&Writer::putStatus, protocol::text::Parameter(StrDef(" OK Done LOGOUT@")));
+	rsd.w.push(&Writer::putAtom, protocol::text::Parameter(StrDef("* Alpha connection closing\r\n")));
 	return NOK;
 }
 int Basic::execCapability(const uint _sid){
 	Connection	&rc(Connection::the());
 	SocketData	&rsd(rc.socketData(_sid));
-	rsd.w.push(&Writer::putStatus, protocol::Parameter(StrDef(" OK Done CAPABILITY@")));
-	rsd.w.push(&Writer::putAtom, protocol::Parameter(StrDef("* CAPABILITIES noop logout login\r\n")));
+	rsd.w.push(&Writer::putStatus, protocol::text::Parameter(StrDef(" OK Done CAPABILITY@")));
+	rsd.w.push(&Writer::putAtom, protocol::text::Parameter(StrDef("* CAPABILITIES noop logout login\r\n")));
 	return OK;
 }
 //---------------------------------------------------------------
@@ -128,15 +128,15 @@ Login::~Login(){
 void Login::initReader(Reader &_rr){
 	typedef CharFilter<' '>				SpaceFilterT;
 	typedef NotFilter<SpaceFilterT> 	NotSpaceFilterT;
-	_rr.push(&Reader::fetchAString, protocol::Parameter(&ctx));
+	_rr.push(&Reader::fetchAString, protocol::text::Parameter(&ctx));
 	_rr.push(&Reader::dropChar);
-	_rr.push(&Reader::checkIfCharThenPop<NotSpaceFilterT>, protocol::Parameter(2));
-	_rr.push(&Reader::manage, protocol::Parameter(Reader::ResetLogging));
-	_rr.push(&Reader::fetchAString, protocol::Parameter(&pass));
-	_rr.push(&Reader::manage, protocol::Parameter(Reader::ClearLogging));
-	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
-	_rr.push(&Reader::fetchAString, protocol::Parameter(&user));
-	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
+	_rr.push(&Reader::checkIfCharThenPop<NotSpaceFilterT>, protocol::text::Parameter(2));
+	_rr.push(&Reader::manage, protocol::text::Parameter(Reader::ResetLogging));
+	_rr.push(&Reader::fetchAString, protocol::text::Parameter(&pass));
+	_rr.push(&Reader::manage, protocol::text::Parameter(Reader::ClearLogging));
+	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
+	_rr.push(&Reader::fetchAString, protocol::text::Parameter(&user));
+	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
 }
 int Login::execute(const uint _sid){
 	Connection	&rc(Connection::the());
@@ -144,16 +144,16 @@ int Login::execute(const uint _sid){
 		ctx += " OK [";
 		rc.appendContextString(ctx);
 		ctx += "] Done LOGIN@";
-		Connection::the().socketData(_sid).w.push(&Writer::putStatus, protocol::Parameter((void*)ctx.data(), ctx.size()));
+		Connection::the().socketData(_sid).w.push(&Writer::putStatus, protocol::text::Parameter((void*)ctx.data(), ctx.size()));
 	}else{
 		SocketData	&rsd(rc.socketData(_sid));
-		rsd.w.push(&Writer::returnValue<false>, protocol::Parameter(Writer::Leave));
+		rsd.w.push(&Writer::returnValue<false>, protocol::text::Parameter(Writer::Leave));
 // 		ctx += " OK [";
 // 		rc.appendContextString(ctx);
 // 		ctx += "] Done LOGIN2@";
-// 		Connection::the().socketData(_sid).w.push(&Writer::putStatus, protocol::Parameter((void*)ctx.data(), ctx.size()));
+// 		Connection::the().socketData(_sid).w.push(&Writer::putStatus, protocol::text::Parameter((void*)ctx.data(), ctx.size()));
 		//first return unregister
-		//rsd.w.push(&Writer::returnValue, protocol::Parameter(Writer::Unregister));
+		//rsd.w.push(&Writer::returnValue, protocol::text::Parameter(Writer::Unregister));
 	}
 	return OK;
 }
@@ -178,27 +178,27 @@ Open::~Open(){
 	rc.deleteRequestId(reqid);
 }
 void Open::initReader(Reader &_rr){
-	_rr.push(&Reader::fetchAString, protocol::Parameter(&flags));
-	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
-	_rr.push(&Reader::fetchAString, protocol::Parameter(&path));
-	_rr.push(&Reader::checkChar, protocol::Parameter(' '));
+	_rr.push(&Reader::fetchAString, protocol::text::Parameter(&flags));
+	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
+	_rr.push(&Reader::fetchAString, protocol::text::Parameter(&path));
+	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
 }
 int Open::execute(const uint _sid){
 	Connection	&rc(Connection::the());
 	SocketData	&rsd(rc.socketData(_sid));
 	
-	protocol::Parameter &rp(rsd.w.push(&Writer::putStatus));
+	protocol::text::Parameter &rp(rsd.w.push(&Writer::putStatus));
 	pp = &rp;
 	
 	if(flags.empty() || (tolower(flags[0]) != 'r')){
-		rp =  protocol::Parameter(StrDef(" NO Fail [\"Only READ is allowed for now\"] OPEN@"));
+		rp =  protocol::text::Parameter(StrDef(" NO Fail [\"Only READ is allowed for now\"] OPEN@"));
 		return OK;
 	}
 	state = InitLocal;
-	rsd.w.push(&Writer::reinit<Open>, protocol::Parameter(this));
+	rsd.w.push(&Writer::reinit<Open>, protocol::text::Parameter(this));
 	return OK;
 }
-int Open::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
+int Open::reinitWriter(Writer &_rw, protocol::text::Parameter &_rp){
 	switch(state){
 		case InitLocal:
 			return doInitLocal(_rw.socketId());
@@ -207,7 +207,7 @@ int Open::reinitWriter(Writer &_rw, protocol::Parameter &_rp){
 		case WaitLocal:
 			return Writer::No;
 		case SendError:
-			*pp = protocol::Parameter(StrDef(" NO Fail [\"Unable to open file\"] OPEN@"));
+			*pp = protocol::text::Parameter(StrDef(" NO Fail [\"Unable to open file\"] OPEN@"));
 			return Writer::Ok;
 	}
 	cassert(false);
@@ -232,7 +232,7 @@ int Open::doInitLocal(const uint _sid){
 	int rv = Manager::the().fileManager().stream(isp, reqid, path.c_str());
 	switch(rv){
 		case BAD: 
-			*pp = protocol::Parameter(StrDef(" NO Fail [\"Unable to open file\"] OPEN@"));
+			*pp = protocol::text::Parameter(StrDef(" NO Fail [\"Unable to open file\"] OPEN@"));
 			return Writer::Ok;
 		case OK: 
 			state = DoneLocal;

@@ -19,7 +19,7 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "protocol/namematcher.hpp"
+#include "protocol/text/namematcher.hpp"
 #include <map>
 #include <cstring>
 //#include <tr1/unordered_map>
@@ -29,6 +29,7 @@ using namespace std;
 
 namespace solid{
 namespace protocol{
+namespace text{
 
 struct StrCmp{
 	bool operator()(const char *const &_s1, const char *const &_s2)const{
@@ -60,7 +61,7 @@ void NameMatcher::push(const char *_name){
 	cassert(r.second);
 }
 
-
+}//namespace text
 }//namespace protocol
 }//namespace solid
 

@@ -19,12 +19,12 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef SOLID_PROTOCOL_WRITER_HPP
-#define SOLID_PROTOCOL_WRITER_HPP
+#ifndef SOLID_PROTOCOL_TEXT_WRITER_HPP
+#define SOLID_PROTOCOL_TEXT_WRITER_HPP
 
-#include "protocol/parameter.hpp"
-#include "protocol/logger.hpp"
-#include "protocol/buffer.hpp"
+#include "protocol/text/parameter.hpp"
+#include "protocol/text/logger.hpp"
+#include "protocol/text/buffer.hpp"
 #include "utility/stack.hpp"
 #include "utility/holder.hpp"
 #include <string>
@@ -32,6 +32,7 @@
 namespace solid{
 typedef std::string String;
 namespace protocol{
+namespace text{
 //! A nonblocking buffer oriented (not line oriented) protocol response builder
 /*!
 	Here are some characteristics of the writer:<br>
@@ -255,6 +256,8 @@ inline const Buffer& Writer::buffer()const{
 	return *bh;
 }
 
+
+}//namespace text
 }//namespace protocol
 }//namespace solid
 
