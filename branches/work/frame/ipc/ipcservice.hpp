@@ -184,13 +184,14 @@ struct Configuration{
 		uint32				maxcnt;//TODO: move to parent
 	};
 	struct Node{
-		Node(): sescnt(1024), sockcnt(256), maxcnt(2){}
+		Node(): sescnt(1024), sockcnt(256), maxcnt(2), timeout(0){}
 		bool operator==(const Node &_rnod)const{
-			return sescnt == _rnod.sescnt && maxcnt == _rnod.maxcnt && sockcnt == _rnod.sockcnt;
+			return sescnt == _rnod.sescnt && maxcnt == _rnod.maxcnt && sockcnt == _rnod.sockcnt && timeout == _rnod.timeout;
 		}
 		uint32	sescnt;
 		uint32	sockcnt;
 		uint32	maxcnt;
+		uint32	timeout;//zero means it will be computed based on session keepalive values
 	};
 	struct Session{
 		Session(
@@ -207,14 +208,18 @@ struct Configuration{
 		maxsendbuffercount(4),
 		maxrecvnoupdatecount(2),
 		maxmessagebuffercount(8),
-		maxsendmessagequeuesize(32)
+		maxsendmessagequeuesize(32),
+		connectretransmitcount(8),
+		dataretransmitcount(8)
 		{}
 		bool operator==(const Session &_rses)const{
 			return responsekeepalive == _rses.responsekeepalive &&
 				keepalive == _rses.keepalive && maxrecvnoupdatecount == _rses.maxrecvnoupdatecount &&
 				maxsendbuffercount == _rses.maxsendbuffercount &&
 				maxmessagebuffercount == _rses.maxmessagebuffercount &&
-				maxsendmessagequeuesize == _rses.maxsendmessagequeuesize;
+				maxsendmessagequeuesize == _rses.maxsendmessagequeuesize &&
+				connectretransmitcount == _rses.connectretransmitcount &&
+				dataretransmitcount == _rses.dataretransmitcount;
 		}
 		uint32		responsekeepalive;
 		uint32		keepalive;
@@ -222,6 +227,8 @@ struct Configuration{
 		uint32		maxrecvnoupdatecount;// max number of buffers received, without sending update
 		uint32		maxmessagebuffercount;//continuous buffers sent for a message
 		uint32		maxsendmessagequeuesize;//how many messages are sent in parallel
+		uint32		connectretransmitcount;
+		uint32		dataretransmitcount;
 	};
 	
 	Configuration(

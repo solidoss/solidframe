@@ -26,15 +26,18 @@
 #include "frame/ipc/ipcconnectionuid.hpp"
 
 namespace solid{
+
+class SocketAddress;
+
 namespace frame{
 namespace ipc{
+
+struct ConnectData;
 
 class Service;
 
 class Node: public Dynamic<Node, frame::aio::MultiObject>{
 public:
-	typedef Service							ServiceT;
-	
 	Node(
 		const SocketDevice &_rsd,
 		Service &_rservice,
@@ -42,6 +45,16 @@ public:
 	);
 	~Node();
 	int execute(ulong _sig, TimeSpec &_tout);
+	
+	void pushSession(const SocketAddress &_rsa, const ConnectData &_rconndata);
+private:
+	void doInsertNewSessions();
+	int doReceiveDatagramBuffers(uint _atmost, const ulong _sig);
+	void doDispatchReceivedDatagramBuffer(
+		char *_pbuf,
+		const uint32 _bufsz,
+		const SocketAddress &_rsap
+	);
 private:
 	struct Data;
 	Data &d;

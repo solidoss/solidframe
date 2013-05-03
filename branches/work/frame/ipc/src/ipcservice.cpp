@@ -153,6 +153,7 @@ struct Service::Data{
 	uint32						nodecrt;
 	int							baseport;
 	uint32						crtgwidx;
+	uint32						nodetimeout;
 	SocketAddress				firstaddr;
 	TalkerStubVectorT			tkrvec;
 	NodeStubVectorT				nodevec;
@@ -170,7 +171,7 @@ Service::Data::Data(
 	const DynamicPointer<Controller> &_rctrlptr
 ):
 	ctrlptr(_rctrlptr),
-	tkrcrt(0), nodecrt(0), baseport(-1), crtgwidx(0)
+	tkrcrt(0), nodecrt(0), baseport(-1), crtgwidx(0), nodetimeout(0)
 {
 	timestamp.currentRealTime();
 }
@@ -245,7 +246,14 @@ int Service::reconfigure(const Configuration &_rcfg){
 		}
 		
 		d.baseport = sa.port();
-		
+		if(configuration().node.timeout){
+			d.nodetimeout = configuration().node.timeout;
+		}else{
+			const uint32 dataresendcnt = configuration().session.dataretransmitcount;
+			const uint32 connectresendcnt = configuration().session.connectretransmitcount;
+			d.nodetimeout = Session::computeResendTime(dataresendcnt) + Session::computeResendTime(connectresendcnt);
+			d.nodetimeout *= 2;//we need to be sure that the keepalive on note 
+		}
 		//Locker<Mutex>	lock(serviceMutex());
 		cassert(!d.tkrvec.size());//only the first tkr must be inserted from outside
 		Talker			*ptkr(new Talker(sd, *this, 0));
@@ -872,9 +880,39 @@ int Service::doAcceptRelaySession(const SocketAddress &_rsa, const ConnectData &
 }
 //---------------------------------------------------------------------
 int Service::doAcceptGatewaySession(const SocketAddress &_rsa, const ConnectData &_rconndata){
-	Locker<Mutex>				lock(mutex());
-	SocketAddressInet4			inaddr(_rsa);
-	return BAD;
+	Locker<Mutex>	lock(mutex());
+	
+	int				nodeidx(allocateNodeForSession());
+	IndexT			nodefullid;
+	uint32			nodeuid;
+	
+	if(nodeidx >= 0){
+		//the node exists
+		nodefullid = d.nodevec[nodeidx].uid.first;
+		nodeuid = d.nodevec[nodeidx].uid.second;
+	}else{
+		//create new node
+		nodeidx = createNode(nodefullid, nodeuid);
+		if(nodeidx < 0){
+			nodeidx = allocateNodeForSession(true/*force*/);
+		}
+		nodefullid = d.nodevec[nodeidx].uid.first;
+		nodeuid = d.nodevec[nodeidx].uid.second;
+	}
+	
+	Locker<Mutex>	lock2(this->mutex(nodefullid));
+	Node			*pnode(static_cast<Node*>(this->object(nodefullid)));
+	
+	cassert(pnode);
+	
+	vdbgx(Debug::ipc, "");
+	
+	pnode->pushSession(_rsa, _rconndata);
+	
+	if(pnode->notify(frame::S_RAISE)){
+		manager().raise(*pnode);
+	}
+	return OK;
 }
 //---------------------------------------------------------------------
 void Service::connectSession(const SocketAddressInet4 &_raddr){

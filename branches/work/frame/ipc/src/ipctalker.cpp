@@ -285,7 +285,7 @@ public:
 	~Data();
 public:
 	Service					&rservice;
-	uint16					tkrid;
+	const uint16			tkrid;
 	RecvBufferVectorT		receivedbufvec;
 	char					*pendingreadbuffer;
 	MessageQueueT			msgq;
@@ -346,7 +346,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 	idbgx(Debug::ipc, "this = "<<(void*)this<<" &d = "<<(void*)&d);
 	{
 		const ulong		sm = grabSignalMask();
-		if(sm || d.closingsessionvec.size()){
+		if(sm/* || d.closingsessionvec.size()*/){
 			if(sm & frame::S_KILL){
 				idbgx(Debug::ipc, "talker - dying");
 				return BAD;

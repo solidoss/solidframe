@@ -68,6 +68,8 @@ public:
 		const SocketAddress &_rfromsa
 	);
 	
+	static uint32 computeResendTime(const size_t _cnt);
+	
 	Session(
 		Service &_rsvc,
 		const SocketAddressInet4 &_raddr

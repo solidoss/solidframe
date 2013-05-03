@@ -114,7 +114,7 @@ public:
 		const TimeSpec	&crttime;
 		
 	};
-	typedef Service							ServiceT;
+	//typedef Service							ServiceT;
 	
 	Talker(const SocketDevice &_rsd, Service &_rservice, uint16 _id);
 	~Talker();

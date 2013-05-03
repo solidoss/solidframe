@@ -56,17 +56,15 @@ namespace{
 
 struct StaticData{
 	enum{
-		DataRetransmitCount = 8,
-		ConnectRetransmitCount = 16,
-		//StartRetransmitTimeout = 100
+		MaxRetransmitCount = 8,
 		RefreshIndex = (1 << 7) - 1
 	};
 	StaticData();
-	static StaticData& instance();
-	ulong retransmitTimeout(uint _pos);
+	static StaticData const& the();
+	uint32 retransmitTimeout(const size_t _pos)const;
 private:
-	typedef std::vector<ulong> ULongVectorT;
-	ULongVectorT	toutvec;
+	typedef std::vector<uint32>	UInt32VectorT;
+	UInt32VectorT	toutvec;
 };
 
 
@@ -852,9 +850,9 @@ inline uint32 Session::Data::computeRetransmitTimeout(const uint32 _retrid, cons
 	}
 	if(_retrid > retansmittimepos){
 		retansmittimepos = _retrid;
-		return StaticData::instance().retransmitTimeout(retansmittimepos);
+		return StaticData::the().retransmitTimeout(retansmittimepos);
 	}else{
-		return StaticData::instance().retransmitTimeout(retansmittimepos + _retrid);
+		return StaticData::the().retransmitTimeout(retansmittimepos + _retrid);
 	}
 }
 //----------------------------------------------------------------------
@@ -1093,6 +1091,14 @@ bool Session::Data::moveToNextSendMessage(){
 	
 	vdbgx(Debug::ipc, "ConnectData: flags = "<<_rcd.flags<<" baseport = "<<_rcd.baseport<<" ts_s = "<<_rcd.timestamp_s<<" ts_n = "<<_rcd.timestamp_n);
 	return OK;
+}
+//---------------------------------------------------------------------
+/*static*/ uint32 Session::computeResendTime(const size_t _cnt){
+	uint32 rv = 0;
+	for(size_t i = 0; i < _cnt; ++i){
+		rv += StaticData::the().retransmitTimeout(i);
+	}
+	return rv;
 }
 //---------------------------------------------------------------------
 bool Session::isRelayType()const{
@@ -1531,9 +1537,9 @@ bool Session::executeTimeout(
 	
 	COLLECT_DATA_1(d.statistics.retransmitId, rsbd.buffer.resend());
 	
-	if(rsbd.buffer.resend() > StaticData::DataRetransmitCount){
+	if(rsbd.buffer.resend() > _rstub.service().configuration().session.dataretransmitcount){
 		if(rsbd.buffer.type() == Buffer::ConnectType){
-			if(rsbd.buffer.resend() > StaticData::ConnectRetransmitCount){//too many resends for connect type
+			if(rsbd.buffer.resend() > _rstub.service().configuration().session.connectretransmitcount){//too many resends for connect type
 				vdbgx(Debug::ipc, "preparing to disconnect process");
 				cassert(d.state != Data::Disconnecting);
 				d.state = Data::Disconnecting;
@@ -2703,19 +2709,19 @@ bool Session::pushReceivedErrorBuffer(
 //======================================================================
 namespace{
 #ifdef HAS_SAFE_STATIC
-/*static*/ StaticData& StaticData::instance(){
-	static StaticData sd;
+/*static*/ StaticData const& StaticData::the(){
+	static const StaticData sd;
 	return sd;
 }
 #else
 StaticData& static_data_instance(){
-	static StaticData sd;
+	static const StaticData sd;
 	return sd;
 }
 void once_static_data(){
 	static_data_instance();
 }
-/*static*/ StaticData& StaticData::instance(){
+/*static*/ StaticData const& StaticData::the(){
 	static boost::once_flag once = BOOST_ONCE_INIT;
 	boost::call_once(&once_static_data, once);
 	return static_data_instance();
@@ -2723,28 +2729,28 @@ void once_static_data(){
 #endif
 //----------------------------------------------------------------------
 StaticData::StaticData(){
-	const uint datsz = StaticData::DataRetransmitCount;
-	const uint consz = StaticData::ConnectRetransmitCount;
-	const uint sz = (datsz < consz ? consz + 1 : datsz + 1) * 2;
-	
-	toutvec.reserve(sz);
-	toutvec.resize(sz);
-	toutvec[0] = 200;
-	toutvec[1] = 400;
-	toutvec[2] = 800;
-	toutvec[3] = 1200;
-	toutvec[4] = 1600;
-	toutvec[5] = 2000;
-	cassert(sz >= 5);
-	for(uint i = 6; i < sz; ++i){
-		toutvec[i] = 2000;
-	}
+	toutvec.push_back(  50);
+	toutvec.push_back(  50);
+	toutvec.push_back( 100);
+	toutvec.push_back( 100);
+	toutvec.push_back( 200);
+	toutvec.push_back( 200);
+	toutvec.push_back( 400);
+	toutvec.push_back( 400);
+	toutvec.push_back( 600);
+	toutvec.push_back( 600);
+	toutvec.push_back( 800);
+	toutvec.push_back( 800);
+	toutvec.push_back( 1000);
 }
 
 //----------------------------------------------------------------------
-ulong StaticData::retransmitTimeout(uint _pos){
-	cassert(_pos < toutvec.size());
-	return toutvec[_pos];
+uint32 StaticData::retransmitTimeout(const size_t _pos)const{
+	if(_pos < toutvec.size()){
+		return toutvec[_pos];
+	}else{
+		return toutvec.back();
+	}
 }
 }//namespace
 
