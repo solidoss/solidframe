@@ -56,8 +56,7 @@ namespace{
 
 struct StaticData{
 	enum{
-		MaxRetransmitCount = 8,
-		RefreshIndex = (1 << 7) - 1
+		RefreshIndexMask = (1 << 7) - 1
 	};
 	StaticData();
 	static StaticData const& the();
@@ -332,6 +331,10 @@ public:
 	Session::DataRelayed44& relayed44();
 	Session::DataRelayed44 const& relayed44()const;
 	
+	bool isRelayType()const{
+		return type == Relayed44;
+	}
+	
 	bool moveToNextOutOfOrderBuffer(Buffer &_rb);
 	bool keepOutOfOrderBuffer(Buffer &_rb);
 	bool mustSendUpdates();
@@ -369,6 +372,15 @@ public:
 		const SerializationTypeIdT _tid
 	);
 	void resetKeepAlive();
+	//because connect can take longer than a normal opperation
+	//we need a slow start especially for relay sessions
+	void resetRetransmitPosition(){
+		if(isRelayType()){
+			retransmittimepos = 8;
+		}else{
+			retransmittimepos = 3;
+		}
+	}
 	//returns false if there is no other message but the current one
 	bool moveToNextSendMessage();
 public:
@@ -379,7 +391,7 @@ public:
 	
 	uint32					rcvexpectedid;
 	uint32					sentmsgwaitresponse;
-	uint32					retansmittimepos;
+	uint32					retransmittimepos;
 	uint32					sendmsgid;
 	uint32					sendid;
 	//uint32					keepalivetimeout;
@@ -539,11 +551,12 @@ Session::Data::Data(
 	uint16 _baseport
 ):	type(_type), state(_state), sendpendingcount(0),
 	outoforderbufcount(0), rcvexpectedid(2), sentmsgwaitresponse(0),
-	retansmittimepos(0), sendmsgid(0), 
+	retransmittimepos(0), sendmsgid(0), 
 	sendid(1)/*, keepalivetimeout(_keepalivetout)*/,
 	currentsendsyncid(-1), currentbuffermsgcount(_rsvc.configuration().session.maxmessagebuffercount), baseport(_baseport)
 {
 	outoforderbufvec.resize(MaxOutOfOrder);
+	resetRetransmitPosition();
 	//first buffer is for keepalive
 	sendbuffervec.resize(_rsvc.configuration().session.maxsendbuffercount + 1);
 	for(uint32 i(_rsvc.configuration().session.maxsendbuffercount); i >= 1; --i){
@@ -844,21 +857,27 @@ void Session::Data::clearSentBuffer(const uint32 _idx){
 }
 //----------------------------------------------------------------------
 inline uint32 Session::Data::computeRetransmitTimeout(const uint32 _retrid, const uint32 _bufid){
-	if(!(_bufid & StaticData::RefreshIndex)){
-		//recalibrate the retansmittimepos
-		retansmittimepos = 0;
+	if(!(_bufid & StaticData::RefreshIndexMask)){
+		//recalibrate the retransmittimepos
+		retransmittimepos = 0;
 	}
-	if(_retrid > retansmittimepos){
-		retansmittimepos = _retrid;
-		return StaticData::the().retransmitTimeout(retansmittimepos);
-	}else{
-		return StaticData::the().retransmitTimeout(retansmittimepos + _retrid);
+	if(_retrid > retransmittimepos){
+		retransmittimepos = _retrid;
 	}
+	return StaticData::the().retransmitTimeout(retransmittimepos + _retrid);
 }
 //----------------------------------------------------------------------
 inline uint32 Session::Data::currentKeepAlive(const Talker::TalkerStub &_rstub)const{
-	const uint32	seskeepalive = _rstub.service().configuration().session.keepalive;
-	const uint32	reskeepalive = _rstub.service().configuration().session.responsekeepalive;
+	uint32	seskeepalive;
+	uint32	reskeepalive;
+	
+	if(!isRelayType()){
+		seskeepalive = _rstub.service().configuration().session.keepalive;
+		reskeepalive = _rstub.service().configuration().session.responsekeepalive;
+	}else{
+		seskeepalive = _rstub.service().configuration().session.relaykeepalive;
+		reskeepalive = _rstub.service().configuration().session.relayresponsekeepalive;
+	}
 	
 	uint32			keepalive(0);
 	
@@ -1102,7 +1121,7 @@ bool Session::Data::moveToNextSendMessage(){
 }
 //---------------------------------------------------------------------
 bool Session::isRelayType()const{
-	return d.type == Data::Relayed44;
+	return d.isRelayType();
 }
 //---------------------------------------------------------------------
 Session::Session(
@@ -1279,6 +1298,8 @@ void Session::reconnect(Session *_pses){
 	}else{
 		d.state = Data::Connecting;
 	}
+	
+	d.resetRetransmitPosition();
 	
 	//clear the receive queue
 	while(d.rcvdmsgq.size()){
@@ -2730,18 +2751,16 @@ void once_static_data(){
 //----------------------------------------------------------------------
 StaticData::StaticData(){
 	toutvec.push_back(  50);
-	toutvec.push_back(  50);
-	toutvec.push_back( 100);
 	toutvec.push_back( 100);
 	toutvec.push_back( 200);
-	toutvec.push_back( 200);
-	toutvec.push_back( 400);
 	toutvec.push_back( 400);
 	toutvec.push_back( 600);
-	toutvec.push_back( 600);
-	toutvec.push_back( 800);
 	toutvec.push_back( 800);
 	toutvec.push_back( 1000);
+	toutvec.push_back( 1500);
+	toutvec.push_back( 2000);
+	toutvec.push_back( 3000);
+	toutvec.push_back( 4000);
 }
 
 //----------------------------------------------------------------------

@@ -196,7 +196,9 @@ struct Configuration{
 	struct Session{
 		Session(
 			const uint32 _reskeepalive = 0,
-			const uint32 _seskeepalive = 60 * 1000
+			const uint32 _seskeepalive = 60 * 1000,
+			const uint32 _relayreskeepalive = 0,
+			const uint32 _relayseskeepalive = 5 * 60 * 1000
 		):	responsekeepalive(
 			_reskeepalive < _seskeepalive 
 			? 
@@ -205,6 +207,14 @@ struct Configuration{
 			(_seskeepalive == 0 ? _reskeepalive : _seskeepalive)
 		),
 		keepalive(_seskeepalive),
+		relayresponsekeepalive(
+			_relayreskeepalive < _relayseskeepalive 
+			? 
+			(_relayreskeepalive == 0 ? _relayseskeepalive : _relayreskeepalive )
+			: 
+			(_relayseskeepalive == 0 ? _relayreskeepalive : _relayseskeepalive)
+		),
+		relaykeepalive(_relayseskeepalive),
 		maxsendbuffercount(4),
 		maxrecvnoupdatecount(2),
 		maxmessagebuffercount(8),
@@ -215,6 +225,8 @@ struct Configuration{
 		bool operator==(const Session &_rses)const{
 			return responsekeepalive == _rses.responsekeepalive &&
 				keepalive == _rses.keepalive && maxrecvnoupdatecount == _rses.maxrecvnoupdatecount &&
+				relayresponsekeepalive == _rses.relayresponsekeepalive &&
+				relaykeepalive == _rses.relaykeepalive &&
 				maxsendbuffercount == _rses.maxsendbuffercount &&
 				maxmessagebuffercount == _rses.maxmessagebuffercount &&
 				maxsendmessagequeuesize == _rses.maxsendmessagequeuesize &&
@@ -223,6 +235,8 @@ struct Configuration{
 		}
 		uint32		responsekeepalive;
 		uint32		keepalive;
+		uint32		relayresponsekeepalive;
+		uint32		relaykeepalive;
 		uint32		maxsendbuffercount;
 		uint32		maxrecvnoupdatecount;// max number of buffers received, without sending update
 		uint32		maxmessagebuffercount;//continuous buffers sent for a message
