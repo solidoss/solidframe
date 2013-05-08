@@ -61,9 +61,17 @@ struct StaticData{
 	StaticData();
 	static StaticData const& the();
 	uint32 retransmitTimeout(const size_t _pos)const;
+	size_t connectRetransmitPosition()const{
+		return connectretransmitpos;
+	}
+	size_t connectRetransmitPositionRelay()const{
+		return connectretransmitposrelay;
+	}
 private:
 	typedef std::vector<uint32>	UInt32VectorT;
 	UInt32VectorT	toutvec;
+	size_t			connectretransmitpos;
+	size_t			connectretransmitposrelay;
 };
 
 
@@ -376,9 +384,9 @@ public:
 	//we need a slow start especially for relay sessions
 	void resetRetransmitPosition(){
 		if(isRelayType()){
-			retransmittimepos = 8;
+			retransmittimepos = StaticData::the().connectRetransmitPositionRelay();
 		}else{
-			retransmittimepos = 3;
+			retransmittimepos = StaticData::the().connectRetransmitPosition();
 		}
 	}
 	//returns false if there is no other message but the current one
