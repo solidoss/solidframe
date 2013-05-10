@@ -67,6 +67,14 @@ public:
 		ConnectData &_rconndata,
 		const SocketAddress &_rfromsa
 	);
+	static int fillAcceptBuffer(
+		Buffer &_rbuf,
+		const AcceptData &_raccdata
+	);
+	static int fillConnectBuffer(
+		Buffer &_rbuf,
+		const ConnectData &_rconndata
+	);
 	
 	static uint32 computeResendTime(const size_t _cnt);
 	

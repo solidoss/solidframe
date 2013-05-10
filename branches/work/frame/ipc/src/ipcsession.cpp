@@ -1050,13 +1050,7 @@ bool Session::Data::moveToNextSendMessage(){
 	pos = serialization::binary::load(pos, _raccdata.baseport);
 	pos = serialization::binary::load(pos, _raccdata.timestamp_s);
 	pos = serialization::binary::load(pos, _raccdata.timestamp_n);
-	
-	if(_rbuf.isRelay()){
-		if(_rbuf.dataSize() != (AcceptData::BaseSize + sizeof(uint32))){
-			return BAD;
-		}
-		pos = serialization::binary::load(pos, _raccdata.relayid);
-	}
+	pos = serialization::binary::load(pos, _raccdata.relayid);
 	
 	vdbgx(Debug::ipc, "AcceptData: flags = "<<_raccdata.flags<<" baseport = "<<_raccdata.baseport<<" ts_s = "<<_raccdata.timestamp_s<<" ts_n = "<<_raccdata.timestamp_n);
 	return OK;
@@ -1117,6 +1111,63 @@ bool Session::Data::moveToNextSendMessage(){
 	}
 	
 	vdbgx(Debug::ipc, "ConnectData: flags = "<<_rcd.flags<<" baseport = "<<_rcd.baseport<<" ts_s = "<<_rcd.timestamp_s<<" ts_n = "<<_rcd.timestamp_n);
+	return OK;
+}
+/*static*/ int Session::fillAcceptBuffer(
+	Buffer &_rbuf,
+	const AcceptData &_rad
+){
+	char 				*ppos = _rbuf.dataEnd();
+	
+	ppos = serialization::binary::store(ppos, _rad.flags);
+	ppos = serialization::binary::store(ppos, _rad.baseport);
+	ppos = serialization::binary::store(ppos, _rad.timestamp_s);
+	ppos = serialization::binary::store(ppos, _rad.timestamp_n);
+	ppos = serialization::binary::store(ppos, _rad.relayid);
+
+	_rbuf.dataSize(_rbuf.dataSize() + (ppos - _rbuf.dataEnd()));
+	return OK;
+}
+
+/*static*/ int Session::fillConnectBuffer(
+	Buffer &_rbuf,
+	const ConnectData &_rcd
+){
+	char	*ppos = _rbuf.dataEnd();
+	
+	ppos = serialization::binary::store(ppos, _rcd.s);
+	ppos = serialization::binary::store(ppos, _rcd.f);
+	ppos = serialization::binary::store(ppos, _rcd.i);
+	ppos = serialization::binary::store(ppos, _rcd.p);
+	ppos = serialization::binary::store(ppos, _rcd.c);
+	ppos = serialization::binary::store(ppos, _rcd.type);
+	ppos = serialization::binary::store(ppos, _rcd.version_major);
+	ppos = serialization::binary::store(ppos, _rcd.version_minor);
+	ppos = serialization::binary::store(ppos, _rcd.flags);
+	ppos = serialization::binary::store(ppos, _rcd.baseport);
+	ppos = serialization::binary::store(ppos, _rcd.timestamp_s);
+	ppos = serialization::binary::store(ppos, _rcd.timestamp_n);
+	
+	if(_rcd.type == ConnectData::Relay4Type){
+		Binary<4>	bin;
+		uint16		port;
+		
+		_rcd.receiveraddress.toBinary(bin, port);
+		
+		ppos = serialization::binary::store(ppos, _rcd.relayid);
+		ppos = serialization::binary::store(ppos, _rcd.receivernetworkid);
+		ppos = serialization::binary::store(ppos, bin);
+		ppos = serialization::binary::store(ppos, port);
+		
+		_rcd.senderaddress.toBinary(bin, port);
+		
+		ppos = serialization::binary::store(ppos, _rcd.sendernetworkid);
+		ppos = serialization::binary::store(ppos, bin);
+		ppos = serialization::binary::store(ppos, port);
+
+	}
+	
+	_rbuf.dataSize(_rbuf.dataSize() + (ppos - _rbuf.dataEnd()));
 	return OK;
 }
 //---------------------------------------------------------------------
@@ -2038,33 +2089,17 @@ int Session::doExecuteConnecting(Talker::TalkerStub &_rstub){
 	buf.id(d.sendid);
 	d.incrementSendId();
 	
-	
 	{
-		char 				*ppos = buf.dataEnd();
-		
-		ConnectData			cd;
+		ConnectData		cd;
 		
 		cd.type = ConnectData::BasicType;
 		cd.baseport = _rstub.basePort();
 		cd.timestamp_s = _rstub.service().timeStamp().seconds();
 		cd.timestamp_n = _rstub.service().timeStamp().nanoSeconds();
 		
-		ppos = serialization::binary::store(ppos, cd.s);
-		ppos = serialization::binary::store(ppos, cd.f);
-		ppos = serialization::binary::store(ppos, cd.i);
-		ppos = serialization::binary::store(ppos, cd.p);
-		ppos = serialization::binary::store(ppos, cd.c);
-		ppos = serialization::binary::store(ppos, cd.type);
-		ppos = serialization::binary::store(ppos, cd.version_major);
-		ppos = serialization::binary::store(ppos, cd.version_minor);
-		ppos = serialization::binary::store(ppos, cd.flags);
-		ppos = serialization::binary::store(ppos, cd.baseport);
-		ppos = serialization::binary::store(ppos, cd.timestamp_s);
-		ppos = serialization::binary::store(ppos, cd.timestamp_n);
-		
-		buf.dataSize(buf.dataSize() + (ppos - buf.dataEnd()));
+		fillConnectBuffer(buf, cd);
 	}
-		
+	
 	const uint32			bufidx(d.registerBuffer(buf));
 	Data::SendBufferData	&rsbd(d.sendbuffervec[bufidx]);
 	
@@ -2102,8 +2137,6 @@ int Session::doExecuteRelayConnecting(Talker::TalkerStub &_rstub){
 	
 	
 	{
-		char 				*ppos = buf.dataEnd();
-		
 		ConnectData			cd;
 		
 		cd.type = ConnectData::Relay4Type;
@@ -2114,40 +2147,10 @@ int Session::doExecuteRelayConnecting(Talker::TalkerStub &_rstub){
 		cd.sendernetworkid = _rstub.service().configuration().localnetid;
 		
 		cd.relayid = _rstub.relayId();
+		cd.receiveraddress = this->d.relayed44().relayaddr;
+		cd.senderaddress.address("0.0.0.0");
 		
-		
-		ppos = serialization::binary::store(ppos, cd.s);
-		ppos = serialization::binary::store(ppos, cd.f);
-		ppos = serialization::binary::store(ppos, cd.i);
-		ppos = serialization::binary::store(ppos, cd.p);
-		ppos = serialization::binary::store(ppos, cd.c);
-		ppos = serialization::binary::store(ppos, cd.type);
-		ppos = serialization::binary::store(ppos, cd.version_major);
-		ppos = serialization::binary::store(ppos, cd.version_minor);
-		ppos = serialization::binary::store(ppos, cd.flags);
-		ppos = serialization::binary::store(ppos, cd.baseport);
-		ppos = serialization::binary::store(ppos, cd.timestamp_s);
-		ppos = serialization::binary::store(ppos, cd.timestamp_n);
-		
-		Binary<4>	bin;
-		uint16		port;
-		
-		this->d.relayed44().relayaddr.toBinary(bin, port);
-		
-		ppos = serialization::binary::store(ppos, cd.relayid);
-		ppos = serialization::binary::store(ppos, cd.receivernetworkid);
-		ppos = serialization::binary::store(ppos, bin);
-		ppos = serialization::binary::store(ppos, port);
-		
-		SocketAddressInet4	sa;
-		sa.address("0.0.0.0");
-		sa.toBinary(bin, port);
-		
-		ppos = serialization::binary::store(ppos, cd.sendernetworkid);
-		ppos = serialization::binary::store(ppos, bin);
-		ppos = serialization::binary::store(ppos, port);
-		
-		buf.dataSize(buf.dataSize() + (ppos - buf.dataEnd()));
+		fillConnectBuffer(buf, cd);
 	}
 		
 	const uint32			bufidx(d.registerBuffer(buf));
@@ -2186,18 +2189,17 @@ int Session::doExecuteAccepting(Talker::TalkerStub &_rstub){
 	
 	
 	{
-		char 				*ppos = buf.dataEnd();
 		const ConnectData	&rcd = static_cast<ConnectDataMessage*>(d.msgq.front().msgptr.get())->data;
-		uint16				flags = 0;
-		uint16				baseport = _rstub.basePort();
+		AcceptData			ad;
 		
-		ppos = serialization::binary::store(ppos, flags);
-		ppos = serialization::binary::store(ppos, baseport);
-		ppos = serialization::binary::store(ppos, rcd.timestamp_s);
-		ppos = serialization::binary::store(ppos, rcd.timestamp_n);
-	
-		buf.dataSize(buf.dataSize() + (ppos - buf.dataEnd()));
+		ad.flags = 0;
+		ad.baseport = _rstub.basePort();
+		ad.relayid = 0;
+		ad.timestamp_s = rcd.timestamp_s;
+		ad.timestamp_n = rcd.timestamp_n;
 		
+		fillAcceptBuffer(buf, ad);
+
 		d.msgq.pop();//the connectdatamessage
 	}
 	
@@ -2245,25 +2247,20 @@ int Session::doExecuteRelayAccepting(Talker::TalkerStub &_rstub){
 	{
 		
 		const ConnectData	&rcd = static_cast<ConnectDataMessage*>(d.msgq.front().msgptr.get())->data;
-		uint16				flags = 0;
-		uint16				baseport = _rstub.basePort();
-		uint32				relayid = _rstub.relayId();
+		AcceptData			ad;
+		
+		ad.flags = 0;
+		ad.baseport = _rstub.basePort();
+		ad.relayid = _rstub.relayId();;
+		ad.timestamp_s = rcd.timestamp_s;
+		ad.timestamp_n = rcd.timestamp_n;
 		
 		d.relayed44().peerrelayid = rcd.relayid;
 		buf.relay(rcd.relayid);
 		
+		fillAcceptBuffer(buf, ad);
+		
 		vdbgx(Debug::ipc, "relayid "<<rcd.relayid<<" bufrelay "<<buf.relay());
-		
-		
-		char 				*ppos = buf.dataEnd();
-		
-		ppos = serialization::binary::store(ppos, flags);
-		ppos = serialization::binary::store(ppos, baseport);
-		ppos = serialization::binary::store(ppos, rcd.timestamp_s);
-		ppos = serialization::binary::store(ppos, rcd.timestamp_n);
-		ppos = serialization::binary::store(ppos, relayid);
-	
-		buf.dataSize(buf.dataSize() + (ppos - buf.dataEnd()));
 		
 		d.msgq.pop();//the connectdatamessage
 	}
