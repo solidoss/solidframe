@@ -43,7 +43,7 @@
 #include "ipcnode.hpp"
 #include "ipclistener.hpp"
 #include "ipcsession.hpp"
-#include "ipcbuffer.hpp"
+#include "ipcpacket.hpp"
 #include "ipcutility.hpp"
 
 #ifdef HAS_CPP11

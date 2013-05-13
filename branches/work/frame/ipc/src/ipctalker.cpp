@@ -41,7 +41,7 @@
 
 #include "ipctalker.hpp"
 #include "ipcsession.hpp"
-#include "ipcbuffer.hpp"
+#include "ipcpacket.hpp"
 
 #ifdef HAS_CPP11
 

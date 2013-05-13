@@ -1,6 +1,6 @@
-/* Implementation file ipcbuffer.cpp
+/* Implementation file ipcpacket.cpp
 	
-	Copyright 2012 Valentin Palade
+	Copyright 2012, 2013 Valentin Palade
 	vipalade@gmail.com
 
 	This file is part of SolidFrame framework.
@@ -19,7 +19,7 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "ipcbuffer.hpp"
+#include "ipcpacket.hpp"
 #include "frame/ipc/ipcservice.hpp"
 #include "system/specific.hpp"
 #include "system/exception.hpp"
@@ -34,18 +34,18 @@ namespace ipc{
 
 //---------------------------------------------------------
 #ifdef NINLINES
-#include "ipcbuffer.ipp"
+#include "ipcpacket.ipp"
 #endif
 //---------------------------------------------------------
-/*static*/ char* Buffer::allocate(){
+/*static*/ char* Packet::allocate(){
 	return Specific::popBuffer(Specific::capacityToIndex(Capacity));
 }
 
-/*static*/ void Buffer::deallocate(char *_buf){
-	Specific::pushBuffer(_buf, Specific::capacityToIndex(Capacity));
+/*static*/ void Packet::deallocate(char *_pb){
+	Specific::pushBuffer(_pb, Specific::capacityToIndex(Capacity));
 }
 //---------------------------------------------------------------------
-void Buffer::clear(){
+void Packet::clear(){
 	if(pb){
 		Specific::pushBuffer(pb, Specific::capacityToIndex(bc));
 		pb = NULL;
@@ -53,14 +53,14 @@ void Buffer::clear(){
 	}
 }
 //---------------------------------------------------------------------
-Buffer::~Buffer(){
+Packet::~Packet(){
 	clear();
 }
 //---------------------------------------------------------------------
-void Buffer::optimize(uint16 _cp){
+void Packet::optimize(uint16 _cp){
 	const uint32	bufsz(this->bufferSize());
 	const uint		id(Specific::sizeToIndex(bufsz));
-	const uint		mid(Specific::capacityToIndex(_cp ? _cp : Buffer::Capacity));
+	const uint		mid(Specific::capacityToIndex(_cp ? _cp : Packet::Capacity));
 	if(mid > id){
 		uint32 datasz = this->dataSize();//the size
 		
@@ -76,10 +76,10 @@ void Buffer::optimize(uint16 _cp){
 	}
 }
 
-bool Buffer::compress(Controller &_rctrl){
+bool Packet::compress(Controller &_rctrl){
 	const uint32 	updatesz = updateCount() * sizeof(uint32);
 	const uint32	headersize = headerSize() - updatesz;
-	BufferContext	bctx(headersize);
+	PacketContext	bctx(headersize);
 	int32			datasz(dataSize() + updatesz);
 	char			*pd(data() - updatesz);
 	
@@ -117,20 +117,20 @@ bool Buffer::compress(Controller &_rctrl){
 	return true;
 }
 
-bool Buffer::decompress(Controller &_rctrl){
+bool Packet::decompress(Controller &_rctrl){
 	if(!(flags() & CompressedFlag)){
 		return true;
 	}
 	const uint32 	updatesz = updateCount() * sizeof(uint32);
 	const uint32	headersize = headerSize() - updatesz;
-	BufferContext	bctx(headersize);
+	PacketContext	bctx(headersize);
 	uint32			datasz = dl + updatesz;
 	char			*pd = pb + headersize;
 	
 	uint32			tmpdatasz = datasz;
 	char			*tmppd(pd);
 	
-	vdbgx(Debug::ipc, "buffer before decompress id = "<<this->id()<<" dl = "<<this->dl<<" size = "<<bufferSize());
+	vdbgx(Debug::ipc, "packet before decompress id = "<<this->id()<<" dl = "<<this->dl<<" size = "<<bufferSize());
 	if(_rctrl.decompressBuffer(bctx, tmppd, tmpdatasz)){
 		if(bctx.reqbufid != (uint)-1){
 			if(tmppd == pd){
@@ -149,7 +149,7 @@ bool Buffer::decompress(Controller &_rctrl){
 		}
 		this->flags(this->flags() & (~CompressedFlag));
 		this->dl += (tmpdatasz - datasz);
-		vdbgx(Debug::ipc, "buffer success decompress id = "<<this->id()<<" dl = "<<this->dl<<" size = "<<bufferSize());
+		vdbgx(Debug::ipc, "packet success decompress id = "<<this->id()<<" dl = "<<this->dl<<" size = "<<bufferSize());
 	}else{
 		//decompression failed
 		if(bctx.reqbufid != (uint)-1){
@@ -159,13 +159,13 @@ bool Buffer::decompress(Controller &_rctrl){
 			tmppd -= bctx.offset;
 			Specific::pushBuffer(tmppd, bctx.reqbufid);
 		}
-		vdbgx(Debug::ipc, "buffer failed decompress id = "<<this->id()<<" dl = "<<this->dl<<" size = "<<bufferSize());
+		vdbgx(Debug::ipc, "packet failed decompress id = "<<this->id()<<" dl = "<<this->dl<<" size = "<<bufferSize());
 		return false;
 	}
 	return true;
 }
 
-bool Buffer::check()const{
+bool Packet::check()const{
 	if(this->pb){
 		if(headerSize() < sizeof(BaseSize)) return false;
 		if(headerSize() > Capacity) return false;
@@ -175,23 +175,23 @@ bool Buffer::check()const{
 }
 
 //---------------------------------------------------------------------
-std::ostream& operator<<(std::ostream &_ros, const Buffer &_rb){
-	_ros<<"BUFFER(";
+std::ostream& operator<<(std::ostream &_ros, const Packet &_rb){
+	_ros<<"PACKET(";
 	_ros<<"type = ";
 	switch(_rb.type()){
-		case Buffer::KeepAliveType: _ros<<"KeepAliveType";break;
-		case Buffer::DataType: _ros<<"DataType";break;
-		case Buffer::ConnectType: _ros<<"ConnectType";break;
-		case Buffer::AcceptType: _ros<<"AcceptType";break;
-		case Buffer::ErrorType: _ros<<"ErrorType";break;
-		case Buffer::Unknown: _ros<<"Unknown";break;
+		case Packet::KeepAliveType: _ros<<"KeepAliveType";break;
+		case Packet::DataType: _ros<<"DataType";break;
+		case Packet::ConnectType: _ros<<"ConnectType";break;
+		case Packet::AcceptType: _ros<<"AcceptType";break;
+		case Packet::ErrorType: _ros<<"ErrorType";break;
+		case Packet::Unknown: _ros<<"Unknown";break;
 		default: _ros<<"[INVALID TYPE]";
 	}
 	_ros<<" id = "<<_rb.id();
 	_ros<<" retransmit = "<<(int)_rb.resend();
 	_ros<<" flags = "<<(int)_rb.flags();
-	if(_rb.flags() & Buffer::RelayFlag){
-		_ros<<" relay = "<<_rb.relay()<<" relaysz = "<<_rb.relayBufferSize();
+	if(_rb.flags() & Packet::RelayFlag){
+		_ros<<" relay = "<<_rb.relay()<<" relaysz = "<<_rb.relayPacketSize();
 	}else{
 		_ros<<" no_relay";
 	}

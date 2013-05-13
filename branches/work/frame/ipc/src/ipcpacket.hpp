@@ -1,6 +1,6 @@
-/* Declarations file ipcbuffer.hpp
+/* Declarations file ipcpacket.hpp
 	
-	Copyright 2012 Valentin Palade 
+	Copyright 2012,2013 Valentin Palade 
 	vipalade@gmail.com
 
 	This file is part of SolidFrame framework.
@@ -19,15 +19,15 @@
 	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef SOLID_FRAME_IPC_BUFFER_HPP
-#define SOLID_FRAME_IPC_BUFFER_HPP
+#ifndef SOLID_FRAME_IPC_PACKET_HPP
+#define SOLID_FRAME_IPC_PACKET_HPP
 
 #include "system/cassert.hpp"
 #include "frame/ipc/ipcservice.hpp"
 #include "serialization/binarybasic.hpp"
 
-#ifndef UIPCBUFFERCAPACITY
-#define UIPCBUFFERCAPACITY 4096
+#ifndef UIPCPACKETCAPACITY
+#define UIPCPACKETCAPACITY 4096
 #endif
 
 namespace solid{
@@ -36,19 +36,19 @@ namespace ipc{
 
 struct Controller;
 
-struct BufferContext{
-	BufferContext(uint _offset):offset(_offset), reqbufid(-1){}
+struct PacketContext{
+	PacketContext(uint _offset):offset(_offset), reqbufid(-1){}
 	uint	offset;
 	uint	reqbufid;
 };
 
-struct Buffer{
+struct Packet{
 	enum{
-		Capacity = UIPCBUFFERCAPACITY,
+		Capacity = UIPCPACKETCAPACITY,
 		BaseSize = 8,
 		KeepAliveSize = 8,
-		LastBufferId = 0xffffffff - 32,
-		UpdateBufferId = 0xffffffff,//the id of a buffer containing only updates
+		LastPacketId = 0xffffffff - 32,
+		UpdatePacketId = 0xffffffff,//the id of a buffer containing only updates
 	};
 	enum Types{
 		KeepAliveType = 1,
@@ -71,16 +71,16 @@ struct Buffer{
 	};
 	
 	static char* allocate();
-	static void deallocate(char *_buf);
+	static void deallocate(char *_pb);
 	
-	Buffer(
+	Packet(
 		char *_pb = NULL,
 		uint16 _bc = 0,
 		uint16 _dl = 0
 	);
-	Buffer(const Buffer& _rbuf);
-	Buffer& operator=(const Buffer& _rbuf);
-	~Buffer();
+	Packet(const Packet& _rpkt);
+	Packet& operator=(const Packet& _rpkt);
+	~Packet();
 	
 	bool empty()const;
 	
@@ -136,8 +136,8 @@ struct Buffer{
 	uint32 relay()const;
 	void relay(const uint32 _id);
 	
-	uint16 relayBufferSize()const;
-	void relayBufferSizeStore();
+	uint16 relayPacketSize()const;
+	void relayPacketSizeStore();
 	
 	bool isRelay()const;
 	
@@ -157,10 +157,10 @@ private:
 };
 
 #ifndef NINLINES
-#include "ipcbuffer.ipp"
+#include "ipcpacket.ipp"
 #endif
 
-std::ostream& operator<<(std::ostream &_ros, const Buffer &_rb);
+std::ostream& operator<<(std::ostream &_ros, const Packet &_rp);
 
 }//namespace ipc
 }//namespace frame
