@@ -136,6 +136,9 @@ struct Buffer{
 	uint32 relay()const;
 	void relay(const uint32 _id);
 	
+	uint16 relayBufferSize()const;
+	void relayBufferSizeStore();
+	
 	bool isRelay()const;
 	
 	uint8 updateCount()const;

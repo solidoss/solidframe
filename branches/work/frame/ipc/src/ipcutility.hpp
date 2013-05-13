@@ -36,6 +36,10 @@ namespace ipc{
 
 typedef std::pair<const SocketAddressInet4&, uint16>	BaseAddress4T;
 typedef std::pair<const SocketAddressInet6&, uint16>	BaseAddress6T;
+
+typedef std::pair<const SocketAddressInet4&, uint32>	GatewayRelayAddress4T;
+typedef std::pair<const SocketAddressInet6&, uint32>	GatewayRelayAddress6T;
+
 typedef std::pair<BaseAddress4T, uint32>				RelayAddress4T;
 typedef std::pair<BaseAddress6T, uint32>				RelayAddress6T;
 
@@ -47,9 +51,17 @@ struct SocketAddressHash{
 	size_t operator()(BaseAddress4T const &_rsa)const{
 		return in_addr_hash(_rsa.first.address()) ^ _rsa.second;
 	}
+	size_t operator()(GatewayRelayAddress4T const &_rsa)const{
+		return in_addr_hash(_rsa.first.address()) ^ _rsa.second;
+	}
+	
+	size_t operator()(GatewayRelayAddress6T const &_rsa)const{
+		return in_addr_hash(_rsa.first.address()) ^ _rsa.second;
+	}
 	size_t operator()(BaseAddress6T const &_rsa)const{
 		return in_addr_hash(_rsa.first.address()) ^ _rsa.second;
 	}
+	
 	size_t operator()(RelayAddress4T const &_rsa)const{
 		return in_addr_hash(_rsa.first.first.address()) ^ _rsa.first.second ^ _rsa.second;
 	}
@@ -71,6 +83,14 @@ struct SocketAddressEqual{
 		_rsa1.second == _rsa2.second;
 	}
 	bool operator()(BaseAddress6T const &_rsa1, BaseAddress6T const &_rsa2)const{
+		return _rsa1.first.address() == _rsa2.first.address() &&
+		_rsa1.second == _rsa2.second;
+	}
+	bool operator()(GatewayRelayAddress4T const &_rsa1, GatewayRelayAddress4T const &_rsa2)const{
+		return _rsa1.first.address() == _rsa2.first.address() &&
+		_rsa1.second == _rsa2.second;
+	}
+	bool operator()(GatewayRelayAddress6T const &_rsa1, GatewayRelayAddress6T const &_rsa2)const{
 		return _rsa1.first.address() == _rsa2.first.address() &&
 		_rsa1.second == _rsa2.second;
 	}
@@ -102,8 +122,27 @@ struct BaseAddress6Pair{
 	uint16						second;
 };
 
+
+struct GatewayRelayAddress4Pair{
+	GatewayRelayAddress4Pair(const SocketAddressInet4&	_first, uint32 _second):first(_first), second(_second){}
+	GatewayRelayAddress4Pair(const GatewayRelayAddress4Pair &_rba):first(_rba.first), second(_rba.second){}
+	const SocketAddressInet4&	first;
+	uint32						second;
+};
+
+struct GatewayRelayAddress6Pair{
+	GatewayRelayAddress6Pair(const SocketAddressInet6&	_first, uint32 _second):first(_first), second(_second){}
+	GatewayRelayAddress6Pair(const GatewayRelayAddress6Pair &_rba):first(_rba.first), second(_rba.second){}
+	const SocketAddressInet6&	first;
+	uint32						second;
+};
+
 typedef BaseAddress4Pair 					BaseAddress4T;
 typedef BaseAddress6Pair 					BaseAddress6T;
+
+
+typedef GatewayRelayAddress4Pair			GatewayRelayAddress4T;
+typedef GatewayRelayAddress6Pair			GatewayRelayAddress6T;
 
 typedef std::pair<BaseAddress4T, uint32>	RelayAddress4T;
 typedef std::pair<BaseAddress6T, uint32>	RelayAddress6T;
@@ -156,6 +195,23 @@ struct SocketAddressCompare{
 			}else if(_rsa2.first.second < _rsa1.first.second){
 				return _rsa1.second < _rsa2.second;
 			}
+		}
+		return false;
+	}
+	
+	bool operator()(GatewayRelayAddress4T const &_rsa1, GatewayRelayAddress4T const &_rsa2)const{
+		if(_rsa1.first.address() < _rsa2.first.address()){
+			return true;
+		}else if(_rsa2.first.address() < _rsa1.first.address()){
+			return _rsa1.second < _rsa2.second;
+		}
+		return false;
+	}
+	bool operator()(GatewayRelayAddress6T const &_rsa1, GatewayRelayAddress6T const &_rsa2)const{
+		if(_rsa1.first.address() < _rsa2.first.address()){
+			return true;
+		}else if(_rsa2.first.address() < _rsa1.first.address()){
+			return _rsa1.second < _rsa2.second;
 		}
 		return false;
 	}

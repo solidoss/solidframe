@@ -86,34 +86,37 @@ struct AcceptData{
 	uint32	relayid;
 };
 
+class Talker;
+
+struct TalkerStub{
+	bool pushSendBuffer(uint32 _id, const char *_pb, uint32 _bl);
+	void pushTimer(uint32 _id, const TimeSpec &_rtimepos);
+	const TimeSpec& currentTime()const{
+		return crttime;
+	}
+	int basePort()const;
+	Service& service()const{
+		return rs;
+	}
+	uint32 relayId()const;
+private:
+	friend class Talker;
+	TalkerStub(
+		Talker &_rt,
+		Service &_rs,
+			const TimeSpec &_rcrttime
+	):rt(_rt), rs(_rs), sessionidx(0), crttime(_rcrttime){}
+	Talker			&rt;
+	Service			&rs;
+	uint16			sessionidx;
+	const TimeSpec	&crttime;
+	
+};
+
 //! A talker for io requests
 class Talker: public Dynamic<Talker, frame::aio::SingleObject>{
 public:
 	//! Interface from Talker to Session
-	struct TalkerStub{
-		bool pushSendBuffer(uint32 _id, const char *_pb, uint32 _bl);
-		void pushTimer(uint32 _id, const TimeSpec &_rtimepos);
-		const TimeSpec& currentTime()const{
-			return crttime;
-		}
-		int basePort()const;
-		Service& service()const{
-			return rs;
-		}
-		uint32 relayId()const;
-	private:
-		friend class Talker;
-		TalkerStub(
-			Talker &_rt,
-			Service &_rs,
-			 const TimeSpec &_rcrttime
-		):rt(_rt), rs(_rs), sessionidx(0), crttime(_rcrttime){}
-		Talker			&rt;
-		Service			&rs;
-		uint16			sessionidx;
-		const TimeSpec	&crttime;
-		
-	};
 	//typedef Service							ServiceT;
 	
 	Talker(const SocketDevice &_rsd, Service &_rservice, uint16 _id);
@@ -133,7 +136,7 @@ public:
 	);
 		
 	void pushSession(Session *_ps, ConnectionUid &_rconid, bool _exists = false);
-	void disconnectSessions();
+	void disconnectSessions(TalkerStub &_rstub);
 private:
 	int doReceiveBuffers(TalkerStub &_rstub, uint32 _atmost, const ulong _sig);
 	bool doProcessReceivedBuffers(TalkerStub &_rstub);

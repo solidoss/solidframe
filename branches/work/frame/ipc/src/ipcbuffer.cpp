@@ -191,7 +191,7 @@ std::ostream& operator<<(std::ostream &_ros, const Buffer &_rb){
 	_ros<<" retransmit = "<<(int)_rb.resend();
 	_ros<<" flags = "<<(int)_rb.flags();
 	if(_rb.flags() & Buffer::RelayFlag){
-		_ros<<" relay = "<<_rb.relay();
+		_ros<<" relay = "<<_rb.relay()<<" relaysz = "<<_rb.relayBufferSize();
 	}else{
 		_ros<<" no_relay";
 	}

@@ -136,7 +136,7 @@ public:
 	bool isConnecting()const;
 	bool isAccepting()const;
 
-	void prepare(Talker::TalkerStub &_rstub);
+	void prepare(TalkerStub &_rstub);
 	void reconnect(Session *_pses);	
 	
 	bool pushMessage(
@@ -152,31 +152,31 @@ public:
 	
 	bool preprocessReceivedBuffer(
 		Buffer &_rbuf,
-		Talker::TalkerStub &_rstub
+		TalkerStub &_rstub
 	);
 	
 	bool pushReceivedBuffer(
 		Buffer &_rbuf,
-		Talker::TalkerStub &_rstub
+		TalkerStub &_rstub
 	);
 	
 	bool pushReceivedErrorBuffer(
 		Buffer &_rbuf,
-		Talker::TalkerStub &_rstub
+		TalkerStub &_rstub
 	);
 	
-	void completeConnect(Talker::TalkerStub &_rstub, uint16 _port);
-	void completeConnect(Talker::TalkerStub &_rstub, uint16 _port, uint32 _relayid);
+	void completeConnect(TalkerStub &_rstub, uint16 _port);
+	void completeConnect(TalkerStub &_rstub, uint16 _port, uint32 _relayid);
 	
 	bool executeTimeout(
-		Talker::TalkerStub &_rstub,
+		TalkerStub &_rstub,
 		uint32 _id
 	);
 	
-	int execute(Talker::TalkerStub &_rstub);
+	int execute(TalkerStub &_rstub);
 	
 	bool pushSentBuffer(
-		Talker::TalkerStub &_rstub,
+		TalkerStub &_rstub,
 		uint32 _id,
 		const char *_data,
 		const uint16 _size
@@ -184,42 +184,42 @@ public:
 	
 	void prepareContext(Context &_rctx);
 	
-	void dummySendError(Talker::TalkerStub &_rstub, const SocketAddress &_rsa, int _error);
+	void dummySendError(TalkerStub &_rstub, const SocketAddress &_rsa, int _error);
 private:
 	bool doPushExpectedReceivedBuffer(
-		Talker::TalkerStub &_rstub,
+		TalkerStub &_rstub,
 		Buffer &_rbuf
 	);
 	bool doPushUnxpectedReceivedBuffer(
-		Talker::TalkerStub &_rstub,
+		TalkerStub &_rstub,
 		Buffer &_rbuf
 	);
 	bool doFreeSentBuffers(const Buffer &_rbuf);
 	void doParseBufferDataType(
-		Talker::TalkerStub &_rstub, const Buffer &_rbuf,
+		TalkerStub &_rstub, const Buffer &_rbuf,
 		const char *&_bpos, int &_blen, int _firstblen
 	);
-	void doParseBuffer(Talker::TalkerStub &_rstub, const Buffer &_rbuf);
+	void doParseBuffer(TalkerStub &_rstub, const Buffer &_rbuf);
 	
-	int doExecuteRelayInit(Talker::TalkerStub &_rstub);
-	int doExecuteConnecting(Talker::TalkerStub &_rstub);
-	int doExecuteRelayConnecting(Talker::TalkerStub &_rstub);
-	int doExecuteAccepting(Talker::TalkerStub &_rstub);
-	int doExecuteRelayAccepting(Talker::TalkerStub &_rstub);
-	int doExecuteConnected(Talker::TalkerStub &_rstub);
-	int doExecuteConnectedLimited(Talker::TalkerStub &_rstub);
-	int doTrySendUpdates(Talker::TalkerStub &_rstub);
-	int doExecuteDisconnecting(Talker::TalkerStub &_rstub);
-	int doExecuteDummy(Talker::TalkerStub &_rstub);
-	void doFillSendBuffer(Talker::TalkerStub &_rstub, const uint32 _bufidx);
-	void doTryScheduleKeepAlive(Talker::TalkerStub &_rstub);
+	int doExecuteRelayInit(TalkerStub &_rstub);
+	int doExecuteConnecting(TalkerStub &_rstub);
+	int doExecuteRelayConnecting(TalkerStub &_rstub);
+	int doExecuteAccepting(TalkerStub &_rstub);
+	int doExecuteRelayAccepting(TalkerStub &_rstub);
+	int doExecuteConnected(TalkerStub &_rstub);
+	int doExecuteConnectedLimited(TalkerStub &_rstub);
+	int doTrySendUpdates(TalkerStub &_rstub);
+	int doExecuteDisconnecting(TalkerStub &_rstub);
+	int doExecuteDummy(TalkerStub &_rstub);
+	void doFillSendBuffer(TalkerStub &_rstub, const uint32 _bufidx);
+	void doTryScheduleKeepAlive(TalkerStub &_rstub);
 	bool doDummyPushSentBuffer(
-		Talker::TalkerStub &_rstub,
+		TalkerStub &_rstub,
 		uint32 _id,
 		const char *_data,
 		const uint16 _size
 	);
-	void doCompleteConnect(Talker::TalkerStub &_rstub);
+	void doCompleteConnect(TalkerStub &_rstub);
 private:
 	struct Data;
 	struct DataDummy;

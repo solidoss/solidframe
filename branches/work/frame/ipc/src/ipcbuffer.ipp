@@ -169,6 +169,17 @@ inline void Buffer::relay(const uint32 _relayid){
 	serialization::binary::store(pb + BaseSize, _relayid);
 }
 
+inline uint16 Buffer::relayBufferSize()const{
+	uint16	v;
+	serialization::binary::load(pb + BaseSize + sizeof(uint32), v);
+	return v;
+}
+inline void Buffer::relayBufferSizeStore(){
+	cassert(isRelay());
+	const uint16 v = this->bufferSize();
+	serialization::binary::store(pb + BaseSize + sizeof(uint32), v);
+}
+
 inline bool Buffer::isRelay()const{
 	return flags() & RelayFlag;
 }
@@ -196,7 +207,8 @@ inline void Buffer::updatePush(uint32 _upd){
 }
 
 inline uint32 Buffer::relaySize()const{
-	return (this->flags() & RelayFlag);
+	const uint32 r = this->flags() & RelayFlag;
+	return r + (r >> 1);// 6 bytes - 4 for relayid, 2 for buffer size 
 }
 
 inline uint32 Buffer::updateSize()const{

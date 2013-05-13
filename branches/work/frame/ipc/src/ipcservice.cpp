@@ -90,6 +90,20 @@ struct Service::Data{
 		SocketAddressHash,
 		SocketAddressEqual
 	>	SessionRelayAddr6MapT;
+	
+	typedef std::unordered_map<
+		const GatewayRelayAddress4T,
+		size_t,
+		SocketAddressHash,
+		SocketAddressEqual
+	>	GatewayRelayAddr4MapT;
+	typedef std::unordered_map<
+		const GatewayRelayAddress6T,
+		size_t,
+		SocketAddressHash,
+		SocketAddressEqual
+	>	GatewayRelayAddr6MapT;
+	
 #else
 	typedef std::map<
 		const BaseAddress4T,
@@ -114,6 +128,19 @@ struct Service::Data{
 		ConnectionUid,
 		SocketAddressCompare
 	>	SessionRelayAddr6MapT;
+	
+	
+	typedef std::map<
+		const GatewayRelayAddress4T,
+		size_t, 
+		SocketAddressCompare
+	>	GatewayRelayAddr4MapT;
+	
+	typedef std::map<
+		const GatewayRelayAddress6T,
+		size_t,
+		SocketAddressCompare
+	>	GatewayRelayAddr6MapT;
 #endif	
 	struct TalkerStub{
 		TalkerStub():cnt(0){}
@@ -133,9 +160,26 @@ struct Service::Data{
 		uint32		sesscnt;
 		uint32		sockcnt;
 	};
+	
+	struct RelayAddress4Stub{
+		RelayAddress4Stub():tid(0xffffffff), idx(0xffffffff){}
+		RelayAddress4Stub(
+			SocketAddressInet4	const &_addr,
+			uint32 _rtid,
+			uint32 _idx
+		): addr(_addr), tid(_rtid), idx(_idx){}
+		
+		SocketAddressInet4		addr;
+		uint32					tid;
+		uint32					idx;
+	};
+	
 	typedef std::vector<TalkerStub>						TalkerStubVectorT;
 	typedef std::vector<NodeStub>						NodeStubVectorT;
+	typedef std::deque<RelayAddress4Stub>				RelayAddress4DequeT;
+	
 	typedef Queue<uint32>								Uint32QueueT;
+	typedef Queue<size_t>								SizeQueueT;
 	
 	Data(
 		const DynamicPointer<Controller> &_rctrlptr
@@ -159,6 +203,12 @@ struct Service::Data{
 	NodeStubVectorT				nodevec;
 	SessionAddr4MapT			sessionaddr4map;
 	SessionRelayAddr4MapT		sessionrelayaddr4map;
+	
+	GatewayRelayAddr4MapT		gw_l2r_relayaddrmap;//remote to local
+	GatewayRelayAddr4MapT		gw_r2l_relayaddrmap;//local to remote
+	RelayAddress4DequeT			gwrelayaddrdeq;
+	SizeQueueT					gwfreeq;
+	
 	Uint32QueueT				tkrq;
 	Uint32QueueT				sessnodeq;
 	Uint32QueueT				socknodeq;
@@ -880,37 +930,50 @@ int Service::doAcceptRelaySession(const SocketAddress &_rsa, const ConnectData &
 }
 //---------------------------------------------------------------------
 int Service::doAcceptGatewaySession(const SocketAddress &_rsa, const ConnectData &_rconndata){
-	Locker<Mutex>	lock(mutex());
+	Locker<Mutex>								lock(mutex());
 	
-	int				nodeidx(allocateNodeForSession());
-	IndexT			nodefullid;
-	uint32			nodeuid;
 	
-	if(nodeidx >= 0){
-		//the node exists
-		nodefullid = d.nodevec[nodeidx].uid.first;
-		nodeuid = d.nodevec[nodeidx].uid.second;
+	SocketAddressInet4							addr(_rsa);
+	
+	GatewayRelayAddress4T						gwaddr(addr, _rconndata.relayid);
+	
+	Data::GatewayRelayAddr4MapT::const_iterator	it(d.gw_l2r_relayaddrmap.find(gwaddr));
+	
+	if(d.gw_l2r_relayaddrmap.end() != it){
+		//maybe a resent buffer
+		
 	}else{
-		//create new node
-		nodeidx = createNode(nodefullid, nodeuid);
-		if(nodeidx < 0){
-			nodeidx = allocateNodeForSession(true/*force*/);
+		int				nodeidx(allocateNodeForSession());
+		IndexT			nodefullid;
+		uint32			nodeuid;
+		
+		if(nodeidx >= 0){
+			//the node exists
+			nodefullid = d.nodevec[nodeidx].uid.first;
+			nodeuid = d.nodevec[nodeidx].uid.second;
+		}else{
+			//create new node
+			nodeidx = createNode(nodefullid, nodeuid);
+			if(nodeidx < 0){
+				nodeidx = allocateNodeForSession(true/*force*/);
+			}
+			nodefullid = d.nodevec[nodeidx].uid.first;
+			nodeuid = d.nodevec[nodeidx].uid.second;
 		}
-		nodefullid = d.nodevec[nodeidx].uid.first;
-		nodeuid = d.nodevec[nodeidx].uid.second;
-	}
-	
-	Locker<Mutex>	lock2(this->mutex(nodefullid));
-	Node			*pnode(static_cast<Node*>(this->object(nodefullid)));
-	
-	cassert(pnode);
-	
-	vdbgx(Debug::ipc, "");
-	
-	pnode->pushSession(_rsa, _rconndata);
-	
-	if(pnode->notify(frame::S_RAISE)){
-		manager().raise(*pnode);
+		
+		Locker<Mutex>	lock2(this->mutex(nodefullid));
+		Node			*pnode(static_cast<Node*>(this->object(nodefullid)));
+		
+		cassert(pnode);
+		
+		vdbgx(Debug::ipc, "");
+		
+		
+		pnode->pushSession(_rsa, _rconndata);
+		
+		if(pnode->notify(frame::S_RAISE)){
+			manager().raise(*pnode);
+		}
 	}
 	return OK;
 }
@@ -951,9 +1014,9 @@ void Service::connectSession(const SocketAddressInet4 &_raddr){
 	}
 }
 //---------------------------------------------------------------------
-void Service::disconnectTalkerSessions(Talker &_rtkr){
+void Service::disconnectTalkerSessions(Talker &_rtkr, TalkerStub &_rts){
 	Locker<Mutex>	lock(mutex());
-	_rtkr.disconnectSessions();
+	_rtkr.disconnectSessions(_rts);
 }
 //---------------------------------------------------------------------
 void Service::disconnectSession(Session *_pses){

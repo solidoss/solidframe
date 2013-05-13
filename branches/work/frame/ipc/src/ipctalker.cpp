@@ -382,7 +382,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 	
 	if(d.closingsessionvec.size()){
 		//this is to ensure the locking order: first service then talker
-		d.rservice.disconnectTalkerSessions(*this);
+		d.rservice.disconnectTalkerSessions(*this, ts);
 	}
 	
 	rv = doReceiveBuffers(ts, 4, _sig);
@@ -924,10 +924,13 @@ void Talker::doDispatchEvents(){
 }
 //----------------------------------------------------------------------
 //this should be called under ipc service's mutex lock
-void Talker::disconnectSessions(){
+void Talker::disconnectSessions(TalkerStub &_rstub){
 	Manager 		&rm(d.rservice.manager());
 	Locker<Mutex>	lock(rm.mutex(*this));
-	//delete sessions
+	
+	if(d.newsessionvec.size()){
+		doInsertNewSessions(_rstub);
+	}
 	
 	for(Data::UInt16VectorT::const_iterator it(d.closingsessionvec.begin()); it != d.closingsessionvec.end(); ++it){
 		Data::SessionStub &rss(d.sessionvec[*it]);
@@ -966,7 +969,7 @@ int Talker::execute(){
 	return BAD;
 }
 //----------------------------------------------------------------------
-bool Talker::TalkerStub::pushSendBuffer(uint32 _id, const char *_pb, uint32 _bl){
+bool TalkerStub::pushSendBuffer(uint32 _id, const char *_pb, uint32 _bl){
 	if(rt.d.sendq.size()){
 		rt.d.sendq.push(Talker::Data::SendBuffer(_pb, _bl, this->sessionidx, _id));
 		return false;
@@ -984,16 +987,16 @@ bool Talker::TalkerStub::pushSendBuffer(uint32 _id, const char *_pb, uint32 _bl)
 	}
 	return true;//the buffer was written on socket
 }
-uint32 Talker::TalkerStub::relayId()const{
+uint32 TalkerStub::relayId()const{
 	return pack(sessionidx, rt.d.sessionvec[sessionidx].uid);
 }
 //----------------------------------------------------------------------
-void Talker::TalkerStub::pushTimer(uint32 _id, const TimeSpec &_rtimepos){
+void TalkerStub::pushTimer(uint32 _id, const TimeSpec &_rtimepos){
 	COLLECT_DATA_0(rt.d.statistics.pushTimer);
-	rt.d.timerq.push(Data::TimerData(_rtimepos, _id, this->sessionidx));
+	rt.d.timerq.push(Talker::Data::TimerData(_rtimepos, _id, this->sessionidx));
 }
 //----------------------------------------------------------------------
-int Talker::TalkerStub::basePort()const{
+int TalkerStub::basePort()const{
 	return rt.d.rservice.basePort();
 }
 //======================================================================
