@@ -87,7 +87,7 @@ bool Packet::compress(Controller &_rctrl){
 	char			*tmppd(pd);
 	
 	vdbgx(Debug::ipc, "buffer before compress id = "<<this->id()<<" dl = "<<this->dl<<" size = "<<bufferSize());
-	if(_rctrl.compressBuffer(bctx, this->bufferSize(), tmppd, tmpdatasz)){
+	if(_rctrl.compressPacket(bctx, this->bufferSize(), tmppd, tmpdatasz)){
 		if(tmppd != pd){
 			if(bctx.reqbufid == (uint)-1){
 				THROW_EXCEPTION("Invalid buffer pointer returned");
@@ -131,7 +131,7 @@ bool Packet::decompress(Controller &_rctrl){
 	char			*tmppd(pd);
 	
 	vdbgx(Debug::ipc, "packet before decompress id = "<<this->id()<<" dl = "<<this->dl<<" size = "<<bufferSize());
-	if(_rctrl.decompressBuffer(bctx, tmppd, tmpdatasz)){
+	if(_rctrl.decompressPacket(bctx, tmppd, tmpdatasz)){
 		if(bctx.reqbufid != (uint)-1){
 			if(tmppd == pd){
 				THROW_EXCEPTION("Requested buffer not returned");

@@ -57,22 +57,22 @@ class Session{
 public:
 	
 	static void init();
-	static int parseAcceptBuffer(
-		const Buffer &_rbuf,
+	static int parseAcceptPacket(
+		const Packet &_rpkt,
 		AcceptData &_raccdata,
 		const SocketAddress &_rfromsa
 	);
-	static int parseConnectBuffer(
-		const Buffer &_rbuf,
+	static int parseConnectPacket(
+		const Packet &_rpkt,
 		ConnectData &_rconndata,
 		const SocketAddress &_rfromsa
 	);
-	static int fillAcceptBuffer(
-		Buffer &_rbuf,
+	static int fillAcceptPacket(
+		Packet &_rpkt,
 		const AcceptData &_raccdata
 	);
-	static int fillConnectBuffer(
-		Buffer &_rbuf,
+	static int fillConnectPacket(
+		Packet &_rpkt,
 		const ConnectData &_rconndata
 	);
 	
@@ -150,18 +150,18 @@ public:
 		uint32 _flags
 	);
 	
-	bool preprocessReceivedBuffer(
-		Buffer &_rbuf,
+	bool preprocessReceivedPacket(
+		Packet &_rpkt,
 		TalkerStub &_rstub
 	);
 	
-	bool pushReceivedBuffer(
-		Buffer &_rbuf,
+	bool pushReceivedPacket(
+		Packet &_rpkt,
 		TalkerStub &_rstub
 	);
 	
-	bool pushReceivedErrorBuffer(
-		Buffer &_rbuf,
+	bool pushReceivedErrorPacket(
+		Packet &_rpkt,
 		TalkerStub &_rstub
 	);
 	
@@ -175,7 +175,7 @@ public:
 	
 	int execute(TalkerStub &_rstub);
 	
-	bool pushSentBuffer(
+	bool pushSentPacket(
 		TalkerStub &_rstub,
 		uint32 _id,
 		const char *_data,
@@ -186,20 +186,20 @@ public:
 	
 	void dummySendError(TalkerStub &_rstub, const SocketAddress &_rsa, int _error);
 private:
-	bool doPushExpectedReceivedBuffer(
+	bool doPushExpectedReceivedPacket(
 		TalkerStub &_rstub,
-		Buffer &_rbuf
+		Packet &_rpkt
 	);
-	bool doPushUnxpectedReceivedBuffer(
+	bool doPushUnxpectedReceivedPacket(
 		TalkerStub &_rstub,
-		Buffer &_rbuf
+		Packet &_rpkt
 	);
-	bool doFreeSentBuffers(const Buffer &_rbuf);
-	void doParseBufferDataType(
-		TalkerStub &_rstub, const Buffer &_rbuf,
+	bool doFreeSentPackets(const Packet &_rpkt);
+	void doParsePacketDataType(
+		TalkerStub &_rstub, const Packet &_rpkt,
 		const char *&_bpos, int &_blen, int _firstblen
 	);
-	void doParseBuffer(TalkerStub &_rstub, const Buffer &_rbuf);
+	void doParsePacket(TalkerStub &_rstub, const Packet &_rpkt);
 	
 	int doExecuteRelayInit(TalkerStub &_rstub);
 	int doExecuteConnecting(TalkerStub &_rstub);
@@ -211,9 +211,9 @@ private:
 	int doTrySendUpdates(TalkerStub &_rstub);
 	int doExecuteDisconnecting(TalkerStub &_rstub);
 	int doExecuteDummy(TalkerStub &_rstub);
-	void doFillSendBuffer(TalkerStub &_rstub, const uint32 _bufidx);
+	void doFillSendPacket(TalkerStub &_rstub, const uint32 _bufidx);
 	void doTryScheduleKeepAlive(TalkerStub &_rstub);
-	bool doDummyPushSentBuffer(
+	bool doDummyPushSentPacket(
 		TalkerStub &_rstub,
 		uint32 _id,
 		const char *_data,

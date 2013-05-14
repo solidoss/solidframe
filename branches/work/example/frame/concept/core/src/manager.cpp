@@ -135,14 +135,14 @@ struct IpcServiceController: frame::ipc::Controller{
 	/*virtual*/ void scheduleNode(frame::aio::Object *_po);
 	
 	
-	/*virtual*/ bool compressBuffer(
-		frame::ipc::BufferContext &_rbc,
+	/*virtual*/ bool compressPacket(
+		frame::ipc::PacketContext &_rbc,
 		const uint32 _bufsz,
 		char* &_rpb,
 		uint32 &_bl
 	);
-	/*virtual*/ bool decompressBuffer(
-		frame::ipc::BufferContext &_rbc,
+	/*virtual*/ bool decompressPacket(
+		frame::ipc::PacketContext &_rbc,
 		char* &_rpb,
 		uint32 &_bl
 	);
@@ -269,8 +269,8 @@ void IpcServiceController::scheduleNode(frame::aio::Object *_po){
 	Manager::the().scheduleAioObject(objptr);
 }
 
-/*virtual*/ bool IpcServiceController::compressBuffer(
-	frame::ipc::BufferContext &_rbc,
+/*virtual*/ bool IpcServiceController::compressPacket(
+	frame::ipc::PacketContext &_rbc,
 	const uint32 _bufsz,
 	char* &_rpb,
 	uint32 &_bl
@@ -286,8 +286,8 @@ void IpcServiceController::scheduleNode(frame::aio::Object *_po){
 	return true;
 }
 
-/*virtual*/ bool IpcServiceController::decompressBuffer(
-	frame::ipc::BufferContext &_rbc,
+/*virtual*/ bool IpcServiceController::decompressPacket(
+	frame::ipc::PacketContext &_rbc,
 	char* &_rpb,
 	uint32 &_bl
 ){

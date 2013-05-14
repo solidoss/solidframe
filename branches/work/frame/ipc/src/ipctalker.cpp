@@ -65,7 +65,7 @@ struct StatisticData{
 	}
 	~StatisticData();
 	
-	void receivedManyBuffers();
+	void receivedManyPackets();
 	void receivedKeepAlive();
 	void receivedData();
 	void receivedDataUnknown();
@@ -81,13 +81,13 @@ struct StatisticData{
 	void sendPending();
 	void signaled();
 	void pushTimer();
-	void receivedBuffers0();
-	void receivedBuffers1();
-	void receivedBuffers2();
-	void receivedBuffers3();
-	void receivedBuffers4();
+	void receivedPackets0();
+	void receivedPackets1();
+	void receivedPackets2();
+	void receivedPackets3();
+	void receivedPackets4();
 	
-	ulong	rcvdmannybuffers;
+	ulong	rcvdmannypackets;
 	ulong	rcvdkeepalive;
 	ulong	rcvddata;
 	ulong	rcvddataunknown;
@@ -103,11 +103,11 @@ struct StatisticData{
 	ulong	sendpending;
 	ulong	signaledcount;
 	ulong	pushtimercount;
-	ulong	receivedbuffers0;
-	ulong	receivedbuffers1;
-	ulong	receivedbuffers2;
-	ulong	receivedbuffers3;
-	ulong	receivedbuffers4;
+	ulong	receivedpackets0;
+	ulong	receivedpackets1;
+	ulong	receivedpackets2;
+	ulong	receivedpackets3;
+	ulong	receivedpackets4;
 };
 
 std::ostream& operator<<(std::ostream &_ros, const StatisticData &_rsd);
@@ -146,8 +146,8 @@ struct Talker::Data{
 		int32					event;
 		uint32					flags;
 	};
-	struct RecvBuffer{
-		RecvBuffer(
+	struct RecvPacket{
+		RecvPacket(
 			char *_data = NULL,
 			uint16 _size = 0,
 			uint16 _sessionidx = 0
@@ -156,8 +156,8 @@ struct Talker::Data{
 		uint16	size;
 		uint16	sessionidx;
 	};
-	struct SendBuffer{
-		SendBuffer(
+	struct SendPacket{
+		SendPacket(
 			const char *_data = NULL,
 			uint16 _size = 0,
 			uint16 _sessionidx = 0,
@@ -199,7 +199,7 @@ struct Talker::Data{
 	};
 	
 	
-	typedef std::vector<RecvBuffer>				RecvBufferVectorT;
+	typedef std::vector<RecvPacket>				RecvPacketVectorT;
 	typedef Queue<MessageData>					MessageQueueT;
 	typedef Queue<EventData>					EventQueueT;
 	typedef std::pair<uint16, uint16>			UInt16PairT;
@@ -274,20 +274,20 @@ struct Talker::Data{
 		std::vector<TimerData>,
 		TimerDataCmp
 	>											TimerQueueT;
-	typedef Queue<SendBuffer>					SendQueueT;
+	typedef Queue<SendPacket>					SendQueueT;
 	
 public:
 	Data(
 		Service &_rservice,
 		uint16 _id
-	):	rservice(_rservice), tkrid(_id), pendingreadbuffer(NULL), nextsessionidx(1){
+	):	rservice(_rservice), tkrid(_id), pendingreadpacket(NULL), nextsessionidx(1){
 	}
 	~Data();
 public:
 	Service					&rservice;
 	const uint16			tkrid;
-	RecvBufferVectorT		receivedbufvec;
-	char					*pendingreadbuffer;
+	RecvPacketVectorT		receivedpktvec;
+	char					*pendingreadpacket;
 	MessageQueueT			msgq;
 	EventQueueT				eventq;
 	UInt16PairStackT		freesessionstack;
@@ -307,11 +307,11 @@ public:
 
 
 Talker::Data::~Data(){
-	if(pendingreadbuffer){
-		Buffer::deallocate(pendingreadbuffer);
+	if(pendingreadpacket){
+		Packet::deallocate(pendingreadpacket);
 	}
-	for(RecvBufferVectorT::const_iterator it(receivedbufvec.begin()); it != receivedbufvec.end(); ++it){
-		Buffer::deallocate(it->data);
+	for(RecvPacketVectorT::const_iterator it(receivedpktvec.begin()); it != receivedpktvec.end(); ++it){
+		Packet::deallocate(it->data);
 	}
 	for(SessionPairVectorT::const_iterator it(newsessionvec.begin()); it != newsessionvec.end(); ++it){
 		delete it->first;
@@ -385,7 +385,7 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 		d.rservice.disconnectTalkerSessions(*this, ts);
 	}
 	
-	rv = doReceiveBuffers(ts, 4, _sig);
+	rv = doReceivePackets(ts, 4, _sig);
 	
 	if(rv == OK){
 		must_reenter = true;
@@ -393,9 +393,9 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 		return BAD;
 	}
 	
-	must_reenter = doProcessReceivedBuffers(ts) || must_reenter;
+	must_reenter = doProcessReceivedPackets(ts) || must_reenter;
 	
-	rv = doSendBuffers(ts, _sig);
+	rv = doSendPackets(ts, _sig);
 	if(rv == OK){
 		must_reenter = true;
 	}else if(rv == BAD){
@@ -412,166 +412,166 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 }
 
 //----------------------------------------------------------------------
-int Talker::doReceiveBuffers(TalkerStub &_rstub, uint _atmost, const ulong _sig){
+int Talker::doReceivePackets(TalkerStub &_rstub, uint _atmost, const ulong _sig){
 	if(this->socketHasPendingRecv()){
 		return NOK;
 	}
 	if(_sig & frame::INDONE){
-		doDispatchReceivedBuffer(_rstub, d.pendingreadbuffer, socketRecvSize(), socketRecvAddr());
-		d.pendingreadbuffer = NULL;
+		doDispatchReceivedPacket(_rstub, d.pendingreadpacket, socketRecvSize(), socketRecvAddr());
+		d.pendingreadpacket = NULL;
 	}
 	while(_atmost--){
-		char 			*pbuf(Buffer::allocate());
-		const uint32	bufsz(Buffer::Capacity);
+		char 			*pbuf(Packet::allocate());
+		const uint32	bufsz(Packet::Capacity);
 		switch(socketRecvFrom(pbuf, bufsz)){
 			case BAD:
-				Buffer::deallocate(pbuf);
+				Packet::deallocate(pbuf);
 				return BAD;
 			case OK:
-				doDispatchReceivedBuffer(_rstub, pbuf, socketRecvSize(), socketRecvAddr());
+				doDispatchReceivedPacket(_rstub, pbuf, socketRecvSize(), socketRecvAddr());
 				break;
 			case NOK:
-				d.pendingreadbuffer = pbuf;
+				d.pendingreadpacket = pbuf;
 				return NOK;
 		}
 	}
 	
-	COLLECT_DATA_0(d.statistics.receivedManyBuffers);
+	COLLECT_DATA_0(d.statistics.receivedManyPackets);
 	return OK;//can still read from socket
 }
 //----------------------------------------------------------------------
-bool Talker::doPreprocessReceivedBuffers(TalkerStub &_rstub){
-	for(Data::RecvBufferVectorT::const_iterator it(d.receivedbufvec.begin()); it != d.receivedbufvec.end(); ++it){
+bool Talker::doPreprocessReceivedPackets(TalkerStub &_rstub){
+	for(Data::RecvPacketVectorT::const_iterator it(d.receivedpktvec.begin()); it != d.receivedpktvec.end(); ++it){
 		
-		const Data::RecvBuffer	&rcvbuf(*it);
-		Data::SessionStub		&rss(d.sessionvec[rcvbuf.sessionidx]);
-		Buffer					buf(rcvbuf.data, Buffer::Capacity);
+		const Data::RecvPacket	&rcvpkt(*it);
+		Data::SessionStub		&rss(d.sessionvec[rcvpkt.sessionidx]);
+		Packet					pkt(rcvpkt.data, Packet::Capacity);
 		
-		buf.bufferSize(rcvbuf.size);
+		pkt.bufferSize(rcvpkt.size);
 		
-		//conuid.sessionidx = rcvbuf.sessionidx;
+		//conuid.sessionidx = rcvpkt.sessionidx;
 		//conuid.sessionuid = rss.uid;
-// 		Context::the().msgctx.connectionuid.idx = rcvbuf.sessionidx;
+// 		Context::the().msgctx.connectionuid.idx = rcvpkt.sessionidx;
 // 		Context::the().msgctx.connectionuid.uid = rss.uid;
-// 		ts.sessionidx = rcvbuf.sessionidx;
+// 		ts.sessionidx = rcvpkt.sessionidx;
 // 		rss.psession->prepareContext(Context::the());
 		
-		if(rss.psession->preprocessReceivedBuffer(buf, _rstub)){
+		if(rss.psession->preprocessReceivedPacket(pkt, _rstub)){
 			if(!rss.inexeq){
-				d.sessionexecq.push(rcvbuf.sessionidx);
+				d.sessionexecq.push(rcvpkt.sessionidx);
 				rss.inexeq = true;
 			}
 		}
-		buf.release();
+		pkt.release();
 	}
 	return false;
 }
 //----------------------------------------------------------------------
-bool Talker::doProcessReceivedBuffers(TalkerStub &_rstub){
+bool Talker::doProcessReceivedPackets(TalkerStub &_rstub){
 	//ConnectionUid	conuid(d.tkrid);
 	TalkerStub		&ts = _rstub;
 #ifdef USTATISTICS	
-	if(d.receivedbufvec.size() == 0){
-		COLLECT_DATA_0(d.statistics.receivedBuffers0);
-	}else if(d.receivedbufvec.size() == 1){
-		COLLECT_DATA_0(d.statistics.receivedBuffers1);
-	}else if(d.receivedbufvec.size() == 2){
-		COLLECT_DATA_0(d.statistics.receivedBuffers2);
-	}else if(d.receivedbufvec.size() == 3){
-		COLLECT_DATA_0(d.statistics.receivedBuffers3);
-	}else if(d.receivedbufvec.size() == 4){
-		COLLECT_DATA_0(d.statistics.receivedBuffers4);
+	if(d.receivedpktvec.size() == 0){
+		COLLECT_DATA_0(d.statistics.receivedPackets0);
+	}else if(d.receivedpktvec.size() == 1){
+		COLLECT_DATA_0(d.statistics.receivedPackets1);
+	}else if(d.receivedpktvec.size() == 2){
+		COLLECT_DATA_0(d.statistics.receivedPackets2);
+	}else if(d.receivedpktvec.size() == 3){
+		COLLECT_DATA_0(d.statistics.receivedPackets3);
+	}else if(d.receivedpktvec.size() == 4){
+		COLLECT_DATA_0(d.statistics.receivedPackets4);
 	}
 #endif
 	
-	for(Data::RecvBufferVectorT::const_iterator it(d.receivedbufvec.begin()); it != d.receivedbufvec.end(); ++it){
+	for(Data::RecvPacketVectorT::const_iterator it(d.receivedpktvec.begin()); it != d.receivedpktvec.end(); ++it){
 		
-		const Data::RecvBuffer	&rcvbuf(*it);
-		Data::SessionStub		&rss(d.sessionvec[rcvbuf.sessionidx]);
-		Buffer					buf(rcvbuf.data, Buffer::Capacity);
+		const Data::RecvPacket	&rcvpkt(*it);
+		Data::SessionStub		&rss(d.sessionvec[rcvpkt.sessionidx]);
+		Packet					pkt(rcvpkt.data, Packet::Capacity);
 		
-		buf.bufferSize(rcvbuf.size);
+		pkt.bufferSize(rcvpkt.size);
 		
-		//conuid.sessionidx = rcvbuf.sessionidx;
+		//conuid.sessionidx = rcvpkt.sessionidx;
 		//conuid.sessionuid = rss.uid;
-		Context::the().msgctx.connectionuid.idx = rcvbuf.sessionidx;
+		Context::the().msgctx.connectionuid.idx = rcvpkt.sessionidx;
 		Context::the().msgctx.connectionuid.uid = rss.uid;
-		ts.sessionidx = rcvbuf.sessionidx;
+		ts.sessionidx = rcvpkt.sessionidx;
 		rss.psession->prepareContext(Context::the());
 		
-		if(rss.psession->pushReceivedBuffer(buf, ts/*, conuid*/)){
+		if(rss.psession->pushReceivedPacket(pkt, ts/*, conuid*/)){
 			if(!rss.inexeq){
-				d.sessionexecq.push(rcvbuf.sessionidx);
+				d.sessionexecq.push(rcvpkt.sessionidx);
 				rss.inexeq = true;
 			}
 		}
 	}
-	d.receivedbufvec.clear();
+	d.receivedpktvec.clear();
 	return false;
 }
 //----------------------------------------------------------------------
-void Talker::doDispatchReceivedBuffer(
+void Talker::doDispatchReceivedPacket(
 	TalkerStub &_rstub,
 	char *_pbuf,
 	const uint32 _bufsz,
 	const SocketAddress &_rsa
 ){
-	Buffer buf(_pbuf, Buffer::Capacity);
-	buf.bufferSize(_bufsz);
-	vdbgx(Debug::ipc, " RECEIVED "<<buf);
-	switch(buf.type()){
-		case Buffer::KeepAliveType:
+	Packet pkt(_pbuf, Packet::Capacity);
+	pkt.bufferSize(_bufsz);
+	vdbgx(Debug::ipc, " RECEIVED "<<pkt);
+	switch(pkt.type()){
+		case Packet::KeepAliveType:
 			COLLECT_DATA_0(d.statistics.receivedKeepAlive);
-		case Buffer::DataType:{
+		case Packet::DataType:{
 			COLLECT_DATA_0(d.statistics.receivedData);
-			idbgx(Debug::ipc, "data buffer");
-			if(!buf.isRelay()){
+			idbgx(Debug::ipc, "data packet");
+			if(!pkt.isRelay()){
 				SocketAddressInet4				inaddr(_rsa);
 				Data::PeerAddr4MapT::iterator	pit(d.peeraddr4map.find(&inaddr));
 				if(pit != d.peeraddr4map.end()){
-					idbgx(Debug::ipc, "found session for buffer "<<pit->second);
-					d.receivedbufvec.push_back(Data::RecvBuffer(_pbuf, _bufsz, pit->second));
-					buf.release();
+					idbgx(Debug::ipc, "found session for packet "<<pit->second);
+					d.receivedpktvec.push_back(Data::RecvPacket(_pbuf, _bufsz, pit->second));
+					pkt.release();
 				}else{
 					COLLECT_DATA_0(d.statistics.receivedDataUnknown);
-					if(buf.check()){
+					if(pkt.check()){
 						d.rservice.connectSession(inaddr);
 					}
 					//proc
-					Buffer::deallocate(buf.release());
+					Packet::deallocate(pkt.release());
 				}
 			}else{
 				uint16	sessidx;
 				uint16	sessuid;
-				unpack(sessidx, sessuid, buf.relay());
+				unpack(sessidx, sessuid, pkt.relay());
 				if(sessidx < d.sessionvec.size() && d.sessionvec[sessidx].uid == sessuid && d.sessionvec[sessidx].psession){
-					idbgx(Debug::ipc, "found session for buffer "<<sessidx<<','<<sessuid);
-					d.receivedbufvec.push_back(Data::RecvBuffer(_pbuf, _bufsz, sessidx));
-					buf.release();
+					idbgx(Debug::ipc, "found session for packet "<<sessidx<<','<<sessuid);
+					d.receivedpktvec.push_back(Data::RecvPacket(_pbuf, _bufsz, sessidx));
+					pkt.release();
 				}else{
-					Buffer::deallocate(buf.release());
+					Packet::deallocate(pkt.release());
 				}
 			}
 		}break;
 		
-		case Buffer::ConnectType:{
+		case Packet::ConnectType:{
 			COLLECT_DATA_0(d.statistics.receivedConnecting);
 			ConnectData			conndata;
 			
-			int					error = Session::parseConnectBuffer(buf, conndata, _rsa);
+			int					error = Session::parseConnectPacket(pkt, conndata, _rsa);
 			
-			Buffer::deallocate(buf.release());
+			Packet::deallocate(pkt.release());
 			
 			if(error){
-				edbgx(Debug::ipc, "connecting buffer: parse "<<error);
+				edbgx(Debug::ipc, "connecting packet: parse "<<error);
 				COLLECT_DATA_0(d.statistics.receivedConnectingError);
 			}else{
 				error = d.rservice.acceptSession(_rsa, conndata);
 				if(error < 0){	
 					COLLECT_DATA_0(d.statistics.failedAcceptSession);
-					wdbgx(Debug::ipc, "connecting buffer: silent drop "<<error);
+					wdbgx(Debug::ipc, "connecting packet: silent drop "<<error);
 				}else if(error > 0){
-					wdbgx(Debug::ipc, "connecting buffer: send error "<<error);
+					wdbgx(Debug::ipc, "connecting packet: send error "<<error);
 					d.sessionvec.front().psession->dummySendError(_rstub, _rsa, error);
 					if(!d.sessionvec.front().inexeq){
 						d.sessionexecq.push(0);
@@ -582,18 +582,18 @@ void Talker::doDispatchReceivedBuffer(
 			
 		}break;
 		
-		case Buffer::AcceptType:{
+		case Packet::AcceptType:{
 			COLLECT_DATA_0(d.statistics.receivedAccepting);
 			AcceptData			accdata;
 			
-			int					error = Session::parseAcceptBuffer(buf, accdata, _rsa);
-			const bool			isrelay = buf.isRelay();
-			const uint32		relayid = isrelay ? buf.relay() : 0;
+			int					error = Session::parseAcceptPacket(pkt, accdata, _rsa);
+			const bool			isrelay = pkt.isRelay();
+			const uint32		relayid = isrelay ? pkt.relay() : 0;
 			
-			Buffer::deallocate(buf.release());
+			Packet::deallocate(pkt.release());
 			
 			if(error){
-				edbgx(Debug::ipc, "accepted buffer: error parse "<<error);
+				edbgx(Debug::ipc, "accepted packet: error parse "<<error);
 				COLLECT_DATA_0(d.statistics.receivedAcceptingError);
 			}else if(d.rservice.checkAcceptData(_rsa, accdata)){
 				if(!isrelay){
@@ -644,7 +644,7 @@ void Talker::doDispatchReceivedBuffer(
 				idbgx(Debug::ipc, "");
 			}
 		}break;
-		case Buffer::ErrorType:{
+		case Packet::ErrorType:{
 			SocketAddressInet4				sa(_rsa);
 			BaseAddress4T					ba(sa, _rsa.port());
 			Data::BaseAddr4MapT::iterator	bit(d.baseaddr4map.find(ba));
@@ -653,21 +653,21 @@ void Talker::doDispatchReceivedBuffer(
 				if(rss.psession){
 					_rstub.sessionidx = bit->second;
 					
-					if(rss.psession->pushReceivedErrorBuffer(buf, _rstub) && !rss.inexeq){
+					if(rss.psession->pushReceivedErrorPacket(pkt, _rstub) && !rss.inexeq){
 						d.sessionexecq.push(bit->second);
 						rss.inexeq = true;
 					}
 				}else{
-					wdbgx(Debug::ipc, "no session for error buffer");
+					wdbgx(Debug::ipc, "no session for error packet");
 				}
 			}else{
-				wdbgx(Debug::ipc, "no session for error buffer");
+				wdbgx(Debug::ipc, "no session for error packet");
 			}
-			Buffer::deallocate(buf.release());
+			Packet::deallocate(pkt.release());
 		}break;
 		default:
 			COLLECT_DATA_0(d.statistics.receivedUnknown);
-			Buffer::deallocate(buf.release());
+			Packet::deallocate(pkt.release());
 			cassert(false);
 	}
 }
@@ -716,7 +716,7 @@ bool Talker::doExecuteSessions(TalkerStub &_rstub){
 	return d.sessionexecq.size() != 0 || d.closingsessionvec.size() != 0;
 }
 //----------------------------------------------------------------------
-int Talker::doSendBuffers(TalkerStub &_rstub, const ulong _sig){
+int Talker::doSendPackets(TalkerStub &_rstub, const ulong _sig){
 	if(socketHasPendingSend()){
 		return NOK;
 	}
@@ -726,18 +726,18 @@ int Talker::doSendBuffers(TalkerStub &_rstub, const ulong _sig){
 	if(_sig & frame::OUTDONE){
 		cassert(d.sendq.size());
 		COLLECT_DATA_1(d.statistics.maxSendQueueSize, d.sendq.size());
-		Data::SendBuffer	&rsb(d.sendq.front());
-		Data::SessionStub	&rss(d.sessionvec[rsb.sessionidx]);
+		Data::SendPacket	&rsp(d.sendq.front());
+		Data::SessionStub	&rss(d.sessionvec[rsp.sessionidx]);
 		
-		ts.sessionidx = rsb.sessionidx;
+		ts.sessionidx = rsp.sessionidx;
 		
-		Context::the().msgctx.connectionuid.idx = rsb.sessionidx;
+		Context::the().msgctx.connectionuid.idx = rsp.sessionidx;
 		Context::the().msgctx.connectionuid.uid = rss.uid;
 		rss.psession->prepareContext(Context::the());
 		
-		if(rss.psession->pushSentBuffer(ts, rsb.id, rsb.data, rsb.size)){
+		if(rss.psession->pushSentPacket(ts, rsp.id, rsp.data, rsp.size)){
 			if(!rss.inexeq){
-				d.sessionexecq.push(rsb.sessionidx);
+				d.sessionexecq.push(rsp.sessionidx);
 				rss.inexeq = true;
 			}
 		}
@@ -745,21 +745,21 @@ int Talker::doSendBuffers(TalkerStub &_rstub, const ulong _sig){
 	}
 	
 	while(d.sendq.size()){
-		Data::SendBuffer	&rsb(d.sendq.front());
-		Data::SessionStub	&rss(d.sessionvec[rsb.sessionidx]);
+		Data::SendPacket	&rsp(d.sendq.front());
+		Data::SessionStub	&rss(d.sessionvec[rsp.sessionidx]);
 		
-		switch(socketSendTo(rsb.data, rsb.size, rss.psession->peerAddress())){
+		switch(socketSendTo(rsp.data, rsp.size, rss.psession->peerAddress())){
 			case BAD: return BAD;
 			case OK:
-				Context::the().msgctx.connectionuid.idx = rsb.sessionidx;
+				Context::the().msgctx.connectionuid.idx = rsp.sessionidx;
 				Context::the().msgctx.connectionuid.uid = rss.uid;
 				rss.psession->prepareContext(Context::the());
 				
-				ts.sessionidx = rsb.sessionidx;
+				ts.sessionidx = rsp.sessionidx;
 				
-				if(rss.psession->pushSentBuffer(ts, rsb.id, rsb.data, rsb.size)){
+				if(rss.psession->pushSentPacket(ts, rsp.id, rsp.data, rsp.size)){
 					if(!rss.inexeq){
-						d.sessionexecq.push(rsb.sessionidx);
+						d.sessionexecq.push(rsp.sessionidx);
 						rss.inexeq = true;
 					}
 				}
@@ -969,23 +969,23 @@ int Talker::execute(){
 	return BAD;
 }
 //----------------------------------------------------------------------
-bool TalkerStub::pushSendBuffer(uint32 _id, const char *_pb, uint32 _bl){
+bool TalkerStub::pushSendPacket(uint32 _id, const char *_pb, uint32 _bl){
 	if(rt.d.sendq.size()){
-		rt.d.sendq.push(Talker::Data::SendBuffer(_pb, _bl, this->sessionidx, _id));
+		rt.d.sendq.push(Talker::Data::SendPacket(_pb, _bl, this->sessionidx, _id));
 		return false;
 	}
 	Talker::Data::SessionStub &rss(rt.d.sessionvec[this->sessionidx]);
-	//try to send the buffer right now:
+	//try to send the packet right now:
 	switch(rt.socketSendTo(_pb, _bl, rss.psession->peerAddress())){
 		case BAD:
 		case NOK:
-			rt.d.sendq.push(Talker::Data::SendBuffer(_pb, _bl, this->sessionidx, _id));
+			rt.d.sendq.push(Talker::Data::SendPacket(_pb, _bl, this->sessionidx, _id));
 			COLLECT_DATA_0(rt.d.statistics.sendPending);
 			return false;
 		case OK:
 			break;
 	}
-	return true;//the buffer was written on socket
+	return true;//the packet was written on socket
 }
 uint32 TalkerStub::relayId()const{
 	return pack(sessionidx, rt.d.sessionvec[sessionidx].uid);
@@ -1008,8 +1008,8 @@ StatisticData::~StatisticData(){
 	rdbgx(Debug::ipc, "Statistics:\r\n"<<*this);
 }
 	
-void StatisticData::receivedManyBuffers(){
-	++rcvdmannybuffers;
+void StatisticData::receivedManyPackets(){
+	++rcvdmannypackets;
 }
 void StatisticData::receivedKeepAlive(){
 	++rcvdkeepalive;
@@ -1056,25 +1056,25 @@ void StatisticData::signaled(){
 void StatisticData::pushTimer(){
 	++pushtimercount;
 }
-void StatisticData::receivedBuffers0(){
-	++receivedbuffers0;
+void StatisticData::receivedPackets0(){
+	++receivedpackets0;
 }
-void StatisticData::receivedBuffers1(){
-	++receivedbuffers1;
+void StatisticData::receivedPackets1(){
+	++receivedpackets1;
 }
-void StatisticData::receivedBuffers2(){
-	++receivedbuffers2;
+void StatisticData::receivedPackets2(){
+	++receivedpackets2;
 }
-void StatisticData::receivedBuffers3(){
-	++receivedbuffers3;
+void StatisticData::receivedPackets3(){
+	++receivedpackets3;
 }
-void StatisticData::receivedBuffers4(){
-	++receivedbuffers4;
+void StatisticData::receivedPackets4(){
+	++receivedpackets4;
 }
 
 
 std::ostream& operator<<(std::ostream &_ros, const StatisticData &_rsd){
-	_ros<<"rcvdmannybuffers          "<<_rsd.rcvdmannybuffers<<std::endl;
+	_ros<<"rcvdmannypackets          "<<_rsd.rcvdmannypackets<<std::endl;
 	_ros<<"rcvdkeepalive             "<<_rsd.rcvdkeepalive<<std::endl;
 	_ros<<"rcvddata                  "<<_rsd.rcvddata<<std::endl;
 	_ros<<"rcvddataunknown           "<<_rsd.rcvddataunknown<<std::endl;
@@ -1090,11 +1090,11 @@ std::ostream& operator<<(std::ostream &_ros, const StatisticData &_rsd){
 	_ros<<"sendpending               "<<_rsd.sendpending<<std::endl;
 	_ros<<"signaledcount             "<<_rsd.signaledcount<<std::endl;
 	_ros<<"pushtimercount            "<<_rsd.pushtimercount<<std::endl;
-	_ros<<"receivedbuffers0          "<<_rsd.receivedbuffers0<<std::endl;
-	_ros<<"receivedbuffers1          "<<_rsd.receivedbuffers1<<std::endl;
-	_ros<<"receivedbuffers2          "<<_rsd.receivedbuffers2<<std::endl;
-	_ros<<"receivedbuffers3          "<<_rsd.receivedbuffers3<<std::endl;
-	_ros<<"receivedbuffers4          "<<_rsd.receivedbuffers4<<std::endl;
+	_ros<<"receivedpackets0          "<<_rsd.receivedpackets0<<std::endl;
+	_ros<<"receivedpackets1          "<<_rsd.receivedpackets1<<std::endl;
+	_ros<<"receivedpackets2          "<<_rsd.receivedpackets2<<std::endl;
+	_ros<<"receivedpackets3          "<<_rsd.receivedpackets3<<std::endl;
+	_ros<<"receivedpackets4          "<<_rsd.receivedpackets4<<std::endl;
 	return _ros;
 }
 }//namespace

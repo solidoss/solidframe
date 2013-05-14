@@ -46,11 +46,11 @@ public:
 	~Node();
 	int execute(ulong _sig, TimeSpec &_tout);
 	
-	void pushSession(const SocketAddress &_rsa, const ConnectData &_rconndata);
+	uint32 pushSession(const SocketAddress &_rsa, const ConnectData &_rconndata, uint32 _idx = 0xffffffff);
 private:
 	void doInsertNewSessions();
-	int doReceiveDatagramBuffers(uint _atmost, const ulong _sig);
-	void doDispatchReceivedDatagramBuffer(
+	int doReceiveDatagramPackets(uint _atmost, const ulong _sig);
+	void doDispatchReceivedDatagramPacket(
 		char *_pbuf,
 		const uint32 _bufsz,
 		const SocketAddress &_rsap

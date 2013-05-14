@@ -89,7 +89,7 @@ struct AcceptData{
 class Talker;
 
 struct TalkerStub{
-	bool pushSendBuffer(uint32 _id, const char *_pb, uint32 _bl);
+	bool pushSendPacket(uint32 _id, const char *_pb, uint32 _bl);
 	void pushTimer(uint32 _id, const TimeSpec &_rtimepos);
 	const TimeSpec& currentTime()const{
 		return crttime;
@@ -138,10 +138,10 @@ public:
 	void pushSession(Session *_ps, ConnectionUid &_rconid, bool _exists = false);
 	void disconnectSessions(TalkerStub &_rstub);
 private:
-	int doReceiveBuffers(TalkerStub &_rstub, uint32 _atmost, const ulong _sig);
-	bool doProcessReceivedBuffers(TalkerStub &_rstub);
-	bool doPreprocessReceivedBuffers(TalkerStub &_rstub);
-	void doDispatchReceivedBuffer(
+	int doReceivePackets(TalkerStub &_rstub, uint32 _atmost, const ulong _sig);
+	bool doProcessReceivedPackets(TalkerStub &_rstub);
+	bool doPreprocessReceivedPackets(TalkerStub &_rstub);
+	void doDispatchReceivedPacket(
 		TalkerStub &_rstub,
 		char *_pbuf,
 		const uint32 _bufsz,
@@ -150,7 +150,7 @@ private:
 	void doInsertNewSessions(TalkerStub &_rstub);
 	void doDispatchMessages();
 	void doDispatchEvents();
-	int doSendBuffers(TalkerStub &_rstub, const ulong _sig);
+	int doSendPackets(TalkerStub &_rstub, const ulong _sig);
 	bool doExecuteSessions(TalkerStub &_rstub);
 private:
 	friend struct TalkerStub;

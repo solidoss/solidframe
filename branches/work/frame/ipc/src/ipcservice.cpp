@@ -162,15 +162,15 @@ struct Service::Data{
 	};
 	
 	struct RelayAddress4Stub{
-		RelayAddress4Stub():tid(0xffffffff), idx(0xffffffff){}
+		RelayAddress4Stub():nid(0xffffffff), idx(0xffffffff){}
 		RelayAddress4Stub(
 			SocketAddressInet4	const &_addr,
-			uint32 _rtid,
+			uint32 _rnid,
 			uint32 _idx
-		): addr(_addr), tid(_rtid), idx(_idx){}
+		): addr(_addr), nid(_rnid), idx(_idx){}
 		
 		SocketAddressInet4		addr;
-		uint32					tid;
+		uint32					nid;
 		uint32					idx;
 	};
 	
@@ -179,7 +179,7 @@ struct Service::Data{
 	typedef std::deque<RelayAddress4Stub>				RelayAddress4DequeT;
 	
 	typedef Queue<uint32>								Uint32QueueT;
-	typedef Queue<size_t>								SizeQueueT;
+	typedef Stack<size_t>								SizeStackT;
 	
 	Data(
 		const DynamicPointer<Controller> &_rctrlptr
@@ -204,10 +204,9 @@ struct Service::Data{
 	SessionAddr4MapT			sessionaddr4map;
 	SessionRelayAddr4MapT		sessionrelayaddr4map;
 	
-	GatewayRelayAddr4MapT		gw_l2r_relayaddrmap;//remote to local
-	GatewayRelayAddr4MapT		gw_r2l_relayaddrmap;//local to remote
+	GatewayRelayAddr4MapT		gwrelayaddrmap;//local to remote
 	RelayAddress4DequeT			gwrelayaddrdeq;
-	SizeQueueT					gwfreeq;
+	SizeStackT					gwfreestk;
 	
 	Uint32QueueT				tkrq;
 	Uint32QueueT				sessnodeq;
@@ -930,18 +929,31 @@ int Service::doAcceptRelaySession(const SocketAddress &_rsa, const ConnectData &
 }
 //---------------------------------------------------------------------
 int Service::doAcceptGatewaySession(const SocketAddress &_rsa, const ConnectData &_rconndata){
-	Locker<Mutex>								lock(mutex());
+	typedef Data::GatewayRelayAddr4MapT::const_iterator GatewayRelayAddr4MapConstIteratorT;
+	
+	Locker<Mutex>						lock(mutex());
 	
 	
-	SocketAddressInet4							addr(_rsa);
+	SocketAddressInet4					addr(_rsa);
+	GatewayRelayAddress4T				gwaddr(addr, _rconndata.relayid);
 	
-	GatewayRelayAddress4T						gwaddr(addr, _rconndata.relayid);
+	GatewayRelayAddr4MapConstIteratorT	it(d.gwrelayaddrmap.find(gwaddr));
 	
-	Data::GatewayRelayAddr4MapT::const_iterator	it(d.gw_l2r_relayaddrmap.find(gwaddr));
-	
-	if(d.gw_l2r_relayaddrmap.end() != it){
-		//maybe a resent buffer
+	if(d.gwrelayaddrmap.end() != it){
+		//maybe a resent packet
+		const Data::RelayAddress4Stub	&ras(d.gwrelayaddrdeq[it->second]);
+		IndexT							nodefullid;
 		
+		nodefullid = d.nodevec[ras.nid].uid.first;
+		
+		Locker<Mutex>					lock2(this->mutex(nodefullid));
+		Node							*pnode(static_cast<Node*>(this->object(nodefullid)));
+		
+		pnode->pushSession(_rsa, _rconndata, ras.idx);
+		
+		if(pnode->notify(frame::S_RAISE)){
+			manager().raise(*pnode);
+		}
 	}else{
 		int				nodeidx(allocateNodeForSession());
 		IndexT			nodefullid;
@@ -969,7 +981,17 @@ int Service::doAcceptGatewaySession(const SocketAddress &_rsa, const ConnectData
 		vdbgx(Debug::ipc, "");
 		
 		
-		pnode->pushSession(_rsa, _rconndata);
+		uint32 idx = pnode->pushSession(_rsa, _rconndata);
+		
+		if(d.gwfreestk.size()){
+			size_t ofs = d.gwfreestk.top();
+			d.gwfreestk.pop();
+			d.gwrelayaddrdeq[ofs].addr = addr;
+			d.gwrelayaddrdeq[ofs].nid = nodeidx;
+			d.gwrelayaddrdeq[ofs].idx = idx;
+		}else{
+			d.gwrelayaddrdeq.push_back(Data::RelayAddress4Stub(addr, nodeidx, idx));
+		}
 		
 		if(pnode->notify(frame::S_RAISE)){
 			manager().raise(*pnode);
@@ -1075,8 +1097,8 @@ const Controller& Service::controller()const{
 /*virtual*/ Controller::~Controller(){
 	
 }
-/*virtual*/ bool Controller::compressBuffer(
-	BufferContext &_rbc,
+/*virtual*/ bool Controller::compressPacket(
+	PacketContext &_rpc,
 	const uint32 _bufsz,
 	char* &_rpb,
 	uint32 &_bl
@@ -1084,24 +1106,24 @@ const Controller& Service::controller()const{
 	return false;
 }
 
-/*virtual*/ bool Controller::decompressBuffer(
-	BufferContext &_rbc,
+/*virtual*/ bool Controller::decompressPacket(
+	PacketContext &_rpc,
 	char* &_rpb,
 	uint32 &_bl
 ){
 	return true;
 }
 
-char * Controller::allocateBuffer(BufferContext &_rbc, uint32 &_cp){
-	const uint	mid(Specific::capacityToIndex(_cp ? _cp : Buffer::Capacity));
-	char		*newbuf(Buffer::allocate());
-	_cp = Buffer::Capacity - _rbc.offset;
-	if(_rbc.reqbufid != (uint)-1){
+char * Controller::allocateBuffer(PacketContext &_rpc, uint32 &_cp){
+	const uint	mid(Specific::capacityToIndex(_cp ? _cp : Packet::Capacity));
+	char		*newbuf(Packet::allocate());
+	_cp = Packet::Capacity - _rpc.offset;
+	if(_rpc.reqbufid != (uint)-1){
 		THROW_EXCEPTION("Requesting more than one buffer");
 		return NULL;
 	}
-	_rbc.reqbufid = mid;
-	return newbuf + _rbc.offset;
+	_rpc.reqbufid = mid;
+	return newbuf + _rpc.offset;
 }
 
 bool Controller::receive(

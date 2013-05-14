@@ -55,9 +55,9 @@ class Session;
 class Talker;
 struct TalkerStub;
 class Connection;
-struct Buffer;
+struct Packet;
+struct PacketContext;
 struct ConnectionUid;
-struct BufferContext;
 struct ConnectData;
 struct AcceptData;
 class Service;
@@ -92,14 +92,14 @@ struct Controller: Dynamic<Controller, DynamicShared<> >{
 	virtual void scheduleListener(frame::aio::Object *_plis) = 0;
 	virtual void scheduleNode(frame::aio::Object *_pnod) = 0;
 	
-	virtual bool compressBuffer(
-		BufferContext &_rbc,
+	virtual bool compressPacket(
+		PacketContext &_rpc,
 		const uint32 _bufsz,
 		char* &_rpb,
 		uint32 &_bl
 	);
-	virtual bool decompressBuffer(
-		BufferContext &_rbc,
+	virtual bool decompressPacket(
+		PacketContext &_rpc,
 		char* &_rpb,
 		uint32 &_bl
 	);
@@ -137,7 +137,7 @@ protected:
 		const uint32 _resdatasz = 0
 	):flags(0), resdatasz(_resdatasz){}
 	
-	char * allocateBuffer(BufferContext &_rbc, uint32 &_cp);
+	char * allocateBuffer(PacketContext &_rpc, uint32 &_cp);
 	
 	void sendEvent(
 		Service &_rs,
@@ -216,9 +216,9 @@ struct Configuration{
 			(_relayseskeepalive == 0 ? _relayreskeepalive : _relayseskeepalive)
 		),
 		relaykeepalive(_relayseskeepalive),
-		maxsendbuffercount(4),
+		maxsendpacketcount(4),
 		maxrecvnoupdatecount(2),
-		maxmessagebuffercount(8),
+		maxmessagepacketcount(8),
 		maxsendmessagequeuesize(32),
 		connectretransmitcount(8),
 		dataretransmitcount(8)
@@ -228,8 +228,8 @@ struct Configuration{
 				keepalive == _rses.keepalive && maxrecvnoupdatecount == _rses.maxrecvnoupdatecount &&
 				relayresponsekeepalive == _rses.relayresponsekeepalive &&
 				relaykeepalive == _rses.relaykeepalive &&
-				maxsendbuffercount == _rses.maxsendbuffercount &&
-				maxmessagebuffercount == _rses.maxmessagebuffercount &&
+				maxsendpacketcount == _rses.maxsendpacketcount &&
+				maxmessagepacketcount == _rses.maxmessagepacketcount &&
 				maxsendmessagequeuesize == _rses.maxsendmessagequeuesize &&
 				connectretransmitcount == _rses.connectretransmitcount &&
 				dataretransmitcount == _rses.dataretransmitcount;
@@ -238,9 +238,9 @@ struct Configuration{
 		uint32		keepalive;
 		uint32		relayresponsekeepalive;
 		uint32		relaykeepalive;
-		uint32		maxsendbuffercount;
-		uint32		maxrecvnoupdatecount;// max number of buffers received, without sending update
-		uint32		maxmessagebuffercount;//continuous buffers sent for a message
+		uint32		maxsendpacketcount;
+		uint32		maxrecvnoupdatecount;// max number of packets received, without sending update
+		uint32		maxmessagepacketcount;//continuous packets sent for a message
 		uint32		maxsendmessagequeuesize;//how many messages are sent in parallel
 		uint32		connectretransmitcount;
 		uint32		dataretransmitcount;

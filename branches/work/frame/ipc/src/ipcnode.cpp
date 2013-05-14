@@ -25,7 +25,7 @@
 #include "ipctalker.hpp"
 #include <vector>
 #include "frame/ipc/ipcservice.hpp"
-#include "ipcbuffer.hpp"
+#include "ipcpacket.hpp"
 
 using namespace std;
 
@@ -94,7 +94,7 @@ int Node::execute(ulong _sig, TimeSpec &_tout){
 	bool	must_reenter(false);
 	int		rv;
 	
-	rv = doReceiveDatagramBuffers(16, socketEvents(0));
+	rv = doReceiveDatagramPackets(16, socketEvents(0));
 	
 	while(signaledSize()){
 		const uint sockidx = signaledFront();
@@ -116,27 +116,28 @@ int Node::execute(ulong _sig, TimeSpec &_tout){
 
 
 //--------------------------------------------------------------------
-void Node::pushSession(const SocketAddress &_rsa, const ConnectData &_rconndata){
+uint32 Node::pushSession(const SocketAddress &_rsa, const ConnectData &_rconndata, uint32 _idx){
 	d.newsessionvec.push_back(NewSessionStub(_rsa, _rconndata));
+	return 0;
 }
 //----------------------------------------------------------------------
-int Node::doReceiveDatagramBuffers(uint _atmost, const ulong _sig){
+int Node::doReceiveDatagramPackets(uint _atmost, const ulong _sig){
 	if(this->socketHasPendingRecv(0)){
 		return NOK;
 	}
 	if(_sig & frame::INDONE){
-		doDispatchReceivedDatagramBuffer(d.pendingreadbuffer, socketRecvSize(0), socketRecvAddr(0));
+		doDispatchReceivedDatagramPacket(d.pendingreadbuffer, socketRecvSize(0), socketRecvAddr(0));
 		d.pendingreadbuffer = NULL;
 	}
 	while(_atmost--){
-		char 			*pbuf(Buffer::allocate());
-		const uint32	bufsz(Buffer::Capacity);
+		char 			*pbuf(Packet::allocate());
+		const uint32	bufsz(Packet::Capacity);
 		switch(socketRecvFrom(0, pbuf, bufsz)){
 			case BAD:
-				Buffer::deallocate(pbuf);
+				Packet::deallocate(pbuf);
 				return BAD;
 			case OK:
-				doDispatchReceivedDatagramBuffer(pbuf, socketRecvSize(0), socketRecvAddr(0));
+				doDispatchReceivedDatagramPacket(pbuf, socketRecvSize(0), socketRecvAddr(0));
 				break;
 			case NOK:
 				d.pendingreadbuffer = pbuf;
@@ -146,7 +147,7 @@ int Node::doReceiveDatagramBuffers(uint _atmost, const ulong _sig){
 	return OK;//can still read from socket
 }
 //--------------------------------------------------------------------
-void Node::doDispatchReceivedDatagramBuffer(
+void Node::doDispatchReceivedDatagramPacket(
 	char *_pbuf,
 	const uint32 _bufsz,
 	const SocketAddress &_rsap
