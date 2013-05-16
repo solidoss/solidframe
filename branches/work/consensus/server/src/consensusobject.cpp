@@ -61,16 +61,6 @@ namespace server{
 
 typedef DynamicPointer<consensus::WriteRequestMessage> WriteRequestMessagePointerT;
 
-/*static*/ const Parameters& Parameters::the(Parameters *_p){
-	static Parameters &r(*_p);
-	return r;
-}
-
-Parameters::Parameters(){
-	the(this);
-}
-
-
 //========================================================
 struct RequestStub{
 	enum{
@@ -238,7 +228,8 @@ inline bool RequestStub::isValidAcceptDeclineState()const{
 
 
 
-typedef std::deque<RequestStub>		RequestStubVectorT;
+typedef std::deque<RequestStub>			RequestStubVectorT;
+typedef DynamicPointer<Configuration> 	ConfigurationPointerT;
 
 struct Object::Data{
 	enum{
@@ -281,7 +272,7 @@ struct Object::Data{
 	typedef Queue<size_t>																		SizeTQueueT;
 
 //methods:
-	Data();
+	Data(DynamicPointer<Configuration> &_rcfgptr);
 	~Data();
 	
 	bool insertRequestStub(DynamicPointer<WriteRequestMessage> &_rmsgptr, size_t &_ridx);
@@ -297,6 +288,7 @@ struct Object::Data{
 	
 	
 //data:	
+	ConfigurationPointerT 	cfgptr;
 	DynamicExecuterT		exe;
 	uint32					proposeid;
 	frame::IndexT			srvidx;
@@ -364,12 +356,13 @@ NOTE:
 	A replica should only accept a proposeid==0 if its proposeid is 0.
 	On overflow, the proposeid should skip the 0 value.
 */
-Object::Data::Data():
+Object::Data::Data(DynamicPointer<Configuration> &_rcfgptr):
+	cfgptr(_rcfgptr),
 	proposeid(0), srvidx(INVALID_INDEX), acceptid(0), proposedacceptid(0), confirmedacceptid(0),
 	continuousacceptedproposes(0), pendingacceptwaitidx(-1),
 	coordinatorid(-2), distancefromcoordinator(-1), acceptpendingcnt(0), isnotjuststarted(false)
 {
-	if(Parameters::the().idx){
+	if(cfgptr->crtidx){
 		coordinatorId(0);
 	}else{
 		coordinatorId(-1);
@@ -382,8 +375,8 @@ Object::Data::~Data(){
 void Object::Data::coordinatorId(int8 _coordid){
 	coordinatorid = _coordid;
 	if(_coordid != (int8)-1){
-		int8 maxsz(Parameters::the().addrvec.size());
-		distancefromcoordinator = circular_distance(static_cast<int8>(Parameters::the().idx), coordinatorid, maxsz);
+		int8 maxsz(cfgptr->addrvec.size());
+		distancefromcoordinator = circular_distance(static_cast<int8>(cfgptr->crtidx), coordinatorid, maxsz);
 		idbg("non-coordinator with distance from coordinator: "<<(int)distancefromcoordinator);
 	}else{
 		distancefromcoordinator = -1;
@@ -541,7 +534,7 @@ static const DynamicRegisterer<Object>	dre;
 	_ripcsvc.typeMapper().insert<OperationMessage<16> >();
 	_ripcsvc.typeMapper().insert<OperationMessage<32> >();
 }
-Object::Object():d(*(new Data)){
+Object::Object(DynamicPointer<Configuration> &_rcfgptr):d(*(new Data(_rcfgptr))){
 	idbg((void*)this);
 }
 //---------------------------------------------------------
@@ -730,7 +723,7 @@ void Object::doExecuteProposeConfirmOperation(RunData &_rd, const uint8 _replica
 	
 	++preq->recvpropconf;
 	
-	if(preq->recvpropconf == Parameters::the().quorum){
+	if(preq->recvpropconf == d.cfgptr->quorum){
 		++d.continuousacceptedproposes;
 		preq->state(RequestStub::WaitAcceptConfirmState);
 		TimeSpec ts(frame::Object::currentTime());
@@ -770,7 +763,7 @@ void Object::doExecuteProposeDeclineOperation(RunData &_rd, const uint8 _replica
 		return;
 	}
 	++preq->recvpropdecl;
-	if(preq->recvpropdecl == Parameters::the().quorum){
+	if(preq->recvpropdecl == d.cfgptr->quorum){
 		++preq->timerid;
 		preq->state(RequestStub::InitState);
 		d.continuousacceptedproposes = 0;
@@ -1342,7 +1335,7 @@ void Object::doSendDeclinePropose(RunData &_rd, const uint8 _replicaidx, const O
 	}
 	OperationMessage<1>	*po(new OperationMessage<1>);
 	
-	po->replicaidx = Parameters::the().idx;
+	po->replicaidx = d.cfgptr->crtidx;
 	po->srvidx = serverIndex();
 	
 	po->op.operation = Data::ProposeDeclineOperation;
@@ -1351,7 +1344,7 @@ void Object::doSendDeclinePropose(RunData &_rd, const uint8 _replicaidx, const O
 	po->op.reqid = _rop.reqid;
 	
 	DynamicPointer<frame::Message>		msgptr(po);
-	this->doSendMessage(msgptr, Parameters::the().addrvec[_replicaidx]);
+	this->doSendMessage(msgptr, d.cfgptr->addrvec[_replicaidx]);
 }
 
 void Object::doSendConfirmAccept(RunData &_rd, const uint8 _replicaidx, const size_t _reqidx){
@@ -1389,7 +1382,7 @@ void Object::doSendDeclineAccept(RunData &_rd, const uint8 _replicaidx, const Op
 	}
 	OperationMessage<1>	*po(new OperationMessage<1>);
 	
-	po->replicaidx = Parameters::the().idx;
+	po->replicaidx = d.cfgptr->crtidx;
 	po->srvidx = serverIndex();
 	
 	po->op.operation = Data::AcceptDeclineOperation;
@@ -1399,7 +1392,7 @@ void Object::doSendDeclineAccept(RunData &_rd, const uint8 _replicaidx, const Op
 	
 	DynamicPointer<frame::Message>		msgptr(po);
 	
-	this->doSendMessage(msgptr, Parameters::the().addrvec[_replicaidx]);
+	this->doSendMessage(msgptr, d.cfgptr->addrvec[_replicaidx]);
 }
 void Object::doFlushOperations(RunData &_rd){
 	idbg("");
@@ -1415,7 +1408,7 @@ void Object::doFlushOperations(RunData &_rd){
 		RequestStub				&rreq(d.requestStub(_rd.ops[0].reqidx));
 		pm = po;
 		
-		po->replicaidx = Parameters::the().idx;
+		po->replicaidx = d.cfgptr->crtidx;
 		po->srvidx = serverIndex();
 		
 		po->op.operation = _rd.ops[0].operation;
@@ -1425,34 +1418,34 @@ void Object::doFlushOperations(RunData &_rd){
 	}else if(opcnt == 2){
 		OperationMessage<2>	*po(new OperationMessage<2>);
 		pm = po;
-		po->replicaidx = Parameters::the().idx;
+		po->replicaidx = d.cfgptr->crtidx;
 		po->srvidx = serverIndex();
 		pos = po->op;
 	}else if(opcnt <= 4){
 		OperationMessage<4>	*po(new OperationMessage<4>);
 		pm = po;
-		po->replicaidx = Parameters::the().idx;
+		po->replicaidx = d.cfgptr->crtidx;
 		po->srvidx = serverIndex();
 		po->opsz = opcnt;
 		pos = po->op;
 	}else if(opcnt <= 8){
 		OperationMessage<8>	*po(new OperationMessage<8>);
 		pm = po;
-		po->replicaidx = Parameters::the().idx;
+		po->replicaidx = d.cfgptr->crtidx;
 		po->srvidx = serverIndex();
 		po->opsz = opcnt;
 		pos = po->op;
 	}else if(opcnt <= 16){
 		OperationMessage<16>	*po(new OperationMessage<16>);
 		pm = po;
-		po->replicaidx = Parameters::the().idx;
+		po->replicaidx = d.cfgptr->crtidx;
 		po->srvidx = serverIndex();
 		po->opsz = opcnt;
 		pos = po->op;
 	}else if(opcnt <= 32){
 		OperationMessage<32>	*po(new OperationMessage<32>);
 		pm = po;
-		po->replicaidx = Parameters::the().idx;
+		po->replicaidx = d.cfgptr->crtidx;
 		po->srvidx = serverIndex();
 		po->opsz = opcnt;
 		pos = po->op;
@@ -1476,16 +1469,16 @@ void Object::doFlushOperations(RunData &_rd){
 		DynamicSharedPointer<Message>	sharedmsgptr(pm);
 		idbg("broadcast to other replicas");
 		//broadcast to replicas
-		for(uint i(0); i < Parameters::the().addrvec.size(); ++i){
-			if(i != Parameters::the().idx){
+		for(uint i(0); i < d.cfgptr->addrvec.size(); ++i){
+			if(i != d.cfgptr->crtidx){
 				DynamicPointer<frame::Message>		msgptr(sharedmsgptr);
-				this->doSendMessage(msgptr, Parameters::the().addrvec[i]);
+				this->doSendMessage(msgptr, d.cfgptr->addrvec[i]);
 			}
 		}
 	}else{
 		idbg("send to "<<(int)_rd.coordinatorid);
 		DynamicPointer<frame::Message>		msgptr(pm);
-		this->doSendMessage(msgptr, Parameters::the().addrvec[_rd.coordinatorid]);
+		this->doSendMessage(msgptr, d.cfgptr->addrvec[_rd.coordinatorid]);
 	}
 }
 /*

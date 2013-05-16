@@ -47,13 +47,11 @@ template <uint16 Count>
 struct OperationMessage;
 struct OperationStub;
 
-struct Parameters{
+struct Configuration: Dynamic<Configuration, DynamicShared<> >{
 	typedef std::vector<SocketAddressInet4>	AddressVectorT;
-	static const Parameters& the(Parameters *_p = NULL);
-	Parameters();
 	
 	AddressVectorT	addrvec;
-	uint8			idx;
+	uint8			crtidx;
 	uint8			quorum;
 };
 //! The base class for distributed objects needing consensus on processing requests
@@ -72,7 +70,7 @@ class Object: public Dynamic<Object, frame::Object>{
 public:
 	static void dynamicRegister();
 	static void registerMessages(frame::ipc::Service &_ripcsvc);
-	Object();
+	Object(DynamicPointer<Configuration> &_rcfgptr);
 	~Object();
 	void serverIndex(const frame::IndexT &_ridx);
 	frame::IndexT serverIndex()const;

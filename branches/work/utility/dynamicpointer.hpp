@@ -173,7 +173,7 @@ public:
 	}
 	
 	template <class B>
-	explicit DynamicPointer(const DynamicSharedPointer<B> &_rcp):pdyn(static_cast<T*>(_rcp.get())){
+	DynamicPointer(const DynamicSharedPointer<B> &_rcp):pdyn(static_cast<T*>(_rcp.get())){
 		if(pdyn){
 			use(static_cast<DynamicBase*>(pdyn));
 		}

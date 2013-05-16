@@ -17,7 +17,7 @@
 using namespace std;
 using namespace solid;
 
-bool ServerParams::init(int _ipc_port){
+bool ServerConfiguration::init(int _ipc_port){
 	for(StringVectorT::const_iterator it(addrstrvec.begin()); it != addrstrvec.end(); ++it){
 		string s(*it);
 		size_t pos = s.find_last_of(':');
@@ -65,9 +65,9 @@ bool ServerParams::init(int _ipc_port){
             }
             SocketAddressInet4 sa(SocketAddressStub(it->ifa_addr, sizeof(sockaddr_in)));
 			sa.port(_ipc_port);
-			int pos = bs(addrvec.begin(), addrvec.end(), sa);
-			if(pos >= 0){
-				idx = pos;
+			BinarySeekerResultT pos = bs(addrvec.begin(), addrvec.end(), sa);
+			if(pos.second){
+				crtidx = pos.first;
 				break;
 			}
 		}
@@ -79,7 +79,7 @@ bool ServerParams::init(int _ipc_port){
 	return true;
 }
 
-std::ostream& ServerParams::print(std::ostream &_ros)const{
+std::ostream& ServerConfiguration::print(std::ostream &_ros)const{
 	_ros<<"Addresses: [";
 	for(AddressVectorT::const_iterator it(addrvec.begin()); it != addrvec.end(); ++it){
 		const SocketAddressInet4	&ra(*it);
@@ -95,10 +95,10 @@ std::ostream& ServerParams::print(std::ostream &_ros)const{
 		);
 		_ros<<host<<':'<<port<<' ';
 	}
-	_ros<<"] Index: "<<(int)idx<<" Qorum: "<<(int)quorum;
+	_ros<<"] Index: "<<(int)crtidx<<" Qorum: "<<(int)quorum;
 	return _ros;
 }
-std::ostream& operator<<(std::ostream &_ros, const ServerParams &_rsp){
+std::ostream& operator<<(std::ostream &_ros, const ServerConfiguration &_rsp){
 	return _rsp.print(_ros);
 }
 
@@ -115,7 +115,10 @@ static const DynamicRegisterer<ServerObject>	dre;
 /*static*/void ServerObject::registerMessages(solid::frame::ipc::Service &_ripcsvc){
 	Object::registerMessages(_ripcsvc);
 }
-ServerObject::ServerObject(solid::frame::ipc::Service &_ripcsvc):ripcsvc(_ripcsvc){
+ServerObject::ServerObject(
+	solid::frame::ipc::Service &_ripcsvc,
+	DynamicPointer<solid::consensus::server::Configuration> &_rcfgptr
+):BaseT(_rcfgptr), ripcsvc(_ripcsvc){
 	
 }
 ServerObject::~ServerObject(){

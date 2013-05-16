@@ -10,7 +10,7 @@ struct FetchRequest;
 struct EraseRequest;
 
 
-struct ServerParams: solid::consensus::server::Parameters{
+struct ServerConfiguration: solid::consensus::server::Configuration{
 	typedef std::vector<std::string>	StringVectorT;
 	
 	bool init(int _ipc_port);
@@ -23,7 +23,7 @@ private:
 	std::string		err;
 };
 
-std::ostream& operator<<(std::ostream &_ros, const ServerParams &_rsp);
+std::ostream& operator<<(std::ostream &_ros, const ServerConfiguration &_rsp);
 
 
 class ServerObject: public solid::Dynamic<ServerObject, solid::consensus::server::Object>{
@@ -31,7 +31,7 @@ class ServerObject: public solid::Dynamic<ServerObject, solid::consensus::server
 public:
 	static void dynamicRegister();
 	static void registerMessages(solid::frame::ipc::Service &_ripcsvc);
-	ServerObject(solid::frame::ipc::Service &_ripcsvc);
+	ServerObject(solid::frame::ipc::Service &_ripcsvc, solid::DynamicPointer<solid::consensus::server::Configuration> &_rcfgptr);
 	~ServerObject();
 	void dynamicExecute(solid::DynamicPointer<> &_dp, int);
 	

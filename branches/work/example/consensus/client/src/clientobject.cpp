@@ -317,28 +317,24 @@ uint32 ClientObject::newRequestId(int _pos){
 		reqidvec.push_back(std::pair<uint32, int>(rq, _pos));
 		
 	}else{
-		int rv = reqbs(reqidvec.begin(), reqidvec.end(), rq);
-		cassert(rv < 0);
-		rv = -rv - 1;
-		reqidvec.insert(reqidvec.begin() + rv, std::pair<uint32, int>(rq, _pos));
+		BinarySeekerResultT rv = reqbs(reqidvec.begin(), reqidvec.end(), rq);
+		reqidvec.insert(reqidvec.begin() + rv.first, std::pair<uint32, int>(rq, _pos));
 	}
 	return rq;
 }
 //------------------------------------------------------------
 bool ClientObject::isRequestIdExpected(uint32 _v, int &_rpos)const{
-	int rv = reqbs(reqidvec.begin(), reqidvec.end(), _v);
-	if(rv >= 0){
-		_rpos = reqidvec[rv].second;
+	BinarySeekerResultT rv = reqbs(reqidvec.begin(), reqidvec.end(), _v);
+	if(rv.second){
+		_rpos = reqidvec[rv.first].second;
 		return true;
 	}else return false;
 }
 //------------------------------------------------------------
 void ClientObject::deleteRequestId(uint32 _v){
 	if(_v == 0) return;
-	int rv = reqbs(reqidvec.begin(), reqidvec.end(), _v);
-	cassert(rv < 0);
-	rv = -rv - 1;
-	reqidvec.erase(reqidvec.begin() + rv);
+	BinarySeekerResultT rv = reqbs(reqidvec.begin(), reqidvec.end(), _v);
+	reqidvec.erase(reqidvec.begin() + rv.first);
 }
 //------------------------------------------------------------
 uint32 ClientObject::sendMessage(consensus::WriteRequestMessage *_pmsg){

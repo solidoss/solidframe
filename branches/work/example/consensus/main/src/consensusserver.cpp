@@ -21,23 +21,26 @@
 using namespace std;
 using namespace solid;
 
-typedef frame::IndexT							IndexT;
-typedef frame::Scheduler<frame::aio::Selector>	AioSchedulerT;
-typedef frame::Scheduler<frame::ObjectSelector>	SchedulerT;
-
+typedef frame::IndexT										IndexT;
+typedef frame::Scheduler<frame::aio::Selector>				AioSchedulerT;
+typedef frame::Scheduler<frame::ObjectSelector>				SchedulerT;
+typedef DynamicSharedPointer<ServerConfiguration>			ServerConfigurationSharedPointerT;
+typedef DynamicPointer<consensus::server::Configuration>	ConfigurationPointerT;
 //------------------------------------------------------------------
 //------------------------------------------------------------------
 
 struct Params{
-	int				ipc_port;
-	string			dbg_levels;
-	string			dbg_modules;
-	string			dbg_addr;
-	string			dbg_port;
-	bool			dbg_buffered;
-	bool			dbg_console;
-	bool			log;
-	ServerParams	p;
+	Params():cfgptr(new ServerConfiguration){}
+	
+	int									ipc_port;
+	string								dbg_levels;
+	string								dbg_modules;
+	string								dbg_addr;
+	string								dbg_port;
+	bool								dbg_buffered;
+	bool								dbg_console;
+	bool								log;
+	ServerConfigurationSharedPointerT	cfgptr;
 };
 
 
@@ -83,14 +86,14 @@ int main(int argc, char *argv[]){
 	}
 #endif
 	{
-		if(!p.p.init(p.ipc_port)){
+		if(!p.cfgptr->init(p.ipc_port)){
 		//cout<<"Failed ServerParams::init: "<<p.p.errorString()<<endl;
-		idbg("Failed ServerParams::init: "<<p.p.errorString());
+		idbg("Failed ServerParams::init: "<<p.cfgptr->errorString());
 		return 0;
 	}
 	
 		//cout<<p.p;
-		idbg(p.p);
+		idbg(*p.cfgptr);
 	}
 	{
 		
@@ -123,7 +126,8 @@ int main(int argc, char *argv[]){
 			}
 		}
 		
-		DynamicPointer<ServerObject>	objptr(new ServerObject(ipcsvc));
+		ConfigurationPointerT			cfgptr(p.cfgptr);
+		DynamicPointer<ServerObject>	objptr(new ServerObject(ipcsvc, cfgptr));
 		
 		objptr->serverIndex(consensus::Registrar::the().registerObject(m.registerObject(*objptr)));
 		
@@ -152,7 +156,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 			("debug_console,C", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")
 			("debug_unbuffered,S", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered")
 			("use_log,l", value<bool>(&_par.log)->implicit_value(true)->default_value(false), "Debug buffered")
-			("server_addrs,a", value< vector<string> >(&_par.p.addrstrvec), "Server addresses")
+			("server_addrs,a", value< vector<string> >(&_par.cfgptr->addrstrvec), "Server addresses")
 	/*		("verbose,v", po::value<int>()->implicit_value(1),
 					"enable verbosity (optionally specify level)")*/
 	/*		("listen,l", po::value<int>(&portnum)->implicit_value(1001)
