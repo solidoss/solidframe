@@ -421,6 +421,9 @@ private:
 	friend class Controller;
 	friend class Listener;
 	
+	
+	typedef std::vector<const Configuration::RelayAddress*>		RelayAddressPointerVectorT;
+	
 	bool isLocalNetwork(
 		const SocketAddressStub &_rsa_dest,
 		const uint32 _netid_dest
@@ -479,10 +482,16 @@ private:
 	uint32 keepAliveTimeout()const;
 	void connectSession(const SocketAddressInet4 &_raddr);
 	void insertConnection(
-		const solid::SocketDevice &_rsd,
-		solid::frame::aio::openssl::Context *_pctx,
+		SocketDevice &_rsd,
+		aio::openssl::Context *_pctx,
 		bool _secure
 	);
+	
+	size_t	netId2AddressFind(uint32 _netid)const;
+	size_t	netId2AddressVectorSize()const;
+	
+	size_t	address2NetIdFind(SocketAddressInet const&)const;
+	size_t	address2NetIdVectorSize()const;
 	
 	Controller& controller();
 	

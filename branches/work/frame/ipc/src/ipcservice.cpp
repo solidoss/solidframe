@@ -22,6 +22,7 @@
 #include <vector>
 #include <cstring>
 #include <utility>
+#include <algorithm>
 
 #include "system/debug.hpp"
 #include "system/mutex.hpp"
@@ -30,6 +31,7 @@
 #include "system/exception.hpp"
 
 #include "utility/queue.hpp"
+#include "utility/binaryseeker.hpp"
 
 #include "frame/common.hpp"
 #include "frame/manager.hpp"
@@ -207,6 +209,8 @@ struct Service::Data{
 	GatewayRelayAddr4MapT		gwrelayaddrmap;//local to remote
 	RelayAddress4DequeT			gwrelayaddrdeq;
 	SizeStackT					gwfreestk;
+	RelayAddressPointerVectorT	gwnetid2addrvec;
+	RelayAddressPointerVectorT	gwaddr2netidvec;
 	
 	Uint32QueueT				tkrq;
 	Uint32QueueT				sessnodeq;
@@ -261,6 +265,21 @@ const TimeSpec& Service::timeStamp()const{
 	return d.timestamp;
 }
 //---------------------------------------------------------------------
+
+struct RelayAddressNetIdLess{
+	bool operator()(Configuration::RelayAddress const *_a1, Configuration::RelayAddress const *_a2)const{
+		return _a1->networkid < _a2->networkid;
+	}
+};
+
+struct RelayAddressAddrLess{
+	bool operator()(Configuration::RelayAddress const *_a1, Configuration::RelayAddress const *_a2)const{
+		//TODO: add support for IPv6
+		return _a1->address.address4() < _a2->address.address4();
+	}
+};
+
+
 int Service::reconfigure(const Configuration &_rcfg){
 	Locker<Mutex>	lock(mutex());
 	
@@ -303,6 +322,25 @@ int Service::reconfigure(const Configuration &_rcfg){
 			d.nodetimeout = Session::computeResendTime(dataresendcnt) + Session::computeResendTime(connectresendcnt);
 			d.nodetimeout *= 2;//we need to be sure that the keepalive on note 
 		}
+		d.gwnetid2addrvec.clear();
+		d.gwaddr2netidvec.clear();
+		for(
+			Configuration::RelayAddressVectorT::const_iterator it(configuration().relayaddrvec.begin());
+			it != configuration().relayaddrvec.end();
+			++it
+		){
+			d.gwnetid2addrvec.push_back(&(*it));
+			d.gwaddr2netidvec.push_back(&(*it));
+		}
+		{
+			RelayAddressNetIdLess cmp;
+			std::sort(d.gwnetid2addrvec.begin(), d.gwnetid2addrvec.end(), cmp);
+		}
+		{
+			RelayAddressAddrLess cmp;
+			std::sort(d.gwaddr2netidvec.begin(), d.gwaddr2netidvec.end(), cmp);
+		}
+		
 		//Locker<Mutex>	lock(serviceMutex());
 		cassert(!d.tkrvec.size());//only the first tkr must be inserted from outside
 		Talker			*ptkr(new Talker(sd, *this, 0));
@@ -989,8 +1027,13 @@ int Service::doAcceptGatewaySession(const SocketAddress &_rsa, const ConnectData
 			d.gwrelayaddrdeq[ofs].addr = addr;
 			d.gwrelayaddrdeq[ofs].nid = nodeidx;
 			d.gwrelayaddrdeq[ofs].idx = idx;
+			
+			GatewayRelayAddress4T	gwa(d.gwrelayaddrdeq[ofs].addr, _rconndata.relayid);
+			d.gwrelayaddrmap[gwa] = ofs;
 		}else{
 			d.gwrelayaddrdeq.push_back(Data::RelayAddress4Stub(addr, nodeidx, idx));
+			GatewayRelayAddress4T	gwa(d.gwrelayaddrdeq.back().addr, _rconndata.relayid);
+			d.gwrelayaddrmap[gwa] = d.gwrelayaddrdeq.size() - 1;
 		}
 		
 		if(pnode->notify(frame::S_RAISE)){
@@ -1065,11 +1108,101 @@ bool Service::checkAcceptData(const SocketAddress &/*_rsa*/, const AcceptData &_
 }
 //---------------------------------------------------------------------
 void Service::insertConnection(
-	const solid::SocketDevice &_rsd,
-	solid::frame::aio::openssl::Context *_pctx,
+	SocketDevice &_rsd,
+	aio::openssl::Context *_pctx,
 	bool _secure
 ){
+	int				nodeidx(allocateNodeForSocket());
+	IndexT			nodefullid;
+	uint32			nodeuid;
+		
+	if(nodeidx >= 0){
+		//the node exists
+		nodefullid = d.nodevec[nodeidx].uid.first;
+		nodeuid = d.nodevec[nodeidx].uid.second;
+	}else{
+		//create new node
+		nodeidx = createNode(nodefullid, nodeuid);
+		if(nodeidx < 0){
+			nodeidx = allocateNodeForSocket(true/*force*/);
+		}
+		nodefullid = d.nodevec[nodeidx].uid.first;
+		nodeuid = d.nodevec[nodeidx].uid.second;
+	}
+		
+	Locker<Mutex>	lock2(this->mutex(nodefullid));
+	Node			*pnode(static_cast<Node*>(this->object(nodefullid)));
 	
+	cassert(pnode);
+	
+	vdbgx(Debug::ipc, "");
+	
+	SocketAddress		sa;
+	
+	_rsd.remoteAddress(sa);
+	
+	SocketAddressInet	sai(sa);
+	
+	const size_t		off = address2NetIdFind(sai);
+	
+	if(off != address2NetIdVectorSize()){
+		pnode->pushConnection(_rsd, off, _pctx, _secure);
+	
+		if(pnode->notify(frame::S_RAISE)){
+			manager().raise(*pnode);
+		}
+	}
+}
+
+namespace{
+struct RelayAddressNetIdCompare{
+	int operator()(Configuration::RelayAddress const *_a1, uint32 _networkid)const{
+		if(_a1->networkid < _networkid){
+			return -1;
+		}else if(_a1->networkid > _networkid){
+			return 1;
+		}
+		return 0;
+	}
+};
+
+struct RelayAddressAddrCompare{
+	bool operator()(Configuration::RelayAddress const *_a1, SocketAddressInet const &_address)const{
+		//TODO: add support for IPv6
+		if(_a1->address.address4() < _address.address4()){
+			return -1;
+		}else if(_address.address4() < _a1->address.address4()){
+			return 1;
+		}
+		return 0;
+	}
+};
+}//namespace
+
+size_t	Service::netId2AddressFind(uint32 _netid)const{
+	static BinarySeeker<RelayAddressNetIdCompare> bs;
+	BinarySeekerResultT r = bs.first(d.gwnetid2addrvec.begin(), d.gwnetid2addrvec.end(), _netid);
+	if(r.second){
+		return r.first;
+	}else{
+		return d.gwnetid2addrvec.size();
+	}
+}
+size_t	Service::netId2AddressVectorSize()const{
+	return d.gwnetid2addrvec.size();
+}
+
+size_t	Service::address2NetIdFind(SocketAddressInet const&_addr)const{
+	static BinarySeeker<RelayAddressAddrCompare> bs;
+	BinarySeekerResultT r = bs.first(d.gwaddr2netidvec.begin(), d.gwaddr2netidvec.end(), _addr);
+	if(r.second){
+		return r.first;
+	}else{
+		return d.gwaddr2netidvec.size();
+	}
+}
+size_t	Service::address2NetIdVectorSize()const{
+	return d.gwaddr2netidvec.size();
 }
 
 //---------------------------------------------------------------------

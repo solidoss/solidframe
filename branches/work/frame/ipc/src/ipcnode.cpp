@@ -33,6 +33,8 @@ namespace solid{
 namespace frame{
 namespace ipc{
 
+typedef std::vector<const Configuration::RelayAddress*>		RelayAddressPointerVectorT;
+typedef RelayAddressPointerVectorT::const_iterator			RelayAddressPointerConstInteratorT;
 
 struct NewSessionStub{
 	NewSessionStub(
@@ -42,6 +44,18 @@ struct NewSessionStub{
 	
 	SocketAddressInet	address;
 	ConnectData			connectdata;
+};
+
+
+struct SessionStub{
+	uint32 localrelayid;
+	uint32 remoterelayid;
+};
+
+struct ConnectionStub{
+	uint32									networkid;
+	RelayAddressPointerConstInteratorT		crtrelayit;
+	
 };
 
 typedef std::vector<NewSessionStub> NewSessionVectorT;
@@ -119,6 +133,15 @@ int Node::execute(ulong _sig, TimeSpec &_tout){
 uint32 Node::pushSession(const SocketAddress &_rsa, const ConnectData &_rconndata, uint32 _idx){
 	d.newsessionvec.push_back(NewSessionStub(_rsa, _rconndata));
 	return 0;
+}
+//--------------------------------------------------------------------
+void Node::pushConnection(
+	SocketDevice &_rsd,
+	uint32 _netoff,
+	aio::openssl::Context *_pctx,
+	bool _secure
+){
+	
 }
 //----------------------------------------------------------------------
 int Node::doReceiveDatagramPackets(uint _atmost, const ulong _sig){

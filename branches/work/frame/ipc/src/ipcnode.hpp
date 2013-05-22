@@ -30,6 +30,13 @@ namespace solid{
 class SocketAddress;
 
 namespace frame{
+
+namespace aio{
+namespace openssl{
+class Context;
+}
+}
+
 namespace ipc{
 
 struct ConnectData;
@@ -46,7 +53,17 @@ public:
 	~Node();
 	int execute(ulong _sig, TimeSpec &_tout);
 	
-	uint32 pushSession(const SocketAddress &_rsa, const ConnectData &_rconndata, uint32 _idx = 0xffffffff);
+	uint32 pushSession(
+		const SocketAddress &_rsa,
+		const ConnectData &_rconndata,
+		uint32 _idx = 0xffffffff
+	);
+	void pushConnection(
+		SocketDevice &_rsd,
+		uint32 _netoff,
+		aio::openssl::Context *_pctx,
+		bool _secure
+	);
 private:
 	void doInsertNewSessions();
 	int doReceiveDatagramPackets(uint _atmost, const ulong _sig);
