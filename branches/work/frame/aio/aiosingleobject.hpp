@@ -66,7 +66,7 @@ public:
 	/*!
 		\param _rai An SocketAddressInfo iterator holding the destination address.
 	*/
-	int socketConnect(const ResolveIterator& _rai);
+	int socketConnect(const SocketAddressStub& _rsas);
 	
 	//! Asynchronous send
 	int socketSend(const char* _pb, uint32 _bl, uint32 _flags = 0);

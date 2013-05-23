@@ -60,7 +60,7 @@ public:
 	//! Create the socket
 	int create(const ResolveIterator& _rai);
 	//! Asynchronous connect request
-	int connect(const ResolveIterator& _rai);
+	int connect(const SocketAddressStub& _rsas);
 	int accept(SocketDevice &_rsd);
 	int accept(Socket &_rs);
 	//! Send a buffer

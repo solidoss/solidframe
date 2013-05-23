@@ -244,9 +244,9 @@ int SingleObject::socketAccept(SocketDevice &_rsd){
 	return rv;
 }
 
-int SingleObject::socketConnect(const ResolveIterator& _rai){
+int SingleObject::socketConnect(const SocketAddressStub& _rsas){
 	cassert(stub.psock);
-	int rv = stub.psock->connect(_rai);
+	int rv = stub.psock->connect(_rsas);
 	if(rv == NOK){
 		socketPushRequest(0, SocketStub::IORequest);
 	}
@@ -495,9 +495,9 @@ int MultiObject::socketAccept(const uint _pos, SocketDevice &_rsd){
 	return rv;
 }
 
-int MultiObject::socketConnect(const uint _pos, const ResolveIterator& _rai){
+int MultiObject::socketConnect(const uint _pos, const SocketAddressStub& _rsas){
 	cassert(_pos < stubcp);
-	int rv = pstubs[_pos].psock->connect(_rai);
+	int rv = pstubs[_pos].psock->connect(_rsas);
 	if(rv == NOK){
 		socketPushRequest(_pos, SocketStub::IORequest);
 	}

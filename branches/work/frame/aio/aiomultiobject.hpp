@@ -77,7 +77,7 @@ public:
 		\param _pos The socket identifier
 		\param _rai An SocketAddressInfo iterator holding the destination address.
 	*/
-	int socketConnect(const uint _pos, const ResolveIterator& _rai);
+	int socketConnect(const uint _pos, const SocketAddressStub& _rsas);
 	
 	//! Asynchronous send for socket on position _pos
 	int socketSend(const uint _pos, const char* _pb, uint32 _bl, uint32 _flags = 0);

@@ -1204,7 +1204,14 @@ size_t	Service::address2NetIdFind(SocketAddressInet const&_addr)const{
 size_t	Service::address2NetIdVectorSize()const{
 	return d.gwaddr2netidvec.size();
 }
-
+Configuration::RelayAddress const&	Service::netId2AddressAt(const size_t _off)const{
+	cassert(_off < d.gwnetid2addrvec.size());
+	return *d.gwnetid2addrvec[_off];
+}
+Configuration::RelayAddress const&	Service::address2NetIdAt(const size_t _off)const{
+	cassert(_off < d.gwaddr2netidvec.size());
+	return *d.gwaddr2netidvec[_off];
+}
 //---------------------------------------------------------------------
 //			Controller
 //---------------------------------------------------------------------

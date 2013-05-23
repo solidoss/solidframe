@@ -26,6 +26,7 @@
 #include <vector>
 #include "frame/ipc/ipcservice.hpp"
 #include "ipcpacket.hpp"
+#include "system/socketdevice.hpp"
 
 using namespace std;
 
@@ -38,36 +39,78 @@ typedef RelayAddressPointerVectorT::const_iterator			RelayAddressPointerConstInt
 
 struct NewSessionStub{
 	NewSessionStub(
+		uint32 _idx,
 		const SocketAddress &_rsa,
 		const ConnectData &_rconndata
-	):address(_rsa), connectdata(_rconndata){}
+	):idx(_idx), address(_rsa), connectdata(_rconndata){}
 	
+	uint32				idx;
 	SocketAddressInet	address;
 	ConnectData			connectdata;
 };
 
+struct NewConnectionStub{
+	NewConnectionStub(
+		const SocketDevice &_rsd,
+		uint32 _netidx,
+		aio::openssl::Context *_pctx,
+		bool _secure
+	):sd(_rsd), netidx(_netidx), pctx(_pctx), secure(_secure){}
+	
+	SocketDevice			sd;
+	uint32					netidx;
+	aio::openssl::Context	*pctx;
+	bool					secure;
+};
 
 struct SessionStub{
-	uint32 localrelayid;
-	uint32 remoterelayid;
+	enum{
+		InitState,
+		ReinitState,
+		DeleteState
+	};
+	SessionStub():state(0){}
+	uint8	state;
+	uint32	localrelayid;
+	uint32	remoterelayid;
 };
 
 struct ConnectionStub{
-	uint32									networkid;
-	RelayAddressPointerConstInteratorT		crtrelayit;
+	enum{
+		InitState,
+		RegisterState,
+	};
+	ConnectionStub():state(InitState){}
+	uint8					state;
+	bool					secure;
+	uint32					networkidx;
 	
 };
 
-typedef std::vector<NewSessionStub> NewSessionVectorT;
+typedef std::vector<NewSessionStub> 	NewSessionVectorT;
+typedef std::vector<NewConnectionStub>	NewConnectionVectorT;
+typedef Stack<uint32>					Uint32StackT;
+typedef std::deque<SessionStub>			SessionVectorT;
+typedef std::deque<ConnectionStub>		ConnectionVectorT;
+
 
 struct Node::Data{
-	Data(uint16 _nodeid, Service &_rservice):nodeid(_nodeid), rservice(_rservice), pendingreadbuffer(NULL){}
+	Data(
+		uint16 _nodeid,
+		Service &_rservice
+	):nodeid(_nodeid), rservice(_rservice), pendingreadbuffer(NULL), nextsessionidx(0){}
 	
-	const uint16		nodeid;
-	Service				&rservice;
-	char				*pendingreadbuffer;
+	const uint16			nodeid;
+	Service					&rservice;
+	char					*pendingreadbuffer;
+	uint32					nextsessionidx;
 	
-	NewSessionVectorT	newsessionvec;
+	NewSessionVectorT		newsessionvec;
+	NewSessionVectorT		newsessiontmpvec;
+	NewConnectionVectorT	newconnectionvec;
+	Uint32StackT			freesessionstk;
+	SessionVectorT			sessionvec;
+	ConnectionVectorT		connectionvec;
 };
 
 //--------------------------------------------------------------------
@@ -97,12 +140,20 @@ int Node::execute(ulong _sig, TimeSpec &_tout){
 				Locker<Mutex>	lock(rm.mutex(*this));
 			
 				if(d.newsessionvec.size()){
-					doInsertNewSessions();
+					doPrepareInsertNewSessions();
+				}
+				//TODO: here you should do the delete sessions
+				if(d.newconnectionvec.size()){
+					doInsertNewConnections();
 				}
 			}else{
 				idbgx(Debug::ipc, "unknown signal");
 			}
 		}
+	}
+	
+	if(d.newsessiontmpvec.size()){
+		doInsertNewSessions();
 	}
 	
 	bool	must_reenter(false);
@@ -131,17 +182,27 @@ int Node::execute(ulong _sig, TimeSpec &_tout){
 
 //--------------------------------------------------------------------
 uint32 Node::pushSession(const SocketAddress &_rsa, const ConnectData &_rconndata, uint32 _idx){
-	d.newsessionvec.push_back(NewSessionStub(_rsa, _rconndata));
+	uint32 idx = _idx;
+	if(idx == 0xffffffff){
+		if(d.freesessionstk.size()){
+			idx = d.freesessionstk.top();
+			d.freesessionstk.pop();
+		}else{
+			idx = d.nextsessionidx;
+			++d.nextsessionidx;
+		}
+	}
+	d.newsessionvec.push_back(NewSessionStub(idx, _rsa, _rconndata));
 	return 0;
 }
 //--------------------------------------------------------------------
 void Node::pushConnection(
 	SocketDevice &_rsd,
-	uint32 _netoff,
+	uint32 _netidx,
 	aio::openssl::Context *_pctx,
 	bool _secure
 ){
-	
+	d.newconnectionvec.push_back(NewConnectionStub(_rsd, _netidx, _pctx, _secure));
 }
 //----------------------------------------------------------------------
 int Node::doReceiveDatagramPackets(uint _atmost, const ulong _sig){
@@ -180,6 +241,32 @@ void Node::doDispatchReceivedDatagramPacket(
 //--------------------------------------------------------------------
 void Node::doInsertNewSessions(){
 	
+}
+//--------------------------------------------------------------------
+void Node::doInsertNewConnections(){
+	for(NewConnectionVectorT::const_iterator it(d.newconnectionvec.begin()); it != d.newconnectionvec.end(); ++it){
+		int idx = this->socketInsert(it->sd);
+		if(idx >= 0){
+			if(idx >= d.connectionvec.size()){
+				d.connectionvec.resize(idx + 1);
+			}
+			d.connectionvec[idx].networkidx = it->netidx;
+			d.connectionvec[idx].secure = it->secure;
+			d.connectionvec[idx].state = ConnectionStub::RegisterState;
+			socketRequestRegister(idx);
+		}
+	}
+}
+//--------------------------------------------------------------------
+void Node::doPrepareInsertNewSessions(){
+	//we don't want to keep the lock for too long
+	d.newsessiontmpvec = d.newsessionvec;
+	d.newsessionvec.clear();
+	for(NewSessionVectorT::const_iterator it(d.newsessiontmpvec.begin()); it != d.newsessiontmpvec.end(); ++it){
+		if(it->idx < d.sessionvec.size() && d.sessionvec[it->idx].state == SessionStub::DeleteState){
+			d.sessionvec[it->idx].state = SessionStub::ReinitState;
+		}
+	}
 }
 //--------------------------------------------------------------------
 }//namespace ipc

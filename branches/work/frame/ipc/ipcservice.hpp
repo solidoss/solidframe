@@ -488,9 +488,11 @@ private:
 	);
 	
 	size_t	netId2AddressFind(uint32 _netid)const;
+	Configuration::RelayAddress const&	netId2AddressAt(const size_t _off)const;
 	size_t	netId2AddressVectorSize()const;
 	
 	size_t	address2NetIdFind(SocketAddressInet const&)const;
+	Configuration::RelayAddress const&	address2NetIdAt(const size_t _off)const;
 	size_t	address2NetIdVectorSize()const;
 	
 	Controller& controller();

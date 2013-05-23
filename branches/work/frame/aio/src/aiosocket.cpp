@@ -89,10 +89,10 @@ Socket::~Socket(){
 int Socket::create(const ResolveIterator& _rai){
 	return sd.create(_rai);
 }
-int Socket::connect(const ResolveIterator& _rai){
+int Socket::connect(const SocketAddressStub& _rsas){
 	cassert(!isSendPending());
 	cassert(type == CHANNEL);
-	int rv = sd.connect(_rai);
+	int rv = sd.connect(_rsas);
 	if(rv == NOK){
 		sndbuf = reinterpret_cast<char*>(1);
 		sndlen = 0;

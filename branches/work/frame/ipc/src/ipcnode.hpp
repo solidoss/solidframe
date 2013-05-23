@@ -66,6 +66,8 @@ public:
 	);
 private:
 	void doInsertNewSessions();
+	void doPrepareInsertNewSessions();
+	void doInsertNewConnections();
 	int doReceiveDatagramPackets(uint _atmost, const ulong _sig);
 	void doDispatchReceivedDatagramPacket(
 		char *_pbuf,
