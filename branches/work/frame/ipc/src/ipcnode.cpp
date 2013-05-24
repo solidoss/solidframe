@@ -69,10 +69,13 @@ struct SessionStub{
 		ReinitState,
 		DeleteState
 	};
-	SessionStub():state(0){}
-	uint8	state;
-	uint32	localrelayid;
-	uint32	remoterelayid;
+	SessionStub():state(0), sockidx(0xffff){}
+	uint16					state;
+	uint16					sockidx;
+	uint32					localrelayid;
+	uint32					remoterelayid;
+	SocketAddressStub		pairaddr;
+	SocketAddressInet		address;
 };
 
 struct ConnectionStub{
@@ -239,10 +242,6 @@ void Node::doDispatchReceivedDatagramPacket(
 	
 }
 //--------------------------------------------------------------------
-void Node::doInsertNewSessions(){
-	
-}
-//--------------------------------------------------------------------
 void Node::doInsertNewConnections(){
 	for(NewConnectionVectorT::const_iterator it(d.newconnectionvec.begin()); it != d.newconnectionvec.end(); ++it){
 		int idx = this->socketInsert(it->sd);
@@ -260,13 +259,32 @@ void Node::doInsertNewConnections(){
 //--------------------------------------------------------------------
 void Node::doPrepareInsertNewSessions(){
 	//we don't want to keep the lock for too long
-	d.newsessiontmpvec = d.newsessionvec;
-	d.newsessionvec.clear();
-	for(NewSessionVectorT::const_iterator it(d.newsessiontmpvec.begin()); it != d.newsessiontmpvec.end(); ++it){
-		if(it->idx < d.sessionvec.size() && d.sessionvec[it->idx].state == SessionStub::DeleteState){
-			d.sessionvec[it->idx].state = SessionStub::ReinitState;
+	//also we want to reject the resent packets
+	for(NewSessionVectorT::const_iterator it(d.newsessionvec.begin()); it != d.newsessionvec.end(); ++it){
+		if(it->idx < d.sessionvec.size()){
+			if(it->address == d.sessionvec[it->idx].address){
+				
+			}
+			if(d.sessionvec[it->idx].state == SessionStub::DeleteState){
+				d.sessionvec[it->idx].state = SessionStub::ReinitState;
+			}
 		}
 	}
+	d.newsessionvec.clear();
+}
+//--------------------------------------------------------------------
+void Node::doInsertNewSessions(){
+	for(NewSessionVectorT::const_iterator it(d.newsessiontmpvec.begin()); it != d.newsessiontmpvec.end(); ++it){
+		if(it->idx >= d.sessionvec.size()){
+			d.sessionvec.resize(it->idx + 1);
+			SessionStub &rss = d.sessionvec[it->idx];
+			rss.localrelayid = it->connectdata.relayid;
+			rss.remoterelayid = 0xffffffff;
+			rss.address = it->address;
+			rss.pairaddr = rss.address;
+		}
+	}
+	d.newsessiontmpvec.clear();
 }
 //--------------------------------------------------------------------
 }//namespace ipc
