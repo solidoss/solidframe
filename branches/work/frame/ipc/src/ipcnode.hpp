@@ -74,6 +74,8 @@ private:
 		const uint32 _bufsz,
 		const SocketAddress &_rsap
 	);
+	void doScheduleSendConnect(uint16 _idx, ConnectData &_rcd);
+	uint16 doCreateSocket(const uint32 _netidx);
 private:
 	struct Data;
 	Data &d;

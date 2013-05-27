@@ -21,12 +21,14 @@
 
 #include "system/debug.hpp"
 #include "system/mutex.hpp"
+#include "system/socketdevice.hpp"
+#include "system/timespec.hpp"
 #include "ipcnode.hpp"
 #include "ipctalker.hpp"
 #include <vector>
 #include "frame/ipc/ipcservice.hpp"
 #include "ipcpacket.hpp"
-#include "system/socketdevice.hpp"
+#include "ipcsession.hpp"
 
 using namespace std;
 
@@ -36,6 +38,8 @@ namespace ipc{
 
 typedef std::vector<const Configuration::RelayAddress*>		RelayAddressPointerVectorT;
 typedef RelayAddressPointerVectorT::const_iterator			RelayAddressPointerConstInteratorT;
+typedef std::vector<uint32>									Uint32VectorT;
+typedef Stack<std::pair<uint16, uint16> >					Uint16PairVectorT;
 
 struct NewSessionStub{
 	NewSessionStub(
@@ -69,24 +73,45 @@ struct SessionStub{
 		ReinitState,
 		DeleteState
 	};
-	SessionStub():state(0), sockidx(0xffff){}
+	SessionStub():state(0), sockidx(0xffff), uid(0), timestamp_s(0){}
+	
+	pair<size_t, bool> findMessageId(uint32 _msgid)const;
+	void eraseMessageIndex(size_t _idx);
+	
 	uint16					state;
 	uint16					sockidx;
+	uint16					uid;
 	uint32					localrelayid;
 	uint32					remoterelayid;
+	uint32					timestamp_s;
+	uint32					timestamp_n;
 	SocketAddressStub		pairaddr;
 	SocketAddressInet		address;
+	Uint32VectorT			msgidvec;
 };
+
+struct SendBufferStub{
+	SendBufferStub():pbuf(NULL){}
+	const char	*pbuf;
+	uint16		bufsz;
+	uint16		bufid;
+	uint16		sessionidx;
+	uint16		sessionuid;
+};
+
+typedef Queue<SendBufferStub>			SendBufferQueueT;
 
 struct ConnectionStub{
 	enum{
+		ConnectState,
 		InitState,
-		RegisterState,
+		FailState,
 	};
-	ConnectionStub():state(InitState){}
+	ConnectionStub():state(FailState), networkidx(0xffffffff){}
 	uint8					state;
 	bool					secure;
 	uint32					networkidx;
+	SendBufferQueueT		sendq;
 	
 };
 
@@ -111,11 +136,22 @@ struct Node::Data{
 	NewSessionVectorT		newsessionvec;
 	NewSessionVectorT		newsessiontmpvec;
 	NewConnectionVectorT	newconnectionvec;
-	Uint32StackT			freesessionstk;
+	Uint16PairVectorT		freesessionstk;
 	SessionVectorT			sessionvec;
 	ConnectionVectorT		connectionvec;
 };
 
+//--------------------------------------------------------------------
+//--------------------------------------------------------------------
+
+pair<size_t, bool> SessionStub::findMessageId(uint32 _msgid)const{
+	return pair<size_t, bool>(0, false);
+}
+
+void SessionStub::eraseMessageIndex(size_t _idx){
+	
+}
+//--------------------------------------------------------------------
 //--------------------------------------------------------------------
 Node::Node(
 	const SocketDevice &_rsd,
@@ -185,18 +221,25 @@ int Node::execute(ulong _sig, TimeSpec &_tout){
 
 //--------------------------------------------------------------------
 uint32 Node::pushSession(const SocketAddress &_rsa, const ConnectData &_rconndata, uint32 _idx){
-	uint32 idx = _idx;
+	uint32 fullidx = _idx;
+	uint32 idx;
 	if(idx == 0xffffffff){
 		if(d.freesessionstk.size()){
-			idx = d.freesessionstk.top();
+			idx = d.freesessionstk.top().first;
+			fullidx = pack(idx, d.freesessionstk.top().second);
 			d.freesessionstk.pop();
 		}else{
-			idx = d.nextsessionidx;
+			idx = static_cast<uint16>(d.nextsessionidx);
+			fullidx = pack(idx, 0);
 			++d.nextsessionidx;
 		}
+		if(idx == 0xffff){
+			return 0xffffffff;
+		}
 	}
+	//we do not use fullidx for now
 	d.newsessionvec.push_back(NewSessionStub(idx, _rsa, _rconndata));
-	return 0;
+	return idx;
 }
 //--------------------------------------------------------------------
 void Node::pushConnection(
@@ -251,40 +294,117 @@ void Node::doInsertNewConnections(){
 			}
 			d.connectionvec[idx].networkidx = it->netidx;
 			d.connectionvec[idx].secure = it->secure;
-			d.connectionvec[idx].state = ConnectionStub::RegisterState;
+			d.connectionvec[idx].state = ConnectionStub::InitState;
 			socketRequestRegister(idx);
 		}
 	}
 }
 //--------------------------------------------------------------------
 void Node::doPrepareInsertNewSessions(){
-	//we don't want to keep the lock for too long
-	//also we want to reject the resent packets
-	for(NewSessionVectorT::const_iterator it(d.newsessionvec.begin()); it != d.newsessionvec.end(); ++it){
-		if(it->idx < d.sessionvec.size()){
-			if(it->address == d.sessionvec[it->idx].address){
-				
-			}
-			if(d.sessionvec[it->idx].state == SessionStub::DeleteState){
-				d.sessionvec[it->idx].state = SessionStub::ReinitState;
-			}
-		}
-	}
+	d.newsessiontmpvec = d.newsessionvec;
 	d.newsessionvec.clear();
 }
 //--------------------------------------------------------------------
 void Node::doInsertNewSessions(){
-	for(NewSessionVectorT::const_iterator it(d.newsessiontmpvec.begin()); it != d.newsessiontmpvec.end(); ++it){
-		if(it->idx >= d.sessionvec.size()){
-			d.sessionvec.resize(it->idx + 1);
-			SessionStub &rss = d.sessionvec[it->idx];
+	for(NewSessionVectorT::iterator it(d.newsessiontmpvec.begin()); it != d.newsessiontmpvec.end(); ++it){
+		uint16 idx/*,uid*/;
+		//unpack(idx, uid, it->idx);
+		idx = it->idx;
+		
+		if(idx >= d.sessionvec.size()){
+			d.sessionvec.resize(idx + 1);
+			SessionStub &rss = d.sessionvec[idx];
 			rss.localrelayid = it->connectdata.relayid;
 			rss.remoterelayid = 0xffffffff;
 			rss.address = it->address;
 			rss.pairaddr = rss.address;
+			rss.timestamp_s = it->connectdata.timestamp_s;
+			rss.timestamp_n = it->connectdata.timestamp_n;
+			rss.sockidx = 0xffff;
+		}else{
+			SessionStub &rss = d.sessionvec[idx];
+			
+			if(
+				rss.timestamp_s != it->connectdata.timestamp_s ||
+				rss.timestamp_n != it->connectdata.timestamp_n ||
+				rss.localrelayid != it->connectdata.relayid
+			){
+				//a restarted process or another connection
+				++rss.uid;
+				rss.localrelayid = it->connectdata.relayid;
+				rss.timestamp_s = it->connectdata.timestamp_s;
+				rss.timestamp_n = it->connectdata.timestamp_n;
+				rss.address = it->address;
+				rss.pairaddr = rss.address;
+				rss.sockidx = 0xffff;
+				rss.msgidvec.clear();
+			}else{
+				pair<size_t, bool> r = rss.findMessageId(0);
+				if(r.second){//a connect message is already in the send queue
+					continue;
+				}
+				cassert(rss.sockidx != 0xffff);
+			}
 		}
+		SessionStub &rss = d.sessionvec[idx];
+		if(rss.sockidx == 0xffff){
+			rss.sockidx = doCreateSocket(it->connectdata.receivernetworkid);
+		}
+		doScheduleSendConnect(idx, it->connectdata);
 	}
 	d.newsessiontmpvec.clear();
+}
+//--------------------------------------------------------------------
+void Node::doScheduleSendConnect(uint16 _idx, ConnectData &_rcd){
+	SessionStub		&rss = d.sessionvec[_idx];
+	const uint32	fullid = pack(_idx, rss.uid);
+	const uint32	pktid(Specific::sizeToIndex(128));
+	Packet			pkt(Specific::popBuffer(pktid), Specific::indexToCapacity(pktid));
+	
+	_rcd.relayid = fullid;
+	pkt.reset();
+	pkt.type(Packet::ConnectType);
+	pkt.id(1);//TODO!!! the id of the ConnectPacket
+	pkt.relay(0xffffffff);
+	
+	Session::fillConnectPacket(pkt, _rcd);
+	
+	ConnectionStub	&rcs = d.connectionvec[rss.sockidx];
+	rcs.sendq.push(SendBufferStub());
+	rcs.sendq.back().bufid = pktid;
+	rcs.sendq.back().bufsz = pkt.bufferSize();
+	rcs.sendq.back().pbuf = pkt.buffer();
+	rcs.sendq.back().sessionidx = _idx;
+	rcs.sendq.back().sessionuid = rss.uid;
+}
+//--------------------------------------------------------------------
+uint16 Node::doCreateSocket(const uint32 _netidx){
+	//TODO: improve the search
+	for(ConnectionVectorT::iterator it(d.connectionvec.begin()); it != d.connectionvec.end(); ++it){
+		if(it->networkidx == _netidx){
+			return it - d.connectionvec.begin();
+		}
+	}
+	//socket not found, create
+	
+	SocketDevice sd;
+	
+	sd.create();
+	
+	sd.makeNonBlocking();
+	
+	int idx = socketInsert(sd);
+	
+	if(idx >= 0){
+		if(idx >= d.connectionvec.size()){
+			d.connectionvec.resize(idx + 1);
+		}
+		d.connectionvec[idx].networkidx = _netidx;
+		d.connectionvec[idx].secure = false;//TODO
+		d.connectionvec[idx].state = ConnectionStub::ConnectState;
+		socketRequestRegister(idx);
+	}
+	return 0;
 }
 //--------------------------------------------------------------------
 }//namespace ipc
