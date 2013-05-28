@@ -75,8 +75,8 @@ struct SessionStub{
 	};
 	SessionStub():state(0), sockidx(0xffff), uid(0), timestamp_s(0){}
 	
-	pair<size_t, bool> findMessageId(uint32 _msgid)const;
-	void eraseMessageIndex(size_t _idx);
+	pair<size_t, bool> findPacketId(uint32 _pkgid)const;
+	void erasePacketId(uint32 _pkgid);
 	
 	uint16					state;
 	uint16					sockidx;
@@ -87,7 +87,7 @@ struct SessionStub{
 	uint32					timestamp_n;
 	SocketAddressStub		pairaddr;
 	SocketAddressInet		address;
-	Uint32VectorT			msgidvec;
+	Uint32VectorT			pkgidvec;
 };
 
 struct SendBufferStub{
@@ -97,6 +97,7 @@ struct SendBufferStub{
 	uint16		bufid;
 	uint16		sessionidx;
 	uint16		sessionuid;
+	uint32		pkgid;
 };
 
 typedef Queue<SendBufferStub>			SendBufferQueueT;
@@ -105,6 +106,7 @@ struct ConnectionStub{
 	enum{
 		ConnectState,
 		InitState,
+		ConnectedState,
 		FailState,
 	};
 	ConnectionStub():state(FailState), networkidx(0xffffffff){}
@@ -144,12 +146,130 @@ struct Node::Data{
 //--------------------------------------------------------------------
 //--------------------------------------------------------------------
 
-pair<size_t, bool> SessionStub::findMessageId(uint32 _msgid)const{
-	return pair<size_t, bool>(0, false);
+pair<size_t, bool> SessionStub::findPacketId(const uint32 _pkgid)const{
+	switch(pkgidvec.size()){
+		case 0:
+			return pair<size_t, bool>(0, false);
+		case 1:
+			if(pkgidvec[0] == _pkgid){
+				return pair<size_t, bool>(0, true);
+			}else{
+				return pair<size_t, bool>(1, false);
+			}
+		case 2:
+			if(pkgidvec[0] == _pkgid){
+				return pair<size_t, bool>(0, true);
+			}else if(pkgidvec[1] == _pkgid){
+				return pair<size_t, bool>(1, true);
+			}else{
+				return pair<size_t, bool>(2, false);
+			}
+		case 3:
+			if(pkgidvec[0] == _pkgid){
+				return pair<size_t, bool>(0, true);
+			}else if(pkgidvec[1] == _pkgid){
+				return pair<size_t, bool>(1, true);
+			}else if(pkgidvec[2] == _pkgid){
+				return pair<size_t, bool>(2, true);
+			}else{
+				return pair<size_t, bool>(3, false);
+			}
+		case 4:
+			if(pkgidvec[0] == _pkgid){
+				return pair<size_t, bool>(0, true);
+			}else if(pkgidvec[1] == _pkgid){
+				return pair<size_t, bool>(1, true);
+			}else if(pkgidvec[2] == _pkgid){
+				return pair<size_t, bool>(2, true);
+			}else if(pkgidvec[3] == _pkgid){
+				return pair<size_t, bool>(3, true);
+			}else{
+				return pair<size_t, bool>(4, false);
+			}
+		case 5:
+			if(pkgidvec[0] == _pkgid){
+				return pair<size_t, bool>(0, true);
+			}else if(pkgidvec[1] == _pkgid){
+				return pair<size_t, bool>(1, true);
+			}else if(pkgidvec[2] == _pkgid){
+				return pair<size_t, bool>(2, true);
+			}else if(pkgidvec[3] == _pkgid){
+				return pair<size_t, bool>(3, true);
+			}else if(pkgidvec[4] == _pkgid){
+				return pair<size_t, bool>(4, true);
+			}else{
+				return pair<size_t, bool>(5, false);
+			}
+		case 6:
+			if(pkgidvec[0] == _pkgid){
+				return pair<size_t, bool>(0, true);
+			}else if(pkgidvec[1] == _pkgid){
+				return pair<size_t, bool>(1, true);
+			}else if(pkgidvec[2] == _pkgid){
+				return pair<size_t, bool>(2, true);
+			}else if(pkgidvec[3] == _pkgid){
+				return pair<size_t, bool>(3, true);
+			}else if(pkgidvec[4] == _pkgid){
+				return pair<size_t, bool>(4, true);
+			}else if(pkgidvec[5] == _pkgid){
+				return pair<size_t, bool>(5, true);
+			}else{
+				return pair<size_t, bool>(6, false);
+			}
+		case 7:
+			if(pkgidvec[0] == _pkgid){
+				return pair<size_t, bool>(0, true);
+			}else if(pkgidvec[1] == _pkgid){
+				return pair<size_t, bool>(1, true);
+			}else if(pkgidvec[2] == _pkgid){
+				return pair<size_t, bool>(2, true);
+			}else if(pkgidvec[3] == _pkgid){
+				return pair<size_t, bool>(3, true);
+			}else if(pkgidvec[4] == _pkgid){
+				return pair<size_t, bool>(4, true);
+			}else if(pkgidvec[5] == _pkgid){
+				return pair<size_t, bool>(5, true);
+			}else if(pkgidvec[6] == _pkgid){
+				return pair<size_t, bool>(6, true);
+			}else{
+				return pair<size_t, bool>(7, false);
+			}
+		case 8:
+			if(pkgidvec[0] == _pkgid){
+				return pair<size_t, bool>(0, true);
+			}else if(pkgidvec[1] == _pkgid){
+				return pair<size_t, bool>(1, true);
+			}else if(pkgidvec[2] == _pkgid){
+				return pair<size_t, bool>(2, true);
+			}else if(pkgidvec[3] == _pkgid){
+				return pair<size_t, bool>(3, true);
+			}else if(pkgidvec[4] == _pkgid){
+				return pair<size_t, bool>(4, true);
+			}else if(pkgidvec[5] == _pkgid){
+				return pair<size_t, bool>(5, true);
+			}else if(pkgidvec[6] == _pkgid){
+				return pair<size_t, bool>(6, true);
+			}else if(pkgidvec[7] == _pkgid){
+				return pair<size_t, bool>(7, true);
+			}else{
+				return pair<size_t, bool>(8, false);
+			}
+		default:
+			for(size_t i = 0; i < pkgidvec.size(); ++i){
+				if(pkgidvec[i] == _pkgid){
+					return pair<size_t, bool>(i, true);
+				}
+			}
+	}
+	return pair<size_t, bool>(pkgidvec.size(), false);
 }
 
-void SessionStub::eraseMessageIndex(size_t _idx){
-	
+void SessionStub::erasePacketId(const uint32 _pkgid){
+	pair<size_t, bool> r = findPacketId(_pkgid);
+	if(r.second){
+		pkgidvec[r.first] = pkgidvec.back();
+		pkgidvec.pop_back();
+	}
 }
 //--------------------------------------------------------------------
 //--------------------------------------------------------------------
@@ -204,7 +324,7 @@ int Node::execute(ulong _sig, TimeSpec &_tout){
 		const uint sockidx = signaledFront();
 		if(sockidx){//skip the udp socket
 			ulong evs = socketEvents(signaledFront());
-			//TODO:
+			doHandleSocketEvents(sockidx, evs);
 		}
 		signaledPop();
 	}
@@ -337,9 +457,9 @@ void Node::doInsertNewSessions(){
 				rss.address = it->address;
 				rss.pairaddr = rss.address;
 				rss.sockidx = 0xffff;
-				rss.msgidvec.clear();
+				rss.pkgidvec.clear();
 			}else{
-				pair<size_t, bool> r = rss.findMessageId(0);
+				pair<size_t, bool> r = rss.findPacketId(0);
 				if(r.second){//a connect message is already in the send queue
 					continue;
 				}
@@ -376,6 +496,11 @@ void Node::doScheduleSendConnect(uint16 _idx, ConnectData &_rcd){
 	rcs.sendq.back().pbuf = pkt.buffer();
 	rcs.sendq.back().sessionidx = _idx;
 	rcs.sendq.back().sessionuid = rss.uid;
+	rcs.sendq.back().pkgid = pkt.id();
+	
+	pkt.release();//prevent the buffer to be deleted
+	
+	doTrySendSocketBuffers(rss.sockidx);
 }
 //--------------------------------------------------------------------
 uint16 Node::doCreateSocket(const uint32 _netidx){
@@ -405,6 +530,43 @@ uint16 Node::doCreateSocket(const uint32 _netidx){
 		socketRequestRegister(idx);
 	}
 	return 0;
+}
+//--------------------------------------------------------------------
+void Node::doTrySendSocketBuffers(const uint _sockidx){
+	ConnectionStub	&rcs = d.connectionvec[_sockidx];
+	
+	if(socketHasPendingSend(_sockidx) || rcs.sendq.empty() || rcs.state < ConnectionStub::ConnectedState){
+		return;
+	}
+	while(rcs.sendq.size()){
+		SendBufferStub	&rsbs = rcs.sendq.front();
+		SessionStub 	&rss = d.sessionvec[rsbs.sessionidx];
+		if(rss.uid != rsbs.sessionuid){
+			rcs.sendq.pop();
+			continue;
+		}
+		const int rv = socketSend(_sockidx, rsbs.pbuf, rsbs.bufsz);
+		switch(rv){
+			case BAD:
+				doPrepareSocketReconnect(_sockidx);
+				return;
+			case OK:
+				rss.erasePacketId(rsbs.pkgid);
+				rcs.sendq.pop();
+				break;
+			case NOK:
+				return;
+		}
+	}
+}
+//--------------------------------------------------------------------
+void Node::doPrepareSocketReconnect(const uint _sockidx){
+	ConnectionStub	&rcs = d.connectionvec[_sockidx];
+}
+//--------------------------------------------------------------------
+void Node::doHandleSocketEvents(const uint _sockidx, ulong _evs){
+	ConnectionStub	&rcs = d.connectionvec[_sockidx];
+	
 }
 //--------------------------------------------------------------------
 }//namespace ipc
