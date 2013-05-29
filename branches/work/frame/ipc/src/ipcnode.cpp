@@ -30,16 +30,27 @@
 #include "ipcpacket.hpp"
 #include "ipcsession.hpp"
 
+#include "utility/timerqueue.hpp"
+
 using namespace std;
 
 namespace solid{
 namespace frame{
 namespace ipc{
 
+struct TimerValue{
+	TimerValue():index(0), uid(0), what(0), flags(0){}
+	uint16	index;
+	uint16	uid;
+	uint8	what;//either connection or session
+	uint8	flags;
+};
+
 typedef std::vector<const Configuration::RelayAddress*>		RelayAddressPointerVectorT;
 typedef RelayAddressPointerVectorT::const_iterator			RelayAddressPointerConstInteratorT;
 typedef std::vector<uint32>									Uint32VectorT;
 typedef Stack<std::pair<uint16, uint16> >					Uint16PairVectorT;
+typedef TimerQueue<TimerValue>								TimerQueueT;
 
 struct NewSessionStub{
 	NewSessionStub(
@@ -105,6 +116,7 @@ typedef Queue<SendBufferStub>			SendBufferQueueT;
 struct ConnectionStub{
 	enum{
 		ConnectState,
+		ConnectWaitState,
 		InitState,
 		ConnectedState,
 		FailState,
@@ -141,6 +153,7 @@ struct Node::Data{
 	Uint16PairVectorT		freesessionstk;
 	SessionVectorT			sessionvec;
 	ConnectionVectorT		connectionvec;
+	TimerQueueT				timeq;
 };
 
 //--------------------------------------------------------------------
@@ -562,10 +575,39 @@ void Node::doTrySendSocketBuffers(const uint _sockidx){
 //--------------------------------------------------------------------
 void Node::doPrepareSocketReconnect(const uint _sockidx){
 	ConnectionStub	&rcs = d.connectionvec[_sockidx];
+	
 }
 //--------------------------------------------------------------------
 void Node::doHandleSocketEvents(const uint _sockidx, ulong _evs){
 	ConnectionStub	&rcs = d.connectionvec[_sockidx];
+	if(rcs.state == ConnectionStub::ConnectedState){
+		
+	}else if(rcs.state == ConnectionStub::ConnectState){
+		const int rv = socketConnect(_sockidx, d.rservice.netId2AddressAt(rcs.networkidx).address);
+		switch(rv){
+			case BAD:
+				doPrepareSocketReconnect(_sockidx);
+				break;
+			case OK:
+				this->socketPostEvents(_sockidx, 0);
+				rcs.state = ConnectionStub::InitState;
+				break;
+			case NOK:
+				rcs.state = ConnectionStub::ConnectWaitState;
+				break;
+		}
+	}else if(rcs.state == ConnectionStub::ConnectWaitState){
+		if(_evs & IODONE){
+			rcs.state = ConnectionStub::InitState;
+			doHandleSocketEvents(_sockidx, _evs);
+		}else{
+			doPrepareSocketReconnect(_sockidx);
+		}
+	}else if(rcs.state == ConnectionStub::InitState){
+		
+	}else{
+		cassert(false);
+	}
 	
 }
 //--------------------------------------------------------------------

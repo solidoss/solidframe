@@ -420,6 +420,7 @@ private:
 	friend class Session;
 	friend class Controller;
 	friend class Listener;
+	friend class Node;
 	
 	
 	typedef std::vector<const Configuration::RelayAddress*>		RelayAddressPointerVectorT;
