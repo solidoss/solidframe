@@ -46,11 +46,11 @@
 
 #include "utility/stack.hpp"
 #include "utility/queue.hpp"
+#include "utility/timerqueue.hpp"
 
 #include "consensus/consensusregistrar.hpp"
 #include "consensus/consensusrequest.hpp"
 #include "consensus/server/consensusobject.hpp"
-#include "timerqueue.hpp"
 #include "consensusmessages.hpp"
 
 using namespace std;
@@ -59,7 +59,19 @@ namespace solid{
 namespace consensus{
 namespace server{
 
-typedef DynamicPointer<consensus::WriteRequestMessage> WriteRequestMessagePointerT;
+struct TimerValue{
+	TimerValue(
+		uint32 _idx = 0,
+		uint16 _uid = 0,
+		uint16 _val = 0
+	):index(_idx), uid(_uid), value(_val){}
+	uint32 index;
+	uint16 uid;
+	uint16 value;
+};
+
+typedef TimerQueue<TimerValue>							TimerQueueT;
+typedef DynamicPointer<consensus::WriteRequestMessage>	WriteRequestMessagePointerT;
 
 //========================================================
 struct RequestStub{
@@ -311,7 +323,7 @@ struct Object::Data{
 	SizeTQueueT				reqq;
 	SizeTStackT				freeposstk;
 	SenderSetT				senderset;
-	TimerQueue				timerq;
+	TimerQueueT				timerq;
 	int						state;
 };
 
@@ -683,7 +695,7 @@ void Object::doExecuteProposeOperation(RunData &_rd, const uint8 _replicaidx, Op
 	++rreq.timerid;
 	TimeSpec ts(frame::Object::currentTime());
 	ts += 10 * 1000;//ms
-	d.timerq.push(ts, reqidx, rreq.timerid);
+	d.timerq.push(ts, TimerValue(reqidx, rreq.timerid));
 	
 	doSendConfirmPropose(_rd, _replicaidx, reqidx);
 }
@@ -729,7 +741,7 @@ void Object::doExecuteProposeConfirmOperation(RunData &_rd, const uint8 _replica
 		TimeSpec ts(frame::Object::currentTime());
 		ts += 60 * 1000;//ms
 		++preq->timerid;
-		d.timerq.push(ts, reqidx, preq->timerid);
+		d.timerq.push(ts, TimerValue(reqidx, preq->timerid));
 		doSendAccept(_rd, reqidx);
 	}
 	
@@ -988,14 +1000,14 @@ int Object::doPrepareRun(RunData &_rd){
 int Object::doRun(RunData &_rd){
 	idbg("");
 	//first we scan for timeout:
-	while(d.timerq.hitted(_rd.rtimepos)){
-		RequestStub &rreq(d.requestStub(d.timerq.frontIndex()));
+	while(d.timerq.isHit(_rd.rtimepos)){
+		RequestStub &rreq(d.requestStub(d.timerq.frontValue().index));
 		
-		if(rreq.timerid == d.timerq.frontUid()){
+		if(rreq.timerid == d.timerq.frontValue().uid){
 			rreq.evs |= RequestStub::TimeoutEvent;
 			if(!(rreq.evs & RequestStub::SignaledEvent)){
 				rreq.evs |= RequestStub::SignaledEvent;
-				d.reqq.push(d.timerq.frontIndex());
+				d.reqq.push(d.timerq.frontValue().index);
 			}
 		}
 		
@@ -1016,7 +1028,7 @@ int Object::doRun(RunData &_rd){
 	
 	//set the timer value and exit
 	if(d.timerq.size()){
-		if(d.timerq.hitted(_rd.rtimepos)){
+		if(d.timerq.isHit(_rd.rtimepos)){
 			return OK;
 		}
 		_rd.rtimepos = d.timerq.frontTime();
@@ -1060,7 +1072,7 @@ void Object::doProcessRequest(RunData &_rd, const size_t _reqidx){
 					rreq.state(RequestStub::WaitProposeConfirmState);
 					TimeSpec ts(frame::Object::currentTime());
 					ts += 60 * 1000;//ms
-					d.timerq.push(ts, _reqidx, rreq.timerid);
+					d.timerq.push(ts, TimerValue(_reqidx, rreq.timerid));
 					rreq.recvpropconf = 1;//one is the propose_accept from current coordinator
 				}
 			}else{
@@ -1068,7 +1080,7 @@ void Object::doProcessRequest(RunData &_rd, const size_t _reqidx){
 				rreq.state(RequestStub::WaitProposeState);
 				TimeSpec ts(frame::Object::currentTime());
 				ts += d.distancefromcoordinator * 1000;//ms
-				d.timerq.push(ts, _reqidx, rreq.timerid);
+				d.timerq.push(ts, TimerValue(_reqidx, rreq.timerid));
 			}
 			break;
 		case RequestStub::WaitProposeState://on replica
@@ -1079,7 +1091,7 @@ void Object::doProcessRequest(RunData &_rd, const size_t _reqidx){
 				rreq.state(RequestStub::WaitProposeConfirmState);
 				TimeSpec ts(frame::Object::currentTime());
 				ts += 60 * 1000;//ms
-				d.timerq.push(ts, _reqidx, rreq.timerid);
+				d.timerq.push(ts, TimerValue(_reqidx, rreq.timerid));
 				rreq.recvpropconf = 1;//one is the propose_accept from current coordinator
 				break;
 			}
@@ -1099,7 +1111,7 @@ void Object::doProcessRequest(RunData &_rd, const size_t _reqidx){
 				TimeSpec ts(frame::Object::currentTime());
 				ts += d.distancefromcoordinator * 1000;//ms
 				++rreq.timerid;
-				d.timerq.push(ts, _reqidx, rreq.timerid);
+				d.timerq.push(ts, TimerValue(_reqidx, rreq.timerid));
 				break;
 			}
 			break;
@@ -1135,7 +1147,7 @@ void Object::doProcessRequest(RunData &_rd, const size_t _reqidx){
 				rreq.state(RequestStub::AcceptWaitRequestState);
 				TimeSpec ts(frame::Object::currentTime());
 				ts.add(60);//60 secs
-				d.timerq.push(ts, _reqidx, rreq.timerid);
+				d.timerq.push(ts, TimerValue(_reqidx, rreq.timerid));
 				if(d.acceptpendingcnt < 255){
 					++d.acceptpendingcnt;
 				}
@@ -1154,7 +1166,7 @@ void Object::doProcessRequest(RunData &_rd, const size_t _reqidx){
 					d.pendingacceptwaitidx = _reqidx;
 					TimeSpec ts(frame::Object::currentTime());
 					ts.add(2*60);//2 mins
-					d.timerq.push(ts, _reqidx, rreq.timerid);
+					d.timerq.push(ts, TimerValue(_reqidx, rreq.timerid));
 					if(d.acceptpendingcnt < 255){
 						++d.acceptpendingcnt;
 					}
@@ -1544,7 +1556,7 @@ void Object::doScanPendingRequests(RunData &_rd){
 					RequestStub	&rreq(d.requestStub(posarr[i]));
 					TimeSpec	ts(frame::Object::currentTime());
 					ts.add(2*60);//2 mins
-					d.timerq.push(ts, posarr[i], rreq.timerid);
+					d.timerq.push(ts, TimerValue(posarr[i], rreq.timerid));
 					d.pendingacceptwaitidx = posarr[i];
 				}
 				break;
@@ -1589,7 +1601,7 @@ void Object::doScanPendingRequests(RunData &_rd){
 					RequestStub	&rreq(d.requestStub(*it));
 					TimeSpec	ts(frame::Object::currentTime());
 					ts.add(2*60);//2 mins
-					d.timerq.push(ts, *it, rreq.timerid);
+					d.timerq.push(ts, TimerValue(*it, rreq.timerid));
 					d.pendingacceptwaitidx = *it;
 				}
 				break;
