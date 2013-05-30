@@ -77,6 +77,7 @@ private:
 	void doScheduleSendConnect(uint16 _idx, ConnectData &_rcd);
 	uint16 doCreateSocket(const uint32 _netidx);
 	void doTrySendSocketBuffers(const uint _sockidx);
+	void doReceiveStreamData(const uint _sockidx);
 	void doPrepareSocketReconnect(const uint _sockidx);
 	void doHandleSocketEvents(const uint _sockidx, ulong _evs);
 private:

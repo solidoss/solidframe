@@ -121,10 +121,15 @@ struct ConnectionStub{
 		ConnectedState,
 		FailState,
 	};
-	ConnectionStub():state(FailState), networkidx(0xffffffff){}
+	ConnectionStub():state(FailState), networkidx(0xffffffff), preadbuf(NULL){}
+	
 	uint8					state;
 	bool					secure;
 	uint32					networkidx;
+	char					*preadbuf;
+	uint16					readbufcp;
+	
+	
 	SendBufferQueueT		sendq;
 	
 };
@@ -573,6 +578,11 @@ void Node::doTrySendSocketBuffers(const uint _sockidx){
 	}
 }
 //--------------------------------------------------------------------
+void Node::doReceiveStreamData(const uint _sockidx){
+	ConnectionStub	&rcs = d.connectionvec[_sockidx];
+	const uint32 	readsz = socketRecvSize(_sockidx);
+}
+//--------------------------------------------------------------------
 void Node::doPrepareSocketReconnect(const uint _sockidx){
 	ConnectionStub	&rcs = d.connectionvec[_sockidx];
 	
@@ -581,7 +591,12 @@ void Node::doPrepareSocketReconnect(const uint _sockidx){
 void Node::doHandleSocketEvents(const uint _sockidx, ulong _evs){
 	ConnectionStub	&rcs = d.connectionvec[_sockidx];
 	if(rcs.state == ConnectionStub::ConnectedState){
-		
+		if(_evs & INDONE){
+			doReceiveStreamData(_sockidx);
+		}
+		if(_evs & OUTDONE){
+			doTrySendSocketBuffers(_sockidx);
+		}
 	}else if(rcs.state == ConnectionStub::ConnectState){
 		const int rv = socketConnect(_sockidx, d.rservice.netId2AddressAt(rcs.networkidx).address);
 		switch(rv){
@@ -604,7 +619,25 @@ void Node::doHandleSocketEvents(const uint _sockidx, ulong _evs){
 			doPrepareSocketReconnect(_sockidx);
 		}
 	}else if(rcs.state == ConnectionStub::InitState){
-		
+		if(!rcs.preadbuf){
+			const uint bufidx = Specific::sizeToIndex(8 * 1024);
+			rcs.readbufcp = Specific::indexToCapacity(bufidx);
+			rcs.preadbuf = Specific::popBuffer(bufidx);
+		}
+		rcs.state = ConnectionStub::ConnectedState;
+		//initiate read
+		const int rv = socketRecv(_sockidx, rcs.preadbuf, rcs.readbufcp);
+		switch(rv){
+			case BAD:
+				doPrepareSocketReconnect(_sockidx);
+				break;
+			case OK:
+				socketPostEvents(_sockidx, INDONE);
+				break;
+			case NOK:
+				break;
+		}
+		doTrySendSocketBuffers(_sockidx);
 	}else{
 		cassert(false);
 	}
