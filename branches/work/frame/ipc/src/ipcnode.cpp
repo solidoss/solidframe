@@ -111,7 +111,17 @@ struct SendBufferStub{
 	uint32		pkgid;
 };
 
+struct SendDatagramStub{
+	SendDatagramStub():pbuf(0){}
+	const char	*pbuf;
+	uint16		bufsz;
+	uint16		sockid;
+	uint16		sesidx;
+	uint16		sesuid;
+};
+
 typedef Queue<SendBufferStub>			SendBufferQueueT;
+typedef Queue<SendDatagramStub>			SendDatagramQueueT;
 
 struct ConnectionStub{
 	enum{
@@ -121,14 +131,19 @@ struct ConnectionStub{
 		ConnectedState,
 		FailState,
 	};
-	ConnectionStub():state(FailState), networkidx(0xffffffff), preadbuf(NULL){}
+	ConnectionStub(
+	):state(FailState), networkidx(0xffffffff), preadbuf(NULL),
+	readbufreadpos(0), readbufwritepos(0), readbufusecnt(0), sesusecnt(0){}
 	
 	uint8					state;
 	bool					secure;
 	uint32					networkidx;
 	char					*preadbuf;
 	uint16					readbufcp;
-	
+	uint16					readbufreadpos;
+	uint16					readbufwritepos;
+	uint16					readbufusecnt;
+	uint16					sesusecnt;
 	
 	SendBufferQueueT		sendq;
 	
@@ -159,6 +174,7 @@ struct Node::Data{
 	SessionVectorT			sessionvec;
 	ConnectionVectorT		connectionvec;
 	TimerQueueT				timeq;
+	SendDatagramQueueT		udpsendq;
 };
 
 //--------------------------------------------------------------------
@@ -337,6 +353,11 @@ int Node::execute(ulong _sig, TimeSpec &_tout){
 	int		rv;
 	
 	rv = doReceiveDatagramPackets(16, socketEvents(0));
+	if(rv == OK){
+		must_reenter = true;
+	}else if(rv == BAD){
+		return BAD;
+	}
 	
 	while(signaledSize()){
 		const uint sockidx = signaledFront();
@@ -347,11 +368,9 @@ int Node::execute(ulong _sig, TimeSpec &_tout){
 		signaledPop();
 	}
 	
-	if(rv == OK){
-		must_reenter = true;
-	}else if(rv == BAD){
-		return BAD;
-	}
+	doSendDatagramPackets();
+	
+	if(signaledSize()) must_reenter = true;
 	
 	return must_reenter ? OK : NOK;
 }
@@ -415,12 +434,104 @@ int Node::doReceiveDatagramPackets(uint _atmost, const ulong _sig){
 	return OK;//can still read from socket
 }
 //--------------------------------------------------------------------
+void Node::doSendDatagramPackets(){
+	if(this->socketHasPendingSend(0)){
+		return;
+	}
+	const uint32 evs = socketEvents(0);
+	if(evs & frame::OUTDONE){
+		doDoneSendDatagram();
+	}
+	
+	while(d.udpsendq.size()){
+		if(d.udpsendq.front().sesuid != d.sessionvec[d.udpsendq.front().sesidx].uid){
+			doDoneSendDatagram();
+			continue;
+		}
+		SessionStub &rss = d.sessionvec[d.udpsendq.front().sesidx];
+		const int rv = socketSendTo(
+			0, d.udpsendq.front().pbuf,
+			d.udpsendq.front().bufsz,
+			rss.pairaddr
+ 		);
+		switch(rv){
+			case BAD:{
+				doDoneSendDatagram();
+			}break;
+			case OK:{
+				doDoneSendDatagram();
+			}break;
+			case NOK:
+				return;
+		}
+	}
+}
+//--------------------------------------------------------------------
+void Node::doDoneSendDatagram(){
+	ConnectionStub	&rcs = d.connectionvec[d.udpsendq.front().sockid];
+	--rcs.readbufusecnt;
+	socketPostEvents(d.udpsendq.front().sockid, INDONE);
+	d.udpsendq.pop();
+}
+//--------------------------------------------------------------------
 void Node::doDispatchReceivedDatagramPacket(
 	char *_pbuf,
 	const uint32 _bufsz,
 	const SocketAddress &_rsap
 ){
+	Packet p(_pbuf, Packet::Capacity);
+	p.bufferSize(_bufsz);
+	vdbgx(Debug::ipc, " RECEIVED "<<p);
+	uint16	sesidx;
+	uint16	sesuid;
+	switch(p.type()){
+		default:{
+			uint32				relayid = p.relay();
+			
+			unpack(sesidx, sesuid, relayid);
+			
+			if(
+				sesidx >= d.sessionvec.size() ||
+				sesuid != d.sessionvec[sesidx].uid
+			)return;
+		}break;
+		case Packet::AcceptType:{
+			uint32				relayid = p.relay();
+				
+			unpack(sesidx, sesuid, relayid);
+			
+			if(
+				sesidx >= d.sessionvec.size() ||
+				sesuid != d.sessionvec[sesidx].uid
+			)return;
+			SessionStub	&rss = d.sessionvec[sesidx];
+			
+			{
+				AcceptData			accdata;
+				SocketAddress		sa;
+				int					error = Session::parseAcceptPacket(p, accdata, sa);
+				if(error){
+					return;
+				}
+				rss.localrelayid = accdata.relayid;
+			}
+		}break;
+	}
+	SessionStub	&rss = d.sessionvec[sesidx];
+	p.relay(rss.remoterelayid);
+	ConnectionStub		&rcs = d.connectionvec[rss.sockidx];
 	
+	rcs.sendq.push(SendBufferStub());
+	
+	rcs.sendq.back().pkgid = p.id();
+	rcs.sendq.back().bufsz = _bufsz;
+	rcs.sendq.back().pbuf = p.release();
+	rcs.sendq.back().bufid = Specific::capacityToIndex(Packet::Capacity);
+	rcs.sendq.back().sessionidx = sesidx;
+	rcs.sendq.back().sessionuid = sesuid;
+	
+	rss.pkgidvec.push_back(rcs.sendq.back().pkgid);
+	doTrySendSocketBuffers(rss.sockidx);
 }
 //--------------------------------------------------------------------
 void Node::doInsertNewConnections(){
@@ -487,6 +598,8 @@ void Node::doInsertNewSessions(){
 		SessionStub &rss = d.sessionvec[idx];
 		if(rss.sockidx == 0xffff){
 			rss.sockidx = doCreateSocket(it->connectdata.receivernetworkid);
+			ConnectionStub &rcs = d.connectionvec[rss.sockidx];
+			++rcs.sesusecnt;
 		}
 		doScheduleSendConnect(idx, it->connectdata);
 	}
@@ -568,10 +681,12 @@ void Node::doTrySendSocketBuffers(const uint _sockidx){
 			case BAD:
 				doPrepareSocketReconnect(_sockidx);
 				return;
-			case OK:
+			case OK:{
 				rss.erasePacketId(rsbs.pkgid);
+				char *pbuf = const_cast<char*>(rcs.sendq.front().pbuf);
+				Specific::pushBuffer(pbuf, rcs.sendq.front().bufid);
 				rcs.sendq.pop();
-				break;
+			}break;
 			case NOK:
 				return;
 		}
@@ -581,6 +696,117 @@ void Node::doTrySendSocketBuffers(const uint _sockidx){
 void Node::doReceiveStreamData(const uint _sockidx){
 	ConnectionStub	&rcs = d.connectionvec[_sockidx];
 	const uint32 	readsz = socketRecvSize(_sockidx);
+	rcs.readbufwritepos += readsz;
+	while((rcs.readbufwritepos - rcs.readbufreadpos) > Packet::MinRelayReadSize){
+		uint16 consume = doReceiveStreamPacket(_sockidx);
+		if(consume == 0) break;
+		rcs.readbufreadpos += consume;
+	}
+	if(doOptimizeReadBuffer(_sockidx)){
+		const int rv = socketRecv(_sockidx, rcs.preadbuf + rcs.readbufwritepos, rcs.readbufcp - rcs.readbufwritepos);
+		switch(rv){
+			case BAD:
+				doPrepareSocketReconnect(_sockidx);
+				break;
+			case OK:
+				socketPostEvents(_sockidx, INDONE);
+				break;
+			case NOK:
+				break;
+		}
+	}
+}
+//--------------------------------------------------------------------
+uint16 Node::doReceiveStreamPacket(const uint _sockidx){
+	ConnectionStub	&rcs = d.connectionvec[_sockidx];
+	char			*pbuf = rcs.preadbuf + rcs.readbufreadpos;
+	uint32			bufsz = rcs.readbufwritepos - rcs.readbufreadpos;
+	Packet			p(pbuf, Packet::MinRelayReadSize);
+	uint32			psz = p.relayPacketSize();
+	if(psz <= bufsz){
+		p.bufferSize(psz);
+		cassert(p.isRelay());
+		uint16	sesidx(0xffff);
+		uint16	sesuid(0xffff);
+		switch(p.type()){
+			default:{
+				uint32				relayid = p.relay();
+				
+				unpack(sesidx, sesuid, relayid);
+				
+				if(
+					sesidx >= d.sessionvec.size() ||
+					sesuid != d.sessionvec[sesidx].uid
+				)return psz;
+				
+				const SessionStub	&rss = d.sessionvec[sesidx];
+				p.relay(rss.localrelayid);
+			}break;
+			case Packet::ConnectType:{
+				if(!doReceiveConnectStreamPacket(_sockidx, p)){
+					return psz;
+				}
+			}break;
+			case Packet::AcceptType:{
+				uint32				relayid = p.relay();
+				
+				unpack(sesidx, sesuid, relayid);
+				
+				if(
+					sesidx >= d.sessionvec.size() ||
+					sesuid != d.sessionvec[sesidx].uid
+				)return psz;
+				
+				SessionStub	&rss = d.sessionvec[sesidx];
+				
+				{
+					AcceptData			accdata;
+					SocketAddress		sa;
+					int					error = Session::parseAcceptPacket(p, accdata, sa);
+					if(error){
+						return psz;
+					}
+					rss.remoterelayid = accdata.relayid;
+				}
+				
+				p.relay(rss.localrelayid);
+			}break;
+		}
+		d.udpsendq.push(SendDatagramStub());
+		d.udpsendq.back().pbuf = p.release();
+		d.udpsendq.back().sockid = _sockidx;
+		d.udpsendq.back().sesidx = sesidx;
+		d.udpsendq.back().sesuid = sesuid;
+		++rcs.readbufusecnt;
+		return psz;
+	}else{
+		return 0;
+	}
+}
+//--------------------------------------------------------------------
+bool Node::doReceiveConnectStreamPacket(const uint _sockidx, Packet &_rp){
+	return false;
+}
+//--------------------------------------------------------------------
+bool Node::doOptimizeReadBuffer(const uint _sockidx){
+	ConnectionStub	&rcs = d.connectionvec[_sockidx];
+	if(rcs.readbufusecnt){
+		if((rcs.readbufcp - rcs.readbufwritepos) > Packet::Capacity){
+			return true;
+		}else{
+			return false;
+		}
+	}else{
+		if(rcs.readbufreadpos){
+			const uint16 tocopy = rcs.readbufwritepos - rcs.readbufreadpos;
+			if(tocopy <= rcs.readbufreadpos){//we need to prevent overlapping to avoid memmove
+				memcpy(rcs.preadbuf, rcs.preadbuf + rcs.readbufreadpos, tocopy);
+				rcs.readbufwritepos = tocopy;
+				rcs.readbufreadpos = 0;
+			}
+		}
+		return true;
+	}
 }
 //--------------------------------------------------------------------
 void Node::doPrepareSocketReconnect(const uint _sockidx){
@@ -595,6 +821,10 @@ void Node::doHandleSocketEvents(const uint _sockidx, ulong _evs){
 			doReceiveStreamData(_sockidx);
 		}
 		if(_evs & OUTDONE){
+			cassert(rcs.sendq.size());
+			char *pbuf = const_cast<char*>(rcs.sendq.front().pbuf);
+			Specific::pushBuffer(pbuf, rcs.sendq.front().bufid);
+			rcs.sendq.pop();
 			doTrySendSocketBuffers(_sockidx);
 		}
 	}else if(rcs.state == ConnectionStub::ConnectState){
@@ -620,23 +850,13 @@ void Node::doHandleSocketEvents(const uint _sockidx, ulong _evs){
 		}
 	}else if(rcs.state == ConnectionStub::InitState){
 		if(!rcs.preadbuf){
-			const uint bufidx = Specific::sizeToIndex(8 * 1024);
+			const uint bufidx = Specific::sizeToIndex(16 * 1024);
 			rcs.readbufcp = Specific::indexToCapacity(bufidx);
 			rcs.preadbuf = Specific::popBuffer(bufidx);
 		}
 		rcs.state = ConnectionStub::ConnectedState;
 		//initiate read
-		const int rv = socketRecv(_sockidx, rcs.preadbuf, rcs.readbufcp);
-		switch(rv){
-			case BAD:
-				doPrepareSocketReconnect(_sockidx);
-				break;
-			case OK:
-				socketPostEvents(_sockidx, INDONE);
-				break;
-			case NOK:
-				break;
-		}
+		socketPostEvents(_sockidx, INDONE);
 		doTrySendSocketBuffers(_sockidx);
 	}else{
 		cassert(false);

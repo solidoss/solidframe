@@ -46,6 +46,7 @@ struct Packet{
 	enum{
 		Capacity = UIPCPACKETCAPACITY,
 		BaseSize = 8,
+		MinRelayReadSize = BaseSize + 4 + 2, // BaseSize + relayid + relay_data_size
 		KeepAliveSize = 8,
 		LastPacketId = 0xffffffff - 32,
 		UpdatePacketId = 0xffffffff,//the id of a buffer containing only updates
