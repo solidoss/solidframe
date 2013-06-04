@@ -86,6 +86,8 @@ private:
 	bool doOptimizeReadBuffer(const uint _sockidx);
 	void doDoneSendDatagram();
 	bool doReceiveConnectStreamPacket(const uint _sockidx, Packet &_rp);
+	void doRescheduleSessionTime(const uint _sesidx);
+	void doOnSessionTimer(const uint _sesidx);
 private:
 	struct Data;
 	Data &d;

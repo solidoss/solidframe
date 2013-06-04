@@ -2132,7 +2132,7 @@ int Session::doExecuteRelayConnecting(TalkerStub &_rstub){
 	pkt.reset();
 	pkt.type(Packet::ConnectType);
 	pkt.id(d.sendid);
-	pkt.relay(0xffffffff);
+	pkt.relay(_rstub.relayId());
 	d.incrementSendId();
 	
 	
