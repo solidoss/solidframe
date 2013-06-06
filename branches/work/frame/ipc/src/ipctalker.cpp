@@ -1000,6 +1000,45 @@ int TalkerStub::basePort()const{
 	return rt.d.rservice.basePort();
 }
 //======================================================================
+std::ostream& ConnectData::print(std::ostream& _ros)const{
+	_ros<<s<<f<<i<<p<<c<<' '<<type<<' '<<version_major<<'.'<<version_minor;
+	_ros<<flags<<' '<<baseport<<' '<<timestamp_s<<':'<<timestamp_n;
+	_ros<<relayid<<' '<<receivernetworkid<<':';
+	
+	char	host[SocketInfo::HostStringCapacity];
+	char	port[SocketInfo::ServiceStringCapacity];
+	
+	receiveraddress.toString(
+		host,
+		SocketInfo::HostStringCapacity,
+		port,
+		SocketInfo::ServiceStringCapacity,
+		SocketInfo::NumericService | SocketInfo::NumericHost
+	);
+	_ros<<host<<':'<<port<<"<-"<<sendernetworkid<<':';
+	senderaddress.toString(
+		host,
+		SocketInfo::HostStringCapacity,
+		port,
+		SocketInfo::ServiceStringCapacity,
+		SocketInfo::NumericService | SocketInfo::NumericHost
+	);
+	_ros<<host<<':'<<port;
+	return _ros;
+}
+
+std::ostream& AcceptData::print(std::ostream& _ros)const{
+	_ros<<flags<<' '<<baseport<<' '<<timestamp_s<<':'<<timestamp_n<<' '<<relayid;
+	return _ros;
+}
+
+std::ostream& operator<<(std::ostream& _ros, const ConnectData &_rd){
+	return _rd.print(_ros);
+}
+std::ostream& operator<<(std::ostream& _ros, const AcceptData &_rd){
+	return _rd.print(_ros);
+}
+//======================================================================
 #ifdef USTATISTICS
 
 namespace{
@@ -1097,6 +1136,7 @@ std::ostream& operator<<(std::ostream &_ros, const StatisticData &_rsd){
 	_ros<<"receivedpackets4          "<<_rsd.receivedpackets4<<std::endl;
 	return _ros;
 }
+
 }//namespace
 #endif
 }//namespace ipc

@@ -33,23 +33,39 @@ ostream& operator<<(ostream& _ros, const SocketAddressInet4& _rsa){
 	return _ros;
 }
 
+ostream& operator<<(ostream& _ros, const SocketAddressInet& _rsa){
+	char host[SocketInfo::HostStringCapacity];
+	char service[SocketInfo::ServiceStringCapacity];
+	_rsa.toString(host, SocketInfo::HostStringCapacity, service, SocketInfo::ServiceStringCapacity, SocketInfo::NumericHost | SocketInfo::NumericService);
+	_ros<<host<<':'<<service;
+	return _ros;
+}
+
 //------------------------------------------------------------------
 //------------------------------------------------------------------
 
+typedef std::pair<uint32, SocketAddressInet4>	PeerAddressPairT;
+
 struct SocketAddressCmp{
 	bool operator()(
-		const SocketAddressInet4* const &_pa1,
-		const SocketAddressInet4* const &_pa2
+		const PeerAddressPairT* const &_pa1,
+		const PeerAddressPairT* const &_pa2
 	)const{
-		return *_pa1 < *_pa2;
+		if(_pa1->first < _pa2->first){
+			return true;
+		}else if(_pa1->first > _pa2->first){
+			return false;
+		}else{
+			return  *_pa1 < *_pa2;
+		}
 	}
 };
 
 struct Params{
 	typedef std::vector<std::string>			StringVectorT;
-	typedef std::vector<SocketAddressInet4>		SocketAddressVectorT;
+	typedef std::vector<PeerAddressPairT>		PeerAddressVectorT;
 	typedef std::map<
-		const SocketAddressInet4*,
+		const PeerAddressPairT*,
 		uint32,
 		SocketAddressCmp
 	>											SocketAddressMapT;
@@ -63,6 +79,7 @@ struct Params{
 	int						listen_port;
 	bool					log;
 	StringVectorT			connectstringvec;
+	StringVectorT			gatewaystringvec;
 	
 	uint32					repeat_count;
     uint32					message_count;
@@ -70,11 +87,11 @@ struct Params{
     uint32					max_size;
     
     
-    SocketAddressVectorT	connectvec;
+    PeerAddressVectorT		connectvec;
     SocketAddressMapT		connectmap;
 	
-	void prepare();
-    uint32 server(const SocketAddressInet4 &_rsa)const;
+	bool prepare(frame::ipc::Configuration &_rcfg, string &_err);
+    uint32 server(const PeerAddressPairT&)const;
 };
 
 //------------------------------------------------------------------
@@ -171,7 +188,7 @@ int main(int argc, char *argv[]){
 	
 	if(parseArguments(p, argc, argv)) return 0;
 	
-	p.prepare();
+	//p.prepare();
 	
 	signal(SIGINT,term_handler); /* Die on SIGTERM */
 	
@@ -228,6 +245,16 @@ int main(int argc, char *argv[]){
 			//frame::aio::Error			err;
 			int							err;
 			
+			{
+				string errstr;
+				if(!p.prepare(cfg, errstr)){
+					cout<<"Error preparing ipc configuration: "<<errstr<<endl;
+					Thread::waitAll();
+					return 0;
+				}
+			}
+			
+			
 			cfg.baseaddr = rd.begin();
 			
 			err = ipcsvc.reconfigure(cfg);
@@ -252,11 +279,11 @@ int main(int argc, char *argv[]){
 				
 				DynamicSharedPointer<FirstMessage>	fmsgptr(create_message(i));
 
-				for(Params::SocketAddressVectorT::iterator it(p.connectvec.begin()); it != p.connectvec.end(); ++it){
+				for(Params::PeerAddressVectorT::iterator it(p.connectvec.begin()); it != p.connectvec.end(); ++it){
 					DynamicPointer<frame::Message>		msgptr(fmsgptr);
 					ipcsvc.sendMessage(
-						msgptr, *it,
-						frame::ipc::LocalNetworkId,
+						msgptr, it->second,
+						it->first,
 						frame::ipc::WaitResponseFlag// | fdt::ipc::Service::SynchronousSendFlag
 					);
 				}
@@ -290,7 +317,7 @@ int main(int argc, char *argv[]){
         
         for(ServerVectorT::const_iterator it(srvvec.begin()); it != srvvec.end(); ++it){
             const uint32_t idx = it - srvvec.begin();
-            cout<<"Server ["<<p.connectvec[idx]<<"] mintime = "<<it->minmsec<<" maxtime = "<<it->maxmsec<<endl;
+            cout<<"Server ["<<p.connectvec[idx].first<<':'<<p.connectvec[idx].second<<"] mintime = "<<it->minmsec<<" maxtime = "<<it->maxmsec<<endl;
             if(minmsec > it->minmsec){
                 minmsec = it->minmsec;
             }
@@ -341,7 +368,8 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 			("debug-console,C", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")
 			("debug-unbuffered,S", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered")
 			("listen-port,l", value<int>(&_par.listen_port)->default_value(2000), "Listen port")
-			("connect,c", value<vector<string> >(&_par.connectstringvec), "Peer to connect to: YYY.YYY.YYY.YYY:port")
+			("connect,c", value<vector<string> >(&_par.connectstringvec), "Peer to connect to: netid:YYY.YYY.YYY.YYY:port")
+			("gateway,g", value<vector<string> >(&_par.gatewaystringvec), "Gateways to connect through: YYY.YYY.YYY.YYY:port")
 			("repeat-count", value<uint32_t>(&_par.repeat_count)->default_value(10), "Per message trip count")
             ("message-count", value<uint32_t>(&_par.message_count)->default_value(1000), "Message count")
             ("min-size", value<uint32_t>(&_par.min_size)->default_value(10), "Min message data size")
@@ -361,32 +389,75 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 	}
 }
 //------------------------------------------------------
-void Params::prepare(){
+bool Params::prepare(frame::ipc::Configuration &_rcfg, string &_err){
+	const uint16	default_gw_port = 4000;
 	const uint16	default_port = 2000;
+	const int		default_netid = solid::frame::ipc::LocalNetworkId;
 	size_t			pos;
-	for(std::vector<std::string>::iterator it(connectstringvec.begin()); it != connectstringvec.end(); ++it){
+	
+	for(std::vector<std::string>::iterator it(gatewaystringvec.begin()); it != gatewaystringvec.end(); ++it){
 		pos = it->rfind(':');
 		if(pos == std::string::npos){
-			connectvec.push_back(SocketAddressInet4(it->c_str(), default_port));
+			//connectvec.push_back(SocketAddressInet4(it->c_str(), default_port));
+			_rcfg.gatewayaddrvec.push_back(SocketAddressInet(it->c_str(), default_gw_port));
 		}else{
 			(*it)[pos] = '\0';
 			int port = atoi(it->c_str() + pos + 1);
-			connectvec.push_back(SocketAddressInet4(it->c_str(), port));
+			_rcfg.gatewayaddrvec.push_back(SocketAddressInet(it->c_str(), port));
 		}
-		idbg("added connect address "<<connectvec.back());
+		idbg("added gateway address "<<_rcfg.gatewayaddrvec.back());
 	}
+
+	size_t 			posa;
+	size_t 			posb;
+	for(std::vector<std::string>::iterator it(connectstringvec.begin()); it != connectstringvec.end(); ++it){
+		posa = it->find(':');
+		posb = it->rfind(':');
+		int netid = default_netid;
+		int port  = -1;
+		
+		
+		if(posa == std::string::npos){
+			_err = "Error parsing connect address: ";
+			_err += *it;
+			return false;
+		}
+		
+		(*it)[posa] = '\0';
+		netid = atoi(it->c_str());
+	
+		if(posb == posa){
+			port = default_port;
+		}else{
+			(*it)[posb] = '\0';
+			port = atoi(it->c_str() + posb + 1);
+		}
+		
+		const char *addr = it->c_str() + posa + 1;
+		
+		ResolveData	rd = synchronous_resolve(addr, port, 0, SocketInfo::Inet4, SocketInfo::Stream);
+		
+		if(!rd.empty()){
+			connectvec.push_back(PeerAddressPairT(netid, SocketAddressInet4(rd.begin())));
+			idbg("added connect address "<<*it);
+		}else{
+			idbg("skiped connect address "<<*it);
+		}
+	}
+	
 	if(min_size > max_size){
 		uint32_t tmp = min_size;
 		min_size = max_size;
 		max_size = tmp;
 	}
 	
-	for(SocketAddressVectorT::const_iterator it(connectvec.begin()); it != connectvec.end(); ++it){
+	for(PeerAddressVectorT::const_iterator it(connectvec.begin()); it != connectvec.end(); ++it){
 		const uint32_t idx = it - connectvec.begin();
 		connectmap[&(*it)] = idx;
 	}
+	return true;
 }
-uint32 Params::server(const SocketAddressInet4 &_rsa)const{
+uint32 Params::server(const PeerAddressPairT &_rsa)const{
 	SocketAddressMapT::const_iterator it = this->connectmap.find(&_rsa);
 	if(it != this->connectmap.end()){
 		return it->second;
@@ -427,14 +498,14 @@ FirstMessage::~FirstMessage(){
 	}else{
 		TimeSpec			crttime(TimeSpec::createRealTime());
 		TimeSpec			tmptime(this->sec, this->nsec);
-		SocketAddressInet4	sa(frame::ipc::ConnectionContext::the().pairaddr);
+		PeerAddressPairT	peersa(frame::ipc::ConnectionContext::the().netid, frame::ipc::ConnectionContext::the().pairaddr);
 		
 		tmptime =  crttime - tmptime;
 		_rmsguid = msguid;
 		
-		sa.port(frame::ipc::ConnectionContext::the().baseport);
+		peersa.second.port(frame::ipc::ConnectionContext::the().baseport);
 		
-		const uint32		srvidx = p.server(sa);
+		const uint32		srvidx = p.server(peersa);
 		ServerStub			&rss = srvvec[srvidx];
 		uint64				crtmsec = tmptime.seconds() * 1000;
 		

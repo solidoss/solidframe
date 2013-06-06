@@ -90,6 +90,7 @@ struct ConnectionContext{
 	int 				baseport;
 	MessageUid			msgid;
 	SocketAddressStub	pairaddr;
+	uint32				netid;
 	
 	ObjectUidT talkerUid()const{
 		return ObjectUidT(connectionuid.tid, tkruid);

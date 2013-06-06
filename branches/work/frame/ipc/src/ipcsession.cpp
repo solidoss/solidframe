@@ -2668,6 +2668,11 @@ void Session::doTryScheduleKeepAlive(TalkerStub &_rstub){
 void Session::prepareContext(Context &_rctx){
 	_rctx.msgctx.pairaddr = d.pairaddr;
 	_rctx.msgctx.baseport = d.baseport;
+	if(!d.isRelayType()){
+		_rctx.msgctx.netid = LocalNetworkId;
+	}else{
+		_rctx.msgctx.netid = d.relayed44().netid;
+	}
 }
 //---------------------------------------------------------------------
 void Session::dummySendError(

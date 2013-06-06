@@ -24,6 +24,7 @@
 
 #include "frame/aio/aiosingleobject.hpp"
 #include "frame/ipc/ipcconnectionuid.hpp"
+#include <ostream>
 
 struct TimeSpec;
 namespace solid{
@@ -54,6 +55,7 @@ struct ConnectData{
 		flags(0), baseport(0), timestamp_s(0), timestamp_n(0),
 		relayid(0), receivernetworkid(0), sendernetworkid(0){}
 	
+	std::ostream& print(std::ostream& _ros)const;
 	uint8					s;
 	uint8					f;
 	uint8					i;
@@ -74,17 +76,24 @@ struct ConnectData{
 	SocketAddressInet		senderaddress;
 };
 
+std::ostream& operator<<(std::ostream& _ros, const ConnectData &_rd);
+
 struct AcceptData{
 	enum{
 		BaseSize = 2 + 2 + 4 + 4
 	};
 	AcceptData():baseport(0){}
+	
+	std::ostream& print(std::ostream& _ros)const;
+	
 	uint16	flags;
 	uint16	baseport;
 	uint32	timestamp_s;
 	uint32	timestamp_n;
 	uint32	relayid;
 };
+
+std::ostream& operator<<(std::ostream& _ros, const AcceptData &_rd);
 
 class Talker;
 

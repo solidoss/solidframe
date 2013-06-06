@@ -346,9 +346,12 @@ Node::Node(
 	const SocketDevice &_rsd,
 	Service &_rservice,
 	uint16 _id
-):BaseT(_rsd),d(*(new Data(_id, _rservice))){}
+):BaseT(_rsd),d(*(new Data(_id, _rservice))){
+	vdbgx(Debug::ipc, (void*)this);
+}
 //--------------------------------------------------------------------
 Node::~Node(){
+	vdbgx(Debug::ipc, (void*)this);
 	//free buffers to be sent on UDP
 	const uint	wbufidx = Specific::capacityToIndex(Packet::Capacity);
 	while(d.udpsendq.size()){
@@ -404,6 +407,8 @@ int Node::execute(ulong _sig, TimeSpec &_time){
 		}
 	}
 	
+	vdbgx(Debug::ipc, (void*)this<<" "<<d.newsessiontmpvec.size());
+	
 	if(d.newsessiontmpvec.size()){
 		doInsertNewSessions();
 	}
@@ -438,6 +443,8 @@ int Node::execute(ulong _sig, TimeSpec &_time){
 			SessionStub		&rss = d.sessionvec[idx];
 			if(rss.uid == uid && rss.time <= _time){
 				doOnSessionTimer(idx);
+			}else{
+				d.timeq.push(rss.time, TimerValue(idx, rss.uid));
 			}
 		}
 	}
@@ -447,7 +454,7 @@ int Node::execute(ulong _sig, TimeSpec &_time){
 	){
 		must_reenter = true;
 	}
-	
+	vdbgx(Debug::ipc, (void*)this<<" reenter = "<<must_reenter<<" udbsendqsz = "<<d.udpsendq.size()<<" signaledsz = "<<signaledSize()<<" tmqsz = "<<d.timeq.size());
 	if(must_reenter){
 		return OK;
 	}else{
@@ -461,6 +468,7 @@ int Node::execute(ulong _sig, TimeSpec &_time){
 
 //--------------------------------------------------------------------
 uint32 Node::pushSession(const SocketAddress &_rsa, const ConnectData &_rconndata, uint32 _idx){
+	vdbgx(Debug::ipc, (void*)this<<" idx = "<<_idx<<" condata = "<<_rconndata);
 	uint32 fullidx = _idx;
 	uint32 idx;
 	if(_idx == 0xffffffff){
@@ -492,6 +500,7 @@ void Node::pushConnection(
 }
 //----------------------------------------------------------------------
 int Node::doReceiveDatagramPackets(uint _atmost, const ulong _sig){
+	vdbgx(Debug::ipc, (void*)this);
 	if(this->socketHasPendingRecv(0)){
 		return NOK;
 	}
@@ -518,6 +527,7 @@ int Node::doReceiveDatagramPackets(uint _atmost, const ulong _sig){
 }
 //--------------------------------------------------------------------
 void Node::doSendDatagramPackets(){
+	vdbgx(Debug::ipc, (void*)this);
 	if(this->socketHasPendingSend(0)){
 		return;
 	}
@@ -564,7 +574,7 @@ void Node::doDispatchReceivedDatagramPacket(
 ){
 	Packet p(_pbuf, Packet::Capacity);
 	p.bufferSize(_bufsz);
-	vdbgx(Debug::ipc, " RECEIVED "<<p);
+	vdbgx(Debug::ipc, (void*)this<<" RECEIVED "<<p);
 	uint16	sesidx;
 	uint16	sesuid;
 	switch(p.type()){
@@ -623,6 +633,7 @@ void Node::doDispatchReceivedDatagramPacket(
 }
 //--------------------------------------------------------------------
 void Node::doInsertNewConnections(){
+	vdbgx(Debug::ipc, (void*)this);
 	for(NewConnectionVectorT::const_iterator it(d.newconnectionvec.begin()); it != d.newconnectionvec.end(); ++it){
 		int idx = this->socketInsert(it->sd);
 		if(idx >= 0){
@@ -638,11 +649,13 @@ void Node::doInsertNewConnections(){
 }
 //--------------------------------------------------------------------
 void Node::doPrepareInsertNewSessions(){
+	vdbgx(Debug::ipc, (void*)this);
 	d.newsessiontmpvec = d.newsessionvec;
 	d.newsessionvec.clear();
 }
 //--------------------------------------------------------------------
 void Node::doInsertNewSessions(){
+	vdbgx(Debug::ipc, (void*)this);
 	for(NewSessionVectorT::iterator it(d.newsessiontmpvec.begin()); it != d.newsessiontmpvec.end(); ++it){
 		uint16 idx/*,uid*/;
 		//unpack(idx, uid, it->idx);
@@ -704,6 +717,8 @@ void Node::doInsertNewSessions(){
 }
 //--------------------------------------------------------------------
 void Node::doRescheduleSessionTime(const uint _sesidx){
+	vdbgx(Debug::ipc, (void*)this<<" "<<_sesidx);
+	
 	SessionStub		&rss = d.sessionvec[_sesidx];
 	const TimeSpec	crttime = this->currentTime();
 	if(crttime < rss.time){
@@ -716,6 +731,8 @@ void Node::doRescheduleSessionTime(const uint _sesidx){
 }
 //--------------------------------------------------------------------
 void Node::doScheduleSendConnect(uint16 _idx, ConnectData &_rcd){
+	vdbgx(Debug::ipc, (void*)this<<" "<<_idx<<_rcd);
+	
 	SessionStub		&rss = d.sessionvec[_idx];
 	const uint32	fullid = pack(_idx, rss.uid);
 	const uint32	pktid(Specific::sizeToIndex(128));
@@ -744,6 +761,7 @@ void Node::doScheduleSendConnect(uint16 _idx, ConnectData &_rcd){
 }
 //--------------------------------------------------------------------
 uint16 Node::doCreateSocket(const uint32 _netidx){
+	vdbgx(Debug::ipc, (void*)this<<" "<<_netidx);
 	//TODO: improve the search - there may be multiple connections to the same address
 	//
 	for(ConnectionVectorT::iterator it(d.connectionvec.begin()); it != d.connectionvec.end(); ++it){
@@ -774,6 +792,8 @@ uint16 Node::doCreateSocket(const uint32 _netidx){
 }
 //--------------------------------------------------------------------
 void Node::doTrySendSocketBuffers(const uint _sockidx){
+	vdbgx(Debug::ipc, (void*)this<<" "<<_sockidx);
+	
 	ConnectionStub	&rcs = d.connectionvec[_sockidx];
 	
 	if(socketHasPendingSend(_sockidx) || rcs.sendq.empty() || rcs.state < ConnectionStub::ConnectedState){
@@ -804,6 +824,8 @@ void Node::doTrySendSocketBuffers(const uint _sockidx){
 }
 //--------------------------------------------------------------------
 void Node::doReceiveStreamData(const uint _sockidx){
+	vdbgx(Debug::ipc, (void*)this<<" "<<_sockidx);
+	
 	ConnectionStub	&rcs = d.connectionvec[_sockidx];
 	const uint32 	readsz = socketRecvSize(_sockidx);
 	rcs.readbufwritepos += readsz;
@@ -828,6 +850,8 @@ void Node::doReceiveStreamData(const uint _sockidx){
 }
 //--------------------------------------------------------------------
 uint16 Node::doReceiveStreamPacket(const uint _sockidx){
+	vdbgx(Debug::ipc, (void*)this<<" "<<_sockidx);
+	
 	ConnectionStub	&rcs = d.connectionvec[_sockidx];
 	char			*pbuf = rcs.preadbuf + rcs.readbufreadpos;
 	uint32			bufsz = rcs.readbufwritepos - rcs.readbufreadpos;
@@ -903,6 +927,8 @@ uint16 Node::doReceiveStreamPacket(const uint _sockidx){
 }
 //--------------------------------------------------------------------
 bool Node::doReceiveConnectStreamPacket(const uint _sockidx, Packet &_rp){
+	vdbgx(Debug::ipc, (void*)this<<" "<<_sockidx<<" "<<_rp);
+	
 	ConnectionStub					&rcs = d.connectionvec[_sockidx];
 	
 	SessionIdMapT::const_iterator	it = rcs.sessmap.find(_rp.relay());
@@ -976,6 +1002,8 @@ bool Node::doReceiveConnectStreamPacket(const uint _sockidx, Packet &_rp){
 }
 //--------------------------------------------------------------------
 bool Node::doOptimizeReadBuffer(const uint _sockidx){
+	vdbgx(Debug::ipc, (void*)this<<" "<<_sockidx);
+	
 	ConnectionStub	&rcs = d.connectionvec[_sockidx];
 	if(rcs.readbufusecnt){
 		if((rcs.readbufcp - rcs.readbufwritepos) > Packet::Capacity){
@@ -1002,10 +1030,12 @@ void Node::doPrepareSocketReconnect(const uint _sockidx){
 }
 //--------------------------------------------------------------------
 void Node::doOnSessionTimer(const uint _sesidx){
+	vdbgx(Debug::ipc, (void*)this<<" "<<_sesidx);
 	//TODO: close the session
 }
 //--------------------------------------------------------------------
 void Node::doHandleSocketEvents(const uint _sockidx, ulong _evs){
+	vdbgx(Debug::ipc, (void*)this<<" "<<_sockidx<<" "<<_evs);
 	ConnectionStub	&rcs = d.connectionvec[_sockidx];
 	if(rcs.state == ConnectionStub::ConnectedState){
 		if(_evs & INDONE){

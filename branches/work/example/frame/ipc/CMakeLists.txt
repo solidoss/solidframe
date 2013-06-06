@@ -29,9 +29,9 @@ target_link_libraries (example_ipcserialization
 	${SYS_DYNAMIC_LOAD_LIB}
 )
 
-add_executable (example_ipcrelay ipcrelay.cpp)
+add_executable (example_ipcgateway ipcgateway.cpp)
 
-target_link_libraries (example_ipcrelay
+target_link_libraries (example_ipcgateway
 	solid_frame_ipc
 	solid_frame_aio
 	solid_frame_aio_openssl
