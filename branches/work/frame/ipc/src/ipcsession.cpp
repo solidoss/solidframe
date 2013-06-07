@@ -2823,6 +2823,8 @@ StaticData::StaticData(){
 	toutvec.push_back( 2000);
 	toutvec.push_back( 3000);
 	toutvec.push_back( 4000);
+	connectretransmitposrelay = 6;
+	connectretransmitpos = 3;
 }
 
 //----------------------------------------------------------------------

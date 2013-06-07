@@ -58,6 +58,7 @@ int Listener::execute(ulong, TimeSpec&){
 		}
 		state = 0;
 		cassert(sd.ok());
+		idbgx(Debug::ipc, "accepted new connection");
 		//TODO: filtering on sd based on sd.remoteAddress()
 		if(pctx.get()){
 			rsvc.insertConnection(sd, pctx.get(), true);

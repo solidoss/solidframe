@@ -85,7 +85,7 @@ private:
 	uint16 doReceiveStreamPacket(const uint _sockidx);
 	bool doOptimizeReadBuffer(const uint _sockidx);
 	void doDoneSendDatagram();
-	bool doReceiveConnectStreamPacket(const uint _sockidx, Packet &_rp);
+	bool doReceiveConnectStreamPacket(const uint _sockidx, Packet &_rp, uint16 &_rsesidx, uint16 &_rsesuid);
 	void doRescheduleSessionTime(const uint _sesidx);
 	void doOnSessionTimer(const uint _sesidx);
 private:

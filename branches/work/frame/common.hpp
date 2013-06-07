@@ -55,7 +55,7 @@ enum Events{
 	OUTDONE = 8,//Successfull output asynchrounous completion
 	TIMEOUT = 16,//Unsuccessfull asynchrounous completion due to timeout
 	SIGNALED = 32,
-	IODONE = 64,
+	IODONE = INDONE | OUTDONE,
 	RESCHEDULED = 128,
 	TIMEOUT_RECV = 256,
 	TIMEOUT_SEND = 512,

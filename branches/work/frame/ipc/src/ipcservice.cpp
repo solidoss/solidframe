@@ -1183,8 +1183,8 @@ struct RelayAddressAddrCompare{
 size_t	Service::netId2AddressFind(uint32 _netid)const{
 	static BinarySeeker<RelayAddressNetIdCompare> bs;
 	BinarySeekerResultT r = bs.first(d.gwnetid2addrvec.begin(), d.gwnetid2addrvec.end(), _netid);
-	if(r.second){
-		return r.first;
+	if(r.first){
+		return r.second;
 	}else{
 		return d.gwnetid2addrvec.size();
 	}
@@ -1196,8 +1196,8 @@ size_t	Service::netId2AddressVectorSize()const{
 size_t	Service::address2NetIdFind(SocketAddressInet const&_addr)const{
 	static BinarySeeker<RelayAddressAddrCompare> bs;
 	BinarySeekerResultT r = bs.first(d.gwaddr2netidvec.begin(), d.gwaddr2netidvec.end(), _addr);
-	if(r.second){
-		return r.first;
+	if(r.first){
+		return r.second;
 	}else{
 		return d.gwaddr2netidvec.size();
 	}

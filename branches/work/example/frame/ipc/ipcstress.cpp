@@ -475,6 +475,11 @@ FirstMessage::~FirstMessage(){
 	++msgvec[this->idx].count;
 	
 	if(!isOnSender()){
+		
+		PeerAddressPairT	peersa(frame::ipc::ConnectionContext::the().netid, frame::ipc::ConnectionContext::the().pairaddr);
+		
+		idbg("Received message: "<<peersa.first<<":"<<peersa.second);
+		
 		frame::ipc::ConnectionContext::the().service().sendMessage(
 			msgptr,
 			frame::ipc::ConnectionContext::the().connectionuid,
@@ -484,6 +489,8 @@ FirstMessage::~FirstMessage(){
 		TimeSpec			crttime(TimeSpec::createRealTime());
 		TimeSpec			tmptime(this->sec, this->nsec);
 		PeerAddressPairT	peersa(frame::ipc::ConnectionContext::the().netid, frame::ipc::ConnectionContext::the().pairaddr);
+		
+		idbg("Received message: "<<peersa.first<<":"<<peersa.second);
 		
 		tmptime =  crttime - tmptime;
 		_rmsguid = msguid;
