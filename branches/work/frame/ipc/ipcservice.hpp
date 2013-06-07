@@ -78,6 +78,7 @@ enum Error{
 	NoGatewayError = -100,
 	UnsupportedSocketFamilyError = -101,
 	NoConnectionError = -102,
+	TryReconnectError = -103,
 	
 };
 

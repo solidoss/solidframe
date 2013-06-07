@@ -1113,6 +1113,21 @@ bool Session::Data::moveToNextSendMessage(){
 	vdbgx(Debug::ipc, "ConnectData: flags = "<<_rcd.flags<<" baseport = "<<_rcd.baseport<<" ts_s = "<<_rcd.timestamp_s<<" ts_n = "<<_rcd.timestamp_n);
 	return OK;
 }
+//---------------------------------------------------------------------
+/*static*/ int Session::parseErrorPacket(
+	const Packet &_rpkt,
+	ErrorData &_rdata
+){
+	if(_rpkt.dataSize() < sizeof(uint32)){
+		return BAD;
+	}
+	uint32 v;
+	serialization::binary::load(_rpkt.data(), v);
+	_rdata.error = static_cast<int32>(v);
+	
+	return OK;
+}
+//---------------------------------------------------------------------
 /*static*/ int Session::fillAcceptPacket(
 	Packet &_rpkt,
 	const AcceptData &_rad
@@ -1128,7 +1143,7 @@ bool Session::Data::moveToNextSendMessage(){
 	_rpkt.dataSize(_rpkt.dataSize() + (ppos - _rpkt.dataEnd()));
 	return OK;
 }
-
+//---------------------------------------------------------------------
 /*static*/ int Session::fillConnectPacket(
 	Packet &_rpkt,
 	const ConnectData &_rcd
@@ -1166,6 +1181,18 @@ bool Session::Data::moveToNextSendMessage(){
 		ppos = serialization::binary::store(ppos, port);
 
 	}
+	
+	_rpkt.dataSize(_rpkt.dataSize() + (ppos - _rpkt.dataEnd()));
+	return OK;
+}
+//---------------------------------------------------------------------
+/*static*/ int Session::fillErrorPacket(
+	Packet &_rpkt,
+	const ErrorData &_rad
+){
+	char 				*ppos = _rpkt.dataEnd();
+	uint32 v = _rad.error;
+	ppos = serialization::binary::store(ppos, v);
 	
 	_rpkt.dataSize(_rpkt.dataSize() + (ppos - _rpkt.dataEnd()));
 	return OK;
@@ -2159,7 +2186,7 @@ int Session::doExecuteRelayConnecting(TalkerStub &_rstub){
 	Data::SendPacketData	&rspd(d.sendpacketvec[pktidx]);
 	
 	cassert(pktidx == 1);
-	vdbgx(Debug::ipc, "send "<<rspd.packet);
+	vdbgx(Debug::ipc, "send "<<rspd.packet<<" to "<<this->d.relayed44().addr);
 	
 	rspd.packet.relayPacketSizeStore();
 	
@@ -2720,11 +2747,11 @@ int Session::doExecuteDummy(TalkerStub &_rstub){
 			rdd.crtpkt.type(Packet::ErrorType);
 			rdd.crtpkt.id(0);
 		
-			int32		*pi = (int32*)rdd.crtpkt.dataEnd();
-			
-			*pi = htonl(rdd.errorq.front().error);
-			rdd.crtpkt.dataSize(rdd.crtpkt.dataSize() + sizeof(int32));
+			ErrorData ed;
+			ed.error = rdd.errorq.front().error;
 			rdd.errorq.pop();
+			
+			fillErrorPacket(rdd.crtpkt, ed);
 			
 			vdbgx(Debug::ipc, "send "<<rdd.crtpkt);
 			
@@ -2750,11 +2777,12 @@ bool Session::pushReceivedErrorPacket(
 	Packet &_rpkt,
 	TalkerStub &_rstub
 ){
-	int error = 0;
-	if(_rpkt.dataSize() == sizeof(int32)){
-		int32 *pp((int32*)_rpkt.data());
-		error = (int)ntohl((uint32)*pp);
-		idbgx(Debug::ipc, "Received error "<<error);
+	ErrorData	ed;
+	
+	if(!parseErrorPacket(_rpkt, ed)){
+		idbgx(Debug::ipc, "Received error ("<<ed.error<<"): "<<Service::errorText(ed.error));
+	}else{
+		cassert(false);
 	}
 	
 	d.state = Data::Disconnecting;

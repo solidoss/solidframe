@@ -645,23 +645,36 @@ void Talker::doDispatchReceivedPacket(
 			}
 		}break;
 		case Packet::ErrorType:{
-			SocketAddressInet4				sa(_rsa);
-			BaseAddress4T					ba(sa, _rsa.port());
-			Data::BaseAddr4MapT::iterator	bit(d.baseaddr4map.find(ba));
-			if(bit != d.baseaddr4map.end()){
-				Data::SessionStub	&rss(d.sessionvec[bit->second]);
-				if(rss.psession){
-					_rstub.sessionidx = bit->second;
-					
-					if(rss.psession->pushReceivedErrorPacket(pkt, _rstub) && !rss.inexeq){
-						d.sessionexecq.push(bit->second);
-						rss.inexeq = true;
+			if(!pkt.isRelay()){
+				SocketAddressInet4				sa(_rsa);
+				BaseAddress4T					ba(sa, _rsa.port());
+				Data::BaseAddr4MapT::iterator	bit(d.baseaddr4map.find(ba));
+				if(bit != d.baseaddr4map.end()){
+					Data::SessionStub	&rss(d.sessionvec[bit->second]);
+					if(rss.psession){
+						_rstub.sessionidx = bit->second;
+						
+						if(rss.psession->pushReceivedErrorPacket(pkt, _rstub) && !rss.inexeq){
+							d.sessionexecq.push(bit->second);
+							rss.inexeq = true;
+						}
+					}else{
+						wdbgx(Debug::ipc, "no session for error packet");
 					}
 				}else{
 					wdbgx(Debug::ipc, "no session for error packet");
 				}
 			}else{
-				wdbgx(Debug::ipc, "no session for error packet");
+				uint16	sessidx;
+				uint16	sessuid;
+				unpack(sessidx, sessuid, pkt.relay());
+				if(sessidx < d.sessionvec.size() && d.sessionvec[sessidx].uid == sessuid && d.sessionvec[sessidx].psession){
+					idbgx(Debug::ipc, "found session for packet "<<sessidx<<','<<sessuid);
+					d.receivedpktvec.push_back(Data::RecvPacket(_pbuf, _bufsz, sessidx));
+					pkt.release();
+				}else{
+					Packet::deallocate(pkt.release());
+				}
 			}
 			Packet::deallocate(pkt.release());
 		}break;

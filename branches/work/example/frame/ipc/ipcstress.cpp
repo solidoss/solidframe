@@ -25,21 +25,6 @@ typedef frame::IndexT							IndexT;
 typedef frame::Scheduler<frame::aio::Selector>	AioSchedulerT;
 
 
-ostream& operator<<(ostream& _ros, const SocketAddressInet4& _rsa){
-	char host[SocketInfo::HostStringCapacity];
-	char service[SocketInfo::ServiceStringCapacity];
-	_rsa.toString(host, SocketInfo::HostStringCapacity, service, SocketInfo::ServiceStringCapacity, SocketInfo::NumericHost | SocketInfo::NumericService);
-	_ros<<host<<':'<<service;
-	return _ros;
-}
-
-ostream& operator<<(ostream& _ros, const SocketAddressInet& _rsa){
-	char host[SocketInfo::HostStringCapacity];
-	char service[SocketInfo::ServiceStringCapacity];
-	_rsa.toString(host, SocketInfo::HostStringCapacity, service, SocketInfo::ServiceStringCapacity, SocketInfo::NumericHost | SocketInfo::NumericService);
-	_ros<<host<<':'<<service;
-	return _ros;
-}
 
 //------------------------------------------------------------------
 //------------------------------------------------------------------
@@ -439,7 +424,7 @@ bool Params::prepare(frame::ipc::Configuration &_rcfg, string &_err){
 		
 		if(!rd.empty()){
 			connectvec.push_back(PeerAddressPairT(netid, SocketAddressInet4(rd.begin())));
-			idbg("added connect address "<<*it);
+			idbg("added connect address "<<*it<<" "<<connectvec.back().first<<":"<<connectvec.back().second);
 		}else{
 			idbg("skiped connect address "<<*it);
 		}
@@ -581,7 +566,7 @@ FirstMessage* create_message(uint32_t _idx, const bool _incremental){
         _idx = p.message_count - 1 - _idx;
     }
     
-    const uint32_t size = (p.min_size * (p.message_count - _idx - 1) + _idx * p.max_size) / (p.message_count - 1);
+    const uint32_t size = p.message_count == 1 ? p.min_size : (p.min_size * (p.message_count - _idx - 1) + _idx * p.max_size) / (p.message_count - 1);
     idbg("create message with size "<<size);
     pmsg->str.resize(size);
     for(uint32_t i = 0; i < size; ++i){

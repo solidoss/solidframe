@@ -577,29 +577,37 @@ void Node::doDispatchReceivedDatagramPacket(
 	vdbgx(Debug::ipc, (void*)this<<" RECEIVED "<<p);
 	uint16	sesidx;
 	uint16	sesuid;
+	
+	if(!p.isRelay()){
+		return;
+	}
+	
+	uint32				relayid = p.relay();
+			
+	unpack(sesidx, sesuid, relayid);
+	
+	if(
+		sesidx >= d.sessionvec.size() ||
+		sesuid != d.sessionvec[sesidx].uid
+	){
+		//silently ignore the packet
+		//we cannot send back any packet because we don't know the senders relayid
+		return;
+	}
+	SessionStub			&rss = d.sessionvec[sesidx];
+	SocketAddressInet	sai(_rsap);
+	if(rss.address == sai){
+	}else{
+		//silently ignore the packet
+		//we cannot send back any packet because we don't know the senders relayid
+		return;
+	}
+		
 	switch(p.type()){
 		default:{
-			uint32				relayid = p.relay();
 			
-			unpack(sesidx, sesuid, relayid);
-			
-			if(
-				sesidx >= d.sessionvec.size() ||
-				sesuid != d.sessionvec[sesidx].uid
-			){
-				//silently ignore the packet
-				return;
-			}
 		}break;
 		case Packet::AcceptType:{
-			uint32				relayid = p.relay();
-				
-			unpack(sesidx, sesuid, relayid);
-			
-			if(
-				sesidx >= d.sessionvec.size() ||
-				sesuid != d.sessionvec[sesidx].uid
-			)return;
 			SessionStub	&rss = d.sessionvec[sesidx];
 			
 			{
@@ -613,7 +621,7 @@ void Node::doDispatchReceivedDatagramPacket(
 			}
 		}break;
 	}
-	SessionStub	&rss = d.sessionvec[sesidx];
+	
 	p.relay(rss.remoterelayid);
 	ConnectionStub		&rcs = d.connectionvec[rss.sockidx];
 	
@@ -731,7 +739,6 @@ void Node::doRescheduleSessionTime(const uint _sesidx){
 }
 //--------------------------------------------------------------------
 void Node::doScheduleSendConnect(uint16 _idx, ConnectData &_rcd){
-	vdbgx(Debug::ipc, (void*)this<<" "<<_idx<<_rcd);
 	
 	SessionStub		&rss = d.sessionvec[_idx];
 	const uint32	fullid = pack(_idx, rss.uid);
@@ -739,6 +746,10 @@ void Node::doScheduleSendConnect(uint16 _idx, ConnectData &_rcd){
 	Packet			pkt(Specific::popBuffer(pktid), Specific::indexToCapacity(pktid));
 	
 	_rcd.relayid = fullid;
+	_rcd.sendernetworkid = d.rservice.configuration().localnetid;
+	
+	vdbgx(Debug::ipc, (void*)this<<" "<<_idx<<_rcd);
+	
 	pkt.reset();
 	pkt.type(Packet::ConnectType);
 	pkt.id(1);//TODO!!! the id of the ConnectPacket
@@ -788,7 +799,7 @@ uint16 Node::doCreateSocket(const uint32 _netidx){
 		d.connectionvec[idx].state = ConnectionStub::ConnectState;
 		socketRequestRegister(idx);
 	}
-	return 0;
+	return static_cast<uint16>(idx);
 }
 //--------------------------------------------------------------------
 void Node::doTrySendSocketBuffers(const uint _sockidx){

@@ -124,7 +124,7 @@ int main(int argc, char *argv[]){
 		
 		{
 			frame::ipc::Configuration	cfg;
-			//frame::aio::Error			err;
+			ResolveData					rd = synchronous_resolve("0.0.0.0", p.baseport, 0, SocketInfo::Inet4, SocketInfo::Datagram);
 			int							err;
 			{
 				string errstr;
@@ -134,7 +134,7 @@ int main(int argc, char *argv[]){
 					return 0;
 				}
 			}
-			
+			cfg.baseaddr = rd.begin();
 			err = ipcsvc.reconfigure(cfg);
 			if(err){
 				//TODO:

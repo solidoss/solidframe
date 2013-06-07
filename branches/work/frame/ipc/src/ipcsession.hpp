@@ -67,6 +67,11 @@ public:
 		ConnectData &_rconndata,
 		const SocketAddress &_rfromsa
 	);
+	static int parseErrorPacket(
+		const Packet &_rpkt,
+		ErrorData &_rdata
+	);
+	
 	static int fillAcceptPacket(
 		Packet &_rpkt,
 		const AcceptData &_raccdata
@@ -74,6 +79,10 @@ public:
 	static int fillConnectPacket(
 		Packet &_rpkt,
 		const ConnectData &_rconndata
+	);
+	static int fillErrorPacket(
+		Packet &_rpkt,
+		const ErrorData &_rdata
 	);
 	
 	static uint32 computeResendTime(const size_t _cnt);

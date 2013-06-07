@@ -93,6 +93,12 @@ struct AcceptData{
 	uint32	relayid;
 };
 
+struct ErrorData{
+	ErrorData():error(0){}
+	
+	int error;
+};
+
 std::ostream& operator<<(std::ostream& _ros, const AcceptData &_rd);
 
 class Talker;

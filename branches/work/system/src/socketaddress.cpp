@@ -97,5 +97,22 @@ ResolveData synchronous_resolve(
 	return synchronous_resolve(_node, buf, _flags, _family, _type, _proto);
 }
 
+std::ostream& operator<<(std::ostream& _ros, const SocketAddressInet4& _rsa){
+	char host[SocketInfo::HostStringCapacity];
+	char service[SocketInfo::ServiceStringCapacity];
+	_rsa.toString(host, SocketInfo::HostStringCapacity, service, SocketInfo::ServiceStringCapacity, SocketInfo::NumericHost | SocketInfo::NumericService);
+	_ros<<host<<':'<<service;
+	return _ros;
+}
+
+std::ostream& operator<<(std::ostream& _ros, const SocketAddressInet& _rsa){
+	char host[SocketInfo::HostStringCapacity];
+	char service[SocketInfo::ServiceStringCapacity];
+	_rsa.toString(host, SocketInfo::HostStringCapacity, service, SocketInfo::ServiceStringCapacity, SocketInfo::NumericHost | SocketInfo::NumericService);
+	_ros<<host<<':'<<service;
+	return _ros;
+}
+
+
 }//namespace solid
 

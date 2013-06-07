@@ -27,6 +27,8 @@
 #include <arpa/inet.h>
 #endif
 
+#include <ostream>
+
 #include "system/common.hpp"
 #include "system/socketinfo.hpp"
 #include "system/binary.hpp"
@@ -492,6 +494,11 @@ bool operator==(const in6_addr &_inaddr1, const in6_addr &_inaddr2);
 size_t in_addr_hash(const in_addr &_inaddr);
 
 size_t in_addr_hash(const in6_addr &_inaddr);
+
+std::ostream& operator<<(std::ostream& _ros, const SocketAddressInet4& _rsa);
+
+std::ostream& operator<<(std::ostream& _ros, const SocketAddressInet& _rsa);
+
 //==================================================================
 #ifndef ON_WINDOWS
 struct SocketAddressLocal{

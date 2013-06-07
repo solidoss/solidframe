@@ -469,7 +469,8 @@ bool Service::isLocalNetwork(
 }
 //---------------------------------------------------------------------
 bool Service::isGateway()const{
-	return false;
+	//TODO: find better check
+	return configuration().relayaddrvec.size() != 0;
 }
 //---------------------------------------------------------------------
 int Service::doSendMessage(
