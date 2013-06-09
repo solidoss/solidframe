@@ -40,6 +40,7 @@ class Context;
 namespace ipc{
 
 struct ConnectData;
+struct AcceptData;
 struct Packet;
 
 class Service;
@@ -88,6 +89,7 @@ private:
 	bool doReceiveConnectStreamPacket(const uint _sockidx, Packet &_rp, uint16 &_rsesidx, uint16 &_rsesuid);
 	void doRescheduleSessionTime(const uint _sesidx);
 	void doOnSessionTimer(const uint _sesidx);
+	void doRefillAcceptPacket(Packet &_rp, const AcceptData _rad);
 private:
 	struct Data;
 	Data &d;

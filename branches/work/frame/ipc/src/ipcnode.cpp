@@ -353,12 +353,6 @@ Node::Node(
 Node::~Node(){
 	vdbgx(Debug::ipc, (void*)this);
 	//free buffers to be sent on UDP
-	const uint	wbufidx = Specific::capacityToIndex(Packet::Capacity);
-	while(d.udpsendq.size()){
-		char *pb = const_cast<char*>(d.udpsendq.front().pbuf);
-		Specific::pushBuffer(pb, wbufidx);
-		d.udpsendq.pop();
-	}
 	
 	const uint	rbufidx = Specific::sizeToIndex(ConnectionStub::ReadBufferCapacity);
 	
@@ -565,7 +559,7 @@ void Node::doSendDatagramPackets(){
 void Node::doDoneSendDatagram(){
 	ConnectionStub	&rcs = d.connectionvec[d.udpsendq.front().sockid];
 	--rcs.readbufusecnt;
-	socketPostEvents(d.udpsendq.front().sockid, INDONE);
+	socketPostEvents(d.udpsendq.front().sockid, RESCHEDULED);
 	d.udpsendq.pop();
 }
 //--------------------------------------------------------------------
@@ -594,6 +588,7 @@ void Node::doDispatchReceivedDatagramPacket(
 	){
 		//silently ignore the packet
 		//we cannot send back any packet because we don't know the senders relayid
+		vdbgx(Debug::ipc, (void*)this<<" "<<sesidx<<" "<<sesuid<<" "<<d.sessionvec.size()<<" "<<d.sessionvec[sesidx].uid);
 		return;
 	}
 	SessionStub			&rss = d.sessionvec[sesidx];
@@ -602,11 +597,13 @@ void Node::doDispatchReceivedDatagramPacket(
 	}else{
 		//silently ignore the packet
 		//we cannot send back any packet because we don't know the senders relayid
+		vdbgx(Debug::ipc, (void*)this<<" wrong sender address");
 		return;
 	}
 	pair<size_t, bool>	rv =rss.findPacketId(p.id());
 	if(rv.second){
 		//the buffer is already in sent queue
+		vdbgx(Debug::ipc, (void*)this<<" buffer already in the sent queue");
 		return;
 	}
 	switch(p.type()){
@@ -615,16 +612,15 @@ void Node::doDispatchReceivedDatagramPacket(
 		}break;
 		case Packet::AcceptType:{
 			SessionStub	&rss = d.sessionvec[sesidx];
-			
-			{
-				AcceptData			accdata;
-				SocketAddress		sa;
-				int					error = Session::parseAcceptPacket(p, accdata, sa);
-				if(error){
-					return;
-				}
-				rss.localrelayid = accdata.relayid;
+			AcceptData			accdata;
+			SocketAddress		sa;
+			int					error = Session::parseAcceptPacket(p, accdata, sa);
+			if(error){
+				return;
 			}
+			rss.localrelayid = accdata.relayid;
+			accdata.relayid = p.relay();
+			doRefillAcceptPacket(p, accdata);
 		}break;
 	}
 	
@@ -849,7 +845,9 @@ void Node::doTrySendSocketBuffers(const uint _sockidx){
 //--------------------------------------------------------------------
 void Node::doReceiveStreamData(const uint _sockidx){
 	vdbgx(Debug::ipc, (void*)this<<" "<<_sockidx);
-	
+	if(this->socketHasPendingRecv(_sockidx)){
+		return;
+	}
 	ConnectionStub	&rcs = d.connectionvec[_sockidx];
 	const uint32 	readsz = socketRecvSize(_sockidx);
 	rcs.readbufwritepos += readsz;
@@ -865,7 +863,7 @@ void Node::doReceiveStreamData(const uint _sockidx){
 				doPrepareSocketReconnect(_sockidx);
 				break;
 			case OK:
-				socketPostEvents(_sockidx, INDONE);
+				socketPostEvents(_sockidx, RESCHEDULED);
 				break;
 			case NOK:
 				break;
@@ -886,6 +884,7 @@ uint16 Node::doReceiveStreamPacket(const uint _sockidx){
 		cassert(p.isRelay());
 		uint16	sesidx(0xffff);
 		uint16	sesuid(0xffff);
+		vdbgx(Debug::ipc, (void*)this<<" STREAM RECEIVED: "<<p);
 		switch(p.type()){
 			default:{
 				uint32				relayid = p.relay();
@@ -932,6 +931,9 @@ uint16 Node::doReceiveStreamPacket(const uint _sockidx){
 						return psz;
 					}
 					rss.remoterelayid = accdata.relayid;
+					accdata.relayid = p.relay();
+					doRefillAcceptPacket(p, accdata);
+					vdbgx(Debug::ipc, (void*)this<<" AcceptData: "<<accdata);
 				}
 				
 				p.relay(rss.localrelayid);
@@ -949,6 +951,11 @@ uint16 Node::doReceiveStreamPacket(const uint _sockidx){
 	}else{
 		return 0;
 	}
+}
+//--------------------------------------------------------------------
+void Node::doRefillAcceptPacket(Packet &_rp, const AcceptData _rad){
+	_rp.dataSize(0);
+	Session::fillAcceptPacket(_rp, _rad);
 }
 //--------------------------------------------------------------------
 bool Node::doReceiveConnectStreamPacket(const uint _sockidx, Packet &_rp, uint16 &_rsesidx, uint16 &_rsesuid){

@@ -601,7 +601,7 @@ void Talker::doDispatchReceivedPacket(
 					BaseAddress4T					ba(sa, accdata.baseport);
 					Data::BaseAddr4MapT::iterator	bit(d.baseaddr4map.find(ba));
 					if(bit != d.baseaddr4map.end() && d.sessionvec[bit->second].psession){
-						idbgx(Debug::ipc, "accept for session "<<bit->second);
+						idbgx(Debug::ipc, "accept for session "<<bit->second<<" AcceptData: "<<accdata);
 						Data::SessionStub	&rss(d.sessionvec[bit->second]);
 						_rstub.sessionidx = bit->second;
 						rss.psession->completeConnect(_rstub, _rsa.port());
@@ -620,7 +620,7 @@ void Talker::doDispatchReceivedPacket(
 					uint16	sessuid;
 					unpack(sessidx, sessuid, relayid);
 					if(sessidx < d.sessionvec.size() && d.sessionvec[sessidx].uid == sessuid && d.sessionvec[sessidx].psession){
-						idbgx(Debug::ipc, "relay accept for session "<<sessidx<<','<<sessuid);
+						idbgx(Debug::ipc, "relay accept for session "<<sessidx<<','<<sessuid<<" AcceptData: "<<accdata);
 						Data::SessionStub	&rss(d.sessionvec[sessidx]);
 						_rstub.sessionidx = sessidx;
 						rss.psession->completeConnect(_rstub, _rsa.port(), accdata.relayid);

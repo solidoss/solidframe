@@ -70,6 +70,7 @@ struct Params{
     uint32					message_count;
     uint32					min_size;
     uint32					max_size;
+	uint32					netid;
     
     
     PeerAddressVectorT		connectvec;
@@ -359,6 +360,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
             ("message-count", value<uint32_t>(&_par.message_count)->default_value(1000), "Message count")
             ("min-size", value<uint32_t>(&_par.min_size)->default_value(10), "Min message data size")
             ("max-size", value<uint32_t>(&_par.max_size)->default_value(500000), "Max message data size")
+			("netid,n", value<uint32>(&_par.netid), "Network identifier")
 		;
 		variables_map vm;
 		store(parse_command_line(argc, argv, desc), vm);
@@ -440,6 +442,7 @@ bool Params::prepare(frame::ipc::Configuration &_rcfg, string &_err){
 		const uint32_t idx = it - connectvec.begin();
 		connectmap[&(*it)] = idx;
 	}
+	_rcfg.localnetid = netid;
 	return true;
 }
 uint32 Params::server(const PeerAddressPairT &_rsa)const{

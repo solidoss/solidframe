@@ -492,7 +492,7 @@ struct Session::DataRelayed44: Session::Data{
 		const uint32 _netid,
 		const SocketAddressInet4 &_raddr,
 		const uint32 _gwidx
-	):	Data(_rsvc, Relayed44, RelayInit), relayaddr(_raddr), netid(_netid),
+	):	Data(_rsvc, Relayed44, RelayInit, _raddr.port()), relayaddr(_raddr), netid(_netid),
 		peerrelayid(0), lstgwidx((_gwidx + _rsvc.configuration().gatewayaddrvec.size()) % _rsvc.configuration().gatewayaddrvec.size()), crtgwidx(_gwidx){
 	}
 	
@@ -1052,7 +1052,7 @@ bool Session::Data::moveToNextSendMessage(){
 	pos = serialization::binary::load(pos, _raccdata.timestamp_n);
 	pos = serialization::binary::load(pos, _raccdata.relayid);
 	
-	vdbgx(Debug::ipc, "AcceptData: flags = "<<_raccdata.flags<<" baseport = "<<_raccdata.baseport<<" ts_s = "<<_raccdata.timestamp_s<<" ts_n = "<<_raccdata.timestamp_n);
+	vdbgx(Debug::ipc, "AcceptData: "<<_raccdata);
 	return OK;
 }
 //---------------------------------------------------------------------
@@ -1110,7 +1110,7 @@ bool Session::Data::moveToNextSendMessage(){
 		return OK;
 	}
 	
-	vdbgx(Debug::ipc, "ConnectData: flags = "<<_rcd.flags<<" baseport = "<<_rcd.baseport<<" ts_s = "<<_rcd.timestamp_s<<" ts_n = "<<_rcd.timestamp_n);
+	vdbgx(Debug::ipc, "ConnectData: "<<_rcd);
 	return OK;
 }
 //---------------------------------------------------------------------
@@ -1351,7 +1351,9 @@ void Session::prepare(TalkerStub &_rstub){
 	p.reset();
 	p.type(Packet::KeepAliveType);
 	p.id(Packet::UpdatePacketId);
-	p.relay(_rstub.relayId());
+	if(isRelayType()){
+		p.relay(d.relayed44().peerrelayid);
+	}
 	d.sendpacketvec[0].packet = p;
 }
 //---------------------------------------------------------------------
@@ -1566,6 +1568,7 @@ void Session::completeConnect(TalkerStub &_rstub, uint16 _pairport, uint32 _rela
 	d.relayed44().addr.port(_pairport);
 	d.relayed44().peerrelayid = _relayid;
 	
+	d.sendpacketvec[0].packet.relay(_relayid);
 	doCompleteConnect(_rstub);
 }
 //---------------------------------------------------------------------
@@ -2287,6 +2290,7 @@ int Session::doExecuteRelayAccepting(TalkerStub &_rstub){
 		
 		d.relayed44().peerrelayid = rcd.relayid;
 		pkt.relay(rcd.relayid);
+		d.sendpacketvec[0].packet.relay(rcd.relayid);
 		
 		fillAcceptPacket(pkt, ad);
 		
@@ -2344,7 +2348,7 @@ int Session::doTrySendUpdates(TalkerStub &_rstub){
 		pkt.id(Data::UpdatePacketId);
 		
 		if(isRelayType()){
-			pkt.relay(_rstub.relayId());
+			pkt.relay(d.relayed44().peerrelayid);
 		}
 		
 		d.resetKeepAlive();
@@ -2416,7 +2420,7 @@ int Session::doExecuteConnectedLimited(TalkerStub &_rstub){
 		rspd.packet.id(d.sendid);
 		
 		if(isRelayType()){
-			rspd.packet.relay(_rstub.relayId());
+			rspd.packet.relay(d.relayed44().peerrelayid);
 		}
 
 		d.incrementSendId();
@@ -2503,7 +2507,7 @@ int Session::doExecuteConnected(TalkerStub &_rstub){
 		rspd.packet.id(d.sendid);
 		
 		if(isRelayType()){
-			rspd.packet.relay(_rstub.relayId());
+			rspd.packet.relay(d.relayed44().peerrelayid);
 		}
 		
 		d.incrementSendId();
