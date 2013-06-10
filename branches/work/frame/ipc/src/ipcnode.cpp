@@ -110,10 +110,24 @@ struct SessionStub{
 		ReinitState,
 		DeleteState
 	};
-	SessionStub():state(0), sockidx(0xffff), uid(0), timestamp_s(0){}
+	SessionStub():state(0), sockidx(0xffff), uid(0), remoterelayid(0xffffffff), timestamp_s(0){}
 	
 	pair<size_t, bool> findPacketId(uint32 _pkgid)const;
 	void erasePacketId(uint32 _pkgid);
+	
+	void clear(){
+		state = 0;
+		sockidx = 0xffff;
+		address.clear();
+		pairaddr.clear();
+		time.seconds(0);
+		time.nanoSeconds(0);
+		pkgidvec.clear();
+		timestamp_s = 0;
+		localrelayid = 0;
+		remoterelayid = 0xffffffff;
+		++uid;
+	}
 	
 	uint16					state;
 	uint16					sockidx;
@@ -351,10 +365,9 @@ Node::Node(
 }
 //--------------------------------------------------------------------
 Node::~Node(){
-	vdbgx(Debug::ipc, (void*)this);
-	//free buffers to be sent on UDP
-	
 	const uint	rbufidx = Specific::sizeToIndex(ConnectionStub::ReadBufferCapacity);
+	vdbgx(Debug::ipc, (void*)this<<" "<<rbufidx);
+	//free buffers to be sent on UDP
 	
 	for(ConnectionVectorT::iterator it(d.connectionvec.begin()); it != d.connectionvec.end(); ++it){
 		ConnectionStub		&rcs = *it;
@@ -368,6 +381,10 @@ Node::~Node(){
 			Specific::pushBuffer(pb, rcs.sendq.front().bufid);
 			rcs.sendq.pop();
 		}
+	}
+	
+	if(d.pendingreadbuffer){
+		Specific::pushBuffer(d.pendingreadbuffer, Specific::capacityToIndex(Packet::Capacity));
 	}
 	
 	delete &d;
@@ -434,6 +451,9 @@ int Node::execute(ulong _sig, TimeSpec &_time){
 		while(d.timeq.isHit(_time)){
 			const uint16	idx = d.timeq.frontValue().index;
 			const uint16	uid = d.timeq.frontValue().uid;
+			
+			vdbgx(Debug::ipc, (void*)this<<" timerhit = "<<d.timeq.frontTime().seconds()<<" sesidx = "<<idx);
+			
 			d.timeq.pop();
 			
 			SessionStub		&rss = d.sessionvec[idx];
@@ -466,7 +486,7 @@ int Node::execute(ulong _sig, TimeSpec &_time){
 uint32 Node::pushSession(const SocketAddress &_rsa, const ConnectData &_rconndata, uint32 _idx){
 	vdbgx(Debug::ipc, (void*)this<<" idx = "<<_idx<<" condata = "<<_rconndata);
 	uint32 fullidx = _idx;
-	uint32 idx;
+	uint32 idx = _idx;
 	if(_idx == 0xffffffff){
 		if(d.freesessionstk.size()){
 			idx = d.freesessionstk.top().first;
@@ -481,6 +501,8 @@ uint32 Node::pushSession(const SocketAddress &_rsa, const ConnectData &_rconndat
 			return 0xffffffff;
 		}
 	}
+	
+	vdbgx(Debug::ipc, (void*)this<<" idx = "<<idx);
 	//we do not use fullidx for now
 	d.newsessionvec.push_back(NewSessionStub(idx, _rsa, _rconndata));
 	return idx;
@@ -638,7 +660,9 @@ void Node::doDispatchReceivedDatagramPacket(
 	rcs.sendq.back().sessionidx = sesidx;
 	rcs.sendq.back().sessionuid = sesuid;
 	
-	rss.pkgidvec.push_back(rcs.sendq.back().pkgid);
+	if(rcs.sendq.back().pkgid < Packet::LastPacketId){
+		rss.pkgidvec.push_back(rcs.sendq.back().pkgid);
+	}
 	doTrySendSocketBuffers(rss.sockidx);
 }
 //--------------------------------------------------------------------
@@ -681,7 +705,7 @@ void Node::doInsertNewSessions(){
 			rss.timestamp_s = it->connectdata.timestamp_s;
 			rss.timestamp_n = it->connectdata.timestamp_n;
 			rss.sockidx = 0xffff;
-			vdbgx(Debug::ipc, (void*)this<<" push back");
+			vdbgx(Debug::ipc, (void*)this<<" push back idx = "<<idx);
 		}else{
 			SessionStub &rss = d.sessionvec[idx];
 			
@@ -706,7 +730,7 @@ void Node::doInsertNewSessions(){
 					vdbgx(Debug::ipc, (void*)this<<" connect message is already in the send queue");
 					continue;
 				}
-				vdbgx(Debug::ipc, (void*)this<<" connect message not in the send queue");
+				vdbgx(Debug::ipc, (void*)this<<" connect message not in the send queue - sesidx = "<<idx);
 				cassert(rss.sockidx != 0xffff);
 			}
 		}
@@ -784,8 +808,9 @@ uint16 Node::doCreateSocket(const uint32 _netidx){
 	vdbgx(Debug::ipc, (void*)this<<" "<<_netidx);
 	//TODO: improve the search - there may be multiple connections to the same address
 	//
+	const uint32 netidx = d.rservice.netId2AddressFind(_netidx);
 	for(ConnectionVectorT::iterator it(d.connectionvec.begin()); it != d.connectionvec.end(); ++it){
-		if(it->networkidx == _netidx){
+		if(it->networkidx == netidx){
 			return it - d.connectionvec.begin();
 		}
 	}
@@ -803,7 +828,7 @@ uint16 Node::doCreateSocket(const uint32 _netidx){
 		if(idx >= d.connectionvec.size()){
 			d.connectionvec.resize(idx + 1);
 		}
-		d.connectionvec[idx].networkidx = d.rservice.netId2AddressFind(_netidx);
+		d.connectionvec[idx].networkidx = netidx;
 		d.connectionvec[idx].secure = false;//TODO
 		d.connectionvec[idx].state = ConnectionStub::ConnectState;
 		socketRequestRegister(idx);
@@ -829,7 +854,7 @@ void Node::doTrySendSocketBuffers(const uint _sockidx){
 		const int rv = socketSend(_sockidx, rsbs.pbuf, rsbs.bufsz);
 		switch(rv){
 			case BAD:
-				doPrepareSocketReconnect(_sockidx);
+				doDisconnectConnection(_sockidx);
 				return;
 			case OK:{
 				rss.erasePacketId(rsbs.pkgid);
@@ -844,30 +869,35 @@ void Node::doTrySendSocketBuffers(const uint _sockidx){
 }
 //--------------------------------------------------------------------
 void Node::doReceiveStreamData(const uint _sockidx){
-	vdbgx(Debug::ipc, (void*)this<<" "<<_sockidx);
+	vdbgx(Debug::ipc, (void*)this<<' '<<_sockidx);
 	if(this->socketHasPendingRecv(_sockidx)){
 		return;
 	}
 	ConnectionStub	&rcs = d.connectionvec[_sockidx];
-	const uint32 	readsz = socketRecvSize(_sockidx);
-	rcs.readbufwritepos += readsz;
+	vdbgx(Debug::ipc, (void*)this<<" readbufwritepos = "<<rcs.readbufwritepos<<" readbufreadpos = "<<rcs.readbufreadpos<<" readsz = ");
 	while((rcs.readbufwritepos - rcs.readbufreadpos) > Packet::MinRelayReadSize){
 		uint16 consume = doReceiveStreamPacket(_sockidx);
+		vdbgx(Debug::ipc, (void*)this<<" consume "<<consume);
 		if(consume == 0) break;
 		rcs.readbufreadpos += consume;
 	}
 	if(doOptimizeReadBuffer(_sockidx)){
+		vdbgx(Debug::ipc, (void*)this<<" readbufwritepos = "<<rcs.readbufwritepos<<" readbufreadpos = "<<rcs.readbufreadpos);
 		const int rv = socketRecv(_sockidx, rcs.preadbuf + rcs.readbufwritepos, rcs.readbufcp - rcs.readbufwritepos);
 		switch(rv){
 			case BAD:
-				doPrepareSocketReconnect(_sockidx);
+				doDisconnectConnection(_sockidx);
 				break;
 			case OK:
+				vdbgx(Debug::ipc, (void*)this<<" readsz = "<<socketRecvSize(_sockidx));
+				rcs.readbufwritepos += socketRecvSize(_sockidx);
 				socketPostEvents(_sockidx, RESCHEDULED);
 				break;
 			case NOK:
 				break;
 		}
+	}else{
+		vdbgx(Debug::ipc, (void*)this<<' '<<_sockidx);
 	}
 }
 //--------------------------------------------------------------------
@@ -949,6 +979,7 @@ uint16 Node::doReceiveStreamPacket(const uint _sockidx){
 		++rcs.readbufusecnt;
 		return psz;
 	}else{
+		p.release();
 		return 0;
 	}
 }
@@ -958,12 +989,18 @@ void Node::doRefillAcceptPacket(Packet &_rp, const AcceptData _rad){
 	Session::fillAcceptPacket(_rp, _rad);
 }
 //--------------------------------------------------------------------
+void Node::doRefillConnectPacket(Packet &_rp, const ConnectData _rcd){
+	_rp.dataSize(0);
+	Session::fillConnectPacket(_rp, _rcd);
+}
+//--------------------------------------------------------------------
 bool Node::doReceiveConnectStreamPacket(const uint _sockidx, Packet &_rp, uint16 &_rsesidx, uint16 &_rsesuid){
 	vdbgx(Debug::ipc, (void*)this<<" "<<_sockidx<<" "<<_rp);
 	
 	ConnectionStub					&rcs = d.connectionvec[_sockidx];
 	
-	SessionIdMapT::const_iterator	it = rcs.sessmap.find(_rp.relay());
+	const uint32					remoterelayid = _rp.relay();
+	SessionIdMapT::const_iterator	it = rcs.sessmap.find(remoterelayid);
 	uint32 							fullid = 0xffffffff;
 	uint32 							idx;
 	
@@ -974,7 +1011,7 @@ bool Node::doReceiveConnectStreamPacket(const uint _sockidx, Packet &_rp, uint16
 	if(error){
 		return false;
 	}
-	
+	//TODO: clear sessmap on session close
 	if(it != rcs.sessmap.end()){
 		SessionStub		&rss = d.sessionvec[it->second];
 		
@@ -1014,18 +1051,27 @@ bool Node::doReceiveConnectStreamPacket(const uint _sockidx, Packet &_rp, uint16
 		if(idx >= d.sessionvec.size()){
 			d.sessionvec.resize(idx + 1);
 		}
+		rcs.sessmap[remoterelayid] = idx;
 	}
 	
 	SessionStub		&rss(d.sessionvec[idx]);
 		
 	rss.localrelayid = 0xffff;
-	rss.remoterelayid = _rp.relay();
+	
+	if(rss.remoterelayid != 0xffffffff){
+		rcs.sessmap.erase(rss.remoterelayid);
+	}
+	
+	rss.remoterelayid = remoterelayid;
 	rss.address = cd.receiveraddress;
 	rss.pairaddr = rss.address;
 	rss.timestamp_s = cd.timestamp_s;
 	rss.timestamp_n = cd.timestamp_n;
 	rss.sockidx = _sockidx;
 	_rp.relay(fullid);
+	cd.relayid = fullid;
+	
+	doRefillConnectPacket(_rp, cd);
 	
 	_rsesidx = idx;
 	_rsesuid = rss.uid;
@@ -1043,7 +1089,7 @@ bool Node::doOptimizeReadBuffer(const uint _sockidx){
 	
 	ConnectionStub	&rcs = d.connectionvec[_sockidx];
 	if(rcs.readbufusecnt){
-		if((rcs.readbufcp - rcs.readbufwritepos) > Packet::Capacity){
+		if((rcs.readbufcp - rcs.readbufwritepos) >= Packet::Capacity){
 			return true;
 		}else{
 			return false;
@@ -1061,15 +1107,38 @@ bool Node::doOptimizeReadBuffer(const uint _sockidx){
 	}
 }
 //--------------------------------------------------------------------
-void Node::doPrepareSocketReconnect(const uint _sockidx){
+void Node::doDisconnectConnection(const uint _sockidx){
 	vdbgx(Debug::ipc, (void*)this<<" "<<_sockidx<<" disconnected socket");
 	ConnectionStub	&rcs = d.connectionvec[_sockidx];
 	//close all associated sessions
+	for(SessionVectorT::iterator it(d.sessionvec.begin()); it != d.sessionvec.end(); ++it){
+		if(it->sockidx == _sockidx){
+			doCloseSession(d.sessionvec.begin() - it);
+		}
+	}
+	rcs.sessmap.clear();
+}
+//--------------------------------------------------------------------
+void Node::doCloseSession(const uint _sesidx){
+	SessionStub	&rss = d.sessionvec[_sesidx];
+	if(rss.sockidx != 0xffff){
+		ConnectionStub	&rcs = d.connectionvec[rss.sockidx];
+		if(rss.remoterelayid != 0xffffffff){
+			rcs.sessmap.erase(rss.remoterelayid);
+		}
+		--rcs.sesusecnt;
+		//We do not close the connection for now
+	}
+	
+	rss.clear();
+	{
+		//TODO: add _sesidx to freesessionstk and unregister from service
+	}
 }
 //--------------------------------------------------------------------
 void Node::doOnSessionTimer(const uint _sesidx){
-	vdbgx(Debug::ipc, (void*)this<<" "<<_sesidx);
-	//TODO: close the session
+	vdbgx(Debug::ipc, (void*)this<<' '<<_sesidx<<" closing");
+	doCloseSession(_sesidx);
 }
 //--------------------------------------------------------------------
 void Node::doHandleSocketEvents(const uint _sockidx, ulong _evs){
@@ -1077,7 +1146,10 @@ void Node::doHandleSocketEvents(const uint _sockidx, ulong _evs){
 	ConnectionStub	&rcs = d.connectionvec[_sockidx];
 	if(rcs.state == ConnectionStub::ConnectedState){
 		vdbgx(Debug::ipc, (void*)this<<" "<<_sockidx<<" connected state");
-		if(_evs & (INDONE | RESCHEDULED)){
+		if(_evs & INDONE){
+			rcs.readbufwritepos += socketRecvSize(_sockidx);
+			doReceiveStreamData(_sockidx);
+		}else if(_evs & RESCHEDULED){
 			doReceiveStreamData(_sockidx);
 		}
 		if(_evs & OUTDONE){
@@ -1092,7 +1164,7 @@ void Node::doHandleSocketEvents(const uint _sockidx, ulong _evs){
 		const int rv = socketConnect(_sockidx, d.rservice.netId2AddressAt(rcs.networkidx).address);
 		switch(rv){
 			case BAD:
-				doPrepareSocketReconnect(_sockidx);
+				doDisconnectConnection(_sockidx);
 				break;
 			case OK:
 				this->socketPostEvents(_sockidx, 0);
@@ -1108,7 +1180,7 @@ void Node::doHandleSocketEvents(const uint _sockidx, ulong _evs){
 			rcs.state = ConnectionStub::InitState;
 			doHandleSocketEvents(_sockidx, _evs);
 		}else{
-			doPrepareSocketReconnect(_sockidx);
+			doDisconnectConnection(_sockidx);
 		}
 	}else if(rcs.state == ConnectionStub::InitState){
 		vdbgx(Debug::ipc, (void*)this<<" "<<_sockidx<<" init state");

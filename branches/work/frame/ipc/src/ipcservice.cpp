@@ -199,7 +199,6 @@ struct Service::Data{
 	uint32						nodecrt;
 	int							baseport;
 	uint32						crtgwidx;
-	uint32						nodetimeout;
 	SocketAddress				firstaddr;
 	TalkerStubVectorT			tkrvec;
 	NodeStubVectorT				nodevec;
@@ -224,7 +223,7 @@ Service::Data::Data(
 	const DynamicPointer<Controller> &_rctrlptr
 ):
 	ctrlptr(_rctrlptr),
-	tkrcrt(0), nodecrt(0), baseport(-1), crtgwidx(0), nodetimeout(0)
+	tkrcrt(0), nodecrt(0), baseport(-1), crtgwidx(0)
 {
 	timestamp.currentRealTime();
 }
@@ -315,12 +314,18 @@ int Service::reconfigure(const Configuration &_rcfg){
 		
 		d.baseport = sa.port();
 		if(configuration().node.timeout){
-			d.nodetimeout = configuration().node.timeout;
 		}else{
-			const uint32 dataresendcnt = configuration().session.dataretransmitcount;
-			const uint32 connectresendcnt = configuration().session.connectretransmitcount;
-			d.nodetimeout = Session::computeResendTime(dataresendcnt) + Session::computeResendTime(connectresendcnt);
-			d.nodetimeout *= 2;//we need to be sure that the keepalive on note 
+			const uint32	dataresendcnt = configuration().session.dataretransmitcount;
+			const uint32	connectresendcnt = configuration().session.connectretransmitcount;
+			uint32			nodetimeout = 0;
+			nodetimeout = Session::computeResendTime(dataresendcnt) + Session::computeResendTime(connectresendcnt);
+			nodetimeout += d.config.session.responsekeepalive;
+			nodetimeout += d.config.session.keepalive;
+			nodetimeout += d.config.session.relayresponsekeepalive;
+			nodetimeout += d.config.session.relaykeepalive;
+			nodetimeout *= 2;//we need to be sure that the keepalive on note 
+			idbgx(Debug::ipc, "nodetimeout = "<<nodetimeout);
+			d.config.node.timeout = nodetimeout / 1000;
 		}
 		d.gwnetid2addrvec.clear();
 		d.gwaddr2netidvec.clear();
@@ -599,6 +604,8 @@ int Service::doSendMessageRelay(
 		const SocketAddressInet4				sa(_rsap);
 		const RelayAddress4T					addr(BaseAddress4T(sa, _rsap.port()), _netid_dest);
 		
+		vdbgx(Debug::ipc, " addr = "<<sa<<" baseport = "<<_rsap.port()<<" netid = "<<_netid_dest);
+		
 		Data::SessionRelayAddr4MapT::iterator	it(d.sessionrelayaddr4map.find(addr));
 		
 		if(it != d.sessionrelayaddr4map.end()){
@@ -654,8 +661,9 @@ int Service::doSendMessageRelay(
 			
 			d.crtgwidx = (d.crtgwidx + 1) % d.config.gatewayaddrvec.size();
 			
-			vdbgx(Debug::ipc, "");
 			ptkr->pushSession(pses, conid);
+			
+			vdbgx(Debug::ipc, ""<<pses->peerRelayAddress4().first.first);
 			d.sessionrelayaddr4map[pses->peerRelayAddress4()] = conid;
 			
 			ptkr->pushMessage(_rmsgptr, _rtid, conid, _flags);

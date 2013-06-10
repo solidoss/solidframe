@@ -81,7 +81,7 @@ private:
 	void doTrySendSocketBuffers(const uint _sockidx);
 	void doSendDatagramPackets();
 	void doReceiveStreamData(const uint _sockidx);
-	void doPrepareSocketReconnect(const uint _sockidx);
+	void doDisconnectConnection(const uint _sockidx);
 	void doHandleSocketEvents(const uint _sockidx, ulong _evs);
 	uint16 doReceiveStreamPacket(const uint _sockidx);
 	bool doOptimizeReadBuffer(const uint _sockidx);
@@ -90,6 +90,8 @@ private:
 	void doRescheduleSessionTime(const uint _sesidx);
 	void doOnSessionTimer(const uint _sesidx);
 	void doRefillAcceptPacket(Packet &_rp, const AcceptData _rad);
+	void doRefillConnectPacket(Packet &_rp, const ConnectData _rcd);
+	void doCloseSession(const uint _sesidx);
 private:
 	struct Data;
 	Data &d;

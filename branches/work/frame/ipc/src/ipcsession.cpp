@@ -503,7 +503,7 @@ struct Session::DataRelayed44: Session::Data{
 		const ConnectData &_rconndata,
 		const uint32 _gwidx
 	):	Data(_rsvc, Relayed44, RelayAccepting), addr(_raddr), relayaddr(_rconndata.senderaddress), netid(_netid),
-		peerrelayid(0), lstgwidx((_gwidx + _rsvc.configuration().gatewayaddrvec.size()) % _rsvc.configuration().gatewayaddrvec.size()), crtgwidx(_gwidx){
+		peerrelayid(_rconndata.relayid), lstgwidx((_gwidx + _rsvc.configuration().gatewayaddrvec.size()) % _rsvc.configuration().gatewayaddrvec.size()), crtgwidx(_gwidx){
 		
 		Data::pairaddr = addr;
 	}
@@ -566,7 +566,7 @@ Session::Data::Data(
 	outoforderbufvec.resize(MaxOutOfOrder);
 	resetRetransmitPosition();
 	//first packet is for keepalive
-	sendpacketvec.resize(_rsvc.configuration().session.maxsendpacketcount + 1);
+	sendpacketvec.resize(7);//see: Session::Data::freeSentPacket
 	for(uint32 i(_rsvc.configuration().session.maxsendpacketcount); i >= 1; --i){
 		sendpacketfreeposstk.push(i);
 	}
@@ -1201,7 +1201,7 @@ bool Session::Data::moveToNextSendMessage(){
 /*static*/ uint32 Session::computeResendTime(const size_t _cnt){
 	uint32 rv = 0;
 	for(size_t i = 0; i < _cnt; ++i){
-		rv += StaticData::the().retransmitTimeout(i);
+		rv += StaticData::the().retransmitTimeout(i + StaticData::the().connectRetransmitPositionRelay());
 	}
 	return rv;
 }
@@ -1304,7 +1304,7 @@ const BaseAddress6T Session::peerBaseAddress6()const{
 }
 //---------------------------------------------------------------------
 const RelayAddress4T Session::peerRelayAddress4()const{
-	return RelayAddress4T(BaseAddress4T(d.relayed44().addr, d.relayed44().baseport), d.relayed44().netid);
+	return RelayAddress4T(BaseAddress4T(d.relayed44().relayaddr, d.relayed44().baseport), d.relayed44().netid);
 }
 //---------------------------------------------------------------------
 // const RelayAddress6T Session::peerRelayAddress6()const{
@@ -1366,8 +1366,13 @@ void Session::reconnect(Session *_pses){
 	//first we reset the peer addresses
 	if(_pses){
 		if(!isRelayType()){
-			d.direct4().addr = _pses->d.direct4().addr;
+			d.direct4().addr.port(_pses->d.direct4().addr.port());
 			d.pairaddr = d.direct4().addr;
+		}else{
+			cassert(_pses->isRelayType());
+			d.relayed44().addr = _pses->d.relayed44().addr;
+			d.relayed44().relayaddr.port(_pses->d.relayed44().relayaddr.port());
+			d.relayed44().peerrelayid = _pses->d.relayed44().peerrelayid;
 		}
 		
 		if(d.state == Data::Accepting){
@@ -1382,9 +1387,18 @@ void Session::reconnect(Session *_pses){
 		
 		adjustcount = 1;
 		
-		d.state = Data::Accepting;
+		if(!d.isRelayType()){
+			d.state = Data::Accepting;
+		}else{
+			d.state = Data::RelayAccepting;
+		}
+		
 	}else{
-		d.state = Data::Connecting;
+		if(!d.isRelayType()){
+			d.state = Data::Connecting;
+		}else{
+			d.state = Data::RelayConnecting;
+		}
 	}
 	
 	d.resetRetransmitPosition();
@@ -1499,7 +1513,7 @@ void Session::reconnect(Session *_pses){
 	d.currentpacketmsgcount = ConnectionContext::the().service().configuration().session.maxmessagepacketcount;
 	d.sendpacketvec[0].packet.id(Packet::UpdatePacketId);
 	d.sendpacketvec[0].packet.resend(0);
-	d.state = Data::Disconnecting;
+	//d.state = Data::Accepting;
 }
 //---------------------------------------------------------------------
 bool Session::pushMessage(
@@ -2288,7 +2302,6 @@ int Session::doExecuteRelayAccepting(TalkerStub &_rstub){
 		ad.timestamp_s = rcd.timestamp_s;
 		ad.timestamp_n = rcd.timestamp_n;
 		
-		d.relayed44().peerrelayid = rcd.relayid;
 		pkt.relay(rcd.relayid);
 		d.sendpacketvec[0].packet.relay(rcd.relayid);
 		

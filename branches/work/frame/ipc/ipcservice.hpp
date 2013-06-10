@@ -221,8 +221,8 @@ struct Configuration{
 		maxrecvnoupdatecount(2),
 		maxmessagepacketcount(8),
 		maxsendmessagequeuesize(32),
-		connectretransmitcount(8),
-		dataretransmitcount(8)
+		connectretransmitcount(4),
+		dataretransmitcount(4)
 		{}
 		bool operator==(const Session &_rses)const{
 			return responsekeepalive == _rses.responsekeepalive &&
