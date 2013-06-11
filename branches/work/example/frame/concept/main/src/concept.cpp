@@ -85,14 +85,6 @@ struct DeviceInputOutputStream: InputOutputStream{
 
 int pairfd[2];
 
-ostream& operator<<(ostream& _ros, const SocketAddressInet4& _rsa){
-	char host[SocketInfo::HostStringCapacity];
-	char service[SocketInfo::ServiceStringCapacity];
-	_rsa.toString(host, SocketInfo::HostStringCapacity, service, SocketInfo::ServiceStringCapacity, SocketInfo::NumericHost | SocketInfo::NumericService);
-	_ros<<host<<':'<<service;
-	return _ros;
-}
-
 
 struct Params{
 	typedef std::vector<std::string>		StringVectorT;
@@ -454,8 +446,8 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 		options_description desc("SolidFrame concept application");
 		desc.add_options()
 			("help,h", "List program options")
-			("base_port,b", value<int>(&_par.start_port)->default_value(1000),"Base port")
-			("network_id,n", value<uint32>(&_par.network_id)->default_value(0), "Network id")
+			("base-port,b", value<int>(&_par.start_port)->default_value(1000),"Base port")
+			("network-id,n", value<uint32>(&_par.network_id)->default_value(0), "Network id")
 			("debug-levels,L", value<string>(&_par.dbg_levels)->default_value("view"),"Debug logging levels")
 			("debug-modules,M", value<string>(&_par.dbg_modules),"Debug logging modules")
 			("debug-address,A", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")

@@ -61,7 +61,7 @@ struct Params{
 	bool					dbg_console;
 	bool					dbg_buffered;
 	
-	int						listen_port;
+	int						baseport;
 	bool					log;
 	StringVectorT			connectstringvec;
 	StringVectorT			gatewaystringvec;
@@ -227,7 +227,7 @@ int main(int argc, char *argv[]){
 		
 		{
 			frame::ipc::Configuration	cfg;
-			ResolveData					rd = synchronous_resolve("0.0.0.0", p.listen_port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
+			ResolveData					rd = synchronous_resolve("0.0.0.0", p.baseport, 0, SocketInfo::Inet4, SocketInfo::Datagram);
 			//frame::aio::Error			err;
 			int							err;
 			
@@ -353,7 +353,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 			("debug-port,P", value<string>(&_par.dbg_port)->default_value("9999"), "Debug server port (e.g. on linux use: nc -l 9999)")
 			("debug-console,C", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")
 			("debug-unbuffered,S", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered")
-			("listen-port,l", value<int>(&_par.listen_port)->default_value(2000), "Listen port")
+			("base-port,b", value<int>(&_par.baseport)->default_value(2000), "IPC Base/Listen port")
 			("connect,c", value<vector<string> >(&_par.connectstringvec), "Peer to connect to: netid:YYY.YYY.YYY.YYY:port")
 			("gateway,g", value<vector<string> >(&_par.gatewaystringvec), "Gateways to connect through: YYY.YYY.YYY.YYY:port")
 			("repeat-count", value<uint32_t>(&_par.repeat_count)->default_value(10), "Per message trip count")

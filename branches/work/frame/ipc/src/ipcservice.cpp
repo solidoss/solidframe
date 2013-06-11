@@ -1052,6 +1052,19 @@ int Service::doAcceptGatewaySession(const SocketAddress &_rsa, const ConnectData
 	return OK;
 }
 //---------------------------------------------------------------------
+void Service::disconnectSession(const SocketAddressInet &_addr, uint32 _relayid){
+	typedef Data::GatewayRelayAddr4MapT::const_iterator GatewayRelayAddr4MapConstIteratorT;
+	
+	SocketAddressInet4					addr(_addr);
+	GatewayRelayAddress4T				gwaddr(addr, _relayid);
+	
+	GatewayRelayAddr4MapConstIteratorT	it(d.gwrelayaddrmap.find(gwaddr));
+	if(it != d.gwrelayaddrmap.end()){
+		d.gwfreestk.push(it->second);
+		d.gwrelayaddrmap.erase(it);
+	}
+}
+//---------------------------------------------------------------------
 void Service::connectSession(const SocketAddressInet4 &_raddr){
 	Locker<Mutex>	lock(mutex());
 	int				tkridx(allocateTalkerForSession());
@@ -1091,6 +1104,11 @@ void Service::connectSession(const SocketAddressInet4 &_raddr){
 void Service::disconnectTalkerSessions(Talker &_rtkr, TalkerStub &_rts){
 	Locker<Mutex>	lock(mutex());
 	_rtkr.disconnectSessions(_rts);
+}
+//---------------------------------------------------------------------
+void Service::disconnectNodeSessions(Node &_rn){
+	Locker<Mutex>	lock(mutex());
+	_rn.disconnectSessions();
 }
 //---------------------------------------------------------------------
 void Service::disconnectSession(Session *_pses){

@@ -53,6 +53,7 @@ namespace ipc{
 
 class Session;
 class Talker;
+class Node;
 struct TalkerStub;
 class Connection;
 struct Packet;
@@ -475,7 +476,9 @@ private:
 	int doAcceptGatewaySession(const SocketAddress &_rsa, const ConnectData &_rconndata);
 	bool checkAcceptData(const SocketAddress &_rsa, const AcceptData &_raccdata);
 	void disconnectSession(Session *_pses);
+	void disconnectSession(const SocketAddressInet &_addr, uint32 _relayid);
 	void disconnectTalkerSessions(Talker &, TalkerStub &_rts);
+	void disconnectNodeSessions(Node &);
 	int createTalker(IndexT &_tkrfullid, uint32 &_tkruid);
 	int allocateTalkerForSession(bool _force = false);
 	int createNode(IndexT &_nodepos, uint32 &_nodeuid);

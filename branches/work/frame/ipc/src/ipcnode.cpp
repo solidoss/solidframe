@@ -106,17 +106,18 @@ struct NewConnectionStub{
 
 struct SessionStub{
 	enum{
-		InitState,
-		ReinitState,
-		DeleteState
+		ConnectedState,
+		DisconnectState,
+		ForceDisconnectState,
+		DisconnectedState
 	};
-	SessionStub():state(0), sockidx(0xffff), uid(0), remoterelayid(0xffffffff), timestamp_s(0){}
+	SessionStub():state(DisconnectedState), sockidx(0xffff), uid(0), remoterelayid(0xffffffff), timestamp_s(0){}
 	
 	pair<size_t, bool> findPacketId(uint32 _pkgid)const;
 	void erasePacketId(uint32 _pkgid);
 	
 	void clear(){
-		state = 0;
+		state = DisconnectedState;
 		sockidx = 0xffff;
 		address.clear();
 		pairaddr.clear();
@@ -181,6 +182,20 @@ struct ConnectionStub{
 	void clear(){
 		state = FailState;
 		networkidx = 0xffffffff;
+		sessmap.clear();
+		
+		const uint	rbufidx = Specific::sizeToIndex(ConnectionStub::ReadBufferCapacity);
+	
+		if(preadbuf){
+			Specific::pushBuffer(preadbuf, rbufidx);
+		}
+	
+		while(sendq.size()){
+			char 	*pb = const_cast<char*>(sendq.front().pbuf);
+			
+			Specific::pushBuffer(pb, sendq.front().bufid);
+			sendq.pop();
+		}
 	}
 	
 	uint8					state;
@@ -208,12 +223,14 @@ struct Node::Data{
 	Data(
 		uint16 _nodeid,
 		Service &_rservice
-	):nodeid(_nodeid), rservice(_rservice), pendingreadbuffer(NULL), nextsessionidx(0){}
+	):nodeid(_nodeid), rservice(_rservice), pendingreadbuffer(NULL), nextsessionidx(0),
+	crtsessiondisconnectcnt(0){}
 	
 	const uint16			nodeid;
 	Service					&rservice;
 	char					*pendingreadbuffer;
 	uint32					nextsessionidx;
+	size_t					crtsessiondisconnectcnt;
 	
 	NewSessionVectorT		newsessionvec;
 	NewSessionVectorT		newsessiontmpvec;
@@ -223,6 +240,7 @@ struct Node::Data{
 	ConnectionVectorT		connectionvec;
 	TimerQueueT				timeq;
 	SendDatagramQueueT		udpsendq;
+	
 	
 };
 
@@ -394,7 +412,7 @@ int Node::execute(ulong _sig, TimeSpec &_time){
 	Manager		&rm = d.rservice.manager();
 	{
 		const ulong		sm = grabSignalMask();
-		if(sm){
+		if(sm || d.crtsessiondisconnectcnt){
 			if(sm & frame::S_KILL){
 				idbgx(Debug::ipc, "node - dying");
 				return BAD;
@@ -404,14 +422,15 @@ int Node::execute(ulong _sig, TimeSpec &_time){
 			if(sm == frame::S_RAISE){
 				_sig |= frame::SIGNALED;
 				Locker<Mutex>	lock(rm.mutex(*this));
-			
-				if(d.newsessionvec.size()){
-					doPrepareInsertNewSessions();
-				}
-				//TODO: here you should do the delete sessions
+				
 				if(d.newconnectionvec.size()){
 					doInsertNewConnections();
 				}
+				
+				if(d.newsessionvec.size()){
+					doPrepareInsertNewSessions();
+				}
+				
 			}else{
 				idbgx(Debug::ipc, "unknown signal");
 			}
@@ -422,6 +441,10 @@ int Node::execute(ulong _sig, TimeSpec &_time){
 	
 	if(d.newsessiontmpvec.size()){
 		doInsertNewSessions();
+	}
+	
+	if(d.crtsessiondisconnectcnt){
+		d.rservice.disconnectNodeSessions(*this);
 	}
 	
 	bool	must_reenter(false);
@@ -480,8 +503,29 @@ int Node::execute(ulong _sig, TimeSpec &_time){
 		return NOK;
 	}
 }
-
-
+//--------------------------------------------------------------------
+void Node::disconnectSessions(){
+	Manager			&rm = d.rservice.manager();
+	Locker<Mutex>	lock(rm.mutex(*this));
+	
+	if(d.newsessionvec.size()){
+		doPrepareInsertNewSessions();
+	}
+	if(d.newsessiontmpvec.size()){
+		doInsertNewSessions();
+	}
+	
+	for(SessionVectorT::iterator it(d.sessionvec.begin()); it != d.sessionvec.end(); ++it){
+		if(it->state == SessionStub::DisconnectState || it->state == SessionStub::ForceDisconnectState){
+			d.rservice.disconnectSession(it->address, it->localrelayid);
+			if(it->sockidx != 0xffff){
+				ConnectionStub &rcs = d.connectionvec[it->sockidx];
+				rcs.sessmap.erase(it->remoterelayid);
+			}
+			it->clear();
+		}
+	}
+}
 //--------------------------------------------------------------------
 uint32 Node::pushSession(const SocketAddress &_rsa, const ConnectData &_rconndata, uint32 _idx){
 	vdbgx(Debug::ipc, (void*)this<<" idx = "<<_idx<<" condata = "<<_rconndata);
@@ -727,7 +771,7 @@ void Node::doInsertNewSessions(){
 			}else{
 				pair<size_t, bool> r = rss.findPacketId(1/*id of connectpacket*/);
 				if(r.second){//a connect message is already in the send queue
-					vdbgx(Debug::ipc, (void*)this<<" connect message is already in the send queue");
+					vdbgx(Debug::ipc, (void*)this<<" connect message already in the send queue");
 					continue;
 				}
 				vdbgx(Debug::ipc, (void*)this<<" connect message not in the send queue - sesidx = "<<idx);
@@ -735,6 +779,10 @@ void Node::doInsertNewSessions(){
 			}
 		}
 		SessionStub &rss = d.sessionvec[idx];
+		
+		if(rss.state == SessionStub::DisconnectState){
+			rss.state = SessionStub::ConnectedState;
+		}
 		
 		if(rss.sockidx == 0xffff){
 			rss.time = this->currentTime();
@@ -781,7 +829,7 @@ void Node::doScheduleSendConnect(uint16 _idx, ConnectData &_rcd){
 	
 	pkt.reset();
 	pkt.type(Packet::ConnectType);
-	pkt.id(1);//TODO!!! the id of the ConnectPacket
+	pkt.id(1);
 	pkt.relay(fullid);
 	
 	Session::fillConnectPacket(pkt, _rcd);
@@ -1011,7 +1059,6 @@ bool Node::doReceiveConnectStreamPacket(const uint _sockidx, Packet &_rp, uint16
 	if(error){
 		return false;
 	}
-	//TODO: clear sessmap on session close
 	if(it != rcs.sessmap.end()){
 		SessionStub		&rss = d.sessionvec[it->second];
 		
@@ -1113,32 +1160,20 @@ void Node::doDisconnectConnection(const uint _sockidx){
 	//close all associated sessions
 	for(SessionVectorT::iterator it(d.sessionvec.begin()); it != d.sessionvec.end(); ++it){
 		if(it->sockidx == _sockidx){
-			doCloseSession(d.sessionvec.begin() - it);
+			it->sockidx = 0xffff;
+			it->state = SessionStub::ForceDisconnectState;
+			++it->uid; //prevent using this session
+			++d.crtsessiondisconnectcnt;
 		}
 	}
-	rcs.sessmap.clear();
-}
-//--------------------------------------------------------------------
-void Node::doCloseSession(const uint _sesidx){
-	SessionStub	&rss = d.sessionvec[_sesidx];
-	if(rss.sockidx != 0xffff){
-		ConnectionStub	&rcs = d.connectionvec[rss.sockidx];
-		if(rss.remoterelayid != 0xffffffff){
-			rcs.sessmap.erase(rss.remoterelayid);
-		}
-		--rcs.sesusecnt;
-		//We do not close the connection for now
-	}
-	
-	rss.clear();
-	{
-		//TODO: add _sesidx to freesessionstk and unregister from service
-	}
+	rcs.clear();
 }
 //--------------------------------------------------------------------
 void Node::doOnSessionTimer(const uint _sesidx){
-	vdbgx(Debug::ipc, (void*)this<<' '<<_sesidx<<" closing");
-	doCloseSession(_sesidx);
+	vdbgx(Debug::ipc, (void*)this<<' '<<_sesidx<<" disconnecting");
+	SessionStub	&rss = d.sessionvec[_sesidx];
+	rss.state = SessionStub::DisconnectState;
+	++d.crtsessiondisconnectcnt;
 }
 //--------------------------------------------------------------------
 void Node::doHandleSocketEvents(const uint _sockidx, ulong _evs){

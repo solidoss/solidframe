@@ -66,6 +66,7 @@ public:
 		aio::openssl::Context *_pctx,
 		bool _secure
 	);
+	void disconnectSessions();
 private:
 	void doInsertNewSessions();
 	void doPrepareInsertNewSessions();
@@ -91,7 +92,6 @@ private:
 	void doOnSessionTimer(const uint _sesidx);
 	void doRefillAcceptPacket(Packet &_rp, const AcceptData _rad);
 	void doRefillConnectPacket(Packet &_rp, const ConnectData _rcd);
-	void doCloseSession(const uint _sesidx);
 private:
 	struct Data;
 	Data &d;
