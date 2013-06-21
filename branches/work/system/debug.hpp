@@ -73,7 +73,7 @@ struct /*EXPORT_DLL*/ Debug{
 	static const unsigned protocol;
 	static const unsigned ser_bin;
 	static const unsigned utility;
-	static const unsigned fdt;
+	static const unsigned frame;
 	static const unsigned ipc;
 	static const unsigned tcp;
 	static const unsigned udp;

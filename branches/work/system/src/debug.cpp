@@ -63,13 +63,13 @@ namespace solid{
 /*static*/ const unsigned Debug::protocol(Debug::the().registerModule("PROTOCOL"));
 /*static*/ const unsigned Debug::ser_bin(Debug::the().registerModule("SER_BIN"));
 /*static*/ const unsigned Debug::utility(Debug::the().registerModule("UTILITY"));
-/*static*/ const unsigned Debug::fdt(Debug::the().registerModule("FDT"));
-/*static*/ const unsigned Debug::ipc(Debug::the().registerModule("FDT_IPC"));
-/*static*/ const unsigned Debug::tcp(Debug::the().registerModule("FDT_TCP"));
-/*static*/ const unsigned Debug::udp(Debug::the().registerModule("FDT_UDP"));
+/*static*/ const unsigned Debug::frame(Debug::the().registerModule("FRAME"));
+/*static*/ const unsigned Debug::ipc(Debug::the().registerModule("FRAME_IPC"));
+/*static*/ const unsigned Debug::tcp(Debug::the().registerModule("FRAME_TCP"));
+/*static*/ const unsigned Debug::udp(Debug::the().registerModule("FRAME_UDP"));
 /*static*/ const unsigned Debug::log(Debug::the().registerModule("LOG"));
-/*static*/ const unsigned Debug::aio(Debug::the().registerModule("FDT_AIO"));
-/*static*/ const unsigned Debug::file(Debug::the().registerModule("FDT_FILE"));
+/*static*/ const unsigned Debug::aio(Debug::the().registerModule("FRAME_AIO"));
+/*static*/ const unsigned Debug::file(Debug::the().registerModule("FRAME_FILE"));
 
 //-----------------------------------------------------------------
 
@@ -670,9 +670,9 @@ std::ostream& Debug::print(
 		//Thread::currentId()
 	);
 #ifdef ON_WINDOWS
-	return (*d.pos)<<buf<<'['<<src_file_name(_file)<<'('<<_line<<')'<<' '<<_fnc<<"]["<<Thread::currentId()<<']'<<' ';
+	return (*d.pos)<<buf<<'['<<src_file_name(_file)<<':'<<_line<<' '<<_fnc<<"]["<<Thread::currentId()<<']'<<' ';
 #else
-	return (*d.pos)<<buf<<'['<<src_file_name(_file)<<'('<<_line<<')'<<' '<<_fnc<<"][0x"<<std::hex<<Thread::currentId()<<std::dec<<']'<<' ';
+	return (*d.pos)<<buf<<'['<<src_file_name(_file)<<':'<<_line<<' '<<_fnc<<"][0x"<<std::hex<<Thread::currentId()<<std::dec<<']'<<' ';
 #endif
 }
 static const char tabs[]="\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t"
@@ -725,9 +725,9 @@ std::ostream& Debug::printTraceIn(
 	d.pos->write(tabs, d.trace_debth);
 	++d.trace_debth;
 #ifdef ON_WINDOWS
-	(*d.pos)<<'['<<d.nv[_module]<<']'<<'['<<src_file_name(_file)<<'('<<_line<<')'<<"]["<<Thread::currentId()<<']'<<' '<<_fnc<<'(';
+	(*d.pos)<<'['<<d.nv[_module]<<']'<<'['<<src_file_name(_file)<<':'<<_line<<"]["<<Thread::currentId()<<']'<<' '<<_fnc<<'(';
 #else
-	(*d.pos)<<'['<<d.nv[_module]<<']'<<'['<<src_file_name(_file)<<'('<<_line<<')'<<"][0x"<<std::hex<<Thread::currentId()<<std::dec<<']'<<' '<<_fnc<<'(';
+	(*d.pos)<<'['<<d.nv[_module]<<']'<<'['<<src_file_name(_file)<<':'<<_line<<"][0x"<<std::hex<<Thread::currentId()<<std::dec<<']'<<' '<<_fnc<<'(';
 #endif
 	return (*d.pos);
 }
@@ -771,9 +771,9 @@ std::ostream& Debug::printTraceOut(
 	--d.trace_debth;
 	d.pos->write(tabs, d.trace_debth);
 #ifdef ON_WINDOWS
-	(*d.pos)<<'['<<d.nv[_module]<<']'<<'['<<src_file_name(_file)<<'('<<_line<<')'<<"]["<<Thread::currentId()<<']'<<' '<<'}'<<_fnc<<'(';
+	(*d.pos)<<'['<<d.nv[_module]<<']'<<'['<<src_file_name(_file)<<':'<<_line<<"]["<<Thread::currentId()<<']'<<' '<<'}'<<_fnc<<'(';
 #else
-	(*d.pos)<<'['<<d.nv[_module]<<']'<<'['<<src_file_name(_file)<<'('<<_line<<')'<<"][0x"<<std::hex<<Thread::currentId()<<std::dec<<']'<<' '<<'}'<<_fnc<<'(';
+	(*d.pos)<<'['<<d.nv[_module]<<']'<<'['<<src_file_name(_file)<<':'<<_line<<"][0x"<<std::hex<<Thread::currentId()<<std::dec<<']'<<' '<<'}'<<_fnc<<'(';
 #endif
 	return (*d.pos);
 }

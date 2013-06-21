@@ -121,11 +121,11 @@ int Object::execute(ulong _evs, TimeSpec &_rtout){
 //---------------------------------------------------------------------
 Message::Message(){
 	objectCheck<Message>(true, __FUNCTION__);
-	vdbgx(Debug::fdt, "memadd "<<(void*)this);
+	vdbgx(Debug::frame, "memadd "<<(void*)this);
 }
 Message::~Message(){
 	objectCheck<Message>(false, __FUNCTION__);
-	vdbgx(Debug::fdt, "memsub "<<(void*)this);
+	vdbgx(Debug::frame, "memsub "<<(void*)this);
 }
 
 void Message::ipcReceive(
@@ -136,7 +136,7 @@ uint32 Message::ipcPrepare(){
 	return 0;//do nothing - no wait for response
 }
 void Message::ipcComplete(int _err){
-	wdbgx(Debug::fdt,"");
+	wdbgx(Debug::frame,"");
 }
 int Message::execute(
 	DynamicPointer<Message> &_rthis_ptr,
@@ -145,7 +145,7 @@ int Message::execute(
 	const MessageUidT &,
 	TimeSpec &_rts
 ){
-	wdbgx(Debug::fdt, "Unhandled message");
+	wdbgx(Debug::frame, "Unhandled message");
 	return BAD;
 }
 
@@ -154,7 +154,7 @@ int Message::receiveMessage(
 	const ObjectUidT& _from,
 	const ipc::ConnectionUid *_conid
 ){
-	wdbgx(Debug::fdt, "Unhandled receiveMessage");
+	wdbgx(Debug::frame, "Unhandled receiveMessage");
 	return BAD;//no need for execution
 }
 
