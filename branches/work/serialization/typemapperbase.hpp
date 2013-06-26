@@ -55,21 +55,23 @@ public:
 		const char *_name
 	)const;
 protected:
-	typedef void (*FncT)(void *, void *, void *, void *, const char *);
+	typedef void (*FncSerT)(void *, void *, void *, const char *);
+	typedef void (*FncDesT)(void *, void *, const char *);
 	typedef void (*PrepareIdFncT)(void *, void *, void *, uint32, const char *);
 	typedef void (*PrepareNameFncT)(void *, void *, void *, const char *, const char *);
 	
 	TypeMapperBase();
 	virtual ~TypeMapperBase();
 	//! Insert a function callback
-	uint32 insertFunction(FncT, uint32 _pos, const char *_name);
-	uint32 insertFunction(FncT, uint16 _pos, const char *_name);
-	uint32 insertFunction(FncT, uint8  _pos, const char *_name);
-	FncT function(const uint32 _id, uint32* &_rpid)const;
-	FncT function(const char *_pid, uint32* &_rpid)const;
-	FncT function(const uint32 _id)const;
-	FncT function(const uint16 _id)const;
-	FncT function(const uint8  _id)const;
+	uint32 insertFunction(FncSerT, FncDesT, uint32 _pos, const char *_name);
+	uint32 insertFunction(FncSerT, FncDesT, uint16 _pos, const char *_name);
+	uint32 insertFunction(FncSerT, FncDesT, uint8  _pos, const char *_name);
+	
+	FncSerT function(const uint32 _id, uint32* &_rpid)const;
+	FncSerT function(const char *_pid, uint32* &_rpid)const;
+	FncDesT function(const uint32 _id)const;
+	FncDesT function(const uint16 _id)const;
+	FncDesT function(const uint8  _id)const;
 private:
 	struct Data;
 	Data &d;

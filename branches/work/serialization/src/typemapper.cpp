@@ -41,11 +41,14 @@ namespace serialization{
 struct TypeMapperBase::Data{
 	struct FunctionStub{
 		FunctionStub(
-			FncT _pf = NULL,
+			FncSerT _pfs = NULL,
+			FncDesT _pfd = NULL,
 			const char *_name = NULL,
 			const uint32 _id = 0
-		):pf(_pf), name(_name), id(_id){}
-		FncT 		pf;
+		):pfs(_pfs), pfd(_pfd), name(_name), id(_id){}
+		
+		FncSerT 	pfs;
+		FncDesT 	pfd;
 		const char 	*name;
 		uint32		id;
 	};
@@ -72,7 +75,7 @@ struct TypeMapperBase::Data{
 #endif
 
 	Data():crtpos(1){
-		fncvec.push_back(FunctionStub(NULL, NULL, 1));
+		fncvec.push_back(FunctionStub(NULL, NULL, NULL, 1));
 	}
 	~Data();
 	Mutex				mtx;
@@ -91,65 +94,65 @@ TypeMapperBase::~TypeMapperBase(){
 	delete &d;
 }
 
-TypeMapperBase::FncT TypeMapperBase::function(const uint32 _id, uint32* &_rpid)const{
+TypeMapperBase::FncSerT TypeMapperBase::function(const uint32 _id, uint32* &_rpid)const{
 	Locker<Mutex>				lock(d.mtx);
 	const Data::FunctionStub	&rfs(d.fncvec[_id]);
 	
 	_rpid = const_cast<uint32*>(&rfs.id);
 	
-	return rfs.pf;
+	return rfs.pfs;
 }
-TypeMapperBase::FncT TypeMapperBase::function(const char *_pid, uint32* &_rpid)const{
+TypeMapperBase::FncSerT TypeMapperBase::function(const char *_pid, uint32* &_rpid)const{
 	Locker<Mutex>				lock(d.mtx);
 	const Data::FunctionStub	&rfs(d.fncvec[d.fncmap[_pid]]);
 	
 	_rpid = const_cast<uint32*>(&rfs.id);
 	
-	return rfs.pf;
+	return rfs.pfs;
 }
-TypeMapperBase::FncT TypeMapperBase::function(const uint32 _id)const{
+TypeMapperBase::FncDesT TypeMapperBase::function(const uint32 _id)const{
 	Locker<Mutex>				lock(d.mtx);
 	const CRCValue<uint32>		crcval(CRCValue<uint32>::check_and_create(_id));
 	const uint32				idx(crcval.value());
 	if(idx < d.fncvec.size()){
 		const Data::FunctionStub	&rfs(d.fncvec[idx]);
 		if(_id == rfs.id){
-			return rfs.pf;
+			return rfs.pfd;
 		}
 	}
 	return NULL;
 }
 
-TypeMapperBase::FncT TypeMapperBase::function(const uint16 _id)const{
+TypeMapperBase::FncDesT TypeMapperBase::function(const uint16 _id)const{
 	Locker<Mutex>				lock(d.mtx);
 	const CRCValue<uint16>		crcval(CRCValue<uint16>::check_and_create(_id));
 	const uint16				idx(crcval.value());
 	if(idx < d.fncvec.size()){
 		const Data::FunctionStub	&rfs(d.fncvec[idx]);
 		if(_id == rfs.id){
-			return rfs.pf;
+			return rfs.pfd;
 		}
 	}
 	return NULL;
 }
 
-TypeMapperBase::FncT TypeMapperBase::function(const uint8  _id)const{
+TypeMapperBase::FncDesT TypeMapperBase::function(const uint8  _id)const{
 	Locker<Mutex>				lock(d.mtx);
 	const CRCValue<uint8>		crcval(CRCValue<uint8>::check_and_create(_id));
 	const uint8					idx(crcval.value());
 	if(idx < d.fncvec.size()){
 		const Data::FunctionStub	&rfs(d.fncvec[idx]);
 		if(_id == rfs.id){
-			return rfs.pf;
+			return rfs.pfd;
 		}
 	}
 	return NULL;
 }
 
-uint32 TypeMapperBase::insertFunction(FncT _f, uint32 _pos, const char *_name){
+uint32 TypeMapperBase::insertFunction(FncSerT _fs, FncDesT _fd, uint32 _pos, const char *_name){
 	Locker<Mutex> lock(d.mtx);
 	if(!_pos){
-		while(d.crtpos < d.fncvec.size() && d.fncvec[d.crtpos].pf != NULL){
+		while(d.crtpos < d.fncvec.size() && d.fncvec[d.crtpos].pfs != NULL){
 			++d.crtpos;
 		}
 		if(d.crtpos == d.fncvec.size()){
@@ -161,7 +164,7 @@ uint32 TypeMapperBase::insertFunction(FncT _f, uint32 _pos, const char *_name){
 		if(_pos >= d.fncvec.size()){
 			d.fncvec.resize(_pos + 1);
 		}
-		if(d.fncvec[_pos].pf){
+		if(d.fncvec[_pos].pfs){
 			THROW_EXCEPTION_EX("Overlapping identifiers", _pos);
 			return _pos;
 		}
@@ -174,7 +177,8 @@ uint32 TypeMapperBase::insertFunction(FncT _f, uint32 _pos, const char *_name){
 	}
 	
 	Data::FunctionStub	&rfs(d.fncvec[_pos]);
-	rfs.pf = _f;
+	rfs.pfs = _fs;
+	rfs.pfd = _fd;
 	rfs.name = _name;
 	rfs.id = (uint32)crcval;
 	if(d.fncmap.find(_name) == d.fncmap.end()){
@@ -183,10 +187,10 @@ uint32 TypeMapperBase::insertFunction(FncT _f, uint32 _pos, const char *_name){
 	return _pos;
 }
 
-uint32 TypeMapperBase::insertFunction(FncT _f, uint16 _pos, const char *_name){
+uint32 TypeMapperBase::insertFunction(FncSerT _fs, FncDesT _fd, uint16 _pos, const char *_name){
 	Locker<Mutex> lock(d.mtx);
 	if(!_pos){
-		while(d.crtpos < d.fncvec.size() && d.fncvec[d.crtpos].pf != NULL){
+		while(d.crtpos < d.fncvec.size() && d.fncvec[d.crtpos].pfs != NULL){
 			++d.crtpos;
 		}
 		if(d.crtpos == d.fncvec.size()){
@@ -198,7 +202,7 @@ uint32 TypeMapperBase::insertFunction(FncT _f, uint16 _pos, const char *_name){
 		if(_pos >= d.fncvec.size()){
 			d.fncvec.resize(_pos + 1);
 		}
-		if(d.fncvec[_pos].pf){
+		if(d.fncvec[_pos].pfs){
 			THROW_EXCEPTION_EX("Overlapping identifiers", _pos);
 			return _pos;
 		}
@@ -211,7 +215,8 @@ uint32 TypeMapperBase::insertFunction(FncT _f, uint16 _pos, const char *_name){
 	}
 	
 	Data::FunctionStub	&rfs(d.fncvec[_pos]);
-	rfs.pf = _f;
+	rfs.pfs = _fs;
+	rfs.pfd = _fd;
 	rfs.name = _name;
 	rfs.id = (uint16)crcval;
 	if(d.fncmap.find(_name) == d.fncmap.end()){
@@ -220,10 +225,10 @@ uint32 TypeMapperBase::insertFunction(FncT _f, uint16 _pos, const char *_name){
 	return _pos;
 }
 
-uint32 TypeMapperBase::insertFunction(FncT _f, uint8  _pos, const char *_name){
+uint32 TypeMapperBase::insertFunction(FncSerT _fs, FncDesT _fd, uint8  _pos, const char *_name){
 	Locker<Mutex> lock(d.mtx);
 	if(!_pos){
-		while(d.crtpos < d.fncvec.size() && d.fncvec[d.crtpos].pf != NULL){
+		while(d.crtpos < d.fncvec.size() && d.fncvec[d.crtpos].pfs != NULL){
 			++d.crtpos;
 		}
 		if(d.crtpos == d.fncvec.size()){
@@ -235,7 +240,7 @@ uint32 TypeMapperBase::insertFunction(FncT _f, uint8  _pos, const char *_name){
 		if(_pos >= d.fncvec.size()){
 			d.fncvec.resize(_pos + 1);
 		}
-		if(d.fncvec[_pos].pf){
+		if(d.fncvec[_pos].pfs){
 			THROW_EXCEPTION_EX("Overlapping identifiers", _pos);
 			return _pos;
 		}
@@ -248,7 +253,8 @@ uint32 TypeMapperBase::insertFunction(FncT _f, uint8  _pos, const char *_name){
 	}
 	
 	Data::FunctionStub	&rfs(d.fncvec[_pos]);
-	rfs.pf = _f;
+	rfs.pfs = _fs;
+	rfs.pfd = _fd;
 	rfs.name = _name;
 	rfs.id = (uint8)crcval;
 	if(d.fncmap.find(_name) == d.fncmap.end()){

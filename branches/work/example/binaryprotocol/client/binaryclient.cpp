@@ -19,8 +19,20 @@ struct TestCallback{
 	TestCallback(ClientConnection &_rcc):rcc(_rcc){}
 	
 	void operator()(auto_ptr<TestResponse> &_rresptr){
-		
+	
 	}
+};
+
+
+struct Callback{
+	ClientConnection &rcc;
+	
+	Callback(ClientConnection &_rcc):rcc(_rcc){}
+	
+	
+	void receive(auto_ptr<FirstResponse>	&_rres);
+	void receive(auto_ptr<SecondResponse>	&_rres);
+	void complete(int _err);
 };
 
 int main(int argc, char *argv[]){
@@ -34,9 +46,9 @@ int main(int argc, char *argv[]){
 		m.registerObject(*ccptr);
 		aiosched.schedule(ccptr);
 		
-		DynamicPointer<protocol::binary::Message>	msgptr(new TestRequest);
+		DynamicPointer<protocol::binary::Message>	msgptr(new FirstRequest);
 		
-		ccptr->sendRequest(msgptr, TestCallback(*ccptr));
+		ccptr->sendRequest(msgptr, Callback(*ccptr));
 		
 		wait();
 		
