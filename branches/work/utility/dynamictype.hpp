@@ -327,55 +327,26 @@ private:
 	DynamicPointerVectorT	v[2];
 };
 
-//! A templated dynamic executer
+//! A templated dynamic handler
 /*!
-	The ideea of this class is to ease the following process:<br>
-	You want to signal an object with different types of signals.<br>
-	You want to easely add support for executing certain signals.<br>
-	Also you want that your Executers are inheritable. That is you want:<br>
-	ExeOne know about ASignal, BSignal.<br>
-	ExeTwo inherits from ExeOne and knows about ASignal, BSignal, CSignal, 
-	but only adds support for CSignal as the other signals are known by
-	ExeOne.
-	You need only one DynamicReceiver for an inheritance branch.<br>
-	In the above case, you only need a DynamicReciever\<void, ExeOne>
-	as protected member of ExeOne.<br><br>
-	
-	The first template member is the return value of methods associated
-	to a signal, in our case:<br>
-	void ExeOne::dynamicExecute(DynamicPointer\<ASignal> &);<br>
-	void ExeOne::dynamicExecute(DynamicPointer\<BSignal> &);<br>
-	void ExeTwo::dynamicExecute(DynamicPointer\<CSignal> &);<br>
-	For a full example see: examples/utility/dynamictest/dynamictest.cpp.<br>
-	<br>
-	Although it does not offer support for synchronization,
-	it is prepare for synchronized usage.
-	Basically DynamicReceiver offers the following support:<br>
-	On one end one can synchronized push DynamicBase objects.<br>
-	At other end, one can synchrononized move all objects from
-	push queue to exe queue. Then without synchronization one should,
-	prepare for execution (prepareExecute), the iterate throuh
-	received objects and execute them: hasCurrent, next, executeCurrent
-	
-	
 */
-template <class R, class Exe, class S = DynamicDefaultPointerStore, class P = void>
-struct DynamicExecuter;
+template <class R, class O, class S = DynamicDefaultPointerStore, class P = void>
+struct DynamicHandler;
 
-//! Specialization for DynamicExecuter with no extra parameter to dynamicExecute
-template <class R, class Exe, class S>
-struct DynamicExecuter<R, Exe , S, void>: public S{
+//! Specialization for DynamicHandler with no extra parameter to dynamicHandle
+template <class R, class O, class S>
+struct DynamicHandler<R, O , S, void>: public S{
 private:
 	typedef R (*FncT)(const DynamicPointer<DynamicBase> &, void*);
 	
-	template <class Q, class E>
-	static R doExecute(const DynamicPointer<DynamicBase> &_dp, void *_e){
-		E *pe = reinterpret_cast<E*>(_e);
-		DynamicPointer<Q>	ds(_dp);
-		return pe->dynamicExecute(ds);
+	template <class D, class Obj>
+	static R doHandle(const DynamicPointer<DynamicBase> &_rdynptr, void *_pobj){
+		Obj &robj = *reinterpret_cast<Obj*>(_pobj);
+		DynamicPointer<D>	dynptr(_rdynptr);
+		return robj.dynamicHandle(dynptr);
 	}
 	
-	template <class E>
+	template <class Obj>
 	static DynamicMap& dynamicMapEx(){
 		static DynamicMap	dm(dynamicMap());
 		dynamicMap(&dm);
@@ -383,80 +354,56 @@ private:
 	}
 public:
 	//! Basic constructor
-	DynamicExecuter():pushid(0), execid(1), crtpos(0){}
+	DynamicHandler():pushid(0), objid(1), crtpos(0){}
 	
-	//! Push a new object for later execution
-	/*! 
-		This method and prepareExecute should be synchronized.
-		\param _dp a DynamicPointer to a DynamicBase object
-	*/
-	void push(Exe *_pexe, const DynamicPointer<DynamicBase> &_dp){
-		this->pushBack(_pexe, pushid, _dp);
+	void push(O &_robj, const DynamicPointer<DynamicBase> &_rdynptr){
+		this->pushBack(&_robj, pushid, _rdynptr);
 	}
-	//! Move the objects from push queue to execute queue.
-	uint prepareExecute(Exe *_pexe){
-		this->clear(_pexe, execid);
-		uint tmp = execid;
-		execid = pushid;
+
+	uint prepareHandle(O &_robj){
+		this->clear(&_robj, objid);
+		uint tmp = objid;
+		objid = pushid;
 		pushid = tmp;
 		crtpos = 0;
-		return this->size(_pexe, execid);
+		return this->size(&_robj, objid);
 	}
 	
-	//! Use this method to iterate through the objects from the execution queue
-	/*!
-		<code>
-		lock();<br>
-		dr.prepareExecute();<br>
-		unlock();<br>
-		while(dr.hasCurrent()){<br>
-			dr.executeCurrent(*this);<br>
-			dr.next();<br>
-		}<br>
-		</code>
-	*/
-	inline bool hasCurrent(Exe *_pexe)const{
-		return this->isNotLast(_pexe, execid, crtpos);
+	inline bool hasCurrent(O &_robj)const{
+		return this->isNotLast(&_robj, objid, crtpos);
 	}
-	//! Iterate forward through execution queue
-	inline void next(Exe *_pexe){
-		cassert(hasCurrent(_pexe));
-		this->pointer(_pexe, execid, crtpos).clear();
+	
+	inline void next(O &_robj){
+		cassert(hasCurrent(_robj));
+		this->pointer(&_robj, objid, crtpos).clear();
 		++crtpos;
 	}
-	//! Execute the current object from execution queue
-	/*!
-		I.e., call the coresponding this->dynamicExecute(DynamicPointer\<RealObjectType>&).<br>
-		If there is no dynamicExecute method registered for the current object,
-		it will call _re.dynamicExecuteDefault(DynamicPointer\<> &).
-		\param _re Reference to the executer, usually *this.
-		\retval R the return value for dynamicExecute methods.
-	*/
-	R executeCurrent(Exe *_pexe){
-		cassert(hasCurrent(_pexe));
+	
+	R handleCurrent(O &_robj){
+		cassert(hasCurrent(_robj));
 		DynamicRegistererBase			dr;
-		DynamicPointer<DynamicBase>		&rdp(this->pointer(_pexe, execid, crtpos));
+		DynamicPointer<DynamicBase>		&rdp(this->pointer(&_robj, objid, crtpos));
 		dr.lock();
 		FncT	pf = reinterpret_cast<FncT>(rdp->callback(*dynamicMap()));
 		dr.unlock();
-		if(pf) return (*pf)(rdp, _pexe);
-		return _pexe->dynamicExecute(rdp);
+		if(pf) return (*pf)(rdp, &_robj);
+		return _robj.dynamicHandle(rdp);
 	}
 	
-	void executeAll(Exe *_pexe){
-		while(hasCurrent(_pexe)){
-			executeCurrent(_pexe);
-			next(_pexe);
+	void handleAll(O &_robj){
+		while(hasCurrent(_robj)){
+			handleCurrent(_robj);
+			next(_robj);
 		}
 	}
 	
-	R execute(Exe *_pexe, DynamicPointer<DynamicBase> &_rdp){
+	R handle(O &_robj, DynamicPointer<DynamicBase> &_rdp){
 		DynamicRegistererBase	dr;
 		dr.lock();
 		FncT	pf = reinterpret_cast<FncT>(_rdp->callback(*dynamicMap()));
 		dr.unlock();
-		if(pf) return (*pf)(_rdp, _pexe);
-		return _pexe->dynamicExecute(_rdp);
+		if(pf) return (*pf)(_rdp, &_robj);
+		return _robj.dynamicHandle(_rdp);
 	}
 	
 	static DynamicMap* dynamicMap(DynamicMap *_pdm = NULL){
@@ -465,41 +412,34 @@ public:
 		return pdm;
 	}
 	
-	//! Register a new dynamicExecute method
-	/*!
-		Usage:<br>
-		<code>
-		DynamicReceiverT::registerDynamic\<ASignal, ExeOne>();<br>
-		DynamicReceiverT::registerDynamic\<BSignal, ExeOne>();<br>
-		</code>
-	*/
-	template <class Q, class E>
+	template <class D, class Obj>
 	static void registerDynamic(){
-		FncT	pf = &doExecute<Q, E>;
-		dynamicMapEx<E>().callback(Q::staticTypeId(), reinterpret_cast<DynamicMap::FncT>(pf));
+		FncT	pf = &doHandle<D, Obj>;
+		dynamicMapEx<Obj>().callback(D::staticTypeId(), reinterpret_cast<DynamicMap::FncT>(pf));
 	}
 	
 private:
 	uint				pushid;
-	uint				execid;
+	uint				objid;
 	uint				crtpos;
 };
 
 
-//! DynamicExecuter with an extra parameter to dynamicExecute
-template <class R, class Exe, class S, class P>
-struct DynamicExecuter: public S{
+//! DynamicHandler with an extra parameter to dynamicExecute
+template <class R, class O, class S, class P>
+struct DynamicHandler: public S{
 private:
 	typedef R (*FncT)(const DynamicPointer<DynamicBase> &, void*, P);
 	
-	template <class Q, class E>
-	static R doExecute(const DynamicPointer<DynamicBase> &_dp, void *_e, P _p){
-		E *pe = reinterpret_cast<E*>(_e);
-		DynamicPointer<Q>	ds(_dp);
-		return pe->dynamicExecute(ds, _p);
+	template <class D, class Obj>
+	static R doHandle(const DynamicPointer<DynamicBase> &_rdynptr, void *_pobj, P _p){
+		Obj &robj = *reinterpret_cast<Obj*>(_pobj);
+		DynamicPointer<D>	dynptr(_rdynptr);
+		return robj.dynamicHandle(dynptr, _p);
 	}
 	
 	typedef std::vector<DynamicPointer<DynamicBase> > DynamicPointerVectorT;
+	
 	template <class E>
 	static DynamicMap& dynamicMapEx(){
 		static DynamicMap	dm(dynamicMap());
@@ -508,81 +448,57 @@ private:
 	}
 public:
 	//! Basic constructor
-	DynamicExecuter():pushid(0), execid(1), crtpos(0){}
+	DynamicHandler():pushid(0), objid(1), crtpos(0){}
 	
-	//! Push a new object for later execution
-	/*! 
-		This method and prepareExecute should be synchronized.
-		\param _dp a DynamicPointer to a DynamicBase object
-	*/
-	void push(Exe *_pexe, const DynamicPointer<DynamicBase> &_dp){
-		this->pushBack(_pexe, pushid, _dp);
+	void push(O &_robj, const DynamicPointer<DynamicBase> &_dynptr){
+		this->pushBack(&_robj, pushid, _dynptr);
 	}
-	//! Move the objects from push queue to execute queue.
-	uint prepareExecute(Exe *_pexe){
-		this->clear(_pexe, execid);
-		uint tmp = execid;
-		execid = pushid;
+	
+	uint prepareHandle(O &_robj){
+		this->clear(&_robj, objid);
+		uint tmp = objid;
+		objid = pushid;
 		pushid = tmp;
 		crtpos = 0;
-		return this->size(_pexe, execid);
+		return this->size(&_robj, objid);
 	}
 	
-	//! Use this method to iterate through the objects from the execution queue
-	/*!
-		<code>
-		lock();<br>
-		dr.prepareExecute();<br>
-		unlock();<br>
-		while(dr.hasCurrent()){<br>
-			dr.executeCurrent(*this);<br>
-			dr.next();<br>
-		}<br>
-		</code>
-	*/
-	inline bool hasCurrent(Exe *_pexe)const{
-		return this->isNotLast(_pexe, execid, crtpos);
+	inline bool hasCurrent(O &_robj)const{
+		return this->isNotLast(&_robj, objid, crtpos);
 	}
-	//! Iterate forward through execution queue
-	inline void next(Exe *_pexe){
-		cassert(hasCurrent(_pexe));
-		this->pointer(_pexe, execid, crtpos).clear();
+	
+	inline void next(O &_robj){
+		cassert(hasCurrent(&_robj));
+		this->pointer(&_robj, objid, crtpos).clear();
 		++crtpos;
 	}
-	//! Execute the current object from execution queue
-	/*!
-		I.e., call the coresponding this->dynamicExecute(DynamicPointer\<RealObjectType>&).<br>
-		If there is no dynamicExecute method registered for the current object,
-		it will call _re.dynamicExecuteDefault(DynamicPointer\<> &).
-		\param _re Reference to the executer, usually *this.
-		\retval R the return value for dynamicExecute methods.
-	*/
-	R executeCurrent(Exe *_pexe, P _p){
-		cassert(hasCurrent(_pexe));
+	
+	R handleCurrent(O &_robj, P _p){
+		cassert(hasCurrent(&_robj));
 		DynamicRegistererBase			dr;
-		DynamicPointer<DynamicBase>		&rdp(this->pointer(_pexe, execid, crtpos));
+		DynamicPointer<DynamicBase>		&rdp(this->pointer(&_robj, objid, crtpos));
 		dr.lock();
 		FncT	pf = reinterpret_cast<FncT>(rdp->callback(*dynamicMap()));
 		dr.unlock();
-		if(pf) return (*pf)(rdp, _pexe, _p);
-		return _pexe->dynamicExecute(rdp, _p);
+		if(pf) return (*pf)(rdp, &_robj, _p);
+		return _robj.dynamicHandle(rdp, _p);
 	}
 	
-	void executeAll(Exe *_pexe, P _p){
-		while(hasCurrent(_pexe)){
-			executeCurrent(_pexe, _p);
-			next(_pexe);
+	void handleAll(O &_robj, P _p){
+		while(hasCurrent(&_robj)){
+			handleCurrent(_robj, _p);
+			next(_robj);
 		}
 	}
 	
-	R execute(Exe &_re, DynamicPointer<> &_rdp, P _p){
+	R handle(O &_robj, DynamicPointer<> &_rdp, P _p){
 		DynamicRegistererBase	dr;
 		dr.lock();
 		FncT	pf = reinterpret_cast<FncT>(_rdp->callback(*dynamicMap()));
 		dr.unlock();
-		if(pf) return (*pf)(_rdp, &_re, _p);
+		if(pf) return (*pf)(_rdp, &_robj, _p);
 		
-		return _re.dynamicExecute(_rdp, _p);
+		return _robj.dynamicHandle(_rdp, _p);
 	}
 	
 	static DynamicMap* dynamicMap(DynamicMap *_pdm = NULL){
@@ -591,23 +507,15 @@ public:
 		return pdm;
 	}
 	
-	//! Register a new dynamicExecute method
-	/*!
-		Usage:<br>
-		<code>
-		DynamicReceiverT::registerDynamic\<ASignal, ExeOne>();<br>
-		DynamicReceiverT::registerDynamic\<BSignal, ExeOne>();<br>
-		</code>
-	*/
-	template <class Q, class E>
+	template <class D, class Obj>
 	static void registerDynamic(){
-		FncT	pf = &doExecute<Q, E>;
-		dynamicMapEx<E>().callback(Q::staticTypeId(), reinterpret_cast<DynamicMap::FncT>(pf));
+		FncT	pf = &doHandle<D, Obj>;
+		dynamicMapEx<Obj>().callback(D::staticTypeId(), reinterpret_cast<DynamicMap::FncT>(pf));
 	}
 	
 private:
 	uint				pushid;
-	uint				execid;
+	uint				objid;
 	uint				crtpos;
 };
 

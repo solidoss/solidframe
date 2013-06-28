@@ -27,98 +27,93 @@ struct DObject: Dynamic<DObject, AObject>{
 };
 
 
-class FirstExecuter{
+class FirstHandler{
 protected:
-	typedef DynamicExecuter<int, FirstExecuter>	IntDynamicExecuterT;
+	typedef DynamicHandler<int, FirstHandler>	IntDynamicHandlerT;
 public:
-	FirstExecuter(){
+	FirstHandler(){
 	}
 	static void dynamicRegister(){
-		IntDynamicExecuterT::registerDynamic<AObject, FirstExecuter>();
-		IntDynamicExecuterT::registerDynamic<BObject, FirstExecuter>();
+		IntDynamicHandlerT::registerDynamic<AObject, FirstHandler>();
+		IntDynamicHandlerT::registerDynamic<BObject, FirstHandler>();
 	}
 	void push(const DynamicPointer<> &_dp){
-		de.push(this, _dp);
+		de.push(*this, _dp);
 	}
-	int dynamicExecute(DynamicPointer<> &_dp);
-	int dynamicExecute(const DynamicPointer<AObject> &_rdp);
-	int dynamicExecute(const DynamicPointer<BObject> &_rdp);
+	int dynamicHandle(DynamicPointer<> &_dp);
+	int dynamicHandle(const DynamicPointer<AObject> &_rdp);
+	int dynamicHandle(const DynamicPointer<BObject> &_rdp);
 	
 protected:
-	IntDynamicExecuterT		de;
+	IntDynamicHandlerT		de;
 };
 
-int FirstExecuter::dynamicExecute(DynamicPointer<> &_dp){
+int FirstHandler::dynamicHandle(DynamicPointer<> &_dp){
 	idbg("");
 	return -1;
 }
 
-int FirstExecuter::dynamicExecute(const DynamicPointer<AObject> &_dp){
+int FirstHandler::dynamicHandle(const DynamicPointer<AObject> &_dp){
 	idbg("v = "<<_dp->v);
 	return _dp->v;
 }
 
-int FirstExecuter::dynamicExecute(const DynamicPointer<BObject> &_dp){
+int FirstHandler::dynamicHandle(const DynamicPointer<BObject> &_dp){
 	idbg("v1 = "<<_dp->v1<<" v2 = "<<_dp->v2);
 	return _dp->v2;
 }
 
-class SecondExecuter: public FirstExecuter{
+class SecondHandler: public FirstHandler{
 public:
-	SecondExecuter(){
+	SecondHandler(){
 	}
 	
 	static void dynamicRegister(){
-		FirstExecuter::dynamicRegister();
-		IntDynamicExecuterT::registerDynamic<BObject, SecondExecuter>();
-		IntDynamicExecuterT::registerDynamic<CObject, SecondExecuter>();
-		IntDynamicExecuterT::registerDynamic<DObject, SecondExecuter>();
+		FirstHandler::dynamicRegister();
+		IntDynamicHandlerT::registerDynamic<BObject, SecondHandler>();
+		IntDynamicHandlerT::registerDynamic<CObject, SecondHandler>();
+		IntDynamicHandlerT::registerDynamic<DObject, SecondHandler>();
 	}
 	
 	void run();
 	
-	int dynamicExecute(const DynamicPointer<BObject> &_dp);
-	int dynamicExecute(const DynamicPointer<CObject> &_dp);
-	int dynamicExecute(const DynamicPointer<DObject> &_dp);
+	int dynamicHandle(const DynamicPointer<BObject> &_dp);
+	int dynamicHandle(const DynamicPointer<CObject> &_dp);
+	int dynamicHandle(const DynamicPointer<DObject> &_dp);
 };
 
 
-void SecondExecuter::run(){
-	int rv = de.prepareExecute(this);
+void SecondHandler::run(){
+	int rv = de.prepareHandle(*this);
 	idbg("Executing "<<rv<<" calls");
-	while(de.hasCurrent(this)){
-		rv = de.executeCurrent(this);
+	while(de.hasCurrent(*this)){
+		rv = de.handleCurrent(*this);
 		idbg("call returned "<<rv);
-		de.next(this);
+		de.next(*this);
 	}
 	//dr.executeCurrent(*this);
 }
 
-int SecondExecuter::dynamicExecute(const DynamicPointer<BObject> &_dp){
+int SecondHandler::dynamicHandle(const DynamicPointer<BObject> &_dp){
 	idbg("v1 = "<<_dp->v1<<" v2 = "<<_dp->v2);
 	return _dp->v1;
 }
-int SecondExecuter::dynamicExecute(const DynamicPointer<CObject> &_dp){
+int SecondHandler::dynamicHandle(const DynamicPointer<CObject> &_dp){
 	idbg("v1 = "<<_dp->v1<<" v2 = "<<_dp->v2<<" v3 "<<_dp->v3);
 	return _dp->v1;
 }
-int SecondExecuter::dynamicExecute(const DynamicPointer<DObject> &_dp){
+int SecondHandler::dynamicHandle(const DynamicPointer<DObject> &_dp){
 	idbg("s = "<<_dp->s<<" v = "<<_dp->v);
 	return _dp->v;
 }
 
-static const DynamicRegisterer<SecondExecuter>	dre;
+static const DynamicRegisterer<SecondHandler>	dre;
 
 int main(){
 #ifdef UDEBUG
 	Debug::the().levelMask();
 	Debug::the().moduleMask();
 	Debug::the().initStdErr(false);
-#endif
-	uint32 v = 2;
-#ifndef ON_WINDOWS
-	uint32 v2 = __sync_add_and_fetch(&v, 2);
-	idbg("v2 = "<<v2);
 #endif
 	{
 		DynamicSharedPointer<AObject> 	dsap(new AObject(1));
@@ -132,7 +127,7 @@ int main(){
 		cout<<"ptr = "<<(void*)dsap.get()<<" ptr = "<<(void*)dsbp.get()<<endl;
 	}
 	
-	SecondExecuter	e;
+	SecondHandler	e;
 	e.push(DynamicPointer<>(new AObject(1)));
 	e.push(DynamicPointer<>(new BObject(2,3)));
 	e.push(DynamicPointer<>(new CObject(1,2,3)));

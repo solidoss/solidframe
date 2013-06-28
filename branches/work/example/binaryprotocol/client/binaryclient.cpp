@@ -13,42 +13,73 @@ public:
 private:
 };
 
-struct TestCallback{
-	ClientConnection &rcc;
+struct FirstRequest{
 	
-	TestCallback(ClientConnection &_rcc):rcc(_rcc){}
-	
-	void operator()(auto_ptr<TestResponse> &_rresptr){
-	
-	}
 };
 
+struct SecondRequest{
+	
+};
 
-struct Callback{
+struct FirstResponse{
+	
+};
+
+struct SecondResponse{
+	
+};
+
+struct FirstHandler{
 	ClientConnection &rcc;
 	
-	Callback(ClientConnection &_rcc):rcc(_rcc){}
+	FirstHandler(ClientConnection &_rcc):rcc(_rcc){}
 	
 	
-	void receive(auto_ptr<FirstResponse>	&_rres);
-	void receive(auto_ptr<SecondResponse>	&_rres);
-	void complete(int _err);
+	void handle(auto_ptr<FirstResponse>	&_rres);
+	
+	void handle(int _err);
 };
+
+struct SecondHandler{
+	ClientConnection &rcc;
+	
+	SecondHandler(ClientConnection &_rcc):rcc(_rcc){}
+	
+	
+	void handle(auto_ptr<FirstResponse>		&_rres);
+	void handle(auto_ptr<SecondResponse>	&_rres);
+	
+	void handle(int _err);
+};
+
 
 int main(int argc, char *argv[]){
 	{
 		typedef DynamicSharedPointer<ClientConnection>	ClientConnectionPointerT;
+		typedef serialization::IdTypeMapper<BinSerializer, BinDeserializer, uint16>		UInt16TypeMapper;
 		
 		frame::Manager				m;
 		AioSchedulerT				aiosched(m);
-		ClientConnectionPointerT	ccptr(new ClientConnection(m));
+		UInt16TypeMapper			tm;
+		ClientConnectionPointerT	ccptr(new ClientConnection(m, tm));
+		
+		
+		tm.insert<FirstRequest>();
+		tm.insert<SecondRequest>();
+		tm.insert<FirstResponse>();
+		tm.insert<SecondResponse>();
 		
 		m.registerObject(*ccptr);
 		aiosched.schedule(ccptr);
 		
-		DynamicPointer<protocol::binary::Message>	msgptr(new FirstRequest);
+		DynamicPointer<protocol::binary::Message>	msgptr;
+		msgptr = new FirstRequest;
 		
-		ccptr->sendRequest(msgptr, Callback(*ccptr));
+		ccptr->sendRequest(msgptr, FirstHandler(*ccptr));
+		
+		msgptr = new SecondRequest;
+		
+		ccptr->sendRequest(msgptr, SecondHandler(*ccptr));
 		
 		wait();
 		
