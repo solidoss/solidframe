@@ -27,24 +27,24 @@ std::ostream& operator<<(std::ostream &_ros, const ServerConfiguration &_rsp);
 
 
 class ServerObject: public solid::Dynamic<ServerObject, solid::consensus::server::Object>{
-	typedef solid::DynamicExecuter<void, ServerObject, solid::DynamicDefaultPointerStore, int>	DynamicExecuterExT;
+	typedef solid::DynamicHandler<void, ServerObject, solid::DynamicDefaultPointerStore, int>	DynamicHandlerExT;
 public:
 	static void dynamicRegister();
 	static void registerMessages(solid::frame::ipc::Service &_ripcsvc);
 	ServerObject(solid::frame::ipc::Service &_ripcsvc, solid::DynamicPointer<solid::consensus::server::Configuration> &_rcfgptr);
 	~ServerObject();
-	void dynamicExecute(solid::DynamicPointer<> &_dp, int);
+	void dynamicHandle(solid::DynamicPointer<> &_dp, int);
 	
-	void dynamicExecute(solid::DynamicPointer<StoreRequest> &_rsig, int);
-	void dynamicExecute(solid::DynamicPointer<FetchRequest> &_rsig, int);
-	void dynamicExecute(solid::DynamicPointer<EraseRequest> &_rsig, int);
+	void dynamicHandle(solid::DynamicPointer<StoreRequest> &_rsig, int);
+	void dynamicHandle(solid::DynamicPointer<FetchRequest> &_rsig, int);
+	void dynamicHandle(solid::DynamicPointer<EraseRequest> &_rsig, int);
 protected:
 	/*virtual*/ void doSendMessage(solid::DynamicPointer<solid::frame::Message> &_rmsgptr, const solid::SocketAddressInet4 &_raddr);
 private:
 	/*virtual*/ void accept(solid::DynamicPointer<solid::consensus::WriteRequestMessage> &_rmsgptr);
 	/*virtual*/ int recovery();
 private:
-	DynamicExecuterExT				exeex;
+	DynamicHandlerExT				dh;
 	solid::frame::ipc::Service		&ripcsvc;
 };
 

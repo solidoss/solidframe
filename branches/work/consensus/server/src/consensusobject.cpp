@@ -301,7 +301,7 @@ struct Object::Data{
 	
 //data:	
 	ConfigurationPointerT 	cfgptr;
-	DynamicExecuterT		exe;
+	DynamicHandlerT			dh;
 	uint32					proposeid;
 	frame::IndexT			srvidx;
 		
@@ -528,14 +528,14 @@ static const DynamicRegisterer<Object>	dre;
 }
 
 /*static*/ void Object::dynamicRegister(){
-	DynamicExecuterT::registerDynamic<WriteRequestMessage, Object>();
-	DynamicExecuterT::registerDynamic<ReadRequestMessage, Object>();
-	DynamicExecuterT::registerDynamic<OperationMessage<1>, Object>();
-	DynamicExecuterT::registerDynamic<OperationMessage<2>, Object>();
-	DynamicExecuterT::registerDynamic<OperationMessage<4>, Object>();
-	DynamicExecuterT::registerDynamic<OperationMessage<8>, Object>();
-	DynamicExecuterT::registerDynamic<OperationMessage<16>, Object>();
-	DynamicExecuterT::registerDynamic<OperationMessage<32>, Object>();
+	DynamicHandlerT::registerDynamic<WriteRequestMessage, Object>();
+	DynamicHandlerT::registerDynamic<ReadRequestMessage, Object>();
+	DynamicHandlerT::registerDynamic<OperationMessage<1>, Object>();
+	DynamicHandlerT::registerDynamic<OperationMessage<2>, Object>();
+	DynamicHandlerT::registerDynamic<OperationMessage<4>, Object>();
+	DynamicHandlerT::registerDynamic<OperationMessage<8>, Object>();
+	DynamicHandlerT::registerDynamic<OperationMessage<16>, Object>();
+	DynamicHandlerT::registerDynamic<OperationMessage<32>, Object>();
 	//TODO: add here the other consensus Messages
 }
 /*static*/ void Object::registerMessages(frame::ipc::Service &_ripcsvc){
@@ -576,11 +576,11 @@ bool Object::isRecoveryState()const{
 	return state() >= PrepareRecoveryState && state() <= LastRecoveryState;
 }
 //---------------------------------------------------------
-void Object::dynamicExecute(DynamicPointer<> &_dp, RunData &_rrd){
+void Object::dynamicHandle(DynamicPointer<> &_dp, RunData &_rrd){
 	
 }
 //---------------------------------------------------------
-void Object::dynamicExecute(DynamicPointer<WriteRequestMessage> &_rmsgptr, RunData &_rrd){
+void Object::dynamicHandle(DynamicPointer<WriteRequestMessage> &_rmsgptr, RunData &_rrd){
 	if(d.checkAlreadyReceived(_rmsgptr)) return;
 	size_t			idx;
 	bool			alreadyexisted(!d.insertRequestStub(_rmsgptr, idx));
@@ -594,37 +594,37 @@ void Object::dynamicExecute(DynamicPointer<WriteRequestMessage> &_rmsgptr, RunDa
 		d.reqq.push(idx);
 	}
 }
-void Object::dynamicExecute(DynamicPointer<ReadRequestMessage> &_rmsgptr, RunData &_rrd){
+void Object::dynamicHandle(DynamicPointer<ReadRequestMessage> &_rmsgptr, RunData &_rrd){
 	
 }
-void Object::dynamicExecute(DynamicPointer<OperationMessage<1> > &_rmsgptr, RunData &_rrd){
+void Object::dynamicHandle(DynamicPointer<OperationMessage<1> > &_rmsgptr, RunData &_rrd){
 	idbg("opcount = 1");
 	doExecuteOperation(_rrd, _rmsgptr->replicaidx, _rmsgptr->op);
 }
-void Object::dynamicExecute(DynamicPointer<OperationMessage<2> > &_rmsgptr, RunData &_rrd){
+void Object::dynamicHandle(DynamicPointer<OperationMessage<2> > &_rmsgptr, RunData &_rrd){
 	idbg("opcount = 2");
 	doExecuteOperation(_rrd, _rmsgptr->replicaidx, _rmsgptr->op[0]);
 	doExecuteOperation(_rrd, _rmsgptr->replicaidx, _rmsgptr->op[1]);
 }
-void Object::dynamicExecute(DynamicPointer<OperationMessage<4> > &_rmsgptr, RunData &_rrd){
+void Object::dynamicHandle(DynamicPointer<OperationMessage<4> > &_rmsgptr, RunData &_rrd){
 	idbg("opcount = "<<_rmsgptr->opsz);
 	for(size_t i(0); i < _rmsgptr->opsz; ++i){
 		doExecuteOperation(_rrd, _rmsgptr->replicaidx, _rmsgptr->op[i]);
 	}
 }
-void Object::dynamicExecute(DynamicPointer<OperationMessage<8> > &_rmsgptr, RunData &_rrd){
+void Object::dynamicHandle(DynamicPointer<OperationMessage<8> > &_rmsgptr, RunData &_rrd){
 	idbg("opcount = "<<_rmsgptr->opsz);
 	for(size_t i(0); i < _rmsgptr->opsz; ++i){
 		doExecuteOperation(_rrd, _rmsgptr->replicaidx, _rmsgptr->op[i]);
 	}
 }
-void Object::dynamicExecute(DynamicPointer<OperationMessage<16> > &_rmsgptr, RunData &_rrd){
+void Object::dynamicHandle(DynamicPointer<OperationMessage<16> > &_rmsgptr, RunData &_rrd){
 	idbg("opcount = "<<_rmsgptr->opsz);
 	for(size_t i(0); i < _rmsgptr->opsz; ++i){
 		doExecuteOperation(_rrd, _rmsgptr->replicaidx, _rmsgptr->op[i]);
 	}
 }
-void Object::dynamicExecute(DynamicPointer<OperationMessage<32> > &_rmsgptr, RunData &_rrd){
+void Object::dynamicHandle(DynamicPointer<OperationMessage<32> > &_rmsgptr, RunData &_rrd){
 	idbg("opcount = "<<_rmsgptr->opsz);
 	for(size_t i(0); i < _rmsgptr->opsz; ++i){
 		doExecuteOperation(_rrd, _rmsgptr->replicaidx, _rmsgptr->op[i]);
@@ -925,7 +925,7 @@ void Object::doExecuteAcceptDeclineOperation(RunData &_rd, const uint8 _replicai
 		return false;//no reason to raise the pool thread!!
 	}
 	DynamicPointer<>	dp(_rmsgptr);
-	d.exe.push(this, dp);
+	d.dh.push(*this, dp);
 	return frame::Object::notify(frame::S_SIG | frame::S_RAISE);
 }
 
@@ -951,13 +951,13 @@ int Object::execute(ulong _sig, TimeSpec &_tout){
 			sm = grabSignalMask(0);//grab all bits of the signal mask
 			if(sm & frame::S_KILL) return BAD;
 			if(sm & frame::S_SIG){//we have signals
-				d.exe.prepareExecute(this);
+				d.dh.prepareHandle(*this);
 			}
 		}
 		if(sm & frame::S_SIG){//we've grabed signals, execute them
-			while(d.exe.hasCurrent(this)){
-				d.exe.executeCurrent(this, rd);
-				d.exe.next(this);
+			while(d.dh.hasCurrent(*this)){
+				d.dh.handleCurrent(*this, rd);
+				d.dh.next(*this);
 			}
 		}
 	}

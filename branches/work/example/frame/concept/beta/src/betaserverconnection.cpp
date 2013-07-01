@@ -75,7 +75,7 @@ const BinarySeeker<ReqCmp>	reqbs = BinarySeeker<ReqCmp>();
 }//namespace
 
 /*static*/ void Connection::dynamicRegister(){
-	//DynamicExecuterT::registerDynamic<SendStreamSignal, Connection>();
+	//DynamicHandlerT::registerDynamic<SendStreamSignal, Connection>();
 }
 
 Connection::Connection(
@@ -111,7 +111,7 @@ Connection::~Connection(){
 		return false;//no reason to raise the pool thread!!
 	}
 	DynamicPointer<>	dp(_rmsgptr);
-	de.push(this, dp);
+	dh.push(*this, dp);
 	return frame::Object::notify(frame::S_SIG | frame::S_RAISE);
 }
 
@@ -166,13 +166,13 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			sm = grabSignalMask(0);//grab all bits of the signal mask
 			if(sm & frame::S_KILL) return BAD;
 			if(sm & frame::S_SIG){//we have signals
-				de.prepareExecute(this);
+				dh.prepareHandle(*this);
 			}
 		}
 		if(sm & frame::S_SIG){//we've grabed signals, execute them
-			while(de.hasCurrent(this)){
-				de.executeCurrent(this);
-				de.next(this);
+			while(dh.hasCurrent(*this)){
+				dh.handleCurrent(*this);
+				dh.next(*this);
 			}
 		}
 		//now we determine if we return with NOK or we continue

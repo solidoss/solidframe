@@ -107,9 +107,9 @@ namespace{
 static const DynamicRegisterer<ServerObject>	dre;
 }
 /*static*/ void ServerObject::dynamicRegister(){
-	DynamicExecuterExT::registerDynamic<StoreRequest, ServerObject>();
-	DynamicExecuterExT::registerDynamic<FetchRequest, ServerObject>();
-	DynamicExecuterExT::registerDynamic<EraseRequest, ServerObject>();
+	DynamicHandlerExT::registerDynamic<StoreRequest, ServerObject>();
+	DynamicHandlerExT::registerDynamic<FetchRequest, ServerObject>();
+	DynamicHandlerExT::registerDynamic<EraseRequest, ServerObject>();
 }
 //------------------------------------------------------------
 /*static*/void ServerObject::registerMessages(solid::frame::ipc::Service &_ripcsvc){
@@ -128,7 +128,7 @@ ServerObject::~ServerObject(){
 /*virtual*/ void ServerObject::accept(DynamicPointer<solid::consensus::WriteRequestMessage> &_rmsgptr){
 	idbg("accepting consensus::WriteRequestMessage request");
 	DynamicPointer<>	dp(_rmsgptr);
-	exeex.execute(*this, dp, 1);
+	dh.handle(*this, dp, 1);
 }
 
 /*virtual*/ int ServerObject::recovery(){
@@ -141,11 +141,11 @@ ServerObject::~ServerObject(){
 	ripcsvc.sendMessage(_rmsgptr, _raddr);
 }
 
-void ServerObject::dynamicExecute(DynamicPointer<> &_dp, int){
+void ServerObject::dynamicHandle(DynamicPointer<> &_dp, int){
 	
 }
 
-void ServerObject::dynamicExecute(DynamicPointer<StoreRequest> &_rmsgptr, int){
+void ServerObject::dynamicHandle(DynamicPointer<StoreRequest> &_rmsgptr, int){
 	const frame::ipc::ConnectionUid	ipcconid(_rmsgptr->ipcconid);
 	
 	_rmsgptr->v = this->acceptId();
@@ -156,14 +156,14 @@ void ServerObject::dynamicExecute(DynamicPointer<StoreRequest> &_rmsgptr, int){
 	ripcsvc.sendMessage(msgptr, ipcconid);
 }
 
-void ServerObject::dynamicExecute(DynamicPointer<FetchRequest> &_rmsgptr, int){
+void ServerObject::dynamicHandle(DynamicPointer<FetchRequest> &_rmsgptr, int){
 	idbg("received FetchRequest");
 	const frame::ipc::ConnectionUid	ipcconid(_rmsgptr->ipcconid);
 	DynamicPointer<frame::Message>	msgptr(_rmsgptr);
 	ripcsvc.sendMessage(msgptr, ipcconid);
 }
 
-void ServerObject::dynamicExecute(DynamicPointer<EraseRequest> &_rmsgptr, int){
+void ServerObject::dynamicHandle(DynamicPointer<EraseRequest> &_rmsgptr, int){
 	idbg("received EraseRequest");
 	const frame::ipc::ConnectionUid	ipcconid(_rmsgptr->ipcconid);
 	DynamicPointer<frame::Message>	msgptr(_rmsgptr);

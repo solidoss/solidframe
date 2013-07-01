@@ -180,10 +180,10 @@ namespace{
 static const DynamicRegisterer<ClientObject>	dre;
 }
 /*static*/ void ClientObject::dynamicRegister(){
-	DynamicExecuterT::registerDynamic<StoreRequest, ClientObject>();
-	DynamicExecuterT::registerDynamic<FetchRequest, ClientObject>();
-	DynamicExecuterT::registerDynamic<EraseRequest, ClientObject>();
-	//DynamicExecuterT::registerDynamic<InsertSignal, ClientObject>();
+	DynamicHandlerT::registerDynamic<StoreRequest, ClientObject>();
+	DynamicHandlerT::registerDynamic<FetchRequest, ClientObject>();
+	DynamicHandlerT::registerDynamic<EraseRequest, ClientObject>();
+	//DynamicHandlerT::registerDynamic<InsertSignal, ClientObject>();
 }
 //------------------------------------------------------------
 ClientObject::ClientObject(
@@ -211,13 +211,13 @@ int ClientObject::execute(ulong _sig, TimeSpec &_tout){
 				return BAD;
 			}
 			if(sm & frame::S_SIG){//we have signals
-				exe.prepareExecute(this);
+				dh.prepareHandle(*this);
 			}
 		}
 		if(sm & frame::S_SIG){//we've grabed signals, execute them
-			while(exe.hasCurrent(this)){
-				exe.executeCurrent(this);
-				exe.next(this);
+			while(dh.hasCurrent(*this)){
+				dh.handleCurrent(*this);
+				dh.next(*this);
 			}
 		}
 		//now we determine if we return with NOK or we continue
@@ -369,29 +369,29 @@ const string& ClientObject::getString(uint32 _pos, uint32 _crtpos){
 		_rmsgptr.clear();
 		return false;//no reason to raise the pool thread!!
 	}
-	exe.push(this, DynamicPointer<>(_rmsgptr));
+	dh.push(*this, DynamicPointer<>(_rmsgptr));
 	return Object::notify(frame::S_SIG | frame::S_RAISE);
 }
 //------------------------------------------------------------
-void ClientObject::dynamicExecute(DynamicPointer<> &_dp){
+void ClientObject::dynamicHandle(DynamicPointer<> &_dp){
 	idbg("received unknown dynamic object");
 }
 //------------------------------------------------------------
-void ClientObject::dynamicExecute(DynamicPointer<ClientMessage> &_rmsgptr){
-	idbg("received ClientSignal response");
+void ClientObject::dynamicHandle(DynamicPointer<ClientMessage> &_rmsgptr){
+	idbg("received ClientMessage response");
 }
 //------------------------------------------------------------
-void ClientObject::dynamicExecute(DynamicPointer<StoreRequest> &_rmsgptr){
+void ClientObject::dynamicHandle(DynamicPointer<StoreRequest> &_rmsgptr){
 	--waitresponsecount;
-	idbg("received StoreSignal response with value "<<_rmsgptr->v<<" waitresponsecount = "<<waitresponsecount);
+	idbg("received StoreRequest response with value "<<_rmsgptr->v<<" waitresponsecount = "<<waitresponsecount);
 }
 //------------------------------------------------------------
-void ClientObject::dynamicExecute(DynamicPointer<FetchRequest> &_rmsgptr){
-	idbg("received FetchSignal response");
+void ClientObject::dynamicHandle(DynamicPointer<FetchRequest> &_rmsgptr){
+	idbg("received FetchRequest response");
 }
 //------------------------------------------------------------
-void ClientObject::dynamicExecute(DynamicPointer<EraseRequest> &_rmsgptr){
-	idbg("received EraseSignal response");
+void ClientObject::dynamicHandle(DynamicPointer<EraseRequest> &_rmsgptr){
+	idbg("received EraseRequest response");
 }
 //------------------------------------------------------------
 void ClientObject::expectStore(uint32 _rid, const string &_rs, uint32 _v, uint32 _cnt){

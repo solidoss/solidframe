@@ -61,9 +61,9 @@ static const DynamicRegisterer<Connection>	dre;
 }//namespace
 
 /*static*/ void Connection::dynamicRegister(){
-	//DynamicExecuterT::registerDynamic<SendStreamSignal, Connection>();
-	DynamicExecuterT::registerDynamic<LoginMessage, Connection>();
-	DynamicExecuterT::registerDynamic<CancelMessage, Connection>();
+	//DynamicHandlerT::registerDynamic<SendStreamSignal, Connection>();
+	DynamicHandlerT::registerDynamic<LoginMessage, Connection>();
+	DynamicHandlerT::registerDynamic<CancelMessage, Connection>();
 }
 
 Connection::Connection(
@@ -104,7 +104,7 @@ Connection::~Connection(){
 		return false;//no reason to raise the pool thread!!
 	}
 	DynamicPointer<>	dp(_rmsgptr);
-	de.push(this, dp);
+	dh.push(*this, dp);
 	return frame::Object::notify(frame::S_SIG | frame::S_RAISE);
 }
 
@@ -126,13 +126,13 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			sm = grabSignalMask(0);//grab all bits of the signal mask
 			if(sm & frame::S_KILL) return BAD;
 			if(sm & frame::S_SIG){//we have signals
-				de.prepareExecute(this);
+				dh.prepareHandle(*this);
 			}
 		}
 		if(sm & frame::S_SIG){//we've grabed signals, execute them
-			while(de.hasCurrent(this)){
-				de.executeCurrent(this);
-				de.next(this);
+			while(dh.hasCurrent(*this)){
+				dh.handleCurrent(*this);
+				dh.next(*this);
 			}
 		}
 		//now we determine if we return with NOK or we continue
@@ -401,12 +401,12 @@ void Connection::pushCommand(Command *_pcmd){
 	
 }
 
-void Connection::dynamicExecute(DynamicPointer<LoginMessage> &_rmsgptr){
+void Connection::dynamicHandle(DynamicPointer<LoginMessage> &_rmsgptr){
 	command::Login *pcmd = new command::Login(_rmsgptr->user, _rmsgptr->pass);
 	pcmd->msgptr = _rmsgptr;
 	pushCommand(pcmd);
 }
-void Connection::dynamicExecute(DynamicPointer<CancelMessage> &_rmsgptr){
+void Connection::dynamicHandle(DynamicPointer<CancelMessage> &_rmsgptr){
 	
 }
 

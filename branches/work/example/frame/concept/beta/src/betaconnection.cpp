@@ -268,7 +268,7 @@ int Connection::doEncryptBuffer(char *_to, const char *_from, ulong _fromlen){
 	return BAD;
 }
 
-void Connection::dynamicExecute(DynamicPointer<> &_dp){
+void Connection::dynamicHandle(DynamicPointer<> &_dp){
 	wdbg("Received unknown signal on ipcservice");
 }
 

@@ -66,7 +66,7 @@ struct Configuration: Dynamic<Configuration, DynamicShared<> >{
  */
 class Object: public Dynamic<Object, frame::Object>{
 	struct RunData;
-	typedef DynamicExecuter<void, Object, DynamicDefaultPointerStore, RunData&>	DynamicExecuterT;
+	typedef DynamicHandler<void, Object, DynamicDefaultPointerStore, RunData&>	DynamicHandlerT;
 public:
 	static void dynamicRegister();
 	static void registerMessages(frame::ipc::Service &_ripcsvc);
@@ -74,16 +74,16 @@ public:
 	~Object();
 	void serverIndex(const frame::IndexT &_ridx);
 	frame::IndexT serverIndex()const;
-	void dynamicExecute(DynamicPointer<> &_dp, RunData &_rrd);
+	void dynamicHandle(DynamicPointer<> &_dp, RunData &_rrd);
 	
-	void dynamicExecute(DynamicPointer<WriteRequestMessage> &_rmsgptr, RunData &_rrd);
-	void dynamicExecute(DynamicPointer<ReadRequestMessage> &_rmsgptr, RunData &_rrd);
-	void dynamicExecute(DynamicPointer<OperationMessage<1> > &_rmsgptr, RunData &_rrd);
-	void dynamicExecute(DynamicPointer<OperationMessage<2> > &_rmsgptr, RunData &_rrd);
-	void dynamicExecute(DynamicPointer<OperationMessage<4> > &_rmsgptr, RunData &_rrd);
-	void dynamicExecute(DynamicPointer<OperationMessage<8> > &_rmsgptr, RunData &_rrd);
-	void dynamicExecute(DynamicPointer<OperationMessage<16> > &_rmsgptr, RunData &_rrd);
-	void dynamicExecute(DynamicPointer<OperationMessage<32> > &_rmsgptr, RunData &_rrd);
+	void dynamicHandle(DynamicPointer<WriteRequestMessage> &_rmsgptr, RunData &_rrd);
+	void dynamicHandle(DynamicPointer<ReadRequestMessage> &_rmsgptr, RunData &_rrd);
+	void dynamicHandle(DynamicPointer<OperationMessage<1> > &_rmsgptr, RunData &_rrd);
+	void dynamicHandle(DynamicPointer<OperationMessage<2> > &_rmsgptr, RunData &_rrd);
+	void dynamicHandle(DynamicPointer<OperationMessage<4> > &_rmsgptr, RunData &_rrd);
+	void dynamicHandle(DynamicPointer<OperationMessage<8> > &_rmsgptr, RunData &_rrd);
+	void dynamicHandle(DynamicPointer<OperationMessage<16> > &_rmsgptr, RunData &_rrd);
+	void dynamicHandle(DynamicPointer<OperationMessage<32> > &_rmsgptr, RunData &_rrd);
 protected:
 	enum State{
 		InitState,

@@ -68,7 +68,7 @@ struct SocketData{
 	protocol communication. 
 */
 class Connection: public solid::Dynamic<Connection, solid::frame::aio::MultiObject>{
-	typedef solid::DynamicExecuter<void, Connection>	DynamicExecuterT;
+	typedef solid::DynamicHandler<void, Connection>	DynamicHandlerT;
 public:
 	enum{
 		SocketRegister,
@@ -121,12 +121,12 @@ public:
 	
 	SocketData &socketData(const uint _sid);
 	
-	void dynamicExecute(solid::DynamicPointer<> &_dp);
-	void dynamicExecute(solid::DynamicPointer<InputStreamMessage> &_rmsgptr);
-	void dynamicExecute(solid::DynamicPointer<OutputStreamMessage> &_rmsgptr);
-	void dynamicExecute(solid::DynamicPointer<InputOutputStreamMessage> &_rmsgptr);
-	void dynamicExecute(solid::DynamicPointer<StreamErrorMessage> &_rmsgptr);
-	void dynamicExecute(solid::DynamicPointer<SocketMoveMessage> &_rmsgptr);
+	void dynamicHandle(solid::DynamicPointer<> &_dp);
+	void dynamicHandle(solid::DynamicPointer<InputStreamMessage> &_rmsgptr);
+	void dynamicHandle(solid::DynamicPointer<OutputStreamMessage> &_rmsgptr);
+	void dynamicHandle(solid::DynamicPointer<InputOutputStreamMessage> &_rmsgptr);
+	void dynamicHandle(solid::DynamicPointer<StreamErrorMessage> &_rmsgptr);
+	void dynamicHandle(solid::DynamicPointer<SocketMoveMessage> &_rmsgptr);
 	
 	void appendContextString(std::string &_str);
 private:
@@ -171,7 +171,7 @@ private:
 	bool				isslave;
 	int					st;
 	uint32				crtreqid;
-	DynamicExecuterT	dr;
+	DynamicHandlerT		dh;
 	SocketDataVectorT	sdv;
 	RequestIdVectorT	ridv;
 	StreamDataVectorT	streamv;

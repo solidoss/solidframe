@@ -78,11 +78,11 @@ static const unsigned specificPosition(){
 }
 
 /*static*/ void Connection::dynamicRegister(){
-	DynamicExecuterT::registerDynamic<InputStreamMessage, Connection>();
-	DynamicExecuterT::registerDynamic<OutputStreamMessage, Connection>();
-	DynamicExecuterT::registerDynamic<InputOutputStreamMessage, Connection>();
-	DynamicExecuterT::registerDynamic<StreamErrorMessage, Connection>();
-	DynamicExecuterT::registerDynamic<SocketMoveMessage, Connection>();
+	DynamicHandlerT::registerDynamic<InputStreamMessage, Connection>();
+	DynamicHandlerT::registerDynamic<OutputStreamMessage, Connection>();
+	DynamicHandlerT::registerDynamic<InputOutputStreamMessage, Connection>();
+	DynamicHandlerT::registerDynamic<StreamErrorMessage, Connection>();
+	DynamicHandlerT::registerDynamic<SocketMoveMessage, Connection>();
 }
 
 Connection::Connection(const SocketDevice &_rsd):
@@ -125,7 +125,7 @@ Connection::~Connection(){
 		return false;//no reason to raise the pool thread!!
 	}
 	DynamicPointer<>	dp(_msgptr);
-	dr.push(this, dp);
+	dh.push(*this, dp);
 	return Object::notify(frame::S_SIG | frame::S_RAISE);
 }
 
@@ -153,13 +153,13 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			sm = grabSignalMask(0);//grab all bits of the signal mask
 			if(sm & frame::S_KILL) return BAD;
 			if(sm & frame::S_SIG){//we have signals
-				dr.prepareExecute(this);
+				dh.prepareHandle(*this);
 			}
 		}
 		if(sm & frame::S_SIG){//we've grabed signals, execute them
-			while(dr.hasCurrent(this)){
-				dr.executeCurrent(this);
-				dr.next(this);
+			while(dh.hasCurrent(*this)){
+				dh.handleCurrent(*this);
+				dh.next(*this);
 			}
 		}
 		//now we determine if we return with NOK or we continue
@@ -417,12 +417,12 @@ int Connection::doSocketExecute(const uint _sid, SocketData &_rsd, const int _st
 }
 
 
-void Connection::dynamicExecute(DynamicPointer<> &_dp){
+void Connection::dynamicHandle(DynamicPointer<> &_dp){
 	wdbg("Received unknown signal on ipcservice");
 }
 
 
-void Connection::dynamicExecute(DynamicPointer<InputStreamMessage> &_rmsgptr){
+void Connection::dynamicHandle(DynamicPointer<InputStreamMessage> &_rmsgptr){
 	int sid(-1);
 	if(!isRequestIdExpected(_rmsgptr->requid.first, sid)) return;
 	cassert(sid >= 0);
@@ -432,16 +432,16 @@ void Connection::dynamicExecute(DynamicPointer<InputStreamMessage> &_rmsgptr){
 	this->socketPostEvents(sid, frame::RESCHEDULED);
 }
 
-void Connection::dynamicExecute(DynamicPointer<OutputStreamMessage> &_rmsgptr){
+void Connection::dynamicHandle(DynamicPointer<OutputStreamMessage> &_rmsgptr){
 }
 
-void Connection::dynamicExecute(DynamicPointer<InputOutputStreamMessage> &_rmsgptr){
+void Connection::dynamicHandle(DynamicPointer<InputOutputStreamMessage> &_rmsgptr){
 }
 
-void Connection::dynamicExecute(DynamicPointer<StreamErrorMessage> &_rmsgptr){
+void Connection::dynamicHandle(DynamicPointer<StreamErrorMessage> &_rmsgptr){
 }
 
-void Connection::dynamicExecute(DynamicPointer<SocketMoveMessage> &_rmsgptr){
+void Connection::dynamicHandle(DynamicPointer<SocketMoveMessage> &_rmsgptr){
 	vdbg("");
 	//insert the new socket
 	uint sid = this->socketInsert(_rmsgptr->sp);

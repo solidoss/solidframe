@@ -76,7 +76,7 @@ private:
 
 
 class ClientObject: public solid::Dynamic<ClientObject, solid::frame::Object>{
-	typedef solid::DynamicExecuter<void, ClientObject>	DynamicExecuterT;
+	typedef solid::DynamicHandler<void, ClientObject>	DynamicHandlerT;
 	enum{
 		Execute,
 		Wait
@@ -85,11 +85,11 @@ public:
 	static void dynamicRegister();
 	ClientObject(const ClientParams &_rcp, solid::frame::ipc::Service &_ripcsvc);
 	~ClientObject();
-	void dynamicExecute(solid::DynamicPointer<> &_dp);
-	void dynamicExecute(solid::DynamicPointer<ClientMessage> &_rmsgptr);
-	void dynamicExecute(solid::DynamicPointer<StoreRequest> &_rmsgptr);
-	void dynamicExecute(solid::DynamicPointer<FetchRequest> &_rmsgptr);
-	void dynamicExecute(solid::DynamicPointer<EraseRequest> &_rmsgptr);
+	void dynamicHandle(solid::DynamicPointer<> &_dp);
+	void dynamicHandle(solid::DynamicPointer<ClientMessage> &_rmsgptr);
+	void dynamicHandle(solid::DynamicPointer<StoreRequest> &_rmsgptr);
+	void dynamicHandle(solid::DynamicPointer<FetchRequest> &_rmsgptr);
+	void dynamicHandle(solid::DynamicPointer<EraseRequest> &_rmsgptr);
 	
 	int execute(ulong _sig, solid::TimeSpec &_tout);
 	
@@ -125,7 +125,7 @@ private:
 	int							st;
 	
 	solid::TimeSpec				nexttimepos;
-	DynamicExecuterT			exe;
+	DynamicHandlerT				dh;
 	RequestIdVectorT			reqidvec;
 };
 

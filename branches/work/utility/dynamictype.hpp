@@ -425,7 +425,7 @@ private:
 };
 
 
-//! DynamicHandler with an extra parameter to dynamicExecute
+//! DynamicHandler with an extra parameter to dynamicHandle
 template <class R, class O, class S, class P>
 struct DynamicHandler: public S{
 private:
@@ -468,13 +468,13 @@ public:
 	}
 	
 	inline void next(O &_robj){
-		cassert(hasCurrent(&_robj));
+		cassert(hasCurrent(_robj));
 		this->pointer(&_robj, objid, crtpos).clear();
 		++crtpos;
 	}
 	
 	R handleCurrent(O &_robj, P _p){
-		cassert(hasCurrent(&_robj));
+		cassert(hasCurrent(_robj));
 		DynamicRegistererBase			dr;
 		DynamicPointer<DynamicBase>		&rdp(this->pointer(&_robj, objid, crtpos));
 		dr.lock();
@@ -485,7 +485,7 @@ public:
 	}
 	
 	void handleAll(O &_robj, P _p){
-		while(hasCurrent(&_robj)){
+		while(hasCurrent(_robj)){
 			handleCurrent(_robj, _p);
 			next(_robj);
 		}

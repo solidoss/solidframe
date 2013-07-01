@@ -70,8 +70,8 @@ protected:
 	protocol communication. 
 */
 class Connection: public solid::Dynamic<Connection, solid::frame::aio::SingleObject>{
-	typedef solid::DynamicExecuter<void, Connection>	DynamicExecuterT;
-	//typedef DynamicExecuter<void, Connection, DynamicDefaultPointerStore, void>	DynamicExecuterT;
+	typedef solid::DynamicHandler<void, Connection>	DynamicHandlerT;
+	//typedef DynamicHandler<void, Connection, DynamicDefaultPointerStore, void>	DynamicHandlerT;
 public:
 #ifdef UDEBUG
 	typedef std::vector<Connection*> ConnectionsVectorT;
@@ -123,15 +123,15 @@ public:
 		if(++reqid) return reqid;
 		return (reqid = 1);
 	}
-	void dynamicExecute(solid::DynamicPointer<> &_dp);
-	void dynamicExecute(solid::DynamicPointer<RemoteListMessage> &_rmsgptr);
-	void dynamicExecute(solid::DynamicPointer<FetchSlaveMessage> &_rmsgptr);
-	void dynamicExecute(solid::DynamicPointer<SendStringMessage> &_rmsgptr);
-	void dynamicExecute(solid::DynamicPointer<SendStreamMessage> &_rmsgptr);
-	void dynamicExecute(solid::DynamicPointer<InputStreamMessage> &_rmsgptr);
-	void dynamicExecute(solid::DynamicPointer<OutputStreamMessage> &_rmsgptr);
-	void dynamicExecute(solid::DynamicPointer<InputOutputStreamMessage> &_rmsgptr);
-	void dynamicExecute(solid::DynamicPointer<StreamErrorMessage> &_rmsgptr);
+	void dynamicHandle(solid::DynamicPointer<> &_dp);
+	void dynamicHandle(solid::DynamicPointer<RemoteListMessage> &_rmsgptr);
+	void dynamicHandle(solid::DynamicPointer<FetchSlaveMessage> &_rmsgptr);
+	void dynamicHandle(solid::DynamicPointer<SendStringMessage> &_rmsgptr);
+	void dynamicHandle(solid::DynamicPointer<SendStreamMessage> &_rmsgptr);
+	void dynamicHandle(solid::DynamicPointer<InputStreamMessage> &_rmsgptr);
+	void dynamicHandle(solid::DynamicPointer<OutputStreamMessage> &_rmsgptr);
+	void dynamicHandle(solid::DynamicPointer<InputOutputStreamMessage> &_rmsgptr);
+	void dynamicHandle(solid::DynamicPointer<StreamErrorMessage> &_rmsgptr);
 private:
 	void prepareReader();
 private:
@@ -157,7 +157,7 @@ private:
 	solid::ResolveData			ai;
 	solid::ResolveIterator		aiit;
 	uint32						reqid;
-	DynamicExecuterT			dr;
+	DynamicHandlerT				dh;
 	int							st;
 };
 

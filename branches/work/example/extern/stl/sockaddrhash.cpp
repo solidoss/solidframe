@@ -47,20 +47,20 @@ void generate_addresses(
 	SocketAddressVectorT &_outv
 );
 
-ostream& operator<<(ostream &_ros, const SocketAddressInet4 &_rsa){
-	char				host[SocketInfo::HostStringCapacity];
-	char				port[SocketInfo::ServiceStringCapacity];
-	
-	_rsa.toString(
-		host,
-		SocketInfo::HostStringCapacity,
-		port,
-		SocketInfo::ServiceStringCapacity,
-		SocketInfo::NumericService | SocketInfo::NumericHost
-	);
-	_ros<<host<<':'<<port;
-	return _ros;
-}
+// ostream& operator<<(ostream &_ros, const SocketAddressInet4 &_rsa){
+// 	char				host[SocketInfo::HostStringCapacity];
+// 	char				port[SocketInfo::ServiceStringCapacity];
+// 	
+// 	_rsa.toString(
+// 		host,
+// 		SocketInfo::HostStringCapacity,
+// 		port,
+// 		SocketInfo::ServiceStringCapacity,
+// 		SocketInfo::NumericService | SocketInfo::NumericHost
+// 	);
+// 	_ros<<host<<':'<<port;
+// 	return _ros;
+// }
 
 int main(int argc, char *argv[]){
 	uint32 cnt = 3000;

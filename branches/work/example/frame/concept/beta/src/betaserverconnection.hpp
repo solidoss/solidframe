@@ -100,7 +100,7 @@ private:
 	
 	uint32						reqid;
 	int							st;
-	DynamicExecuterT			de;
+	DynamicHandlerT				dh;
 	CommandVectorT				cmdvec;
 	UInt32QueueT				cmdque;
 	uint16						crtcmdrecvtype;

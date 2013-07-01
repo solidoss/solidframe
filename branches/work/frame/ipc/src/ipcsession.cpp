@@ -2596,7 +2596,7 @@ void Session::doFillSendPacket(TalkerStub &_rstub, const uint32 _pktidx){
 					vdbgx(Debug::ipc, "continuedmessage data size "<<rspd.packet.dataSize()<<" headsize = "<<rspd.packet.headerSize());
 					rspd.packet.dataType(Packet::ContinuedMessage);
 				}
-			}else{//a new command
+			}else{//a new message
 				vdbgx(Debug::ipc, "newmessage data size "<<rspd.packet.dataSize());
 				rspd.packet.dataType(Packet::NewMessage);
 				if(pser){

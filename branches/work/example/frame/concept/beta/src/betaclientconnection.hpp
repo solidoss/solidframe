@@ -73,8 +73,8 @@ public:
 	void pushCommand(Command *_pcmd);
 	uint32 commandUid(const uint32 _cmdidx)const;
 	
-	void dynamicExecute(solid::DynamicPointer<LoginMessage> &_rmsgptr);
-	void dynamicExecute(solid::DynamicPointer<CancelMessage> &_rmsgptr);
+	void dynamicHandle(solid::DynamicPointer<LoginMessage> &_rmsgptr);
+	void dynamicHandle(solid::DynamicPointer<CancelMessage> &_rmsgptr);
 private:
 	bool useEncryption()const;
 	bool useCompression()const;
@@ -114,7 +114,7 @@ private:
 	solid::ResolveIterator		addrit;
 	int							st;
 	uint32						reqid;
-	DynamicExecuterT			de;
+	DynamicHandlerT				dh;
 	CommandVectorT				cmdvec;
 	UInt32QueueT				cmdque;
 	UInt32StackT				cmdvecfreestk;

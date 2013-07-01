@@ -70,14 +70,14 @@ namespace{
 static const DynamicRegisterer<Connection>	dre;
 }
 /*static*/ void Connection::dynamicRegister(){
-	DynamicExecuterT::registerDynamic<InputStreamMessage, Connection>();
-	DynamicExecuterT::registerDynamic<OutputStreamMessage, Connection>();
-	DynamicExecuterT::registerDynamic<InputOutputStreamMessage, Connection>();
-	DynamicExecuterT::registerDynamic<StreamErrorMessage, Connection>();
-	DynamicExecuterT::registerDynamic<RemoteListMessage, Connection>();
-	DynamicExecuterT::registerDynamic<FetchSlaveMessage, Connection>();
-	DynamicExecuterT::registerDynamic<SendStringMessage, Connection>();
-	DynamicExecuterT::registerDynamic<SendStreamMessage, Connection>();
+	DynamicHandlerT::registerDynamic<InputStreamMessage, Connection>();
+	DynamicHandlerT::registerDynamic<OutputStreamMessage, Connection>();
+	DynamicHandlerT::registerDynamic<InputOutputStreamMessage, Connection>();
+	DynamicHandlerT::registerDynamic<StreamErrorMessage, Connection>();
+	DynamicHandlerT::registerDynamic<RemoteListMessage, Connection>();
+	DynamicHandlerT::registerDynamic<FetchSlaveMessage, Connection>();
+	DynamicHandlerT::registerDynamic<SendStringMessage, Connection>();
+	DynamicHandlerT::registerDynamic<SendStreamMessage, Connection>();
 }
 
 #ifdef UDEBUG
@@ -148,7 +148,7 @@ Connection::~Connection(){
 		_rmsgptr.clear();
 		return false;//no reason to raise the pool thread!!
 	}
-	dr.push(this, DynamicPointer<>(_rmsgptr));
+	dh.push(*this, DynamicPointer<>(_rmsgptr));
 	return Object::notify(frame::S_SIG | frame::S_RAISE);
 }
 
@@ -183,13 +183,13 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			sm = grabSignalMask(0);//grab all bits of the signal mask
 			if(sm & frame::S_KILL) return BAD;
 			if(sm & frame::S_SIG){//we have signals
-				dr.prepareExecute(this);
+				dh.prepareHandle(*this);
 			}
 		}
 		if(sm & frame::S_SIG){//we've grabed signals, execute them
-			while(dr.hasCurrent(this)){
-				dr.executeCurrent(this);
-				dr.next(this);
+			while(dh.hasCurrent(*this)){
+				dh.handleCurrent(*this);
+				dh.next(*this);
 			}
 		}
 		//now we determine if we return with NOK or we continue
@@ -383,11 +383,11 @@ void Connection::prepareReader(){
 	reader().push(&Reader::fetchFilteredString<TagFilter>, protocol::text::Parameter(&writer().tag(),64));
 }
 
-void Connection::dynamicExecute(DynamicPointer<> &_dp){
+void Connection::dynamicHandle(DynamicPointer<> &_dp){
 	wdbg("Received unknown signal on ipcservice");
 }
 
-void Connection::dynamicExecute(DynamicPointer<RemoteListMessage> &_rmsgptr){
+void Connection::dynamicHandle(DynamicPointer<RemoteListMessage> &_rmsgptr){
 	idbg("");
 	if(_rmsgptr->requid && _rmsgptr->requid != reqid){
 		idbg("RemoteListMessage signal rejected");
@@ -423,7 +423,7 @@ void Connection::dynamicExecute(DynamicPointer<RemoteListMessage> &_rmsgptr){
 		}
 	}
 }
-void Connection::dynamicExecute(DynamicPointer<FetchSlaveMessage> &_rmsgptr){
+void Connection::dynamicHandle(DynamicPointer<FetchSlaveMessage> &_rmsgptr){
 	idbg("");
 	if(_rmsgptr->requid && _rmsgptr->requid != reqid) return;
 	idbg("");
@@ -457,11 +457,11 @@ void Connection::dynamicExecute(DynamicPointer<FetchSlaveMessage> &_rmsgptr){
 		}
 	}
 }
-void Connection::dynamicExecute(DynamicPointer<SendStringMessage> &_rmsgptr){
+void Connection::dynamicHandle(DynamicPointer<SendStringMessage> &_rmsgptr){
 }
-void Connection::dynamicExecute(DynamicPointer<SendStreamMessage> &_rmsgptr){
+void Connection::dynamicHandle(DynamicPointer<SendStreamMessage> &_rmsgptr){
 }
-void Connection::dynamicExecute(DynamicPointer<InputStreamMessage> &_rmsgptr){
+void Connection::dynamicHandle(DynamicPointer<InputStreamMessage> &_rmsgptr){
 	idbg("");
 	if(_rmsgptr->requid.first && _rmsgptr->requid.first != reqid){
 		return;
@@ -490,7 +490,7 @@ void Connection::dynamicExecute(DynamicPointer<InputStreamMessage> &_rmsgptr){
 		}
 	}
 }
-void Connection::dynamicExecute(DynamicPointer<OutputStreamMessage> &_rmsgptr){
+void Connection::dynamicHandle(DynamicPointer<OutputStreamMessage> &_rmsgptr){
 	idbg("");
 	if(_rmsgptr->requid.first && _rmsgptr->requid.first != reqid) return;
 	idbg("");
@@ -516,7 +516,7 @@ void Connection::dynamicExecute(DynamicPointer<OutputStreamMessage> &_rmsgptr){
 		}
 	}
 }
-void Connection::dynamicExecute(DynamicPointer<InputOutputStreamMessage> &_rmsgptr){
+void Connection::dynamicHandle(DynamicPointer<InputOutputStreamMessage> &_rmsgptr){
 	idbg("");
 	if(_rmsgptr->requid.first && _rmsgptr->requid.first != reqid) return;
 	idbg("");
@@ -542,7 +542,7 @@ void Connection::dynamicExecute(DynamicPointer<InputOutputStreamMessage> &_rmsgp
 		}
 	}
 }
-void Connection::dynamicExecute(DynamicPointer<StreamErrorMessage> &_rmsgptr){
+void Connection::dynamicHandle(DynamicPointer<StreamErrorMessage> &_rmsgptr){
 	idbg("");
 	if(_rmsgptr->requid.first && _rmsgptr->requid.first != reqid) return;
 	idbg("");
