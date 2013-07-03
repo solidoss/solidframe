@@ -220,7 +220,7 @@ protected:
 	//! Replace the top callback from the stack
 	void replace(const FncData &_rfd);
 	static int popEStack(Base &_rs, FncData &_rfd);
-	const TypeMapperBase& typeMapper(){
+	const TypeMapperBase& typeMapper()const{
 		return *ptm;
 	}
 protected:

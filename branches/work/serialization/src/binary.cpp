@@ -660,6 +660,7 @@ int Deserializer::run(const char *_pb, unsigned _bl){
 	Done:
 	return cpb - pb;
 }
+
 template <>
 int Deserializer::loadBinary<0>(Base &_rb, FncData &_rfd){
 	Deserializer &rd(static_cast<Deserializer&>(_rb));
