@@ -60,8 +60,8 @@ class IdTypeMapper: public TypeMapperBase{
 		Ser &rs = *reinterpret_cast<Ser*>(_ps);
 		T	&rt = *reinterpret_cast<T*>(_p);
 		Int &rid = *reinterpret_cast<Int*>(_pid);
-		C	&rctx = *reinterpret_cast<C*>(_pctx);
-		H	handle(rctx);
+		C	*pctx = reinterpret_cast<C*>(_pctx);
+		H	handle(pctx);
 		if(handle.checkStore()){
 			rt & rs;
 			rs.push(rid, _name);
@@ -75,8 +75,8 @@ class IdTypeMapper: public TypeMapperBase{
 	static bool doMapDesHandle(void *_p, void *_pd, const char *_name, void *_pctx){
 		Des &rd	= *reinterpret_cast<Des*>(_pd);
 		T*	&rpt = *reinterpret_cast<T**>(_p);
-		C	&rctx = *reinterpret_cast<C*>(_pctx);
-		H	handle(rctx);
+		C	*pctx = reinterpret_cast<C*>(_pctx);
+		H	handle(pctx);
 		if(handle.checkLoad()){
 			rpt = new T;
 			//rd.pushHandlePointer<H>(rpt, &rctx);
@@ -117,6 +117,11 @@ public:
 	uint32 insert(uint32 _idx = 0){
 		typename UnsignedType<Int>::Type idx(_idx);
 		return this->insertFunction(&ThisT::template doMapSer<T>, &ThisT::template doMapDes<T>, idx, typeid(T).name());
+	}
+	template <class T, class H, class C>
+	uint32 insert(uint32 _idx = 0){
+		typename UnsignedType<Int>::Type idx(_idx);
+		return this->insertFunction(&ThisT::template doMapSerHandle<T, H, C>, &ThisT::template doMapDesHandle<T, H, C>, idx, typeid(T).name());
 	}
 	template <class T, typename CT>
 	uint32 insert(uint32 _idx = 0){
