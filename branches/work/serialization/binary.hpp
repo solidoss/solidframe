@@ -220,7 +220,7 @@ protected:
 	//! Replace the top callback from the stack
 	void replace(const FncData &_rfd);
 	static int popEStack(Base &_rs, FncData &_rfd);
-	const TypeMapperBase& typeMapper()const{
+	const TypeMapperBase& typeMapper(){
 		return *ptm;
 	}
 protected:
@@ -437,14 +437,6 @@ public:
 	template <typename T>
 	Serializer& push(T* _t, const char *_name = NULL){
 		typeMapper().prepareStorePointer(this, _t, TypeMapperBase::typeName<T>(_t), _name);
-		return *this;
-	}
-	template <typename T, typename C>
-	Serializer& push(
-		T* _t, C & _rctx,
-		const char *_name = NULL
-	){
-		typeMapper().prepareStorePointer(this, _t, TypeMapperBase::typeName<T>(_t), _name, &_rctx);
 		return *this;
 	}
 	template <typename T, typename TM, typename ID>
@@ -768,14 +760,6 @@ public:
 	template <typename T>
 	Deserializer& push(T &_t, const char *_name = NULL){
 		fstk.push(FncData(&Deserializer::load<T>, (void*)&_t, _name));
-		return *this;
-	}
-	
-	template <typename T, typename C>
-	Deserializer& push(
-		T* _t, C & _rctx,
-		const char *_name = NULL
-	){
 		return *this;
 	}
 	

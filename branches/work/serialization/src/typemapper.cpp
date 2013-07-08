@@ -263,23 +263,21 @@ uint32 TypeMapperBase::insertFunction(FncSerT _fs, FncDesT _fd, uint8  _pos, con
 	return _pos;
 }
 
-/*virtual*/ bool TypeMapperBase::prepareStorePointer(
+/*virtual*/ void TypeMapperBase::prepareStorePointer(
 	void *_pser, void *_p,
-	uint32 _rid, const char *_name, void*
+	uint32 _rid, const char *_name
 )const{
-	return false;
 }
 
-/*virtual*/ bool TypeMapperBase::prepareStorePointer(
+/*virtual*/ void TypeMapperBase::prepareStorePointer(
 	void *_pser, void *_p,
-	const char *_pid, const char *_name, void*
+	const char *_pid, const char *_name
 )const{
-	return false;
 }
 
 /*virtual*/ bool TypeMapperBase::prepareParsePointer(
 	void *_pdes, std::string &_rs,
-	void *_p, const char *_name, void*
+	void *_p, const char *_name
 )const{
 	return false;
 }

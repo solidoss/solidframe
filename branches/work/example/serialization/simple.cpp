@@ -347,26 +347,6 @@ enum{
 	ARRAY_TYPE_INDEX
 };
 
-struct StringHandler{
-	int *pctx;
-	
-	StringHandler(int *_pctx):pctx(_pctx){}
-	
-	bool checkLoad()const{
-		cout<<"checkLoad"<<endl;
-		return true;
-	}
-	bool checkStore()const{
-		cout<<"checkStore"<<endl;
-		return true;
-	}
-	
-	void handle(String &_rs){
-		cout<<"Handle string: "<<endl;
-		_rs.print();
-	}
-};
-
 int main(int argc, char *argv[]){
 	Thread::init();
 #ifdef UDEBUG
@@ -394,12 +374,11 @@ int main(int argc, char *argv[]){
 	UInt16TypeMapper		tm;
 	
 	
-	tm.insert<String, StringHandler, int>(STRING_TYPE_INDEX);
+	tm.insert<String>(STRING_TYPE_INDEX);
 	tm.insert<String, IndexType<1> >(STRING_DEFAULT_TYPE_INDEX);
 	tm.insert<UnsignedInteger>(UNSIGNED_TYPE_INDEX);
 	tm.insert<IntegerVector>(INTEGER_VECTOR_TYPE_INDEX);
 	tm.insert<Array>(ARRAY_TYPE_INDEX);
-	
 	//const char* str = NULL;
 	for(int i = 0; i < 1; ++i){
 		{	
@@ -444,8 +423,7 @@ int main(int argc, char *argv[]){
 			idbg("");
 			ser.push(s, "string").pushContainer(sdq, "names");
 			idbg("");
-			int ctx = 0;
-			ser.push(b1, ctx,/*tm, STRING_DEFAULT_TYPE_INDEX,*/ "basestring").push(b2, "baseui").push(b3, "baseiv").push(b4, "basea");
+			ser.push(b1, /*tm, STRING_DEFAULT_TYPE_INDEX,*/ "basestring").push(b2, "baseui").push(b3, "baseiv").push(b4, "basea");
 			
 			PairIntDeqT pidq;
 			pidq.push_back(pair<int32, int32>(1,2));
@@ -490,8 +468,7 @@ int main(int argc, char *argv[]){
 			des.push(s, "string").pushContainer(sdq, "names");
 			idbg("");
 			des.pushStringLimit();
-			int ctx = 0;
-			des.push(b1, ctx, "basestring");
+			des.push(b1, "basestring");
 			des.pushStringLimit(100);
 			des.push(b2, "baseui").push(b3, "baseiv").push(b4, "basea");
 			idbg("");

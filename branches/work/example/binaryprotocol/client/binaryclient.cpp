@@ -13,11 +13,6 @@ public:
 private:
 };
 
-
-struct ConnectionContext{
-	ClientConnection &rcon;
-};
-
 struct FirstRequest{
 	
 };
@@ -35,43 +30,33 @@ struct SecondResponse{
 };
 
 struct FirstHandler{
-	ConnectionContext &rctx;
+	ClientConnection &rcc;
 	
-	FirstHandler(ConnectionContext &_rctx):rctx(_rctx){}
+	FirstHandler(ClientConnection &_rcc):rcc(_rcc){}
 	
-	bool checkStore(){
-		//returning false will generate a serialization error
-		return true;
-	}
 	
-	bool checkLoad(){
-		//here we should check if the response is received in the right state
-		//returning false will generate a deserialization error
-		return true;
-	}
-	void handle(auto_ptr<FirstResponse>	&_rmsg){
-		
-	}
+	void handle(auto_ptr<FirstResponse>	&_rres);
+	
+	void handle(int _err);
 };
 
 struct SecondHandler{
-	ConnectionContext &rctx;
+	ClientConnection &rcc;
 	
-	SecondHandler(ConnectionContext &_rctx):rctx(_rctx){}
+	SecondHandler(ClientConnection &_rcc):rcc(_rcc){}
 	
-	void handle(auto_ptr<SecondResponse>	&_rmsg);
+	
+	void handle(auto_ptr<FirstResponse>		&_rres);
+	void handle(auto_ptr<SecondResponse>	&_rres);
+	
+	void handle(int _err);
 };
 
 
 int main(int argc, char *argv[]){
 	{
 		typedef DynamicSharedPointer<ClientConnection>	ClientConnectionPointerT;
-		typedef serialization::IdTypeMapper<
-			BinSerializer,
-			BinDeserializer,
-			uint16,
-			ConnectionContext
-		>												UInt16TypeMapper;
+		typedef serialization::IdTypeMapper<BinSerializer, BinDeserializer, uint16>		UInt16TypeMapper;
 		
 		frame::Manager				m;
 		AioSchedulerT				aiosched(m);
@@ -80,9 +65,9 @@ int main(int argc, char *argv[]){
 		
 		
 		tm.insert<FirstRequest>();
-		tm.insert<SecondRequest, FirstHandler>();
+		tm.insert<SecondRequest>();
 		tm.insert<FirstResponse>();
-		tm.insert<SecondResponse, SecondHandler>();
+		tm.insert<SecondResponse>();
 		
 		m.registerObject(*ccptr);
 		aiosched.schedule(ccptr);

@@ -36,80 +36,43 @@ class IdTypeMapper: public TypeMapperBase{
 	typedef IdTypeMapper<Ser, Des, Int>	ThisT;
 	
 	template <class T>
-	static bool doMapSer(void *_p, void *_ps, void *_pid, const char *_name, void *_pctx){
+	static void doMapSer(void *_p, void *_ps, void *_pid, const char *_name){
 		Ser &rs = *reinterpret_cast<Ser*>(_ps);
 		T	&rt = *reinterpret_cast<T*>(_p);
 		Int &rid = *reinterpret_cast<Int*>(_pid);
 		
 		rt & rs;
 		rs.push(rid, _name);
-		return true;
 	}
 	
 	template <class T>
-	static bool doMapDes(void *_p, void *_pd, const char *_name, void *_pctx){
+	static void doMapDes(void *_p, void *_pd, const char *_name){
 		Des &rd	= *reinterpret_cast<Des*>(_pd);
 		T*	&rpt = *reinterpret_cast<T**>(_p);
 		rpt = new T;
 		*rpt & rd;
-		return true;
-	}
-	
-	template <class T, class H, class C>
-	static bool doMapSerHandle(void *_p, void *_ps, void *_pid, const char *_name, void *_pctx){
-		Ser &rs = *reinterpret_cast<Ser*>(_ps);
-		T	&rt = *reinterpret_cast<T*>(_p);
-		Int &rid = *reinterpret_cast<Int*>(_pid);
-		C	*pctx = reinterpret_cast<C*>(_pctx);
-		H	handle(pctx);
-		if(handle.checkStore()){
-			rt & rs;
-			rs.push(rid, _name);
-			return true;
-		}else{
-			return false;
-		}
-	}
-	
-	template <class T, class H, class C>
-	static bool doMapDesHandle(void *_p, void *_pd, const char *_name, void *_pctx){
-		Des &rd	= *reinterpret_cast<Des*>(_pd);
-		T*	&rpt = *reinterpret_cast<T**>(_p);
-		C	*pctx = reinterpret_cast<C*>(_pctx);
-		H	handle(pctx);
-		if(handle.checkLoad()){
-			rpt = new T;
-			//rd.pushHandlePointer<H>(rpt, &rctx);
-			*rpt & rd;
-			return true;
-		}else{
-			return false;
-		}
 	}
 	
 	template <class T, class CT>
-	static bool doMapDes(void *_p, void *_pd, const char *_name, void *_pctx){
+	static void doMapDes(void *_p, void *_pd, const char *_name){
 		Des &rd = *reinterpret_cast<Des*>(_pd);
 		T*  &rpt = *reinterpret_cast<T**>(_p);
 		rpt = new T(CT());
 		*rpt & rd;
-		return true;
 	}
 	template <class T>
-	static bool doMapDesSpecific(void *_p, void *_pd, const char *_name, void *_pctx){
+	static void doMapDesSpecific(void *_p, void *_pd, const char *_name){
 		Des &rd	= *reinterpret_cast<Des*>(_pd);
 		T*	&rpt = *reinterpret_cast<T**>(_p);
 		rpt = Specific::template uncache<T>();
 		*rpt & rd;
-		return true;
 	}
 	template <class T, class CT>
-	static bool doMapDesSpecific(void *_p, void *_pd, const char *_name, void *_pctx){
+	static void doMapDesSpecific(void *_p, void *_pd, const char *_name){
 		Des &rd = *reinterpret_cast<Des*>(_pd);
 		T*  &rpt = *reinterpret_cast<T**>(_p);
 		rpt = Specific::template uncache<T>(CT());
 		*rpt & rd;
-		return true;
 	}
 public:
 	IdTypeMapper(){}
@@ -117,11 +80,6 @@ public:
 	uint32 insert(uint32 _idx = 0){
 		typename UnsignedType<Int>::Type idx(_idx);
 		return this->insertFunction(&ThisT::template doMapSer<T>, &ThisT::template doMapDes<T>, idx, typeid(T).name());
-	}
-	template <class T, class H, class C>
-	uint32 insert(uint32 _idx = 0){
-		typename UnsignedType<Int>::Type idx(_idx);
-		return this->insertFunction(&ThisT::template doMapSerHandle<T, H, C>, &ThisT::template doMapDesHandle<T, H, C>, idx, typeid(T).name());
 	}
 	template <class T, typename CT>
 	uint32 insert(uint32 _idx = 0){
@@ -142,34 +100,32 @@ public:
 		return _idx;
 	}
 private:
-	/*virtual*/ bool prepareStorePointer(
+	/*virtual*/ void prepareStorePointer(
 		void *_pser, void *_pt,
-		uint32 _id, const char *_name,
-		void *_pctx
+		uint32 _id, const char *_name
 	)const{
 		uint32	*pid(NULL);
-		return (*this->function(_id, pid))(_pt, _pser, pid, _name, _pctx);
+		(*this->function(_id, pid))(_pt, _pser, pid, _name);
 	}
-	/*virtual*/ bool prepareStorePointer(
+	/*virtual*/ void prepareStorePointer(
 		void *_pser, void *_pt,
-		const char *_pid, const char *_name,
-		void *_pctx
+		const char *_pid, const char *_name
 	)const{
 		uint32	*pid(NULL);
-		return (*this->function(_pid, pid))(_pt, _pser, pid, _name, _pctx);
+		(*this->function(_pid, pid))(_pt, _pser, pid, _name);
 	}
 	
 	/*virtual*/ bool prepareParsePointer(
 		void *_pdes, std::string &_rs,
-		void *_p, const char *_name,
-		void *_pctx
+		void *_p, const char *_name
 	)const{
 		const Int							&rid(*reinterpret_cast<const Int*>(_rs.data()));
 		typename UnsignedType<Int>::Type	idx(rid);
 		FncDesT								pf(this->function(idx));
 		
 		if(pf){
-			return (*pf)(_p, _pdes, _name, _pctx);
+			(*pf)(_p, _pdes, _name);
+			return true;
 		}else{
 			return false;
 		}
