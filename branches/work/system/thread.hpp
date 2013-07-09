@@ -70,7 +70,7 @@ public:
 	//! Returns the id of the current thread
 	static long currentId();
 	//! Returns a new id for use with specific objects
-	static unsigned specificId();
+	static size_t specificId();
 	//! Returns the data for a specific id
 	static void* specific(unsigned _pos);
 	//! Sets the data for a specific id, allong with a pointer to a destructor function

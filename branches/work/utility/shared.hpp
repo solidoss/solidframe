@@ -5,7 +5,7 @@ namespace solid{
 
 struct Mutex;
 
-struct Shared{
+struct DShared{
 	static Mutex& mutex(void *_pv);
 	Shared();
 	Mutex& mutex();

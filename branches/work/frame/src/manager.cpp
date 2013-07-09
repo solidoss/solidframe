@@ -21,7 +21,6 @@
 
 #include <vector>
 #include <deque>
-#include <atomic>
 
 #include "system/cassert.hpp"
 #include "system/debug.hpp"
@@ -31,6 +30,7 @@
 #include "system/specific.hpp"
 #include "system/exception.hpp"
 #include "system/mutualstore.hpp"
+#include "system/atomic.hpp"
 
 #include "frame/manager.hpp"
 #include "frame/message.hpp"

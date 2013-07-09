@@ -32,9 +32,65 @@
 
 namespace solid{
 
-//----------------------------------------------------------------
-//		DynamicBase
-//----------------------------------------------------------------
+//! Store a map from a typeid to a callback
+/*!
+	The type id is determined using Dynamic::dynamicTypeId() or Dynamic::staticTypeId().
+	Use callback(uint32, FncT) to register a pair of typeid and callback.
+	Use FncT callback(uint32) to retrieve a registered callback.
+*/
+struct DynamicMap{
+	typedef void (*FncT)(const DynamicPointer<DynamicBase> &,void*);
+	typedef void (*RegisterFncT)(DynamicMap &_rdm);
+	static uint32 generateId();
+	//!Constructor
+	/*!
+		\param _pdm if not NULL, the constructor act like a copy constructor.<br>
+		This is used for mapping callbacks from inheritant DynamicReceiver classes.<br>
+		If DynamicReceiverB is a DynamicReceiverA, it means that all callbacks
+		from the DynamicMap associated to DynamicReceiverA are also valid for
+		the DynamicMap associated to DynamicReceiverB.<br>
+		
+	*/
+	DynamicMap(DynamicMap *_pdm);
+	~DynamicMap();
+	//! Register a callback
+	/*!
+		\param _tid the type id as returned by Dynamic::staticTypeId
+		\param _pf a pointer to a static function
+	*/
+	void callback(uint32 _tid, FncT _pf);
+	//! Retrieve an already registered callback.
+	/*!
+		\param _id The typeid as returned by Dynamic::dynamicTypeId
+		\retval FncT the callback for typeid or NULL.
+	*/
+	FncT callback(uint32 _id)const;
+	struct Data;
+	Data	&d;
+};
+
+//! A base class for all DynamicRegisterers
+struct DynamicRegistererBase{
+	void lock();
+	void unlock();
+};
+
+//! A dynamic registerer
+/*!
+	Use it like this:<br>
+	In your receiver class define a static YourReceiver::dynamicRegister function.<br>
+	Define a static object: static DynamicRegisterer\<YourReceiver>	dr.<br>
+	Note, that if your Receiver inherits from OtherReceiver, first thing you 
+	must do in YourReceiver::dynamicRegister, is to call OtherReceiver::dynamicRegister.
+*/
+template <class T>
+struct DynamicRegisterer: DynamicRegistererBase{
+	DynamicRegisterer(){
+		lock();
+		T::dynamicRegister();
+		unlock();
+	}
+};
 
 //struct DynamicPointerBase;
 //! A base for all types that needs dynamic typeid.
@@ -44,6 +100,8 @@ struct DynamicBase{
 	}
 	//! Get the type id for a Dynamic object.
 	virtual uint32 dynamicTypeId()const = 0;
+	//! Return the callback from the given DynamicMap associated to this object
+	virtual DynamicMap::FncT callback(const DynamicMap &_rdm);
 	//! Used by DynamicPointer - smartpointers
 	virtual void use();
 	//! Used by DynamicPointer to know if the object must be deleted
@@ -56,16 +114,9 @@ struct DynamicBase{
 	virtual bool isTypeDynamic(uint32 _id)const;
 
 protected:
-	static size_t generateId();
-	
 	friend class DynamicPointerBase;
 	virtual ~DynamicBase();
 };
-
-//----------------------------------------------------------------
-//		DynamicSharedImpl
-//----------------------------------------------------------------
-
 
 struct DynamicSharedImpl: Shared{
 protected:
@@ -75,10 +126,6 @@ protected:
 protected:
 	int		usecount;
 };
-
-//----------------------------------------------------------------
-//		DynamicShared
-//----------------------------------------------------------------
 
 //! A class for 
 template <class T = DynamicBase>
@@ -140,10 +187,6 @@ struct DynamicShared: T, DynamicSharedImpl{
 	}
 	
 };
-
-//----------------------------------------------------------------
-//		Dynamic
-//----------------------------------------------------------------
 
 
 //! Template class to provide dynamic type functionality
@@ -210,14 +253,14 @@ struct Dynamic: T{
 	
 	//!The static type id
 #ifdef HAS_SAFE_STATIC
-	static size_t staticTypeId(){
-		static const size_t id(DynamicMap::generateId());
+	static uint32 staticTypeId(){
+		static uint32 id(DynamicMap::generateId());
 		return id;
 	}
 #else
 private:
-	static size_t staticTypeIdStub(){
-		static const size_t id(DynamicMap::generateId());
+	static uint32 staticTypeIdStub(){
+		static uint32 id(DynamicMap::generateId());
 		return id;
 	}
 	static void once_cbk(){
@@ -232,17 +275,23 @@ public:
 #endif
 	//TODO: add:
 	//static bool isTypeExplicit(const DynamicBase*);
-	static bool isType(const size_t _id){
+	static bool isType(uint32 _id){
 		if(_id == staticTypeId()) return true;
 		return BaseT::isType(_id);
 	}
 	//! The dynamic typeid
-	virtual size_t dynamicTypeId()const{
+	virtual uint32 dynamicTypeId()const{
 		return staticTypeId();
 	}
-	virtual bool isTypeDynamic(const size_t _id)const{
+	virtual bool isTypeDynamic(uint32 _id)const{
 		if(_id == staticTypeId()) return true;
 		return BaseT::isTypeDynamic(_id);
+	}
+	//! Returns the associated callback from the given DynamicMap
+	virtual DynamicMap::FncT callback(const DynamicMap &_rdm){
+		DynamicMap::FncT pf = _rdm.callback(staticTypeId());
+		if(pf) return pf;
+		return T::callback(_rdm);
 	}
 	X* cast(DynamicBase *_pdb){
 		if(isTypeDynamic(_pdb->dynamicTypeId())){
@@ -251,43 +300,6 @@ public:
 		return NULL;
 	}
 };
-
-//----------------------------------------------------------------
-//		DynamicMapper
-//----------------------------------------------------------------
-
-//! Store a map from a typeid to a callback
-/*!
-	The type id is determined using Dynamic::dynamicTypeId() or Dynamic::staticTypeId().
-	Use callback(uint32, FncT) to register a pair of typeid and callback.
-	Use FncT callback(uint32) to retrieve a registered callback.
-*/
-template <class Ret, class Obj, class Ctx = void>
-struct DynamicMapper{
-	typedef Ret (*FncT)(const DynamicPointer<> &, Ctx*);
-	DynamicMap();
-	~DynamicMap();
-
-	//! Register a callback
-	/*!
-		\param _tid the type id as returned by Dynamic::staticTypeId
-		\param _pf a pointer to a static function
-	*/
-	void callback(const size_t _tid, FncT _pf);
-	//! Retrieve an already registered callback.
-	/*!
-		\param _id The typeid as returned by Dynamic::dynamicTypeId
-		\retval FncT the callback for typeid or NULL.
-	*/
-	FncT callback(const size_t _id)const;
-	struct Data;
-	Data	&d;
-};
-
-
-//----------------------------------------------------------------
-//		DynamicDefaultPointerStore
-//----------------------------------------------------------------
 
 
 struct DynamicDefaultPointerStore{
@@ -315,20 +327,11 @@ private:
 	DynamicPointerVectorT	v[2];
 };
 
-//----------------------------------------------------------------
-//		DynamicHandler
-//----------------------------------------------------------------
-
 //! A templated dynamic handler
 /*!
 */
-template <class Map, class Store = DynamicDefaultPointerStore>
-class DynamicHandler: public Store{
-
-private:
-	uint16	pushid;
-	uint16	fetchid;
-};
+template <class R, class O, class S = DynamicDefaultPointerStore, class P = void>
+struct DynamicHandler;
 
 //! Specialization for DynamicHandler with no extra parameter to dynamicHandle
 template <class R, class O, class S>

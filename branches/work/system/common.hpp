@@ -38,12 +38,6 @@
 //#endif
 #endif
 
-#ifdef HAS_STDATOMIC
-#define ATOMIC_NS std
-#else
-#define ATOMIC_NS boost
-#endif
-
 namespace solid{
 
 typedef unsigned char		uchar;

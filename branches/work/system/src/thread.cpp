@@ -31,6 +31,7 @@
 #include "system/exception.hpp"
 #include "system/cassert.hpp"
 #include "system/synchronization.hpp"
+#include "system/atomic.hpp"
 
 #include "mutexpool.hpp"
 
@@ -477,25 +478,25 @@ int Thread::detach(){
 #endif
 }
 //-------------------------------------------------------------------------
+typedef ATOMIC_NS::atomic<size_t>			AtomicSizeT;
+
 #ifdef HAS_SAFE_STATIC
-unsigned Thread::specificId(){
-	static unsigned sid = ThreadData::FirstSpecificId - 1;
-	Locker<Mutex> lock(gmutex());
-	return ++sid;
+size_t Thread::specificId(){
+	static AtomicSizeT sid = ATOMIC_VAR_INIT(ThreadData::FirstSpecificId);
+	return sid.fetch_add(1, ATOMIC_NS::memory_order_relaxed);
 }
 #else
 
-unsigned specificIdStub(){
-	static unsigned sid = ThreadData::FirstSpecificId - 2;
-	Locker<Mutex> lock(Thread::gmutex());
-	return ++sid;
+size_t specificIdStub(){
+	static AtomicSizeT sid = ATOMIC_VAR_INIT(ThreadData::FirstSpecificId);
+	return sid.fetch_add(1, ATOMIC_NS::memory_order_relaxed);
 }
 
 void once_cbk_specific_id(){
 	specificIdStub();
 }
 
-unsigned Thread::specificId(){
+size_t Thread::specificId(){
 	static boost::once_flag once = BOOST_ONCE_INIT;
 	boost::call_once(&once_cbk_specific_id, once);
 	return specificIdStub();

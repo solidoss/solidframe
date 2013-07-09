@@ -14,14 +14,22 @@
 #include <ext/atomicity.h>
 #endif
 
-#include "system/atomic.hpp"
-
 namespace solid{
 
+//---------------------------------------------------------------------
+//----	Shared	----
+//---------------------------------------------------------------------
+
 namespace{
+typedef MutualStore<Mutex>	MutexStoreT;
 #ifdef HAS_SAFE_STATIC
-size_t specificId(){
-	static const size_t id(Thread::specificId());
+MutexStoreT &mutexStore(){
+	static MutexStoreT		mtxstore(3, 2, 2);
+	return mtxstore;
+}
+
+uint32 specificId(){
+	static const uint32 id(Thread::specificId());
 	return id;
 }
 
@@ -61,6 +69,18 @@ uint32 specificId(){
 
 #endif
 
+}//namespace
+
+/*static*/ Mutex& Shared::mutex(void *_pv){
+	return mutexStore().at((uint32)reinterpret_cast<ulong>(_pv));
+}
+Shared::Shared(){
+	mutexStore().safeAt((uint32)reinterpret_cast<ulong>(this));
+}
+Mutex& Shared::mutex(){
+	return mutex(this);
+}
+
 //---------------------------------------------------------------------
 //----	DynamicPointer	----
 //---------------------------------------------------------------------
@@ -82,19 +102,81 @@ void DynamicPointerBase::storeSpecific(void *_pv)const{
 	return Thread::specific(specificId());
 }
 
-//--------------------------------------------------------------------
-//		DynamicBase
-//--------------------------------------------------------------------
 
-typedef ATOMIC_NS::atomic<size_t>			AtomicSizeT;
+struct DynamicMap::Data{
+	Data(){}
+	Data(Data& _rd):fncvec(_rd.fncvec){}
+	typedef std::vector<FncT>	FncVectorT;
+	FncVectorT fncvec;
+};
 
-/*static*/ size_t DynamicBase::generateId(){
-	static AtomicSizeT u(ATOMIC_VAR_INIT(0));
-	return u.fetch_add(1, ATOMIC_NS::memory_order_relaxed);
+/*static*/ uint32 DynamicMap::generateId(){
+	static uint32 u(0);
+	Thread::gmutex().lock();
+	uint32 v = ++u;
+	Thread::gmutex().unlock();
+	return v;
+}
+#ifdef HAS_SAFE_STATIC
+
+static Mutex & dynamicMutex(){
+	static Mutex mtx;
+	return mtx;
+}
+#else
+static Mutex & dynamicMutexStub(){
+	static Mutex mtx;
+	return mtx;
+}
+
+void once_cbk_dynamic(){
+	dynamicMutexStub();
+}
+
+static Mutex & dynamicMutex(){
+	static boost::once_flag once = BOOST_ONCE_INIT;
+	boost::call_once(&once_cbk_dynamic, once);
+	return dynamicMutexStub();
+}
+#endif
+
+void DynamicRegistererBase::lock(){
+	dynamicMutex().lock();
+}
+void DynamicRegistererBase::unlock(){
+	dynamicMutex().unlock();
+}
+
+DynamicMap::DynamicMap(DynamicMap *_pdm):d(*(_pdm ? new Data(_pdm->d) : new Data)){
+}
+
+DynamicMap::~DynamicMap(){
+	delete &d;
+}
+
+void DynamicMap::callback(uint32 _tid, FncT _pf){
+	if(_tid >= d.fncvec.size()){
+		d.fncvec.resize(_tid + 1);
+	}
+	//cassert(!d.fncvec[_tid]);
+	d.fncvec[_tid] = _pf;
+}
+
+DynamicMap::FncT DynamicMap::callback(uint32 _id)const{
+	FncT pf = NULL;
+	if(_id < d.fncvec.size()){
+		pf = d.fncvec[_id];
+	}
+	return pf;
 }
 
 
+
 DynamicBase::~DynamicBase(){}
+
+DynamicMap::FncT DynamicBase::callback(const DynamicMap &_rdm){
+	return NULL;
+}
 
 /*virtual*/ void DynamicBase::use(){
 	idbgx(Debug::utility, "DynamicBase");
@@ -109,11 +191,6 @@ DynamicBase::~DynamicBase(){}
 /*virtual*/ bool DynamicBase::isTypeDynamic(uint32 _id)const{
 	return false;
 }
-
-//--------------------------------------------------------------------
-//		DynamicSharedImpl
-//--------------------------------------------------------------------
-
 
 void DynamicSharedImpl::doUse(){
 	idbgx(Debug::utility, "DynamicSharedImpl");
@@ -136,9 +213,5 @@ int DynamicSharedImpl::doRelease(){
 #endif
 	return rv;
 }
-
-//--------------------------------------------------------------------
-//--------------------------------------------------------------------
-
 
 }//namespace solid
