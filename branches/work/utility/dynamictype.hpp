@@ -28,9 +28,27 @@
 #include "system/cassert.hpp"
 
 #include "utility/dynamicpointer.hpp"
-#include "utility/shared.hpp"
+#include "system/atomic.hpp"
 
 namespace solid{
+
+//----------------------------------------------------------------
+//		DynamicMapperBase
+//----------------------------------------------------------------
+
+
+struct DynamicMapperBase{
+	bool check(const size_t _tid)const;
+protected:
+	DynamicMapperBase();
+	~DynamicMapperBase();
+	typedef void (*GenericFncT)(const DynamicPointer<> &, void *, void*);
+	GenericFncT callback(const size_t _tid)const;
+	void callback(const size_t _tid, GenericFncT _pf);
+private:
+	struct Data;
+	Data	&d;
+};
 
 //----------------------------------------------------------------
 //		DynamicBase
@@ -39,21 +57,23 @@ namespace solid{
 //struct DynamicPointerBase;
 //! A base for all types that needs dynamic typeid.
 struct DynamicBase{
-	static bool isType(uint32 _id){
+	static bool isType(const size_t _id){
 		return false;
 	}
 	//! Get the type id for a Dynamic object.
 	virtual uint32 dynamicTypeId()const = 0;
 	//! Used by DynamicPointer - smartpointers
-	virtual void use();
+	virtual size_t use();
 	//! Used by DynamicPointer to know if the object must be deleted
 	/*!
 	 * For the return value, think of use count. Returning zero means the object should
 	 * be deleted. Returning non zero means the object should not be deleted.
 	 */
-	virtual int release();
+	virtual size_t release();
 	
-	virtual bool isTypeDynamic(uint32 _id)const;
+	virtual bool isTypeDynamic(const size_t _id)const;
+	
+	virtual size_t callback(const DynamicMapperBase &_rdm)const;
 
 protected:
 	static size_t generateId();
@@ -67,13 +87,19 @@ protected:
 //----------------------------------------------------------------
 
 
-struct DynamicSharedImpl: Shared{
+struct DynamicSharedImpl{
 protected:
-	DynamicSharedImpl():usecount(0){}
-	void doUse();
-	int doRelease();
+	DynamicSharedImpl():usecount(ATOMIC_VAR_INIT(0)){}
+	size_t doUse(){
+		return usecount.fetch_add(1/*, ATOMIC_NS::memory_order_seq_cst*/) + 1;
+	}
+	size_t doRelease(){
+		return usecount.fetch_sub(1/*, ATOMIC_NS::memory_order_seq_cst*/) - 1;
+	}
 protected:
-	int		usecount;
+	typedef ATOMIC_NS::atomic<size_t>			AtomicSizeT;
+
+	AtomicSizeT		usecount;
 };
 
 //----------------------------------------------------------------
@@ -131,11 +157,11 @@ struct DynamicShared: T, DynamicSharedImpl{
 	
 	
 	//! Used by DynamicPointer - smartpointers
-	/*virtual*/ void use(){
-		doUse();
+	/*virtual*/ size_t use(){
+		return doUse();
 	}
 	//! Used by DynamicPointer to know if the object must be deleted
-	/*virtual*/ int release(){
+	/*virtual*/ size_t release(){
 		return doRelease();
 	}
 	
@@ -211,20 +237,20 @@ struct Dynamic: T{
 	//!The static type id
 #ifdef HAS_SAFE_STATIC
 	static size_t staticTypeId(){
-		static const size_t id(DynamicMap::generateId());
+		static const size_t id(DynamicBase::generateId());
 		return id;
 	}
 #else
 private:
 	static size_t staticTypeIdStub(){
-		static const size_t id(DynamicMap::generateId());
+		static const size_t id(DynamicBase::generateId());
 		return id;
 	}
 	static void once_cbk(){
 		staticTypeIdStub();
 	}
 public:
-	static uint32 staticTypeId(){
+	static size_t staticTypeId(){
 		static boost::once_flag once = BOOST_ONCE_INIT;
 		boost::call_once(&once_cbk, once);
 		return staticTypeIdStub();
@@ -244,6 +270,13 @@ public:
 		if(_id == staticTypeId()) return true;
 		return BaseT::isTypeDynamic(_id);
 	}
+	//! Returns the associated callback from the given DynamicMap
+	/*virtual*/ size_t callback(const DynamicMapperBase &_rdm)const{
+		if(_rdm.check(staticTypeId())){
+			return staticTypeId();
+		}
+		return T::callback(_rdm);
+	}
 	X* cast(DynamicBase *_pdb){
 		if(isTypeDynamic(_pdb->dynamicTypeId())){
 			return static_cast<X*>(_pdb);
@@ -252,68 +285,71 @@ public:
 	}
 };
 
-//----------------------------------------------------------------
-//		DynamicMapper
-//----------------------------------------------------------------
-
-//! Store a map from a typeid to a callback
-/*!
-	The type id is determined using Dynamic::dynamicTypeId() or Dynamic::staticTypeId().
-	Use callback(uint32, FncT) to register a pair of typeid and callback.
-	Use FncT callback(uint32) to retrieve a registered callback.
-*/
 template <class Ret, class Obj, class Ctx = void>
-struct DynamicMapper{
-	typedef Ret (*FncT)(const DynamicPointer<> &, Ctx*);
-	DynamicMap();
-	~DynamicMap();
+struct DynamicMapper;
 
-	//! Register a callback
-	/*!
-		\param _tid the type id as returned by Dynamic::staticTypeId
-		\param _pf a pointer to a static function
-	*/
-	void callback(const size_t _tid, FncT _pf);
-	//! Retrieve an already registered callback.
-	/*!
-		\param _id The typeid as returned by Dynamic::dynamicTypeId
-		\retval FncT the callback for typeid or NULL.
-	*/
-	FncT callback(const size_t _id)const;
-	struct Data;
-	Data	&d;
+
+template <class Ret, class Obj>
+struct DynamicMapper<Ret, Obj, void>: DynamicMapperBase{
+	typedef Ret ReturnT;
+	typedef Obj ObjectT;
+	typedef Ret (*FncT)(const DynamicPointer<> &, Obj *, void*);
+	
+	template < class Dyn, class ObjX>
+	static Ret static_handle(const DynamicPointer<> &_rdp, Obj *_po, void*){
+		ObjX				&ro = static_cast<ObjX&>(*_po);
+		DynamicPointer<Dyn>	dp(_rdp);
+		return ro.dynamicHandle(dp);
+	}
+	
+	DynamicMapper(){}
+	~DynamicMapper(){
+		
+	}
+	
+	template <class Dyn, class ObjX>
+	void insert(){
+		FncT pf = &static_handle<Dyn, ObjX>;
+		DynamicMapperBase::callback(Dyn::staticTypeId(), reinterpret_cast<GenericFncT>(pf));
+	}
+	
+	FncT callback(const size_t _id)const{
+		return reinterpret_cast<FncT>(DynamicMapperBase::callback(_id));
+	}
 };
 
 
-//----------------------------------------------------------------
-//		DynamicDefaultPointerStore
-//----------------------------------------------------------------
-
-
-struct DynamicDefaultPointerStore{
-protected:
-	void pushBack(void *, const uint _idx, const DynamicPointer<DynamicBase> &_dp){
-		v[_idx].push_back(_dp);
+template <class Ret, class Obj, class Ctx>
+struct DynamicMapper: DynamicMapperBase{
+	typedef Ret ReturnT;
+	typedef Obj ObjectT;
+	typedef Ret (*FncT)(const DynamicPointer<> &, Obj *, Ctx*);
+	
+	template < class Dyn, class ObjX>
+	static Ret static_handle(const DynamicPointer<> &_rdp, Obj *_po, Ctx*_pctx){
+		ObjX				&ro = static_cast<ObjX&>(*_po);
+		DynamicPointer<Dyn>	dp(_rdp);
+		return ro.dynamicHandle(dp, *_pctx);
 	}
-	size_t size(void *, const uint _idx)const{
-		return v[_idx].size();
+	
+	DynamicMapper(){}
+	~DynamicMapper(){
+		
 	}
-	bool isNotLast(void *, const uint _idx, const uint _pos)const{
-		return _pos < v[_idx].size();
+	
+	template <class Dyn, class ObjX>
+	void insert(){
+		FncT pf = &static_handle<Dyn, ObjX>;
+		DynamicMapperBase::callback(Dyn::staticTypeId(), reinterpret_cast<GenericFncT>(pf));
 	}
-	const DynamicPointer<DynamicBase>& pointer(void *, const uint _idx, const uint _pos)const{
-		return v[_idx][_pos];
+	
+	FncT callback(const size_t _id)const{
+		return reinterpret_cast<FncT>(DynamicMapperBase::callback(_id));
 	}
-	DynamicPointer<DynamicBase>& pointer(void *, const uint _idx, const uint _pos){
-		return v[_idx][_pos];
-	}
-	void clear(void *, const uint _idx){
-		v[_idx].clear();
-	}
-private:
-	typedef std::vector<DynamicPointer<DynamicBase> > DynamicPointerVectorT;
-	DynamicPointerVectorT	v[2];
 };
+
+
+
 
 //----------------------------------------------------------------
 //		DynamicHandler
@@ -322,198 +358,84 @@ private:
 //! A templated dynamic handler
 /*!
 */
-template <class Map, class Store = DynamicDefaultPointerStore>
-class DynamicHandler: public Store{
-
-private:
-	uint16	pushid;
-	uint16	fetchid;
-};
-
-//! Specialization for DynamicHandler with no extra parameter to dynamicHandle
-template <class R, class O, class S>
-struct DynamicHandler<R, O , S, void>: public S{
-private:
-	typedef R (*FncT)(const DynamicPointer<DynamicBase> &, void*);
-	
-	template <class D, class Obj>
-	static R doHandle(const DynamicPointer<DynamicBase> &_rdynptr, void *_pobj){
-		Obj &robj = *reinterpret_cast<Obj*>(_pobj);
-		DynamicPointer<D>	dynptr(_rdynptr);
-		return robj.dynamicHandle(dynptr);
-	}
-	
-	template <class Obj>
-	static DynamicMap& dynamicMapEx(){
-		static DynamicMap	dm(dynamicMap());
-		dynamicMap(&dm);
-		return dm;
-	}
+template <class Map, size_t Cp = 128>
+class DynamicHandler{
 public:
-	//! Basic constructor
-	DynamicHandler():pushid(0), objid(1), crtpos(0){}
+	DynamicHandler(Map &_rm):rm(_rm), sz(0){}
 	
-	void push(O &_robj, const DynamicPointer<DynamicBase> &_rdynptr){
-		this->pushBack(&_robj, pushid, _rdynptr);
+	template <class It>
+	DynamicHandler(Map &_rm, It _first, It _last):rm(_rm), sz(0){
+		init(_first, _last);
 	}
-
-	uint prepareHandle(O &_robj){
-		this->clear(&_robj, objid);
-		uint tmp = objid;
-		objid = pushid;
-		pushid = tmp;
-		crtpos = 0;
-		return this->size(&_robj, objid);
+	~DynamicHandler(){
+		clear();
 	}
-	
-	inline bool hasCurrent(O &_robj)const{
-		return this->isNotLast(&_robj, objid, crtpos);
+	template <typename It>
+	void init(It _first, It _last){
+		clear();
+		sz = _last - _first;
+		if(sz <= Cp){
+			size_t off = 0;
+			while(_first != _last){
+				t[off] = *_first;
+				++_first;
+				++off;
+			}
+		}else{
+			v.assign(_first, _last);
+		}
 	}
-	
-	inline void next(O &_robj){
-		cassert(hasCurrent(_robj));
-		this->pointer(&_robj, objid, crtpos).clear();
-		++crtpos;
+	void clear(){
+		v.clear();
+		for(size_t i = 0; i < sz; ++i){
+			t[i].clear();
+		}
+		sz = 0;
 	}
-	
-	R handleCurrent(O &_robj){
-		cassert(hasCurrent(_robj));
-		DynamicRegistererBase			dr;
-		DynamicPointer<DynamicBase>		&rdp(this->pointer(&_robj, objid, crtpos));
-		dr.lock();
-		FncT	pf = reinterpret_cast<FncT>(rdp->callback(*dynamicMap()));
-		dr.unlock();
-		if(pf) return (*pf)(rdp, &_robj);
-		return _robj.dynamicHandle(rdp);
+	size_t size()const{
+		return sz;
 	}
 	
-	void handleAll(O &_robj){
-		while(hasCurrent(_robj)){
-			handleCurrent(_robj);
-			next(_robj);
+	template <typename Obj, typename Ctx>
+	typename Map::ReturnT handle(Obj &_robj, const size_t _idx, Ctx &_rctx){
+		DynamicPointer<>	*pdp = NULL;
+		if(sz <= Cp){
+			pdp = &t[_idx];
+		}else{
+			pdp = &v[_idx];
+		}
+		const size_t		idx = (*pdp)->callback(rm);
+		if(idx != static_cast<size_t>(-1)){
+			typename Map::FncT pf = static_cast<typename Map::FncT>(rm.callback(idx));
+			return (*pf)(*pdp, &_robj, &_rctx);
+		}else{
+			return static_cast<typename Map::ObjectT&>(_robj).dynamicHandle(*pdp, _rctx);
 		}
 	}
 	
-	R handle(O &_robj, DynamicPointer<DynamicBase> &_rdp){
-		DynamicRegistererBase	dr;
-		dr.lock();
-		FncT	pf = reinterpret_cast<FncT>(_rdp->callback(*dynamicMap()));
-		dr.unlock();
-		if(pf) return (*pf)(_rdp, &_robj);
-		return _robj.dynamicHandle(_rdp);
-	}
-	
-	static DynamicMap* dynamicMap(DynamicMap *_pdm = NULL){
-		static DynamicMap *pdm(_pdm);
-		if(_pdm) pdm = _pdm;
-		return pdm;
-	}
-	
-	template <class D, class Obj>
-	static void registerDynamic(){
-		FncT	pf = &doHandle<D, Obj>;
-		dynamicMapEx<Obj>().callback(D::staticTypeId(), reinterpret_cast<DynamicMap::FncT>(pf));
+	template <typename Obj>
+	typename Map::ReturnT handle(Obj &_robj, const size_t _idx){
+		DynamicPointer<>	*pdp = NULL;
+		if(sz <= Cp){
+			pdp = &t[_idx];
+		}else{
+			pdp = &v[_idx];
+		}
+		const size_t		idx = (*pdp)->callback(rm);
+		if(idx != static_cast<size_t>(-1)){
+			typename Map::FncT pf = static_cast<typename Map::FncT>(rm.callback(idx));
+			return (*pf)(*pdp, &_robj, NULL);
+		}else{
+			return static_cast<typename Map::ObjectT&>(_robj).dynamicHandle(*pdp);
+		}
 	}
 	
 private:
-	uint				pushid;
-	uint				objid;
-	uint				crtpos;
-};
-
-
-//! DynamicHandler with an extra parameter to dynamicHandle
-template <class R, class O, class S, class P>
-struct DynamicHandler: public S{
-private:
-	typedef R (*FncT)(const DynamicPointer<DynamicBase> &, void*, P);
-	
-	template <class D, class Obj>
-	static R doHandle(const DynamicPointer<DynamicBase> &_rdynptr, void *_pobj, P _p){
-		Obj &robj = *reinterpret_cast<Obj*>(_pobj);
-		DynamicPointer<D>	dynptr(_rdynptr);
-		return robj.dynamicHandle(dynptr, _p);
-	}
-	
 	typedef std::vector<DynamicPointer<DynamicBase> > DynamicPointerVectorT;
-	
-	template <class E>
-	static DynamicMap& dynamicMapEx(){
-		static DynamicMap	dm(dynamicMap());
-		dynamicMap(&dm);
-		return dm;
-	}
-public:
-	//! Basic constructor
-	DynamicHandler():pushid(0), objid(1), crtpos(0){}
-	
-	void push(O &_robj, const DynamicPointer<DynamicBase> &_dynptr){
-		this->pushBack(&_robj, pushid, _dynptr);
-	}
-	
-	uint prepareHandle(O &_robj){
-		this->clear(&_robj, objid);
-		uint tmp = objid;
-		objid = pushid;
-		pushid = tmp;
-		crtpos = 0;
-		return this->size(&_robj, objid);
-	}
-	
-	inline bool hasCurrent(O &_robj)const{
-		return this->isNotLast(&_robj, objid, crtpos);
-	}
-	
-	inline void next(O &_robj){
-		cassert(hasCurrent(_robj));
-		this->pointer(&_robj, objid, crtpos).clear();
-		++crtpos;
-	}
-	
-	R handleCurrent(O &_robj, P _p){
-		cassert(hasCurrent(_robj));
-		DynamicRegistererBase			dr;
-		DynamicPointer<DynamicBase>		&rdp(this->pointer(&_robj, objid, crtpos));
-		dr.lock();
-		FncT	pf = reinterpret_cast<FncT>(rdp->callback(*dynamicMap()));
-		dr.unlock();
-		if(pf) return (*pf)(rdp, &_robj, _p);
-		return _robj.dynamicHandle(rdp, _p);
-	}
-	
-	void handleAll(O &_robj, P _p){
-		while(hasCurrent(_robj)){
-			handleCurrent(_robj, _p);
-			next(_robj);
-		}
-	}
-	
-	R handle(O &_robj, DynamicPointer<> &_rdp, P _p){
-		DynamicRegistererBase	dr;
-		dr.lock();
-		FncT	pf = reinterpret_cast<FncT>(_rdp->callback(*dynamicMap()));
-		dr.unlock();
-		if(pf) return (*pf)(_rdp, &_robj, _p);
-		
-		return _robj.dynamicHandle(_rdp, _p);
-	}
-	
-	static DynamicMap* dynamicMap(DynamicMap *_pdm = NULL){
-		static DynamicMap *pdm(_pdm);
-		if(_pdm) pdm = _pdm;
-		return pdm;
-	}
-	
-	template <class D, class Obj>
-	static void registerDynamic(){
-		FncT	pf = &doHandle<D, Obj>;
-		dynamicMapEx<Obj>().callback(D::staticTypeId(), reinterpret_cast<DynamicMap::FncT>(pf));
-	}
-	
-private:
-	uint				pushid;
-	uint				objid;
-	uint				crtpos;
+	Map								&rm;
+	size_t							sz;
+	DynamicPointer<DynamicBase>		t[Cp];
+	DynamicPointerVectorT			v;
 };
 
 }//namespace solid

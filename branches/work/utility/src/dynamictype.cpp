@@ -6,7 +6,6 @@
 #include "system/mutualstore.hpp"
 #include "utility/dynamictype.hpp"
 #include "utility/dynamicpointer.hpp"
-#include "utility/shared.hpp"
 
 #include <vector>
 
@@ -18,8 +17,21 @@
 
 namespace solid{
 
+
+//---------------------------------------------------------------------
+//		Shared
+//---------------------------------------------------------------------
+
 namespace{
+
+typedef MutualStore<Mutex>	MutexStoreT;
+
 #ifdef HAS_SAFE_STATIC
+MutexStoreT &mutexStore(){
+	static MutexStoreT		mtxstore(3, 2, 2);
+	return mtxstore;
+}
+
 size_t specificId(){
 	static const size_t id(Thread::specificId());
 	return id;
@@ -32,8 +44,8 @@ MutexStoreT &mutexStoreStub(){
 	return mtxstore;
 }
 
-uint32 specificIdStub(){
-	static const uint32 id(Thread::specificId());
+size_t specificIdStub(){
+	static const size_t id(Thread::specificId());
 	return id;
 }
 
@@ -52,7 +64,7 @@ MutexStoreT &mutexStore(){
 	return mutexStoreStub();
 }
 
-uint32 specificId(){
+size_t specificId(){
 	static boost::once_flag once = BOOST_ONCE_INIT;
 	boost::call_once(&once_cbk_specific, once);
 	return specificIdStub();
@@ -60,6 +72,17 @@ uint32 specificId(){
 	
 
 #endif
+
+}//namespace
+
+
+Mutex &shared_mutex_safe(void *_p){
+	Locker<Mutex> lock(Thread::gmutex());
+	return mutexStore().safeAt(reinterpret_cast<size_t>(_p));
+}
+Mutex &shared_mutex(void *_p){
+	return mutexStore().at(reinterpret_cast<size_t>(_p));
+}
 
 //---------------------------------------------------------------------
 //----	DynamicPointer	----
@@ -82,6 +105,7 @@ void DynamicPointerBase::storeSpecific(void *_pv)const{
 	return Thread::specific(specificId());
 }
 
+
 //--------------------------------------------------------------------
 //		DynamicBase
 //--------------------------------------------------------------------
@@ -90,55 +114,66 @@ typedef ATOMIC_NS::atomic<size_t>			AtomicSizeT;
 
 /*static*/ size_t DynamicBase::generateId(){
 	static AtomicSizeT u(ATOMIC_VAR_INIT(0));
-	return u.fetch_add(1, ATOMIC_NS::memory_order_relaxed);
+	return u.fetch_add(1/*, ATOMIC_NS::memory_order_seq_cst*/);
 }
 
 
 DynamicBase::~DynamicBase(){}
 
-/*virtual*/ void DynamicBase::use(){
-	idbgx(Debug::utility, "DynamicBase");
-}
-
-//! Used by DynamicPointer to know if the object must be deleted
-/*virtual*/ int DynamicBase::release(){
+/*virtual*/ size_t DynamicBase::use(){
 	idbgx(Debug::utility, "DynamicBase");
 	return 0;
 }
 
-/*virtual*/ bool DynamicBase::isTypeDynamic(uint32 _id)const{
+//! Used by DynamicPointer to know if the object must be deleted
+/*virtual*/ size_t DynamicBase::release(){
+	idbgx(Debug::utility, "DynamicBase");
+	return 0;
+}
+
+/*virtual*/ bool DynamicBase::isTypeDynamic(const size_t _id)const{
 	return false;
 }
-
-//--------------------------------------------------------------------
-//		DynamicSharedImpl
-//--------------------------------------------------------------------
-
-
-void DynamicSharedImpl::doUse(){
-	idbgx(Debug::utility, "DynamicSharedImpl");
-#ifdef HAS_GNU_ATOMIC
-	__gnu_cxx:: __atomic_add_dispatch(&usecount, 1);
-#else
-	Locker<Mutex>	lock(this->mutex());
-	++usecount;
-#endif
-}
-
-int DynamicSharedImpl::doRelease(){
-	idbgx(Debug::utility, "DynamicSharedImpl");
-#ifdef HAS_GNU_ATOMIC
-	const int rv = __gnu_cxx::__exchange_and_add_dispatch(&usecount, -1) - 1;
-#else
-	Locker<Mutex>	lock(this->mutex());
-	--usecount;
-	const int rv = usecount;
-#endif
-	return rv;
+/*virtual*/ size_t DynamicBase::callback(const DynamicMapperBase &_rdm)const{
+	return -1;
 }
 
 //--------------------------------------------------------------------
+//		DynamicMapperBase
 //--------------------------------------------------------------------
+struct DynamicMapperBase::Data{
+	typedef std::vector<GenericFncT>	FncVectorT;
+	
+	FncVectorT	fncvec;
+	Mutex		mtx;
+};
 
+bool DynamicMapperBase::check(const size_t _tid)const{
+	Locker<Mutex>	lock(d.mtx);
+	if(_tid < d.fncvec.size()){
+		return d.fncvec[_tid] != NULL;
+	}else{
+		return false;
+	}
+}
+DynamicMapperBase::DynamicMapperBase():d(*(new Data)){}
+DynamicMapperBase::~DynamicMapperBase(){
+	delete &d;
+}
+DynamicMapperBase::GenericFncT DynamicMapperBase::callback(const size_t _tid)const{
+	Locker<Mutex>	lock(d.mtx);
+	if(_tid < d.fncvec.size()){
+		return d.fncvec[_tid];
+	}else{
+		return NULL;
+	}
+}
+void DynamicMapperBase::callback(const size_t _tid, GenericFncT _pf){
+	Locker<Mutex>	lock(d.mtx);
+	if(d.fncvec.size() <= _tid){
+		d.fncvec.resize(_tid + 1);
+	}
+	d.fncvec[_tid] = _pf;
+}
 
 }//namespace solid

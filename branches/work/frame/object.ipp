@@ -26,10 +26,10 @@
 
 
 inline IndexT Object::threadId()const{
-	return thrid.load(ATOMIC_NS::memory_order_relaxed);
+	return thrid.load(/*ATOMIC_NS::memory_order_seq_cst*/);
 }
 inline void Object::threadId(const IndexT &_thrid){
-	thrid.store(_thrid, ATOMIC_NS::memory_order_relaxed);
+	thrid.store(_thrid/*, ATOMIC_NS::memory_order_seq_cst*/);
 
 }
 
@@ -37,20 +37,20 @@ inline ulong Object::grabSignalMask(ulong _leave){
 // 	ulong sm = smask;
 // 	smask = sm & _leave;
 // 	return sm;
-	return smask.fetch_and(_leave, ATOMIC_NS::memory_order_relaxed);
+	return smask.fetch_and(_leave/*, ATOMIC_NS::memory_order_seq_cst*/);
 }
 inline bool Object::notified() const {
-	return smask.load(ATOMIC_NS::memory_order_relaxed) != 0;
+	return smask.load(/*ATOMIC_NS::memory_order_seq_cst*/) != 0;
 }
 inline bool Object::notified(ulong _s) const{
-	return (smask.load(ATOMIC_NS::memory_order_relaxed) & _s) != 0;
+	return (smask.load(/*ATOMIC_NS::memory_order_seq_cst*/) & _s) != 0;
 }
 
 inline bool Object::notify(ulong _smask){
 // 	ulong oldmask = smask;
 // 	smask |= _smask;
 // 	return (smask != oldmask) && signaled(S_RAISE);
-	ulong osm = smask.fetch_or(_smask, ATOMIC_NS::memory_order_relaxed);
+	ulong osm = smask.fetch_or(_smask/*, ATOMIC_NS::memory_order_seq_cst*/);
 	return (_smask & S_RAISE) && !(osm & S_RAISE); 
 }
 

@@ -483,13 +483,13 @@ typedef ATOMIC_NS::atomic<size_t>			AtomicSizeT;
 #ifdef HAS_SAFE_STATIC
 size_t Thread::specificId(){
 	static AtomicSizeT sid = ATOMIC_VAR_INIT(ThreadData::FirstSpecificId);
-	return sid.fetch_add(1, ATOMIC_NS::memory_order_relaxed);
+	return sid.fetch_add(1/*, ATOMIC_NS::memory_order_seq_cst*/);
 }
 #else
 
 size_t specificIdStub(){
 	static AtomicSizeT sid = ATOMIC_VAR_INIT(ThreadData::FirstSpecificId);
-	return sid.fetch_add(1, ATOMIC_NS::memory_order_relaxed);
+	return sid.fetch_add(1/*, ATOMIC_NS::memory_order_seq_cst*/);
 }
 
 void once_cbk_specific_id(){
