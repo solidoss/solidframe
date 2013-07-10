@@ -86,8 +86,8 @@ struct WriteRequestMessage: Dynamic<WriteRequestMessage, DynamicShared<frame::Me
 	/*virtual*/ uint32 ipcPrepare();
 	/*virtual*/ void ipcComplete(int _err);
 	
-	void use();
-	int release();
+	size_t use();
+	size_t release();
 	
 	bool							waitresponse;
 	uint8							st;
@@ -151,8 +151,8 @@ struct ReadRequestMessage: Dynamic<ReadRequestMessage, DynamicShared<frame::Mess
 	/*virtual*/ uint32 ipcPrepare();
 	/*virtual*/ void ipcComplete(int _err);
 	
-	void use();
-	int release();
+	size_t use();
+	size_t release();
 	
 	bool							waitresponse;
 	uint8							st;

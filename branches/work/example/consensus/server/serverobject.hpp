@@ -4,6 +4,7 @@
 #include <string>
 
 #include "consensus/server/consensusobject.hpp"
+#include "utility/dynamictype.hpp"
 
 struct StoreRequest;
 struct FetchRequest;
@@ -27,12 +28,17 @@ std::ostream& operator<<(std::ostream &_ros, const ServerConfiguration &_rsp);
 
 
 class ServerObject: public solid::Dynamic<ServerObject, solid::consensus::server::Object>{
-	typedef solid::DynamicHandler<void, ServerObject, solid::DynamicDefaultPointerStore, int>	DynamicHandlerExT;
+	typedef solid::DynamicMapper<void, ServerObject, int>	DynamicMapperT;
 public:
 	static void dynamicRegister();
 	static void registerMessages(solid::frame::ipc::Service &_ripcsvc);
-	ServerObject(solid::frame::ipc::Service &_ripcsvc, solid::DynamicPointer<solid::consensus::server::Configuration> &_rcfgptr);
+	
+	ServerObject(
+		solid::frame::ipc::Service &_ripcsvc,
+		solid::DynamicPointer<solid::consensus::server::Configuration> &_rcfgptr
+	);
 	~ServerObject();
+	
 	void dynamicHandle(solid::DynamicPointer<> &_dp, int);
 	
 	void dynamicHandle(solid::DynamicPointer<StoreRequest> &_rsig, int);
@@ -44,7 +50,7 @@ private:
 	/*virtual*/ void accept(solid::DynamicPointer<solid::consensus::WriteRequestMessage> &_rmsgptr);
 	/*virtual*/ int recovery();
 private:
-	DynamicHandlerExT				dh;
+	static DynamicMapperT			dm;
 	solid::frame::ipc::Service		&ripcsvc;
 };
 

@@ -66,7 +66,7 @@ struct Configuration: Dynamic<Configuration, DynamicShared<> >{
  */
 class Object: public Dynamic<Object, frame::Object>{
 	struct RunData;
-	typedef DynamicHandler<void, Object, DynamicDefaultPointerStore, RunData&>	DynamicHandlerT;
+	typedef DynamicMapper<void, Object, RunData>	DynamicMapperT;
 public:
 	static void dynamicRegister();
 	static void registerMessages(frame::ipc::Service &_ripcsvc);
@@ -85,6 +85,8 @@ public:
 	void dynamicHandle(DynamicPointer<OperationMessage<16> > &_rmsgptr, RunData &_rrd);
 	void dynamicHandle(DynamicPointer<OperationMessage<32> > &_rmsgptr, RunData &_rrd);
 protected:
+	static DynamicMapperT	dm;
+	
 	enum State{
 		InitState,
 		PrepareRunState,

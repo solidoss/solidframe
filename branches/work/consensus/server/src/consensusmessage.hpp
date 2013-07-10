@@ -50,8 +50,8 @@ struct Message: Dynamic<Message, DynamicShared<frame::Message> >{
 	/*virtual*/ uint32 ipcPrepare();
 	/*virtual*/ void ipcComplete(int _err);
 	
-	void use();
-	int release();
+	size_t use();
+	size_t release();
 	
 	uint8							replicaidx;
 	uint8							state;

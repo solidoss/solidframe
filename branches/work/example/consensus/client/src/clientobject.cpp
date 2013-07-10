@@ -176,13 +176,13 @@ void ClientParams::print(std::ostream &_ros){
 	_ros<<endl;
 }
 //------------------------------------------------------------
-namespace{
-static const DynamicRegisterer<ClientObject>	dre;
-}
+
+/*static*/ ClientObject::DynamicMapperT ClientObject::dm;
+
 /*static*/ void ClientObject::dynamicRegister(){
-	DynamicHandlerT::registerDynamic<StoreRequest, ClientObject>();
-	DynamicHandlerT::registerDynamic<FetchRequest, ClientObject>();
-	DynamicHandlerT::registerDynamic<EraseRequest, ClientObject>();
+	dm.insert<StoreRequest, ClientObject>();
+	dm.insert<FetchRequest, ClientObject>();
+	dm.insert<EraseRequest, ClientObject>();
 	//DynamicHandlerT::registerDynamic<InsertSignal, ClientObject>();
 }
 //------------------------------------------------------------
@@ -201,7 +201,8 @@ int ClientObject::execute(ulong _sig, TimeSpec &_tout){
 	frame::Manager &rm(frame::Manager::specific());
 	
 	if(notified()){//we've received a signal
-		ulong sm(0);
+		ulong							sm(0);
+		DynamicHandler<DynamicMapperT>	dh(dm);
 		{
 			Locker<Mutex>	lock(rm.mutex(*this));
 			sm = grabSignalMask(0);//grab all bits of the signal mask
@@ -211,13 +212,13 @@ int ClientObject::execute(ulong _sig, TimeSpec &_tout){
 				return BAD;
 			}
 			if(sm & frame::S_SIG){//we have signals
-				dh.prepareHandle(*this);
+				dh.init(dv.begin(), dv.end());
+				dv.clear();
 			}
 		}
 		if(sm & frame::S_SIG){//we've grabed signals, execute them
-			while(dh.hasCurrent(*this)){
-				dh.handleCurrent(*this);
-				dh.next(*this);
+			for(size_t i = 0; i < dh.size(); ++i){
+				dh.handle(*this, i);
 			}
 		}
 		//now we determine if we return with NOK or we continue
@@ -369,7 +370,7 @@ const string& ClientObject::getString(uint32 _pos, uint32 _crtpos){
 		_rmsgptr.clear();
 		return false;//no reason to raise the pool thread!!
 	}
-	dh.push(*this, DynamicPointer<>(_rmsgptr));
+	dv.push_back(DynamicPointer<>(_rmsgptr));
 	return Object::notify(frame::S_SIG | frame::S_RAISE);
 }
 //------------------------------------------------------------

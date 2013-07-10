@@ -200,7 +200,7 @@ public:
 	template <class O>
 	DynamicPointerT& operator=(const DynamicPointer<O> &_rcp){
 		DynamicT *p(_rcp.release());
-		if(this == &_rcp){
+		if(p == pdyn){
 			return *this;
 		}
 		if(pdyn) clear();

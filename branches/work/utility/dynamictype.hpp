@@ -367,6 +367,12 @@ public:
 	DynamicHandler(Map &_rm, It _first, It _last):rm(_rm), sz(0){
 		init(_first, _last);
 	}
+	
+	template <class DynPtr>
+	DynamicHandler(Map &_rm, DynPtr &_dp):rm(_rm), sz(0){
+		init(_dp);
+	}
+	
 	~DynamicHandler(){
 		clear();
 	}
@@ -383,6 +389,17 @@ public:
 			}
 		}else{
 			v.assign(_first, _last);
+		}
+	}
+	template <typename DynPtr>
+	void init(DynPtr &_dp){
+		clear();
+		sz = 1;
+		if(sz <= Cp){
+			t[0] = _dp;
+		}else{
+			DynamicPointer<> dp(_dp);
+			v.push_back(dp);
 		}
 	}
 	void clear(){

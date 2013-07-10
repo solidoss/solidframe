@@ -105,6 +105,7 @@ int main(int argc, char *argv[]){
 		frame::ipc::Service		ipcsvc(m, new frame::ipc::BasicController(aiosched));
 		
 		mapSignals(ipcsvc);
+		ServerObject::dynamicRegister();
 		ServerObject::registerMessages(ipcsvc);
 		
 		m.registerService(ipcsvc);

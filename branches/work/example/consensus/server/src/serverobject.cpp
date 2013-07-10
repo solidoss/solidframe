@@ -103,13 +103,13 @@ std::ostream& operator<<(std::ostream &_ros, const ServerConfiguration &_rsp){
 }
 
 //------------------------------------------------------------
-namespace{
-static const DynamicRegisterer<ServerObject>	dre;
-}
+/*static*/ ServerObject::DynamicMapperT ServerObject::dm;
+
 /*static*/ void ServerObject::dynamicRegister(){
-	DynamicHandlerExT::registerDynamic<StoreRequest, ServerObject>();
-	DynamicHandlerExT::registerDynamic<FetchRequest, ServerObject>();
-	DynamicHandlerExT::registerDynamic<EraseRequest, ServerObject>();
+	consensus::server::Object::dynamicRegister();
+	dm.insert<StoreRequest, ServerObject>();
+	dm.insert<FetchRequest, ServerObject>();
+	dm.insert<EraseRequest, ServerObject>();
 }
 //------------------------------------------------------------
 /*static*/void ServerObject::registerMessages(solid::frame::ipc::Service &_ripcsvc){
@@ -127,8 +127,9 @@ ServerObject::~ServerObject(){
 
 /*virtual*/ void ServerObject::accept(DynamicPointer<solid::consensus::WriteRequestMessage> &_rmsgptr){
 	idbg("accepting consensus::WriteRequestMessage request");
-	DynamicPointer<>	dp(_rmsgptr);
-	dh.handle(*this, dp, 1);
+	solid::DynamicHandler<DynamicMapperT, 1>	dh(dm, _rmsgptr);
+	int ctx = 1;
+	dh.handle(*this, 0, ctx);
 }
 
 /*virtual*/ int ServerObject::recovery(){

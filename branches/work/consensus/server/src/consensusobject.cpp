@@ -282,6 +282,7 @@ struct Object::Data{
 #endif
 	typedef Stack<size_t>																		SizeTStackT;
 	typedef Queue<size_t>																		SizeTQueueT;
+	typedef std::vector<DynamicPointer<> >														DynamicPointerVectorT;
 
 //methods:
 	Data(DynamicPointer<Configuration> &_rcfgptr);
@@ -301,7 +302,7 @@ struct Object::Data{
 	
 //data:	
 	ConfigurationPointerT 	cfgptr;
-	DynamicHandlerT			dh;
+	DynamicPointerVectorT	dv;
 	uint32					proposeid;
 	frame::IndexT			srvidx;
 		
@@ -523,19 +524,17 @@ struct Object::RunData{
 	OperationStub	ops[OperationCapacity];
 };
 //========================================================
-namespace{
-static const DynamicRegisterer<Object>	dre;
-}
+Object::DynamicMapperT Object::dm;
 
 /*static*/ void Object::dynamicRegister(){
-	DynamicHandlerT::registerDynamic<WriteRequestMessage, Object>();
-	DynamicHandlerT::registerDynamic<ReadRequestMessage, Object>();
-	DynamicHandlerT::registerDynamic<OperationMessage<1>, Object>();
-	DynamicHandlerT::registerDynamic<OperationMessage<2>, Object>();
-	DynamicHandlerT::registerDynamic<OperationMessage<4>, Object>();
-	DynamicHandlerT::registerDynamic<OperationMessage<8>, Object>();
-	DynamicHandlerT::registerDynamic<OperationMessage<16>, Object>();
-	DynamicHandlerT::registerDynamic<OperationMessage<32>, Object>();
+	dm.insert<WriteRequestMessage, Object>();
+	dm.insert<ReadRequestMessage, Object>();
+	dm.insert<OperationMessage<1>, Object>();
+	dm.insert<OperationMessage<2>, Object>();
+	dm.insert<OperationMessage<4>, Object>();
+	dm.insert<OperationMessage<8>, Object>();
+	dm.insert<OperationMessage<16>, Object>();
+	dm.insert<OperationMessage<32>, Object>();
 	//TODO: add here the other consensus Messages
 }
 /*static*/ void Object::registerMessages(frame::ipc::Service &_ripcsvc){
@@ -925,7 +924,7 @@ void Object::doExecuteAcceptDeclineOperation(RunData &_rd, const uint8 _replicai
 		return false;//no reason to raise the pool thread!!
 	}
 	DynamicPointer<>	dp(_rmsgptr);
-	d.dh.push(*this, dp);
+	d.dv.push_back(dp);
 	return frame::Object::notify(frame::S_SIG | frame::S_RAISE);
 }
 
@@ -942,22 +941,22 @@ void Object::doExecuteAcceptDeclineOperation(RunData &_rd, const uint8 _replicai
 int Object::execute(ulong _sig, TimeSpec &_tout){
 	frame::Manager &rm(frame::Manager::specific());
 	
-	RunData	rd(_sig, _tout, d.coordinatorid);
-	
+	RunData								rd(_sig, _tout, d.coordinatorid);
 	if(notified()){//we've received a signal
-		ulong sm(0);
+		ulong							sm(0);
+		DynamicHandler<DynamicMapperT>	dh(dm);
 		if(state() != InitState && state() != PrepareRunState && state() != PrepareRecoveryState){
 			Locker<Mutex>	lock(rm.mutex(*this));
 			sm = grabSignalMask(0);//grab all bits of the signal mask
 			if(sm & frame::S_KILL) return BAD;
 			if(sm & frame::S_SIG){//we have signals
-				d.dh.prepareHandle(*this);
+				dh.init(d.dv.begin(), d.dv.end());
+				d.dv.clear();
 			}
 		}
 		if(sm & frame::S_SIG){//we've grabed signals, execute them
-			while(d.dh.hasCurrent(*this)){
-				d.dh.handleCurrent(*this, rd);
-				d.dh.next(*this);
+			for(size_t i = 0; i < dh.size(); ++i){
+				dh.handle(*this, i, rd);
 			}
 		}
 	}

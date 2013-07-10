@@ -73,12 +73,13 @@ void Message::ipcComplete(int _err){
 	idbg((void*)this<<" err = "<<_err);
 }
 
-void Message::use(){
-	DynamicShared<frame::Message>::use();
+size_t Message::use(){
+	size_t rv = DynamicShared<frame::Message>::use();
 	idbg((void*)this<<" usecount = "<<usecount);
+	return rv;
 }
-int Message::release(){
-	int rv = DynamicShared<frame::Message>::release();
+size_t Message::release(){
+	size_t rv = DynamicShared<frame::Message>::release();
 	idbg((void*)this<<" usecount = "<<usecount);
 	return rv;
 }

@@ -20,6 +20,7 @@
 */
 
 #include "consensus/consensusrequest.hpp"
+#include "utility/sharedmutex.hpp"
 
 #include "frame/ipc/ipcservice.hpp"
 
@@ -77,9 +78,11 @@ std::ostream &operator<<(std::ostream& _ros, const RequestId &_rreqid){
 //--------------------------------------------------------------
 WriteRequestMessage::WriteRequestMessage():waitresponse(false), st(OnSender), sentcount(0){
 	idbg("WriteRequestSignal "<<(void*)this);
+	shared_mutex_safe(this);
 }
 WriteRequestMessage::WriteRequestMessage(const RequestId &_rreqid):waitresponse(false), st(OnSender), sentcount(0),id(_rreqid){
 	idbg("WriteRequestMessage "<<(void*)this);
+	shared_mutex_safe(this);
 }
 
 WriteRequestMessage::~WriteRequestMessage(){
@@ -144,16 +147,17 @@ uint32 WriteRequestMessage::ipcPrepare(){
 void WriteRequestMessage::ipcComplete(int _err){
 	idbg((void*)this<<" sentcount = "<<(int)sentcount<<" err = "<<_err);
 	if(!_err){
-		Locker<Mutex> lock(mutex());
+		Locker<Mutex> lock(shared_mutex(this));
 		++sentcount;
 	}
 }
-void WriteRequestMessage::use(){
-	DynamicShared<frame::Message>::use();
+size_t WriteRequestMessage::use(){
+	size_t rv = DynamicShared<frame::Message>::use();
 	idbg((void*)this<<" usecount = "<<usecount);
+	return rv;
 }
-int WriteRequestMessage::release(){
-	int rv = DynamicShared<frame::Message>::release();
+size_t WriteRequestMessage::release(){
+	size_t rv = DynamicShared<frame::Message>::release();
 	idbg((void*)this<<" usecount = "<<usecount);
 	if(!rv){
 		if(waitresponse && !sentcount){
@@ -169,9 +173,11 @@ int WriteRequestMessage::release(){
 //--------------------------------------------------------------
 ReadRequestMessage::ReadRequestMessage():waitresponse(false), st(OnSender), sentcount(0){
 	idbg("ReadRequestMessage "<<(void*)this);
+	shared_mutex_safe(this);
 }
 ReadRequestMessage::ReadRequestMessage(const RequestId &_rreqid):waitresponse(false), st(OnSender), sentcount(0),id(_rreqid){
 	idbg("ReadRequestMessage "<<(void*)this);
+	shared_mutex_safe(this);
 }
 
 ReadRequestMessage::~ReadRequestMessage(){
@@ -232,18 +238,19 @@ uint32 ReadRequestMessage::ipcPrepare(){
 void ReadRequestMessage::ipcComplete(int _err){
 	idbg((void*)this<<" sentcount = "<<(int)sentcount<<" err = "<<_err);
 	if(!_err){
-		Locker<Mutex> lock(mutex());
+		Locker<Mutex> lock(shared_mutex(this));
 		++sentcount;
 	}
 }
 
-void ReadRequestMessage::use(){
-	DynamicShared<frame::Message>::use();
+size_t ReadRequestMessage::use(){
+	size_t rv = DynamicShared<frame::Message>::use();
 	idbg((void*)this<<" usecount = "<<usecount);
+	return rv;
 }
 
-int ReadRequestMessage::release(){
-	int rv = DynamicShared<frame::Message>::release();
+size_t ReadRequestMessage::release(){
+	size_t rv = DynamicShared<frame::Message>::release();
 	idbg((void*)this<<" usecount = "<<usecount);
 	if(!rv){
 		if(waitresponse && !sentcount){

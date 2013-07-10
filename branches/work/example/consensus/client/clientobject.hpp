@@ -76,7 +76,7 @@ private:
 
 
 class ClientObject: public solid::Dynamic<ClientObject, solid::frame::Object>{
-	typedef solid::DynamicHandler<void, ClientObject>	DynamicHandlerT;
+	typedef solid::DynamicMapper<void, ClientObject>	DynamicMapperT;
 	enum{
 		Execute,
 		Wait
@@ -113,7 +113,9 @@ private:
 		return st;
 	}
 private:
-	typedef std::vector<std::pair<solid::uint32, int> >	RequestIdVectorT;
+	static DynamicMapperT		dm;
+	typedef std::vector<std::pair<solid::uint32, int> >		RequestIdVectorT;
+	typedef std::vector<solid::DynamicPointer<> >			DynamicPointerVectorT;
 	
 	
 	ClientParams				params;
@@ -125,7 +127,7 @@ private:
 	int							st;
 	
 	solid::TimeSpec				nexttimepos;
-	DynamicHandlerT				dh;
+	DynamicPointerVectorT		dv;
 	RequestIdVectorT			reqidvec;
 };
 
