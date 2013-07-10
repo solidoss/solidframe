@@ -2,6 +2,7 @@
 #include "utility/ostream.hpp"
 #include "utility/iostream.hpp"
 #include "utility/dynamicpointer.hpp"
+#include "utility/sharedmutex.hpp"
 
 #include "system/timespec.hpp"
 #include "system/filedevice.hpp"
@@ -38,11 +39,13 @@ RemoteListMessage::RemoteListMessage(
 	uint32 _tout, uint16 _sentcnt
 ): ppthlst(NULL),err(-1),tout(_tout), success(0), ipcstatus(IpcOnSender){
 	idbg(""<<(void*)this);
+	shared_mutex_safe(this);
 }
 RemoteListMessage::RemoteListMessage(
 	const NumberType<1>&
 ):ppthlst(NULL), err(-1),tout(0), success(0), ipcstatus(IpcOnSender){
 	idbg(""<<(void*)this);
+	shared_mutex_safe(this);
 }
 RemoteListMessage::~RemoteListMessage(){
 	idbg(""<<(void*)this<<" success = "<<(int)success<<" ipcstatus = "<<(int)ipcstatus);
@@ -52,18 +55,19 @@ RemoteListMessage::~RemoteListMessage(){
 	}
 	delete ppthlst;
 }
-void RemoteListMessage::use(){
-	DynamicShared<frame::Message>::use();
+size_t RemoteListMessage::use(){
+	size_t rv = DynamicShared<frame::Message>::use();
 	idbg(""<<(void*)this<<" usecount = "<<usecount);
+	return rv;
 }
-int RemoteListMessage::release(){
-	int rv = DynamicShared<frame::Message>::release();
+size_t RemoteListMessage::release(){
+	size_t rv = DynamicShared<frame::Message>::release();
 	idbg(""<<(void*)this<<" usecount = "<<usecount);
 	return rv;
 }
 uint32 RemoteListMessage::ipcPrepare(){
 	const frame::ipc::ConnectionContext	&rmsgctx(frame::ipc::ConnectionContext::the());
-	Locker<Mutex>						lock(mutex());
+	Locker<Mutex>						lock(shared_mutex(this));
 	
 	if(success == 0) success = 1;//wait
 	idbg(""<<(void*)this<<" msguid = "<<rmsgctx.msgid.idx<<' '<<rmsgctx.msgid.uid<<" ipcstatus = "<<(int)ipcstatus);
@@ -91,7 +95,7 @@ void RemoteListMessage::ipcReceive(
 	}
 }
 void RemoteListMessage::ipcComplete(int _err){
-	Locker<Mutex> lock(mutex());
+	Locker<Mutex> lock(shared_mutex(this));
 	err = _err;
 	if(!_err){
 		success = 2;

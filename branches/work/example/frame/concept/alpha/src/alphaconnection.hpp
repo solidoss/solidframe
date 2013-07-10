@@ -70,8 +70,7 @@ protected:
 	protocol communication. 
 */
 class Connection: public solid::Dynamic<Connection, solid::frame::aio::SingleObject>{
-	typedef solid::DynamicHandler<void, Connection>	DynamicHandlerT;
-	//typedef DynamicHandler<void, Connection, DynamicDefaultPointerStore, void>	DynamicHandlerT;
+	typedef solid::DynamicMapper<void, Connection>	DynamicMapperT;
 public:
 #ifdef UDEBUG
 	typedef std::vector<Connection*> ConnectionsVectorT;
@@ -150,6 +149,10 @@ private:
 		ExecuteIOTout,
 		
 	};
+	typedef std::vector<solid::DynamicPointer<> >	DynamicPointerVectorT;
+	
+	static DynamicMapperT		dm;
+	
 	Logger						logger;
 	Writer						wtr;
 	Reader						rdr;
@@ -157,8 +160,8 @@ private:
 	solid::ResolveData			ai;
 	solid::ResolveIterator		aiit;
 	uint32						reqid;
-	DynamicHandlerT				dh;
 	int							st;
+	DynamicPointerVectorT		dv;
 };
 
 }//namespace alpha

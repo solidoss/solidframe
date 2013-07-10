@@ -45,7 +45,7 @@ int Listener::execute(ulong, TimeSpec&){
 	idbg("here");
 	cassert(this->socketOk());
 	if(notified()){
-		Locker<Mutex>	lock(this->mutex());
+		Locker<Mutex>	lock(Manager::specific().mutex(*this));
 		ulong sm = this->grabSignalMask();
 		if(sm & frame::S_KILL) return BAD;
 	}

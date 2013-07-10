@@ -56,10 +56,10 @@ namespace server{
 
 /*static*/ void Connection::initStatic(Manager &_rm){
 	//Command::initStatic(_rm);
+	dynamicRegister();
 }
 
 namespace{
-const DynamicRegisterer<Connection>	dre;
 struct ReqCmp{
 	int operator()(const std::pair<uint32, uint32> &_v1, const uint32 _v2)const{
 		if(overflow_safe_less(_v1.first, _v2)){
@@ -73,6 +73,8 @@ struct ReqCmp{
 const BinarySeeker<ReqCmp>	reqbs = BinarySeeker<ReqCmp>();
 
 }//namespace
+
+/*static*/ Connection::DynamicMapperT		Connection::dm;
 
 /*static*/ void Connection::dynamicRegister(){
 	//DynamicHandlerT::registerDynamic<SendStreamSignal, Connection>();
@@ -111,7 +113,7 @@ Connection::~Connection(){
 		return false;//no reason to raise the pool thread!!
 	}
 	DynamicPointer<>	dp(_rmsgptr);
-	dh.push(*this, dp);
+	dv.push_back(dp);
 	return frame::Object::notify(frame::S_SIG | frame::S_RAISE);
 }
 
@@ -160,19 +162,20 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 	frame::requestuidptr->set(frame::Manager::specific().id(*this));
 	
 	if(notified()){//we've received a signal
-		ulong sm(0);
+		DynamicHandler<DynamicMapperT>	dh(dm);
+		ulong							sm(0);
 		{
 			Locker<Mutex>	lock(frame::Manager::specific().mutex(*this));
 			sm = grabSignalMask(0);//grab all bits of the signal mask
 			if(sm & frame::S_KILL) return BAD;
 			if(sm & frame::S_SIG){//we have signals
-				dh.prepareHandle(*this);
+				dh.init(dv.begin(), dv.end());
+				dv.clear();
 			}
 		}
 		if(sm & frame::S_SIG){//we've grabed signals, execute them
-			while(dh.hasCurrent(*this)){
-				dh.handleCurrent(*this);
-				dh.next(*this);
+			for(size_t i = 0; i < dh.size(); ++i){
+				dh.handle(*this, i);
 			}
 		}
 		//now we determine if we return with NOK or we continue
@@ -426,6 +429,10 @@ int Connection::serializationReinit<Connection::DeserializerT, 1>(
 	}
 	rcmdstub.pcmd->prepareDeserialization(_rdes);
 	return CONTINUE;
+}
+
+void Connection::dynamicHandle(solid::DynamicPointer<> &_dp){
+	
 }
 
 }//namespace server

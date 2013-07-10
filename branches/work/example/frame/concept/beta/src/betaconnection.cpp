@@ -268,10 +268,6 @@ int Connection::doEncryptBuffer(char *_to, const char *_from, ulong _fromlen){
 	return BAD;
 }
 
-void Connection::dynamicHandle(DynamicPointer<> &_dp){
-	wdbg("Received unknown signal on ipcservice");
-}
-
 int Connection::doFillSendException(){
 	if(sendbufbeg == NULL){
 		sendbufbeg =  Specific::popBuffer(sendbufferid);

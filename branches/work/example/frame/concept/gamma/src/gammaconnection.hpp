@@ -68,7 +68,7 @@ struct SocketData{
 	protocol communication. 
 */
 class Connection: public solid::Dynamic<Connection, solid::frame::aio::MultiObject>{
-	typedef solid::DynamicHandler<void, Connection>	DynamicHandlerT;
+	typedef solid::DynamicMapper<void, Connection>	DynamicMapperT;
 public:
 	enum{
 		SocketRegister,
@@ -159,23 +159,27 @@ private:
 private:
 	typedef std::vector<SocketData*>				SocketDataVectorT;
 	typedef std::vector<std::pair<uint32, int> >	RequestIdVectorT;
+	typedef std::vector<solid::DynamicPointer<> >	DynamicPointerVectorT;
+	
 	struct StreamData{
 		solid::StreamPointer<solid::InputStream>		pis;
 		solid::StreamPointer<solid::OutputStream>		pos;
 		solid::StreamPointer<solid::InputOutputStream>	pios;
 	};
+	
 	typedef std::deque<StreamData>					StreamDataVectorT;
 	typedef solid::Stack<uint32>					UIntStackT;
 
 private:
-	bool				isslave;
-	int					st;
-	uint32				crtreqid;
-	DynamicHandlerT		dh;
-	SocketDataVectorT	sdv;
-	RequestIdVectorT	ridv;
-	StreamDataVectorT	streamv;
-	UIntStackT			freestk;
+	static DynamicMapperT		dm;
+	bool						isslave;
+	int							st;
+	uint32						crtreqid;
+	DynamicPointerVectorT		dv;
+	SocketDataVectorT			sdv;
+	RequestIdVectorT			ridv;
+	StreamDataVectorT			streamv;
+	UIntStackT					freestk;
 };
 
 

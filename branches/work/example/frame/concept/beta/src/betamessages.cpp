@@ -24,11 +24,11 @@
 
 namespace concept{
 namespace beta{
-int LoginMessage::release(){
+size_t LoginMessage::release(){
 	return 1;
 }
 
-int CancelMessage::release(){
+size_t CancelMessage::release(){
 	return 1;
 }
 

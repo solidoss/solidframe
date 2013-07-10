@@ -54,16 +54,15 @@ namespace client{
 
 
 /*static*/ void Connection::initStatic(Manager &_rm){
-	//Command::initStatic(_rm);
+	dynamicRegister();
 }
-namespace{
-static const DynamicRegisterer<Connection>	dre;
-}//namespace
+
+/*static*/ Connection::DynamicMapperT		Connection::dm;
 
 /*static*/ void Connection::dynamicRegister(){
-	//DynamicHandlerT::registerDynamic<SendStreamSignal, Connection>();
-	DynamicHandlerT::registerDynamic<LoginMessage, Connection>();
-	DynamicHandlerT::registerDynamic<CancelMessage, Connection>();
+	//dm.insert<SendStreamSignal, Connection>();
+	dm.insert<LoginMessage, Connection>();
+	dm.insert<CancelMessage, Connection>();
 }
 
 Connection::Connection(
@@ -103,8 +102,7 @@ Connection::~Connection(){
 		_rmsgptr.clear();
 		return false;//no reason to raise the pool thread!!
 	}
-	DynamicPointer<>	dp(_rmsgptr);
-	dh.push(*this, dp);
+	
 	return frame::Object::notify(frame::S_SIG | frame::S_RAISE);
 }
 
@@ -120,19 +118,20 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 	frame::requestuidptr->set(frame::Manager::specific().id(*this));
 	
 	if(notified()){//we've received a signal
-		ulong sm(0);
+		ulong 							sm(0);
+		DynamicHandler<DynamicMapperT>	dh(dm);
 		{
-			Locker<Mutex>	lock(this->mutex());
+			Locker<Mutex>	lock(frame::Manager::specific().mutex(*this));
 			sm = grabSignalMask(0);//grab all bits of the signal mask
 			if(sm & frame::S_KILL) return BAD;
 			if(sm & frame::S_SIG){//we have signals
-				dh.prepareHandle(*this);
+				dh.init(dv.begin(), dv.end());
+				dv.clear();
 			}
 		}
 		if(sm & frame::S_SIG){//we've grabed signals, execute them
-			while(dh.hasCurrent(*this)){
-				dh.handleCurrent(*this);
-				dh.next(*this);
+			for(size_t i = 0; i < dh.size(); ++i){
+				dh.handle(*this, i);
 			}
 		}
 		//now we determine if we return with NOK or we continue
@@ -400,7 +399,9 @@ void Connection::pushCommand(Command *_pcmd){
 	cmdque.push(cmdidx);
 	
 }
-
+void Connection::dynamicHandle(solid::DynamicPointer<> &_dp){
+	
+}
 void Connection::dynamicHandle(DynamicPointer<LoginMessage> &_rmsgptr){
 	command::Login *pcmd = new command::Login(_rmsgptr->user, _rmsgptr->pass);
 	pcmd->msgptr = _rmsgptr;

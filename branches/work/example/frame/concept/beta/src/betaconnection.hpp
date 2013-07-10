@@ -55,12 +55,7 @@ class Connection: public solid::Dynamic<Connection, solid::frame::aio::SingleObj
 public:
 	typedef Service	ServiceT;
 	
-	void dynamicHandle(solid::DynamicPointer<> &_dp);
 protected:
-	typedef solid::DynamicHandler<
-		void,
-		Connection
-	>	DynamicHandlerT;
 	typedef solid::serialization::binary::Serializer	SerializerT;
 	typedef solid::serialization::binary::Deserializer	DeserializerT;
 	
@@ -116,7 +111,6 @@ private:
 protected:
 	SerializerT					ser;
 	DeserializerT				des;
-	DynamicHandlerT			de;
 	uint8						readstate;
 	uint8						exception;
 	char						*recvbufbeg;

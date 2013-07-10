@@ -38,7 +38,7 @@ struct SignalWaiter{
 
 struct LoginMessage: solid::Dynamic<LoginMessage, solid::frame::Message>{
 	LoginMessage(SignalWaiter &_rsw):rsw(_rsw){}
-	int release();
+	size_t release();
 	SignalWaiter	&rsw;
 	std::string		user;
 	std::string		pass;
@@ -46,7 +46,7 @@ struct LoginMessage: solid::Dynamic<LoginMessage, solid::frame::Message>{
 
 struct CancelMessage: solid::Dynamic<CancelMessage, solid::frame::Message>{
 	CancelMessage(SignalWaiter &_rsw):rsw(_rsw){}
-	int release();
+	size_t release();
 	SignalWaiter	&rsw;
 	solid::uint32	tag;
 };

@@ -46,6 +46,7 @@ namespace client{
 class Command;
 
 class Connection: public solid::Dynamic<Connection, beta::Connection>{
+	typedef solid::DynamicMapper<void, Connection>	DynamicMapperT;
 public:
 	static void initStatic(Manager &_rm);
 	static void dynamicRegister();
@@ -73,6 +74,7 @@ public:
 	void pushCommand(Command *_pcmd);
 	uint32 commandUid(const uint32 _cmdidx)const;
 	
+	void dynamicHandle(solid::DynamicPointer<> &_dp);
 	void dynamicHandle(solid::DynamicPointer<LoginMessage> &_rmsgptr);
 	void dynamicHandle(solid::DynamicPointer<CancelMessage> &_rmsgptr);
 private:
@@ -106,15 +108,18 @@ private:
 		uint32 	uid;
 		bool	sendtype;
 	};
-	typedef std::vector<CommandStub>			CommandVectorT;
-	typedef solid::Queue<uint32>				UInt32QueueT;
-	typedef solid::Stack<uint32>				UInt32StackT;
+	typedef std::vector<solid::DynamicPointer<> >	DynamicPointerVectorT;
+	typedef std::vector<CommandStub>				CommandVectorT;
+	typedef solid::Queue<uint32>					UInt32QueueT;
+	typedef solid::Stack<uint32>					UInt32StackT;
+	
+	static DynamicMapperT		dm;
 	
 	solid::ResolveData			addrinfo;
 	solid::ResolveIterator		addrit;
 	int							st;
 	uint32						reqid;
-	DynamicHandlerT				dh;
+	DynamicPointerVectorT		dv;
 	CommandVectorT				cmdvec;
 	UInt32QueueT				cmdque;
 	UInt32StackT				cmdvecfreestk;

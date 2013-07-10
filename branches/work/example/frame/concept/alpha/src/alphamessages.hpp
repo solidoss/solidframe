@@ -93,8 +93,8 @@ struct RemoteListMessage: Dynamic<RemoteListMessage, DynamicShared<frame::Messag
 	/*virtual*/ uint32 ipcPrepare();
 	/*virtual*/ void ipcComplete(int _err);
 	
-	void use();
-	int release();
+	size_t use();
+	size_t release();
 
 	template <class S>
 	S& operator&(S &_s){

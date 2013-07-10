@@ -51,10 +51,10 @@ void Logger::doOutFlush(const char *_pb, unsigned _bl){
 /*static*/ void Connection::initStatic(Manager &_rm){
 	//doInitStaticMaster(_rm);
 	doInitStaticSlave(_rm);
+	dynamicRegister();
 }
 
 namespace{
-static const DynamicRegisterer<Connection>	dre;
 #ifdef HAS_SAFE_STATIC
 static const unsigned specificPosition(){
 	static const unsigned	thrspecpos = Thread::specificId();
@@ -77,12 +77,14 @@ static const unsigned specificPosition(){
 #endif
 }
 
+/*static*/ Connection::DynamicMapperT		Connection::dm;
+
 /*static*/ void Connection::dynamicRegister(){
-	DynamicHandlerT::registerDynamic<InputStreamMessage, Connection>();
-	DynamicHandlerT::registerDynamic<OutputStreamMessage, Connection>();
-	DynamicHandlerT::registerDynamic<InputOutputStreamMessage, Connection>();
-	DynamicHandlerT::registerDynamic<StreamErrorMessage, Connection>();
-	DynamicHandlerT::registerDynamic<SocketMoveMessage, Connection>();
+	dm.insert<InputStreamMessage, Connection>();
+	dm.insert<OutputStreamMessage, Connection>();
+	dm.insert<InputOutputStreamMessage, Connection>();
+	dm.insert<StreamErrorMessage, Connection>();
+	dm.insert<SocketMoveMessage, Connection>();
 }
 
 Connection::Connection(const SocketDevice &_rsd):
@@ -125,7 +127,7 @@ Connection::~Connection(){
 		return false;//no reason to raise the pool thread!!
 	}
 	DynamicPointer<>	dp(_msgptr);
-	dh.push(*this, dp);
+	dv.push_back(dp);
 	return Object::notify(frame::S_SIG | frame::S_RAISE);
 }
 
@@ -147,19 +149,20 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 	frame::requestuidptr->set(this->id(), rm.id(*this).second);
 	
 	if(notified()){//we've received a signal
-		ulong sm(0);
+		DynamicHandler<DynamicMapperT>	dh(dm);
+		ulong 							sm(0);
 		{
 			Locker<Mutex>	lock(rm.mutex(*this));
 			sm = grabSignalMask(0);//grab all bits of the signal mask
 			if(sm & frame::S_KILL) return BAD;
 			if(sm & frame::S_SIG){//we have signals
-				dh.prepareHandle(*this);
+				dh.init(dv.begin(), dv.end());
+				dv.clear();
 			}
 		}
 		if(sm & frame::S_SIG){//we've grabed signals, execute them
-			while(dh.hasCurrent(*this)){
-				dh.handleCurrent(*this);
-				dh.next(*this);
+			for(size_t i = 0; i < dh.size(); ++i){
+				dh.handle(*this, i);
 			}
 		}
 		//now we determine if we return with NOK or we continue

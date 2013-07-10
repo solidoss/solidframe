@@ -39,6 +39,7 @@ namespace server{
 class Command;
 
 class Connection: public solid::Dynamic<Connection, beta::Connection>{
+	typedef solid::DynamicMapper<void, Connection>	DynamicMapperT;
 public:
 	static void initStatic(Manager &_rm);
 	static void dynamicRegister();
@@ -62,7 +63,7 @@ public:
 	template <class S, uint32 I>
 	int serializationReinit(S &_rs, const uint64 &_rv);
 	
-	
+	void dynamicHandle(solid::DynamicPointer<> &_dp);
 private:
 	bool useEncryption()const;
 	bool useCompression()const;
@@ -92,15 +93,18 @@ private:
 		CommandStub(Command *_pcmd = NULL):pcmd(_pcmd){}
 		Command *pcmd;
 	};
-	typedef std::vector<CommandStub>			CommandVectorT;
-	typedef solid::Queue<uint32>				UInt32QueueT;
-	typedef solid::Stack<uint32>				UInt32StackT;
-	typedef std::pair<uint32, uint32>			UInt32PairT;
-	typedef std::vector<UInt32PairT>			UInt32PairVectorT;
+	typedef std::vector<solid::DynamicPointer<> >	DynamicPointerVectorT;
+	typedef std::vector<CommandStub>				CommandVectorT;
+	typedef solid::Queue<uint32>					UInt32QueueT;
+	typedef solid::Stack<uint32>					UInt32StackT;
+	typedef std::pair<uint32, uint32>				UInt32PairT;
+	typedef std::vector<UInt32PairT>				UInt32PairVectorT;
+	
+	static DynamicMapperT		dm;
 	
 	uint32						reqid;
 	int							st;
-	DynamicHandlerT				dh;
+	DynamicPointerVectorT		dv;
 	CommandVectorT				cmdvec;
 	UInt32QueueT				cmdque;
 	uint16						crtcmdrecvtype;

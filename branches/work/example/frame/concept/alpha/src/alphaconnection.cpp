@@ -65,19 +65,20 @@ void Logger::doOutFlush(const char *_pb, unsigned _bl){
 
 /*static*/ void Connection::initStatic(Manager &_rm){
 	Command::initStatic(_rm);
+	dynamicRegister();
 }
-namespace{
-static const DynamicRegisterer<Connection>	dre;
-}
+
+/*static*/ Connection::DynamicMapperT		Connection::dm;
+
 /*static*/ void Connection::dynamicRegister(){
-	DynamicHandlerT::registerDynamic<InputStreamMessage, Connection>();
-	DynamicHandlerT::registerDynamic<OutputStreamMessage, Connection>();
-	DynamicHandlerT::registerDynamic<InputOutputStreamMessage, Connection>();
-	DynamicHandlerT::registerDynamic<StreamErrorMessage, Connection>();
-	DynamicHandlerT::registerDynamic<RemoteListMessage, Connection>();
-	DynamicHandlerT::registerDynamic<FetchSlaveMessage, Connection>();
-	DynamicHandlerT::registerDynamic<SendStringMessage, Connection>();
-	DynamicHandlerT::registerDynamic<SendStreamMessage, Connection>();
+	dm.insert<InputStreamMessage, Connection>();
+	dm.insert<OutputStreamMessage, Connection>();
+	dm.insert<InputOutputStreamMessage, Connection>();
+	dm.insert<StreamErrorMessage, Connection>();
+	dm.insert<RemoteListMessage, Connection>();
+	dm.insert<FetchSlaveMessage, Connection>();
+	dm.insert<SendStringMessage, Connection>();
+	dm.insert<SendStreamMessage, Connection>();
 }
 
 #ifdef UDEBUG
@@ -148,7 +149,7 @@ Connection::~Connection(){
 		_rmsgptr.clear();
 		return false;//no reason to raise the pool thread!!
 	}
-	dh.push(*this, DynamicPointer<>(_rmsgptr));
+	dv.push_back(DynamicPointer<>(_rmsgptr));
 	return Object::notify(frame::S_SIG | frame::S_RAISE);
 }
 
@@ -161,7 +162,7 @@ Connection::~Connection(){
 */
 
 int Connection::execute(ulong _sig, TimeSpec &_tout){
-	//concept::Manager &rm = concept::Manager::the();
+	concept::Manager &rm = concept::Manager::the();
 	frame::requestuidptr->set(this->id(), Manager::the().id(*this).second);
 	//_tout.add(2400);
 	if(_sig & (frame::TIMEOUT | frame::ERRDONE)){
@@ -177,19 +178,20 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 	}
 	
 	if(notified()){//we've received a signal
-		ulong sm(0);
+		DynamicHandler<DynamicMapperT>	dh(dm);
+		ulong 							sm(0);
 		{
-			Locker<Mutex>	lock(this->mutex());
+			Locker<Mutex>	lock(rm.mutex(*this));
 			sm = grabSignalMask(0);//grab all bits of the signal mask
 			if(sm & frame::S_KILL) return BAD;
 			if(sm & frame::S_SIG){//we have signals
-				dh.prepareHandle(*this);
+				dh.init(dv.begin(), dv.end());
+				dv.clear();
 			}
 		}
 		if(sm & frame::S_SIG){//we've grabed signals, execute them
-			while(dh.hasCurrent(*this)){
-				dh.handleCurrent(*this);
-				dh.next(*this);
+			for(size_t i = 0; i < dh.size(); ++i){
+				dh.handle(*this, i);
 			}
 		}
 		//now we determine if we return with NOK or we continue
