@@ -61,7 +61,7 @@ struct DynamicBase{
 		return false;
 	}
 	//! Get the type id for a Dynamic object.
-	virtual uint32 dynamicTypeId()const = 0;
+	virtual size_t dynamicTypeId()const = 0;
 	//! Used by DynamicPointer - smartpointers
 	virtual size_t use();
 	//! Used by DynamicPointer to know if the object must be deleted
