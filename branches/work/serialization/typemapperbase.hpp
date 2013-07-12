@@ -38,25 +38,28 @@ public:
 	static const char* typeName(T *_p){
 		return typeid(*_p).name();
 	}
-	virtual void prepareStorePointer(
+	virtual bool prepareStorePointer(
 		void *_pser, void *_p,
-		uint32 _rid, const char *_name
+		uint32 _rid, const char *_name,
+		void *_pctx = NULL
 	)const;
-	virtual void prepareStorePointer(
+	virtual bool prepareStorePointer(
 		void *_pser, void *_p,
-		const char *_pid, const char *_name
+		const char *_pid, const char *_name,
+		void *_pctx = NULL
 	)const;
 	virtual bool prepareParsePointer(
 		void *_pdes, std::string &_rs,
-		void *_p, const char *_name
+		void *_p, const char *_name,
+		void *_pctx = NULL
 	)const;
 	virtual void prepareParsePointerId(
 		void *_pdes, std::string &_rs,
 		const char *_name
 	)const;
 protected:
-	typedef void (*FncSerT)(void *, void *, void *, const char *);
-	typedef void (*FncDesT)(void *, void *, const char *);
+	typedef bool (*FncSerT)(void *, void *, void *, const char *, void *);
+	typedef bool (*FncDesT)(void *, void *, const char *, void *);
 	
 	TypeMapperBase();
 	virtual ~TypeMapperBase();
@@ -67,6 +70,7 @@ protected:
 	
 	FncSerT function(const uint32 _id, uint32* &_rpid)const;
 	FncSerT function(const char *_pid, uint32* &_rpid)const;
+	
 	FncDesT function(const uint32 _id)const;
 	FncDesT function(const uint16 _id)const;
 	FncDesT function(const uint8  _id)const;

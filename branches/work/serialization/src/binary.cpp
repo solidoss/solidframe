@@ -112,46 +112,40 @@ int Base::popEStack(Base &_rb, FncData &){
 	return OK;
 }
 //========================================================================
-/*static*/ char* Serializer::storeValue(char *_pd, const uint16 _val){
+/*static*/ char* SerializerBase::storeValue(char *_pd, const uint16 _val){
 	return serialization::binary::store(_pd, _val);
 }
-/*static*/ char* Serializer::storeValue(char *_pd, const uint32 _val){
+/*static*/ char* SerializerBase::storeValue(char *_pd, const uint32 _val){
 	return serialization::binary::store(_pd, _val);
 }
-/*static*/ char* Serializer::storeValue(char *_pd, const uint64 _val){
+/*static*/ char* SerializerBase::storeValue(char *_pd, const uint64 _val){
 	return serialization::binary::store(_pd, _val);
 }
-Serializer::~Serializer(){
+SerializerBase::~SerializerBase(){
 }
-void Serializer::clear(){
+void SerializerBase::clear(){
 	run(NULL, 0);
 }
-Serializer& Serializer::pushStringLimit(){
+void SerializerBase::doPushStringLimit(){
 	fstk.push(FncData(&Base::setStringLimit, 0, 0, rdefaultlimits.stringlimit));
-	return *this;
 }
-Serializer& Serializer::pushStringLimit(uint32 _v){
+void SerializerBase::doPushStringLimit(uint32 _v){
 	fstk.push(FncData(&Base::setStringLimit, 0, 0, _v));
-	return *this;
 }
-Serializer& Serializer::pushStreamLimit(){
+void SerializerBase::doPushStreamLimit(){
 	fstk.push(FncData(&Base::setStreamLimit, 0, 0, rdefaultlimits.streamlimit));
-	return *this;
 }
-Serializer& Serializer::pushStreamLimit(uint64 _v){
+void SerializerBase::doPushStreamLimit(uint64 _v){
 	fstk.push(FncData(&Base::setStreamLimit, 0, 0, _v));
-	return *this;
 }
-Serializer& Serializer::pushContainerLimit(){
+void SerializerBase::doPushContainerLimit(){
 	fstk.push(FncData(&Base::setContainerLimit, 0, 0, rdefaultlimits.containerlimit));
-	return *this;
 }
-Serializer& Serializer::pushContainerLimit(uint32 _v){
+void SerializerBase::doPushContainerLimit(uint32 _v){
 	fstk.push(FncData(&Base::setContainerLimit, 0, 0, _v));
-	return *this;
 }
 
-int Serializer::run(char *_pb, unsigned _bl){
+int SerializerBase::run(char *_pb, unsigned _bl){
 	cpb = pb = _pb;
 	be = cpb + _bl;
 	while(fstk.size()){
@@ -170,9 +164,9 @@ int Serializer::run(char *_pb, unsigned _bl){
 	return cpb - pb;
 }
 template <>
-int Serializer::storeBinary<0>(Base &_rb, FncData &_rfd){
+int SerializerBase::storeBinary<0>(Base &_rb, FncData &_rfd){
 	idbgx(Debug::ser_bin, ""<<_rfd.s);
-	Serializer &rs(static_cast<Serializer&>(_rb));
+	SerializerBase &rs(static_cast<SerializerBase&>(_rb));
 	if(!rs.cpb) return OK;
 	uint32 len = rs.be - rs.cpb;
 	if(len > _rfd.s) len = static_cast<uint32>(_rfd.s);
@@ -186,9 +180,9 @@ int Serializer::storeBinary<0>(Base &_rb, FncData &_rfd){
 }
 
 template <>
-int Serializer::storeBinary<1>(Base &_rb, FncData &_rfd){
+int SerializerBase::storeBinary<1>(Base &_rb, FncData &_rfd){
 	idbgx(Debug::ser_bin, "");
-	Serializer &rs(static_cast<Serializer&>(_rb));
+	SerializerBase &rs(static_cast<SerializerBase&>(_rb));
 	
 	if(!rs.cpb) return OK;
 	const unsigned len = rs.be - rs.cpb;
@@ -202,9 +196,9 @@ int Serializer::storeBinary<1>(Base &_rb, FncData &_rfd){
 }
 
 template <>
-int Serializer::storeBinary<2>(Base &_rb, FncData &_rfd){
+int SerializerBase::storeBinary<2>(Base &_rb, FncData &_rfd){
 	idbgx(Debug::ser_bin, "");
-	Serializer &rs(static_cast<Serializer&>(_rb));
+	SerializerBase &rs(static_cast<SerializerBase&>(_rb));
 	
 	if(!rs.cpb) return OK;
 	const unsigned	len = rs.be - rs.cpb;
@@ -217,7 +211,7 @@ int Serializer::storeBinary<2>(Base &_rb, FncData &_rfd){
 		return OK;
 	}else if(len >= 1){
 		*(rs.cpb + 0) = *(ps + 0);
-		_rfd.f = &Serializer::storeBinary<1>;
+		_rfd.f = &SerializerBase::storeBinary<1>;
 		_rfd.p = const_cast<char*>(ps + 1);
 		rs.cpb += 1;
 	}
@@ -225,9 +219,9 @@ int Serializer::storeBinary<2>(Base &_rb, FncData &_rfd){
 }
 
 template <>
-int Serializer::storeBinary<4>(Base &_rb, FncData &_rfd){
+int SerializerBase::storeBinary<4>(Base &_rb, FncData &_rfd){
 	idbgx(Debug::ser_bin, "");
-	Serializer &rs(static_cast<Serializer&>(_rb));
+	SerializerBase &rs(static_cast<SerializerBase&>(_rb));
 	if(!rs.cpb) return OK;
 	const unsigned	len = rs.be - rs.cpb;
 	const char		*ps = reinterpret_cast<const char*>(_rfd.p);
@@ -243,7 +237,7 @@ int Serializer::storeBinary<4>(Base &_rb, FncData &_rfd){
 		*(rs.cpb + 1) = *(ps + 1);
 		*(rs.cpb + 2) = *(ps + 2);
 		_rfd.p = const_cast<char*>(ps + 3);
-		_rfd.f = &Serializer::storeBinary<1>;
+		_rfd.f = &SerializerBase::storeBinary<1>;
 		rs.cpb += 3;
 		return NOK;
 	}else if(len >= 2){
@@ -251,7 +245,7 @@ int Serializer::storeBinary<4>(Base &_rb, FncData &_rfd){
 		*(rs.cpb + 1) = *(ps + 1);
 		_rfd.p = const_cast<char*>(ps + 2);
 		rs.cpb += 2;
-		_rfd.f = &Serializer::storeBinary<2>;
+		_rfd.f = &SerializerBase::storeBinary<2>;
 		return NOK;
 	}else if(len >= 1){
 		*(rs.cpb + 0) = *(ps + 0);
@@ -261,15 +255,15 @@ int Serializer::storeBinary<4>(Base &_rb, FncData &_rfd){
 	}else{
 		_rfd.s = 4;
 	}
-	_rfd.f = &Serializer::storeBinary<0>;
+	_rfd.f = &SerializerBase::storeBinary<0>;
 	return NOK;
 }
 
 
 template <>
-int Serializer::storeBinary<8>(Base &_rb, FncData &_rfd){
+int SerializerBase::storeBinary<8>(Base &_rb, FncData &_rfd){
 	idbgx(Debug::ser_bin, "");
-	Serializer &rs(static_cast<Serializer&>(_rb));
+	SerializerBase &rs(static_cast<SerializerBase&>(_rb));
 	if(!rs.cpb) return OK;
 	const unsigned	len = rs.be - rs.cpb;
 	const char		*ps = reinterpret_cast<const char*>(_rfd.p);
@@ -293,7 +287,7 @@ int Serializer::storeBinary<8>(Base &_rb, FncData &_rfd){
 		*(rs.cpb + 5) = *(ps + 5);
 		*(rs.cpb + 6) = *(ps + 6);
 		_rfd.p = const_cast<char*>(ps + 7);
-		_rfd.f = &Serializer::storeBinary<1>;
+		_rfd.f = &SerializerBase::storeBinary<1>;
 		rs.cpb += 7;
 		return NOK;
 	}else if(len >= 6){
@@ -304,7 +298,7 @@ int Serializer::storeBinary<8>(Base &_rb, FncData &_rfd){
 		*(rs.cpb + 4) = *(ps + 4);
 		*(rs.cpb + 5) = *(ps + 5);
 		_rfd.p = const_cast<char*>(ps + 6);
-		_rfd.f = &Serializer::storeBinary<2>;
+		_rfd.f = &SerializerBase::storeBinary<2>;
 		rs.cpb += 6;
 		return NOK;
 	}else if(len >= 5){
@@ -322,7 +316,7 @@ int Serializer::storeBinary<8>(Base &_rb, FncData &_rfd){
 		*(rs.cpb + 2) = *(ps + 2);
 		*(rs.cpb + 3) = *(ps + 3);
 		_rfd.p = const_cast<char*>(ps + 4);
-		_rfd.f = &Serializer::storeBinary<4>;
+		_rfd.f = &SerializerBase::storeBinary<4>;
 		rs.cpb += 4;
 		return NOK;
 	}else if(len >= 3){
@@ -346,77 +340,77 @@ int Serializer::storeBinary<8>(Base &_rb, FncData &_rfd){
 	}else{
 		_rfd.s = 8;
 	}
-	_rfd.f = &Serializer::storeBinary<0>;
+	_rfd.f = &SerializerBase::storeBinary<0>;
 	return NOK;
 }
 
 
 template <>
-int Serializer::store<int8>(Base &_rb, FncData &_rfd){
+int SerializerBase::store<int8>(Base &_rb, FncData &_rfd){
 	idbgx(Debug::ser_bin, ""<<_rfd.n);
 	_rfd.s = sizeof(int8);
-	_rfd.f = &Serializer::storeBinary<1>;
+	_rfd.f = &SerializerBase::storeBinary<1>;
 	return storeBinary<1>(_rb, _rfd);
 }
 template <>
-int Serializer::store<uint8>(Base &_rb, FncData &_rfd){
+int SerializerBase::store<uint8>(Base &_rb, FncData &_rfd){
 	idbgx(Debug::ser_bin, ""<<_rfd.n);
 	_rfd.s = sizeof(uint8);
-	_rfd.f = &Serializer::storeBinary<1>;
+	_rfd.f = &SerializerBase::storeBinary<1>;
 	return storeBinary<1>(_rb, _rfd);
 }
 template <>
-int Serializer::store<int16>(Base &_rb, FncData &_rfd){
+int SerializerBase::store<int16>(Base &_rb, FncData &_rfd){
 	idbgx(Debug::ser_bin, ""<<_rfd.n);
 	_rfd.s = sizeof(int16);
-	_rfd.f = &Serializer::storeBinary<2>;
+	_rfd.f = &SerializerBase::storeBinary<2>;
 	return storeBinary<2>(_rb, _rfd);
 }
 template <>
-int Serializer::store<uint16>(Base &_rb, FncData &_rfd){
+int SerializerBase::store<uint16>(Base &_rb, FncData &_rfd){
 	idbgx(Debug::ser_bin, ""<<_rfd.n);
 	_rfd.s = sizeof(uint16);
-	_rfd.f = &Serializer::storeBinary<2>;
+	_rfd.f = &SerializerBase::storeBinary<2>;
 	return storeBinary<2>(_rb, _rfd);
 }
 template <>
-int Serializer::store<int32>(Base &_rb, FncData &_rfd){
+int SerializerBase::store<int32>(Base &_rb, FncData &_rfd){
 	idbgx(Debug::ser_bin, ""<<_rfd.n);
 	_rfd.s = sizeof(int32);
-	_rfd.f = &Serializer::storeBinary<4>;
+	_rfd.f = &SerializerBase::storeBinary<4>;
 	return storeBinary<4>(_rb, _rfd);
 }
 template <>
-int Serializer::store<uint32>(Base &_rb, FncData &_rfd){
+int SerializerBase::store<uint32>(Base &_rb, FncData &_rfd){
 	idbgx(Debug::ser_bin, ""<<_rfd.n);
 	_rfd.s = sizeof(uint32);
-	_rfd.f = &Serializer::storeBinary<4>;
+	_rfd.f = &SerializerBase::storeBinary<4>;
 	return storeBinary<4>(_rb, _rfd);
 }
 template <>
-int Serializer::store<int64>(Base &_rb, FncData &_rfd){
+int SerializerBase::store<int64>(Base &_rb, FncData &_rfd){
 	idbgx(Debug::ser_bin, "");
 	_rfd.s = sizeof(int64);
-	_rfd.f = &Serializer::storeBinary<8>;
+	_rfd.f = &SerializerBase::storeBinary<8>;
 	return storeBinary<8>(_rb, _rfd);
 }
 template <>
-int Serializer::store<uint64>(Base &_rb, FncData &_rfd){
+int SerializerBase::store<uint64>(Base &_rb, FncData &_rfd){
 	idbgx(Debug::ser_bin, ""<<_rfd.n<<*((uint64*)_rfd.p));
 	_rfd.s = sizeof(uint64);
-	_rfd.f = &Serializer::storeBinary<8>;
+	_rfd.f = &SerializerBase::storeBinary<8>;
 	return storeBinary<8>(_rb, _rfd);
 }
 /*template <>
-int Serializer::store<ulong>(Base &_rb, FncData &_rfd){
+int SerializerBase::store<ulong>(Base &_rb, FncData &_rfd){
 	idbgx(Debug::ser_bin, "");
 	_rfd.s = sizeof(ulong);
-	_rfd.f = &Serializer::storeBinary;
+	_rfd.f = &SerializerBase::storeBinary;
 	return CONTINUE;
 }*/
 template <>
-int Serializer::store<std::string>(Base &_rb, FncData &_rfd){
-	Serializer &rs(static_cast<Serializer&>(_rb));
+int SerializerBase::store<std::string>(Base &_rb, FncData &_rfd){
+	SerializerBase &rs(static_cast<SerializerBase&>(_rb));
 	idbgx(Debug::ser_bin, "");
 	if(!rs.cpb) return OK;
 	std::string * c = reinterpret_cast<std::string*>(_rfd.p);
@@ -432,13 +426,13 @@ int Serializer::store<std::string>(Base &_rb, FncData &_rfd){
 	
 	rs.estk.push(ExtData((uint32)crcsz));
 	
-	rs.replace(FncData(&Serializer::storeBinary<0>, (void*)c->data(), _rfd.n, c->size()));
+	rs.replace(FncData(&SerializerBase::storeBinary<0>, (void*)c->data(), _rfd.n, c->size()));
 	rs.fstk.push(FncData(&Base::popEStack, NULL, _rfd.n));
-	rs.fstk.push(FncData(&Serializer::store<uint32>, &rs.estk.top().u32(), _rfd.n));
+	rs.fstk.push(FncData(&SerializerBase::store<uint32>, &rs.estk.top().u32(), _rfd.n));
 	return CONTINUE;
 }
-int Serializer::storeStreamBegin(Base &_rb, FncData &_rfd){
-	Serializer &rs(static_cast<Serializer&>(_rb));
+int SerializerBase::storeStreamBegin(Base &_rb, FncData &_rfd){
+	SerializerBase &rs(static_cast<SerializerBase&>(_rb));
 	if(!rs.cpb) return OK;
 	int32		toread = rs.be - rs.cpb;
 	
@@ -463,8 +457,8 @@ int Serializer::storeStreamBegin(Base &_rb, FncData &_rfd){
 	}
 	return OK;
 }
-int Serializer::storeStreamCheck(Base &_rb, FncData &_rfd){
-	Serializer &rs(static_cast<Serializer&>(_rb));
+int SerializerBase::storeStreamCheck(Base &_rb, FncData &_rfd){
+	SerializerBase &rs(static_cast<SerializerBase&>(_rb));
 	if(!rs.cpb) return OK;
 	if(rs.limits.streamlimit && _rfd.s > rs.limits.streamlimit){
 		rs.streamerr = rs.err = ERR_STREAM_LIMIT;
@@ -472,8 +466,8 @@ int Serializer::storeStreamCheck(Base &_rb, FncData &_rfd){
 	}
 	return OK;
 }
-int Serializer::storeStream(Base &_rb, FncData &_rfd){
-	Serializer	&rs(static_cast<Serializer&>(_rb));
+int SerializerBase::storeStream(Base &_rb, FncData &_rfd){
+	SerializerBase	&rs(static_cast<SerializerBase&>(_rb));
 	
 	idbgx(Debug::ser_bin, "");
 	if(!rs.cpb) return OK;
@@ -540,8 +534,8 @@ int Serializer::storeStream(Base &_rb, FncData &_rfd){
 	idbgx(Debug::ser_bin, "streamsz = "<<rs.streamsz);
 	return CONTINUE;
 }
-/*static*/ int Serializer::storeUtf8(Base &_rs, FncData &_rfd){
-	Serializer &rs(static_cast<Serializer&>(_rs));
+/*static*/ int SerializerBase::storeUtf8(Base &_rs, FncData &_rfd){
+	SerializerBase &rs(static_cast<SerializerBase&>(_rs));
 	if(rs.limits.stringlimit && (_rfd.s - 1) > rs.limits.stringlimit){
 		rs.err = ERR_UTF8_LIMIT;
 		return BAD;
@@ -550,36 +544,14 @@ int Serializer::storeStream(Base &_rb, FncData &_rfd){
 		rs.err = ERR_UTF8_MAX_LIMIT;
 		return BAD;
 	}
-	_rfd.f = &Serializer::storeBinary<0>;
+	_rfd.f = &SerializerBase::storeBinary<0>;
 	return CONTINUE;
 }
-Serializer& Serializer::pushBinary(void *_p, size_t _sz, const char *_name){
-	fstk.push(FncData(&Serializer::storeBinary<0>, _p, _name, _sz));
-	return *this;
-}
-Serializer& Serializer::pushUtf8(const std::string& _str, const char *_name){
-	fstk.push(FncData(&Serializer::storeUtf8, const_cast<char*>(_str.c_str()), _name, _str.length() + 1));
-	return *this;
-}
-Serializer& Serializer::pushStream(
-	InputStream *_ps, const char *_name
-){
-	fstk.push(FncData(&Serializer::storeStream, _ps, _name, -1ULL));
-	fstk.push(FncData(&Serializer::storeStreamBegin, _ps, _name, -1ULL));
-	return *this;
-}
-Serializer& Serializer::pushStream(
-	InputStream *_ps,
-	const uint64 &_rfrom,
-	const uint64 &_rlen,
-	const char *_name
-){
-	fstk.push(FncData(&Serializer::storeStream, _ps, _name, _rlen));
-	fstk.push(FncData(&Serializer::storeStreamBegin, _ps, _name, _rfrom));
-	fstk.push(FncData(&Serializer::storeStreamCheck, _ps, _name, _rlen));
-	return *this;
-}
+
 //========================================================================
+//		Deserializer
+//========================================================================
+
 /*static*/ const char* Deserializer::loadValue(const char *_ps, uint16 &_val){
 	return serialization::binary::load(_ps, _val);
 }

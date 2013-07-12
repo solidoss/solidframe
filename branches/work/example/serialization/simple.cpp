@@ -347,6 +347,10 @@ enum{
 	ARRAY_TYPE_INDEX
 };
 
+struct Context{
+	int value;
+};
+
 int main(int argc, char *argv[]){
 	Thread::init();
 #ifdef UDEBUG
@@ -366,12 +370,12 @@ int main(int argc, char *argv[]){
 	int rv = 3;
 	//TestA ta;
 	//cout<<ta<<endl;
-	typedef serialization::binary::Serializer										BinSerializer;
-	typedef serialization::binary::Deserializer										BinDeserializer;
-	typedef serialization::IdTypeMapper<BinSerializer, BinDeserializer, uint16>		UInt16TypeMapper;
+	typedef serialization::binary::Serializer<Context>								BinSerializerT;
+	typedef serialization::binary::Deserializer										BinDeserializerT;
+	typedef serialization::IdTypeMapper<BinSerializerT, BinDeserializerT, uint16>	UInt16TypeMapperT;
 	
 	
-	UInt16TypeMapper		tm;
+	UInt16TypeMapperT		tm;
 	
 	
 	tm.insert<String>(STRING_TYPE_INDEX);
@@ -383,7 +387,7 @@ int main(int argc, char *argv[]){
 	for(int i = 0; i < 1; ++i){
 		{	
 			idbg("");
-			BinSerializer 	ser(tm);
+			BinSerializerT 	ser(tm);
 			
 			TestA 			ta;
 			TestB 			tb;// = new TestB;
@@ -452,7 +456,7 @@ int main(int argc, char *argv[]){
 		}
 		cout<<"Deserialization: =================================== "<<endl;
 		{
-			BinDeserializer		des(tm);
+			BinDeserializerT	des(tm);
 			TestA				ta;
 			TestB				tb;// = new TestB;
 			TestC				tc;
