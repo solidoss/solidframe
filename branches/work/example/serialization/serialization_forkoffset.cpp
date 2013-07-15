@@ -152,8 +152,8 @@ void parentRun(int _sd, const char *_fn);
 void childRun(int _sd);
 
 
-typedef serialization::binary::Serializer			BinSerializer;
-typedef serialization::binary::Deserializer			BinDeserializer;
+typedef serialization::binary::Serializer<>			BinSerializer;
+typedef serialization::binary::Deserializer<>		BinDeserializer;
 typedef serialization::IdTypeMapper<
 	BinSerializer,
 	BinDeserializer,

@@ -304,8 +304,8 @@ public:
 		RelayType
 	};
 	typedef serialization::IdTypeMapper<
-		serialization::binary::Serializer,
-		serialization::binary::Deserializer,
+		serialization::binary::Serializer<void>,
+		serialization::binary::Deserializer<void>,
 		SerializationTypeIdT
 	> IdTypeMapperT;
 	typedef Dynamic<Service, frame::Service> BaseT;

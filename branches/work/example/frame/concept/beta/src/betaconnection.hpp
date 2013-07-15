@@ -56,8 +56,8 @@ public:
 	typedef Service	ServiceT;
 	
 protected:
-	typedef solid::serialization::binary::Serializer	SerializerT;
-	typedef solid::serialization::binary::Deserializer	DeserializerT;
+	typedef solid::serialization::binary::Serializer<void>		SerializerT;
+	typedef solid::serialization::binary::Deserializer<void>	DeserializerT;
 	
 	enum{
 		ParseBufferHeader = 1,

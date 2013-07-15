@@ -64,9 +64,9 @@ class IdTypeMapper: public TypeMapperBase{
 		T				&rt = *reinterpret_cast<T*>(_p);
 		Int				&rid = *reinterpret_cast<Int*>(_pid);
 		SerContextT		*pctx = reinterpret_cast<SerContextT*>(_pctx);
-		H				handle(pctx);
+		H				handle;
 		
-		if(handle.checkStore()){
+		if(handle.checkStore(&rt, pctx)){
 			rt & rs;
 			rs.push(rid, _name);
 			return true;
@@ -81,11 +81,11 @@ class IdTypeMapper: public TypeMapperBase{
 		Des				&rd = *reinterpret_cast<Des*>(_pd);
 		T*				&rpt = *reinterpret_cast<T**>(_p);
 		DesContextT		*pctx = reinterpret_cast<DesContextT*>(_pctx);
-		H				handle(pctx);
+		H				handle;
 		
-		if(handle.checkLoad()){
+		if(handle.checkLoad(rpt, pctx)){
 			rpt = new T;
-			//rd.pushHandlePointer<H>(rpt, &rctx);
+			rd.template pushHandlePointer<T, H>(rpt, pctx, _name);
 			*rpt & rd;
 			return true;
 		}else{

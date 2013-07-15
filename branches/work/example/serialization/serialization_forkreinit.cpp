@@ -38,6 +38,7 @@
 
 using namespace std;
 using namespace solid;
+
 ///\cond 0
 class FileInputOutputStream: public InputOutputStream{
 public:
@@ -83,16 +84,33 @@ struct Test{
 	Test(const char *_fn = NULL);
 	template <class S>
 	S& operator&(S &_s){
-		_s.push(no, "Test::no");
-		if(S::IsSerializer){
-			InputStream *ps = &fs;
-			_s.pushStream(ps, "Test::istream");
-		}else{
-			OutputStream *ps= &fs;
-			_s.pushStream(ps, "Test::ostream");
-		}
-		return _s.push(fn,"Test::fn");
+		return _s.push(no, "Test::no").template pushReinit<Test, 0>(this, 0, "Test::reinit").push(fn,"Test::fn");
 	}
+	
+	template <class S, uint32 I>
+	int serializationReinit(S &_rs, const uint64 &_rv){
+		idbg("_rv = "<<_rv);
+		if(_rv == 1){
+			idbg("Done Stream: size = "<<_rs.streamSize()<<" error = "<<_rs.streamErrorString());
+			return OK;
+		}
+		if(S::IsSerializer){
+			fs.openRead(fn.c_str());
+			_rs.pop();
+			_rs.template pushReinit<Test, 0>(this, 1, "Test::reinit");
+			InputStream *ps = &fs;
+			_rs.pushStream(ps, "Test::istream");
+		}else{
+			fn += ".xxx";
+			fs.openWrite(fn.c_str());
+			_rs.pop();
+			_rs.template pushReinit<Test, 0>(this, 1, "Test::reinit");
+			OutputStream *ps = &fs;
+			_rs.pushStream(ps, "Test::ostream");
+		}
+		return CONTINUE;
+	}
+	
 	void print();
 private:
 	int32 					no;
@@ -102,12 +120,7 @@ private:
 ///\endcond
 
 Test::Test(const char *_fn):fn(_fn?_fn:""){
-	if(_fn){
-		no = 11111;
-		fs.openRead(_fn);
-	}else{
-		fs.openWrite("output.out");
-	}
+	if(_fn) no = 11111;
 }
 //-----------------------------------------------------------------------------------
 
@@ -123,8 +136,8 @@ void parentRun(int _sd, const char *_fn);
 void childRun(int _sd);
 
 
-typedef serialization::binary::Serializer			BinSerializer;
-typedef serialization::binary::Deserializer			BinDeserializer;
+typedef serialization::binary::Serializer<>			BinSerializer;
+typedef serialization::binary::Deserializer<>		BinDeserializer;
 typedef serialization::IdTypeMapper<
 	BinSerializer,
 	BinDeserializer,

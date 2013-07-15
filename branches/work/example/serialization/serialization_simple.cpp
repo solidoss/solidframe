@@ -1,6 +1,6 @@
-/* Implementation file simple.cpp
+/* Implementation file serialization_simple.cpp
 	
-	Copyright 2007, 2008 Valentin Palade 
+	Copyright 2007, 2008, 2013 Valentin Palade 
 	vipalade@gmail.com
 
 	This file is part of SolidFrame framework.
@@ -371,7 +371,7 @@ int main(int argc, char *argv[]){
 	//TestA ta;
 	//cout<<ta<<endl;
 	typedef serialization::binary::Serializer<Context>								BinSerializerT;
-	typedef serialization::binary::Deserializer										BinDeserializerT;
+	typedef serialization::binary::Deserializer<Context>							BinDeserializerT;
 	typedef serialization::IdTypeMapper<BinSerializerT, BinDeserializerT, uint16>	UInt16TypeMapperT;
 	
 	

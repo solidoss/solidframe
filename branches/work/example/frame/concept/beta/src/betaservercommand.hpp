@@ -36,8 +36,8 @@ namespace server{
 
 class Command: public solid::SpecificObject{
 public:
-	typedef solid::serialization::binary::Serializer	SerializerT;
-	typedef solid::serialization::binary::Deserializer	DeserializerT;
+	typedef solid::serialization::binary::Serializer<void>		SerializerT;
+	typedef solid::serialization::binary::Deserializer<void>	DeserializerT;
 	
 	virtual ~Command();
 	

@@ -195,10 +195,10 @@ struct Session::Data{
 		DummyExecute,
 	};
 	
-	struct BinSerializer:serialization::binary::Serializer{
+	struct BinSerializer:serialization::binary::Serializer<void>{
 		BinSerializer(
 			const serialization::TypeMapperBase &_rtmb
-		):serialization::binary::Serializer(_rtmb){}
+		):serialization::binary::Serializer<void>(_rtmb){}
 		BinSerializer(
 		){}
 		static unsigned specificCount(){
@@ -208,10 +208,10 @@ struct Session::Data{
 		void specificRelease(){}
 	};
 
-	struct BinDeserializer:serialization::binary::Deserializer{
+	struct BinDeserializer:serialization::binary::Deserializer<void>{
 		BinDeserializer(
 			const serialization::TypeMapperBase &_rtmb
-		):serialization::binary::Deserializer(_rtmb){}
+		):serialization::binary::Deserializer<void>(_rtmb){}
 		BinDeserializer(
 		){}
 		static unsigned specificCount(){
