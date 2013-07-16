@@ -31,12 +31,17 @@
 #include "serialization/idtypemapper.hpp"
 #include "serialization/binary.hpp"
 #include "system/socketaddress.hpp"
+#include <vector>
 
 using namespace std;
 using namespace solid;
 
+struct Test{
+	virtual ~Test(){}
+	virtual void print()const = 0;
+};
 
-struct TestA{
+struct TestA: Test{
 	TestA(int _a = 1, short _b = 2, unsigned _c = 3):a(_a), b(_b), c(_c){}
 	template <class S>
 	S& operator&(S &_s){
@@ -48,7 +53,7 @@ struct TestA{
 	void print()const{cout<<"testa: a = "<<a<<" b = "<<b<<" c = "<<c<<endl;}
 };
 
-struct TestB{
+struct TestB: Test{
 	TestB(int _a = 4):a(_a){}
 	int32			a;
 	void print()const {cout<<"testb: a = "<<a<<endl;}
@@ -58,8 +63,37 @@ struct TestB{
 	}
 };
 
-typedef serialization::binary::Serializer<>										BinSerializerT;
-typedef serialization::binary::Deserializer<>									BinDeserializerT;
+class Container{
+	typedef std::vector<Test*>	TestVectorT;
+public:
+	~Container(){
+		clear();
+	}
+	void clear(){
+		for(TestVectorT::const_iterator it(tstvec.begin()); it != tstvec.end(); ++it){
+			delete *it;
+		}
+		tstvec.clear();
+	}
+	void print()const{
+		for(TestVectorT::const_iterator it(tstvec.begin()); it != tstvec.end(); ++it){
+			(*it)->print();
+		}
+	}
+	void push(Test *_ptst){
+		tstvec.push_back(_ptst);
+	}
+	template <class S>
+	S& operator&(S &_s){
+		
+		return _s;
+	}
+private:
+	TestVectorT tstvec;
+};
+
+typedef serialization::binary::Serializer<>							BinSerializerT;
+typedef serialization::binary::Deserializer<>						BinDeserializerT;
 
 int main(int argc, char *argv[]){
 #ifdef UDEBUG
@@ -73,11 +107,13 @@ int main(int argc, char *argv[]){
 	
 	{
 		BinSerializerT 	ser;
-		TestA 			ta ;
-		TestB 			tb;
 		int				v = 0, cnt = 0;
+		Container		c;
 		
-		ser.push(ta, "testa").push(tb, "testb");
+		c.push(new TestA);
+		c.push(new TestB);
+		
+		ser.push(c);
 		
 		while((rv = ser.run(bufs[v], blen)) == blen){
 			cnt += rv;
@@ -94,12 +130,11 @@ int main(int argc, char *argv[]){
 	cout<<"Deserialization: =================================== "<<endl;
 	{
 		BinDeserializerT	des;
-		TestA				ta;
-		TestB				tb;
 		int					v = 0;
 		int					cnt = 0;
+		Container			c;
 		
-		des.push(ta, "testa").push(tb, "testb");
+		des.push(c);
 		
 		while((rv = des.run(bufs[v], blen)) == blen){
 			cnt += rv;
@@ -110,11 +145,11 @@ int main(int argc, char *argv[]){
 			cout<<"ERROR: deserialization "<<des.errorString()<<endl;
 			return 0;
 		}
+		
 		cnt += rv;
 		cout<<"Read size = "<<cnt<<endl;
 		
-		ta.print();
-		tb.print();
+		c.print();
 	}
 	return 0;
 }
