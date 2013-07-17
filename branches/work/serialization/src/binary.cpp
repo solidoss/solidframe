@@ -660,7 +660,7 @@ int DeserializerBase::loadBinary<1>(Base &_rb, FncData &_rfd){
 	if(!rd.cpb) return OK;
 	const unsigned	len = rd.be - rd.cpb;
 	char			*ps = reinterpret_cast<char*>(_rfd.p);
-	edbgx(Debug::ser_bin, ""<<len<<' '<<(void*)rd.cpb);
+	idbgx(Debug::ser_bin, ""<<len<<' '<<(void*)rd.cpb);
 	if(len >= 1){
 		*(ps + 0) = *(rd.cpb + 0);
 		rd.cpb += 1;

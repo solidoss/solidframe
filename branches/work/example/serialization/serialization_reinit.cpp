@@ -31,17 +31,18 @@
 #include "serialization/idtypemapper.hpp"
 #include "serialization/binary.hpp"
 #include "system/socketaddress.hpp"
+#include "utility/dynamictype.hpp"
 #include <vector>
 
 using namespace std;
 using namespace solid;
 
-struct Test{
+struct Test: Dynamic<Test>{
 	virtual ~Test(){}
 	virtual void print()const = 0;
 };
 
-struct TestA: Test{
+struct TestA: Dynamic<TestA, Test>{
 	TestA(int _a = 1, short _b = 2, unsigned _c = 3):a(_a), b(_b), c(_c){}
 	template <class S>
 	S& operator&(S &_s){
@@ -53,7 +54,7 @@ struct TestA: Test{
 	void print()const{cout<<"testa: a = "<<a<<" b = "<<b<<" c = "<<c<<endl;}
 };
 
-struct TestB: Test{
+struct TestB: Dynamic<TestB, Test>{
 	TestB(int _a = 4):a(_a){}
 	int32			a;
 	void print()const {cout<<"testb: a = "<<a<<endl;}
@@ -66,6 +67,7 @@ struct TestB: Test{
 class Container{
 	typedef std::vector<Test*>	TestVectorT;
 public:
+	Container():crtidx(0){}
 	~Container(){
 		clear();
 	}
@@ -85,11 +87,66 @@ public:
 	}
 	template <class S>
 	S& operator&(S &_s){
-		
+		_s.template pushReinit<Container, 0>(this, 0, "reinit");
 		return _s;
+	}
+	template <class S, uint32 I>
+	int serializationReinit(S &_rs, const uint64 &_rv){
+		if(S::IsSerializer){
+			idbg("ser 1");
+			if(crtidx < tstvec.size()){
+				idbg("ser 2");
+				Test *pmsg = tstvec[crtidx];
+				++crtidx;
+				if(pmsg->dynamicTypeId() == TestA::staticTypeId()){
+					crtsndmsg = TestA::staticTypeId();
+					_rs.push(*static_cast<TestA*>(pmsg), "message");
+					_rs.push(crtsndmsg, "typeid");
+				}else if(pmsg->dynamicTypeId() == TestB::staticTypeId()){
+					crtsndmsg = TestB::staticTypeId();
+					_rs.push(*static_cast<TestB*>(pmsg), "message");
+					_rs.push(crtsndmsg, "typeid");
+				}
+				
+				return CONTINUE;
+			}else if(crtidx == tstvec.size()){
+				idbg("ser 3");
+				++crtidx;
+				crtsndmsg = 0xff;
+				_rs.push(crtsndmsg, "typeid");
+				return CONTINUE;
+			}else{
+				idbg("ser 4");
+				return OK;
+			}
+		}else{
+			if(I == 0){
+				idbg("des 1");
+				_rs.template pushReinit<Container, 1>(this, 0, "reinit");
+				_rs.push(crtrcvmsg, "typeid");
+			}else{
+				idbg("des 2");
+				_rs.pop();
+				if(crtrcvmsg == TestA::staticTypeId()){
+					TestA *pmsg = new TestA;
+					tstvec.push_back(pmsg);
+					_rs.push(*pmsg, "message");
+				}else if(crtrcvmsg == TestB::staticTypeId()){
+					TestB *pmsg = new TestB;
+					tstvec.push_back(pmsg);
+					_rs.push(*pmsg, "message");
+				}else{
+					return OK;
+				}
+			}
+			return CONTINUE;
+		}
 	}
 private:
 	TestVectorT tstvec;
+	size_t		crtidx;
+	uint8		crtsndmsg;
+	uint8		crtrcvmsg;
 };
 
 typedef serialization::binary::Serializer<>							BinSerializerT;
@@ -113,7 +170,7 @@ int main(int argc, char *argv[]){
 		c.push(new TestA);
 		c.push(new TestB);
 		
-		ser.push(c);
+		ser.push(c, "container");
 		
 		while((rv = ser.run(bufs[v], blen)) == blen){
 			cnt += rv;
@@ -134,7 +191,7 @@ int main(int argc, char *argv[]){
 		int					cnt = 0;
 		Container			c;
 		
-		des.push(c);
+		des.push(c, "container");
 		
 		while((rv = des.run(bufs[v], blen)) == blen){
 			cnt += rv;
