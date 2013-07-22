@@ -63,7 +63,7 @@ class Listener: public Dynamic<Listener, frame::aio::SingleObject>{
 public:
 	Listener(frame::Manager &_rm, AioSchedulerT &_rsched, const SocketDevice &_rsd, frame::aio::openssl::Context *_pctx = NULL);
 	~Listener();
-	virtual int execute(ulong, TimeSpec&);
+	/*virtual*/ int execute(ulong, TimeSpec&);
 private:
 	typedef std::auto_ptr<frame::aio::openssl::Context> SslContextPtrT;
 	int					state;

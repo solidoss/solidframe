@@ -106,6 +106,7 @@ int main(int argc, char *argv[]){
 	char					bufs[1000][blen];
 	int						rv;
 	UInt16TypeMapperT		tm;
+	
 	tm.insertHandle<TestA, Handle>();
 	tm.insertHandle<TestB, Handle>();
 	
