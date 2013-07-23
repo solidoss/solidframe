@@ -554,7 +554,9 @@ inline ulong Selector::doIo(Socket &_rsock, ulong _evs, ulong){
 		int rv = getsockopt(_rsock.descriptor(), SOL_SOCKET, SO_ERROR, &err, &len);
 		wdbgx(Debug::aio, "sock error evs = "<<_evs<<" err = "<<err<<" errstr = "<<strerror(err));
 		wdbgx(Debug::aio, "rv = "<<rv<<" "<<strerror(errno)<<" desc"<<_rsock.descriptor());
-		return ERRDONE;
+		if(rv || err || (_evs & EPOLLERR)){
+			return ERRDONE;
+		}//else ignore spurious EPOLLHUP for just created sockets
 	}
 	ulong rv = 0;
 	if(_evs & EPOLLIN){
@@ -593,7 +595,7 @@ ulong Selector::doAllIo(){
 					sockstub.selevents = t;
 					
 					epoll_event ev;
-					ev.events = t | EPOLLET;
+					ev.events = t | EPOLLERR | EPOLLHUP | EPOLLET;
 					ev.data.u64 = d.events[i].data.u64;
 					check_call(Debug::aio, 0, epoll_ctl(d.epollfd, EPOLL_CTL_MOD, sockstub.psock->descriptor(), &ev));
 				}
@@ -734,7 +736,7 @@ void Selector::doPrepareObjectWait(const ulong _pos, const TimeSpec &_timepos){
 					vdbgx(Debug::aio, "sockstub "<<*pit);
 					epoll_event ev;
 					sockstub.selevents = t;
-					ev.events = t | EPOLLET;
+					ev.events = t | EPOLLERR | EPOLLHUP | EPOLLET;
 					check_call(Debug::aio, 0, epoll_ctl(d.epollfd, EPOLL_CTL_MOD, sockstub.psock->descriptor(), d.eventPrepare(ev, _pos, *pit)));
 				}
 			}break;
@@ -748,7 +750,7 @@ void Selector::doPrepareObjectWait(const ulong _pos, const TimeSpec &_timepos){
 				epoll_event ev;
 				sockstub.psock->doPrepare();
 				sockstub.selevents = 0;
-				ev.events = (EPOLLET);
+				ev.events =  EPOLLERR | EPOLLHUP | EPOLLET;
 				check_call(Debug::aio, 0, epoll_ctl(d.epollfd, EPOLL_CTL_ADD, sockstub.psock->descriptor(), d.eventPrepare(ev, _pos, *pit)));
 				stub.objptr->socketPostEvents(*pit, OKDONE);
 				d.addNewSocket();

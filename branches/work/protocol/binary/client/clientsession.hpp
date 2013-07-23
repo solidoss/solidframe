@@ -25,7 +25,7 @@ public:
 		return false;
 	}
 	int fill(char *_pb, size_t _bl){
-		return -1;
+		return NOK;
 	}
 private:
 };
