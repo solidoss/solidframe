@@ -63,9 +63,12 @@ struct Context{
 	int value;
 };
 
-typedef serialization::binary::Serializer<Context>								BinSerializerT;
-typedef serialization::binary::Deserializer<Context>							BinDeserializerT;
-typedef serialization::IdTypeMapper<BinSerializerT, BinDeserializerT, uint16>	UInt16TypeMapperT;
+typedef serialization::binary::Serializer<Context>		BinSerializerT;
+typedef serialization::binary::Deserializer<Context>	BinDeserializerT;
+typedef serialization::IdTypeMapper<
+	BinSerializerT, BinDeserializerT, uint16,
+	serialization::FakeMutex
+>														UInt16TypeMapperT;
 
 struct Handle{
 	bool checkStore(void *, Context *_pctx)const{

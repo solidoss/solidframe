@@ -24,16 +24,22 @@
 #include <string>
 #include <typeinfo>
 #include "system/specific.hpp"
+#include "system/mutex.hpp"
 #include "utility/common.hpp"
 #include "serialization/typemapperbase.hpp"
 
 namespace solid{
 namespace serialization{
 
-template <class Ser, class Des, typename Int>
+struct FakeMutex{
+	void lock(){}
+	void unlock(){}
+};
+
+template <class Ser, class Des, typename Int, typename Mtx = Mutex>
 class IdTypeMapper: public TypeMapperBase{
 	
-	typedef IdTypeMapper<Ser, Des, Int>			ThisT;
+	typedef IdTypeMapper<Ser, Des, Int, Mtx>	ThisT;
 	typedef typename Ser::ContextT				SerContextT;
 	typedef typename Des::ContextT				DesContextT;
 	
@@ -122,26 +128,31 @@ public:
 	template <class T>
 	uint32 insert(uint32 _idx = 0){
 		typename UnsignedType<Int>::Type idx(_idx);
+		Locker<Mtx>		lock(m);
 		return this->insertFunction(&ThisT::template doMapSer<T>, &ThisT::template doMapDes<T>, idx, typeid(T).name());
 	}
 	template <class T, typename CT>
 	uint32 insert(uint32 _idx = 0){
 		typename UnsignedType<Int>::Type idx(_idx);
+		Locker<Mtx>		lock(m);
 		return this->insertFunction(&ThisT::template doMapSer<T>, &ThisT::template doMapDes<T, CT>, idx, typeid(T).name());
 	}
 	template <class T, class H>
 	uint32 insertHandle(uint32 _idx = 0){
 		typename UnsignedType<Int>::Type idx(_idx);
+		Locker<Mtx>		lock(m);
 		return this->insertFunction(&ThisT::template doMapSerHandle<T, H>, &ThisT::template doMapDesHandle<T, H>, idx, typeid(T).name());
 	}
 	template <class T>
 	uint32 insertSpecific(uint32 _idx = 0){
 		typename UnsignedType<Int>::Type idx(_idx);
+		Locker<Mtx>		lock(m);
 		return this->insertFunction(&ThisT::template doMapSer<T>, &ThisT::template doMapDesSpecific<T>, idx, typeid(T).name());
 	}
 	template <class T, typename CT>
 	uint32 insertSpecific(uint32 _idx = 0){
 		typename UnsignedType<Int>::Type idx(_idx);
+		Locker<Mtx>		lock(m);
 		return this->insertFunction(&ThisT::template doMapSer<T>, &ThisT::template doMapDesSpecific<T, CT>, idx, typeid(T).name());
 	}
 	uint32 realIdentifier(uint32 _idx)const{
@@ -154,7 +165,12 @@ private:
 		void *_pctx
 	)const{
 		uint32	*pid(NULL);
-		return (*this->function(_id, pid))(_pt, _pser, pid, _name, _pctx);
+		FncSerT	pf; 
+		{
+			Locker<Mtx> lock(m);
+			pf = this->function(_id, pid);
+		}
+		return (*pf)(_pt, _pser, pid, _name, _pctx);
 	}
 	/*virtual*/ bool prepareStorePointer(
 		void *_pser, void *_pt,
@@ -162,7 +178,12 @@ private:
 		void *_pctx
 	)const{
 		uint32	*pid(NULL);
-		return (*this->function(_pid, pid))(_pt, _pser, pid, _name, _pctx);
+		FncSerT	pf; 
+		{
+			Locker<Mtx> lock(m);
+			pf = this->function(_pid, pid);
+		}
+		return (*pf)(_pt, _pser, pid, _name, _pctx);
 	}
 	
 	/*virtual*/ bool prepareParsePointer(
@@ -172,8 +193,11 @@ private:
 	)const{
 		const Int							&rid(*reinterpret_cast<const Int*>(_rs.data()));
 		typename UnsignedType<Int>::Type	idx(rid);
-		FncDesT								pf(this->function(idx));
-		
+		FncDesT								pf;
+		{
+			Locker<Mtx> lock(m);
+			pf = this->function(idx);
+		}
 		if(pf){
 			(*pf)(_p, _pdes, _name, _pctx);
 			return true;
@@ -189,6 +213,8 @@ private:
 		Int		&rid(*reinterpret_cast<Int*>(const_cast<char*>(_rs.data())));
 		rd.push(rid, _name);
 	}
+private:
+	mutable Mtx		m;
 };
 
 }//namespace serialization
