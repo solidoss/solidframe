@@ -1,7 +1,7 @@
 /* cxxtools/base64stream.h
  *
  * cxxtools - general purpose C++-toolbox
- * Copyright (C) 2004 Tommi Maekitalo
+ * Copyright (c) (C) 2004 Tommi Maekitalo
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public

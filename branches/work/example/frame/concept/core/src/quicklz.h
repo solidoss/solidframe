@@ -2,7 +2,7 @@
 #define QLZ_HEADER
 
 // Fast data compression library
-// Copyright (C) 2006-2011 Lasse Mikkel Reinhold
+// Copyright (c) (C) 2006-2011 Lasse Mikkel Reinhold
 // lar@quicklz.com
 //
 // QuickLZ can be used for free under the GPL 1, 2 or 3 license (where anything 

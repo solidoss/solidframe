@@ -79,10 +79,10 @@ namespace{
 	Params p;
 }
 //------------------------------------------------------------------
-typedef DynamicSharedPointer<FirstMessage>	FirstMessageSharedPointerT;
-typedef Queue<FirstMessageSharedPointerT>	FirstMessageSharedPointerQueueT;
-typedef serialization::binary::Serializer										BinSerializerT;
-typedef serialization::binary::Deserializer										BinDeserializerT;
+typedef DynamicSharedPointer<FirstMessage>										FirstMessageSharedPointerT;
+typedef Queue<FirstMessageSharedPointerT>										FirstMessageSharedPointerQueueT;
+typedef serialization::binary::Serializer<>										BinSerializerT;
+typedef serialization::binary::Deserializer<>									BinDeserializerT;
 typedef serialization::IdTypeMapper<BinSerializerT, BinDeserializerT, uint16>	UInt16TypeMapperT;
 
 
