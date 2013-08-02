@@ -2,7 +2,7 @@
 
 <wiki:toc max_depth="1" />
 
-This is main release log for SolidFrame.
+Release log for SolidFrame.
 
 = 0.9.1084 =
 
