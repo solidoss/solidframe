@@ -20,13 +20,13 @@ namespace client{
 
 class Session{
 public:
-	void schedule(DynamicPointer<frame::Message> &_rmsgptr){
+	void schedule(DynamicPointer<frame::Message> &_rmsgptr, uint32 _flags = 0){
 		
 	}
 	template <class Iter>
 	void schedule(Iter _beg, const Iter _end){
 		while(_beg != _end){
-			schedule(*_beg);
+			schedule(_beg->first, _beg->second);
 			++_beg;
 		}
 	}

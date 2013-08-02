@@ -38,6 +38,7 @@
 
 #include <bitset>
 
+#define DEBUG_BITSET_SIZE 256
 
 using namespace std;
 
@@ -210,12 +211,14 @@ public:
 struct Debug::Data{
 	typedef std::bitset<DEBUG_BITSET_SIZE>	BitSetT;
 	typedef std::vector<const char*>		NameVectorT;
+	typedef std::vector<uint32>				FlagsVectorT;
 	Data():
 		lvlmsk(0), sz(0), respinsz(0), respincnt(0),
 		respinpos(0), dos(sz), dbos(sz), trace_debth(0)
 	{
 		pos = &std::cerr;
 		bs.reset();
+		fv.resize(DEBUG_BITSET_SIZE);
 	}
 	~Data(){
 #ifdef ON_WINDOWS
@@ -227,10 +230,12 @@ struct Debug::Data{
 	bool initFile(uint32 _respincnt, uint64 _respinsz, string *_poutput);
 	void doRespin();
 	bool isActive()const{return lvlmsk != 0 && !bs.none();}
+	
 	Mutex					m;
 	BitSetT					bs;
 	unsigned				lvlmsk;
 	NameVectorT				nv;
+	FlagsVectorT			fv;
 	uint64					sz;
 	uint64					respinsz;
 	uint32					respincnt;

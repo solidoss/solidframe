@@ -56,7 +56,9 @@ namespace{
 }
 
 class ClientConnection: public frame::aio::SingleObject{
-	typedef std::vector<DynamicPointer<solid::frame::Message> > MessageVectorT;
+	typedef DynamicPointer<solid::frame::Message>				MessageDynamicPointerT;
+	typedef std::pair<MessageDynamicPointerT, uint32>			MessagePairT;
+	typedef std::vector<MessagePairT>							MessageVectorT;
 	enum{
 		RecvBufferCapacity = 1024 * 4,
 		SendBufferCapacity = 1024 * 4,
@@ -73,10 +75,10 @@ public:
 	
 	/*virtual*/ int execute(ulong _evs, TimeSpec& _crtime);
 	
-	void send(DynamicPointer<solid::frame::Message>	&_rmsgptr){
+	void send(DynamicPointer<solid::frame::Message>	&_rmsgptr, const uint32 _flags = 0){
 		Locker<Mutex>	lock(rm.mutex(*this));
 		
-		sndmsgvec.push_back(_rmsgptr);
+		sndmsgvec.push_back(MessagePairT(_rmsgptr, _flags));
 		
 		if(Object::notify(frame::S_SIG | frame::S_RAISE)){
 			rm.raise(*this);
