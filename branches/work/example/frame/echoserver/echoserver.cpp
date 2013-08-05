@@ -157,7 +157,7 @@ int main(int argc, char *argv[]){
 	}
 	cout<<"Debug output: "<<dbgout<<endl;
 	dbgout.clear();
-	Debug::the().moduleBits(dbgout);
+	Debug::the().moduleNames(dbgout);
 	cout<<"Debug modules: "<<dbgout<<endl;
 	}
 #endif

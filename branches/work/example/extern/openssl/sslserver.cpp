@@ -121,7 +121,7 @@ int main(int argc, char* argv[]){
 	
 	cout<<"Debug output: "<<s<<endl;
 	s.clear();
-	Debug::the().moduleBits(s);
+	Debug::the().moduleNames(s);
 	cout<<"Debug bits: "<<s<<endl;
 #endif
 	SSL_library_init();

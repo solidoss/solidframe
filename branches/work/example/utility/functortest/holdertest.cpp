@@ -67,7 +67,7 @@ int main(){
 	Debug::the().initStdErr(false, &s);
 	cout<<"Debug output: "<<s<<endl;
 	s.clear();
-	Debug::the().moduleBits(s);
+	Debug::the().moduleNames(s);
 	cout<<"Debug bits: "<<s<<endl;
 	}
 #endif
