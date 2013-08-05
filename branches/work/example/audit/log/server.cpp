@@ -116,7 +116,7 @@ int main(int _argc, char *argv[]){
 	lm.insertListener("localhost", "8888");
 	Directory::create("log");
 	lm.insertConnector(new audit::LogBasicConnector("log"));
-	Log::the().reinit(argv[0], Log::AllLevels, "ALL", new DeviceInputOutputStream(pairfd[1],invalid_descriptor));
+	Log::the().reinit(argv[0], new DeviceInputOutputStream(pairfd[1],invalid_descriptor), "ALL");
 	
 	string s;
 	while(true){

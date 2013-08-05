@@ -102,12 +102,14 @@ struct /*EXPORT_DLL*/ Debug{
 	void levelMask(const char *_msk = NULL);
 	void moduleMask(const char *_msk = NULL);
 	
-	void moduleBits(std::string &_ros);
+	void moduleNames(std::string &_ros);
 	void setAllModuleBits();
 	void resetAllModuleBits();
 	void setModuleBit(unsigned _v);
 	void resetModuleBit(unsigned _v);
+	
 	unsigned registerModule(const char *_name);
+	
 	std::ostream& print();
 	std::ostream& print(
 		const char _t,

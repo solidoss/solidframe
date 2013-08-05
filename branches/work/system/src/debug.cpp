@@ -20,6 +20,7 @@
 #include <iostream>
 #include <fstream>
 #include <bitset>
+#include <map>
 #endif
 
 #include "system/timespec.hpp"
@@ -31,6 +32,7 @@
 #include "system/debug.hpp"
 #include "system/directory.hpp"
 #include "system/cstring.hpp"
+#include "system/filedevice.hpp"
 
 #ifdef ON_SOLARIS
 #include <strings.h>
@@ -208,17 +210,30 @@ public:
 	}
 };
 //-----------------------------------------------------------------
+struct StrLess{
+	bool operator()(const char *_str1, const char *_str2)const{
+		const int rv = cstring::casecmp(_str1, _str2);
+		return rv < 0;
+	}
+};
+struct ModuleStub{
+	ModuleStub(const char *_name, uint32 _lvlmsk):name(_name), lvlmsk(_lvlmsk){}
+	const string	name;
+	uint32			lvlmsk;
+};
 struct Debug::Data{
-	typedef std::bitset<DEBUG_BITSET_SIZE>	BitSetT;
-	typedef std::vector<const char*>		NameVectorT;
-	typedef std::vector<uint32>				FlagsVectorT;
+	typedef std::bitset<DEBUG_BITSET_SIZE>			BitSetT;
+	
+	typedef std::vector<ModuleStub>					ModuleVectorT;
+	typedef std::map<
+		const char *, unsigned, StrLess>			StringMapT;
 	Data():
 		lvlmsk(0), sz(0), respinsz(0), respincnt(0),
 		respinpos(0), dos(sz), dbos(sz), trace_debth(0)
 	{
 		pos = &std::cerr;
 		bs.reset();
-		fv.resize(DEBUG_BITSET_SIZE);
+		modvec.reserve(DEBUG_BITSET_SIZE);
 	}
 	~Data(){
 #ifdef ON_WINDOWS
@@ -231,11 +246,13 @@ struct Debug::Data{
 	void doRespin();
 	bool isActive()const{return lvlmsk != 0 && !bs.none();}
 	
+	unsigned registerModule(const char *_name, uint32 _lvlmsk);
+	
 	Mutex					m;
 	BitSetT					bs;
 	unsigned				lvlmsk;
-	NameVectorT				nv;
-	FlagsVectorT			fv;
+	ModuleVectorT			modvec;
+	StringMapT				namemap;
 	uint64					sz;
 	uint64					respinsz;
 	uint32					respincnt;
@@ -286,17 +303,7 @@ Debug::~Debug(){
 	//delete &d;
 }
 
-void Debug::Data::setBit(const char *_pbeg, const char *_pend){
-	if(!cstring::ncasecmp(_pbeg, "all", _pend - _pbeg)){
-		bs.set();
-	}else if(!cstring::ncasecmp(_pbeg, "none", _pend - _pbeg)){
-		bs.reset();
-	}else for(NameVectorT::const_iterator it(nv.begin()); it != nv.end(); ++it){
-		if(!cstring::ncasecmp(_pbeg, *it, _pend - _pbeg) && (int)strlen(*it) == (_pend - _pbeg)){
-			bs.set(it - nv.begin());
-		}
-	}
-}
+namespace{
 uint32 parseLevels(const char *_lvl){
 	if(!_lvl) return 0;
 	uint32 r = 0;
@@ -327,56 +334,109 @@ uint32 parseLevels(const char *_lvl){
 			case 'T':
 				r |= Debug::Trace;
 				break;
+			default:
+				break;
 		}
 		++_lvl;
 	}
 	return r;
 }
+}//namespace
+
+void Debug::Data::setBit(const char *_pbeg, const char *_pend){
+	std::string str;
+	str.assign(_pbeg, _pend - _pbeg);
+	std::string	name;
+	uint32		lvls = -1;
+	{
+		std::string	lvlstr;
+		
+		size_t		off = str.rfind(':');
+		
+		if(off == string::npos){
+			name = str;
+		}else{
+			name = str.substr(0, off);
+			lvlstr = str.substr(off, str.size() - off);
+		}
+		if(lvlstr.size()){
+			lvls= parseLevels(lvlstr.c_str());
+		}
+	}
+	
+	if(!cstring::ncasecmp(name.c_str(), "all", name.size())){
+		bs.set();
+	}else if(!cstring::ncasecmp(name.c_str(), "none", name.size())){
+		bs.reset();
+	}else{
+		unsigned pos = registerModule(name.c_str(), 0);
+		modvec[pos].lvlmsk = lvls;
+		bs.set(pos);
+	}
+}
+
+unsigned Debug::Data::registerModule(const char *_name, uint32 _lvlmsk){
+	std::string name = _name;
+	for(std::string::iterator it = name.begin(); it != name.end(); ++it){
+		*it = toupper(*it);
+	}
+	
+	StringMapT::const_iterator it = namemap.find(_name);
+	
+	if(it != namemap.end()){
+		return it->second;
+	}else{
+		modvec.push_back(ModuleStub(name.c_str(), _lvlmsk));
+		namemap[modvec.back().name.c_str()] = modvec.size() - 1;
+		return modvec.size() - 1;
+	}
+}
 
 void Debug::Data::setModuleMask(const char *_opt){
-	{
-		Locker<Mutex> lock(m);
-		bs.reset();
-		if(_opt){
-			const char *pbeg = _opt;
-			const char *pcrt = _opt;
-			int state = 0;
-			while(*pcrt){
-				if(state == 0){
-					if(isspace(*pcrt)){
-						++pcrt;
-						pbeg = pcrt;
-					}else{
-						++pcrt;
-						state = 1; 
-					}
-				}else if(state == 1){
-					if(!isspace(*pcrt)){
-						++pcrt;
-					}else{
-						setBit(pbeg, pcrt);
-						pbeg = pcrt;
-						state = 0;
-					}
+	enum{
+		SkipSpacesState,
+		ParseNameState
+	};
+	bs.reset();
+	if(_opt){
+		const char *pbeg = _opt;
+		const char *pcrt = _opt;
+		int state = 0;
+		while(*pcrt){
+			if(state == SkipSpacesState){
+				if(isspace(*pcrt)){
+					++pcrt;
+					pbeg = pcrt;
+				}else{
+					++pcrt;
+					state = ParseNameState; 
+				}
+			}else if(state == ParseNameState){
+				if(!isspace(*pcrt)){
+					++pcrt;
+				}else{
+					setBit(pbeg, pcrt);
+					pbeg = pcrt;
+					state = 0;
 				}
 			}
-			if(pcrt != pbeg){
-				setBit(pbeg, pcrt);
-			}
+		}
+		if(pcrt != pbeg){
+			setBit(pbeg, pcrt);
 		}
 	}
 }
 
-void filePath(string &_out, uint32 _pos, ulong _pid, const string &_path, const string &_name){
+void filePath(string &_out, uint32 _pos, const string &_path, const string &_name){
 	_out = _path;
 	_out += _name;
 	
 	char	buf[2048];
 	
 	if(_pos){
-		sprintf(buf, "_%lu_%u.dbg", _pid, _pos);
+		sprintf(buf, "_%04lu.dbg", _pos);
 	}else{
-		sprintf(buf, "_%lu.dbg", _pid);
+		sprintf(buf, ".dbg");
 	}
 	_out += buf;
 }
@@ -386,13 +446,9 @@ bool Debug::Data::initFile(uint32 _respincnt, uint64 _respinsz, string *_poutput
 	respinsz = _respinsz;
 	respinpos = 0;
 	string fpath;
-#ifdef ON_WINDOWS
-	ulong pid(_getpid());
-#else
-	ulong pid(getpid());
-#endif
-	filePath(fpath, 0, pid, path, name);
-	if(fd.create(fpath.c_str(), FileDevice::WO)) return false;
+	filePath(fpath, 0, path, name);
+	if(fd.open(fpath.c_str(), FileDevice::WO | FileDevice::CR | FileDevice::AP)) return false;
+	sz = fd.size();
 	if(_poutput){
 		*_poutput = fpath;
 	}
@@ -402,34 +458,41 @@ bool Debug::Data::initFile(uint32 _respincnt, uint64 _respinsz, string *_poutput
 void Debug::Data::doRespin(){
 	sz = 0;
 	string fname;
-#ifdef ON_WINDOWS
-	ulong pid(_getpid());
-#else
-	ulong pid(getpid());
-#endif
-
-	//first we erase the oldest file:
-	if(respinpos > respincnt){
-		filePath(fname, respinpos - respincnt, pid, path, name);
+	//find the last file
+	if(respincnt == 0){
+		filePath(fname, 0, path, name);
 		Directory::eraseFile(fname.c_str());
-	}
-	fname.clear();
-	++respinpos;
-
-	//rename the curent file name_PID.dbg to name_PID_RESPINPOS.dbg
-	filePath(fname, respinpos, pid, path, name);
-	string crtname;
-	filePath(crtname, 0, pid, path, name);
-	fd.close();
-	if(pos == &dos){
-		dos.device(fd);//close the current file
-	}else if(pos == &dbos){
-		dbos.device(fd);//close the current file
 	}else{
-		cassert(false);
+		uint32 lastpos = respincnt;
+		while(lastpos > 1){
+			filePath(fname, lastpos, path, name);
+			if(FileDevice::size(fname.c_str()) >= 0){
+				break;
+			}
+			--lastpos;
+		}
+		string frompath;
+		string topath;
+		
+		if(lastpos == respincnt){
+			filePath(topath, 1, path, name);
+			for(uint32 i = 2; i <= respincnt; ++i){
+				filePath(frompath, i, path, name);
+				Directory::renameFile(topath.c_str(), frompath.c_str());
+				topath = frompath;
+			}
+		}else{
+			++lastpos;
+		}
+		
+		filePath(frompath, 0, path, name);
+		filePath(topath, lastpos, path, name);
+		Directory::renameFile(topath.c_str(), frompath.c_str());
+		fname = frompath;
 	}
-	Directory::renameFile(fname.c_str(), crtname.c_str());
-	if(fd.create(crtname.c_str(), FileDevice::WO)){
+	
+	
+	if(fd.create(fname.c_str(), FileDevice::WO)){
 		pos = &cerr;
 	}else{
 		if(pos == &dos){
@@ -580,23 +643,24 @@ void Debug::initSocket(
 }
 
 void Debug::levelMask(const char *_msk){
-	Locker<Mutex> lock(d.m);
 	if(!_msk){
 		_msk = "iewrvt";
 	}
+	Locker<Mutex> lock(d.m);
 	d.lvlmsk = parseLevels(_msk);
 }
 void Debug::moduleMask(const char *_msk){
 	if(!_msk){
 		_msk = "all";
 	}
+	Locker<Mutex> lock(d.m);
 	d.setModuleMask(_msk);
 }
 
-void Debug::moduleBits(std::string &_ros){
+void Debug::moduleNames(std::string &_ros){
 	Locker<Mutex> lock(d.m);
-	for(Data::NameVectorT::const_iterator it(d.nv.begin()); it != d.nv.end(); ++it){
-		_ros += *it;
+	for(Data::ModuleVectorT::const_iterator it(d.modvec.begin()); it != d.modvec.end(); ++it){
+		_ros += it->name;
 		_ros += ' ';
 	}
 }
@@ -618,8 +682,7 @@ void Debug::resetModuleBit(unsigned _v){
 }
 unsigned Debug::registerModule(const char *_name){
 	Locker<Mutex> lock(d.m);
-	d.nv.push_back(_name);
-	return d.nv.size() - 1;
+	return d.registerModule(_name, -1);
 }
 
 std::ostream& Debug::print(){
@@ -659,7 +722,7 @@ std::ostream& Debug::print(
 		ploctm->tm_min,
 		ploctm->tm_sec,
 		(uint)ts_now.nanoSeconds()/1000000,
-		d.nv[_module]//,
+		d.modvec[_module].name.c_str()//,
 		//Thread::currentId()
 	);
 #ifdef ON_WINDOWS
@@ -718,9 +781,9 @@ std::ostream& Debug::printTraceIn(
 	d.pos->write(tabs, d.trace_debth);
 	++d.trace_debth;
 #ifdef ON_WINDOWS
-	(*d.pos)<<'['<<d.nv[_module]<<']'<<'['<<src_file_name(_file)<<':'<<_line<<"]["<<Thread::currentId()<<']'<<' '<<_fnc<<'(';
+	(*d.pos)<<'['<<d.modvec[_module].name<<']'<<'['<<src_file_name(_file)<<':'<<_line<<"]["<<Thread::currentId()<<']'<<' '<<_fnc<<'(';
 #else
-	(*d.pos)<<'['<<d.nv[_module]<<']'<<'['<<src_file_name(_file)<<':'<<_line<<"][0x"<<std::hex<<Thread::currentId()<<std::dec<<']'<<' '<<_fnc<<'(';
+	(*d.pos)<<'['<<d.modvec[_module].name<<']'<<'['<<src_file_name(_file)<<':'<<_line<<"][0x"<<std::hex<<Thread::currentId()<<std::dec<<']'<<' '<<_fnc<<'(';
 #endif
 	return (*d.pos);
 }
@@ -764,9 +827,9 @@ std::ostream& Debug::printTraceOut(
 	--d.trace_debth;
 	d.pos->write(tabs, d.trace_debth);
 #ifdef ON_WINDOWS
-	(*d.pos)<<'['<<d.nv[_module]<<']'<<'['<<src_file_name(_file)<<':'<<_line<<"]["<<Thread::currentId()<<']'<<' '<<'}'<<_fnc<<'(';
+	(*d.pos)<<'['<<d.modvec[_module].name<<']'<<'['<<src_file_name(_file)<<':'<<_line<<"]["<<Thread::currentId()<<']'<<' '<<'}'<<_fnc<<'(';
 #else
-	(*d.pos)<<'['<<d.nv[_module]<<']'<<'['<<src_file_name(_file)<<':'<<_line<<"][0x"<<std::hex<<Thread::currentId()<<std::dec<<']'<<' '<<'}'<<_fnc<<'(';
+	(*d.pos)<<'['<<d.modvec[_module].name<<']'<<'['<<src_file_name(_file)<<':'<<_line<<"][0x"<<std::hex<<Thread::currentId()<<std::dec<<']'<<' '<<'}'<<_fnc<<'(';
 #endif
 	return (*d.pos);
 }
@@ -788,7 +851,7 @@ void Debug::doneTraceOut(){
 }
 
 bool Debug::isSet(Level _lvl, unsigned _v)const{
-	return (d.lvlmsk & _lvl) && _v < d.bs.size() && d.bs[_v];
+	return (d.lvlmsk & _lvl) && _v < d.bs.size() && d.bs[_v] && d.modvec[_v].lvlmsk & _lvl;
 }
 Debug::Debug():d(*(new Data)){
 	resetAllModuleBits();

@@ -59,8 +59,8 @@ struct LogHead{
 		uint32 _procid = 0,
 		uint16 _procnamelen = 0,
 		uint16 _modulecnt = 0
-	):version(1), procnamelen(_procnamelen),
-		procid(_procid), modulecnt(_modulecnt), flags(0xffff){}
+	):procid(_procid), version(1), procnamelen(_procnamelen),
+		 modulecnt(_modulecnt), flags(0xffff){}
 	
 	void convertToNetwork(){
 		version = toNetwork(version);
@@ -74,9 +74,10 @@ struct LogHead{
 		procid = toHost(procid);
 		modulecnt = toHost(modulecnt);
 	}
+	
+	uint32	procid;
 	uint16	version;
 	uint16	procnamelen;
-	uint32	procid;
 	uint16	modulecnt;
 	uint16	flags;
 };

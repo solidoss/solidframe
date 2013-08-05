@@ -73,6 +73,7 @@ public:
 		Debug = 8,
 		Input = 16,
 		Output = 32,
+		Verbose = 64,
 		AllLevels = 0xffff
 	};
 	
@@ -80,7 +81,11 @@ public:
 	
 	static Log& the();
 	
-	bool reinit(const char* _procname, uint32 _lvlmsk = 0, const char *_modopt = NULL, OutputStream *_pos = NULL);
+	
+	void levelMask(const char *_msk = NULL);
+	void moduleMask(const char *_msk = NULL);
+	
+	bool reinit(const char* _procname, OutputStream *_pos, const char *_modmsk = NULL, const char *_lvlmsk = NULL);
 	
 	void reinit(OutputStream *_pos);
 	

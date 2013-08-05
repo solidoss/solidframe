@@ -9,6 +9,7 @@
 //
 #include <bitset>
 #include <vector>
+#include <map>
 #include <cstring>
 #include "audit/log.hpp"
 #include "system/common.hpp"
@@ -87,31 +88,49 @@ protected:
 		return _sz;
 	}
 };
+//-----------------------------------------------------------------
+struct StrLess{
+	bool operator()(const char *_str1, const char *_str2)const{
+		const int rv = cstring::casecmp(_str1, _str2);
+		return rv < 0;
+	}
+};
+struct ModuleStub{
+	ModuleStub(const char *_name, uint32 _lvlmsk):name(_name), lvlmsk(_lvlmsk){}
+	const string	name;
+	uint32			lvlmsk;
+};
 
 struct Log::Data: std::ostream{
-	typedef std::bitset<LOG_BITSET_SIZE>	BitSetT;
-	typedef std::vector<const char*>		NameVectorT;
+	typedef std::bitset<LOG_BITSET_SIZE>			BitSetT;
+	typedef std::vector<ModuleStub>					ModuleVectorT;
+	typedef std::map<
+		const char *, unsigned, StrLess>			StringMapT;
 
 	Data():std::ostream(0), lvlmsk(0), pos(NULL){
 		rdbuf(&outbuf);
+		bs.reset();
+		modvec.reserve(LOG_BITSET_SIZE);
 	}
 	~Data(){
 		delete pos;
 	}
 	
-	void setModuleBit(const char *_pbeg, const char *_pend);
-	void parseModuleOptions(const char *_modopt);
+	void setModuleMask(const char*);
+	void setBit(const char *_pbeg, const char *_pend);
 	void sendInfo();
 	inline bool isActive()const{
-		return lvlmsk != 0 && bs.any();
+		return pos && lvlmsk != 0 && bs.any();
 	}
+	unsigned registerModule(const char *_name, uint32 _lvlmsk = 0);
 //data:
 	uint32			lvlmsk;
 	uint32			lvlmsk_set;
 	OutputStream	*pos;
 	stringoutbuf	outbuf;
 	BitSetT			bs;
-	NameVectorT		nv;
+	ModuleVectorT	modvec;
+	StringMapT		namemap;
 	Mutex			m;
 	string			procname;
 };
@@ -119,60 +138,142 @@ struct Log::Data: std::ostream{
 /*static*/ const unsigned Log::any(Log::the().registerModule("ANY"));
 
 //=====================================================================
-void Log::Data::setModuleBit(const char *_pbeg, const char *_pend){
-	if(!cstring::ncasecmp(_pbeg, "NONE", _pend - _pbeg)){
-		bs.reset();
-	}else if(!cstring::ncasecmp(_pbeg, "ALL", _pend - _pbeg)){
-		bs.set();
-	}else for(NameVectorT::const_iterator it(nv.begin()); it != nv.end(); ++it){
-		if(!cstring::ncasecmp(_pbeg, *it, _pend - _pbeg) && (int)strlen(*it) == (_pend - _pbeg)){
-			bs.set(it - nv.begin());
+
+namespace{
+uint32 parseLevels(const char *_lvl){
+	if(!_lvl) return 0;
+	uint32 r = 0;
+	
+	while(*_lvl){
+		switch(*_lvl){
+			case 'i':
+			case 'I':
+				r |= Log::Info;
+				break;
+			case 'e':
+			case 'E':
+				r |= Log::Error;
+				break;
+			case 'w':
+			case 'W':
+				r |= Log::Warn;
+				break;
+			case 'v':
+			case 'V':
+				r |= Log::Verbose;
+				break;
+			case 'c':
+				r |= Log::Input;
+				break;
+			case 'C':
+				r |= Log::Output;
+				break;
+			default:
+				break;
 		}
+		++_lvl;
+	}
+	return r;
+}
+}//namespace
+
+void Log::Data::setBit(const char *_pbeg, const char *_pend){
+	std::string str;
+	str.assign(_pbeg, _pend - _pbeg);
+	std::string	name;
+	uint32		lvls = -1;
+	{
+		std::string	lvlstr;
+		
+		size_t		off = str.rfind(':');
+		
+		if(off == string::npos){
+			name = str;
+		}else{
+			name = str.substr(0, off);
+			lvlstr = str.substr(off, str.size() - off);
+		}
+		if(lvlstr.size()){
+			lvls= parseLevels(lvlstr.c_str());
+		}
+	}
+	
+	if(!cstring::ncasecmp(name.c_str(), "all", name.size())){
+		bs.set();
+	}else if(!cstring::ncasecmp(name.c_str(), "none", name.size())){
+		bs.reset();
+	}else{
+		unsigned pos = registerModule(name.c_str(), 0);
+		modvec[pos].lvlmsk = lvls;
+		bs.set(pos);
 	}
 }
 
-void Log::Data::parseModuleOptions(const char *_modopt){
-	if(_modopt){
-		const char *pbeg = _modopt;
-		const char *pcrt = _modopt;
+unsigned Log::Data::registerModule(const char *_name, uint32 _lvlmsk){
+	std::string name = _name;
+	for(std::string::iterator it = name.begin(); it != name.end(); ++it){
+		*it = toupper(*it);
+	}
+	
+	StringMapT::const_iterator it = namemap.find(_name);
+	
+	if(it != namemap.end()){
+		return it->second;
+	}else{
+		modvec.push_back(ModuleStub(name.c_str(), _lvlmsk));
+		namemap[modvec.back().name.c_str()] = modvec.size() - 1;
+		return modvec.size() - 1;
+	}
+}
+
+void Log::Data::setModuleMask(const char *_opt){
+	enum{
+		SkipSpacesState,
+		ParseNameState
+	};
+	bs.reset();
+	if(_opt){
+		const char *pbeg = _opt;
+		const char *pcrt = _opt;
 		int state = 0;
 		while(*pcrt){
-			if(state == 0){
+			if(state == SkipSpacesState){
 				if(isspace(*pcrt)){
 					++pcrt;
 					pbeg = pcrt;
 				}else{
 					++pcrt;
-					state = 1; 
+					state = ParseNameState; 
 				}
-			}else if(state == 1){
+			}else if(state == ParseNameState){
 				if(!isspace(*pcrt)){
 					++pcrt;
 				}else{
-					setModuleBit(pbeg, pcrt);
+					setBit(pbeg, pcrt);
 					pbeg = pcrt;
 					state = 0;
 				}
 			}
 		}
 		if(pcrt != pbeg){
-			setModuleBit(pbeg, pcrt);
+			setBit(pbeg, pcrt);
 		}
 	}
 }
+
 void Log::Data::sendInfo(){
 	if(!pos || !isActive()) return;
 	//we send - version, the process id, the process name, the list of modules
-	audit::LogHead lh(Thread::processId(), procname.size(), nv.size());
+	audit::LogHead lh(Thread::processId(), procname.size(), modvec.size());
 	lh.convertToNetwork();
 	pos->write((const char*) &lh, sizeof(lh));
 	//now write the procname
 	pos->write(procname.data(), procname.size());
-	for(NameVectorT::const_iterator it(nv.begin()); it != nv.end(); ++it){
-		uint32 hsz = strlen(*it);
+	for(ModuleVectorT::const_iterator it(modvec.begin()); it != modvec.end(); ++it){
+		uint32 hsz = it->name.size();
 		uint32 sz = toNetwork(hsz);
 		pos->write((const char*)&sz, 4);
-		pos->write(*it, hsz);
+		pos->write(it->name.c_str(), hsz);
 	}
 }
 //=====================================================================
@@ -228,15 +329,31 @@ Log::~Log(){
 	delete &d;
 }
 
-bool Log::reinit(const char* _procname, uint32 _lvlmsk, const char *_modopt, OutputStream *_pos){
+void Log::levelMask(const char *_msk){
+	Locker<Mutex> lock(d.m);
+	if(!_msk){
+		_msk = "iewvcd";
+	}
+	d.lvlmsk = parseLevels(_msk);
+}
+void Log::moduleMask(const char *_msk){
+	Locker<Mutex> lock(d.m);
+	if(!_msk){
+		_msk = "all";
+	}
+	d.setModuleMask(_msk);
+}
+
+bool Log::reinit(const char* _procname, OutputStream *_pos, const char *_modmsk, const char *_lvlmsk){
 	Locker<Mutex> lock(d.m);
 	delete d.pos;
 	d.pos = _pos;
-	d.lvlmsk_set = _lvlmsk;
-	//this is to ensure we have only to check the level mask and not the outstream too
-	if(d.pos) d.lvlmsk = _lvlmsk;
-	else d.lvlmsk = 0;
-	d.parseModuleOptions(_modopt);
+	if(!_lvlmsk){
+		_lvlmsk = "iewvcCd";
+	}
+	uint32 lvlmsk = parseLevels(_lvlmsk);
+	d.lvlmsk = lvlmsk;
+	d.setModuleMask(_modmsk);
 	d.procname = _procname;
 	d.sendInfo();
 	return d.isActive();
@@ -246,15 +363,13 @@ void Log::reinit(OutputStream *_pos){
 	Locker<Mutex> lock(d.m);
 	delete d.pos;
 	d.pos = _pos;
-	if(d.pos) d.lvlmsk = d.lvlmsk_set;
-	else d.lvlmsk = 0;
 	d.sendInfo();
 }
 
 void Log::moduleNames(std::string &_ros){
 	Locker<Mutex> lock(d.m);
-	for(Data::NameVectorT::const_iterator it(d.nv.begin()); it != d.nv.end(); ++it){
-		_ros += *it;
+	for(Data::ModuleVectorT::const_iterator it(d.modvec.begin()); it != d.modvec.end(); ++it){
+		_ros += it->name;
 		_ros += ' ';
 	}
 }
@@ -276,8 +391,7 @@ void Log::resetModuleBit(unsigned _v){
 }
 unsigned Log::registerModule(const char *_name){
 	Locker<Mutex> lock(d.m);
-	d.nv.push_back(_name);
-	return d.nv.size() - 1;
+	return d.registerModule(_name);
 }
 
 std::ostream& Log::record(

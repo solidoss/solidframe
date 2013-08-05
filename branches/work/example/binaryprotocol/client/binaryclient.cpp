@@ -32,6 +32,7 @@ namespace{
 		bool		dbg_console;
 		bool		dbg_buffered;
 		bool		log;
+		uint32		repeat;
 	};
 
 	Mutex					mtx;
@@ -220,16 +221,27 @@ int main(int argc, char *argv[]){
 			*argv[0] == '.' ? argv[0] + 2 : argv[0],
 			p.dbg_buffered,
 			3,
-			1024 * 1024 * 64,
+			1024 * 1024 * 1,
 			&dbgout
 		);
 	}
 	cout<<"Debug output: "<<dbgout<<endl;
 	dbgout.clear();
-	Debug::the().moduleBits(dbgout);
+	Debug::the().moduleNames(dbgout);
 	cout<<"Debug modules: "<<dbgout<<endl;
 	}
 #endif
+	for(uint32 i = 0; i < p.repeat; ++i){
+		vdbgx(Debug::aio, i<<" verbose message verbose message verbose message verbose message verbose message verbose message verbose message ");
+		idbgx(Debug::aio, i<<" info message info message info message info message info message info message info message info message");
+		edbgx(Debug::aio, i<<" error message error message error message error message error message error message error message error message ");
+		wdbgx(Debug::aio, i<<" warning message warning message warning message warning message warning message warning message warning message ");
+		
+		vdbg(i<<" verbose message verbose message verbose message verbose message verbose message verbose message verbose message ");
+		idbg(i<<" info message info message info message info message info message info message info message info message");
+		edbg(i<<" error message error message error message error message error message error message error message error message ");
+		wdbg(i<<" warning message warning message warning message warning message warning message warning message warning message ");
+	}
 	
 	{
 		typedef DynamicSharedPointer<ClientConnection>	ClientConnectionPointerT;
@@ -282,6 +294,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 		desc.add_options()
 			("help,h", "List program options")
 			("port,p", value<int>(&_par.port)->default_value(2000),"Server port")
+			("repeat,r", value<uint32>(&_par.repeat)->default_value(0),"Repeat")
 			("address,a", value<string>(&_par.address_str)->default_value("localhost"),"Server address")
 			("debug_levels,L", value<string>(&_par.dbg_levels)->default_value("view"),"Debug logging levels")
 			("debug_modules,M", value<string>(&_par.dbg_modules)->default_value("any"),"Debug logging modules")

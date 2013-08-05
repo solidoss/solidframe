@@ -8,6 +8,7 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 #include <iostream>
+#include <sstream>
 #include <signal.h>
 #include "system/debug.hpp"
 #include "system/mutex.hpp"
@@ -185,8 +186,16 @@ int main(int argc, char* argv[]){
 			&dbgout
 		);
 	}else{
+		ostringstream oss;
+		if(*argv[0] == '.'){
+			oss<<argv[0] + 2;
+		}else{
+			oss<<argv[0];
+		}
+		oss<<'_'<<p.start_port;
+		
 		Debug::the().initFile(
-			*argv[0] == '.' ? argv[0] + 2 : argv[0],
+			oss.str().c_str(),
 			p.dbg_buffered,
 			3,
 			1024 * 1024 * 64,
@@ -195,7 +204,7 @@ int main(int argc, char* argv[]){
 	}
 	cout<<"Debug output: "<<dbgout<<endl;
 	dbgout.clear();
-	Debug::the().moduleBits(dbgout);
+	Debug::the().moduleNames(dbgout);
 	cout<<"Debug modules: "<<dbgout<<endl;
 	}
 #endif
@@ -208,7 +217,7 @@ int main(int argc, char* argv[]){
 		lm.insertListener("localhost", "3333");
 		Directory::create("log");
 		lm.insertConnector(new audit::LogBasicConnector("log"));
-		solid::Log::the().reinit(argv[0], Log::AllLevels, "ALL", new DeviceInputOutputStream(pairfd[1],-1));
+		solid::Log::the().reinit(argv[0],  new DeviceInputOutputStream(pairfd[1],-1), "ALL");
 	}
 	int stime;
 	long ltime;
