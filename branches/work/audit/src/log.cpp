@@ -309,10 +309,10 @@ void stringoutbuf::current(
 ){
 	_file += fileoff;
 	clear();
-	uint32	filenamelen = strlen(_file) + 1;//including the terminal \0
-	uint32	functionnamelen = strlen(_function) + 1;//including the terminal \0
-	audit::LogRecordHead &lh(*((audit::LogRecordHead*)s.data()));
-	TimeSpec tt;
+	uint32					filenamelen = strlen(_file) + 1;//including the terminal \0
+	uint32					functionnamelen = strlen(_function) + 1;//including the terminal \0
+	audit::LogRecordHead	&lh(*((audit::LogRecordHead*)s.data()));
+	TimeSpec				tt;
 	tt.currentRealTime();
 	//tt -= ct;
 	lh.set(_level, _module, _id, _line, static_cast<uint32>(tt.seconds()), tt.nanoSeconds());
@@ -337,7 +337,7 @@ void Log::levelMask(const char *_msk){
 	d.lvlmsk = parseLevels(_msk);
 }
 void Log::moduleMask(const char *_msk){
-	Locker<Mutex> lock(d.m);
+	Locker<Mutex>	lock(d.m);
 	if(!_msk){
 		_msk = "all";
 	}
@@ -345,13 +345,13 @@ void Log::moduleMask(const char *_msk){
 }
 
 bool Log::reinit(const char* _procname, OutputStream *_pos, const char *_modmsk, const char *_lvlmsk){
-	Locker<Mutex> lock(d.m);
+	Locker<Mutex>	lock(d.m);
 	delete d.pos;
 	d.pos = _pos;
 	if(!_lvlmsk){
 		_lvlmsk = "iewvcCd";
 	}
-	uint32 lvlmsk = parseLevels(_lvlmsk);
+	uint32			lvlmsk = parseLevels(_lvlmsk);
 	d.lvlmsk = lvlmsk;
 	d.setModuleMask(_modmsk);
 	d.procname = _procname;
@@ -360,37 +360,37 @@ bool Log::reinit(const char* _procname, OutputStream *_pos, const char *_modmsk,
 }
 
 void Log::reinit(OutputStream *_pos){
-	Locker<Mutex> lock(d.m);
+	Locker<Mutex>	lock(d.m);
 	delete d.pos;
 	d.pos = _pos;
 	d.sendInfo();
 }
 
 void Log::moduleNames(std::string &_ros){
-	Locker<Mutex> lock(d.m);
+	Locker<Mutex>	lock(d.m);
 	for(Data::ModuleVectorT::const_iterator it(d.modvec.begin()); it != d.modvec.end(); ++it){
 		_ros += it->name;
 		_ros += ' ';
 	}
 }
 void Log::setAllModuleBits(){
-	Locker<Mutex> lock(d.m);
+	Locker<Mutex>	lock(d.m);
 	d.bs.set();
 }
 void Log::resetAllModuleBits(){
-	Locker<Mutex> lock(d.m);
+	Locker<Mutex>	lock(d.m);
 	d.bs.reset();
 }
 void Log::setModuleBit(unsigned _v){
-	Locker<Mutex> lock(d.m);
+	Locker<Mutex>	lock(d.m);
 	d.bs.set(_v);
 }
 void Log::resetModuleBit(unsigned _v){
-	Locker<Mutex> lock(d.m);
+	Locker<Mutex>	lock(d.m);
 	d.bs.reset(_v);
 }
 unsigned Log::registerModule(const char *_name){
-	Locker<Mutex> lock(d.m);
+	Locker<Mutex>	lock(d.m);
 	return d.registerModule(_name);
 }
 
@@ -411,8 +411,8 @@ void Log::done(){
 	d.pos->write(d.outbuf.data(), d.outbuf.size());
 	d.m.unlock();
 }
-bool Log::isSet(unsigned _mod, unsigned _level)const{
-	return (d.lvlmsk & _level) && d.bs[_mod];
+bool Log::isSet(unsigned _v, unsigned _lvl)const{
+	return (d.lvlmsk & _lvl) && _v < d.bs.size() && d.bs[_v] && d.modvec[_v].lvlmsk & _lvl;
 }
 
 }//namespace solid
