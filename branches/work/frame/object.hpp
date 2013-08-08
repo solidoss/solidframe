@@ -42,7 +42,10 @@ class Object: public Dynamic<Object, DynamicShared<> >{
 public:
 	static const TimeSpec& currentTime();
 	
-	//!Get the curent object associated to the current thread
+	//!Get the object associated to the current thread
+	/*!
+	 \see Object::associateToCurrentThread
+	*/ 
 	static Object& specific();
 	
 	//! Returns true if the object is signaled

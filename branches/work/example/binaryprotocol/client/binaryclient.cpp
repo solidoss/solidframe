@@ -74,8 +74,6 @@ class ClientConnection: public frame::aio::SingleObject{
 public:
 	ClientConnection(frame::Manager &_rm, const ResolveData &_rd):rm(_rm), rd(_rd), st(PrepareState){}
 	
-	/*virtual*/ int execute(ulong _evs, TimeSpec& _crtime);
-	
 	void send(DynamicPointer<solid::frame::Message>	&_rmsgptr, const uint32 _flags = 0){
 		Locker<Mutex>	lock(rm.mutex(*this));
 		
@@ -85,6 +83,8 @@ public:
 			rm.raise(*this);
 		}
 	}
+private:
+	/*virtual*/ int execute(ulong _evs, TimeSpec& _crtime);
 	int done(){
 		idbg("");
 		Locker<Mutex>	lock(mtx);
@@ -96,7 +96,7 @@ private:
 	frame::Manager						&rm;
 	ResolveData							rd;
 	uint16								st;
-	protocol::binary::client::Session	protoses;
+	protocol::binary::client::Session	session;
 	MessageVectorT						sndmsgvec;
 	char								recvbuf[RecvBufferCapacity];
 	char								sendbuf[SendBufferCapacity];
@@ -108,7 +108,7 @@ private:
 		if(sm & frame::S_KILL) return done();
 		if(sm & frame::S_SIG){
 			Locker<Mutex>	lock(rm.mutex(*this));
-			protoses.schedule(sndmsgvec.begin(), sndmsgvec.end());
+			session.schedule(sndmsgvec.begin(), sndmsgvec.end());
 			sndmsgvec.clear();
 		}
 	}
@@ -118,7 +118,7 @@ private:
 	}
 	if(_evs & frame::INDONE){
 		idbg("indone");
-		if(!protoses.consume(recvbuf, this->socketRecvSize())){
+		if(!session.consume(recvbuf, this->socketRecvSize())){
 			return done();
 		}
 	}
@@ -129,7 +129,7 @@ private:
 			switch(this->socketRecv(recvbuf, RecvBufferCapacity)){
 				case BAD: return done();
 				case OK:
-					if(!protoses.consume(recvbuf, this->socketRecvSize())){
+					if(!session.consume(recvbuf, this->socketRecvSize())){
 						return done();
 					}
 					reenter = true;
@@ -141,7 +141,7 @@ private:
 		if(!this->socketHasPendingSend()){
 			int cnt = 4;
 			while((cnt--) > 0){
-				int rv = protoses.fill(sendbuf, SendBufferCapacity);
+				int rv = session.fill(sendbuf, SendBufferCapacity);
 				if(rv == BAD) return done();
 				if(rv == NOK) break;
 				switch(this->socketSend(sendbuf, rv)){
@@ -303,14 +303,6 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 			("debug_console,C", value<bool>(&_par.dbg_console)->implicit_value(false)->default_value(true), "Debug console")
 			("debug_unbuffered,S", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered")
 			("use_log,l", value<bool>(&_par.log)->implicit_value(true)->default_value(false), "Debug buffered")
-	/*		("verbose,v", po::value<int>()->implicit_value(1),
-					"enable verbosity (optionally specify level)")*/
-	/*		("listen,l", po::value<int>(&portnum)->implicit_value(1001)
-					->default_value(0,"no"),
-					"listen on a port.")
-			("include-path,I", po::value< vector<string> >(),
-					"include path")
-			("input-file", po::value< vector<string> >(), "input file")*/
 		;
 		variables_map vm;
 		store(parse_command_line(argc, argv, desc), vm);

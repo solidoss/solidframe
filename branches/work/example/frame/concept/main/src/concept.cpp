@@ -18,8 +18,6 @@
 
 #include "core/manager.hpp"
 #include "alpha/alphaservice.hpp"
-#include "beta/betaservice.hpp"
-#include "beta/betamessages.hpp"
 #include "proxy/proxyservice.hpp"
 #include "gamma/gammaservice.hpp"
 #include "audit/log/logmanager.hpp"
@@ -94,36 +92,6 @@ struct Params{
 	SocketAddressInet4VectorT		ipcgwaddrvec;
 };
 
-struct ResultWaiter: concept::beta::SignalWaiter{
-	ResultWaiter():s(false){}
-	void prepare(){
-		s = false;
-	}
-	void signal(const ObjectUidT &_v){
-		Locker<Mutex> lock(m);
-		v = _v;
-		s = true;
-		c.signal();
-	}
-	void signal(){
-		Locker<Mutex> lock(m);
-		s = true;
-		c.signal();
-	}
-	ObjectUidT wait(){
-		Locker<Mutex> lock(m);
-		while(!s){
-			c.wait(lock);
-		}
-		return v;
-	}
-	Mutex		m;
-	Condition	c;
-	ObjectUidT	v;
-	bool		s;
-};
-
-
 bool parseArguments(Params &_par, int argc, char *argv[]);
 
 bool insertListener(
@@ -133,23 +101,6 @@ bool insertListener(
 	int _port,
 	bool _secure
 );
-
-void insertConnection(
-	concept::beta::Service &_rsvc,
-	const char *_name,
-	const char *_addr,
-	const char *_port,
-	bool _secure
-);
-
-int insertConnection(
-	concept::beta::Service &_rsvc,
-	const char *_name,
-	char *_pc,
-	int _len
-);
-
-int sendBetaLogin(concept::Manager& _rm, ResultWaiter &_rw, char *_pc, int _len);
 
 int main(int argc, char* argv[]){
 	signal(SIGPIPE, SIG_IGN);
@@ -241,15 +192,12 @@ int main(int argc, char* argv[]){
 		concept::alpha::Service		alphasvc(m);
 		concept::proxy::Service		proxysvc(m);
 		concept::gamma::Service		gammasvc(m);
-		concept::beta::Service		betasvc(m);
-		ResultWaiter				rw;
 		
 		m.start();
 		
 		m.registerService(alphasvc);
 		m.registerService(proxysvc);
 		m.registerService(gammasvc);
-		m.registerService(betasvc);
 		
 		if(true){
 			int port = p.start_port + 222;
@@ -297,13 +245,6 @@ int main(int argc, char* argv[]){
 			}
 		}
 		
-		if(true){//creates and registers a new alpha service
-			if(!insertListener(betasvc, "beta", "0.0.0.0", p.start_port + 414, false)){
-				m.stop();
-				break;
-			}
-		}
-		
 		char buf[2048];
 		int rc = 0;
 		// the small CLI loop
@@ -325,14 +266,6 @@ int main(int argc, char* argv[]){
 				printHelp();
 				continue;
 			}
-			if(!strncasecmp(buf,"addbetaconnection", 17)){
-				rc = insertConnection(betasvc, "beta", buf + 17, cin.gcount() - 17);
-				continue;
-			}
-			if(!strncasecmp(buf,"betalogin", 9)){
-				rc = sendBetaLogin(m, rw, buf + 9, cin.gcount() - 9);
-				continue;
-			}
 			cout<<"Error parsing command line"<<endl;
 		}
 	}while(false);
@@ -345,9 +278,6 @@ void printHelp(){
 	cout<<"Server commands:"<<endl;
 	cout<<"[quit]:\tStops the server and exits the application"<<endl;
 	cout<<"[help]:\tPrint this text"<<endl;
-	cout<<"[addbetaconnection SP addr SP port]: adds new alpha connection"<<endl;
-	cout<<"[betalogin SP user SP pass]: send a beta::login command"<<endl;
-	cout<<"[betacancel SP tag]: send a beta::cancel command"<<endl;
 }
 
 bool insertListener(
@@ -369,73 +299,6 @@ bool insertListener(
 }
 
 static frame::ObjectUidT crtcon(frame::invalid_uid());
-
-void insertConnection(
-	concept::beta::Service &_rsvc,
-	const char *_name,
-	const char *_addr,
-	const char *_port,
-	bool _secure
-){
-	ResolveData		rd = synchronous_resolve(_addr, _port, 0, SocketInfo::Inet4, SocketInfo::Stream);
-	
-	crtcon = _rsvc.insertConnection(rd, NULL, _secure);
-}
-
-int insertConnection(
-	concept::beta::Service &_rsvc,
-	const char *_name,
-	char *_pc,
-	int _len
-){
-	if(*_pc != ' ') return -1;
-	++_pc;
-	string node;
-	while(*_pc != ' ' && *_pc != 0){
-		node += *_pc;
-		++_pc;
-	}
-	if(*_pc != ' ') return -1;
-	++_pc;
-	string srv;
-	while(*_pc != ' ' && *_pc != 0){
-		srv += *_pc;
-		++_pc;
-	}
-	insertConnection(_rsvc, _name, node.c_str(), srv.c_str(), false);
-	return 0;
-}
-
-int sendBetaLogin(concept::Manager &_rm, ResultWaiter &_rw, char *_pc, int _len){
-	if(*_pc != ' ') return -1;
-	++_pc;
-	string user;
-	while(*_pc != ' ' && *_pc != 0){
-		user += *_pc;
-		++_pc;
-	}
-	if(*_pc != ' ') return -1;
-	++_pc;
-	string pass;
-	while(*_pc != ' ' && *_pc != 0){
-		pass += *_pc;
-		++_pc;
-	}
-	
-	_rw.prepare();
-	
-	concept::beta::LoginMessage		login(_rw);
-	DynamicPointer<frame::Message>	dp(&login);
-	login.user = user;
-	login.pass = pass;
-	
-	_rm.notify(dp, crtcon);
-	
-	_rw.wait();
-	
-	cout<<_rw.oss.str()<<endl;
-	return 0;
-}
 
 bool parseArguments(Params &_par, int argc, char *argv[]){
 	using namespace boost::program_options;

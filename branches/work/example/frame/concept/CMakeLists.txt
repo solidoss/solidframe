@@ -4,5 +4,4 @@ add_subdirectory(alpha)
 add_subdirectory(proxy)
 add_subdirectory(gamma)
 add_subdirectory(main)
-add_subdirectory(beta)
 

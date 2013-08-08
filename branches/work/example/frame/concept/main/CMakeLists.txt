@@ -5,7 +5,6 @@ add_executable (example_concept src/concept.cpp)
 
 target_link_libraries (example_concept
 	example_concept_alpha
-	example_concept_beta
 	example_concept_gamma
 	example_concept_proxy
 	example_concept_core

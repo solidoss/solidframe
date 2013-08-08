@@ -88,7 +88,7 @@ struct /*EXPORT_DLL*/ Debug{
 	void initFile(
 		const char * _fname,
 		bool _buffered = true,
-		ulong _respincnt = 10,
+		ulong _respincnt = 2,
 		ulong _respinsize = 1024 * 1024 * 1024,
 		std::string *_output = NULL
 	);
