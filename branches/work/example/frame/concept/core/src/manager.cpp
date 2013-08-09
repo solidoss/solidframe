@@ -112,7 +112,6 @@ struct AuthMessage: Dynamic<AuthMessage, DynamicShared<frame::Message> >{
 	frame::ipc::MessageUid		msguidpeer;
 };
 
-
 struct IpcServiceController: frame::ipc::Controller{
 	IpcServiceController():frame::ipc::Controller(0, 400), authidx(0){
 		use();

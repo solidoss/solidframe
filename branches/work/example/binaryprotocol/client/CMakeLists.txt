@@ -2,6 +2,7 @@ add_executable (example_binaryclient binaryclient.cpp)
 
 
 target_link_libraries (example_binaryclient
+	example_binary_core
 	solid_frame_aio
 	solid_frame_core
 	solid_serialization

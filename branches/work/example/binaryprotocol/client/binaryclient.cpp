@@ -9,6 +9,9 @@
 #include "system/socketaddress.hpp"
 #include "system/socketdevice.hpp"
 #include "example/binaryprotocol/core/messages.hpp"
+#include "example/binaryprotocol/core/compressor.hpp"
+#include "serialization/idtypemapper.hpp"
+#include "serialization/binary.hpp"
 
 #include <signal.h>
 
@@ -56,13 +59,32 @@ namespace{
 	
 }
 
+class ClientConnection;
+
+struct ConnectionContext{
+	ConnectionContext(ClientConnection &_rcon, uint32 _idx):rcon(_rcon), idx(_idx){}
+	ClientConnection	&rcon;
+	const uint32		idx;
+};
+
+typedef serialization::binary::Serializer<ConnectionContext>	BinSerializerT;
+typedef serialization::binary::Deserializer<ConnectionContext>	BinDeserializerT;
+typedef serialization::IdTypeMapper<
+	BinSerializerT, BinDeserializerT, uint8,
+	serialization::FakeMutex
+>																UInt8TypeMapperT;
+
 class ClientConnection: public frame::aio::SingleObject{
+	
 	typedef DynamicPointer<solid::frame::Message>				MessageDynamicPointerT;
 	typedef std::pair<MessageDynamicPointerT, uint32>			MessagePairT;
 	typedef std::vector<MessagePairT>							MessageVectorT;
+	typedef protocol::binary::client::Session					ProtocolSessionT;
+		
 	enum{
 		RecvBufferCapacity = 1024 * 4,
 		SendBufferCapacity = 1024 * 4,
+		DataCapacity = SendBufferCapacity >> 1,
 	};
 	enum{
 		InitState = 1,
@@ -72,7 +94,11 @@ class ClientConnection: public frame::aio::SingleObject{
 		RunningState
 	};
 public:
-	ClientConnection(frame::Manager &_rm, const ResolveData &_rd):rm(_rm), rd(_rd), st(PrepareState){}
+	ClientConnection(
+		frame::Manager &_rm,
+		const ResolveData &_rd,
+		const serialization::TypeMapperBase &_rtm
+	):rm(_rm), rd(_rd), st(PrepareState), ser(_rtm), des(_rtm){}
 	
 	void send(DynamicPointer<solid::frame::Message>	&_rmsgptr, const uint32 _flags = 0){
 		Locker<Mutex>	lock(rm.mutex(*this));
@@ -83,6 +109,9 @@ public:
 			rm.raise(*this);
 		}
 	}
+	void dynamicHandle(solid::DynamicPointer<> &_dp);
+	void dynamicHandle(solid::DynamicPointer<FirstResponse> &_rmsgptr);
+	void dynamicHandle(solid::DynamicPointer<SecondResponse> &_rmsgptr);
 private:
 	/*virtual*/ int execute(ulong _evs, TimeSpec& _crtime);
 	int done(){
@@ -93,106 +122,38 @@ private:
 		return BAD;
 	}
 private:
-	frame::Manager						&rm;
-	ResolveData							rd;
-	uint16								st;
-	protocol::binary::client::Session	session;
-	MessageVectorT						sndmsgvec;
-	char								recvbuf[RecvBufferCapacity];
-	char								sendbuf[SendBufferCapacity];
+	frame::Manager			&rm;
+	ResolveData				rd;
+	uint16					st;
+	BinSerializerT			ser;
+	BinDeserializerT		des;
+	ProtocolSessionT		session;
+	MessageVectorT			sndmsgvec;
+	char					recvbuf[RecvBufferCapacity];
+	char					sendbuf[SendBufferCapacity];
 };
 
-/*virtual*/ int ClientConnection::execute(ulong _evs, TimeSpec& _crtime){
-	ulong sm = grabSignalMask();
-	if(sm){
-		if(sm & frame::S_KILL) return done();
-		if(sm & frame::S_SIG){
-			Locker<Mutex>	lock(rm.mutex(*this));
-			session.schedule(sndmsgvec.begin(), sndmsgvec.end());
-			sndmsgvec.clear();
-		}
-	}
-	if(_evs & frame::ERRDONE){
-		idbg("ioerror "<<_evs<<' '<<socketEventsGrab());
-		return done();
-	}
-	if(_evs & frame::INDONE){
-		idbg("indone");
-		if(!session.consume(recvbuf, this->socketRecvSize())){
-			return done();
-		}
-	}
-	bool reenter = false;
-	if(st == RunningState){
-		idbg("RunningState");
-		if(!this->socketHasPendingRecv()){
-			switch(this->socketRecv(recvbuf, RecvBufferCapacity)){
-				case BAD: return done();
-				case OK:
-					if(!session.consume(recvbuf, this->socketRecvSize())){
-						return done();
-					}
-					reenter = true;
-					break;
-				default:
-					break;
-			}
-		}
-		if(!this->socketHasPendingSend()){
-			int cnt = 4;
-			while((cnt--) > 0){
-				int rv = session.fill(sendbuf, SendBufferCapacity);
-				if(rv == BAD) return done();
-				if(rv == NOK) break;
-				switch(this->socketSend(sendbuf, rv)){
-					case BAD: 
-						return done();
-					case NOK:
-						cnt = 0;
-						break;
-					default:
-						break;
-				}
-			}
-			if(cnt == 0){
-				reenter = true;
-			}
-		}
-	}else if(st == PrepareState){
-		SocketDevice	sd;
-		sd.create(rd.begin());
-		sd.makeNonBlocking();
-		socketInsert(sd);
-		socketRequestRegister();
-		st = ConnectState;
-		reenter = false;
-	}else if(st == ConnectState){
-		idbg("ConnectState");
-		switch(socketConnect(rd.begin())){
-			case BAD: return done();
-			case OK:
-				idbg("");
-				st = InitState;
-				reenter = true;
-				break;
-			case NOK:
-				st = ConnectWaitState;
-				idbg("");
-				break;
-		}
-	}else if(st == ConnectWaitState){
-		idbg("ConnectWaitState");
-		st = InitState;
-		reenter = true;
-	}else if(st == InitState){
-		idbg("InitState");
-		st = RunningState;
-		reenter = true;
-	}
-	return reenter ? OK : NOK;
-}
-
 bool parseArguments(Params &_par, int argc, char *argv[]);
+
+struct Handle{
+	bool checkStore(void *, ConnectionContext *_pctx)const{
+		return true;
+	}
+	
+	bool checkLoad(FirstResponse *_pm, ConnectionContext* _pctx)const{
+		return true;
+	}
+	void handle(FirstResponse *_pm, ConnectionContext *_pctx, const char *_name){
+		cout<<_name<<endl;
+	}
+	bool checkLoad(SecondResponse *_pm, ConnectionContext* _pctx)const{
+		return true;
+	}
+	void handle(SecondResponse *_pm, ConnectionContext *_pctx, const char *_name){
+		cout<<_name<<endl;
+	}
+};
+
 
 int main(int argc, char *argv[]){
 	if(parseArguments(p, argc, argv)) return 0;
@@ -248,10 +209,19 @@ int main(int argc, char *argv[]){
 		
 		frame::Manager							m;
 		AioSchedulerT							aiosched(m);
+		UInt8TypeMapperT						tm;
+		
+		tm.insert<FirstRequest>();
+		tm.insertHandle<FirstResponse, Handle>();
+		tm.insert<SecondRequest>();
+		tm.insertHandle<SecondResponse, Handle>();
+		
 		
 		ClientConnectionPointerT				ccptr(
 			new ClientConnection(
-				m, synchronous_resolve(p.address_str.c_str(), p.port, 0, SocketInfo::Inet4, SocketInfo::Stream)
+				m,
+				synchronous_resolve(p.address_str.c_str(), p.port, 0, SocketInfo::Inet4, SocketInfo::Stream),
+				tm
 			)
 		);
 		
@@ -260,11 +230,11 @@ int main(int argc, char *argv[]){
 		
 		DynamicPointer<solid::frame::Message>	msgptr;
 		
-		msgptr = new FirstRequest;
+		msgptr = new FirstRequest(10);
 		
 		ccptr->send(msgptr);
 		
-		msgptr = new SecondRequest;
+		msgptr = new SecondRequest("Hello world!!");
 		
 		ccptr->send(msgptr);
 		idbg("");
@@ -286,6 +256,7 @@ int main(int argc, char *argv[]){
 	return 0;
 }
 
+//-----------------------------------------------------------------------
 
 bool parseArguments(Params &_par, int argc, char *argv[]){
 	using namespace boost::program_options;
@@ -316,4 +287,101 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 		cout << e.what() << "\n";
 		return true;
 	}
+}
+
+//-----------------------------------------------------------------------
+
+/*virtual*/ int ClientConnection::execute(ulong _evs, TimeSpec& _crtime){
+	static Compressor 		compressor(DataCapacity);
+	
+	ulong sm = grabSignalMask();
+	if(sm){
+		if(sm & frame::S_KILL) return done();
+		if(sm & frame::S_SIG){
+			Locker<Mutex>	lock(rm.mutex(*this));
+			session.schedule(sndmsgvec.begin(), sndmsgvec.end());
+			sndmsgvec.clear();
+		}
+	}
+	if(_evs & frame::ERRDONE){
+		idbg("ioerror "<<_evs<<' '<<socketEventsGrab());
+		return done();
+	}
+	if(_evs & frame::INDONE){
+		idbg("indone");
+		char	tmpbuf[DataCapacity];
+		if(!session.consume(recvbuf, this->socketRecvSize(), compressor, tmpbuf, DataCapacity)){
+			return done();
+		}
+	}
+	bool reenter = false;
+	if(st == RunningState){
+		idbg("RunningState");
+		if(!this->socketHasPendingRecv()){
+			switch(this->socketRecv(session.recvBufferOffset(recvbuf), session.recvBufferCapacity(RecvBufferCapacity))){
+				case BAD: return done();
+				case OK:{
+					char	tmpbuf[DataCapacity];
+					if(!session.consume(recvbuf, this->socketRecvSize(), compressor, tmpbuf, DataCapacity)){
+						return done();
+					}
+					reenter = true;
+				}break;
+				default:
+					break;
+			}
+		}
+		if(!this->socketHasPendingSend()){
+			int		cnt = 4;
+			char	tmpbuf[DataCapacity];
+			while((cnt--) > 0){
+				int rv = session.fill(sendbuf, SendBufferCapacity, compressor, tmpbuf, DataCapacity);
+				if(rv == BAD) return done();
+				if(rv == NOK) break;
+				switch(this->socketSend(sendbuf, rv)){
+					case BAD: 
+						return done();
+					case NOK:
+						cnt = 0;
+						break;
+					default:
+						break;
+				}
+			}
+			if(cnt == 0){
+				reenter = true;
+			}
+		}
+	}else if(st == PrepareState){
+		SocketDevice	sd;
+		sd.create(rd.begin());
+		sd.makeNonBlocking();
+		socketInsert(sd);
+		socketRequestRegister();
+		st = ConnectState;
+		reenter = false;
+	}else if(st == ConnectState){
+		idbg("ConnectState");
+		switch(socketConnect(rd.begin())){
+			case BAD: return done();
+			case OK:
+				idbg("");
+				st = InitState;
+				reenter = true;
+				break;
+			case NOK:
+				st = ConnectWaitState;
+				idbg("");
+				break;
+		}
+	}else if(st == ConnectWaitState){
+		idbg("ConnectWaitState");
+		st = InitState;
+		reenter = true;
+	}else if(st == InitState){
+		idbg("InitState");
+		st = RunningState;
+		reenter = true;
+	}
+	return reenter ? OK : NOK;
 }

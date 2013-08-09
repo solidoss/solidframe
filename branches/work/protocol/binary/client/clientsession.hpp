@@ -20,8 +20,16 @@ namespace client{
 
 class Session{
 public:
+	Session():rcvbufoff(0){}
+	
 	void schedule(DynamicPointer<frame::Message> &_rmsgptr, uint32 _flags = 0){
 		
+	}
+	char * recvBufferOffset(char *_pbuf)const{
+		return _pbuf + rcvbufoff;
+	}
+	const size_t recvBufferCapacity(const size_t _cp)const{
+		return _cp - rcvbufoff;
 	}
 	template <class Iter>
 	void schedule(Iter _beg, const Iter _end){
@@ -30,13 +38,16 @@ public:
 			++_beg;
 		}
 	}
-	bool consume(const char *_pb, size_t _bl){
+	template <class C>
+	bool consume(const char *_pb, size_t _bl, C &_rc, char *_tmpbuf, const size_t _tmpbufcp){
 		return false;
 	}
-	int fill(char *_pb, size_t _bl){
+	template <class C>
+	int fill(char *_pb, size_t _bl, C &_rc, char *_tmpbuf, const size_t _tmpbufcp){
 		return NOK;
 	}
 private:
+	uint16		rcvbufoff;
 };
 
 }//namespace client
