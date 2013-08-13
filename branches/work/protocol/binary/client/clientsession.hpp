@@ -10,21 +10,77 @@
 #ifndef SOLID_PROTOCOL_BINARY_CLIENT_SESSION_HPP
 #define SOLID_PROTOCOL_BINARY_CLIENT_SESSION_HPP
 
-#include "frame/message.hpp"
+#include <deque>
+
 #include "utility/dynamicpointer.hpp"
+#include "utility/queue.hpp"
+#include "utility/stack.hpp"
 
 namespace solid{
 namespace protocol{
 namespace binary{
 namespace client{
 
+struct BasicController{
+	
+};
+
+template <class Msg, class MsgCtx, class Ctl = BasicController>
 class Session{
+	struct MessageStub{
+		MessageStub():prcvmsg(NULL), sndflgs(0){}
+		DynamicPointer<Msg>	sndmsgptr;
+		MsgCtx				msgctx;
+		Msg					*prcvmsg;
+		uint32				sndflgs;
+	};
 public:
 	Session():rcvbufoff(0){}
 	
-	void schedule(DynamicPointer<frame::Message> &_rmsgptr, uint32 _flags = 0){
+	template <class T>
+	Session(const T &_rt):ctl(_rt), rcvbufoff(0){
 		
 	}
+	
+	size_t send(DynamicPointer<Msg> &_rmsgptr, uint32 _flags = 0){
+		size_t	idx;
+		if(freestk.size()){
+			idx = freestk.top();
+			freestk.pop();
+		}else{
+			idx = msgvec.size();
+			msgvec.push_back(MessageStub());
+		}
+		MessageStub &rms = msgvec[idx];
+		rms.sndflgs = _flags;
+		rms.sndmsgptr = _rmsgptr;
+		return idx;
+	}
+	
+	size_t send(DynamicPointer<Msg> &_rmsgptr, MsgCtx &_rmsgctx, uint32 _flags = 0){
+		size_t	idx;
+		if(freestk.size()){
+			idx = freestk.top();
+			freestk.pop();
+		}else{
+			idx = msgvec.size();
+			msgvec.push_back(MessageStub());
+		}
+		MessageStub &rms = msgvec[idx];
+		rms.sndflgs = _flags;
+		rms.msgctx = _rmsgctx;
+		rms.sndmsgptr = _rmsgptr;
+		return idx;
+	}
+	
+	MsgCtx& messageContext(const size_t _idx){
+		return msgvec[_idx].msgctx;
+	}
+	
+	const MsgCtx& messageContext(const size_t _idx)const{
+		return msgvec[_idx].msgctx;
+	}
+	
 	char * recvBufferOffset(char *_pbuf)const{
 		return _pbuf + rcvbufoff;
 	}
@@ -32,9 +88,9 @@ public:
 		return _cp - rcvbufoff;
 	}
 	template <class Iter>
-	void schedule(Iter _beg, const Iter _end){
+	void send(Iter _beg, const Iter _end){
 		while(_beg != _end){
-			schedule(_beg->first, _beg->second);
+			send(_beg->first, _beg->second);
 			++_beg;
 		}
 	}
@@ -47,7 +103,15 @@ public:
 		return NOK;
 	}
 private:
-	uint16		rcvbufoff;
+	typedef std::deque<MessageStub>		MessageVectorT;
+	typedef Queue<size_t>				SizeTQueueT;
+	typedef Stack<size_t>				SizeTStackT;
+	
+	uint16				rcvbufoff;
+	Ctl					ctl;
+	MessageVectorT		msgvec;
+	SizeTQueueT			sndq;
+	SizeTStackT			freestk;
 };
 
 }//namespace client

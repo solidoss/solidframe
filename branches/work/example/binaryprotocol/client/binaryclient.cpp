@@ -79,7 +79,10 @@ class ClientConnection: public frame::aio::SingleObject{
 	typedef DynamicPointer<solid::frame::Message>				MessageDynamicPointerT;
 	typedef std::pair<MessageDynamicPointerT, uint32>			MessagePairT;
 	typedef std::vector<MessagePairT>							MessageVectorT;
-	typedef protocol::binary::client::Session					ProtocolSessionT;
+	typedef protocol::binary::client::Session<
+		frame::Message,
+		int
+	>															ProtocolSessionT;
 		
 	enum{
 		RecvBufferCapacity = 1024 * 4,
@@ -299,7 +302,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 		if(sm & frame::S_KILL) return done();
 		if(sm & frame::S_SIG){
 			Locker<Mutex>	lock(rm.mutex(*this));
-			session.schedule(sndmsgvec.begin(), sndmsgvec.end());
+			session.send(sndmsgvec.begin(), sndmsgvec.end());
 			sndmsgvec.clear();
 		}
 	}
