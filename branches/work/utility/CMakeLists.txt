@@ -24,6 +24,8 @@ set(Headers
 	dynamictype.hpp
 	dynamicpointer.hpp
 	memoryfile.hpp
+	functorstub.hpp
+	functorqueue.hpp
 )
 
 set(Inlines
