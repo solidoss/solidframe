@@ -82,7 +82,7 @@ protected:
 private:
 	friend class Service;
 	
-	typedef FunctorStub<128, void, Object&>	ObjectVisitFunctorT;
+	typedef FunctorStub<void, Object&>	ObjectVisitFunctorT;
 	
 	ObjectUidT  unsafeId(const Object &_robj)const;
 	
@@ -90,9 +90,8 @@ private:
 	ObjectUidT registerServiceObject(const Service &_rsvc, Object &_robj);
 	
 	template <typename F>
-	bool forEachServiceObject(const Service &_rsvc, const F &_f){
-		ObjectVisitFunctorT fctor;
-		fctor = _f;
+	bool forEachServiceObject(const Service &_rsvc, F &_f){
+		ObjectVisitFunctorT fctor(_f);
 		return doForEachServiceObject(_rsvc, fctor);
 	}
 	

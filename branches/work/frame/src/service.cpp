@@ -81,14 +81,16 @@ struct MessageNotifier{
 
 bool Service::notifyAll(ulong _sm){
 	if(isRegistered()){
-		return rm.forEachServiceObject(*this, SignalNotifier(rm, _sm));
+		SignalNotifier	notifier(rm, _sm);
+		return rm.forEachServiceObject(*this, notifier);
 	}else{
 		return false;
 	}
 }
 bool Service::notifyAll(MessageSharedPointerT &_rmsgptr){
 	if(isRegistered()){
-		return rm.forEachServiceObject(*this, MessageNotifier(rm, _rmsgptr));
+		MessageNotifier notifier(rm, _rmsgptr);
+		return rm.forEachServiceObject(*this, notifier);
 	}else{
 		return false;
 	}

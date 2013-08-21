@@ -793,8 +793,8 @@ void Manager::doWaitStopService(const size_t _svcidx, Locker<Mutex> &_rlock, boo
 		}
 		if(rss.state == ServiceStub::StateRunning){
 			rss.state = Data::StateStopping;
-			ObjectVisitFunctorT fctor;
-			fctor = SignalNotifier(*this, S_KILL | S_RAISE);
+			SignalNotifier		notifier(*this, S_KILL | S_RAISE);
+			ObjectVisitFunctorT fctor(notifier);
 			bool b = doForEachServiceObject(_svcidx, fctor);
 			if(!b){
 				rss.state = ServiceStub::StateStopped;
