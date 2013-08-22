@@ -13,7 +13,7 @@
 #include "frame/common.hpp"
 #include "system/mutex.hpp"
 #include "utility/dynamicpointer.hpp"
-#include "utility/functorstub.hpp"
+#include "utility/functor.hpp"
 
 class  SpecificMapper;
 class  GlobalMapper;
@@ -82,7 +82,7 @@ protected:
 private:
 	friend class Service;
 	
-	typedef FunctorStub<void, Object&>	ObjectVisitFunctorT;
+	typedef FunctorReference<void, Object&>	ObjectVisitFunctorT;
 	
 	ObjectUidT  unsafeId(const Object &_robj)const;
 	

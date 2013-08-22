@@ -1,42 +1,47 @@
-// utility/functorstub.hpp
+// utility/functor.hpp
 //
-// Copyright (c) 2010 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2010, 2013 Valentin Palade (vipalade @ gmail . com) 
 //
 // This file is part of SolidFrame framework.
 //
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#ifndef UTILITY_FUNCTORSTUB_HPP
-#define UTILITY_FUNCTORSTUB_HPP
+#ifndef UTILITY_FUNCTOR_HPP
+#define UTILITY_FUNCTOR_HPP
 
 #include "system/common.hpp"
 
 namespace solid{
+
+//-----------------------------------------------------------------
+//	FunctorReference
+//-----------------------------------------------------------------
+
 
 template <
 	class R = void,
 	class P1 = void, class P2 = void,
 	class P3 = void, class P4 = void
 >
-class FunctorStub;
+class FunctorReference;
 
 template <typename T>
-struct FunctorRef{
+struct FunctorRefStub{
 	T	&ref;
-	FunctorRef(T &_ref):ref(_ref){}
+	FunctorRefStub(T &_ref):ref(_ref){}
 };
 
 template <
 	class R
 >
-class FunctorStub<R, void, void, void, void>{
-	explicit FunctorStub(const FunctorStub&);
-	typedef FunctorStub<R, void, void, void, void>	FunctorStubT;
+class FunctorReference<R, void, void, void, void>{
+	explicit FunctorReference(const FunctorReference&);
+	typedef FunctorReference<R, void, void, void, void>	FunctorReferenceT;
 	typedef R (*CallFncT)(void*);
 	typedef void (*DelFncT)(void*);
 	enum{
-		DataSizeT = sizeof(FunctorRef<int>)
+		DataSizeT = sizeof(FunctorRefStub<int>)
 	};
 	template <typename T>
 	static R call(void *_pf){
@@ -55,12 +60,12 @@ class FunctorStub<R, void, void, void, void>{
 	char 		d[DataSizeT];
 public:
 	template <class F>
-	explicit FunctorStub(F &_f){
-		/*FunctorRef<F>	*pfr = */new(d) FunctorRef<F>(_f);
-		pcallfnc = &call<FunctorRef<F> >;
-		pdelfnc = &del<FunctorRef<F> >;
+	explicit FunctorReference(F &_f){
+		/*FunctorRefStub<F>	*pfr = */new(d) FunctorRefStub<F>(_f);
+		pcallfnc = &call<FunctorRefStub<F> >;
+		pdelfnc = &del<FunctorRefStub<F> >;
 	}
-	~FunctorStub(){
+	~FunctorReference(){
 		(*pdelfnc)(d);
 	}
 	
@@ -73,13 +78,13 @@ public:
 template <
 	class R, class P1
 >
-class FunctorStub<R, P1, void, void, void>{
-	explicit FunctorStub(const FunctorStub&);
-	typedef FunctorStub<R, P1, void, void, void>	FunctorStubT;
+class FunctorReference<R, P1, void, void, void>{
+	explicit FunctorReference(const FunctorReference&);
+	typedef FunctorReference<R, P1, void, void, void>	FunctorReferenceT;
 	typedef R (*CallFncT)(void*, P1);
 	typedef void (*DelFncT)(void*);
 	enum{
-		DataSizeT = sizeof(FunctorRef<int>)
+		DataSizeT = sizeof(FunctorRefStub<int>)
 	};
 	
 	template <typename T>
@@ -99,12 +104,12 @@ class FunctorStub<R, P1, void, void, void>{
 	char 		d[DataSizeT];
 public:
 	template <class F>
-	explicit FunctorStub(F &_f){
-		/*FunctorRef<F>	*pfr = */new(d) FunctorRef<F>(_f);
-		pcallfnc = &call<FunctorRef<F> >;
-		pdelfnc = &del<FunctorRef<F> >;
+	explicit FunctorReference(F &_f){
+		/*FunctorRefStub<F>	*pfr = */new(d) FunctorRefStub<F>(_f);
+		pcallfnc = &call<FunctorRefStub<F> >;
+		pdelfnc = &del<FunctorRefStub<F> >;
 	}
-	~FunctorStub(){
+	~FunctorReference(){
 		(*pdelfnc)(d);
 	}
 	
@@ -116,13 +121,13 @@ public:
 template <
 	class R, class P1, class P2
 >
-class FunctorStub<R, P1, P2, void, void>{
-	explicit FunctorStub(const FunctorStub&);
-	typedef FunctorStub<R, P1, P2, void, void>	FunctorStubT;
+class FunctorReference<R, P1, P2, void, void>{
+	explicit FunctorReference(const FunctorReference&);
+	typedef FunctorReference<R, P1, P2, void, void>	FunctorReferenceT;
 	typedef R (*CallFncT)(void*, P1, P2);
 	typedef void (*DelFncT)(void*);
 	enum{
-		DataSizeT = sizeof(FunctorRef<int>)
+		DataSizeT = sizeof(FunctorRefStub<int>)
 	};
 	
 	template <typename T>
@@ -142,12 +147,12 @@ class FunctorStub<R, P1, P2, void, void>{
 	char 		d[DataSizeT];
 public:
 	template <class F>
-	explicit FunctorStub(F &_f){
-		/*FunctorRef<F>	*pfr = */new(d) FunctorRef<F>(_f);
-		pcallfnc = &call<FunctorRef<F> >;
-		pdelfnc = &del<FunctorRef<F> >;
+	explicit FunctorReference(F &_f){
+		/*FunctorRefStub<F>	*pfr = */new(d) FunctorRefStub<F>(_f);
+		pcallfnc = &call<FunctorRefStub<F> >;
+		pdelfnc = &del<FunctorRefStub<F> >;
 	}
-	~FunctorStub(){
+	~FunctorReference(){
 		(*pdelfnc)(d);
 	}
 	
@@ -159,13 +164,13 @@ public:
 template <
 	class R, class P1, class P2, class P3
 >
-class FunctorStub<R, P1, P2, P3, void>{
-	explicit FunctorStub(const FunctorStub&);
-	typedef FunctorStub<R, P1, P2, P3, void>	FunctorStubT;
+class FunctorReference<R, P1, P2, P3, void>{
+	explicit FunctorReference(const FunctorReference&);
+	typedef FunctorReference<R, P1, P2, P3, void>	FunctorReferenceT;
 	typedef R (*CallFncT)(void*, P1, P2, P3);
 	typedef void (*DelFncT)(void*);
 	enum{
-		DataSizeT = sizeof(FunctorRef<int>)
+		DataSizeT = sizeof(FunctorRefStub<int>)
 	};
 	
 	template <typename T>
@@ -185,12 +190,12 @@ class FunctorStub<R, P1, P2, P3, void>{
 	char 		d[DataSizeT];
 public:
 	template <class F>
-	explicit FunctorStub(F &_f){
-		/*FunctorRef<F>	*pfr = */new(d) FunctorRef<F>(_f);
-		pcallfnc = &call<FunctorRef<F> >;
-		pdelfnc = &del<FunctorRef<F> >;
+	explicit FunctorReference(F &_f){
+		/*FunctorRefStub<F>	*pfr = */new(d) FunctorRefStub<F>(_f);
+		pcallfnc = &call<FunctorRefStub<F> >;
+		pdelfnc = &del<FunctorRefStub<F> >;
 	}
-	~FunctorStub(){
+	~FunctorReference(){
 		(*pdelfnc)(d);
 	}
 	
@@ -202,13 +207,13 @@ public:
 template <
 	class R, class P1, class P2, class P3, class P4
 >
-class FunctorStub{
-	explicit FunctorStub(const FunctorStub&);
-	typedef FunctorStub<R, P1, P2, P3, P4>	FunctorStubT;
+class FunctorReference{
+	explicit FunctorReference(const FunctorReference&);
+	typedef FunctorReference<R, P1, P2, P3, P4>	FunctorReferenceT;
 	typedef R (*CallFncT)(void*, P1, P2, P3, P4);
 	typedef void (*DelFncT)(void*);
 	enum{
-		DataSizeT = sizeof(FunctorRef<int>)
+		DataSizeT = sizeof(FunctorRefStub<int>)
 	};
 	
 	template <typename T>
@@ -228,12 +233,12 @@ class FunctorStub{
 	char 		d[DataSizeT];
 public:
 	template <class F>
-	explicit FunctorStub(F &_f){
-		/*FunctorRef<F>	*pfr = */new(d) FunctorRef<F>(_f);
-		pcallfnc = &call<FunctorRef<F> >;
-		pdelfnc = &del<FunctorRef<F> >;
+	explicit FunctorReference(F &_f){
+		/*FunctorRefStub<F>	*pfr = */new(d) FunctorRefStub<F>(_f);
+		pcallfnc = &call<FunctorRefStub<F> >;
+		pdelfnc = &del<FunctorRefStub<F> >;
 	}
-	~FunctorStub(){
+	~FunctorReference(){
 		(*pdelfnc)(d);
 	}
 	
@@ -241,6 +246,11 @@ public:
 		return (*pcallfnc)(d, _p1, _p2, _p3, _p4);
 	}
 };
+
+//-----------------------------------------------------------------
+//	TODO: FunctorPointer
+//-----------------------------------------------------------------
+
 
 }//namespace solid
 

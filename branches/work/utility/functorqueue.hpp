@@ -13,17 +13,18 @@
 #include "system/common.hpp"
 
 namespace solid{
+
 template <
-	class R = void,
-	class P1 = EmptyType, class P2 = EmptyType, class P3 = EmptyType, class P4 = EmptyType, class P5 = EmptyType, class P6 = EmptyType, class P7 = EmptyType
+	typename R = void,
+	typename P1 = void, typename P2 = void,
+	typename P3 = void, typename P4 = void
 >
 class FunctorQueue;
 
 template <
-	typename R,
-	typename P1, typename P2, typename P3, typename P4, typename P5, typename P6, typename P7
+	typename R
 >
-class FunctorQueue{
+class FunctorQueue<R, void, void, void, void>{
 public:
 	FunctorQueue(){
 	}
@@ -31,6 +32,7 @@ public:
 	~FunctorQueue(){
 		clear();
 	}
+	
 	R callFront(){
 		return R();
 	}
