@@ -164,17 +164,6 @@ TimeSpec* Selector::Data::computeWaitTimeout(TimeSpec &_rts)const{
 }
 void Selector::Data::addNewSocket(){
 	++socksz;
-// 	if(socksz > sockcp){
-// 		uint oldcp = sockcp;
-// 		sockcp += 64;//TODO: improve!!
-// 		epoll_event *pevs = new epoll_event[sockcp];
-// 		memcpy(pevs, events, oldcp * sizeof(epoll_event));
-// 		delete []events;
-// 		for(uint i = 0; i < sockcp; ++i){
-// 			pevs[i].events = 0;
-// 			pevs[i].data.u64 = 0;
-// 		}
-//	}
 }
 
 template <short X>
@@ -773,12 +762,12 @@ ulong Selector::doExecute(const ulong _pos){
 	}
 	return rv;
 }
-void Selector::doPrepareObjectWait(const ulong _pos, const TimeSpec &_timepos){
-	Stub &stub(d.stubs[_pos]);
+void Selector::doPrepareObjectWait(const size_t _pos, const TimeSpec &_timepos){
+	Stub				&stub(d.stubs[_pos]);
 	const int32 * const pend(stub.objptr->reqpos);
-	bool mustwait = true;
+	bool				mustwait = true;
 	vdbgx(Debug::aio, "stub "<<_pos);
-	for(const int32 *pit(stub.objptr->reqbeg); pit != pend; ++pit){
+	for(const size_t *pit(stub.objptr->reqbeg); pit != pend; ++pit){
 		Object::SocketStub &sockstub(stub.objptr->pstubs[*pit]);
 		//sockstub.chnevents = 0;
 		const uint8 reqtp = sockstub.requesttype;

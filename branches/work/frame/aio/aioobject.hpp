@@ -76,8 +76,8 @@ protected:
 		Socket		*psock;
 		TimeSpec	itimepos;
 		TimeSpec	otimepos;
-		int			itoutpos;	//-1 or position in toutvec
-		int			otoutpos;	//-1 or position in toutvec
+		size_t		itoutpos;	//-1 or position in toutvec
+		size_t		otoutpos;	//-1 or position in toutvec
 		uint8		hasresponse;//the socket is in response queue
 		uint8		requesttype;
 		int16		state;		//An associated state for the socket
@@ -95,17 +95,17 @@ protected:
 		the pointers to offsets within.
 		\param _pstubs A table with allocated stubs, can be changed after
 		\param _stubcp The capacity of the table
-		\param _reqbeg A table of int32[_stubcp]
-		\param _resbeg A table of int32[_stubcp]
-		\param _toutbeg A table of int32[_stubcp]
+		\param _reqbeg A table of size_t[_stubcp]
+		\param _resbeg A table of size_t[_stubcp]
+		\param _toutbeg A table of size_t[_stubcp]
 	*/
 	Object(
 		SocketStub *_pstubs = NULL,
-		uint32 _stubcp = 0,
-		int32 *_reqbeg = NULL,
-		int32 *_resbeg = NULL,
-		int32 *_itoutbeg = NULL,
-		int32 *_otoutbeg = NULL
+		const size_t _stubcp = 0,
+		size_t *_reqbeg = NULL,
+		size_t *_resbeg = NULL,
+		size_t *_itoutbeg = NULL,
+		size_t *_otoutbeg = NULL
 	):
 		pitimepos(NULL), potimepos(NULL), pstubs(_pstubs), stubcp(_stubcp),
 		reqbeg(_reqbeg), reqpos(_reqbeg),
@@ -114,8 +114,8 @@ protected:
 		otoutbeg(_otoutbeg), otoutpos(_otoutbeg){
 	}
 	
-	void socketPushRequest(const uint _pos, const uint8 _req);
-	void socketPostEvents(const uint _pos, const uint32 _evs);
+	void socketPushRequest(const size_t _pos, const uint8 _req);
+	void socketPostEvents(const size_t _pos, const uint32 _evs);
 private:
 	void doPrepare(TimeSpec *_pitimepos, TimeSpec *_potimepos);
 	void doUnprepare();
@@ -124,13 +124,13 @@ private:
 	uint doOnTimeoutRecv(const TimeSpec &_timepos);
 	uint doOnTimeoutSend(const TimeSpec &_timepos);
 	
-	void doPopTimeoutRecv(uint32 _pos);
-	void doPopTimeoutSend(uint32 _pos);
+	void doPopTimeoutRecv(const size_t _pos);
+	void doPopTimeoutSend(const size_t _pos);
 	//!Called by selector on certain events
 	virtual int execute(ulong _evs, TimeSpec &_rtout) = 0;
 protected:
-	void doPushTimeoutRecv(uint32 _pos, const TimeSpec &_crttime, ulong _addsec, ulong _addnsec);
-	void doPushTimeoutSend(uint32 _pos, const TimeSpec &_crttime, ulong _addsec, ulong _addnsec);
+	void doPushTimeoutRecv(const size_t _pos, const TimeSpec &_crttime, const ulong _addsec, const ulong _addnsec);
+	void doPushTimeoutSend(const size_t _pos, const TimeSpec &_crttime, const ulong _addsec, const ulong _addnsec);
 	
 	void setSocketPointer(const SocketPointer &_rsp, Socket *_ps);
 	Socket* getSocketPointer(const SocketPointer &_rsp);
@@ -139,16 +139,16 @@ protected:
 	TimeSpec			*pitimepos;
 	TimeSpec			*potimepos;
 	SocketStub			*pstubs;
-	uint32				stubcp;
-	int32				*reqbeg;
-	int32				*reqpos;
-	int32				*resbeg;
-	uint32				respos;
-	uint32				ressize;
-	int32				*itoutbeg;
-	int32				*itoutpos;
-	int32				*otoutbeg;
-	int32				*otoutpos;
+	size_t				stubcp;
+	size_t				*reqbeg;
+	size_t				*reqpos;
+	size_t				*resbeg;
+	size_t				respos;
+	size_t				ressize;
+	size_t				*itoutbeg;
+	size_t				*itoutpos;
+	size_t				*otoutbeg;
+	size_t				*otoutpos;
 };
 
 }//namespace aio

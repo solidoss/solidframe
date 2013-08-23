@@ -91,15 +91,15 @@ public:
 	int socketRemoteAddress(SocketAddress &_rsa)const;
 	
 	//! Set the timeout for asynchronous recv opperation completion
-	void socketTimeoutRecv(const TimeSpec &_crttime, ulong _addsec, ulong _addnsec = 0);
+	void socketTimeoutRecv(const TimeSpec &_crttime, const ulong _addsec, const ulong _addnsec = 0);
 	//! Set the timeout for asynchronous send opperation completion
-	void socketTimeoutSend(const TimeSpec &_crttime, ulong _addsec, ulong _addnsec = 0);
+	void socketTimeoutSend(const TimeSpec &_crttime, const ulong _addsec, const ulong _addnsec = 0);
 	
 	
 	//! Set the timeout for asynchronous recv opperation completion
-	void socketTimeoutRecv(ulong _addsec, ulong _addnsec = 0);
+	void socketTimeoutRecv(const ulong _addsec, const ulong _addnsec = 0);
 	//! Set the timeout for asynchronous send opperation completion
-	void socketTimeoutSend(ulong _addsec, ulong _addnsec = 0);
+	void socketTimeoutSend(const ulong _addsec, const ulong _addnsec = 0);
 	
 	//! Gets the mask with completion events for the socket.
 	//uint32 socketEvents()const;
@@ -146,16 +146,16 @@ public:
 	
 private:
 	SocketStub	stub;
-	int32		req;
-	int32		res;
-	int32		itout;
-	int32		otout;
+	size_t		req;
+	size_t		res;
+	size_t		itout;
+	size_t		otout;
 };
 
-inline void SingleObject::socketTimeoutRecv(ulong _addsec, ulong _addnsec){
+inline void SingleObject::socketTimeoutRecv(const ulong _addsec, const ulong _addnsec){
 	socketTimeoutRecv(Object::currentTime(), _addsec, _addnsec);
 }
-inline void SingleObject::socketTimeoutSend(ulong _addsec, ulong _addnsec){
+inline void SingleObject::socketTimeoutSend(const ulong _addsec, const ulong _addnsec){
 	socketTimeoutSend(Object::currentTime(), _addsec, _addnsec);
 }
 
