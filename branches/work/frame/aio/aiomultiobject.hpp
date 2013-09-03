@@ -21,7 +21,7 @@ class SocketDevice;
 class SocketAddress;
 class SocketAddressStub;
 class ResolveIterator;
-
+class Error;
 
 namespace frame{
 namespace aio{
@@ -158,6 +158,8 @@ public:
 	int socketSecureAccept(const size_t _pos);
 	//! Asynchronous secure connect
 	int socketSecureConnect(const size_t _pos);
+	//TODO: not implemented
+	bool socketError(const size_t _pos, Error &_err)const;
 private:
 	void reserve(const size_t _cp);//using only one allocation sets the pointers from the aioobject
 	size_t dataSize(const size_t _cp);

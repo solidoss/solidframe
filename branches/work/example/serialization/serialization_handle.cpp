@@ -23,11 +23,15 @@
 using namespace std;
 using namespace solid;
 
+struct Context{
+	Context(int _v = 10):value(_v){}
+	int value;
+};
 
 struct TestA{
 	TestA(int _a = 1, short _b = 2, unsigned _c = 3):a(_a), b(_b), c(_c){}
 	template <class S>
-	S& operator&(S &_s){
+	S& serialize(S &_s, Context &_rctx){
 		return _s.push(a, "a::a").push(b, "a::b").push(c, "a::c");
 	}
 	int32 		a;
@@ -41,14 +45,9 @@ struct TestB{
 	int32			a;
 	void print()const {cout<<"testb: a = "<<a<<endl;}
 	template <class S>
-	S& operator&(S &_s){
+	S& serialize(S &_s, Context &_rctx){
 		return _s.push(a, "b::a");
 	}
-};
-
-struct Context{
-	Context(int _v = 10):value(_v){}
-	int value;
 };
 
 typedef serialization::binary::Serializer<Context>		BinSerializerT;
@@ -59,31 +58,31 @@ typedef serialization::IdTypeMapper<
 >														UInt16TypeMapperT;
 
 struct Handle{
-	bool checkStore(void *, Context *_pctx)const{
+	bool checkStore(void *, Context &_rctx)const{
 		return true;
 	}
 	
-	bool checkLoad(TestA *_pt, Context* _pctx)const{
+	bool checkLoad(TestA *_pt, Context &_rctx)const{
 		if(_pctx->value == 11){
 			_pctx->value = 12;
 			return true;
 		}
 		return false;
 	}
-	void handle(TestA *_pt, Context *_pctx, const char *_name){
+	void handle(TestA *_pt, Context &_rctx, const char *_name){
 		_pt->print();
-		cout<<_name<<" _pctx->value = "<<_pctx->value<<endl;
+		cout<<_name<<" _rctx.value = "<<_rctx.value<<endl;
 	}
-	bool checkLoad(TestB *_pt, Context* _pctx)const{
-		if(_pctx->value == 10){
-			_pctx->value = 11;
+	bool checkLoad(TestB *_pt, Context &_rctx)const{
+		if(_rctx.value == 10){
+			_rctx.value = 11;
 			return true;
 		}
 		return false;
 	}
-	void handle(TestB *_pt, Context *_pctx, const char *_name){
+	void handle(TestB *_pt, Context &_rctx, const char *_name){
 		_pt->print();
-		cout<<_name<<" _pctx->value = "<<_pctx->value<<endl;
+		cout<<_name<<" _rctx.value = "<<_rctx.value<<endl;
 	}
 };
 
@@ -106,10 +105,11 @@ int main(int argc, char *argv[]){
 		TestA 			*pta = new TestA;
 		TestB 			*ptb = new TestB;
 		int				v = 0, cnt = 0;
+		Context			ctx;
 		
 		ser.push(pta, "testa").push(ptb, "testb");
 		
-		while((rv = ser.run(bufs[v], blen)) == blen){
+		while((rv = ser.run(ctx, bufs[v], blen)) == blen){
 			cnt += rv;
 			++v;
 		}
@@ -130,9 +130,9 @@ int main(int argc, char *argv[]){
 		int					cnt = 0;
 		Context				ctx;
 		
-		des.push(pta, &ctx, "testa").push(ptb, &ctx, "testb");
+		des.push(pta, "testa").push(ptb, "testb");
 		
-		while((rv = des.run(bufs[v], blen)) == blen){
+		while((rv = des.run(ctx, bufs[v], blen)) == blen){
 			cnt += rv;
 			++v;
 		}

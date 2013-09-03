@@ -19,6 +19,7 @@ class SocketDevice;
 class SocketAddress;
 class SocketAddressStub;
 class ResolveIterator;
+class Error;
 
 namespace frame{
 namespace aio{
@@ -143,6 +144,9 @@ public:
 	int socketSecureAccept();
 	//! Asynchronous secure connect
 	int socketSecureConnect();
+	
+	//TODO: not implemented
+	bool socketError(Error &_err)const;
 	
 private:
 	SocketStub	stub;
