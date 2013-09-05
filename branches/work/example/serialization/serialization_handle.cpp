@@ -32,6 +32,7 @@ struct TestA{
 	TestA(int _a = 1, short _b = 2, unsigned _c = 3):a(_a), b(_b), c(_c){}
 	template <class S>
 	S& serialize(S &_s, Context &_rctx){
+		cout<<"serialize TestA "<<_rctx.value<<endl;
 		return _s.push(a, "a::a").push(b, "a::b").push(c, "a::c");
 	}
 	int32 		a;
@@ -46,6 +47,7 @@ struct TestB{
 	void print()const {cout<<"testb: a = "<<a<<endl;}
 	template <class S>
 	S& serialize(S &_s, Context &_rctx){
+		cout<<"serialize TestB "<<_rctx.value<<endl;
 		return _s.push(a, "b::a");
 	}
 };
@@ -63,8 +65,8 @@ struct Handle{
 	}
 	
 	bool checkLoad(TestA *_pt, Context &_rctx)const{
-		if(_pctx->value == 11){
-			_pctx->value = 12;
+		if(_rctx.value == 11){
+			_rctx.value = 12;
 			return true;
 		}
 		return false;
@@ -109,7 +111,7 @@ int main(int argc, char *argv[]){
 		
 		ser.push(pta, "testa").push(ptb, "testb");
 		
-		while((rv = ser.run(ctx, bufs[v], blen)) == blen){
+		while((rv = ser.run(bufs[v], blen, ctx)) == blen){
 			cnt += rv;
 			++v;
 		}
@@ -132,7 +134,7 @@ int main(int argc, char *argv[]){
 		
 		des.push(pta, "testa").push(ptb, "testb");
 		
-		while((rv = des.run(ctx, bufs[v], blen)) == blen){
+		while((rv = des.run(bufs[v], blen, ctx)) == blen){
 			cnt += rv;
 			++v;
 		}
