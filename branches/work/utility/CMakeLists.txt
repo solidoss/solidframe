@@ -24,7 +24,7 @@ set(Headers
 	dynamictype.hpp
 	dynamicpointer.hpp
 	memoryfile.hpp
-	functorstub.hpp
+	functor.hpp
 	functorqueue.hpp
 )
 
