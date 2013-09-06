@@ -19,8 +19,6 @@
 #include "utility/stack.hpp"
 #include "serialization/typemapperbase.hpp"
 
-struct C;
-
 namespace solid{
 class InputStream;
 class OutputStream;
@@ -36,12 +34,21 @@ BASIC_DECL(int32);
 BASIC_DECL(uint32);
 BASIC_DECL(int64);
 BASIC_DECL(uint64);
-//BASIC_DECL(int);
+BASIC_DECL(std::string);
 
 //! Nonintrusive string serialization/deserialization specification
-template <class S>
-S& operator&(std::string &_t, S &_s){
-	return _s.push(_t, "string");
+// template <class S>
+// S& operator&(std::string &_t, S &_s){
+// 	return _s.push(_t, "string");
+// }
+
+template <class S, class T>
+void serialize(S &_s, T &_t){
+	_t.serialize(_s);
+}
+template <class S, class Ctx, class T>
+void serialize(S &_s, T &_t, Ctx &_ctx){
+	_t.serialize(_s, _ctx);
 }
 
 enum {
@@ -498,7 +505,7 @@ int SerializerBase::store(Base &_rs, FncData &_rfd, void */*_pctx*/){
 	if(!rs.cpb) return OK;
 	T& rt = *((T*)_rfd.p);
 	rs.fstk.pop();
-	rt.serialize(rs);
+	serialize(rs, rt);
 	return CONTINUE;
 }
 
@@ -510,7 +517,7 @@ int SerializerBase::store(Base &_rs, FncData &_rfd, void *_pctx){
 	T		&rt = *((T*)_rfd.p);
 	Ctx		&rctx = *reinterpret_cast<Ctx*>(_pctx);
 	rs.fstk.pop();
-	rt.serialize(rs, rctx);
+	serialize(rs, rt, rctx);
 	return CONTINUE;
 }
 
@@ -1251,7 +1258,7 @@ int DeserializerBase::load(Base& _rd, FncData &_rfd, void *_pctx){
 	Des &rd(static_cast<Des&>(_rd));
 	if(!rd.cpb) return OK;
 	rd.fstk.pop();
-	reinterpret_cast<T*>(_rfd.p)->serialize(rd);
+	serialize(rd, *reinterpret_cast<T*>(_rfd.p));
 	return CONTINUE;
 }
 
@@ -1263,7 +1270,7 @@ int DeserializerBase::load(Base& _rd, FncData &_rfd, void *_pctx){
 	rd.fstk.pop();
 	Ctx &rctx = *reinterpret_cast<Ctx*>(_pctx);
 	//*reinterpret_cast<T*>(_rfd.p) & rd;
-	reinterpret_cast<T*>(_rfd.p)->serialize(rd, rctx);
+	serialize(rd, *reinterpret_cast<T*>(_rfd.p), rctx);
 	return CONTINUE;
 }
 

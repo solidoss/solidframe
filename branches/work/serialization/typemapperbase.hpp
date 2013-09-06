@@ -14,7 +14,11 @@
 
 #define BASIC_DECL(tp) \
 template <class S>\
-S& operator&(tp &_t, S &_s){\
+void serialize(S &_s, tp &_t){\
+	return _s.push(_t, "basic");\
+}\
+template <class S, class Ctx>\
+void serialize(S &_s, tp &_t, Ctx &){\
 	return _s.push(_t, "basic");\
 }
 
