@@ -469,7 +469,7 @@ typedef ATOMIC_NS::atomic<size_t>			AtomicSizeT;
 
 #ifdef HAS_SAFE_STATIC
 size_t Thread::specificId(){
-	static AtomicSizeT sid = ATOMIC_VAR_INIT(ThreadData::FirstSpecificId);
+	static AtomicSizeT sid((size_t)ThreadData::FirstSpecificId);
 	return sid.fetch_add(1/*, ATOMIC_NS::memory_order_seq_cst*/);
 }
 #else

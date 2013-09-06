@@ -1387,47 +1387,47 @@ public:
 	
 	template <typename T>
 	Deserializer& push(T* &_t, const char *_name = NULL){
-		Base::fstk.push(Base::FncData(&Deserializer::loadTypeId, &_t, _name));
+		this->Base::fstk.push(Base::FncData(&Deserializer::loadTypeId, &_t, _name));
 		return *this;
 	}
 	
 	//! Schedules a std (style) container for deserialization
 	template <typename T>
 	Deserializer& pushContainer(T &_t, const char *_name = NULL){
-		Base::fstk.push(Base::FncData(&DeserializerBase::template loadContainer<T, DeserializerT>, (void*)&_t, _name));
+		this->Base::fstk.push(Base::FncData(&DeserializerBase::template loadContainer<T, DeserializerT>, (void*)&_t, _name));
 		return *this;
 	}
 	//! Schedules a std (style) container for deserialization
 	template <typename T>
 	Deserializer& pushContainer(T* &_t, const char *_name = NULL){
 		cassert(!_t);//the pointer must be null!!
-		Base::fstk.push(Base::FncData(&DeserializerBase::template loadContainer<T, DeserializerT>, (void*)&_t, _name, 0));
+		this->Base::fstk.push(Base::FncData(&DeserializerBase::template loadContainer<T, DeserializerT>, (void*)&_t, _name, 0));
 		return *this;
 	}
 	Deserializer& pushBinary(void *_p, size_t _sz, const char *_name = NULL){
-		Base::fstk.push(Base::FncData(&DeserializerBase::loadBinary<0>, _p, _name, _sz));
+		this->Base::fstk.push(Base::FncData(&DeserializerBase::loadBinary<0>, _p, _name, _sz));
 		return *this;
 	}
 	
 	template <typename T, typename ST>
 	Deserializer& pushArray(T* _p, ST &_rsz, const char *_name = NULL){
-		Base::fstk.push(Base::FncData(&DeserializerBase::template loadArray<T, DeserializerT, ST>, (void*)_p, _name));
-		Base::estk.push(Base::ExtData((int64)0, (int64)0, (void*)&_rsz));
-		Base::fstk.push(Base::FncData(&DeserializerBase::load<int32>, &Base::estk.top().i32()));
+		this->Base::fstk.push(Base::FncData(&DeserializerBase::template loadArray<T, DeserializerT, ST>, (void*)_p, _name));
+		this->Base::estk.push(Base::ExtData((int64)0, (int64)0, (void*)&_rsz));
+		this->Base::fstk.push(Base::FncData(&DeserializerBase::load<int32>, &this->Base::estk.top().i32()));
 		return *this;
 	}
 	template <typename T, typename ST>
 	Deserializer& pushDynamicArray(T* &_p, ST &_rsz, const char *_name = NULL){
-		Base::fstk.push(Base::FncData(&DeserializerBase::template loadArray<T, DeserializerT, ST>, (void*)&_p, _name, 0));
-		Base::estk.push(Base::ExtData((int64)0, (int64)0, (void*)&_rsz));
-		Base::fstk.push(Base::FncData(&DeserializerBase::load<int32>, &Base::estk.top().i32()));
+		this->Base::fstk.push(Base::FncData(&DeserializerBase::template loadArray<T, DeserializerT, ST>, (void*)&_p, _name, 0));
+		this->Base::estk.push(Base::ExtData((int64)0, (int64)0, (void*)&_rsz));
+		this->Base::fstk.push(Base::FncData(&DeserializerBase::load<int32>, &this->Base::estk.top().i32()));
 		return *this;
 	}
 	Deserializer& pushUtf8(
 		std::string& _str, const char *_name = NULL
 	){
 		_str.clear();
-		Base::fstk.push(Base::FncData(&DeserializerBase::loadUtf8, &_str, _name, 0));
+		this->Base::fstk.push(Base::FncData(&DeserializerBase::loadUtf8, &_str, _name, 0));
 		return *this;
 	}
 	
@@ -1435,18 +1435,18 @@ public:
 	Deserializer& pushReinit(
 		T *_pt, const uint64 &_rval = 0, const char *_name = NULL
 	){
-		Base::fstk.push(Base::FncData(&DeserializerBase::template loadReinit<T, DeserializerT, I>, _pt, _name, _rval));
+		this->Base::fstk.push(Base::FncData(&DeserializerBase::template loadReinit<T, DeserializerT, I>, _pt, _name, _rval));
 		return *this;
 	}
 	Deserializer& pushStream(
 		OutputStream *_ps, const char *_name = NULL
 	){
 		if(_ps){
-			Base::fstk.push(Base::FncData(&DeserializerBase::loadStream, _ps, _name, -1ULL));
+			this->Base::fstk.push(Base::FncData(&DeserializerBase::loadStream, _ps, _name, -1ULL));
 		}else{
-			Base::fstk.push(Base::FncData(&DeserializerBase::loadDummyStream, _ps, _name, -1ULL));
+			this->Base::fstk.push(Base::FncData(&DeserializerBase::loadDummyStream, _ps, _name, -1ULL));
 		}
-		Base::fstk.push(Base::FncData(&DeserializerBase::loadStreamBegin, _ps, _name, 0));
+		this->Base::fstk.push(Base::FncData(&DeserializerBase::loadStreamBegin, _ps, _name, 0));
 		return *this;
 	}
 	Deserializer& pushStream(
@@ -1456,12 +1456,12 @@ public:
 		const char *_name = NULL
 	){
 		if(_ps){
-			Base::fstk.push(Base::FncData(&DeserializerBase::loadStream, _ps, _name, _rlen));
+			this->Base::fstk.push(Base::FncData(&DeserializerBase::loadStream, _ps, _name, _rlen));
 		}else{
-			Base::fstk.push(Base::FncData(&DeserializerBase::loadDummyStream, _ps, _name, _rlen));
+			this->Base::fstk.push(Base::FncData(&DeserializerBase::loadDummyStream, _ps, _name, _rlen));
 		}
-		Base::fstk.push(Base::FncData(&DeserializerBase::loadStreamBegin, _ps, _name, _rat));
-		Base::fstk.push(Base::FncData(&DeserializerBase::loadStreamCheck, _ps, _name, _rlen));
+		this->Base::fstk.push(Base::FncData(&DeserializerBase::loadStreamBegin, _ps, _name, _rat));
+		this->Base::fstk.push(Base::FncData(&DeserializerBase::loadStreamCheck, _ps, _name, _rlen));
 		return *this;
 	}
 	Deserializer& pushStream(
@@ -1475,7 +1475,7 @@ public:
 	);
 	template <typename T, class H>
 	Deserializer& pushHandlePointer(T *_pt, const char *_name){
-		Base::fstk.push(Base::FncData(&DeserializerBase::loadHandle<T, DeserializerT, H>, _pt, _name));
+		this->Base::fstk.push(Base::FncData(&DeserializerBase::loadHandle<T, DeserializerT, H>, _pt, _name));
 		return *this;
 	}
 

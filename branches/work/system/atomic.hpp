@@ -22,6 +22,7 @@
 #include <atomic>
 #else
 #include "boost/atomic.hpp"
+#define ATOMIC_VAR_INIT(a) (a)
 #endif
 
 #endif
