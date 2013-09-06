@@ -71,8 +71,8 @@ void FileInputOutputStream::close(){
 struct Test{
 	Test(const char *_fn = NULL);
 	template <class S>
-	S& operator&(S &_s){
-		return _s.push(no, "Test::no").template pushReinit<Test, 0>(this, 0, "Test::reinit").push(fn,"Test::fn");
+	void serialize(S &_s){
+		_s.push(no, "Test::no").template pushReinit<Test, 0>(this, 0, "Test::reinit").push(fn,"Test::fn");
 	}
 	
 	template <class S, uint32 I>

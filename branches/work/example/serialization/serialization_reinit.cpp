@@ -33,8 +33,8 @@ struct Test: Dynamic<Test>{
 struct TestA: Dynamic<TestA, Test>{
 	TestA(int _a = 1, short _b = 2, unsigned _c = 3):a(_a), b(_b), c(_c){}
 	template <class S>
-	S& operator&(S &_s){
-		return _s.push(a, "a::a").push(b, "a::b").push(c, "a::c");
+	void serialize(S &_s){
+		_s.push(a, "a::a").push(b, "a::b").push(c, "a::c");
 	}
 	int32 		a;
 	int16 		b;
@@ -47,8 +47,8 @@ struct TestB: Dynamic<TestB, Test>{
 	int32			a;
 	void print()const {cout<<"testb: a = "<<a<<endl;}
 	template <class S>
-	S& operator&(S &_s){
-		return _s.push(a, "b::a");
+	void serialize(S &_s){
+		_s.push(a, "b::a");
 	}
 };
 
@@ -74,9 +74,8 @@ public:
 		tstvec.push_back(_ptst);
 	}
 	template <class S>
-	S& operator&(S &_s){
+	void serialize(S &_s){
 		_s.template pushReinit<Container, 0>(this, 0, "reinit");
-		return _s;
 	}
 	template <class S, uint32 I>
 	int serializationReinit(S &_rs, const uint64 &_rv){

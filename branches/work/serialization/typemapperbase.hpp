@@ -15,11 +15,11 @@
 #define BASIC_DECL(tp) \
 template <class S>\
 void serialize(S &_s, tp &_t){\
-	return _s.push(_t, "basic");\
+	_s.push(_t, "basic");\
 }\
 template <class S, class Ctx>\
 void serialize(S &_s, tp &_t, Ctx &){\
-	return _s.push(_t, "basic");\
+	_s.push(_t, "basic");\
 }
 
 namespace solid{

@@ -92,7 +92,7 @@ struct AuthMessage: Dynamic<AuthMessage, DynamicShared<frame::Message> >{
 	~AuthMessage(){}
 	
 	template <class S>
-	S& operator&(S &_s){
+	void serialize(S &_s){
 		_s.push(authidx, "authidx").push(authcnt, "authcnt");
 		if(S::IsDeserializer){
 			_s.push(msguid.idx, "msguid.idx").push(msguid.uid,"msguid.uid");
@@ -103,7 +103,6 @@ struct AuthMessage: Dynamic<AuthMessage, DynamicShared<frame::Message> >{
 			_s.push(rmsguid.idx, "msguid.idx").push(rmsguid.uid,"msguid.uid");
 		}
 		_s.push(msguidpeer.idx, "msguidpeer.idx").push(msguidpeer.uid,"msguidpeer.uid");
-		return _s;
 	}
 //data:
 	int							authidx;

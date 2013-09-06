@@ -23,6 +23,15 @@
 using namespace std;
 using namespace solid;
 
+struct Context{
+	Context(const char *_s, int _i):s(_s), i(_i){}
+	void print(){
+		cout<<"Context: "<<s<<' '<<i<<endl;
+	}
+	string	s;
+	int 	i;
+};
+
 template <int T>
 struct IndexType{
 	enum{ Index = T};
@@ -32,7 +41,8 @@ struct IndexType{
 struct TestA{
 	TestA(int _a = 1, short _b = 2, unsigned _c = 3):a(_a), b(_b), c(_c){}
 	template <class S>
-	void serialize(S &_s){
+	void serialize(S &_s, Context &_rctx){
+		_rctx.print();
 		_s.push(a, "a::a").push(b, "a::b").push(c, "a::c");
 	}
 	int32 		a;
@@ -46,7 +56,8 @@ struct TestB{
 	int32			a;
 	void print()const {cout<<"testb: a = "<<a<<endl;}
 	template <class S>
-	void serialize(S &_s){
+	void serialize(S &_s, Context &_rctx){
+		_rctx.print();
 		_s.push(a, "b::a");
 	}
 };
@@ -88,7 +99,8 @@ struct TestD{
 		
 	}
 	template <class S>
-	void serialize(S &_s){
+	void serialize(S &_s, Context &_rctx){
+		_rctx.print();
 		_s.push(a, "b::a");
 		const SocketAddressInet4 &rsa = sa;
 		const sockaddr *psa = rsa;
@@ -107,7 +119,8 @@ struct String: Base{
 	String(const IndexType<1>&):dflt(true), str("default"){}
 	String(const char *_str):dflt(false), str(_str){}
 	template <class S>
-	void serialize(S &_s){
+	void serialize(S &_s, Context &_rctx){
+		_rctx.print();
 		if(dflt){
 			_s;
 		}else{
@@ -128,7 +141,8 @@ private:
 struct Integer: Base{
 	Integer(int _i = 0):tc(_i){}
 	template <class S>
-	void serialize(S &_s){
+	void serialize(S &_s, Context &_rctx){
+		_rctx.print();
 		_s.push(tc, "tc");
 	}
 	virtual void print()const{
@@ -141,9 +155,10 @@ private:
 struct UnsignedInteger: Integer{
 	UnsignedInteger(int _i = 0, unsigned _u = 0):Integer(_i),u(_u){}
 	template <class S>
-	void serialize(S &_s){
+	void serialize(S &_s, Context &_rctx){
+		_rctx.print();
 		_s.push(u, "String::str");
-		Integer::serialize(_s);
+		Integer::serialize(_s, _rctx);
 	}
 	void print()const{
 		cout<<"Unsigned Integer{"<<endl;
@@ -182,7 +197,8 @@ void IntegerVector::print()const{
 }
 namespace solid{namespace serialization{namespace binary{
 template <class S>
-void serialize(S &_s, IntegerVector &_iv){
+void serialize(S &_s, IntegerVector &_iv, Context &_rctx){
+	_rctx.print();
 	_s.pushContainer(_iv.iv, "IntegerVector::iv").pushContainer(_iv.piv1,"piv1").pushContainer(_iv.piv2, "piv2");
 }
 /*binary*/}/*serialization*/}/*solid*/}
@@ -219,7 +235,8 @@ struct Array: Base{
 		delete []pta1;
 	}
 	template <class S>
-	void serialize(S &_s){
+	void serialize(S &_s, Context &_rctx){
+		_rctx.print();
 		_s.pushArray(sa, sasz, "sa");
 		_s.pushDynamicArray(pta, ptasz, "pta");
 		_s.pushDynamicArray(pta1, pta1sz, "pta1");
@@ -269,17 +286,19 @@ void Array::print() const{
 
 namespace solid{namespace serialization{namespace binary{
 template <class S>
-void serialize(S &_s, Base &){
+void serialize(S &_s, Base &, Context &_rctx){
 	cassert(false);
 }
 
 template <class S>
-void serialize(S &_s, TestC &_tb){
+void serialize(S &_s, TestC &_tb, Context &_rctx){
+	_rctx.print();
 	_s.push(_tb.a, "c::a");
 }
 
 template <class S>
-void serialize(S &_s, pair<int32,int32> &_tb){
+void serialize(S &_s, pair<int32,int32> &_tb, Context &_rctx){
+	_rctx.print();
 	_s.push(_tb.first, "first").push(_tb.second, "second");
 }
 /*binary*/}/*serialization*/}/*solid*/}
@@ -318,8 +337,8 @@ int main(int argc, char *argv[]){
 	int rv = 3;
 	//TestA ta;
 	//cout<<ta<<endl;
-	typedef serialization::binary::Serializer<void>									BinSerializerT;
-	typedef serialization::binary::Deserializer<void>								BinDeserializerT;
+	typedef serialization::binary::Serializer<Context>								BinSerializerT;
+	typedef serialization::binary::Deserializer<Context>							BinDeserializerT;
 	typedef serialization::IdTypeMapper<BinSerializerT, BinDeserializerT, uint16>	UInt16TypeMapperT;
 	
 	
@@ -335,6 +354,7 @@ int main(int argc, char *argv[]){
 	for(int i = 0; i < 1; ++i){
 		{	
 			idbg("");
+			Context			ctx("Serialization", 1000);
 			BinSerializerT 	ser(tm);
 			
 			TestA 			ta;
@@ -390,7 +410,7 @@ int main(int argc, char *argv[]){
 			cout<<endl;
 			int v = 0, cnt = 0;
 			idbg("");
-			while((rv = ser.run(bufs[v], blen)) == blen){
+			while((rv = ser.run(bufs[v], blen, ctx)) == blen){
 				cnt += rv;
 				++v;
 			}
@@ -404,6 +424,7 @@ int main(int argc, char *argv[]){
 		}
 		cout<<"Deserialization: =================================== "<<endl;
 		{
+			Context				ctx("Deserialization", 1111);
 			BinDeserializerT	des(tm);
 			TestA				ta;
 			TestB				tb;// = new TestB;
@@ -430,7 +451,7 @@ int main(int argc, char *argv[]){
 			des.pushContainer(pidq, "pidq");
 			pair<int32,int32> ppi;
 			des.push(ppi, "pi");
-			while((rv = des.run(bufs[v], blen)) == blen){
+			while((rv = des.run(bufs[v], blen, ctx)) == blen){
 				cnt += rv;
 				++v;
 			}

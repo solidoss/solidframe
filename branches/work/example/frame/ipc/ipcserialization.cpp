@@ -66,10 +66,9 @@ struct FirstMessage: Dynamic<FirstMessage, DynamicShared<frame::Message> >{
 	}
 	
 	template <class S>
-	S& operator&(S &_s){
+	void serialize(S &_s){
 		_s.push(state, "state").push(sec, "seconds").push(nsec, "nanoseconds").push(str, "data");
 		_s.push(msguid.idx, "msguid.idx").push(msguid.uid,"msguid.uid");
-		return _s;
 	}
 	
 };

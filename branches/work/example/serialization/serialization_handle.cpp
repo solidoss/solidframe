@@ -36,7 +36,7 @@ struct TestA{
 		_s.push(a, "a::a").push(b, "a::b").push(c, "a::c");
 	}
 	int32 		a;
-	int16 		b;
+	int8 		b;
 	uint32		c;
 	void print()const{cout<<"testa: a = "<<a<<" b = "<<b<<" c = "<<c<<endl;}
 };

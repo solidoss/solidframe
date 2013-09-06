@@ -423,7 +423,8 @@ public:
 	typedef void ContextT;
 	
 	enum {IsSerializer = true, IsDeserializer = false};
-
+	void clear();
+	bool empty()const {return fstk.empty();}
 protected:
 	static char* storeValue(char *_pd, const uint16 _val);
 	static char* storeValue(char *_pd, const uint32 _val);
@@ -451,8 +452,6 @@ protected:
 		tmpstr.reserve(sizeof(ulong));
 	}
 	~SerializerBase();
-	void clear();
-	bool empty()const {return fstk.empty();}
 private:
 	template <class T>
 	friend struct SerializerPushHelper;
@@ -528,6 +527,14 @@ struct SerializerPushHelper<int8>{
 		_rs.fstk.push(SerializerBase::FncData(&SerializerBase::store<int8>, &_rv, _name));
 	}
 };
+
+template <>
+struct SerializerPushHelper<uint8>{
+	void operator()(SerializerBase &_rs, uint8 &_rv, const char *_name, bool _b = false){
+		_rs.fstk.push(SerializerBase::FncData(&SerializerBase::store<uint8>, &_rv, _name));
+	}
+};
+
 
 template <>
 struct SerializerPushHelper<uint16>{
@@ -1281,6 +1288,14 @@ struct DeserializerPushHelper<int8>{
 		_rs.fstk.push(DeserializerBase::FncData(&DeserializerBase::load<int8>, &_rv, _name));
 	}
 };
+
+template <>
+struct DeserializerPushHelper<uint8>{
+	void operator()(DeserializerBase &_rs, uint8 &_rv, const char *_name, bool _b = false){
+		_rs.fstk.push(DeserializerBase::FncData(&DeserializerBase::load<uint8>, &_rv, _name));
+	}
+};
+
 
 template <>
 struct DeserializerPushHelper<uint16>{

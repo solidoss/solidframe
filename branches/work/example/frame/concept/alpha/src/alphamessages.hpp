@@ -35,18 +35,18 @@ using solid::int64;
 using solid::uint8;
 
 ///\cond 0
-namespace std{
+namespace solid{namespace serialization{namespace binary{
 
 template <class S>
-S& operator&(pair<String, int64> &_v, S &_s){
-	return _s.push(_v.first, "first").push(_v.second, "second");
+void serialize(S &_s, std::pair<String, int64> &_v){
+	_s.push(_v.first, "first").push(_v.second, "second");
 }
 
 template <class S>
-S& operator&(ObjectUidT &_v, S &_s){
-	return _s.push(_v.first, "first").push(_v.second, "second");
+void serialize(S &_s, ObjectUidT &_v){
+	_s.push(_v.first, "first").push(_v.second, "second");
 }
-}
+/*binary*/}/*serialization*/}/*solid*/}
 ///\endcond
 
 namespace concept{
@@ -85,7 +85,7 @@ struct RemoteListMessage: Dynamic<RemoteListMessage, DynamicShared<frame::Messag
 	size_t release();
 
 	template <class S>
-	S& operator&(S &_s){
+	void serialize(S &_s){
 		_s.pushContainer(ppthlst, "strlst").push(err, "error").push(tout,"timeout");
 		_s.push(requid, "requid").push(strpth, "strpth").push(fromv, "from");
 		_s.push(ipcstatus, "ipcstatus");
@@ -97,7 +97,6 @@ struct RemoteListMessage: Dynamic<RemoteListMessage, DynamicShared<frame::Messag
 			);
 			_s.push(rmsguid.idx, "msguid.idx").push(rmsguid.uid,"msguid.uid");
 		}
-		return _s;
 	}
 //data:
 	RemoteList::PathListT				*ppthlst;
@@ -157,10 +156,10 @@ struct FetchMasterMessage: Dynamic<FetchMasterMessage, solid::frame::Message>{
 	);
 	
 	template <class S>
-	S& operator&(S &_s){
+	void serialize(S &_s){
 		_s.push(fname, "filename");
 		_s.push(tmpfuid.first, "tmpfileuid_first").push(tmpfuid.second, "tmpfileuid_second");
-		return _s.push(fromv.first, "fromobjectid").push(fromv.second, "fromobjectuid").push(requid, "requestuid").push(streamsz, "streamsize");
+		_s.push(fromv.first, "fromobjectid").push(fromv.second, "fromobjectuid").push(requid, "requestuid").push(streamsz, "streamsize");
 	}
 	void print()const;
 //data:
@@ -203,7 +202,7 @@ struct FetchSlaveMessage: Dynamic<FetchSlaveMessage, solid::frame::Message>{
 	uint32 ipcPrepare();
 	
 	template <class S>
-	S& operator&(S &_s){
+	void serialize(S &_s){
 		_s.template pushReinit<FetchSlaveMessage, 0>(this, 0, "reinit");
 		_s.push(tov.first, "toobjectid").push(tov.second, "toobjectuid");
 		//_s.push(fromv.first, "fromobjectid").push(fromv.second, "fromobjectuid");
@@ -211,7 +210,6 @@ struct FetchSlaveMessage: Dynamic<FetchSlaveMessage, solid::frame::Message>{
 		_s.push(filesz, "filesize").push(msguid.first, "msguid_first").push(msguid.second, "msguid_second");
 		_s.push(fuid.first,"fileuid_first").push(fuid.second, "fileuid_second");
 		serialized = true;
-		return _s;
 	}
 	
 	template <class S, uint32 I>
@@ -271,9 +269,9 @@ struct SendStringMessage: Dynamic<SendStringMessage, solid::frame::Message>{
 		solid::frame::ipc::MessageUid &_rmsguid
 	);
 	template <class S>
-	S& operator&(S &_s){
+	void serialize(S &_s){
 		_s.push(str, "string").push(tov.first, "toobjectid").push(tov.second, "toobjectuid");
-		return _s.push(fromv.first, "fromobjectid").push(fromv.second, "fromobjectuid");
+		_s.push(fromv.first, "fromobjectid").push(fromv.second, "fromobjectuid");
 	}
 private:
 	typedef std::pair<uint32, uint32> ObjPairT;
@@ -314,10 +312,10 @@ struct SendStreamMessage: Dynamic<SendStreamMessage, solid::frame::Message>{
 	void destroySerializationStream(InputStream *&_rpis, int64 &_rsz, uint64 &_roff, int _id);
 	
 	template <class S>
-	S& operator&(S &_s){
+	void serialize(S &_s){
 		_s.push(dststr, "dststr");
 		_s.push(tov.first, "toobjectid").push(tov.second, "toobjectuid");
-		return _s.push(fromv.first, "fromobjectid").push(fromv.second, "fromobjectuid");
+		_s.push(fromv.first, "fromobjectid").push(fromv.second, "fromobjectuid");
 	}
 private:
 	typedef std::pair<uint32, uint32> 	ObjPairT;
