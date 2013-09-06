@@ -25,29 +25,6 @@ struct FakeMutex{
 	void unlock(){}
 };
 
-template <class T, class Ser, class Ctx>
-struct CallHelper;
-
-template <class T, class Ser>
-struct CallHelper<T, Ser, void>{
-	void operator()(void *_p, void *_ps, void *_pctx){
-		Ser &rs = *reinterpret_cast<Ser*>(_ps);
-		T	&rt = *reinterpret_cast<T*>(_p);
-		rt.serialize(rs);
-	}
-};
-
-template <class T, class Ser, class Ctx>
-struct CallHelper{
-	void operator()(void *_p, void *_ps, void *_pctx){
-		Ser &rs = *reinterpret_cast<Ser*>(_ps);
-		T	&rt = *reinterpret_cast<T*>(_p);
-		Ctx &rc = *reinterpret_cast<Ctx*>(_p);
-		rt.serialize(rs, rc);
-	}
-};
-
-
 template <class Ser, class Des, typename Int, typename Mtx = Mutex>
 class IdTypeMapper: public TypeMapperBase{
 	
@@ -57,25 +34,23 @@ class IdTypeMapper: public TypeMapperBase{
 	
 	
 	template <class T>
-	static bool doMapSer(void *_p, void *_ps, void *_pid, const char *_name, void *_pctx){
-		Int									&rid = *reinterpret_cast<Int*>(_pid);
-		Ser									&rs = *reinterpret_cast<Ser*>(_ps);
-		CallHelper<T, Ser, SerContextT>		ch;
-		ch(_p, _ps, _pctx);
+	static bool doMapSer(void *_p, void *_ps, void *_pid, const char *_name, void */*_pctx*/){
+		Int			&rid = *reinterpret_cast<Int*>(_pid);
+		Ser			&rs = *reinterpret_cast<Ser*>(_ps);
+		T			&rp = *reinterpret_cast<T*>(_p);
+		rs.push(rp, _name);
 		rs.push(rid, _name);
 		return true;
 	}
 	
 	template <class T>
-	static bool doMapDes(void *_p, void *_pd, const char *_name, void *_pctx){
-		Des									&rd	= *reinterpret_cast<Des*>(_pd);
-		
-		T*									&rpt = *reinterpret_cast<T**>(_p);
+	static bool doMapDes(void *_p, void *_pd, const char *_name, void */*_pctx*/){
+		Des		&rd	= *reinterpret_cast<Des*>(_pd);
+		T*		&rpt = *reinterpret_cast<T**>(_p);
 		rpt = new T;
+		T		&rp = *rpt;
 		
-		CallHelper<T, Des, DesContextT>		ch;
-		
-		ch(rpt, _pd, _pctx);
+		rd.push(rp, _name);
 		
 		return true;
 	}
@@ -83,14 +58,13 @@ class IdTypeMapper: public TypeMapperBase{
 	template <class T, class H>
 	static bool doMapSerHandle(void *_p, void *_ps, void *_pid, const char *_name, void *_pctx){
 		Ser				&rs = *reinterpret_cast<Ser*>(_ps);
-		T				&rt = *reinterpret_cast<T*>(_p);
+		T				&rp = *reinterpret_cast<T*>(_p);
 		Int				&rid = *reinterpret_cast<Int*>(_pid);
-		SerContextT		&rctx = *reinterpret_cast<SerContextT*>(_pctx);
 		H				handle;
+		SerContextT		&rctx = *reinterpret_cast<SerContextT*>(_pctx);
 		
-		if(handle.checkStore(&rt, rctx)){
-			CallHelper<T, Ser, SerContextT>		ch;
-			ch(_p, _ps, _pctx);
+		if(handle.checkStore(&rp, rctx)){
+			rs.push(rp, _name);
 			rs.push(rid, _name);
 			return true;
 		}else{
@@ -103,14 +77,14 @@ class IdTypeMapper: public TypeMapperBase{
 	static bool doMapDesHandle(void *_p, void *_pd, const char *_name, void *_pctx){
 		Des				&rd = *reinterpret_cast<Des*>(_pd);
 		T*				&rpt = *reinterpret_cast<T**>(_p);
-		DesContextT		&rctx = *reinterpret_cast<DesContextT*>(_pctx);
 		H				handle;
+		DesContextT		&rctx = *reinterpret_cast<DesContextT*>(_pctx);
 		
 		if(handle.checkLoad(rpt, rctx)){
 			rpt = new T;
+			T		&rp = *rpt;
 			rd.template pushHandlePointer<T, H>(rpt, _name);
-			CallHelper<T, Des, DesContextT>		ch;
-			ch(rpt, _pd, _pctx);
+			rd.push(rp, _name);
 			
 			return true;
 		}else{
@@ -119,30 +93,30 @@ class IdTypeMapper: public TypeMapperBase{
 	}
 	
 	template <class T, class CT>
-	static bool doMapDes(void *_p, void *_pd, const char *_name, void *_pctx){
+	static bool doMapDes(void *_p, void *_pd, const char *_name, void */*_pctx*/){
 		Des &rd = *reinterpret_cast<Des*>(_pd);
 		T*  &rpt = *reinterpret_cast<T**>(_p);
 		rpt = new T(CT());
-		CallHelper<T, Des, DesContextT>		ch;
-		ch(rpt, _pd, _pctx);
+		T	&rp = *rpt;
+		rd.push(rp, _name);
 		return true;
 	}
 	template <class T>
-	static bool doMapDesSpecific(void *_p, void *_pd, const char *_name, void *_pctx){
+	static bool doMapDesSpecific(void *_p, void *_pd, const char *_name, void */*_pctx*/){
 		Des &rd	= *reinterpret_cast<Des*>(_pd);
 		T*	&rpt = *reinterpret_cast<T**>(_p);
 		rpt = Specific::template uncache<T>();
-		CallHelper<T, Des, DesContextT>		ch;
-		ch(rpt, _pd, _pctx);
+		T	&rp = *rpt;
+		rd.push(rp, _name);
 		return true;
 	}
 	template <class T, class CT>
-	static bool doMapDesSpecific(void *_p, void *_pd, const char *_name, void *_pctx){
+	static bool doMapDesSpecific(void *_p, void *_pd, const char *_name, void */*_pctx*/){
 		Des &rd = *reinterpret_cast<Des*>(_pd);
 		T*  &rpt = *reinterpret_cast<T**>(_p);
 		rpt = Specific::template uncache<T>(CT());
-		CallHelper<T, Des, DesContextT>		ch;
-		ch(rpt, _pd, _pctx);
+		T	&rp = *rpt;
+		rd.push(rp, _name);
 		return true;
 	}
 public:

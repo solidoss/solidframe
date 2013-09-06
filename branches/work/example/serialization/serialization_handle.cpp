@@ -31,9 +31,9 @@ struct Context{
 struct TestA{
 	TestA(int _a = 1, short _b = 2, unsigned _c = 3):a(_a), b(_b), c(_c){}
 	template <class S>
-	S& serialize(S &_s, Context &_rctx){
+	void serialize(S &_s, Context &_rctx){
 		cout<<"serialize TestA "<<_rctx.value<<endl;
-		return _s.push(a, "a::a").push(b, "a::b").push(c, "a::c");
+		_s.push(a, "a::a").push(b, "a::b").push(c, "a::c");
 	}
 	int32 		a;
 	int16 		b;
@@ -46,9 +46,9 @@ struct TestB{
 	int32			a;
 	void print()const {cout<<"testb: a = "<<a<<endl;}
 	template <class S>
-	S& serialize(S &_s, Context &_rctx){
+	void serialize(S &_s, Context &_rctx){
 		cout<<"serialize TestB "<<_rctx.value<<endl;
-		return _s.push(a, "b::a");
+		_s.push(a, "b::a");
 	}
 };
 
