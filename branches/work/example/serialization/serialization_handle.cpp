@@ -64,6 +64,14 @@ struct Handle{
 		return true;
 	}
 	
+	void beforeSerialize(BinSerializerT &_rs, void *_pt, Context &_rctx){
+		
+	}
+	
+	void beforeSerialize(BinDeserializerT &_rs, void *_pt, Context &_rctx){
+		
+	}
+	
 	bool checkLoad(TestA *_pt, Context &_rctx)const{
 		if(_rctx.value == 11){
 			_rctx.value = 12;

@@ -264,6 +264,19 @@ protected:
 	
 	static int storeUtf8(Base &_rs, FncData &_rfd, void */*_pctx*/);
 	
+	//NOTE: not used for no - no reason
+	template <typename T, class Ser>
+	static int storeHandle(Base &_rs, FncData &_rfd, void *_pctx){
+		idbgx(Debug::ser_bin, "store generic non pointer with handle");
+		Ser		&rs(static_cast<Ser&>(_rs));
+		if(!rs.cpb) return OK;
+		T		&rt = *((T*)_rfd.p);
+		typename Ser::ContextT	&rctx = *reinterpret_cast<typename Ser::ContextT*>(_pctx);
+		rs.fstk.pop();
+		serialize(rs, rt, rctx);
+		return CONTINUE;
+	}
+	
 	template <typename T, class Ser>
 	static int storeContainer(Base &_rs, FncData &_rfd, void *_pctx){
 		idbgx(Debug::ser_bin, "store generic container sizeof(iterator) = "<<sizeof(typename T::iterator)<<" "<<_rfd.n);

@@ -28,6 +28,7 @@
 
 #include "frame/ipc/ipcservice.hpp"
 #include "frame/ipc/ipcconnectionuid.hpp"
+#include "frame/ipc/ipcmessage.hpp"
 
 #include "ipctalker.hpp"
 #include "ipcnode.hpp"
@@ -1283,9 +1284,9 @@ char * Controller::allocateBuffer(PacketContext &_rpc, uint32 &_cp){
 
 bool Controller::receive(
 	Message *_pmsg,
-	ipc::MessageUid &_rmsguid
+	ConnectionContext &_rctx
 ){
-	_pmsg->ipcReceive(_rmsguid);
+	_pmsg->onReceive(_rctx);
 	return true;
 }
 
@@ -1345,6 +1346,29 @@ BasicController::BasicController(
 /*virtual*/ void BasicController::scheduleNode(frame::aio::Object *_pnod){
 	DynamicPointer<frame::aio::Object> op(_pnod);
 	rsched_t.schedule(op);
+}
+
+//------------------------------------------------------------------
+//		Message
+//------------------------------------------------------------------
+
+/*virtual*/ Message::~Message(){
+	
+}
+/*virtual*/ void Message::onReceive(ConnectionContext &_ripcctx){
+}
+/*virtual*/ void Message::onPrepare(ConnectionContext &_ripcctx){
+	
+}
+/*virtual*/ void Message::onComplete(ConnectionContext &_ripcctx, int _error){
+	
+}
+
+void Service::Handle::beforeSerialize(Service::SerializerT &_rs, Message *_pt, const ConnectionContext &_rctx){
+	_rs.push(_pt->flags(), "flags").push(_pt->requestMessageUid().idx, "msg_idx").push(_pt->requestMessageUid().uid, "msg_uid");
+}
+void Service::Handle::beforeSerialize(Service::DeserializerT &_rs, Message *_pt, const ConnectionContext &_rctx){
+	_rs.push(_pt->flags(), "flags").push(_pt->requestMessageUid().idx, "msg_idx").push(_pt->requestMessageUid().uid, "msg_uid");
 }
 
 }//namespace ipc

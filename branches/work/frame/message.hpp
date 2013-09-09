@@ -30,19 +30,12 @@ namespace frame{
 
 namespace ipc{
 	struct ConnectionUid;
-	struct MessageUid;
 }
 
 class MessageSteward;
 class Object;
 
 struct Message: Dynamic<Message>{
-	enum IPCStatus{
-		IpcNone = 0,
-		IpcOnSender,
-		IpcOnPeer,
-		IpcBackOnSender
-	};
 	Message();
 	virtual ~Message();
 	//! Called by ipc module after the message was successfully parsed
@@ -55,14 +48,6 @@ struct Message: Dynamic<Message>{
 			so that when the response comes back, it gives it back to the 
 			ipc module.
 	*/
-	virtual void ipcReceive(
-		ipc::MessageUid &_waitingmessageuid
-	);
-	//! Called by ipc module, before the signal begins to be serialized
-	virtual uint32 ipcPrepare();
-	//! Called by ipc module on peer failure detection (disconnect,reconnect)
-	virtual void ipcComplete(int _error);
-	
 	//! Called by the MessageSteward
 	virtual int execute(
 		DynamicPointer<Message> &_rthis_ptr,

@@ -116,16 +116,6 @@ Message::~Message(){
 	vdbgx(Debug::frame, "memsub "<<(void*)this);
 }
 
-void Message::ipcReceive(
-	ipc::MessageUid&
-){
-}
-uint32 Message::ipcPrepare(){
-	return 0;//do nothing - no wait for response
-}
-void Message::ipcComplete(int _err){
-	wdbgx(Debug::frame,"");
-}
 int Message::execute(
 	DynamicPointer<Message> &_rthis_ptr,
 	uint32 _evs,

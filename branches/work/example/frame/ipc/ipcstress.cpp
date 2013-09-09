@@ -6,6 +6,7 @@
 //#include "foundation/aio/openssl/opensslsocket.hpp"
 
 #include "frame/ipc/ipcservice.hpp"
+#include "frame/ipc/ipcmessage.hpp"
 
 //#include "system/thread.hpp"
 #include "system/mutex.hpp"
@@ -109,11 +110,11 @@ namespace{
 }
 
 
-struct FirstMessage: Dynamic<FirstMessage, DynamicShared<frame::Message> >{
-	uint32							state;
+struct FirstMessage: frame::ipc::Message{
 	uint32							idx;
     uint32							sec;
     uint32							nsec;
+	int								state;
     std::string						str;
 	frame::ipc::MessageUid			msguid;
 	
@@ -122,30 +123,20 @@ struct FirstMessage: Dynamic<FirstMessage, DynamicShared<frame::Message> >{
 	~FirstMessage();
 	
 	uint32 size()const{
-		return sizeof(state) + sizeof(sec) + sizeof(nsec) + sizeof(msguid) + sizeof(uint32) + str.size();
+		return sizeof(sec) + sizeof(nsec) + sizeof(msguid) + sizeof(uint32) + str.size();
 	}
 	
-	/*virtual*/ void ipcReceive(
-		frame::ipc::MessageUid &_rmsguid
-	);
-	/*virtual*/ uint32 ipcPrepare();
-	/*virtual*/ void ipcComplete(int _err);
+	/*virtual*/ void onReceive(frame::ipc::ConnectionContext &_rctx);
+	/*virtual*/ void onPrepare();
+	/*virtual*/ void onComplete(int _err);
 	
 	bool isOnSender()const{
-		return (state % 2) == 0;
+		return state % 2;
 	}
 	
 	template <class S>
-	void serialize(S &_s){
+	void serialize(S &_s, const frame::ipc::ConnectionContext &_rctx){
 		_s.push(state, "state").push(idx, "index").push(sec, "seconds").push(nsec, "nanoseconds").push(str, "data");
-		if(!isOnSender() || S::IsDeserializer){
-			_s.push(msguid.idx, "msguid.idx").push(msguid.uid,"msguid.uid");
-		}else{//on sender
-			frame::ipc::MessageUid &rmsguid(
-				const_cast<frame::ipc::MessageUid &>(frame::ipc::ConnectionContext::the().msgid)
-			);
-			_s.push(rmsguid.idx, "msguid.idx").push(rmsguid.uid,"msguid.uid");
-		}
 	}
 	
 };
@@ -220,7 +211,7 @@ int main(int argc, char *argv[]){
 		
 		frame::ipc::Service		ipcsvc(m, new frame::ipc::BasicController(aiosched));
 		
-		ipcsvc.typeMapper().insert<FirstMessage>();
+		ipcsvc.registerMessageType<FirstMessage>();
 		
 		m.registerService(ipcsvc);
 		
@@ -265,7 +256,7 @@ int main(int argc, char *argv[]){
 				DynamicSharedPointer<FirstMessage>	fmsgptr(create_message(i));
 
 				for(Params::PeerAddressVectorT::iterator it(p.connectvec.begin()); it != p.connectvec.end(); ++it){
-					DynamicPointer<frame::Message>		msgptr(fmsgptr);
+					DynamicPointer<frame::ipc::Message>		msgptr(fmsgptr);
 					ipcsvc.sendMessage(
 						msgptr, it->second,
 						it->first,
@@ -463,12 +454,10 @@ FirstMessage::~FirstMessage(){
 	idbg("DELETE ---------------- "<<(void*)this);
 }
 
-/*virtual*/ void FirstMessage::ipcReceive(
-	frame::ipc::MessageUid &_rmsguid
-){
+/*virtual*/ void FirstMessage::onReceive(frame::ipc::ConnectionContext &_rctx){
 	++state;
 	idbg("EXECUTE ---------------- "<<state);
-	DynamicPointer<frame::Message> msgptr(this);
+	DynamicPointer<frame::ipc::Message> msgptr(this);
 	
 	if(this->idx >= msgvec.size()){
 		msgvec.resize(this->idx + 1);
@@ -495,7 +484,6 @@ FirstMessage::~FirstMessage(){
 		idbg("Received message: "<<peersa.first<<":"<<peersa.second);
 		
 		tmptime =  crttime - tmptime;
-		_rmsguid = msguid;
 		
 		peersa.second.port(frame::ipc::ConnectionContext::the().baseport);
 		
@@ -535,14 +523,14 @@ FirstMessage::~FirstMessage(){
 		}
 	}
 }
-/*virtual*/ uint32 FirstMessage::ipcPrepare(){
-	if(isOnSender()){
-		return frame::ipc::WaitResponseFlag;
-	}else{
-		return 0;
-	}
+/*virtual*/ void FirstMessage::onPrepare(){
+// 	if(isOnSender()){
+// 		return frame::ipc::WaitResponseFlag;
+// 	}else{
+// 		return 0;
+// 	}
 }
-/*virtual*/ void FirstMessage::ipcComplete(int _err){
+/*virtual*/ void FirstMessage::onComplete(int _err){
 	if(!_err){
         idbg("SUCCESS ----------------");
     }else{

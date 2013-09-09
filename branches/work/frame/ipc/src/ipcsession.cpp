@@ -64,7 +64,7 @@ private:
 };
 
 
-struct ConnectDataMessage: frame::Message{
+struct ConnectDataMessage: Message{
     ConnectDataMessage(){}
     ConnectDataMessage(const ConnectData& _rcd):data(_rcd){}
     
@@ -149,7 +149,7 @@ std::ostream& operator<<(std::ostream &_ros, const StatisticData &_rsd);
 #endif
 
 //== Session::Data ====================================================
-typedef DynamicPointer<frame::Message>			DynamicMessagePointerT;
+typedef DynamicPointer<Message>			DynamicMessagePointerT;
 
 struct Session::Data{
 	enum{
@@ -227,10 +227,9 @@ struct Session::Data{
 		SendMessageData(
 			const DynamicPointer<Message>& _rmsgptr,
 			const SerializationTypeIdT	&_rtid,
-			uint16 _pktid,
-			uint16 _flags,
-			uint32 _id
-		):msgptr(_rmsgptr), tid(_rtid), pserializer(NULL), pktid(_pktid), flags(_flags), id(_id), uid(0){}
+			uint32 _flags,
+			uint32 _idx
+		):msgptr(_rmsgptr), tid(_rtid), pserializer(NULL), flags(_flags), idx(_idx), uid(0){}
 		~SendMessageData(){
 			//cassert(!pserializer);
 		}
@@ -240,14 +239,13 @@ struct Session::Data{
 				}else return true;
 			}else return false;
 			
-			return overflow_safe_less(id, _owc.id);
+			return overflow_safe_less(idx, _owc.idx);
 		}
 		DynamicMessagePointerT	msgptr;
 		SerializationTypeIdT	tid;
 		BinSerializerT			*pserializer;
-		uint16					pktid;
-		uint16					flags;
-		uint32					id;
+		uint32					flags;
+		uint32					idx;
 		uint32					uid;
 	};
 	
@@ -340,8 +338,7 @@ public:
 	MessageUid pushSendWaitMessage(
 		DynamicPointer<Message> &_rmsgptr,
 		const SerializationTypeIdT &_rtid,
-		uint16 _pktid,
-		uint16 _flags,
+		uint32 _flags,
 		uint32 _id
 	);	
 	void popSentWaitMessages(SendPacketData &_rspd);
@@ -567,10 +564,8 @@ Session::Data::Data(
 }
 //---------------------------------------------------------------------
 Session::Data::~Data(){
-	Context::the().msgctx.msgid.idx = 0xffffffff;
-	Context::the().msgctx.msgid.uid = 0xffffffff;
 	while(msgq.size()){
-		msgq.front().msgptr->ipcComplete(-1);
+		msgq.front().msgptr->onComplete(Context::the().msgctx, -1);
 		msgq.pop();
 	}
 	while(this->rcvdmsgq.size()){
@@ -584,8 +579,6 @@ Session::Data::~Data(){
 	}
 	for(Data::SendMessageVectorT::iterator it(sendmsgvec.begin()); it != sendmsgvec.end(); ++it){
 		SendMessageData &rsmd(*it);
-		Context::the().msgctx.msgid.idx = it - sendmsgvec.begin();
-		Context::the().msgctx.msgid.uid = rsmd.uid;
 		if(rsmd.pserializer){
 			rsmd.pserializer->clear();
 			pushSerializer(rsmd.pserializer);
@@ -594,10 +587,10 @@ Session::Data::~Data(){
 		if(rsmd.msgptr.get()){
 			if((rsmd.flags & WaitResponseFlag) && (rsmd.flags & SentFlag)){
 				//the was successfully sent but the response did not arrive
-				rsmd.msgptr->ipcComplete(-2);
+				rsmd.msgptr->onComplete(Context::the().msgctx, -2);
 			}else{
 				//the message was not successfully sent
-				rsmd.msgptr->ipcComplete(-1);
+				rsmd.msgptr->onComplete(Context::the().msgctx, -1);
 			}
 			rsmd.msgptr.clear();
 		}
@@ -673,9 +666,8 @@ inline void Session::Data::incrementSendId(){
 MessageUid Session::Data::pushSendWaitMessage(
 	DynamicPointer<Message> &_rmsgptr,
 	const SerializationTypeIdT &_rtid,
-	uint16 _pktid,
-	uint16 _flags,
-	uint32 _id
+	uint32 _flags,
+	uint32 _idx
 ){
 	_flags &= ~SentFlag;
 //	_flags &= ~WaitResponseFlag;
@@ -686,19 +678,18 @@ MessageUid Session::Data::pushSendWaitMessage(
 		
 		sendmsgfreeposstk.pop();
 		
-		rsmd.pktid = _pktid;
 		cassert(!rsmd.msgptr.get());
 		rsmd.msgptr = _rmsgptr;
 		rsmd.tid = _rtid;
 		
 		cassert(!_rmsgptr.get());
 		rsmd.flags = _flags;
-		rsmd.id = _id;
+		rsmd.idx = _idx;
 		
 		return MessageUid(idx, rsmd.uid);
 	}else{
 		
-		sendmsgvec.push_back(SendMessageData(_rmsgptr, _rtid, _pktid, _flags, _id));
+		sendmsgvec.push_back(SendMessageData(_rmsgptr, _rtid, _flags, _idx));
 		cassert(!_rmsgptr.get());
 		return MessageUid(sendmsgvec.size() - 1, 0);
 	}
@@ -743,10 +734,8 @@ void Session::Data::popSentWaitMessage(const MessageUid &_rmsguid){
 		SendMessageData &rsmd(sendmsgvec[_rmsguid.idx]);
 		
 		if(rsmd.uid != _rmsguid.uid) return;
-		Context::the().msgctx.msgid.idx = _rmsguid.idx;
-		Context::the().msgctx.msgid.uid = rsmd.uid;
 		++rsmd.uid;
-		rsmd.msgptr->ipcComplete(0);
+		rsmd.msgptr->onComplete(Context::the().msgctx, 0);
 		rsmd.msgptr.clear();
 		sendmsgfreeposstk.push(_rmsguid.idx);
 		--sentmsgwaitresponse;
@@ -769,10 +758,8 @@ void Session::Data::popSentWaitMessage(const uint32 _idx){
 		idbgx(Debug::ipc, "message waits for response "<<_idx<<' '<<rsmd.uid);
 		rsmd.flags |= SentFlag;
 	}else{
-		Context::the().msgctx.msgid.idx = _idx;
-		Context::the().msgctx.msgid.uid = rsmd.uid;
+		rsmd.msgptr->onComplete(Context::the().msgctx, 0);
 		++rsmd.uid;
-		rsmd.msgptr->ipcComplete(0);
 		rsmd.msgptr.clear();
 		sendmsgfreeposstk.push(_idx);
 	}	
@@ -956,24 +943,25 @@ void Session::Data::pushMessageToSendQueue(
 	const SerializationTypeIdT _tid
 ){
 	cassert(_rmsgptr.get());
-	const MessageUid	uid(pushSendWaitMessage(_rmsgptr, _tid, 0, _flags, sendmsgid++));
+	const MessageUid	uid(pushSendWaitMessage(_rmsgptr, _tid, _flags, sendmsgid++));
 	SendMessageData 	&rsmd(sendmsgvec[uid.idx]);
 	
-	Context::the().msgctx.msgid = uid;
-	
 	sendmsgidxq.push(uid.idx);
-	
-	const uint32	tmp_flgs(rsmd.msgptr->ipcPrepare());
-	
-	rsmd.flags |= tmp_flgs;
-	
-	vdbgx(Debug::ipc, "flags = "<<(rsmd.flags & SentFlag)<<" tmpflgs = "<<(tmp_flgs & SentFlag));
-	
-	if(tmp_flgs & WaitResponseFlag){
-		++sentmsgwaitresponse;
-	}else{
-		rsmd.flags &= ~WaitResponseFlag;
+	rsmd.msgptr->requestMessageUid() = uid;
+	if(rsmd.flags & WaitResponseFlag){
+		rsmd.msgptr->flags() |= Message::IPCIsRequestFlag;
 	}
+	rsmd.msgptr->onPrepare(Context::the().msgctx);
+	
+	//rsmd.flags |= tmp_flgs;
+	
+	//vdbgx(Debug::ipc, "flags = "<<(rsmd.flags & SentFlag)<<" tmpflgs = "<<(tmp_flgs & SentFlag));
+	
+// 	if(tmp_flgs & WaitResponseFlag){
+// 		++sentmsgwaitresponse;
+// 	}else{
+// 		rsmd.flags &= ~WaitResponseFlag;
+// 	}
 }
 //----------------------------------------------------------------------
 void Session::Data::resetKeepAlive(){
@@ -1422,8 +1410,6 @@ void Session::reconnect(Session *_pses){
 	for(Data::SendMessageVectorT::iterator it(d.sendmsgvec.begin()); it != d.sendmsgvec.end(); ++it){
 		Data::SendMessageData &rsmd(*it);
 		vdbgx(Debug::ipc, "pos = "<<(it - d.sendmsgvec.begin())<<" flags = "<<(rsmd.flags & SentFlag));
-		Context::the().msgctx.msgid.idx = it - d.sendmsgvec.begin();
-		Context::the().msgctx.msgid.uid = rsmd.uid;
 		
 		if(rsmd.pserializer){
 			rsmd.pserializer->clear();
@@ -1440,7 +1426,7 @@ void Session::reconnect(Session *_pses){
 		if(!(rsmd.flags & SameConnectorFlag)){
 			if(rsmd.flags & WaitResponseFlag && rsmd.flags & SentFlag){
 				//if the message was sent and were waiting for response - were not sending twice
-				rsmd.msgptr->ipcComplete(-2);
+				rsmd.msgptr->onComplete(Context::the().msgctx, -2);
 				rsmd.msgptr.clear();
 				++rsmd.uid;
 			}
@@ -1448,9 +1434,9 @@ void Session::reconnect(Session *_pses){
 		}else{
 			vdbgx(Debug::ipc, "message not scheduled for resend");
 			if(rsmd.flags & WaitResponseFlag && rsmd.flags & SentFlag){
-				rsmd.msgptr->ipcComplete(-2);
+				rsmd.msgptr->onComplete(Context::the().msgctx, -2);
 			}else{
-				rsmd.msgptr->ipcComplete(-1);
+				rsmd.msgptr->onComplete(Context::the().msgctx, -1);
 			}
 			rsmd.msgptr.clear();
 			++rsmd.uid;
@@ -2019,7 +2005,7 @@ void Session::doParsePacket(TalkerStub &_rstub, const Packet &_rpkt/*, const Con
 			rrsd.pmsg = NULL;
 			
 			if(d.state == Data::Connected){
-				if(!rctrl.receive(pmsg, msguid)){
+				if(!rctrl.receive(pmsg, Context::the().msgctx)){
 					d.state = Data::Disconnecting;
 				}
 			}else if(d.state == Data::Authenticating){
@@ -2573,9 +2559,6 @@ void Session::doFillSendPacket(TalkerStub &_rstub, const uint32 _pktidx){
 	while(d.sendmsgidxq.size()){
 		if(d.currentpacketmsgcount){
 			Data::SendMessageData	&rsmd(d.sendmsgvec[d.sendmsgidxq.front()]);
-			
-			Context::the().msgctx.msgid.idx = d.sendmsgidxq.front();
-			Context::the().msgctx.msgid.uid = rsmd.uid;
 			
 			if(rsmd.pserializer){//a continued message
 				if(d.currentpacketmsgcount == _rstub.service().configuration().session.maxmessagepacketcount){

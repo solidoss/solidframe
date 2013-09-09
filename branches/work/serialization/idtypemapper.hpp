@@ -65,6 +65,7 @@ class IdTypeMapper: public TypeMapperBase{
 		
 		if(handle.checkStore(&rp, rctx)){
 			rs.push(rp, _name);
+			handle.beforeSerialize(rs, &rp, rctx);
 			rs.push(rid, _name);
 			return true;
 		}else{
@@ -85,7 +86,7 @@ class IdTypeMapper: public TypeMapperBase{
 			T		&rp = *rpt;
 			rd.template pushHandlePointer<T, H>(rpt, _name);
 			rd.push(rp, _name);
-			
+			handle.beforeSerialize(rd, &rp, rctx);
 			return true;
 		}else{
 			return false;

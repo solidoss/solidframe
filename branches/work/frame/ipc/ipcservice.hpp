@@ -14,10 +14,10 @@
 #include "serialization/binary.hpp"
 
 #include "frame/service.hpp"
-#include "frame/message.hpp"
 #include "frame/aio/aioselector.hpp"
 #include "frame/scheduler.hpp"
 #include "frame/ipc/ipcconnectionuid.hpp"
+#include "frame/ipc/ipcmessage.hpp"
 
 namespace solid{
 
@@ -100,7 +100,7 @@ struct Controller: Dynamic<Controller, DynamicShared<> >{
 	
 	virtual bool receive(
 		Message *_pmsg,
-		ipc::MessageUid &_rmsguid
+		ConnectionContext &_rctx
 	);
 	
 	//Must return:
@@ -285,17 +285,44 @@ struct Configuration{
 	
 */
 class Service: public Dynamic<Service, frame::Service>{
+	typedef serialization::binary::Serializer<const ConnectionContext>	SerializerT;
+	typedef serialization::binary::Deserializer<const ConnectionContext>	DeserializerT;
+	typedef serialization::IdTypeMapper<
+		SerializerT,
+		DeserializerT,
+		SerializationTypeIdT
+	>																IdTypeMapperT;
+	
+	struct Handle{
+		bool checkStore(void */*_pt*/, const ConnectionContext &/*_rctx*/)const{
+			return true;
+		}
+		bool checkLoad(void */*_pt*/, const ConnectionContext &/*_rctx*/)const{
+			return true;
+		}
+		void handle(void */*_pt*/, const ConnectionContext &/*_rctx*/, const char */*_name*/){
+		}
+	
+		void beforeSerialize(SerializerT &_rs, Message *_pt, const ConnectionContext &_rctx);
+		void beforeSerialize(DeserializerT &_rs, Message *_pt, const ConnectionContext &_rctx);
+	};
+	
+	template <class H>
+	struct ProxyHandle: H, Handle{
+		void beforeSerialize(SerializerT &_rs, Message *_pt, const ConnectionContext &_rctx){
+			this->Handle::beforeSerialize(_rs, _pt, _rctx);
+		}
+		void beforeSerialize(DeserializerT &_rd, Message *_pt, const ConnectionContext &_rctx){
+			this->Handle::beforeSerialize(_rd, _pt, _rctx);
+		}
+	};
+	
 public:
 		
 	enum Types{
 		PlainType = 1,
 		RelayType
 	};
-	typedef serialization::IdTypeMapper<
-		serialization::binary::Serializer<void>,
-		serialization::binary::Deserializer<void>,
-		SerializationTypeIdT
-	> IdTypeMapperT;
 	typedef Dynamic<Service, frame::Service> BaseT;
 	
 	static const char* errorText(int _err);
@@ -305,13 +332,21 @@ public:
 		const DynamicPointer<Controller> &_rctrlptr
 	);
 	
-
+	template <class T>
+	void registerMessageType(){
+		typeMapper().insertHandle<T, Handle>();
+	}
+	
+	template <class T, class H>
+	void registerMessageType(){
+		typeMapper().insertHandle<T, ProxyHandle<Handle> >();
+	}
+	
 	//! Destructor
 	~Service();
 
 	int reconfigure(Configuration const& _rcfg);
 	
-	IdTypeMapperT& typeMapper();
 	TimeSpec const& timeStamp()const;
 	
 	int basePort()const;
@@ -414,6 +449,8 @@ private:
 	
 	
 	typedef std::vector<const Configuration::RelayAddress*>		RelayAddressPointerVectorT;
+	
+	IdTypeMapperT& typeMapper();
 	
 	bool isLocalNetwork(
 		const SocketAddressStub &_rsa_dest,
