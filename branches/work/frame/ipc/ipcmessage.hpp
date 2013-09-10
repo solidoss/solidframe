@@ -20,46 +20,55 @@ namespace ipc{
 
 struct Message: Dynamic<Message, frame::Message>{
 	enum IPCFlags{
-		IPCIsRequestFlag = 1
+		IPCIsRequestFlag = 1,
+		IPCIsResponseFlag = 2
 	};
+	
+	typedef DynamicPointer<Message>		MessagePointerT;
+	
 	Message(uint8 _flags = 0):flgs(_flags){}
 	virtual ~Message();
 	
-	MessageUid& requestMessageUid();
-	MessageUid const & requestMessageUid()const;
+	MessageUid& ipcRequestMessageUid();
+	MessageUid const & ipcRequestMessageUid()const;
 	
-	uint8& flags();
-	uint8 const& flags()const;
+	uint8& ipcFlags();
+	uint8 const& ipcFlags()const;
 	
-	bool isRequest()const;
+	bool ipcIsRequest()const;
+	bool ipcIsResponse()const;
 	
-	virtual void onReceive(ConnectionContext &_ripcctx);
+	virtual void ipcOnReceive(ConnectionContext &_ripcctx, MessagePointerT &_rmsgptr);
 	//! Called by ipc module, before the signal begins to be serialized
-	virtual void onPrepare(ConnectionContext &_ripcctx);
+	virtual void ipcOnPrepare(ConnectionContext &_ripcctx);
 	//! Called by ipc module on peer failure detection (disconnect,reconnect)
-	virtual void onComplete(ConnectionContext &_ripcctx, int _error);
+	virtual void ipcOnComplete(ConnectionContext &_ripcctx, int _error);
 	
 private:
 	MessageUid	msguid;
 	uint8		flgs;
 };
 
-inline MessageUid& Message::requestMessageUid(){
+inline MessageUid& Message::ipcRequestMessageUid(){
 	return msguid;
 }
-inline MessageUid const & Message::requestMessageUid()const{
+inline MessageUid const & Message::ipcRequestMessageUid()const{
 	return msguid;
 }
 
-inline uint8& Message::flags(){
+inline uint8& Message::ipcFlags(){
 	return flgs;
 }
-inline uint8 const& Message::flags()const{
+inline uint8 const& Message::ipcFlags()const{
 	return flgs;
 }
 
-inline bool Message::isRequest()const{
+inline bool Message::ipcIsRequest()const{
 	return (flgs & IPCIsRequestFlag) != 0; 
+}
+
+inline bool Message::ipcIsResponse()const{
+	return (flgs & IPCIsResponseFlag) != 0; 
 }
 
 

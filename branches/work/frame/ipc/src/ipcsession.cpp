@@ -184,10 +184,10 @@ struct Session::Data{
 		DummyExecute,
 	};
 	
-	struct BinSerializer:serialization::binary::Serializer<void>{
+	struct BinSerializer: Service::SerializerT{
 		BinSerializer(
 			const serialization::TypeMapperBase &_rtmb
-		):serialization::binary::Serializer<void>(_rtmb){}
+		):Service::SerializerT(_rtmb){}
 		BinSerializer(
 		){}
 		static unsigned specificCount(){
@@ -197,10 +197,10 @@ struct Session::Data{
 		void specificRelease(){}
 	};
 
-	struct BinDeserializer:serialization::binary::Deserializer<void>{
+	struct BinDeserializer: Service::DeserializerT{
 		BinDeserializer(
 			const serialization::TypeMapperBase &_rtmb
-		):serialization::binary::Deserializer<void>(_rtmb){}
+		):Service::DeserializerT(_rtmb){}
 		BinDeserializer(
 		){}
 		static unsigned specificCount(){
@@ -564,8 +564,9 @@ Session::Data::Data(
 }
 //---------------------------------------------------------------------
 Session::Data::~Data(){
+	Context 	&rctx = Context::the();
 	while(msgq.size()){
-		msgq.front().msgptr->onComplete(Context::the().msgctx, -1);
+		msgq.front().msgptr->ipcOnComplete(rctx.msgctx, -1);
 		msgq.pop();
 	}
 	while(this->rcvdmsgq.size()){
@@ -587,10 +588,10 @@ Session::Data::~Data(){
 		if(rsmd.msgptr.get()){
 			if((rsmd.flags & WaitResponseFlag) && (rsmd.flags & SentFlag)){
 				//the was successfully sent but the response did not arrive
-				rsmd.msgptr->onComplete(Context::the().msgctx, -2);
+				rsmd.msgptr->ipcOnComplete(rctx.msgctx, -2);
 			}else{
 				//the message was not successfully sent
-				rsmd.msgptr->onComplete(Context::the().msgctx, -1);
+				rsmd.msgptr->ipcOnComplete(rctx.msgctx, -1);
 			}
 			rsmd.msgptr.clear();
 		}
@@ -735,8 +736,10 @@ void Session::Data::popSentWaitMessage(const MessageUid &_rmsguid){
 		
 		if(rsmd.uid != _rmsguid.uid) return;
 		++rsmd.uid;
-		rsmd.msgptr->onComplete(Context::the().msgctx, 0);
-		rsmd.msgptr.clear();
+		if(rsmd.msgptr.get()){
+			rsmd.msgptr->ipcOnComplete(Context::the().msgctx, 0);
+			rsmd.msgptr.clear();
+		}
 		sendmsgfreeposstk.push(_rmsguid.idx);
 		--sentmsgwaitresponse;
 	}
@@ -758,7 +761,7 @@ void Session::Data::popSentWaitMessage(const uint32 _idx){
 		idbgx(Debug::ipc, "message waits for response "<<_idx<<' '<<rsmd.uid);
 		rsmd.flags |= SentFlag;
 	}else{
-		rsmd.msgptr->onComplete(Context::the().msgctx, 0);
+		rsmd.msgptr->ipcOnComplete(Context::the().msgctx, 0);
 		++rsmd.uid;
 		rsmd.msgptr.clear();
 		sendmsgfreeposstk.push(_idx);
@@ -947,11 +950,11 @@ void Session::Data::pushMessageToSendQueue(
 	SendMessageData 	&rsmd(sendmsgvec[uid.idx]);
 	
 	sendmsgidxq.push(uid.idx);
-	rsmd.msgptr->requestMessageUid() = uid;
+	rsmd.msgptr->ipcRequestMessageUid() = uid;
 	if(rsmd.flags & WaitResponseFlag){
-		rsmd.msgptr->flags() |= Message::IPCIsRequestFlag;
+		rsmd.msgptr->ipcFlags() |= Message::IPCIsRequestFlag;
 	}
-	rsmd.msgptr->onPrepare(Context::the().msgctx);
+	rsmd.msgptr->ipcOnPrepare(Context::the().msgctx);
 	
 	//rsmd.flags |= tmp_flgs;
 	
@@ -1253,6 +1256,8 @@ Session::Session(
 //---------------------------------------------------------------------
 Session::~Session(){
 	vdbgx(Debug::ipc, "delete session "<<(void*)this);
+	Context 	&rctx = Context::the();
+	rctx.msgctx.psession = this;
 	switch(d.type){
 		case Data::Dummy:
 			delete &d.dummy();
@@ -1318,6 +1323,16 @@ bool Session::isConnecting()const{
 //---------------------------------------------------------------------
 bool Session::isAccepting()const{
 	return d.state == Data::Accepting;
+}
+//---------------------------------------------------------------------
+ConnectionContext::MessagePointerT* Session::requestMessageSafe(const MessageUid &_rmsguid)const{
+	if(_rmsguid.idx < d.sendmsgvec.size()){
+		Data::SendMessageData &rsmd(d.sendmsgvec[_rmsguid.idx]);
+		if(rsmd.uid == _rmsguid.uid){
+			return &rsmd.msgptr;
+		}
+	}
+	return NULL;
 }
 //---------------------------------------------------------------------
 void Session::prepare(TalkerStub &_rstub){
@@ -1426,7 +1441,7 @@ void Session::reconnect(Session *_pses){
 		if(!(rsmd.flags & SameConnectorFlag)){
 			if(rsmd.flags & WaitResponseFlag && rsmd.flags & SentFlag){
 				//if the message was sent and were waiting for response - were not sending twice
-				rsmd.msgptr->onComplete(Context::the().msgctx, -2);
+				rsmd.msgptr->ipcOnComplete(Context::the().msgctx, -2);
 				rsmd.msgptr.clear();
 				++rsmd.uid;
 			}
@@ -1434,9 +1449,9 @@ void Session::reconnect(Session *_pses){
 		}else{
 			vdbgx(Debug::ipc, "message not scheduled for resend");
 			if(rsmd.flags & WaitResponseFlag && rsmd.flags & SentFlag){
-				rsmd.msgptr->onComplete(Context::the().msgctx, -2);
+				rsmd.msgptr->ipcOnComplete(Context::the().msgctx, -2);
 			}else{
-				rsmd.msgptr->onComplete(Context::the().msgctx, -1);
+				rsmd.msgptr->ipcOnComplete(Context::the().msgctx, -1);
 			}
 			rsmd.msgptr.clear();
 			++rsmd.uid;
@@ -1546,7 +1561,7 @@ void Session::completeConnect(
 	if(d.state == Data::Authenticating) return;
 	
 	d.direct4().addr.port(_pairport);
-	
+	Context::the().msgctx.psession = this;
 	doCompleteConnect(_rstub);
 }
 //---------------------------------------------------------------------
@@ -1558,6 +1573,7 @@ void Session::completeConnect(TalkerStub &_rstub, uint16 _pairport, uint32 _rela
 	d.relayed44().peerrelayid = _relayid;
 	
 	d.sendpacketvec[0].packet.relay(_relayid);
+	Context::the().msgctx.psession = this;
 	doCompleteConnect(_rstub);
 }
 //---------------------------------------------------------------------
@@ -1687,6 +1703,7 @@ bool Session::executeTimeout(
 }
 //---------------------------------------------------------------------
 int Session::execute(TalkerStub &_rstub){
+	Context::the().msgctx.psession = this;
 	switch(d.state){
 		case Data::RelayInit:
 			return doExecuteRelayInit(_rstub);
@@ -1760,7 +1777,7 @@ bool Session::pushSentPacket(
 	if(!d.sendpendingcount && d.state == Data::Reconnecting){
 		b = true;
 	}
-	
+	Context::the().msgctx.psession = this;
 	if(rspd.mustdelete){
 		d.clearSentPacket(_id);
 		if(d.state == Data::Disconnecting){
@@ -1950,14 +1967,16 @@ void Session::doParsePacketDataType(
 	}
 }
 //---------------------------------------------------------------------
-void Session::doParsePacket(TalkerStub &_rstub, const Packet &_rpkt/*, const ConnectionUid &_rconid*/){
+void Session::doParsePacket(TalkerStub &_rstub, const Packet &_rpkt){
 	const char *bpos(_rpkt.data());
 	int			blen(_rpkt.dataSize());
 	int			rv(0);
 	int 		firstblen(blen - 1);
+	Context		&rctx = Context::the();
 	
 	idbgx(Debug::ipc, "packetid = "<<_rpkt.id());
-
+	rctx.msgctx.psession = this;
+	
 #ifdef ENABLE_MORE_DEBUG
 	if(_rpkt.flags() & Packet::DebugFlag){
 		//dump the wait queue
@@ -1981,11 +2000,12 @@ void Session::doParsePacket(TalkerStub &_rstub, const Packet &_rpkt/*, const Con
 		
 		Data::RecvMessageData &rrsd(d.rcvdmsgq.front());
 		
-		rv = rrsd.pdeserializer->run(bpos, blen);
+		rv = rrsd.pdeserializer->run(bpos, blen, rctx.msgctx);
 		
 		if(rv < 0){
 			THROW_EXCEPTION_EX("Deserialization error", rrsd.pdeserializer->error());
 			cassert(false);
+			return;
 		}
 		
 		blen -= rv;
@@ -1999,15 +2019,18 @@ void Session::doParsePacket(TalkerStub &_rstub, const Packet &_rpkt/*, const Con
 #endif
 
 		if(rrsd.pdeserializer->empty()){//done one message
-			MessageUid 				msguid(0xffffffff, 0xffffffff);
 			Controller				&rctrl = _rstub.service().controller();
 			Message					*pmsg = rrsd.pmsg;
+			MessageUid 				msguid(pmsg->ipcRequestMessageUid());
+			
 			rrsd.pmsg = NULL;
 			
 			if(d.state == Data::Connected){
-				if(!rctrl.receive(pmsg, Context::the().msgctx)){
+				
+				if(!rctrl.receive(pmsg, rctx.msgctx)){
 					d.state = Data::Disconnecting;
 				}
+				
 			}else if(d.state == Data::Authenticating){
 				DynamicPointer<Message>	msgptr(pmsg);
 				uint32					flags = 0;
@@ -2048,17 +2071,15 @@ void Session::doParsePacket(TalkerStub &_rstub, const Packet &_rpkt/*, const Con
 				}
 			}
 			
-			
 			idbgx(Debug::ipc, "done message "<<msguid.idx<<','<<msguid.uid);
 			
-			if(msguid.idx != 0xffffffff && msguid.uid != 0xffffffff){//a valid message waiting for response
+			if(msguid.idx != 0xffffffff){//a valid message waiting for response
 				d.popSentWaitMessage(msguid);
 			}
 			d.pushDeserializer(rrsd.pdeserializer);
 			//we do not pop it because in case of a new message,
 			//we must know if the previous message terminate
 			//so we dont mistakingly reschedule another message!!
-			rrsd.pmsg = NULL;
 			rrsd.pdeserializer = NULL;
 		}
 	}
@@ -2553,7 +2574,9 @@ void Session::doFillSendPacket(TalkerStub &_rstub, const uint32 _pktidx){
 	Data::SendPacketData	&rspd(d.sendpacketvec[_pktidx]);
 	Data::BinSerializerT	*pser(NULL);
 	Controller				&rctrl = _rstub.service().controller();
+	Context					&rctx = Context::the();
 	
+	rctx.msgctx.psession = this;
 	COLLECT_DATA_1(d.statistics.sendMessageIdxQueueSize, d.sendmsgidxq.size());
 	
 	while(d.sendmsgidxq.size()){
@@ -2588,7 +2611,7 @@ void Session::doFillSendPacket(TalkerStub &_rstub, const uint32 _pktidx){
 			
 			const uint32 tofill = rspd.packet.dataFreeSize() - rctrl.reservedDataSize();
 			
-			int rv = rsmd.pserializer->run(rspd.packet.dataEnd(), tofill);
+			int rv = rsmd.pserializer->run(rspd.packet.dataEnd(), tofill, rctx.msgctx);
 			
 			vdbgx(Debug::ipc, "d.crtmsgbufcnt = "<<d.currentpacketmsgcount<<" serialized len = "<<rv);
 			

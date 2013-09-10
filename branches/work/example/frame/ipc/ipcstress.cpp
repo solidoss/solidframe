@@ -126,9 +126,9 @@ struct FirstMessage: frame::ipc::Message{
 		return sizeof(sec) + sizeof(nsec) + sizeof(msguid) + sizeof(uint32) + str.size();
 	}
 	
-	/*virtual*/ void onReceive(frame::ipc::ConnectionContext &_rctx);
-	/*virtual*/ void onPrepare();
-	/*virtual*/ void onComplete(int _err);
+	/*virtual*/ void ipcOnReceive(frame::ipc::ConnectionContext &_rctx, MessagePointerT &_rmsgptr);
+	/*virtual*/ void ipcOnPrepare(frame::ipc::ConnectionContext &_rctx);
+	/*virtual*/ void ipcOnComplete(frame::ipc::ConnectionContext &_rctx, int _err);
 	
 	bool isOnSender()const{
 		return state % 2;
@@ -454,10 +454,9 @@ FirstMessage::~FirstMessage(){
 	idbg("DELETE ---------------- "<<(void*)this);
 }
 
-/*virtual*/ void FirstMessage::onReceive(frame::ipc::ConnectionContext &_rctx){
+/*virtual*/ void FirstMessage::ipcOnReceive(frame::ipc::ConnectionContext &_rctx, MessagePointerT &_rmsgptr){
 	++state;
 	idbg("EXECUTE ---------------- "<<state);
-	DynamicPointer<frame::ipc::Message> msgptr(this);
 	
 	if(this->idx >= msgvec.size()){
 		msgvec.resize(this->idx + 1);
@@ -472,7 +471,7 @@ FirstMessage::~FirstMessage(){
 		idbg("Received message: "<<peersa.first<<":"<<peersa.second);
 		
 		frame::ipc::ConnectionContext::the().service().sendMessage(
-			msgptr,
+			_rmsgptr,
 			frame::ipc::ConnectionContext::the().connectionuid,
 			0//fdt::ipc::Service::SynchronousSendFlag
 		);
@@ -508,7 +507,7 @@ FirstMessage::~FirstMessage(){
 			this->nsec = crttime.nanoSeconds();
 			
 			frame::ipc::ConnectionContext::the().service().sendMessage(
-				msgptr,
+				_rmsgptr,
 				frame::ipc::ConnectionContext::the().connectionuid,
 				frame::ipc::WaitResponseFlag// | frame::ipc::Service::SynchronousSendFlag
 			);
@@ -523,14 +522,14 @@ FirstMessage::~FirstMessage(){
 		}
 	}
 }
-/*virtual*/ void FirstMessage::onPrepare(){
+/*virtual*/ void FirstMessage::ipcOnPrepare(frame::ipc::ConnectionContext &_rctx){
 // 	if(isOnSender()){
 // 		return frame::ipc::WaitResponseFlag;
 // 	}else{
 // 		return 0;
 // 	}
 }
-/*virtual*/ void FirstMessage::onComplete(int _err){
+/*virtual*/ void FirstMessage::ipcOnComplete(frame::ipc::ConnectionContext &_rctx, int _err){
 	if(!_err){
         idbg("SUCCESS ----------------");
     }else{

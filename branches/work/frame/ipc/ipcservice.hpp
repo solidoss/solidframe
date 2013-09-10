@@ -285,8 +285,10 @@ struct Configuration{
 	
 */
 class Service: public Dynamic<Service, frame::Service>{
-	typedef serialization::binary::Serializer<const ConnectionContext>	SerializerT;
+public:
+	typedef serialization::binary::Serializer<const ConnectionContext>		SerializerT;
 	typedef serialization::binary::Deserializer<const ConnectionContext>	DeserializerT;
+private:
 	typedef serialization::IdTypeMapper<
 		SerializerT,
 		DeserializerT,

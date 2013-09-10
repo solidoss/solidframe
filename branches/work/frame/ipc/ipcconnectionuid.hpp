@@ -18,6 +18,9 @@ namespace solid{
 namespace frame{
 namespace ipc{
 
+struct Message;
+struct Session;
+
 enum{
 	LocalNetworkId = 0,
 	InvalidNetworkId = -1
@@ -70,6 +73,7 @@ class Service;
 	
 */
 struct ConnectionContext{
+	typedef DynamicPointer<Message>		MessagePointerT;
 	static const ConnectionContext& the();
 	
 	Service				&rservice;
@@ -80,6 +84,8 @@ struct ConnectionContext{
 	uint32				netid;
 	
 	
+	MessagePointerT& requestMessage(const Message &_rmsg)const;
+	
 	ObjectUidT talkerUid()const{
 		return ObjectUidT(connectionuid.tid, tkruid);
 	}
@@ -88,12 +94,15 @@ struct ConnectionContext{
 	}
 private:
 	friend class Context;
+	friend class Session;
+	
+	Session				*psession;
 	
 	ConnectionContext(
 		Service &_rsrv,
 		const IndexT &_tkridx,
 		const uint32 _tkruid
-	):rservice(_rsrv), connectionuid(_tkridx), tkruid(_tkridx), baseport(-1){}
+	):rservice(_rsrv), connectionuid(_tkridx), tkruid(_tkridx), baseport(-1), psession(NULL){}
 };
 
 typedef uint32 SerializationTypeIdT;

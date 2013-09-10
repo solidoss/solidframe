@@ -805,7 +805,8 @@ public:
 	}
 	
 	int run(char *_pb, unsigned _bl, Ctx &_rctx){
-		return SerializerBase::run(_pb, _bl, &_rctx);
+		const void *pctx = &_rctx;
+		return SerializerBase::run(_pb, _bl, const_cast<void *>(pctx));
 	}
 	
 	SerializerT& pushStringLimit(){
@@ -1560,7 +1561,8 @@ public:
 	}
 	
 	int run(const char *_pb, unsigned _bl, Ctx &_rctx){
-		return DeserializerBase::run(_pb, _bl, &_rctx);
+		const void *pctx = &_rctx;
+		return DeserializerBase::run(_pb, _bl, const_cast<void*>(pctx));
 	}
 	
 	Deserializer& pushStringLimit(){

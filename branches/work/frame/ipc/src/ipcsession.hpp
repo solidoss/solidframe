@@ -182,6 +182,8 @@ public:
 	void prepareContext(Context &_rctx);
 	
 	void dummySendError(TalkerStub &_rstub, const SocketAddress &_rsa, int _error);
+	
+	ConnectionContext::MessagePointerT* requestMessageSafe(const MessageUid &_rmsguid)const;
 private:
 	bool doPushExpectedReceivedPacket(
 		TalkerStub &_rstub,

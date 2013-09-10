@@ -1286,7 +1286,8 @@ bool Controller::receive(
 	Message *_pmsg,
 	ConnectionContext &_rctx
 ){
-	_pmsg->onReceive(_rctx);
+	Message::MessagePointerT msgptr(_pmsg);
+	_pmsg->ipcOnReceive(_rctx, msgptr);
 	return true;
 }
 
@@ -1355,20 +1356,42 @@ BasicController::BasicController(
 /*virtual*/ Message::~Message(){
 	
 }
-/*virtual*/ void Message::onReceive(ConnectionContext &_ripcctx){
+/*virtual*/ void Message::ipcOnReceive(ConnectionContext &_ripcctx, MessagePointerT &_rmsgptr){
 }
-/*virtual*/ void Message::onPrepare(ConnectionContext &_ripcctx){
+/*virtual*/ void Message::ipcOnPrepare(ConnectionContext &_ripcctx){
 	
 }
-/*virtual*/ void Message::onComplete(ConnectionContext &_ripcctx, int _error){
+/*virtual*/ void Message::ipcOnComplete(ConnectionContext &_ripcctx, int _error){
 	
 }
 
 void Service::Handle::beforeSerialize(Service::SerializerT &_rs, Message *_pt, const ConnectionContext &_rctx){
-	_rs.push(_pt->flags(), "flags").push(_pt->requestMessageUid().idx, "msg_idx").push(_pt->requestMessageUid().uid, "msg_uid");
+	MessageUid	&rmsguid = _pt->ipcRequestMessageUid();
+	_rs.push(_pt->ipcFlags(), "flags").push(rmsguid.idx, "msg_idx").push(rmsguid.uid, "msg_uid");
 }
 void Service::Handle::beforeSerialize(Service::DeserializerT &_rs, Message *_pt, const ConnectionContext &_rctx){
-	_rs.push(_pt->flags(), "flags").push(_pt->requestMessageUid().idx, "msg_idx").push(_pt->requestMessageUid().uid, "msg_uid");
+	MessageUid	&rmsguid = _pt->ipcRequestMessageUid();
+	_rs.push(_pt->ipcFlags(), "flags").push(rmsguid.idx, "msg_idx").push(rmsguid.uid, "msg_uid");
+}
+
+//------------------------------------------------------------------
+//		ConnectionContext
+//------------------------------------------------------------------
+
+ConnectionContext::MessagePointerT& ConnectionContext::requestMessage(const Message &_rmsg)const{
+	static MessagePointerT msgptr;
+	if(psession){
+		ConnectionContext::MessagePointerT *pmsgptr = psession->requestMessageSafe(_rmsg.ipcRequestMessageUid());
+		if(pmsgptr){
+			return *pmsgptr;
+		}else{
+			msgptr.clear();
+			return msgptr;
+		}
+	}else{
+		msgptr.clear();
+		return msgptr;
+	}
 }
 
 }//namespace ipc
