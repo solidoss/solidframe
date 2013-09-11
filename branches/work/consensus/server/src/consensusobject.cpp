@@ -526,12 +526,12 @@ Object::DynamicMapperT Object::dm;
 	//TODO: add here the other consensus Messages
 }
 /*static*/ void Object::registerMessages(frame::ipc::Service &_ripcsvc){
-	_ripcsvc.typeMapper().insert<OperationMessage<1> >();
-	_ripcsvc.typeMapper().insert<OperationMessage<2> >();
-	_ripcsvc.typeMapper().insert<OperationMessage<4> >();
-	_ripcsvc.typeMapper().insert<OperationMessage<8> >();
-	_ripcsvc.typeMapper().insert<OperationMessage<16> >();
-	_ripcsvc.typeMapper().insert<OperationMessage<32> >();
+	_ripcsvc.registerMessageType<OperationMessage<1> >();
+	_ripcsvc.registerMessageType<OperationMessage<2> >();
+	_ripcsvc.registerMessageType<OperationMessage<4> >();
+	_ripcsvc.registerMessageType<OperationMessage<8> >();
+	_ripcsvc.registerMessageType<OperationMessage<16> >();
+	_ripcsvc.registerMessageType<OperationMessage<32> >();
 }
 Object::Object(DynamicPointer<Configuration> &_rcfgptr):d(*(new Data(_rcfgptr))){
 	idbg((void*)this);
@@ -1342,7 +1342,7 @@ void Object::doSendDeclinePropose(RunData &_rd, const uint8 _replicaidx, const O
 	po->op.acceptid = d.acceptid;
 	po->op.reqid = _rop.reqid;
 	
-	DynamicPointer<frame::Message>		msgptr(po);
+	DynamicPointer<frame::ipc::Message>		msgptr(po);
 	this->doSendMessage(msgptr, d.cfgptr->addrvec[_replicaidx]);
 }
 
@@ -1389,7 +1389,7 @@ void Object::doSendDeclineAccept(RunData &_rd, const uint8 _replicaidx, const Op
 	po->op.acceptid = d.acceptid;
 	po->op.reqid = _rop.reqid;
 	
-	DynamicPointer<frame::Message>		msgptr(po);
+	DynamicPointer<frame::ipc::Message>		msgptr(po);
 	
 	this->doSendMessage(msgptr, d.cfgptr->addrvec[_replicaidx]);
 }
@@ -1470,13 +1470,13 @@ void Object::doFlushOperations(RunData &_rd){
 		//broadcast to replicas
 		for(uint i(0); i < d.cfgptr->addrvec.size(); ++i){
 			if(i != d.cfgptr->crtidx){
-				DynamicPointer<frame::Message>		msgptr(sharedmsgptr);
+				DynamicPointer<frame::ipc::Message>		msgptr(sharedmsgptr);
 				this->doSendMessage(msgptr, d.cfgptr->addrvec[i]);
 			}
 		}
 	}else{
 		idbg("send to "<<(int)_rd.coordinatorid);
-		DynamicPointer<frame::Message>		msgptr(pm);
+		DynamicPointer<frame::ipc::Message>		msgptr(pm);
 		this->doSendMessage(msgptr, d.cfgptr->addrvec[_rd.coordinatorid]);
 	}
 }

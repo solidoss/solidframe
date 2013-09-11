@@ -1356,22 +1356,38 @@ BasicController::BasicController(
 /*virtual*/ Message::~Message(){
 	
 }
-/*virtual*/ void Message::ipcOnReceive(ConnectionContext &_ripcctx, MessagePointerT &_rmsgptr){
+/*virtual*/ void Message::ipcOnReceive(ConnectionContext const &_ripcctx, MessagePointerT &_rmsgptr){
 }
-/*virtual*/ void Message::ipcOnPrepare(ConnectionContext &_ripcctx){
-	
+/*virtual*/ uint32 Message::ipcOnPrepare(ConnectionContext const &_ripcctx){
+	return 0;
 }
-/*virtual*/ void Message::ipcOnComplete(ConnectionContext &_ripcctx, int _error){
+/*virtual*/ void Message::ipcOnComplete(ConnectionContext const &_ripcctx, int _error){
 	
 }
 
+struct HandleMessage{
+	void operator()(Service::SerializerT &_rs, Message &_rt, const ConnectionContext &_rctx){
+		vdbgx(Debug::ipc, "reset message state");
+		if(_rt.ipcState() >= 2){
+			_rt.ipcResetState();
+		}
+		
+	}
+	void operator()(Service::DeserializerT &_rs, Message &_rt, const ConnectionContext &_rctx){
+		vdbgx(Debug::ipc, "increment message state");
+		++_rt.ipcState();
+	}
+};
+
 void Service::Handle::beforeSerialize(Service::SerializerT &_rs, Message *_pt, const ConnectionContext &_rctx){
 	MessageUid	&rmsguid = _pt->ipcRequestMessageUid();
-	_rs.push(_pt->ipcFlags(), "flags").push(rmsguid.idx, "msg_idx").push(rmsguid.uid, "msg_uid");
+	_rs.pushHandle<HandleMessage>(_pt, "handle_state");
+	_rs.push(_pt->ipcState(), "state").push(rmsguid.idx, "msg_idx").push(rmsguid.uid, "msg_uid");
 }
 void Service::Handle::beforeSerialize(Service::DeserializerT &_rs, Message *_pt, const ConnectionContext &_rctx){
 	MessageUid	&rmsguid = _pt->ipcRequestMessageUid();
-	_rs.push(_pt->ipcFlags(), "flags").push(rmsguid.idx, "msg_idx").push(rmsguid.uid, "msg_uid");
+	_rs.pushHandle<HandleMessage>(_pt, "handle_state");
+	_rs.push(_pt->ipcState(), "state").push(rmsguid.idx, "msg_idx").push(rmsguid.uid, "msg_uid");
 }
 
 //------------------------------------------------------------------

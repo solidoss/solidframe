@@ -346,7 +346,7 @@ uint32 ClientObject::sendMessage(consensus::WriteRequestMessage *_pmsg){
 	reqptr->id.senderuid = solid::frame::Manager::specific().id(*this);
 	
 	for(ClientParams::AddressVectorT::iterator it(params.addrvec.begin()); it != params.addrvec.end(); ++it){
-		DynamicPointer<frame::Message>	msgptr(reqptr);
+		DynamicPointer<frame::ipc::Message>	msgptr(reqptr);
 		ripcsvc.sendMessage(msgptr, SocketAddressStub(*it));
 	}
 	return 0;

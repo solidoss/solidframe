@@ -11,7 +11,7 @@
 #define SOLID_CONSENSUS_REQUEST_HPP
 
 
-#include "frame/message.hpp"
+#include "frame/ipc/ipcmessage.hpp"
 #include "frame/ipc/ipcconnectionuid.hpp"
 #include "utility/dynamicpointer.hpp"
 #include "system/socketaddress.hpp"
@@ -28,7 +28,7 @@ namespace consensus{
  * \see example/distributed/consensus for a proof-of-concept
  * 
  */ 
-struct WriteRequestMessage: Dynamic<WriteRequestMessage, DynamicShared<frame::Message> >{
+struct WriteRequestMessage: Dynamic<WriteRequestMessage, DynamicShared<frame::ipc::Message> >{
 	enum{
 		OnSender,
 		OnPeer,
@@ -54,25 +54,15 @@ struct WriteRequestMessage: Dynamic<WriteRequestMessage, DynamicShared<frame::Me
 	virtual void notifySenderObjectWithFail() = 0;
 	
 	template <class S>
-	S& operator&(S &_s){
+	S& serialize(S &_s, frame::ipc::ConnectionContext const &/*_rctx*/){
 		_s.push(id.requid, "id.requid").push(id.senderuid, "sender");
 		_s.push(st, "state");
-		if(waitresponse || !S::IsSerializer){//on peer
-			_s.push(ipcmsguid.idx, "msguid.idx").push(ipcmsguid.uid,"msguid.uid");
-		}else{//on sender
-			frame::ipc::MessageUid &rmsguid(
-				const_cast<frame::ipc::MessageUid &>(frame::ipc::ConnectionContext::the().msgid)
-			);
-			_s.push(rmsguid.idx, "msguid.idx").push(rmsguid.uid,"msguid.uid");
-		}
 		return _s;
 	}
 	
-	/*virtual*/ void ipcReceive(
-		frame::ipc::MessageUid &_rmsguid
-	);
-	/*virtual*/ uint32 ipcPrepare();
-	/*virtual*/ void ipcComplete(int _err);
+	/*virtual*/ void ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, MessagePointerT &_rmsgptr);
+	/*virtual*/ uint32 ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx);
+	/*virtual*/ void ipcOnComplete(frame::ipc::ConnectionContext const &_rctx, int _err);
 	
 	size_t use();
 	size_t release();
@@ -81,7 +71,6 @@ struct WriteRequestMessage: Dynamic<WriteRequestMessage, DynamicShared<frame::Me
 	uint8							st;
 	int8							sentcount;
 	frame::ipc::ConnectionUid		ipcconid;
-	frame::ipc::MessageUid			ipcmsguid;
 	RequestId						id;
 };
 
@@ -93,12 +82,7 @@ struct WriteRequestMessage: Dynamic<WriteRequestMessage, DynamicShared<frame::Me
  * \see example/distributed/consensus for a proof-of-concept
  * 
  */ 
-struct ReadRequestMessage: Dynamic<ReadRequestMessage, DynamicShared<frame::Message> >{
-	enum{
-		OnSender,
-		OnPeer,
-		BackOnSender
-	};
+struct ReadRequestMessage: Dynamic<ReadRequestMessage, DynamicShared<frame::ipc::Message> >{
 	ReadRequestMessage();
 	ReadRequestMessage(const RequestId &_rreqid);
 	~ReadRequestMessage();
@@ -119,25 +103,15 @@ struct ReadRequestMessage: Dynamic<ReadRequestMessage, DynamicShared<frame::Mess
 	virtual void notifySenderObjectWithFail() = 0;
 	
 	template <class S>
-	S& operator&(S &_s){
+	S& serialize(S &_s, frame::ipc::ConnectionContext const &/*_rctx*/){
 		_s.push(id.requid, "id.requid").push(id.senderuid, "sender");
 		_s.push(st, "state");
-		if(waitresponse || !S::IsSerializer){//on peer
-			_s.push(ipcmsguid.idx, "msguid.idx").push(ipcmsguid.uid,"msguid.uid");
-		}else{//on sender
-			frame::ipc::MessageUid &rmsguid(
-				const_cast<frame::ipc::MessageUid &>(frame::ipc::ConnectionContext::the().msgid)
-			);
-			_s.push(rmsguid.idx, "msguid.idx").push(rmsguid.uid,"msguid.uid");
-		}
 		return _s;
 	}
 	
-	/*virtual*/ void ipcReceive(
-		frame::ipc::MessageUid &_rmsguid
-	);
-	/*virtual*/ uint32 ipcPrepare();
-	/*virtual*/ void ipcComplete(int _err);
+	/*virtual*/ void ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, frame::ipc::Message::MessagePointerT &_rmsgptr);
+	/*virtual*/ uint32 ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx);
+	/*virtual*/ void ipcOnComplete(frame::ipc::ConnectionContext const &_rctx, int _err);
 	
 	size_t use();
 	size_t release();
@@ -146,7 +120,6 @@ struct ReadRequestMessage: Dynamic<ReadRequestMessage, DynamicShared<frame::Mess
 	uint8							st;
 	int8							sentcount;
 	frame::ipc::ConnectionUid		ipcconid;
-	frame::ipc::MessageUid			ipcmsguid;
 	RequestId						id;
 };
 

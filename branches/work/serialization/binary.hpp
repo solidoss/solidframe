@@ -226,6 +226,18 @@ protected:
 	const TypeMapperBase& typeMapper()const{
 		return *ptm;
 	}
+	template <class T, class Ser, class H, class Ctx>
+	static int handle(Base &_rs, FncData &_rfd, void *_pctx){
+		idbgx(Debug::ser_bin, "Handle");
+		Ser						&rs(static_cast<Ser&>(_rs));
+		if(!rs.cpb) return OK;
+		H						h;
+		typename Ser::ContextT	&rctx = *reinterpret_cast<typename Ser::ContextT*>(_pctx);
+		T						&rt = *((T*)_rfd.p);
+		rs.fstk.pop();
+		h(rs, rt, rctx);
+		return CONTINUE;
+	}
 protected:
 	typedef Stack<FncData>	FncDataStackT;
 	typedef Stack<ExtData>	ExtDataStackT;
@@ -469,6 +481,7 @@ private:
 	template <class T>
 	friend struct SerializerPushHelper;
 	friend class TypeMapperBase;
+	friend class Base;
 	char					*pb;
 	char					*cpb;
 	char					*be;
@@ -947,6 +960,11 @@ public:
 		const uint64 &_rlen,
 		const char *_name = NULL
 	);
+	template <class H, class T>
+	SerializerT& pushHandle(T *_pt, const char *_name = NULL){
+		SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::template handle<T, SerializerT, H, Ctx>, _pt, _name));
+		return *this;
+	}
 };
 
 //===============================================================
@@ -1188,6 +1206,23 @@ protected:
 		}
 		return rv;
 	}
+	
+	template <class T, class Des, uint32 I, class Ctx>
+	static int loadReinit(Base &_rb, FncData &_rfd, void *_pctx){
+		Des				&rd(static_cast<Des&>(_rb));
+		const uint32	val = _rfd.s;
+		
+		if(!rd.cpb){
+			return OK;
+		}
+		Ctx 			&rctx = *reinterpret_cast<Ctx*>(_pctx);
+		int rv = reinterpret_cast<T*>(_rfd.p)->template serializationReinit<Des, I>(rd, val, rctx);
+		if(rv == BAD){
+			rd.err = ERR_REINIT;
+		}
+		return rv;
+	}
+	
 	void doPushStringLimit();
 	void doPushStringLimit(uint32 _v);
 	void doPushStreamLimit();
@@ -1230,7 +1265,7 @@ public:
 private:
 	template <class T>
 	friend struct DeserializerPushHelper;
-	
+	friend class Base;
 	const char				*pb;
 	const char				*cpb;
 	const char				*be;
@@ -1444,7 +1479,13 @@ public:
 		this->Base::fstk.push(Base::FncData(&Deserializer::loadTypeId, &_t, _name));
 		return *this;
 	}
-	
+	template <class T, uint32 I>
+	Deserializer& pushReinit(
+		T *_pt, const uint64 &_rval = 0, const char *_name = NULL
+	){
+		this->Base::fstk.push(Base::FncData(&DeserializerBase::template loadReinit<T, DeserializerT, I>, _pt, _name, _rval));
+		return *this;
+	}
 	//! Schedules a std (style) container for deserialization
 	template <typename T>
 	Deserializer& pushContainer(T &_t, const char *_name = NULL){
@@ -1485,13 +1526,6 @@ public:
 		return *this;
 	}
 	
-	template <class T, uint32 I>
-	Deserializer& pushReinit(
-		T *_pt, const uint64 &_rval = 0, const char *_name = NULL
-	){
-		this->Base::fstk.push(Base::FncData(&DeserializerBase::template loadReinit<T, DeserializerT, I>, _pt, _name, _rval));
-		return *this;
-	}
 	Deserializer& pushStream(
 		OutputStream *_ps, const char *_name = NULL
 	){
@@ -1603,6 +1637,13 @@ public:
 		return *this;
 	}
 	
+	template <class T, uint32 I>
+	Deserializer& pushReinit(
+		T *_pt, const uint64 &_rval = 0, const char *_name = NULL
+	){
+		this->Base::fstk.push(Base::FncData(&DeserializerBase::template loadReinit<T, DeserializerT, I, ContextT>, _pt, _name, _rval));
+		return *this;
+	}
 	//! Schedules a std (style) container for deserialization
 	template <typename T>
 	Deserializer& pushContainer(T &_t, const char *_name = NULL){
@@ -1643,13 +1684,6 @@ public:
 		return *this;
 	}
 	
-	template <class T, uint32 I>
-	Deserializer& pushReinit(
-		T *_pt, const uint64 &_rval = 0, const char *_name = NULL
-	){
-		this->Base::fstk.push(Base::FncData(&DeserializerBase::template loadReinit<T, DeserializerT, I>, _pt, _name, _rval));
-		return *this;
-	}
 	Deserializer& pushStream(
 		OutputStream *_ps, const char *_name = NULL
 	){
@@ -1690,7 +1724,11 @@ public:
 		this->Base::fstk.push(Base::FncData(&DeserializerBase::loadHandle<T, DeserializerT, H>, _pt, _name));
 		return *this;
 	}
-
+	template <class H, class T>
+	Deserializer& pushHandle(T *_pt, const char *_name = NULL){
+		DeserializerBase::fstk.push(DeserializerBase::FncData(&DeserializerBase::template handle<T, DeserializerT, H, Ctx>, _pt, _name));
+		return *this;
+	}
 };
 
 }//namespace binary

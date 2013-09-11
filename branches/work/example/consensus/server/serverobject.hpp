@@ -10,6 +10,10 @@ struct StoreRequest;
 struct FetchRequest;
 struct EraseRequest;
 
+namespace solid{namespace frame{ namespace ipc{
+struct Message;
+}}}
+
 
 struct ServerConfiguration: solid::consensus::server::Configuration{
 	typedef std::vector<std::string>	StringVectorT;
@@ -45,7 +49,7 @@ public:
 	void dynamicHandle(solid::DynamicPointer<FetchRequest> &_rsig, int);
 	void dynamicHandle(solid::DynamicPointer<EraseRequest> &_rsig, int);
 protected:
-	/*virtual*/ void doSendMessage(solid::DynamicPointer<solid::frame::Message> &_rmsgptr, const solid::SocketAddressInet4 &_raddr);
+	/*virtual*/ void doSendMessage(solid::DynamicPointer<solid::frame::ipc::Message> &_rmsgptr, const solid::SocketAddressInet4 &_raddr);
 private:
 	/*virtual*/ void accept(solid::DynamicPointer<solid::consensus::WriteRequestMessage> &_rmsgptr);
 	/*virtual*/ int recovery();

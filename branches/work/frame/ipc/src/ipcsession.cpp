@@ -861,25 +861,31 @@ inline uint32 Session::Data::currentKeepAlive(const TalkerStub &_rstub)const{
 	if(!isRelayType()){
 		seskeepalive = _rstub.service().configuration().session.keepalive;
 		reskeepalive = _rstub.service().configuration().session.responsekeepalive;
+		vdbgx(Debug::ipc, "");
 	}else{
 		seskeepalive = _rstub.service().configuration().session.relaykeepalive;
 		reskeepalive = _rstub.service().configuration().session.relayresponsekeepalive;
+		vdbgx(Debug::ipc, "");
 	}
 	
 	uint32			keepalive(0);
 	
 	if(sentmsgwaitresponse && reskeepalive){
 		keepalive = reskeepalive;
+		vdbgx(Debug::ipc, "");
 	}else if(seskeepalive){
 		keepalive = seskeepalive;
+		vdbgx(Debug::ipc, "");
 	}
 	
 	switch(state){
 		case WaitDisconnecting:
 			keepalive = 0;
+			vdbgx(Debug::ipc, "");
 			break;
 		case Authenticating:
 			keepalive = 1000;
+			vdbgx(Debug::ipc, "");
 			break;
 		default:;
 	}
@@ -889,6 +895,7 @@ inline uint32 Session::Data::currentKeepAlive(const TalkerStub &_rstub)const{
 		(rcvdmsgq.empty() || (rcvdmsgq.size() == 1 && !rcvdmsgq.front().pmsg)) && 
 		msgq.empty() && sendmsgidxq.empty() && _rstub.currentTime() >= rcvtimepos
 	){
+		vdbgx(Debug::ipc, ""<<keepalive);
 		return keepalive;
 	}else{
 		return 0;
@@ -952,19 +959,18 @@ void Session::Data::pushMessageToSendQueue(
 	sendmsgidxq.push(uid.idx);
 	rsmd.msgptr->ipcRequestMessageUid() = uid;
 	if(rsmd.flags & WaitResponseFlag){
-		rsmd.msgptr->ipcFlags() |= Message::IPCIsRequestFlag;
+		rsmd.msgptr->ipcResetState();
 	}
-	rsmd.msgptr->ipcOnPrepare(Context::the().msgctx);
+	uint32 tmp_flgs = rsmd.msgptr->ipcOnPrepare(Context::the().msgctx);
+	rsmd.flags |= tmp_flgs;
 	
-	//rsmd.flags |= tmp_flgs;
+	vdbgx(Debug::ipc, "flags = "<<(rsmd.flags & SentFlag)<<" tmpflgs = "<<(tmp_flgs & SentFlag));
 	
-	//vdbgx(Debug::ipc, "flags = "<<(rsmd.flags & SentFlag)<<" tmpflgs = "<<(tmp_flgs & SentFlag));
-	
-// 	if(tmp_flgs & WaitResponseFlag){
-// 		++sentmsgwaitresponse;
-// 	}else{
-// 		rsmd.flags &= ~WaitResponseFlag;
-// 	}
+	if(tmp_flgs & WaitResponseFlag){
+		++sentmsgwaitresponse;
+	}else{
+		rsmd.flags &= ~WaitResponseFlag;
+	}
 }
 //----------------------------------------------------------------------
 void Session::Data::resetKeepAlive(){

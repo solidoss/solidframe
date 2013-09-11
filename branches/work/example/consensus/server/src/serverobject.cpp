@@ -138,7 +138,7 @@ ServerObject::~ServerObject(){
 	return OK;
 }
 
-/*virtual*/ void ServerObject::doSendMessage(DynamicPointer<frame::Message> &_rmsgptr, const SocketAddressInet4 &_raddr){
+/*virtual*/ void ServerObject::doSendMessage(DynamicPointer<frame::ipc::Message> &_rmsgptr, const SocketAddressInet4 &_raddr){
 	ripcsvc.sendMessage(_rmsgptr, _raddr);
 }
 
@@ -153,21 +153,21 @@ void ServerObject::dynamicHandle(DynamicPointer<StoreRequest> &_rmsgptr, int){
 
 	idbg("StoreRequest: v = "<<_rmsgptr->v<<" for request "<<_rmsgptr->id);
 	
-	DynamicPointer<frame::Message>		msgptr(_rmsgptr);
+	DynamicPointer<frame::ipc::Message>		msgptr(_rmsgptr);
 	ripcsvc.sendMessage(msgptr, ipcconid);
 }
 
 void ServerObject::dynamicHandle(DynamicPointer<FetchRequest> &_rmsgptr, int){
 	idbg("received FetchRequest");
-	const frame::ipc::ConnectionUid	ipcconid(_rmsgptr->ipcconid);
-	DynamicPointer<frame::Message>	msgptr(_rmsgptr);
+	const frame::ipc::ConnectionUid		ipcconid(_rmsgptr->ipcconid);
+	DynamicPointer<frame::ipc::Message>	msgptr(_rmsgptr);
 	ripcsvc.sendMessage(msgptr, ipcconid);
 }
 
 void ServerObject::dynamicHandle(DynamicPointer<EraseRequest> &_rmsgptr, int){
 	idbg("received EraseRequest");
-	const frame::ipc::ConnectionUid	ipcconid(_rmsgptr->ipcconid);
-	DynamicPointer<frame::Message>	msgptr(_rmsgptr);
+	const frame::ipc::ConnectionUid		ipcconid(_rmsgptr->ipcconid);
+	DynamicPointer<frame::ipc::Message>	msgptr(_rmsgptr);
 	ripcsvc.sendMessage(msgptr, ipcconid);
 }
 

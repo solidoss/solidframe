@@ -87,27 +87,18 @@ In this example we do:
 */
 
 
-struct AuthMessage: Dynamic<AuthMessage, DynamicShared<frame::Message> >{
+struct AuthMessage: Dynamic<AuthMessage, DynamicShared<frame::ipc::Message> >{
 	AuthMessage():authidx(0), authcnt(0){}
 	~AuthMessage(){}
 	
 	template <class S>
-	void serialize(S &_s){
+	void serialize(S &_s, frame::ipc::ConnectionContext const &_rctx){
 		_s.push(authidx, "authidx").push(authcnt, "authcnt");
-		if(S::IsDeserializer){
-			_s.push(msguid.idx, "msguid.idx").push(msguid.uid,"msguid.uid");
-		}else{//on sender
-			frame::ipc::MessageUid &rmsguid(
-				const_cast<frame::ipc::MessageUid &>(frame::ipc::ConnectionContext::the().msgid)
-			);
-			_s.push(rmsguid.idx, "msguid.idx").push(rmsguid.uid,"msguid.uid");
-		}
 		_s.push(msguidpeer.idx, "msguidpeer.idx").push(msguidpeer.uid,"msguidpeer.uid");
 	}
 //data:
 	int							authidx;
 	int							authcnt;
-	frame::ipc::MessageUid		msguid;
 	frame::ipc::MessageUid		msguidpeer;
 };
 
@@ -183,7 +174,7 @@ Manager::~Manager(){
 }
 
 void Manager::start(){
-	d.ipcsvc.typeMapper().insert<AuthMessage>();
+	d.ipcsvc.registerMessageType<AuthMessage>();
 	
 	registerService(d.ipcsvc);
 	
@@ -307,10 +298,6 @@ void IpcServiceController::scheduleNode(frame::aio::Object *_po){
 		return BAD;
 	}
 	AuthMessage &rmsg(static_cast<AuthMessage&>(*_msgptr));
-	
-	_rmsguid = rmsg.msguidpeer;
-	
-	rmsg.msguidpeer = rmsg.msguid;
 	
 	idbg("sig = "<<(void*)_msgptr.get()<<" auth("<<rmsg.authidx<<','<<rmsg.authcnt<<") authidx = "<<this->authidx);
 	

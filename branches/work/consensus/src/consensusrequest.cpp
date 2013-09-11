@@ -77,9 +77,7 @@ WriteRequestMessage::~WriteRequestMessage(){
 	idbg("~WriteRequestMessage "<<(void*)this);
 }
 
-void WriteRequestMessage::ipcReceive(
-	frame::ipc::MessageUid &_rmsguid
-){
+/*virtual*/ void WriteRequestMessage::ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, MessagePointerT &_rmsgptr){
 	//_rsiguid = this->ipcsiguid;
 	ipcconid = frame::ipc::ConnectionContext::the().connectionuid;
 	
@@ -98,20 +96,14 @@ void WriteRequestMessage::ipcReceive(
 	
 	waitresponse = false;
 	
-	if(st == OnSender){
-		st = OnPeer;
+	if(ipcIsOnSender()){
 		idbg((void*)this<<" on peer: baseport = "<<frame::ipc::ConnectionContext::the().baseport<<" host = "<<host<<":"<<port);
-		id.sockaddr.port(frame::ipc::ConnectionContext::the().baseport);
+		id.sockaddr.port(_rctx.baseport);
 		//fdt::m().signal(sig, serverUid());
 		this->notifyConsensusObjectWithThis();
-	}else if(st == OnPeer){
-		st = BackOnSender;
+	}else if(ipcIsOnReceiver()){
 		idbg((void*)this<<" back on sender: baseport = "<<frame::ipc::ConnectionContext::the().baseport<<" host = "<<host<<":"<<port);
 		
-		//DynamicPointer<frame::Message> msgptr(this);
-		
-		//frame::Manager::specific().notify(msgptr, id.senderuid);
-		_rmsguid = this->ipcmsguid;
 		notifySenderObjectWithThis();
 	}else{
 		cassert(false);
@@ -119,7 +111,7 @@ void WriteRequestMessage::ipcReceive(
 }
 // void WriteRequestSignal::sendThisToConsensusObject(){
 // }
-uint32 WriteRequestMessage::ipcPrepare(){
+uint32 WriteRequestMessage::ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx){
 	uint32	rv(0);
 	idbg((void*)this);
 	if(st == OnSender){
@@ -132,7 +124,7 @@ uint32 WriteRequestMessage::ipcPrepare(){
 	return rv;
 }
 
-void WriteRequestMessage::ipcComplete(int _err){
+void WriteRequestMessage::ipcOnComplete(frame::ipc::ConnectionContext const &_rctx, int _err){
 	idbg((void*)this<<" sentcount = "<<(int)sentcount<<" err = "<<_err);
 	if(!_err){
 		Locker<Mutex> lock(shared_mutex(this));
@@ -140,12 +132,12 @@ void WriteRequestMessage::ipcComplete(int _err){
 	}
 }
 size_t WriteRequestMessage::use(){
-	size_t rv = DynamicShared<frame::Message>::use();
+	size_t rv = DynamicShared<frame::ipc::Message>::use();
 	idbg((void*)this<<" usecount = "<<usecount);
 	return rv;
 }
 size_t WriteRequestMessage::release(){
-	size_t rv = DynamicShared<frame::Message>::release();
+	size_t rv = DynamicShared<frame::ipc::Message>::release();
 	idbg((void*)this<<" usecount = "<<usecount);
 	if(!rv){
 		if(waitresponse && !sentcount){
@@ -159,11 +151,11 @@ size_t WriteRequestMessage::release(){
 }
 //--------------------------------------------------------------
 //--------------------------------------------------------------
-ReadRequestMessage::ReadRequestMessage():waitresponse(false), st(OnSender), sentcount(0){
+ReadRequestMessage::ReadRequestMessage():waitresponse(false), sentcount(0){
 	idbg("ReadRequestMessage "<<(void*)this);
 	shared_mutex_safe(this);
 }
-ReadRequestMessage::ReadRequestMessage(const RequestId &_rreqid):waitresponse(false), st(OnSender), sentcount(0),id(_rreqid){
+ReadRequestMessage::ReadRequestMessage(const RequestId &_rreqid):waitresponse(false), sentcount(0),id(_rreqid){
 	idbg("ReadRequestMessage "<<(void*)this);
 	shared_mutex_safe(this);
 }
@@ -172,11 +164,9 @@ ReadRequestMessage::~ReadRequestMessage(){
 	idbg("~ReadRequestMessage "<<(void*)this);
 }
 
-void ReadRequestMessage::ipcReceive(
-	frame::ipc::MessageUid &_rmsguid
-){
+void ReadRequestMessage::ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, solid::frame::ipc::Message::MessagePointerT &_rmsgptr){
 	//_rsiguid = this->ipcsiguid;
-	ipcconid = frame::ipc::ConnectionContext::the().connectionuid;
+	ipcconid = _rctx.connectionuid;
 	
 	char				host[SocketInfo::HostStringCapacity];
 	char				port[SocketInfo::ServiceStringCapacity];
@@ -193,16 +183,13 @@ void ReadRequestMessage::ipcReceive(
 	
 	waitresponse = false;
 	
-	if(st == OnSender){
-		st = OnPeer;
+	if(this->ipcIsOnSender()){
 		idbg((void*)this<<" on peer: baseport = "<<frame::ipc::ConnectionContext::the().baseport<<" host = "<<host<<":"<<port);
 		id.sockaddr.port(frame::ipc::ConnectionContext::the().baseport);
 		this->notifyConsensusObjectWithThis();
-	}else if(st == OnPeer){
-		st = BackOnSender;
+	}else if(ipcIsOnReceiver()){
 		idbg((void*)this<<" back on sender: baseport = "<<frame::ipc::ConnectionContext::the().baseport<<" host = "<<host<<":"<<port);
 		
-		_rmsguid = this->ipcmsguid;
 		this->notifySenderObjectWithThis();
 	}else{
 		cassert(false);
@@ -210,10 +197,10 @@ void ReadRequestMessage::ipcReceive(
 }
 // void ReadRequestSignal::sendThisToConsensusObject(){
 // }
-uint32 ReadRequestMessage::ipcPrepare(){
+uint32 ReadRequestMessage::ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx){
 	uint32	rv(0);
 	idbg((void*)this);
-	if(st == OnSender){
+	if(ipcIsOnSender()){
 		if(waitresponse){
 			rv |= frame::ipc::WaitResponseFlag;
 		}
@@ -223,7 +210,7 @@ uint32 ReadRequestMessage::ipcPrepare(){
 	return rv;
 }
 
-void ReadRequestMessage::ipcComplete(int _err){
+void ReadRequestMessage::ipcOnComplete(frame::ipc::ConnectionContext const &_rctx, int _err){
 	idbg((void*)this<<" sentcount = "<<(int)sentcount<<" err = "<<_err);
 	if(!_err){
 		Locker<Mutex> lock(shared_mutex(this));
@@ -232,13 +219,13 @@ void ReadRequestMessage::ipcComplete(int _err){
 }
 
 size_t ReadRequestMessage::use(){
-	size_t rv = DynamicShared<frame::Message>::use();
+	size_t rv = DynamicShared<frame::ipc::Message>::use();
 	idbg((void*)this<<" usecount = "<<usecount);
 	return rv;
 }
 
 size_t ReadRequestMessage::release(){
-	size_t rv = DynamicShared<frame::Message>::release();
+	size_t rv = DynamicShared<frame::ipc::Message>::release();
 	idbg((void*)this<<" usecount = "<<usecount);
 	if(!rv){
 		if(waitresponse && !sentcount){

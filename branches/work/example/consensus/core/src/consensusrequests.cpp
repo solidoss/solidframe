@@ -9,11 +9,21 @@
 #include "system/debug.hpp"
 
 using namespace solid;
+
+typedef std::pair<uint32, uint32>	Uint32PairT;
+
+namespace solid{namespace serialization{namespace binary{
+template <class S, class Ctx>
+void serialize(S &_s, Uint32PairT &_t, Ctx &_ctx){
+	_s.push(_t.first, "first").push(_t.second, "second");
+}
+}}}
+
 //--------------------------------------------------------------
 void mapSignals(frame::ipc::Service &_rsvc){
-	_rsvc.typeMapper().insert<StoreRequest>();
-	_rsvc.typeMapper().insert<FetchRequest>();
-	_rsvc.typeMapper().insert<EraseRequest>();
+	_rsvc.registerMessageType<StoreRequest>();
+	_rsvc.registerMessageType<FetchRequest>();
+	_rsvc.registerMessageType<EraseRequest>();
 }
 //--------------------------------------------------------------
 StoreRequest::StoreRequest(const std::string&, uint32 _pos):v(0){

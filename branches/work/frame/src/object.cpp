@@ -105,7 +105,7 @@ int Object::execute(ulong _evs, TimeSpec &_rtout){
 	return BAD;
 }
 //---------------------------------------------------------------------
-//----	Signal	----
+//----	Message	----
 //---------------------------------------------------------------------
 Message::Message(){
 	objectCheck<Message>(true, __FUNCTION__);

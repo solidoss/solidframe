@@ -19,6 +19,9 @@ target_link_libraries (example_ipcstress
 add_executable (example_ipcserialization ipcserialization.cpp)
 
 target_link_libraries (example_ipcserialization
+	solid_frame_ipc
+	solid_frame_aio
+	solid_frame_aio_openssl
 	solid_frame_core
 	solid_serialization
 	solid_utility

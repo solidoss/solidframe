@@ -26,27 +26,30 @@ struct Message: Dynamic<Message, frame::Message>{
 	
 	typedef DynamicPointer<Message>		MessagePointerT;
 	
-	Message(uint8 _flags = 0):flgs(_flags){}
+	Message(uint8 _state = 0):stt(_state){}
 	virtual ~Message();
 	
 	MessageUid& ipcRequestMessageUid();
 	MessageUid const & ipcRequestMessageUid()const;
 	
-	uint8& ipcFlags();
-	uint8 const& ipcFlags()const;
+	uint8& ipcState();
+	uint8 const& ipcState()const;
 	
-	bool ipcIsRequest()const;
-	bool ipcIsResponse()const;
+	void ipcResetState();
 	
-	virtual void ipcOnReceive(ConnectionContext &_ripcctx, MessagePointerT &_rmsgptr);
+	bool ipcIsBackOnSender()const;
+	bool ipcIsOnSender()const;
+	bool ipcIsOnReceiver()const;
+	
+	virtual void ipcOnReceive(ConnectionContext const &_ripcctx, MessagePointerT &_rmsgptr);
 	//! Called by ipc module, before the signal begins to be serialized
-	virtual void ipcOnPrepare(ConnectionContext &_ripcctx);
+	virtual uint32 ipcOnPrepare(ConnectionContext const &_ripcctx);
 	//! Called by ipc module on peer failure detection (disconnect,reconnect)
-	virtual void ipcOnComplete(ConnectionContext &_ripcctx, int _error);
+	virtual void ipcOnComplete(ConnectionContext const &_ripcctx, int _error);
 	
 private:
 	MessageUid	msguid;
-	uint8		flgs;
+	uint8		stt;
 };
 
 inline MessageUid& Message::ipcRequestMessageUid(){
@@ -56,21 +59,26 @@ inline MessageUid const & Message::ipcRequestMessageUid()const{
 	return msguid;
 }
 
-inline uint8& Message::ipcFlags(){
-	return flgs;
+inline uint8& Message::ipcState(){
+	return stt;
 }
-inline uint8 const& Message::ipcFlags()const{
-	return flgs;
-}
-
-inline bool Message::ipcIsRequest()const{
-	return (flgs & IPCIsRequestFlag) != 0; 
+inline uint8 const& Message::ipcState()const{
+	return stt;
 }
 
-inline bool Message::ipcIsResponse()const{
-	return (flgs & IPCIsResponseFlag) != 0; 
+inline bool Message::ipcIsOnSender()const{
+	return stt == 0;
+}
+inline bool Message::ipcIsOnReceiver()const{
+	return stt == 1;
+}
+inline bool Message::ipcIsBackOnSender()const{
+	return stt == 2;
 }
 
+inline void Message::ipcResetState(){
+	stt = 0;
+}
 
 }//namespace ipc
 }//namespace frame

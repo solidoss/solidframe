@@ -110,7 +110,7 @@ namespace{
 }
 
 
-struct FirstMessage: frame::ipc::Message{
+struct FirstMessage: Dynamic<FirstMessage, DynamicShared<frame::ipc::Message> >{
 	uint32							idx;
     uint32							sec;
     uint32							nsec;
@@ -126,16 +126,12 @@ struct FirstMessage: frame::ipc::Message{
 		return sizeof(sec) + sizeof(nsec) + sizeof(msguid) + sizeof(uint32) + str.size();
 	}
 	
-	/*virtual*/ void ipcOnReceive(frame::ipc::ConnectionContext &_rctx, MessagePointerT &_rmsgptr);
-	/*virtual*/ void ipcOnPrepare(frame::ipc::ConnectionContext &_rctx);
-	/*virtual*/ void ipcOnComplete(frame::ipc::ConnectionContext &_rctx, int _err);
-	
-	bool isOnSender()const{
-		return state % 2;
-	}
+	/*virtual*/ void ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, MessagePointerT &_rmsgptr);
+	/*virtual*/ uint32 ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx);
+	/*virtual*/ void ipcOnComplete(frame::ipc::ConnectionContext const &_rctx, int _err);
 	
 	template <class S>
-	void serialize(S &_s, const frame::ipc::ConnectionContext &_rctx){
+	void serialize(S &_s, frame::ipc::ConnectionContext const &_rctx){
 		_s.push(state, "state").push(idx, "index").push(sec, "seconds").push(nsec, "nanoseconds").push(str, "data");
 	}
 	
@@ -454,7 +450,7 @@ FirstMessage::~FirstMessage(){
 	idbg("DELETE ---------------- "<<(void*)this);
 }
 
-/*virtual*/ void FirstMessage::ipcOnReceive(frame::ipc::ConnectionContext &_rctx, MessagePointerT &_rmsgptr){
+/*virtual*/ void FirstMessage::ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, MessagePointerT &_rmsgptr){
 	++state;
 	idbg("EXECUTE ---------------- "<<state);
 	
@@ -464,27 +460,23 @@ FirstMessage::~FirstMessage(){
 	
 	++msgvec[this->idx].count;
 	
-	if(!isOnSender()){
+	if(ipcIsOnReceiver()){
 		
-		PeerAddressPairT	peersa(frame::ipc::ConnectionContext::the().netid, frame::ipc::ConnectionContext::the().pairaddr);
+		PeerAddressPairT	peersa(_rctx.netid, _rctx.pairaddr);
 		
 		idbg("Received message: "<<peersa.first<<":"<<peersa.second);
 		
-		frame::ipc::ConnectionContext::the().service().sendMessage(
-			_rmsgptr,
-			frame::ipc::ConnectionContext::the().connectionuid,
-			0//fdt::ipc::Service::SynchronousSendFlag
-		);
+		_rctx.service().sendMessage(_rmsgptr, _rctx.connectionuid, (uint32)0/*fdt::ipc::Service::SynchronousSendFlag*/);
 	}else{
 		TimeSpec			crttime(TimeSpec::createRealTime());
 		TimeSpec			tmptime(this->sec, this->nsec);
-		PeerAddressPairT	peersa(frame::ipc::ConnectionContext::the().netid, frame::ipc::ConnectionContext::the().pairaddr);
+		PeerAddressPairT	peersa(_rctx.netid, _rctx.pairaddr);
 		
-		idbg("Received message: "<<peersa.first<<":"<<peersa.second);
+		idbg("Received message: "<<peersa.first<<":"<<peersa.second<<" waiting message: "<<(void*)_rctx.requestMessage(*this).get());
 		
 		tmptime =  crttime - tmptime;
 		
-		peersa.second.port(frame::ipc::ConnectionContext::the().baseport);
+		peersa.second.port(_rctx.baseport);
 		
 		const uint32		srvidx = p.server(peersa);
 		ServerStub			&rss = srvvec[srvidx];
@@ -506,11 +498,7 @@ FirstMessage::~FirstMessage(){
 			this->sec = crttime.seconds();
 			this->nsec = crttime.nanoSeconds();
 			
-			frame::ipc::ConnectionContext::the().service().sendMessage(
-				_rmsgptr,
-				frame::ipc::ConnectionContext::the().connectionuid,
-				frame::ipc::WaitResponseFlag// | frame::ipc::Service::SynchronousSendFlag
-			);
+			_rctx.service().sendMessage(_rmsgptr, _rctx.connectionuid, frame::ipc::WaitResponseFlag/*frame::ipc::Service::SynchronousSendFlag*/);
 		}else{
 			Locker<Mutex>  lock(mtx);
 			--wait_count;
@@ -522,14 +510,15 @@ FirstMessage::~FirstMessage(){
 		}
 	}
 }
-/*virtual*/ void FirstMessage::ipcOnPrepare(frame::ipc::ConnectionContext &_rctx){
+/*virtual*/ uint32 FirstMessage::ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx){
 // 	if(isOnSender()){
 // 		return frame::ipc::WaitResponseFlag;
 // 	}else{
 // 		return 0;
 // 	}
+	return 0;
 }
-/*virtual*/ void FirstMessage::ipcOnComplete(frame::ipc::ConnectionContext &_rctx, int _err){
+/*virtual*/ void FirstMessage::ipcOnComplete(frame::ipc::ConnectionContext const &_rctx, int _err){
 	if(!_err){
         idbg("SUCCESS ----------------");
     }else{

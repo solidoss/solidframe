@@ -4,7 +4,7 @@
 #include "utility/dynamicpointer.hpp"
 #include "utility/dynamictype.hpp"
 #include "utility/queue.hpp"
-#include "frame/message.hpp"
+#include "frame/ipc/ipcmessage.hpp"
 #include "serialization/binary.hpp"
 #include "serialization/idtypemapper.hpp"
 #include "boost/program_options.hpp"
@@ -40,7 +40,7 @@ struct MessageUid{
 };
 
 
-struct FirstMessage: Dynamic<FirstMessage, DynamicShared<frame::Message> >{
+struct FirstMessage: Dynamic<FirstMessage, DynamicShared<frame::ipc::Message> >{
 	uint32			state;
     uint32			sec;
     uint32			nsec;
@@ -55,15 +55,9 @@ struct FirstMessage: Dynamic<FirstMessage, DynamicShared<frame::Message> >{
 		return sizeof(state) + sizeof(sec) + sizeof(nsec) + sizeof(msguid) + sizeof(uint32) + str.size();
 	}
 	
-	/*virtual*/ void ipcReceive(
-		frame::ipc::MessageUid &_rmsguid
-	);
-	/*virtual*/ uint32 ipcPrepare();
-	/*virtual*/ void ipcComplete(int _err);
-	
-	bool isOnSender()const{
-		return (state % 2) == 0;
-	}
+	/*virtual*/ void ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, MessagePointerT &_rmsgptr);
+	/*virtual*/ void ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx);
+	/*virtual*/ void ipcOnComplete(frame::ipc::ConnectionContext const &_rctx, int _err);
 	
 	template <class S>
 	void serialize(S &_s){
@@ -210,17 +204,13 @@ FirstMessage::FirstMessage():state(-1){
 FirstMessage::~FirstMessage(){
 	idbg("DELETE ---------------- "<<(void*)this);
 }
-
-/*virtual*/ void FirstMessage::ipcReceive(
-	frame::ipc::MessageUid &_rmsguid
-){
+/*virtual*/ void FirstMessage::ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, FirstMessage::MessagePointerT &_rmsgptr){
 	++state;
 	idbg("EXECUTE ---------------- "<<state);
 }
-/*virtual*/ uint32 FirstMessage::ipcPrepare(){
-	return 0;
+/*virtual*/ void FirstMessage::ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx){
 }
-/*virtual*/ void FirstMessage::ipcComplete(int _err){
+/*virtual*/ void FirstMessage::ipcOnComplete(frame::ipc::ConnectionContext const &_rctx, int _err){
 	if(!_err){
         idbg("SUCCESS ----------------");
     }else{

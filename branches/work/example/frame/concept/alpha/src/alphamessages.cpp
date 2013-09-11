@@ -37,70 +37,63 @@ const MessageTypeIds& MessageTypeIds::the(const MessageTypeIds *_pids){
 //-----------------------------------------------------------------------------------
 RemoteListMessage::RemoteListMessage(
 	uint32 _tout, uint16 _sentcnt
-): ppthlst(NULL),err(-1),tout(_tout), success(0), ipcstatus(IpcOnSender){
+): ppthlst(NULL),err(-1),tout(_tout), success(0){
 	idbg(""<<(void*)this);
 	shared_mutex_safe(this);
 }
 RemoteListMessage::RemoteListMessage(
 	const NumberType<1>&
-):ppthlst(NULL), err(-1),tout(0), success(0), ipcstatus(IpcOnSender){
+):ppthlst(NULL), err(-1),tout(0), success(0){
 	idbg(""<<(void*)this);
 	shared_mutex_safe(this);
 }
 RemoteListMessage::~RemoteListMessage(){
-	idbg(""<<(void*)this<<" success = "<<(int)success<<" ipcstatus = "<<(int)ipcstatus);
-	if(ipcstatus == IpcOnSender && success <= 1){
+	idbg(""<<(void*)this<<" success = "<<(int)success);
+	if(ipcIsOnSender() && success <= 1){
 		idbg("failed receiving response");
 		Manager::the().notify(frame::S_KILL | frame::S_RAISE, ObjectUidT(fromv.first, fromv.second));
 	}
 	delete ppthlst;
 }
 size_t RemoteListMessage::use(){
-	size_t rv = DynamicShared<frame::Message>::use();
+	size_t rv = DynamicShared<frame::ipc::Message>::use();
 	idbg(""<<(void*)this<<" usecount = "<<usecount);
 	return rv;
 }
 size_t RemoteListMessage::release(){
-	size_t rv = DynamicShared<frame::Message>::release();
+	size_t rv = DynamicShared<frame::ipc::Message>::release();
 	idbg(""<<(void*)this<<" usecount = "<<usecount);
 	return rv;
 }
-uint32 RemoteListMessage::ipcPrepare(){
-	const frame::ipc::ConnectionContext	&rmsgctx(frame::ipc::ConnectionContext::the());
+uint32 RemoteListMessage::ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx){
 	Locker<Mutex>						lock(shared_mutex(this));
 	
 	if(success == 0) success = 1;//wait
-	idbg(""<<(void*)this<<" msguid = "<<rmsgctx.msgid.idx<<' '<<rmsgctx.msgid.uid<<" ipcstatus = "<<(int)ipcstatus);
-	if(ipcstatus == IpcOnSender){//on sender
+	idbg(""<<(void*)this);
+	if(ipcIsOnSender()){//on sender
 		return frame::ipc::WaitResponseFlag /*| frame::ipc::SynchronousSendFlag*/;
 	}else{
 		return 0/*frame::ipc::Service::SynchronousSendFlag*/;// on peer
 	}
 }
-void RemoteListMessage::ipcReceive(
-	frame::ipc::MessageUid &_rmsguid
-){
-	DynamicPointer<frame::Message> msgptr(this);
-	idbg(""<<(void*)this<<" msguid = "<<msguid.idx<<' '<<msguid.uid);
+void RemoteListMessage::ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, frame::ipc::Message::MessagePointerT &_rmsgptr){
+	idbg(""<<(void*)this);
 	conid = frame::ipc::ConnectionContext::the().connectionuid;
-	++ipcstatus;
-	if(ipcstatus == IpcOnPeer){//on peer
+	DynamicPointer<frame::Message>	msgptr(_rmsgptr);
+	if(ipcIsOnReceiver()){//on peer
 		idbg("Received RemoteListMessage on peer");
 		Manager::the().notify(msgptr, Manager::the().readMessageStewardUid());
-	}else{//on sender
-		cassert(ipcstatus == IpcBackOnSender);
-		idbg("Received RemoteListMessage back on sender");
-		_rmsguid = msguid;
+	}else if(ipcIsBackOnSender()){//back on sender
 		Manager::the().notify(msgptr, ObjectUidT(fromv.first, fromv.second));
 	}
 }
-void RemoteListMessage::ipcComplete(int _err){
+void RemoteListMessage::ipcOnComplete(frame::ipc::ConnectionContext const &_rctx, int _err){
 	Locker<Mutex> lock(shared_mutex(this));
 	err = _err;
 	if(!_err){
 		success = 2;
 	}else{
-		if(ipcstatus == IpcOnSender){
+		if(ipcIsOnSender()){
 			idbg("failed on sender "<<(void*)this);
 		}else{
 			idbg("failed on peer");
@@ -109,7 +102,7 @@ void RemoteListMessage::ipcComplete(int _err){
 }
 
 int RemoteListMessage::execute(
-	DynamicPointer<Message> &_rmsgptr,
+	DynamicPointer<frame::Message> &_rmsgptr,
 	uint32 _evs,
 	frame::MessageSteward&,
 	const MessageUidT &,
@@ -123,15 +116,18 @@ int RemoteListMessage::execute(
 	}
 	idbg("done sleeping");
 	
-	fs::directory_iterator			it,end;
-	fs::path						pth(strpth.c_str()/*, fs::native*/);
+	fs::directory_iterator				it,end;
+	fs::path							pth(strpth.c_str()/*, fs::native*/);
+	
+	DynamicPointer<frame::ipc::Message>	msgptr(this);
+	_rmsgptr.clear();
 	
 	ppthlst = new RemoteList::PathListT;
 	strpth.clear();
 	
 	if(!exists( pth ) || !is_directory(pth)){
 		err = -1;
-		Manager::the().ipc().sendMessage(_rmsgptr, conid);
+		Manager::the().ipc().sendMessage(msgptr, conid);
 		return BAD;
 	}
 	
@@ -141,7 +137,7 @@ int RemoteListMessage::execute(
 		idbg("dir_iterator exception :"<<ex.what());
 		err = -1;
 		strpth = ex.what();
-		Manager::the().ipc().sendMessage(_rmsgptr, MessageTypeIds::the().remotelistresponse, conid);
+		Manager::the().ipc().sendMessage(msgptr, conid);
 		return BAD;
 	}
 	
@@ -155,7 +151,7 @@ int RemoteListMessage::execute(
 	}
 	err = 0;
 	//Thread::sleep(1000 * 20);
-	Manager::the().ipc().sendMessage(_rmsgptr, MessageTypeIds::the().remotelistresponse, conid);
+	Manager::the().ipc().sendMessage(msgptr, conid);
 	return BAD;
 }
 
@@ -168,7 +164,7 @@ FetchMasterMessage::~FetchMasterMessage(){
 	idbg((void*)this<<"");
 }
 
-void FetchMasterMessage::ipcComplete(int _err){
+void FetchMasterMessage::ipcOnComplete(frame::ipc::ConnectionContext const &_rctx, int _err){
 	idbg((void*)this<<"");
 	if(_err){
 		Manager::the().notify(frame::S_RAISE | frame::S_KILL, ObjectUidT(fromv.first, fromv.second));
@@ -182,14 +178,8 @@ void FetchMasterMessage::print()const{
 	idbg("tmpfuid.first = "<<tmpfuid.first<<" tmpfuid.second = "<<tmpfuid.second);
 }
 
-uint32 FetchMasterMessage::ipcPrepare(){
-	return 0;//frame::ipc::Service::SynchronousSendFlag;
-}
 
-
-void FetchMasterMessage::ipcReceive(
-	frame::ipc::MessageUid &_rmsguid
-){
+void FetchMasterMessage::ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, frame::ipc::Message::MessagePointerT &_rmsgptr){
 	DynamicPointer<frame::Message> msgptr(this);
 	conid = frame::ipc::ConnectionContext::the().connectionuid;;
 	state = Received;
@@ -201,7 +191,7 @@ void FetchMasterMessage::ipcReceive(
 	The state machine running on peer
 */
 int FetchMasterMessage::execute(
-	DynamicPointer<Message> &_rmsgptr,
+	DynamicPointer<frame::Message> &_rmsgptr,
 	uint32 _evs,
 	frame::MessageSteward& _rce,
 	const MessageUidT &_msguid,
@@ -230,8 +220,8 @@ int FetchMasterMessage::execute(
 		}break;
 		case SendFirstStream:{
 			idbg((void*)this<<" send first stream");
-			FetchSlaveMessage				*pmsg(new FetchSlaveMessage);
-			DynamicPointer<frame::Message>	msgptr(pmsg);
+			FetchSlaveMessage					*pmsg(new FetchSlaveMessage);
+			DynamicPointer<frame::ipc::Message>	msgptr(pmsg);
 			
 			this->filesz = ins->size();
 			pmsg->tov = fromv;
@@ -262,7 +252,7 @@ int FetchMasterMessage::execute(
 		}
 		case SendNextStream:{
 			idbg((void*)this<<" send next stream");
-			DynamicPointer<frame::Message> msgptr(pmsg);
+			DynamicPointer<frame::ipc::Message> msgptr(pmsg);
 			pmsg->tov = fromv;
 			pmsg->filesz = this->filesz;
 			//pmsg->sz = FetchChunkSize;
@@ -292,7 +282,7 @@ int FetchMasterMessage::execute(
 		case SendError:{
 			idbg((void*)this<<" sending error");
 			FetchSlaveMessage 				*pmsg = new FetchSlaveMessage;
-			DynamicPointer<frame::Message>	msgptr(pmsg);
+			DynamicPointer<frame::ipc::Message>	msgptr(pmsg);
 			pmsg->tov = fromv;
 			pmsg->filesz = -1;
 			rm.ipc().sendMessage(msgptr, conid);
@@ -303,7 +293,7 @@ int FetchMasterMessage::execute(
 }
 
 int FetchMasterMessage::receiveMessage(
-	DynamicPointer<Message> &_rmsgptr,
+	DynamicPointer<frame::Message> &_rmsgptr,
 	const ObjectUidT& _from,
 	const frame::ipc::ConnectionUid *_conid
 ){
@@ -394,12 +384,7 @@ int FetchSlaveMessage::sent(const frame::ipc::ConnectionUid &_rconid){
 	fromv.first = 0xffffffff;
 	return BAD;
 }
-uint32 FetchSlaveMessage::ipcPrepare(){
-	return 0;//frame::ipc::Service::SynchronousSendFlag;
-}
-void FetchSlaveMessage::ipcReceive(
-	frame::ipc::MessageUid &_rmsguid
-){
+void FetchSlaveMessage::ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, frame::ipc::Message::MessagePointerT &_rmsgptr){
 	DynamicPointer<frame::Message> psig(this);
 	conid = frame::ipc::ConnectionContext::the().connectionuid;
 	if(filesz == -10){
@@ -415,7 +400,7 @@ void FetchSlaveMessage::ipcReceive(
 }
 // Executed on peer within the signal executer
 int FetchSlaveMessage::execute(
-	DynamicPointer<Message> &_rmsgptr,
+	DynamicPointer<frame::Message> &_rmsgptr,
 	uint32 _evs,
 	frame::MessageSteward& _rce,
 	const MessageUidT &,
@@ -440,9 +425,7 @@ void FetchSlaveMessage::clearOutputStream(){
 // SendStringMessage
 //-----------------------------------------------------------------------------------
 
-void SendStringMessage::ipcReceive(
-	frame::ipc::MessageUid &_rmsguid
-){
+void SendStringMessage::ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, frame::ipc::Message::MessagePointerT &_rmsgptr){
 	DynamicPointer<frame::Message> psig(this);
 	conid = frame::ipc::ConnectionContext::the().connectionuid;;
 	Manager::the().notify(psig, ObjectUidT(tov.first, tov.second));
@@ -456,9 +439,7 @@ void SendStringMessage::ipcReceive(
 // SendStreamMessage
 //-----------------------------------------------------------------------------------
 
-void SendStreamMessage::ipcReceive(
-	frame::ipc::MessageUid &_rmsguid
-){
+void SendStreamMessage::ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, frame::ipc::Message::MessagePointerT &_rmsgptr){
 	DynamicPointer<frame::Message> psig(this);
 	conid = frame::ipc::ConnectionContext::the().connectionuid;;
 	Manager::the().notify(psig, ObjectUidT(tov.first, tov.second));

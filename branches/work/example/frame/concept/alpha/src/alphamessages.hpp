@@ -10,7 +10,7 @@
 #ifndef ALPHA_SIGNALS_HPP
 #define ALPHA_SIGNALS_HPP
 
-#include "frame/message.hpp"
+#include "frame/ipc/ipcmessage.hpp"
 #include "frame/ipc/ipcconnectionuid.hpp"
 
 #include "utility/dynamicpointer.hpp"
@@ -64,39 +64,28 @@ struct MessageTypeIds{
 //---------------------------------------------------------------
 // RemoteListMessage
 //---------------------------------------------------------------
-struct RemoteListMessage: Dynamic<RemoteListMessage, DynamicShared<frame::Message> >{
+struct RemoteListMessage: Dynamic<RemoteListMessage, DynamicShared<frame::ipc::Message> >{
 	RemoteListMessage(uint32 _tout = 0, uint16 _sentcnt = 1);
 	RemoteListMessage(const NumberType<1>&);
 	~RemoteListMessage();
 	int execute(
-		DynamicPointer<Message> &_rmsgptr,
+		DynamicPointer<frame::Message> &_rmsgptr,
 		uint32 _evs,
 		frame::MessageSteward&,
 		const MessageUidT &, solid::TimeSpec &_rts
 	);
 	
-	/*virtual*/ void ipcReceive(
-		frame::ipc::MessageUid &_rmsguid
-	);
-	/*virtual*/ uint32 ipcPrepare();
-	/*virtual*/ void ipcComplete(int _err);
+	/*virtual*/ void ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, MessagePointerT &_rmsgptr);
+	/*virtual*/ uint32 ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx);
+	/*virtual*/ void ipcOnComplete(frame::ipc::ConnectionContext const &_rctx, int _err);
 	
 	size_t use();
 	size_t release();
 
 	template <class S>
-	void serialize(S &_s){
+	void serialize(S &_s, frame::ipc::ConnectionContext const &_rctx){
 		_s.pushContainer(ppthlst, "strlst").push(err, "error").push(tout,"timeout");
 		_s.push(requid, "requid").push(strpth, "strpth").push(fromv, "from");
-		_s.push(ipcstatus, "ipcstatus");
-		if(ipcstatus != IpcOnSender || S::IsDeserializer){
-			_s.push(msguid.idx, "msguid.idx").push(msguid.uid,"msguid.uid");
-		}else{//on sender
-			solid::frame::ipc::MessageUid &rmsguid(
-				const_cast<solid::frame::ipc::MessageUid &>(solid::frame::ipc::ConnectionContext::the().msgid)
-			);
-			_s.push(rmsguid.idx, "msguid.idx").push(rmsguid.uid,"msguid.uid");
-		}
 	}
 //data:
 	RemoteList::PathListT				*ppthlst;
@@ -108,7 +97,6 @@ struct RemoteListMessage: Dynamic<RemoteListMessage, DynamicShared<frame::Messag
 	uint32								requid;
 	ObjectUidT							fromv;
 	uint8								success;
-	uint8								ipcstatus;
 };
 
 struct FetchSlaveMessage;
@@ -125,7 +113,7 @@ struct FetchSlaveMessage;
 	# when the last stream chunk was sent it dies.
 */
 
-struct FetchMasterMessage: Dynamic<FetchMasterMessage, solid::frame::Message>{
+struct FetchMasterMessage: Dynamic<FetchMasterMessage, solid::frame::ipc::Message>{
 	enum{
 		NotReceived,
 		Received,
@@ -136,27 +124,24 @@ struct FetchMasterMessage: Dynamic<FetchMasterMessage, solid::frame::Message>{
 	FetchMasterMessage():pmsg(NULL), fromv(0xffffffff, 0xffffffff), state(NotReceived), streamsz(0), filesz(0), filepos(0), requid(0){
 	}
 	~FetchMasterMessage();
-	/*virtual*/ uint32 ipcPrepare();
-	/*virtual*/ void ipcReceive(
-		solid::frame::ipc::MessageUid &_rmsguid
-	);
-	/*virtual*/ void ipcComplete(int _err);
+	/*virtual*/ void ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, MessagePointerT &_rmsgptr);
+	/*virtual*/ void ipcOnComplete(frame::ipc::ConnectionContext const &_rctx, int _err);
 	
 	int execute(
-		DynamicPointer<Message> &_rthis_ptr,
+		DynamicPointer<frame::Message> &_rthis_ptr,
 		uint32 _evs,
 		solid::frame::MessageSteward&,
 		const MessageUidT &, solid::TimeSpec &_rts
 	);
 
 	int receiveMessage(
-		DynamicPointer<Message> &_rsig,
+		DynamicPointer<frame::Message> &_rsig,
 		const ObjectUidT& _from = ObjectUidT(),
 		const solid::frame::ipc::ConnectionUid *_conid = NULL
 	);
 	
 	template <class S>
-	void serialize(S &_s){
+	void serialize(S &_s, solid::frame::ipc::ConnectionContext const &_rctx){
 		_s.push(fname, "filename");
 		_s.push(tmpfuid.first, "tmpfileuid_first").push(tmpfuid.second, "tmpfileuid_second");
 		_s.push(fromv.first, "fromobjectid").push(fromv.second, "fromobjectuid").push(requid, "requestuid").push(streamsz, "streamsize");
@@ -185,24 +170,21 @@ struct FetchMasterMessage: Dynamic<FetchMasterMessage, solid::frame::Message>{
 	to request new file chunks, and from FetchMasterMessage to the alpha connection
 	as reponse containing the requested file chunk.
 */
-struct FetchSlaveMessage: Dynamic<FetchSlaveMessage, solid::frame::Message>{
+struct FetchSlaveMessage: Dynamic<FetchSlaveMessage, solid::frame::ipc::Message>{
 	FetchSlaveMessage();
 	~FetchSlaveMessage();
-	void ipcReceive(
-		solid::frame::ipc::MessageUid &_rmsguid
-	);
 	int sent(const solid::frame::ipc::ConnectionUid &);
 	//int execute(concept::Connection &);
 	int execute(
-		DynamicPointer<Message> &_rthis_ptr,
+		DynamicPointer<frame::Message> &_rthis_ptr,
 		uint32 _evs,
 		solid::frame::MessageSteward&,
 		const MessageUidT &, solid::TimeSpec &_rts
 	);
-	uint32 ipcPrepare();
+	/*virtual*/ void ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, MessagePointerT &_rmsgptr);
 	
 	template <class S>
-	void serialize(S &_s){
+	void serialize(S &_s, solid::frame::ipc::ConnectionContext const &_rctx){
 		_s.template pushReinit<FetchSlaveMessage, 0>(this, 0, "reinit");
 		_s.push(tov.first, "toobjectid").push(tov.second, "toobjectuid");
 		//_s.push(fromv.first, "fromobjectid").push(fromv.second, "fromobjectuid");
@@ -213,7 +195,7 @@ struct FetchSlaveMessage: Dynamic<FetchSlaveMessage, solid::frame::Message>{
 	}
 	
 	template <class S, uint32 I>
-	int serializationReinit(S &_rs, const uint64 &_rv){
+	int serializationReinit(S &_rs, const uint32 &_rv, solid::frame::ipc::ConnectionContext const &_rctx){
 		if(_rv == 1){
 			clearOutputStream();
 			return OK;
@@ -255,7 +237,7 @@ struct FetchSlaveMessage: Dynamic<FetchSlaveMessage, solid::frame::Message>{
 /*
 	The signal sent to peer with the text
 */
-struct SendStringMessage: Dynamic<SendStringMessage, solid::frame::Message>{
+struct SendStringMessage: Dynamic<SendStringMessage, solid::frame::ipc::Message>{
 	SendStringMessage(){}
 	SendStringMessage(
 		const String &_str,
@@ -265,11 +247,9 @@ struct SendStringMessage: Dynamic<SendStringMessage, solid::frame::Message>{
 		uint32 _fromobjuid
 	):str(_str), tov(_toobjid, _toobjuid), fromv(_fromobjid, _fromobjuid){}
 	
-	void ipcReceive(
-		solid::frame::ipc::MessageUid &_rmsguid
-	);
+	/*virtual*/ void ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, MessagePointerT &_rmsgptr);
 	template <class S>
-	void serialize(S &_s){
+	void serialize(S &_s, solid::frame::ipc::ConnectionContext const &_rctx){
 		_s.push(str, "string").push(tov.first, "toobjectid").push(tov.second, "toobjectuid");
 		_s.push(fromv.first, "fromobjectid").push(fromv.second, "fromobjectuid");
 	}
@@ -287,7 +267,7 @@ private:
 /*
 	The signal sent to peer with the stream.
 */
-struct SendStreamMessage: Dynamic<SendStreamMessage, solid::frame::Message>{
+struct SendStreamMessage: Dynamic<SendStreamMessage, solid::frame::ipc::Message>{
 	SendStreamMessage(){}
 	SendStreamMessage(
 		StreamPointer<InputOutputStream> &_iosp,
@@ -302,17 +282,15 @@ struct SendStreamMessage: Dynamic<SendStreamMessage, solid::frame::Message>{
 	}
 	std::pair<uint32, uint32> to()const{return tov;}
 	std::pair<uint32, uint32> from()const{return fromv;}
-	void ipcReceive(
-		solid::frame::ipc::MessageUid &_rmsguid
-	);
-
+	/*virtual*/ void ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, MessagePointerT &_rmsgptr);
+	
 	int createDeserializationStream(OutputStream *&_rpos, int64 &_rsz, uint64 &_roff, int _id);
 	void destroyDeserializationStream(OutputStream *&_rpos, int64 &_rsz, uint64 &_roff, int _id);
 	int createSerializationStream(InputStream *&_rpis, int64 &_rsz, uint64 &_roff, int _id);
 	void destroySerializationStream(InputStream *&_rpis, int64 &_rsz, uint64 &_roff, int _id);
 	
 	template <class S>
-	void serialize(S &_s){
+	void serialize(S &_s, solid::frame::ipc::ConnectionContext const &_rctx){
 		_s.push(dststr, "dststr");
 		_s.push(tov.first, "toobjectid").push(tov.second, "toobjectuid");
 		_s.push(fromv.first, "fromobjectid").push(fromv.second, "fromobjectuid");

@@ -37,8 +37,8 @@ struct StoreRequest: solid::Dynamic<StoreRequest, solid::consensus::WriteRequest
 	/*virtual*/ void notifySenderObjectWithFail();
 	
 	template <class S>
-	S& operator&(S &_s){
-		static_cast<solid::consensus::WriteRequestMessage*>(this)->operator&<S>(_s);
+	S& serialize(S &_s, solid::frame::ipc::ConnectionContext const &_rctx){
+		static_cast<solid::consensus::WriteRequestMessage*>(this)->serialize<S>(_s, _rctx);
 		_s.push(v,"value");
 		return _s;
 	}
@@ -54,8 +54,8 @@ struct FetchRequest: solid::Dynamic<FetchRequest, solid::consensus::WriteRequest
 	/*virtual*/ void notifySenderObjectWithFail();
 	
 	template <class S>
-	S& operator&(S &_s){
-		return static_cast<solid::consensus::WriteRequestMessage*>(this)->operator&<S>(_s);
+	S& serialize(S &_s, solid::frame::ipc::ConnectionContext const &_rctx){
+		return static_cast<solid::consensus::WriteRequestMessage*>(this)->serialize<S>(_s, _rctx);
 	}
 };
 
@@ -68,8 +68,8 @@ struct EraseRequest: solid::Dynamic<EraseRequest, solid::consensus::WriteRequest
 	/*virtual*/ void notifySenderObjectWithFail();
 	
 	template <class S>
-	S& operator&(S &_s){
-		return static_cast<solid::consensus::WriteRequestMessage*>(this)->operator&<S>(_s);
+	S& serialize(S &_s, solid::frame::ipc::ConnectionContext const &_rctx){
+		return static_cast<solid::consensus::WriteRequestMessage*>(this)->serialize<S>(_s, _rctx);
 	}
 };
 

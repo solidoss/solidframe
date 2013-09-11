@@ -20,6 +20,7 @@ namespace solid{
 namespace frame{
 namespace ipc{
 class Service;
+struct Message;
 }//namespace ipc
 }//namespace frame
 
@@ -88,7 +89,7 @@ protected:
 	uint32 proposeId()const;
 	void enterRunState();
 	bool isRecoveryState()const;
-	virtual void doSendMessage(DynamicPointer<frame::Message> &_rmsgptr, const SocketAddressInet4 &_raddr) = 0;
+	virtual void doSendMessage(DynamicPointer<frame::ipc::Message> &_rmsgptr, const SocketAddressInet4 &_raddr) = 0;
 private:
 	void state(int _st);
 	int state()const;

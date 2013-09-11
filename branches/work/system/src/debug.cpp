@@ -464,7 +464,7 @@ void Debug::Data::doRespin(){
 		Directory::eraseFile(fname.c_str());
 	}else{
 		uint32 lastpos = respincnt;
-		while(lastpos > 1){
+		while(lastpos >= 1){
 			filePath(fname, lastpos, path, name);
 			if(FileDevice::size(fname.c_str()) >= 0){
 				break;
@@ -473,20 +473,22 @@ void Debug::Data::doRespin(){
 		}
 		string frompath;
 		string topath;
-		
+        
 		if(lastpos == respincnt){
-			filePath(topath, 1, path, name);
-			for(uint32 i = 2; i <= respincnt; ++i){
-				filePath(frompath, i, path, name);
-				Directory::renameFile(topath.c_str(), frompath.c_str());
-				topath = frompath;
-			}
+			filePath(topath, respincnt, path, name);
+			--lastpos;
 		}else{
-			++lastpos;
+			filePath(topath, lastpos + 1, path, name);
+		}
+		
+		while(lastpos){
+			filePath(frompath, lastpos, path, name);
+			Directory::renameFile(topath.c_str(), frompath.c_str());
+			topath = frompath;
+			--lastpos;
 		}
 		
 		filePath(frompath, 0, path, name);
-		filePath(topath, lastpos, path, name);
 		Directory::renameFile(topath.c_str(), frompath.c_str());
 		fname = frompath;
 	}

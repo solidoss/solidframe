@@ -18,14 +18,11 @@ namespace solid{
 namespace consensus{
 namespace server{
 
-Message::Message():state(OnSender){}
+Message::Message(){}
 Message::~Message(){
 	
 }
-void Message::ipcReceive(
-	frame::ipc::MessageUid &_rmsguid
-){
-	DynamicPointer<frame::Message>	msgptr(this);
+/*virtual*/ void Message::ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, MessagePointerT &_rmsgptr){
 	char							host[SocketInfo::HostStringCapacity];
 	char							port[SocketInfo::ServiceStringCapacity];
 	
@@ -39,35 +36,27 @@ void Message::ipcReceive(
 		SocketInfo::ServiceStringCapacity,
 		SocketInfo::NumericService | SocketInfo::NumericHost
 	);
+	DynamicPointer<frame::Message>	msgptr(_rmsgptr);
 	
-	if(state == OnSender){
-		state = OnPeer;
-		idbg((void*)this<<" on peer: baseport = "<<frame::ipc::ConnectionContext::the().baseport<<" host = "<<host<<":"<<port);
-	}else if(state == OnPeer){
-		state == BackOnSender;
-		idbg((void*)this<<" back on sender: baseport = "<<frame::ipc::ConnectionContext::the().baseport<<" host = "<<host<<":"<<port);
-	}else{
-		cassert(false);
-	}
 	frame::Manager::specific().notify(msgptr, Registrar::the().objectUid(srvidx));
 }
-uint32 Message::ipcPrepare(){
+/*virtual*/ uint32 Message::ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx){
 	uint32 rv(0);
 	rv |= frame::ipc::SynchronousSendFlag;
 	rv |= frame::ipc::SameConnectorFlag;
 	return rv;
 }
-void Message::ipcComplete(int _err){
+void Message::ipcOnComplete(frame::ipc::ConnectionContext const &_rctx, int _err){
 	idbg((void*)this<<" err = "<<_err);
 }
 
 size_t Message::use(){
-	size_t rv = DynamicShared<frame::Message>::use();
+	size_t rv = DynamicShared<frame::ipc::Message>::use();
 	idbg((void*)this<<" usecount = "<<usecount);
 	return rv;
 }
 size_t Message::release(){
-	size_t rv = DynamicShared<frame::Message>::release();
+	size_t rv = DynamicShared<frame::ipc::Message>::release();
 	idbg((void*)this<<" usecount = "<<usecount);
 	return rv;
 }

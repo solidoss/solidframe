@@ -41,6 +41,20 @@
 
 #define StrDef(x) (void*)x, sizeof(x) - 1
 
+typedef std::pair<uint32, uint32>			Uint32PairT;
+typedef std::pair<std::string, int64>		StringInt64PairT;
+
+namespace solid{namespace serialization{namespace binary{
+template <class S, class Ctx>
+void serialize(S &_s, Uint32PairT &_t, Ctx &_ctx){
+	_s.push(_t.first, "first").push(_t.second, "second");
+}
+template <class S, class Ctx>
+void serialize(S &_s, StringInt64PairT &_t, Ctx &_ctx){
+	_s.push(_t.first, "first").push(_t.second, "second");
+}
+}}}
+
 using namespace solid;
 
 namespace concept{
@@ -298,7 +312,7 @@ int RemoteList::execute(Connection &_rc){
 		ResolveData rd = synchronous_resolve(straddr.c_str(), port.c_str(), 0, SocketInfo::Inet4, SocketInfo::Stream);
 		if(!rd.empty()){
 			state = Wait;
-			DynamicPointer<frame::Message> msgptr(sig_sp);
+			DynamicPointer<frame::ipc::Message> msgptr(sig_sp);
 			Manager::the().ipc().sendMessage(msgptr, rd.begin(), it->netid/*, frame::ipc::Service::SameConnectorFlag*/);
 			_rc.writer().push(&Writer::reinit<RemoteList>, protocol::text::Parameter(this));
 		}else{
@@ -454,7 +468,7 @@ void Fetch::doSendMaster(const FileUidT &_fuid){
 		pmsg->tmpfuid = _fuid;
 		pmsg->streamsz = streamsz_in;
 		state = WaitRemoteStream;
-		DynamicPointer<frame::Message> msgptr(pmsg);
+		DynamicPointer<frame::ipc::Message> msgptr(pmsg);
 		Manager::the().ipc().sendMessage(msgptr, rd.begin());
 	}else{
 		*pp = protocol::text::Parameter(StrDef(" NO FETCH: no such peer address@"));
@@ -471,7 +485,7 @@ void Fetch::doSendSlave(const FileUidT &_fuid){
 	pmsg->msguid = mastermsguid;
 	pmsg->fuid = _fuid;
 	pmsg->streamsz = streamsz_in;
-	DynamicPointer<frame::Message> msgptr(pmsg);
+	DynamicPointer<frame::ipc::Message> msgptr(pmsg);
 	Manager::the().ipc().sendMessage(msgptr, ipcconuid);
 //	idbg("rv = "<<rv);
 // 	if(rv == BAD){
@@ -767,7 +781,7 @@ int SendString::execute(alpha::Connection &_rc){
 	protocol::text::Parameter &rp = _rc.writer().push(&Writer::putStatus);
 	if(!rd.empty()){
 		rp = protocol::text::Parameter(StrDef(" OK Done SENDSTRING@"));
-		DynamicPointer<frame::Message> msgptr(new SendStringMessage(str, objid, objuid, fromobjid, fromobjuid));
+		DynamicPointer<frame::ipc::Message> msgptr(new SendStringMessage(str, objid, objuid, fromobjid, fromobjuid));
 		rm.ipc().sendMessage(msgptr, rd.begin());
 	}else{
 		rp = protocol::text::Parameter(StrDef(" NO SENDSTRING no such address@"));
@@ -816,7 +830,7 @@ int SendStream::execute(Connection &_rc){
 			idbg("addr"<<addr<<"str = "<<srcstr<<" port = "<<port<<" objid = "<<" objuid = "<<objuid);
 			if(!rd.empty()){
 				rp = protocol::text::Parameter(StrDef(" OK Done SENDSTRING@"));
-				DynamicPointer<frame::Message> msgptr(new SendStreamMessage(sp, dststr, myprocid, objid, objuid, fromobjid, fromobjuid));
+				DynamicPointer<frame::ipc::Message> msgptr(new SendStreamMessage(sp, dststr, myprocid, objid, objuid, fromobjid, fromobjuid));
 				rm.ipc().sendMessage(msgptr, rd.begin());
 			}else{
 				rp = protocol::text::Parameter(StrDef(" NO SENDSTRING no such address@"));
@@ -939,19 +953,15 @@ int Idle::receiveString(
 //---------------------------------------------------------------
 // Command Base
 //---------------------------------------------------------------
+
 Command::Command(){}
 void Command::initStatic(Manager &_rm){
 	MessageTypeIds ids;
-	Manager::the().ipc().typeMapper().insert<SendStringMessage>();
-	Manager::the().ipc().typeMapper().insert<SendStreamMessage>();
-	ids.fetchmastercommand =  Manager::the().ipc().typeMapper().insert<FetchMasterMessage>();
-	ids.fetchslavecommand = Manager::the().ipc().typeMapper().insert<FetchSlaveMessage>();
-	ids.remotelistcommand = Manager::the().ipc().typeMapper().insert<RemoteListMessage>();
-	ids.remotelistresponse = Manager::the().ipc().typeMapper().insert<RemoteListMessage, NumberType<1> >();
-	idbg("ids.fetchmastercommand = "<<ids.fetchmastercommand);
-	idbg("ids.fetchslavecommand = "<<ids.fetchslavecommand);
-	idbg("ids.remotelistcommand = "<<ids.remotelistcommand);
-	idbg("ids.remotelistresponse = "<<ids.remotelistresponse);
+	Manager::the().ipc().registerMessageType<SendStringMessage>();
+	Manager::the().ipc().registerMessageType<SendStreamMessage>();
+	Manager::the().ipc().registerMessageType<FetchMasterMessage>();
+	Manager::the().ipc().registerMessageType<FetchSlaveMessage>();
+	Manager::the().ipc().registerMessageType<RemoteListMessage>();
 	MessageTypeIds::the(&ids);
 }
 /*virtual*/ Command::~Command(){}
