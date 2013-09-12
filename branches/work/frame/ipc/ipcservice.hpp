@@ -335,13 +335,13 @@ public:
 	);
 	
 	template <class T>
-	void registerMessageType(){
-		typeMapper().insertHandle<T, Handle>();
+	uint32 registerMessageType(uint32 _idx = 0){
+		return typeMapper().insertHandle<T, Handle>(_idx);
 	}
 	
 	template <class T, class H>
-	void registerMessageType(){
-		typeMapper().insertHandle<T, ProxyHandle<Handle> >();
+	uint32 registerMessageType(uint32 _idx = 0){
+		return typeMapper().insertHandle<T, ProxyHandle<Handle> >(_idx);
 	}
 	
 	//! Destructor

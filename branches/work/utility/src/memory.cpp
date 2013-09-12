@@ -16,11 +16,9 @@
 namespace solid{
 
 void EmptyChecker::add(){
-	Locker<Mutex> lock(Thread::gmutex());
 	++v;
 }
 void EmptyChecker::sub(){
-	Locker<Mutex> lock(Thread::gmutex());
 	--v;
 }
 

@@ -65,8 +65,6 @@ void Logger::doOutFlush(const char *_pb, unsigned _bl){
 	dm.insert<StreamErrorMessage, Connection>();
 	dm.insert<RemoteListMessage, Connection>();
 	dm.insert<FetchSlaveMessage, Connection>();
-	dm.insert<SendStringMessage, Connection>();
-	dm.insert<SendStreamMessage, Connection>();
 }
 
 #ifdef UDEBUG

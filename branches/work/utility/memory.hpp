@@ -11,6 +11,7 @@
 #define UTILITY_MEMORY_HPP
 
 #include "system/common.hpp"
+#include "system/atomic.hpp"
 
 namespace solid{
 
@@ -20,8 +21,9 @@ struct EmptyChecker{
 	void add();
 	void sub();
 private:
-	unsigned long v;
-	const char * fncname;
+	typedef ATOMIC_NS::atomic<size_t>			AtomicSizeT;
+	AtomicSizeT	v;
+	const char 	*fncname;
 };
 
 #ifdef UDEBUG

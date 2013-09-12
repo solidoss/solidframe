@@ -87,8 +87,6 @@ struct Cmd{
 	{"noop",Cmd::NoopCmd},
 	{"fetch",Cmd::FetchCmd},
 	{"store",Cmd::StoreCmd},
-	{"sendstream",Cmd::SendStreamCmd},
-	{"sendstring",Cmd::SendStringCmd},
 	{"idle",Cmd::IdleCmd},
 	{NULL,Cmd::CmdCount},
 };
@@ -120,10 +118,6 @@ Command* Connection::create(const String& _name, Reader &){
 			return pcmd = new Fetch(*this);
 		case Cmd::StoreCmd:
 			return pcmd = new Store(*this);
-		case Cmd::SendStreamCmd:
-			return pcmd = new SendStream;
-		case Cmd::SendStringCmd:
-			return pcmd = new SendString;
 		case Cmd::IdleCmd:
 			return pcmd = new Idle(*this);
 		default:return NULL;
@@ -753,92 +747,6 @@ int Store::receiveError(
 int Store::reinitWriter(Writer &_rw, protocol::text::Parameter &_rp){
 	return Writer::Bad;
 }
-
-//---------------------------------------------------------------
-// SendString command
-//---------------------------------------------------------------
-SendString::SendString():port(0), objid(0), objuid(0){}
-SendString::~SendString(){
-}
-void SendString::initReader(Reader &_rr){
-	_rr.push(&Reader::fetchAString, protocol::text::Parameter(&str));
-	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
-	_rr.push(&Reader::fetchUInt32, protocol::text::Parameter(&objuid));
-	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
-	_rr.push(&Reader::fetchUInt32, protocol::text::Parameter(&objid));
-	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
-	_rr.push(&Reader::fetchUInt32, protocol::text::Parameter(&port));
-	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
-	_rr.push(&Reader::fetchAString, protocol::text::Parameter(&addr));
-	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
-}
-int SendString::execute(alpha::Connection &_rc){
-	Manager &rm(Manager::the());
-	ulong	fromobjid(_rc.id());//the id of the current connection
-	uint32	fromobjuid(rm.id(_rc).second);//the uid of the current connection
-	ResolveData rd = synchronous_resolve(addr.c_str(), port, 0, SocketInfo::Inet4, SocketInfo::Stream);
-	idbg("addr"<<addr<<"str = "<<str<<" port = "<<port<<" objid = "<<" objuid = "<<objuid);
-	protocol::text::Parameter &rp = _rc.writer().push(&Writer::putStatus);
-	if(!rd.empty()){
-		rp = protocol::text::Parameter(StrDef(" OK Done SENDSTRING@"));
-		DynamicPointer<frame::ipc::Message> msgptr(new SendStringMessage(str, objid, objuid, fromobjid, fromobjuid));
-		rm.ipc().sendMessage(msgptr, rd.begin());
-	}else{
-		rp = protocol::text::Parameter(StrDef(" NO SENDSTRING no such address@"));
-	}
-	return NOK;
-}
-//---------------------------------------------------------------
-// SendStream command
-//---------------------------------------------------------------
-SendStream::SendStream():port(0), objid(0), objuid(0){}
-SendStream::~SendStream(){
-}
-void SendStream::initReader(Reader &_rr){
-	_rr.push(&Reader::fetchAString, protocol::text::Parameter(&dststr));
-	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
-	_rr.push(&Reader::fetchAString, protocol::text::Parameter(&srcstr));
-	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
-	_rr.push(&Reader::fetchUInt32, protocol::text::Parameter(&objuid));
-	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
-	_rr.push(&Reader::fetchUInt32, protocol::text::Parameter(&objid));
-	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
-	_rr.push(&Reader::fetchUInt32, protocol::text::Parameter(&port));
-	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
-	_rr.push(&Reader::fetchAString, protocol::text::Parameter(&addr));
-	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
-}
-int SendStream::execute(Connection &_rc){
-	idbg("send file ["<<srcstr<<"] to: "<<dststr<<" ("<<addr<<' '<<port<<' '<<objid<<' '<<objuid<<')');
-	Manager &rm(Manager::the());
-	uint32	myprocid(0);
-	uint32	fromobjid(_rc.id());
-	uint32	fromobjuid(rm.id(_rc).second);
-	frame::RequestUid reqid(_rc.id(), rm.id(_rc).second, _rc.requestId()); 
-	StreamPointer<InputOutputStream>	sp;
-	int rv = Manager::the().fileManager().stream(sp, reqid, srcstr.c_str());
-	protocol::text::Parameter &rp = _rc.writer().push(&Writer::putStatus);
-	switch(rv){
-		case BAD:
-			rp = protocol::text::Parameter(StrDef(" NO SENDSTRING: unable to open file@"));
-			break;
-		case NOK:
-			rp = protocol::text::Parameter(StrDef(" NO SENDSTRING: stream wait not implemented yet@"));
-			break;
-		case OK:{
-			ResolveData rd = synchronous_resolve(addr.c_str(), port, 0, SocketInfo::Inet4, SocketInfo::Stream);
-			idbg("addr"<<addr<<"str = "<<srcstr<<" port = "<<port<<" objid = "<<" objuid = "<<objuid);
-			if(!rd.empty()){
-				rp = protocol::text::Parameter(StrDef(" OK Done SENDSTRING@"));
-				DynamicPointer<frame::ipc::Message> msgptr(new SendStreamMessage(sp, dststr, myprocid, objid, objuid, fromobjid, fromobjuid));
-				rm.ipc().sendMessage(msgptr, rd.begin());
-			}else{
-				rp = protocol::text::Parameter(StrDef(" NO SENDSTRING no such address@"));
-			}
-		}break;
-	}
-	return NOK;
-}
 //---------------------------------------------------------------
 // Idle command
 //---------------------------------------------------------------
@@ -957,8 +865,6 @@ int Idle::receiveString(
 Command::Command(){}
 void Command::initStatic(Manager &_rm){
 	MessageTypeIds ids;
-	Manager::the().ipc().registerMessageType<SendStringMessage>();
-	Manager::the().ipc().registerMessageType<SendStreamMessage>();
 	Manager::the().ipc().registerMessageType<FetchMasterMessage>();
 	Manager::the().ipc().registerMessageType<FetchSlaveMessage>();
 	Manager::the().ipc().registerMessageType<RemoteListMessage>();

@@ -283,58 +283,6 @@ private:
 	solid::protocol::text::Parameter	*pp;
 };
 
-
-//! Send a string to a remote alpha connection to other concept server
-/*!
-	The peer connection must be in idle!<br>
-	Syntax:<br>
-	tag SP SENDSTRING SP astring = peer_address SP number = peer_ipc_base_port SP
-	number = peer_object_id SP number = peer_object_uid SP astring = data_to_send<br>
-	
-	Example:<br>
-	aa sendstring homehost 1222 1111 2222 "some nice string"
-*/
-class SendString: public Command{
-public:
-	SendString();
-	~SendString();
-	void initReader(Reader &);
-	int execute(Connection &);
-private:
-	String				str;
-	String 				addr;
-	uint32				port;
-	ulong				objid;
-	uint32				objuid;
-};
-
-//! Send a stream to a remote alpha connection to other concept server
-/*!
-	The peer connection must be in idle!<br>
-	Syntax:<br>
-	tag SP SENDSTREAM SP astring = peer_address SP number = peer_ipc_base_port SP
-	number = peer_object_id SP number = peer_object_uid SP astring = src_local_path SP
-	astring = dest_path<br>
-	
-	Example:<br>
-	aa sendsteam homehost 1222 1111 2222 "/data/movie.avi" "/tmp/movie.avi"
-*/
-
-class SendStream: public Command{
-public:
-	SendStream();
-	~SendStream();
-	void initReader(Reader &);
-	int execute(Connection &);
-private:
-	String				srcstr;
-	String				dststr;
-	String 				addr;
-	uint32				port;
-	ulong				objid;
-	uint32				objuid;
-};
-
 //! Wait for internal server events
 /*!
 	Use in combination with sendstream and sendstring.<br>
