@@ -1,4 +1,4 @@
-add_executable (example_binaryclient binaryclient.cpp)
+add_executable (example_binaryclient EXCLUDE_FROM_ALL binaryclient.cpp)
 
 
 target_link_libraries (example_binaryclient

@@ -102,12 +102,20 @@ void NatP2PServer::connectCommand(istringstream &_iss){
 	udp::endpoint endpoint;
 	endpoint.address(boost::asio::ip::address::from_string(addr.c_str()));
 	endpoint.port(port);
-	
-	ostringstream oss;
-	
-	oss<<'C'<<' '<<sender_endpoint.address()<<' '<<sender_endpoint.port()<<endl;
-	
-	send(endpoint, oss);
+	{
+		ostringstream oss;
+		
+		oss<<'C'<<' '<<sender_endpoint.address()<<' '<<sender_endpoint.port()<<endl;
+		
+		send(endpoint, oss);
+	}
+	if(0){
+		ostringstream oss;
+		
+		oss<<'C'<<' '<<endpoint.address()<<' '<<endpoint.port()<<endl;
+		
+		send(sender_endpoint, oss);
+	}
 }
 
 void NatP2PServer::send(udp::endpoint &_endpoint, ostringstream &_ros){

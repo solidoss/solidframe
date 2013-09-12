@@ -121,8 +121,8 @@ private:
 	void doUnprepare();
 	void doClearRequests();
 	
-	uint doOnTimeoutRecv(const TimeSpec &_timepos);
-	uint doOnTimeoutSend(const TimeSpec &_timepos);
+	size_t doOnTimeoutRecv(const TimeSpec &_timepos);
+	size_t doOnTimeoutSend(const TimeSpec &_timepos);
 	
 	void doPopTimeoutRecv(const size_t _pos);
 	void doPopTimeoutSend(const size_t _pos);

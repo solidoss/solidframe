@@ -107,6 +107,8 @@ void NatP2PClient::run(){
 					boost::asio::buffer(data, max_length),
 					sender_endpoint
 				);
+				cout<<"Received "<<length<<" bytes from ["<<sender_endpoint<<"] [";
+				cout.write(data, length)<<']'<<endl;
 				parseRequest(data, length);
 			}break;
 			case Connect:
@@ -119,6 +121,8 @@ void NatP2PClient::run(){
 					boost::asio::buffer(data, max_length),
 					sender_endpoint
 				);
+				cout<<"Received "<<length<<" bytes from ["<<sender_endpoint<<"] [";
+				cout.write(data, length)<<']'<<endl;
 				parseRequest(data, length);
 			}break;
 			case ConnectAcceptWait:{
@@ -127,6 +131,8 @@ void NatP2PClient::run(){
 					boost::asio::buffer(data, max_length),
 					sender_endpoint
 				);
+				cout<<"Received "<<length<<" bytes from ["<<sender_endpoint<<"] [";
+				cout.write(data, length)<<']'<<endl;
 				parseRequest(data, length);
 			}break;
 			case RunStart:
@@ -152,6 +158,7 @@ void NatP2PClient::runSend(){
 	while(true){
 		cin>>s;
 		sock.send_to(boost::asio::buffer(s.data(), s.size()), connect_endpoint);
+		cout<<"send data to "<<connect_endpoint<<": ["<<s<<']'<<endl;
 	}
 }
 void NatP2PClient::sendInit(){
@@ -163,8 +170,8 @@ void NatP2PClient::sendInit(){
 }
 void NatP2PClient::sendConnect(){
 	static const boost::asio::ip::address	noaddr;
+	state = ConnectWait;
 	if(connect_endpoint.address() == noaddr){
-		state = ConnectWait;
 		return;
 	}
 	{	
@@ -177,7 +184,6 @@ void NatP2PClient::sendConnect(){
 		oss<<'c'<<' '<<exit_endpoint.address()<<' '<<exit_endpoint.port()<<endl;
 		send(connect_endpoint, oss);
 	}
-	state = ConnectAcceptWait;
 }
 void NatP2PClient::sendAccept(){
 	ostringstream oss;
@@ -245,6 +251,7 @@ void NatP2PClient::connectCommand(istringstream &_iss){
 	endpoint.port(port);
 	connect_endpoint = endpoint;
 	
+	sendConnect();
 	sendAccept();
 }
 void NatP2PClient::acceptCommand(istringstream &_iss){
@@ -254,7 +261,7 @@ void NatP2PClient::acceptCommand(istringstream &_iss){
 }
 void NatP2PClient::send(udp::endpoint &_endpoint, ostringstream &_ros){
 	string str = _ros.str();
-	cout<<"send data ["<<str<<']'<<endl;
+	cout<<"send data to "<<_endpoint<<": ["<<str<<']'<<endl;
 	sock.send_to(boost::asio::buffer(str.c_str(), str.size()), _endpoint);
 }
 

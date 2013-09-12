@@ -86,7 +86,7 @@ public:
 	/*!
 		Call this on successful completion of socketRecv
 	*/
-	const SocketAddress &socketRecvAddr(uint _pos) const;
+	const SocketAddress &socketRecvAddr(const size_t _pos) const;
 	
 	
 	//! The ammount of data sent on socket on position _pos
@@ -151,7 +151,7 @@ public:
 	bool socketIsSecure(const size_t _pos)const;
 	
 	//! Gets the secure socket associated to socket on position _pos
-	SecureSocket* socketSecureSocket(uint _pos);
+	SecureSocket* socketSecureSocket(const size_t _pos);
 	//! Sets the secure socket associated to socket on position _pos
 	void socketSecureSocket(const size_t _pos, SecureSocket *_pss);
 	//! Asynchronous secure accept

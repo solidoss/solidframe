@@ -56,7 +56,7 @@ struct FirstMessage: Dynamic<FirstMessage, DynamicShared<frame::ipc::Message> >{
 	}
 	
 	/*virtual*/ void ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, MessagePointerT &_rmsgptr);
-	/*virtual*/ void ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx);
+	/*virtual*/ uint32 ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx);
 	/*virtual*/ void ipcOnComplete(frame::ipc::ConnectionContext const &_rctx, int _err);
 	
 	template <class S>
@@ -208,7 +208,8 @@ FirstMessage::~FirstMessage(){
 	++state;
 	idbg("EXECUTE ---------------- "<<state);
 }
-/*virtual*/ void FirstMessage::ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx){
+/*virtual*/ uint32 FirstMessage::ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx){
+	return 0;
 }
 /*virtual*/ void FirstMessage::ipcOnComplete(frame::ipc::ConnectionContext const &_rctx, int _err){
 	if(!_err){

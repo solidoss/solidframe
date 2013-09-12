@@ -10,11 +10,9 @@
 
 using namespace solid;
 
-typedef std::pair<uint32, uint32>	Uint32PairT;
-
 namespace solid{namespace serialization{namespace binary{
 template <class S, class Ctx>
-void serialize(S &_s, Uint32PairT &_t, Ctx &_ctx){
+void serialize(S &_s, frame::ObjectUidT &_t, Ctx &_ctx){
 	_s.push(_t.first, "first").push(_t.second, "second");
 }
 }}}
