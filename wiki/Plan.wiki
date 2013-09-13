@@ -13,23 +13,20 @@ Features for 1.0 version
  # (40) PENDING: make install
 
 Pool of pending features and changes
- # (10) (IPC) add nocompression signal flag. The ipc module will try to send most of signal's buffers without compression. This is for signals containing already compressed data.
- # (10) (IPC) add support for adaptable compression. A signal is started with with compression. If certain continuous buffers have a compression ration below a certain threshold the compression is switched off for the signal. 
+ # (10) (IPC) add nocompression message flag. The ipc module will try to send most of message's buffers without compression. This is for signals containing already compressed data.
+ # (10) (IPC) add support for adaptable compression. A message is started with with compression. If certain continuous buffers have a compression ration below a certain threshold the compression is switched off for the signal. 
  # (30) Add support for GnuTLS, test performance against boost, solidframe::openssl.
- # (20) Add a new example binary protocol - using serialization - to example_concept. Adding beta service to example_concept test application.
- # Add support for atomic operations (gcc: __exchange_and_add - see boost::shared_ptr) to ObjectPointer and to system so it can be used in Dynamic::use/release.
- # Add new class foundation::AccessManager: a container which will manage read/write access to its objects.
- # Add support for adaptive use of compression in ipc. For every ipc command we'll keep information about previous buffers compression rate. If the compression rate is very small for a continuous number of buffer we'd better disable compression for following buffers. Also the other way round, if the compression rate is high for a number of buffers we enable the compression.
- # Investigate the use of boost as back-end for foundation and system.
- # Re-factor foundation::file::Manager to be based on foundation::AccessManager.
+  # Add new class AccessManager: a container which will manage read/write access to its objects - a generalization of file::Manager.
+ # Investigate the use of boost as back-end for frame.
+ # Re-factor frame::file::Manager to be based on frame::AccessManager.
  # Add support for Unix domain addresses.
  # Add a new foundation::ipc::local::Service service suitable for communication between applications on the same machine. The current ipc service is fitted for the server side. On the client side, for security reasons we have to prevent other users' applications connect to the application of the current user. More over, we may consider using shared memory or other faster way to communicate between processes on a local machine.
  # (10) Consensus algorithm: add support for read requests which must be completed only by the coordinator.
- # Add support to foundation::Service to start the unique part of Object::uid() from a given value.
+ # Add support to frame::Service to start the unique part of Object::uid() from a given value.
 
 Bugs:
 
- # Foundation concept sample application doesn't stop when virtual machine is suspended then resumed.
+ # Frame concept sample application doesn't stop when virtual machine is suspended then resumed.
 
 
 Done:
