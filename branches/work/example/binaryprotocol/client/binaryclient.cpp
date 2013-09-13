@@ -139,20 +139,27 @@ private:
 bool parseArguments(Params &_par, int argc, char *argv[]);
 
 struct Handle{
-	bool checkStore(void *, ConnectionContext *_pctx)const{
+	void beforeSerialize(BinSerializerT &_rs, void *_pt, ConnectionContext &_rctx){
+		
+	}
+	
+	void beforeSerialize(BinDeserializerT &_rs, void *_pt, ConnectionContext &_rctx){
+		
+	}
+	bool checkStore(void *, ConnectionContext &_rctx)const{
 		return true;
 	}
 	
-	bool checkLoad(FirstResponse *_pm, ConnectionContext* _pctx)const{
+	bool checkLoad(FirstResponse *_pm, ConnectionContext  &_rctx)const{
 		return true;
 	}
-	void handle(FirstResponse *_pm, ConnectionContext *_pctx, const char *_name){
+	void handle(FirstResponse *_pm, ConnectionContext &_rctx, const char *_name){
 		cout<<_name<<endl;
 	}
-	bool checkLoad(SecondResponse *_pm, ConnectionContext* _pctx)const{
+	bool checkLoad(SecondResponse *_pm, ConnectionContext &_rctx)const{
 		return true;
 	}
-	void handle(SecondResponse *_pm, ConnectionContext *_pctx, const char *_name){
+	void handle(SecondResponse *_pm, ConnectionContext &_rctx, const char *_name){
 		cout<<_name<<endl;
 	}
 };
