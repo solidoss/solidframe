@@ -17,6 +17,7 @@
 #include "system/debug.hpp"
 #include "utility/common.hpp"
 #include "utility/stack.hpp"
+#include "utility/dynamicpointer.hpp"
 #include "serialization/typemapperbase.hpp"
 
 namespace solid{
@@ -450,10 +451,12 @@ public:
 	enum {IsSerializer = true, IsDeserializer = false};
 	void clear();
 	bool empty()const {return fstk.empty();}
-protected:
+	
+	static char* storeValue(char *_pd, const uint8  _val);
 	static char* storeValue(char *_pd, const uint16 _val);
 	static char* storeValue(char *_pd, const uint32 _val);
 	static char* storeValue(char *_pd, const uint64 _val);
+protected:
 	
 	SerializerBase(
 		const TypeMapperBase &_rtm
@@ -976,39 +979,43 @@ struct DeserializerPushHelper;
 */
 class DeserializerBase: public Base{
 protected:
+	template <typename T>
+	static void dynamicPointerInit(void *_pptr, void *_pt){
+		DynamicPointer<T>	&dp = *reinterpret_cast<DynamicPointer<T>*>(_pptr);
+		T					*pt = reinterpret_cast<T*>(_pt);
+		dp = pt;
+	}
 	static int loadTypeIdDone(Base& _rd, FncData &_rfd, void */*_pctx*/);
 	static int loadTypeId(Base& _rd, FncData &_rfd, void */*_pctx*/);
 	
-	template <class Des>
-	static int loadTypeIdDone(Base& _rd, FncData &_rfd, void *_pctx){
-		Des			&rd(static_cast<Des&>(_rd));
-		void		*p = _rfd.p;
-		const char	*n = _rfd.n;
-		if(!rd.cpb){
-			return OK;
-		}
-		
-		//typename Des::ContextT	*pctx = reinterpret_cast<typename Des::ContextT*>(rd.estk.top().p());
-		rd.fstk.pop();
-		//rd.estk.pop();
+	template <typename T>
+	static int loadDynamicTypeId(Base& _rd, FncData &_rfd, void */*_pctx*/){
+		DeserializerBase &rd(static_cast<DeserializerBase&>(_rd));
 	
-		if(rd.typeMapper().prepareParsePointer(&rd, rd.tmpstr, p, n, _pctx)){
+		if(!rd.cpb) return OK;
+	
+		rd.typeMapper().prepareParsePointerId(&rd, rd.tmpstr, _rfd.n);
+		_rfd.f = &loadDynamicTypeIdDone<T>;
+		return CONTINUE;
+	}
+	
+	template <typename T>
+	static int loadDynamicTypeIdDone(Base& _rd, FncData &_rfd, void *_pctx){
+		DeserializerBase	&rd(static_cast<DeserializerBase&>(_rd));
+		void				*p = _rfd.p;
+		const char			*n = _rfd.n;
+		
+		if(!rd.cpb) return OK;
+		
+		rd.fstk.pop();
+		
+		if(rd.typeMapper().prepareParsePointer(&rd, rd.tmpstr, p, n, _pctx, &dynamicPointerInit<T>)){
 			return CONTINUE;
 		}else{
 			idbgx(Debug::ser_bin, "error");
 			rd.err = ERR_POINTER_UNKNOWN;
 			return BAD;
 		}
-	}
-	template <class Des>
-	static int loadTypeId(Base& _rd, FncData &_rfd, void */*_pctx*/){
-		Des &rd(static_cast<Des&>(_rd));
-		if(!rd.cpb){
-			return OK;
-		}
-		loadTypeId(_rd, _rfd, NULL);
-		_rfd.f = &loadTypeIdDone<Des>;
-		return CONTINUE;
 	}
 	
 	template <typename T>
@@ -1234,6 +1241,7 @@ public:
 	typedef void ContextT;
 	
 	enum {IsSerializer = false, IsDeserializer = true};
+	static const char* loadValue(const char *_ps, uint8  &_val);
 	static const char* loadValue(const char *_ps, uint16 &_val);
 	static const char* loadValue(const char *_ps, uint32 &_val);
 	static const char* loadValue(const char *_ps, uint64 &_val);
@@ -1566,7 +1574,6 @@ public:
 		this->Base::fstk.push(Base::FncData(&DeserializerBase::loadHandle<T, DeserializerT, H>, _pt, _name));
 		return *this;
 	}
-
 };
 
 //--------------------------------------------------------------
@@ -1634,6 +1641,12 @@ public:
 	template <typename T>
 	Deserializer& push(T* &_t, const char *_name = NULL){
 		this->Base::fstk.push(Base::FncData(&Deserializer::loadTypeId, &_t, _name));
+		return *this;
+	}
+	
+	template <typename T>
+	Deserializer& push(DynamicPointer<T> &_rdp, const char *_name = NULL){
+		this->Base::fstk.push(Base::FncData(&Deserializer::loadDynamicTypeId<T>, &_rdp, _name));
 		return *this;
 	}
 	

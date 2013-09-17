@@ -100,6 +100,9 @@ int Base::popEStack(Base &_rb, FncData &, void */*_pctx*/){
 	return OK;
 }
 //========================================================================
+/*static*/ char* SerializerBase::storeValue(char *_pd, const uint8  _val){
+	return serialization::binary::store(_pd, _val);
+}
 /*static*/ char* SerializerBase::storeValue(char *_pd, const uint16 _val){
 	return serialization::binary::store(_pd, _val);
 }
@@ -541,6 +544,9 @@ int SerializerBase::storeStream(Base &_rb, FncData &_rfd, void */*_pctx*/){
 //		Deserializer
 //========================================================================
 
+/*static*/ const char* DeserializerBase::loadValue(const char *_ps, uint8  &_val){
+	return serialization::binary::load(_ps, _val);
+}
 /*static*/ const char* DeserializerBase::loadValue(const char *_ps, uint16 &_val){
 	return serialization::binary::load(_ps, _val);
 }

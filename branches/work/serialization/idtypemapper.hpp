@@ -44,12 +44,17 @@ class IdTypeMapper: public TypeMapperBase{
 	}
 	
 	template <class T>
-	static bool doMapDes(void *_p, void *_pd, const char *_name, void */*_pctx*/){
+	static bool doMapDes(void *_p, void *_pd, const char *_name, void */*_pctx*/, FncInitPointerT _pinicbk){
 		Des		&rd	= *reinterpret_cast<Des*>(_pd);
-		T*		&rpt = *reinterpret_cast<T**>(_p);
-		rpt = new T;
-		T		&rp = *rpt;
+		T		*pt = new T;
+		if(_pinicbk){
+			(*_pinicbk)(_p, pt);
+		}else{
+			T*		&rpt = *reinterpret_cast<T**>(_p);
+			rpt = pt;
+		}
 		
+		T		&rp = *pt;
 		rd.push(rp, _name);
 		
 		return true;
@@ -75,16 +80,23 @@ class IdTypeMapper: public TypeMapperBase{
 	
 	
 	template <class T, class H>
-	static bool doMapDesHandle(void *_p, void *_pd, const char *_name, void *_pctx){
+	static bool doMapDesHandle(void *_p, void *_pd, const char *_name, void *_pctx, FncInitPointerT _pinicbk){
 		Des				&rd = *reinterpret_cast<Des*>(_pd);
-		T*				&rpt = *reinterpret_cast<T**>(_p);
+		//T*				&rpt = *reinterpret_cast<T**>(_p);
+		T				*pt = NULL;
 		H				handle;
 		DesContextT		&rctx = *reinterpret_cast<DesContextT*>(_pctx);
 		
-		if(handle.checkLoad(rpt, rctx)){
-			rpt = new T;
-			T		&rp = *rpt;
-			rd.template pushHandlePointer<T, H>(rpt, _name);
+		if(handle.checkLoad(pt, rctx)){
+			pt = new T;
+			if(_pinicbk){
+				(*_pinicbk)(_p, pt);
+			}else{
+				T*		&rpt = *reinterpret_cast<T**>(_p);
+				rpt = pt;
+			}
+			T		&rp = *pt;
+			rd.template pushHandlePointer<T, H>(pt, _name);
 			rd.push(rp, _name);
 			handle.beforeSerialize(rd, &rp, rctx);
 			return true;
@@ -94,29 +106,48 @@ class IdTypeMapper: public TypeMapperBase{
 	}
 	
 	template <class T, class CT>
-	static bool doMapDes(void *_p, void *_pd, const char *_name, void */*_pctx*/){
-		Des &rd = *reinterpret_cast<Des*>(_pd);
-		T*  &rpt = *reinterpret_cast<T**>(_p);
-		rpt = new T(CT());
-		T	&rp = *rpt;
+	static bool doMapDes(void *_p, void *_pd, const char *_name, void */*_pctx*/, FncInitPointerT _pinicbk){
+		Des		&rd	= *reinterpret_cast<Des*>(_pd);
+		T		*pt = new T(CT());
+		if(_pinicbk){
+			(*_pinicbk)(_p, pt);
+		}else{
+			T*		&rpt = *reinterpret_cast<T**>(_p);
+			rpt = pt;
+		}
+		
+		T		&rp = *pt;
 		rd.push(rp, _name);
 		return true;
 	}
 	template <class T>
-	static bool doMapDesSpecific(void *_p, void *_pd, const char *_name, void */*_pctx*/){
-		Des &rd	= *reinterpret_cast<Des*>(_pd);
-		T*	&rpt = *reinterpret_cast<T**>(_p);
-		rpt = Specific::template uncache<T>();
-		T	&rp = *rpt;
+	static bool doMapDesSpecific(void *_p, void *_pd, const char *_name, void */*_pctx*/, FncInitPointerT _pinicbk){
+		Des		&rd	= *reinterpret_cast<Des*>(_pd);
+		T		*pt = Specific::template uncache<T>();
+		if(_pinicbk){
+			(*_pinicbk)(_p, pt);
+		}else{
+			T*		&rpt = *reinterpret_cast<T**>(_p);
+			rpt = pt;
+		}
+		
+		T		&rp = *pt;
 		rd.push(rp, _name);
 		return true;
 	}
 	template <class T, class CT>
-	static bool doMapDesSpecific(void *_p, void *_pd, const char *_name, void */*_pctx*/){
-		Des &rd = *reinterpret_cast<Des*>(_pd);
-		T*  &rpt = *reinterpret_cast<T**>(_p);
-		rpt = Specific::template uncache<T>(CT());
-		T	&rp = *rpt;
+	static bool doMapDesSpecific(void *_p, void *_pd, const char *_name, void */*_pctx*/, FncInitPointerT _pinicbk){
+		Des		&rd	= *reinterpret_cast<Des*>(_pd);
+		T		*pt = Specific::template uncache<T>(CT());
+		
+		if(_pinicbk){
+			(*_pinicbk)(_p, pt);
+		}else{
+			T*		&rpt = *reinterpret_cast<T**>(_p);
+			rpt = pt;
+		}
+		
+		T		&rp = *pt;
 		rd.push(rp, _name);
 		return true;
 	}
@@ -140,6 +171,7 @@ public:
 		Locker<Mtx>		lock(m);
 		return this->insertFunction(&ThisT::template doMapSerHandle<T, H>, &ThisT::template doMapDesHandle<T, H>, idx, typeid(T).name());
 	}
+	
 	template <class T>
 	uint32 insertSpecific(uint32 _idx = 0){
 		typename UnsignedType<Int>::Type idx(_idx);
@@ -186,7 +218,8 @@ private:
 	/*virtual*/ bool prepareParsePointer(
 		void *_pdes, std::string &_rs,
 		void *_p, const char *_name,
-		void *_pctx
+		void *_pctx,
+		FncInitPointerT _pinicbk
 	)const{
 		const Int							&rid(*reinterpret_cast<const Int*>(_rs.data()));
 		typename UnsignedType<Int>::Type	idx(rid);
@@ -196,7 +229,7 @@ private:
 			pf = this->function(idx);
 		}
 		if(pf){
-			(*pf)(_p, _pdes, _name, _pctx);
+			(*pf)(_p, _pdes, _name, _pctx, _pinicbk);
 			return true;
 		}else{
 			return false;

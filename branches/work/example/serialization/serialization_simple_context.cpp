@@ -19,6 +19,8 @@
 #include "serialization/idtypemapper.hpp"
 #include "serialization/binary.hpp"
 #include "system/socketaddress.hpp"
+#include "utility/dynamicpointer.hpp"
+#include "utility/dynamictype.hpp"
 
 using namespace std;
 using namespace solid;
@@ -109,7 +111,7 @@ struct TestD{
 };
 
 
-struct Base{
+struct Base: Dynamic<Base>{
 	virtual ~Base(){}
 	virtual void print() const = 0;
 };
@@ -424,17 +426,17 @@ int main(int argc, char *argv[]){
 		}
 		cout<<"Deserialization: =================================== "<<endl;
 		{
-			Context				ctx("Deserialization", 1111);
-			BinDeserializerT	des(tm);
-			TestA				ta;
-			TestB				tb;// = new TestB;
-			TestC				tc;
-			StrDeqT				sdq;
-			string				s;
-			Base				*b1 = NULL;
-			Base				*b2 = NULL;
-			Base				*b3 = NULL;
-			Base				*b4 = NULL;
+			Context					ctx("Deserialization", 1111);
+			BinDeserializerT		des(tm);
+			TestA					ta;
+			TestB					tb;// = new TestB;
+			TestC					tc;
+			StrDeqT					sdq;
+			string					s;
+			DynamicPointer<Base>	b1;
+			Base					*b2 = NULL;
+			Base					*b3 = NULL;
+			Base					*b4 = NULL;
 			
 			des.push(ta, "testa").push(tb, "testb").push(tc, "testc");
 			idbg("");
@@ -466,7 +468,10 @@ int main(int argc, char *argv[]){
 			tc.print();
 			cout<<"string: "<<s<<endl;
 			print(sdq);
-			if(b1)b1->print();
+			if(b1.get()){
+				cout<<"Dynamic pointer:"<<endl;
+				b1->print();
+			}
 			if(b2)b2->print();
 			b3->print();
 			if(b4)b4->print();

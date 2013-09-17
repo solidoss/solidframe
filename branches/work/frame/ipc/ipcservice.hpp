@@ -99,7 +99,7 @@ struct Controller: Dynamic<Controller, DynamicShared<> >{
 	}
 	
 	virtual bool receive(
-		Message *_pmsg,
+		DynamicPointer<Message> &_rmsgptr,
 		ConnectionContext &_rctx
 	);
 	

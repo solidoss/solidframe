@@ -62,9 +62,12 @@ namespace{
 class ClientConnection;
 
 struct ConnectionContext{
-	ConnectionContext(ClientConnection &_rcon, uint32 _idx):rcon(_rcon), idx(_idx){}
+	ConnectionContext(ClientConnection &_rcon):rcon(_rcon), msgidx(0){}
+	void messageIndex(const uint32 _msgidx){
+		msgidx = _msgidx;
+	}
 	ClientConnection	&rcon;
-	const uint32		idx;
+	uint32				msgidx;
 };
 
 typedef serialization::binary::Serializer<ConnectionContext>	BinSerializerT;
@@ -75,10 +78,21 @@ typedef serialization::IdTypeMapper<
 >																UInt8TypeMapperT;
 
 class ClientConnection: public frame::aio::SingleObject{
-	
 	typedef DynamicPointer<solid::frame::Message>				MessageDynamicPointerT;
-	typedef std::pair<MessageDynamicPointerT, uint32>			MessagePairT;
-	typedef std::vector<MessagePairT>							MessageVectorT;
+	struct MessageStub{
+		MessageStub():flags(0), idx(-1){}
+		MessageStub(
+			MessageDynamicPointerT	&_rmsgptr,
+			const uint32 _flags = 0,
+			const size_t _idx = -1
+		):msgptr(_rmsgptr), flags(_flags), idx(_idx){}
+		
+		MessageDynamicPointerT	msgptr;
+		uint32					flags;
+		size_t					idx;
+	};
+	
+	typedef std::vector<MessageStub>							MessageVectorT;
 	typedef protocol::binary::client::Session<
 		frame::Message,
 		int
@@ -86,7 +100,7 @@ class ClientConnection: public frame::aio::SingleObject{
 		
 	enum{
 		RecvBufferCapacity = 1024 * 4,
-		SendBufferCapacity = 1024 * 4,
+		SendBufferCapacity = RecvBufferCapacity,
 		DataCapacity = SendBufferCapacity >> 1,
 	};
 	enum{
@@ -101,16 +115,26 @@ public:
 		frame::Manager &_rm,
 		const ResolveData &_rd,
 		const serialization::TypeMapperBase &_rtm
-	):rm(_rm), rd(_rd), st(PrepareState), ser(_rtm), des(_rtm){}
+	):rm(_rm), rd(_rd), st(PrepareState), ser(_rtm), des(_rtm), sndidx(0){}
 	
-	void send(DynamicPointer<solid::frame::Message>	&_rmsgptr, const uint32 _flags = 0){
+	size_t send(DynamicPointer<solid::frame::Message>	&_rmsgptr, const uint32 _flags = 0){
 		Locker<Mutex>	lock(rm.mutex(*this));
+		size_t idx;
 		
-		sndmsgvec.push_back(MessagePairT(_rmsgptr, _flags));
+		if(freesndidxstk.size()){
+			idx = freesndidxstk.top();
+			freesndidxstk.pop();
+		}else{
+			idx = sndidx;
+			++sndidx;
+		}
+		
+		sndmsgvec.push_back(MessageStub(_rmsgptr, _flags, idx));
 		
 		if(Object::notify(frame::S_SIG | frame::S_RAISE)){
 			rm.raise(*this);
 		}
+		return idx;
 	}
 	void dynamicHandle(solid::DynamicPointer<> &_dp);
 	void dynamicHandle(solid::DynamicPointer<FirstResponse> &_rmsgptr);
@@ -125,6 +149,8 @@ private:
 		return BAD;
 	}
 private:
+	typedef Stack<size_t>	SizeStackT;
+	
 	frame::Manager			&rm;
 	ResolveData				rd;
 	uint16					st;
@@ -134,6 +160,8 @@ private:
 	MessageVectorT			sndmsgvec;
 	char					recvbuf[RecvBufferCapacity];
 	char					sendbuf[SendBufferCapacity];
+	size_t					sndidx;
+	SizeStackT				freesndidxstk;
 };
 
 bool parseArguments(Params &_par, int argc, char *argv[]);
@@ -153,13 +181,14 @@ struct Handle{
 	bool checkLoad(FirstResponse *_pm, ConnectionContext  &_rctx)const{
 		return true;
 	}
-	void handle(FirstResponse *_pm, ConnectionContext &_rctx, const char *_name){
-		cout<<_name<<endl;
-	}
 	bool checkLoad(SecondResponse *_pm, ConnectionContext &_rctx)const{
 		return true;
 	}
-	void handle(SecondResponse *_pm, ConnectionContext &_rctx, const char *_name){
+	
+	void handle(FirstResponse *_pm, ConnectionContext &_rctx, const char *_name){
+		cout<<_name<<endl;
+	}
+		void handle(SecondResponse *_pm, ConnectionContext &_rctx, const char *_name){
 		cout<<_name<<endl;
 	}
 };
@@ -309,10 +338,15 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 		if(sm & frame::S_KILL) return done();
 		if(sm & frame::S_SIG){
 			Locker<Mutex>	lock(rm.mutex(*this));
-			session.send(sndmsgvec.begin(), sndmsgvec.end());
+			for(MessageVectorT::iterator it(sndmsgvec.begin()); it != sndmsgvec.end(); ++it){
+				session.send(it->idx, it->msgptr, it->flags);
+			}
 			sndmsgvec.clear();
 		}
 	}
+	
+	ConnectionContext	ctx(*this);
+	
 	if(_evs & frame::ERRDONE){
 		idbg("ioerror "<<_evs<<' '<<socketEventsGrab());
 		return done();
@@ -320,7 +354,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 	if(_evs & frame::INDONE){
 		idbg("indone");
 		char	tmpbuf[DataCapacity];
-		if(!session.consume(recvbuf, this->socketRecvSize(), compressor, tmpbuf, DataCapacity)){
+		if(!session.consume(des, ctx, recvbuf, this->socketRecvSize(), compressor, tmpbuf, DataCapacity)){
 			return done();
 		}
 	}
@@ -332,7 +366,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 				case BAD: return done();
 				case OK:{
 					char	tmpbuf[DataCapacity];
-					if(!session.consume(recvbuf, this->socketRecvSize(), compressor, tmpbuf, DataCapacity)){
+					if(!session.consume(des, ctx, recvbuf, this->socketRecvSize(), compressor, tmpbuf, DataCapacity)){
 						return done();
 					}
 					reenter = true;
@@ -345,9 +379,9 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 			int		cnt = 4;
 			char	tmpbuf[DataCapacity];
 			while((cnt--) > 0){
-				int rv = session.fill(sendbuf, SendBufferCapacity, compressor, tmpbuf, DataCapacity);
-				if(rv == BAD) return done();
-				if(rv == NOK) break;
+				int rv = session.fill(ser, ctx, sendbuf, SendBufferCapacity, compressor, tmpbuf, DataCapacity);
+				if(rv < 0) return done();
+				if(rv == 0) break;
 				switch(this->socketSend(sendbuf, rv)){
 					case BAD: 
 						return done();

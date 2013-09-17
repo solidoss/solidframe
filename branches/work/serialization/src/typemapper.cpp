@@ -269,7 +269,8 @@ uint32 TypeMapperBase::insertFunction(FncSerT _fs, FncDesT _fd, uint8  _pos, con
 /*virtual*/ bool TypeMapperBase::prepareParsePointer(
 	void *_pdes, std::string &_rs,
 	void *_p, const char *_name,
-	void *_pctx
+	void *_pctx,
+	FncInitPointerT _pinicbk
 )const{
 	return false;
 }

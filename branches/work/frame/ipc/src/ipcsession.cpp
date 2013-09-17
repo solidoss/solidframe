@@ -218,9 +218,9 @@ struct Session::Data{
 		RecvMessageData(
 			Message *_pmsg = NULL,
 			BinDeserializerT *_pdeserializer = NULL
-		):pmsg(_pmsg), pdeserializer(_pdeserializer){}
-		Message					*pmsg;
-		BinDeserializerT		*pdeserializer;
+		):msgptr(_pmsg), pdeserializer(_pdeserializer){}
+		DynamicPointer<Message>		msgptr;
+		BinDeserializerT			*pdeserializer;
 	};
 	
 	struct SendMessageData{
@@ -352,7 +352,7 @@ public:
 	uint32 registerPacket(Packet &_rpkt);
 	
 	bool isExpectingImmediateDataFromPeer()const{
-		return rcvdmsgq.size() > 1 || ((rcvdmsgq.size() == 1) && rcvdmsgq.front().pmsg);
+		return rcvdmsgq.size() > 1 || ((rcvdmsgq.size() == 1) && rcvdmsgq.front().msgptr.get());
 	}
 	uint16 keepAlivePacketIndex()const{
 		return 0;
@@ -575,7 +575,7 @@ Session::Data::~Data(){
 			pushDeserializer(rcvdmsgq.front().pdeserializer);
 			rcvdmsgq.front().pdeserializer = NULL;
 		}
-		delete rcvdmsgq.front().pmsg;
+		rcvdmsgq.front().msgptr.clear();
 		rcvdmsgq.pop();
 	}
 	for(Data::SendMessageVectorT::iterator it(sendmsgvec.begin()); it != sendmsgvec.end(); ++it){
@@ -892,7 +892,7 @@ inline uint32 Session::Data::currentKeepAlive(const TalkerStub &_rstub)const{
 	
 	if(
 		keepalive && 
-		(rcvdmsgq.empty() || (rcvdmsgq.size() == 1 && !rcvdmsgq.front().pmsg)) && 
+		(rcvdmsgq.empty() || (rcvdmsgq.size() == 1 && !rcvdmsgq.front().msgptr.get())) && 
 		msgq.empty() && sendmsgidxq.empty() && _rstub.currentTime() >= rcvtimepos
 	){
 		vdbgx(Debug::ipc, ""<<keepalive);
@@ -1404,7 +1404,7 @@ void Session::reconnect(Session *_pses){
 	//clear the receive queue
 	while(d.rcvdmsgq.size()){
 		Data::RecvMessageData	&rrmd(d.rcvdmsgq.front());
-		delete rrmd.pmsg;
+		rrmd.msgptr.clear();
 		if(rrmd.pdeserializer){
 			rrmd.pdeserializer->clear();
 			d.pushDeserializer(rrmd.pdeserializer);
@@ -1929,7 +1929,7 @@ void Session::doParsePacketDataType(
 		case Packet::ContinuedMessage:
 			vdbgx(Debug::ipc, "continuedmassage");
 			cassert(_blen == _firstblen);
-			if(!d.rcvdmsgq.front().pmsg){
+			if(!d.rcvdmsgq.front().msgptr.get()){
 				d.rcvdmsgq.pop();
 			}
 			//we cannot have a continued signal on the same packet
@@ -1939,23 +1939,24 @@ void Session::doParsePacketDataType(
 			if(d.rcvdmsgq.size()){
 				idbgx(Debug::ipc, "switch to new rcq.size = "<<d.rcvdmsgq.size());
 				Data::RecvMessageData &rrmd(d.rcvdmsgq.front());
-				if(rrmd.pmsg){//the previous signal didnt end, we reschedule
+				if(rrmd.msgptr.get()){//the previous signal didnt end, we reschedule
 					d.rcvdmsgq.push(rrmd);
-					rrmd.pmsg = NULL;
+					cassert(rrmd.msgptr.empty());
 				}
 				rrmd.pdeserializer = d.popDeserializer(_rstub.service().typeMapperBase());
-				rrmd.pdeserializer->push(rrmd.pmsg);
+				rrmd.pdeserializer->push(rrmd.msgptr, "message");
 			}else{
 				idbgx(Debug::ipc, "switch to new rcq.size = 0");
 				d.rcvdmsgq.push(Data::RecvMessageData(NULL, d.popDeserializer(_rstub.service().typeMapperBase())));
-				d.rcvdmsgq.front().pdeserializer->push(d.rcvdmsgq.front().pmsg);
+				d.rcvdmsgq.front().pdeserializer->push(d.rcvdmsgq.front().msgptr, "message");
 			}
 			break;
 		case Packet::OldMessage:
 			vdbgx(Debug::ipc, "oldmessage");
 			cassert(d.rcvdmsgq.size() > 1);
-			if(d.rcvdmsgq.front().pmsg){
+			if(d.rcvdmsgq.front().msgptr.get()){
 				d.rcvdmsgq.push(d.rcvdmsgq.front());
+				cassert(d.rcvdmsgq.front().msgptr.empty());
 			}
 			d.rcvdmsgq.pop();
 			break;
@@ -2025,20 +2026,19 @@ void Session::doParsePacket(TalkerStub &_rstub, const Packet &_rpkt){
 #endif
 
 		if(rrsd.pdeserializer->empty()){//done one message
-			Controller				&rctrl = _rstub.service().controller();
-			Message					*pmsg = rrsd.pmsg;
-			MessageUid 				msguid(pmsg->ipcRequestMessageUid());
+			Controller					&rctrl = _rstub.service().controller();
+			DynamicPointer<Message>		msgptr = rrsd.msgptr;
+			MessageUid 					msguid(msgptr->ipcRequestMessageUid());
 			
-			rrsd.pmsg = NULL;
+			cassert(rrsd.msgptr.empty());
 			
 			if(d.state == Data::Connected){
 				
-				if(!rctrl.receive(pmsg, rctx.msgctx)){
+				if(!rctrl.receive(msgptr, rctx.msgctx)){
 					d.state = Data::Disconnecting;
 				}
 				
 			}else if(d.state == Data::Authenticating){
-				DynamicPointer<Message>	msgptr(pmsg);
 				uint32					flags = 0;
 				SerializationTypeIdT 	tid = SERIALIZATION_INVALIDID;
 				const int 				authrv = rctrl.authenticate(msgptr, msguid, flags, tid);

@@ -1283,11 +1283,10 @@ char * Controller::allocateBuffer(PacketContext &_rpc, uint32 &_cp){
 }
 
 bool Controller::receive(
-	Message *_pmsg,
+	DynamicPointer<Message> &_rmsgptr,
 	ConnectionContext &_rctx
 ){
-	Message::MessagePointerT msgptr(_pmsg);
-	_pmsg->ipcOnReceive(_rctx, msgptr);
+	_rmsgptr->ipcOnReceive(_rctx, _rmsgptr);
 	return true;
 }
 

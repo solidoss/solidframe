@@ -27,6 +27,8 @@ namespace serialization{
 //! A base class for mapping types to callbacks
 class TypeMapperBase{
 public:
+	typedef void (*FncInitPointerT)(void*, void*);
+	
 	template <class T>
 	static const char* typeName(T *_p){
 		return typeid(*_p).name();
@@ -44,15 +46,18 @@ public:
 	virtual bool prepareParsePointer(
 		void *_pdes, std::string &_rs,
 		void *_p, const char *_name,
-		void *_pctx = NULL
+		void *_pctx = NULL,
+		FncInitPointerT _pinicbk = NULL
+		
 	)const;
 	virtual void prepareParsePointerId(
 		void *_pdes, std::string &_rs,
 		const char *_name
 	)const;
+	
 protected:
 	typedef bool (*FncSerT)(void *, void *, void *, const char *, void *);
-	typedef bool (*FncDesT)(void *, void *, const char *, void *);
+	typedef bool (*FncDesT)(void *, void *, const char *, void *, FncInitPointerT);
 	
 	TypeMapperBase();
 	virtual ~TypeMapperBase();
