@@ -1,4 +1,4 @@
-#include "protocol/binary/client/clientsession.hpp"
+#include "protocol/binary/binarysession.hpp"
 
 #include "frame/aio/aiosingleobject.hpp"
 #include "frame/aio/aioselector.hpp"
@@ -11,6 +11,9 @@
 #include "system/socketaddress.hpp"
 #include "system/socketdevice.hpp"
 #include "example/binaryprotocol/core/messages.hpp"
+#include "example/binaryprotocol/core/compressor.hpp"
+#include "serialization/idtypemapper.hpp"
+#include "serialization/binary.hpp"
 
 #include <signal.h>
 
@@ -22,6 +25,55 @@ using namespace solid;
 using namespace std;
 
 typedef frame::Scheduler<frame::aio::Selector>	AioSchedulerT;
+
+class Connection;
+
+struct ConnectionContext{
+	ConnectionContext(Connection &_rcon):rcon(_rcon), msgidx(0){}
+	void messageIndex(const uint32 _msgidx){
+		msgidx = _msgidx;
+	}
+	Connection	&rcon;
+	uint32		msgidx;
+};
+
+typedef serialization::binary::Serializer<ConnectionContext>	BinSerializerT;
+typedef serialization::binary::Deserializer<ConnectionContext>	BinDeserializerT;
+typedef serialization::IdTypeMapper<
+	BinSerializerT, BinDeserializerT, uint8,
+	serialization::FakeMutex
+>																UInt8TypeMapperT;
+
+
+struct Handle{
+	void beforeSerialize(BinSerializerT &_rs, void *_pt, ConnectionContext &_rctx){
+		idbg("");
+	}
+	
+	void beforeSerialize(BinDeserializerT &_rs, void *_pt, ConnectionContext &_rctx){
+		idbg("");
+	}
+	bool checkStore(void *, ConnectionContext &_rctx)const{
+		idbg("");
+		return true;
+	}
+	
+	bool checkLoad(FirstRequest *_pm, ConnectionContext  &_rctx)const{
+		idbg("");
+		return true;
+	}
+	bool checkLoad(SecondRequest *_pm, ConnectionContext &_rctx)const{
+		idbg("");
+		return true;
+	}
+	
+	void handle(FirstRequest *_pm, ConnectionContext &_rctx, const char *_name){
+		idbg("FirstRequest("<<_pm->v<<')');
+	}
+	void handle(SecondRequest *_pm, ConnectionContext &_rctx, const char *_name){
+		idbg("SecondRequest("<<_pm->v<<')');
+	}
+};
 
 namespace{
 	struct Params{
@@ -62,7 +114,11 @@ class Connection;
 
 class Service: public solid::Dynamic<Service, frame::Service>{
 public:
-	Service(frame::Manager &_rm, AioSchedulerT &_rsched):BaseT(_rm), rsched(_rsched){}
+	Service(
+		frame::Manager &_rm,
+		AioSchedulerT &_rsched,
+		const serialization::TypeMapperBase &_rtm
+	):BaseT(_rm), rsched(_rsched), rtm(_rtm){}
 	~Service(){}
 private:
 	friend class Listener;
@@ -73,7 +129,8 @@ private:
 		bool _secure = false
 	);
 private:
-	AioSchedulerT	&rsched;
+	AioSchedulerT						&rsched;
+	const serialization::TypeMapperBase &rtm;
 };
 
 class Listener: public Dynamic<Listener, frame::aio::SingleObject>{
@@ -87,10 +144,10 @@ public:
 	/*virtual*/ int execute(ulong, TimeSpec&);
 private:
 	typedef std::auto_ptr<frame::aio::openssl::Context> SslContextPtrT;
-	int					state;
-	SocketDevice		sd;
-	SslContextPtrT		pctx;
-	Service				&rsvc;
+	int									state;
+	SocketDevice						sd;
+	SslContextPtrT						pctx;
+	Service								&rsvc;
 };
 
 typedef DynamicPointer<Listener>	ListenerPointerT;
@@ -138,8 +195,14 @@ int main(int argc, char *argv[]){
 	{
 		frame::Manager			m;
 		AioSchedulerT			aiosched(m);
-		Service					svc(m, aiosched);
+		UInt8TypeMapperT		tm;
 		
+		tm.insertHandle<FirstRequest, Handle>();
+		tm.insert<FirstResponse>();
+		tm.insertHandle<SecondRequest, Handle>();
+		tm.insert<SecondResponse>();
+		
+		Service					svc(m, aiosched, tm);
 		m.registerService(svc);
 		{
 			
@@ -258,16 +321,35 @@ int Listener::execute(ulong, TimeSpec&){
 
 //--------------------------------------------------------------------------
 class Connection: public solid::Dynamic<Connection, solid::frame::aio::SingleObject>{
+	typedef protocol::binary::Session<
+		frame::Message,
+		int
+	>															ProtocolSessionT;
+		
+	enum{
+		RecvBufferCapacity = 1024 * 4,
+		SendBufferCapacity = RecvBufferCapacity,
+		DataCapacity = SendBufferCapacity >> 1,
+	};
 public:
-	Connection(const SocketDevice &_rsd):BaseT(_rsd){
+	Connection(const SocketDevice &_rsd, const serialization::TypeMapperBase &_rtm):BaseT(_rsd), ser(_rtm), des(_rtm){
 		idbg((void*)this);
 	}
 	~Connection(){
 		idbg((void*)this);
 	}
 private:
+	int done(){
+		idbg("");
+		return BAD;
+	}
 	/*virtual*/ int execute(ulong _sig, TimeSpec &_tout);
 private:
+	BinSerializerT			ser;
+	BinDeserializerT		des;
+	ProtocolSessionT		session;
+	char					recvbuf[RecvBufferCapacity];
+	char					sendbuf[SendBufferCapacity];
 };
 
 void Service::insertConnection(
@@ -275,24 +357,71 @@ void Service::insertConnection(
 	frame::aio::openssl::Context *_pctx,
 	bool _secure
 ){
-	DynamicPointer<frame::aio::Object>	conptr(new Connection(_rsd));
+	DynamicPointer<frame::aio::Object>	conptr(new Connection(_rsd, rtm));
 	frame::ObjectUidT rv = this->registerObject(*conptr);
 	rsched.schedule(conptr);
 }
 //--------------------------------------------------------------------------
 /*virtual*/ int Connection::execute(ulong _evs, TimeSpec &_tout){
-	idbg((void*)this);
-	if(notified()){
-		ulong sm = this->grabSignalMask();
-		if(sm & frame::S_KILL) return BAD;
+	static Compressor 		compressor(DataCapacity);
+	
+	ulong sm = grabSignalMask();
+	if(sm){
+		if(sm & frame::S_KILL) return done();
+		if(sm & frame::S_SIG){
+			//Locker<Mutex>	lock(frame::Manager::specific().mutex(*this));
+		}
 	}
+	
+	ConnectionContext	ctx(*this);
+	
 	if(_evs & frame::ERRDONE){
 		idbg("ioerror "<<_evs<<' '<<socketEventsGrab());
-		return BAD;
+		return done();
 	}
 	if(_evs & frame::INDONE){
 		idbg("indone");
-		
+		char	tmpbuf[DataCapacity];
+		if(!session.consume(des, ctx, recvbuf, this->socketRecvSize(), compressor, tmpbuf, DataCapacity)){
+			return done();
+		}
 	}
-	return NOK;
+	bool reenter = false;
+	if(!this->socketHasPendingRecv()){
+		switch(this->socketRecv(session.recvBufferOffset(recvbuf), session.recvBufferCapacity(RecvBufferCapacity))){
+			case BAD: return done();
+			case OK:{
+				char	tmpbuf[DataCapacity];
+				if(!session.consume(des, ctx, recvbuf, this->socketRecvSize(), compressor, tmpbuf, DataCapacity)){
+					return done();
+				}
+				reenter = true;
+			}break;
+			default:
+				break;
+		}
+	}
+	if(!this->socketHasPendingSend()){
+		int		cnt = 4;
+		char	tmpbuf[DataCapacity];
+		while((cnt--) > 0){
+			int rv = session.fill(ser, ctx, sendbuf, SendBufferCapacity, compressor, tmpbuf, DataCapacity);
+			if(rv < 0) return done();
+			if(rv == 0) break;
+			switch(this->socketSend(sendbuf, rv)){
+				case BAD: 
+					return done();
+				case NOK:
+					cnt = 0;
+					break;
+				default:
+					break;
+			}
+		}
+		if(cnt == 0){
+			reenter = true;
+		}
+	}
+	
+	return reenter ? OK : NOK;
 }

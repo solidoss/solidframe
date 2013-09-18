@@ -20,7 +20,6 @@
 namespace solid{
 namespace protocol{
 namespace binary{
-namespace client{
 
 struct PacketHeader{
 	enum{
@@ -78,10 +77,11 @@ struct BasicController{
 template <class Msg, class MsgCtx, class Ctl = BasicController>
 class Session{
 	struct MessageStub{
-		MessageStub():prcvmsg(NULL), sndflgs(0), onsendq(false){}
-		DynamicPointer<Msg>	sndmsgptr;
+		MessageStub():sndflgs(0), onsendq(false){}
+		
 		MsgCtx				msgctx;
-		Msg					*prcvmsg;
+		DynamicPointer<Msg>	sndmsgptr;
+		DynamicPointer<Msg>	rcvmsgptr;
 		uint32				sndflgs;
 		bool				onsendq;
 	};
@@ -131,6 +131,15 @@ public:
 	DynamicPointer<Msg> const& sendMessage(const size_t _idx)const{
 		cassert(_idx < msgvec.size());
 		return msgvec[_idx].sndmsgptr;
+	}
+	
+	DynamicPointer<Msg>& recvMessage(const size_t _idx){
+		cassert(_idx < msgvec.size());
+		return msgvec[_idx].rcvmsgptr;
+	}
+	DynamicPointer<Msg> const& recvMessage(const size_t _idx)const{
+		cassert(_idx < msgvec.size());
+		return msgvec[_idx].rcvmsgptr;
 	}
 	
 	MsgCtx& messageContext(const size_t _idx){
@@ -194,8 +203,12 @@ public:
 				if(_rd.empty()){
 					crttmppos = _rd.loadValue(crttmppos, rcvmsgidx);
 					crttmplen -= sizeof(uint32);
+					//TODO: use controller
+					if(rcvmsgidx >= msgvec.size()){
+						msgvec.resize(rcvmsgidx + 1);
+					}
 					MessageStub	&rms = msgvec[rcvmsgidx];
-					_rd.push(rms.prcvmsg, "message");
+					_rd.push(rms.rcvmsgptr, "message");
 				}
 				int rv = _rd.run(crttmppos, crttmplen, _rctx);
 				if(rv < 0){
@@ -203,8 +216,6 @@ public:
 				}
 				crttmppos += rv;
 				crttmplen -= rv;
-				//if(_rd.empty()){
-					
 			}
 			rcvstate = RecvPacketHeaderState;
 			cnspos += (PacketHeader::SizeOf + pkthdr.size);
@@ -244,6 +255,7 @@ public:
 				if(_rs.empty()){
 					crttmppos = _rs.storeValue(crttmppos, static_cast<uint32>(sndq.front()));
 					crttmplen -= sizeof(uint32);
+					crttmpsz  += sizeof(uint32);
 					_rs.push(rms.sndmsgptr.get(), "message");
 				}
 				
@@ -305,7 +317,6 @@ private:
 	SizeTQueueT			sndq;
 };
 
-}//namespace client
 }//namespace binary
 }//namespace protocol
 }//namespace solid

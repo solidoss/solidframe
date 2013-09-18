@@ -1,4 +1,4 @@
-#include "protocol/binary/client/clientsession.hpp"
+#include "protocol/binary/binarysession.hpp"
 
 #include "frame/aio/aiosingleobject.hpp"
 #include "frame/aio/aioselector.hpp"
@@ -59,14 +59,14 @@ namespace{
 	
 }
 
-class ClientConnection;
+class Connection;
 
 struct ConnectionContext{
-	ConnectionContext(ClientConnection &_rcon):rcon(_rcon), msgidx(0){}
+	ConnectionContext(Connection &_rcon):rcon(_rcon), msgidx(0){}
 	void messageIndex(const uint32 _msgidx){
 		msgidx = _msgidx;
 	}
-	ClientConnection	&rcon;
+	Connection	&rcon;
 	uint32				msgidx;
 };
 
@@ -77,7 +77,7 @@ typedef serialization::IdTypeMapper<
 	serialization::FakeMutex
 >																UInt8TypeMapperT;
 
-class ClientConnection: public frame::aio::SingleObject{
+class Connection: public frame::aio::SingleObject{
 	typedef DynamicPointer<solid::frame::Message>				MessageDynamicPointerT;
 	struct MessageStub{
 		MessageStub():flags(0), idx(-1){}
@@ -93,7 +93,7 @@ class ClientConnection: public frame::aio::SingleObject{
 	};
 	
 	typedef std::vector<MessageStub>							MessageVectorT;
-	typedef protocol::binary::client::Session<
+	typedef protocol::binary::Session<
 		frame::Message,
 		int
 	>															ProtocolSessionT;
@@ -111,7 +111,7 @@ class ClientConnection: public frame::aio::SingleObject{
 		RunningState
 	};
 public:
-	ClientConnection(
+	Connection(
 		frame::Manager &_rm,
 		const ResolveData &_rd,
 		const serialization::TypeMapperBase &_rtm
@@ -188,7 +188,7 @@ struct Handle{
 	void handle(FirstResponse *_pm, ConnectionContext &_rctx, const char *_name){
 		cout<<_name<<endl;
 	}
-		void handle(SecondResponse *_pm, ConnectionContext &_rctx, const char *_name){
+	void handle(SecondResponse *_pm, ConnectionContext &_rctx, const char *_name){
 		cout<<_name<<endl;
 	}
 };
@@ -244,7 +244,7 @@ int main(int argc, char *argv[]){
 	}
 	
 	{
-		typedef DynamicSharedPointer<ClientConnection>	ClientConnectionPointerT;
+		typedef DynamicSharedPointer<Connection>	ConnectionPointerT;
 		
 		frame::Manager							m;
 		AioSchedulerT							aiosched(m);
@@ -256,8 +256,8 @@ int main(int argc, char *argv[]){
 		tm.insertHandle<SecondResponse, Handle>();
 		
 		
-		ClientConnectionPointerT				ccptr(
-			new ClientConnection(
+		ConnectionPointerT				ccptr(
+			new Connection(
 				m,
 				synchronous_resolve(p.address_str.c_str(), p.port, 0, SocketInfo::Inet4, SocketInfo::Stream),
 				tm
@@ -330,7 +330,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 
 //-----------------------------------------------------------------------
 
-/*virtual*/ int ClientConnection::execute(ulong _evs, TimeSpec& _crtime){
+/*virtual*/ int Connection::execute(ulong _evs, TimeSpec& _crtime){
 	static Compressor 		compressor(DataCapacity);
 	
 	ulong sm = grabSignalMask();

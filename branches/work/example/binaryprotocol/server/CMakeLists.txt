@@ -2,6 +2,7 @@ add_executable (example_binaryserver binaryserver.cpp)
 
 
 target_link_libraries (example_binaryserver
+	example_binary_core
 	solid_frame_aio
 	solid_frame_aio_openssl
 	solid_frame_core
