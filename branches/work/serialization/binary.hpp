@@ -277,17 +277,29 @@ protected:
 	
 	static int storeUtf8(Base &_rs, FncData &_rfd, void */*_pctx*/);
 	
-	//NOTE: not used for no - no reason
-	template <typename T, class Ser>
-	static int storeHandle(Base &_rs, FncData &_rfd, void *_pctx){
-		idbgx(Debug::ser_bin, "store generic non pointer with handle");
-		Ser		&rs(static_cast<Ser&>(_rs));
-		if(!rs.cpb) return OK;
-		T		&rt = *((T*)_rfd.p);
+// 	template <typename T, class Ser>
+// 	static int storeHandle(Base &_rs, FncData &_rfd, void *_pctx){
+// 		idbgx(Debug::ser_bin, "store generic non pointer with handle");
+// 		Ser		&rs(static_cast<Ser&>(_rs));
+// 		if(!rs.cpb) return OK;
+// 		T		&rt = *((T*)_rfd.p);
+// 		typename Ser::ContextT	&rctx = *reinterpret_cast<typename Ser::ContextT*>(_pctx);
+// 		rs.fstk.pop();
+// 		serialize(rs, rt, rctx);
+// 		return CONTINUE;
+// 	}
+	
+	template <typename T, class Ser, class H>
+	static int storeHandle(Base &_rb, FncData &_rfd, void *_pctx){
+		Ser &rs = static_cast<Ser&>(_rb);
+		if(!rs.cpb){
+			return OK;
+		}
 		typename Ser::ContextT	&rctx = *reinterpret_cast<typename Ser::ContextT*>(_pctx);
-		rs.fstk.pop();
-		serialize(rs, rt, rctx);
-		return CONTINUE;
+		H						h;
+		T						*pt = reinterpret_cast<T*>(_rfd.p);
+		h.afterSerialization(rs, pt, rctx);
+		return OK;
 	}
 	
 	template <typename T, class Ser>
@@ -796,6 +808,11 @@ public:
 		const uint64 &_rlen,
 		const char *_name = NULL
 	);
+	template <typename T, class H>
+	SerializerT& pushHandlePointer(T *_pt, const char *_name){
+		this->Base::fstk.push(Base::FncData(&SerializerBase::storeHandle<T, SerializerT, H>, _pt, _name));
+		return *this;
+	}
 };
 //--------------------------------------------------------------
 template <class Ctx>
@@ -968,6 +985,12 @@ public:
 		SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::template handle<T, SerializerT, H, Ctx>, _pt, _name));
 		return *this;
 	}
+	
+	template <typename T, class H>
+	SerializerT& pushHandlePointer(T *_pt, const char *_name){
+		this->Base::fstk.push(Base::FncData(&SerializerBase::storeHandle<T, SerializerT, H>, _pt, _name));
+		return *this;
+	}
 };
 
 //===============================================================
@@ -1043,7 +1066,7 @@ protected:
 		typename Des::ContextT	&rctx = *reinterpret_cast<typename Des::ContextT*>(_pctx);
 		H						h;
 		T						*pt = reinterpret_cast<T*>(_rfd.p);
-		h.handle(pt, rctx, _rfd.n);
+		h.afterSerialization(rd, pt, rctx);
 		return OK;
 	}
 	

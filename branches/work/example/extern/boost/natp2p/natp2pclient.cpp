@@ -178,10 +178,14 @@ void NatP2PClient::sendConnect(){
 		ostringstream oss;
 		oss<<'c'<<' '<<connect_endpoint.address()<<' '<<connect_endpoint.port()<<endl;
 		send(server_endpoint, oss);
+		send(server_endpoint, oss);
+		send(server_endpoint, oss);
 	}
 	{
 		ostringstream oss;
 		oss<<'c'<<' '<<exit_endpoint.address()<<' '<<exit_endpoint.port()<<endl;
+		send(connect_endpoint, oss);
+		send(connect_endpoint, oss);
 		send(connect_endpoint, oss);
 	}
 }
@@ -234,7 +238,7 @@ void NatP2PClient::initCommand(istringstream &_iss){
 	string	addr;
 	int 	port;
 	_iss>>addr>>port;
-	cout<<"initCommand("<<addr<<','<<port<<')'<<endl;
+	cout<<"initCommand("<<addr<<' '<<port<<')'<<endl;
 	state = Connect;
 	exit_endpoint.address(boost::asio::ip::address::from_string(addr.c_str()));
 	exit_endpoint.port(port);
@@ -252,6 +256,8 @@ void NatP2PClient::connectCommand(istringstream &_iss){
 	connect_endpoint = endpoint;
 	
 	sendConnect();
+	sendAccept();
+	sendAccept();
 	sendAccept();
 }
 void NatP2PClient::acceptCommand(istringstream &_iss){

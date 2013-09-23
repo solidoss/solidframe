@@ -29,12 +29,16 @@ typedef frame::Scheduler<frame::aio::Selector>	AioSchedulerT;
 class Connection;
 
 struct ConnectionContext{
-	ConnectionContext(Connection &_rcon):rcon(_rcon), msgidx(0){}
-	void messageIndex(const uint32 _msgidx){
-		msgidx = _msgidx;
+	ConnectionContext(Connection &_rcon):rcon(_rcon), sndmsgidx(-1),rcvmsgidx(-1){}
+	void sendMessageIndex(const uint32 _msgidx){
+		sndmsgidx = _msgidx;
+	}
+	void recvMessageIndex(const uint32 _msgidx){
+		rcvmsgidx = _msgidx;
 	}
 	Connection	&rcon;
-	uint32		msgidx;
+	uint32		sndmsgidx;
+	uint32		rcvmsgidx;
 };
 
 typedef serialization::binary::Serializer<ConnectionContext>	BinSerializerT;
@@ -46,11 +50,11 @@ typedef serialization::IdTypeMapper<
 
 
 struct Handle{
-	void beforeSerialize(BinSerializerT &_rs, void *_pt, ConnectionContext &_rctx){
+	void beforeSerialization(BinSerializerT &_rs, void *_pt, ConnectionContext &_rctx){
 		idbg("");
 	}
 	
-	void beforeSerialize(BinDeserializerT &_rs, void *_pt, ConnectionContext &_rctx){
+	void beforeSerialization(BinDeserializerT &_rs, void *_pt, ConnectionContext &_rctx){
 		idbg("");
 	}
 	bool checkStore(void *, ConnectionContext &_rctx)const{
@@ -67,11 +71,20 @@ struct Handle{
 		return true;
 	}
 	
-	void handle(FirstRequest *_pm, ConnectionContext &_rctx, const char *_name){
-		idbg("FirstRequest("<<_pm->v<<')');
+	void afterSerialization(BinSerializerT &_rs, FirstRequest *_pm, ConnectionContext &_rctx){
+		idbg("ser:FirstRequest("<<_pm->v<<')');
 	}
-	void handle(SecondRequest *_pm, ConnectionContext &_rctx, const char *_name){
-		idbg("SecondRequest("<<_pm->v<<')');
+	
+	void afterSerialization(BinDeserializerT &_rs, FirstRequest *_pm, ConnectionContext &_rctx){
+		idbg("des:FirstRequest("<<_pm->v<<')');
+	}
+	
+	void afterSerialization(BinSerializerT &_rs, SecondRequest *_pm, ConnectionContext &_rctx){
+		idbg("ser:SecondRequest("<<_pm->v<<')');
+	}
+	
+	void afterSerialization(BinDeserializerT &_rs, SecondRequest *_pm, ConnectionContext &_rctx){
+		idbg("des:SecondRequest("<<_pm->v<<')');
 	}
 };
 
@@ -373,7 +386,7 @@ void Service::insertConnection(
 		}
 	}
 	
-	ConnectionContext	ctx(*this);
+	ConnectionContext		ctx(*this);
 	
 	if(_evs & frame::ERRDONE){
 		idbg("ioerror "<<_evs<<' '<<socketEventsGrab());

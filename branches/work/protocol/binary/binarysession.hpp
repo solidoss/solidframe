@@ -79,11 +79,21 @@ class Session{
 	struct MessageStub{
 		MessageStub():sndflgs(0), onsendq(false){}
 		
-		MsgCtx				msgctx;
+		void sendClear(){
+			sndmsgptr.clear();
+			sndflgs = 0;
+			onsendq = false;
+		}
+		void recvClear(){
+			rcvmsgptr.clear();
+		}
+		
+		MsgCtx				ctx;
 		DynamicPointer<Msg>	sndmsgptr;
 		DynamicPointer<Msg>	rcvmsgptr;
 		uint32				sndflgs;
 		bool				onsendq;
+		
 	};
 	enum{
 		RecvPacketHeaderState = 1,
@@ -117,7 +127,7 @@ public:
 		MessageStub &rms = msgvec[_idx];
 		cassert(!rms.onsendq);
 		rms.sndflgs = _flags;
-		rms.msgctx = _rmsgctx;
+		rms.ctx = _rmsgctx;
 		rms.sndmsgptr = _rmsgptr;
 		rms.onsendq = true;
 		sndq.push(_idx);
@@ -144,11 +154,12 @@ public:
 	
 	MsgCtx& messageContext(const size_t _idx){
 		cassert(_idx < msgvec.size());
-		return msgvec[_idx].msgctx;
+		return msgvec[_idx].ctx;
 	}
 	
 	const MsgCtx& messageContext(const size_t _idx)const{
-		return msgvec[_idx].msgctx;
+		cassert(_idx < msgvec.size());
+		return msgvec[_idx].ctx;
 	}
 	
 	char * recvBufferOffset(char *_pbuf)const{
@@ -210,9 +221,16 @@ public:
 					MessageStub	&rms = msgvec[rcvmsgidx];
 					_rd.push(rms.rcvmsgptr, "message");
 				}
+				
+				_rctx.recvMessageIndex(rcvmsgidx);
+				
 				int rv = _rd.run(crttmppos, crttmplen, _rctx);
+				
 				if(rv < 0){
+					msgvec[rcvmsgidx].recvClear();
 					return false;
+				}else if(_rd.empty()){
+					msgvec[rcvmsgidx].recvClear();
 				}
 				crttmppos += rv;
 				crttmplen -= rv;
@@ -259,20 +277,22 @@ public:
 					_rs.push(rms.sndmsgptr.get(), "message");
 				}
 				
-				_rctx.messageIndex(sndq.front());
+				_rctx.sendMessageIndex(sndq.front());
 				
 				int rv = _rs.run(crttmppos, crttmplen, _rctx);
+				
 				if(rv < 0){
+					rms.sendClear();
+					sndq.pop();
 					return -1;
+				}else if(_rs.empty()){
+					rms.sendClear();
+					sndq.pop();
 				}
 				
 				crttmppos += rv;
 				crttmplen -= rv;
 				crttmpsz  += rv;
-				
-				if(_rs.empty()){
-					sndq.pop();
-				}
 			}
 			
 			size_t 			destsz = crtlen - PacketHeader::SizeOf;

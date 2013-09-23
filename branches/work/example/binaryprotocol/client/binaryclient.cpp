@@ -62,12 +62,16 @@ namespace{
 class Connection;
 
 struct ConnectionContext{
-	ConnectionContext(Connection &_rcon):rcon(_rcon), msgidx(0){}
-	void messageIndex(const uint32 _msgidx){
-		msgidx = _msgidx;
+	ConnectionContext(Connection &_rcon):rcon(_rcon), sndmsgidx(-1),rcvmsgidx(-1){}
+	void sendMessageIndex(const uint32 _msgidx){
+		sndmsgidx = _msgidx;
+	}
+	void recvMessageIndex(const uint32 _msgidx){
+		rcvmsgidx = _msgidx;
 	}
 	Connection	&rcon;
-	uint32				msgidx;
+	uint32		sndmsgidx;
+	uint32		rcvmsgidx;
 };
 
 typedef serialization::binary::Serializer<ConnectionContext>	BinSerializerT;
@@ -167,11 +171,11 @@ private:
 bool parseArguments(Params &_par, int argc, char *argv[]);
 
 struct Handle{
-	void beforeSerialize(BinSerializerT &_rs, void *_pt, ConnectionContext &_rctx){
+	void beforeSerialization(BinSerializerT &_rs, void *_pt, ConnectionContext &_rctx){
 		
 	}
 	
-	void beforeSerialize(BinDeserializerT &_rs, void *_pt, ConnectionContext &_rctx){
+	void beforeSerialization(BinDeserializerT &_rs, void *_pt, ConnectionContext &_rctx){
 		
 	}
 	bool checkStore(void *, ConnectionContext &_rctx)const{
@@ -184,12 +188,31 @@ struct Handle{
 	bool checkLoad(SecondResponse *_pm, ConnectionContext &_rctx)const{
 		return true;
 	}
-	
-	void handle(FirstResponse *_pm, ConnectionContext &_rctx, const char *_name){
-		cout<<_name<<endl;
+	bool checkLoad(SecondRequest *_pm, ConnectionContext &_rctx)const{
+		return true;
 	}
-	void handle(SecondResponse *_pm, ConnectionContext &_rctx, const char *_name){
-		cout<<_name<<endl;
+	
+	void afterSerialization(BinSerializerT &_rs, FirstResponse *_pm, ConnectionContext &_rctx){
+		cout<<"afterSerialization - ser - first"<<endl;
+	}
+	void afterSerialization(BinDeserializerT &_rs, FirstResponse *_pm, ConnectionContext &_rctx){
+		cout<<"afterSerialization - des - first"<<endl;
+	}
+	
+	void afterSerialization(BinSerializerT &_rs, SecondResponse *_pm, ConnectionContext &_rctx){
+		cout<<"afterSerialization - ser - second"<<endl;
+	}
+	
+	void afterSerialization(BinDeserializerT &_rs, SecondResponse *_pm, ConnectionContext &_rctx){
+		cout<<"afterSerialization - des - second"<<endl;
+	}
+	
+	void afterSerialization(BinSerializerT &_rs, SecondRequest *_pm, ConnectionContext &_rctx){
+		cout<<"afterSerialization - ser - second - req"<<endl;
+	}
+	
+	void afterSerialization(BinDeserializerT &_rs, SecondRequest *_pm, ConnectionContext &_rctx){
+		cout<<"afterSerialization - des - second - req"<<endl;
 	}
 };
 
@@ -252,7 +275,7 @@ int main(int argc, char *argv[]){
 		
 		tm.insert<FirstRequest>();
 		tm.insertHandle<FirstResponse, Handle>();
-		tm.insert<SecondRequest>();
+		tm.insertHandle<SecondRequest, Handle>();
 		tm.insertHandle<SecondResponse, Handle>();
 		
 		
@@ -345,7 +368,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 		}
 	}
 	
-	ConnectionContext	ctx(*this);
+	ConnectionContext		ctx(*this);
 	
 	if(_evs & frame::ERRDONE){
 		idbg("ioerror "<<_evs<<' '<<socketEventsGrab());
