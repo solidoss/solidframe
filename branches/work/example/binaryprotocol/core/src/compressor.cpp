@@ -14,7 +14,10 @@ Compressor::Compressor(const size_t _cp):d(*(new Data)){
 Compressor::~Compressor(){
 	delete &d;
 }
-	
+
+bool Compressor::shouldCompress(const size_t _sz)const{
+	return _sz >= 512;
+}
 const size_t Compressor::reservedSize()const{
 	return d.ressz;
 }

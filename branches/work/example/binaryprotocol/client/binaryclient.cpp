@@ -1,4 +1,5 @@
-#include "protocol/binary/binarysession.hpp"
+#include "protocol/binary/binaryaiosession.hpp"
+#include "protocol/binary/binarybasicbuffercontroller.hpp"
 
 #include "frame/aio/aiosingleobject.hpp"
 #include "frame/aio/aioselector.hpp"
@@ -97,16 +98,12 @@ class Connection: public frame::aio::SingleObject{
 	};
 	
 	typedef std::vector<MessageStub>							MessageVectorT;
-	typedef protocol::binary::Session<
+	typedef protocol::binary::AioSession<
 		frame::Message,
 		int
 	>															ProtocolSessionT;
 		
-	enum{
-		RecvBufferCapacity = 1024 * 4,
-		SendBufferCapacity = RecvBufferCapacity,
-		DataCapacity = SendBufferCapacity >> 1,
-	};
+	typedef protocol::binary::BasicBufferController<2048>		BufferControllerT;
 	enum{
 		InitState = 1,
 		PrepareState,
@@ -162,8 +159,7 @@ private:
 	BinDeserializerT		des;
 	ProtocolSessionT		session;
 	MessageVectorT			sndmsgvec;
-	char					recvbuf[RecvBufferCapacity];
-	char					sendbuf[SendBufferCapacity];
+	BufferControllerT		bufctl;
 	size_t					sndidx;
 	SizeStackT				freesndidxstk;
 };
@@ -354,7 +350,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 //-----------------------------------------------------------------------
 
 /*virtual*/ int Connection::execute(ulong _evs, TimeSpec& _crtime){
-	static Compressor 		compressor(DataCapacity);
+	static Compressor 		compressor(BufferControllerT::DataCapacity);
 	
 	ulong sm = grabSignalMask();
 	if(sm){
@@ -370,55 +366,11 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 	
 	ConnectionContext		ctx(*this);
 	
-	if(_evs & frame::ERRDONE){
-		idbg("ioerror "<<_evs<<' '<<socketEventsGrab());
-		return done();
-	}
-	if(_evs & frame::INDONE){
-		idbg("indone");
-		char	tmpbuf[DataCapacity];
-		if(!session.consume(des, ctx, recvbuf, this->socketRecvSize(), compressor, tmpbuf, DataCapacity)){
-			return done();
-		}
-	}
 	bool reenter = false;
 	if(st == RunningState){
-		idbg("RunningState");
-		if(!this->socketHasPendingRecv()){
-			switch(this->socketRecv(session.recvBufferOffset(recvbuf), session.recvBufferCapacity(RecvBufferCapacity))){
-				case BAD: return done();
-				case OK:{
-					char	tmpbuf[DataCapacity];
-					if(!session.consume(des, ctx, recvbuf, this->socketRecvSize(), compressor, tmpbuf, DataCapacity)){
-						return done();
-					}
-					reenter = true;
-				}break;
-				default:
-					break;
-			}
-		}
-		if(!this->socketHasPendingSend()){
-			int		cnt = 4;
-			char	tmpbuf[DataCapacity];
-			while((cnt--) > 0){
-				int rv = session.fill(ser, ctx, sendbuf, SendBufferCapacity, compressor, tmpbuf, DataCapacity);
-				if(rv < 0) return done();
-				if(rv == 0) break;
-				switch(this->socketSend(sendbuf, rv)){
-					case BAD: 
-						return done();
-					case NOK:
-						cnt = 0;
-						break;
-					default:
-						break;
-				}
-			}
-			if(cnt == 0){
-				reenter = true;
-			}
-		}
+		int rv = session.execute(*this, _evs, ctx, ser, des, bufctl, compressor);
+		if(rv == BAD) return done();
+		return rv;
 	}else if(st == PrepareState){
 		SocketDevice	sd;
 		sd.create(rd.begin());

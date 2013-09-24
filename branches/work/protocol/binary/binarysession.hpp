@@ -1,4 +1,4 @@
-// protocol/binary/client/clientsession.hpp
+// protocol/binary/binarysession.hpp
 //
 // Copyright (c) 2013 Valentin Palade (vipalade @ gmail . com) 
 //
@@ -7,11 +7,12 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#ifndef SOLID_PROTOCOL_BINARY_CLIENT_SESSION_HPP
-#define SOLID_PROTOCOL_BINARY_CLIENT_SESSION_HPP
+#ifndef SOLID_PROTOCOL_BINARY_SESSION_HPP
+#define SOLID_PROTOCOL_BINARY_SESSION_HPP
 
 #include <deque>
 #include <cstring>
+
 
 #include "utility/dynamicpointer.hpp"
 #include "utility/queue.hpp"
@@ -69,6 +70,22 @@ struct PacketHeader{
 	uint8	flags;
 	uint16	size;
 };
+
+struct DummyCompressor{
+	const size_t reservedSize()const{
+		return 0;
+	}
+	bool shouldCompress(const size_t _sz)const{
+		return false;
+	}
+	bool compress(char *_pdest, size_t &_destsz, const char *_psrc, const size_t _srcsz){
+		return false;
+	}
+	bool decompress(char *_pdest, size_t &_destsz, const char *_psrc, const size_t _srcsz){
+		return false;
+	}
+};
+
 
 struct BasicController{
 	
@@ -161,7 +178,10 @@ public:
 		cassert(_idx < msgvec.size());
 		return msgvec[_idx].ctx;
 	}
-	
+	bool isSendQueueEmpty()const{
+		return sndq.empty();
+	}
+//protected:
 	char * recvBufferOffset(char *_pbuf)const{
 		return _pbuf + rcvbufoff;
 	}
@@ -204,17 +224,22 @@ public:
 			}
 			//we have the entire packet
 			size_t			destsz = _tmpbufcp;
-			if(!_rc.decompress(_tmpbuf, destsz, cnspos + PacketHeader::SizeOf, pkthdr.size)){
-				return false;
+			const char		*crttmppos = _tmpbuf;
+			size_t			crttmplen;
+			if(pkthdr.isCompressed()){
+				if(!_rc.decompress(_tmpbuf, destsz, cnspos + PacketHeader::SizeOf, pkthdr.size)){
+					return false;
+				}
+				crttmplen = destsz;
+			}else{
+				crttmppos = cnspos + PacketHeader::SizeOf;
+				crttmplen = pkthdr.size;
 			}
 			
-			const char		*crttmppos = _tmpbuf;
-			size_t			crttmplen = destsz;
 			while(crttmplen){
 				if(_rd.empty()){
 					crttmppos = _rd.loadValue(crttmppos, rcvmsgidx);
 					crttmplen -= sizeof(uint32);
-					//TODO: use controller
 					if(rcvmsgidx >= msgvec.size()){
 						msgvec.resize(rcvmsgidx + 1);
 					}
@@ -259,11 +284,10 @@ public:
 		char 	*crtpos = _pb;
 		size_t	crtlen = _bl;
 		
-		while(crtlen > _tmpbufcp && sndq.size()){
+		while(crtlen >= _tmpbufcp && sndq.size()){
 			char 	*crttmppos = _tmpbuf;
 			size_t	crttmplen = _tmpbufcp;
 			size_t	crttmpsz = 0;
-			//crttmppos += PacketHeader::SizeOf;
 			crttmplen -= PacketHeader::SizeOf;
 			crttmplen -= _rc.reservedSize();
 			
@@ -296,22 +320,81 @@ public:
 			}
 			
 			size_t 			destsz = crtlen - PacketHeader::SizeOf;
-			
-			if(!_rc.compress(crtpos + PacketHeader::SizeOf, destsz, _tmpbuf, crttmpsz)){
-				return -1;
+			uint8			pkgflags = 0;
+			if(_rc.shouldCompress(crttmpsz)){
+				if(!_rc.compress(crtpos + PacketHeader::SizeOf, destsz, _tmpbuf, crttmpsz)){
+					return -1;
+				}
+				pkgflags |= PacketHeader::CompressedFlag;
+			}else{
+				memcpy(crtpos + PacketHeader::SizeOf, _tmpbuf, crttmpsz);
+				destsz = crttmpsz;
 			}
 			
-			PacketHeader	pkthdr(PacketHeader::DataType, PacketHeader::CompressedFlag, destsz);
+			PacketHeader	pkthdr(PacketHeader::DataType, pkgflags, destsz);
 			
 			crtpos = pkthdr.store(_rs, crtpos);
 			crtlen -= PacketHeader::SizeOf;
-			
-			
 			
 			crtlen -= destsz;
 			crtpos += destsz;
 		}
 		
+		return crtpos - _pb;
+	}
+	template <class Ser, class Ctx>
+	int fill(
+		Ser &_rs,
+		Ctx &_rctx,
+		char *_pb, size_t _bl
+	){
+		typedef Ser SerializerT;
+		
+		if(sndq.empty()) return 0;
+		
+		char 	*crtpos = _pb;
+		size_t	crtlen = _bl;
+		
+		char 	*crttmppos = crtpos + PacketHeader::SizeOf;
+		size_t	crttmplen = crtlen - PacketHeader::SizeOf;
+		size_t	crttmpsz = 0;
+		
+		while(crttmplen > 8 && sndq.size()){
+			MessageStub		&rms = msgvec[sndq.front()];
+			
+			if(_rs.empty()){
+				crttmppos = _rs.storeValue(crttmppos, static_cast<uint32>(sndq.front()));
+				crttmplen -= sizeof(uint32);
+				crttmpsz  += sizeof(uint32);
+				_rs.push(rms.sndmsgptr.get(), "message");
+			}
+			
+			_rctx.sendMessageIndex(sndq.front());
+			
+			int rv = _rs.run(crttmppos, crttmplen, _rctx);
+			
+			if(rv < 0){
+				rms.sendClear();
+				sndq.pop();
+				return -1;
+			}else if(_rs.empty()){
+				rms.sendClear();
+				sndq.pop();
+			}
+			
+			crttmppos += rv;
+			crttmplen -= rv;
+			crttmpsz  += rv;
+		}
+		
+		size_t 			destsz = crttmpsz;
+		uint8			pkgflags = 0;
+		PacketHeader	pkthdr(PacketHeader::DataType, pkgflags, destsz);
+		
+		crtpos = pkthdr.store(_rs, crtpos);
+					
+		//crtlen -= (destsz + PacketHeader::SizeOf);
+		crtpos += destsz;
 		
 		return crtpos - _pb;
 	}
