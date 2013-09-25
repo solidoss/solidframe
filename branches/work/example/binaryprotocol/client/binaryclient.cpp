@@ -250,18 +250,6 @@ int main(int argc, char *argv[]){
 	cout<<"Debug modules: "<<dbgout<<endl;
 	}
 #endif
-	for(uint32 i = 0; i < p.repeat; ++i){
-		vdbgx(Debug::aio, i<<" verbose message verbose message verbose message verbose message verbose message verbose message verbose message ");
-		idbgx(Debug::aio, i<<" info message info message info message info message info message info message info message info message");
-		edbgx(Debug::aio, i<<" error message error message error message error message error message error message error message error message ");
-		wdbgx(Debug::aio, i<<" warning message warning message warning message warning message warning message warning message warning message ");
-		
-		vdbg(i<<" verbose message verbose message verbose message verbose message verbose message verbose message verbose message ");
-		idbg(i<<" info message info message info message info message info message info message info message info message");
-		edbg(i<<" error message error message error message error message error message error message error message error message ");
-		wdbg(i<<" warning message warning message warning message warning message warning message warning message warning message ");
-	}
-	
 	{
 		typedef DynamicSharedPointer<Connection>	ConnectionPointerT;
 		

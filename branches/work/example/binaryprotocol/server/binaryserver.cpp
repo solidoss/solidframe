@@ -1,5 +1,6 @@
 #include "protocol/binary/binaryaiosession.hpp"
 #include "protocol/binary/binarybasicbuffercontroller.hpp"
+#include "protocol/binary/binaryspecificbuffercontroller.hpp"
 
 #include "frame/aio/aiosingleobject.hpp"
 #include "frame/aio/aioselector.hpp"
@@ -339,7 +340,8 @@ class Connection: public solid::Dynamic<Connection, solid::frame::aio::SingleObj
 		frame::Message,
 		int
 	>															ProtocolSessionT;
-	typedef protocol::binary::BasicBufferController<2048>		BufferControllerT;
+	//typedef protocol::binary::BasicBufferController<2048>		BufferControllerT;
+	typedef protocol::binary::SpecificBufferController<2048>	BufferControllerT;
 public:
 	Connection(const SocketDevice &_rsd, const serialization::TypeMapperBase &_rtm):BaseT(_rsd), ser(_rtm), des(_rtm){
 		idbg((void*)this);
@@ -350,6 +352,7 @@ public:
 private:
 	int done(){
 		idbg("");
+		bufctl.clear();
 		return BAD;
 	}
 	/*virtual*/ int execute(ulong _sig, TimeSpec &_tout);

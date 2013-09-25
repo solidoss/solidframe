@@ -45,7 +45,7 @@ public:
 		}
 		bool reenter = false;
 		if(!_raioobj.socketHasPendingRecv()){
-			switch(_raioobj.socketRecv(BaseT::recvBufferOffset(_rbufctl.recvBuffer()), BaseT::recvBufferCapacity(BufCtlT::RecvCapacity))){
+			switch(_raioobj.socketRecv(BaseT::recvBufferOffset(_rbufctl.recvBuffer()), BaseT::recvBufferCapacity(_rbufctl.recvCapacity()))){
 				case BAD: return done();
 				case OK:{
 					char	tmpbuf[BufCtlT::DataCapacity];
@@ -75,12 +75,15 @@ public:
 		typedef BufCtl BufCtlT;
 		bool reenter = false;
 		if(!_raioobj.socketHasPendingSend()){
-			int		cnt = 4;
+			int		cnt = 8;
 			char	tmpbuf[BufCtlT::DataCapacity];
 			while((cnt--) > 0){
-				int rv = BaseT::fill(_rser, _rconctx, _rbufctl.sendBuffer(), BufCtlT::SendCapacity, _rcom, tmpbuf, BufCtlT::DataCapacity);
+				int rv = BaseT::fill(_rser, _rconctx, _rbufctl.sendBuffer(), _rbufctl.sendCapacity(), _rcom, tmpbuf, BufCtlT::DataCapacity);
 				if(rv < 0) return done();
-				if(rv == 0) break;
+				if(rv == 0){
+					_rbufctl.clearSend();//release the buffer as we have nothing to send
+					break;
+				}
 				switch(_raioobj.socketSend(_rbufctl.sendBuffer(), rv)){
 					case BAD: 
 						return done();

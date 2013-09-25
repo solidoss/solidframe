@@ -114,9 +114,10 @@ void* SpecificObject::operator new (std::size_t _sz){
 	}
 }
 //----------------------------------------------------------------------------------------------------
-// 32 * 4096 per every id
+// 4096 * 4096 per every id
+//TODO: make it configurable
 unsigned SpecificCacheControl::stackCapacity(unsigned _bufid)const{
-	return 32 * 4096 / (1 << _bufid);
+	return 4096 * 4096 / (1 << _bufid);
 }
 bool BasicCacheControl::release(){
 	return false;//do not delete this object

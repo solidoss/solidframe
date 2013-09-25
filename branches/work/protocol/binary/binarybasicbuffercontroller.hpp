@@ -23,16 +23,33 @@ struct BasicBufferController{
 		RecvCapacity = RecvCp,
 		SendCapacity = SendCp
 	};
+	size_t sendCapacity()const{
+		return SendCapacity;
+	}
+	size_t recvCapacity()const{
+		return RecvCapacity;
+	}
 	char *sendBuffer(){
 		return sndbuf;
 	}
 	char *recvBuffer(){
+	
 		return rcvbuf;
 	}
 	
+	void clearSend(){
+	}
+	void clearRecv(){
+	}
+	void clear(){
+	}
+	void prepareSend(){
+	}
+	void prepareRecv(){
+	}
 private:
-	char rcvbuf[RecvCp];
-	char sndbuf[SendCp];
+	char rcvbuf[RecvCapacity];
+	char sndbuf[SendCapacity];
 };
 
 
