@@ -64,30 +64,24 @@ struct Handle{
 		return true;
 	}
 	
-	bool checkLoad(FirstRequest *_pm, ConnectionContext  &_rctx)const{
+	bool checkLoad(void *_pm, ConnectionContext  &_rctx)const{
 		idbg("");
 		return true;
 	}
-	bool checkLoad(SecondRequest *_pm, ConnectionContext &_rctx)const{
+	bool checkLoad(SecondMessage *_pm, ConnectionContext &_rctx)const{
 		idbg("");
 		return true;
 	}
 	
-	void afterSerialization(BinSerializerT &_rs, FirstRequest *_pm, ConnectionContext &_rctx){
-		idbg("ser:FirstRequest("<<_pm->v<<')');
+	void afterSerialization(BinSerializerT &_rs, void *_pm, ConnectionContext &_rctx){
 	}
 	
-	void afterSerialization(BinDeserializerT &_rs, FirstRequest *_pm, ConnectionContext &_rctx){
-		idbg("des:FirstRequest("<<_pm->v<<')');
-	}
 	
-	void afterSerialization(BinSerializerT &_rs, SecondRequest *_pm, ConnectionContext &_rctx){
-		idbg("ser:SecondRequest("<<_pm->v<<')');
-	}
+	void afterSerialization(BinDeserializerT &_rs, FirstRequest *_pm, ConnectionContext &_rctx);
 	
-	void afterSerialization(BinDeserializerT &_rs, SecondRequest *_pm, ConnectionContext &_rctx){
-		idbg("des:SecondRequest("<<_pm->v<<')');
-	}
+	void afterSerialization(BinDeserializerT &_rs, SecondMessage *_pm, ConnectionContext &_rctx);
+	void afterSerialization(BinDeserializerT &_rs, NoopMessage *_pm, ConnectionContext &_rctx);
+	
 };
 
 namespace{
@@ -214,8 +208,8 @@ int main(int argc, char *argv[]){
 		
 		tm.insertHandle<FirstRequest, Handle>();
 		tm.insert<FirstResponse>();
-		tm.insertHandle<SecondRequest, Handle>();
-		tm.insert<SecondResponse>();
+		tm.insertHandle<SecondMessage, Handle>();
+		tm.insertHandle<NoopMessage, Handle>();
 		
 		Service					svc(m, aiosched, tm);
 		m.registerService(svc);
@@ -336,18 +330,23 @@ int Listener::execute(ulong, TimeSpec&){
 
 //--------------------------------------------------------------------------
 class Connection: public solid::Dynamic<Connection, solid::frame::aio::SingleObject>{
+	//typedef protocol::binary::BasicBufferController<2048>		BufferControllerT;
+	typedef protocol::binary::SpecificBufferController<2048>	BufferControllerT;
+public:
+	
 	typedef protocol::binary::AioSession<
 		frame::Message,
 		int
 	>															ProtocolSessionT;
-	//typedef protocol::binary::BasicBufferController<2048>		BufferControllerT;
-	typedef protocol::binary::SpecificBufferController<2048>	BufferControllerT;
-public:
+	
 	Connection(const SocketDevice &_rsd, const serialization::TypeMapperBase &_rtm):BaseT(_rsd), ser(_rtm), des(_rtm){
 		idbg((void*)this);
 	}
 	~Connection(){
 		idbg((void*)this);
+	}
+	ProtocolSessionT &session(){
+		return sess;
 	}
 private:
 	int done(){
@@ -359,7 +358,7 @@ private:
 private:
 	BinSerializerT			ser;
 	BinDeserializerT		des;
-	ProtocolSessionT		session;
+	ProtocolSessionT		sess;
 	BufferControllerT		bufctl;
 };
 
@@ -384,6 +383,33 @@ void Service::insertConnection(
 		}
 	}
 	
+	if(_evs & (frame::TIMEOUT | frame::ERRDONE)){
+		return done();
+	}
 	ConnectionContext		ctx(*this);
-	return session.execute(*this, _evs, ctx, ser, des, bufctl, compressor);
+	int rv = sess.execute(*this, _evs, ctx, ser, des, bufctl, compressor);
+	if(rv == NOK){
+		_tout.add(20);//wait 20 secs
+	}
+	return rv;
 }
+//--------------------------------------------------------------------------
+void Handle::afterSerialization(BinDeserializerT &_rs, FirstRequest *_pm, ConnectionContext &_rctx){
+	idbg("des:FirstRequest("<<_pm->v<<')');
+	//echo as FirstResponse
+	DynamicPointer<frame::Message>	msgptr(new FirstResponse(_pm->idx, _pm->v));
+	_rctx.rcon.session().send(_rctx.rcvmsgidx, msgptr);
+}
+
+void Handle::afterSerialization(BinDeserializerT &_rs, SecondMessage *_pm, ConnectionContext &_rctx){
+	idbg("des:SecondMessage("<<_pm->v<<')');
+	//echo back the message itself
+	_rctx.rcon.session().send(_rctx.rcvmsgidx, _rctx.rcon.session().recvMessage(_rctx.rcvmsgidx));
+}
+
+void Handle::afterSerialization(BinDeserializerT &_rs, NoopMessage *_pm, ConnectionContext &_rctx){
+	idbg("des:NoopMessage");
+	//echo back the message itself
+	_rctx.rcon.session().send(_rctx.rcvmsgidx, _rctx.rcon.session().recvMessage(_rctx.rcvmsgidx));
+}
+

@@ -17,10 +17,16 @@ namespace solid{
 namespace protocol{
 namespace binary{
 
-template <class Msg, class MsgCtx>
-class AioSession: public binary::Session<Msg, MsgCtx>{
-	typedef binary::Session<Msg, MsgCtx>	BaseT;
+template <class Msg, class MsgCtx, class Ctl = BasicController>
+class AioSession: public binary::Session<Msg, MsgCtx, Ctl>{
+	typedef binary::Session<Msg, MsgCtx, Ctl>	BaseT;
 public:
+	AioSession(){}
+	
+	template <class T>
+	AioSession(T &_rt):BaseT(_rt){
+		
+	}
 	template <class ConCtx, class Des, class BufCtl, class Com> 
 	int executeRecv(
 		frame::aio::SingleObject &_raioobj,
@@ -37,8 +43,8 @@ public:
 			return done();
 		}
 		if(_evs & frame::INDONE){
-			idbg("indone");
 			char	tmpbuf[BufCtlT::DataCapacity];
+			idbg("receive data of size "<<_raioobj.socketRecvSize());
 			if(!BaseT::consume(_rdes, _rconctx, _rbufctl.recvBuffer(), _raioobj.socketRecvSize(), _rcom, tmpbuf, BufCtlT::DataCapacity)){
 				return done();
 			}
@@ -49,6 +55,7 @@ public:
 				case BAD: return done();
 				case OK:{
 					char	tmpbuf[BufCtlT::DataCapacity];
+					idbg("receive data of size "<<_raioobj.socketRecvSize());
 					if(!BaseT::consume(_rdes, _rconctx, _rbufctl.recvBuffer(), _raioobj.socketRecvSize(), _rcom, tmpbuf, BufCtlT::DataCapacity)){
 						idbg("error consume");
 						return done();
@@ -84,6 +91,7 @@ public:
 					_rbufctl.clearSend();//release the buffer as we have nothing to send
 					break;
 				}
+				idbg("send data of size "<<rv);
 				switch(_raioobj.socketSend(_rbufctl.sendBuffer(), rv)){
 					case BAD: 
 						return done();

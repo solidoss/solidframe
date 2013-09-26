@@ -13,7 +13,7 @@
 #include <deque>
 #include <cstring>
 
-
+#include "system/debug.hpp"
 #include "utility/dynamicpointer.hpp"
 #include "utility/queue.hpp"
 #include "utility/stack.hpp"
@@ -88,7 +88,10 @@ struct DummyCompressor{
 
 
 struct BasicController{
-	
+	template <class Ctx>
+	void onDoneSend(Ctx &_rctx){
+		
+	}
 };
 
 template <class Msg, class MsgCtx, class Ctl = BasicController>
@@ -120,7 +123,7 @@ public:
 	Session():rcvbufoff(0), rcvstate(RecvPacketHeaderState){}
 	
 	template <class T>
-	Session(const T &_rt):ctl(_rt), rcvbufoff(0), rcvstate(RecvPacketHeaderState){
+	Session(T &_rt):ctl(_rt), rcvbufoff(0), rcvstate(RecvPacketHeaderState){
 		
 	}
 	
@@ -243,6 +246,7 @@ public:
 					if(rcvmsgidx >= msgvec.size()){
 						msgvec.resize(rcvmsgidx + 1);
 					}
+					idbg("receive message on pos "<<rcvmsgidx);
 					MessageStub	&rms = msgvec[rcvmsgidx];
 					_rd.push(rms.rcvmsgptr, "message");
 				}
@@ -262,8 +266,10 @@ public:
 			}
 			rcvstate = RecvPacketHeaderState;
 			cnspos += (PacketHeader::SizeOf + pkthdr.size);
+			cnsbufoff += (PacketHeader::SizeOf + pkthdr.size);
 			cnslen -= (PacketHeader::SizeOf + pkthdr.size);
 		}
+
 		optimizeRecvBuffer(_pb);
 		return true;
 	}
@@ -298,6 +304,7 @@ public:
 					crttmppos = _rs.storeValue(crttmppos, static_cast<uint32>(sndq.front()));
 					crttmplen -= sizeof(uint32);
 					crttmpsz  += sizeof(uint32);
+					idbg("send message on pos "<<sndq.front());
 					_rs.push(rms.sndmsgptr.get(), "message");
 				}
 				
@@ -307,10 +314,12 @@ public:
 				
 				if(rv < 0){
 					rms.sendClear();
+					ctl.onDoneSend(_rctx);
 					sndq.pop();
 					return -1;
 				}else if(_rs.empty()){
 					rms.sendClear();
+					ctl.onDoneSend(_rctx);
 					sndq.pop();
 				}
 				
@@ -375,10 +384,12 @@ public:
 			
 			if(rv < 0){
 				rms.sendClear();
+				ctl.onDoneSend(_rctx);
 				sndq.pop();
 				return -1;
 			}else if(_rs.empty()){
 				rms.sendClear();
+				ctl.onDoneSend(_rctx);
 				sndq.pop();
 			}
 			
@@ -402,9 +413,10 @@ private:
 	void optimizeRecvBuffer(char *_pb){
 		const size_t cnssz = rcvbufoff - cnsbufoff;
 		if(cnssz <= cnsbufoff){
+			idbg("memcopy "<<cnssz<<" rcvoff = "<<rcvbufoff<<" cnsoff = "<<cnsbufoff);
 			memcpy(_pb, _pb + cnsbufoff, cnssz);
 			cnsbufoff = 0;
-			rcvbufoff -= cnssz;
+			rcvbufoff = cnssz;
 		}
 	}
 private:

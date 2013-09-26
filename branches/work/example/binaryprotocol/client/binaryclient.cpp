@@ -43,7 +43,7 @@ namespace{
 	Condition				cnd;
 	bool					run(true);
 	Params					p;
-
+	string					prefix;
 	static void term_handler(int signum){
 		switch(signum) {
 			case SIGINT:
@@ -82,6 +82,12 @@ typedef serialization::IdTypeMapper<
 	serialization::FakeMutex
 >																UInt8TypeMapperT;
 
+struct Handle;
+
+struct SessionController{
+	void onDoneSend(ConnectionContext &_rctx);
+};
+
 class Connection: public frame::aio::SingleObject{
 	typedef DynamicPointer<solid::frame::Message>				MessageDynamicPointerT;
 	struct MessageStub{
@@ -100,7 +106,8 @@ class Connection: public frame::aio::SingleObject{
 	typedef std::vector<MessageStub>							MessageVectorT;
 	typedef protocol::binary::AioSession<
 		frame::Message,
-		int
+		int,
+		SessionController
 	>															ProtocolSessionT;
 		
 	typedef protocol::binary::BasicBufferController<2048>		BufferControllerT;
@@ -116,7 +123,7 @@ public:
 		frame::Manager &_rm,
 		const ResolveData &_rd,
 		const serialization::TypeMapperBase &_rtm
-	):rm(_rm), rd(_rd), st(PrepareState), ser(_rtm), des(_rtm), sndidx(0){}
+	):rm(_rm), rd(_rd), st(PrepareState), ser(_rtm), des(_rtm), sndidx(1), waitnoop(false){}
 	
 	size_t send(DynamicPointer<solid::frame::Message>	&_rmsgptr, const uint32 _flags = 0){
 		Locker<Mutex>	lock(rm.mutex(*this));
@@ -137,17 +144,29 @@ public:
 		}
 		return idx;
 	}
+	
 	void dynamicHandle(solid::DynamicPointer<> &_dp);
 	void dynamicHandle(solid::DynamicPointer<FirstResponse> &_rmsgptr);
-	void dynamicHandle(solid::DynamicPointer<SecondResponse> &_rmsgptr);
+	void dynamicHandle(solid::DynamicPointer<SecondMessage> &_rmsgptr);
 private:
+	friend struct Handle;
+	friend struct SessionController;
 	/*virtual*/ int execute(ulong _evs, TimeSpec& _crtime);
 	int done(){
 		idbg("");
+		cout<<"Connection closed"<<endl;
 		Locker<Mutex>	lock(mtx);
 		run = false;
 		cnd.signal();
 		return BAD;
+	}
+	void onReceiveNoop(){
+		cassert(waitnoop);
+		waitnoop = false;
+	}
+	void onDoneSend(uint32 _msgidx){
+		Locker<Mutex>	lock(rm.mutex(*this));
+		freesndidxstk.push(_msgidx);
 	}
 private:
 	typedef Stack<size_t>	SizeStackT;
@@ -161,6 +180,7 @@ private:
 	MessageVectorT			sndmsgvec;
 	BufferControllerT		bufctl;
 	size_t					sndidx;
+	bool					waitnoop;
 	SizeStackT				freesndidxstk;
 };
 
@@ -181,35 +201,26 @@ struct Handle{
 	bool checkLoad(FirstResponse *_pm, ConnectionContext  &_rctx)const{
 		return true;
 	}
-	bool checkLoad(SecondResponse *_pm, ConnectionContext &_rctx)const{
+	bool checkLoad(SecondMessage *_pm, ConnectionContext &_rctx)const{
 		return true;
 	}
-	bool checkLoad(SecondRequest *_pm, ConnectionContext &_rctx)const{
+	bool checkLoad(void *_pm, ConnectionContext &_rctx)const{
 		return true;
 	}
-	
 	void afterSerialization(BinSerializerT &_rs, FirstResponse *_pm, ConnectionContext &_rctx){
-		cout<<"afterSerialization - ser - first"<<endl;
-	}
-	void afterSerialization(BinDeserializerT &_rs, FirstResponse *_pm, ConnectionContext &_rctx){
-		cout<<"afterSerialization - des - first"<<endl;
+		idbg("afterSerialization - ser - first");
 	}
 	
-	void afterSerialization(BinSerializerT &_rs, SecondResponse *_pm, ConnectionContext &_rctx){
-		cout<<"afterSerialization - ser - second"<<endl;
+	void afterSerialization(BinSerializerT &_rs, SecondMessage *_pm, ConnectionContext &_rctx){
+		idbg("afterSerialization - ser - second");
+	}
+	void afterSerialization(BinSerializerT &_rs, void *_pm, ConnectionContext &_rctx){
 	}
 	
-	void afterSerialization(BinDeserializerT &_rs, SecondResponse *_pm, ConnectionContext &_rctx){
-		cout<<"afterSerialization - des - second"<<endl;
-	}
-	
-	void afterSerialization(BinSerializerT &_rs, SecondRequest *_pm, ConnectionContext &_rctx){
-		cout<<"afterSerialization - ser - second - req"<<endl;
-	}
-	
-	void afterSerialization(BinDeserializerT &_rs, SecondRequest *_pm, ConnectionContext &_rctx){
-		cout<<"afterSerialization - des - second - req"<<endl;
-	}
+	void afterSerialization(BinDeserializerT &_rs, FirstResponse *_pm, ConnectionContext &_rctx);
+		
+	void afterSerialization(BinDeserializerT &_rs, SecondMessage *_pm, ConnectionContext &_rctx);
+	void afterSerialization(BinDeserializerT &_rs, NoopMessage *_pm, ConnectionContext &_rctx);
 };
 
 
@@ -259,8 +270,8 @@ int main(int argc, char *argv[]){
 		
 		tm.insert<FirstRequest>();
 		tm.insertHandle<FirstResponse, Handle>();
-		tm.insertHandle<SecondRequest, Handle>();
-		tm.insertHandle<SecondResponse, Handle>();
+		tm.insertHandle<SecondMessage, Handle>();
+		tm.insertHandle<NoopMessage, Handle>();
 		
 		
 		ConnectionPointerT				ccptr(
@@ -275,24 +286,37 @@ int main(int argc, char *argv[]){
 		aiosched.schedule(ccptr);
 		
 		DynamicPointer<solid::frame::Message>	msgptr;
+		uint32									idx = 0;
 		
-		msgptr = new FirstRequest(10);
 		
-		ccptr->send(msgptr);
-		
-		msgptr = new SecondRequest("Hello world!!");
-		
-		ccptr->send(msgptr);
-		idbg("");
-		if(1){
-			Locker<Mutex>	lock(mtx);
-			while(run){
-				cnd.wait(lock);
+		do{
+			if(idx % 2){
+				{
+					Locker<Mutex> lock(mtx);
+					prefix = "number[0 to exit] >";
+					cout<<prefix<<flush;
+				}
+				uint64 no;
+				cin>>no;
+				if(no == 0) break;
+				msgptr = new FirstRequest(idx++, no);
+				ccptr->send(msgptr);
+			}else{
+				{
+					Locker<Mutex> lock(mtx);
+					prefix = "string[q to exit] >";
+					cout<<prefix<<flush;
+				}
+				string s;
+				cin>>s;
+				if(s.size() == 1 && s[0] == 'q' || s[0] == 'Q') break;
+				msgptr = new SecondMessage(idx++, s);
+				ccptr->send(msgptr);
 			}
-		}else{
-			char c;
-			cin>>c;
-		}
+		
+		}while(true);
+		
+		idbg("");
 		
 		m.stop();
 		
@@ -314,7 +338,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 			("repeat,r", value<uint32>(&_par.repeat)->default_value(0),"Repeat")
 			("address,a", value<string>(&_par.address_str)->default_value("localhost"),"Server address")
 			("debug_levels,L", value<string>(&_par.dbg_levels)->default_value("view"),"Debug logging levels")
-			("debug_modules,M", value<string>(&_par.dbg_modules)->default_value("any"),"Debug logging modules")
+			("debug_modules,M", value<string>(&_par.dbg_modules)->default_value(""),"Debug logging modules")
 			("debug_address,A", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")
 			("debug_port,P", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")
 			("debug_console,C", value<bool>(&_par.dbg_console)->implicit_value(false)->default_value(true), "Debug console")
@@ -336,9 +360,11 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 }
 
 //-----------------------------------------------------------------------
-
 /*virtual*/ int Connection::execute(ulong _evs, TimeSpec& _crtime){
-	static Compressor 		compressor(BufferControllerT::DataCapacity);
+	typedef DynamicSharedPointer<solid::frame::Message>		MessageSharedPointerT;
+	
+	static Compressor 				compressor(BufferControllerT::DataCapacity);
+	static MessageSharedPointerT	noopmsgptr(new NoopMessage);
 	
 	ulong sm = grabSignalMask();
 	if(sm){
@@ -352,12 +378,29 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 		}
 	}
 	
+	if(_evs & (frame::TIMEOUT | frame::ERRDONE)){
+		if(waitnoop){
+			return done();
+		}else{
+			DynamicPointer<solid::frame::Message>	msgptr(noopmsgptr);
+			send(msgptr);
+			waitnoop = true;
+		}
+	}
+	
 	ConnectionContext		ctx(*this);
 	
 	bool reenter = false;
 	if(st == RunningState){
 		int rv = session.execute(*this, _evs, ctx, ser, des, bufctl, compressor);
 		if(rv == BAD) return done();
+		if(rv == NOK){
+			if(waitnoop){
+				_crtime.add(3);//wait 3 seconds
+			}else{
+				_crtime.add(15);//wait 15 secs then send noop
+			}
+		}
 		return rv;
 	}else if(st == PrepareState){
 		SocketDevice	sd;
@@ -391,4 +434,29 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 		reenter = true;
 	}
 	return reenter ? OK : NOK;
+}
+//---------------------------------------------------------------------------------
+void Handle::afterSerialization(BinDeserializerT &_rs, FirstResponse *_pm, ConnectionContext &_rctx){
+	static const char *blancs = "                                    ";
+	{
+		Locker<Mutex> lock(mtx);
+		cout<<'\r'<<blancs<<'\r'<<_pm->idx<<' '<<_pm->v<<endl;
+		cout<<prefix<<flush;
+	}
+}
+	
+void Handle::afterSerialization(BinDeserializerT &_rs, SecondMessage *_pm, ConnectionContext &_rctx){
+	static const char *blancs = "                                    ";
+	{
+		Locker<Mutex> lock(mtx);
+		cout<<"\r"<<blancs<<'\r'<<_pm->idx<<' '<<_pm->v<<endl;
+		cout<<prefix<<flush;
+	}
+}
+void Handle::afterSerialization(BinDeserializerT &_rs, NoopMessage *_pm, ConnectionContext &_rctx){
+	_rctx.rcon.onReceiveNoop();
+}
+//---------------------------------------------------------------------------------
+void SessionController::onDoneSend(ConnectionContext &_rctx){
+	_rctx.rcon.onDoneSend(_rctx.sndmsgidx);
 }
