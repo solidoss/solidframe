@@ -89,9 +89,7 @@ struct DummyCompressor{
 
 struct BasicController{
 	template <class Ctx>
-	void onDoneSend(Ctx &_rctx){
-		
-	}
+	void onDoneSend(Ctx &_rctx){}
 };
 
 template <class Msg, class MsgCtx, class Ctl = BasicController>

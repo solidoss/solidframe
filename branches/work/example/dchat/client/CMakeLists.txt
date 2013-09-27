@@ -1,8 +1,8 @@
-add_executable (example_binaryclient binaryclient.cpp)
+add_executable (example_dchatclient dchatclient.cpp)
 
 
-target_link_libraries (example_binaryclient
-	example_binary_core
+target_link_libraries (example_dchatclient
+	example_dchat_core
 	solid_frame_aio
 	solid_frame_core
 	solid_serialization
