@@ -121,6 +121,9 @@ struct Controller: Dynamic<Controller, DynamicShared<> >{
 	virtual uint32 computeNetworkId(
 		const SocketAddressStub &_rsa_dest
 	)const;
+	
+	virtual void onDisconnect();
+
 protected:
 	Controller(
 		const uint32 _flags = 0,
