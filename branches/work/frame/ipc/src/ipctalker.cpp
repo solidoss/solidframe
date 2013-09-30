@@ -1002,7 +1002,7 @@ int TalkerStub::basePort()const{
 }
 //======================================================================
 std::ostream& ConnectData::print(std::ostream& _ros)const{
-	_ros<<s<<f<<i<<p<<c<<' '<<type<<' '<<version_major<<'.'<<version_minor<<' ';
+	_ros<<s<<f<<i<<p<<c<<' '<<(int)type<<' '<<version_major<<'.'<<version_minor<<' ';
 	_ros<<flags<<' '<<baseport<<' '<<timestamp_s<<':'<<timestamp_n<<' ';
 	_ros<<relayid<<' '<<receivernetworkid<<':';
 	

@@ -1101,10 +1101,22 @@ void Service::disconnectNodeSessions(Node &_rn){
 }
 //---------------------------------------------------------------------
 void Service::disconnectSession(Session *_pses){
-	if(_pses->isRelayType()){
-		d.sessionrelayaddr4map.erase(_pses->peerRelayAddress4());
-	}else{
-		d.sessionaddr4map.erase(_pses->peerBaseAddress4());
+	{
+		uint32				netid = LocalNetworkId;
+		SocketAddressInet	addr;
+		if(_pses->isRelayType()){
+			const RelayAddress4T peeraddr = _pses->peerRelayAddress4();
+			d.sessionrelayaddr4map.erase(peeraddr);
+			addr = peeraddr.first.first;
+			addr.port(peeraddr.first.second);
+			netid = peeraddr.second;			
+		}else{
+			const BaseAddress4T peeraddr = _pses->peerBaseAddress4();
+			d.sessionaddr4map.erase(peeraddr);
+			addr = peeraddr.first;
+			addr.port(peeraddr.second);
+		}
+		controller().onDisconnect(addr, netid);
 	}
 	//Use:Context::the().msgctx.connectionuid.tid
 	const int			tkridx(Context::the().msgctx.connectionuid.tid);
@@ -1117,6 +1129,7 @@ void Service::disconnectSession(Session *_pses){
 	if(rts.cnt < d.config.talker.sescnt){
 		d.tkrq.push(tkridx);
 	}
+	
 }
 //---------------------------------------------------------------------
 bool Service::checkAcceptData(const SocketAddress &/*_rsa*/, const AcceptData &_raccdata){
@@ -1314,6 +1327,9 @@ void Controller::sendEvent(
 )const{
 	return LocalNetworkId;
 }
+/*virtual*/ void Controller::onDisconnect(const SocketAddressInet &_raddr, const uint32 _netid){
+	vdbgx(Debug::ipc, _netid<<':'<<_raddr);
+}
 
 //------------------------------------------------------------------
 //		BasicController
@@ -1378,12 +1394,14 @@ struct HandleMessage{
 	}
 };
 
-void Service::Handle::beforeSerialize(Service::SerializerT &_rs, Message *_pt, const ConnectionContext &_rctx){
+void Service::Handle::beforeSerialization(Service::SerializerT &_rs, Message *_pt, const ConnectionContext &_rctx){
+	vdbgx(Debug::ipc, "");
 	MessageUid	&rmsguid = _pt->ipcRequestMessageUid();
 	_rs.pushHandle<HandleMessage>(_pt, "handle_state");
 	_rs.push(_pt->ipcState(), "state").push(rmsguid.idx, "msg_idx").push(rmsguid.uid, "msg_uid");
 }
-void Service::Handle::beforeSerialize(Service::DeserializerT &_rs, Message *_pt, const ConnectionContext &_rctx){
+void Service::Handle::beforeSerialization(Service::DeserializerT &_rs, Message *_pt, const ConnectionContext &_rctx){
+	vdbgx(Debug::ipc, "");
 	MessageUid	&rmsguid = _pt->ipcRequestMessageUid();
 	_rs.pushHandle<HandleMessage>(_pt, "handle_state");
 	_rs.push(_pt->ipcState(), "state").push(rmsguid.idx, "msg_idx").push(rmsguid.uid, "msg_uid");

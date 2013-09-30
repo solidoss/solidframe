@@ -77,7 +77,7 @@ struct Controller: Dynamic<Controller, DynamicShared<> >{
 	};
 	
 	virtual ~Controller();
-	
+
 	virtual void scheduleTalker(frame::aio::Object *_ptkr) = 0;
 	virtual void scheduleListener(frame::aio::Object *_plis) = 0;
 	virtual void scheduleNode(frame::aio::Object *_pnod) = 0;
@@ -122,7 +122,7 @@ struct Controller: Dynamic<Controller, DynamicShared<> >{
 		const SocketAddressStub &_rsa_dest
 	)const;
 	
-	virtual void onDisconnect();
+	virtual void onDisconnect(const SocketAddressInet &_raddr, const uint32 _netid);
 
 protected:
 	Controller(
@@ -305,20 +305,20 @@ private:
 		bool checkLoad(void */*_pt*/, const ConnectionContext &/*_rctx*/)const{
 			return true;
 		}
-		void handle(void */*_pt*/, const ConnectionContext &/*_rctx*/, const char */*_name*/){
-		}
+		void afterSerialization(SerializerT &_rs, void *_pm, const ConnectionContext &_rctx){}
+		void afterSerialization(DeserializerT &_rs, void *_pm, const ConnectionContext &_rctx){}
 	
-		void beforeSerialize(SerializerT &_rs, Message *_pt, const ConnectionContext &_rctx);
-		void beforeSerialize(DeserializerT &_rs, Message *_pt, const ConnectionContext &_rctx);
+		void beforeSerialization(SerializerT &_rs, Message *_pt, const ConnectionContext &_rctx);
+		void beforeSerialization(DeserializerT &_rs, Message *_pt, const ConnectionContext &_rctx);
 	};
 	
 	template <class H>
 	struct ProxyHandle: H, Handle{
-		void beforeSerialize(SerializerT &_rs, Message *_pt, const ConnectionContext &_rctx){
-			this->Handle::beforeSerialize(_rs, _pt, _rctx);
+		void beforeSerialization(SerializerT &_rs, Message *_pt, const ConnectionContext &_rctx){
+			this->Handle::beforeSerialization(_rs, _pt, _rctx);
 		}
-		void beforeSerialize(DeserializerT &_rd, Message *_pt, const ConnectionContext &_rctx){
-			this->Handle::beforeSerialize(_rd, _pt, _rctx);
+		void beforeSerialization(DeserializerT &_rd, Message *_pt, const ConnectionContext &_rctx){
+			this->Handle::beforeSerialization(_rd, _pt, _rctx);
 		}
 	};
 	

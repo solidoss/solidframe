@@ -69,9 +69,9 @@ class IdTypeMapper: public TypeMapperBase{
 		SerContextT		&rctx = *reinterpret_cast<SerContextT*>(_pctx);
 		
 		if(handle.checkStore(&rp, rctx)){
-			handle.beforeSerialization(rs, &rp, rctx);
 			rs.template pushHandlePointer<T, H>(&rp, _name);
 			rs.push(rp, _name);
+			handle.beforeSerialization(rs, &rp, rctx);//DO NOT Move this line - must be before storing the id
 			rs.push(rid, _name);
 			return true;
 		}else{
