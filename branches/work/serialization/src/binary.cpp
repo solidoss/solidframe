@@ -540,6 +540,125 @@ int SerializerBase::storeStream(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	return CONTINUE;
 }
 
+/*static*/ int SerializerBase::storeCrossContinue(Base &_rs, FncData &_rfd, void */*_pctx*/){
+	SerializerBase	&rs(static_cast<SerializerBase&>(_rs));
+	if(!rs.cpb) return OK;
+	unsigned	len = rs.be - rs.cpb;
+	unsigned	vsz = reinterpret_cast<uint32>(_rfd.p);
+	uint8		*pd = reinterpret_cast<uint8*>(rs.cpb);
+	while(len && vsz){
+		*pd = (_rfd.s & 0xff);
+		++pd;
+		--len;
+		--vsz;
+		if(vsz == 1){
+			_rfd.s >>= 4;
+		}else{
+			_rfd.s >>= 8;
+		}
+	}
+	if(vsz == 0){
+		return OK;
+	}
+	_rfd.p = reinterpret_cast<void*>(vsz);
+	return NOK;
+}
+
+template <>
+/*static*/ int SerializerBase::storeCross<uint8>(Base &_rs, FncData &_rfd, void */*_pctx*/){
+	SerializerBase	&rs(static_cast<SerializerBase&>(_rs));
+	
+	if(!rs.cpb) return OK;
+	
+	const uint8		&v = *reinterpret_cast<const uint8*>(_rfd.p);
+	const unsigned	len = rs.be - rs.cpb;
+	const unsigned	vsz = crossSize(v);
+	
+	if(len >= vsz){
+		rs.cpb = binary::storeCross(rs.cpb, v);
+		return OK;
+	}else if(len >= 1){
+		uint8	*pd = reinterpret_cast<uint8*>(rs.cpb);
+		*pd = ((v & 0xf) << 4) | vsz;
+		_rfd.p = reinterpret_cast<void*>(1);
+		
+		_rfd.s = v >> 4;
+		_rfd.f = storeCrossContinue;
+	}
+	return NOK;
+}
+template <>
+/*static*/ int SerializerBase::storeCross<uint16>(Base &_rs, FncData &_rfd, void */*_pctx*/){
+	SerializerBase	&rs(static_cast<SerializerBase&>(_rs));
+	
+	if(!rs.cpb) return OK;
+	
+	const uint16	&v = *reinterpret_cast<const uint16*>(_rfd.p);
+	const unsigned	len = rs.be - rs.cpb;
+	const unsigned	vsz = crossSize(v);
+	
+	if(len >= vsz){
+		rs.cpb = binary::storeCross(rs.cpb, v);
+		return OK;
+	}else if(len >= 1){
+		uint8	*pd = reinterpret_cast<uint8*>(rs.cpb);
+		*pd = ((v & 0xf) << 4) | vsz;
+		_rfd.p = reinterpret_cast<void*>(1);
+		
+		_rfd.s = v >> 4;
+		_rfd.f = storeCrossContinue;
+		return CONTINUE;
+	}
+	return NOK;
+}
+template <>
+/*static*/ int SerializerBase::storeCross<uint32>(Base &_rs, FncData &_rfd, void */*_pctx*/){
+	SerializerBase	&rs(static_cast<SerializerBase&>(_rs));
+	
+	if(!rs.cpb) return OK;
+	
+	const uint32	&v = *reinterpret_cast<const uint32*>(_rfd.p);
+	const unsigned	len = rs.be - rs.cpb;
+	const unsigned	vsz = crossSize(v);
+	
+	if(len >= vsz){
+		rs.cpb = binary::storeCross(rs.cpb, v);
+		return OK;
+	}else if(len >= 1){
+		uint8	*pd = reinterpret_cast<uint8*>(rs.cpb);
+		*pd = ((v & 0xf) << 4) | vsz;
+		_rfd.p = reinterpret_cast<void*>(1);
+		
+		_rfd.s = v >> 4;
+		_rfd.f = storeCrossContinue;
+		return CONTINUE;
+	}
+	return NOK;
+}
+template <>
+/*static*/ int SerializerBase::storeCross<uint64>(Base &_rs, FncData &_rfd, void */*_pctx*/){
+	SerializerBase	&rs(static_cast<SerializerBase&>(_rs));
+	
+	if(!rs.cpb) return OK;
+	
+	const uint64	&v = *reinterpret_cast<const uint64*>(_rfd.p);
+	const unsigned	len = rs.be - rs.cpb;
+	const unsigned	vsz = crossSize(v);
+	
+	if(len >= vsz){
+		rs.cpb = binary::storeCross(rs.cpb, v);
+		return OK;
+	}else if(len >= 1){
+		uint8	*pd = reinterpret_cast<uint8*>(rs.cpb);
+		*pd = ((v & 0xf) << 4) | vsz;
+		_rfd.p = reinterpret_cast<void*>(1);
+		
+		_rfd.s = v >> 4;
+		_rfd.f = storeCrossContinue;
+		return CONTINUE;
+	}
+	return NOK;
+}
 //========================================================================
 //		Deserializer
 //========================================================================
@@ -1305,7 +1424,111 @@ int DeserializerBase::loadUtf8(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	++rd.cpb;
 	return OK;
 }
+/*static*/ int DeserializerBase::loadCrossContinue(Base& _rd, FncData &_rfd, void */*_pctx*/){
+	DeserializerBase &rd(static_cast<DeserializerBase&>(_rd));
+	idbgx(Debug::ser_bin, "");
+	if(!rd.cpb) return OK;
+	const unsigned	len = rd.be - rd.cpb;
+	while(len){
+		
+	}
+	return OK;
+}
+template <>
+/*static*/ int DeserializerBase::loadCross<uint8>(Base& _rd, FncData &_rfd, void */*_pctx*/){
+	DeserializerBase &rd(static_cast<DeserializerBase&>(_rd));
+	idbgx(Debug::ser_bin, "");
+	if(!rd.cpb) return OK;
+	const unsigned	len = rd.be - rd.cpb;
+	if(!len) return NOK;
+	const unsigned	vsz = crossSize(rd.cpb);
+	uint8			&v = *reinterpret_cast<uint8*>(_rfd.p);
+	
+	if(vsz <= len){
+		rd.cpb = binary::loadCross(rd.cpb, v);
+		return OK;
+	}
+	const uint8		*ps = reinterpret_cast<const uint8*>(rd.cpb);
+	v = (*ps >> 4);
+	if(vsz){
+		_rfd.f = loadCrossContinue;
+		_rfd.s = vsz;
+		return CONTINUE;
+	}
+	return OK;
+}
 
+template <>
+/*static*/ int DeserializerBase::loadCross<uint16>(Base& _rd, FncData &_rfd, void */*_pctx*/){
+	DeserializerBase &rd(static_cast<DeserializerBase&>(_rd));
+	idbgx(Debug::ser_bin, "");
+	if(!rd.cpb) return OK;
+	const unsigned	len = rd.be - rd.cpb;
+	if(!len) return NOK;
+	const unsigned	vsz = crossSize(rd.cpb);
+	uint16			&v = *reinterpret_cast<uint16*>(_rfd.p);
+	
+	if(vsz <= len){
+		rd.cpb = binary::loadCross(rd.cpb, v);
+		return OK;
+	}
+	const uint8		*ps = reinterpret_cast<const uint8*>(rd.cpb);
+	v = (*ps >> 4);
+	if(vsz){
+		_rfd.f = loadCrossContinue;
+		_rfd.s = vsz;
+		return CONTINUE;
+	}
+	return OK;
+}
+
+template <>
+/*static*/ int DeserializerBase::loadCross<uint32>(Base& _rd, FncData &_rfd, void */*_pctx*/){
+	DeserializerBase &rd(static_cast<DeserializerBase&>(_rd));
+	idbgx(Debug::ser_bin, "");
+	if(!rd.cpb) return OK;
+	const unsigned	len = rd.be - rd.cpb;
+	if(!len) return NOK;
+	const unsigned	vsz = crossSize(rd.cpb);
+	uint32			&v = *reinterpret_cast<uint32*>(_rfd.p);
+	
+	if(vsz <= len){
+		rd.cpb = binary::loadCross(rd.cpb, v);
+		return OK;
+	}
+	const uint8		*ps = reinterpret_cast<const uint8*>(rd.cpb);
+	v = (*ps >> 4);
+	if(vsz){
+		_rfd.f = loadCrossContinue;
+		_rfd.s = vsz;
+		return CONTINUE;
+	}
+	return OK;
+}
+
+template <>
+/*static*/ int DeserializerBase::loadCross<uint64>(Base& _rd, FncData &_rfd, void */*_pctx*/){
+	DeserializerBase &rd(static_cast<DeserializerBase&>(_rd));
+	idbgx(Debug::ser_bin, "");
+	if(!rd.cpb) return OK;
+	const unsigned	len = rd.be - rd.cpb;
+	if(!len) return NOK;
+	const unsigned	vsz = crossSize(rd.cpb);
+	uint64			&v = *reinterpret_cast<uint64*>(_rfd.p);
+	
+	if(vsz <= len){
+		rd.cpb = binary::loadCross(rd.cpb, v);
+		return OK;
+	}
+	const uint8		*ps = reinterpret_cast<const uint8*>(rd.cpb);
+	v = (*ps >> 4);
+	if(vsz){
+		_rfd.f = loadCrossContinue;
+		_rfd.s = vsz;
+		return CONTINUE;
+	}
+	return OK;
+}
 //========================================================================
 //========================================================================
 }//namespace binary

@@ -277,6 +277,10 @@ protected:
 	
 	static int storeUtf8(Base &_rs, FncData &_rfd, void */*_pctx*/);
 	
+	static int storeCrossContinue(Base &_rs, FncData &_rfd, void */*_pctx*/);
+	template <typename N>
+	static int storeCross(Base &_rs, FncData &_rfd, void */*_pctx*/);
+	
 // 	template <typename T, class Ser>
 // 	static int storeHandle(Base &_rs, FncData &_rfd, void *_pctx){
 // 		idbgx(Debug::ser_bin, "store generic non pointer with handle");
@@ -531,6 +535,14 @@ template <>
 int SerializerBase::store<uint64>(Base &_rb, FncData &_rfd, void */*_pctx*/);
 template <>
 int SerializerBase::store<std::string>(Base &_rb, FncData &_rfd, void */*_pctx*/);
+template <>
+int SerializerBase::storeCross<uint8>(Base &_rs, FncData &_rfd, void */*_pctx*/);
+template <>
+int SerializerBase::storeCross<uint16>(Base &_rs, FncData &_rfd, void */*_pctx*/);
+template <>
+int SerializerBase::storeCross<uint32>(Base &_rs, FncData &_rfd, void */*_pctx*/);
+template <>
+int SerializerBase::storeCross<uint64>(Base &_rs, FncData &_rfd, void */*_pctx*/);
 
 template <typename T>
 int SerializerBase::store(Base &_rs, FncData &_rfd, void */*_pctx*/){
@@ -813,6 +825,23 @@ public:
 		this->Base::fstk.push(Base::FncData(&SerializerBase::storeHandle<T, SerializerT, H>, _pt, _name));
 		return *this;
 	}
+	
+	SerializerT& pushCross(const uint8 &_rv, const char *_name = NULL){
+		this->Base::fstk.push(Base::FncData(&SerializerBase::storeCross<uint8>, const_cast<uint8*>(&_rv), _name));
+		return *this;
+	}
+	SerializerT& pushCross(const uint16 &_rv, const char *_name = NULL){
+		this->Base::fstk.push(Base::FncData(&SerializerBase::storeCross<uint16>, const_cast<uint16*>(&_rv), _name));
+		return *this;
+	}
+	SerializerT& pushCross(const uint32 &_rv, const char *_name = NULL){
+		this->Base::fstk.push(Base::FncData(&SerializerBase::storeCross<uint32>, const_cast<uint32*>(&_rv), _name));
+		return *this;
+	}
+	SerializerT& pushCross(const uint64 &_rv, const char *_name = NULL){
+		this->Base::fstk.push(Base::FncData(&SerializerBase::storeCross<uint64>, const_cast<uint64*>(&_rv), _name));
+		return *this;
+	}
 };
 //--------------------------------------------------------------
 template <class Ctx>
@@ -991,6 +1020,22 @@ public:
 		this->Base::fstk.push(Base::FncData(&SerializerBase::storeHandle<T, SerializerT, H>, _pt, _name));
 		return *this;
 	}
+	SerializerT& pushCross(const uint8 &_rv, const char *_name = NULL){
+		this->Base::fstk.push(Base::FncData(&SerializerBase::storeCross<uint8>, &_rv, _name));
+		return *this;
+	}
+	SerializerT& pushCross(const uint16 &_rv, const char *_name = NULL){
+		this->Base::fstk.push(Base::FncData(&SerializerBase::storeCross<uint16>, &_rv, _name));
+		return *this;
+	}
+	SerializerT& pushCross(const uint32 &_rv, const char *_name = NULL){
+		this->Base::fstk.push(Base::FncData(&SerializerBase::storeCross<uint32>, &_rv, _name));
+		return *this;
+	}
+	SerializerT& pushCross(const uint64 &_rv, const char *_name = NULL){
+		this->Base::fstk.push(Base::FncData(&SerializerBase::storeCross<uint64>, &_rv, _name));
+		return *this;
+	}
 };
 
 //===============================================================
@@ -1040,6 +1085,10 @@ protected:
 			return BAD;
 		}
 	}
+	
+	static int loadCrossContinue(Base& _rd, FncData &_rfd, void */*_pctx*/);
+	template <typename T>
+	static int loadCross(Base& _rd, FncData &_rfd, void */*_pctx*/);
 	
 	template <typename T>
 	static int load(Base& _rd, FncData &_rfd, void */*_pctx*/);
@@ -1334,6 +1383,15 @@ int DeserializerBase::load<uint64>(Base &_rb, FncData &_rfd, void */*_pctx*/);
 template <>
 int DeserializerBase::load<std::string>(Base &_rb, FncData &_rfd, void */*_pctx*/);
 
+template <>
+/*static*/ int DeserializerBase::loadCross<uint8>(Base& _rd, FncData &_rfd, void */*_pctx*/);
+template <>
+/*static*/ int DeserializerBase::loadCross<uint16>(Base& _rd, FncData &_rfd, void */*_pctx*/);
+template <>
+/*static*/ int DeserializerBase::loadCross<uint32>(Base& _rd, FncData &_rfd, void */*_pctx*/);
+template <>
+/*static*/ int DeserializerBase::loadCross<uint64>(Base& _rd, FncData &_rfd, void */*_pctx*/);
+
 template <typename T>
 int DeserializerBase::load(Base& _rd, FncData &_rfd, void */*_pctx*/){
 	//should never get here
@@ -1597,6 +1655,22 @@ public:
 		this->Base::fstk.push(Base::FncData(&DeserializerBase::loadHandle<T, DeserializerT, H>, _pt, _name));
 		return *this;
 	}
+	Deserializer& pushCross(uint8 &_rv, const char *_name = NULL){
+		this->Base::fstk.push(Base::FncData(&DeserializerBase::loadCross<uint8>, &_rv, _name));
+		return *this;
+	}
+	Deserializer& pushCross(uint16 &_rv, const char *_name = NULL){
+		this->Base::fstk.push(Base::FncData(&DeserializerBase::loadCross<uint16>, &_rv, _name));
+		return *this;
+	}
+	Deserializer& pushCross(uint32 &_rv, const char *_name = NULL){
+		this->Base::fstk.push(Base::FncData(&DeserializerBase::loadCross<uint32>, &_rv, _name));
+		return *this;
+	}
+	Deserializer& pushCross(uint64 &_rv, const char *_name = NULL){
+		this->Base::fstk.push(Base::FncData(&DeserializerBase::loadCross<uint64>, &_rv, _name));
+		return *this;
+	}
 };
 
 //--------------------------------------------------------------
@@ -1763,6 +1837,22 @@ public:
 	template <class H, class T>
 	Deserializer& pushHandle(T *_pt, const char *_name = NULL){
 		DeserializerBase::fstk.push(DeserializerBase::FncData(&DeserializerBase::template handle<T, DeserializerT, H, Ctx>, _pt, _name));
+		return *this;
+	}
+	Deserializer& pushCross(uint8 &_rv, const char *_name = NULL){
+		this->Base::fstk.push(Base::FncData(&DeserializerBase::loadCross<uint8>, &_rv, _name));
+		return *this;
+	}
+	Deserializer& pushCross(uint16 &_rv, const char *_name = NULL){
+		this->Base::fstk.push(Base::FncData(&DeserializerBase::loadCross<uint16>, &_rv, _name));
+		return *this;
+	}
+	Deserializer& pushCross(uint32 &_rv, const char *_name = NULL){
+		this->Base::fstk.push(Base::FncData(&DeserializerBase::loadCross<uint32>, &_rv, _name));
+		return *this;
+	}
+	Deserializer& pushCross(uint64 &_rv, const char *_name = NULL){
+		this->Base::fstk.push(Base::FncData(&DeserializerBase::loadCross<uint64>, &_rv, _name));
 		return *this;
 	}
 };
