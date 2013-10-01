@@ -966,7 +966,7 @@ public:
 	template <typename T, typename ST>
 	SerializerT& pushArray(T *_p, const ST &_rsz, const char *_name = NULL){
 		SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::template storeArray<T, SerializerT>, (void*)_p, _name));
-		SerializerBase::estk.push(SerializerBase::ExtData((uint64)_rsz, (int64)0));
+		SerializerBase::estk.push(SerializerBase::ExtData((uint64)_rsz, (uint64)0));
 		return *this;
 	}
 	template <typename T, typename ST>
@@ -974,7 +974,7 @@ public:
 		T* &_rp, const ST &_rsz, const char *_name = NULL
 	){
 		SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::template storeArray<T, SerializerT>, (void*)_rp, _name));
-		SerializerBase::estk.push(SerializerBase::ExtData((uint64)_rsz, (int64)0));
+		SerializerBase::estk.push(SerializerBase::ExtData((uint64)_rsz, (uint64)0));
 		return *this;
 	}
 	SerializerT& pushUtf8(

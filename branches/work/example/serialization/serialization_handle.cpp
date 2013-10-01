@@ -64,11 +64,11 @@ struct Handle{
 		return true;
 	}
 	
-	void beforeSerialize(BinSerializerT &_rs, void *_pt, Context &_rctx){
+	void beforeSerialization(BinSerializerT &_rs, void *_pt, Context &_rctx){
 		
 	}
 	
-	void beforeSerialize(BinDeserializerT &_rs, void *_pt, Context &_rctx){
+	void beforeSerialization(BinDeserializerT &_rs, void *_pt, Context &_rctx){
 		
 	}
 	
@@ -79,9 +79,11 @@ struct Handle{
 		}
 		return false;
 	}
-	void handle(TestA *_pt, Context &_rctx, const char *_name){
+	void afterSerialization(BinSerializerT &_rs, void *_pt, Context &_rctx){
+	}
+	void afterSerialization(BinDeserializerT &_rs, TestA *_pt, Context &_rctx){
 		_pt->print();
-		cout<<_name<<" _rctx.value = "<<_rctx.value<<endl;
+		cout<<" _rctx.value = "<<_rctx.value<<endl;
 	}
 	bool checkLoad(TestB *_pt, Context &_rctx)const{
 		if(_rctx.value == 10){
@@ -90,9 +92,9 @@ struct Handle{
 		}
 		return false;
 	}
-	void handle(TestB *_pt, Context &_rctx, const char *_name){
+	void afterSerialization(BinDeserializerT &_rs, TestB *_pt, Context &_rctx){
 		_pt->print();
-		cout<<_name<<" _rctx.value = "<<_rctx.value<<endl;
+		cout<<" _rctx.value = "<<_rctx.value<<endl;
 	}
 };
 

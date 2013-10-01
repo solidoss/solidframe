@@ -247,16 +247,16 @@ struct Array: Base{
 	void print()const;
 	
 	std::string sa[3];
-	uint8		sasz;
+	size_t		sasz;
 	
 	TestA		*pta;
-	uint16		ptasz;
+	size_t		ptasz;
 	
 	TestA		*pta1;
-	uint16		pta1sz;
+	size_t		pta1sz;
 	
 	TestD		td[4];
-	uint32		tdsz;
+	size_t		tdsz;
 };
 
 void Array::print() const{
