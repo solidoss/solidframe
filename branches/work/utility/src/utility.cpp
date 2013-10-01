@@ -82,7 +82,7 @@ uint64 bit_count(const uint64 _v){
 
 inline uint8 compute_crc_value(uint8 _pos){
 	if(_pos < (1 << 5)){
-		return (bit_count(_pos) << 5) | _pos;
+		return bit_count(_pos) | (_pos << 3);
 	}else{
 		return 0xff;
 	}
@@ -90,7 +90,7 @@ inline uint8 compute_crc_value(uint8 _pos){
 
 inline uint16 compute_crc_value(uint16 _pos){
 	if(_pos < (1 << 12)){
-		return (bit_count(_pos) << 12) | _pos;
+		return bit_count(_pos) | (_pos << 4);
 	}else{
 		return 0xffff;
 	}
@@ -98,7 +98,7 @@ inline uint16 compute_crc_value(uint16 _pos){
 
 inline uint32 compute_crc_value(uint32 _pos){
 	if(_pos < (1 << 27)){
-		return (bit_count(_pos) << 27) | _pos;
+		return bit_count(_pos) | (_pos << 5);
 	}else{
 		return 0xffffffff;
 	}
@@ -106,7 +106,7 @@ inline uint32 compute_crc_value(uint32 _pos){
 
 inline uint64 compute_crc_value(uint64 _pos){
 	if(_pos < (1ULL << 58)){
-		return (bit_count(_pos) << 58) | _pos;
+		return bit_count(_pos) | (_pos << 6);
 	}else{
 		return -1LL;
 	}

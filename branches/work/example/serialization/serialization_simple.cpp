@@ -191,9 +191,9 @@ void serialize(S &_s, IntegerVector &_iv){
 struct Array: Base{
 	Array(){
 		pta = NULL;
-		ptasz = -1;
+		ptasz = 0;
 		pta1 = (TestA*)1;
-		pta1sz = -1;
+		pta1sz = 0;
 	}
 	Array(bool){
 		sasz = 3;
@@ -222,23 +222,23 @@ struct Array: Base{
 	template <class S>
 	void serialize(S &_s){
 		_s.pushArray(sa, sasz, "sa");
-		_s.pushDynamicArray(pta, ptasz, "pta");
-		_s.pushDynamicArray(pta1, pta1sz, "pta1");
+		//_s.pushDynamicArray(pta, ptasz, "pta");
+		//_s.pushDynamicArray(pta1, pta1sz, "pta1");
 		_s.pushArray(td, tdsz, "td");
 	}
 	void print()const;
 	
 	std::string sa[3];
-	uint8		sasz;
+	size_t		sasz;
 	
 	TestA		*pta;
-	uint16		ptasz;
+	size_t		ptasz;
 	
 	TestA		*pta1;
-	uint16		pta1sz;
+	size_t		pta1sz;
 	
 	TestD		td[4];
-	uint32		tdsz;
+	size_t		tdsz;
 };
 
 void Array::print() const{
@@ -291,7 +291,6 @@ typedef std::deque<std::pair<int32,int32> > PairIntDeqT;
 void print(StrDeqT &_rsdq);
 ///\endcond
 
-void test_basic_serialization();
 enum{
 	STRING_TYPE_INDEX = 1,
 	STRING_DEFAULT_TYPE_INDEX,
@@ -325,8 +324,6 @@ int main(int argc, char *argv[]){
 	
 	
 	UInt16TypeMapperT		tm;
-	
-	test_basic_serialization();
 	
 	tm.insert<String>(STRING_TYPE_INDEX);
 	tm.insert<String, IndexType<1> >(STRING_DEFAULT_TYPE_INDEX);
@@ -470,121 +467,3 @@ void print(StrDeqT &_rsdq){
 	cout<<"string deque end"<<endl;
 }
 
-void test_basic(uint8 _v){
-	using namespace serialization::binary;
-	char	buf[32];
-	cout<<"store: "<<(int)_v<<" size = "<<crossSize(_v)<<endl;
-	storeCross(buf, _v);
-	//
-	uint16	v08;
-	uint16	v16;
-	uint32	v32;
-	uint64	v64;
-	loadCross(buf, v08);
-	loadCross(buf, v16);
-	loadCross(buf, v32);
-	loadCross(buf, v64);
-	cout<<"load: "<<(int)v08<<' '<<v16<<' '<<v32<<' '<<v64<<endl;
-}
-
-void test_basic(uint16 _v){
-	using namespace serialization::binary;
-	char	buf[32];
-	cout<<"store: "<<_v<<" size = "<<crossSize(_v)<<endl;
-	storeCross(buf, _v);
-	//
-	uint8	v08;
-	uint16	v16;
-	uint32	v32;
-	uint64	v64;
-	loadCross(buf, v08);
-	loadCross(buf, v16);
-	loadCross(buf, v32);
-	loadCross(buf, v64);
-	cout<<"load: "<<(int)v08<<' '<<v16<<' '<<v32<<' '<<v64<<endl;
-}
-
-void test_basic(uint32 _v){
-	using namespace serialization::binary;
-	char	buf[32];
-	cout<<"store: "<<_v<<" size = "<<crossSize(_v)<<endl;
-	storeCross(buf, _v);
-	//
-	uint8	v08;
-	uint16	v16;
-	uint32	v32;
-	uint64	v64;
-	loadCross(buf, v08);
-	loadCross(buf, v16);
-	loadCross(buf, v32);
-	loadCross(buf, v64);
-	cout<<"load: "<<(int)v08<<' '<<v16<<' '<<v32<<' '<<v64<<endl;
-}
-
-void test_basic(uint64 _v){
-	using namespace serialization::binary;
-	char	buf[32];
-	cout<<"store: "<<_v<<" size = "<<crossSize(_v)<<endl;
-	storeCross(buf, _v);
-	//
-	uint8	v08;
-	uint16	v16;
-	uint32	v32;
-	uint64	v64;
-	loadCross(buf, v08);
-	loadCross(buf, v16);
-	loadCross(buf, v32);
-	loadCross(buf, v64);
-	cout<<"load: "<<(unsigned)v08<<' '<<v16<<' '<<v32<<' '<<v64<<endl;
-}
-
-
-void test_basic_serialization(){
-	cout<<"8bits----------------"<<endl;
-	test_basic(static_cast<uint8>(0xf));
-	test_basic(static_cast<uint8>(0xff));
-	test_basic(static_cast<uint8>(0x0f));
-	
-	cout<<"16bits---------------"<<endl;
-	test_basic(static_cast<uint16>(0xf));
-	test_basic(static_cast<uint16>(0xff));
-	test_basic(static_cast<uint16>(0x0f));
-	test_basic(static_cast<uint16>(0x0f0f));
-	test_basic(static_cast<uint16>(0xf0f0));
-	test_basic(static_cast<uint16>(0xff00));
-	test_basic(static_cast<uint16>(0x00ff));
-	test_basic(static_cast<uint16>(0xffff));
-	
-	cout<<"32bits---------------"<<endl;
-	test_basic(static_cast<uint32>(0xf));
-	test_basic(static_cast<uint32>(0xff));
-	test_basic(static_cast<uint32>(0x0f));
-	test_basic(static_cast<uint32>(0x0f0f));
-	test_basic(static_cast<uint32>(0xf0f0));
-	test_basic(static_cast<uint32>(0xff00));
-	test_basic(static_cast<uint32>(0x00ff));
-	test_basic(static_cast<uint32>(0xffff));
-	test_basic(static_cast<uint32>(0xffffffff));
-	test_basic(static_cast<uint32>(0x0000ffff));
-	test_basic(static_cast<uint32>(0x00ff00ff));
-	
-	cout<<"64bits----------------"<<endl;
-	test_basic(static_cast<uint64>(0xf));
-	test_basic(static_cast<uint64>(0xff));
-	test_basic(static_cast<uint64>(0x0f));
-	test_basic(static_cast<uint64>(0x0f0f));
-	test_basic(static_cast<uint64>(0xf0f0));
-	test_basic(static_cast<uint64>(0xff00));
-	test_basic(static_cast<uint64>(0x00ff));
-	test_basic(static_cast<uint64>(0xffff));
-	test_basic(static_cast<uint64>(0xffffffff));
-	test_basic(static_cast<uint64>(0x0000ffff));
-	test_basic(static_cast<uint64>(0x00ff00ff));
-	test_basic(static_cast<uint64>(0x00ff00ff00ff00ffULL));
-	test_basic(static_cast<uint64>(0xffffffffffffffffULL));
-	test_basic(static_cast<uint64>(0xf0f0f0f0f0f0f0f0ULL));
-	test_basic(static_cast<uint64>(0x0f0f0f0f0f0f0f0fULL));
-	test_basic(static_cast<uint64>(0xffff0000ffff0000ULL));
-	test_basic(static_cast<uint64>(0x0000ffff0000ffffULL));
-	exit(0);
-}

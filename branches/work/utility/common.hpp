@@ -123,11 +123,11 @@ struct CRCValue<uint64>{
 		return v != (uint64)-1;
 	}
 	const uint64 value()const{
-		return v & ((1ULL << 58) - 1);
+		return v >> 6;
 	}
 	
 	const uint64 crc()const{
-		return v >> 58;
+		return v & ((1ULL << 6) - 1);
 	}
 	
 	operator uint64()const{
@@ -155,11 +155,13 @@ struct CRCValue<uint32>{
 		return v != (uint32)-1;
 	}
 	uint32 value()const{
-		return v & ((1UL << 27) - 1);
+		//return v & ((1UL << 27) - 1);
+		return v >> 5;
 	}
 	
 	uint32 crc()const{
-		return v >> 27;
+		//return v >> 27;
+		return v & ((1UL << 5) - 1);
 	}
 	
 	operator uint32()const{
@@ -186,10 +188,12 @@ struct CRCValue<uint16>{
 		return v != (uint16)-1;
 	}
 	uint16 value()const{
-		return v & ((1 << 12) - 1);
+		//return v & ((1 << 12) - 1);
+		return v >> 4;
 	}
 	uint16 crc()const{
-		return v >> 12;
+		//return v >> 12;
+		return v & ((1 << 4) - 1);
 	}
 	operator uint16()const{
 		return v;
@@ -213,10 +217,12 @@ struct CRCValue<uint8>{
 		return v != (uint8)-1;
 	}
 	uint8 value()const{
-		return v & ((1 << 5) - 1);
+		//return v & ((1 << 5) - 1);
+		return v >> 3;
 	}
 	uint8 crc()const{
-		return v >> 5;
+		//return v >> 5;
+		return v & ((1 << 3) - 1);
 	}
 	operator uint8()const{
 		return v;

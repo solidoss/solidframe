@@ -1,4 +1,5 @@
 add_executable (example_serialization_simple serialization_simple.cpp)
+add_executable (example_serialization_cross serialization_cross.cpp)
 add_executable (example_serialization_simple_context serialization_simple_context.cpp)
 add_executable (example_serialization_handle serialization_handle.cpp)
 add_executable (example_serialization_reinit serialization_reinit.cpp)
@@ -8,6 +9,7 @@ add_executable (example_serialization_forkoffset serialization_forkoffset.cpp)
 #add_executable (simple_new simple_new.cpp)
 
 target_link_libraries (example_serialization_simple solid_serialization solid_utility solid_system ${SYS_BASIC_LIBS})
+target_link_libraries (example_serialization_cross solid_serialization solid_utility solid_system ${SYS_BASIC_LIBS})
 target_link_libraries (example_serialization_simple_context solid_serialization solid_utility solid_system ${SYS_BASIC_LIBS})
 target_link_libraries (example_serialization_handle solid_serialization solid_utility solid_system ${SYS_BASIC_LIBS})
 target_link_libraries (example_serialization_reinit solid_serialization solid_utility solid_system ${SYS_BASIC_LIBS})
