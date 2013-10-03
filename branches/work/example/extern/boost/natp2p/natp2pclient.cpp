@@ -40,7 +40,7 @@ private:
 	void acceptCommand(istringstream &_iss);
 	void send(udp::endpoint &_endpoint, ostringstream &_ros);
 	void sendInit();
-	void sendConnect();
+	void sendConnect(bool _send_to_server = true);
 	void sendAccept();
 	void startSendThread();
  
@@ -187,13 +187,13 @@ void NatP2PClient::sendInit(){
 	send(server_endpoint, oss);
 	state = InitWait;
 }
-void NatP2PClient::sendConnect(){
+void NatP2PClient::sendConnect(bool _send_to_server){
 	static const boost::asio::ip::address	noaddr;
 	state = ConnectWait;
 	if(connect_nat_endpoint.address() == noaddr){
 		return;
 	}
-	{	
+	if(_send_to_server){	
 		ostringstream oss;
 		oss<<'c'<<' '<<connect_nat_endpoint.address()<<' '<<connect_nat_endpoint.port()<<' '<<local_endpoint.address()<<' '<<local_endpoint.port()<<endl;
 		send(server_endpoint, oss);
@@ -274,7 +274,7 @@ void NatP2PClient::connectCommand(istringstream &_iss){
 	udp::endpoint endpoint;
 	endpoint.address(boost::asio::ip::address::from_string(addr.c_str()));
 	endpoint.port(port);
-	peer_endpoint = endpoint;
+	peer_endpoint = sender_endpoint;
 	
 	sendAccept();
 }
@@ -298,15 +298,15 @@ void NatP2PClient::connectStunCommand(istringstream &_iss){
 	fwl_endpoint.address(boost::asio::ip::address::from_string(fwl_addr.c_str()));
 	fwl_endpoint.port(fwl_port);
 	
-	//connect_endpoint = endpoint;
+	connect_nat_endpoint = nat_endpoint;
+	connect_fwl_endpoint = fwl_endpoint;
 	
-	sendConnect();
-	sendAccept();
+	sendConnect(false);
 }
 
 void NatP2PClient::acceptCommand(istringstream &_iss){
-	//connect_endpoint = sender_endpoint;
-	cout<<"acceptCommand connect_endpoint = "<<connect_endpoint<<" sender_endpoint = "<<sender_endpoint<<endl;
+	peer_endpoint = sender_endpoint;
+	cout<<"acceptCommand connect_endpoint = "<<peer_endpoint<<" sender_endpoint = "<<sender_endpoint<<endl;
 	state = RunStart;
 }
 void NatP2PClient::send(udp::endpoint &_endpoint, ostringstream &_ros){

@@ -93,19 +93,21 @@ void NatP2PServer::initCommand(istringstream &_iss){
 	send(sender_endpoint, oss);
 }
 void NatP2PServer::connectCommand(istringstream &_iss){
-	string	addr;
-	int		port;
+	string	nat_addr;
+	int		nat_port;
+	string	fwl_addr;
+	int		fwl_port;
 	
-	_iss>>addr>>port;
+	_iss>>nat_addr>>nat_port>>fwl_addr>>fwl_port;
 	
-	cout<<"connectCommand("<<addr<<','<<port<<')'<<endl;
+	cout<<"connectCommand("<<nat_addr<<':'<<nat_port<<'-'<<fwl_addr<<':'<<fwl_port<<')'<<endl;
 	udp::endpoint endpoint;
-	endpoint.address(boost::asio::ip::address::from_string(addr.c_str()));
-	endpoint.port(port);
+	endpoint.address(boost::asio::ip::address::from_string(nat_addr.c_str()));
+	endpoint.port(nat_port);
 	{
 		ostringstream oss;
 		
-		oss<<'C'<<' '<<sender_endpoint.address()<<' '<<sender_endpoint.port()<<endl;
+		oss<<'C'<<' '<<sender_endpoint.address()<<' '<<sender_endpoint.port()<<' '<<fwl_addr<<' '<<fwl_port<<endl;
 		
 		send(endpoint, oss);
 	}
