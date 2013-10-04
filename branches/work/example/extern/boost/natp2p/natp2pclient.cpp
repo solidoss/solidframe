@@ -61,8 +61,8 @@ private:
 
 int main(int argc, char* argv[])
 {
-	try
-	{
+// 	try
+// 	{
 		if (argc < 4)
 		{
 			std::cerr << "Usage: example_natp2p_client local_addr local_port server_addr server_port [connect_nat_addr connect_nat_port connect_fwl_addr connect_fwl_port]\n";
@@ -82,12 +82,12 @@ int main(int argc, char* argv[])
 		server_endpoint.address(boost::asio::ip::address::from_string(argv[3]));
 		server_endpoint.port(atoi(argv[4]));
 		
-		if(argc == 7){
+		if(argc >= 7){
 			connect_nat_endpoint.address(boost::asio::ip::address::from_string(argv[5]));
 			connect_nat_endpoint.port(atoi(argv[6]));
 		}
 		
-		if(argc == 9){
+		if(argc >= 9){
 			connect_fwl_endpoint.address(boost::asio::ip::address::from_string(argv[7]));
 			connect_fwl_endpoint.port(atoi(argv[8]));
 		}
@@ -101,11 +101,11 @@ int main(int argc, char* argv[])
 		);
 		
 		clnt.run();
-	}
-	catch (std::exception& e)
-	{
-		std::cerr << "Exception: " << e.what() << "\n";
-	}
+//	}
+// 	catch (std::exception& e)
+// 	{
+// 		std::cerr << "Exception: " << e.what() << "\n";
+// 	}
 
 	return 0;
 }
@@ -243,6 +243,7 @@ void NatP2PClient::parseRequest(const char *_data, unsigned _len){
 			break;
 		case 'c':
 			connectCommand(iss);
+			break;
 		case 'C':
 			connectStunCommand(iss);
 			break;
