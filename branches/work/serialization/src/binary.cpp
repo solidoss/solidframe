@@ -81,15 +81,15 @@ void once_limits(){
 	};
 }
 /*static*/ int Base::setStringLimit(Base& _rb, FncData &_rfd, void */*_pctx*/){
-	_rb.limits.stringlimit = static_cast<uint32>(_rfd.s);
+	_rb.lmts.stringlimit = static_cast<size_t>(_rfd.s);
 	return OK;
 }
 /*static*/ int Base::setStreamLimit(Base& _rb, FncData &_rfd, void */*_pctx*/){
-	_rb.limits.streamlimit = _rfd.s;
+	_rb.lmts.streamlimit = _rfd.s;
 	return OK;
 }
 /*static*/ int Base::setContainerLimit(Base& _rb, FncData &_rfd, void */*_pctx*/){
-	_rb.limits.containerlimit = static_cast<uint32>(_rfd.s);
+	_rb.lmts.containerlimit = static_cast<size_t>(_rfd.s);
 	return OK;
 }
 void Base::replace(const FncData &_rfd){
@@ -118,21 +118,21 @@ void SerializerBase::clear(){
 	run(NULL, 0, NULL);
 }
 void SerializerBase::doPushStringLimit(){
-	fstk.push(FncData(&Base::setStringLimit, 0, 0, rdefaultlimits.stringlimit));
+	fstk.push(FncData(&Base::setStringLimit, 0, 0, rdefaultlmts.stringlimit));
 }
-void SerializerBase::doPushStringLimit(uint32 _v){
+void SerializerBase::doPushStringLimit(size_t _v){
 	fstk.push(FncData(&Base::setStringLimit, 0, 0, _v));
 }
 void SerializerBase::doPushStreamLimit(){
-	fstk.push(FncData(&Base::setStreamLimit, 0, 0, rdefaultlimits.streamlimit));
+	fstk.push(FncData(&Base::setStreamLimit, 0, 0, rdefaultlmts.streamlimit));
 }
 void SerializerBase::doPushStreamLimit(uint64 _v){
 	fstk.push(FncData(&Base::setStreamLimit, 0, 0, _v));
 }
 void SerializerBase::doPushContainerLimit(){
-	fstk.push(FncData(&Base::setContainerLimit, 0, 0, rdefaultlimits.containerlimit));
+	fstk.push(FncData(&Base::setContainerLimit, 0, 0, rdefaultlmts.containerlimit));
 }
-void SerializerBase::doPushContainerLimit(uint32 _v){
+void SerializerBase::doPushContainerLimit(size_t _v){
 	fstk.push(FncData(&Base::setContainerLimit, 0, 0, _v));
 }
 
@@ -407,7 +407,7 @@ int SerializerBase::store<std::string>(Base &_rb, FncData &_rfd, void */*_pctx*/
 	idbgx(Debug::ser_bin, "");
 	if(!rs.cpb) return OK;
 	std::string * c = reinterpret_cast<std::string*>(_rfd.p);
-	if(rs.limits.stringlimit && c->size() > rs.limits.stringlimit){
+	if(c->size() > rs.lmts.stringlimit){
 		rs.err = ERR_STRING_LIMIT;
 		return BAD;
 	}
@@ -453,7 +453,7 @@ int SerializerBase::storeStreamBegin(Base &_rb, FncData &_rfd, void */*_pctx*/){
 int SerializerBase::storeStreamCheck(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	SerializerBase &rs(static_cast<SerializerBase&>(_rb));
 	if(!rs.cpb) return OK;
-	if(rs.limits.streamlimit && _rfd.s > rs.limits.streamlimit){
+	if(_rfd.s > rs.lmts.streamlimit){
 		rs.streamerr = rs.err = ERR_STREAM_LIMIT;
 		return BAD;
 	}
@@ -490,7 +490,7 @@ int SerializerBase::storeStream(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	
 	if(rv > 0){
 		
-		if(rs.limits.streamlimit && (rs.streamsz + rv) > rs.limits.streamlimit){
+		if((rs.streamsz + rv) > rs.lmts.streamlimit){
 			rs.streamerr = rs.err = ERR_STREAM_LIMIT;
 			idbgx(Debug::ser_bin, "ERR_STREAM_LIMIT");
 			return BAD;
@@ -529,7 +529,7 @@ int SerializerBase::storeStream(Base &_rb, FncData &_rfd, void */*_pctx*/){
 }
 /*static*/ int SerializerBase::storeUtf8(Base &_rs, FncData &_rfd, void */*_pctx*/){
 	SerializerBase &rs(static_cast<SerializerBase&>(_rs));
-	if(rs.limits.stringlimit && (_rfd.s - 1) > rs.limits.stringlimit){
+	if((_rfd.s - 1) > rs.lmts.stringlimit){
 		rs.err = ERR_UTF8_LIMIT;
 		return BAD;
 	}
@@ -712,21 +712,21 @@ void DeserializerBase::clear(){
 }
 
 void DeserializerBase::doPushStringLimit(){
-	fstk.push(FncData(&Base::setStringLimit, 0, 0, rdefaultlimits.stringlimit));
+	fstk.push(FncData(&Base::setStringLimit, 0, 0, rdefaultlmts.stringlimit));
 }
-void DeserializerBase::doPushStringLimit(uint32 _v){
+void DeserializerBase::doPushStringLimit(size_t _v){
 	fstk.push(FncData(&Base::setStringLimit, 0, 0, _v));
 }
 void DeserializerBase::doPushStreamLimit(){
-	fstk.push(FncData(&Base::setStreamLimit, 0, 0, rdefaultlimits.streamlimit));
+	fstk.push(FncData(&Base::setStreamLimit, 0, 0, rdefaultlmts.streamlimit));
 }
 void DeserializerBase::doPushStreamLimit(uint64 _v){
 	fstk.push(FncData(&Base::setStreamLimit, 0, 0, _v));
 }
 void DeserializerBase::doPushContainerLimit(){
-	fstk.push(FncData(&Base::setContainerLimit, 0, 0, rdefaultlimits.containerlimit));
+	fstk.push(FncData(&Base::setContainerLimit, 0, 0, rdefaultlmts.containerlimit));
 }
-void DeserializerBase::doPushContainerLimit(uint32 _v){
+void DeserializerBase::doPushContainerLimit(size_t _v){
 	fstk.push(FncData(&Base::setContainerLimit, 0, 0, _v));
 }
 
@@ -1209,7 +1209,7 @@ int DeserializerBase::loadBinaryStringCheck(Base &_rb, FncData &_rfd, void */*_p
 	}
 	uint64 ul = rd.estk.top().u64();
 	
-	if(rd.limits.stringlimit && ul >= rd.limits.stringlimit){
+	if(ul >= rd.lmts.stringlimit){
 		idbgx(Debug::ser_bin, "error");
 		rd.err = ERR_STRING_LIMIT;
 		return BAD;
@@ -1252,7 +1252,7 @@ int DeserializerBase::loadStreamCheck(Base &_rb, FncData &_rfd, void */*_pctx*/)
 	
 	if(!rd.cpb) return OK;
 	
-	if(rd.limits.streamlimit && _rfd.s > static_cast<int64>(rd.limits.streamlimit)){
+	if(_rfd.s > static_cast<int64>(rd.lmts.streamlimit)){
 		idbgx(Debug::ser_bin, "error");
 		rd.err = ERR_STREAM_LIMIT;
 		return BAD;
@@ -1332,7 +1332,7 @@ int DeserializerBase::loadStream(Base &_rb, FncData &_rfd, void */*_pctx*/){
 		return OK;
 	}
 	
-	if(rd.limits.streamlimit && (rd.streamsz + towrite) > rd.limits.streamlimit){
+	if((rd.streamsz + towrite) > rd.lmts.streamlimit){
 		idbgx(Debug::ser_bin, "ERR_STREAM_LIMIT");
 		rd.streamerr = rd.err = ERR_STREAM_LIMIT;
 		return BAD;
@@ -1397,7 +1397,7 @@ int DeserializerBase::loadDummyStream(Base &_rb, FncData &_rfd, void */*_pctx*/)
 	}
 	rd.cpb += sz;
 	_rfd.s += sz;
-	if(rd.limits.streamlimit && _rfd.s > rd.limits.streamlimit){
+	if(_rfd.s > rd.lmts.streamlimit){
 		idbgx(Debug::ser_bin, "ERR_STREAM_LIMIT");
 		rd.streamerr = rd.err = ERR_STREAM_LIMIT;
 		return BAD;
@@ -1412,7 +1412,7 @@ int DeserializerBase::loadUtf8(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	size_t				slen = cstring::nlen(rd.cpb, len);
 	size_t				totlen = ps->size() + slen;
 	idbgx(Debug::ser_bin, "len = "<<len);
-	if(rd.limits.stringlimit && totlen > rd.limits.stringlimit){
+	if(totlen > rd.lmts.stringlimit){
 		rd.err = ERR_UTF8_LIMIT;
 		return BAD;
 	}

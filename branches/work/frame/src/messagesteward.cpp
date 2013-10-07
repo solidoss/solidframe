@@ -128,7 +128,7 @@ int MessageSteward::execute(ulong _evs, TimeSpec &_rtout){
 				d.state = -1;
 				rmtx.unlock();
 				d.sdq.clear();
-				Manager::specific().unregisterObject(*this);
+				//Manager::specific().unregisterObject(*this);
 				vdbgx(Debug::frame, "~MessageSteward");
 				return BAD;
 			}
@@ -176,7 +176,7 @@ int MessageSteward::execute(ulong _evs, TimeSpec &_rtout){
 			}
 		}
 		idbgx(Debug::frame, "remove signal executer from manager");
-		Manager::specific().unregisterObject(*this);
+		//Manager::specific().unregisterObject(*this);
 		d.state = -1;
 		d.sdq.clear();
 		return BAD;

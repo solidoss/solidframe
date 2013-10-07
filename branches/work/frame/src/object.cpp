@@ -85,6 +85,7 @@ Object::Object(IndexT _fullid):
 }
 
 Object::~Object(){
+	Manager::specific().unregisterObject(*this);
 }
 
 //--------------------------------------------------------------

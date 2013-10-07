@@ -60,7 +60,7 @@ enum {
 
 struct Limits{
 	static Limits const& the();
-	Limits():stringlimit(0), containerlimit(0), streamlimit(0){}//unlimited by default
+	Limits():stringlimit(-1), containerlimit(-1), streamlimit(-1){}//unlimited by default
 	size_t stringlimit;
 	size_t containerlimit;
 	uint64 streamlimit;
@@ -117,7 +117,7 @@ class Base{
 public:
 	static const char *errorString(const uint16 _err);
 	void resetLimits(){
-		limits = rdefaultlimits;
+		lmts = rdefaultlmts;
 	}
 	bool ok()const{return err == 0;}
 	uint16 error()const{
@@ -140,6 +140,9 @@ public:
 	}
 	uint64 const& streamSize()const{
 		return streamsz;
+	}
+	Limits& limits(){
+		return lmts;
 	}
 protected:
 	enum Errors{
@@ -223,8 +226,8 @@ protected:
 	static int setStreamLimit(Base& _rd, FncData &_rfd, void */*_pctx*/);
 	static int setContainerLimit(Base& _rd, FncData &_rfd, void */*_pctx*/);
 
-	Base():rdefaultlimits(Limits::the()), limits(rdefaultlimits), ptm(NULL){}
-	Base(Limits const &_rdefaultlimits):rdefaultlimits(_rdefaultlimits), ptm(NULL){}
+	Base():rdefaultlmts(Limits::the()), lmts(rdefaultlmts), ptm(NULL){}
+	Base(Limits const &_rdefaultlmts):rdefaultlmts(_rdefaultlmts), lmts(rdefaultlmts), ptm(NULL){}
 	//! Replace the top callback from the stack
 	void replace(const FncData &_rfd);
 	static int popEStack(Base &_rs, FncData &_rfd, void */*_pctx*/);
@@ -246,8 +249,8 @@ protected:
 protected:
 	typedef Stack<FncData>	FncDataStackT;
 	typedef Stack<ExtData>	ExtDataStackT;
-	const Limits			&rdefaultlimits;
-	Limits					limits;
+	const Limits			&rdefaultlmts;
+	Limits					lmts;
 	const TypeMapperBase	*ptm;
 	uint16					err;
 	uint16					streamerr;
@@ -319,7 +322,7 @@ protected:
 		const char	*n = _rfd.n;
 		if(c){
 			cassert(sizeof(typename T::iterator) <= sizeof(ExtData));
-			if(rs.limits.containerlimit && c->size() > rs.limits.containerlimit){
+			if(c->size() > rs.lmts.containerlimit){
 				rs.err = ERR_CONTAINER_LIMIT;
 				return BAD;
 			}
@@ -375,7 +378,7 @@ protected:
 		T			*c = reinterpret_cast<T*>(_rfd.p);
 		const char	*n = _rfd.n;
 		if(c && rs.estk.top().u64() != static_cast<uint64>(-1)){
-			if(rs.limits.containerlimit && rs.estk.top().u64() > rs.limits.containerlimit){
+			if(rs.estk.top().u64() > rs.lmts.containerlimit){
 				rs.err = ERR_ARRAY_LIMIT;
 				return BAD;
 			}else if(rs.estk.top().u64() <= CRCValue<uint64>::maximum()){
@@ -463,11 +466,11 @@ protected:
 	}
 	
 	void doPushStringLimit();
-	void doPushStringLimit(uint32 _v);
+	void doPushStringLimit(size_t _v);
 	void doPushStreamLimit();
 	void doPushStreamLimit(uint64 _v);
 	void doPushContainerLimit();
-	void doPushContainerLimit(uint32 _v);
+	void doPushContainerLimit(size_t _v);
 	int run(char *_pb, unsigned _bl, void *_pctx);
 public:
 	typedef void ContextT;
@@ -490,8 +493,8 @@ protected:
 	}
 	SerializerBase(
 		const TypeMapperBase &_rtm,
-		Limits const & _rdefaultlimits
-	):Base(_rdefaultlimits), pb(NULL), cpb(NULL), be(NULL){
+		Limits const & _rdefaultlmts
+	):Base(_rdefaultlmts), pb(NULL), cpb(NULL), be(NULL){
 		tmpstr.reserve(sizeof(ulong));
 		typeMapper(_rtm);
 	}
@@ -499,8 +502,8 @@ protected:
 		tmpstr.reserve(sizeof(ulong));
 	}
 	SerializerBase(
-		Limits const & _rdefaultlimits
-	):Base(_rdefaultlimits), pb(NULL), cpb(NULL), be(NULL){
+		Limits const & _rdefaultlmts
+	):Base(_rdefaultlmts), pb(NULL), cpb(NULL), be(NULL){
 		tmpstr.reserve(sizeof(ulong));
 	}
 	~SerializerBase();
@@ -677,14 +680,14 @@ public:
 	}
 	Serializer(
 		const TypeMapperBase &_rtm,
-		Limits const & _rdefaultlimits
-	):BaseT(_rtm, _rdefaultlimits){
+		Limits const & _rdefaultlmts
+	):BaseT(_rtm, _rdefaultlmts){
 	}
 	Serializer(){
 	}
 	Serializer(
-		Limits const & _rdefaultlimits
-	):BaseT(_rdefaultlimits){
+		Limits const & _rdefaultlmts
+	):BaseT(_rdefaultlmts){
 	}
 	
 	int run(char *_pb, unsigned _bl){
@@ -695,7 +698,7 @@ public:
 		SerializerBase::doPushStringLimit();
 		return *this;
 	}
-	SerializerT& pushStringLimit(uint32 _v){
+	SerializerT& pushStringLimit(size_t _v){
 		SerializerBase::doPushStringLimit(_v);
 		return *this;
 	}
@@ -711,7 +714,7 @@ public:
 		SerializerBase::doPushContainerLimit();
 		return *this;
 	}
-	SerializerT& pushContainerLimit(uint32 _v){
+	SerializerT& pushContainerLimit(size_t _v){
 		SerializerBase::doPushContainerLimit(_v);
 		return *this;
 	}
@@ -864,14 +867,14 @@ public:
 	}
 	Serializer(
 		const TypeMapperBase &_rtm,
-		Limits const & _rdefaultlimits
-	):BaseT(_rtm, _rdefaultlimits){
+		Limits const & _rdefaultlmts
+	):BaseT(_rtm, _rdefaultlmts){
 	}
 	Serializer(){
 	}
 	Serializer(
-		Limits const & _rdefaultlimits
-	):BaseT(_rdefaultlimits){
+		Limits const & _rdefaultlmts
+	):BaseT(_rdefaultlmts){
 	}
 	
 	int run(char *_pb, unsigned _bl, Ctx &_rctx){
@@ -883,7 +886,7 @@ public:
 		SerializerBase::doPushStringLimit();
 		return *this;
 	}
-	SerializerT& pushStringLimit(uint32 _v){
+	SerializerT& pushStringLimit(size_t _v){
 		SerializerBase::doPushStringLimit(_v);
 		return *this;
 	}
@@ -899,7 +902,7 @@ public:
 		SerializerBase::doPushContainerLimit();
 		return *this;
 	}
-	SerializerT& pushContainerLimit(uint32 _v){
+	SerializerT& pushContainerLimit(size_t _v){
 		SerializerBase::doPushContainerLimit(_v);
 		return *this;
 	}
@@ -1176,8 +1179,8 @@ protected:
 		vdbgx(Debug::ser_bin, "i = "<<i);
 		
 		if(
-			i != static_cast<uint64>(-1) && rd.limits.containerlimit && 
-			i > rd.limits.containerlimit
+			i != static_cast<uint64>(-1) && 
+			i > rd.lmts.containerlimit
 		){
 			idbgx(Debug::ser_bin, "error");
 			rd.err = ERR_CONTAINER_LIMIT;
@@ -1242,7 +1245,7 @@ protected:
 		const uint64	&rsz(rd.estk.top().u64());
 		size_t			&rextsz(*reinterpret_cast<size_t*>(rd.estk.top().pv_2()));
 		idbgx(Debug::ser_bin, "size "<<rsz);
-		if(rsz != static_cast<uint64>(-1) && rd.limits.containerlimit && rsz > rd.limits.containerlimit){
+		if(rsz != static_cast<uint64>(-1) && rsz > rd.lmts.containerlimit){
 			idbgx(Debug::ser_bin, "error");
 			rd.err = ERR_ARRAY_LIMIT;
 			return BAD;
@@ -1328,11 +1331,11 @@ protected:
 	}
 	
 	void doPushStringLimit();
-	void doPushStringLimit(uint32 _v);
+	void doPushStringLimit(size_t _v);
 	void doPushStreamLimit();
 	void doPushStreamLimit(uint64 _v);
 	void doPushContainerLimit();
-	void doPushContainerLimit(uint32 _v);
+	void doPushContainerLimit(size_t _v);
 	int run(const char *_pb, unsigned _bl, void *_pctx);
 public:
 	typedef void ContextT;
@@ -1350,8 +1353,8 @@ public:
 	}
 	DeserializerBase(
 		const TypeMapperBase &_rtm,
-		Limits const & _rdefaultlimits
-	):Base(_rdefaultlimits), pb(NULL), cpb(NULL), be(NULL){
+		Limits const & _rdefaultlmts
+	):Base(_rdefaultlmts), pb(NULL), cpb(NULL), be(NULL){
 		tmpstr.reserve(sizeof(uint32));
 		typeMapper(_rtm);
 	}
@@ -1359,8 +1362,8 @@ public:
 		tmpstr.reserve(sizeof(uint32));
 	}
 	DeserializerBase(
-		Limits const & _rdefaultlimits
-	):Base(_rdefaultlimits), pb(NULL), cpb(NULL), be(NULL){
+		Limits const & _rdefaultlmts
+	):Base(_rdefaultlmts), pb(NULL), cpb(NULL), be(NULL){
 		tmpstr.reserve(sizeof(uint32));
 	}
 	~DeserializerBase();
@@ -1542,14 +1545,14 @@ public:
 	}
 	Deserializer(
 		const TypeMapperBase &_rtm,
-		Limits const & _rdefaultlimits
-	):BaseT(_rtm, _rdefaultlimits){
+		Limits const & _rdefaultlmts
+	):BaseT(_rtm, _rdefaultlmts){
 	}
 	Deserializer(){
 	}
 	Deserializer(
-		Limits const & _rdefaultlimits
-	):BaseT(_rdefaultlimits){
+		Limits const & _rdefaultlmts
+	):BaseT(_rdefaultlmts){
 	}
 	
 	int run(const char *_pb, unsigned _bl){
@@ -1560,7 +1563,7 @@ public:
 		this->doPushStringLimit();
 		return *this;
 	}
-	Deserializer& pushStringLimit(uint32 _v){
+	Deserializer& pushStringLimit(size_t _v){
 		this->doPushStringLimit(_v);
 		return *this;
 	}
@@ -1576,7 +1579,7 @@ public:
 		this->doPushContainerLimit();
 		return *this;
 	}
-	Deserializer& pushContainerLimit(uint32 _v){
+	Deserializer& pushContainerLimit(size_t _v){
 		this->doPushContainerLimit(_v);
 		return *this;
 	}
@@ -1713,14 +1716,14 @@ public:
 	}
 	Deserializer(
 		const TypeMapperBase &_rtm,
-		Limits const & _rdefaultlimits
-	):BaseT(_rtm, _rdefaultlimits){
+		Limits const & _rdefaultlmts
+	):BaseT(_rtm, _rdefaultlmts){
 	}
 	Deserializer(){
 	}
 	Deserializer(
-		Limits const & _rdefaultlimits
-	):BaseT(_rdefaultlimits){
+		Limits const & _rdefaultlmts
+	):BaseT(_rdefaultlmts){
 	}
 	
 	int run(const char *_pb, unsigned _bl, Ctx &_rctx){
@@ -1732,7 +1735,7 @@ public:
 		this->doPushStringLimit();
 		return *this;
 	}
-	Deserializer& pushStringLimit(uint32 _v){
+	Deserializer& pushStringLimit(size_t _v){
 		this->doPushStringLimit(_v);
 		return *this;
 	}
@@ -1748,7 +1751,7 @@ public:
 		this->doPushContainerLimit();
 		return *this;
 	}
-	Deserializer& pushContainerLimit(uint32 _v){
+	Deserializer& pushContainerLimit(size_t _v){
 		this->doPushContainerLimit(_v);
 		return *this;
 	}

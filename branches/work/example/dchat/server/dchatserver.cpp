@@ -12,10 +12,12 @@
 #include "system/thread.hpp"
 #include "system/socketaddress.hpp"
 #include "system/socketdevice.hpp"
-#include "example/binaryprotocol/core/messages.hpp"
-#include "example/binaryprotocol/core/compressor.hpp"
 #include "serialization/idtypemapper.hpp"
 #include "serialization/binary.hpp"
+
+#include "example/dchat/core/messages.hpp"
+#include "example/dchat/core/compressor.hpp"
+
 
 #include <signal.h>
 
@@ -60,13 +62,18 @@ struct Handle{
 	}
 	
 	bool checkLoad(void *_pm, ConnectionContext  &_rctx)const{
-		return true;
+		return false;//reject all incomming messages
 	}
+	
+	bool checkLoad(LoginRequest *_pm, ConnectionContext  &_rctx)const;
+	bool checkLoad(TextMessage *_pm, ConnectionContext  &_rctx)const;
+	bool checkLoad(NoopMessage *_pm, ConnectionContext  &_rctx)const;
+	
 	void afterSerialization(BinSerializerT &_rs, void *_pm, ConnectionContext &_rctx){}
 	
 	
-	void afterSerialization(BinDeserializerT &_rs, FirstRequest *_pm, ConnectionContext &_rctx);
-	void afterSerialization(BinDeserializerT &_rs, SecondMessage *_pm, ConnectionContext &_rctx);
+	void afterSerialization(BinDeserializerT &_rs, LoginRequest *_pm, ConnectionContext &_rctx);
+	void afterSerialization(BinDeserializerT &_rs, TextMessage *_pm, ConnectionContext &_rctx);
 	void afterSerialization(BinDeserializerT &_rs, NoopMessage *_pm, ConnectionContext &_rctx);
 	
 };
@@ -193,9 +200,9 @@ int main(int argc, char *argv[]){
 		AioSchedulerT			aiosched(m);
 		UInt8TypeMapperT		tm;
 		
-		tm.insertHandle<FirstRequest, Handle>();
-		tm.insert<FirstResponse>();
-		tm.insertHandle<SecondMessage, Handle>();
+		tm.insertHandle<LoginRequest, Handle>();
+		tm.insert<BasicMessage>();
+		tm.insertHandle<TextMessage, Handle>();
 		tm.insertHandle<NoopMessage, Handle>();
 		
 		Service					svc(m, aiosched, tm);
@@ -317,8 +324,15 @@ int Listener::execute(ulong, TimeSpec&){
 
 //--------------------------------------------------------------------------
 class Connection: public solid::Dynamic<Connection, solid::frame::aio::SingleObject>{
+	typedef DynamicPointer<solid::frame::Message>				MessageDynamicPointerT;
+	typedef std::vector<MessageDynamicPointerT>					MessageVectorT;
 	//typedef protocol::binary::BasicBufferController<2048>		BufferControllerT;
 	typedef protocol::binary::SpecificBufferController<2048>	BufferControllerT;
+	enum States{
+		StateNotAuth,
+		StateAuth,
+		StateError,
+	};
 public:
 	
 	typedef protocol::binary::AioSession<
@@ -326,14 +340,38 @@ public:
 		int
 	>															ProtocolSessionT;
 	
-	Connection(const SocketDevice &_rsd, const serialization::TypeMapperBase &_rtm):BaseT(_rsd), ser(_rtm), des(_rtm){
+	Connection(
+		const SocketDevice &_rsd,
+		const serialization::TypeMapperBase &_rtm
+	):BaseT(_rsd), ser(_rtm), des(_rtm), stt(StateNotAuth){
 		idbg((void*)this);
+		des.limits().containerlimit = 0;
+		des.limits().streamlimit = 0;
+		des.limits().stringlimit = 16;
 	}
 	~Connection(){
 		idbg((void*)this);
 	}
 	ProtocolSessionT &session(){
 		return sess;
+	}
+	bool isAuthenticated()const{
+		return stt == StateAuth;
+	}
+	void onAuthenticate(const std::string &_user);
+	void onFailAuthenticate();
+	
+	Service& service(){
+		//NOT nice, but fast
+		return static_cast<Service&>(frame::Manager::specific().service(*this));
+	}
+	const std::string& user()const{
+		return usr;
+	}
+	/*virtual*/ bool notify(DynamicPointer<frame::Message> &_rmsgptr){
+		//the mutex is already locked
+		msgvec.push_back(_rmsgptr);
+		return Object::notify(frame::S_SIG | frame::S_RAISE);
 	}
 private:
 	int done(){
@@ -347,6 +385,9 @@ private:
 	BinDeserializerT		des;
 	ProtocolSessionT		sess;
 	BufferControllerT		bufctl;
+	uint16					stt;
+	std::string				usr;
+	MessageVectorT			msgvec;
 };
 
 void Service::insertConnection(
@@ -363,10 +404,18 @@ void Service::insertConnection(
 	static Compressor 		compressor(BufferControllerT::DataCapacity);
 	
 	ulong					sm = grabSignalMask();
+	
+	idbg((void*)this);
+	
 	if(sm){
 		if(sm & frame::S_KILL) return done();
 		if(sm & frame::S_SIG){
-			//Locker<Mutex>	lock(frame::Manager::specific().mutex(*this));
+			idbg("here");
+			Locker<Mutex>	lock(frame::Manager::specific().mutex(*this));
+			for(MessageVectorT::iterator it(msgvec.begin()); it != msgvec.end(); ++it){
+				session().send(0, *it);
+			}
+			msgvec.clear();
 		}
 	}
 	
@@ -374,24 +423,82 @@ void Service::insertConnection(
 		return done();
 	}
 	ConnectionContext		ctx(*this);
-	int rv = sess.execute(*this, _evs, ctx, ser, des, bufctl, compressor);
-	if(rv == NOK){
-		_tout.add(20);//wait 20 secs
+	int 					rv = BAD;
+	switch(stt){
+		case StateAuth:
+		case StateNotAuth:
+			rv = sess.execute(*this, _evs, ctx, ser, des, bufctl, compressor);
+			if(rv == NOK){
+				_tout.add(20);//wait 20 secs
+			}
+			if(stt == StateError){
+				return OK;
+			}
+		break;
+		case StateError:
+			idbg("StateError");
+			//Do not read anything from the client, only send the error message
+			rv = sess.executeSend(*this, _evs, ctx, ser, bufctl, compressor);
+			if(ser.empty() && !socketHasPendingRecv()){//nothing to send
+				return done();
+			}
+			if(rv == NOK){
+				_tout.add(10);//short wait for client to read the message
+			}
+		break;
 	}
 	return rv;
 }
 //--------------------------------------------------------------------------
-void Handle::afterSerialization(BinDeserializerT &_rs, FirstRequest *_pm, ConnectionContext &_rctx){
-	idbg("des:FirstRequest("<<_pm->v<<')');
-	//echo as FirstResponse
-	DynamicPointer<frame::Message>	msgptr(new FirstResponse(_pm->idx, _pm->v));
-	_rctx.rcon.session().send(_rctx.rcvmsgidx, msgptr);
+bool Handle::checkLoad(LoginRequest *_pm, ConnectionContext  &_rctx)const{
+	return !_rctx.rcon.isAuthenticated();
+}
+bool Handle::checkLoad(TextMessage *_pm, ConnectionContext  &_rctx)const{
+	return _rctx.rcon.isAuthenticated();
+}
+bool Handle::checkLoad(NoopMessage *_pm, ConnectionContext  &_rctx)const{
+	return _rctx.rcon.isAuthenticated();
 }
 
-void Handle::afterSerialization(BinDeserializerT &_rs, SecondMessage *_pm, ConnectionContext &_rctx){
-	idbg("des:SecondMessage("<<_pm->v<<')');
-	//echo back the message itself
-	_rctx.rcon.session().send(_rctx.rcvmsgidx, _rctx.rcon.session().recvMessage(_rctx.rcvmsgidx));
+void Handle::afterSerialization(BinDeserializerT &_rs, LoginRequest *_pm, ConnectionContext &_rctx){
+	idbg("des:LoginRequest("<<_pm->user<<','<<_pm->pass<<')');
+	if(_pm->user.size() && _pm->pass == _pm->user){
+		DynamicPointer<frame::Message>	msgptr(new BasicMessage);
+		_rctx.rcon.session().send(_rctx.rcvmsgidx, msgptr);
+		_rctx.rcon.onAuthenticate(_pm->user);
+	}else{
+		DynamicPointer<frame::Message>	msgptr(new BasicMessage(BasicMessage::ErrorAuth));
+		_rctx.rcon.session().send(_rctx.rcvmsgidx, msgptr);
+		_rctx.rcon.onFailAuthenticate();
+	}
+}
+
+typedef DynamicSharedPointer<TextMessage>	TextMessageSharedPointerT;
+
+struct Notifier{
+
+	const frame::IndexT				objid;
+	TextMessageSharedPointerT		msgshrptr;
+	
+	Notifier(const frame::IndexT &_rid, TextMessage *_pm):objid(_rid), msgshrptr(_pm){}
+		
+	void operator()(frame::Object &_robj){
+		frame::Manager &rm = frame::Manager::specific();
+		if(_robj.id() != objid){
+			DynamicPointer<frame::Message>	msgptr(msgshrptr);
+			if(_robj.notify(msgptr)){
+				rm.raise(_robj);
+			}
+		}
+	}
+};
+
+void Handle::afterSerialization(BinDeserializerT &_rs, TextMessage *_pm, ConnectionContext &_rctx){
+	
+	idbg("des:TextMessage("<<_pm->text<<')');
+	Notifier		notifier(_rctx.rcon.id(), _pm);
+	_pm->user = _rctx.rcon.user();
+	_rctx.rcon.service().forEachObject(notifier);
 }
 
 void Handle::afterSerialization(BinDeserializerT &_rs, NoopMessage *_pm, ConnectionContext &_rctx){
@@ -400,3 +507,12 @@ void Handle::afterSerialization(BinDeserializerT &_rs, NoopMessage *_pm, Connect
 	_rctx.rcon.session().send(_rctx.rcvmsgidx, _rctx.rcon.session().recvMessage(_rctx.rcvmsgidx));
 }
 
+void Connection::onAuthenticate(const std::string &_user){
+	stt = StateAuth;
+	des.limits().stringlimit = 1024 * 1024 * 10;
+	usr = _user;
+}
+
+void Connection::onFailAuthenticate(){
+	stt = StateError;
+}

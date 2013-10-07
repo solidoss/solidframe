@@ -58,8 +58,6 @@ public:
 	
 	ObjectUidT	registerObject(Object &_robj);
 	
-	void unregisterObject(Object &_robj);
-	
 	bool notify(ulong _sm, const ObjectUidT &_ruid);
 
 	bool notify(MessagePointerT &_rmsgptr, const ObjectUidT &_ruid);
@@ -79,10 +77,15 @@ public:
 	
 protected:
 	size_t serviceCount()const;
+	
 private:
 	friend class Service;
+	friend class Object;
+	
 	
 	typedef FunctorReference<void, Object&>	ObjectVisitFunctorT;
+	
+	void unregisterObject(Object &_robj);
 	
 	ObjectUidT  unsafeId(const Object &_robj)const;
 	

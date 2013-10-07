@@ -221,10 +221,12 @@ Manager::Manager(
 	d.pselarr[0].store(&d.dummysel/*, ATOMIC_NS::memory_order_seq_cst*/);
 	
 	doRegisterService(d.dummysvc);
+	Thread::specific(specificPosition(), this);
 }
 
 /*virtual*/ Manager::~Manager(){
 	Locker<Mutex> lock(d.mtx);
+	vdbgx(Debug::frame, "");
 	for(size_t i = 0; i < d.svcprovisioncp && d.svccnt; ++i){
 		ServiceStub &rss = d.psvcarr[i];
 		if(rss.psvc){
@@ -300,6 +302,7 @@ void Manager::unregisterService(Service &_rsvc){
 void Manager::unregisterObject(Object &_robj){
 	IndexT		svcidx;
 	IndexT		objidx;
+	vdbgx(Debug::frame, (void*)&_robj);
 	
 	split_index(svcidx, objidx, d.svcbts.load(/*ATOMIC_NS::memory_order_seq_cst*/), _robj.fullid);
 	
@@ -422,6 +425,17 @@ ObjectUidT  Manager::id(const Object &_robj)const{
 	return ObjectUidT(_robj.fullid, rss.objvec[objidx].uid);
 }
 
+Service& Manager::service(const Object &_robj)const{
+	IndexT			svcidx;
+	IndexT			objidx;
+	
+	split_index(svcidx, objidx, d.svcbts.load(/*ATOMIC_NS::memory_order_seq_cst*/), _robj.fullid);
+	cassert(svcidx < d.svcprovisioncp);
+	
+	ServiceStub		&rss = d.psvcarr[svcidx];
+	return *rss.psvc;
+}
+
 ObjectUidT  Manager::unsafeId(const Object &_robj)const{
 	IndexT			svcidx;
 	IndexT			objidx;
@@ -501,6 +515,7 @@ bool Manager::doRegisterService(
 			rss.objfreestk.push(i - 1);
 			rss.mtxstore.safeAt(i - 1, _objpermutbts);
 		}
+		vdbgx(Debug::frame, "Last safe at = "<<(objcnt - 1));
 		unlock_all(rss.mtxstore, objcnt, oldobjpermutbts);
 		++d.svccnt;
 		return true;
@@ -575,7 +590,7 @@ ObjectUidT Manager::doUnsafeRegisterServiceObject(const IndexT _svcidx, Object &
 			rss.mtxstore.safeAt(i, objpermutbts);
 			rss.objfreestk.push(newobjcnt - (i - objcnt) - 1);
 		}
-		
+		vdbgx(Debug::frame, "Last safeat = "<<(newobjcnt - 1)<<' '<<objcnt);
 		const IndexT idx = rss.objfreestk.top();
 		
 		retval.first = unite_index(_svcidx, idx, d.svcbts.load(/*ATOMIC_NS::memory_order_seq_cst*/));;
@@ -612,9 +627,14 @@ bool Manager::doForEachServiceObject(const size_t _svcidx, Manager::ObjectVisitF
 	if(rss.objvec.empty()){
 		return retval;
 	}
+	size_t			loopcnt = 0;
+	size_t			hitcnt = 0;
+	const size_t	objcnt = rss.objvec.size() - rss.objfreestk.size();
 	Mutex			*poldmtx = &rss.mtxstore[0];
+	
 	poldmtx->lock();
-	for(ObjectVectorT::const_iterator it(rss.objvec.begin()); it != rss.objvec.end(); ++it){
+	for(ObjectVectorT::const_iterator it(rss.objvec.begin()); it != rss.objvec.end() && hitcnt < objcnt; ++it){
+		++loopcnt;
 		const size_t idx = it - rss.objvec.begin();
 		Mutex &rmtx = rss.mtxstore.at(idx, objpermutbts);
 		if(&rmtx != poldmtx){
@@ -624,8 +644,11 @@ bool Manager::doForEachServiceObject(const size_t _svcidx, Manager::ObjectVisitF
 		}
 		if(it->pobj){
 			_fctor(*it->pobj);
+			++hitcnt;
 		}
 	}
+	poldmtx->unlock();
+	vdbgx(Debug::frame, "Looped "<<loopcnt<<" times for "<<objcnt<<" objects");
 	return retval;
 }
 

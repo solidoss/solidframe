@@ -40,8 +40,8 @@ inline void Mutex::lock(){
 #ifdef NINLINES
 	int rv = pthread_mutex_lock(&mut);
 	if(rv){
-		cassert(!rv);
 		edbgx(Debug::system, "pthread_mutex_lock: "<<strerror(errno));
+		cassert(!rv);
 	}
 #else
 	pthread_mutex_lock(&mut);

@@ -118,10 +118,11 @@ class Session{
 		RecvPacketDataState
 	};
 public:
-	Session():rcvbufoff(0), rcvstate(RecvPacketHeaderState){}
+	
+	Session():rcvbufoff(0), cnsbufoff(0), rcvstate(RecvPacketHeaderState), rcvmsgidx(-1){}
 	
 	template <class T>
-	Session(T &_rt):ctl(_rt), rcvbufoff(0), rcvstate(RecvPacketHeaderState){
+	Session(T &_rt):ctl(_rt), rcvbufoff(0), cnsbufoff(0), rcvstate(RecvPacketHeaderState), rcvmsgidx(-1){
 		
 	}
 	

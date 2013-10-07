@@ -9,10 +9,11 @@
 #include "system/thread.hpp"
 #include "system/socketaddress.hpp"
 #include "system/socketdevice.hpp"
-#include "example/binaryprotocol/core/messages.hpp"
-#include "example/binaryprotocol/core/compressor.hpp"
 #include "serialization/idtypemapper.hpp"
 #include "serialization/binary.hpp"
+
+#include "example/dchat/core/messages.hpp"
+#include "example/dchat/core/compressor.hpp"
 
 #include <signal.h>
 
@@ -36,7 +37,8 @@ namespace{
 		bool		dbg_console;
 		bool		dbg_buffered;
 		bool		log;
-		uint32		repeat;
+		string		user;
+		string		pass;
 	};
 
 	Mutex					mtx;
@@ -192,9 +194,9 @@ struct Handle{
 	}
 	void afterSerialization(BinSerializerT &_rs, void *_pm, ConnectionContext &_rctx){}
 	
-	void afterSerialization(BinDeserializerT &_rs, FirstResponse *_pm, ConnectionContext &_rctx);
+	void afterSerialization(BinDeserializerT &_rs, BasicMessage *_pm, ConnectionContext &_rctx);
 		
-	void afterSerialization(BinDeserializerT &_rs, SecondMessage *_pm, ConnectionContext &_rctx);
+	void afterSerialization(BinDeserializerT &_rs, TextMessage *_pm, ConnectionContext &_rctx);
 	void afterSerialization(BinDeserializerT &_rs, NoopMessage *_pm, ConnectionContext &_rctx);
 };
 
@@ -243,9 +245,9 @@ int main(int argc, char *argv[]){
 		AioSchedulerT							aiosched(m);
 		UInt8TypeMapperT						tm;
 		
-		tm.insert<FirstRequest>();
-		tm.insertHandle<FirstResponse, Handle>();
-		tm.insertHandle<SecondMessage, Handle>();
+		tm.insert<LoginRequest>();
+		tm.insertHandle<BasicMessage, Handle>();
+		tm.insertHandle<TextMessage, Handle>();
 		tm.insertHandle<NoopMessage, Handle>();
 		
 		
@@ -261,34 +263,24 @@ int main(int argc, char *argv[]){
 		aiosched.schedule(ccptr);
 		
 		DynamicPointer<solid::frame::Message>	msgptr;
-		uint32									idx = 0;
-		
+		string									s;
+		if(p.pass.empty()){
+			p.pass = p.user;
+		}
+		msgptr = new LoginRequest(p.user, p.pass);
+		ccptr->send(msgptr);
 		
 		do{
-			if(idx % 2){
-				{
-					Locker<Mutex> lock(mtx);
-					prefix = "number[0 to exit] >";
-					cout<<prefix<<flush;
-				}
-				uint64 no;
-				cin>>no;
-				if(no == 0) break;
-				msgptr = new FirstRequest(idx++, no);
-				ccptr->send(msgptr);
-			}else{
-				{
-					Locker<Mutex> lock(mtx);
-					prefix = "string[q to exit] >";
-					cout<<prefix<<flush;
-				}
-				string s;
-				cin>>s;
-				if(s.size() == 1 && s[0] == 'q' || s[0] == 'Q') break;
-				msgptr = new SecondMessage(idx++, s);
-				ccptr->send(msgptr);
+			{
+				Locker<Mutex> lock(mtx);
+				prefix = "me [q to exit]> ";
+				cout<<prefix<<flush;
 			}
-		
+			s.clear();
+			getline(cin, s);
+			if(s.size() == 1 && s[0] == 'q' || s[0] == 'Q') break;
+			msgptr = new TextMessage(s);
+			ccptr->send(msgptr);
 		}while(true);
 		
 		idbg("");
@@ -310,7 +302,8 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 		desc.add_options()
 			("help,h", "List program options")
 			("port,p", value<int>(&_par.port)->default_value(2000),"Server port")
-			("repeat,r", value<uint32>(&_par.repeat)->default_value(0),"Repeat")
+			("user,u", value<string>(&_par.user),"Login User")
+			("pass", value<string>(&_par.pass),"Login Password")
 			("address,a", value<string>(&_par.address_str)->default_value("localhost"),"Server address")
 			("debug_levels,L", value<string>(&_par.dbg_levels)->default_value("view"),"Debug logging levels")
 			("debug_modules,M", value<string>(&_par.dbg_modules)->default_value(""),"Debug logging modules")
@@ -411,22 +404,22 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 	return reenter ? OK : NOK;
 }
 //---------------------------------------------------------------------------------
-void Handle::afterSerialization(BinDeserializerT &_rs, FirstResponse *_pm, ConnectionContext &_rctx){
+void Handle::afterSerialization(BinDeserializerT &_rs, BasicMessage *_pm, ConnectionContext &_rctx){
 	static const char *blancs = "                                    ";
 	_rctx.rcon.onDoneIndex(_rctx.rcvmsgidx);
-	{
+	if(_pm->v){
 		Locker<Mutex> lock(mtx);
-		cout<<'\r'<<blancs<<'\r'<<_rctx.rcvmsgidx<<' '<<_pm->idx<<' '<<_pm->v<<endl;
+		cout<<'\r'<<blancs<<'\r'<<_rctx.rcvmsgidx<<" Error: "<<_pm->v<<endl;
 		cout<<prefix<<flush;
 	}
 }
 	
-void Handle::afterSerialization(BinDeserializerT &_rs, SecondMessage *_pm, ConnectionContext &_rctx){
+void Handle::afterSerialization(BinDeserializerT &_rs, TextMessage *_pm, ConnectionContext &_rctx){
 	static const char *blancs = "                                    ";
 	_rctx.rcon.onDoneIndex(_rctx.rcvmsgidx);
 	{
 		Locker<Mutex> lock(mtx);
-		cout<<"\r"<<blancs<<'\r'<<_rctx.rcvmsgidx<<' '<<_pm->idx<<' '<<_pm->v<<endl;
+		cout<<"\r"<<blancs<<'\r'<<_pm->user<<'>'<<' '<<_pm->text<<endl;
 		cout<<prefix<<flush;
 	}
 }

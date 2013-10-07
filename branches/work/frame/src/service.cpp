@@ -21,9 +21,9 @@
 #include "utility/queue.hpp"
 #include "utility/stack.hpp"
 
+#include "frame/manager.hpp"
 #include "frame/service.hpp"
 #include "frame/object.hpp"
-#include "frame/manager.hpp"
 #include "frame/message.hpp"
 #include "frame/common.hpp"
 

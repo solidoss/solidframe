@@ -7,33 +7,47 @@
 
 struct ConnectionContext;
 
-struct FirstRequest: solid::Dynamic<FirstRequest, solid::frame::Message>{
-	FirstRequest(solid::uint32 _idx = 0, solid::uint32 _v = 0):idx(_idx), v(_v){}
-	solid::uint32	idx;
-	solid::uint64	v;
+struct LoginRequest: solid::Dynamic<LoginRequest, solid::frame::Message>{
+	LoginRequest(){}
+	LoginRequest(
+		const std::string &_user,
+		const std::string &_pass
+	):user(_user), pass(_pass){}
+	std::string		user;
+	std::string		pass;
 	template <class S>
 	void serialize(S &_s, ConnectionContext &_rctx){
-		_s.push(idx, "index").push(v, "value");
+		_s.push(pass, "pass").push(user, "user");
 	}
 };
 
-struct SecondMessage: solid::Dynamic<SecondMessage, solid::frame::Message>{
-	SecondMessage(solid::uint32 _idx = 0, const std::string &_v = ""):idx(_idx), v(_v){}
-	solid::uint32		idx;
-	std::string			v;
+struct BasicMessage: solid::Dynamic<BasicMessage, solid::frame::Message>{
+	enum ErrorCodes{
+		ErrorNo = 0,
+		ErrorAuth,
+		ErrorState
+	};
+	
+	BasicMessage(solid::uint32 _v = 0):v(_v){}
+	
+	solid::uint32		v;
+	
+	const char *errorText()const;
+	
 	template <class S>
 	void serialize(S &_s, ConnectionContext &_rctx){
-		_s.push(idx, "index").push(v, "value");
+		_s.push(v, "value");
 	}
 };
 
-struct FirstResponse: solid::Dynamic<FirstResponse, solid::frame::Message>{
-	FirstResponse(solid::uint32 _idx = 0, solid::uint32 _v = 0):idx(_idx), v(_v){}
-	solid::uint32	idx;
-	solid::uint64	v;
+struct TextMessage: solid::Dynamic<TextMessage, solid::DynamicShared<solid::frame::Message> >{
+	TextMessage(const std::string &_txt):text(_txt){}
+	TextMessage(){}
+	std::string		text;
+	std::string		user;
 	template <class S>
 	void serialize(S &_s, ConnectionContext &_rctx){
-		_s.push(idx, "index").push(v, "value");
+		_s.push(text, "text").push(user, "user");
 	}
 };
 

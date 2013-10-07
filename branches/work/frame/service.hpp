@@ -20,6 +20,8 @@
 #include "boost/atomic.hpp"
 #endif
 
+#include "frame/manager.hpp"
+
 
 namespace solid{
 namespace frame{
@@ -45,6 +47,15 @@ public:
 	bool notifyAll(ulong _sm);
 
 	bool notifyAll(MessageSharedPointerT &_rmsgptr);
+	
+	template <class N>
+	bool forEachObject(N &_rn){
+		if(isRegistered()){
+			return rm.forEachServiceObject(*this, _rn);
+		}else{
+			return false;
+		}
+	}
 	
 	void reset();
 	
