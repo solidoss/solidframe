@@ -77,6 +77,11 @@ struct ConnectionContext{
 	uint32		rcvmsgidx;
 };
 
+struct TextMessage: TextMessageBase, solid::Dynamic<NoopMessage, solid::DynamicShared<solid::frame::Message> >{
+	TextMessage(const std::string &_txt):TextMessageBase(_txt){}
+	TextMessage(){}
+};
+
 typedef serialization::binary::Serializer<ConnectionContext>	BinSerializerT;
 typedef serialization::binary::Deserializer<ConnectionContext>	BinDeserializerT;
 typedef serialization::IdTypeMapper<

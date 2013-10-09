@@ -40,9 +40,10 @@ struct BasicMessage: solid::Dynamic<BasicMessage, solid::frame::Message>{
 	}
 };
 
-struct TextMessage: solid::Dynamic<TextMessage, solid::DynamicShared<solid::frame::Message> >{
-	TextMessage(const std::string &_txt):text(_txt){}
-	TextMessage(){}
+struct TextMessageBase{
+	TextMessageBase(const std::string &_txt):text(_txt){}
+	TextMessageBase(){}
+	
 	std::string		text;
 	std::string		user;
 	template <class S>

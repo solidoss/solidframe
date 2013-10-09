@@ -18,6 +18,9 @@
 #include "example/dchat/core/messages.hpp"
 #include "example/dchat/core/compressor.hpp"
 
+#include "frame/ipc/ipcservice.hpp"
+#include "frame/ipc/ipcmessage.hpp"
+
 
 #include <signal.h>
 
@@ -52,6 +55,38 @@ typedef serialization::IdTypeMapper<
 	serialization::FakeMutex
 >																UInt8TypeMapperT;
 
+struct InitMessage: Dynamic<InitMessage, DynamicShared<frame::ipc::Message> >{
+	InitMessage(){}
+	~InitMessage(){}
+	
+	/*virtual*/ void ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, MessagePointerT &_rmsgptr);
+	/*virtual*/ uint32 ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx);
+	/*virtual*/ void ipcOnComplete(frame::ipc::ConnectionContext const &_rctx, int _err);
+	
+	template <class S>
+	void serialize(S &_s, frame::ipc::ConnectionContext const &_rctx){
+	}
+	
+};
+
+struct TextMessage: TextMessageBase, solid::Dynamic<TextMessage, solid::DynamicShared<solid::frame::ipc::Message> >{
+	TextMessage(const std::string &_txt):TextMessageBase(_txt){}
+	TextMessage(){}
+	
+	/*virtual*/ void ipcOnReceive(solid::frame::ipc::ConnectionContext const &_rctx, MessagePointerT &_rmsgptr);
+	/*virtual*/ solid::uint32 ipcOnPrepare(solid::frame::ipc::ConnectionContext const &_rctx);
+	/*virtual*/ void ipcOnComplete(solid::frame::ipc::ConnectionContext const &_rctx, int _err);
+	
+	template <class S>
+	void serialize(S &_s, ConnectionContext &_rctx){
+		TextMessageBase::serialize(_s, _rctx);
+	}
+	
+	template <class S>
+	void serialize(S &_s, solid::frame::ipc::ConnectionContext const &_rctx){
+		_s.push(text, "text").push(user, "user");
+	}
+};
 
 struct Handle{
 	void beforeSerialization(BinSerializerT &_rs, void *_pt, ConnectionContext &_rctx){}
@@ -81,6 +116,7 @@ struct Handle{
 namespace{
 	struct Params{
 		int			port;
+		int			ipc_port;
 		string		addr_str;
 		string		dbg_levels;
 		string		dbg_modules;
@@ -199,6 +235,31 @@ int main(int argc, char *argv[]){
 		frame::Manager			m;
 		AioSchedulerT			aiosched(m);
 		UInt8TypeMapperT		tm;
+		AioSchedulerT			ipcaiosched(m);
+		
+		frame::ipc::Service		ipcsvc(m, new frame::ipc::BasicController(ipcaiosched));
+		
+		ipcsvc.registerMessageType<InitMessage>();
+		ipcsvc.registerMessageType<TextMessage>();
+		
+		m.registerService(ipcsvc);
+		
+		{
+			frame::ipc::Configuration	cfg;
+			ResolveData					rd = synchronous_resolve("0.0.0.0", p.ipc_port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
+			//solid::Error				err;
+			int							err;
+
+			cfg.baseaddr = rd.begin();
+			
+			err = ipcsvc.reconfigure(cfg);
+			if(err){
+				//TODO:
+				cout<<"Error starting ipcservice!"<<endl;
+				Thread::waitAll();
+				return 0;
+			}
+		}
 		
 		tm.insertHandle<LoginRequest, Handle>();
 		tm.insert<BasicMessage>();
@@ -266,6 +327,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 			("help,h", "List program options")
 			("port,p", value<int>(&_par.port)->default_value(2000),"Listen port")
 			("address,a", value<string>(&_par.addr_str)->default_value("0.0.0.0"),"Listen address")
+			("ipc_port,i", value<int>(&_par.ipc_port)->default_value(2010),"IPC Base port")
 			("debug_levels,L", value<string>(&_par.dbg_levels)->default_value("view"),"Debug logging levels")
 			("debug_modules,M", value<string>(&_par.dbg_modules)->default_value("any"),"Debug logging modules")
 			("debug_address,A", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")
@@ -516,3 +578,24 @@ void Connection::onAuthenticate(const std::string &_user){
 void Connection::onFailAuthenticate(){
 	stt = StateError;
 }
+//------------------------------------------------------------------------------------
+/*virtual*/ void InitMessage::ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, MessagePointerT &_rmsgptr){
+	
+}
+/*virtual*/ uint32 InitMessage::ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx){
+	return 0;
+}
+/*virtual*/ void InitMessage::ipcOnComplete(frame::ipc::ConnectionContext const &_rctx, int _err){
+	
+}
+//------------------------------------------------------------------------------------
+/*virtual*/ void TextMessage::ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, MessagePointerT &_rmsgptr){
+	
+}
+/*virtual*/ uint32 TextMessage::ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx){
+	return 0;
+}
+/*virtual*/ void TextMessage::ipcOnComplete(frame::ipc::ConnectionContext const &_rctx, int _err){
+	
+}
+//------------------------------------------------------------------------------------
