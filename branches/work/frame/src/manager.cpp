@@ -188,7 +188,7 @@ Manager::Data::Data(
 	objpermutbts(_objpermutbts),
 	mutrowsbts(_mutrowsbts),
 	mutcolsbts(_mutcolsbts),
-	mutcolscnt(bitsToMask(_mutcolsbts)),
+	mutcolscnt(bitsToCount(_mutcolsbts)),
 	svccnt(0),
 	selbts(ATOMIC_VAR_INIT(1)), svcbts(ATOMIC_VAR_INIT(0)),objbts(ATOMIC_VAR_INIT(0)),
 	selobjbts(ATOMIC_VAR_INIT(1)), state(StateRunning), dummysvc(_rm)
@@ -473,12 +473,12 @@ bool Manager::doRegisterService(
 	if(d.svcfreestk.size()){
 		const size_t	idx = d.svcfreestk.top();
 		const uint		svcbts = d.svcbts.load(/*ATOMIC_NS::memory_order_seq_cst*/);
-		const size_t	svcmaxcnt = bitsToMask(svcbts);
+		const size_t	svcmaxcnt = bitsToCount(svcbts);
 		
 		if(idx >= svcmaxcnt){
 			Locker<Mutex>	lockt(d.mtxobj);
 			const uint		svcbtst = d.svcbts.load(/*ATOMIC_NS::memory_order_seq_cst*/);
-			const size_t	svcmaxcntt = bitsToMask(svcbtst);
+			const size_t	svcmaxcntt = bitsToCount(svcbtst);
 			const uint		objbtst = d.objbts.load(/*ATOMIC_NS::memory_order_seq_cst*/);
 			if(idx >= svcmaxcntt){
 				if((svcbtst + objbtst + 1) > (sizeof(IndexT) * 8)){
@@ -506,7 +506,7 @@ bool Manager::doRegisterService(
 		
 		lock_all(rss.mtxstore, objcnt, oldobjpermutbts);
 		
-		rss.objpermutbts.store(_objpermutbts/*, ATOMIC_NS::memory_order_seq_cst*/);
+		rss.objpermutbts.store(_objpermutbts, ATOMIC_NS::memory_order_release);
 		
 		while(rss.objfreestk.size()){
 			rss.objfreestk.pop();
@@ -554,10 +554,10 @@ ObjectUidT Manager::doUnsafeRegisterServiceObject(const IndexT _svcidx, Object &
 	}else{
 		const size_t	objcnt = rss.objvecsz.load(/*ATOMIC_NS::memory_order_seq_cst*/);
 		const uint		objbts = d.objbts.load(/*ATOMIC_NS::memory_order_seq_cst*/);
-		const size_t	objmaxcnt = bitsToMask(objbts);
+		const size_t	objmaxcnt = bitsToCount(objbts);
 		
 		const uint		objpermutbts = rss.objpermutbts.load(/*ATOMIC_NS::memory_order_seq_cst*/);
-		const size_t	objpermutcnt = bitsToMask(objpermutbts);
+		const size_t	objpermutcnt = bitsToCount(objpermutbts);
 		const size_t	objaddsz = d.computeObjectAddSize(rss.objvec.size(), objpermutcnt);
 		size_t			newobjcnt = objcnt + objaddsz;
 		ObjectUidT		retval;
@@ -566,14 +566,14 @@ ObjectUidT Manager::doUnsafeRegisterServiceObject(const IndexT _svcidx, Object &
 			Locker<Mutex>	lockt(d.mtxobj);
 			const uint		svcbtst = d.svcbts.load(/*ATOMIC_NS::memory_order_seq_cst*/);
 			uint			objbtst = d.objbts.load(/*ATOMIC_NS::memory_order_seq_cst*/);
-			size_t			objmaxcntt = bitsToMask(objbtst);
+			size_t			objmaxcntt = bitsToCount(objbtst);
 			
 			while(newobjcnt >= objmaxcntt){
 				if((objbtst + svcbtst + 1) > (sizeof(IndexT) * 8)){
 					break;
 				}
 				++objbtst;
-				objmaxcntt = bitsToMask(objbtst);
+				objmaxcntt = bitsToCount(objbtst);
 			}
 			if(newobjcnt >=  objmaxcntt){
 				if(objmaxcntt > objcnt){
@@ -687,18 +687,18 @@ Object* Manager::unsafeObject(const IndexT &_rfullid)const{
 
 IndexT Manager::computeThreadId(const IndexT &_selidx, const IndexT &_objidx){
 	const size_t selbts = d.selbts.load(/*ATOMIC_NS::memory_order_seq_cst*/);
-	const size_t crtmaxobjcnt = bitsToMask(d.selobjbts.load(/*ATOMIC_NS::memory_order_seq_cst*/));
+	const size_t crtmaxobjcnt = bitsToCount(d.selobjbts.load(/*ATOMIC_NS::memory_order_seq_cst*/));
 	const size_t objbts = (sizeof(IndexT) * 8) - selbts;
-	const IndexT selmaxcnt = bitsToMask(selbts);
-	const IndexT objmaxcnt = bitsToMask(objbts);
+	const IndexT selmaxcnt = bitsToCount(selbts);
+	const IndexT objmaxcnt = bitsToCount(objbts);
 
-	if(_objidx <= crtmaxobjcnt){
+	if(_objidx < crtmaxobjcnt){
 	}else{
 		Locker<Mutex>   lock(d.mtx);
 		const size_t	selobjbts2 = d.selobjbts.load(/*ATOMIC_NS::memory_order_seq_cst*/);
 		const size_t	selbts2 = d.selbts.load(/*ATOMIC_NS::memory_order_seq_cst*/);
 		const size_t	crtmaxobjcnt2 = (1 << selobjbts2) - 1;
-		if(_objidx <= crtmaxobjcnt2){
+		if(_objidx < crtmaxobjcnt2){
 		}else{
 			if((selobjbts2 + 1 + selbts2) <= (sizeof(IndexT) * 8)){
 				d.selobjbts.fetch_add(1/*, ATOMIC_NS::memory_order_seq_cst*/);
@@ -722,10 +722,10 @@ bool Manager::prepareThread(SelectorBase *_ps){
 			return false;
 		}
 		const size_t	crtselbts = d.selbts.load(/*ATOMIC_NS::memory_order_seq_cst*/);
-		const size_t	crtmaxselcnt = bitsToMask(crtselbts);
+		const size_t	crtmaxselcnt = bitsToCount(crtselbts);
 		const size_t	selidx = d.selfreestk.top();
 		
-		if(selidx <= crtmaxselcnt){
+		if(selidx < crtmaxselcnt){
 		}else{
 			const size_t	selobjbts2 = d.selobjbts.load(/*ATOMIC_NS::memory_order_seq_cst*/);
 			if((selobjbts2 + crtselbts + 1) <= (sizeof(IndexT) * 8)){

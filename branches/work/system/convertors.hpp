@@ -72,27 +72,27 @@ struct UnsignedConvertor<ulong>{
 #endif
 
 #define BitsToMask(v) ((1 << (v)) - 1)
-#define BitsToCount(v) (1 << (v))
+#define BitsToCount(v) ((1 << (v)) & (~1))
 
 inline uint32 bitsToMask32(unsigned v){
 	return (1 << v) - 1;
 }
 inline uint32 bitsToCount32(unsigned v){
-	return (1 << v);
+	return (1 << v)  & (~static_cast<uint32>(1));
 }
 
 inline uint64 bitsToMask64(unsigned v){
 	return (1 << v) - 1;
 }
 inline uint64 bitsToCount64(unsigned v){
-	return (1 << v);
+	return (1 << v) & (~static_cast<uint64>(1));
 }
 
 inline size_t bitsToMask(unsigned v){
 	return (static_cast<size_t>(1) << v) - 1;
 }
 inline size_t bitsToCount(unsigned v){
-	return (1 << v);
+	return (1 << v) & (~static_cast<size_t>(1));
 }
 
 
