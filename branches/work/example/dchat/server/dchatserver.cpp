@@ -55,11 +55,27 @@ typedef serialization::IdTypeMapper<
 	serialization::FakeMutex
 >																UInt8TypeMapperT;
 
-struct InitMessage: Dynamic<InitMessage, DynamicShared<frame::ipc::Message> >{
+class IpcController;
+
+struct BaseMessage: Dynamic<BaseMessage, DynamicShared<frame::ipc::Message> >{
+private:
+	friend class IpcController;
+	virtual void ipcOnReceive(
+		frame::ipc::ConnectionContext const &_rctx,
+		MessagePointerT &_rmsgptr,
+		IpcController &_rctl
+	) = 0;
+};
+
+struct InitMessage: Dynamic<InitMessage, BaseMessage>{
 	InitMessage(){}
 	~InitMessage(){}
 	
-	/*virtual*/ void ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, MessagePointerT &_rmsgptr);
+	/*virtual*/ void ipcOnReceive(
+		frame::ipc::ConnectionContext const &_rctx,
+		MessagePointerT &_rmsgptr,
+		IpcController &_rctl
+	);
 	/*virtual*/ uint32 ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx);
 	/*virtual*/ void ipcOnComplete(frame::ipc::ConnectionContext const &_rctx, int _err);
 	
@@ -69,11 +85,15 @@ struct InitMessage: Dynamic<InitMessage, DynamicShared<frame::ipc::Message> >{
 	
 };
 
-struct TextMessage: TextMessageBase, solid::Dynamic<TextMessage, solid::DynamicShared<solid::frame::ipc::Message> >{
+struct TextMessage: TextMessageBase, solid::Dynamic<TextMessage, BaseMessage>{
 	TextMessage(const std::string &_txt):TextMessageBase(_txt){}
 	TextMessage(){}
 	
-	/*virtual*/ void ipcOnReceive(solid::frame::ipc::ConnectionContext const &_rctx, MessagePointerT &_rmsgptr);
+	/*virtual*/ void ipcOnReceive(
+		solid::frame::ipc::ConnectionContext const &_rctx,
+		MessagePointerT &_rmsgptr,
+		IpcController &_rctl
+	);
 	/*virtual*/ solid::uint32 ipcOnPrepare(solid::frame::ipc::ConnectionContext const &_rctx);
 	/*virtual*/ void ipcOnComplete(solid::frame::ipc::ConnectionContext const &_rctx, int _err);
 	
@@ -115,16 +135,26 @@ struct Handle{
 
 namespace{
 	struct Params{
-		int			port;
-		int			ipc_port;
-		string		addr_str;
-		string		dbg_levels;
-		string		dbg_modules;
-		string		dbg_addr;
-		string		dbg_port;
-		bool		dbg_console;
-		bool		dbg_buffered;
-		bool		log;
+		typedef std::vector<SocketAddressInet4>		PeerAddressVectorT;
+		typedef std::vector<std::string>			StringVectorT;
+		int				chat_port;
+		string			chat_addr_str;
+		int				ipc_port;
+		string			ipc_addr_str;
+		StringVectorT	connectstringvec;
+		
+		
+		string			dbg_levels;
+		string			dbg_modules;
+		string			dbg_addr;
+		string			dbg_port;
+		bool			dbg_console;
+		bool			dbg_buffered;
+		bool			log;
+		
+		PeerAddressVectorT		connectvec;
+		
+		bool prepare(frame::ipc::Configuration &_rcfg, string &_err);
 	};
 
 	Mutex					mtx;
@@ -189,6 +219,41 @@ private:
 	Service								&rsvc;
 };
 
+class IpcController: public frame::ipc::BasicController{
+	Service &rchatsvc;
+public:
+	IpcController(
+		Service &_rsvc,
+		AioSchedulerT &_rsched,
+		const uint32 _flags = 0,
+		const uint32 _resdatasz = 0
+	):frame::ipc::BasicController(_rsched, _flags, _resdatasz), rchatsvc(_rsvc){}
+	
+	IpcController(
+		Service &_rsvc,
+		AioSchedulerT &_rsched_t,
+		AioSchedulerT &_rsched_l,
+		AioSchedulerT &_rsched_n,
+		const uint32 _flags = 0,
+		const uint32 _resdatasz = 0
+	):frame::ipc::BasicController(_rsched_t, _rsched_l, _rsched_n, _flags, _resdatasz), rchatsvc(_rsvc){}
+		
+	Service& chatService()const{
+		return rchatsvc;
+	}
+	/*virtual*/ bool onMessageReceive(
+		DynamicPointer<frame::ipc::Message> &_rmsgptr,
+		frame::ipc::ConnectionContext const &_rctx
+	){
+		if(_rmsgptr->isTypeDynamic(BaseMessage::staticTypeId())){
+			static_cast<BaseMessage&>(*_rmsgptr).ipcOnReceive(_rctx, _rmsgptr, *this);
+		}else{
+			_rmsgptr->ipcOnReceive(_rctx, _rmsgptr);
+		}
+		return true;
+	}
+};
+
 typedef DynamicPointer<Listener>	ListenerPointerT;
 
 bool parseArguments(Params &_par, int argc, char *argv[]);
@@ -234,23 +299,38 @@ int main(int argc, char *argv[]){
 	{
 		frame::Manager			m;
 		AioSchedulerT			aiosched(m);
-		UInt8TypeMapperT		tm;
 		AioSchedulerT			ipcaiosched(m);
 		
-		frame::ipc::Service		ipcsvc(m, new frame::ipc::BasicController(ipcaiosched));
+		UInt8TypeMapperT		tm;
+		
+		tm.insertHandle<LoginRequest, Handle>();
+		tm.insert<BasicMessage>();
+		tm.insertHandle<TextMessage, Handle>();
+		tm.insertHandle<NoopMessage, Handle>();
+		
+		Service					svc(m, aiosched, tm);
+		
+		frame::ipc::Service		ipcsvc(m, new IpcController(svc, ipcaiosched));
 		
 		ipcsvc.registerMessageType<InitMessage>();
 		ipcsvc.registerMessageType<TextMessage>();
 		
+		m.registerService(svc);
 		m.registerService(ipcsvc);
 		
 		{
 			frame::ipc::Configuration	cfg;
-			ResolveData					rd = synchronous_resolve("0.0.0.0", p.ipc_port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
 			//solid::Error				err;
 			int							err;
-
-			cfg.baseaddr = rd.begin();
+			
+			{
+				string errstr;
+				if(!p.prepare(cfg, errstr)){
+					cout<<"Error preparing ipc configuration: "<<errstr<<endl;
+					Thread::waitAll();
+					return 0;
+				}
+			}
 			
 			err = ipcsvc.reconfigure(cfg);
 			if(err){
@@ -261,16 +341,9 @@ int main(int argc, char *argv[]){
 			}
 		}
 		
-		tm.insertHandle<LoginRequest, Handle>();
-		tm.insert<BasicMessage>();
-		tm.insertHandle<TextMessage, Handle>();
-		tm.insertHandle<NoopMessage, Handle>();
-		
-		Service					svc(m, aiosched, tm);
-		m.registerService(svc);
 		{
 			
-			ResolveData		rd =  synchronous_resolve(p.addr_str.c_str(), p.port, 0, SocketInfo::Inet4, SocketInfo::Stream);
+			ResolveData		rd =  synchronous_resolve(p.chat_addr_str.c_str(), p.chat_port, 0, SocketInfo::Inet4, SocketInfo::Stream);
 	
 			SocketDevice	sd;
 	
@@ -325,9 +398,11 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 		options_description desc("SolidFrame concept application");
 		desc.add_options()
 			("help,h", "List program options")
-			("port,p", value<int>(&_par.port)->default_value(2000),"Listen port")
-			("address,a", value<string>(&_par.addr_str)->default_value("0.0.0.0"),"Listen address")
-			("ipc_port,i", value<int>(&_par.ipc_port)->default_value(2010),"IPC Base port")
+			("chat-port,p", value<int>(&_par.chat_port)->default_value(2000),"Chat listen port")
+			("chat-address", value<string>(&_par.chat_addr_str)->default_value("0.0.0.0"),"Chat listen address")
+			("ipc-port,i", value<int>(&_par.ipc_port)->default_value(2010),"IPC Base port")
+			("ipc-address", value<string>(&_par.ipc_addr_str)->default_value("localhost"),"IPC listen address")
+			("connect,c", value<vector<string> >(&_par.connectstringvec), "Peer to connect to: YYY.YYY.YYY.YYY:port")
 			("debug_levels,L", value<string>(&_par.dbg_levels)->default_value("view"),"Debug logging levels")
 			("debug_modules,M", value<string>(&_par.dbg_modules)->default_value("any"),"Debug logging modules")
 			("debug_address,A", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")
@@ -349,6 +424,34 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 		return true;
 	}
 }
+//------------------------------------------------------
+namespace{
+bool Params::prepare(frame::ipc::Configuration &_rcfg, string &_err){
+	const uint16	default_port = 2000;
+	size_t			pos;
+	
+	for(std::vector<std::string>::iterator it(connectstringvec.begin()); it != connectstringvec.end(); ++it){
+		pos = it->rfind(':');
+		int port;
+		if(pos == std::string::npos){
+			port = default_port;
+		}else{
+			(*it)[pos] = '\0';
+			port = atoi(it->c_str() + pos + 1);
+		}
+		ResolveData	rd = synchronous_resolve(it->c_str(), port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
+		if(!rd.empty()){
+			connectvec.push_back(SocketAddressInet4(rd.begin()));
+			idbg("added connect address "<<*it<<" "<<connectvec.back());
+		}else{
+			idbg("skiped connect address "<<*it);
+		}
+	}
+	ResolveData		rd = synchronous_resolve(ipc_addr_str.c_str(), ipc_port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
+	_rcfg.baseaddr = rd.begin();
+	return true;
+}
+}//namespace
 //--------------------------------------------------------------------------
 Listener::Listener(
 	Service &_rsvc,
@@ -579,7 +682,11 @@ void Connection::onFailAuthenticate(){
 	stt = StateError;
 }
 //------------------------------------------------------------------------------------
-/*virtual*/ void InitMessage::ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, MessagePointerT &_rmsgptr){
+/*virtual*/ void InitMessage::ipcOnReceive(
+	frame::ipc::ConnectionContext const &_rctx,
+	MessagePointerT &_rmsgptr,
+	IpcController &_rctl
+){
 	
 }
 /*virtual*/ uint32 InitMessage::ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx){
@@ -589,7 +696,11 @@ void Connection::onFailAuthenticate(){
 	
 }
 //------------------------------------------------------------------------------------
-/*virtual*/ void TextMessage::ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, MessagePointerT &_rmsgptr){
+/*virtual*/ void TextMessage::ipcOnReceive(
+	frame::ipc::ConnectionContext const &_rctx,
+	MessagePointerT &_rmsgptr,
+	IpcController &_rctl
+){
 	
 }
 /*virtual*/ uint32 TextMessage::ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx){
