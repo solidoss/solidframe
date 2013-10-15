@@ -564,9 +564,11 @@ Session::Data::Data(
 }
 //---------------------------------------------------------------------
 Session::Data::~Data(){
-	Context 	&rctx = Context::the();
+	Context 			&rctx = Context::the();
+	ConnectionContext	&rmsgctx = rctx.msgctx;
 	while(msgq.size()){
-		msgq.front().msgptr->ipcOnComplete(rctx.msgctx, -1);
+		//msgq.front().msgptr->ipcOnComplete(rctx.msgctx, -1);
+		rmsgctx.service().controller().onMessageComplete(*msgq.front().msgptr, rmsgctx, -1);
 		msgq.pop();
 	}
 	while(this->rcvdmsgq.size()){
@@ -588,10 +590,11 @@ Session::Data::~Data(){
 		if(rsmd.msgptr.get()){
 			if((rsmd.flags & WaitResponseFlag) && (rsmd.flags & SentFlag)){
 				//the was successfully sent but the response did not arrive
-				rsmd.msgptr->ipcOnComplete(rctx.msgctx, -2);
+				//rsmd.msgptr->ipcOnComplete(rctx.msgctx, -2);
+				rmsgctx.service().controller().onMessageComplete(*rsmd.msgptr, rmsgctx, -2);
 			}else{
 				//the message was not successfully sent
-				rsmd.msgptr->ipcOnComplete(rctx.msgctx, -1);
+				rmsgctx.service().controller().onMessageComplete(*rsmd.msgptr, rmsgctx, -1);
 			}
 			rsmd.msgptr.clear();
 		}
@@ -737,7 +740,9 @@ void Session::Data::popSentWaitMessage(const MessageUid &_rmsguid){
 		if(rsmd.uid != _rmsguid.uid) return;
 		++rsmd.uid;
 		if(rsmd.msgptr.get()){
-			rsmd.msgptr->ipcOnComplete(Context::the().msgctx, 0);
+			//rsmd.msgptr->ipcOnComplete(Context::the().msgctx, 0);
+			ConnectionContext	&rmsgctx = Context::the().msgctx;
+			rmsgctx.service().controller().onMessageComplete(*rsmd.msgptr, rmsgctx, 0);
 			rsmd.msgptr.clear();
 		}
 		sendmsgfreeposstk.push(_rmsguid.idx);
@@ -761,7 +766,9 @@ void Session::Data::popSentWaitMessage(const uint32 _idx){
 		idbgx(Debug::ipc, "message waits for response "<<_idx<<' '<<rsmd.uid);
 		rsmd.flags |= SentFlag;
 	}else{
-		rsmd.msgptr->ipcOnComplete(Context::the().msgctx, 0);
+		//rsmd.msgptr->ipcOnComplete(Context::the().msgctx, 0);
+		ConnectionContext	&rmsgctx = Context::the().msgctx;
+		rmsgctx.service().controller().onMessageComplete(*rsmd.msgptr, rmsgctx, 0);
 		++rsmd.uid;
 		rsmd.msgptr.clear();
 		sendmsgfreeposstk.push(_idx);
@@ -961,7 +968,9 @@ void Session::Data::pushMessageToSendQueue(
 	if(rsmd.flags & WaitResponseFlag){
 		rsmd.msgptr->ipcResetState();
 	}
-	uint32 tmp_flgs = rsmd.msgptr->ipcOnPrepare(Context::the().msgctx);
+	ConnectionContext	&rmsgctx = Context::the().msgctx;
+	uint32				tmp_flgs = rmsgctx.service().controller().onMessagePrepare(*rsmd.msgptr, rmsgctx);//rsmd.msgptr->ipcOnPrepare(Context::the().msgctx);
+	
 	rsmd.flags |= tmp_flgs;
 	
 	vdbgx(Debug::ipc, "flags = "<<(rsmd.flags & SentFlag)<<" tmpflgs = "<<(tmp_flgs & SentFlag));
@@ -1359,7 +1368,7 @@ void Session::reconnect(Session *_pses){
 	COLLECT_DATA_0(d.statistics.reconnect);
 	vdbgx(Debug::ipc, "reconnecting session "<<(void*)_pses);
 	
-	int adjustcount = 0;
+	int						adjustcount = 0;
 	
 	//first we reset the peer addresses
 	if(_pses){
@@ -1426,7 +1435,9 @@ void Session::reconnect(Session *_pses){
 	while(d.sendmsgidxq.size()){
 		d.sendmsgidxq.pop();
 	}
-	bool mustdisconnect = false;
+	bool				mustdisconnect = false;
+	ConnectionContext	&rmsgctx = Context::the().msgctx;
+	
 	//see which sent/sending messages must be cleard
 	for(Data::SendMessageVectorT::iterator it(d.sendmsgvec.begin()); it != d.sendmsgvec.end(); ++it){
 		Data::SendMessageData &rsmd(*it);
@@ -1447,7 +1458,9 @@ void Session::reconnect(Session *_pses){
 		if(!(rsmd.flags & SameConnectorFlag)){
 			if(rsmd.flags & WaitResponseFlag && rsmd.flags & SentFlag){
 				//if the message was sent and were waiting for response - were not sending twice
-				rsmd.msgptr->ipcOnComplete(Context::the().msgctx, -2);
+				//rsmd.msgptr->ipcOnComplete(Context::the().msgctx, -2);
+				
+				rmsgctx.service().controller().onMessageComplete(*rsmd.msgptr, rmsgctx, -2);
 				rsmd.msgptr.clear();
 				++rsmd.uid;
 			}
@@ -1455,9 +1468,11 @@ void Session::reconnect(Session *_pses){
 		}else{
 			vdbgx(Debug::ipc, "message not scheduled for resend");
 			if(rsmd.flags & WaitResponseFlag && rsmd.flags & SentFlag){
-				rsmd.msgptr->ipcOnComplete(Context::the().msgctx, -2);
+				//rsmd.msgptr->ipcOnComplete(Context::the().msgctx, -2);
+				rmsgctx.service().controller().onMessageComplete(*rsmd.msgptr, rmsgctx, -2);
 			}else{
-				rsmd.msgptr->ipcOnComplete(Context::the().msgctx, -1);
+				//rsmd.msgptr->ipcOnComplete(Context::the().msgctx, -1);
+				rmsgctx.service().controller().onMessageComplete(*rsmd.msgptr, rmsgctx, -1);
 			}
 			rsmd.msgptr.clear();
 			++rsmd.uid;
@@ -2034,7 +2049,7 @@ void Session::doParsePacket(TalkerStub &_rstub, const Packet &_rpkt){
 			
 			if(d.state == Data::Connected){
 				
-				if(!rctrl.receive(msgptr, rctx.msgctx)){
+				if(!rctrl.onMessageReceive(msgptr, rctx.msgctx)){
 					d.state = Data::Disconnecting;
 				}
 				

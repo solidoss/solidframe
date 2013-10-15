@@ -98,9 +98,20 @@ struct Controller: Dynamic<Controller, DynamicShared<> >{
 		return (flags & AuthenticationFlag) != 0;
 	}
 	
-	virtual bool receive(
+	virtual bool onMessageReceive(
 		DynamicPointer<Message> &_rmsgptr,
-		ConnectionContext &_rctx
+		ConnectionContext const &_rctx
+	);
+	
+	virtual uint32 onMessagePrepare(
+		Message &_rmsg,
+		ConnectionContext const &_rctx
+	);
+	
+	virtual void onMessageComplete(
+		Message &_rmsg,
+		ConnectionContext const &_rctx,
+		int _error
 	);
 	
 	//Must return:

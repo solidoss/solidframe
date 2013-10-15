@@ -1295,12 +1295,27 @@ char * Controller::allocateBuffer(PacketContext &_rpc, uint32 &_cp){
 	return newbuf + _rpc.offset;
 }
 
-bool Controller::receive(
+/*virtual*/ bool Controller::onMessageReceive(
 	DynamicPointer<Message> &_rmsgptr,
-	ConnectionContext &_rctx
+	ConnectionContext const &_rctx
 ){
 	_rmsgptr->ipcOnReceive(_rctx, _rmsgptr);
 	return true;
+}
+
+/*virtual*/ uint32 Controller::onMessagePrepare(
+	Message &_rmsg,
+	ConnectionContext const &_rctx
+){
+	return _rmsg.ipcOnPrepare(_rctx);
+}
+
+/*virtual*/ void Controller::onMessageComplete(
+	Message &_rmsg,
+	ConnectionContext const &_rctx,
+	int _error
+){
+	_rmsg.ipcOnComplete(_rctx, _error);
 }
 
 int Controller::authenticate(
