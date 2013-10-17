@@ -300,14 +300,18 @@ struct Configuration{
 */
 class Service: public Dynamic<Service, frame::Service>{
 public:
-	typedef serialization::binary::Serializer<const ConnectionContext>		SerializerT;
-	typedef serialization::binary::Deserializer<const ConnectionContext>	DeserializerT;
+	typedef serialization::binary::Serializer<
+		const ConnectionContext
+	>						SerializerT;
+	typedef serialization::binary::Deserializer<
+		const ConnectionContext
+	>						DeserializerT;
 private:
 	typedef serialization::IdTypeMapper<
 		SerializerT,
 		DeserializerT,
 		SerializationTypeIdT
-	>																IdTypeMapperT;
+	>						IdTypeMapperT;
 	
 	struct Handle{
 		bool checkStore(void */*_pt*/, const ConnectionContext &/*_rctx*/)const{

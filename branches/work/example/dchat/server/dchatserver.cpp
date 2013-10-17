@@ -30,10 +30,15 @@
 
 using namespace solid;
 using namespace std;
-
+//------------------------------------------------------------------------------------
 typedef frame::Scheduler<frame::aio::Selector>	AioSchedulerT;
 
 class Connection;
+class IpcController;
+class Listener;
+class Connection;
+
+//------------------------------------------------------------------------------------
 
 struct ConnectionContext{
 	ConnectionContext(Connection &_rcon):rcon(_rcon), sndmsgidx(-1),rcvmsgidx(-1){}
@@ -48,6 +53,8 @@ struct ConnectionContext{
 	uint32		rcvmsgidx;
 };
 
+//------------------------------------------------------------------------------------
+
 typedef serialization::binary::Serializer<ConnectionContext>	BinSerializerT;
 typedef serialization::binary::Deserializer<ConnectionContext>	BinDeserializerT;
 typedef serialization::IdTypeMapper<
@@ -55,7 +62,7 @@ typedef serialization::IdTypeMapper<
 	serialization::FakeMutex
 >																UInt8TypeMapperT;
 
-class IpcController;
+//------------------------------------------------------------------------------------
 
 struct BaseMessage: Dynamic<BaseMessage, DynamicShared<frame::ipc::Message> >{
 private:
@@ -67,8 +74,10 @@ private:
 	) = 0;
 };
 
+//------------------------------------------------------------------------------------
+
 struct InitMessage: Dynamic<InitMessage, BaseMessage>{
-	InitMessage(){}
+	InitMessage():reqnodes(0){}
 	~InitMessage(){}
 	
 	/*virtual*/ void ipcOnReceive(
@@ -81,9 +90,14 @@ struct InitMessage: Dynamic<InitMessage, BaseMessage>{
 	
 	template <class S>
 	void serialize(S &_s, frame::ipc::ConnectionContext const &_rctx){
+		_s.pushContainer(nodevec, "nodevec").push(reqnodes, "reqnodes");
 	}
-	
+	typedef std::vector<std::string>	StringVectorT;
+	StringVectorT	nodevec;
+	char			reqnodes;
 };
+
+//------------------------------------------------------------------------------------
 
 struct TextMessage: TextMessageBase, solid::Dynamic<TextMessage, BaseMessage>{
 	TextMessage(const std::string &_txt):TextMessageBase(_txt){}
@@ -107,6 +121,8 @@ struct TextMessage: TextMessageBase, solid::Dynamic<TextMessage, BaseMessage>{
 		_s.push(text, "text").push(user, "user");
 	}
 };
+
+//------------------------------------------------------------------------------------
 
 struct Handle{
 	void beforeSerialization(BinSerializerT &_rs, void *_pt, ConnectionContext &_rctx){}
@@ -133,10 +149,13 @@ struct Handle{
 	
 };
 
+//------------------------------------------------------------------------------------
+
 namespace{
 	struct Params{
-		typedef std::vector<SocketAddressInet4>		PeerAddressVectorT;
+		typedef std::vector<SocketAddressInet4>		AddressVectorT;
 		typedef std::vector<std::string>			StringVectorT;
+		
 		int				chat_port;
 		string			chat_addr_str;
 		int				ipc_port;
@@ -152,7 +171,7 @@ namespace{
 		bool			dbg_buffered;
 		bool			log;
 		
-		PeerAddressVectorT		connectvec;
+		AddressVectorT	connectvec;
 		
 		bool prepare(frame::ipc::Configuration &_rcfg, string &_err);
 	};
@@ -176,19 +195,41 @@ namespace{
 		}
 	}
 	
-}
+}//namespace
 
-class Listener;
-class Connection;
+//------------------------------------------------------------------------------------
 
 class Service: public solid::Dynamic<Service, frame::Service>{
+	struct NodeStub{
+		NodeStub(){}
+		std::string				name;
+		SocketAddressInet4		addr;
+	};
+	typedef std::vector<NodeStub>	NodeVectorT;
 public:
 	Service(
 		frame::Manager &_rm,
 		AioSchedulerT &_rsched,
-		const serialization::TypeMapperBase &_rtm
-	):BaseT(_rm), rsched(_rsched), rtm(_rtm){}
+		const serialization::TypeMapperBase &_rtm,
+		const char *_myname
+	):BaseT(_rm), rsched(_rsched), rtm(_rtm){
+		//TODO: add name
+	}
 	~Service(){}
+	
+	void ipcService(frame::ipc::Service &_ripc){
+		pipc = &_ripc;
+	}
+	frame::ipc::Service& ipcService()const{
+		return *pipc;
+	}
+	std::string myName()const{
+		SharedLocker<SharedMutex>	lock(shrmtx);
+		return nodevec.front().name;
+	}
+	void addNode(const char *_name);
+	void remNode();
+	
 private:
 	friend class Listener;
 	friend class Connection;
@@ -200,7 +241,12 @@ private:
 private:
 	AioSchedulerT						&rsched;
 	const serialization::TypeMapperBase &rtm;
+	NodeVectorT							nodevec;
+	frame::ipc::Service					*pipc;
+	mutable SharedMutex					shrmtx;
 };
+
+//------------------------------------------------------------------------------------
 
 class Listener: public Dynamic<Listener, frame::aio::SingleObject>{
 public:
@@ -218,6 +264,8 @@ private:
 	SslContextPtrT						pctx;
 	Service								&rsvc;
 };
+
+//------------------------------------------------------------------------------------
 
 class IpcController: public frame::ipc::BasicController{
 	Service &rchatsvc;
@@ -254,9 +302,13 @@ public:
 	}
 };
 
+//------------------------------------------------------------------------------------
+
 typedef DynamicPointer<Listener>	ListenerPointerT;
 
 bool parseArguments(Params &_par, int argc, char *argv[]);
+
+//------------------------------------------------------------------------------------
 
 int main(int argc, char *argv[]){
 	if(parseArguments(p, argc, argv)) return 0;
@@ -308,12 +360,14 @@ int main(int argc, char *argv[]){
 		tm.insertHandle<TextMessage, Handle>();
 		tm.insertHandle<NoopMessage, Handle>();
 		
-		Service					svc(m, aiosched, tm);
+		Service					svc(m, aiosched, tm, p.ipc_addr_str.c_str());
 		
 		frame::ipc::Service		ipcsvc(m, new IpcController(svc, ipcaiosched));
 		
 		ipcsvc.registerMessageType<InitMessage>();
 		ipcsvc.registerMessageType<TextMessage>();
+		
+		svc.ipcService(ipcsvc);
 		
 		m.registerService(svc);
 		m.registerService(ipcsvc);
@@ -554,7 +608,7 @@ private:
 	std::string				usr;
 	MessageVectorT			msgvec;
 };
-
+//------------------------------------------------------------------------------------
 void Service::insertConnection(
 	const SocketDevice &_rsd,
 	frame::aio::openssl::Context *_pctx,
@@ -614,6 +668,15 @@ void Service::insertConnection(
 	}
 	return rv;
 }
+void Connection::onAuthenticate(const std::string &_user){
+	stt = StateAuth;
+	des.limits().stringlimit = 1024 * 1024 * 10;
+	usr = _user;
+}
+
+void Connection::onFailAuthenticate(){
+	stt = StateError;
+}
 //--------------------------------------------------------------------------
 bool Handle::checkLoad(LoginRequest *_pm, ConnectionContext  &_rctx)const{
 	return !_rctx.rcon.isAuthenticated();
@@ -670,16 +733,6 @@ void Handle::afterSerialization(BinDeserializerT &_rs, NoopMessage *_pm, Connect
 	idbg("des:NoopMessage");
 	//echo back the message itself
 	_rctx.rcon.session().send(_rctx.rcvmsgidx, _rctx.rcon.session().recvMessage(_rctx.rcvmsgidx));
-}
-
-void Connection::onAuthenticate(const std::string &_user){
-	stt = StateAuth;
-	des.limits().stringlimit = 1024 * 1024 * 10;
-	usr = _user;
-}
-
-void Connection::onFailAuthenticate(){
-	stt = StateError;
 }
 //------------------------------------------------------------------------------------
 /*virtual*/ void InitMessage::ipcOnReceive(

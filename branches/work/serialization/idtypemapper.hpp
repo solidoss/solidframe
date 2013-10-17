@@ -23,9 +23,11 @@ namespace serialization{
 struct FakeMutex{
 	void lock(){}
 	void unlock(){}
+	void sharedLock(){}
+	void sharedUnlock(){}
 };
 
-template <class Ser, class Des, typename Int, typename Mtx = Mutex>
+template <class Ser, class Des, typename Int, typename Mtx = SharedMutex>
 class IdTypeMapper: public TypeMapperBase{
 	
 	typedef IdTypeMapper<Ser, Des, Int, Mtx>	ThisT;
@@ -197,7 +199,7 @@ private:
 		uint32	*pid(NULL);
 		FncSerT	pf; 
 		{
-			Locker<Mtx> lock(m);
+			SharedLocker<Mtx> lock(m);
 			pf = this->function(_id, pid);
 		}
 		return (*pf)(_pt, _pser, pid, _name, _pctx);
@@ -210,7 +212,7 @@ private:
 		uint32	*pid(NULL);
 		FncSerT	pf; 
 		{
-			Locker<Mtx> lock(m);
+			SharedLocker<Mtx> lock(m);
 			pf = this->function(_pid, pid);
 		}
 		return (*pf)(_pt, _pser, pid, _name, _pctx);
@@ -226,7 +228,7 @@ private:
 		typename UnsignedType<Int>::Type	idx(rid);
 		FncDesT								pf;
 		{
-			Locker<Mtx> lock(m);
+			SharedLocker<Mtx> lock(m);
 			pf = this->function(idx);
 		}
 		if(pf){

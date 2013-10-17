@@ -73,6 +73,22 @@ struct RecursiveTimedMutex: public Mutex{
 	}
 };
 
+struct SharedMutex{
+	SharedMutex();
+	~SharedMutex();
+	//! Lock for current thread
+	void lock();
+	//! Unlock for current thread
+	void unlock();
+	//! Try lock for current thread
+	bool tryLock();
+	void sharedLock();
+	void sharedUnlock();
+	bool sharedTryLock();
+private:
+	pthread_rwlock_t	mut;
+};
+
 template <class M>
 struct Locker{
 	Locker(M &_m):m(_m){
@@ -83,6 +99,18 @@ struct Locker{
 	}
 	M &m;
 };
+
+template <class M>
+struct SharedLocker{
+	SharedLocker(M &_m):m(_m){
+		m.sharedLock();
+	}
+	~SharedLocker(){
+		m.sharedUnlock();
+	}
+	M &m;
+};
+
 
 #ifndef NINLINES
 #include "system/mutex.ipp"

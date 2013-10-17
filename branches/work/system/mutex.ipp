@@ -13,15 +13,16 @@
 #endif
 
 inline Mutex::Mutex(){
+#ifdef UDEBUG
 	pthread_mutexattr_t att;
 	pthread_mutexattr_init(&att);
-#ifdef UDEBUG
 	pthread_mutexattr_settype(&att, (int)ERRORCHECK);
-#else
-	pthread_mutexattr_settype(&att, (int)FAST);
-#endif
 	pthread_mutex_init(&mut,&att);
 	pthread_mutexattr_destroy(&att);
+#else
+	//pthread_mutexattr_settype(&att, (int)FAST);
+	pthread_mutex_init(&mut,&att);
+#endif
 }
 
 inline Mutex::Mutex(Type _type){
@@ -66,8 +67,34 @@ inline void Mutex::unlock(){
 #endif
 }
 
+inline SharedMutex::SharedMutex(){
+	 pthread_rwlock_init(&mut, NULL);
+}
+inline SharedMutex::~SharedMutex(){
+	pthread_rwlock_destroy(&mut);
+}
+inline void SharedMutex::lock(){
+	pthread_rwlock_wrlock(&mut);
+}
+inline void SharedMutex::unlock(){
+	 pthread_rwlock_unlock(&mut);
+}
+inline bool SharedMutex::tryLock(){
+	return pthread_rwlock_trywrlock(&mut) == 0;
+}
+inline void SharedMutex::sharedLock(){
+	pthread_rwlock_rdlock(&mut);
+}
+inline void SharedMutex::sharedUnlock(){
+	 pthread_rwlock_unlock(&mut);
+}
+inline bool SharedMutex::sharedTryLock(){
+	return pthread_rwlock_tryrdlock(&mut) == 0;
+}
+
 #ifdef _WIN32
 inline bool Mutex::tryLock(){
+	return false;
 }
 #else
 inline bool Mutex::tryLock(){
