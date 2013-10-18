@@ -37,6 +37,7 @@ class Connection;
 class IpcController;
 class Listener;
 class Connection;
+class Service;
 
 //------------------------------------------------------------------------------------
 
@@ -77,7 +78,15 @@ private:
 //------------------------------------------------------------------------------------
 
 struct InitMessage: Dynamic<InitMessage, BaseMessage>{
-	InitMessage():reqnodes(0){}
+	enum{
+		RequestNodes = 1,
+		RequestAdd,
+		ResponseNodes
+	};
+	InitMessage():type(0){}
+	InitMessage(const std::string &_rname, uint8 _type):type(_type){
+		nodevec.push_back(_rname);
+	}
 	~InitMessage(){}
 	
 	/*virtual*/ void ipcOnReceive(
@@ -90,11 +99,11 @@ struct InitMessage: Dynamic<InitMessage, BaseMessage>{
 	
 	template <class S>
 	void serialize(S &_s, frame::ipc::ConnectionContext const &_rctx){
-		_s.pushContainer(nodevec, "nodevec").push(reqnodes, "reqnodes");
+		_s.pushContainer(nodevec, "nodevec").push(type, "type");
 	}
 	typedef std::vector<std::string>	StringVectorT;
+	uint8			type;
 	StringVectorT	nodevec;
-	char			reqnodes;
 };
 
 //------------------------------------------------------------------------------------
@@ -152,14 +161,32 @@ struct Handle{
 //------------------------------------------------------------------------------------
 
 namespace{
+	enum NodeTypes{
+		BasicNodeType,
+		InitNodeType,
+		WaitNodeType
+			
+	};
+
+	bool split_endpoint_string(std::string &_endpoint, std::string &_addr, int &_port){
+		size_t			pos= _endpoint.rfind(':');
+		if(pos == std::string::npos){
+		}else{
+			_endpoint[pos] = '\0';
+			_port = atoi(_endpoint.c_str() + pos + 1);
+			_addr = _endpoint.c_str();
+			_endpoint[pos] = ':';
+		}
+		return true;
+	}
+
 	struct Params{
-		typedef std::vector<SocketAddressInet4>		AddressVectorT;
+		//typedef std::vector<SocketAddressInet4>		AddressVectorT;
 		typedef std::vector<std::string>			StringVectorT;
 		
 		int				chat_port;
 		string			chat_addr_str;
-		int				ipc_port;
-		string			ipc_addr_str;
+		string			ipc_endpoint_str;
 		StringVectorT	connectstringvec;
 		
 		
@@ -171,9 +198,9 @@ namespace{
 		bool			dbg_buffered;
 		bool			log;
 		
-		AddressVectorT	connectvec;
+		//AddressVectorT	connectvec;
 		
-		bool prepare(frame::ipc::Configuration &_rcfg, string &_err);
+		bool prepare(frame::ipc::Configuration &_rcfg, Service &_rsvc, string &_err);
 	};
 
 	Mutex					mtx;
@@ -201,12 +228,18 @@ namespace{
 
 class Service: public solid::Dynamic<Service, frame::Service>{
 	struct NodeStub{
-		NodeStub(){}
+		NodeStub():type(BasicNodeType){}
 		std::string				name;
 		SocketAddressInet4		addr;
+		NodeTypes				type;
 	};
 	typedef std::vector<NodeStub>	NodeVectorT;
 public:
+	enum NotifyChoice{
+		NotifyAll,
+		NotifyInitNodes,
+		NotifyWaitNodes,
+	};
 	Service(
 		frame::Manager &_rm,
 		AioSchedulerT &_rsched,
@@ -227,9 +260,12 @@ public:
 		SharedLocker<SharedMutex>	lock(shrmtx);
 		return nodevec.front().name;
 	}
-	void addNode(const char *_name);
-	void remNode();
+	bool addNode(std::string &_rname, NodeTypes _type);
+	void onReceiveMessage(DynamicPointer<InitMessage> &_rmsgptr, frame::ipc::ConnectionContext const &_rctx);
+	void onReceiveMessage(DynamicPointer<TextMessage> &_rmsgptr, frame::ipc::ConnectionContext const &_rctx);
+	void onNodeDisconnect(SocketAddressInet4 &_raddr);
 	
+	void notifyNodes(DynamicPointer<frame::ipc::Message> &_rmsgptr, NotifyChoice _choice = NotifyAll);
 private:
 	friend class Listener;
 	friend class Connection;
@@ -300,6 +336,10 @@ public:
 		}
 		return true;
 	}
+	/*virtual*/ void onDisconnect(const SocketAddressInet &_raddr, const uint32 _netid){
+		SocketAddressInet4 addr(_raddr);
+		chatService().onNodeDisconnect(addr);
+	}
 };
 
 //------------------------------------------------------------------------------------
@@ -360,7 +400,7 @@ int main(int argc, char *argv[]){
 		tm.insertHandle<TextMessage, Handle>();
 		tm.insertHandle<NoopMessage, Handle>();
 		
-		Service					svc(m, aiosched, tm, p.ipc_addr_str.c_str());
+		Service					svc(m, aiosched, tm, p.ipc_endpoint_str.c_str());
 		
 		frame::ipc::Service		ipcsvc(m, new IpcController(svc, ipcaiosched));
 		
@@ -379,7 +419,7 @@ int main(int argc, char *argv[]){
 			
 			{
 				string errstr;
-				if(!p.prepare(cfg, errstr)){
+				if(!p.prepare(cfg, svc, errstr)){
 					cout<<"Error preparing ipc configuration: "<<errstr<<endl;
 					Thread::waitAll();
 					return 0;
@@ -426,7 +466,11 @@ int main(int argc, char *argv[]){
 			m.registerObject(*lsnptr);
 			aiosched.schedule(lsnptr);
 		}
-		
+		{
+			//send init message to all nodes
+			DynamicPointer<frame::ipc::Message>	msgptr(new InitMessage(p.ipc_endpoint_str, InitMessage::RequestNodes));
+			svc.notifyNodes(msgptr, Service::NotifyInitNodes);
+		}
 		idbg("");
 		if(1){
 			Locker<Mutex>	lock(mtx);
@@ -454,8 +498,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 			("help,h", "List program options")
 			("chat-port,p", value<int>(&_par.chat_port)->default_value(2000),"Chat listen port")
 			("chat-address", value<string>(&_par.chat_addr_str)->default_value("0.0.0.0"),"Chat listen address")
-			("ipc-port,i", value<int>(&_par.ipc_port)->default_value(2010),"IPC Base port")
-			("ipc-address", value<string>(&_par.ipc_addr_str)->default_value("localhost"),"IPC listen address")
+			("ipc-endpoint", value<string>(&_par.ipc_endpoint_str)->default_value("localhost"),"IPC listen address")
 			("connect,c", value<vector<string> >(&_par.connectstringvec), "Peer to connect to: YYY.YYY.YYY.YYY:port")
 			("debug_levels,L", value<string>(&_par.dbg_levels)->default_value("view"),"Debug logging levels")
 			("debug_modules,M", value<string>(&_par.dbg_modules)->default_value("any"),"Debug logging modules")
@@ -480,29 +523,20 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 }
 //------------------------------------------------------
 namespace{
-bool Params::prepare(frame::ipc::Configuration &_rcfg, string &_err){
-	const uint16	default_port = 2000;
-	size_t			pos;
+bool Params::prepare(frame::ipc::Configuration &_rcfg, Service &_rsvc, string &_err){
+	const uint16	default_port = 3000;
 	
-	for(std::vector<std::string>::iterator it(connectstringvec.begin()); it != connectstringvec.end(); ++it){
-		pos = it->rfind(':');
-		int port;
-		if(pos == std::string::npos){
-			port = default_port;
-		}else{
-			(*it)[pos] = '\0';
-			port = atoi(it->c_str() + pos + 1);
-		}
-		ResolveData	rd = synchronous_resolve(it->c_str(), port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
-		if(!rd.empty()){
-			connectvec.push_back(SocketAddressInet4(rd.begin()));
-			idbg("added connect address "<<*it<<" "<<connectvec.back());
-		}else{
-			idbg("skiped connect address "<<*it);
-		}
-	}
-	ResolveData		rd = synchronous_resolve(ipc_addr_str.c_str(), ipc_port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
+	std::string	ipc_addr;
+	int			ipc_port = default_port;
+	
+	split_endpoint_string(ipc_endpoint_str, ipc_addr, ipc_port);
+	
+	ResolveData		rd = synchronous_resolve(ipc_addr.c_str(), ipc_port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
 	_rcfg.baseaddr = rd.begin();
+	
+	for(StringVectorT::iterator it(connectstringvec.begin()); it != connectstringvec.end(); ++it){
+		_rsvc.addNode(*it, InitNodeType);
+	}
 	return true;
 }
 }//namespace
@@ -618,6 +652,87 @@ void Service::insertConnection(
 	frame::ObjectUidT rv = this->registerObject(*conptr);
 	rsched.schedule(conptr);
 }
+void Service::onReceiveMessage(DynamicPointer<InitMessage> &_rmsgptr, frame::ipc::ConnectionContext const &_rctx){
+	if(_rmsgptr->type == InitMessage::RequestNodes){
+		_rmsgptr->type = InitMessage::ResponseNodes;
+		std::string		name = _rmsgptr->nodevec.front();
+		_rmsgptr->nodevec.clear();
+		{
+			SharedLocker<SharedMutex>	lock(shrmtx);
+			for(NodeVectorT::iterator it(nodevec.begin() + 1); it != nodevec.end(); ++it){
+				if(it->name != name){
+					_rmsgptr->nodevec.push_back(it->name);
+				}
+			}
+		}
+		addNode(name, WaitNodeType);
+		DynamicPointer<frame::ipc::Message> msgptr(_rmsgptr);
+		ipcService().sendMessage(msgptr, _rctx.connectionuid);
+	}else if(_rmsgptr->type == InitMessage::RequestAdd){
+		addNode(_rmsgptr->nodevec.front(), WaitNodeType);
+		DynamicPointer<frame::ipc::Message> msgptr(_rmsgptr);
+		notifyNodes(msgptr, NotifyWaitNodes);
+	}else if(_rmsgptr->type == InitMessage::ResponseNodes){
+		for(InitMessage::StringVectorT::iterator it(_rmsgptr->nodevec.begin()); it != _rmsgptr->nodevec.begin(); ++it){
+			addNode(*it, BasicNodeType);
+		}
+		DynamicPointer<frame::ipc::Message> msgptr(_rmsgptr);
+		notifyNodes(msgptr, NotifyWaitNodes);
+	}
+}
+void Service::onReceiveMessage(DynamicPointer<TextMessage> &_rmsgptr, frame::ipc::ConnectionContext const &_rctx){
+	frame::MessageSharedPointerT	msgptr(_rmsgptr);
+	this->notifyAll(msgptr);
+}
+void Service::onNodeDisconnect(SocketAddressInet4 &_raddr){
+	Locker<SharedMutex>	lock(shrmtx);
+	for(NodeVectorT::iterator it(nodevec.begin()); it != nodevec.end(); ++it){
+		if(it->addr == _raddr){
+			*it = nodevec.back();
+			nodevec.pop_back();
+		}
+	}
+}
+void Service::notifyNodes(DynamicPointer<frame::ipc::Message> &_rmsgptr, NotifyChoice _choice){
+	SharedLocker<SharedMutex>	lock(shrmtx);
+	DynamicSharedPointer<frame::ipc::Message>	shrmsgptr(_rmsgptr);
+	for(NodeVectorT::iterator it(nodevec.begin() + 1); it != nodevec.end(); ++it){
+		if(_choice == NotifyInitNodes && it->type == InitNodeType){
+			continue;
+		}
+		if(_choice == NotifyWaitNodes && it->type == WaitNodeType){
+			continue;
+		}
+		DynamicPointer<frame::ipc::Message> msgptr(shrmsgptr);
+		ipcService().sendMessage(msgptr, it->addr);
+	}
+}
+bool Service::addNode(std::string &_rname, NodeTypes _type){
+	std::string addr;
+	int			port;
+	split_endpoint_string(_rname, addr, port);
+	
+	ResolveData		rd = synchronous_resolve(addr.c_str(), port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
+	//_rcfg.baseaddr = rd.begin();
+	Locker<SharedMutex>	lock(shrmtx);
+	bool 				found = false;
+	SocketAddressInet4	a;
+	a = rd.begin();
+	for(NodeVectorT::iterator it(nodevec.begin()); it != nodevec.end(); ++it){
+		if(it->addr == a){
+			found = true;
+			break;
+		}
+	}
+	
+	if(!found){
+		nodevec.push_back(NodeStub());
+		nodevec.back().name = _rname;
+		nodevec.back().addr = a;
+		nodevec.back().type = _type;
+	}
+	return true;
+}
 //--------------------------------------------------------------------------
 /*virtual*/ int Connection::execute(ulong _evs, TimeSpec &_tout){
 	static Compressor 		compressor(BufferControllerT::DataCapacity);
@@ -727,6 +842,8 @@ void Handle::afterSerialization(BinDeserializerT &_rs, TextMessage *_pm, Connect
 	Notifier		notifier(_rctx.rcon.id(), _pm);
 	_pm->user = _rctx.rcon.user();
 	_rctx.rcon.service().forEachObject(notifier);
+	DynamicPointer<frame::ipc::Message>	msgptr(notifier.msgshrptr);
+	_rctx.rcon.service().notifyNodes(msgptr);
 }
 
 void Handle::afterSerialization(BinDeserializerT &_rs, NoopMessage *_pm, ConnectionContext &_rctx){
@@ -740,7 +857,8 @@ void Handle::afterSerialization(BinDeserializerT &_rs, NoopMessage *_pm, Connect
 	MessagePointerT &_rmsgptr,
 	IpcController &_rctl
 ){
-	
+	DynamicPointer<InitMessage>	msgptr(_rmsgptr);
+	_rctl.chatService().onReceiveMessage(msgptr, _rctx);
 }
 /*virtual*/ uint32 InitMessage::ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx){
 	return 0;
@@ -754,7 +872,8 @@ void Handle::afterSerialization(BinDeserializerT &_rs, NoopMessage *_pm, Connect
 	MessagePointerT &_rmsgptr,
 	IpcController &_rctl
 ){
-	
+	DynamicPointer<TextMessage>	msgptr(_rmsgptr);
+	_rctl.chatService().onReceiveMessage(msgptr, _rctx);
 }
 /*virtual*/ uint32 TextMessage::ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx){
 	return 0;
