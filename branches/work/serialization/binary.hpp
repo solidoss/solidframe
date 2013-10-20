@@ -1204,6 +1204,7 @@ protected:
 			_rfd.s = 0;//(uint32)i;
 			return CONTINUE;
 		}
+		rd.estk.pop();
 		return OK;
 	}
 	template <typename T, class Des>

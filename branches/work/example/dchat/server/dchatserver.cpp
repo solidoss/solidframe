@@ -83,7 +83,9 @@ struct InitMessage: Dynamic<InitMessage, BaseMessage>{
 		RequestAdd,
 		ResponseNodes
 	};
-	InitMessage():type(0){}
+	InitMessage():type(0){
+		vdbg("");
+	}
 	InitMessage(const std::string &_rname, uint8 _type):type(_type){
 		nodevec.push_back(_rname);
 	}
@@ -162,6 +164,7 @@ struct Handle{
 
 namespace{
 	enum NodeTypes{
+		LocalNodeType,
 		BasicNodeType,
 		InitNodeType,
 		WaitNodeType
@@ -246,7 +249,9 @@ public:
 		const serialization::TypeMapperBase &_rtm,
 		const char *_myname
 	):BaseT(_rm), rsched(_rsched), rtm(_rtm){
-		//TODO: add name
+		nodevec.push_back(NodeStub());
+		nodevec.back().name = _myname;
+		nodevec.back().type = LocalNodeType;
 	}
 	~Service(){}
 	
@@ -261,6 +266,7 @@ public:
 		return nodevec.front().name;
 	}
 	bool addNode(std::string &_rname, NodeTypes _type);
+	size_t addNodeUnsafe(std::string &_rname, NodeTypes _type);
 	void onReceiveMessage(DynamicPointer<InitMessage> &_rmsgptr, frame::ipc::ConnectionContext const &_rctx);
 	void onReceiveMessage(DynamicPointer<TextMessage> &_rmsgptr, frame::ipc::ConnectionContext const &_rctx);
 	void onNodeDisconnect(SocketAddressInet4 &_raddr);
@@ -498,7 +504,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 			("help,h", "List program options")
 			("chat-port,p", value<int>(&_par.chat_port)->default_value(2000),"Chat listen port")
 			("chat-address", value<string>(&_par.chat_addr_str)->default_value("0.0.0.0"),"Chat listen address")
-			("ipc-endpoint", value<string>(&_par.ipc_endpoint_str)->default_value("localhost"),"IPC listen address")
+			("ipc-endpoint", value<string>(&_par.ipc_endpoint_str)->default_value("localhost:3000"),"IPC listen address")
 			("connect,c", value<vector<string> >(&_par.connectstringvec), "Peer to connect to: YYY.YYY.YYY.YYY:port")
 			("debug_levels,L", value<string>(&_par.dbg_levels)->default_value("view"),"Debug logging levels")
 			("debug_modules,M", value<string>(&_par.dbg_modules)->default_value("any"),"Debug logging modules")
@@ -535,6 +541,7 @@ bool Params::prepare(frame::ipc::Configuration &_rcfg, Service &_rsvc, string &_
 	_rcfg.baseaddr = rd.begin();
 	
 	for(StringVectorT::iterator it(connectstringvec.begin()); it != connectstringvec.end(); ++it){
+		vdbg("AddInitNode "<<*it);
 		_rsvc.addNode(*it, InitNodeType);
 	}
 	return true;
@@ -655,41 +662,57 @@ void Service::insertConnection(
 void Service::onReceiveMessage(DynamicPointer<InitMessage> &_rmsgptr, frame::ipc::ConnectionContext const &_rctx){
 	if(_rmsgptr->type == InitMessage::RequestNodes){
 		_rmsgptr->type = InitMessage::ResponseNodes;
-		std::string		name = _rmsgptr->nodevec.front();
+		std::string					name = _rmsgptr->nodevec.front();
+		vdbg("Receive RequestNodes InitMessage "<<name);
 		_rmsgptr->nodevec.clear();
 		{
 			SharedLocker<SharedMutex>	lock(shrmtx);
 			for(NodeVectorT::iterator it(nodevec.begin() + 1); it != nodevec.end(); ++it){
 				if(it->name != name){
 					_rmsgptr->nodevec.push_back(it->name);
+					vdbg("addnode "<<it->name);
 				}
 			}
-		}
+		}//prevent doble locking with this block
 		addNode(name, WaitNodeType);
 		DynamicPointer<frame::ipc::Message> msgptr(_rmsgptr);
 		ipcService().sendMessage(msgptr, _rctx.connectionuid);
 	}else if(_rmsgptr->type == InitMessage::RequestAdd){
+		vdbg("Receive RequestAdd InitMessage "<<_rmsgptr->nodevec.front());
 		addNode(_rmsgptr->nodevec.front(), WaitNodeType);
-		DynamicPointer<frame::ipc::Message> msgptr(_rmsgptr);
-		notifyNodes(msgptr, NotifyWaitNodes);
 	}else if(_rmsgptr->type == InitMessage::ResponseNodes){
-		for(InitMessage::StringVectorT::iterator it(_rmsgptr->nodevec.begin()); it != _rmsgptr->nodevec.begin(); ++it){
-			addNode(*it, BasicNodeType);
-		}
+		{
+			Locker<SharedMutex>	lock(shrmtx);
+			vdbg("Receive ResponseNodes InitMessage{");
+			for(InitMessage::StringVectorT::iterator it(_rmsgptr->nodevec.begin()); it != _rmsgptr->nodevec.begin(); ++it){
+				const size_t idx = addNodeUnsafe(*it, BasicNodeType);
+				vdbg(*it<<" on index "<<idx);
+				if(idx){
+					NodeStub							&rns = nodevec[idx];
+					DynamicPointer<frame::ipc::Message>	msgptr(new InitMessage(nodevec[0].name, InitMessage::RequestAdd));
+					ipcService().sendMessage(msgptr, rns.addr);
+				}
+			}
+			vdbg("}");
+		}//prevent doble locking with this block
 		DynamicPointer<frame::ipc::Message> msgptr(_rmsgptr);
 		notifyNodes(msgptr, NotifyWaitNodes);
 	}
 }
 void Service::onReceiveMessage(DynamicPointer<TextMessage> &_rmsgptr, frame::ipc::ConnectionContext const &_rctx){
+	vdbg(_rmsgptr->text);
 	frame::MessageSharedPointerT	msgptr(_rmsgptr);
 	this->notifyAll(msgptr);
 }
 void Service::onNodeDisconnect(SocketAddressInet4 &_raddr){
 	Locker<SharedMutex>	lock(shrmtx);
-	for(NodeVectorT::iterator it(nodevec.begin()); it != nodevec.end(); ++it){
+	vdbg(_raddr);
+	for(NodeVectorT::iterator it(nodevec.begin() + 1); it != nodevec.end(); ++it){
+		vdbg(it - nodevec.begin());
 		if(it->addr == _raddr){
 			*it = nodevec.back();
 			nodevec.pop_back();
+			break;
 		}
 	}
 }
@@ -697,23 +720,53 @@ void Service::notifyNodes(DynamicPointer<frame::ipc::Message> &_rmsgptr, NotifyC
 	SharedLocker<SharedMutex>	lock(shrmtx);
 	DynamicSharedPointer<frame::ipc::Message>	shrmsgptr(_rmsgptr);
 	for(NodeVectorT::iterator it(nodevec.begin() + 1); it != nodevec.end(); ++it){
-		if(_choice == NotifyInitNodes && it->type == InitNodeType){
+		if(_choice == NotifyInitNodes && it->type != InitNodeType){
 			continue;
 		}
-		if(_choice == NotifyWaitNodes && it->type == WaitNodeType){
+		if(_choice == NotifyWaitNodes && it->type != WaitNodeType){
 			continue;
 		}
+		vdbg("send message to "<<it->name);
 		DynamicPointer<frame::ipc::Message> msgptr(shrmsgptr);
 		ipcService().sendMessage(msgptr, it->addr);
 	}
 }
+
+size_t Service::addNodeUnsafe(std::string &_rname, NodeTypes _type){
+	std::string addr;
+	int			port;
+	split_endpoint_string(_rname, addr, port);
+	
+	ResolveData			rd = synchronous_resolve(addr.c_str(), port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
+	bool 				found = false;
+	SocketAddressInet4	a;
+	
+	size_t				rv = 0;
+	
+	a = rd.begin();
+	for(NodeVectorT::iterator it(nodevec.begin()); it != nodevec.end(); ++it){
+		if(it->addr == a){
+			found = true;
+			break;
+		}
+	}
+	
+	if(!found){
+		rv = nodevec.size();
+		nodevec.push_back(NodeStub());
+		nodevec.back().name = _rname;
+		nodevec.back().addr = a;
+		nodevec.back().type = _type;
+	}
+	return rv;
+}
+
 bool Service::addNode(std::string &_rname, NodeTypes _type){
 	std::string addr;
 	int			port;
 	split_endpoint_string(_rname, addr, port);
 	
-	ResolveData		rd = synchronous_resolve(addr.c_str(), port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
-	//_rcfg.baseaddr = rd.begin();
+	ResolveData			rd = synchronous_resolve(addr.c_str(), port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
 	Locker<SharedMutex>	lock(shrmtx);
 	bool 				found = false;
 	SocketAddressInet4	a;

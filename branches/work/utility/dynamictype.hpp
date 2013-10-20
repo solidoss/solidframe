@@ -248,7 +248,7 @@ public:
 	//static bool isTypeExplicit(const DynamicBase*);
 	static bool isType(const size_t _id){
 		if(_id == staticTypeId()) return true;
-		return BaseT::isType(_id);
+		return T::isType(_id);
 	}
 	//! The dynamic typeid
 	virtual size_t dynamicTypeId()const{
@@ -256,7 +256,7 @@ public:
 	}
 	virtual bool isTypeDynamic(const size_t _id)const{
 		if(_id == staticTypeId()) return true;
-		return BaseT::isTypeDynamic(_id);
+		return T::isTypeDynamic(_id);
 	}
 	//! Returns the associated callback from the given DynamicMap
 	/*virtual*/ size_t callback(const DynamicMapperBase &_rdm)const{

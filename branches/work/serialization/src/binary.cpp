@@ -1244,6 +1244,7 @@ int DeserializerBase::loadBinaryString(Base &_rb, FncData &_rfd, void */*_pctx*/
 		rd.estk.top().u64() = ul;
 		return NOK;
 	}
+	idbgx(Debug::ser_bin, ""<<*ps);
 	rd.estk.pop();
 	return OK;
 }
