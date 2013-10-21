@@ -84,14 +84,11 @@ struct InitMessage: Dynamic<InitMessage, BaseMessage>{
 		ResponseNodes
 	};
 	InitMessage():type(0){
-		vdbg("new "<<(void*)this);
 	}
 	InitMessage(const std::string &_rname, uint8 _type):type(_type){
-		vdbg("new "<<(void*)this);
 		nodevec.push_back(_rname);
 	}
 	~InitMessage(){
-		vdbg("del "<<(void*)this);
 	}
 	
 	/*virtual*/ void ipcOnReceive(
@@ -480,7 +477,7 @@ int main(int argc, char *argv[]){
 			DynamicPointer<frame::ipc::Message>	msgptr(new InitMessage(p.ipc_endpoint_str, InitMessage::RequestNodes));
 			svc.notifyNodes(msgptr, Service::NotifyInitNodes);
 		}
-		idbg("");
+		vdbg("Wait Ctrl+C to terminate ...");
 		if(1){
 			Locker<Mutex>	lock(mtx);
 			while(run){
@@ -544,7 +541,6 @@ bool Params::prepare(frame::ipc::Configuration &_rcfg, Service &_rsvc, string &_
 	_rcfg.baseaddr = rd.begin();
 	
 	for(StringVectorT::iterator it(connectstringvec.begin()); it != connectstringvec.end(); ++it){
-		vdbg("AddInitNode "<<*it);
 		_rsvc.addNode(*it, InitNodeType);
 	}
 	return true;
@@ -559,7 +555,6 @@ Listener::Listener(
 	state = 0;
 }
 Listener::~Listener(){
-	idbg("");
 }
 int Listener::execute(ulong, TimeSpec&){
 	cassert(this->socketOk());
@@ -607,13 +602,13 @@ public:
 		const SocketDevice &_rsd,
 		const serialization::TypeMapperBase &_rtm
 	):BaseT(_rsd), ser(_rtm), des(_rtm), stt(StateNotAuth){
-		idbg((void*)this);
+		vdbg((void*)this);
 		des.limits().containerlimit = 0;
 		des.limits().streamlimit = 0;
 		des.limits().stringlimit = 16;
 	}
 	~Connection(){
-		idbg((void*)this);
+		vdbg((void*)this);
 	}
 	ProtocolSessionT &session(){
 		return sess;
@@ -638,7 +633,6 @@ public:
 	}
 private:
 	int done(){
-		idbg("");
 		bufctl.clear();
 		return BAD;
 	}
@@ -703,15 +697,14 @@ void Service::onReceiveMessage(DynamicPointer<InitMessage> &_rmsgptr, frame::ipc
 	}
 }
 void Service::onReceiveMessage(DynamicPointer<TextMessage> &_rmsgptr, frame::ipc::ConnectionContext const &_rctx){
-	vdbg(_rmsgptr->text);
+	idbg(_rmsgptr->text);
 	frame::MessageSharedPointerT	msgptr(_rmsgptr);
 	this->notifyAll(msgptr);
 }
 void Service::onNodeDisconnect(SocketAddressInet4 &_raddr){
+	idbg(_raddr);
 	Locker<SharedMutex>	lock(shrmtx);
-	vdbg(_raddr);
 	for(NodeVectorT::iterator it(nodevec.begin() + 1); it != nodevec.end(); ++it){
-		vdbg(it - nodevec.begin());
 		if(it->addr == _raddr){
 			*it = nodevec.back();
 			nodevec.pop_back();
@@ -729,7 +722,7 @@ void Service::notifyNodes(DynamicPointer<frame::ipc::Message> &_rmsgptr, NotifyC
 		if(_choice == NotifyWaitNodes && it->type != WaitNodeType){
 			continue;
 		}
-		vdbg("send message to "<<it->name);
+		idbg("Dend message to "<<it->name);
 		DynamicPointer<frame::ipc::Message> msgptr(shrmsgptr);
 		ipcService().sendMessage(msgptr, it->addr);
 	}
@@ -765,6 +758,7 @@ size_t Service::addNodeUnsafe(std::string &_rname, NodeTypes _type){
 }
 
 bool Service::addNode(std::string &_rname, NodeTypes _type){
+	idbg(*it<<' '<<_type);
 	std::string addr;
 	int			port;
 	split_endpoint_string(_rname, addr, port);
@@ -795,12 +789,9 @@ bool Service::addNode(std::string &_rname, NodeTypes _type){
 	
 	ulong					sm = grabSignalMask();
 	
-	idbg((void*)this);
-	
 	if(sm){
 		if(sm & frame::S_KILL) return done();
 		if(sm & frame::S_SIG){
-			idbg("here");
 			Locker<Mutex>	lock(frame::Manager::specific().mutex(*this));
 			for(MessageVectorT::iterator it(msgvec.begin()); it != msgvec.end(); ++it){
 				session().send(0, *it);
@@ -826,7 +817,7 @@ bool Service::addNode(std::string &_rname, NodeTypes _type){
 			}
 		break;
 		case StateError:
-			idbg("StateError");
+			edbg("StateError");
 			//Do not read anything from the client, only send the error message
 			rv = sess.executeSend(*this, _evs, ctx, ser, bufctl, compressor);
 			if(ser.empty() && !socketHasPendingRecv()){//nothing to send
@@ -860,7 +851,7 @@ bool Handle::checkLoad(NoopMessage *_pm, ConnectionContext  &_rctx)const{
 }
 
 void Handle::afterSerialization(BinDeserializerT &_rs, LoginRequest *_pm, ConnectionContext &_rctx){
-	idbg("des:LoginRequest("<<_pm->user<<','<<_pm->pass<<')');
+	idbg("des::LoginRequest("<<_pm->user<<','<<_pm->pass<<')');
 	if(_pm->user.size() && _pm->pass == _pm->user){
 		DynamicPointer<frame::Message>	msgptr(new BasicMessage);
 		_rctx.rcon.session().send(_rctx.rcvmsgidx, msgptr);
@@ -893,8 +884,7 @@ struct Notifier{
 };
 
 void Handle::afterSerialization(BinDeserializerT &_rs, TextMessage *_pm, ConnectionContext &_rctx){
-	
-	idbg("des:TextMessage("<<_pm->text<<')');
+	idbg("des::TextMessage("<<_pm->text<<')');
 	Notifier		notifier(_rctx.rcon.id(), _pm);
 	_pm->user = _rctx.rcon.user();
 	_rctx.rcon.service().forEachObject(notifier);
@@ -903,7 +893,7 @@ void Handle::afterSerialization(BinDeserializerT &_rs, TextMessage *_pm, Connect
 }
 
 void Handle::afterSerialization(BinDeserializerT &_rs, NoopMessage *_pm, ConnectionContext &_rctx){
-	idbg("des:NoopMessage");
+	idbg("des::NoopMessage");
 	//echo back the message itself
 	_rctx.rcon.session().send(_rctx.rcvmsgidx, _rctx.rcon.session().recvMessage(_rctx.rcvmsgidx));
 }
