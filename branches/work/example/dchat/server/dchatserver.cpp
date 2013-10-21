@@ -84,12 +84,15 @@ struct InitMessage: Dynamic<InitMessage, BaseMessage>{
 		ResponseNodes
 	};
 	InitMessage():type(0){
-		vdbg("");
+		vdbg("new "<<(void*)this);
 	}
 	InitMessage(const std::string &_rname, uint8 _type):type(_type){
+		vdbg("new "<<(void*)this);
 		nodevec.push_back(_rname);
 	}
-	~InitMessage(){}
+	~InitMessage(){
+		vdbg("del "<<(void*)this);
+	}
 	
 	/*virtual*/ void ipcOnReceive(
 		frame::ipc::ConnectionContext const &_rctx,
@@ -684,7 +687,7 @@ void Service::onReceiveMessage(DynamicPointer<InitMessage> &_rmsgptr, frame::ipc
 		{
 			Locker<SharedMutex>	lock(shrmtx);
 			vdbg("Receive ResponseNodes InitMessage{");
-			for(InitMessage::StringVectorT::iterator it(_rmsgptr->nodevec.begin()); it != _rmsgptr->nodevec.begin(); ++it){
+			for(InitMessage::StringVectorT::iterator it(_rmsgptr->nodevec.begin()); it != _rmsgptr->nodevec.end(); ++it){
 				const size_t idx = addNodeUnsafe(*it, BasicNodeType);
 				vdbg(*it<<" on index "<<idx);
 				if(idx){

@@ -39,12 +39,12 @@ public:
 	){
 		typedef BufCtl BufCtlT;
 		if(_evs & frame::ERRDONE){
-			idbg("ioerror "<<_evs<<' '<<_raioobj.socketEventsGrab());
+			idbgx(Debug::proto_bin, "ioerror "<<_evs<<' '<<_raioobj.socketEventsGrab());
 			return done();
 		}
 		if(_evs & frame::INDONE){
 			char	tmpbuf[BufCtlT::DataCapacity];
-			idbg("receive data of size "<<_raioobj.socketRecvSize());
+			idbgx(Debug::proto_bin, "receive data of size "<<_raioobj.socketRecvSize());
 			if(!BaseT::consume(_rdes, _rconctx, _rbufctl.recvBuffer(), _raioobj.socketRecvSize(), _rcom, tmpbuf, BufCtlT::DataCapacity)){
 				return done();
 			}
@@ -55,9 +55,9 @@ public:
 				case BAD: return done();
 				case OK:{
 					char	tmpbuf[BufCtlT::DataCapacity];
-					idbg("receive data of size "<<_raioobj.socketRecvSize());
+					idbgx(Debug::proto_bin, "receive data of size "<<_raioobj.socketRecvSize());
 					if(!BaseT::consume(_rdes, _rconctx, _rbufctl.recvBuffer(), _raioobj.socketRecvSize(), _rcom, tmpbuf, BufCtlT::DataCapacity)){
-						idbg("error consume");
+						idbgx(Debug::proto_bin, "error consume");
 						return done();
 					}
 					reenter = true;
@@ -91,7 +91,7 @@ public:
 					_rbufctl.clearSend();//release the buffer as we have nothing to send
 					break;
 				}
-				idbg("send data of size "<<rv);
+				idbgx(Debug::proto_bin, "send data of size "<<rv);
 				switch(_raioobj.socketSend(_rbufctl.sendBuffer(), rv)){
 					case BAD: 
 						return done();

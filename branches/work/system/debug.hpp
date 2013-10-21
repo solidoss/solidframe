@@ -57,7 +57,8 @@ struct /*EXPORT_DLL*/ Debug{
 	static const unsigned any;
 	static const unsigned system;
 	static const unsigned specific;
-	static const unsigned protocol;
+	static const unsigned proto_txt;
+	static const unsigned proto_bin;
 	static const unsigned ser_bin;
 	static const unsigned utility;
 	static const unsigned frame;

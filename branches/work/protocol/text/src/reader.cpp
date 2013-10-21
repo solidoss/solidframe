@@ -167,7 +167,7 @@ int Reader::run(){
 		osi->write(_rr.rpos, minlen);
 	}
 	
-	idbgx(Debug::protocol, "stream size = "<<sz<<" minlen = "<<minlen);
+	idbgx(Debug::proto_txt, "stream size = "<<sz<<" minlen = "<<minlen);
 	sz -= minlen;
 	
 	if(sz){
@@ -235,7 +235,7 @@ int Reader::run(){
 		}
 		return Yield;
 	}
-	idbgx(Debug::protocol, "fetch stream done "<<sz);
+	idbgx(Debug::proto_txt, "fetch stream done "<<sz);
 	return Ok;//Done
 }
 

@@ -245,7 +245,7 @@ public:
 					if(rcvmsgidx >= msgvec.size()){
 						msgvec.resize(rcvmsgidx + 1);
 					}
-					idbg("receive message on pos "<<rcvmsgidx);
+					idbgx(Debug::proto_bin, "receive message on pos "<<rcvmsgidx);
 					MessageStub	&rms = msgvec[rcvmsgidx];
 					_rd.push(rms.rcvmsgptr, "message");
 				}
@@ -303,7 +303,7 @@ public:
 					crttmppos = _rs.storeValue(crttmppos, static_cast<uint32>(sndq.front()));
 					crttmplen -= sizeof(uint32);
 					crttmpsz  += sizeof(uint32);
-					idbg("send message on pos "<<sndq.front());
+					idbgx(Debug::proto_bin, "send message on pos "<<sndq.front());
 					_rs.push(rms.sndmsgptr.get(), "message");
 				}
 				
@@ -412,7 +412,7 @@ private:
 	void optimizeRecvBuffer(char *_pb){
 		const size_t cnssz = rcvbufoff - cnsbufoff;
 		if(cnssz <= cnsbufoff){
-			idbg("memcopy "<<cnssz<<" rcvoff = "<<rcvbufoff<<" cnsoff = "<<cnsbufoff);
+			idbgx(Debug::proto_bin, "memcopy "<<cnssz<<" rcvoff = "<<rcvbufoff<<" cnsoff = "<<cnsbufoff);
 			memcpy(_pb, _pb + cnsbufoff, cnssz);
 			cnsbufoff = 0;
 			rcvbufoff = cnssz;

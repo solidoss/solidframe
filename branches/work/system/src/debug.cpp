@@ -51,7 +51,8 @@ namespace solid{
 /*static*/ const unsigned Debug::any(Debug::the().registerModule("ANY"));
 /*static*/ const unsigned Debug::system(Debug::the().registerModule("SYSTEM"));
 /*static*/ const unsigned Debug::specific(Debug::the().registerModule("SPECIFIC"));
-/*static*/ const unsigned Debug::protocol(Debug::the().registerModule("PROTOCOL"));
+/*static*/ const unsigned Debug::proto_txt(Debug::the().registerModule("PROTO_TXT"));
+/*static*/ const unsigned Debug::proto_bin(Debug::the().registerModule("PROTO_BIN"));
 /*static*/ const unsigned Debug::ser_bin(Debug::the().registerModule("SER_BIN"));
 /*static*/ const unsigned Debug::utility(Debug::the().registerModule("UTILITY"));
 /*static*/ const unsigned Debug::frame(Debug::the().registerModule("FRAME"));

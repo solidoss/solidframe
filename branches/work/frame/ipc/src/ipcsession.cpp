@@ -1381,7 +1381,7 @@ void Session::reconnect(Session *_pses){
 			d.relayed44().relayaddr.port(_pses->d.relayed44().relayaddr.port());
 			d.relayed44().peerrelayid = _pses->d.relayed44().peerrelayid;
 		}
-		
+		cassert(_pses->d.msgq.size());
 		if(d.state == Data::Accepting){
 			d.msgq.front().msgptr = _pses->d.msgq.front().msgptr;
 		}else if(d.state == Data::RelayAccepting){
@@ -1389,8 +1389,8 @@ void Session::reconnect(Session *_pses){
 			d.msgq.front().msgptr = _pses->d.msgq.front().msgptr;
 		}else{
 			d.msgq.push(_pses->d.msgq.front());
-			_pses->d.msgq.pop();
 		}
+		_pses->d.msgq.pop();
 		
 		adjustcount = 1;
 		
