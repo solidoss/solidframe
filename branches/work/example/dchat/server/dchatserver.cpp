@@ -758,7 +758,7 @@ size_t Service::addNodeUnsafe(std::string &_rname, NodeTypes _type){
 }
 
 bool Service::addNode(std::string &_rname, NodeTypes _type){
-	idbg(*it<<' '<<_type);
+	idbg(_rname<<' '<<_type);
 	std::string addr;
 	int			port;
 	split_endpoint_string(_rname, addr, port);
