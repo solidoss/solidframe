@@ -1,7 +1,7 @@
-add_executable (example_dchatclient dchatclient.cpp)
+add_executable (example_dchatstress dchatstress.cpp dchatstressconnection.cpp)
 
 
-target_link_libraries (example_dchatclient
+target_link_libraries (example_dchatstress
 	example_dchat_core
 	solid_frame_aio
 	solid_frame_core
