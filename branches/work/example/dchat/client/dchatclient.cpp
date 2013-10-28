@@ -303,7 +303,7 @@ int main(int argc, char *argv[]){
 bool parseArguments(Params &_par, int argc, char *argv[]){
 	using namespace boost::program_options;
 	try{
-		options_description desc("SolidFrame concept application");
+		options_description desc("SolidFrame dchat client application");
 		desc.add_options()
 			("help,h", "List program options")
 			("port,p", value<int>(&_par.port)->default_value(2000),"Server port")

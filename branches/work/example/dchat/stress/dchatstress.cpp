@@ -5,11 +5,16 @@
 #include "system/thread.hpp"
 #include "system/socketaddress.hpp"
 #include "system/socketdevice.hpp"
+#include "system/cstring.hpp"
 #include "serialization/idtypemapper.hpp"
 #include "serialization/binary.hpp"
 
 #include "example/dchat/core/messages.hpp"
 #include "example/dchat/core/compressor.hpp"
+
+#include "cliparser.hpp"
+
+#include <stack>
 
 #include <signal.h>
 
@@ -24,38 +29,51 @@ typedef frame::Scheduler<frame::aio::Selector>	AioSchedulerT;
 
 namespace{
 	struct Params{
-		int			port;
-		string		address_str;
-		string		dbg_levels;
-		string		dbg_modules;
-		string		dbg_addr;
-		string		dbg_port;
-		bool		dbg_console;
-		bool		dbg_buffered;
-		bool		log;
-		string		user;
-		string		pass;
+		string				dbg_levels;
+		string				dbg_modules;
+		string				dbg_addr;
+		string				dbg_port;
+		bool				dbg_console;
+		bool				dbg_buffered;
+		bool				log;
+		string				user_prefix;
+		vector<string>		endpoint_str_vec;
+		vector<string>		address_str_vec;
+		vector<int>			port_vec;
+		
+		bool prepare();
 	};
 
 	Mutex					mtx;
 	Condition				cnd;
-	bool					run(true);
+	bool					running(true);
 	Params					p;
 	string					prefix;
 	static void term_handler(int signum){
 		switch(signum) {
 			case SIGINT:
 			case SIGTERM:{
-				if(run){
+				if(running){
 					
 					Locker<Mutex>  lock(mtx);
-					run = false;
+					running = false;
 					cnd.broadcast();
 				}
 			}
 		}
 	}
 	
+	bool split_endpoint_string(std::string &_endpoint, std::string &_addr, int &_port){
+		size_t			pos= _endpoint.rfind(':');
+		if(pos == std::string::npos){
+		}else{
+			_endpoint[pos] = '\0';
+			_port = atoi(_endpoint.c_str() + pos + 1);
+			_addr = _endpoint.c_str();
+			_endpoint[pos] = ':';
+		}
+		return true;
+	}
 }
 
 struct TextMessage: TextMessageBase, solid::Dynamic<NoopMessage, solid::DynamicShared<solid::frame::Message> >{
@@ -88,12 +106,13 @@ struct Handle{
 	void afterSerialization(BinDeserializerT &_rs, NoopMessage *_pm, ConnectionContext &_rctx);
 };
 
+void cliRun();
 
 int main(int argc, char *argv[]){
 	if(parseArguments(p, argc, argv)) return 0;
 	signal(SIGINT,term_handler); /* Die on SIGTERM */
 	/*solid::*/Thread::init();
-	
+	p.prepare();
 #ifdef UDEBUG
 	{
 	string dbgout;
@@ -139,37 +158,7 @@ int main(int argc, char *argv[]){
 		tm.insertHandle<NoopMessage, Handle>();
 		
 		
-		ConnectionPointerT				ccptr(
-			new Connection(
-				m,
-				synchronous_resolve(p.address_str.c_str(), p.port, 0, SocketInfo::Inet4, SocketInfo::Stream),
-				tm
-			)
-		);
-		
-		m.registerObject(*ccptr);
-		aiosched.schedule(ccptr);
-		
-		DynamicPointer<solid::frame::Message>	msgptr;
-		string									s;
-		if(p.pass.empty()){
-			p.pass = p.user;
-		}
-		msgptr = new LoginRequest(p.user, p.pass);
-		ccptr->send(msgptr);
-		
-		do{
-			{
-				Locker<Mutex> lock(mtx);
-				prefix = "me [q to exit]> ";
-				cout<<prefix<<flush;
-			}
-			s.clear();
-			getline(cin, s);
-			if(s.size() == 1 && s[0] == 'q' || s[0] == 'Q') break;
-			msgptr = new TextMessage(s);
-			ccptr->send(msgptr);
-		}while(true);
+		cliRun();
 		
 		idbg("");
 		
@@ -186,13 +175,11 @@ int main(int argc, char *argv[]){
 bool parseArguments(Params &_par, int argc, char *argv[]){
 	using namespace boost::program_options;
 	try{
-		options_description desc("SolidFrame concept application");
+		options_description desc("SolidFrame dchat stress client application");
 		desc.add_options()
 			("help,h", "List program options")
-			("port,p", value<int>(&_par.port)->default_value(2000),"Server port")
-			("user,u", value<string>(&_par.user),"Login User")
-			("pass", value<string>(&_par.pass),"Login Password")
-			("address,a", value<string>(&_par.address_str)->default_value("localhost"),"Server address")
+			("server,e", value<vector<string> >(&_par.endpoint_str_vec),"Server endpoints")
+			("user_prefix", value<string>(&_par.user_prefix)->default_value("user"), "Login user prefix")
 			("debug_levels,L", value<string>(&_par.dbg_levels)->default_value("view"),"Debug logging levels")
 			("debug_modules,M", value<string>(&_par.dbg_modules)->default_value(""),"Debug logging modules")
 			("debug_address,A", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")
@@ -214,7 +201,14 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 		return true;
 	}
 }
-
+bool Params::prepare(){
+	for(vector<string>::iterator it(endpoint_str_vec.begin()); it != endpoint_str_vec.end(); ++it){
+		address_str_vec.push_back("");
+		port_vec.push_back(0);
+		split_endpoint_string(*it, address_str_vec.back(), port_vec.back());
+	}
+	return true;
+}
 //---------------------------------------------------------------------------------
 void Handle::afterSerialization(BinDeserializerT &_rs, BasicMessage *_pm, ConnectionContext &_rctx){
 	static const char *blancs = "                                    ";
@@ -240,3 +234,142 @@ void Handle::afterSerialization(BinDeserializerT &_rs, NoopMessage *_pm, Connect
 	_rctx.rcon.onReceiveNoop();
 }
 //---------------------------------------------------------------------------------
+#define STRING_AND_SIZE(s) s, (sizeof(s) - 1)
+#define STRING_SIZE(s) (sizeof(s) - 1)
+
+struct CommandStub{
+	CommandStub(
+		uint32 _cnt = 0,
+		uint32 _cmdidx = 0
+	):cnt(_cnt), cmdidx(_cmdidx){}
+	
+	uint32    cnt;
+	uint32    cmdidx;
+};
+
+typedef std::deque<std::string>		StringDequeT;
+typedef std::stack<CommandStub>		CommandStackT;
+
+void executeHelp();
+int executeSleep(const char* _pb, int _b);
+
+
+void cliRun(){
+	char            buf[2048];
+	int             rc = 0;
+	int             len = 0;
+	const char      *pbuf = NULL;
+	StringDequeT    cmdvec;
+	uint32_t        cmdidx = 0;
+	CommandStackT   cmdstk;
+	
+	// the small CLI loop
+	while(true){
+		if(rc == -1){
+			cout<<"Error: Parsing command line"<<endl;
+		}
+		if(rc == 1){
+			cout<<"Error: executing command"<<endl;
+		}
+		if(rc == -2){
+			cout<<"Exit on error"<<endl;
+			break;
+		}
+		rc = 0;
+		
+		if(cmdidx < cmdvec.size()){
+			pbuf = cmdvec[cmdidx].c_str();
+		}else{
+			cout<<'>';cin.getline(buf,2048);
+			buf[cin.gcount()] = 0;
+			pbuf = buf;
+			cmdvec.push_back(buf);
+		}
+		
+		++cmdidx;
+		
+		if(!cstring::casecmp(pbuf,"quit") || !cstring::casecmp(pbuf,"q")){
+			break;
+		}
+		if(!cstring::ncasecmp(pbuf, STRING_AND_SIZE("loop"))){
+			cli::Parser	mp(pbuf + STRING_SIZE("loop"));
+			int			count;
+
+			mp.skipWhites();
+			if(mp.isAtEnd()){
+				cout<<"ERROR: expected loop count"<<endl;
+				continue;
+			}
+			mp.parse(count);
+
+			cmdstk.push(CommandStub(count, cmdidx));
+
+			continue;
+		}
+
+		if(!cstring::ncasecmp(pbuf, STRING_AND_SIZE("endloop"))){
+			cout<<"Done ENDLOOP "<<cmdstk.top().cmdidx<<' '<<cmdstk.top().cnt<<endl;
+			--cmdstk.top().cnt;
+			if(cmdstk.size() == 1 && !running){//outer most loop
+				cmdstk.top().cnt = 0;
+			}
+			if(cmdstk.top().cnt == 0){
+				cmdstk.pop();
+			}else{
+				cmdidx = cmdstk.top().cmdidx;
+			}
+			continue;
+		}
+		
+		if(!cstring::ncasecmp(pbuf, STRING_AND_SIZE("help"))){
+			executeHelp();
+			continue;
+		}
+		if(!cstring::ncasecmp(pbuf, STRING_AND_SIZE("noop"))){
+			if(cmdstk.size()){
+				cout<<"Done NOOP "<<cmdstk.top().cmdidx<<endl;
+			}else{
+				cout<<"Done NOOP"<<endl;
+			}
+			continue;
+		}
+		if(!cstring::ncasecmp(pbuf, STRING_AND_SIZE("sleep"))){
+			len = STRING_SIZE("sleep");
+			rc = executeSleep(pbuf + len, cin.gcount() - len);
+			continue;
+		}
+		cout<<"Error: parsing command line"<<endl;
+	}
+}
+
+void executeHelp(){
+	cout<<"Available commands:"<<endl;
+	cout<<"\tSLEEP"<<endl;
+	cout<<"\t\tSLEEP 60"<<endl;
+	cout<<"\t\t\tSleeps for 60 seconds"<<endl;
+	cout<<"\t\tSLEEP 10 100"<<endl;
+	cout<<"\t\t\tSleeps for 10 seconds and 100 milliseconds"<<endl;
+	cout<<endl;
+}
+int executeSleep(const char* _pb, int _b){
+	cli::Parser		mp(_pb);
+	int				sec;
+	int				msec = 0;
+
+	mp.skipWhites();
+	if(mp.isAtEnd()) return -1;
+	mp.parse(sec);
+	if(!mp.isAtEnd()){
+		mp.parse(msec);
+	}
+	
+	cout<<"SLEEP "<<sec<<' '<<msec<<endl;
+#ifdef __WIN32__
+	Sleep(sec * 1000 + msec);
+#else
+	sleep(sec);
+	Thread::sleep(msec);
+#endif
+	cout<<"Done SLEEP"<<endl;
+    return 0;
+}
