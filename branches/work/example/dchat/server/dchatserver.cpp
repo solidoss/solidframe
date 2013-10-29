@@ -724,7 +724,7 @@ void Service::notifyNodes(DynamicPointer<frame::ipc::Message> &_rmsgptr, NotifyC
 		}
 		idbg("Dend message to "<<it->name);
 		DynamicPointer<frame::ipc::Message> msgptr(shrmsgptr);
-		ipcService().sendMessage(msgptr, it->addr);
+		ipcService().sendMessage(msgptr, it->addr, frame::ipc::SynchronousSendFlag);
 	}
 }
 
