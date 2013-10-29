@@ -74,6 +74,35 @@ namespace{
 		}
 		return true;
 	}
+	
+	string create_char_set(){
+		string s;
+		for(char c = '0'; c <= '9'; ++c){
+			s += c;
+		}
+		for(char c = 'a'; c <= 'z'; ++c){
+			s += c;
+		}
+		for(char c = 'A'; c <= 'Z'; ++c){
+			s += c;
+		}
+		return s;
+	}
+	void create_text(string &_rs, size_t _from, size_t _to, size_t _count, size_t _idx){
+		static const string char_set = create_char_set();
+		if(_from > _to){
+			size_t tmp = _to;
+			_to = _from;
+			_from = tmp;
+			_idx = _count - 1 - _idx;
+		}
+		const size_t newsz = (_from * (_count - _idx - 1) + _idx * _to) / (_count - 1);
+		const size_t oldsz = _rs.size();
+		_rs.resize(newsz + oldsz);
+		for(size_t i = 0; i < newsz; ++i){
+			_rs[oldsz + i] = char_set[i % char_set.size()];
+		}
+	}
 }
 
 struct TextMessage: TextMessageBase, solid::Dynamic<NoopMessage, solid::DynamicShared<solid::frame::Message> >{
@@ -336,6 +365,12 @@ void cliRun(){
 		if(!cstring::ncasecmp(pbuf, STRING_AND_SIZE("sleep"))){
 			len = STRING_SIZE("sleep");
 			rc = executeSleep(pbuf + len, cin.gcount() - len);
+			continue;
+		}
+		if(!cstring::ncasecmp(pbuf, STRING_AND_SIZE("cms"))){
+			len = STRING_SIZE("sleep");
+			//TODO:
+			//rc = executeCreateMessageSet(pbuf + len, cin.gcount() - len);
 			continue;
 		}
 		cout<<"Error: parsing command line"<<endl;
