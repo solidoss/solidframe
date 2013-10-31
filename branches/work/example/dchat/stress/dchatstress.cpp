@@ -1,7 +1,9 @@
-#include "dchatstressconnection.hpp"
+#include "dchatstressservice.hpp"
 
 #include "frame/manager.hpp"
 #include "frame/scheduler.hpp"
+#include "frame/aio/aiosingleobject.hpp"
+
 #include "system/thread.hpp"
 #include "system/socketaddress.hpp"
 #include "system/socketdevice.hpp"
@@ -9,7 +11,6 @@
 #include "serialization/idtypemapper.hpp"
 #include "serialization/binary.hpp"
 
-#include "example/dchat/core/messages.hpp"
 #include "example/dchat/core/compressor.hpp"
 
 #include "cliparser.hpp"
@@ -24,8 +25,6 @@
 
 using namespace solid;
 using namespace std;
-
-typedef frame::Scheduler<frame::aio::Selector>	AioSchedulerT;
 
 namespace{
 	struct Params{
@@ -105,35 +104,7 @@ namespace{
 	}
 }
 
-struct TextMessage: TextMessageBase, solid::Dynamic<NoopMessage, solid::DynamicShared<solid::frame::Message> >{
-	TextMessage(const std::string &_txt):TextMessageBase(_txt){}
-	TextMessage(){}
-};
-
-struct Handle;
-
-
-
 bool parseArguments(Params &_par, int argc, char *argv[]);
-
-struct Handle{
-	void beforeSerialization(BinSerializerT &_rs, void *_pt, ConnectionContext &_rctx){}
-	
-	void beforeSerialization(BinDeserializerT &_rs, void *_pt, ConnectionContext &_rctx){}
-	bool checkStore(void *, ConnectionContext &_rctx)const{
-		return true;
-	}
-	
-	bool checkLoad(void *_pm, ConnectionContext &_rctx)const{
-		return true;
-	}
-	void afterSerialization(BinSerializerT &_rs, void *_pm, ConnectionContext &_rctx){}
-	
-	void afterSerialization(BinDeserializerT &_rs, BasicMessage *_pm, ConnectionContext &_rctx);
-		
-	void afterSerialization(BinDeserializerT &_rs, TextMessage *_pm, ConnectionContext &_rctx);
-	void afterSerialization(BinDeserializerT &_rs, NoopMessage *_pm, ConnectionContext &_rctx);
-};
 
 void cliRun();
 
@@ -175,17 +146,10 @@ int main(int argc, char *argv[]){
 	}
 #endif
 	{
-		typedef DynamicSharedPointer<Connection>	ConnectionPointerT;
-		
 		frame::Manager							m;
 		AioSchedulerT							aiosched(m);
-		UInt8TypeMapperT						tm;
 		
-		tm.insert<LoginRequest>();
-		tm.insertHandle<BasicMessage, Handle>();
-		tm.insertHandle<TextMessage, Handle>();
-		tm.insertHandle<NoopMessage, Handle>();
-		
+		Service::registerMessages();		
 		
 		cliRun();
 		
@@ -237,30 +201,6 @@ bool Params::prepare(){
 		split_endpoint_string(*it, address_str_vec.back(), port_vec.back());
 	}
 	return true;
-}
-//---------------------------------------------------------------------------------
-void Handle::afterSerialization(BinDeserializerT &_rs, BasicMessage *_pm, ConnectionContext &_rctx){
-	static const char *blancs = "                                    ";
-	_rctx.rcon.onDoneIndex(_rctx.rcvmsgidx);
-	if(_pm->v){
-		Locker<Mutex> lock(mtx);
-		cout<<'\r'<<blancs<<'\r'<<_rctx.rcvmsgidx<<" Error: "<<_pm->v<<endl;
-		cout<<prefix<<flush;
-	}
-}
-	
-void Handle::afterSerialization(BinDeserializerT &_rs, TextMessage *_pm, ConnectionContext &_rctx){
-	static const char *blancs = "                                    ";
-	_rctx.rcon.onDoneIndex(_rctx.rcvmsgidx);
-	{
-		Locker<Mutex> lock(mtx);
-		cout<<"\r"<<blancs<<'\r'<<_pm->user<<'>'<<' '<<_pm->text<<endl;
-		cout<<prefix<<flush;
-	}
-}
-void Handle::afterSerialization(BinDeserializerT &_rs, NoopMessage *_pm, ConnectionContext &_rctx){
-	_rctx.rcon.onDoneIndex(_rctx.rcvmsgidx);
-	_rctx.rcon.onReceiveNoop();
 }
 //---------------------------------------------------------------------------------
 #define STRING_AND_SIZE(s) s, (sizeof(s) - 1)

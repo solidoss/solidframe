@@ -1,4 +1,4 @@
-add_executable (example_dchatstress dchatstress.cpp dchatstressconnection.cpp cliparser.cpp)
+add_executable (example_dchatstress dchatstress.cpp dchatstressservice.cpp cliparser.cpp dchatmessagematrix.cpp)
 
 
 target_link_libraries (example_dchatstress
