@@ -1,4 +1,5 @@
 #include "dchatstressservice.hpp"
+#include "dchatmessagematrix.hpp"
 
 #include "frame/manager.hpp"
 #include "frame/scheduler.hpp"
@@ -48,6 +49,9 @@ namespace{
 	bool					running(true);
 	Params					p;
 	string					prefix;
+	MessageMatrix			&mm = *(new MessageMatrix);
+	
+	
 	static void term_handler(int signum){
 		switch(signum) {
 			case SIGINT:
@@ -72,35 +76,6 @@ namespace{
 			_endpoint[pos] = ':';
 		}
 		return true;
-	}
-	
-	string create_char_set(){
-		string s;
-		for(char c = '0'; c <= '9'; ++c){
-			s += c;
-		}
-		for(char c = 'a'; c <= 'z'; ++c){
-			s += c;
-		}
-		for(char c = 'A'; c <= 'Z'; ++c){
-			s += c;
-		}
-		return s;
-	}
-	void create_text(string &_rs, size_t _from, size_t _to, size_t _count, size_t _idx){
-		static const string char_set = create_char_set();
-		if(_from > _to){
-			size_t tmp = _to;
-			_to = _from;
-			_from = tmp;
-			_idx = _count - 1 - _idx;
-		}
-		const size_t newsz = (_from * (_count - _idx - 1) + _idx * _to) / (_count - 1);
-		const size_t oldsz = _rs.size();
-		_rs.resize(newsz + oldsz);
-		for(size_t i = 0; i < newsz; ++i){
-			_rs[oldsz + i] = char_set[i % char_set.size()];
-		}
 	}
 }
 
@@ -149,7 +124,7 @@ int main(int argc, char *argv[]){
 		frame::Manager							m;
 		AioSchedulerT							aiosched(m);
 		
-		Service::registerMessages();		
+		Service::registerMessages();
 		
 		cliRun();
 		
@@ -159,7 +134,7 @@ int main(int argc, char *argv[]){
 		
 	}
 	/*solid::*/Thread::waitAll();
-	
+	delete &mm;
 	return 0;
 }
 
@@ -221,6 +196,8 @@ typedef std::stack<CommandStub>		CommandStackT;
 
 void executeHelp();
 int executeSleep(const char* _pb, int _b);
+int executeCreateMessageRow(const char* _pb, int _b);
+int executePrintMessageRow(const char* _pb, int _b);
 
 
 void cliRun(){
@@ -307,10 +284,14 @@ void cliRun(){
 			rc = executeSleep(pbuf + len, cin.gcount() - len);
 			continue;
 		}
-		if(!cstring::ncasecmp(pbuf, STRING_AND_SIZE("cms"))){
-			len = STRING_SIZE("sleep");
-			//TODO:
-			//rc = executeCreateMessageSet(pbuf + len, cin.gcount() - len);
+		if(!cstring::ncasecmp(pbuf, STRING_AND_SIZE("cmr"))){
+			len = STRING_SIZE("cmr");
+			rc = executeCreateMessageRow(pbuf + len, cin.gcount() - len);
+			continue;
+		}
+		if(!cstring::ncasecmp(pbuf, STRING_AND_SIZE("pmr"))){
+			len = STRING_SIZE("pmr");
+			rc = executePrintMessageRow(pbuf + len, cin.gcount() - len);
 			continue;
 		}
 		cout<<"Error: parsing command line"<<endl;
@@ -338,7 +319,7 @@ int executeSleep(const char* _pb, int _b){
 		mp.parse(msec);
 	}
 	
-	cout<<"SLEEP "<<sec<<' '<<msec<<endl;
+	cout<<"SLEEP sec = "<<sec<<" msec = "<<msec<<endl;
 #ifdef __WIN32__
 	Sleep(sec * 1000 + msec);
 #else
@@ -347,4 +328,50 @@ int executeSleep(const char* _pb, int _b){
 #endif
 	cout<<"Done SLEEP"<<endl;
     return 0;
+}
+int executeCreateMessageRow(const char* _pb, int _b){
+	cli::Parser		mp(_pb);
+	int				row_idx;
+	int				row_cnt;
+	int				from_sz;
+	int				to_sz;
+	
+	mp.skipWhites();
+	if(mp.isAtEnd()) return -1;
+	mp.parse(row_idx);
+	mp.skipWhites();
+	if(mp.isAtEnd()) return -1;
+	mp.parse(row_cnt);
+	mp.skipWhites();
+	if(mp.isAtEnd()) return -1;
+	mp.parse(from_sz);
+	mp.skipWhites();
+	if(mp.isAtEnd()) return -1;
+	mp.parse(to_sz);
+	
+	cout<<"CREATE_MESSAGE_ROW row_idx = "<<row_idx<<" row_cnt = "<<row_cnt<<" from_sz = "<<from_sz<<" to_sz = "<<to_sz<<endl;
+	
+	mm.createRow(row_idx, row_cnt, from_sz, to_sz);
+	
+	cout<<"Done CREATE_MESSAGE_ROW"<<endl;
+	return 0;
+}
+
+int executePrintMessageRow(const char* _pb, int _b){
+	cli::Parser		mp(_pb);
+	int				row_idx;
+	int				verbose = 0;
+	mp.skipWhites();
+	if(mp.isAtEnd()) return -1;
+	mp.parse(row_idx);
+	mp.skipWhites();
+	if(!mp.isAtEnd()){
+		mp.parse(verbose);
+	}
+	cout<<"PRINT_MESSAGE_ROW row_idx = "<<row_idx<<" verbose = "<<verbose<<endl;
+	
+	mm.printRowInfo(cout, row_idx, verbose == 1);
+	
+	cout<<"Done PRINT_MESSAGE_ROW"<<endl;
+	return 0;
 }
