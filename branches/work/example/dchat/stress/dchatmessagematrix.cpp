@@ -53,7 +53,8 @@ namespace{
 	
 }//namespace
 
-typedef std::deque<TextMessagePointerT>							TextMessageVectorT;
+typedef solid::DynamicSharedPointer<TextMessage>				TextMessageSharedPointerT;
+typedef std::deque<TextMessageSharedPointerT>					TextMessageVectorT;
 typedef std::map<size_t, std::unique_ptr<TextMessageVectorT> >	TextMessageMapT;
 
 struct MessageMatrix::Data{
@@ -87,6 +88,7 @@ void MessageMatrix::createRow(
 void MessageMatrix::printRowInfo(std::ostream &_ros, const size_t _row_idx, const bool _verbose)const {
 	_ros<<"Messages on row "<<_row_idx<<endl;
 	SharedLocker<SharedMutex>	lock(d.shrmtx);
+	if(d.tmmap[_row_idx].get() == NULL) return;
 	const TextMessageVectorT	&rvec = *d.tmmap[_row_idx];
 	for(TextMessageVectorT::const_iterator it(rvec.begin()); it != rvec.end(); ++it){
 		const TextMessage &rtm = *(*it);
@@ -100,5 +102,12 @@ void MessageMatrix::printRowInfo(std::ostream &_ros, const size_t _row_idx, cons
 }
 
 TextMessagePointerT MessageMatrix::message(const size_t _row_idx, const size_t _idx)const{
+	SharedLocker<SharedMutex>	lock(d.shrmtx);
+	if(d.tmmap[_row_idx].get()){
+		const TextMessageVectorT	&rvec = *d.tmmap[_row_idx];
+		if(_idx < rvec.size()){
+			return rvec[_idx];
+		}
+	}
 	return TextMessagePointerT();
 }
