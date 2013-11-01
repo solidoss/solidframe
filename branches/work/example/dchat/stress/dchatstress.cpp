@@ -38,8 +38,7 @@ namespace{
 		bool				log;
 		string				user_prefix;
 		vector<string>		endpoint_str_vec;
-		vector<string>		address_str_vec;
-		vector<int>			port_vec;
+		AddressVectorT		endpoint_vec;
 		
 		bool prepare();
 	};
@@ -170,10 +169,19 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 	}
 }
 bool Params::prepare(){
+	string	addrstr;
+	int		port;
 	for(vector<string>::iterator it(endpoint_str_vec.begin()); it != endpoint_str_vec.end(); ++it){
-		address_str_vec.push_back("");
-		port_vec.push_back(0);
-		split_endpoint_string(*it, address_str_vec.back(), port_vec.back());
+		addrstr.clear();
+		port = 0;
+		split_endpoint_string(*it, addrstr, port);
+		
+		ResolveData		rd =  synchronous_resolve(addrstr.c_str(), port, 0, SocketInfo::Inet4, SocketInfo::Stream);
+		if(rd.empty()){
+			cout<<"Error resolving address: "<<*it<<endl;
+			return false;
+		}
+		endpoint_vec.push_back(SocketAddressInet(rd.begin()));
 	}
 	return true;
 }

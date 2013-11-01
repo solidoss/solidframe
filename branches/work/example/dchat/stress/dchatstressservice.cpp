@@ -1,22 +1,27 @@
 #include "dchatstressservice.hpp"
 #include "dchatmessagematrix.hpp"
-#include "system/mutex.hpp"
-#include "system/debug.hpp"
-#include "frame/manager.hpp"
+
 #include "example/dchat/core/messages.hpp"
 #include "example/dchat/core/compressor.hpp"
 
-#include "protocol/binary/binaryaiosession.hpp"
-#include "protocol/binary/binarybasicbuffercontroller.hpp"
 
+#include "system/mutex.hpp"
+#include "system/debug.hpp"
+#include "system/thread.hpp"
 #include "system/socketaddress.hpp"
 #include "system/socketdevice.hpp"
+
 #include "utility/stack.hpp"
 
 #include "serialization/idtypemapper.hpp"
 #include "serialization/binary.hpp"
 
+#include "protocol/binary/binaryaiosession.hpp"
+#include "protocol/binary/binarybasicbuffercontroller.hpp"
+
+#include "frame/manager.hpp"
 #include "frame/aio/aiosingleobject.hpp"
+
 
 using namespace solid;
 using namespace std;
@@ -105,10 +110,12 @@ class Connection: public solid::frame::aio::SingleObject{
 	};
 public:
 	Connection(
-		solid::frame::Manager &_rm,
-		const solid::ResolveData &_rd,
-		const solid::serialization::TypeMapperBase &_rtm
-	):rm(_rm), rd(_rd), st(PrepareState), ser(_rtm), des(_rtm), sndidx(1), waitnoop(false){}
+		const SocketAddressInet &_rsa,
+		const solid::serialization::TypeMapperBase &_rtm,
+		const uint16 _reconnectcnt,
+		const size_t _reconnectsleepms
+	):	rsa(_rsa), st(PrepareState), ser(_rtm), des(_rtm),
+		sndidx(1), waitnoop(false), reconnectsleepms(_reconnectsleepms){}
 	
 	size_t send(solid::DynamicPointer<solid::frame::Message>	&_rmsgptr, const solid::uint32 _flags = 0);
 	
@@ -122,9 +129,9 @@ private:
 private:
 	typedef solid::Stack<size_t>	SizeStackT;
 	
-	solid::frame::Manager	&rm;
-	solid::ResolveData		rd;
+	const SocketAddressInet &rsa;
 	solid::uint16			st;
+	solid::uint16			reconnectcnt;
 	BinSerializerT			ser;
 	BinDeserializerT		des;
 	ProtocolSessionT		session;
@@ -132,6 +139,7 @@ private:
 	BufferControllerT		bufctl;
 	size_t					sndidx;
 	bool					waitnoop;
+	const size_t 			reconnectsleepms;
 	SizeStackT				freesndidxstk;
 };
 
@@ -143,8 +151,42 @@ private:
 	typemap.insertHandle<NoopMessage, Handle>();
 }
 //-----------------------------------------------------------------------
+struct Service::StartThread: Thread{
+	Service			&rsvc;
+	StartData		sd;
+	
+	StartThread(
+		Service &_rsvc,
+		const StartData &_rsd
+	):rsvc(_rsvc), sd(_rsd){}
+	
+	/*virtual*/ void run(){
+		rsvc.doStart(sd);
+	}
+};
+void Service::start(const StartData &_rsd, const bool _async){
+	if(_async){
+		StartThread *pt = new StartThread(*this, _rsd);
+		pt->start();
+	}else{
+		doStart(_rsd);
+	}
+}
+void Service::doStart(const StartData &_rsd){
+	if(!isRegistered()){
+		manager().registerService(*this);
+	}
+	for(size_t i = 0; i < _rsd.concnt; ++i){
+		DynamicPointer<frame::aio::Object>	conptr(new Connection(raddrvec[i % raddrvec.size()], typemap, _rsd.reconnectcnt, _rsd.reconnectsleepmsec));
+		
+		this->registerObject(*conptr);
+		rsched.schedule(conptr);
+	}
+}
+//=======================================================================
+
 size_t Connection::send(DynamicPointer<solid::frame::Message>	&_rmsgptr, const uint32 _flags){
-	Locker<Mutex>	lock(rm.mutex(*this));
+	Locker<Mutex>	lock(frame::Manager::specific().mutex(*this));
 	size_t idx;
 	
 	if(freesndidxstk.size()){
@@ -158,7 +200,7 @@ size_t Connection::send(DynamicPointer<solid::frame::Message>	&_rmsgptr, const u
 	sndmsgvec.push_back(MessageStub(_rmsgptr, _flags, idx));
 	
 	if(Object::notify(frame::S_SIG | frame::S_RAISE)){
-		rm.raise(*this);
+		frame::Manager::specific().raise(*this);
 	}
 	return idx;
 }
@@ -174,7 +216,7 @@ void Connection::onReceiveNoop(){
 }
 //-----------------------------------------------------------------------
 void Connection::onDoneIndex(uint32 _msgidx){
-	Locker<Mutex>	lock(rm.mutex(*this));
+	Locker<Mutex>	lock(frame::Manager::specific().mutex(*this));
 	freesndidxstk.push(_msgidx);
 }
 
@@ -189,7 +231,7 @@ void Connection::onDoneIndex(uint32 _msgidx){
 	if(sm){
 		if(sm & frame::S_KILL) return done();
 		if(sm & frame::S_SIG){
-			Locker<Mutex>	lock(rm.mutex(*this));
+			Locker<Mutex>	lock(frame::Manager::specific().mutex(*this));
 			for(MessageVectorT::iterator it(sndmsgvec.begin()); it != sndmsgvec.end(); ++it){
 				session.send(it->idx, it->msgptr, it->flags);
 			}
@@ -223,7 +265,7 @@ void Connection::onDoneIndex(uint32 _msgidx){
 		return rv;
 	}else if(st == PrepareState){
 		SocketDevice	sd;
-		sd.create(rd.begin());
+		sd.create(rsa.family(), SocketInfo::Stream);
 		sd.makeNonBlocking();
 		socketInsert(sd);
 		socketRequestRegister();
@@ -231,7 +273,7 @@ void Connection::onDoneIndex(uint32 _msgidx){
 		reenter = false;
 	}else if(st == ConnectState){
 		idbg("ConnectState");
-		switch(socketConnect(rd.begin())){
+		switch(socketConnect(rsa)){
 			case BAD: return done();
 			case OK:
 				idbg("");
