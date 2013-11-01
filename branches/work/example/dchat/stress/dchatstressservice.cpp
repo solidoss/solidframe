@@ -30,6 +30,16 @@ using namespace std;
 
 class Connection;
 
+struct SendJob: solid::frame::Message{
+	size_t		msgrow;
+	size_t		sleepms;
+	SendJob(
+		const size_t _msgrow = 0,
+		const size_t _sleepms = 0
+	):msgrow(_msgrow), sleepms(_sleepms){}
+};
+
+
 struct ConnectionContext{
 	ConnectionContext(Connection &_rcon):rcon(_rcon), sndmsgidx(-1),rcvmsgidx(-1){}
 	void sendMessageIndex(const solid::uint32 _msgidx){
@@ -102,7 +112,8 @@ class Connection: public solid::frame::aio::SingleObject{
 		
 	typedef solid::protocol::binary::BasicBufferController<2048>		BufferControllerT;
 	enum{
-		InitState = 1,
+		CreateState = 1,
+		InitState,
 		PrepareState,
 		ConnectState,
 		ConnectWaitState,
@@ -114,11 +125,13 @@ public:
 		const solid::serialization::TypeMapperBase &_rtm,
 		const uint16 _reconnectcnt,
 		const size_t _reconnectsleepms
-	):	rsa(_rsa), st(PrepareState), ser(_rtm), des(_rtm),
+	):	rsa(_rsa), st(CreateState), connectcnt(_reconnectcnt + 1), ser(_rtm), des(_rtm),
 		sndidx(1), waitnoop(false), reconnectsleepms(_reconnectsleepms){}
 	
 	size_t send(solid::DynamicPointer<solid::frame::Message>	&_rmsgptr, const solid::uint32 _flags = 0);
-	
+	Service& service()const{
+		return static_cast<Service&>(frame::Manager::specific().service(*this));
+	}
 private:
 	friend struct Handle;
 	friend struct SessionController;
@@ -131,7 +144,7 @@ private:
 	
 	const SocketAddressInet &rsa;
 	solid::uint16			st;
-	solid::uint16			reconnectcnt;
+	solid::uint16			connectcnt;
 	BinSerializerT			ser;
 	BinDeserializerT		des;
 	ProtocolSessionT		session;
@@ -165,6 +178,8 @@ struct Service::StartThread: Thread{
 	}
 };
 void Service::start(const StartData &_rsd, const bool _async){
+	expect_create_cnt = _rsd.concnt;
+	expect_connect_cnt = _rsd.concnt;
 	if(_async){
 		StartThread *pt = new StartThread(*this, _rsd);
 		pt->start();
@@ -183,6 +198,56 @@ void Service::doStart(const StartData &_rsd){
 		rsched.schedule(conptr);
 	}
 }
+
+void Service::send(const size_t _msgrow, const size_t _sleepms, const size_t _cnt){
+	expect_receive_cnt = expect_create_cnt * (expect_create_cnt - 1) * _cnt;
+	//TODO: ...
+}
+
+void Service::onCreate(){
+	Locker<Mutex>	lock(mtx);
+	++actual_create_cnt;
+	cassert(actual_create_cnt <= expect_create_cnt);
+	if(actual_create_cnt == expect_create_cnt){
+		cnd.signal();
+	}
+}
+void Service::onConnect(){
+	Locker<Mutex>	lock(mtx);
+	++actual_connect_cnt;
+	cassert(actual_connect_cnt <= expect_connect_cnt);
+	if(actual_connect_cnt == expect_connect_cnt){
+		cnd.signal();
+	}
+}
+void Service::onReceive(){
+	Locker<Mutex>	lock(mtx);
+	++actual_receive_cnt;
+	cassert(actual_receive_cnt <= expect_receive_cnt);
+	if(actual_receive_cnt == expect_receive_cnt){
+		cnd.signal();
+	}
+}
+	
+void Service::waitCreate(){
+	Locker<Mutex>	lock(mtx);
+	while(actual_create_cnt < expect_create_cnt){
+		cnd.wait(lock);
+	}
+}
+void Service::waitConnect(){
+	Locker<Mutex>	lock(mtx);
+	while(actual_connect_cnt < expect_connect_cnt){
+		cnd.wait(lock);
+	}
+}
+void Service::waitReceive(){
+	Locker<Mutex>	lock(mtx);
+	while(actual_receive_cnt < expect_receive_cnt){
+		cnd.wait(lock);
+	}
+}
+
 //=======================================================================
 
 size_t Connection::send(DynamicPointer<solid::frame::Message>	&_rmsgptr, const uint32 _flags){
@@ -240,12 +305,21 @@ void Connection::onDoneIndex(uint32 _msgidx){
 	}
 	
 	if(_evs & (frame::TIMEOUT | frame::ERRDONE)){
-		if(waitnoop){
-			return done();
-		}else if(session.isSendQueueEmpty()){
-			DynamicPointer<solid::frame::Message>	msgptr(noopmsgptr);
-			send(msgptr);
-			waitnoop = true;
+		if(st != ConnectWaitState){
+			if(waitnoop){
+				return done();
+			}else if(session.isSendQueueEmpty()){
+				DynamicPointer<solid::frame::Message>	msgptr(noopmsgptr);
+				send(msgptr);
+				waitnoop = true;
+			}
+		}else{
+			--connectcnt;
+			if(connectcnt == 0){
+				return done();
+			}else{
+				st = PrepareState;
+			}
 		}
 	}
 	
@@ -263,6 +337,10 @@ void Connection::onDoneIndex(uint32 _msgidx){
 			}
 		}
 		return rv;
+	}else if(st == CreateState){
+		st = PrepareState;
+		service().onCreate();
+		return OK;
 	}else if(st == PrepareState){
 		SocketDevice	sd;
 		sd.create(rsa.family(), SocketInfo::Stream);
@@ -292,6 +370,7 @@ void Connection::onDoneIndex(uint32 _msgidx){
 	}else if(st == InitState){
 		idbg("InitState");
 		st = RunningState;
+		service().onConnect();
 		reenter = true;
 	}
 	return reenter ? OK : NOK;

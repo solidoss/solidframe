@@ -22,12 +22,15 @@
 
 #include "boost/program_options.hpp"
 
+#include <deque>
 #include <iostream>
 
 using namespace solid;
 using namespace std;
 
 namespace{
+	typedef DynamicPointer<Service>		ServicePointerT;
+	typedef std::deque<ServicePointerT>	ServiceVectorT;
 	struct Params{
 		string				dbg_levels;
 		string				dbg_modules;
@@ -49,6 +52,8 @@ namespace{
 	Params					p;
 	string					prefix;
 	MessageMatrix			&mm = *(new MessageMatrix);
+	ServiceVectorT			svcvec;
+	AioSchedulerT			*paio;
 	
 	
 	static void term_handler(int signum){
@@ -122,6 +127,8 @@ int main(int argc, char *argv[]){
 	{
 		frame::Manager							m;
 		AioSchedulerT							aiosched(m);
+		
+		paio = &aiosched;
 		
 		Service::registerMessages();
 		
@@ -204,9 +211,11 @@ typedef std::stack<CommandStub>		CommandStackT;
 
 void executeHelp();
 int executeSleep(const char* _pb, int _b);
+int executeWait(const char* _pb, int _b);
+int executeSend(const char* _pb, int _b);
 int executeCreateMessageRow(const char* _pb, int _b);
 int executePrintMessageRow(const char* _pb, int _b);
-
+int executeCreateConnectionSet(const char* _pb, int _b);
 
 void cliRun(){
 	char            buf[2048];
@@ -302,6 +311,21 @@ void cliRun(){
 			rc = executePrintMessageRow(pbuf + len, cin.gcount() - len);
 			continue;
 		}
+		if(!cstring::ncasecmp(pbuf, STRING_AND_SIZE("ccs"))){
+			len = STRING_SIZE("ccs");
+			rc = executeCreateConnectionSet(pbuf + len, cin.gcount() - len);
+			continue;
+		}
+		if(!cstring::ncasecmp(pbuf, STRING_AND_SIZE("wait"))){
+			len = STRING_SIZE("wait");
+			rc = executeWait(pbuf + len, cin.gcount() - len);
+			continue;
+		}
+		if(!cstring::ncasecmp(pbuf, STRING_AND_SIZE("send"))){
+			len = STRING_SIZE("send");
+			rc = executeSend(pbuf + len, cin.gcount() - len);
+			continue;
+		}
 		cout<<"Error: parsing command line"<<endl;
 	}
 }
@@ -381,5 +405,116 @@ int executePrintMessageRow(const char* _pb, int _b){
 	mm.printRowInfo(cout, row_idx, verbose == 1);
 	
 	cout<<"Done PRINT_MESSAGE_ROW"<<endl;
+	return 0;
+}
+
+int executeCreateConnectionSet(const char* _pb, int _b){
+	cli::Parser		mp(_pb);
+	int				idx;
+	int				cnt = 10;
+	int				retryconnectcnt = 0;
+	int				retryconnectsleepms = 1000;
+	mp.skipWhites();
+	if(mp.isAtEnd()) return -1;
+	mp.parse(idx);
+	mp.skipWhites();
+	if(!mp.isAtEnd()){
+		mp.parse(retryconnectcnt);
+	}
+	mp.skipWhites();
+	if(!mp.isAtEnd()){
+		mp.parse(cnt);
+	}
+	mp.skipWhites();
+	if(!mp.isAtEnd()){
+		mp.parse(retryconnectsleepms);
+	}
+	if(idx >= svcvec.size()){
+		svcvec.resize(idx + 1);
+	}
+	
+	cout<<"CREATE_CONNECTION_SET idx = "<<idx<<" cnt = "<<cnt<<" retryconnectcnt = "<<retryconnectcnt<<" retryconnectsleepms = "<<retryconnectsleepms<<endl;
+	
+	svcvec[idx] = new Service(frame::Manager::specific(), *paio, p.endpoint_vec);
+	
+	StartData sd;
+	sd.concnt = cnt;
+	sd.reconnectcnt = retryconnectcnt;
+	sd.reconnectsleepmsec = retryconnectsleepms;
+	
+	svcvec[idx]->start(sd);
+	
+	cout<<"Done CREATE_CONNECTION_SET"<<endl;
+	return 0;
+}
+int executeWait(const char* _pb, int _b){
+	cli::Parser		mp(_pb);
+	int				idx;
+	char			choice;
+	
+	mp.skipWhites();
+	if(mp.isAtEnd()) return -1;
+	mp.parse(idx);
+	mp.skipWhites();
+	if(mp.isAtEnd()) return -1;
+	
+	mp.parse(choice);
+	
+	cout<<"WAIT idx = "<<idx<<" choice = "<<choice<<endl;
+	
+	if(idx >= svcvec.size() || svcvec[idx].empty()){
+		cout<<"Fail WAIT"<<endl;
+		return 0;
+	}
+	Service &rsvc = *svcvec[idx];
+	switch(choice){
+		case 'c':
+			rsvc.waitCreate();
+			break;
+		case 'C':
+			rsvc.waitConnect();
+			break;
+		case 'r':
+			rsvc.waitReceive();
+			break;
+		default:
+			cout<<"Choice unknown!!"<<endl;
+			break;
+	}
+	
+	cout<<"Done WAIT"<<endl;
+	return 0;
+}
+
+int executeSend(const char* _pb, int _b){
+	cli::Parser		mp(_pb);
+	int				conset;
+	int				msgrow;
+	int				count;
+	int				sleepms = 10;
+	
+	mp.skipWhites();
+	if(mp.isAtEnd()) return -1;
+	mp.parse(conset);
+	mp.skipWhites();
+	if(mp.isAtEnd()) return -1;
+	mp.parse(msgrow);
+	mp.skipWhites();
+	if(mp.isAtEnd()) return -1;
+	mp.parse(count);
+	mp.skipWhites();
+	if(!mp.isAtEnd()){
+		mp.parse(sleepms);
+	}
+	cout<<"SEND conset = "<<conset<<" msgrow = "<<msgrow<<" count = "<<count<<" sleepms = "<<sleepms<<endl;
+	
+	if(conset >= svcvec.size() || svcvec[conset].empty() || !mm.hasRow(msgrow)){
+		cout<<"Fail SEND"<<endl;
+		return 0;
+	}
+	Service &rsvc = *svcvec[conset];
+	
+	rsvc.send(msgrow, sleepms, count);
+	cout<<"Done SEND"<<endl;
 	return 0;
 }

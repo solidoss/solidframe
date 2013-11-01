@@ -5,6 +5,9 @@
 #include "frame/scheduler.hpp"
 #include "frame/aio/aioselector.hpp"
 #include "system/socketaddress.hpp"
+#include "system/mutex.hpp"
+#include "system/condition.hpp"
+
 #include <vector>
 
 typedef solid::frame::Scheduler<solid::frame::aio::Selector>	AioSchedulerT;
@@ -26,18 +29,48 @@ public:
 		AioSchedulerT &_rsched,
 		const AddressVectorT &_raddrvec
 	):BaseT(_rm), rsched(_rsched), raddrvec(_raddrvec){
+		expect_create_cnt = 0;
+		actual_create_cnt = 0;
+	
+		expect_connect_cnt = 0;
+		actual_connect_cnt = 0;
+	
+		expect_receive_cnt = 0;
+		actual_receive_cnt = 0;
 	}
 	~Service(){}
 	
 	void start(const StartData &_rsd, const bool _async = true);
 	
+	void send(const size_t _msgrow, const size_t _sleepms, const size_t _cnt);
+	
+	void waitCreate();
+	void waitConnect();
+	void waitReceive();
+	
 private:
 	friend class Connection;
 	struct StartThread;
 	void doStart(const StartData &_rsd);
+	
+	void onCreate();
+	void onConnect();
+	void onReceive();
+	
 private:
 	AioSchedulerT			&rsched;
 	const AddressVectorT	&raddrvec;
+	solid::Mutex			mtx;
+	solid::Condition		cnd;
+	
+	size_t					expect_create_cnt;
+	size_t					actual_create_cnt;
+	
+	size_t					expect_connect_cnt;
+	size_t					actual_connect_cnt;
+	
+	size_t					expect_receive_cnt;
+	size_t					actual_receive_cnt;
 };
 
 

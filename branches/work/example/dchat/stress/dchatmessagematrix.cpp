@@ -62,7 +62,14 @@ struct MessageMatrix::Data{
 	mutable SharedMutex			shrmtx;
 };
 
-MessageMatrix::MessageMatrix():d(*(new Data)){}
+const MessageMatrix& MessageMatrix::the(MessageMatrix *_pmm){
+	static MessageMatrix *pmm = _pmm;
+	return *pmm;
+}
+
+MessageMatrix::MessageMatrix():d(*(new Data)){
+	the(this);
+}
 MessageMatrix::~MessageMatrix(){
 	delete &d;
 }
@@ -110,4 +117,8 @@ TextMessagePointerT MessageMatrix::message(const size_t _row_idx, const size_t _
 		}
 	}
 	return TextMessagePointerT();
+}
+bool MessageMatrix::hasRow(const size_t _idx)const{
+	SharedLocker<SharedMutex>	lock(d.shrmtx);
+	return d.tmmap[_idx].get() != NULL;
 }
