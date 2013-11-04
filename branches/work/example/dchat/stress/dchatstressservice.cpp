@@ -22,6 +22,8 @@
 #include "frame/manager.hpp"
 #include "frame/aio/aiosingleobject.hpp"
 
+#include <iostream>
+
 
 using namespace solid;
 using namespace std;
@@ -178,8 +180,16 @@ struct Service::StartThread: Thread{
 	}
 };
 void Service::start(const StartData &_rsd, const bool _async){
-	expect_create_cnt = _rsd.concnt;
-	expect_connect_cnt = _rsd.concnt;
+	{
+		Locker<Mutex>	lock(mtx);
+		if(!expect_create_cnt){
+			start_time.currentRealTime();
+			last_time = start_time;
+		}
+		expect_create_cnt += _rsd.concnt;
+		expect_connect_cnt += _rsd.concnt;
+		expect_login_cnt += _rsd.concnt;
+	}
 	if(_async){
 		StartThread *pt = new StartThread(*this, _rsd);
 		pt->start();
@@ -200,8 +210,21 @@ void Service::doStart(const StartData &_rsd){
 }
 
 void Service::send(const size_t _msgrow, const size_t _sleepms, const size_t _cnt){
-	expect_receive_cnt = expect_create_cnt * (expect_create_cnt - 1) * _cnt;
+	{
+		Locker<Mutex>	lock(mtx);
+		expect_receive_cnt = expect_create_cnt * (expect_create_cnt - 1) * _cnt;
+		send_time.currentRealTime();
+	}
 	//TODO: ...
+}
+
+TimeSpec Service::startTime(){
+	Locker<Mutex>	lock(mtx);
+	return start_time;
+}
+TimeSpec Service::sendTime(){
+	Locker<Mutex>	lock(mtx);
+	return send_time;
 }
 
 void Service::onCreate(){
@@ -228,24 +251,80 @@ void Service::onReceive(){
 		cnd.signal();
 	}
 }
-	
+void Service::onLogin(){
+	Locker<Mutex>	lock(mtx);
+	++actual_login_cnt;
+	cassert(actual_login_cnt <= expect_login_cnt);
+	if(actual_login_cnt == expect_login_cnt){
+		cnd.signal();
+	}
+}
+
+void Service::onReceive(const size_t _sz){
+	Locker<Mutex>	lock(mtx);
+	recv_sz += _sz;
+	if(waiting){
+		if(!(recv_cnt % 100)){
+			TimeSpec crt_time;
+			TimeSpec crt_time_ex;
+			crt_time.currentRealTime();
+			crt_time_ex = crt_time;
+			crt_time -= last_time;
+			if(crt_time.seconds()){
+				last_time = crt_time_ex;
+				crt_time_ex -= start_time;
+				uint64	msecs = crt_time_ex.seconds() * 1000;
+				msecs += crt_time_ex.nanoSeconds() / 1000000;
+				uint64	s = recv_sz / msecs;
+				cout<<"Download speed = "<<s<<" KB/s                \r";
+				
+			}
+		}
+		++recv_cnt;
+	}
+}
+void Service::onReceiveDone(){
+	TimeSpec crt_time_ex;
+	crt_time_ex.currentRealTime();
+	crt_time_ex -= start_time;
+	uint64	msecs = crt_time_ex.seconds() * 1000;
+	msecs += crt_time_ex.nanoSeconds() / 1000000;
+	uint64	s = recv_sz / msecs;
+	cout<<"Download speed = "<<s<<" KB/s                  \n";
+}
+
 void Service::waitCreate(){
 	Locker<Mutex>	lock(mtx);
+	waiting = true;
 	while(actual_create_cnt < expect_create_cnt){
 		cnd.wait(lock);
 	}
+	waiting = false;
 }
 void Service::waitConnect(){
 	Locker<Mutex>	lock(mtx);
+	waiting = true;
 	while(actual_connect_cnt < expect_connect_cnt){
 		cnd.wait(lock);
 	}
+	waiting = false;
 }
 void Service::waitReceive(){
 	Locker<Mutex>	lock(mtx);
+	waiting = true;
 	while(actual_receive_cnt < expect_receive_cnt){
 		cnd.wait(lock);
 	}
+	onReceiveDone();
+	waiting = false;
+}
+void Service::waitLogin(){
+	Locker<Mutex>	lock(mtx);
+	waiting = true;
+	while(actual_login_cnt < expect_login_cnt){
+		cnd.wait(lock);
+	}
+	waiting = false;
 }
 
 //=======================================================================

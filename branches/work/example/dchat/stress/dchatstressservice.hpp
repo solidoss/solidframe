@@ -7,6 +7,8 @@
 #include "system/socketaddress.hpp"
 #include "system/mutex.hpp"
 #include "system/condition.hpp"
+#include "system/timespec.hpp"
+
 
 #include <vector>
 
@@ -34,7 +36,10 @@ public:
 	
 		expect_connect_cnt = 0;
 		actual_connect_cnt = 0;
-	
+		
+		expect_login_cnt = 0;
+		actual_login_cnt = 0;
+		
 		expect_receive_cnt = 0;
 		actual_receive_cnt = 0;
 	}
@@ -46,7 +51,11 @@ public:
 	
 	void waitCreate();
 	void waitConnect();
+	void waitLogin();
 	void waitReceive();
+	
+	solid::TimeSpec startTime();
+	solid::TimeSpec sendTime();
 	
 private:
 	friend class Connection;
@@ -56,7 +65,9 @@ private:
 	void onCreate();
 	void onConnect();
 	void onReceive();
-	
+	void onLogin();
+	void onReceive(const size_t _sz);
+	void onReceiveDone();
 private:
 	AioSchedulerT			&rsched;
 	const AddressVectorT	&raddrvec;
@@ -69,8 +80,17 @@ private:
 	size_t					expect_connect_cnt;
 	size_t					actual_connect_cnt;
 	
+	size_t					expect_login_cnt;
+	size_t					actual_login_cnt;
+	
 	size_t					expect_receive_cnt;
 	size_t					actual_receive_cnt;
+	solid::TimeSpec			start_time;
+	solid::TimeSpec			send_time;
+	bool					waiting;
+	solid::uint64			recv_sz;
+	size_t					recv_cnt;
+	solid::TimeSpec			last_time;
 };
 
 

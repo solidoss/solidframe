@@ -466,23 +466,30 @@ int executeWait(const char* _pb, int _b){
 		cout<<"Fail WAIT"<<endl;
 		return 0;
 	}
-	Service &rsvc = *svcvec[idx];
+	Service		&rsvc = *svcvec[idx];
+	TimeSpec	start_time;
 	switch(choice){
 		case 'c':
 			rsvc.waitCreate();
+			start_time = rsvc.startTime();
 			break;
 		case 'C':
 			rsvc.waitConnect();
+			start_time = rsvc.startTime();
 			break;
 		case 'r':
 			rsvc.waitReceive();
+			start_time = rsvc.sendTime();
 			break;
 		default:
 			cout<<"Choice unknown!!"<<endl;
 			break;
 	}
 	
-	cout<<"Done WAIT"<<endl;
+	TimeSpec	crt_time;
+	crt_time.currentRealTime();
+	crt_time -= start_time;
+	cout<<"Done WAIT "<<crt_time.seconds()<<'.'<<crt_time.nanoSeconds()<<endl;
 	return 0;
 }
 
