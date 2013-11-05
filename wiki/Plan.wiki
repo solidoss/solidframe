@@ -4,12 +4,14 @@
 
 Features for 1.0 version
  # (1) DONE: IPC gateway - relay IPC data through TCP for site-to-site communication
- # (2) DONE: Move everything under solid and solid::frame namespaces
- # (5) DONE: Refactor solid::frame::Manager (ex. foundation::Manager)
- # (10) STARTED: New binary protocol for client-server apps - with distributed chat example
+ # (02) DONE: Move everything under solid and solid::frame namespaces
+ # (05) DONE: Refactor solid::frame::Manager (ex. foundation::Manager)
+ # (10) DONE: New binary protocol for client-server apps
+ # (15) STARTED: A distributed chat example (using the binary protocol) along with a stress client.
  # (20) DONE: Move the entire code under more liberal boost 1.0 license
- # (30) PENDING: Proper file rotation for debug and log
- # (35) PENDING: Per service debug/log level mask support and register all services on init
+ # (25) PENDING: frame::SharedManager - asynchronous read/write lock. Replace frame::file::Manager
+ # (30) DONE: Proper file rotation for debug
+ # (35) DONE: Per service debug log level mask support and register all services on init
  # (40) PENDING: make install
 
 Pool of pending features and changes
