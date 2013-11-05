@@ -3,7 +3,7 @@
 <wiki:toc max_depth="1" />
 
 Features for 1.0 version
- # (1) DONE: IPC gateway - relay IPC data through TCP for site-to-site communication
+ # (01) DONE: IPC gateway - relay IPC data through TCP for site-to-site communication
  # (02) DONE: Move everything under solid and solid::frame namespaces
  # (05) DONE: Refactor solid::frame::Manager (ex. foundation::Manager)
  # (10) DONE: New binary protocol for client-server apps
