@@ -212,8 +212,11 @@ void Service::doStart(const StartData &_rsd){
 void Service::send(const size_t _msgrow, const size_t _sleepms, const size_t _cnt){
 	{
 		Locker<Mutex>	lock(mtx);
+		if(!expect_receive_cnt){
+			send_time.currentRealTime();
+		}
 		expect_receive_cnt = expect_create_cnt * (expect_create_cnt - 1) * _cnt;
-		send_time.currentRealTime();
+		
 	}
 	//TODO: ...
 }
@@ -363,7 +366,6 @@ void Connection::onDoneIndex(uint32 _msgidx){
 	Locker<Mutex>	lock(frame::Manager::specific().mutex(*this));
 	freesndidxstk.push(_msgidx);
 }
-
 //-----------------------------------------------------------------------
 /*virtual*/ int Connection::execute(ulong _evs, TimeSpec& _crtime){
 	typedef DynamicSharedPointer<solid::frame::Message>		MessageSharedPointerT;
