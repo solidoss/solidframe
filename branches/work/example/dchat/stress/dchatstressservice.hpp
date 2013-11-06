@@ -29,8 +29,9 @@ public:
 	Service(
 		solid::frame::Manager &_rm,
 		AioSchedulerT &_rsched,
-		const AddressVectorT &_raddrvec
-	):BaseT(_rm), rsched(_rsched), raddrvec(_raddrvec){
+		const AddressVectorT &_raddrvec,
+		const size_t _idx
+	):BaseT(_rm), rsched(_rsched), raddrvec(_raddrvec), idx(_idx){
 		expect_create_cnt = 0;
 		actual_create_cnt = 0;
 	
@@ -56,6 +57,9 @@ public:
 	
 	solid::TimeSpec startTime();
 	solid::TimeSpec sendTime();
+	size_t index()const{
+		return idx;
+	}
 	
 private:
 	friend class Connection;
@@ -91,6 +95,7 @@ private:
 	solid::uint64			recv_sz;
 	size_t					recv_cnt;
 	solid::TimeSpec			last_time;
+	const size_t			idx;
 };
 
 

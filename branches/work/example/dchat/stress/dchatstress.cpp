@@ -435,7 +435,7 @@ int executeCreateConnectionSet(const char* _pb, int _b){
 	
 	cout<<"CREATE_CONNECTION_SET idx = "<<idx<<" cnt = "<<cnt<<" retryconnectcnt = "<<retryconnectcnt<<" retryconnectsleepms = "<<retryconnectsleepms<<endl;
 	
-	svcvec[idx] = new Service(frame::Manager::specific(), *paio, p.endpoint_vec);
+	svcvec[idx] = new Service(frame::Manager::specific(), *paio, p.endpoint_vec, idx);
 	
 	StartData sd;
 	sd.concnt = cnt;

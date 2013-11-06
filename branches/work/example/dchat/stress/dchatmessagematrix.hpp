@@ -15,7 +15,7 @@ typedef solid::DynamicPointer<TextMessage>	TextMessagePointerT;
 
 class MessageMatrix{
 public:
-	const MessageMatrix& the(MessageMatrix *_pmm = NULL);
+	static const MessageMatrix& the(MessageMatrix *_pmm = NULL);
 	
 	
 	MessageMatrix();
@@ -32,6 +32,7 @@ public:
 	
 	TextMessagePointerT message(const size_t _row_idx, const size_t _idx)const;
 	bool hasRow(const size_t _idx)const;
+	bool check(TextMessage &_rmsg)const;
 private:
 	struct Data;
 	Data	&d;

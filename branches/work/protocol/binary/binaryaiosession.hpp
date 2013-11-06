@@ -45,6 +45,7 @@ public:
 		if(_evs & frame::INDONE){
 			char	tmpbuf[BufCtlT::DataCapacity];
 			idbgx(Debug::proto_bin, "receive data of size "<<_raioobj.socketRecvSize());
+			this->ctl.onRecv(_rconctx, _raioobj.socketRecvSize());
 			if(!BaseT::consume(_rdes, _rconctx, _rbufctl.recvBuffer(), _raioobj.socketRecvSize(), _rcom, tmpbuf, BufCtlT::DataCapacity)){
 				return done();
 			}
@@ -56,6 +57,7 @@ public:
 				case OK:{
 					char	tmpbuf[BufCtlT::DataCapacity];
 					idbgx(Debug::proto_bin, "receive data of size "<<_raioobj.socketRecvSize());
+					this->ctl.onRecv(_rconctx, _raioobj.socketRecvSize());
 					if(!BaseT::consume(_rdes, _rconctx, _rbufctl.recvBuffer(), _raioobj.socketRecvSize(), _rcom, tmpbuf, BufCtlT::DataCapacity)){
 						idbgx(Debug::proto_bin, "error consume");
 						return done();
@@ -92,6 +94,7 @@ public:
 					break;
 				}
 				idbgx(Debug::proto_bin, "send data of size "<<rv);
+				this->ctl.onSend(_rconctx, rv);
 				switch(_raioobj.socketSend(_rbufctl.sendBuffer(), rv)){
 					case BAD: 
 						return done();

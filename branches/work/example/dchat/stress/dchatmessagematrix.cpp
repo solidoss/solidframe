@@ -112,13 +112,15 @@ TextMessagePointerT MessageMatrix::message(const size_t _row_idx, const size_t _
 	SharedLocker<SharedMutex>	lock(d.shrmtx);
 	if(d.tmmap[_row_idx].get()){
 		const TextMessageVectorT	&rvec = *d.tmmap[_row_idx];
-		if(_idx < rvec.size()){
-			return rvec[_idx];
-		}
+		return rvec[_idx % rvec.size()];
 	}
 	return TextMessagePointerT();
 }
 bool MessageMatrix::hasRow(const size_t _idx)const{
 	SharedLocker<SharedMutex>	lock(d.shrmtx);
 	return d.tmmap[_idx].get() != NULL;
+}
+bool MessageMatrix::check(TextMessage &_rmsg)const{
+	//TODO:....
+	return true;
 }

@@ -12,6 +12,7 @@
 #include "system/socketdevice.hpp"
 
 #include "utility/stack.hpp"
+#include "utility/dynamictype.hpp"
 
 #include "serialization/idtypemapper.hpp"
 #include "serialization/binary.hpp"
@@ -22,7 +23,9 @@
 #include "frame/manager.hpp"
 #include "frame/aio/aiosingleobject.hpp"
 
+
 #include <iostream>
+#include <sstream>
 
 
 using namespace solid;
@@ -32,13 +35,17 @@ using namespace std;
 
 class Connection;
 
-struct SendJob: solid::frame::Message{
+struct SendJob: Dynamic<SendJob, DynamicShared<solid::frame::Message> >{
+	typedef DynamicPointer<SendJob>				PointerT;
+	typedef DynamicSharedPointer<SendJob>		SharedPointerT;
 	size_t		msgrow;
 	size_t		sleepms;
+	size_t		count;
 	SendJob(
 		const size_t _msgrow = 0,
-		const size_t _sleepms = 0
-	):msgrow(_msgrow), sleepms(_sleepms){}
+		const size_t _sleepms = 0,
+		const size_t _count = 0
+	):msgrow(_msgrow), sleepms(_sleepms), count(_count){}
 };
 
 
@@ -92,7 +99,11 @@ struct Handle{
 //=======================================================================
 
 class Connection: public solid::frame::aio::SingleObject{
+	typedef solid::DynamicMapper<void, Connection>						DynamicMapperT;
 	typedef solid::DynamicPointer<solid::frame::Message>				MessageDynamicPointerT;
+	typedef std::vector<solid::DynamicPointer<> >						DynamicPointerVectorT;
+	
+	static DynamicMapperT		dm;
 	struct MessageStub{
 		MessageStub():flags(0), idx(-1){}
 		MessageStub(
@@ -105,11 +116,19 @@ class Connection: public solid::frame::aio::SingleObject{
 		solid::uint32			flags;
 		size_t					idx;
 	};
-	
+	struct ProtocolController: solid::protocol::binary::BasicController{
+		void onDoneSend(ConnectionContext &_rctx, const size_t _msgidx){
+			_rctx.rcon.onDoneIndex(_msgidx);
+		}
+		void onRecv(ConnectionContext &_rctx, const size_t _sz){
+			_rctx.rcon.service().onReceive(_sz);
+		}
+	};
 	typedef std::vector<MessageStub>									MessageVectorT;
 	typedef solid::protocol::binary::AioSession<
 		solid::frame::Message,
-		int
+		int,
+		ProtocolController
 	>																	ProtocolSessionT;
 		
 	typedef solid::protocol::binary::BasicBufferController<2048>		BufferControllerT;
@@ -123,16 +142,21 @@ class Connection: public solid::frame::aio::SingleObject{
 	};
 public:
 	Connection(
+		const size_t _idx,
 		const SocketAddressInet &_rsa,
 		const solid::serialization::TypeMapperBase &_rtm,
 		const uint16 _reconnectcnt,
 		const size_t _reconnectsleepms
-	):	rsa(_rsa), st(CreateState), connectcnt(_reconnectcnt + 1), ser(_rtm), des(_rtm),
+	):	idx(_idx), rsa(_rsa), st(CreateState), connectcnt(_reconnectcnt + 1), ser(_rtm), des(_rtm),
 		sndidx(1), waitnoop(false), reconnectsleepms(_reconnectsleepms){}
 	
-	size_t send(solid::DynamicPointer<solid::frame::Message>	&_rmsgptr, const solid::uint32 _flags = 0);
 	Service& service()const{
 		return static_cast<Service&>(frame::Manager::specific().service(*this));
+	}
+	void dynamicHandle(solid::DynamicPointer<> &_dp);
+	void dynamicHandle(solid::DynamicPointer<SendJob> &_rmsgptr);
+	void onReceiveMessage(){
+		service().onReceive();
 	}
 private:
 	friend struct Handle;
@@ -140,10 +164,11 @@ private:
 	/*virtual*/ int execute(solid::ulong _evs, solid::TimeSpec& _crtime);
 	int done();
 	void onReceiveNoop();
-	void onDoneIndex(solid::uint32 _msgidx);
+	void onDoneIndex(const size_t _msgidx);
 private:
-	typedef solid::Stack<size_t>	SizeStackT;
+	typedef solid::Queue<SendJob::PointerT>		JobQueueT;
 	
+	const size_t			idx;
 	const SocketAddressInet &rsa;
 	solid::uint16			st;
 	solid::uint16			connectcnt;
@@ -155,7 +180,11 @@ private:
 	size_t					sndidx;
 	bool					waitnoop;
 	const size_t 			reconnectsleepms;
-	SizeStackT				freesndidxstk;
+	DynamicPointerVectorT	msgvec;
+	JobQueueT				jobq;
+	solid::TimeSpec			nexttime;
+	solid::TimeSpec			nooptime;
+	size_t					sendidx;
 };
 
 //=======================================================================
@@ -202,7 +231,7 @@ void Service::doStart(const StartData &_rsd){
 		manager().registerService(*this);
 	}
 	for(size_t i = 0; i < _rsd.concnt; ++i){
-		DynamicPointer<frame::aio::Object>	conptr(new Connection(raddrvec[i % raddrvec.size()], typemap, _rsd.reconnectcnt, _rsd.reconnectsleepmsec));
+		DynamicPointer<frame::aio::Object>	conptr(new Connection(i, raddrvec[i % raddrvec.size()], typemap, _rsd.reconnectcnt, _rsd.reconnectsleepmsec));
 		
 		this->registerObject(*conptr);
 		rsched.schedule(conptr);
@@ -218,7 +247,8 @@ void Service::send(const size_t _msgrow, const size_t _sleepms, const size_t _cn
 		expect_receive_cnt = expect_create_cnt * (expect_create_cnt - 1) * _cnt;
 		
 	}
-	//TODO: ...
+	frame::MessageSharedPointerT	msgptr(new SendJob(_msgrow, _sleepms, _cnt));
+	this->notifyAll(msgptr);
 }
 
 TimeSpec Service::startTime(){
@@ -332,42 +362,20 @@ void Service::waitLogin(){
 
 //=======================================================================
 
-size_t Connection::send(DynamicPointer<solid::frame::Message>	&_rmsgptr, const uint32 _flags){
-	Locker<Mutex>	lock(frame::Manager::specific().mutex(*this));
-	size_t idx;
-	
-	if(freesndidxstk.size()){
-		idx = freesndidxstk.top();
-		freesndidxstk.pop();
-	}else{
-		idx = sndidx;
-		++sndidx;
-	}
-	
-	sndmsgvec.push_back(MessageStub(_rmsgptr, _flags, idx));
-	
-	if(Object::notify(frame::S_SIG | frame::S_RAISE)){
-		frame::Manager::specific().raise(*this);
-	}
-	return idx;
-}
-//-----------------------------------------------------------------------
 int Connection::done(){
 	idbg("");
 	return BAD;
 }
 //-----------------------------------------------------------------------
-void Connection::onReceiveNoop(){
-	cassert(waitnoop);
-	waitnoop = false;
-}
-//-----------------------------------------------------------------------
-void Connection::onDoneIndex(uint32 _msgidx){
-	Locker<Mutex>	lock(frame::Manager::specific().mutex(*this));
-	freesndidxstk.push(_msgidx);
-}
-//-----------------------------------------------------------------------
+
+/*static*/ Connection::DynamicMapperT		Connection::dm;
+
 /*virtual*/ int Connection::execute(ulong _evs, TimeSpec& _crtime){
+	static struct Init{
+		Init(DynamicMapperT &_rdm){
+			_rdm.insert<SendJob, Connection>();
+		}
+	} ini(dm);
 	typedef DynamicSharedPointer<solid::frame::Message>		MessageSharedPointerT;
 	
 	static Compressor 				compressor(BufferControllerT::DataCapacity);
@@ -377,22 +385,34 @@ void Connection::onDoneIndex(uint32 _msgidx){
 	if(sm){
 		if(sm & frame::S_KILL) return done();
 		if(sm & frame::S_SIG){
-			Locker<Mutex>	lock(frame::Manager::specific().mutex(*this));
-			for(MessageVectorT::iterator it(sndmsgvec.begin()); it != sndmsgvec.end(); ++it){
-				session.send(it->idx, it->msgptr, it->flags);
+			DynamicHandler<DynamicMapperT>	dh(dm);
+			{
+				Locker<Mutex>	lock(frame::Manager::specific().mutex(*this));
+				dh.init(msgvec.begin(), msgvec.end());
+				msgvec.clear();
 			}
-			sndmsgvec.clear();
+			for(size_t i = 0; i < dh.size(); ++i){
+				dh.handle(*this, i);
+			}
 		}
 	}
 	
 	if(_evs & (frame::TIMEOUT | frame::ERRDONE)){
 		if(st != ConnectWaitState){
-			if(waitnoop){
-				return done();
-			}else if(session.isSendQueueEmpty()){
-				DynamicPointer<solid::frame::Message>	msgptr(noopmsgptr);
-				send(msgptr);
-				waitnoop = true;
+			if(_crtime <= nooptime){
+				if(waitnoop){
+					return done();
+				}else if(session.isSendQueueEmpty()){
+					DynamicPointer<solid::frame::Message>	msgptr(noopmsgptr);
+					session.send(3, msgptr);
+					waitnoop = true;
+					nooptime = _crtime;
+					nooptime.add(10);
+				}
+			}
+			if(_crtime <= nexttime){
+				MessageDynamicPointerT	msgptr = MessageMatrix::the().message(jobq.front()->msgrow, sendidx);
+				session.send(2, msgptr);
 			}
 		}else{
 			--connectcnt;
@@ -411,11 +431,7 @@ void Connection::onDoneIndex(uint32 _msgidx){
 		int rv = session.execute(*this, _evs, ctx, ser, des, bufctl, compressor);
 		if(rv == BAD) return done();
 		if(rv == NOK){
-			if(waitnoop){
-				_crtime.add(3);//wait 3 seconds
-			}else{
-				_crtime.add(15);//wait 15 secs then send noop
-			}
+			
 		}
 		return rv;
 	}else if(st == CreateState){
@@ -452,16 +468,62 @@ void Connection::onDoneIndex(uint32 _msgidx){
 		idbg("InitState");
 		st = RunningState;
 		service().onConnect();
+		ostringstream			oss;
+		oss<<idx<<'_'<<this->service().index();
+		string	str = oss.str();
+		MessageDynamicPointerT	msgptr = new LoginRequest(str, str);
+		session.send(1, msgptr);
 		reenter = true;
 	}
 	return reenter ? OK : NOK;
 }
-
+//---------------------------------------------------------------------------------
+void Connection::dynamicHandle(solid::DynamicPointer<> &_dp){
+	cassert(false);
+}
+//---------------------------------------------------------------------------------
+void Connection::dynamicHandle(solid::DynamicPointer<SendJob> &_rmsgptr){
+	jobq.push(_rmsgptr);
+	if(jobq.size() == 1){
+		sendidx = 0;
+		if(sendidx < jobq.front()->count){
+			MessageDynamicPointerT	msgptr = MessageMatrix::the().message(jobq.front()->msgrow, sendidx);
+			session.send(2, msgptr);
+			nexttime = currentTime();
+			nexttime += jobq.front()->sleepms;
+		}
+	}
+}
+//---------------------------------------------------------------------------------
+void Connection::onReceiveNoop(){
+	cassert(waitnoop);
+	waitnoop = false;
+	nooptime = currentTime();
+	nooptime.add(30);
+}
+//---------------------------------------------------------------------------------
+void Connection::onDoneIndex(const size_t _msgidx){
+	if(_msgidx == 2){
+		++sendidx;
+		if(sendidx < jobq.front()->count){
+			nexttime = currentTime();
+			nexttime += jobq.front()->sleepms;
+		}
+	}
+	if(!waitnoop){
+		nooptime = currentTime();
+		nooptime.add(30);
+	}
+}
 //---------------------------------------------------------------------------------
 void Handle::afterSerialization(BinDeserializerT &_rs, BasicMessage *_pm, ConnectionContext &_rctx){
 }
 void Handle::afterSerialization(BinDeserializerT &_rs, TextMessage *_pm, ConnectionContext &_rctx){
+	bool b = MessageMatrix::the().check(*_pm);
+	cassert(b);
+	_rctx.rcon.onReceiveMessage();
 }
 void Handle::afterSerialization(BinDeserializerT &_rs, NoopMessage *_pm, ConnectionContext &_rctx){
+	_rctx.rcon.onReceiveNoop();
 }
 //---------------------------------------------------------------------------------

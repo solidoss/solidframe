@@ -89,7 +89,13 @@ struct DummyCompressor{
 
 struct BasicController{
 	template <class Ctx>
-	void onDoneSend(Ctx &_rctx){}
+	void onDoneSend(Ctx &_rctx, const size_t _msgidx){}
+	
+	template <class Ctx>
+	void onSend(Ctx &_rctx, const size_t _sz){}
+	
+	template <class Ctx>
+	void onRecv(Ctx &_rctx, const size_t _sz){}
 };
 
 template <class Msg, class MsgCtx, class Ctl = BasicController>
@@ -297,13 +303,14 @@ public:
 			crttmplen -= _rc.reservedSize();
 			
 			while(crttmplen > 8 && sndq.size()){
-				MessageStub		&rms = msgvec[sndq.front()];
+				const size_t	msgidx = sndq.front();
+				MessageStub		&rms = msgvec[msgidx];
 				
 				if(_rs.empty()){
-					crttmppos = _rs.storeValue(crttmppos, static_cast<uint32>(sndq.front()));
+					crttmppos = _rs.storeValue(crttmppos, static_cast<uint32>(msgidx));
 					crttmplen -= sizeof(uint32);
 					crttmpsz  += sizeof(uint32);
-					idbgx(Debug::proto_bin, "send message on pos "<<sndq.front());
+					idbgx(Debug::proto_bin, "send message on pos "<<msgidx);
 					_rs.push(rms.sndmsgptr.get(), "message");
 				}
 				
@@ -313,13 +320,13 @@ public:
 				
 				if(rv < 0){
 					rms.sendClear();
-					ctl.onDoneSend(_rctx);
 					sndq.pop();
+					ctl.onDoneSend(_rctx, msgidx);
 					return -1;
 				}else if(_rs.empty()){
 					rms.sendClear();
-					ctl.onDoneSend(_rctx);
 					sndq.pop();
+					ctl.onDoneSend(_rctx, msgidx);
 				}
 				
 				crttmppos += rv;
@@ -418,6 +425,8 @@ private:
 			rcvbufoff = cnssz;
 		}
 	}
+protected:
+	Ctl					ctl;
 private:
 	typedef std::deque<MessageStub>		MessageVectorT;
 	typedef Queue<size_t>				SizeTQueueT;
@@ -426,7 +435,6 @@ private:
 	uint16				cnsbufoff;
 	uint8				rcvstate;
 	uint32				rcvmsgidx;
-	Ctl					ctl;
 	MessageVectorT		msgvec;
 	SizeTQueueT			sndq;
 };
