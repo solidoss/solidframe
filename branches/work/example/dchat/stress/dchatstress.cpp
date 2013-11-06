@@ -419,11 +419,11 @@ int executeCreateConnectionSet(const char* _pb, int _b){
 	mp.parse(idx);
 	mp.skipWhites();
 	if(!mp.isAtEnd()){
-		mp.parse(retryconnectcnt);
+		mp.parse(cnt);
 	}
 	mp.skipWhites();
 	if(!mp.isAtEnd()){
-		mp.parse(cnt);
+		mp.parse(retryconnectcnt);
 	}
 	mp.skipWhites();
 	if(!mp.isAtEnd()){
@@ -479,6 +479,10 @@ int executeWait(const char* _pb, int _b){
 			break;
 		case 'r':
 			rsvc.waitReceive();
+			start_time = rsvc.sendTime();
+			break;
+		case 'l':
+			rsvc.waitLogin();
 			start_time = rsvc.sendTime();
 			break;
 		default:

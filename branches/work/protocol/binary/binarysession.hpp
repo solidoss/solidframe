@@ -132,7 +132,10 @@ public:
 		
 	}
 	
-	size_t send(const size_t _idx, DynamicPointer<Msg> &_rmsgptr, uint32 _flags = 0){
+	size_t send(size_t _idx, DynamicPointer<Msg> &_rmsgptr, uint32 _flags = 0){
+		if(_idx == static_cast<size_t>(-1)){
+			_idx = msgvec.size();
+		}
 		if(_idx >= msgvec.size()){
 			msgvec.resize(_idx + 1);
 		}
@@ -188,6 +191,12 @@ public:
 	}
 	bool isSendQueueEmpty()const{
 		return sndq.empty();
+	}
+	bool isFreeSend(const size_t _idx){
+		if(_idx < msgvec.size()){
+			MessageStub &rms = msgvec[_idx];
+			return !rms.onsendq;
+		}else return true;
 	}
 //protected:
 	char * recvBufferOffset(char *_pbuf)const{
@@ -390,13 +399,13 @@ public:
 			
 			if(rv < 0){
 				rms.sendClear();
-				ctl.onDoneSend(_rctx);
 				sndq.pop();
+				ctl.onDoneSend(_rctx);
 				return -1;
 			}else if(_rs.empty()){
 				rms.sendClear();
-				ctl.onDoneSend(_rctx);
 				sndq.pop();
+				ctl.onDoneSend(_rctx);
 			}
 			
 			crttmppos += rv;

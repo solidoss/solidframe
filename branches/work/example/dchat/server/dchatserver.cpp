@@ -511,7 +511,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 			("debug_address,A", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")
 			("debug_port,P", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")
 			("debug_console,C", value<bool>(&_par.dbg_console)->implicit_value(false)->default_value(true), "Debug console")
-			("debug_unbuffered,S", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered")
+			("debug_unbuffered,S", value<bool>(&_par.dbg_buffered)->implicit_value(true)->default_value(false), "Debug unbuffered")
 			("use_log,l", value<bool>(&_par.log)->implicit_value(true)->default_value(false), "Debug buffered")
 		;
 		variables_map vm;
@@ -584,6 +584,7 @@ int Listener::execute(ulong, TimeSpec&){
 class Connection: public solid::Dynamic<Connection, solid::frame::aio::SingleObject>{
 	typedef DynamicPointer<solid::frame::Message>				MessageDynamicPointerT;
 	typedef std::vector<MessageDynamicPointerT>					MessageVectorT;
+	typedef Queue<MessageDynamicPointerT>						MessageQueueT;
 	//typedef protocol::binary::BasicBufferController<2048>		BufferControllerT;
 	typedef protocol::binary::SpecificBufferController<2048>	BufferControllerT;
 	enum States{
@@ -591,12 +592,18 @@ class Connection: public solid::Dynamic<Connection, solid::frame::aio::SingleObj
 		StateAuth,
 		StateError,
 	};
-public:
-	
+	struct ProtocolController: solid::protocol::binary::BasicController{
+		void onDoneSend(ConnectionContext &_rctx, const size_t _msgidx){
+			_rctx.rcon.onDoneSend(_msgidx);
+		}
+	};
 	typedef protocol::binary::AioSession<
 		frame::Message,
-		int
+		int,
+		ProtocolController
 	>															ProtocolSessionT;
+public:
+
 	
 	Connection(
 		const SocketDevice &_rsd,
@@ -632,12 +639,14 @@ public:
 		return Object::notify(frame::S_SIG | frame::S_RAISE);
 	}
 private:
+	void onDoneSend(const size_t _msgidx);
 	int done(){
 		bufctl.clear();
 		return BAD;
 	}
 	/*virtual*/ int execute(ulong _sig, TimeSpec &_tout);
 private:
+	typedef Stack<size_t>	SizeStackT;
 	BinSerializerT			ser;
 	BinDeserializerT		des;
 	ProtocolSessionT		sess;
@@ -645,6 +654,7 @@ private:
 	uint16					stt;
 	std::string				usr;
 	MessageVectorT			msgvec;
+	MessageQueueT			msgq;
 };
 //------------------------------------------------------------------------------------
 void Service::insertConnection(
@@ -794,7 +804,11 @@ bool Service::addNode(std::string &_rname, NodeTypes _type){
 		if(sm & frame::S_SIG){
 			Locker<Mutex>	lock(frame::Manager::specific().mutex(*this));
 			for(MessageVectorT::iterator it(msgvec.begin()); it != msgvec.end(); ++it){
-				session().send(0, *it);
+				if(msgq.size() || !session().isFreeSend(0)){
+					msgq.push(*it);
+				}else{
+					session().send(0, *it);
+				}
 			}
 			msgvec.clear();
 		}
@@ -810,7 +824,7 @@ bool Service::addNode(std::string &_rname, NodeTypes _type){
 		case StateNotAuth:
 			rv = sess.execute(*this, _evs, ctx, ser, des, bufctl, compressor);
 			if(rv == NOK){
-				_tout.add(20);//wait 20 secs
+				_tout.add(60 * 10);//wait
 			}
 			if(stt == StateError){
 				return OK;
@@ -830,6 +844,17 @@ bool Service::addNode(std::string &_rname, NodeTypes _type){
 	}
 	return rv;
 }
+
+void Connection::onDoneSend(const size_t _msgidx){
+	idbg(_msgidx);
+	if(!_msgidx){
+		if(msgq.size()){
+			session().send(0, msgq.front());
+			msgq.pop();
+		}
+	}
+}
+
 void Connection::onAuthenticate(const std::string &_user){
 	stt = StateAuth;
 	des.limits().stringlimit = 1024 * 1024 * 10;
@@ -851,7 +876,7 @@ bool Handle::checkLoad(NoopMessage *_pm, ConnectionContext  &_rctx)const{
 }
 
 void Handle::afterSerialization(BinDeserializerT &_rs, LoginRequest *_pm, ConnectionContext &_rctx){
-	idbg("des::LoginRequest("<<_pm->user<<','<<_pm->pass<<')');
+	idbg("des::LoginRequest("<<_pm->user<<','<<_pm->pass<<')'<<' '<<_rctx.rcvmsgidx);
 	if(_pm->user.size() && _pm->pass == _pm->user){
 		DynamicPointer<frame::Message>	msgptr(new BasicMessage);
 		_rctx.rcon.session().send(_rctx.rcvmsgidx, msgptr);
@@ -884,7 +909,7 @@ struct Notifier{
 };
 
 void Handle::afterSerialization(BinDeserializerT &_rs, TextMessage *_pm, ConnectionContext &_rctx){
-	idbg("des::TextMessage("<<_pm->text<<')');
+	idbg("des::TextMessage("<<_pm->text<<')'<<' '<<_rctx.rcvmsgidx);
 	Notifier		notifier(_rctx.rcon.id(), _pm);
 	_pm->user = _rctx.rcon.user();
 	_rctx.rcon.service().forEachObject(notifier);
@@ -893,7 +918,7 @@ void Handle::afterSerialization(BinDeserializerT &_rs, TextMessage *_pm, Connect
 }
 
 void Handle::afterSerialization(BinDeserializerT &_rs, NoopMessage *_pm, ConnectionContext &_rctx){
-	idbg("des::NoopMessage");
+	idbg("des::NoopMessage "<<_rctx.rcvmsgidx);
 	//echo back the message itself
 	_rctx.rcon.session().send(_rctx.rcvmsgidx, _rctx.rcon.session().recvMessage(_rctx.rcvmsgidx));
 }

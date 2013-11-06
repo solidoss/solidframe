@@ -118,7 +118,7 @@ class Connection: public solid::frame::aio::SingleObject{
 	};
 	struct ProtocolController: solid::protocol::binary::BasicController{
 		void onDoneSend(ConnectionContext &_rctx, const size_t _msgidx){
-			_rctx.rcon.onDoneIndex(_msgidx);
+			_rctx.rcon.onDoneSend(_msgidx);
 		}
 		void onRecv(ConnectionContext &_rctx, const size_t _sz){
 			_rctx.rcon.service().onReceive(_sz);
@@ -150,6 +150,9 @@ public:
 	):	idx(_idx), rsa(_rsa), st(CreateState), connectcnt(_reconnectcnt + 1), ser(_rtm), des(_rtm),
 		sndidx(1), waitnoop(false), reconnectsleepms(_reconnectsleepms){}
 	
+	
+	/*virtual*/ bool notify(solid::DynamicPointer<solid::frame::Message> &_rmsgptr);
+	
 	Service& service()const{
 		return static_cast<Service&>(frame::Manager::specific().service(*this));
 	}
@@ -158,13 +161,16 @@ public:
 	void onReceiveMessage(){
 		service().onReceive();
 	}
+	void onLoginDone(){
+		service().onLogin();
+	}
 private:
 	friend struct Handle;
 	friend struct SessionController;
 	/*virtual*/ int execute(solid::ulong _evs, solid::TimeSpec& _crtime);
 	int done();
 	void onReceiveNoop();
-	void onDoneIndex(const size_t _msgidx);
+	void onDoneSend(const size_t _msgidx);
 private:
 	typedef solid::Queue<SendJob::PointerT>		JobQueueT;
 	
@@ -296,6 +302,7 @@ void Service::onLogin(){
 void Service::onReceive(const size_t _sz){
 	Locker<Mutex>	lock(mtx);
 	recv_sz += _sz;
+	idbg(" sz = "<<_sz<<" recv_sz = "<<recv_sz<<" waiting = "<<waiting);
 	if(waiting){
 		if(!(recv_cnt % 100)){
 			TimeSpec crt_time;
@@ -323,7 +330,7 @@ void Service::onReceiveDone(){
 	uint64	msecs = crt_time_ex.seconds() * 1000;
 	msecs += crt_time_ex.nanoSeconds() / 1000000;
 	uint64	s = recv_sz / msecs;
-	cout<<"Download speed = "<<s<<" KB/s                  \n";
+	cout<<"Download speed = "<<s<<" KB/s. Received size = "<<recv_sz<<" over "<<msecs<<" milliseconds.                  \n";
 }
 
 void Service::waitCreate(){
@@ -367,6 +374,11 @@ int Connection::done(){
 	return BAD;
 }
 //-----------------------------------------------------------------------
+/*virtual*/ bool Connection::notify(solid::DynamicPointer<solid::frame::Message> &_rmsgptr){
+	msgvec.push_back(DynamicPointer<>(_rmsgptr));
+	return Object::notify(frame::S_SIG | frame::S_RAISE);
+}
+//-----------------------------------------------------------------------
 
 /*static*/ Connection::DynamicMapperT		Connection::dm;
 
@@ -385,6 +397,7 @@ int Connection::done(){
 	if(sm){
 		if(sm & frame::S_KILL) return done();
 		if(sm & frame::S_SIG){
+			idbg("Receive message");
 			DynamicHandler<DynamicMapperT>	dh(dm);
 			{
 				Locker<Mutex>	lock(frame::Manager::specific().mutex(*this));
@@ -397,41 +410,42 @@ int Connection::done(){
 		}
 	}
 	
-	if(_evs & (frame::TIMEOUT | frame::ERRDONE)){
-		if(st != ConnectWaitState){
-			if(_crtime <= nooptime){
-				if(waitnoop){
-					return done();
-				}else if(session.isSendQueueEmpty()){
-					DynamicPointer<solid::frame::Message>	msgptr(noopmsgptr);
-					session.send(3, msgptr);
-					waitnoop = true;
-					nooptime = _crtime;
-					nooptime.add(10);
-				}
-			}
-			if(_crtime <= nexttime){
-				MessageDynamicPointerT	msgptr = MessageMatrix::the().message(jobq.front()->msgrow, sendidx);
-				session.send(2, msgptr);
-			}
-		}else{
-			--connectcnt;
-			if(connectcnt == 0){
-				return done();
-			}else{
-				st = PrepareState;
-			}
-		}
+	if(_evs & (frame::ERRDONE)){
+		idbg("errdone");
+		return done();
 	}
 	
 	ConnectionContext				ctx(*this);
 	
 	bool reenter = false;
 	if(st == RunningState){
+		if(nooptime.seconds() && nooptime <= _crtime){
+			if(waitnoop){
+				idbg("noopreceiveerror");
+				return done();
+			}else if(session.isSendQueueEmpty()){
+				idbg("sendnoop");
+				DynamicPointer<solid::frame::Message>	msgptr(noopmsgptr);
+				session.send(3, msgptr);
+				waitnoop = true;
+				nooptime = _crtime;
+				nooptime.add(10);
+			}
+		}
+		if(nexttime.seconds() && nexttime <= _crtime){
+			MessageDynamicPointerT	msgptr = MessageMatrix::the().message(jobq.front()->msgrow, sendidx);
+			session.send(2, msgptr);
+			nexttime.seconds(0);
+		}
 		int rv = session.execute(*this, _evs, ctx, ser, des, bufctl, compressor);
 		if(rv == BAD) return done();
 		if(rv == NOK){
-			
+			idbg("nooptime.sec = "<<nooptime.seconds()<<" nexttime.sec = "<<nexttime.seconds()<<" crttime.sec = "<<_crtime.seconds());
+			if(nooptime.seconds() && (!nexttime.seconds() || nooptime <= nexttime)){
+				_crtime = nooptime;
+			}else if(nexttime.seconds()){
+				_crtime = nexttime;
+			}
 		}
 		return rv;
 	}else if(st == CreateState){
@@ -462,15 +476,24 @@ int Connection::done(){
 		}
 	}else if(st == ConnectWaitState){
 		idbg("ConnectWaitState");
-		st = InitState;
+		if(_evs & (frame::TIMEOUT | frame::ERRDONE)){
+			--connectcnt;
+			if(connectcnt == 0){
+				return done();
+			}else{
+				st = PrepareState;
+			}	
+		}else{
+			st = InitState;
+		}
 		reenter = true;
 	}else if(st == InitState){
-		idbg("InitState");
 		st = RunningState;
 		service().onConnect();
 		ostringstream			oss;
-		oss<<idx<<'_'<<this->service().index();
+		oss<<this->service().index()<<'_'<<idx;
 		string	str = oss.str();
+		idbg("InitState - Login with "<<str);
 		MessageDynamicPointerT	msgptr = new LoginRequest(str, str);
 		session.send(1, msgptr);
 		reenter = true;
@@ -483,6 +506,7 @@ void Connection::dynamicHandle(solid::DynamicPointer<> &_dp){
 }
 //---------------------------------------------------------------------------------
 void Connection::dynamicHandle(solid::DynamicPointer<SendJob> &_rmsgptr){
+	idbg("handle send job");
 	jobq.push(_rmsgptr);
 	if(jobq.size() == 1){
 		sendidx = 0;
@@ -496,13 +520,15 @@ void Connection::dynamicHandle(solid::DynamicPointer<SendJob> &_rmsgptr){
 }
 //---------------------------------------------------------------------------------
 void Connection::onReceiveNoop(){
+	idbg("");
 	cassert(waitnoop);
 	waitnoop = false;
 	nooptime = currentTime();
 	nooptime.add(30);
 }
 //---------------------------------------------------------------------------------
-void Connection::onDoneIndex(const size_t _msgidx){
+void Connection::onDoneSend(const size_t _msgidx){
+	idbg(""<<_msgidx);
 	if(_msgidx == 2){
 		++sendidx;
 		if(sendidx < jobq.front()->count){
@@ -511,19 +537,24 @@ void Connection::onDoneIndex(const size_t _msgidx){
 		}
 	}
 	if(!waitnoop){
+		idbg("set nooptime");
 		nooptime = currentTime();
-		nooptime.add(30);
+		nooptime.add(10);
 	}
 }
 //---------------------------------------------------------------------------------
 void Handle::afterSerialization(BinDeserializerT &_rs, BasicMessage *_pm, ConnectionContext &_rctx){
+	idbg("on login response");
+	_rctx.rcon.onLoginDone();
 }
 void Handle::afterSerialization(BinDeserializerT &_rs, TextMessage *_pm, ConnectionContext &_rctx){
+	idbg("on text message");
 	bool b = MessageMatrix::the().check(*_pm);
 	cassert(b);
 	_rctx.rcon.onReceiveMessage();
 }
 void Handle::afterSerialization(BinDeserializerT &_rs, NoopMessage *_pm, ConnectionContext &_rctx){
+	idbg("on noop");
 	_rctx.rcon.onReceiveNoop();
 }
 //---------------------------------------------------------------------------------

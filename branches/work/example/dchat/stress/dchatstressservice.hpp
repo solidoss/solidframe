@@ -65,13 +65,13 @@ private:
 	friend class Connection;
 	struct StartThread;
 	void doStart(const StartData &_rsd);
-	
 	void onCreate();
 	void onConnect();
 	void onReceive();
 	void onLogin();
 	void onReceive(const size_t _sz);
 	void onReceiveDone();
+	
 private:
 	AioSchedulerT			&rsched;
 	const AddressVectorT	&raddrvec;
