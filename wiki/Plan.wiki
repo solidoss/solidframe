@@ -2,17 +2,23 @@
 
 <wiki:toc max_depth="1" />
 
-Features for 1.0 version
- # (01) DONE: IPC gateway - relay IPC data through TCP for site-to-site communication
+For 1.0 Beta version
+
+ # (01) DONE: IPC gateway - relay IPC data through TCP for site-to-site communication.
  # (02) DONE: Move everything under solid and solid::frame namespaces
  # (05) DONE: Refactor solid::frame::Manager (ex. foundation::Manager)
  # (10) DONE: New binary protocol for client-server apps
- # (15) STARTED: A distributed chat example (using the binary protocol) along with a stress client.
+ # (15) DONE: A distributed chat example (using the binary protocol) along with a stress client.
  # (20) DONE: Move the entire code under more liberal boost 1.0 license
- # (25) PENDING: frame::SharedManager - asynchronous read/write lock. Replace frame::file::Manager
+ # (25) STARTED: frame::SharedStore - asynchronous read/write lock.
+ # (27) PENDING: Refactor frame::file::Manager to use frame::SharedStore
  # (30) DONE: Proper file rotation for debug
  # (35) DONE: Per service debug log level mask support and register all services on init
  # (40) PENDING: make install
+
+For 1.0 version
+ # (01) PENDING: API documentation
+ # (10) PENDING: Update Wiki
 
 Pool of pending features and changes
  # (10) (IPC) add nocompression message flag. The ipc module will try to send most of message's buffers without compression. This is for signals containing already compressed data.
