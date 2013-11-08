@@ -34,6 +34,7 @@ class DynamicSharedPointer: DynamicPointerBase{
 public:
 	typedef DynamicSharedPointer<T>		DynamicPointerT;
 	typedef T							DynamicT;
+	typedef T							element_type;
 	
 	DynamicSharedPointer(DynamicT *_pdyn = NULL):pdyn(_pdyn){
 		if(_pdyn){
@@ -128,6 +129,7 @@ class DynamicPointer<T, void>: DynamicPointerBase{
 public:
 	typedef DynamicPointer<T>	DynamicPointerT;
 	typedef T					DynamicT;
+	typedef T					element_type;
 	
 	DynamicPointer(DynamicT *_pdyn = NULL):pdyn(_pdyn){
 		if(_pdyn){
