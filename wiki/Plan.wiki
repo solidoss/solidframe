@@ -17,8 +17,9 @@ For 1.0 Beta version
  # (40) PENDING: make install
 
 For 1.0 version
- # (01) PENDING: API documentation
- # (10) PENDING: Update Wiki
+ # (01) PENDING: API documentation.
+ # (05) PENDING: Testing and fixing.
+ # (10) PENDING: Update Wiki.
 
 Pool of pending features and changes
  # (10) (IPC) add nocompression message flag. The ipc module will try to send most of message's buffers without compression. This is for signals containing already compressed data.
