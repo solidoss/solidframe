@@ -12,10 +12,37 @@
 #define SOLID_FRAME_SHARED_STORE_HPP
 
 #include "frame/common.hpp"
+#include "frame/object.hpp"
+#include "utility/dynamictype.hpp"
 
 namespace solid{
 namespace frame{
+namespace shared{
 
+class BaseStore: Dynamic<BaseStore, Object>{
+protected:
+	struct WaitNode{
+		WaitNode *pnext;
+	};
+	struct Stub{
+		size_t		alivecnt;
+		size_t		usecnt;
+		uint8		state;
+		WaitNode	*pfirst;
+		WaitNode	*plast;
+	};
+private:
+	/*virtual*/ int execute(ulong _evs, TimeSpec &_rtout);
+};
+
+struct BasePointer{
+	const UidT& id()const{
+		return uid;
+	}
+private:
+	friend class BaseSharedStore;
+	UidT	uid;
+};
 
 template <
 	class T
@@ -38,26 +65,41 @@ struct WritePointer{
 	
 };
 
+enum Flags{
+	SynchronousTryFlag = 1
+};
 
 template <
 	class T
 >
-class SharedStore{
+class Store: public Dynamic<Store, BaseStore>{
 public:
-	AlivePointer<T> insertAlive(T &_rt);
-	ReadPointer<T>  insertRead(T &_rt);
-	WritePointer<T> insertWrite(T &_rt);
+	AlivePointer<T> aliveInsert(T &_rt){
+		
+	}
+	ReadPointer<T>  readInsert(T &_rt){
+		
+	}
+	WritePointer<T> writeInsert(T &_rt){
+		
+	}
+	
 	
 	template <typename F>
-	void asyncRead(UidT const & _ruid, F _f){
+	void aliveFetch(UidT const & _ruid, F _f, const size_t _flags = SynchronousTryFlag){
 		
 	}
 	template <typename F>
-	void asyncWrite(UidT const & _ruid, F _f){
+	void readFetch(UidT const & _ruid, F _f, const size_t _flags = 0){
+		
+	}
+	template <typename F>
+	void writeFetch(UidT const & _ruid, F _f, const size_t _flags = 0){
 		
 	}
 };
 
+}//namespace shared
 }//namespace frame
 }//namespace solid
 
