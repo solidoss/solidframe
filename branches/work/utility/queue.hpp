@@ -73,7 +73,6 @@ public:
 	void pop(){
 		pf->~T();
 		--sz;
-		cassert(sz < 1000000);
 		if((++popsz) & NodeMask) ++pf;
 		else{ pf = popNode(pf);popsz = 0;}
 	}

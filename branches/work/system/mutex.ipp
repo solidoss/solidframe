@@ -21,7 +21,7 @@ inline Mutex::Mutex(){
 	pthread_mutexattr_destroy(&att);
 #else
 	//pthread_mutexattr_settype(&att, (int)FAST);
-	pthread_mutex_init(&mut,&att);
+	pthread_mutex_init(&mut, NULL);
 #endif
 }
 
