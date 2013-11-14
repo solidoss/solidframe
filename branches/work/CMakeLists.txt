@@ -36,9 +36,9 @@ endif(EXISTS ${CMAKE_SOURCE_DIR}/.svn)
 #-----------------------------------------------------------------
 # Extra user definitions
 #-----------------------------------------------------------------
-message("UDEFS set as "${UDEFS})
-message("UEXTERN set as "${UEXTERN})
-message("UEXTERN_ABS set as "${UEXTERN_ABS})
+message("UDEFS set as " ${UDEFS})
+message("UEXTERN set as " ${UEXTERN})
+message("UEXTERN_ABS set as " ${UEXTERN_ABS})
 
 
 set(EXTRA_DEFINITIONS "${UDEFS}" CACHE STRING "Extra compiler definitions")
@@ -63,7 +63,7 @@ else(ExtAbsLen GREATER 0)
 	endif(ExtLen GREATER 0)
 endif(ExtAbsLen GREATER 0)
 
-message("EXTERN_PATH set as "${EXTERN_PATH})
+message("EXTERN_PATH set as " ${EXTERN_PATH})
 
 #-----------------------------------------------------------------
 # Find libraries
