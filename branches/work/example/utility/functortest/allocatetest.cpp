@@ -107,7 +107,15 @@ public:
 			}else{
 				return new char[sizeof(uint64)*3];
 			}
-		}else{
+		}else if(_sz <= 4*sizeof(uint64)){
+            if(bufstks[3].size()){
+                char *pb = bufstks[3].top();
+                bufstks[3].pop();
+                return pb;
+            }else{
+                return new char[sizeof(uint64)*4];
+            }
+        }else{
 			return new char[_sz];
 		}
 	}
@@ -118,7 +126,9 @@ public:
 			_ridx = 1;
 		}else if(_sz <= 3*sizeof(uint64)){
 			_ridx = 2;
-		}else{
+		}else if(_sz <= 4*sizeof(uint64)){
+            _ridx = 3;
+        }else{
 			_ridx = 1000;
 		}
 	}
