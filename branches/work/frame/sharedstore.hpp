@@ -44,9 +44,6 @@ private:
 	UidT	uid;
 };
 
-template <
-	class T
->
 struct AlivePointer{
 };
 
@@ -74,7 +71,7 @@ template <
 >
 class Store: public Dynamic<Store, BaseStore>{
 public:
-	AlivePointer<T> aliveInsert(T &_rt){
+	AlivePointer aliveInsert(T &_rt){
 		
 	}
 	ReadPointer<T>  readInsert(T &_rt){
@@ -86,15 +83,15 @@ public:
 	
 	
 	template <typename F>
-	void aliveFetch(UidT const & _ruid, F _f, const size_t _flags = SynchronousTryFlag){
+	void alive(F _f, UidT const & _ruid, const size_t _flags = SynchronousTryFlag){
 		
 	}
 	template <typename F>
-	void readFetch(UidT const & _ruid, F _f, const size_t _flags = 0){
+	void read(F _f, UidT const & _ruid, const size_t _flags = 0){
 		
 	}
 	template <typename F>
-	void writeFetch(UidT const & _ruid, F _f, const size_t _flags = 0){
+	void write(F _f, UidT const & _ruid, const size_t _flags = 0){
 		
 	}
 };
