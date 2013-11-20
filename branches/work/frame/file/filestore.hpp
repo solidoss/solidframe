@@ -27,23 +27,23 @@ struct Configuration{
 	StorageVectorT		storagevec;
 };
 
+typedef shared::AlivePointer	AlivePointerT;
+typedef shared::WritePointer<>	WritePointerT;
+typedef shared::ReadPointer<>	ReadPointerT;
 
 class Store{
 public:
 	Store(Configuration const &_rcfg);
 	
-	template <typename F>
-	void createAlive(F _f, const char* _path, const size_t _flags = 0){
+	AlivePointerT createAlive(const char* _path, const size_t _flags = 0){
 		
 	}
 	
-	template <typename F>
-	void createWrite(F _f, const char* _path, const size_t _flags = 0){
+	WritePointerT createWrite(const char* _path, const size_t _flags = 0){
 		
 	}
 	
-	template <typename F>
-	void openAlive(F _f, const char* _path, const size_t _flags = 0){
+	AlivePointerT openAlive(const char* _path, const size_t _flags = 0){
 		
 	}
 	

@@ -36,17 +36,21 @@ struct Configuration{
 	StorageVectorT	storagevec;
 };
 
+typedef shared::AlivePointer	AlivePointerT;
+typedef shared::WritePointer<>	WritePointerT;
+typedef shared::ReadPointer<>	ReadPointerT;
+
 class Store: protected shared::Store<>{
 public:
 	Store(Configuration const &_rcfg);
 	
 	template <typename F>
-	UidT createAlive(F _f, uint64 _sz, const size_t _flags = AllLevelFlags){
+	void createAlive(F _f, uint64 _sz, const size_t _flags = AllLevelFlags){
 		
 	}
 	
 	template <typename F>
-	UidT createWrite(F _f, uint64 _sz, const size_t _flags = AllLevelFlags){
+	void createWrite(F _f, uint64 _sz, const size_t _flags = AllLevelFlags){
 		
 	}
 	
