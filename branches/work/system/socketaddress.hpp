@@ -68,12 +68,21 @@ private:
 */
 struct ResolveData{
 	enum Flags{
+#ifndef ON_WINDOWS
 		CannonName = AI_CANONNAME,
 		NumericHost = AI_NUMERICHOST,
 		All	= AI_ALL,
 		AddrConfig = AI_ADDRCONFIG,
 		V4Mapped  = AI_V4MAPPED,
 		NumericService = AI_NUMERICSERV
+#else
+		CannonName,
+		NumericHost,
+		All,
+		AddrConfig,
+		V4Mapped,
+		NumericService
+#endif
 	};
 	typedef ResolveIterator const_iterator;
 	

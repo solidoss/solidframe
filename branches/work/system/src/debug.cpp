@@ -278,7 +278,7 @@ void splitPrefix(string &_path, string &_name, const char *_prefix);
 }
 #else
 
-static Debug& Debug::dbg_the(){
+/*static*/ Debug& Debug::dbg_the(){
 	static Debug d;
 	return d;
 }

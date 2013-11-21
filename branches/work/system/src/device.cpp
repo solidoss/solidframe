@@ -77,7 +77,7 @@ int Device::write(const char* _pb, uint32 _bl){
 
 bool Device::cancel(){
 #ifdef ON_WINDOWS
-	return CancelIoEx(Device::descriptor(), NULL) != 0;
+	return true;//CancelIoEx(Device::descriptor(), NULL) != 0;
 #else
 	return true;
 #endif

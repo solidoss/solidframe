@@ -61,7 +61,7 @@ typedef signed long 		int64;
 
 #else
 
-#if defined(U_WIN)
+#if defined(ON_WINDOWS)
 typedef __int64				int64;
 typedef unsigned __int64	uint64;
 #else

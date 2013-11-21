@@ -475,7 +475,7 @@ size_t Thread::specificId(){
 #else
 
 size_t specificIdStub(){
-	static AtomicSizeT sid = ATOMIC_VAR_INIT(ThreadData::FirstSpecificId);
+	static AtomicSizeT sid(ATOMIC_VAR_INIT((size_t)ThreadData::FirstSpecificId));
 	return sid.fetch_add(1/*, ATOMIC_NS::memory_order_seq_cst*/);
 }
 
