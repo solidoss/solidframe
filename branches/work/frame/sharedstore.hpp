@@ -81,17 +81,20 @@ public:
 		
 	}
 	
+	//!Return false if the object does not exist
+	template <typename F>
+	bool alive(F _f, UidT const & _ruid, const size_t _flags = SynchronousTryFlag){
+		
+	}
 	
+	//!Return false if the object does not exist
 	template <typename F>
-	void alive(F _f, UidT const & _ruid, const size_t _flags = SynchronousTryFlag){
+	bool read(F _f, UidT const & _ruid, const size_t _flags = 0){
 		
 	}
+	//!Return false if the object does not exist
 	template <typename F>
-	void read(F _f, UidT const & _ruid, const size_t _flags = 0){
-		
-	}
-	template <typename F>
-	void write(F _f, UidT const & _ruid, const size_t _flags = 0){
+	bool write(F _f, UidT const & _ruid, const size_t _flags = 0){
 		
 	}
 };

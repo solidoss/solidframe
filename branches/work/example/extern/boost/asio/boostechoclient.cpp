@@ -189,7 +189,7 @@ int main(int argc, char* argv[])
 		using namespace std; // For atoi.
 		
 		
-		Manager m(atoi(argv[4]), 4096, 8 * 1024, 8);
+		Manager m(atoi(argv[4]), 4096, 24 * 1024, 10);
 		
 		m.endPoint(ip::tcp::endpoint(ip::address::from_string(argv[1]), atoi(argv[2])));
 		int concnt = atoi(argv[3]);

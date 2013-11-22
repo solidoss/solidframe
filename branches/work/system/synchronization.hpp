@@ -11,9 +11,10 @@
 #define SYSTEM_SYNCHRO_HPP
 
 #include "system/cassert.hpp"
+
 #ifndef ON_WINDOWS
 #include <semaphore.h>
-
+#endif
 
 namespace solid{
 
@@ -28,14 +29,15 @@ public:
 	Semaphore & operator++();
 	int tryWait();
 private:
+#ifndef ON_WINDOWS
 	sem_t sem;
+#endif
 };
 #ifndef NINLINES
 #include "system/synchronization.ipp"
 #endif
 
 }//namespace solid
-#endif
 
 #endif
 

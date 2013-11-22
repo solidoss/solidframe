@@ -45,22 +45,22 @@ public:
 	Store(Configuration const &_rcfg);
 	
 	template <typename F>
-	void createAlive(F _f, uint64 _sz, const size_t _flags = AllLevelFlags){
+	UidT createAlive(F _f, uint64 _sz, const size_t _flags = AllLevelFlags){
 		
 	}
 	
 	template <typename F>
-	void createWrite(F _f, uint64 _sz, const size_t _flags = AllLevelFlags){
+	UidT createWrite(F _f, uint64 _sz, const size_t _flags = AllLevelFlags){
 		
 	}
 	
 	template <typename F>
-	void read(F _f, UidT const & _ruid, const size_t _flags = 0){
+	bool read(F _f, UidT const & _ruid, const size_t _flags = 0){
 		
 	}
 	
 	template <typename F>
-	void write(F _f, UidT const & _ruid, const size_t _flags = 0){
+	bool write(F _f, UidT const & _ruid, const size_t _flags = 0){
 		
 	}
 	
