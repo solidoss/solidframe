@@ -22,14 +22,14 @@ For 1.0 version
  # (10) PENDING: Update Wiki.
 
 Pool of pending features and changes
- # (10) (IPC) add nocompression message flag. The ipc module will try to send most of message's buffers without compression. This is for signals containing already compressed data.
- # (10) (IPC) add support for adaptable compression. A message is started with with compression. If certain continuous buffers have a compression ration below a certain threshold the compression is switched off for the signal. 
- # (30) Add support for GnuTLS, test performance against boost, solidframe::openssl.
-  # Add new class AccessManager: a container which will manage read/write access to its objects - a generalization of file::Manager.
- # Investigate the use of boost as back-end for frame.
- # Re-factor frame::file::Manager to be based on frame::AccessManager.
+ # (05) Use (std/boost::system)::error_code across solid.
+ # (10) (IPC) Add NoCompression message flag. This should be used for messages containing already compressed data. The ipc module will try to send without compression, most of the packets that the message is spread upon.
+ # (15) (IPC) Add support for adaptable compression:
+   * A message is started with with compression.
+   * If certain continuous packets have compression ration below a certain threshold the compression is switched off for the rest of the message. 
+ # (30) Add support for GnuTLS, test performance against boost, solid::frame::openssl.
+ # Investigate the use of boost as back-end for solid::frame.
  # Add support for Unix domain addresses.
- # Add a new foundation::ipc::local::Service service suitable for communication between applications on the same machine. The current ipc service is fitted for the server side. On the client side, for security reasons we have to prevent other users' applications connect to the application of the current user. More over, we may consider using shared memory or other faster way to communicate between processes on a local machine.
  # (10) Consensus algorithm: add support for read requests which must be completed only by the coordinator.
  # Add support to frame::Service to start the unique part of Object::uid() from a given value.
 
