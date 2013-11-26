@@ -47,7 +47,7 @@ struct Manager{
 		readcnt += _readcnt;
 	}
 	void print(){
-		cout<<"mintime = "<<mintime<<" maxtime = "<<maxtime<<" readcnt = "<<readcnt<<endl;
+		std::cerr<<"mintime = "<<mintime<<" maxtime = "<<maxtime<<" readcnt = "<<readcnt<<std::endl;
 	}
 private:
 	DataVectorT		datavec;
@@ -189,10 +189,10 @@ int main(int argc, char* argv[])
 
 		using namespace std; // For atoi.
 		
-		
 		Manager m(atoi(argv[4]), 4096, 24 * 1024, 10);
 		
 		m.endPoint(ip::tcp::endpoint(ip::address::from_string(argv[1]), atoi(argv[2])));
+		
 		int concnt = atoi(argv[3]);
 		int idx = 0;
 		while(concnt--){
