@@ -4,6 +4,7 @@
 #include <boost/asio.hpp>
 #include <boost/concept_check.hpp>
 #include <queue>
+#include <sstream>
 #include "system/timespec.hpp"
 
 
@@ -222,12 +223,20 @@ Manager::Manager(
 	for(char c = '0'; c <= '9'; ++c) line += c;
 	for(char c = 'a'; c <= 'z'; ++c) line += c;
 	for(char c = 'A'; c <= 'Z'; ++c) line += c;
+	size_t	idx = 0;
 	for(uint32_t i = 1; i <= _datacnt; ++i){
 		uint32_t datalen = (_datafromlen * _datacnt + _datatolen * i - _datafromlen * i - _datatolen)/(_datacnt - 1);
 		//cout<<"Data len for "<<i<<" = "<<datalen<<endl;
 		datavec.push_back(DataStub());
-		for(uint32_t j = 0; j < datalen; ++j){
-			datavec.back().data.push_back(line[j%line.size()]);
+		for(uint32_t j = 0;  datavec.back().data.size() < datalen; ++j){
+			if(!(j % line.size())){
+				ostringstream oss;
+				oss<<' '<<idx<<' ';
+				++idx;
+				datavec.back().data += oss.str();
+			}else{
+				datavec.back().data.push_back(line[j%line.size()]);
+			}
 		}
 	}
 }

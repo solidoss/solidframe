@@ -13,7 +13,6 @@
 #ifndef ON_WINDOWS
 #include <sys/un.h>
 #include <arpa/inet.h>
-#include <Ws2tcpip.h>
 #endif
 
 #include <ostream>

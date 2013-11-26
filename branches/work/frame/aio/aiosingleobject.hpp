@@ -12,6 +12,7 @@
 
 #include "frame/aio/aioobject.hpp"
 #include "frame/aio/aiosocketpointer.hpp"
+#include "system/error.hpp"
 
 namespace solid{
 
@@ -19,7 +20,6 @@ class SocketDevice;
 class SocketAddress;
 class SocketAddressStub;
 class ResolveIterator;
-class Error;
 
 namespace frame{
 namespace aio{
@@ -146,7 +146,7 @@ public:
 	int socketSecureConnect();
 	
 	//TODO: not implemented
-	bool socketError(Error &_err)const;
+	ERROR_NS::error_code socketError()const;
 	
 private:
 	SocketStub	stub;

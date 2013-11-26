@@ -14,6 +14,7 @@
 #include "frame/aio/aioobject.hpp"
 #include "frame/aio/aiosocketpointer.hpp"
 #include "utility/stack.hpp"
+#include "system/error.hpp"
 
 namespace solid{
 
@@ -21,7 +22,6 @@ class SocketDevice;
 class SocketAddress;
 class SocketAddressStub;
 class ResolveIterator;
-class Error;
 
 namespace frame{
 namespace aio{
@@ -159,7 +159,7 @@ public:
 	//! Asynchronous secure connect
 	int socketSecureConnect(const size_t _pos);
 	//TODO: not implemented
-	bool socketError(const size_t _pos, Error &_err)const;
+	ERROR_NS::error_code socketError(const size_t _pos)const;
 private:
 	void reserve(const size_t _cp);//using only one allocation sets the pointers from the aioobject
 	size_t dataSize(const size_t _cp);
