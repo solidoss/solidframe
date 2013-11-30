@@ -40,30 +40,43 @@ typedef shared::AlivePointer	AlivePointerT;
 typedef shared::WritePointer<>	WritePointerT;
 typedef shared::ReadPointer<>	ReadPointerT;
 
+/*
+ * NOTE: all request methods return true if _f(...) was called synchronously
+ * F signature should be _f(PointerT &_ptr, error_code _err, bool _synchronous)
+ */
 class Store: protected shared::Store<>{
 public:
 	Store(Configuration const &_rcfg);
-	
 	template <typename F>
-	UidT createAlive(F _f, uint64 _sz, const size_t _flags = AllLevelFlags){
+	bool requestCreateAlive(F _f, uint64 _sz, const size_t _flags = AllLevelFlags){
 		
 	}
 	
 	template <typename F>
-	UidT createWrite(F _f, uint64 _sz, const size_t _flags = AllLevelFlags){
+	bool requestCreateAlive(F _f, uint64 _sz, AlivePointerT &_alvptr, const size_t _flags = AllLevelFlags){
 		
 	}
 	
 	template <typename F>
-	bool read(F _f, UidT const & _ruid, const size_t _flags = 0){
+	bool requestCreateWrite(F _f, uint64 _sz, const size_t _flags = AllLevelFlags){
 		
 	}
 	
 	template <typename F>
-	bool write(F _f, UidT const & _ruid, const size_t _flags = 0){
+	bool requestCreateWrite(F _f, uint64 _sz, AlivePointerT &_alvptr, const size_t _flags = AllLevelFlags){
 		
 	}
 	
+	template <typename F>
+	bool requestRead(F _f, UidT const & _ruid, const size_t _flags = 0){
+		
+	}
+	
+	template <typename F>
+	bool requestWrite(F _f, UidT const & _ruid, const size_t _flags = 0){
+		
+	}
+	AlivePointerT alive(UidT const & _ruid);
 private:
 };
 

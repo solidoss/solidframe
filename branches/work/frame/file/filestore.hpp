@@ -31,37 +31,63 @@ typedef shared::AlivePointer	AlivePointerT;
 typedef shared::WritePointer<>	WritePointerT;
 typedef shared::ReadPointer<>	ReadPointerT;
 
+/*
+ * NOTE: all request methods return true if _f(...) was called synchronously
+ * 
+ * F signature should be _f(PointerT &_ptr, error_code _err, bool _synchronous)
+ */
 class Store{
 public:
 	Store(Configuration const &_rcfg);
-	
-	AlivePointerT createAlive(const char* _path, const size_t _flags = 0){
+	//If a file with _path already exists in the store, the call will be similar with open with truncate openflag
+	template <typename F>
+	bool requestCreateAlive(F _f, const char* _path, const size_t _openflags = 0, const size_t _flags = 0){
 		
 	}
-	
-	WritePointerT createWrite(const char* _path, const size_t _flags = 0){
+	template <typename F>
+	bool requestCreateAlive(F _f, const char* _path, AlivePointerT &_alvptr, const size_t _openflags = 0, const size_t _flags = 0){
+		
+	}
+	template <typename F>
+	bool requestCreateWrite(F _f, const char* _path, const size_t _openflags = 0, const size_t _flags = 0){
 		
 	}
 	
 	template <typename F>
-	UidT openWrite(F _f, const char* _path, const size_t _flags = 0){
+	bool requestCreateWrite(F _f, const char* _path, AlivePointerT &_alvptr, const size_t _openflags = 0, const size_t _flags = 0){
 		
 	}
 	
 	template <typename F>
-	UidT openRead(F _f, const char* _path, const size_t _flags = 0){
+	bool requestOpenWrite(F _f, const char* _path, const size_t _openflags = 0, const size_t _flags = 0){
 		
 	}
 	
 	template <typename F>
-	bool read(F _f, UidT const & _ruid, const size_t _flags = 0){
+	bool requestOpenWrite(F _f, const char* _path, AlivePointerT &_alvptr, const size_t _openflags = 0, const size_t _flags = 0){
 		
 	}
 	
 	template <typename F>
-	bool write(F _f, UidT const & _ruid, const size_t _flags = 0){
+	bool requestOpenRead(F _f, const char* _path, const size_t _openflags = 0, const size_t _flags = 0){
 		
 	}
+	
+	template <typename F>
+	bool requestOpenRead(F _f, const char* _path, AlivePointerT &_alvptr, const size_t _openflags = 0, const size_t _flags = 0){
+		
+	}
+	
+	template <typename F>
+	bool requestRead(F _f, UidT const & _ruid, const size_t _flags = 0){
+		
+	}
+	
+	template <typename F>
+	bool requestWrite(F _f, UidT const & _ruid, const size_t _flags = 0){
+		
+	}
+	AlivePointerT alive(UidT const & _ruid);
 private:
 };
 
