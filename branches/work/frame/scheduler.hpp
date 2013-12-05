@@ -38,8 +38,8 @@ namespace frame{
 */
 template <class S>
 class Scheduler: public SchedulerBase, public WorkPoolControllerBase{
-	typedef S				SelectorT;
-	typedef Scheduler<S>	ThisT;
+	typedef S						SelectorT;
+	typedef Scheduler<S>			ThisT;
 	struct Worker: WorkerBase{
 		SelectorT	s;
 	};
@@ -47,7 +47,7 @@ class Scheduler: public SchedulerBase, public WorkPoolControllerBase{
 		typename S::JobT,
 		ThisT&,
 		Worker
-	> 						WorkPoolT;
+	> 								WorkPoolT;
 	friend class WorkPool<
 		typename S::JobT,
 		ThisT&,
@@ -185,14 +185,10 @@ private:
 		}
 	}
 	void execute(Worker &_rw, JobVectorT &_rjobvec){
-		bool err = false;
 		for(typename JobVectorT::iterator it(_rjobvec.begin()); it != _rjobvec.end(); ++it){
 			if(!_rw.s.push(*it)){
 				wp.push(*it);
 			}
-		}
-		if(err){
-			
 		}
 		_rw.s.run();
 	}

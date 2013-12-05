@@ -3,6 +3,10 @@
 
 #include "utility/common.hpp"
 
+struct WorkPoolController;
+
+struct ObjectStub;
+
 class SharedObjectManager{
 public:
 	SharedObjectManager();
@@ -21,6 +25,9 @@ public:
 	void stop();
 	
 private:
+	void executeObject(ObjectStub &_robj);
+	
+	friend struct WorkPoolController;
 	struct Data;
 	Data &d;
 };
