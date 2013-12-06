@@ -156,6 +156,9 @@ public:
 			_rv(doGetObject(i/*, _objpermutbts*/));
 		}
 	}
+	size_t rowRangeSize()const{
+		return mutcolscnt * bitsToCount(objpermutbts);
+	}
 private:
 	inline MutualObjectT& doGetObject(const size_t i){
 		return objmat[(i >> mutrowsbts) & mutrowsmsk][i & mutcolsmsk];

@@ -2,6 +2,7 @@
 #define STUDY_SHAREDOBJECTMANAGER_HPP
 
 #include "utility/common.hpp"
+#include <ostream>
 
 struct WorkPoolController;
 
@@ -9,6 +10,14 @@ struct ObjectStub;
 
 class SharedObjectManager{
 public:
+	enum{
+		RaiseFlag = 1,
+		EventFlag = 2,
+		Flag1 = 4,
+		Flag2 = 8,
+		Flag3 = 16,
+		Flag4 = 32
+	};
 	SharedObjectManager();
 	~SharedObjectManager();
 	
@@ -22,8 +31,7 @@ public:
 	bool notifyAll(solid::uint32 _flags);
 	bool notifyAll(solid::uint32 _flags, size_t _v);
 	
-	void stop();
-	
+	void stop(std::ostream &_ros);
 private:
 	void executeObject(ObjectStub &_robj);
 	

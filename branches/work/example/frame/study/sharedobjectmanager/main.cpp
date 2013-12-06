@@ -52,11 +52,11 @@ int main(int argc, char *argv[]){
 	}
 	
 	for(size_t i = 0; i < all_flg_repeat_cnt; ++i){
-		som.notifyAll(4);
+		som.notifyAll(SharedObjectManager::Flag1);
 	}
 	
 	for(size_t i = 0; i < all_val_repeat_cnt; ++i){
-		som.notifyAll(8, i);
+		som.notifyAll(SharedObjectManager::Flag2, i);
 	}
 	
 	{
@@ -65,23 +65,41 @@ int main(int argc, char *argv[]){
 			cnd.wait(lock);
 		}
 	}
-	som.stop();
+	som.stop(cout);
 	Thread::waitAll();
 	return 0;
 }
 
 void Worker::run(){
+#if 0
 	const size_t	step = notify_count / insert_count;
 	for(size_t i = 0; i < notify_count; ++i){
 		if((i % step) == 0){
 			rsom.insert(thridx ^ i);
 		}
 		if((i % 2) == 0){
-			rsom.notify(i, 16);
+			rsom.notify(i, SharedObjectManager::Flag3);
 		}else{
-			rsom.notify(i, 32, i ^ thridx);
+			rsom.notify(i, SharedObjectManager::Flag4, i ^ thridx);
 		}
 	}
+#endif
+#if 1
+	size_t j = 0;
+	for(size_t i = 0; i < notify_count; ++i){
+		if(j < insert_count){
+			rsom.insert(thridx ^ i);
+			++j;
+		}
+		if((i % 2) == 0){
+			rsom.notify(i, SharedObjectManager::Flag3);
+		}else{
+			rsom.notify(i, SharedObjectManager::Flag4, i ^ thridx);
+		}
+	}
+#endif
+	rsom.notifyAll(SharedObjectManager::Flag1);
+	rsom.notifyAll(SharedObjectManager::Flag2, thridx);
 	{
 		Locker<Mutex>	lock(mtx);
 		--wkrcnt;
