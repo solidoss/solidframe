@@ -14,7 +14,7 @@ printUsage()
 }
 
 BOOST_ADDR="http://garr.dl.sourceforge.net/project/boost/boost/1.55.0/boost_1_55_0.tar.bz2"
-OPENSSL_ADDR="http://www.openssl.org/source/openssl-1.0.1c.tar.gz"
+OPENSSL_ADDR="http://www.openssl.org/source/openssl-1.0.1e.tar.gz"
 
 downloadArchive()
 {
