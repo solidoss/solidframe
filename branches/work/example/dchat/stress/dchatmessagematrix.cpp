@@ -6,6 +6,13 @@
 #include <deque>
 #include "system/debug.hpp"
 
+#ifdef HAS_CPP11
+#define UniquePtrD std::unique_ptr
+#else
+#include "boost/shared_ptr.hpp"
+#define UniquePtrD boost::shared_ptr
+#endif
+
 using namespace std;
 using namespace solid;
 
@@ -55,7 +62,7 @@ namespace{
 
 typedef solid::DynamicSharedPointer<TextMessage>				TextMessageSharedPointerT;
 typedef std::deque<TextMessageSharedPointerT>					TextMessageVectorT;
-typedef std::map<size_t, std::unique_ptr<TextMessageVectorT> >	TextMessageMapT;
+typedef std::map<size_t, UniquePtrD<TextMessageVectorT> >		TextMessageMapT;
 
 struct MessageMatrix::Data{
 	TextMessageMapT				tmmap;
@@ -81,7 +88,8 @@ void MessageMatrix::createRow(
 	const size_t _to_sz
 ){
 	Locker<SharedMutex>	lock(d.shrmtx);
-	d.tmmap[_row_idx] = std::unique_ptr<TextMessageVectorT>(new TextMessageVectorT);
+	//UniquePtrD<TextMessageVectorT> uptr(new TextMessageVectorT);
+ 	d.tmmap[_row_idx] = UniquePtrD<TextMessageVectorT>(new TextMessageVectorT);;//uptr;
 	TextMessageVectorT	&rvec = *d.tmmap[_row_idx];
 	
 	for(size_t i = 0; i < _cnt; ++i){
