@@ -88,8 +88,7 @@ void MessageMatrix::createRow(
 	const size_t _to_sz
 ){
 	Locker<SharedMutex>	lock(d.shrmtx);
-	//UniquePtrD<TextMessageVectorT> uptr(new TextMessageVectorT);
- 	d.tmmap[_row_idx] = UniquePtrD<TextMessageVectorT>(new TextMessageVectorT);;//uptr;
+	d.tmmap[_row_idx] = UniquePtrD<TextMessageVectorT>(new TextMessageVectorT);
 	TextMessageVectorT	&rvec = *d.tmmap[_row_idx];
 	
 	for(size_t i = 0; i < _cnt; ++i){
