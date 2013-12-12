@@ -1,7 +1,7 @@
 #include <iostream>
 #include <vector>
+#define USE_BOOST_FNC
 #ifndef USE_BOOST_FNC
-
 #include <functional>
 #define FNCNS std
 #else

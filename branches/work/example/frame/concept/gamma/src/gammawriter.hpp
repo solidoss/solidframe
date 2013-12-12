@@ -39,17 +39,17 @@ public:
 	static int reinit(solid::protocol::text::Writer &_rw, solid::protocol::text::Parameter &_rp){
 		return reinterpret_cast<C*>(_rp.a.p)->reinitWriter(static_cast<Writer&>(_rw), _rp);
 	}
-	String &message(){return msgs;}
-	String &tag(){return tags;}
+	solid::String &message(){return msgs;}
+	solid::String &tag(){return tags;}
 private:
 	//! Asynchrounously writes a quoted string
 	static int putQString(solid::protocol::text::Writer &_rw, solid::protocol::text::Parameter &_rp);
 	/*virtual*/ int write(char *_pb, uint32 _bl);
 	//virtual int doManage(int _mo);
 private:
-	uint		sid;
-	String		msgs;
-	String		tags;
+	uint				sid;
+	solid::String		msgs;
+	solid::String		tags;
 };
 
 }//namespace gamma

@@ -29,7 +29,7 @@ public:
 	MultiConnection(const char *_node = NULL, const char *_srv = NULL);
 	MultiConnection(const solid::SocketDevice &_rsd);
 	~MultiConnection();
-	int execute(ulong _sig, solid::TimeSpec &_tout);
+	int execute(solid::ulong _sig, solid::TimeSpec &_tout);
 private:
 	int doReadAddress();
 	int doProxy(const solid::TimeSpec &_tout);

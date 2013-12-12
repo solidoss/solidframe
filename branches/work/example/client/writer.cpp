@@ -70,8 +70,8 @@ void Writer::put(uint32 _v){
 	if(!_v){
 		put('0');
 	}else{
-		char tmp[12];
-		ushort pos=11;
+		char 			tmp[12];
+		solid::ushort	pos=11;
 		while(_v){
 			*(tmp + pos)='0' + _v % 10;
 			_v /= 10;

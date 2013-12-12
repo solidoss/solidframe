@@ -297,7 +297,7 @@ int Listener::execute(ulong, TimeSpec&){
 		ulong sm = this->grabSignalMask();
 		if(sm & frame::S_KILL) return BAD;
 	}
-	uint cnt(10);
+	solid::uint cnt(10);
 	while(cnt--){
 		if(state == 0){
 			switch(this->socketAccept(sd)){

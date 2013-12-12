@@ -19,7 +19,30 @@ typedef std::vector<size_t>					SizeVectorT;
 struct ObjectStub{
 	ObjectStub(
 	):	idx(-1), thridx(-1), value(0), flags(0), flag1cnt(0),
-		flag2cnt(0),flag3cnt(0), flag4cnt(0), minvecsz(-1), maxvecsz(0), eventcnt(0), raisecnt(0){}
+		flag2cnt(0),flag3cnt(0), flag4cnt(0), minvecsz(-1), maxvecsz(0), eventcnt(0), raisecnt(0)
+	{
+// 		thridx = -1;
+// 		flags = 0;
+	}
+	ObjectStub(const ObjectStub &_ros){
+		*this = _ros;
+	}
+	ObjectStub& operator=(const ObjectStub &_ros){
+		idx = _ros.idx;
+		thridx = _ros.thridx.load();
+		value = _ros.value;
+		flags = _ros.flags.load();
+		valvec = _ros.valvec;
+		flag1cnt = _ros.flag1cnt;
+		flag2cnt = _ros.flag2cnt;
+		flag3cnt = _ros.flag3cnt;
+		flag4cnt = _ros.flag4cnt;
+		minvecsz = _ros.minvecsz;
+		maxvecsz = _ros.maxvecsz;
+		eventcnt = _ros.eventcnt;
+		raisecnt = _ros.raisecnt;
+		return *this;
+	}
 	size_t			idx;
 	AtomicSizeT		thridx;
 	uint64			value;

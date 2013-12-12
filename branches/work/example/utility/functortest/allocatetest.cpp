@@ -119,7 +119,7 @@ public:
 			return new char[_sz];
 		}
 	}
-	void cacheSize2Index(uint &_ridx, const size_t _sz)const{
+	void cacheSize2Index(solid::uint &_ridx, const size_t _sz)const{
 		if(_sz <= sizeof(uint64)){
 			_ridx = 0;
 		}else if(_sz <= 2*sizeof(uint64)){
@@ -284,8 +284,8 @@ void Consumer::run(){
 		{
 			Locker<Mutex>	lock(mtx);
 			for(MessageVectorT::const_iterator it(msgvec.begin()); it != msgvec.end(); ++it){
-				char 		*pbuf = reinterpret_cast<char*>(*it);
-				const uint	*pidx = reinterpret_cast<const uint*>(pbuf);
+				char 				*pbuf = reinterpret_cast<char*>(*it);
+				const solid::uint	*pidx = reinterpret_cast<const solid::uint*>(pbuf);
 				if(*pidx < 4 && bufstks[*pidx].size() < 4*1024){
 					bufstks[*pidx].push(pbuf);
 				}else{
@@ -308,43 +308,43 @@ void Consumer::run(){
 					FirstMessage *pmsg = static_cast<FirstMessage*>(pbmsg);
 					sum += pmsg->v;
 					pmsg->~FirstMessage();
-					cacheSize2Index(*reinterpret_cast<uint*>(pbmsg), sizeof(*pmsg));
+					cacheSize2Index(*reinterpret_cast<solid::uint*>(pbmsg), sizeof(*pmsg));
 				}break;
 				case BaseMessage::SecondType:{
 					SecondMessage *pmsg = static_cast<SecondMessage*>(pbmsg);
 					sum += pmsg->v;
 					pmsg->~SecondMessage();
-					cacheSize2Index(*reinterpret_cast<uint*>(pbmsg), sizeof(*pmsg));
+					cacheSize2Index(*reinterpret_cast<solid::uint*>(pbmsg), sizeof(*pmsg));
 				}break;
 				case BaseMessage::ThirdType:{
 					ThirdMessage *pmsg = static_cast<ThirdMessage*>(pbmsg);
 					sum += pmsg->v;
 					pmsg->~ThirdMessage();
-					cacheSize2Index(*reinterpret_cast<uint*>(pbmsg), sizeof(*pmsg));
+					cacheSize2Index(*reinterpret_cast<solid::uint*>(pbmsg), sizeof(*pmsg));
 				}break;
 				case BaseMessage::FourthType:{
 					FourthMessage *pmsg = static_cast<FourthMessage*>(pbmsg);
 					sum += pmsg->v1;
 					pmsg->~FourthMessage();
-					cacheSize2Index(*reinterpret_cast<uint*>(pbmsg), sizeof(*pmsg));
+					cacheSize2Index(*reinterpret_cast<solid::uint*>(pbmsg), sizeof(*pmsg));
 				}break;
 				case BaseMessage::FifthType:{
 					FifthMessage *pmsg = static_cast<FifthMessage*>(pbmsg);
 					sum += pmsg->v1;
 					pmsg->~FifthMessage();
-					cacheSize2Index(*reinterpret_cast<uint*>(pbmsg), sizeof(*pmsg));
+					cacheSize2Index(*reinterpret_cast<solid::uint*>(pbmsg), sizeof(*pmsg));
 				}break;
 				case BaseMessage::SixthType:{
 					SixthMessage *pmsg = static_cast<SixthMessage*>(pbmsg);
 					sum += pmsg->v1;
 					pmsg->~SixthMessage();
-					cacheSize2Index(*reinterpret_cast<uint*>(pbmsg), sizeof(*pmsg));
+					cacheSize2Index(*reinterpret_cast<solid::uint*>(pbmsg), sizeof(*pmsg));
 				}break;
 				case BaseMessage::SeventhType:{
 					SeventhMessage *pmsg = static_cast<SeventhMessage*>(pbmsg);
 					sum += pmsg->v1;
 					pmsg->~SeventhMessage();
-					cacheSize2Index(*reinterpret_cast<uint*>(pbmsg), sizeof(*pmsg));
+					cacheSize2Index(*reinterpret_cast<solid::uint*>(pbmsg), sizeof(*pmsg));
 				}break;
 				default:break;
 			}

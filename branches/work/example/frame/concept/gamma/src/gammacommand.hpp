@@ -65,7 +65,7 @@ public:
 	);
 	//! Receive a string
 	virtual int receiveString(
-		const String &_str,
+		const solid::String &_str,
 		int			_which, 
 		const ObjectUidT&_from,
 		const solid::frame::ipc::ConnectionUid *_conid

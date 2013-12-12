@@ -63,7 +63,7 @@ int MultiConnection::execute(ulong _sig, TimeSpec &_tout){
 		if(state() != CONNECT){
 			//lets see which socket has timeout:
 			while(this->signaledSize()){
-				uint evs = socketEvents(signaledFront());
+				solid::uint evs = socketEvents(signaledFront());
 				idbg("for "<<signaledFront()<<" evs "<<evs);
 				this->signaledPop();
 			}

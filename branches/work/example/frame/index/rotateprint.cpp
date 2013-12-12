@@ -44,7 +44,7 @@ int main(){
 		BitSet8T b2(rc);
 		cout<<b1<<" -> "<<b2<<endl;
 	}
-	uint maxsz = 0;
+	solid::uint maxsz = 0;
 	for(StringVectorT::const_iterator it(sv.begin()); it != sv.end(); ++it){
 		if(it->size() > maxsz){
 			maxsz = it->size();

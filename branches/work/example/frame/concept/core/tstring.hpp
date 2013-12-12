@@ -14,9 +14,10 @@
 #include "system/common.hpp"
 
 #define APPSTR(str) str,sizeof(str)-1
-
+namespace solid{
 typedef std::string String;
 
 void append(String &_str, solid::ulong _v);
+}
 
 #endif

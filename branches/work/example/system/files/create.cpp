@@ -17,7 +17,7 @@
 
 using namespace std;
 ///\cond 0
-int createFile(const char *_nm, const string &_str, ulong _sz);
+int createFile(const char *_nm, const string &_str, solid::ulong _sz);
 ///\endcond
 
 int main(int argc, char *argv[]){
@@ -49,7 +49,7 @@ int main(int argc, char *argv[]){
 		for(int j = filecnt; j; --j){
 			sprintf(fname, "/%08u.txt", j);
 			double sz = minsize + ((maxsize - minsize)*(j - 1))/(filecount - 1);
-			ulong size = sz;
+			solid::ulong size = sz;
 			cout<<"name = "<<name<<" size = "<<size<<" sz "<<sz<<endl;
 			if(createFile(name, line, size)){
 				cout<<"failed create file"<<endl;
@@ -60,11 +60,11 @@ int main(int argc, char *argv[]){
 }
 
 
-int createFile(const char *_nm, const string &_str, ulong _sz){
+int createFile(const char *_nm, const string &_str, solid::ulong _sz){
 	ofstream ofs(_nm);
 	if(!ofs) return -1;
-	ulong osz = 0;
-	ulong i = 0;
+	solid::ulong osz = 0;
+	solid::ulong i = 0;
 	while(osz <= _sz){
 		ofs<<osz<<' '<<_str<<endl;
 		osz += _str.size();

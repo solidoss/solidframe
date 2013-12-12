@@ -97,8 +97,8 @@ struct StrLess{
 };
 struct ModuleStub{
 	ModuleStub(const char *_name, uint32 _lvlmsk):name(_name), lvlmsk(_lvlmsk){}
-	const string	name;
-	uint32			lvlmsk;
+	string	name;
+	uint32	lvlmsk;
 };
 
 struct Log::Data: std::ostream{

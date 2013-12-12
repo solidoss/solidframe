@@ -9,8 +9,8 @@
 //
 #include "core/tstring.hpp"
 #include <cstring>
-
-void append(String &_str, ulong _v){
+namespace solid{
+void append(String &_str, solid::ulong _v){
     if(!_v){
         _str+='0';
     }else{
@@ -25,4 +25,4 @@ void append(String &_str, ulong _v){
         _str.append(tmp+pos,12 - pos);
     }
 }
-
+}//namespace solid

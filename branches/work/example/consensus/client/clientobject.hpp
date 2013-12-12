@@ -91,7 +91,7 @@ public:
 	void dynamicHandle(solid::DynamicPointer<FetchRequest> &_rmsgptr);
 	void dynamicHandle(solid::DynamicPointer<EraseRequest> &_rmsgptr);
 	
-	int execute(ulong _sig, solid::TimeSpec &_tout);
+	int execute(solid::ulong _sig, solid::TimeSpec &_tout);
 	
 	solid::uint32 newRequestId(int _pos = -1);
 	bool   isRequestIdExpected(solid::uint32 _v, int &_rpos)const;

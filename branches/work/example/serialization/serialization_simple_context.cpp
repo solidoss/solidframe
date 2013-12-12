@@ -73,7 +73,7 @@ struct TestC{
 struct TestD{
 	TestD(
 		const char *_paddr = NULL,
-		uint _port = 0,
+		solid::uint _port = 0,
 		int _a = 4
 	):a(_a){
 		if(_paddr){
@@ -279,7 +279,7 @@ void Array::print() const{
 	cout<<"}pta1"<<endl;
 	cout<<"tdsz = "<<tdsz<<endl;
 	cout<<"td{"<<endl;
-	for(uint i(0); i < tdsz; ++i){
+	for(size_t i(0); i < tdsz; ++i){
 		td[i].print();
 	}
 	cout<<"}td"<<endl;

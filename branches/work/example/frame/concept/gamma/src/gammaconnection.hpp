@@ -105,7 +105,7 @@ public:
 	int execute(ulong _sig, solid::TimeSpec &_tout);
 	
 	//! creator method for new commands
-	Command* create(const String& _name, Reader &_rr);
+	Command* create(const solid::String& _name, Reader &_rr);
 	
 	//! Generate a new request id.
 	/*!
@@ -141,8 +141,8 @@ private:
 	
 	void prepareReader(const uint _sid);
 	
-	Command* doCreateSlave(const String& _name, Reader &_rr);
-	Command* doCreateMaster(const String& _name, Reader &_rr);
+	Command* doCreateSlave(const solid::String& _name, Reader &_rr);
+	Command* doCreateMaster(const solid::String& _name, Reader &_rr);
 	
 	static void doInitStaticSlave(Manager &_rm);
 	static void doInitStaticMaster(Manager &_rm);

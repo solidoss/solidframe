@@ -82,7 +82,7 @@ public:
 		The method will be called within a solid::frame::SelectPool by an
 		solid::frame::aio::Selector.
 	*/
-	int execute(ulong _sig, solid::TimeSpec &_tout);
+	int execute(solid::ulong _sig, solid::TimeSpec &_tout);
 	
 	void state(int _st){
 		st = _st;
@@ -92,7 +92,7 @@ public:
 	}
 	
 	//! creator method for new commands
-	Command* create(const String& _name, Reader &_rr);
+	Command* create(const solid::String& _name, Reader &_rr);
 	
 	Reader& reader(){return rdr;}
 	Writer& writer(){return wtr;}

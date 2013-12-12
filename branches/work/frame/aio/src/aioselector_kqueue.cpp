@@ -68,7 +68,7 @@ struct Selector::Stub{
 		state = OutExecQueue;
 		events = 0;
 	}
-	ObjectPtrT		objptr;
+	ObjectPointerT	objptr;
 	TimeSpec		timepos;//object timepos
 	TimeSpec		itimepos;//input timepos
 	TimeSpec		otimepos;//output timepos
@@ -472,7 +472,7 @@ ulong Selector::doReadPipe(){
 		for(int i = 0; i < BUFSZ; ++i){
 			uint pos(buf[i]);
 			if(pos){
-				if(pos < d.stubs.size() && (pstub = &d.stubs[pos])->objptr && pstub->objptr->signaled(S_RAISE)){
+				if(pos < d.stubs.size() && !(pstub = &d.stubs[pos])->objptr.empty() && pstub->objptr->notified(S_RAISE)){
 					pstub->events |= SIGNALED;
 					if(pstub->state == Stub::OutExecQueue){
 						d.execq.push(pos);
@@ -487,7 +487,7 @@ ulong Selector::doReadPipe(){
 		for(int i = 0; i < rsz; ++i){	
 			uint pos(buf[i]);
 			if(pos){
-				if(pos < d.stubs.size() && (pstub = &d.stubs[pos])->objptr && pstub->objptr->signaled(S_RAISE)){
+				if(pos < d.stubs.size() && !(pstub = &d.stubs[pos])->objptr.empty() && pstub->objptr->notified(S_RAISE)){
 					pstub->events |= SIGNALED;
 					if(pstub->state == Stub::OutExecQueue){
 						d.execq.push(pos);
@@ -687,7 +687,7 @@ void Selector::doFullScanCheck(Stub &_rstub, const ulong _pos){
 		d.ntimepos = _rstub.timepos;
 	}
 	
-	if(_rstub.objptr->signaled(S_RAISE)){
+	if(_rstub.objptr->notified(S_RAISE)){
 		evs |= SIGNALED;//should not be checked by objs
 	}
 	if(evs){
@@ -703,16 +703,16 @@ ulong Selector::doFullScan(){
 	idbgx(Debug::aio, "fullscan count "<<d.rep_fullscancount);
 	d.ntimepos = TimeSpec::maximum;
 	for(Data::StubVectorT::iterator it(d.stubs.begin()); it != d.stubs.end(); it += 4){
-		if(it->objptr){
+		if(!it->objptr.empty()){
 			doFullScanCheck(*it, it - d.stubs.begin());
 		}
-		if((it + 1)->objptr){
+		if(!(it + 1)->objptr.empty()){
 			doFullScanCheck(*(it + 1), it - d.stubs.begin() + 1);
 		}
-		if((it + 2)->objptr){
+		if(!(it + 2)->objptr.empty()){
 			doFullScanCheck(*(it + 2), it - d.stubs.begin() + 2);
 		}
-		if((it + 3)->objptr){
+		if(!(it + 3)->objptr.empty()){
 			doFullScanCheck(*(it + 3), it - d.stubs.begin() + 3);
 		}
 	}
@@ -764,7 +764,7 @@ ulong Selector::doExecute(const ulong _pos){
 }
 void Selector::doPrepareObjectWait(const size_t _pos, const TimeSpec &_timepos){
 	Stub				&stub(d.stubs[_pos]);
-	const int32 * const pend(stub.objptr->reqpos);
+	const size_t * const pend(stub.objptr->reqpos);
 	bool				mustwait = true;
 	vdbgx(Debug::aio, "stub "<<_pos);
 	for(const size_t *pit(stub.objptr->reqbeg); pit != pend; ++pit){
@@ -881,22 +881,22 @@ ulong Selector::doAddNewStub(){
 		if(cp != d.stubs.capacity()){
 			//we need to reset the aioobject's pointer to timepos
 			for(Data::StubVectorT::iterator it(d.stubs.begin()); it != d.stubs.end(); it += 4){
-				if(it->objptr){
+				if(!it->objptr.empty()){
 					//TODO: is it ok commenting the following lines?!
 					//it->timepos  = TimeSpec::maximum;
 					//it->itimepos = TimeSpec::maximum;
 					//it->otimepos = TimeSpec::maximum;
 					it->objptr->doPrepare(&it->itimepos, &it->otimepos);
 				}
-				if((it + 1)->objptr){
+				if(!(it + 1)->objptr.empty()){
 					//TODO: see above
 					(it + 1)->objptr->doPrepare(&(it + 1)->itimepos, &(it + 1)->otimepos);
 				}
-				if((it + 2)->objptr){
+				if(!(it + 2)->objptr.empty()){
 					//TODO: see above
 					(it + 2)->objptr->doPrepare(&(it + 2)->itimepos, &(it + 2)->otimepos);
 				}
-				if((it + 3)->objptr){
+				if(!(it + 3)->objptr.empty()){
 					//TODO: see above
 					(it + 3)->objptr->doPrepare(&(it + 3)->itimepos, &(it + 3)->otimepos);
 				}

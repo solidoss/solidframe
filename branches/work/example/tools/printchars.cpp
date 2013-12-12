@@ -31,7 +31,7 @@ int main(){
 		sv.push_back(string(buf));
 		//cout<<buf<<endl;
 	}
-	uint maxsz = 0;
+	size_t maxsz = 0;
 	for(StringVectorT::const_iterator it(sv.begin()); it != sv.end(); ++it){
 		if(it->size() > maxsz){
 			maxsz = it->size();

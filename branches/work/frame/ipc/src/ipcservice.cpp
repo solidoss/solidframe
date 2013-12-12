@@ -1042,7 +1042,7 @@ int Service::doAcceptGatewaySession(const SocketAddress &_rsa, const ConnectData
 }
 //---------------------------------------------------------------------
 void Service::disconnectSession(const SocketAddressInet &_addr, uint32 _relayid){
-	typedef Data::GatewayRelayAddr4MapT::const_iterator GatewayRelayAddr4MapConstIteratorT;
+	typedef Data::GatewayRelayAddr4MapT::iterator GatewayRelayAddr4MapConstIteratorT;
 	
 	SocketAddressInet4					addr(_addr);
 	GatewayRelayAddress4T				gwaddr(addr, _relayid);

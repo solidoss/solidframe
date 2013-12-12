@@ -81,7 +81,7 @@ public:
 	void initReader(Reader &);
 	int execute(Connection &);
 private:
-	String user,pass;
+	solid::String user,pass;
 };
 //! Alpha (remote) file fetch commad
 /*!
@@ -154,9 +154,9 @@ private:
 	int doSendFirstData(Writer &_rw);
 	int doSendNextData(Writer &_rw);
 private:
-	String										strpth;
-	String										straddr;
-	String										port;
+	solid::String								strpth;
+	solid::String								straddr;
+	solid::String								port;
 	Connection									&rc;
 	int16 										state;
 	uint64										litsz;
@@ -200,7 +200,7 @@ public:
 	);
 	int reinitWriter(Writer &, solid::protocol::text::Parameter &);
 private:
-	String										strpth;//the file path
+	solid::String								strpth;//the file path
 	solid::StreamPointer<solid::OutputStream>	sp;
 	solid::OutputStreamIterator					it;
 	Connection									&rc;	
@@ -227,7 +227,7 @@ public:
 	
 	int reinitWriter(Writer &, solid::protocol::text::Parameter &);
 private:
-	String					strpth;
+	solid::String			strpth;
 	fs::directory_iterator 	it,end;
 };
 
@@ -243,7 +243,7 @@ class RemoteList: public Command{
 public:
 	enum {Wait, SendList, SendError, SendListContinue};
 	//typedef std::list<std::pair<String,int64> > PathListT;
-	struct PathListT: std::list<std::pair<String,int64> >{
+	struct PathListT: std::list<std::pair<solid::String,int64> >{
 		PathListT();
 		~PathListT();
 	};
@@ -269,12 +269,12 @@ public:
 	int reinitReader(Reader &, solid::protocol::text::Parameter &);
 private:
 	struct HostAddr{
-		String	addr;
-		String	port;
-		uint32	netid;
+		solid::String	addr;
+		solid::String	port;
+		uint32			netid;
 	};
 	typedef std::vector<HostAddr>	HostAddrVectorT;
-	String						strpth;
+	solid::String				strpth;
 	HostAddrVectorT				hostvec;
 	uint32						pausems;
 	PathListT					*ppthlst;
@@ -319,7 +319,7 @@ public:
 // 		const ipc::ConnectionUid *_conid
 // 	);
 	/*virtual*/ int receiveString(
-		const String &_str,
+		const solid::String &_str,
 		int			_which,
 		const ObjectUidT&_from,
 		const solid::frame::ipc::ConnectionUid *_conid
@@ -327,7 +327,7 @@ public:
 private:
 	enum Type{LocalStringType, PeerStringType, LocalStreamType, PeerStreamType};
 	solid::Queue<Type>										typeq;
-	solid::Queue<String>									stringq;
+	solid::Queue<solid::String>								stringq;
 	solid::Queue<ObjectUidT>								fromq;
 	solid::Queue<solid::frame::ipc::ConnectionUid>			conidq;
 	solid::Queue<solid::StreamPointer<solid::InputStream> >	streamq;

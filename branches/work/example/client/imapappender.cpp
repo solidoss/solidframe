@@ -534,10 +534,10 @@ int readAtLeast(int _minsz, SSL *_pssl, char *_pb, unsigned _sz){
 }
 
 int readFindEither(const char *_f1, const char *_f2, SSL *_pssl, char *_pb, unsigned _sz){
-	uint32 maxfsz = strlen(_f1);
+	uint32		maxfsz = strlen(_f1);
 	if(strlen(_f2) > maxfsz) maxfsz = strlen(_f2);
-	char *pd = (char*)_pb;
-	uint toread = _sz - 1;
+	char 		*pd = (char*)_pb;
+	solid::uint	toread = _sz - 1;
 	while(true){
 		int rv = SSL_read(_pssl, pd, toread);
 		if(rv <= 0){
@@ -547,7 +547,7 @@ int readFindEither(const char *_f1, const char *_f2, SSL *_pssl, char *_pb, unsi
 		pd[rv] = '\0';
 		if(strstr(_pb, _f1)) return 0;
 		if(strstr(_pb, _f2)) return 1;
-		uint tcp = maxfsz;
+		solid::uint tcp = maxfsz;
 		if(tcp > rv) tcp = rv;
 		memmove(_pb, pd + rv - tcp, tcp);
 		pd = _pb + tcp;

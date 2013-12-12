@@ -38,7 +38,7 @@ int Listener::execute(ulong, TimeSpec&){
 		if(sm & frame::S_KILL) return BAD;
 	}
 	
-	uint cnt(10);
+	solid::uint cnt(10);
 	
 	while(cnt--){
 		if(state == 0){

@@ -17,7 +17,7 @@ enum{
 };
 
 int randomsize(){
-	uint r = rand();
+	solid::uint r = rand();
 	return r % BUFFER_CAP;
 }
 

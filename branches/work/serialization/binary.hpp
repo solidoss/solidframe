@@ -1772,7 +1772,7 @@ public:
 	
 	template <typename T>
 	Deserializer& push(DynamicPointer<T> &_rdp, const char *_name = NULL){
-		this->Base::fstk.push(Base::FncData(&Deserializer::loadDynamicTypeId<T>, &_rdp, _name));
+		this->Base::fstk.push(Base::FncData(&Deserializer::template loadDynamicTypeId<T>, &_rdp, _name));
 		return *this;
 	}
 	

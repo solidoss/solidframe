@@ -68,7 +68,7 @@ public:
 	int execute(const uint _sid);
 private:
 	void contextData(ObjectUidT &);
-	String user,pass, ctx;
+	solid::String user,pass, ctx;
 };
 
 class Open: public Command{
@@ -102,9 +102,9 @@ private:
 		SendError
 	};
 	uint16											state;
-	solid::protocol::text::Parameter 						*pp;
-	String											path;
-	String											flags;
+	solid::protocol::text::Parameter				*pp;
+	solid::String									path;
+	solid::String									flags;
 	uint32											reqid;
 	solid::StreamPointer<solid::InputStream>		isp;
 	solid::StreamPointer<solid::InputOutputStream>	iosp;
