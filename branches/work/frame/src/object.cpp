@@ -102,8 +102,8 @@ bool Object::notify(DynamicPointer<Message> &_rmsgptr){
 }
 
 
-int Object::execute(ulong _evs, TimeSpec &_rtout){
-	return BAD;
+void Object::execute(ExecuteContext &_rexectx){
+	_rexectx.close();
 }
 //---------------------------------------------------------------------
 //----	Message	----
@@ -128,7 +128,7 @@ int Message::execute(
 	return BAD;
 }
 
-int Message::receiveMessage(
+int Message::(
 	DynamicPointer<Message> &_rmsgptr,
 	const ObjectUidT& _from,
 	const ipc::ConnectionUid *_conid

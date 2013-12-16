@@ -11,7 +11,24 @@
 #define inline
 #endif
 
-
+inline void Object::ExecuteContext::reschedule(){
+	retval = RescheduleRequest;
+}
+inline void Object::ExecuteContext::close(){
+	retval = CloseRequest;
+}
+inline void Object::ExecuteContext::wait(){
+	retval = WaitRequest;
+}
+inline void Object::ExecuteContext::waitUntil(const TimeSpec &_rtm){
+	retval = WaitUntilRequest;
+	waittm = _rtm;
+}
+inline void Object::ExecuteContext::waitFor(const TimeSpec &_rtm){
+	retval = WaitUntilRequest;
+	waittm = rcrttm;
+	waittm += _rtm;
+}
 
 inline IndexT Object::threadId()const{
 	return thrid.load(/*ATOMIC_NS::memory_order_seq_cst*/);
@@ -21,7 +38,7 @@ inline void Object::threadId(const IndexT &_thrid){
 
 }
 
-inline ulong Object::grabSignalMask(ulong _leave){
+inline size_t Object::grabSignalMask(size_t _leave){
 // 	ulong sm = smask;
 // 	smask = sm & _leave;
 // 	return sm;
@@ -34,11 +51,11 @@ inline bool Object::notified(ulong _s) const{
 	return (smask.load(/*ATOMIC_NS::memory_order_seq_cst*/) & _s) != 0;
 }
 
-inline bool Object::notify(ulong _smask){
+inline bool Object::notify(size_t _smask){
 // 	ulong oldmask = smask;
 // 	smask |= _smask;
 // 	return (smask != oldmask) && signaled(S_RAISE);
-	ulong osm = smask.fetch_or(_smask/*, ATOMIC_NS::memory_order_seq_cst*/);
+	size_t osm = smask.fetch_or(_smask/*, ATOMIC_NS::memory_order_seq_cst*/);
 	return (_smask & S_RAISE) && !(osm & S_RAISE); 
 }
 

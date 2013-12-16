@@ -10,10 +10,13 @@
 #ifndef SOLID_FRAME_OBJECT_HPP
 #define SOLID_FRAME_OBJECT_HPP
 
+#include "system/timespec.hpp"
+
 #include "frame/common.hpp"
 
 #include "utility/dynamictype.hpp"
 #include "utility/dynamicpointer.hpp"
+#include <boost/concept_check.hpp>
 
 #ifdef HAS_STDATOMIC
 #include <atomic>
@@ -21,11 +24,9 @@
 #include "boost/atomic.hpp"
 #endif
 
-
 namespace solid{
 
 class Mutex;
-struct TimeSpec;
 
 namespace frame{
 
@@ -37,9 +38,52 @@ class SelectorBase;
 class Object;
 
 
-
 class Object: public Dynamic<Object, DynamicShared<> >{
 public:
+	struct ExecuteContext{
+		enum RetValE{
+			WaitRequest,
+			WaitUntilRequest,
+			RescheduleRequest,
+			CloseRequest
+		};
+		size_t eventMask()const{
+			return evsmsk;
+		}
+		const TimeSpec& currentTime()const{
+			return rcrttm;
+		}
+		void reschedule();
+		void close();
+		void wait();
+		void waitUntil(const TimeSpec &_rtm);
+		void waitFor(const TimeSpec &_rtm);
+	protected:
+		ExecuteContext(
+			const size_t _evsmsk,
+			const TimeSpec &_rcrttm
+		):	evsmsk(_evsmsk), rcrttm(_rcrttm), retval(WaitRequest){}
+		
+		size_t			evsmsk;
+		const TimeSpec	&rcrttm;
+		RetValT			retval;
+		TimeSpec		waittm;
+	};
+
+	struct ExecuteController: ExecuteContext{
+		ExecuteController(
+			const size_t _evsmsk,
+			const TimeSpec &_rcrttm
+		): ExecuteContext(_evsmsk, _rcrttm){}
+		
+		const RetValE returnValue()const{
+			return this->retval;
+		}
+		const TimeSpec& waitTime()const{
+			return this->waittm;
+		}
+	};
+
 	static const TimeSpec& currentTime();
 	
 	//!Get the object associated to the current thread
@@ -51,7 +95,7 @@ public:
 	//! Returns true if the object is signaled
 	bool notified() const;
 	
-	bool notified(ulong _s) const;
+	bool notified(size_t _s) const;
 	
 	//! Get the id of the object
 	IndexT id() const;
@@ -61,7 +105,7 @@ public:
 	 * Returns true if the signal should raise the object ASAP
 	 * \param _smask The signal bitmask
 	 */
-	bool notify(ulong _smask);
+	bool notify(size_t _smask);
 	
 	//! Signal the object with a signal
 	virtual bool notify(DynamicPointer<Message> &_rmsgptr);
@@ -76,7 +120,7 @@ protected:
 	
 	
 	//! Grab the signal mask eventually leaving some bits set- CALL this inside lock!!
-	ulong grabSignalMask(ulong _leave = 0);
+	size_t grabSignalMask(size_t _leave = 0);
 	
 	//! Virtual destructor
 	virtual ~Object();//only objptr base can destroy an object
@@ -99,14 +143,14 @@ private:
 		This method is calle by selectpools with support for
 		events and timeouts
 	*/
-	virtual int execute(ulong _evs, TimeSpec &_rtout);
+	virtual void execute(ExecuteContext &_rexectx);
 	
 	//! Set the thread id
 	void threadId(const IndexT &_thrid);
 private:
 	IndexT						fullid;
 
-	ATOMIC_NS::atomic<ulong>	smask;
+	ATOMIC_NS::atomic<size_t>	smask;
 	ATOMIC_NS::atomic<IndexT>	thrid;
 };
 
