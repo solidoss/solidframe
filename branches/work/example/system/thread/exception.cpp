@@ -1,6 +1,8 @@
 #include "system/exception.hpp"
 #include <iostream>
 #include "system/common.hpp"
+#include "system/condition.hpp"
+#include "system/mutex.hpp"
 
 using namespace std;
 using namespace solid;
@@ -34,7 +36,11 @@ int main(){
 	}catch(exception& e){
 		cout<<"caught exeption: "<<e.what()<<endl;
 	}
-	
+	try{
+		THROW_EXCEPTION_EX("Last system error.", last_system_error());
+	}catch(exception &e){
+		cout<<"caught exeption: "<<e.what()<<endl;
+	}
 	return 0;
 }
 

@@ -15,23 +15,21 @@
 
 
 inline Condition::Condition(){
-	int rv = pthread_cond_init(&cond,NULL);
-	cassert(rv == 0);
+	cverify(!pthread_cond_init(&cond, NULL));
 }
 inline Condition::~Condition(){
-	int rv = pthread_cond_destroy(&cond);
-	cassert(rv==0);
-}
-inline int Condition::signal(){
-	return pthread_cond_signal(&cond);
-}
-inline int Condition::broadcast(){
-	return pthread_cond_broadcast(&cond);
-}
-inline int Condition::wait(Locker<Mutex> &_lock){
-	return pthread_cond_wait(&cond, &_lock.m.mut);
+	cverify(!pthread_cond_destroy(&cond));
 }
 
+inline void Condition::signal(){
+	cverify(!pthread_cond_signal(&cond));
+}
+inline void Condition::broadcast(){
+	cverify(!pthread_cond_broadcast(&cond));
+}
+inline void Condition::wait(Locker<Mutex> &_lock){
+	cverify(!pthread_cond_wait(&cond, &_lock.m.mut));
+}
 #ifdef NINLINES
 #undef inline
 #endif

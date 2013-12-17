@@ -29,9 +29,9 @@ public:
 	//!returns the size of a file without opening it - using stat!
 	static int64 size(const char *_fname);
 	//! Open a file using its name and open mode flags
-	int open(const char* _fname, int _how);
+	bool open(const char* _fname, int _how);
 	//! Create a file using its name and open mode flags
-	int create(const char* _fname, int _how);
+	bool create(const char* _fname, int _how);
 	//! Get the size of an opened file
 	/*!
 		Use FileDevice::size(const char*) to find the size of a file

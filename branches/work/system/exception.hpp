@@ -17,6 +17,7 @@
 #include "system/common.hpp"
 #include "system/debug.hpp"
 #include "system/tuple.hpp"
+#include "system/error.hpp"
 
 namespace solid{
 
@@ -61,6 +62,47 @@ struct Exception<const char*>:std::exception{
 	int					line;
 	const char			*function;
 	mutable std::string	w;
+};
+
+template <>
+struct Exception<ERROR_NS::error_code>:std::exception{
+	explicit Exception(
+		const char *_pt,
+		ERROR_NS::error_code const & _rt,
+		const char *_file,
+		const int _line,
+		const char *_func
+	)throw(): pt(_pt), t(_rt), file(_file), line(_line), function(_func){
+		pdbg(file, line, function, "EXCEPTION: "<<pt<<' '<<t<<" - "<<t.message());
+	}
+	Exception(
+		const Exception<ERROR_NS::error_code> &_rex
+	)throw(): pt(_rex.pt), t(_rex.t), file(_rex.file), line(_rex.line),function(_rex.function){
+	}
+	
+	~Exception()throw(){}
+	Exception & operator=(Exception<ERROR_NS::error_code> const & _rex)throw(){
+		pt= _rex.pt;
+		t = _rex.t;
+		file = _rex.file;
+		line =_rex.line;
+		return *this;
+	}
+	const char* what()const throw(){
+		if(w.empty()){
+			std::ostringstream oss;
+			oss<<'['<<src_file_name(file)<<'('<<line<<')'<<' '<<function<<"]: "<<pt<<' '<<t<<" - "<<t.message();
+			w = oss.str();
+		}
+		return w.c_str();
+	}
+	
+	const char				*pt;
+	ERROR_NS::error_code	t;
+	const char				*file;
+	int						line;
+	const char				*function;
+	mutable std::string		w;
 };
 
 template <class T>

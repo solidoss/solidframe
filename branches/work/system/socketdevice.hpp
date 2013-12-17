@@ -12,6 +12,7 @@
 
 #include "system/socketaddress.hpp"
 #include "system/device.hpp"
+#include "system/error.hpp"
 
 namespace solid{
 
@@ -23,6 +24,13 @@ public:
 #else
 	typedef int DescriptorT;
 #endif
+	static ERROR_NS::error_code last_error();
+	enum RetValE{
+		Error = solid::Error,
+		Success = solid::Success,
+		Failure = solid::Failure,
+		Pending
+	};
 	//!Copy constructor
 	SocketDevice(const SocketDevice &_sd);
 	//!Basic constructor
@@ -38,45 +46,43 @@ public:
 	//! Shutdown reading and writing 
 	void shutdownReadWrite();
 	//! Create a socket based ResolveIterator
-	int create(const ResolveIterator &_rri);
+	bool create(const ResolveIterator &_rri);
 	//! Create a socket given its family, its type and its protocol type
-	int create(
+	bool create(
 		SocketInfo::Family = SocketInfo::Inet4,
 		SocketInfo::Type _type = SocketInfo::Stream,
 		int _proto = 0
 	);
 	//! Connect the socket
-	int connect(const SocketAddressStub &_rsas);
+	RetValE connect(ERROR_NS::error_code &_rerr, const SocketAddressStub &_rsas);
 	//! Bind the socket to a specific addr:port
-	int bind(const SocketAddressStub &_rsa);
+	bool bind(ERROR_NS::error_code &_rerr, const SocketAddressStub &_rsa);
 	//! Prepares the socket for accepting
-	int prepareAccept(const SocketAddressStub &_rsas, unsigned _listencnt = 10);
+	bool prepareAccept(ERROR_NS::error_code &_rerr, const SocketAddressStub &_rsas, size_t _listencnt = 10);
 	//! Accept an incomming connection
-	int accept(SocketDevice &_dev);
+	RetValE accept(ERROR_NS::error_code &_rerr, SocketDevice &_dev);
 	//! Make a connection blocking
 	/*!
 		\param _msec if _msec > 0 will make socket blocking with the given amount of milliseconds
 	*/
-	int makeBlocking(int _msec = -1);
+	bool makeBlocking(ERROR_NS::error_code &_rerr, size_t _msec);
+	bool makeBlocking(ERROR_NS::error_code &_rerr);
 	//! Make the socket nonblocking
-	int makeNonBlocking();
+	bool makeNonBlocking(ERROR_NS::error_code &_rerr);
 	//! Check if its blocking
-#ifndef ON_WINDOWS
-	int isBlocking()const;
-#endif
+	RetValE isBlocking(ERROR_NS::error_code &_rerr)const;
+	bool enableNoDelay(ERROR_NS::error_code &_rerr);
+	bool disableNoDelay(ERROR_NS::error_code &_rerr);
+	RetValE hasNoDelay(ERROR_NS::error_code &_rerr)const;
 	
-	int enableNoDelay();
-	int disableNoDelay();
-	int hasNoDelay()const;
+	bool enableCork(ERROR_NS::error_code &_rerr);//TCP_CORK - only on linux, TCP_NOPUSH on FreeBSD
+	bool disableCork(ERROR_NS::error_code &_rerr);
+	RetValE hasCork(ERROR_NS::error_code &_rerr)const;
 	
-	int enableCork();//TCP_CORK - only on linux, TCP_NOPUSH on FreeBSD
-	int disableCork();
-	int hasCork()const;
-	
-	int sendBufferSize(size_t _sz);
-	int recvBufferSize(size_t _sz);
-	int sendBufferSize()const;
-	int recvBufferSize()const;
+	bool sendBufferSize(ERROR_NS::error_code &_rerr, size_t _sz);
+	bool recvBufferSize(ERROR_NS::error_code &_rerr, size_t _sz);
+	int sendBufferSize(ERROR_NS::error_code &_rerr)const;
+	int recvBufferSize(ERROR_NS::error_code &_rerr)const;
 	//! Return true if nonblocking and the prevoious nonblocking opperation did not complete
 	/*!
 		In case of nonblocking sockets, use this method after:connect, accept, read, write,send
@@ -93,9 +99,9 @@ public:
 	//! Recv data from a socket
 	int recv(char *_pb, unsigned _ul, SocketAddress &_rsa);
 	//! Gets the remote address for a connected socket
-	int remoteAddress(SocketAddress &_rsa)const;
+	bool remoteAddress(ERROR_NS::error_code &_rerr, SocketAddress &_rsa)const;
 	//! Gets the local address for a socket
-	int localAddress(SocketAddress &_rsa)const;
+	bool localAddress(ERROR_NS::error_code &_rerr, SocketAddress &_rsa)const;
 #ifdef ON_WINDOWS
 	static const DescriptorT invalidDescriptor(){
 		return INVALID_SOCKET;
@@ -107,9 +113,9 @@ public:
 #endif
 	void close();
 	//! Get the socket type
-	int type()const;
+	int type(ERROR_NS::error_code &_rerr)const;
 	//! Return true if the socket is listening
-	bool isListening()const;
+	//bool isListening(ERROR_NS::error_code &_rerr)const;
 };
 
 }//namespace solid

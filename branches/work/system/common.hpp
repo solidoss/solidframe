@@ -88,6 +88,14 @@ enum RetVal{
 };
 
 
+//! Some project wide used return values
+enum RetValE{
+	Error = -1,
+	Success = 0,
+	Failure
+};
+
+
 struct EmptyType{};
 class NullType{};
 

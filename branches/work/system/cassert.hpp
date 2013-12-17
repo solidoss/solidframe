@@ -13,9 +13,12 @@
 #ifdef UASSERT
 #include <cassert>
 #define cassert(a) assert((a))
+#define cverify(a) assert((a))
 #else
 #define cassert(a)
+#define cverify(a) (a)
 #endif
+
 
 namespace solid{
 

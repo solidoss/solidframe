@@ -20,6 +20,7 @@
 #else
 
 #include <pthread.h>
+#include "error.hpp"
 
 namespace solid{
 
@@ -33,13 +34,13 @@ public:
 	Condition();
 	~Condition();
 	//! Try to wake one waiting thread
-	int signal();
+	void signal();
 	//! Try to wake all waiting threads
-	int broadcast();
+	void broadcast();
 	//! Wait for a signal
-	int wait(Locker<Mutex> &_lock);
+	void wait(Locker<Mutex> &_lock);
 	//! Wait for a signal a certain amount of time
-	int wait(Locker<Mutex> &_lock, const TimeSpec &_ts);
+	bool wait(Locker<Mutex> &_lock, const TimeSpec &_ts);
 private:
 	pthread_cond_t cond;
 };

@@ -22,7 +22,12 @@
 #include <system_error>
 #else
 #include "boost/system/error_code.hpp"
-#define ATOMIC_VAR_INIT(a) (a)
 #endif
+
+namespace solid{
+
+ERROR_NS::error_code last_system_error();
+
+}//namespace solid
 
 #endif

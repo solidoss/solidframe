@@ -16,11 +16,11 @@ namespace solid{
 class Directory{
 public:
 	//! Create a new directory
-	static int create(const char *);
+	static bool create(const char *);
 	//! Erase a file
-	static int eraseFile(const char *);
+	static bool eraseFile(const char *);
 	//! Rename a file
-	static int renameFile(const char *_to, const char *_from);
+	static bool renameFile(const char *_to, const char *_from);
 };
 
 }//namespace solid

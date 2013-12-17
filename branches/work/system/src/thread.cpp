@@ -58,6 +58,15 @@ struct Cleaner{
 	}
 };
 
+ERROR_NS::error_code last_system_error(){
+#ifdef ON_WINDOWS
+	const DWORD err = GetLastError();
+	return ERROR_NS::error_code(err, ERROR_NS::system_category());
+#else
+	return ERROR_NS::error_code(errno, ERROR_NS::system_category());
+#endif
+}
+
 /*static*/ const char* src_file_name(char const *_fname){
 #ifdef ON_WINDOWS
 	static const unsigned fileoff = (strlen(__FILE__) - strlen(strstr(__FILE__, "system\\src")));
@@ -297,8 +306,16 @@ const TimeSpec& TimeSpec::currentMonotonic(){
 #include "system/synchronization.ipp"
 #endif
 //-------------------------------------------------------------------------
-int Condition::wait(Locker<Mutex> &_lock, const TimeSpec &_ts){
-	return pthread_cond_timedwait(&cond,&_lock.m.mut, &_ts);
+bool Condition::wait(Locker<Mutex> &_lock, const TimeSpec &_ts){
+	const int rv = pthread_cond_timedwait(&cond,&_lock.m.mut, &_ts);
+	if(rv == 0){
+		return true;
+	}else if(rv == ETIMEDOUT){
+		return false;
+	}else{
+		cassert(false);
+		return false;
+	}
 }
 //-------------------------------------------------------------------------
 int Mutex::timedLock(const TimeSpec &_rts){

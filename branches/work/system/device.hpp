@@ -51,7 +51,7 @@ public:
 	//! Close the device
 	void close();
 	//! Flush the device
-	int flush();
+	void flush();
 	//! Check if the device is valid
 	bool ok()const{return desc != invalidDescriptor();}
 	Device& operator=(const Device &_dev);

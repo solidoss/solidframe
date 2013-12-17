@@ -88,22 +88,18 @@ void Device::close(){
 #ifdef ON_WINDOWS
 		CloseHandle(desc);
 #else
-		::close(desc);
+		cverify(!::close(desc));
 #endif
 		desc = invalidDescriptor();
 	}
 }
 
-int Device::flush(){
+void Device::flush(){
 	cassert(ok());
 #ifdef ON_WINDOWS
-	if(FlushFileBuffers(desc)){
-		return 0;
-	}else{
-		return -1;
-	}
+	cverify(FlushFileBuffers(desc));
 #else
-	return fsync(desc);
+	cverify(!fsync(desc));
 #endif
 }
 
@@ -116,7 +112,7 @@ int SeekableDevice::read(char *_pb, uint32 _bl, int64 _off){
 	seek(off);
 	return rv;
 #else
-	return pread(descriptor(), _pb, _bl, _off);
+	return pread64(descriptor(), _pb, _bl, _off);
 #endif
 }
 
@@ -128,7 +124,7 @@ int SeekableDevice::write(const char *_pb, uint32 _bl, int64 _off){
 	seek(off);
 	return rv;
 #else
-	return pwrite(descriptor(), _pb, _bl, _off);
+	return pwrite64(descriptor(), _pb, _bl, _off);
 #endif
 }
 
@@ -152,19 +148,16 @@ int64 SeekableDevice::seek(int64 _pos, SeekRef _ref){
 	}
 	return li.QuadPart;
 #else
-	return ::lseek(descriptor(), _pos, seekmap[_ref]);
+	return ::lseek64(descriptor(), _pos, seekmap[_ref]);
 #endif
 }
 
-int SeekableDevice::truncate(int64 _len){
+bool SeekableDevice::truncate(int64 _len){
 #ifdef ON_WINDOWS
 	seek(_len);
-	if(SetEndOfFile(descriptor())){
-		return 0;
-	}
-	return -1;
+	return SetEndOfFile(descriptor());
 #else
-	return ::ftruncate(descriptor(), _len);
+	return ::ftruncate64(descriptor(), _len) == 0;
 #endif
 }
 
@@ -231,7 +224,7 @@ HANDLE do_open(WCHAR *_pwc, const char *_fname, const size_t _sz, const size_t _
 }
 #endif
 
-int FileDevice::open(const char* _fname, int _how){
+bool FileDevice::open(const char* _fname, int _how){
 #ifdef ON_WINDOWS
 	//_fname is utf-8, so we need to convert it to WCHAR
 	const size_t sz(strlen(_fname));
@@ -254,14 +247,14 @@ int FileDevice::open(const char* _fname, int _how){
 			seek(0, SeekEnd);
 		}
 	}
-	return ok() ? 0 : -1;
+	return ok();
 #else
-	descriptor(::open(_fname, _how, 00666));
-	return ok() ? 0 : -1;
+	descriptor(::open64(_fname, _how, 00666));
+	return ok();
 #endif
 }
 
-int FileDevice::create(const char* _fname, int _how){
+bool FileDevice::create(const char* _fname, int _how){
 	return this->open(_fname, _how | CR | TR);
 }
 
@@ -336,26 +329,26 @@ int do_create_directory(WCHAR *_pwc, const char *_path, size_t _sz, size_t _wcp)
 	return -1;
 }
 #endif
-/*static*/ int Directory::create(const char *_fname){
+/*static*/ bool Directory::create(const char *_fname){
 #ifdef ON_WINDOWS
 	const size_t sz(strlen(_fname));
 	const size_t szex = sz + 1;
 	if(szex < 256){
 		WCHAR pwc[512];
-		return do_create_directory(pwc, _fname, sz, 512);
+		return do_create_directory(pwc, _fname, sz, 512) == 0;
 	}else if(szex < 512){
 		WCHAR pwc[1024];
-		return do_create_directory(pwc, _fname, sz, 1024);
+		return do_create_directory(pwc, _fname, sz, 1024) == 0;
 	}else if(szex < 1024){
 		WCHAR pwc[2048];
-		return do_create_directory(pwc, _fname, sz, 2048);
+		return do_create_directory(pwc, _fname, sz, 2048) == 0;
 	}else{
 		WCHAR pwc[4096];
-		return do_create_directory(pwc, _fname, sz, 4096);
+		return do_create_directory(pwc, _fname, sz, 4096) == 0;
 	}
-	return -1;
+	return false;
 #else
-	return mkdir(_fname,  S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+	return mkdir(_fname,  S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == 0;
 #endif
 }
 
@@ -395,29 +388,29 @@ int do_erase_file(WCHAR *_pwc, const char *_path, size_t _sz, size_t _wcp){
 #endif
 
 
-/*static*/ int Directory::eraseFile(const char *_fname){
+/*static*/ bool Directory::eraseFile(const char *_fname){
 #ifdef ON_WINDOWS
 	const size_t sz(strlen(_fname));
 	const size_t szex = sz + 1;
 	if(szex < 256){
 		WCHAR pwc[512];
-		return do_erase_file(pwc, _fname, sz, 512);
+		return do_erase_file(pwc, _fname, sz, 512) == 0;
 	}else if(szex < 512){
 		WCHAR pwc[1024];
-		return do_erase_file(pwc, _fname, sz, 1024);
+		return do_erase_file(pwc, _fname, sz, 1024) == 0;
 	}else if(szex < 1024){
 		WCHAR pwc[2048];
-		return do_erase_file(pwc, _fname, sz, 2048);
+		return do_erase_file(pwc, _fname, sz, 2048) == 0;
 	}else{
 		WCHAR pwc[4096];
-		return do_erase_file(pwc, _fname, sz, 4096);
+		return do_erase_file(pwc, _fname, sz, 4096) == 0;
 	}
-	return -1;
+	return false;
 #else
-	return unlink(_fname);
+	return unlink(_fname) == 0;
 #endif
 }
-/*static*/ int Directory::renameFile(const char *_to, const char *_from){
+/*static*/ bool Directory::renameFile(const char *_to, const char *_from){
 #ifdef ON_WINDOWS
 	const size_t szto(strlen(_to));
 	const size_t szfr(strlen(_from));
@@ -432,16 +425,16 @@ int do_erase_file(WCHAR *_pwc, const char *_path, size_t _sz, size_t _wcp){
 		if( GetLastError() == ERROR_INSUFFICIENT_BUFFER){
 			rv = MultiByteToWideChar(CP_UTF8, 0, _to, szto, pwcto, 0);
 			if(rv == 0){
-				return -1;
+				return false;
 			}
 			pwctmpto = new WCHAR[rv + 1];
 			rv = MultiByteToWideChar(CP_UTF8, 0, _to, szto, pwcto, rv + 1);
 			if(rv == 0){
-				return -1;
+				return false;
 			}
 			pwctmpto[rv] = 0;
 		}else{
-			return -1;
+			return false;
 		}
 	}else{
 		pwcto[rv] = 0;
@@ -453,16 +446,16 @@ int do_erase_file(WCHAR *_pwc, const char *_path, size_t _sz, size_t _wcp){
 		if( GetLastError() == ERROR_INSUFFICIENT_BUFFER){
 			rv = MultiByteToWideChar(CP_UTF8, 0, _from, szfr, pwcfr, 0);
 			if(rv == 0){
-				return -1;
+				return false;
 			}
 			pwctmpfr = new WCHAR[rv + 1];
 			rv = MultiByteToWideChar(CP_UTF8, 0, _from, szfr, pwcfr, rv + 1);
 			if(rv == 0){
-				return -1;
+				return false;
 			}
 			pwctmpfr[rv] = 0;
 		}else{
-			return -1;
+			return false;
 		}
 	}else{
 		pwcfr[rv] = 0;
@@ -478,12 +471,12 @@ int do_erase_file(WCHAR *_pwc, const char *_path, size_t _sz, size_t _wcp){
 		delete []pwctmpto;
 	}
 	if(brv){
-		return 0;
+		return true;
 	}else{
-		return -1;
+		return false;
 	}
 #else
-	return ::rename(_from, _to);
+	return ::rename(_from, _to) == 0;
 #endif
 }
 
@@ -498,6 +491,14 @@ struct wsa_cleaner{
 #endif
 
 //---- SocketDevice ---------------------------------
+/*static*/ ERROR_NS::error_code SocketDevice::last_error(){
+#ifdef ON_WINDOWS
+	const DWORD err = WSAGetLastError();
+	return ERROR_NS::error_code(err, ERROR_NS::system_category());
+#else
+	return last_system_error();
+#endif
+}
 SocketDevice::SocketDevice(const SocketDevice &_sd):Device(_sd){
 #ifndef UDEBUG
 #ifdef ON_WINDOWS
@@ -548,23 +549,19 @@ void SocketDevice::close(){
 #endif
 }
 
-int SocketDevice::create(const ResolveIterator &_rri){
+bool SocketDevice::create(const ResolveIterator &_rri){
 #ifdef ON_WINDOWS
 	//SOCKET s = socket(_rai.family(), _rai.type(), _rai.protocol());
 	SOCKET s = WSASocket(_rri.family(), _rri.type(), _rri.protocol(), NULL, 0, 0);
 	Device::descriptor((HANDLE)s);
-	if(ok()) return OK;
-	edbgx(Debug::system, "socket create");
-	return BAD;
+	return ok();
 #else
 	Device::descriptor(socket(_rri.family(), _rri.type(), _rri.protocol()));
-	if(ok()) return OK;
-	edbgx(Debug::system, "socket create: "<<strerror(errno));
-	return BAD;
+	return ok();
 #endif
 }
 
-int SocketDevice::create(
+bool SocketDevice::create(
 	SocketInfo::Family _family,
 	SocketInfo::Type _type,
 	int _proto
@@ -573,35 +570,34 @@ int SocketDevice::create(
 	//SOCKET s = socket(_family, _type, _proto);
 	SOCKET s = WSASocket(_family, _type, _proto, NULL, 0, 0);
 	Device::descriptor((HANDLE)s);
-	if(ok()) return OK;
-	edbgx(Debug::system, "socket create");
-	return BAD;
+	return ok();
 #else
 	Device::descriptor(socket(_family, _type, _proto));
-	if(ok()) return OK;
-	edbgx(Debug::system, "socket create: "<<strerror(errno));
-	return BAD;
+	return ok();
 #endif
 }
-int SocketDevice::connect(const SocketAddressStub &_rsas){
+
+
+SocketDevice::RetValE SocketDevice::connect(ERROR_NS::error_code &_rerr, const SocketAddressStub &_rsas){
 #ifdef ON_WINDOWS
 	int rv = ::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
 	if (rv < 0) { // sau rv == -1 ...
-		if(WSAGetLastError() == WSAEWOULDBLOCK) return NOK;
-		edbgx(Debug::system, "socket connect");
+		const DWORD err = WSAGetLastError();
+		if(err == WSAEWOULDBLOCK) return Pending;
+		_rerr = ERROR_NS::error_code(err, ERROR_NS::system_category());
 		close();
-		return BAD;
+		return Error;
 	}
-	return OK;
+	return Success;
 #else
 	int rv = ::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
 	if (rv < 0) { // sau rv == -1 ...
-		if(errno == EINPROGRESS) return NOK;
-		edbgx(Debug::system, "socket connect: "<<strerror(errno));
+		if(errno == EINPROGRESS) return Pending;
+		_rerr = last_error();
 		close();
-		return BAD;
+		return Error;
 	}
-	return OK;
+	return Success;
 #endif
 	
 }
@@ -626,186 +622,213 @@ int SocketDevice::connect(const SocketAddressStub &_rsas){
 // 	return OK;
 // #endif
 // }
-int SocketDevice::prepareAccept(const SocketAddressStub &_rsas, unsigned _listencnt){
+bool SocketDevice::prepareAccept(ERROR_NS::error_code &_rerr, const SocketAddressStub &_rsas, size_t _listencnt){
 #ifdef ON_WINDOWS
 	int yes = 1;
 	int rv = setsockopt(descriptor(), SOL_SOCKET, SO_REUSEADDR, (char *) &yes, sizeof(yes));
 	if(rv < 0) {
-		edbgx(Debug::system, "socket setsockopt: "<<strerror(errno));
+		_rerr = last_error();
 		close();
-		return BAD;
+		return false;
 	}
 
 	rv = ::bind(descriptor(), _rsas.sockAddr(), _rsas.size());
 	if(rv < 0) {
-		edbgx(Debug::system, "socket bind: "<<strerror(errno));
+		_rerr = last_error();
 		close();
-		return BAD;
+		return false;
 	}
 	rv = listen(descriptor(), _listencnt);
 	if(rv < 0){
-		edbgx(Debug::system, "socket listen: "<<strerror(errno));
+		_rerr = last_error();
 		close();
-		return BAD;
+		return false;
 	}
-	return OK;
+	return true;
 #else
 	int yes = 1;
 	int rv = setsockopt(descriptor(), SOL_SOCKET, SO_REUSEADDR, (char *) &yes, sizeof(yes));
 	if(rv < 0) {
-		edbgx(Debug::system, "socket setsockopt: "<<strerror(errno));
+		_rerr = last_error();
 		close();
-		return BAD;
+		return false;
 	}
 
 	rv = ::bind(descriptor(), _rsas.sockAddr(), _rsas.size());
 	if(rv < 0) {
-		edbgx(Debug::system, "socket bind: "<<strerror(errno));
+		_rerr = last_error();
 		close();
-		return BAD;
+		return false;
 	}
 	rv = listen(descriptor(), _listencnt);
 	if(rv < 0){
-		edbgx(Debug::system, "socket listen: "<<strerror(errno));
+		_rerr = last_error();
 		close();
-		return BAD;
+		return false;
 	}
-	return OK;
+	return true;
 #endif
 }
-int SocketDevice::accept(SocketDevice &_dev){
+
+SocketDevice::RetValE SocketDevice::accept(ERROR_NS::error_code &_rerr, SocketDevice &_dev){
 #ifdef ON_WINDOWS
-	if(!ok()) return BAD;
 	SocketAddress sa;
 	SOCKET rv = ::accept(descriptor(), sa, &sa.sz);
 	if (rv == invalidDescriptor()) {
-		if(WSAGetLastError() == WSAEWOULDBLOCK) return NOK;
-		edbgx(Debug::system, "socket accept: "<<WSAGetLastError());
+		if(WSAGetLastError() == WSAEWOULDBLOCK) return Pending;
+		_rerr = last_error();
 		close();
-		return BAD;
+		return Error;
 	}
 	_dev.Device::descriptor((HANDLE)rv);
-	return OK;
+	return Success;
 #else
-	if(!ok()) return BAD;
 	SocketAddress sa;
 	int rv = ::accept(descriptor(), sa, &sa.sz);
 	if (rv < 0) {
-		if(errno == EAGAIN) return NOK;
-		edbgx(Debug::system, "socket accept: "<<strerror(errno));
+		if(errno == EAGAIN) return Pending;
+		_rerr = last_error();
 		close();
-		return BAD;
+		return Failure;
 	}
 	_dev.Device::descriptor(rv);
-	return OK;
+	return Success;
 #endif
 }
-int SocketDevice::bind(const SocketAddressStub &_rsa){
+
+bool SocketDevice::bind(ERROR_NS::error_code &_rerr, const SocketAddressStub &_rsa){
 #ifdef ON_WINDOWS
-	if(!ok()) return BAD;
 	int rv = ::bind(descriptor(), _rsa.sockAddr(), _rsa.size());
 	if(rv < 0){
-		edbgx(Debug::system, "socket bind: "<<strerror(errno));
+		_rerr = last_error();
 		close();
-		return BAD;
+		return false;
 	}
-	return OK;
+	return true;
 #else
-	if(!ok()) return BAD;
 	int rv = ::bind(descriptor(), _rsa.sockAddr(), _rsa.size());
 	if(rv < 0){
-		edbgx(Debug::system, "socket bind: "<<strerror(errno));
+		_rerr = last_error();
 		close();
-		return BAD;
+		return false;
 	}
-	return OK;
+	return true;
 #endif
 }
-int SocketDevice::makeBlocking(int _msec){
+
+bool SocketDevice::makeBlocking(ERROR_NS::error_code &_rerr){
 #ifdef ON_WINDOWS
-	if(!ok()) return BAD;
 	u_long mode = 0;
 	int rv = ioctlsocket(descriptor(), FIONBIO, &mode);
 	if (rv != NO_ERROR){
-		edbgx(Debug::system, "socket ioctlsocket fionbio: "<<WSAGetLastError());
+		_rerr = last_error();
 		close();
-		return BAD;
+		return false;
 	}
-	if(_msec < 0){
-		return OK;
-	}
-	DWORD tout(_msec);
-	rv = setsockopt(descriptor(), SOL_SOCKET, SO_RCVTIMEO, (char *) &tout, sizeof(tout));
-	if (rv == SOCKET_ERROR){
-		edbgx(Debug::system, "error setsockopt rcvtimeo: "<<WSAGetLastError());
-		close();
-		return BAD;
-	}
-	tout = _msec;
-	rv = setsockopt(descriptor(), SOL_SOCKET, SO_SNDTIMEO, (char *) &tout, sizeof(tout));
-	if (rv == SOCKET_ERROR){
-		edbgx(Debug::system, "error setsockopt sndtimeo: "<<WSAGetLastError());
-		close();
-		return BAD;
-	}
-	return OK;
+	return true;
 #else
-	if(!ok()) return BAD;
 	int flg = fcntl(descriptor(), F_GETFL);
 	if(flg == -1){
-		edbgx(Debug::system, "socket fcntl getfl: "<<strerror(errno));
+		_rerr = last_error();
 		close();
-		return BAD;
+		return false;
 	}
 	flg &= ~O_NONBLOCK;
 	int rv = fcntl(descriptor(), F_SETFL, flg);
 	if (rv < 0){
-		edbgx(Debug::system, "error fcntl setfl: "<<strerror(errno));
+		_rerr = last_error();
 		close();
-		return BAD;
+		return false;
 	}
-	return OK;
+	return true;
 #endif
 }
-int SocketDevice::makeNonBlocking(){
+
+
+bool SocketDevice::makeBlocking(ERROR_NS::error_code &_rerr, size_t _msec){
 #ifdef ON_WINDOWS
-	if(!ok()) return BAD;
+	u_long mode = 0;
+	int rv = ioctlsocket(descriptor(), FIONBIO, &mode);
+	if (rv != NO_ERROR){
+		_rerr = last_error();
+		close();
+		return false;
+	}
+	DWORD tout(_msec);
+	rv = setsockopt(descriptor(), SOL_SOCKET, SO_RCVTIMEO, (char *) &tout, sizeof(tout));
+	if (rv == SOCKET_ERROR){
+		_rerr = last_error();
+		close();
+		return false;
+	}
+	tout = _msec;
+	rv = setsockopt(descriptor(), SOL_SOCKET, SO_SNDTIMEO, (char *) &tout, sizeof(tout));
+	if (rv == SOCKET_ERROR){
+		_rerr = last_error();
+		close();
+		return false;
+	}
+	return true;
+#else
+	int flg = fcntl(descriptor(), F_GETFL);
+	if(flg == -1){
+		_rerr = last_error();
+		close();
+		return false;
+	}
+	flg &= ~O_NONBLOCK;
+	int rv = fcntl(descriptor(), F_SETFL, flg);
+	if (rv < 0){
+		_rerr = last_error();
+		close();
+		return false;
+	}
+	//TODO: set timeout
+	return true;
+#endif
+}
+
+bool SocketDevice::makeNonBlocking(ERROR_NS::error_code &_rerr){
+#ifdef ON_WINDOWS
 	u_long mode = 1;
 	int rv = ioctlsocket(descriptor(), FIONBIO, &mode);
 	if (rv != NO_ERROR){
-		edbgx(Debug::system, "socket fcntl ioctlsocket "<<WSAGetLastError());
+		_rerr = last_error();
 		close();
-		return BAD;
+		return false;
 	}
-	return OK;
+	return true;
 #else
-	if(!ok()) return BAD;
 	int flg = fcntl(descriptor(), F_GETFL);
 	if(flg == -1){
-		edbgx(Debug::system, "socket fcntl getfl: "<<strerror(errno));
+		_rerr = last_error();
 		close();
-		return BAD;
+		return false;
 	}
 	int rv = fcntl(descriptor(), F_SETFL, flg | O_NONBLOCK);
 	if(rv < 0){
-		edbgx(Debug::system, "socket fcntl setfl: "<<strerror(errno));
+		_rerr = last_error();
 		close();
-		return BAD;
+		return false;
 	}
-	return OK;
+	return true;
 #endif
 }
+
+SocketDevice::RetValE SocketDevice::isBlocking(ERROR_NS::error_code &_rerr)const{
 #ifdef ON_WINDOWS
+	return Error;
 #else
-int SocketDevice::isBlocking()const{
+
 	int flg = fcntl(descriptor(), F_GETFL);
 	if(flg == -1){
-		edbgx(Debug::system, "socket fcntl getfl: "<<strerror(errno));
-		return BAD;
+		_rerr = last_error();
+		return Error;
 	}
-	return (flg & O_NONBLOCK) ? NOK : OK;
-}
+	return (flg & O_NONBLOCK) ? Failure : Success;
 #endif
+}
+
 bool SocketDevice::shouldWait()const{
 #ifdef ON_WINDOWS
 	return WSAGetLastError() == WSAEWOULDBLOCK;
@@ -843,38 +866,38 @@ int SocketDevice::recv(char *_pb, unsigned _ul, SocketAddress &_rsa){
 	return ::recvfrom(descriptor(), _pb, _ul, 0, _rsa.sockAddr(), &_rsa.sz);
 #endif
 }
-int SocketDevice::remoteAddress(SocketAddress &_rsa)const{
+bool SocketDevice::remoteAddress(ERROR_NS::error_code &_rerr, SocketAddress &_rsa)const{
 #ifdef ON_WINDOWS
-	return BAD;
+	return false;
 #else
 	_rsa.clear();
 	_rsa.sz = SocketAddress::Capacity;
 	int rv = getpeername(descriptor(), _rsa.sockAddr(), &_rsa.sz);
 	if(rv){
-		edbgx(Debug::system, "socket getpeername: "<<strerror(errno));
-		return BAD;
+		_rerr = last_error();
+		return false;
 	}
-	return OK;
+	return true;
 #endif
 }
-int SocketDevice::localAddress(SocketAddress &_rsa)const{
+bool SocketDevice::localAddress(ERROR_NS::error_code &_rerr, SocketAddress &_rsa)const{
 #ifdef ON_WINDOWS
-	return BAD;
+	return false;
 #else
 	_rsa.clear();
 	_rsa.sz = SocketAddress::Capacity;
 	int rv = getsockname(descriptor(), _rsa.sockAddr(), &_rsa.sz);
 	if(rv){
-		edbgx(Debug::system, "socket getsockname: "<<strerror(errno));
-		return BAD;
+		_rerr = last_error();
+		return false;
 	}
-	return OK;
+	return true;
 #endif
 }
 
-int SocketDevice::type()const{
+int SocketDevice::type(ERROR_NS::error_code &_rerr)const{
 #ifdef ON_WINDOWS
-	return BAD;
+	return -1;
 #else
 	int val = 0;
 	socklen_t valsz = sizeof(int);
@@ -882,193 +905,172 @@ int SocketDevice::type()const{
 	if(rv == 0){
 		return val;
 	}
-	edbgx(Debug::system, "socket getsockopt: "<<strerror(errno));
-	return BAD;
+	_rerr = last_error();
+	return -1;
 #endif
 }
 
-bool SocketDevice::isListening()const{
+// SocketDevice::RetValE SocketDevice::isListening(ERROR_NS::error_code &_rerr)const{
+// #ifdef ON_WINDOWS
+// 	return Error;
+// #else
+// 	int val = 0;
+// 	socklen_t valsz = sizeof(int);
+// 	int rv = getsockopt(descriptor(), SOL_SOCKET, SO_ACCEPTCONN, &val, &valsz);
+// 	if(rv == 0){
+// 		_rerr = last_error();
+// 		return val != 0 ? Success : Failure;
+// 	}
+// 
+// 	if(this->type() == SocketInfo::Datagram){
+// 		return Failure;
+// 	}
+// 	return Error;
+// #endif
+// }
+
+bool SocketDevice::enableNoDelay(ERROR_NS::error_code &_rerr){
 #ifdef ON_WINDOWS
 	return false;
 #else
-	int val = 0;
-	socklen_t valsz = sizeof(int);
-	int rv = getsockopt(descriptor(), SOL_SOCKET, SO_ACCEPTCONN, &val, &valsz);
-	if(rv == 0){
-		return val != 0;
-	}
-	edbgx(Debug::system, "socket getsockopt: "<<strerror(errno));
-	//try work-arround
-	if(this->type() == SocketInfo::Datagram){
-		return false;
-	}
-	SocketAddress	sa;
-	rv = ::accept(descriptor(), sa.sockAddr(), &sa.sz);
-	if(rv < 0){
-		if(errno == EINVAL){
-			return false;
-		}
-		return true;
-	}
-	SocketDevice	sd;
-	sd.Device::descriptor(rv);//:( we loose a connection
-		
-	return true;
-#endif
-}
-
-int SocketDevice::enableNoDelay(){
-#ifdef ON_WINDOWS
-	return BAD;
-#else
 	int flag = 1;
 	int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, sizeof(flag));
-	if(rv < 0){
-		edbgx(Debug::system, "socket setsockopt TCP_NODELAY: "<<strerror(errno));
-		close();
-		return BAD;
-	}
-	return OK;
+	if(rv == 0) return true;
+	_rerr = last_error();
+	return false;
 #endif
 }
 
-int SocketDevice::disableNoDelay(){
+bool SocketDevice::disableNoDelay(ERROR_NS::error_code &_rerr){
 #ifdef ON_WINDOWS
-	return BAD;
+	return false;
 #else
 	int flag = 0;
 	int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, sizeof(flag));
-	if(rv < 0){
-		edbgx(Debug::system, "socket setsockopt TCP_NODELAY: "<<strerror(errno));
-		close();
-		return BAD;
-	}
-	return OK;
+	if(rv == 0) return true;
+	_rerr = last_error();
+	return false;
 #endif
 }
 
-int SocketDevice::hasNoDelay()const{
+SocketDevice::RetValE SocketDevice::hasNoDelay(ERROR_NS::error_code &_rerr)const{
 #ifdef ON_WINDOWS
-	return BAD;
+	return Error;
 #else
 	int			flag = 0;
 	socklen_t	sz(sizeof(flag));
 	int rv = getsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, &sz);
-	if(rv < 0){
-		edbgx(Debug::system, "socket getsockopt TCP_NODELAY: "<<strerror(errno));
-		return BAD;
-	}
-	return rv ? OK : NOK;
+	if(rv == 0) return flag != 0 ? Success : Failure;
+	_rerr = last_error();
+	return Error;
 #endif
 }
 	
-int SocketDevice::enableCork(){
+bool SocketDevice::enableCork(ERROR_NS::error_code &_rerr){
 #ifdef ON_WINDOWS
-	return BAD;
+	return false;
 #elif defined(ON_LINUX)
 	int flag = 1;
 	int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_CORK, (char*)&flag, sizeof(flag));
-	if(rv < 0){
-		edbgx(Debug::system, "socket setsockopt TCP_CORK: "<<strerror(errno));
-		close();
-		return BAD;
+	if(rv == 0){
+		return true;
 	}
-	return OK;
+	_rerr = last_error();
+	return false;
 #else
-	return BAD;
+	return false;
 #endif
 }
 
-int SocketDevice::disableCork(){
+bool SocketDevice::disableCork(ERROR_NS::error_code &_rerr){
 #ifdef ON_WINDOWS
-	return BAD;
+	return false;
 #elif defined(ON_LINUX)
 	int flag = 0;
 	int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_CORK, (char*)&flag, sizeof(flag));
-	if(rv < 0){
-		edbgx(Debug::system, "socket setsockopt TCP_CORK: "<<strerror(errno));
-		close();
-		return BAD;
+	if(rv == 0){
+		return true;
 	}
-	return OK;
+	_rerr = last_error();
+	return false;
 #else
-	return BAD;
+	return false;
 #endif
 }
 
-int SocketDevice::hasCork()const{
+SocketDevice::RetValE SocketDevice::hasCork(ERROR_NS::error_code &_rerr)const{
 #ifdef ON_WINDOWS
-	return BAD;
+	return Error;
 #elif defined(ON_LINUX)
 	int			flag = 0;
 	socklen_t	sz(sizeof(flag));
 	int rv = getsockopt(descriptor(), IPPROTO_TCP, TCP_CORK, (char*)&flag, &sz);
-	if(rv < 0){
-		edbgx(Debug::system, "socket getsockopt TCP_CORK: "<<strerror(errno));
-		return BAD;
+	if(rv == 0){
+		return flag != 0 ? Success : Failure;
 	}
-	return rv ? OK : NOK;
+	_rerr = last_error();
+	return Error;
 #else
-	return BAD;
+	return Error;
 #endif
 }
 
-int SocketDevice::sendBufferSize(size_t _sz){
+bool SocketDevice::sendBufferSize(ERROR_NS::error_code &_rerr, size_t _sz){
+#ifdef ON_WINDOWS
+	return false;
+#else
+	int sockbufsz(_sz);
+	int rv = setsockopt(descriptor(), SOL_SOCKET, SO_SNDBUF, (char*)&sockbufsz, sizeof(sockbufsz));
+	if(rv == 0){
+		return true;
+	}
+	_rerr = last_error();
+	return false;
+#endif
+}
+
+bool SocketDevice::recvBufferSize(ERROR_NS::error_code &_rerr, size_t _sz){
 #ifdef ON_WINDOWS
 	return BAD;
 #else
 	int sockbufsz(_sz);
-	int rv;
-	rv = setsockopt(descriptor(), SOL_SOCKET, SO_SNDBUF, (char*)&sockbufsz, sizeof(sockbufsz));
-	if(rv < 0){
-		edbgx(Debug::system, "socket setsockopt SO_SNDBUF: "<<strerror(errno));
-		return BAD;
+	int rv = setsockopt(descriptor(), SOL_SOCKET, SO_RCVBUF, (char*)&sockbufsz, sizeof(sockbufsz));
+	if(rv == 0){
+		return true;
 	}
-	return OK;
+	_rerr = last_error();
+	return false;
 #endif
 }
-int SocketDevice::recvBufferSize(size_t _sz){
+
+int SocketDevice::sendBufferSize(ERROR_NS::error_code &_rerr)const{
 #ifdef ON_WINDOWS
-	return BAD;
-#else
-	int sockbufsz(_sz);
-	int rv;
-	rv = setsockopt(descriptor(), SOL_SOCKET, SO_RCVBUF, (char*)&sockbufsz, sizeof(sockbufsz));
-	if(rv < 0){
-		edbgx(Debug::system, "socket setsockopt SO_RCVBUF: "<<strerror(errno));
-		return BAD;
-	}
-	return OK;
-#endif
-}
-int SocketDevice::sendBufferSize()const{
-#ifdef ON_WINDOWS
-	return BAD;
+	return -1;
 #else
 	int 		sockbufsz(0);
 	socklen_t	sz(sizeof(sockbufsz));
-	int 		rv;
-	rv = getsockopt(descriptor(), SOL_SOCKET, SO_SNDBUF, (char*)&sockbufsz, &sz);
-	if(rv < 0){
-		edbgx(Debug::system, "socket setsockopt SO_SNDBUF: "<<strerror(errno));
-		return BAD;
+	int 		rv = getsockopt(descriptor(), SOL_SOCKET, SO_SNDBUF, (char*)&sockbufsz, &sz);
+	
+	if(rv == 0){
+		return sockbufsz;
 	}
-	return sockbufsz;
+	_rerr = last_error();
+	return -1;
 #endif
 }
-int SocketDevice::recvBufferSize()const{
+
+int SocketDevice::recvBufferSize(ERROR_NS::error_code &_rerr)const{
 #ifdef ON_WINDOWS
-	return BAD;
+	return -1;
 #else
 	int 		sockbufsz(0);
 	socklen_t	sz(sizeof(sockbufsz));
-	int 		rv;
-	rv = getsockopt(descriptor(), SOL_SOCKET, SO_RCVBUF, (char*)&sockbufsz, &sz);
-	if(rv < 0){
-		edbgx(Debug::system, "socket setsockopt SO_RCVBUF: "<<strerror(errno));
-		return BAD;
+	int 		rv = getsockopt(descriptor(), SOL_SOCKET, SO_RCVBUF, (char*)&sockbufsz, &sz);
+	if(rv == 0){
+		return sockbufsz;
 	}
-	return sockbufsz;
+	_rerr = last_error();
+	return -1;
 #endif
 }
 

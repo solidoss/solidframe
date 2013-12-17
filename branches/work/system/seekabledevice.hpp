@@ -26,7 +26,7 @@ public:
 	//! Move the cursor to a given position
 	int64 seek(int64 _pos, SeekRef _ref = SeekBeg);
 	//! Truncate to a certain length
-	int truncate(int64 _len);
+	bool truncate(int64 _len);
 protected:
 	SeekableDevice(DescriptorT _desc = invalidDescriptor()):Device(_desc){}
 };
