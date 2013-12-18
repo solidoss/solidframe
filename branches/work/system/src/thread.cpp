@@ -82,7 +82,8 @@ void throw_exception(const char* const _pt, const char * const _file, const int 
 
 #ifndef ON_WINDOWS
 static const pthread_once_t	oncek = PTHREAD_ONCE_INIT;
-#endif
+#else
+#endif//ON_WINDOWS
 
 struct ThreadData{
 	enum {
@@ -339,23 +340,30 @@ int Mutex::reinit(Type _type){
 }
 #endif
 //*************************************************************************
-struct MainThread: Thread{
+namespace{
+struct DummyThread: Thread{
 #ifdef ON_WINDOWS
-	MainThread(bool _detached = true, HANDLE _th = NULL):Thread(_detached, _th){}
+	DummyThread(HANDLE _th = NULL):Thread(true, _th){}
 #else
-	MainThread(bool _detached = true, pthread_t _th = 0):Thread(_detached, _th){}
+	DummyThread(pthread_t _th = 0):Thread(true, _th){}
 #endif
 	void run(){}
 };
+
+}//namespace
+
+#ifdef ON_WINDOWS
+#else
+void Thread::free_thread(void *_pth){
+	delete static_cast<Thread*>(_pth);
+}
+#endif
+
 /*static*/ void Thread::init(){
 #ifdef ON_WINDOWS
 	TlsSetValue(threadData().crtthread_key, NULL);
-	static MainThread	t(false, GetCurrentThread());
-	Thread::current(&t);
 #else
-	if(pthread_key_create(&threadData().crtthread_key, NULL)) throw -1;
-	static MainThread	t(false, pthread_self());
-	Thread::current(&t);
+	cverify(!pthread_key_create(&threadData().crtthread_key, &Thread::free_thread));
 #endif
 }
 //-------------------------------------------------------------------------
@@ -389,11 +397,23 @@ inline void Thread::exit(){
     td.gmut.unlock();
 }
 //-------------------------------------------------------------------------
+Thread* Thread::associateToCurrent(){
+#ifdef ON_WINDOWS
+	Thread *pth = new DummyThread(GetCurrentThread());
+#else
+	Thread *pth = new DummyThread(pthread_self());
+#endif
+	Thread::current(pth);
+	return NULL;
+}
+//-------------------------------------------------------------------------
 Thread * Thread::current(){
 #ifdef ON_WINDOWS
-	return NULL;
+	Thread * pth = reinterpret_cast<Thread*>(TlsGetValue(threadData().crtthread_key));
+	return pth ? pth : associate_to_current_thread();
 #else
-	return reinterpret_cast<Thread*>(pthread_getspecific(threadData().crtthread_key));
+	Thread * pth = reinterpret_cast<Thread*>(pthread_getspecific(threadData().crtthread_key));
+	return pth ? pth : associateToCurrent();
 #endif
 }
 //-------------------------------------------------------------------------
@@ -534,13 +554,11 @@ Mutex& Thread::gmutex(){
 	return threadData().gmut;
 }
 //-------------------------------------------------------------------------
-int Thread::current(Thread *_ptb){
+void Thread::current(Thread *_ptb){
 #ifdef ON_WINDOWS
 	TlsSetValue(threadData().crtthread_key, _ptb);
-	return OK;
 #else
 	pthread_setspecific(threadData().crtthread_key, _ptb);
-	return OK;
 #endif
 }
 //-------------------------------------------------------------------------
@@ -726,7 +744,9 @@ unsigned long Thread::th_run(void *pv){
 	pth->prepare();
 	pth->run();
 	pth->unprepare();
-	if(pth->detached()) delete pth;
+	if(!pth->detached()){
+		Thread::current(NULL);
+	}
 	vdbgx(Debug::system, "thrun exit "<<pv);
 	Thread::exit();
 	return NULL;
@@ -745,7 +765,9 @@ void* Thread::th_run(void *pv){
 	pth->prepare();
 	pth->run();
 	pth->unprepare();
-	if(pth->detached()) delete pth;
+	if(!pth->detached()){
+		Thread::current(NULL);
+	}
 	vdbgx(Debug::system, "thrun exit "<<pv);
 	Thread::exit();
 	return NULL;

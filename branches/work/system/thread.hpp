@@ -96,7 +96,10 @@ protected:
 	virtual void run() = 0;
 private:
 	//a dummy function
-	static int current(Thread *_ptb);
+	static void free_thread(void *_ptr);
+	static Thread* associateToCurrent();
+	
+	static void current(Thread *_ptb);
 	Thread(const Thread&){}
 #ifdef ON_WINDOWS
 	static unsigned long th_run(void*);
