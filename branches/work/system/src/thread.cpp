@@ -58,15 +58,6 @@ struct Cleaner{
 	}
 };
 
-ERROR_NS::error_code last_system_error(){
-#ifdef ON_WINDOWS
-	const DWORD err = GetLastError();
-	return ERROR_NS::error_code(err, ERROR_NS::system_category());
-#else
-	return ERROR_NS::error_code(errno, ERROR_NS::system_category());
-#endif
-}
-
 /*static*/ const char* src_file_name(char const *_fname){
 #ifdef ON_WINDOWS
 	static const unsigned fileoff = (strlen(__FILE__) - strlen(strstr(__FILE__, "system\\src")));

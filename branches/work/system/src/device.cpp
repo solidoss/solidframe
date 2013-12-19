@@ -25,6 +25,8 @@
 #include "system/cassert.hpp"
 #include "system/debug.hpp"
 
+using namespace std;
+
 namespace solid{
 
 Device::Device(const Device &_dev):desc(_dev.descriptor()) {
@@ -43,7 +45,7 @@ Device::~Device(){
 	close();
 }
 
-int Device::read(char	*_pb, uint32 _bl){
+int Device::read(char	*_pb, size_t _bl){
 	cassert(ok());
 #ifdef ON_WINDOWS
 	DWORD cnt;
@@ -57,7 +59,7 @@ int Device::read(char	*_pb, uint32 _bl){
 #endif
 }
 
-int Device::write(const char* _pb, uint32 _bl){
+int Device::write(const char* _pb, size_t _bl){
 	cassert(ok());
 #ifdef ON_WINDOWS
 	DWORD cnt;
@@ -104,7 +106,7 @@ void Device::flush(){
 }
 
 //-- SeekableDevice	----------------------------------------
-int SeekableDevice::read(char *_pb, uint32 _bl, int64 _off){
+int SeekableDevice::read(char *_pb, size_t _bl, int64 _off){
 #ifdef ON_WINDOWS
 	int64 off(seek(0, SeekCur));
 	seek(_off);
@@ -116,7 +118,7 @@ int SeekableDevice::read(char *_pb, uint32 _bl, int64 _off){
 #endif
 }
 
-int SeekableDevice::write(const char *_pb, uint32 _bl, int64 _off){
+int SeekableDevice::write(const char *_pb, size_t _bl, int64 _off){
 #ifdef ON_WINDOWS
 	int64 off(seek(0, SeekCur));
 	seek(_off);
@@ -491,12 +493,12 @@ struct wsa_cleaner{
 #endif
 
 //---- SocketDevice ---------------------------------
-/*static*/ ERROR_NS::error_code SocketDevice::last_error(){
+/*static*/ ERROR_NS::error_code SocketDevice::last_system_error(){
 #ifdef ON_WINDOWS
 	const DWORD err = WSAGetLastError();
 	return ERROR_NS::error_code(err, ERROR_NS::system_category());
 #else
-	return last_system_error();
+	return solid::last_system_error();
 #endif
 }
 SocketDevice::SocketDevice(const SocketDevice &_sd):Device(_sd){
@@ -745,7 +747,7 @@ bool SocketDevice::makeBlocking(ERROR_NS::error_code &_rerr){
 }
 
 
-bool SocketDevice::makeBlocking(ERROR_NS::error_code &_rerr, size_t _msec){
+bool SocketDevice::makeBlocking(size_t _msec){
 #ifdef ON_WINDOWS
 	u_long mode = 0;
 	int rv = ioctlsocket(descriptor(), FIONBIO, &mode);
@@ -788,76 +790,72 @@ bool SocketDevice::makeBlocking(ERROR_NS::error_code &_rerr, size_t _msec){
 #endif
 }
 
-bool SocketDevice::makeNonBlocking(ERROR_NS::error_code &_rerr){
+bool SocketDevice::makeNonBlocking(){
 #ifdef ON_WINDOWS
 	u_long mode = 1;
 	int rv = ioctlsocket(descriptor(), FIONBIO, &mode);
-	if (rv != NO_ERROR){
-		_rerr = last_error();
-		close();
-		return false;
+	
+	if (rv == NO_ERROR){
+		solid::last_error(0);
+		return true;
 	}
-	return true;
+	solid::last_error(solid::ERROR_SYSTEM);
+	return false;
 #else
 	int flg = fcntl(descriptor(), F_GETFL);
-	if(flg == -1){
-		_rerr = last_error();
-		close();
+	if(flg != -1){
+		solid::last_error(solid::ERROR_SYSTEM);
 		return false;
 	}
 	int rv = fcntl(descriptor(), F_SETFL, flg | O_NONBLOCK);
-	if(rv < 0){
-		_rerr = last_error();
-		close();
-		return false;
+	if(rv >= 0){
+		solid::last_error(0);
+		return true;
 	}
-	return true;
+	solid::last_error(solid::ERROR_SYSTEM);
+	return false;
 #endif
 }
 
-SocketDevice::RetValE SocketDevice::isBlocking(ERROR_NS::error_code &_rerr)const{
+pair<bool, bool> SocketDevice::isBlocking()const{
 #ifdef ON_WINDOWS
-	return Error;
+	solid::last_error(solid::ERROR_NOT_IMPLEMENTED);
+	return pair<bool, bool>(false, false);
 #else
 
-	int flg = fcntl(descriptor(), F_GETFL);
-	if(flg == -1){
-		_rerr = last_error();
-		return Error;
+	const int flg = fcntl(descriptor(), F_GETFL);
+	
+	if(flg != -1){
+		solid::last_error(0);
+		return pair<bool, bool>(true, (flg & O_NONBLOCK));
 	}
-	return (flg & O_NONBLOCK) ? Failure : Success;
+	solid::last_error(solid::ERROR_SYSTEM);
+	return pair<bool, bool>(false, false);
 #endif
 }
 
-bool SocketDevice::shouldWait()const{
-#ifdef ON_WINDOWS
-	return WSAGetLastError() == WSAEWOULDBLOCK;
-#else
-	return errno == EAGAIN;
-#endif
-}
-int SocketDevice::send(const char* _pb, unsigned _ul, unsigned){
+int SocketDevice::send(const char* _pb, size_t _ul, unsigned){
 #ifdef ON_WINDOWS
 	return -1;
 #else
 	return ::send(descriptor(), _pb, _ul, 0);
 #endif
 }
-int SocketDevice::recv(char *_pb, unsigned _ul, unsigned){
+int SocketDevice::recv(char *_pb, size_t _ul, unsigned){
 #ifdef ON_WINDOWS
 	return -1;
 #else
 	return ::recv(descriptor(), _pb, _ul, 0);
 #endif
 }
-int SocketDevice::send(const char* _pb, unsigned _ul, const SocketAddressStub &_sap){
+int SocketDevice::send(const char* _pb, size_t _ul, const SocketAddressStub &_sap){
 #ifdef ON_WINDOWS
 	return -1;
 #else
 	return ::sendto(descriptor(), _pb, _ul, 0, _sap.sockAddr(), _sap.size());
 #endif
 }
-int SocketDevice::recv(char *_pb, unsigned _ul, SocketAddress &_rsa){
+int SocketDevice::recv(char *_pb, size_t _ul, SocketAddress &_rsa){
 #ifdef ON_WINDOWS
 	return -1;
 #else
@@ -866,47 +864,55 @@ int SocketDevice::recv(char *_pb, unsigned _ul, SocketAddress &_rsa){
 	return ::recvfrom(descriptor(), _pb, _ul, 0, _rsa.sockAddr(), &_rsa.sz);
 #endif
 }
-bool SocketDevice::remoteAddress(ERROR_NS::error_code &_rerr, SocketAddress &_rsa)const{
+
+bool SocketDevice::remoteAddress(SocketAddress &_rsa)const{
 #ifdef ON_WINDOWS
+	solid::last_error(solid::ERROR_NOT_IMPLEMENTED);
 	return false;
 #else
 	_rsa.clear();
 	_rsa.sz = SocketAddress::Capacity;
 	int rv = getpeername(descriptor(), _rsa.sockAddr(), &_rsa.sz);
-	if(rv){
-		_rerr = last_error();
-		return false;
+	if(!rv){
+		solid::last_error(0);
+		return true;
 	}
-	return true;
+	solid::last_error(solid::ERROR_SYSTEM);
+	return false;
 #endif
 }
-bool SocketDevice::localAddress(ERROR_NS::error_code &_rerr, SocketAddress &_rsa)const{
+
+bool SocketDevice::localAddress(SocketAddress &_rsa)const{
 #ifdef ON_WINDOWS
+	solid::last_error(solid::ERROR_NOT_IMPLEMENTED);
 	return false;
 #else
 	_rsa.clear();
 	_rsa.sz = SocketAddress::Capacity;
 	int rv = getsockname(descriptor(), _rsa.sockAddr(), &_rsa.sz);
-	if(rv){
-		_rerr = last_error();
-		return false;
+	if(!rv){
+		solid::last_error(0);
+		return true;
 	}
-	return true;
+	solid::last_error(solid::ERROR_SYSTEM);
+	return false;
 #endif
 }
 
-int SocketDevice::type(ERROR_NS::error_code &_rerr)const{
+pair<bool, int> SocketDevice::type()const{
 #ifdef ON_WINDOWS
-	return -1;
+	solid::last_error(solid::ERROR_NOT_IMPLEMENTED);
+	return pair<bool, int>(false, -1);
 #else
-	int val = 0;
-	socklen_t valsz = sizeof(int);
+	int			val = 0;
+	socklen_t	valsz = sizeof(int);
 	int rv = getsockopt(descriptor(), SOL_SOCKET, SO_TYPE, &val, &valsz);
 	if(rv == 0){
-		return val;
+		solid::last_error(0);
+		return pair<bool, int>(true, val);
 	}
-	_rerr = last_error();
-	return -1;
+	solid::last_error(solid::ERROR_SYSTEM);
+	return pair<bool, int>(false, -1);
 #endif
 }
 
@@ -929,148 +935,177 @@ int SocketDevice::type(ERROR_NS::error_code &_rerr)const{
 // #endif
 // }
 
-bool SocketDevice::enableNoDelay(ERROR_NS::error_code &_rerr){
+bool SocketDevice::enableNoDelay(){
 #ifdef ON_WINDOWS
+	solid::last_error(solid::ERROR_NOT_IMPLEMENTED);
 	return false;
 #else
 	int flag = 1;
 	int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, sizeof(flag));
-	if(rv == 0) return true;
-	_rerr = last_error();
+	if(rv == 0){
+		solid::last_error(0);
+		return true;
+	}
+	solid::last_error(solid::ERROR_SYSTEM);
 	return false;
 #endif
 }
 
-bool SocketDevice::disableNoDelay(ERROR_NS::error_code &_rerr){
+bool SocketDevice::disableNoDelay(){
 #ifdef ON_WINDOWS
+	solid::last_error(solid::ERROR_NOT_IMPLEMENTED);
 	return false;
 #else
 	int flag = 0;
 	int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, sizeof(flag));
-	if(rv == 0) return true;
-	_rerr = last_error();
+	if(rv == 0){
+		solid::last_error(0);
+		return true;
+	}
+	solid::last_error(solid::ERROR_SYSTEM);
 	return false;
 #endif
 }
 
-SocketDevice::RetValE SocketDevice::hasNoDelay(ERROR_NS::error_code &_rerr)const{
+pair<bool, bool> SocketDevice::hasNoDelay()const{
 #ifdef ON_WINDOWS
-	return Error;
+	solid::last_error(solid::ERROR_NOT_IMPLEMENTED);
+	return pair<bool, bool>(false, false);
 #else
 	int			flag = 0;
 	socklen_t	sz(sizeof(flag));
-	int rv = getsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, &sz);
-	if(rv == 0) return flag != 0 ? Success : Failure;
-	_rerr = last_error();
-	return Error;
+	int			rv = getsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, &sz);
+	if(rv == 0){
+		solid::last_error(0);
+		return pair<bool, bool>(true, flag != 0);
+	}
+	solid::last_error(solid::ERROR_SYSTEM);
+	return pair<bool, bool>(false, false);
 #endif
 }
 	
-bool SocketDevice::enableCork(ERROR_NS::error_code &_rerr){
+bool SocketDevice::enableCork(){
 #ifdef ON_WINDOWS
+	solid::last_error(solid::ERROR_NOT_IMPLEMENTED);
 	return false;
 #elif defined(ON_LINUX)
 	int flag = 1;
 	int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_CORK, (char*)&flag, sizeof(flag));
 	if(rv == 0){
+		solid::last_error(0);
 		return true;
 	}
-	_rerr = last_error();
+	solid::last_error(solid::ERROR_SYSTEM);
 	return false;
 #else
+	solid::last_error(solid::ERROR_NOT_IMPLEMENTED);
 	return false;
 #endif
 }
 
-bool SocketDevice::disableCork(ERROR_NS::error_code &_rerr){
+bool SocketDevice::disableCork(){
 #ifdef ON_WINDOWS
+	solid::last_error(solid::ERROR_NOT_IMPLEMENTED);
 	return false;
 #elif defined(ON_LINUX)
 	int flag = 0;
 	int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_CORK, (char*)&flag, sizeof(flag));
 	if(rv == 0){
+		solid::last_error(0);
 		return true;
 	}
-	_rerr = last_error();
+	solid::last_error(solid::ERROR_SYSTEM);
 	return false;
 #else
+	solid::last_error(solid::ERROR_NOT_IMPLEMENTED);
 	return false;
 #endif
 }
 
-SocketDevice::RetValE SocketDevice::hasCork(ERROR_NS::error_code &_rerr)const{
+pair<bool, bool> SocketDevice::hasCork()const{
 #ifdef ON_WINDOWS
-	return Error;
+	solid::last_error(solid::ERROR_NOT_IMPLEMENTED);
+	return pair<bool, bool>(false, false);
 #elif defined(ON_LINUX)
 	int			flag = 0;
 	socklen_t	sz(sizeof(flag));
 	int rv = getsockopt(descriptor(), IPPROTO_TCP, TCP_CORK, (char*)&flag, &sz);
 	if(rv == 0){
-		return flag != 0 ? Success : Failure;
+		solid::last_error(0);
+		return pair<bool, bool>(true, flag != 0);
 	}
-	_rerr = last_error();
-	return Error;
+	solid::last_error(solid::ERROR_SYSTEM);
+	return pair<bool, bool>(false, false);
 #else
-	return Error;
+	solid::last_error(solid::ERROR_NOT_IMPLEMENTED);
+	return pair<bool, bool>(false, false);
 #endif
 }
 
-bool SocketDevice::sendBufferSize(ERROR_NS::error_code &_rerr, size_t _sz){
+bool SocketDevice::sendBufferSize(size_t _sz){
 #ifdef ON_WINDOWS
+	solid::last_error(solid::ERROR_NOT_IMPLEMENTED);
 	return false;
 #else
 	int sockbufsz(_sz);
 	int rv = setsockopt(descriptor(), SOL_SOCKET, SO_SNDBUF, (char*)&sockbufsz, sizeof(sockbufsz));
 	if(rv == 0){
+		solid::last_error(0);
 		return true;
 	}
-	_rerr = last_error();
+	solid::last_error(solid::ERROR_SYSTEM);
 	return false;
 #endif
 }
 
-bool SocketDevice::recvBufferSize(ERROR_NS::error_code &_rerr, size_t _sz){
+bool SocketDevice::recvBufferSize(size_t _sz){
 #ifdef ON_WINDOWS
-	return BAD;
+	solid::last_error(solid::ERROR_NOT_IMPLEMENTED);
+	return false;
 #else
 	int sockbufsz(_sz);
 	int rv = setsockopt(descriptor(), SOL_SOCKET, SO_RCVBUF, (char*)&sockbufsz, sizeof(sockbufsz));
 	if(rv == 0){
+		solid::last_error(0);
 		return true;
 	}
-	_rerr = last_error();
+	solid::last_error(solid::ERROR_SYSTEM);
 	return false;
 #endif
 }
 
-int SocketDevice::sendBufferSize(ERROR_NS::error_code &_rerr)const{
+pair<bool, size_t> SocketDevice::sendBufferSize()const{
 #ifdef ON_WINDOWS
-	return -1;
+	solid::last_error(solid::ERROR_NOT_IMPLEMENTED);
+	return pair<bool, size_t>(false, -1);
 #else
 	int 		sockbufsz(0);
 	socklen_t	sz(sizeof(sockbufsz));
 	int 		rv = getsockopt(descriptor(), SOL_SOCKET, SO_SNDBUF, (char*)&sockbufsz, &sz);
 	
 	if(rv == 0){
-		return sockbufsz;
+		solid::last_error(0);
+		return pair<bool, size_t>(true, sockbufsz);
 	}
-	_rerr = last_error();
-	return -1;
+	solid::last_error(solid::ERROR_SYSTEM);
+	return pair<bool, size_t>(false, -1);
 #endif
 }
 
-int SocketDevice::recvBufferSize(ERROR_NS::error_code &_rerr)const{
+pair<bool, size_t> SocketDevice::recvBufferSize()const{
 #ifdef ON_WINDOWS
-	return -1;
+	solid::last_error(solid::ERROR_NOT_IMPLEMENTED);
+	return pair<bool, size_t>(false, -1);
 #else
 	int 		sockbufsz(0);
 	socklen_t	sz(sizeof(sockbufsz));
 	int 		rv = getsockopt(descriptor(), SOL_SOCKET, SO_RCVBUF, (char*)&sockbufsz, &sz);
 	if(rv == 0){
-		return sockbufsz;
+		solid::last_error(0);
+		return pair<bool, size_t>(true, sockbufsz);
 	}
-	_rerr = last_error();
-	return -1;
+	solid::last_error(solid::ERROR_SYSTEM);
+	return pair<bool, size_t>(false, -1);
 #endif
 }
 

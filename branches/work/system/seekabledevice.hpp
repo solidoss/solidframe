@@ -20,9 +20,9 @@ public:
 	using Device::read;
 	using Device::write;
 	//! Read from a given position
-	int read(char *_pb, uint32 _bl, int64 _off);
+	int read(char *_pb, size_t _bl, int64 _off);
 	//! Write at a given position
-	int write(const char *_pb, uint32 _bl, int64 _off);
+	int write(const char *_pb, size_t _bl, int64 _off);
 	//! Move the cursor to a given position
 	int64 seek(int64 _pos, SeekRef _ref = SeekBeg);
 	//! Truncate to a certain length

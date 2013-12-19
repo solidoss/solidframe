@@ -24,11 +24,13 @@ public:
 #else
 	typedef int DescriptorT;
 #endif
-	static ERROR_NS::error_code last_error();
+	static ERROR_NS::error_code last_system_error();
 	enum RetValE{
 		Error = solid::Error,
 		Success = solid::Success,
 		Failure = solid::Failure,
+		Yes = Success,
+		No = Failure,
 		Pending
 	};
 	//!Copy constructor
@@ -54,54 +56,49 @@ public:
 		int _proto = 0
 	);
 	//! Connect the socket
-	RetValE connect(ERROR_NS::error_code &_rerr, const SocketAddressStub &_rsas);
+	bool connect(const SocketAddressStub &_rsas, bool &_rpending);
+	bool connect(const SocketAddressStub &_rsas);
 	//! Bind the socket to a specific addr:port
-	bool bind(ERROR_NS::error_code &_rerr, const SocketAddressStub &_rsa);
+	bool bind(const SocketAddressStub &_rsa);
 	//! Prepares the socket for accepting
-	bool prepareAccept(ERROR_NS::error_code &_rerr, const SocketAddressStub &_rsas, size_t _listencnt = 10);
+	bool prepareAccept(const SocketAddressStub &_rsas, size_t _listencnt = 10);
 	//! Accept an incomming connection
-	RetValE accept(ERROR_NS::error_code &_rerr, SocketDevice &_dev);
+	bool accept(SocketDevice &_dev, bool &_rpending);
+	bool accept(SocketDevice &_dev);
 	//! Make a connection blocking
 	/*!
 		\param _msec if _msec > 0 will make socket blocking with the given amount of milliseconds
 	*/
-	bool makeBlocking(ERROR_NS::error_code &_rerr, size_t _msec);
-	bool makeBlocking(ERROR_NS::error_code &_rerr);
+	bool makeBlocking(size_t _msec);
+	bool makeBlocking();
 	//! Make the socket nonblocking
-	bool makeNonBlocking(ERROR_NS::error_code &_rerr);
+	bool makeNonBlocking();
 	//! Check if its blocking
-	RetValE isBlocking(ERROR_NS::error_code &_rerr)const;
-	bool enableNoDelay(ERROR_NS::error_code &_rerr);
-	bool disableNoDelay(ERROR_NS::error_code &_rerr);
-	RetValE hasNoDelay(ERROR_NS::error_code &_rerr)const;
+	bool isBlocking(bool &_)const;
+	bool enableNoDelay();
+	bool disableNoDelay();
+	std::pair<bool, bool> hasNoDelay()const;
 	
-	bool enableCork(ERROR_NS::error_code &_rerr);//TCP_CORK - only on linux, TCP_NOPUSH on FreeBSD
-	bool disableCork(ERROR_NS::error_code &_rerr);
-	RetValE hasCork(ERROR_NS::error_code &_rerr)const;
+	bool enableCork();//TCP_CORK - only on linux, TCP_NOPUSH on FreeBSD
+	bool disableCork();
+	std::pair<bool, bool> hasCork()const;
 	
-	bool sendBufferSize(ERROR_NS::error_code &_rerr, size_t _sz);
-	bool recvBufferSize(ERROR_NS::error_code &_rerr, size_t _sz);
-	int sendBufferSize(ERROR_NS::error_code &_rerr)const;
-	int recvBufferSize(ERROR_NS::error_code &_rerr)const;
-	//! Return true if nonblocking and the prevoious nonblocking opperation did not complete
-	/*!
-		In case of nonblocking sockets, use this method after:connect, accept, read, write,send
-		recv to see if the opearation failed temporarly and that you should try later.
-		Call this method imediatly after a connect,accept,send, recv when they return with error.
-	*/
-	bool shouldWait()const;
+	bool sendBufferSize(size_t _sz);
+	bool recvBufferSize(size_t _sz);
+	std::pair<bool, int> sendBufferSize()const;
+	std::pair<bool, int> recvBufferSize()const;
 	//! Write data on socket
-	int send(const char* _pb, unsigned _ul, unsigned _flags = 0);
+	int send(const char* _pb, size_t _ul, unsigned _flags = 0);
 	//! Reads data from a socket
-	int recv(char *_pb, unsigned _ul, unsigned _flags = 0);
+	int recv(char *_pb, size_t _ul, unsigned _flags = 0);
 	//! Send a datagram to a socket
-	int send(const char* _pb, unsigned _ul, const SocketAddressStub &_sap);
+	int send(const char* _pb, size_t _ul, const SocketAddressStub &_sap);
 	//! Recv data from a socket
-	int recv(char *_pb, unsigned _ul, SocketAddress &_rsa);
+	int recv(char *_pb, size_t _ul, SocketAddress &_rsa);
 	//! Gets the remote address for a connected socket
-	bool remoteAddress(ERROR_NS::error_code &_rerr, SocketAddress &_rsa)const;
+	bool remoteAddress(SocketAddress &_rsa)const;
 	//! Gets the local address for a socket
-	bool localAddress(ERROR_NS::error_code &_rerr, SocketAddress &_rsa)const;
+	bool localAddress(SocketAddress &_rsa)const;
 #ifdef ON_WINDOWS
 	static const DescriptorT invalidDescriptor(){
 		return INVALID_SOCKET;
@@ -113,9 +110,9 @@ public:
 #endif
 	void close();
 	//! Get the socket type
-	int type(ERROR_NS::error_code &_rerr)const;
+	std::pair<bool, int> type()const;
 	//! Return true if the socket is listening
-	//bool isListening(ERROR_NS::error_code &_rerr)const;
+	//bool isListening()const;
 };
 
 }//namespace solid

@@ -27,6 +27,14 @@
 namespace solid{
 
 ERROR_NS::error_code last_system_error();
+ERROR_NS::error_code last_error();
+void last_error(int _err);
+
+enum Errors{
+	ERROR_NOERROR = 0,
+	ERROR_NOT_IMPLEMENTED,
+	ERROR_SYSTEM,
+};
 
 }//namespace solid
 
