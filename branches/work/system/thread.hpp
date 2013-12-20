@@ -20,9 +20,12 @@
 #endif
 
 #include <vector>
+#include "system/error.hpp"
 #include "system/common.hpp"
 
 namespace solid{
+
+
 
 struct Mutex;
 
@@ -54,7 +57,7 @@ public:
 	//! Releases the processor for another thread
 	static void yield();
 	//! Returns a pointer to the current thread
-	static Thread * current();
+	static Thread& current();
 	//! Returns the id of the current thread
 	static long currentId();
 	//! Returns a new id for use with specific objects
@@ -81,6 +84,11 @@ public:
 	int detach();
 	
 	Mutex& mutex()const;
+	
+	void specificErrorClear();
+	void specificErrorPush(const ErrorStub &_rerr);
+	ErrorVectorT const& specificErrorGet()const;
+	
 protected:
 #ifdef _WIN32
 	Thread(bool _detached = true, void* _th = NULL);
@@ -123,6 +131,7 @@ private:
 	int				dtchd;
 	unsigned        thcrtstatid;
 	SpecVecT		specvec;
+	ErrorVectorT	errvec;
 	ThreadStub		*pthrstub;
 };
 
@@ -138,6 +147,16 @@ inline long Thread::currentId(){
 	return (long)pthread_self();
 }
 #endif
+
+inline void Thread::specificErrorClear(){
+	errvec.clear();
+}
+inline void Thread::specificErrorPush(const ErrorStub &_rerr){
+	errvec.push_back(_rerr);
+}
+inline ErrorVectorT const& Thread::specificErrorGet()const{
+	return errvec;
+}
 
 }//namespace solid
 

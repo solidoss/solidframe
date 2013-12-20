@@ -398,13 +398,13 @@ Thread* Thread::associateToCurrent(){
 	return NULL;
 }
 //-------------------------------------------------------------------------
-Thread * Thread::current(){
+Thread& Thread::current(){
 #ifdef ON_WINDOWS
 	Thread * pth = reinterpret_cast<Thread*>(TlsGetValue(threadData().crtthread_key));
-	return pth ? pth : associate_to_current_thread();
+	return pth ? *pth : *associate_to_current_thread();
 #else
 	Thread * pth = reinterpret_cast<Thread*>(pthread_getspecific(threadData().crtthread_key));
-	return pth ? pth : associateToCurrent();
+	return pth ? *pth : *associateToCurrent();
 #endif
 }
 //-------------------------------------------------------------------------
@@ -520,14 +520,13 @@ size_t Thread::specificId(){
 #endif
 //-------------------------------------------------------------------------
 void Thread::specific(unsigned _pos, void *_psd, SpecificFncT _pf){
-	Thread *pct = current();
-	cassert(pct);
-	if(_pos >= pct->specvec.size()) pct->specvec.resize(_pos + 4);
+	Thread &rct = current();
+	if(_pos >= rct.specvec.size()) rct.specvec.resize(_pos + 4);
 	//This is safe because pair will initialize with NULL on resize
-	if(pct->specvec[_pos].first){
-		(*pct->specvec[_pos].second)(pct->specvec[_pos].first);
+	if(rct.specvec[_pos].first){
+		(*rct.specvec[_pos].second)(rct.specvec[_pos].first);
 	}
-	pct->specvec[_pos] = SpecPairT(_psd, _pf);
+	rct.specvec[_pos] = SpecPairT(_psd, _pf);
 	//return _pos;
 }
 //-------------------------------------------------------------------------
@@ -539,7 +538,7 @@ void Thread::specific(unsigned _pos, void *_psd, SpecificFncT _pf){
 //-------------------------------------------------------------------------
 void* Thread::specific(unsigned _pos){
 	cassert(current() && _pos < current()->specvec.size());
-	return current()->specvec[_pos].first;
+	return current().specvec[_pos].first;
 }
 Mutex& Thread::gmutex(){
 	return threadData().gmut;

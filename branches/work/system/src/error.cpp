@@ -22,11 +22,46 @@ ERROR_NS::error_code last_system_error(){
 #endif
 }
 
-ERROR_NS::error_code last_error(){
-	
+ERROR_NS::error_category const	&error_category_get(){
+	//TODO: implement an error_category
+	return ERROR_NS::generic_category();
 }
-void last_error(int _err){
-	
+
+void specific_error_clear(){
+	Thread::current().specificErrorClear();
+}
+
+void specific_error_push(
+	int _value,
+	ERROR_NS::error_category const	*_category,
+	unsigned _line = -1,
+	const char *_file = NULL
+){
+	Thread::current().specificErrorPush(ErrorStub(_value, _category, _line, _file));
+}
+
+void specific_error_push(
+	ERROR_NS::error_code const	&_code,
+	unsigned _line = -1,
+	const char *_file = NULL
+){
+	Thread::current().specificErrorPush(ErrorStub(_code, _line, _file));
+}
+
+
+ErrorVectorT const & specific_error_get(){
+	return Thread::current().specificErrorGet();
+}
+void specific_error_print(std::ostream &_ros, const bool _withcodeinfo = true){
+	const ErrorVectorT &rerrvec = Thread::current().specificErrorGet();
+	for(ErrorVectorT::const_reverse_iterator it(rerrvec.rbegin()); it != rerrvec.rend(); ++it){
+		ERROR_NS::error_code err = it->errorCode();
+		_ros<<err.category().name();
+		if(_withcodeinfo){
+			_ros<<'('<<it->file<<':'<<it->line<<')';
+		}
+		_ros<<':'<<' '<<err.message()<<';'<<' ';
+	}
 }
 
 }//namespace solid

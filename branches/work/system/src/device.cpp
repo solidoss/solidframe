@@ -796,40 +796,40 @@ bool SocketDevice::makeNonBlocking(){
 	int rv = ioctlsocket(descriptor(), FIONBIO, &mode);
 	
 	if (rv == NO_ERROR){
-		solid::last_error(0);
+		specific_error_clear();
 		return true;
 	}
-	solid::last_error(solid::ERROR_SYSTEM);
+	SPECIFIC_ERROR_PUSH1(last_system_error());
 	return false;
 #else
 	int flg = fcntl(descriptor(), F_GETFL);
 	if(flg != -1){
-		solid::last_error(solid::ERROR_SYSTEM);
+		SPECIFIC_ERROR_PUSH1(last_system_error());
 		return false;
 	}
 	int rv = fcntl(descriptor(), F_SETFL, flg | O_NONBLOCK);
 	if(rv >= 0){
-		solid::last_error(0);
+		specific_error_clear();
 		return true;
 	}
-	solid::last_error(solid::ERROR_SYSTEM);
+	SPECIFIC_ERROR_PUSH1(last_system_error());
 	return false;
 #endif
 }
 
 pair<bool, bool> SocketDevice::isBlocking()const{
 #ifdef ON_WINDOWS
-	solid::last_error(solid::ERROR_NOT_IMPLEMENTED);
+	SPECIFIC_ERROR_PUSH2(solid::ERROR_NOT_IMPLEMENTED, error_category_get());
 	return pair<bool, bool>(false, false);
 #else
 
 	const int flg = fcntl(descriptor(), F_GETFL);
 	
 	if(flg != -1){
-		solid::last_error(0);
+		specific_error_clear();
 		return pair<bool, bool>(true, (flg & O_NONBLOCK));
 	}
-	solid::last_error(solid::ERROR_SYSTEM);
+	SPECIFIC_ERROR_PUSH1(last_system_error());
 	return pair<bool, bool>(false, false);
 #endif
 }
@@ -867,51 +867,51 @@ int SocketDevice::recv(char *_pb, size_t _ul, SocketAddress &_rsa){
 
 bool SocketDevice::remoteAddress(SocketAddress &_rsa)const{
 #ifdef ON_WINDOWS
-	solid::last_error(solid::ERROR_NOT_IMPLEMENTED);
+	SPECIFIC_ERROR_PUSH2(solid::ERROR_NOT_IMPLEMENTED, error_category_get());
 	return false;
 #else
 	_rsa.clear();
 	_rsa.sz = SocketAddress::Capacity;
 	int rv = getpeername(descriptor(), _rsa.sockAddr(), &_rsa.sz);
 	if(!rv){
-		solid::last_error(0);
+		specific_error_clear();
 		return true;
 	}
-	solid::last_error(solid::ERROR_SYSTEM);
+	SPECIFIC_ERROR_PUSH1(last_system_error());
 	return false;
 #endif
 }
 
 bool SocketDevice::localAddress(SocketAddress &_rsa)const{
 #ifdef ON_WINDOWS
-	solid::last_error(solid::ERROR_NOT_IMPLEMENTED);
+	SPECIFIC_ERROR_PUSH2(solid::ERROR_NOT_IMPLEMENTED, error_category_get());
 	return false;
 #else
 	_rsa.clear();
 	_rsa.sz = SocketAddress::Capacity;
 	int rv = getsockname(descriptor(), _rsa.sockAddr(), &_rsa.sz);
 	if(!rv){
-		solid::last_error(0);
+		specific_error_clear();
 		return true;
 	}
-	solid::last_error(solid::ERROR_SYSTEM);
+	SPECIFIC_ERROR_PUSH1(last_system_error());
 	return false;
 #endif
 }
 
 pair<bool, int> SocketDevice::type()const{
 #ifdef ON_WINDOWS
-	solid::last_error(solid::ERROR_NOT_IMPLEMENTED);
+	SPECIFIC_ERROR_PUSH2(solid::ERROR_NOT_IMPLEMENTED, error_category_get());
 	return pair<bool, int>(false, -1);
 #else
 	int			val = 0;
 	socklen_t	valsz = sizeof(int);
 	int rv = getsockopt(descriptor(), SOL_SOCKET, SO_TYPE, &val, &valsz);
 	if(rv == 0){
-		solid::last_error(0);
+		specific_error_clear();
 		return pair<bool, int>(true, val);
 	}
-	solid::last_error(solid::ERROR_SYSTEM);
+	SPECIFIC_ERROR_PUSH1(last_system_error());
 	return pair<bool, int>(false, -1);
 #endif
 }
@@ -937,104 +937,104 @@ pair<bool, int> SocketDevice::type()const{
 
 bool SocketDevice::enableNoDelay(){
 #ifdef ON_WINDOWS
-	solid::last_error(solid::ERROR_NOT_IMPLEMENTED);
+	SPECIFIC_ERROR_PUSH2(solid::ERROR_NOT_IMPLEMENTED, error_category_get());
 	return false;
 #else
 	int flag = 1;
 	int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, sizeof(flag));
 	if(rv == 0){
-		solid::last_error(0);
+		specific_error_clear();
 		return true;
 	}
-	solid::last_error(solid::ERROR_SYSTEM);
+	SPECIFIC_ERROR_PUSH1(last_system_error());
 	return false;
 #endif
 }
 
 bool SocketDevice::disableNoDelay(){
 #ifdef ON_WINDOWS
-	solid::last_error(solid::ERROR_NOT_IMPLEMENTED);
+	SPECIFIC_ERROR_PUSH2(solid::ERROR_NOT_IMPLEMENTED, error_category_get());
 	return false;
 #else
 	int flag = 0;
 	int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, sizeof(flag));
 	if(rv == 0){
-		solid::last_error(0);
+		specific_error_clear();
 		return true;
 	}
-	solid::last_error(solid::ERROR_SYSTEM);
+	SPECIFIC_ERROR_PUSH1(last_system_error());
 	return false;
 #endif
 }
 
 pair<bool, bool> SocketDevice::hasNoDelay()const{
 #ifdef ON_WINDOWS
-	solid::last_error(solid::ERROR_NOT_IMPLEMENTED);
+	SPECIFIC_ERROR_PUSH2(solid::ERROR_NOT_IMPLEMENTED, error_category_get());
 	return pair<bool, bool>(false, false);
 #else
 	int			flag = 0;
 	socklen_t	sz(sizeof(flag));
 	int			rv = getsockopt(descriptor(), IPPROTO_TCP, TCP_NODELAY, (char*)&flag, &sz);
 	if(rv == 0){
-		solid::last_error(0);
+		specific_error_clear();
 		return pair<bool, bool>(true, flag != 0);
 	}
-	solid::last_error(solid::ERROR_SYSTEM);
+	SPECIFIC_ERROR_PUSH1(last_system_error());
 	return pair<bool, bool>(false, false);
 #endif
 }
 	
 bool SocketDevice::enableCork(){
 #ifdef ON_WINDOWS
-	solid::last_error(solid::ERROR_NOT_IMPLEMENTED);
+	SPECIFIC_ERROR_PUSH2(solid::ERROR_NOT_IMPLEMENTED, error_category_get());
 	return false;
 #elif defined(ON_LINUX)
 	int flag = 1;
 	int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_CORK, (char*)&flag, sizeof(flag));
 	if(rv == 0){
-		solid::last_error(0);
+		specific_error_clear();
 		return true;
 	}
-	solid::last_error(solid::ERROR_SYSTEM);
+	SPECIFIC_ERROR_PUSH1(last_system_error());
 	return false;
 #else
-	solid::last_error(solid::ERROR_NOT_IMPLEMENTED);
+	SPECIFIC_ERROR_PUSH2(solid::ERROR_NOT_IMPLEMENTED, error_category_get());
 	return false;
 #endif
 }
 
 bool SocketDevice::disableCork(){
 #ifdef ON_WINDOWS
-	solid::last_error(solid::ERROR_NOT_IMPLEMENTED);
+	SPECIFIC_ERROR_PUSH2(solid::ERROR_NOT_IMPLEMENTED, error_category_get());
 	return false;
 #elif defined(ON_LINUX)
 	int flag = 0;
 	int rv = setsockopt(descriptor(), IPPROTO_TCP, TCP_CORK, (char*)&flag, sizeof(flag));
 	if(rv == 0){
-		solid::last_error(0);
+		specific_error_clear();
 		return true;
 	}
-	solid::last_error(solid::ERROR_SYSTEM);
+	SPECIFIC_ERROR_PUSH1(last_system_error());
 	return false;
 #else
-	solid::last_error(solid::ERROR_NOT_IMPLEMENTED);
+	SPECIFIC_ERROR_PUSH2(solid::ERROR_NOT_IMPLEMENTED, error_category_get());
 	return false;
 #endif
 }
 
 pair<bool, bool> SocketDevice::hasCork()const{
 #ifdef ON_WINDOWS
-	solid::last_error(solid::ERROR_NOT_IMPLEMENTED);
+	SPECIFIC_ERROR_PUSH2(solid::ERROR_NOT_IMPLEMENTED, error_category_get());
 	return pair<bool, bool>(false, false);
 #elif defined(ON_LINUX)
 	int			flag = 0;
 	socklen_t	sz(sizeof(flag));
 	int rv = getsockopt(descriptor(), IPPROTO_TCP, TCP_CORK, (char*)&flag, &sz);
 	if(rv == 0){
-		solid::last_error(0);
+		specific_error_clear();
 		return pair<bool, bool>(true, flag != 0);
 	}
-	solid::last_error(solid::ERROR_SYSTEM);
+	SPECIFIC_ERROR_PUSH1(last_system_error());
 	return pair<bool, bool>(false, false);
 #else
 	solid::last_error(solid::ERROR_NOT_IMPLEMENTED);
@@ -1044,39 +1044,39 @@ pair<bool, bool> SocketDevice::hasCork()const{
 
 bool SocketDevice::sendBufferSize(size_t _sz){
 #ifdef ON_WINDOWS
-	solid::last_error(solid::ERROR_NOT_IMPLEMENTED);
+	SPECIFIC_ERROR_PUSH2(solid::ERROR_NOT_IMPLEMENTED, error_category_get());
 	return false;
 #else
 	int sockbufsz(_sz);
 	int rv = setsockopt(descriptor(), SOL_SOCKET, SO_SNDBUF, (char*)&sockbufsz, sizeof(sockbufsz));
 	if(rv == 0){
-		solid::last_error(0);
+		specific_error_clear();
 		return true;
 	}
-	solid::last_error(solid::ERROR_SYSTEM);
+	SPECIFIC_ERROR_PUSH1(last_system_error());
 	return false;
 #endif
 }
 
 bool SocketDevice::recvBufferSize(size_t _sz){
 #ifdef ON_WINDOWS
-	solid::last_error(solid::ERROR_NOT_IMPLEMENTED);
+	SPECIFIC_ERROR_PUSH2(solid::ERROR_NOT_IMPLEMENTED, error_category_get());
 	return false;
 #else
 	int sockbufsz(_sz);
 	int rv = setsockopt(descriptor(), SOL_SOCKET, SO_RCVBUF, (char*)&sockbufsz, sizeof(sockbufsz));
 	if(rv == 0){
-		solid::last_error(0);
+		specific_error_clear();
 		return true;
 	}
-	solid::last_error(solid::ERROR_SYSTEM);
+	SPECIFIC_ERROR_PUSH1(last_system_error());
 	return false;
 #endif
 }
 
 pair<bool, size_t> SocketDevice::sendBufferSize()const{
 #ifdef ON_WINDOWS
-	solid::last_error(solid::ERROR_NOT_IMPLEMENTED);
+	SPECIFIC_ERROR_PUSH2(solid::ERROR_NOT_IMPLEMENTED, error_category_get());
 	return pair<bool, size_t>(false, -1);
 #else
 	int 		sockbufsz(0);
@@ -1084,27 +1084,27 @@ pair<bool, size_t> SocketDevice::sendBufferSize()const{
 	int 		rv = getsockopt(descriptor(), SOL_SOCKET, SO_SNDBUF, (char*)&sockbufsz, &sz);
 	
 	if(rv == 0){
-		solid::last_error(0);
+		specific_error_clear();
 		return pair<bool, size_t>(true, sockbufsz);
 	}
-	solid::last_error(solid::ERROR_SYSTEM);
+	SPECIFIC_ERROR_PUSH1(last_system_error());
 	return pair<bool, size_t>(false, -1);
 #endif
 }
 
 pair<bool, size_t> SocketDevice::recvBufferSize()const{
 #ifdef ON_WINDOWS
-	solid::last_error(solid::ERROR_NOT_IMPLEMENTED);
+	SPECIFIC_ERROR_PUSH2(solid::ERROR_NOT_IMPLEMENTED, error_category_get());
 	return pair<bool, size_t>(false, -1);
 #else
 	int 		sockbufsz(0);
 	socklen_t	sz(sizeof(sockbufsz));
 	int 		rv = getsockopt(descriptor(), SOL_SOCKET, SO_RCVBUF, (char*)&sockbufsz, &sz);
 	if(rv == 0){
-		solid::last_error(0);
+		specific_error_clear();
 		return pair<bool, size_t>(true, sockbufsz);
 	}
-	solid::last_error(solid::ERROR_SYSTEM);
+	SPECIFIC_ERROR_PUSH1(last_system_error());
 	return pair<bool, size_t>(false, -1);
 #endif
 }
