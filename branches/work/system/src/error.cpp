@@ -27,6 +27,10 @@ ERROR_NS::error_category const	&error_category_get(){
 	return ERROR_NS::generic_category();
 }
 
+ERROR_NS::error_code error_make(Errors _err){
+	return ERROR_NS::error_code(static_cast<int>(_err), error_category_get());
+}
+
 void specific_error_clear(){
 	Thread::current().specificErrorClear();
 }
@@ -34,16 +38,16 @@ void specific_error_clear(){
 void specific_error_push(
 	int _value,
 	ERROR_NS::error_category const	*_category,
-	unsigned _line = -1,
-	const char *_file = NULL
+	unsigned _line,
+	const char *_file
 ){
 	Thread::current().specificErrorPush(ErrorStub(_value, _category, _line, _file));
 }
 
 void specific_error_push(
 	ERROR_NS::error_code const	&_code,
-	unsigned _line = -1,
-	const char *_file = NULL
+	unsigned _line,
+	const char *_file
 ){
 	Thread::current().specificErrorPush(ErrorStub(_code, _line, _file));
 }
@@ -52,7 +56,7 @@ void specific_error_push(
 ErrorVectorT const & specific_error_get(){
 	return Thread::current().specificErrorGet();
 }
-void specific_error_print(std::ostream &_ros, const bool _withcodeinfo = true){
+void specific_error_print(std::ostream &_ros, const bool _withcodeinfo){
 	const ErrorVectorT &rerrvec = Thread::current().specificErrorGet();
 	for(ErrorVectorT::const_reverse_iterator it(rerrvec.rbegin()); it != rerrvec.rend(); ++it){
 		ERROR_NS::error_code err = it->errorCode();

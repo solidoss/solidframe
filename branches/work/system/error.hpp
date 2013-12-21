@@ -35,6 +35,7 @@ enum Errors{
 	ERROR_NOERROR = 0,
 	ERROR_NOT_IMPLEMENTED,
 	ERROR_SYSTEM,
+	ERROR_THREAD_STARTED
 };
 
 struct ErrorStub{
@@ -64,6 +65,7 @@ struct ErrorStub{
 typedef std::vector<ErrorStub>	ErrorVectorT;
 
 ERROR_NS::error_category const	&error_category_get();
+ERROR_NS::error_code error_make(Errors _err);
 
 void specific_error_clear();
 void specific_error_push(
@@ -74,7 +76,7 @@ void specific_error_push(
 );
 
 void specific_error_push(
-	ERROR_NS::error_code const	*_code,
+	ERROR_NS::error_code const	&_rcode,
 	unsigned _line = -1,
 	const char *_file = NULL
 );

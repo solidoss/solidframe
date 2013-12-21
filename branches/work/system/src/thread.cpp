@@ -460,36 +460,43 @@ void Thread::dummySpecificDestroy(void*){
 #endif
 }
 //-------------------------------------------------------------------------
-int Thread::join(){
+bool Thread::join(){
 #ifdef ON_WINDOWS
-	if(detached()) return NOK;
+	if(detached()) return false;
 	WaitForSingleObject(th, INFINITE);
-	return 0;
+	return true;
 #else
-	if(pthread_equal(th, pthread_self())) return NOK;
-	if(detached()) return NOK;
-	int rcode =  pthread_join(this->th, NULL);
-	return rcode;
+	if(pthread_equal(th, pthread_self())) return false;
+	if(detached()) return false;
+	int rv =  pthread_join(this->th, NULL);
+	if(rv < 0){
+		SPECIFIC_ERROR_PUSH1(last_system_error());
+		return false;
+	}
+	return true;
 #endif
 }
 //-------------------------------------------------------------------------
-int Thread::detached() const{
+bool Thread::detached() const{
 	//Locker<Mutex> lock(mutex());
 	return dtchd;
 }
 //-------------------------------------------------------------------------
-int Thread::detach(){
+bool Thread::detach(){
 #ifdef ON_WINDOWS
 	Locker<Mutex> lock(mutex());
-	if(detached()) return OK;
-	dtchd = 1;
-	return 0;
+	if(detached()) return true;
+	dtchd = true;
+	return false;
 #else
 	Locker<Mutex> lock(mutex());
-	if(detached()) return OK;
+	if(detached()) return true;
 	int rcode = pthread_detach(this->th);
-	if(rcode == OK)	dtchd = 1;
-	return rcode;
+	if(rcode == OK){
+		dtchd = true;
+		return true;
+	}
+	return false;
 #endif
 }
 //-------------------------------------------------------------------------
@@ -537,7 +544,7 @@ void Thread::specific(unsigned _pos, void *_psd, SpecificFncT _pf){
 // }
 //-------------------------------------------------------------------------
 void* Thread::specific(unsigned _pos){
-	cassert(current() && _pos < current()->specvec.size());
+	cassert(_pos < current().specvec.size());
 	return current().specvec[_pos].first;
 }
 Mutex& Thread::gmutex(){
@@ -567,7 +574,7 @@ struct Thread::ThreadStub{
 	Condition	*pcnd;
 	int			*pval;
 };
-int Thread::start(bool _wait, bool _detached, ulong _stacksz){
+bool Thread::start(bool _wait, bool _detached, ulong _stacksz){
 #ifdef ON_WINDOWS
 	if(_wait){
 		Locker<Mutex>	lock(mutex());
@@ -575,7 +582,8 @@ int Thread::start(bool _wait, bool _detached, ulong _stacksz){
 		int				val(1);
 		ThreadStub		thrstub(&cnd, &val);
 		if(th){
-			return BAD;
+			
+			return false;
 		}
 		pthrstub = &thrstub;
 		{
@@ -583,7 +591,7 @@ int Thread::start(bool _wait, bool _detached, ulong _stacksz){
 			Thread::enter();
 		}
 		if(_detached){
-			dtchd = 1;
+			dtchd = true;
 		}
 		th = CreateThread(NULL, _stacksz, (LPTHREAD_START_ROUTINE)&Thread::th_run, this, 0, NULL);
 		if(th == NULL){
@@ -592,7 +600,7 @@ int Thread::start(bool _wait, bool _detached, ulong _stacksz){
 				Thread::exit();
 			}
 			pthrstub = NULL;
-			return BAD;
+			return false;
 		}
 		while(val){
 			cnd.wait(lock);
@@ -600,14 +608,14 @@ int Thread::start(bool _wait, bool _detached, ulong _stacksz){
 	}else{
 		Locker<Mutex>	lock(mutex());
 		if(th){
-			return BAD;
+			return false;
 		}
 		{
 			Locker<Mutex>	lock2(gmutex());
 			Thread::enter();
 		}
 		if(_detached){
-			dtchd = 1;
+			dtchd = true;
 		}
 		th = CreateThread(NULL, _stacksz, (LPTHREAD_START_ROUTINE)&Thread::th_run, this, 0, NULL);
 		if(th == NULL){
@@ -615,10 +623,10 @@ int Thread::start(bool _wait, bool _detached, ulong _stacksz){
 				Locker<Mutex>	lock2(gmutex());
 				Thread::exit();
 			}
-			return BAD;
+			return false;
 		}
 	}
-	return OK;
+	return true;
 #else
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);
@@ -656,7 +664,7 @@ int Thread::start(bool _wait, bool _detached, ulong _stacksz){
 			Thread::enter();
 		}
 		if(_detached){
-			dtchd = 1;
+			dtchd = true;
 		}
 		if(pthread_create(&th,&attr,&Thread::th_run,this)){
 			edbgx(Debug::system, "pthread_create: "<<strerror(errno));
@@ -684,7 +692,7 @@ int Thread::start(bool _wait, bool _detached, ulong _stacksz){
 			Thread::enter();
 		}
 		if(_detached){
-			dtchd = 1;
+			dtchd = true;
 		}
 		if(pthread_create(&th,&attr,&Thread::th_run,this)){
 			edbgx(Debug::system, "pthread_create: "<<strerror(errno));

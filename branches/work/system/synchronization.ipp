@@ -32,8 +32,8 @@ inline Semaphore &Semaphore::operator++(){
 	sem_post(&sem);
 	return *this;
 }
-inline int Semaphore::tryWait(){
-	return sem_trywait(&sem);
+inline bool Semaphore::tryWait(){
+	return sem_trywait(&sem) == 0;
 }
 
 #else

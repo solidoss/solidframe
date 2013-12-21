@@ -75,13 +75,13 @@ public:
 		\param _detached If true create the thread in a detached state
 		\param _stacksz 
 	*/
-	int start(bool _wait = false, bool _detached = true, ulong _stacksz = 0);
+	bool start(bool _wait = false, bool _detached = true, ulong _stacksz = 0);
 	//! Join the calling thread
-	int join();
+	bool join();
 	//! Check if the thread is detached
-	int detached() const;
+	bool detached() const;
 	//! Detach the thread
-	int detach();
+	bool detach();
 	
 	Mutex& mutex()const;
 	
@@ -128,7 +128,7 @@ private:
 #else
 	pthread_t       th;
 #endif
-	int				dtchd;
+	bool			dtchd;
 	unsigned        thcrtstatid;
 	SpecVecT		specvec;
 	ErrorVectorT	errvec;

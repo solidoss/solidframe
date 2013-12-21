@@ -27,7 +27,7 @@ public:
 	void wait();
 	operator int ();
 	Semaphore & operator++();
-	int tryWait();
+	bool tryWait();
 private:
 #ifndef ON_WINDOWS
 	sem_t sem;

@@ -74,7 +74,7 @@ public:
 	//! Make the socket nonblocking
 	bool makeNonBlocking();
 	//! Check if its blocking
-	bool isBlocking(bool &_)const;
+	std::pair<bool, bool> isBlocking()const;
 	bool enableNoDelay();
 	bool disableNoDelay();
 	std::pair<bool, bool> hasNoDelay()const;
@@ -85,8 +85,8 @@ public:
 	
 	bool sendBufferSize(size_t _sz);
 	bool recvBufferSize(size_t _sz);
-	std::pair<bool, int> sendBufferSize()const;
-	std::pair<bool, int> recvBufferSize()const;
+	std::pair<bool, size_t> sendBufferSize()const;
+	std::pair<bool, size_t> recvBufferSize()const;
 	//! Write data on socket
 	int send(const char* _pb, size_t _ul, unsigned _flags = 0);
 	//! Reads data from a socket
