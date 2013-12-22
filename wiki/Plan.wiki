@@ -10,6 +10,7 @@ For 1.0 Beta version
  # (10) DONE: New binary protocol for client-server apps
  # (15) DONE: A distributed chat example (using the binary protocol) along with a stress client.
  # (20) DONE: Move the entire code under more liberal boost 1.0 license
+ # (22) STARTED: better response types - no more BAD/OK/NOK
  # (25) STARTED: frame::SharedStore - asynchronous read/write lock.
  # (27) PENDING: Refactor frame::file::Manager to use frame::SharedStore
  # (30) DONE: Proper file rotation for debug
