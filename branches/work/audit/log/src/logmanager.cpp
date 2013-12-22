@@ -180,13 +180,13 @@ void LogManager::eraseListener(const LogManager::UidT &_ruid){
 	}
 }
 
-int LogManager::start(){
-	if(d.state == Data::Running) return OK;
+bool LogManager::start(){
+	if(d.state == Data::Running) return true;
 	if(d.state != Data::Stopped){
 		stop(true);
 	}
 	d.state = Data::Running;
-	return OK;
+	return true;
 }
 void LogManager::stop(bool _wait){
 	Locker<Mutex> lock(d.m);
@@ -254,7 +254,7 @@ void LogManager::runListener(ListenerWorker &_w){
 		d.m.unlock();
 		SocketDevice &rsd(d.lsnv[_w.idx].sd);
 		SocketDevice csd;
-		while(rsd.accept(csd) == OK){
+		while(rsd.accept(csd)){
 			SocketInputStream *pis = new SocketInputStream(csd);
 			if(this->insertChannel(pis).first == 0xffffffff){
 				delete pis;

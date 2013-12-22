@@ -593,7 +593,7 @@ void Debug::initSocket(
 	if(!d.isActive()) return;
 	//do the connect outside locking
 	ResolveData				rd = synchronous_resolve(_addr, _port, 0, SocketInfo::Inet4, SocketInfo::Stream);
-	if(!rd.empty() && d.sd.create(rd.begin()) == OK && d.sd.connect(rd.begin()) == SocketDevice::Success){
+	if(!rd.empty() && d.sd.create(rd.begin()) && d.sd.connect(rd.begin())){
 	}else{
 		d.sd.close();//make sure the socket is closed
 	}

@@ -22,14 +22,14 @@ namespace audit{
 LogRecorder::~LogRecorder(){
 }
 //--------------------------------------------------------
-int LogFileRecorder::open(const char *_name){
+bool LogFileRecorder::open(const char *_name){
 	if(_name){
 		name = _name;
 	}
 	string path = name;
 	path += ".txt";
 	ofs.open(path.c_str());
-	return OK;
+	return true;
 }
 LogFileRecorder::~LogFileRecorder(){
 }

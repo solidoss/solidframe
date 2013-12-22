@@ -33,7 +33,7 @@ public:
 	void eraseClient(const UidT &_ruid);
 	void eraseListener(const UidT &_ruid);
 	
-	int start();
+	bool start();
 	void stop(bool _wait = true);
 	UidT insertConnector(LogConnector *_plc);
 	void eraseConnector(const UidT &_ruid);

@@ -20,8 +20,11 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #endif
+#include "system/error.hpp"
 
 namespace solid{
+
+static ERROR_NS::error_code last_socket_error();
 
 struct SocketInfo{
 	enum Family{

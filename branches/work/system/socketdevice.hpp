@@ -24,15 +24,6 @@ public:
 #else
 	typedef int DescriptorT;
 #endif
-	static ERROR_NS::error_code last_system_error();
-	enum RetValE{
-		Error = solid::Error,
-		Success = solid::Success,
-		Failure = solid::Failure,
-		Yes = Success,
-		No = Failure,
-		Pending
-	};
 	//!Copy constructor
 	SocketDevice(const SocketDevice &_sd);
 	//!Basic constructor

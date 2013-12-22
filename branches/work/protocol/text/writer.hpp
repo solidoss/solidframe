@@ -37,7 +37,7 @@ namespace text{
 		There is a very simple and fast state machine based on the return value
 		of scheduled functions. The state machine will exit when, either the buffer must be flushed
 		and this cannot be done imediatly (wait to flushed asynchrounously), the stack is empty,
-		a function return Writer::Bad.<br>
+		a function return Writer::Failure.<br>
 	
 	<b>Usage:</b><br>
 		Inherit, implement the virtual methods and extend the writer with new 
@@ -68,11 +68,11 @@ public:
 		ResetLogging,
 	};
 	enum ReturnValues{
-		Bad = BAD,	//!<input closed
-		Ok = OK,	//!<everything ok, do a pop
-		No = NOK,	//!<Must wait
-		Yield,		//!<Must yield the connection
-		Continue,	//!<reexecute the top function - no pop
+		Failure = -1,	//!<input closed
+		Success = 0,	//!<everything ok, do a pop
+		Wait,			//!<Must wait
+		Yield,			//!<Must yield the connection
+		Continue,		//!<reexecute the top function - no pop
 		LastReturnValue
 	};
 public:

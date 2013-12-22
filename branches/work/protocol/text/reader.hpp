@@ -51,7 +51,7 @@ struct DummyKey{
 		There is a very simple and fast state machine based on the return value
 		of scheduled functions. The state machine will exit when, either the buffer is empty
 		and it cannot be filled (wait to be filled asynchrounously), the stack is empty,
-		a function return Reader::Bad.<br>
+		a function return Reader::Failure.<br>
 		
 	
 	<b>Usage:</b><br>
@@ -73,12 +73,12 @@ struct DummyKey{
 class Reader{
 public:
 	enum ReturnValues{
-		Bad = BAD,	//!<input closed
-		Ok = OK,	//!<everything ok, do a pop
-		No = NOK,	//!<Must wait
-		Yield,		//!<Must yield the connection
-		Continue,	//!<reexecute the top function - no pop
-		Error,		//!<parser error - must enter error recovery
+		Failure = -1,	//!<input closed
+		Success = 0,	//!<everything ok, do a pop
+		Wait,			//!<Must wait
+		Yield,			//!<Must yield the connection
+		Continue,		//!<reexecute the top function - no pop
+		Error,			//!<parser error - must enter error recovery
 		LastReturnValue
 	};
 	enum ManagementOptions{
@@ -194,8 +194,8 @@ public:
 		Rdr	&rr(static_cast<Rdr&>(_rr));
 		int rv = rr.fetch<Filter>(_rr.tmp, _rp.b.u32);
 		switch(rv){
-			case Ok:break;
-			case No:
+			case Success:break;
+			case Wait:
 				_rr.push(&Reader::refill);
 				return Continue;
 			case Error:
@@ -219,20 +219,20 @@ public:
 	static int fetchFilteredString(Reader &_rr, Parameter &_rp){
 		int rv = _rr.fetch<Filter>(*static_cast<String*>(_rp.a.p), _rp.b.u32);
 		switch(rv){
-			case Ok:
+			case Success:
 				if(static_cast<String*>(_rp.a.p)->empty()){
 					_rr.basicError(EmptyAtom);
 					return Error;
 				}
 				break;
-			case No:
+			case Wait:
 				_rr.push(&Reader::refill);
 				return Continue;
 			case Error:
 				_rr.basicError(StringTooLong);
 				return Error;
 		}
-		return Ok;
+		return Success;
 	}
 	//! Callback which check the current char using the filter and if it passes it pops callbacks
 	
@@ -246,7 +246,7 @@ public:
 		if(Filter::check(c)){
 			return pop(_rr, _rp);
 		}
-		return Ok;
+		return Success;
 	}
 	
 protected:
@@ -279,19 +279,19 @@ protected:
 			_rds.append(tbeg, rpos - tbeg);
 			if(rpos != wpos){
 				if(dolog) plog->inLiteral(_rds.data(),_rds.size());
-				return Ok;
+				return Success;
 			}
 		}else{
 			if(dolog) plog->inLiteral(_rds.data(), _rds.size());
 			return Error;
 		}
-		return No;
+		return Wait;
 	}
 	//! Locate a certain char (using filter) keeping in _rds the last _keep chars
 	template <class Filter>
 	int locate(String &_rds, uint32 &_rdsz, int _keep){
 		//int rcode;
-		if(_rdsz < (ulong)(bh->pend - bh->pbeg)) return Bad;
+		if(_rdsz < (ulong)(bh->pend - bh->pbeg)) return Failure;
 		const char *tbeg = rpos;
 		cassert(rpos <= wpos);
 		while(rpos != wpos && !Filter::check(*rpos)) ++rpos;
@@ -307,9 +307,9 @@ protected:
 		_rdsz -= slen;
 		if(rpos != wpos){
 			if(dolog) plog->inLocate(_rds.data(), _rds.size());
-			return Ok;
+			return Success;
 		}
-		return No;
+		return Wait;
 	}
 	//! The reader will call this method when refilling its buffer
 	virtual int read(char *_pb, uint32 _bl) = 0;

@@ -42,27 +42,27 @@ int Writer::run(){
 	while(fs.size()){
 		const int rval((*fs.top().first)(*this, fs.top().second));
 		switch(rval){
-			case Bad:return BAD;
-			case No: return NOK;//wait data
-			case Ok: fs.pop();break;
-			case Yield:return YIELD;
+			case Failure:return Failure;
+			case Wait: return Wait;//wait data
+			case Success: fs.pop();break;
+			case Yield:return Yield;
 			case Continue: break;
 			default: fs.pop(); return rval;
 		}
 	}
-	return OK;
+	return Success;
 }
 
 int Writer::flush(){
 	int towrite = wpos - rpos;
 	if(towrite < FlushLength)
-		return Ok;
+		return Success;
 		
 	int rv = write(rpos, towrite);
 	if(dolog) plog->outFlush();
-	if(rv == Ok){
+	if(rv == Success){
 		rpos = wpos = bh->pbeg;
-		return Ok;
+		return Success;
 	}
 	return rv;
 }
@@ -70,14 +70,14 @@ int Writer::flush(){
 int Writer::flushAll(){
 	int towrite = wpos - rpos;
 	if(towrite == 0)
-		return Ok;
+		return Success;
 		
 	int rv = write(rpos, towrite);
 	if(dolog)
 		plog->outFlush();
-	if(rv == Ok){
+	if(rv == Success){
 		rpos = wpos = bh->pbeg; 
-		return Ok;
+		return Success;
 	}
 	return rv;
 }
@@ -263,19 +263,19 @@ template <>
 
 /*static*/ int Writer::flush(Writer &_rw, Parameter &_rp){
 	int rv = _rw.flush();
-	if(rv == No) _rw.fs.top().first = &Writer::doneFlush;
+	if(rv == Wait) _rw.fs.top().first = &Writer::doneFlush;
 	return rv;
 }
 
 /*static*/ int Writer::flushAll(Writer &_rw, Parameter &_rp){
 	int rv = _rw.flushAll();
-	if(rv == No) _rw.fs.top().first = &Writer::doneFlush;
+	if(rv == Wait) _rw.fs.top().first = &Writer::doneFlush;
 	return rv;
 }
 
 /*static*/ int Writer::doneFlush(Writer &_rw, Parameter &_rp){
 	_rw.rpos = _rw.wpos = _rw.bh->pbeg;
-	return Ok;
+	return Success;
 }
 
 /*static*/ int Writer::putRawString(Writer &_rw, Parameter &_rp){
@@ -287,12 +287,12 @@ template <>
 		//NOTE: no need to do the flushing now
 		//int rv = _rw.flush();
 		//if(rv){ _rw.fs.top().first = &Writer::doneFlush(); return rv;}
-		return Ok;
+		return Success;
 	}else{
 		int rv = _rw.write((char*)_rp.a.p, _rp.b.u32);
-		if(rv == No){//scheduled for writing
+		if(rv == Wait){//scheduled for writing
 			_rw.replace(&Writer::returnValue<true>, Parameter(Continue));
-			return No;
+			return Wait;
 		}
 		return rv;
 	}
@@ -301,18 +301,18 @@ template <>
 /*static*/ int Writer::putStream(Writer &_rw, Parameter &_rp){
 	InputStreamIterator &isi = *reinterpret_cast<InputStreamIterator*>(_rp.a.p);
 	uint64			&sz = *static_cast<uint64*>(_rp.b.p);
-	if(isi.start() < 0) return Bad;
+	if(isi.start() < 0) return Failure;
 	if(sz < FlushLength){
 		cassert((_rw.bh->pend - _rw.wpos) >= FlushLength);
 		if(sz != (uint64)isi->read(_rw.wpos, sz))
-			return Bad;
+			return Failure;
 		_rw.wpos += sz;
 		int rv = _rw.flush();
 		if(rv){
 			_rw.fs.top().first = &Writer::doneFlush; 
 			return rv;
 		}
-		return Ok;
+		return Success;
 	}else{//flush the buffer
 		_rw.fs.top().first = &putStreamDone;
 		int rv = _rw.flushAll();
@@ -336,20 +336,20 @@ template <>
 		if(toread > tmpsz) toread = tmpsz;
 		rv = isi->read(_rw.bh->pbeg, toread);
 		if((ulong)rv != toread){
-			return Bad;
+			return Failure;
 		}
 		tmpsz -= rv;
 		if(rv < FlushLength)
 			break;
 		switch(_rw.write(_rw.bh->pbeg, rv)){
-			case Bad:
-				return Bad;
-			case Ok:
+			case Failure:
+				return Failure;
+			case Success:
 				rv = 0;
 				break;
-			case No:
+			case Wait:
 				sz += tmpsz;
-				return No;
+				return Wait;
 		}
 	}
 	
@@ -357,7 +357,7 @@ template <>
 		return Yield;
 	}
 	_rw.wpos += rv;
-	return Ok;
+	return Success;
 }
 
 /*static*/ int Writer::putAtom(Writer &_rw, Parameter &_rp){
@@ -369,7 +369,7 @@ template <>
 		_rw.wpos += _rp.b.u32;
 		int rv = _rw.flush();
 		if(rv){ _rw.fs.top().first = &Writer::doneFlush; return rv;}
-		return Ok;
+		return Success;
 	}
 	//we kinda need to do it the hard way
 	uint towrite = _rw.bh->pend - _rw.wpos;
@@ -387,30 +387,30 @@ template <>
 	if(_rw.dolog) _rw.plog->outChar(_rp.a.i);
 	int rv = _rw.flush();
 	if(rv){ _rw.fs.top().first = &Writer::doneFlush; return rv;}
-	return Ok;
+	return Success;
 }
 
 /*static*/ int Writer::putUInt32(Writer &_rw, Parameter &_rp){
 	_rw.put(_rp.a.u32);
 	int rv = _rw.flush();
 	if(rv){ _rw.fs.top().first = &Writer::doneFlush; return rv;}
-	return Ok;
+	return Success;
 }
 
 /*static*/ int Writer::putUInt64(Writer &_rw, Parameter &_rp){
 	_rw.put(_rp.a.u64);
 	int rv = _rw.flush();
 	if(rv){ _rw.fs.top().first = &Writer::doneFlush; return rv;}
-	return Ok;
+	return Success;
 }
 
 /*static*/ int Writer::manage(Writer &_rw, Parameter &_rp){
 	switch(_rp.a.i){
-		case ClearLogging: _rw.dolog = false; return Ok;
-		case ResetLogging: _rw.dolog = _rw.isLogActive(); return Ok;
+		case ClearLogging: _rw.dolog = false; return Success;
+		case ResetLogging: _rw.dolog = _rw.isLogActive(); return Success;
 		default: return _rw.doManage(_rp.a.i);
 	}
-	return Ok;
+	return Success;
 }
 
 void Writer::clear(){
@@ -419,7 +419,7 @@ void Writer::clear(){
 
 int Writer::doManage(int _mo){
 	cassert(false);
-	return Ok;
+	return Success;
 }
 
 Writer& Writer::operator << (char _c){

@@ -473,6 +473,7 @@ bool Thread::join(){
 		SPECIFIC_ERROR_PUSH1(last_system_error());
 		return false;
 	}
+	specific_error_clear();
 	return true;
 #endif
 }
@@ -492,7 +493,7 @@ bool Thread::detach(){
 	Locker<Mutex> lock(mutex());
 	if(detached()) return true;
 	int rcode = pthread_detach(this->th);
-	if(rcode == OK){
+	if(rcode == 0){
 		dtchd = true;
 		return true;
 	}
@@ -626,6 +627,7 @@ bool Thread::start(bool _wait, bool _detached, ulong _stacksz){
 			return false;
 		}
 	}
+	specific_error_clear();
 	return true;
 #else
 	pthread_attr_t attr;
@@ -634,7 +636,7 @@ bool Thread::start(bool _wait, bool _detached, ulong _stacksz){
 		if(pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_DETACHED)){
 			pthread_attr_destroy(&attr);
 			edbgx(Debug::system, "pthread_attr_setdetachstate: "<<strerror(errno));
-			return BAD;
+			return false;
 		}
 	}
 	if(_stacksz){
@@ -645,7 +647,7 @@ bool Thread::start(bool _wait, bool _detached, ulong _stacksz){
 		if(rv){
 			edbgx(Debug::system, "pthread_attr_setstacksize "<<_stacksz<<": "<<strerror(errno));
 			pthread_attr_destroy(&attr);
-			return BAD;
+			return false;
 		}
 	}
 
@@ -656,7 +658,7 @@ bool Thread::start(bool _wait, bool _detached, ulong _stacksz){
 		ThreadStub		thrstub(&cnd, &val);
 		if(th){
 			pthread_attr_destroy(&attr);
-			return BAD;
+			return false;
 		}
 		pthrstub = &thrstub;
 		{
@@ -675,7 +677,7 @@ bool Thread::start(bool _wait, bool _detached, ulong _stacksz){
 				Locker<Mutex>	lock2(gmutex());
 				Thread::exit();
 			}
-			return BAD;
+			return false;
 		}
 		idbgx(Debug::system, "started thread "<<th);
 		while(val){
@@ -685,7 +687,7 @@ bool Thread::start(bool _wait, bool _detached, ulong _stacksz){
 		Locker<Mutex>	lock(mutex());
 		if(th){
 			pthread_attr_destroy(&attr);
-			return BAD;
+			return false;
 		}
 		{
 			Locker<Mutex>	lock2(gmutex());
@@ -702,14 +704,14 @@ bool Thread::start(bool _wait, bool _detached, ulong _stacksz){
 				Locker<Mutex>	lock2(gmutex());
 				Thread::exit();
 			}
-			return BAD;
+			return false;
 		}
 		idbgx(Debug::system, "started thread "<<th);
 	}
-
+	specific_error_clear();
 	pthread_attr_destroy(&attr);
 	vdbgx(Debug::system, "");
-	return OK;
+	return true;
 #endif
 }
 //-------------------------------------------------------------------------

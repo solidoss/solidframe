@@ -79,21 +79,21 @@ enum SeekRef {
 };
 
 //! Some project wide used return values
-enum RetVal{
-	BAD = -1,
-	OK = 0,
-	NOK,
-	YIELD,
-	CONTINUE
-};
+// enum RetVal{
+// 	BAD = -1,
+// 	OK = 0,
+// 	NOK,
+// 	YIELD,
+// 	CONTINUE
+// };
 
 
 //! Some project wide used return values
-enum RetValE{
-	Error = -1,
-	Success = 0,
-	Failure
-};
+// enum RetValE{
+// 	Error = -1,
+// 	Success = 0,
+// 	Failure
+// };
 
 
 struct EmptyType{};

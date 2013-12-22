@@ -65,17 +65,17 @@ void Reader::resetState(){
 }
 	
 int Reader::peek(int &_c){
-	if(rpos != wpos) { _c = *(rpos); return Ok;}
-	return No;
+	if(rpos != wpos) { _c = *(rpos); return Success;}
+	return Wait;
 }
 
 int Reader::get(int &_c){
 	if(rpos != wpos) {
         _c = *(rpos++);
         if(dolog) plog->inChar(_c);
-        return Ok;
+        return Success;
     }
-    return No;
+    return Wait;
 }
 
 void Reader::drop(){
@@ -91,30 +91,30 @@ int Reader::fetchLiteral(String &_rds, uint32 &_rdsz){
 	rpos += mlen;
 	if(_rdsz == 0){
 		if(dolog) plog->inLiteral(_rds.data(), _rds.size());
-		return Ok;
+		return Success;
 	}
-	return No;
+	return Wait;
 }
 
 int Reader::run(){
 	while(fs.size()){
 		const int rval((*fs.top().first)(*this, fs.top().second)); 
 		switch(rval){
-			case Bad:return BAD;
-			case No: return NOK;//wait data
+			case Failure:return Failure;
+			case Wait: return Wait;//wait data
 			case Error:
 				cassert(state != RecoverState);
 				state = RecoverState;
 				while(fs.size())fs.pop();
 				prepareErrorRecovery();
 				break;
-			case Ok: fs.pop();break;
-			case Yield:return YIELD;
+			case Success: fs.pop();break;
+			case Yield:return Yield;
 			case Continue: break;
 			default: fs.pop(); return rval;
 		}
 	}
-	return OK;
+	return Success;
 }
 
 /*static*/ int Reader::checkChar(Reader &_rr, Parameter &_rp){
@@ -125,7 +125,7 @@ int Reader::run(){
 	}
 	if(c == _rp.a.i){
 		_rr.drop();
-		return Ok;
+		return Success;
 	}else{
 		_rr.charError(c, _rp.a.i);
 		return Error;
@@ -137,7 +137,7 @@ int Reader::run(){
 		_rr.push(&Reader::refill);
 		return Continue;
 	}
-	return Ok;
+	return Success;
 }
 
 /*static*/ int Reader::fetchLiteralDummy(Reader &_rr, Parameter &_rp){
@@ -149,7 +149,7 @@ int Reader::run(){
 		_rr.push(&Reader::refill);
 		return Continue;
 	}
-	return Ok;
+	return Success;
 }
 
 /*static*/ int Reader::fetchLiteralStream(Reader &_rr, Parameter &_rp){
@@ -180,17 +180,17 @@ int Reader::run(){
 		int		rv(Continue);
 		
 		switch(_rr.read(_rr.bh->pbeg, toread)){
-			case Bad: return Bad;
-			case Ok: break;
-			case No:
-				rv = No;
+			case Failure: return Failure;
+			case Success: break;
+			case Wait:
+				rv = Wait;
 				break;
 		}
 		_rr.replace(&Reader::fetchLiteralStreamContinue, _rp);
 		return rv;
 	}else{//done
 		_rr.rpos += minlen;
-		return Ok;
+		return Success;
 	}
 }
 
@@ -213,52 +213,52 @@ int Reader::run(){
 		toread = bufsz;
 		if(tmpsz < toread) toread = tmpsz;
 		switch(_rr.read(_rr.bh->pbeg, toread)){
-			case Bad:
-				return Bad;
-			case Ok:
+			case Failure:
+				return Failure;
+			case Success:
 				break;
-			case No:
+			case Wait:
 				sz += tmpsz;
-				return No;
+				return Wait;
 		}
 	}
 	if(sz){
 		toread = bufsz;
 		if(sz < toread) toread = sz;
 		switch(_rr.read(_rr.bh->pbeg, toread)){
-			case Bad:
-				return Bad;
-			case Ok:
+			case Failure:
+				return Failure;
+			case Success:
 				break;
-			case No:
-				return No;
+			case Wait:
+				return Wait;
 		}
 		return Yield;
 	}
 	idbgx(Debug::proto_txt, "fetch stream done "<<sz);
-	return Ok;//Done
+	return Success;//Done
 }
 
 /*static*/ int Reader::refillDone(Reader &_rr, Parameter &_rp){
 	_rr.wpos = _rr.bh->pbeg + _rr.readSize();
 	_rr.rpos = _rr.bh->pbeg;
 	//writedbg(_rr.rpos, _rr.readSize());
-	return Ok;
+	return Success;
 }
 
 /*static*/ int Reader::refill(Reader &_rr, Parameter &_rp){
 	int rv = _rr.read(_rr.bh->pbeg, _rr.bh->pend - _rr.bh->pbeg);
-	if(rv == Bad){
+	if(rv == Failure){
 		_rr.state = IOErrorState;
-		return Bad;
-	}else if(rv == Ok){
+		return Failure;
+	}else if(rv == Success){
 		_rr.wpos = _rr.bh->pbeg + _rr.readSize();
 		_rr.rpos = _rr.bh->pbeg;
 		//writedbg(_rr.rpos, _rr.readSize());
-		return Ok;
+		return Success;
 	}
 	_rr.replace(&Reader::refillDone);
-	return No;
+	return Wait;
 }
 
 template <>
@@ -285,12 +285,12 @@ template <>
 
 /*static*/ int Reader::manage(Reader &_rr, Parameter &_rp){
 	switch(_rp.a.i){
-		case ClearLogging: _rr.dolog = false; return Ok;
-		case ResetLogging: _rr.dolog = _rr.isLogActive(); return Ok;
-		case ClearTmpString: _rr.tmp.clear(); return Ok;
+		case ClearLogging: _rr.dolog = false; return Success;
+		case ResetLogging: _rr.dolog = _rr.isLogActive(); return Success;
+		case ClearTmpString: _rr.tmp.clear(); return Success;
 		default: return _rr.doManage(_rp.a.i);
 	}
-	return Ok;
+	return Success;
 }
 
 struct DigitFilter{
@@ -302,8 +302,8 @@ struct DigitFilter{
 /*static*/ int Reader::fetchUInt32(Reader &_rr, Parameter &_rp){
 	int rv = _rr.fetch<DigitFilter>(_rr.tmp, 12);
 	switch(rv){
-		case Ok:break;
-		case No:
+		case Success:break;
+		case Wait:
 			_rr.push(&Reader::refill);
 			return Continue;
 		case Error:
@@ -318,14 +318,14 @@ struct DigitFilter{
 		return Error;
 	}
 	_rr.tmp.clear();
-	return Ok;
+	return Success;
 }
 
 /*static*/ int Reader::fetchUInt64(Reader &_rr, Parameter &_rp){
 	int rv = _rr.fetch<DigitFilter>(_rr.tmp, 32);
 	switch(rv){
-		case Ok:break;
-		case No:
+		case Success:break;
+		case Wait:
 			_rr.push(&Reader::refill);
 			return Continue;
 		case Error:
@@ -341,7 +341,7 @@ struct DigitFilter{
 		return Error;
 	}
 	_rr.tmp.clear();
-	return Ok;
+	return Success;
 }
 
 /*static*/ int Reader::dropChar(Reader &_rr, Parameter &_rp){
@@ -351,7 +351,7 @@ struct DigitFilter{
 		return Continue;
 	}
 	_rr.drop();
-	return Ok;
+	return Success;
 }
 
 /*static*/ int Reader::saveCurrentChar(Reader &_rr, Parameter &_rp){
@@ -364,7 +364,7 @@ struct DigitFilter{
 		*reinterpret_cast<int*>(_rp.a.p) = c;
 		_rr.drop();
 	}
-	return Ok;
+	return Success;
 }
 /*static*/ int Reader::fetchChar(Reader &_rr, Parameter &_rp){
 	int c;
@@ -374,16 +374,16 @@ struct DigitFilter{
 	}
 	*reinterpret_cast<char*>(_rp.a.p) = c;
 	_rr.drop();
-	return Ok;
+	return Success;
 }
 //default we close
 void Reader::prepareErrorRecovery(){
-	push(&Reader::returnValue<true>, Parameter(Bad));
+	push(&Reader::returnValue<true>, Parameter(Failure));
 }
 
 int Reader::doManage(int _mo){
 	cassert(false);
-	return Ok;
+	return Success;
 }
 
 void Reader::doPrepareBuffer(char *_newbeg, const char *_newend){
