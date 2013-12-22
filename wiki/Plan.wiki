@@ -25,7 +25,7 @@ Pool of pending features and changes
  # (05) Use (std/boost::system)::error_code across solid.
  # (10) (IPC) Add NoCompression message flag. This should be used for messages containing already compressed data. The ipc module will try to send without compression, most of the packets that the message is spread upon.
  # (15) (IPC) Add support for adaptable compression:
-   * A message is started with with compression.
+   * A message is started with compression.
    * If certain continuous packets have compression ration below a certain threshold the compression is switched off for the rest of the message. 
  # (30) Add support for GnuTLS, test performance against boost, solid::frame::openssl.
  # Investigate the use of boost as back-end for solid::frame.
