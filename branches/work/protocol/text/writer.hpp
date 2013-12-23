@@ -47,8 +47,8 @@ namespace text{
 		> (repeatedly) call run until BAD or OK is returned<br>
 		<br>
 		For writing use the defined operator<<(s) and/or callbacks for sending strings/chars/streams etc.<br>
-		- BAD usually means that the connection was/must be closed<br>
-		- OK means that the stack is empty - it doesnt mean the data was parsed 
+		- Failure usually means that the connection was/must be closed<br>
+		- Success means that the stack is empty - it doesnt mean the data was parsed 
 		successfully - an error might have occurred and the parser has successfully recovered 
 		(use isError)<br>
 		
@@ -66,14 +66,6 @@ public:
 	enum ManagementOptions{
 		ClearLogging,
 		ResetLogging,
-	};
-	enum ReturnValues{
-		Failure = -1,	//!<input closed
-		Success = 0,	//!<everything ok, do a pop
-		Wait,			//!<Must wait
-		Yield,			//!<Must yield the connection
-		Continue,		//!<reexecute the top function - no pop
-		LastReturnValue
 	};
 public:
 	//!Writer constructor

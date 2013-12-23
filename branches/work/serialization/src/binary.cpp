@@ -80,22 +80,22 @@ void once_limits(){
 			return "Unknown error";
 	};
 }
-/*static*/ int Base::setStringLimit(Base& _rb, FncData &_rfd, void */*_pctx*/){
+/*static*/ CbkReturnValueE Base::setStringLimit(Base& _rb, FncData &_rfd, void */*_pctx*/){
 	_rb.lmts.stringlimit = static_cast<size_t>(_rfd.s);
 	return Success;
 }
-/*static*/ int Base::setStreamLimit(Base& _rb, FncData &_rfd, void */*_pctx*/){
+/*static*/ CbkReturnValueE Base::setStreamLimit(Base& _rb, FncData &_rfd, void */*_pctx*/){
 	_rb.lmts.streamlimit = _rfd.s;
 	return Success;
 }
-/*static*/ int Base::setContainerLimit(Base& _rb, FncData &_rfd, void */*_pctx*/){
+/*static*/ CbkReturnValueE Base::setContainerLimit(Base& _rb, FncData &_rfd, void */*_pctx*/){
 	_rb.lmts.containerlimit = static_cast<size_t>(_rfd.s);
 	return Success;
 }
 void Base::replace(const FncData &_rfd){
 	fstk.top() = _rfd;
 }
-int Base::popEStack(Base &_rb, FncData &, void */*_pctx*/){
+CbkReturnValueE Base::popEStack(Base &_rb, FncData &, void */*_pctx*/){
 	_rb.estk.pop();
 	return Success;
 }
@@ -157,7 +157,7 @@ int SerializerBase::run(char *_pb, unsigned _bl, void *_pctx){
 }
 
 template <>
-int SerializerBase::storeBinary<0>(Base &_rb, FncData &_rfd, void */*_pctx*/){
+CbkReturnValueE SerializerBase::storeBinary<0>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	idbgx(Debug::ser_bin, ""<<_rfd.s);
 	SerializerBase &rs(static_cast<SerializerBase&>(_rb));
 	if(!rs.cpb) return Success;
@@ -173,7 +173,7 @@ int SerializerBase::storeBinary<0>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 }
 
 template <>
-int SerializerBase::storeBinary<1>(Base &_rb, FncData &_rfd, void */*_pctx*/){
+CbkReturnValueE SerializerBase::storeBinary<1>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	idbgx(Debug::ser_bin, "");
 	SerializerBase &rs(static_cast<SerializerBase&>(_rb));
 	
@@ -189,7 +189,7 @@ int SerializerBase::storeBinary<1>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 }
 
 template <>
-int SerializerBase::storeBinary<2>(Base &_rb, FncData &_rfd, void */*_pctx*/){
+CbkReturnValueE SerializerBase::storeBinary<2>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	idbgx(Debug::ser_bin, "");
 	SerializerBase &rs(static_cast<SerializerBase&>(_rb));
 	
@@ -212,7 +212,7 @@ int SerializerBase::storeBinary<2>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 }
 
 template <>
-int SerializerBase::storeBinary<4>(Base &_rb, FncData &_rfd, void */*_pctx*/){
+CbkReturnValueE SerializerBase::storeBinary<4>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	idbgx(Debug::ser_bin, "");
 	SerializerBase &rs(static_cast<SerializerBase&>(_rb));
 	if(!rs.cpb) return Success;
@@ -254,7 +254,7 @@ int SerializerBase::storeBinary<4>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 
 
 template <>
-int SerializerBase::storeBinary<8>(Base &_rb, FncData &_rfd, void */*_pctx*/){
+CbkReturnValueE SerializerBase::storeBinary<8>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	idbgx(Debug::ser_bin, "");
 	SerializerBase &rs(static_cast<SerializerBase&>(_rb));
 	if(!rs.cpb) return Success;
@@ -339,70 +339,70 @@ int SerializerBase::storeBinary<8>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 
 
 template <>
-int SerializerBase::store<int8>(Base &_rb, FncData &_rfd, void */*_pctx*/){
+CbkReturnValueE SerializerBase::store<int8>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	idbgx(Debug::ser_bin, ""<<_rfd.n);
 	_rfd.s = sizeof(int8);
 	_rfd.f = &SerializerBase::storeBinary<1>;
 	return storeBinary<1>(_rb, _rfd, NULL);
 }
 template <>
-int SerializerBase::store<uint8>(Base &_rb, FncData &_rfd, void */*_pctx*/){
+CbkReturnValueE SerializerBase::store<uint8>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	idbgx(Debug::ser_bin, ""<<_rfd.n);
 	_rfd.s = sizeof(uint8);
 	_rfd.f = &SerializerBase::storeBinary<1>;
 	return storeBinary<1>(_rb, _rfd, NULL);
 }
 template <>
-int SerializerBase::store<int16>(Base &_rb, FncData &_rfd, void */*_pctx*/){
+CbkReturnValueE SerializerBase::store<int16>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	idbgx(Debug::ser_bin, ""<<_rfd.n);
 	_rfd.s = sizeof(int16);
 	_rfd.f = &SerializerBase::storeBinary<2>;
 	return storeBinary<2>(_rb, _rfd, NULL);
 }
 template <>
-int SerializerBase::store<uint16>(Base &_rb, FncData &_rfd, void */*_pctx*/){
+CbkReturnValueE SerializerBase::store<uint16>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	idbgx(Debug::ser_bin, ""<<_rfd.n);
 	_rfd.s = sizeof(uint16);
 	_rfd.f = &SerializerBase::storeBinary<2>;
 	return storeBinary<2>(_rb, _rfd, NULL);
 }
 template <>
-int SerializerBase::store<int32>(Base &_rb, FncData &_rfd, void */*_pctx*/){
+CbkReturnValueE SerializerBase::store<int32>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	idbgx(Debug::ser_bin, ""<<_rfd.n);
 	_rfd.s = sizeof(int32);
 	_rfd.f = &SerializerBase::storeBinary<4>;
 	return storeBinary<4>(_rb, _rfd, NULL);
 }
 template <>
-int SerializerBase::store<uint32>(Base &_rb, FncData &_rfd, void */*_pctx*/){
+CbkReturnValueE SerializerBase::store<uint32>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	idbgx(Debug::ser_bin, ""<<_rfd.n);
 	_rfd.s = sizeof(uint32);
 	_rfd.f = &SerializerBase::storeBinary<4>;
 	return storeBinary<4>(_rb, _rfd, NULL);
 }
 template <>
-int SerializerBase::store<int64>(Base &_rb, FncData &_rfd, void */*_pctx*/){
+CbkReturnValueE SerializerBase::store<int64>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	idbgx(Debug::ser_bin, "");
 	_rfd.s = sizeof(int64);
 	_rfd.f = &SerializerBase::storeBinary<8>;
 	return storeBinary<8>(_rb, _rfd, NULL);
 }
 template <>
-int SerializerBase::store<uint64>(Base &_rb, FncData &_rfd, void */*_pctx*/){
+CbkReturnValueE SerializerBase::store<uint64>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	idbgx(Debug::ser_bin, ""<<_rfd.n<<*((uint64*)_rfd.p));
 	_rfd.s = sizeof(uint64);
 	_rfd.f = &SerializerBase::storeBinary<8>;
 	return storeBinary<8>(_rb, _rfd, NULL);
 }
 /*template <>
-int SerializerBase::store<ulong>(Base &_rb, FncData &_rfd){
+CbkReturnValueE SerializerBase::store<ulong>(Base &_rb, FncData &_rfd){
 	idbgx(Debug::ser_bin, "");
 	_rfd.s = sizeof(ulong);
 	_rfd.f = &SerializerBase::storeBinary;
 	return Continue;
 }*/
 template <>
-int SerializerBase::store<std::string>(Base &_rb, FncData &_rfd, void */*_pctx*/){
+CbkReturnValueE SerializerBase::store<std::string>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	SerializerBase &rs(static_cast<SerializerBase&>(_rb));
 	idbgx(Debug::ser_bin, "");
 	if(!rs.cpb) return Success;
@@ -424,7 +424,7 @@ int SerializerBase::store<std::string>(Base &_rb, FncData &_rfd, void */*_pctx*/
 	rs.fstk.push(FncData(&SerializerBase::storeCross<uint64>, &rs.estk.top().u64(), _rfd.n));
 	return Continue;
 }
-int SerializerBase::storeStreamBegin(Base &_rb, FncData &_rfd, void */*_pctx*/){
+CbkReturnValueE SerializerBase::storeStreamBegin(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	SerializerBase &rs(static_cast<SerializerBase&>(_rb));
 	if(!rs.cpb) return Success;
 	int32		toread = rs.be - rs.cpb;
@@ -450,7 +450,7 @@ int SerializerBase::storeStreamBegin(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	}
 	return Success;
 }
-int SerializerBase::storeStreamCheck(Base &_rb, FncData &_rfd, void */*_pctx*/){
+CbkReturnValueE SerializerBase::storeStreamCheck(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	SerializerBase &rs(static_cast<SerializerBase&>(_rb));
 	if(!rs.cpb) return Success;
 	if(_rfd.s > rs.lmts.streamlimit){
@@ -459,7 +459,7 @@ int SerializerBase::storeStreamCheck(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	}
 	return Success;
 }
-int SerializerBase::storeStream(Base &_rb, FncData &_rfd, void */*_pctx*/){
+CbkReturnValueE SerializerBase::storeStream(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	SerializerBase	&rs(static_cast<SerializerBase&>(_rb));
 	
 	idbgx(Debug::ser_bin, "");
@@ -527,7 +527,7 @@ int SerializerBase::storeStream(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	idbgx(Debug::ser_bin, "streamsz = "<<rs.streamsz);
 	return Continue;
 }
-/*static*/ int SerializerBase::storeUtf8(Base &_rs, FncData &_rfd, void */*_pctx*/){
+/*static*/ CbkReturnValueE SerializerBase::storeUtf8(Base &_rs, FncData &_rfd, void */*_pctx*/){
 	SerializerBase &rs(static_cast<SerializerBase&>(_rs));
 	if((_rfd.s - 1) > rs.lmts.stringlimit){
 		rs.err = ERR_UTF8_LIMIT;
@@ -541,7 +541,7 @@ int SerializerBase::storeStream(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	return Continue;
 }
 
-/*static*/ int SerializerBase::storeCrossContinue(Base &_rs, FncData &_rfd, void */*_pctx*/){
+/*static*/ CbkReturnValueE SerializerBase::storeCrossContinue(Base &_rs, FncData &_rfd, void */*_pctx*/){
 	SerializerBase	&rs(static_cast<SerializerBase&>(_rs));
 	if(!rs.cpb) return Success;
 	uint32		&vsz = *reinterpret_cast<uint32*>(&_rfd.p);
@@ -566,7 +566,7 @@ int SerializerBase::storeStream(Base &_rb, FncData &_rfd, void */*_pctx*/){
 }
 
 template <>
-/*static*/ int SerializerBase::storeCross<uint8>(Base &_rs, FncData &_rfd, void */*_pctx*/){
+/*static*/ CbkReturnValueE SerializerBase::storeCross<uint8>(Base &_rs, FncData &_rfd, void */*_pctx*/){
 	SerializerBase	&rs(static_cast<SerializerBase&>(_rs));
 	
 	if(!rs.cpb) return Success;
@@ -589,7 +589,7 @@ template <>
 	return Wait;
 }
 template <>
-/*static*/ int SerializerBase::storeCross<uint16>(Base &_rs, FncData &_rfd, void */*_pctx*/){
+/*static*/ CbkReturnValueE SerializerBase::storeCross<uint16>(Base &_rs, FncData &_rfd, void */*_pctx*/){
 	SerializerBase	&rs(static_cast<SerializerBase&>(_rs));
 	
 	if(!rs.cpb) return Success;
@@ -613,7 +613,7 @@ template <>
 	return Wait;
 }
 template <>
-/*static*/ int SerializerBase::storeCross<uint32>(Base &_rs, FncData &_rfd, void */*_pctx*/){
+/*static*/ CbkReturnValueE SerializerBase::storeCross<uint32>(Base &_rs, FncData &_rfd, void */*_pctx*/){
 	SerializerBase	&rs(static_cast<SerializerBase&>(_rs));
 	
 	if(!rs.cpb) return Success;
@@ -637,7 +637,7 @@ template <>
 	return Wait;
 }
 template <>
-/*static*/ int SerializerBase::storeCross<uint64>(Base &_rs, FncData &_rfd, void */*_pctx*/){
+/*static*/ CbkReturnValueE SerializerBase::storeCross<uint64>(Base &_rs, FncData &_rfd, void */*_pctx*/){
 	SerializerBase	&rs(static_cast<SerializerBase&>(_rs));
 	
 	if(!rs.cpb) return Success;
@@ -684,7 +684,7 @@ void DeserializerBase::clear(){
 	run(NULL, 0, NULL);
 }
 
-/*static*/ int DeserializerBase::loadTypeIdDone(Base& _rd, FncData &_rfd, void *_pctx){
+/*static*/ CbkReturnValueE DeserializerBase::loadTypeIdDone(Base& _rd, FncData &_rfd, void *_pctx){
 	DeserializerBase	&rd(static_cast<DeserializerBase&>(_rd));
 	void				*p = _rfd.p;
 	const char			*n = _rfd.n;
@@ -701,7 +701,7 @@ void DeserializerBase::clear(){
 		return Failure;
 	}
 }
-/*static*/ int DeserializerBase::loadTypeId(Base& _rd, FncData &_rfd, void */*_pctx*/){
+/*static*/ CbkReturnValueE DeserializerBase::loadTypeId(Base& _rd, FncData &_rfd, void */*_pctx*/){
 	DeserializerBase &rd(static_cast<DeserializerBase&>(_rd));
 	
 	if(!rd.cpb) return Success;
@@ -750,8 +750,9 @@ int DeserializerBase::run(const char *_pb, unsigned _bl, void *_pctx){
 	cassert(fstk.size() || fstk.empty() && estk.empty());
 	return cpb - pb;
 }
+
 template <>
-int DeserializerBase::loadBinary<0>(Base &_rb, FncData &_rfd, void */*_pctx*/){
+CbkReturnValueE DeserializerBase::loadBinary<0>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	DeserializerBase &rd(static_cast<DeserializerBase&>(_rb));
 	idbgx(Debug::ser_bin, ""<<_rfd.s);
 	if(!rd.cpb) return Success;
@@ -771,7 +772,7 @@ int DeserializerBase::loadBinary<0>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 }
 
 template <>
-int DeserializerBase::loadBinary<1>(Base &_rb, FncData &_rfd, void */*_pctx*/){
+CbkReturnValueE DeserializerBase::loadBinary<1>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	DeserializerBase &rd(static_cast<DeserializerBase&>(_rb));
 	idbgx(Debug::ser_bin, "");
 	if(!rd.cpb) return Success;
@@ -788,7 +789,7 @@ int DeserializerBase::loadBinary<1>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 
 
 template <>
-int DeserializerBase::loadBinary<2>(Base &_rb, FncData &_rfd, void */*_pctx*/){
+CbkReturnValueE DeserializerBase::loadBinary<2>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	DeserializerBase &rd(static_cast<DeserializerBase&>(_rb));
 	idbgx(Debug::ser_bin, "");
 	if(!rd.cpb) return Success;
@@ -809,7 +810,7 @@ int DeserializerBase::loadBinary<2>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 }
 
 template <>
-int DeserializerBase::loadBinary<3>(Base &_rb, FncData &_rfd, void */*_pctx*/){
+CbkReturnValueE DeserializerBase::loadBinary<3>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	DeserializerBase &rd(static_cast<DeserializerBase&>(_rb));
 	idbgx(Debug::ser_bin, "");
 	if(!rd.cpb) return Success;
@@ -837,7 +838,7 @@ int DeserializerBase::loadBinary<3>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 }
 
 template <>
-int DeserializerBase::loadBinary<4>(Base &_rb, FncData &_rfd, void */*_pctx*/){
+CbkReturnValueE DeserializerBase::loadBinary<4>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	DeserializerBase &rd(static_cast<DeserializerBase&>(_rb));
 	idbgx(Debug::ser_bin, "");
 	if(!rd.cpb) return Success;
@@ -874,7 +875,7 @@ int DeserializerBase::loadBinary<4>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 }
 
 template <>
-int DeserializerBase::loadBinary<5>(Base &_rb, FncData &_rfd, void */*_pctx*/){
+CbkReturnValueE DeserializerBase::loadBinary<5>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	DeserializerBase &rd(static_cast<DeserializerBase&>(_rb));
 	idbgx(Debug::ser_bin, "");
 	if(!rd.cpb) return Success;
@@ -919,7 +920,7 @@ int DeserializerBase::loadBinary<5>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 }
 
 template <>
-int DeserializerBase::loadBinary<6>(Base &_rb, FncData &_rfd, void */*_pctx*/){
+CbkReturnValueE DeserializerBase::loadBinary<6>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	DeserializerBase &rd(static_cast<DeserializerBase&>(_rb));
 	idbgx(Debug::ser_bin, "");
 	if(!rd.cpb) return Success;
@@ -974,7 +975,7 @@ int DeserializerBase::loadBinary<6>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 }
 
 template <>
-int DeserializerBase::loadBinary<7>(Base &_rb, FncData &_rfd, void */*_pctx*/){
+CbkReturnValueE DeserializerBase::loadBinary<7>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	DeserializerBase &rd(static_cast<DeserializerBase&>(_rb));
 	idbgx(Debug::ser_bin, "");
 	if(!rd.cpb) return Success;
@@ -1040,7 +1041,7 @@ int DeserializerBase::loadBinary<7>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 }
 
 template <>
-int DeserializerBase::loadBinary<8>(Base &_rb, FncData &_rfd, void */*_pctx*/){
+CbkReturnValueE DeserializerBase::loadBinary<8>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	DeserializerBase &rd(static_cast<DeserializerBase&>(_rb));
 	idbgx(Debug::ser_bin, "");
 	if(!rd.cpb) return Success;
@@ -1119,42 +1120,42 @@ int DeserializerBase::loadBinary<8>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 
 
 template <>
-int DeserializerBase::load<int8>(Base &_rb, FncData &_rfd, void */*_pctx*/){
+CbkReturnValueE DeserializerBase::load<int8>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	idbgx(Debug::ser_bin, "");
 	_rfd.s = sizeof(int8);
 	_rfd.f = &DeserializerBase::loadBinary<1>;
 	return loadBinary<1>(_rb, _rfd, NULL);
 }
 template <>
-int DeserializerBase::load<uint8>(Base &_rb, FncData &_rfd, void */*_pctx*/){	
+CbkReturnValueE DeserializerBase::load<uint8>(Base &_rb, FncData &_rfd, void */*_pctx*/){	
 	idbgx(Debug::ser_bin, "");
 	_rfd.s = sizeof(uint8);
 	_rfd.f = &DeserializerBase::loadBinary<1>;
 	return loadBinary<1>(_rb, _rfd, NULL);
 }
 template <>
-int DeserializerBase::load<int16>(Base &_rb, FncData &_rfd, void */*_pctx*/){
+CbkReturnValueE DeserializerBase::load<int16>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	idbgx(Debug::ser_bin, "");
 	_rfd.s = sizeof(int16);
 	_rfd.f = &DeserializerBase::loadBinary<2>;
 	return loadBinary<2>(_rb, _rfd, NULL);
 }
 template <>
-int DeserializerBase::load<uint16>(Base &_rb, FncData &_rfd, void */*_pctx*/){	
+CbkReturnValueE DeserializerBase::load<uint16>(Base &_rb, FncData &_rfd, void */*_pctx*/){	
 	idbgx(Debug::ser_bin, "");
 	_rfd.s = sizeof(uint16);
 	_rfd.f = &DeserializerBase::loadBinary<2>;
 	return loadBinary<2>(_rb, _rfd, NULL);
 }
 template <>
-int DeserializerBase::load<int32>(Base &_rb, FncData &_rfd, void */*_pctx*/){
+CbkReturnValueE DeserializerBase::load<int32>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	idbgx(Debug::ser_bin, "");
 	_rfd.s = sizeof(int32);
 	_rfd.f = &DeserializerBase::loadBinary<4>;
 	return loadBinary<4>(_rb, _rfd, NULL);
 }
 template <>
-int DeserializerBase::load<uint32>(Base &_rb, FncData &_rfd, void */*_pctx*/){
+CbkReturnValueE DeserializerBase::load<uint32>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	idbgx(Debug::ser_bin, "");
 	_rfd.s = sizeof(uint32);
 	_rfd.f = &DeserializerBase::loadBinary<4>;
@@ -1162,28 +1163,28 @@ int DeserializerBase::load<uint32>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 }
 
 template <>
-int DeserializerBase::load<int64>(Base &_rb, FncData &_rfd, void */*_pctx*/){
+CbkReturnValueE DeserializerBase::load<int64>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	idbgx(Debug::ser_bin, "");
 	_rfd.s = sizeof(int64);
 	_rfd.f = &DeserializerBase::loadBinary<8>;
 	return loadBinary<8>(_rb, _rfd, NULL);
 }
 template <>
-int DeserializerBase::load<uint64>(Base &_rb, FncData &_rfd, void */*_pctx*/){
+CbkReturnValueE DeserializerBase::load<uint64>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	idbgx(Debug::ser_bin, "");
 	_rfd.s = sizeof(uint64);
 	_rfd.f = &DeserializerBase::loadBinary<8>;
 	return loadBinary<8>(_rb, _rfd, NULL);
 }
 /*template <>
-int DeserializerBase::load<ulong>(Base &_rb, FncData &_rfd){
+CbkReturnValueE DeserializerBase::load<ulong>(Base &_rb, FncData &_rfd){
 	idbgx(Debug::ser_bin, "");
 	_rfd.s = sizeof(ulong);
 	_rfd.f = &DeserializerBase::loadBinary;
 	return Continue;
 }*/
 template <>
-int DeserializerBase::load<std::string>(Base &_rb, FncData &_rfd, void */*_pctx*/){
+CbkReturnValueE DeserializerBase::load<std::string>(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	idbgx(Debug::ser_bin, "load generic non pointer string");
 	DeserializerBase &rd(static_cast<DeserializerBase&>(_rb));
 	if(!rd.cpb) return Success;
@@ -1193,7 +1194,7 @@ int DeserializerBase::load<std::string>(Base &_rb, FncData &_rfd, void */*_pctx*
 	rd.fstk.push(FncData(&DeserializerBase::loadCross<uint64>, &rd.estk.top().u64()));
 	return Continue;
 }
-int DeserializerBase::loadBinaryStringCheck(Base &_rb, FncData &_rfd, void */*_pctx*/){
+CbkReturnValueE DeserializerBase::loadBinaryStringCheck(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	DeserializerBase &rd(static_cast<DeserializerBase&>(_rb));
 	if(!rd.cpb) return Success;
 	const uint64 len = rd.estk.top().u64();
@@ -1216,7 +1217,7 @@ int DeserializerBase::loadBinaryStringCheck(Base &_rb, FncData &_rfd, void */*_p
 	}
 	return Success;
 }
-int DeserializerBase::loadBinaryString(Base &_rb, FncData &_rfd, void */*_pctx*/){
+CbkReturnValueE DeserializerBase::loadBinaryString(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	DeserializerBase &rd(static_cast<DeserializerBase&>(_rb));
 	idbgx(Debug::ser_bin, "");
 	if(!rd.cpb){
@@ -1248,7 +1249,7 @@ int DeserializerBase::loadBinaryString(Base &_rb, FncData &_rfd, void */*_pctx*/
 	rd.estk.pop();
 	return Success;
 }
-int DeserializerBase::loadStreamCheck(Base &_rb, FncData &_rfd, void */*_pctx*/){
+CbkReturnValueE DeserializerBase::loadStreamCheck(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	DeserializerBase	&rd(static_cast<DeserializerBase&>(_rb));
 	
 	if(!rd.cpb) return Success;
@@ -1260,7 +1261,7 @@ int DeserializerBase::loadStreamCheck(Base &_rb, FncData &_rfd, void */*_pctx*/)
 	}
 	return Success;
 }
-int DeserializerBase::loadStreamBegin(Base &_rb, FncData &_rfd, void */*_pctx*/){
+CbkReturnValueE DeserializerBase::loadStreamBegin(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	DeserializerBase	&rd(static_cast<DeserializerBase&>(_rb));
 	
 	if(!rd.cpb) return Success;
@@ -1290,7 +1291,7 @@ int DeserializerBase::loadStreamBegin(Base &_rb, FncData &_rfd, void */*_pctx*/)
 	return Success;
 }
 
-int DeserializerBase::loadStream(Base &_rb, FncData &_rfd, void */*_pctx*/){
+CbkReturnValueE DeserializerBase::loadStream(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	idbgx(Debug::ser_bin, "");
 	
 	DeserializerBase	&rd(static_cast<DeserializerBase&>(_rb));
@@ -1363,7 +1364,7 @@ int DeserializerBase::loadStream(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	return Continue;
 }
 
-int DeserializerBase::loadDummyStream(Base &_rb, FncData &_rfd, void */*_pctx*/){
+CbkReturnValueE DeserializerBase::loadDummyStream(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	idbgx(Debug::ser_bin, "");
 	
 	DeserializerBase &rd(static_cast<DeserializerBase&>(_rb));
@@ -1405,7 +1406,7 @@ int DeserializerBase::loadDummyStream(Base &_rb, FncData &_rfd, void */*_pctx*/)
 	}
 	return Continue;
 }
-int DeserializerBase::loadUtf8(Base &_rb, FncData &_rfd, void */*_pctx*/){
+CbkReturnValueE DeserializerBase::loadUtf8(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	DeserializerBase	&rd(static_cast<DeserializerBase&>(_rb));
 	idbgx(Debug::ser_bin, "");
 	std::string			*ps = reinterpret_cast<std::string*>(_rfd.p);
@@ -1435,7 +1436,7 @@ int DeserializerBase::loadUtf8(Base &_rb, FncData &_rfd, void */*_pctx*/){
  * estk.top contains the uint64 value
  * _rfd.p contains the current index
  */
-/*static*/ int DeserializerBase::loadCrossContinue(Base& _rd, FncData &_rfd, void */*_pctx*/){
+/*static*/ CbkReturnValueE DeserializerBase::loadCrossContinue(Base& _rd, FncData &_rfd, void */*_pctx*/){
 	DeserializerBase &rd(static_cast<DeserializerBase&>(_rd));
 	if(!rd.cpb)	return Success;
 	
@@ -1458,7 +1459,7 @@ int DeserializerBase::loadUtf8(Base &_rb, FncData &_rfd, void */*_pctx*/){
 	return Wait;
 }
 template <>
-/*static*/ int DeserializerBase::loadCross<uint8>(Base& _rd, FncData &_rfd, void */*_pctx*/){
+/*static*/ CbkReturnValueE DeserializerBase::loadCross<uint8>(Base& _rd, FncData &_rfd, void */*_pctx*/){
 	DeserializerBase &rd(static_cast<DeserializerBase&>(_rd));
 	idbgx(Debug::ser_bin, "");
 	if(!rd.cpb) return Success;
@@ -1484,7 +1485,7 @@ template <>
 }
 
 template <>
-/*static*/ int DeserializerBase::loadCross<uint16>(Base& _rd, FncData &_rfd, void */*_pctx*/){
+/*static*/ CbkReturnValueE DeserializerBase::loadCross<uint16>(Base& _rd, FncData &_rfd, void */*_pctx*/){
 	DeserializerBase &rd(static_cast<DeserializerBase&>(_rd));
 	idbgx(Debug::ser_bin, "");
 	if(!rd.cpb) return Success;
@@ -1510,7 +1511,7 @@ template <>
 }
 
 template <>
-/*static*/ int DeserializerBase::loadCross<uint32>(Base& _rd, FncData &_rfd, void */*_pctx*/){
+/*static*/ CbkReturnValueE DeserializerBase::loadCross<uint32>(Base& _rd, FncData &_rfd, void */*_pctx*/){
 	DeserializerBase &rd(static_cast<DeserializerBase&>(_rd));
 	idbgx(Debug::ser_bin, "");
 	if(!rd.cpb) return Success;
@@ -1536,7 +1537,7 @@ template <>
 }
 
 template <>
-/*static*/ int DeserializerBase::loadCross<uint64>(Base& _rd, FncData &_rfd, void */*_pctx*/){
+/*static*/ CbkReturnValueE DeserializerBase::loadCross<uint64>(Base& _rd, FncData &_rfd, void */*_pctx*/){
 	DeserializerBase &rd(static_cast<DeserializerBase&>(_rd));
 	idbgx(Debug::ser_bin, "");
 	if(!rd.cpb) return Success;

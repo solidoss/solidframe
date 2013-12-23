@@ -61,8 +61,8 @@ struct DummyKey{
 		> push some parsing callbacks and reset the parser state<br>
 		> (repeatedly) call run until BAD or OK is returned<br>
 		<br>
-		- BAD usually means that the connection was/must be closed<br>
-		- OK means that the stack is empty - it doesnt mean the data was
+		- Failure usually means that the connection was/must be closed<br>
+		- Success means that the stack is empty - it doesnt mean the data was
 		parsed successfully - an error might have occurred and the parser has successfully recovered 
 		(use isError)<br>
 		
@@ -72,15 +72,6 @@ struct DummyKey{
 */
 class Reader{
 public:
-	enum ReturnValues{
-		Failure = -1,	//!<input closed
-		Success = 0,	//!<everything ok, do a pop
-		Wait,			//!<Must wait
-		Yield,			//!<Must yield the connection
-		Continue,		//!<reexecute the top function - no pop
-		Error,			//!<parser error - must enter error recovery
-		LastReturnValue
-	};
 	enum ManagementOptions{
 		ClearLogging,
 		ResetLogging,
