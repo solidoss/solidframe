@@ -18,13 +18,13 @@ namespace solid{
 namespace frame{
 
 //! Some return values
-enum RetValEx {
-	LEAVE = CONTINUE + 1,
-	REGISTER, UNREGISTER, RTOUT, WTOUT, DONE
-};
+// enum RetValEx {
+// 	LEAVE = CONTINUE + 1,
+// 	REGISTER, UNREGISTER, RTOUT, WTOUT, DONE
+// };
 
 //! Some signals
-enum Signals{
+enum SignalE{
 	//simple:
 	S_RAISE = 1,
 	S_UPDATE = 2,
@@ -36,7 +36,7 @@ enum Signals{
 };
 
 //! Some events
-enum Events{
+enum EventE{
 	OKDONE = 1, //Successfull asynchrounous completion
 	ERRDONE = 2,//Unsuccessfull asynchrounous completion
 	INDONE = 4,//Successfull input asynchrounous completion
@@ -47,10 +47,9 @@ enum Events{
 	RESCHEDULED = 128,
 	TIMEOUT_RECV = 256,
 	TIMEOUT_SEND = 512,
-	
 };
 
-enum Consts{
+enum ConstE{
 	MAXTIMEOUT = (0xffffffffUL>>1)/1000
 };
 

@@ -11,6 +11,7 @@
 #ifndef SOLID_FRAME_AIO_MULTI_OBJECT_HPP
 #define SOLID_FRAME_AIO_MULTI_OBJECT_HPP
 
+#include "frame/aio/aiocommon.hpp"
 #include "frame/aio/aioobject.hpp"
 #include "frame/aio/aiosocketpointer.hpp"
 #include "utility/stack.hpp"
@@ -59,23 +60,23 @@ public:
 	bool socketOk(const size_t _pos)const;
 	
 	//! Asynchronous accept an incomming connection
-	int socketAccept(const size_t _pos, SocketDevice &_rsd);
+	ReturnValueE socketAccept(const size_t _pos, SocketDevice &_rsd);
 	
 	//! Asynchronous connect
 	/*!
 		\param _pos The socket identifier
 		\param _rai An SocketAddressInfo iterator holding the destination address.
 	*/
-	int socketConnect(const size_t _pos, const SocketAddressStub& _rsas);
+	ReturnValueE socketConnect(const size_t _pos, const SocketAddressStub& _rsas);
 	
 	//! Asynchronous send for socket on position _pos
-	int socketSend(const size_t _pos, const char* _pb, uint32 _bl, uint32 _flags = 0);
+	ReturnValueE socketSend(const size_t _pos, const char* _pb, uint32 _bl, uint32 _flags = 0);
 	//! Asynchronous send for socket on position _pos
-	int socketSendTo(const size_t _pos, const char* _pb, uint32 _bl, const SocketAddressStub &_sap, uint32 _flags = 0);
+	ReturnValueE socketSendTo(const size_t _pos, const char* _pb, uint32 _bl, const SocketAddressStub &_sap, uint32 _flags = 0);
 	//! Asynchronous receive for socket on position _pos
-	int socketRecv(const size_t _pos, char *_pb, uint32 _bl, uint32 _flags = 0);
+	ReturnValueE socketRecv(const size_t _pos, char *_pb, uint32 _bl, uint32 _flags = 0);
 	//! Asynchronous receive for socket on position _pos
-	int socketRecvFrom(const size_t _pos, char *_pb, uint32 _bl, uint32 _flags = 0);
+	ReturnValueE socketRecvFrom(const size_t _pos, char *_pb, uint32 _bl, uint32 _flags = 0);
 	
 	//! Get the size of the received data for socket on position _pos
 	/*!
@@ -155,9 +156,9 @@ public:
 	//! Sets the secure socket associated to socket on position _pos
 	void socketSecureSocket(const size_t _pos, SecureSocket *_pss);
 	//! Asynchronous secure accept
-	int socketSecureAccept(const size_t _pos);
+	ReturnValueE socketSecureAccept(const size_t _pos);
 	//! Asynchronous secure connect
-	int socketSecureConnect(const size_t _pos);
+	ReturnValueE socketSecureConnect(const size_t _pos);
 	//TODO: not implemented
 	ERROR_NS::error_code socketError(const size_t _pos)const;
 private:

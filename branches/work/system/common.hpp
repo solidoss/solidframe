@@ -95,6 +95,11 @@ enum SeekRef {
 // 	Failure
 // };
 
+enum AsyncReturnValueE{
+	AsyncFailure = -1,
+	AsyncSuccess = 0,
+	AsyncWait = 1,
+};
 
 struct EmptyType{};
 class NullType{};

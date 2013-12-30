@@ -95,7 +95,7 @@ Socket::~Socket(){
 }
 
 
-int Socket::create(const ResolveIterator& _rai){
+bool Socket::create(const ResolveIterator& _rai){
 	return sd.create(_rai);
 }
 int Socket::connect(const SocketAddressStub& _rsas){

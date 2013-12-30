@@ -66,7 +66,7 @@ public:
 		
 		size_t			evsmsk;
 		const TimeSpec	&rcrttm;
-		RetValT			retval;
+		RetValE			retval;
 		TimeSpec		waittm;
 	};
 

@@ -703,13 +703,13 @@ bool Talker::doExecuteSessions(TalkerStub &_rstub){
 		
 		rss.inexeq = false;
 		switch(rss.psession->execute(ts)){
-			case BAD:
-				d.closingsessionvec.push_back(ts.sessionidx);
-				rss.inexeq = true;
-				break;
 			case OK:
 				d.sessionexecq.push(ts.sessionidx);
 			case NOK:
+				break;
+			case BAD:
+				d.closingsessionvec.push_back(ts.sessionidx);
+				rss.inexeq = true;
 				break;
 		}
 	}
@@ -964,10 +964,6 @@ void Talker::disconnectSessions(TalkerStub &_rstub){
 		}
 	}
 	d.closingsessionvec.clear();
-}
-//----------------------------------------------------------------------
-int Talker::execute(){
-	return BAD;
 }
 //----------------------------------------------------------------------
 bool TalkerStub::pushSendPacket(uint32 _id, const char *_pb, uint32 _bl){

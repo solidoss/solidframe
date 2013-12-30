@@ -73,7 +73,7 @@ bool  ObjectSelector::full()const{
 	return d.sz == d.sv.size();
 }
 
-int ObjectSelector::init(ulong _cp){
+bool ObjectSelector::init(ulong _cp){
 	d.sv.resize(fast_padding_size(_cp, 2));
 	setCurrentTimeSpecific(d.ctimepos);
 	//objq.reserve(_cp);
@@ -84,7 +84,7 @@ int ObjectSelector::init(ulong _cp){
 	
 	d.ntimepos.set(MAXTIMEPOS);
 	d.sz = 0;
-	return OK;
+	return true;
 }
 void ObjectSelector::prepare(){
 	setCurrentTimeSpecific(d.ctimepos);

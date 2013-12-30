@@ -10,7 +10,7 @@
 #ifndef SOLID_FRAME_AIO_SECURE_SOCKET_HPP
 #define SOLID_FRAME_AIO_SECURE_SOCKET_HPP
 
-#include "system/common.hpp"
+#include "frame/aio/aiocommon.hpp"
 
 namespace solid{
 
@@ -79,7 +79,7 @@ public:
 		\retval 0 for clean connection close, <0 for an error
 		(for nonblocking sockets check wantEvents), >0 success.
 	*/
-	virtual int secureAccept() = 0;
+	virtual ReturnValueE secureAccept() = 0;
 	//! Do a secure connect
 	/*!
 		This is modeled around the OpenSSL API.
@@ -91,7 +91,7 @@ public:
 		\retval 0 for clean connection close, <0 for an error
 		(for nonblocking sockets check wantEvents), >0 success.
 	*/
-	virtual int secureConnect() = 0;
+	virtual ReturnValueE secureConnect() = 0;
 };
 
 }//namespace aio

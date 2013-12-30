@@ -11,7 +11,7 @@
 #define SOLID_FRAME_AIO_SRC_SOCKET_HPP
 
 #include "system/socketdevice.hpp"
-#include "system/common.hpp"
+#include "frame/aio/aiocommon.hpp"
 
 struct SocketAddress;
 struct SocketAddressStub;
@@ -46,15 +46,15 @@ public:
 	//!Returns true if the filedescriptor is valid
 	bool ok()const;
 	//! Create the socket
-	int create(const ResolveIterator& _rai);
+	bool create(const ResolveIterator& _rai);
 	//! Asynchronous connect request
-	int connect(const SocketAddressStub& _rsas);
-	int accept(SocketDevice &_rsd);
-	int accept(Socket &_rs);
+	ReturnValueE connect(const SocketAddressStub& _rsas);
+	ReturnValueE accept(SocketDevice &_rsd);
+	ReturnValueE accept(Socket &_rs);
 	//! Send a buffer
-	int send(const char* _pb, uint32 _bl, uint32 _flags = 0);
+	ReturnValueE send(const char* _pb, uint32 _bl, uint32 _flags = 0);
 	//! Receives data into a buffer
-	int recv(char *_pb, uint32 _bl, uint32 _flags = 0);
+	ReturnValueE recv(char *_pb, uint32 _bl, uint32 _flags = 0);
 	//! The size of the buffer received
 	uint32 recvSize()const;
 	//! The amount of data sent
@@ -66,14 +66,14 @@ public:
 	//! Return true if there are pending recv opperations
 	bool isRecvPending()const;
 	//! Return the local address of the socket
-	int localAddress(SocketAddress &_rsa)const;
+	bool localAddress(SocketAddress &_rsa)const;
 	//! Return the remote address of the socket
-	int remoteAddress(SocketAddress &_rsa)const;
+	bool remoteAddress(SocketAddress &_rsa)const;
 	
 	//! Asynchrounous recv_from  call
-	int recvFrom(char *_pb, uint32 _bl, uint32 _flags = 0);
+	ReturnValueE recvFrom(char *_pb, uint32 _bl, uint32 _flags = 0);
 	//! Asynchrounous send_to call
-	int sendTo(const char *_pb, uint32 _bl, const SocketAddressStub &_sap, uint32 _flags = 0);
+	ReturnValueE sendTo(const char *_pb, uint32 _bl, const SocketAddressStub &_sap, uint32 _flags = 0);
 	//! The sender address for last received data.
 	const SocketAddress &recvAddr() const;
 	//! Setter for the secure socket
@@ -81,9 +81,9 @@ public:
 	//! Getter for the secure socket
 	SecureSocket* secureSocket()const;
 	//! Do a SSL accept - secure handshake
-	int secureAccept();
+	ReturnValueE secureAccept();
 	//! Do a SSL connect - secure handshake
-	int secureConnect();
+	ReturnValueE secureConnect();
 private:
 	friend class Selector;
 	void doPrepare();

@@ -224,64 +224,64 @@ bool SingleObject::socketOk()const{
 	return stub.psock->ok();
 }
 
-int SingleObject::socketAccept(SocketDevice &_rsd){
-	int rv = stub.psock->accept(_rsd);
-	if(rv == NOK){
+ReturnValueE SingleObject::socketAccept(SocketDevice &_rsd){
+	const ReturnValueE rv = stub.psock->accept(_rsd);
+	if(rv == Wait){
 		socketPushRequest(0, SocketStub::IORequest);
 	}
 	return rv;
 }
 
-int SingleObject::socketConnect(const SocketAddressStub& _rsas){
+ReturnValueE SingleObject::socketConnect(const SocketAddressStub& _rsas){
 	cassert(stub.psock);
-	int rv = stub.psock->connect(_rsas);
-	if(rv == NOK){
+	const ReturnValueE rv = stub.psock->connect(_rsas);
+	if(rv == Wait){
 		socketPushRequest(0, SocketStub::IORequest);
 	}
 	return rv;
 }
 
 
-int SingleObject::socketSend(const char* _pb, uint32 _bl, uint32 _flags){
+ReturnValueE SingleObject::socketSend(const char* _pb, uint32 _bl, uint32 _flags){
 	//ensure that we dont have double request
 	//cassert(stub.request <= SocketStub::Response);
 	cassert(stub.psock);
-	int rv = stub.psock->send(_pb, _bl);
-	if(rv == NOK){
+	const ReturnValueE rv = stub.psock->send(_pb, _bl);
+	if(rv == Wait){
 		socketPushRequest(0, SocketStub::IORequest);
 	}
 	return rv;
 }
 
-int SingleObject::socketSendTo(const char* _pb, uint32 _bl, const SocketAddressStub &_sap, uint32 _flags){
+ReturnValueE SingleObject::socketSendTo(const char* _pb, uint32 _bl, const SocketAddressStub &_sap, uint32 _flags){
 	//ensure that we dont have double request
 	//cassert(stub.request <= SocketStub::Response);
 	cassert(stub.psock);
-	int rv = stub.psock->sendTo(_pb, _bl, _sap);
-	if(rv == NOK){
+	const ReturnValueE rv = stub.psock->sendTo(_pb, _bl, _sap);
+	if(rv == Wait){
 		socketPushRequest(0, SocketStub::IORequest);
 	}
 	return rv;
 }
 
-int SingleObject::socketRecv(char *_pb, uint32 _bl, uint32 _flags){
+ReturnValueE SingleObject::socketRecv(char *_pb, uint32 _bl, uint32 _flags){
 	//ensure that we dont have double request
 	//cassert(stub.request <= SocketStub::Response);
 	cassert(stub.psock);
-	int rv = stub.psock->recv(_pb, _bl);
-	if(rv == NOK){
+	const ReturnValueE rv = stub.psock->recv(_pb, _bl);
+	if(rv == Wait){
 		//stub.timepos.set(0xffffffff, 0xffffffff);
 		socketPushRequest(0, SocketStub::IORequest);
 	}
 	return rv;
 }
 
-int SingleObject::socketRecvFrom(char *_pb, uint32 _bl, uint32 _flags){
+ReturnValueE SingleObject::socketRecvFrom(char *_pb, uint32 _bl, uint32 _flags){
 	//ensure that we dont have double request
 	//cassert(stub.request <= SocketStub::Response);
 	cassert(stub.psock);
-	int rv = stub.psock->recvFrom(_pb, _bl);
-	if(rv == NOK){
+	const ReturnValueE rv = stub.psock->recvFrom(_pb, _bl);
+	if(rv == Wait){
 		//stub.timepos.set(0xffffffff, 0xffffffff);
 		socketPushRequest(0, SocketStub::IORequest);
 	}
@@ -312,11 +312,11 @@ bool SingleObject::socketHasPendingRecv()const{
 	return stub.psock->isRecvPending();
 }
 
-int SingleObject::socketLocalAddress(SocketAddress &_rsa)const{
+bool SingleObject::socketLocalAddress(SocketAddress &_rsa)const{
 	return stub.psock->localAddress(_rsa);
 }
 
-int SingleObject::socketRemoteAddress(SocketAddress &_rsa)const{
+bool SingleObject::socketRemoteAddress(SocketAddress &_rsa)const{
 	return stub.psock->remoteAddress(_rsa);
 }
 
@@ -348,13 +348,13 @@ void SingleObject::socketGrab(SocketPointer &_rsp){
 	stub.reset();
 }
 
-int SingleObject::socketInsert(const SocketPointer &_rsp){
+bool SingleObject::socketInsert(const SocketPointer &_rsp){
 	cassert(!stub.psock);
 	stub.psock = this->getSocketPointer(_rsp);
-	return 0;
+	return true;
 }
 
-int SingleObject::socketInsert(const SocketDevice &_rsd){
+bool SingleObject::socketInsert(const SocketDevice &_rsd){
 	cassert(!stub.psock);
 	if(_rsd.ok()){
 		Socket::Type tp;
@@ -368,12 +368,12 @@ int SingleObject::socketInsert(const SocketDevice &_rsd){
 				tp = Socket::CHANNEL;
 			}
 			
-		}else return -1;
+		}else return false;
 		
 		stub.psock = new Socket(tp, _rsd);
-		return 0;
+		return true;
 	}
-	return -1;
+	return false;
 }
 
 void SingleObject::socketRequestRegister(){
@@ -412,18 +412,18 @@ void SingleObject::socketSecureSocket(SecureSocket *_pss){
 	stub.psock->secureSocket(_pss);
 }
 
-int SingleObject::socketSecureAccept(){
-	int rv = stub.psock->secureAccept();
-	if(rv == NOK){
+ReturnValueE SingleObject::socketSecureAccept(){
+	const ReturnValueE rv = stub.psock->secureAccept();
+	if(rv == Wait){
 		//stub.timepos.set(0xffffffff, 0xffffffff);
 		socketPushRequest(0, SocketStub::IORequest);
 	}
 	return rv;
 }
 
-int SingleObject::socketSecureConnect(){
-	int rv = stub.psock->secureConnect();
-	if(rv == NOK){
+ReturnValueE SingleObject::socketSecureConnect(){
+	const ReturnValueE rv = stub.psock->secureConnect();
+	if(rv == Wait){
 		//stub.timepos.set(0xffffffff, 0xffffffff);
 		socketPushRequest(0, SocketStub::IORequest);
 	}
@@ -475,19 +475,19 @@ bool MultiObject::socketOk(const size_t _pos)const{
 	return pstubs[_pos].psock->ok();
 }
 
-int MultiObject::socketAccept(const size_t _pos, SocketDevice &_rsd){
+ReturnValueE MultiObject::socketAccept(const size_t _pos, SocketDevice &_rsd){
 	cassert(_pos < stubcp);
-	int rv = pstubs[_pos].psock->accept(_rsd);
-	if(rv == NOK){
+	const ReturnValueE rv = pstubs[_pos].psock->accept(_rsd);
+	if(rv == Wait){
 		socketPushRequest(_pos, SocketStub::IORequest);
 	}
 	return rv;
 }
 
-int MultiObject::socketConnect(const size_t _pos, const SocketAddressStub& _rsas){
+ReturnValueE MultiObject::socketConnect(const size_t _pos, const SocketAddressStub& _rsas){
 	cassert(_pos < stubcp);
-	int rv = pstubs[_pos].psock->connect(_rsas);
-	if(rv == NOK){
+	const ReturnValueE rv = pstubs[_pos].psock->connect(_rsas);
+	if(rv == Wait){
 		socketPushRequest(_pos, SocketStub::IORequest);
 	}
 	return rv;
@@ -497,21 +497,21 @@ const SocketAddress &MultiObject::socketRecvAddr(const size_t _pos) const{
 	return pstubs[_pos].psock->recvAddr();
 }
 
-int MultiObject::socketSend(
+ReturnValueE MultiObject::socketSend(
 	const size_t _pos,
 	const char* _pb,
 	uint32 _bl,
 	uint32 _flags
 ){
 	cassert(_pos < stubcp);
-	int rv = pstubs[_pos].psock->send(_pb, _bl, _flags);
-	if(rv == NOK){
+	const ReturnValueE rv = pstubs[_pos].psock->send(_pb, _bl, _flags);
+	if(rv == Wait){
 		socketPushRequest(_pos, SocketStub::IORequest);
 	}
 	return rv;
 }
 
-int MultiObject::socketSendTo(
+ReturnValueE MultiObject::socketSendTo(
 	const size_t _pos,
 	const char* _pb,
 	uint32 _bl,
@@ -519,36 +519,36 @@ int MultiObject::socketSendTo(
 	uint32 _flags
 ){
 	cassert(_pos < stubcp);
-	int rv = pstubs[_pos].psock->sendTo(_pb, _bl, _sap, _flags);
-	if(rv == NOK){
+	const ReturnValueE rv = pstubs[_pos].psock->sendTo(_pb, _bl, _sap, _flags);
+	if(rv == Wait){
 		socketPushRequest(_pos, SocketStub::IORequest);
 	}
 	return rv;
 }
 
-int MultiObject::socketRecv(
+ReturnValueE MultiObject::socketRecv(
 	const size_t _pos,
 	char *_pb,
 	uint32 _bl,
 	uint32 _flags
 ){
 	cassert(_pos < stubcp);
-	int rv = pstubs[_pos].psock->recv(_pb, _bl, _flags);
-	if(rv == NOK){
+	const ReturnValueE rv = pstubs[_pos].psock->recv(_pb, _bl, _flags);
+	if(rv == Wait){
 		socketPushRequest(_pos, SocketStub::IORequest);
 	}
 	return rv;
 }
 
-int MultiObject::socketRecvFrom(
+ReturnValueE MultiObject::socketRecvFrom(
 	const size_t _pos,
 	char *_pb,
 	uint32 _bl,
 	uint32 _flags
 ){
 	cassert(_pos < stubcp);
-	int rv = pstubs[_pos].psock->recvFrom(_pb, _bl, _flags);
-	if(rv == NOK){
+	const ReturnValueE rv = pstubs[_pos].psock->recvFrom(_pb, _bl, _flags);
+	if(rv == Wait){
 		socketPushRequest(_pos, SocketStub::IORequest);
 	}
 	return rv;
@@ -579,12 +579,12 @@ bool MultiObject::socketHasPendingRecv(const size_t _pos)const{
 	return pstubs[_pos].psock->isRecvPending();
 }
 
-int MultiObject::socketLocalAddress(const size_t _pos, SocketAddress &_rsa)const{
+bool MultiObject::socketLocalAddress(const size_t _pos, SocketAddress &_rsa)const{
 	cassert(_pos < stubcp);
 	return pstubs[_pos].psock->localAddress(_rsa);
 }
 
-int MultiObject::socketRemoteAddress(const size_t _pos, SocketAddress &_rsa)const{
+bool MultiObject::socketRemoteAddress(const size_t _pos, SocketAddress &_rsa)const{
 	cassert(_pos < stubcp);
 	return pstubs[_pos].psock->remoteAddress(_rsa);
 }
@@ -768,17 +768,17 @@ void MultiObject::socketSecureSocket(const size_t _pos, SecureSocket *_pss){
 	pstubs[_pos].psock->secureSocket(_pss);
 }
 
-int MultiObject::socketSecureAccept(const size_t _pos){
-	int rv = pstubs[_pos].psock->secureAccept();
-	if(rv == NOK){
+ReturnValueE MultiObject::socketSecureAccept(const size_t _pos){
+	const ReturnValueE rv = pstubs[_pos].psock->secureAccept();
+	if(rv == Wait){
 		socketPushRequest(_pos, SocketStub::IORequest);
 	}
 	return rv;
 }
 
-int MultiObject::socketSecureConnect(const size_t _pos){
-	int rv = pstubs[_pos].psock->secureConnect();
-	if(rv == NOK){
+ReturnValueE MultiObject::socketSecureConnect(const size_t _pos){
+	const ReturnValueE rv = pstubs[_pos].psock->secureConnect();
+	if(rv == Wait){
 		socketPushRequest(_pos, SocketStub::IORequest);
 	}
 	return rv;

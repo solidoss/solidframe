@@ -191,7 +191,7 @@ int Selector::init(ulong _cp){
 	if(d.epollfd < 0){
 		edbgx(Debug::aio, "epoll_create: "<<strerror(errno));
 		cassert(false);
-		return BAD;
+		return false;
 	}
 #ifdef UPIPESIGNAL
 	//next create the pipefds:
@@ -199,7 +199,7 @@ int Selector::init(ulong _cp){
 	if(pipe(d.pipefds)){
 		edbgx(Debug::aio, "pipe: "<<strerror(errno));
 		cassert(false);
-		return BAD;
+		return false;
 	}
 	
 	//make the pipes nonblocking
@@ -213,7 +213,7 @@ int Selector::init(ulong _cp){
 	if(epoll_ctl(d.epollfd, EPOLL_CTL_ADD, d.pipefds[0], &ev)){
 		edbgx(Debug::aio, "epoll_ctl: "<<strerror(errno));
 		cassert(false);
-		return BAD;
+		return false;
 	}
 #else
 	cassert(d.efd < 0);
@@ -225,7 +225,7 @@ int Selector::init(ulong _cp){
 	if(epoll_ctl(d.epollfd, EPOLL_CTL_ADD, d.efd, &ev)){
 		edbgx(Debug::aio, "epoll_ctl: "<<strerror(errno));
 		cassert(false);
-		return BAD;
+		return false;
 	}
 #endif
 	//allocate the events
@@ -244,7 +244,7 @@ int Selector::init(ulong _cp){
 	d.ntimepos = TimeSpec::maximum;
 	d.objsz = 1;
 	d.socksz = 1;
-	return OK;
+	return true;
 }
 
 void Selector::prepare(){

@@ -238,7 +238,7 @@ int Selector::init(ulong _cp){
 	if(d.kqfd < 0){
 		edbgx(Debug::aio, "kqueue: "<<strerror(errno));
 		cassert(false);
-		return BAD;
+		return false;
 	}
 #ifdef UPIPESIGNAL
 	//next create the pipefds:
@@ -246,7 +246,7 @@ int Selector::init(ulong _cp){
 	if(pipe(d.pipefds)){
 		edbgx(Debug::aio, "pipe: "<<strerror(errno));
 		cassert(false);
-		return BAD;
+		return false;
 	}
 	
 	//make the pipes nonblocking
@@ -259,7 +259,7 @@ int Selector::init(ulong _cp){
 	if(kevent (d.kqfd, &ev, 1, NULL, 0, NULL)){
 		edbgx(Debug::aio, "kevent: "<<strerror(errno));
 		cassert(false);
-		return BAD;
+		return false;
 	}
 #else
 	cassert(d.efd < 0);
@@ -270,7 +270,7 @@ int Selector::init(ulong _cp){
 	if(kevent (kqfd, &ev, 1, NULL, 0, NULL)){
 		edbgx(Debug::aio, "kevent: "<<strerror(errno));
 		cassert(false);
-		return BAD;
+		return false;
 	}
 #endif
 	//allocate the events
@@ -290,7 +290,7 @@ int Selector::init(ulong _cp){
 	d.ntimepos = TimeSpec::maximum;
 	d.objsz = 1;
 	d.socksz = 1;
-	return OK;
+	return true;
 }
 
 void Selector::prepare(){

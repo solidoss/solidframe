@@ -34,14 +34,14 @@ public:
 	Socket*	createSocket();
 	
 	//!Use it on client side to load the certificates
-	int loadFile(const char *_path);
+	bool loadFile(const char *_path);
 	//!Use it on client side to load the certificates
-	int loadPath(const char *_path);
+	bool loadPath(const char *_path);
 	
 	//!Use it on server side to load the certificates
-	int loadCertificateFile(const char *_path);
+	bool loadCertificateFile(const char *_path);
 	//!Use it on server side to load the certificates
-	int loadPrivateKeyFile(const char *_path);
+	bool loadPrivateKeyFile(const char *_path);
 
 private:
 	Context(const Context&);
@@ -68,8 +68,8 @@ public:
 	/*virtual*/ int send(const char *_pb, uint _bl, uint _flags = 0);
 	/*virtual*/ int recv(char *_pb, uint _bl, uint _flags = 0);
 	/*virtual*/ uint wantEvents()const;
-	/*virtual*/ int secureAccept();
-	/*virtual*/ int secureConnect();
+	/*virtual*/ ReturnValueE secureAccept();
+	/*virtual*/ ReturnValueE secureConnect();
 private:
 
 	friend class Context;	

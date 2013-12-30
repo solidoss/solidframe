@@ -10,6 +10,7 @@
 #ifndef SOLID_FRAME_AIO_SINGLE_OBJECT_HPP
 #define SOLID_FRAME_AIO_SINGLE_OBJECT_HPP
 
+#include "frame/aio/aiocommon.hpp"
 #include "frame/aio/aioobject.hpp"
 #include "frame/aio/aiosocketpointer.hpp"
 #include "system/error.hpp"
@@ -49,22 +50,22 @@ public:
 	bool socketOk()const;
 	
 	//! Asynchronous accept an incomming connection
-	int socketAccept(SocketDevice &_rsd);
+	ReturnValueE socketAccept(SocketDevice &_rsd);
 	
 	//! Asynchronous connect
 	/*!
 		\param _rai An SocketAddressInfo iterator holding the destination address.
 	*/
-	int socketConnect(const SocketAddressStub& _rsas);
+	ReturnValueE socketConnect(const SocketAddressStub& _rsas);
 	
 	//! Asynchronous send
-	int socketSend(const char* _pb, uint32 _bl, uint32 _flags = 0);
+	ReturnValueE socketSend(const char* _pb, uint32 _bl, uint32 _flags = 0);
 	//! Asynchronous send to a specific address
-	int socketSendTo(const char *_pb, uint32 _bl, const SocketAddressStub &_sap, uint32 _flags = 0);
+	ReturnValueE socketSendTo(const char *_pb, uint32 _bl, const SocketAddressStub &_sap, uint32 _flags = 0);
 	//! Asynchronous receive
-	int socketRecv(char *_pb, uint32 _bl, uint32 _flags = 0);
+	ReturnValueE socketRecv(char *_pb, uint32 _bl, uint32 _flags = 0);
 	//! Asynchronous receive
-	int socketRecvFrom(char *_pb, uint32 _bl, uint32 _flags = 0);
+	ReturnValueE socketRecvFrom(char *_pb, uint32 _bl, uint32 _flags = 0);
 	//! Get the size of the received data
 	/*!
 		Call this on successful completion of socketRecv
@@ -87,9 +88,9 @@ public:
 	bool socketHasPendingRecv()const;
 	
 	//! Get the local address of the socket
-	int socketLocalAddress(SocketAddress &_rsa)const;
+	bool socketLocalAddress(SocketAddress &_rsa)const;
 	//! Get the remote address of the socket
-	int socketRemoteAddress(SocketAddress &_rsa)const;
+	bool socketRemoteAddress(SocketAddress &_rsa)const;
 	
 	//! Set the timeout for asynchronous recv opperation completion
 	void socketTimeoutRecv(const TimeSpec &_crttime, const ulong _addsec, const ulong _addnsec = 0);
@@ -114,9 +115,9 @@ public:
 	void socketGrab(SocketPointer &_rsp);
 	
 	//! Sets the socket given an aio::Socket
-	int socketInsert(const SocketPointer &_rsp);
+	bool socketInsert(const SocketPointer &_rsp);
 	//! Sets the socket given a SocketDevice
-	int socketInsert(const SocketDevice &_rsd);
+	bool socketInsert(const SocketDevice &_rsd);
 	
 	//! Request for registering the socket onto the aio::Selector
 	void socketRequestRegister();
@@ -141,9 +142,9 @@ public:
 	void socketSecureSocket(SecureSocket *_pss);
 	
 	//! Asynchronous secure accept
-	int socketSecureAccept();
+	ReturnValueE socketSecureAccept();
 	//! Asynchronous secure connect
-	int socketSecureConnect();
+	ReturnValueE socketSecureConnect();
 	
 	//TODO: not implemented
 	ERROR_NS::error_code socketError()const;

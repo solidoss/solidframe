@@ -125,7 +125,7 @@ public:
 	Talker(const SocketDevice &_rsd, Service &_rservice, uint16 _id);
 	~Talker();
 	int execute(ulong _sig, TimeSpec &_tout);
-	int execute();
+	
 	bool pushMessage(
 		DynamicPointer<Message> &_pmsgptr,
 		const SerializationTypeIdT &_rtid,

@@ -197,10 +197,6 @@ int MessageSteward::execute(ulong _evs, TimeSpec &_rtout){
 void MessageSteward::init(Mutex *_pmtx){
 }
 
-int MessageSteward::execute(){
-	cassert(false);
-}
-
 void MessageSteward::doExecute(uint _pos, uint32 _evs, const TimeSpec &_rtout){
 	Data::SigData &rcp(d.sdq[_pos]);
 	TimeSpec ts(_rtout);

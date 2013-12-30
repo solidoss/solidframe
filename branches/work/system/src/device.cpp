@@ -579,37 +579,35 @@ bool SocketDevice::create(
 #endif
 }
 
-
-bool SocketDevice::connect(const SocketAddressStub &_rsas, bool &_rpending){
+AsyncReturnValueE SocketDevice::connectNonBlocking(const SocketAddressStub &_rsas){
 #ifdef ON_WINDOWS
-	int rv = ::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
-	if (rv < 0) { // sau rv == -1 ...
-		const DWORD err = WSAGetLastError();
-		if(err == WSAEWOULDBLOCK){
-			_rpending = true;
-			specific_error_clear();
-			return true;
-		}
-		SPECIFIC_ERROR_PUSH1(last_socket_error());
-		return false;
+	const int rv = ::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
+	
+	if(rv >= 0){
+		specific_error_clear();
+		return AsyncSuccess;
 	}
-	specific_error_clear();
-	_rpending = false;
-	return true;
+	
+	const DWORD err = WSAGetLastError();
+	if(err == WSAEWOULDBLOCK){
+		specific_error_clear();
+		return AsyncWait;
+	}
+	SPECIFIC_ERROR_PUSH1(last_socket_error());
+	return AsyncFailure;
 #else
-	int rv = ::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
-	if (rv < 0) { // sau rv == -1 ...
-		if(errno == EINPROGRESS){
-			_rpending = true;
-			specific_error_clear();
-			return true;
-		}
-		SPECIFIC_ERROR_PUSH1(last_socket_error());
-		return false;
+	const int rv = ::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
+	if(rv >= 0){
+		specific_error_clear();
+		return AsyncSuccess;
 	}
-	specific_error_clear();
-	_rpending = false;
-	return true;
+	
+	if(errno == EINPROGRESS){
+		specific_error_clear();
+		return AsyncWait;
+	}
+	SPECIFIC_ERROR_PUSH1(last_socket_error());
+	return AsyncFailure;
 #endif
 }
 
@@ -698,37 +696,33 @@ bool SocketDevice::prepareAccept(const SocketAddressStub &_rsas, size_t _listenc
 #endif
 }
 
-bool SocketDevice::accept(SocketDevice &_dev, bool &_rpending){
+AsyncReturnValueE SocketDevice::acceptNonBlocking(SocketDevice &_dev){
 #ifdef ON_WINDOWS
 	SocketAddress sa;
-	SOCKET rv = ::accept(descriptor(), sa, &sa.sz);
+	const SOCKET rv = ::accept(descriptor(), sa, &sa.sz);
 	if (rv == invalidDescriptor()) {
 		if(WSAGetLastError() == WSAEWOULDBLOCK){
-			_rpending = true;
-			return true;
+			return AsyncWait;
 		}
 		SPECIFIC_ERROR_PUSH1(last_socket_error());
-		return false;
+		return AsyncFailure;
 	}
 	specific_error_clear();
 	_dev.Device::descriptor((HANDLE)rv);
-	_rpending = false;
-	return true;
+	return AsyncSuccess;
 #else
 	SocketAddress sa;
-	int rv = ::accept(descriptor(), sa, &sa.sz);
+	const int rv = ::accept(descriptor(), sa, &sa.sz);
 	if (rv < 0) {
 		if(errno == EAGAIN){
-			_rpending = true;
-			return true;
+			return AsyncWait;
 		}
 		SPECIFIC_ERROR_PUSH1(last_socket_error());
-		return false;
+		return AsyncFailure;
 	}
 	specific_error_clear();
 	_dev.Device::descriptor(rv);
-	_rpending = false;
-	return true;
+	return AsyncSuccess;
 #endif
 }
 

@@ -131,8 +131,7 @@ private:
 			return false;
 		}
 		_rw.s.prepare();
-		_rw.s.init(selcap);
-		return true;
+		return _rw.s.init(selcap);
 	}
 	void unprepareWorker(Worker &_rw){
 		unprepareThread(&_rw.s);

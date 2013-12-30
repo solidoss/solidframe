@@ -69,21 +69,21 @@ Socket*	Context::createSocket(){
 	if(!pssl) return NULL;
 	return new Socket(pssl);
 }
-int Context::loadFile(const char *_path){
-	if(SSL_CTX_load_verify_locations(pctx, _path, NULL)) return BAD;
-	return OK;
+bool Context::loadFile(const char *_path){
+	if(SSL_CTX_load_verify_locations(pctx, _path, NULL)) return false;
+	return true;
 }
-int Context::loadPath(const char *_path){
-	if(SSL_CTX_load_verify_locations(pctx, NULL, _path)) return BAD;
-	return OK;
+bool Context::loadPath(const char *_path){
+	if(SSL_CTX_load_verify_locations(pctx, NULL, _path)) return false;
+	return true;
 }
-int Context::loadCertificateFile(const char *_path){
-	if(SSL_CTX_use_certificate_file(pctx, _path, SSL_FILETYPE_PEM)) return BAD;
-	return OK;
+bool Context::loadCertificateFile(const char *_path){
+	if(SSL_CTX_use_certificate_file(pctx, _path, SSL_FILETYPE_PEM)) return false;
+	return true;
 }
-int Context::loadPrivateKeyFile(const char *_path){
-	if(SSL_CTX_use_PrivateKey_file(pctx, _path, SSL_FILETYPE_PEM)) return BAD;
-	return OK;
+bool Context::loadPrivateKeyFile(const char *_path){
+	if(SSL_CTX_use_PrivateKey_file(pctx, _path, SSL_FILETYPE_PEM)) return false;
+	return true;
 }
 Context::Context(SSL_CTX *_pctx):pctx(_pctx){
 }
@@ -113,21 +113,21 @@ Socket::~Socket(){
 	}
 	return rv;
 }
-/*virtual*/ int Socket::secureAccept(){
+/*virtual*/ ReturnValueE Socket::secureAccept(){
 	int rv = SSL_accept(pssl);
-	if(rv == 0) return BAD;
-	if(rv > 0) return OK;
+	if(rv > 0) return Success;
+	if(rv == 0) return Failure;
 	if(shouldWait()){
-		return NOK;
-	}return BAD;
+		return Wait;
+	}return Failure;
 }
-/*virtual*/ int Socket::secureConnect(){
+/*virtual*/ ReturnValueE Socket::secureConnect(){
 	int rv = SSL_connect(pssl);
-	if(rv == 0) return BAD;
-	if(rv > 0) return OK;
+	if(rv > 0) return Success;
+	if(rv == 0) return Failure;
 	if(shouldWait()){
-		return NOK;
-	}return BAD;
+		return Wait;
+	}return Failure;
 }
 Socket::Socket(SSL *_pssl):pssl(_pssl){
 }
