@@ -15,7 +15,7 @@ endif(${HAS_KQUEUE})
 
 set(Sources
 	src/aioobject.cpp
-#	${selector_source}
+	${selector_source}
 	src/aiosocket.cpp
 )
 

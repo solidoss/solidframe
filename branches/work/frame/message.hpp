@@ -61,7 +61,7 @@ struct Message: Dynamic<Message>{
 	/*!
 		If it returns OK, the message is rescheduled for execution
 	*/
-	virtual int receiveMessage(
+	virtual bool receiveMessage(
 		DynamicPointer<Message> &_rmsgptr,
 		const ObjectUidT& _from = ObjectUidT(),
 		const ipc::ConnectionUid *_conid = NULL

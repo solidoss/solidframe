@@ -52,13 +52,14 @@ public:
 	MessageSteward();
 	~MessageSteward();
 	bool notify(DynamicPointer<Message> &_rmsgptr);
-	int execute(ulong _evs, TimeSpec &_rtout);
 	void sendMessage(
 		DynamicPointer<Message> &_rmsgptr,
 		const RequestUidT &_requid,
 		const ObjectUidT& _from = ObjectUidT(),
 		const ipc::ConnectionUid *_conid = NULL
 	);
+private:
+	void execute(ExecuteContext &_rexectx);
 private:
 	/*virtual*/ void init(Mutex*);
 	void doExecute(uint _pos, uint32 _evs, const TimeSpec &_rtout);

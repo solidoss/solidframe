@@ -107,7 +107,7 @@ NOTE:
 	wait forever, because the the destructor of the signal executer will be called
 	after all services/and managers have stopped - i.e. a mighty deadlock.
 */
-int MessageSteward::execute(ulong _evs, TimeSpec &_rtout){
+void MessageSteward::execute(Object::ExecuteContext& _rexectx){
 	Mutex &rmtx = frame::Manager::specific().mutex(*this);
 	rmtx.lock();
 	vdbgx(Debug::frame, "d.extsz = "<<d.extsz);
@@ -130,7 +130,8 @@ int MessageSteward::execute(ulong _evs, TimeSpec &_rtout){
 				d.sdq.clear();
 				//Manager::specific().unregisterObject(*this);
 				vdbgx(Debug::frame, "~MessageSteward");
-				return BAD;
+				_rexectx.close();
+				return;
 			}
 		}
 		if(sm & S_SIG){
@@ -146,18 +147,18 @@ int MessageSteward::execute(ulong _evs, TimeSpec &_rtout){
 		while(d.eq.size()){
 			uint32 pos = d.eq.front();
 			d.eq.pop();
-			doExecute(pos, 0, _rtout);
+			doExecute(pos, 0, _rexectx.currentTime());
 		}
-		if((_evs & TIMEOUT) && _rtout >= d.tout){
+		if((_rexectx.eventMask() & EventTimeout) && _rexectx.currentTime() >= d.tout){
 			TimeSpec tout(0xffffffff);
 			vdbgx(Debug::frame, "1 tout.size = "<<d.toutv.size());
 			for(uint i = 0; i < d.toutv.size();){
 				uint pos = d.toutv[i];
 				Data::SigData &rcp(d.sdq[pos]);
-				if(_rtout >= rcp.tout){
+				if(_rexectx.currentTime() >= rcp.tout){
 					d.eraseToutPos(i);
 					rcp.toutidx = -1;
-					doExecute(pos, TIMEOUT, _rtout);
+					doExecute(pos, EventTimeout, _rexectx.currentTime());
 				}else{
 					if(rcp.tout < tout){
 						tout = rcp.tout;
@@ -179,7 +180,8 @@ int MessageSteward::execute(ulong _evs, TimeSpec &_rtout){
 		//Manager::specific().unregisterObject(*this);
 		d.state = -1;
 		d.sdq.clear();
-		return BAD;
+		_rexectx.close();
+		return;
 	}
 	if(d.fs2.size()){
 		rmtx.lock();
@@ -190,8 +192,8 @@ int MessageSteward::execute(ulong _evs, TimeSpec &_rtout){
 		}
 		rmtx.unlock();
 	}
-	_rtout = d.tout;
-	return NOK;
+	_rexectx.waitUntil(d.tout);
+	return;
 }
 
 void MessageSteward::init(Mutex *_pmtx){
@@ -202,10 +204,10 @@ void MessageSteward::doExecute(uint _pos, uint32 _evs, const TimeSpec &_rtout){
 	TimeSpec ts(_rtout);
 	int rv(rcp.sig->execute(rcp.sig, _evs, *this, MessageUidT(_pos, rcp.uid), ts));
 	if(!rcp.sig){
-		rv = BAD;
+		rv = AsyncFailure;
 	}
 	switch(rv){
-		case BAD: 
+		case AsyncFailure: 
 			++rcp.uid;
 			rcp.sig.clear();
 			d.fs2.push(_pos);
@@ -214,14 +216,14 @@ void MessageSteward::doExecute(uint _pos, uint32 _evs, const TimeSpec &_rtout){
 				rcp.toutidx = -1;
 			}
 			break;
-		case OK:
+		case AsyncSuccess:
 			d.eq.push(_pos);
 			if(rcp.toutidx >= 0){
 				d.eraseToutPos(rcp.toutidx);
 				rcp.toutidx = -1;
 			}
 			break;
-		case NOK:
+		case AsyncWait:
 			if(ts != _rtout){
 				vdbgx(Debug::frame, "tout idx = "<<rcp.toutidx);
 				rcp.tout = ts;
@@ -253,7 +255,7 @@ void MessageSteward::sendMessage(
 	vdbgx(Debug::frame, "_requid.first = "<<_requid.first<<" _requid.second = "<<_requid.second<<" uid = "<<d.sdq[_requid.first].uid);
 	if(_requid.first < d.sdq.size() && d.sdq[_requid.first].uid == _requid.second){
 		vdbgx(Debug::frame, "");
-		if(d.sdq[_requid.first].sig->receiveMessage(_rsig, _from, _conid) == OK){
+		if(d.sdq[_requid.first].sig->receiveMessage(_rsig, _from, _conid)){
 			vdbgx(Debug::frame, "");
 			d.eq.push(_requid.first);
 		}

@@ -29,7 +29,7 @@ public:
 protected:
 	void associateObjectToCurrentThread(Object &_robj);
 	bool setObjectThread(Object &_robj, const IndexT &_objidx);
-	int executeObject(Object &_robj, ulong _evs, TimeSpec &_rtout);
+	void executeObject(Object &_robj, Object::ExecuteContext &_rexectx);
 	void setCurrentTimeSpecific(const TimeSpec &_rtout);
 	void id(uint32 _id);
 private:
@@ -44,8 +44,8 @@ inline uint32 SelectorBase::id()const{
 inline void SelectorBase::associateObjectToCurrentThread(Object &_robj){
 	_robj.associateToCurrentThread();
 }
-inline int SelectorBase::executeObject(Object &_robj, ulong _evs, TimeSpec &_rtout){
-	return _robj.execute(_evs, _rtout);
+inline void SelectorBase::executeObject(Object &_robj, Object::ExecuteContext &_rexectx){
+	_robj.execute(_rexectx);
 }
 
 inline void SelectorBase::id(uint32 _id){

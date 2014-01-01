@@ -156,9 +156,9 @@ void ObjectSelector::run(){
 				if(!it->objptr.empty()){
 					Data::ObjectStub &ro = *it;
 					evs = 0;
-					if(d.ctimepos >= ro.timepos) evs |= TIMEOUT;
+					if(d.ctimepos >= ro.timepos) evs |= EventTimeout;
 					else if(d.ntimepos > ro.timepos) d.ntimepos = ro.timepos;
-					if(ro.objptr->notified(S_RAISE)) evs |= SIGNALED;//should not be checked by objs
+					if(ro.objptr->notified(S_RAISE)) evs |= EventSignal;//should not be checked by objs
 					if(evs){
 						state |= doExecute(it - d.sv.begin(), evs, d.ctimepos);
 					}
@@ -166,9 +166,9 @@ void ObjectSelector::run(){
 				if(!(it + 1)->objptr.empty()){
 					Data::ObjectStub &ro = *(it + 1);
 					evs = 0;
-					if(d.ctimepos >= ro.timepos) evs |= TIMEOUT;
+					if(d.ctimepos >= ro.timepos) evs |= EventTimeout;
 					else if(d.ntimepos > ro.timepos) d.ntimepos = ro.timepos;
-					if(ro.objptr->notified(S_RAISE)) evs |= SIGNALED;//should not be checked by objs
+					if(ro.objptr->notified(S_RAISE)) evs |= EventSignal;//should not be checked by objs
 					if(evs){
 						state |= doExecute(it - d.sv.begin() + 1, evs, d.ctimepos);
 					}
@@ -176,9 +176,9 @@ void ObjectSelector::run(){
 				if(!(it + 2)->objptr.empty()){
 					Data::ObjectStub &ro = *(it + 2);
 					evs = 0;
-					if(d.ctimepos >= ro.timepos) evs |= TIMEOUT;
+					if(d.ctimepos >= ro.timepos) evs |= EventTimeout;
 					else if(d.ntimepos > ro.timepos) d.ntimepos = ro.timepos;
-					if(ro.objptr->notified(S_RAISE)) evs |= SIGNALED;//should not be checked by objs
+					if(ro.objptr->notified(S_RAISE)) evs |= EventSignal;//should not be checked by objs
 					if(evs){
 						state |= doExecute(it - d.sv.begin() + 2, evs, d.ctimepos);
 					}
@@ -186,9 +186,9 @@ void ObjectSelector::run(){
 				if(!(it + 3)->objptr.empty()){
 					Data::ObjectStub &ro = *(it + 3);
 					evs = 0;
-					if(d.ctimepos >= ro.timepos) evs |= TIMEOUT;
+					if(d.ctimepos >= ro.timepos) evs |= EventTimeout;
 					else if(d.ntimepos > ro.timepos) d.ntimepos = ro.timepos;
-					if(ro.objptr->notified(S_RAISE)) evs |= SIGNALED;//should not be checked by objs
+					if(ro.objptr->notified(S_RAISE)) evs |= EventSignal;//should not be checked by objs
 					if(evs){
 						state |= doExecute(it - d.sv.begin() + 3, evs, d.ctimepos);
 					}
@@ -281,33 +281,39 @@ int ObjectSelector::doWait(int _wt){
 }
 
 int ObjectSelector::doExecute(unsigned _i, ulong _evs, TimeSpec _crttout){
-	int rv = 0;
+	
 	this->associateObjectToCurrentThread(*d.sv[_i].objptr);
-	switch(this->executeObject(*d.sv[_i].objptr, _evs, _crttout)){
-		case BAD:
+	
+	int							rv = 0;
+	Object::ExecuteController	exectl(_evs, _crttout);
+	
+	this->executeObject(*d.sv[_i].objptr, exectl);
+	
+	switch(exectl.returnValue()){
+		case Object::ExecuteContext::CloseRequest:
 			d.fstk.push(_i);
 			d.sv[_i].objptr.clear();
 			d.sv[_i].state = 0;
 			--d.sz;
 			if(empty()) rv = Data::EXIT_LOOP;
 			break;
-		case OK:
+		case Object::ExecuteContext::RescheduleRequest:
 			idbgx(Debug::frame, "OK: reentering object");
 			if(!d.sv[_i].state) {d.objq.push(_i); d.sv[_i].state = 1;}
 			d.sv[_i].timepos.set(0xffffffff);
 			break;
-		case NOK:
+		case Object::ExecuteContext::WaitRequest:
 			idbgx(Debug::frame, "TOUT: object waits for signals");
-			if(_crttout != d.ctimepos){
-				d.sv[_i].timepos = _crttout;
-				if(d.ntimepos > _crttout){
-					d.ntimepos = _crttout;
-				}
-			}else{
-				d.sv[_i].timepos.set(0xffffffff);
+			d.sv[_i].timepos.set(0xffffffff);
+			break;
+		case Object::ExecuteContext::WaitUntilRequest:
+			idbgx(Debug::frame, "TOUT: object waits for signals");
+			d.sv[_i].timepos = exectl.waitTime();
+			if(d.ntimepos > exectl.waitTime()){
+				d.ntimepos = exectl.waitTime();
 			}
 			break;
-		case LEAVE:
+		case Object::ExecuteContext::LeaveRequest:
 			idbgx(Debug::frame, "LEAVE: object leave");
 			d.fstk.push(_i);
 			d.sv[_i].objptr.release();
@@ -315,7 +321,7 @@ int ObjectSelector::doExecute(unsigned _i, ulong _evs, TimeSpec _crttout){
 			--d.sz;
 			if(empty()) rv = Data::EXIT_LOOP;
 			break;
-		default: cassert(false);
+		default: cassert(false);break;
 	}
 	return rv;
 }

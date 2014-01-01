@@ -125,16 +125,16 @@ int Message::execute(
 	TimeSpec &_rts
 ){
 	wdbgx(Debug::frame, "Unhandled message");
-	return BAD;
+	return AsyncFailure;
 }
 
-int Message::(
+bool Message::receiveMessage(
 	DynamicPointer<Message> &_rmsgptr,
 	const ObjectUidT& _from,
 	const ipc::ConnectionUid *_conid
 ){
 	wdbgx(Debug::frame, "Unhandled receiveMessage");
-	return BAD;//no need for execution
+	return false;//no need for execution
 }
 
 }//namespace frame

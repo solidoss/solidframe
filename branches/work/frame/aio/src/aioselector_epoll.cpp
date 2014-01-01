@@ -177,7 +177,7 @@ Selector::Selector():d(*(new Data)){
 Selector::~Selector(){
 	delete &d;
 }
-int Selector::init(ulong _cp){
+bool Selector::init(ulong _cp){
 	idbgx(Debug::aio, "aio::Selector "<<(void*)this);
 	cassert(_cp);
 	d.objcp = _cp;
@@ -425,7 +425,7 @@ ulong Selector::doReadPipe(){
 			uint pos(buf[i]);
 			if(pos){
 				if(pos < d.stubs.size() && !(pstub = &d.stubs[pos])->objptr.empty() && pstub->objptr->notified(S_RAISE)){
-					pstub->events |= SIGNALED;
+					pstub->events |= EventSignal;
 					if(pstub->state == Stub::OutExecQueue){
 						d.execq.push(pos);
 						pstub->state = Stub::InExecQueue;
@@ -440,7 +440,7 @@ ulong Selector::doReadPipe(){
 			uint pos(buf[i]);
 			if(pos){
 				if(pos < d.stubs.size() && !(pstub = &d.stubs[pos])->objptr.empty() && pstub->objptr->notified(S_RAISE)){
-					pstub->events |= SIGNALED;
+					pstub->events |= EventSignal;
 					if(pstub->state == Stub::OutExecQueue){
 						d.execq.push(pos);
 						pstub->state = Stub::InExecQueue;
@@ -473,7 +473,7 @@ ulong Selector::doReadPipe(){
 				idbgx(Debug::aio, "signaling object on pos "<<pos);
 				if(pos < d.stubs.size() && (pstub = &d.stubs[pos])->objptr && pstub->objptr->signaled(S_RAISE)){
 					idbgx(Debug::aio, "signaled object on pos "<<pos);
-					pstub->events |= SIGNALED;
+					pstub->events |= EventSignal;
 					if(pstub->state == Stub::OutExecQueue){
 						d.execq.push(pos);
 						pstub->state = Stub::InExecQueue;
@@ -495,7 +495,7 @@ ulong Selector::doReadPipe(){
 			d.sigq.pop();
 			if(pos){
 				if(pos < d.stubs.size() && (pstub = &d.stubs[pos])->objptr && pstub->objptr->signaled(S_RAISE)){
-					pstub->events |= SIGNALED;
+					pstub->events |= EventSignal;
 					if(pstub->state == Stub::OutExecQueue){
 						d.execq.push(pos);
 						pstub->state = Stub::InExecQueue;
@@ -532,14 +532,14 @@ inline ulong Selector::doIo(Socket &_rsock, ulong _evs, ulong){
 		wdbgx(Debug::aio, "sock error evs = "<<_evs<<" err = "<<err<<" errstr = "<<strerror(err));
 		wdbgx(Debug::aio, "rv = "<<rv<<" "<<strerror(errno)<<" desc"<<_rsock.descriptor());
 		if(rv || err || (_evs & EPOLLERR)){
-			return ERRDONE;
+			return EventDoneError;
 		}//else ignore spurious EPOLLHUP for just created sockets
 	}
 	ulong rv = 0;
 	if(_evs & EPOLLIN){
 		rv = _rsock.doRecv();
 	}
-	if(!(rv & ERRDONE) && (_evs & EPOLLOUT)){
+	if(!(rv & EventDoneError) && (_evs & EPOLLOUT)){
 		rv |= _rsock.doSend();
 	}
 	return rv;
@@ -579,7 +579,7 @@ ulong Selector::doAllIo(){
 			}
 			if(evs){
 				//first mark the socket in connection
-				vdbgx(Debug::aio, "evs = "<<evs<<" indone = "<<INDONE<<" stubpos = "<<stubpos);
+				vdbgx(Debug::aio, "evs = "<<evs<<" indone = "<<EventDoneRecv<<" stubpos = "<<stubpos);
 				stub.objptr->socketPostEvents(sockpos, evs);
 				stub.events |= evs;
 				//push channel execqueue
@@ -615,13 +615,13 @@ void Selector::doFullScanCheck(Stub &_rstub, const ulong _pos){
 	}
 	
 	if(d.ctimepos >= _rstub.timepos){
-		evs |= TIMEOUT;
+		evs |= EventTimeout;
 	}else if(d.ntimepos > _rstub.timepos){
 		d.ntimepos = _rstub.timepos;
 	}
 	
 	if(_rstub.objptr->notified(S_RAISE)){
-		evs |= SIGNALED;//should not be checked by objs
+		evs |= EventSignal;//should not be checked by objs
 	}
 	if(evs){
 		_rstub.events |= evs;
@@ -652,19 +652,37 @@ ulong Selector::doFullScan(){
 	return 0;
 }
 ulong Selector::doExecute(const ulong _pos){
-	Stub &stub(d.stubs[_pos]);
+	Stub						&stub(d.stubs[_pos]);
+	
 	cassert(stub.state == Stub::InExecQueue);
 	stub.state = Stub::OutExecQueue;
-	ulong	rv(0);
+	
+	ulong						rv(0);
+	Object::ExecuteController	exectl(stub.events, d.ctimepos);
+	
 	stub.timepos = TimeSpec::maximum;
-	TimeSpec timepos(d.ctimepos);
-	ulong evs = stub.events;
+	
 	stub.events = 0;
 	stub.objptr->doClearRequests();//clears the requests from object to selector
+	
 	idbgx(Debug::aio, "execute object "<<_pos);
+	
 	this->associateObjectToCurrentThread(*stub.objptr);
-	switch(this->executeObject(*stub.objptr, evs, timepos)){
-		case BAD:
+	
+	this->executeObject(*stub.objptr, exectl);
+	
+	switch(exectl.returnValue()){
+		case Object::ExecuteContext::RescheduleRequest:
+			d.execq.push(_pos);
+			stub.state = Stub::InExecQueue;
+			stub.events |= EventReschedule;
+		case Object::ExecuteContext::WaitRequest:
+			doPrepareObjectWait(_pos, d.ctimepos);
+			break;
+		case Object::ExecuteContext::WaitUntilRequest:
+			doPrepareObjectWait(_pos, exectl.waitTime());
+			break;
+		case Object::ExecuteContext::CloseRequest:
 			idbgx(Debug::aio, "BAD: removing the connection");
 			d.freestubsstk.push(_pos);
 			//unregister all channels
@@ -675,14 +693,7 @@ ulong Selector::doExecute(const ulong _pos){
 			--d.objsz;
 			rv = Data::EXIT_LOOP;
 			break;
-		case OK:
-			d.execq.push(_pos);
-			stub.state = Stub::InExecQueue;
-			stub.events |= RESCHEDULED;
-		case NOK:
-			doPrepareObjectWait(_pos, timepos);
-			break;
-		case LEAVE:
+		case Object::ExecuteContext::LeaveRequest:
 			d.freestubsstk.push(_pos);
 			doUnregisterObject(*stub.objptr);
 			stub.timepos = TimeSpec::maximum;
@@ -701,9 +712,8 @@ void Selector::doPrepareObjectWait(const size_t _pos, const TimeSpec &_timepos){
 	bool 					mustwait = true;
 	vdbgx(Debug::aio, "stub "<<_pos);
 	for(const size_t *pit(stub.objptr->reqbeg); pit != pend; ++pit){
-		Object::SocketStub &sockstub(stub.objptr->pstubs[*pit]);
-		//sockstub.chnevents = 0;
-		const uint8 reqtp = sockstub.requesttype;
+		Object::SocketStub	&sockstub(stub.objptr->pstubs[*pit]);
+		const 				uint8 reqtp = sockstub.requesttype;
 		sockstub.requesttype = 0;
 		switch(reqtp){
 			case Object::SocketStub::IORequest:{
@@ -729,7 +739,7 @@ void Selector::doPrepareObjectWait(const size_t _pos, const TimeSpec &_timepos){
 				sockstub.selevents = 0;
 				ev.events =  EPOLLERR | EPOLLHUP | EPOLLET;
 				check_call(Debug::aio, 0, epoll_ctl(d.epollfd, EPOLL_CTL_ADD, sockstub.psock->descriptor(), d.eventPrepare(ev, _pos, *pit)));
-				stub.objptr->socketPostEvents(*pit, OKDONE);
+				stub.objptr->socketPostEvents(*pit, EventDoneSuccess);
 				d.addNewSocket();
 				mustwait = false;
 			}break;
@@ -739,7 +749,7 @@ void Selector::doPrepareObjectWait(const size_t _pos, const TimeSpec &_timepos){
 					check_call(Debug::aio, 0, epoll_ctl(d.epollfd, EPOLL_CTL_DEL, sockstub.psock->descriptor(), NULL));
 					--d.socksz;
 					sockstub.psock->doUnprepare();
-					stub.objptr->socketPostEvents(*pit, OKDONE);
+					stub.objptr->socketPostEvents(*pit, EventDoneSuccess);
 					mustwait = false;
 				}
 			}break;

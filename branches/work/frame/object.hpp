@@ -45,7 +45,8 @@ public:
 			WaitRequest,
 			WaitUntilRequest,
 			RescheduleRequest,
-			CloseRequest
+			CloseRequest,
+			LeaveRequest,
 		};
 		size_t eventMask()const{
 			return evsmsk;
@@ -55,6 +56,7 @@ public:
 		}
 		void reschedule();
 		void close();
+		void leave();
 		void wait();
 		void waitUntil(const TimeSpec &_rtm);
 		void waitFor(const TimeSpec &_rtm);

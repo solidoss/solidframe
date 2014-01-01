@@ -37,7 +37,7 @@ struct BasicScheduler::Data: WorkPoolControllerBase, SelectorBase{
 	}
 	bool createWorker(WorkPoolT &_rwp){
 		WorkerBase	*pw(_rwp.createSingleWorker());
-		if(pw && pw->start() != OK){
+		if(pw && pw->start()){
 			delete pw;
 			return false;
 		}return true;
@@ -57,20 +57,23 @@ struct BasicScheduler::Data: WorkPoolControllerBase, SelectorBase{
 
 
 void BasicScheduler::Data::execute(WorkerBase &_rw, BasicScheduler::JobT &_rjob){
-	TimeSpec ts;
-	int rv(SelectorBase::executeObject(*_rjob, 0, ts));
-	switch(rv){
-		case LEAVE:
+	TimeSpec					ts;
+	Object::ExecuteController	exectl(0, ts);
+	
+	SelectorBase::executeObject(*_rjob, exectl);
+	
+	switch(exectl.returnValue()){
+		case Object::ExecuteContext::LeaveRequest:
 			_rjob.clear();
 			break;
-		case OK:
+		case Object::ExecuteContext::RescheduleRequest:
 			wp.push(_rjob);
 			break;
-		case BAD:
+		case Object::ExecuteContext::CloseRequest:
 			_rjob.clear();
 			break;
 		default:
-			edbg("Unknown return value from Object::exec "<<rv);
+			edbg("Unknown return value from Object::exec "<<exectl.returnValue());
 			_rjob.clear();
 			break;
 	}

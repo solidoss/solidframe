@@ -17,6 +17,9 @@ inline void Object::ExecuteContext::reschedule(){
 inline void Object::ExecuteContext::close(){
 	retval = CloseRequest;
 }
+inline void Object::ExecuteContext::leave(){
+	retval = LeaveRequest;
+}
 inline void Object::ExecuteContext::wait(){
 	retval = WaitRequest;
 }
