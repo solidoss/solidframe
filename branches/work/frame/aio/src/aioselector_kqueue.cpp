@@ -646,7 +646,7 @@ ulong Selector::doAllIo(){
 			}
 			if(evs){
 				//first mark the socket in connection
-				vdbgx(Debug::aio, "evs = "<<evs<<" indone = "<<INDONE<<" stubpos = "<<stubpos);
+				vdbgx(Debug::aio, "evs = "<<evs<<" indone = "<<EventDoneRecv<<" stubpos = "<<stubpos);
 				stub.objptr->socketPostEvents(sockpos, evs);
 				stub.events |= evs;
 				//push channel execqueue
@@ -747,7 +747,7 @@ ulong Selector::doExecute(const ulong _pos){
 		case Object::ExecuteContext::WaitRequest:
 			doPrepareObjectWait(_pos, d.ctimepos);
 			break;
-		case Object::ExecuteContext::WaitRequest:
+		case Object::ExecuteContext::WaitUntilRequest:
 			doPrepareObjectWait(_pos, exectl.waitTime());
 			break;
 		case Object::ExecuteContext::CloseRequest:
