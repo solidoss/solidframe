@@ -48,13 +48,13 @@ public:
 	//! Create the socket
 	bool create(const ResolveIterator& _rai);
 	//! Asynchronous connect request
-	ReturnValueE connect(const SocketAddressStub& _rsas);
-	ReturnValueE accept(SocketDevice &_rsd);
-	ReturnValueE accept(Socket &_rs);
+	AsyncE connect(const SocketAddressStub& _rsas);
+	AsyncE accept(SocketDevice &_rsd);
+	AsyncE accept(Socket &_rs);
 	//! Send a buffer
-	ReturnValueE send(const char* _pb, uint32 _bl, uint32 _flags = 0);
+	AsyncE send(const char* _pb, uint32 _bl, uint32 _flags = 0);
 	//! Receives data into a buffer
-	ReturnValueE recv(char *_pb, uint32 _bl, uint32 _flags = 0);
+	AsyncE recv(char *_pb, uint32 _bl, uint32 _flags = 0);
 	//! The size of the buffer received
 	uint32 recvSize()const;
 	//! The amount of data sent
@@ -71,9 +71,9 @@ public:
 	bool remoteAddress(SocketAddress &_rsa)const;
 	
 	//! Asynchrounous recv_from  call
-	ReturnValueE recvFrom(char *_pb, uint32 _bl, uint32 _flags = 0);
+	AsyncE recvFrom(char *_pb, uint32 _bl, uint32 _flags = 0);
 	//! Asynchrounous send_to call
-	ReturnValueE sendTo(const char *_pb, uint32 _bl, const SocketAddressStub &_sap, uint32 _flags = 0);
+	AsyncE sendTo(const char *_pb, uint32 _bl, const SocketAddressStub &_sap, uint32 _flags = 0);
 	//! The sender address for last received data.
 	const SocketAddress &recvAddr() const;
 	//! Setter for the secure socket
@@ -81,9 +81,9 @@ public:
 	//! Getter for the secure socket
 	SecureSocket* secureSocket()const;
 	//! Do a SSL accept - secure handshake
-	ReturnValueE secureAccept();
+	AsyncE secureAccept();
 	//! Do a SSL connect - secure handshake
-	ReturnValueE secureConnect();
+	AsyncE secureConnect();
 private:
 	friend class Selector;
 	void doPrepare();
@@ -95,24 +95,24 @@ private:
 	void doWantRead(int _w);
 	void doWantWrite(int _w);
 	
-	int doSend();
-	int doRecv();
+	ulong doSend();
+	ulong doRecv();
 	
-	int doSendPlain();
-	int doRecvPlain();
+	ulong doSendPlain();
+	ulong doRecvPlain();
 	
-	int doSendPlain(const char* _pb, uint32 _bl, uint32 _flags);
-	int doRecvPlain(char *_pb, uint32 _bl, uint32 _flags);
+	AsyncE doSendPlain(const char* _pb, uint32 _bl, uint32 _flags);
+	AsyncE doRecvPlain(char *_pb, uint32 _bl, uint32 _flags);
 	
-	int doSendSecure();
-	int doRecvSecure();
+	ulong doSendSecure();
+	ulong doRecvSecure();
 	
-	int doSendSecure(const char* _pb, uint32 _bl, uint32 _flags);
-	int doRecvSecure(char *_pb, uint32 _bl, uint32 _flags);
+	AsyncE doSendSecure(const char* _pb, uint32 _bl, uint32 _flags);
+	AsyncE doRecvSecure(char *_pb, uint32 _bl, uint32 _flags);
 	
-	int doSecureReadWrite(int _w);
-	int doSecureAccept();
-	int doSecureConnect();
+	ulong doSecureReadWrite(int _w);
+	ulong doSecureAccept();
+	ulong doSecureConnect();
 	
 	uint32 ioRequest()const;
 	int descriptor()const{return sd.descriptor();}

@@ -59,8 +59,8 @@ size_t Object::doOnTimeoutRecv(const TimeSpec &_timepos){
 		vdbgx(Debug::aio, "compare time for pos "<<*pit<<" tout "<<rss.itimepos.seconds()<<" with crttime "<<_timepos.seconds());
 		
 		if(rss.itimepos <= _timepos){
-			rv = TIMEOUT_RECV;
-			socketPostEvents(*pit, TIMEOUT_RECV);
+			rv = EventTimeoutRecv;
+			socketPostEvents(*pit, EventTimeoutRecv);
 			--pend;
 			*pit = *pend;
 			//TODO: add some checking
@@ -90,8 +90,8 @@ size_t Object::doOnTimeoutSend(const TimeSpec &_timepos){
 		vdbgx(Debug::aio, "compare time for pos "<<*pit<<" tout "<<rss.otimepos.seconds()<<" with crttime "<<_timepos.seconds());
 		
 		if(rss.otimepos <= _timepos){
-			rv = TIMEOUT_SEND;
-			socketPostEvents(*pit, TIMEOUT_SEND);
+			rv = EventTimeoutSend;
+			socketPostEvents(*pit, EventTimeoutSend);
 			--pend;
 			*pit = *pend;
 			//TODO: add some checking
@@ -177,10 +177,10 @@ void Object::socketPostEvents(const size_t _pos, const uint32 _evs){
 		respos = (respos + 1) % (stubcp);
 		++ressize;
 	}
-	if((_evs & INDONE) && rss.itoutpos != static_cast<size_t>(-1)){
+	if((_evs & EventDoneRecv) && rss.itoutpos != static_cast<size_t>(-1)){
 		doPopTimeoutRecv(_pos);
 	}
-	if((_evs & OUTDONE) && rss.otoutpos != static_cast<size_t>(-1)){
+	if((_evs & EventDoneSend) && rss.otoutpos != static_cast<size_t>(-1)){
 		doPopTimeoutSend(_pos);
 	}
 }
@@ -208,11 +208,11 @@ SingleObject::SingleObject(const SocketPointer& _rsp):
 	socketInsert(_rsp);
 }
 
-SingleObject::SingleObject(const SocketDevice &_rsd):
+SingleObject::SingleObject(const SocketDevice &_rsd, const bool _isacceptor):
 	BaseT(&stub, 1, &req, &res, &itout, &otout), req(-1), res(-1), itout(-1), otout(-1)
 {
 	if(_rsd.ok()){
-		socketInsert(_rsd);
+		socketInsert(_rsd, _isacceptor);
 	}
 }
 
@@ -224,64 +224,64 @@ bool SingleObject::socketOk()const{
 	return stub.psock->ok();
 }
 
-ReturnValueE SingleObject::socketAccept(SocketDevice &_rsd){
-	const ReturnValueE rv = stub.psock->accept(_rsd);
-	if(rv == Wait){
+AsyncE SingleObject::socketAccept(SocketDevice &_rsd){
+	const AsyncE rv = stub.psock->accept(_rsd);
+	if(rv == AsyncWait){
 		socketPushRequest(0, SocketStub::IORequest);
 	}
 	return rv;
 }
 
-ReturnValueE SingleObject::socketConnect(const SocketAddressStub& _rsas){
+AsyncE SingleObject::socketConnect(const SocketAddressStub& _rsas){
 	cassert(stub.psock);
-	const ReturnValueE rv = stub.psock->connect(_rsas);
-	if(rv == Wait){
+	const AsyncE rv = stub.psock->connect(_rsas);
+	if(rv == AsyncWait){
 		socketPushRequest(0, SocketStub::IORequest);
 	}
 	return rv;
 }
 
 
-ReturnValueE SingleObject::socketSend(const char* _pb, uint32 _bl, uint32 _flags){
+AsyncE SingleObject::socketSend(const char* _pb, uint32 _bl, uint32 _flags){
 	//ensure that we dont have double request
 	//cassert(stub.request <= SocketStub::Response);
 	cassert(stub.psock);
-	const ReturnValueE rv = stub.psock->send(_pb, _bl);
-	if(rv == Wait){
+	const AsyncE rv = stub.psock->send(_pb, _bl);
+	if(rv == AsyncWait){
 		socketPushRequest(0, SocketStub::IORequest);
 	}
 	return rv;
 }
 
-ReturnValueE SingleObject::socketSendTo(const char* _pb, uint32 _bl, const SocketAddressStub &_sap, uint32 _flags){
+AsyncE SingleObject::socketSendTo(const char* _pb, uint32 _bl, const SocketAddressStub &_sap, uint32 _flags){
 	//ensure that we dont have double request
 	//cassert(stub.request <= SocketStub::Response);
 	cassert(stub.psock);
-	const ReturnValueE rv = stub.psock->sendTo(_pb, _bl, _sap);
-	if(rv == Wait){
+	const AsyncE rv = stub.psock->sendTo(_pb, _bl, _sap);
+	if(rv == AsyncWait){
 		socketPushRequest(0, SocketStub::IORequest);
 	}
 	return rv;
 }
 
-ReturnValueE SingleObject::socketRecv(char *_pb, uint32 _bl, uint32 _flags){
+AsyncE SingleObject::socketRecv(char *_pb, uint32 _bl, uint32 _flags){
 	//ensure that we dont have double request
 	//cassert(stub.request <= SocketStub::Response);
 	cassert(stub.psock);
-	const ReturnValueE rv = stub.psock->recv(_pb, _bl);
-	if(rv == Wait){
+	const AsyncE rv = stub.psock->recv(_pb, _bl);
+	if(rv == AsyncWait){
 		//stub.timepos.set(0xffffffff, 0xffffffff);
 		socketPushRequest(0, SocketStub::IORequest);
 	}
 	return rv;
 }
 
-ReturnValueE SingleObject::socketRecvFrom(char *_pb, uint32 _bl, uint32 _flags){
+AsyncE SingleObject::socketRecvFrom(char *_pb, uint32 _bl, uint32 _flags){
 	//ensure that we dont have double request
 	//cassert(stub.request <= SocketStub::Response);
 	cassert(stub.psock);
-	const ReturnValueE rv = stub.psock->recvFrom(_pb, _bl);
-	if(rv == Wait){
+	const AsyncE rv = stub.psock->recvFrom(_pb, _bl);
+	if(rv == AsyncWait){
 		//stub.timepos.set(0xffffffff, 0xffffffff);
 		socketPushRequest(0, SocketStub::IORequest);
 	}
@@ -354,15 +354,17 @@ bool SingleObject::socketInsert(const SocketPointer &_rsp){
 	return true;
 }
 
-bool SingleObject::socketInsert(const SocketDevice &_rsd){
+bool SingleObject::socketInsert(const SocketDevice &_rsd, const bool _isacceptor){
 	cassert(!stub.psock);
 	if(_rsd.ok()){
 		Socket::Type tp;
+		const std::pair<bool, int> socktp = _rsd.type();
+		if(!socktp.first) return false;
 		
-		if(_rsd.type() == SocketInfo::Datagram){
+		if(socktp.second == SocketInfo::Datagram){
 			tp = Socket::STATION;
-		}else if(_rsd.type() == SocketInfo::Stream){
-			if(_rsd.isListening()){
+		}else if(socktp.second == SocketInfo::Stream){
+			if(_isacceptor){
 				tp = Socket::ACCEPTOR;
 			}else{
 				tp = Socket::CHANNEL;
@@ -412,18 +414,18 @@ void SingleObject::socketSecureSocket(SecureSocket *_pss){
 	stub.psock->secureSocket(_pss);
 }
 
-ReturnValueE SingleObject::socketSecureAccept(){
-	const ReturnValueE rv = stub.psock->secureAccept();
-	if(rv == Wait){
+AsyncE SingleObject::socketSecureAccept(){
+	const AsyncE rv = stub.psock->secureAccept();
+	if(rv == AsyncWait){
 		//stub.timepos.set(0xffffffff, 0xffffffff);
 		socketPushRequest(0, SocketStub::IORequest);
 	}
 	return rv;
 }
 
-ReturnValueE SingleObject::socketSecureConnect(){
-	const ReturnValueE rv = stub.psock->secureConnect();
-	if(rv == Wait){
+AsyncE SingleObject::socketSecureConnect(){
+	const AsyncE rv = stub.psock->secureConnect();
+	if(rv == AsyncWait){
 		//stub.timepos.set(0xffffffff, 0xffffffff);
 		socketPushRequest(0, SocketStub::IORequest);
 	}
@@ -438,8 +440,8 @@ MultiObject::MultiObject(const SocketPointer& _rps):respoppos(0){
 	}
 }
 
-MultiObject::MultiObject(const SocketDevice &_rsd):respoppos(0){
-	socketInsert(_rsd);
+MultiObject::MultiObject(const SocketDevice &_rsd, const bool _isacceptor):respoppos(0){
+	socketInsert(_rsd, _isacceptor);
 }
 
 MultiObject::~MultiObject(){
@@ -475,19 +477,19 @@ bool MultiObject::socketOk(const size_t _pos)const{
 	return pstubs[_pos].psock->ok();
 }
 
-ReturnValueE MultiObject::socketAccept(const size_t _pos, SocketDevice &_rsd){
+AsyncE MultiObject::socketAccept(const size_t _pos, SocketDevice &_rsd){
 	cassert(_pos < stubcp);
-	const ReturnValueE rv = pstubs[_pos].psock->accept(_rsd);
-	if(rv == Wait){
+	const AsyncE rv = pstubs[_pos].psock->accept(_rsd);
+	if(rv == AsyncWait){
 		socketPushRequest(_pos, SocketStub::IORequest);
 	}
 	return rv;
 }
 
-ReturnValueE MultiObject::socketConnect(const size_t _pos, const SocketAddressStub& _rsas){
+AsyncE MultiObject::socketConnect(const size_t _pos, const SocketAddressStub& _rsas){
 	cassert(_pos < stubcp);
-	const ReturnValueE rv = pstubs[_pos].psock->connect(_rsas);
-	if(rv == Wait){
+	const AsyncE rv = pstubs[_pos].psock->connect(_rsas);
+	if(rv == AsyncWait){
 		socketPushRequest(_pos, SocketStub::IORequest);
 	}
 	return rv;
@@ -497,21 +499,21 @@ const SocketAddress &MultiObject::socketRecvAddr(const size_t _pos) const{
 	return pstubs[_pos].psock->recvAddr();
 }
 
-ReturnValueE MultiObject::socketSend(
+AsyncE MultiObject::socketSend(
 	const size_t _pos,
 	const char* _pb,
 	uint32 _bl,
 	uint32 _flags
 ){
 	cassert(_pos < stubcp);
-	const ReturnValueE rv = pstubs[_pos].psock->send(_pb, _bl, _flags);
-	if(rv == Wait){
+	const AsyncE rv = pstubs[_pos].psock->send(_pb, _bl, _flags);
+	if(rv == AsyncWait){
 		socketPushRequest(_pos, SocketStub::IORequest);
 	}
 	return rv;
 }
 
-ReturnValueE MultiObject::socketSendTo(
+AsyncE MultiObject::socketSendTo(
 	const size_t _pos,
 	const char* _pb,
 	uint32 _bl,
@@ -519,36 +521,36 @@ ReturnValueE MultiObject::socketSendTo(
 	uint32 _flags
 ){
 	cassert(_pos < stubcp);
-	const ReturnValueE rv = pstubs[_pos].psock->sendTo(_pb, _bl, _sap, _flags);
-	if(rv == Wait){
+	const AsyncE rv = pstubs[_pos].psock->sendTo(_pb, _bl, _sap, _flags);
+	if(rv == AsyncWait){
 		socketPushRequest(_pos, SocketStub::IORequest);
 	}
 	return rv;
 }
 
-ReturnValueE MultiObject::socketRecv(
+AsyncE MultiObject::socketRecv(
 	const size_t _pos,
 	char *_pb,
 	uint32 _bl,
 	uint32 _flags
 ){
 	cassert(_pos < stubcp);
-	const ReturnValueE rv = pstubs[_pos].psock->recv(_pb, _bl, _flags);
-	if(rv == Wait){
+	const AsyncE rv = pstubs[_pos].psock->recv(_pb, _bl, _flags);
+	if(rv == AsyncWait){
 		socketPushRequest(_pos, SocketStub::IORequest);
 	}
 	return rv;
 }
 
-ReturnValueE MultiObject::socketRecvFrom(
+AsyncE MultiObject::socketRecvFrom(
 	const size_t _pos,
 	char *_pb,
 	uint32 _bl,
 	uint32 _flags
 ){
 	cassert(_pos < stubcp);
-	const ReturnValueE rv = pstubs[_pos].psock->recvFrom(_pb, _bl, _flags);
-	if(rv == Wait){
+	const AsyncE rv = pstubs[_pos].psock->recvFrom(_pb, _bl, _flags);
+	if(rv == AsyncWait){
 		socketPushRequest(_pos, SocketStub::IORequest);
 	}
 	return rv;
@@ -628,19 +630,23 @@ void MultiObject::socketGrab(const size_t _pos, SocketPointer &_rsp){
 
 size_t MultiObject::socketInsert(const SocketPointer &_rsp){
 	cassert(_rsp);
-	size_t pos = newStub();
+	const size_t pos = newStub();
 	pstubs[pos].psock = this->getSocketPointer(_rsp);
 	return pos;
 }
 
-size_t MultiObject::socketInsert(const SocketDevice &_rsd){
+size_t MultiObject::socketInsert(const SocketDevice &_rsd, const bool _isacceptor){
 	if(_rsd.ok()){
-		const size_t pos = newStub();
-		Socket::Type tp;
-		if(_rsd.type() == SocketInfo::Datagram){
+		const size_t 				pos = newStub();
+		Socket::Type				tp;
+		const std::pair<bool, int>	socktp = _rsd.type();
+		
+		if(!socktp.first) return -1;
+		
+		if(socktp.second == SocketInfo::Datagram){
 			tp = Socket::STATION;
-		}else if(_rsd.type() == SocketInfo::Stream){
-			if(_rsd.isListening()){
+		}else if(socktp.second == SocketInfo::Stream){
+			if(_isacceptor){
 				tp = Socket::ACCEPTOR;
 			}else{
 				tp = Socket::CHANNEL;
@@ -768,17 +774,17 @@ void MultiObject::socketSecureSocket(const size_t _pos, SecureSocket *_pss){
 	pstubs[_pos].psock->secureSocket(_pss);
 }
 
-ReturnValueE MultiObject::socketSecureAccept(const size_t _pos){
-	const ReturnValueE rv = pstubs[_pos].psock->secureAccept();
-	if(rv == Wait){
+AsyncE MultiObject::socketSecureAccept(const size_t _pos){
+	const AsyncE rv = pstubs[_pos].psock->secureAccept();
+	if(rv == AsyncWait){
 		socketPushRequest(_pos, SocketStub::IORequest);
 	}
 	return rv;
 }
 
-ReturnValueE MultiObject::socketSecureConnect(const size_t _pos){
-	const ReturnValueE rv = pstubs[_pos].psock->secureConnect();
-	if(rv == Wait){
+AsyncE MultiObject::socketSecureConnect(const size_t _pos){
+	const AsyncE rv = pstubs[_pos].psock->secureConnect();
+	if(rv == AsyncWait){
 		socketPushRequest(_pos, SocketStub::IORequest);
 	}
 	return rv;

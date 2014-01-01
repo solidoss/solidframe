@@ -19,14 +19,14 @@ inline bool Socket::isSecure()const{
 inline bool Socket::ok()const{
 	return sd.ok();
 }
-inline int Socket::send(const char* _pb, uint32 _bl, uint32 _flags){
+inline AsyncE Socket::send(const char* _pb, uint32 _bl, uint32 _flags){
 	if(pss == NULL){
 		return doSendPlain(_pb, _bl, _flags);
 	}else{
 		return doSendSecure(_pb, _bl, _flags);
 	}
 }
-inline int Socket::recv(char *_pb, uint32 _bl, uint32 _flags){
+inline AsyncE Socket::recv(char *_pb, uint32 _bl, uint32 _flags){
 	if(pss == NULL){
 		return doRecvPlain(_pb, _bl, _flags);
 	}else{
@@ -34,14 +34,14 @@ inline int Socket::recv(char *_pb, uint32 _bl, uint32 _flags){
 	}
 }
 
-inline int Socket::doSend(){
+inline ulong Socket::doSend(){
 	if(pss == NULL){
 		return doSendPlain();
 	}else{
 		return doSendSecure();
 	}
 }
-inline int Socket::doRecv(){
+inline ulong Socket::doRecv(){
 	if(pss == NULL){
 		return doRecvPlain();
 	}else{

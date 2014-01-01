@@ -98,100 +98,111 @@ Socket::~Socket(){
 bool Socket::create(const ResolveIterator& _rai){
 	return sd.create(_rai);
 }
-int Socket::connect(const SocketAddressStub& _rsas){
+AsyncE Socket::connect(const SocketAddressStub& _rsas){
 	cassert(!isSendPending());
 	cassert(type == CHANNEL);
-	int rv = sd.connect(_rsas);
-	if(rv == NOK){
+	const solid::AsyncE rv = sd.connectNonBlocking(_rsas);
+	if(rv == solid::AsyncWait){
 		sndbuf = reinterpret_cast<char*>(1);
 		sndlen = 0;
 		ioreq |= FLAG_POLL_OUT;
 	}
-	return rv;
+	return static_cast<AsyncE>(rv);
 }
-int Socket::accept(SocketDevice &_rsd){
+
+AsyncE Socket::accept(SocketDevice &_rsd){
 	cassert(type == ACCEPTOR);
-	int rv = sd.accept(_rsd);
-	if(rv == NOK){
+	const solid::AsyncE rv = sd.acceptNonBlocking(_rsd);
+	if(rv == solid::AsyncWait){
 		d.pad->psd = &_rsd;
 		rcvbuf = reinterpret_cast<char*>(1);
 		rcvlen = 0;
 		ioreq |= FLAG_POLL_IN;
 	}
-	return rv;
+	return static_cast<AsyncE>(rv);
 }
-int Socket::accept(Socket &_rs){
+
+AsyncE Socket::accept(Socket &_rs){
 	cassert(type == ACCEPTOR);
-	int rv = sd.accept(_rs.sd);
-	if(rv == NOK){
+	const solid::AsyncE rv = sd.acceptNonBlocking(_rs.sd);
+	if(rv == solid::AsyncWait){
 		d.pad->psd = &_rs.sd;
 		rcvbuf = reinterpret_cast<char*>(1);
 		rcvlen = 0;
 		ioreq |= FLAG_POLL_IN;
 	}
-	return rv;
+	return static_cast<AsyncE>(rv);
 }
-int Socket::doSendPlain(const char* _pb, uint32 _bl, uint32 _flags){
+
+AsyncE Socket::doSendPlain(const char* _pb, uint32 _bl, uint32 _flags){
 	cassert(!isSendPending());
 	cassert(type == CHANNEL);
-	if(!_bl) return OK;
+	if(!_bl) return AsyncSuccess;
 	int rv = sd.send(_pb, _bl);
 	if(rv == (int)_bl){
 		sndlen = 0;
 		sndcnt += rv;
-		return OK;
+		return AsyncSuccess;
 	}
-	if(!rv) return BAD;
+	if(!rv) return AsyncFailure;
 	if(rv < 0){
-		if(errno != EAGAIN) return BAD;
+		if(errno != EAGAIN) return AsyncFailure;
 		rv = 0;
 	}
 	sndbuf = _pb + rv;
 	sndlen = _bl - rv;
 	ioreq |= FLAG_POLL_OUT;
-	return NOK;
+	return AsyncWait;
 }
-int Socket::doRecvPlain(char *_pb, uint32 _bl, uint32 _flags){
+
+AsyncE Socket::doRecvPlain(char *_pb, uint32 _bl, uint32 _flags){
 	cassert(!isRecvPending());
 	cassert(type == CHANNEL);
-	if(!_bl) return OK;
+	if(!_bl) return AsyncSuccess;
 	int rv = sd.recv(_pb, _bl);
 	if(rv > 0){
 		rcvlen = rv;
 		rcvcnt += rv;
-		return OK;
+		return AsyncSuccess;
 	}
-	if(!rv) return BAD;
-	if(errno != EAGAIN) return BAD;
+	if(!rv) return AsyncFailure;
+	if(errno != EAGAIN) return AsyncFailure;
 	rcvbuf = _pb;
 	rcvlen = _bl;
 	ioreq |= FLAG_POLL_IN;
-	return NOK;
+	return AsyncWait;
 }
+
 uint32 Socket::recvSize()const{
 	return rcvlen;
 }
+
 const uint64& Socket::sendCount()const{
 	return sndcnt;
 }
+
 const uint64& Socket::recvCount()const{
 	return rcvcnt;
 }
+
 bool Socket::isSendPending()const{
 	return sndbuf != NULL;
 }
+
 bool Socket::isRecvPending()const{
 	return rcvbuf != NULL;
 }
-int Socket::localAddress(SocketAddress &_rsa)const{
+
+bool Socket::localAddress(SocketAddress &_rsa)const{
 	return sd.localAddress(_rsa);
 }
-int Socket::remoteAddress(SocketAddress &_rsa)const{
+
+bool Socket::remoteAddress(SocketAddress &_rsa)const{
 	return sd.remoteAddress(_rsa);
 }
 
-int Socket::recvFrom(char *_pb, uint32 _bl, uint32 _flags){
-	if(!_bl) return OK;
+AsyncE Socket::recvFrom(char *_pb, uint32 _bl, uint32 _flags){
+	if(!_bl) return AsyncSuccess;
 	cassert(!isRecvPending());
 	int rv = sd.recv(_pb, _bl, d.psd->rcvaddr);
 	if(rv > 0){
@@ -200,32 +211,34 @@ int Socket::recvFrom(char *_pb, uint32 _bl, uint32 _flags){
 		//d.psd->rcvaddrpair.size(d.psd->rcvaddr.size());
 		//d.pad->rcvaddrpair.addr = rcvsa.addr();
 		//d.pad->rcvaddrpair.size = rcvsa.size();
-		return OK;
+		return AsyncSuccess;
 	}
-	if(rv == 0) return BAD;
-	if(errno != EAGAIN) return BAD;
+	if(rv == 0) return AsyncFailure;
+	if(errno != EAGAIN) return AsyncFailure;
 	rcvbuf = _pb;
 	rcvlen = _bl;
 	ioreq |= FLAG_POLL_IN;
-	return NOK;
+	return AsyncWait;
 }
-int Socket::sendTo(const char *_pb, uint32 _bl, const SocketAddressStub &_sap, uint32 _flags){	
+
+AsyncE Socket::sendTo(const char *_pb, uint32 _bl, const SocketAddressStub &_sap, uint32 _flags){	
 	cassert(!isSendPending());
 	int rv = sd.send(_pb, _bl, _sap);
 	if(rv == (ssize_t)_bl){
 		sndlen = 0;
 		sndcnt += rv;
-		return OK;
+		return AsyncSuccess;
 	}
-	if(rv >= 0) return BAD;
-	if(errno != EAGAIN) return BAD;
+	if(rv >= 0) return AsyncFailure;
+	if(errno != EAGAIN) return AsyncFailure;
 	sndbuf = _pb;
 	sndlen = _bl;
 	
 	ioreq |= FLAG_POLL_OUT;
 	d.psd->sndaddrpair = _sap;
-	return NOK;
+	return AsyncWait;
 }
+
 const SocketAddress &Socket::recvAddr()const{
 	return d.psd->rcvaddr;
 }
@@ -242,6 +255,7 @@ void Socket::doPrepare(){
 			break;
 	}
 }
+
 void Socket::doUnprepare(){
 	switch(type){
 		case ACCEPTOR:
@@ -267,68 +281,70 @@ void Socket::doUnprepare(){
 	
 	The situation is far more difficult to avoid on multiconnections/multitalkers.
 */
-int Socket::doSendPlain(){
+ulong Socket::doSendPlain(){
 	switch(type){
 		case CHANNEL://tcp
 			if(sndlen && sndbuf){//NOTE: see the above note
-				int rv = sd.send(sndbuf, sndlen);
+				const int rv = sd.send(sndbuf, sndlen);
 				vdbgx(Debug::aio, "send rv = "<<rv);
-				if(rv <= 0) return ERRDONE;
+				if(rv <= 0) return EventDoneError;
 				sndbuf += rv;
 				sndlen -= rv;
 				sndcnt += rv;
-				if(sndlen) return 0;//not yet done
+				if(sndlen) return EventNone;//not yet done
 			}
 			sndbuf = NULL;
 			ioreq &= ~FLAG_POLL_OUT;
-			return OUTDONE;
+			return EventDoneSend;
 		case STATION://udp
 			if(sndlen && sndbuf){//NOTE: see the above note
-				int rv = sd.send(sndbuf, sndlen, d.psd->sndaddrpair);
-				if(rv != (int)sndlen) return ERRDONE;
+				const int rv = sd.send(sndbuf, sndlen, d.psd->sndaddrpair);
+				if(rv != (int)sndlen) return EventDoneError;
 				sndcnt += rv;
 				sndlen = 0;
 			}
 			sndbuf = NULL;
 			ioreq &= ~FLAG_POLL_OUT;
-			return OUTDONE;
+			return EventDoneSend;
 	}
 	cassert(false);
-	return ERRDONE;
+	return EventDoneError;
 }
-int Socket::doRecvPlain(){
+
+ulong Socket::doRecvPlain(){
 	switch(type){
-		case ACCEPTOR:{
-			int rv = sd.accept(*d.pad->psd);
-			sndbuf = NULL;
-			ioreq &= ~FLAG_POLL_IN;
-			if(rv == OK) return OUTDONE;
-			}return ERRDONE;
 		case CHANNEL://tcp
 			if(rcvlen && rcvbuf){//NOTE: see the above note
-				int rv = sd.recv(rcvbuf, rcvlen);
+				const int rv = sd.recv(rcvbuf, rcvlen);
 				vdbgx(Debug::aio, "recv rv = "<<rv<<" err = "<<strerror(errno)<<" rcvbuf = "<<(void*)rcvbuf<<" rcvlen = "<<rcvlen);
-				if(rv <= 0) return ERRDONE;
+				if(rv <= 0) return EventDoneError;
 				rcvcnt += rv;
 				rcvlen = rv;
 			}
 			rcvbuf = NULL;
 			ioreq &= ~FLAG_POLL_IN;
-			return INDONE;
+			return EventDoneRecv;
 		case STATION://udp
 			if(rcvlen && rcvbuf){//NOTE: see the above note
-				int rv = sd.recv(rcvbuf, rcvlen, d.psd->rcvaddr);
-				if(rv <= 0) return ERRDONE;
+				const int rv = sd.recv(rcvbuf, rcvlen, d.psd->rcvaddr);
+				if(rv <= 0) return EventDoneError;
 				rcvcnt += rv;
 				rcvlen = rv;
 				//d.psd->rcvaddrpair.size(d.psd->rcvaddr.size());
 			}
 			rcvbuf = NULL;
 			ioreq &= ~FLAG_POLL_IN;
-			return INDONE;
+			return EventDoneRecv;
+		case ACCEPTOR:{
+			const bool rv = sd.accept(*d.pad->psd);
+			sndbuf = NULL;
+			ioreq &= ~FLAG_POLL_IN;
+			if(rv) return EventDoneSend;
+			}
+			return EventDoneError;
 	};
 	cassert(false);
-	return ERRDONE;
+	return EventDoneError;
 }
 void  Socket::doClear(){
 	rcvbuf = NULL;
@@ -377,91 +393,92 @@ inline void Socket::doWantWrite(int _w){
 	}
 }
 
-int Socket::doSendSecure(const char* _pb, uint32 _bl, uint32 _flags){
+AsyncE Socket::doSendSecure(const char* _pb, uint32 _bl, uint32 _flags){
 	cassert(!isSendPending());
 	cassert(type == CHANNEL);
-	if(!_bl) return OK;
+	if(!_bl) return AsyncSuccess;
 	int rv = pss->send(_pb, _bl);
 	if(rv == (int)_bl){
 		sndlen = 0;
 		sndcnt += rv;
-		return OK;
+		return AsyncSuccess;
 	}
-	if(!rv) return BAD;
+	if(!rv) return AsyncFailure;
 	if(rv < 0){
 		int w = pss->wantEvents();
-		if(!w) return BAD;
+		if(!w) return AsyncFailure;
 		doWantWrite(w);
 		rv = 0;
 	}
 	sndbuf = _pb + rv;
 	sndlen = _bl - rv;
-	return NOK;
+	return AsyncWait;
 }
-int Socket::doRecvSecure(char *_pb, uint32 _bl, uint32 _flags){
+
+AsyncE Socket::doRecvSecure(char *_pb, uint32 _bl, uint32 _flags){
 	cassert(!isRecvPending());
 	cassert(type == CHANNEL);
-	if(!_bl) return OK;
-	int rv = pss->recv(_pb, _bl);
+	if(!_bl) return AsyncSuccess;
+	const int rv = pss->recv(_pb, _bl);
 	if(rv > 0){
 		rcvlen = rv;
 		rcvcnt += rv;
-		return OK;
+		return AsyncSuccess;
 	}
-	if(!rv) return BAD;
+	if(!rv) return AsyncFailure;
 	int w = pss->wantEvents();
-	if(!w) return BAD;
+	if(!w) return AsyncFailure;
 	doWantRead(w);
 	rcvbuf = _pb;
 	rcvlen = _bl;
 	ioreq |= FLAG_POLL_IN;
-	return NOK;
+	return AsyncWait;
 }
 
-int Socket::doSecureAccept(){
-	int rv = pss->secureAccept();
+ulong Socket::doSecureAccept(){
+	const AsyncE rv = pss->secureAccept();
 	vdbgx(Debug::aio, " secureaccept "<<rv);
 	ioreq = 0;
 	want = 0;
-	if(rv == OK){
+	if(rv == AsyncSuccess){
 		rcvbuf = NULL;
-		return OUTDONE;
+		return EventDoneSend;
 	}
-	if(rv == BAD){
+	if(rv == AsyncFailure){
 		rcvbuf = NULL;
-		return ERRDONE;
+		return EventDoneError;
 	}
 	doWantAccept(pss->wantEvents());
-	return 0;
-}
-int Socket::doSecureConnect(){
-	int rv = pss->secureConnect();
-	ioreq = 0;
-	want = 0;
-	if(rv == OK){
-		sndbuf = NULL;
-		return OUTDONE;
-	}
-	if(rv == BAD){
-		sndbuf = NULL;
-		return ERRDONE;
-	}
-	doWantAccept(pss->wantEvents());
-	return 0;
+	return EventNone;
 }
 
-int Socket::doSecureReadWrite(int _w){
-	int retval = 0;
+ulong Socket::doSecureConnect(){
+	const AsyncE rv = pss->secureConnect();
+	ioreq = 0;
+	want = 0;
+	if(rv == AsyncSuccess){
+		sndbuf = NULL;
+		return EventDoneSend;
+	}
+	if(rv == AsyncFailure){
+		sndbuf = NULL;
+		return EventDoneSend;
+	}
+	doWantAccept(pss->wantEvents());
+	return EventNone;
+}
+
+ulong Socket::doSecureReadWrite(int _w){
+	ulong retval = 0;
 	int w = _w & (SecureSocket::WANT_WRITE_ON_WRITE | SecureSocket::WANT_READ_ON_WRITE);
 	if(w){
 		want &= (~w);
 		if(sndlen && sndbuf){//NOTE: see the above note
 			int rv = pss->send(sndbuf, sndlen);
 			vdbgx(Debug::aio, "send rv = "<<rv);
-			if(rv == 0) return ERRDONE;
+			if(rv == 0) return EventDoneError;
 			if(rv < 0){
-				
-				return 0;
+				return EventNone;
 			}else{
 				sndbuf += rv;
 				sndcnt += rv;
@@ -470,12 +487,12 @@ int Socket::doSecureReadWrite(int _w){
 					
 				}else{
 					sndbuf = NULL;
-					retval |= OUTDONE;
+					retval |= EventDoneSend;
 				}
 			}
 		}else{
 			sndbuf = NULL;
-			retval |= OUTDONE;
+			retval |= EventDoneSend;
 		}
 	}
 	w = _w & (SecureSocket::WANT_WRITE_ON_READ | SecureSocket::WANT_READ_ON_READ);
@@ -484,27 +501,27 @@ int Socket::doSecureReadWrite(int _w){
 		if(rcvlen && rcvbuf){//NOTE: see the above note
 			int rv = pss->recv(rcvbuf, rcvlen);
 			vdbgx(Debug::aio, "recv rv = "<<rv);
-			if(rv == 0) return ERRDONE;
+			if(rv == 0) return EventDoneError;
 			if(rv < 0){
 				int sw = pss->wantEvents();
-				if(!sw) return ERRDONE;
+				if(!sw) return EventDoneError;
 				
 				return 0;
 			}else{
 				rcvcnt += rv;
 				rcvlen = rv;
 				rcvbuf = NULL;
-				retval |= INDONE;
+				retval |= EventDoneRecv;
 			}
 		}else{
 			sndbuf = NULL;
-			retval |= INDONE;
+			retval |= EventDoneRecv;
 		}
 	}
 	return retval;
 }
 
-int Socket::doSendSecure(){
+ulong Socket::doSendSecure(){
 	ioreq &= ~FLAG_POLL_OUT;
 	{
 		int w = want & (SecureSocket::WANT_WRITE_ON_WRITE | SecureSocket::WANT_WRITE_ON_READ);
@@ -519,9 +536,10 @@ int Socket::doSendSecure(){
 		return doSecureConnect();
 	}
 	cassert(false);
-	return ERRDONE;
+	return EventDoneError;
 }
-int Socket::doRecvSecure(){
+
+ulong Socket::doRecvSecure(){
 	ioreq &= ~FLAG_POLL_IN;
 	{
 		int w = want & (SecureSocket::WANT_READ_ON_WRITE | SecureSocket::WANT_READ_ON_READ);
@@ -536,34 +554,34 @@ int Socket::doRecvSecure(){
 		return doSecureConnect();
 	}
 	cassert(false);
-	return ERRDONE;
+	return EventDoneError;
 }
 
-int Socket::secureAccept(){
+AsyncE Socket::secureAccept(){
 	cassert(!isRecvPending());
 	cassert(isSecure());
 	cassert(type == CHANNEL);
-	int rv = pss->secureAccept();
-	if(rv == OK) return OK;
-	if(rv == BAD) return BAD;
+	const AsyncE rv = pss->secureAccept();
+	if(rv != AsyncWait) return rv;
 	rcvbuf = reinterpret_cast<char*>(1);
 	rcvlen = 0;
 	ioreq = 0;
 	doWantAccept(pss->wantEvents());
-	return NOK;
+	return AsyncWait;
 }
-int Socket::secureConnect(){
+
+AsyncE Socket::secureConnect(){
 	cassert(!isRecvPending());
 	cassert(isSecure());
 	cassert(type == CHANNEL);
-	int rv = pss->secureConnect();
-	if(rv == OK) return OK;
-	if(rv == BAD) return BAD;
+	const AsyncE rv = pss->secureConnect();
+	if(rv != AsyncWait) return rv;
+	
 	sndbuf = "";
 	sndlen = 0;
 	ioreq = 0;
 	doWantConnect(pss->wantEvents());
-	return NOK;
+	return AsyncWait;
 }
 
 void Socket::secureSocket(SecureSocket *_pss){

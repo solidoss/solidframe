@@ -47,14 +47,14 @@ public:
 		int _proto = 0
 	);
 	//! Connect the socket
-	AsyncReturnValueE connectNonBlocking(const SocketAddressStub &_rsas);
+	AsyncE connectNonBlocking(const SocketAddressStub &_rsas);
 	bool connect(const SocketAddressStub &_rsas);
 	//! Bind the socket to a specific addr:port
 	bool bind(const SocketAddressStub &_rsa);
 	//! Prepares the socket for accepting
 	bool prepareAccept(const SocketAddressStub &_rsas, size_t _listencnt = 10);
 	//! Accept an incomming connection
-	AsyncReturnValueE acceptNonBlocking(SocketDevice &_dev);
+	AsyncE acceptNonBlocking(SocketDevice &_dev);
 	bool accept(SocketDevice &_dev);
 	//! Make a connection blocking
 	/*!

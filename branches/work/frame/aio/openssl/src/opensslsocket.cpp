@@ -113,21 +113,21 @@ Socket::~Socket(){
 	}
 	return rv;
 }
-/*virtual*/ ReturnValueE Socket::secureAccept(){
+/*virtual*/ AsyncE Socket::secureAccept(){
 	int rv = SSL_accept(pssl);
-	if(rv > 0) return Success;
-	if(rv == 0) return Failure;
+	if(rv > 0) return AsyncSuccess;
+	if(rv == 0) return AsyncFailure;
 	if(shouldWait()){
-		return Wait;
-	}return Failure;
+		return AsyncWait;
+	}return AsyncFailure;
 }
-/*virtual*/ ReturnValueE Socket::secureConnect(){
+/*virtual*/ AsyncE Socket::secureConnect(){
 	int rv = SSL_connect(pssl);
-	if(rv > 0) return Success;
-	if(rv == 0) return Failure;
+	if(rv > 0) return AsyncSuccess;
+	if(rv == 0) return AsyncFailure;
 	if(shouldWait()){
-		return Wait;
-	}return Failure;
+		return AsyncWait;
+	}return AsyncFailure;
 }
 Socket::Socket(SSL *_pssl):pssl(_pssl){
 }

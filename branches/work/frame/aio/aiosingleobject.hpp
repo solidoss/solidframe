@@ -43,29 +43,29 @@ public:
 	//! Constructor using an aio::Socket
 	SingleObject(const SocketPointer& _psock = SocketPointer());
 	//! Constructor using a SocketDevice
-	SingleObject(const SocketDevice &_rsd);
+	SingleObject(const SocketDevice &_rsd, const bool _isacceptor = false);
 	//! Destructor
 	~SingleObject();
 	//! Returs true if the socket is ok
 	bool socketOk()const;
 	
 	//! Asynchronous accept an incomming connection
-	ReturnValueE socketAccept(SocketDevice &_rsd);
+	AsyncE socketAccept(SocketDevice &_rsd);
 	
 	//! Asynchronous connect
 	/*!
 		\param _rai An SocketAddressInfo iterator holding the destination address.
 	*/
-	ReturnValueE socketConnect(const SocketAddressStub& _rsas);
+	AsyncE socketConnect(const SocketAddressStub& _rsas);
 	
 	//! Asynchronous send
-	ReturnValueE socketSend(const char* _pb, uint32 _bl, uint32 _flags = 0);
+	AsyncE socketSend(const char* _pb, uint32 _bl, uint32 _flags = 0);
 	//! Asynchronous send to a specific address
-	ReturnValueE socketSendTo(const char *_pb, uint32 _bl, const SocketAddressStub &_sap, uint32 _flags = 0);
+	AsyncE socketSendTo(const char *_pb, uint32 _bl, const SocketAddressStub &_sap, uint32 _flags = 0);
 	//! Asynchronous receive
-	ReturnValueE socketRecv(char *_pb, uint32 _bl, uint32 _flags = 0);
+	AsyncE socketRecv(char *_pb, uint32 _bl, uint32 _flags = 0);
 	//! Asynchronous receive
-	ReturnValueE socketRecvFrom(char *_pb, uint32 _bl, uint32 _flags = 0);
+	AsyncE socketRecvFrom(char *_pb, uint32 _bl, uint32 _flags = 0);
 	//! Get the size of the received data
 	/*!
 		Call this on successful completion of socketRecv
@@ -117,7 +117,7 @@ public:
 	//! Sets the socket given an aio::Socket
 	bool socketInsert(const SocketPointer &_rsp);
 	//! Sets the socket given a SocketDevice
-	bool socketInsert(const SocketDevice &_rsd);
+	bool socketInsert(const SocketDevice &_rsd, const bool _isacceptor = false);
 	
 	//! Request for registering the socket onto the aio::Selector
 	void socketRequestRegister();
@@ -142,9 +142,9 @@ public:
 	void socketSecureSocket(SecureSocket *_pss);
 	
 	//! Asynchronous secure accept
-	ReturnValueE socketSecureAccept();
+	AsyncE socketSecureAccept();
 	//! Asynchronous secure connect
-	ReturnValueE socketSecureConnect();
+	AsyncE socketSecureConnect();
 	
 	//TODO: not implemented
 	ERROR_NS::error_code socketError()const;

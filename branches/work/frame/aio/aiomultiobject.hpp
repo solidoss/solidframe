@@ -44,7 +44,7 @@ public:
 	//! Constructor given an aio::Socket (it will be inserted on position zero)
 	MultiObject(const SocketPointer& _psock = SocketPointer());
 	//! Constructor given a SocketDevice (it will be inserted on position zero)
-	MultiObject(const SocketDevice &_rsd);
+	MultiObject(const SocketDevice &_rsd, const bool _isacceptor = false);
 	//! Destructor
 	~MultiObject();
 	
@@ -60,23 +60,23 @@ public:
 	bool socketOk(const size_t _pos)const;
 	
 	//! Asynchronous accept an incomming connection
-	ReturnValueE socketAccept(const size_t _pos, SocketDevice &_rsd);
+	AsyncE socketAccept(const size_t _pos, SocketDevice &_rsd);
 	
 	//! Asynchronous connect
 	/*!
 		\param _pos The socket identifier
 		\param _rai An SocketAddressInfo iterator holding the destination address.
 	*/
-	ReturnValueE socketConnect(const size_t _pos, const SocketAddressStub& _rsas);
+	AsyncE socketConnect(const size_t _pos, const SocketAddressStub& _rsas);
 	
 	//! Asynchronous send for socket on position _pos
-	ReturnValueE socketSend(const size_t _pos, const char* _pb, uint32 _bl, uint32 _flags = 0);
+	AsyncE socketSend(const size_t _pos, const char* _pb, uint32 _bl, uint32 _flags = 0);
 	//! Asynchronous send for socket on position _pos
-	ReturnValueE socketSendTo(const size_t _pos, const char* _pb, uint32 _bl, const SocketAddressStub &_sap, uint32 _flags = 0);
+	AsyncE socketSendTo(const size_t _pos, const char* _pb, uint32 _bl, const SocketAddressStub &_sap, uint32 _flags = 0);
 	//! Asynchronous receive for socket on position _pos
-	ReturnValueE socketRecv(const size_t _pos, char *_pb, uint32 _bl, uint32 _flags = 0);
+	AsyncE socketRecv(const size_t _pos, char *_pb, uint32 _bl, uint32 _flags = 0);
 	//! Asynchronous receive for socket on position _pos
-	ReturnValueE socketRecvFrom(const size_t _pos, char *_pb, uint32 _bl, uint32 _flags = 0);
+	AsyncE socketRecvFrom(const size_t _pos, char *_pb, uint32 _bl, uint32 _flags = 0);
 	
 	//! Get the size of the received data for socket on position _pos
 	/*!
@@ -100,9 +100,9 @@ public:
 	bool socketHasPendingRecv(const size_t _pos)const;
 	
 	//! Get the local address of the socket on position _pos
-	int socketLocalAddress(const size_t _pos, SocketAddress &_rsa)const;
+	bool socketLocalAddress(const size_t _pos, SocketAddress &_rsa)const;
 	//! Get the remote address of the socket on position _pos
-	int socketRemoteAddress(const size_t _pos, SocketAddress &_rsa)const;
+	bool socketRemoteAddress(const size_t _pos, SocketAddress &_rsa)const;
 	
 	//! Set the timeout for asynchronous recv opperation completion for the socket on position _pos
 	void socketTimeoutRecv(const size_t _pos, const TimeSpec &_crttime, ulong _addsec, ulong _addnsec = 0);
@@ -132,7 +132,7 @@ public:
 	/*!
 		\retval  < 0 on error, >=0 on success, meaning the position of the socket
 	*/
-	size_t socketInsert(const SocketDevice &_rsd);
+	size_t socketInsert(const SocketDevice &_rsd, const bool _isacceptor = false);
 	
 	//! Request for registering the socket onto the aio::Selector
 	void socketRequestRegister(const size_t _pos);
@@ -156,9 +156,9 @@ public:
 	//! Sets the secure socket associated to socket on position _pos
 	void socketSecureSocket(const size_t _pos, SecureSocket *_pss);
 	//! Asynchronous secure accept
-	ReturnValueE socketSecureAccept(const size_t _pos);
+	AsyncE socketSecureAccept(const size_t _pos);
 	//! Asynchronous secure connect
-	ReturnValueE socketSecureConnect(const size_t _pos);
+	AsyncE socketSecureConnect(const size_t _pos);
 	//TODO: not implemented
 	ERROR_NS::error_code socketError(const size_t _pos)const;
 private:

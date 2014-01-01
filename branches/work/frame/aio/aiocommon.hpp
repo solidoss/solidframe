@@ -16,10 +16,10 @@ namespace solid{
 namespace frame{
 namespace aio{
 
-enum ReturnValueE{
-	Failure = AsyncFailure,
-	Success = AsyncSuccess,
-	Wait = AsyncWait,
+enum AsyncE{
+	AsyncFailure = solid::AsyncFailure,
+	AsyncSuccess = solid::AsyncSuccess,
+	AsyncWait = solid::AsyncWait,
 };
 
 }//namespace aio

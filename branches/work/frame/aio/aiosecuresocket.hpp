@@ -79,7 +79,7 @@ public:
 		\retval 0 for clean connection close, <0 for an error
 		(for nonblocking sockets check wantEvents), >0 success.
 	*/
-	virtual ReturnValueE secureAccept() = 0;
+	virtual AsyncE secureAccept() = 0;
 	//! Do a secure connect
 	/*!
 		This is modeled around the OpenSSL API.
@@ -91,7 +91,7 @@ public:
 		\retval 0 for clean connection close, <0 for an error
 		(for nonblocking sockets check wantEvents), >0 success.
 	*/
-	virtual ReturnValueE secureConnect() = 0;
+	virtual AsyncE secureConnect() = 0;
 };
 
 }//namespace aio

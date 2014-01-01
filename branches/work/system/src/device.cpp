@@ -579,7 +579,7 @@ bool SocketDevice::create(
 #endif
 }
 
-AsyncReturnValueE SocketDevice::connectNonBlocking(const SocketAddressStub &_rsas){
+AsyncE SocketDevice::connectNonBlocking(const SocketAddressStub &_rsas){
 #ifdef ON_WINDOWS
 	const int rv = ::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
 	
@@ -696,7 +696,7 @@ bool SocketDevice::prepareAccept(const SocketAddressStub &_rsas, size_t _listenc
 #endif
 }
 
-AsyncReturnValueE SocketDevice::acceptNonBlocking(SocketDevice &_dev){
+AsyncE SocketDevice::acceptNonBlocking(SocketDevice &_dev){
 #ifdef ON_WINDOWS
 	SocketAddress sa;
 	const SOCKET rv = ::accept(descriptor(), sa, &sa.sz);

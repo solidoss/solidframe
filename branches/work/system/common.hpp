@@ -95,7 +95,7 @@ enum SeekRef {
 // 	Failure
 // };
 
-enum AsyncReturnValueE{
+enum AsyncE{
 	AsyncFailure = -1,
 	AsyncSuccess = 0,
 	AsyncWait = 1,

@@ -68,8 +68,8 @@ public:
 	/*virtual*/ int send(const char *_pb, uint _bl, uint _flags = 0);
 	/*virtual*/ int recv(char *_pb, uint _bl, uint _flags = 0);
 	/*virtual*/ uint wantEvents()const;
-	/*virtual*/ ReturnValueE secureAccept();
-	/*virtual*/ ReturnValueE secureConnect();
+	/*virtual*/ AsyncE secureAccept();
+	/*virtual*/ AsyncE secureConnect();
 private:
 
 	friend class Context;	

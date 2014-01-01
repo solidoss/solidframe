@@ -37,16 +37,17 @@ enum SignalE{
 
 //! Some events
 enum EventE{
-	OKDONE = 1, //Successfull asynchrounous completion
-	ERRDONE = 2,//Unsuccessfull asynchrounous completion
-	INDONE = 4,//Successfull input asynchrounous completion
-	OUTDONE = 8,//Successfull output asynchrounous completion
-	TIMEOUT = 16,//Unsuccessfull asynchrounous completion due to timeout
-	SIGNALED = 32,
-	IODONE = INDONE | OUTDONE,
-	RESCHEDULED = 128,
-	TIMEOUT_RECV = 256,
-	TIMEOUT_SEND = 512,
+	EventNone = 0,
+	EventDoneSuccess = 1, //Successfull asynchrounous completion
+	EventDoneError = 2,//Unsuccessfull asynchrounous completion
+	EventDoneRecv = 4,//Successfull input asynchrounous completion
+	EventDoneSend = 8,//Successfull output asynchrounous completion
+	EventTimeout = 16,//Unsuccessfull asynchrounous completion due to timeout
+	EventSignal = 32,
+	EventDoneIO = EventDoneRecv | EventDoneSend,
+	EventReschedule = 128,
+	EventTimeoutRecv = 256,
+	EventTimeoutSend = 512,
 };
 
 enum ConstE{
