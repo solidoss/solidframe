@@ -39,7 +39,8 @@ public:
 		const solid::SocketDevice &_rsd,
 		solid::frame::aio::openssl::Context *_pctx = NULL
 	);
-	virtual int execute(solid::ulong, solid::TimeSpec&);
+private:
+	/*virtual*/ void execute(ExecuteContext &_rexectx);
 private:
 	typedef std::auto_ptr<solid::frame::aio::openssl::Context> SslContextPtrT;
 	ServiceT			&rsvc;

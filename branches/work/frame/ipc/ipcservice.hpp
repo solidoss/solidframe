@@ -120,7 +120,7 @@ struct Controller: Dynamic<Controller, DynamicShared<> >{
 	// * OK for authentication competed with success - session enters in AUTHENTICATED state
 	// * NOK authentication not completed - session stays in AUTHENTICATED state
 	// * BAD authentication completed with error - session enters Disconnecting
-	virtual int authenticate(
+	virtual AsyncE authenticate(
 		DynamicPointer<Message> &_rmsgptr,//the received message
 		ipc::MessageUid &_rmsguid,
 		uint32 &_rflags,
@@ -365,7 +365,7 @@ public:
 	//! Destructor
 	~Service();
 
-	int reconfigure(Configuration const& _rcfg);
+	bool reconfigure(Configuration const& _rcfg);
 	
 	TimeSpec const& timeStamp()const;
 	
@@ -380,7 +380,7 @@ public:
 		\param _flags Control flags
 	*/
 	
-	int sendMessage(
+	bool sendMessage(
 		DynamicPointer<Message> &_rmsgptr,//the message to be sent
 		const ConnectionUid &_rconid,//the id of the process connector
 		uint32	_flags = 0
@@ -395,7 +395,7 @@ public:
 		\param _rconid An output value, which on success will contain the uid of the connector.
 		\param _flags Control flags
 	*/
-	int sendMessage(
+	bool sendMessage(
 		DynamicPointer<Message> &_rmsgptr,//the message to be sent
 		ConnectionUid &_rconid,
 		const SocketAddressStub &_rsa_dest,
@@ -410,7 +410,7 @@ public:
 		\param _rmsgptr The message.
 		\param _flags Control flags
 	*/
-	int sendMessage(
+	bool sendMessage(
 		DynamicPointer<Message> &_rmsgptr,//the message to be sent
 		const SocketAddressStub &_rsas_dest,
 		const uint32 _netid_dest = LocalNetworkId,
@@ -418,7 +418,7 @@ public:
 	);
 	
 	///////
-	int sendMessage(
+	bool sendMessage(
 		DynamicPointer<Message> &_rmsgptr,//the message to be sent
 		const SerializationTypeIdT &_rtid,
 		const ConnectionUid &_rconid,//the id of the process connector
@@ -434,7 +434,7 @@ public:
 		\param _rconid An output value, which on success will contain the uid of the connector.
 		\param _flags Control flags
 	*/
-	int sendMessage(
+	bool sendMessage(
 		DynamicPointer<Message> &_pmsgptr,//the message to be sent
 		const SerializationTypeIdT &_rtid,
 		ConnectionUid &_rconid,
@@ -450,7 +450,7 @@ public:
 		\param _rmsgptr The message.
 		\param _flags Control flags
 	*/
-	int sendMessage(
+	bool sendMessage(
 		DynamicPointer<Message> &_rmsgptr,//the message to be sent
 		const SerializationTypeIdT &_rtid,
 		const SocketAddressStub &_rsa_dest,
@@ -491,7 +491,7 @@ private:
 		uint32 _flags = 0
 	);
 	
-	int doSendMessage(
+	bool doSendMessage(
 		DynamicPointer<Message> &_rmsgptr,//the message to be sent
 		const SerializationTypeIdT &_rtid,
 		ConnectionUid *_pconid,
@@ -499,7 +499,8 @@ private:
 		const uint32 _netid_dest,
 		uint32	_flags = 0
 	);
-	int doSendMessageLocal(
+	
+	bool doSendMessageLocal(
 		DynamicPointer<Message> &_rmsgptr,//the message to be sent
 		const SerializationTypeIdT &_rtid,
 		ConnectionUid *_pconid,
@@ -507,7 +508,8 @@ private:
 		const uint32 _netid_dest,
 		uint32	_flags
 	);
-	int doSendMessageRelay(
+	
+	bool doSendMessageRelay(
 		DynamicPointer<Message> &_rmsgptr,//the message to be sent
 		const SerializationTypeIdT &_rtid,
 		ConnectionUid *_pconid,
@@ -515,10 +517,10 @@ private:
 		const uint32 _netid_dest,
 		uint32	_flags
 	);
-	int acceptSession(const SocketAddress &_rsa, const ConnectData &_rconndata);
-	int doAcceptBasicSession(const SocketAddress &_rsa, const ConnectData &_rconndata);
-	int doAcceptRelaySession(const SocketAddress &_rsa, const ConnectData &_rconndata);
-	int doAcceptGatewaySession(const SocketAddress &_rsa, const ConnectData &_rconndata);
+	bool acceptSession(const SocketAddress &_rsa, const ConnectData &_rconndata);
+	bool doAcceptBasicSession(const SocketAddress &_rsa, const ConnectData &_rconndata);
+	bool doAcceptRelaySession(const SocketAddress &_rsa, const ConnectData &_rconndata);
+	bool doAcceptGatewaySession(const SocketAddress &_rsa, const ConnectData &_rconndata);
 	bool checkAcceptData(const SocketAddress &_rsa, const AcceptData &_raccdata);
 	void disconnectSession(Session *_pses);
 	void disconnectSession(const SocketAddressInet &_addr, uint32 _relayid);
@@ -556,7 +558,7 @@ private:
 };
 
 
-inline int Service::sendMessage(
+inline bool Service::sendMessage(
 	DynamicPointer<Message> &_rmsgptr,//the message to be sent
 	ConnectionUid &_rconid,
 	const SocketAddressStub &_rsa_dest,
@@ -566,7 +568,7 @@ inline int Service::sendMessage(
 	return doSendMessage(_rmsgptr, SERIALIZATION_INVALIDID, &_rconid, _rsa_dest, _netid_dest, _flags);
 }
 
-inline int Service::sendMessage(
+inline bool Service::sendMessage(
 	DynamicPointer<Message> &_rmsgptr,//the message to be sent
 	const SocketAddressStub &_rsa_dest,
 	const uint32 _netid_dest,
@@ -575,7 +577,7 @@ inline int Service::sendMessage(
 	return doSendMessage(_rmsgptr, SERIALIZATION_INVALIDID, NULL, _rsa_dest, _netid_dest, _flags);
 }
 
-inline int Service::sendMessage(
+inline bool Service::sendMessage(
 	DynamicPointer<Message> &_rmsgptr,//the message to be sent
 	const SerializationTypeIdT &_rtid,
 	ConnectionUid &_rconid,
@@ -586,7 +588,7 @@ inline int Service::sendMessage(
 	return doSendMessage(_rmsgptr, _rtid, &_rconid, _rsa_dest, _netid_dest, _flags);
 }
 
-inline int Service::sendMessage(
+inline bool Service::sendMessage(
 	DynamicPointer<Message> &_rmsgptr,//the message to be sent
 	const SerializationTypeIdT &_rtid,
 	const SocketAddressStub &_rsa_dest,

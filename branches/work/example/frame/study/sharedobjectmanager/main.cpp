@@ -26,7 +26,7 @@ struct Worker: Thread{
 		size_t _insert_count
 	):rsom(_rsom), thridx(_thridx), notify_count(_notify_count), insert_count(_insert_count){}
 	bool start(){
-		return Thread::start(true) == OK;
+		return Thread::start(true);
 	}
 	void run();
 };

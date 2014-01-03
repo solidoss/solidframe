@@ -78,7 +78,7 @@ public:
 		_s.template pushReinit<Container, 0>(this, 0, "reinit");
 	}
 	template <class S, uint32 I>
-	int serializationReinit(S &_rs, const uint64 &_rv){
+	serialization::binary::CbkReturnValueE serializationReinit(S &_rs, const uint64 &_rv){
 		if(S::IsSerializer){
 			idbg("ser 1");
 			if(crtidx < tstvec.size()){
@@ -95,16 +95,16 @@ public:
 					_rs.push(crtsndmsg, "typeid");
 				}
 				
-				return CONTINUE;
+				return serialization::binary::Continue;
 			}else if(crtidx == tstvec.size()){
 				idbg("ser 3");
 				++crtidx;
 				crtsndmsg = 0xff;
 				_rs.push(crtsndmsg, "typeid");
-				return CONTINUE;
+				return serialization::binary::Continue;
 			}else{
 				idbg("ser 4");
-				return OK;
+				return serialization::binary::Success;
 			}
 		}else{
 			if(I == 0){
@@ -123,10 +123,10 @@ public:
 					tstvec.push_back(pmsg);
 					_rs.push(*pmsg, "message");
 				}else{
-					return OK;
+					return serialization::binary::Success;
 				}
 			}
-			return CONTINUE;
+			return serialization::binary::Continue;
 		}
 	}
 private:

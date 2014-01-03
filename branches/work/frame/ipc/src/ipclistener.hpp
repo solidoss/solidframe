@@ -32,7 +32,8 @@ public:
 		Service::Types	_type,
 		frame::aio::openssl::Context *_pctx = NULL
 	);
-	/*virtual*/ int execute(ulong, TimeSpec&);
+private:
+	/*virtual*/ void execute(ExecuteContext &_rexectx);
 private:
 	typedef std::auto_ptr<frame::aio::openssl::Context> SslContextPtrT;
 	Service				&rsvc;

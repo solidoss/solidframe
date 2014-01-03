@@ -179,7 +179,7 @@ int Manager::execute(ulong _evs, TimeSpec &_rtout){
 				rmtx.unlock();
 				vdbgx(Debug::file, "");
 				//frame::Manager::specific().unregisterObject(*this);
-				return BAD;
+				return AsyncFailure;
 			}
 			doPrepareStop();
 		}
@@ -210,18 +210,18 @@ int Manager::execute(ulong _evs, TimeSpec &_rtout){
 		doExecuteFile(idx, _rtout);
 	}
 	doSendStreams();
-	if(d.meq.size() || d.delfq.size() || d.tmpfeq.size()) return OK;
+	if(d.meq.size() || d.delfq.size() || d.tmpfeq.size()) return AsyncSuccess;
 	
 	if(!d.sz && d.state() == Data::Stopping){
 		d.state(-1);
 		//frame::Manager::specific().unregisterObject(*this);
-		return BAD;
+		return AsyncFailure;
 	}
 	
 	if(d.tout > _rtout){
 		_rtout = d.tout;
 	}
-	return NOK;
+	return AsyncWait;
 }
 //------------------------------------------------------------------
 void Manager::doSendStreams(){
@@ -484,15 +484,15 @@ int Manager::doGetStream(
 	Mutex 			&rmtx = frame::Manager::specific().mutex(*this);
 	Locker<Mutex>	lock1(rmtx);
 	
-	if(d.state() != Data::Running) return BAD;
+	if(d.state() != Data::Running) return AsyncFailure;
 	
 	Stub			s(*this);
 	ulong			mid(_rk.mapperId());
 	Mapper			&rm(*d.mv[mid]);
 	File			*pf = rm.findOrCreateFile(_rk);
-	int				rv(BAD);
+	int				rv(AsyncFailure);
 	
-	if(!pf) return BAD;
+	if(!pf) return AsyncFailure;
 	
 	if(pf->isRegistered()){//
 		const IndexT	fid = pf->id();
@@ -514,7 +514,7 @@ int Manager::doGetStream(
 				frame::Manager::specific().raise(*this);
 			}
 		case File::MustWait:
-			return NOK;
+			return AsyncWait;
 		default: return rv;
 	}
 }
@@ -527,7 +527,7 @@ int Manager::stream(
 	const Key &_rk,
 	uint32 _flags
 ){
-	if(d.state() != Data::Running) return BAD;
+	if(d.state() != Data::Running) return AsyncFailure;
 	return doGetStream(_sptr, _rfuid, _requid, _rk, _flags);
 }
 int Manager::stream(
@@ -537,7 +537,7 @@ int Manager::stream(
 	const Key &_rk,
 	uint32 _flags
 ){	
-	if(d.state() != Data::Running) return BAD;
+	if(d.state() != Data::Running) return AsyncFailure;
 	return doGetStream(_sptr, _rfuid, _requid, _rk, _flags);
 }
 
@@ -548,7 +548,7 @@ int Manager::stream(
 	const Key &_rk,
 	uint32 _flags
 ){	
-	if(d.state() != Data::Running) return BAD;
+	if(d.state() != Data::Running) return AsyncFailure;
 	return doGetStream(_sptr, _rfuid, _requid, _rk, _flags);
 }
 
@@ -618,7 +618,7 @@ int Manager::stream(
 		FastNameKey k(_fn);
 		return stream(_sptr, _rfuid, _rrequid, k, _flags);
 	}
-	return BAD;
+	return AsyncFailure;
 }
 
 int Manager::stream(
@@ -632,7 +632,7 @@ int Manager::stream(
 		FastNameKey k(_fn);
 		return stream(_sptr, _rfuid, _rrequid, k, _flags);
 	}
-	return BAD;
+	return AsyncFailure;
 }
 
 int Manager::stream(
@@ -646,7 +646,7 @@ int Manager::stream(
 		FastNameKey k(_fn);
 		return stream(_sptr, _rfuid, _rrequid, k, _flags);
 	}
-	return BAD;
+	return AsyncFailure;
 }
 //---------------------------------------------------------------
 int Manager::streamSpecific(
@@ -681,7 +681,7 @@ int Manager::stream(StreamPointer<InputStream> &_sptr, const char *_fn, uint32 _
 		FastNameKey k(_fn);
 		return stream(_sptr, fuid, requid, k, _flags | NoWait);
 	}
-	return BAD;
+	return AsyncFailure;
 }
 
 int Manager::stream(StreamPointer<OutputStream> &_sptr, const char *_fn, uint32 _flags){
@@ -691,7 +691,7 @@ int Manager::stream(StreamPointer<OutputStream> &_sptr, const char *_fn, uint32 
 		FastNameKey k(_fn);
 		return stream(_sptr, fuid, requid, k, _flags | NoWait);
 	}
-	return BAD;
+	return AsyncFailure;
 }
 
 int Manager::stream(StreamPointer<InputOutputStream> &_sptr, const char *_fn, uint32 _flags){
@@ -701,7 +701,7 @@ int Manager::stream(StreamPointer<InputOutputStream> &_sptr, const char *_fn, ui
 		FastNameKey k(_fn);
 		return stream(_sptr, fuid, requid, k, _flags | NoWait);
 	}
-	return BAD;
+	return AsyncFailure;
 }
 //-------------------------------------------------------------------------------------
 int Manager::stream(StreamPointer<InputStream> &_sptr, const Key &_rk, uint32 _flags){
@@ -738,7 +738,7 @@ int Manager::stream(
 			return rfd.pfile->stream(s, _sptr, _requid, _flags);
 		}
 	}
-	return BAD;
+	return AsyncFailure;
 }
 
 int Manager::stream(
@@ -757,7 +757,7 @@ int Manager::stream(
 			return rfd.pfile->stream(s, _sptr, _requid, _flags);
 		}
 	}
-	return BAD;
+	return AsyncFailure;
 }
 
 int Manager::stream(
@@ -776,7 +776,7 @@ int Manager::stream(
 			return rfd.pfile->stream(s, _sptr, _requid, _flags);
 		}
 	}
-	return BAD;
+	return AsyncFailure;
 }
 //=======================================================================
 // The internal implementation of streams streams
@@ -845,7 +845,7 @@ int FileInputStream::read(uint64 _offset, char* _pb, uint32 _bl, uint32 _flags){
 	return rm.fileRead(fileid, _pb, _bl, _offset, _flags);
 }
 int FileInputStream::release(){	
-	return BAD;
+	return AsyncFailure;
 }
 
 int64 FileInputStream::seek(int64 _off, SeekRef _ref){

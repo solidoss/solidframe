@@ -41,7 +41,6 @@ public:
 		uint16 _id
 	);
 	~Node();
-	int execute(ulong _sig, TimeSpec &_tout);
 	
 	uint32 pushSession(
 		const SocketAddress &_rsa,
@@ -56,10 +55,12 @@ public:
 	);
 	void disconnectSessions();
 private:
+	/*virtual*/ void execute(ExecuteContext &_rexectx);
+	
 	void doInsertNewSessions();
 	void doPrepareInsertNewSessions();
 	void doInsertNewConnections();
-	int doReceiveDatagramPackets(uint _atmost, const ulong _sig);
+	AsyncE doReceiveDatagramPackets(uint _atmost, const ulong _sig);
 	void doDispatchReceivedDatagramPacket(
 		char *_pbuf,
 		const uint32 _bufsz,

@@ -25,7 +25,7 @@ int InputStreamMessage::execute(
 	TimeSpec &
 ){
 	_rms.sendMessage(_rmsgptr, requid);
-	return frame::LEAVE;
+	return AsyncFailure;
 }
 //----------------------------------------------------------------------
 OutputStreamMessage::OutputStreamMessage(
@@ -43,7 +43,7 @@ int OutputStreamMessage::execute(
 	TimeSpec &
 ){
 	_rms.sendMessage(_rmsgptr, requid);
-	return frame::LEAVE;
+	return AsyncFailure;
 }
 //----------------------------------------------------------------------
 InputOutputStreamMessage::InputOutputStreamMessage(
@@ -61,7 +61,7 @@ int InputOutputStreamMessage::execute(
 	TimeSpec &
 ){
 	_rms.sendMessage(_rmsgptr, requid);
-	return frame::LEAVE;
+	return AsyncFailure;
 }
 //----------------------------------------------------------------------
 StreamErrorMessage::StreamErrorMessage(
@@ -78,7 +78,7 @@ int StreamErrorMessage::execute(
 	TimeSpec &
 ){
 	_rms.sendMessage(_rmsgptr, requid);
-	return frame::LEAVE;
+	return AsyncFailure;
 }
 //----------------------------------------------------------------------
 }//namespace concept

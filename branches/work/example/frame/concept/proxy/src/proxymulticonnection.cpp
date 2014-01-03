@@ -55,10 +55,10 @@ enum{
 		Send,
 		SendWait
 	};
-int MultiConnection::execute(ulong _sig, TimeSpec &_tout){
-	idbg("time.sec "<<_tout.seconds()<<" time.nsec = "<<_tout.nanoSeconds());
-	if(_sig & (frame::TIMEOUT | frame::ERRDONE | frame::TIMEOUT_RECV | frame::TIMEOUT_SEND)){
-		idbg("connecton timeout or error : tout "<<frame::TIMEOUT<<" err "<<frame::ERRDONE<<" toutrecv "<<frame::TIMEOUT_RECV<<" tout send "<<frame::TIMEOUT_SEND);
+/*virtual*/ void MultiConnection::execute(ExecuteContext &_rexectx){
+	idbg("time.sec "<<_rexectx.currentTime().seconds()<<" time.nsec = "<<_rexectx.currentTime().nanoSeconds());
+	if(_rexectx.eventMask() & (frame::EventTimeout | frame::EventDoneError | frame::EventTimeoutRecv | frame::EventTimeoutSend)){
+		idbg("connecton timeout or error : tout "<<frame::EventTimeout<<" err "<<frame::EventDoneError<<" toutrecv "<<frame::EventTimeoutRecv<<" tout send "<<frame::EventTimeoutSend);
 		//We really need this check as epoll upsets if we register an unconnected socket
 		if(state() != CONNECT){
 			//lets see which socket has timeout:
@@ -67,24 +67,27 @@ int MultiConnection::execute(ulong _sig, TimeSpec &_tout){
 				idbg("for "<<signaledFront()<<" evs "<<evs);
 				this->signaledPop();
 			}
-			return BAD;
+			_rexectx.close();
+			return;
 		}
 	}
 	if(notified()){
 		concept::Manager &rm = concept::Manager::the();
-		{
 		Locker<Mutex>	lock(rm.mutex(*this));
 		ulong sm = grabSignalMask();
-		if(sm & frame::S_KILL) return BAD;
+		if(sm & frame::S_KILL){
+			_rexectx.close();
+			return;
 		}
 	}
-	int rv = NOK;
+	AsyncE rv = AsyncWait;
 	switch(state()){
 		case READ_ADDR:
 			idbgx(Debug::any, "READ_ADDR");
 		case READ_PORT:
 			idbgx(Debug::any, "READ_PORT");
-			return doReadAddress();
+			rv = doReadAddress();
+			break;
 		case REGISTER_CONNECTION:{
 			idbgx(Debug::any, "REGISTER_CONNECTION");
 			rd = synchronous_resolve(addr.c_str(), port.c_str());
@@ -94,7 +97,7 @@ int MultiConnection::execute(ulong _sig, TimeSpec &_tout){
 			sd.makeNonBlocking();
 			socketRequestRegister(socketInsert(sd));
 			state(CONNECT);
-			}return NOK;
+			}return;
 		case CONNECT://connect the other end:
 			//TODO: check if anything went wrong
 			while(this->signaledSize()){
@@ -102,24 +105,29 @@ int MultiConnection::execute(ulong _sig, TimeSpec &_tout){
 			}
 			idbgx(Debug::any, "CONNECT");
 			switch(socketConnect(1, it)){
-				case BAD:
-					idbgx(Debug::any, "BAD");
-					return BAD;
-				case OK:
+				case frame::aio::AsyncFailure:
+					idbgx(Debug::any, "Failure");
+					_rexectx.close();
+					return;
+				case frame::aio::AsyncSuccess:
 					state(SEND_REMAINS);
-					idbgx(Debug::any, "OK");
-					return OK;
-				case NOK:
+					idbgx(Debug::any, "Success");
+					_rexectx.reschedule();
+					return;
+				case frame::aio::AsyncWait:
 					state(CONNECT_TOUT);
-					idbgx(Debug::any, "NOK");
-					return NOK;
+					idbgx(Debug::any, "Wait");
+					return;
 			};
 		case CONNECT_TOUT:{
 			idbgx(Debug::any, "CONNECT_TOUT");
 			uint32 evs = socketEvents(1);
 			socketState(0, Receive);
 			socketState(1, Receive);
-			if(!evs || !(evs & frame::OUTDONE)) return BAD;
+			if(!evs || !(evs & frame::EventDoneSend)){
+				_rexectx.close();
+				return;
+			}
 			state(SEND_REMAINS);
 			}
 		case SEND_REMAINS:{
@@ -127,29 +135,34 @@ int MultiConnection::execute(ulong _sig, TimeSpec &_tout){
 			state(PROXY);
 			if(bp != be){
 				switch(socketSend(1, bp, be - bp)){
-					case BAD:
-						idbgx(Debug::any, "BAD");
-						return BAD;
-					case OK:
-						idbgx(Debug::any, "OK");
+					case frame::aio::AsyncFailure:
+						idbgx(Debug::any, "Failure");
+						_rexectx.close();
+						return;
+					case frame::aio::AsyncSuccess:
+						idbgx(Debug::any, "Success");
 						break;
-					case NOK:
+					case frame::aio::AsyncWait:
 						stubs[0].recvbuf.usecnt = 1;
-						idbgx(Debug::any, "NOK");
-						return NOK;
+						idbgx(Debug::any, "Wait");
+						return;
 				}
 			}
 			}
 		case PROXY:
 			idbgx(Debug::any, "PROXY");
-			rv =  doProxy(_tout);
+			rv =  doProxy(_rexectx.currentTime());
 	}
 	while(this->signaledSize()){
 		this->signaledPop();
 	}
-	return rv;
+	if(rv == solid::AsyncFailure){
+		_rexectx.close();
+	}else if(rv == solid::AsyncSuccess){
+		_rexectx.reschedule();
+	}
 }
-int MultiConnection::doReadAddress(){
+AsyncE MultiConnection::doReadAddress(){
 	if(bp and !be) return doRefill();
 	char *bb = bp;
 	switch(state()){
@@ -161,7 +174,7 @@ int MultiConnection::doReadAddress(){
 			}
 			addr.append(bb, bp - bb);
 			if(bp == be) return doRefill();
-			if(addr.size() > 64) return BAD;
+			if(addr.size() > 64) return solid::AsyncFailure;
 			//*bp == ' '
 			++bp;
 			state(READ_PORT);
@@ -174,37 +187,37 @@ int MultiConnection::doReadAddress(){
 			}
 			port.append(bb, bp - bb);
 			if(bp == be) return doRefill();
-			if(port.size() > 64) return BAD;
+			if(port.size() > 64) return solid::AsyncFailure;
 			if(port.size() && port[port.size() - 1] == '\r'){
 				port.resize(port.size() - 1);
 			}
 			//*bp == '\n'
 			++bp;
 			state(REGISTER_CONNECTION);
-			return OK;
+			return solid::AsyncSuccess;
 	}
 	cassert(false);
-	return BAD;
+	return solid::AsyncFailure;
 }
-int MultiConnection::doProxy(const TimeSpec &_tout){
-	int retv = NOK;
-	if((socketEvents(0) & frame::ERRDONE) || (socketEvents(1) & frame::ERRDONE)){
-		idbg("bad errdone "<<socketEvents(1)<<' '<<frame::ERRDONE);
-		return BAD;
+AsyncE MultiConnection::doProxy(const TimeSpec &_tout){
+	AsyncE retv = solid::AsyncWait;
+	if((socketEvents(0) & frame::EventDoneError) || (socketEvents(1) & frame::EventDoneError)){
+		idbg("bad errdone "<<socketEvents(1)<<' '<<frame::EventDoneError);
+		return solid::AsyncFailure;
 	}
 	switch(socketState(0)){
 		case Receive:
 			idbg("receive 0");
 			switch(socketRecv(0, stubs[0].recvbuf.data, Buffer::Capacity)){
-				case BAD:
+				case frame::aio::AsyncFailure:
 					idbg("bad recv 0");
-					return BAD;
-				case OK:
+					return solid::AsyncFailure;
+				case frame::aio::AsyncSuccess:
 					idbg("receive ok 0");
 					socketState(0, Send);
-					retv = OK;
+					retv = solid::AsyncSuccess;
 					break;
-				case NOK:
+				case frame::aio::AsyncWait:
 					idbg("receive nok 0");
 					socketTimeoutRecv(0, 30);
 					socketState(0, ReceiveWait);
@@ -213,21 +226,20 @@ int MultiConnection::doProxy(const TimeSpec &_tout){
 			break;
 		case ReceiveWait:
 			idbg("receivewait 0");
-			if(socketEvents(0) & frame::INDONE){
+			if(socketEvents(0) & frame::EventDoneRecv){
 				socketState(0, Send);
 			}else break;
 		case Send:
 			idbg("send 0");
 			switch(socketSend(1, stubs[0].recvbuf.data, socketRecvSize(0))){
-				idbg("bad send 0");
-				case BAD:
-					return BAD;
-				case OK:
+				case frame::aio::AsyncFailure:
+					return solid::AsyncFailure;
+				case frame::aio::AsyncSuccess:
 					idbg("send ok 0");
 					socketState(0, Receive);
-					retv = OK;
+					retv = solid::AsyncSuccess;
 					break;
-				case NOK:
+				case frame::aio::AsyncWait:
 					idbg("send nok 0");
 					socketState(0, SendWait);
 					socketTimeoutSend(1, 50);
@@ -236,7 +248,7 @@ int MultiConnection::doProxy(const TimeSpec &_tout){
 			break;
 		case SendWait:
 			idbg("sendwait 0");
-			if(socketEvents(1) & frame::OUTDONE){
+			if(socketEvents(1) & frame::EventDoneSend){
 				socketState(0, Receive);
 			}
 			break;
@@ -246,15 +258,15 @@ int MultiConnection::doProxy(const TimeSpec &_tout){
 		idbg("receive 1");
 		case Receive:
 			switch(socketRecv(1, stubs[1].recvbuf.data, Buffer::Capacity)){
-				case BAD:
+				case frame::aio::AsyncFailure:
 					idbg("bad recv 1");
-					return BAD;
-				case OK:
+					return solid::AsyncFailure;
+				case frame::aio::AsyncSuccess:
 					idbg("receive ok 1");
 					socketState(1, Send);
-					retv = OK;
+					retv = solid::AsyncSuccess;
 					break;
-				case NOK:
+				case frame::aio::AsyncWait:
 					idbg("receive nok 1");
 					socketTimeoutRecv(1, 50);
 					socketState(1, ReceiveWait);
@@ -263,21 +275,21 @@ int MultiConnection::doProxy(const TimeSpec &_tout){
 			break;
 		case ReceiveWait:
 			idbg("receivewait 1");
-			if(socketEvents(1) & frame::INDONE){
+			if(socketEvents(1) & frame::EventDoneRecv){
 				socketState(1, Send);
 			}else break;
 		case Send:
 			idbg("send 1");
 			switch(socketSend(0, stubs[1].recvbuf.data, socketRecvSize(1))){
-				case BAD:
+				case frame::aio::AsyncFailure:
 					idbg("bad recv 1");
-					return BAD;
-				case OK:
+					return solid::AsyncFailure;
+				case frame::aio::AsyncSuccess:
 					idbg("send ok 1");
 					socketState(1, Receive);
-					retv = OK;
+					retv = solid::AsyncSuccess;
 					break;
-				case NOK:
+				case frame::aio::AsyncWait:
 					idbg("send nok 1");
 					socketState(1, SendWait);
 					socketTimeoutSend(0, 30);
@@ -286,9 +298,9 @@ int MultiConnection::doProxy(const TimeSpec &_tout){
 			break;
 		case SendWait:
 			idbg("sendwait 1");
-			if(socketEvents(0) & frame::OUTDONE){
+			if(socketEvents(0) & frame::EventDoneSend){
 				socketState(1, Receive);
-				retv = OK;
+				retv = solid::AsyncSuccess;
 			}
 			break;
 	}
@@ -296,31 +308,31 @@ int MultiConnection::doProxy(const TimeSpec &_tout){
 	return retv;
 }
 
-int MultiConnection::doRefill(){
+AsyncE MultiConnection::doRefill(){
 	idbgx(Debug::any, "");
 	if(bp == NULL){//we need to issue a read
 		switch(socketRecv(0, stubs[0].recvbuf.data, Buffer::Capacity)){
-			case BAD:	return BAD;
-			case OK:
+			case frame::aio::AsyncFailure:	return solid::AsyncFailure;
+			case frame::aio::AsyncSuccess:
 				bp = stubs[0].recvbuf.data;
 				be = stubs[0].recvbuf.data + socketRecvSize(0);
-				return OK;
-			case NOK:
+				return solid::AsyncSuccess;
+			case frame::aio::AsyncWait:
 				be = NULL;
 				bp = stubs[0].recvbuf.data;
 				idbgx(Debug::any, "NOK");
-				return NOK;
+				return solid::AsyncWait;
 		}
 	}
 	if(be == NULL){
-		if(socketEvents(0) & frame::INDONE){
+		if(socketEvents(0) & frame::EventDoneRecv){
 			be = stubs[0].recvbuf.data + socketRecvSize(0);
 		}else{
-			idbgx(Debug::any, "NOK");
-			return NOK;
+			idbgx(Debug::any, "Wait");
+			return solid::AsyncWait;
 		}
 	}
-	return OK;
+	return solid::AsyncSuccess;
 }
 
 }//namespace proxy

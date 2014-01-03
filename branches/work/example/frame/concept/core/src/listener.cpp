@@ -29,13 +29,16 @@ Listener::Listener(
 	state = 0;
 }
 
-int Listener::execute(ulong, TimeSpec&){
+/*virtual*/ void Listener::execute(ExecuteContext &_rexectx){
 	idbg("here");
 	cassert(this->socketOk());
 	if(notified()){
 		Locker<Mutex>	lock(Manager::specific().mutex(*this));
 		ulong sm = this->grabSignalMask();
-		if(sm & frame::S_KILL) return BAD;
+		if(sm & frame::S_KILL){ 
+			_rexectx.close();
+			return;
+		}
 	}
 	
 	solid::uint cnt(10);
@@ -43,11 +46,13 @@ int Listener::execute(ulong, TimeSpec&){
 	while(cnt--){
 		if(state == 0){
 			switch(this->socketAccept(sd)){
-				case BAD: return BAD;
-				case OK:break;
-				case NOK:
+				case frame::aio::AsyncFailure:
+					_rexectx.close();
+					return;
+				case frame::aio::AsyncSuccess:break;
+				case frame::aio::AsyncWait:
 					state = 1;
-					return NOK;
+					return;
 			}
 		}
 		state = 0;
@@ -59,8 +64,7 @@ int Listener::execute(ulong, TimeSpec&){
 			rsvc.insertConnection(sd);
 		}
 	}
-	
-	return OK;
+	_rexectx.reschedule();
 }
 
 }//namespace concept

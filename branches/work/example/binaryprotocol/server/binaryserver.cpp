@@ -137,7 +137,8 @@ public:
 		frame::aio::openssl::Context *_pctx = NULL
 	);
 	~Listener();
-	/*virtual*/ int execute(ulong, TimeSpec&);
+private:
+	/*virtual*/ void execute(ExecuteContext &_rexectx);
 private:
 	typedef std::auto_ptr<frame::aio::openssl::Context> SslContextPtrT;
 	int									state;
@@ -291,28 +292,33 @@ Listener::Listener(
 Listener::~Listener(){
 	idbg("");
 }
-int Listener::execute(ulong, TimeSpec&){
+/*virtual*/ void Listener::execute(ExecuteContext &_rexectx){
 	cassert(this->socketOk());
 	if(notified()){
 		ulong sm = this->grabSignalMask();
-		if(sm & frame::S_KILL) return BAD;
+		if(sm & frame::S_KILL){
+			_rexectx.close();
+			return;
+		}
 	}
 	solid::uint cnt(10);
 	while(cnt--){
 		if(state == 0){
 			switch(this->socketAccept(sd)){
-				case BAD: return BAD;
-				case OK:break;
-				case NOK:
+				case frame::aio::AsyncFailure:
+					_rexectx.close();
+					return;
+				case frame::aio::AsyncSuccess:break;
+				case frame::aio::AsyncWait:
 					state = 1;
-					return NOK;
+					return;
 			}
 		}
 		state = 0;
 		cassert(sd.ok());
 		rsvc.insertConnection(sd);
 	}
-	return OK;
+	_rexectx.reschedule();
 }
 
 //--------------------------------------------------------------------------
@@ -336,12 +342,11 @@ public:
 		return sess;
 	}
 private:
-	int done(){
+	void done(){
 		idbg("");
 		bufctl.clear();
-		return BAD;
 	}
-	/*virtual*/ int execute(ulong _sig, TimeSpec &_tout);
+	/*virtual*/ void execute(ExecuteContext &_rexectx);
 private:
 	BinSerializerT			ser;
 	BinDeserializerT		des;
@@ -359,26 +364,33 @@ void Service::insertConnection(
 	rsched.schedule(conptr);
 }
 //--------------------------------------------------------------------------
-/*virtual*/ int Connection::execute(ulong _evs, TimeSpec &_tout){
+/*virtual*/ void Connection::execute(ExecuteContext &_rexectx){
 	static Compressor 		compressor(BufferControllerT::DataCapacity);
 	
 	ulong					sm = grabSignalMask();
 	if(sm){
-		if(sm & frame::S_KILL) return done();
+		if(sm & frame::S_KILL){
+			done();
+			_rexectx.close();
+			return;
+		}
 		if(sm & frame::S_SIG){
 			//Locker<Mutex>	lock(frame::Manager::specific().mutex(*this));
 		}
 	}
 	
-	if(_evs & (frame::TIMEOUT | frame::ERRDONE)){
-		return done();
+	if(_rexectx.eventMask() & (frame::EventTimeout | frame::EventDoneError)){
+		done();
+		_rexectx.close();
+		return;
 	}
 	ConnectionContext		ctx(*this);
-	int rv = sess.execute(*this, _evs, ctx, ser, des, bufctl, compressor);
-	if(rv == NOK){
-		_tout.add(20);//wait 20 secs
+	const AsyncE rv = sess.execute(*this, _rexectx.eventMask(), ctx, ser, des, bufctl, compressor);
+	if(rv == solid::AsyncWait){
+		_rexectx.waitFor(TimeSpec(20));//wait 20 secs
+	}else if(rv == solid::AsyncSuccess){
+		_rexectx.reschedule();
 	}
-	return rv;
 }
 //--------------------------------------------------------------------------
 void Handle::afterSerialization(BinDeserializerT &_rs, FirstRequest *_pm, ConnectionContext &_rctx){

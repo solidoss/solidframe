@@ -167,8 +167,8 @@ public:
 private:
 	friend struct Handle;
 	friend struct SessionController;
-	/*virtual*/ int execute(solid::ulong _evs, solid::TimeSpec& _crtime);
-	int done();
+	/*virtual*/ void execute(ExecuteContext &_rexectx);
+	void done();
 	void onReceiveNoop();
 	void onDoneSend(const size_t _msgidx);
 private:
@@ -369,9 +369,8 @@ void Service::waitLogin(){
 
 //=======================================================================
 
-int Connection::done(){
+void Connection::done(){
 	idbg("");
-	return BAD;
 }
 //-----------------------------------------------------------------------
 /*virtual*/ bool Connection::notify(solid::DynamicPointer<solid::frame::Message> &_rmsgptr){
@@ -382,7 +381,7 @@ int Connection::done(){
 
 /*static*/ Connection::DynamicMapperT		Connection::dm;
 
-/*virtual*/ int Connection::execute(ulong _evs, TimeSpec& _crtime){
+/*virtual*/ void Connection::execute(ExecuteContext &_rexectx){
 	static struct Init{
 		Init(DynamicMapperT &_rdm){
 			_rdm.insert<SendJob, Connection>();
@@ -395,7 +394,11 @@ int Connection::done(){
 	
 	ulong							sm = grabSignalMask();
 	if(sm){
-		if(sm & frame::S_KILL) return done();
+		if(sm & frame::S_KILL){
+			done();
+			_rexectx.close();
+			return;
+		}
 		if(sm & frame::S_SIG){
 			idbg("Receive message");
 			DynamicHandler<DynamicMapperT>	dh(dm);
@@ -410,48 +413,63 @@ int Connection::done(){
 		}
 	}
 	
-	if(_evs & (frame::ERRDONE)){
+	if(_rexectx.eventMask() & (frame::EventDoneError)){
 		idbg("errdone");
-		return done();
+		done();
+		_rexectx.close();
+		return;
 	}
 	
 	ConnectionContext				ctx(*this);
 	
 	bool reenter = false;
 	if(st == RunningState){
-		if(nooptime.seconds() && nooptime <= _crtime){
+		if(nooptime.seconds() && nooptime <= _rexectx.currentTime()){
 			if(waitnoop){
 				idbg("noopreceiveerror");
-				return done();
+				done();
+				_rexectx.close();
+				return;
 			}else if(session.isSendQueueEmpty()){
 				idbg("sendnoop");
 				DynamicPointer<solid::frame::Message>	msgptr(noopmsgptr);
 				session.send(3, msgptr);
 				waitnoop = true;
-				nooptime = _crtime;
+				nooptime = _rexectx.currentTime();
 				nooptime.add(10);
 			}
 		}
-		if(nexttime.seconds() && nexttime <= _crtime){
+		if(nexttime.seconds() && nexttime <= _rexectx.currentTime()){
 			MessageDynamicPointerT	msgptr = MessageMatrix::the().message(jobq.front()->msgrow, sendidx);
 			session.send(2, msgptr);
 			nexttime.seconds(0);
 		}
-		int rv = session.execute(*this, _evs, ctx, ser, des, bufctl, compressor);
-		if(rv == BAD) return done();
-		if(rv == NOK){
-			idbg("nooptime.sec = "<<nooptime.seconds()<<" nexttime.sec = "<<nexttime.seconds()<<" crttime.sec = "<<_crtime.seconds());
-			if(nooptime.seconds() && (!nexttime.seconds() || nooptime <= nexttime)){
-				_crtime = nooptime;
-			}else if(nexttime.seconds()){
-				_crtime = nexttime;
-			}
+		AsyncE rv = session.execute(*this, _rexectx.eventMask(), ctx, ser, des, bufctl, compressor);
+		if(rv == solid::AsyncFailure){
+			done();
+			_rexectx.close();
+			return;
 		}
-		return rv;
+		if(rv == solid::AsyncWait){
+			idbg("nooptime.sec = "<<nooptime.seconds()<<" nexttime.sec = "<<nexttime.seconds()<<" crttime.sec = "<<_rexectx.currentTime().seconds());
+			if(nooptime.seconds() && (!nexttime.seconds() || nooptime <= nexttime)){
+				_rexectx.waitUntil(nooptime);
+			}else if(nexttime.seconds()){
+				_rexectx.waitUntil(nexttime);
+			}
+			return;
+		}
+		if(rv == solid::AsyncFailure){
+			_rexectx.close();
+		}else{
+			_rexectx.reschedule();
+		}
+		return;
 	}else if(st == CreateState){
 		st = PrepareState;
 		service().onCreate();
-		return OK;
+		_rexectx.reschedule();
+		return;
 	}else if(st == PrepareState){
 		SocketDevice	sd;
 		sd.create(rsa.family(), SocketInfo::Stream);
@@ -463,23 +481,28 @@ int Connection::done(){
 	}else if(st == ConnectState){
 		idbg("ConnectState");
 		switch(socketConnect(rsa)){
-			case BAD: return done();
-			case OK:
+			case frame::aio::AsyncFailure:
+				done();
+				_rexectx.close();
+				return;
+			case frame::aio::AsyncSuccess:
 				idbg("");
 				st = InitState;
 				reenter = true;
 				break;
-			case NOK:
+			case frame::aio::AsyncWait:
 				st = ConnectWaitState;
 				idbg("");
 				break;
 		}
 	}else if(st == ConnectWaitState){
 		idbg("ConnectWaitState");
-		if(_evs & (frame::TIMEOUT | frame::ERRDONE)){
+		if(_rexectx.eventMask() & (frame::EventDoneError | frame::EventTimeout)){
 			--connectcnt;
 			if(connectcnt == 0){
-				return done();
+				done();
+				_rexectx.close();
+				return;
 			}else{
 				st = PrepareState;
 			}	
@@ -498,7 +521,9 @@ int Connection::done(){
 		session.send(1, msgptr);
 		reenter = true;
 	}
-	return reenter ? OK : NOK;
+	if(reenter){
+		_rexectx.reschedule();
+	}
 }
 //---------------------------------------------------------------------------------
 void Connection::dynamicHandle(solid::DynamicPointer<> &_dp){

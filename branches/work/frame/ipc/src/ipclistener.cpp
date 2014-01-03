@@ -23,13 +23,14 @@ Listener::Listener(
 	state = 0;
 }
 
-int Listener::execute(ulong, TimeSpec&){
+void Listener::execute(ExecuteContext &_rexectx){
 	idbgx(Debug::ipc, "");
 	cassert(this->socketOk());
 	{
 		ulong sm = this->grabSignalMask();
 		if(sm & frame::S_KILL){
-			return BAD;
+			_rexectx.close();
+			return;
 		}
 	}
 	
@@ -37,11 +38,13 @@ int Listener::execute(ulong, TimeSpec&){
 	while(cnt--){
 		if(state == 0){
 			switch(this->socketAccept(sd)){
-				case BAD: return BAD;
-				case OK:break;
-				case NOK:
+				case aio::AsyncSuccess:break;
+				case aio::AsyncWait:
 					state = 1;
-					return NOK;
+					return;
+				case aio::AsyncFailure:
+					_rexectx.close();
+					return;
 			}
 		}
 		state = 0;
@@ -54,7 +57,8 @@ int Listener::execute(ulong, TimeSpec&){
 			rsvc.insertConnection(sd, pctx.get(), false);
 		}
 	}
-	return OK;
+	_rexectx.reschedule();
+	return;
 }
 }//namespace ipc
 }//namespace frame

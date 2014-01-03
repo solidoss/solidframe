@@ -163,7 +163,7 @@ int main(int argc, char *argv[]){
 	}
 #endif
 	Thread::init();
-	idbg("current thread "<<(void*)Thread::current());
+	idbg("current thread "<<(void*)&Thread::current());
 	const unsigned specid(Thread::specificId());
 	Thread::specific(specid,  reinterpret_cast<void*>(123456));
 	idbg("saved specific value = "<<(ulong)Thread::specific(specid));

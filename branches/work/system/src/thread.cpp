@@ -461,6 +461,7 @@ void Thread::dummySpecificDestroy(void*){
 }
 //-------------------------------------------------------------------------
 bool Thread::join(){
+	specific_error_clear();
 #ifdef ON_WINDOWS
 	if(detached()) return false;
 	WaitForSingleObject(th, INFINITE);
@@ -473,7 +474,6 @@ bool Thread::join(){
 		SPECIFIC_ERROR_PUSH1(last_system_error());
 		return false;
 	}
-	specific_error_clear();
 	return true;
 #endif
 }
@@ -576,6 +576,7 @@ struct Thread::ThreadStub{
 	int			*pval;
 };
 bool Thread::start(bool _wait, bool _detached, ulong _stacksz){
+	specific_error_clear();
 #ifdef ON_WINDOWS
 	if(_wait){
 		Locker<Mutex>	lock(mutex());
@@ -627,7 +628,6 @@ bool Thread::start(bool _wait, bool _detached, ulong _stacksz){
 			return false;
 		}
 	}
-	specific_error_clear();
 	return true;
 #else
 	pthread_attr_t attr;
@@ -708,7 +708,6 @@ bool Thread::start(bool _wait, bool _detached, ulong _stacksz){
 		}
 		idbgx(Debug::system, "started thread "<<th);
 	}
-	specific_error_clear();
 	pthread_attr_destroy(&attr);
 	vdbgx(Debug::system, "");
 	return true;

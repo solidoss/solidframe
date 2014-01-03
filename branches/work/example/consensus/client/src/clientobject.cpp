@@ -197,7 +197,7 @@ ClientObject::~ClientObject(){
 	idbg("");
 }
 //------------------------------------------------------------
-int ClientObject::execute(ulong _sig, TimeSpec &_tout){
+void ClientObject::execute(ExecuteContext &_rexectx){
 	frame::Manager &rm(frame::Manager::specific());
 	
 	if(notified()){//we've received a signal
@@ -209,7 +209,8 @@ int ClientObject::execute(ulong _sig, TimeSpec &_tout){
 			if(sm & frame::S_KILL){
 				idbg("die");
 				kill(getpid(), SIGTERM);
-				return BAD;
+				_rexectx.close();
+				return;
 			}
 			if(sm & frame::S_SIG){//we have signals
 				dh.init(dv.begin(), dv.end());
@@ -238,21 +239,22 @@ int ClientObject::execute(ulong _sig, TimeSpec &_tout){
 			}
 			case 'p':
 				if(state() == Execute){
-					_tout += rr.u.u32s.u32_1;
-					nexttimepos = _tout;
-					idbg("wait "<<rr.u.u32s.u32_1<<" "<<_tout.seconds()<<':'<<_tout.nanoSeconds());
+					nexttimepos = _rexectx.currentTime();
+					nexttimepos.add(rr.u.u32s.u32_1);
+					idbg("wait "<<rr.u.u32s.u32_1<<" "<<nexttimepos.seconds()<<':'<<nexttimepos.nanoSeconds());
 					state(Wait);
-					return NOK;
+					_rexectx.waitUntil(nexttimepos);
+					return;
 				}else{
-					if(nexttimepos <= _tout){
+					if(nexttimepos <= _rexectx.currentTime()){
 						idbg("done wait "<<" "<<nexttimepos.seconds()<<':'<<nexttimepos.nanoSeconds());
 						state(Execute);
 						break;
 					}else{
 						idbg("still wait "<<" "<<nexttimepos.seconds()<<':'<<nexttimepos.nanoSeconds());
-						idbg("still wait "<<" "<<_tout.seconds()<<':'<<_tout.nanoSeconds());
-						_tout = nexttimepos;
-						return NOK;
+						idbg("still wait "<<" "<<_rexectx.currentTime().seconds()<<':'<<_rexectx.currentTime().nanoSeconds());
+						_rexectx.waitUntil(nexttimepos);
+						return;
 					}
 				}
 			case 'f':{
@@ -281,20 +283,20 @@ int ClientObject::execute(ulong _sig, TimeSpec &_tout){
 		if(crtreqpos >= params.reqvec.size()){
 			crtreqpos = 0;
 			++crtpos;
-			return OK;
+			return;
 		}
-		return OK;
+		_rexectx.reschedule();
+		return;
 	}else if(waitresponsecount){
-		if(_sig & frame::TIMEOUT){
+		if(_rexectx.eventMask() & frame::EventTimeout){
 			kill(getpid(), SIGTERM);
 		}else{
 			idbg("waiting for "<<waitresponsecount<<" responses");
-			_tout.add(1 * 60);
+			_rexectx.waitFor(TimeSpec(1*60));
 		}
 	}else{
 		kill(getpid(), SIGTERM);
 	}
-	return NOK;
 }
 //------------------------------------------------------------
 struct ReqCmp{

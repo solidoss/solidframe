@@ -298,7 +298,8 @@ public:
 		frame::aio::openssl::Context *_pctx = NULL
 	);
 	~Listener();
-	/*virtual*/ int execute(ulong, TimeSpec&);
+private:
+	/*virtual*/ void execute(ExecuteContext &_rexectx);
 private:
 	typedef std::auto_ptr<frame::aio::openssl::Context> SslContextPtrT;
 	int									state;
@@ -556,28 +557,33 @@ Listener::Listener(
 }
 Listener::~Listener(){
 }
-int Listener::execute(ulong, TimeSpec&){
+/*virtual*/ void Listener::execute(ExecuteContext &_rexectx){
 	cassert(this->socketOk());
 	if(notified()){
 		ulong sm = this->grabSignalMask();
-		if(sm & frame::S_KILL) return BAD;
+		if(sm & frame::S_KILL){
+			_rexectx.close();
+			return;
+		}
 	}
 	solid::uint cnt(10);
 	while(cnt--){
 		if(state == 0){
 			switch(this->socketAccept(sd)){
-				case BAD: return BAD;
-				case OK:break;
-				case NOK:
+				case frame::aio::AsyncFailure:
+					_rexectx.close();
+					return;
+				case frame::aio::AsyncSuccess:break;
+				case frame::aio::AsyncWait:
 					state = 1;
-					return NOK;
+					return;
 			}
 		}
 		state = 0;
 		cassert(sd.ok());
 		rsvc.insertConnection(sd);
 	}
-	return OK;
+	_rexectx.reschedule();
 }
 
 //--------------------------------------------------------------------------
@@ -640,11 +646,10 @@ public:
 	}
 private:
 	void onDoneSend(const size_t _msgidx);
-	int done(){
+	void done(){
 		bufctl.clear();
-		return BAD;
 	}
-	/*virtual*/ int execute(ulong _sig, TimeSpec &_tout);
+	/*virtual*/ void execute(ExecuteContext &_rexectx);
 private:
 	typedef Stack<size_t>	SizeStackT;
 	BinSerializerT			ser;
@@ -794,13 +799,17 @@ bool Service::addNode(std::string &_rname, NodeTypes _type){
 	return true;
 }
 //--------------------------------------------------------------------------
-/*virtual*/ int Connection::execute(ulong _evs, TimeSpec &_tout){
+/*virtual*/ void Connection::execute(ExecuteContext &_rexectx){
 	static Compressor 		compressor(BufferControllerT::DataCapacity);
 	
 	ulong					sm = grabSignalMask();
 	
 	if(sm){
-		if(sm & frame::S_KILL) return done();
+		if(sm & frame::S_KILL){
+			done();
+			_rexectx.close();
+			return;
+		}
 		if(sm & frame::S_SIG){
 			Locker<Mutex>	lock(frame::Manager::specific().mutex(*this));
 			for(MessageVectorT::iterator it(msgvec.begin()); it != msgvec.end(); ++it){
@@ -814,35 +823,48 @@ bool Service::addNode(std::string &_rname, NodeTypes _type){
 		}
 	}
 	
-	if(_evs & (frame::TIMEOUT | frame::ERRDONE)){
-		return done();
+	if(_rexectx.eventMask() & (frame::EventTimeout | frame::EventDoneError)){
+		done();
+		_rexectx.close();
+		return;
 	}
 	ConnectionContext		ctx(*this);
-	int 					rv = BAD;
+	AsyncE 					rv = AsyncFailure;
 	switch(stt){
 		case StateAuth:
 		case StateNotAuth:
-			rv = sess.execute(*this, _evs, ctx, ser, des, bufctl, compressor);
-			if(rv == NOK){
-				_tout.add(60 * 10);//wait
+			rv = sess.execute(*this, _rexectx.eventMask(), ctx, ser, des, bufctl, compressor);
+			if(rv == solid::AsyncWait){
+				_rexectx.waitFor(TimeSpec(60 * 10));
+				return;
 			}
 			if(stt == StateError){
-				return OK;
+				_rexectx.reschedule();
+				return;
 			}
+			break;
 		break;
 		case StateError:
 			edbg("StateError");
 			//Do not read anything from the client, only send the error message
-			rv = sess.executeSend(*this, _evs, ctx, ser, bufctl, compressor);
+			rv = sess.executeSend(*this, _rexectx.eventMask(), ctx, ser, bufctl, compressor);
 			if(ser.empty() && !socketHasPendingRecv()){//nothing to send
-				return done();
+				done();
+				_rexectx.close();
+				return;
 			}
-			if(rv == NOK){
-				_tout.add(10);//short wait for client to read the message
+			if(rv == solid::AsyncWait){
+				_rexectx.waitFor(TimeSpec(10));//short wait for client to read the message
+				return;
 			}
 		break;
 	}
-	return rv;
+	if(rv == solid::AsyncSuccess){
+		_rexectx.reschedule();
+	}else if(rv == solid::AsyncFailure){
+		_rexectx.close();
+	}
+	return;
 }
 
 void Connection::onDoneSend(const size_t _msgidx){

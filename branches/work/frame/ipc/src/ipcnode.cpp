@@ -396,19 +396,21 @@ Node::~Node(){
 	delete &d;
 }
 //--------------------------------------------------------------------
-int Node::execute(ulong _sig, TimeSpec &_time){
+void Node::execute(ExecuteContext &_rexectx){
 	Manager		&rm = d.rservice.manager();
+	ulong		sig = _rexectx.eventMask();
 	{
 		const ulong		sm = grabSignalMask();
 		if(sm || d.crtsessiondisconnectcnt){
 			if(sm & frame::S_KILL){
 				idbgx(Debug::ipc, "node - dying");
-				return BAD;
+				_rexectx.close();
+				return;
 			}
 			
 			idbgx(Debug::ipc, "node - signaled");
 			if(sm == frame::S_RAISE){
-				_sig |= frame::SIGNALED;
+				sig |= frame::EventSignal;
 				Locker<Mutex>	lock(rm.mutex(*this));
 				
 				if(d.newconnectionvec.size()){
@@ -435,20 +437,19 @@ int Node::execute(ulong _sig, TimeSpec &_time){
 		d.rservice.disconnectNodeSessions(*this);
 	}
 	
-	bool	must_reenter(false);
-	int		rv;
-	
-	rv = doReceiveDatagramPackets(16, socketEvents(0));
-	if(rv == OK){
+	bool			must_reenter(false);
+	const AsyncE	rv = doReceiveDatagramPackets(16, socketEvents(0));
+	if(rv == AsyncSuccess){
 		must_reenter = true;
-	}else if(rv == BAD){
-		return BAD;
+	}else if(rv == AsyncFailure){
+		_rexectx.close();
+		return;
 	}
 	{
 		uint	sigcnt = signaledSize();
 		while(sigcnt--){
-			const uint sockidx = signaledFront();
-			ulong evs = socketEvents(sockidx);
+			const uint	sockidx = signaledFront();
+			ulong 		evs = socketEvents(sockidx);
 			signaledPop();
 			if(sockidx){//skip the udp socket
 				doHandleSocketEvents(sockidx, evs);
@@ -459,7 +460,7 @@ int Node::execute(ulong _sig, TimeSpec &_time){
 	doSendDatagramPackets();
 	
 	{
-		while(d.timeq.isHit(_time)){
+		while(d.timeq.isHit(_rexectx.currentTime())){
 			const uint16	idx = d.timeq.frontValue().index;
 			const uint16	uid = d.timeq.frontValue().uid;
 			
@@ -468,7 +469,7 @@ int Node::execute(ulong _sig, TimeSpec &_time){
 			d.timeq.pop();
 			
 			SessionStub		&rss = d.sessionvec[idx];
-			if(rss.uid == uid && rss.time <= _time){
+			if(rss.uid == uid && rss.time <= _rexectx.currentTime()){
 				doOnSessionTimer(idx);
 			}else{
 				d.timeq.push(rss.time, TimerValue(idx, rss.uid));
@@ -483,12 +484,11 @@ int Node::execute(ulong _sig, TimeSpec &_time){
 	}
 	vdbgx(Debug::ipc, (void*)this<<" reenter = "<<must_reenter<<" udpsendqsz = "<<d.udpsendq.size()<<" signaledsz = "<<signaledSize()<<" tmqsz = "<<d.timeq.size());
 	if(must_reenter){
-		return OK;
+		_rexectx.reschedule();
 	}else{
 		if(d.timeq.size()){
-			_time = d.timeq.frontTime();
+			_rexectx.waitUntil(d.timeq.frontTime());
 		}
-		return NOK;
 	}
 }
 //--------------------------------------------------------------------
@@ -549,12 +549,12 @@ void Node::pushConnection(
 	d.newconnectionvec.push_back(NewConnectionStub(_rsd, _netidx, _pctx, _secure));
 }
 //----------------------------------------------------------------------
-int Node::doReceiveDatagramPackets(uint _atmost, const ulong _sig){
+AsyncE Node::doReceiveDatagramPackets(uint _atmost, const ulong _sig){
 	vdbgx(Debug::ipc, (void*)this);
 	if(this->socketHasPendingRecv(0)){
-		return NOK;
+		return AsyncWait;
 	}
-	if(_sig & frame::INDONE){
+	if(_sig & frame::EventDoneRecv){
 		doDispatchReceivedDatagramPacket(d.pendingreadbuffer, socketRecvSize(0), socketRecvAddr(0));
 		d.pendingreadbuffer = NULL;
 	}
@@ -562,18 +562,18 @@ int Node::doReceiveDatagramPackets(uint _atmost, const ulong _sig){
 		char 			*pbuf(Packet::allocate());
 		const uint32	bufsz(Packet::Capacity);
 		switch(socketRecvFrom(0, pbuf, bufsz)){
-			case BAD:
-				Packet::deallocate(pbuf);
-				return BAD;
-			case OK:
+			case aio::AsyncSuccess:
 				doDispatchReceivedDatagramPacket(pbuf, socketRecvSize(0), socketRecvAddr(0));
 				break;
-			case NOK:
+			case aio::AsyncWait:
 				d.pendingreadbuffer = pbuf;
-				return NOK;
+				return AsyncWait;
+			case aio::AsyncFailure:
+				Packet::deallocate(pbuf);
+				return AsyncFailure;
 		}
 	}
-	return OK;//can still read from socket
+	return AsyncSuccess;//can still read from socket
 }
 //--------------------------------------------------------------------
 void Node::doSendDatagramPackets(){
@@ -582,7 +582,7 @@ void Node::doSendDatagramPackets(){
 		return;
 	}
 	const uint32 evs = socketEvents(0);
-	if(evs & frame::OUTDONE){
+	if(evs & frame::EventDoneSend){
 		doDoneSendDatagram();
 	}
 	
@@ -591,21 +591,21 @@ void Node::doSendDatagramPackets(){
 			doDoneSendDatagram();
 			continue;
 		}
-		SessionStub &rss = d.sessionvec[d.udpsendq.front().sesidx];
-		const int rv = socketSendTo(
+		SessionStub			&rss = d.sessionvec[d.udpsendq.front().sesidx];
+		const aio::AsyncE 	rv = socketSendTo(
 			0, d.udpsendq.front().pbuf,
 			d.udpsendq.front().bufsz,
 			rss.pairaddr
  		);
 		switch(rv){
-			case BAD:{
+			case aio::AsyncSuccess:
 				doDoneSendDatagram();
-			}break;
-			case OK:{
-				doDoneSendDatagram();
-			}break;
-			case NOK:
+				break;
+			case aio::AsyncWait:
 				return;
+			case aio::AsyncFailure:
+				doDoneSendDatagram();
+				break;
 		}
 	}
 }
@@ -613,7 +613,7 @@ void Node::doSendDatagramPackets(){
 void Node::doDoneSendDatagram(){
 	ConnectionStub	&rcs = d.connectionvec[d.udpsendq.front().sockid];
 	--rcs.readbufusecnt;
-	socketPostEvents(d.udpsendq.front().sockid, RESCHEDULED);
+	socketPostEvents(d.udpsendq.front().sockid, EventReschedule);
 	d.udpsendq.pop();
 }
 //--------------------------------------------------------------------
@@ -668,8 +668,8 @@ void Node::doDispatchReceivedDatagramPacket(
 			SessionStub	&rss = d.sessionvec[sesidx];
 			AcceptData			accdata;
 			SocketAddress		sa;
-			int					error = Session::parseAcceptPacket(p, accdata, sa);
-			if(error){
+			const bool			rv = Session::parseAcceptPacket(p, accdata, sa);
+			if(!rv){
 				return;
 			}
 			rss.localrelayid = accdata.relayid;
@@ -887,18 +887,18 @@ void Node::doTrySendSocketBuffers(const uint _sockidx){
 			rcs.sendq.pop();
 			continue;
 		}
-		const int rv = socketSend(_sockidx, rsbs.pbuf, rsbs.bufsz);
+		const aio::AsyncE rv = socketSend(_sockidx, rsbs.pbuf, rsbs.bufsz);
 		switch(rv){
-			case BAD:
-				doDisconnectConnection(_sockidx);
-				return;
-			case OK:{
+			case aio::AsyncSuccess:{
 				rss.erasePacketId(rsbs.pkgid);
 				char *pbuf = const_cast<char*>(rcs.sendq.front().pbuf);
 				Specific::pushBuffer(pbuf, rcs.sendq.front().bufid);
 				rcs.sendq.pop();
 			}break;
-			case NOK:
+			case aio::AsyncWait:
+				return;
+			case aio::AsyncFailure:
+				doDisconnectConnection(_sockidx);
 				return;
 		}
 	}
@@ -919,17 +919,17 @@ void Node::doReceiveStreamData(const uint _sockidx){
 	}
 	if(doOptimizeReadBuffer(_sockidx)){
 		vdbgx(Debug::ipc, (void*)this<<" readbufwritepos = "<<rcs.readbufwritepos<<" readbufreadpos = "<<rcs.readbufreadpos);
-		const int rv = socketRecv(_sockidx, rcs.preadbuf + rcs.readbufwritepos, rcs.readbufcp - rcs.readbufwritepos);
+		const aio::AsyncE rv = socketRecv(_sockidx, rcs.preadbuf + rcs.readbufwritepos, rcs.readbufcp - rcs.readbufwritepos);
 		switch(rv){
-			case BAD:
-				doDisconnectConnection(_sockidx);
-				break;
-			case OK:
+			case aio::AsyncSuccess:
 				vdbgx(Debug::ipc, (void*)this<<" readsz = "<<socketRecvSize(_sockidx));
 				rcs.readbufwritepos += socketRecvSize(_sockidx);
-				socketPostEvents(_sockidx, RESCHEDULED);
+				socketPostEvents(_sockidx, EventReschedule);
 				break;
-			case NOK:
+			case aio::AsyncWait:
+				break;
+			case aio::AsyncFailure:
+				doDisconnectConnection(_sockidx);
 				break;
 		}
 	}else{
@@ -992,8 +992,8 @@ uint16 Node::doReceiveStreamPacket(const uint _sockidx){
 				{
 					AcceptData			accdata;
 					SocketAddress		sa;
-					int					error = Session::parseAcceptPacket(p, accdata, sa);
-					if(error){
+					const bool 			rv = Session::parseAcceptPacket(p, accdata, sa);
+					if(!rv){
 						return psz;
 					}
 					rss.remoterelayid = accdata.relayid;
@@ -1042,9 +1042,9 @@ bool Node::doReceiveConnectStreamPacket(const uint _sockidx, Packet &_rp, uint16
 	
 	ConnectData						cd;
 	SocketAddress					sa;
-	int								error = Session::parseConnectPacket(_rp, cd, sa);
+	const bool						rv = Session::parseConnectPacket(_rp, cd, sa);
 		
-	if(error){
+	if(!rv){
 		return false;
 	}
 	if(it != rcs.sessmap.end()){
@@ -1169,13 +1169,13 @@ void Node::doHandleSocketEvents(const uint _sockidx, ulong _evs){
 	ConnectionStub	&rcs = d.connectionvec[_sockidx];
 	if(rcs.state == ConnectionStub::ConnectedState){
 		vdbgx(Debug::ipc, (void*)this<<" "<<_sockidx<<" connected state");
-		if(_evs & INDONE){
+		if(_evs & EventDoneRecv){
 			rcs.readbufwritepos += socketRecvSize(_sockidx);
 			doReceiveStreamData(_sockidx);
-		}else if(_evs & RESCHEDULED){
+		}else if(_evs & EventReschedule){
 			doReceiveStreamData(_sockidx);
 		}
-		if(_evs & OUTDONE){
+		if(_evs & EventDoneSend){
 			cassert(rcs.sendq.size());
 			char *pbuf = const_cast<char*>(rcs.sendq.front().pbuf);
 			Specific::pushBuffer(pbuf, rcs.sendq.front().bufid);
@@ -1184,22 +1184,22 @@ void Node::doHandleSocketEvents(const uint _sockidx, ulong _evs){
 		}
 	}else if(rcs.state == ConnectionStub::ConnectState){
 		vdbgx(Debug::ipc, (void*)this<<" "<<_sockidx<<" connect to "<<d.rservice.netId2AddressAt(rcs.networkidx).address);
-		const int rv = socketConnect(_sockidx, d.rservice.netId2AddressAt(rcs.networkidx).address);
+		const aio::AsyncE rv = socketConnect(_sockidx, d.rservice.netId2AddressAt(rcs.networkidx).address);
 		switch(rv){
-			case BAD:
-				doDisconnectConnection(_sockidx);
-				break;
-			case OK:
+			case aio::AsyncSuccess:
 				this->socketPostEvents(_sockidx, 0);
 				rcs.state = ConnectionStub::InitState;
 				break;
-			case NOK:
+			case aio::AsyncWait:
 				rcs.state = ConnectionStub::ConnectWaitState;
+				break;
+			case aio::AsyncFailure:
+				doDisconnectConnection(_sockidx);
 				break;
 		}
 	}else if(rcs.state == ConnectionStub::ConnectWaitState){
 		vdbgx(Debug::ipc, (void*)this<<" "<<_sockidx<<" connected wait state");
-		if(_evs & IODONE){
+		if(_evs & EventDoneIO){
 			rcs.state = ConnectionStub::InitState;
 			doHandleSocketEvents(_sockidx, _evs);
 		}else{
@@ -1214,7 +1214,7 @@ void Node::doHandleSocketEvents(const uint _sockidx, ulong _evs){
 		}
 		rcs.state = ConnectionStub::ConnectedState;
 		//initiate read
-		socketPostEvents(_sockidx, RESCHEDULED);
+		socketPostEvents(_sockidx, EventReschedule);
 		doTrySendSocketBuffers(_sockidx);
 	}else{
 		cassert(false);

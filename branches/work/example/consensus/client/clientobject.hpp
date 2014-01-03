@@ -90,13 +90,12 @@ public:
 	void dynamicHandle(solid::DynamicPointer<StoreRequest> &_rmsgptr);
 	void dynamicHandle(solid::DynamicPointer<FetchRequest> &_rmsgptr);
 	void dynamicHandle(solid::DynamicPointer<EraseRequest> &_rmsgptr);
-	
-	int execute(solid::ulong _sig, solid::TimeSpec &_tout);
-	
+		
 	solid::uint32 newRequestId(int _pos = -1);
 	bool   isRequestIdExpected(solid::uint32 _v, int &_rpos)const;
 	void   deleteRequestId(solid::uint32 _v);
 private:
+	/*virtual*/ void execute(ExecuteContext &_rexectx);
 	solid::uint32 sendMessage(solid::consensus::WriteRequestMessage *_pmsg);
 	
 	const std::string& getString(solid::uint32 _pos, solid::uint32 _crtpos);

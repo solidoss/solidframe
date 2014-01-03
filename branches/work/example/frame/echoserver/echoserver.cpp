@@ -63,8 +63,9 @@ class Listener: public Dynamic<Listener, frame::aio::SingleObject>{
 public:
 	Listener(frame::Manager &_rm, AioSchedulerT &_rsched, const SocketDevice &_rsd, frame::aio::openssl::Context *_pctx = NULL);
 	~Listener();
-	/*virtual*/ int execute(ulong, TimeSpec&);
 private:
+	/*virtual*/ void execute(ExecuteContext &_rexectx);
+	
 	typedef std::auto_ptr<frame::aio::openssl::Context> SslContextPtrT;
 	int					state;
 	SocketDevice		sd;
@@ -80,7 +81,8 @@ public:
 	Connection(const char *_node, const char *_srv);
 	Connection(const SocketDevice &_rsd);
 	~Connection();
-	int execute(ulong _sig, TimeSpec &_tout);
+private:
+	/*virtual*/ void execute(ExecuteContext &_rexectx);
 	
 private:
 	enum {BUFSZ = 1024};
@@ -102,7 +104,8 @@ class Talker: public Dynamic<Talker, frame::aio::SingleObject>{
 public:
 	Talker(const SocketDevice &_rsd);
 	~Talker();
-	int execute(ulong _sig, TimeSpec &_tout);
+private:
+	/*virtual*/ void execute(ExecuteContext &_rexectx);
 private:
 	enum {BUFSZ = 1024};
 	enum {INIT,READ, READ_TOUT, WRITE, WRITE_TOUT, WRITE2, WRITE_TOUT2};
@@ -298,25 +301,28 @@ Listener::Listener(
 Listener::~Listener(){
 }
 
-int Listener::execute(ulong, TimeSpec&){
+/*virtual*/ void Listener::execute(ExecuteContext &_rexectx){
 	idbg("here");
 	cassert(this->socketOk());
 	if(notified()){
-		{
 		//Locker<Mutex>	lock(this->mutex());
 		ulong sm = this->grabSignalMask();
-		if(sm & frame::S_KILL) return BAD;
+		if(sm & frame::S_KILL){
+			_rexectx.close();
+			return;
 		}
 	}
 	solid::uint cnt(10);
 	while(cnt--){
 		if(state == 0){
 			switch(this->socketAccept(sd)){
-				case BAD: return BAD;
-				case OK:break;
-				case NOK:
+				case frame::aio::AsyncFailure:
+					_rexectx.close();
+					return;
+				case frame::aio::AsyncSuccess:break;
+				case frame::aio::AsyncWait:
 					state = 1;
-					return NOK;
+					return;
 			}
 		}
 		state = 0;
@@ -332,7 +338,7 @@ int Listener::execute(ulong, TimeSpec&){
 			rsched.schedule(conptr);
 		}
 	}
-	return OK;
+	_rexectx.reschedule();
 }
 
 //------------------------------------------------------------------
@@ -358,36 +364,38 @@ Connection::~Connection(){
 	idbg("");
 }
 
-int Connection::execute(ulong _sig, TimeSpec &_tout){
-	idbg("time.sec "<<_tout.seconds()<<" time.nsec = "<<_tout.nanoSeconds());
-	if(_sig & (frame::TIMEOUT | frame::ERRDONE | frame::TIMEOUT_RECV | frame::TIMEOUT_SEND)){
+/*virtual*/ void Connection::execute(ExecuteContext &_rexectx){
+	idbg("time.sec "<<_rexectx.currentTime().seconds()<<" time.nsec = "<<_rexectx.currentTime().nanoSeconds());
+	if(_rexectx.eventMask() & (frame::EventTimeout | frame::EventDoneError | frame::EventTimeoutRecv | frame::EventTimeoutSend)){
 		idbg("connecton timeout or error");
-		if(state == CONNECT_TOUT){
-			if(++it){
-				state = CONNECT;
-				return frame::UNREGISTER;
-			}
-		}
-		return BAD;
+// 		if(state == CONNECT_TOUT){
+// 			if(++it){
+// 				state = CONNECT;
+// 				return frame::UNREGISTER;
+// 			}
+// 		}
+		_rexectx.close();
+		return;
 	}
 
 	if(notified()){
-		{
 		//Locker<Mutex>	lock(mutex());
 		ulong sm = grabSignalMask();
-		if(sm & frame::S_KILL) return BAD;
+		if(sm & frame::S_KILL){
+			_rexectx.close();
+			return;
 		}
 	}
 	const uint32 sevs(socketEventsGrab());
 	if(sevs){
-		if(sevs == frame::ERRDONE){
-			
-			return BAD;
+		if(sevs & frame::EventDoneError){
+			_rexectx.close();
+			return;
 		}
 		if(state == READ_TOUT){	
-			cassert(sevs & frame::INDONE);
+			cassert(sevs & frame::EventDoneRecv);
 		}else if(state == WRITE_TOUT){	
-			cassert(sevs & frame::OUTDONE);
+			cassert(sevs & frame::EventDoneSend);
 		}
 		
 	}
@@ -396,38 +404,44 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 		switch(state){
 			case READ:
 				switch(socketRecv(bbeg, BUFSZ)){
-					case BAD: return BAD;
-					case OK: break;
-					case NOK: 
-						state = READ_TOUT; b=true; 
+					case frame::aio::AsyncFailure:
+						_rexectx.close();
+						return;
+					case frame::aio::AsyncSuccess: break;
+					case frame::aio::AsyncWait: 
+						state = READ_TOUT; 
 						socketTimeoutRecv(30);
-						return NOK;
+						return;
 				}
 			case READ_TOUT:
 				state = WRITE;
 			case WRITE:
 				switch(socketSend(bbeg, socketRecvSize())){
-					case BAD: return BAD;
-					case OK: break;
-					case NOK: 
+					case frame::aio::AsyncFailure:
+						_rexectx.close();
+						return;
+					case frame::aio::AsyncSuccess: break;
+					case frame::aio::AsyncWait: 
 						state = WRITE_TOUT;
 						socketTimeoutSend(10);
-						return NOK;
+						return;
 				}
 			case WRITE_TOUT:
 				state = READ;
 				break;
 			case CONNECT:
 				switch(socketConnect(it)){
-					case BAD:
+					case frame::aio::AsyncFailure:
 						++it;
 						if(it != rd.end()){
 							state = CONNECT;
-							return OK;
+							_rexectx.reschedule();
+							return;
 						}
-						return BAD;
-					case OK:  state = INIT;break;
-					case NOK: state = CONNECT_TOUT; return frame::REGISTER;
+						_rexectx.close();
+						return;
+					case frame::aio::AsyncSuccess:  state = INIT;break;
+					case frame::aio::AsyncWait: state = CONNECT_TOUT; return;
 				};
 				break;
 			case CONNECT_TOUT:
@@ -439,7 +453,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 		}
 		rc -= socketRecvSize();
 	}while(rc > 0);
-	return OK;
+	_rexectx.reschedule();
 }
 
 //------------------------------------------------------------------
@@ -461,68 +475,82 @@ Talker::Talker(const SocketDevice &_rsd):BaseT(_rsd){
 Talker::~Talker(){
 }
 
-int Talker::execute(ulong _sig, TimeSpec &_tout){
-	if(_sig & (frame::TIMEOUT | frame::ERRDONE | frame::TIMEOUT_SEND | frame::TIMEOUT_RECV)){
-		return BAD;
+/*virtual*/ void Talker::execute(ExecuteContext &_rexectx){
+	idbg("time.sec "<<_rexectx.currentTime().seconds()<<" time.nsec = "<<_rexectx.currentTime().nanoSeconds());
+	if(_rexectx.eventMask() & (frame::EventTimeout | frame::EventDoneError | frame::EventTimeoutRecv | frame::EventTimeoutSend)){
+		_rexectx.close();
+		return;
 	}
 	if(notified()){
-		{
 		//Locker<Mutex>	lock(mutex());
 		ulong sm = grabSignalMask(0);
-		if(sm & frame::S_KILL) return BAD;
+		if(sm & frame::S_KILL){
+			_rexectx.close();
+			return;
 		}
 	}
 	const uint32 sevs(socketEventsGrab());
-	if(sevs & frame::ERRDONE) return BAD;
+	if(sevs & frame::EventDoneError){
+		_rexectx.close();
+		return;
+	}
 	int rc = 512 * 1024;
 	do{
 		switch(state){
 			case READ:
 				switch(socketRecvFrom(bbeg, BUFSZ)){
-					case BAD: return BAD;
-					case OK: state = READ_TOUT;break;
-					case NOK:
+					case frame::aio::AsyncFailure:
+						_rexectx.close();
+						return;
+					case frame::aio::AsyncSuccess: state = READ_TOUT;break;
+					case frame::aio::AsyncWait:
 						socketTimeoutRecv(5 * 60);
 						state = READ_TOUT; 
-						return NOK;
+						return;
 				}
 			case READ_TOUT:
 				state = WRITE;
 			case WRITE:
 				//sprintf(bbeg + socketRecvSize() - 1," [%u:%d]\r\n", (unsigned)_tout.seconds(), (int)_tout.nanoSeconds());
 				switch(socketSendTo(bbeg, socketRecvSize(), socketRecvAddr())){
-					case BAD: return BAD;
-					case OK: break;
-					case NOK: state = WRITE_TOUT;
+					case frame::aio::AsyncFailure:
+						_rexectx.close();
+						return;
+					case frame::aio::AsyncSuccess: break;
+					case frame::aio::AsyncWait: state = WRITE_TOUT;
 						socketTimeoutSend(5 * 60);
-						return NOK;
+						return;
 				}
 			case WRITE_TOUT:
 				if(socketHasPendingSend()){
-					socketTimeoutSend(_tout, 5 * 60);
-					return NOK;
+					socketTimeoutSend(_rexectx.currentTime(), 5 * 60);
+					return;
 				}else{
 					state = READ;
-					return OK;
+					_rexectx.reschedule();
+					return;
 				}
 			case INIT:
 				if(rd.empty()){
 					idbg("Invalid address");
-					return BAD;
+					_rexectx.close();
+					return;
 				}
 				ResolveIterator it(rd.begin());
 				switch(socketSendTo(bbeg, sz, SocketAddressStub(it))){
-					case BAD: return BAD;
-					case OK: state = READ; break;
-					case NOK:
+					case frame::aio::AsyncFailure:
+						_rexectx.close();
+						return;
+					case frame::aio::AsyncSuccess: state = READ; break;
+					case frame::aio::AsyncWait:
 						state = WRITE_TOUT;
-						return NOK;
+						return;
 				}
 				break;
 		}
 		rc -= socketRecvSize();
 	}while(rc > 0);
-	return OK;
+	_rexectx.reschedule();
 }
 
 

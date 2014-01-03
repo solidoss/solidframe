@@ -190,7 +190,7 @@ int main(int argc, char *argv[]){
 		it = fs::directory_iterator(pth);
 		}catch ( const std::exception & ex ){
 			cout<<"iterator exception"<<endl;
-			return OK;
+			return 0;
 		}
 		while(it != end){
 			dirv.push(it->path().c_str(), is_directory(*it));

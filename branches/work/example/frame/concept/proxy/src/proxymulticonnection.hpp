@@ -29,11 +29,11 @@ public:
 	MultiConnection(const char *_node = NULL, const char *_srv = NULL);
 	MultiConnection(const solid::SocketDevice &_rsd);
 	~MultiConnection();
-	int execute(solid::ulong _sig, solid::TimeSpec &_tout);
 private:
-	int doReadAddress();
-	int doProxy(const solid::TimeSpec &_tout);
-	int doRefill();
+	/*virtual*/ void execute(ExecuteContext &_rexectx);
+	solid::AsyncE doReadAddress();
+	solid::AsyncE doProxy(const solid::TimeSpec &_tout);
+	solid::AsyncE doRefill();
 	void state(int _st){
 		st  = _st;
 	}

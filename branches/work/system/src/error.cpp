@@ -56,6 +56,14 @@ void specific_error_push(
 ErrorVectorT const & specific_error_get(){
 	return Thread::current().specificErrorGet();
 }
+ERROR_NS::error_code specific_error_back(){
+	ErrorVectorT const & errvec = Thread::current().specificErrorGet();
+	if(errvec.empty()){
+		return ERROR_NS::error_code(0, ERROR_NS::generic_category());
+	}else{
+		return errvec.back().errorCode();
+	}
+}
 void specific_error_print(std::ostream &_ros, const bool _withcodeinfo){
 	const ErrorVectorT &rerrvec = Thread::current().specificErrorGet();
 	for(ErrorVectorT::const_reverse_iterator it(rerrvec.rbegin()); it != rerrvec.rend(); ++it){

@@ -35,7 +35,7 @@ int Writer::flush(){
 		count += wrerr;
 		bpos=bbeg;
 	}
-	return OK;
+	return 0;
 }
 
 void Writer::put(const char *_s,uint32 _sz){

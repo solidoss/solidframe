@@ -180,7 +180,7 @@ int main(int argc, char* argv[]){
 		if(epoll_ctl(epollfd, EPOLL_CTL_ADD, handles[0].sd.descriptor(), &ev)){
 			edbg("epoll_ctl: "<<strerror(errno));
 			cassert(false);
-			return BAD;
+			return AsyncFailure;
 		}
 	}
 	int selected = 0;
@@ -193,11 +193,11 @@ int main(int argc, char* argv[]){
 		while(qsz--){
 			uint32 pos = execq.front();execq.pop();
 			if(pos){
-				if(executeConnection(pos) == OK){
+				if(executeConnection(pos) == AsyncSuccess){
 					execq.push(pos);
 				}
 			}else{
-				if(executeListener() == OK){
+				if(executeListener() == AsyncSuccess){
 					execq.push(pos);
 				}
 			}
@@ -214,11 +214,11 @@ const uint  echo_len = strlen(echo_str);
 int executeConnection(uint32 _pos){
 	Handle &h(handles[_pos]);
 	int rv = 0;
-	int retval = NOK;
+	int retval = AsyncWait;
 	switch(h.state){
 		case Handle::Init:
 			rv = h.ssl_accept();
-			if(rv == 0) return BAD;
+			if(rv == 0) return AsyncFailure;
 			if(rv > 0){
 				h.state = Handle::Banner;
 				h.clearWaitRead();
@@ -226,7 +226,7 @@ int executeConnection(uint32 _pos){
 				//timeout
 				if(h.shouldWait()){
 					h.setWaitRead();
-				}else return BAD;
+				}else return AsyncFailure;
 				break;
 			}
 		case Handle::Banner:
@@ -234,14 +234,14 @@ int executeConnection(uint32 _pos){
 			if(rv == echo_len){
 				h.state = Handle::DoIO;
 				h.doread = true;
-				retval = OK;
+				retval = AsyncSuccess;
 				h.readbufs.push(0);
 				h.readbufs.push(1);
 			}else if(h.shouldWait()){
 				cassert(rv > 0);
 				h.setWaitWrite();
-				retval = NOK;
-			}else return BAD;
+				retval = AsyncWait;
+			}else return AsyncFailure;
 			break;
 		case Handle::DoIO:{
 				if(h.events & EPOLLIN){
@@ -267,7 +267,7 @@ int executeConnection(uint32 _pos){
 							h.doread = true;
 					}else if(h.shouldWait()){
 						h.setWaitRead();
-					}else return BAD;
+					}else return AsyncFailure;
 				}
 				if(h.dowrite){
 					h.dowrite = false;
@@ -290,7 +290,7 @@ int executeConnection(uint32 _pos){
 						}
 					}else if(h.shouldWait()){
 						h.setWaitWrite();
-					}else return BAD;
+					}else return AsyncFailure;
 				}
 			}break;
 	}
@@ -303,13 +303,13 @@ int executeConnection(uint32 _pos){
 		ev.events = h.sevents;
 		epoll_ctl(epollfd, EPOLL_CTL_MOD, h.sd.descriptor(), &ev);
 	}
-	if(h.doread || h.dowrite) return OK;
+	if(h.doread || h.dowrite) return AsyncSuccess;
 	return retval;
 }
 int executeListener(){
 	Handle &h(handles[0]);
 	SocketDevice sd;
-	while(h.sd.accept(sd) == OK){
+	while(h.sd.acceptNonBlocking(sd) == solid::AsyncSuccess){
 		epoll_event ev;
 		ev.data.u32 = handles.size();
 		sd.makeNonBlocking();
@@ -322,9 +322,9 @@ int executeListener(){
 		if(epoll_ctl(epollfd, EPOLL_CTL_ADD, handles.back().sd.descriptor(), &ev)){
 			edbg("epoll_ctl: "<<strerror(errno));
 			cassert(false);
-			return BAD;
+			return AsyncFailure;
 		}
 	}
-	return NOK;
+	return AsyncWait;
 }
 

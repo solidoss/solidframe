@@ -45,30 +45,30 @@ class Session{
 public:
 	
 	static void init();
-	static int parseAcceptPacket(
+	static bool parseAcceptPacket(
 		const Packet &_rpkt,
 		AcceptData &_raccdata,
 		const SocketAddress &_rfromsa
 	);
-	static int parseConnectPacket(
+	static bool parseConnectPacket(
 		const Packet &_rpkt,
 		ConnectData &_rconndata,
 		const SocketAddress &_rfromsa
 	);
-	static int parseErrorPacket(
+	static bool parseErrorPacket(
 		const Packet &_rpkt,
 		ErrorData &_rdata
 	);
 	
-	static int fillAcceptPacket(
+	static bool fillAcceptPacket(
 		Packet &_rpkt,
 		const AcceptData &_raccdata
 	);
-	static int fillConnectPacket(
+	static bool fillConnectPacket(
 		Packet &_rpkt,
 		const ConnectData &_rconndata
 	);
-	static int fillErrorPacket(
+	static bool fillErrorPacket(
 		Packet &_rpkt,
 		const ErrorData &_rdata
 	);
@@ -170,7 +170,7 @@ public:
 		uint32 _id
 	);
 	
-	int execute(TalkerStub &_rstub);
+	AsyncE execute(TalkerStub &_rstub);
 	
 	bool pushSentPacket(
 		TalkerStub &_rstub,
@@ -200,16 +200,16 @@ private:
 	);
 	void doParsePacket(TalkerStub &_rstub, const Packet &_rpkt);
 	
-	int doExecuteRelayInit(TalkerStub &_rstub);
-	int doExecuteConnecting(TalkerStub &_rstub);
-	int doExecuteRelayConnecting(TalkerStub &_rstub);
-	int doExecuteAccepting(TalkerStub &_rstub);
-	int doExecuteRelayAccepting(TalkerStub &_rstub);
-	int doExecuteConnected(TalkerStub &_rstub);
-	int doExecuteConnectedLimited(TalkerStub &_rstub);
-	int doTrySendUpdates(TalkerStub &_rstub);
-	int doExecuteDisconnecting(TalkerStub &_rstub);
-	int doExecuteDummy(TalkerStub &_rstub);
+	AsyncE doExecuteRelayInit(TalkerStub &_rstub);
+	AsyncE doExecuteConnecting(TalkerStub &_rstub);
+	AsyncE doExecuteRelayConnecting(TalkerStub &_rstub);
+	AsyncE doExecuteAccepting(TalkerStub &_rstub);
+	AsyncE doExecuteRelayAccepting(TalkerStub &_rstub);
+	AsyncE doExecuteConnected(TalkerStub &_rstub);
+	AsyncE doExecuteConnectedLimited(TalkerStub &_rstub);
+	AsyncE doTrySendUpdates(TalkerStub &_rstub);
+	AsyncE doExecuteDisconnecting(TalkerStub &_rstub);
+	AsyncE doExecuteDummy(TalkerStub &_rstub);
 	void doFillSendPacket(TalkerStub &_rstub, const uint32 _bufidx);
 	void doTryScheduleKeepAlive(TalkerStub &_rstub);
 	bool doDummyPushSentPacket(

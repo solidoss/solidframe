@@ -268,11 +268,11 @@ struct RelayAddressAddrLess{
 };
 
 
-int Service::reconfigure(const Configuration &_rcfg){
+bool Service::reconfigure(const Configuration &_rcfg){
 	Locker<Mutex>	lock(mutex());
 	
 	if(_rcfg == d.config){
-		return OK;
+		return true;
 	}
 	
 	unsafeReset(lock);
@@ -287,18 +287,19 @@ int Service::reconfigure(const Configuration &_rcfg){
 		
 	
 		SocketDevice	sd;
+		
 		sd.create(SocketInfo::Inet4, SocketInfo::Datagram, 0);
 		sd.makeNonBlocking();
 		sd.bind(d.config.baseaddr);
 		
 		if(!sd.ok()){
-			return BAD;
+			return false;
 		}
 		
 		SocketAddress sa;
 		
-		if(sd.localAddress(sa) != OK){
-			return BAD;
+		if(!sd.localAddress(sa)){
+			return false;
 		}
 		
 		d.baseport = sa.port();
@@ -327,11 +328,11 @@ int Service::reconfigure(const Configuration &_rcfg){
 			d.gwaddr2netidvec.push_back(&(*it));
 		}
 		{
-			RelayAddressNetIdLess cmp;
+			RelayAddressNetIdLess	cmp;
 			std::sort(d.gwnetid2addrvec.begin(), d.gwnetid2addrvec.end(), cmp);
 		}
 		{
-			RelayAddressAddrLess cmp;
+			RelayAddressAddrLess	cmp;
 			std::sort(d.gwaddr2netidvec.begin(), d.gwaddr2netidvec.end(), cmp);
 		}
 		
@@ -348,20 +349,20 @@ int Service::reconfigure(const Configuration &_rcfg){
 			sd.makeNonBlocking();
 			sd.prepareAccept(d.config.acceptaddr, 1000);
 			if(!sd.ok()){
-				return BAD;
+				return false;
 			}
 			Listener 		*plsn = new Listener(*this, sd, RelayType);
 			this->unsafeRegisterObject(*plsn);
 			controller().scheduleListener(plsn);
 		}
 		
-		return OK;
+		return true;
 	}else{
-		return BAD;
+		return false;
 	}
 }
 //---------------------------------------------------------------------
-int Service::sendMessage(
+bool Service::sendMessage(
 	DynamicPointer<Message> &_rmsgptr,//the message to be sent
 	const ConnectionUid &_rconid,//the id of the process connector
 	uint32	_flags
@@ -376,7 +377,8 @@ int Service::sendMessage(
 	cassert(ptkr);
 	
 	if(ptkr == NULL){
-		return NoConnectionError;
+		//TODO: set specific error NoConnectionError;
+		return false;
 	}
 	
 	if(ptkr->pushMessage(_rmsgptr, SERIALIZATION_INVALIDID, _rconid, _flags | SameConnectorFlag)){
@@ -385,7 +387,7 @@ int Service::sendMessage(
 			manager().raise(*ptkr);
 		}
 	}
-	return OK;
+	return true;
 }
 //---------------------------------------------------------------------
 void Service::doSendEvent(
@@ -408,7 +410,7 @@ void Service::doSendEvent(
 	}
 }
 //---------------------------------------------------------------------
-int Service::sendMessage(
+bool Service::sendMessage(
 	DynamicPointer<Message> &_rmsgptr,//the message to be sent
 	const SerializationTypeIdT &_rtid,
 	const ConnectionUid &_rconid,//the id of the process connector
@@ -416,7 +418,8 @@ int Service::sendMessage(
 ){
 	cassert(_rconid.tid < d.tkrvec.size());
 	if(_rconid.tid >= d.tkrvec.size()){
-		return NoConnectionError;
+		//TODO: specific NoConnectionError;
+		return false;
 	}
 	
 	Locker<Mutex>		lock(mutex());
@@ -426,7 +429,8 @@ int Service::sendMessage(
 	
 	cassert(ptkr);
 	if(ptkr == NULL){
-		return NoConnectionError;
+		//TODO: specific NoConnectionError;
+		return false;
 	}
 	
 	if(ptkr->pushMessage(_rmsgptr, _rtid, _rconid, _flags | SameConnectorFlag)){
@@ -435,7 +439,7 @@ int Service::sendMessage(
 			manager().raise(*ptkr);
 		}
 	}
-	return OK;
+	return true;
 }
 //---------------------------------------------------------------------
 int Service::basePort()const{
@@ -467,7 +471,7 @@ bool Service::isGateway()const{
 	return configuration().relayaddrvec.size() != 0;
 }
 //---------------------------------------------------------------------
-int Service::doSendMessage(
+bool Service::doSendMessage(
 	DynamicPointer<Message> &_rmsgptr,//the message to be sent
 	const SerializationTypeIdT &_rtid,
 	ConnectionUid *_pconid,
@@ -480,7 +484,8 @@ int Service::doSendMessage(
 		_rsa_dest.family() != SocketInfo::Inet4/* && 
 		_rsap.family() != SocketAddressInfo::Inet6*/
 	){
-		return UnsupportedSocketFamilyError;
+		//TODO: specific UnsupportedSocketFamilyError;
+		return false;
 	}
 	
 	const uint32 netid = computeNetworkId(_rsa_dest, _netid_dest);
@@ -492,7 +497,7 @@ int Service::doSendMessage(
 	}
 }
 //---------------------------------------------------------------------
-int Service::doSendMessageLocal(
+bool Service::doSendMessageLocal(
 	DynamicPointer<Message> &_rmsgptr,//the message to be sent
 	const SerializationTypeIdT &_rtid,
 	ConnectionUid *_pconid,
@@ -573,13 +578,13 @@ int Service::doSendMessageLocal(
 		}
 	}else{//inet6
 		cassert(false);
-		//TODO:
-		return UnsupportedSocketFamilyError;
+		//TODO: specific UnsupportedSocketFamilyError;
+		return false;
 	}
-	return OK;
+	return true;
 }
 //---------------------------------------------------------------------
-int Service::doSendMessageRelay(
+bool Service::doSendMessageRelay(
 	DynamicPointer<Message> &_rmsgptr,//the message to be sent
 	const SerializationTypeIdT &_rtid,
 	ConnectionUid *_pconid,
@@ -621,7 +626,8 @@ int Service::doSendMessageRelay(
 		}else{//the connection/session does not exist
 			vdbgx(Debug::ipc, "");
 			if(configuration().gatewayaddrvec.empty()){
-				return NoGatewayError;
+				//TODO: specific NoGatewayError;
+				return false;
 			}
 			
 			int16	tkridx(allocateTalkerForSession());
@@ -667,17 +673,17 @@ int Service::doSendMessageRelay(
 		}
 	}else{//inet6
 		cassert(false);
-		//TODO
-		return UnsupportedSocketFamilyError;
+		//TODO: specific UnsupportedSocketFamilyError;
+		return false;
 	}
-	return OK;
+	return true;
 }
 //---------------------------------------------------------------------
 int Service::createTalker(IndexT &_tkrfullid, uint32 &_tkruid){
 	
 	if(d.tkrvec.size() >= d.config.talker.maxcnt){
 		vdbgx(Debug::ipc, "maximum talker count reached "<<d.tkrvec.size());
-		return BAD;
+		return -1;
 	}
 	
 	int16			tkrid(d.tkrvec.size());
@@ -703,14 +709,14 @@ int Service::createTalker(IndexT &_tkrfullid, uint32 &_tkruid){
 		edbgx(Debug::ipc, "Could not bind to random port");
 	}
 	d.firstaddr.port(oldport);
-	return BAD;
+	return -1;
 }
 //---------------------------------------------------------------------
 int Service::createNode(IndexT &_nodepos, uint32 &_nodeuid){
 	
 	if(d.nodevec.size() >= d.config.node.maxcnt){
 		vdbgx(Debug::ipc, "maximum node count reached "<<d.nodevec.size());
-		return BAD;
+		return -1;
 	}
 	
 	int16			nodeid(d.nodevec.size());
@@ -737,7 +743,7 @@ int Service::createNode(IndexT &_nodepos, uint32 &_nodeuid){
 		edbgx(Debug::ipc, "Could not bind to random port");
 	}
 	d.firstaddr.port(oldport);
-	return BAD;
+	return -1;
 }
 //---------------------------------------------------------------------
 int Service::allocateTalkerForSession(bool _force){
@@ -818,7 +824,8 @@ int Service::allocateNodeForSocket(bool _force){
 	}
 }
 //---------------------------------------------------------------------
-int Service::acceptSession(const SocketAddress &_rsa, const ConnectData &_rconndata){
+bool Service::acceptSession(const SocketAddress &_rsa, const ConnectData &_rconndata){
+	specific_error_clear();
 	if(_rconndata.type == ConnectData::BasicType){
 		return doAcceptBasicSession(_rsa, _rconndata);
 	}else if(isLocalNetwork(_rconndata.receiveraddress, _rconndata.receivernetworkid)){
@@ -826,11 +833,12 @@ int Service::acceptSession(const SocketAddress &_rsa, const ConnectData &_rconnd
 	}else if(isGateway()){
 		return doAcceptGatewaySession(_rsa, _rconndata);
 	}else{
-		return NoGatewayError;
+		SPECIFIC_ERROR_PUSH2(NoGatewayError, ERROR_NS::generic_category());
+		return false;
 	}
 }
 //---------------------------------------------------------------------
-int Service::doAcceptBasicSession(const SocketAddress &_rsa, const ConnectData &_rconndata){
+bool Service::doAcceptBasicSession(const SocketAddress &_rsa, const ConnectData &_rconndata){
 	Locker<Mutex>		lock(mutex());
 	SocketAddressInet4	inaddr(_rsa);
 	Session				*pses = new Session(
@@ -857,7 +865,7 @@ int Service::doAcceptBasicSession(const SocketAddress &_rsa, const ConnectData &
 			if(ptkr->notify(frame::S_RAISE)){
 				manager().raise(*ptkr);
 			}
-			return OK;
+			return true;
 		}
 	}
 	
@@ -892,11 +900,11 @@ int Service::doAcceptBasicSession(const SocketAddress &_rsa, const ConnectData &
 	if(ptkr->notify(frame::S_RAISE)){
 		manager().raise(*ptkr);
 	}
-	return OK;
+	return true;
 }
 //---------------------------------------------------------------------
 //accept session on destination, receiver
-int Service::doAcceptRelaySession(const SocketAddress &_rsa, const ConnectData &_rconndata){
+bool Service::doAcceptRelaySession(const SocketAddress &_rsa, const ConnectData &_rconndata){
 	Locker<Mutex>				lock(mutex());
 	SocketAddressInet4			inaddr(_rsa);
 	Session						*pses = new Session(
@@ -926,7 +934,7 @@ int Service::doAcceptRelaySession(const SocketAddress &_rsa, const ConnectData &
 			if(ptkr->notify(frame::S_RAISE)){
 				manager().raise(*ptkr);
 			}
-			return OK;
+			return true;
 		}
 	}
 	int		tkridx(allocateTalkerForSession());
@@ -961,10 +969,10 @@ int Service::doAcceptRelaySession(const SocketAddress &_rsa, const ConnectData &
 	if(ptkr->notify(frame::S_RAISE)){
 		manager().raise(*ptkr);
 	}
-	return OK;
+	return true;
 }
 //---------------------------------------------------------------------
-int Service::doAcceptGatewaySession(const SocketAddress &_rsa, const ConnectData &_rconndata){
+bool Service::doAcceptGatewaySession(const SocketAddress &_rsa, const ConnectData &_rconndata){
 	typedef Data::GatewayRelayAddr4MapT::const_iterator GatewayRelayAddr4MapConstIteratorT;
 	
 	Locker<Mutex>						lock(mutex());
@@ -1038,7 +1046,7 @@ int Service::doAcceptGatewaySession(const SocketAddress &_rsa, const ConnectData
 			manager().raise(*pnode);
 		}
 	}
-	return OK;
+	return true;
 }
 //---------------------------------------------------------------------
 void Service::disconnectSession(const SocketAddressInet &_addr, uint32 _relayid){
@@ -1318,14 +1326,14 @@ char * Controller::allocateBuffer(PacketContext &_rpc, uint32 &_cp){
 	_rmsg.ipcOnComplete(_rctx, _error);
 }
 
-int Controller::authenticate(
+AsyncE Controller::authenticate(
 	DynamicPointer<Message> &_rmsgptr,
 	ipc::MessageUid &_rmsguid,
 	uint32 &_rflags,
 	SerializationTypeIdT &_rtid
 ){
 	//use: ConnectionContext::the().connectionuid!!
-	return BAD;//by default no authentication
+	return AsyncFailure;//by default no authentication
 }
 
 void Controller::sendEvent(

@@ -493,7 +493,7 @@ struct Object::RunData{
 	};
 	RunData(
 		ulong _sig,
-		TimeSpec &_rts,
+		TimeSpec const &_rts,
 		int8 _coordinatorid
 	):signals(_sig), rtimepos(_rts), coordinatorid(_coordinatorid), opcnt(0), crtacceptincrement(1){}
 	
@@ -505,7 +505,7 @@ struct Object::RunData{
 	}
 	
 	ulong			signals;
-	TimeSpec		&rtimepos;
+	TimeSpec const 	&rtimepos;
 	int8			coordinatorid;
 	size_t			opcnt;
 	size_t			crtacceptincrement;
@@ -926,17 +926,20 @@ void Object::doExecuteAcceptDeclineOperation(RunData &_rd, const uint8 _replicai
 /*virtual*/ void Object::prepareRecovery(){
 }
 //---------------------------------------------------------
-int Object::execute(ulong _sig, TimeSpec &_tout){
+/*virtual*/ void Object::execute(ExecuteContext &_rexectx){
 	frame::Manager &rm(frame::Manager::specific());
 	
-	RunData								rd(_sig, _tout, d.coordinatorid);
+	RunData								rd(_rexectx.eventMask(), _rexectx.currentTime(), d.coordinatorid);
 	if(notified()){//we've received a signal
 		ulong							sm(0);
 		DynamicHandler<DynamicMapperT>	dh(dm);
 		if(state() != InitState && state() != PrepareRunState && state() != PrepareRecoveryState){
 			Locker<Mutex>	lock(rm.mutex(*this));
 			sm = grabSignalMask(0);//grab all bits of the signal mask
-			if(sm & frame::S_KILL) return BAD;
+			if(sm & frame::S_KILL){
+				_rexectx.close();
+				return;
+			}
 			if(sm & frame::S_SIG){//we have signals
 				dh.init(d.dv.begin(), d.dv.end());
 				d.dv.clear();
@@ -948,18 +951,31 @@ int Object::execute(ulong _sig, TimeSpec &_tout){
 			}
 		}
 	}
+	
+	AsyncE	rv;
 
 	switch(state()){
-		case InitState:				return doInit(rd);
-		case PrepareRunState:		return doPrepareRun(rd);
-		case RunState:				return doRun(rd);
-		case PrepareRecoveryState:	return doPrepareRecovery(rd);
+		case InitState:				rv = doInit(rd); break;
+		case PrepareRunState:		rv = doPrepareRun(rd); break;
+		case RunState:				rv = doRun(rd); break;
+		case PrepareRecoveryState:	rv = doPrepareRecovery(rd); break;
 		default:
 			if(state() >= FirstRecoveryState && state() <= LastRecoveryState){
-				return doRecovery(rd);
+				rv = doRecovery(rd);
 			}
+			break;
 	}
-	return NOK;
+	if(rv == AsyncSuccess){
+		_rexectx.reschedule();
+	}else if(rv == AsyncFailure){
+		_rexectx.close();
+	}else if(d.timerq.size()){
+		if(d.timerq.isHit(_rexectx.currentTime())){
+			_rexectx.reschedule();
+			return;
+		}
+		_rexectx.waitUntil(d.timerq.frontTime());
+	}
 }
 //---------------------------------------------------------
 bool Object::isCoordinator()const{
@@ -972,19 +988,19 @@ uint32 Object::proposeId()const{
 	return d.proposeid;
 }
 //---------------------------------------------------------
-int Object::doInit(RunData &_rd){
+AsyncE Object::doInit(RunData &_rd){
 	this->init();
 	state(PrepareRunState);
-	return OK;
+	return AsyncSuccess;
 }
 //---------------------------------------------------------
-int Object::doPrepareRun(RunData &_rd){
+AsyncE Object::doPrepareRun(RunData &_rd){
 	this->prepareRun();
 	state(RunState);
-	return OK;
+	return AsyncSuccess;
 }
 //---------------------------------------------------------
-int Object::doRun(RunData &_rd){
+AsyncE Object::doRun(RunData &_rd){
 	idbg("");
 	//first we scan for timeout:
 	while(d.timerq.isHit(_rd.rtimepos)){
@@ -1011,20 +1027,12 @@ int Object::doRun(RunData &_rd){
 	
 	doFlushOperations(_rd);
 	
-	if(d.reqq.size()) return OK;
+	if(d.reqq.size()) return AsyncSuccess;
 	
-	//set the timer value and exit
-	if(d.timerq.size()){
-		if(d.timerq.isHit(_rd.rtimepos)){
-			return OK;
-		}
-		_rd.rtimepos = d.timerq.frontTime();
-	}
-	
-	return NOK;
+	return AsyncWait;
 }
 //---------------------------------------------------------
-int Object::doPrepareRecovery(RunData &_rd){
+AsyncE Object::doPrepareRecovery(RunData &_rd){
 	//erase all requests in erase state
 	for(RequestStubVectorT::const_iterator it(d.reqvec.begin()); it != d.reqvec.end(); ++it){
 		const RequestStub &rreq(*it);
@@ -1034,10 +1042,10 @@ int Object::doPrepareRecovery(RunData &_rd){
 	}
 	prepareRecovery();
 	state(FirstRecoveryState);
-	return OK;
+	return AsyncSuccess;
 }
 //---------------------------------------------------------
-int Object::doRecovery(RunData &_rd){
+AsyncE Object::doRecovery(RunData &_rd){
 	idbg("");
 	return recovery();
 }

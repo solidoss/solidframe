@@ -28,7 +28,7 @@ public:
 		
 	}
 	template <class ConCtx, class Des, class BufCtl, class Com> 
-	int executeRecv(
+	AsyncE executeRecv(
 		frame::aio::SingleObject &_raioobj,
 		ulong _evs,
 		ConCtx &_rconctx,
@@ -38,11 +38,11 @@ public:
 		
 	){
 		typedef BufCtl BufCtlT;
-		if(_evs & frame::ERRDONE){
+		if(_evs & frame::EventDoneError){
 			idbgx(Debug::proto_bin, "ioerror "<<_evs<<' '<<_raioobj.socketEventsGrab());
 			return done();
 		}
-		if(_evs & frame::INDONE){
+		if(_evs & frame::EventDoneRecv){
 			char	tmpbuf[BufCtlT::DataCapacity];
 			idbgx(Debug::proto_bin, "receive data of size "<<_raioobj.socketRecvSize());
 			this->ctl.onRecv(_rconctx, _raioobj.socketRecvSize());
@@ -53,8 +53,7 @@ public:
 		bool reenter = false;
 		if(!_raioobj.socketHasPendingRecv()){
 			switch(_raioobj.socketRecv(BaseT::recvBufferOffset(_rbufctl.recvBuffer()), BaseT::recvBufferCapacity(_rbufctl.recvCapacity()))){
-				case BAD: return done();
-				case OK:{
+				case frame::aio::AsyncSuccess:{
 					char	tmpbuf[BufCtlT::DataCapacity];
 					idbgx(Debug::proto_bin, "receive data of size "<<_raioobj.socketRecvSize());
 					this->ctl.onRecv(_rconctx, _raioobj.socketRecvSize());
@@ -64,15 +63,16 @@ public:
 					}
 					reenter = true;
 				}break;
+				case frame::aio::AsyncFailure: return done();
 				default:
 					break;
 			}
 		}
-		return reenter ? OK : NOK;
+		return reenter ? AsyncSuccess : AsyncWait;
 	}
 	
 	template <class ConCtx, class Ser, class BufCtl, class Com> 
-	int executeSend(
+	AsyncE executeSend(
 		frame::aio::SingleObject &_raioobj,
 		ulong _evs,
 		ConCtx &_rconctx,
@@ -96,11 +96,11 @@ public:
 				idbgx(Debug::proto_bin, "send data of size "<<rv);
 				this->ctl.onSend(_rconctx, rv);
 				switch(_raioobj.socketSend(_rbufctl.sendBuffer(), rv)){
-					case BAD: 
-						return done();
-					case NOK:
+					case frame::aio::AsyncWait:
 						cnt = 0;
 						break;
+					case frame::aio::AsyncFailure: 
+						return done();
 					default:
 						break;
 				}
@@ -110,10 +110,10 @@ public:
 			}
 		}
 		
-		return reenter ? OK : NOK;
+		return reenter ? AsyncSuccess : AsyncWait;
 	}
 	template <class ConCtx, class Ser, class Des, class BufCtl, class Com> 
-	int execute(
+	AsyncE execute(
 		frame::aio::SingleObject &_raioobj,
 		ulong _evs,
 		ConCtx &_rconctx,
@@ -123,16 +123,16 @@ public:
 		Com &_rcom
 		
 	){
-		const int rcvrv = executeRecv(_raioobj, _evs, _rconctx, _rdes, _rbufctl, _rcom);
-		if(rcvrv == BAD) return done();
-		const int sndrv = executeSend(_raioobj, _evs, _rconctx, _rser, _rbufctl, _rcom);
-		if(sndrv == BAD) return done();
-		return (sndrv == OK || rcvrv == OK) ? OK : NOK;
+		const AsyncE rcvrv = executeRecv(_raioobj, _evs, _rconctx, _rdes, _rbufctl, _rcom);
+		if(rcvrv == AsyncFailure) return done();
+		const AsyncE sndrv = executeSend(_raioobj, _evs, _rconctx, _rser, _rbufctl, _rcom);
+		if(sndrv == AsyncFailure) return done();
+		return (sndrv == AsyncSuccess || rcvrv == AsyncSuccess) ? AsyncSuccess : AsyncWait;
 	}
 
 private:
-	int done(){
-		return BAD;
+	AsyncE done(){
+		return AsyncFailure;
 	}
 };
 

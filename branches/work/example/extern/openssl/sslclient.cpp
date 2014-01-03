@@ -109,7 +109,7 @@ int main(int argc, char *argv[]){
 		return 0;
 	}
 	cout<<"before connect"<<endl;
-	if(sd.connect(rd.begin()) == BAD){
+	if(!sd.connect(rd.begin())){
 		cout<<"could not connect = "<<strerror(errno)<<endl;
 		return 0;
 	}

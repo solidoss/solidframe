@@ -93,7 +93,7 @@ protected:
 private:
 	void state(int _st);
 	int state()const;
-	/*virtual*/ int execute(ulong _sig, TimeSpec &_tout);
+	/*virtual*/ void execute(ExecuteContext &_rexectx);
 	/*virtual*/ bool notify(DynamicPointer<frame::Message> &_rmsgptr);
 	//! It should dynamically cast the signal to an accepted Request and process it.
 	virtual void accept(DynamicPointer<WriteRequestMessage> &_rmsgptr) = 0;
@@ -104,12 +104,12 @@ private:
 	//! Called once before entering RecoveryState
 	virtual void prepareRecovery();
 	//! Called continuously by execute method until exiting RecoveryState
-	virtual int recovery() = 0;
-	int doInit(RunData &_rd);
-	int doPrepareRun(RunData &_rd);
-	int doRun(RunData &_rd);
-	int doPrepareRecovery(RunData &_rd);
-	int doRecovery(RunData &_rd);
+	virtual AsyncE recovery() = 0;
+	AsyncE doInit(RunData &_rd);
+	AsyncE doPrepareRun(RunData &_rd);
+	AsyncE doRun(RunData &_rd);
+	AsyncE doPrepareRecovery(RunData &_rd);
+	AsyncE doRecovery(RunData &_rd);
     void doProcessRequest(RunData &_rd, const size_t _reqidx);
 	void doSendAccept(RunData &_rd, const size_t _reqidx);
 	void doSendFastAccept(RunData &_rd, const size_t _reqidx);

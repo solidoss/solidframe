@@ -123,7 +123,7 @@ struct IpcServiceController: frame::ipc::Controller{
 		char* &_rpb,
 		uint32 &_bl
 	);
-	/*virtual*/ int authenticate(
+	/*virtual*/ AsyncE authenticate(
 		DynamicPointer<frame::Message> &_msgptr,//the received signal
 		frame::ipc::MessageUid &_rmsguid,
 		uint32 &_rflags,
@@ -276,7 +276,7 @@ void IpcServiceController::scheduleNode(frame::aio::Object *_po){
 	return true;
 }
 
-/*virtual*/ int IpcServiceController::authenticate(
+/*virtual*/ AsyncE IpcServiceController::authenticate(
 	DynamicPointer<frame::Message> &_msgptr,//the received signal
 	frame::ipc::MessageUid &_rmsguid,
 	uint32 &_rflags,
@@ -285,17 +285,17 @@ void IpcServiceController::scheduleNode(frame::aio::Object *_po){
 	if(!_msgptr.get()){
 		if(authidx){
 			idbg("");
-			return BAD;
+			return AsyncFailure;
 		}
 		//initiate authentication
 		_msgptr = new AuthMessage;
 		++authidx;
 		idbg("authidx = "<<authidx);
-		return NOK;
+		return AsyncWait;
 	}
 	if(_msgptr->dynamicTypeId() != AuthMessage::staticTypeId()){
 		cassert(false);
-		return BAD;
+		return AsyncFailure;
 	}
 	AuthMessage &rmsg(static_cast<AuthMessage&>(*_msgptr));
 	
@@ -304,7 +304,7 @@ void IpcServiceController::scheduleNode(frame::aio::Object *_po){
 	if(rmsg.authidx == 0){
 		if(this->authidx == 2){
 			idbg("");
-			return BAD;
+			return solid::AsyncFailure;
 		}
 		++this->authidx;
 		rmsg.authidx = this->authidx;
@@ -314,21 +314,21 @@ void IpcServiceController::scheduleNode(frame::aio::Object *_po){
 	
 	if(rmsg.authidx == 2 && rmsg.authcnt >= 3){
 		idbg("");
-		return BAD;
+		return solid::AsyncFailure;
 	}
 	
 	
 	if(rmsg.authcnt == 4){
 		idbg("");
-		return OK;
+		return solid::AsyncSuccess;
 	}
 	if(rmsg.authcnt == 5){
 		_msgptr.clear();
 		idbg("");
-		return OK;
+		return solid::AsyncSuccess;
 	}
 	idbg("");
-	return NOK;
+	return solid::AsyncWait;
 }
 
 

@@ -97,13 +97,6 @@ public:
 	
 	/*virtual*/ bool notify(solid::DynamicPointer<solid::frame::Message> &_rmsgptr);
 	
-	//! The implementation of the protocol's state machine
-	/*!
-		The method will be called within a foundation::SelectPool by an
-		foundation::aio::Selector.
-	*/
-	int execute(ulong _sig, solid::TimeSpec &_tout);
-	
 	//! creator method for new commands
 	Command* create(const solid::String& _name, Reader &_rr);
 	
@@ -130,6 +123,7 @@ public:
 	
 	void appendContextString(std::string &_str);
 private:
+	/*virtual*/ void execute(ExecuteContext &_rexectx);
 	void state(int _st){
 		st = _st;
 	}

@@ -326,23 +326,24 @@ Talker::~Talker(){
 	delete &d;
 }
 //----------------------------------------------------------------------
-int Talker::execute(ulong _sig, TimeSpec &_tout){
+void Talker::execute(ExecuteContext &_rexectx){
 	Manager		&rm = d.rservice.manager();
 	Context		ctx(d.rservice, d.tkrid, rm.id(*this).second);
-	TalkerStub	ts(*this, d.rservice, _tout);
-	
+	TalkerStub	ts(*this, d.rservice, _rexectx.currentTime());
+	ulong		sig = _rexectx.eventMask();
 	idbgx(Debug::ipc, "this = "<<(void*)this<<" &d = "<<(void*)&d);
 	{
 		const ulong		sm = grabSignalMask();
 		if(sm/* || d.closingsessionvec.size()*/){
 			if(sm & frame::S_KILL){
 				idbgx(Debug::ipc, "talker - dying");
-				return BAD;
+				_rexectx.close();
+				return;
 			}
 			
 			idbgx(Debug::ipc, "talker - signaled");
 			if(sm == frame::S_RAISE){
-				_sig |= frame::SIGNALED;
+				sig |= frame::EventSignal;
 				Locker<Mutex>	lock(rm.mutex(*this));
 			
 				if(d.newsessionvec.size()){
@@ -359,52 +360,55 @@ int Talker::execute(ulong _sig, TimeSpec &_tout){
 			}
 		}
 	}
-	_sig |= socketEventsGrab();
+	sig |= socketEventsGrab();
 	
-	if(_sig & frame::ERRDONE){
-		return BAD;
+	if(sig & frame::EventDoneError){
+		_rexectx.close();
+		return;
 	}
-	
-	bool	must_reenter(false);
-	int		rv;
 	
 	if(d.closingsessionvec.size()){
 		//this is to ensure the locking order: first service then talker
 		d.rservice.disconnectTalkerSessions(*this, ts);
 	}
 	
-	rv = doReceivePackets(ts, 4, _sig);
+	bool	must_reenter(false);
+	AsyncE	rv;
 	
-	if(rv == OK){
+	rv = doReceivePackets(ts, 4, sig);
+	
+	if(rv == AsyncSuccess){
 		must_reenter = true;
-	}else if(rv == BAD){
-		return BAD;
+	}else if(rv == AsyncFailure){
+		_rexectx.close();
+		return;
 	}
 	
 	must_reenter = doProcessReceivedPackets(ts) || must_reenter;
 	
-	rv = doSendPackets(ts, _sig);
-	if(rv == OK){
+	rv = doSendPackets(ts, sig);
+	if(rv == AsyncSuccess){
 		must_reenter = true;
-	}else if(rv == BAD){
-		return BAD;
+	}else if(rv == AsyncFailure){
+		_rexectx.close();
+		return;
 	}
 	
 	must_reenter = doExecuteSessions(ts) || must_reenter;
 	
 	if(d.timerq.size()){
-		_tout = d.timerq.top().timepos;
-	}
-	
-	return must_reenter ? OK : NOK;
+		_rexectx.waitUntil(d.timerq.top().timepos);
+	}else if(must_reenter){
+		_rexectx.reschedule();
+	}	
 }
 
 //----------------------------------------------------------------------
-int Talker::doReceivePackets(TalkerStub &_rstub, uint _atmost, const ulong _sig){
+AsyncE Talker::doReceivePackets(TalkerStub &_rstub, uint _atmost, const ulong _sig){
 	if(this->socketHasPendingRecv()){
-		return NOK;
+		return AsyncWait;
 	}
-	if(_sig & frame::INDONE){
+	if(_sig & frame::EventDoneRecv){
 		doDispatchReceivedPacket(_rstub, d.pendingreadpacket, socketRecvSize(), socketRecvAddr());
 		d.pendingreadpacket = NULL;
 	}
@@ -412,20 +416,20 @@ int Talker::doReceivePackets(TalkerStub &_rstub, uint _atmost, const ulong _sig)
 		char 			*pbuf(Packet::allocate());
 		const uint32	bufsz(Packet::Capacity);
 		switch(socketRecvFrom(pbuf, bufsz)){
-			case BAD:
-				Packet::deallocate(pbuf);
-				return BAD;
-			case OK:
+			case aio::AsyncSuccess:
 				doDispatchReceivedPacket(_rstub, pbuf, socketRecvSize(), socketRecvAddr());
 				break;
-			case NOK:
+			case aio::AsyncWait:
 				d.pendingreadpacket = pbuf;
-				return NOK;
+				return AsyncWait;
+			case aio::AsyncFailure:
+				Packet::deallocate(pbuf);
+				return AsyncFailure;
 		}
 	}
 	
 	COLLECT_DATA_0(d.statistics.receivedManyPackets);
-	return OK;//can still read from socket
+	return AsyncSuccess;//can still read from socket
 }
 //----------------------------------------------------------------------
 bool Talker::doPreprocessReceivedPackets(TalkerStub &_rstub){
@@ -546,26 +550,29 @@ void Talker::doDispatchReceivedPacket(
 			COLLECT_DATA_0(d.statistics.receivedConnecting);
 			ConnectData			conndata;
 			
-			int					error = Session::parseConnectPacket(pkt, conndata, _rsa);
+			bool				rv = Session::parseConnectPacket(pkt, conndata, _rsa);
 			
 			Packet::deallocate(pkt.release());
 			
-			if(error){
-				edbgx(Debug::ipc, "connecting packet: parse "<<error);
-				COLLECT_DATA_0(d.statistics.receivedConnectingError);
-			}else{
-				error = d.rservice.acceptSession(_rsa, conndata);
-				if(error < 0){	
-					COLLECT_DATA_0(d.statistics.failedAcceptSession);
-					wdbgx(Debug::ipc, "connecting packet: silent drop "<<error);
-				}else if(error > 0){
-					wdbgx(Debug::ipc, "connecting packet: send error "<<error);
-					d.sessionvec.front().psession->dummySendError(_rstub, _rsa, error);
-					if(!d.sessionvec.front().inexeq){
-						d.sessionexecq.push(0);
-						d.sessionvec.front().inexeq = true;
+			if(rv){
+				rv = d.rservice.acceptSession(_rsa, conndata);
+				if(!rv){
+					const int error = specific_error_back().value();
+					if(error == 0){
+						COLLECT_DATA_0(d.statistics.failedAcceptSession);
+						wdbgx(Debug::ipc, "connecting packet: silent drop");
+					}else{
+						wdbgx(Debug::ipc, "connecting packet: send error");
+						d.sessionvec.front().psession->dummySendError(_rstub, _rsa, error);
+						if(!d.sessionvec.front().inexeq){
+							d.sessionexecq.push(0);
+							d.sessionvec.front().inexeq = true;
+						}
 					}
 				}
+			}else{
+				edbgx(Debug::ipc, "connecting packet: parse");
+				COLLECT_DATA_0(d.statistics.receivedConnectingError);
 			}
 			
 		}break;
@@ -574,14 +581,14 @@ void Talker::doDispatchReceivedPacket(
 			COLLECT_DATA_0(d.statistics.receivedAccepting);
 			AcceptData			accdata;
 			
-			int					error = Session::parseAcceptPacket(pkt, accdata, _rsa);
+			const bool			rv = Session::parseAcceptPacket(pkt, accdata, _rsa);
 			const bool			isrelay = pkt.isRelay();
 			const uint32		relayid = isrelay ? pkt.relay() : 0;
 			
 			Packet::deallocate(pkt.release());
 			
-			if(error){
-				edbgx(Debug::ipc, "accepted packet: error parse "<<error);
+			if(!rv){
+				edbgx(Debug::ipc, "accepted packet: error parse");
 				COLLECT_DATA_0(d.statistics.receivedAcceptingError);
 			}else if(d.rservice.checkAcceptData(_rsa, accdata)){
 				if(!isrelay){
@@ -703,11 +710,11 @@ bool Talker::doExecuteSessions(TalkerStub &_rstub){
 		
 		rss.inexeq = false;
 		switch(rss.psession->execute(ts)){
-			case OK:
+			case AsyncSuccess:
 				d.sessionexecq.push(ts.sessionidx);
-			case NOK:
+			case AsyncWait:
 				break;
-			case BAD:
+			case AsyncFailure:
 				d.closingsessionvec.push_back(ts.sessionidx);
 				rss.inexeq = true;
 				break;
@@ -717,14 +724,14 @@ bool Talker::doExecuteSessions(TalkerStub &_rstub){
 	return d.sessionexecq.size() != 0 || d.closingsessionvec.size() != 0;
 }
 //----------------------------------------------------------------------
-int Talker::doSendPackets(TalkerStub &_rstub, const ulong _sig){
+AsyncE Talker::doSendPackets(TalkerStub &_rstub, const ulong _sig){
 	if(socketHasPendingSend()){
-		return NOK;
+		return AsyncWait;
 	}
 	
 	TalkerStub &ts = _rstub;
 	
-	if(_sig & frame::OUTDONE){
+	if(_sig & frame::EventDoneSend){
 		cassert(d.sendq.size());
 		COLLECT_DATA_1(d.statistics.maxSendQueueSize, d.sendq.size());
 		Data::SendPacket	&rsp(d.sendq.front());
@@ -750,8 +757,7 @@ int Talker::doSendPackets(TalkerStub &_rstub, const ulong _sig){
 		Data::SessionStub	&rss(d.sessionvec[rsp.sessionidx]);
 		
 		switch(socketSendTo(rsp.data, rsp.size, rss.psession->peerAddress())){
-			case BAD: return BAD;
-			case OK:
+			case aio::AsyncSuccess:
 				Context::the().msgctx.connectionuid.idx = rsp.sessionidx;
 				Context::the().msgctx.connectionuid.uid = rss.uid;
 				rss.psession->prepareContext(Context::the());
@@ -764,13 +770,14 @@ int Talker::doSendPackets(TalkerStub &_rstub, const ulong _sig){
 						rss.inexeq = true;
 					}
 				}
-			case NOK:
+			case aio::AsyncWait:
 				COLLECT_DATA_0(d.statistics.sendPending);
-				return NOK;
+				return AsyncWait;
+			case aio::AsyncFailure: return AsyncFailure;
 		}
 		d.sendq.pop();
 	}
-	return NOK;
+	return AsyncWait;
 }
 //----------------------------------------------------------------------
 //The talker's mutex should be locked
@@ -974,13 +981,13 @@ bool TalkerStub::pushSendPacket(uint32 _id, const char *_pb, uint32 _bl){
 	Talker::Data::SessionStub &rss(rt.d.sessionvec[this->sessionidx]);
 	//try to send the packet right now:
 	switch(rt.socketSendTo(_pb, _bl, rss.psession->peerAddress())){
-		case BAD:
-		case NOK:
+		case aio::AsyncSuccess:
+			break;
+		case aio::AsyncFailure:
+		case aio::AsyncWait:
 			rt.d.sendq.push(Talker::Data::SendPacket(_pb, _bl, this->sessionidx, _id));
 			COLLECT_DATA_0(rt.d.statistics.sendPending);
 			return false;
-		case OK:
-			break;
 	}
 	return true;//the packet was written on socket
 }

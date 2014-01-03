@@ -46,7 +46,7 @@ int File::stream(
 ){
 	if(_flags & Manager::Forced){
 		//if not open for reading or incompatible request for pending return bad
-		if(!(openmode & Manager::OpenR) || (_flags & Manager::ForcePending)) return BAD;
+		if(!(openmode & Manager::OpenR) || (_flags & Manager::ForcePending)) return AsyncFailure;
 	}else if(openmode & Manager::OpenR){
 		if(_flags & Manager::ForcePending){
 			iwq.push(WaitData(_requid, _flags));
@@ -66,7 +66,7 @@ int File::stream(
 	++iusecnt;
 	idbgx(Debug::file, "iusecnt = "<<iusecnt<<' '<<rk.path());	
 	_sptr = _rs.createInputStream(this->id());
-	return OK;
+	return AsyncSuccess;
 }
 
 int File::stream(
@@ -77,7 +77,7 @@ int File::stream(
 ){
 	if(_flags & Manager::Forced){
 		//if not open for reading or incompatible request for pending return bad
-		if(!(openmode & Manager::OpenW) || (_flags & Manager::ForcePending)) return BAD;
+		if(!(openmode & Manager::OpenW) || (_flags & Manager::ForcePending)) return AsyncFailure;
 	}else if(openmode & Manager::OpenW){
 		if(_flags & Manager::ForcePending){
 			owq.push(WaitData(_requid, _flags));
@@ -93,7 +93,7 @@ int File::stream(
 	}
 	++ousecnt;
 	_sptr = _rs.createOutputStream(this->id());
-	return OK;
+	return AsyncSuccess;
 }
 
 int File::stream(
@@ -104,7 +104,7 @@ int File::stream(
 ){
 	if(_flags & Manager::Forced){
 		//if not open for reading or incompatible request for pending return bad
-		if(!(openmode & Manager::OpenRW) || (_flags & Manager::ForcePending)) return BAD;
+		if(!(openmode & Manager::OpenRW) || (_flags & Manager::ForcePending)) return AsyncFailure;
 	}else if(openmode & Manager::OpenRW){
 		if(_flags & Manager::ForcePending){
 			owq.push(WaitData(_requid, _flags));
@@ -120,7 +120,7 @@ int File::stream(
 	}
 	++ousecnt;
 	_sptr = _rs.createInputOutputStream(this->id());
-	return OK;
+	return AsyncSuccess;
 }
 bool File::isOpened()const{
 	return openmode != 0;

@@ -52,7 +52,7 @@ protected:
 	/*virtual*/ void doSendMessage(solid::DynamicPointer<solid::frame::ipc::Message> &_rmsgptr, const solid::SocketAddressInet4 &_raddr);
 private:
 	/*virtual*/ void accept(solid::DynamicPointer<solid::consensus::WriteRequestMessage> &_rmsgptr);
-	/*virtual*/ int recovery();
+	/*virtual*/ solid::AsyncE recovery();
 private:
 	static DynamicMapperT			dm;
 	solid::frame::ipc::Service		&ripcsvc;

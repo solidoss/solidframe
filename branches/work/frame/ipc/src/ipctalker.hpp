@@ -124,7 +124,6 @@ public:
 	
 	Talker(const SocketDevice &_rsd, Service &_rservice, uint16 _id);
 	~Talker();
-	int execute(ulong _sig, TimeSpec &_tout);
 	
 	bool pushMessage(
 		DynamicPointer<Message> &_pmsgptr,
@@ -141,7 +140,8 @@ public:
 	void pushSession(Session *_ps, ConnectionUid &_rconid, bool _exists = false);
 	void disconnectSessions(TalkerStub &_rstub);
 private:
-	int doReceivePackets(TalkerStub &_rstub, uint32 _atmost, const ulong _sig);
+	/*virtual*/ void execute(ExecuteContext &_rexectx);
+	AsyncE doReceivePackets(TalkerStub &_rstub, uint32 _atmost, const ulong _sig);
 	bool doProcessReceivedPackets(TalkerStub &_rstub);
 	bool doPreprocessReceivedPackets(TalkerStub &_rstub);
 	void doDispatchReceivedPacket(
@@ -153,7 +153,7 @@ private:
 	void doInsertNewSessions(TalkerStub &_rstub);
 	void doDispatchMessages();
 	void doDispatchEvents();
-	int doSendPackets(TalkerStub &_rstub, const ulong _sig);
+	AsyncE doSendPackets(TalkerStub &_rstub, const ulong _sig);
 	bool doExecuteSessions(TalkerStub &_rstub);
 private:
 	friend struct TalkerStub;

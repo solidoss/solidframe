@@ -120,7 +120,7 @@ private:
 	bool createWorker(WorkPoolT &_rwp){
 		++crtwkrcnt;
 		Worker	*pw(_rwp.createMultiWorker(0));
-		if(pw && pw->start() != OK){
+		if(pw && pw->start()){
 			delete pw;
 			--crtwkrcnt;
 			return false;

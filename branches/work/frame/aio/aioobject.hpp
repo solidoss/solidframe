@@ -126,8 +126,6 @@ private:
 	
 	void doPopTimeoutRecv(const size_t _pos);
 	void doPopTimeoutSend(const size_t _pos);
-	//!Called by selector on certain events
-	virtual int execute(ulong _evs, TimeSpec &_rtout) = 0;
 protected:
 	void doPushTimeoutRecv(const size_t _pos, const TimeSpec &_crttime, const ulong _addsec, const ulong _addnsec);
 	void doPushTimeoutSend(const size_t _pos, const TimeSpec &_crttime, const ulong _addsec, const ulong _addnsec);

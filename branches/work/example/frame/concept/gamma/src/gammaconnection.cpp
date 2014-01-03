@@ -77,6 +77,13 @@ static const unsigned specificPosition(){
 #endif
 }
 
+enum RetValE{
+	Success,
+	Wait,
+	Failure,
+	Close
+};
+
 /*static*/ Connection::DynamicMapperT		Connection::dm;
 
 /*static*/ void Connection::dynamicRegister(){
@@ -138,11 +145,12 @@ Connection::~Connection(){
 	The state machine is a simple switch
 */
 
-int Connection::execute(ulong _sig, TimeSpec &_tout){
+/*virtual*/ void Connection::execute(ExecuteContext &_rexectx){
 	//_tout.add(2400);
-	if(_sig & (frame::TIMEOUT | frame::ERRDONE)){
+	if(_rexectx.eventMask() & (frame::EventTimeout | frame::EventDoneError)){
 		idbg("timeout occured - destroy connection "<<state());
-		return BAD;
+		_rexectx.close();
+		return;
 	}
 	
 	Manager &rm = Manager::the();
@@ -154,7 +162,10 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 		{
 			Locker<Mutex>	lock(rm.mutex(*this));
 			sm = grabSignalMask(0);//grab all bits of the signal mask
-			if(sm & frame::S_KILL) return BAD;
+			if(sm & frame::S_KILL){
+				_rexectx.close();
+				return;
+			}
 			if(sm & frame::S_SIG){//we have signals
 				dh.init(dv.begin(), dv.end());
 				dv.clear();
@@ -165,35 +176,40 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 				dh.handle(*this, i);
 			}
 		}
-		//now we determine if we return with NOK or we continue
-		if(!_sig) return NOK;
+		//now we determine if we return with Wait or we continue
+		if(!_rexectx.eventMask()) return;
 	}
 	
 	uint sigsz = this->signaledSize();
 	while(sigsz--){
 		uint sid = this->signaledFront();
-		int rv = executeSocket(sid, _tout);
+		int rv = executeSocket(sid, _rexectx.currentTime());
 		this->signaledPop();
 		switch(rv){
-			case BAD:
+			case Failure:
 				delete sdv[sid]->pcmd;
 				sdv[sid]->pcmd = NULL;
 				delete sdv[sid];
 				sdv[sid] = NULL;
 				this->socketErase(sid);
-				if(!this->count()) return BAD;
+				if(!this->count()){
+					_rexectx.close();
+					return;
+				}
 				break;
-			case OK:
-				this->socketPostEvents(sid, frame::RESCHEDULED);
+			case Success:
+				this->socketPostEvents(sid, frame::EventReschedule);
 				break;
-			case NOK:
+			case Wait:
 				break;
-			case frame::LEAVE:
-				return BAD;
+			case Close:
+				_rexectx.close();
+				return;
 		}
 	}
-	if(this->signaledSize()) return OK;
-	return NOK;
+	if(this->signaledSize()){
+		_rexectx.reschedule();
+	}
 }
 
 
@@ -240,13 +256,13 @@ void   Connection::deleteRequestId(uint32 _v){
 	
 int Connection::executeSocket(const uint _sid, const TimeSpec &_tout){
 	ulong evs(this->socketEvents(_sid));
-	if(evs & (frame::TIMEOUT_SEND | frame::TIMEOUT_RECV)) return BAD;
+	if(evs & (frame::EventTimeoutRecv | frame::EventTimeoutSend)) return Failure;
 	SocketData &rsd(socketData(_sid));
 	switch(socketState(_sid)){
 		case SocketRegister:
 			this->socketRequestRegister(_sid);
 			socketState(_sid, SocketExecutePrepare);
-			return NOK;
+			return Wait;
 		case SocketInit:
 			//TODO:
 			socketState(_sid, SocketBanner);
@@ -262,22 +278,22 @@ int Connection::executeSocket(const uint _sid, const TimeSpec &_tout){
 		case SocketExecute:
 			return doSocketExecute(_sid, rsd);
 		case SocketParseWait:
-			if(evs & (frame::INDONE | frame::DONE |frame::OUTDONE)){
+			if(evs & (frame::EventDoneIO)){
 				socketState(_sid, SocketParse);
-				return OK;
+				return Success;
 			}
-			return NOK;//still waiting
+			return Wait;//still waiting
 		case SocketIdleParse:
 			return doSocketParse(_sid, rsd, true);
 		case SocketIdleWait:
-			if(evs & (frame::INDONE)){
+			if(evs & (frame::EventDoneRecv)){
 				socketState(_sid, SocketIdleParse);
-				return OK;
+				return Success;
 			}
 			if(!rsd.w.empty()){
 				return doSocketExecute(_sid, rsd, SocketIdleWait);
 			}
-			return NOK;
+			return Wait;
 		case SocketIdleDone:
 			return doSocketExecute(_sid, rsd, SocketIdleDone);
 		case SocketLeave:
@@ -285,13 +301,13 @@ int Connection::executeSocket(const uint _sid, const TimeSpec &_tout){
 			//the socket is unregistered
 			//prepare a signal
 			doSendSocketMessage(_sid);
-			return frame::LEAVE;
+			return Close;
 		default:
 			edbg("unknown state "<<socketState(_sid));
 			cassert(false);
 			
 	}
-	return NOK;
+	return Wait;
 }
 
 Command* Connection::create(const String& _name, Reader &_rr){
@@ -329,7 +345,7 @@ int Connection::doSocketPrepareBanner(const uint _sid, SocketData &_rsd){
 	_rsd.w<<host<<':'<<port<<"]"<<'\r'<<'\n';
 	_rsd.w.push(&Writer::flushAll);
 	socketState(_sid, SocketExecute);
-	return OK;
+	return Success;
 }
 //prepare the reader and the writer for a new command
 void Connection::doSocketPrepareParse(const uint _sid, SocketData &_rsd){

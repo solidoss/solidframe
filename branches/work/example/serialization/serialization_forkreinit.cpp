@@ -76,11 +76,11 @@ struct Test{
 	}
 	
 	template <class S, uint32 I>
-	int serializationReinit(S &_rs, const uint64 &_rv){
+	serialization::binary::CbkReturnValueE serializationReinit(S &_rs, const uint64 &_rv){
 		idbg("_rv = "<<_rv);
 		if(_rv == 1){
 			idbg("Done Stream: size = "<<_rs.streamSize()<<" error = "<<_rs.streamErrorString());
-			return OK;
+			return serialization::binary::Success;
 		}
 		if(S::IsSerializer){
 			fs.openRead(fn.c_str());
@@ -96,7 +96,7 @@ struct Test{
 			OutputStream *ps = &fs;
 			_rs.pushStream(ps, "Test::ostream");
 		}
-		return CONTINUE;
+		return serialization::binary::Continue;
 	}
 	
 	void print();

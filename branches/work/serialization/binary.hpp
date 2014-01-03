@@ -444,7 +444,7 @@ protected:
 			return Success;
 		}
 
-		int rv = reinterpret_cast<T*>(_rfd.p)->template serializationReinit<Ser, I>(rs, val);
+		CbkReturnValueE rv = reinterpret_cast<T*>(_rfd.p)->template serializationReinit<Ser, I>(rs, val);
 		if(rv == Failure){
 			rs.err = ERR_REINIT;
 		}
@@ -1316,7 +1316,7 @@ protected:
 			return Success;
 		}
 		
-		int rv = reinterpret_cast<T*>(_rfd.p)->template serializationReinit<Des, I>(rd, val);
+		CbkReturnValueE rv = reinterpret_cast<T*>(_rfd.p)->template serializationReinit<Des, I>(rd, val);
 		if(rv == Failure){
 			rd.err = ERR_REINIT;
 		}

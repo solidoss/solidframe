@@ -144,14 +144,13 @@ public:
 private:
 	friend struct Handle;
 	friend struct SessionController;
-	/*virtual*/ int execute(ulong _evs, TimeSpec& _crtime);
-	int done(){
+	/*virtual*/ void execute(ExecuteContext &_rexectx);
+	void done(){
 		idbg("");
 		cout<<"Connection closed"<<endl;
 		Locker<Mutex>	lock(mtx);
 		run = false;
 		cnd.signal();
-		return BAD;
 	}
 	void onReceiveNoop(){
 		cassert(waitnoop);
@@ -335,7 +334,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 }
 
 //-----------------------------------------------------------------------
-/*virtual*/ int Connection::execute(ulong _evs, TimeSpec& _crtime){
+/*virtual*/ void Connection::execute(ExecuteContext &_rexectx){
 	typedef DynamicSharedPointer<solid::frame::Message>		MessageSharedPointerT;
 	
 	static Compressor 				compressor(BufferControllerT::DataCapacity);
@@ -343,7 +342,11 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 	
 	ulong							sm = grabSignalMask();
 	if(sm){
-		if(sm & frame::S_KILL) return done();
+		if(sm & frame::S_KILL){
+			done();
+			_rexectx.close();
+			return;
+		}
 		if(sm & frame::S_SIG){
 			Locker<Mutex>	lock(rm.mutex(*this));
 			for(MessageVectorT::iterator it(sndmsgvec.begin()); it != sndmsgvec.end(); ++it){
@@ -352,10 +355,12 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 			sndmsgvec.clear();
 		}
 	}
-	
-	if(_evs & (frame::TIMEOUT | frame::ERRDONE)){
+	ulong evs = _rexectx.eventMask();
+	if(evs & (frame::EventTimeout | frame::EventDoneError)){
 		if(waitnoop){
-			return done();
+			done();
+			_rexectx.close();
+			return;
 		}else if(session.isSendQueueEmpty()){
 			DynamicPointer<solid::frame::Message>	msgptr(noopmsgptr);
 			send(msgptr);
@@ -367,16 +372,20 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 	
 	bool reenter = false;
 	if(st == RunningState){
-		int rv = session.execute(*this, _evs, ctx, ser, des, bufctl, compressor);
-		if(rv == BAD) return done();
-		if(rv == NOK){
+		const AsyncE rv = session.execute(*this, evs, ctx, ser, des, bufctl, compressor);
+		if(rv == AsyncWait){
 			if(waitnoop){
-				_crtime.add(3);//wait 3 seconds
+				_rexectx.waitFor(TimeSpec(3));
 			}else{
-				_crtime.add(15);//wait 15 secs then send noop
+				_rexectx.waitFor(TimeSpec(15));//wait 15 secs then send noop
 			}
+		}else if(rv == AsyncSuccess){
+			_rexectx.reschedule();
+		}else{
+			done();
+			_rexectx.close();
 		}
-		return rv;
+		return;
 	}else if(st == PrepareState){
 		SocketDevice	sd;
 		sd.create(rd.begin());
@@ -388,16 +397,19 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 	}else if(st == ConnectState){
 		idbg("ConnectState");
 		switch(socketConnect(rd.begin())){
-			case BAD: return done();
-			case OK:
+			case frame::aio::AsyncSuccess:
 				idbg("");
 				st = InitState;
 				reenter = true;
 				break;
-			case NOK:
+			case frame::aio::AsyncWait:
 				st = ConnectWaitState;
 				idbg("");
 				break;
+			case frame::aio::AsyncFailure:
+				done();
+				_rexectx.close();
+				return;
 		}
 	}else if(st == ConnectWaitState){
 		idbg("ConnectWaitState");
@@ -408,7 +420,9 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 		st = RunningState;
 		reenter = true;
 	}
-	return reenter ? OK : NOK;
+	if(reenter){
+		_rexectx.reschedule();
+	}
 }
 //---------------------------------------------------------------------------------
 void Handle::afterSerialization(BinDeserializerT &_rs, FirstResponse *_pm, ConnectionContext &_rctx){

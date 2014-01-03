@@ -132,10 +132,10 @@ ServerObject::~ServerObject(){
 	dh.handle(*this, 0, ctx);
 }
 
-/*virtual*/ int ServerObject::recovery(){
+/*virtual*/ AsyncE ServerObject::recovery(){
 	//use enterRunState() and return OK when done recovery
 	this->enterRunState();
-	return OK;
+	return solid::AsyncSuccess;
 }
 
 /*virtual*/ void ServerObject::doSendMessage(DynamicPointer<frame::ipc::Message> &_rmsgptr, const SocketAddressInet4 &_raddr){

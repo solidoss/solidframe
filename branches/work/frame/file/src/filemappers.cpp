@@ -512,7 +512,7 @@ namespace{
 	}
 	
 	openmode = 0;
-	return BAD;
+	return AsyncFailure;
 }
 
 /*virtual*/ bool NameFile::close(const char *_path){
@@ -550,7 +550,7 @@ namespace{
 
 /*virtual*/ int MemoryFile::open(const char *_path){
 	openmode = Manager::OpenR | Manager::OpenW | Manager::OpenRW;
-	return OK;
+	return AsyncSuccess;
 }
 /*virtual*/ bool MemoryFile::close(const char *_path){
 	bool rv(openmode != 0);
@@ -594,7 +594,7 @@ namespace{
 		return Bad;
 	}
 	openmode = Manager::OpenR | Manager::OpenW | Manager::OpenRW;
-	return OK;
+	return AsyncSuccess;
 }
 /*virtual*/ bool TempFile::close(const char *_path){
 	bool rv(fd.ok());

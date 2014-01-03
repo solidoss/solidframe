@@ -1030,13 +1030,13 @@ bool Session::Data::moveToNextSendMessage(){
 //	Session
 //=====================================================================
 
-/*static*/ int Session::parseAcceptPacket(
+/*static*/ bool Session::parseAcceptPacket(
 	const Packet &_rpkt,
 	AcceptData &_raccdata,
 	const SocketAddress &_rfromsa
 ){
 	if(_rpkt.dataSize() < AcceptData::BaseSize){
-		return BAD;
+		return false;
 	}
 	
 	const char *pos = _rpkt.data();
@@ -1048,15 +1048,15 @@ bool Session::Data::moveToNextSendMessage(){
 	pos = serialization::binary::load(pos, _raccdata.relayid);
 	
 	vdbgx(Debug::ipc, "AcceptData: "<<_raccdata);
-	return OK;
+	return true;
 }
 //---------------------------------------------------------------------
-/*static*/ int Session::parseConnectPacket(
+/*static*/ bool Session::parseConnectPacket(
 	const Packet &_rpkt, ConnectData &_rcd,
 	const SocketAddress &_rfromsa
 ){
 	if(_rpkt.dataSize() < ConnectData::BaseSize){
-		return BAD;
+		return false;
 	}
 	
 	const char *pos = _rpkt.data();
@@ -1074,7 +1074,7 @@ bool Session::Data::moveToNextSendMessage(){
 	pos = serialization::binary::load(pos, _rcd.timestamp_s);
 	pos = serialization::binary::load(pos, _rcd.timestamp_n);
 	if(_rcd.s != 's' || _rcd.f != 'f' || _rcd.i != 'i' || _rcd.p != 'p' || _rcd.c != 'c'){
-		return BAD;
+		return false;
 	}
 	
 	if(_rcd.type == ConnectData::BasicType){
@@ -1102,28 +1102,28 @@ bool Session::Data::moveToNextSendMessage(){
 	}else if(_rcd.type == ConnectData::Relay6Type){
 		
 	}else{
-		return OK;
+		return true;
 	}
 	
 	vdbgx(Debug::ipc, "ConnectData: "<<_rcd);
-	return OK;
+	return true;
 }
 //---------------------------------------------------------------------
-/*static*/ int Session::parseErrorPacket(
+/*static*/ bool Session::parseErrorPacket(
 	const Packet &_rpkt,
 	ErrorData &_rdata
 ){
 	if(_rpkt.dataSize() < sizeof(uint32)){
-		return BAD;
+		return false;
 	}
 	uint32 v;
 	serialization::binary::load(_rpkt.data(), v);
 	_rdata.error = static_cast<int32>(v);
 	
-	return OK;
+	return true;
 }
 //---------------------------------------------------------------------
-/*static*/ int Session::fillAcceptPacket(
+/*static*/ bool Session::fillAcceptPacket(
 	Packet &_rpkt,
 	const AcceptData &_rad
 ){
@@ -1136,10 +1136,10 @@ bool Session::Data::moveToNextSendMessage(){
 	ppos = serialization::binary::store(ppos, _rad.relayid);
 
 	_rpkt.dataSize(_rpkt.dataSize() + (ppos - _rpkt.dataEnd()));
-	return OK;
+	return true;
 }
 //---------------------------------------------------------------------
-/*static*/ int Session::fillConnectPacket(
+/*static*/ bool Session::fillConnectPacket(
 	Packet &_rpkt,
 	const ConnectData &_rcd
 ){
@@ -1178,10 +1178,10 @@ bool Session::Data::moveToNextSendMessage(){
 	}
 	
 	_rpkt.dataSize(_rpkt.dataSize() + (ppos - _rpkt.dataEnd()));
-	return OK;
+	return true;
 }
 //---------------------------------------------------------------------
-/*static*/ int Session::fillErrorPacket(
+/*static*/ bool Session::fillErrorPacket(
 	Packet &_rpkt,
 	const ErrorData &_rad
 ){
@@ -1190,7 +1190,7 @@ bool Session::Data::moveToNextSendMessage(){
 	ppos = serialization::binary::store(ppos, v);
 	
 	_rpkt.dataSize(_rpkt.dataSize() + (ppos - _rpkt.dataEnd()));
-	return OK;
+	return true;
 }
 //---------------------------------------------------------------------
 /*static*/ uint32 Session::computeResendTime(const size_t _cnt){
@@ -1607,9 +1607,23 @@ void Session::doCompleteConnect(TalkerStub &_rstub){
 		MessageUid 				msguid(0xffffffff, 0xffffffff);
 		uint32					flags = 0;
 		SerializationTypeIdT 	tid = SERIALIZATION_INVALIDID;
-		const int				authrv = rctrl.authenticate(msgptr, msguid, flags, tid);
+		const AsyncE			authrv = rctrl.authenticate(msgptr, msguid, flags, tid);
 		switch(authrv){
-			case BAD:
+			case AsyncSuccess:
+				d.state = Data::Connected;
+				//d.keepalivetimeout = _rstub.service().keepAliveTimeout();
+				break;
+			case AsyncWait:
+				d.state = Data::Authenticating;
+				//d.keepalivetimeout = 1000;
+				d.pushMessageToSendQueue(
+					msgptr,
+					flags,
+					tid
+				);
+				flags |= WaitResponseFlag;
+				break;
+			case AsyncFailure:
 				if(msgptr.get()){
 					d.state = Data::WaitDisconnecting;
 					//d.keepalivetimeout = 0;
@@ -1622,20 +1636,6 @@ void Session::doCompleteConnect(TalkerStub &_rstub){
 				}else{
 					d.state = Data::Disconnecting;
 				}
-				break;
-			case OK:
-				d.state = Data::Connected;
-				//d.keepalivetimeout = _rstub.service().keepAliveTimeout();
-				break;
-			case NOK:
-				d.state = Data::Authenticating;
-				//d.keepalivetimeout = 1000;
-				d.pushMessageToSendQueue(
-					msgptr,
-					flags,
-					tid
-				);
-				flags |= WaitResponseFlag;
 				break;
 			default:
 				THROW_EXCEPTION_EX("Invalid return value for authenticate", authrv);
@@ -1723,7 +1723,7 @@ bool Session::executeTimeout(
 	return false;
 }
 //---------------------------------------------------------------------
-int Session::execute(TalkerStub &_rstub){
+AsyncE Session::execute(TalkerStub &_rstub){
 	Context::the().msgctx.psession = this;
 	switch(d.state){
 		case Data::RelayInit:
@@ -1737,7 +1737,7 @@ int Session::execute(TalkerStub &_rstub){
 		case Data::RelayAccepting:
 			return doExecuteRelayAccepting(_rstub);
 		case Data::WaitAccept:
-			return NOK;
+			return AsyncWait;
 		case Data::Authenticating:
 			return doExecuteConnectedLimited(_rstub);
 		case Data::Connected:
@@ -1747,13 +1747,13 @@ int Session::execute(TalkerStub &_rstub){
 		case Data::Disconnecting:
 			return doExecuteDisconnecting(_rstub);
 		case Data::Reconnecting:
-			if(d.sendpendingcount) return NOK;
+			if(d.sendpendingcount) return AsyncWait;
 			reconnect(NULL);
-			return OK;//reschedule
+			return AsyncSuccess;
 		case Data::DummyExecute:
 			return doExecuteDummy(_rstub);
 	}
-	return BAD;
+	return AsyncFailure;
 }
 //---------------------------------------------------------------------
 bool Session::pushSentPacket(
@@ -2056,9 +2056,23 @@ void Session::doParsePacket(TalkerStub &_rstub, const Packet &_rpkt){
 			}else if(d.state == Data::Authenticating){
 				uint32					flags = 0;
 				SerializationTypeIdT 	tid = SERIALIZATION_INVALIDID;
-				const int 				authrv = rctrl.authenticate(msgptr, msguid, flags, tid);
+				const AsyncE 			authrv = rctrl.authenticate(msgptr, msguid, flags, tid);
 				switch(authrv){
-					case BAD:
+					case AsyncSuccess:
+						d.state = Data::Connected;
+						//d.keepalivetimeout = _rstub.service().keepAliveTimeout();
+						if(msgptr.get()){
+							flags |= WaitResponseFlag;
+							d.pushMessageToSendQueue(msgptr, flags, tid);
+						}
+						break;
+					case AsyncWait:
+						if(msgptr.get()){
+							flags |= WaitResponseFlag;
+							d.pushMessageToSendQueue(msgptr, flags, tid);
+						}
+						break;
+					case AsyncFailure:
 						if(msgptr.get()){
 							d.state = Data::WaitDisconnecting;
 							//d.keepalivetimeout = 0;
@@ -2070,20 +2084,6 @@ void Session::doParsePacket(TalkerStub &_rstub, const Packet &_rpkt){
 							);
 						}else{
 							d.state = Data::Disconnecting;
-						}
-						break;
-					case OK:
-						d.state = Data::Connected;
-						//d.keepalivetimeout = _rstub.service().keepAliveTimeout();
-						if(msgptr.get()){
-							flags |= WaitResponseFlag;
-							d.pushMessageToSendQueue(msgptr, flags, tid);
-						}
-						break;
-					case NOK:
-						if(msgptr.get()){
-							flags |= WaitResponseFlag;
-							d.pushMessageToSendQueue(msgptr, flags, tid);
 						}
 						break;
 					default:{
@@ -2108,7 +2108,7 @@ void Session::doParsePacket(TalkerStub &_rstub, const Packet &_rpkt){
 }
 //---------------------------------------------------------------------
 //we need to aquire the address of the relay
-int Session::doExecuteRelayInit(TalkerStub &_rstub){
+AsyncE Session::doExecuteRelayInit(TalkerStub &_rstub){
 	DataRelayed44		&rd = d.relayed44();
 	const Configuration	&rcfg = _rstub.service().configuration();
 	const  size_t		gwcnt = rcfg.gatewayaddrvec.size();
@@ -2118,7 +2118,7 @@ int Session::doExecuteRelayInit(TalkerStub &_rstub){
 	if(gwcnt == 0){
 		//no relay for that destination - quit
 		d.state = Data::Disconnecting;
-		return OK;
+		return AsyncSuccess;
 	}
 	
 	bool found = true;
@@ -2138,10 +2138,10 @@ int Session::doExecuteRelayInit(TalkerStub &_rstub){
 	
 	d.state = Data::RelayConnecting;
 	
-	return OK;
+	return AsyncSuccess;
 }
 //---------------------------------------------------------------------
-int Session::doExecuteConnecting(TalkerStub &_rstub){
+AsyncE Session::doExecuteConnecting(TalkerStub &_rstub){
 	const uint32			pktid(Specific::sizeToIndex(128));
 	Packet					pkt(Specific::popBuffer(pktid), Specific::indexToCapacity(pktid));
 	
@@ -2183,10 +2183,10 @@ int Session::doExecuteConnecting(TalkerStub &_rstub){
 	}
 	
 	d.state = Data::WaitAccept;
-	return NOK;
+	return AsyncWait;
 }
 //---------------------------------------------------------------------
-int Session::doExecuteRelayConnecting(TalkerStub &_rstub){
+AsyncE Session::doExecuteRelayConnecting(TalkerStub &_rstub){
 	const uint32			pktid(Specific::sizeToIndex(128));
 	Packet					pkt(Specific::popBuffer(pktid), Specific::indexToCapacity(pktid));
 	
@@ -2240,10 +2240,10 @@ int Session::doExecuteRelayConnecting(TalkerStub &_rstub){
 	}
 	
 	d.state = Data::WaitAccept;
-	return NOK;
+	return AsyncWait;
 }
 //---------------------------------------------------------------------
-int Session::doExecuteAccepting(TalkerStub &_rstub){
+AsyncE Session::doExecuteAccepting(TalkerStub &_rstub){
 	const uint32	pktid(Specific::sizeToIndex(64));
 	Packet			pkt(Specific::popBuffer(pktid), Specific::indexToCapacity(pktid));
 	
@@ -2295,10 +2295,10 @@ int Session::doExecuteAccepting(TalkerStub &_rstub){
 	}else{
 		d.state = Data::Authenticating;
 	}
-	return OK;
+	return AsyncSuccess;
 }
 //---------------------------------------------------------------------
-int Session::doExecuteRelayAccepting(TalkerStub &_rstub){
+AsyncE Session::doExecuteRelayAccepting(TalkerStub &_rstub){
 	const uint32	pktid(Specific::sizeToIndex(64));
 	Packet			pkt(Specific::popBuffer(pktid), Specific::indexToCapacity(pktid));
 	
@@ -2363,11 +2363,10 @@ int Session::doExecuteRelayAccepting(TalkerStub &_rstub){
 	}else{
 		d.state = Data::Authenticating;
 	}
-	return OK;
-	return NOK;
+	return AsyncSuccess;
 }
 //---------------------------------------------------------------------
-int Session::doTrySendUpdates(TalkerStub &_rstub){
+AsyncE Session::doTrySendUpdates(TalkerStub &_rstub){
 	if(d.rcvdidq.size() && d.updatespacket.empty() && d.mustSendUpdates()){
 		//send an updates packet
 		const uint32	pktid(Specific::sizeToIndex(256));
@@ -2418,14 +2417,14 @@ int Session::doTrySendUpdates(TalkerStub &_rstub){
 		}else{
 			d.updatespacket = pkt;
 			vdbgx(Debug::ipc, "sent updates "<<pkt<<" pending");
-			return NOK;
+			return AsyncWait;
 		}
-		return OK;
+		return AsyncSuccess;
 	}
-	return BAD;
+	return AsyncFailure;
 }
 //---------------------------------------------------------------------
-int Session::doExecuteConnectedLimited(TalkerStub &_rstub){
+AsyncE Session::doExecuteConnectedLimited(TalkerStub &_rstub){
 	vdbgx(Debug::ipc, ""<<d.sendpacketfreeposstk.size());
 	Controller 	&rctrl = _rstub.service().controller();
 	
@@ -2497,10 +2496,10 @@ int Session::doExecuteConnectedLimited(TalkerStub &_rstub){
 		}
 	}
 	doTrySendUpdates(_rstub);
-	return NOK;
+	return AsyncWait;
 }
 //---------------------------------------------------------------------
-int Session::doExecuteConnected(TalkerStub &_rstub){
+AsyncE Session::doExecuteConnected(TalkerStub &_rstub){
 	vdbgx(Debug::ipc, ""<<d.sendpacketfreeposstk.size());
 	Controller 	&rctrl = _rstub.service().controller();
 
@@ -2588,7 +2587,7 @@ int Session::doExecuteConnected(TalkerStub &_rstub){
 	}
 	doTrySendUpdates(_rstub);
 	//return (d.sendpacketfreeposstk.size() && (d.msgq.size() || d.sendmsgidxq.size())) ? OK : NOK;
-	return NOK;
+	return AsyncWait;
 }
 //---------------------------------------------------------------------
 void Session::doFillSendPacket(TalkerStub &_rstub, const uint32 _pktidx){
@@ -2687,14 +2686,14 @@ void Session::doFillSendPacket(TalkerStub &_rstub, const uint32 _pktidx){
 	if(pser) d.pushSerializer(pser);
 }
 //---------------------------------------------------------------------
-int Session::doExecuteDisconnecting(TalkerStub &_rstub){
+AsyncE Session::doExecuteDisconnecting(TalkerStub &_rstub){
 	//d.state = Data::Disconnected;
-	int	rv;
-	while((rv = doTrySendUpdates(_rstub)) == OK){
+	AsyncE	rv;
+	while((rv = doTrySendUpdates(_rstub)) == AsyncSuccess){
 	}
-	if(rv == BAD){
+	if(rv == AsyncFailure){
 		if(d.state == Data::WaitDisconnecting){
-			return NOK;
+			return AsyncWait;
 		}
 		d.state = Data::Disconnected;
 	}
@@ -2758,10 +2757,10 @@ bool Session::doDummyPushSentPacket(
 	return rdd.sendq.size() != 0;
 }
 //---------------------------------------------------------------------
-int Session::doExecuteDummy(TalkerStub &_rstub){
+AsyncE Session::doExecuteDummy(TalkerStub &_rstub){
 	cassert(d.type == Data::Dummy);
 	DataDummy &rdd = d.dummy();
-	if(rdd.sendq.empty()) return NOK;
+	if(rdd.sendq.empty()) return AsyncWait;
 	
 	if(rdd.crtpkt.empty()){
 		const uint32	pktid(Specific::sizeToIndex(128));
@@ -2792,7 +2791,7 @@ int Session::doExecuteDummy(TalkerStub &_rstub){
 				vdbgx(Debug::ipc, "sent error packet done");
 				rdd.sendq.pop();
 			}else{
-				return NOK;
+				return AsyncWait;
 			}
 		}else{
 			edbgx(Debug::ipc, "unsupported sendtype = "<<rss.sendtype);
@@ -2803,7 +2802,7 @@ int Session::doExecuteDummy(TalkerStub &_rstub){
 	
 	d.pairaddr.clear();
 	
-	return NOK;
+	return AsyncWait;
 }
 //---------------------------------------------------------------------
 bool Session::pushReceivedErrorPacket(
@@ -2812,7 +2811,7 @@ bool Session::pushReceivedErrorPacket(
 ){
 	ErrorData	ed;
 	
-	if(!parseErrorPacket(_rpkt, ed)){
+	if(parseErrorPacket(_rpkt, ed)){
 		idbgx(Debug::ipc, "Received error ("<<ed.error<<"): "<<Service::errorText(ed.error));
 	}else{
 		cassert(false);
