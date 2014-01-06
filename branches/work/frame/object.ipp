@@ -50,7 +50,7 @@ inline size_t Object::grabSignalMask(size_t _leave){
 inline bool Object::notified() const {
 	return smask.load(/*ATOMIC_NS::memory_order_seq_cst*/) != 0;
 }
-inline bool Object::notified(ulong _s) const{
+inline bool Object::notified(size_t _s) const{
 	return (smask.load(/*ATOMIC_NS::memory_order_seq_cst*/) & _s) != 0;
 }
 

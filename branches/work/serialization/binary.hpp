@@ -460,7 +460,7 @@ protected:
 			return Success;
 		}
 		Ctx 			&rctx = *reinterpret_cast<Ctx*>(_pctx);
-		int rv = reinterpret_cast<T*>(_rfd.p)->template serializationReinit<Ser, I>(rs, val, rctx);
+		CbkReturnValueE rv = reinterpret_cast<T*>(_rfd.p)->template serializationReinit<Ser, I>(rs, val, rctx);
 		if(rv == Failure){
 			rs.err = ERR_REINIT;
 		}
@@ -1332,7 +1332,7 @@ protected:
 			return Success;
 		}
 		Ctx 			&rctx = *reinterpret_cast<Ctx*>(_pctx);
-		int rv = reinterpret_cast<T*>(_rfd.p)->template serializationReinit<Des, I>(rd, val, rctx);
+		CbkReturnValueE rv = reinterpret_cast<T*>(_rfd.p)->template serializationReinit<Des, I>(rd, val, rctx);
 		if(rv == Failure){
 			rd.err = ERR_REINIT;
 		}

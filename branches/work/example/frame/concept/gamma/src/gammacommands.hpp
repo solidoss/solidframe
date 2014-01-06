@@ -46,11 +46,11 @@ public:
 	Basic(Types _tp);
 	~Basic();
 	void initReader(Reader &);
-	int execute(const uint _sid);
+	void execute(const uint _sid);
 private:
-	int execNoop(const uint _sid);
-	int execLogout(const uint _sid);
-	int execCapability(const uint _sid);
+	void execNoop(const uint _sid);
+	void execLogout(const uint _sid);
+	void execCapability(const uint _sid);
 private:
 	Types tp;
 };
@@ -65,50 +65,10 @@ public:
 	Login();
 	~Login();
 	void initReader(Reader &);
-	int execute(const uint _sid);
+	void execute(const uint _sid);
 private:
 	void contextData(ObjectUidT &);
 	solid::String user,pass, ctx;
-};
-
-class Open: public Command{
-public:
-	Open();
-	~Open();
-	void initReader(Reader &);
-	int execute(const uint _sid);
-	
-	int reinitWriter(Writer &_rw, solid::protocol::text::Parameter &_rp);
-private:
-	int doInitLocal(const uint _sid);
-	int doDoneLocal(Writer &_rw);
-	int receiveInputStream(
-		solid::StreamPointer<solid::InputStream> &_sptr,
-		const FileUidT &_fuid,
-		int _which,
-		const ObjectUidT&,
-		const solid::frame::ipc::ConnectionUid *
-	);
-	int receiveError(
-		int _errid,
-		const ObjectUidT&_from,
-		const solid::frame::ipc::ConnectionUid *
-	);
-private:
-	enum{
-		InitLocal,
-		DoneLocal,
-		WaitLocal,
-		SendError
-	};
-	uint16											state;
-	solid::protocol::text::Parameter				*pp;
-	solid::String									path;
-	solid::String									flags;
-	uint32											reqid;
-	solid::StreamPointer<solid::InputStream>		isp;
-	solid::StreamPointer<solid::InputOutputStream>	iosp;
-	solid::StreamPointer<solid::OutputStream>		osp;
 };
 
 }//namespace gamma

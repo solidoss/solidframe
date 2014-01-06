@@ -134,7 +134,7 @@ struct FetchMasterMessage: Dynamic<FetchMasterMessage, solid::frame::ipc::Messag
 		const MessageUidT &, solid::TimeSpec &_rts
 	);
 
-	int receiveMessage(
+	bool receiveMessage(
 		DynamicPointer<frame::Message> &_rsig,
 		const ObjectUidT& _from = ObjectUidT(),
 		const solid::frame::ipc::ConnectionUid *_conid = NULL
@@ -195,10 +195,10 @@ struct FetchSlaveMessage: Dynamic<FetchSlaveMessage, solid::frame::ipc::Message>
 	}
 	
 	template <class S, uint32 I>
-	int serializationReinit(S &_rs, const uint32 &_rv, solid::frame::ipc::ConnectionContext const &_rctx){
+	serialization::binary::CbkReturnValueE serializationReinit(S &_rs, const uint32 &_rv, solid::frame::ipc::ConnectionContext const &_rctx){
 		if(_rv == 1){
 			clearOutputStream();
-			return OK;
+			return serialization::binary::Success;
 		}
 		if(S::IsSerializer){
 			InputStream *ps = ins.get();
@@ -212,7 +212,7 @@ struct FetchSlaveMessage: Dynamic<FetchSlaveMessage, solid::frame::ipc::Message>
 			_rs.template pushReinit<FetchSlaveMessage, 0>(this, 1, "reinit");
 			_rs.pushStream(ps, (uint64)0, (uint64)streamsz, "stream");
 		}
-		return CONTINUE;
+		return serialization::binary::Continue;
 	}
 	void initOutputStream();
 	void clearOutputStream();

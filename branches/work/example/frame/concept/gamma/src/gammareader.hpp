@@ -24,7 +24,7 @@ class Reader: public solid::protocol::text::Reader{
 public:
 	enum{
 		QuotedString = LastBasicError,
-		Idle = LastReturnValue + 1
+		Idle = LastReturnValue + 1,
 	};
 	uint socketId()const{return sid;}
 	void socketId(const uint _sid){sid = _sid;}

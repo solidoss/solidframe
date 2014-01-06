@@ -43,7 +43,7 @@ public:
 	//! Called by the reader to learn how to parse the command
 	virtual void initReader(Reader &) = 0;
 	//! Called by alpha::Connection to prepare the response
-	virtual int execute(Connection &) = 0;
+	virtual void execute(Connection &) = 0;
 	//received from filemanager
 	//! Receive an istream
 	virtual int receiveInputStream(

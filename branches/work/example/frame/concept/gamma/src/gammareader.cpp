@@ -6,6 +6,7 @@
 #include <cerrno>
 
 using namespace solid;
+using namespace solid::protocol::text;
 
 namespace concept{
 namespace gamma{
@@ -44,12 +45,12 @@ void Reader::clear(){
 	Reader &rr = static_cast<Reader&>(_rr);
 	int c;
     int rv = rr.peek(c);
-    if(rv == No){
+    if(rv == Wait){
 		_rr.push(&Reader::refill);
 		return Continue;
 	}
 	
-	cassert(rv == Ok);
+	cassert(rv == Success);
 	if(c == '{'){
 		rr.drop();
 		rr.fs.top().first = &Reader::copyTmpString;
@@ -76,7 +77,7 @@ void Reader::clear(){
 	Reader &rr = static_cast<Reader&>(_rr);
 	while(true){
 		int rv = rr.fetch<QuotedFilter>(rr.tmp, 1024);
-		if(rv == No){
+		if(rv == Wait){
 			rr.push(&Reader::refill);
 			return Continue;
 		}else if(rv == Error && rr.tmp.size() > 1024){
@@ -110,28 +111,28 @@ void Reader::clear(){
 		rr.basicError(QuotedString);
 		return Error;
 	}
-	return Ok;
+	return Success;
 }
 /*static*/ int Reader::copyTmpString(protocol::text::Reader &_rr, protocol::text::Parameter &_rp){
 	Reader &rr = static_cast<Reader&>(_rr);
 	*static_cast<String*>(_rp.a.p) = rr.tmp;
 	rr.tmp.clear();
-	return Ok;
+	return Success;
 }
 
 /*static*/ int Reader::flushWriter(protocol::text::Reader &_rr, protocol::text::Parameter &_rp){
 	Reader &rr = static_cast<Reader&>(_rr);
 	switch(rr.rw.flushAll()){
-		case Writer::Bad:
+		case Failure:
 			rr.state = IOErrorState;
-			return Bad;
-		case Writer::Ok: return Ok;
-		case Writer::No:
+			return Failure;
+		case Success: return Success;
+		case Wait:
 			rr.replace(&Reader::returnValue<true>, protocol::text::Parameter(Continue));
-			return No;
+			return Wait;
 	}
 	cassert(false);
-	return Bad;
+	return Failure;
 }
 
 /*static*/ int Reader::checkLiteral(protocol::text::Reader &_rr, protocol::text::Parameter &_rp){
@@ -208,32 +209,32 @@ void Reader::clear(){
 /*static*/ int Reader::errorPrepare(protocol::text::Reader &_rr, protocol::text::Parameter &_rp){
 	Reader &rr = static_cast<Reader&>(_rr);
 	rr.tmp.clear();
-	return Ok;
+	return Success;
 }
 /*static*/ int Reader::errorRecovery(protocol::text::Reader &_rr, protocol::text::Parameter &_rp){
 	Reader &rr = static_cast<Reader&>(_rr);
 	int rv = rr.locate<CharFilter<'\n'> >(rr.tmp, _rp.a.u32, 16);
-	if(rv == No){
+	if(rv == Wait){
 		_rr.push(&Reader::refill);
 		return Continue;
-	}else if(rv == Bad){
+	}else if(rv == Failure){
 		rr.state = FatalErrorState;//give up
-		return Bad;
+		return Failure;
 	}
 	rr.drop();
 	uint32 litlen;
 	rv = rr.extractLiteralLength(litlen);
 	
-	if(rv == Ok){
+	if(rv == Success){
 		//rw.putTag()<<es;
 		//rw.put('\r','\n');
-		return Ok;
+		return Success;
 	}
-	if(rv == Bad){
+	if(rv == Failure){
 		rr.state = FatalErrorState;//give up
-		return Bad;
+		return Failure;
 	}
-	//rc == No cant send the response yet
+	//rc == Wait cant send the response yet
 	
 	_rp.a.u32 = 64 * 1024;
 	rr.tmp.clear();
@@ -244,7 +245,7 @@ void Reader::clear(){
 int Reader::extractLiteralLength(uint32 &_litlen){
 	const char*str = tmp.c_str();
 	unsigned sz = tmp.size();
-    if(*(str + sz - 2) != '}') return Ok;//no literal
+    if(*(str + sz - 2) != '}') return Success;//no literal
     const char* p = str;
     const char* pend = str + sz;
     for(;p != pend && *p != '{'; ++p);
@@ -252,13 +253,13 @@ int Reader::extractLiteralLength(uint32 &_litlen){
         ++p;
         _litlen = strtoul(p, NULL, 10);
         if(errno == ERANGE){
-            return Bad;
+            return Failure;
         }
     }else{
-        return Bad;
+        return Failure;
     }
-    if(*(str + sz - 3) == '+') return No;//literal plus
-    return Ok;//no literal plus
+    if(*(str + sz - 3) == '+') return Wait;//literal plus
+    return Success;//no literal plus
 }
 
 }//namespace gamma

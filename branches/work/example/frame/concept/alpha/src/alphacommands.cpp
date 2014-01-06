@@ -131,28 +131,24 @@ Basic::~Basic(){
 }
 void Basic::initReader(Reader &_rr){
 }
-int Basic::execute(Connection &_rc){
+void Basic::execute(Connection &_rc){
 	switch(tp){
-		case Noop:	return execNoop(_rc);
-		case Logout: return execLogout(_rc);
-		case Capability: return execCapability(_rc);
+		case Noop:	execNoop(_rc); break;
+		case Logout: execLogout(_rc); break;
+		case Capability: execCapability(_rc); break;
 	}
-	return BAD;
 }
-int Basic::execNoop(Connection &_rc){
+void Basic::execNoop(Connection &_rc){
 	_rc.writer().push(&Writer::putStatus, protocol::text::Parameter(StrDef(" OK Done NOOP@")));
-	return OK;
 }
-int Basic::execLogout(Connection &_rc){
-	_rc.writer().push(&Writer::returnValue<true>, protocol::text::Parameter(Writer::Bad));
+void Basic::execLogout(Connection &_rc){
+	_rc.writer().push(&Writer::returnValue<true>, protocol::text::Parameter(Writer::Failure));
 	_rc.writer().push(&Writer::putStatus, protocol::text::Parameter(StrDef(" OK Done LOGOUT@")));
 	_rc.writer().push(&Writer::putAtom, protocol::text::Parameter(StrDef("* Alpha connection closing\r\n")));
-	return NOK;
 }
-int Basic::execCapability(Connection &_rc){
+void Basic::execCapability(Connection &_rc){
 	_rc.writer().push(&Writer::putStatus, protocol::text::Parameter(StrDef(" OK Done CAPABILITY@")));
 	_rc.writer().push(&Writer::putAtom, protocol::text::Parameter(StrDef("* CAPABILITIES noop logout login\r\n")));
-	return OK;
 }
 //---------------------------------------------------------------
 // Login command
@@ -169,9 +165,8 @@ void Login::initReader(Reader &_rr){
 	_rr.push(&Reader::fetchAString, protocol::text::Parameter(&user));
 	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
 }
-int Login::execute(Connection &_rc){
+void Login::execute(Connection &_rc){
 	_rc.writer().push(&Writer::putStatus, protocol::text::Parameter(StrDef(" OK Done LOGIN@")));
-	return OK;
 }
 //---------------------------------------------------------------
 // List command
@@ -184,20 +179,20 @@ void List::initReader(Reader &_rr){
 	_rr.push(&Reader::fetchAString, protocol::text::Parameter(&strpth));
 	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
 }
-int List::execute(Connection &_rc){
+void List::execute(Connection &_rc){
 	idbg("path: "<<strpth);
 	fs::path pth(strpth.c_str()/*, fs::native*/);
 	protocol::text::Parameter &rp = _rc.writer().push(&Writer::putStatus);
 	rp = protocol::text::Parameter(StrDef(" OK Done LIST@"));
 	if(!exists( pth ) || !is_directory(pth)){
 		rp = protocol::text::Parameter(StrDef(" NO LIST: Not a directory@"));
-		return OK;
+		return;
 	}
 	try{
 	it = fs::directory_iterator(pth);
 	}catch ( const std::exception & ex ){
 		idbg("dir_iterator exception :"<<ex.what());
-		return OK;
+		return;
 	}
 	_rc.writer().push(&Writer::reinit<List>, protocol::text::Parameter(this, Step));
 	if(it != end){
@@ -209,7 +204,6 @@ int List::execute(Connection &_rc){
 			_rc.writer()<<"* FILE "<<(uint32)FileDevice::size(it->path().c_str())<<' ';
 		}
 	}
-	return OK;
 }
 
 int List::reinitWriter(Writer &_rw, protocol::text::Parameter &_rp){
@@ -224,7 +218,7 @@ int List::reinitWriter(Writer &_rw, protocol::text::Parameter &_rp){
 		}
 		return Writer::Continue;
 	}
-	return Writer::Ok;
+	return Writer::Success;
 }
 //---------------------------------------------------------------
 // RemoteList command
@@ -259,13 +253,13 @@ void RemoteList::initReader(Reader &_rr){
 }
 
 template <>
-int RemoteList::reinitReader<OK>(Reader &_rr, protocol::text::Parameter &){
+int RemoteList::reinitReader<0>(Reader &_rr, protocol::text::Parameter &){
 	typedef CharFilter<' '>				SpaceFilterT;
 	typedef NotFilter<SpaceFilterT> 	NotSpaceFilterT;
 	
 	hostvec.push_back(HostAddr());
 	
-	_rr.push(&Reader::returnValue<true>, protocol::text::Parameter(Reader::Ok));
+	_rr.push(&Reader::returnValue<true>, protocol::text::Parameter(Reader::Success));
 	_rr.push(&Reader::fetchUInt32, protocol::text::Parameter(&pausems));
 	
 	//the pause amount
@@ -283,7 +277,7 @@ int RemoteList::reinitReader<OK>(Reader &_rr, protocol::text::Parameter &){
 	return Reader::Continue;
 }
 
-int RemoteList::execute(Connection &_rc){
+void RemoteList::execute(Connection &_rc){
 	pp = &_rc.writer().push(&Writer::putStatus);
 	*pp = protocol::text::Parameter(StrDef(" OK Done REMOTELIST@"));
 	
@@ -312,13 +306,11 @@ int RemoteList::execute(Connection &_rc){
 			*pp = protocol::text::Parameter(StrDef(" NO REMOTELIST: no such peer address@"));
 		}
 	}
-	
-	return OK;
 }
 int RemoteList::reinitWriter(Writer &_rw, protocol::text::Parameter &_rp){
 	switch(state){
 		case Wait:
-			return Writer::No;
+			return Writer::Wait;
 		case SendListContinue:
 			++it;
 		case SendList:
@@ -333,13 +325,13 @@ int RemoteList::reinitWriter(Writer &_rw, protocol::text::Parameter &_rp){
 				state = SendListContinue;
 				return Writer::Continue;
 			}
-			return Writer::Ok;
+			return Writer::Success;
 		case SendError:
 			*pp = protocol::text::Parameter(StrDef(" NO LIST: Not a directory@"));
-			return Writer::Ok;
+			return Writer::Success;
 	};
 	cassert(false);
-	return BAD;
+	return AsyncFailure;
 }
 int RemoteList::receiveData(
 	void *_pdata,
@@ -355,7 +347,7 @@ int RemoteList::receiveData(
 	}else{
 		state = SendError;
 	}
-	return OK;
+	return AsyncSuccess;
 }
 int RemoteList::receiveError(
 	int _errid, 
@@ -363,7 +355,7 @@ int RemoteList::receiveError(
 	const frame::ipc::ConnectionUid *_conid
 ){
 	state = SendError;
-	return OK;
+	return AsyncSuccess;
 }
 //---------------------------------------------------------------
 // Fetch command
@@ -388,7 +380,7 @@ void Fetch::initReader(Reader &_rr){
 	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
 	
 }
-int Fetch::execute(Connection &_rc){
+void Fetch::execute(Connection &_rc){
 	idbg("path "<<strpth<<", address "<<straddr<<", port "<<port<<' '<<(void*)this);
 	protocol::text::Parameter &rp = _rc.writer().push(&Writer::putStatus);
 	pp = &rp;
@@ -400,7 +392,6 @@ int Fetch::execute(Connection &_rc){
 		state = InitRemote;
 	}
 	_rc.writer().push(&Writer::reinit<Fetch>, protocol::text::Parameter(this));
-	return OK;
 }
 
 int Fetch::doInitLocal(){
@@ -409,20 +400,20 @@ int Fetch::doInitLocal(){
 	frame::RequestUid reqid(rc.id(), Manager::the().id(rc).second, rc.newRequestId());
 	int rv = Manager::the().fileManager().stream(sp_out, reqid, strpth.c_str());
 	switch(rv){
-		case BAD: 
+		case AsyncFailure: 
 			*pp = protocol::text::Parameter(StrDef(" NO FETCH: Unable to open file@"));
-			return Writer::Ok;
-		case OK: 
+			return Writer::Success;
+		case AsyncSuccess: 
 			state = SendLocal;
 			streamsz_out = sp_out->size();
 			litsz = streamsz_out;
 			return Writer::Continue;
-		case NOK:
+		case AsyncWait:
 			state = WaitLocalStream;
-			return Writer::No;
+			return Writer::Wait;
 	}
 	cassert(false);
-	return BAD;
+	return AsyncFailure;
 }
 
 int Fetch::doGetTempStream(uint32 _sz){
@@ -433,17 +424,17 @@ int Fetch::doGetTempStream(uint32 _sz){
 	FileUidT	fuid;
 	int rv = Manager::the().fileManager().stream(sp_out, fuid, reqid, tk);
 	switch(rv){
-		case BAD: 
+		case AsyncFailure: 
 			*pp = protocol::text::Parameter(StrDef(" NO FETCH: Unable to open temp file@"));
-			return Writer::No;
-		case OK: 
+			return Writer::Wait;
+		case AsyncSuccess: 
 			cassert(false);
 			return Writer::Continue;
-		case NOK:
+		case AsyncWait:
 			state = WaitTempStream;
-			return Writer::No;
+			return Writer::Wait;
 	}
-	return Writer::Bad;
+	return Writer::Failure;
 }
 
 void Fetch::doSendMaster(const FileUidT &_fuid){
@@ -481,7 +472,7 @@ void Fetch::doSendSlave(const FileUidT &_fuid){
 	DynamicPointer<frame::ipc::Message> msgptr(pmsg);
 	Manager::the().ipc().sendMessage(msgptr, ipcconuid);
 //	idbg("rv = "<<rv);
-// 	if(rv == BAD){
+// 	if(rv == AsyncFailure){
 // 		*pp = protocol::text::Parameter(StrDef(" NO FETCH: peer died@"));
 // 		state = ReturnBad;
 // 	}
@@ -495,9 +486,9 @@ int Fetch::doSendFirstData(Writer &_rw){
 	if(remainsz){
 		uint32 tmpsz =  512 * 1024;
 		if(remainsz < tmpsz) tmpsz = remainsz;
-		if(doGetTempStream(tmpsz) == Writer::Bad){
+		if(doGetTempStream(tmpsz) == Writer::Failure){
 			*pp = protocol::text::Parameter(StrDef(" NO FETCH: no temp stream@"));
-			return Writer::Ok;
+			return Writer::Success;
 		}
 	}else{
 		state = ReturnCrlf;
@@ -513,9 +504,9 @@ int Fetch::doSendNextData(Writer &_rw){
 	if(remainsz){
 		uint32 tmpsz = 2 * 512 * 1024;
 		if(remainsz < tmpsz) tmpsz = remainsz;
-		if(doGetTempStream(tmpsz) == Writer::Bad){
+		if(doGetTempStream(tmpsz) == Writer::Failure){
 			*pp = protocol::text::Parameter(StrDef(" NO FETCH: no temp stream@"));
-			return Writer::Ok;
+			return Writer::Success;
 		}
 	}else{
 		state = ReturnCrlf;
@@ -558,26 +549,26 @@ int Fetch::reinitWriter(Writer &_rw, protocol::text::Parameter &_rp){
 		case WaitLocalStream:
 		case WaitTempStream:
 		case WaitRemoteStream:
-			return Writer::No;
+			return Writer::Wait;
 		case ReturnBad:
-			return Writer::Bad;
+			return Writer::Failure;
 		case ReturnOk:
-			return Writer::Ok;
+			return Writer::Success;
 		case ReturnCrlf:
 			_rw.replace(&Writer::putCrlf);
 			return Writer::Continue;
 		case SendError:
 			*pp = protocol::text::Parameter(StrDef(" NO FETCH: an error occured@"));
-			return Writer::Ok;
+			return Writer::Success;
 		case SendTempError:
 			*pp = protocol::text::Parameter(StrDef(" NO FETCH: no temp stream@"));
-			return Writer::Ok;
+			return Writer::Success;
 		case SendRemoteError:
 			*pp = protocol::text::Parameter(StrDef(" NO FETCH: no remote stream@"));
-			return Writer::Ok;
+			return Writer::Success;
 	}
 	cassert(false);
-	return BAD;
+	return AsyncFailure;
 }
 
 int Fetch::receiveInputStream(
@@ -603,7 +594,7 @@ int Fetch::receiveInputStream(
 			doSendSlave(_fuid);
 		}
 	}
-	return OK;
+	return AsyncSuccess;
 }
 
 int Fetch::receiveNumber(
@@ -625,7 +616,7 @@ int Fetch::receiveNumber(
 		idbg(""<<litsz<<" "<<streamsz_in);
 		state = SendFirstData;
 	}
-	return OK;
+	return AsyncSuccess;
 }
 
 int Fetch::receiveError(
@@ -651,13 +642,13 @@ int Fetch::receiveError(
 		default:
 			state = ReturnBad;
 	}
-	return OK;
+	return AsyncSuccess;
 }
 
 //---------------------------------------------------------------
 // Store Command
 //---------------------------------------------------------------
-Store::Store(Connection &_rc):rc(_rc),st(0){
+Store::Store(Connection &_rc):rc(_rc),st(AsyncSuccess){
 }
 Store::~Store(){
 	sp.clear();
@@ -677,14 +668,14 @@ int Store::reinitReader(Reader &_rr, protocol::text::Parameter &_rp){
 			frame::RequestUid reqid(rc.id(), Manager::the().id(rc).second, rc.newRequestId());
 			int rv = Manager::the().fileManager().stream(sp, reqid, strpth.c_str(), frame::file::Manager::Create);
 			switch(rv){
-				case BAD: return Reader::Ok;
-				case OK:
+				case AsyncFailure: return Reader::Success;
+				case AsyncSuccess:
 					_rp.b.i = SendWait;
 					return Reader::Continue;
-				case NOK:
-					st = NOK;//waiting
+				case AsyncWait:
+					st = AsyncWait;//waiting
 					_rp.b.i = SendWait;
-					return Reader::No;
+					return Reader::Wait;
 			}
 			break;
 		}
@@ -701,23 +692,22 @@ int Store::reinitReader(Reader &_rr, protocol::text::Parameter &_rp){
 				return Reader::Continue;
 			}else{
 				idbg("no stream");
-				if(st == NOK) return Reader::No;//still waiting
+				if(st == AsyncWait) return Reader::Wait;//still waiting
 				idbg("we have a problem");
-				return Reader::Ok;
+				return Reader::Success;
 			}
 			break;
 	}
 	cassert(false);
-	return Reader::Bad;
+	return Reader::Failure;
 }
-int Store::execute(Connection &_rc){
+void Store::execute(Connection &_rc){
 	protocol::text::Parameter &rp = _rc.writer().push(&Writer::putStatus);
 	if(sp && sp->ok()){
 		rp = protocol::text::Parameter(StrDef(" OK Done STORE@"));
 	}else{
 		rp = protocol::text::Parameter(StrDef(" NO STORE: Failed opening file@"));
 	}
-	return OK;
 }
 
 int Store::receiveOutputStream(
@@ -729,8 +719,8 @@ int Store::receiveOutputStream(
 ){
 	idbg("received stream");
 	sp = _sptr;
-	st = OK;
-	return OK;
+	st = AsyncSuccess;
+	return AsyncSuccess;
 }
 
 int Store::receiveError(
@@ -739,12 +729,12 @@ int Store::receiveError(
 	const solid::frame::ipc::ConnectionUid *
 ){
 	idbg("received error");
-	st = BAD;
-	return OK;
+	st = AsyncFailure;
+	return AsyncSuccess;
 }
 
 int Store::reinitWriter(Writer &_rw, protocol::text::Parameter &_rp){
-	return Writer::Bad;
+	return Writer::Failure;
 }
 //---------------------------------------------------------------
 // Idle command
@@ -759,9 +749,8 @@ void Idle::initReader(Reader &_rr){
 	_rr.push(&Reader::checkChar, protocol::text::Parameter('\n'));
 	_rr.push(&Reader::checkChar, protocol::text::Parameter('\r'));
 }
-int Idle::execute(Connection &_rc){
+void Idle::execute(Connection &_rc){
 	_rc.writer().push(&Writer::putStatus, protocol::text::Parameter(StrDef(" OK Done IDLE@")));
-	return OK;
 }
 int Idle::reinitWriter(Writer &_rw, protocol::text::Parameter &_rp){
 	if(_rp.b.i == 1){//prepare
@@ -814,7 +803,7 @@ int Idle::reinitWriter(Writer &_rw, protocol::text::Parameter &_rp){
 			_rp.b.i = 1;
 			return Writer::Continue;
 		}
-		return Writer::Ok;
+		return Writer::Success;
 	}
 }
 int Idle::receiveInputStream(
@@ -834,7 +823,7 @@ int Idle::receiveInputStream(
 	_sp.release();
 	fromq.push(_from);
 	rc.writer().push(&Writer::reinit<Idle>, protocol::text::Parameter(this, 1));
-	return OK;
+	return AsyncSuccess;
 }
 int Idle::receiveString(
 	const String &_str,
@@ -844,7 +833,7 @@ int Idle::receiveString(
 ){
 	if(typeq.size() && typeq.back() == PeerStreamType){
 		stringq.push(_str);
-		return OK;
+		return AsyncSuccess;
 	}
 	if(_conid){
 		typeq.push(PeerStringType);
@@ -855,7 +844,7 @@ int Idle::receiveString(
 	stringq.push(_str);
 	fromq.push(_from);
 	rc.writer().push(&Writer::reinit<Idle>, protocol::text::Parameter(this, 1));
-	return NOK;
+	return AsyncWait;
 }
 //---------------------------------------------------------------
 // Command Base
@@ -878,7 +867,7 @@ int Command::receiveInputStream(
 	const ObjectUidT&_from,
 	const frame::ipc::ConnectionUid *_conid
 ){
-	return BAD;
+	return AsyncFailure;
 }
 int Command::receiveOutputStream(
 	StreamPointer<OutputStream> &,
@@ -887,7 +876,7 @@ int Command::receiveOutputStream(
 	const ObjectUidT&_from,
 	const frame::ipc::ConnectionUid *_conid
 ){
-	return BAD;
+	return AsyncFailure;
 }
 int Command::receiveInputOutputStream(
 	StreamPointer<InputOutputStream> &, 
@@ -896,7 +885,7 @@ int Command::receiveInputOutputStream(
 	const ObjectUidT&_from,
 	const frame::ipc::ConnectionUid *_conid
 ){
-	return BAD;
+	return AsyncFailure;
 }
 int Command::receiveString(
 	const String &_str,
@@ -904,7 +893,7 @@ int Command::receiveString(
 	const ObjectUidT&_from,
 	const frame::ipc::ConnectionUid *_conid
 ){
-	return BAD;
+	return AsyncFailure;
 }
 int receiveData(
 	void *_pdata,
@@ -913,7 +902,7 @@ int receiveData(
 	const ObjectUidT&_from,
 	const solid::frame::ipc::ConnectionUid *_conid
 ){
-	return BAD;
+	return AsyncFailure;
 }
 int Command::receiveNumber(
 	const int64 &_no,
@@ -921,7 +910,7 @@ int Command::receiveNumber(
 	const ObjectUidT&_from,
 	const frame::ipc::ConnectionUid *_conid
 ){
-	return BAD;
+	return AsyncFailure;
 }
 int Command::receiveData(
 	void *_v,
@@ -930,14 +919,14 @@ int Command::receiveData(
 	const ObjectUidT&_from,
 	const frame::ipc::ConnectionUid *_conid
 ){
-	return BAD;
+	return AsyncFailure;
 }
 int Command::receiveError(
 	int _errid,
 	const ObjectUidT&_from,
 	const solid::frame::ipc::ConnectionUid *_conid
 ){
-	return BAD;
+	return AsyncFailure;
 }
 
 }//namespace alpha

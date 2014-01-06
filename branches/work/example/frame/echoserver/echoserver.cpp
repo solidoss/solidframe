@@ -294,7 +294,7 @@ Listener::Listener(
 	AioSchedulerT &_rsched,
 	const SocketDevice &_rsd,
 	frame::aio::openssl::Context *_pctx
-):BaseT(_rsd), pctx(_pctx), rm(_rm), rsched(_rsched){
+):BaseT(_rsd, true), pctx(_pctx), rm(_rm), rsched(_rsched){
 	state = 0;
 }
 

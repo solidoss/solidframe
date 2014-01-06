@@ -35,62 +35,9 @@ public:
 	//! Called by the reader to learn how to parse the command
 	virtual void initReader(Reader &) = 0;
 	//! Called by alpha::Connection to prepare the response
-	virtual int execute(const uint _sid) = 0;
+	virtual void execute(const uint _sid) = 0;
 	
 	virtual void contextData(ObjectUidT &_robjuid);
-	//received from filemanager
-	//! Receive an istream
-	virtual int receiveInputStream(
-		solid::StreamPointer<solid::InputStream> &,
-		const FileUidT &,
-		int			_which,
-		const ObjectUidT&_from,
-		const solid::frame::ipc::ConnectionUid *_conid
-	);
-	//! Receive an ostream
-	virtual int receiveOutputStream(
-		solid::StreamPointer<solid::OutputStream> &,
-		const FileUidT &,
-		int			_which,
-		const ObjectUidT&_from,
-		const solid::frame::ipc::ConnectionUid *_conid
-	);
-	//! Receive an iostream
-	virtual int receiveInputOutputStream(
-		solid::StreamPointer<solid::InputOutputStream> &,
-		const FileUidT &,
-		int			_which,
-		const ObjectUidT&_from,
-		const solid::frame::ipc::ConnectionUid *_conid
-	);
-	//! Receive a string
-	virtual int receiveString(
-		const solid::String &_str,
-		int			_which, 
-		const ObjectUidT&_from,
-		const solid::frame::ipc::ConnectionUid *_conid
-	);
-	//! Receive data
-	virtual int receiveData(
-		void *_pdata,
-		int _datasz,
-		int			_which, 
-		const ObjectUidT&_from,
-		const solid::frame::ipc::ConnectionUid *_conid
-	);
-	//! Receive a number
-	virtual int receiveNumber(
-		const int64 &_no,
-		int			_which,
-		const ObjectUidT&_from,
-		const solid::frame::ipc::ConnectionUid *_conid
-	);
-	//! Receive an error code
-	virtual int receiveError(
-		int _errid,
-		const ObjectUidT&_from,
-		const solid::frame::ipc::ConnectionUid *_conid
-	);
 
 };
 

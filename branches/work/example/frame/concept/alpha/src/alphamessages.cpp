@@ -112,7 +112,7 @@ int RemoteListMessage::execute(
 		idbg("sleep for "<<tout<<" mseconds");
 		_rts += tout;
 		tout = 0;
-		return NOK;
+		return AsyncWait;
 	}
 	idbg("done sleeping");
 	
@@ -128,7 +128,7 @@ int RemoteListMessage::execute(
 	if(!exists( pth ) || !is_directory(pth)){
 		err = -1;
 		Manager::the().ipc().sendMessage(msgptr, conid);
-		return BAD;
+		return AsyncFailure;
 	}
 	
 	try{
@@ -138,7 +138,7 @@ int RemoteListMessage::execute(
 		err = -1;
 		strpth = ex.what();
 		Manager::the().ipc().sendMessage(msgptr, conid);
-		return BAD;
+		return AsyncFailure;
 	}
 	
 	while(it != end){
@@ -152,7 +152,7 @@ int RemoteListMessage::execute(
 	err = 0;
 	//Thread::sleep(1000 * 20);
 	Manager::the().ipc().sendMessage(msgptr, conid);
-	return BAD;
+	return AsyncFailure;
 }
 
 //-----------------------------------------------------------------------------------
@@ -198,24 +198,24 @@ int FetchMasterMessage::execute(
 	TimeSpec &_rts
 ){
 	Manager &rm(Manager::the());
-	cassert(!(_evs & frame::TIMEOUT));
+	cassert(!(_evs & frame::EventTimeout));
 	switch(state){
 		case Received:{
 			idbg((void*)this<<" try to open file "<<fname<<" _msguid = "<<_msguid.first<<","<<_msguid.second);
 			//try to get a stream for the file:
 			frame::RequestUid reqid(_rce.id(), rm.id(_rce).second, _msguid.first, _msguid.second);
 			switch(rm.fileManager().stream(ins, fuid, reqid, fname.c_str())){
-				case BAD://ouch
+				case AsyncFailure://ouch
 					state = SendError;
 					idbg("open failed");
-					return OK;
-				case OK:
+					return AsyncSuccess;
+				case AsyncSuccess:
 					idbg("open succeded");
 					state = SendFirstStream;
-					return OK;
-				case NOK:
+					return AsyncSuccess;
+				case AsyncWait:
 					idbg("open wait");
-					return NOK;//wait the stream - no timeout
+					return AsyncWait;//wait the stream - no timeout
 			}
 		}break;
 		case SendFirstStream:{
@@ -241,14 +241,14 @@ int FetchMasterMessage::execute(
 			pmsg = NULL;
 			if(!this->filesz){
 				idbg("connector was destroyed or filesz = "<<this->filesz);
-				return BAD;
+				return AsyncFailure;
 			}
 			rm.ipc().sendMessage(msgptr, conid);
 			
 			idbg("wait for streams");
 			//TODO: put here timeout! - wait for signals
 			//_rts.add(30);
-			return NOK;
+			return AsyncWait;
 		}
 		case SendNextStream:{
 			idbg((void*)this<<" send next stream");
@@ -272,12 +272,12 @@ int FetchMasterMessage::execute(
 			rm.ipc().sendMessage(msgptr, conid);
 			if(!this->filesz){
 				idbg("connector was destroyed or filesz = "<<this->filesz);
-				return BAD;
+				return AsyncFailure;
 			}
 			idbg("wait for streams");
 			//TODO: put here timeout! - wait for signals
 			//_rts.add(30);
-			return NOK;
+			return AsyncWait;
 		}
 		case SendError:{
 			idbg((void*)this<<" sending error");
@@ -286,13 +286,13 @@ int FetchMasterMessage::execute(
 			pmsg->tov = fromv;
 			pmsg->filesz = -1;
 			rm.ipc().sendMessage(msgptr, conid);
-			return BAD;
+			return AsyncFailure;
 		}
 	}
-	return BAD;
+	return AsyncFailure;
 }
 
-int FetchMasterMessage::receiveMessage(
+bool FetchMasterMessage::receiveMessage(
 	DynamicPointer<frame::Message> &_rmsgptr,
 	const ObjectUidT& _from,
 	const frame::ipc::ConnectionUid *_conid
@@ -315,9 +315,9 @@ int FetchMasterMessage::receiveMessage(
 		pmsg = static_cast<FetchSlaveMessage*>(_rmsgptr.release());
 		idbg((void*)this<<" Received slavesignal");
 		state = SendNextStream;
-	}else return NOK;
+	}else return false;
 	idbg("success");
-	return OK;//success reschedule command for execution
+	return true;//success reschedule command for execution
 }
 
 // int FetchMasterMessage::receiveMessage(
@@ -329,7 +329,7 @@ int FetchMasterMessage::receiveMessage(
 // 	psig = static_cast<FetchSlaveMessage*>(_rmsgptr.release());
 // 	idbg("");
 // 	state = SendNextStream;
-// 	return OK;
+// 	return AsyncSuccess;
 // }
 // int FetchMasterMessage::receiveInputStream(
 // 	StreamPointer<InputStream> &_rins,
@@ -342,7 +342,7 @@ int FetchMasterMessage::receiveMessage(
 // 	ins = _rins;
 // 	fuid = _fuid;
 // 	state = SendFirstStream;
-// 	return OK;
+// 	return AsyncSuccess;
 // }
 // int FetchMasterMessage::receiveError(
 // 	int _errid, 
@@ -351,7 +351,7 @@ int FetchMasterMessage::receiveMessage(
 // ){
 // 	idbg("");
 // 	state = SendError;
-// 	return OK;
+// 	return AsyncSuccess;
 // }
 
 //-----------------------------------------------------------------------------------
@@ -382,7 +382,7 @@ void FetchSlaveMessage::print()const{
 int FetchSlaveMessage::sent(const frame::ipc::ConnectionUid &_rconid){
 	idbg((void*)this<<"");
 	fromv.first = 0xffffffff;
-	return BAD;
+	return AsyncFailure;
 }
 void FetchSlaveMessage::ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, frame::ipc::Message::MessagePointerT &_rmsgptr){
 	DynamicPointer<frame::Message> psig(this);
@@ -408,7 +408,7 @@ int FetchSlaveMessage::execute(
 ){
 	idbg((void*)this<<"");
 	_rce.sendMessage(_rmsgptr, msguid);
-	return BAD;
+	return AsyncFailure;
 }
 
 void FetchSlaveMessage::initOutputStream(){

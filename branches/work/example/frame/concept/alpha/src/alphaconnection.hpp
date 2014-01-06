@@ -77,13 +77,6 @@ public:
 	
 	/*virtual*/ bool notify(solid::DynamicPointer<solid::frame::Message> &_rmsgptr);
 	
-	//! The implementation of the protocol's state machine
-	/*!
-		The method will be called within a solid::frame::SelectPool by an
-		solid::frame::aio::Selector.
-	*/
-	int execute(solid::ulong _sig, solid::TimeSpec &_tout);
-	
 	void state(int _st){
 		st = _st;
 	}
@@ -120,6 +113,7 @@ public:
 	void dynamicHandle(solid::DynamicPointer<InputOutputStreamMessage> &_rmsgptr);
 	void dynamicHandle(solid::DynamicPointer<StreamErrorMessage> &_rmsgptr);
 private:
+	/*virtual*/ void execute(ExecuteContext &_rexectx);
 	void prepareReader();
 private:
 	enum {

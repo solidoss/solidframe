@@ -60,11 +60,11 @@ public:
 	Basic(Types _tp);
 	~Basic();
 	void initReader(Reader &);
-	int execute(Connection &_rc);
+	void execute(Connection &_rc);
 private:
-	int execNoop(Connection &_rc);
-	int execLogout(Connection &_rc);
-	int execCapability(Connection &_rc);
+	void execNoop(Connection &_rc);
+	void execLogout(Connection &_rc);
+	void execCapability(Connection &_rc);
 private:
 	Types tp;
 };
@@ -79,7 +79,7 @@ public:
 	Login();
 	~Login();
 	void initReader(Reader &);
-	int execute(Connection &);
+	void execute(Connection &);
 private:
 	solid::String user,pass;
 };
@@ -96,7 +96,7 @@ public:
 	Fetch(Connection &);
 	~Fetch();
 	void initReader(Reader &);
-	int execute(Connection &);
+	void execute(Connection &);
 	//! Writer plugin
 	/*!
 		Implements the logic for requesting a file from FileManager, 
@@ -185,7 +185,7 @@ public:
 	~Store();
 	void initReader(Reader &);
 	int reinitReader(Reader &, solid::protocol::text::Parameter &);
-	int execute(Connection &);
+	void execute(Connection &);
 	int receiveOutputStream(
 		solid::StreamPointer<solid::OutputStream> &_sptr,
 		const FileUidT &_fuid,
@@ -223,7 +223,7 @@ public:
 	List();
 	~List();
 	void initReader(Reader &);
-	int execute(Connection &);
+	void execute(Connection &);
 	
 	int reinitWriter(Writer &, solid::protocol::text::Parameter &);
 private:
@@ -250,7 +250,7 @@ public:
 	RemoteList();
 	~RemoteList();
 	void initReader(Reader &);
-	int execute(Connection &);
+	void execute(Connection &);
 	
 	int reinitWriter(Writer &, solid::protocol::text::Parameter &);
 	int receiveData(
@@ -299,7 +299,7 @@ public:
 	Idle(Connection &_rc):rc(_rc){}
 	~Idle();
 	void initReader(Reader &);
-	int execute(Connection &);
+	void execute(Connection &);
 	int reinitWriter(Writer &, solid::protocol::text::Parameter &);
 	/*virtual*/ int receiveInputStream(
 		solid::StreamPointer<solid::InputStream> &,

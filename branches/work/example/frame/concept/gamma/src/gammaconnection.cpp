@@ -87,10 +87,6 @@ enum RetValE{
 /*static*/ Connection::DynamicMapperT		Connection::dm;
 
 /*static*/ void Connection::dynamicRegister(){
-	dm.insert<InputStreamMessage, Connection>();
-	dm.insert<OutputStreamMessage, Connection>();
-	dm.insert<InputOutputStreamMessage, Connection>();
-	dm.insert<StreamErrorMessage, Connection>();
 	dm.insert<SocketMoveMessage, Connection>();
 }
 
@@ -101,7 +97,7 @@ Connection::Connection(const SocketDevice &_rsd):
 	sdv.back()->r.buffer(protocol::text::HeapBuffer(1024));
 	sdv.back()->w.buffer(protocol::text::HeapBuffer(1024));
 	socketState(0, SocketInit);
-	this->socketPostEvents(0, frame::RESCHEDULED);
+	this->socketPostEvents(0, frame::EventReschedule);
 }
 
 
@@ -255,9 +251,12 @@ void   Connection::deleteRequestId(uint32 _v){
 }
 	
 int Connection::executeSocket(const uint _sid, const TimeSpec &_tout){
-	ulong evs(this->socketEvents(_sid));
+	ulong		evs(this->socketEvents(_sid));
+	
 	if(evs & (frame::EventTimeoutRecv | frame::EventTimeoutSend)) return Failure;
-	SocketData &rsd(socketData(_sid));
+	
+	SocketData	&rsd(socketData(_sid));
+	
 	switch(socketState(_sid)){
 		case SocketRegister:
 			this->socketRequestRegister(_sid);
@@ -297,7 +296,6 @@ int Connection::executeSocket(const uint _sid, const TimeSpec &_tout){
 		case SocketIdleDone:
 			return doSocketExecute(_sid, rsd, SocketIdleDone);
 		case SocketLeave:
-			cassert(evs & frame::DONE);
 			//the socket is unregistered
 			//prepare a signal
 			doSendSocketMessage(_sid);
@@ -363,10 +361,10 @@ void Connection::doSocketPrepareParse(const uint _sid, SocketData &_rsd){
 int Connection::doSocketParse(const uint _sid, SocketData &_rsd, const bool _isidle){
 	int rc(_rsd.r.run());
 	switch(rc){
-		case OK:
+		case Reader::Success:
 			//done parsing
 			break;
-		case NOK:
+		case Reader::Wait:
 			if(socketHasPendingRecv(_sid)){
 				socketTimeoutRecv(_sid, 300);
 			}
@@ -375,64 +373,66 @@ int Connection::doSocketParse(const uint _sid, SocketData &_rsd, const bool _isi
 			}
 			if(_isidle){
 				socketState(_sid, SocketIdleWait);
-				return OK;
+				return Success;
 			}else{
 				socketState(_sid, SocketParseWait);
-				return NOK;
+				return Wait;
 			}
-		case BAD:
+		case Reader::Failure:
 			edbg("");
-			return BAD;
-		case YIELD:
-			return OK;
+			return Failure;
+		case Reader::Yield:
+			return Success;
 		case Reader::Idle:
 			cassert(!_isidle);
 			socketState(_sid, SocketIdleParse);
-			return OK;
+			return Success;
 	}
 	if(_rsd.r.isError()){
 		delete _rsd.pcmd; _rsd.pcmd = NULL;
 		_rsd.w.push(Writer::putStatus);
 		socketState(_sid, SocketExecute);
-		return OK;
+		return Success;
 	}
 	if(_isidle && !_rsd.w.empty())
 		socketState(_sid, SocketIdleDone);
 	else
 		socketState(_sid, SocketExecutePrepare);
-	return OK;
+	return Success;
 }
 
 int Connection::doSocketExecute(const uint _sid, SocketData &_rsd, const int _state){
-	if(socketHasPendingSend(_sid)) return NOK;
+	if(socketHasPendingSend(_sid)) return solid::AsyncWait;
 	int rc(_rsd.w.run());
 	switch(rc){
-		case NOK:
+		case Writer::Wait:
 			socketTimeoutSend(_sid, 3000);
 			//remain in the same state
-			return NOK;
-		case OK:
+			return Wait;
+		case Writer::Success:
 			if(!_state){
 				delete _rsd.pcmd; _rsd.pcmd = NULL;
 				socketState(_sid, SocketParsePrepare);
-				return OK;
 			}else if(_state == SocketIdleDone){
 				socketState(_sid, SocketExecutePrepare);
-				return OK;
 			}
 			//remain in the state and wait
-			return OK;
-		case YIELD:
-			return OK;
+			return Success;
+		case Writer::Yield:
+			return Success;
 		case Writer::Leave:
 			socketState(_sid, SocketLeave);
 			this->socketRequestUnregister(_sid);
-			return NOK;
+			return Wait;
+		case Writer::Failure:
+			edbg("");
+			return Failure;
 		default:
 			edbg("rc = "<<rc);
-			return rc;
+			cassert(false);
+			return Failure;
 	}
-	return OK;
+	return Success;
 }
 
 
@@ -440,32 +440,12 @@ void Connection::dynamicHandle(DynamicPointer<> &_dp){
 	wdbg("Received unknown signal on ipcservice");
 }
 
-
-void Connection::dynamicHandle(DynamicPointer<InputStreamMessage> &_rmsgptr){
-	int sid(-1);
-	if(!isRequestIdExpected(_rmsgptr->requid.first, sid)) return;
-	cassert(sid >= 0);
-	SocketData &rsd(socketData(sid));
-	int rv = rsd.pcmd->receiveInputStream(_rmsgptr->sptr, _rmsgptr->fileuid, 0, ObjectUidT(), NULL);
-	cassert(rv != OK);
-	this->socketPostEvents(sid, frame::RESCHEDULED);
-}
-
-void Connection::dynamicHandle(DynamicPointer<OutputStreamMessage> &_rmsgptr){
-}
-
-void Connection::dynamicHandle(DynamicPointer<InputOutputStreamMessage> &_rmsgptr){
-}
-
-void Connection::dynamicHandle(DynamicPointer<StreamErrorMessage> &_rmsgptr){
-}
-
 void Connection::dynamicHandle(DynamicPointer<SocketMoveMessage> &_rmsgptr){
 	vdbg("");
 	//insert the new socket
 	uint sid = this->socketInsert(_rmsgptr->sp);
 	socketState(sid, SocketRegister);
-	this->socketPostEvents(sid, frame::RESCHEDULED);
+	this->socketPostEvents(sid, frame::EventReschedule);
 	if(sdv.size() > sid){
 		sdv[sid] = _rmsgptr->psd;
 	}else{
@@ -521,74 +501,6 @@ void Command::initStatic(Manager &_rm){
 }
 /*virtual*/ Command::~Command(){}
 void Command::contextData(ObjectUidT &_robjuid){}
-int Command::receiveInputStream(
-	StreamPointer<InputStream> &_ps,
-	const FileUidT &,
-	int			_which,
-	const ObjectUidT&_from,
-	const frame::ipc::ConnectionUid *_conid
-){
-	return BAD;
-}
-int Command::receiveOutputStream(
-	StreamPointer<OutputStream> &,
-	const FileUidT &,
-	int			_which,
-	const ObjectUidT&_from,
-	const frame::ipc::ConnectionUid *_conid
-){
-	return BAD;
-}
-int Command::receiveInputOutputStream(
-	StreamPointer<InputOutputStream> &, 
-	const FileUidT &,
-	int			_which,
-	const ObjectUidT&_from,
-	const frame::ipc::ConnectionUid *_conid
-){
-	return BAD;
-}
-int Command::receiveString(
-	const String &_str,
-	int			_which, 
-	const ObjectUidT&_from,
-	const frame::ipc::ConnectionUid *_conid
-){
-	return BAD;
-}
-int receiveData(
-	void *_pdata,
-	int _datasz,
-	int			_which, 
-	const ObjectUidT&_from,
-	const frame::ipc::ConnectionUid *_conid
-){
-	return BAD;
-}
-int Command::receiveNumber(
-	const int64 &_no,
-	int			_which,
-	const ObjectUidT&_from,
-	const frame::ipc::ConnectionUid *_conid
-){
-	return BAD;
-}
-int Command::receiveData(
-	void *_v,
-	int	_vsz,
-	int			_which,
-	const ObjectUidT&_from,
-	const frame::ipc::ConnectionUid *_conid
-){
-	return BAD;
-}
-int Command::receiveError(
-	int _errid,
-	const ObjectUidT&_from,
-	const frame::ipc::ConnectionUid *_conid
-){
-	return BAD;
-}
 
 SocketMoveMessage::~SocketMoveMessage(){
 	if(psd){

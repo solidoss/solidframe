@@ -395,7 +395,7 @@ Thread* Thread::associateToCurrent(){
 	Thread *pth = new DummyThread(pthread_self());
 #endif
 	Thread::current(pth);
-	return NULL;
+	return pth;
 }
 //-------------------------------------------------------------------------
 Thread& Thread::current(){

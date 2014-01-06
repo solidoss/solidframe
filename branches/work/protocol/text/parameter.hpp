@@ -16,16 +16,6 @@ namespace solid{
 namespace protocol{
 namespace text{
 
-enum ReturnValueE{
-	Failure = -1,	//!<input closed
-	Success = 0,	//!<everything ok, do a pop
-	Wait,			//!<Must wait
-	Yield,			//!<Must yield the connection
-	Continue,		//!<reexecute the top function - no pop
-	Error,			//!<parser error - must enter error recovery
-	LastReturnValue
-};
-
 //!Parameter structure for reader and writer callbacks
 /*!
 	It keeps two objects a and b wich are unions of void* / ulong/ int.

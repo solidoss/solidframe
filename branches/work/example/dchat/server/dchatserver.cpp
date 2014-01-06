@@ -552,7 +552,7 @@ Listener::Listener(
 	Service &_rsvc,
 	const SocketDevice &_rsd,
 	frame::aio::openssl::Context *_pctx
-):BaseT(_rsd), pctx(_pctx), rsvc(_rsvc){
+):BaseT(_rsd, true), pctx(_pctx), rsvc(_rsvc){
 	state = 0;
 }
 Listener::~Listener(){

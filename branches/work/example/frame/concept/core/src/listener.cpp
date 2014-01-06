@@ -25,7 +25,7 @@ Listener::Listener(
 	Service &_rsvc,
 	const solid::SocketDevice &_rsd,
 	solid::frame::aio::openssl::Context *_pctx
-):BaseT(_rsd), rsvc(_rsvc), ctxptr(_pctx){
+):BaseT(_rsd, true), rsvc(_rsvc), ctxptr(_pctx){
 	state = 0;
 }
 

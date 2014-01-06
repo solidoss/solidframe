@@ -147,20 +147,21 @@ Connection::~Connection(){
 	The state machine is a simple switch
 */
 
-int Connection::execute(ulong _sig, TimeSpec &_tout){
+/*virtual*/ void Connection::execute(ExecuteContext &_rexectx){
 	concept::Manager &rm = concept::Manager::the();
 	frame::requestuidptr->set(this->id(), Manager::the().id(*this).second);
 	//_tout.add(2400);
-	if(_sig & (frame::TIMEOUT | frame::ERRDONE)){
+	if(_rexectx.eventMask() & (frame::EventTimeout | frame::EventTimeout)){
 		if(state() == ConnectWait){
 			state(Connect);
 		}else
-			if(_sig & frame::TIMEOUT){
+			if(_rexectx.eventMask() & frame::EventTimeout){
 				edbg("timeout occured - destroy connection "<<state());
 			}else{
 				edbg("error occured - destroy connection "<<state());
 			}
-			return BAD;
+			_rexectx.close();
+			return;
 	}
 	
 	if(notified()){//we've received a signal
@@ -169,7 +170,10 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 		{
 			Locker<Mutex>	lock(rm.mutex(*this));
 			sm = grabSignalMask(0);//grab all bits of the signal mask
-			if(sm & frame::S_KILL) return BAD;
+			if(sm & frame::S_KILL){
+				_rexectx.close();
+				return;
+			}
 			if(sm & frame::S_SIG){//we have signals
 				dh.init(dv.begin(), dv.end());
 				dv.clear();
@@ -181,11 +185,12 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			}
 		}
 		//now we determine if we return with NOK or we continue
-		if(!_sig) return NOK;
+		if(!_rexectx.eventMask()) return;
 	}
 	const uint32 sevs = socketEventsGrab();
-	if(sevs & frame::ERRDONE){
-		return BAD;
+	if(sevs & frame::EventDoneError){
+		_rexectx.close();
+		return;
 	}
 // 	if(socketEvents() & frame::OUTDONE){
 // 		switch(state()){
@@ -208,9 +213,17 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			wtr.buffer(protocol::text::SpecificBuffer(2*1024));
 			rdr.buffer(protocol::text::SpecificBuffer(2*1024));
 			if(this->socketIsSecure()){
-				int rv = this->socketSecureAccept();
+				frame::aio::AsyncE rv = this->socketSecureAccept();
 				state(Banner);
-				return rv;
+				switch(rv){
+					case frame::aio::AsyncSuccess:
+						_rexectx.reschedule();
+					case frame::aio::AsyncWait:
+						break;
+					case frame::aio::AsyncFailure:
+						_rexectx.close();
+				}
+				return;
 			}else{
 				state(Banner);
 			}
@@ -254,22 +267,24 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			//idbg("Parse");
 			state(Parse);
 			switch((rc = reader().run())){
-				case OK: break;
-				case NOK:
+				case Reader::Success: break;
+				case Reader::Wait:
 					if(socketHasPendingSend()){
 						socketTimeoutSend(3000);
 					}else if(socketHasPendingRecv()){
 						socketTimeoutRecv(3000);
 					}else{
-						_tout.add(2000);
+						_rexectx.waitFor(TimeSpec(2000));
 					}
 					state(ParseTout);
-					return NOK;
-				case BAD:
+					return;
+				case Reader::Failure:
 					edbg("");
-					return BAD;
-				case YIELD:
-					return OK;
+					_rexectx.close();
+					return;
+				case Reader::Yield:
+					_rexectx.reschedule();
+					return;
 			}
 			if(reader().isError()){
 				delete pcmd; pcmd = NULL;
@@ -286,7 +301,7 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 		case Execute:
 			//idbg("Execute");
 			switch((rc = writer().run())){
-				case NOK:
+				case Writer::Wait:
 					if(socketHasPendingSend()){
 						socketTimeoutSend(3000);
 						state(ExecuteIOTout);
@@ -294,47 +309,51 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 						socketTimeoutRecv(3000);
 						state(ExecuteIOTout);
 					}*/else{
-						_tout.add(2000);
+						//_tout.add(2000);
+						_rexectx.waitFor(TimeSpec(2000));
 						state(ExecuteTout);
 					}
-					return NOK;
-				case OK:
+					return;
+				case Writer::Success:
 					if(state() != IdleExecute){
 						delete pcmd; pcmd = NULL;
-						state(ParsePrepare); rc = OK;
+						state(ParsePrepare);
 					}else{
-						state(Parse); rc = OK;
+						state(Parse);
 					}
-				case YIELD:
-					return OK;
+				case Writer::Yield:
+					_rexectx.reschedule();
+					return;
 				default:
 					edbg("rc = "<<rc);
-					return rc;
+					cassert(false);
+					return;
 			}
 			break;
 		case IdleExecute:
 			//idbg("IdleExecute");
-			if(sevs & frame::OUTDONE){
+			if(sevs & frame::EventDoneSend){
 				state(Execute);
-				return OK;
-			}return NOK;
+				break;
+			}return;
 		case Connect:
 			switch(socketConnect(aiit)){
-				case BAD:
+				case frame::aio::AsyncFailure:
 					if(++aiit){
 						state(Connect);
-						return OK;
+						break;
 					}
-					return BAD;
-				case OK:
+					_rexectx.close();
+					return;
+				case frame::aio::AsyncSuccess:
 					idbg("");
 					state(Init);
 					//idbg("");
-					return NOK;//for register
-				case NOK:
+					return;//for register
+				case frame::aio::AsyncWait:
 					state(ConnectWait);
 					idbg("");
-					return NOK;
+					return;
 			}
 			break;
 		case ConnectWait:
@@ -342,21 +361,21 @@ int Connection::execute(ulong _sig, TimeSpec &_tout){
 			//delete(paddr); paddr = NULL;
 			break;
 		case ParseTout:
-			if(sevs & frame::INDONE){
+			if(sevs & frame::EventDoneRecv){
 				state(Parse);
-				return OK;
+				break;
 			}
-			return NOK;
+			return;
 		case ExecuteIOTout:
 			idbg("State: ExecuteTout ");
-			if(sevs & frame::OUTDONE){
+			if(sevs & frame::EventDoneSend){
 				state(Execute);
-				return OK;
+				break;
 			}
 		case ExecuteTout:
-			return NOK;
+			return;
 	}
-	return OK;
+	_rexectx.reschedule();
 }
 
 //prepare the reader and the writer for a new command
@@ -392,10 +411,10 @@ void Connection::dynamicHandle(DynamicPointer<RemoteListMessage> &_rmsgptr){
 			rv = pcmd->receiveError(_rmsgptr->err, ObjectUidT(), &_rmsgptr->conid);
 		}
 		switch(rv){
-			case BAD:
+			case AsyncFailure:
 				idbg("");
 				break;
-			case OK:
+			case AsyncSuccess:
 				idbg("");
 				if(state() == ParseTout){
 					state(Parse);
@@ -404,7 +423,7 @@ void Connection::dynamicHandle(DynamicPointer<RemoteListMessage> &_rmsgptr){
 					state(Execute);
 				}
 				break;
-			case NOK:
+			case AsyncWait:
 				idbg("");
 				state(IdleExecute);
 				break;
@@ -426,10 +445,10 @@ void Connection::dynamicHandle(DynamicPointer<FetchSlaveMessage> &_rmsgptr){
 			rv = pcmd->receiveError(-1, _rmsgptr->msguid, &_rmsgptr->conid);
 		}
 		switch(rv){
-			case BAD:
+			case AsyncFailure:
 				idbg("");
 				break;
-			case OK:
+			case AsyncSuccess:
 				idbg("");
 				if(state() == ParseTout){
 					state(Parse);
@@ -438,7 +457,7 @@ void Connection::dynamicHandle(DynamicPointer<FetchSlaveMessage> &_rmsgptr){
 					state(Execute);
 				}
 				break;
-			case NOK:
+			case AsyncWait:
 				idbg("");
 				state(IdleExecute);
 				break;
@@ -458,10 +477,10 @@ void Connection::dynamicHandle(DynamicPointer<InputStreamMessage> &_rmsgptr){
 	newRequestId();//prevent multiple responses with the same id
 	if(pcmd){
 		switch(pcmd->receiveInputStream(_rmsgptr->sptr, _rmsgptr->fileuid, 0, ObjectUidT(), NULL)){
-			case BAD:
+			case AsyncFailure:
 				idbg("");
 				break;
-			case OK:
+			case AsyncSuccess:
 				idbg("");
 				if(state() == ParseTout){
 					state(Parse);
@@ -471,7 +490,7 @@ void Connection::dynamicHandle(DynamicPointer<InputStreamMessage> &_rmsgptr){
 					state(Execute);
 				}
 				break;
-			case NOK:
+			case AsyncWait:
 				idbg("");
 				state(IdleExecute);
 				break;
@@ -485,10 +504,10 @@ void Connection::dynamicHandle(DynamicPointer<OutputStreamMessage> &_rmsgptr){
 	newRequestId();//prevent multiple responses with the same id
 	if(pcmd){
 		switch(pcmd->receiveOutputStream(_rmsgptr->sptr, _rmsgptr->fileuid, 0, ObjectUidT(), NULL)){
-			case BAD:
+			case AsyncFailure:
 				idbg("");
 				break;
-			case OK:
+			case AsyncSuccess:
 				idbg("");
 				if(state() == ParseTout){
 					state(Parse);
@@ -497,7 +516,7 @@ void Connection::dynamicHandle(DynamicPointer<OutputStreamMessage> &_rmsgptr){
 					state(Execute);
 				}
 				break;
-			case NOK:
+			case AsyncWait:
 				idbg("");
 				state(IdleExecute);
 				break;
@@ -511,10 +530,10 @@ void Connection::dynamicHandle(DynamicPointer<InputOutputStreamMessage> &_rmsgpt
 	newRequestId();//prevent multiple responses with the same id
 	if(pcmd){
 		switch(pcmd->receiveInputOutputStream(_rmsgptr->sptr, _rmsgptr->fileuid, 0, ObjectUidT(), NULL)){
-			case BAD:
+			case AsyncFailure:
 				idbg("");
 				break;
-			case OK:
+			case AsyncSuccess:
 				idbg("");
 				if(state() == ParseTout){
 					state(Parse);
@@ -523,7 +542,7 @@ void Connection::dynamicHandle(DynamicPointer<InputOutputStreamMessage> &_rmsgpt
 					state(Execute);
 				}
 				break;
-			case NOK:
+			case AsyncWait:
 				idbg("");
 				state(IdleExecute);
 				break;
@@ -537,10 +556,10 @@ void Connection::dynamicHandle(DynamicPointer<StreamErrorMessage> &_rmsgptr){
 	newRequestId();//prevent multiple responses with the same id
 	if(pcmd){
 		switch(pcmd->receiveError(_rmsgptr->errid, ObjectUidT(), NULL)){
-			case BAD:
+			case AsyncFailure:
 				idbg("");
 				break;
-			case OK:
+			case AsyncSuccess:
 				idbg("");
 				if(state() == ParseTout){
 					state(Parse);
@@ -549,7 +568,7 @@ void Connection::dynamicHandle(DynamicPointer<StreamErrorMessage> &_rmsgptr){
 					state(Execute);
 				}
 				break;
-			case NOK:
+			case AsyncWait:
 				idbg("");
 				state(IdleExecute);
 				break;

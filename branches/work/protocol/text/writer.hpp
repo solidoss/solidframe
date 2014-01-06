@@ -63,7 +63,17 @@ namespace text{
 class Writer{
 public:
 	typedef int (*FncT)(Writer&, Parameter &_rp);
-	enum ManagementOptions{
+	enum ReturnValueE{
+		Failure = -1,	//!<input closed
+		Success = 0,	//!<everything ok, do a pop
+		Wait,			//!<Must wait
+		Yield,			//!<Must yield the connection
+		Continue,		//!<reexecute the top function - no pop
+		Error,			//!<parser error - must enter error recovery
+		LastReturnValue
+	};
+
+	enum ManagementOptionsE{
 		ClearLogging,
 		ResetLogging,
 	};

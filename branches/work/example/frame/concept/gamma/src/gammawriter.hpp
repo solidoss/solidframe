@@ -20,7 +20,7 @@ class Connection;
 class Writer: public solid::protocol::text::Writer{
 public:
 	enum{
-		Leave = LastReturnValue + 1
+		Leave = LastReturnValue + 1,
 	};
 	Writer(uint _sid, solid::protocol::text::Logger *_plog = NULL);
 	~Writer();

@@ -85,7 +85,7 @@ bool isLiteralString(const char *_pb, unsigned _bl){
 /*static*/ int Writer::clear(protocol::text::Writer &_rw, protocol::text::Parameter &_rp){
 	Writer &rw = static_cast<Writer&>(_rw);
 	rw.clear();
-	return Ok;
+	return Success;
 }
 
 /*static*/ int Writer::putCrlf(protocol::text::Writer &_rw, protocol::text::Parameter &_rp){

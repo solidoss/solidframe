@@ -91,32 +91,29 @@ Basic::~Basic(){
 }
 void Basic::initReader(Reader &_rr){
 }
-int Basic::execute(const uint _sid){
+void Basic::execute(const uint _sid){
 	switch(tp){
-		case Noop:	return execNoop(_sid);
-		case Logout: return execLogout(_sid);
-		case Capability: return execCapability(_sid);
+		case Noop:	execNoop(_sid); break;
+		case Logout: execLogout(_sid); break;
+		case Capability: execCapability(_sid); break;
 	}
-	return BAD;
 }
-int Basic::execNoop(const uint _sid){
+
+void Basic::execNoop(const uint _sid){
 	Connection::the().socketData(_sid).w.push(&Writer::putStatus, protocol::text::Parameter(StrDef(" OK Done NOOP@")));
-	return OK;
 }
-int Basic::execLogout(const uint _sid){
+void Basic::execLogout(const uint _sid){
 	Connection	&rc(Connection::the());
 	SocketData	&rsd(rc.socketData(_sid));
-	rsd.w.push(&Writer::returnValue<true>, protocol::text::Parameter(Writer::Bad));
+	rsd.w.push(&Writer::returnValue<true>, protocol::text::Parameter(Writer::Failure));
 	rsd.w.push(&Writer::putStatus, protocol::text::Parameter(StrDef(" OK Done LOGOUT@")));
 	rsd.w.push(&Writer::putAtom, protocol::text::Parameter(StrDef("* Alpha connection closing\r\n")));
-	return NOK;
 }
-int Basic::execCapability(const uint _sid){
+void Basic::execCapability(const uint _sid){
 	Connection	&rc(Connection::the());
 	SocketData	&rsd(rc.socketData(_sid));
 	rsd.w.push(&Writer::putStatus, protocol::text::Parameter(StrDef(" OK Done CAPABILITY@")));
 	rsd.w.push(&Writer::putAtom, protocol::text::Parameter(StrDef("* CAPABILITIES noop logout login\r\n")));
-	return OK;
 }
 //---------------------------------------------------------------
 // Login command
@@ -138,7 +135,7 @@ void Login::initReader(Reader &_rr){
 	_rr.push(&Reader::fetchAString, protocol::text::Parameter(&user));
 	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
 }
-int Login::execute(const uint _sid){
+void Login::execute(const uint _sid){
 	Connection	&rc(Connection::the());
 	if(ctx.empty()){
 		ctx += " OK [";
@@ -148,14 +145,7 @@ int Login::execute(const uint _sid){
 	}else{
 		SocketData	&rsd(rc.socketData(_sid));
 		rsd.w.push(&Writer::returnValue<false>, protocol::text::Parameter(Writer::Leave));
-// 		ctx += " OK [";
-// 		rc.appendContextString(ctx);
-// 		ctx += "] Done LOGIN2@";
-// 		Connection::the().socketData(_sid).w.push(&Writer::putStatus, protocol::text::Parameter((void*)ctx.data(), ctx.size()));
-		//first return unregister
-		//rsd.w.push(&Writer::returnValue, protocol::text::Parameter(Writer::Unregister));
 	}
-	return OK;
 }
 
 void Login::contextData(ObjectUidT &_robjuid){
@@ -167,145 +157,6 @@ void Login::contextData(ObjectUidT &_robjuid){
 	}
 	ctx.clear();
 }
-//---------------------------------------------------------------
-// Open command
-//---------------------------------------------------------------
-
-Open::Open(){
-}
-Open::~Open(){
-	Connection	&rc(Connection::the());
-	rc.deleteRequestId(reqid);
-}
-void Open::initReader(Reader &_rr){
-	_rr.push(&Reader::fetchAString, protocol::text::Parameter(&flags));
-	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
-	_rr.push(&Reader::fetchAString, protocol::text::Parameter(&path));
-	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
-}
-int Open::execute(const uint _sid){
-	Connection	&rc(Connection::the());
-	SocketData	&rsd(rc.socketData(_sid));
-	
-	protocol::text::Parameter &rp(rsd.w.push(&Writer::putStatus));
-	pp = &rp;
-	
-	if(flags.empty() || (tolower(flags[0]) != 'r')){
-		rp =  protocol::text::Parameter(StrDef(" NO Fail [\"Only READ is allowed for now\"] OPEN@"));
-		return OK;
-	}
-	state = InitLocal;
-	rsd.w.push(&Writer::reinit<Open>, protocol::text::Parameter(this));
-	return OK;
-}
-int Open::reinitWriter(Writer &_rw, protocol::text::Parameter &_rp){
-	switch(state){
-		case InitLocal:
-			return doInitLocal(_rw.socketId());
-		case DoneLocal:
-			return doDoneLocal(_rw);
-		case WaitLocal:
-			return Writer::No;
-		case SendError:
-			*pp = protocol::text::Parameter(StrDef(" NO Fail [\"Unable to open file\"] OPEN@"));
-			return Writer::Ok;
-	}
-	cassert(false);
-	return Writer::Bad;
-}
-
-int Open::doInitLocal(const uint _sid){
-	
-	idbg(""<<(void*)this);
-	
-	Connection	&rc(Connection::the());
-	
-	//TODO:
-// 	uint32 r = rc.checkIfAlreadyOpen(path);
-// 	if(r == (uint32)-1){
-// 		
-// 	}
-	
-	//try to open stream to localfile
-	reqid = rc.newRequestId(_sid);
-	frame::RequestUid rqid(rc.id(), Manager::the().id(rc).second, reqid);
-	int rv = Manager::the().fileManager().stream(isp, reqid, path.c_str());
-	switch(rv){
-		case BAD: 
-			*pp = protocol::text::Parameter(StrDef(" NO Fail [\"Unable to open file\"] OPEN@"));
-			return Writer::Ok;
-		case OK: 
-			state = DoneLocal;
-			return Writer::Continue;
-		case NOK:
-			state = WaitLocal;
-			return Writer::No;
-	}
-	cassert(false);
-	return BAD;
-}
-
-
-int Open::doDoneLocal(Writer &_rw){
-	idbg(""<<(void*)this);
-	
-	uint32	pos(-1);
-	uint64	sz(-1);
-	
-	//TODO:
-	
-	if(isp){
-		sz = isp->size();
-		//pos = rc.insertStream(this->path, isp);
-	}else if(iosp){
-		sz = iosp->size();
-		//pos = rc.insertStream(this->path, iosp);
-	}else if(osp){
-		sz = osp->size();
-		//pos = rc.insertStream(this->path, osp);
-	}else{
-		cassert(false);
-	}
-	if(pos == -1) {
-		state = SendError;
-		return Writer::Continue;
-	}
-	
-	
-	
-	return Writer::Bad;
-}
-
-
-int Open::receiveInputStream(
-	StreamPointer<InputStream> &_sptr,
-	const FileUidT &_fuid,
-	int _which,
-	const ObjectUidT&,
-	const solid::frame::ipc::ConnectionUid *
-){
-	//sp_out =_sptr;
-	//fuid = _fuid;
-	if(state == WaitLocal){
-		isp = _sptr;
-		reqid = 0;
-		state = DoneLocal;
-	}else{
-		cassert(false);
-	}
-	return OK;
-}
-
-int Open::receiveError(
-	int _errid,
-	const ObjectUidT&_from,
-	const solid::frame::ipc::ConnectionUid *
-){
-	state = SendError;
-	return OK;
-}
-
-
 
 }//namespace gamma
 }//namespace concept

@@ -115,10 +115,6 @@ public:
 	SocketData &socketData(const uint _sid);
 	
 	void dynamicHandle(solid::DynamicPointer<> &_dp);
-	void dynamicHandle(solid::DynamicPointer<InputStreamMessage> &_rmsgptr);
-	void dynamicHandle(solid::DynamicPointer<OutputStreamMessage> &_rmsgptr);
-	void dynamicHandle(solid::DynamicPointer<InputOutputStreamMessage> &_rmsgptr);
-	void dynamicHandle(solid::DynamicPointer<StreamErrorMessage> &_rmsgptr);
 	void dynamicHandle(solid::DynamicPointer<SocketMoveMessage> &_rmsgptr);
 	
 	void appendContextString(std::string &_str);
@@ -155,13 +151,7 @@ private:
 	typedef std::vector<std::pair<uint32, int> >	RequestIdVectorT;
 	typedef std::vector<solid::DynamicPointer<> >	DynamicPointerVectorT;
 	
-	struct StreamData{
-		solid::StreamPointer<solid::InputStream>		pis;
-		solid::StreamPointer<solid::OutputStream>		pos;
-		solid::StreamPointer<solid::InputOutputStream>	pios;
-	};
 	
-	typedef std::deque<StreamData>					StreamDataVectorT;
 	typedef solid::Stack<uint32>					UIntStackT;
 
 private:
@@ -172,7 +162,6 @@ private:
 	DynamicPointerVectorT		dv;
 	SocketDataVectorT			sdv;
 	RequestIdVectorT			ridv;
-	StreamDataVectorT			streamv;
 	UIntStackT					freestk;
 };
 
