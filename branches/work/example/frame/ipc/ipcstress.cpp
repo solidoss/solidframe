@@ -215,7 +215,7 @@ int main(int argc, char *argv[]){
 			frame::ipc::Configuration	cfg;
 			ResolveData					rd = synchronous_resolve("0.0.0.0", p.baseport, 0, SocketInfo::Inet4, SocketInfo::Datagram);
 			//frame::aio::Error			err;
-			int							err;
+			bool						rv;
 			
 			{
 				string errstr;
@@ -229,8 +229,8 @@ int main(int argc, char *argv[]){
 			
 			cfg.baseaddr = rd.begin();
 			
-			err = ipcsvc.reconfigure(cfg);
-			if(err){
+			rv = ipcsvc.reconfigure(cfg);
+			if(!rv){
 				//TODO:
 				//cout<<"Error starting ipcservice: "<<err.toString()<<endl;
 				Thread::waitAll();

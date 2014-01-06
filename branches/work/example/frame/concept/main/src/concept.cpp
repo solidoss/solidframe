@@ -203,7 +203,7 @@ int main(int argc, char* argv[]) {
             int port = p.start_port + 222;
             frame::ipc::Configuration	cfg;
             ResolveData					rd = synchronous_resolve("0.0.0.0", port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
-            int							err;
+            bool						rv;
 
             cfg.baseaddr = rd.begin();
 
@@ -211,9 +211,9 @@ int main(int argc, char* argv[]) {
                 cfg.gatewayaddrvec.push_back(SocketAddressInet(*it));
             }
 
-            err = m.ipc().reconfigure(cfg);
+            rv = m.ipc().reconfigure(cfg);
 
-            if(err) {
+            if(!rv) {
                 cout<<"Error configuring ipcservice: "/*<<err.toString()*/<<endl;
                 m.stop();
                 break;

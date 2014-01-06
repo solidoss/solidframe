@@ -396,11 +396,11 @@ void Talker::execute(ExecuteContext &_rexectx){
 	
 	must_reenter = doExecuteSessions(ts) || must_reenter;
 	
-	if(d.timerq.size()){
-		_rexectx.waitUntil(d.timerq.top().timepos);
-	}else if(must_reenter){
+	if(must_reenter){
 		_rexectx.reschedule();
-	}	
+	}else if(d.timerq.size()){
+		_rexectx.waitUntil(d.timerq.top().timepos);
+	}
 }
 
 //----------------------------------------------------------------------

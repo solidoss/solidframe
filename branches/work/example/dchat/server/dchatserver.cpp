@@ -422,7 +422,7 @@ int main(int argc, char *argv[]){
 		{
 			frame::ipc::Configuration	cfg;
 			//solid::Error				err;
-			int							err;
+			bool						rv;
 			
 			{
 				string errstr;
@@ -433,8 +433,8 @@ int main(int argc, char *argv[]){
 				}
 			}
 			
-			err = ipcsvc.reconfigure(cfg);
-			if(err){
+			rv = ipcsvc.reconfigure(cfg);
+			if(!rv){
 				//TODO:
 				cout<<"Error starting ipcservice!"<<endl;
 				Thread::waitAll();

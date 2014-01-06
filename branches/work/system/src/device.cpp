@@ -855,7 +855,7 @@ bool SocketDevice::makeNonBlocking(){
 	return false;
 #else
 	int flg = fcntl(descriptor(), F_GETFL);
-	if(flg != -1){
+	if(flg == -1){
 		SPECIFIC_ERROR_PUSH1(last_socket_error());
 		return false;
 	}

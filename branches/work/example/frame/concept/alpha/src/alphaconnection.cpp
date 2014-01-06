@@ -324,6 +324,9 @@ Connection::~Connection(){
 				case Writer::Yield:
 					_rexectx.reschedule();
 					return;
+				case Writer::Failure:
+					_rexectx.close();
+					return;
 				default:
 					edbg("rc = "<<rc);
 					cassert(false);

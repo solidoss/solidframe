@@ -485,10 +485,8 @@ void Node::execute(ExecuteContext &_rexectx){
 	vdbgx(Debug::ipc, (void*)this<<" reenter = "<<must_reenter<<" udpsendqsz = "<<d.udpsendq.size()<<" signaledsz = "<<signaledSize()<<" tmqsz = "<<d.timeq.size());
 	if(must_reenter){
 		_rexectx.reschedule();
-	}else{
-		if(d.timeq.size()){
-			_rexectx.waitUntil(d.timeq.frontTime());
-		}
+	}else if(d.timeq.size()){
+		_rexectx.waitUntil(d.timeq.frontTime());
 	}
 }
 //--------------------------------------------------------------------

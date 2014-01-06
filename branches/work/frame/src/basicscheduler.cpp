@@ -37,7 +37,7 @@ struct BasicScheduler::Data: WorkPoolControllerBase, SelectorBase{
 	}
 	bool createWorker(WorkPoolT &_rwp){
 		WorkerBase	*pw(_rwp.createSingleWorker());
-		if(pw && pw->start()){
+		if(pw && !pw->start()){
 			delete pw;
 			return false;
 		}return true;

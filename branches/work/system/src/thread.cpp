@@ -764,9 +764,10 @@ void* Thread::th_run(void *pv){
 	pth->prepare();
 	pth->run();
 	pth->unprepare();
-	if(!pth->detached()){
-		Thread::current(NULL);
+	if(pth->detached()){
+		delete pth;
 	}
+	Thread::current(NULL);
 	vdbgx(Debug::system, "thrun exit "<<pv);
 	Thread::exit();
 	return NULL;

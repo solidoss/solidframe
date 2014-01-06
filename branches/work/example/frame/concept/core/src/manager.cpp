@@ -104,7 +104,6 @@ struct AuthMessage: Dynamic<AuthMessage, DynamicShared<frame::ipc::Message> >{
 
 struct IpcServiceController: frame::ipc::Controller{
 	IpcServiceController():frame::ipc::Controller(0, 400), authidx(0){
-		use();
 	}
 	
 	/*virtual*/ void scheduleTalker(frame::aio::Object *_po);
@@ -145,12 +144,11 @@ private:
 struct Manager::Data{
 	Data(Manager &_rm):
 		mainaiosched(_rm), scndaiosched(_rm), objsched(_rm),
-		ipcsvc(_rm, &ipcctrl){
+		ipcsvc(_rm, new IpcServiceController){
 	}
 	typedef DynamicSharedPointer<frame::file::Manager>	FileManagerSharedPointerT;
 	
 	FileManagerController		fmctrl;
-	IpcServiceController		ipcctrl;
 	AioSchedulerT				mainaiosched;
 	AioSchedulerT				scndaiosched;
 	SchedulerT					objsched;
@@ -170,6 +168,15 @@ Manager::Manager():frame::Manager(), d(*(new Data(*this))){
 }
 
 Manager::~Manager(){
+	//just to be sure - stop the schedulers before delete:
+	//It may happen that objects on schedulers to access deleted members of data
+	d.mainaiosched.stop(false);
+	d.scndaiosched.stop(false);
+	d.objsched.stop(false);
+	
+	d.mainaiosched.stop(true);
+	d.scndaiosched.stop(true);
+	d.objsched.stop(true);
 	delete &d;
 }
 
