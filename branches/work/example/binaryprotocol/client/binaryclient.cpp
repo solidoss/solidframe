@@ -406,7 +406,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 				st = ConnectWaitState;
 				idbg("");
 				break;
-			case frame::aio::AsyncFailure:
+			case frame::aio::AsyncError:
 				done();
 				_rexectx.close();
 				return;

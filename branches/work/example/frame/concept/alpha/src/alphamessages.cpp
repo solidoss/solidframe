@@ -128,7 +128,7 @@ int RemoteListMessage::execute(
 	if(!exists( pth ) || !is_directory(pth)){
 		err = -1;
 		Manager::the().ipc().sendMessage(msgptr, conid);
-		return AsyncFailure;
+		return AsyncError;
 	}
 	
 	try{
@@ -138,7 +138,7 @@ int RemoteListMessage::execute(
 		err = -1;
 		strpth = ex.what();
 		Manager::the().ipc().sendMessage(msgptr, conid);
-		return AsyncFailure;
+		return AsyncError;
 	}
 	
 	while(it != end){
@@ -152,7 +152,7 @@ int RemoteListMessage::execute(
 	err = 0;
 	//Thread::sleep(1000 * 20);
 	Manager::the().ipc().sendMessage(msgptr, conid);
-	return AsyncFailure;
+	return AsyncError;
 }
 
 //-----------------------------------------------------------------------------------
@@ -205,7 +205,7 @@ int FetchMasterMessage::execute(
 			//try to get a stream for the file:
 			frame::RequestUid reqid(_rce.id(), rm.id(_rce).second, _msguid.first, _msguid.second);
 			switch(rm.fileManager().stream(ins, fuid, reqid, fname.c_str())){
-				case AsyncFailure://ouch
+				case AsyncError://ouch
 					state = SendError;
 					idbg("open failed");
 					return AsyncSuccess;
@@ -241,7 +241,7 @@ int FetchMasterMessage::execute(
 			pmsg = NULL;
 			if(!this->filesz){
 				idbg("connector was destroyed or filesz = "<<this->filesz);
-				return AsyncFailure;
+				return AsyncError;
 			}
 			rm.ipc().sendMessage(msgptr, conid);
 			
@@ -272,7 +272,7 @@ int FetchMasterMessage::execute(
 			rm.ipc().sendMessage(msgptr, conid);
 			if(!this->filesz){
 				idbg("connector was destroyed or filesz = "<<this->filesz);
-				return AsyncFailure;
+				return AsyncError;
 			}
 			idbg("wait for streams");
 			//TODO: put here timeout! - wait for signals
@@ -286,10 +286,10 @@ int FetchMasterMessage::execute(
 			pmsg->tov = fromv;
 			pmsg->filesz = -1;
 			rm.ipc().sendMessage(msgptr, conid);
-			return AsyncFailure;
+			return AsyncError;
 		}
 	}
-	return AsyncFailure;
+	return AsyncError;
 }
 
 bool FetchMasterMessage::receiveMessage(
@@ -382,7 +382,7 @@ void FetchSlaveMessage::print()const{
 int FetchSlaveMessage::sent(const frame::ipc::ConnectionUid &_rconid){
 	idbg((void*)this<<"");
 	fromv.first = 0xffffffff;
-	return AsyncFailure;
+	return AsyncError;
 }
 void FetchSlaveMessage::ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, frame::ipc::Message::MessagePointerT &_rmsgptr){
 	DynamicPointer<frame::Message> psig(this);
@@ -408,7 +408,7 @@ int FetchSlaveMessage::execute(
 ){
 	idbg((void*)this<<"");
 	_rce.sendMessage(_rmsgptr, msguid);
-	return AsyncFailure;
+	return AsyncError;
 }
 
 void FetchSlaveMessage::initOutputStream(){

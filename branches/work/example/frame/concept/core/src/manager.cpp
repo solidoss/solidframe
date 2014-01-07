@@ -292,7 +292,7 @@ void IpcServiceController::scheduleNode(frame::aio::Object *_po){
 	if(!_msgptr.get()){
 		if(authidx){
 			idbg("");
-			return AsyncFailure;
+			return AsyncError;
 		}
 		//initiate authentication
 		_msgptr = new AuthMessage;
@@ -302,7 +302,7 @@ void IpcServiceController::scheduleNode(frame::aio::Object *_po){
 	}
 	if(_msgptr->dynamicTypeId() != AuthMessage::staticTypeId()){
 		cassert(false);
-		return AsyncFailure;
+		return AsyncError;
 	}
 	AuthMessage &rmsg(static_cast<AuthMessage&>(*_msgptr));
 	
@@ -311,7 +311,7 @@ void IpcServiceController::scheduleNode(frame::aio::Object *_po){
 	if(rmsg.authidx == 0){
 		if(this->authidx == 2){
 			idbg("");
-			return solid::AsyncFailure;
+			return solid::AsyncError;
 		}
 		++this->authidx;
 		rmsg.authidx = this->authidx;
@@ -321,7 +321,7 @@ void IpcServiceController::scheduleNode(frame::aio::Object *_po){
 	
 	if(rmsg.authidx == 2 && rmsg.authcnt >= 3){
 		idbg("");
-		return solid::AsyncFailure;
+		return solid::AsyncError;
 	}
 	
 	

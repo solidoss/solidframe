@@ -316,7 +316,7 @@ Listener::~Listener(){
 	while(cnt--){
 		if(state == 0){
 			switch(this->socketAccept(sd)){
-				case frame::aio::AsyncFailure:
+				case frame::aio::AsyncError:
 					_rexectx.close();
 					return;
 				case frame::aio::AsyncSuccess:break;
@@ -404,7 +404,7 @@ Connection::~Connection(){
 		switch(state){
 			case READ:
 				switch(socketRecv(bbeg, BUFSZ)){
-					case frame::aio::AsyncFailure:
+					case frame::aio::AsyncError:
 						_rexectx.close();
 						return;
 					case frame::aio::AsyncSuccess: break;
@@ -417,7 +417,7 @@ Connection::~Connection(){
 				state = WRITE;
 			case WRITE:
 				switch(socketSend(bbeg, socketRecvSize())){
-					case frame::aio::AsyncFailure:
+					case frame::aio::AsyncError:
 						_rexectx.close();
 						return;
 					case frame::aio::AsyncSuccess: break;
@@ -431,7 +431,7 @@ Connection::~Connection(){
 				break;
 			case CONNECT:
 				switch(socketConnect(it)){
-					case frame::aio::AsyncFailure:
+					case frame::aio::AsyncError:
 						++it;
 						if(it != rd.end()){
 							state = CONNECT;
@@ -499,7 +499,7 @@ Talker::~Talker(){
 		switch(state){
 			case READ:
 				switch(socketRecvFrom(bbeg, BUFSZ)){
-					case frame::aio::AsyncFailure:
+					case frame::aio::AsyncError:
 						_rexectx.close();
 						return;
 					case frame::aio::AsyncSuccess: state = READ_TOUT;break;
@@ -513,7 +513,7 @@ Talker::~Talker(){
 			case WRITE:
 				//sprintf(bbeg + socketRecvSize() - 1," [%u:%d]\r\n", (unsigned)_tout.seconds(), (int)_tout.nanoSeconds());
 				switch(socketSendTo(bbeg, socketRecvSize(), socketRecvAddr())){
-					case frame::aio::AsyncFailure:
+					case frame::aio::AsyncError:
 						_rexectx.close();
 						return;
 					case frame::aio::AsyncSuccess: break;
@@ -538,7 +538,7 @@ Talker::~Talker(){
 				}
 				ResolveIterator it(rd.begin());
 				switch(socketSendTo(bbeg, sz, SocketAddressStub(it))){
-					case frame::aio::AsyncFailure:
+					case frame::aio::AsyncError:
 						_rexectx.close();
 						return;
 					case frame::aio::AsyncSuccess: state = READ; break;

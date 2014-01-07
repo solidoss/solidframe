@@ -204,10 +204,10 @@ void MessageSteward::doExecute(uint _pos, uint32 _evs, const TimeSpec &_rtout){
 	TimeSpec ts(_rtout);
 	int rv(rcp.sig->execute(rcp.sig, _evs, *this, MessageUidT(_pos, rcp.uid), ts));
 	if(!rcp.sig){
-		rv = AsyncFailure;
+		rv = AsyncError;
 	}
 	switch(rv){
-		case AsyncFailure: 
+		case AsyncError: 
 			++rcp.uid;
 			rcp.sig.clear();
 			d.fs2.push(_pos);

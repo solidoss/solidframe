@@ -512,7 +512,7 @@ namespace{
 	}
 	
 	openmode = 0;
-	return AsyncFailure;
+	return AsyncError;
 }
 
 /*virtual*/ bool NameFile::close(const char *_path){

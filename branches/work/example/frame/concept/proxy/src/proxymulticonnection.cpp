@@ -105,7 +105,7 @@ enum{
 			}
 			idbgx(Debug::any, "CONNECT");
 			switch(socketConnect(1, it)){
-				case frame::aio::AsyncFailure:
+				case frame::aio::AsyncError:
 					idbgx(Debug::any, "Failure");
 					_rexectx.close();
 					return;
@@ -135,7 +135,7 @@ enum{
 			state(PROXY);
 			if(bp != be){
 				switch(socketSend(1, bp, be - bp)){
-					case frame::aio::AsyncFailure:
+					case frame::aio::AsyncError:
 						idbgx(Debug::any, "Failure");
 						_rexectx.close();
 						return;
@@ -156,7 +156,7 @@ enum{
 	while(this->signaledSize()){
 		this->signaledPop();
 	}
-	if(rv == solid::AsyncFailure){
+	if(rv == solid::AsyncError){
 		_rexectx.close();
 	}else if(rv == solid::AsyncSuccess){
 		_rexectx.reschedule();
@@ -174,7 +174,7 @@ AsyncE MultiConnection::doReadAddress(){
 			}
 			addr.append(bb, bp - bb);
 			if(bp == be) return doRefill();
-			if(addr.size() > 64) return solid::AsyncFailure;
+			if(addr.size() > 64) return solid::AsyncError;
 			//*bp == ' '
 			++bp;
 			state(READ_PORT);
@@ -187,7 +187,7 @@ AsyncE MultiConnection::doReadAddress(){
 			}
 			port.append(bb, bp - bb);
 			if(bp == be) return doRefill();
-			if(port.size() > 64) return solid::AsyncFailure;
+			if(port.size() > 64) return solid::AsyncError;
 			if(port.size() && port[port.size() - 1] == '\r'){
 				port.resize(port.size() - 1);
 			}
@@ -197,21 +197,21 @@ AsyncE MultiConnection::doReadAddress(){
 			return solid::AsyncSuccess;
 	}
 	cassert(false);
-	return solid::AsyncFailure;
+	return solid::AsyncError;
 }
 AsyncE MultiConnection::doProxy(const TimeSpec &_tout){
 	AsyncE retv = solid::AsyncWait;
 	if((socketEvents(0) & frame::EventDoneError) || (socketEvents(1) & frame::EventDoneError)){
 		idbg("bad errdone "<<socketEvents(1)<<' '<<frame::EventDoneError);
-		return solid::AsyncFailure;
+		return solid::AsyncError;
 	}
 	switch(socketState(0)){
 		case Receive:
 			idbg("receive 0");
 			switch(socketRecv(0, stubs[0].recvbuf.data, Buffer::Capacity)){
-				case frame::aio::AsyncFailure:
+				case frame::aio::AsyncError:
 					idbg("bad recv 0");
-					return solid::AsyncFailure;
+					return solid::AsyncError;
 				case frame::aio::AsyncSuccess:
 					idbg("receive ok 0");
 					socketState(0, Send);
@@ -232,8 +232,8 @@ AsyncE MultiConnection::doProxy(const TimeSpec &_tout){
 		case Send:
 			idbg("send 0");
 			switch(socketSend(1, stubs[0].recvbuf.data, socketRecvSize(0))){
-				case frame::aio::AsyncFailure:
-					return solid::AsyncFailure;
+				case frame::aio::AsyncError:
+					return solid::AsyncError;
 				case frame::aio::AsyncSuccess:
 					idbg("send ok 0");
 					socketState(0, Receive);
@@ -258,9 +258,9 @@ AsyncE MultiConnection::doProxy(const TimeSpec &_tout){
 		idbg("receive 1");
 		case Receive:
 			switch(socketRecv(1, stubs[1].recvbuf.data, Buffer::Capacity)){
-				case frame::aio::AsyncFailure:
+				case frame::aio::AsyncError:
 					idbg("bad recv 1");
-					return solid::AsyncFailure;
+					return solid::AsyncError;
 				case frame::aio::AsyncSuccess:
 					idbg("receive ok 1");
 					socketState(1, Send);
@@ -281,9 +281,9 @@ AsyncE MultiConnection::doProxy(const TimeSpec &_tout){
 		case Send:
 			idbg("send 1");
 			switch(socketSend(0, stubs[1].recvbuf.data, socketRecvSize(1))){
-				case frame::aio::AsyncFailure:
+				case frame::aio::AsyncError:
 					idbg("bad recv 1");
-					return solid::AsyncFailure;
+					return solid::AsyncError;
 				case frame::aio::AsyncSuccess:
 					idbg("send ok 1");
 					socketState(1, Receive);
@@ -312,7 +312,7 @@ AsyncE MultiConnection::doRefill(){
 	idbgx(Debug::any, "");
 	if(bp == NULL){//we need to issue a read
 		switch(socketRecv(0, stubs[0].recvbuf.data, Buffer::Capacity)){
-			case frame::aio::AsyncFailure:	return solid::AsyncFailure;
+			case frame::aio::AsyncError:	return solid::AsyncError;
 			case frame::aio::AsyncSuccess:
 				bp = stubs[0].recvbuf.data;
 				be = stubs[0].recvbuf.data + socketRecvSize(0);

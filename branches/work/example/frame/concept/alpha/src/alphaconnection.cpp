@@ -220,7 +220,7 @@ Connection::~Connection(){
 						_rexectx.reschedule();
 					case frame::aio::AsyncWait:
 						break;
-					case frame::aio::AsyncFailure:
+					case frame::aio::AsyncError:
 						_rexectx.close();
 				}
 				return;
@@ -341,7 +341,7 @@ Connection::~Connection(){
 			}return;
 		case Connect:
 			switch(socketConnect(aiit)){
-				case frame::aio::AsyncFailure:
+				case frame::aio::AsyncError:
 					if(++aiit){
 						state(Connect);
 						break;
@@ -414,7 +414,7 @@ void Connection::dynamicHandle(DynamicPointer<RemoteListMessage> &_rmsgptr){
 			rv = pcmd->receiveError(_rmsgptr->err, ObjectUidT(), &_rmsgptr->conid);
 		}
 		switch(rv){
-			case AsyncFailure:
+			case AsyncError:
 				idbg("");
 				break;
 			case AsyncSuccess:
@@ -448,7 +448,7 @@ void Connection::dynamicHandle(DynamicPointer<FetchSlaveMessage> &_rmsgptr){
 			rv = pcmd->receiveError(-1, _rmsgptr->msguid, &_rmsgptr->conid);
 		}
 		switch(rv){
-			case AsyncFailure:
+			case AsyncError:
 				idbg("");
 				break;
 			case AsyncSuccess:
@@ -480,7 +480,7 @@ void Connection::dynamicHandle(DynamicPointer<InputStreamMessage> &_rmsgptr){
 	newRequestId();//prevent multiple responses with the same id
 	if(pcmd){
 		switch(pcmd->receiveInputStream(_rmsgptr->sptr, _rmsgptr->fileuid, 0, ObjectUidT(), NULL)){
-			case AsyncFailure:
+			case AsyncError:
 				idbg("");
 				break;
 			case AsyncSuccess:
@@ -507,7 +507,7 @@ void Connection::dynamicHandle(DynamicPointer<OutputStreamMessage> &_rmsgptr){
 	newRequestId();//prevent multiple responses with the same id
 	if(pcmd){
 		switch(pcmd->receiveOutputStream(_rmsgptr->sptr, _rmsgptr->fileuid, 0, ObjectUidT(), NULL)){
-			case AsyncFailure:
+			case AsyncError:
 				idbg("");
 				break;
 			case AsyncSuccess:
@@ -533,7 +533,7 @@ void Connection::dynamicHandle(DynamicPointer<InputOutputStreamMessage> &_rmsgpt
 	newRequestId();//prevent multiple responses with the same id
 	if(pcmd){
 		switch(pcmd->receiveInputOutputStream(_rmsgptr->sptr, _rmsgptr->fileuid, 0, ObjectUidT(), NULL)){
-			case AsyncFailure:
+			case AsyncError:
 				idbg("");
 				break;
 			case AsyncSuccess:
@@ -559,7 +559,7 @@ void Connection::dynamicHandle(DynamicPointer<StreamErrorMessage> &_rmsgptr){
 	newRequestId();//prevent multiple responses with the same id
 	if(pcmd){
 		switch(pcmd->receiveError(_rmsgptr->errid, ObjectUidT(), NULL)){
-			case AsyncFailure:
+			case AsyncError:
 				idbg("");
 				break;
 			case AsyncSuccess:

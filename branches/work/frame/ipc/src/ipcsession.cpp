@@ -675,6 +675,7 @@ MessageUid Session::Data::pushSendWaitMessage(
 ){
 	_flags &= ~SentFlag;
 //	_flags &= ~WaitResponseFlag;
+	cassert(_rmsgptr.get());
 	
 	if(sendmsgfreeposstk.size()){
 		const uint32	idx(sendmsgfreeposstk.top());
@@ -689,10 +690,10 @@ MessageUid Session::Data::pushSendWaitMessage(
 		cassert(!_rmsgptr.get());
 		rsmd.flags = _flags;
 		rsmd.idx = _idx;
-		
+		idbgx(Debug::ipc, "idx = "<<idx);
 		return MessageUid(idx, rsmd.uid);
 	}else{
-		
+		idbgx(Debug::ipc, "idx = "<<sendmsgvec.size());
 		sendmsgvec.push_back(SendMessageData(_rmsgptr, _rtid, _flags, _idx));
 		cassert(!_rmsgptr.get());
 		return MessageUid(sendmsgvec.size() - 1, 0);
@@ -735,6 +736,7 @@ void Session::Data::popSentWaitMessages(Session::Data::SendPacketData &_rspd){
 //---------------------------------------------------------------------
 void Session::Data::popSentWaitMessage(const MessageUid &_rmsguid){
 	if(_rmsguid.idx < sendmsgvec.size()){
+		idbgx(Debug::ipc, ""<<_rmsguid.idx);
 		SendMessageData &rsmd(sendmsgvec[_rmsguid.idx]);
 		
 		if(rsmd.uid != _rmsguid.uid) return;
@@ -1623,7 +1625,7 @@ void Session::doCompleteConnect(TalkerStub &_rstub){
 				);
 				flags |= WaitResponseFlag;
 				break;
-			case AsyncFailure:
+			case AsyncError:
 				if(msgptr.get()){
 					d.state = Data::WaitDisconnecting;
 					//d.keepalivetimeout = 0;
@@ -1753,7 +1755,7 @@ AsyncE Session::execute(TalkerStub &_rstub){
 		case Data::DummyExecute:
 			return doExecuteDummy(_rstub);
 	}
-	return AsyncFailure;
+	return AsyncError;
 }
 //---------------------------------------------------------------------
 bool Session::pushSentPacket(
@@ -2043,17 +2045,17 @@ void Session::doParsePacket(TalkerStub &_rstub, const Packet &_rpkt){
 		if(rrsd.pdeserializer->empty()){//done one message
 			Controller					&rctrl = _rstub.service().controller();
 			DynamicPointer<Message>		msgptr = rrsd.msgptr;
-			MessageUid 					msguid(msgptr->ipcRequestMessageUid());
+			MessageUid 					msguid = msgptr->ipcIsBackOnSender() ? msgptr->ipcRequestMessageUid() : MessageUid();
 			
 			cassert(rrsd.msgptr.empty());
 			
 			if(d.state == Data::Connected){
-				
 				if(!rctrl.onMessageReceive(msgptr, rctx.msgctx)){
 					d.state = Data::Disconnecting;
 				}
 				
 			}else if(d.state == Data::Authenticating){
+				idbgx(Debug::ipc, " - Authenticating");
 				uint32					flags = 0;
 				SerializationTypeIdT 	tid = SERIALIZATION_INVALIDID;
 				const AsyncE 			authrv = rctrl.authenticate(msgptr, msguid, flags, tid);
@@ -2072,7 +2074,7 @@ void Session::doParsePacket(TalkerStub &_rstub, const Packet &_rpkt){
 							d.pushMessageToSendQueue(msgptr, flags, tid);
 						}
 						break;
-					case AsyncFailure:
+					case AsyncError:
 						if(msgptr.get()){
 							d.state = Data::WaitDisconnecting;
 							//d.keepalivetimeout = 0;
@@ -2421,7 +2423,7 @@ AsyncE Session::doTrySendUpdates(TalkerStub &_rstub){
 		}
 		return AsyncSuccess;
 	}
-	return AsyncFailure;
+	return AsyncError;
 }
 //---------------------------------------------------------------------
 AsyncE Session::doExecuteConnectedLimited(TalkerStub &_rstub){
@@ -2691,7 +2693,7 @@ AsyncE Session::doExecuteDisconnecting(TalkerStub &_rstub){
 	AsyncE	rv;
 	while((rv = doTrySendUpdates(_rstub)) == AsyncSuccess){
 	}
-	if(rv == AsyncFailure){
+	if(rv == AsyncError){
 		if(d.state == Data::WaitDisconnecting){
 			return AsyncWait;
 		}

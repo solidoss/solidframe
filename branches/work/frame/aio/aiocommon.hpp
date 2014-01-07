@@ -17,7 +17,7 @@ namespace frame{
 namespace aio{
 
 enum AsyncE{
-	AsyncFailure = solid::AsyncFailure,
+	AsyncError = solid::AsyncError,
 	AsyncSuccess = solid::AsyncSuccess,
 	AsyncWait = solid::AsyncWait,
 };

@@ -180,7 +180,7 @@ int main(int argc, char* argv[]){
 		if(epoll_ctl(epollfd, EPOLL_CTL_ADD, handles[0].sd.descriptor(), &ev)){
 			edbg("epoll_ctl: "<<strerror(errno));
 			cassert(false);
-			return AsyncFailure;
+			return AsyncError;
 		}
 	}
 	int selected = 0;
@@ -218,7 +218,7 @@ int executeConnection(uint32 _pos){
 	switch(h.state){
 		case Handle::Init:
 			rv = h.ssl_accept();
-			if(rv == 0) return AsyncFailure;
+			if(rv == 0) return AsyncError;
 			if(rv > 0){
 				h.state = Handle::Banner;
 				h.clearWaitRead();
@@ -226,7 +226,7 @@ int executeConnection(uint32 _pos){
 				//timeout
 				if(h.shouldWait()){
 					h.setWaitRead();
-				}else return AsyncFailure;
+				}else return AsyncError;
 				break;
 			}
 		case Handle::Banner:
@@ -241,7 +241,7 @@ int executeConnection(uint32 _pos){
 				cassert(rv > 0);
 				h.setWaitWrite();
 				retval = AsyncWait;
-			}else return AsyncFailure;
+			}else return AsyncError;
 			break;
 		case Handle::DoIO:{
 				if(h.events & EPOLLIN){
@@ -267,7 +267,7 @@ int executeConnection(uint32 _pos){
 							h.doread = true;
 					}else if(h.shouldWait()){
 						h.setWaitRead();
-					}else return AsyncFailure;
+					}else return AsyncError;
 				}
 				if(h.dowrite){
 					h.dowrite = false;
@@ -290,7 +290,7 @@ int executeConnection(uint32 _pos){
 						}
 					}else if(h.shouldWait()){
 						h.setWaitWrite();
-					}else return AsyncFailure;
+					}else return AsyncError;
 				}
 			}break;
 	}
@@ -322,7 +322,7 @@ int executeListener(){
 		if(epoll_ctl(epollfd, EPOLL_CTL_ADD, handles.back().sd.descriptor(), &ev)){
 			edbg("epoll_ctl: "<<strerror(errno));
 			cassert(false);
-			return AsyncFailure;
+			return AsyncError;
 		}
 	}
 	return AsyncWait;

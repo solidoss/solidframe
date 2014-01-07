@@ -379,7 +379,7 @@ void Talker::execute(ExecuteContext &_rexectx){
 	
 	if(rv == AsyncSuccess){
 		must_reenter = true;
-	}else if(rv == AsyncFailure){
+	}else if(rv == AsyncError){
 		_rexectx.close();
 		return;
 	}
@@ -389,7 +389,7 @@ void Talker::execute(ExecuteContext &_rexectx){
 	rv = doSendPackets(ts, sig);
 	if(rv == AsyncSuccess){
 		must_reenter = true;
-	}else if(rv == AsyncFailure){
+	}else if(rv == AsyncError){
 		_rexectx.close();
 		return;
 	}
@@ -422,9 +422,9 @@ AsyncE Talker::doReceivePackets(TalkerStub &_rstub, uint _atmost, const ulong _s
 			case aio::AsyncWait:
 				d.pendingreadpacket = pbuf;
 				return AsyncWait;
-			case aio::AsyncFailure:
+			case aio::AsyncError:
 				Packet::deallocate(pbuf);
-				return AsyncFailure;
+				return AsyncError;
 		}
 	}
 	
@@ -714,7 +714,7 @@ bool Talker::doExecuteSessions(TalkerStub &_rstub){
 				d.sessionexecq.push(ts.sessionidx);
 			case AsyncWait:
 				break;
-			case AsyncFailure:
+			case AsyncError:
 				d.closingsessionvec.push_back(ts.sessionidx);
 				rss.inexeq = true;
 				break;
@@ -773,7 +773,7 @@ AsyncE Talker::doSendPackets(TalkerStub &_rstub, const ulong _sig){
 			case aio::AsyncWait:
 				COLLECT_DATA_0(d.statistics.sendPending);
 				return AsyncWait;
-			case aio::AsyncFailure: return AsyncFailure;
+			case aio::AsyncError: return AsyncError;
 		}
 		d.sendq.pop();
 	}
@@ -983,7 +983,7 @@ bool TalkerStub::pushSendPacket(uint32 _id, const char *_pb, uint32 _bl){
 	switch(rt.socketSendTo(_pb, _bl, rss.psession->peerAddress())){
 		case aio::AsyncSuccess:
 			break;
-		case aio::AsyncFailure:
+		case aio::AsyncError:
 		case aio::AsyncWait:
 			rt.d.sendq.push(Talker::Data::SendPacket(_pb, _bl, this->sessionidx, _id));
 			COLLECT_DATA_0(rt.d.statistics.sendPending);

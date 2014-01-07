@@ -116,18 +116,18 @@ Socket::~Socket(){
 /*virtual*/ AsyncE Socket::secureAccept(){
 	int rv = SSL_accept(pssl);
 	if(rv > 0) return AsyncSuccess;
-	if(rv == 0) return AsyncFailure;
+	if(rv == 0) return AsyncError;
 	if(shouldWait()){
 		return AsyncWait;
-	}return AsyncFailure;
+	}return AsyncError;
 }
 /*virtual*/ AsyncE Socket::secureConnect(){
 	int rv = SSL_connect(pssl);
 	if(rv > 0) return AsyncSuccess;
-	if(rv == 0) return AsyncFailure;
+	if(rv == 0) return AsyncError;
 	if(shouldWait()){
 		return AsyncWait;
-	}return AsyncFailure;
+	}return AsyncError;
 }
 Socket::Socket(SSL *_pssl):pssl(_pssl){
 }

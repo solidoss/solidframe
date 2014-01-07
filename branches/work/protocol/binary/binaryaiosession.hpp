@@ -63,7 +63,7 @@ public:
 					}
 					reenter = true;
 				}break;
-				case frame::aio::AsyncFailure: return done();
+				case frame::aio::AsyncError: return done();
 				default:
 					break;
 			}
@@ -99,7 +99,7 @@ public:
 					case frame::aio::AsyncWait:
 						cnt = 0;
 						break;
-					case frame::aio::AsyncFailure: 
+					case frame::aio::AsyncError: 
 						return done();
 					default:
 						break;
@@ -124,15 +124,15 @@ public:
 		
 	){
 		const AsyncE rcvrv = executeRecv(_raioobj, _evs, _rconctx, _rdes, _rbufctl, _rcom);
-		if(rcvrv == AsyncFailure) return done();
+		if(rcvrv == AsyncError) return done();
 		const AsyncE sndrv = executeSend(_raioobj, _evs, _rconctx, _rser, _rbufctl, _rcom);
-		if(sndrv == AsyncFailure) return done();
+		if(sndrv == AsyncError) return done();
 		return (sndrv == AsyncSuccess || rcvrv == AsyncSuccess) ? AsyncSuccess : AsyncWait;
 	}
 
 private:
 	AsyncE done(){
-		return AsyncFailure;
+		return AsyncError;
 	}
 };
 

@@ -1333,7 +1333,7 @@ AsyncE Controller::authenticate(
 	SerializationTypeIdT &_rtid
 ){
 	//use: ConnectionContext::the().connectionuid!!
-	return AsyncFailure;//by default no authentication
+	return AsyncError;//by default no authentication
 }
 
 void Controller::sendEvent(

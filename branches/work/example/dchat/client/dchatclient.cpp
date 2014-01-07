@@ -369,7 +369,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 	bool reenter = false;
 	if(st == RunningState){
 		const AsyncE rv = session.execute(*this, _rexectx.eventMask(), ctx, ser, des, bufctl, compressor);
-		if(rv == solid::AsyncFailure){
+		if(rv == solid::AsyncError){
 			done();
 			_rexectx.close();
 			return;
@@ -394,7 +394,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 	}else if(st == ConnectState){
 		idbg("ConnectState");
 		switch(socketConnect(rd.begin())){
-			case frame::aio::AsyncFailure:
+			case frame::aio::AsyncError:
 				done();
 				_rexectx.close();
 				return;

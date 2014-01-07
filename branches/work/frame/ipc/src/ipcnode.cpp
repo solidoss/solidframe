@@ -441,7 +441,7 @@ void Node::execute(ExecuteContext &_rexectx){
 	const AsyncE	rv = doReceiveDatagramPackets(16, socketEvents(0));
 	if(rv == AsyncSuccess){
 		must_reenter = true;
-	}else if(rv == AsyncFailure){
+	}else if(rv == AsyncError){
 		_rexectx.close();
 		return;
 	}
@@ -566,9 +566,9 @@ AsyncE Node::doReceiveDatagramPackets(uint _atmost, const ulong _sig){
 			case aio::AsyncWait:
 				d.pendingreadbuffer = pbuf;
 				return AsyncWait;
-			case aio::AsyncFailure:
+			case aio::AsyncError:
 				Packet::deallocate(pbuf);
-				return AsyncFailure;
+				return AsyncError;
 		}
 	}
 	return AsyncSuccess;//can still read from socket
@@ -601,7 +601,7 @@ void Node::doSendDatagramPackets(){
 				break;
 			case aio::AsyncWait:
 				return;
-			case aio::AsyncFailure:
+			case aio::AsyncError:
 				doDoneSendDatagram();
 				break;
 		}
@@ -895,7 +895,7 @@ void Node::doTrySendSocketBuffers(const uint _sockidx){
 			}break;
 			case aio::AsyncWait:
 				return;
-			case aio::AsyncFailure:
+			case aio::AsyncError:
 				doDisconnectConnection(_sockidx);
 				return;
 		}
@@ -926,7 +926,7 @@ void Node::doReceiveStreamData(const uint _sockidx){
 				break;
 			case aio::AsyncWait:
 				break;
-			case aio::AsyncFailure:
+			case aio::AsyncError:
 				doDisconnectConnection(_sockidx);
 				break;
 		}
@@ -1191,7 +1191,7 @@ void Node::doHandleSocketEvents(const uint _sockidx, ulong _evs){
 			case aio::AsyncWait:
 				rcs.state = ConnectionStub::ConnectWaitState;
 				break;
-			case aio::AsyncFailure:
+			case aio::AsyncError:
 				doDisconnectConnection(_sockidx);
 				break;
 		}

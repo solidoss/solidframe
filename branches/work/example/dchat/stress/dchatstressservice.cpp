@@ -445,7 +445,7 @@ void Connection::done(){
 			nexttime.seconds(0);
 		}
 		AsyncE rv = session.execute(*this, _rexectx.eventMask(), ctx, ser, des, bufctl, compressor);
-		if(rv == solid::AsyncFailure){
+		if(rv == solid::AsyncError){
 			done();
 			_rexectx.close();
 			return;
@@ -459,7 +459,7 @@ void Connection::done(){
 			}
 			return;
 		}
-		if(rv == solid::AsyncFailure){
+		if(rv == solid::AsyncError){
 			_rexectx.close();
 		}else{
 			_rexectx.reschedule();
@@ -481,7 +481,7 @@ void Connection::done(){
 	}else if(st == ConnectState){
 		idbg("ConnectState");
 		switch(socketConnect(rsa)){
-			case frame::aio::AsyncFailure:
+			case frame::aio::AsyncError:
 				done();
 				_rexectx.close();
 				return;

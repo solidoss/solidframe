@@ -144,9 +144,9 @@ AsyncE Socket::doSendPlain(const char* _pb, uint32 _bl, uint32 _flags){
 		sndcnt += rv;
 		return AsyncSuccess;
 	}
-	if(!rv) return AsyncFailure;
+	if(!rv) return AsyncError;
 	if(rv < 0){
-		if(errno != EAGAIN) return AsyncFailure;
+		if(errno != EAGAIN) return AsyncError;
 		rv = 0;
 	}
 	sndbuf = _pb + rv;
@@ -165,8 +165,8 @@ AsyncE Socket::doRecvPlain(char *_pb, uint32 _bl, uint32 _flags){
 		rcvcnt += rv;
 		return AsyncSuccess;
 	}
-	if(!rv) return AsyncFailure;
-	if(errno != EAGAIN) return AsyncFailure;
+	if(!rv) return AsyncError;
+	if(errno != EAGAIN) return AsyncError;
 	rcvbuf = _pb;
 	rcvlen = _bl;
 	ioreq |= FLAG_POLL_IN;
@@ -213,8 +213,8 @@ AsyncE Socket::recvFrom(char *_pb, uint32 _bl, uint32 _flags){
 		//d.pad->rcvaddrpair.size = rcvsa.size();
 		return AsyncSuccess;
 	}
-	if(rv == 0) return AsyncFailure;
-	if(errno != EAGAIN) return AsyncFailure;
+	if(rv == 0) return AsyncError;
+	if(errno != EAGAIN) return AsyncError;
 	rcvbuf = _pb;
 	rcvlen = _bl;
 	ioreq |= FLAG_POLL_IN;
@@ -229,8 +229,8 @@ AsyncE Socket::sendTo(const char *_pb, uint32 _bl, const SocketAddressStub &_sap
 		sndcnt += rv;
 		return AsyncSuccess;
 	}
-	if(rv >= 0) return AsyncFailure;
-	if(errno != EAGAIN) return AsyncFailure;
+	if(rv >= 0) return AsyncError;
+	if(errno != EAGAIN) return AsyncError;
 	sndbuf = _pb;
 	sndlen = _bl;
 	
@@ -403,10 +403,10 @@ AsyncE Socket::doSendSecure(const char* _pb, uint32 _bl, uint32 _flags){
 		sndcnt += rv;
 		return AsyncSuccess;
 	}
-	if(!rv) return AsyncFailure;
+	if(!rv) return AsyncError;
 	if(rv < 0){
 		int w = pss->wantEvents();
-		if(!w) return AsyncFailure;
+		if(!w) return AsyncError;
 		doWantWrite(w);
 		rv = 0;
 	}
@@ -425,9 +425,9 @@ AsyncE Socket::doRecvSecure(char *_pb, uint32 _bl, uint32 _flags){
 		rcvcnt += rv;
 		return AsyncSuccess;
 	}
-	if(!rv) return AsyncFailure;
+	if(!rv) return AsyncError;
 	int w = pss->wantEvents();
-	if(!w) return AsyncFailure;
+	if(!w) return AsyncError;
 	doWantRead(w);
 	rcvbuf = _pb;
 	rcvlen = _bl;
@@ -444,7 +444,7 @@ ulong Socket::doSecureAccept(){
 		rcvbuf = NULL;
 		return EventDoneSend;
 	}
-	if(rv == AsyncFailure){
+	if(rv == AsyncError){
 		rcvbuf = NULL;
 		return EventDoneError;
 	}
@@ -460,7 +460,7 @@ ulong Socket::doSecureConnect(){
 		sndbuf = NULL;
 		return EventDoneSend;
 	}
-	if(rv == AsyncFailure){
+	if(rv == AsyncError){
 		sndbuf = NULL;
 		return EventDoneSend;
 	}

@@ -42,7 +42,7 @@ void Listener::execute(ExecuteContext &_rexectx){
 				case aio::AsyncWait:
 					state = 1;
 					return;
-				case aio::AsyncFailure:
+				case aio::AsyncError:
 					_rexectx.close();
 					return;
 			}

@@ -505,8 +505,8 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 			("help,h", "List program options")
 			("chat-port,p", value<int>(&_par.chat_port)->default_value(2000),"Chat listen port")
 			("chat-address", value<string>(&_par.chat_addr_str)->default_value("0.0.0.0"),"Chat listen address")
-			("ipc-endpoint", value<string>(&_par.ipc_endpoint_str)->default_value("localhost:3000"),"IPC listen address")
-			("connect,c", value<vector<string> >(&_par.connectstringvec), "Peer to connect to: YYY.YYY.YYY.YYY:port")
+			("ipc-endpoint", value<string>(&_par.ipc_endpoint_str)->default_value("localhost:3000"),"IPC listen address: host_name:port. Must be the same name as the one used for connect!")
+			("connect,c", value<vector<string> >(&_par.connectstringvec), "Peer to connect to: host_name:port. Must be the same name as the one used for ipc-endpoint!")
 			("debug_levels,L", value<string>(&_par.dbg_levels)->default_value("view"),"Debug logging levels")
 			("debug_modules,M", value<string>(&_par.dbg_modules)->default_value("any"),"Debug logging modules")
 			("debug_address,A", value<string>(&_par.dbg_addr), "Debug server address (e.g. on linux use: nc -l 2222)")
@@ -570,7 +570,7 @@ Listener::~Listener(){
 	while(cnt--){
 		if(state == 0){
 			switch(this->socketAccept(sd)){
-				case frame::aio::AsyncFailure:
+				case frame::aio::AsyncError:
 					_rexectx.close();
 					return;
 				case frame::aio::AsyncSuccess:break;
@@ -674,7 +674,7 @@ void Service::insertConnection(
 void Service::onReceiveMessage(DynamicPointer<InitMessage> &_rmsgptr, frame::ipc::ConnectionContext const &_rctx){
 	if(_rmsgptr->type == InitMessage::RequestNodes){
 		_rmsgptr->type = InitMessage::ResponseNodes;
-		std::string					name = _rmsgptr->nodevec.front();
+		std::string		name = _rmsgptr->nodevec.front();
 		vdbg("Receive RequestNodes InitMessage "<<name);
 		_rmsgptr->nodevec.clear();
 		{
@@ -687,7 +687,7 @@ void Service::onReceiveMessage(DynamicPointer<InitMessage> &_rmsgptr, frame::ipc
 			}
 		}//prevent doble locking with this block
 		addNode(name, WaitNodeType);
-		DynamicPointer<frame::ipc::Message> msgptr(_rmsgptr);
+		DynamicPointer<frame::ipc::Message>	msgptr(_rmsgptr);
 		ipcService().sendMessage(msgptr, _rctx.connectionuid);
 	}else if(_rmsgptr->type == InitMessage::RequestAdd){
 		vdbg("Receive RequestAdd InitMessage "<<_rmsgptr->nodevec.front());
@@ -702,6 +702,7 @@ void Service::onReceiveMessage(DynamicPointer<InitMessage> &_rmsgptr, frame::ipc
 				if(idx){
 					NodeStub							&rns = nodevec[idx];
 					DynamicPointer<frame::ipc::Message>	msgptr(new InitMessage(nodevec[0].name, InitMessage::RequestAdd));
+					vdbg("Send message to "<<rns.name);
 					ipcService().sendMessage(msgptr, rns.addr);
 				}
 			}
@@ -739,7 +740,7 @@ void Service::notifyNodes(DynamicPointer<frame::ipc::Message> &_rmsgptr, NotifyC
 		}
 		idbg("Dend message to "<<it->name);
 		DynamicPointer<frame::ipc::Message> msgptr(shrmsgptr);
-		ipcService().sendMessage(msgptr, it->addr, frame::ipc::SynchronousSendFlag);
+		ipcService().sendMessage(msgptr, it->addr, frame::ipc::LocalNetworkId, frame::ipc::SynchronousSendFlag);
 	}
 }
 
@@ -829,7 +830,7 @@ bool Service::addNode(std::string &_rname, NodeTypes _type){
 		return;
 	}
 	ConnectionContext		ctx(*this);
-	AsyncE 					rv = AsyncFailure;
+	AsyncE 					rv = AsyncError;
 	switch(stt){
 		case StateAuth:
 		case StateNotAuth:
@@ -861,7 +862,7 @@ bool Service::addNode(std::string &_rname, NodeTypes _type){
 	}
 	if(rv == solid::AsyncSuccess){
 		_rexectx.reschedule();
-	}else if(rv == solid::AsyncFailure){
+	}else if(rv == solid::AsyncError){
 		_rexectx.close();
 	}
 	return;

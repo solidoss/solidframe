@@ -46,7 +46,7 @@ int File::stream(
 ){
 	if(_flags & Manager::Forced){
 		//if not open for reading or incompatible request for pending return bad
-		if(!(openmode & Manager::OpenR) || (_flags & Manager::ForcePending)) return AsyncFailure;
+		if(!(openmode & Manager::OpenR) || (_flags & Manager::ForcePending)) return AsyncError;
 	}else if(openmode & Manager::OpenR){
 		if(_flags & Manager::ForcePending){
 			iwq.push(WaitData(_requid, _flags));
@@ -77,7 +77,7 @@ int File::stream(
 ){
 	if(_flags & Manager::Forced){
 		//if not open for reading or incompatible request for pending return bad
-		if(!(openmode & Manager::OpenW) || (_flags & Manager::ForcePending)) return AsyncFailure;
+		if(!(openmode & Manager::OpenW) || (_flags & Manager::ForcePending)) return AsyncError;
 	}else if(openmode & Manager::OpenW){
 		if(_flags & Manager::ForcePending){
 			owq.push(WaitData(_requid, _flags));
@@ -104,7 +104,7 @@ int File::stream(
 ){
 	if(_flags & Manager::Forced){
 		//if not open for reading or incompatible request for pending return bad
-		if(!(openmode & Manager::OpenRW) || (_flags & Manager::ForcePending)) return AsyncFailure;
+		if(!(openmode & Manager::OpenRW) || (_flags & Manager::ForcePending)) return AsyncError;
 	}else if(openmode & Manager::OpenRW){
 		if(_flags & Manager::ForcePending){
 			owq.push(WaitData(_requid, _flags));

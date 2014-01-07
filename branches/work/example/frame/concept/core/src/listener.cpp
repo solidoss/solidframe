@@ -46,7 +46,7 @@ Listener::Listener(
 	while(cnt--){
 		if(state == 0){
 			switch(this->socketAccept(sd)){
-				case frame::aio::AsyncFailure:
+				case frame::aio::AsyncError:
 					_rexectx.close();
 					return;
 				case frame::aio::AsyncSuccess:break;

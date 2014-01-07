@@ -125,7 +125,7 @@ int Message::execute(
 	TimeSpec &_rts
 ){
 	wdbgx(Debug::frame, "Unhandled message");
-	return AsyncFailure;
+	return AsyncError;
 }
 
 bool Message::receiveMessage(

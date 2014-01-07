@@ -967,7 +967,7 @@ void Object::doExecuteAcceptDeclineOperation(RunData &_rd, const uint8 _replicai
 	}
 	if(rv == AsyncSuccess){
 		_rexectx.reschedule();
-	}else if(rv == AsyncFailure){
+	}else if(rv == AsyncError){
 		_rexectx.close();
 	}else if(d.timerq.size()){
 		if(d.timerq.isHit(_rexectx.currentTime())){

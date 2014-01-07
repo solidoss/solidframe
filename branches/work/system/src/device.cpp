@@ -592,7 +592,7 @@ AsyncE SocketDevice::connectNonBlocking(const SocketAddressStub &_rsas){
 		return AsyncWait;
 	}
 	SPECIFIC_ERROR_PUSH1(last_socket_error());
-	return AsyncFailure;
+	return AsyncError;
 #else
 	const int rv = ::connect(descriptor(), _rsas.sockAddr(), _rsas.size());
 	specific_error_clear();
@@ -604,7 +604,7 @@ AsyncE SocketDevice::connectNonBlocking(const SocketAddressStub &_rsas){
 		return AsyncWait;
 	}
 	SPECIFIC_ERROR_PUSH1(last_socket_error());
-	return AsyncFailure;
+	return AsyncError;
 #endif
 }
 
@@ -702,7 +702,7 @@ AsyncE SocketDevice::acceptNonBlocking(SocketDevice &_dev){
 			return AsyncWait;
 		}
 		SPECIFIC_ERROR_PUSH1(last_socket_error());
-		return AsyncFailure;
+		return AsyncError;
 	}
 	_dev.Device::descriptor((HANDLE)rv);
 	return AsyncSuccess;
@@ -714,7 +714,7 @@ AsyncE SocketDevice::acceptNonBlocking(SocketDevice &_dev){
 			return AsyncWait;
 		}
 		SPECIFIC_ERROR_PUSH1(last_socket_error());
-		return AsyncFailure;
+		return AsyncError;
 	}
 	_dev.Device::descriptor(rv);
 	return AsyncSuccess;

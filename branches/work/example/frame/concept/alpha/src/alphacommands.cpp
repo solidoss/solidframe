@@ -331,7 +331,7 @@ int RemoteList::reinitWriter(Writer &_rw, protocol::text::Parameter &_rp){
 			return Writer::Success;
 	};
 	cassert(false);
-	return AsyncFailure;
+	return AsyncError;
 }
 int RemoteList::receiveData(
 	void *_pdata,
@@ -400,7 +400,7 @@ int Fetch::doInitLocal(){
 	frame::RequestUid reqid(rc.id(), Manager::the().id(rc).second, rc.newRequestId());
 	int rv = Manager::the().fileManager().stream(sp_out, reqid, strpth.c_str());
 	switch(rv){
-		case AsyncFailure: 
+		case AsyncError: 
 			*pp = protocol::text::Parameter(StrDef(" NO FETCH: Unable to open file@"));
 			return Writer::Success;
 		case AsyncSuccess: 
@@ -413,7 +413,7 @@ int Fetch::doInitLocal(){
 			return Writer::Wait;
 	}
 	cassert(false);
-	return AsyncFailure;
+	return AsyncError;
 }
 
 int Fetch::doGetTempStream(uint32 _sz){
@@ -424,7 +424,7 @@ int Fetch::doGetTempStream(uint32 _sz){
 	FileUidT	fuid;
 	int rv = Manager::the().fileManager().stream(sp_out, fuid, reqid, tk);
 	switch(rv){
-		case AsyncFailure: 
+		case AsyncError: 
 			*pp = protocol::text::Parameter(StrDef(" NO FETCH: Unable to open temp file@"));
 			return Writer::Wait;
 		case AsyncSuccess: 
@@ -472,7 +472,7 @@ void Fetch::doSendSlave(const FileUidT &_fuid){
 	DynamicPointer<frame::ipc::Message> msgptr(pmsg);
 	Manager::the().ipc().sendMessage(msgptr, ipcconuid);
 //	idbg("rv = "<<rv);
-// 	if(rv == AsyncFailure){
+// 	if(rv == AsyncError){
 // 		*pp = protocol::text::Parameter(StrDef(" NO FETCH: peer died@"));
 // 		state = ReturnBad;
 // 	}
@@ -568,7 +568,7 @@ int Fetch::reinitWriter(Writer &_rw, protocol::text::Parameter &_rp){
 			return Writer::Success;
 	}
 	cassert(false);
-	return AsyncFailure;
+	return AsyncError;
 }
 
 int Fetch::receiveInputStream(
@@ -668,7 +668,7 @@ int Store::reinitReader(Reader &_rr, protocol::text::Parameter &_rp){
 			frame::RequestUid reqid(rc.id(), Manager::the().id(rc).second, rc.newRequestId());
 			int rv = Manager::the().fileManager().stream(sp, reqid, strpth.c_str(), frame::file::Manager::Create);
 			switch(rv){
-				case AsyncFailure: return Reader::Success;
+				case AsyncError: return Reader::Success;
 				case AsyncSuccess:
 					_rp.b.i = SendWait;
 					return Reader::Continue;
@@ -729,7 +729,7 @@ int Store::receiveError(
 	const solid::frame::ipc::ConnectionUid *
 ){
 	idbg("received error");
-	st = AsyncFailure;
+	st = AsyncError;
 	return AsyncSuccess;
 }
 
@@ -867,7 +867,7 @@ int Command::receiveInputStream(
 	const ObjectUidT&_from,
 	const frame::ipc::ConnectionUid *_conid
 ){
-	return AsyncFailure;
+	return AsyncError;
 }
 int Command::receiveOutputStream(
 	StreamPointer<OutputStream> &,
@@ -876,7 +876,7 @@ int Command::receiveOutputStream(
 	const ObjectUidT&_from,
 	const frame::ipc::ConnectionUid *_conid
 ){
-	return AsyncFailure;
+	return AsyncError;
 }
 int Command::receiveInputOutputStream(
 	StreamPointer<InputOutputStream> &, 
@@ -885,7 +885,7 @@ int Command::receiveInputOutputStream(
 	const ObjectUidT&_from,
 	const frame::ipc::ConnectionUid *_conid
 ){
-	return AsyncFailure;
+	return AsyncError;
 }
 int Command::receiveString(
 	const String &_str,
@@ -893,7 +893,7 @@ int Command::receiveString(
 	const ObjectUidT&_from,
 	const frame::ipc::ConnectionUid *_conid
 ){
-	return AsyncFailure;
+	return AsyncError;
 }
 int receiveData(
 	void *_pdata,
@@ -902,7 +902,7 @@ int receiveData(
 	const ObjectUidT&_from,
 	const solid::frame::ipc::ConnectionUid *_conid
 ){
-	return AsyncFailure;
+	return AsyncError;
 }
 int Command::receiveNumber(
 	const int64 &_no,
@@ -910,7 +910,7 @@ int Command::receiveNumber(
 	const ObjectUidT&_from,
 	const frame::ipc::ConnectionUid *_conid
 ){
-	return AsyncFailure;
+	return AsyncError;
 }
 int Command::receiveData(
 	void *_v,
@@ -919,14 +919,14 @@ int Command::receiveData(
 	const ObjectUidT&_from,
 	const frame::ipc::ConnectionUid *_conid
 ){
-	return AsyncFailure;
+	return AsyncError;
 }
 int Command::receiveError(
 	int _errid,
 	const ObjectUidT&_from,
 	const solid::frame::ipc::ConnectionUid *_conid
 ){
-	return AsyncFailure;
+	return AsyncError;
 }
 
 }//namespace alpha
