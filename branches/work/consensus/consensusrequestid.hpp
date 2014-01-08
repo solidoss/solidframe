@@ -32,7 +32,7 @@ struct RequestId{
 	RequestId():requid(-1){}
 	
 	template <class S>
-	S& operator&(S &_s){
+	S& serialize(S &_s, frame::ipc::ConnectionContext const &/*_rctx*/){
 		_s.push(requid, "opp").push(requid, "reqid");
 		_s.push(senderuid.first, "senderuid_first");
 		_s.push(senderuid.second, "senderuid_second");

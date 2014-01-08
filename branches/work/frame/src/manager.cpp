@@ -623,9 +623,8 @@ bool Manager::doForEachServiceObject(const Service &_rsvc, ObjectVisitFunctorT &
 bool Manager::doForEachServiceObject(const size_t _svcidx, Manager::ObjectVisitFunctorT &_fctor){
 	ServiceStub		&rss = d.psvcarr[_svcidx];
 	const uint		objpermutbts = rss.objpermutbts.load(/*ATOMIC_NS::memory_order_seq_cst*/);
-	bool			retval = false;
 	if(rss.objvec.empty()){
-		return retval;
+		return false;
 	}
 	size_t			loopcnt = 0;
 	size_t			hitcnt = 0;
@@ -649,7 +648,7 @@ bool Manager::doForEachServiceObject(const size_t _svcidx, Manager::ObjectVisitF
 	}
 	poldmtx->unlock();
 	vdbgx(Debug::frame, "Looped "<<loopcnt<<" times for "<<objcnt<<" objects");
-	return retval;
+	return hitcnt != 0;
 }
 
 Mutex& Manager::mutex(const IndexT &_rfullid)const{

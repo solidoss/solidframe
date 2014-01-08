@@ -690,7 +690,7 @@ MessageUid Session::Data::pushSendWaitMessage(
 		cassert(!_rmsgptr.get());
 		rsmd.flags = _flags;
 		rsmd.idx = _idx;
-		idbgx(Debug::ipc, "idx = "<<idx);
+		idbgx(Debug::ipc, "idx = "<<idx<<" flags = "<<_flags);
 		return MessageUid(idx, rsmd.uid);
 	}else{
 		idbgx(Debug::ipc, "idx = "<<sendmsgvec.size());
@@ -742,6 +742,7 @@ void Session::Data::popSentWaitMessage(const MessageUid &_rmsguid){
 		if(rsmd.uid != _rmsguid.uid) return;
 		++rsmd.uid;
 		if(rsmd.msgptr.get()){
+			cassert(!rsmd.pserializer);
 			//rsmd.msgptr->ipcOnComplete(Context::the().msgctx, 0);
 			ConnectionContext	&rmsgctx = Context::the().msgctx;
 			rmsgctx.service().controller().onMessageComplete(*rsmd.msgptr, rmsgctx, 0);
@@ -966,7 +967,9 @@ void Session::Data::pushMessageToSendQueue(
 	SendMessageData 	&rsmd(sendmsgvec[uid.idx]);
 	
 	sendmsgidxq.push(uid.idx);
-	rsmd.msgptr->ipcRequestMessageUid() = uid;
+	if(rsmd.msgptr->ipcIsOnSender()){
+		rsmd.msgptr->ipcRequestMessageUid() = uid;
+	}
 	if(rsmd.flags & WaitResponseFlag){
 		rsmd.msgptr->ipcResetState();
 	}
@@ -975,13 +978,14 @@ void Session::Data::pushMessageToSendQueue(
 	
 	rsmd.flags |= tmp_flgs;
 	
-	vdbgx(Debug::ipc, "flags = "<<(rsmd.flags & SentFlag)<<" tmpflgs = "<<(tmp_flgs & SentFlag));
+	vdbgx(Debug::ipc, "flags = "<<(rsmd.flags & SentFlag)<<" tmpflgs = "<<(tmp_flgs & SentFlag)<<" msguid = "<<uid.idx<<','<<uid.uid<<" msg = "<<(void*)rsmd.msgptr.get());
 	
 	if(tmp_flgs & WaitResponseFlag){
 		++sentmsgwaitresponse;
-	}else{
+	}/*else{
 		rsmd.flags &= ~WaitResponseFlag;
-	}
+	}*/
+	vdbgx(Debug::ipc, "msgidx = "<<uid.idx<<" flags = "<<rsmd.flags);
 }
 //----------------------------------------------------------------------
 void Session::Data::resetKeepAlive(){
@@ -2049,6 +2053,8 @@ void Session::doParsePacket(TalkerStub &_rstub, const Packet &_rpkt){
 			
 			cassert(rrsd.msgptr.empty());
 			
+			vdbgx(Debug::ipc, "received message with message waiting = "<<msguid.idx<<','<<msguid.uid);
+			
 			if(d.state == Data::Connected){
 				if(!rctrl.onMessageReceive(msgptr, rctx.msgctx)){
 					d.state = Data::Disconnecting;
@@ -2614,7 +2620,7 @@ void Session::doFillSendPacket(TalkerStub &_rstub, const uint32 _pktidx){
 					rspd.packet.dataType(Packet::ContinuedMessage);
 				}
 			}else{//a new message
-				vdbgx(Debug::ipc, "newmessage data size "<<rspd.packet.dataSize());
+				vdbgx(Debug::ipc, "newmessage data size "<<rspd.packet.dataSize()<<" msg = "<<(void*)rsmd.msgptr.get()<<" flags = "<<rsmd.flags<<" idx = "<<d.sendmsgidxq.front());
 				rspd.packet.dataType(Packet::NewMessage);
 				if(pser){
 					rsmd.pserializer = pser;

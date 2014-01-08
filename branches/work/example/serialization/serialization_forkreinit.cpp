@@ -57,8 +57,8 @@ int FileInputOutputStream::read(char *_pb, uint32 _bl, uint32 _flags){
 int FileInputOutputStream::write(const char *_pb, uint32 _bl, uint32 _flags){
 	return fd.write(_pb, _bl);
 }
-int64 FileInputOutputStream::seek(int64, SeekRef){
-	return -1;
+int64 FileInputOutputStream::seek(int64 _off, SeekRef){
+	return fd.seek(_off);
 }
 int64 FileInputOutputStream::size()const{
 	return fd.size();
@@ -139,7 +139,7 @@ static TypeMapper		tpmap;
 int main(int argc, char *argv[]){
 	int sps[2];
 	if(argc != 2){
-		cout<<"Expecting a file name as parameter!"<<endl;
+		cout<<"Expecting an existing file path as parameter!"<<endl;
 		return 0;
 	}
 
@@ -156,23 +156,20 @@ int main(int argc, char *argv[]){
 		std::string dbgout;
 		Debug::the().levelMask("view");
 		Debug::the().moduleMask("ser_bin any");
-		Debug::the().initFile(argv[0], false, 3, 1024 * 1024 * 64, &dbgout);
+		Debug::the().initFile("fork_parent", false, 3, 1024 * 1024 * 64, &dbgout);
 		cout<<"debug log to: "<<dbgout<<endl;
 #endif
-		childRun(sps[1]);
-		//close(sps[1]);
+		parentRun(sps[0], argv[1]);
 	}else{//the child
 		Thread::init();
 #ifdef UDEBUG
 		std::string dbgout;
 		Debug::the().levelMask("view");
 		Debug::the().moduleMask("ser_bin any");
-		Debug::the().initFile(argv[0], false, 3, 1024 * 1024 * 64, &dbgout);
+		Debug::the().initFile("fork_child", false, 3, 1024 * 1024 * 64, &dbgout);
 		cout<<"debug log to: "<<dbgout<<endl;
 #endif
-
-		parentRun(sps[0], argv[1]);
-		//close(sps[0]);
+		childRun(sps[1]);
 	}
 	return 0;
 }

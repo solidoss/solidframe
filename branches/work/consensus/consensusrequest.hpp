@@ -105,7 +105,6 @@ struct ReadRequestMessage: Dynamic<ReadRequestMessage, DynamicShared<frame::ipc:
 	template <class S>
 	S& serialize(S &_s, frame::ipc::ConnectionContext const &/*_rctx*/){
 		_s.push(id.requid, "id.requid").push(id.senderuid, "sender");
-		_s.push(st, "state");
 		return _s;
 	}
 	
@@ -116,8 +115,6 @@ struct ReadRequestMessage: Dynamic<ReadRequestMessage, DynamicShared<frame::ipc:
 	size_t use();
 	size_t release();
 	
-	bool							waitresponse;
-	uint8							st;
 	int8							sentcount;
 	frame::ipc::ConnectionUid		ipcconid;
 	RequestId						id;

@@ -30,7 +30,7 @@ namespace server{
 
 struct OperationStub{
 	template <class S>
-	S& operator&(S &_s){
+	S& serialize(S &_s, frame::ipc::ConnectionContext const &/*_rctx*/){
 		_s.push(operation, "opp").push(reqid, "reqid").push(proposeid, "proposeid").push(acceptid, "acceptid");
 		return _s;
 	}
@@ -46,8 +46,9 @@ struct OperationMessage;
 template <>
 struct OperationMessage<1>: Dynamic<OperationMessage<1>, Message>{
 	template <class S>
-	S& operator&(S &_s){
-		static_cast<Message*>(this)->operator&<S>(_s);
+	S& serialize(S &_s, frame::ipc::ConnectionContext const &_rctx){
+		static_cast<Message*>(this)->serialize(_s, _rctx);
+		
 		_s.push(op, "operation");
 		return _s;
 	}
@@ -58,8 +59,8 @@ struct OperationMessage<1>: Dynamic<OperationMessage<1>, Message>{
 template <>
 struct OperationMessage<2>: Dynamic<OperationMessage<2>, Message>{
 	template <class S>
-	S& operator&(S &_s){
-		static_cast<Message*>(this)->operator&<S>(_s);
+	S& serialize(S &_s, frame::ipc::ConnectionContext const &_rctx){
+		static_cast<Message*>(this)->serialize(_s, _rctx);
 		_s.push(op[0], "operation1");
 		_s.push(op[1], "operation2");
 		return _s;
@@ -74,8 +75,8 @@ struct OperationMessage: Dynamic<OperationMessage<Count>, Message>{
 		opsz = 0;
 	}
 	template <class S>
-	S& operator&(S &_s){
-		static_cast<Message*>(this)->operator&<S>(_s);
+	S& serialize(S &_s, frame::ipc::ConnectionContext const &_rctx){
+		static_cast<Message*>(this)->serialize(_s, _rctx);
 		_s.pushArray(op, opsz, "operations");
 		return _s;
 	}

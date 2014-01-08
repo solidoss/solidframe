@@ -1362,7 +1362,9 @@ BasicController::BasicController(
 	AioSchedulerT &_rsched,
 	const uint32 _flags,
 	const uint32 _resdatasz
-):Controller(_flags, _resdatasz), rsched_t(_rsched), rsched_l(_rsched), rsched_n(_rsched){}
+):Controller(_flags, _resdatasz), rsched_t(_rsched), rsched_l(_rsched), rsched_n(_rsched){
+	vdbgx(Debug::ipc, "");
+}
 
 BasicController::BasicController(
 	AioSchedulerT &_rsched_t,
@@ -1370,8 +1372,13 @@ BasicController::BasicController(
 	AioSchedulerT &_rsched_n,
 	const uint32 _flags,
 	const uint32 _resdatasz
-):Controller(_flags, _resdatasz), rsched_t(_rsched_t), rsched_l(_rsched_l), rsched_n(_rsched_n){}
+):Controller(_flags, _resdatasz), rsched_t(_rsched_t), rsched_l(_rsched_l), rsched_n(_rsched_n){
+	vdbgx(Debug::ipc, "");
+}
 
+BasicController::~BasicController(){
+	vdbgx(Debug::ipc, "");
+}
 /*virtual*/ void BasicController::scheduleTalker(frame::aio::Object *_ptkr){
 	DynamicPointer<frame::aio::Object> op(_ptkr);
 	rsched_t.schedule(op);
@@ -1418,8 +1425,8 @@ struct HandleMessage{
 };
 
 void Service::Handle::beforeSerialization(Service::SerializerT &_rs, Message *_pt, const ConnectionContext &_rctx){
-	vdbgx(Debug::ipc, "");
 	MessageUid	&rmsguid = _pt->ipcRequestMessageUid();
+	vdbgx(Debug::ipc, ""<<rmsguid.idx<<','<<rmsguid.uid);
 	_rs.pushHandle<HandleMessage>(_pt, "handle_state");
 	_rs.push(_pt->ipcState(), "state").push(rmsguid.idx, "msg_idx").push(rmsguid.uid, "msg_uid");
 }

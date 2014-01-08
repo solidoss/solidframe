@@ -114,12 +114,12 @@ int main(int argc, char *argv[]){
 			frame::ipc::Configuration	cfg;
 			ResolveData					rd = synchronous_resolve("0.0.0.0", p.ipc_port, 0, SocketInfo::Inet4, SocketInfo::Datagram);
 			//frame::aio::Error			err;
-			int							err;
+			bool						err;
 			
 			cfg.baseaddr = rd.begin();
 			
 			err = ipcsvc.reconfigure(cfg);
-			if(err){
+			if(!err){
 				//TODO:
 				//cout<<"Error starting ipcservice: "<<err.toString()<<endl;
 				Thread::waitAll();

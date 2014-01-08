@@ -280,6 +280,7 @@ int main(int argc, char *argv[]){
 			cout<<"Speed = "<<speed<<" KB/s"<<endl;
 		}
 		m.stop();
+		vdbg("done stop");
 	}
 	Thread::waitAll();
 	
@@ -452,7 +453,7 @@ FirstMessage::~FirstMessage(){
 
 /*virtual*/ void FirstMessage::ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, MessagePointerT &_rmsgptr){
 	++state;
-	idbg("EXECUTE ---------------- "<<state);
+	idbg("EXECUTE ---------------- "<<state<<" size = "<<str.size());
 	
 	if(this->idx >= msgvec.size()){
 		msgvec.resize(this->idx + 1);

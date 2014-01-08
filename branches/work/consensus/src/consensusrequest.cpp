@@ -94,9 +94,7 @@ WriteRequestMessage::~WriteRequestMessage(){
 		SocketInfo::NumericService | SocketInfo::NumericHost
 	);
 	
-	waitresponse = false;
-	
-	if(ipcIsOnSender()){
+	if(ipcIsBackOnSender()){
 		idbg((void*)this<<" on peer: baseport = "<<frame::ipc::ConnectionContext::the().baseport<<" host = "<<host<<":"<<port);
 		id.sockaddr.port(_rctx.baseport);
 		//fdt::m().signal(sig, serverUid());
@@ -114,13 +112,11 @@ WriteRequestMessage::~WriteRequestMessage(){
 uint32 WriteRequestMessage::ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx){
 	uint32	rv(0);
 	idbg((void*)this);
-	if(st == OnSender){
-		if(waitresponse){
-			rv |= frame::ipc::WaitResponseFlag;
-		}
-		rv |= frame::ipc::SynchronousSendFlag;
-		rv |= frame::ipc::SameConnectorFlag;
+	if(ipcIsOnSender()){
+		rv |= frame::ipc::WaitResponseFlag;
 	}
+	rv |= frame::ipc::SynchronousSendFlag;
+	rv |= frame::ipc::SameConnectorFlag;
 	return rv;
 }
 
@@ -151,11 +147,11 @@ size_t WriteRequestMessage::release(){
 }
 //--------------------------------------------------------------
 //--------------------------------------------------------------
-ReadRequestMessage::ReadRequestMessage():waitresponse(false), sentcount(0){
+ReadRequestMessage::ReadRequestMessage():sentcount(0){
 	idbg("ReadRequestMessage "<<(void*)this);
 	shared_mutex_safe(this);
 }
-ReadRequestMessage::ReadRequestMessage(const RequestId &_rreqid):waitresponse(false), sentcount(0),id(_rreqid){
+ReadRequestMessage::ReadRequestMessage(const RequestId &_rreqid):sentcount(0),id(_rreqid){
 	idbg("ReadRequestMessage "<<(void*)this);
 	shared_mutex_safe(this);
 }
@@ -181,9 +177,7 @@ void ReadRequestMessage::ipcOnReceive(frame::ipc::ConnectionContext const &_rctx
 		SocketInfo::NumericService | SocketInfo::NumericHost
 	);
 	
-	waitresponse = false;
-	
-	if(this->ipcIsOnSender()){
+	if(this->ipcIsBackOnSender()){
 		idbg((void*)this<<" on peer: baseport = "<<frame::ipc::ConnectionContext::the().baseport<<" host = "<<host<<":"<<port);
 		id.sockaddr.port(frame::ipc::ConnectionContext::the().baseport);
 		this->notifyConsensusObjectWithThis();
@@ -201,12 +195,10 @@ uint32 ReadRequestMessage::ipcOnPrepare(frame::ipc::ConnectionContext const &_rc
 	uint32	rv(0);
 	idbg((void*)this);
 	if(ipcIsOnSender()){
-		if(waitresponse){
-			rv |= frame::ipc::WaitResponseFlag;
-		}
-		rv |= frame::ipc::SynchronousSendFlag;
-		rv |= frame::ipc::SameConnectorFlag;
+		rv |= frame::ipc::WaitResponseFlag;
 	}
+	rv |= frame::ipc::SynchronousSendFlag;
+	rv |= frame::ipc::SameConnectorFlag;
 	return rv;
 }
 
@@ -228,7 +220,7 @@ size_t ReadRequestMessage::release(){
 	size_t rv = DynamicShared<frame::ipc::Message>::release();
 	idbg((void*)this<<" usecount = "<<usecount);
 	if(!rv){
-		if(waitresponse && !sentcount){
+		if(!sentcount){
 			idbg("failed receiving response "/*<<sentcnt*/);
 			//We cannot call this on destructor - 
 			//the overwritten method will be on a destroyed object

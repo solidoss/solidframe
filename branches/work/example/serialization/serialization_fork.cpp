@@ -31,8 +31,8 @@ class FileInputOutputStream: public InputOutputStream{
 public:
 	FileInputOutputStream();
 	~FileInputOutputStream();
-	int openRead(const char *_fn);
-	int openWrite(const char *_fn);
+	bool openRead(const char *_fn);
+	bool openWrite(const char *_fn);
 	int read(char *, uint32, uint32 _flags = 0);
 	int write(const char *, uint32, uint32 _flags = 0);
 	int64 seek(int64, SeekRef);
@@ -44,11 +44,11 @@ private:
 ///\endcond
 FileInputOutputStream::FileInputOutputStream(){}
 FileInputOutputStream::~FileInputOutputStream(){}
-int FileInputOutputStream::openRead(const char *_fn){
+bool FileInputOutputStream::openRead(const char *_fn){
 	return fd.open(_fn, FileDevice::RO);
 }
-int FileInputOutputStream::openWrite(const char *_fn){
-	return fd.open(_fn, FileDevice::WO | FileDevice::TR | FileDevice::CR);
+bool FileInputOutputStream::openWrite(const char *_fn){
+	return fd.create(_fn, FileDevice::WO);
 }
 int FileInputOutputStream::read(char *_pb, uint32 _bl, uint32 _flags){
 	return fd.read(_pb, _bl);
@@ -56,8 +56,8 @@ int FileInputOutputStream::read(char *_pb, uint32 _bl, uint32 _flags){
 int FileInputOutputStream::write(const char *_pb, uint32 _bl, uint32 _flags){
 	return fd.write(_pb, _bl);
 }
-int64 FileInputOutputStream::seek(int64, SeekRef){
-	return -1;
+int64 FileInputOutputStream::seek(int64 _off, SeekRef){
+	return fd.seek(_off);
 }
 int64 FileInputOutputStream::size()const{
 	return fd.size();
@@ -92,9 +92,13 @@ private:
 Test::Test(const char *_fn):fn(_fn?_fn:""){
 	if(_fn){
 		no = 11111;
-		fs.openRead(_fn);
+		if(!fs.openRead(_fn)){
+			idbg("failed open read");
+		}
 	}else{
-		fs.openWrite("output.out");
+		if(!fs.openWrite("output.out")){
+			idbg("failed open write");
+		}
 	}
 }
 //-----------------------------------------------------------------------------------
@@ -126,7 +130,7 @@ static TypeMapper		tpmap;
 int main(int argc, char *argv[]){
 	int sps[2];
 	if(argc != 2){
-		cout<<"Expecting a file name as parameter!"<<endl;
+		cout<<"Expecting an existing file path as parameter!"<<endl;
 		return 0;
 	}
 
@@ -143,23 +147,21 @@ int main(int argc, char *argv[]){
 		std::string dbgout;
 		Debug::the().levelMask("view");
 		Debug::the().moduleMask("ser_bin any");
-		Debug::the().initFile(argv[0], false, 3, 1024 * 1024 * 64, &dbgout);
+		Debug::the().initFile("fork_parent", false, 3, 1024 * 1024 * 64, &dbgout);
 		cout<<"debug log to: "<<dbgout<<endl;
 #endif
-		childRun(sps[1]);
-		//close(sps[1]);
+		parentRun(sps[0], argv[1]);
 	}else{//the child
 		Thread::init();
 #ifdef UDEBUG
 		std::string dbgout;
 		Debug::the().levelMask("view");
 		Debug::the().moduleMask("ser_bin any");
-		Debug::the().initFile(argv[0], false, 3, 1024 * 1024 * 64, &dbgout);
+		Debug::the().initFile("fork_child", false, 3, 1024 * 1024 * 64, &dbgout);
 		cout<<"debug log to: "<<dbgout<<endl;
 #endif
 
-		parentRun(sps[0], argv[1]);
-		//close(sps[0]);
+		childRun(sps[1]);
 	}
 	return 0;
 }
@@ -172,8 +174,10 @@ void parentRun(int _sd, const char *_fn){
 	t.print();
 	int rv;
 	int cnt = 0;
+	idbg("");
 	while((rv = ser.run(buf, BUFSZ)) != 0){
 		cnt += rv;
+		idbg("");
 		if(write(_sd, buf, rv) != rv){
 			cout<<"Error write: "<<strerror(errno)<<endl;
 			return;
@@ -189,8 +193,10 @@ void childRun(int _sd){
 	des.push(t, "test");
 	int rv;
 	cout<<"Client reading"<<endl;
+	idbg("");
 	while((rv = read(_sd, buf, BUFSZ)) > 0){
-		cout<<"Client read: "<<rv<<endl;
+		idbg("");
+		cout<<"Client read: "<<rv<<endl<<flush;
 		if(des.run(buf, rv) != rv) break;
 		if(des.empty()) break;
 	}

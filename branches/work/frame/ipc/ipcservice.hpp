@@ -169,6 +169,7 @@ struct BasicController: Controller{
 		const uint32 _flags = 0,
 		const uint32 _resdatasz = 0
 	);
+	~BasicController();
 	/*virtual*/ void scheduleTalker(frame::aio::Object *_ptkr);
 	/*virtual*/ void scheduleListener(frame::aio::Object *_plis);
 	/*virtual*/ void scheduleNode(frame::aio::Object *_pnod);
