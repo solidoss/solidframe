@@ -56,7 +56,6 @@ struct WriteRequestMessage: Dynamic<WriteRequestMessage, DynamicShared<frame::ip
 	template <class S>
 	S& serialize(S &_s, frame::ipc::ConnectionContext const &/*_rctx*/){
 		_s.push(id.requid, "id.requid").push(id.senderuid, "sender");
-		_s.push(st, "state");
 		return _s;
 	}
 	
@@ -67,8 +66,6 @@ struct WriteRequestMessage: Dynamic<WriteRequestMessage, DynamicShared<frame::ip
 	size_t use();
 	size_t release();
 	
-	bool							waitresponse;
-	uint8							st;
 	int8							sentcount;
 	frame::ipc::ConnectionUid		ipcconid;
 	RequestId						id;

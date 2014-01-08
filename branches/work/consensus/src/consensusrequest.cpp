@@ -26,18 +26,22 @@ bool RequestId::operator<(const RequestId &_rcsi)const{
 		return false;
 	}else return overflow_safe_less(this->requid, _rcsi.requid);
 }
+
 bool RequestId::operator==(const RequestId &_rcsi)const{
 	return this->sockaddr == _rcsi.sockaddr && 
 		this->senderuid == _rcsi.senderuid &&
 		this->requid == _rcsi.requid;
 }
+
 size_t RequestId::hash()const{
 	return sockaddr.hash() ^ this->senderuid.first ^ this->requid;
 }
+
 bool RequestId::senderEqual(const RequestId &_rcsi)const{
 	return this->sockaddr == _rcsi.sockaddr && 
 		this->senderuid == _rcsi.senderuid;
 }
+
 bool RequestId::senderLess(const RequestId &_rcsi)const{
 	if(this->sockaddr < _rcsi.sockaddr){
 		return true;
@@ -45,9 +49,11 @@ bool RequestId::senderLess(const RequestId &_rcsi)const{
 		return false;
 	}else return this->senderuid < _rcsi.senderuid;
 }
+
 size_t RequestId::senderHash()const{
 	return sockaddr.hash() ^ this->senderuid.first;
 }
+
 std::ostream &operator<<(std::ostream& _ros, const RequestId &_rreqid){
 	_ros<<_rreqid.requid<<','<<' '<<_rreqid.senderuid.first<<','<<' '<<_rreqid.senderuid.second<<','<<' ';
 	const SocketAddressInet4	&ra(_rreqid.sockaddr);
@@ -63,12 +69,15 @@ std::ostream &operator<<(std::ostream& _ros, const RequestId &_rreqid){
 	_ros<<host<<':'<<port;
 	return _ros;
 }
+
 //--------------------------------------------------------------
-WriteRequestMessage::WriteRequestMessage():waitresponse(false), st(OnSender), sentcount(0){
+//--------------------------------------------------------------
+
+WriteRequestMessage::WriteRequestMessage(): sentcount(0){
 	idbg("WriteRequestSignal "<<(void*)this);
 	shared_mutex_safe(this);
 }
-WriteRequestMessage::WriteRequestMessage(const RequestId &_rreqid):waitresponse(false), st(OnSender), sentcount(0),id(_rreqid){
+WriteRequestMessage::WriteRequestMessage(const RequestId &_rreqid): sentcount(0),id(_rreqid){
 	idbg("WriteRequestMessage "<<(void*)this);
 	shared_mutex_safe(this);
 }
@@ -78,7 +87,6 @@ WriteRequestMessage::~WriteRequestMessage(){
 }
 
 /*virtual*/ void WriteRequestMessage::ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, MessagePointerT &_rmsgptr){
-	//_rsiguid = this->ipcsiguid;
 	ipcconid = frame::ipc::ConnectionContext::the().connectionuid;
 	
 	char				host[SocketInfo::HostStringCapacity];
@@ -95,20 +103,18 @@ WriteRequestMessage::~WriteRequestMessage(){
 	);
 	
 	if(ipcIsBackOnSender()){
+		idbg((void*)this<<" back on sender: baseport = "<<frame::ipc::ConnectionContext::the().baseport<<" host = "<<host<<":"<<port);
+		notifySenderObjectWithThis();
+	}else if(ipcIsOnReceiver()){
 		idbg((void*)this<<" on peer: baseport = "<<frame::ipc::ConnectionContext::the().baseport<<" host = "<<host<<":"<<port);
 		id.sockaddr.port(_rctx.baseport);
-		//fdt::m().signal(sig, serverUid());
 		this->notifyConsensusObjectWithThis();
-	}else if(ipcIsOnReceiver()){
-		idbg((void*)this<<" back on sender: baseport = "<<frame::ipc::ConnectionContext::the().baseport<<" host = "<<host<<":"<<port);
-		
-		notifySenderObjectWithThis();
+
 	}else{
 		cassert(false);
 	}
 }
-// void WriteRequestSignal::sendThisToConsensusObject(){
-// }
+
 uint32 WriteRequestMessage::ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx){
 	uint32	rv(0);
 	idbg((void*)this);
@@ -127,16 +133,18 @@ void WriteRequestMessage::ipcOnComplete(frame::ipc::ConnectionContext const &_rc
 		++sentcount;
 	}
 }
+
 size_t WriteRequestMessage::use(){
 	size_t rv = DynamicShared<frame::ipc::Message>::use();
 	idbg((void*)this<<" usecount = "<<usecount);
 	return rv;
 }
+
 size_t WriteRequestMessage::release(){
 	size_t rv = DynamicShared<frame::ipc::Message>::release();
 	idbg((void*)this<<" usecount = "<<usecount);
 	if(!rv){
-		if(waitresponse && !sentcount){
+		if(!sentcount){
 			idbg("failed receiving response "/*<<sentcnt*/);
 			//We cannot call this on destructor - 
 			//the overwritten method will be on a destroyed object
@@ -145,12 +153,16 @@ size_t WriteRequestMessage::release(){
 	}
 	return rv;
 }
+
+
 //--------------------------------------------------------------
 //--------------------------------------------------------------
+
 ReadRequestMessage::ReadRequestMessage():sentcount(0){
 	idbg("ReadRequestMessage "<<(void*)this);
 	shared_mutex_safe(this);
 }
+
 ReadRequestMessage::ReadRequestMessage(const RequestId &_rreqid):sentcount(0),id(_rreqid){
 	idbg("ReadRequestMessage "<<(void*)this);
 	shared_mutex_safe(this);
@@ -161,7 +173,6 @@ ReadRequestMessage::~ReadRequestMessage(){
 }
 
 void ReadRequestMessage::ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, solid::frame::ipc::Message::MessagePointerT &_rmsgptr){
-	//_rsiguid = this->ipcsiguid;
 	ipcconid = _rctx.connectionuid;
 	
 	char				host[SocketInfo::HostStringCapacity];
@@ -177,20 +188,17 @@ void ReadRequestMessage::ipcOnReceive(frame::ipc::ConnectionContext const &_rctx
 		SocketInfo::NumericService | SocketInfo::NumericHost
 	);
 	
-	if(this->ipcIsBackOnSender()){
+	if(ipcIsBackOnSender()){
+		idbg((void*)this<<" back on sender: baseport = "<<frame::ipc::ConnectionContext::the().baseport<<" host = "<<host<<":"<<port);
+		this->notifySenderObjectWithThis();
+	}else if(ipcIsOnReceiver()){
 		idbg((void*)this<<" on peer: baseport = "<<frame::ipc::ConnectionContext::the().baseport<<" host = "<<host<<":"<<port);
 		id.sockaddr.port(frame::ipc::ConnectionContext::the().baseport);
 		this->notifyConsensusObjectWithThis();
-	}else if(ipcIsOnReceiver()){
-		idbg((void*)this<<" back on sender: baseport = "<<frame::ipc::ConnectionContext::the().baseport<<" host = "<<host<<":"<<port);
-		
-		this->notifySenderObjectWithThis();
 	}else{
 		cassert(false);
 	}
 }
-// void ReadRequestSignal::sendThisToConsensusObject(){
-// }
 uint32 ReadRequestMessage::ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx){
 	uint32	rv(0);
 	idbg((void*)this);
@@ -211,13 +219,13 @@ void ReadRequestMessage::ipcOnComplete(frame::ipc::ConnectionContext const &_rct
 }
 
 size_t ReadRequestMessage::use(){
-	size_t rv = DynamicShared<frame::ipc::Message>::use();
+	const size_t rv = DynamicShared<frame::ipc::Message>::use();
 	idbg((void*)this<<" usecount = "<<usecount);
 	return rv;
 }
 
 size_t ReadRequestMessage::release(){
-	size_t rv = DynamicShared<frame::ipc::Message>::release();
+	const size_t rv = DynamicShared<frame::ipc::Message>::release();
 	idbg((void*)this<<" usecount = "<<usecount);
 	if(!rv){
 		if(!sentcount){
