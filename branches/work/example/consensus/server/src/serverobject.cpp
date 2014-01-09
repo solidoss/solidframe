@@ -147,11 +147,11 @@ void ServerObject::dynamicHandle(DynamicPointer<> &_dp, int){
 }
 
 void ServerObject::dynamicHandle(DynamicPointer<StoreRequest> &_rmsgptr, int){
-	const frame::ipc::ConnectionUid	ipcconid(_rmsgptr->ipcconid);
+	const frame::ipc::ConnectionUid	ipcconid(_rmsgptr->consensusIpcConnectionId());
 	
 	_rmsgptr->v = this->acceptId();
 
-	idbg("StoreRequest: v = "<<_rmsgptr->v<<" for request "<<_rmsgptr->id);
+	idbg("StoreRequest: v = "<<_rmsgptr->v<<" for request "<<_rmsgptr->consensusRequestId());
 	
 	DynamicPointer<frame::ipc::Message>		msgptr(_rmsgptr);
 	ripcsvc.sendMessage(msgptr, ipcconid);
@@ -159,14 +159,14 @@ void ServerObject::dynamicHandle(DynamicPointer<StoreRequest> &_rmsgptr, int){
 
 void ServerObject::dynamicHandle(DynamicPointer<FetchRequest> &_rmsgptr, int){
 	idbg("received FetchRequest");
-	const frame::ipc::ConnectionUid		ipcconid(_rmsgptr->ipcconid);
+	const frame::ipc::ConnectionUid		ipcconid(_rmsgptr->consensusIpcConnectionId());
 	DynamicPointer<frame::ipc::Message>	msgptr(_rmsgptr);
 	ripcsvc.sendMessage(msgptr, ipcconid);
 }
 
 void ServerObject::dynamicHandle(DynamicPointer<EraseRequest> &_rmsgptr, int){
 	idbg("received EraseRequest");
-	const frame::ipc::ConnectionUid		ipcconid(_rmsgptr->ipcconid);
+	const frame::ipc::ConnectionUid		ipcconid(_rmsgptr->consensusIpcConnectionId());
 	DynamicPointer<frame::ipc::Message>	msgptr(_rmsgptr);
 	ripcsvc.sendMessage(msgptr, ipcconid);
 }

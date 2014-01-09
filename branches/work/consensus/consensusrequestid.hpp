@@ -30,6 +30,7 @@ namespace consensus{
  */
 struct RequestId{
 	RequestId():requid(-1){}
+	RequestId(const uint32 _requid, frame::ObjectUidT const &_objuid):requid(_requid), senderuid(_objuid){}
 	
 	template <class S>
 	S& serialize(S &_s, frame::ipc::ConnectionContext const &/*_rctx*/){

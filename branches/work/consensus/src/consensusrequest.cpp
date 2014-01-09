@@ -73,11 +73,14 @@ std::ostream &operator<<(std::ostream& _ros, const RequestId &_rreqid){
 //--------------------------------------------------------------
 //--------------------------------------------------------------
 
-WriteRequestMessage::WriteRequestMessage(): sentcount(0){
+WriteRequestMessage::WriteRequestMessage(const uint8 _expectcnt): expectcnt(_expectcnt){
+	completecnt.store(0);
 	idbg("WriteRequestSignal "<<(void*)this);
 	shared_mutex_safe(this);
 }
-WriteRequestMessage::WriteRequestMessage(const RequestId &_rreqid): sentcount(0),id(_rreqid){
+
+WriteRequestMessage::WriteRequestMessage(const RequestId &_rreqid, const uint8 _expectcnt): expectcnt(_expectcnt), id(_rreqid){
+	completecnt.store(0);
 	idbg("WriteRequestMessage "<<(void*)this);
 	shared_mutex_safe(this);
 }
@@ -104,12 +107,14 @@ WriteRequestMessage::~WriteRequestMessage(){
 	
 	if(ipcIsBackOnSender()){
 		idbg((void*)this<<" back on sender: baseport = "<<frame::ipc::ConnectionContext::the().baseport<<" host = "<<host<<":"<<port);
-		notifySenderObjectWithThis();
+		if(static_cast<WriteRequestMessage*>(_rctx.requestMessage(*this).get())->consensusOnSuccess()){
+			idbg("before consensusNotifyClientWithThis");
+			consensusNotifyClientWithThis();
+		}
 	}else if(ipcIsOnReceiver()){
 		idbg((void*)this<<" on peer: baseport = "<<frame::ipc::ConnectionContext::the().baseport<<" host = "<<host<<":"<<port);
 		id.sockaddr.port(_rctx.baseport);
-		this->notifyConsensusObjectWithThis();
-
+		this->consensusNotifyServerWithThis();
 	}else{
 		cassert(false);
 	}
@@ -127,10 +132,11 @@ uint32 WriteRequestMessage::ipcOnPrepare(frame::ipc::ConnectionContext const &_r
 }
 
 void WriteRequestMessage::ipcOnComplete(frame::ipc::ConnectionContext const &_rctx, int _err){
-	idbg((void*)this<<" sentcount = "<<(int)sentcount<<" err = "<<_err);
-	if(!_err){
-		Locker<Mutex> lock(shared_mutex(this));
-		++sentcount;
+	const uint8 cc = completecnt.fetch_add(1);
+	idbg((void*)this<<" prev completecount = "<<(int)cc<<" err = "<<_err);
+	if(expectcnt && cc == (expectcnt - 1) && !(cc & (1 << 7))){//there was no success sending message
+		idbg("before consensusNotifyClientWithFail");
+		consensusNotifyClientWithFail();
 	}
 }
 
@@ -143,14 +149,6 @@ size_t WriteRequestMessage::use(){
 size_t WriteRequestMessage::release(){
 	size_t rv = DynamicShared<frame::ipc::Message>::release();
 	idbg((void*)this<<" usecount = "<<usecount);
-	if(!rv){
-		if(!sentcount){
-			idbg("failed receiving response "/*<<sentcnt*/);
-			//We cannot call this on destructor - 
-			//the overwritten method will be on a destroyed object
-			notifySenderObjectWithFail();
-		}
-	}
 	return rv;
 }
 
@@ -158,12 +156,12 @@ size_t WriteRequestMessage::release(){
 //--------------------------------------------------------------
 //--------------------------------------------------------------
 
-ReadRequestMessage::ReadRequestMessage():sentcount(0){
+ReadRequestMessage::ReadRequestMessage(){
 	idbg("ReadRequestMessage "<<(void*)this);
 	shared_mutex_safe(this);
 }
 
-ReadRequestMessage::ReadRequestMessage(const RequestId &_rreqid):sentcount(0),id(_rreqid){
+ReadRequestMessage::ReadRequestMessage(const RequestId &_rreqid):id(_rreqid){
 	idbg("ReadRequestMessage "<<(void*)this);
 	shared_mutex_safe(this);
 }
@@ -190,11 +188,11 @@ void ReadRequestMessage::ipcOnReceive(frame::ipc::ConnectionContext const &_rctx
 	
 	if(ipcIsBackOnSender()){
 		idbg((void*)this<<" back on sender: baseport = "<<frame::ipc::ConnectionContext::the().baseport<<" host = "<<host<<":"<<port);
-		this->notifySenderObjectWithThis();
+		this->consensusNotifyClientWithThis();
 	}else if(ipcIsOnReceiver()){
 		idbg((void*)this<<" on peer: baseport = "<<frame::ipc::ConnectionContext::the().baseport<<" host = "<<host<<":"<<port);
 		id.sockaddr.port(frame::ipc::ConnectionContext::the().baseport);
-		this->notifyConsensusObjectWithThis();
+		this->consensusNotifyServerWithThis();
 	}else{
 		cassert(false);
 	}
@@ -211,10 +209,9 @@ uint32 ReadRequestMessage::ipcOnPrepare(frame::ipc::ConnectionContext const &_rc
 }
 
 void ReadRequestMessage::ipcOnComplete(frame::ipc::ConnectionContext const &_rctx, int _err){
-	idbg((void*)this<<" sentcount = "<<(int)sentcount<<" err = "<<_err);
+	idbg((void*)this<<" err = "<<_err);
 	if(!_err){
 		Locker<Mutex> lock(shared_mutex(this));
-		++sentcount;
 	}
 }
 
@@ -227,14 +224,6 @@ size_t ReadRequestMessage::use(){
 size_t ReadRequestMessage::release(){
 	const size_t rv = DynamicShared<frame::ipc::Message>::release();
 	idbg((void*)this<<" usecount = "<<usecount);
-	if(!rv){
-		if(!sentcount){
-			idbg("failed receiving response "/*<<sentcnt*/);
-			//We cannot call this on destructor - 
-			//the overwritten method will be on a destroyed object
-			notifySenderObjectWithFail();
-		}
-	}
 	return rv;
 }
 

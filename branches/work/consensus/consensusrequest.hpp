@@ -15,6 +15,7 @@
 #include "frame/ipc/ipcconnectionuid.hpp"
 #include "utility/dynamicpointer.hpp"
 #include "system/socketaddress.hpp"
+#include "system/atomic.hpp"
 
 #include "consensus/consensusrequestid.hpp"
 
@@ -29,14 +30,10 @@ namespace consensus{
  * 
  */ 
 struct WriteRequestMessage: Dynamic<WriteRequestMessage, DynamicShared<frame::ipc::Message> >{
-	enum{
-		OnSender,
-		OnPeer,
-		BackOnSender
-	};
-	WriteRequestMessage();
-	WriteRequestMessage(const RequestId &_rreqid);
+	WriteRequestMessage(const uint8 _expectcnt = 0);
+	WriteRequestMessage(const RequestId &_rreqid, const uint8 _expectcnt = 0);
 	~WriteRequestMessage();
+	void consensusExpectCount(const uint8 _cnt);
 	//! Implement to send "this" to a consensus::Object when on peer
 	/*!
 	 * While on peer (the process containing the needed consensus::Object)
@@ -49,9 +46,9 @@ struct WriteRequestMessage: Dynamic<WriteRequestMessage, DynamicShared<frame::ip
 	 * }<br>
 	 * </code>
 	 */
-	virtual void notifyConsensusObjectWithThis() = 0;
-	virtual void notifySenderObjectWithThis() = 0;
-	virtual void notifySenderObjectWithFail() = 0;
+	virtual void consensusNotifyServerWithThis() = 0;
+	virtual void consensusNotifyClientWithThis() = 0;
+	virtual void consensusNotifyClientWithFail() = 0;
 	
 	template <class S>
 	S& serialize(S &_s, frame::ipc::ConnectionContext const &/*_rctx*/){
@@ -65,12 +62,48 @@ struct WriteRequestMessage: Dynamic<WriteRequestMessage, DynamicShared<frame::ip
 	
 	size_t use();
 	size_t release();
-	
-	int8							sentcount;
+	const RequestId& consensusRequestId()const;
+	void consensusRequestId(const RequestId &_reqid);
+	const frame::ipc::ConnectionUid& consensusIpcConnectionId()const;
+protected:
+	uint8 consensusExpectCount()const;
+	uint8 consensusCompleteCount()const;
+	bool  consensusSuccess()const;
+	bool  consensusOnSuccess();
+protected:
+	uint8							expectcnt;
+	ATOMIC_NS::atomic<uint8>		completecnt;
 	frame::ipc::ConnectionUid		ipcconid;
 	RequestId						id;
 };
 
+
+
+inline void WriteRequestMessage::consensusExpectCount(const uint8 _cnt){
+	expectcnt = _cnt;
+}
+inline uint8 WriteRequestMessage::consensusExpectCount()const{
+	return expectcnt;
+}
+inline uint8 WriteRequestMessage::consensusCompleteCount()const{
+	return completecnt.load();
+}
+inline bool  WriteRequestMessage::consensusSuccess()const{
+	return (completecnt.load() & (1 << 7)) != 0;
+}
+inline const RequestId& WriteRequestMessage::consensusRequestId()const{
+	return id;
+}
+inline void WriteRequestMessage::consensusRequestId(const RequestId &_reqid){
+	id = _reqid;
+}
+inline const frame::ipc::ConnectionUid& WriteRequestMessage::consensusIpcConnectionId()const{
+	return ipcconid;
+}
+inline bool WriteRequestMessage::consensusOnSuccess(){
+	const uint8 v = completecnt.fetch_or(1 << 7);
+	return (v & (1 << 7)) == 0;
+}
 //! A base class for all read-only distributed consensus requests
 /*!
  * Inherit WriteRequestSignal if you want a distributed request to be 
@@ -95,9 +128,9 @@ struct ReadRequestMessage: Dynamic<ReadRequestMessage, DynamicShared<frame::ipc:
 	 * }<br>
 	 * </code>
 	 */
-	virtual void notifyConsensusObjectWithThis() = 0;
-	virtual void notifySenderObjectWithThis() = 0;
-	virtual void notifySenderObjectWithFail() = 0;
+	virtual void consensusNotifyServerWithThis() = 0;
+	virtual void consensusNotifyClientWithThis() = 0;
+	virtual void consensusNotifyClientWithFail() = 0;
 	
 	template <class S>
 	S& serialize(S &_s, frame::ipc::ConnectionContext const &/*_rctx*/){
@@ -105,14 +138,15 @@ struct ReadRequestMessage: Dynamic<ReadRequestMessage, DynamicShared<frame::ipc:
 		return _s;
 	}
 	
-	/*virtual*/ void ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, frame::ipc::Message::MessagePointerT &_rmsgptr);
+	/*virtual*/ void   ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, frame::ipc::Message::MessagePointerT &_rmsgptr);
 	/*virtual*/ uint32 ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx);
-	/*virtual*/ void ipcOnComplete(frame::ipc::ConnectionContext const &_rctx, int _err);
+	/*virtual*/ void   ipcOnComplete(frame::ipc::ConnectionContext const &_rctx, int _err);
 	
 	size_t use();
 	size_t release();
 	
-	int8							sentcount;
+	uint8							expectcnt;
+	ATOMIC_NS::atomic<uint8>		completecnt;
 	frame::ipc::ConnectionUid		ipcconid;
 	RequestId						id;
 };

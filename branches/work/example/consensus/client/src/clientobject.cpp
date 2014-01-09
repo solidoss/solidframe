@@ -234,7 +234,7 @@ void ClientObject::execute(ExecuteContext &_rexectx){
 				idbg("sending a storemessage");
 				const string	&s(getString(rr.u.u32s.u32_1, crtpos));
 				uint32			sid(sendMessage(new StoreRequest(s, crtpos)));
-				expectStore(sid, s, crtpos, params.addrvec.size());
+				expectStore(sid, s, crtpos, 1/*params.addrvec.size()*/);
 				break;
 			}
 			case 'p':
@@ -343,9 +343,8 @@ void ClientObject::deleteRequestId(uint32 _v){
 uint32 ClientObject::sendMessage(consensus::WriteRequestMessage *_pmsg){
 	DynamicSharedPointer<solid::consensus::WriteRequestMessage>	reqptr(_pmsg);
 	//sigptr->requestId(newRequestId(-1));
-	reqptr->waitresponse = true;
-	reqptr->id.requid = newRequestId(-1);
-	reqptr->id.senderuid = solid::frame::Manager::specific().id(*this);
+	reqptr->consensusExpectCount(params.addrvec.size());
+	reqptr->consensusRequestId(consensus::RequestId(newRequestId(-1), solid::frame::Manager::specific().id(*this)));
 	
 	for(ClientParams::AddressVectorT::iterator it(params.addrvec.begin()); it != params.addrvec.end(); ++it){
 		DynamicPointer<frame::ipc::Message>	msgptr(reqptr);

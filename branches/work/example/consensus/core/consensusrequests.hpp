@@ -32,9 +32,9 @@ struct StoreRequest: solid::Dynamic<StoreRequest, solid::consensus::WriteRequest
 	StoreRequest(const std::string&, solid::uint32 _pos);
 	StoreRequest();
 	
-	/*virtual*/ void notifyConsensusObjectWithThis();
-	/*virtual*/ void notifySenderObjectWithThis();
-	/*virtual*/ void notifySenderObjectWithFail();
+	/*virtual*/ void consensusNotifyServerWithThis();
+	/*virtual*/ void consensusNotifyClientWithThis();
+	/*virtual*/ void consensusNotifyClientWithFail();
 	
 	template <class S>
 	S& serialize(S &_s, solid::frame::ipc::ConnectionContext const &_rctx){
@@ -49,9 +49,9 @@ struct FetchRequest: solid::Dynamic<FetchRequest, solid::consensus::WriteRequest
 	FetchRequest(const std::string&);
     FetchRequest();
 	
-	/*virtual*/ void notifyConsensusObjectWithThis();
-	/*virtual*/ void notifySenderObjectWithThis();
-	/*virtual*/ void notifySenderObjectWithFail();
+	/*virtual*/ void consensusNotifyServerWithThis();
+	/*virtual*/ void consensusNotifyClientWithThis();
+	/*virtual*/ void consensusNotifyClientWithFail();
 	
 	template <class S>
 	S& serialize(S &_s, solid::frame::ipc::ConnectionContext const &_rctx){
@@ -63,9 +63,9 @@ struct EraseRequest: solid::Dynamic<EraseRequest, solid::consensus::WriteRequest
 	EraseRequest(const std::string&);
 	EraseRequest();
 	
-	/*virtual*/ void notifyConsensusObjectWithThis();
-	/*virtual*/ void notifySenderObjectWithThis();
-	/*virtual*/ void notifySenderObjectWithFail();
+	/*virtual*/ void consensusNotifyServerWithThis();
+	/*virtual*/ void consensusNotifyClientWithThis();
+	/*virtual*/ void consensusNotifyClientWithFail();
 	
 	template <class S>
 	S& serialize(S &_s, solid::frame::ipc::ConnectionContext const &_rctx){

@@ -30,15 +30,15 @@ StoreRequest::StoreRequest(const std::string&, uint32 _pos):v(0){
 StoreRequest::StoreRequest(){
 	idbg("");
 }
-/*virtual*/ void StoreRequest::notifyConsensusObjectWithThis(){
+/*virtual*/ void StoreRequest::consensusNotifyServerWithThis(){
 	DynamicPointer<frame::Message> msgptr(this);
 	frame::Manager::specific().notify(msgptr, consensus::Registrar::the().objectUid(0));
 }
-/*virtual*/ void StoreRequest::notifySenderObjectWithThis(){
+/*virtual*/ void StoreRequest::consensusNotifyClientWithThis(){
 	DynamicPointer<frame::Message> msgptr(this);
 	frame::Manager::specific().notify(msgptr, this->id.senderuid);
 }
-/*virtual*/ void StoreRequest::notifySenderObjectWithFail(){
+/*virtual*/ void StoreRequest::consensusNotifyClientWithFail(){
 	frame::Manager::specific().notify(frame::S_KILL | frame::S_RAISE, this->id.senderuid);
 }
 //--------------------------------------------------------------
@@ -48,15 +48,15 @@ FetchRequest::FetchRequest(const std::string&){
 FetchRequest::FetchRequest(){
 	idbg("");
 }
-/*virtual*/ void FetchRequest::notifyConsensusObjectWithThis(){
+/*virtual*/ void FetchRequest::consensusNotifyServerWithThis(){
 	DynamicPointer<frame::Message> msgptr(this);
 	frame::Manager::specific().notify(msgptr, consensus::Registrar::the().objectUid(0));
 }
-/*virtual*/ void FetchRequest::notifySenderObjectWithThis(){
+/*virtual*/ void FetchRequest::consensusNotifyClientWithThis(){
 	DynamicPointer<frame::Message> msgptr(this);
 	frame::Manager::specific().notify(msgptr, this->id.senderuid);
 }
-/*virtual*/ void FetchRequest::notifySenderObjectWithFail(){
+/*virtual*/ void FetchRequest::consensusNotifyClientWithFail(){
 	frame::Manager::specific().notify(frame::S_KILL | frame::S_RAISE, this->id.senderuid);
 }
 //--------------------------------------------------------------
@@ -66,15 +66,15 @@ EraseRequest::EraseRequest(const std::string&){
 EraseRequest::EraseRequest(){
 	idbg("");
 }
-/*virtual*/ void EraseRequest::notifyConsensusObjectWithThis(){
+/*virtual*/ void EraseRequest::consensusNotifyServerWithThis(){
 	DynamicPointer<frame::Message> msgptr(this);
 	frame::Manager::specific().notify(msgptr, consensus::Registrar::the().objectUid(0));
 }
-/*virtual*/ void EraseRequest::notifySenderObjectWithThis(){
+/*virtual*/ void EraseRequest::consensusNotifyClientWithThis(){
 	DynamicPointer<frame::Message> msgptr(this);
 	frame::Manager::specific().notify(msgptr, this->id.senderuid);
 }
-/*virtual*/ void EraseRequest::notifySenderObjectWithFail(){
+/*virtual*/ void EraseRequest::consensusNotifyClientWithFail(){
 	frame::Manager::specific().notify(frame::S_KILL | frame::S_RAISE, this->id.senderuid);
 }
 //--------------------------------------------------------------

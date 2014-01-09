@@ -385,17 +385,17 @@ void Object::Data::coordinatorId(int8 _coordid){
 	}
 }
 bool Object::Data::insertRequestStub(DynamicPointer<WriteRequestMessage> &_rmsgptr, size_t &_ridx){
-	RequestStubMapT::iterator	it(reqmap.find(&_rmsgptr->id));
+	RequestStubMapT::iterator	it(reqmap.find(&_rmsgptr->consensusRequestId()));
 	if(it != reqmap.end()){
 		_ridx = it->second;
 		reqmap.erase(it);
 		RequestStub &rreq(requestStub(_ridx));
 		if(rreq.flags & RequestStub::HaveRequestFlag){
-			edbg("conflict "<<_rmsgptr->id<<" against existing "<<rreq.msgptr->id<<" idx = "<<_ridx);
+			edbg("conflict "<<_rmsgptr->consensusRequestId()<<" against existing "<<rreq.msgptr->consensusRequestId()<<" idx = "<<_ridx);
 		}
 		cassert(!(rreq.flags & RequestStub::HaveRequestFlag));
 		rreq.msgptr = _rmsgptr;
-		reqmap[&rreq.msgptr->id] = _ridx;
+		reqmap[&rreq.msgptr->consensusRequestId()] = _ridx;
 		return false;
 	}
 	if(freeposstk.size()){
@@ -408,14 +408,14 @@ bool Object::Data::insertRequestStub(DynamicPointer<WriteRequestMessage> &_rmsgp
 		_ridx = reqvec.size();
 		reqvec.push_back(RequestStub(_rmsgptr));
 	}
-	reqmap[&requestStub(_ridx).msgptr->id] = _ridx;
+	reqmap[&requestStub(_ridx).msgptr->consensusRequestId()] = _ridx;
 	return true;
 }
 void Object::Data::eraseRequestStub(const size_t _idx){
 	RequestStub &rreq(requestStub(_idx));
 	//cassert(rreq.sig.get());
 	if(rreq.msgptr.get()){
-		reqmap.erase(&rreq.msgptr->id);
+		reqmap.erase(&rreq.msgptr->consensusRequestId());
 	}
 	rreq.msgptr.clear();
 	rreq.state(RequestStub::InitState);
@@ -434,15 +434,15 @@ inline bool Object::Data::isCoordinator()const{
 	return coordinatorid == -1;
 }
 bool Object::Data::checkAlreadyReceived(DynamicPointer<WriteRequestMessage> &_rmsgptr){
-	SenderSetT::iterator it(senderset.find(_rmsgptr->id));
+	SenderSetT::iterator it(senderset.find(_rmsgptr->consensusRequestId()));
 	if(it != senderset.end()){
-		if(overflow_safe_less(_rmsgptr->id.requid, it->requid)){
+		if(overflow_safe_less(_rmsgptr->consensusRequestId().requid, it->requid)){
 			return true;
 		}
 		senderset.erase(it);
-		senderset.insert(_rmsgptr->id);
+		senderset.insert(_rmsgptr->consensusRequestId());
 	}else{
-		senderset.insert(_rmsgptr->id);
+		senderset.insert(_rmsgptr->consensusRequestId());
 	}
 	return false;
 }
@@ -455,9 +455,9 @@ bool Object::Data::canSendFastAccept()const{
 
 struct DummyWriteRequestMessage: public WriteRequestMessage{
 	DummyWriteRequestMessage(const consensus::RequestId &_reqid):WriteRequestMessage(_reqid){}
-	/*virtual*/ void notifyConsensusObjectWithThis(){}
-	/*virtual*/ void notifySenderObjectWithThis(){}
-	/*virtual*/ void notifySenderObjectWithFail(){}
+	/*virtual*/ void consensusNotifyServerWithThis(){}
+	/*virtual*/ void consensusNotifyClientWithThis(){}
+	/*virtual*/ void consensusNotifyClientWithFail(){}
 };
 
 RequestStub& Object::Data::safeRequestStub(const consensus::RequestId &_reqid, size_t &_rreqidx){
@@ -573,7 +573,7 @@ void Object::dynamicHandle(DynamicPointer<WriteRequestMessage> &_rmsgptr, RunDat
 	bool			alreadyexisted(!d.insertRequestStub(_rmsgptr, idx));
 	RequestStub		&rreq(d.requestStub(idx));
 	
-	idbg("adding new request "<<rreq.msgptr->id<<" on idx = "<<idx<<" existing = "<<alreadyexisted);
+	idbg("adding new request "<<rreq.msgptr->consensusRequestId()<<" on idx = "<<idx<<" existing = "<<alreadyexisted);
 	rreq.flags |= RequestStub::HaveRequestFlag;
 	
 	if(!(rreq.evs & RequestStub::SignaledEvent)){
@@ -1058,11 +1058,11 @@ void Object::doProcessRequest(RunData &_rd, const size_t _reqidx){
 		case RequestStub::InitState://any
 			if(d.isCoordinator()){
 				if(d.canSendFastAccept()){
-					idbg("InitState coordinator - send fast accept for "<<rreq.msgptr->id);
+					idbg("InitState coordinator - send fast accept for "<<rreq.msgptr->consensusRequestId());
 					doSendFastAccept(_rd, _reqidx);
 					rreq.state(RequestStub::WaitAcceptConfirmState);
 				}else{
-					idbg("InitState coordinator - send propose for "<<rreq.msgptr->id);
+					idbg("InitState coordinator - send propose for "<<rreq.msgptr->consensusRequestId());
 					doSendPropose(_rd, _reqidx);
 					rreq.state(RequestStub::WaitProposeConfirmState);
 					TimeSpec ts(frame::Object::currentTime());
@@ -1071,7 +1071,7 @@ void Object::doProcessRequest(RunData &_rd, const size_t _reqidx){
 					rreq.recvpropconf = 1;//one is the propose_accept from current coordinator
 				}
 			}else{
-				idbg("InitState non-coordinator - wait propose/accept for "<<rreq.msgptr->id)
+				idbg("InitState non-coordinator - wait propose/accept for "<<rreq.msgptr->consensusRequestId())
 				rreq.state(RequestStub::WaitProposeState);
 				TimeSpec ts(frame::Object::currentTime());
 				ts += d.distancefromcoordinator * 1000;//ms
@@ -1079,9 +1079,9 @@ void Object::doProcessRequest(RunData &_rd, const size_t _reqidx){
 			}
 			break;
 		case RequestStub::WaitProposeState://on replica
-			idbg("WaitProposeState for "<<rreq.msgptr->id);
+			idbg("WaitProposeState for "<<rreq.msgptr->consensusRequestId());
 			if(events & RequestStub::TimeoutEvent){
-				idbg("WaitProposeState - timeout for "<<rreq.msgptr->id);
+				idbg("WaitProposeState - timeout for "<<rreq.msgptr->consensusRequestId());
 				doSendPropose(_rd, _reqidx);
 				rreq.state(RequestStub::WaitProposeConfirmState);
 				TimeSpec ts(frame::Object::currentTime());
@@ -1092,16 +1092,16 @@ void Object::doProcessRequest(RunData &_rd, const size_t _reqidx){
 			}
 			break;
 		case RequestStub::WaitProposeConfirmState://on coordinator
-			idbg("WaitProposeAcceptState for "<<rreq.msgptr->id);
+			idbg("WaitProposeAcceptState for "<<rreq.msgptr->consensusRequestId());
 			if(events & RequestStub::TimeoutEvent){
-				idbg("WaitProposeAcceptState - timeout: erase request "<<rreq.msgptr->id);
+				idbg("WaitProposeAcceptState - timeout: erase request "<<rreq.msgptr->consensusRequestId());
 				doEraseRequest(_rd, _reqidx);
 				break;
 			}
 			break;
 		case RequestStub::WaitAcceptState://on replica
 			if(events & RequestStub::TimeoutEvent){
-				idbg("WaitAcceptState - timeout "<<rreq.msgptr->id);
+				idbg("WaitAcceptState - timeout "<<rreq.msgptr->consensusRequestId());
 				rreq.state(RequestStub::WaitProposeState);
 				TimeSpec ts(frame::Object::currentTime());
 				ts += d.distancefromcoordinator * 1000;//ms
@@ -1111,17 +1111,17 @@ void Object::doProcessRequest(RunData &_rd, const size_t _reqidx){
 			}
 			break;
 		case RequestStub::WaitAcceptConfirmState://on coordinator
-			idbg("WaitProposeAcceptConfirmState "<<rreq.msgptr->id);
+			idbg("WaitProposeAcceptConfirmState "<<rreq.msgptr->consensusRequestId());
 			if(events & RequestStub::TimeoutEvent){
-				idbg("WaitProposeAcceptConfirmState - timeout: erase request "<<rreq.msgptr->id);
+				idbg("WaitProposeAcceptConfirmState - timeout: erase request "<<rreq.msgptr->consensusRequestId());
 				doEraseRequest(_rd, _reqidx);
 				break;
 			}
 			break;
 		case RequestStub::AcceptWaitRequestState://any
-			idbg("AcceptWaitRequestState "<<rreq.msgptr->id);
+			idbg("AcceptWaitRequestState "<<rreq.msgptr->consensusRequestId());
 			if(events & RequestStub::TimeoutEvent){
-				idbg("AcceptWaitRequestState - timeout: enter recovery state "<<rreq.msgptr->id);
+				idbg("AcceptWaitRequestState - timeout: enter recovery state "<<rreq.msgptr->consensusRequestId());
 				doEnterRecoveryState();
 				break;
 			}
@@ -1129,7 +1129,7 @@ void Object::doProcessRequest(RunData &_rd, const size_t _reqidx){
 				break;
 			}
 		case RequestStub::AcceptState://any
-			idbg("AcceptState "<<_reqidx<<" "<<rreq.msgptr->id<<" rreq.acceptid = "<<rreq.acceptid<<" d.acceptid = "<<d.acceptid<<" acceptpendingcnt = "<<(int)d.acceptpendingcnt);
+			idbg("AcceptState "<<_reqidx<<" "<<rreq.msgptr->consensusRequestId()<<" rreq.acceptid = "<<rreq.acceptid<<" d.acceptid = "<<d.acceptid<<" acceptpendingcnt = "<<(int)d.acceptpendingcnt);
 			++rreq.timerid;
 			//for recovery reasons, we do this check before
 			//haverequestflag check
@@ -1181,9 +1181,9 @@ void Object::doProcessRequest(RunData &_rd, const size_t _reqidx){
 			
 			break;
 		case RequestStub::AcceptPendingState:
-			idbg("AcceptPendingState "<<rreq.msgptr->id);
+			idbg("AcceptPendingState "<<rreq.msgptr->consensusRequestId());
 			if(events & RequestStub::TimeoutEvent){
-				idbg("AcceptPendingState - timeout: enter recovery state "<<rreq.msgptr->id);
+				idbg("AcceptPendingState - timeout: enter recovery state "<<rreq.msgptr->consensusRequestId());
 				doEnterRecoveryState();
 				break;
 			}
@@ -1220,7 +1220,7 @@ void Object::doSendAccept(RunData &_rd, const size_t _reqidx){
 	
 	RequestStub &rreq(d.requestStub(_reqidx));
 	
-	idbg(""<<_reqidx<<" rreq.proposeid = "<<rreq.proposeid<<" rreq.acceptid = "<<rreq.acceptid<<" "<<rreq.msgptr->id);
+	idbg(""<<_reqidx<<" rreq.proposeid = "<<rreq.proposeid<<" rreq.acceptid = "<<rreq.acceptid<<" "<<rreq.msgptr->consensusRequestId());
 	
 	_rd.ops[_rd.opcnt].operation = Data::AcceptOperation;
 	_rd.ops[_rd.opcnt].acceptid = rreq.acceptid;
@@ -1255,7 +1255,7 @@ void Object::doSendFastAccept(RunData &_rd, const size_t _reqidx){
 	rreq.acceptid = d.proposedacceptid;
 	rreq.proposeid = d.proposeid;
 	rreq.flags |= (RequestStub::HaveProposeFlag | RequestStub::HaveAcceptFlag);
-	idbg(""<<_reqidx<<" rreq.proposeid = "<<rreq.proposeid<<" rreq.acceptid = "<<rreq.acceptid<<" "<<rreq.msgptr->id);
+	idbg(""<<_reqidx<<" rreq.proposeid = "<<rreq.proposeid<<" rreq.acceptid = "<<rreq.acceptid<<" "<<rreq.msgptr->consensusRequestId());
 	
 	_rd.ops[_rd.opcnt].operation = Data::FastAcceptOperation;
 	_rd.ops[_rd.opcnt].acceptid = rreq.acceptid;
@@ -1294,7 +1294,7 @@ void Object::doSendPropose(RunData &_rd, const size_t _reqidx){
 	rreq.acceptid = d.proposedacceptid;
 	rreq.proposeid = d.proposeid;
 	rreq.flags |= (RequestStub::HaveProposeFlag | RequestStub::HaveAcceptFlag);
-	idbg("sendpropose: proposeid = "<<rreq.proposeid<<" acceptid = "<<rreq.acceptid<<" "<<rreq.msgptr->id);
+	idbg("sendpropose: proposeid = "<<rreq.proposeid<<" acceptid = "<<rreq.acceptid<<" "<<rreq.msgptr->consensusRequestId());
 	
 	_rd.ops[_rd.opcnt].operation = Data::ProposeOperation;
 	_rd.ops[_rd.opcnt].acceptid = rreq.acceptid;
@@ -1318,7 +1318,7 @@ void Object::doSendConfirmPropose(RunData &_rd, const uint8 _replicaidx, const s
 	}
 	
 	RequestStub &rreq(d.requestStub(_reqidx));
-	idbg(""<<_reqidx<<" "<<(int)_replicaidx<<" "<<rreq.msgptr->id);
+	idbg(""<<_reqidx<<" "<<(int)_replicaidx<<" "<<rreq.msgptr->consensusRequestId());
 	
 	
 	//rreq.state = 
@@ -1368,7 +1368,7 @@ void Object::doSendConfirmAccept(RunData &_rd, const uint8 _replicaidx, const si
 	
 	RequestStub &rreq(d.requestStub(_reqidx));
 	
-	idbg(""<<(int)_replicaidx<<" "<<_reqidx<<" "<<rreq.msgptr->id);
+	idbg(""<<(int)_replicaidx<<" "<<_reqidx<<" "<<rreq.msgptr->consensusRequestId());
 	
 	_rd.ops[_rd.opcnt].operation = Data::AcceptConfirmOperation;
 	_rd.ops[_rd.opcnt].acceptid = rreq.acceptid;
@@ -1421,7 +1421,7 @@ void Object::doFlushOperations(RunData &_rd){
 		po->op.operation = _rd.ops[0].operation;
 		po->op.acceptid = _rd.ops[0].acceptid;
 		po->op.proposeid = _rd.ops[0].proposeid;
-		po->op.reqid = rreq.msgptr->id;
+		po->op.reqid = rreq.msgptr->consensusRequestId();
 	}else if(opcnt == 2){
 		OperationMessage<2>	*po(new OperationMessage<2>);
 		pm = po;
@@ -1467,7 +1467,7 @@ void Object::doFlushOperations(RunData &_rd){
 			pos[i].operation = _rd.ops[i].operation;
 			pos[i].acceptid = _rd.ops[i].acceptid;
 			pos[i].proposeid = _rd.ops[i].proposeid;
-			pos[i].reqid = rreq.msgptr->id;
+			pos[i].reqid = rreq.msgptr->consensusRequestId();
 			idbg("pos["<<i<<"].operation = "<<(int)pos[i].operation<<" proposeid = "<<pos[i].proposeid);
 		}
 	}
@@ -1611,7 +1611,7 @@ void Object::doAcceptRequest(RunData &_rd, const size_t _reqidx){
 	cassert(rreq.acceptid == d.acceptid + 1);
 	++d.acceptid;
 	
-	d.reqmap.erase(&rreq.msgptr->id);
+	d.reqmap.erase(&rreq.msgptr->consensusRequestId());
 	this->accept(rreq.msgptr);
 	rreq.msgptr.clear();
 	rreq.flags &= (~RequestStub::HaveRequestFlag);
