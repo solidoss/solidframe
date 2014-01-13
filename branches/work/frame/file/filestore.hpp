@@ -45,7 +45,7 @@ public:
 		
 	}
 	template <typename F>
-	bool requestCreateAlive(F _f, const char* _path, AlivePointerT &_alvptr, const size_t _openflags = 0, const size_t _flags = 0){
+	bool requestCreateAlive(AlivePointerT &_ralvptr, F _f, const char* _path, const size_t _openflags = 0, const size_t _flags = 0){
 		
 	}
 	template <typename F>
@@ -54,7 +54,7 @@ public:
 	}
 	
 	template <typename F>
-	bool requestCreateWrite(F _f, const char* _path, AlivePointerT &_alvptr, const size_t _openflags = 0, const size_t _flags = 0){
+	bool requestCreateWrite(AlivePointerT &_ralvptr, F _f, const char* _path, const size_t _openflags = 0, const size_t _flags = 0){
 		
 	}
 	
@@ -64,7 +64,7 @@ public:
 	}
 	
 	template <typename F>
-	bool requestOpenWrite(F _f, const char* _path, AlivePointerT &_alvptr, const size_t _openflags = 0, const size_t _flags = 0){
+	bool requestOpenWrite(AlivePointerT &_ralvptr, F _f, const char* _path, const size_t _openflags = 0, const size_t _flags = 0){
 		
 	}
 	
@@ -74,7 +74,7 @@ public:
 	}
 	
 	template <typename F>
-	bool requestOpenRead(F _f, const char* _path, AlivePointerT &_alvptr, const size_t _openflags = 0, const size_t _flags = 0){
+	bool requestOpenRead(AlivePointerT &_ralvptr, F _f, const char* _path, const size_t _openflags = 0, const size_t _flags = 0){
 		
 	}
 	

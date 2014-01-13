@@ -53,7 +53,7 @@ public:
 	}
 	
 	template <typename F>
-	bool requestCreateAlive(F _f, uint64 _sz, AlivePointerT &_alvptr, const size_t _flags = AllLevelFlags){
+	bool requestCreateAlive(AlivePointerT &_ralvptr, F _f, uint64 _sz, const size_t _flags = AllLevelFlags){
 		
 	}
 	
@@ -63,7 +63,7 @@ public:
 	}
 	
 	template <typename F>
-	bool requestCreateWrite(F _f, uint64 _sz, AlivePointerT &_alvptr, const size_t _flags = AllLevelFlags){
+	bool requestCreateWrite(AlivePointerT &_ralvptr, F _f, uint64 _sz, const size_t _flags = AllLevelFlags){
 		
 	}
 	
