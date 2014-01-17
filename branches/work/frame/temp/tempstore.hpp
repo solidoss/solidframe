@@ -49,7 +49,26 @@ public:
 	Store(Configuration const &_rcfg);
 	template <typename F>
 	bool requestCreateAlive(F _f, uint64 _sz, const size_t _flags = AllLevelFlags){
+		size_t	storageidx;
+		AsyncE	rv = findStorage(_sz, _flags, storageidx);
 		
+		if(rv == AsyncSuccess){
+			const size_t	fileidx = createFile(storageidx, _sz);
+			FileStub		&fs = fileStub(fileidx);
+			error_code		err;
+			
+			_f(AlivePointerT(fs), err);
+			return true;
+		}else if(rv == AsyncWait){
+			//we must wait for data to free-up within a storage
+		}else{
+			//no storage can offer the requested size
+			AlivePointerT	emptyptr;
+			error_code		err;
+			
+			_f(emptyptr, err);
+			return true;
+		}
 	}
 	
 	template <typename F>
@@ -76,6 +95,7 @@ public:
 	bool requestWrite(F _f, UidT const & _ruid, const size_t _flags = 0){
 		
 	}
+	
 	AlivePointerT alive(UidT const & _ruid);
 private:
 };

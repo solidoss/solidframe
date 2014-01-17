@@ -42,12 +42,27 @@ public:
 	//If a file with _path already exists in the store, the call will be similar with open with truncate openflag
 	template <typename F>
 	bool requestCreateAlive(F _f, const char* _path, const size_t _openflags = 0, const size_t _flags = 0){
+		const size_t	idx = insertFile(_path, _flags);
 		
+		FileStub		&fs = fileStub(idx);
+		
+		if(fs.empty()){
+			//no one is waiting (not even an AlivePointer) - the use count is 0 - the file stub was just created.
+			error_code err = fs.open(_openflags);
+			_f(AlivePointerT(fs), err);
+			return true;
+		}else{
+			OpenCommand<F>	opencmd(_f, _openflags);
+			insertCallback(idx, opencmd, _flags);
+			return false;
+		}
 	}
+	
 	template <typename F>
 	bool requestCreateAlive(AlivePointerT &_ralvptr, F _f, const char* _path, const size_t _openflags = 0, const size_t _flags = 0){
 		
 	}
+	
 	template <typename F>
 	bool requestCreateWrite(F _f, const char* _path, const size_t _openflags = 0, const size_t _flags = 0){
 		
