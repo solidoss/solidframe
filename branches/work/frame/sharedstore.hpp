@@ -19,7 +19,7 @@ namespace solid{
 namespace frame{
 namespace shared{
 
-class BaseStore: Dynamic<BaseStore, Object>{
+class StoreBase: Dynamic<StoreBase, Object>{
 protected:
 	struct WaitNode{
 		WaitNode *pnext;
@@ -35,31 +35,23 @@ private:
 	/*virtual*/ int execute(ulong _evs, TimeSpec &_rtout);
 };
 
-struct BasePointer{
+struct PointerBase{
 	const UidT& id()const{
 		return uid;
 	}
 private:
-	friend class BaseSharedStore;
-	UidT	uid;
-};
-
-struct AlivePointer{
-};
-
-
-template <
-	class T
->
-struct ReadPointer{
-	
+	friend class StoreBase;
+	UidT		uid;
+	StoreBase	&rsb;
 };
 
 template <
 	class T
 >
-struct WritePointer{
-	
+struct Pointer: PointerBase{
+
+private:
+	T	*pt;
 };
 
 enum Flags{
@@ -69,15 +61,25 @@ enum Flags{
 template <
 	class T
 >
-class Store: public Dynamic<Store, BaseStore>{
+class Store: public Dynamic<Store, StoreBase>{
 public:
-	AlivePointer aliveInsert(T &_rt){
+	typedef Pointer<T>	PointerT;
+	
+	//returned PointerT::get() == NULL
+	PointerT	insertAlive(T &_rt){
 		
 	}
-	ReadPointer<T>  readInsert(T &_rt){
+	
+	PointerT	insertShared(T &_rt){
 		
 	}
-	WritePointer<T> writeInsert(T &_rt){
+	
+	PointerT	insertUnique(T &_rt){
+		
+	}
+	
+	//Get an alive pointer from an existing pointer
+	PointerT	alive(PointerT &_rp){
 		
 	}
 	
@@ -89,12 +91,12 @@ public:
 	
 	//!Return false if the object does not exist
 	template <typename F>
-	bool read(F _f, UidT const & _ruid, const size_t _flags = 0){
+	bool shared(F _f, UidT const & _ruid, const size_t _flags = 0){
 		
 	}
 	//!Return false if the object does not exist
 	template <typename F>
-	bool write(F _f, UidT const & _ruid, const size_t _flags = 0){
+	bool unique(F _f, UidT const & _ruid, const size_t _flags = 0){
 		
 	}
 };

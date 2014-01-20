@@ -27,10 +27,6 @@ struct Configuration{
 	StorageVectorT		storagevec;
 };
 
-typedef shared::AlivePointer	AlivePointerT;
-typedef shared::WritePointer<>	WritePointerT;
-typedef shared::ReadPointer<>	ReadPointerT;
-
 /*
  * NOTE: all request methods return true if _f(...) was called synchronously
  * 

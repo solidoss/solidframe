@@ -22,7 +22,7 @@ enum{
 	FastLevelFlag = 4,
 	NormalLevelFlag = 8,
 	SlowLevelFlag = 16,
-	AllLevelFlags = 1 + 2 + 4 + 8 + 16,
+	AllLevelsFlag = 1 + 2 + 4 + 8 + 16,
 };
 
 struct Configuration{
@@ -36,43 +36,42 @@ struct Configuration{
 	StorageVectorT	storagevec;
 };
 
-typedef shared::AlivePointer	AlivePointerT;
-typedef shared::WritePointer<>	WritePointerT;
-typedef shared::ReadPointer<>	ReadPointerT;
-
 /*
  * NOTE: all request methods return true if _f(...) was called synchronously
- * F signature should be _f(PointerT &_ptr, error_code _err, bool _synchronous)
+ * F signature should be _f(PointerT &_ptr, const error_code _err, const bool _synchronous)
  */
 class Store: protected shared::Store<>{
 public:
 	Store(Configuration const &_rcfg);
 	template <typename F>
-	bool requestCreateAlive(F _f, uint64 _sz, const size_t _flags = AllLevelFlags){
+	bool requestCreateAlive(F _f, uint64 _sz, const size_t _flags = AllLevelsFlag){
 		size_t	storageidx;
 		AsyncE	rv = findStorage(_sz, _flags, storageidx);
 		
 		if(rv == AsyncSuccess){
-			const size_t	fileidx = createFile(storageidx, _sz);
-			FileStub		&fs = fileStub(fileidx);
-			error_code		err;
+			PointerT	ptr = createFileAlive(storageidx, _sz);
+			error_code	err;
 			
-			_f(AlivePointerT(fs), err);
+			_f(ptr, err, true);
 			return true;
 		}else if(rv == AsyncWait){
 			//we must wait for data to free-up within a storage
+			PointerT	wptr = createFileWrite(-1, _sz);
+			//PointerT	aptr = alive(wptr);
+			doPushWait(wptr, _sz, _flags);
+			return false;
 		}else{
 			//no storage can offer the requested size
-			AlivePointerT	emptyptr;
+			PointerT		emptyptr;
 			error_code		err;
 			
-			_f(emptyptr, err);
+			_f(emptyptr, err, true);
 			return true;
 		}
 	}
 	
 	template <typename F>
-	bool requestCreateAlive(AlivePointerT &_ralvptr, F _f, uint64 _sz, const size_t _flags = AllLevelFlags){
+	bool requestCreateAlive(PointerT &_ralvptr, F _f, uint64 _sz, const size_t _flags = AllLevelFlags){
 		
 	}
 	
@@ -82,7 +81,7 @@ public:
 	}
 	
 	template <typename F>
-	bool requestCreateWrite(AlivePointerT &_ralvptr, F _f, uint64 _sz, const size_t _flags = AllLevelFlags){
+	bool requestCreateWrite(PointerT &_ralvptr, F _f, uint64 _sz, const size_t _flags = AllLevelFlags){
 		
 	}
 	

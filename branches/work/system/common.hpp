@@ -78,23 +78,6 @@ enum SeekRef {
 	SeekEnd=2
 };
 
-//! Some project wide used return values
-// enum RetVal{
-// 	BAD = -1,
-// 	OK = 0,
-// 	NOK,
-// 	YIELD,
-// 	CONTINUE
-// };
-
-
-//! Some project wide used return values
-// enum RetValE{
-// 	Error = -1,
-// 	Success = 0,
-// 	Failure
-// };
-
 enum AsyncE{
 	AsyncError = -1,
 	AsyncSuccess = 0,
