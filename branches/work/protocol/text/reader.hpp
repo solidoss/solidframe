@@ -192,7 +192,7 @@ public:
 	template <class Rdr, class Creator, class Filter, class Key/* = DummyKey*/>
 	static int fetchKey(Reader &_rr, Parameter &_rp){
 		Rdr	&rr(static_cast<Rdr&>(_rr));
-		int rv = rr.fetch<Filter>(_rr.tmp, _rp.b.u32);
+		int rv = rr.template fetch<Filter>(_rr.tmp, _rp.b.u32);
 		switch(rv){
 			case Success:break;
 			case Wait:

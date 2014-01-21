@@ -85,9 +85,9 @@ buildBoost()
 	fi
 	
 	if [ $BUILD_BOOST_FULL ] ; then
-		$JAMTOOL --layout=system  --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" link=static threading=multi $VARIANT_BUILD install
+		$JAMTOOL toolset=clang --layout=system  --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" link=static threading=multi $VARIANT_BUILD install
 	else
-		$JAMTOOL --with-filesystem --with-system --with-program_options --with-test --with-thread --layout=system  --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" link=static threading=multi $VARIANT_BUILD  install
+		$JAMTOOL toolset=clang --with-filesystem --with-system --with-program_options --with-test --with-thread --layout=system  --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" link=static threading=multi $VARIANT_BUILD  install
 	fi
 	echo
 	echo "Done BOOST!"
@@ -137,9 +137,9 @@ buildOpenssl()
 
 	cd $DIR_NAME
 	if [ $DEBUG ] ; then
-		./config --prefix="$EXT_DIR" --openssldir="ssl_"
+		CC=cc ./config --prefix="$EXT_DIR" --openssldir="ssl_"
 	else
-		./config --prefix="$EXT_DIR" --openssldir="ssl_"
+		CC=cc ./config --prefix="$EXT_DIR" --openssldir="ssl_"
 	fi
 	make && make install
 	cd ..

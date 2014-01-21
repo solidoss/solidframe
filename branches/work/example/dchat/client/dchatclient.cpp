@@ -282,7 +282,7 @@ int main(int argc, char *argv[]){
 			}
 			s.clear();
 			getline(cin, s);
-			if(s.size() == 1 && s[0] == 'q' || s[0] == 'Q') break;
+			if(s.size() == 1 && (s[0] == 'q' || s[0] == 'Q')) break;
 			msgptr = new TextMessage(s);
 			ccptr->send(msgptr);
 		}while(true);

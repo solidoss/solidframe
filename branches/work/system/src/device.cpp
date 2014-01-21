@@ -1089,7 +1089,7 @@ pair<bool, bool> SocketDevice::hasCork()const{
 	SPECIFIC_ERROR_PUSH1(last_socket_error());
 	return pair<bool, bool>(false, false);
 #else
-	solid::last_error(solid::ERROR_NOT_IMPLEMENTED);
+	SPECIFIC_ERROR_PUSH1(solid::error_make(solid::ERROR_NOT_IMPLEMENTED));
 	return pair<bool, bool>(false, false);
 #endif
 }

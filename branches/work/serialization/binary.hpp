@@ -176,12 +176,13 @@ protected:
 	typedef CbkReturnValueE (*FncT)(Base &, FncData &, void*);
 	//! Data associated to a callback
 	struct FncData{
+
 		FncData(
-			FncT _f,
-			void *_p,
-			const char *_n = NULL,
-			uint64 _s = -1
-		):f(_f),p(_p),n(_n),s(_s){}
+                        FncT _f,
+                        const void *_p,
+                        const char *_n = NULL,
+                        uint64 _s = -1
+                ):f(_f),p(const_cast<void*>(_p)),n(_n),s(_s){}
 		
 		FncT		f;	//!< Pointer to function
 		void		*p;	//!< Pointer to data
