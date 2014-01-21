@@ -11,6 +11,7 @@
 #include <WinSock2.h>
 #include <Windows.h>
 #else
+#define _FILE_OFFSET_BITS 64
 #include <unistd.h>
 #include <netinet/tcp.h>
 #endif
@@ -114,7 +115,7 @@ int SeekableDevice::read(char *_pb, size_t _bl, int64 _off){
 	seek(off);
 	return rv;
 #else
-	return pread64(descriptor(), _pb, _bl, _off);
+	return pread(descriptor(), _pb, _bl, _off);
 #endif
 }
 
@@ -126,7 +127,7 @@ int SeekableDevice::write(const char *_pb, size_t _bl, int64 _off){
 	seek(off);
 	return rv;
 #else
-	return pwrite64(descriptor(), _pb, _bl, _off);
+	return pwrite(descriptor(), _pb, _bl, _off);
 #endif
 }
 
@@ -150,7 +151,7 @@ int64 SeekableDevice::seek(int64 _pos, SeekRef _ref){
 	}
 	return li.QuadPart;
 #else
-	return ::lseek64(descriptor(), _pos, seekmap[_ref]);
+	return ::lseek(descriptor(), _pos, seekmap[_ref]);
 #endif
 }
 
@@ -159,7 +160,7 @@ bool SeekableDevice::truncate(int64 _len){
 	seek(_len);
 	return SetEndOfFile(descriptor());
 #else
-	return ::ftruncate64(descriptor(), _len) == 0;
+	return ::ftruncate(descriptor(), _len) == 0;
 #endif
 }
 
@@ -251,7 +252,7 @@ bool FileDevice::open(const char* _fname, int _how){
 	}
 	return ok();
 #else
-	descriptor(::open64(_fname, _how, 00666));
+	descriptor(::open(_fname, _how, 00666));
 	return ok();
 #endif
 }
