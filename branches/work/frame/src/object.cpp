@@ -79,13 +79,20 @@ namespace frame{
 	Thread::specific(currentTimeSpecificPosition(), const_cast<TimeSpec *>(_pcrtts));
 }
 
-Object::Object(IndexT _fullid):
-	fullid(_fullid), smask(0),
+Object::Object():
+	fullid(-1), smask(0),
 	thrid(0){
 }
 
+void Object::unregister(){
+	if(isRegistered()){
+		Manager::specific().unregisterObject(*this);
+		fullid = -1;
+	}
+}
+
 Object::~Object(){
-	Manager::specific().unregisterObject(*this);
+	unregister();
 }
 
 //--------------------------------------------------------------

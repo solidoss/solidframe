@@ -62,6 +62,9 @@ inline bool Object::notify(size_t _smask){
 	return (_smask & S_RAISE) && !(osm & S_RAISE); 
 }
 
+inline bool Object::isRegistered()const{
+	return fullid != static_cast<IndexT>(-1);
+}
 
 inline void Object::id(const IndexT &_fullid){
 	fullid = _fullid;

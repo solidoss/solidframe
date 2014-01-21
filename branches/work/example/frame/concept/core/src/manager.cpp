@@ -204,6 +204,7 @@ void Manager::start(){
 	d.objsched.schedule(msgptr);
 }
 
+
 ObjectUidT Manager::readMessageStewardUid()const{
 	return d.readmsgstwuid;
 }

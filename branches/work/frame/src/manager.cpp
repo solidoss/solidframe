@@ -534,7 +534,7 @@ bool Manager::doRegisterService(
 
 ObjectUidT Manager::doUnsafeRegisterServiceObject(const IndexT _svcidx, Object &_robj){
 	ServiceStub		&rss = d.psvcarr[_svcidx];
-	
+	vdbgx(Debug::frame, ""<<(void*)&_robj);
 	if(rss.state != ServiceStub::StateRunning){
 		return ObjectUidT();
 	}
@@ -590,7 +590,7 @@ ObjectUidT Manager::doUnsafeRegisterServiceObject(const IndexT _svcidx, Object &
 			rss.mtxstore.safeAt(i, objpermutbts);
 			rss.objfreestk.push(newobjcnt - (i - objcnt) - 1);
 		}
-		vdbgx(Debug::frame, "Last safeat = "<<(newobjcnt - 1)<<' '<<objcnt);
+		
 		const IndexT idx = rss.objfreestk.top();
 		
 		retval.first = unite_index(_svcidx, idx, d.svcbts.load(/*ATOMIC_NS::memory_order_seq_cst*/));;

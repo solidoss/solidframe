@@ -1228,10 +1228,6 @@ CbkReturnValueE DeserializerBase::loadBinaryString(Base &_rb, FncData &_rfd, voi
 	size_t			len = rd.be - rd.cpb;
 	uint64			ul = rd.estk.top().u64();
 	
-	if(ul < 0){
-		edbgx(Debug::ser_bin, "ul = "<<ul);
-		return Success;
-	}
 	if(len > ul){
 		len = static_cast<size_t>(ul);
 	}

@@ -164,7 +164,7 @@ Manager::~Manager(){
 }
 //------------------------------------------------------------------
 
-int Manager::execute(ulong _evs, TimeSpec &_rtout){
+void Manager::execute(ExecuteContext &_rexectx){
 	Mutex &rmtx = frame::Manager::specific().mutex(*this);
 	rmtx.lock();
 	//idbgx(Debug::file, "signalmask "<<_evs);
@@ -179,7 +179,9 @@ int Manager::execute(ulong _evs, TimeSpec &_rtout){
 				rmtx.unlock();
 				vdbgx(Debug::file, "");
 				//frame::Manager::specific().unregisterObject(*this);
-				return AsyncError;
+				this->unregister();
+				_rexectx.close();
+				return;
 			}
 			doPrepareStop();
 		}
@@ -196,7 +198,7 @@ int Manager::execute(ulong _evs, TimeSpec &_rtout){
 	
 	rmtx.unlock();//done with the locking
 	
-	doScanTimeout(_rtout);
+	doScanTimeout(_rexectx.currentTime());
 	
 	doExecuteMappers();
 	
@@ -207,21 +209,24 @@ int Manager::execute(ulong _evs, TimeSpec &_rtout){
 		
 		d.tmpfeq.pop();
 		
-		doExecuteFile(idx, _rtout);
+		doExecuteFile(idx, _rexectx.currentTime());
 	}
 	doSendStreams();
-	if(d.meq.size() || d.delfq.size() || d.tmpfeq.size()) return AsyncSuccess;
+	if(d.meq.size() || d.delfq.size() || d.tmpfeq.size()){
+		_rexectx.reschedule();
+		return;
+	}
 	
 	if(!d.sz && d.state() == Data::Stopping){
 		d.state(-1);
-		//frame::Manager::specific().unregisterObject(*this);
-		return AsyncError;
+		_rexectx.close();
+		return;
 	}
 	
-	if(d.tout > _rtout){
-		_rtout = d.tout;
+	if(d.tout > _rexectx.currentTime()){
+		_rexectx.waitUntil(d.tout);
 	}
-	return AsyncWait;
+	return;
 }
 //------------------------------------------------------------------
 void Manager::doSendStreams(){

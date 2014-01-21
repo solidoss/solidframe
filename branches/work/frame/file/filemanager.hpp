@@ -373,7 +373,7 @@ public://stream funtions
 		uint32 _flags = 0
 	);
 private:
-	int execute(ulong _evs, TimeSpec &_rtout);
+	void execute(ExecuteContext &_rexectx);
 	template <typename StreamP>
 	int doGetStream(
 		StreamP &_sptr,

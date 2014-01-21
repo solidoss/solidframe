@@ -118,7 +118,7 @@ protected:
 	friend class SelectorBase;
 	
 	//! Constructor
-	Object(IndexT _fullid = 0UL);
+	Object();
 	
 	
 	//! Grab the signal mask eventually leaving some bits set- CALL this inside lock!!
@@ -126,6 +126,9 @@ protected:
 	
 	//! Virtual destructor
 	virtual ~Object();//only objptr base can destroy an object
+	
+	void unregister();
+	bool isRegistered()const;
 	
 private:
 	static void doSetCurrentTime(const TimeSpec *_pcrtts);
