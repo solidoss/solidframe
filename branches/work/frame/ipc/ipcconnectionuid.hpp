@@ -35,13 +35,13 @@ enum{
 */
 struct ConnectionUid{
 	ConnectionUid(
-		const IndexT &_tid = 0,
+		const uint16 _tkridx = 0,
 		const uint16 _sesidx = 0,
 		const uint16 _sesuid = 0
-	):tid(_tid), idx(_sesidx), uid(_sesuid){}
-	IndexT	tid;
-	uint16	idx;
-	uint16	uid;
+	):tkridx(_tkridx), sesidx(_sesidx), sesuid(_sesuid){}
+	uint16	tkridx;
+	uint16	sesidx;
+	uint16	sesuid;
 };
 
 struct MessageUid{
@@ -78,7 +78,7 @@ struct ConnectionContext{
 	
 	Service				&rservice;
 	ConnectionUid 		connectionuid;
-	const uint32		tkruid;
+	const ObjectUidT	tkruid;
 	int 				baseport;
 	SocketAddressStub	pairaddr;
 	uint32				netid;
@@ -87,7 +87,7 @@ struct ConnectionContext{
 	MessagePointerT& requestMessage(const Message &_rmsg)const;
 	
 	ObjectUidT talkerUid()const{
-		return ObjectUidT(connectionuid.tid, tkruid);
+		return tkruid;
 	}
 	Service& service()const{
 		return rservice;
@@ -100,9 +100,9 @@ private:
 	
 	ConnectionContext(
 		Service &_rsrv,
-		const IndexT &_tkridx,
-		const uint32 _tkruid
-	):rservice(_rsrv), connectionuid(_tkridx), tkruid(_tkridx), baseport(-1), psession(NULL){}
+		const uint16 _tkridx,
+		ObjectUidT const &_rtkruid
+	):rservice(_rsrv), connectionuid(_tkridx), tkruid(_rtkruid), baseport(-1), psession(NULL){}
 };
 
 typedef uint32 SerializationTypeIdT;

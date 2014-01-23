@@ -2906,7 +2906,7 @@ const uint32 specificId(){
 	return *reinterpret_cast<Context*>(Thread::specific(specificId()));
 }
 //----------------------------------------------------------------------
-Context::Context(Service &_rsrv, const IndexT &_tkrid, uint32 _uid):msgctx(_rsrv, _tkrid, _uid){
+Context::Context(Service &_rsrv, const uint16 _tkridx, ObjectUidT const &_robjuid):msgctx(_rsrv, _tkridx, _robjuid){
 	Thread::specific(specificId(), this);
 }
 //----------------------------------------------------------------------

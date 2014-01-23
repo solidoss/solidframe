@@ -43,6 +43,8 @@ struct Message: Dynamic<Message, frame::Message>{
 	
 	virtual void ipcOnReceive(ConnectionContext const &_ripcctx, MessagePointerT &_rmsgptr);
 	//! Called by ipc module, before the signal begins to be serialized
+	//TODO: change return to pair<uint32, uint32>
+	//	and use flags |= p.first; flags &= p.second
 	virtual uint32 ipcOnPrepare(ConnectionContext const &_ripcctx);
 	//! Called by ipc module on peer failure detection (disconnect,reconnect)
 	virtual void ipcOnComplete(ConnectionContext const &_ripcctx, int _error);

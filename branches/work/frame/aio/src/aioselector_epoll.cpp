@@ -687,7 +687,8 @@ ulong Selector::doExecute(const ulong _pos){
 			d.freestubsstk.push(_pos);
 			//unregister all channels
 			doUnregisterObject(*stub.objptr);
-			stub.objptr->doUnprepare();
+			//stub.objptr->doUnprepare();
+			this->stopObject(*stub.objptr);
 			stub.objptr.clear();
 			stub.timepos = TimeSpec::maximum;
 			--d.objsz;

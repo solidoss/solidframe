@@ -367,10 +367,10 @@ bool Service::sendMessage(
 	const ConnectionUid &_rconid,//the id of the process connector
 	uint32	_flags
 ){
-	cassert(_rconid.tid < d.tkrvec.size());
+	cassert(_rconid.tkridx < d.tkrvec.size());
 	
 	Locker<Mutex>		lock(mutex());
-	const IndexT		fullid(d.tkrvec[_rconid.tid].uid.first);
+	const IndexT		fullid(d.tkrvec[_rconid.tkridx].uid.first);
 	Locker<Mutex>		lock2(this->mutex(fullid));
 	Talker				*ptkr(static_cast<Talker*>(this->object(fullid)));
 	
@@ -396,7 +396,7 @@ void Service::doSendEvent(
 	uint32 _flags
 ){
 	Locker<Mutex>		lock(mutex());
-	const IndexT		fullid(d.tkrvec[_rconid.tid].uid.first);
+	const IndexT		fullid(d.tkrvec[_rconid.tkridx].uid.first);
 	Locker<Mutex>		lock2(this->mutex(fullid));
 	Talker				*ptkr(static_cast<Talker*>(this->object(fullid)));
 	
@@ -416,14 +416,14 @@ bool Service::sendMessage(
 	const ConnectionUid &_rconid,//the id of the process connector
 	uint32	_flags
 ){
-	cassert(_rconid.tid < d.tkrvec.size());
-	if(_rconid.tid >= d.tkrvec.size()){
+	cassert(_rconid.tkridx < d.tkrvec.size());
+	if(_rconid.tkridx >= d.tkrvec.size()){
 		//TODO: specific NoConnectionError;
 		return false;
 	}
 	
 	Locker<Mutex>		lock(mutex());
-	const IndexT		fullid(d.tkrvec[_rconid.tid].uid.first);
+	const IndexT		fullid(d.tkrvec[_rconid.tkridx].uid.first);
 	Locker<Mutex>		lock2(this->mutex(fullid));
 	Talker				*ptkr(static_cast<Talker*>(this->object(fullid)));
 	
@@ -518,11 +518,11 @@ bool Service::doSendMessageLocal(
 			vdbgx(Debug::ipc, "");
 			
 			ConnectionUid		conid(it->second);
-			const IndexT		fullid(d.tkrvec[conid.tid].uid.first);
+			const IndexT		fullid(d.tkrvec[conid.tkridx].uid.first);
 			Locker<Mutex>		lock2(this->mutex(fullid));
 			Talker				*ptkr(static_cast<Talker*>(this->object(fullid)));
 			
-			cassert(conid.tid < d.tkrvec.size());
+			cassert(conid.tkridx < d.tkrvec.size());
 			cassert(ptkr);
 			
 			if(ptkr->pushMessage(_rmsgptr, _rtid, conid, _flags)){
@@ -607,11 +607,11 @@ bool Service::doSendMessageRelay(
 			vdbgx(Debug::ipc, "");
 			
 			ConnectionUid		conid(it->second);
-			const IndexT		fullid(d.tkrvec[conid.tid].uid.first);
+			const IndexT		fullid(d.tkrvec[conid.tkridx].uid.first);
 			Locker<Mutex>		lock2(this->mutex(fullid));
 			Talker				*ptkr(static_cast<Talker*>(this->object(fullid)));
 			
-			cassert(conid.tid < d.tkrvec.size());
+			cassert(conid.tkridx < d.tkrvec.size());
 			cassert(ptkr);
 			
 			if(ptkr->pushMessage(_rmsgptr, _rtid, conid, _flags)){
@@ -854,7 +854,7 @@ bool Service::doAcceptBasicSession(const SocketAddress &_rsa, const ConnectData 
 		
 		if(it != d.sessionaddr4map.end()){
 			//a connection still exists
-			const IndexT	tkrfullid(d.tkrvec[it->second.tid].uid.first);
+			const IndexT	tkrfullid(d.tkrvec[it->second.tkridx].uid.first);
 			Locker<Mutex>	lock2(this->mutex(tkrfullid));
 			Talker			*ptkr(static_cast<Talker*>(this->object(tkrfullid)));
 			
@@ -923,7 +923,7 @@ bool Service::doAcceptRelaySession(const SocketAddress &_rsa, const ConnectData 
 		
 		if(it != d.sessionrelayaddr4map.end()){
 			//a connection still exists
-			const IndexT	tkrfullid(d.tkrvec[it->second.tid].uid.first);
+			const IndexT	tkrfullid(d.tkrvec[it->second.tkridx].uid.first);
 			Locker<Mutex>	lock2(this->mutex(tkrfullid));
 			Talker			*ptkr(static_cast<Talker*>(this->object(tkrfullid)));
 			
@@ -1126,8 +1126,8 @@ void Service::disconnectSession(Session *_pses){
 		}
 		controller().onDisconnect(addr, netid);
 	}
-	//Use:Context::the().msgctx.connectionuid.tid
-	const int			tkridx(Context::the().msgctx.connectionuid.tid);
+	//Use:Context::the().msgctx.connectionuid.tkridx
+	const int			tkridx(Context::the().msgctx.connectionuid.tkridx);
 	Data::TalkerStub	&rts(d.tkrvec[tkridx]);
 	
 	--rts.cnt;

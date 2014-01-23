@@ -36,7 +36,7 @@ namespace ipc{
 
 struct Context{
 	static Context& the();
-	Context(Service &_srv, const IndexT &_tkrid, const uint32 _uid);
+	Context(Service &_srv, const uint16 _tkridx, ObjectUidT const &_robjuid);
 	~Context();
 	ConnectionContext msgctx;
 };

@@ -195,6 +195,10 @@ void Object::doUnprepare(){
 	potimepos = NULL;
 }
 
+/*virtual*/void Object::doStop(){
+	doUnprepare();
+}
+
 void Object::doClearRequests(){
 	reqpos = reqbeg;
 }

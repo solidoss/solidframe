@@ -119,6 +119,7 @@ protected:
 private:
 	void doPrepare(TimeSpec *_pitimepos, TimeSpec *_potimepos);
 	void doUnprepare();
+	/*virtual*/void doStop();
 	void doClearRequests();
 	
 	size_t doOnTimeoutRecv(const TimeSpec &_timepos);

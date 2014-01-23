@@ -95,6 +95,12 @@ Object::~Object(){
 	unregister();
 }
 
+/*virtual*/void Object::doStop(){
+}
+void Object::stop(){
+	doStop();
+	unregister();
+}
 //--------------------------------------------------------------
 /*static*/ Object& Object::specific(){
 	return *reinterpret_cast<Object*>(Thread::specific(specificPosition()));

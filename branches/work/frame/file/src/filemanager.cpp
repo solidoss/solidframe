@@ -178,8 +178,6 @@ void Manager::execute(ExecuteContext &_rexectx){
 				d.state(-1);
 				rmtx.unlock();
 				vdbgx(Debug::file, "");
-				//frame::Manager::specific().unregisterObject(*this);
-				this->unregister();
 				_rexectx.close();
 				return;
 			}

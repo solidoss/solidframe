@@ -122,7 +122,7 @@ public:
 	//! Interface from Talker to Session
 	//typedef Service							ServiceT;
 	
-	Talker(const SocketDevice &_rsd, Service &_rservice, uint16 _id);
+	Talker(const SocketDevice &_rsd, Service &_rservice, uint16 _tkridx);
 	~Talker();
 	
 	bool pushMessage(

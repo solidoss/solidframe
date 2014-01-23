@@ -70,6 +70,7 @@ void BasicScheduler::Data::execute(WorkerBase &_rw, BasicScheduler::JobT &_rjob)
 			wp.push(_rjob);
 			break;
 		case Object::ExecuteContext::CloseRequest:
+			SelectorBase::stopObject(*_rjob);
 			_rjob.clear();
 			break;
 		default:

@@ -129,7 +129,7 @@ protected:
 	
 	void unregister();
 	bool isRegistered()const;
-	
+	virtual void doStop();
 private:
 	static void doSetCurrentTime(const TimeSpec *_pcrtts);
 	
@@ -149,6 +149,8 @@ private:
 		events and timeouts
 	*/
 	virtual void execute(ExecuteContext &_rexectx);
+	
+	void stop();
 	
 	//! Set the thread id
 	void threadId(const IndexT &_thrid);

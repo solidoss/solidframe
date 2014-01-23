@@ -290,13 +290,6 @@ int ObjectSelector::doExecute(unsigned _i, ulong _evs, TimeSpec _crttout){
 	this->executeObject(*d.sv[_i].objptr, exectl);
 	
 	switch(exectl.returnValue()){
-		case Object::ExecuteContext::CloseRequest:
-			d.fstk.push(_i);
-			d.sv[_i].objptr.clear();
-			d.sv[_i].state = 0;
-			--d.sz;
-			if(empty()) rv = Data::EXIT_LOOP;
-			break;
 		case Object::ExecuteContext::RescheduleRequest:
 			idbgx(Debug::frame, "OK: reentering object");
 			if(!d.sv[_i].state) {d.objq.push(_i); d.sv[_i].state = 1;}
@@ -317,6 +310,14 @@ int ObjectSelector::doExecute(unsigned _i, ulong _evs, TimeSpec _crttout){
 			idbgx(Debug::frame, "LEAVE: object leave");
 			d.fstk.push(_i);
 			d.sv[_i].objptr.release();
+			d.sv[_i].state = 0;
+			--d.sz;
+			if(empty()) rv = Data::EXIT_LOOP;
+			break;
+		case Object::ExecuteContext::CloseRequest:
+			d.fstk.push(_i);
+			this->stopObject(*d.sv[_i].objptr);
+			d.sv[_i].objptr.clear();
 			d.sv[_i].state = 0;
 			--d.sz;
 			if(empty()) rv = Data::EXIT_LOOP;
