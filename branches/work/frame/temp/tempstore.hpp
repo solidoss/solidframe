@@ -43,6 +43,7 @@ struct Configuration{
 class Store: protected shared::Store<>{
 public:
 	Store(Configuration const &_rcfg);
+	
 	template <typename F>
 	bool requestCreateAlive(F _f, uint64 _sz, const size_t _flags = AllLevelsFlag){
 		size_t	storageidx;
@@ -71,17 +72,7 @@ public:
 	}
 	
 	template <typename F>
-	bool requestCreateAlive(PointerT &_ralvptr, F _f, uint64 _sz, const size_t _flags = AllLevelFlags){
-		
-	}
-	
-	template <typename F>
 	bool requestCreateWrite(F _f, uint64 _sz, const size_t _flags = AllLevelFlags){
-		
-	}
-	
-	template <typename F>
-	bool requestCreateWrite(PointerT &_ralvptr, F _f, uint64 _sz, const size_t _flags = AllLevelFlags){
 		
 	}
 	

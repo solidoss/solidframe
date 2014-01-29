@@ -54,6 +54,20 @@ private:
 	T	*pt;
 };
 
+template <class T>
+struct Context{
+	T& operator*(){
+		return rt;
+	}
+	Pointer<T>& ptr(){
+		return p;
+	}
+private:
+	T			&rt;
+	Pointer<T>	p;
+	Stub		&rs;
+};
+
 enum Flags{
 	SynchronousTryFlag = 1
 };
@@ -78,6 +92,18 @@ public:
 		
 	}
 	
+	PointerT	insertAlive(){
+		
+	}
+	
+	PointerT	insertShared(){
+		
+	}
+	
+	PointerT	insertUnique(){
+		
+	}
+	
 	//Get an alive pointer from an existing pointer
 	PointerT	alive(PointerT &_rp){
 		
@@ -85,18 +111,24 @@ public:
 	
 	//!Return false if the object does not exist
 	template <typename F>
-	bool alive(F _f, UidT const & _ruid, const size_t _flags = SynchronousTryFlag){
+	bool requestAlive(F _f, UidT const & _ruid, const size_t _flags = SynchronousTryFlag){
 		
 	}
 	
 	//!Return false if the object does not exist
 	template <typename F>
-	bool shared(F _f, UidT const & _ruid, const size_t _flags = 0){
+	bool requestShared(F _f, UidT const & _ruid, const size_t _flags = 0){
 		
 	}
 	//!Return false if the object does not exist
 	template <typename F>
-	bool unique(F _f, UidT const & _ruid, const size_t _flags = 0){
+	bool requestUnique(F _f, UidT const & _ruid, const size_t _flags = 0){
+		
+	}
+	//!Return false if the object does not exist
+	//_f will be called uniquely when object's alive count is zero
+	template <typename F>
+	bool requestReinit(F _f, UidT const & _ruid, const size_t _flags = 0){
 		
 	}
 };
