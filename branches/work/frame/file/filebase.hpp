@@ -18,6 +18,7 @@
 namespace solid{
 namespace frame{
 namespace file{
+
 //!The base class for all types of files - disk, temp, memory etc.
 class File{
 public:

@@ -14,6 +14,7 @@
 
 namespace solid{
 namespace frame{
+namespace file{
 namespace temp{
 
 enum{
@@ -36,10 +37,7 @@ struct Configuration{
 	StorageVectorT	storagevec;
 };
 
-/*
- * NOTE: all request methods return true if _f(...) was called synchronously
- * F signature should be _f(PointerT &_ptr, const error_code _err, const bool _synchronous)
- */
+
 class Store: protected shared::Store<>{
 public:
 	Store(Configuration const &_rcfg);
@@ -91,6 +89,7 @@ private:
 };
 
 }//namespace temp
+}//namespace file
 }//namespace frame
 }//namespace solid
 

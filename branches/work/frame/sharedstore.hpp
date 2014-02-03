@@ -31,6 +31,7 @@ protected:
 		WaitNode	*pfirst;
 		WaitNode	*plast;
 	};
+	Mutex &mutex();
 private:
 	/*virtual*/ int execute(ulong _evs, TimeSpec &_rtout);
 };
@@ -62,15 +63,23 @@ struct Context{
 	Pointer<T>& ptr(){
 		return p;
 	}
+	bool isSynchronous()const;
+	const error_code & error()const;
 private:
 	T			&rt;
 	Pointer<T>	p;
 	Stub		&rs;
+	
 };
 
 enum Flags{
 	SynchronousTryFlag = 1
 };
+
+/*
+ * NOTE: 
+ * F signature should be _f(ContextT &)
+ */
 
 template <
 	class T
@@ -78,6 +87,7 @@ template <
 class Store: public Dynamic<Store, StoreBase>{
 public:
 	typedef Pointer<T>	PointerT;
+	typedef Context<T>	ContextT;
 	
 	//returned PointerT::get() == NULL
 	PointerT	insertAlive(T &_rt){
@@ -131,6 +141,8 @@ public:
 	bool requestReinit(F _f, UidT const & _ruid, const size_t _flags = 0){
 		
 	}
+protected:
+	
 };
 
 }//namespace shared
