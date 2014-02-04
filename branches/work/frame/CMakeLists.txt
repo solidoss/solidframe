@@ -37,4 +37,3 @@ add_library (solid_frame_core
 add_subdirectory(ipc)
 add_subdirectory(aio)
 add_subdirectory(file)
-add_subdirectory(temp)
