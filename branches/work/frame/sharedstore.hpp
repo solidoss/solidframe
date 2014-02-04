@@ -60,16 +60,24 @@ struct Context{
 	T& operator*(){
 		return rt;
 	}
-	Pointer<T>& ptr(){
-		return p;
+	
+	Pointer<T> alive(){
+	}
+	//Will return a pointer based on the request type
+	//One will be able to request multiple pointers from a unique request
+	//The status of the object will be "unique" untill all the pointers will
+	//be freed
+	Pointer<T> pointer(){
+	}
+	Mutex& mutex(){
+		
 	}
 	bool isSynchronous()const;
 	const error_code & error()const;
+	void error(const error_code &_rerr);
 private:
 	T			&rt;
-	Pointer<T>	p;
 	Stub		&rs;
-	
 };
 
 enum Flags{
@@ -95,7 +103,7 @@ public:
 	}
 	
 	PointerT	insertShared(T &_rt){
-		
+	
 	}
 	
 	PointerT	insertUnique(T &_rt){
@@ -116,12 +124,6 @@ public:
 	
 	//Get an alive pointer from an existing pointer
 	PointerT	alive(PointerT &_rp){
-		
-	}
-	
-	//!Return false if the object does not exist
-	template <typename F>
-	bool requestAlive(F _f, UidT const & _ruid, const size_t _flags = SynchronousTryFlag){
 		
 	}
 	

@@ -31,13 +31,30 @@ struct Configuration{
 
 struct File: FileBase{
 	void clear();
-	int open(const char *_path, const size_t _openflags);
+	bool open(const char *_path, const size_t _openflags);
 	/*virtual*/ int read(char *_pb, uint32 _bl, int64 _off);
 	/*virtual*/ int write(const char *_pb, uint32 _bl, int64 _off);
 	int64 size()const;
-	int truncate(int64 _len = 0);
+	bool truncate(int64 _len = 0);
 private:
 	FileDevice	fd;
+};
+
+template <class Cmd>
+struct OpenCommand{
+	Cmd				cmd;
+	size_t			openflags;
+	std::string		path;
+	
+	OpenCommand(Cmd &_cmd, size_t _openflags):cmd(_cmd), openflags(_openflags){}
+	
+	void operator()(Context<File>	&_rctx){
+		const bool rv = (*_rctx).open(path.c_str(), openflags);
+		if(!rv)
+			_rctx.error(error_code());
+		}
+		cmd(_rctx);
+	}
 };
 
 class Store: public shared::Store<File>{
@@ -45,52 +62,46 @@ public:
 	Store(Configuration const &_rcfg);
 	//If a file with _path already exists in the store, the call will be similar with open with truncate openflag
 	template <typename F>
-	bool requestCreateAlive(F _f, const char* _path, const size_t _openflags = 0, const size_t _flags = 0){
-		Locker<Mutex>	lock(mutex());
-		
-		OpenCommand<F>	opencmd(_f, _openflags);
-		size_t			idx;
-		bool			exists = doInsertFilePath(_path, opencmd.path, idx);
-		
-		PointerT		alvptr = doUnsafeInsertAlive();
-		
-		if(fs.empty()){
-			//no one is waiting (not even an AlivePointer) - the use count is 0 - the file stub was just created.
-			error_code err = fs.open(_openflags);
-			_f(AlivePointerT(fs), err);
-			return true;
-		}else{
+	bool requestCreate(F _f, const char* _path, const size_t _openflags = 0, const size_t _flags = 0){
+		PointerT		uniptr;
+		OpenCommand<F>	opencmd(_f, _openflags/*TODO: add Truncate flags*/);
+		size_t			idx = -1;
+		{
+			Locker<Mutex>	lock(mutex());
 			
-			insertCallback(idx, opencmd, _flags);
-			return false;
+			size_t			*pidx = NULL;
+			bool			exists = doInsertFilePath(_path, opencmd.path, pidx);
+			
+			if(!exists){
+				uniptr = doInsertUnique();//will use File's mutex
+				*pidx = uniptr.id().first;
+			}
+			idx = *pidx;
 		}
+		return doRequestReinit(opencmd, idx, uniptr, _flags);//will use File's mutex
 	}
 	
 	template <typename F>
-	bool requestCreateWrite(F _f, const char* _path, const size_t _openflags = 0, const size_t _flags = 0){
+	bool requestOpen(F _f, const char* _path, const size_t _openflags = 0, const size_t _flags = 0){
+		PointerT		uniptr;
+		OpenCommand<F>	opencmd(_f, _openflags);
+		size_t			idx = -1;
+		{
+			Locker<Mutex>	lock(mutex());
+			
+			size_t			*pidx = NULL;
+			bool			exists = doInsertFilePath(_path, opencmd.path, pidx);
+			
+			if(!exists){
+				uniptr = doInsertUnique();//will use File's mutex
+				*pidx = uniptr.id().first;
+			}
+			idx = *pidx;
+		}
+		return doRequestReinit(opencmd, idx, uniptr, _flags);//will use File's mutex
 		
 	}
 	
-	template <typename F>
-	bool requestOpenWrite(F _f, const char* _path, const size_t _openflags = 0, const size_t _flags = 0){
-		
-	}
-	
-	template <typename F>
-	bool requestOpenRead(F _f, const char* _path, const size_t _openflags = 0, const size_t _flags = 0){
-		
-	}
-	
-	template <typename F>
-	bool requestRead(F _f, UidT const & _ruid, const size_t _flags = 0){
-		
-	}
-	
-	template <typename F>
-	bool requestWrite(F _f, UidT const & _ruid, const size_t _flags = 0){
-		
-	}
-	AlivePointerT alive(UidT const & _ruid);
 private:
 	
 private:
