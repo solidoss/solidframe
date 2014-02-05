@@ -40,17 +40,25 @@ private:
 	FileDevice	fd;
 };
 
+class Store;
+
 template <class Cmd>
 struct OpenCommand{
+	Store 			&rs;
 	Cmd				cmd;
 	size_t			openflags;
-	std::string		path;
+	const char 		*inpath;
+	std::string		outpath;
 	
-	OpenCommand(Cmd &_cmd, size_t _openflags):cmd(_cmd), openflags(_openflags){}
+	OpenCommand(Store &_rs, Cmd &_cmd, const char *_path, size_t _openflags):rs(_rs), cmd(_cmd), inpath(_path), openflags(_openflags){}
+	
+	bool prepare(size_t* &_rpidx){
+		return _rs.insertPath(_path, outpath, _rpidx);
+	}
 	
 	void operator()(Context<File>	&_rctx){
 		const bool rv = (*_rctx).open(path.c_str(), openflags);
-		if(!rv)
+		if(!rv){
 			_rctx.error(error_code());
 		}
 		cmd(_rctx);
@@ -63,46 +71,16 @@ public:
 	//If a file with _path already exists in the store, the call will be similar with open with truncate openflag
 	template <typename F>
 	bool requestCreate(F _f, const char* _path, const size_t _openflags = 0, const size_t _flags = 0){
-		PointerT		uniptr;
-		OpenCommand<F>	opencmd(_f, _openflags/*TODO: add Truncate flags*/);
-		size_t			idx = -1;
-		{
-			Locker<Mutex>	lock(mutex());
-			
-			size_t			*pidx = NULL;
-			bool			exists = doInsertFilePath(_path, opencmd.path, pidx);
-			
-			if(!exists){
-				uniptr = doInsertUnique();//will use File's mutex
-				*pidx = uniptr.id().first;
-			}
-			idx = *pidx;
-		}
-		return doRequestReinit(opencmd, idx, uniptr, _flags);//will use File's mutex
+		OpenCommand<F>	cmd(*this, _f, _path, _openflags/*TODO: add Truncate flags*/);
+		return requestReinit(cmd, _flags);
 	}
 	
 	template <typename F>
 	bool requestOpen(F _f, const char* _path, const size_t _openflags = 0, const size_t _flags = 0){
-		PointerT		uniptr;
-		OpenCommand<F>	opencmd(_f, _openflags);
-		size_t			idx = -1;
-		{
-			Locker<Mutex>	lock(mutex());
-			
-			size_t			*pidx = NULL;
-			bool			exists = doInsertFilePath(_path, opencmd.path, pidx);
-			
-			if(!exists){
-				uniptr = doInsertUnique();//will use File's mutex
-				*pidx = uniptr.id().first;
-			}
-			idx = *pidx;
-		}
-		return doRequestReinit(opencmd, idx, uniptr, _flags);//will use File's mutex
+		OpenCommand<F>	cmd(*this, _f, _path, _openflags);
+		return requestReinit(cmd, _flags);
 		
 	}
-	
-private:
 	
 private:
 	struct Data;

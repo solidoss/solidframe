@@ -43,8 +43,8 @@ public:
 	Store(Configuration const &_rcfg);
 	
 	template <typename F>
-	bool requestCreateAlive(F _f, uint64 _sz, const size_t _flags = AllLevelsFlag){
-		size_t	storageidx;
+	bool requestCreate(F _f, uint64 _sz, const size_t _flags = AllLevelsFlag){
+		size_t	storageidx = -1;
 		AsyncE	rv = findStorage(_sz, _flags, storageidx);
 		
 		if(rv == AsyncSuccess){
@@ -68,23 +68,34 @@ public:
 			return true;
 		}
 	}
-	
+	//TODO: delete when the final version is ready
 	template <typename F>
-	bool requestCreateWrite(F _f, uint64 _sz, const size_t _flags = AllLevelFlags){
+	bool requestReinit(F &_f, const size_t _flags = 0){
+		PointerT		uniptr;
+		size_t			idx = -1;
+		{
+			Locker<Mutex>	lock(mutex());
+			
+			size_t			*pidx = NULL;
+			
+			if(!_f.prepare(pidx)){
+				uniptr = doInsertUnique();//will use object's mutex
+				*pidx = uniptr.id().first;
+			}
+			idx = *pidx;
+		}
+		return doRequestReinit(_f, idx, uniptr, _flags);//will use object's mutex
+	}
+	//TODO: move the final version to shared::Store
+	template <typename F>
+	bool requestReinit(F &_f, const size_t _flags = 0){
 		
 	}
-	
 	template <typename F>
-	bool requestRead(F _f, UidT const & _ruid, const size_t _flags = 0){
-		
+	bool requestCreate(F _f, uint64 _sz, const size_t _flags = AllLevelsFlag){
+		CreateCommand<F>	cmd(*this, _f, _sz);
+		return requestReinit(cmd, _flags);
 	}
-	
-	template <typename F>
-	bool requestWrite(F _f, UidT const & _ruid, const size_t _flags = 0){
-		
-	}
-	
-	AlivePointerT alive(UidT const & _ruid);
 private:
 };
 

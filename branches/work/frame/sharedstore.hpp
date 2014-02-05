@@ -63,12 +63,17 @@ struct Context{
 	
 	Pointer<T> alive(){
 	}
-	//Will return a pointer based on the request type
-	//One will be able to request multiple pointers from a unique request
-	//The status of the object will be "unique" untill all the pointers will
-	//be freed
-	Pointer<T> pointer(){
+	//Will return a pointer based on the current request type.
+	//All request types can get alive pointers
+	//For unique request one can get either shared or unique pointers.
+	//For shared request only shared pointers are allowed.
+	//In case of error an invalid pointer is returned.
+	Pointer<T> shared(){
 	}
+	
+	Pointer<T> unique(){
+	}
+	
 	Mutex& mutex(){
 		
 	}
@@ -126,7 +131,23 @@ public:
 	PointerT	alive(PointerT &_rp){
 		
 	}
-	
+	template <typename F>
+	bool requestReinit(F &_f, const size_t _flags = 0){
+		PointerT		uniptr;
+		size_t			idx = -1;
+		{
+			Locker<Mutex>	lock(mutex());
+			
+			size_t			*pidx = NULL;
+			
+			if(!_f.prepare(pidx)){
+				uniptr = doInsertUnique();//will use object's mutex
+				*pidx = uniptr.id().first;
+			}
+			idx = *pidx;
+		}
+		return doRequestReinit(_f, idx, uniptr, _flags);//will use object's mutex
+	}
 	//!Return false if the object does not exist
 	template <typename F>
 	bool requestShared(F _f, UidT const & _ruid, const size_t _flags = 0){
