@@ -18,42 +18,111 @@ namespace solid{
 namespace frame{
 namespace file{
 
+
+enum{
+	MemoryLevelFlag = 1,
+	VeryFastLevelFlag = 2,
+	FastLevelFlag = 4,
+	NormalLevelFlag = 8,
+	SlowLevelFlag = 16,
+	AllLevelsFlag = 1 + 2 + 4 + 8 + 16,
+};
+
+struct Configuration{
+	struct Storage{
+		std::string 	path;
+		uint32			level;
+		uint64			capacity;
+	};
+	typedef std::vector<Storage>	StorageVectorT;
+	
+	StorageVectorT	storagevec;
+};
+
 struct Configuration{
 	struct Storage{
 		std::string		localpath;
 		std::string		pathprefix;
 	};
-	
-	typedef std::vector<Storage>	StorageVectorT;
+	struct TempStorage{
+		std::string 	path;
+		uint32			level;
+		uint64			capacity;
+	};
+	typedef std::vector<TempStorage>	TempStorageVectorT;
+	typedef std::vector<Storage>		StorageVectorT;
 	
 	StorageVectorT		storagevec;
+	TempStorageVectorT	storagevec;
+	
 };
 
-struct File: FileBase{
-	void clear();
-	bool open(const char *_path, const size_t _openflags);
-	/*virtual*/ int read(char *_pb, uint32 _bl, int64 _off);
-	/*virtual*/ int write(const char *_pb, uint32 _bl, int64 _off);
-	int64 size()const;
-	bool truncate(int64 _len = 0);
+struct File{
+	void clear(){
+		fd.close();
+		if(pfb){
+			pfb->close();
+		}
+		delete pfb;
+		pfb = NULL;
+	}
+	bool open(const char *_path, const size_t _openflags){
+		return fd.open(_path, _openflags);
+	}
+	
+	int read(char *_pb, uint32 _bl, int64 _off){
+		if(!pfb){
+			return fd.read(_pb, _bl, _off);
+		}else{
+			return pfb->read(_pb, _bl, _off);
+		}
+	}
+	int write(const char *_pb, uint32 _bl, int64 _off){
+		
+	}
+	int64 size()const{
+		if(!pfb){
+			return fd.size();
+		}else{
+			return pfb->size();
+		}
+	}
+	bool truncate(int64 _len = 0){
+		if(!pfb){
+			return fd.truncate(_len);
+		}else{
+			return pfb->truncate(_len);
+		}
+	}
 private:
 	FileDevice	fd;
+	FileBase	*pfb;
 };
 
 class Store;
 
-template <class Cmd>
-struct OpenCommand{
+struct OpenCommandBase{
+	typedef Pointer<File>	PointerT;
 	Store 			&rs;
-	Cmd				cmd;
 	size_t			openflags;
 	const char 		*inpath;
 	std::string		outpath;
+protected:
+	OpenCommandBase(Store &_rs, const char *_path, size_t _openflags):rs(_rs), inpath(_path), openflags(_openflags){}
 	
-	OpenCommand(Store &_rs, Cmd &_cmd, const char *_path, size_t _openflags):rs(_rs), cmd(_cmd), inpath(_path), openflags(_openflags){}
+private:
+	void doInsertPath(size_t &_ridx);
+};
+
+template <class Cmd>
+struct OpenCommand: OpenCommandBase{
+	Cmd				cmd;
 	
-	bool prepare(size_t* &_rpidx){
-		return _rs.insertPath(_path, outpath, _rpidx);
+	OpenCommand(Store &_rs, Cmd &_cmd, const char *_path, size_t _openflags):OpenCommandBase(_rs, _path, _openflags), cmd(_cmd){}
+	
+	void prepare(PointerT &_runiptr, size_t &_ridx){
+		_ridx = _runiptr.id().first;
+		doInsertPath(inpath, outpath, _ridx);
 	}
 	
 	void operator()(Context<File>	&_rctx){
@@ -81,11 +150,22 @@ public:
 		return requestReinit(cmd, _flags);
 		
 	}
-	
+	template <typename F>
+	bool requestCreateTemp(F _f, uint64 _sz, const size_t _flags = AllLevelsFlag){
+		CreateTempCommand<F>	cmd(*this, _f, _sz);
+		return requestReinit(cmd, _flags);
+	}
+private:
+	friend struct OpenCommandBase;
+	void insertPath(const char *_inpath, std::string &_outpath, size_t &_ridx);
 private:
 	struct Data;
 	Data	&d;
 };
+
+void OpenCommandBase::doInsertPath(size_t& _ridx){
+	rs.insertPath(inpath, outpath, _ridx);
+}
 
 }//namespace file
 }//namespace frame

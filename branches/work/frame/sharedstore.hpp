@@ -131,6 +131,7 @@ public:
 	PointerT	alive(PointerT &_rp){
 		
 	}
+	//TODO: move the final version to shared::Store
 	template <typename F>
 	bool requestReinit(F &_f, const size_t _flags = 0){
 		PointerT		uniptr;
@@ -138,16 +139,21 @@ public:
 		{
 			Locker<Mutex>	lock(mutex());
 			
-			size_t			*pidx = NULL;
-			
-			if(!_f.prepare(pidx)){
-				uniptr = doInsertUnique();//will use object's mutex
-				*pidx = uniptr.id().first;
+			uniptr = doInsertUnique();
+			_f.prepare(uniptr, idx);
+			if(uniptr.empty()){
+				//the pointer was stored for later use - doRequestReinit will only schedule f until
+				//uniptr is cleared
+			}else if(idx != static_cast<size_t>(-1) && uniptr.id().first != idx){
+				//_f requires another object so we erase the currently allocated one
+				doErase(uniptr);
+			}else{
+				//doRequestReinit will clear uniptr and run _f
 			}
-			idx = *pidx;
 		}
 		return doRequestReinit(_f, idx, uniptr, _flags);//will use object's mutex
 	}
+
 	//!Return false if the object does not exist
 	template <typename F>
 	bool requestShared(F _f, UidT const & _ruid, const size_t _flags = 0){
