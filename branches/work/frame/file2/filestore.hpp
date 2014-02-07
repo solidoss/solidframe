@@ -134,9 +134,47 @@ struct OpenCommand: OpenCommandBase{
 	}
 };
 
-class Store: public shared::Store<File>{
+struct CreateTempCommandBase{
+	typedef Pointer<File>	PointerT;
+	Store 			&rs;
+	size_t			openflags;
+	uint64			size;
+	std::string		outpath;
+protected:
+	CreateTempCommandBase(Store &_rs, uint64 _sz, size_t _openflags):rs(_rs), size(_sz), openflags(_openflags){}
+	
+private:
+};
+
+
+template <class Cmd>
+struct CreateTempCommand: OpenCommandBase{
+	Cmd				cmd;
+	
+	CreateTempCommand(Store &_rs, Cmd &_cmd, uint64 _sz, size_t _createflags):OpenCommandBase(_rs, _sz, _createflags), cmd(_cmd){}
+	
+	void prepare(PointerT &_runiptr, size_t &_ridx){
+	}
+	
+	void operator()(Context<File>	&_rctx){
+	}
+};
+
+struct Controller{
+	struct Data;
+	Data &d;
+	
+	Controller(const Configuration &_rcfg);
+	~Controller();
+	
+};
+
+class Store: public shared::Store<File, Controller>{
+	typedef shared::Store<File, Controller> SharedStoreT;
 public:
-	Store(Configuration const &_rcfg);
+	
+	Store(Configuration const &_rcfg):SharedStoreT(_rcfg){}
+	
 	//If a file with _path already exists in the store, the call will be similar with open with truncate openflag
 	template <typename F>
 	bool requestCreate(F _f, const char* _path, const size_t _openflags = 0, const size_t _flags = 0){
@@ -151,16 +189,14 @@ public:
 		
 	}
 	template <typename F>
-	bool requestCreateTemp(F _f, uint64 _sz, const size_t _flags = AllLevelsFlag){
-		CreateTempCommand<F>	cmd(*this, _f, _sz);
+	bool requestCreateTemp(F _f, uint64 _sz, const size_t _createflags = AllLevelsFlag, const size_t _flags = 0){
+		CreateTempCommand<F>	cmd(*this, _f, _sz, _createflags);
 		return requestReinit(cmd, _flags);
 	}
 private:
 	friend struct OpenCommandBase;
+	friend struct CreateTempCommandBase;
 	void insertPath(const char *_inpath, std::string &_outpath, size_t &_ridx);
-private:
-	struct Data;
-	Data	&d;
 };
 
 void OpenCommandBase::doInsertPath(size_t& _ridx){

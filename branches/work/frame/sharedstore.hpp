@@ -95,12 +95,21 @@ enum Flags{
  */
 
 template <
-	class T
+	class T,
+	class Ctl
 >
 class Store: public Dynamic<Store, StoreBase>{
 public:
 	typedef Pointer<T>	PointerT;
 	typedef Context<T>	ContextT;
+	typedef Ctl			ControllerT;
+	
+	Store(const ControllerT &_rctl):ctl(_rctl){}
+	
+	template <typename T>
+	Store(T _t):ctl(_t){}
+	
+	Store(){}
 	
 	//returned PointerT::get() == NULL
 	PointerT	insertAlive(T &_rt){
@@ -171,7 +180,11 @@ public:
 		
 	}
 protected:
-	
+	ControllerT	&controller(){
+		return ctl;
+	}
+private:
+	ControllerT		ctl;
 };
 
 }//namespace shared
