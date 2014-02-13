@@ -16,6 +16,7 @@
 
 #include <signal.h>
 #include <iostream>
+#include <fstream>
 
 using namespace std;
 using namespace solid;
@@ -90,15 +91,24 @@ private:
 	
 private:
 	enum {BUFSZ = 1024};
-	enum {INIT,READ, READ_TOUT, WRITE, WRITE_TOUT, CONNECT, CONNECT_TOUT};
+	enum {
+		ReadInit,
+		ReadCommand,
+		ReadPath,
+		ExecCommand,
+		RunRead,
+		RunWrite
+	};
 	int							state;
 	char						bbeg[BUFSZ];
-	const char					*bend;
-	char						*brpos;
-	const char					*bwpos;
+	char						*bend;
 	ResolveData					rd;
 	ResolveIterator				it;
 	bool						b;
+	char						cmd;
+	std::string					path;
+	std::ifstream				ifs;
+	std::ofstream				ofs;
 };
 
 //------------------------------------------------------------------
@@ -278,18 +288,18 @@ Listener::~Listener(){
 //------------------------------------------------------------------
 //------------------------------------------------------------------
 Connection::Connection(const char *_node, const char *_srv): 
-	BaseT(), bend(bbeg + BUFSZ), brpos(bbeg), bwpos(bbeg), b(false)
+	BaseT(), b(false)
 {
 	cassert(_node && _srv);
 	rd = synchronous_resolve(_node, _srv);
 	it = rd.begin();
-	state = CONNECT;
+	state = ReadInit;
 	
 }
 Connection::Connection(const SocketDevice &_rsd):
-	BaseT(_rsd), bend(bbeg + BUFSZ), brpos(bbeg), bwpos(bbeg), b(false)
+	BaseT(_rsd), b(false)
 {
-	state = INIT;
+	state = ReadInit;
 }
 Connection::~Connection(){
 	//state(-1);
@@ -300,12 +310,6 @@ Connection::~Connection(){
 	idbg("time.sec "<<_rexectx.currentTime().seconds()<<" time.nsec = "<<_rexectx.currentTime().nanoSeconds());
 	if(_rexectx.eventMask() & (frame::EventTimeout | frame::EventDoneError | frame::EventTimeoutRecv | frame::EventTimeoutSend)){
 		idbg("connecton timeout or error");
-// 		if(state == CONNECT_TOUT){
-// 			if(++it){
-// 				state = CONNECT;
-// 				return frame::UNREGISTER;
-// 			}
-// 		}
 		_rexectx.close();
 		return;
 	}
@@ -319,71 +323,108 @@ Connection::~Connection(){
 		}
 	}
 	const uint32 sevs(socketEventsGrab());
-	if(sevs){
-		if(sevs & frame::EventDoneError){
-			_rexectx.close();
-			return;
-		}
-		if(state == READ_TOUT){	
-			cassert(sevs & frame::EventDoneRecv);
-		}else if(state == WRITE_TOUT){	
-			cassert(sevs & frame::EventDoneSend);
-		}
-		
+	if(sevs & frame::EventDoneError){
+		_rexectx.close();
+		return;
 	}
-	int rc = 512 * 1024;
-	do{
-		switch(state){
-			case READ:
-				switch(socketRecv(bbeg, BUFSZ)){
-					case frame::aio::AsyncError:
-						_rexectx.close();
-						return;
-					case frame::aio::AsyncSuccess: break;
-					case frame::aio::AsyncWait: 
-						state = READ_TOUT; 
-						socketTimeoutRecv(30);
-						return;
+	if(sevs & frame::EventDoneRecv){
+		bend = bbeg + socketRecvSize();
+	}
+	
+	frame::aio::AsyncE rv;
+	char *bpos = bbeg;
+	switch(state){
+		case ReadInit:
+			rv = this->socketRecv(bbeg, BUFSZ);
+			if(rv == frame::aio::AsyncSuccess){
+				state = ReadCommand;
+			}else if(rv == frame::aio::AsyncWait){
+				state = ReadCommand;
+				return;
+			}else{
+				_rexectx.close();
+				return;
+			}
+		case ReadCommand:
+			if(socketHasPendingRecv()){
+				return;//continue waiting
+			}
+			cmd = *bpos;
+			++bpos;
+			state = ReadPath;
+		case ReadPath:{
+			const char *p = bpos;
+			for(; p != bend; ++p){
+				if(*p == '\n') break;
+			}
+			path.append(bpos, p - bpos);
+			if(*p == '\n'){
+				state = ExecCommand;
+			}else{
+				rv = this->socketRecv(bbeg, BUFSZ);
+				if(rv == frame::aio::AsyncSuccess){
+					_rexectx.reschedule();
+				}else if(rv == frame::aio::AsyncWait){
+					return;
+				}else{
+					_rexectx.close();
+					return;
 				}
-			case READ_TOUT:
-				state = WRITE;
-			case WRITE:
-				switch(socketSend(bbeg, socketRecvSize())){
-					case frame::aio::AsyncError:
-						_rexectx.close();
-						return;
-					case frame::aio::AsyncSuccess: break;
-					case frame::aio::AsyncWait: 
-						state = WRITE_TOUT;
-						socketTimeoutSend(10);
-						return;
-				}
-			case WRITE_TOUT:
-				state = READ;
-				break;
-			case CONNECT:
-				switch(socketConnect(it)){
-					case frame::aio::AsyncError:
-						++it;
-						if(it != rd.end()){
-							state = CONNECT;
-							_rexectx.reschedule();
-							return;
-						}
-						_rexectx.close();
-						return;
-					case frame::aio::AsyncSuccess:  state = INIT;break;
-					case frame::aio::AsyncWait: state = CONNECT_TOUT; return;
-				};
-				break;
-			case CONNECT_TOUT:
-				rd.clear();
-			case INIT:
-				//socketSend(hellostr, strlen(hellostr));
-				state = READ;
-				break;
+			}
 		}
-		rc -= socketRecvSize();
-	}while(rc > 0);
-	_rexectx.reschedule();
+		case ExecCommand:
+			if(path.size() && path[path.size() - 1] == '\r'){
+				path.resize(path.size() - 1);
+			}
+			if(cmd == 'R' || cmd == 'r'){
+				ifs.open(path.c_str());
+				if(!ifs){
+					_rexectx.close();
+					return;
+				}
+				state = RunRead;
+				_rexectx.reschedule();
+				return;
+			}else if(cmd == 'w' || cmd == 'W'){
+				ofs.open(path.c_str());
+				if(!ofs){
+					_rexectx.close();
+					return;
+				}
+				++bpos;
+				if(bpos != bend){
+					ofs.write(bpos, bend - bpos);
+				}
+				state= RunWrite;
+				_rexectx.reschedule();
+				return;
+			}else{
+				_rexectx.close();
+				return;
+			}
+		case RunRead:
+			if(socketHasPendingSend()){
+				return;
+			}
+			if(!ifs.eof()){
+				ifs.read(bbeg, BUFSZ);
+				rv = socketSend(bbeg, ifs.gcount());
+				if(rv == frame::aio::AsyncSuccess){
+					_rexectx.reschedule();
+				}else if(rv == frame::aio::AsyncWait){
+				}else{
+					_rexectx.close();
+				}
+			}else{
+				ifs.close();
+				_rexectx.close();
+			}
+			return;
+		case RunWrite:{
+			if(socketHasPendingRecv()){
+				return;
+			}
+			
+		}
+	}
 }
