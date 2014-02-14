@@ -88,7 +88,7 @@ public:
 	~Connection();
 private:
 	/*virtual*/ void execute(ExecuteContext &_rexectx);
-	
+	const char * findEnd(const char *_p);
 private:
 	enum {BUFSZ = 1024};
 	enum {
@@ -109,6 +109,7 @@ private:
 	std::string					path;
 	std::ifstream				ifs;
 	std::ofstream				ofs;
+	const char 					*crtpat;
 };
 
 //------------------------------------------------------------------
@@ -287,23 +288,44 @@ Listener::~Listener(){
 
 //------------------------------------------------------------------
 //------------------------------------------------------------------
+static const char * patt = "\n.\r\n";
+
 Connection::Connection(const char *_node, const char *_srv): 
-	BaseT(), b(false)
+	BaseT(), b(false), crtpat(patt)
 {
 	cassert(_node && _srv);
 	rd = synchronous_resolve(_node, _srv);
 	it = rd.begin();
 	state = ReadInit;
+	bend = bbeg;
 	
 }
 Connection::Connection(const SocketDevice &_rsd):
-	BaseT(_rsd), b(false)
+	BaseT(_rsd), b(false), crtpat(patt)
 {
 	state = ReadInit;
+	bend = bbeg;
 }
 Connection::~Connection(){
 	//state(-1);
 	idbg("");
+}
+
+const char * Connection::findEnd(const char *_p){
+	const char *p = _p;
+	for(; p != bend; ++p){
+		if(*p == *crtpat){
+			++crtpat;
+			if(!*crtpat) break;
+		}else{
+			crtpat = patt;
+		}
+	}
+	if(!*crtpat){//we've found the pattern
+		return p - 2;
+	}
+	
+	return p - (crtpat - patt);
 }
 
 /*virtual*/ void Connection::execute(ExecuteContext &_rexectx){
@@ -328,7 +350,8 @@ Connection::~Connection(){
 		return;
 	}
 	if(sevs & frame::EventDoneRecv){
-		bend = bbeg + socketRecvSize();
+		bend = bbeg + socketRecvSize() + (crtpat - patt);
+		crtpat = patt;
 	}
 	
 	frame::aio::AsyncE rv;
@@ -338,6 +361,7 @@ Connection::~Connection(){
 			rv = this->socketRecv(bbeg, BUFSZ);
 			if(rv == frame::aio::AsyncSuccess){
 				state = ReadCommand;
+				bend = bbeg + socketRecvSize();
 			}else if(rv == frame::aio::AsyncWait){
 				state = ReadCommand;
 				return;
@@ -359,6 +383,7 @@ Connection::~Connection(){
 			}
 			path.append(bpos, p - bpos);
 			if(*p == '\n'){
+				bpos = const_cast<char *>(p);
 				state = ExecCommand;
 			}else{
 				rv = this->socketRecv(bbeg, BUFSZ);
@@ -392,9 +417,17 @@ Connection::~Connection(){
 					return;
 				}
 				++bpos;
-				if(bpos != bend){
-					ofs.write(bpos, bend - bpos);
+				const char *p = findEnd(bpos);
+				ofs.write(bpos, p - bpos);
+				if(crtpat != patt){
+					memcpy(bbeg, patt, crtpat - patt);
 				}
+				if(p != bend && *p == '.'){
+					ofs.close();
+					_rexectx.close();
+					return;
+				}
+				bend = bbeg;
 				state= RunWrite;
 				_rexectx.reschedule();
 				return;
@@ -424,7 +457,36 @@ Connection::~Connection(){
 			if(socketHasPendingRecv()){
 				return;
 			}
-			
+			const char *p = findEnd(bpos);
+			ofs.write(bpos, p - bpos);
+			if(crtpat != patt){
+				memcpy(bbeg, patt, crtpat - patt);
+			}
+			if(p != bend && *p == '.'){
+				ofs.close();
+				_rexectx.close();
+				return;
+			}
+			rv = socketRecv(bbeg + (crtpat - patt), BUFSZ - (crtpat - patt));
+			if(rv == frame::aio::AsyncSuccess){
+				bpos = bbeg;
+				bend = bbeg + socketRecvSize();
+				crtpat = patt;
+				p = findEnd(bpos);
+				ofs.write(bpos, p - bpos);
+				if(crtpat != patt){
+					memcpy(bbeg, patt, crtpat - patt);
+				}
+				if(p != bend && *p == '.'){
+					ofs.close();
+					_rexectx.close();
+					return;
+				}
+				_rexectx.reschedule();
+			}else if(rv == frame::aio::AsyncWait){
+			}else{
+				_rexectx.close();
+			}
 		}
 	}
 }
