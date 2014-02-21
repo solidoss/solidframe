@@ -5,6 +5,7 @@
 #include "frame/aio/aioselector.hpp"
 #include "frame/aio/aiosingleobject.hpp"
 #include "frame/aio/openssl/opensslsocket.hpp"
+#include "frame/file2/filestore.hpp"
 
 #include "system/thread.hpp"
 #include "system/mutex.hpp"
@@ -56,6 +57,10 @@ namespace{
 			}
 		}
 	}
+	
+	typedef DynamicSharedPointer<frame::file::Store>	FileStoreSharedPointerT;
+	
+	FileStoreSharedPointerT		filestoreptr;
 
 }//namespace
 
@@ -120,6 +125,8 @@ void insertListener(frame::Manager &_rm, AioSchedulerT &_rsched, const char *_ad
 //------------------------------------------------------------------
 //------------------------------------------------------------------
 
+
+
 int main(int argc, char *argv[]){
 	Params p;
 	if(parseArguments(p, argc, argv)) return 0;
@@ -160,12 +167,22 @@ int main(int argc, char *argv[]){
 	cout<<"Debug modules: "<<dbgout<<endl;
 	}
 #endif
-	
+	{
+		frame::file::Configuration	cfg;
+		//TODO: populate cfg
+		
+		filestoreptr = new frame::file::Store(cfg);
+	}
 	{
 		frame::Manager	m;
 		AioSchedulerT	aiosched(m);
+		SchedulerT		sched(m);
+		
+		m.registerObject(*filestoreptr);
+		sched.schedule(filestoreptr);
 		
 		insertListener(m, aiosched, "0.0.0.0", p.start_port);
+		
 		
 		
 		cout<<"Here some examples how to test: "<<endl;

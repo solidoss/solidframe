@@ -14,12 +14,14 @@
 #include "frame/common.hpp"
 #include "frame/object.hpp"
 #include "utility/dynamictype.hpp"
+#include "system/error.hpp"
+#include "system/mutex.hpp"
 
 namespace solid{
 namespace frame{
 namespace shared{
 
-class StoreBase: Dynamic<StoreBase, Object>{
+class StoreBase: public Dynamic<StoreBase, Object>{
 protected:
 	struct WaitNode{
 		WaitNode *pnext;
@@ -75,14 +77,13 @@ struct Context{
 	}
 	
 	Mutex& mutex(){
-		
 	}
 	bool isSynchronous()const;
-	const error_code & error()const;
-	void error(const error_code &_rerr);
+	const ERROR_NS::error_code & error()const;
+	void error(const ERROR_NS::error_code &_rerr);
 private:
 	T			&rt;
-	Stub		&rs;
+	//Stub		&rs;
 };
 
 enum Flags{
@@ -98,16 +99,16 @@ template <
 	class T,
 	class Ctl
 >
-class Store: public Dynamic<Store, StoreBase>{
+class Store: public Dynamic<Store<T, Ctl>, StoreBase>{
 public:
 	typedef Pointer<T>	PointerT;
 	typedef Context<T>	ContextT;
 	typedef Ctl			ControllerT;
 	
-	Store(const ControllerT &_rctl):ctl(_rctl){}
+	explicit Store(const ControllerT &_rctl):ctl(_rctl){}
 	
-	template <typename T>
-	Store(T _t):ctl(_t){}
+	template <typename C>
+	Store(C _c):ctl(_c){}
 	
 	Store(){}
 	
@@ -146,9 +147,9 @@ public:
 		PointerT		uniptr;
 		size_t			idx = -1;
 		{
-			Locker<Mutex>	lock(mutex());
+			Locker<Mutex>	lock(this->mutex());
 			
-			uniptr = doInsertUnique();
+			uniptr = this->doInsertUnique();
 			_f.prepare(uniptr, idx);
 			if(uniptr.empty()){
 				//the pointer was stored for later use - doRequestReinit will only schedule f until
@@ -166,18 +167,18 @@ public:
 	//!Return false if the object does not exist
 	template <typename F>
 	bool requestShared(F _f, UidT const & _ruid, const size_t _flags = 0){
-		
+		return false;
 	}
 	//!Return false if the object does not exist
 	template <typename F>
 	bool requestUnique(F _f, UidT const & _ruid, const size_t _flags = 0){
-		
+		return false;
 	}
 	//!Return false if the object does not exist
 	//_f will be called uniquely when object's alive count is zero
 	template <typename F>
 	bool requestReinit(F _f, UidT const & _ruid, const size_t _flags = 0){
-		
+		return false;
 	}
 protected:
 	ControllerT	&controller(){

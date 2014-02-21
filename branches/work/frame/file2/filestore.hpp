@@ -30,17 +30,6 @@ enum{
 
 struct Configuration{
 	struct Storage{
-		std::string 	path;
-		uint32			level;
-		uint64			capacity;
-	};
-	typedef std::vector<Storage>	StorageVectorT;
-	
-	StorageVectorT	storagevec;
-};
-
-struct Configuration{
-	struct Storage{
 		std::string		localpath;
 		std::string		pathprefix;
 	};
@@ -53,7 +42,7 @@ struct Configuration{
 	typedef std::vector<Storage>		StorageVectorT;
 	
 	StorageVectorT		storagevec;
-	TempStorageVectorT	storagevec;
+	TempStorageVectorT	tempstoragevec;
 	
 };
 
@@ -78,7 +67,7 @@ struct File{
 		}
 	}
 	int write(const char *_pb, uint32 _bl, int64 _off){
-		
+		return -1;
 	}
 	int64 size()const{
 		if(!pfb){
@@ -102,13 +91,13 @@ private:
 class Store;
 
 struct OpenCommandBase{
-	typedef Pointer<File>	PointerT;
+	typedef shared::Pointer<File>	PointerT;
 	Store 			&rs;
 	size_t			openflags;
 	const char 		*inpath;
 	std::string		outpath;
 protected:
-	OpenCommandBase(Store &_rs, const char *_path, size_t _openflags):rs(_rs), inpath(_path), openflags(_openflags){}
+	OpenCommandBase(Store &_rs, const char *_path, size_t _openflags):rs(_rs), openflags(_openflags), inpath(_path){}
 	
 private:
 	void doInsertPath(size_t &_ridx);
@@ -125,23 +114,23 @@ struct OpenCommand: OpenCommandBase{
 		doInsertPath(inpath, outpath, _ridx);
 	}
 	
-	void operator()(Context<File>	&_rctx){
-		const bool rv = (*_rctx).open(path.c_str(), openflags);
+	void operator()(shared::Context<File>	&_rctx){
+		const bool rv = (*_rctx).open(outpath.c_str(), openflags);
 		if(!rv){
-			_rctx.error(error_code());
+			_rctx.error(ERROR_NS::error_code());
 		}
 		cmd(_rctx);
 	}
 };
 
 struct CreateTempCommandBase{
-	typedef Pointer<File>	PointerT;
+	typedef shared::Pointer<File>	PointerT;
 	Store 			&rs;
 	size_t			openflags;
 	uint64			size;
 	std::string		outpath;
 protected:
-	CreateTempCommandBase(Store &_rs, uint64 _sz, size_t _openflags):rs(_rs), size(_sz), openflags(_openflags){}
+	CreateTempCommandBase(Store &_rs, uint64 _sz, size_t _openflags):rs(_rs), openflags(_openflags), size(_sz){}
 	
 private:
 };
@@ -156,7 +145,7 @@ struct CreateTempCommand: OpenCommandBase{
 	void prepare(PointerT &_runiptr, size_t &_ridx){
 	}
 	
-	void operator()(Context<File>	&_rctx){
+	void operator()(shared::Context<File>	&_rctx){
 	}
 };
 
@@ -199,7 +188,7 @@ private:
 	void insertPath(const char *_inpath, std::string &_outpath, size_t &_ridx);
 };
 
-void OpenCommandBase::doInsertPath(size_t& _ridx){
+inline void OpenCommandBase::doInsertPath(size_t& _ridx){
 	rs.insertPath(inpath, outpath, _ridx);
 }
 

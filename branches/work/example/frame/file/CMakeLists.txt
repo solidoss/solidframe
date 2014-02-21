@@ -3,6 +3,7 @@ add_executable (example_fileserver fileserver.cpp)
 target_link_libraries (example_fileserver
 	solid_frame_aio
 	solid_frame_aio_openssl
+	solid_frame_file2
 	solid_frame_core
 	solid_serialization
 	solid_utility
