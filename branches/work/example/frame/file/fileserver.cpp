@@ -58,7 +58,7 @@ namespace{
 		}
 	}
 	
-	typedef DynamicSharedPointer<frame::file::Store>	FileStoreSharedPointerT;
+	typedef DynamicSharedPointer<frame::file::Store<> >	FileStoreSharedPointerT;
 	
 	FileStoreSharedPointerT		filestoreptr;
 
@@ -168,10 +168,11 @@ int main(int argc, char *argv[]){
 	}
 #endif
 	{
-		frame::file::Configuration	cfg;
+		frame::file::Utf8Configuration	utf8cfg;
+		frame::file::TempConfiguration	tempcfg;
 		//TODO: populate cfg
 		
-		filestoreptr = new frame::file::Store(cfg);
+		filestoreptr = new frame::file::Store<>(utf8cfg, tempcfg);
 	}
 	{
 		frame::Manager	m;
@@ -345,6 +346,12 @@ const char * Connection::findEnd(const char *_p){
 	return p - (crtpat - patt);
 }
 
+struct OpenCbk{
+	void operator()(){
+		
+	}
+};
+
 /*virtual*/ void Connection::execute(ExecuteContext &_rexectx){
 	idbg("time.sec "<<_rexectx.currentTime().seconds()<<" time.nsec = "<<_rexectx.currentTime().nanoSeconds());
 	if(_rexectx.eventMask() & (frame::EventTimeout | frame::EventDoneError | frame::EventTimeoutRecv | frame::EventTimeoutSend)){
@@ -419,6 +426,7 @@ const char * Connection::findEnd(const char *_p){
 				path.resize(path.size() - 1);
 			}
 			if(cmd == 'R' || cmd == 'r'){
+				filestoreptr->requestCreate(OpenCbk(), path.c_str());
 				ifs.open(path.c_str());
 				if(!ifs){
 					_rexectx.close();
@@ -446,6 +454,7 @@ const char * Connection::findEnd(const char *_p){
 				}
 				bend = bbeg;
 				state= RunWrite;
+				
 				_rexectx.reschedule();
 				return;
 			}else{

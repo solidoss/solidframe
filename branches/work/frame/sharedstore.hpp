@@ -33,7 +33,10 @@ protected:
 		WaitNode	*pfirst;
 		WaitNode	*plast;
 	};
-	Mutex &mutex();
+	Mutex &mutex(){
+		static Mutex m;
+		return m;//TODO!!
+	}
 private:
 	/*virtual*/ int execute(ulong _evs, TimeSpec &_rtout);
 };
@@ -42,17 +45,22 @@ struct PointerBase{
 	const UidT& id()const{
 		return uid;
 	}
+protected:
+	PointerBase(StoreBase *_psb = NULL):psb(_psb){}
 private:
 	friend class StoreBase;
 	UidT		uid;
-	StoreBase	&rsb;
+	StoreBase	*psb;
 };
 
 template <
 	class T
 >
 struct Pointer: PointerBase{
-
+	Pointer(StoreBase *_psb = NULL):PointerBase(_psb), pt(NULL){}
+	bool empty()const{
+		return pt == NULL;
+	}
 private:
 	T	*pt;
 };
@@ -77,6 +85,8 @@ struct Context{
 	}
 	
 	Mutex& mutex(){
+		static Mutex m;
+		return m;//TODO:
 	}
 	bool isSynchronous()const;
 	const ERROR_NS::error_code & error()const;
@@ -109,6 +119,9 @@ public:
 	
 	template <typename C>
 	Store(C _c):ctl(_c){}
+	
+	template <typename C1, typename C2>
+	Store(C1 _c1, C2 _c2):ctl(_c1, _c2){}
 	
 	Store(){}
 	
@@ -144,7 +157,7 @@ public:
 	//TODO: move the final version to shared::Store
 	template <typename F>
 	bool requestReinit(F &_f, const size_t _flags = 0){
-		PointerT		uniptr;
+		PointerT		uniptr(this);
 		size_t			idx = -1;
 		{
 			Locker<Mutex>	lock(this->mutex());
@@ -180,9 +193,20 @@ public:
 	bool requestReinit(F _f, UidT const & _ruid, const size_t _flags = 0){
 		return false;
 	}
-protected:
+	
 	ControllerT	&controller(){
 		return ctl;
+	}
+private:
+	PointerT doInsertUnique(){
+		return PointerT();
+	}
+	void doErase(PointerT){
+		
+	}
+	template <class F>
+	bool doRequestReinit(F &_rf, const size_t _idx, PointerT, size_t _flags){
+		return false;
 	}
 private:
 	ControllerT		ctl;
