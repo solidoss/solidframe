@@ -201,13 +201,19 @@ public:
 	//If a file with _path already exists in the store, the call will be similar with open with truncate openflag
 	template <typename F, typename P>
 	bool requestCreate(F _f, P _path, const size_t _openflags = 0, const size_t _flags = 0){
-		OpenCommand<ThisT, F, P, typename ControllerT::OpenCommandBaseT>	cmd(*this, _f, _path, _openflags/*TODO: add Truncate flags*/);
+		OpenCommand<
+			ThisT, F, P, 
+			typename ControllerT::OpenCommandBaseT
+		>	cmd(*this, _f, _path, _openflags | FileDevice::CreateE | FileDevice::TruncateE);
 		return SharedStoreT::requestReinit(cmd, _flags);
 	}
 	
 	template <typename F, typename P>
 	bool requestOpen(F _f, P _path, const size_t _openflags = 0, const size_t _flags = 0){
-		OpenCommand<ThisT, F, P, typename ControllerT::OpenCommandBaseT>	cmd(*this, _f, _path, _openflags);
+		OpenCommand<
+			ThisT, F, P,
+			typename ControllerT::OpenCommandBaseT
+		>	cmd(*this, _f, _path, _openflags);
 		return SharedStoreT::requestReinit(cmd, _flags);
 	}
 	

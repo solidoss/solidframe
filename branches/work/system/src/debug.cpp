@@ -448,7 +448,7 @@ bool Debug::Data::initFile(uint32 _respincnt, uint64 _respinsz, string *_poutput
 	respinpos = 0;
 	string fpath;
 	filePath(fpath, 0, path, name);
-	if(!fd.open(fpath.c_str(), FileDevice::WO | FileDevice::CR | FileDevice::AP)) return false;
+	if(!fd.open(fpath.c_str(), FileDevice::WriteOnlyE | FileDevice::CreateE | FileDevice::AppendE)) return false;
 	sz = fd.size();
 	if(_poutput){
 		*_poutput = fpath;
@@ -495,7 +495,7 @@ void Debug::Data::doRespin(){
 	}
 	
 	
-	if(fd.create(fname.c_str(), FileDevice::WO)){
+	if(fd.create(fname.c_str(), FileDevice::WriteOnlyE)){
 		pos = &cerr;
 	}else{
 		if(pos == &dos){

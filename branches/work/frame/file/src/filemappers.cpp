@@ -452,20 +452,20 @@ namespace{
 		fd.close();
 	}
 	if(openmoderequest & Manager::Create){
-		mode |= FileDevice::CR;
+		mode |= FileDevice::CreateE;
 	}
 	
 	if((openmoderequest & (Manager::OpenR | Manager::OpenW)) == (Manager::OpenR | Manager::OpenW))
 		openmoderequest |= Manager::OpenRW;
 	
 	if(openmoderequest & Manager::Truncate)
-		mode |= FileDevice::TR;
+		mode |= FileDevice::TruncateE;
 		
 	if(openmoderequest & Manager::Append)
-		mode |= FileDevice::AP;
+		mode |= FileDevice::AppendE;
 	
 	if(openmoderequest & Manager::OpenRW){
-		mode |= FileDevice::RW;
+		mode |= FileDevice::ReadWriteE;
 		int rv = fd.open(_path, mode);
 		if(!rv){
 			openmode = (Manager::OpenR | Manager::OpenW | Manager::OpenRW);
@@ -473,16 +473,16 @@ namespace{
 		}
 		//now try to fall back to another requested open mode
 		if(openmoderequest & Manager::OpenW){
-			mode &= ~FileDevice::FileDevice::RW;
-			mode |= FileDevice::RO;
+			mode &= ~FileDevice::FileDevice::ReadWriteE;
+			mode |= FileDevice::ReadOnlyE;
 			if(!rv){
 				openmode = Manager::OpenR;
 				return Ok;
 			}
 		}
 		if(openmoderequest & Manager::OpenW){
-			mode &= ~FileDevice::FileDevice::RW;
-			mode |= FileDevice::WO;
+			mode &= ~FileDevice::FileDevice::ReadWriteE;
+			mode |= FileDevice::WriteOnlyE;
 			if(!rv){
 				openmode = Manager::OpenW;
 				return Ok;
@@ -491,7 +491,7 @@ namespace{
 		openmode = 0;
 		return Bad;
 	}else if(openmoderequest & Manager::OpenR){
-		mode |= FileDevice::RO;
+		mode |= FileDevice::ReadOnlyE;
 		int rv = fd.open(_path, mode);
 		vdbgx(Debug::file, "ro "<<_path<<' '<<fd.descriptor()<<' '<<rv);
 		if(rv){
@@ -501,7 +501,7 @@ namespace{
 		openmode = Manager::OpenR;
 		return Ok;
 	}else if(openmoderequest & Manager::OpenW){
-		mode |= FileDevice::WO;
+		mode |= FileDevice::WriteOnlyE;
 		int rv = fd.open(_path, mode);
 		if(rv){
 			openmode = 0;
@@ -588,7 +588,7 @@ namespace{
 
 /*virtual*/ int TempFile::open(const char *_path){
 	//only open in RW mode
-	int rv = fd.open(_path, FileDevice::RW | FileDevice::CR | FileDevice::TR);
+	int rv = fd.open(_path, FileDevice::ReadWriteE | FileDevice::CreateE | FileDevice::TruncateE);
 	if(rv){
 		this->openmode = 0;
 		return Bad;

@@ -18,12 +18,12 @@ namespace solid{
 class FileDevice: public SeekableDevice{
 public:
 	enum OpenMode {
-		RO = O_RDONLY, //!< Read only
-		WO = O_WRONLY, //!< Write only
-		RW = O_RDWR, //!< Read write
-		TR = O_TRUNC, //!< Truncate
-		AP = O_APPEND,//!< Append
-		CR = O_CREAT //!< Create
+		ReadOnlyE = O_RDONLY, //!< Read only
+		WriteOnlyE = O_WRONLY, //!< Write only
+		ReadWriteE = O_RDWR, //!< Read write
+		TruncateE = O_TRUNC, //!< Truncate
+		AppendE = O_APPEND,//!< Append
+		CreateE = O_CREAT //!< Create
 	};
 	FileDevice();
 	//!returns the size of a file without opening it - using stat!

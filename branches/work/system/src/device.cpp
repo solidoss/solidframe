@@ -258,7 +258,7 @@ bool FileDevice::open(const char* _fname, int _how){
 }
 
 bool FileDevice::create(const char* _fname, int _how){
-	return this->open(_fname, _how | CR | TR);
+	return this->open(_fname, _how | CreateE | TruncateE);
 }
 
 int64 FileDevice::size()const{
