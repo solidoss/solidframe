@@ -59,7 +59,7 @@ int main(int argc, char *argv[]){
 			++cnt;
 			//ulong sz = (filecnt * minsz + (j * (maxsz - minsz)))/filecnt;
 			fdq.push_back(FileDevice());
-			if(fdq.back().open(name, FileDevice::RW)){
+			if(fdq.back().open(name, FileDevice::ReadWriteE)){
 				cout<<"error "<<strerror(errno)<<" "<<cnt<<endl;
 				cout<<"failed to open file "<<name<<endl;
 				return 0;

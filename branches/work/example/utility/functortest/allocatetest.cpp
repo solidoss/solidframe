@@ -66,7 +66,7 @@ struct SeventhMessage: BaseMessage{
 	SeventhMessage(size_t _prdidx, size_t _idx):BaseMessage(SeventhType), v1(_prdidx), v2(_idx), v3(_prdidx ^ _idx){}
 };
 
-#define USE_CACHE
+//#define USE_CACHE
 
 class Consumer: private Thread{
 public:

@@ -147,7 +147,7 @@ int main(int argc, char *argv[]){
 			sprintf(fname, "/%08u.txt", j);
 			++cnt;
 			fdq.push_back(FileDevice());
-			if(fdq.back().open(name, FileDevice::RW)){
+			if(fdq.back().open(name, FileDevice::ReadWriteE)){
 				cout<<"error "<<strerror(errno)<<" "<<cnt<<endl;
 				cout<<"failed to open file "<<name<<endl;
 				return 0;

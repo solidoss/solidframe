@@ -45,10 +45,10 @@ private:
 FileInputOutputStream::FileInputOutputStream(){}
 FileInputOutputStream::~FileInputOutputStream(){}
 bool FileInputOutputStream::openRead(const char *_fn){
-	return fd.open(_fn, FileDevice::RO);
+	return fd.open(_fn, FileDevice::ReadOnlyE);
 }
 bool FileInputOutputStream::openWrite(const char *_fn){
-	return fd.create(_fn, FileDevice::WO);
+	return fd.create(_fn, FileDevice::WriteOnlyE);
 }
 int FileInputOutputStream::read(char *_pb, uint32 _bl, uint32 _flags){
 	return fd.read(_pb, _bl);

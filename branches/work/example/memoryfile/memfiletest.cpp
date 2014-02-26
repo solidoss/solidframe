@@ -38,7 +38,7 @@ int main(int argc, char *argv[]){
 	{
 		//first we read a file in memory:
 		FileDevice fd;
-		if(!fd.open(argv[1], FileDevice::RO)){
+		if(!fd.open(argv[1], FileDevice::ReadOnlyE)){
 			cout<<"unable to open file"<<endl;
 			return 0;
 		}
@@ -60,7 +60,7 @@ int main(int argc, char *argv[]){
 		//then we write it back to disk
 		
 		FileDevice fd;
-		if(!fd.open("test.dat", FileDevice::WO | FileDevice::CR | FileDevice::TR)){
+		if(!fd.open("test.dat", FileDevice::WriteOnlyE | FileDevice::CreateE | FileDevice::TruncateE)){
 			cout<<"unable to open file"<<endl;
 			return 0;
 		}

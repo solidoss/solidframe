@@ -46,10 +46,10 @@ private:
 FileInputOutputStream::FileInputOutputStream(){}
 FileInputOutputStream::~FileInputOutputStream(){}
 int FileInputOutputStream::openRead(const char *_fn){
-	return fd.open(_fn, FileDevice::RO);
+	return fd.open(_fn, FileDevice::ReadOnlyE);
 }
 int FileInputOutputStream::openWrite(const char *_fn){
-	return fd.open(_fn, FileDevice::WO | FileDevice::TR | FileDevice::CR);
+	return fd.open(_fn, FileDevice::WriteOnlyE | FileDevice::TruncateE | FileDevice::CreateE);
 }
 int FileInputOutputStream::read(char *_pb, uint32 _bl, uint32 _flags){
 	return fd.read(_pb, _bl);

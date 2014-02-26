@@ -455,7 +455,7 @@ bool sendOutput(Writer &_wr, SocketDevice &_sd, SSL *_pssl, const Params &_p){
 // 	ifs.open("tmp.eml");
 // 	copystream(cout, ifs);
 	FileDevice fd;
-	fd.open("tmp.eml", FileDevice::RO);
+	fd.open("tmp.eml", FileDevice::ReadOnlyE);
 	FileStream fs(fd);
 	cout<<"Sending tmp file of size "<<fd.size()<<endl;
 	_wr<<"s3 append \""<<_p.folder<<'\"'<<' '<<lit(&fs, fd.size())<<crlf;

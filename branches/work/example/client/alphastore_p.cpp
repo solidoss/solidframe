@@ -71,7 +71,7 @@ int main(int argc, char *argv[]){
 		return 0;
 	}
 	FileDevice fd;
-	fd.open(argv[3], FileDevice::RO);
+	fd.open(argv[3], FileDevice::ReadOnlyE);
 	FileStream fs(fd);
 	Writer wr(sd);
 	cout<<"file size "<<fd.size()<<endl;
