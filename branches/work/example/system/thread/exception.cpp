@@ -19,6 +19,10 @@ std::ostream& operator<<(std::ostream &_ros, const TwoInts &_r2i){
 	return _ros;
 }
 
+std::ostream& operator<<(std::ostream &_ros, const Tuple<int, TwoInts, const char*> &_r2i){
+	_ros<<'['<<_r2i.o0<<' '<<_r2i.o1<<' '<<_r2i.o2<<']';
+	return _ros;
+}
 int main(){
 #ifdef UDEBUG
 	Debug::the().initStdErr();
@@ -32,7 +36,7 @@ int main(){
 	}
 	
 	try{
-		THROW_EXCEPTION_EX("3-tuple exception", make_tuple(2,TwoInts(9,10),static_cast<const char*>("a string")));
+		THROW_EXCEPTION_EX("3-tuple exception", solid::make_tuple(2,TwoInts(9,10),static_cast<const char*>("a string")));
 	}catch(exception& e){
 		cout<<"caught exeption: "<<e.what()<<endl;
 	}
