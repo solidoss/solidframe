@@ -97,18 +97,20 @@ struct OpenCommand: Base{
 	
 	void prepare(FilePointerT &_runiptr, size_t &_ridx){
 		_ridx = _runiptr.id().first;
-		Base::insertPath(rstore.controller(), inpath, _ridx);
+		Base::prepareOpenFile(rstore.controller(), inpath, _ridx);
 	}
 	
 	void operator()(shared::Context<File>	&_rctx){
 		ERROR_NS::error_code	err;
-		const bool rv =  Base::open(rstore.controller(), *_rctx, err);  //(*_rctx).open(outpath.c_str(), openflags);
-		if(!rv){
+		Base::openFile(rstore.controller(), *_rctx, err);
+		if(err){
 			_rctx.error(err);
 		}
 		cmd(_rctx);
 	}
 };
+
+struct Utf8Controller;
 
 struct CreateTempCommandBase{
 	size_t			openflags;
@@ -119,23 +121,40 @@ protected:
 		uint64 _sz, size_t _openflags
 	):openflags(_openflags), size(_sz){}
 	
+	void prepareOpenFile(Utf8Controller &_rctl, FilePointerT &_runiptr){
+		_rctl.prepareOpenTemp(_runiptr, outpath, _ridx);
+	}
+	void openFile(Utf8Controller &_rctl, File &_rf, ERROR_NS::error_code &_rerr){
+		_rctl.openFile(_rf, outpath, openflags, _rerr);
+	}
 private:
 };
 
 
 template <class S, class Cmd>
 struct CreateTempCommand: CreateTempCommandBase{
-	S				&rs;
+	S				&rstore;
 	Cmd				cmd;
 	
 	CreateTempCommand(
 		S &_rs, Cmd &_cmd, uint64 _sz, size_t _createflags
-	):CreateTempCommandBase(_sz, _createflags), rs(_rs), cmd(_cmd){}
+	):CreateTempCommandBase(_sz, _createflags), rstore(_rs), cmd(_cmd){}
 	
 	void prepare(FilePointerT &_runiptr, size_t &_ridx){
+		this->prepareOpenTemp(rstore.controller(), _runiptr);
+		if(!_runiptr.empty()){
+			//the temp file can be open immediately
+			_ridx = _runiptr.id().first;
+		}
 	}
 	
 	void operator()(shared::Context<File>	&_rctx){
+		ERROR_NS::error_code	err;
+		this->openTemp(rstore.controller(), *_rctx, err);
+		if(err){
+			_rctx.error(err);
+		}
+		cmd(_rctx);
 	}
 };
 
@@ -151,7 +170,7 @@ struct Utf8Configuration{
 
 struct Utf8OpenCommandBase;
 
-struct Utf8Controller{
+struct Utf8Controller: public shared::Store<File, Utf8Controller>{
 	typedef std::pair<uint8_t, std::string>	PathT;
 	typedef Utf8OpenCommandBase				OpenCommandBaseT;
 	
@@ -161,8 +180,11 @@ private:
 	friend struct Utf8OpenCommandBase;
 	friend struct CreateTempCommandBase;
 	
-	void insertPath(const char *_inpath, PathT &_routpath, size_t &_ridx);
-	bool open(File &_rf, const PathT &_path, size_t _flags, ERROR_NS::error_code &_rerr);
+	void prepareOpenFile(const char *_inpath, PathT &_routpath, size_t &_ridx);
+	void openFile(File &_rf, const PathT &_path, size_t _flags, ERROR_NS::error_code &_rerr);
+	
+	void prepareOpenTemp(FilePointerT &_uniptr, const uint64 _sz);
+	void openTemp(File &_rf, ERROR_NS::error_code &_rerr);
 private:
 	struct Data;
 	Data &d;
@@ -174,53 +196,50 @@ struct Utf8OpenCommandBase{
 	
 	Utf8OpenCommandBase(size_t _openflags):openflags(_openflags){}
 	
-	void insertPath(Utf8Controller &_rctl, const char *_path, size_t &_ridx){
-		_rctl.insertPath(_path, outpath, _ridx);
+	void prepareOpenFile(Utf8Controller &_rctl, const char *_path, size_t &_ridx){
+		_rctl.prepareOpenFile(_path, outpath, _ridx);
 	}
-	bool open(Utf8Controller &_rctl, File &_rf, ERROR_NS::error_code &_rerr){
-		return _rctl.open(_rf, outpath, openflags, _rerr);
+	void openFile(Utf8Controller &_rctl, File &_rf, ERROR_NS::error_code &_rerr){
+		_rctl.openFile(_rf, outpath, openflags, _rerr);
 	}
 };
 
-template <class Ctl = Utf8Controller>
-class Store: public shared::Store<File, Ctl>{
+template <class Base = Utf8Controller>
+class Store: public Base{
 	
-	typedef Ctl									ControllerT;
-	typedef shared::Store<File, ControllerT>	SharedStoreT;
-	typedef Store<Ctl>							ThisT;
+	typedef Base								BaseT;
+	typedef Store<Base>							ThisT;
 
 public:
-	explicit Store(const ControllerT &_rctl): SharedStoreT(_rctl){}
-	
 	template <typename C>
-	Store(C _c): SharedStoreT(_c){}
+	Store(C _c): BaseT(_c){}
 	
 	template <typename C1, typename C2>
-	Store(C1 _c1, C2 _c2): SharedStoreT(_c1, _c2){}
+	Store(C1 _c1, C2 _c2): BaseT(_c1, _c2){}
 	
 	//If a file with _path already exists in the store, the call will be similar with open with truncate openflag
 	template <typename F, typename P>
 	bool requestCreate(F _f, P _path, const size_t _openflags = 0, const size_t _flags = 0){
 		OpenCommand<
 			ThisT, F, P, 
-			typename ControllerT::OpenCommandBaseT
+			typename BaseT::OpenCommandBaseT
 		>	cmd(*this, _f, _path, _openflags | FileDevice::CreateE | FileDevice::TruncateE);
-		return SharedStoreT::requestReinit(cmd, _flags);
+		return BaseT::requestReinit(cmd, _flags);
 	}
 	
 	template <typename F, typename P>
 	bool requestOpen(F _f, P _path, const size_t _openflags = 0, const size_t _flags = 0){
 		OpenCommand<
 			ThisT, F, P,
-			typename ControllerT::OpenCommandBaseT
+			typename BaseT::OpenCommandBaseT
 		>	cmd(*this, _f, _path, _openflags);
-		return SharedStoreT::requestReinit(cmd, _flags);
+		return BaseT::requestReinit(cmd, _flags);
 	}
 	
 	template <typename F>
 	bool requestCreateTemp(F _f, uint64 _sz, const size_t _createflags = AllLevelsFlag, const size_t _flags = 0){
 		CreateTempCommand<ThisT, F>	cmd(*this, _f, _sz, _createflags);
-		return SharedStoreT::requestReinit(cmd, _flags);
+		return BaseT::requestReinit(cmd, _flags);
 	}
 };
 

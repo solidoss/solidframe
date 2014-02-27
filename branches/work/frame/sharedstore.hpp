@@ -61,6 +61,11 @@ struct Pointer: PointerBase{
 	bool empty()const{
 		return pt == NULL;
 	}
+	T* release(){
+		T *p = pt;
+		pt = NULL;
+		return p;
+	}
 private:
 	T	*pt;
 };
@@ -114,14 +119,6 @@ public:
 	typedef Pointer<T>	PointerT;
 	typedef Context<T>	ContextT;
 	typedef Ctl			ControllerT;
-	
-	explicit Store(const ControllerT &_rctl):ctl(_rctl){}
-	
-	template <typename C>
-	Store(C _c):ctl(_c){}
-	
-	template <typename C1, typename C2>
-	Store(C1 _c1, C2 _c2):ctl(_c1, _c2){}
 	
 	Store(){}
 	
@@ -195,7 +192,7 @@ public:
 	}
 	
 	ControllerT	&controller(){
-		return ctl;
+		return *static_cast<ControllerT*>(this);
 	}
 private:
 	PointerT doInsertUnique(){
@@ -208,8 +205,6 @@ private:
 	bool doRequestReinit(F &_rf, const size_t _idx, PointerT, size_t _flags){
 		return false;
 	}
-private:
-	ControllerT		ctl;
 };
 
 }//namespace shared
