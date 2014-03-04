@@ -16,14 +16,20 @@ Utf8Controller::~Utf8Controller(){
 	delete &d;
 }
 
-void Utf8Controller::insertPath(const char *_inpath, PathT &_routpath, size_t &_ridx){
+void Utf8Controller::prepareOpenFile(const char *_inpath, PathT &_routpath, size_t &_ridx){
 	
 }
 
-bool Utf8Controller::open(File &_rf, const PathT &_path, size_t _flags, ERROR_NS::error_code &_rerr){
-	return false;
+void Utf8Controller::openFile(File &_rf, const PathT &_path, size_t _flags, ERROR_NS::error_code &_rerr){
 }
 
+void Utf8Controller::prepareOpenTemp(FilePointerT &_uniptr, const uint64 _sz, size_t &_ropenidx){
+	
+}
+
+void Utf8Controller::openTemp(File &_rf, size_t _openidx, size_t _flags, ERROR_NS::error_code &_rerr){
+	
+}
 
 }//namespace file
 }//namespace frame

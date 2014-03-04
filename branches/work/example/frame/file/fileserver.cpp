@@ -426,7 +426,8 @@ struct OpenCbk{
 				path.resize(path.size() - 1);
 			}
 			if(cmd == 'R' || cmd == 'r'){
-				filestoreptr->requestCreate(OpenCbk(), path.c_str());
+				filestoreptr->requestCreateFile(OpenCbk(), path.c_str());
+				filestoreptr->requestCreateTemp(OpenCbk(), 4 * 1024);
 				ifs.open(path.c_str());
 				if(!ifs){
 					_rexectx.close();

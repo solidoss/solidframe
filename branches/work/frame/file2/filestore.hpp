@@ -115,18 +115,14 @@ struct Utf8Controller;
 struct CreateTempCommandBase{
 	size_t			openflags;
 	uint64			size;
-	std::string		outpath;
+	size_t			openidx;
 protected:
 	CreateTempCommandBase(
 		uint64 _sz, size_t _openflags
-	):openflags(_openflags), size(_sz){}
+	):openflags(_openflags), size(_sz), openidx(-1){}
 	
-	void prepareOpenFile(Utf8Controller &_rctl, FilePointerT &_runiptr){
-		_rctl.prepareOpenTemp(_runiptr, outpath, _ridx);
-	}
-	void openFile(Utf8Controller &_rctl, File &_rf, ERROR_NS::error_code &_rerr){
-		_rctl.openFile(_rf, outpath, openflags, _rerr);
-	}
+	void prepareOpenTemp(Utf8Controller &_rctl, FilePointerT &_runiptr);
+	void openTemp(Utf8Controller &_rctl, File &_rf, ERROR_NS::error_code &_rerr);
 private:
 };
 
@@ -183,8 +179,8 @@ private:
 	void prepareOpenFile(const char *_inpath, PathT &_routpath, size_t &_ridx);
 	void openFile(File &_rf, const PathT &_path, size_t _flags, ERROR_NS::error_code &_rerr);
 	
-	void prepareOpenTemp(FilePointerT &_uniptr, const uint64 _sz);
-	void openTemp(File &_rf, ERROR_NS::error_code &_rerr);
+	void prepareOpenTemp(FilePointerT &_uniptr, const uint64 _sz, size_t &_ropenidx);
+	void openTemp(File &_rf, size_t _openidx, size_t _flags, ERROR_NS::error_code &_rerr);
 private:
 	struct Data;
 	Data &d;
@@ -196,12 +192,8 @@ struct Utf8OpenCommandBase{
 	
 	Utf8OpenCommandBase(size_t _openflags):openflags(_openflags){}
 	
-	void prepareOpenFile(Utf8Controller &_rctl, const char *_path, size_t &_ridx){
-		_rctl.prepareOpenFile(_path, outpath, _ridx);
-	}
-	void openFile(Utf8Controller &_rctl, File &_rf, ERROR_NS::error_code &_rerr){
-		_rctl.openFile(_rf, outpath, openflags, _rerr);
-	}
+	void prepareOpenFile(Utf8Controller &_rctl, const char *_path, size_t &_ridx);
+	void openFile(Utf8Controller &_rctl, File &_rf, ERROR_NS::error_code &_rerr);
 };
 
 template <class Base = Utf8Controller>
@@ -219,7 +211,7 @@ public:
 	
 	//If a file with _path already exists in the store, the call will be similar with open with truncate openflag
 	template <typename F, typename P>
-	bool requestCreate(F _f, P _path, const size_t _openflags = 0, const size_t _flags = 0){
+	bool requestCreateFile(F _f, P _path, const size_t _openflags = 0, const size_t _flags = 0){
 		OpenCommand<
 			ThisT, F, P, 
 			typename BaseT::OpenCommandBaseT
@@ -228,7 +220,7 @@ public:
 	}
 	
 	template <typename F, typename P>
-	bool requestOpen(F _f, P _path, const size_t _openflags = 0, const size_t _flags = 0){
+	bool requestOpenFile(F _f, P _path, const size_t _openflags = 0, const size_t _flags = 0){
 		OpenCommand<
 			ThisT, F, P,
 			typename BaseT::OpenCommandBaseT
@@ -242,6 +234,23 @@ public:
 		return BaseT::requestReinit(cmd, _flags);
 	}
 };
+
+
+inline void CreateTempCommandBase::prepareOpenTemp(Utf8Controller &_rctl, FilePointerT &_runiptr){
+	_rctl.prepareOpenTemp(_runiptr, this->size, openidx);
+}
+
+inline void CreateTempCommandBase::openTemp(Utf8Controller &_rctl, File &_rf, ERROR_NS::error_code &_rerr){
+	_rctl.openTemp(_rf, openidx, this->openflags, _rerr);
+}
+
+inline void Utf8OpenCommandBase::prepareOpenFile(Utf8Controller &_rctl, const char *_path, size_t &_ridx){
+	_rctl.prepareOpenFile(_path, outpath, _ridx);
+}
+
+inline void Utf8OpenCommandBase::openFile(Utf8Controller &_rctl, File &_rf, ERROR_NS::error_code &_rerr){
+	_rctl.openFile(_rf, outpath, openflags, _rerr);
+}
 
 }//namespace file
 }//namespace frame

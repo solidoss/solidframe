@@ -122,7 +122,6 @@ public:
 	
 	Store(){}
 	
-	//returned PointerT::get() == NULL
 	PointerT	insertAlive(T &_rt){
 		
 	}
@@ -151,7 +150,7 @@ public:
 	PointerT	alive(PointerT &_rp){
 		
 	}
-	//TODO: move the final version to shared::Store
+	//! Return true if the _f was called within the current thread
 	template <typename F>
 	bool requestReinit(F &_f, const size_t _flags = 0){
 		PointerT		uniptr(this);
@@ -174,17 +173,17 @@ public:
 		return doRequestReinit(_f, idx, uniptr, _flags);//will use object's mutex
 	}
 
-	//!Return false if the object does not exist
+	//! Return true if the _f was called within the current thread
 	template <typename F>
 	bool requestShared(F _f, UidT const & _ruid, const size_t _flags = 0){
 		return false;
 	}
-	//!Return false if the object does not exist
+	//! Return true if the _f was called within the current thread
 	template <typename F>
 	bool requestUnique(F _f, UidT const & _ruid, const size_t _flags = 0){
 		return false;
 	}
-	//!Return false if the object does not exist
+	//! Return true if the _f was called within the current thread
 	//_f will be called uniquely when object's alive count is zero
 	template <typename F>
 	bool requestReinit(F _f, UidT const & _ruid, const size_t _flags = 0){
