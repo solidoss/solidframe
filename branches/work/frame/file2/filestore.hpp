@@ -95,9 +95,9 @@ struct OpenCommand: Base{
 		S &_rs, Cmd &_cmd, const char *_path, size_t _openflags
 	):Base(_openflags), cmd(_cmd), rstore(_rs){}
 	
-	void prepare(FilePointerT &_runiptr, size_t &_ridx){
+	void prepare(FilePointerT &_runiptr, size_t &_ridx, size_t &_rflags){
 		_ridx = _runiptr.id().first;
-		Base::prepareOpenFile(rstore.controller(), inpath, _ridx);
+		Base::prepareOpenFile(rstore.controller(), inpath, _ridx, _rflags);
 	}
 	
 	void operator()(shared::Context<File>	&_rctx){
@@ -121,7 +121,7 @@ protected:
 		uint64 _sz, size_t _openflags
 	):openflags(_openflags), size(_sz), openidx(-1){}
 	
-	void prepareOpenTemp(Utf8Controller &_rctl, FilePointerT &_runiptr);
+	void prepareOpenTemp(Utf8Controller &_rctl, FilePointerT &_runiptr, size_t &_rflags);
 	void openTemp(Utf8Controller &_rctl, File &_rf, ERROR_NS::error_code &_rerr);
 private:
 };
@@ -136,8 +136,8 @@ struct CreateTempCommand: CreateTempCommandBase{
 		S &_rs, Cmd &_cmd, uint64 _sz, size_t _createflags
 	):CreateTempCommandBase(_sz, _createflags), rstore(_rs), cmd(_cmd){}
 	
-	void prepare(FilePointerT &_runiptr, size_t &_ridx){
-		this->prepareOpenTemp(rstore.controller(), _runiptr);
+	void prepare(FilePointerT &_runiptr, size_t &_ridx, size_t &_rflags){
+		this->prepareOpenTemp(rstore.controller(), _runiptr, _rflags);
 		if(!_runiptr.empty()){
 			//the temp file can be open immediately
 			_ridx = _runiptr.id().first;
@@ -176,11 +176,19 @@ private:
 	friend struct Utf8OpenCommandBase;
 	friend struct CreateTempCommandBase;
 	
-	void prepareOpenFile(const char *_inpath, PathT &_routpath, size_t &_ridx);
-	void openFile(File &_rf, const PathT &_path, size_t _flags, ERROR_NS::error_code &_rerr);
+	void prepareOpenFile(
+		const char *_inpath, PathT &_routpath, size_t &_ridx, size_t &_rflags
+	);
+	void openFile(
+		File &_rf, const PathT &_path, size_t _flags, ERROR_NS::error_code &_rerr
+	);
 	
-	void prepareOpenTemp(FilePointerT &_uniptr, const uint64 _sz, size_t &_ropenidx);
-	void openTemp(File &_rf, size_t _openidx, size_t _flags, ERROR_NS::error_code &_rerr);
+	void prepareOpenTemp(
+		FilePointerT &_uniptr, const uint64 _sz, size_t &_ropenidx, size_t &_rflags
+	);
+	void openTemp(
+		File &_rf, size_t _openidx, size_t _flags, ERROR_NS::error_code &_rerr
+	);
 private:
 	struct Data;
 	Data &d;
@@ -192,8 +200,12 @@ struct Utf8OpenCommandBase{
 	
 	Utf8OpenCommandBase(size_t _openflags):openflags(_openflags){}
 	
-	void prepareOpenFile(Utf8Controller &_rctl, const char *_path, size_t &_ridx);
-	void openFile(Utf8Controller &_rctl, File &_rf, ERROR_NS::error_code &_rerr);
+	void prepareOpenFile(
+		Utf8Controller &_rctl, const char *_path, size_t &_ridx, size_t &_rflags
+	);
+	void openFile(
+		Utf8Controller &_rctl, File &_rf, ERROR_NS::error_code &_rerr
+	);
 };
 
 template <class Base = Utf8Controller>
@@ -229,26 +241,36 @@ public:
 	}
 	
 	template <typename F>
-	bool requestCreateTemp(F _f, uint64 _sz, const size_t _createflags = AllLevelsFlag, const size_t _flags = 0){
+	bool requestCreateTemp(
+		F _f, uint64 _sz, const size_t _createflags = AllLevelsFlag, const size_t _flags = 0
+	){
 		CreateTempCommand<ThisT, F>	cmd(*this, _f, _sz, _createflags);
 		return BaseT::requestReinit(cmd, _flags);
 	}
 };
 
 
-inline void CreateTempCommandBase::prepareOpenTemp(Utf8Controller &_rctl, FilePointerT &_runiptr){
-	_rctl.prepareOpenTemp(_runiptr, this->size, openidx);
+inline void CreateTempCommandBase::prepareOpenTemp(
+	Utf8Controller &_rctl, FilePointerT &_runiptr, size_t &_rflags
+){
+	_rctl.prepareOpenTemp(_runiptr, this->size, openidx, _rflags);
 }
 
-inline void CreateTempCommandBase::openTemp(Utf8Controller &_rctl, File &_rf, ERROR_NS::error_code &_rerr){
+inline void CreateTempCommandBase::openTemp(
+	Utf8Controller &_rctl, File &_rf, ERROR_NS::error_code &_rerr
+){
 	_rctl.openTemp(_rf, openidx, this->openflags, _rerr);
 }
 
-inline void Utf8OpenCommandBase::prepareOpenFile(Utf8Controller &_rctl, const char *_path, size_t &_ridx){
-	_rctl.prepareOpenFile(_path, outpath, _ridx);
+inline void Utf8OpenCommandBase::prepareOpenFile(
+	Utf8Controller &_rctl, const char *_path, size_t &_ridx, size_t &_rflags
+){
+	_rctl.prepareOpenFile(_path, outpath, _ridx, _rflags);
 }
 
-inline void Utf8OpenCommandBase::openFile(Utf8Controller &_rctl, File &_rf, ERROR_NS::error_code &_rerr){
+inline void Utf8OpenCommandBase::openFile(
+	Utf8Controller &_rctl, File &_rf, ERROR_NS::error_code &_rerr
+){
 	_rctl.openFile(_rf, outpath, openflags, _rerr);
 }
 

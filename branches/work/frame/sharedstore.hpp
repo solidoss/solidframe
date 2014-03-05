@@ -152,19 +152,20 @@ public:
 	}
 	//! Return true if the _f was called within the current thread
 	template <typename F>
-	bool requestReinit(F &_f, const size_t _flags = 0){
+	bool requestReinit(F &_f, size_t _flags = 0){
 		PointerT		uniptr(this);
 		size_t			idx = -1;
 		{
 			Locker<Mutex>	lock(this->mutex());
 			
 			uniptr = this->doInsertUnique();
-			_f.prepare(uniptr, idx);
+			_f.prepare(uniptr, idx, _flags);
 			if(uniptr.empty()){
 				//the pointer was stored for later use - doRequestReinit will only schedule f until
 				//uniptr is cleared
-			}else if(idx != static_cast<size_t>(-1) && uniptr.id().first != idx){
+			}else if(uniptr.id().first != idx){
 				//_f requires another object so we erase the currently allocated one
+				//for idx == -1, we still erase the uniptr and doRequestReinit will call _f with error
 				doErase(uniptr);
 			}else{
 				//doRequestReinit will clear uniptr and run _f
