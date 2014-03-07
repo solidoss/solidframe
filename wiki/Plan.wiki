@@ -28,7 +28,6 @@ Pool of pending features and changes
  # (15) (IPC) Add support for adaptable compression:
    * A message is started with compression.
    * If certain continuous packets have compression ration below a certain threshold the compression is switched off for the rest of the message. 
- # (30) Add support for GnuTLS, test performance against boost, solid::frame::openssl.
  # Investigate the use of boost as back-end for solid::frame.
  # Add support for Unix domain addresses.
  # (10) Consensus algorithm: add support for read requests which must be completed only by the coordinator.
