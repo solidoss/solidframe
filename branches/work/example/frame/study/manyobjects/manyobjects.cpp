@@ -35,7 +35,7 @@ int main(int argc, char *argv[]){
 		stime = (unsigned int) ltime/2;
 		srand(stime);
 	}
-	cout<<"Creating "<<cnt<<" elements"<<endl;
+	cout<<"Creating "<<cnt<<" elements. sizeof stub "<<sizeof(Stub)<<" uid "<<sizeof(boost::uuids::uuid)<<endl;
 	
 	boost::uuids::string_generator gen;
 	for(size_t i = 0; i < cnt; ++i){
@@ -44,7 +44,8 @@ int main(int argc, char *argv[]){
 		stubvec.back().uuid = u1;
 		int r = rand();
 		{
-			size_t veccnt = r % 256;
+			size_t veccnt = r % 32;
+			stubvec.back().idvec.reserve(veccnt);
 			for(size_t i = 0; i < veccnt; ++i){
 				stubvec.back().idvec.push_back(r + i);
 			}
@@ -59,5 +60,7 @@ int main(int argc, char *argv[]){
 		}
 	}
 	cout<<"\nDone creating"<<endl;
+	char c;
+	cin>>c;
 	return 0;
 }
