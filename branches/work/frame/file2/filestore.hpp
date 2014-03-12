@@ -166,7 +166,7 @@ struct Utf8Configuration{
 
 struct Utf8OpenCommandBase;
 
-struct Utf8Controller: public shared::Store<File, Utf8Controller>{
+struct Utf8Controller{
 	typedef std::pair<uint8_t, std::string>	PathT;
 	typedef Utf8OpenCommandBase				OpenCommandBaseT;
 	
@@ -200,18 +200,13 @@ struct Utf8OpenCommandBase{
 	
 	Utf8OpenCommandBase(size_t _openflags):openflags(_openflags){}
 	
-	void prepareOpenFile(
-		Utf8Controller &_rctl, const char *_path, size_t &_ridx, size_t &_rflags
-	);
-	void openFile(
-		Utf8Controller &_rctl, File &_rf, ERROR_NS::error_code &_rerr
-	);
 };
 
 template <class Base = Utf8Controller>
-class Store: public Base{
+class Store: public shared::Store<File, Store<Base> >, public Base{
 	
 	typedef Base								BaseT;
+	typedef shared::Store<File, Store<Base> >	StoreT;
 	typedef Store<Base>							ThisT;
 
 public:
@@ -228,7 +223,7 @@ public:
 			ThisT, F, P, 
 			typename BaseT::OpenCommandBaseT
 		>	cmd(*this, _f, _path, _openflags | FileDevice::CreateE | FileDevice::TruncateE);
-		return BaseT::requestReinit(cmd, _flags);
+		return StoreT::requestReinit(cmd, _flags);
 	}
 	
 	template <typename F, typename P>
@@ -237,7 +232,7 @@ public:
 			ThisT, F, P,
 			typename BaseT::OpenCommandBaseT
 		>	cmd(*this, _f, _path, _openflags);
-		return BaseT::requestReinit(cmd, _flags);
+		return StoreT::requestReinit(cmd, _flags);
 	}
 	
 	template <typename F>
@@ -245,34 +240,10 @@ public:
 		F _f, uint64 _sz, const size_t _createflags = AllLevelsFlag, const size_t _flags = 0
 	){
 		CreateTempCommand<ThisT, F>	cmd(*this, _f, _sz, _createflags);
-		return BaseT::requestReinit(cmd, _flags);
+		return StoreT::requestReinit(cmd, _flags);
 	}
 };
 
-
-inline void CreateTempCommandBase::prepareOpenTemp(
-	Utf8Controller &_rctl, FilePointerT &_runiptr, size_t &_rflags
-){
-	_rctl.prepareOpenTemp(_runiptr, this->size, openidx, _rflags);
-}
-
-inline void CreateTempCommandBase::openTemp(
-	Utf8Controller &_rctl, File &_rf, ERROR_NS::error_code &_rerr
-){
-	_rctl.openTemp(_rf, openidx, this->openflags, _rerr);
-}
-
-inline void Utf8OpenCommandBase::prepareOpenFile(
-	Utf8Controller &_rctl, const char *_path, size_t &_ridx, size_t &_rflags
-){
-	_rctl.prepareOpenFile(_path, outpath, _ridx, _rflags);
-}
-
-inline void Utf8OpenCommandBase::openFile(
-	Utf8Controller &_rctl, File &_rf, ERROR_NS::error_code &_rerr
-){
-	_rctl.openFile(_rf, outpath, openflags, _rerr);
-}
 
 }//namespace file
 }//namespace frame

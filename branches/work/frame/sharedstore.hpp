@@ -23,6 +23,10 @@ namespace shared{
 
 class StoreBase: public Dynamic<StoreBase, Object>{
 protected:
+	enum Kind{
+		UniqueE,
+		SharedE
+	};
 	struct WaitNode{
 		WaitNode *pnext;
 	};
@@ -36,6 +40,11 @@ protected:
 	Mutex &mutex(){
 		static Mutex m;
 		return m;//TODO!!
+	}
+	void release(const UidT &_ruid);
+	
+	size_t doAllocateIndex(){
+		return 0;
 	}
 private:
 	/*virtual*/ int execute(ulong _evs, TimeSpec &_rtout);
@@ -93,6 +102,10 @@ struct Context{
 		static Mutex m;
 		return m;//TODO:
 	}
+	Mutex& mutex(const size_t _idx){
+		static Mutex m;
+		return m;//TODO:
+	}
 	bool isSynchronous()const;
 	const ERROR_NS::error_code & error()const;
 	void error(const ERROR_NS::error_code &_rerr);
@@ -146,10 +159,21 @@ public:
 		
 	}
 	
-	//Get an alive pointer from an existing pointer
-	PointerT	alive(PointerT &_rp){
+	//Try get an alive pointer for an intem
+	PointerT	alive(UidT const & _ruid, ERROR_NS::error_code &_rerr){
 		
 	}
+	
+	//Try get an unique pointer for an item
+	PointerT	unique(UidT const & _ruid, ERROR_NS::error_code &_rerr){
+		
+	}
+	
+	//Try get a shared pointer for an item
+	PointerT	shared(UidT const & _ruid, ERROR_NS::error_code &_rerr){
+		
+	}
+	
 	//! Return true if the _f was called within the current thread
 	template <typename F>
 	bool requestReinit(F &_f, size_t _flags = 0){
@@ -158,20 +182,26 @@ public:
 		{
 			Locker<Mutex>	lock(this->mutex());
 			
-			uniptr = this->doInsertUnique();
-			_f.prepare(uniptr, idx, _flags);
-			if(uniptr.empty()){
-				//the pointer was stored for later use - doRequestReinit will only schedule f until
-				//uniptr is cleared
-			}else if(uniptr.id().first != idx){
-				//_f requires another object so we erase the currently allocated one
-				//for idx == -1, we still erase the uniptr and doRequestReinit will call _f with error
-				doErase(uniptr);
-			}else{
-				//doRequestReinit will clear uniptr and run _f
+			if(!controller().prepareIndex(idx, _f)){
+				//an index was not found - need to allocate one
+				idx = this->doAllocateIndex();
+			}
+			{
+				Locker<Mutex>	lock(this->mutex(idx));
+				uniptr = doTryGetUnique(idx);
+				if(uniptr.empty()){
+					doPushWait(_f, StoreBase::UniqueE);
+				}else if(!controller().preparePointer(ptr, _f)){
+					cassert(uniptr.empty());
+					doPushWait(_f, StoreBase::UniqueE);
+				}
 			}
 		}
-		return doRequestReinit(_f, idx, uniptr, _flags);//will use object's mutex
+		if(!uniptr.empty()){
+			_f(controller(), uniptr);
+			return true;
+		}
+		return false;
 	}
 
 	//! Return true if the _f was called within the current thread
@@ -195,15 +225,12 @@ public:
 		return *static_cast<ControllerT*>(this);
 	}
 private:
-	PointerT doInsertUnique(){
+	PointerT doTryGetUnique(const size_t _idx){
 		return PointerT();
 	}
-	void doErase(PointerT){
+	template <typename F>
+	void doPushWait(F &_f, const StoreBase::Kind _k){
 		
-	}
-	template <class F>
-	bool doRequestReinit(F &_rf, const size_t _idx, PointerT, size_t _flags){
-		return false;
 	}
 };
 
