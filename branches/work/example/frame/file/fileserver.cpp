@@ -347,7 +347,11 @@ const char * Connection::findEnd(const char *_p){
 }
 
 struct OpenCbk{
-	void operator()(){
+	void operator()(
+		frame::file::Store<> &,
+		frame::file::FilePointerT &_rptr,
+		ERROR_NS::error_code err
+	){
 		
 	}
 };

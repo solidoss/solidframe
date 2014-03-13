@@ -41,6 +41,10 @@ protected:
 		static Mutex m;
 		return m;//TODO!!
 	}
+	Mutex &mutex(const size_t _idx){
+		static Mutex m;
+		return m;//TODO!!
+	}
 	void release(const UidT &_ruid);
 	
 	size_t doAllocateIndex(){
@@ -79,40 +83,6 @@ private:
 	T	*pt;
 };
 
-template <class T>
-struct Context{
-	T& operator*(){
-		return rt;
-	}
-	
-	Pointer<T> alive(){
-	}
-	//Will return a pointer based on the current request type.
-	//All request types can get alive pointers
-	//For unique request one can get either shared or unique pointers.
-	//For shared request only shared pointers are allowed.
-	//In case of error an invalid pointer is returned.
-	Pointer<T> shared(){
-	}
-	
-	Pointer<T> unique(){
-	}
-	
-	Mutex& mutex(){
-		static Mutex m;
-		return m;//TODO:
-	}
-	Mutex& mutex(const size_t _idx){
-		static Mutex m;
-		return m;//TODO:
-	}
-	bool isSynchronous()const;
-	const ERROR_NS::error_code & error()const;
-	void error(const ERROR_NS::error_code &_rerr);
-private:
-	T			&rt;
-	//Stub		&rs;
-};
 
 enum Flags{
 	SynchronousTryFlag = 1
@@ -130,7 +100,6 @@ template <
 class Store: public Dynamic<Store<T, Ctl>, StoreBase>{
 public:
 	typedef Pointer<T>	PointerT;
-	typedef Context<T>	ContextT;
 	typedef Ctl			ControllerT;
 	
 	Store(){}
@@ -177,28 +146,29 @@ public:
 	//! Return true if the _f was called within the current thread
 	template <typename F>
 	bool requestReinit(F &_f, size_t _flags = 0){
-		PointerT		uniptr(this);
-		size_t			idx = -1;
+		PointerT				uniptr(this);
+		size_t					idx = -1;
+		ERROR_NS::error_code	err;
 		{
 			Locker<Mutex>	lock(this->mutex());
 			
-			if(!controller().prepareIndex(idx, _f)){
+			if(!_f.prepareIndex(controller(), idx, _flags, err)){
 				//an index was not found - need to allocate one
 				idx = this->doAllocateIndex();
 			}
-			{
+			if(!err){
 				Locker<Mutex>	lock(this->mutex(idx));
 				uniptr = doTryGetUnique(idx);
 				if(uniptr.empty()){
 					doPushWait(_f, StoreBase::UniqueE);
-				}else if(!controller().preparePointer(ptr, _f)){
+				}else if(!_f.preparePointer(controller(), uniptr, _flags, err)){
 					cassert(uniptr.empty());
 					doPushWait(_f, StoreBase::UniqueE);
 				}
 			}
 		}
-		if(!uniptr.empty()){
-			_f(controller(), uniptr);
+		if(!uniptr.empty() || err){
+			_f(controller(), uniptr, err);
 			return true;
 		}
 		return false;
