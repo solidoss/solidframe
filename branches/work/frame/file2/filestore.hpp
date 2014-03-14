@@ -16,6 +16,9 @@
 
 namespace solid{
 namespace frame{
+
+class Manager;
+
 namespace file{
 
 
@@ -204,10 +207,10 @@ class Store: public shared::Store<File, Store<Base> >, public Base{
 
 public:
 	template <typename C>
-	Store(C _c): BaseT(_c){}
+	Store(Manager &_rm, C _c): StoreT(_rm), BaseT(_c){}
 	
 	template <typename C1, typename C2>
-	Store(C1 _c1, C2 _c2): BaseT(_c1, _c2){}
+	Store(Manager &_rm, C1 _c1, C2 _c2): StoreT(_rm), BaseT(_c1, _c2){}
 	
 	//If a file with _path already exists in the store, the call will be similar with open with truncate openflag
 	template <typename Cmd, typename Pth>

@@ -8,6 +8,7 @@ set(Sources
 	src/service.cpp
 	src/basicscheduler.cpp
 	src/schedulerbase.cpp
+	src/sharedstore.cpp
 )
 
 set(Headers
@@ -23,6 +24,7 @@ set(Headers
 	scheduler.hpp
 	service.hpp
 	selectorbase.hpp
+	sharedstore.hpp
 )
 
 set(Inlines

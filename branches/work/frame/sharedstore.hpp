@@ -21,7 +21,12 @@ namespace solid{
 namespace frame{
 namespace shared{
 
+struct PointerBase;
+
 class StoreBase: public Dynamic<StoreBase, Object>{
+public:
+	Manager& manager();
+	virtual ~StoreBase();
 protected:
 	enum Kind{
 		UniqueE,
@@ -37,29 +42,32 @@ protected:
 		WaitNode	*pfirst;
 		WaitNode	*plast;
 	};
-	Mutex &mutex(){
-		static Mutex m;
-		return m;//TODO!!
-	}
-	Mutex &mutex(const size_t _idx){
-		static Mutex m;
-		return m;//TODO!!
-	}
-	void release(const UidT &_ruid);
+	StoreBase(Manager &_rm);
+	Mutex &mutex();
+	Mutex &mutex(const size_t _idx);
 	
-	size_t doAllocateIndex(){
-		return 0;
-	}
+	size_t doAllocateIndex();
+	void pointerId(PointerBase &_rpb, UidT const & _ruid);
 private:
+	friend struct PointerBase;
+	void erasePointer(UidT const & _ruid);
+	
 	/*virtual*/ int execute(ulong _evs, TimeSpec &_rtout);
+private:
+	struct Data;
+	Data &d;
 };
 
 struct PointerBase{
 	const UidT& id()const{
 		return uid;
 	}
+	bool empty()const{
+		return is_invalid_uid(id());
+	}
 protected:
 	PointerBase(StoreBase *_psb = NULL):psb(_psb){}
+	void doClear();
 private:
 	friend class StoreBase;
 	UidT		uid;
@@ -71,7 +79,7 @@ template <
 >
 struct Pointer: PointerBase{
 	Pointer(StoreBase *_psb = NULL):PointerBase(_psb), pt(NULL){}
-	bool empty()const{
+	bool alive()const{
 		return pt == NULL;
 	}
 	T* release(){
@@ -79,8 +87,14 @@ struct Pointer: PointerBase{
 		pt = NULL;
 		return p;
 	}
+	void clear(){
+		if(pt){
+			doClear();
+			pt = NULL;
+		}
+	}
 private:
-	T	*pt;
+	mutable T	*pt;
 };
 
 
@@ -99,10 +113,11 @@ template <
 >
 class Store: public Dynamic<Store<T, Ctl>, StoreBase>{
 public:
-	typedef Pointer<T>	PointerT;
-	typedef Ctl			ControllerT;
+	typedef Pointer<T>							PointerT;
+	typedef Ctl									ControllerT;
+	typedef Dynamic<Store<T, Ctl>, StoreBase>	BaseT;
 	
-	Store(){}
+	Store(Manager &_rm):BaseT(_rm){}
 	
 	PointerT	insertAlive(T &_rt){
 		
@@ -204,6 +219,10 @@ private:
 	}
 };
 
+
+inline void StoreBase::pointerId(PointerBase &_rpb, UidT const & _ruid){
+	_rpb.uid = _ruid;
+}
 }//namespace shared
 }//namespace frame
 }//namespace solid

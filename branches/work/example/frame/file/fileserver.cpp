@@ -167,17 +167,19 @@ int main(int argc, char *argv[]){
 	cout<<"Debug modules: "<<dbgout<<endl;
 	}
 #endif
-	{
-		frame::file::Utf8Configuration	utf8cfg;
-		frame::file::TempConfiguration	tempcfg;
-		//TODO: populate cfg
-		
-		filestoreptr = new frame::file::Store<>(utf8cfg, tempcfg);
-	}
+	
 	{
 		frame::Manager	m;
 		AioSchedulerT	aiosched(m);
 		SchedulerT		sched(m);
+		
+		{
+			frame::file::Utf8Configuration	utf8cfg;
+			frame::file::TempConfiguration	tempcfg;
+			//TODO: populate cfg
+		
+			filestoreptr = new frame::file::Store<>(m, utf8cfg, tempcfg);
+		}
 		
 		m.registerObject(*filestoreptr);
 		sched.schedule(filestoreptr);
