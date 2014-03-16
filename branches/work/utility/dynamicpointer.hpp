@@ -100,8 +100,9 @@ public:
 	DynamicT* operator->()const	{return pdyn;}
 	DynamicT* get() const		{return pdyn;}
 	//operator bool () const	{return psig;}
-	bool operator!()const		{return !pdyn;}
 	bool empty()const			{return !pdyn;}
+	bool operator!()const		{return empty();}
+	
 	void clear(){
 		if(pdyn){
 			DynamicPointerBase::clear(static_cast<DynamicBase*>(pdyn));
@@ -219,8 +220,8 @@ public:
 	DynamicT* operator->()const	{return pdyn;}
 	DynamicT* get() const		{return pdyn;}
 	//operator bool () const	{return psig;}
-	bool operator!()const		{return !pdyn;}
 	bool empty() const			{return !pdyn;}
+	bool operator!()const		{return empty();}
 	void clear(){
 		if(pdyn){
 			DynamicPointerBase::clear(static_cast<DynamicBase*>(pdyn));

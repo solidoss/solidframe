@@ -71,6 +71,10 @@ bool Utf8Controller::prepareTempPointer(
 	return false;
 }
 
+void Utf8Controller::clear(File &_rf, const size_t _idx){
+	
+}
+
 }//namespace file
 }//namespace frame
 }//namespace solid

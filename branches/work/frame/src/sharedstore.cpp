@@ -1,14 +1,19 @@
 #include "frame/sharedstore.hpp"
 #include "frame/manager.hpp"
 #include "system/cassert.hpp"
+#include "system/mutualstore.hpp"
+#include "system/atomic.hpp"
+#include "utility/queue.hpp"
+#include "utility/stack.hpp"
+
 
 namespace solid{
 namespace frame{
 namespace shared{
 
-void PointerBase::doClear(){
+void PointerBase::doClear(const bool _isalive){
 	cassert(psb);
-	psb->erasePointer(id());
+	psb->erasePointer(id(), _isalive);
 	uid = invalid_uid();
 	psb = NULL;
 }
@@ -16,10 +21,24 @@ void PointerBase::doClear(){
 //---------------------------------------------------------------
 //		StoreBase
 //---------------------------------------------------------------
+typedef ATOMIC_NS::atomic<size_t>			AtomicSizeT;
+typedef MutualStore<Mutex>					MutexMutualStoreT;
+typedef Queue<UidT>							UidQueueT;
+typedef Stack<size_t>						SizeStackT;
+typedef Stack<void*>						VoidPtrStackT;
+
 
 struct StoreBase::Data{
-	Data(Manager &_rm):rm(_rm){}
-	Manager &rm;
+	Data(Manager &_rm):rm(_rm), objmaxcnt(ATOMIC_VAR_INIT(0)){}
+	Manager				&rm;
+	AtomicSizeT			objmaxcnt;
+	MutexMutualStoreT	mtxstore;
+	UidVectorT			erasevec[2];
+	UidVectorT			*pfillerasevec;
+	SizeVectorT			cacheobjidxvec;
+	SizeStackT			cacheobjidxstk;
+	ExecWaitVectorT		exewaitvec;
+	VoidPtrStackT		cachewaitstk;
 };
 
 StoreBase::StoreBase(Manager &_rm):d(*(new Data(_rm))){}
@@ -37,19 +56,65 @@ Mutex &StoreBase::mutex(){
 	return manager().mutex(*this);
 }
 Mutex &StoreBase::mutex(const size_t _idx){
-	static Mutex m;
-	return m;//TODO!!
+	return d.mtxstore.at(_idx);
 }
 
 size_t StoreBase::doAllocateIndex(){
 	return 0;
 }
-void StoreBase::erasePointer(UidT const & _ruid){
-	
+void StoreBase::erasePointer(UidT const & _ruid, const bool _isalive){
+	if(_ruid.first < d.objmaxcnt){
+		bool	do_notify = false;
+		{
+			Locker<Mutex>	lock(mutex(_ruid.first));
+			do_notify = doDecrementObjectUseCount(_ruid, _isalive);
+		}
+		bool do_raise = false;
+		if(do_notify){
+			Locker<Mutex>	lock(mutex());
+			d.pfillerasevec->push_back(_ruid);
+			do_raise = Object::notify(frame::S_SIG | frame::S_RAISE);
+		}
+		if(do_raise){
+			manager().raise(*this);
+		}
+	}
 }
 
-/*virtual*/ int StoreBase::execute(ulong _evs, TimeSpec &_rtout){
-	
+/*virtual*/ void StoreBase::execute(ExecuteContext &_rexectx){
+	UidVectorT		*pconserasevec = NULL;
+	if(notified()){
+		Locker<Mutex>	lock(mutex());
+		ulong sm = grabSignalMask();
+		if(sm & frame::S_KILL){
+			_rexectx.close();
+			return;
+		}
+		if(sm & frame::S_RAISE){
+			if(d.pfillerasevec->size()){
+				pconserasevec = d.pfillerasevec;
+				if(d.pfillerasevec == &d.erasevec[0]){
+					d.pfillerasevec = &d.erasevec[1];
+				}else{
+					d.pfillerasevec = &d.erasevec[0];
+				}
+				d.pfillerasevec->clear();
+			}
+		}
+	}
+	if(pconserasevec && pconserasevec->size()){//we have something 
+		doExecute(*pconserasevec, d.cacheobjidxvec, d.exewaitvec);
+	}
+}
+void StoreBase::doCacheObjectIndex(const size_t _idx){
+	d.cacheobjidxstk.push(_idx);
+}
+void StoreBase::doExecuteCache(){
+	for(ExecWaitVectorT::const_iterator it(d.exewaitvec.begin()); it != d.exewaitvec.end(); ++it){
+		d.cachewaitstk.push(it->pw);
+	}
+	d.cacheobjidxvec.clear();
+	d.exewaitvec.clear();
 }
 
 }//namespace shared

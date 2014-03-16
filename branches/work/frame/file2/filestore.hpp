@@ -155,6 +155,7 @@ struct Utf8Controller{
 	
 	Utf8Controller(const Utf8Configuration &_rcfg, const TempConfiguration &_rtmpcfg);
 	~Utf8Controller();
+	void clear(File &_rf, const size_t _idx);
 private:
 	friend struct Utf8OpenCommandBase;
 	friend struct CreateTempCommandBase;
