@@ -59,11 +59,47 @@ Mutex &StoreBase::mutex(const size_t _idx){
 	return d.mtxstore.at(_idx);
 }
 
+namespace{
+
+	void visit_lock(Mutex &_rm){
+		_rm.lock();
+	}
+
+	void visit_unlock(Mutex &_rm){
+		_rm.unlock();
+	}
+
+	void lock_all(MutexMutualStoreT &_rms, const size_t _sz){
+		_rms.visit(_sz, visit_lock);
+	}
+
+	void unlock_all(MutexMutualStoreT &_rms, const size_t _sz){
+		_rms.visit(_sz, visit_unlock);
+	}
+	
+}//namespace
+
 size_t StoreBase::doAllocateIndex(){
-	return 0;
+	//mutex is locked
+	size_t		rv;
+	if(d.cacheobjidxstk.size()){
+		rv = d.cacheobjidxstk.top();
+		d.cacheobjidxstk.pop();
+	}else{
+		const size_t objcnt = d.objmaxcnt.load();
+		lock_all(d.mtxstore, objcnt);
+		doResizeObjectVector(objcnt + 1024);
+		for(size_t i = objcnt + 1023; i > objcnt; --i){
+			d.cacheobjidxstk.push(i);
+		}
+		d.objmaxcnt.store(objcnt + 1024);
+		unlock_all(d.mtxstore, objcnt);
+		rv = objcnt;
+	}
+	return rv;
 }
 void StoreBase::erasePointer(UidT const & _ruid, const bool _isalive){
-	if(_ruid.first < d.objmaxcnt){
+	if(_ruid.first < d.objmaxcnt.load()){
 		bool	do_notify = false;
 		{
 			Locker<Mutex>	lock(mutex(_ruid.first));

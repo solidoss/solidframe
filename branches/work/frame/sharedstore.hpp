@@ -72,7 +72,7 @@ private:
 	void erasePointer(UidT const & _ruid, const bool _isalive);
 	virtual bool doDecrementObjectUseCount(UidT const &_uid, const bool _isalive) = 0;
 	virtual void doExecute(UidVectorT const &_ruidvec, SizeVectorT &_ridxvec, ExecWaitVectorT &_rexewaitvec) = 0;
-
+	virtual void doResizeObjectVector(const size_t _newsz) = 0;
 	/*virtual*/ void execute(ExecuteContext &_rexectx);
 private:
 	struct Data;
@@ -294,6 +294,11 @@ private:
 	
 	typedef std::deque<Stub>		StubVectorT;
 	typedef std::deque<WaitStub>	WaitDequeT;
+	
+	
+	/*virtual*/ void doResizeObjectVector(const size_t _newsz){
+		stubvec.resize(_newsz);
+	}
 	
 	PointerT doTryGetUnique(const size_t _idx){
 		return PointerT();
