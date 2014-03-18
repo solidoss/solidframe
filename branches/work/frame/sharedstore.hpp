@@ -16,6 +16,7 @@
 #include "utility/dynamictype.hpp"
 #include "system/error.hpp"
 #include "system/mutex.hpp"
+#include "system/function.hpp"
 #include <vector>
 #include <deque>
 
@@ -30,11 +31,6 @@ public:
 	Manager& manager();
 	virtual ~StoreBase();
 protected:
-	enum Kind{
-		UniqueE,
-		SharedE
-	};
-	
 	enum WaitKind{
 		UniqueWaitE,
 		SharedWaitE,
@@ -64,9 +60,11 @@ protected:
 	Mutex &mutex(const size_t _idx);
 	
 	size_t doAllocateIndex();
+	void* doTryAllocateWait();
 	void pointerId(PointerBase &_rpb, UidT const & _ruid);
 	void doExecuteCache();
 	void doCacheObjectIndex(const size_t _idx);
+	size_t atomicMaxCount()const;
 private:
 	friend struct PointerBase;
 	void erasePointer(UidT const & _ruid, const bool _isalive);
@@ -88,6 +86,11 @@ struct PointerBase{
 	}
 	StoreBase* store()const{
 		return psb;
+	}
+	Mutex* mutex()const{
+		if(!empty()){
+			return &psb->mutex(uid.first);
+		}else return NULL;
 	}
 protected:
 	PointerBase(StoreBase *_psb = NULL):psb(_psb){}
@@ -175,48 +178,123 @@ public:
 	Store(Manager &_rm):BaseT(_rm){}
 	
 	PointerT	insertAlive(T &_rt){
-		
+		Locker<Mutex>	lock(this->mutex());
+		const size_t	idx = this->doAllocateIndex();
+		PointerT		ptr;
+		{
+			Locker<Mutex>	lock2(this->mutex(idx));
+			Stub			&rs = stubvec[idx];
+			rs.obj = _rt;
+			ptr = doTryGetAlive(idx);
+		}
+		return ptr;
 	}
 	
 	PointerT	insertShared(T &_rt){
-	
+		Locker<Mutex>	lock(this->mutex());
+		const size_t	idx = this->doAllocateIndex();
+		PointerT		ptr;
+		{
+			Locker<Mutex>	lock2(this->mutex(idx));
+			Stub			&rs = stubvec[idx];
+			rs.obj = _rt;
+			ptr = doTryGetShared(idx);
+		}
+		return ptr;
 	}
 	
 	PointerT	insertUnique(T &_rt){
-		
+		Locker<Mutex>	lock(this->mutex());
+		const size_t	idx = this->doAllocateIndex();
+		PointerT		ptr;
+		{
+			Locker<Mutex>	lock2(this->mutex(idx));
+			Stub			&rs = stubvec[idx];
+			rs.obj = _rt;
+			ptr = doTryGetUnique(idx);
+		}
+		return ptr;
 	}
 	
 	PointerT	insertAlive(){
-		
+		Locker<Mutex>	lock(this->mutex());
+		const size_t	idx = this->doAllocateIndex();
+		PointerT		ptr;
+		{
+			Locker<Mutex>	lock2(this->mutex(idx));
+			ptr = doTryGetAlive(idx);
+		}
+		return ptr;
 	}
 	
 	PointerT	insertShared(){
-		
+		Locker<Mutex>	lock(this->mutex());
+		const size_t	idx = this->doAllocateIndex();
+		PointerT		ptr;
+		{
+			Locker<Mutex>	lock2(this->mutex(idx));
+			ptr = doTryGetShared(idx);
+		}
+		return ptr;
 	}
 	
 	PointerT	insertUnique(){
-		
+		Locker<Mutex>	lock(this->mutex());
+		const size_t	idx = this->doAllocateIndex();
+		PointerT		ptr;
+		{
+			Locker<Mutex>	lock2(this->mutex(idx));
+			ptr = doTryGetUnique(idx);
+		}
+		return ptr;
 	}
 	
 	//Try get an alive pointer for an intem
 	PointerT	alive(UidT const & _ruid, ERROR_NS::error_code &_rerr){
-		
+		PointerT		ptr;
+		const size_t	idx = _ruid.first;
+		if(idx < this->atomicMaxCount()){
+			Locker<Mutex>	lock2(this->mutex(idx));
+			Stub			&rs = stubvec[idx];
+			if(rs.uid == _ruid.second){
+				ptr = doTryGetAlive(idx);
+			}
+		}
+		return ptr;
 	}
 	
 	//Try get an unique pointer for an item
 	PointerT	unique(UidT const & _ruid, ERROR_NS::error_code &_rerr){
-		
+		PointerT		ptr;
+		const size_t	idx = _ruid.first;
+		if(idx < this->atomicMaxCount()){
+			Locker<Mutex>	lock2(this->mutex(idx));
+			Stub			&rs = stubvec[idx];
+			if(rs.uid == _ruid.second){
+				ptr = doTryGetUnique(idx);
+			}
+		}
+		return ptr;
 	}
 	
 	//Try get a shared pointer for an item
 	PointerT	shared(UidT const & _ruid, ERROR_NS::error_code &_rerr){
-		
+		PointerT		ptr;
+		const size_t	idx = _ruid.first;
+		if(idx < this->atomicMaxCount()){
+			Locker<Mutex>	lock2(this->mutex(idx));
+			Stub			&rs = stubvec[idx];
+			if(rs.uid == _ruid.second){
+				ptr = doTryGetShared(idx);
+			}
+		}
+		return ptr;
 	}
 	
 	//! Return true if the _f was called within the current thread
 	template <typename F>
 	bool requestReinit(F &_f, size_t _flags = 0){
-		PointerT				uniptr(this);
+		PointerT				ptr(this);
 		size_t					idx = -1;
 		ERROR_NS::error_code	err;
 		{
@@ -228,17 +306,17 @@ public:
 			}
 			if(!err){
 				Locker<Mutex>	lock(this->mutex(idx));
-				uniptr = doTryGetUnique(idx);
-				if(uniptr.empty()){
-					doPushWait(_f, StoreBase::UniqueE);
-				}else if(!_f.preparePointer(controller(), uniptr, _flags, err)){
-					cassert(uniptr.empty());
-					doPushWait(_f, StoreBase::UniqueE);
+				ptr = doTryGetReinit(idx);
+				if(ptr.empty()){
+					doPushWait(idx, _f, StoreBase::ReinitWaitE);
+				}else if(!_f.preparePointer(controller(), ptr, _flags, err)){
+					cassert(ptr.empty());
+					doPushWait(idx, _f, StoreBase::ReinitWaitE);
 				}
 			}
 		}
-		if(!uniptr.empty() || err){
-			_f(controller(), uniptr, err);
+		if(!ptr.empty() || err){
+			_f(controller(), ptr, err);
 			return true;
 		}
 		return false;
@@ -247,17 +325,80 @@ public:
 	//! Return true if the _f was called within the current thread
 	template <typename F>
 	bool requestShared(F _f, UidT const & _ruid, const size_t _flags = 0){
+		PointerT				ptr;
+		ERROR_NS::error_code	err;
+		const size_t			idx = _ruid.first;
+		if(idx < this->atomicMaxCount()){
+			Locker<Mutex>	lock2(this->mutex(idx));
+			Stub			&rs = stubvec[idx];
+			if(rs.uid == _ruid.second){
+				ptr = doTryGetShared(idx);
+				if(ptr.empty()){
+					doPushWait(idx, _f, StoreBase::SharedWaitE);
+				}
+			}else{
+				err.assign(1, err.category());//TODO:
+			}
+		}else{
+			err.assign(1, err.category());//TODO:
+		}
+		if(!ptr.empty() || err){
+			_f(controller(), ptr, err);
+			return true;
+		}
 		return false;
 	}
 	//! Return true if the _f was called within the current thread
 	template <typename F>
 	bool requestUnique(F _f, UidT const & _ruid, const size_t _flags = 0){
+		PointerT				ptr;
+		ERROR_NS::error_code	err;
+		const size_t			idx = _ruid.first;
+		if(idx < this->atomicMaxCount()){
+			Locker<Mutex>	lock2(this->mutex(idx));
+			Stub			&rs = stubvec[idx];
+			if(rs.uid == _ruid.second){
+				ptr = doTryGetUnique(idx);
+				if(ptr.empty()){
+					doPushWait(idx, _f, StoreBase::UniqueWaitE);
+				}
+			}else{
+				err.assign(1, err.category());//TODO:
+			}
+		}else{
+			err.assign(1, err.category());//TODO:
+		}
+		if(!ptr.empty() || err){
+			_f(controller(), ptr, err);
+			return true;
+		}
 		return false;
 	}
 	//! Return true if the _f was called within the current thread
 	//_f will be called uniquely when object's alive count is zero
 	template <typename F>
 	bool requestReinit(F _f, UidT const & _ruid, const size_t _flags = 0){
+		PointerT				ptr;
+		ERROR_NS::error_code	err;
+		const size_t			idx = _ruid.first;
+		if(idx < this->atomicMaxCount()){
+			Locker<Mutex>	lock2(this->mutex(idx));
+			Stub			&rs = stubvec[idx];
+			if(rs.uid == _ruid.second){
+				ptr = doTryGetReinit(idx);
+				if(ptr.empty()){
+					doPushWait(idx, _f, StoreBase::ReinitWaitE);
+				}
+			}else{
+				err.assign(1, err.category());//TODO:
+			}
+		}else{
+			err.assign(1, err.category());//TODO:
+		}
+		if(!ptr.empty() || err){
+			_f(controller(), ptr, err);
+			return true;
+		}
 		return false;
 	}
 	
@@ -265,11 +406,12 @@ public:
 		return *static_cast<ControllerT*>(this);
 	}
 private:
-	
+	typedef FUNCTION_NS::function<void(ControllerT&, PointerT&, ERROR_NS::error_code const&)>	FunctionT;
 	struct WaitStub{
-		WaitStub():kind(StoreBase::StoreBase::ReinitWaitE){}
+		WaitStub():kind(StoreBase::StoreBase::ReinitWaitE), pnext(NULL){}
 		StoreBase::WaitKind		kind;
 		WaitStub 				*pnext;
+		FunctionT				fnc;
 	};
 	struct Stub{
 		Stub(
@@ -300,13 +442,60 @@ private:
 		stubvec.resize(_newsz);
 	}
 	
+	PointerT doTryGetAlive(const size_t _idx){
+		Stub		&rs = stubvec[_idx];
+		++rs.alivecnt;
+		rs.state = StoreBase::UniqueLockStateE;
+		return PointerT(NULL, this, UidT(_idx, rs.uid));
+	}
+	
+	PointerT doTryGetShared(const size_t _idx){
+		Stub		&rs = stubvec[_idx];
+		if(rs.state == StoreBase::SharedLockStateE){
+			++rs.usecnt;
+			return PointerT(&rs.obj, this, UidT(_idx, rs.uid));
+		}
+		return PointerT();
+	}
+	
 	PointerT doTryGetUnique(const size_t _idx){
+		Stub		&rs = stubvec[_idx];
+		if(rs.usecnt == 0){
+			++rs.usecnt;
+			rs.state = StoreBase::UniqueLockStateE;
+			return PointerT(&rs.obj, this, UidT(_idx, rs.uid));
+		}
+		return PointerT();
+	}
+	PointerT doTryGetReinit(const size_t _idx){
+		Stub		&rs = stubvec[_idx];
+		if(rs.usecnt == 0 && rs.alivecnt == 0){
+			++rs.usecnt;
+			rs.state = StoreBase::UniqueLockStateE;
+			return PointerT(&rs.obj, this, UidT(_idx, rs.uid));
+		}
 		return PointerT();
 	}
 	template <typename F>
-	void doPushWait(F &_f, const StoreBase::Kind _k){
+	void doPushWait(const size_t _idx, F &_f, const StoreBase::WaitKind _k){
+		Stub		&rs = stubvec[_idx];
+		WaitStub	*pwait = reinterpret_cast<WaitStub*>(this->doTryAllocateWait());
+		if(pwait == NULL){
+			waitdq.push_back(WaitStub());
+			pwait = &waitdq.back();
+		}
+		pwait->kind = _k;
+		pwait->fnc = _f;
+		pwait->pnext = NULL;
 		
+		if(rs.pwaitlast == NULL){
+			rs.pwaitfirst = rs.pwaitlast = pwait;
+		}else{
+			rs.pwaitlast->pnext = pwait;
+			rs.pwaitlast = pwait;
+		}
 	}
+	
 	/*virtual*/ bool doDecrementObjectUseCount(UidT const &_uid, const bool _isalive){
 		//the coresponding mutex is already locked
 		Stub &rs = stubvec[_uid.first];
@@ -347,9 +536,10 @@ private:
 		pmtx->unlock();
 		//now execute "waits"
 		for(StoreBase::ExecWaitVectorT::const_iterator it(_rexewaitvec.begin()); it != _rexewaitvec.end(); ++it){
-			PointerT	ptr(reinterpret_cast<T*>(it->pt), this, it->uid);
-			WaitStub	&rw = *reinterpret_cast<WaitStub*>(it->pw);
-			//TODO:
+			PointerT				ptr(reinterpret_cast<T*>(it->pt), this, it->uid);
+			WaitStub				&rw = *reinterpret_cast<WaitStub*>(it->pw);
+			ERROR_NS::error_code	err;
+			rw.fnc(this->controller(), ptr, err);
 		}
 		
 		{

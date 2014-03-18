@@ -59,6 +59,10 @@ Mutex &StoreBase::mutex(const size_t _idx){
 	return d.mtxstore.at(_idx);
 }
 
+size_t StoreBase::atomicMaxCount()const{
+	return d.objmaxcnt.load();
+}
+
 namespace{
 
 	void visit_lock(Mutex &_rm){
@@ -151,6 +155,15 @@ void StoreBase::doExecuteCache(){
 	}
 	d.cacheobjidxvec.clear();
 	d.exewaitvec.clear();
+}
+
+void* StoreBase::doTryAllocateWait(){
+	if(d.cachewaitstk.size()){
+		void *rv = d.cachewaitstk.top();
+		d.cachewaitstk.pop();
+		return rv;
+	}
+	return NULL;
 }
 
 }//namespace shared
