@@ -299,8 +299,8 @@ public:
 		ERROR_NS::error_code	err;
 		{
 			Locker<Mutex>	lock(this->mutex());
-			
-			if(!_f.prepareIndex(controller(), idx, _flags, err)){
+			bool			found = _f.prepareIndex(controller(), idx, _flags, err);
+			if(!found && !err){
 				//an index was not found - need to allocate one
 				idx = this->doAllocateIndex();
 			}

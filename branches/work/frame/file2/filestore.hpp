@@ -139,8 +139,13 @@ struct CreateTempCommand: CreateTempCommandBase{
 
 struct Utf8Configuration{
 	struct Storage{
-		std::string		localpath;
-		std::string		pathprefix;
+		Storage(){}
+		Storage(
+			std::string const &_globalprefix,
+			std::string const &_localprefix
+		):globalprefix(_globalprefix), localprefix(_localprefix){}
+		std::string		globalprefix;
+		std::string		localprefix;
 	};
 	typedef std::vector<Storage>		StorageVectorT;
 	
@@ -150,10 +155,9 @@ struct Utf8Configuration{
 struct Utf8OpenCommandBase;
 
 struct Utf8Controller{
-	typedef std::pair<uint8_t, std::string>	PathT;
 	typedef Utf8OpenCommandBase				OpenCommandBaseT;
 	
-	Utf8Controller(const Utf8Configuration &_rcfg, const TempConfiguration &_rtmpcfg);
+	Utf8Controller(const Utf8Configuration &_rfilecfg, const TempConfiguration &_rtempcfg);
 	~Utf8Controller();
 	void clear(File &_rf, const size_t _idx);
 private:
@@ -180,14 +184,21 @@ private:
 	Data &d;
 };
 
+struct Utf8PathStub{
+	size_t			storeidx;
+	std::string		path;
+	size_t			idx;
+};
+
 struct Utf8OpenCommandBase{
-	typedef const char*			PathT;
+	typedef std::string const& PathT;
+	Utf8PathStub		outpath;
+	std::string const 	&inpath;
+	size_t				openflags;
 	
-	Utf8Controller::PathT		outpath;
-	const char					*inpath;//not safe but fast
-	size_t						openflags;
-	
-	Utf8OpenCommandBase(const char* _inpath, size_t _openflags):inpath(_inpath), openflags(_openflags){}
+	Utf8OpenCommandBase(
+		std::string const 	&_inpath, size_t _openflags
+	):inpath(_inpath), openflags(_openflags){}
 	
 	bool prepareIndex(
 		Utf8Controller &_rstore, size_t &_ridx, size_t &_rflags, ERROR_NS::error_code &_rerr
@@ -214,8 +225,8 @@ public:
 	Store(Manager &_rm, C1 _c1, C2 _c2): StoreT(_rm), BaseT(_c1, _c2){}
 	
 	//If a file with _path already exists in the store, the call will be similar with open with truncate openflag
-	template <typename Cmd, typename Pth>
-	bool requestCreateFile(Cmd _cmd, Pth _path, const size_t _openflags = 0, const size_t _flags = 0){
+	template <typename Cmd>
+	bool requestCreateFile(Cmd _cmd, std::string const &_path, const size_t _openflags = 0, const size_t _flags = 0){
 		OpenCommand<
 			ThisT, Cmd, 
 			typename BaseT::OpenCommandBaseT

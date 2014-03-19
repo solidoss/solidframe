@@ -65,7 +65,7 @@ struct ErrorStub{
 typedef std::vector<ErrorStub>	ErrorVectorT;
 
 ERROR_NS::error_category const	&error_category_get();
-ERROR_NS::error_code error_make(Errors _err);
+ERROR_NS::error_code 			error_make(Errors _err);
 
 void specific_error_clear();
 void specific_error_push(
