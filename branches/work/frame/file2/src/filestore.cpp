@@ -109,7 +109,7 @@ struct Utf8ConfigurationImpl{
 
 struct Utf8Controller::Data{
 	
-	Utf8ConfigurationImpl	filecfg;
+	Utf8ConfigurationImpl	filecfg;//NOTE: it is accessed without lock in openFile
 	TempConfiguration		tempcfg;
 	size_t					minglobalprefixsz;
 	size_t					maxglobalprefixsz;
@@ -248,6 +248,7 @@ void Utf8Controller::prepareFilePointer(
 void Utf8Controller::openFile(Utf8OpenCommandBase &_rcmd, FilePointerT &_rptr, ERROR_NS::error_code &_rerr){
 	//use _rcmd.outpath to acctually open the file
 	//set _rerr accordingly
+	//d.filecfg is accessed without lock!!
 	Utf8ConfigurationImpl::Storage const	&rstrg = d.filecfg.storagevec[_rcmd.outpath.storeidx];
 	std::string								path;
 	
