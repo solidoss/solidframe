@@ -451,7 +451,7 @@ private:
 	
 	PointerT doTryGetShared(const size_t _idx){
 		Stub		&rs = stubvec[_idx];
-		if(rs.state == StoreBase::SharedLockStateE){
+		if(rs.state == StoreBase::SharedLockStateE && rs.pwaitfirst == NULL){
 			++rs.usecnt;
 			return PointerT(&rs.obj, this, UidT(_idx, rs.uid));
 		}
@@ -461,6 +461,7 @@ private:
 	PointerT doTryGetUnique(const size_t _idx){
 		Stub		&rs = stubvec[_idx];
 		if(rs.usecnt == 0){
+			cassert(rs.pwaitfirst == NULL);
 			++rs.usecnt;
 			rs.state = StoreBase::UniqueLockStateE;
 			return PointerT(&rs.obj, this, UidT(_idx, rs.uid));
@@ -469,7 +470,7 @@ private:
 	}
 	PointerT doTryGetReinit(const size_t _idx){
 		Stub		&rs = stubvec[_idx];
-		if(rs.usecnt == 0 && rs.alivecnt == 0){
+		if(rs.usecnt == 0 && rs.alivecnt == 0 && rs.pwaitfirst == NULL){
 			++rs.usecnt;
 			rs.state = StoreBase::UniqueLockStateE;
 			return PointerT(&rs.obj, this, UidT(_idx, rs.uid));
