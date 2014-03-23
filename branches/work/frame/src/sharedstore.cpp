@@ -63,6 +63,10 @@ size_t StoreBase::atomicMaxCount()const{
 	return d.objmaxcnt.load();
 }
 
+UidVectorT& StoreBase::eraseVector(){
+	return *d.pfillerasevec;
+}
+
 namespace{
 
 	void visit_lock(Mutex &_rm){
@@ -143,7 +147,9 @@ void StoreBase::erasePointer(UidT const & _ruid, const bool _isalive){
 		}
 	}
 	if(pconserasevec && pconserasevec->size()){//we have something 
-		doExecute(*pconserasevec, d.cacheobjidxvec, d.exewaitvec);
+		if(doExecute(*pconserasevec, d.cacheobjidxvec, d.exewaitvec)){
+			_rexectx.reschedule();
+		}
 	}
 }
 void StoreBase::doCacheObjectIndex(const size_t _idx){

@@ -11,7 +11,7 @@
 #define SOLID_FRAME_FILE_STORE_HPP
 
 #include "frame/sharedstore.hpp"
-#include "frame/file2/filebase.hpp"
+#include "frame/file2/tempbase.hpp"
 #include "system/filedevice.hpp"
 
 namespace solid{
@@ -33,9 +33,13 @@ enum{
 
 struct TempConfiguration{
 	struct Storage{
+		Storage():level(0), capacity(0), minsize(0), maxsize(0){}
+		
 		std::string 	path;
 		uint32			level;
 		uint64			capacity;
+		uint64			minsize;
+		uint64			maxsize;
 	};
 	
 	typedef std::vector<Storage>		StorageVectorT;
@@ -46,43 +50,46 @@ struct TempConfiguration{
 struct File{
 	void clear(){
 		fd.close();
-		if(pfb){
-			pfb->close();
-		}
-		delete pfb;
-		pfb = NULL;
+		delete ptmp;
+		ptmp = NULL;
 	}
 	bool open(const char *_path, const size_t _openflags){
 		return fd.open(_path, _openflags);
 	}
 	
 	int read(char *_pb, uint32 _bl, int64 _off){
-		if(!pfb){
+		if(!ptmp){
 			return fd.read(_pb, _bl, _off);
 		}else{
-			return pfb->read(_pb, _bl, _off);
+			return ptmp->read(_pb, _bl, _off);
 		}
 	}
 	int write(const char *_pb, uint32 _bl, int64 _off){
 		return -1;
 	}
 	int64 size()const{
-		if(!pfb){
+		if(!ptmp){
 			return fd.size();
 		}else{
-			return pfb->size();
+			return ptmp->size();
 		}
 	}
 	bool truncate(int64 _len = 0){
-		if(!pfb){
+		if(!ptmp){
 			return fd.truncate(_len);
 		}else{
-			return pfb->truncate(_len);
+			return ptmp->truncate(_len);
 		}
+	}
+	bool isTemp()const{
+		return ptmp != NULL;
+	}
+	TempBase* temp()const{
+		return ptmp;
 	}
 private:
 	FileDevice	fd;
-	FileBase	*pfb;
+	TempBase	*ptmp;
 };
 
 typedef shared::Pointer<File>	FilePointerT;
@@ -107,7 +114,8 @@ struct Utf8Controller;
 struct CreateTempCommandBase{
 	size_t			openflags;
 	uint64			size;
-	size_t			openidx;
+	size_t			fileid;
+	size_t			storageid;
 	
 	bool prepareIndex(
 		Utf8Controller &_rstore, size_t &_ridx, size_t &_rflags, ERROR_NS::error_code &_rerr
@@ -119,7 +127,7 @@ struct CreateTempCommandBase{
 protected:
 	CreateTempCommandBase(
 		uint64 _sz, size_t _openflags
-	):openflags(_openflags), size(_sz), openidx(-1){}
+	):openflags(_openflags), size(_sz), fileid(-1), storageid(-1){}
 private:
 };
 
@@ -159,7 +167,7 @@ struct Utf8Controller{
 	
 	Utf8Controller(const Utf8Configuration &_rfilecfg, const TempConfiguration &_rtempcfg);
 	~Utf8Controller();
-	void clear(File &_rf, const size_t _idx);
+	void clear(File &_rf, const size_t _idx, shared::UidVectorT &_erasevec);
 private:
 	friend struct Utf8OpenCommandBase;
 	friend struct CreateTempCommandBase;
@@ -179,6 +187,9 @@ private:
 		CreateTempCommandBase &_rcmd, FilePointerT &_rptr, size_t &_rflags, ERROR_NS::error_code &_rerr
 	);
 	void openFile(Utf8OpenCommandBase &_rcmd, FilePointerT &_rptr, ERROR_NS::error_code &_rerr);
+	void prepareOpenTemp(File &_rf, uint64 _sz, const size_t _fileid, const size_t _storeid);
+	void doCloseTemp(TempBase &_rtemp);
+	void doDeliverTemp(const size_t _storeid, shared::UidVectorT &_erasevec);
 private:
 	struct Data;
 	Data &d;

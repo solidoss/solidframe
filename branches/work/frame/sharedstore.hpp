@@ -26,6 +26,8 @@ namespace shared{
 
 struct PointerBase;
 
+typedef std::vector<UidT>					UidVectorT;
+
 class StoreBase: public Dynamic<StoreBase, Object>{
 public:
 	Manager& manager();
@@ -51,7 +53,7 @@ protected:
 		void	*pw;
 	};
 	
-	typedef std::vector<UidT>					UidVectorT;
+	typedef shared::UidVectorT					UidVectorT;
 	typedef std::vector<size_t>					SizeVectorT;
 	typedef std::vector<ExecWaitStub>			ExecWaitVectorT;
 	
@@ -65,11 +67,12 @@ protected:
 	void doExecuteCache();
 	void doCacheObjectIndex(const size_t _idx);
 	size_t atomicMaxCount()const;
+	UidVectorT& eraseVector();
 private:
 	friend struct PointerBase;
 	void erasePointer(UidT const & _ruid, const bool _isalive);
 	virtual bool doDecrementObjectUseCount(UidT const &_uid, const bool _isalive) = 0;
-	virtual void doExecute(UidVectorT const &_ruidvec, SizeVectorT &_ridxvec, ExecWaitVectorT &_rexewaitvec) = 0;
+	virtual bool doExecute(UidVectorT const &_ruidvec, SizeVectorT &_ridxvec, ExecWaitVectorT &_rexewaitvec) = 0;
 	virtual void doResizeObjectVector(const size_t _newsz) = 0;
 	/*virtual*/ void execute(ExecuteContext &_rexectx);
 private:
@@ -511,12 +514,13 @@ private:
 		}
 		return false;
 	}
-	/*virtual*/ void doExecute(
+	/*virtual*/ bool doExecute(
 		StoreBase::UidVectorT const &_ruidvec,
 		StoreBase::SizeVectorT &_ridxvec,
 		StoreBase::ExecWaitVectorT &_rexewaitvec
 	){
-		Mutex *pmtx = &this->mutex(_ruidvec.front().first);
+		Mutex	*pmtx = &this->mutex(_ruidvec.front().first);
+		bool	reschedule = false;
 		pmtx->lock();
 		for(StoreBase::UidVectorT::const_iterator it(_ruidvec.begin()); it != _ruidvec.end(); ++it){
 			Mutex *ptmpmtx = &this->mutex(it->first);
@@ -545,6 +549,8 @@ private:
 		
 		{
 			Locker<Mutex>	lock(this->mutex());
+			UidVectorT		&erasevec = StoreBase::eraseVector();
+			size_t			erasevecsz = erasevec.size();
 			if(_ridxvec.size()){
 				pmtx = &this->mutex(_ridxvec.front());
 				pmtx->lock();
@@ -558,14 +564,19 @@ private:
 					Stub	&rs = stubvec[*it];
 					if(rs.canClear()){
 						rs.clear();
-						controller().clear(rs.obj, *it);
+						controller().clear(rs.obj, *it, erasevec);
 						StoreBase::doCacheObjectIndex(*it);
 					}
 				}
 				pmtx->unlock();
 			}
 			StoreBase::doExecuteCache();
+			if(erasevec.size() != erasevecsz){
+				reschedule = true;
+				Object::notify(frame::S_SIG | frame::S_RAISE);
+			}
 		}
+		return reschedule;
 	}
 	void doExecute(const size_t _idx, StoreBase::ExecWaitVectorT &_rexewaitvec){
 		Stub		&rs = stubvec[_idx];

@@ -1,4 +1,4 @@
-// frame/file/filebase.hpp
+// frame/file/tempbase.hpp
 //
 // Copyright (c) 2010 Valentin Palade (vipalade @ gmail . com) 
 //
@@ -7,8 +7,8 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#ifndef SOLID_FRAME_FILE_FILE_BASE_HPP
-#define SOLID_FRAME_FILE_FILE_BASE_HPP
+#ifndef SOLID_FRAME_FILE_TEMP_BASE_HPP
+#define SOLID_FRAME_FILE_TEMP_BASE_HPP
 
 #include "system/common.hpp"
 
@@ -16,7 +16,16 @@ namespace solid{
 namespace frame{
 namespace file{
 
-struct FileBase{
+struct TempBase{
+	TempBase(
+		size_t _storageid,
+		size_t _id,
+		uint64 _size
+	):tempstorageid(_storageid), tempid(_id), tempsize(_size){}
+	virtual ~TempBase(){}
+	const size_t	tempstorageid;
+	const size_t	tempid;
+	const uint64	tempsize;
 	virtual void close() = 0;
 	virtual int read(char *_pb, uint32 _bl, int64 _off) = 0;
 	virtual int write(const char *_pb, uint32 _bl, int64 _off) = 0;

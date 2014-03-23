@@ -30,10 +30,33 @@ namespace file{
 typedef std::pair<size_t, size_t>	SizePairT;
 typedef std::vector<SizePairT>		SizePairVectorT;
 typedef std::vector<size_t>			SizeVectorT;
+typedef Stack<size_t>				SizeStackT;
 
 
 typedef std::deque<Utf8PathStub>	PathDequeT;
 
+struct TempWaitStub{
+	TempWaitStub(
+		UidT const &_uid = frame::invalid_uid(),
+		File *_pfile = NULL,
+		uint64 _size = 0,
+		size_t _storageid = -1
+	):objuid(_uid), pfile(pfile), size(_size), storageid(_storageid){}
+	
+	void clear(){
+		pfile = NULL;
+	}
+	bool empty()const{
+		return pfile == NULL;
+	}
+	
+	UidT		objuid;
+	File		*pfile;
+	uint64		size;
+	size_t		storageid;
+};
+
+typedef std::deque<TempWaitStub>	TempWaitDequeT;
 
 HASH_NS::hash<std::string>			stringhasher;
 
@@ -107,10 +130,60 @@ struct Utf8ConfigurationImpl{
 	StorageVectorT		storagevec;
 };
 
+struct TempConfigurationImpl{
+	struct Storage{
+		Storage():level(0), capacity(0), minsize(0), maxsize(0), waitcount(0), waitsizefirst(0), waitidxfirst(-1), usedsize(0), currentid(0){}
+		Storage(
+			TempConfiguration::Storage const &_cfg
+		):	path(_cfg.path), level(_cfg.level), capacity(_cfg.capacity),
+			minsize(_cfg.minsize), maxsize(_cfg.maxsize), waitcount(0), waitsizefirst(0), waitidxfirst(-1), usedsize(0), currentid(0)
+		{
+			if(maxsize > capacity || maxsize == 0){
+				maxsize = capacity;
+			}
+		}
+		bool canUse(const uint64 _sz, const size_t _flags)const{
+			return _flags & level && _sz <= maxsize && _sz >= minsize;
+		}
+		bool shouldUse(const uint64 _sz)const{
+			return waitcount == 0 && ((capacity - usedsize) >= _sz);
+		}
+		bool canDeliver()const{
+			return waitcount && ((capacity - usedsize) >= waitsizefirst) ;
+		}
+		std::string 	path;
+		uint32			level;
+		uint64			capacity;
+		uint64			minsize;
+		uint64			maxsize;
+		size_t			waitcount;
+		uint64			waitsizefirst;
+		size_t			waitidxfirst;
+		uint64			usedsize;
+		size_t			currentid;
+		SizeStackT		idcache;
+	};
+	
+	TempConfigurationImpl(){}
+	TempConfigurationImpl(TempConfiguration const &_cfg){
+		storagevec.reserve(_cfg.storagevec.size());
+		for(
+			TempConfiguration::StorageVectorT::const_iterator it = _cfg.storagevec.begin();
+			it != _cfg.storagevec.end();
+			++it
+		){
+			storagevec.push_back(Storage(*it));
+		}
+	}
+	typedef std::vector<Storage>		StorageVectorT;
+	
+	StorageVectorT		storagevec;
+};
+
 struct Utf8Controller::Data{
 	
 	Utf8ConfigurationImpl	filecfg;//NOTE: it is accessed without lock in openFile
-	TempConfiguration		tempcfg;
+	TempConfigurationImpl	tempcfg;
 	size_t					minglobalprefixsz;
 	size_t					maxglobalprefixsz;
 	SizePairVectorT			hashvec;
@@ -119,6 +192,9 @@ struct Utf8Controller::Data{
 	PathSetT				pathset;
 	IndexSetT				indexset;
 	PathStubStackT			pathcache;
+	
+	SizeVectorT				tempidxvec;
+	TempWaitDequeT			tempwaitdq;
 	
 	Data(
 		const Utf8Configuration &_rfilecfg,
@@ -279,6 +355,42 @@ void Utf8Controller::prepareTempIndex(
 			
 		when a request from waitqueue is delivered/popped, decrement the waitcount for all the storages that apply
 	*/
+	size_t		strgidx = -1;
+	for(
+		TempConfigurationImpl::StorageVectorT::const_iterator it(d.tempcfg.storagevec.begin());
+		it != d.tempcfg.storagevec.end();
+		++it
+	){
+		if(it->canUse(_rcmd.size, _rcmd.openflags)){
+			if(it->shouldUse(_rcmd.size)){
+				strgidx = it - d.tempcfg.storagevec.begin();
+				d.tempidxvec.clear();
+				break;
+			}else{
+				d.tempidxvec.push_back(it - d.tempcfg.storagevec.begin());
+			}
+		}
+	}
+	if(strgidx != static_cast<size_t>(-1)){
+		//found a storage with free space
+		TempConfigurationImpl::Storage	&rstrg(d.tempcfg.storagevec[strgidx]);
+		rstrg.usedsize += _rcmd.size;
+		size_t							fileid;
+		if(rstrg.idcache.size()){
+			fileid = rstrg.idcache.top();
+			rstrg.idcache.pop();
+		}else{
+			fileid = rstrg.currentid;
+			++rstrg.currentid;
+		}
+		_rcmd.fileid = fileid;
+		_rcmd.storageid = strgidx;
+	}else if(d.tempidxvec.size()){
+		
+	}else{
+		//no storage can fulfill the request
+		_rerr.assign(1, _rerr.category());
+	}
 }
 
 bool Utf8Controller::prepareTempPointer(
@@ -286,21 +398,124 @@ bool Utf8Controller::prepareTempPointer(
 ){
 	//if prepareTempIndex was able to find a free storage, we initiate *(_rptr) accordingly and return true
 	//otherwise we store/queue the pointer (eventually, in a stripped down version) and return false
+	if(_rcmd.storageid != static_cast<size_t>(-1)){
+		//found a valid storage
+		prepareOpenTemp(*_rptr, _rcmd.size, _rcmd.fileid, _rcmd.storageid);
+		return true;
+	}else{
+		cassert(d.tempidxvec.size());
+		
+		UidT	uid = _rptr.id();
+		File	*pf = _rptr.release();
+		
+		//must wait for a storage to free up
+		for(SizeVectorT::const_iterator it = d.tempidxvec.begin(); it != d.tempidxvec.end(); ++it){
+			TempConfigurationImpl::Storage	&rstrg(d.tempcfg.storagevec[*it]);
+			++rstrg.waitcount;
+			if(rstrg.waitcount == 1){
+				rstrg.waitsizefirst = _rcmd.size;
+				rstrg.waitidxfirst = uid.first;
+			}
+			d.tempwaitdq.push_back(TempWaitStub(uid, pf, _rcmd.size, *it));
+		}
+	}
 	return false;
 }
 
-void Utf8Controller::clear(File &_rf, const size_t _idx){
-	_rf.clear();
-	Utf8PathStub	path;
-	path.idx = _idx;
-	IndexSetT::iterator it = d.indexset.find(&path);
-	if(it != d.indexset.end()){
-		Utf8PathStub *ps = const_cast<Utf8PathStub *>(*it);
-		d.pathset.erase(ps);
-		d.indexset.erase(it);
-		d.pathcache.push(ps);
+void Utf8Controller::prepareOpenTemp(File &_rf, uint64 _sz, const size_t _fileid, const size_t _storeid){
+	TempConfigurationImpl::Storage	&rstrg(d.tempcfg.storagevec[_storeid]);
+	//only creates the file backend - does not open it
+}
+
+void Utf8Controller::clear(File &_rf, const size_t _idx, shared::UidVectorT &_erasevec){
+	if(!_rf.isTemp()){
+		_rf.clear();
+		Utf8PathStub	path;
+		path.idx = _idx;
+		IndexSetT::iterator it = d.indexset.find(&path);
+		if(it != d.indexset.end()){
+			Utf8PathStub *ps = const_cast<Utf8PathStub *>(*it);
+			d.pathset.erase(ps);
+			d.indexset.erase(it);
+			d.pathcache.push(ps);
+		}
+	}else{
+		TempBase						&temp = *_rf.temp();
+		TempConfigurationImpl::Storage	&rstrg(d.tempcfg.storagevec[temp.tempstorageid]);
+		rstrg.usedsize -= temp.tempsize;
+		rstrg.idcache.push(temp.tempid);
+		
+		doCloseTemp(temp);
+		_rf.clear();
+		
+		if(rstrg.canDeliver()){
+			doDeliverTemp(temp.tempstorageid, _erasevec);
+		}
 	}
 }
+
+void Utf8Controller::doCloseTemp(TempBase &_rtemp){
+	//erase the temp file for on-disk temps
+	TempConfigurationImpl::Storage	&rstrg(d.tempcfg.storagevec[_rtemp.tempstorageid]);
+}
+
+void Utf8Controller::doDeliverTemp(const size_t _storeid, shared::UidVectorT &_erasevec){
+	TempConfigurationImpl::Storage	&rstrg(d.tempcfg.storagevec[_storeid]);
+	TempWaitDequeT::iterator 		it = d.tempwaitdq.begin();
+	size_t							fileid;
+	
+	if(rstrg.idcache.size()){
+		fileid = rstrg.idcache.top();
+		rstrg.idcache.pop();
+	}else{
+		fileid = rstrg.currentid;
+		++rstrg.currentid;
+	}
+	
+	if(rstrg.waitsizefirst != 0){
+		for(; it != d.tempwaitdq.end(); ++it){
+			if(it->objuid.first == rstrg.waitidxfirst){
+				break;
+			}
+		}
+	}else{
+		//TODO: find the first wait for _storeid and go back while it->objuid.first == foundwaitidx
+	}
+	
+	prepareOpenTemp(*it->pfile, it->size, fileid, _storeid);
+	_erasevec.push_back(it->objuid);//this way the waiting callback will be called
+	
+	//clear the items in waitdq
+	size_t						waitidx = rstrg.waitidxfirst;
+	
+	for(; it != d.tempwaitdq.end(); ++it){
+		if(it->objuid.first == waitidx){
+			TempConfigurationImpl::Storage	&rstrg2(d.tempcfg.storagevec[it->storageid]);
+			--rstrg2.waitcount;
+			if(rstrg2.waitidxfirst == waitidx){
+				rstrg2.waitidxfirst = -1;
+				rstrg2.waitsizefirst = 0;
+			}
+			if(it == d.tempwaitdq.begin()){
+				it = d.tempwaitdq.erase(it);
+			}else{
+				it->clear();
+			}
+		}else if(it->empty() && it == d.tempwaitdq.begin()){
+			it = d.tempwaitdq.erase(it);
+		}else{
+			break;
+		}
+	}
+	//TODO:
+	/*
+	 * Need to loop until we deliver everything we can from rstrg
+	 * Need to do something about rstrg2
+	 * 		- need to reset the waitidxfirst to -1 and let it be computed on future close on rstrg2
+	 */
+	
+}
+
 
 }//namespace file
 }//namespace frame
