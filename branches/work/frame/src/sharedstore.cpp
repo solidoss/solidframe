@@ -29,12 +29,16 @@ typedef Stack<void*>						VoidPtrStackT;
 
 
 struct StoreBase::Data{
-	Data(Manager &_rm):rm(_rm), objmaxcnt(ATOMIC_VAR_INIT(0)){}
+	Data(Manager &_rm):rm(_rm), objmaxcnt(ATOMIC_VAR_INIT(0)){
+		pfillerasevec = &erasevec[0];
+		pconserasevec = &erasevec[1];
+	}
 	Manager				&rm;
 	AtomicSizeT			objmaxcnt;
 	MutexMutualStoreT	mtxstore;
 	UidVectorT			erasevec[2];
 	UidVectorT			*pfillerasevec;
+	UidVectorT			*pconserasevec;
 	SizeVectorT			cacheobjidxvec;
 	SizeStackT			cacheobjidxstk;
 	ExecWaitVectorT		exewaitvec;
@@ -63,9 +67,21 @@ size_t StoreBase::atomicMaxCount()const{
 	return d.objmaxcnt.load();
 }
 
-UidVectorT& StoreBase::eraseVector(){
+UidVectorT& StoreBase::fillEraseVector()const{
 	return *d.pfillerasevec;
 }
+
+UidVectorT& StoreBase::consumeEraseVector()const{
+	return *d.pconserasevec;
+}
+
+StoreBase::SizeVectorT& StoreBase::indexVector()const{
+	return d.cacheobjidxvec;
+}
+StoreBase::ExecWaitVectorT& StoreBase::executeWaitVector()const{
+	return d.exewaitvec;
+}
+
 
 namespace{
 
@@ -103,6 +119,7 @@ size_t StoreBase::doAllocateIndex(){
 		d.objmaxcnt.store(objcnt + 1024);
 		unlock_all(d.mtxstore, objcnt);
 		rv = objcnt;
+		d.mtxstore.safeAt(rv);
 	}
 	return rv;
 }
@@ -117,7 +134,9 @@ void StoreBase::erasePointer(UidT const & _ruid, const bool _isalive){
 		if(do_notify){
 			Locker<Mutex>	lock(mutex());
 			d.pfillerasevec->push_back(_ruid);
-			do_raise = Object::notify(frame::S_SIG | frame::S_RAISE);
+			if(d.pfillerasevec->size() == 1){
+				do_raise = Object::notify(frame::S_SIG | frame::S_RAISE);
+			}
 		}
 		if(do_raise){
 			manager().raise(*this);
@@ -126,7 +145,6 @@ void StoreBase::erasePointer(UidT const & _ruid, const bool _isalive){
 }
 
 /*virtual*/ void StoreBase::execute(ExecuteContext &_rexectx){
-	UidVectorT		*pconserasevec = NULL;
 	if(notified()){
 		Locker<Mutex>	lock(mutex());
 		ulong sm = grabSignalMask();
@@ -136,25 +154,24 @@ void StoreBase::erasePointer(UidT const & _ruid, const bool _isalive){
 		}
 		if(sm & frame::S_RAISE){
 			if(d.pfillerasevec->size()){
-				pconserasevec = d.pfillerasevec;
-				if(d.pfillerasevec == &d.erasevec[0]){
-					d.pfillerasevec = &d.erasevec[1];
-				}else{
-					d.pfillerasevec = &d.erasevec[0];
-				}
-				d.pfillerasevec->clear();
+				UidVectorT		*ptmp = d.pconserasevec;
+				d.pconserasevec = d.pfillerasevec;
+				d.pfillerasevec = ptmp;
 			}
+			doExecuteOnSignal(sm);
 		}
 	}
-	if(pconserasevec && pconserasevec->size()){//we have something 
-		if(doExecute(*pconserasevec, d.cacheobjidxvec, d.exewaitvec)){
-			_rexectx.reschedule();
-		}
+	
+	if(this->doExecute()){
+		_rexectx.reschedule();
 	}
+	d.pconserasevec->clear();
 }
+
 void StoreBase::doCacheObjectIndex(const size_t _idx){
 	d.cacheobjidxstk.push(_idx);
 }
+
 void StoreBase::doExecuteCache(){
 	for(ExecWaitVectorT::const_iterator it(d.exewaitvec.begin()); it != d.exewaitvec.end(); ++it){
 		d.cachewaitstk.push(it->pw);

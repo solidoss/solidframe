@@ -12,6 +12,7 @@
 
 #endif
 
+#include "system/atomic.hpp"
 #include "utility/binaryseeker.hpp"
 #include "utility/stack.hpp"
 
@@ -26,7 +27,7 @@ namespace file{
 //---------------------------------------------------------------------------
 //		Utf8Controller::Data
 //---------------------------------------------------------------------------
-
+typedef ATOMIC_NS::atomic<size_t>	AtomicSizeT;
 typedef std::pair<size_t, size_t>	SizePairT;
 typedef std::vector<SizePairT>		SizePairVectorT;
 typedef std::vector<size_t>			SizeVectorT;
@@ -278,7 +279,8 @@ Utf8Controller::~Utf8Controller(){
 }
 
 bool Utf8Controller::prepareFileIndex(
-	Utf8OpenCommandBase &_rcmd, size_t &_ridx, size_t &_rflags, ERROR_NS::error_code &_rerr
+	Utf8OpenCommandBase &_rcmd, shared::StoreBase::Accessor &/*_rsbacc*/,
+	size_t &_ridx, size_t &_rflags, ERROR_NS::error_code &_rerr
 ){
 	//find _rcmd.inpath file and set _rcmd.outpath
 	//if found set _ridx and return true
@@ -304,7 +306,8 @@ bool Utf8Controller::prepareFileIndex(
 }
 
 void Utf8Controller::prepareFilePointer(
-	Utf8OpenCommandBase &_rcmd, FilePointerT &_rptr, size_t &_rflags, ERROR_NS::error_code &_rerr
+	Utf8OpenCommandBase &_rcmd, shared::StoreBase::Accessor &/*_rsbacc*/,
+	FilePointerT &_rptr, size_t &_rflags, ERROR_NS::error_code &_rerr
 ){
 	//just do map[_rcmd.outpath] = _rptr.uid().first
 	Utf8PathStub	*ppath;
@@ -322,9 +325,6 @@ void Utf8Controller::prepareFilePointer(
 }
 
 void Utf8Controller::openFile(Utf8OpenCommandBase &_rcmd, FilePointerT &_rptr, ERROR_NS::error_code &_rerr){
-	//use _rcmd.outpath to acctually open the file
-	//set _rerr accordingly
-	//d.filecfg is accessed without lock!!
 	Utf8ConfigurationImpl::Storage const	&rstrg = d.filecfg.storagevec[_rcmd.outpath.storeidx];
 	std::string								path;
 	
@@ -338,87 +338,76 @@ void Utf8Controller::openFile(Utf8OpenCommandBase &_rcmd, FilePointerT &_rptr, E
 }
 
 void Utf8Controller::prepareTempIndex(
-	CreateTempCommandBase &_rcmd, size_t &_rflags, ERROR_NS::error_code &_rerr
+	CreateTempCommandBase &_rcmd, shared::StoreBase::Accessor &_rsbacc,
+	size_t &_rflags, ERROR_NS::error_code &_rerr
 ){
-	/*
-	if the requested size is greater than what we can offer set _rerr and return
-	if we can deliver right now - store in cmd the information about the storage where we have available
-		space and return
-	IDEA:
-		Keep for every storage an value waitcount
-		if a requested temp could not be delivered right now, increment the waitcount for every storage that applies
-			(based on _createflags and on the requested size - the requested size shoud be < what the storage can offer)
-			push the FilePointer in a waitqueue
-		
-		for a new request, although there are waiting requests, we see if we can deliver from a storage with waitcount == 0
-			and enough free space
-			
-		when a request from waitqueue is delivered/popped, decrement the waitcount for all the storages that apply
-	*/
-	size_t		strgidx = -1;
-	for(
-		TempConfigurationImpl::StorageVectorT::const_iterator it(d.tempcfg.storagevec.begin());
-		it != d.tempcfg.storagevec.end();
-		++it
-	){
-		if(it->canUse(_rcmd.size, _rcmd.openflags)){
-			if(it->shouldUse(_rcmd.size)){
-				strgidx = it - d.tempcfg.storagevec.begin();
-				d.tempidxvec.clear();
-				break;
-			}else{
-				d.tempidxvec.push_back(it - d.tempcfg.storagevec.begin());
-			}
-		}
-	}
-	if(strgidx != static_cast<size_t>(-1)){
-		//found a storage with free space
-		TempConfigurationImpl::Storage	&rstrg(d.tempcfg.storagevec[strgidx]);
-		rstrg.usedsize += _rcmd.size;
-		size_t							fileid;
-		if(rstrg.idcache.size()){
-			fileid = rstrg.idcache.top();
-			rstrg.idcache.pop();
-		}else{
-			fileid = rstrg.currentid;
-			++rstrg.currentid;
-		}
-		_rcmd.fileid = fileid;
-		_rcmd.storageid = strgidx;
-	}else if(d.tempidxvec.size()){
-		
-	}else{
-		//no storage can fulfill the request
-		_rerr.assign(1, _rerr.category());
-	}
+//	DO NOTHING
+// 	size_t		strgidx = -1;
+// 	
+// 	d.tempidxvec.clear();
+// 	
+// 	for(
+// 		TempConfigurationImpl::StorageVectorT::const_iterator it(d.tempcfg.storagevec.begin());
+// 		it != d.tempcfg.storagevec.end();
+// 		++it
+// 	){
+// 		if(it->canUse(_rcmd.size, _rcmd.openflags)){
+// 			if(it->shouldUse(_rcmd.size)){
+// 				strgidx = it - d.tempcfg.storagevec.begin();
+// 				d.tempidxvec.clear();
+// 				break;
+// 			}else{
+// 				d.tempidxvec.push_back(it - d.tempcfg.storagevec.begin());
+// 			}
+// 		}
+// 	}
+// 	if(strgidx != static_cast<size_t>(-1)){
+// 		//found a storage with free space
+// 		TempConfigurationImpl::Storage	&rstrg(d.tempcfg.storagevec[strgidx]);
+// 		rstrg.usedsize += _rcmd.size;
+// 		size_t							fileid;
+// 		if(rstrg.idcache.size()){
+// 			fileid = rstrg.idcache.top();
+// 			rstrg.idcache.pop();
+// 		}else{
+// 			fileid = rstrg.currentid;
+// 			++rstrg.currentid;
+// 		}
+// 		_rcmd.fileid = fileid;
+// 		_rcmd.storageid = strgidx;
+// 	}else if(d.tempidxvec.size()){
+// 		
+// 	}else{
+// 		//no storage can fulfill the request
+// 		_rerr.assign(1, _rerr.category());
+// 	}
 }
 
 bool Utf8Controller::prepareTempPointer(
-	CreateTempCommandBase &_rcmd, FilePointerT &_rptr, size_t &_rflags, ERROR_NS::error_code &_rerr
+	CreateTempCommandBase &_rcmd, shared::StoreBase::Accessor &_rsbacc,
+	FilePointerT &_rptr, size_t &_rflags, ERROR_NS::error_code &_rerr
 ){
-	//if prepareTempIndex was able to find a free storage, we initiate *(_rptr) accordingly and return true
-	//otherwise we store/queue the pointer (eventually, in a stripped down version) and return false
-	if(_rcmd.storageid != static_cast<size_t>(-1)){
-		//found a valid storage
-		prepareOpenTemp(*_rptr, _rcmd.size, _rcmd.fileid, _rcmd.storageid);
-		return true;
-	}else{
-		cassert(d.tempidxvec.size());
-		
-		UidT	uid = _rptr.id();
-		File	*pf = _rptr.release();
-		
-		//must wait for a storage to free up
-		for(SizeVectorT::const_iterator it = d.tempidxvec.begin(); it != d.tempidxvec.end(); ++it){
-			TempConfigurationImpl::Storage	&rstrg(d.tempcfg.storagevec[*it]);
-			++rstrg.waitcount;
-			if(rstrg.waitcount == 1){
-				rstrg.waitsizefirst = _rcmd.size;
-				rstrg.waitidxfirst = uid.first;
-			}
-			d.tempwaitdq.push_back(TempWaitStub(uid, pf, _rcmd.size, *it));
-		}
-	}
+// 	if(_rcmd.storageid != static_cast<size_t>(-1)){
+// 		//found a valid storage
+// 		prepareOpenTemp(*_rptr, _rcmd.size, _rcmd.fileid, _rcmd.storageid);
+// 		return true;
+// 	}else{
+// 		cassert(d.tempidxvec.size());
+// 		
+// 		UidT	uid = _rptr.id();
+// 		File	*pf = _rptr.release();
+// 		
+// 		//must wait for a storage to free up
+// 		for(SizeVectorT::const_iterator it = d.tempidxvec.begin(); it != d.tempidxvec.end(); ++it){
+// 			TempConfigurationImpl::Storage	&rstrg(d.tempcfg.storagevec[*it]);
+// 			++rstrg.waitcount;
+// 			if(rstrg.waitcount == 1){
+// 				rstrg.waitsizefirst = _rcmd.size;
+// 				rstrg.waitidxfirst = uid.first;
+// 			}
+// 			d.tempwaitdq.push_back(TempWaitStub(uid, pf, _rcmd.size, *it));
+// 		}
+// 	}
 	return false;
 }
 
@@ -427,10 +416,19 @@ void Utf8Controller::prepareOpenTemp(File &_rf, uint64 _sz, const size_t _fileid
 	//only creates the file backend - does not open it
 }
 
-void Utf8Controller::clear(File &_rf, const size_t _idx, shared::UidVectorT &_erasevec){
+
+bool Utf8Controller::executeBeforeErase(shared::StoreBase::Accessor &_rsbacc){
+	return false;
+}
+bool Utf8Controller::executeOnSignal(shared::StoreBase::Accessor &_rsbacc, ulong _sm){
+	return false;
+}
+
+void Utf8Controller::clear(shared::StoreBase::Accessor &_rsbacc, File &_rf, const size_t _idx){
+/*
 	if(!_rf.isTemp()){
 		_rf.clear();
-		Utf8PathStub	path;
+		Utf8PathStub		path;
 		path.idx = _idx;
 		IndexSetT::iterator it = d.indexset.find(&path);
 		if(it != d.indexset.end()){
@@ -452,6 +450,7 @@ void Utf8Controller::clear(File &_rf, const size_t _idx, shared::UidVectorT &_er
 			doDeliverTemp(temp.tempstorageid, _erasevec);
 		}
 	}
+*/
 }
 
 void Utf8Controller::doCloseTemp(TempBase &_rtemp){

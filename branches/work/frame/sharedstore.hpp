@@ -28,9 +28,29 @@ struct PointerBase;
 
 typedef std::vector<UidT>					UidVectorT;
 
+
+
 class StoreBase: public Dynamic<StoreBase, Object>{
 public:
+	typedef shared::UidVectorT					UidVectorT;
+	struct Accessor{
+		StoreBase& store()const{
+			return rs;
+		}
+		Mutex& mutex(){
+			return rs.mutex();
+		}
+		UidVectorT& consumeEraseVector()const{
+			return rs.consumeEraseVector();
+		}
+	private:
+		friend class StoreBase;
+		StoreBase	&rs;
+		Accessor(StoreBase &_rs):rs(_rs){}
+		Accessor& operator=(const Accessor&);
+	};
 	Manager& manager();
+	
 	virtual ~StoreBase();
 protected:
 	enum WaitKind{
@@ -53,7 +73,6 @@ protected:
 		void	*pw;
 	};
 	
-	typedef shared::UidVectorT					UidVectorT;
 	typedef std::vector<size_t>					SizeVectorT;
 	typedef std::vector<ExecWaitStub>			ExecWaitVectorT;
 	
@@ -67,13 +86,20 @@ protected:
 	void doExecuteCache();
 	void doCacheObjectIndex(const size_t _idx);
 	size_t atomicMaxCount()const;
-	UidVectorT& eraseVector();
+	
+	UidVectorT& consumeEraseVector()const;
+	UidVectorT& fillEraseVector()const;
+	
+	SizeVectorT& indexVector()const;
+	ExecWaitVectorT& executeWaitVector()const;
+	Accessor accessor();
 private:
 	friend struct PointerBase;
 	void erasePointer(UidT const & _ruid, const bool _isalive);
 	virtual bool doDecrementObjectUseCount(UidT const &_uid, const bool _isalive) = 0;
-	virtual bool doExecute(UidVectorT const &_ruidvec, SizeVectorT &_ridxvec, ExecWaitVectorT &_rexewaitvec) = 0;
+	virtual bool doExecute() = 0;
 	virtual void doResizeObjectVector(const size_t _newsz) = 0;
+	virtual void doExecuteOnSignal(ulong _sm) = 0;
 	/*virtual*/ void execute(ExecuteContext &_rexectx);
 private:
 	struct Data;
@@ -300,9 +326,10 @@ public:
 		PointerT				ptr(this);
 		size_t					idx = -1;
 		ERROR_NS::error_code	err;
+		StoreBase::Accessor		acc = StoreBase::accessor();
 		{
 			Locker<Mutex>	lock(this->mutex());
-			bool			found = _f.prepareIndex(controller(), idx, _flags, err);
+			bool			found = _f.prepareIndex(controller(), acc, idx, _flags, err);
 			if(!found && !err){
 				//an index was not found - need to allocate one
 				idx = this->doAllocateIndex();
@@ -312,7 +339,7 @@ public:
 				ptr = doTryGetReinit(idx);
 				if(ptr.empty()){
 					doPushWait(idx, _f, StoreBase::ReinitWaitE);
-				}else if(!_f.preparePointer(controller(), ptr, _flags, err)){
+				}else if(!_f.preparePointer(controller(), acc, ptr, _flags, err)){
 					cassert(ptr.empty());
 					doPushWait(idx, _f, StoreBase::ReinitWaitE);
 				}
@@ -514,15 +541,26 @@ private:
 		}
 		return false;
 	}
-	/*virtual*/ bool doExecute(
-		StoreBase::UidVectorT const &_ruidvec,
-		StoreBase::SizeVectorT &_ridxvec,
-		StoreBase::ExecWaitVectorT &_rexewaitvec
-	){
-		Mutex	*pmtx = &this->mutex(_ruidvec.front().first);
-		bool	reschedule = false;
+	
+	/*virtual*/ void doExecuteOnSignal(ulong _sm){
+		StoreBase::Accessor			acc = StoreBase::accessor();
+		controller().executeOnSignal(acc, _sm);
+	}
+	
+	/*virtual*/ bool doExecute(){
+		StoreBase::Accessor			acc = StoreBase::accessor();
+		bool						must_reschedule = controller().executeBeforeErase(acc);
+		
+		StoreBase::UidVectorT const &reraseuidvec = StoreBase::consumeEraseVector();
+		StoreBase::SizeVectorT 		&rcacheidxvec = StoreBase::indexVector();
+		StoreBase::ExecWaitVectorT 	&rexewaitvec = StoreBase::executeWaitVector();
+		
+		if(reraseuidvec.empty()){
+			return must_reschedule;
+		}
+		Mutex						*pmtx = &this->mutex(reraseuidvec.front().first);
 		pmtx->lock();
-		for(StoreBase::UidVectorT::const_iterator it(_ruidvec.begin()); it != _ruidvec.end(); ++it){
+		for(StoreBase::UidVectorT::const_iterator it(reraseuidvec.begin()); it != reraseuidvec.end(); ++it){
 			Mutex *ptmpmtx = &this->mutex(it->first);
 			if(pmtx != ptmpmtx){
 				pmtx->unlock();
@@ -532,15 +570,15 @@ private:
 			Stub	&rs = stubvec[it->first];
 			if(it->second == rs.uid){
 				if(rs.canClear()){
-					_ridxvec.push_back(it->first);
+					rcacheidxvec.push_back(it->first);
 				}else{
-					doExecute(it->first, _rexewaitvec);
+					doExecuteErase(it->first);
 				}
 			}
 		}
 		pmtx->unlock();
 		//now execute "waits"
-		for(StoreBase::ExecWaitVectorT::const_iterator it(_rexewaitvec.begin()); it != _rexewaitvec.end(); ++it){
+		for(StoreBase::ExecWaitVectorT::const_iterator it(rexewaitvec.begin()); it != rexewaitvec.end(); ++it){
 			PointerT				ptr(reinterpret_cast<T*>(it->pt), this, it->uid);
 			WaitStub				&rw = *reinterpret_cast<WaitStub*>(it->pw);
 			ERROR_NS::error_code	err;
@@ -549,13 +587,13 @@ private:
 		
 		{
 			Locker<Mutex>	lock(this->mutex());
-			UidVectorT		&erasevec = StoreBase::eraseVector();
+			UidVectorT		&erasevec = StoreBase::fillEraseVector();
 			size_t			erasevecsz = erasevec.size();
-			if(_ridxvec.size()){
-				pmtx = &this->mutex(_ridxvec.front());
+			if(rcacheidxvec.size()){
+				pmtx = &this->mutex(rcacheidxvec.front());
 				pmtx->lock();
-				for(StoreBase::SizeVectorT::const_iterator it(_ridxvec.begin()); it != _ridxvec.end(); ++it){
-					Mutex *ptmpmtx = &this->mutex(*it);
+				for(StoreBase::SizeVectorT::const_iterator it(rcacheidxvec.begin()); it != rcacheidxvec.end(); ++it){
+					Mutex	*ptmpmtx = &this->mutex(*it);
 					if(pmtx != ptmpmtx){
 						pmtx->unlock();
 						pmtx = ptmpmtx;
@@ -564,7 +602,7 @@ private:
 					Stub	&rs = stubvec[*it];
 					if(rs.canClear()){
 						rs.clear();
-						controller().clear(rs.obj, *it, erasevec);
+						controller().clear(acc, rs.obj, *it);
 						StoreBase::doCacheObjectIndex(*it);
 					}
 				}
@@ -572,15 +610,17 @@ private:
 			}
 			StoreBase::doExecuteCache();
 			if(erasevec.size() != erasevecsz){
-				reschedule = true;
+				must_reschedule = true;
 				Object::notify(frame::S_SIG | frame::S_RAISE);
 			}
 		}
-		return reschedule;
+		return must_reschedule;
 	}
-	void doExecute(const size_t _idx, StoreBase::ExecWaitVectorT &_rexewaitvec){
-		Stub		&rs = stubvec[_idx];
-		WaitStub	*pwait = rs.pwaitfirst;
+	
+	void doExecuteErase(const size_t _idx){
+		Stub						&rs = stubvec[_idx];
+		WaitStub					*pwait = rs.pwaitfirst;
+		StoreBase::ExecWaitVectorT 	&rexewaitvec = StoreBase::executeWaitVector();
 		while(pwait){
 			switch(pwait->kind){
 				case StoreBase::UniqueWaitE:
@@ -613,7 +653,7 @@ private:
 					return;
 			}
 			++rs.usecnt;
-			_rexewaitvec.push_back(StoreBase::ExecWaitStub(UidT(_idx, rs.uid), &rs.obj, pwait));
+			rexewaitvec.push_back(StoreBase::ExecWaitStub(UidT(_idx, rs.uid), &rs.obj, pwait));
 			if(pwait != rs.pwaitlast){
 				rs.pwaitfirst = pwait->pnext;
 			}else{
@@ -630,6 +670,9 @@ private:
 
 inline void StoreBase::pointerId(PointerBase &_rpb, UidT const & _ruid){
 	_rpb.uid = _ruid;
+}
+inline StoreBase::Accessor StoreBase::accessor(){
+	return Accessor(*this);
 }
 }//namespace shared
 }//namespace frame
