@@ -45,6 +45,13 @@ struct StoreBase::Data{
 	VoidPtrStackT		cachewaitstk;
 };
 
+
+void StoreBase::Accessor::notify(ulong _sm){
+	if(store().notify(_sm)){
+		store().manager().raise(store());
+	}
+}
+
 StoreBase::StoreBase(Manager &_rm):d(*(new Data(_rm))){}
 
 /*virtual*/ StoreBase::~StoreBase(){
@@ -125,12 +132,13 @@ size_t StoreBase::doAllocateIndex(){
 }
 void StoreBase::erasePointer(UidT const & _ruid, const bool _isalive){
 	if(_ruid.first < d.objmaxcnt.load()){
-		bool	do_notify = false;
+		bool	do_notify = true;
 		{
 			Locker<Mutex>	lock(mutex(_ruid.first));
 			do_notify = doDecrementObjectUseCount(_ruid, _isalive);
 		}
-		bool do_raise = false;
+		bool	do_raise = false;
+		
 		if(do_notify){
 			Locker<Mutex>	lock(mutex());
 			d.pfillerasevec->push_back(_ruid);
@@ -138,6 +146,7 @@ void StoreBase::erasePointer(UidT const & _ruid, const bool _isalive){
 				do_raise = Object::notify(frame::S_SIG | frame::S_RAISE);
 			}
 		}
+		
 		if(do_raise){
 			manager().raise(*this);
 		}
@@ -154,9 +163,7 @@ void StoreBase::erasePointer(UidT const & _ruid, const bool _isalive){
 		}
 		if(sm & frame::S_RAISE){
 			if(d.pfillerasevec->size()){
-				UidVectorT		*ptmp = d.pconserasevec;
-				d.pconserasevec = d.pfillerasevec;
-				d.pfillerasevec = ptmp;
+				solid::exchange(d.pconserasevec, d.pfillerasevec);
 			}
 			doExecuteOnSignal(sm);
 		}

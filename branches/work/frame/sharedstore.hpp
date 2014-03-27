@@ -43,6 +43,7 @@ public:
 		UidVectorT& consumeEraseVector()const{
 			return rs.consumeEraseVector();
 		}
+		void notify(ulong _sm);
 	private:
 		friend class StoreBase;
 		StoreBase	&rs;
@@ -329,7 +330,7 @@ public:
 		StoreBase::Accessor		acc = StoreBase::accessor();
 		{
 			Locker<Mutex>	lock(this->mutex());
-			bool			found = _f.prepareIndex(controller(), acc, idx, _flags, err);
+			bool			found = controller().prepareIndex(acc, _f, idx, _flags, err);
 			if(!found && !err){
 				//an index was not found - need to allocate one
 				idx = this->doAllocateIndex();
@@ -339,7 +340,7 @@ public:
 				ptr = doTryGetReinit(idx);
 				if(ptr.empty()){
 					doPushWait(idx, _f, StoreBase::ReinitWaitE);
-				}else if(!_f.preparePointer(controller(), acc, ptr, _flags, err)){
+				}else if(!controller().preparePointer(acc, _f, ptr, _flags, err)){
 					cassert(ptr.empty());
 					doPushWait(idx, _f, StoreBase::ReinitWaitE);
 				}
@@ -549,11 +550,11 @@ private:
 	
 	/*virtual*/ bool doExecute(){
 		StoreBase::Accessor			acc = StoreBase::accessor();
-		bool						must_reschedule = controller().executeBeforeErase(acc);
-		
 		StoreBase::UidVectorT const &reraseuidvec = StoreBase::consumeEraseVector();
 		StoreBase::SizeVectorT 		&rcacheidxvec = StoreBase::indexVector();
 		StoreBase::ExecWaitVectorT 	&rexewaitvec = StoreBase::executeWaitVector();
+		const size_t				eraseuidvecsize = reraseuidvec.size();
+		bool						must_reschedule = controller().executeBeforeErase(acc);
 		
 		if(reraseuidvec.empty()){
 			return must_reschedule;
@@ -569,6 +570,10 @@ private:
 			}
 			Stub	&rs = stubvec[it->first];
 			if(it->second == rs.uid){
+				if((it - reraseuidvec.begin()) >= eraseuidvecsize){
+					//its an uid added by executeBeforeErase
+					--rs.usecnt;
+				}
 				if(rs.canClear()){
 					rcacheidxvec.push_back(it->first);
 				}else{
@@ -587,8 +592,6 @@ private:
 		
 		{
 			Locker<Mutex>	lock(this->mutex());
-			UidVectorT		&erasevec = StoreBase::fillEraseVector();
-			size_t			erasevecsz = erasevec.size();
 			if(rcacheidxvec.size()){
 				pmtx = &this->mutex(rcacheidxvec.front());
 				pmtx->lock();
@@ -602,17 +605,13 @@ private:
 					Stub	&rs = stubvec[*it];
 					if(rs.canClear()){
 						rs.clear();
-						controller().clear(acc, rs.obj, *it);
+						must_reschedule = controller().clear(acc, rs.obj, *it) || must_reschedule;
 						StoreBase::doCacheObjectIndex(*it);
 					}
 				}
 				pmtx->unlock();
 			}
 			StoreBase::doExecuteCache();
-			if(erasevec.size() != erasevecsz){
-				must_reschedule = true;
-				Object::notify(frame::S_SIG | frame::S_RAISE);
-			}
 		}
 		return must_reschedule;
 	}
