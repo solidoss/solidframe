@@ -11,22 +11,29 @@
 #define SOLID_FRAME_FILE_TEMP_BASE_HPP
 
 #include "system/common.hpp"
+#include "system/error.hpp"
 
 namespace solid{
 namespace frame{
 namespace file{
 
 struct TempBase{
+	const size_t	tempstorageid;
+	const size_t	tempid;
+	const uint64	tempsize;
+	
 	TempBase(
 		size_t _storageid,
 		size_t _id,
 		uint64 _size
 	):tempstorageid(_storageid), tempid(_id), tempsize(_size){}
-	virtual ~TempBase(){}
-	const size_t	tempstorageid;
-	const size_t	tempid;
-	const uint64	tempsize;
+	
+	virtual ~TempBase();
+	
+	virtual bool open(const char *_path, const size_t _openflags, ERROR_NS::error_code &_rerr) = 0;
+	
 	virtual void close() = 0;
+	
 	virtual int read(char *_pb, uint32 _bl, int64 _off) = 0;
 	virtual int write(const char *_pb, uint32 _bl, int64 _off) = 0;
 	virtual int64 size()const = 0;

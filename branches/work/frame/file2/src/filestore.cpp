@@ -13,11 +13,15 @@
 #endif
 
 #include "system/atomic.hpp"
+#include "system/directory.hpp"
 #include "utility/binaryseeker.hpp"
 #include "utility/stack.hpp"
 
+#include "filetemp.hpp"
+
 #include <algorithm>
 #include <unordered_set>
+#include <cstdio>
 
 
 namespace solid{
@@ -464,8 +468,10 @@ bool Utf8Controller::clear(shared::StoreBase::Accessor &_rsbacc, File &_rf, cons
 }
 
 void Utf8Controller::doPrepareOpenTemp(File &_rf, uint64 _sz, const size_t _storeid){
+	
 	TempConfigurationImpl::Storage	&rstrg(d.tempcfg.storagevec[_storeid]);
 	size_t							fileid;
+	
 	if(rstrg.idcache.size()){
 		fileid = rstrg.idcache.top();
 		rstrg.idcache.pop();
@@ -476,12 +482,18 @@ void Utf8Controller::doPrepareOpenTemp(File &_rf, uint64 _sz, const size_t _stor
 	rstrg.usedsize += _sz;
 	
 	//only creates the file backend - does not open it:
+	if((rstrg.level & MemoryLevelFlag) && rstrg.path.empty()){
+		_rf.ptmp = new TempMemory(_storeid, fileid, _sz);
+	}else{
+		_rf.ptmp = new TempFile(_storeid, fileid, _sz);
+	}
 	
 }
 
 void Utf8Controller::openTemp(CreateTempCommandBase &_rcmd, FilePointerT &_rptr, ERROR_NS::error_code &_rerr){
 	if(_rptr->isTemp()){
-		
+		TempConfigurationImpl::Storage	&rstrg(d.tempcfg.storagevec[_rptr->temp()->tempstorageid]);
+		_rptr->temp()->open(rstrg.path.c_str(), _rcmd.openflags, _rerr);
 	}else{
 		_rerr.assign(1, _rerr.category());
 	}
@@ -545,6 +557,136 @@ void Utf8Controller::doDeliverTemp(shared::StoreBase::Accessor &_rsbacc, const s
 	}
 }
 
+//--------------------------------------------------------------------------
+//		TempBase
+//--------------------------------------------------------------------------
+
+/*virtual*/ TempBase::~TempBase(){
+}
+
+//--------------------------------------------------------------------------
+//		TempFile
+//--------------------------------------------------------------------------
+TempFile::TempFile(
+	size_t _storageid,
+	size_t _id,
+	uint64 _size
+):TempBase(_storageid, _id, _size){}
+
+/*virtual*/ TempFile::~TempFile(){
+	fd.close();
+}
+
+namespace{
+
+bool prepare_temp_file_path(std::string &_rpath, const char *_prefix, size_t _id){
+	_rpath.assign(_prefix);
+	if(_rpath.empty()) return false;
+	
+	if(_rpath.back() != '/'){
+		_rpath += '/';
+	}
+	
+	char	fldrbuf[128];
+	char	filebuf[128];
+	
+	if(sizeof(_id) == sizeof(uint64)){
+		size_t fldrid = _id >> 32;
+		size_t fileid = _id & 0xffffffffUL;
+		std::sprintf(fldrbuf, "%8.8X", fldrid);
+		std::sprintf(filebuf, "/%8.8x.tmp", fileid);
+	}else{
+		const size_t fldrid = _id >> 16;
+		const size_t fileid = _id & 0xffffUL;
+		std::sprintf(fldrbuf, "%4.4X", fldrid);
+		std::sprintf(filebuf, "/%4.4x.tmp", fileid);
+	}
+	_rpath.append(fldrbuf);
+	Directory::create(_rpath.c_str());
+	_rpath.append(filebuf);
+	return true;
+}
+
+}//namespace
+
+/*virtual*/ bool TempFile::open(const char *_path, const size_t _openflags, ERROR_NS::error_code &_rerr){
+	
+	std::string path;
+	
+	prepare_temp_file_path(path, _path, tempid);
+	
+	bool rv = fd.open(path.c_str(), FileDevice::CreateE | FileDevice::TruncateE | FileDevice::ReadWriteE);
+	if(!rv){
+		_rerr.assign(1, _rerr.category());
+	}
+	return rv;
+}
+
+/*virtual*/ void TempFile::close(){
+	fd.close();
+}
+/*virtual*/ int TempFile::read(char *_pb, uint32 _bl, int64 _off){
+	const int64 endoff = _off + _bl;
+	if(endoff > tempsize){
+		if((endoff - tempsize) <= _bl){
+			_bl = static_cast<uint32>(endoff - tempsize);
+		}else{
+			return -1;
+		}
+	}
+	return fd.read(_pb, _bl, _off);
+}
+/*virtual*/ int TempFile::write(const char *_pb, uint32 _bl, int64 _off){
+	const int64 endoff = _off + _bl;
+	if(endoff > tempsize){
+		if((endoff - tempsize) <= _bl){
+			_bl = static_cast<uint32>(endoff - tempsize);
+		}else{
+			errno = ENOSPC;
+			return -1;
+		}
+	}
+	return fd.write(_pb, _bl, _off);
+}
+/*virtual*/ int64 TempFile::size()const{
+	return fd.size();
+}
+
+/*virtual*/ bool TempFile::truncate(int64 _len){
+	return fd.truncate(_len);
+}
+
+//--------------------------------------------------------------------------
+//		TempMemory
+//--------------------------------------------------------------------------
+TempMemory::TempMemory(
+	size_t _storageid,
+	size_t _id,
+	uint64 _size
+):TempBase(_storageid, _id, _size), mf(_size){}
+
+/*virtual*/ TempMemory::~TempMemory(){
+}
+
+/*virtual*/ bool TempMemory::open(const char *_path, const size_t _openflags, ERROR_NS::error_code &_rerr){
+	mf.truncate(0);
+	return true;
+}
+/*virtual*/ void TempMemory::close(){
+}
+/*virtual*/ int TempMemory::read(char *_pb, uint32 _bl, int64 _off){
+	return mf.read(_pb, _bl, _off);
+}
+/*virtual*/ int TempMemory::write(const char *_pb, uint32 _bl, int64 _off){
+	return mf.write(_pb, _bl, _off);
+}
+/*virtual*/ int64 TempMemory::size()const{
+	return mf.size();
+}
+
+/*virtual*/ bool TempMemory::truncate(int64 _len){
+	return mf.truncate(_len) == 0;
+}
 
 }//namespace file
 }//namespace frame

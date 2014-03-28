@@ -47,6 +47,8 @@ struct TempConfiguration{
 	StorageVectorT		storagevec;
 };
 
+struct Utf8Controller;
+
 struct File{
 	void clear(){
 		fd.close();
@@ -56,6 +58,9 @@ struct File{
 	bool open(const char *_path, const size_t _openflags){
 		return fd.open(_path, _openflags);
 	}
+	
+	//We only offer offset based io because in case of shared use
+	//the file offset will be kept by streams
 	
 	int read(char *_pb, uint32 _bl, int64 _off){
 		if(!ptmp){
@@ -81,6 +86,13 @@ struct File{
 			return ptmp->truncate(_len);
 		}
 	}
+	int64 capacity()const{
+		if(!ptmp){
+			return -1;
+		}else{
+			return ptmp->tempsize;
+		}
+	}
 	bool isTemp()const{
 		return ptmp != NULL;
 	}
@@ -88,6 +100,7 @@ struct File{
 		return ptmp;
 	}
 private:
+	friend struct Utf8Controller;
 	FileDevice	fd;
 	TempBase	*ptmp;
 };
@@ -108,8 +121,6 @@ struct OpenCommand: Base{
 		cmd(_rstore, _rptr, err);
 	}
 };
-
-struct Utf8Controller;
 
 struct CreateTempCommandBase{
 	size_t			openflags;
@@ -265,8 +276,8 @@ inline void Utf8OpenCommandBase::openFile(Utf8Controller &_rstore, FilePointerT 
 	_rstore.openFile(*this, _rptr, _rerr);
 }
 
-inline void Utf8OpenCommandBase::openTemp(Utf8Controller &_rstore, FilePointerT &_rptr, ERROR_NS::error_code &_rerr){
-	_rstore.openTemp(this, _rptr, _rerr);
+inline void CreateTempCommandBase::openTemp(Utf8Controller &_rstore, FilePointerT &_rptr, ERROR_NS::error_code &_rerr){
+	_rstore.openTemp(*this, _rptr, _rerr);
 }
 
 }//namespace file
