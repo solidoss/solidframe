@@ -2,7 +2,7 @@ set(Sources
 	src/filestore.cpp
 )
 set(Headers
-	filebase.hpp
+	tempbase.hpp
 	filestore.hpp
 )
 
