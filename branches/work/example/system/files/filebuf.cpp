@@ -3,6 +3,7 @@
 #include <ostream>
 #include <iostream>
 #include <string>
+#include <cstring>
 #include "system/debug.hpp"
 #include "system/filedevice.hpp"
 
@@ -16,7 +17,7 @@ public:
 		FileDevice &_rdev,
 		char* _rbuf = NULL, size_t _rbufcp = 0,
 		char* _wbuf = NULL, size_t _wbufcp = 0
-	):dev(_rdev), rbuf(_rbuf), rbufcp(_rbufcp), wbuf(_wbuf), wbufcp(_wbufcp), roff(0), woff(0){
+	):dev(_rdev), rbuf(_rbuf), rbufcp(_rbufcp), rbufsz(0), wbuf(_wbuf), wbufcp(_wbufcp), wbufsz(0), roff(0), woff(0){
 		if(_rbufcp){
 			char *end = _rbuf + _rbufcp;
 			setg(end, end, end);
@@ -29,7 +30,7 @@ public:
 	FileBuf(
 		char* _rbuf = NULL, size_t _rbufcp = 0,
 		char* _wbuf = NULL, size_t _wbufcp = 0
-	): rbuf(_rbuf), rbufcp(_rbufcp), wbuf(_wbuf), wbufcp(_wbufcp), roff(0), woff(0){
+	): rbuf(_rbuf), rbufcp(_rbufcp), rbufsz(0), wbuf(_wbuf), wbufcp(_wbufcp), wbufsz(0), roff(0), woff(0){
 		if(_rbufcp){
 			char *end = _rbuf + _rbufcp;
 			setg(end, end, end);
@@ -48,6 +49,7 @@ public:
 protected:
 	/*virtual*/ streamsize showmanyc();
 	/*virtual*/ int_type underflow();
+	/*virtual*/ int_type uflow();
 	/*virtual*/ int_type pbackfail(int_type _c = traits_type::eof());
 	/*virtual*/ int_type overflow(int_type __c = traits_type::eof());
 	/*virtual*/ pos_type seekoff(
@@ -65,27 +67,83 @@ protected:
 private:
 	FileDevice		dev;
 	char			*rbuf;
-	size_t			rbufcp;
+	const size_t	rbufcp;
+	size_t			rbufsz;
 	char			*wbuf;
-	size_t			wbufcp;
+	const size_t	wbufcp;
+	size_t			wbufsz;
 	int64			roff;
 	int64			woff;
 };
 
 
 /*virtual*/ streamsize FileBuf::showmanyc(){
+	idbg("");
 	return 0;
 }
 
 /*virtual*/ FileBuf::int_type FileBuf::underflow(){
+	//idbg("");
+	if(rbufcp){
+		if (gptr() < egptr()){ // buffer not exhausted
+			return traits_type::to_int_type(*gptr());
+		}
+		//refill rbuf
+		idbg("read "<<rbufcp<<" from "<<roff);
+		int 	rv = dev.read(rbuf, rbufcp, roff);
+		if(rv > 0){
+			char	*end = rbuf + rv;
+			setg(rbuf, rbuf, end);
+			roff += rv;
+			rbufsz = rv;
+			return traits_type::to_int_type(*gptr());
+		}
+	}else{
+		//very inneficient
+		char c;
+		int rv = dev.read(&c, 1, roff);
+		if(rv == 1){
+			return traits_type::to_int_type(c);
+		}
+	}
+	rbufsz = 0;
+	return traits_type::eof();
+}
+
+/*virtual*/ FileBuf::int_type FileBuf::uflow(){
+	//idbg("");
+	if(rbufcp){
+		return streambuf::uflow();
+	}else{
+		//very inneficient
+		char		c;
+		const int	rv = dev.read(&c, 1, roff);
+		if(rv == 1){
+			++roff;
+			return traits_type::to_int_type(c);
+		}
+	}
 	return traits_type::eof();
 }
 
 /*virtual*/ FileBuf::int_type FileBuf::pbackfail(int_type _c){
+	idbg(""<<_c);
 	return traits_type::eof();
 }
 
 /*virtual*/ FileBuf::int_type FileBuf::overflow(int_type _c){
+	idbg(""<<_c);
+	//return traits_type::eof();
+	if(wbufcp){
+		
+	}else{
+		const char	c = _c;
+		const int	rv = dev.write(&c, 1, woff);
+		if(rv == 1){
+			++woff;
+			return traits_type::to_int_type(c);
+		}
+	}
 	return traits_type::eof();
 }
 
@@ -95,21 +153,46 @@ private:
 ){
 	FileBuf::pos_type pos = 0;
 	if(_way == ios_base::beg){
+		idbg("beg "<<_off);
     }else if(_way == ios_base::end){
+		idbg("end "<<_off);
         _off = dev.size() + _off;
     }else{
-		
+		idbg("cur "<<_off);
 	}
+	
 	if(_mode & ios_base::in){
-		if(_way == ios_base::cur){
-			roff += _off;
-		}else{
-			roff = _off;
-		}
+		idbg("in "<<_off<<' '<<rbufsz);
 		pos = roff;
+		if(_way == ios_base::cur){
+			pos += _off;
+		}else{
+			pos = _off;
+		}
+		if(rbufsz){
+			int64	crtbufoff = roff - rbufsz;
+			
+			idbg("have buffer rbufsz = "<<rbufsz<<" roff = "<<roff<<" crtbufoff = "<<crtbufoff<<" pos = "<<pos);
+			
+			if(crtbufoff < pos && pos < roff){
+				//the requested offset is inside the current buffer
+				size_t	bufoff = pos - crtbufoff;
+				idbg("bufoff = "<<bufoff);
+				setg(rbuf, rbuf + bufoff, rbuf + rbufcp);
+			}else{
+				idbg("");
+				char	*end = rbuf + rbufcp;
+				rbufsz = 0;
+				roff = pos;
+				setg(end, end, end);
+			}
+		}else{
+			idbg("");
+			roff = pos;
+		}
 	}
 	if(_mode & ios_base::out){
-		
+		idbg("out "<<_off);
 		if(_way == ios_base::cur){
 			woff += _off;
 		}else{
@@ -124,10 +207,12 @@ private:
 	pos_type _pos,
 	ios_base::openmode _mode
 ){
+	idbg(""<<_pos);
 	return seekoff(_pos, std::ios_base::beg, _mode);
 }
 
 /*virtual*/ int FileBuf::sync(){
+	idbg("");
 	return 0;
 }
 
@@ -136,12 +221,59 @@ private:
 // }
 
 /*virtual*/ streamsize FileBuf::xsgetn(char_type* _s, streamsize _n){
+	idbg(""<<_n);
+	if(rbufcp){
+		if (gptr() < egptr()){ // buffer not exhausted
+			streamsize sz = egptr() - gptr();
+			if(sz > _n){
+				sz = _n;
+			}
+			memcpy(_s, gptr(), sz);
+			gbump(sz);
+			return sz;
+		}
+		//read directly in the given buffer
+		int 	rv = dev.read(_s, _n, roff);
+		if(rv > 0){
+			roff += rv;
+			size_t	tocopy = rv;
+			
+			if(tocopy > rbufcp){
+				tocopy = rbufcp;
+			}
+			memcpy(rbuf, _s + rv - tocopy, tocopy);
+			
+			char	*end = rbuf + rbufcp;
+			
+			rbufsz = 0;
+			setg(end, end, end);
+			return rv;
+		}
+	}else{
+		const int	rv = dev.read(_s, _n, roff);
+		if(rv > 0){
+			roff += rv;
+			return rv;
+		}
+	}
+	rbufsz = 0;
 	return 0;
 }
 
 /*virtual*/ streamsize FileBuf::xsputn(const char_type* _s, streamsize _n){
+	idbg(""<<_n);
+	if(wbufcp){
+		
+	}else{
+		const int	rv = dev.write(_s, _n, woff);
+		if(rv > 0){
+			woff += rv;
+			return rv;
+		}
+	}
 	return 0;
 }
+
 
 //===========================================================================
 //===========================================================================
@@ -344,9 +476,9 @@ int main(int argc, char *argv[]){
 			idbg("Could not open file for writing");
 			return 0;
 		}
-		FileOStream<8>		ofs(fd);
+		FileOStream<0>		ofs(fd, 0);
 		
-		ofs<<'['<<' '<<"this is the most interesting text that was ever written to a file"<<' '<<']'<<endl;
+		ofs<<'['<<' '<<"this is the most interesting text that was ever written to a file "<<123456789<<' '<<']'<<endl;
 	}
 	{
 		FileDevice	fd;
@@ -354,15 +486,19 @@ int main(int argc, char *argv[]){
 			idbg("Could not open file for read-write");
 			return 0;
 		}
-		FileIOStream<8,8>	iofs;
+		FileIOStream<0,0>	iofs(0, 0);
 		iofs.device(fd);
 		iofs.seekp(0, ios_base::end);
-		iofs<<'<'<<' '<<"this is another line way more interesting than the above one"<<' '<<'>'<<endl;
+		iofs<<'<'<<' '<<"this is another line way more interesting than the above one "<<9876543210<<' '<<'>'<<endl;
 		string				line;
 		getline(iofs, line);
 		cout<<"Read first line: "<<line<<endl;
 		getline(iofs, line);
 		cout<<"Read second line: "<<line<<endl;
+		line += '\n';
+		iofs.write(line.data(), line.size());
+		iofs.seekg(100);
+		iofs.seekp(100);
 	}
 	{
 		FileDevice	fd;
@@ -370,13 +506,19 @@ int main(int argc, char *argv[]){
 			idbg("Could not open file for read");
 			return 0;
 		}
-		FileIStream<>		ifs(0);
+		FileIStream<8>		ifs;
 		ifs.device(fd);
 		string				line;
 		getline(ifs, line);
 		cout<<"Read first line: "<<line<<endl;
 		getline(ifs, line);
 		cout<<"Read second line: "<<line<<endl;
+		getline(ifs, line);
+		cout<<"Read third line: "<<line<<endl;
+		ifs.seekg(10);
+		cout<<"seek 10 get char: "<<(int)ifs.peek()<<endl;
+		ifs.seekg(12);
+		cout<<"seek 12 get char: "<<(int)ifs.peek()<<endl;
 	}
 	return 0;
 }
