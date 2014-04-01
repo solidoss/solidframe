@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <cstring>
+#include <fstream>
 #include "system/debug.hpp"
 #include "system/filedevice.hpp"
 
@@ -15,29 +16,21 @@ class FileBuf: public std::streambuf{
 public:
 	FileBuf(
 		FileDevice &_rdev,
-		char* _rbuf = NULL, size_t _rbufcp = 0,
-		char* _wbuf = NULL, size_t _wbufcp = 0
-	):dev(_rdev), rbuf(_rbuf), rbufcp(_rbufcp), rbufsz(0), wbuf(_wbuf), wbufcp(_wbufcp), wbufsz(0), roff(0), woff(0){
-		if(_rbufcp){
-			char *end = _rbuf + _rbufcp;
+		char* _buf = NULL, size_t _bufcp = 0
+	):dev(_rdev), buf(_buf), bufcp(_bufcp), rbufsz(0), off(0){
+		if(_bufcp){
+			char *end = _buf + _bufcp;
 			setg(end, end, end);
-		}
-		if(_wbufcp){
-			char *end = _wbuf + _rbufcp;
-			setp(_wbuf, end);
+			setp(_buf, end);
 		}
 	}
 	FileBuf(
-		char* _rbuf = NULL, size_t _rbufcp = 0,
-		char* _wbuf = NULL, size_t _wbufcp = 0
-	): rbuf(_rbuf), rbufcp(_rbufcp), rbufsz(0), wbuf(_wbuf), wbufcp(_wbufcp), wbufsz(0), roff(0), woff(0){
-		if(_rbufcp){
-			char *end = _rbuf + _rbufcp;
+		char* _buf = NULL, size_t _bufcp = 0
+	): buf(_buf), bufcp(_bufcp), rbufsz(0), off(0){
+		if(_bufcp){
+			char *end = _buf + _bufcp;
 			setg(end, end, end);
-		}
-		if(_wbufcp){
-			char *end = _wbuf + _rbufcp;
-			setp(_wbuf, end);
+			setp(_buf, end);
 		}
 	}
 	FileDevice& device(){
@@ -65,15 +58,14 @@ protected:
 	/*virtual*/ streamsize xsgetn(char_type* _s, streamsize _n);
 	/*virtual*/ streamsize xsputn(const char_type* _s, streamsize _n);
 private:
+	int writeAll(const char *_s, size_t _n);
+	bool flushWrite();
+private:
 	FileDevice		dev;
-	char			*rbuf;
-	const size_t	rbufcp;
+	char			*buf;
+	const size_t	bufcp;
 	size_t			rbufsz;
-	char			*wbuf;
-	const size_t	wbufcp;
-	size_t			wbufsz;
-	int64			roff;
-	int64			woff;
+	int64			off;
 };
 
 
@@ -84,24 +76,24 @@ private:
 
 /*virtual*/ FileBuf::int_type FileBuf::underflow(){
 	//idbg("");
-	if(rbufcp){
+	if(bufcp){
 		if (gptr() < egptr()){ // buffer not exhausted
 			return traits_type::to_int_type(*gptr());
 		}
 		//refill rbuf
-		idbg("read "<<rbufcp<<" from "<<roff);
-		int 	rv = dev.read(rbuf, rbufcp, roff);
+		idbg("read "<<bufcp<<" from "<<off);
+		int 	rv = dev.read(buf, bufcp, off);
 		if(rv > 0){
-			char	*end = rbuf + rv;
-			setg(rbuf, rbuf, end);
-			roff += rv;
+			char	*end = buf + rv;
+			setg(buf, buf, end);
+			off += rv;
 			rbufsz = rv;
 			return traits_type::to_int_type(*gptr());
 		}
 	}else{
 		//very inneficient
 		char c;
-		int rv = dev.read(&c, 1, roff);
+		int rv = dev.read(&c, 1, off);
 		if(rv == 1){
 			return traits_type::to_int_type(c);
 		}
@@ -112,14 +104,14 @@ private:
 
 /*virtual*/ FileBuf::int_type FileBuf::uflow(){
 	//idbg("");
-	if(rbufcp){
+	if(bufcp){
 		return streambuf::uflow();
 	}else{
 		//very inneficient
 		char		c;
-		const int	rv = dev.read(&c, 1, roff);
+		const int	rv = dev.read(&c, 1, off);
 		if(rv == 1){
-			++roff;
+			++off;
 			return traits_type::to_int_type(c);
 		}
 	}
@@ -131,16 +123,39 @@ private:
 	return traits_type::eof();
 }
 
+int FileBuf::writeAll(const char *_s, size_t _n){
+	int wcnt = 0;
+	int	rv;
+	do{
+		int rv = dev.write(_s, _n, off);
+		if(rv > 0){
+			_s += rv;
+			_n -= rv;
+			wcnt += rv;
+		}else{
+			wcnt = 0;
+		}
+	}while(rv > 0 && _n != 0);
+	return wcnt;
+}
+
 /*virtual*/ FileBuf::int_type FileBuf::overflow(int_type _c){
 	idbg(""<<_c);
 	//return traits_type::eof();
-	if(wbufcp){
+	if(bufcp){
+		if(pptr() < epptr()){
+			*pptr() = _c;
+			return _c;
+		}
 		
+		if(flushWrite()){
+			return _c;
+		}
 	}else{
 		const char	c = _c;
-		const int	rv = dev.write(&c, 1, woff);
+		const int	rv = dev.write(&c, 1, off);
 		if(rv == 1){
-			++woff;
+			++off;
 			return traits_type::to_int_type(c);
 		}
 	}
@@ -161,44 +176,47 @@ private:
 		idbg("cur "<<_off);
 	}
 	
-	if(_mode & ios_base::in){
+	pos = off;
+	if(_way == ios_base::cur){
+		pos += _off;
+	}else{
+		pos = _off;
+	}
+	
+	if(true/*_mode & ios_base::in*/){
 		idbg("in "<<_off<<' '<<rbufsz);
-		pos = roff;
-		if(_way == ios_base::cur){
-			pos += _off;
-		}else{
-			pos = _off;
-		}
+		
 		if(rbufsz){
-			int64	crtbufoff = roff - rbufsz;
+			int64	crtbufoff = off - rbufsz;
 			
-			idbg("have buffer rbufsz = "<<rbufsz<<" roff = "<<roff<<" crtbufoff = "<<crtbufoff<<" pos = "<<pos);
+			idbg("have buffer rbufsz = "<<rbufsz<<" roff = "<<off<<" crtbufoff = "<<crtbufoff<<" pos = "<<pos);
 			
-			if(crtbufoff < pos && pos < roff){
+			if(crtbufoff < pos && pos < off){
 				//the requested offset is inside the current buffer
 				size_t	bufoff = pos - crtbufoff;
 				idbg("bufoff = "<<bufoff);
-				setg(rbuf, rbuf + bufoff, rbuf + rbufcp);
+				setg(buf, buf + bufoff, buf + bufcp);
 			}else{
 				idbg("");
-				char	*end = rbuf + rbufcp;
+				char	*end = buf + bufcp;
 				rbufsz = 0;
-				roff = pos;
+				off = pos;
 				setg(end, end, end);
 			}
 		}else{
 			idbg("");
-			roff = pos;
+			off = pos;
 		}
 	}
-	if(_mode & ios_base::out){
+	if(true/*_mode & ios_base::out*/){
 		idbg("out "<<_off);
-		if(_way == ios_base::cur){
-			woff += _off;
-		}else{
-			woff = _off;
+		pos = off;
+		if(pos != off && pbase() < pptr()){
+			if(!flushWrite()){
+				return -1;
+			}
 		}
-		pos = woff;
+		off = pos;
 	}
 	return pos;
 }
@@ -213,6 +231,10 @@ private:
 
 /*virtual*/ int FileBuf::sync(){
 	idbg("");
+	if(pbase() < pptr()){
+		flushWrite();
+	}
+	dev.flush();
 	return 0;
 }
 
@@ -222,7 +244,7 @@ private:
 
 /*virtual*/ streamsize FileBuf::xsgetn(char_type* _s, streamsize _n){
 	idbg(""<<_n);
-	if(rbufcp){
+	if(bufcp){
 		if (gptr() < egptr()){ // buffer not exhausted
 			streamsize sz = egptr() - gptr();
 			if(sz > _n){
@@ -233,26 +255,26 @@ private:
 			return sz;
 		}
 		//read directly in the given buffer
-		int 	rv = dev.read(_s, _n, roff);
+		int 	rv = dev.read(_s, _n, off);
 		if(rv > 0){
-			roff += rv;
+			off += rv;
 			size_t	tocopy = rv;
 			
-			if(tocopy > rbufcp){
-				tocopy = rbufcp;
+			if(tocopy > bufcp){
+				tocopy = bufcp;
 			}
-			memcpy(rbuf, _s + rv - tocopy, tocopy);
+			memcpy(buf, _s + rv - tocopy, tocopy);
 			
-			char	*end = rbuf + rbufcp;
+			char	*end = buf + bufcp;
 			
 			rbufsz = 0;
 			setg(end, end, end);
 			return rv;
 		}
 	}else{
-		const int	rv = dev.read(_s, _n, roff);
+		const int	rv = dev.read(_s, _n, off);
 		if(rv > 0){
-			roff += rv;
+			off += rv;
 			return rv;
 		}
 	}
@@ -260,14 +282,58 @@ private:
 	return 0;
 }
 
+bool FileBuf::flushWrite(){
+	size_t towrite = pptr() - pbase();
+	int rv = writeAll(buf, towrite);
+	if(rv == towrite){
+		char *end = buf + bufcp;
+		off += towrite;
+		setp(buf, end);
+	}else{
+		return false;
+	}
+	return true;
+}
+
 /*virtual*/ streamsize FileBuf::xsputn(const char_type* _s, streamsize _n){
 	idbg(""<<_n);
-	if(wbufcp){
+	//updateReadBuffer(_s, _n);
+	if(bufcp){
+		const streamsize	sz = _n;
+		size_t				wleftsz = epptr() - pptr();
+		size_t				towrite = _n;
 		
+		if(wleftsz < towrite){
+			towrite = wleftsz;
+		}
+		memcpy(pptr(), _s, towrite);
+		pbump(towrite);
+		_n -= towrite;
+		_s += towrite;
+		if(_n != 0){
+			if(!flushWrite()){
+				return 0;
+			}
+			if(_n <= bufcp/2){
+				memcpy(pptr(), _s, _n);
+				pbump(_n);
+				return sz;
+			}else{
+				size_t towrite = _n;
+				int rv = writeAll(_s, towrite);
+				if(rv == towrite){
+					off += rv;
+					return sz;
+				}else{
+					return 0;
+				}
+			}
+		}
+		return sz;
 	}else{
-		const int	rv = dev.write(_s, _n, woff);
+		const int	rv = dev.write(_s, _n, off);
 		if(rv > 0){
-			woff += rv;
+			off += rv;
 			return rv;
 		}
 	}
@@ -346,14 +412,14 @@ public:
 		FileDevice &_rdev,
 		const size_t _bufcp = 1024
 	):	std::ostream(), pb(_bufcp ? new char[_bufcp] : NULL),
-		buf(_rdev, NULL, 0, pb, _bufcp)
+		buf(_rdev, pb, _bufcp)
 	{
 		rdbuf(&buf);
 	}
 	FileOStream(
 		const size_t _bufcp = 1024
 	):	std::ostream(), pb(_bufcp ? new char[_bufcp] : NULL),
-		buf(NULL, 0, pb, _bufcp)
+		buf(pb, _bufcp)
 	{
 		rdbuf(&buf);
     }
@@ -393,37 +459,29 @@ private:
 };
 
 
-template <size_t RBufCp = 0, size_t WBufCp = 0>
+template <size_t BufCp = 0>
 class FileIOStream;
 
 template <>
-class FileIOStream<0, 0>: public std::iostream{
+class FileIOStream<0>: public std::iostream{
 public:
 	explicit FileIOStream(
 		FileDevice &_rdev,
-		const size_t _rbufcp = 1024,
-		const size_t _wbufcp = 1024
-	):	std::iostream(),
-		prb(_rbufcp ? new char[_rbufcp] : NULL),
-		pwb(_rbufcp ? new char[_wbufcp] : NULL),
-		buf(_rdev, prb, _rbufcp, pwb, _wbufcp)
+		const size_t _bufcp = 1024
+	):	std::iostream(), pb(_bufcp ? new char[_bufcp] : NULL),
+		buf(_rdev, pb, _bufcp)
 	{
 		rdbuf(&buf);
 	}
 	FileIOStream(
-		const size_t _rbufcp = 1024,
-		const size_t _wbufcp = 1024
-	):	std::iostream(),
-		prb(_rbufcp ? new char[_rbufcp] : NULL),
-		pwb(_rbufcp ? new char[_wbufcp] : NULL),
-		buf(prb, _rbufcp, pwb, _wbufcp)
+		const size_t _bufcp = 1024
+	):	std::iostream(), pb(_bufcp ? new char[_bufcp] : NULL),
+		buf(pb, _bufcp)
 	{
 		rdbuf(&buf);
-	}
-
+    }
 	~FileIOStream(){
-		delete []prb;
-		delete []pwb;
+		delete []pb;
 	}
 	FileDevice& device(){
 		return buf.device();
@@ -432,34 +490,29 @@ public:
 		buf.device(_rdev);
 	}
 private:
-	char	*prb;
-	char	*pwb;
-	FileBuf	buf;
+	char	*pb;
+    FileBuf	buf;
 };
 
 
-template <size_t RBufCp, size_t WBufCp>
+template <size_t BufCp>
 class FileIOStream: public std::iostream{
 public:
-    explicit FileIOStream(
-		FileDevice &_rdev
-	):std::iostream(), buf(_rdev, rb, RBufCp, wb, WBufCp){
+	explicit FileIOStream(FileDevice &_rdev):std::iostream(), buf(_rdev, b, BufCp){
 		rdbuf(&buf);
-    }
-    FileIOStream(
-	):std::iostream(), buf(rb, RBufCp, wb, WBufCp){
+	}
+	FileIOStream():std::iostream(), buf(b, BufCp){
 		rdbuf(&buf);
-    }
-    FileDevice& device(){
+	}
+	FileDevice& device(){
 		return buf.device();
 	}
 	void device(FileDevice &_rdev){
 		buf.device(_rdev);
 	}
 private:
-	char		rb[RBufCp];
-	char		wb[WBufCp];
-    FileBuf		buf;
+	char		b[BufCp];
+	FileBuf		buf;
 };
 
 int main(int argc, char *argv[]){
@@ -470,7 +523,7 @@ int main(int argc, char *argv[]){
 	
 	idbg("FileBuf example");
 	
-	{
+	if(0){
 		FileDevice	fd;
 		if(!fd.open("test.txt", FileDevice::WriteOnlyE | FileDevice::CreateE | FileDevice::TruncateE)){
 			idbg("Could not open file for writing");
@@ -480,13 +533,13 @@ int main(int argc, char *argv[]){
 		
 		ofs<<'['<<' '<<"this is the most interesting text that was ever written to a file "<<123456789<<' '<<']'<<endl;
 	}
-	{
+	if(0){
 		FileDevice	fd;
 		if(!fd.open("test.txt", FileDevice::ReadWriteE)){
 			idbg("Could not open file for read-write");
 			return 0;
 		}
-		FileIOStream<0,0>	iofs(0, 0);
+		FileIOStream<8>	iofs/*(0, 0)*/;
 		iofs.device(fd);
 		iofs.seekp(0, ios_base::end);
 		iofs<<'<'<<' '<<"this is another line way more interesting than the above one "<<9876543210<<' '<<'>'<<endl;
@@ -496,11 +549,11 @@ int main(int argc, char *argv[]){
 		getline(iofs, line);
 		cout<<"Read second line: "<<line<<endl;
 		line += '\n';
-		iofs.write(line.data(), line.size());
+		iofs.write(line.data(), line.size()).flush();
 		iofs.seekg(100);
 		iofs.seekp(100);
 	}
-	{
+	if(0){
 		FileDevice	fd;
 		if(!fd.open("test.txt", FileDevice::ReadOnlyE)){
 			idbg("Could not open file for read");
@@ -519,6 +572,78 @@ int main(int argc, char *argv[]){
 		cout<<"seek 10 get char: "<<(int)ifs.peek()<<endl;
 		ifs.seekg(12);
 		cout<<"seek 12 get char: "<<(int)ifs.peek()<<endl;
+	}
+	if(1){
+		
+		fstream	fs;
+		fs.open("test_1.txt", ios::out);
+		fs.close();
+		fs.open("test_1.txt");
+		fs<<"this is the most interesting text that was ever written to a file\n"<<endl<<flush;
+		cout<<"tellg = "<<fs.tellg()<<endl;
+		cout<<"tellp = "<<fs.tellp()<<endl;
+		
+		fs.seekg(0);
+		char c;
+		fs>>c;
+		cout<<"c = "<<c<<endl;
+		
+		cout<<"tellg = "<<fs.tellg()<<endl;
+		cout<<"tellp = "<<fs.tellp()<<endl;
+		
+		fs.seekp(0);
+		fs<<"this is another line way more interesting than the above one\n";
+		
+		cout<<"tellg = "<<fs.tellg()<<endl;
+		cout<<"tellp = "<<fs.tellp()<<endl;
+		
+		char buf[128];
+		fs.seekg(8);
+		
+		cout<<"tellg = "<<fs.tellg()<<endl;
+		cout<<"tellp = "<<fs.tellp()<<endl;
+		
+		fs.read(buf, 8);
+		cout<<"Read("<<fs.gcount()<<"): ";
+		cout.write(buf, fs.gcount());
+		cout<<endl;
+		cout<<"Done STD"<<endl;
+	}
+	if(1){
+		FileDevice	fd;
+		if(!fd.open("test_2.txt", FileDevice::ReadWriteE | FileDevice::CreateE | FileDevice::TruncateE)){
+			idbg("Could not open file for read-write");
+			return 0;
+		}
+		FileIOStream<1024>	fs/*(0, 0)*/;
+		fs.device(fd);
+		fs<<"this is the most interesting text that was ever written to a file\n"<<flush;
+		cout<<"tellg = "<<fs.tellg()<<endl;
+		cout<<"tellp = "<<fs.tellp()<<endl;
+		
+		fs.seekg(0);
+		char c;
+		fs>>c;
+		cout<<"c = "<<c<<endl;
+		
+		cout<<"tellg = "<<fs.tellg()<<endl;
+		cout<<"tellp = "<<fs.tellp()<<endl;
+		
+		fs.seekp(0);
+		fs<<"this is another line way more interesting than the above one\n";
+		
+		cout<<"tellg = "<<fs.tellg()<<endl;
+		cout<<"tellp = "<<fs.tellp()<<endl;
+		
+		char buf[128];
+		fs.seekg(8);
+		
+		cout<<"tellg = "<<fs.tellg()<<endl;
+		cout<<"tellp = "<<fs.tellp()<<endl;
+		fs.read(buf, 8);
+		cout<<"Read("<<fs.gcount()<<"): ";
+		cout.write(buf, fs.gcount());
+		cout<<endl;
 	}
 	return 0;
 }
