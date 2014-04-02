@@ -7,6 +7,7 @@
 #include <fstream>
 #include "system/debug.hpp"
 #include "system/filedevice.hpp"
+#include "system/cassert.hpp"
 
 using namespace std;
 using namespace solid;
@@ -77,7 +78,9 @@ private:
 /*virtual*/ FileBuf::int_type FileBuf::underflow(){
 	//idbg("");
 	if(bufcp){
-		if (gptr() < egptr()){ // buffer not exhausted
+		idbg("goffset = "<<(gptr() - buf)<<" end = "<<(egptr() - buf));
+		idbg("poffset = "<<(pptr() - buf)<<" end = "<<(epptr() - buf));
+		if(gptr() < egptr()){ // buffer not exhausted
 			return traits_type::to_int_type(*gptr());
 		}
 		//refill rbuf
@@ -141,8 +144,9 @@ int FileBuf::writeAll(const char *_s, size_t _n){
 
 /*virtual*/ FileBuf::int_type FileBuf::overflow(int_type _c){
 	idbg(""<<_c);
-	//return traits_type::eof();
 	if(bufcp){
+		idbg("goffset = "<<(gptr() - buf)<<" end = "<<(egptr() - buf));
+		idbg("poffset = "<<(pptr() - buf)<<" end = "<<(epptr() - buf));
 		if(pptr() < epptr()){
 			*pptr() = _c;
 			return _c;
@@ -166,59 +170,40 @@ int FileBuf::writeAll(const char *_s, size_t _n){
 	off_type _off, ios_base::seekdir _way,
 	ios_base::openmode _mode
 ){
-	FileBuf::pos_type pos = 0;
-	if(_way == ios_base::beg){
-		idbg("beg "<<_off);
-    }else if(_way == ios_base::end){
-		idbg("end "<<_off);
-        _off = dev.size() + _off;
-    }else{
-		idbg("cur "<<_off);
-	}
+	idbg("goffset = "<<(gptr() - buf)<<" end = "<<(egptr() - buf));
+	idbg("poffset = "<<(pptr() - buf)<<" end = "<<(epptr() - buf));
+	cassert(pptr() == gptr());
 	
-	pos = off;
-	if(_way == ios_base::cur){
-		pos += _off;
+	if(bufcp){
+		int64 newoff = 0;
+		if(_way == ios_base::beg){
+		}else if(_way == ios_base::end){
+			newoff = off + (pptr() - pbase());
+			int64 devsz = dev.size();
+			if(newoff <= devsz){
+				newoff = devsz;
+			}
+		}else{//cur
+			newoff = off;
+			newoff += (gptr() - eback());
+			
+		}
+		newoff += _off;
+
+		if(newoff < (off + (bufcp))){
+			
+		}
+		return newoff;
 	}else{
-		pos = _off;
-	}
-	
-	if(true/*_mode & ios_base::in*/){
-		idbg("in "<<_off<<' '<<rbufsz);
-		
-		if(rbufsz){
-			int64	crtbufoff = off - rbufsz;
-			
-			idbg("have buffer rbufsz = "<<rbufsz<<" roff = "<<off<<" crtbufoff = "<<crtbufoff<<" pos = "<<pos);
-			
-			if(crtbufoff < pos && pos < off){
-				//the requested offset is inside the current buffer
-				size_t	bufoff = pos - crtbufoff;
-				idbg("bufoff = "<<bufoff);
-				setg(buf, buf + bufoff, buf + bufcp);
-			}else{
-				idbg("");
-				char	*end = buf + bufcp;
-				rbufsz = 0;
-				off = pos;
-				setg(end, end, end);
-			}
-		}else{
-			idbg("");
-			off = pos;
+		if(_way == ios_base::beg){
+			off = _off;
+		}else if(_way == ios_base::end){
+			off = dev.size() + _off;
+		}else{//cur
+			off += _off;
 		}
+		return off;
 	}
-	if(true/*_mode & ios_base::out*/){
-		idbg("out "<<_off);
-		pos = off;
-		if(pos != off && pbase() < pptr()){
-			if(!flushWrite()){
-				return -1;
-			}
-		}
-		off = pos;
-	}
-	return pos;
 }
 
 /*virtual*/ FileBuf::pos_type FileBuf::seekpos(
@@ -245,6 +230,8 @@ int FileBuf::writeAll(const char *_s, size_t _n){
 /*virtual*/ streamsize FileBuf::xsgetn(char_type* _s, streamsize _n){
 	idbg(""<<_n);
 	if(bufcp){
+		idbg("goffset = "<<(gptr() - buf)<<" end = "<<(egptr() - buf));
+		idbg("poffset = "<<(pptr() - buf)<<" end = "<<(epptr() - buf));
 		if (gptr() < egptr()){ // buffer not exhausted
 			streamsize sz = egptr() - gptr();
 			if(sz > _n){
@@ -286,8 +273,8 @@ bool FileBuf::flushWrite(){
 	size_t towrite = pptr() - pbase();
 	int rv = writeAll(buf, towrite);
 	if(rv == towrite){
-		char *end = buf + bufcp;
 		off += towrite;
+		char *end = buf + bufcp;
 		setp(buf, end);
 	}else{
 		return false;
@@ -299,6 +286,8 @@ bool FileBuf::flushWrite(){
 	idbg(""<<_n);
 	//updateReadBuffer(_s, _n);
 	if(bufcp){
+		idbg("goffset = "<<(gptr() - buf)<<" end = "<<(egptr() - buf));
+		idbg("poffset = "<<(pptr() - buf)<<" end = "<<(epptr() - buf));
 		const streamsize	sz = _n;
 		size_t				wleftsz = epptr() - pptr();
 		size_t				towrite = _n;
@@ -317,18 +306,23 @@ bool FileBuf::flushWrite(){
 			if(_n <= bufcp/2){
 				memcpy(pptr(), _s, _n);
 				pbump(_n);
+				setg(buf, pptr(), epptr());
 				return sz;
 			}else{
 				size_t towrite = _n;
 				int rv = writeAll(_s, towrite);
 				if(rv == towrite){
 					off += rv;
+					char *end = buf + bufcp;
+					setp(buf, end);
+					setg(buf, pptr(), epptr());
 					return sz;
 				}else{
 					return 0;
 				}
 			}
 		}
+		setg(buf, pptr(), epptr());
 		return sz;
 	}else{
 		const int	rv = dev.write(_s, _n, off);
@@ -579,23 +573,30 @@ int main(int argc, char *argv[]){
 		fs.open("test_1.txt", ios::out);
 		fs.close();
 		fs.open("test_1.txt");
-		fs<<"this is the most interesting text that was ever written to a file\n"<<endl<<flush;
+		fs.seekp(10);
+		fs<<"this is the most interesting text that was ever written to a file\n";
 		cout<<"tellg = "<<fs.tellg()<<endl;
 		cout<<"tellp = "<<fs.tellp()<<endl;
 		
 		fs.seekg(0);
+		cout<<"tellg = "<<fs.tellg()<<endl;
+		cout<<"tellp = "<<fs.tellp()<<endl;
 		char c;
 		fs>>c;
-		cout<<"c = "<<c<<endl;
+		cout<<"c = "<<(int)c<<endl;
 		
 		cout<<"tellg = "<<fs.tellg()<<endl;
 		cout<<"tellp = "<<fs.tellp()<<endl;
 		
-		fs.seekp(0);
+		fs.seekp(10);
 		fs<<"this is another line way more interesting than the above one\n";
 		
+		
 		cout<<"tellg = "<<fs.tellg()<<endl;
 		cout<<"tellp = "<<fs.tellp()<<endl;
+		
+		fs>>c;
+		cout<<"c = "<<c<<endl;
 		
 		char buf[128];
 		fs.seekg(8);
@@ -617,7 +618,7 @@ int main(int argc, char *argv[]){
 		}
 		FileIOStream<1024>	fs/*(0, 0)*/;
 		fs.device(fd);
-		fs<<"this is the most interesting text that was ever written to a file\n"<<flush;
+		fs<<"this is the most interesting text that was ever written to a file\n";
 		cout<<"tellg = "<<fs.tellg()<<endl;
 		cout<<"tellp = "<<fs.tellp()<<endl;
 		
@@ -634,6 +635,9 @@ int main(int argc, char *argv[]){
 		
 		cout<<"tellg = "<<fs.tellg()<<endl;
 		cout<<"tellp = "<<fs.tellp()<<endl;
+		
+		fs>>c;
+		cout<<"c = "<<c<<endl;
 		
 		char buf[128];
 		fs.seekg(8);
