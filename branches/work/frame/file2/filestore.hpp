@@ -50,6 +50,7 @@ struct TempConfiguration{
 struct Utf8Controller;
 
 struct File{
+	File():ptmp(NULL){}
 	void clear(){
 		fd.close();
 		delete ptmp;
@@ -70,7 +71,11 @@ struct File{
 		}
 	}
 	int write(const char *_pb, uint32 _bl, int64 _off){
-		return -1;
+		if(!ptmp){
+			return fd.write(_pb, _bl, _off);
+		}else{
+			return ptmp->write(_pb, _bl, _off);
+		}
 	}
 	int64 size()const{
 		if(!ptmp){
@@ -91,6 +96,13 @@ struct File{
 			return -1;
 		}else{
 			return ptmp->tempsize;
+		}
+	}
+	void flush(){
+		if(!ptmp){
+			fd.flush();
+		}else{
+			ptmp->flush();
 		}
 	}
 	bool isTemp()const{

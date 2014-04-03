@@ -145,14 +145,18 @@ struct Pointer: PointerBase{
 	typedef Pointer<T>		PointerT;
 	
 	Pointer(StoreBase *_psb = NULL):PointerBase(_psb), pt(NULL){}
-	explicit Pointer(T *_pt, StoreBase *_psb, UidT const &_uid): PointerBase(_psb, _uid), pt(_pt){}
+	explicit Pointer(
+		T *_pt,
+		StoreBase *_psb  = NULL,
+		UidT const &_uid = invalid_uid()
+	): PointerBase(_psb, _uid), pt(_pt){}
 	
 	Pointer(PointerT const &_rptr):PointerBase(_rptr), pt(_rptr.release()){}
 	~Pointer(){
 		clear();
 	}
 	
-	PointerT operator=(PointerT const &_rptr){
+	PointerT& operator=(PointerT const &_rptr){
 		clear();
 		doReset(_rptr.store(), _rptr.id());
 		pt = _rptr.release();

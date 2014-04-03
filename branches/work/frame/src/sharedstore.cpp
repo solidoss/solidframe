@@ -12,10 +12,11 @@ namespace frame{
 namespace shared{
 
 void PointerBase::doClear(const bool _isalive){
-	cassert(psb);
-	psb->erasePointer(id(), _isalive);
-	uid = invalid_uid();
-	psb = NULL;
+	if(psb){
+		psb->erasePointer(id(), _isalive);
+		uid = invalid_uid();
+		psb = NULL;
+	}
 }
 
 //---------------------------------------------------------------

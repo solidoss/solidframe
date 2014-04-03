@@ -15,5 +15,13 @@ target_link_libraries (example_fileserver
 	${SYS_DYNAMIC_LOAD_LIB}
 )
 
+add_executable (example_filebuf filebuf.cpp)
+target_link_libraries (example_filebuf
+	solid_frame_file2
+	solid_frame_core
+	solid_utility
+	solid_system
+	${SYS_BASIC_LIBS}
+)
 
 

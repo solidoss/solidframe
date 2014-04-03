@@ -1,9 +1,11 @@
 set(Sources
 	src/filestore.cpp
+	src/filestream.cpp
 )
 set(Headers
 	tempbase.hpp
 	filestore.hpp
+	filestream.hpp
 )
 
 set(Inlines
@@ -12,3 +14,4 @@ set(Inlines
 add_library (solid_frame_file2
 	${Sources} ${Headers} ${Inlines}
 )
+
