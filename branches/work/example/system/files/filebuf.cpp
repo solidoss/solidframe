@@ -18,20 +18,16 @@ public:
 	FileBuf(
 		FileDevice &_rdev,
 		char* _buf = NULL, size_t _bufcp = 0
-	):dev(_rdev), buf(_buf), bufcp(_bufcp), rbufsz(0), off(0){
+	):dev(_rdev), buf(_buf), bufcp(_bufcp)/*, rbufsz(0)*/, off(0){
 		if(_bufcp){
-			char *end = _buf + _bufcp;
-			setg(end, end, end);
-			setp(_buf, end);
+			resetBoth();
 		}
 	}
 	FileBuf(
 		char* _buf = NULL, size_t _bufcp = 0
-	): buf(_buf), bufcp(_bufcp), rbufsz(0), off(0){
+	): buf(_buf), bufcp(_bufcp)/*, rbufsz(0)*/, off(0){
 		if(_bufcp){
-			char *end = _buf + _bufcp;
-			setg(end, end, end);
-			setp(_buf, end);
+			resetBoth();
 		}
 	}
 	FileDevice& device(){
@@ -59,13 +55,36 @@ protected:
 	/*virtual*/ streamsize xsgetn(char_type* _s, streamsize _n);
 	/*virtual*/ streamsize xsputn(const char_type* _s, streamsize _n);
 private:
+	bool hasBuf()const{
+		return bufcp != 0;
+	}
+	bool hasPut()const{
+		return pptr() != buf;
+	}
+	bool hasGet()const{
+		char *end = buf + bufcp;
+		return gptr() != end;
+	}
 	int writeAll(const char *_s, size_t _n);
-	bool flushWrite();
+	void resetBoth(){
+		char *end = buf + bufcp;
+		setg(end, end, end);
+		setp(buf, end - 1);
+	}
+	void resetGet(){
+		char *end = buf + bufcp;
+		setg(end, end, end);
+	}
+	void resetPut(){
+		char *end = buf + bufcp - 1;
+		setp(buf, end);
+	}
+	bool flushPut();
 private:
 	FileDevice		dev;
 	char			*buf;
 	const size_t	bufcp;
-	size_t			rbufsz;
+	//size_t			rbufsz;
 	int64			off;
 };
 
@@ -90,7 +109,7 @@ private:
 			char	*end = buf + rv;
 			setg(buf, buf, end);
 			off += rv;
-			rbufsz = rv;
+			//rbufsz = rv;
 			return traits_type::to_int_type(*gptr());
 		}
 	}else{
@@ -101,7 +120,7 @@ private:
 			return traits_type::to_int_type(c);
 		}
 	}
-	rbufsz = 0;
+	//rbufsz = 0;
 	return traits_type::eof();
 }
 
@@ -144,22 +163,31 @@ int FileBuf::writeAll(const char *_s, size_t _n){
 
 /*virtual*/ FileBuf::int_type FileBuf::overflow(int_type _c){
 	idbg(""<<_c);
-	if(bufcp){
+	if(hasBuf()){
 		idbg("goffset = "<<(gptr() - buf)<<" end = "<<(egptr() - buf));
 		idbg("poffset = "<<(pptr() - buf)<<" end = "<<(epptr() - buf));
-		if(pptr() < epptr()){
-			*pptr() = _c;
-			return _c;
+		
+		cassert(hasPut());
+		cassert(pptr() == epptr());
+		
+		char *endp = pptr();
+		if(_c != traits_type::eof()){
+			*endp = _c;
+			++endp;
 		}
 		
-		if(flushWrite()){
-			return _c;
+		size_t towrite = endp - pbase();
+		int rv = writeAll(pbase(), towrite);
+		if(rv == towrite){
+			off += towrite;
+			resetPut();
+		}else{
+			setp(NULL, NULL);
 		}
 	}else{
 		const char	c = _c;
 		const int	rv = dev.write(&c, 1, off);
 		if(rv == 1){
-			++off;
 			return traits_type::to_int_type(c);
 		}
 	}
@@ -217,7 +245,7 @@ int FileBuf::writeAll(const char *_s, size_t _n){
 /*virtual*/ int FileBuf::sync(){
 	idbg("");
 	if(pbase() < pptr()){
-		flushWrite();
+		flushPut();
 	}
 	dev.flush();
 	return 0;
@@ -229,9 +257,14 @@ int FileBuf::writeAll(const char *_s, size_t _n){
 
 /*virtual*/ streamsize FileBuf::xsgetn(char_type* _s, streamsize _n){
 	idbg(""<<_n);
-	if(bufcp){
+	if(hasBuf()){
 		idbg("goffset = "<<(gptr() - buf)<<" end = "<<(egptr() - buf));
 		idbg("poffset = "<<(pptr() - buf)<<" end = "<<(epptr() - buf));
+		if(hasPut()){
+			if(!flushPut()){
+				return 0;
+			}
+		}
 		if (gptr() < egptr()){ // buffer not exhausted
 			streamsize sz = egptr() - gptr();
 			if(sz > _n){
@@ -254,7 +287,7 @@ int FileBuf::writeAll(const char *_s, size_t _n){
 			
 			char	*end = buf + bufcp;
 			
-			rbufsz = 0;
+			//rbufsz = 0;
 			setg(end, end, end);
 			return rv;
 		}
@@ -265,29 +298,39 @@ int FileBuf::writeAll(const char *_s, size_t _n){
 			return rv;
 		}
 	}
-	rbufsz = 0;
+	//rbufsz = 0;
 	return 0;
 }
 
-bool FileBuf::flushWrite(){
-	size_t towrite = pptr() - pbase();
-	int rv = writeAll(buf, towrite);
-	if(rv == towrite){
-		off += towrite;
-		char *end = buf + bufcp;
-		setp(buf, end);
-	}else{
-		return false;
+bool FileBuf::flushPut(){
+	if(hasBuf()){
+		if(hasPut()){
+			size_t towrite = pptr() - pbase();
+			int rv = writeAll(buf, towrite);
+			if(rv == towrite){
+				off += towrite;
+				resetBoth();
+			}else{
+				setp(NULL, NULL);
+				return false;
+			}
+		}
 	}
 	return true;
 }
 
 /*virtual*/ streamsize FileBuf::xsputn(const char_type* _s, streamsize _n){
 	idbg(""<<_n);
-	//updateReadBuffer(_s, _n);
-	if(bufcp){
+	if(hasBuf()){
+		return streambuf::xsputn(_s, _n);
+		
 		idbg("goffset = "<<(gptr() - buf)<<" end = "<<(egptr() - buf));
 		idbg("poffset = "<<(pptr() - buf)<<" end = "<<(epptr() - buf));
+		if(hasGet()){
+			cassert(!hasPut());
+			off += (gptr() - buf);
+			resetGet();
+		}
 		const streamsize	sz = _n;
 		size_t				wleftsz = epptr() - pptr();
 		size_t				towrite = _n;
@@ -300,7 +343,7 @@ bool FileBuf::flushWrite(){
 		_n -= towrite;
 		_s += towrite;
 		if(_n != 0){
-			if(!flushWrite()){
+			if(!flushPut()){
 				return 0;
 			}
 			if(_n <= bufcp/2){
@@ -618,6 +661,9 @@ int main(int argc, char *argv[]){
 		}
 		FileIOStream<1024>	fs/*(0, 0)*/;
 		fs.device(fd);
+		
+		fs<<'c';
+		exit(0);
 		fs<<"this is the most interesting text that was ever written to a file\n";
 		cout<<"tellg = "<<fs.tellg()<<endl;
 		cout<<"tellp = "<<fs.tellp()<<endl;
