@@ -38,7 +38,7 @@ struct InputStreamMessage: solid::Dynamic<InputStreamMessage, solid::frame::Mess
 	);
 	solid::StreamPointer<solid::InputStream>	sptr;
 	FileUidT									fileuid;
-	RequestUidT				requid;
+	RequestUidT									requid;
 };
 
 //!A signal for sending ostreams from the fileManager

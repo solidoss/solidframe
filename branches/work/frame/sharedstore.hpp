@@ -123,9 +123,10 @@ struct PointerBase{
 		}else return NULL;
 	}
 protected:
-	PointerBase(StoreBase *_psb = NULL):psb(_psb){}
+	PointerBase(StoreBase *_psb = NULL):uid(invalid_uid()), psb(_psb){}
 	PointerBase(StoreBase *_psb, UidT const &_uid):uid(_uid), psb(_psb){}
 	PointerBase(PointerBase const &_rpb):uid(_rpb.uid), psb(_rpb.psb){}
+	
 	void doClear(const bool _isalive);
 	void doReset(StoreBase *_psb, UidT const &_uid)const{
 		uid = _uid;

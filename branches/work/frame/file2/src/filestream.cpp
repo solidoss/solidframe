@@ -34,20 +34,30 @@ FileBuf::FileBuf(
 		resetGet();
 	}
 }
+FileBuf::~FileBuf(){
+	idbgx(dbgid(), "");
+	if(dev.get()){
+		sync();
+		dev.clear();
+	}
+}
+
 FilePointerT& FileBuf::device(){
+	idbgx(dbgid(), "");
 	return dev;
 }
 void FileBuf::device(FilePointerT &_rptr){
+	idbgx(dbgid(), "");
 	dev = _rptr;
 }
 
 /*virtual*/ streamsize FileBuf::showmanyc(){
-	idbg("");
+	idbgx(dbgid(), "");
 	return 0;
 }
 
 /*virtual*/ FileBuf::int_type FileBuf::underflow(){
-	//idbg("");
+	//idbgx(dbgid(), "");
 	if(hasBuf()){
 		if(hasPut()){
 			cassert(false);
@@ -59,7 +69,7 @@ void FileBuf::device(FilePointerT &_rptr){
 			return traits_type::to_int_type(*gptr());
 		}
 		//refill rbuf
-		idbg("read "<<bufcp<<" from "<<off);
+		idbgx(dbgid(), "read "<<bufcp<<" from "<<off);
 		int 	rv = dev->read(buf, bufcp, off);
 		if(rv > 0){
 			char	*end = buf + rv;
@@ -80,7 +90,7 @@ void FileBuf::device(FilePointerT &_rptr){
 }
 
 /*virtual*/ FileBuf::int_type FileBuf::uflow(){
-	//idbg("");
+	//idbgx(dbgid(), "");
 	if(hasBuf()){
 		return streambuf::uflow();
 	}else{
@@ -96,7 +106,7 @@ void FileBuf::device(FilePointerT &_rptr){
 }
 
 /*virtual*/ FileBuf::int_type FileBuf::pbackfail(int_type _c){
-	idbg(""<<_c);
+	idbgx(dbgid(), ""<<_c);
 	return traits_type::eof();
 }
 
@@ -117,7 +127,7 @@ int FileBuf::writeAll(const char *_s, size_t _n){
 }
 
 /*virtual*/ FileBuf::int_type FileBuf::overflow(int_type _c){
-	idbg(""<<_c<<" off = "<<off);
+	idbgx(dbgid(), ""<<_c<<" off = "<<off);
 	if(hasBuf()){
 		if(pptr() == NULL){
 			if(hasGet()){
@@ -160,7 +170,7 @@ int FileBuf::writeAll(const char *_s, size_t _n){
 	off_type _off, ios_base::seekdir _way,
 	ios_base::openmode _mode
 ){
-	idbg("seekoff = "<<_off<<" way = "<<_way<<" mode = "<<_mode<<" off = "<<off);
+	idbgx(dbgid(), "seekoff = "<<_off<<" way = "<<_way<<" mode = "<<_mode<<" off = "<<off);
 	if(hasBuf()){
 		if(hasPut()){
 			cassert(!hasGet());
@@ -212,12 +222,12 @@ int FileBuf::writeAll(const char *_s, size_t _n){
 	pos_type _pos,
 	ios_base::openmode _mode
 ){
-	idbg(""<<_pos);
+	idbgx(dbgid(), ""<<_pos);
 	return seekoff(_pos, std::ios_base::beg, _mode);
 }
 
 /*virtual*/ int FileBuf::sync(){
-	idbg("");
+	idbgx(dbgid(), "");
 	if(hasPut()){
 		flushPut();
 	}
@@ -230,7 +240,7 @@ int FileBuf::writeAll(const char *_s, size_t _n){
 // }
 
 /*virtual*/ streamsize FileBuf::xsgetn(char_type* _s, streamsize _n){
-	idbg(""<<_n<<" off = "<<off);
+	idbgx(dbgid(), ""<<_n<<" off = "<<off);
 	if(hasBuf()){
 		if(hasPut()){
 			if(!flushPut()){
@@ -270,7 +280,7 @@ int FileBuf::writeAll(const char *_s, size_t _n){
 bool FileBuf::flushPut(){
 	if(pptr() != epptr()){
 		size_t towrite = pptr() - pbase();
-		idbg(""<<towrite<<" off = "<<off);
+		idbgx(dbgid(), ""<<towrite<<" off = "<<off);
 		int rv = writeAll(buf, towrite);
 		if(rv == towrite){
 			off += towrite;
@@ -284,7 +294,7 @@ bool FileBuf::flushPut(){
 }
 
 /*virtual*/ streamsize FileBuf::xsputn(const char_type* _s, streamsize _n){
-	idbg(""<<_n<<" off = "<<off);
+	idbgx(dbgid(), ""<<_n<<" off = "<<off);
 	if(hasBuf()){
 		//NOTE: it should work with the following line too
 		//return streambuf::xsputn(_s, _n);

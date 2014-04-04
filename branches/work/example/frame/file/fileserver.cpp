@@ -5,7 +5,11 @@
 #include "frame/aio/aioselector.hpp"
 #include "frame/aio/aiosingleobject.hpp"
 #include "frame/aio/openssl/opensslsocket.hpp"
-#include "frame/file2/filestore.hpp"
+#include "frame/message.hpp"
+
+#include "frame/file2/filestream.hpp"
+
+#include "utility/dynamictype.hpp"
 
 #include "system/thread.hpp"
 #include "system/mutex.hpp"
@@ -86,12 +90,25 @@ private:
 
 //------------------------------------------------------------------
 //------------------------------------------------------------------
+
+struct FilePointerMessage;
+
 class Connection: public Dynamic<Connection, frame::aio::SingleObject>{
+	typedef solid::DynamicMapper<void, Connection>	DynamicMapperT;
+	typedef std::vector<solid::DynamicPointer<> >	DynamicPointerVectorT;
+	typedef frame::file::FileIOStream< 1024  >		IOFileStreamT;
+	struct DynamicRegister{
+		DynamicRegister(DynamicMapperT &_rdm);
+	};
 public:
 	Connection(const char *_node, const char *_srv);
 	Connection(const SocketDevice &_rsd);
 	~Connection();
+	
+	void dynamicHandle(solid::DynamicPointer<> &_dp);
+	void dynamicHandle(solid::DynamicPointer<FilePointerMessage> &_rmsgptr);
 private:
+	/*virtual*/ bool notify(solid::DynamicPointer<solid::frame::Message> &_rmsgptr);
 	/*virtual*/ void execute(ExecuteContext &_rexectx);
 	const char * findEnd(const char *_p);
 private:
@@ -101,20 +118,26 @@ private:
 		ReadCommand,
 		ReadPath,
 		ExecCommand,
+		WaitRead,
+		WaitWrite,
 		RunRead,
-		RunWrite
+		RunWrite,
+		CloseFileError,
 	};
+	static DynamicMapperT		dm;
+	static DynamicRegister		dr;
 	int							state;
 	char						bbeg[BUFSZ];
+	char 						*bpos;
 	char						*bend;
 	ResolveData					rd;
 	ResolveIterator				it;
 	bool						b;
 	char						cmd;
 	std::string					path;
-	std::ifstream				ifs;
-	std::ofstream				ofs;
+	IOFileStreamT				iofs;
 	const char 					*crtpat;
+	DynamicPointerVectorT		dv;
 };
 
 //------------------------------------------------------------------
@@ -176,7 +199,30 @@ int main(int argc, char *argv[]){
 		{
 			frame::file::Utf8Configuration	utf8cfg;
 			frame::file::TempConfiguration	tempcfg;
-			//TODO: populate cfg
+			
+			system("[ -d /tmp/fileserver ] || mkdir -p /tmp/fileserver");
+			
+			const char *homedir = getenv("HOME");
+			
+			utf8cfg.storagevec.push_back(frame::file::Utf8Configuration::Storage());
+			utf8cfg.storagevec.back().globalprefix = "/";
+			utf8cfg.storagevec.back().localprefix = homedir;
+			if(utf8cfg.storagevec.back().localprefix.size() && utf8cfg.storagevec.back().localprefix.back() != '/'){
+				utf8cfg.storagevec.back().localprefix.push_back('/');
+			}
+			
+			tempcfg.storagevec.push_back(frame::file::TempConfiguration::Storage());
+			tempcfg.storagevec.back().level = frame::file::MemoryLevelFlag;
+			tempcfg.storagevec.back().capacity = 1024 * 1024 * 10;//10MB
+			tempcfg.storagevec.back().minsize = 0;
+			tempcfg.storagevec.back().maxsize = 1024 * 10;
+			
+			tempcfg.storagevec.push_back(frame::file::TempConfiguration::Storage());
+			tempcfg.storagevec.back().path = "/tmp/fileserver/";
+			tempcfg.storagevec.back().level = frame::file::MemoryLevelFlag;
+			tempcfg.storagevec.back().capacity = 1024 * 1024 * 10;//10MB
+			tempcfg.storagevec.back().minsize = 0;
+			tempcfg.storagevec.back().maxsize = 1024 * 10;
 		
 			filestoreptr = new frame::file::Store<>(m, utf8cfg, tempcfg);
 		}
@@ -310,6 +356,22 @@ Listener::~Listener(){
 //------------------------------------------------------------------
 static const char * patt = "\n.\r\n";
 
+struct FilePointerMessage: solid::Dynamic<FilePointerMessage, solid::frame::Message>{
+	FilePointerMessage(){}
+	FilePointerMessage(frame::file::FilePointerT _ptr):ptr(_ptr){}
+	
+	frame::file::FilePointerT	ptr;
+};
+
+Connection::DynamicRegister::DynamicRegister(Connection::DynamicMapperT& _rdm){
+	_rdm.insert<FilePointerMessage, Connection>();
+}
+
+/*static*/ Connection::DynamicMapperT		Connection::dm;
+/*static*/ Connection::DynamicRegister		Connection::dr(Connection::dm);
+
+static frame::UidT							tempuid = frame::invalid_uid();
+
 Connection::Connection(const char *_node, const char *_srv): 
 	BaseT(), b(false), crtpat(patt)
 {
@@ -349,12 +411,20 @@ const char * Connection::findEnd(const char *_p){
 }
 
 struct OpenCbk{
+	frame::ObjectUidT	uid;
+	OpenCbk(){}
+	OpenCbk(const frame::ObjectUidT &_robjuid):uid(_robjuid){}
+	
 	void operator()(
 		frame::file::Store<> &,
 		frame::file::FilePointerT &_rptr,
 		ERROR_NS::error_code err
 	){
-		
+		idbg("");
+		tempuid = _rptr.id();
+		frame::Manager 			&rm = frame::Manager::specific();
+		frame::MessagePointerT	msgptr(new FilePointerMessage(_rptr));
+		rm.notify(msgptr, uid);
 	}
 };
 
@@ -365,13 +435,28 @@ struct OpenCbk{
 		_rexectx.close();
 		return;
 	}
-
+	frame::Manager &rm = frame::Manager::specific();
+	
 	if(notified()){
-		//Locker<Mutex>	lock(mutex());
-		ulong sm = grabSignalMask();
-		if(sm & frame::S_KILL){
-			_rexectx.close();
-			return;
+		DynamicHandler<DynamicMapperT>	dh(dm);
+		ulong							sm;
+		{
+			Locker<Mutex>				lock(rm.mutex(*this));
+			
+			sm = grabSignalMask();
+			if(sm & frame::S_KILL){
+				_rexectx.close();
+				return;
+			}
+			if(sm & frame::S_SIG){//we have signals
+				dh.init(dv.begin(), dv.end());
+				dv.clear();
+			}
+		}
+		if(sm & frame::S_SIG){//we've grabed signals, execute them
+			for(size_t i = 0; i < dh.size(); ++i){
+				dh.handle(*this, i);
+			}
 		}
 	}
 	const uint32 sevs(socketEventsGrab());
@@ -382,16 +467,17 @@ struct OpenCbk{
 	if(sevs & frame::EventDoneRecv){
 		bend = bbeg + socketRecvSize() + (crtpat - patt);
 		crtpat = patt;
+		bpos = bbeg;
 	}
 	
 	frame::aio::AsyncE rv;
-	char *bpos = bbeg;
 	switch(state){
 		case ReadInit:
 			rv = this->socketRecv(bbeg, BUFSZ);
 			if(rv == frame::aio::AsyncSuccess){
 				state = ReadCommand;
 				bend = bbeg + socketRecvSize();
+				bpos = bbeg;
 			}else if(rv == frame::aio::AsyncWait){
 				state = ReadCommand;
 				return;
@@ -432,49 +518,56 @@ struct OpenCbk{
 				path.resize(path.size() - 1);
 			}
 			if(cmd == 'R' || cmd == 'r'){
-				filestoreptr->requestCreateFile(OpenCbk(), path.c_str());
-				filestoreptr->requestCreateTemp(OpenCbk(), 4 * 1024);
-				ifs.open(path.c_str());
-				if(!ifs){
-					_rexectx.close();
-					return;
-				}
-				state = RunRead;
-				_rexectx.reschedule();
-				return;
-			}else if(cmd == 'w' || cmd == 'W'){
-				ofs.open(path.c_str());
-				if(!ofs){
-					_rexectx.close();
-					return;
-				}
+				state = WaitRead;
 				++bpos;
-				const char *p = findEnd(bpos);
-				ofs.write(bpos, p - bpos);
-				if(crtpat != patt){
-					memcpy(bbeg, patt, crtpat - patt);
-				}
-				if(p != bend && *p == '.'){
-					ofs.close();
-					_rexectx.close();
-					return;
-				}
-				bend = bbeg;
-				state= RunWrite;
-				
+				idbg("Request open file: "<<path);
+				filestoreptr->requestOpenFile(OpenCbk(rm.id(*this)), path.c_str(), FileDevice::ReadWriteE);
 				_rexectx.reschedule();
-				return;
+			}else if(cmd == 'w' || cmd == 'W'){
+				state = WaitWrite;
+				++bpos;
+				idbg("Request create file: "<<path);
+				filestoreptr->requestCreateFile(OpenCbk(rm.id(*this)), path.c_str(), FileDevice::ReadWriteE);
+				_rexectx.reschedule();
+			}else if(cmd == 't'){//temp read
+				if(frame::is_valid_uid(tempuid)){
+					idbg("Request read temp - no temp");
+					_rexectx.close();
+				}else{
+					idbg("Request read temp - "<<tempuid.first<<'.'<<tempuid.second);
+					state = WaitRead;
+					++bpos;
+					filestoreptr->requestShared(OpenCbk(rm.id(*this)), tempuid);
+					_rexectx.reschedule();
+				}
+			}else if(cmd == 'T'){//temp write
+				state = WaitWrite;
+				++bpos;
+				if(!frame::is_valid_uid(tempuid)){
+					idbg("Request read temp");
+					filestoreptr->requestCreateTemp(OpenCbk(rm.id(*this)), 4 * 1024);
+				}else{
+					idbg("Request write temp - "<<tempuid.first<<'.'<<tempuid.second);
+					filestoreptr->requestUnique(OpenCbk(rm.id(*this)), tempuid);
+				}
+				state = WaitWrite;
+				_rexectx.reschedule();
 			}else{
 				_rexectx.close();
-				return;
 			}
+			break;
+		case WaitRead:
+		case WaitWrite:
+			//keep waiting
+			idbg("keep waiting");
+			break;
 		case RunRead:
 			if(socketHasPendingSend()){
 				return;
 			}
-			if(!ifs.eof()){
-				ifs.read(bbeg, BUFSZ);
-				rv = socketSend(bbeg, ifs.gcount());
+			if(!iofs.eof()){
+				iofs.read(bbeg, BUFSZ);
+				rv = socketSend(bbeg, iofs.gcount());
 				if(rv == frame::aio::AsyncSuccess){
 					_rexectx.reschedule();
 				}else if(rv == frame::aio::AsyncWait){
@@ -482,21 +575,21 @@ struct OpenCbk{
 					_rexectx.close();
 				}
 			}else{
-				ifs.close();
+				iofs.close();
 				_rexectx.close();
 			}
-			return;
+			break;
 		case RunWrite:{
 			if(socketHasPendingRecv()){
 				return;
 			}
 			const char *p = findEnd(bpos);
-			ofs.write(bpos, p - bpos);
+			iofs.write(bpos, p - bpos);
 			if(crtpat != patt){
 				memcpy(bbeg, patt, crtpat - patt);
 			}
 			if(p != bend && *p == '.'){
-				ofs.close();
+				iofs.close();
 				_rexectx.close();
 				return;
 			}
@@ -506,12 +599,12 @@ struct OpenCbk{
 				bend = bbeg + socketRecvSize();
 				crtpat = patt;
 				p = findEnd(bpos);
-				ofs.write(bpos, p - bpos);
+				iofs.write(bpos, p - bpos);
 				if(crtpat != patt){
 					memcpy(bbeg, patt, crtpat - patt);
 				}
 				if(p != bend && *p == '.'){
-					ofs.close();
+					iofs.close();
 					_rexectx.close();
 					return;
 				}
@@ -520,6 +613,33 @@ struct OpenCbk{
 			}else{
 				_rexectx.close();
 			}
+		}break;
+		case CloseFileError:
+			_rexectx.close();
+			break;
+	}
+}
+
+/*virtual*/ bool Connection::notify(solid::DynamicPointer<solid::frame::Message> &_rmsgptr){
+	dv.push_back(DynamicPointer<>(_rmsgptr));
+	return Object::notify(frame::S_SIG | frame::S_RAISE);
+}
+
+void Connection::dynamicHandle(solid::DynamicPointer<> &_dp){
+	idbg("");
+	cassert(false);
+	state = CloseFileError;
+}
+void Connection::dynamicHandle(solid::DynamicPointer<FilePointerMessage> &_rmsgptr){
+	idbg("");
+	if(!_rmsgptr->ptr.empty()){
+		iofs.device(_rmsgptr->ptr);
+		if(state == WaitRead){
+			state = RunRead;
+		}else if(state == WaitWrite){
+			state = RunWrite;
 		}
+	}else{
+		state = CloseFileError;
 	}
 }

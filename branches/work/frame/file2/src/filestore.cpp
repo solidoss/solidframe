@@ -24,6 +24,8 @@
 
 #include "system/atomic.hpp"
 #include "system/directory.hpp"
+#include "system/debug.hpp"
+
 #include "utility/binaryseeker.hpp"
 #include "utility/stack.hpp"
 
@@ -37,6 +39,11 @@
 namespace solid{
 namespace frame{
 namespace file{
+
+uint32 dbgid(){
+	static uint32 id = Debug::the().registerModule("frame_file");
+	return id;
+}
 
 //---------------------------------------------------------------------------
 //		Utf8Controller::Data
@@ -323,7 +330,7 @@ bool Utf8Controller::prepareIndex(
 	
 	_rcmd.outpath.path.assign(_rcmd.inpath.c_str() + rstrg.globalsize);
 	PathSetT::const_iterator it = d.pathset.find(&_rcmd.outpath);
-	if(it == d.pathset.end()){
+	if(it != d.pathset.end()){
 		_ridx = (*it)->idx;
 		return true;
 	}

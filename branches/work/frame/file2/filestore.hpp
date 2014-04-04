@@ -21,6 +21,7 @@ class Manager;
 
 namespace file{
 
+uint32 dbgid();
 
 enum{
 	MemoryLevelFlag = 1,
@@ -266,8 +267,8 @@ public:
 		return StoreT::requestReinit(cmd, _flags);
 	}
 	
-	template <typename Cmd, typename Pth>
-	bool requestOpenFile(Cmd _cmd, Pth _path, const size_t _openflags = 0, const size_t _flags = 0){
+	template <typename Cmd>
+	bool requestOpenFile(Cmd _cmd, std::string const &_path, const size_t _openflags = 0, const size_t _flags = 0){
 		OpenCommand<
 			ThisT, Cmd,
 			typename BaseT::OpenCommandBaseT

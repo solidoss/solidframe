@@ -29,6 +29,7 @@ public:
 	FileBuf(
 		char* _buf = NULL, size_t _bufcp = 0
 	);
+	~FileBuf();
 	FilePointerT& device();
 	void device(FilePointerT &_rptr);
 protected:
@@ -113,6 +114,10 @@ public:
 	void device(FilePointerT &_rdev){
 		buf.device(_rdev);
 	}
+	void close(){
+		buf.pubsync();
+		buf.device().clear();
+	}
 private:
 	char	*pb;
 	FileBuf	buf;
@@ -133,6 +138,10 @@ public:
 	}
 	void device(FilePointerT &_rdev){
 		buf.device(_rdev);
+	}
+	void close(){
+		buf.pubsync();
+		buf.device().clear();
 	}
 private:
 	char		b[BufCp];
@@ -170,6 +179,10 @@ public:
 	void device(FilePointerT &_rdev){
 		buf.device(_rdev);
 	}
+	void close(){
+		buf.pubsync();
+		buf.device().clear();
+	}
 private:
 	char	*pb;
     FileBuf	buf;
@@ -190,6 +203,10 @@ public:
 	}
 	void device(FilePointerT &_rdev){
 		buf.device(_rdev);
+	}
+	void close(){
+		buf.pubsync();
+		buf.device().clear();
 	}
 private:
 	char		b[BufCp];
@@ -227,6 +244,10 @@ public:
 	void device(FilePointerT &_rdev){
 		buf.device(_rdev);
 	}
+	void close(){
+		buf.pubsync();
+		buf.device().clear();
+	}
 private:
 	char	*pb;
     FileBuf	buf;
@@ -247,6 +268,10 @@ public:
 	}
 	void device(FilePointerT &_rdev){
 		buf.device(_rdev);
+	}
+	void close(){
+		buf.pubsync();
+		buf.device().clear();
 	}
 private:
 	char		b[BufCp];
