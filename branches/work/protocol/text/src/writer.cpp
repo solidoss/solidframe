@@ -9,9 +9,11 @@
 //
 #include <cstring>
 #include "protocol/text/writer.hpp"
-#include "utility/istream.hpp"
+#include <istream>
 
 #include "system/debug.hpp"
+
+using namespace std;
 
 namespace solid{
 namespace protocol{
@@ -298,14 +300,36 @@ template <>
 	}
 }
 
+bool read_stream_all(istream &_ris, char *_pb, size_t _sz){
+	bool rv = true;
+	while(_sz){
+		_ris.read(_pb, _sz);
+		if(_ris.eof()){
+			rv = false;
+			break;
+		}
+		
+		size_t rsz = _ris.gcount();
+		
+		if(rsz == 0){
+			rv = false;
+			break;
+		}
+		_pb += rsz;
+		_sz -= rsz;
+	}
+	return rv;
+}
+
 /*static*/ int Writer::putStream(Writer &_rw, Parameter &_rp){
-	InputStreamIterator &isi = *reinterpret_cast<InputStreamIterator*>(_rp.a.p);
-	uint64			&sz = *static_cast<uint64*>(_rp.b.p);
-	if(isi.start() < 0) return Failure;
+	istream 	&ris = *reinterpret_cast<istream*>(_rp.a.p);
+	uint64		&sz = *static_cast<uint64*>(_rp.b.p);
+	//if(ris.start() < 0) return Failure;
 	if(sz < FlushLength){
 		cassert((_rw.bh->pend - _rw.wpos) >= FlushLength);
-		if(sz != (uint64)isi->read(_rw.wpos, sz))
+		if(read_stream_all(ris, _rw.wpos, sz)){
 			return Failure;
+		}
 		_rw.wpos += sz;
 		int rv = _rw.flush();
 		if(rv){
@@ -323,21 +347,25 @@ template <>
 
 /*static*/ int Writer::putStreamDone(Writer &_rw, Parameter &_rp){
 	doneFlush(_rw, _rp);
-	InputStreamIterator &isi = *reinterpret_cast<InputStreamIterator*>(_rp.a.p);
+	istream 		&ris = *reinterpret_cast<istream*>(_rp.a.p);
 	uint64			&sz = *static_cast<uint64*>(_rp.b.p);
 	ulong 			toread;
 	const ulong		blen = _rw.bh->pend - _rw.bh->pbeg;
 	ulong 			tmpsz = blen * 16;
 	int				rv = 0;
+	
+	
 	if(tmpsz > sz) tmpsz = sz;
 	sz -= tmpsz;
+	
 	while(tmpsz){
 		toread = blen;
 		if(toread > tmpsz) toread = tmpsz;
-		rv = isi->read(_rw.bh->pbeg, toread);
-		if((ulong)rv != toread){
+		
+		if(read_stream_all(ris, _rw.bh->pbeg, toread)){
 			return Failure;
 		}
+		
 		tmpsz -= rv;
 		if(rv < FlushLength)
 			break;

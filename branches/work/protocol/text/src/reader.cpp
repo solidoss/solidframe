@@ -8,10 +8,12 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 #include "protocol/text/reader.hpp"
-#include "utility/ostream.hpp"
+#include <ostream>
 #include "system/debug.hpp"
 #include <cstring>
 #include <cerrno>
+
+using namespace std;
 
 namespace solid{
 namespace protocol{
@@ -153,9 +155,7 @@ int Reader::run(){
 }
 
 /*static*/ int Reader::fetchLiteralStream(Reader &_rr, Parameter &_rp){
-	OutputStreamIterator	&osi(*static_cast<OutputStreamIterator*>(_rp.a.p));
-	
-	cassert(osi.start() >= 0);
+	ostream			&ros(*reinterpret_cast<ostream*>(_rp.a.p));
 	
 	uint64			&sz = *static_cast<uint64*>(_rp.b.p);
 	ulong			minlen = (ulong)(_rr.wpos - _rr.rpos);
@@ -164,7 +164,7 @@ int Reader::run(){
 	
 	//write what we allready have in buffer into the stream
 	if(minlen){
-		osi->write(_rr.rpos, minlen);
+		ros.write(_rr.rpos, minlen);
 	}
 	
 	idbgx(Debug::proto_txt, "stream size = "<<sz<<" minlen = "<<minlen);
@@ -195,7 +195,7 @@ int Reader::run(){
 }
 
 /*static*/ int Reader::fetchLiteralStreamContinue(Reader &_rr, Parameter &_rp){
-	OutputStreamIterator	&osi(*static_cast<OutputStreamIterator*>(_rp.a.p));
+	ostream			&ros(*reinterpret_cast<ostream*>(_rp.a.p));
 	uint64			&sz(*static_cast<uint64*>(_rp.b.p));
 	const ulong		bufsz(_rr.bh->pend - _rr.bh->pbeg);
 	ulong			toread;
@@ -206,7 +206,7 @@ int Reader::run(){
 	while(tmpsz){
 		const ulong rdsz(_rr.readSize());
 		
-		osi->write(_rr.bh->pbeg, rdsz);
+		ros.write(_rr.bh->pbeg, rdsz);
 		tmpsz -= rdsz; 
 		
 		if(!tmpsz) break;
