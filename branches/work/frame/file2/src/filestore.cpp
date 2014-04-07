@@ -63,7 +63,7 @@ struct TempWaitStub{
 		File *_pfile = NULL,
 		uint64 _size = 0,
 		size_t _value = 0
-	):objuid(_uid), pfile(pfile), size(_size), value(_value){}
+	):objuid(_uid), pfile(_pfile), size(_size), value(_value){}
 	
 	void clear(){
 		pfile = NULL;
@@ -424,7 +424,6 @@ bool Utf8Controller::executeBeforeErase(shared::StoreBase::Accessor &_rsbacc){
 						doPrepareOpenTemp(*waitit->pfile, waitit->size, strgidx);
 						//we schedule for erase the waitit pointer
 						_rsbacc.consumeEraseVector().push_back(waitit->objuid);
-						break;
 					}else{
 						d.tempwaitdq.push_back(*waitit);
 						// we dont need the openflags any more - we know which 
@@ -580,7 +579,7 @@ void Utf8Controller::doDeliverTemp(shared::StoreBase::Accessor &_rsbacc, const s
 
 /*virtual*/ TempBase::~TempBase(){
 }
-/*virtual*/ void TempBase::flush(int64 _len){
+/*virtual*/ void TempBase::flush(){
 }
 //--------------------------------------------------------------------------
 //		TempFile
@@ -672,6 +671,9 @@ bool prepare_temp_file_path(std::string &_rpath, const char *_prefix, size_t _id
 
 /*virtual*/ bool TempFile::truncate(int64 _len){
 	return fd.truncate(_len);
+}
+/*virtual*/ void TempFile::flush(){
+	fd.flush();
 }
 
 //--------------------------------------------------------------------------

@@ -6,8 +6,6 @@
 #include "system/thread.hpp"
 #include "system/timespec.hpp"
 
-#include "utility/iostream.hpp"
-
 #include "protocol/text/namematcher.hpp"
 #include "serialization/binary.hpp"
 

@@ -160,7 +160,7 @@ private:
 	Connection									&rc;
 	int16 										state;
 	uint64										litsz;
-	solid::protocol::text::Parameter					*pp;
+	solid::protocol::text::Parameter			*pp;
 	
 	
 	solid::StreamPointer<solid::InputStream>	sp_in;

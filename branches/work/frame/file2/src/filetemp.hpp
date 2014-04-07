@@ -37,6 +37,7 @@ private:
 	/*virtual*/ int64 size()const;
 	
 	/*virtual*/ bool truncate(int64 _len = 0);
+	/*virtual*/ void flush();
 private:
 	FileDevice	fd;
 };

@@ -219,7 +219,7 @@ int main(int argc, char *argv[]){
 			
 			tempcfg.storagevec.push_back(frame::file::TempConfiguration::Storage());
 			tempcfg.storagevec.back().path = "/tmp/fileserver/";
-			tempcfg.storagevec.back().level = frame::file::MemoryLevelFlag;
+			tempcfg.storagevec.back().level = frame::file::VeryFastLevelFlag;
 			tempcfg.storagevec.back().capacity = 1024 * 1024 * 10;//10MB
 			tempcfg.storagevec.back().minsize = 0;
 			tempcfg.storagevec.back().maxsize = 1024 * 10;
@@ -235,7 +235,7 @@ int main(int argc, char *argv[]){
 		
 		
 		cout<<"Here some examples how to test: "<<endl;
-		cout<<"\t$ nc localhost 2111"<<endl;
+		cout<<"\t$ nc localhost 2000"<<endl;
 		
 		if(0){
 			Locker<Mutex>	lock(mtx);
@@ -529,27 +529,47 @@ struct OpenCbk{
 				idbg("Request create file: "<<path);
 				filestoreptr->requestCreateFile(OpenCbk(rm.id(*this)), path.c_str(), FileDevice::ReadWriteE);
 				_rexectx.reschedule();
-			}else if(cmd == 't'){//temp read
+			}else if(cmd == 's' || cmd == 'S'){//temp read
 				if(frame::is_valid_uid(tempuid)){
-					idbg("Request read temp - no temp");
+					idbg("Request shared temp - no temp");
 					_rexectx.close();
 				}else{
-					idbg("Request read temp - "<<tempuid.first<<'.'<<tempuid.second);
+					idbg("Request shared temp - "<<tempuid.first<<'.'<<tempuid.second);
 					state = WaitRead;
 					++bpos;
 					filestoreptr->requestShared(OpenCbk(rm.id(*this)), tempuid);
 					_rexectx.reschedule();
 				}
-			}else if(cmd == 'T'){//temp write
+			}else if(cmd == 'u' || cmd == 'U'){//temp read
+				if(frame::is_valid_uid(tempuid)){
+					idbg("Request unique temp - no temp");
+					_rexectx.close();
+				}else{
+					idbg("Request unique temp - "<<tempuid.first<<'.'<<tempuid.second);
+					state = WaitRead;
+					++bpos;
+					filestoreptr->requestShared(OpenCbk(rm.id(*this)), tempuid);
+					_rexectx.reschedule();
+				}
+			}else if(cmd == 'T' || cmd == 't'){//temp write
 				state = WaitWrite;
 				++bpos;
-				if(!frame::is_valid_uid(tempuid)){
-					idbg("Request read temp");
-					filestoreptr->requestCreateTemp(OpenCbk(rm.id(*this)), 4 * 1024);
-				}else{
-					idbg("Request write temp - "<<tempuid.first<<'.'<<tempuid.second);
-					filestoreptr->requestUnique(OpenCbk(rm.id(*this)), tempuid);
-				}
+				idbg("Request read temp");
+				filestoreptr->requestCreateTemp(OpenCbk(rm.id(*this)), 4 * 1024);
+				state = WaitWrite;
+				_rexectx.reschedule();
+			}else if(cmd == 'F' || cmd == 'f'){//temp write
+				state = WaitWrite;
+				++bpos;
+				idbg("Request file temp");
+				filestoreptr->requestCreateTemp(OpenCbk(rm.id(*this)), 4 * 1024, frame::file::VeryFastLevelFlag);
+				state = WaitWrite;
+				_rexectx.reschedule();
+			}else if(cmd == 'm' || cmd == 'M'){//temp write
+				state = WaitWrite;
+				++bpos;
+				idbg("Request memory temp");
+				filestoreptr->requestCreateTemp(OpenCbk(rm.id(*this)), 4 * 1024, frame::file::MemoryLevelFlag);
 				state = WaitWrite;
 				_rexectx.reschedule();
 			}else{

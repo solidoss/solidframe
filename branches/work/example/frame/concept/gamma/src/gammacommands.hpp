@@ -7,9 +7,6 @@
 #include <boost/utility.hpp>
 
 #include "utility/queue.hpp"
-#include "utility/streampointer.hpp"
-#include "utility/istream.hpp"
-#include "utility/ostream.hpp"
 
 #include "frame/ipc/ipcconnectionuid.hpp"
 
