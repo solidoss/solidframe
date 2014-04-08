@@ -14,7 +14,9 @@
 #include "frame/scheduler.hpp"
 #include "frame/aio/aioselector.hpp"
 #include "frame/objectselector.hpp"
+#include "frame/file2/filestore.hpp"
 #include "common.hpp"
+
 
 namespace solid{
 namespace frame{
@@ -34,7 +36,7 @@ namespace concept{
 
 typedef solid::frame::Scheduler<solid::frame::aio::Selector>	AioSchedulerT;
 typedef solid::frame::Scheduler<solid::frame::ObjectSelector>	SchedulerT;
-
+typedef solid::frame::file::Store<>								FileStoreT;
 
 //! A proof of concept server
 /*!
@@ -66,7 +68,7 @@ public:
 	ObjectUidT writeMessageStewardUid()const;
 	
 	solid::frame::ipc::Service 	&ipc()const;
-	solid::frame::file::Manager	&fileManager()const;
+	FileStoreT&	&fileStore()const;
 private:
 	struct Data;
 	Data	&d;

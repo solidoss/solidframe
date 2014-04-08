@@ -1,4 +1,4 @@
-// manager.cpp
+/////// manager.cpp
 //
 // Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
 //
@@ -29,49 +29,15 @@
 #include "frame/requestuid.hpp"
 
 #include "frame/ipc/ipcservice.hpp"
-#include "frame/file/filemanager.hpp"
-#include "frame/file/filemappers.hpp"
 
 #include <iostream>
 
 using namespace std;
 using namespace solid;
 
-
 namespace concept{
-//------------------------------------------------------
-//		FileManagerController
-//------------------------------------------------------
 
-class FileManagerController: public solid::frame::file::Manager::Controller{
-public:
-	FileManagerController(){}
-protected:
-	/*virtual*/ void init(const frame::file::Manager::InitStub &_ris);
-	 
-	/*virtual*/ bool release();
-	
-	/*virtual*/ void sendStream(
-		StreamPointer<InputStream> &_sptr,
-		const FileUidT &_rfuid,
-		const solid::frame::RequestUid& _rrequid
-	);
-	/*virtual*/ void sendStream(
-		StreamPointer<OutputStream> &_sptr,
-		const FileUidT &_rfuid,
-		const solid::frame::RequestUid& _rrequid
-	);
-	/*virtual*/ void sendStream(
-		StreamPointer<InputOutputStream> &_sptr,
-		const FileUidT &_rfuid,
-		const solid::frame::RequestUid& _rrequid
-	);
-	/*virtual*/ void sendError(
-		int _error,
-		const solid::frame::RequestUid& _rrequid
-	);
-};
-
+typedef solid::DynamicSharedPointer<FileStoreT>	FileStoreSharedPointerT;
 
 //------------------------------------------------------
 //		IpcServiceController
@@ -148,12 +114,11 @@ struct Manager::Data{
 	}
 	typedef DynamicSharedPointer<frame::file::Manager>	FileManagerSharedPointerT;
 	
-	FileManagerController		fmctrl;
 	AioSchedulerT				mainaiosched;
 	AioSchedulerT				scndaiosched;
 	SchedulerT					objsched;
 	frame::ipc::Service			ipcsvc;
-	FileManagerSharedPointerT	filemgrptr;
+	FileStoreSharedPointerT		filestoreptr;
 	ObjectUidT					readmsgstwuid;
 	ObjectUidT					writemsgstwuid;
 };
@@ -185,14 +150,41 @@ void Manager::start(){
 	
 	registerService(d.ipcsvc);
 	
-	d.filemgrptr = new frame::file::Manager(&d.fmctrl);
+	{
+		frame::file::Utf8Configuration	utf8cfg;
+		frame::file::TempConfiguration	tempcfg;
+		
+		system("[ -d /tmp/fileserver ] || mkdir -p /tmp/fileserver");
+		
+		const char *homedir = getenv("HOME");
+		
+		utf8cfg.storagevec.push_back(solid::frame::file::Utf8Configuration::Storage());
+		utf8cfg.storagevec.back().globalprefix = "/";
+		utf8cfg.storagevec.back().localprefix = homedir;
+		if(utf8cfg.storagevec.back().localprefix.size() && utf8cfg.storagevec.back().localprefix.back() != '/'){
+			utf8cfg.storagevec.back().localprefix.push_back('/');
+		}
+		
+		tempcfg.storagevec.push_back(solid::frame::file::TempConfiguration::Storage());
+		tempcfg.storagevec.back().level = frame::file::MemoryLevelFlag;
+		tempcfg.storagevec.back().capacity = 1024 * 1024 * 10;//10MB
+		tempcfg.storagevec.back().minsize = 0;
+		tempcfg.storagevec.back().maxsize = 1024 * 10;
+		
+		tempcfg.storagevec.push_back(solid::frame::file::TempConfiguration::Storage());
+		tempcfg.storagevec.back().path = "/tmp/fileserver/";
+		tempcfg.storagevec.back().level = frame::file::VeryFastLevelFlag;
+		tempcfg.storagevec.back().capacity = 1024 * 1024 * 10;//10MB
+		tempcfg.storagevec.back().minsize = 0;
+		tempcfg.storagevec.back().maxsize = 1024 * 10;
 	
-	DynamicPointer<frame::Object>	msgptr(d.filemgrptr);
+		d.filestoreptr = new FileStoreT(*this, utf8cfg, tempcfg);
+	}
 	
-	registerObject(*msgptr);
-	d.objsched.schedule(msgptr);
+	registerObject(*d.filestoreptr);
+	d.objsched.schedule(d.filestoreptr);
 	
-	msgptr = new frame::MessageSteward;
+	DynamicPointer<frame::Object>	msgptr = new frame::MessageSteward;
 	
 	d.readmsgstwuid = registerObject(*msgptr);
 	
@@ -216,8 +208,8 @@ ObjectUidT Manager::writeMessageStewardUid()const{
 frame::ipc::Service&	Manager::ipc()const{
 	return d.ipcsvc;
 }
-frame::file::Manager&	Manager::fileManager()const{
-	return *d.filemgrptr;
+FileStoreT&	Manager::fileStore()const{
+	return *d.filestoreptr;
 }
 
 void Manager::scheduleListener(solid::DynamicPointer<solid::frame::aio::Object> &_objptr){
