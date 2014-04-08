@@ -425,9 +425,11 @@ CbkReturnValueE SerializerBase::store<std::string>(Base &_rb, FncData &_rfd, voi
 	return Continue;
 }
 CbkReturnValueE SerializerBase::storeStreamBegin(Base &_rb, FncData &_rfd, void */*_pctx*/){
-	SerializerBase &rs(static_cast<SerializerBase&>(_rb));
+	SerializerBase	&rs(static_cast<SerializerBase&>(_rb));
+	
 	if(!rs.cpb) return Success;
-	int32		toread = rs.be - rs.cpb;
+	
+	int32			toread = rs.be - rs.cpb;
 	
 	if(toread < MINSTREAMBUFLEN) return Wait;
 	
@@ -439,9 +441,10 @@ CbkReturnValueE SerializerBase::storeStreamBegin(Base &_rb, FncData &_rfd, void 
 		return Success;
 	}
 	if(_rfd.s != -1ULL){
+		std::istream	&ris = *reinterpret_cast<std::istream*>(_rfd.p);
+		ris.seekg(_rfd.s);
 		if(
-			static_cast<int64>(_rfd.s) != 
-			reinterpret_cast<InputStream*>(_rfd.p)->seek(_rfd.s)
+			static_cast<int64>(_rfd.s) != ris.tellg()
 		){
 			rs.streamerr = ERR_STREAM_SEEK;
 			rs.cpb = storeValue(rs.cpb, (uint16)0xffff);
@@ -483,8 +486,15 @@ CbkReturnValueE SerializerBase::storeStream(Base &_rb, FncData &_rfd, void */*_p
 		rs.cpb = storeValue(rs.cpb, (uint16)0);
 		return Success;
 	}
+	std::istream	&ris = *reinterpret_cast<std::istream*>(_rfd.p);
+	ris.read(rs.cpb + 2, toread);
 	
-	int rv = reinterpret_cast<InputStream*>(_rfd.p)->read(rs.cpb + 2, toread);
+	int rv;
+	if(ris.eof() || ris.fail()){
+		rv = -1;
+	}else{
+		rv = ris.gcount();
+	}
 	
 	idbgx(Debug::ser_bin, "toread = "<<toread<<" rv = "<<rv);
 	
@@ -1273,9 +1283,10 @@ CbkReturnValueE DeserializerBase::loadStreamBegin(Base &_rb, FncData &_rfd, void
 	}
 	
 	if(_rfd.s != -1ULL){
+		std::ostream	&ros = *reinterpret_cast<std::ostream*>(_rfd.p);
+		ros.seekp(_rfd.s);
 		if(
-			static_cast<int64>(_rfd.s) != 
-			reinterpret_cast<OutputStream*>(_rfd.p)->seek(_rfd.s)
+			static_cast<int64>(_rfd.s) != ros.tellp()
 		){
 			rd.streamerr = ERR_STREAM_SEEK;
 			rd.pop();
@@ -1336,7 +1347,17 @@ CbkReturnValueE DeserializerBase::loadStream(Base &_rb, FncData &_rfd, void */*_
 		return Failure;
 	}
 	
-	int rv = reinterpret_cast<OutputStream*>(_rfd.p)->write(rd.cpb, towrite);
+	std::ostream	&ros = *reinterpret_cast<std::ostream*>(_rfd.p);
+	
+	ros.write(rd.cpb, towrite);
+	
+	int rv;
+	
+	if(ros.fail() || ros.eof()){
+		rv = -1;
+	}else{
+		rv = towrite;
+	}
 	
 	rd.cpb += sz;
 	

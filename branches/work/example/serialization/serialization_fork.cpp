@@ -13,8 +13,8 @@
 #include <deque>
 #include <map>
 #include <list>
-#include "system/filedevice.hpp"
-#include "utility/iostream.hpp"
+#include <fstream>
+#include <unistd.h>
 #include "system/debug.hpp"
 #include "system/thread.hpp"
 #include "serialization/binary.hpp"
@@ -27,76 +27,38 @@
 using namespace std;
 using namespace solid;
 ///\cond 0
-class FileInputOutputStream: public InputOutputStream{
-public:
-	FileInputOutputStream();
-	~FileInputOutputStream();
-	bool openRead(const char *_fn);
-	bool openWrite(const char *_fn);
-	int read(char *, uint32, uint32 _flags = 0);
-	int write(const char *, uint32, uint32 _flags = 0);
-	int64 seek(int64, SeekRef);
-	int64 size()const;
-	void close();
-private:
-	FileDevice	fd;
-};
-///\endcond
-FileInputOutputStream::FileInputOutputStream(){}
-FileInputOutputStream::~FileInputOutputStream(){}
-bool FileInputOutputStream::openRead(const char *_fn){
-	return fd.open(_fn, FileDevice::ReadOnlyE);
-}
-bool FileInputOutputStream::openWrite(const char *_fn){
-	return fd.create(_fn, FileDevice::WriteOnlyE);
-}
-int FileInputOutputStream::read(char *_pb, uint32 _bl, uint32 _flags){
-	return fd.read(_pb, _bl);
-}
-int FileInputOutputStream::write(const char *_pb, uint32 _bl, uint32 _flags){
-	return fd.write(_pb, _bl);
-}
-int64 FileInputOutputStream::seek(int64 _off, SeekRef){
-	return fd.seek(_off);
-}
-int64 FileInputOutputStream::size()const{
-	return fd.size();
-}
-void FileInputOutputStream::close(){
-	fd.close();
-}
-
-///\cond 0
 struct Test{
 	Test(const char *_fn = NULL);
 	template <class S>
 	void serialize(S &_s){
 		_s.push(no, "Test::no");
 		if(S::IsSerializer){
-			InputStream *ps = &fs;
+			istream *ps = &fs;
 			_s.pushStream(ps, "Test::istream");
 		}else{
-			OutputStream *ps= &fs;
+			ostream *ps= &fs;
 			_s.pushStream(ps, "Test::ostream");
 		}
 		_s.push(fn,"Test::fn");
 	}
 	void print();
 private:
-	int32 					no;
-	string					fn;
-	FileInputOutputStream	fs;
+	int32 		no;
+	string		fn;
+	fstream		fs;
 };
 ///\endcond
 
 Test::Test(const char *_fn):fn(_fn?_fn:""){
 	if(_fn){
 		no = 11111;
-		if(!fs.openRead(_fn)){
+		fs.open(_fn);
+		if(!fs.is_open()){
 			idbg("failed open read");
 		}
 	}else{
-		if(!fs.openWrite("output.out")){
+		fs.open("output.out");
+		if(!fs.is_open()){
 			idbg("failed open write");
 		}
 	}

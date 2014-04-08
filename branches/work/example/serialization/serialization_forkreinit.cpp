@@ -13,8 +13,8 @@
 #include <deque>
 #include <map>
 #include <list>
-#include "system/filedevice.hpp"
-#include "utility/iostream.hpp"
+#include <unistd.h>
+#include <fstream>
 #include "system/debug.hpp"
 #include "system/thread.hpp"
 #include "serialization/binary.hpp"
@@ -26,46 +26,6 @@
 
 using namespace std;
 using namespace solid;
-
-///\cond 0
-class FileInputOutputStream: public InputOutputStream{
-public:
-	FileInputOutputStream();
-	~FileInputOutputStream();
-	int openRead(const char *_fn);
-	int openWrite(const char *_fn);
-	int read(char *, uint32, uint32 _flags = 0);
-	int write(const char *, uint32, uint32 _flags = 0);
-	int64 seek(int64, SeekRef);
-	int64 size()const;
-	void close();
-private:
-	FileDevice	fd;
-};
-///\endcond
-FileInputOutputStream::FileInputOutputStream(){}
-FileInputOutputStream::~FileInputOutputStream(){}
-int FileInputOutputStream::openRead(const char *_fn){
-	return fd.open(_fn, FileDevice::ReadOnlyE);
-}
-int FileInputOutputStream::openWrite(const char *_fn){
-	return fd.open(_fn, FileDevice::WriteOnlyE | FileDevice::TruncateE | FileDevice::CreateE);
-}
-int FileInputOutputStream::read(char *_pb, uint32 _bl, uint32 _flags){
-	return fd.read(_pb, _bl);
-}
-int FileInputOutputStream::write(const char *_pb, uint32 _bl, uint32 _flags){
-	return fd.write(_pb, _bl);
-}
-int64 FileInputOutputStream::seek(int64 _off, SeekRef){
-	return fd.seek(_off);
-}
-int64 FileInputOutputStream::size()const{
-	return fd.size();
-}
-void FileInputOutputStream::close(){
-	fd.close();
-}
 
 ///\cond 0
 struct Test{
@@ -83,17 +43,17 @@ struct Test{
 			return serialization::binary::Success;
 		}
 		if(S::IsSerializer){
-			fs.openRead(fn.c_str());
+			fs.open(fn.c_str());
 			_rs.pop();
 			_rs.template pushReinit<Test, 0>(this, 1, "Test::reinit");
-			InputStream *ps = &fs;
+			istream *ps = &fs;
 			_rs.pushStream(ps, "Test::istream");
 		}else{
 			fn += ".xxx";
-			fs.openWrite(fn.c_str());
+			fs.open(fn.c_str());
 			_rs.pop();
 			_rs.template pushReinit<Test, 0>(this, 1, "Test::reinit");
-			OutputStream *ps = &fs;
+			ostream *ps = &fs;
 			_rs.pushStream(ps, "Test::ostream");
 		}
 		return serialization::binary::Continue;
@@ -101,9 +61,9 @@ struct Test{
 	
 	void print();
 private:
-	int32 					no;
-	string					fn;
-	FileInputOutputStream	fs;
+	int32 		no;
+	string		fn;
+	fstream		fs;
 };
 ///\endcond
 

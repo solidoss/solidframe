@@ -13,6 +13,8 @@
 #include <typeinfo>
 #include <string>
 
+#include <istream>
+#include <ostream>
 #include "system/cassert.hpp"
 #include "system/debug.hpp"
 #include "utility/common.hpp"
@@ -21,9 +23,6 @@
 #include "serialization/typemapperbase.hpp"
 
 namespace solid{
-class InputStream;
-class OutputStream;
-
 namespace serialization{
 namespace binary{
 
@@ -814,14 +813,14 @@ public:
 		return *this;
 	}
 	SerializerT& pushStream(
-		InputStream *_ps, const char *_name = NULL
+		std::istream *_ps, const char *_name = NULL
 	){
 		SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::storeStream, _ps, _name, -1ULL));
 		SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::storeStreamBegin, _ps, _name, -1ULL));
 		return *this;
 	}
 	SerializerT& pushStream(
-		InputStream *_ps,
+		std::istream *_ps,
 		const uint64 &_rfrom,
 		const uint64 &_rlen,
 		const char *_name = NULL
@@ -832,10 +831,10 @@ public:
 		return *this;
 	}
 	SerializerT& pushStream(
-		OutputStream *_ps, const char *_name = NULL
+		std::ostream *_ps, const char *_name = NULL
 	);
 	SerializerT& pushStream(
-		OutputStream *_ps,
+		std::ostream *_ps,
 		const uint64 &_rfrom,
 		const uint64 &_rlen,
 		const char *_name = NULL
@@ -1003,14 +1002,14 @@ public:
 		return *this;
 	}
 	SerializerT& pushStream(
-		InputStream *_ps, const char *_name = NULL
+		std::istream *_ps, const char *_name = NULL
 	){
 		SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::storeStream, _ps, _name, -1ULL));
 		SerializerBase::fstk.push(SerializerBase::FncData(&SerializerBase::storeStreamBegin, _ps, _name, -1ULL));
 		return *this;
 	}
 	SerializerT& pushStream(
-		InputStream *_ps,
+		std::istream *_ps,
 		const uint64 &_rfrom,
 		const uint64 &_rlen,
 		const char *_name = NULL
@@ -1021,10 +1020,10 @@ public:
 		return *this;
 	}
 	SerializerT& pushStream(
-		OutputStream *_ps, const char *_name = NULL
+		std::ostream *_ps, const char *_name = NULL
 	);
 	SerializerT& pushStream(
-		OutputStream *_ps,
+		std::ostream *_ps,
 		const uint64 &_rfrom,
 		const uint64 &_rlen,
 		const char *_name = NULL
@@ -1654,7 +1653,7 @@ public:
 	}
 	
 	Deserializer& pushStream(
-		OutputStream *_ps, const char *_name = NULL
+		std::ostream *_ps, const char *_name = NULL
 	){
 		if(_ps){
 			this->Base::fstk.push(Base::FncData(&DeserializerBase::loadStream, _ps, _name, -1ULL));
@@ -1665,7 +1664,7 @@ public:
 		return *this;
 	}
 	Deserializer& pushStream(
-		OutputStream *_ps,
+		std::ostream *_ps,
 		const uint64 &_rat,
 		const uint64 &_rlen,
 		const char *_name = NULL
@@ -1680,10 +1679,10 @@ public:
 		return *this;
 	}
 	Deserializer& pushStream(
-		InputStream *_ps, const char *_name = NULL
+		std::istream *_ps, const char *_name = NULL
 	);
 	Deserializer& pushStream(
-		InputStream *_ps,
+		std::istream *_ps,
 		const uint64 &_rat,
 		const uint64 &,
 		const char *_name = NULL
@@ -1833,7 +1832,7 @@ public:
 	}
 	
 	Deserializer& pushStream(
-		OutputStream *_ps, const char *_name = NULL
+		std::ostream *_ps, const char *_name = NULL
 	){
 		if(_ps){
 			this->Base::fstk.push(Base::FncData(&DeserializerBase::loadStream, _ps, _name, -1ULL));
@@ -1844,7 +1843,7 @@ public:
 		return *this;
 	}
 	Deserializer& pushStream(
-		OutputStream *_ps,
+		std::ostream *_ps,
 		const uint64 &_rat,
 		const uint64 &_rlen,
 		const char *_name = NULL
@@ -1859,10 +1858,10 @@ public:
 		return *this;
 	}
 	Deserializer& pushStream(
-		InputStream *_ps, const char *_name = NULL
+		std::istream *_ps, const char *_name = NULL
 	);
 	Deserializer& pushStream(
-		InputStream *_ps,
+		std::istream *_ps,
 		const uint64 &_rat,
 		const uint64 &,
 		const char *_name = NULL

@@ -13,8 +13,8 @@
 #include <deque>
 #include <map>
 #include <list>
-#include "system/filedevice.hpp"
-#include "utility/iostream.hpp"
+#include <fstream>
+#include <unistd.h>
 #include "system/thread.hpp"
 #include "serialization/binary.hpp"
 #include "serialization/idtypemapper.hpp"
@@ -26,44 +26,13 @@
 using namespace std;
 using namespace solid;
 
-///\cond 0
-class FileInputOutputStream: public InputOutputStream{
-public:
-	FileInputOutputStream();
-	~FileInputOutputStream();
-	int openRead(const char *_fn);
-	int openWrite(const char *_fn);
-	int read(char *, uint32, uint32 _flags = 0);
-	int write(const char *, uint32, uint32 _flags = 0);
-	int64 seek(int64, SeekRef);
-	int64 size()const;
-	void close();
-private:
-	FileDevice	fd;
-};
-///\endcond
-FileInputOutputStream::FileInputOutputStream(){}
-FileInputOutputStream::~FileInputOutputStream(){}
-int FileInputOutputStream::openRead(const char *_fn){
-	return fd.open(_fn, FileDevice::ReadOnlyE);
-}
-int FileInputOutputStream::openWrite(const char *_fn){
-	return fd.open(_fn, FileDevice::WriteOnlyE | FileDevice::TruncateE | FileDevice::CreateE);
-}
-int FileInputOutputStream::read(char *_pb, uint32 _bl, uint32 _flags){
-	return fd.read(_pb, _bl);
-}
-int FileInputOutputStream::write(const char *_pb, uint32 _bl, uint32 _flags){
-	return fd.write(_pb, _bl);
-}
-int64 FileInputOutputStream::seek(int64 _v, SeekRef){
-	return fd.seek(_v);
-}
-int64 FileInputOutputStream::size()const{
-	return fd.size();
-}
-void FileInputOutputStream::close(){
-	fd.close();
+
+streampos stream_size(iostream &_rios){
+	streampos pos = _rios.tellg();
+	_rios.seekg(0, _rios.end);
+	streampos endpos = _rios.tellg();
+	_rios.seekg(pos);
+	return endpos;
 }
 
 ///\cond 0
@@ -79,9 +48,9 @@ struct Test{
 		idbg("_rv = "<<_rv);
 		if(_rv == 0){
 			if(S::IsSerializer){
-				fs.openRead(fn.c_str());
+				fs.open(fn.c_str());
 				_rs.pop();
-				offset = fs.size()/2;
+				offset = stream_size(fs)/2;
 				_rs.template pushReinit<Test, 0>(this, 1, "Test::reinit");
 				_rs.push(offset, "offset");
 			}else{
@@ -93,15 +62,15 @@ struct Test{
 			if(S::IsSerializer){
 				_rs.pop();
 				_rs.template pushReinit<Test, 0>(this, 2, "Test::reinit");
-				idbg("put stream from "<<offset<<" len = "<<fs.size()/2);
-				InputStream *ps = &fs;
-				_rs.pushStream(ps, offset, fs.size()/2, "Test::istream");
+				idbg("put stream from "<<offset<<" len = "<<stream_size(fs)/2);
+				istream *ps = &fs;
+				_rs.pushStream(ps, offset, stream_size(fs)/2, "Test::istream");
 			}else{
 				fn += ".xxx";
-				fs.openWrite(fn.c_str());
+				fs.open(fn.c_str());
 				_rs.pop();
 				_rs.template pushReinit<Test, 0>(this, 2, "Test::reinit");
-				OutputStream *ps = &fs;
+				ostream *ps = &fs;
 				_rs.pushStream(ps, 0, 1000, "Test::ostream");
 			}	
 		}else{
@@ -114,10 +83,10 @@ struct Test{
 	
 	void print();
 private:
-	int32 					no;
-	string					fn;
-	uint64					offset;
-	FileInputOutputStream	fs;
+	int32 		no;
+	string		fn;
+	uint64		offset;
+	fstream		fs;
 };
 ///\endcond
 
