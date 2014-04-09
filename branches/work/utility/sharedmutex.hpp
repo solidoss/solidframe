@@ -14,8 +14,8 @@ namespace solid{
 
 struct Mutex;
 
-Mutex &shared_mutex_safe(void *_p);
-Mutex &shared_mutex(void *_p);
+Mutex &shared_mutex_safe(const void *_p);
+Mutex &shared_mutex(const void *_p);
 
 
 }//namespace solid

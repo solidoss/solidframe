@@ -154,7 +154,7 @@ void Manager::start(){
 		frame::file::Utf8Configuration	utf8cfg;
 		frame::file::TempConfiguration	tempcfg;
 		
-		system("[ -d /tmp/fileserver ] || mkdir -p /tmp/fileserver");
+		system("[ -d /tmp/fileserver ] || mkdir -p /tmp/solidframe_concept");
 		
 		const char *homedir = getenv("HOME");
 		
@@ -172,11 +172,11 @@ void Manager::start(){
 		tempcfg.storagevec.back().maxsize = 1024 * 10;
 		
 		tempcfg.storagevec.push_back(solid::frame::file::TempConfiguration::Storage());
-		tempcfg.storagevec.back().path = "/tmp/fileserver/";
+		tempcfg.storagevec.back().path = "/tmp/solidframe_concept/";
 		tempcfg.storagevec.back().level = frame::file::VeryFastLevelFlag;
-		tempcfg.storagevec.back().capacity = 1024 * 1024 * 10;//10MB
-		tempcfg.storagevec.back().minsize = 0;
-		tempcfg.storagevec.back().maxsize = 1024 * 10;
+		tempcfg.storagevec.back().capacity = 1024 * 1024 * 100;//100MB
+		tempcfg.storagevec.back().minsize = 4 * 1024;
+		tempcfg.storagevec.back().maxsize = 1024 * 1024 * 10;
 	
 		d.filestoreptr = new FileStoreT(*this, utf8cfg, tempcfg);
 	}
@@ -330,56 +330,6 @@ void IpcServiceController::scheduleNode(frame::aio::Object *_po){
 	idbg("");
 	return solid::AsyncWait;
 }
-
-
-//------------------------------------------------------
-//		FileManagerController
-//------------------------------------------------------
-/*virtual*/ void FileManagerController::init(const frame::file::Manager::InitStub &_ris){
-	_ris.registerMapper(new frame::file::NameMapper(10, 0));
-	_ris.registerMapper(new frame::file::TempMapper(1024ULL * 1024 * 1024, "/tmp"));
-	_ris.registerMapper(new frame::file::MemoryMapper(1024ULL * 1024 * 100));
-}
-/*virtual*/ bool FileManagerController::release(){
-	return false;
-}
-void FileManagerController::sendStream(
-	StreamPointer<InputStream> &_sptr,
-	const FileUidT &_rfuid,
-	const frame::RequestUid& _rrequid
-){
-	RequestUidT						ru(_rrequid.reqidx, _rrequid.requid);
-	DynamicPointer<frame::Message>	cp(new InputStreamMessage(_sptr, _rfuid, ru));
-	Manager::the().notify(cp, ObjectUidT(_rrequid.objidx, _rrequid.objuid));
-}
-
-void FileManagerController::sendStream(
-	StreamPointer<OutputStream> &_sptr,
-	const FileUidT &_rfuid,
-	const frame::RequestUid& _rrequid
-){
-	RequestUidT						ru(_rrequid.reqidx, _rrequid.requid);
-	DynamicPointer<frame::Message>	cp(new OutputStreamMessage(_sptr, _rfuid, ru));
-	Manager::the().notify(cp, ObjectUidT(_rrequid.objidx, _rrequid.objuid));
-}
-void FileManagerController::sendStream(
-	StreamPointer<InputOutputStream> &_sptr,
-	const FileUidT &_rfuid,
-	const frame::RequestUid& _rrequid
-){
-	RequestUidT						ru(_rrequid.reqidx, _rrequid.requid);
-	DynamicPointer<frame::Message>	cp(new InputOutputStreamMessage(_sptr, _rfuid, ru));
-	Manager::the().notify(cp, ObjectUidT(_rrequid.objidx, _rrequid.objuid));
-}
-void FileManagerController::sendError(
-	int _error,
-	const frame::RequestUid& _rrequid
-){
-	RequestUidT						ru(_rrequid.reqidx, _rrequid.requid);
-	DynamicPointer<frame::Message>	cp(new StreamErrorMessage(_error, ru));
-	Manager::the().notify(cp, ObjectUidT(_rrequid.objidx, _rrequid.objuid));
-}
-
 
 
 }//namespace concept

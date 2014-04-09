@@ -326,6 +326,11 @@ public:
 		return ptr;
 	}
 	
+	bool uniqueToShared(PointerT const &_rptr){
+		//TODO:
+		return false;
+	}
+	
 	//! Return true if the _f was called within the current thread
 	template <typename F>
 	bool requestReinit(F &_f, size_t _flags = 0){

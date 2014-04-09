@@ -14,8 +14,8 @@
 
 #include <string.h>
 
-typedef solid::frame::RequestUidT		RequestUidT;
-typedef solid::frame::FileUidT			FileUidT;
+//typedef solid::frame::RequestUidT		RequestUidT;
+//typedef solid::frame::FileUidT			FileUidT;
 typedef solid::frame::ObjectUidT		ObjectUidT;
 typedef solid::frame::MessageUidT		MessageUidT;
 typedef solid::frame::IndexT			IndexT;

@@ -21,6 +21,7 @@
 #include "utility/ostream.hpp"
 
 #include "frame/ipc/ipcconnectionuid.hpp"
+#include "frame/file2/filestream.hpp"
 
 #include "core/common.hpp"
 #include "alphacommand.hpp"
@@ -111,12 +112,8 @@ public:
 		- and so forth
 	*/
 	int reinitWriter(Writer &, solid::protocol::text::Parameter &);
-	int receiveInputStream(
-		solid::StreamPointer<solid::InputStream> &_sptr,
-		const FileUidT &_fuid,
-		int			_which,
-		const ObjectUidT&,
-		const solid::frame::ipc::ConnectionUid *
+	int receiveFilePointer(
+		FilePointerMessage &_rmsg
 	);
 	int receiveError(
 		int _errid,
@@ -146,14 +143,15 @@ private:
 		ReturnOk,
 		ReturnCrlf,
 	};
-	void doSendMaster(const FileUidT &_fuid);
-	void doSendSlave(const FileUidT &_fuid);
+	void doSendMaster(const solid::frame::UidT &_ruid);
+	void doSendSlave(const solid::frame::UidT &_ruid);
 	int doInitLocal();
 	int doSendLiteral(Writer &_rw, bool _local);
 	int doGetTempStream(uint32 _sz);
 	int doSendFirstData(Writer &_rw);
 	int doSendNextData(Writer &_rw);
 private:
+	typedef solid::frame::file::FileIOStream<1024>		FileIOStreamT;
 	solid::String								strpth;
 	solid::String								straddr;
 	solid::String								port;
@@ -162,10 +160,8 @@ private:
 	uint64										litsz;
 	solid::protocol::text::Parameter			*pp;
 	
+	FileIOStreamT								ios;
 	
-	solid::StreamPointer<solid::InputStream>	sp_in;
-	solid::StreamPointer<solid::InputStream>	sp_out;
-	solid::InputStreamIterator					it;
 	solid::frame::ipc::ConnectionUid			ipcconuid;
 	MessageUidT									mastermsguid;
 	uint32										tmpstreamcp;//temp stream capacity
@@ -186,12 +182,8 @@ public:
 	void initReader(Reader &);
 	int reinitReader(Reader &, solid::protocol::text::Parameter &);
 	void execute(Connection &);
-	int receiveOutputStream(
-		solid::StreamPointer<solid::OutputStream> &_sptr,
-		const FileUidT &_fuid,
-		int			_which,
-		const ObjectUidT&,
-		const solid::frame::ipc::ConnectionUid *
+	int receiveFilePointer(
+		FilePointerMessage &_rmsg
 	);
 	int receiveError(
 		int _errid,
@@ -200,9 +192,9 @@ public:
 	);
 	int reinitWriter(Writer &, solid::protocol::text::Parameter &);
 private:
+	typedef solid::frame::file::FileOStream<1024>		FileOStreamT;
 	solid::String								strpth;//the file path
-	solid::StreamPointer<solid::OutputStream>	sp;
-	solid::OutputStreamIterator					it;
+	FileOStreamT								os;
 	Connection									&rc;	
 	int 										st;
 	uint32										litsz;
@@ -273,14 +265,15 @@ private:
 		solid::String	port;
 		uint32			netid;
 	};
-	typedef std::vector<HostAddr>	HostAddrVectorT;
+	typedef std::vector<HostAddr>				HostAddrVectorT;
+	typedef solid::protocol::text::Parameter	ParameterT;
 	solid::String				strpth;
 	HostAddrVectorT				hostvec;
 	uint32						pausems;
 	PathListT					*ppthlst;
 	PathListT::const_iterator	it;
 	int							state;
-	solid::protocol::text::Parameter	*pp;
+	ParameterT					*pp;
 };
 
 //! Wait for internal server events
@@ -301,23 +294,9 @@ public:
 	void initReader(Reader &);
 	void execute(Connection &);
 	int reinitWriter(Writer &, solid::protocol::text::Parameter &);
-	/*virtual*/ int receiveInputStream(
-		solid::StreamPointer<solid::InputStream> &,
-		const FileUidT&,
-		int			_which,
-		const ObjectUidT&_from,
-		const solid::frame::ipc::ConnectionUid *_conid
+	/*virtual*/ int receiveFilePointer(
+		FilePointerMessage &_rmsg
 	);
-// 	virtual int receiveOutputStream(
-// 		StreamPointer<OutputStream> &,
-// 		const FromPairT&_from,
-// 		const ipc::ConnectionUid *_conid
-// 	);
-// 	virtual int receiveInputOutputStream(
-// 		StreamPointer<InputOutputStream> &, 
-// 		const FromPairT&_from,
-// 		const ipc::ConnectionUid *_conid
-// 	);
 	/*virtual*/ int receiveString(
 		const solid::String &_str,
 		int			_which,
@@ -325,14 +304,16 @@ public:
 		const solid::frame::ipc::ConnectionUid *_conid
 	);
 private:
+	typedef solid::frame::file::FileIStream<1024>		FileIStreamT;
+	typedef solid::frame::file::FilePointerT			FilePointerT;
 	enum Type{LocalStringType, PeerStringType, LocalStreamType, PeerStreamType};
 	solid::Queue<Type>										typeq;
 	solid::Queue<solid::String>								stringq;
 	solid::Queue<ObjectUidT>								fromq;
 	solid::Queue<solid::frame::ipc::ConnectionUid>			conidq;
-	solid::Queue<solid::StreamPointer<solid::InputStream> >	streamq;
+	solid::Queue<FilePointerT>								fileptrq;
 	Connection												&rc;
-	solid::InputStreamIterator								it;
+	FileIStreamT											is;
 	uint64													litsz64;
 };
 

@@ -86,11 +86,11 @@ size_t specificId(){
 }//namespace
 
 
-Mutex &shared_mutex_safe(void *_p){
+Mutex &shared_mutex_safe(const void *_p){
 	Locker<Mutex> lock(Thread::gmutex());
 	return mutexStore().safeAt(reinterpret_cast<size_t>(_p));
 }
-Mutex &shared_mutex(void *_p){
+Mutex &shared_mutex(const void *_p){
 	return mutexStore().at(reinterpret_cast<size_t>(_p));
 }
 

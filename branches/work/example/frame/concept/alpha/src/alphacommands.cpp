@@ -7,6 +7,7 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
+#include <iostream>
 #include "system/debug.hpp"
 #include "system/socketaddress.hpp"
 #include "system/filedevice.hpp"
@@ -43,6 +44,8 @@
 
 typedef std::pair<std::string, int64>		StringInt64PairT;
 
+using namespace solid;
+
 namespace solid{namespace serialization{namespace binary{
 template <class S, class Ctx>
 void serialize(S &_s, solid::frame::UidT &_t, Ctx &_ctx){
@@ -54,7 +57,15 @@ void serialize(S &_s, StringInt64PairT &_t, Ctx &_ctx){
 }
 }}}
 
-using namespace solid;
+
+std::streampos stream_size(std::istream &_rios){
+	std::streampos pos = _rios.tellg();
+	_rios.seekg(0, _rios.end);
+	std::streampos endpos = _rios.tellg();
+	_rios.seekg(pos);
+	return endpos;
+}
+
 
 namespace concept{
 namespace alpha{
@@ -360,12 +371,30 @@ int RemoteList::receiveError(
 //---------------------------------------------------------------
 // Fetch command
 //---------------------------------------------------------------
+
+struct OpenCbk{
+	frame::ObjectUidT	uid;
+	uint32				reqid;
+	OpenCbk(){}
+	OpenCbk(const frame::ObjectUidT &_robjuid, uint32 _reqid):uid(_robjuid), reqid(_reqid){}
+	
+	void operator()(
+		frame::file::Store<> &,
+		frame::file::FilePointerT &_rptr,
+		ERROR_NS::error_code err
+	){
+		idbg("");
+		frame::Manager 			&rm = frame::Manager::specific();
+		frame::MessagePointerT	msgptr(new FilePointerMessage(_rptr, reqid));
+		rm.notify(msgptr, uid);
+	}
+};
+
+
 Fetch::Fetch(Connection &_rc):rc(_rc), state(0), litsz(-1){
 }
 Fetch::~Fetch(){
-	idbg(""<<(void*)this<<' '<<(void*)sp_in.get());
-	sp_in.clear();
-	sp_out.clear();
+	idbg(""<<(void*)this);
 }
 void Fetch::initReader(Reader &_rr){
 	typedef CharFilter<' '>				SpaceFilterT;
@@ -397,59 +426,32 @@ void Fetch::execute(Connection &_rc){
 int Fetch::doInitLocal(){
 	idbg(""<<(void*)this);
 	//try to open stream to localfile
-	frame::RequestUid reqid(rc.id(), Manager::the().id(rc).second, rc.newRequestId());
-	int rv = Manager::the().fileManager().stream(sp_out, reqid, strpth.c_str());
-	switch(rv){
-		case AsyncError: 
-			*pp = protocol::text::Parameter(StrDef(" NO FETCH: Unable to open file@"));
-			return Writer::Success;
-		case AsyncSuccess: 
-			state = SendLocal;
-			streamsz_out = sp_out->size();
-			litsz = streamsz_out;
-			return Writer::Continue;
-		case AsyncWait:
-			state = WaitLocalStream;
-			return Writer::Wait;
-	}
-	cassert(false);
-	return AsyncError;
+	Manager &rm = Manager::the();
+	rm.fileStore().requestCreateFile(OpenCbk(rm.id(rc), rc.newRequestId()), strpth.c_str(), FileDevice::ReadOnlyE);
+	state = WaitLocalStream;
+	return Writer::Wait;
 }
 
 int Fetch::doGetTempStream(uint32 _sz){
 	idbg(""<<(void*)this<<" "<<_sz);
-	frame::file::MemoryKey	tk(_sz);
-	frame::RequestUid		reqid(rc.id(), Manager::the().id(rc).second, rc.newRequestId());
+	Manager &rm = Manager::the();
 	streamsz_in = _sz;
-	FileUidT	fuid;
-	int rv = Manager::the().fileManager().stream(sp_out, fuid, reqid, tk);
-	switch(rv){
-		case AsyncError: 
-			*pp = protocol::text::Parameter(StrDef(" NO FETCH: Unable to open temp file@"));
-			return Writer::Wait;
-		case AsyncSuccess: 
-			cassert(false);
-			return Writer::Continue;
-		case AsyncWait:
-			state = WaitTempStream;
-			return Writer::Wait;
-	}
-	return Writer::Failure;
+	rm.fileStore().requestCreateTemp(OpenCbk(rm.id(rc), rc.newRequestId()), _sz/*, frame::file::VeryFastLevelFlag*/);
+	state = WaitTempStream;
+	return Writer::Wait;
 }
 
-void Fetch::doSendMaster(const FileUidT &_fuid){
+void Fetch::doSendMaster(const solid::frame::UidT &_ruid){
 	idbg(""<<(void*)this);
 	ResolveData rd = synchronous_resolve(straddr.c_str(), port.c_str(), 0, SocketInfo::Inet4, SocketInfo::Stream);
 	idbg("addr"<<straddr<<" port = "<<port);
 	if(!rd.empty()){
 		//send the master remote command
 		FetchMasterMessage *pmsg(new FetchMasterMessage);
-		//TODO: add a convenient init method to fetchmastercommand
 		pmsg->fname = strpth;
 		pmsg->requid = rc.newRequestId();
-		pmsg->fromv.first = rc.id();
-		pmsg->fromv.second = Manager::the().id(rc).second;
-		pmsg->tmpfuid = _fuid;
+		pmsg->fromv = Manager::the().id(rc);
+		pmsg->tmpfuid = _ruid;
 		pmsg->streamsz = streamsz_in;
 		state = WaitRemoteStream;
 		DynamicPointer<frame::ipc::Message> msgptr(pmsg);
@@ -460,22 +462,16 @@ void Fetch::doSendMaster(const FileUidT &_fuid){
 	}
 }
 
-void Fetch::doSendSlave(const FileUidT &_fuid){
-	idbg(""<<(void*)this<<' '<<_fuid.first<<' '<<_fuid.second);
+void Fetch::doSendSlave(const solid::frame::UidT &_ruid){
+	idbg(""<<(void*)this<<' '<<_ruid.first<<' '<<_ruid.second);
 	FetchSlaveMessage *pmsg(new FetchSlaveMessage);
-	pmsg->fromv.first = rc.id();
-	pmsg->fromv.second = Manager::the().id(rc).second;
+	pmsg->fromv = Manager::the().id(rc);
 	pmsg->requid = rc.newRequestId();
 	pmsg->msguid = mastermsguid;
-	pmsg->fuid = _fuid;
+	pmsg->fuid = _ruid;
 	pmsg->streamsz = streamsz_in;
 	DynamicPointer<frame::ipc::Message> msgptr(pmsg);
 	Manager::the().ipc().sendMessage(msgptr, ipcconuid);
-//	idbg("rv = "<<rv);
-// 	if(rv == AsyncError){
-// 		*pp = protocol::text::Parameter(StrDef(" NO FETCH: peer died@"));
-// 		state = ReturnBad;
-// 	}
 }
 
 int Fetch::doSendFirstData(Writer &_rw){
@@ -493,7 +489,7 @@ int Fetch::doSendFirstData(Writer &_rw){
 	}else{
 		state = ReturnCrlf;
 	}
-	sp_out = sp_in;
+	//sp_out = sp_in;
 	return doSendLiteral(_rw, false);
 }
 
@@ -512,25 +508,24 @@ int Fetch::doSendNextData(Writer &_rw){
 		state = ReturnCrlf;
 	}
 	litsz -= streamsz_out;
-	sp_out = sp_in;
-	cassert(sp_out);
-	it.reinit(sp_out.get());
+	//sp_out = sp_in;
+	//cassert(sp_out);
+	//it.reinit(sp_out.get());
 	//_rw.push(&Writer::putCrlf);
-	_rw.push(&Writer::putStream, protocol::text::Parameter(&it, &streamsz_out));
+	_rw.push(&Writer::putStream, protocol::text::Parameter(&ios, &streamsz_out));
 	return Writer::Continue;
 }
 
 int Fetch::doSendLiteral(Writer &_rw, bool _local){
 	idbg("send literal "<<litsz<<" "<<streamsz_out);
 	//send local stream
-	cassert(sp_out);
-	it.reinit(sp_out.get());
+	cassert(!ios.device().empty());
 	_rw<<"* DATA {"<<litsz<<"}\r\n";
 	litsz -= streamsz_out;
 	if(_local){
 		_rw.replace(&Writer::putCrlf);
 	}
-	_rw.push(&Writer::putStream, protocol::text::Parameter(&it, &streamsz_out));
+	_rw.push(&Writer::putStream, protocol::text::Parameter(static_cast<std::iostream*>(&ios), &streamsz_out));
 	return Writer::Continue;
 }
 
@@ -541,7 +536,7 @@ int Fetch::reinitWriter(Writer &_rw, protocol::text::Parameter &_rp){
 		case SendLocal:
 			return doSendLiteral(_rw, true);
 		case InitRemote:
-			return doGetTempStream(512 * 1024);
+			return doGetTempStream(1024 * 1024);
 		case SendFirstData:
 			return doSendFirstData(_rw);
 		case SendNextData:
@@ -571,28 +566,22 @@ int Fetch::reinitWriter(Writer &_rw, protocol::text::Parameter &_rp){
 	return AsyncError;
 }
 
-int Fetch::receiveInputStream(
-	StreamPointer<InputStream> &_sptr,
-	const FileUidT &_fuid,
-	int			_which,
-	const ObjectUidT&,
-	const solid::frame::ipc::ConnectionUid *
+int Fetch::receiveFilePointer(
+	FilePointerMessage &_rmsg
 ){
-	//sp_out =_sptr;
-	//fuid = _fuid;
+	ios.device(_rmsg.ptr);
 	if(state == WaitLocalStream){
-		sp_out = _sptr;
-		streamsz_out = sp_out->size();
+		streamsz_out = stream_size(ios);
 		litsz = streamsz_out;
 		state = SendLocal;
 	}else if(state == WaitTempStream){
-		sp_in = _sptr;
+		Manager::the().fileStore().uniqueToShared(ios.device());
 		state = WaitRemoteStream;
 		if(litsz == -1){
-			doSendMaster(_fuid);
-		}else{
-			doSendSlave(_fuid);
-		}
+			doSendMaster(ios.device().id());
+		}/*else{
+			doSendSlave(ios.device().id());
+		}*/
 	}
 	return AsyncSuccess;
 }
@@ -607,12 +596,12 @@ int Fetch::receiveNumber(
 	cassert(_pconuid);
 	ipcconuid = *_pconuid;
 	if(litsz != -1){//continued
-		streamsz_in = sp_in->size();
+		streamsz_in = _no;
 		idbg(""<<litsz<<" "<<streamsz_in);
 		state = SendNextData;
 	}else{
 		litsz = _no;
-		streamsz_in = sp_in->size();
+		streamsz_in = stream_size(ios);
 		idbg(""<<litsz<<" "<<streamsz_in);
 		state = SendFirstData;
 	}
@@ -651,7 +640,6 @@ int Fetch::receiveError(
 Store::Store(Connection &_rc):rc(_rc),st(AsyncSuccess){
 }
 Store::~Store(){
-	sp.clear();
 }
 void Store::initReader(Reader &_rr){
 	_rr.push(&Reader::reinit<Store>, protocol::text::Parameter(this, Init));
@@ -663,29 +651,20 @@ void Store::initReader(Reader &_rr){
 	_rr.push(&Reader::checkChar, protocol::text::Parameter(' '));
 }
 int Store::reinitReader(Reader &_rr, protocol::text::Parameter &_rp){
+	Manager &rm = Manager::the();
 	switch(_rp.b.i){
 		case Init:{
-			frame::RequestUid reqid(rc.id(), Manager::the().id(rc).second, rc.newRequestId());
-			int rv = Manager::the().fileManager().stream(sp, reqid, strpth.c_str(), frame::file::Manager::Create);
-			switch(rv){
-				case AsyncError: return Reader::Success;
-				case AsyncSuccess:
-					_rp.b.i = SendWait;
-					return Reader::Continue;
-				case AsyncWait:
-					st = AsyncWait;//waiting
-					_rp.b.i = SendWait;
-					return Reader::Wait;
-			}
-			break;
+			rm.fileStore().requestCreateFile(OpenCbk(rm.id(rc), rc.newRequestId()), strpth.c_str(), FileDevice::WriteOnlyE);
+			st = AsyncWait;//waiting
+			_rp.b.i = SendWait;
+			return Reader::Wait;
 		}
 		case SendWait:
-			if(sp){
+			if(!os.device().empty()){
 				idbg("sending wait and preparing fetch");
-				it.reinit(sp.get());
 				rc.writer()<<"* Expecting "<<litsz<<" CHARs\r\n";
 				litsz64 = litsz;
-				_rr.replace(&Reader::fetchLiteralStream, protocol::text::Parameter(&it, &litsz64));
+				_rr.replace(&Reader::fetchLiteralStream, protocol::text::Parameter(&os, &litsz64));
 				_rr.push(&Reader::flushWriter);
 				_rr.push(&Reader::checkChar, protocol::text::Parameter('\n'));
 				_rr.push(&Reader::checkChar, protocol::text::Parameter('\r'));
@@ -701,24 +680,21 @@ int Store::reinitReader(Reader &_rr, protocol::text::Parameter &_rp){
 	cassert(false);
 	return Reader::Failure;
 }
+
 void Store::execute(Connection &_rc){
 	protocol::text::Parameter &rp = _rc.writer().push(&Writer::putStatus);
-	if(sp && sp->ok()){
+	if(!os.device().empty()){
 		rp = protocol::text::Parameter(StrDef(" OK Done STORE@"));
 	}else{
 		rp = protocol::text::Parameter(StrDef(" NO STORE: Failed opening file@"));
 	}
 }
 
-int Store::receiveOutputStream(
-	StreamPointer<OutputStream> &_sptr,
-	const FileUidT &_fuid,
-	int			_which,
-	const ObjectUidT&,
-	const solid::frame::ipc::ConnectionUid *
+int Store::receiveFilePointer(
+	FilePointerMessage &_rmsg
 ){
 	idbg("received stream");
-	sp = _sptr;
+	os.device(_rmsg.ptr);
 	st = AsyncSuccess;
 	return AsyncSuccess;
 }
@@ -778,11 +754,13 @@ int Idle::reinitWriter(Writer &_rw, protocol::text::Parameter &_rp){
 		}
 		return Writer::Continue;
 	}else if(_rp.b.i == 2){
-		streamq.front()->seek(0);//go to begining
-		litsz64 = streamq.front()->size();
-		it.reinit(streamq.front().get());
-		_rw<<" DATA {"<<(uint32)streamq.front()->size()<<"}\r\n";
-		_rw.replace(&Writer::putStream, protocol::text::Parameter(&it, &litsz64));
+		//streamq.front()->seek(0);//go to begining
+		is.device(fileptrq.front());
+		is.clear();
+		is.seekg(0);
+		litsz64 = stream_size(is);
+		_rw<<" DATA {"<<(uint32)litsz64<<"}\r\n";
+		_rw.replace(&Writer::putStream, protocol::text::Parameter(&is, &litsz64));
 		return Writer::Continue;
 	}else{//unprepare
 		if(typeq.front() == PeerStringType){
@@ -795,7 +773,7 @@ int Idle::reinitWriter(Writer &_rw, protocol::text::Parameter &_rp){
 			stringq.pop();
 			fromq.pop();
 			conidq.pop();
-			streamq.pop();
+			fileptrq.pop();
 		}else{
 			cassert(false);
 		}
@@ -806,22 +784,17 @@ int Idle::reinitWriter(Writer &_rw, protocol::text::Parameter &_rp){
 		return Writer::Success;
 	}
 }
-int Idle::receiveInputStream(
-	StreamPointer<InputStream> &_sp,
-	const FileUidT &,
-	int			_which,
-	const ObjectUidT&_from,
-	const frame::ipc::ConnectionUid *_conid
+int Idle::receiveFilePointer(
+	FilePointerMessage &_rmsg
 ){
-	if(_conid){
-		typeq.push(PeerStreamType);
-		conidq.push(*_conid);
-	}else{
+// 	if(_conid){
+// 		typeq.push(PeerStreamType);
+// 		conidq.push(*_conid);
+// 	}else{
 		typeq.push(LocalStreamType);
-	}
-	streamq.push(_sp);
-	_sp.release();
-	fromq.push(_from);
+//	}
+	fileptrq.push(_rmsg.ptr);
+	fromq.push(ObjectUidT());
 	rc.writer().push(&Writer::reinit<Idle>, protocol::text::Parameter(this, 1));
 	return AsyncSuccess;
 }
@@ -860,30 +833,8 @@ void Command::initStatic(Manager &_rm){
 }
 /*virtual*/ Command::~Command(){}
 
-int Command::receiveInputStream(
-	StreamPointer<InputStream> &_ps,
-	const FileUidT &,
-	int			_which,
-	const ObjectUidT&_from,
-	const frame::ipc::ConnectionUid *_conid
-){
-	return AsyncError;
-}
-int Command::receiveOutputStream(
-	StreamPointer<OutputStream> &,
-	const FileUidT &,
-	int			_which,
-	const ObjectUidT&_from,
-	const frame::ipc::ConnectionUid *_conid
-){
-	return AsyncError;
-}
-int Command::receiveInputOutputStream(
-	StreamPointer<InputOutputStream> &, 
-	const FileUidT &,
-	int			_which,
-	const ObjectUidT&_from,
-	const frame::ipc::ConnectionUid *_conid
+int Command::receiveFilePointer(
+	FilePointerMessage &_rmsg
 ){
 	return AsyncError;
 }

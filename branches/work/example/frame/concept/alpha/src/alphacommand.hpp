@@ -26,6 +26,7 @@ using solid::uint64;
 namespace concept{
 
 class Manager;
+struct FilePointerMessage;
 
 namespace alpha{
 
@@ -46,28 +47,8 @@ public:
 	virtual void execute(Connection &) = 0;
 	//received from filemanager
 	//! Receive an istream
-	virtual int receiveInputStream(
-		solid::StreamPointer<solid::InputStream> &,
-		const FileUidT &,
-		int			_which,
-		const ObjectUidT&_from,
-		const solid::frame::ipc::ConnectionUid *_conid
-	);
-	//! Receive an ostream
-	virtual int receiveOutputStream(
-		solid::StreamPointer<solid::OutputStream> &,
-		const FileUidT &,
-		int			_which,
-		const ObjectUidT&_from,
-		const solid::frame::ipc::ConnectionUid *_conid
-	);
-	//! Receive an iostream
-	virtual int receiveInputOutputStream(
-		solid::StreamPointer<solid::InputOutputStream> &,
-		const FileUidT &,
-		int			_which,
-		const ObjectUidT&_from,
-		const solid::frame::ipc::ConnectionUid *_conid
+	virtual int receiveFilePointer(
+		FilePointerMessage &_rmsg
 	);
 	//! Receive a string
 	virtual int receiveString(

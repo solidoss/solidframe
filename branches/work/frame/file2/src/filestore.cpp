@@ -28,6 +28,7 @@
 
 #include "utility/binaryseeker.hpp"
 #include "utility/stack.hpp"
+#include "utility/sharedmutex.hpp"
 
 #include "filetemp.hpp"
 
@@ -683,28 +684,36 @@ TempMemory::TempMemory(
 	size_t _storageid,
 	size_t _id,
 	uint64 _size
-):TempBase(_storageid, _id, _size), mf(_size){}
+):TempBase(_storageid, _id, _size), mf(_size)
+{
+	shared_mutex_safe(this);
+}
 
 /*virtual*/ TempMemory::~TempMemory(){
 }
 
 /*virtual*/ bool TempMemory::open(const char *_path, const size_t _openflags, ERROR_NS::error_code &_rerr){
+	Locker<Mutex> lock(shared_mutex(this));
 	mf.truncate(0);
 	return true;
 }
 /*virtual*/ void TempMemory::close(){
 }
 /*virtual*/ int TempMemory::read(char *_pb, uint32 _bl, int64 _off){
+	Locker<Mutex> lock(shared_mutex(this));
 	return mf.read(_pb, _bl, _off);
 }
 /*virtual*/ int TempMemory::write(const char *_pb, uint32 _bl, int64 _off){
+	Locker<Mutex> lock(shared_mutex(this));
 	return mf.write(_pb, _bl, _off);
 }
 /*virtual*/ int64 TempMemory::size()const{
+	Locker<Mutex> lock(shared_mutex(this));
 	return mf.size();
 }
 
 /*virtual*/ bool TempMemory::truncate(int64 _len){
+	Locker<Mutex> lock(shared_mutex(this));
 	return mf.truncate(_len) == 0;
 }
 

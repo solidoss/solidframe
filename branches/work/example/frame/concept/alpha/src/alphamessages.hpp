@@ -151,8 +151,8 @@ struct FetchMasterMessage: Dynamic<FetchMasterMessage, solid::frame::ipc::Messag
 	String								fname;
 	FetchSlaveMessage					*pmsg;
 	ObjectUidT							fromv;
-	FileUidT							fuid;
-	FileUidT							tmpfuid;
+	solid::frame::UidT					fuid;
+	solid::frame::UidT					tmpfuid;
 	solid::frame::ipc::ConnectionUid	conid;
 	StreamPointer<InputStream>			ins;
 	int32								state;
@@ -204,13 +204,15 @@ struct FetchSlaveMessage: Dynamic<FetchSlaveMessage, solid::frame::ipc::Message>
 			InputStream *ps = ins.get();
 			//cassert(ps != NULL);
 			_rs.pop();
-			_rs.pushStream(ps, 0, streamsz, "stream");
+			//TODO:...
+			//_rs.pushStream(ps, 0, streamsz, "stream");
 		}else{
 			initOutputStream();
 			OutputStream *ps = outs.get();
 			_rs.pop();
 			_rs.template pushReinit<FetchSlaveMessage, 0>(this, 1, "reinit");
-			_rs.pushStream(ps, (uint64)0, (uint64)streamsz, "stream");
+			//TODO:
+			//_rs.pushStream(ps, (uint64)0, (uint64)streamsz, "stream");
 		}
 		return serialization::binary::Continue;
 	}
@@ -220,7 +222,7 @@ struct FetchSlaveMessage: Dynamic<FetchSlaveMessage, solid::frame::ipc::Message>
 //data:	
 	ObjectUidT							fromv;
 	ObjectUidT							tov;
-	FileUidT							fuid;
+	solid::frame::UidT					fuid;
 	solid::frame::ipc::ConnectionUid	conid;
 	MessageUidT							msguid;
 	StreamPointer<InputStream>			ins;

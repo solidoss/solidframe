@@ -59,10 +59,7 @@ void Logger::doOutFlush(const char *_pb, unsigned _bl){
 /*static*/ Connection::DynamicMapperT		Connection::dm;
 
 /*static*/ void Connection::dynamicRegister(){
-	dm.insert<InputStreamMessage, Connection>();
-	dm.insert<OutputStreamMessage, Connection>();
-	dm.insert<InputOutputStreamMessage, Connection>();
-	dm.insert<StreamErrorMessage, Connection>();
+	dm.insert<FilePointerMessage, Connection>();
 	dm.insert<RemoteListMessage, Connection>();
 	dm.insert<FetchSlaveMessage, Connection>();
 }
@@ -467,19 +464,15 @@ void Connection::dynamicHandle(DynamicPointer<FetchSlaveMessage> &_rmsgptr){
 		}
 	}
 }
-void Connection::dynamicHandle(DynamicPointer<SendStringMessage> &_rmsgptr){
-}
-void Connection::dynamicHandle(DynamicPointer<SendStreamMessage> &_rmsgptr){
-}
-void Connection::dynamicHandle(DynamicPointer<InputStreamMessage> &_rmsgptr){
+void Connection::dynamicHandle(DynamicPointer<FilePointerMessage> &_rmsgptr){
 	idbg("");
-	if(_rmsgptr->requid.first && _rmsgptr->requid.first != reqid){
+	if(_rmsgptr->reqid && _rmsgptr->reqid != reqid){
 		return;
 	}
 	idbg("");
 	newRequestId();//prevent multiple responses with the same id
 	if(pcmd){
-		switch(pcmd->receiveInputStream(_rmsgptr->sptr, _rmsgptr->fileuid, 0, ObjectUidT(), NULL)){
+		switch(pcmd->receiveFilePointer(*_rmsgptr)){
 			case AsyncError:
 				idbg("");
 				break;
@@ -490,84 +483,6 @@ void Connection::dynamicHandle(DynamicPointer<InputStreamMessage> &_rmsgptr){
 				}
 				if(state() == ExecuteTout){
 					idbg("");
-					state(Execute);
-				}
-				break;
-			case AsyncWait:
-				idbg("");
-				state(IdleExecute);
-				break;
-		}
-	}
-}
-void Connection::dynamicHandle(DynamicPointer<OutputStreamMessage> &_rmsgptr){
-	idbg("");
-	if(_rmsgptr->requid.first && _rmsgptr->requid.first != reqid) return;
-	idbg("");
-	newRequestId();//prevent multiple responses with the same id
-	if(pcmd){
-		switch(pcmd->receiveOutputStream(_rmsgptr->sptr, _rmsgptr->fileuid, 0, ObjectUidT(), NULL)){
-			case AsyncError:
-				idbg("");
-				break;
-			case AsyncSuccess:
-				idbg("");
-				if(state() == ParseTout){
-					state(Parse);
-				}
-				if(state() == ExecuteTout){
-					state(Execute);
-				}
-				break;
-			case AsyncWait:
-				idbg("");
-				state(IdleExecute);
-				break;
-		}
-	}
-}
-void Connection::dynamicHandle(DynamicPointer<InputOutputStreamMessage> &_rmsgptr){
-	idbg("");
-	if(_rmsgptr->requid.first && _rmsgptr->requid.first != reqid) return;
-	idbg("");
-	newRequestId();//prevent multiple responses with the same id
-	if(pcmd){
-		switch(pcmd->receiveInputOutputStream(_rmsgptr->sptr, _rmsgptr->fileuid, 0, ObjectUidT(), NULL)){
-			case AsyncError:
-				idbg("");
-				break;
-			case AsyncSuccess:
-				idbg("");
-				if(state() == ParseTout){
-					state(Parse);
-				}
-				if(state() == ExecuteTout){
-					state(Execute);
-				}
-				break;
-			case AsyncWait:
-				idbg("");
-				state(IdleExecute);
-				break;
-		}
-	}
-}
-void Connection::dynamicHandle(DynamicPointer<StreamErrorMessage> &_rmsgptr){
-	idbg("");
-	if(_rmsgptr->requid.first && _rmsgptr->requid.first != reqid) return;
-	idbg("");
-	newRequestId();//prevent multiple responses with the same id
-	if(pcmd){
-		switch(pcmd->receiveError(_rmsgptr->errid, ObjectUidT(), NULL)){
-			case AsyncError:
-				idbg("");
-				break;
-			case AsyncSuccess:
-				idbg("");
-				if(state() == ParseTout){
-					state(Parse);
-				}
-				if(state() == ExecuteTout){
 					state(Execute);
 				}
 				break;

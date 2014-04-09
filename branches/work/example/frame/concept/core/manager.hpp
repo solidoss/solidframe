@@ -68,7 +68,7 @@ public:
 	ObjectUidT writeMessageStewardUid()const;
 	
 	solid::frame::ipc::Service 	&ipc()const;
-	FileStoreT&	&fileStore()const;
+	FileStoreT&	fileStore()const;
 private:
 	struct Data;
 	Data	&d;

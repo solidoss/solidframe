@@ -26,14 +26,8 @@ using solid::uint32;
 
 namespace concept{
 
-class Manager;
-
-//signals
-struct InputStreamMessage;
-struct OutputStreamMessage;
-struct InputOutputStreamMessage;
-struct StreamErrorMessage;
-
+class  Manager;
+struct FilePointerMessage;
 
 namespace alpha{
 
@@ -43,8 +37,6 @@ class Command;
 //messages:
 struct RemoteListMessage;
 struct FetchSlaveMessage;
-struct SendStringMessage;
-struct SendStreamMessage;
 
 class Logger: public solid::protocol::text::Logger{
 protected:
@@ -106,12 +98,7 @@ public:
 	void dynamicHandle(solid::DynamicPointer<> &_dp);
 	void dynamicHandle(solid::DynamicPointer<RemoteListMessage> &_rmsgptr);
 	void dynamicHandle(solid::DynamicPointer<FetchSlaveMessage> &_rmsgptr);
-	void dynamicHandle(solid::DynamicPointer<SendStringMessage> &_rmsgptr);
-	void dynamicHandle(solid::DynamicPointer<SendStreamMessage> &_rmsgptr);
-	void dynamicHandle(solid::DynamicPointer<InputStreamMessage> &_rmsgptr);
-	void dynamicHandle(solid::DynamicPointer<OutputStreamMessage> &_rmsgptr);
-	void dynamicHandle(solid::DynamicPointer<InputOutputStreamMessage> &_rmsgptr);
-	void dynamicHandle(solid::DynamicPointer<StreamErrorMessage> &_rmsgptr);
+	void dynamicHandle(solid::DynamicPointer<FilePointerMessage> &_rmsgptr);
 private:
 	/*virtual*/ void execute(ExecuteContext &_rexectx);
 	void prepareReader();
