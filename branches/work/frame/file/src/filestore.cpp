@@ -8,7 +8,7 @@
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
 
-#include "frame/file2/filestore.hpp"
+#include "frame/file/filestore.hpp"
 
 #ifdef HAS_CPP11
 

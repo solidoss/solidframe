@@ -94,6 +94,7 @@ protected:
 	SizeVectorT& indexVector()const;
 	ExecWaitVectorT& executeWaitVector()const;
 	Accessor accessor();
+	void notifyObject(UidT const & _ruid);
 private:
 	friend struct PointerBase;
 	void erasePointer(UidT const & _ruid, const bool _isalive);
@@ -327,8 +328,27 @@ public:
 	}
 	
 	bool uniqueToShared(PointerT const &_rptr){
-		//TODO:
-		return false;
+		bool rv = false;
+		bool do_notify = false;
+		if(!_rptr.empty()){
+			const size_t	idx = _rptr.id().first;
+			if(idx < this->atomicMaxCount()){
+				Locker<Mutex>	lock2(this->mutex(idx));
+				Stub			&rs = stubvec[idx];
+				if(rs.uid == _rptr.id().second){
+					if(doSwitchUniqueToShared(idx)){
+						if(rs.pwaitfirst && rs.pwaitfirst->kind == StoreBase::SharedWaitE){
+							do_notify = true;
+						}
+						rv = true;
+					}
+				}
+			}
+		}
+		if(do_notify){
+			StoreBase::notifyObject(_rptr.id());
+		}
+		return rv;
 	}
 	
 	//! Return true if the _f was called within the current thread
@@ -449,7 +469,7 @@ public:
 private:
 	typedef FUNCTION_NS::function<void(ControllerT&, PointerT&, ERROR_NS::error_code const&)>	FunctionT;
 	struct WaitStub{
-		WaitStub():kind(StoreBase::StoreBase::ReinitWaitE), pnext(NULL){}
+		WaitStub():kind(StoreBase::ReinitWaitE), pnext(NULL){}
 		StoreBase::WaitKind		kind;
 		WaitStub 				*pnext;
 		FunctionT				fnc;
@@ -517,6 +537,16 @@ private:
 			return PointerT(&rs.obj, this, UidT(_idx, rs.uid));
 		}
 		return PointerT();
+	}
+	bool doSwitchUniqueToShared(const size_t _idx){
+		Stub		&rs = stubvec[_idx];
+		
+		if(rs.state == StoreBase::UniqueLockStateE){
+			cassert(rs.usecnt == 1);
+			rs.state = StoreBase::SharedLockStateE;
+			return true;
+		}
+		return false;
 	}
 	template <typename F>
 	void doPushWait(const size_t _idx, F &_f, const StoreBase::WaitKind _k){

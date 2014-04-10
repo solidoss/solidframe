@@ -24,7 +24,6 @@
 #include "frame/aio/aioobject.hpp"
 
 #include "frame/objectselector.hpp"
-#include "frame/messagesteward.hpp"
 #include "frame/message.hpp"
 #include "frame/requestuid.hpp"
 
@@ -112,15 +111,12 @@ struct Manager::Data{
 		mainaiosched(_rm), scndaiosched(_rm), objsched(_rm),
 		ipcsvc(_rm, new IpcServiceController){
 	}
-	typedef DynamicSharedPointer<frame::file::Manager>	FileManagerSharedPointerT;
 	
 	AioSchedulerT				mainaiosched;
 	AioSchedulerT				scndaiosched;
 	SchedulerT					objsched;
 	frame::ipc::Service			ipcsvc;
 	FileStoreSharedPointerT		filestoreptr;
-	ObjectUidT					readmsgstwuid;
-	ObjectUidT					writemsgstwuid;
 };
 
 //--------------------------------------------------------------------------
@@ -183,27 +179,8 @@ void Manager::start(){
 	
 	registerObject(*d.filestoreptr);
 	d.objsched.schedule(d.filestoreptr);
-	
-	DynamicPointer<frame::Object>	msgptr = new frame::MessageSteward;
-	
-	d.readmsgstwuid = registerObject(*msgptr);
-	
-	d.objsched.schedule(msgptr);
-	
-	msgptr = new frame::MessageSteward;
-	d.writemsgstwuid = registerObject(*msgptr);
-	
-	d.objsched.schedule(msgptr);
 }
 
-
-ObjectUidT Manager::readMessageStewardUid()const{
-	return d.readmsgstwuid;
-}
-	
-ObjectUidT Manager::writeMessageStewardUid()const{
-	return d.writemsgstwuid;
-}
 
 frame::ipc::Service&	Manager::ipc()const{
 	return d.ipcsvc;

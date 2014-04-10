@@ -11,7 +11,7 @@
 #define CONCEPT_CORE_MESSAGES_HPP
 
 #include "frame/message.hpp"
-#include "frame/file2/filestore.hpp"
+#include "frame/file/filestore.hpp"
 #include "common.hpp"
 
 namespace concept{

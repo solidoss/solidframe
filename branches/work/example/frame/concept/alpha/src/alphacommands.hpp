@@ -21,7 +21,7 @@
 #include "utility/ostream.hpp"
 
 #include "frame/ipc/ipcconnectionuid.hpp"
-#include "frame/file2/filestream.hpp"
+#include "frame/file/filestream.hpp"
 
 #include "core/common.hpp"
 #include "alphacommand.hpp"

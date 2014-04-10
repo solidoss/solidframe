@@ -130,26 +130,6 @@ Message::~Message(){
 	vdbgx(Debug::frame, "memsub "<<(void*)this);
 }
 
-int Message::execute(
-	DynamicPointer<Message> &_rthis_ptr,
-	uint32 _evs,
-	MessageSteward &,
-	const MessageUidT &,
-	TimeSpec &_rts
-){
-	wdbgx(Debug::frame, "Unhandled message");
-	return AsyncError;
-}
-
-bool Message::receiveMessage(
-	DynamicPointer<Message> &_rmsgptr,
-	const ObjectUidT& _from,
-	const ipc::ConnectionUid *_conid
-){
-	wdbgx(Debug::frame, "Unhandled receiveMessage");
-	return false;//no need for execution
-}
-
 }//namespace frame
 }//namespace solid
 

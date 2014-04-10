@@ -17,11 +17,18 @@
 
 #include "alpha/alphaservice.hpp"
 #include "alphaconnection.hpp"
+#include "alphasteward.hpp"
 
 using namespace solid;
 
 namespace concept{
 namespace alpha{
+
+typedef DynamicSharedPointer<Steward>	StewardSharedPointerT;
+struct Service::Data{
+	StewardSharedPointerT	stewardptr;
+};
+
 
 #ifdef HAS_SAFE_STATIC
 
@@ -33,8 +40,13 @@ InitServiceOnce::InitServiceOnce(Manager &_rm){
 	Connection::initStatic(_rm);
 }
 
-Service::Service(Manager &_rm):BaseT(_rm){
+Service::Service(Manager &_rm):BaseT(_rm), d(*(new Data)){
 	static InitServiceOnce once(_rm);
+	d.stewardptr = new Steward(_rm);
+	_rm.registerObject(*d.stewardptr);
+
+	solid::DynamicPointer<solid::frame::Object>	objptr(d.stewardptr);
+	_rm.scheduleObject(objptr);
 }
 
 #else
@@ -50,6 +62,7 @@ Service::Service(Manager &_rm):BaseT(_rm){
 #endif
 
 Service::~Service(){
+	delete &d;
 }
 
 

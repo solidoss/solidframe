@@ -9,7 +9,7 @@
 #include "system/filedevice.hpp"
 #include "system/cassert.hpp"
 
-#include "frame/file2/filestream.hpp"
+#include "frame/file/filestream.hpp"
 
 using namespace std;
 using namespace solid;

@@ -13,7 +13,7 @@
 #include "system/common.hpp"
 #include "system/filedevice.hpp"
 
-#include "frame/file2/tempbase.hpp"
+#include "frame/file/tempbase.hpp"
 #include "utility/memoryfile.hpp"
 
 

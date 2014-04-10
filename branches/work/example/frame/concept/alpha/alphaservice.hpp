@@ -40,7 +40,9 @@ private:
 		solid::frame::aio::openssl::Context *_pctx,
 		bool _secure
 	);
-
+private:
+	struct Data;
+	Data &d;
 };
 
 }//namespace alpha

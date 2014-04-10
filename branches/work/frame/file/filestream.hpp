@@ -10,7 +10,7 @@
 #ifndef SOLID_FRAME_FILE_STREAM_HPP
 #define SOLID_FRAME_FILE_STREAM_HPP
 
-#include "frame/file2/filestore.hpp"
+#include "frame/file/filestore.hpp"
 #include <streambuf>
 #include <istream>
 #include <ostream>

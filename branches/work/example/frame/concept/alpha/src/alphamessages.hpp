@@ -12,6 +12,9 @@
 
 #include "frame/ipc/ipcmessage.hpp"
 #include "frame/ipc/ipcconnectionuid.hpp"
+#include "frame/file/filestream.hpp"
+
+#include "serialization/binary.hpp"
 
 #include "utility/dynamicpointer.hpp"
 
@@ -68,13 +71,7 @@ struct RemoteListMessage: Dynamic<RemoteListMessage, DynamicShared<frame::ipc::M
 	RemoteListMessage(uint32 _tout = 0, uint16 _sentcnt = 1);
 	RemoteListMessage(const NumberType<1>&);
 	~RemoteListMessage();
-	int execute(
-		DynamicPointer<frame::Message> &_rmsgptr,
-		uint32 _evs,
-		frame::MessageSteward&,
-		const MessageUidT &, solid::TimeSpec &_rts
-	);
-	
+
 	/*virtual*/ void ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, MessagePointerT &_rmsgptr);
 	/*virtual*/ uint32 ipcOnPrepare(frame::ipc::ConnectionContext const &_rctx);
 	/*virtual*/ void ipcOnComplete(frame::ipc::ConnectionContext const &_rctx, int _err);
@@ -127,19 +124,6 @@ struct FetchMasterMessage: Dynamic<FetchMasterMessage, solid::frame::ipc::Messag
 	/*virtual*/ void ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, MessagePointerT &_rmsgptr);
 	/*virtual*/ void ipcOnComplete(frame::ipc::ConnectionContext const &_rctx, int _err);
 	
-	int execute(
-		DynamicPointer<frame::Message> &_rthis_ptr,
-		uint32 _evs,
-		solid::frame::MessageSteward&,
-		const MessageUidT &, solid::TimeSpec &_rts
-	);
-
-	bool receiveMessage(
-		DynamicPointer<frame::Message> &_rsig,
-		const ObjectUidT& _from = ObjectUidT(),
-		const solid::frame::ipc::ConnectionUid *_conid = NULL
-	);
-	
 	template <class S>
 	void serialize(S &_s, solid::frame::ipc::ConnectionContext const &_rctx){
 		_s.push(fname, "filename");
@@ -154,7 +138,7 @@ struct FetchMasterMessage: Dynamic<FetchMasterMessage, solid::frame::ipc::Messag
 	solid::frame::UidT					fuid;
 	solid::frame::UidT					tmpfuid;
 	solid::frame::ipc::ConnectionUid	conid;
-	StreamPointer<InputStream>			ins;
+	solid::frame::file::FilePointerT	fileptr;
 	int32								state;
 	uint32								streamsz;
 	int64								filesz;
@@ -174,13 +158,7 @@ struct FetchSlaveMessage: Dynamic<FetchSlaveMessage, solid::frame::ipc::Message>
 	FetchSlaveMessage();
 	~FetchSlaveMessage();
 	int sent(const solid::frame::ipc::ConnectionUid &);
-	//int execute(concept::Connection &);
-	int execute(
-		DynamicPointer<frame::Message> &_rthis_ptr,
-		uint32 _evs,
-		solid::frame::MessageSteward&,
-		const MessageUidT &, solid::TimeSpec &_rts
-	);
+
 	/*virtual*/ void ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, MessagePointerT &_rmsgptr);
 	
 	template <class S>
@@ -201,18 +179,13 @@ struct FetchSlaveMessage: Dynamic<FetchSlaveMessage, solid::frame::ipc::Message>
 			return serialization::binary::Success;
 		}
 		if(S::IsSerializer){
-			InputStream *ps = ins.get();
-			//cassert(ps != NULL);
 			_rs.pop();
-			//TODO:...
-			//_rs.pushStream(ps, 0, streamsz, "stream");
+			_rs.pushStream(static_cast<std::istream*>(&ios), 0, streamsz, "stream");
 		}else{
 			initOutputStream();
-			OutputStream *ps = outs.get();
 			_rs.pop();
 			_rs.template pushReinit<FetchSlaveMessage, 0>(this, 1, "reinit");
-			//TODO:
-			//_rs.pushStream(ps, (uint64)0, (uint64)streamsz, "stream");
+			_rs.pushStream(static_cast<std::ostream*>(&ios), (uint64)0, (uint64)streamsz, "stream");
 		}
 		return serialization::binary::Continue;
 	}
@@ -220,13 +193,13 @@ struct FetchSlaveMessage: Dynamic<FetchSlaveMessage, solid::frame::ipc::Message>
 	void clearOutputStream();
 	void print()const;
 //data:	
+	typedef solid::frame::file::FileIOStream<1024>		FileIOStreamT;
 	ObjectUidT							fromv;
 	ObjectUidT							tov;
 	solid::frame::UidT					fuid;
 	solid::frame::ipc::ConnectionUid	conid;
 	MessageUidT							msguid;
-	StreamPointer<InputStream>			ins;
-	StreamPointer<OutputStream>			outs;
+	FileIOStreamT						ios;
 	int64								filesz;
 	int32								streamsz;
 	uint32								requid;

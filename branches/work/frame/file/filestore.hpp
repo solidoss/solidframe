@@ -11,7 +11,7 @@
 #define SOLID_FRAME_FILE_STORE_HPP
 
 #include "frame/sharedstore.hpp"
-#include "frame/file2/tempbase.hpp"
+#include "frame/file/tempbase.hpp"
 #include "system/filedevice.hpp"
 
 namespace solid{

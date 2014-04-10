@@ -138,19 +138,21 @@ void StoreBase::erasePointer(UidT const & _ruid, const bool _isalive){
 			Locker<Mutex>	lock(mutex(_ruid.first));
 			do_notify = doDecrementObjectUseCount(_ruid, _isalive);
 		}
-		bool	do_raise = false;
-		
-		if(do_notify){
-			Locker<Mutex>	lock(mutex());
-			d.pfillerasevec->push_back(_ruid);
-			if(d.pfillerasevec->size() == 1){
-				do_raise = Object::notify(frame::S_SIG | frame::S_RAISE);
-			}
+		notifyObject(_ruid);
+	}
+}
+
+void StoreBase::notifyObject(UidT const & _ruid){
+	bool	do_raise = false;
+	{
+		Locker<Mutex>	lock(mutex());
+		d.pfillerasevec->push_back(_ruid);
+		if(d.pfillerasevec->size() == 1){
+			do_raise = Object::notify(frame::S_SIG | frame::S_RAISE);
 		}
-		
-		if(do_raise){
-			manager().raise(*this);
-		}
+	}
+	if(do_raise){
+		manager().raise(*this);
 	}
 }
 

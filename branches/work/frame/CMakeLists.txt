@@ -1,6 +1,5 @@
 # the frame libraries:
 set(Sources
-	src/messagesteward.cpp
 	src/manager.cpp
 	src/object.cpp
 	src/objectselector.cpp
@@ -13,7 +12,6 @@ set(Sources
 
 set(Headers
 	schedulerbase.hpp
-	messagesteward.hpp
 	message.hpp
 	common.hpp
 	basicscheduler.hpp
@@ -39,4 +37,3 @@ add_library (solid_frame_core
 add_subdirectory(ipc)
 add_subdirectory(aio)
 add_subdirectory(file)
-add_subdirectory(file2)

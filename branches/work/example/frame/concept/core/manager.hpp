@@ -14,7 +14,7 @@
 #include "frame/scheduler.hpp"
 #include "frame/aio/aioselector.hpp"
 #include "frame/objectselector.hpp"
-#include "frame/file2/filestore.hpp"
+#include "frame/file/filestore.hpp"
 #include "common.hpp"
 
 
@@ -61,11 +61,6 @@ public:
 	void scheduleTalker(solid::DynamicPointer<solid::frame::aio::Object> &_objptr);
 	void scheduleAioObject(solid::DynamicPointer<solid::frame::aio::Object> &_objptr);
 	void scheduleObject(solid::DynamicPointer<solid::frame::Object> &_objptr);
-	
-	
-	ObjectUidT readMessageStewardUid()const;
-	
-	ObjectUidT writeMessageStewardUid()const;
 	
 	solid::frame::ipc::Service 	&ipc()const;
 	FileStoreT&	fileStore()const;
