@@ -100,60 +100,6 @@ void RemoteListMessage::ipcOnComplete(frame::ipc::ConnectionContext const &_rctx
 	}
 }
 
-// int RemoteListMessage::execute(
-// 	DynamicPointer<frame::Message> &_rmsgptr,
-// 	uint32 _evs,
-// 	frame::MessageSteward&,
-// 	const MessageUidT &,
-// 	TimeSpec &_rts
-// ){
-// 	if(tout){
-// 		idbg("sleep for "<<tout<<" mseconds");
-// 		_rts += tout;
-// 		tout = 0;
-// 		return AsyncWait;
-// 	}
-// 	idbg("done sleeping");
-// 	
-// 	fs::directory_iterator				it,end;
-// 	fs::path							pth(strpth.c_str()/*, fs::native*/);
-// 	
-// 	DynamicPointer<frame::ipc::Message>	msgptr(this);
-// 	_rmsgptr.clear();
-// 	
-// 	ppthlst = new RemoteList::PathListT;
-// 	strpth.clear();
-// 	
-// 	if(!exists( pth ) || !is_directory(pth)){
-// 		err = -1;
-// 		Manager::the().ipc().sendMessage(msgptr, conid);
-// 		return AsyncError;
-// 	}
-// 	
-// 	try{
-// 		it = fs::directory_iterator(pth);
-// 	}catch ( const std::exception & ex ){
-// 		idbg("dir_iterator exception :"<<ex.what());
-// 		err = -1;
-// 		strpth = ex.what();
-// 		Manager::the().ipc().sendMessage(msgptr, conid);
-// 		return AsyncError;
-// 	}
-// 	
-// 	while(it != end){
-// 		ppthlst->push_back(std::pair<String, int64>(it->path().c_str(), -1));
-// 		if(is_directory(*it)){
-// 		}else{
-// 			ppthlst->back().second = FileDevice::size(it->path().c_str());
-// 		}
-// 		++it;
-// 	}
-// 	err = 0;
-// 	//Thread::sleep(1000 * 20);
-// 	Manager::the().ipc().sendMessage(msgptr, conid);
-// 	return AsyncError;
-// }
-
 //-----------------------------------------------------------------------------------
 // FetchMasterMessage
 //-----------------------------------------------------------------------------------
@@ -397,18 +343,6 @@ void FetchSlaveMessage::ipcOnReceive(frame::ipc::ConnectionContext const &_rctx,
 		Manager::the().notify(msgptr, ObjectUidT(tov.first, tov.second));
 	}
 }
-// Executed on peer within the signal executer
-// int FetchSlaveMessage::execute(
-// 	DynamicPointer<frame::Message> &_rmsgptr,
-// 	uint32 _evs,
-// 	frame::MessageSteward& _rce,
-// 	const MessageUidT &,
-// 	TimeSpec &
-// ){
-// 	idbg((void*)this<<"");
-// 	_rce.sendMessage(_rmsgptr, msguid);
-// 	return AsyncError;
-// }
 
 void FetchSlaveMessage::initOutputStream(){
 	frame::RequestUid					requid;

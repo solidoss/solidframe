@@ -163,7 +163,7 @@ private:
 	FileIOStreamT								ios;
 	
 	solid::frame::ipc::ConnectionUid			ipcconuid;
-	MessageUidT									mastermsguid;
+	solid::frame::UidT							mastermsguid;
 	uint32										tmpstreamcp;//temp stream capacity
 	uint64										streamsz_out;
 	uint32										streamsz_in;

@@ -16,6 +16,7 @@
 namespace concept{
 
 class Manager;
+struct FilePointerMessage;
 
 namespace alpha{
 	
@@ -37,9 +38,11 @@ public:
 	void dynamicHandle(solid::DynamicPointer<RemoteListMessage> &_rmsgptr);
 	void dynamicHandle(solid::DynamicPointer<FetchMasterMessage> &_rmsgptr);
 	void dynamicHandle(solid::DynamicPointer<FetchSlaveMessage> &_rmsgptr);
+	void dynamicHandle(solid::DynamicPointer<FilePointerMessage> &_rmsgptr);
 	
 private:
 	void doExecute(solid::DynamicPointer<RemoteListMessage> &_rmsgptr);
+	void doClearFetch(const size_t _idx);
 	/*virtual*/ void execute(ExecuteContext &_rexectx);
 	/*virtual*/ bool notify(solid::DynamicPointer<solid::frame::Message> &_rmsgptr);
 private:

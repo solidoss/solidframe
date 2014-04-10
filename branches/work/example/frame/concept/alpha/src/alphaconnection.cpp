@@ -466,7 +466,7 @@ void Connection::dynamicHandle(DynamicPointer<FetchSlaveMessage> &_rmsgptr){
 }
 void Connection::dynamicHandle(DynamicPointer<FilePointerMessage> &_rmsgptr){
 	idbg("");
-	if(_rmsgptr->reqid && _rmsgptr->reqid != reqid){
+	if(_rmsgptr->reqidx && _rmsgptr->reqidx != reqid){
 		return;
 	}
 	idbg("");

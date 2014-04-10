@@ -17,11 +17,15 @@
 namespace concept{
 //!	A signal for sending istreams from the fileManager
 struct FilePointerMessage: solid::Dynamic<FilePointerMessage, solid::frame::Message>{
-	FilePointerMessage():reqid(0){}
-	FilePointerMessage(solid::frame::file::FilePointerT _ptr, solid::uint32 _reqid = 0):ptr(_ptr), reqid(0){}
+	FilePointerMessage():reqidx(0){}
+	FilePointerMessage(
+		solid::frame::file::FilePointerT _ptr,
+		size_t _reqidx = 0, solid::uint32 _requid = 0
+	):ptr(_ptr), reqidx(0), requid(_requid){}
 	
 	solid::frame::file::FilePointerT	ptr;
-	solid::uint32						reqid;
+	size_t								reqidx;
+	solid::uint32						requid;
 };
 
 }//namespace concept

@@ -198,7 +198,7 @@ struct FetchSlaveMessage: Dynamic<FetchSlaveMessage, solid::frame::ipc::Message>
 	ObjectUidT							tov;
 	solid::frame::UidT					fuid;
 	solid::frame::ipc::ConnectionUid	conid;
-	MessageUidT							msguid;
+	solid::frame::UidT					msguid;
 	FileIOStreamT						ios;
 	int64								filesz;
 	int32								streamsz;

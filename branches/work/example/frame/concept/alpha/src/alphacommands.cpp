@@ -54,13 +54,14 @@ void serialize(S &_s, StringInt64PairT &_t, Ctx &_ctx){
 }
 }}}
 
-
+namespace{
 std::streampos stream_size(std::istream &_rios){
 	std::streampos pos = _rios.tellg();
 	_rios.seekg(0, _rios.end);
 	std::streampos endpos = _rios.tellg();
 	_rios.seekg(pos);
 	return endpos;
+}
 }
 
 
@@ -424,7 +425,7 @@ int Fetch::doInitLocal(){
 	idbg(""<<(void*)this);
 	//try to open stream to localfile
 	Manager &rm = Manager::the();
-	rm.fileStore().requestCreateFile(OpenCbk(rm.id(rc), rc.newRequestId()), strpth.c_str(), FileDevice::ReadOnlyE);
+	rm.fileStore().requestOpenFile(OpenCbk(rm.id(rc), rc.newRequestId()), strpth.c_str(), FileDevice::ReadOnlyE);
 	state = WaitLocalStream;
 	return Writer::Wait;
 }
