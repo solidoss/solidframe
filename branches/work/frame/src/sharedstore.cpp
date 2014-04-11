@@ -157,6 +157,7 @@ void StoreBase::notifyObject(UidT const & _ruid){
 }
 
 /*virtual*/ void StoreBase::execute(ExecuteContext &_rexectx){
+	vdbgx(Debug::frame, "");
 	if(notified()){
 		Locker<Mutex>	lock(mutex());
 		ulong sm = grabSignalMask();
@@ -171,7 +172,7 @@ void StoreBase::notifyObject(UidT const & _ruid){
 			doExecuteOnSignal(sm);
 		}
 	}
-	
+	vdbgx(Debug::frame, "");
 	if(this->doExecute()){
 		_rexectx.reschedule();
 	}
@@ -183,6 +184,7 @@ void StoreBase::doCacheObjectIndex(const size_t _idx){
 }
 
 void StoreBase::doExecuteCache(){
+	vdbgx(Debug::frame, "");
 	for(ExecWaitVectorT::const_iterator it(d.exewaitvec.begin()); it != d.exewaitvec.end(); ++it){
 		d.cachewaitstk.push(it->pw);
 	}
@@ -191,6 +193,7 @@ void StoreBase::doExecuteCache(){
 }
 
 void* StoreBase::doTryAllocateWait(){
+	vdbgx(Debug::frame, "");
 	if(d.cachewaitstk.size()){
 		void *rv = d.cachewaitstk.top();
 		d.cachewaitstk.pop();

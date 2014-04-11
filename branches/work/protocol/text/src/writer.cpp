@@ -327,7 +327,7 @@ bool read_stream_all(istream &_ris, char *_pb, size_t _sz){
 	//if(ris.start() < 0) return Failure;
 	if(sz < FlushLength){
 		cassert((_rw.bh->pend - _rw.wpos) >= FlushLength);
-		if(read_stream_all(ris, _rw.wpos, sz)){
+		if(!read_stream_all(ris, _rw.wpos, sz)){
 			return Failure;
 		}
 		_rw.wpos += sz;
@@ -362,10 +362,10 @@ bool read_stream_all(istream &_ris, char *_pb, size_t _sz){
 		toread = blen;
 		if(toread > tmpsz) toread = tmpsz;
 		
-		if(read_stream_all(ris, _rw.bh->pbeg, toread)){
+		if(!read_stream_all(ris, _rw.bh->pbeg, toread)){
 			return Failure;
 		}
-		
+		rv = toread;
 		tmpsz -= rv;
 		if(rv < FlushLength)
 			break;

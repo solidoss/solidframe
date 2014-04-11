@@ -175,8 +175,9 @@ struct OpenCbk{
 		ERROR_NS::error_code err
 	){
 		idbg("");
-		frame::Manager 			&rm = frame::Manager::specific();
-		frame::MessagePointerT	msgptr(new FilePointerMessage(_rptr, fetchidx, fetchuid));
+		frame::Manager 				&rm = frame::Manager::specific();
+		frame::file::FilePointerT	emptyptr;
+		frame::MessagePointerT		msgptr(new FilePointerMessage(err ? emptyptr : _rptr, fetchidx, fetchuid));
 		rm.notify(msgptr, uid);
 	}
 };
@@ -193,7 +194,7 @@ void Steward::dynamicHandle(solid::DynamicPointer<FetchMasterMessage> &_rmsgptr)
 		idx = d.fetchdq.size();
 		d.fetchdq.push_back(FetchPairT(_rmsgptr, 0));
 	}
-	d.rm.fileStore().requestOpenFile(OpenCbk(d.rm.id(*this), idx, uid), _rmsgptr->fname.c_str(), FileDevice::ReadOnlyE);
+	d.rm.fileStore().requestOpenFile(OpenCbk(d.rm.id(*this), idx, uid), d.fetchdq[idx].first->fname, FileDevice::ReadOnlyE);
 }
 
 void Steward::dynamicHandle(solid::DynamicPointer<FilePointerMessage> &_rmsgptr){
@@ -216,8 +217,6 @@ void Steward::dynamicHandle(solid::DynamicPointer<FilePointerMessage> &_rmsgptr)
 			
 			pmsg->tov = rmsgptr->fromv;
 			pmsg->filesz = rmsgptr->filesz;
-			//pmsg->fileof = 0;
-			//pmsg->tmpof = 0;
 			pmsg->streamsz = rmsgptr->streamsz;
 			if(pmsg->streamsz > pmsg->filesz){
 				pmsg->streamsz = pmsg->filesz;
@@ -227,8 +226,8 @@ void Steward::dynamicHandle(solid::DynamicPointer<FilePointerMessage> &_rmsgptr)
 			pmsg->fuid = rmsgptr->tmpfuid;
 			idbg("filesz = "<<rmsgptr->filesz<<" inpos = "<<rmsgptr->filepos);
 			rmsgptr->filesz -= pmsg->streamsz;
+			pmsg->filepos = rmsgptr->filepos;
 			rmsgptr->filepos += pmsg->streamsz;
-			
 			{
 				frame::file::FilePointerT	fptr = d.rm.fileStore().shared(rmsgptr->fileptr.id(), err);
 				pmsg->ios.device(fptr);

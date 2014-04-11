@@ -125,7 +125,7 @@ void FetchMasterMessage::print()const{
 
 
 void FetchMasterMessage::ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, frame::ipc::Message::MessagePointerT &_rmsgptr){
-	DynamicPointer<frame::Message> msgptr(this);
+	DynamicPointer<frame::Message> msgptr(_rmsgptr);
 	conid = frame::ipc::ConnectionContext::the().connectionuid;;
 	state = Received;
 	idbg("received master signal");
@@ -303,7 +303,7 @@ void FetchMasterMessage::ipcOnReceive(frame::ipc::ConnectionContext const &_rctx
 // FetchSlaveMessage
 //-----------------------------------------------------------------------------------
 
-FetchSlaveMessage::FetchSlaveMessage(): fromv(0xffffffff, 0xffffffff), filesz(-10), streamsz(-1), requid(0){
+FetchSlaveMessage::FetchSlaveMessage(): fromv(0xffffffff, 0xffffffff), ios(/*0*/), filesz(-10), streamsz(-1), requid(0){
 	idbg(""<<(void*)this);
 	serialized = false;
 }
@@ -320,7 +320,8 @@ FetchSlaveMessage::~FetchSlaveMessage(){
 }
 void FetchSlaveMessage::print()const{
 	idbg((void*)this<<" FetchSlaveMessage:");
-	idbg("filesz = "<<this->filesz<<" streamsz = "<<this->streamsz<<" requid = "<<requid);
+	idbg("filesz = "<<this->filesz<<" requid = "<<requid);
+	idbg("streamsz = "<<this->streamsz<<" streampos = "<<this->streampos);
 	idbg("fuid.first = "<<fuid.first<<" fuid.second = "<<fuid.second);
 	idbg("msguid.first = "<<msguid.first<<" msguid.second = "<<msguid.second);
 }
@@ -330,7 +331,7 @@ int FetchSlaveMessage::sent(const frame::ipc::ConnectionUid &_rconid){
 	return AsyncError;
 }
 void FetchSlaveMessage::ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, frame::ipc::Message::MessagePointerT &_rmsgptr){
-	DynamicPointer<frame::Message> msgptr(this);
+	DynamicPointer<frame::Message> msgptr(_rmsgptr);
 	conid = frame::ipc::ConnectionContext::the().connectionuid;
 	if(filesz == -10){
 		idbg((void*)this<<" Received FetchSlaveMessage on peer");
@@ -348,10 +349,13 @@ void FetchSlaveMessage::initOutputStream(){
 	frame::RequestUid					requid;
 	//Manager::the().fileManager().stream(outs, fuid, requid, frame::file::Manager::Forced);
 	idbg((void*)this<<" Create deserialization streamptr");
+	ERROR_NS::error_code		err;
+	frame::file::FilePointerT	fptr = Manager::the().fileStore().shared(fuid, err);
+	ios.device(fptr);
 }
 
 void FetchSlaveMessage::clearOutputStream(){
-	//outs.clear();
+	ios.device().clear();
 }
 
 }//namespace alpha

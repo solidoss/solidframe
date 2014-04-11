@@ -167,7 +167,7 @@ struct FetchSlaveMessage: Dynamic<FetchSlaveMessage, solid::frame::ipc::Message>
 		_s.push(tov.first, "toobjectid").push(tov.second, "toobjectuid");
 		//_s.push(fromv.first, "fromobjectid").push(fromv.second, "fromobjectuid");
 		_s.push(streamsz, "streamsize").push(requid, "requestuid");
-		_s.push(filesz, "filesize").push(msguid.first, "msguid_first").push(msguid.second, "msguid_second");
+		_s.push(filesz, "filesize").push(filepos, "filepos").push(msguid.first, "msguid_first").push(msguid.second, "msguid_second");
 		_s.push(fuid.first,"fileuid_first").push(fuid.second, "fileuid_second");
 		serialized = true;
 	}
@@ -178,14 +178,13 @@ struct FetchSlaveMessage: Dynamic<FetchSlaveMessage, solid::frame::ipc::Message>
 			clearOutputStream();
 			return serialization::binary::Success;
 		}
+		_rs.pop();
 		if(S::IsSerializer){
-			_rs.pop();
-			_rs.pushStream(static_cast<std::istream*>(&ios), 0, streamsz, "stream");
+			_rs.pushStream(static_cast<std::istream*>(&ios), filepos, streamsz, "stream");
 		}else{
 			initOutputStream();
-			_rs.pop();
 			_rs.template pushReinit<FetchSlaveMessage, 0>(this, 1, "reinit");
-			_rs.pushStream(static_cast<std::ostream*>(&ios), (uint64)0, (uint64)streamsz, "stream");
+			_rs.pushStream(static_cast<std::ostream*>(&ios), streampos, streamsz, "stream");
 		}
 		return serialization::binary::Continue;
 	}
@@ -193,7 +192,7 @@ struct FetchSlaveMessage: Dynamic<FetchSlaveMessage, solid::frame::ipc::Message>
 	void clearOutputStream();
 	void print()const;
 //data:	
-	typedef solid::frame::file::FileIOStream<1024>		FileIOStreamT;
+	typedef solid::frame::file::FileIOStream<64>		FileIOStreamT;
 	ObjectUidT							fromv;
 	ObjectUidT							tov;
 	solid::frame::UidT					fuid;
@@ -201,7 +200,9 @@ struct FetchSlaveMessage: Dynamic<FetchSlaveMessage, solid::frame::ipc::Message>
 	solid::frame::UidT					msguid;
 	FileIOStreamT						ios;
 	int64								filesz;
+	int64								filepos;
 	int32								streamsz;
+	int32								streampos;
 	uint32								requid;
 	bool								serialized;
 };

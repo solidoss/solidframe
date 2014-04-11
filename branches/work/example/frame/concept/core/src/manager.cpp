@@ -150,7 +150,7 @@ void Manager::start(){
 		frame::file::Utf8Configuration	utf8cfg;
 		frame::file::TempConfiguration	tempcfg;
 		
-		system("[ -d /tmp/fileserver ] || mkdir -p /tmp/solidframe_concept");
+		system("[ -d /tmp/solidframe_concept ] || mkdir -p /tmp/solidframe_concept");
 		
 		const char *homedir = getenv("HOME");
 		

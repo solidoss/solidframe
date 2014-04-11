@@ -115,17 +115,7 @@ public:
 	int receiveFilePointer(
 		FilePointerMessage &_rmsg
 	);
-	int receiveError(
-		int _errid,
-		const ObjectUidT&_from,
-		const solid::frame::ipc::ConnectionUid *
-	);
-	int receiveNumber(
-		const int64 &_no,
-		int			_which,
-		const ObjectUidT&_from,
-		const solid::frame::ipc::ConnectionUid *_conid
-	);
+	/*virtual*/ int receiveMessage(solid::DynamicPointer<FetchSlaveMessage> &_rmsgptr);
 private:
 	enum State{
 		InitLocal,
@@ -135,6 +125,7 @@ private:
 		SendNextData,
 		WaitLocalStream,
 		WaitTempStream,
+		WaitFirstRemoteStream,
 		WaitRemoteStream,
 		SendRemoteError,
 		SendTempError,
@@ -151,7 +142,7 @@ private:
 	int doSendFirstData(Writer &_rw);
 	int doSendNextData(Writer &_rw);
 private:
-	typedef solid::frame::file::FileIOStream<1024>		FileIOStreamT;
+	typedef solid::frame::file::FileIOStream<256>		FileIOStreamT;
 	solid::String								strpth;
 	solid::String								straddr;
 	solid::String								port;
@@ -165,8 +156,9 @@ private:
 	solid::frame::ipc::ConnectionUid			ipcconuid;
 	solid::frame::UidT							mastermsguid;
 	uint32										tmpstreamcp;//temp stream capacity
-	uint64										streamsz_out;
-	uint32										streamsz_in;
+	uint64										streamsz;
+	uint32										streamcp;
+	solid::DynamicPointer<FetchSlaveMessage>	cachedmsg;
 };
 //! Store a file locally
 /*!
@@ -182,14 +174,7 @@ public:
 	void initReader(Reader &);
 	int reinitReader(Reader &, solid::protocol::text::Parameter &);
 	void execute(Connection &);
-	int receiveFilePointer(
-		FilePointerMessage &_rmsg
-	);
-	int receiveError(
-		int _errid,
-		const ObjectUidT&_from,
-		const solid::frame::ipc::ConnectionUid *
-	);
+	int receiveFilePointer(FilePointerMessage &_rmsg);
 	int reinitWriter(Writer &, solid::protocol::text::Parameter &);
 private:
 	typedef solid::frame::file::FileOStream<1024>		FileOStreamT;
@@ -245,20 +230,11 @@ public:
 	void execute(Connection &);
 	
 	int reinitWriter(Writer &, solid::protocol::text::Parameter &);
-	int receiveData(
-		void *_pdata,
-		int _datasz,
-		int			_which, 
-		const ObjectUidT&_from,
-		const solid::frame::ipc::ConnectionUid *_conid
-	);
-	int receiveError(
-		int _errid, 
-		const ObjectUidT&_from,
-		const solid::frame::ipc::ConnectionUid *_conid
-	);
 	template <int U>
 	int reinitReader(Reader &, solid::protocol::text::Parameter &);
+	
+private:
+	/*virtual*/ int receiveMessage(solid::DynamicPointer<RemoteListMessage> &_rmsgptr);
 private:
 	struct HostAddr{
 		solid::String	addr;
@@ -297,7 +273,7 @@ public:
 	/*virtual*/ int receiveFilePointer(
 		FilePointerMessage &_rmsg
 	);
-	/*virtual*/ int receiveString(
+	int receiveString(
 		const solid::String &_str,
 		int			_which,
 		const ObjectUidT&_from,

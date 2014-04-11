@@ -193,7 +193,7 @@ if(CMAKE_SYSTEM MATCHES "Linux*")
 	set(SYS_MAINTAIN_LINKER_FLAGS "-Wl,--warn-unresolved-symbols,--warn-once")
 	set(SYS_OPTIMIZED_LINKER_FLAGS "")
 	set(SYS_NOLOG_LINKER_FLAGS "")
-	set(SYS_RELEASE_LINKER_FLAGS "")
+	set(SYS_RELEASE_LINKER_FLAGS "-O3")
 	
 	set(SYS_BASIC_LIBS pthread rt)
 	set(SYS_DYNAMIC_LOAD_LIB dl)

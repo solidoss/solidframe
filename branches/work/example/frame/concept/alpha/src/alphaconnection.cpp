@@ -403,13 +403,7 @@ void Connection::dynamicHandle(DynamicPointer<RemoteListMessage> &_rmsgptr){
 	idbg("");
 	newRequestId();//prevent multiple responses with the same id
 	if(pcmd){
-		int rv;
-		if(!_rmsgptr->err){
-			rv = pcmd->receiveData((void*)_rmsgptr->ppthlst, -1, 0, ObjectUidT(), &_rmsgptr->conid);
-			_rmsgptr->ppthlst = NULL;
-		}else{
-			rv = pcmd->receiveError(_rmsgptr->err, ObjectUidT(), &_rmsgptr->conid);
-		}
+		int rv = pcmd->receiveMessage(_rmsgptr);
 		switch(rv){
 			case AsyncError:
 				idbg("");
@@ -436,14 +430,7 @@ void Connection::dynamicHandle(DynamicPointer<FetchSlaveMessage> &_rmsgptr){
 	idbg("");
 	newRequestId();//prevent multiple responses with the same id
 	if(pcmd){
-		int rv;
-		if(_rmsgptr->filesz >= 0){
-			idbg("");
-			rv = pcmd->receiveNumber(_rmsgptr->filesz, 0, _rmsgptr->msguid, &_rmsgptr->conid);
-		}else{
-			idbg("");
-			rv = pcmd->receiveError(-1, _rmsgptr->msguid, &_rmsgptr->conid);
-		}
+		int rv = pcmd->receiveMessage(_rmsgptr);
 		switch(rv){
 			case AsyncError:
 				idbg("");

@@ -317,6 +317,8 @@ bool FileBuf::flushPut(){
 		memcpy(pptr(), _s, towrite);
 		_n -= towrite;
 		_s += towrite;
+		pbump(towrite);
+		
 		if(_n != 0 || towrite == wleftsz){
 			if(!flushPut()){
 				return 0;
@@ -336,8 +338,6 @@ bool FileBuf::flushPut(){
 			}else{
 				resetPut();
 			}
-		}else{
-			pbump(towrite);
 		}
 		return sz;
 	}else{

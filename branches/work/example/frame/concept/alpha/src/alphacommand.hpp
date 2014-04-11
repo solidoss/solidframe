@@ -29,7 +29,8 @@ class Manager;
 struct FilePointerMessage;
 
 namespace alpha{
-
+struct FetchSlaveMessage;
+struct RemoteListMessage;
 class Connection;
 class Reader;
 //! A base class for all alpha protocol commands
@@ -50,34 +51,8 @@ public:
 	virtual int receiveFilePointer(
 		FilePointerMessage &_rmsg
 	);
-	//! Receive a string
-	virtual int receiveString(
-		const solid::String &_str,
-		int			_which, 
-		const ObjectUidT&_from,
-		const solid::frame::ipc::ConnectionUid *_conid
-	);
-	//! Receive data
-	virtual int receiveData(
-		void *_pdata,
-		int _datasz,
-		int			_which, 
-		const ObjectUidT&_from,
-		const solid::frame::ipc::ConnectionUid *_conid
-	);
-	//! Receive a number
-	virtual int receiveNumber(
-		const int64 &_no,
-		int			_which,
-		const ObjectUidT&_from,
-		const solid::frame::ipc::ConnectionUid *_conid
-	);
-	//! Receive an error code
-	virtual int receiveError(
-		int _errid,
-		const ObjectUidT&_from,
-		const solid::frame::ipc::ConnectionUid *_conid
-	);
+	virtual int receiveMessage(solid::DynamicPointer<FetchSlaveMessage> &_rmsgptr);
+	virtual int receiveMessage(solid::DynamicPointer<RemoteListMessage> &_rmsgptr);
 
 };
 

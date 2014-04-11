@@ -101,7 +101,9 @@ struct File{
 	}
 	void flush(){
 		if(!ptmp){
-			fd.flush();
+			if(fd.ok()){
+				fd.flush();
+			}
 		}else{
 			ptmp->flush();
 		}
@@ -125,7 +127,7 @@ struct OpenCommand: Base{
 	Cmd				cmd;
 		
 	OpenCommand(
-		Cmd &_cmd, typename Base::PathT _path, size_t _openflags
+		Cmd const &_cmd, typename Base::PathT _path, size_t _openflags
 	):Base(_path, _openflags), cmd(_cmd){}
 	
 
@@ -154,7 +156,7 @@ struct CreateTempCommand: CreateTempCommandBase{
 	Cmd				cmd;
 	
 	CreateTempCommand(
-		Cmd &_cmd, uint64 _sz, size_t _createflags
+		Cmd const &_cmd, uint64 _sz, size_t _createflags
 	):CreateTempCommandBase(_sz, _createflags), cmd(_cmd){}
 	
 	void operator()(S &_rstore, FilePointerT &_rptr, ERROR_NS::error_code err){
@@ -258,8 +260,8 @@ public:
 	Store(Manager &_rm, C1 _c1, C2 _c2): StoreT(_rm), BaseT(_c1, _c2){}
 	
 	//If a file with _path already exists in the store, the call will be similar with open with truncate openflag
-	template <typename Cmd>
-	bool requestCreateFile(Cmd _cmd, std::string const &_path, const size_t _openflags = 0, const size_t _flags = 0){
+	template <class Cmd>
+	bool requestCreateFile(Cmd const& _cmd, std::string const &_path, const size_t _openflags = 0, const size_t _flags = 0){
 		OpenCommand<
 			ThisT, Cmd, 
 			typename BaseT::OpenCommandBaseT
@@ -267,8 +269,8 @@ public:
 		return StoreT::requestReinit(cmd, _flags);
 	}
 	
-	template <typename Cmd>
-	bool requestOpenFile(Cmd _cmd, std::string const &_path, const size_t _openflags = 0, const size_t _flags = 0){
+	template <class Cmd>
+	bool requestOpenFile(Cmd const& _cmd, std::string const &_path, const size_t _openflags = 0, const size_t _flags = 0){
 		OpenCommand<
 			ThisT, Cmd,
 			typename BaseT::OpenCommandBaseT
@@ -276,9 +278,9 @@ public:
 		return StoreT::requestReinit(cmd, _flags);
 	}
 	
-	template <typename Cmd>
+	template <class Cmd>
 	bool requestCreateTemp(
-		Cmd _cmd, uint64 _sz, const size_t _createflags = AllLevelsFlag, const size_t _flags = 0
+		Cmd const &_cmd, uint64 _sz, const size_t _createflags = AllLevelsFlag, const size_t _flags = 0
 	){
 		CreateTempCommand<ThisT, Cmd>	cmd(_cmd, _sz, _createflags);
 		return StoreT::requestReinit(cmd, _flags);

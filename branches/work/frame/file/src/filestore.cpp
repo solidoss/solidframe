@@ -366,7 +366,7 @@ void Utf8Controller::openFile(Utf8OpenCommandBase &_rcmd, FilePointerT &_rptr, E
 	path.assign(rstrg.localprefix);
 	path.append(_rcmd.outpath.path);
 	if(!_rptr->open(path.c_str(), _rcmd.openflags)){
-		_rerr = specific_error_back();
+		_rerr = last_system_error();
 	}
 	
 }
@@ -399,6 +399,7 @@ bool Utf8Controller::preparePointer(
 void Utf8Controller::executeOnSignal(shared::StoreBase::Accessor &_rsbacc, ulong _sm){
 	//We're under Store's mutex lock
 	solid::exchange(d.pfilltempwaitvec, d.pconstempwaitvec);
+	d.pfilltempwaitvec->clear();
 }
 
 bool Utf8Controller::executeBeforeErase(shared::StoreBase::Accessor &_rsbacc){
@@ -635,7 +636,7 @@ bool prepare_temp_file_path(std::string &_rpath, const char *_prefix, size_t _id
 	
 	bool rv = fd.open(path.c_str(), FileDevice::CreateE | FileDevice::TruncateE | FileDevice::ReadWriteE);
 	if(!rv){
-		_rerr.assign(1, _rerr.category());
+		_rerr = last_system_error();
 	}
 	return rv;
 }

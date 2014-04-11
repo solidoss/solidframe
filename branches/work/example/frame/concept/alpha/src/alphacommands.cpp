@@ -342,15 +342,11 @@ int RemoteList::reinitWriter(Writer &_rw, protocol::text::Parameter &_rp){
 	cassert(false);
 	return AsyncError;
 }
-int RemoteList::receiveData(
-	void *_pdata,
-	int _datasz,
-	int	_which, 
-	const ObjectUidT&_from,
-	const solid::frame::ipc::ConnectionUid *_conid
-){
-	ppthlst = reinterpret_cast<PathListT*>(_pdata);
-	if(ppthlst){
+
+/*virtual*/ int RemoteList::receiveMessage(solid::DynamicPointer<RemoteListMessage> &_rmsgptr){
+	ppthlst = _rmsgptr->ppthlst;
+	_rmsgptr->ppthlst = NULL;
+	if(ppthlst && !_rmsgptr->err){
 		it = ppthlst->begin();
 		state = SendList;
 	}else{
@@ -358,23 +354,15 @@ int RemoteList::receiveData(
 	}
 	return AsyncSuccess;
 }
-int RemoteList::receiveError(
-	int _errid, 
-	const ObjectUidT&_from,
-	const frame::ipc::ConnectionUid *_conid
-){
-	state = SendError;
-	return AsyncSuccess;
-}
 //---------------------------------------------------------------
 // Fetch command
 //---------------------------------------------------------------
 
-struct OpenCbk{
+struct FetchOpenCbk{
 	frame::ObjectUidT	uid;
 	uint32				reqid;
-	OpenCbk(){}
-	OpenCbk(const frame::ObjectUidT &_robjuid, uint32 _reqid):uid(_robjuid), reqid(_reqid){}
+	FetchOpenCbk(){}
+	FetchOpenCbk(const frame::ObjectUidT &_robjuid, uint32 _reqid):uid(_robjuid), reqid(_reqid){}
 	
 	void operator()(
 		frame::file::Store<> &,
@@ -382,14 +370,16 @@ struct OpenCbk{
 		ERROR_NS::error_code err
 	){
 		idbg("");
-		frame::Manager 			&rm = frame::Manager::specific();
-		frame::MessagePointerT	msgptr(new FilePointerMessage(_rptr, reqid));
+		frame::Manager 				&rm = frame::Manager::specific();
+		frame::file::FilePointerT	emptyptr;
+		
+		frame::MessagePointerT		msgptr(new FilePointerMessage(err ? emptyptr :_rptr, reqid));
 		rm.notify(msgptr, uid);
 	}
 };
 
 
-Fetch::Fetch(Connection &_rc):rc(_rc), state(0), litsz(-1){
+Fetch::Fetch(Connection &_rc):rc(_rc), state(0), litsz(-1), ios(/*0*/){
 }
 Fetch::~Fetch(){
 	idbg(""<<(void*)this);
@@ -425,7 +415,7 @@ int Fetch::doInitLocal(){
 	idbg(""<<(void*)this);
 	//try to open stream to localfile
 	Manager &rm = Manager::the();
-	rm.fileStore().requestOpenFile(OpenCbk(rm.id(rc), rc.newRequestId()), strpth.c_str(), FileDevice::ReadOnlyE);
+	rm.fileStore().requestOpenFile(FetchOpenCbk(rm.id(rc), rc.newRequestId()), strpth, FileDevice::ReadOnlyE);
 	state = WaitLocalStream;
 	return Writer::Wait;
 }
@@ -433,8 +423,8 @@ int Fetch::doInitLocal(){
 int Fetch::doGetTempStream(uint32 _sz){
 	idbg(""<<(void*)this<<" "<<_sz);
 	Manager &rm = Manager::the();
-	streamsz_in = _sz;
-	rm.fileStore().requestCreateTemp(OpenCbk(rm.id(rc), rc.newRequestId()), _sz/*, frame::file::VeryFastLevelFlag*/);
+	streamcp = _sz;
+	rm.fileStore().requestCreateTemp(FetchOpenCbk(rm.id(rc), rc.newRequestId()), _sz/*, frame::file::VeryFastLevelFlag*/);
 	state = WaitTempStream;
 	return Writer::Wait;
 }
@@ -445,14 +435,16 @@ void Fetch::doSendMaster(const solid::frame::UidT &_ruid){
 	idbg("addr"<<straddr<<" port = "<<port);
 	if(!rd.empty()){
 		//send the master remote command
-		FetchMasterMessage *pmsg(new FetchMasterMessage);
+		FetchMasterMessage						*pmsg(new FetchMasterMessage);
+		DynamicPointer<frame::ipc::Message>		msgptr(pmsg);
+		
 		pmsg->fname = strpth;
 		pmsg->requid = rc.newRequestId();
 		pmsg->fromv = Manager::the().id(rc);
 		pmsg->tmpfuid = _ruid;
-		pmsg->streamsz = streamsz_in;
-		state = WaitRemoteStream;
-		DynamicPointer<frame::ipc::Message> msgptr(pmsg);
+		pmsg->streamsz = streamcp;
+		state = WaitFirstRemoteStream;
+		
 		Manager::the().ipc().sendMessage(msgptr, rd.begin());
 	}else{
 		*pp = protocol::text::Parameter(StrDef(" NO FETCH: no such peer address@"));
@@ -462,29 +454,27 @@ void Fetch::doSendMaster(const solid::frame::UidT &_ruid){
 
 void Fetch::doSendSlave(const solid::frame::UidT &_ruid){
 	idbg(""<<(void*)this<<' '<<_ruid.first<<' '<<_ruid.second);
-	FetchSlaveMessage *pmsg(new FetchSlaveMessage);
+	FetchSlaveMessage					*pmsg(new FetchSlaveMessage);
+	DynamicPointer<frame::ipc::Message>	msgptr(pmsg);
+	
 	pmsg->fromv = Manager::the().id(rc);
 	pmsg->requid = rc.newRequestId();
 	pmsg->msguid = mastermsguid;
 	pmsg->fuid = _ruid;
-	pmsg->streamsz = streamsz_in;
-	DynamicPointer<frame::ipc::Message> msgptr(pmsg);
+	pmsg->streamsz = streamcp;
+	pmsg->streampos = 0;
 	Manager::the().ipc().sendMessage(msgptr, ipcconuid);
 }
 
 int Fetch::doSendFirstData(Writer &_rw){
-	idbg(""<<(void*)this);
-	streamsz_out = streamsz_in;
-	idbg(""<<streamsz_out);
-	uint64 remainsz(litsz - streamsz_in);
+	idbg(""<<(void*)this<<" streamsz = "<<streamsz);
+	uint64 remainsz(litsz - streamsz);
 	if(remainsz){
-		uint32 tmpsz =  512 * 1024;
-		if(remainsz < tmpsz) tmpsz = remainsz;
-		if(doGetTempStream(tmpsz) == Writer::Failure){
-			*pp = protocol::text::Parameter(StrDef(" NO FETCH: no temp stream@"));
-			return Writer::Success;
-		}
+		cassert(streamsz == streamcp);
+		streamsz /= 2;
+		state = SendNextData;
 	}else{
+		cachedmsg.clear();
 		state = ReturnCrlf;
 	}
 	//sp_out = sp_in;
@@ -493,37 +483,47 @@ int Fetch::doSendFirstData(Writer &_rw){
 
 int Fetch::doSendNextData(Writer &_rw){
 	idbg(""<<(void*)this);
-	uint64 remainsz(litsz - streamsz_in);
-	streamsz_out = streamsz_in;
+	cassert(!cachedmsg.empty());
+	if(cachedmsg->streamsz == streamcp){
+		//we have the remaning side of the stream
+		ios.seekg(cachedmsg->streamsz/2);
+		streamsz = cachedmsg->streamsz/2;
+		cachedmsg->streampos = streamcp/2;
+	}else{
+		ios.seekg(cachedmsg->streampos);
+		streamsz = cachedmsg->streamsz;
+	}
+	
+	uint64 remainsz(litsz - streamsz);
 	if(remainsz){
-		uint32 tmpsz = 2 * 512 * 1024;
-		if(remainsz < tmpsz) tmpsz = remainsz;
-		if(doGetTempStream(tmpsz) == Writer::Failure){
-			*pp = protocol::text::Parameter(StrDef(" NO FETCH: no temp stream@"));
-			return Writer::Success;
+		//not the last chunk - request another one
+		if(cachedmsg->streampos){
+			cachedmsg->streampos = 0;
+		}else{
+			cachedmsg->streampos = streamcp/2;
 		}
+		cachedmsg->streamsz = streamcp/2;
+		state = WaitRemoteStream;
+		DynamicPointer<frame::ipc::Message>	msgptr(cachedmsg);
+		Manager::the().ipc().sendMessage(msgptr, ipcconuid);
 	}else{
 		state = ReturnCrlf;
 	}
-	litsz -= streamsz_out;
-	//sp_out = sp_in;
-	//cassert(sp_out);
-	//it.reinit(sp_out.get());
-	//_rw.push(&Writer::putCrlf);
-	_rw.push(&Writer::putStream, protocol::text::Parameter(&ios, &streamsz_out));
+	litsz -= streamsz;
+	_rw.push(&Writer::putStream, protocol::text::Parameter(&ios, &streamsz));
 	return Writer::Continue;
 }
 
 int Fetch::doSendLiteral(Writer &_rw, bool _local){
-	idbg("send literal "<<litsz<<" "<<streamsz_out);
+	idbg("send literal "<<litsz<<" "<<streamsz);
 	//send local stream
 	cassert(!ios.device().empty());
 	_rw<<"* DATA {"<<litsz<<"}\r\n";
-	litsz -= streamsz_out;
+	litsz -= streamsz;
 	if(_local){
 		_rw.replace(&Writer::putCrlf);
 	}
-	_rw.push(&Writer::putStream, protocol::text::Parameter(static_cast<std::iostream*>(&ios), &streamsz_out));
+	_rw.push(&Writer::putStream, protocol::text::Parameter(static_cast<std::iostream*>(&ios), &streamsz));
 	return Writer::Continue;
 }
 
@@ -534,13 +534,14 @@ int Fetch::reinitWriter(Writer &_rw, protocol::text::Parameter &_rp){
 		case SendLocal:
 			return doSendLiteral(_rw, true);
 		case InitRemote:
-			return doGetTempStream(1024 * 1024);
+			return doGetTempStream(2 * 1024);
 		case SendFirstData:
 			return doSendFirstData(_rw);
 		case SendNextData:
 			return doSendNextData(_rw);
 		case WaitLocalStream:
 		case WaitTempStream:
+		case WaitFirstRemoteStream:
 		case WaitRemoteStream:
 			return Writer::Wait;
 		case ReturnBad:
@@ -564,74 +565,52 @@ int Fetch::reinitWriter(Writer &_rw, protocol::text::Parameter &_rp){
 	return AsyncError;
 }
 
-int Fetch::receiveFilePointer(
-	FilePointerMessage &_rmsg
-){
+int Fetch::receiveFilePointer(FilePointerMessage &_rmsg){
+	idbg("");
 	ios.device(_rmsg.ptr);
 	if(state == WaitLocalStream){
-		streamsz_out = stream_size(ios);
-		litsz = streamsz_out;
-		state = SendLocal;
-	}else if(state == WaitTempStream){
-		Manager::the().fileStore().uniqueToShared(ios.device());
-		state = WaitRemoteStream;
-		if(litsz == -1){
-			doSendMaster(ios.device().id());
-		}/*else{
-			doSendSlave(ios.device().id());
-		}*/
-	}
-	return AsyncSuccess;
-}
-
-int Fetch::receiveNumber(
-	const int64 &_no,
-	int			_which,
-	const ObjectUidT& _objuid,
-	const solid::frame::ipc::ConnectionUid *_pconuid
-){
-	mastermsguid = _objuid;
-	cassert(_pconuid);
-	ipcconuid = *_pconuid;
-	if(litsz != -1){//continued
-		streamsz_in = _no;
-		idbg(""<<litsz<<" "<<streamsz_in);
-		state = SendNextData;
-	}else{
-		litsz = _no;
-		streamsz_in = stream_size(ios);
-		idbg(""<<litsz<<" "<<streamsz_in);
-		state = SendFirstData;
-	}
-	return AsyncSuccess;
-}
-
-int Fetch::receiveError(
-	int _errid,
-	const ObjectUidT&_from,
-	const solid::frame::ipc::ConnectionUid *
-){
-	switch(state){
-		case WaitLocalStream:
+		if(!ios.device().empty()){
+			streamsz = stream_size(ios);
+			litsz = streamsz;
+			state = SendLocal;
+		}else{
 			state = SendError;
-			break;
-		case WaitTempStream:
+		}
+	}else if(state == WaitTempStream){
+		if(!ios.device().empty()){
+			Manager::the().fileStore().uniqueToShared(ios.device());
+			state = WaitFirstRemoteStream;
+			doSendMaster(ios.device().id());
+		}else{
 			state = SendTempError;
-			break;
-		case WaitRemoteStream:
-			if(litsz == -1){
-				//we can send an error
-				state = SendRemoteError;
-			}else{
-				//we're already in a literal - force close connection
-				state = ReturnBad;
-			}
-		default:
-			state = ReturnBad;
+		}
 	}
 	return AsyncSuccess;
 }
-
+/*virtual*/ int Fetch::receiveMessage(solid::DynamicPointer<FetchSlaveMessage> &_rmsgptr){
+	idbg("");
+	cachedmsg = _rmsgptr;
+	if(state == WaitFirstRemoteStream){
+		if(cachedmsg->filesz >= 0){
+			state = SendFirstData;
+			litsz = cachedmsg->filesz;
+			streamsz = cachedmsg->streamsz;
+		}else{
+			state = SendRemoteError;
+		}
+	}else if(state == WaitRemoteStream){
+		if(cachedmsg->filesz >= 0){
+			state = SendFirstData;
+			//litsz = cachedmsg->filesz;
+			//streamsz = 
+		}else{
+			state = ReturnBad;
+		}
+	}else{
+		state = ReturnBad;
+	}
+	return AsyncSuccess;
+}
 //---------------------------------------------------------------
 // Store Command
 //---------------------------------------------------------------
@@ -652,7 +631,7 @@ int Store::reinitReader(Reader &_rr, protocol::text::Parameter &_rp){
 	Manager &rm = Manager::the();
 	switch(_rp.b.i){
 		case Init:{
-			rm.fileStore().requestCreateFile(OpenCbk(rm.id(rc), rc.newRequestId()), strpth.c_str(), FileDevice::WriteOnlyE);
+			rm.fileStore().requestCreateFile(FetchOpenCbk(rm.id(rc), rc.newRequestId()), strpth.c_str(), FileDevice::WriteOnlyE);
 			st = AsyncWait;//waiting
 			_rp.b.i = SendWait;
 			return Reader::Wait;
@@ -688,23 +667,16 @@ void Store::execute(Connection &_rc){
 	}
 }
 
-int Store::receiveFilePointer(
-	FilePointerMessage &_rmsg
-){
+int Store::receiveFilePointer(FilePointerMessage &_rmsg){
 	idbg("received stream");
 	os.device(_rmsg.ptr);
-	st = AsyncSuccess;
-	return AsyncSuccess;
-}
-
-int Store::receiveError(
-	int _errid,
-	const ObjectUidT&_from,
-	const solid::frame::ipc::ConnectionUid *
-){
-	idbg("received error");
-	st = AsyncError;
-	return AsyncSuccess;
+	if(!os.device().empty()){
+		st = AsyncSuccess;
+		return AsyncSuccess;
+	}else{
+		st = AsyncError;
+		return AsyncSuccess;
+	}
 }
 
 int Store::reinitWriter(Writer &_rw, protocol::text::Parameter &_rp){
@@ -831,50 +803,13 @@ void Command::initStatic(Manager &_rm){
 }
 /*virtual*/ Command::~Command(){}
 
-int Command::receiveFilePointer(
-	FilePointerMessage &_rmsg
-){
+int Command::receiveFilePointer(FilePointerMessage &_rmsg){
 	return AsyncError;
 }
-int Command::receiveString(
-	const String &_str,
-	int			_which, 
-	const ObjectUidT&_from,
-	const frame::ipc::ConnectionUid *_conid
-){
+int Command::receiveMessage(solid::DynamicPointer<FetchSlaveMessage> &_rmsgptr){
 	return AsyncError;
 }
-int receiveData(
-	void *_pdata,
-	int _datasz,
-	int			_which, 
-	const ObjectUidT&_from,
-	const solid::frame::ipc::ConnectionUid *_conid
-){
-	return AsyncError;
-}
-int Command::receiveNumber(
-	const int64 &_no,
-	int			_which,
-	const ObjectUidT&_from,
-	const frame::ipc::ConnectionUid *_conid
-){
-	return AsyncError;
-}
-int Command::receiveData(
-	void *_v,
-	int	_vsz,
-	int			_which,
-	const ObjectUidT&_from,
-	const frame::ipc::ConnectionUid *_conid
-){
-	return AsyncError;
-}
-int Command::receiveError(
-	int _errid,
-	const ObjectUidT&_from,
-	const solid::frame::ipc::ConnectionUid *_conid
-){
+int Command::receiveMessage(solid::DynamicPointer<RemoteListMessage> &_rmsgptr){
 	return AsyncError;
 }
 
