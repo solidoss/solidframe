@@ -380,7 +380,11 @@ bool Manager::notify(MessagePointerT &_rmsgptr, const ObjectUidT &_ruid){
 		if(objpermutbts && objidx < objcnt){
 			Locker<Mutex>	lock(rss.mtxstore.at(objidx, objpermutbts));
 			
-			if(rss.objpermutbts.load(/*ATOMIC_NS::memory_order_seq_cst*/) == objpermutbts && rss.objvec[objidx].uid == _ruid.second){
+			if(
+				rss.objpermutbts.load(/*ATOMIC_NS::memory_order_seq_cst*/) == objpermutbts &&
+				rss.objvec[objidx].uid == _ruid.second &&
+				rss.objvec[objidx].pobj
+			){
 				if(rss.objvec[objidx].pobj->notify(_rmsgptr)){
 					this->raise(*rss.objvec[objidx].pobj);
 				}

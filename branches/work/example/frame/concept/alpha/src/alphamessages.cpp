@@ -132,173 +132,6 @@ void FetchMasterMessage::ipcOnReceive(frame::ipc::ConnectionContext const &_rctx
 	print();
 	Steward::the().sendMessage(msgptr);
 }
-/*
-	The state machine running on peer
-*/
-// int FetchMasterMessage::execute(
-// 	DynamicPointer<frame::Message> &_rmsgptr,
-// 	uint32 _evs,
-// 	frame::MessageSteward& _rce,
-// 	const MessageUidT &_msguid,
-// 	TimeSpec &_rts
-// ){
-// 	Manager &rm(Manager::the());
-// 	cassert(!(_evs & frame::EventTimeout));
-// 	switch(state){
-// 		case Received:{
-// 			idbg((void*)this<<" try to open file "<<fname<<" _msguid = "<<_msguid.first<<","<<_msguid.second);
-// 			//try to get a stream for the file:
-// 			frame::RequestUid reqid(_rce.id(), rm.id(_rce).second, _msguid.first, _msguid.second);
-// 			switch(rm.fileManager().stream(ins, fuid, reqid, fname.c_str())){
-// 				case AsyncError://ouch
-// 					state = SendError;
-// 					idbg("open failed");
-// 					return AsyncSuccess;
-// 				case AsyncSuccess:
-// 					idbg("open succeded");
-// 					state = SendFirstStream;
-// 					return AsyncSuccess;
-// 				case AsyncWait:
-// 					idbg("open wait");
-// 					return AsyncWait;//wait the stream - no timeout
-// 			}
-// 		}break;
-// 		case SendFirstStream:{
-// 			idbg((void*)this<<" send first stream");
-// 			FetchSlaveMessage					*pmsg(new FetchSlaveMessage);
-// 			DynamicPointer<frame::ipc::Message>	msgptr(pmsg);
-// 			
-// 			this->filesz = ins->size();
-// 			pmsg->tov = fromv;
-// 			pmsg->filesz = this->filesz;
-// 			pmsg->streamsz = this->streamsz;
-// 			if(pmsg->streamsz > pmsg->filesz){
-// 				pmsg->streamsz = pmsg->filesz;
-// 			}
-// 			pmsg->msguid = _msguid;
-// 			pmsg->requid = requid;
-// 			pmsg->fuid = tmpfuid;
-// 			idbg("filesz = "<<this->filesz<<" inpos = "<<filepos);
-// 			this->filesz -= pmsg->streamsz;
-// 			this->filepos += pmsg->streamsz;
-// 			frame::RequestUid reqid(_rce.id(), rm.id(_rce).second, _msguid.first, _msguid.second);
-// 			rm.fileManager().stream(pmsg->ins, fuid, requid, frame::file::Manager::NoWait);
-// 			pmsg = NULL;
-// 			if(!this->filesz){
-// 				idbg("connector was destroyed or filesz = "<<this->filesz);
-// 				return AsyncError;
-// 			}
-// 			rm.ipc().sendMessage(msgptr, conid);
-// 			
-// 			idbg("wait for streams");
-// 			//TODO: put here timeout! - wait for signals
-// 			//_rts.add(30);
-// 			return AsyncWait;
-// 		}
-// 		case SendNextStream:{
-// 			idbg((void*)this<<" send next stream");
-// 			DynamicPointer<frame::ipc::Message> msgptr(pmsg);
-// 			pmsg->tov = fromv;
-// 			pmsg->filesz = this->filesz;
-// 			//pmsg->sz = FetchChunkSize;
-// 			if(pmsg->streamsz > this->filesz){
-// 				pmsg->streamsz = this->filesz;
-// 			}
-// 			pmsg->msguid = _msguid;
-// 			//pmsg->fuid = tmpfuid;
-// 			idbg("filesz = "<<this->filesz<<" filepos = "<<this->filepos);
-// 			this->filesz -= pmsg->streamsz;
-// 			frame::RequestUid reqid(_rce.id(), rm.id(_rce).second, _msguid.first, _msguid.second);
-// 			rm.fileManager().stream(pmsg->ins, fuid, requid, frame::file::Manager::NoWait);
-// 			pmsg->ins->seek(this->filepos);
-// 			this->filepos += pmsg->streamsz;
-// 			cassert(pmsg->ins);
-// 			pmsg = NULL;
-// 			rm.ipc().sendMessage(msgptr, conid);
-// 			if(!this->filesz){
-// 				idbg("connector was destroyed or filesz = "<<this->filesz);
-// 				return AsyncError;
-// 			}
-// 			idbg("wait for streams");
-// 			//TODO: put here timeout! - wait for signals
-// 			//_rts.add(30);
-// 			return AsyncWait;
-// 		}
-// 		case SendError:{
-// 			idbg((void*)this<<" sending error");
-// 			FetchSlaveMessage 				*pmsg = new FetchSlaveMessage;
-// 			DynamicPointer<frame::ipc::Message>	msgptr(pmsg);
-// 			pmsg->tov = fromv;
-// 			pmsg->filesz = -1;
-// 			rm.ipc().sendMessage(msgptr, conid);
-// 			return AsyncError;
-// 		}
-// 	}
-// 	return AsyncError;
-// }
-
-// bool FetchMasterMessage::receiveMessage(
-// 	DynamicPointer<frame::Message> &_rmsgptr,
-// 	const ObjectUidT& _from,
-// 	const frame::ipc::ConnectionUid *_conid
-// ){
-// 	if(_rmsgptr->dynamicTypeId() == InputStreamMessage::staticTypeId()){
-// 		idbg((void*)this<<" Received stream");
-// 		InputStreamMessage &rsig(*static_cast<InputStreamMessage*>(_rmsgptr.get()));
-// 		ins = rsig.sptr;
-// 		fuid = rsig.fileuid;
-// 		state = SendFirstStream;
-// 	}else /*if(_rmsgptr->dynamicTypeId() == OutputStreamMessage::staticTypeId()){
-// 		OutputStreamMessage &rsig(*static_cast<OutputStreamMessage*>(_rmsgptr.get()));
-// 	}else if(_rmsgptr->dynamicTypeId() == InputOutputStreamMessage::staticTypeId()){
-// 		InputOutputStreamMessage &rsig(*static_cast<InputOutputStreamMessage*>(_rmsgptr.get()));
-// 	}else */if(_rmsgptr->dynamicTypeId() == StreamErrorMessage::staticTypeId()){
-// 		//StreamErrorMessage &rsig(*static_cast<StreamErrorMessage*>(_rmsgptr.get()));
-// 		state = SendError;
-// 	}else if(_rmsgptr->dynamicTypeId() == FetchSlaveMessage::staticTypeId()){
-// 		//FetchSlaveMessage &rsig(*static_cast<FetchSlaveMessage*>(_rmsgptr.get()));
-// 		pmsg = static_cast<FetchSlaveMessage*>(_rmsgptr.release());
-// 		idbg((void*)this<<" Received slavesignal");
-// 		state = SendNextStream;
-// 	}else return false;
-// 	idbg("success");
-// 	return true;//success reschedule command for execution
-// }
-
-// int FetchMasterMessage::receiveMessage(
-// 	DynamicPointer<frame::Message> &_rmsgptr,
-// 	int			_which,
-// 	const ObjectUidT&_from,
-// 	const frame::ipc::ConnectionUid *
-// ){
-// 	psig = static_cast<FetchSlaveMessage*>(_rmsgptr.release());
-// 	idbg("");
-// 	state = SendNextStream;
-// 	return AsyncSuccess;
-// }
-// int FetchMasterMessage::receiveInputStream(
-// 	StreamPointer<InputStream> &_rins,
-// 	const FileUidT	& _fuid,
-// 	int			_which,
-// 	const ObjectUidT&,
-// 	const frame::ipc::ConnectionUid *
-// ){
-// 	idbg("fuid = "<<_fuid.first<<","<<_fuid.second);
-// 	ins = _rins;
-// 	fuid = _fuid;
-// 	state = SendFirstStream;
-// 	return AsyncSuccess;
-// }
-// int FetchMasterMessage::receiveError(
-// 	int _errid, 
-// 	const ObjectUidT&_from,
-// 	const frame::ipc::ConnectionUid *_conid
-// ){
-// 	idbg("");
-// 	state = SendError;
-// 	return AsyncSuccess;
-// }
-
 //-----------------------------------------------------------------------------------
 // FetchSlaveMessage
 //-----------------------------------------------------------------------------------
@@ -320,7 +153,7 @@ FetchSlaveMessage::~FetchSlaveMessage(){
 }
 void FetchSlaveMessage::print()const{
 	idbg((void*)this<<" FetchSlaveMessage:");
-	idbg("filesz = "<<this->filesz<<" requid = "<<requid);
+	idbg("filesz = "<<this->filesz<<" filepos = "<<filepos<<" requid = "<<requid);
 	idbg("streamsz = "<<this->streamsz<<" streampos = "<<this->streampos);
 	idbg("fuid.first = "<<fuid.first<<" fuid.second = "<<fuid.second);
 	idbg("msguid.first = "<<msguid.first<<" msguid.second = "<<msguid.second);
@@ -333,15 +166,18 @@ int FetchSlaveMessage::sent(const frame::ipc::ConnectionUid &_rconid){
 void FetchSlaveMessage::ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, frame::ipc::Message::MessagePointerT &_rmsgptr){
 	DynamicPointer<frame::Message> msgptr(_rmsgptr);
 	conid = frame::ipc::ConnectionContext::the().connectionuid;
-	if(filesz == -10){
+	if(ipcIsOnReceiver()){
 		idbg((void*)this<<" Received FetchSlaveMessage on peer");
 		print();
 		ObjectUidT	ttov;
 		Steward::the().sendMessage(msgptr);
-	}else{
+	}else if(ipcIsBackOnSender()){
 		idbg((void*)this<<" Received FetchSlaveMessage on sender");
 		print();
+		ipcResetState();
 		Manager::the().notify(msgptr, ObjectUidT(tov.first, tov.second));
+	}else{
+		cassert(false);
 	}
 }
 
@@ -355,7 +191,7 @@ void FetchSlaveMessage::initOutputStream(){
 }
 
 void FetchSlaveMessage::clearOutputStream(){
-	ios.device().clear();
+	//ios.device().clear();
 }
 
 }//namespace alpha

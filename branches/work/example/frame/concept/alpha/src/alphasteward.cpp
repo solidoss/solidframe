@@ -183,6 +183,7 @@ struct OpenCbk{
 };
 
 void Steward::dynamicHandle(solid::DynamicPointer<FetchMasterMessage> &_rmsgptr){
+	idbg("");
 	size_t		idx;
 	uint32		uid = 0;
 	if(d.fetchcache.size()){
@@ -198,6 +199,7 @@ void Steward::dynamicHandle(solid::DynamicPointer<FetchMasterMessage> &_rmsgptr)
 }
 
 void Steward::dynamicHandle(solid::DynamicPointer<FilePointerMessage> &_rmsgptr){
+	idbg("");
 	const size_t	msgidx = _rmsgptr->reqidx;
 	const uint32	msguid = _rmsgptr->requid;
 	if(msgidx < d.fetchdq.size() && d.fetchdq[msgidx].second == msguid){
@@ -213,6 +215,7 @@ void Steward::dynamicHandle(solid::DynamicPointer<FilePointerMessage> &_rmsgptr)
 			DynamicPointer<frame::ipc::Message>		msgptr(pmsg);
 			ERROR_NS::error_code					err;
 			
+			pmsg->ipcResetState(rmsgptr->ipcState());
 			rmsgptr->filesz = rmsgptr->fileptr->size();
 			
 			pmsg->tov = rmsgptr->fromv;
@@ -249,6 +252,7 @@ void Steward::dynamicHandle(solid::DynamicPointer<FilePointerMessage> &_rmsgptr)
 }
 
 void Steward::dynamicHandle(solid::DynamicPointer<FetchSlaveMessage> &_rmsgptr){
+	idbg("");
 	const size_t	msgidx = _rmsgptr->msguid.first;
 	const uint32	msguid = _rmsgptr->msguid.first;
 	if(msgidx < d.fetchdq.size() && d.fetchdq[msgidx].second == msguid){
@@ -262,6 +266,9 @@ void Steward::dynamicHandle(solid::DynamicPointer<FetchSlaveMessage> &_rmsgptr){
 			pmsg->ios.device(fptr);
 		}
 		
+		pmsg->filepos = rmsgptr->filepos;
+		rmsgptr->filepos += pmsg->streamsz;
+		
 		d.rm.ipc().sendMessage(msgptr, rmsgptr->conid);
 		
 		if(!rmsgptr->filesz){
@@ -273,6 +280,7 @@ void Steward::dynamicHandle(solid::DynamicPointer<FetchSlaveMessage> &_rmsgptr){
 
 
 void Steward::doExecute(solid::DynamicPointer<RemoteListMessage> &_rmsgptr){
+	idbg("");
 	fs::directory_iterator				it,end;
 	fs::path							pth(_rmsgptr->strpth.c_str()/*, fs::native*/);
 	

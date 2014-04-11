@@ -454,16 +454,16 @@ void Fetch::doSendMaster(const solid::frame::UidT &_ruid){
 
 void Fetch::doSendSlave(const solid::frame::UidT &_ruid){
 	idbg(""<<(void*)this<<' '<<_ruid.first<<' '<<_ruid.second);
-	FetchSlaveMessage					*pmsg(new FetchSlaveMessage);
-	DynamicPointer<frame::ipc::Message>	msgptr(pmsg);
-	
-	pmsg->fromv = Manager::the().id(rc);
-	pmsg->requid = rc.newRequestId();
-	pmsg->msguid = mastermsguid;
-	pmsg->fuid = _ruid;
-	pmsg->streamsz = streamcp;
-	pmsg->streampos = 0;
-	Manager::the().ipc().sendMessage(msgptr, ipcconuid);
+// 	FetchSlaveMessage					*pmsg(new FetchSlaveMessage);
+// 	DynamicPointer<frame::ipc::Message>	msgptr(pmsg);
+// 	
+// 	pmsg->fromv = Manager::the().id(rc);
+// 	pmsg->requid = rc.newRequestId();
+// 	pmsg->msguid = mastermsguid;
+// 	pmsg->fuid = _ruid;
+// 	pmsg->streamsz = streamcp;
+// 	pmsg->streampos = 0;
+// 	Manager::the().ipc().sendMessage(msgptr, ipcconuid);
 }
 
 int Fetch::doSendFirstData(Writer &_rw){
@@ -504,8 +504,11 @@ int Fetch::doSendNextData(Writer &_rw){
 		}
 		cachedmsg->streamsz = streamcp/2;
 		state = WaitRemoteStream;
+		cachedmsg->fromv = Manager::the().id(rc);
+		cachedmsg->requid = rc.newRequestId();
+		solid::frame::ipc::ConnectionUid	conid = cachedmsg->conid;
 		DynamicPointer<frame::ipc::Message>	msgptr(cachedmsg);
-		Manager::the().ipc().sendMessage(msgptr, ipcconuid);
+		Manager::the().ipc().sendMessage(msgptr, conid);
 	}else{
 		state = ReturnCrlf;
 	}
@@ -592,6 +595,7 @@ int Fetch::receiveFilePointer(FilePointerMessage &_rmsg){
 	cachedmsg = _rmsgptr;
 	if(state == WaitFirstRemoteStream){
 		if(cachedmsg->filesz >= 0){
+			cachedmsg->ipcResetState();
 			state = SendFirstData;
 			litsz = cachedmsg->filesz;
 			streamsz = cachedmsg->streamsz;
@@ -600,7 +604,7 @@ int Fetch::receiveFilePointer(FilePointerMessage &_rmsg){
 		}
 	}else if(state == WaitRemoteStream){
 		if(cachedmsg->filesz >= 0){
-			state = SendFirstData;
+			state = SendNextData;
 			//litsz = cachedmsg->filesz;
 			//streamsz = 
 		}else{

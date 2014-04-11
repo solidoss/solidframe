@@ -35,7 +35,7 @@ struct Message: Dynamic<Message, frame::Message>{
 	uint8& ipcState();
 	uint8 const& ipcState()const;
 	
-	void ipcResetState();
+	void ipcResetState(uint8 _stt = 0);
 	
 	bool ipcIsBackOnSender()const;
 	bool ipcIsOnSender()const;
@@ -78,8 +78,8 @@ inline bool Message::ipcIsBackOnSender()const{
 	return stt == 2;
 }
 
-inline void Message::ipcResetState(){
-	stt = 0;
+inline void Message::ipcResetState(uint8 _stt){
+	stt = _stt;
 }
 
 }//namespace ipc
