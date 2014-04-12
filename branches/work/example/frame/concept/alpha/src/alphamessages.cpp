@@ -191,6 +191,7 @@ void FetchSlaveMessage::initOutputStream(){
 }
 
 void FetchSlaveMessage::clearOutputStream(){
+	ios.flush();
 	//ios.device().clear();
 }
 

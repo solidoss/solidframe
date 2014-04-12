@@ -171,7 +171,7 @@ void Manager::start(){
 		tempcfg.storagevec.back().path = "/tmp/solidframe_concept/";
 		tempcfg.storagevec.back().level = frame::file::VeryFastLevelFlag;
 		tempcfg.storagevec.back().capacity = 1024 * 1024 * 100;//100MB
-		tempcfg.storagevec.back().minsize = 4 * 1024;
+		tempcfg.storagevec.back().minsize = 0;
 		tempcfg.storagevec.back().maxsize = 1024 * 1024 * 10;
 	
 		d.filestoreptr = new FileStoreT(*this, utf8cfg, tempcfg);

@@ -90,7 +90,7 @@ template <>
 class FileIStream<0>: public std::istream{
 public:
 	explicit FileIStream(
-		FilePointerT &_rdev, const size_t _bufcp = 1024
+		FilePointerT &_rdev, const size_t _bufcp = 0
 	):	std::istream(),
 		pb(_bufcp ? new char[_bufcp] : NULL),
 		buf(_rdev, pb, _bufcp){
@@ -98,7 +98,7 @@ public:
 	}
 	
 	FileIStream(
-		const size_t _bufcp = 1024
+		const size_t _bufcp = 0
 	):	std::istream(),
 		pb(_bufcp ? new char[_bufcp] : NULL),
 		buf(pb, _bufcp)
@@ -157,14 +157,14 @@ class FileOStream<0>: public std::ostream{
 public:
 	explicit FileOStream(
 		FilePointerT &_rdev,
-		const size_t _bufcp = 1024
+		const size_t _bufcp = 0
 	):	std::ostream(), pb(_bufcp ? new char[_bufcp] : NULL),
 		buf(_rdev, pb, _bufcp)
 	{
 		rdbuf(&buf);
 	}
 	FileOStream(
-		const size_t _bufcp = 1024
+		const size_t _bufcp = 0
 	):	std::ostream(), pb(_bufcp ? new char[_bufcp] : NULL),
 		buf(pb, _bufcp)
 	{
@@ -222,14 +222,14 @@ class FileIOStream<0>: public std::iostream{
 public:
 	explicit FileIOStream(
 		FilePointerT &_rdev,
-		const size_t _bufcp = 1024
+		const size_t _bufcp = 0
 	):	std::iostream(), pb(_bufcp ? new char[_bufcp] : NULL),
 		buf(_rdev, pb, _bufcp)
 	{
 		rdbuf(&buf);
 	}
 	FileIOStream(
-		const size_t _bufcp = 1024
+		const size_t _bufcp = 0
 	):	std::iostream(), pb(_bufcp ? new char[_bufcp] : NULL),
 		buf(pb, _bufcp)
 	{

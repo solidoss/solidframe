@@ -135,7 +135,6 @@ private:
 		ReturnCrlf,
 	};
 	void doSendMaster(const solid::frame::UidT &_ruid);
-	void doSendSlave(const solid::frame::UidT &_ruid);
 	int doInitLocal();
 	int doSendLiteral(Writer &_rw, bool _local);
 	int doGetTempStream(uint32 _sz);

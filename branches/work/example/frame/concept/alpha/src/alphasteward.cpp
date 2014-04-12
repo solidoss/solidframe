@@ -267,7 +267,12 @@ void Steward::dynamicHandle(solid::DynamicPointer<FetchSlaveMessage> &_rmsgptr){
 		}
 		
 		pmsg->filepos = rmsgptr->filepos;
+		if(pmsg->streamsz > rmsgptr->filesz){
+			pmsg->streamsz = rmsgptr->filesz;
+		}
+		
 		rmsgptr->filepos += pmsg->streamsz;
+		rmsgptr->filesz -= pmsg->streamsz;
 		
 		d.rm.ipc().sendMessage(msgptr, rmsgptr->conid);
 		

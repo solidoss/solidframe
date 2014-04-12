@@ -424,7 +424,7 @@ int Fetch::doGetTempStream(uint32 _sz){
 	idbg(""<<(void*)this<<" "<<_sz);
 	Manager &rm = Manager::the();
 	streamcp = _sz;
-	rm.fileStore().requestCreateTemp(FetchOpenCbk(rm.id(rc), rc.newRequestId()), _sz/*, frame::file::VeryFastLevelFlag*/);
+	rm.fileStore().requestCreateTemp(FetchOpenCbk(rm.id(rc), rc.newRequestId()), _sz, frame::file::VeryFastLevelFlag);
 	state = WaitTempStream;
 	return Writer::Wait;
 }
@@ -452,20 +452,6 @@ void Fetch::doSendMaster(const solid::frame::UidT &_ruid){
 	}
 }
 
-void Fetch::doSendSlave(const solid::frame::UidT &_ruid){
-	idbg(""<<(void*)this<<' '<<_ruid.first<<' '<<_ruid.second);
-// 	FetchSlaveMessage					*pmsg(new FetchSlaveMessage);
-// 	DynamicPointer<frame::ipc::Message>	msgptr(pmsg);
-// 	
-// 	pmsg->fromv = Manager::the().id(rc);
-// 	pmsg->requid = rc.newRequestId();
-// 	pmsg->msguid = mastermsguid;
-// 	pmsg->fuid = _ruid;
-// 	pmsg->streamsz = streamcp;
-// 	pmsg->streampos = 0;
-// 	Manager::the().ipc().sendMessage(msgptr, ipcconuid);
-}
-
 int Fetch::doSendFirstData(Writer &_rw){
 	idbg(""<<(void*)this<<" streamsz = "<<streamsz);
 	uint64 remainsz(litsz - streamsz);
@@ -484,14 +470,15 @@ int Fetch::doSendFirstData(Writer &_rw){
 int Fetch::doSendNextData(Writer &_rw){
 	idbg(""<<(void*)this);
 	cassert(!cachedmsg.empty());
-	if(cachedmsg->streamsz == streamcp){
-		//we have the remaning side of the stream
-		ios.seekg(cachedmsg->streamsz/2);
-		streamsz = cachedmsg->streamsz/2;
-		cachedmsg->streampos = streamcp/2;
-	}else{
+	if(cachedmsg->streamsz != streamcp){
 		ios.seekg(cachedmsg->streampos);
 		streamsz = cachedmsg->streamsz;
+	}else{
+		//we have the remaning side of the stream
+		cachedmsg->streamsz /= 2;
+		streamsz = cachedmsg->streamsz;
+		ios.seekg(streamsz);
+		cachedmsg->streampos = streamsz;
 	}
 	
 	uint64 remainsz(litsz - streamsz);
@@ -502,9 +489,8 @@ int Fetch::doSendNextData(Writer &_rw){
 		}else{
 			cachedmsg->streampos = streamcp/2;
 		}
-		cachedmsg->streamsz = streamcp/2;
 		state = WaitRemoteStream;
-		cachedmsg->fromv = Manager::the().id(rc);
+		//cachedmsg->fromv = Manager::the().id(rc);
 		cachedmsg->requid = rc.newRequestId();
 		solid::frame::ipc::ConnectionUid	conid = cachedmsg->conid;
 		DynamicPointer<frame::ipc::Message>	msgptr(cachedmsg);
