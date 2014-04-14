@@ -223,6 +223,7 @@ int main(int argc, char *argv[]){
 			tempcfg.storagevec.back().capacity = 1024 * 1024 * 10;//10MB
 			tempcfg.storagevec.back().minsize = 0;
 			tempcfg.storagevec.back().maxsize = 1024 * 10;
+			tempcfg.storagevec.back().removemode = frame::file::RemoveNeverE;
 		
 			filestoreptr = new frame::file::Store<>(m, utf8cfg, tempcfg);
 		}

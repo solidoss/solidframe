@@ -32,15 +32,22 @@ enum{
 	AllLevelsFlag = 1 + 2 + 4 + 8 + 16,
 };
 
+enum TempRemoveMode{
+	RemoveAfterCreateE,
+	RemoveAfterCloseE,
+	RemoveNeverE
+};
+
 struct TempConfiguration{
 	struct Storage{
-		Storage():level(0), capacity(0), minsize(0), maxsize(0){}
+		Storage():level(0), capacity(0), minsize(0), maxsize(0), removemode(RemoveAfterCreateE){}
 		
 		std::string 	path;
 		uint32			level;
 		uint64			capacity;
 		uint64			minsize;
 		uint64			maxsize;
+		TempRemoveMode	removemode;
 	};
 	
 	typedef std::vector<Storage>		StorageVectorT;

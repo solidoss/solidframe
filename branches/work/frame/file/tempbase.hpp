@@ -30,9 +30,14 @@ struct TempBase{
 	
 	virtual ~TempBase();
 	
-	virtual bool open(const char *_path, const size_t _openflags, ERROR_NS::error_code &_rerr) = 0;
+	virtual bool open(
+		const char *_path,
+		const size_t _openflags,
+		bool _remove,
+		ERROR_NS::error_code &_rerr
+	) = 0;
 	
-	virtual void close() = 0;
+	virtual void close(const char *_path, bool _remove) = 0;
 	
 	virtual int read(char *_pb, uint32 _bl, int64 _off) = 0;
 	virtual int write(const char *_pb, uint32 _bl, int64 _off) = 0;

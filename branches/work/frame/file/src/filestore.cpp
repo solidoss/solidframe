@@ -158,12 +158,14 @@ struct TempConfigurationImpl{
 	struct Storage{
 		Storage(
 		):	level(0), capacity(0), minsize(0), maxsize(0), waitcount(0),
-		waitsizefirst(0), waitidxfirst(-1), usedsize(0), currentid(0), enqued(false){}
+		waitsizefirst(0), waitidxfirst(-1), usedsize(0), currentid(0),
+		enqued(false), removemode(RemoveAfterCreateE){}
 		Storage(
 			TempConfiguration::Storage const &_cfg
 		):	path(_cfg.path), level(_cfg.level), capacity(_cfg.capacity),
 			minsize(_cfg.minsize), maxsize(_cfg.maxsize), waitcount(0),
-			waitsizefirst(0), waitidxfirst(-1), usedsize(0), currentid(0), enqued(false)
+			waitsizefirst(0), waitidxfirst(-1), usedsize(0), currentid(0), enqued(false),
+			removemode(_cfg.removemode)
 		{
 			if(maxsize > capacity || maxsize == 0){
 				maxsize = capacity;
@@ -190,6 +192,7 @@ struct TempConfigurationImpl{
 		size_t			currentid;
 		SizeStackT		idcache;
 		bool			enqued;
+		TempRemoveMode	removemode;
 	};
 	
 	TempConfigurationImpl(){}
@@ -511,7 +514,7 @@ void Utf8Controller::doPrepareOpenTemp(File &_rf, uint64 _sz, const size_t _stor
 void Utf8Controller::openTemp(CreateTempCommandBase &_rcmd, FilePointerT &_rptr, ERROR_NS::error_code &_rerr){
 	if(_rptr->isTemp()){
 		TempConfigurationImpl::Storage	&rstrg(d.tempcfg.storagevec[_rptr->temp()->tempstorageid]);
-		_rptr->temp()->open(rstrg.path.c_str(), _rcmd.openflags, _rerr);
+		_rptr->temp()->open(rstrg.path.c_str(), _rcmd.openflags, rstrg.removemode == RemoveAfterCreateE, _rerr);
 	}else{
 		_rerr.assign(1, _rerr.category());
 	}
@@ -522,6 +525,7 @@ void Utf8Controller::doCloseTemp(TempBase &_rtemp){
 	TempConfigurationImpl::Storage	&rstrg(d.tempcfg.storagevec[_rtemp.tempstorageid]);
 	rstrg.usedsize -= _rtemp.tempsize;
 	rstrg.idcache.push(_rtemp.tempid);
+	_rtemp.close(rstrg.path.c_str(), rstrg.removemode == RemoveAfterCloseE);
 }
 
 void Utf8Controller::doDeliverTemp(shared::StoreBase::Accessor &_rsbacc, const size_t _storeid){
@@ -628,7 +632,7 @@ bool prepare_temp_file_path(std::string &_rpath, const char *_prefix, size_t _id
 
 }//namespace
 
-/*virtual*/ bool TempFile::open(const char *_path, const size_t _openflags, ERROR_NS::error_code &_rerr){
+/*virtual*/ bool TempFile::open(const char *_path, const size_t _openflags, bool _remove, ERROR_NS::error_code &_rerr){
 	
 	std::string path;
 	
@@ -637,12 +641,21 @@ bool prepare_temp_file_path(std::string &_rpath, const char *_prefix, size_t _id
 	bool rv = fd.open(path.c_str(), FileDevice::CreateE | FileDevice::TruncateE | FileDevice::ReadWriteE);
 	if(!rv){
 		_rerr = last_system_error();
+	}else{
+		if(_remove){
+			Directory::eraseFile(path.c_str());
+		}
 	}
 	return rv;
 }
 
-/*virtual*/ void TempFile::close(){
+/*virtual*/ void TempFile::close(const char *_path, bool _remove){
 	fd.close();
+	if(_remove){
+		std::string path;
+		prepare_temp_file_path(path, _path, tempid);
+		Directory::eraseFile(path.c_str());
+	}
 }
 /*virtual*/ int TempFile::read(char *_pb, uint32 _bl, int64 _off){
 	const int64 endoff = _off + _bl;
@@ -693,12 +706,12 @@ TempMemory::TempMemory(
 /*virtual*/ TempMemory::~TempMemory(){
 }
 
-/*virtual*/ bool TempMemory::open(const char *_path, const size_t _openflags, ERROR_NS::error_code &_rerr){
+/*virtual*/ bool TempMemory::open(const char *_path, const size_t _openflags, bool /*_remove*/, ERROR_NS::error_code &_rerr){
 	Locker<Mutex> lock(shared_mutex(this));
 	mf.truncate(0);
 	return true;
 }
-/*virtual*/ void TempMemory::close(){
+/*virtual*/ void TempMemory::close(const char */*_path*/, bool /*_remove*/){
 }
 /*virtual*/ int TempMemory::read(char *_pb, uint32 _bl, int64 _off){
 	Locker<Mutex> lock(shared_mutex(this));
