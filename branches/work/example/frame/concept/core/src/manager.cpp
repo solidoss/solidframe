@@ -173,6 +173,7 @@ void Manager::start(){
 		tempcfg.storagevec.back().capacity = 1024 * 1024 * 100;//100MB
 		tempcfg.storagevec.back().minsize = 0;
 		tempcfg.storagevec.back().maxsize = 1024 * 1024 * 10;
+		tempcfg.storagevec.back().removemode = frame::file::RemoveNeverE;
 	
 		d.filestoreptr = new FileStoreT(*this, utf8cfg, tempcfg);
 	}

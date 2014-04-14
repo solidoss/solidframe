@@ -181,13 +181,18 @@ void FetchSlaveMessage::ipcOnReceive(frame::ipc::ConnectionContext const &_rctx,
 	}
 }
 
-void FetchSlaveMessage::initOutputStream(){
-	frame::RequestUid					requid;
-	//Manager::the().fileManager().stream(outs, fuid, requid, frame::file::Manager::Forced);
-	idbg((void*)this<<" Create deserialization streamptr");
-	ERROR_NS::error_code		err;
-	frame::file::FilePointerT	fptr = Manager::the().fileStore().shared(fuid, err);
-	ios.device(fptr);
+bool FetchSlaveMessage::initOutputStream(){
+	if(!ipcIsOnReceiver()){
+		frame::RequestUid					requid;
+		//Manager::the().fileManager().stream(outs, fuid, requid, frame::file::Manager::Forced);
+		idbg((void*)this<<" Create deserialization streamptr");
+		ERROR_NS::error_code		err;
+		frame::file::FilePointerT	fptr = Manager::the().fileStore().shared(fuid, err);
+		ios.device(fptr);
+		return true;
+	}else{
+		return false;
+	}
 }
 
 void FetchSlaveMessage::clearOutputStream(){

@@ -180,15 +180,18 @@ struct FetchSlaveMessage: Dynamic<FetchSlaveMessage, solid::frame::ipc::Message>
 		}
 		_rs.pop();
 		if(S::IsSerializer){
-			_rs.pushStream(static_cast<std::istream*>(&ios), filepos, streamsz, "stream");
+			if(!ios.device().empty()){
+				_rs.pushStream(static_cast<std::istream*>(&ios), filepos, streamsz, "stream");
+			}
 		}else{
-			initOutputStream();
-			_rs.template pushReinit<FetchSlaveMessage, 0>(this, 1, "reinit");
-			_rs.pushStream(static_cast<std::ostream*>(&ios), streampos, streamsz, "stream");
+			if(initOutputStream()){
+				_rs.template pushReinit<FetchSlaveMessage, 0>(this, 1, "reinit");
+				_rs.pushStream(static_cast<std::ostream*>(&ios), streampos, streamsz, "stream");
+			}
 		}
 		return serialization::binary::Continue;
 	}
-	void initOutputStream();
+	bool initOutputStream();
 	void clearOutputStream();
 	void print()const;
 //data:	

@@ -492,6 +492,7 @@ int Fetch::doSendNextData(Writer &_rw){
 		state = WaitRemoteStream;
 		//cachedmsg->fromv = Manager::the().id(rc);
 		cachedmsg->requid = rc.newRequestId();
+		cachedmsg->ios.device().clear();
 		solid::frame::ipc::ConnectionUid	conid = cachedmsg->conid;
 		DynamicPointer<frame::ipc::Message>	msgptr(cachedmsg);
 		Manager::the().ipc().sendMessage(msgptr, conid);
