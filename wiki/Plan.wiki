@@ -2,7 +2,7 @@
 
 <wiki:toc max_depth="1" />
 
-For 1.0 Beta version
+1.0 preview1
 
  # (01) DONE: IPC gateway - relay IPC data through TCP for site-to-site communication.
  # (02) DONE: Move everything under solid and solid::frame namespaces
@@ -11,13 +11,16 @@ For 1.0 Beta version
  # (15) DONE: A distributed chat example (using the binary protocol) along with a stress client.
  # (20) DONE: Move the entire code under more liberal boost 1.0 license
  # (22) DONE: better response types - no more BAD/OK/NOK
- # (25) STARTED: frame::SharedStore - asynchronous read/write lock.
- # (27) STARTED: Refactor frame::file::Manager to use frame::SharedStore
+ # (25) DONE: frame::shared::Store - asynchronous read/write lock.
+ # (27) DONE: Refactor frame::file::Store to use frame::shared::Store
  # (30) DONE: Proper file rotation for debug
  # (35) DONE: Per service debug log level mask support and register all services on init
+
+1.0 alpha
+ # () PENDING: 
  # (40) PENDING: make install
 
-For 1.0 version
+1.0
  # (01) PENDING: API documentation.
  # (05) PENDING: Testing and fixing.
  # (10) PENDING: Update Wiki.
