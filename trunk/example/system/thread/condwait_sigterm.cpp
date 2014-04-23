@@ -5,6 +5,7 @@
 #include <iostream>
 
 using namespace std;
+using namespace solid;
 
 struct Waiter{
 	Waiter():v(0){}

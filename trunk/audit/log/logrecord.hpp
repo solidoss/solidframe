@@ -1,8 +1,18 @@
+// audit/log/logrecord.hpp
+//
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+//
+// This file is part of SolidFrame framework.
+//
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
+//
 #ifndef AUDIT_LOGRECORD_HPP
 #define AUDIT_LOGRECORD_HPP
 
 #include "audit/log/logdata.hpp"
 
+namespace solid{
 namespace audit{
 
 //! A log record class
@@ -32,5 +42,6 @@ private:
 };
 
 }//namespace audit
+}//namespace solid
 
 #endif

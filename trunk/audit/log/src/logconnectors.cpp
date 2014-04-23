@@ -1,3 +1,12 @@
+// audit/log/src/logconnectors.hpp
+//
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+//
+// This file is part of SolidFrame framework.
+//
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
+//
 #include "audit/log/logconnectors.hpp"
 #include "audit/log/logclientdata.hpp"
 #include "audit/log/logrecorders.hpp"
@@ -11,6 +20,7 @@
 
 using namespace std;
 
+namespace solid{
 namespace audit{
 
 LogConnector::LogConnector():usecnt(0), mustdie(false){
@@ -122,3 +132,4 @@ LogRecorder* LogBasicConnector::createRecorder(const LogClientData &_rcl){
 }
 
 }//namespace audit
+}//namespace solid

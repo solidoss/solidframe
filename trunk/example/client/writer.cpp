@@ -1,4 +1,3 @@
-#include "writer.hpp"
 #include <sys/socket.h>
 #include <unistd.h>
 #include <iostream>
@@ -6,7 +5,11 @@
 #include "system/debug.hpp"
 #include "system/cassert.hpp"
 #include "utility/istream.hpp"
+
 using namespace std;
+using namespace solid;
+
+#include "writer.hpp"
 
 bool isquotedspecial(uint8 _c){
 	if(_c == '\\') return false;
@@ -32,7 +35,7 @@ int Writer::flush(){
 		count += wrerr;
 		bpos=bbeg;
 	}
-	return OK;
+	return 0;
 }
 
 void Writer::put(const char *_s,uint32 _sz){
@@ -67,8 +70,8 @@ void Writer::put(uint32 _v){
 	if(!_v){
 		put('0');
 	}else{
-		char tmp[12];
-		ushort pos=11;
+		char 			tmp[12];
+		solid::ushort	pos=11;
 		while(_v){
 			*(tmp + pos)='0' + _v % 10;
 			_v /= 10;

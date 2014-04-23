@@ -4,17 +4,17 @@ printUsage()
 {
 	echo "Usage:"
 	echo "./prepare_extern.sh [-a|--all] [-w|--with LIB] [--force-down] [-d|--debug] [-z|--archive]"
-	echo "Where LIB can be: boost_min|boost_full|openssl"
+	echo "Where LIB can be: boost|openssl"
 	echo "Examples:"
 	echo "./prepare_extern.sh -a"
-	echo "./prepare_extern.sh -w boost_min"
-	echo "./prepare_extern.sh -w boost_full --force-down -d"
-	echo "./prepare_extern.sh -w boost_min -w openssl"
+	echo "./prepare_extern.sh -w boost"
+	echo "./prepare_extern.sh -w boost --force-down -d"
+	echo "./prepare_extern.sh -w boost -w openssl"
 	echo
 }
 
-BOOST_ADDR="http://garr.dl.sourceforge.net/project/boost/boost/1.51.0/boost_1_51_0.tar.bz2"
-OPENSSL_ADDR="http://www.openssl.org/source/openssl-1.0.1c.tar.gz"
+BOOST_ADDR="http://garr.dl.sourceforge.net/project/boost/boost/1.55.0/boost_1_55_0.tar.bz2"
+OPENSSL_ADDR="http://www.openssl.org/source/openssl-1.0.1g.tar.gz"
 
 downloadArchive()
 {
@@ -85,9 +85,9 @@ buildBoost()
 	fi
 	
 	if [ $BUILD_BOOST_FULL ] ; then
-		$JAMTOOL --layout=system  --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" link=static threading=multi $VARIANT_BUILD install
+		$JAMTOOL toolset=clang --layout=system  --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" link=static threading=multi $VARIANT_BUILD install
 	else
-		$JAMTOOL --with-filesystem --with-system --with-program_options --with-test --with-thread --layout=system  --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" link=static threading=multi $VARIANT_BUILD  install
+		$JAMTOOL toolset=clang --with-filesystem --with-system --with-program_options --with-test --with-thread --layout=system  --prefix="$EXT_DIR" --exec-prefix="$EXT_DIR" link=static threading=multi $VARIANT_BUILD  install
 	fi
 	echo
 	echo "Done BOOST!"
@@ -137,9 +137,9 @@ buildOpenssl()
 
 	cd $DIR_NAME
 	if [ $DEBUG ] ; then
-		./config --prefix="$EXT_DIR" --openssldir="ssl_"
+		CC=cc ./config --prefix="$EXT_DIR" --openssldir="ssl_"
 	else
-		./config --prefix="$EXT_DIR" --openssldir="ssl_"
+		CC=cc ./config --prefix="$EXT_DIR" --openssldir="ssl_"
 	fi
 	make && make install
 	cd ..
@@ -170,16 +170,13 @@ while [ "$#" -gt 0 ]; do
 	HELP=
 	case "$1" in
 	-a|--all)
-		BUILD_BOOST_MIN="yes"
+		BUILD_BOOST_FULL="yes"
 		BUILD_OPENSSL="yes"
 		;;
 	-w|--with)
 		shift
 		#BUILD_LIBS=$BUILD_LIBS:"$1"
-		if [ "$1" = "boost_min" ] ; then
-			BUILD_BOOST_MIN="yes"
-		fi
-		if [ "$1" = "boost_full" ] ; then
+		if [ "$1" = "boost" ] ; then
 			BUILD_BOOST_FULL="yes"
 		fi
 		if [ "$1" = "openssl" ] ; then

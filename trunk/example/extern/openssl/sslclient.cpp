@@ -15,6 +15,7 @@
 #include <unistd.h>
 
 using namespace std;
+using namespace solid;
 
 #define CHK_SSL(err) if ((err)==-1) { ERR_print_errors_fp(stderr); exit(2); }
 
@@ -30,12 +31,12 @@ int main(int argc, char *argv[]){
 #ifdef UDEBUG
 	{
 	string s;
-	Dbg::instance().levelMask("iew");
-	Dbg::instance().moduleMask();
-	Dbg::instance().initStdErr(false, &s);
+	Debug::the().levelMask("iew");
+	Debug::the().moduleMask();
+	Debug::the().initStdErr(false, &s);
 	cout<<"Debug output: "<<s<<endl;
 	s.clear();
-	Dbg::instance().moduleBits(s);
+	Debug::the().moduleNames(s);
 	cout<<"Debug bits: "<<s<<endl;
 	}
 #endif
@@ -108,7 +109,7 @@ int main(int argc, char *argv[]){
 		return 0;
 	}
 	cout<<"before connect"<<endl;
-	if(sd.connect(rd.begin()) == BAD){
+	if(!sd.connect(rd.begin())){
 		cout<<"could not connect = "<<strerror(errno)<<endl;
 		return 0;
 	}

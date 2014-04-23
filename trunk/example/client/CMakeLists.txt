@@ -11,8 +11,8 @@ set_source_files_properties(
 
 
 target_link_libraries (example_alphaclient
-	utility
-	system
+	solid_utility
+	solid_system
 	${OPENSSL_LIBS}
 	${BOOST_PROGRAM_OPTIONS_LIB}
 	${SYS_BASIC_LIBS}
@@ -20,24 +20,24 @@ target_link_libraries (example_alphaclient
 )
 
 target_link_libraries (example_alphafetch_p
-	utility
-	system
+	solid_utility
+	solid_system
 	${OPENSSL_LIBS}
 	${SYS_BASIC_LIBS}
 	${SYS_DYNAMIC_LOAD_LIB}
 )
 
 target_link_libraries (example_alphastore_p
-	utility
-	system
+	solid_utility
+	solid_system
 	${OPENSSL_LIBS}
 	${SYS_BASIC_LIBS}
 	${SYS_DYNAMIC_LOAD_LIB}
 )
 
 target_link_libraries (example_imapappender
-	utility
-	system
+	solid_utility
+	solid_system
 	${OPENSSL_LIBS}
 	${BOOST_FILESYSTEM_LIB}
 	${BOOST_PROGRAM_OPTIONS_LIB}

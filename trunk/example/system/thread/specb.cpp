@@ -4,6 +4,8 @@
 #include "system/debug.hpp"
 #include <iostream>
 
+using namespace solid;
+
 typedef Cacheable<std::string, 2> CacheableStringT;
 
 void testb(){

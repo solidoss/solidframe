@@ -26,26 +26,26 @@
     </tr>
   </thead>
 </table>
-SolidFrame is a cross-platform C++ framework intending to offer everything one need to build powerful distributed highly-scalable client-server applications.<br><br>
+The C++ cross-platform framework for scalable, asynchronous, distributed client-server applications<br><br>
 
 Here is a list with what the framework is offering:<br><br>
 
 Version 1.0:<br><br>
 
 <ol>
-	<LI>A system library which wraps up threads, synchronization objects, thread specific, file access, socket address, debug logging engine etc. </LI>
-	<li>Asynchronous signaling engine.</li>
-	<li>Asynchronous TCP and UDP communication engine, single-channel and multi-channel(for easily implementing proxies and other communication nodes, e.g. chat rooms).</li>
-	<li>Secure Socket support for the asynchronous TCP communication, using OpenSSL library (http://www.openssl.org/).</li>
-	<li>Asynchronous multiplexed IPC (Inter Process Communication) / RPC (Remote Procedure Call) engine with keep-alive support for peer disconnection detection. The protocol allows for sending commands (of any size - one can even send file streams) to a peer process over multiplexed UDP.</li>
-	<li>A nice serialization engine (for now only binary, non portable - used by IPC)</li>
-	<li>A nice asynchronous ready, text protocol engine (parser and response builder) for protocols like IMAP, POP, SMTP etc.</li>
-	<li>A file stream manager for asynchronous usage (e.g. if you want a read-only stream for a file which is locked for writing, the manager will signal you the stream when unlocked)</li>
-	<li>A nice audit/log engine.</li>
+	<li>A system library which wraps up threads, synchronization, thread specific, file access, socket address, debug logging engine etc.</li>
+	<li>Asynchronous notification engine.</li>
+	<li>Asynchronous communication engine.</li>
+	<li>Secure Socket support for the asynchronous TCP communication, using OpenSSL library(<a href="http://www.openssl.org/" rel="nofollow">http://www.openssl.org/</a>).</li>
+	<li>Asynchronous multiplexed IPC (Inter Process Communication) / RPC (Remote Procedure Call) engine, over UDP.</li>
+	<li>A buffer oriented, asynchronous ready, binary serialization/marshaling engine - for binary protocols like the one used by IPC.</li>
+	<li>A buffer oriented, asynchronous ready, text protocol engine (parser and response builder) for protocols like IMAP, POP, SMTP etc.</li>
+	<li>An implementation of fast multi-Paxos algorithm.</li>
+	<li>A file stream manager for asynchronous usage (e.g. if one wants a read-only stream for a file which is locked for writing, the manager will asynchronously send the stream when unlocked).</li>
+	<li>An audit/log engine completed with a debug logging engine.</li>
 	<li>Doxygen documentation.</li>
-	<li>Lots of example applications, including a central proof of concept multi service server.</li>
+	<li>Lots of example applications, including a central proof of concept multi-service server.</li>
 </ol>
-
 <table width="100%" border="0" align="left">
   <thead align="left" valign="left" bgcolor="black">
     <tr>
@@ -111,21 +111,11 @@ build and test the examples.</p>
   </thead>
 </table>
 
-Copyright 2007, 2008, 2010 Valentin Palade <br>
-	&nbsp;&nbsp;&nbsp;vipalade@gmail.com<br>
+Copyright 2007-2013 Valentin Palade <br>
+	&nbsp;&nbsp;&nbsp;vipalade @ gmail . com<br>
 <br>
-SolidFrame is free software: you can redistribute it and/or modify<br>
-it under the terms of the GNU General Public License as published by<br>
-the Free Software Foundation, either version 3 of the License, or<br>
-(at your option) any later version.<br>
-
-SolidFrame is distributed in the hope that it will be useful,<br>
-but WITHOUT ANY WARRANTY; without even the implied warranty of<br>
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the<br>
-GNU General Public License for more details.<br>
-
-You should have received a copy of the GNU General Public License<br>
-along with SolidFrame.  If not, see <A href="http://www.gnu.org/licenses/" name=license>http://www.gnu.org/licenses/</A>.<br>
+Distributed under the Boost Software License, Version 1.0.
+See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 
 <br><br>
 <table width="100%" border="0" align="left">

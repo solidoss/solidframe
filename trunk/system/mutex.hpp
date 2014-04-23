@@ -1,24 +1,12 @@
-/* Declarations file mutex.hpp
-	
-	Copyright 2007, 2008 Valentin Palade 
-	vipalade@gmail.com
-
-	This file is part of SolidFrame framework.
-
-	SolidFrame is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	SolidFrame is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-
-	You should have received a copy of the GNU General Public License
-	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
+// system/mutex.hpp
+//
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+//
+// This file is part of SolidFrame framework.
+//
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
+//
 #ifndef SYSTEM_MUTEX_HPP
 #define SYSTEM_MUTEX_HPP
 
@@ -35,6 +23,8 @@
 #else
 
 #include <pthread.h>
+
+namespace solid{
 
 class Condition;
 struct TimeSpec;
@@ -83,6 +73,22 @@ struct RecursiveTimedMutex: public Mutex{
 	}
 };
 
+struct SharedMutex{
+	SharedMutex();
+	~SharedMutex();
+	//! Lock for current thread
+	void lock();
+	//! Unlock for current thread
+	void unlock();
+	//! Try lock for current thread
+	bool tryLock();
+	void sharedLock();
+	void sharedUnlock();
+	bool sharedTryLock();
+private:
+	pthread_rwlock_t	mut;
+};
+
 template <class M>
 struct Locker{
 	Locker(M &_m):m(_m){
@@ -94,9 +100,23 @@ struct Locker{
 	M &m;
 };
 
+template <class M>
+struct SharedLocker{
+	SharedLocker(M &_m):m(_m){
+		m.sharedLock();
+	}
+	~SharedLocker(){
+		m.sharedUnlock();
+	}
+	M &m;
+};
+
+
 #ifndef NINLINES
 #include "system/mutex.ipp"
 #endif
+
+}//namespace solid
 
 #endif
 

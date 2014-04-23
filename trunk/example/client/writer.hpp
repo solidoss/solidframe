@@ -11,8 +11,9 @@
 #define APPSTR(str) str, sizeof(str) - 1
 ///\cond 0
 typedef std::string String;
+namespace solid{
 class InputStream;
-
+}
 class Writer{
 public://nonstatic methods
     enum{BUFFLEN = 1024};
@@ -60,22 +61,22 @@ public://nonstatic methods
     }
     Writer& operator << ( Writer& (*f)(Writer&)){ return f(*this);}
     struct atomstring{
-        const char* str;
-        ushort      len;
+        const char		*str;
+        solid::ushort    len;
     };
     Writer& operator<<(atomstring _qs){
         put(_qs.str,_qs.len); return *this;
     }
     struct qstring{
-        const char* str;
-        ushort      len;
+        const char		*str;
+        solid::ushort    len;
     };
     Writer& operator<<(qstring _qs){
         put('\"');put(_qs.str,_qs.len);put('\"'); return *this;
     }
     struct lstring{
-        const char* str;
-        ushort      len;
+        const char		*str;
+        solid::ushort    len;
     };
     Writer& operator<<(lstring _qs){
         put('{');
@@ -85,8 +86,8 @@ public://nonstatic methods
         return *this;
     }
     struct astring{
-        const char* str;
-        ushort      len;
+       const char		*str;
+        solid::ushort    len;
     };
     Writer& operator<<(astring _qs){
         const char *st=_qs.str;
@@ -111,8 +112,8 @@ public://nonstatic methods
         return *this;
     }
     struct littp{
-        uint32       len;
-        InputStream      *pstream;
+        uint32			len;
+        InputStream		*pstream;
     };
     Writer& operator<<(littp _t){
         put('{');
@@ -143,7 +144,7 @@ inline Writer & crlf(Writer & _rout){
     _rout.put('\r','\n'); return _rout;
 }
 ///atom
-inline Writer::atomstring atom(const char* _str, ushort _len){
+inline Writer::atomstring atom(const char* _str, solid::ushort _len){
     Writer::atomstring qs; qs.str= _str; qs.len = _len;
     return qs;
 }
@@ -156,7 +157,7 @@ inline Writer::qstring qstr(const char* _str){
     Writer::qstring qs; qs.str= _str; qs.len = strlen(_str);
     return qs;
 }
-inline Writer::qstring qstr(const char* _str, ushort _len){
+inline Writer::qstring qstr(const char* _str, solid::ushort _len){
     Writer::qstring qs; qs.str= _str; qs.len = _len;
     return qs;
 }
@@ -169,7 +170,7 @@ inline Writer::lstring lstr(const char* _str){
     Writer::lstring qs; qs.str= _str; qs.len = strlen(_str);
     return qs;
 }
-inline Writer::lstring lstr(const char* _str, ushort _len){
+inline Writer::lstring lstr(const char* _str, solid::ushort _len){
     Writer::lstring qs; qs.str= _str; qs.len = _len;
     return qs;
 }
@@ -183,7 +184,7 @@ inline Writer::astring astr(const char* _str){
     Writer::astring qs; qs.str= _str; qs.len = strlen(_str);
     return qs;
 }
-inline Writer::astring astr(const char* _str, ushort _len){
+inline Writer::astring astr(const char* _str, solid::ushort _len){
     Writer::astring qs; qs.str= _str; qs.len = _len;
     return qs;
 }

@@ -1,3 +1,12 @@
+// audit/log/logmanager.hpp
+//
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+//
+// This file is part of SolidFrame framework.
+//
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
+//
 #include "system/thread.hpp"
 #include "system/mutex.hpp"
 #include "system/socketdevice.hpp"
@@ -18,6 +27,7 @@
 
 using namespace std;
 
+namespace solid{
 namespace audit{
 
 struct SocketInputStream: InputStream{
@@ -170,13 +180,13 @@ void LogManager::eraseListener(const LogManager::UidT &_ruid){
 	}
 }
 
-int LogManager::start(){
-	if(d.state == Data::Running) return OK;
+bool LogManager::start(){
+	if(d.state == Data::Running) return true;
 	if(d.state != Data::Stopped){
 		stop(true);
 	}
 	d.state = Data::Running;
-	return OK;
+	return true;
 }
 void LogManager::stop(bool _wait){
 	Locker<Mutex> lock(d.m);
@@ -233,7 +243,7 @@ void LogManager::runListener(ListenerWorker &_w){
 			sd.create(rd.begin());
 			sd.prepareAccept(rd.begin(), 10);
 		}else{
-			edbgx(Dbg::log, "create address "<<_w.addr<<'.'<<_w.port);
+			edbgx(Debug::log, "create address "<<_w.addr<<'.'<<_w.port);
 		}
 	}
 	if(sd.ok()){
@@ -244,7 +254,7 @@ void LogManager::runListener(ListenerWorker &_w){
 		d.m.unlock();
 		SocketDevice &rsd(d.lsnv[_w.idx].sd);
 		SocketDevice csd;
-		while(rsd.accept(csd) == OK){
+		while(rsd.accept(csd)){
 			SocketInputStream *pis = new SocketInputStream(csd);
 			if(this->insertChannel(pis).first == 0xffffffff){
 				delete pis;
@@ -345,5 +355,6 @@ char* LogRecord::data(uint32 _sz){
 	d = tmp;
 	return d;
 }
-}//namespace audit
 
+}//namespace audit
+}//namespace solid

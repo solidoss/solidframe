@@ -1,24 +1,12 @@
-/* Implementation file specific.cpp
-	
-	Copyright 2007, 2008 Valentin Palade 
-	vipalade@gmail.com
-
-	This file is part of SolidFrame framework.
-
-	SolidFrame is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	SolidFrame is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-
-	You should have received a copy of the GNU General Public License
-	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
+// system/src/specific.cpp
+//
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+//
+// This file is part of SolidFrame framework.
+//
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
+//
 #include <stack>
 #include <vector>
 #include "system/common.hpp"
@@ -33,6 +21,7 @@
 #define OBJ_CACHE_CAP 4096*2
 #endif
 
+namespace solid{
 
 struct BufferNode{
 	BufferNode *pnext;
@@ -125,9 +114,10 @@ void* SpecificObject::operator new (std::size_t _sz){
 	}
 }
 //----------------------------------------------------------------------------------------------------
-// 32 * 4096 per every id
+// 4096 * 4096 per every id
+//TODO: make it configurable
 unsigned SpecificCacheControl::stackCapacity(unsigned _bufid)const{
-	return 32 * 4096 / (1 << _bufid);
+	return 4096 * 4096 / (1 << _bufid);
 }
 bool BasicCacheControl::release(){
 	return false;//do not delete this object
@@ -159,9 +149,9 @@ SpecificData::SpecificData(SpecificCacheControl *_pcc):pcc(_pcc){
 }
 SpecificData::~SpecificData(){
 	if(pcc->release()) delete pcc;
-	idbgx(Dbg::specific, "destroy all cached buffers");
+	idbgx(Debug::specific, "destroy all cached buffers");
 	for(int i(0); i < Capacity; ++i){
-		vdbgx(Dbg::specific, i<<" cp = "<<cps[i].cp<<" sz = "<<cps[i].sz<<" specific_id = "<<Specific::sizeToIndex((1<<i)));
+		vdbgx(Debug::specific, i<<" cp = "<<cps[i].cp<<" sz = "<<cps[i].sz<<" specific_id = "<<Specific::sizeToIndex((1<<i)));
 		
 		BufferNode	*pbn(cps[i].pnode);
 		BufferNode	*pnbn;
@@ -178,10 +168,10 @@ SpecificData::~SpecificData(){
 		}
 	}
 	
-	idbgx(Dbg::specific, "destroy all cached objects");
+	idbgx(Debug::specific, "destroy all cached objects");
 	Locker<Mutex> lock(Thread::gmutex());
 	for(ObjCachePointVecT::iterator it(ops.begin()); it != ops.end(); ++it){
-		vdbgx(Dbg::specific, "it->cp = "<<it->cp);
+		vdbgx(Debug::specific, "it->cp = "<<it->cp);
 		BufferNode	*pbn(it->pnode);
 		BufferNode	*pnbn;
 		uint32 		cnt(0);
@@ -294,7 +284,7 @@ void destroy(void *_pv){
 		++rcp.cp;
 		tb = new char[indexToCapacity(_id)];
 	}
-	idbgx(Dbg::specific,"popBuffer "<<_id<<" cp "<<rcp.cp<<' '<<(void*)tb);
+	idbgx(Debug::specific,"popBuffer "<<_id<<" cp "<<rcp.cp<<' '<<(void*)tb);
 	return tb;
 }
 /*static*/ void Specific::pushBuffer(char *&_pb, unsigned _id){
@@ -302,7 +292,7 @@ void destroy(void *_pv){
 	cassert(_id < SpecificData::Capacity);
 	SpecificData				&rsd(SpecificData::current());
 	SpecificData::CachePoint	&rcp(rsd.cps[_id]);
-	idbgx(Dbg::specific,"pushBuffer "<<_id<<" cp "<<rcp.cp<<' '<<(void*)_pb);
+	idbgx(Debug::specific,"pushBuffer "<<_id<<" cp "<<rcp.cp<<' '<<(void*)_pb);
 	if(rcp.sz < rsd.pcc->stackCapacity(_id)){
 		BufferNode *pbn(reinterpret_cast<BufferNode*>(_pb));
 		++rcp.sz;
@@ -369,3 +359,4 @@ void destroy(void *_pv){
 	delete []checkObjectBuffer(_p);
 }
 
+}//namespace solid

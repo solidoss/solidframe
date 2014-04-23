@@ -18,9 +18,10 @@
 #include "system/thread.hpp"
 //#include "common/utils.h"
 #include "utility/istream.hpp"
-#include "writer.hpp"
 
 using namespace std;
+using namespace solid;
+#include "writer.hpp"
 ///\cond 0
 class FileStream: public InputStream{
 public:
@@ -70,7 +71,7 @@ int main(int argc, char *argv[]){
 		return 0;
 	}
 	FileDevice fd;
-	fd.open(argv[3], FileDevice::RO);
+	fd.open(argv[3], FileDevice::ReadOnlyE);
 	FileStream fs(fd);
 	Writer wr(sd);
 	cout<<"file size "<<fd.size()<<endl;

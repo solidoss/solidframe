@@ -1,31 +1,23 @@
-/* Implementation file cstring.cpp
-	
-	Copyright 2007, 2008, 2012 Valentin Palade 
-	vipalade@gmail.com
-
-	This file is part of SolidFrame framework.
-
-	SolidFrame is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	SolidFrame is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-
-	You should have received a copy of the GNU General Public License
-	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
+// system/src/cstring.cpp
+//
+// Copyright (c) 2007, 2008, 2012 Valentin Palade (vipalade @ gmail . com) 
+//
+// This file is part of SolidFrame framework.
+//
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
+//
 #include "system/cstring.hpp"
 #include <cstring>
 #ifndef ON_WINDOWS
 #include <strings.h>
 #endif
 
-static const char* strs[] = {
+namespace solid{
+
+namespace {
+
+const char* strs[] = {
  "Ox00", "Ox01", "Ox02", "Ox03", "Ox04", "Ox05", "Ox06", "Ox07", "Ox08",  "TAB",
    "LF", "Ox0B", "Ox0C",   "CR", "Ox0E", "Ox0F", "Ox10", "Ox11", "Ox12", "Ox13",
  "Ox14", "Ox15", "Ox16", "Ox17", "Ox18", "Ox19", "Ox1A", "Ox1B", "Ox1C", "Ox1D",
@@ -54,6 +46,7 @@ static const char* strs[] = {
  "OxFA", "OxFB", "OxFC", "OxFD", "OxFE", "OxFF"
 };
 
+}//namespace
 
 const char * char_to_cstring(unsigned _c){
 	return strs[_c & 255];
@@ -92,3 +85,4 @@ const char * char_to_cstring(unsigned _c){
 #endif
 }
 
+}//namespace solid

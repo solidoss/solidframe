@@ -1,28 +1,18 @@
-/* Declarations file dynamicpointer.hpp
-	
-	Copyright 2007, 2008 Valentin Palade 
-	vipalade@gmail.com
-
-	This file is part of SolidFrame framework.
-
-	SolidFrame is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	SolidFrame is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-
-	You should have received a copy of the GNU General Public License
-	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
+// utility/dynamicpointer.hpp
+//
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+//
+// This file is part of SolidFrame framework.
+//
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
+//
 #ifndef UTILITY_DYNAMIC_POINTER_HPP
 #define UTILITY_DYNAMIC_POINTER_HPP
 
 #include "system/common.hpp"
+
+namespace solid{
 
 struct DynamicBase;
 
@@ -44,6 +34,7 @@ class DynamicSharedPointer: DynamicPointerBase{
 public:
 	typedef DynamicSharedPointer<T>		DynamicPointerT;
 	typedef T							DynamicT;
+	typedef T							element_type;
 	
 	DynamicSharedPointer(DynamicT *_pdyn = NULL):pdyn(_pdyn){
 		if(_pdyn){
@@ -77,12 +68,9 @@ public:
 			DynamicPointerBase::clear(static_cast<DynamicBase*>(pdyn));
 		}
 	}
-	DynamicT* release() const{
-		return pdyn;
-	}
 	template <class O>
 	DynamicPointerT& operator=(const DynamicSharedPointer<O> &_rcp){
-		DynamicT *p(_rcp.release());
+		DynamicT *p(_rcp.get());
 		if(p == pdyn){
 			return *this;
 		}
@@ -112,13 +100,18 @@ public:
 	DynamicT* operator->()const	{return pdyn;}
 	DynamicT* get() const		{return pdyn;}
 	//operator bool () const	{return psig;}
-	bool operator!()const		{return !pdyn;}
 	bool empty()const			{return !pdyn;}
+	bool operator!()const		{return empty();}
+	
 	void clear(){
 		if(pdyn){
 			DynamicPointerBase::clear(static_cast<DynamicBase*>(pdyn));
 			pdyn = NULL;
 		}
+	}
+	DynamicT* release() const{
+		DynamicT *tmp = pdyn;
+		return tmp;
 	}
 protected:
 	void set(DynamicT *_pdyn){
@@ -137,6 +130,7 @@ class DynamicPointer<T, void>: DynamicPointerBase{
 public:
 	typedef DynamicPointer<T>	DynamicPointerT;
 	typedef T					DynamicT;
+	typedef T					element_type;
 	
 	DynamicPointer(DynamicT *_pdyn = NULL):pdyn(_pdyn){
 		if(_pdyn){
@@ -170,7 +164,7 @@ public:
 	}
 	
 	template <class B>
-	explicit DynamicPointer(const DynamicSharedPointer<B> &_rcp):pdyn(static_cast<T*>(_rcp.release())){
+	DynamicPointer(const DynamicSharedPointer<B> &_rcp):pdyn(static_cast<T*>(_rcp.get())){
 		if(pdyn){
 			use(static_cast<DynamicBase*>(pdyn));
 		}
@@ -197,7 +191,7 @@ public:
 	template <class O>
 	DynamicPointerT& operator=(const DynamicPointer<O> &_rcp){
 		DynamicT *p(_rcp.release());
-		if(this == &_rcp){
+		if(p == pdyn){
 			return *this;
 		}
 		if(pdyn) clear();
@@ -206,7 +200,7 @@ public:
 	}
 	template <class O>
 	DynamicPointerT& operator=(const DynamicSharedPointer<O> &_rcp){
-		DynamicT *p(_rcp.release());
+		DynamicT *p(_rcp.get());
 		if(p == pdyn){
 			return *this;
 		}
@@ -226,7 +220,8 @@ public:
 	DynamicT* operator->()const	{return pdyn;}
 	DynamicT* get() const		{return pdyn;}
 	//operator bool () const	{return psig;}
-	bool operator!()const		{return !pdyn;}
+	bool empty() const			{return !pdyn;}
+	bool operator!()const		{return empty();}
 	void clear(){
 		if(pdyn){
 			DynamicPointerBase::clear(static_cast<DynamicBase*>(pdyn));
@@ -244,7 +239,7 @@ private:
 	mutable DynamicT *pdyn;
 	
 };
-
+#if 0
 //! An autoptr like smartpointer for DynamicBase objects
 template <class T, class C>
 class DynamicPointer: DynamicPointerBase{
@@ -357,7 +352,7 @@ public:
 		storeSpecific();
 		return pdyn;
 	}
-	DynamicT* get() const		{
+	DynamicT* get() const{
 		storeSpecific();
 		return pdyn;
 	}
@@ -393,6 +388,8 @@ private:
 	mutable ContextT	ctx;
 };
 
+#endif
 
+}//namespace solid
 
 #endif

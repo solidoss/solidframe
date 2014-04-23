@@ -1,24 +1,12 @@
-/* Implementation file tests.cpp
-
-	Copyright 2007, 2008 Valentin Palade
-	vipalade@gmail.com
-
-	This file is part of SolidFrame framework.
-
-	SolidFrame is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	SolidFrame is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-
-	You should have received a copy of the GNU General Public License
-	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
+// tests.cpp
+//
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com)
+//
+// This file is part of SolidFrame framework.
+//
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
+//
 #include <iostream>
 #include "system/debug.hpp"
 #include "system/thread.hpp"
@@ -28,6 +16,7 @@
 #include "specb.hpp"
 
 using namespace std;
+using namespace solid;
 
 struct SingleTest{
 	SingleTest();
@@ -168,13 +157,13 @@ int main(int argc, char *argv[]){
 #ifdef UDEBUG
 	{
 	//initDebug(s.c_str());
-		Dbg::instance().initStdErr();
-		Dbg::instance().levelMask("iwe");
-		Dbg::instance().moduleMask("all");
+		Debug::the().initStdErr();
+		Debug::the().levelMask("iwe");
+		Debug::the().moduleMask("all");
 	}
 #endif
 	Thread::init();
-	idbg("current thread "<<(void*)Thread::current());
+	idbg("current thread "<<(void*)&Thread::current());
 	const unsigned specid(Thread::specificId());
 	Thread::specific(specid,  reinterpret_cast<void*>(123456));
 	idbg("saved specific value = "<<(ulong)Thread::specific(specid));

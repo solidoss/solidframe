@@ -1,25 +1,12 @@
-/* Implementation file thread.cpp
-	
-	Copyright 2007, 2008 Valentin Palade 
-	vipalade@gmail.com
-
-	This file is part of SolidFrame framework.
-
-	SolidFrame is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	SolidFrame is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-
-	You should have received a copy of the GNU General Public License
-	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
-
+// system/src/thread.cpp
+//
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+//
+// This file is part of SolidFrame framework.
+//
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
+//
 #include <cerrno>
 #include <cstring>
 #include <limits.h>
@@ -30,6 +17,8 @@
 #include "system/condition.hpp"
 #include "system/exception.hpp"
 #include "system/cassert.hpp"
+#include "system/synchronization.hpp"
+#include "system/atomic.hpp"
 
 #include "mutexpool.hpp"
 
@@ -61,6 +50,8 @@
 
 #include <limits.h>
 
+namespace solid{
+
 struct Cleaner{
 	~Cleaner(){
 		Thread::cleanup();
@@ -82,7 +73,8 @@ void throw_exception(const char* const _pt, const char * const _file, const int 
 
 #ifndef ON_WINDOWS
 static const pthread_once_t	oncek = PTHREAD_ONCE_INIT;
-#endif
+#else
+#endif//ON_WINDOWS
 
 struct ThreadData{
 	enum {
@@ -306,8 +298,16 @@ const TimeSpec& TimeSpec::currentMonotonic(){
 #include "system/synchronization.ipp"
 #endif
 //-------------------------------------------------------------------------
-int Condition::wait(Locker<Mutex> &_lock, const TimeSpec &_ts){
-	return pthread_cond_timedwait(&cond,&_lock.m.mut, &_ts);
+bool Condition::wait(Locker<Mutex> &_lock, const TimeSpec &_ts){
+	const int rv = pthread_cond_timedwait(&cond,&_lock.m.mut, &_ts);
+	if(rv == 0){
+		return true;
+	}else if(rv == ETIMEDOUT){
+		return false;
+	}else{
+		cassert(false);
+		return false;
+	}
 }
 //-------------------------------------------------------------------------
 int Mutex::timedLock(const TimeSpec &_rts){
@@ -331,23 +331,30 @@ int Mutex::reinit(Type _type){
 }
 #endif
 //*************************************************************************
-struct MainThread: Thread{
+namespace{
+struct DummyThread: Thread{
 #ifdef ON_WINDOWS
-	MainThread(bool _detached = true, HANDLE _th = NULL):Thread(_detached, _th){}
+	DummyThread(HANDLE _th = NULL):Thread(true, _th){}
 #else
-	MainThread(bool _detached = true, pthread_t _th = 0):Thread(_detached, _th){}
+	DummyThread(pthread_t _th = 0):Thread(true, _th){}
 #endif
 	void run(){}
 };
+
+}//namespace
+
+#ifdef ON_WINDOWS
+#else
+void Thread::free_thread(void *_pth){
+	delete static_cast<Thread*>(_pth);
+}
+#endif
+
 /*static*/ void Thread::init(){
 #ifdef ON_WINDOWS
 	TlsSetValue(threadData().crtthread_key, NULL);
-	static MainThread	t(false, GetCurrentThread());
-	Thread::current(&t);
 #else
-	if(pthread_key_create(&threadData().crtthread_key, NULL)) throw -1;
-	static MainThread	t(false, pthread_self());
-	Thread::current(&t);
+	cverify(!pthread_key_create(&threadData().crtthread_key, &Thread::free_thread));
 #endif
 }
 //-------------------------------------------------------------------------
@@ -381,11 +388,23 @@ inline void Thread::exit(){
     td.gmut.unlock();
 }
 //-------------------------------------------------------------------------
-Thread * Thread::current(){
+Thread* Thread::associateToCurrent(){
 #ifdef ON_WINDOWS
-	return NULL;
+	Thread *pth = new DummyThread(GetCurrentThread());
 #else
-	return reinterpret_cast<Thread*>(pthread_getspecific(threadData().crtthread_key));
+	Thread *pth = new DummyThread(pthread_self());
+#endif
+	Thread::current(pth);
+	return pth;
+}
+//-------------------------------------------------------------------------
+Thread& Thread::current(){
+#ifdef ON_WINDOWS
+	Thread * pth = reinterpret_cast<Thread*>(TlsGetValue(threadData().crtthread_key));
+	return pth ? *pth : *associate_to_current_thread();
+#else
+	Thread * pth = reinterpret_cast<Thread*>(pthread_getspecific(threadData().crtthread_key));
+	return pth ? *pth : *associateToCurrent();
 #endif
 }
 //-------------------------------------------------------------------------
@@ -441,58 +460,66 @@ void Thread::dummySpecificDestroy(void*){
 #endif
 }
 //-------------------------------------------------------------------------
-int Thread::join(){
+bool Thread::join(){
+	specific_error_clear();
 #ifdef ON_WINDOWS
-	if(detached()) return NOK;
+	if(detached()) return false;
 	WaitForSingleObject(th, INFINITE);
-	return 0;
+	return true;
 #else
-	if(pthread_equal(th, pthread_self())) return NOK;
-	if(detached()) return NOK;
-	int rcode =  pthread_join(this->th, NULL);
-	return rcode;
+	if(pthread_equal(th, pthread_self())) return false;
+	if(detached()) return false;
+	int rv =  pthread_join(this->th, NULL);
+	if(rv < 0){
+		SPECIFIC_ERROR_PUSH1(last_system_error());
+		return false;
+	}
+	return true;
 #endif
 }
 //-------------------------------------------------------------------------
-int Thread::detached() const{
+bool Thread::detached() const{
 	//Locker<Mutex> lock(mutex());
 	return dtchd;
 }
 //-------------------------------------------------------------------------
-int Thread::detach(){
+bool Thread::detach(){
 #ifdef ON_WINDOWS
 	Locker<Mutex> lock(mutex());
-	if(detached()) return OK;
-	dtchd = 1;
-	return 0;
+	if(detached()) return true;
+	dtchd = true;
+	return false;
 #else
 	Locker<Mutex> lock(mutex());
-	if(detached()) return OK;
+	if(detached()) return true;
 	int rcode = pthread_detach(this->th);
-	if(rcode == OK)	dtchd = 1;
-	return rcode;
+	if(rcode == 0){
+		dtchd = true;
+		return true;
+	}
+	return false;
 #endif
 }
 //-------------------------------------------------------------------------
+typedef ATOMIC_NS::atomic<size_t>			AtomicSizeT;
+
 #ifdef HAS_SAFE_STATIC
-unsigned Thread::specificId(){
-	static unsigned sid = ThreadData::FirstSpecificId - 1;
-	Locker<Mutex> lock(gmutex());
-	return ++sid;
+size_t Thread::specificId(){
+	static AtomicSizeT sid((size_t)ThreadData::FirstSpecificId);
+	return sid.fetch_add(1/*, ATOMIC_NS::memory_order_seq_cst*/);
 }
 #else
 
-unsigned specificIdStub(){
-	static unsigned sid = ThreadData::FirstSpecificId - 2;
-	Locker<Mutex> lock(Thread::gmutex());
-	return ++sid;
+size_t specificIdStub(){
+	static AtomicSizeT sid(ATOMIC_VAR_INIT((size_t)ThreadData::FirstSpecificId));
+	return sid.fetch_add(1/*, ATOMIC_NS::memory_order_seq_cst*/);
 }
 
 void once_cbk_specific_id(){
 	specificIdStub();
 }
 
-unsigned Thread::specificId(){
+size_t Thread::specificId(){
 	static boost::once_flag once = BOOST_ONCE_INIT;
 	boost::call_once(&once_cbk_specific_id, once);
 	return specificIdStub();
@@ -501,14 +528,13 @@ unsigned Thread::specificId(){
 #endif
 //-------------------------------------------------------------------------
 void Thread::specific(unsigned _pos, void *_psd, SpecificFncT _pf){
-	Thread *pct = current();
-	cassert(pct);
-	if(_pos >= pct->specvec.size()) pct->specvec.resize(_pos + 4);
+	Thread &rct = current();
+	if(_pos >= rct.specvec.size()) rct.specvec.resize(_pos + 4);
 	//This is safe because pair will initialize with NULL on resize
-	if(pct->specvec[_pos].first){
-		(*pct->specvec[_pos].second)(pct->specvec[_pos].first);
+	if(rct.specvec[_pos].first){
+		(*rct.specvec[_pos].second)(rct.specvec[_pos].first);
 	}
-	pct->specvec[_pos] = SpecPairT(_psd, _pf);
+	rct.specvec[_pos] = SpecPairT(_psd, _pf);
 	//return _pos;
 }
 //-------------------------------------------------------------------------
@@ -519,20 +545,18 @@ void Thread::specific(unsigned _pos, void *_psd, SpecificFncT _pf){
 // }
 //-------------------------------------------------------------------------
 void* Thread::specific(unsigned _pos){
-	cassert(current() && _pos < current()->specvec.size());
-	return current()->specvec[_pos].first;
+	cassert(_pos < current().specvec.size());
+	return current().specvec[_pos].first;
 }
 Mutex& Thread::gmutex(){
 	return threadData().gmut;
 }
 //-------------------------------------------------------------------------
-int Thread::current(Thread *_ptb){
+void Thread::current(Thread *_ptb){
 #ifdef ON_WINDOWS
 	TlsSetValue(threadData().crtthread_key, _ptb);
-	return OK;
 #else
 	pthread_setspecific(threadData().crtthread_key, _ptb);
-	return OK;
 #endif
 }
 //-------------------------------------------------------------------------
@@ -551,7 +575,8 @@ struct Thread::ThreadStub{
 	Condition	*pcnd;
 	int			*pval;
 };
-int Thread::start(bool _wait, bool _detached, ulong _stacksz){
+bool Thread::start(bool _wait, bool _detached, ulong _stacksz){
+	specific_error_clear();
 #ifdef ON_WINDOWS
 	if(_wait){
 		Locker<Mutex>	lock(mutex());
@@ -559,7 +584,8 @@ int Thread::start(bool _wait, bool _detached, ulong _stacksz){
 		int				val(1);
 		ThreadStub		thrstub(&cnd, &val);
 		if(th){
-			return BAD;
+			
+			return false;
 		}
 		pthrstub = &thrstub;
 		{
@@ -567,7 +593,7 @@ int Thread::start(bool _wait, bool _detached, ulong _stacksz){
 			Thread::enter();
 		}
 		if(_detached){
-			dtchd = 1;
+			dtchd = true;
 		}
 		th = CreateThread(NULL, _stacksz, (LPTHREAD_START_ROUTINE)&Thread::th_run, this, 0, NULL);
 		if(th == NULL){
@@ -576,7 +602,7 @@ int Thread::start(bool _wait, bool _detached, ulong _stacksz){
 				Thread::exit();
 			}
 			pthrstub = NULL;
-			return BAD;
+			return false;
 		}
 		while(val){
 			cnd.wait(lock);
@@ -584,14 +610,14 @@ int Thread::start(bool _wait, bool _detached, ulong _stacksz){
 	}else{
 		Locker<Mutex>	lock(mutex());
 		if(th){
-			return BAD;
+			return false;
 		}
 		{
 			Locker<Mutex>	lock2(gmutex());
 			Thread::enter();
 		}
 		if(_detached){
-			dtchd = 1;
+			dtchd = true;
 		}
 		th = CreateThread(NULL, _stacksz, (LPTHREAD_START_ROUTINE)&Thread::th_run, this, 0, NULL);
 		if(th == NULL){
@@ -599,18 +625,18 @@ int Thread::start(bool _wait, bool _detached, ulong _stacksz){
 				Locker<Mutex>	lock2(gmutex());
 				Thread::exit();
 			}
-			return BAD;
+			return false;
 		}
 	}
-	return OK;
+	return true;
 #else
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);
 	if(_detached){
 		if(pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_DETACHED)){
 			pthread_attr_destroy(&attr);
-			edbgx(Dbg::system, "pthread_attr_setdetachstate: "<<strerror(errno));
-			return BAD;
+			edbgx(Debug::system, "pthread_attr_setdetachstate: "<<strerror(errno));
+			return false;
 		}
 	}
 	if(_stacksz){
@@ -619,9 +645,9 @@ int Thread::start(bool _wait, bool _detached, ulong _stacksz){
 		}
 		int rv = pthread_attr_setstacksize(&attr, _stacksz);
 		if(rv){
-			edbgx(Dbg::system, "pthread_attr_setstacksize "<<_stacksz<<": "<<strerror(errno));
+			edbgx(Debug::system, "pthread_attr_setstacksize "<<_stacksz<<": "<<strerror(errno));
 			pthread_attr_destroy(&attr);
-			return BAD;
+			return false;
 		}
 	}
 
@@ -632,7 +658,7 @@ int Thread::start(bool _wait, bool _detached, ulong _stacksz){
 		ThreadStub		thrstub(&cnd, &val);
 		if(th){
 			pthread_attr_destroy(&attr);
-			return BAD;
+			return false;
 		}
 		pthrstub = &thrstub;
 		{
@@ -640,10 +666,10 @@ int Thread::start(bool _wait, bool _detached, ulong _stacksz){
 			Thread::enter();
 		}
 		if(_detached){
-			dtchd = 1;
+			dtchd = true;
 		}
 		if(pthread_create(&th,&attr,&Thread::th_run,this)){
-			edbgx(Dbg::system, "pthread_create: "<<strerror(errno));
+			edbgx(Debug::system, "pthread_create: "<<strerror(errno));
 			pthread_attr_destroy(&attr);
 			th = 0;
 			pthrstub = NULL;
@@ -651,9 +677,9 @@ int Thread::start(bool _wait, bool _detached, ulong _stacksz){
 				Locker<Mutex>	lock2(gmutex());
 				Thread::exit();
 			}
-			return BAD;
+			return false;
 		}
-		idbgx(Dbg::system, "started thread "<<th);
+		idbgx(Debug::system, "started thread "<<th);
 		while(val){
 			cnd.wait(lock);
 		}
@@ -661,31 +687,30 @@ int Thread::start(bool _wait, bool _detached, ulong _stacksz){
 		Locker<Mutex>	lock(mutex());
 		if(th){
 			pthread_attr_destroy(&attr);
-			return BAD;
+			return false;
 		}
 		{
 			Locker<Mutex>	lock2(gmutex());
 			Thread::enter();
 		}
 		if(_detached){
-			dtchd = 1;
+			dtchd = true;
 		}
 		if(pthread_create(&th,&attr,&Thread::th_run,this)){
-			edbgx(Dbg::system, "pthread_create: "<<strerror(errno));
+			edbgx(Debug::system, "pthread_create: "<<strerror(errno));
 			pthread_attr_destroy(&attr);
 			th = 0;
 			{
 				Locker<Mutex>	lock2(gmutex());
 				Thread::exit();
 			}
-			return BAD;
+			return false;
 		}
-		idbgx(Dbg::system, "started thread "<<th);
+		idbgx(Debug::system, "started thread "<<th);
 	}
-
 	pthread_attr_destroy(&attr);
-	vdbgx(Dbg::system, "");
-	return OK;
+	vdbgx(Debug::system, "");
+	return true;
 #endif
 }
 //-------------------------------------------------------------------------
@@ -707,7 +732,7 @@ void Thread::waitAll(){
 //-------------------------------------------------------------------------
 #ifdef ON_WINDOWS
 unsigned long Thread::th_run(void *pv){
-	vdbgx(Dbg::system, "thrun enter "<<pv);
+	vdbgx(Debug::system, "thrun enter "<<pv);
 	Thread	*pth(reinterpret_cast<Thread*>(pv));
 	//Thread::enter();
 	Thread::current(pth);
@@ -718,15 +743,17 @@ unsigned long Thread::th_run(void *pv){
 	pth->prepare();
 	pth->run();
 	pth->unprepare();
-	if(pth->detached()) delete pth;
-	vdbgx(Dbg::system, "thrun exit "<<pv);
+	if(!pth->detached()){
+		Thread::current(NULL);
+	}
+	vdbgx(Debug::system, "thrun exit "<<pv);
 	Thread::exit();
 	return NULL;
 }
 
 #else
 void* Thread::th_run(void *pv){
-	vdbgx(Dbg::system, "thrun enter "<<pv);
+	vdbgx(Debug::system, "thrun enter "<<pv);
 	Thread	*pth(reinterpret_cast<Thread*>(pv));
 	//Thread::enter();
 	Thread::current(pth);
@@ -737,10 +764,14 @@ void* Thread::th_run(void *pv){
 	pth->prepare();
 	pth->run();
 	pth->unprepare();
-	if(pth->detached()) delete pth;
-	vdbgx(Dbg::system, "thrun exit "<<pv);
+	if(pth->detached()){
+		delete pth;
+	}
+	Thread::current(NULL);
+	vdbgx(Debug::system, "thrun exit "<<pv);
 	Thread::exit();
 	return NULL;
 }
 #endif
 //-------------------------------------------------------------------------
+}//namespace solid

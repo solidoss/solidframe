@@ -1,11 +1,22 @@
+// utility/memoryfile.hpp
+//
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+//
+// This file is part of SolidFrame framework.
+//
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
+//
 #ifndef UTILITY_MEMORY_FILE_HPP
 #define UTILITY_MEMORY_FILE_HPP
 
 #include "system/common.hpp"
+#include "utility/binaryseeker.hpp"
 #include <deque>
 
+namespace solid{
 
-//! A class for storing in memory files
+//! Store in memory files
 /*!
 	It has the same interface like FileDevice.
 	It has support for writing only at different offsets.
@@ -77,8 +88,8 @@ public:
 	int64 size()const;
 	int64 capacity()const;
 private:
-	int doFindBuffer(uint32 _idx)const;
-	int doLocateBuffer(uint32 _idx)const;
+	BinarySeekerResultT doFindBuffer(uint32 _idx)const;
+	BinarySeekerResultT doLocateBuffer(uint32 _idx)const;
 	char *doGetBuffer(uint32 _idx)const;
 	char *doCreateBuffer(uint32 _idx, bool &_created);
 private:
@@ -100,5 +111,7 @@ private:
 	BufferVectorT	bv;
 };
 
+
+}//namespace solid
 
 #endif

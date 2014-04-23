@@ -1,3 +1,13 @@
+// utility/src/dynamictype.cpp
+//
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+//
+// This file is part of SolidFrame framework.
+//
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
+//
+
 #include "system/thread.hpp"
 #include "system/debug.hpp"
 #include "system/cassert.hpp"
@@ -6,24 +16,34 @@
 #include "system/mutualstore.hpp"
 #include "utility/dynamictype.hpp"
 #include "utility/dynamicpointer.hpp"
-#include "utility/shared.hpp"
 
 #include <vector>
 
+#ifdef HAS_GNU_ATOMIC
+#include <ext/atomicity.h>
+#endif
+
+#include "system/atomic.hpp"
+
+namespace solid{
+
+
 //---------------------------------------------------------------------
-//----	Shared	----
+//		Shared
 //---------------------------------------------------------------------
 
 namespace{
+
 typedef MutualStore<Mutex>	MutexStoreT;
+
 #ifdef HAS_SAFE_STATIC
 MutexStoreT &mutexStore(){
 	static MutexStoreT		mtxstore(3, 2, 2);
 	return mtxstore;
 }
 
-uint32 specificId(){
-	static const uint32 id(Thread::specificId());
+size_t specificId(){
+	static const size_t id(Thread::specificId());
 	return id;
 }
 
@@ -34,8 +54,8 @@ MutexStoreT &mutexStoreStub(){
 	return mtxstore;
 }
 
-uint32 specificIdStub(){
-	static const uint32 id(Thread::specificId());
+size_t specificIdStub(){
+	static const size_t id(Thread::specificId());
 	return id;
 }
 
@@ -54,7 +74,7 @@ MutexStoreT &mutexStore(){
 	return mutexStoreStub();
 }
 
-uint32 specificId(){
+size_t specificId(){
 	static boost::once_flag once = BOOST_ONCE_INIT;
 	boost::call_once(&once_cbk_specific, once);
 	return specificIdStub();
@@ -65,14 +85,13 @@ uint32 specificId(){
 
 }//namespace
 
-/*static*/ Mutex& Shared::mutex(void *_pv){
-	return mutexStore().at((uint32)reinterpret_cast<ulong>(_pv));
+
+Mutex &shared_mutex_safe(const void *_p){
+	Locker<Mutex> lock(Thread::gmutex());
+	return mutexStore().safeAt(reinterpret_cast<size_t>(_p));
 }
-Shared::Shared(){
-	mutexStore().safeAt((uint32)reinterpret_cast<ulong>(this));
-}
-Mutex& Shared::mutex(){
-	return mutex(this);
+Mutex &shared_mutex(const void *_p){
+	return mutexStore().at(reinterpret_cast<size_t>(_p));
 }
 
 //---------------------------------------------------------------------
@@ -97,100 +116,74 @@ void DynamicPointerBase::storeSpecific(void *_pv)const{
 }
 
 
-struct DynamicMap::Data{
-	Data(){}
-	Data(Data& _rd):fncvec(_rd.fncvec){}
-	typedef std::vector<FncT>	FncVectorT;
-	FncVectorT fncvec;
-};
+//--------------------------------------------------------------------
+//		DynamicBase
+//--------------------------------------------------------------------
 
-/*static*/ uint32 DynamicMap::generateId(){
-	static uint32 u(0);
-	Thread::gmutex().lock();
-	uint32 v = ++u;
-	Thread::gmutex().unlock();
-	return v;
-}
-#ifdef HAS_SAFE_STATIC
+typedef ATOMIC_NS::atomic<size_t>			AtomicSizeT;
 
-static Mutex & dynamicMutex(){
-	static Mutex mtx;
-	return mtx;
+/*static*/ size_t DynamicBase::generateId(){
+	static AtomicSizeT u(ATOMIC_VAR_INIT(0));
+	return u.fetch_add(1/*, ATOMIC_NS::memory_order_seq_cst*/);
 }
-#else
-static Mutex & dynamicMutexStub(){
-	static Mutex mtx;
-	return mtx;
-}
-
-void once_cbk_dynamic(){
-	dynamicMutexStub();
-}
-
-static Mutex & dynamicMutex(){
-	static boost::once_flag once = BOOST_ONCE_INIT;
-	boost::call_once(&once_cbk_dynamic, once);
-	return dynamicMutexStub();
-}
-#endif
-
-void DynamicRegistererBase::lock(){
-	dynamicMutex().lock();
-}
-void DynamicRegistererBase::unlock(){
-	dynamicMutex().unlock();
-}
-
-DynamicMap::DynamicMap(DynamicMap *_pdm):d(*(_pdm ? new Data(_pdm->d) : new Data)){
-}
-
-DynamicMap::~DynamicMap(){
-	delete &d;
-}
-
-void DynamicMap::callback(uint32 _tid, FncT _pf){
-	if(_tid >= d.fncvec.size()){
-		d.fncvec.resize(_tid + 1);
-	}
-	//cassert(!d.fncvec[_tid]);
-	d.fncvec[_tid] = _pf;
-}
-
-DynamicMap::FncT DynamicMap::callback(uint32 _id)const{
-	FncT pf = NULL;
-	if(_id < d.fncvec.size()){
-		pf = d.fncvec[_id];
-	}
-	return pf;
-}
-
 
 
 DynamicBase::~DynamicBase(){}
 
-DynamicMap::FncT DynamicBase::callback(const DynamicMap &_rdm){
-	return NULL;
-}
-/*virtual*/ void DynamicBase::use(){
-	idbgx(Dbg::utility, "DynamicBase");
-}
-//! Used by DynamicPointer to know if the object must be deleted
-/*virtual*/ int DynamicBase::release(){
-	idbgx(Dbg::utility, "DynamicBase");
+/*virtual*/ size_t DynamicBase::use(){
+	idbgx(Debug::utility, "DynamicBase");
 	return 0;
 }
-/*virtual*/ bool DynamicBase::isTypeDynamic(uint32 _id)const{
-	return false;
+
+//! Used by DynamicPointer to know if the object must be deleted
+/*virtual*/ size_t DynamicBase::release(){
+	idbgx(Debug::utility, "DynamicBase");
+	return 0;
 }
 
-void DynamicSharedImpl::doUse(){
-	idbgx(Dbg::utility, "DynamicSharedImpl");
-	Locker<Mutex>	lock(this->mutex());
-	++usecount;
+/*virtual*/ bool DynamicBase::isTypeDynamic(const size_t _id)const{
+	return false;
 }
-int DynamicSharedImpl::doRelease(){
-	idbgx(Dbg::utility, "DynamicSharedImpl");
-	Locker<Mutex>	lock(this->mutex());
-	--usecount;
-	return usecount;
+/*virtual*/ size_t DynamicBase::callback(const DynamicMapperBase &_rdm)const{
+	return -1;
 }
+
+//--------------------------------------------------------------------
+//		DynamicMapperBase
+//--------------------------------------------------------------------
+struct DynamicMapperBase::Data{
+	typedef std::vector<GenericFncT>	FncVectorT;
+	
+	FncVectorT	fncvec;
+	Mutex		mtx;
+};
+
+bool DynamicMapperBase::check(const size_t _tid)const{
+	Locker<Mutex>	lock(d.mtx);
+	if(_tid < d.fncvec.size()){
+		return d.fncvec[_tid] != NULL;
+	}else{
+		return false;
+	}
+}
+DynamicMapperBase::DynamicMapperBase():d(*(new Data)){}
+DynamicMapperBase::~DynamicMapperBase(){
+	delete &d;
+}
+DynamicMapperBase::GenericFncT DynamicMapperBase::callback(const size_t _tid)const{
+	Locker<Mutex>	lock(d.mtx);
+	if(_tid < d.fncvec.size()){
+		return d.fncvec[_tid];
+	}else{
+		return NULL;
+	}
+}
+void DynamicMapperBase::callback(const size_t _tid, GenericFncT _pf){
+	Locker<Mutex>	lock(d.mtx);
+	if(d.fncvec.size() <= _tid){
+		d.fncvec.resize(_tid + 1);
+	}
+	d.fncvec[_tid] = _pf;
+}
+
+}//namespace solid

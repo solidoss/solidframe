@@ -1,29 +1,20 @@
-/* Declarations file mutualstore.hpp
-	
-	Copyright 2007, 2008 Valentin Palade 
-	vipalade@gmail.com
-
-	This file is part of SolidFrame framework.
-
-	SolidFrame is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	SolidFrame is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-
-	You should have received a copy of the GNU General Public License
-	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
+// mutualstore.hpp
+//
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+//
+// This file is part of SolidFrame framework.
+//
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
+//
 #ifndef SYSTEM_MUTUALSTORE_HPP
 #define SYSTEM_MUTUALSTORE_HPP
 
 #include "system/common.hpp"
 #include "system/convertors.hpp"
+
+
+namespace solid{
 
 //! A container of shared objects
 /*!
@@ -56,21 +47,25 @@ public:
 		\param _mutcolsbts The number of mutexes in a row as bitcount (real count 1<<bitcount)
 	*/
 	MutualStore(
+		const bool _preload = false,
 		unsigned _objpermutbts = 6,
 		unsigned _mutrowsbts = 3,
 		unsigned _mutcolsbts = 3
 	 ):
 		objpermutbts(_objpermutbts),
-		objpermutmsk(bitsToMsk(_objpermutbts)),
+		objpermutmsk(bitsToMask(_objpermutbts)),
 		mutrowsbts(_mutrowsbts),
-		mutrowsmsk(bitsToMsk(_mutrowsbts)),
-		mutrowscnt(bitsToCnt(_mutrowsbts)),
-		mutcolsmsk(bitsToMsk(_mutcolsbts)),
-		mutcolscnt(bitsToCnt(_mutcolsbts)),
+		mutrowsmsk(bitsToMask(_mutrowsbts)),
+		mutrowscnt(bitsToCount(_mutrowsbts)),
+		mutcolsmsk(bitsToMask(_mutcolsbts)),
+		mutcolscnt(bitsToCount(_mutcolsbts)),
 		objmat(new MutualObjectT*[mutrowscnt])
 	{
-		for(uint i = 0; i < mutrowscnt; ++i) objmat[i] = NULL;
+		for(uint i = 0; i < mutrowscnt; ++i){
+			objmat[i] = _preload ? new MutualObjectT[mutcolscnt] : NULL;
+		}
 	}
+	
 	~MutualStore(){
 		for(uint i(0); i < mutrowscnt; ++i){
 			delete []objmat[i];
@@ -81,53 +76,120 @@ public:
 	/*!
 		Use this after calling safeObject once for a certain position.
 	*/
-	inline MutualObjectT& at(unsigned i){
+	inline MutualObjectT& at(const size_t i){
 		return doGetObject(i >> objpermutbts);
+	}
+	inline MutualObjectT& at(const size_t i, const unsigned _objpermutbts){
+		return doGetObject(i >> objpermutbts);
+	}
+	inline MutualObjectT const& at(const size_t i)const{
+		return doGetObject(i >> objpermutbts);
+	}
+	inline MutualObjectT const& at(const size_t i, const unsigned _objpermutbts)const{
+		return doGetObject(i >> _objpermutbts);
 	}
 	//! Slower but safe get the mutex for a position
 	/*!
 		It will reallocate new mutexes if needed
 	*/
-	MutualObjectT& safeAt(unsigned i){
-		int mrow = getObjectRow(i);
+	MutualObjectT& safeAt(const size_t i){
+		const size_t mrow = getObjectRow(i);
+		if(!objmat[mrow]){
+			objmat[mrow] = new MutualObjectT[mutcolscnt];
+		}
+		return at(i);
+	}
+	MutualObjectT& safeAt(const size_t i, const unsigned _objpermutbts){
+		const size_t mrow = getObjectRow(i, _objpermutbts);
 		if(!objmat[mrow]){
 			objmat[mrow] = new MutualObjectT[mutcolscnt];
 		}
 		return at(i);
 	}
 	//! Gets the mutex at pos i (the matrix is seen as a vector)
-	inline MutualObjectT& operator[](unsigned i){
+	inline MutualObjectT& operator[](const size_t i){
+		return doGetObject(i);
+	}
+	inline MutualObjectT const& operator[](const size_t i)const{
 		return doGetObject(i);
 	}
 	//! Will return true if i is the first index of a range sharing the same mutex
-	inline int isRangeBegin(unsigned i){
+	inline bool isRangeBegin(const size_t i)const{
 		return !(i & objpermutmsk);
 	}
+	inline bool isRangeBegin(const size_t i, const size_t _objpermutmsk)const{
+		return !(i & _objpermutmsk);
+	}
 	template <typename V>
-	void visit(uint32 _upto, V &_rv){
-		const uint32 mutcnt(mutrowscnt * mutcolscnt);
-		const uint32 cnt((_upto >> objpermutbts) + 1);
-		const uint32 end(cnt > mutcnt ? mutcnt : cnt);
-		for(uint32 i(0); i < end; ++i){
+	void visit(const size_t _upto, V &_rv){
+		const size_t mutcnt = mutrowscnt * mutcolscnt;
+		const size_t cnt = _upto ? (_upto >> objpermutbts) + 1 : 0;
+		const size_t end = cnt > mutcnt ? mutcnt : cnt;
+		for(size_t i(0); i < end; ++i){
 			_rv(doGetObject(i));
 		}
 	}
+	template <typename V>
+	void visit(const size_t _upto, V &_rv)const{
+		const size_t mutcnt = mutrowscnt * mutcolscnt;
+		const size_t cnt = _upto ? (_upto >> objpermutbts) + 1 : 0;
+		const size_t end = cnt > mutcnt ? mutcnt : cnt;
+		for(size_t i(0); i < end; ++i){
+			_rv(doGetObject(i));
+		}
+	}
+	template <typename V>
+	void visit(const size_t _upto, V &_rv, const unsigned _objpermutbts){
+		const size_t mutcnt = mutrowscnt * mutcolscnt;
+		const size_t cnt = _upto ? (_upto >> _objpermutbts) + 1 : 0;
+		const size_t end = cnt > mutcnt ? mutcnt : cnt;
+		for(size_t i(0); i < end; ++i){
+			_rv(doGetObject(i/*, _objpermutbts*/));
+		}
+	}
+	template <typename V>
+	void visit(const size_t _upto, V &_rv, const unsigned _objpermutbts)const{
+		const size_t mutcnt = mutrowscnt * mutcolscnt;
+		const size_t cnt = _upto ? (_upto >> _objpermutbts) + 1 : 0;
+		const size_t end = cnt > mutcnt ? mutcnt : cnt;
+		for(size_t i(0); i < end; ++i){
+			_rv(doGetObject(i/*, _objpermutbts*/));
+		}
+	}
+	size_t rowRangeSize()const{
+		return mutcolscnt * bitsToCount(objpermutbts);
+	}
 private:
-	inline MutualObjectT& doGetObject(unsigned i){
+	inline MutualObjectT& doGetObject(const size_t i){
 		return objmat[(i >> mutrowsbts) & mutrowsmsk][i & mutcolsmsk];
 	}
-	inline unsigned getObjectRow(unsigned i){
+	inline const MutualObjectT& doGetObject(const size_t i)const{
+		return objmat[(i >> mutrowsbts) & mutrowsmsk][i & mutcolsmsk];
+	}
+	inline size_t getObjectRow(const size_t i){
 		return ((i >> objpermutbts) >> mutrowsbts) & mutrowsmsk;
+	}
+	inline size_t getObjectRow(const size_t i)const{
+		return ((i >> objpermutbts) >> mutrowsbts) & mutrowsmsk;
+	}
+	
+	inline size_t getObjectRow(const size_t i, const unsigned _objpermutbts){
+		return ((i >> _objpermutbts) >> mutrowsbts) & mutrowsmsk;
+	}
+	inline size_t getObjectRow(const size_t i, const unsigned _objpermutbts)const{
+		return ((i >> _objpermutbts) >> mutrowsbts) & mutrowsmsk;
 	}
 private:
 	const unsigned		objpermutbts;//objects per mutex mask
-	const unsigned		objpermutmsk;//objects per mutex count
+	const size_t		objpermutmsk;//objects per mutex count
 	const unsigned 		mutrowsbts;//mutex rows bits
-	const unsigned		mutrowsmsk;//mutex rows mask
-	const unsigned		mutrowscnt;//mutex rows count
-	const unsigned 		mutcolsmsk;//mutex columns mask
-	const unsigned 		mutcolscnt;//mutex columns count
+	const size_t		mutrowsmsk;//mutex rows mask
+	const size_t		mutrowscnt;//mutex rows count
+	const size_t 		mutcolsmsk;//mutex columns mask
+	const size_t 		mutcolscnt;//mutex columns count
 	MutualObjectT		**objmat;
 };
+
+}//namespace solid
 
 #endif

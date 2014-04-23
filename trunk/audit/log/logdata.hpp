@@ -1,8 +1,18 @@
+// audit/log/logdata.hpp
+//
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+//
+// This file is part of SolidFrame framework.
+//
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
+//
 #ifndef AUDIT_LOGDATA_HPP
 #define AUDIT_LOGDATA_HPP
 
 #include "system/convertors.hpp"
 
+namespace solid{
 namespace audit{
 //! The head of a log record - sent from client to server
 struct LogRecordHead{
@@ -49,8 +59,8 @@ struct LogHead{
 		uint32 _procid = 0,
 		uint16 _procnamelen = 0,
 		uint16 _modulecnt = 0
-	):version(1), procnamelen(_procnamelen),
-		procid(_procid), modulecnt(_modulecnt), flags(0xffff){}
+	):procid(_procid), version(1), procnamelen(_procnamelen),
+		 modulecnt(_modulecnt), flags(0xffff){}
 	
 	void convertToNetwork(){
 		version = toNetwork(version);
@@ -64,15 +74,16 @@ struct LogHead{
 		procid = toHost(procid);
 		modulecnt = toHost(modulecnt);
 	}
+	
+	uint32	procid;
 	uint16	version;
 	uint16	procnamelen;
-	uint32	procid;
 	uint16	modulecnt;
 	uint16	flags;
 };
 
 }//namespace audit
-
+}//namespace solid
 
 
 #endif

@@ -1,24 +1,12 @@
-/* Declarations file debug.hpp
-	
-	Copyright 2007, 2008 Valentin Palade 
-	vipalade@gmail.com
-
-	This file is part of SolidFrame framework.
-
-	SolidFrame is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	SolidFrame is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-
-	You should have received a copy of the GNU General Public License
-	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
+// system/debug.hpp
+//
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+//
+// This file is part of SolidFrame framework.
+//
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
+//
 #ifndef SYSTEM_DEBUG_HPP
 #define SYSTEM_DEBUG_HPP
 
@@ -44,9 +32,6 @@
 
 #endif
 
-#ifdef UDEBUG
-
-#define DEBUG_BITSET_SIZE 256
 #include <ostream>
 #include <string>
 #include "system/common.hpp"
@@ -66,23 +51,24 @@
 #define EXPORT_DLL
 #endif
 */
+namespace solid{
 
-
-struct /*EXPORT_DLL*/ Dbg{
+struct /*EXPORT_DLL*/ Debug{
 	static const unsigned any;
 	static const unsigned system;
 	static const unsigned specific;
-	static const unsigned protocol;
+	static const unsigned proto_txt;
+	static const unsigned proto_bin;
 	static const unsigned ser_bin;
 	static const unsigned utility;
-	static const unsigned fdt;
+	static const unsigned frame;
 	static const unsigned ipc;
 	static const unsigned tcp;
 	static const unsigned udp;
 	static const unsigned file;
 	static const unsigned log;
 	static const unsigned aio;
-	static Dbg& instance();
+	static Debug& the();
 	enum Level{
 		Info = 1,
 		Error = 2,
@@ -92,9 +78,8 @@ struct /*EXPORT_DLL*/ Dbg{
 		Trace = 32,
 		AllLevels = 1 + 2 + 4 + 8 + 16 + 32
 	};
-	static Dbg& dbg_instance();
 	static void once_cbk();
-	~Dbg();
+	~Debug();
 
 	void initStdErr(
 		bool _buffered = true,
@@ -104,7 +89,7 @@ struct /*EXPORT_DLL*/ Dbg{
 	void initFile(
 		const char * _fname,
 		bool _buffered = true,
-		ulong _respincnt = 10,
+		ulong _respincnt = 2,
 		ulong _respinsize = 1024 * 1024 * 1024,
 		std::string *_output = NULL
 	);
@@ -118,12 +103,14 @@ struct /*EXPORT_DLL*/ Dbg{
 	void levelMask(const char *_msk = NULL);
 	void moduleMask(const char *_msk = NULL);
 	
-	void moduleBits(std::string &_ros);
+	void moduleNames(std::string &_ros);
 	void setAllModuleBits();
 	void resetAllModuleBits();
 	void setModuleBit(unsigned _v);
 	void resetModuleBit(unsigned _v);
+	
 	unsigned registerModule(const char *_name);
+	
 	std::ostream& print();
 	std::ostream& print(
 		const char _t,
@@ -157,7 +144,8 @@ struct /*EXPORT_DLL*/ Dbg{
 	void doneTraceOut();
 	bool isSet(Level _lvl, unsigned _v)const;
 private:
-	Dbg();
+	static Debug& dbg_the();
+	Debug();
 	struct Data;
 	Data &d;
 };
@@ -170,15 +158,14 @@ private:
 #define __FUNCTION__ __func__
 #endif
 
-#ifdef UTRACE
 
-struct DbgTraceTest{
-	DbgTraceTest(
+struct DebugTraceTest{
+	DebugTraceTest(
 		int _mod,
 		const char *_file,
 		const char *_fnc,
 		int _line):v(1), mod(_mod), file(_file), fnc(_fnc),line(_line){}
-	~DbgTraceTest();
+	~DebugTraceTest();
 	int			v;
 	int			mod;
 	const char	*file;
@@ -186,57 +173,59 @@ struct DbgTraceTest{
 	int			line;
 };
 
-#endif //UTRACE
+}//namespace solid
+
+#ifdef UDEBUG
 
 #define CRT_FUNCTION_NAME __FUNCTION__
 // #endif
 
 #define idbg(x)\
-	if(Dbg::instance().isSet(Dbg::Info, Dbg::any)){\
-	Dbg::instance().print('I', Dbg::any, __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;Dbg::instance().done();}else;
+	if(solid::Debug::the().isSet(solid::Debug::Info, solid::Debug::any)){\
+	solid::Debug::the().print('I', solid::Debug::any, __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;solid::Debug::the().done();}else;
 #define idbgx(a,x)\
-	if(Dbg::instance().isSet(Dbg::Info, a)){\
-	Dbg::instance().print('I', a,  __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;Dbg::instance().done();}else;
+	if(solid::Debug::the().isSet(solid::Debug::Info, a)){\
+	solid::Debug::the().print('I', a,  __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;solid::Debug::the().done();}else;
 
 #define edbg(x)\
-	if(Dbg::instance().isSet(Dbg::Error, Dbg::any)){\
-	Dbg::instance().print('E', Dbg::any, __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;Dbg::instance().done();}else;
+	if(solid::Debug::the().isSet(solid::Debug::Error, solid::Debug::any)){\
+	solid::Debug::the().print('E', solid::Debug::any, __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;solid::Debug::the().done();}else;
 #define edbgx(a,x)\
-	if(Dbg::instance().isSet(Dbg::Error, a)){\
-	Dbg::instance().print('E', a,  __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;Dbg::instance().done();}else;
+	if(solid::Debug::the().isSet(solid::Debug::Error, a)){\
+	solid::Debug::the().print('E', a,  __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;solid::Debug::the().done();}else;
 
 #define wdbg(x)\
-	if(Dbg::instance().isSet(Dbg::Warn, Dbg::any)){\
-	Dbg::instance().print('W', Dbg::any, __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;Dbg::instance().done();}else;
+	if(solid::Debug::the().isSet(solid::Debug::Warn, solid::Debug::any)){\
+	solid::Debug::the().print('W', solid::Debug::any, __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;solid::Debug::the().done();}else;
 #define wdbgx(a,x)\
-	if(Dbg::instance().isSet(Dbg::Warn, a)){\
-	Dbg::instance().print('W', a,  __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;Dbg::instance().done();}else;
+	if(solid::Debug::the().isSet(solid::Debug::Warn, a)){\
+	solid::Debug::the().print('W', a,  __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;solid::Debug::the().done();}else;
 
 #define rdbg(x)\
-	if(Dbg::instance().isSet(Dbg::Report, Dbg::any)){\
-	Dbg::instance().print('R', Dbg::any, __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;Dbg::instance().done();}else;
+	if(solid::Debug::the().isSet(solid::Debug::Report, solid::Debug::any)){\
+	solid::Debug::the().print('R', solid::Debug::any, __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;solid::Debug::the().done();}else;
 #define rdbgx(a,x)\
-	if(Dbg::instance().isSet(Dbg::Report, a)){\
-	Dbg::instance().print('R', a,  __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;Dbg::instance().done();}else;
+	if(solid::Debug::the().isSet(solid::Debug::Report, a)){\
+	solid::Debug::the().print('R', a,  __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;solid::Debug::the().done();}else;
 
 #define vdbg(x)\
-	if(Dbg::instance().isSet(Dbg::Verbose, Dbg::any)){\
-	Dbg::instance().print('V', Dbg::any, __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;Dbg::instance().done();}else;
+	if(solid::Debug::the().isSet(solid::Debug::Verbose, solid::Debug::any)){\
+	solid::Debug::the().print('V', solid::Debug::any, __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;solid::Debug::the().done();}else;
 #define vdbgx(a,x)\
-	if(Dbg::instance().isSet(Dbg::Verbose, a)){\
-	Dbg::instance().print('V', a,  __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;Dbg::instance().done();}else;
+	if(solid::Debug::the().isSet(solid::Debug::Verbose, a)){\
+	solid::Debug::the().print('V', a,  __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;solid::Debug::the().done();}else;
 
 #ifdef UTRACE
 #define tdbgi(a,x)\
-	DbgTraceTest __dbgtrace__(a,  __FILE__, CRT_FUNCTION_NAME, __LINE__);\
-	if(Dbg::instance().isSet(Dbg::Trace, a)){\
-	Dbg::instance().printTraceIn('T', a,  __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;Dbg::instance().doneTraceIn();}else{\
+	solid::DebugTraceTest __dbgtrace__(a,  __FILE__, CRT_FUNCTION_NAME, __LINE__);\
+	if(solid::Debug::the().isSet(solid::Debug::Trace, a)){\
+	solid::Debug::the().printTraceIn('T', a,  __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;solid::Debug::the().doneTraceIn();}else{\
 	__dbgtrace__.v = 0;}
 
 #define tdbgo(a,x)\
-	if(Dbg::instance().isSet(Dbg::Trace, a)){\
+	if(solid::Debug::the().isSet(solid::Debug::Trace, a)){\
 	__dbgtrace__.v = 0;\
-	Dbg::instance().printTraceOut('T', a,  __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;Dbg::instance().doneTraceOut();}else;
+	solid::Debug::the().printTraceOut('T', a,  __FILE__, CRT_FUNCTION_NAME, __LINE__)<<x;solid::Debug::the().doneTraceOut();}else;
 
 #else
 #define tdbgi(a,x)
@@ -244,7 +233,7 @@ struct DbgTraceTest{
 #endif
 
 #define pdbg(f, ln, fnc, x)\
-	{Dbg::instance().print('P', Dbg::any,  f, fnc, ln)<<x;Dbg::instance().done();}
+	{solid::Debug::the().print('P', solid::Debug::any,  f, fnc, ln)<<x;solid::Debug::the().done();}
 
 #define writedbg(x,sz)
 #define writedbgx(a, x, sz)

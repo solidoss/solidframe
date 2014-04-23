@@ -24,6 +24,7 @@ set(Headers
 	dynamictype.hpp
 	dynamicpointer.hpp
 	memoryfile.hpp
+	functor.hpp
 )
 
 set(Inlines
@@ -33,7 +34,7 @@ set(Inlines
 	stream.ipp	
 )
 
-add_library (utility
+add_library (solid_utility
 	${Sources} ${Headers} ${Inlines}
 )
 

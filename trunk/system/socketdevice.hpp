@@ -1,8 +1,20 @@
+// system/socketdevice.hpp
+//
+// Copyright (c) 2012 Valentin Palade (vipalade @ gmail . com) 
+//
+// This file is part of SolidFrame framework.
+//
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
+//
 #ifndef SYSTEM_SOCKETDEVICE_HPP
 #define SYSTEM_SOCKETDEVICE_HPP
 
 #include "system/socketaddress.hpp"
 #include "system/device.hpp"
+#include "system/error.hpp"
+
+namespace solid{
 
 //! A wrapper for berkeley sockets
 class SocketDevice: public Device{
@@ -27,64 +39,57 @@ public:
 	//! Shutdown reading and writing 
 	void shutdownReadWrite();
 	//! Create a socket based ResolveIterator
-	int create(const ResolveIterator &_rri);
+	bool create(const ResolveIterator &_rri);
 	//! Create a socket given its family, its type and its protocol type
-	int create(
+	bool create(
 		SocketInfo::Family = SocketInfo::Inet4,
 		SocketInfo::Type _type = SocketInfo::Stream,
 		int _proto = 0
 	);
 	//! Connect the socket
-	int connect(const SocketAddressStub &_rsas);
+	AsyncE connectNonBlocking(const SocketAddressStub &_rsas);
+	bool connect(const SocketAddressStub &_rsas);
 	//! Bind the socket to a specific addr:port
-	int bind(const SocketAddressStub &_rsa);
+	bool bind(const SocketAddressStub &_rsa);
 	//! Prepares the socket for accepting
-	int prepareAccept(const SocketAddressStub &_rsas, unsigned _listencnt = 10);
+	bool prepareAccept(const SocketAddressStub &_rsas, size_t _listencnt = 10);
 	//! Accept an incomming connection
-	int accept(SocketDevice &_dev);
+	AsyncE acceptNonBlocking(SocketDevice &_dev);
+	bool accept(SocketDevice &_dev);
 	//! Make a connection blocking
 	/*!
 		\param _msec if _msec > 0 will make socket blocking with the given amount of milliseconds
 	*/
-	int makeBlocking(int _msec = -1);
+	bool makeBlocking(size_t _msec);
+	bool makeBlocking();
 	//! Make the socket nonblocking
-	int makeNonBlocking();
+	bool makeNonBlocking();
 	//! Check if its blocking
-#ifndef ON_WINDOWS
-	int isBlocking()const;
-#endif
+	std::pair<bool, bool> isBlocking()const;
+	bool enableNoDelay();
+	bool disableNoDelay();
+	std::pair<bool, bool> hasNoDelay()const;
 	
-	int enableNoDelay();
-	int disableNoDelay();
-	int hasNoDelay()const;
+	bool enableCork();//TCP_CORK - only on linux, TCP_NOPUSH on FreeBSD
+	bool disableCork();
+	std::pair<bool, bool> hasCork()const;
 	
-	int enableCork();//TCP_CORK - only on linux, TCP_NOPUSH on FreeBSD
-	int disableCork();
-	int hasCork()const;
-	
-	int sendBufferSize(size_t _sz);
-	int recvBufferSize(size_t _sz);
-	int sendBufferSize()const;
-	int recvBufferSize()const;
-	//! Return true if nonblocking and the prevoious nonblocking opperation did not complete
-	/*!
-		In case of nonblocking sockets, use this method after:connect, accept, read, write,send
-		recv to see if the opearation failed temporarly and that you should try later.
-		Call this method imediatly after a connect,accept,send, recv when they return with error.
-	*/
-	bool shouldWait()const;
+	bool sendBufferSize(size_t _sz);
+	bool recvBufferSize(size_t _sz);
+	std::pair<bool, size_t> sendBufferSize()const;
+	std::pair<bool, size_t> recvBufferSize()const;
 	//! Write data on socket
-	int send(const char* _pb, unsigned _ul, unsigned _flags = 0);
+	int send(const char* _pb, size_t _ul, unsigned _flags = 0);
 	//! Reads data from a socket
-	int recv(char *_pb, unsigned _ul, unsigned _flags = 0);
+	int recv(char *_pb, size_t _ul, unsigned _flags = 0);
 	//! Send a datagram to a socket
-	int send(const char* _pb, unsigned _ul, const SocketAddressStub &_sap);
+	int send(const char* _pb, size_t _ul, const SocketAddressStub &_sap);
 	//! Recv data from a socket
-	int recv(char *_pb, unsigned _ul, SocketAddress &_rsa);
+	int recv(char *_pb, size_t _ul, SocketAddress &_rsa);
 	//! Gets the remote address for a connected socket
-	int remoteAddress(SocketAddress &_rsa)const;
+	bool remoteAddress(SocketAddress &_rsa)const;
 	//! Gets the local address for a socket
-	int localAddress(SocketAddress &_rsa)const;
+	bool localAddress(SocketAddress &_rsa)const;
 #ifdef ON_WINDOWS
 	static const DescriptorT invalidDescriptor(){
 		return INVALID_SOCKET;
@@ -96,10 +101,11 @@ public:
 #endif
 	void close();
 	//! Get the socket type
-	int type()const;
+	std::pair<bool, int> type()const;
 	//! Return true if the socket is listening
-	bool isListening()const;
+	//bool isListening()const;
 };
 
+}//namespace solid
 
 #endif

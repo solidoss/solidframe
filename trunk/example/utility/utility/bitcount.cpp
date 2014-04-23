@@ -2,6 +2,7 @@
 #include "utility/common.hpp"
 
 using namespace std;
+using namespace solid;
 
 uint32 compute_bit_count(uint32 _v){
 	uint32 cnt(0);
@@ -20,7 +21,7 @@ int main(int argc, char *argv[]){
 	if(argc == 2){
 		cout<<"Generate table for [0, 255]:"<<endl;
 		cout<<'{';
-		for(uint i = 0; i < 256; ++i){
+		for(size_t i = 0; i < 256; ++i){
 			if(!(i % 16)){
 				cout<<endl<<"\t";
 			}

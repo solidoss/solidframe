@@ -1,24 +1,12 @@
-/* Declarations file workpool.hpp
-	
-	Copyright 2007, 2008 Valentin Palade 
-	vipalade@gmail.com
-
-	This file is part of SolidFrame framework.
-
-	SolidFrame is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	SolidFrame is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-
-	You should have received a copy of the GNU General Public License
-	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
+// utility/workpool.hpp
+//
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+//
+// This file is part of SolidFrame framework.
+//
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
+//
 #ifndef UTILITY_WORKPOOL_HPP
 #define UTILITY_WORKPOOL_HPP
 
@@ -28,6 +16,8 @@
 
 #include "utility/common.hpp"
 #include "utility/queue.hpp"
+
+namespace solid{
 
 //! Base class for every workpool workers
 struct WorkerBase: Thread{
@@ -67,7 +57,8 @@ protected:
  * a template parameter for WorkPool.
  */
 struct WorkPoolControllerBase{
-	void prepareWorker(WorkerBase &_rw){
+	bool prepareWorker(WorkerBase &_rw){
+		return true;
 	}
 	void unprepareWorker(WorkerBase &_rw){
 	}
@@ -102,8 +93,10 @@ class WorkPool: public WorkPoolBase{
 	struct SingleWorker: W{
 		SingleWorker(ThisT &_rw):rw(_rw){}
 		void run(){
+			if(!rw.enterWorker(*this)){
+				return;
+			}
 			J	job;
-			rw.enterWorker(*this);
 			while(rw.pop(*this, job)){
 				rw.execute(*this, job);
 			}
@@ -114,9 +107,11 @@ class WorkPool: public WorkPoolBase{
 	struct MultiWorker: W{
 		MultiWorker(ThisT &_rw, ulong _maxcnt):rw(_rw), maxcnt(_maxcnt){}
 		void run(){
+			if(!rw.enterWorker(*this)){
+				return;
+			}
 			JobVectorT	jobvec;
 			if(maxcnt == 0) maxcnt = 1;
-			rw.enterWorker(*this);
 			while(rw.pop(*this, jobvec, maxcnt)){
 				rw.execute(*this, jobvec);
 				jobvec.clear();
@@ -142,7 +137,7 @@ public:
 	}
 	
 	~WorkPool(){
-		
+		stop(true);
 	}
 	
 	//! Push a new job
@@ -265,12 +260,14 @@ private:
 		return jobq.size();
 	}
 	
-	void enterWorker(WorkerT &_rw){
-		mtx.lock();
-		ctrl.prepareWorker(_rw);
+	bool enterWorker(WorkerT &_rw){
+		Locker<Mutex> lock(mtx);
+		if(!ctrl.prepareWorker(_rw)){
+			return false;
+		}
 		//++wkrcnt;
 		thrcnd.broadcast();
-		mtx.unlock();
+		return true;
 	}
 	void exitWorker(WorkerT &_rw){
 		mtx.lock();
@@ -292,6 +289,7 @@ private:
 	
 };
 
+}//namespace solid
 
 #endif
 

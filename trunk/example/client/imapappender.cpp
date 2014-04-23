@@ -30,7 +30,7 @@
 #include "system/timespec.hpp"
 #include "system/filedevice.hpp"
 //#include "common/utils.h"
-#include "writer.hpp"
+
 #include "base64stream.h"
 #include "system/common.hpp"
 #include "utility/istream.hpp"
@@ -41,6 +41,9 @@
 #include "boost/program_options.hpp"
 
 using namespace std;
+using namespace solid;
+
+#include "writer.hpp"
 
 namespace fs = boost::filesystem;
 using boost::filesystem::path;
@@ -187,7 +190,7 @@ int main(int argc, char *argv[]){
 		it = fs::directory_iterator(pth);
 		}catch ( const std::exception & ex ){
 			cout<<"iterator exception"<<endl;
-			return OK;
+			return 0;
 		}
 		while(it != end){
 			dirv.push(it->path().c_str(), is_directory(*it));
@@ -452,7 +455,7 @@ bool sendOutput(Writer &_wr, SocketDevice &_sd, SSL *_pssl, const Params &_p){
 // 	ifs.open("tmp.eml");
 // 	copystream(cout, ifs);
 	FileDevice fd;
-	fd.open("tmp.eml", FileDevice::RO);
+	fd.open("tmp.eml", FileDevice::ReadOnlyE);
 	FileStream fs(fd);
 	cout<<"Sending tmp file of size "<<fd.size()<<endl;
 	_wr<<"s3 append \""<<_p.folder<<'\"'<<' '<<lit(&fs, fd.size())<<crlf;
@@ -531,10 +534,10 @@ int readAtLeast(int _minsz, SSL *_pssl, char *_pb, unsigned _sz){
 }
 
 int readFindEither(const char *_f1, const char *_f2, SSL *_pssl, char *_pb, unsigned _sz){
-	uint32 maxfsz = strlen(_f1);
+	uint32		maxfsz = strlen(_f1);
 	if(strlen(_f2) > maxfsz) maxfsz = strlen(_f2);
-	char *pd = (char*)_pb;
-	uint toread = _sz - 1;
+	char 		*pd = (char*)_pb;
+	solid::uint	toread = _sz - 1;
 	while(true){
 		int rv = SSL_read(_pssl, pd, toread);
 		if(rv <= 0){
@@ -544,7 +547,7 @@ int readFindEither(const char *_f1, const char *_f2, SSL *_pssl, char *_pb, unsi
 		pd[rv] = '\0';
 		if(strstr(_pb, _f1)) return 0;
 		if(strstr(_pb, _f2)) return 1;
-		uint tcp = maxfsz;
+		solid::uint tcp = maxfsz;
 		if(tcp > rv) tcp = rv;
 		memmove(_pb, pd + rv - tcp, tcp);
 		pd = _pb + tcp;

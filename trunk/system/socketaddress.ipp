@@ -1,24 +1,12 @@
-/* Inline implementation file socketaddress.ipp
-	
-	Copyright 2007, 2008 Valentin Palade 
-	vipalade@gmail.com
-
-	This file is part of SolidGround framework.
-
-	SolidGround is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	SolidGround is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-
-	You should have received a copy of the GNU General Public License
-	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
+// system/socketaddress.ipp
+//
+// Copyright (c) 2012 Valentin Palade (vipalade @ gmail . com) 
+//
+// This file is part of SolidFrame framework.
+//
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
+//
 #ifdef NINLINES
 #define inline
 #endif
@@ -346,7 +334,7 @@ inline bool SocketAddress::toString(
 	_serv[0] = 0;
 	int rv = getnameinfo(sockAddr(), size(), _host, _hostcp, _serv, _servcp, _flags);
 	if(rv){
-		edbgx(Dbg::system, "getnameinfo: "<<strerror(errno));
+		edbgx(Debug::system, "getnameinfo: "<<strerror(errno));
 		return false;
 	}
 	return true;
@@ -397,6 +385,7 @@ inline bool SocketAddress::operator==(const SocketAddress &_raddr)const{
 }
 
 inline void SocketAddress::address(const char*_str){
+#ifndef ON_WINDOWS
 	d.addr.sa_family = 0;
 	d.inaddr4.sin_addr.s_addr = 0;
 	sz = 0;
@@ -412,6 +401,8 @@ inline void SocketAddress::address(const char*_str){
 		sz = sizeof(d.inaddr4);
 		return;
 	}
+#else
+#endif
 }
 
 inline const in_addr& SocketAddress::address4()const{
@@ -443,15 +434,15 @@ inline void SocketAddress::clear(){
 }
 inline size_t SocketAddress::hash()const{
 	if(isInet6()){
-		return ::hash(address6()) ^ d.inaddr6.sin6_port;
+		return in_addr_hash(address6()) ^ d.inaddr6.sin6_port;
 	}
-	return ::hash(address4()) ^ d.inaddr4.sin_port;
+	return in_addr_hash(address4()) ^ d.inaddr4.sin_port;
 }
 inline size_t SocketAddress::addressHash()const{
 	if(isInet6()){
-		return ::hash(address6());
+		return in_addr_hash(address6());
 	}
-	return ::hash(address4());
+	return in_addr_hash(address4());
 }
 
 inline void SocketAddress::path(const char*_pth){
@@ -567,10 +558,42 @@ inline bool SocketAddressInet::toString(
 	_serv[0] = 0;
 	int rv = getnameinfo(sockAddr(), size(), _host, _hostcp, _serv, _servcp, _flags);
 	if(rv){
-		edbgx(Dbg::system, "getnameinfo: "<<strerror(errno));
+		edbgx(Debug::system, "getnameinfo: "<<strerror(errno));
 		return false;
 	}
 	return true;
+}
+
+inline bool SocketAddressInet::toBinary(Binary4T &_bin, uint16 &_port)const{
+	if(isInet4()){
+		memcpy(_bin.data, &address4().s_addr, 4);
+		_port = d.inaddr4.sin_port;
+		return true;
+	}
+	return false;
+}
+
+inline bool SocketAddressInet::toBinary(Binary6T &_bin, uint16 &_port)const{
+	if(isInet6()){
+		memcpy(_bin.data, &address6().s6_addr, 16);
+		_port = d.inaddr6.sin6_port;
+		return true;
+	}
+	return false;
+}
+
+inline void SocketAddressInet::fromBinary(const Binary4T &_bin, uint16 _port){
+	sockAddr()->sa_family = AF_INET;
+	sz = sizeof(d.inaddr4);
+	memcpy(&d.inaddr4.sin_addr.s_addr, _bin.data, 4);
+	d.inaddr4.sin_port = _port;
+}
+
+inline void SocketAddressInet::fromBinary(const Binary6T &_bin, uint16 _port){
+	sockAddr()->sa_family = AF_INET6;
+	sz = sizeof(d.inaddr6);
+	memcpy(&d.inaddr6.sin6_addr.s6_addr, _bin.data, 16);
+	d.inaddr6.sin6_port = _port;
 }
 
 inline bool SocketAddressInet::operator<(const SocketAddressInet &_raddr)const{
@@ -618,6 +641,7 @@ inline bool SocketAddressInet::operator==(const SocketAddressInet &_raddr)const{
 }
 
 inline void SocketAddressInet::address(const char*_str){
+#ifndef ON_WINDOWS
 	d.addr.sa_family = 0;
 	d.inaddr4.sin_addr.s_addr = 0;
 	sz = 0;
@@ -633,6 +657,8 @@ inline void SocketAddressInet::address(const char*_str){
 		sz = sizeof(d.inaddr4);
 		return;
 	}
+#else
+#endif
 }
 
 inline const in_addr& SocketAddressInet::address4()const{
@@ -664,15 +690,15 @@ inline void SocketAddressInet::clear(){
 }
 inline size_t SocketAddressInet::hash()const{
 	if(isInet6()){
-		return ::hash(address6()) ^ d.inaddr6.sin6_port;
+		return in_addr_hash(address6()) ^ d.inaddr6.sin6_port;
 	}
-	return ::hash(address4()) ^ d.inaddr4.sin_port;
+	return in_addr_hash(address4()) ^ d.inaddr4.sin_port;
 }
 inline size_t SocketAddressInet::addressHash()const{
 	if(isInet6()){
-		return ::hash(address6());
+		return in_addr_hash(address6());
 	}
-	return ::hash(address4());
+	return in_addr_hash(address4());
 }
 
 inline SocketAddressInet::operator sockaddr*(){
@@ -761,7 +787,7 @@ inline bool SocketAddressInet4::toString(
 	_serv[0] = 0;
 	int rv = getnameinfo(sockAddr(), size(), _host, _hostcp, _serv, _servcp, _flags);
 	if(rv){
-		edbgx(Dbg::system, "getnameinfo: "<<strerror(errno));
+		edbgx(Debug::system, "getnameinfo: "<<strerror(errno));
 		return false;
 	}
 	return true;
@@ -797,6 +823,7 @@ inline bool SocketAddressInet4::operator==(const SocketAddressInet4 &_raddr)cons
 }
 
 inline void SocketAddressInet4::address(const char*_str){
+#ifndef ON_WINDOWS
 	d.addr.sa_family = AF_INET;
 	d.inaddr4.sin_addr.s_addr = 0;
 	int rv = inet_pton(AF_INET, _str, (void*)&this->d.inaddr4.sin_addr.s_addr);
@@ -804,6 +831,8 @@ inline void SocketAddressInet4::address(const char*_str){
 		sockAddr()->sa_family = AF_INET;
 		return;
 	}
+#else
+#endif
 }
 
 inline const in_addr& SocketAddressInet4::address()const{
@@ -821,10 +850,10 @@ inline void SocketAddressInet4::clear(){
 	port(0);
 }
 inline size_t SocketAddressInet4::hash()const{
-	return ::hash(address()) ^ d.inaddr4.sin_port;
+	return in_addr_hash(address()) ^ d.inaddr4.sin_port;
 }
 inline size_t SocketAddressInet4::addressHash()const{
-	return ::hash(address());
+	return in_addr_hash(address());
 }
 
 inline SocketAddressInet4::operator sockaddr*(){
@@ -918,7 +947,7 @@ inline bool SocketAddressInet6::toString(
 	_serv[0] = 0;
 	int rv = getnameinfo(sockAddr(), size(), _host, _hostcp, _serv, _servcp, _flags);
 	if(rv){
-		edbgx(Dbg::system, "getnameinfo: "<<strerror(errno));
+		edbgx(Debug::system, "getnameinfo: "<<strerror(errno));
 		return false;
 	}
 	return true;
@@ -956,6 +985,7 @@ inline bool SocketAddressInet6::operator==(const SocketAddressInet6 &_raddr)cons
 }
 
 inline void SocketAddressInet6::address(const char*_str){
+#ifndef ON_WINDOWS
 	d.addr.sa_family = AF_INET6;
 	memset(d.inaddr6.sin6_addr.s6_addr, 0, sizeof(d.inaddr6.sin6_addr.s6_addr));
 	int rv = inet_pton(AF_INET6, _str, (void*)&this->d.inaddr6.sin6_addr.s6_addr);
@@ -963,6 +993,8 @@ inline void SocketAddressInet6::address(const char*_str){
 		sockAddr()->sa_family = AF_INET6;
 		return;
 	}
+#else
+#endif
 }
 
 inline const in6_addr& SocketAddressInet6::address()const{
@@ -980,10 +1012,10 @@ inline void SocketAddressInet6::clear(){
 	port(0);
 }
 inline size_t SocketAddressInet6::hash()const{
-	return ::hash(address()) ^ d.inaddr6.sin6_port;
+	return in_addr_hash(address()) ^ d.inaddr6.sin6_port;
 }
 inline size_t SocketAddressInet6::addressHash()const{
-	return ::hash(address());
+	return in_addr_hash(address());
 }
 
 inline SocketAddressInet6::operator sockaddr*(){
@@ -1021,11 +1053,11 @@ inline bool operator==(const in6_addr &_inaddr1, const in6_addr &_inaddr2){
 	) == 0;
 }
 
-inline size_t hash(const in_addr &_inaddr){
+inline size_t in_addr_hash(const in_addr &_inaddr){
 	return _inaddr.s_addr;
 }
 
-inline size_t hash(const in6_addr &_inaddr){
+inline size_t in_addr_hash(const in6_addr &_inaddr){
 	//TODO
 	return 0;
 }

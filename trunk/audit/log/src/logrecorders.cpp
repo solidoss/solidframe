@@ -1,3 +1,12 @@
+// audit/log/logrecorders.hpp
+//
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+//
+// This file is part of SolidFrame framework.
+//
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
+//
 #include "audit/log/logrecorders.hpp"
 #include "audit/log/logclientdata.hpp"
 #include "audit/log/logrecord.hpp"
@@ -5,20 +14,22 @@
 #include <ctime>
 #include <string>
 using namespace std;
+
+namespace solid{
 namespace audit{
 
 //--------------------------------------------------------
 LogRecorder::~LogRecorder(){
 }
 //--------------------------------------------------------
-int LogFileRecorder::open(const char *_name){
+bool LogFileRecorder::open(const char *_name){
 	if(_name){
 		name = _name;
 	}
 	string path = name;
 	path += ".txt";
 	ofs.open(path.c_str());
-	return OK;
+	return true;
 }
 LogFileRecorder::~LogFileRecorder(){
 }
@@ -68,3 +79,4 @@ static const char* levelName(unsigned _lvl){
 
 
 }//namespace audit
+}//namespace solid

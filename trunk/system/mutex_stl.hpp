@@ -1,3 +1,12 @@
+// system/mutex_stl.hpp
+//
+// Copyright (c) 2012 Valentin Palade (vipalade @ gmail . com) 
+//
+// This file is part of SolidFrame framework.
+//
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
+//
 #ifndef SYSTEM_MUTEX_STL_HPP
 #define SYSTEM_MUTEX_STL_HPP
 
@@ -5,6 +14,8 @@
 #include <mutex>
 
 #include "system/timespec.hpp"
+
+namespace solid{
 
 struct Mutex: std::mutex{
 	typedef std::mutex base;
@@ -64,5 +75,6 @@ struct Locker: std::unique_lock<typename M::base>{
 	Locker(M &_m):std::unique_lock<typename M::base>(_m){}
 };
 
+}//namespace solid
 
 #endif

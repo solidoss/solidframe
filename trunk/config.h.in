@@ -6,4 +6,9 @@
 #cmakedefine HAS_SAFE_STATIC
 #cmakedefine HAS_GNU_ATOMIC
 
+#ifdef _LP64
+#define UWORDSIZE 64
+#else
+#define UWORDSIZE 32
+#endif
 
