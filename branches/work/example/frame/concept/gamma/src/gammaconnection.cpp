@@ -478,9 +478,9 @@ void Connection::appendContextString(std::string &_str){
 	
 	
 	if(sizeof(objid) == 8){
-		sprintf(buffer, "%llX-%X", objid, objuid);
+		sprintf(buffer, "%llX-%X", (unsigned long long)objid, objuid);
 	}else{
-		sprintf(buffer, "%X-%X", objid, objuid);
+		sprintf(buffer, "%lX-%X", objid, objuid);
 	}
 	_str += buffer;
 }

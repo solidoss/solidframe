@@ -110,7 +110,7 @@ struct String: Base{
 	template <class S>
 	void serialize(S &_s){
 		if(dflt){
-			_s;
+			//_s;
 		}else{
 			_s.pushUtf8(str, "String::str");
 		}

@@ -435,7 +435,7 @@ void filePath(string &_out, uint32 _pos, const string &_path, const string &_nam
 	char	buf[2048];
 	
 	if(_pos){
-		sprintf(buf, "_%04lu.dbg", _pos);
+		sprintf(buf, "_%04lu.dbg", (unsigned long)_pos);
 	}else{
 		sprintf(buf, ".dbg");
 	}

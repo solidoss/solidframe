@@ -15,8 +15,11 @@
 #define cassert(a) assert((a))
 #define cverify(a) assert((a))
 #else
+inline bool dummy(bool _b){
+	return _b;
+}
 #define cassert(a)
-#define cverify(a) (a)
+#define cverify(a) dummy((a))
 #endif
 
 

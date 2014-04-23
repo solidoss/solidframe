@@ -147,9 +147,11 @@ void Login::execute(const uint _sid){
 void Login::contextData(ObjectUidT &_robjuid){
 	cassert(ctx.size());
 	if(sizeof(_robjuid.first) == 8){
-		sscanf(ctx.c_str(), "%llX-%X", &_robjuid.first, &_robjuid.second);
+		unsigned long long v;
+		sscanf(ctx.c_str(), "%llX-%X", &v, &_robjuid.second);
+		_robjuid.first = v;
 	}else{
-		sscanf(ctx.c_str(), "%X-%X", &_robjuid.first, &_robjuid.second);
+		sscanf(ctx.c_str(), "%lX-%X", &_robjuid.first, &_robjuid.second);
 	}
 	ctx.clear();
 }
