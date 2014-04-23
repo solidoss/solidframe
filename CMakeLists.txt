@@ -240,6 +240,10 @@ if(HAS_CPP11FLAG AND HAS_CPP11)
 	set(SYS_NOLOG_FLAGS "${SYS_NOLOG_FLAGS} -std=c++0x")
 	set(SYS_RELEASE_FLAGS "${SYS_RELEASE_FLAGS} -std=c++0x")
 endif(HAS_CPP11FLAG AND HAS_CPP11)
+
+if(NOT HAS_CPP11)
+	set(SYS_BASIC_LIBS ${SYS_BASIC_LIBS} ${BOOST_SYSTEM_LIB})
+endif(NOT HAS_CPP11)
 #-----------------------------------------------------------------
 
 #-----------------------------------------------------------------

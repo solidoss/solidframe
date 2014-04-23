@@ -157,7 +157,7 @@ void Manager::start(){
 		utf8cfg.storagevec.push_back(solid::frame::file::Utf8Configuration::Storage());
 		utf8cfg.storagevec.back().globalprefix = "/";
 		utf8cfg.storagevec.back().localprefix = homedir;
-		if(utf8cfg.storagevec.back().localprefix.size() && utf8cfg.storagevec.back().localprefix.back() != '/'){
+		if(utf8cfg.storagevec.back().localprefix.size() && *utf8cfg.storagevec.back().localprefix.rbegin() != '/'){
 			utf8cfg.storagevec.back().localprefix.push_back('/');
 		}
 		
