@@ -2,20 +2,6 @@
 
 <wiki:toc max_depth="1" />
 
-==1.0 preview1==
-
- # (01) DONE: IPC gateway - relay IPC data through TCP for site-to-site communication.
- # (02) DONE: Move everything under solid and solid::frame namespaces
- # (05) DONE: Refactor solid::frame::Manager (ex. foundation::Manager)
- # (10) DONE: New binary protocol for client-server apps
- # (15) DONE: A distributed chat example (using the binary protocol) along with a stress client.
- # (20) DONE: Move the entire code under more liberal boost 1.0 license
- # (22) DONE: better response types - no more BAD/OK/NOK
- # (25) DONE: frame::shared::Store - asynchronous read/write lock.
- # (27) DONE: Refactor frame::file::Store to use frame::shared::Store
- # (30) DONE: Proper file rotation for debug
- # (35) DONE: Per service debug log level mask support and register all services on init
-
 ==1.0 alpha==
  # (40) PENDING: Improve consensus library by creating a usable authentication engine example
  # (45) PENDING: make install
@@ -46,13 +32,7 @@
 
 ==Done==
 
- # DONE:IPC: Add support for authenticating the ipc sessions.
- # DONE:IPC: Find a better way to disconnect after a failed authentication
- # DONE:IPC: Add support for sending authentication commands while in authenticating state. Commands with AuthenticationFlag set.(NEEDS proper testing!!!!)
- # DONE: IPC: Check that a failed authentication, raises the objects waiting for commands to be sent. There seems to be a bug!!
- # DONE: Serialization: add support for specific objects: insertSpecific
- # DONE: Try to optimize the memory usage for foundation::Object, related to the signal queue, by moving the queue onto the foundation::Service.
- # DONE: IPC gateway - relay IPC data through TCP for site-to-site communication.
+ # DONE:IPC gateway - relay IPC data through TCP for site-to-site communication.
  # DONE: Move everything under solid and solid::frame namespaces
  # DONE: Refactor solid::frame::Manager (ex. foundation::Manager)
  # DONE: New binary protocol for client-server apps
@@ -63,6 +43,12 @@
  # DONE: Refactor frame::file::Store to use frame::shared::Store
  # DONE: Proper file rotation for debug
  # DONE: Per service debug log level mask support and register all services on init
+ # DONE:IPC: Add support for authenticating the ipc sessions.
+ # DONE:IPC: Find a better way to disconnect after a failed authentication
+ # DONE:IPC: Add support for sending authentication commands while in authenticating state. Commands with AuthenticationFlag set.(NEEDS proper testing!!!!)
+ # DONE: IPC: Check that a failed authentication, raises the objects waiting for commands to be sent. There seems to be a bug!!
+ # DONE: Serialization: add support for specific objects: insertSpecific
+ # DONE: Try to optimize the memory usage for foundation::Object, related to the signal queue, by moving the queue onto the foundation::Service.
  # DONE: Optimize specific memory cache by dropping usage of queues and using a simple linked list.
  # DONE: Add support for compressing ipc buffers.
  # DONE: Improve binary serialization performance and create better test applications
