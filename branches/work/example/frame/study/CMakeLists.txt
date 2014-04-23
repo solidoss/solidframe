@@ -1,2 +1,0 @@
-add_subdirectory(sharedobjectmanager)
-add_subdirectory(manyobjects)
