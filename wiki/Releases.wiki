@@ -3,6 +3,7 @@
 <wiki:toc max_depth="1" />
 
 = 1.0.1439.preview1 =
+
  # DONE:IPC gateway - relay IPC data through TCP for site-to-site communication.
  # DONE: Move everything under solid and solid::frame namespaces
  # DONE: Refactor solid::frame::Manager (ex. foundation::Manager)
@@ -17,14 +18,12 @@
 
 = 0.9.1084 =
 
-Changes:
  * Refactor the socketaddress interface.
  * Fix foundation::file library
  * Small improvements in ipc library
 
 = 0.9.977 =
 
-Main changes:
   * OS: improved support for PC/Free-BSD and MacOS
   * OS: partial support for windows (with help from boost library) - everything but foundation.
   * IPC: Add support for authenticating the ipc sessions.
@@ -49,13 +48,11 @@ Main changes:
 
 = 0.9.850 =
 
-Main changes:
   * Added support for kqueue enabling support for FreeBSD and MacOSX (tested on MacOSX 10.6)
   * Added support for real time and monotonic time in system/TimeSpec
 
 = 0.9.824 =
 
-Main changes:
   * The biggest addition is the new distributed/consensus/Object enabling support for distributed replicated consensual objects - implementing Fast Multi PAXOS algorithm.
   * Big fix in ipcsession.
   * Improved objectselector and fixed aioselector.
