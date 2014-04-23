@@ -3,10 +3,14 @@
 <wiki:toc max_depth="1" />
 
 = 1.0.1439-preview1 =
-NOTES: 
+
+==Notes==
+
  * The API has major changes.
  * There is no documentation at this moment.
  * Mostly tested on Linux/FreeBSD 
+
+==Changes==
 
  # DONE:IPC gateway - relay IPC data through TCP for site-to-site communication.
  # DONE: Move everything under solid and solid::frame namespaces
