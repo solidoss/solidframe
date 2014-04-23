@@ -23,10 +23,10 @@
  # (55) PENDING: Testing and fixing.
 
 ==1.0 beta==
- # (05) PENDING: More testing and fixing.
+ # (60) PENDING: More testing and fixing.
 
 ==1.0==
- # (10) PENDING: Update Wiki.
+ # (70) PENDING: Update Wiki.
 
 ==Pool of pending features and changes==
  # (05) Use (std/boost::system)::error_code across solid.
