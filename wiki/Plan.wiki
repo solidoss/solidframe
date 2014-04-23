@@ -52,6 +52,17 @@
  # DONE: IPC: Check that a failed authentication, raises the objects waiting for commands to be sent. There seems to be a bug!!
  # DONE: Serialization: add support for specific objects: insertSpecific
  # DONE: Try to optimize the memory usage for foundation::Object, related to the signal queue, by moving the queue onto the foundation::Service.
+ # DONE: IPC gateway - relay IPC data through TCP for site-to-site communication.
+ # DONE: Move everything under solid and solid::frame namespaces
+ # DONE: Refactor solid::frame::Manager (ex. foundation::Manager)
+ # DONE: New binary protocol for client-server apps
+ # DONE: A distributed chat example (using the binary protocol) along with a stress client.
+ # DONE: Move the entire code under more liberal boost 1.0 license
+ # DONE: better response types - no more BAD/OK/NOK
+ # DONE: frame::shared::Store - asynchronous read/write lock.
+ # DONE: Refactor frame::file::Store to use frame::shared::Store
+ # DONE: Proper file rotation for debug
+ # DONE: Per service debug log level mask support and register all services on init
  # DONE: Optimize specific memory cache by dropping usage of queues and using a simple linked list.
  # DONE: Add support for compressing ipc buffers.
  # DONE: Improve binary serialization performance and create better test applications
