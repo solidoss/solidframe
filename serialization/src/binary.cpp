@@ -148,6 +148,8 @@ int SerializerBase::run(char *_pb, unsigned _bl, void *_pctx){
 			case Failure: 
 				resetLimits();
 				return -1;
+			default:
+				return -1;
 		}
 	}
 	resetLimits();
@@ -752,6 +754,8 @@ int DeserializerBase::run(const char *_pb, unsigned _bl, void *_pctx){
 			case Failure:
 				idbgx(Debug::ser_bin, "error: "<<errorString());
 				resetLimits();
+				return -1;
+			default:
 				return -1;
 		}
 	}

@@ -283,7 +283,7 @@ int main(int argc, char *argv[]){
 				}
 				string s;
 				cin>>s;
-				if(s.size() == 1 && s[0] == 'q' || s[0] == 'Q') break;
+				if((s.size() == 1) && (s[0] == 'q' || s[0] == 'Q')) break;
 				msgptr = new SecondMessage(idx++, s);
 				ccptr->send(msgptr);
 			}

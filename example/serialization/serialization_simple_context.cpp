@@ -124,7 +124,7 @@ struct String: Base{
 	void serialize(S &_s, Context &_rctx){
 		_rctx.print();
 		if(dflt){
-			_s;
+			//_s;
 		}else{
 			_s.pushUtf8(str, "String::str");
 		}
