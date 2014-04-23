@@ -4,7 +4,7 @@
 
 = 1.0.1439.preview1 =
  # DONE:IPC: Add support for authenticating the ipc sessions.
- # DONE: IPC gateway - relay IPC data through TCP for site-to-site communication.
+ # DONE:IPC gateway - relay IPC data through TCP for site-to-site communication.
  # DONE: Move everything under solid and solid::frame namespaces
  # DONE: Refactor solid::frame::Manager (ex. foundation::Manager)
  # DONE: New binary protocol for client-server apps
