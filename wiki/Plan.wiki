@@ -2,7 +2,7 @@
 
 <wiki:toc max_depth="1" />
 
-1.0 preview1
+==1.0 preview1==
 
  # (01) DONE: IPC gateway - relay IPC data through TCP for site-to-site communication.
  # (02) DONE: Move everything under solid and solid::frame namespaces
@@ -16,16 +16,19 @@
  # (30) DONE: Proper file rotation for debug
  # (35) DONE: Per service debug log level mask support and register all services on init
 
-1.0 alpha
- # () PENDING: 
- # (40) PENDING: make install
+==1.0 alpha==
+ # (40) PENDING: Improve consensus library by creating a usable authentication engine example
+ # (45) PENDING: make install
+ # (50) PENDING: API documentation.
+ # (55) PENDING: Testing and fixing.
 
-1.0
- # (01) PENDING: API documentation.
- # (05) PENDING: Testing and fixing.
+==1.0 beta==
+ # (05) PENDING: More testing and fixing.
+
+==1.0==
  # (10) PENDING: Update Wiki.
 
-Pool of pending features and changes
+==Pool of pending features and changes==
  # (05) Use (std/boost::system)::error_code across solid.
  # (10) (IPC) Add NoCompression message flag. This should be used for messages containing already compressed data. The ipc module will try to send without compression, most of the packets that the message is spread upon.
  # (15) (IPC) Add support for adaptable compression:
@@ -36,12 +39,12 @@ Pool of pending features and changes
  # (10) Consensus algorithm: add support for read requests which must be completed only by the coordinator.
  # Add support to frame::Service to start the unique part of Object::uid() from a given value.
 
-Bugs:
+==Bugs==
 
  # Frame concept sample application doesn't stop when virtual machine is suspended then resumed.
 
 
-Done:
+==Done==
 
  # DONE:IPC: Add support for authenticating the ipc sessions.
  # DONE:IPC: Find a better way to disconnect after a failed authentication
