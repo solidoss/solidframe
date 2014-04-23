@@ -1,24 +1,12 @@
-/* Declarations file queue.hpp
-	
-	Copyright 2007, 2008 Valentin Palade 
-	vipalade@gmail.com
-
-	This file is part of SolidFrame framework.
-
-	SolidFrame is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	SolidFrame is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-
-	You should have received a copy of the GNU General Public License
-	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
+// utility/queue.hpp
+//
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+//
+// This file is part of SolidFrame framework.
+//
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
+//
 #ifndef UTILITY_QUEUE_HPP
 #define UTILITY_QUEUE_HPP
 
@@ -28,8 +16,9 @@
 #include "system/cassert.hpp"
 #include "system/debug.hpp"
 
+namespace solid{
 
-//! A simple and fast queue with interface similar to std one
+//! A simple and fast queue with interface similar to std::queue
 /*!
 	The advantages are:
 	- twice faster then the std one
@@ -39,8 +28,8 @@
 template <class T, size_t NBits = 5>
 class Queue{
 	enum{
-		NodeMask = BitsToMsk(NBits),
-		NodeSize = BitsToCnt(NBits)
+		NodeMask = BitsToMask(NBits),
+		NodeSize = BitsToCount(NBits)
 	};
 	struct Node{
 		Node(Node *_pnext = NULL): next(_pnext){}
@@ -84,7 +73,6 @@ public:
 	void pop(){
 		pf->~T();
 		--sz;
-		cassert(sz < 1000000);
 		if((++popsz) & NodeMask) ++pf;
 		else{ pf = popNode(pf);popsz = 0;}
 	}
@@ -141,5 +129,6 @@ private:
 	Node		*ptn;//empty nodes
 };
 
+}//namespace solid
 
 #endif

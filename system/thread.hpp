@@ -1,24 +1,12 @@
-/* Declarations file thread.hpp
-	
-	Copyright 2007, 2008 Valentin Palade 
-	vipalade@gmail.com
-
-	This file is part of SolidFrame framework.
-
-	SolidFrame is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	SolidFrame is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-
-	You should have received a copy of the GNU General Public License
-	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
+// system/thread.hpp
+//
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+//
+// This file is part of SolidFrame framework.
+//
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
+//
 #ifndef SYSTEM_THREAD_HPP
 #define SYSTEM_THREAD_HPP
 
@@ -32,7 +20,12 @@
 #endif
 
 #include <vector>
+#include "system/error.hpp"
 #include "system/common.hpp"
+
+namespace solid{
+
+
 
 struct Mutex;
 
@@ -64,11 +57,11 @@ public:
 	//! Releases the processor for another thread
 	static void yield();
 	//! Returns a pointer to the current thread
-	static Thread * current();
+	static Thread& current();
 	//! Returns the id of the current thread
 	static long currentId();
 	//! Returns a new id for use with specific objects
-	static unsigned specificId();
+	static size_t specificId();
 	//! Returns the data for a specific id
 	static void* specific(unsigned _pos);
 	//! Sets the data for a specific id, allong with a pointer to a destructor function
@@ -82,15 +75,20 @@ public:
 		\param _detached If true create the thread in a detached state
 		\param _stacksz 
 	*/
-	int start(bool _wait = false, bool _detached = true, ulong _stacksz = 0);
+	bool start(bool _wait = false, bool _detached = true, ulong _stacksz = 0);
 	//! Join the calling thread
-	int join();
+	bool join();
 	//! Check if the thread is detached
-	int detached() const;
+	bool detached() const;
 	//! Detach the thread
-	int detach();
+	bool detach();
 	
 	Mutex& mutex()const;
+	
+	void specificErrorClear();
+	void specificErrorPush(const ErrorStub &_rerr);
+	ErrorVectorT const& specificErrorGet()const;
+	
 protected:
 #ifdef _WIN32
 	Thread(bool _detached = true, void* _th = NULL);
@@ -106,7 +104,10 @@ protected:
 	virtual void run() = 0;
 private:
 	//a dummy function
-	static int current(Thread *_ptb);
+	static void free_thread(void *_ptr);
+	static Thread* associateToCurrent();
+	
+	static void current(Thread *_ptb);
 	Thread(const Thread&){}
 #ifdef ON_WINDOWS
 	static unsigned long th_run(void*);
@@ -127,9 +128,10 @@ private:
 #else
 	pthread_t       th;
 #endif
-	int				dtchd;
+	bool			dtchd;
 	unsigned        thcrtstatid;
 	SpecVecT		specvec;
+	ErrorVectorT	errvec;
 	ThreadStub		*pthrstub;
 };
 
@@ -145,6 +147,18 @@ inline long Thread::currentId(){
 	return (long)pthread_self();
 }
 #endif
+
+inline void Thread::specificErrorClear(){
+	errvec.clear();
+}
+inline void Thread::specificErrorPush(const ErrorStub &_rerr){
+	errvec.push_back(_rerr);
+}
+inline ErrorVectorT const& Thread::specificErrorGet()const{
+	return errvec;
+}
+
+}//namespace solid
 
 #endif
 

@@ -23,6 +23,6 @@ set(Headers
 set(Inlines	
 )
 
-add_library (audit_log_manager
+add_library (solid_audit_log_manager
 	${Sources} ${Headers} ${Inlines}
 )

@@ -1,7 +1,19 @@
+// utility/memory.hpp
+//
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+//
+// This file is part of SolidFrame framework.
+//
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
+//
 #ifndef UTILITY_MEMORY_HPP
 #define UTILITY_MEMORY_HPP
 
 #include "system/common.hpp"
+#include "system/atomic.hpp"
+
+namespace solid{
 
 struct EmptyChecker{
 	EmptyChecker(const char *_fncname):v(0), fncname(_fncname){}
@@ -9,8 +21,9 @@ struct EmptyChecker{
 	void add();
 	void sub();
 private:
-	unsigned long v;
-	const char * fncname;
+	typedef ATOMIC_NS::atomic<size_t>			AtomicSizeT;
+	AtomicSizeT	v;
+	const char 	*fncname;
 };
 
 #ifdef UDEBUG
@@ -51,6 +64,8 @@ template <class T>
 void objectCheck(bool _add, const char *){
 }
 #endif
+
+}//namespace solid
 
 
 #endif

@@ -6,6 +6,8 @@
 #include <iostream>
 #include "system/cassert.hpp"
 
+using namespace solid;
+
 typedef Cacheable<std::vector<int>, 2> CacheableVecT;
 typedef Cacheable<std::string, 2> CacheableStringT;
 

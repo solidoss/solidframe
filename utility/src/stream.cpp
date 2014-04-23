@@ -1,30 +1,20 @@
-/* Implementation file stream.cpp
-	
-	Copyright 2007, 2008 Valentin Palade 
-	vipalade@gmail.com
-
-	This file is part of SolidFrame framework.
-
-	SolidFrame is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	SolidFrame is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-
-	You should have received a copy of the GNU General Public License
-	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
+// utility/src/stream.cpp
+//
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+//
+// This file is part of SolidFrame framework.
+//
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
+//
 #include <cstdlib>
 #include "utility/stream.hpp"
 #include "utility/istream.hpp"
 #include "utility/ostream.hpp"
 #include "utility/iostream.hpp"
 #include "utility/streampointer.hpp"
+
+namespace solid{
 
 void StreamPointerBase::clear(Stream *_ps){
 	if(_ps->release()) delete _ps;
@@ -93,3 +83,5 @@ int OutputStream::write(uint64 _offset, const char *_pbuf, uint32 _blen, uint32 
 	 seek(crtoff);
 	 return rv;
 }
+
+}//namespace solid

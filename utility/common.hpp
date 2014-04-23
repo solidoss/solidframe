@@ -1,28 +1,18 @@
-/* Declarations file common.hpp
-	
-	Copyright 2007, 2008 Valentin Palade 
-	vipalade@gmail.com
-
-	This file is part of SolidFrame framework.
-
-	SolidFrame is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	SolidFrame is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-
-	You should have received a copy of the GNU General Public License
-	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
+// utility/common.hpp
+//
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+//
+// This file is part of SolidFrame framework.
+//
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
+//
 #ifndef UTILITY_COMMON_HPP
 #define UTILITY_COMMON_HPP
 
 #include "system/common.hpp"
+
+namespace solid{
 
 template <typename T>
 inline T tmax(const T &v1, const T &v2){
@@ -133,11 +123,11 @@ struct CRCValue<uint64>{
 		return v != (uint64)-1;
 	}
 	const uint64 value()const{
-		return v & ((1ULL << 58) - 1);
+		return v >> 6;
 	}
 	
 	const uint64 crc()const{
-		return v >> 58;
+		return v & ((1ULL << 6) - 1);
 	}
 	
 	operator uint64()const{
@@ -165,11 +155,13 @@ struct CRCValue<uint32>{
 		return v != (uint32)-1;
 	}
 	uint32 value()const{
-		return v & ((1UL << 27) - 1);
+		//return v & ((1UL << 27) - 1);
+		return v >> 5;
 	}
 	
 	uint32 crc()const{
-		return v >> 27;
+		//return v >> 27;
+		return v & ((1UL << 5) - 1);
 	}
 	
 	operator uint32()const{
@@ -196,10 +188,12 @@ struct CRCValue<uint16>{
 		return v != (uint16)-1;
 	}
 	uint16 value()const{
-		return v & ((1 << 12) - 1);
+		//return v & ((1 << 12) - 1);
+		return v >> 4;
 	}
 	uint16 crc()const{
-		return v >> 12;
+		//return v >> 12;
+		return v & ((1 << 4) - 1);
 	}
 	operator uint16()const{
 		return v;
@@ -223,10 +217,12 @@ struct CRCValue<uint8>{
 		return v != (uint8)-1;
 	}
 	uint8 value()const{
-		return v & ((1 << 5) - 1);
+		//return v & ((1 << 5) - 1);
+		return v >> 3;
 	}
 	uint8 crc()const{
-		return v >> 5;
+		//return v >> 5;
+		return v & ((1 << 3) - 1);
 	}
 	operator uint8()const{
 		return v;
@@ -243,5 +239,47 @@ struct NumberType{
 	};
 };
 
+inline void pack(uint32 &_v, const uint16 _v1, const uint16 _v2){
+	_v = _v2;
+	_v <<= 16;
+	_v |= _v1;
+}
+
+inline uint32 pack(const uint16 _v1, const uint16 _v2){
+	uint32 v;
+	pack(v, _v1, _v2);
+	return v;
+}
+
+
+inline void unpack(uint16 &_v1, uint16 &_v2, const uint32 _v){
+	_v1 = _v & 0xffffUL;
+	_v2 = (_v >> 16) & 0xffffUL;
+}
+
+extern const uint8 reverted_chars[];
+
+inline uint32 bit_revert(const uint32 _v){
+	uint32 r = (((uint32)reverted_chars[_v   & 0xff]) << 24);
+	r |= (((uint32)reverted_chars[(_v >>  8) & 0xff]) << 16);
+	r |= (((uint32)reverted_chars[(_v >> 16) & 0xff]) << 8);
+	r |= (((uint32)reverted_chars[(_v >> 24) & 0xff]) << 0);
+	return r;
+}
+
+inline uint64 bit_revert(const uint64 _v){
+	uint64 r = (((uint64)reverted_chars[_v   & 0xff]) << 56);
+	r |= (((uint64)reverted_chars[(_v >>  8) & 0xff]) << 48);
+	r |= (((uint64)reverted_chars[(_v >> 16) & 0xff]) << 40);
+	r |= (((uint64)reverted_chars[(_v >> 24) & 0xff]) << 32);
+	
+	r |= (((uint64)reverted_chars[(_v >> 32) & 0xff]) << 24);
+	r |= (((uint64)reverted_chars[(_v >> 40) & 0xff]) << 16);
+	r |= (((uint64)reverted_chars[(_v >> 48) & 0xff]) << 8);
+	r |= (((uint64)reverted_chars[(_v >> 56) & 0xff]) << 0);
+	return r;
+}
+
+}//namespace solid
 
 #endif

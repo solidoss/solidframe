@@ -10,7 +10,7 @@ set(Headers
 set(Inlines
 )
 
-add_library (audit_log
+add_library (solid_audit_log
 	${Sources} ${Headers} ${Inlines}
 )
 

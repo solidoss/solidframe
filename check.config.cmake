@@ -23,7 +23,7 @@ file (READ "${CMAKE_CURRENT_SOURCE_DIR}/check/kqueue.cpp" source_code)
 CHECK_CXX_SOURCE_RUNS("${source_code}" HAS_KQUEUE)
 
 
-file (READ "${CMAKE_CURRENT_SOURCE_DIR}/check/unorderedmap.cpp" source_code)
+file (READ "${CMAKE_CURRENT_SOURCE_DIR}/check/cpp11.cpp" source_code)
 
 set(CMAKE_REQUIRED_FLAGS -std=c++0x)
 

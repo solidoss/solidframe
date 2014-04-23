@@ -36,9 +36,9 @@ endif(EXISTS ${CMAKE_SOURCE_DIR}/.svn)
 #-----------------------------------------------------------------
 # Extra user definitions
 #-----------------------------------------------------------------
-message("UDEFS set as "${UDEFS})
-message("UEXTERN set as "${UEXTERN})
-message("UEXTERN_ABS set as "${UEXTERN_ABS})
+message("UDEFS set as " ${UDEFS})
+message("UEXTERN set as " ${UEXTERN})
+message("UEXTERN_ABS set as " ${UEXTERN_ABS})
 
 
 set(EXTRA_DEFINITIONS "${UDEFS}" CACHE STRING "Extra compiler definitions")
@@ -63,7 +63,7 @@ else(ExtAbsLen GREATER 0)
 	endif(ExtLen GREATER 0)
 endif(ExtAbsLen GREATER 0)
 
-message("EXTERN_PATH set as "${EXTERN_PATH})
+message("EXTERN_PATH set as " ${EXTERN_PATH})
 
 #-----------------------------------------------------------------
 # Find libraries
@@ -193,7 +193,7 @@ if(CMAKE_SYSTEM MATCHES "Linux*")
 	set(SYS_MAINTAIN_LINKER_FLAGS "-Wl,--warn-unresolved-symbols,--warn-once")
 	set(SYS_OPTIMIZED_LINKER_FLAGS "")
 	set(SYS_NOLOG_LINKER_FLAGS "")
-	set(SYS_RELEASE_LINKER_FLAGS "")
+	set(SYS_RELEASE_LINKER_FLAGS "-O3")
 	
 	set(SYS_BASIC_LIBS pthread rt)
 	set(SYS_DYNAMIC_LOAD_LIB dl)
@@ -368,12 +368,14 @@ endif(UTESTING)
 #-----------------------------------------------------------------
 add_subdirectory (system)
 add_subdirectory (utility)
-add_subdirectory (algorithm)
-add_subdirectory (foundation)
+add_subdirectory (serialization)
+add_subdirectory (protocol)
 add_subdirectory (audit)
 add_subdirectory (test)
 add_subdirectory (example)
 add_subdirectory (library)
 add_subdirectory (application)
-add_subdirectory (distributed)
+add_subdirectory (consensus)
+add_subdirectory(frame)
 #-----------------------------------------------------------------
+

@@ -6,8 +6,9 @@
 
 #include <string>
 #include <iostream>
-using namespace std;
 
+using namespace std;
+using namespace solid;
 
 
 struct MyThread: Thread{
@@ -62,18 +63,18 @@ int main(int argc, char *argv[]){
 #ifdef UDEBUG
 	{
 	string dbgout;
-	Dbg::instance().levelMask("view");
-	Dbg::instance().moduleMask("any");
+	Debug::the().levelMask("view");
+	Debug::the().moduleMask("any");
 
-	/*Dbg::instance().initStdErr(
+	/*Debug::the().initStdErr(
 		false,
 		&dbgout
 	);*/
-	Dbg::instance().initSocket("192.168.201.100", "1114", false, &dbgout);
-	//Dbg::instance().initFile("test_wait",false);
+	Debug::the().initSocket("192.168.201.100", "1114", false, &dbgout);
+	//Debug::the().initFile("test_wait",false);
 	cout<<"Debug output: "<<dbgout<<endl;
 	dbgout.clear();
-	Dbg::instance().moduleBits(dbgout);
+	Debug::the().moduleNames(dbgout);
 	cout<<"Debug modules: "<<dbgout<<endl;
 	}
 #endif

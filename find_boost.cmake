@@ -7,6 +7,16 @@ FIND_LIBRARY(BOOST_TIME_LIB
                     ${EXTERN_PATH}/lib
                 NO_DEFAULT_PATH)
 
+FIND_LIBRARY(BOOST_ATOMIC_LIB
+                NAMES
+					libboost_atomic.lib
+                    libboost_atomic.a
+                    boost_atomic
+                PATHS
+                    ${EXTERN_PATH}/lib
+                NO_DEFAULT_PATH)
+
+                
 FIND_LIBRARY(BOOST_PROGRAM_OPTIONS_LIB
                 NAMES
                     libboost_program_options.lib

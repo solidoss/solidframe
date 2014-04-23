@@ -1,24 +1,12 @@
-/* Implementation file open.cpp
-	
-	Copyright 2007, 2008 Valentin Palade 
-	vipalade@gmail.com
-
-	This file is part of SolidFrame framework.
-
-	SolidFrame is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	SolidFrame is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-
-	You should have received a copy of the GNU General Public License
-	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
+// open.cpp
+//
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+//
+// This file is part of SolidFrame framework.
+//
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
+//
 #include <iostream>
 #include <fstream>
 #include <boost/filesystem/operations.hpp>
@@ -29,7 +17,9 @@
 #include <deque>
 #include <cstring>
 #include <cerrno>
+
 using namespace std;
+using namespace solid;
 
 template <class T>
 static T align(T _v, ulong _by);
@@ -140,7 +130,7 @@ int main(int argc, char *argv[]){
 		cout<<"./file_open_pool /path/to/folder file-count folder-count"<<endl;
 		return 0;
 	}
-	char c;
+	//char c;
 	char name[1024];
 	int filecnt   = atoi(argv[2]);
 	int foldercnt   = atoi(argv[3]);
@@ -157,7 +147,7 @@ int main(int argc, char *argv[]){
 			sprintf(fname, "/%08u.txt", j);
 			++cnt;
 			fdq.push_back(FileDevice());
-			if(fdq.back().open(name, FileDevice::RW)){
+			if(fdq.back().open(name, FileDevice::ReadWriteE)){
 				cout<<"error "<<strerror(errno)<<" "<<cnt<<endl;
 				cout<<"failed to open file "<<name<<endl;
 				return 0;

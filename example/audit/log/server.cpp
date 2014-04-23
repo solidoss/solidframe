@@ -14,6 +14,7 @@
 #endif
 
 using namespace std;
+using namespace solid;
 
 #ifdef ON_WINDOWS
 typedef HANDLE DescriptorT;
@@ -48,10 +49,10 @@ static const int invalid_descriptor = -1;
 void close_descriptor(int _d){
 	::close(_d);
 }
-int doread(DescriptorT _d, char *_pb, uint _sz){
+int doread(DescriptorT _d, char *_pb, solid::uint _sz){
 	return ::read(_d, _pb, _sz);
 }
-int dowrite(DescriptorT _d, const char *_pb, uint _sz){
+int dowrite(DescriptorT _d, const char *_pb, solid::uint _sz){
 	return ::write(_d, _pb, _sz);
 }
 void create_pipe(DescriptorT *_ph){
@@ -105,9 +106,9 @@ int main(int _argc, char *argv[]){
 #endif
 	create_pipe(pairfd);
 #ifdef UDEBUG
-	Dbg::instance().levelMask();
-	Dbg::instance().moduleMask();
-	Dbg::instance().initStdErr();
+	Debug::the().levelMask();
+	Debug::the().moduleMask();
+	Debug::the().initStdErr();
 #endif
 	audit::LogManager lm;
 	lm.start();
@@ -115,7 +116,7 @@ int main(int _argc, char *argv[]){
 	lm.insertListener("localhost", "8888");
 	Directory::create("log");
 	lm.insertConnector(new audit::LogBasicConnector("log"));
-	Log::instance().reinit(argv[0], Log::AllLevels, "ALL", new DeviceInputOutputStream(pairfd[1],invalid_descriptor));
+	Log::the().reinit(argv[0], new DeviceInputOutputStream(pairfd[1],invalid_descriptor), "ALL");
 	
 	string s;
 	while(true){

@@ -16,10 +16,10 @@
 #include "system/cassert.hpp"
 #include "system/socketaddress.hpp"
 #include "system/thread.hpp"
-//#include "common/utils.h"
-#include "writer.hpp"
 
 using namespace std;
+using namespace solid;
+#include "writer.hpp"
 
 //----------------------------------------------------------------------------
 template <class T, T C1>
@@ -79,7 +79,7 @@ int main(int argc, char *argv[]){
 		return 0;
 	}
 	FileDevice fd;
-	fd.create(argv[6], FileDevice::WO);
+	fd.create(argv[6], FileDevice::WriteOnlyE);
 	Writer wr(sd);
 	if(*argv[3] && *argv[4]){
 		wr<<"f1 fetch \""<<argv[5]<<'\"'<<" \""<<argv[3]<<"\" "<<argv[4]<<crlf;

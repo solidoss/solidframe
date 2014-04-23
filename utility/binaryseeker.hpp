@@ -1,25 +1,18 @@
-/* Declarations file binaryseeker.hpp
-	
-	Copyright 2007, 2008 Valentin Palade 
-	vipalade@gmail.com
-
-	This file is part of SolidFrame framework.
-
-	SolidFrame is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	SolidFrame is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-
-	You should have received a copy of the GNU General Public License
-	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
-*/
+// utility/binaryseeker.hpp
+//
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+//
+// This file is part of SolidFrame framework.
+//
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
+//
 #ifndef UTILITY_BINARY_SEEKER_HPP
 #define UTILITY_BINARY_SEEKER_HPP
+
+#include <memory>
+
+namespace solid{
 
 //! A basic comparator for binary seeker using less (<) operator.
 /*!
@@ -90,8 +83,13 @@ struct BasicComparator{
 	</code>
 */
 
+typedef std::pair<bool, size_t>	BinarySeekerResultT;
+
 template <class Cmp = BasicComparator>
 struct BinarySeeker{
+	
+	typedef BinarySeekerResultT ResultT;
+	
 	//! Seeks for requested key, within the range given by _from iterator and _to itereator
 	/*!
 		\retval >= 0 the position where the item was found
@@ -105,46 +103,46 @@ struct BinarySeeker{
 		
 	*/
 	template<class It, class Key>
-	int operator()(It _from, It _to, const Key &_rk)const{
-		const It beg(_from);
-		register int midpos;
+	ResultT operator()(It _from, It _to, const Key &_rk)const{
+		const It	beg(_from);
+		size_t		midpos;
 		while(_to > _from){
 			midpos = (_to - _from) >> 1;
 			int r = cmp(*(_from + midpos), _rk);
-			if(!r) return _from - beg + midpos;
+			if(!r) return ResultT(true, _from - beg + midpos);
 			if(r < 0){
 				_from += (midpos + 1);
 			}else{
 				_to = _from + midpos;
 			}
 		}
-		return (- (_from - beg) - 1);
+		return ResultT(false, _from - beg);
 	}
 	
 	template<class It, class Key>
-	int first(It _from, It _to, const Key &_rk)const{
-		int p = (*this)(_from, _to, _rk);
-		if(p < 0) return p;//not found
-		while(p && !cmp(*(_from + p - 1), _rk)){
-			p =  (*this)(_from, _from + p, _rk);
+	ResultT first(It _from, It _to, const Key &_rk)const{
+		ResultT p = (*this)(_from, _to, _rk);
+		if(!p.first) return p;//not found
+		
+		while(p.second && !cmp(*(_from + p.second - 1), _rk)){
+			p =  (*this)(_from, _from + p.second, _rk);
 		}
 		return p;
 	}
 	
 	template<class It, class Key>
-	int last(It _from, It _to, const Key &_rk)const{
-		int p = (*this)(_from, _to, _rk);
-		if(p < 0) return p;//not found
-		while(p != (_to - _from - 1) && !cmp(*(_from + p + 1), _rk)){
-			p =  (*this)(_from + p + 1, _to, _rk);
+	ResultT last(It _from, It _to, const Key &_rk)const{
+		ResultT p = (*this)(_from, _to, _rk);
+		if(!p.first) return p;//not found
+		while(p.second != (_to - _from - 1) && !cmp(*(_from + p.second + 1), _rk)){
+			p =  (*this)(_from + p.second + 1, _to, _rk);
 		}
 		return p;
-	}
-	static int insertIndex(const int _idx){
-		return _idx >= 0 ? _idx : -_idx - 1;
 	}
 private:
 	Cmp		cmp;
 };
+
+}//namespace solid
 
 #endif

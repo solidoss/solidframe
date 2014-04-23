@@ -1,11 +1,20 @@
+// audit/log/logmanager.hpp
+//
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+//
+// This file is part of SolidFrame framework.
+//
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
+//
 #ifndef AUDIT_LOGMANAGER_HPP
 #define AUDIT_LOGMANAGER_HPP
 
 #include <utility>
 #include "system/common.hpp"
 
+namespace solid{
 class InputStream;
-
 namespace audit{
 
 class LogConnector;
@@ -24,7 +33,7 @@ public:
 	void eraseClient(const UidT &_ruid);
 	void eraseListener(const UidT &_ruid);
 	
-	int start();
+	bool start();
 	void stop(bool _wait = true);
 	UidT insertConnector(LogConnector *_plc);
 	void eraseConnector(const UidT &_ruid);
@@ -42,5 +51,6 @@ private:
 };
 
 }//namespace audit
+}//namespace solid
 
 #endif

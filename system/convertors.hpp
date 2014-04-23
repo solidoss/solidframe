@@ -1,24 +1,12 @@
-/* Declarations file convertors.hpp
-	
-	Copyright 2007, 2008 Valentin Palade 
-	vipalade@gmail.com
-
-	This file is part of SolidFrame framework.
-
-	SolidFrame is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	SolidFrame is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-
-	You should have received a copy of the GNU General Public License
-	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
+// system/convertors.hpp
+//
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+//
+// This file is part of SolidFrame framework.
+//
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
+//
 #ifndef SYSTEM_CONVERTORS_HPP
 #define SYSTEM_CONVERTORS_HPP
 
@@ -28,7 +16,7 @@
 #else
 #include <arpa/inet.h>
 #endif
-
+namespace solid{
 //!A template convertor to an unsigned
 /*!
 	it convert a basic type to it unsigned equivalent:<br>
@@ -51,17 +39,6 @@ struct UnsignedConvertor<int32>{
 };
 
 template <>
-struct UnsignedConvertor<long>{
-	typedef ulong UnsignedType;
-};
-
-template <>
-struct UnsignedConvertor<ulong>{
-	typedef ulong UnsignedType;
-};
-
-
-template <>
 struct UnsignedConvertor<int64>{
 	typedef uint64 UnsignedType;
 };
@@ -81,15 +58,43 @@ struct UnsignedConvertor<uint64>{
 	typedef uint64 UnsignedType;
 };
 
-#define BitsToMsk(v) ((1 << (v)) - 1)
-#define BitsToCnt(v) (1 << (v))
+#if UWORDSIZE == 32
+template <>
+struct UnsignedConvertor<long>{
+	typedef ulong UnsignedType;
+};
 
-inline unsigned bitsToMsk(unsigned v){
+template <>
+struct UnsignedConvertor<ulong>{
+	typedef ulong UnsignedType;
+};
+
+#endif
+
+#define BitsToMask(v) ((1 << (v)) - 1)
+#define BitsToCount(v) ((1 << (v)) & (~1))
+
+inline uint32 bitsToMask32(unsigned v){
 	return (1 << v) - 1;
 }
-inline unsigned bitsToCnt(unsigned v){
-	return (1 << v);
+inline uint32 bitsToCount32(unsigned v){
+	return (1 << v)  & (~static_cast<uint32>(1));
 }
+
+inline uint64 bitsToMask64(unsigned v){
+	return (1 << v) - 1;
+}
+inline uint64 bitsToCount64(unsigned v){
+	return (1 << v) & (~static_cast<uint64>(1));
+}
+
+inline size_t bitsToMask(unsigned v){
+	return (static_cast<size_t>(1) << v) - 1;
+}
+inline size_t bitsToCount(unsigned v){
+	return (1 << v) & (~static_cast<size_t>(1));
+}
+
 
 inline uint32 toNetwork(uint32 _v){
 	return htonl(_v);
@@ -107,5 +112,6 @@ inline uint16 toHost(uint16 _v){
 	return ntohs(_v);
 }
 
+}//namespace solid
 
 #endif

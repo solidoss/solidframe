@@ -4,6 +4,8 @@
 #include "system/debug.hpp"
 #include "utility/ostream.hpp"
 
+using namespace solid;
+
 struct SocketOutputStream: OutputStream{
 	/*virtual*/ void close(){
 		sd.close();
@@ -33,14 +35,20 @@ int main(int argc, char *argv[]){
         return 1;
     }
 #endif
-	Log::instance().reinit(argv[0], Log::AllLevels, "any");
+
+#ifdef UDEBUG
+	Debug::the().levelMask();
+	Debug::the().moduleMask();
+	Debug::the().initStdErr();
+#endif
+	Log::the().reinit(argv[0], NULL, "any");
 	{
 		SocketOutputStream	*pos(new SocketOutputStream);
 		ResolveData			rd = synchronous_resolve("localhost", "8888", 0, SocketInfo::Inet4, SocketInfo::Stream);
 		if(!rd.empty()){
 			pos->sd.create(rd.begin());
 			pos->sd.connect(rd.begin());
-			Log::instance().reinit(pos);
+			Log::the().reinit(pos);
 			idbg("Logging");
 		}else{
 			delete pos;

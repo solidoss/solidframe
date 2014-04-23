@@ -1,24 +1,12 @@
-/* Declarations file log.hpp
-	
-	Copyright 2007, 2008 Valentin Palade 
-	vipalade@gmail.com
-
-	This file is part of SolidFrame framework.
-
-	SolidFrame is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	SolidFrame is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-
-	You should have received a copy of the GNU General Public License
-	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
+// audit/log.hpp
+//
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+//
+// This file is part of SolidFrame framework.
+//
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
+//
 #ifndef AUDIT_LOG_HPP
 #define AUDIT_LOG_HPP
 
@@ -27,6 +15,8 @@
 #include <ostream>
 
 #define LOG_BITSET_SIZE 256
+
+namespace solid{
 
 class OutputStream;
 //! A class for logging
@@ -37,7 +27,7 @@ class OutputStream;
 	Here's how it should be used:
 	At the begginging of your application do:
 	<code>
-	Log::instance().reinit(argv[0], Log::AllLevels, "any");<br>
+	solid::Log::the().reinit(argv[0], Log::AllLevels, "any");<br>
 	</code>
 	<br>
 	then we need to tell the log where to send logging records. In the
@@ -50,7 +40,7 @@ class OutputStream;
 			pos->sd.create(ai.begin());<br>
 			pos->sd.connect(ai.begin());<br>
 			<br>
-			Log::instance().reinit(pos);<br>
+			solid::Log::the().reinit(pos);<br>
 			<br>
 			idbg("Logging");<br>
 		}else{<br>
@@ -67,7 +57,7 @@ class OutputStream;
 	the first parameter of the macro is a module id,
 	usually a static const unsigned value initialized like this:
 	<code><br>
-	static const unsigned imap(Log::instance().registerModule("IMAP");<br>
+	static const unsigned imap(solid::Log::the().registerModule("IMAP");<br>
 	</code><br>
 	The second parameter is an interger with a local meaning for the module.
 	E.g. for the above IMAP module, it can be the unique id of the current connection.
@@ -83,14 +73,19 @@ public:
 		Debug = 8,
 		Input = 16,
 		Output = 32,
+		Verbose = 64,
 		AllLevels = 0xffff
 	};
 	
 	static const unsigned any;
 	
-	static Log& instance();
+	static Log& the();
 	
-	bool reinit(const char* _procname, uint32 _lvlmsk = 0, const char *_modopt = NULL, OutputStream *_pos = NULL);
+	
+	void levelMask(const char *_msk = NULL);
+	void moduleMask(const char *_msk = NULL);
+	
+	bool reinit(const char* _procname, OutputStream *_pos, const char *_modmsk = NULL, const char *_lvlmsk = NULL);
 	
 	void reinit(OutputStream *_pos);
 	
@@ -120,20 +115,22 @@ private:
 	Data	&d;
 };
 
+}//namespace solid
+
 #define ilog(a,id,x)\
-	if(Log::instance().isSet(a, Log::Info)){\
-		Log::instance().record(Log::Info, a, id, __FILE__, __FUNCTION__, __LINE__)<<x;Log::instance().done();}
+	if(solid::Log::the().isSet(a, solid::Log::Info)){\
+		solid::Log::the().record(solid::Log::Info, a, id, __FILE__, __FUNCTION__, __LINE__)<<x;solid::Log::the().done();}
 
 #define elog(a,id,x)\
-	if(Log::instance().isSet(a, Log::Error)){\
-		Log::instance().record(Log::Error, a, id,  __FILE__, __FUNCTION__, __LINE__)<<x;Log::instance().done();}
+	if(solid::Log::the().isSet(a, solid::Log::Error)){\
+		solid::Log::the().record(solid::Log::Error, a, id,  __FILE__, __FUNCTION__, __LINE__)<<x;solid::Log::the().done();}
 
 #define wlog(a,id,x)\
-	if(Log::instance().isSet(a, Log::Warn)){\
-		Log::instance().record(Log::Warn, a, id,  __FILE__, __FUNCTION__, __LINE__)<<x;Log::instance().done();}
+	if(solid::Log::the().isSet(a, solid::Log::Warn)){\
+		solid::Log::the().record(solid::Log::Warn, a, id,  __FILE__, __FUNCTION__, __LINE__)<<x;solid::Log::the().done();}
 
 #define dlog(a,id,x)\
-	if(Log::instance().isSet(a, Log::Debug)){\
-		Log::instance().record(Log::Debug, a, id,  __FILE__, __FUNCTION__, __LINE__)<<x;Log::instance().done();}
+	if(solid::Log::the().isSet(a, solid::Log::Debug)){\
+		solid::Log::the().record(solid::Log::Debug, a, id,  __FILE__, __FUNCTION__, __LINE__)<<x;solid::Log::the().done();}
 
 #endif

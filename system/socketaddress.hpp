@@ -1,24 +1,12 @@
-/* Declarations file socketaddress.hpp
-	
-	Copyright 2007, 2008 Valentin Palade 
-	vipalade@gmail.com
-
-	This file is part of SolidFrame framework.
-
-	SolidFrame is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	SolidFrame is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-
-	You should have received a copy of the GNU General Public License
-	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
+// system/socketaddress.hpp
+//
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+//
+// This file is part of SolidFrame framework.
+//
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
+//
 #ifndef SYSTEM_SOCKETADDRESS_HPP
 #define SYSTEM_SOCKETADDRESS_HPP
 
@@ -26,6 +14,8 @@
 #include <sys/un.h>
 #include <arpa/inet.h>
 #endif
+
+#include <ostream>
 
 #include "system/common.hpp"
 #include "system/socketinfo.hpp"
@@ -38,6 +28,13 @@
 #else
 #include "system/sharedbackend.hpp"
 #endif
+
+#ifndef NINLINES
+#include "system/cassert.hpp"
+#include "system/debug.hpp"
+#endif
+
+namespace solid{
 
 class SocketDevice;
 //struct sockaddr_in;
@@ -71,12 +68,21 @@ private:
 */
 struct ResolveData{
 	enum Flags{
+#ifndef ON_WINDOWS
 		CannonName = AI_CANONNAME,
 		NumericHost = AI_NUMERICHOST,
 		All	= AI_ALL,
 		AddrConfig = AI_ADDRCONFIG,
 		V4Mapped  = AI_V4MAPPED,
 		NumericService = AI_NUMERICSERV
+#else
+		CannonName,
+		NumericHost,
+		All,
+		AddrConfig,
+		V4Mapped,
+		NumericService
+#endif
 	};
 	typedef ResolveIterator const_iterator;
 	
@@ -282,6 +288,9 @@ private:
 public:
 	enum {Capacity = sizeof(AddrUnion)};
 	
+	typedef Binary<4>	Binary4T;
+	typedef Binary<16>	Binary6T;
+	
 	SocketAddressInet();
 	SocketAddressInet(const SocketAddressStub &);
 	SocketAddressInet(const char* _addr, int _port = 0);
@@ -311,6 +320,11 @@ public:
 		unsigned _servcp,
 		uint32	_flags = 0
 	)const;
+	
+	bool toBinary(Binary4T &_bin, uint16 &_port)const;
+	bool toBinary(Binary6T &_bin, uint16 &_port)const;
+	void fromBinary(const Binary4T &_bin, uint16 _port = 0);
+	void fromBinary(const Binary6T &_bin, uint16 _port = 0);
 	
 	bool operator<(const SocketAddressInet &_raddr)const;
 	bool operator==(const SocketAddressInet &_raddr)const;
@@ -474,9 +488,14 @@ bool operator<(const in6_addr &_inaddr1, const in6_addr &_inaddr2);
 
 bool operator==(const in6_addr &_inaddr1, const in6_addr &_inaddr2);
 
-size_t hash(const in_addr &_inaddr);
+size_t in_addr_hash(const in_addr &_inaddr);
 
-size_t hash(const in6_addr &_inaddr);
+size_t in_addr_hash(const in6_addr &_inaddr);
+
+std::ostream& operator<<(std::ostream& _ros, const SocketAddressInet4& _rsa);
+
+std::ostream& operator<<(std::ostream& _ros, const SocketAddressInet& _rsa);
+
 //==================================================================
 #ifndef ON_WINDOWS
 struct SocketAddressLocal{
@@ -521,10 +540,10 @@ private:
 #endif
 //==================================================================
 #ifndef NINLINES
-#include "system/cassert.hpp"
-#include "system/debug.hpp"
 #include "system/socketaddress.ipp"
 #endif
 //==================================================================
+
+}//namespace solid
 
 #endif

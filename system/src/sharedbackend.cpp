@@ -1,24 +1,12 @@
-/* Implementation file sharedbackend.cpp
-	
-	Copyright 2012 Valentin Palade 
-	vipalade@gmail.com
-
-	This file is part of SolidFrame framework.
-
-	SolidFrame is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	SolidFrame is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-
-	You should have received a copy of the GNU General Public License
-	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
+// system/src/sharedbackend.cpp
+//
+// Copyright (c) 2012 Valentin Palade (vipalade @ gmail . com) 
+//
+// This file is part of SolidFrame framework.
+//
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
+//
 #include "system/sharedbackend.hpp"
 #include "system/mutex.hpp"
 #include "system/mutualstore.hpp"
@@ -28,6 +16,8 @@
 #include <deque>
 #include <stack>
 #include <queue>
+
+namespace solid{
 
 struct SharedBackend::Data{
 	typedef std::deque<SharedStub>	StubVectorT;
@@ -127,4 +117,6 @@ SharedBackend::SharedBackend():d(*(new Data)){
 SharedBackend::~SharedBackend(){
 	//delete &d;
 }
+
+}//namespace solid
 

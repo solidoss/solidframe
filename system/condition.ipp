@@ -1,50 +1,35 @@
-/* Inline implementation file condition.ipp
-	
-	Copyright 2007, 2008 Valentin Palade 
-	vipalade@gmail.com
-
-	This file is part of SolidGround framework.
-
-	SolidGround is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	SolidGround is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-
-	You should have received a copy of the GNU General Public License
-	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
+// system/condition.ipp
+//
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+//
+// This file is part of SolidFrame framework.
+//
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
+//
 #ifdef NINLINES
 #define inline
 #else
 #include "system/mutex.hpp"
 #endif
 
-#include "system/cassert.hpp"
 
 inline Condition::Condition(){
-	int rv = pthread_cond_init(&cond,NULL);
-	cassert(rv == 0);
+	cverify(!pthread_cond_init(&cond, NULL));
 }
 inline Condition::~Condition(){
-	int rv = pthread_cond_destroy(&cond);
-	cassert(rv==0);
-}
-inline int Condition::signal(){
-	return pthread_cond_signal(&cond);
-}
-inline int Condition::broadcast(){
-	return pthread_cond_broadcast(&cond);
-}
-inline int Condition::wait(Locker<Mutex> &_lock){
-	return pthread_cond_wait(&cond, &_lock.m.mut);
+	cverify(!pthread_cond_destroy(&cond));
 }
 
+inline void Condition::signal(){
+	cverify(!pthread_cond_signal(&cond));
+}
+inline void Condition::broadcast(){
+	cverify(!pthread_cond_broadcast(&cond));
+}
+inline void Condition::wait(Locker<Mutex> &_lock){
+	cverify(!pthread_cond_wait(&cond, &_lock.m.mut));
+}
 #ifdef NINLINES
 #undef inline
 #endif

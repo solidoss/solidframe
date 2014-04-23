@@ -1,26 +1,12 @@
-/* Implementation file debug.cpp
-	
-	Copyright 2007, 2008 Valentin Palade 
-	vipalade@gmail.com
-
-	This file is part of SolidFrame framework.
-
-	SolidFrame is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	SolidFrame is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-
-	You should have received a copy of the GNU General Public License
-	along with SolidFrame.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
-#ifdef UDEBUG
-
+// system/src/debug.cpp
+//
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+//
+// This file is part of SolidFrame framework.
+//
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
+//
 #define DO_EXPORT_DLL 1
 #ifdef ON_WINDOWS
 #include <process.h>
@@ -34,11 +20,11 @@
 #include <iostream>
 #include <fstream>
 #include <bitset>
+#include <map>
 #endif
 
 #include "system/timespec.hpp"
 #include "system/socketdevice.hpp"
-#include "system/socketaddress.hpp"
 #include "system/filedevice.hpp"
 #include "system/cassert.hpp"
 #include "system/thread.hpp"
@@ -46,6 +32,7 @@
 #include "system/debug.hpp"
 #include "system/directory.hpp"
 #include "system/cstring.hpp"
+#include "system/filedevice.hpp"
 
 #ifdef ON_SOLARIS
 #include <strings.h>
@@ -53,24 +40,28 @@
 
 #include <bitset>
 
+#define DEBUG_BITSET_SIZE 256
 
 using namespace std;
 
+namespace solid{
+
 //-----------------------------------------------------------------
 
-/*static*/ const unsigned Dbg::any(Dbg::instance().registerModule("ANY"));
-/*static*/ const unsigned Dbg::system(Dbg::instance().registerModule("SYSTEM"));
-/*static*/ const unsigned Dbg::specific(Dbg::instance().registerModule("SPECIFIC"));
-/*static*/ const unsigned Dbg::protocol(Dbg::instance().registerModule("PROTOCOL"));
-/*static*/ const unsigned Dbg::ser_bin(Dbg::instance().registerModule("SER_BIN"));
-/*static*/ const unsigned Dbg::utility(Dbg::instance().registerModule("UTILITY"));
-/*static*/ const unsigned Dbg::fdt(Dbg::instance().registerModule("FDT"));
-/*static*/ const unsigned Dbg::ipc(Dbg::instance().registerModule("FDT_IPC"));
-/*static*/ const unsigned Dbg::tcp(Dbg::instance().registerModule("FDT_TCP"));
-/*static*/ const unsigned Dbg::udp(Dbg::instance().registerModule("FDT_UDP"));
-/*static*/ const unsigned Dbg::log(Dbg::instance().registerModule("LOG"));
-/*static*/ const unsigned Dbg::aio(Dbg::instance().registerModule("FDT_AIO"));
-/*static*/ const unsigned Dbg::file(Dbg::instance().registerModule("FDT_FILE"));
+/*static*/ const unsigned Debug::any(Debug::the().registerModule("ANY"));
+/*static*/ const unsigned Debug::system(Debug::the().registerModule("SYSTEM"));
+/*static*/ const unsigned Debug::specific(Debug::the().registerModule("SPECIFIC"));
+/*static*/ const unsigned Debug::proto_txt(Debug::the().registerModule("PROTO_TXT"));
+/*static*/ const unsigned Debug::proto_bin(Debug::the().registerModule("PROTO_BIN"));
+/*static*/ const unsigned Debug::ser_bin(Debug::the().registerModule("SER_BIN"));
+/*static*/ const unsigned Debug::utility(Debug::the().registerModule("UTILITY"));
+/*static*/ const unsigned Debug::frame(Debug::the().registerModule("FRAME"));
+/*static*/ const unsigned Debug::ipc(Debug::the().registerModule("FRAME_IPC"));
+/*static*/ const unsigned Debug::tcp(Debug::the().registerModule("FRAME_TCP"));
+/*static*/ const unsigned Debug::udp(Debug::the().registerModule("FRAME_UDP"));
+/*static*/ const unsigned Debug::log(Debug::the().registerModule("LOG"));
+/*static*/ const unsigned Debug::aio(Debug::the().registerModule("FRAME_AIO"));
+/*static*/ const unsigned Debug::file(Debug::the().registerModule("FRAME_FILE"));
 
 //-----------------------------------------------------------------
 
@@ -220,14 +211,30 @@ public:
 	}
 };
 //-----------------------------------------------------------------
-struct Dbg::Data{
-	typedef std::bitset<DEBUG_BITSET_SIZE>	BitSetT;
-	typedef std::vector<const char*>		NameVectorT;
+struct StrLess{
+	bool operator()(const char *_str1, const char *_str2)const{
+		const int rv = cstring::casecmp(_str1, _str2);
+		return rv < 0;
+	}
+};
+struct ModuleStub{
+	ModuleStub(const char *_name, uint32 _lvlmsk):name(_name), lvlmsk(_lvlmsk){}
+	string	name;
+	uint32			lvlmsk;
+};
+struct Debug::Data{
+	typedef std::bitset<DEBUG_BITSET_SIZE>			BitSetT;
+	
+	typedef std::vector<ModuleStub>					ModuleVectorT;
+	typedef std::map<
+		const char *, unsigned, StrLess>			StringMapT;
 	Data():
 		lvlmsk(0), sz(0), respinsz(0), respincnt(0),
 		respinpos(0), dos(sz), dbos(sz), trace_debth(0)
 	{
 		pos = &std::cerr;
+		bs.reset();
+		modvec.reserve(DEBUG_BITSET_SIZE);
 	}
 	~Data(){
 #ifdef ON_WINDOWS
@@ -239,10 +246,14 @@ struct Dbg::Data{
 	bool initFile(uint32 _respincnt, uint64 _respinsz, string *_poutput);
 	void doRespin();
 	bool isActive()const{return lvlmsk != 0 && !bs.none();}
+	
+	unsigned registerModule(const char *_name, uint32 _lvlmsk);
+	
 	Mutex					m;
 	BitSetT					bs;
 	unsigned				lvlmsk;
-	NameVectorT				nv;
+	ModuleVectorT			modvec;
+	StringMapT				namemap;
 	uint64					sz;
 	uint64					respinsz;
 	uint32					respincnt;
@@ -261,31 +272,31 @@ struct Dbg::Data{
 void splitPrefix(string &_path, string &_name, const char *_prefix);
 
 #ifdef HAS_SAFE_STATIC
-/*static*/ Dbg& Dbg::instance(){
-	static Dbg d;
+/*static*/ Debug& Debug::the(){
+	static Debug d;
 	return d;
 }
 #else
 
-Dbg& Dbg::dbg_instance(){
-	static Dbg d;
+/*static*/ Debug& Debug::dbg_the(){
+	static Debug d;
 	return d;
 }
 
-void Dbg::once_cbk(){
-	dbg_instance();
+void Debug::once_cbk(){
+	dbg_the();
 }
 
-/*static*/ Dbg& Dbg::instance(){
+/*static*/ Debug& Debug::the(){
 	static boost::once_flag once = BOOST_ONCE_INIT;
 	boost::call_once(&once_cbk, once);
-	return dbg_instance();
+	return dbg_the();
 }
 
 
 #endif
 	
-Dbg::~Dbg(){
+Debug::~Debug(){
 	(*d.pos)<<flush;
 	d.dos.close();
 	d.dbos.close();
@@ -293,17 +304,7 @@ Dbg::~Dbg(){
 	//delete &d;
 }
 
-void Dbg::Data::setBit(const char *_pbeg, const char *_pend){
-	if(!cstring::ncasecmp(_pbeg, "all", _pend - _pbeg)){
-		bs.set();
-	}else if(!cstring::ncasecmp(_pbeg, "none", _pend - _pbeg)){
-		bs.reset();
-	}else for(NameVectorT::const_iterator it(nv.begin()); it != nv.end(); ++it){
-		if(!cstring::ncasecmp(_pbeg, *it, _pend - _pbeg) && (int)strlen(*it) == (_pend - _pbeg)){
-			bs.set(it - nv.begin());
-		}
-	}
-}
+namespace{
 uint32 parseLevels(const char *_lvl){
 	if(!_lvl) return 0;
 	uint32 r = 0;
@@ -312,131 +313,189 @@ uint32 parseLevels(const char *_lvl){
 		switch(*_lvl){
 			case 'i':
 			case 'I':
-				r |= Dbg::Info;
+				r |= Debug::Info;
 				break;
 			case 'e':
 			case 'E':
-				r |= Dbg::Error;
+				r |= Debug::Error;
 				break;
 			case 'w':
 			case 'W':
-				r |= Dbg::Warn;
+				r |= Debug::Warn;
 				break;
 			case 'r':
 			case 'R':
-				r |= Dbg::Report;
+				r |= Debug::Report;
 				break;
 			case 'v':
 			case 'V':
-				r |= Dbg::Verbose;
+				r |= Debug::Verbose;
 				break;
 			case 't':
 			case 'T':
-				r |= Dbg::Trace;
+				r |= Debug::Trace;
+				break;
+			default:
 				break;
 		}
 		++_lvl;
 	}
 	return r;
 }
+}//namespace
 
-void Dbg::Data::setModuleMask(const char *_opt){
+void Debug::Data::setBit(const char *_pbeg, const char *_pend){
+	std::string str;
+	str.assign(_pbeg, _pend - _pbeg);
+	std::string	name;
+	uint32		lvls = -1;
 	{
-		Locker<Mutex> lock(m);
+		std::string	lvlstr;
+		
+		size_t		off = str.rfind(':');
+		
+		if(off == string::npos){
+			name = str;
+		}else{
+			name = str.substr(0, off);
+			lvlstr = str.substr(off, str.size() - off);
+		}
+		if(lvlstr.size()){
+			lvls= parseLevels(lvlstr.c_str());
+		}
+	}
+	
+	if(!cstring::ncasecmp(name.c_str(), "all", name.size())){
+		bs.set();
+	}else if(!cstring::ncasecmp(name.c_str(), "none", name.size())){
 		bs.reset();
-		if(_opt){
-			const char *pbeg = _opt;
-			const char *pcrt = _opt;
-			int state = 0;
-			while(*pcrt){
-				if(state == 0){
-					if(isspace(*pcrt)){
-						++pcrt;
-						pbeg = pcrt;
-					}else{
-						++pcrt;
-						state = 1; 
-					}
-				}else if(state == 1){
-					if(!isspace(*pcrt)){
-						++pcrt;
-					}else{
-						setBit(pbeg, pcrt);
-						pbeg = pcrt;
-						state = 0;
-					}
+	}else{
+		unsigned pos = registerModule(name.c_str(), 0);
+		modvec[pos].lvlmsk = lvls;
+		bs.set(pos);
+	}
+}
+
+unsigned Debug::Data::registerModule(const char *_name, uint32 _lvlmsk){
+	std::string name = _name;
+	for(std::string::iterator it = name.begin(); it != name.end(); ++it){
+		*it = toupper(*it);
+	}
+	
+	StringMapT::const_iterator it = namemap.find(_name);
+	
+	if(it != namemap.end()){
+		return it->second;
+	}else{
+		modvec.push_back(ModuleStub(name.c_str(), _lvlmsk));
+		namemap[modvec.back().name.c_str()] = modvec.size() - 1;
+		return modvec.size() - 1;
+	}
+}
+
+void Debug::Data::setModuleMask(const char *_opt){
+	enum{
+		SkipSpacesState,
+		ParseNameState
+	};
+	bs.reset();
+	if(_opt){
+		const char *pbeg = _opt;
+		const char *pcrt = _opt;
+		int state = 0;
+		while(*pcrt){
+			if(state == SkipSpacesState){
+				if(isspace(*pcrt)){
+					++pcrt;
+					pbeg = pcrt;
+				}else{
+					++pcrt;
+					state = ParseNameState; 
+				}
+			}else if(state == ParseNameState){
+				if(!isspace(*pcrt)){
+					++pcrt;
+				}else{
+					setBit(pbeg, pcrt);
+					pbeg = pcrt;
+					state = 0;
 				}
 			}
-			if(pcrt != pbeg){
-				setBit(pbeg, pcrt);
-			}
+		}
+		if(pcrt != pbeg){
+			setBit(pbeg, pcrt);
 		}
 	}
 }
 
-void filePath(string &_out, uint32 _pos, ulong _pid, const string &_path, const string &_name){
+void filePath(string &_out, uint32 _pos, const string &_path, const string &_name){
 	_out = _path;
 	_out += _name;
 	
 	char	buf[2048];
 	
 	if(_pos){
-		sprintf(buf, "_%lu_%u.dbg", _pid, _pos);
+		sprintf(buf, "_%04lu.dbg", _pos);
 	}else{
-		sprintf(buf, "_%lu.dbg", _pid);
+		sprintf(buf, ".dbg");
 	}
 	_out += buf;
 }
 
-bool Dbg::Data::initFile(uint32 _respincnt, uint64 _respinsz, string *_poutput){
+bool Debug::Data::initFile(uint32 _respincnt, uint64 _respinsz, string *_poutput){
 	respincnt = _respincnt;
 	respinsz = _respinsz;
 	respinpos = 0;
 	string fpath;
-#ifdef ON_WINDOWS
-	ulong pid(_getpid());
-#else
-	ulong pid(getpid());
-#endif
-	filePath(fpath, 0, pid, path, name);
-	if(fd.create(fpath.c_str(), FileDevice::WO)) return false;
+	filePath(fpath, 0, path, name);
+	if(!fd.open(fpath.c_str(), FileDevice::WriteOnlyE | FileDevice::CreateE | FileDevice::AppendE)) return false;
+	sz = fd.size();
 	if(_poutput){
 		*_poutput = fpath;
 	}
 	return true;
 }
 
-void Dbg::Data::doRespin(){
+void Debug::Data::doRespin(){
 	sz = 0;
 	string fname;
-#ifdef ON_WINDOWS
-	ulong pid(_getpid());
-#else
-	ulong pid(getpid());
-#endif
-
-	//first we erase the oldest file:
-	if(respinpos > respincnt){
-		filePath(fname, respinpos - respincnt, pid, path, name);
+	//find the last file
+	if(respincnt == 0){
+		filePath(fname, 0, path, name);
 		Directory::eraseFile(fname.c_str());
-	}
-	fname.clear();
-	++respinpos;
-
-	//rename the curent file name_PID.dbg to name_PID_RESPINPOS.dbg
-	filePath(fname, respinpos, pid, path, name);
-	string crtname;
-	filePath(crtname, 0, pid, path, name);
-	fd.close();
-	if(pos == &dos){
-		dos.device(fd);//close the current file
-	}else if(pos == &dbos){
-		dbos.device(fd);//close the current file
 	}else{
-		cassert(false);
+		uint32 lastpos = respincnt;
+		while(lastpos >= 1){
+			filePath(fname, lastpos, path, name);
+			if(FileDevice::size(fname.c_str()) >= 0){
+				break;
+			}
+			--lastpos;
+		}
+		string frompath;
+		string topath;
+        
+		if(lastpos == respincnt){
+			filePath(topath, respincnt, path, name);
+			--lastpos;
+		}else{
+			filePath(topath, lastpos + 1, path, name);
+		}
+		
+		while(lastpos){
+			filePath(frompath, lastpos, path, name);
+			Directory::renameFile(topath.c_str(), frompath.c_str());
+			topath = frompath;
+			--lastpos;
+		}
+		
+		filePath(frompath, 0, path, name);
+		Directory::renameFile(topath.c_str(), frompath.c_str());
+		fname = frompath;
 	}
-	Directory::renameFile(fname.c_str(), crtname.c_str());
-	if(fd.create(crtname.c_str(), FileDevice::WO)){
+	
+	
+	if(fd.create(fname.c_str(), FileDevice::WriteOnlyE)){
 		pos = &cerr;
 	}else{
 		if(pos == &dos){
@@ -450,7 +509,7 @@ void Dbg::Data::doRespin(){
 }
 
 
-void Dbg::initStdErr(
+void Debug::initStdErr(
 	bool _buffered,
 	std::string *_output
 ){
@@ -474,7 +533,7 @@ void Dbg::initStdErr(
 	}
 }
 
-void Dbg::initFile(
+void Debug::initFile(
 	const char * _prefix,
 	bool _buffered,
 	ulong _respincnt,
@@ -525,7 +584,7 @@ void Dbg::initFile(
 		}
 	}
 }
-void Dbg::initSocket(
+void Debug::initSocket(
 	const char * _addr,
 	const char * _port,
 	bool _buffered,
@@ -533,8 +592,8 @@ void Dbg::initSocket(
 ){
 	if(!d.isActive()) return;
 	//do the connect outside locking
-	ResolveData		rd = synchronous_resolve(_addr, _port, 0, SocketInfo::Inet4, SocketInfo::Stream);
-	if(!rd.empty() && d.sd.create(rd.begin()) == OK && d.sd.connect(rd.begin()) == OK){
+	ResolveData				rd = synchronous_resolve(_addr, _port, 0, SocketInfo::Inet4, SocketInfo::Stream);
+	if(!rd.empty() && d.sd.create(rd.begin()) && d.sd.connect(rd.begin())){
 	}else{
 		d.sd.close();//make sure the socket is closed
 	}
@@ -586,55 +645,55 @@ void Dbg::initSocket(
 	}
 }
 
-void Dbg::levelMask(const char *_msk){
-	Locker<Mutex> lock(d.m);
+void Debug::levelMask(const char *_msk){
 	if(!_msk){
 		_msk = "iewrvt";
 	}
+	Locker<Mutex> lock(d.m);
 	d.lvlmsk = parseLevels(_msk);
 }
-void Dbg::moduleMask(const char *_msk){
+void Debug::moduleMask(const char *_msk){
 	if(!_msk){
 		_msk = "all";
 	}
+	Locker<Mutex> lock(d.m);
 	d.setModuleMask(_msk);
 }
 
-void Dbg::moduleBits(std::string &_ros){
+void Debug::moduleNames(std::string &_ros){
 	Locker<Mutex> lock(d.m);
-	for(Data::NameVectorT::const_iterator it(d.nv.begin()); it != d.nv.end(); ++it){
-		_ros += *it;
+	for(Data::ModuleVectorT::const_iterator it(d.modvec.begin()); it != d.modvec.end(); ++it){
+		_ros += it->name;
 		_ros += ' ';
 	}
 }
-void Dbg::setAllModuleBits(){
+void Debug::setAllModuleBits(){
 	Locker<Mutex> lock(d.m);
 	d.bs.set();
 }
-void Dbg::resetAllModuleBits(){
+void Debug::resetAllModuleBits(){
 	Locker<Mutex> lock(d.m);
 	d.bs.reset();
 }
-void Dbg::setModuleBit(unsigned _v){
+void Debug::setModuleBit(unsigned _v){
 	Locker<Mutex> lock(d.m);
 	d.bs.set(_v);
 }
-void Dbg::resetModuleBit(unsigned _v){
+void Debug::resetModuleBit(unsigned _v){
 	Locker<Mutex> lock(d.m);
 	d.bs.reset(_v);
 }
-unsigned Dbg::registerModule(const char *_name){
+unsigned Debug::registerModule(const char *_name){
 	Locker<Mutex> lock(d.m);
-	d.nv.push_back(_name);
-	return d.nv.size() - 1;
+	return d.registerModule(_name, -1);
 }
 
-std::ostream& Dbg::print(){
+std::ostream& Debug::print(){
 	d.m.lock();
 	return std::cerr;
 }
 
-std::ostream& Dbg::print(
+std::ostream& Debug::print(
 	const char _t,
 	unsigned _module,
 	const char *_file,
@@ -666,29 +725,27 @@ std::ostream& Dbg::print(
 		ploctm->tm_min,
 		ploctm->tm_sec,
 		(uint)ts_now.nanoSeconds()/1000000,
-		d.nv[_module]//,
+		d.modvec[_module].name.c_str()//,
 		//Thread::currentId()
 	);
 #ifdef ON_WINDOWS
-	return (*d.pos)<<buf<<'['<<src_file_name(_file)<<'('<<_line<<')'<<' '<<_fnc<<"]["<<Thread::currentId()<<']'<<' ';
+	return (*d.pos)<<buf<<'['<<src_file_name(_file)<<':'<<_line<<' '<<_fnc<<"]["<<Thread::currentId()<<']'<<' ';
 #else
-	return (*d.pos)<<buf<<'['<<src_file_name(_file)<<'('<<_line<<')'<<' '<<_fnc<<"][0x"<<std::hex<<Thread::currentId()<<std::dec<<']'<<' ';
+	return (*d.pos)<<buf<<'['<<src_file_name(_file)<<':'<<_line<<' '<<_fnc<<"][0x"<<std::hex<<Thread::currentId()<<std::dec<<']'<<' ';
 #endif
 }
 static const char tabs[]="\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t"
 						 "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t"
 						 "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
 
-#ifdef UTRACE
-DbgTraceTest::~DbgTraceTest(){
+DebugTraceTest::~DebugTraceTest(){
 	if(v){
-		Dbg::instance().printTraceOut('T', mod, file, fnc, line)<<"???";
-		Dbg::instance().doneTraceOut();
+		Debug::the().printTraceOut('T', mod, file, fnc, line)<<"???";
+		Debug::the().doneTraceOut();
 	}
 }
-#endif
 
-std::ostream& Dbg::printTraceIn(
+std::ostream& Debug::printTraceIn(
 	const char _t,
 	unsigned _module,
 	const char *_file,
@@ -727,14 +784,14 @@ std::ostream& Dbg::printTraceIn(
 	d.pos->write(tabs, d.trace_debth);
 	++d.trace_debth;
 #ifdef ON_WINDOWS
-	(*d.pos)<<'['<<d.nv[_module]<<']'<<'['<<src_file_name(_file)<<'('<<_line<<')'<<"]["<<Thread::currentId()<<']'<<' '<<_fnc<<'(';
+	(*d.pos)<<'['<<d.modvec[_module].name<<']'<<'['<<src_file_name(_file)<<':'<<_line<<"]["<<Thread::currentId()<<']'<<' '<<_fnc<<'(';
 #else
-	(*d.pos)<<'['<<d.nv[_module]<<']'<<'['<<src_file_name(_file)<<'('<<_line<<')'<<"][0x"<<std::hex<<Thread::currentId()<<std::dec<<']'<<' '<<_fnc<<'(';
+	(*d.pos)<<'['<<d.modvec[_module].name<<']'<<'['<<src_file_name(_file)<<':'<<_line<<"][0x"<<std::hex<<Thread::currentId()<<std::dec<<']'<<' '<<_fnc<<'(';
 #endif
 	return (*d.pos);
 }
 
-std::ostream& Dbg::printTraceOut(
+std::ostream& Debug::printTraceOut(
 	const char _t,
 	unsigned _module,
 	const char *_file,
@@ -773,34 +830,34 @@ std::ostream& Dbg::printTraceOut(
 	--d.trace_debth;
 	d.pos->write(tabs, d.trace_debth);
 #ifdef ON_WINDOWS
-	(*d.pos)<<'['<<d.nv[_module]<<']'<<'['<<src_file_name(_file)<<'('<<_line<<')'<<"]["<<Thread::currentId()<<']'<<' '<<'}'<<_fnc<<'(';
+	(*d.pos)<<'['<<d.modvec[_module].name<<']'<<'['<<src_file_name(_file)<<':'<<_line<<"]["<<Thread::currentId()<<']'<<' '<<'}'<<_fnc<<'(';
 #else
-	(*d.pos)<<'['<<d.nv[_module]<<']'<<'['<<src_file_name(_file)<<'('<<_line<<')'<<"][0x"<<std::hex<<Thread::currentId()<<std::dec<<']'<<' '<<'}'<<_fnc<<'(';
+	(*d.pos)<<'['<<d.modvec[_module].name<<']'<<'['<<src_file_name(_file)<<':'<<_line<<"][0x"<<std::hex<<Thread::currentId()<<std::dec<<']'<<' '<<'}'<<_fnc<<'(';
 #endif
 	return (*d.pos);
 }
 
-void Dbg::done(){
+void Debug::done(){
 	(*d.pos)<<std::endl;
 	cassert(d.pos->good());
 	d.m.unlock();
 }
 
-void Dbg::doneTraceIn(){
+void Debug::doneTraceIn(){
 	(*d.pos)<<')'<<'{'<<std::endl;
 	d.m.unlock();
 }
 
-void Dbg::doneTraceOut(){
+void Debug::doneTraceOut(){
 	(*d.pos)<<')'<<std::endl;
 	d.m.unlock();
 }
 
-bool Dbg::isSet(Level _lvl, unsigned _v)const{
-	return (d.lvlmsk & _lvl) && d.bs[_v];
+bool Debug::isSet(Level _lvl, unsigned _v)const{
+	return (d.lvlmsk & _lvl) && _v < d.bs.size() && d.bs[_v] && d.modvec[_v].lvlmsk & _lvl;
 }
-Dbg::Dbg():d(*(new Data)){
-	setAllModuleBits();
+Debug::Debug():d(*(new Data)){
+	resetAllModuleBits();
 	levelMask();
 }
 
@@ -814,6 +871,4 @@ void splitPrefix(string &_path, string &_name, const char *_prefix){
 	}
 }
 
-#endif
-
-
+}//namespace solid

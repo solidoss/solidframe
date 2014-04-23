@@ -3,6 +3,7 @@
 #include "utility/dynamictype.hpp"
 
 using namespace std;
+using namespace solid;
 
 struct AObject: Dynamic<AObject, DynamicShared<> >{
 	AObject(int _v):v(_v){}
@@ -25,100 +26,203 @@ struct DObject: Dynamic<DObject, AObject>{
 	string s;
 };
 
-
-class FirstExecuter{
-protected:
-	typedef DynamicExecuter<int, FirstExecuter>	IntDynamicExecuterT;
-public:
-	FirstExecuter(){
-	}
-	static void dynamicRegister(){
-		IntDynamicExecuterT::registerDynamic<AObject, FirstExecuter>();
-		IntDynamicExecuterT::registerDynamic<BObject, FirstExecuter>();
-	}
-	void push(const DynamicPointer<> &_dp){
-		de.push(this, _dp);
-	}
-	int dynamicExecute(DynamicPointer<> &_dp);
-	int dynamicExecute(const DynamicPointer<AObject> &_rdp);
-	int dynamicExecute(const DynamicPointer<BObject> &_rdp);
-	
-protected:
-	IntDynamicExecuterT		de;
+struct Context{
+	uint32 idx;
 };
 
-int FirstExecuter::dynamicExecute(DynamicPointer<> &_dp){
+class FirstHandler{
+protected:
+	typedef DynamicMapper<int, FirstHandler, Context>	DynamicMapperT;
+public:
+	FirstHandler(){
+	}
+	static void init(){
+		dm.insert<AObject, FirstHandler>();
+		dm.insert<BObject, FirstHandler>();
+	}
+	void push(const DynamicPointer<> &_dp){
+		dv.push_back(_dp);
+	}
+	void clear(){
+		dv.clear();
+	}
+	int dynamicHandle(DynamicPointer<> &_dp, Context &_rctx);
+	int dynamicHandle(const DynamicPointer<AObject> &_rdp, Context &_rctx);
+	int dynamicHandle(const DynamicPointer<BObject> &_rdp, Context &_rctx);
+	
+protected:
+	typedef std::vector<DynamicPointer<> >	DynamicPointerVectorT;
+	static DynamicMapperT	dm;
+	DynamicPointerVectorT	dv;
+};
+
+/*static*/ FirstHandler::DynamicMapperT FirstHandler::dm;
+
+int FirstHandler::dynamicHandle(DynamicPointer<> &_dp, Context &_rctx){
 	idbg("");
 	return -1;
 }
 
-int FirstExecuter::dynamicExecute(const DynamicPointer<AObject> &_dp){
+int FirstHandler::dynamicHandle(const DynamicPointer<AObject> &_dp, Context &_rctx){
 	idbg("v = "<<_dp->v);
 	return _dp->v;
 }
 
-int FirstExecuter::dynamicExecute(const DynamicPointer<BObject> &_dp){
+int FirstHandler::dynamicHandle(const DynamicPointer<BObject> &_dp, Context &_rctx){
 	idbg("v1 = "<<_dp->v1<<" v2 = "<<_dp->v2);
 	return _dp->v2;
 }
 
-class SecondExecuter: public FirstExecuter{
+class SecondHandler: public FirstHandler{
 public:
-	SecondExecuter(){
+	SecondHandler(){
 	}
 	
-	static void dynamicRegister(){
-		FirstExecuter::dynamicRegister();
-		IntDynamicExecuterT::registerDynamic<BObject, SecondExecuter>();
-		IntDynamicExecuterT::registerDynamic<CObject, SecondExecuter>();
-		IntDynamicExecuterT::registerDynamic<DObject, SecondExecuter>();
+	static void init(){
+		FirstHandler::init();
+		dm.insert<BObject, SecondHandler>();
+		dm.insert<CObject, SecondHandler>();
+		dm.insert<DObject, SecondHandler>();
 	}
 	
 	void run();
 	
-	int dynamicExecute(const DynamicPointer<BObject> &_dp);
-	int dynamicExecute(const DynamicPointer<CObject> &_dp);
-	int dynamicExecute(const DynamicPointer<DObject> &_dp);
+	int dynamicHandle(const DynamicPointer<BObject> &_dp, Context &_rctx);
+	int dynamicHandle(const DynamicPointer<CObject> &_dp, Context &_rctx);
+	int dynamicHandle(const DynamicPointer<DObject> &_dp, Context &_rctx);
 };
 
 
-void SecondExecuter::run(){
-	int rv = de.prepareExecute(this);
-	idbg("Executing "<<rv<<" calls");
-	while(de.hasCurrent(this)){
-		rv = de.executeCurrent(this);
-		idbg("call returned "<<rv);
-		de.next(this);
+void SecondHandler::run(){
+	DynamicHandler<DynamicMapperT, 6>	dh(dm, dv.begin(), dv.end());
+	dv.clear();
+	Context ctx;
+	for(size_t i = 0; i < dh.size(); ++i){
+		dh.handle(*this, i, ctx);
 	}
-	//dr.executeCurrent(*this);
 }
 
-int SecondExecuter::dynamicExecute(const DynamicPointer<BObject> &_dp){
+int SecondHandler::dynamicHandle(const DynamicPointer<BObject> &_dp, Context &_rctx){
 	idbg("v1 = "<<_dp->v1<<" v2 = "<<_dp->v2);
 	return _dp->v1;
 }
-int SecondExecuter::dynamicExecute(const DynamicPointer<CObject> &_dp){
+int SecondHandler::dynamicHandle(const DynamicPointer<CObject> &_dp, Context &_rctx){
 	idbg("v1 = "<<_dp->v1<<" v2 = "<<_dp->v2<<" v3 "<<_dp->v3);
 	return _dp->v1;
 }
-int SecondExecuter::dynamicExecute(const DynamicPointer<DObject> &_dp){
+int SecondHandler::dynamicHandle(const DynamicPointer<DObject> &_dp, Context &_rctx){
 	idbg("s = "<<_dp->s<<" v = "<<_dp->v);
 	return _dp->v;
 }
 
-static const DynamicRegisterer<SecondExecuter>	dre;
+
+class ThirdHandler{
+protected:
+	typedef DynamicMapper<void, ThirdHandler, Context>	DynamicMapperT;
+public:
+	ThirdHandler(){
+	}
+	static void init(){
+		dm.insert<AObject, ThirdHandler>();
+		dm.insert<BObject, ThirdHandler>();
+	}
+	void push(const DynamicPointer<> &_dp){
+		dv.push_back(_dp);
+	}
+	void clear(){
+		dv.clear();
+	}
+	void run();
+	void dynamicHandle(DynamicPointer<> &_dp, Context &_rctx);
+	void dynamicHandle(const DynamicPointer<AObject> &_rdp, Context &_rctx);
+	void dynamicHandle(const DynamicPointer<BObject> &_rdp, Context &_rctx);
+	
+protected:
+	typedef std::vector<DynamicPointer<> >	DynamicPointerVectorT;
+	static DynamicMapperT	dm;
+	DynamicPointerVectorT	dv;
+};
+
+/*static*/ ThirdHandler::DynamicMapperT ThirdHandler::dm;
+
+void ThirdHandler::dynamicHandle(DynamicPointer<> &_dp, Context &_rctx){
+	idbg("");
+}
+
+void ThirdHandler::dynamicHandle(const DynamicPointer<AObject> &_dp, Context &_rctx){
+	idbg("v = "<<_dp->v);
+}
+
+void ThirdHandler::dynamicHandle(const DynamicPointer<BObject> &_dp, Context &_rctx){
+	idbg("v1 = "<<_dp->v1<<" v2 = "<<_dp->v2);
+}
+
+void ThirdHandler::run(){
+	DynamicHandler<DynamicMapperT, 6>	dh(dm, dv.begin(), dv.end());
+	dv.clear();
+	Context ctx;
+	for(size_t i = 0; i < dh.size(); ++i){
+		dh.handle(*this, i, ctx);
+	}
+}
+
+
+class FourthHandler{
+protected:
+	typedef DynamicMapper<void, FourthHandler>	DynamicMapperT;
+public:
+	FourthHandler(){
+	}
+	static void init(){
+		dm.insert<AObject, FourthHandler>();
+		dm.insert<BObject, FourthHandler>();
+	}
+	void push(const DynamicPointer<> &_dp){
+		dv.push_back(_dp);
+	}
+	void clear(){
+		dv.clear();
+	}
+	void run();
+	void dynamicHandle(DynamicPointer<> &_dp);
+	void dynamicHandle(const DynamicPointer<AObject> &_rdp);
+	void dynamicHandle(const DynamicPointer<BObject> &_rdp);
+	
+protected:
+	typedef std::vector<DynamicPointer<> >	DynamicPointerVectorT;
+	static DynamicMapperT	dm;
+	DynamicPointerVectorT	dv;
+};
+
+/*static*/ FourthHandler::DynamicMapperT FourthHandler::dm;
+
+void FourthHandler::dynamicHandle(DynamicPointer<> &_dp){
+	idbg("");
+}
+
+void FourthHandler::dynamicHandle(const DynamicPointer<AObject> &_dp){
+	idbg("v = "<<_dp->v);
+}
+
+void FourthHandler::dynamicHandle(const DynamicPointer<BObject> &_dp){
+	idbg("v1 = "<<_dp->v1<<" v2 = "<<_dp->v2);
+}
+
+void FourthHandler::run(){
+	DynamicHandler<DynamicMapperT, 6>	dh(dm, dv.begin(), dv.end());
+	dv.clear();
+	for(size_t i = 0; i < dh.size(); ++i){
+		dh.handle(*this, i);
+	}
+}
 
 int main(){
 #ifdef UDEBUG
-	Dbg::instance().levelMask();
-	Dbg::instance().moduleMask();
-	Dbg::instance().initStdErr(false);
+	Debug::the().levelMask("view");
+	Debug::the().moduleMask("any");
+	Debug::the().initStdErr(false);
 #endif
-	uint32 v = 2;
-#ifndef ON_WINDOWS
-	uint32 v2 = __sync_add_and_fetch(&v, 2);
-	idbg("v2 = "<<v2);
-#endif
+	
 	{
 		DynamicSharedPointer<AObject> 	dsap(new AObject(1));
 		DynamicSharedPointer<>			dsbp;
@@ -126,26 +230,54 @@ int main(){
 		{
 			DynamicPointer<AObject>			dap(dsap);
 			DynamicSharedPointer<>			dsaap(dap);
-			cout<<"ptr = "<<(void*)dap.get()<<" ptr = "<<(void*)dsaap.get()<<endl;
+			idbg("ptr = "<<(void*)dap.get()<<" ptr = "<<(void*)dsaap.get());
 		}
-		cout<<"ptr = "<<(void*)dsap.get()<<" ptr = "<<(void*)dsbp.get()<<endl;
+		idbg("ptr = "<<(void*)dsap.get()<<" ptr = "<<(void*)dsbp.get());
 	}
 	
-	SecondExecuter	e;
-	e.push(DynamicPointer<>(new AObject(1)));
-	e.push(DynamicPointer<>(new BObject(2,3)));
-	e.push(DynamicPointer<>(new CObject(1,2,3)));
-	e.push(DynamicPointer<>(new DObject("hello1", 4)));
-	e.run();
-	e.push(DynamicPointer<>(new AObject(11)));
-	e.push(DynamicPointer<>(new BObject(22,33)));
-	e.push(DynamicPointer<>(new CObject(11,22,33)));
-	e.push(DynamicPointer<>(new DObject("hello2", 44)));
-	e.run();
-	e.push(DynamicPointer<>(new AObject(111)));
-	e.push(DynamicPointer<>(new BObject(222,333)));
-	e.push(DynamicPointer<>(new CObject(111,222,333)));
-	e.push(DynamicPointer<>(new DObject("hello3", 444)));
-	e.run();
+	SecondHandler::init();
+	
+	SecondHandler	h;
+	
+	h.push(DynamicPointer<>(new AObject(1)));
+	h.push(DynamicPointer<>(new BObject(2,3)));
+	h.push(DynamicPointer<>(new CObject(1,2,3)));
+	h.push(DynamicPointer<>(new DObject("hello1", 4)));
+	
+	h.run();
+	
+	h.push(DynamicPointer<>(new AObject(11)));
+	h.push(DynamicPointer<>(new BObject(22,33)));
+	h.push(DynamicPointer<>(new CObject(11,22,33)));
+	h.push(DynamicPointer<>(new DObject("hello2", 44)));
+	
+	h.run();
+	
+	h.push(DynamicPointer<>(new AObject(111)));
+	h.push(DynamicPointer<>(new BObject(222,333)));
+	h.push(DynamicPointer<>(new CObject(111,222,333)));
+	h.push(DynamicPointer<>(new DObject("hello3", 444)));
+	
+	h.run();
+	
+	ThirdHandler::init();
+	ThirdHandler	h3;
+	
+	h3.push(DynamicPointer<>(new AObject(1)));
+	h3.push(DynamicPointer<>(new BObject(2,3)));
+	h3.push(DynamicPointer<>(new CObject(1,2,3)));
+	h3.push(DynamicPointer<>(new DObject("hello1", 4)));
+	
+	h3.run();
+	
+	FourthHandler::init();
+	FourthHandler	h4;
+	
+	h4.push(DynamicPointer<>(new AObject(1)));
+	h4.push(DynamicPointer<>(new BObject(2,3)));
+	h4.push(DynamicPointer<>(new CObject(1,2,3)));
+	h4.push(DynamicPointer<>(new DObject("hello1", 4)));
+	
+	h4.run();
 	return 0;
 }

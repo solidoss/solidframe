@@ -1,3 +1,12 @@
+// audit/log/logclientdata.hpp
+//
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+//
+// This file is part of SolidFrame framework.
+//
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
+//
 #ifndef AUDIT_LOGCLIENTDATA_HPP
 #define AUDIT_LOGCLIENTDATA_HPP
 
@@ -5,6 +14,7 @@
 #include <string>
 #include <vector>
 
+namespace solid{
 namespace audit{
 //! Log data identifing a client for log server
 struct LogClientData{
@@ -18,5 +28,6 @@ struct LogClientData{
 };
 
 }//namespace audit
+}//namespace solid
 
 #endif

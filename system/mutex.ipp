@@ -1,39 +1,28 @@
-/* Inline implementation file mutex.ipp
-	
-	Copyright 2007, 2008 Valentin Palade 
-	vipalade@gmail.com
-
-	This file is part of SolidGround framework.
-
-	SolidGround is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
-
-	SolidGround is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
-
-	You should have received a copy of the GNU General Public License
-	along with SolidGround.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
+// system/mutex.ipp
+//
+// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+//
+// This file is part of SolidFrame framework.
+//
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
+//
 #ifdef NINLINES
 #define inline
 #include "system/cassert.hpp"
 #endif
 
 inline Mutex::Mutex(){
+#ifdef UDEBUG
 	pthread_mutexattr_t att;
 	pthread_mutexattr_init(&att);
-#ifdef UDEBUG
 	pthread_mutexattr_settype(&att, (int)ERRORCHECK);
-#else
-	pthread_mutexattr_settype(&att, (int)FAST);
-#endif
 	pthread_mutex_init(&mut,&att);
 	pthread_mutexattr_destroy(&att);
+#else
+	//pthread_mutexattr_settype(&att, (int)FAST);
+	pthread_mutex_init(&mut, NULL);
+#endif
 }
 
 inline Mutex::Mutex(Type _type){
@@ -52,8 +41,8 @@ inline void Mutex::lock(){
 #ifdef NINLINES
 	int rv = pthread_mutex_lock(&mut);
 	if(rv){
+		edbgx(Debug::system, "pthread_mutex_lock: "<<strerror(errno));
 		cassert(!rv);
-		edbgx(Dbg::system, "pthread_mutex_lock: "<<strerror(errno));
 	}
 #else
 	pthread_mutex_lock(&mut);
@@ -67,7 +56,7 @@ inline void Mutex::unlock(){
 #ifdef NINLINES
 	int rv = pthread_mutex_unlock(&mut);
 	if(rv){
-		edbgx(Dbg::system, "pthread_mutex_unlock: "<<strerror(errno));
+		edbgx(Debug::system, "pthread_mutex_unlock: "<<strerror(errno));
 	}
 	cassert(!rv);
 #else
@@ -78,8 +67,34 @@ inline void Mutex::unlock(){
 #endif
 }
 
+inline SharedMutex::SharedMutex(){
+	 pthread_rwlock_init(&mut, NULL);
+}
+inline SharedMutex::~SharedMutex(){
+	pthread_rwlock_destroy(&mut);
+}
+inline void SharedMutex::lock(){
+	pthread_rwlock_wrlock(&mut);
+}
+inline void SharedMutex::unlock(){
+	 pthread_rwlock_unlock(&mut);
+}
+inline bool SharedMutex::tryLock(){
+	return pthread_rwlock_trywrlock(&mut) == 0;
+}
+inline void SharedMutex::sharedLock(){
+	pthread_rwlock_rdlock(&mut);
+}
+inline void SharedMutex::sharedUnlock(){
+	 pthread_rwlock_unlock(&mut);
+}
+inline bool SharedMutex::sharedTryLock(){
+	return pthread_rwlock_tryrdlock(&mut) == 0;
+}
+
 #ifdef _WIN32
 inline bool Mutex::tryLock(){
+	return false;
 }
 #else
 inline bool Mutex::tryLock(){
