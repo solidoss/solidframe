@@ -306,7 +306,7 @@ Listener::~Listener(){
 	cassert(this->socketOk());
 	if(notified()){
 		//Locker<Mutex>	lock(this->mutex());
-		ulong sm = this->grabSignalMask();
+		solid::ulong sm = this->grabSignalMask();
 		if(sm & frame::S_KILL){
 			_rexectx.close();
 			return;
@@ -380,7 +380,7 @@ Connection::~Connection(){
 
 	if(notified()){
 		//Locker<Mutex>	lock(mutex());
-		ulong sm = grabSignalMask();
+		solid::ulong sm = grabSignalMask();
 		if(sm & frame::S_KILL){
 			_rexectx.close();
 			return;
@@ -483,7 +483,7 @@ Talker::~Talker(){
 	}
 	if(notified()){
 		//Locker<Mutex>	lock(mutex());
-		ulong sm = grabSignalMask(0);
+		solid::ulong sm = grabSignalMask(0);
 		if(sm & frame::S_KILL){
 			_rexectx.close();
 			return;

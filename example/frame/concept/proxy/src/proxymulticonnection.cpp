@@ -74,7 +74,7 @@ enum{
 	if(notified()){
 		concept::Manager &rm = concept::Manager::the();
 		Locker<Mutex>	lock(rm.mutex(*this));
-		ulong sm = grabSignalMask();
+		solid::ulong sm = grabSignalMask();
 		if(sm & frame::S_KILL){
 			_rexectx.close();
 			return;

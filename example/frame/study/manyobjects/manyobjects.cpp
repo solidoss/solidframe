@@ -1,7 +1,6 @@
 #include <iostream>
 #include <deque>
 #include <vector>
-#include <unordered_map>
 #include <string>
 
 #include "system/common.hpp"

@@ -34,7 +34,7 @@ Listener::Listener(
 	cassert(this->socketOk());
 	if(notified()){
 		Locker<Mutex>	lock(Manager::specific().mutex(*this));
-		ulong sm = this->grabSignalMask();
+		solid::ulong sm = this->grabSignalMask();
 		if(sm & frame::S_KILL){ 
 			_rexectx.close();
 			return;

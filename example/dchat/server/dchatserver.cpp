@@ -560,7 +560,7 @@ Listener::~Listener(){
 /*virtual*/ void Listener::execute(ExecuteContext &_rexectx){
 	cassert(this->socketOk());
 	if(notified()){
-		ulong sm = this->grabSignalMask();
+		solid::ulong sm = this->grabSignalMask();
 		if(sm & frame::S_KILL){
 			_rexectx.close();
 			return;
@@ -803,7 +803,7 @@ bool Service::addNode(std::string &_rname, NodeTypes _type){
 /*virtual*/ void Connection::execute(ExecuteContext &_rexectx){
 	static Compressor 		compressor(BufferControllerT::DataCapacity);
 	
-	ulong					sm = grabSignalMask();
+	solid::ulong			sm = grabSignalMask();
 	
 	if(sm){
 		if(sm & frame::S_KILL){

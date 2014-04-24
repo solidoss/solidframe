@@ -64,7 +64,7 @@ struct Params{
 class Info{
 public:
 	Info():concnt(0), liscnt(0){}
-	void update(unsigned _pos, ulong _v);
+	void update(unsigned _pos, solid::ulong _v);
 	unsigned pushBack();
 	int print();
 	TimeSpec		ft;
@@ -75,12 +75,12 @@ public:
 	void addWait(){lock();++waitcnt;unlock();}
 	void subWait(){lock();--waitcnt;unlock();}
 private:
-	vector<ulong>   v;
-	uint32			concnt;
-	uint32			liscnt;
-	uint32			waitcnt;
-	Mutex           m;
-	TimeSpec		ct;
+	vector<solid::ulong>	v;
+	uint32					concnt;
+	uint32					liscnt;
+	uint32					waitcnt;
+	Mutex           		m;
+	TimeSpec				ct;
 };
 ///\endcond
 
@@ -89,7 +89,7 @@ unsigned Info::pushBack(){
 	return v.size() - 1;
 }
 
-void Info::update(unsigned _pos, ulong _v){
+void Info::update(unsigned _pos, solid::ulong _v){
 	//m.lock();
 	v[_pos] = _v;
 	//m.unlock();
@@ -103,7 +103,7 @@ int Info::print(){
 	uint32	mxcnt = 0;
 	//uint32	notconnected = 0;
 	//m.lock();
-	for(vector<ulong>::const_iterator it(v.begin()); it != v.end(); ++it){
+	for(vector<solid::ulong>::const_iterator it(v.begin()); it != v.end(); ++it){
 		//cout<<(*it/1024)<<'k'<<' ';
 		const uint32 t = *it;
 		if(t == 0xffffffff){continue;}
@@ -176,7 +176,7 @@ private:
 	int					slp;
 	StrDqT				sdq;
 	unsigned			pos;
-	ulong				readc;
+	solid::ulong		readc;
 	int					repeatcnt;
 	SSL					*pssl;
 	int					thrid;
@@ -235,7 +235,7 @@ void AlphaThread::run(){
 	rv = list(buf);
 	idbg("return value "<<rv);
 	inf.update(pos, readc);
-	ulong m = sdq.size();
+	solid::ulong m = sdq.size();
 	inf.lock();
 	inf.doneList();
 	cout<<pos<<" fetched file list: "<<m<<" files "<<endl;
@@ -246,9 +246,9 @@ void AlphaThread::run(){
 	if(rv) return;
 	if(repeatcnt == 0) repeatcnt = -1;
 	//if(repeatcnt > 0) ++repeatcnt;
-	ulong ul = pos;
+	solid::ulong ul = pos;
 	while(repeatcnt < 0 || repeatcnt--){
-		ulong cnt = m;
+		solid::ulong cnt = m;
 		while(cnt--  && !(rv = fetch(ul % m, buf))){
 			++ul;
 			Thread::sleep(rp.sleep);
@@ -438,7 +438,7 @@ int AlphaThread::fetch(unsigned _idx, char *_pb){
 	const char *bend;
 	const char *bp;
 	string lit;
-	ulong litlen = 0;
+	solid::ulong litlen = 0;
 	states.push_back(-1);
 	while((rc = this->read(_pb, BufLen - 1)) > 0){
 		readc += rc;

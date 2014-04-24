@@ -16,11 +16,11 @@ using namespace solid;
 int main(){
 	cout<<"This is a queue test program..."<<endl;
 	{
-		Queue<ulong,2> q;
+		Queue<solid::ulong,2> q;
 		q.push(1);
 	}
 	{
-		Queue<ulong,2> q;
+		Queue<solid::ulong,2> q;
 		
 		for(int i = 0; i<10; ++i){
 			q.push(i);

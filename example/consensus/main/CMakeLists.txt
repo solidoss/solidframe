@@ -15,12 +15,15 @@ target_link_libraries (example_consensus_client
 	solid_consensus_core
 	solid_frame_ipc
 	solid_frame_aio
+	solid_frame_aio_openssl
 	solid_frame_core
 	solid_serialization
 	solid_utility
 	solid_system
 	boost_program_options
 	boost_system
+	${OPENSSL_LIBS}
+	${SYS_DYNAMIC_LOAD_LIB}
 	${SYS_BASIC_LIBS}
 )
 
@@ -33,12 +36,15 @@ target_link_libraries (example_consensus_server
 	solid_consensus_core
 	solid_frame_ipc
 	solid_frame_aio
+	solid_frame_aio_openssl
 	solid_frame_core
 	solid_serialization
 	solid_utility
 	solid_system
 	boost_program_options
 	boost_system
+	${OPENSSL_LIBS}
+	${SYS_DYNAMIC_LOAD_LIB}
 	${SYS_BASIC_LIBS}
 )
 

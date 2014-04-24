@@ -207,7 +207,7 @@ int main(int argc, char *argv[]){
 			utf8cfg.storagevec.push_back(frame::file::Utf8Configuration::Storage());
 			utf8cfg.storagevec.back().globalprefix = "/";
 			utf8cfg.storagevec.back().localprefix = homedir;
-			if(utf8cfg.storagevec.back().localprefix.size() && utf8cfg.storagevec.back().localprefix.back() != '/'){
+			if(utf8cfg.storagevec.back().localprefix.size() && *utf8cfg.storagevec.back().localprefix.rbegin() != '/'){
 				utf8cfg.storagevec.back().localprefix.push_back('/');
 			}
 			
@@ -325,7 +325,7 @@ Listener::~Listener(){
 	cassert(this->socketOk());
 	if(notified()){
 		//Locker<Mutex>	lock(this->mutex());
-		ulong sm = this->grabSignalMask();
+		solid::ulong sm = this->grabSignalMask();
 		if(sm & frame::S_KILL){
 			_rexectx.close();
 			return;
@@ -440,7 +440,7 @@ struct OpenCbk{
 	
 	if(notified()){
 		DynamicHandler<DynamicMapperT>	dh(dm);
-		ulong							sm;
+		solid::ulong					sm;
 		{
 			Locker<Mutex>				lock(rm.mutex(*this));
 			

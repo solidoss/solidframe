@@ -45,7 +45,7 @@ int main(int argc, char *argv[]){
 		frame::file::FileIOStream<8>	iofs/*(0, 0)*/;
 		iofs.device(ptr);
 		iofs.seekp(0, ios_base::end);
-		iofs<<'<'<<' '<<"this is another line way more interesting than the above one "<<9876543210<<' '<<'>'<<endl;
+		iofs<<'<'<<' '<<"this is another line way more interesting than the above one "<<9876543210ULL<<' '<<'>'<<endl;
 		string				line;
 		getline(iofs, line);
 		cout<<"Read first line: "<<line<<endl;
