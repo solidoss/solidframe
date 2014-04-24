@@ -7,7 +7,7 @@
 ==Notes==
 
  * The API has major changes.
- * There is no documentation at this moment.
+ * There is no documentation at the moment.
  * Tested on Fedora Linux 20
 
 ==Changes==
