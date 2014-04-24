@@ -1,6 +1,6 @@
 FIND_LIBRARY(SNAPPY_LIB
 	NAMES
-		libsnappy
+		libsnappy.a
 		snappy
 	PATHS
 		${EXTERN_PATH}/lib NO_DEFAULT_PATH
