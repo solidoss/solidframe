@@ -8,7 +8,7 @@
 
  * The API has major changes.
  * There is no documentation at this moment.
- * Mostly tested on Linux/FreeBSD 
+ * Tested on Fedora Linux 20
 
 ==Changes==
 
