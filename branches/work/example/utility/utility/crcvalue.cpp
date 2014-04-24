@@ -63,7 +63,7 @@ int main(){
 		CRCValue8T	v(*pu8);
 		BitSet8T	bsv((uint8)*pu8);
 		BitSet8T	bs((uint8)v);
-		cout<<(uint32)*pu8<<" = "<<bsv<<" ok = "<<v.ok()<<" crc = "<<(ulong)v.crc()<<" value = "<<(ulong)v.value()<<" storage = "<<bs<<endl;
+		cout<<(uint32)*pu8<<" = "<<bsv<<" ok = "<<v.ok()<<" crc = "<<(solid::ulong)v.crc()<<" value = "<<(solid::ulong)v.value()<<" storage = "<<bs<<endl;
 	}while(*(++pu8));
 	
 	cout<<endl<<endl;
@@ -72,7 +72,7 @@ int main(){
 		CRCValue16T	v(*pu16);
 		BitSet16T	bsv((int)*pu16);
 		BitSet16T	bs((uint16)v);
-		cout<<(uint32)*pu16<<" = "<<bsv<<" ok = "<<v.ok()<<" crc = "<<(ulong)v.crc()<<" value = "<<(ulong)v.value()<<" storage = "<<bs<<endl;		
+		cout<<(uint32)*pu16<<" = "<<bsv<<" ok = "<<v.ok()<<" crc = "<<(solid::ulong)v.crc()<<" value = "<<(solid::ulong)v.value()<<" storage = "<<bs<<endl;		
 	}while(*(++pu16));
 	
 	cout<<endl<<endl;
@@ -81,7 +81,7 @@ int main(){
 		CRCValue32T		v(*pu32);
 		BitSet32T		bsv((int)*pu32);
 		BitSet32T		bs((int)v);
-		cout<<(uint32)*pu32<<" = "<<bsv<<" ok = "<<v.ok()<<" crc = "<<(ulong)v.crc()<<" value = "<<(ulong)v.value()<<" storage = "<<bs<<endl;				
+		cout<<(uint32)*pu32<<" = "<<bsv<<" ok = "<<v.ok()<<" crc = "<<(solid::ulong)v.crc()<<" value = "<<(solid::ulong)v.value()<<" storage = "<<bs<<endl;				
 	}while(*(++pu32));
 	
 	cout<<endl<<endl;

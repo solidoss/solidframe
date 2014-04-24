@@ -9,6 +9,7 @@
 //
 #include "frame/manager.hpp"
 #include "ipclistener.hpp"
+#include "frame/aio/openssl/opensslsocket.hpp"
 
 namespace solid{
 namespace frame{

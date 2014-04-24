@@ -83,14 +83,14 @@ void Writer::put(uint32 _v){
 }
 
 void Writer::put(InputStream *_ps, uint64 sz){
-	const ulong bufsz = bend - bbeg;
-	ulong wr = 0;
+	const solid::ulong bufsz = bend - bbeg;
+	solid::ulong wr = 0;
 	while(sz){
-		ulong toread = bufsz;
+		solid::ulong toread = bufsz;
 		if(sz < toread) toread = sz;
 		sz -= toread;
 		int rv = _ps->read(bbeg, toread);
-		cassert((ulong)rv == toread);
+		cassert((solid::ulong)rv == toread);
 		//wr += write(sd, bbeg, rv);
 		if(pssl){
 			wr = SSL_write(pssl,bbeg,rv);

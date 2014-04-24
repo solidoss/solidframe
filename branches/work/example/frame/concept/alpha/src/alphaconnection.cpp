@@ -163,7 +163,7 @@ Connection::~Connection(){
 	
 	if(notified()){//we've received a signal
 		DynamicHandler<DynamicMapperT>	dh(dm);
-		ulong 							sm(0);
+		solid::ulong 							sm(0);
 		{
 			Locker<Mutex>	lock(rm.mutex(*this));
 			sm = grabSignalMask(0);//grab all bits of the signal mask

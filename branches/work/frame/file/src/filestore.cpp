@@ -14,10 +14,12 @@
 
 #define HASH_NS std
 #include <functional>
+#include <unordered_set>
 
 #else
 
 #include "boost/functional/hash.hpp"
+#include "boost/unordered_set.hpp"
 #define HASH_NS boost
 
 #endif
@@ -33,7 +35,6 @@
 #include "filetemp.hpp"
 
 #include <algorithm>
-#include <unordered_set>
 #include <cstdio>
 
 
@@ -109,9 +110,9 @@ struct IndexHash{
 };
 
 
-typedef std::unordered_set<const Utf8PathStub*, PathHash, PathEqual>	PathSetT;
-typedef std::unordered_set<const Utf8PathStub*, IndexHash, IndexEqual>	IndexSetT;
-typedef Stack<Utf8PathStub*>											PathStubStackT;
+typedef HASH_NS::unordered_set<const Utf8PathStub*, PathHash, PathEqual>	PathSetT;
+typedef HASH_NS::unordered_set<const Utf8PathStub*, IndexHash, IndexEqual>	IndexSetT;
+typedef Stack<Utf8PathStub*>												PathStubStackT;
 
 struct SizePairCompare {
 	bool operator() (SizePairT const& _a, SizePairT const& _b)const{
@@ -606,7 +607,7 @@ bool prepare_temp_file_path(std::string &_rpath, const char *_prefix, size_t _id
 	_rpath.assign(_prefix);
 	if(_rpath.empty()) return false;
 	
-	if(_rpath.back() != '/'){
+	if(*_rpath.rbegin() != '/'){
 		_rpath += '/';
 	}
 	

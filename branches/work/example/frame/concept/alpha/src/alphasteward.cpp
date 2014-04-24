@@ -99,7 +99,7 @@ void Steward::sendMessage(solid::DynamicPointer<solid::frame::Message> &_rmsgptr
 /*virtual*/ void Steward::execute(ExecuteContext &_rexectx){
 	if(notified()){//we've received a signal
 		DynamicHandler<DynamicMapperT>	dh(dm);
-		ulong 							sm(0);
+		solid::ulong 							sm(0);
 		{
 			Locker<Mutex>	lock(d.rm.mutex(*this));
 			sm = grabSignalMask(0);//grab all bits of the signal mask

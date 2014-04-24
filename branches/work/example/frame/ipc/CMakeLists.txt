@@ -11,6 +11,7 @@ target_link_libraries (example_ipcstress
 	${OPENSSL_LIBS}
 	${BOOST_PROGRAM_OPTIONS_LIB}
 	${BOOST_SYSTEM_LIB}
+	${OPENSSL_LIBS}
 	${SYS_BASIC_LIBS}
 	${SYS_DYNAMIC_LOAD_LIB}
 )
@@ -28,6 +29,7 @@ target_link_libraries (example_ipcserialization
 	solid_system
 	${BOOST_PROGRAM_OPTIONS_LIB}
 	${BOOST_SYSTEM_LIB}
+	${OPENSSL_LIBS}
 	${SYS_BASIC_LIBS}
 	${SYS_DYNAMIC_LOAD_LIB}
 )
@@ -44,6 +46,7 @@ target_link_libraries (example_ipcgateway
 	solid_system
 	${BOOST_PROGRAM_OPTIONS_LIB}
 	${BOOST_SYSTEM_LIB}
+	${OPENSSL_LIBS}
 	${SYS_BASIC_LIBS}
 	${SYS_DYNAMIC_LOAD_LIB}
 )

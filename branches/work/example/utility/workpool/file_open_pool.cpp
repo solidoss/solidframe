@@ -22,10 +22,10 @@ using namespace std;
 using namespace solid;
 
 template <class T>
-static T align(T _v, ulong _by);
+static T align(T _v, solid::ulong _by);
 
 template <class T>
-static T* align(T* _v, const ulong _by){
+static T* align(T* _v, const solid::ulong _by){
     if((size_t)_v % _by){
         return _v + (_by - ((size_t)_v % _by));
     }else{
@@ -34,7 +34,7 @@ static T* align(T* _v, const ulong _by){
 }
 
 template <class T>
-static T align(T _v, const ulong _by){
+static T align(T _v, const solid::ulong _by){
     if(_v % _by){
         return _v + (_by - (_v % _by));
     }else{
@@ -57,9 +57,9 @@ struct MyWorkerBase: WorkerBase{
 		delete []bf;
 	}
 	
-	const ulong readsz;
-	char 		*bf;
-	char 		*buf;
+	const solid::ulong	readsz;
+	char 				*bf;
+	char 				*buf;
 };
 
 class MyWorkPoolController;

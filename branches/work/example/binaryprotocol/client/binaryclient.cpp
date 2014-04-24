@@ -340,7 +340,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 	static Compressor 				compressor(BufferControllerT::DataCapacity);
 	static MessageSharedPointerT	noopmsgptr(new NoopMessage);
 	
-	ulong							sm = grabSignalMask();
+	solid::ulong					sm = grabSignalMask();
 	if(sm){
 		if(sm & frame::S_KILL){
 			done();
@@ -355,7 +355,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 			sndmsgvec.clear();
 		}
 	}
-	ulong evs = _rexectx.eventMask();
+	solid::ulong					evs = _rexectx.eventMask();
 	if(evs & (frame::EventTimeout | frame::EventDoneError)){
 		if(waitnoop){
 			done();

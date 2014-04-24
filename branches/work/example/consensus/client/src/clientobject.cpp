@@ -201,7 +201,7 @@ void ClientObject::execute(ExecuteContext &_rexectx){
 	frame::Manager &rm(frame::Manager::specific());
 	
 	if(notified()){//we've received a signal
-		ulong							sm(0);
+		solid::ulong							sm(0);
 		DynamicHandler<DynamicMapperT>	dh(dm);
 		{
 			Locker<Mutex>	lock(rm.mutex(*this));

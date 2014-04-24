@@ -392,7 +392,7 @@ void Connection::done(){
 	static Compressor 				compressor(BufferControllerT::DataCapacity);
 	static MessageSharedPointerT	noopmsgptr(new NoopMessage);
 	
-	ulong							sm = grabSignalMask();
+	solid::ulong					sm = grabSignalMask();
 	if(sm){
 		if(sm & frame::S_KILL){
 			done();

@@ -74,26 +74,26 @@ struct Handle{
 			eevents = EPOLLOUT;
 		}
 	}
-	uint32			eevents;//expected events
-	uint32			sevents;//set events
-	uint32			events;//incomming events
+	uint32					eevents;//expected events
+	uint32					sevents;//set events
+	uint32					events;//incomming events
 	
-	bool			wait_read_on_write;
-	bool			wait_read_on_read;
-	bool			wait_write_on_write;
-	bool			wait_write_on_read;
-	bool			doread;
-	bool			dowrite;
-	int				state;
-	SocketDevice	sd;
-	SSL				*ssl;
+	bool					wait_read_on_write;
+	bool					wait_read_on_read;
+	bool					wait_write_on_write;
+	bool					wait_write_on_read;
+	bool					doread;
+	bool					dowrite;
+	int						state;
+	SocketDevice			sd;
+	SSL						*ssl;
 	//we use multiple buffers to be able to 
 	//test synchrounous read and writes
-	char			buf[2][BufferCapacity];
-	int				len[2];
-	char			*pwbuf[2];
-	Queue<uint>		readbufs;
-	Queue<uint>		writebufs;
+	char					buf[2][BufferCapacity];
+	int						len[2];
+	char					*pwbuf[2];
+	Queue<solid::uint>		readbufs;
+	Queue<solid::uint>		writebufs;
 };
 
 typedef std::vector<Handle>	HandleVectorT;
@@ -208,8 +208,8 @@ int main(int argc, char* argv[]){
 	return 0;
 }
 
-const char *echo_str = "Hello from echo server\r\n";
-const uint  echo_len = strlen(echo_str);
+const char			*echo_str = "Hello from echo server\r\n";
+const solid::uint	echo_len = strlen(echo_str);
 
 int executeConnection(uint32 _pos){
 	Handle &h(handles[_pos]);
