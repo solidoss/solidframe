@@ -71,6 +71,8 @@ message("EXTERN_PATH set as " ${EXTERN_PATH})
 
 include(find_boost.cmake)
 include(find_openssl.cmake)
+include(find_leveldb.cmake)
+include(find_snappy.cmake)
 
 
 #-----------------------------------------------------------------

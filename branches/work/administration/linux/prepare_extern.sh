@@ -15,6 +15,8 @@ printUsage()
 
 BOOST_ADDR="http://garr.dl.sourceforge.net/project/boost/boost/1.55.0/boost_1_55_0.tar.bz2"
 OPENSSL_ADDR="http://www.openssl.org/source/openssl-1.0.1g.tar.gz"
+LEVELDB_ADDR="https://leveldb.googlecode.com/files/leveldb-1.15.0.tar.gz"
+SNAPPY_ADDR="http://snappy.googlecode.com/files/snappy-1.0.5.tar.gz"
 
 downloadArchive()
 {
@@ -151,12 +153,117 @@ buildOpenssl()
 }
 
 
+buildLeveldb()
+{
+	WHAT="leveldb"
+	ADDR_NAME=$LEVELDB_ADDR
+	echo
+	echo "Building $WHAT..."
+	echo
+
+	OLD_DIR=`ls . | grep "$WHAT" | grep -v "tar"`
+	echo
+	echo "Cleanup previous builds..."
+	echo
+
+	rm -rf $OLD_DIR
+	rm -rf include/leveldb
+	rm -rf lib/libleveldb*
+	
+	echo
+	echo "Prepare the $WHAT archive..."
+	echo
+
+	ARCH_NAME=`find . -name "$WHAT-*.tar.gz" | grep -v "old/"`
+	if [ -z "$ARCH_NAME" -o -n "$DOWNLOAD" ] ; then
+		mkdir old
+		mv $ARCH_NAME old/
+		echo "No $WHAT archive found or forced - try download: $ADDR_NAME"
+		downloadArchive $ADDR_NAME
+		ARCH_NAME=`find . -name "$WHAT-*.tar.gz" | grep -v "old/"`
+	fi
+	
+	echo "Extracting $WHAT [$ARCH_NAME]..."
+	extractTarGz $ARCH_NAME
+
+	DIR_NAME=`ls . | grep "$WHAT" | grep -v "tar"`
+	echo
+	echo "Making $WHAT [$DIR_NAME]..."
+	echo
+
+	cd $DIR_NAME
+	export CXXFLAGS="-I$EXT_DIR/include -L$EXT_DIR/lib"
+	make
+	cp -r include/leveldb $EXT_DIR/include
+	cp *.a $EXT_DIR/lib
+	cd ..
+	
+	echo
+	echo "Done $WHAT!"
+	echo
+}
+
+
+function buildSnappy()
+{
+    WHAT="snappy"
+	ADDR_NAME=$SNAPPY_ADDR
+	echo
+	echo "Building $WHAT..."
+	echo
+
+	OLD_DIR=`ls . | grep "$WHAT" | grep -v "tar"`
+	echo
+	echo "Cleanup previous builds..."
+	echo
+
+	rm -rf $OLD_DIR
+	rm -rf include/snappy
+	rm -rf lib/libsnappy*
+	
+	echo
+	echo "Prepare the $WHAT archive..."
+	echo
+
+	ARCH_NAME=`find . -name "$WHAT-*.tar.gz" | grep -v "old/"`
+	if [ -z "$ARCH_NAME" -o -n "$DOWNLOAD" ] ; then
+		mkdir old
+		mv $ARCH_NAME old/
+		echo "No $WHAT archive found or forced - try download: $ADDR_NAME"
+		downloadArchive $ADDR_NAME
+		ARCH_NAME=`find . -name "$WHAT-*.tar.gz" | grep -v "old/"`
+	fi
+	
+	echo "Extracting $WHAT [$ARCH_NAME]..."
+	extractTarGz $ARCH_NAME
+	
+	DIR_NAME=`ls . | grep "$WHAT" | grep -v "tar"`
+	echo
+	echo "Making $WHAT [$DIR_NAME]..."
+	echo
+
+	cd $DIR_NAME
+
+	if [ -n "$DEBUG" ] ; then
+		./configure --prefix="$EXT_DIR" --disable-shared
+	else
+		./configure --prefix="$EXT_DIR" --disable-shared
+	fi
+	make && make install
+	cd ..
+	echo
+	echo "Done $WHAT!"
+	echo
+}
+
 EXT_DIR="`pwd`"
 echo "$EXT_DIR"
 
 BUILD_BOOST_MIN=
 BUILD_BOOST_FULL=
 BUILD_OPENSSL=
+BUILD_LEVELDB=
+BUILD_SNAPPY=
 
 ARCHIVE=
 DOWNLOAD=
@@ -181,6 +288,12 @@ while [ "$#" -gt 0 ]; do
 		fi
 		if [ "$1" = "openssl" ] ; then
 			BUILD_OPENSSL="yes"
+		fi
+		if [ "$1" = "snappy" ] ; then
+			BUILD_SNAPPY="yes"
+		fi
+		if [ "$1" = "leveldb" ] ; then
+			BUILD_LEVELDB="yes"
 		fi
 		;;
 	-d|--debug)
@@ -222,6 +335,14 @@ fi
 
 if [ $BUILD_OPENSSL ]; then
 	buildOpenssl
+fi
+
+if [ $BUILD_SNAPPY ]; then
+	buildSnappy
+fi
+
+if [ $BUILD_LEVELDB ]; then
+	buildLeveldb
 fi
 
 if [ -d lib64 ]; then
