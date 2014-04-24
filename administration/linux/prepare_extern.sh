@@ -245,9 +245,9 @@ function buildSnappy()
 	cd $DIR_NAME
 
 	if [ -n "$DEBUG" ] ; then
-		./configure --prefix="$EXT_DIR" --disable-shared
+		./configure --prefix="$EXT_DIR"
 	else
-		./configure --prefix="$EXT_DIR" --disable-shared
+		./configure --prefix="$EXT_DIR"
 	fi
 	make && make install
 	cd ..
