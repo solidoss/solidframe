@@ -1,14 +1,14 @@
 // frame/ipc/ipcconnectionuid.hpp
 //
-// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2010 Valentin Palade (vipalade @ gmail . com) 
 //
 // This file is part of SolidFrame framework.
 //
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#ifndef SOLID_FRAME_IPC_IPC_CONNECTION_UID_HPP
-#define SOLID_FRAME_IPC_IPC_CONNECTION_UID_HPP
+#ifndef SOLID_FRAME_IPC_IPC_SESSION_UID_HPP
+#define SOLID_FRAME_IPC_IPC_SESSION_UID_HPP
 
 #include "system/socketaddress.hpp"
 #include "utility/dynamicpointer.hpp"
@@ -78,6 +78,7 @@ struct ConnectionContext{
 	
 	Service				&rservice;
 	ConnectionUid 		connectionuid;
+	const ObjectUidT	tkruid;
 	int 				baseport;
 	SocketAddressStub	pairaddr;
 	uint32				netid;
@@ -85,6 +86,9 @@ struct ConnectionContext{
 	
 	MessagePointerT& requestMessage(const Message &_rmsg)const;
 	
+	ObjectUidT talkerUid()const{
+		return tkruid;
+	}
 	Service& service()const{
 		return rservice;
 	}
