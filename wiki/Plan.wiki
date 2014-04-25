@@ -3,6 +3,7 @@
 <wiki:toc max_depth="1" />
 
 ==1.0 alpha==
+ # (20) STARTED: Drop UDP for IPC. Use TCP. Drop support for netid and gateway.
  # (40) PENDING: Improve consensus library by creating a usable authentication engine example
  # (45) PENDING: make install
  # (50) PENDING: API documentation.
