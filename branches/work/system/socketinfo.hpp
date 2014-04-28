@@ -36,14 +36,16 @@ struct SocketInfo{
 		Stream = SOCK_STREAM,
 		Datagram = SOCK_DGRAM
 	};
-	enum {HostStringCapacity = NI_MAXHOST};
-	enum {ServiceStringCapacity = NI_MAXSERV};
-	//! Some request flags
 	enum {
-		NumericHost = NI_NUMERICHOST,	//!< Generate only numeric host
-		NameRequest = NI_NAMEREQD,		//!< Force name lookup - fail if not found
-		NumericService = NI_NUMERICSERV	//!< Generate only the port number
+		HostStringCapacity = NI_MAXHOST,
+		ServiceStringCapacity = NI_MAXSERV
 	};
+// 	//! Some request flags
+// 	enum {
+// 		NumericHost = NI_NUMERICHOST,	//!< Generate only numeric host
+// 		NameRequest = NI_NAMEREQD,		//!< Force name lookup - fail if not found
+// 		NumericService = NI_NUMERICSERV	//!< Generate only the port number
+// 	};
 private:
 	SocketInfo();
 	SocketInfo(const SocketInfo&);

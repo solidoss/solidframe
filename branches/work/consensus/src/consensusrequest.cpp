@@ -12,6 +12,8 @@
 
 #include "frame/ipc/ipcservice.hpp"
 
+using namespace std;
+
 namespace solid{
 namespace consensus{
 
@@ -57,16 +59,14 @@ size_t RequestId::senderHash()const{
 std::ostream &operator<<(std::ostream& _ros, const RequestId &_rreqid){
 	_ros<<_rreqid.requid<<','<<' '<<_rreqid.senderuid.first<<','<<' '<<_rreqid.senderuid.second<<','<<' ';
 	const SocketAddressInet4	&ra(_rreqid.sockaddr);
-	char						host[SocketInfo::HostStringCapacity];
-	char						port[SocketInfo::ServiceStringCapacity];
+	std::string					hoststr;
+	std::string					portstr;
 	ra.toString(
-		host,
-		SocketInfo::HostStringCapacity,
-		port,
-		SocketInfo::ServiceStringCapacity,
-		SocketInfo::NumericService | SocketInfo::NumericHost
+		hoststr,
+		portstr,
+		ReverseResolveInfo::NumericService | ReverseResolveInfo::NumericHost
 	);
-	_ros<<host<<':'<<port;
+	_ros<<hoststr<<':'<<portstr;
 	return _ros;
 }
 
@@ -92,27 +92,25 @@ WriteRequestMessage::~WriteRequestMessage(){
 /*virtual*/ void WriteRequestMessage::ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, MessagePointerT &_rmsgptr){
 	ipcconid = frame::ipc::ConnectionContext::the().connectionuid;
 	
-	char				host[SocketInfo::HostStringCapacity];
-	char				port[SocketInfo::ServiceStringCapacity];
+	string				hoststr;
+	string				portstr;
 	
 	id.sockaddr = frame::ipc::ConnectionContext::the().pairaddr;
 	
 	id.sockaddr.toString(
-		host,
-		SocketInfo::HostStringCapacity,
-		port,
-		SocketInfo::ServiceStringCapacity,
-		SocketInfo::NumericService | SocketInfo::NumericHost
+		hoststr,
+		portstr,
+		ReverseResolveInfo::NumericService | ReverseResolveInfo::NumericHost
 	);
 	
 	if(ipcIsBackOnSender()){
-		idbg((void*)this<<" back on sender: baseport = "<<frame::ipc::ConnectionContext::the().baseport<<" host = "<<host<<":"<<port);
+		idbg((void*)this<<" back on sender: baseport = "<<frame::ipc::ConnectionContext::the().baseport<<" host = "<<hoststr<<":"<<portstr);
 		if(static_cast<WriteRequestMessage*>(_rctx.requestMessage(*this).get())->consensusOnSuccess()){
 			idbg("before consensusNotifyClientWithThis");
 			consensusNotifyClientWithThis();
 		}
 	}else if(ipcIsOnReceiver()){
-		idbg((void*)this<<" on peer: baseport = "<<frame::ipc::ConnectionContext::the().baseport<<" host = "<<host<<":"<<port);
+		idbg((void*)this<<" on peer: baseport = "<<frame::ipc::ConnectionContext::the().baseport<<" host = "<<hoststr<<":"<<portstr);
 		id.sockaddr.port(_rctx.baseport);
 		this->consensusNotifyServerWithThis();
 	}else{
@@ -173,24 +171,22 @@ ReadRequestMessage::~ReadRequestMessage(){
 void ReadRequestMessage::ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, solid::frame::ipc::Message::MessagePointerT &_rmsgptr){
 	ipcconid = _rctx.connectionuid;
 	
-	char				host[SocketInfo::HostStringCapacity];
-	char				port[SocketInfo::ServiceStringCapacity];
+	string				hoststr;
+	string				portstr;
 	
 	id.sockaddr = frame::ipc::ConnectionContext::the().pairaddr;
 	
 	id.sockaddr.toString(
-		host,
-		SocketInfo::HostStringCapacity,
-		port,
-		SocketInfo::ServiceStringCapacity,
-		SocketInfo::NumericService | SocketInfo::NumericHost
+		hoststr,
+		portstr,
+		ReverseResolveInfo::NumericService | ReverseResolveInfo::NumericHost
 	);
 	
 	if(ipcIsBackOnSender()){
-		idbg((void*)this<<" back on sender: baseport = "<<frame::ipc::ConnectionContext::the().baseport<<" host = "<<host<<":"<<port);
+		idbg((void*)this<<" back on sender: baseport = "<<frame::ipc::ConnectionContext::the().baseport<<" host = "<<hoststr<<":"<<portstr);
 		this->consensusNotifyClientWithThis();
 	}else if(ipcIsOnReceiver()){
-		idbg((void*)this<<" on peer: baseport = "<<frame::ipc::ConnectionContext::the().baseport<<" host = "<<host<<":"<<port);
+		idbg((void*)this<<" on peer: baseport = "<<frame::ipc::ConnectionContext::the().baseport<<" host = "<<hoststr<<":"<<portstr);
 		id.sockaddr.port(frame::ipc::ConnectionContext::the().baseport);
 		this->consensusNotifyServerWithThis();
 	}else{

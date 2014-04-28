@@ -322,22 +322,11 @@ inline SocketAddress::operator const sockaddr*()const{
 	return sockAddr();
 }
 inline bool SocketAddress::toString(
-	char* _host,
-	unsigned _hostcp,
-	char* _serv,
-	unsigned _servcp,
+	std::string &_rhoststr,
+	std::string &_rservstr,
 	uint32	_flags
 )const{
-	if(!_hostcp || !_servcp) return false;
-	if(empty()) return false;
-	_host[0] = 0;
-	_serv[0] = 0;
-	int rv = getnameinfo(sockAddr(), size(), _host, _hostcp, _serv, _servcp, _flags);
-	if(rv){
-		edbgx(Debug::system, "getnameinfo: "<<strerror(errno));
-		return false;
-	}
-	return true;
+	return synchronous_resolve(_rhoststr, _rservstr, *this, _flags);
 }
 
 inline bool SocketAddress::operator<(const SocketAddress &_raddr)const{
@@ -546,22 +535,11 @@ inline SocketAddressInet::operator const sockaddr*()const{
 	return sockAddr();
 }
 inline bool SocketAddressInet::toString(
-	char* _host,
-	unsigned _hostcp,
-	char* _serv,
-	unsigned _servcp,
+	std::string &_rhoststr,
+	std::string &_rservstr,
 	uint32	_flags
 )const{
-	if(!_hostcp || !_servcp) return false;
-	if(empty()) return false;
-	_host[0] = 0;
-	_serv[0] = 0;
-	int rv = getnameinfo(sockAddr(), size(), _host, _hostcp, _serv, _servcp, _flags);
-	if(rv){
-		edbgx(Debug::system, "getnameinfo: "<<strerror(errno));
-		return false;
-	}
-	return true;
+	return synchronous_resolve(_rhoststr, _rservstr, *this, _flags);
 }
 
 inline bool SocketAddressInet::toBinary(Binary4T &_bin, uint16 &_port)const{
@@ -776,22 +754,13 @@ inline SocketAddressInet4::operator const sockaddr*()const{
 	return sockAddr();
 }
 inline bool SocketAddressInet4::toString(
-	char* _host,
-	unsigned _hostcp,
-	char* _serv,
-	unsigned _servcp,
+	std::string &_rhoststr,
+	std::string &_rservstr,
 	uint32	_flags
 )const{
-	if(!_hostcp || !_servcp) return false;
-	_host[0] = 0;
-	_serv[0] = 0;
-	int rv = getnameinfo(sockAddr(), size(), _host, _hostcp, _serv, _servcp, _flags);
-	if(rv){
-		edbgx(Debug::system, "getnameinfo: "<<strerror(errno));
-		return false;
-	}
-	return true;
+	return synchronous_resolve(_rhoststr, _rservstr, *this, _flags);
 }
+
 inline void SocketAddressInet4::toBinary(BinaryT &_bin, uint16 &_port)const{
 	memcpy(_bin.data, &address().s_addr, 4);
 	_port = d.inaddr4.sin_port;
@@ -936,21 +905,11 @@ inline SocketAddressInet6::operator const sockaddr*()const{
 	return sockAddr();
 }
 inline bool SocketAddressInet6::toString(
-	char* _host,
-	unsigned _hostcp,
-	char* _serv,
-	unsigned _servcp,
+	std::string &_rhoststr,
+	std::string &_rservstr,
 	uint32	_flags
 )const{
-	if(!_hostcp || !_servcp) return false;
-	_host[0] = 0;
-	_serv[0] = 0;
-	int rv = getnameinfo(sockAddr(), size(), _host, _hostcp, _serv, _servcp, _flags);
-	if(rv){
-		edbgx(Debug::system, "getnameinfo: "<<strerror(errno));
-		return false;
-	}
-	return true;
+	return synchronous_resolve(_rhoststr, _rservstr, *this, _flags);
 }
 
 inline void SocketAddressInet6::toBinary(BinaryT &_bin, uint16 &_port)const{

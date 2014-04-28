@@ -23,18 +23,16 @@ Message::~Message(){
 	
 }
 /*virtual*/ void Message::ipcOnReceive(frame::ipc::ConnectionContext const &_rctx, MessagePointerT &_rmsgptr){
-	char							host[SocketInfo::HostStringCapacity];
-	char							port[SocketInfo::ServiceStringCapacity];
+	std::string				hoststr;
+	std::string				portstr;
 	
 	//TODO:!! sa not initialized !?
 	SocketAddressInet4				sa;
 	sa = frame::ipc::ConnectionContext::the().pairaddr;
 	sa.toString(
-		host,
-		SocketInfo::HostStringCapacity,
-		port,
-		SocketInfo::ServiceStringCapacity,
-		SocketInfo::NumericService | SocketInfo::NumericHost
+		hoststr,
+		portstr,
+		ReverseResolveInfo::NumericService | ReverseResolveInfo::NumericHost
 	);
 	DynamicPointer<frame::Message>	msgptr(_rmsgptr);
 	

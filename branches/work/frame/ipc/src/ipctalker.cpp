@@ -1001,25 +1001,21 @@ std::ostream& ConnectData::print(std::ostream& _ros)const{
 	_ros<<flags<<' '<<baseport<<' '<<timestamp_s<<':'<<timestamp_n<<' ';
 	_ros<<relayid<<' '<<receivernetworkid<<':';
 	
-	char	host[SocketInfo::HostStringCapacity];
-	char	port[SocketInfo::ServiceStringCapacity];
+	std::string	hoststr;
+	std::string	portstr;
 	
 	receiveraddress.toString(
-		host,
-		SocketInfo::HostStringCapacity,
-		port,
-		SocketInfo::ServiceStringCapacity,
-		SocketInfo::NumericService | SocketInfo::NumericHost
+		hoststr,
+		portstr,
+		ReverseResolveInfo::NumericService | ReverseResolveInfo::NumericHost
 	);
-	_ros<<host<<':'<<port<<"<-"<<sendernetworkid<<':';
+	_ros<<hoststr<<':'<<portstr<<"<-"<<sendernetworkid<<':';
 	senderaddress.toString(
-		host,
-		SocketInfo::HostStringCapacity,
-		port,
-		SocketInfo::ServiceStringCapacity,
-		SocketInfo::NumericService | SocketInfo::NumericHost
+		hoststr,
+		portstr,
+		ReverseResolveInfo::NumericService | ReverseResolveInfo::NumericHost
 	);
-	_ros<<host<<':'<<port;
+	_ros<<hoststr<<':'<<portstr;
 	return _ros;
 }
 

@@ -33,6 +33,7 @@
 
 
 using namespace solid;
+using namespace std;
 
 namespace concept{
 namespace alpha{
@@ -229,8 +230,8 @@ Connection::~Connection(){
 			uint32				myport(rm.ipc().basePort());
 			IndexT				objid(this->id());
 			uint32				objuid(Manager::the().id(*this).second);
-			char				host[SocketInfo::HostStringCapacity];
-			char				port[SocketInfo::ServiceStringCapacity];
+			string				hoststr;
+			string				portstr;
 			SocketAddress		addr;
 			
 			
@@ -238,22 +239,18 @@ Connection::~Connection(){
 			writer()<<"* Hello from alpha server ("<<myport<<' '<<' '<< objid<<' '<<objuid<<") [";
 			socketLocalAddress(addr);
 			addr.toString(
-				host,
-				SocketInfo::HostStringCapacity,
-				port,
-				SocketInfo::ServiceStringCapacity,
-				SocketInfo::NumericService | SocketInfo::NumericHost
+				hoststr,
+				portstr,
+				ReverseResolveInfo::NumericService | ReverseResolveInfo::NumericHost
 			);
-			writer()<<host<<':'<<port<<" -> ";
+			writer()<<hoststr<<':'<<portstr<<" -> ";
 			socketRemoteAddress(addr);
 			addr.toString(
-				host,
-				SocketInfo::HostStringCapacity,
-				port,
-				SocketInfo::ServiceStringCapacity,
-				SocketInfo::NumericService | SocketInfo::NumericHost
+				hoststr,
+				portstr,
+				ReverseResolveInfo::NumericService | ReverseResolveInfo::NumericHost
 			);
-			writer()<<host<<':'<<port<<"]"<<'\r'<<'\n';
+			writer()<<hoststr<<':'<<portstr<<"]"<<'\r'<<'\n';
 			writer().push(&Writer::flushAll);
 			state(Execute);
 			}break;

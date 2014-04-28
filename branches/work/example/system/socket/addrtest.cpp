@@ -86,16 +86,18 @@ int main(int argc, char *argv[]){
 		
 		SocketAddress	sa(it);
 		
-		char			host[SocketInfo::HostStringCapacity];
-		char			port[SocketInfo::ServiceStringCapacity];
-		
+		std::string hoststr;
+		std::string servstr;
 		sa.toString(
-			host, SocketInfo::HostStringCapacity,
-			port, SocketInfo::ServiceStringCapacity,
-			SocketInfo::NumericService | SocketInfo::NumericHost
+			hoststr, servstr,
+			ReverseResolveInfo::NumericHost | ReverseResolveInfo::NumericService
 		);
 		
-		cout<<"host = "<<host<<":"<<port<<endl;
+		cout<<"host = "<<hoststr<<":"<<servstr<<endl;
+		
+		synchronous_resolve(hoststr, servstr, sa);
+		
+		cout<<"Reverse resolve: "<<hoststr<<":"<<servstr<<endl;
 		
 		SocketDevice sd;
 		sd.create(it);
@@ -111,12 +113,11 @@ int main(int argc, char *argv[]){
 		SocketAddressInet4 sa4_0(it);
 		
 		sa4_0.toString(
-			host, SocketInfo::HostStringCapacity,
-			port, SocketInfo::ServiceStringCapacity,
-			SocketInfo::NumericService | SocketInfo::NumericHost
+			hoststr, servstr,
+			ReverseResolveInfo::NumericHost | ReverseResolveInfo::NumericService
 		);
 		
-		cout<<"sa4_0 host = "<<host<<":"<<port<<endl;
+		cout<<"sa4_0 host = "<<hoststr<<":"<<servstr<<endl;
 		
 		uint16 portx;
 		uint32 addr;
@@ -128,12 +129,11 @@ int main(int argc, char *argv[]){
 		SocketAddressInet4 sa4_1(addr, portx);
 		
 		sa4_1.toString(
-			host, SocketInfo::HostStringCapacity,
-			port, SocketInfo::ServiceStringCapacity,
-			SocketInfo::NumericService | SocketInfo::NumericHost
+			hoststr, servstr,
+			ReverseResolveInfo::NumericHost | ReverseResolveInfo::NumericService
 		);
 		
-		cout<<"sa4_1 host = "<<host<<":"<<port<<endl;
+		cout<<"sa4_1 host = "<<hoststr<<":"<<servstr<<endl;
 		
 		cassert(sa4_0 < sa4_1);
 		
@@ -145,12 +145,11 @@ int main(int argc, char *argv[]){
 		SocketAddressInet4 sa4_2(binaddr4, portx);
 		
 		sa4_2.toString(
-			host, SocketInfo::HostStringCapacity,
-			port, SocketInfo::ServiceStringCapacity,
-			SocketInfo::NumericService | SocketInfo::NumericHost
+			hoststr, servstr,
+			ReverseResolveInfo::NumericHost | ReverseResolveInfo::NumericService
 		);
 		
-		cout<<"sa4_2 host = "<<host<<":"<<port<<endl;
+		cout<<"sa4_2 host = "<<hoststr<<":"<<servstr<<endl;
 		
 		cassert(!(sa4_1 == sa4_2));
 		cassert(sa4_0 == sa4_2);

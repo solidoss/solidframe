@@ -78,6 +78,7 @@ struct ConnectionContext{
 	
 	Service				&rservice;
 	ConnectionUid 		connectionuid;
+	const ObjectUidT	tkruid;
 	int 				baseport;
 	SocketAddressStub	pairaddr;
 	uint32				netid;

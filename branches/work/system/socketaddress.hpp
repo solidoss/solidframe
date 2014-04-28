@@ -62,7 +62,7 @@ private:
 	const addrinfo	*paddr;
 };
 //==================================================================
-struct DirectResoveFlags{
+struct DirectResoveInfo{
 	enum FlagsE{
 #ifndef ON_WINDOWS
 		CannonName = AI_CANONNAME,
@@ -134,7 +134,7 @@ ResolveData synchronous_resolve(
 	int _proto = -1
 );
 struct SocketAddressStub;
-struct ReverseResolveFlags{
+struct ReverseResolveInfo{
 	enum FlagsE{
 #ifndef ON_WINDOWS
 		NameRequest = NI_NAMEREQD,
@@ -151,7 +151,7 @@ struct ReverseResolveFlags{
 #endif
 	};
 };
-void synchronous_resolve(std::string &_rname, const SocketAddressStub &_rsa, int _flags);
+bool synchronous_resolve(std::string &_rhost, std::string &_rserv, const SocketAddressStub &_rsa, int _flags = 0);
 //==================================================================
 struct SocketAddress;
 struct SocketAddressInet;
@@ -269,10 +269,8 @@ public:
 		\param _flags Some request flags
 	*/
 	bool toString(
-		char* _host,
-		unsigned _hostcp,
-		char* _serv,
-		unsigned _servcp,
+		std::string &_rhoststr,
+		std::string &_rservstr,
 		uint32	_flags = 0
 	)const;
 	
@@ -335,10 +333,8 @@ public:
 	//! Get the name associated to the address
 	//! \see SocketAddress::toString
 	bool toString(
-		char* _host,
-		unsigned _hostcp,
-		char* _serv,
-		unsigned _servcp,
+		std::string &_rhoststr,
+		std::string &_rservstr,
 		uint32	_flags = 0
 	)const;
 	
@@ -402,10 +398,8 @@ public:
 	//! Get the name associated to the address
 	//! \see SocketAddress::toString
 	bool toString(
-		char* _host,
-		unsigned _hostcp,
-		char* _serv,
-		unsigned _servcp,
+		std::string &_rhoststr,
+		std::string &_rservstr,
 		uint32	_flags = 0
 	)const;
 	
@@ -470,10 +464,8 @@ public:
 	//! Get the name associated to the address
 	//! \see SocketAddress::toString
 	bool toString(
-		char* _host,
-		unsigned _hostcp,
-		char* _serv,
-		unsigned _servcp,
+		std::string &_rhoststr,
+		std::string &_rservstr,
 		uint32	_flags = 0
 	)const;
 	

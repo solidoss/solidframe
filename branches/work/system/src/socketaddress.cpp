@@ -85,25 +85,39 @@ ResolveData synchronous_resolve(
 	return synchronous_resolve(_node, buf, _flags, _family, _type, _proto);
 }
 
-void synchronous_resolve(std::string &_rname, const SocketAddressStub &_rsa, int _flags){
+bool synchronous_resolve(std::string &_rhost, std::string &_rserv, const SocketAddressStub &_rsa, int _flags){
 	char hbuf[NI_MAXHOST];
 	char sbuf[NI_MAXSERV];
-	getnameinfo(
+	if(getnameinfo(_rsa.sockAddr(), _rsa.size(), hbuf, sizeof(hbuf), sbuf, sizeof(sbuf), _flags) == 0){
+		_rhost.assign(hbuf);
+		_rserv.assign(sbuf);
+		return true;
+	}else{
+		_rhost.clear();
+		_rserv.clear();
+		return false;
+	}
 }
 
 std::ostream& operator<<(std::ostream& _ros, const SocketAddressInet4& _rsa){
-	char host[SocketInfo::HostStringCapacity];
-	char service[SocketInfo::ServiceStringCapacity];
-	_rsa.toString(host, SocketInfo::HostStringCapacity, service, SocketInfo::ServiceStringCapacity, SocketInfo::NumericHost | SocketInfo::NumericService);
-	_ros<<host<<':'<<service;
+	std::string hoststr;
+	std::string servstr;
+	_rsa.toString(
+		hoststr, servstr,
+		ReverseResolveInfo::NumericHost | ReverseResolveInfo::NumericService
+	);
+	_ros<<hoststr<<':'<<servstr;
 	return _ros;
 }
 
 std::ostream& operator<<(std::ostream& _ros, const SocketAddressInet& _rsa){
-	char host[SocketInfo::HostStringCapacity];
-	char service[SocketInfo::ServiceStringCapacity];
-	_rsa.toString(host, SocketInfo::HostStringCapacity, service, SocketInfo::ServiceStringCapacity, SocketInfo::NumericHost | SocketInfo::NumericService);
-	_ros<<host<<':'<<service;
+	std::string hoststr;
+	std::string servstr;
+	_rsa.toString(
+		hoststr, servstr,
+		ReverseResolveInfo::NumericHost | ReverseResolveInfo::NumericService
+	);
+	_ros<<hoststr<<':'<<servstr;
 	return _ros;
 }
 

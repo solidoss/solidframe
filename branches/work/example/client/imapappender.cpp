@@ -153,9 +153,9 @@ int main(int argc, char *argv[]){
 	{
 		SocketAddress sa;
 		sd.remoteAddress(sa);
-		char host[64];
-		char serv[64];
-		sa.toString(host, 64, serv, 64);
+		string host;
+		string serv;
+		sa.toString(host, serv);
 		cout<<"Successfully connected to: "<<host<<':'<<serv<<endl;
 	}
 	Writer      wr;
