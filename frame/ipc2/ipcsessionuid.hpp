@@ -1,14 +1,14 @@
 // frame/ipc/ipcconnectionuid.hpp
 //
-// Copyright (c) 2010 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com) 
 //
 // This file is part of SolidFrame framework.
 //
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#ifndef SOLID_FRAME_IPC_IPC_SESSION_UID_HPP
-#define SOLID_FRAME_IPC_IPC_SESSION_UID_HPP
+#ifndef SOLID_FRAME_IPC_IPC_CONNECTION_UID_HPP
+#define SOLID_FRAME_IPC_IPC_CONNECTION_UID_HPP
 
 #include "system/socketaddress.hpp"
 #include "utility/dynamicpointer.hpp"
@@ -33,13 +33,11 @@ enum{
 	<b>Usage:</b><br>
 	
 */
-struct ConnectionUid{
-	ConnectionUid(
-		const uint16 _tkridx = 0,
+struct SessionUid{
+	SessionUid(
 		const uint16 _sesidx = 0,
 		const uint16 _sesuid = 0
-	):tkridx(_tkridx), sesidx(_sesidx), sesuid(_sesuid){}
-	uint16	tkridx;
+	):sesidx(_sesidx), sesuid(_sesuid){}
 	uint16	sesidx;
 	uint16	sesuid;
 };
@@ -77,18 +75,14 @@ struct ConnectionContext{
 	static const ConnectionContext& the();
 	
 	Service				&rservice;
-	ConnectionUid 		connectionuid;
-	const ObjectUidT	tkruid;
-	int 				baseport;
-	SocketAddressStub	pairaddr;
-	uint32				netid;
+	SessionUid 			sessionuid;
+	int 				listenport;
+	std::string const   &pairaddrstr;
+	int					pairport;
 	
 	
 	MessagePointerT& requestMessage(const Message &_rmsg)const;
 	
-	ObjectUidT talkerUid()const{
-		return tkruid;
-	}
 	Service& service()const{
 		return rservice;
 	}
@@ -99,10 +93,8 @@ private:
 	Session				*psession;
 	
 	ConnectionContext(
-		Service &_rsrv,
-		const uint16 _tkridx,
-		ObjectUidT const &_rtkruid
-	):rservice(_rsrv), connectionuid(_tkridx), tkruid(_rtkruid), baseport(-1), psession(NULL){}
+		Service &_rsrv
+	):rservice(_rsrv){}
 };
 
 typedef uint32 SerializationTypeIdT;
