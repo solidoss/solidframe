@@ -16,7 +16,7 @@
 #include "frame/service.hpp"
 #include "frame/aio/aioselector.hpp"
 #include "frame/scheduler.hpp"
-#include "frame/ipc2/ipcconnectionuid.hpp"
+#include "frame/ipc2/ipcsessionuid.hpp"
 #include "frame/ipc2/ipcmessage.hpp"
 
 namespace solid{
@@ -222,13 +222,13 @@ public:
 		The message is send only if the connector exists. If the peer process,
 		restarts the message is not sent.
 		\param _rmsgptr A DynamicPointer with the message to be sent.
-		\param _rconid A previously saved connectionuid
+		\param _rsesid A previously saved SessionUid
 		\param _flags Control flags
 	*/
 	
 	bool sendMessage(
 		DynamicPointer<Message> &_rmsgptr,//the message to be sent
-		const ConnectionUid &_rconid,//the id of the process connector
+		const SessionUid &_rconid,//the id of the process session
 		uint32	_flags = 0
 	);
 	
@@ -237,14 +237,15 @@ public:
 		The base address of a process is the address on which the process listens for new UDP connections.
 		If the connection does not already exist, it will be created.
 		\param _rmsgptr The message.
-		\param _rconid An output value, which on success will contain the uid of the connector.
+		\param _rsesid An output value, which on success will contain the uid of the connector.
 		\param _rsa_dest Destination address
 		\param _flags Control flags
 	*/
 	bool sendMessage(
 		DynamicPointer<Message> &_rmsgptr,//the message to be sent
-		ConnectionUid &_rconid,
-		const SocketAddressStub &_rsa_dest,
+		SessionUid &_rsesid,
+		const char *_addr_cstr,
+		int _port = -1,
 		uint32	_flags = 0
 	);
 	//!Send a message to a peer process using it's base address.
@@ -257,7 +258,8 @@ public:
 	*/
 	bool sendMessage(
 		DynamicPointer<Message> &_rmsgptr,//the message to be sent
-		const SocketAddressStub &_rsas_dest,
+		const char *_addr_cstr,
+		int _port = -1,
 		uint32	_flags = 0
 	);
 	
@@ -265,7 +267,7 @@ public:
 	bool sendMessage(
 		DynamicPointer<Message> &_rmsgptr,//the message to be sent
 		const SerializationTypeIdT &_rtid,
-		const ConnectionUid &_rconid,//the id of the process connector
+		const SessionUid &_rsesid,
 		uint32	_flags = 0
 	);
 	
@@ -274,15 +276,16 @@ public:
 		The base address of a process is the address on which the process listens for new UDP connections.
 		If the connection does not already exist, it will be created.
 		\param _rmsgptr The message.
-		\param _rconid An output value, which on success will contain the uid of the connector.
+		\param _rsesid An output value, which on success will contain the uid of the connector.
 		\param _rsa_dest Destination address
 		\param _flags Control flags
 	*/
 	bool sendMessage(
 		DynamicPointer<Message> &_rmsgptr,//the message to be sent
 		const SerializationTypeIdT &_rtid,
-		ConnectionUid &_rconid,
-		const SocketAddressStub &_rsa_dest,
+		SessionUid &_rsesid,
+		const char *_addr_cstr,
+		int _port = -1,
 		uint32	_flags = 0
 	);
 	//!Send a message to a peer process using it's base address.
@@ -296,7 +299,8 @@ public:
 	bool sendMessage(
 		DynamicPointer<Message> &_rmsgptr,//the message to be sent
 		const SerializationTypeIdT &_rtid,
-		const SocketAddressStub &_rsa_dest,
+		const char *_addr_cstr,
+		int _port = -1,
 		uint32	_flags = 0
 	);
 	
@@ -312,8 +316,9 @@ private:
 	bool doSendMessage(
 		DynamicPointer<Message> &_rmsgptr,//the message to be sent
 		const SerializationTypeIdT &_rtid,
-		ConnectionUid *_pconid,
-		const SocketAddressStub &_rsap,
+		SessionUid *_psesid,
+		const char *_addr_cstr,
+		int _port = -1,
 		uint32	_flags = 0
 	);
 	
@@ -337,38 +342,42 @@ private:
 
 inline bool Service::sendMessage(
 	DynamicPointer<Message> &_rmsgptr,//the message to be sent
-	ConnectionUid &_rconid,
-	const SocketAddressStub &_rsa_dest,
+	SessionUid &_rsesid,
+	const char *_addr_cstr,
+	int _port,
 	uint32	_flags
 ){
-	return doSendMessage(_rmsgptr, SERIALIZATION_INVALIDID, &_rconid, _rsa_dest, _flags);
+	return doSendMessage(_rmsgptr, SERIALIZATION_INVALIDID, &_rsesid, _rsa_dest, _flags);
 }
 
 inline bool Service::sendMessage(
 	DynamicPointer<Message> &_rmsgptr,//the message to be sent
-	const SocketAddressStub &_rsa_dest,
+	const char *_addr_cstr,
+	int _port,
 	uint32	_flags
 ){
-	return doSendMessage(_rmsgptr, SERIALIZATION_INVALIDID, NULL, _rsa_dest, _flags);
-}
-
-inline bool Service::sendMessage(
-	DynamicPointer<Message> &_rmsgptr,//the message to be sent
-	const SerializationTypeIdT &_rtid,
-	ConnectionUid &_rconid,
-	const SocketAddressStub &_rsa_dest,
-	uint32	_flags
-){
-	return doSendMessage(_rmsgptr, _rtid, &_rconid, _rsa_dest, _flags);
+	return doSendMessage(_rmsgptr, SERIALIZATION_INVALIDID, NULL, _addr_cstr, _port, _flags);
 }
 
 inline bool Service::sendMessage(
 	DynamicPointer<Message> &_rmsgptr,//the message to be sent
 	const SerializationTypeIdT &_rtid,
-	const SocketAddressStub &_rsa_dest,
+	SessionUid &_rsesid,
+	const char *_addr_cstr,
+	int _port,
 	uint32	_flags
 ){
-	return doSendMessage(_rmsgptr, _rtid, NULL, _rsa_dest, _flags);
+	return doSendMessage(_rmsgptr, _rtid, &_rsesid, _addr_cstr, _port, _flags);
+}
+
+inline bool Service::sendMessage(
+	DynamicPointer<Message> &_rmsgptr,//the message to be sent
+	const SerializationTypeIdT &_rtid,
+	const char *_addr_cstr,
+	int _port,
+	uint32	_flags
+){
+	return doSendMessage(_rmsgptr, _rtid, NULL, _addr_cstr, _port, _flags);
 }
 
 inline const serialization::TypeMapperBase& Service::typeMapperBase() const{
