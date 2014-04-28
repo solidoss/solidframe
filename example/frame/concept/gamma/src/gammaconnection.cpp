@@ -25,6 +25,7 @@
 #include "audit/log.hpp"
 
 using namespace solid;
+using namespace std;
 //static const char	*hellostr = "Welcome to gamma service!!!\r\n"; 
 //static const char *sigstr = "Signaled!!!\r\n";
 
@@ -315,29 +316,25 @@ int Connection::doSocketPrepareBanner(const uint _sid, SocketData &_rsd){
 	uint32				myport(rm.ipc().basePort());
 	IndexT				objid(this->id());
 	uint32				objuid(rm.id(*this).second);
-	char				host[SocketInfo::HostStringCapacity];
-	char				port[SocketInfo::ServiceStringCapacity];
+	string				hoststr;
+	string				portstr;
 	SocketAddress		addr;
 	
 	_rsd.w<<"* Hello from gamma server ("<<myport<<" "<<(uint32)objid<<" "<<objuid<<") [";
 	socketLocalAddress(_sid, addr);
 	addr.toString(
-		host,
-		SocketInfo::HostStringCapacity,
-		port,
-		SocketInfo::ServiceStringCapacity,
-		SocketInfo::NumericService | SocketInfo::NumericHost
+		hoststr,
+		portstr,
+		ReverseResolveInfo::NumericService | ReverseResolveInfo::NumericHost
 	);
-	_rsd.w<<host<<':'<<port<<" -> ";
+	_rsd.w<<hoststr<<':'<<portstr<<" -> ";
 	socketRemoteAddress(_sid, addr);
 	addr.toString(
-		host,
-		SocketInfo::HostStringCapacity,
-		port,
-		SocketInfo::ServiceStringCapacity,
-		SocketInfo::NumericService | SocketInfo::NumericHost
+		hoststr,
+		portstr,
+		ReverseResolveInfo::NumericService | ReverseResolveInfo::NumericHost
 	);
-	_rsd.w<<host<<':'<<port<<"]"<<'\r'<<'\n';
+	_rsd.w<<hoststr<<':'<<portstr<<"]"<<'\r'<<'\n';
 	_rsd.w.push(&Writer::flushAll);
 	socketState(_sid, SocketExecute);
 	return Success;

@@ -87,17 +87,14 @@ struct TestD{
 	SocketAddressInet4	sa;
 	void print()const {
 		cout<<"testd: a  = "<<a<<endl;
-		char				host[SocketInfo::HostStringCapacity];
-		char				port[SocketInfo::ServiceStringCapacity];
+		string				hoststr;
+		string				portstr;
 		sa.toString(
-			host,
-			SocketInfo::HostStringCapacity,
-			port,
-			SocketInfo::ServiceStringCapacity
-			,
-			SocketInfo::NumericService | SocketInfo::NumericHost
+			hoststr,
+			portstr,
+			ReverseResolveInfo::NumericService | ReverseResolveInfo::NumericHost
 		);
-		cout<<"testd: sa = "<<host<<':'<<port<<endl;
+		cout<<"testd: sa = "<<hoststr<<':'<<portstr<<endl;
 		
 	}
 	template <class S>

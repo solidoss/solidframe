@@ -83,17 +83,14 @@ std::ostream& ServerConfiguration::print(std::ostream &_ros)const{
 	_ros<<"Addresses: [";
 	for(AddressVectorT::const_iterator it(addrvec.begin()); it != addrvec.end(); ++it){
 		const SocketAddressInet4	&ra(*it);
-		char						host[SocketInfo::HostStringCapacity];
-		char						port[SocketInfo::ServiceStringCapacity];
+		string						hoststr;
+		string						servstr;
 		ra.toString(
-			host,
-			SocketInfo::HostStringCapacity,
-			port,
-			SocketInfo::ServiceStringCapacity
-			,
-			SocketInfo::NumericService | SocketInfo::NumericHost
+			hoststr,
+			servstr,
+			ReverseResolveInfo::NumericService | ReverseResolveInfo::NumericHost
 		);
-		_ros<<host<<':'<<port<<' ';
+		_ros<<hoststr<<':'<<servstr<<' ';
 	}
 	_ros<<"] Index: "<<(int)crtidx<<" Qorum: "<<(int)quorum;
 	return _ros;

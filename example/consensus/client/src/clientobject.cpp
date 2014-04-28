@@ -149,18 +149,16 @@ void ClientParams::print(std::ostream &_ros){
 	
 	_ros<<"Parsed parameters:"<<endl;
 	_ros<<"Addresses: ";
+	string		hoststr;
+	string		servstr;
 	for(AddressVectorT::iterator it(addrvec.begin()); it != addrvec.end(); ++it){
 		SocketAddressInet4 &ra(*it);
-		char				host[SocketInfo::HostStringCapacity];
-		char				port[SocketInfo::ServiceStringCapacity];
 		ra.toString(
-			host,
-			SocketInfo::HostStringCapacity,
-			port,
-			SocketInfo::ServiceStringCapacity,
-			SocketInfo::NumericService | SocketInfo::NumericHost
+			hoststr,
+			servstr,
+			ReverseResolveInfo::NumericService | ReverseResolveInfo::NumericHost
 		);
-		_ros<<host<<':'<<port<<' ';
+		_ros<<hoststr<<':'<<servstr<<' ';
 	}
 	_ros<<endl;
 	_ros<<"Requests: ";

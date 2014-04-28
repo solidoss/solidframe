@@ -24,10 +24,10 @@ typedef frame::Scheduler<frame::aio::Selector>	AioSchedulerT;
 
 
 ostream& operator<<(ostream& _ros, const SocketAddressInet4& _rsa){
-	char host[SocketInfo::HostStringCapacity];
-	char service[SocketInfo::ServiceStringCapacity];
-	_rsa.toString(host, SocketInfo::HostStringCapacity, service, SocketInfo::ServiceStringCapacity, SocketInfo::NumericHost | SocketInfo::NumericService);
-	_ros<<host<<':'<<service;
+	string hoststr;
+	string servstr;
+	_rsa.toString(hoststr, servstr, ReverseResolveInfo::NumericHost | ReverseResolveInfo::NumericService);
+	_ros<<hoststr<<':'<<servstr;
 	return _ros;
 }
 

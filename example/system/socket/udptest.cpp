@@ -29,19 +29,17 @@ int main(){
 	sd.bind(it);
 	
 	if(sd.ok()){
-		char				host[SocketInfo::HostStringCapacity];
-		char				port[SocketInfo::ServiceStringCapacity];
+		string				hoststr;
+		string				servstr;
 		SocketAddress		addr;
 		
 		sd.localAddress(addr);
 		addr.toString(
-			host,
-			SocketInfo::HostStringCapacity,
-			port,
-			SocketInfo::ServiceStringCapacity,
-			SocketInfo::NumericService | SocketInfo::NumericHost
+			hoststr,
+			servstr,
+			ReverseResolveInfo::NumericService | ReverseResolveInfo::NumericHost
 		);
-		cout<<host<<':'<<port<<endl;
+		cout<<hoststr<<':'<<servstr<<endl;
 	}
 	cout<<sd.ok()<<endl;
 	return 0;
