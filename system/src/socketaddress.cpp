@@ -85,6 +85,12 @@ ResolveData synchronous_resolve(
 	return synchronous_resolve(_node, buf, _flags, _family, _type, _proto);
 }
 
+void synchronous_resolve(std::string &_rname, const SocketAddressStub &_rsa, int _flags){
+	char hbuf[NI_MAXHOST];
+	char sbuf[NI_MAXSERV];
+	getnameinfo(
+}
+
 std::ostream& operator<<(std::ostream& _ros, const SocketAddressInet4& _rsa){
 	char host[SocketInfo::HostStringCapacity];
 	char service[SocketInfo::ServiceStringCapacity];

@@ -62,12 +62,8 @@ private:
 	const addrinfo	*paddr;
 };
 //==================================================================
-//! A shared pointer for POSIX addrinfo (see man getaddrinfo)
-/*!
-	Use synchronous_resolve to create ResolveData objects.
-*/
-struct ResolveData{
-	enum Flags{
+struct DirectResoveFlags{
+	enum FlagsE{
 #ifndef ON_WINDOWS
 		CannonName = AI_CANONNAME,
 		NumericHost = AI_NUMERICHOST,
@@ -84,6 +80,12 @@ struct ResolveData{
 		NumericService
 #endif
 	};
+};
+//! A shared pointer for POSIX addrinfo (see man getaddrinfo)
+/*!
+	Use synchronous_resolve to create ResolveData objects.
+*/
+struct ResolveData{
 	typedef ResolveIterator const_iterator;
 	
 	ResolveData();
@@ -131,6 +133,25 @@ ResolveData synchronous_resolve(
 	int _type = -1,
 	int _proto = -1
 );
+struct SocketAddressStub;
+struct ReverseResolveFlags{
+	enum FlagsE{
+#ifndef ON_WINDOWS
+		NameRequest = NI_NAMEREQD,
+		Datagram = NI_DGRAM,
+		NoFQDN = NI_NOFQDN,
+		NumericHost = NI_NUMERICHOST,
+		NumericService = NI_NUMERICSERV
+#else
+		NameRequest,
+		Datagram,
+		NoFQDN,
+		NumericHost,
+		NumericService
+#endif
+	};
+};
+void synchronous_resolve(std::string &_rname, const SocketAddressStub &_rsa, int _flags);
 //==================================================================
 struct SocketAddress;
 struct SocketAddressInet;
