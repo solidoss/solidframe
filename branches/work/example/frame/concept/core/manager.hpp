@@ -21,6 +21,10 @@
 namespace solid{
 namespace frame{
 
+namespace aio{
+class Resolver;
+}//namespace aio
+
 namespace ipc{
 class Service;
 }//namespace ipc
@@ -64,6 +68,7 @@ public:
 	
 	solid::frame::ipc::Service 	&ipc()const;
 	FileStoreT&	fileStore()const;
+	solid::frame::aio::Resolver& resolver();
 private:
 	struct Data;
 	Data	&d;

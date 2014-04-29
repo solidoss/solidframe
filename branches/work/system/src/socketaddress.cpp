@@ -102,8 +102,9 @@ bool synchronous_resolve(std::string &_rhost, std::string &_rserv, const SocketA
 std::ostream& operator<<(std::ostream& _ros, const SocketAddressInet4& _rsa){
 	std::string hoststr;
 	std::string servstr;
-	_rsa.toString(
+	synchronous_resolve(
 		hoststr, servstr,
+		_rsa,
 		ReverseResolveInfo::NumericHost | ReverseResolveInfo::NumericService
 	);
 	_ros<<hoststr<<':'<<servstr;
@@ -113,8 +114,9 @@ std::ostream& operator<<(std::ostream& _ros, const SocketAddressInet4& _rsa){
 std::ostream& operator<<(std::ostream& _ros, const SocketAddressInet& _rsa){
 	std::string hoststr;
 	std::string servstr;
-	_rsa.toString(
+	synchronous_resolve(
 		hoststr, servstr,
+		_rsa,
 		ReverseResolveInfo::NumericHost | ReverseResolveInfo::NumericService
 	);
 	_ros<<hoststr<<':'<<servstr;

@@ -85,10 +85,11 @@ std::ostream& ServerConfiguration::print(std::ostream &_ros)const{
 		const SocketAddressInet4	&ra(*it);
 		string						hoststr;
 		string						servstr;
-		ra.toString(
+		synchronous_resolve(
 			hoststr,
 			servstr,
-			ReverseResolveInfo::NumericService | ReverseResolveInfo::NumericHost
+			ra,
+			ReverseResolveInfo::Numeric
 		);
 		_ros<<hoststr<<':'<<servstr<<' ';
 	}

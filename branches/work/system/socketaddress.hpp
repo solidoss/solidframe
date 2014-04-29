@@ -66,19 +66,20 @@ struct DirectResoveInfo{
 	enum FlagsE{
 #ifndef ON_WINDOWS
 		CannonName = AI_CANONNAME,
-		NumericHost = AI_NUMERICHOST,
 		All	= AI_ALL,
 		AddrConfig = AI_ADDRCONFIG,
 		V4Mapped  = AI_V4MAPPED,
-		NumericService = AI_NUMERICSERV
+		NumericHost = AI_NUMERICHOST,
+		NumericService = AI_NUMERICSERV,
 #else
 		CannonName,
-		NumericHost,
 		All,
 		AddrConfig,
 		V4Mapped,
-		NumericService
+		NumericHost,
+		NumericService,
 #endif
+		Numeric = NumericHost | NumericService,
 	};
 };
 //! A shared pointer for POSIX addrinfo (see man getaddrinfo)
@@ -141,14 +142,15 @@ struct ReverseResolveInfo{
 		Datagram = NI_DGRAM,
 		NoFQDN = NI_NOFQDN,
 		NumericHost = NI_NUMERICHOST,
-		NumericService = NI_NUMERICSERV
+		NumericService = NI_NUMERICSERV,
 #else
 		NameRequest,
 		Datagram,
 		NoFQDN,
 		NumericHost,
-		NumericService
+		NumericService,
 #endif
+		Numeric = NumericHost | NumericService,
 	};
 };
 bool synchronous_resolve(std::string &_rhost, std::string &_rserv, const SocketAddressStub &_rsa, int _flags = 0);
@@ -242,37 +244,6 @@ public:
 
 	const sockaddr* sockAddr()const;
 	operator const sockaddr*()const;
-	//! Get the name associated to the address
-	/*!
-		Generates the string name associated to a specific address
-		filling the given buffers. It is a wrapper for POSIX,
-		getnameinfo.
-		Usage:<br>
-		<CODE>
-		char			host[SocketAddress::HostStringCapacity];<br>
-		char			port[SocketAddress::ServerNameCapacity];<br>
-		SocketAddress	addr;<br>
-		channel().localAddress(addr);<br>
-		addr.name(<br>
-			host,<br>
-			SocketAddress::HostStringCapacity,<br>
-			port,<br>
-			SocketAddress::ServiceStringCapacity,<br>
-			SocketAddress::NumericService<br>
-		);<br>
-		</CODE>
-		\retval true for success, false for error.
-		\param _host An output buffer to keep the host name.
-		\param _hostcp The capacity of the output host buffer.
-		\param _serv An output buffer to keep the service name/port.
-		\param _servcp The capacity of the output service buffer.
-		\param _flags Some request flags
-	*/
-	bool toString(
-		std::string &_rhoststr,
-		std::string &_rservstr,
-		uint32	_flags = 0
-	)const;
 	
 	bool operator<(const SocketAddress &_raddr)const;
 	bool operator==(const SocketAddress &_raddr)const;
@@ -330,13 +301,6 @@ public:
 
 	const sockaddr* sockAddr()const;
 	operator const sockaddr*()const;
-	//! Get the name associated to the address
-	//! \see SocketAddress::toString
-	bool toString(
-		std::string &_rhoststr,
-		std::string &_rservstr,
-		uint32	_flags = 0
-	)const;
 	
 	bool toBinary(Binary4T &_bin, uint16 &_port)const;
 	bool toBinary(Binary6T &_bin, uint16 &_port)const;
@@ -395,13 +359,6 @@ public:
 	const sockaddr* sockAddr()const;
 	//operator sockaddr*(){return sockAddr();}
 	operator const sockaddr*()const;
-	//! Get the name associated to the address
-	//! \see SocketAddress::toString
-	bool toString(
-		std::string &_rhoststr,
-		std::string &_rservstr,
-		uint32	_flags = 0
-	)const;
 	
 	void toBinary(BinaryT &_bin, uint16 &_port)const;
 	
@@ -460,14 +417,6 @@ public:
 
 	const sockaddr* sockAddr()const;
 	operator const sockaddr*()const;
-	
-	//! Get the name associated to the address
-	//! \see SocketAddress::toString
-	bool toString(
-		std::string &_rhoststr,
-		std::string &_rservstr,
-		uint32	_flags = 0
-	)const;
 	
 	void toBinary(BinaryT &_bin, uint16 &_port)const;
 	

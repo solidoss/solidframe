@@ -29,10 +29,11 @@ Message::~Message(){
 	//TODO:!! sa not initialized !?
 	SocketAddressInet4				sa;
 	sa = frame::ipc::ConnectionContext::the().pairaddr;
-	sa.toString(
+	synchronous_resolve(
 		hoststr,
 		portstr,
-		ReverseResolveInfo::NumericService | ReverseResolveInfo::NumericHost
+		sa,
+		ReverseResolveInfo::Numeric
 	);
 	DynamicPointer<frame::Message>	msgptr(_rmsgptr);
 	

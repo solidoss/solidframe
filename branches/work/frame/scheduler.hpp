@@ -117,7 +117,7 @@ public://definition
 private:
 	
 	typedef std::vector<JobT>	JobVectorT;
-	bool createWorker(WorkPoolT &_rwp){
+	bool createWorker(WorkPoolT &_rwp, ushort _wkrcnt){
 		++crtwkrcnt;
 		Worker	*pw(_rwp.createMultiWorker(0));
 		if(pw && !pw->start()){
@@ -183,7 +183,7 @@ private:
 			}
 		}
 	}
-	void execute(Worker &_rw, JobVectorT &_rjobvec){
+	void execute(WorkPoolBase &_rwp, Worker &_rw, JobVectorT &_rjobvec){
 		for(typename JobVectorT::iterator it(_rjobvec.begin()); it != _rjobvec.end(); ++it){
 			if(!_rw.s.push(*it)){
 				wp.push(*it);

@@ -153,10 +153,11 @@ void ClientParams::print(std::ostream &_ros){
 	string		servstr;
 	for(AddressVectorT::iterator it(addrvec.begin()); it != addrvec.end(); ++it){
 		SocketAddressInet4 &ra(*it);
-		ra.toString(
+		synchronous_resolve(
 			hoststr,
 			servstr,
-			ReverseResolveInfo::NumericService | ReverseResolveInfo::NumericHost
+			ra,
+			ReverseResolveInfo::Numeric
 		);
 		_ros<<hoststr<<':'<<servstr<<' ';
 	}

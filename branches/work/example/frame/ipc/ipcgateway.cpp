@@ -26,7 +26,7 @@ typedef frame::Scheduler<frame::aio::Selector>	AioSchedulerT;
 ostream& operator<<(ostream& _ros, const SocketAddressInet4& _rsa){
 	string hoststr;
 	string servstr;
-	_rsa.toString(hoststr, servstr, ReverseResolveInfo::NumericHost | ReverseResolveInfo::NumericService);
+	synchronous_resolve(hoststr, servstr, _rsa, ReverseResolveInfo::Numeric);
 	_ros<<hoststr<<':'<<servstr;
 	return _ros;
 }

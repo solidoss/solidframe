@@ -238,17 +238,19 @@ Connection::~Connection(){
 			
 			writer()<<"* Hello from alpha server ("<<myport<<' '<<' '<< objid<<' '<<objuid<<") [";
 			socketLocalAddress(addr);
-			addr.toString(
+			synchronous_resolve(
 				hoststr,
 				portstr,
-				ReverseResolveInfo::NumericService | ReverseResolveInfo::NumericHost
+				addr,
+				ReverseResolveInfo::Numeric
 			);
 			writer()<<hoststr<<':'<<portstr<<" -> ";
 			socketRemoteAddress(addr);
-			addr.toString(
+			synchronous_resolve(
 				hoststr,
 				portstr,
-				ReverseResolveInfo::NumericService | ReverseResolveInfo::NumericHost
+				addr,
+				ReverseResolveInfo::Numeric
 			);
 			writer()<<hoststr<<':'<<portstr<<"]"<<'\r'<<'\n';
 			writer().push(&Writer::flushAll);

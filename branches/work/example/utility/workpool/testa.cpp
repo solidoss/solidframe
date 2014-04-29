@@ -20,16 +20,16 @@ typedef WorkPool<int, MyWorkPoolController>	MyWorkPool;
 
 struct MyWorkPoolController: WorkPoolControllerBase{
 	typedef std::vector<int>	IntVectorT;
-	bool createWorker(MyWorkPool &_rwp){
+	bool createWorker(MyWorkPool &_rwp, ushort _wkrcnt){
 		//_rwp.createSingleWorker()->start();
 		_rwp.createMultiWorker(4)->start();
 		return true;
 	}
-	void execute(WorkerBase &, int _i){
+	void execute(WorkPoolBase &_rwp, WorkerBase &, int _i){
 		idbg("i = "<<_i);
 		Thread::sleep(_i * 10);
 	}
-	void execute(WorkerBase &, IntVectorT &_rjobvec){
+	void execute(WorkPoolBase &_rwp, WorkerBase &, IntVectorT &_rjobvec){
 		for(IntVectorT::const_iterator it(_rjobvec.begin()); it != _rjobvec.end(); ++it){
 			idbg("it = "<<*it);
 			Thread::sleep(*it * 10);

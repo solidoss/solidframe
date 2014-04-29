@@ -34,10 +34,11 @@ int main(){
 		SocketAddress		addr;
 		
 		sd.localAddress(addr);
-		addr.toString(
+		synchronous_resolve(
 			hoststr,
 			servstr,
-			ReverseResolveInfo::NumericService | ReverseResolveInfo::NumericHost
+			addr,
+			ReverseResolveInfo::Numeric
 		);
 		cout<<hoststr<<':'<<servstr<<endl;
 	}

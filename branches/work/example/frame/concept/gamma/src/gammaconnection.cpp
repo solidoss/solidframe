@@ -322,17 +322,19 @@ int Connection::doSocketPrepareBanner(const uint _sid, SocketData &_rsd){
 	
 	_rsd.w<<"* Hello from gamma server ("<<myport<<" "<<(uint32)objid<<" "<<objuid<<") [";
 	socketLocalAddress(_sid, addr);
-	addr.toString(
+	synchronous_resolve(
 		hoststr,
 		portstr,
-		ReverseResolveInfo::NumericService | ReverseResolveInfo::NumericHost
+		addr,
+		ReverseResolveInfo::Numeric
 	);
 	_rsd.w<<hoststr<<':'<<portstr<<" -> ";
 	socketRemoteAddress(_sid, addr);
-	addr.toString(
+	synchronous_resolve(
 		hoststr,
 		portstr,
-		ReverseResolveInfo::NumericService | ReverseResolveInfo::NumericHost
+		addr,
+		ReverseResolveInfo::Numeric
 	);
 	_rsd.w<<hoststr<<':'<<portstr<<"]"<<'\r'<<'\n';
 	_rsd.w.push(&Writer::flushAll);
