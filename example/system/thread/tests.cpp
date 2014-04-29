@@ -111,7 +111,7 @@ void Runner::run(){
 	pa1->print();
 	pa2->print();
 	idbg("alloc two buffers");
-	void	*b1,*b2,*b3;
+	//void	*b1,*b2,*b3;
 	size_t  s1 = 10, s2 = 2000, s3 = 4000;
 
 	for(int i = 0; i < 20; ++i){

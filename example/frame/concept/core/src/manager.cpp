@@ -22,6 +22,7 @@
 
 #include "frame/aio/aioselector.hpp"
 #include "frame/aio/aioobject.hpp"
+#include "frame/aio/aioresolver.hpp"
 
 #include "frame/objectselector.hpp"
 #include "frame/message.hpp"
@@ -117,6 +118,7 @@ struct Manager::Data{
 	SchedulerT					objsched;
 	frame::ipc::Service			ipcsvc;
 	FileStoreSharedPointerT		filestoreptr;
+	frame::aio::Resolver		resolver;
 };
 
 //--------------------------------------------------------------------------
@@ -145,7 +147,7 @@ void Manager::start(){
 	d.ipcsvc.registerMessageType<AuthMessage>();
 	
 	registerService(d.ipcsvc);
-	
+	d.resolver.start();
 	{
 		frame::file::Utf8Configuration	utf8cfg;
 		frame::file::TempConfiguration	tempcfg;
@@ -188,6 +190,10 @@ frame::ipc::Service&	Manager::ipc()const{
 }
 FileStoreT&	Manager::fileStore()const{
 	return *d.filestoreptr;
+}
+
+solid::frame::aio::Resolver& Manager::resolver(){
+	return d.resolver;
 }
 
 void Manager::scheduleListener(solid::DynamicPointer<solid::frame::aio::Object> &_objptr){

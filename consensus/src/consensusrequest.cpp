@@ -61,10 +61,11 @@ std::ostream &operator<<(std::ostream& _ros, const RequestId &_rreqid){
 	const SocketAddressInet4	&ra(_rreqid.sockaddr);
 	std::string					hoststr;
 	std::string					portstr;
-	ra.toString(
+	synchronous_resolve(
 		hoststr,
 		portstr,
-		ReverseResolveInfo::NumericService | ReverseResolveInfo::NumericHost
+		ra,
+		ReverseResolveInfo::Numeric
 	);
 	_ros<<hoststr<<':'<<portstr;
 	return _ros;
@@ -97,10 +98,11 @@ WriteRequestMessage::~WriteRequestMessage(){
 	
 	id.sockaddr = frame::ipc::ConnectionContext::the().pairaddr;
 	
-	id.sockaddr.toString(
+	synchronous_resolve(
 		hoststr,
 		portstr,
-		ReverseResolveInfo::NumericService | ReverseResolveInfo::NumericHost
+		id.sockaddr,
+		ReverseResolveInfo::Numeric
 	);
 	
 	if(ipcIsBackOnSender()){
@@ -176,10 +178,11 @@ void ReadRequestMessage::ipcOnReceive(frame::ipc::ConnectionContext const &_rctx
 	
 	id.sockaddr = frame::ipc::ConnectionContext::the().pairaddr;
 	
-	id.sockaddr.toString(
+	synchronous_resolve(
 		hoststr,
 		portstr,
-		ReverseResolveInfo::NumericService | ReverseResolveInfo::NumericHost
+		id.sockaddr,
+		ReverseResolveInfo::Numeric
 	);
 	
 	if(ipcIsBackOnSender()){

@@ -1004,16 +1004,18 @@ std::ostream& ConnectData::print(std::ostream& _ros)const{
 	std::string	hoststr;
 	std::string	portstr;
 	
-	receiveraddress.toString(
+	synchronous_resolve(
 		hoststr,
 		portstr,
-		ReverseResolveInfo::NumericService | ReverseResolveInfo::NumericHost
+		receiveraddress,
+		ReverseResolveInfo::Numeric
 	);
 	_ros<<hoststr<<':'<<portstr<<"<-"<<sendernetworkid<<':';
-	senderaddress.toString(
+	synchronous_resolve(
 		hoststr,
 		portstr,
-		ReverseResolveInfo::NumericService | ReverseResolveInfo::NumericHost
+		senderaddress,
+		ReverseResolveInfo::Numeric
 	);
 	_ros<<hoststr<<':'<<portstr;
 	return _ros;

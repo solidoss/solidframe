@@ -68,12 +68,12 @@ typedef WorkPool<FileDevice*, MyWorkPoolController, MyWorkerBase> MyWorkPoolT;
 
 class MyWorkPoolController: public WorkPoolControllerBase{
 public:
-	bool createWorker(MyWorkPoolT &_rwp){
+	bool createWorker(MyWorkPoolT &_rwp, ushort _wkrcnt){
 		//_rwp.createSingleWorker()->start();
 		_rwp.createSingleWorker()->start();
 		return true;
 	}
-	void execute(MyWorkerBase &_rw, FileDevice *_pfile){
+	void execute(WorkPoolBase &_rwp, MyWorkerBase &_rw, FileDevice *_pfile){
 		int64 sz = _pfile->size();
 		int toread;
 		int cnt = 0;

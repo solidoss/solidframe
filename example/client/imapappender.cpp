@@ -155,7 +155,7 @@ int main(int argc, char *argv[]){
 		sd.remoteAddress(sa);
 		string host;
 		string serv;
-		sa.toString(host, serv);
+		synchronous_resolve(host, serv, sa);
 		cout<<"Successfully connected to: "<<host<<':'<<serv<<endl;
 	}
 	Writer      wr;

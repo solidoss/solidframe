@@ -77,10 +77,11 @@ struct TestD{
 		cout<<"testd: a  = "<<a<<endl;
 		string				hoststr;
 		string				portstr;
-		sa.toString(
+		synchronous_resolve(
 			hoststr,
 			portstr,
-			ReverseResolveInfo::NumericService | ReverseResolveInfo::NumericHost
+			sa,
+			ReverseResolveInfo::Numeric
 		);
 		cout<<"testd: sa = "<<hoststr<<':'<<portstr<<endl;
 		

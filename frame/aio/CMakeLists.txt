@@ -15,6 +15,7 @@ endif(${HAS_KQUEUE})
 
 set(Sources
 	src/aioobject.cpp
+	src/aioresolver.cpp
 	${selector_source}
 	src/aiosocket.cpp
 )
@@ -23,6 +24,7 @@ set(Headers
 	aioobject.hpp
 	aiosecuresocket.hpp
 	aioselector.hpp
+	aioresolver.hpp
 	src/aiosocket.hpp
 )
 

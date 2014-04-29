@@ -35,7 +35,7 @@ struct BasicScheduler::Data: WorkPoolControllerBase, SelectorBase{
 	void unprepareWorker(WorkerBase &_rw){
 		res.unprepareThread();
 	}
-	bool createWorker(WorkPoolT &_rwp){
+	bool createWorker(WorkPoolT &_rwp, ushort _wkrcnt){
 		WorkerBase	*pw(_rwp.createSingleWorker());
 		if(pw && !pw->start()){
 			delete pw;
@@ -49,14 +49,14 @@ struct BasicScheduler::Data: WorkPoolControllerBase, SelectorBase{
 	}
 	/*virtual*/ void raise(uint32 _objidx = 0){}
 	
-	void execute(WorkerBase &_rw, BasicScheduler::JobT &_rjob);
+	void execute(WorkPoolBase &_rwp, WorkerBase &_rw, BasicScheduler::JobT &_rjob);
 	BasicScheduler	&res;
 	WorkPoolT		wp;
 	
 };
 
 
-void BasicScheduler::Data::execute(WorkerBase &_rw, BasicScheduler::JobT &_rjob){
+void BasicScheduler::Data::execute(WorkPoolBase &_rwp, WorkerBase &_rw, BasicScheduler::JobT &_rjob){
 	TimeSpec					ts;
 	Object::ExecuteController	exectl(0, ts);
 	

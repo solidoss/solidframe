@@ -321,13 +321,6 @@ inline const sockaddr* SocketAddress::sockAddr()const{
 inline SocketAddress::operator const sockaddr*()const{
 	return sockAddr();
 }
-inline bool SocketAddress::toString(
-	std::string &_rhoststr,
-	std::string &_rservstr,
-	uint32	_flags
-)const{
-	return synchronous_resolve(_rhoststr, _rservstr, *this, _flags);
-}
 
 inline bool SocketAddress::operator<(const SocketAddress &_raddr)const{
 	if(sockAddr()->sa_family < _raddr.sockAddr()->sa_family){
@@ -533,13 +526,6 @@ inline const sockaddr* SocketAddressInet::sockAddr()const{
 //operator sockaddr*(){return sockAddr();}
 inline SocketAddressInet::operator const sockaddr*()const{
 	return sockAddr();
-}
-inline bool SocketAddressInet::toString(
-	std::string &_rhoststr,
-	std::string &_rservstr,
-	uint32	_flags
-)const{
-	return synchronous_resolve(_rhoststr, _rservstr, *this, _flags);
 }
 
 inline bool SocketAddressInet::toBinary(Binary4T &_bin, uint16 &_port)const{
@@ -753,13 +739,6 @@ inline const sockaddr* SocketAddressInet4::sockAddr()const{
 inline SocketAddressInet4::operator const sockaddr*()const{
 	return sockAddr();
 }
-inline bool SocketAddressInet4::toString(
-	std::string &_rhoststr,
-	std::string &_rservstr,
-	uint32	_flags
-)const{
-	return synchronous_resolve(_rhoststr, _rservstr, *this, _flags);
-}
 
 inline void SocketAddressInet4::toBinary(BinaryT &_bin, uint16 &_port)const{
 	memcpy(_bin.data, &address().s_addr, 4);
@@ -903,13 +882,6 @@ inline const sockaddr* SocketAddressInet6::sockAddr()const{
 //operator sockaddr*(){return sockAddr();}
 inline SocketAddressInet6::operator const sockaddr*()const{
 	return sockAddr();
-}
-inline bool SocketAddressInet6::toString(
-	std::string &_rhoststr,
-	std::string &_rservstr,
-	uint32	_flags
-)const{
-	return synchronous_resolve(_rhoststr, _rservstr, *this, _flags);
 }
 
 inline void SocketAddressInet6::toBinary(BinaryT &_bin, uint16 &_port)const{

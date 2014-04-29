@@ -76,12 +76,12 @@ struct WorkPoolController: WorkPoolControllerBase{
 	
 	WorkPoolController(SharedObjectManager &_rsom):rsom(_rsom){}
 	
-	bool createWorker(WorkPoolT &_rwp){
+	bool createWorker(WorkPoolT &_rwp, ushort _wkrcnt){
 		_rwp.createMultiWorker(32)->start();
 		return true;
 	}
 	
-	void execute(Worker &_rwkr, JobVectorT &_rjobvec){
+	void execute(WorkPoolBase &_rwp, Worker &_rwkr, JobVectorT &_rjobvec){
 		for(JobVectorT::const_iterator it(_rjobvec.begin()); it != _rjobvec.end(); ++it){
 			size_t	idx;
 			if(it->second){

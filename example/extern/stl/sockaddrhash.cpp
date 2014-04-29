@@ -51,7 +51,7 @@ void generate_addresses(
 // 	char				host[SocketInfo::HostStringCapacity];
 // 	char				port[SocketInfo::ServiceStringCapacity];
 // 	
-// 	_rsa.toString(
+// 	_rsasynchronous_resolve(
 // 		host,
 // 		SocketInfo::HostStringCapacity,
 // 		port,

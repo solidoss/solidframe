@@ -88,9 +88,10 @@ int main(int argc, char *argv[]){
 		
 		std::string hoststr;
 		std::string servstr;
-		sa.toString(
+		synchronous_resolve(
 			hoststr, servstr,
-			ReverseResolveInfo::NumericHost | ReverseResolveInfo::NumericService
+			sa,
+			ReverseResolveInfo::Numeric
 		);
 		
 		cout<<"host = "<<hoststr<<":"<<servstr<<endl;
@@ -112,9 +113,10 @@ int main(int argc, char *argv[]){
 		
 		SocketAddressInet4 sa4_0(it);
 		
-		sa4_0.toString(
+		synchronous_resolve(
 			hoststr, servstr,
-			ReverseResolveInfo::NumericHost | ReverseResolveInfo::NumericService
+			sa4_0,
+			ReverseResolveInfo::Numeric
 		);
 		
 		cout<<"sa4_0 host = "<<hoststr<<":"<<servstr<<endl;
@@ -128,9 +130,10 @@ int main(int argc, char *argv[]){
 		
 		SocketAddressInet4 sa4_1(addr, portx);
 		
-		sa4_1.toString(
+		synchronous_resolve(
 			hoststr, servstr,
-			ReverseResolveInfo::NumericHost | ReverseResolveInfo::NumericService
+			sa4_1,
+			ReverseResolveInfo::Numeric
 		);
 		
 		cout<<"sa4_1 host = "<<hoststr<<":"<<servstr<<endl;
@@ -144,9 +147,10 @@ int main(int argc, char *argv[]){
 		
 		SocketAddressInet4 sa4_2(binaddr4, portx);
 		
-		sa4_2.toString(
+		synchronous_resolve(
 			hoststr, servstr,
-			ReverseResolveInfo::NumericHost | ReverseResolveInfo::NumericService
+			sa4_2,
+			ReverseResolveInfo::Numeric
 		);
 		
 		cout<<"sa4_2 host = "<<hoststr<<":"<<servstr<<endl;

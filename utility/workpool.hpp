@@ -40,6 +40,9 @@ struct WorkPoolBase{
 	bool isRunning()const{
 		return st == Running;
 	}
+	bool isStopping()const{
+		return st == Stopping;
+	}
 protected:
 	WorkPoolBase():st(Stopped), wkrcnt(0) {}
 	State						st;
@@ -140,6 +143,10 @@ public:
 		stop(true);
 	}
 	
+	ControllerT& controller(){
+		return ctrl;
+	}
+	
 	//! Push a new job
 	void push(const JobT& _jb){
 		mtx.lock();
@@ -195,7 +202,7 @@ public:
 	void createWorker(){
 		cassert(!mtx.tryLock());
 		++wkrcnt;
-		if(ctrl.createWorker(*this)){
+		if(ctrl.createWorker(*this, wkrcnt)){
 		}else{
 			--wkrcnt;
 			thrcnd.broadcast();
@@ -207,6 +214,7 @@ public:
 	WorkerT* createMultiWorker(ulong _maxcnt){
 		return new MultiWorker(*this, _maxcnt);
 	}
+	
 private:
 	friend struct SingleWorker;
 	friend struct MultiWorker;
@@ -278,10 +286,10 @@ private:
 		mtx.unlock();
 	}
 	void execute(WorkerT &_rw, JobT &_rjob){
-		ctrl.execute(_rw, _rjob);
+		ctrl.execute(*this, _rw, _rjob);
 	}
 	void execute(WorkerT &_rw, JobVectorT &_rjobvec){
-		ctrl.execute(_rw, _rjobvec);
+		ctrl.execute(*this, _rw, _rjobvec);
 	}
 private:
 	Queue<JobT>					jobq;
