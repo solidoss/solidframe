@@ -46,8 +46,10 @@ enum {
 	ResponseFlag	= SameConnectorFlag,			//!< The sent message is a response
 	WaitResponseFlag = 2,
 	SynchronousSendFlag = 4,						//!< Make the message synchronous
-	SentFlag = 8,									//!< The message was successfully sent
+	CompressedSendFlag = 8,
+	SecureSendFlag = 16,
 	DisconnectAfterSendFlag = 32,					//!< Disconnect the session after sending the message
+	
 };
 
 enum ErrorE{
@@ -61,10 +63,6 @@ enum ErrorE{
 };
 
 struct Controller: Dynamic<Controller, DynamicShared<> >{
-	enum{
-		AuthenticationFlag = 1
-	};
-	
 	virtual ~Controller();
 
 	virtual void scheduleListener(frame::aio::Object *_plis) = 0;
@@ -222,13 +220,13 @@ public:
 		The message is send only if the connector exists. If the peer process,
 		restarts the message is not sent.
 		\param _rmsgptr A DynamicPointer with the message to be sent.
-		\param _rsesid A previously saved SessionUid
+		\param _rssnid A previously saved SessionUid
 		\param _flags Control flags
 	*/
 	
 	bool sendMessage(
 		DynamicPointer<Message> &_rmsgptr,//the message to be sent
-		const SessionUid &_rconid,//the id of the process session
+		const SessionUid &_rssnid,//the id of the process session
 		uint32	_flags = 0
 	);
 	
@@ -237,13 +235,13 @@ public:
 		The base address of a process is the address on which the process listens for new UDP connections.
 		If the connection does not already exist, it will be created.
 		\param _rmsgptr The message.
-		\param _rsesid An output value, which on success will contain the uid of the connector.
+		\param _rssnid An output value, which on success will contain the uid of the connector.
 		\param _rsa_dest Destination address
 		\param _flags Control flags
 	*/
 	bool sendMessage(
 		DynamicPointer<Message> &_rmsgptr,//the message to be sent
-		SessionUid &_rsesid,
+		SessionUid &_rssnid,
 		const char *_addr_cstr,
 		int _port = -1,
 		uint32	_flags = 0
@@ -267,7 +265,7 @@ public:
 	bool sendMessage(
 		DynamicPointer<Message> &_rmsgptr,//the message to be sent
 		const SerializationTypeIdT &_rtid,
-		const SessionUid &_rsesid,
+		const SessionUid &_rssnid,
 		uint32	_flags = 0
 	);
 	
@@ -276,14 +274,14 @@ public:
 		The base address of a process is the address on which the process listens for new UDP connections.
 		If the connection does not already exist, it will be created.
 		\param _rmsgptr The message.
-		\param _rsesid An output value, which on success will contain the uid of the connector.
+		\param _rssnid An output value, which on success will contain the uid of the connector.
 		\param _rsa_dest Destination address
 		\param _flags Control flags
 	*/
 	bool sendMessage(
 		DynamicPointer<Message> &_rmsgptr,//the message to be sent
 		const SerializationTypeIdT &_rtid,
-		SessionUid &_rsesid,
+		SessionUid &_rssnid,
 		const char *_addr_cstr,
 		int _port = -1,
 		uint32	_flags = 0
