@@ -1,6 +1,6 @@
 // frame/ipc/src/ipcservice.cpp
 //
-// Copyright (c) 2007, 2008, 2010 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008, 2010, 2014 Valentin Palade (vipalade @ gmail . com) 
 //
 // This file is part of SolidFrame framework.
 //
@@ -27,7 +27,7 @@
 #include "frame/aio/openssl/opensslsocket.hpp"
 
 #include "frame/ipc2/ipcservice.hpp"
-#include "frame/ipc2/ipcconnectionuid.hpp"
+#include "frame/ipc2/ipcsessionuid.hpp"
 #include "frame/ipc2/ipcmessage.hpp"
 
 #include "ipclistener.hpp"
