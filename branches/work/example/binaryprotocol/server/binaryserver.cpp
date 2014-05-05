@@ -1,4 +1,4 @@
-#include "protocol/binary/binaryaiosession.hpp"
+#include "protocol/binary/binaryaioengine.hpp"
 #include "protocol/binary/binarybasicbuffercontroller.hpp"
 #include "protocol/binary/binaryspecificbuffercontroller.hpp"
 
@@ -327,10 +327,10 @@ class Connection: public solid::Dynamic<Connection, solid::frame::aio::SingleObj
 	typedef protocol::binary::SpecificBufferController<2048>	BufferControllerT;
 public:
 	
-	typedef protocol::binary::AioSession<
+	typedef protocol::binary::AioEngine<
 		frame::Message,
 		int
-	>															ProtocolSessionT;
+	>															ProtocolEngineT;
 	
 	Connection(const SocketDevice &_rsd, const serialization::TypeMapperBase &_rtm):BaseT(_rsd), ser(_rtm), des(_rtm){
 		idbg((void*)this);
@@ -338,8 +338,8 @@ public:
 	~Connection(){
 		idbg((void*)this);
 	}
-	ProtocolSessionT &session(){
-		return sess;
+	ProtocolEngineT &engine(){
+		return eng;
 	}
 private:
 	void done(){
@@ -350,7 +350,7 @@ private:
 private:
 	BinSerializerT			ser;
 	BinDeserializerT		des;
-	ProtocolSessionT		sess;
+	ProtocolEngineT			eng;
 	BufferControllerT		bufctl;
 };
 
@@ -385,7 +385,7 @@ void Service::insertConnection(
 		return;
 	}
 	ConnectionContext		ctx(*this);
-	const AsyncE rv = sess.execute(*this, _rexectx.eventMask(), ctx, ser, des, bufctl, compressor);
+	const AsyncE rv = engine().run(*this, _rexectx.eventMask(), ctx, ser, des, bufctl, compressor);
 	if(rv == solid::AsyncWait){
 		_rexectx.waitFor(TimeSpec(20));//wait 20 secs
 	}else if(rv == solid::AsyncSuccess){
@@ -397,18 +397,18 @@ void Handle::afterSerialization(BinDeserializerT &_rs, FirstRequest *_pm, Connec
 	idbg("des:FirstRequest("<<_pm->v<<')');
 	//echo as FirstResponse
 	DynamicPointer<frame::Message>	msgptr(new FirstResponse(_pm->idx, _pm->v));
-	_rctx.rcon.session().send(_rctx.rcvmsgidx, msgptr);
+	_rctx.rcon.engine().send(_rctx.rcvmsgidx, msgptr);
 }
 
 void Handle::afterSerialization(BinDeserializerT &_rs, SecondMessage *_pm, ConnectionContext &_rctx){
 	idbg("des:SecondMessage("<<_pm->v<<')');
 	//echo back the message itself
-	_rctx.rcon.session().send(_rctx.rcvmsgidx, _rctx.rcon.session().recvMessage(_rctx.rcvmsgidx));
+	_rctx.rcon.engine().send(_rctx.rcvmsgidx, _rctx.rcon.engine().recvMessage(_rctx.rcvmsgidx));
 }
 
 void Handle::afterSerialization(BinDeserializerT &_rs, NoopMessage *_pm, ConnectionContext &_rctx){
 	idbg("des:NoopMessage");
 	//echo back the message itself
-	_rctx.rcon.session().send(_rctx.rcvmsgidx, _rctx.rcon.session().recvMessage(_rctx.rcvmsgidx));
+	_rctx.rcon.engine().send(_rctx.rcvmsgidx, _rctx.rcon.engine().recvMessage(_rctx.rcvmsgidx));
 }
 

@@ -1,4 +1,4 @@
-#include "protocol/binary/binaryaiosession.hpp"
+#include "protocol/binary/binaryaioengine.hpp"
 #include "protocol/binary/binarybasicbuffercontroller.hpp"
 
 #include "frame/aio/aiosingleobject.hpp"
@@ -108,10 +108,10 @@ class Connection: public frame::aio::SingleObject{
 	};
 	
 	typedef std::vector<MessageStub>							MessageVectorT;
-	typedef protocol::binary::AioSession<
+	typedef protocol::binary::AioEngine<
 		frame::Message,
 		int
-	>															ProtocolSessionT;
+	>															ProtocolEngineT;
 		
 	typedef protocol::binary::BasicBufferController<2048>		BufferControllerT;
 	enum{
@@ -150,7 +150,7 @@ public:
 	
 private:
 	friend struct Handle;
-	friend struct SessionController;
+	friend struct EngineController;
 	/*virtual*/ void execute(ExecuteContext &_rexectx);
 	void done(){
 		idbg("");
@@ -175,7 +175,7 @@ private:
 	uint16					st;
 	BinSerializerT			ser;
 	BinDeserializerT		des;
-	ProtocolSessionT		session;
+	ProtocolEngineT			engine;
 	MessageVectorT			sndmsgvec;
 	BufferControllerT		bufctl;
 	size_t					sndidx;
@@ -348,7 +348,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 		if(sm & frame::S_SIG){
 			Locker<Mutex>	lock(rm.mutex(*this));
 			for(MessageVectorT::iterator it(sndmsgvec.begin()); it != sndmsgvec.end(); ++it){
-				session.send(it->idx, it->msgptr, it->flags);
+				engine.send(it->idx, it->msgptr, it->flags);
 			}
 			sndmsgvec.clear();
 		}
@@ -357,7 +357,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 	if(_rexectx.eventMask() & (frame::EventTimeout | frame::EventDoneError)){
 		if(waitnoop){
 			return done();
-		}else if(session.isSendQueueEmpty()){
+		}else if(engine.isSendQueueEmpty()){
 			DynamicPointer<solid::frame::Message>	msgptr(noopmsgptr);
 			send(msgptr);
 			waitnoop = true;
@@ -368,7 +368,7 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 	
 	bool reenter = false;
 	if(st == RunningState){
-		const AsyncE rv = session.execute(*this, _rexectx.eventMask(), ctx, ser, des, bufctl, compressor);
+		const AsyncE rv = engine.run(*this, _rexectx.eventMask(), ctx, ser, des, bufctl, compressor);
 		if(rv == solid::AsyncError){
 			done();
 			_rexectx.close();
