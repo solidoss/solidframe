@@ -1,4 +1,4 @@
-// protocol/binary/binarysession.hpp
+// protocol/binary/binaryengine.hpp
 //
 // Copyright (c) 2013 Valentin Palade (vipalade @ gmail . com) 
 //
@@ -7,8 +7,8 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#ifndef SOLID_PROTOCOL_BINARY_SESSION_HPP
-#define SOLID_PROTOCOL_BINARY_SESSION_HPP
+#ifndef SOLID_PROTOCOL_BINARY_ENGINE_HPP
+#define SOLID_PROTOCOL_BINARY_ENGINE_HPP
 
 #include <deque>
 #include <cstring>
@@ -99,7 +99,7 @@ struct BasicController{
 };
 
 template <class Msg, class MsgCtx, class Ctl = BasicController>
-class Session{
+class Engine{
 	struct MessageStub{
 		MessageStub():sndflgs(0), onsendq(false){}
 		
@@ -125,10 +125,10 @@ class Session{
 	};
 public:
 	
-	Session():rcvbufoff(0), cnsbufoff(0), rcvstate(RecvPacketHeaderState), rcvmsgidx(-1){}
+	Engine():rcvbufoff(0), cnsbufoff(0), rcvstate(RecvPacketHeaderState), rcvmsgidx(-1){}
 	
 	template <class T>
-	Session(T &_rt):ctl(_rt), rcvbufoff(0), cnsbufoff(0), rcvstate(RecvPacketHeaderState), rcvmsgidx(-1){
+	Engine(T &_rt):ctl(_rt), rcvbufoff(0), cnsbufoff(0), rcvstate(RecvPacketHeaderState), rcvmsgidx(-1){
 		
 	}
 	

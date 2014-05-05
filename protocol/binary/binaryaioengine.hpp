@@ -1,4 +1,4 @@
-// protocol/binary/binaryaiosession.hpp
+// protocol/binary/binaryaioengine.hpp
 //
 // Copyright (c) 2013 Valentin Palade (vipalade @ gmail . com) 
 //
@@ -7,10 +7,10 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#ifndef SOLID_PROTOCOL_BINARY_AIO_SESSION_HPP
-#define SOLID_PROTOCOL_BINARY_AIO_SESSION_HPP
+#ifndef SOLID_PROTOCOL_BINARY_AIO_ENGINE_HPP
+#define SOLID_PROTOCOL_BINARY_AIO_ENGINE_HPP
 
-#include "protocol/binary/binarysession.hpp"
+#include "protocol/binary/binaryengine.hpp"
 #include "frame/aio/aiosingleobject.hpp"
 
 namespace solid{
@@ -18,17 +18,17 @@ namespace protocol{
 namespace binary{
 
 template <class Msg, class MsgCtx, class Ctl = BasicController>
-class AioSession: public binary::Session<Msg, MsgCtx, Ctl>{
-	typedef binary::Session<Msg, MsgCtx, Ctl>	BaseT;
+class AioEngine: public binary::Engine<Msg, MsgCtx, Ctl>{
+	typedef binary::Engine<Msg, MsgCtx, Ctl>	BaseT;
 public:
-	AioSession(){}
+	AioEngine(){}
 	
 	template <class T>
-	AioSession(T &_rt):BaseT(_rt){
+	AioEngine(T &_rt):BaseT(_rt){
 		
 	}
 	template <class ConCtx, class Des, class BufCtl, class Com> 
-	AsyncE executeRecv(
+	AsyncE runRecv(
 		frame::aio::SingleObject &_raioobj,
 		ulong _evs,
 		ConCtx &_rconctx,
@@ -72,7 +72,7 @@ public:
 	}
 	
 	template <class ConCtx, class Ser, class BufCtl, class Com> 
-	AsyncE executeSend(
+	AsyncE runSend(
 		frame::aio::SingleObject &_raioobj,
 		ulong _evs,
 		ConCtx &_rconctx,
@@ -113,7 +113,7 @@ public:
 		return reenter ? AsyncSuccess : AsyncWait;
 	}
 	template <class ConCtx, class Ser, class Des, class BufCtl, class Com> 
-	AsyncE execute(
+	AsyncE run(
 		frame::aio::SingleObject &_raioobj,
 		ulong _evs,
 		ConCtx &_rconctx,
@@ -123,9 +123,9 @@ public:
 		Com &_rcom
 		
 	){
-		const AsyncE rcvrv = executeRecv(_raioobj, _evs, _rconctx, _rdes, _rbufctl, _rcom);
+		const AsyncE rcvrv = runRecv(_raioobj, _evs, _rconctx, _rdes, _rbufctl, _rcom);
 		if(rcvrv == AsyncError) return done();
-		const AsyncE sndrv = executeSend(_raioobj, _evs, _rconctx, _rser, _rbufctl, _rcom);
+		const AsyncE sndrv = runSend(_raioobj, _evs, _rconctx, _rser, _rbufctl, _rcom);
 		if(sndrv == AsyncError) return done();
 		return (sndrv == AsyncSuccess || rcvrv == AsyncSuccess) ? AsyncSuccess : AsyncWait;
 	}

@@ -242,8 +242,7 @@ public:
 	bool sendMessage(
 		DynamicPointer<Message> &_rmsgptr,//the message to be sent
 		SessionUid &_rssnid,
-		const char *_addr_cstr,
-		int _port = -1,
+		const SocketAddressStub &_rsa_dest,
 		uint32	_flags = 0
 	);
 	//!Send a message to a peer process using it's base address.
@@ -256,8 +255,7 @@ public:
 	*/
 	bool sendMessage(
 		DynamicPointer<Message> &_rmsgptr,//the message to be sent
-		const char *_addr_cstr,
-		int _port = -1,
+		const SocketAddressStub &_rsa_dest,
 		uint32	_flags = 0
 	);
 	
@@ -282,8 +280,7 @@ public:
 		DynamicPointer<Message> &_rmsgptr,//the message to be sent
 		const SerializationTypeIdT &_rtid,
 		SessionUid &_rssnid,
-		const char *_addr_cstr,
-		int _port = -1,
+		const SocketAddressStub &_rsa_dest,
 		uint32	_flags = 0
 	);
 	//!Send a message to a peer process using it's base address.
@@ -297,8 +294,7 @@ public:
 	bool sendMessage(
 		DynamicPointer<Message> &_rmsgptr,//the message to be sent
 		const SerializationTypeIdT &_rtid,
-		const char *_addr_cstr,
-		int _port = -1,
+		const SocketAddressStub &_rsa_dest,
 		uint32	_flags = 0
 	);
 	
@@ -315,8 +311,7 @@ private:
 		DynamicPointer<Message> &_rmsgptr,//the message to be sent
 		const SerializationTypeIdT &_rtid,
 		SessionUid *_psesid,
-		const char *_addr_cstr,
-		int _port = -1,
+		const SocketAddressStub &_rsa_dest,
 		uint32	_flags = 0
 	);
 	
@@ -341,8 +336,7 @@ private:
 inline bool Service::sendMessage(
 	DynamicPointer<Message> &_rmsgptr,//the message to be sent
 	SessionUid &_rsesid,
-	const char *_addr_cstr,
-	int _port,
+	const SocketAddressStub &_rsa_dest,
 	uint32	_flags
 ){
 	return doSendMessage(_rmsgptr, SERIALIZATION_INVALIDID, &_rsesid, _rsa_dest, _flags);
@@ -350,32 +344,29 @@ inline bool Service::sendMessage(
 
 inline bool Service::sendMessage(
 	DynamicPointer<Message> &_rmsgptr,//the message to be sent
-	const char *_addr_cstr,
-	int _port,
+	const SocketAddressStub &_rsa_dest,
 	uint32	_flags
 ){
-	return doSendMessage(_rmsgptr, SERIALIZATION_INVALIDID, NULL, _addr_cstr, _port, _flags);
+	return doSendMessage(_rmsgptr, SERIALIZATION_INVALIDID, NULL, _rsa_dest, _flags);
 }
 
 inline bool Service::sendMessage(
 	DynamicPointer<Message> &_rmsgptr,//the message to be sent
 	const SerializationTypeIdT &_rtid,
 	SessionUid &_rsesid,
-	const char *_addr_cstr,
-	int _port,
+	const SocketAddressStub &_rsa_dest,
 	uint32	_flags
 ){
-	return doSendMessage(_rmsgptr, _rtid, &_rsesid, _addr_cstr, _port, _flags);
+	return doSendMessage(_rmsgptr, _rtid, &_rsesid, _rsa_dest, _flags);
 }
 
 inline bool Service::sendMessage(
 	DynamicPointer<Message> &_rmsgptr,//the message to be sent
 	const SerializationTypeIdT &_rtid,
-	const char *_addr_cstr,
-	int _port,
+	const SocketAddressStub &_rsa_dest,
 	uint32	_flags
 ){
-	return doSendMessage(_rmsgptr, _rtid, NULL, _addr_cstr, _port, _flags);
+	return doSendMessage(_rmsgptr, _rtid, NULL, _rsa_dest, _flags);
 }
 
 inline const serialization::TypeMapperBase& Service::typeMapperBase() const{

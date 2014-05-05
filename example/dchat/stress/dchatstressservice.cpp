@@ -17,7 +17,7 @@
 #include "serialization/idtypemapper.hpp"
 #include "serialization/binary.hpp"
 
-#include "protocol/binary/binaryaiosession.hpp"
+#include "protocol/binary/binaryaioengine.hpp"
 #include "protocol/binary/binarybasicbuffercontroller.hpp"
 
 #include "frame/manager.hpp"
@@ -125,11 +125,11 @@ class Connection: public solid::frame::aio::SingleObject{
 		}
 	};
 	typedef std::vector<MessageStub>									MessageVectorT;
-	typedef solid::protocol::binary::AioSession<
+	typedef solid::protocol::binary::AioEngine<
 		solid::frame::Message,
 		int,
 		ProtocolController
-	>																	ProtocolSessionT;
+	>																	ProtocolEngineT;
 		
 	typedef solid::protocol::binary::BasicBufferController<2048>		BufferControllerT;
 	enum{
@@ -180,7 +180,7 @@ private:
 	solid::uint16			connectcnt;
 	BinSerializerT			ser;
 	BinDeserializerT		des;
-	ProtocolSessionT		session;
+	ProtocolEngineT			engine;
 	MessageVectorT			sndmsgvec;
 	BufferControllerT		bufctl;
 	size_t					sndidx;
@@ -430,10 +430,10 @@ void Connection::done(){
 				done();
 				_rexectx.close();
 				return;
-			}else if(session.isSendQueueEmpty()){
+			}else if(engine.isSendQueueEmpty()){
 				idbg("sendnoop");
 				DynamicPointer<solid::frame::Message>	msgptr(noopmsgptr);
-				session.send(3, msgptr);
+				engine.send(3, msgptr);
 				waitnoop = true;
 				nooptime = _rexectx.currentTime();
 				nooptime.add(10);
@@ -441,10 +441,10 @@ void Connection::done(){
 		}
 		if(nexttime.seconds() && nexttime <= _rexectx.currentTime()){
 			MessageDynamicPointerT	msgptr = MessageMatrix::the().message(jobq.front()->msgrow, sendidx);
-			session.send(2, msgptr);
+			engine.send(2, msgptr);
 			nexttime.seconds(0);
 		}
-		AsyncE rv = session.execute(*this, _rexectx.eventMask(), ctx, ser, des, bufctl, compressor);
+		AsyncE rv = engine.run(*this, _rexectx.eventMask(), ctx, ser, des, bufctl, compressor);
 		if(rv == solid::AsyncError){
 			done();
 			_rexectx.close();
@@ -518,7 +518,7 @@ void Connection::done(){
 		string	str = oss.str();
 		idbg("InitState - Login with "<<str);
 		MessageDynamicPointerT	msgptr = new LoginRequest(str, str);
-		session.send(1, msgptr);
+		engine.send(1, msgptr);
 		reenter = true;
 	}
 	if(reenter){
@@ -537,7 +537,7 @@ void Connection::dynamicHandle(solid::DynamicPointer<SendJob> &_rmsgptr){
 		sendidx = 0;
 		if(sendidx < jobq.front()->count){
 			MessageDynamicPointerT	msgptr = MessageMatrix::the().message(jobq.front()->msgrow, sendidx);
-			session.send(2, msgptr);
+			engine.send(2, msgptr);
 			nexttime = currentTime();
 			nexttime += jobq.front()->sleepms;
 		}

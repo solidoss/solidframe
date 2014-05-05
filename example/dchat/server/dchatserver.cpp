@@ -1,4 +1,4 @@
-#include "protocol/binary/binaryaiosession.hpp"
+#include "protocol/binary/binaryaioengine.hpp"
 #include "protocol/binary/binarybasicbuffercontroller.hpp"
 #include "protocol/binary/binaryspecificbuffercontroller.hpp"
 
@@ -603,11 +603,11 @@ class Connection: public solid::Dynamic<Connection, solid::frame::aio::SingleObj
 			_rctx.rcon.onDoneSend(_msgidx);
 		}
 	};
-	typedef protocol::binary::AioSession<
+	typedef protocol::binary::AioEngine<
 		frame::Message,
 		int,
 		ProtocolController
-	>															ProtocolSessionT;
+	>															ProtocolEngineT;
 public:
 
 	
@@ -623,8 +623,8 @@ public:
 	~Connection(){
 		vdbg((void*)this);
 	}
-	ProtocolSessionT &session(){
-		return sess;
+	ProtocolEngineT &engine(){
+		return eng;
 	}
 	bool isAuthenticated()const{
 		return stt == StateAuth;
@@ -654,7 +654,7 @@ private:
 	typedef Stack<size_t>	SizeStackT;
 	BinSerializerT			ser;
 	BinDeserializerT		des;
-	ProtocolSessionT		sess;
+	ProtocolEngineT			eng;
 	BufferControllerT		bufctl;
 	uint16					stt;
 	std::string				usr;
@@ -814,10 +814,10 @@ bool Service::addNode(std::string &_rname, NodeTypes _type){
 		if(sm & frame::S_SIG){
 			Locker<Mutex>	lock(frame::Manager::specific().mutex(*this));
 			for(MessageVectorT::iterator it(msgvec.begin()); it != msgvec.end(); ++it){
-				if(msgq.size() || !session().isFreeSend(0)){
+				if(msgq.size() || !engine().isFreeSend(0)){
 					msgq.push(*it);
 				}else{
-					session().send(0, *it);
+					engine().send(0, *it);
 				}
 			}
 			msgvec.clear();
@@ -834,7 +834,7 @@ bool Service::addNode(std::string &_rname, NodeTypes _type){
 	switch(stt){
 		case StateAuth:
 		case StateNotAuth:
-			rv = sess.execute(*this, _rexectx.eventMask(), ctx, ser, des, bufctl, compressor);
+			rv = engine().run(*this, _rexectx.eventMask(), ctx, ser, des, bufctl, compressor);
 			if(rv == solid::AsyncWait){
 				_rexectx.waitFor(TimeSpec(60 * 10));
 				return;
@@ -848,7 +848,7 @@ bool Service::addNode(std::string &_rname, NodeTypes _type){
 		case StateError:
 			edbg("StateError");
 			//Do not read anything from the client, only send the error message
-			rv = sess.executeSend(*this, _rexectx.eventMask(), ctx, ser, bufctl, compressor);
+			rv = engine().runSend(*this, _rexectx.eventMask(), ctx, ser, bufctl, compressor);
 			if(ser.empty() && !socketHasPendingRecv()){//nothing to send
 				done();
 				_rexectx.close();
@@ -872,7 +872,7 @@ void Connection::onDoneSend(const size_t _msgidx){
 	idbg(_msgidx);
 	if(!_msgidx){
 		if(msgq.size()){
-			session().send(0, msgq.front());
+			engine().send(0, msgq.front());
 			msgq.pop();
 		}
 	}
@@ -902,11 +902,11 @@ void Handle::afterSerialization(BinDeserializerT &_rs, LoginRequest *_pm, Connec
 	idbg("des::LoginRequest("<<_pm->user<<','<<_pm->pass<<')'<<' '<<_rctx.rcvmsgidx);
 	if(_pm->user.size() && _pm->pass == _pm->user){
 		DynamicPointer<frame::Message>	msgptr(new BasicMessage);
-		_rctx.rcon.session().send(_rctx.rcvmsgidx, msgptr);
+		_rctx.rcon.engine().send(_rctx.rcvmsgidx, msgptr);
 		_rctx.rcon.onAuthenticate(_pm->user);
 	}else{
 		DynamicPointer<frame::Message>	msgptr(new BasicMessage(BasicMessage::ErrorAuth));
-		_rctx.rcon.session().send(_rctx.rcvmsgidx, msgptr);
+		_rctx.rcon.engine().send(_rctx.rcvmsgidx, msgptr);
 		_rctx.rcon.onFailAuthenticate();
 	}
 }
@@ -943,7 +943,7 @@ void Handle::afterSerialization(BinDeserializerT &_rs, TextMessage *_pm, Connect
 void Handle::afterSerialization(BinDeserializerT &_rs, NoopMessage *_pm, ConnectionContext &_rctx){
 	idbg("des::NoopMessage "<<_rctx.rcvmsgidx);
 	//echo back the message itself
-	_rctx.rcon.session().send(_rctx.rcvmsgidx, _rctx.rcon.session().recvMessage(_rctx.rcvmsgidx));
+	_rctx.rcon.engine().send(_rctx.rcvmsgidx, _rctx.rcon.engine().recvMessage(_rctx.rcvmsgidx));
 }
 //------------------------------------------------------------------------------------
 /*virtual*/ void InitMessage::ipcOnReceive(
