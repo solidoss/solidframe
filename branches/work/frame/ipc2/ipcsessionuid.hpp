@@ -77,7 +77,6 @@ struct ConnectionContext{
 	Service				&rservice;
 	SessionUid 			sessionuid;
 	int 				listenport;
-	std::string const   &pairaddrstr;
 	int					pairport;
 	
 	
