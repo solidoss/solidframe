@@ -30,8 +30,17 @@
 #include "frame/ipc2/ipcsessionuid.hpp"
 #include "frame/ipc2/ipcmessage.hpp"
 
+#include "system/mutualstore.hpp"
+#include "system/atomic.hpp"
+#include "utility/queue.hpp"
+#include "utility/stack.hpp"
+
 #include "ipclistener.hpp"
 #include "ipcconnection.hpp"
+#include "ipcutility.hpp"
+
+#include <vector>
+#include <deque>
 
 #ifdef HAS_CPP11
 #define CPP11_NS std
@@ -45,7 +54,71 @@ namespace solid{
 namespace frame{
 namespace ipc{
 
-//*******	Service::Data	******************************************************************
+//*******	Service::Data	*******************************************
+
+struct MessageStub{
+	MessageStub():tid(SERIALIZATION_INVALIDID),flags(0){}
+	MessageStub(
+		const DynamicPointer<Message>	&_rmsgptr,
+		const SerializationTypeIdT &_rtid,
+		uint32 _flags
+	):msgptr(_rmsgptr), tid(_rtid), flags(_flags){}
+
+	DynamicPointer<Message>	msgptr;
+	SerializationTypeIdT	tid;
+	uint32					flags;
+};
+
+struct SendMessageStub{
+	SendMessageStub():tid(SERIALIZATION_INVALIDID),flags(0), uid(0){}
+	SendMessageStub(
+		const DynamicPointer<Message>	&_rmsgptr,
+		const SerializationTypeIdT &_rtid,
+		uint32 _flags
+	):msgptr(_rmsgptr), tid(_rtid), flags(_flags), uid(0){}
+
+	DynamicPointer<Message>	msgptr;
+	SerializationTypeIdT	tid;
+	uint32					flags;
+	uint16					uid;
+};
+
+struct ConnectionStub{
+	size_t			use;//==-1 connection dormant, == 0 connection will poll for new message soon, >0 connection busy and will poll from time to time
+	ObjectUidT		objid;
+	uint16			uid;
+};
+
+typedef Queue<MessageStub>					MessageQueueT;
+typedef std::vector<ConnectionStub>			ConnectionVectorT;
+typedef std::vector<SendMessageStub>		SendMessageVectorT;
+typedef Stack<size_t>						SizeStackT;
+
+struct SessionStub{
+	SessionStub(){}
+	SessionStub(
+		const SocketAddressStub &_rsa_dest
+	):addr(_rsa_dest){}
+	
+	
+	SocketAddressInet	addr;
+	
+	MessageQueueT		msgq;
+	ConnectionVectorT	plainconvec;
+	ConnectionVectorT	secureconvec;
+	SendMessageVectorT	sndmsgvec;
+	SizeStackT			sndmsgidxcache;
+};
+
+typedef ATOMIC_NS::atomic<size_t>			AtomicSizeT;
+typedef MutualStore<Mutex>					MutexMutualStoreT;
+typedef std::deque<SessionStub>				SessionDequeT;
+typedef CPP11_NS::unordered_map<
+	const SocketAddressInet*,
+	size_t,
+	SocketAddressHash,
+	SocketAddressEqual	
+>											SocketAddressMapT;
 
 struct Service::Data{
 	Data(
@@ -57,6 +130,12 @@ struct Service::Data{
 	DynamicPointer<Controller>	ctrlptr;
 	Configuration				config;
 	int							lsnport;
+	AtomicSizeT					ssnmaxcnt;
+	
+	MutexMutualStoreT			mtxstore;
+	SocketAddressMapT			ssnmap;
+	SessionDequeT				ssndq;
+	SizeStackT					cachessnidxstk;
 };
 
 //=======	ServiceData		===========================================
@@ -67,6 +146,7 @@ Service::Data::Data(
 	ctrlptr(_rctrlptr),
 	lsnport(-1)
 {
+	
 }
 
 Service::Data::~Data(){
@@ -117,7 +197,7 @@ bool Service::reconfigure(const Configuration &_rcfg){
 //---------------------------------------------------------------------
 bool Service::sendMessage(
 	DynamicPointer<Message> &_rmsgptr,//the message to be sent
-	const ConnectionUid &_rconid,//the id of the process connector
+	const SessionUid &_rsesid,//the id of the process connector
 	uint32	_flags
 ){
 	return true;
@@ -126,7 +206,7 @@ bool Service::sendMessage(
 bool Service::sendMessage(
 	DynamicPointer<Message> &_rmsgptr,//the message to be sent
 	const SerializationTypeIdT &_rtid,
-	const ConnectionUid &_rconid,//the id of the process connector
+	const SessionUid &_rsesid,//the id of the process connector
 	uint32	_flags
 ){
 	return true;
@@ -139,7 +219,7 @@ int Service::listenPort()const{
 bool Service::doSendMessage(
 	DynamicPointer<Message> &_rmsgptr,//the message to be sent
 	const SerializationTypeIdT &_rtid,
-	ConnectionUid *_pconid,
+	SessionUid *_psesid,
 	const SocketAddressStub &_rsa_dest,
 	uint32	_flags
 ){
@@ -212,17 +292,6 @@ const Controller& Service::controller()const{
 ){
 	_rmsg.ipcOnComplete(_rctx, _error);
 }
-
-AsyncE Controller::authenticate(
-	DynamicPointer<Message> &_rmsgptr,
-	ipc::MessageUid &_rmsguid,
-	uint32 &_rflags,
-	SerializationTypeIdT &_rtid
-){
-	//use: ConnectionContext::the().connectionuid!!
-	return AsyncError;//by default no authentication
-}
-
 
 /*virtual*/ void Controller::onDisconnect(const SocketAddressInet &_raddr){
 	vdbgx(Debug::ipc, ':'<<_raddr);

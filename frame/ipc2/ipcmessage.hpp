@@ -12,7 +12,7 @@
 
 #include "system/common.hpp"
 #include "frame/message.hpp"
-#include "frame/ipc2/ipcconnectionuid.hpp"
+#include "frame/ipc2/ipcsessionuid.hpp"
 
 namespace solid{
 namespace frame{

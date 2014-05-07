@@ -215,6 +215,13 @@ public:
 	
 	int listenPort()const;
 	
+	bool createSession(
+		SessionUid &_rssnid,
+		const char *_addr_str,
+		int	_port = -1
+		//TODO: add other session configuration params
+	);
+	
 	//!Send a message (usually a response) to a peer process using a previously saved ConnectionUid
 	/*!
 		The message is send only if the connector exists. If the peer process,

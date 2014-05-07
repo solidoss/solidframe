@@ -10,6 +10,7 @@ set(Headers
 	ipcservice.hpp
 	src/ipcconnection.hpp
 	src/ipclistener.hpp
+	src/ipcutility.hpp
 )
 
 set(Inlines
