@@ -47,8 +47,10 @@ enum {
 	WaitResponseFlag = 2,
 	SynchronousSendFlag = 4,						//!< Make the message synchronous
 	CompressedSendFlag = 8,
-	SecureSendFlag = 16,
-	DisconnectAfterSendFlag = 32,					//!< Disconnect the session after sending the message
+	NotCompressedSendFlag = 16,
+	SecureSendFlag = 32,
+	NotSecureSendFlag = 64,
+	DisconnectAfterSendFlag = 128,					//!< Disconnect the session after sending the message
 	
 };
 
@@ -137,6 +139,27 @@ private:
 
 
 struct Configuration{
+	Configuration(
+	):	defaultsendsecure(true), forcesendsecure(false), forcesendplain(false),
+		maxconcnt(1)//one secure one plain
+	{}
+	bool			defaultsendsecure;
+	bool			forcesendsecure;
+	bool			forcesendplain;
+	uint16			maxconcnt;
+	
+	bool mustSendSecure(const uint32 _msgflags)const{
+		if(forcesendsecure || (maxconcnt == 1 && !forcesendplain)){
+			//TODO: optimize this by setting on service.configure: forcesendsecure = forcesendsecure || (maxconcnt == 1 && !forcesendplain)
+			return true;
+		}else if(forcesendplain){
+			return false;
+		}else if(_msgflags & SecureSendFlag){
+			return true;
+		}else if(_msgflags & NotSecureSendFlag){
+			return false;
+		}return defaultsendsecure;
+	}
 	bool operator==(const Configuration &_rcfg)const{
 		return	false;
 	}
@@ -322,6 +345,14 @@ private:
 		uint32	_flags = 0
 	);
 	
+	bool doUnsafeSendMessage(
+		const size_t _idx,
+		DynamicPointer<Message> &_rmsgptr,//the message to be sent
+		const SerializationTypeIdT &_rtid,
+		uint32	_flags
+	);
+	
+	void doNotifyConnection(ObjectUidT const &_objid);
 	void insertConnection(
 		SocketDevice &_rsd,
 		aio::openssl::Context *_pctx
