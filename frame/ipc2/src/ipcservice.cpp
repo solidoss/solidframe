@@ -67,6 +67,7 @@ struct MessageStub{
 	DynamicPointer<Message>	msgptr;
 	SerializationTypeIdT	tid;
 	uint32					flags;
+	uint32					tag;
 };
 
 struct SendMessageStub{
@@ -98,14 +99,20 @@ struct SessionStub{
 	SessionStub(){}
 	SessionStub(
 		const SocketAddressStub &_rsa_dest
-	):addr(_rsa_dest){}
+	):addr(_rsa_dest), crtmsgtag(0), uid(0),
+	plnconpendcnt(0), scrconpendcnt(0){}
 	
 	
 	SocketAddressInet	addr;
-	
-	MessageQueueT		msgq;
-	ConnectionVectorT	plainconvec;
-	ConnectionVectorT	secureconvec;
+	uint32				crtmsgtag;
+	uint16				uid;
+	uint16				plnconpendcnt;
+	uint16				scrconpendcnt;
+
+	MessageQueueT		plnmsgq;
+	MessageQueueT		scrmsgq;
+	ConnectionVectorT	plnconvec;
+	ConnectionVectorT	scrconvec;
 	SendMessageVectorT	sndmsgvec;
 	SizeStackT			sndmsgidxcache;
 };
@@ -197,19 +204,33 @@ bool Service::reconfigure(const Configuration &_rcfg){
 //---------------------------------------------------------------------
 bool Service::sendMessage(
 	DynamicPointer<Message> &_rmsgptr,//the message to be sent
-	const SessionUid &_rsesid,//the id of the process connector
+	const SessionUid &_rssnid,//the id of the process connector
 	uint32	_flags
 ){
-	return true;
+	if(_rssnid.ssnidx < d.ssnmaxcnt){
+		Locker<Mutex>	lock(d.mtxstore.at(_rssnid.ssnidx));
+		SessionStub		&rssn(d.ssndq[_rssnid.ssnidx]);
+		if(rssn.uid == _rssnid.ssnuid){
+			return doUnsafeSendMessage(_rssnid.ssnidx, _rmsgptr, SERIALIZATION_INVALIDID, _flags);
+		}
+	}
+	return false;
 }
 //---------------------------------------------------------------------
 bool Service::sendMessage(
 	DynamicPointer<Message> &_rmsgptr,//the message to be sent
 	const SerializationTypeIdT &_rtid,
-	const SessionUid &_rsesid,//the id of the process connector
+	const SessionUid &_rssnid,//the id of the process connector
 	uint32	_flags
 ){
-	return true;
+	if(_rssnid.ssnidx < d.ssnmaxcnt){
+		Locker<Mutex>	lock(d.mtxstore.at(_rssnid.ssnidx));
+		SessionStub		&rssn(d.ssndq[_rssnid.ssnidx]);
+		if(rssn.uid == _rssnid.ssnuid){
+			return doUnsafeSendMessage(_rssnid.ssnidx, _rmsgptr, _rtid, _flags);
+		}
+	}
+	return false;
 }
 //---------------------------------------------------------------------
 int Service::listenPort()const{
@@ -224,6 +245,38 @@ bool Service::doSendMessage(
 	uint32	_flags
 ){
 	return false;
+}
+//---------------------------------------------------------------------
+size_t find_available_connection(ConnectionVectorT const &_rconvec, bool &_shouldcreatenew){
+	return -1;
+}
+bool Service::doUnsafeSendMessage(
+	const size_t _idx,
+	DynamicPointer<Message> &_rmsgptr,//the message to be sent
+	const SerializationTypeIdT &_rtid,
+	uint32	_flags
+){
+	SessionStub		&rssn(d.ssndq[_idx]);
+	bool			sendsecure = d.config.mustSendSecure(_flags);
+	
+	if(sendsecure){
+		rssn.scrmsgq.push(MessageStub(_rmsgptr, _rtid, _flags));
+		//now we need to notify a connection
+		bool	shouldcreatenew = rssn.scrconvec.empty();
+		size_t	conidx = find_available_connection(rssn.scrconvec, shouldcreatenew);
+		if(conidx < rssn.scrconvec.size()){
+			doNotifyConnection(rssn.scrconvec[conidx].objid);
+		}else if(shouldcreatenew && !rssn.scrconpendcnt){
+			
+		}
+	}else{
+		rssn.plnmsgq.push(MessageStub(_rmsgptr, _rtid, _flags));
+	}
+	return true;
+}
+//---------------------------------------------------------------------
+void Service::doNotifyConnection(ObjectUidT const &_objid){
+	
 }
 //---------------------------------------------------------------------
 void Service::insertConnection(

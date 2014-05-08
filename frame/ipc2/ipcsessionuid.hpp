@@ -35,11 +35,11 @@ enum{
 */
 struct SessionUid{
 	SessionUid(
-		const uint16 _sesidx = 0,
-		const uint16 _sesuid = 0
-	):sesidx(_sesidx), sesuid(_sesuid){}
-	uint16	sesidx;
-	uint16	sesuid;
+		const uint16 _idx = 0,
+		const uint16 _uid = 0
+	):ssnidx(_idx), ssnuid(_uid){}
+	uint16	ssnidx;
+	uint16	ssnuid;
 };
 
 struct MessageUid{
