@@ -353,9 +353,9 @@ private:
 	);
 	
 	void doNotifyConnection(ObjectUidT const &_objid);
+	
 	void insertConnection(
-		SocketDevice &_rsd,
-		aio::openssl::Context *_pctx
+		SocketDevice &_rsd
 	);
 	
 	uint32 keepAliveTimeout()const;
