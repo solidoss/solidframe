@@ -90,25 +90,35 @@ struct ConnectionStub{
 	uint16			uid;
 };
 
-typedef Queue<MessageStub>					MessageQueueT;
-typedef std::vector<ConnectionStub>			ConnectionVectorT;
-typedef std::vector<SendMessageStub>		SendMessageVectorT;
-typedef Stack<size_t>						SizeStackT;
+typedef Queue<MessageStub>							MessageQueueT;
+typedef std::vector<ConnectionStub>					ConnectionVectorT;
+typedef std::vector<SendMessageStub>				SendMessageVectorT;
+typedef Stack<size_t>								SizeStackT;
+typedef std::auto_ptr<frame::aio::openssl::Context> SslContextPtrT;
 
 struct SessionStub{
+	enum {
+		StartedState,
+		StoppingState,
+		StoppedState,
+	};
+
 	SessionStub(){}
 	SessionStub(
 		const SocketAddressStub &_rsa_dest
 	):addr(_rsa_dest), crtmsgtag(0), uid(0),
-	plnconpendcnt(0), scrconpendcnt(0){}
+	state(StoppedState){}
+	
+	bool isStarted()const{
+		return state == StartedState;
+	}
 	
 	
 	SocketAddressInet	addr;
 	uint32				crtmsgtag;
 	uint16				uid;
-	uint16				plnconpendcnt;
-	uint16				scrconpendcnt;
-
+	uint8				state;
+	
 	MessageQueueT		plnmsgq;
 	MessageQueueT		scrmsgq;
 	ConnectionVectorT	plnconvec;
@@ -138,6 +148,7 @@ struct Service::Data{
 	Configuration				config;
 	int							lsnport;
 	AtomicSizeT					ssnmaxcnt;
+	SslContextPtrT				sslctxptr;
 	
 	MutexMutualStoreT			mtxstore;
 	SocketAddressMapT			ssnmap;
@@ -182,13 +193,25 @@ Service::Service(
 	Manager &_rm,
 	const DynamicPointer<Controller> &_rctrlptr
 ):BaseT(_rm), d(*(new Data(_rctrlptr))){
+	
+	d.sslctxptr.reset(frame::aio::openssl::Context::create());
+#if 0
+	if(d.sslctxptr){
+		const char *pcertpath(OSSL_SOURCE_PATH"ssl_/certs/A-server.pem");
+		
+		pctx->loadCertificateFile(pcertpath);
+		pctx->loadPrivateKeyFile(pcertpath);
+	}
+#endif
 }
 //---------------------------------------------------------------------
 Service::~Service(){
+	//the held object must be stopped before deleting data
+	stop(true);
+	
 	delete &d;
 }
 //---------------------------------------------------------------------
-
 bool Service::reconfigure(const Configuration &_rcfg){
 	Locker<Mutex>	lock(mutex());
 	
@@ -257,6 +280,11 @@ bool Service::doUnsafeSendMessage(
 	uint32	_flags
 ){
 	SessionStub		&rssn(d.ssndq[_idx]);
+	
+	if(!rssn.isStarted()){
+		return false;
+	}
+	
 	bool			sendsecure = d.config.mustSendSecure(_flags);
 	
 	if(sendsecure){
@@ -266,11 +294,19 @@ bool Service::doUnsafeSendMessage(
 		size_t	conidx = find_available_connection(rssn.scrconvec, shouldcreatenew);
 		if(conidx < rssn.scrconvec.size()){
 			doNotifyConnection(rssn.scrconvec[conidx].objid);
-		}else if(shouldcreatenew && !rssn.scrconpendcnt){
+		}else if(shouldcreatenew){
 			
 		}
 	}else{
 		rssn.plnmsgq.push(MessageStub(_rmsgptr, _rtid, _flags));
+		//now we need to notify a connection
+		bool	shouldcreatenew = rssn.plnconvec.empty();
+		size_t	conidx = find_available_connection(rssn.plnconvec, shouldcreatenew);
+		if(conidx < rssn.plnconvec.size()){
+			doNotifyConnection(rssn.plnconvec[conidx].objid);
+		}else if(shouldcreatenew){
+			
+		}
 	}
 	return true;
 }
@@ -280,8 +316,7 @@ void Service::doNotifyConnection(ObjectUidT const &_objid){
 }
 //---------------------------------------------------------------------
 void Service::insertConnection(
-	SocketDevice &_rsd,
-	aio::openssl::Context *_pctx
+	SocketDevice &_rsd
 ){
 }
 //---------------------------------------------------------------------

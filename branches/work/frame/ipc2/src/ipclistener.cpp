@@ -18,9 +18,8 @@ namespace ipc{
 
 Listener::Listener(
 	Service &_rsvc,
-	const SocketDevice &_rsd,
-	frame::aio::openssl::Context *_pctx
-):BaseT(_rsd), rsvc(_rsvc), pctx(_pctx){
+	const SocketDevice &_rsd
+):BaseT(_rsd), rsvc(_rsvc){
 	state = 0;
 }
 
@@ -51,7 +50,7 @@ void Listener::execute(ExecuteContext &_rexectx){
 		state = 0;
 		cassert(sd.ok());
 		idbgx(Debug::ipc, "accepted new connection");
-		rsvc.insertConnection(sd, pctx.get());
+		rsvc.insertConnection(sd);
 	}
 	_rexectx.reschedule();
 }

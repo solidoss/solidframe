@@ -29,16 +29,13 @@ class Listener: public Dynamic<Listener, frame::aio::SingleObject>{
 public:
 	Listener(
 		Service &_rsvc,
-		const SocketDevice &_rsd,
-		frame::aio::openssl::Context *_pctx = NULL
+		const SocketDevice &_rsd
 	);
 private:
 	/*virtual*/ void execute(ExecuteContext &_rexectx);
 private:
-	typedef std::auto_ptr<frame::aio::openssl::Context> SslContextPtrT;
 	Service				&rsvc;
 	SocketDevice		sd;
-	SslContextPtrT		pctx;
 	int					state;
 };
 
