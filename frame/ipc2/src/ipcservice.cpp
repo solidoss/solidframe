@@ -55,6 +55,10 @@ namespace frame{
 namespace ipc{
 
 //*******	Service::Data	*******************************************
+//Some implementation flags
+enum{
+	FirstImplemetationFlag = (LastFlag << 1)
+};
 
 struct MessageStub{
 	MessageStub():tid(SERIALIZATION_INVALIDID),flags(0){}
@@ -85,7 +89,7 @@ struct SendMessageStub{
 };
 
 struct ConnectionStub{
-	size_t			use;//==-1 connection dormant, == 0 connection will poll for new message soon, >0 connection busy and will poll from time to time
+	size_t			use;//==-1 connection dormant, ,>0 connection busy and will poll from time to time
 	ObjectUidT		objid;
 	uint16			uid;
 };
@@ -107,7 +111,7 @@ struct SessionStub{
 	SessionStub(
 		const SocketAddressStub &_rsa_dest
 	):addr(_rsa_dest), crtmsgtag(0), uid(0),
-	state(StoppedState){}
+	state(StoppedState), plnconcnt(0), scrconcnt(0){}
 	
 	bool isStarted()const{
 		return state == StartedState;
@@ -118,6 +122,9 @@ struct SessionStub{
 	uint32				crtmsgtag;
 	uint16				uid;
 	uint8				state;
+	
+	uint8				plnconcnt;
+	uint8				scrconcnt;
 	
 	MessageQueueT		plnmsgq;
 	MessageQueueT		scrmsgq;
@@ -153,7 +160,7 @@ struct Service::Data{
 	MutexMutualStoreT			mtxstore;
 	SocketAddressMapT			ssnmap;
 	SessionDequeT				ssndq;
-	SizeStackT					cachessnidxstk;
+	SizeStackT					ssnidxcache;
 };
 
 //=======	ServiceData		===========================================
@@ -230,8 +237,9 @@ bool Service::sendMessage(
 	const SessionUid &_rssnid,//the id of the process connector
 	uint32	_flags
 ){
-	if(_rssnid.ssnidx < d.ssnmaxcnt){
-		Locker<Mutex>	lock(d.mtxstore.at(_rssnid.ssnidx));
+	Locker<Mutex>	lock(mutex());
+	if(_rssnid.ssnidx < d.ssndq.size()){
+		Locker<Mutex>	lock2(d.mtxstore.at(_rssnid.ssnidx));
 		SessionStub		&rssn(d.ssndq[_rssnid.ssnidx]);
 		if(rssn.uid == _rssnid.ssnuid){
 			return doUnsafeSendMessage(_rssnid.ssnidx, _rmsgptr, SERIALIZATION_INVALIDID, _flags);
@@ -246,8 +254,9 @@ bool Service::sendMessage(
 	const SessionUid &_rssnid,//the id of the process connector
 	uint32	_flags
 ){
-	if(_rssnid.ssnidx < d.ssnmaxcnt){
-		Locker<Mutex>	lock(d.mtxstore.at(_rssnid.ssnidx));
+	Locker<Mutex>	lock(mutex());
+	if(_rssnid.ssnidx < d.ssndq.size()){
+		Locker<Mutex>	lock2(d.mtxstore.at(_rssnid.ssnidx));
 		SessionStub		&rssn(d.ssndq[_rssnid.ssnidx]);
 		if(rssn.uid == _rssnid.ssnuid){
 			return doUnsafeSendMessage(_rssnid.ssnidx, _rmsgptr, _rtid, _flags);
@@ -267,12 +276,145 @@ bool Service::doSendMessage(
 	const SocketAddressStub &_rsa_dest,
 	uint32	_flags
 ){
-	return false;
+	const SocketAddressInet 			sa(_rsa_dest);
+	Locker<Mutex>						lock(mutex());
+	SocketAddressMapT::const_iterator	it = d.ssnmap.find(&sa);
+	size_t								ssnidx = -1;
+	
+	if(it != d.ssnmap.end()){
+		ssnidx = it->second;
+	}else{
+		if(d.ssnidxcache.size()){
+			ssnidx = d.ssnidxcache.top();
+			d.ssnidxcache.pop();
+			d.ssndq[ssnidx].addr = _rsa_dest;
+		}else{
+			ssnidx = d.ssndq.size();
+			d.ssndq.push_back(SessionStub(_rsa_dest));
+		}
+	}
+	
+	if(_psesid){
+		_psesid->ssnidx = ssnidx;
+		_psesid->ssnuid = d.ssndq[ssnidx].uid;
+	}
+	
+	return doUnsafeSendMessage(ssnidx, _rmsgptr, _rtid, _flags);
 }
 //---------------------------------------------------------------------
-size_t find_available_connection(ConnectionVectorT const &_rconvec, bool &_shouldcreatenew){
-	return -1;
+size_t find_available_connection(ConnectionVectorT const &_rconvec, bool &_shouldcreatenew, const size_t _usethreshold){
+	size_t cnt = 0;
+	size_t rv = -1;
+	switch(_rconvec.size()){
+		case 0:
+			_shouldcreatenew = true;
+			break;
+		case 1:
+			if(_rconvec[0].use == static_cast<size_t>(-1)){
+				return 0;
+			}else if(_rconvec[0].use < _usethreshold){
+			}else{
+				++cnt;
+			}
+			break;
+		case 2:
+			if(_rconvec[0].use == static_cast<size_t>(-1)){
+				return 0;
+			}else if(_rconvec[0].use < _usethreshold){
+				++cnt;
+			}
+			if(_rconvec[1].use == static_cast<size_t>(-1)){
+				return 1;
+			}else if(_rconvec[1].use < _usethreshold){
+				++cnt;
+			}
+			break;
+		case 3:
+			if(_rconvec[0].use == static_cast<size_t>(-1)){
+				return 0;
+			}else if(_rconvec[0].use < _usethreshold){
+				++cnt;
+			}
+			if(_rconvec[1].use == static_cast<size_t>(-1)){
+				return 1;
+			}else if(_rconvec[1].use < _usethreshold){
+				++cnt;
+			}
+			if(_rconvec[2].use == static_cast<size_t>(-1)){
+				return 2;
+			}else if(_rconvec[2].use < _usethreshold){
+				++cnt;
+			}
+			break;
+		case 4:
+			if(_rconvec[0].use == static_cast<size_t>(-1)){
+				return 0;
+			}else if(_rconvec[0].use < _usethreshold){
+				++cnt;
+			}
+			if(_rconvec[1].use == static_cast<size_t>(-1)){
+				return 1;
+			}else if(_rconvec[1].use < _usethreshold){
+				++cnt;
+			}
+			if(_rconvec[2].use == static_cast<size_t>(-1)){
+				return 2;
+			}else if(_rconvec[2].use < _usethreshold){
+				++cnt;
+			}
+			if(_rconvec[3].use == static_cast<size_t>(-1)){
+				return 3;
+			}else if(_rconvec[3].use < _usethreshold){
+				++cnt;
+			}
+			break;
+		default:
+			cassert(false);
+			break;
+	}
+	_shouldcreatenew = (cnt == 0);
+	return rv;
 }
+
+size_t find_available_connection_stub(ConnectionVectorT const &_rconvec){
+	if(!_rconvec.empty()){
+		if(is_invalid_uid(_rconvec[0].objid)){
+			return 0;
+		}
+		if(_rconvec.size() == 1) goto Done;
+		if(is_invalid_uid(_rconvec[1].objid)){
+			return 1;
+		}
+		if(_rconvec.size() == 2) goto Done;
+		if(is_invalid_uid(_rconvec[2].objid)){
+			return 2;
+		}
+		if(_rconvec.size() == 3) goto Done;
+		if(is_invalid_uid(_rconvec[3].objid)){
+			return 3;
+		}
+		if(_rconvec.size() == 4) goto Done;
+		if(is_invalid_uid(_rconvec[4].objid)){
+			return 4;
+		}
+		if(_rconvec.size() == 5) goto Done;
+		if(is_invalid_uid(_rconvec[5].objid)){
+			return 5;
+		}
+		if(_rconvec.size() == 6) goto Done;
+		if(is_invalid_uid(_rconvec[6].objid)){
+			return 6;
+		}
+		if(_rconvec.size() == 7) goto Done;
+		if(is_invalid_uid(_rconvec[7].objid)){
+			return 7;
+		}
+		return -1;
+	}
+Done:
+	return _rconvec.size();
+}
+
 bool Service::doUnsafeSendMessage(
 	const size_t _idx,
 	DynamicPointer<Message> &_rmsgptr,//the message to be sent
@@ -291,28 +433,51 @@ bool Service::doUnsafeSendMessage(
 		rssn.scrmsgq.push(MessageStub(_rmsgptr, _rtid, _flags));
 		//now we need to notify a connection
 		bool	shouldcreatenew = rssn.scrconvec.empty();
-		size_t	conidx = find_available_connection(rssn.scrconvec, shouldcreatenew);
+		size_t	conidx = find_available_connection(rssn.scrconvec, shouldcreatenew, 3);
 		if(conidx < rssn.scrconvec.size()){
 			doNotifyConnection(rssn.scrconvec[conidx].objid);
-		}else if(shouldcreatenew){
+		}else if(shouldcreatenew && rssn.scrconcnt < d.config.maxsecureconcnt){
 			
+			size_t								conidx = find_available_connection_stub(rssn.scrconvec);
+			if(conidx == rssn.scrconvec.size()){
+				rssn.scrconvec.push_back(ConnectionStub());
+			}
+			cassert(conidx != static_cast<size_t>(-1));
+			const SessionUid 					ssnid(_idx, rssn.uid);
+			const ConnectionUid					conid(conidx, rssn.scrconvec[conidx].uid);
+			DynamicPointer<frame::aio::Object>	objptr(new Connection(*this, ssnid, conid, d.sslctxptr.get()));
+			
+			
+			rssn.scrconvec[conidx].objid = this->unsafeRegisterObject(*objptr);
+			controller().scheduleConnection(objptr);
 		}
 	}else{
 		rssn.plnmsgq.push(MessageStub(_rmsgptr, _rtid, _flags));
 		//now we need to notify a connection
 		bool	shouldcreatenew = rssn.plnconvec.empty();
-		size_t	conidx = find_available_connection(rssn.plnconvec, shouldcreatenew);
+		size_t	conidx = find_available_connection(rssn.plnconvec, shouldcreatenew, 3);
 		if(conidx < rssn.plnconvec.size()){
 			doNotifyConnection(rssn.plnconvec[conidx].objid);
-		}else if(shouldcreatenew){
+		}else if(shouldcreatenew && rssn.plnconcnt < d.config.maxplainconcnt){
+			size_t								conidx = find_available_connection_stub(rssn.plnconvec);
+			if(conidx == rssn.plnconvec.size()){
+				rssn.plnconvec.push_back(ConnectionStub());
+			}
+			cassert(conidx != static_cast<size_t>(-1));
+			const SessionUid 					ssnid(_idx, rssn.uid);
+			const ConnectionUid					conid(conidx, rssn.plnconvec[conidx].uid);
+			DynamicPointer<frame::aio::Object>	objptr(new Connection(*this, ssnid, conid));
 			
+			
+			rssn.scrconvec[conidx].objid = this->unsafeRegisterObject(*objptr);
+			controller().scheduleConnection(objptr);
 		}
 	}
 	return true;
 }
 //---------------------------------------------------------------------
 void Service::doNotifyConnection(ObjectUidT const &_objid){
-	
+	manager().notify(frame::S_RAISE, _objid);
 }
 //---------------------------------------------------------------------
 void Service::insertConnection(
@@ -410,14 +575,12 @@ BasicController::~BasicController(){
 	vdbgx(Debug::ipc, "");
 }
 
-/*virtual*/ void BasicController::scheduleListener(frame::aio::Object *_plis){
-	DynamicPointer<frame::aio::Object> op(_plis);
-	rsched_l.schedule(op);
+/*virtual*/ void BasicController::scheduleListener(DynamicPointer<frame::aio::Object> &_objptr){
+	rsched_l.schedule(_objptr);
 }
 
-/*virtual*/ void BasicController::scheduleConnection(frame::aio::Object *_pcon){
-	DynamicPointer<frame::aio::Object> op(_pcon);
-	rsched_c.schedule(op);
+/*virtual*/ void BasicController::scheduleConnection(DynamicPointer<frame::aio::Object> &_objptr){
+	rsched_c.schedule(_objptr);
 }
 
 //------------------------------------------------------------------

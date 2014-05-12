@@ -22,6 +22,16 @@ Connection::Connection(
 ):BaseT(_rsd), rsvc(_rsvc){
 }
 
+
+Connection::Connection(
+	Service &_rsvc,
+	const SessionUid &_rssnuid,
+	const ConnectionUid &_rconuid,
+	aio::openssl::Context *_psslctx/* = NULL*/
+):rsvc(_rsvc), ssnid(_rssnuid), conid(_rconuid){
+	
+}
+
 Connection::~Connection(){
 	
 }

@@ -12,6 +12,7 @@
 
 #include "frame/aio/aiosingleobject.hpp"
 #include "system/socketdevice.hpp"
+#include "frame/ipc2/ipcsessionuid.hpp"
 
 namespace solid{
 namespace frame{
@@ -33,11 +34,19 @@ public:
 		Service &_rsvc,
 		const SocketDevice &_rsd
 	);
+	Connection(
+		Service &_rsvc,
+		const SessionUid &_rssnuid,
+		const ConnectionUid &_rconuid,
+		aio::openssl::Context *_psslctx = NULL
+	);
 	~Connection();
 private:
 	/*virtual*/ void execute(ExecuteContext &_rexectx);
 private:
 	Service				&rsvc;
+	SessionUid			ssnid;
+	ConnectionUid		conid;
 };
 
 
