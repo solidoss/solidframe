@@ -35,11 +35,27 @@ enum{
 */
 struct SessionUid{
 	SessionUid(
-		const uint16 _idx = 0,
-		const uint16 _uid = 0
+		const uint16 _idx = 0xffff,
+		const uint16 _uid = 0xffff
 	):ssnidx(_idx), ssnuid(_uid){}
+	bool isInvalid()const{
+		return ssnidx == 0xffff;
+	}
 	uint16	ssnidx;
 	uint16	ssnuid;
+};
+
+
+struct ConnectionUid{
+	ConnectionUid(
+		const uint16 _idx = 0xffff,
+		const uint16 _uid = 0xffff
+	):conidx(_idx), conuid(_uid){}
+	bool isInvalid()const{
+		return conidx == 0xffff;
+	}
+	uint16	conidx;
+	uint16	conuid;
 };
 
 struct MessageUid{

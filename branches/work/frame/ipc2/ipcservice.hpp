@@ -51,7 +51,7 @@ enum {
 	SecureSendFlag = 32,
 	NotSecureSendFlag = 64,
 	DisconnectAfterSendFlag = 128,					//!< Disconnect the session after sending the message
-	
+	LastFlag = (1 << 24)
 };
 
 enum ErrorE{
@@ -67,8 +67,8 @@ enum ErrorE{
 struct Controller: Dynamic<Controller, DynamicShared<> >{
 	virtual ~Controller();
 
-	virtual void scheduleListener(frame::aio::Object *_plis) = 0;
-	virtual void scheduleConnection(frame::aio::Object *_pcon) = 0;
+	virtual void scheduleListener(DynamicPointer<frame::aio::Object> &_objptr) = 0;
+	virtual void scheduleConnection(DynamicPointer<frame::aio::Object> &_objptr) = 0;
 	
 	virtual bool compressPacket(
 		PacketContext &_rpc,
@@ -130,8 +130,8 @@ struct BasicController: Controller{
 		const uint32 _resdatasz = 0
 	);
 	~BasicController();
-	/*virtual*/ void scheduleListener(frame::aio::Object *_plis);
-	/*virtual*/ void scheduleConnection(frame::aio::Object *_pcon);
+	/*virtual*/ void scheduleListener(DynamicPointer<frame::aio::Object> &_objptr);
+	/*virtual*/ void scheduleConnection(DynamicPointer<frame::aio::Object> &_objptr);
 private:
 	AioSchedulerT &rsched_l;
 	AioSchedulerT &rsched_c;
@@ -141,15 +141,16 @@ private:
 struct Configuration{
 	Configuration(
 	):	defaultsendsecure(true), forcesendsecure(false), forcesendplain(false),
-		maxconcnt(1)//one secure one plain
+		maxsecureconcnt(1), maxplainconcnt(1)
 	{}
 	bool			defaultsendsecure;
 	bool			forcesendsecure;
 	bool			forcesendplain;
-	uint16			maxconcnt;
+	uint16			maxsecureconcnt;
+	uint16			maxplainconcnt;
 	
 	bool mustSendSecure(const uint32 _msgflags)const{
-		if(forcesendsecure || (maxconcnt == 1 && !forcesendplain)){
+		if(forcesendsecure || (maxsecureconcnt == 1 && !forcesendplain)){
 			//TODO: optimize this by setting on service.configure: forcesendsecure = forcesendsecure || (maxconcnt == 1 && !forcesendplain)
 			return true;
 		}else if(forcesendplain){
