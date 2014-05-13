@@ -3,16 +3,13 @@
 
 #include "frame/aio/aioselector.hpp"
 #include "frame/aio/aioobject.hpp"
-//#include "foundation/aio/openssl/opensslsocket.hpp"
 
 #include "frame/ipc/ipcservice.hpp"
 #include "frame/ipc/ipcmessage.hpp"
 
-//#include "system/thread.hpp"
 #include "system/mutex.hpp"
 #include "system/condition.hpp"
 #include "system/socketaddress.hpp"
-//#include "system/socketdevice.hpp"
 
 #include "boost/program_options.hpp"
 

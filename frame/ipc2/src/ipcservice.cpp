@@ -229,7 +229,7 @@ bool Service::reconfigure(const Configuration &_rcfg){
 	unsafeReset(lock);
 	
 	d.config = _rcfg;
-	return false;
+	return true;
 }
 //---------------------------------------------------------------------
 bool Service::sendMessage(
@@ -292,6 +292,8 @@ bool Service::doSendMessage(
 			ssnidx = d.ssndq.size();
 			d.ssndq.push_back(SessionStub(_rsa_dest));
 		}
+		d.ssnmap[&d.ssndq[ssnidx].addr] = ssnidx;
+		d.ssndq[ssnidx].state = SessionStub::StartedState;
 	}
 	
 	if(_psesid){
