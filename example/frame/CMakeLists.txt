@@ -7,3 +7,4 @@ add_subdirectory(ipc)
 add_subdirectory(study)
 
 add_subdirectory(file)
+add_subdirectory(proxy)

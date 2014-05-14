@@ -69,7 +69,7 @@ private:
 	typedef std::auto_ptr<frame::aio::openssl::Context> SslContextPtrT;
 	int					state;
 	SocketDevice		sd;
-	SslContextPtrT		pctx;
+	SslContextPtrT		ctxptr;
 	frame::Manager		&rm;
 	AioSchedulerT		&rsched;
 };
@@ -78,7 +78,6 @@ private:
 //------------------------------------------------------------------
 class Connection: public Dynamic<Connection, frame::aio::SingleObject>{
 public:
-	Connection(const char *_node, const char *_srv);
 	Connection(const SocketDevice &_rsd);
 	~Connection();
 private:
@@ -92,9 +91,6 @@ private:
 	const char					*bend;
 	char						*brpos;
 	const char					*bwpos;
-	ResolveData					rd;
-	ResolveIterator				it;
-	bool						b;
 };
 
 //------------------------------------------------------------------
@@ -112,7 +108,6 @@ private:
 	int				state;
 	char			bbeg[BUFSZ];
 	solid::uint		sz;
-	ResolveData		rd;
 };
 
 //------------------------------------------------------------------
@@ -217,7 +212,7 @@ void insertListener(frame::Manager &_rm, AioSchedulerT &_rsched, const char *_ad
 		pctx = frame::aio::openssl::Context::create();
 	}
 	if(pctx){
-		const char *pcertpath(OSSL_SOURCE_PATH"ssl_/certs/A-server.pem");
+		const char *pcertpath = OSSL_SOURCE_PATH"ssl_/certs/A-server.pem";
 		
 		pctx->loadCertificateFile(pcertpath);
 		pctx->loadPrivateKeyFile(pcertpath);
@@ -264,15 +259,6 @@ bool parseArguments(Params &_par, int argc, char *argv[]){
 			("debug-port,P", value<string>(&_par.dbg_port), "Debug server port (e.g. on linux use: nc -l 2222)")
 			("debug-console,C", value<bool>(&_par.dbg_console)->implicit_value(true)->default_value(false), "Debug console")
 			("debug-unbuffered,S", value<bool>(&_par.dbg_buffered)->implicit_value(false)->default_value(true), "Debug unbuffered")
-			("use-log,l", value<bool>(&_par.log)->implicit_value(true)->default_value(false), "Debug buffered")
-	/*		("verbose,v", po::value<int>()->implicit_value(1),
-					"enable verbosity (optionally specify level)")*/
-	/*		("listen,l", po::value<int>(&portnum)->implicit_value(1001)
-					->default_value(0,"no"),
-					"listen on a port.")
-			("include-path,I", po::value< vector<string> >(),
-					"include path")
-			("input-file", po::value< vector<string> >(), "input file")*/
 		;
 		variables_map vm;
 		store(parse_command_line(argc, argv, desc), vm);
@@ -294,7 +280,7 @@ Listener::Listener(
 	AioSchedulerT &_rsched,
 	const SocketDevice &_rsd,
 	frame::aio::openssl::Context *_pctx
-):BaseT(_rsd, true), pctx(_pctx), rm(_rm), rsched(_rsched){
+):BaseT(_rsd, true), ctxptr(_pctx), rm(_rm), rsched(_rsched){
 	state = 0;
 }
 
@@ -305,7 +291,6 @@ Listener::~Listener(){
 	idbg("here");
 	cassert(this->socketOk());
 	if(notified()){
-		//Locker<Mutex>	lock(this->mutex());
 		solid::ulong sm = this->grabSignalMask();
 		if(sm & frame::S_KILL){
 			_rexectx.close();
@@ -327,8 +312,7 @@ Listener::~Listener(){
 		}
 		state = 0;
 		cassert(sd.ok());
-		//TODO: one may do some filtering on sd based on sd.remoteAddress()
-		if(pctx.get()){
+		if(ctxptr.get()){
 			DynamicPointer<Connection> conptr(new Connection(sd));
 			rm.registerObject(*conptr);
 			rsched.schedule(conptr);
@@ -343,37 +327,19 @@ Listener::~Listener(){
 
 //------------------------------------------------------------------
 //------------------------------------------------------------------
-static const char	*hellostr = "Welcome to echo service!!!\r\n"; 
 
-Connection::Connection(const char *_node, const char *_srv): 
-	BaseT(), bend(bbeg + BUFSZ), brpos(bbeg), bwpos(bbeg), b(false)
-{
-	cassert(_node && _srv);
-	rd = synchronous_resolve(_node, _srv);
-	it = rd.begin();
-	state = CONNECT;
-	
-}
 Connection::Connection(const SocketDevice &_rsd):
-	BaseT(_rsd), bend(bbeg + BUFSZ), brpos(bbeg), bwpos(bbeg), b(false)
+	BaseT(_rsd), bend(bbeg + BUFSZ), brpos(bbeg), bwpos(bbeg)
 {
 	state = INIT;
 }
 Connection::~Connection(){
-	//state(-1);
 	idbg("");
 }
 
 /*virtual*/ void Connection::execute(ExecuteContext &_rexectx){
 	idbg("time.sec "<<_rexectx.currentTime().seconds()<<" time.nsec = "<<_rexectx.currentTime().nanoSeconds());
 	if(_rexectx.eventMask() & (frame::EventTimeout | frame::EventDoneError | frame::EventTimeoutRecv | frame::EventTimeoutSend)){
-		idbg("connecton timeout or error");
-// 		if(state == CONNECT_TOUT){
-// 			if(++it){
-// 				state = CONNECT;
-// 				return frame::UNREGISTER;
-// 			}
-// 		}
 		_rexectx.close();
 		return;
 	}
@@ -429,25 +395,7 @@ Connection::~Connection(){
 			case WRITE_TOUT:
 				state = READ;
 				break;
-			case CONNECT:
-				switch(socketConnect(it)){
-					case frame::aio::AsyncError:
-						++it;
-						if(it != rd.end()){
-							state = CONNECT;
-							_rexectx.reschedule();
-							return;
-						}
-						_rexectx.close();
-						return;
-					case frame::aio::AsyncSuccess:  state = INIT;break;
-					case frame::aio::AsyncWait: state = CONNECT_TOUT; return;
-				};
-				break;
-			case CONNECT_TOUT:
-				rd.clear();
 			case INIT:
-				//socketSend(hellostr, strlen(hellostr));
 				state = READ;
 				break;
 		}
@@ -458,16 +406,6 @@ Connection::~Connection(){
 
 //------------------------------------------------------------------
 //------------------------------------------------------------------
-/*
-Talker::Talker(const char *_node, const char *_srv){
-	if(_node){
-		rd = synchronous_resolve(_node, _srv);
-		strcpy(bbeg, hellostr);
-		sz = strlen(hellostr);
-		state(INIT);
-	}
-}*/
-
 Talker::Talker(const SocketDevice &_rsd):BaseT(_rsd){
 	state = READ;
 }
@@ -494,62 +432,43 @@ Talker::~Talker(){
 		_rexectx.close();
 		return;
 	}
-	int rc = 512 * 1024;
-	do{
-		switch(state){
-			case READ:
-				switch(socketRecvFrom(bbeg, BUFSZ)){
-					case frame::aio::AsyncError:
-						_rexectx.close();
-						return;
-					case frame::aio::AsyncSuccess: state = READ_TOUT;break;
-					case frame::aio::AsyncWait:
-						socketTimeoutRecv(5 * 60);
-						state = READ_TOUT; 
-						return;
-				}
-			case READ_TOUT:
-				state = WRITE;
-			case WRITE:
-				//sprintf(bbeg + socketRecvSize() - 1," [%u:%d]\r\n", (unsigned)_tout.seconds(), (int)_tout.nanoSeconds());
-				switch(socketSendTo(bbeg, socketRecvSize(), socketRecvAddr())){
-					case frame::aio::AsyncError:
-						_rexectx.close();
-						return;
-					case frame::aio::AsyncSuccess: break;
-					case frame::aio::AsyncWait: state = WRITE_TOUT;
-						socketTimeoutSend(5 * 60);
-						return;
-				}
-			case WRITE_TOUT:
-				if(socketHasPendingSend()){
-					socketTimeoutSend(_rexectx.currentTime(), 5 * 60);
-					return;
-				}else{
-					state = READ;
-					_rexectx.reschedule();
-					return;
-				}
-			case INIT:
-				if(rd.empty()){
-					idbg("Invalid address");
+	switch(state){
+		case READ:
+			switch(socketRecvFrom(bbeg, BUFSZ)){
+				case frame::aio::AsyncError:
 					_rexectx.close();
 					return;
-				}
-				ResolveIterator it(rd.begin());
-				switch(socketSendTo(bbeg, sz, SocketAddressStub(it))){
-					case frame::aio::AsyncError:
-						_rexectx.close();
-						return;
-					case frame::aio::AsyncSuccess: state = READ; break;
-					case frame::aio::AsyncWait:
-						state = WRITE_TOUT;
-						return;
-				}
-				break;
-		}
-		rc -= socketRecvSize();
-	}while(rc > 0);
+				case frame::aio::AsyncSuccess: state = READ_TOUT;break;
+				case frame::aio::AsyncWait:
+					socketTimeoutRecv(5 * 60);
+					state = READ_TOUT; 
+					return;
+			}
+		case READ_TOUT:
+			state = WRITE;
+		case WRITE:
+			switch(socketSendTo(bbeg, socketRecvSize(), socketRecvAddr())){
+				case frame::aio::AsyncError:
+					_rexectx.close();
+					return;
+				case frame::aio::AsyncSuccess: break;
+				case frame::aio::AsyncWait: state = WRITE_TOUT;
+					socketTimeoutSend(5 * 60);
+					return;
+			}
+		case WRITE_TOUT:
+			if(socketHasPendingSend()){
+				socketTimeoutSend(_rexectx.currentTime(), 5 * 60);
+				return;
+			}else{
+				state = READ;
+				_rexectx.reschedule();
+				return;
+			}
+		case INIT:
+			state = READ;
+			break;
+	}
 	_rexectx.reschedule();
 }
 
