@@ -325,6 +325,8 @@ Listener::~Listener(){
 		}
 		state = 0;
 		cassert(sd.ok());
+		sd.makeNonBlocking();
+		sd.enableNoDelay();
 		if(frame::is_invalid_uid(conid)){
 			DynamicPointer<MultiConnection> conptr(new MultiConnection(sd));
 			conid = rm.registerObject(*conptr);
@@ -405,6 +407,7 @@ enum{
 			SocketDevice	sd;
 			sd.create();
 			sd.makeNonBlocking();
+			sd.enableNoDelay();
 			socketRequestRegister(socketInsert(sd));
 			state(ConnectFirst);
 			}return;
@@ -442,6 +445,7 @@ enum{
 			SocketDevice	sd;
 			sd.create();
 			sd.makeNonBlocking();
+			sd.enableNoDelay();
 			socketRequestRegister(socketInsert(sd));
 			state(ConnectSecond);
 			}return;
