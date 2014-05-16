@@ -254,7 +254,7 @@ public:
 		\param _rssnid A previously saved SessionUid
 		\param _flags Control flags
 	*/
-	
+	//TODO: maybe rename sendMessage -> send( or shedule( 
 	bool sendMessage(
 		DynamicPointer<Message> &_rmsgptr,//the message to be sent
 		const SessionUid &_rssnid,//the id of the process session
@@ -338,7 +338,7 @@ private:
 	
 	IdTypeMapperT& typeMapper();
 	
-	bool doSendMessage(
+	bool doScheduleMessage(
 		DynamicPointer<Message> &_rmsgptr,//the message to be sent
 		const SerializationTypeIdT &_rtid,
 		SessionUid *_psesid,
@@ -346,12 +346,19 @@ private:
 		uint32	_flags = 0
 	);
 	
-	bool doUnsafeSendMessage(
+	
+	
+	bool doUnsafeScheduleMessage(
 		const size_t _idx,
 		DynamicPointer<Message> &_rmsgptr,//the message to be sent
 		const SerializationTypeIdT &_rtid,
 		uint32	_flags
 	);
+	
+	//TODO:
+	//called by connection
+	//bool poll(ConnectionUid const &_rconid, MessageStub &_rmsgstb);
+	//bool onConnectionError(error);
 	
 	void doNotifyConnection(ObjectUidT const &_objid);
 	
@@ -378,7 +385,7 @@ inline bool Service::sendMessage(
 	const SocketAddressStub &_rsa_dest,
 	uint32	_flags
 ){
-	return doSendMessage(_rmsgptr, SERIALIZATION_INVALIDID, &_rsesid, _rsa_dest, _flags);
+	return doScheduleMessage(_rmsgptr, SERIALIZATION_INVALIDID, &_rsesid, _rsa_dest, _flags);
 }
 
 inline bool Service::sendMessage(
@@ -386,7 +393,7 @@ inline bool Service::sendMessage(
 	const SocketAddressStub &_rsa_dest,
 	uint32	_flags
 ){
-	return doSendMessage(_rmsgptr, SERIALIZATION_INVALIDID, NULL, _rsa_dest, _flags);
+	return doScheduleMessage(_rmsgptr, SERIALIZATION_INVALIDID, NULL, _rsa_dest, _flags);
 }
 
 inline bool Service::sendMessage(
@@ -396,7 +403,7 @@ inline bool Service::sendMessage(
 	const SocketAddressStub &_rsa_dest,
 	uint32	_flags
 ){
-	return doSendMessage(_rmsgptr, _rtid, &_rsesid, _rsa_dest, _flags);
+	return doScheduleMessage(_rmsgptr, _rtid, &_rsesid, _rsa_dest, _flags);
 }
 
 inline bool Service::sendMessage(
@@ -405,7 +412,7 @@ inline bool Service::sendMessage(
 	const SocketAddressStub &_rsa_dest,
 	uint32	_flags
 ){
-	return doSendMessage(_rmsgptr, _rtid, NULL, _rsa_dest, _flags);
+	return doScheduleMessage(_rmsgptr, _rtid, NULL, _rsa_dest, _flags);
 }
 
 inline const serialization::TypeMapperBase& Service::typeMapperBase() const{

@@ -242,7 +242,7 @@ bool Service::sendMessage(
 		Locker<Mutex>	lock2(d.mtxstore.at(_rssnid.ssnidx));
 		SessionStub		&rssn(d.ssndq[_rssnid.ssnidx]);
 		if(rssn.uid == _rssnid.ssnuid){
-			return doUnsafeSendMessage(_rssnid.ssnidx, _rmsgptr, SERIALIZATION_INVALIDID, _flags);
+			return doUnsafeScheduleMessage(_rssnid.ssnidx, _rmsgptr, SERIALIZATION_INVALIDID, _flags);
 		}
 	}
 	return false;
@@ -259,7 +259,7 @@ bool Service::sendMessage(
 		Locker<Mutex>	lock2(d.mtxstore.at(_rssnid.ssnidx));
 		SessionStub		&rssn(d.ssndq[_rssnid.ssnidx]);
 		if(rssn.uid == _rssnid.ssnuid){
-			return doUnsafeSendMessage(_rssnid.ssnidx, _rmsgptr, _rtid, _flags);
+			return doUnsafeScheduleMessage(_rssnid.ssnidx, _rmsgptr, _rtid, _flags);
 		}
 	}
 	return false;
@@ -269,7 +269,7 @@ int Service::listenPort()const{
 	return d.lsnport;
 }
 //---------------------------------------------------------------------
-bool Service::doSendMessage(
+bool Service::doScheduleMessage(
 	DynamicPointer<Message> &_rmsgptr,//the message to be sent
 	const SerializationTypeIdT &_rtid,
 	SessionUid *_psesid,
@@ -301,7 +301,7 @@ bool Service::doSendMessage(
 		_psesid->ssnuid = d.ssndq[ssnidx].uid;
 	}
 	
-	return doUnsafeSendMessage(ssnidx, _rmsgptr, _rtid, _flags);
+	return doUnsafeScheduleMessage(ssnidx, _rmsgptr, _rtid, _flags);
 }
 //---------------------------------------------------------------------
 size_t find_available_connection(ConnectionVectorT const &_rconvec, bool &_shouldcreatenew, const size_t _usethreshold){
@@ -417,7 +417,7 @@ Done:
 	return _rconvec.size();
 }
 
-bool Service::doUnsafeSendMessage(
+bool Service::doUnsafeScheduleMessage(
 	const size_t _idx,
 	DynamicPointer<Message> &_rmsgptr,//the message to be sent
 	const SerializationTypeIdT &_rtid,
@@ -430,7 +430,12 @@ bool Service::doUnsafeSendMessage(
 	}
 	
 	bool			sendsecure = d.config.mustSendSecure(_flags);
-	
+	/**
+	 * Note: 
+	 * Here we're only interested of:
+	 *  1) Is there a connection to notify and which one
+	 *  2) Should we create a new connection
+	 */
 	if(sendsecure){
 		rssn.scrmsgq.push(MessageStub(_rmsgptr, _rtid, _flags));
 		//now we need to notify a connection
