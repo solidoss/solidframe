@@ -94,7 +94,6 @@ private:
 	/*virtual*/ void execute(ExecuteContext &_rexectx);
 	solid::AsyncE doReadAddress();
 	solid::AsyncE doProxy(const solid::TimeSpec &_tout);
-	solid::AsyncE doRefill();
 	void state(int _st){
 		st  = _st;
 	}
@@ -114,7 +113,7 @@ private:
 	};
 	struct Buffer{
 		enum{
-			Capacity = 2*1024
+			Capacity = 8*1024
 		};
 		Buffer():size(0), usecnt(0){}
 		char		data[Capacity];
@@ -598,32 +597,5 @@ AsyncE MultiConnection::doProxy(const TimeSpec &_tout){
 	}
 	idbg("retv "<<retv);
 	return retv;
-}
-
-AsyncE MultiConnection::doRefill(){
-	idbgx(Debug::any, "");
-	if(bp == NULL){//we need to issue a read
-		switch(socketRecv(0, stubs[0].recvbuf.data, Buffer::Capacity)){
-			case frame::aio::AsyncError:	return solid::AsyncError;
-			case frame::aio::AsyncSuccess:
-				bp = stubs[0].recvbuf.data;
-				be = stubs[0].recvbuf.data + socketRecvSize(0);
-				return solid::AsyncSuccess;
-			case frame::aio::AsyncWait:
-				be = NULL;
-				bp = stubs[0].recvbuf.data;
-				idbgx(Debug::any, "NOK");
-				return solid::AsyncWait;
-		}
-	}
-	if(be == NULL){
-		if(socketEvents(0) & frame::EventDoneRecv){
-			be = stubs[0].recvbuf.data + socketRecvSize(0);
-		}else{
-			idbgx(Debug::any, "Wait");
-			return solid::AsyncWait;
-		}
-	}
-	return solid::AsyncSuccess;
 }
 //------------------------------------------------------------------
