@@ -115,8 +115,11 @@ bool Object::notify(DynamicPointer<Message> &_rmsgptr){
 }
 
 
-void Object::execute(ExecuteContext &_rexectx){
+/*virtual*/ void Object::execute(ExecuteContext &_rexectx){
 	_rexectx.close();
+}
+/*virtual*/ void Object::leave(DynamicPointer<Object> &_robjptr){
+	//TODO: unregister from the current Selector
 }
 //---------------------------------------------------------------------
 //----	Message	----
