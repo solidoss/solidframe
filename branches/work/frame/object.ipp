@@ -17,8 +17,9 @@ inline void Object::ExecuteContext::reschedule(){
 inline void Object::ExecuteContext::close(){
 	retval = CloseRequest;
 }
-inline void Object::ExecuteContext::leave(){
+inline void Object::ExecuteContext::leave(Object &_robj, DynamicPointer<Object> &_robjptr){
 	retval = LeaveRequest;
+	_robj.leave(_robjptr);
 }
 inline void Object::ExecuteContext::wait(){
 	retval = WaitRequest;

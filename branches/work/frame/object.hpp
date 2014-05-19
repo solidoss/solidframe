@@ -32,7 +32,7 @@ namespace frame{
 
 class Manager;
 class Service;
-class ObjectPointerBase;
+//class ObjectPointerBase;
 class Message;
 class SelectorBase;
 class Object;
@@ -56,7 +56,7 @@ public:
 		}
 		void reschedule();
 		void close();
-		void leave();
+		void leave(Object &_robj, DynamicPointer<Object> &_robjptr);
 		void wait();
 		void waitUntil(const TimeSpec &_rtm);
 		void waitFor(const TimeSpec &_rtm);
@@ -131,6 +131,7 @@ protected:
 	bool isRegistered()const;
 	virtual void doStop();
 private:
+	friend struct ExecuteContext;
 	static void doSetCurrentTime(const TimeSpec *_pcrtts);
 	
 	//! Set the id
@@ -150,6 +151,7 @@ private:
 	*/
 	virtual void execute(ExecuteContext &_rexectx);
 	
+	virtual void leave(DynamicPointer<Object> &_robjptr);
 	void stop();
 	
 	//! Set the thread id
