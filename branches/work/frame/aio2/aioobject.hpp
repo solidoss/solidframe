@@ -148,7 +148,31 @@ public:
 	AsyncE socketSecureConnect();
 private:
 	/*virtual*/ bool doIo(const bool _hasread, const bool _haswrite, const bool _clear){
-		if(_hasread && ss.psendaction 
+		if(_hasread){
+			if(ss.precvaction && ss.precvaction->want == ActionData::WantRead){
+				
+			}
+			if(ss.psendaction && ss.psendaction->want == ActionData::WantRead){
+			}
+			if(ss.precvaction && ss.precvaction->want == ActionData::WantReadAfterSend){
+				
+			}
+		}
+		if(_haswrite){
+			if(ss.psendaction && ss.psendaction->want == ActionData::WantWrite){
+				
+			}
+			if(ss.precvaction && ss.precvaction->want == ActionData::WantWrite){
+			}
+			if(ss.psendaction && ss.psendaction->want == ActionData::WantWriteAfterRecv){
+				
+			}
+		}
+		if(ss.psendaction && (ss.psendaction->want == ActionData::WantReschedule || _clear)){
+		
+		}
+		if(ss.precvaction && (ss.precvaction->want == ActionData::WantReschedule || _clear)){
+		}
 	}
 	static send_all(void *_pthis, ActionData *_pd, const bool _clear){
 		static_cast<ThisT*>(_pthis)->doSendAll(static_cast<SendAllData*>(_pd)
