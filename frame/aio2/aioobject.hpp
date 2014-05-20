@@ -14,10 +14,18 @@
 #include "frame/aio/aiocommon.hpp"
 #include "system/socketdevice.hpp"
 #include "system/error.hpp"
+#include "aioplainsocket.hpp"
 
 namespace solid{
 namespace frame{
 namespace aio{
+
+template <class SocketImpl>
+struct SocketStub{
+	SocketImpl		socket;
+	ActionData		*psendaction;
+	ActionData		*precvaction;
+};
 
 class ObjectBase: public Dynamic<ObjectBase, frame::Object>{
 protected:
@@ -53,6 +61,12 @@ public:
 		ERROR_NS::error_code *_preterr = NULL
 	);
 	
+	bool socketHasPendingSend()const{
+		return ss.psendaction != NULL;
+	}
+	bool socketHasPendingRecv()const{
+		return ss.precvaction != NULL;
+	}
 	//! Asynchronous connect
 	/*!
 		\param _rai An SocketAddressInfo iterator holding the destination address.
@@ -67,7 +81,33 @@ public:
 		const char* _pb, const size_t _bcp,
 		ERROR_NS::error_code *_preterr = NULL,
 		uint32 _flags = 0
-	);
+	){
+		if(!socketHasPendingSend()){
+			size_t				wcnt = 0;
+			PlainSocket::WantE	w = ss.sock.socketSend(_pb, _bcp, wcnt, _preterr, _flags);
+			switch(w){
+				case PlainSocket::WantNothing:
+					cassert(_bcp == wcnt);
+					return AsyncSuccess;
+				case PlainSocket::WantRead:{
+					SendAllData *pd = this->popSendAllData();
+					pd->pb = _pb + wcnt;
+					pd->bcp = _bcp - wcnt;
+					pd->flags = _flags;
+					pd->pfnc = &send_all;
+					pd->want = 
+					ss.read_push_back(pd);
+					
+				}
+				case PlainSocket::WantWrite:
+				case PlainSocket::WantReschedule:
+				case PlainSocket::WantClose:
+					return AsyncError;
+			}
+		}else{
+			return AsyncError;
+		}
+	}
 	
 	//! Asynchronous send to a specific address
 	AsyncE socketSendTo(
@@ -107,6 +147,17 @@ public:
 	//! Asynchronous secure connect
 	AsyncE socketSecureConnect();
 private:
+	/*virtual*/ bool doIo(const bool _hasread, const bool _haswrite, const bool _clear){
+		if(_hasread && ss.psendaction 
+	}
+	static send_all(void *_pthis, ActionData *_pd, const bool _clear){
+		static_cast<ThisT*>(_pthis)->doSendAll(static_cast<SendAllData*>(_pd)
+	}
+	void doSendAll(SendAllData *_psd, const bool _clear){
+		
+	}
+private:
+	SocketStub<Sock>	ss;
 };
 
 template <class Sock>
