@@ -26,9 +26,10 @@ public:
 protected:
 private:
 	friend struct BaseSocket;
-	virtual size_t registerSocket(BaseSocket*);
+	virtual size_t registerSocket(BaseSocket*, const size_t);
 protected:
 	std::vector<BaseSocket*>		sockvec;
+	size_t							crtsockidx;
 };
 
 template <size_t SockCnt = 1>
