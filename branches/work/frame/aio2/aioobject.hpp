@@ -14,7 +14,6 @@
 #include "frame/aio2/aiocommon.hpp"
 #include "system/socketdevice.hpp"
 #include "system/error.hpp"
-#include "aioplainsocket.hpp"
 
 namespace solid{
 namespace frame{
