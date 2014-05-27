@@ -8,6 +8,30 @@ public:
 	Connection(SocketDevice &_rsd): s(_rsd, *this){
 		cassert(s.id() == 0);
 	}
+	//v0
+	void execute(Context &_rctx){
+		error_code		err;
+		size_t			rcvsz;
+		
+		switch(_rctx.event()){
+			case EnterEvent:
+				switch(s.recv(buf, 1024, recvsz, err, DoneRecvEvent)){
+					case AsyncSuccess:
+						switch(s.send(buf, recvs)){
+						}
+						break;
+					case AsyncWait:
+						break;
+					case AsyncError:
+						_rctx.reschedule(KillEvent);
+						break;
+				}break;
+			case KillEvent:
+				_rctx.close();
+				break;
+		}
+	}
+	
 	//v1
 	void execute(Context &_rctx){
 		if(_rctx.event() == 0){
@@ -125,6 +149,7 @@ public:
 			}
 		}while(--cnt);
 	}
+	
 private:
 	frame::aio::StreamSocket	s;
 	char						buf[1024];
