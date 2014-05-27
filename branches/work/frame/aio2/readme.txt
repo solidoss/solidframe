@@ -169,7 +169,7 @@ private:
 	frame::aio::ListenSocket s;
 };
 
-3) Relay node:
+3) Relay node - one buffer per connection:
 
 class RelayNode: public frame::aio::Object<2>{
 public:
@@ -179,44 +179,256 @@ public:
 		size_t			rcvsz;
 		size_t			cnt = 16;
 		if(state == Relay){
-			do{
-				switch(s1.read(
+			if(currentSocketId() == s1.id()){
+				if(s1.doneRead(rcvsz, err)){
+					if(!err){
+						switch(s2.asyncWrite(b1, rcvsz)){
+							case AsyncSuccess:
+								cassert(false);break;
+							case AsyncWait:
+								break;
+							case AsyncError:
+								_rctx.close();
+								return;
+						}
+					}else{
+						_rctx.close();
+						return;
+					}
+				}
+				if(s1.doneWrite(err)){
+					if(!err){
+						switch(s2.asyncRead(b2, 1024)){
+							case AsyncSuccess:
+								cassert(false);break;
+							case AsyncWait:
+								break;
+							case AsyncError:
+								_rctx.close();
+								return;
+						}
+					}else{
+						_rctx.close();
+						return;
+					}
+				}
+				
+			}else if(currentSocketId() == s2.id()){
+				if(s2.doneRead(rcvsz, err)){
+					if(!err){
+						switch(s2.asyncWrite(b2, rcvsz)){
+							case AsyncSuccess:
+								cassert(false);break;
+							case AsyncWait:
+								break;
+							case AsyncError:
+								_rctx.close();
+								return;
+						}
+					}else{
+						_rctx.close();
+						return;
+					}
+				}
+				if(s2.doneWrite(err)){
+					if(!err){
+						switch(s1.asyncRead(b1, 1024)){
+							case AsyncSuccess:
+								cassert(false);break;
+							case AsyncWait:
+								break;
+							case AsyncError:
+								_rctx.close();
+								return;
+						}
+					}else{
+						_rctx.close();
+						return;
+					}
+				}
 			}
-			
 			
 		}else if(state == RelayStart){
-			switch(s1.read(b11, 1024, rcvsz, err)){
+			switch(s1.asyncRead(b11, 1024)){
 				case AsyncSuccess:
-					s2.writeAll(b11, e
+					cassert(false);break;
 				case AsyncWait:
 					break;
 				case AsyncError:
 					_rctx.close();
-					break;
+					return;
 			}
-			switch(s2.read(b21, 1024)){
+			switch(s2.asycRead(b21, 1024)){
 				case AsyncSuccess:
+					cassert(false);break;
 				case AsyncWait:
 					break;
 				case AsyncError:
 					_rctx.close();
-					break;
+					return;
 			}
 		}
 		
 	}
 private:
-	uchar						state;
 	frame::aio::StreamSocket	s1;
-	char						b11[1024];
-	char						b12[1024];
-	uchar						s1state;
+	char						b1[1024];
 	frame::aio::StreamSocket	s2;
-	char						b21[1024];
-	char						b22[1024];
-	uchar						s2state;
+	char						b2[1024];
 };
 
+
+3') Relay node - one 2 buffers per connection:
+
+class RelayNode: public frame::aio::Object<2>{
+public:
+	void execute(Context &_rctx){
+		
+		error_code		err;
+		size_t			rcvsz;
+		size_t			cnt = 16;
+		if(state == Relay){
+			if(hasCurrentSocketId()){
+				Stub	&rs = stubs[currentSocketId()];
+				if(rs.s.doneRecv(rcvsz, err)){
+					if(!err){
+						Stub &rs2 = stubs[otherSocketId()];
+						
+					}else{
+						_rctx.close();
+						return;
+					}
+				}
+			}
+		}else if(state == RelayStart){
+			switch(stubs[0].s.asyncRead(b11, 1024)){
+				case AsyncSuccess:
+					cassert(false);break;
+				case AsyncWait:
+					break;
+				case AsyncError:
+					_rctx.close();
+					return;
+			}
+			switch(stubs[1].s.asyncRead(b21, 1024)){
+				case AsyncSuccess:
+					cassert(false);break;
+				case AsyncWait:
+					break;
+				case AsyncError:
+					_rctx.close();
+					return;
+			}
+		}
+		
+	}
+private:
+	struct Stub{
+		frame::aio::StreamSocket	s;
+		char						b1[1024];
+		char						b2[1024];
+	};
+	Stub		stubs[2];
+};
+
+3') Relay node - one 2 buffers per connection:
+
+class RelayNode: public frame::aio::Object<2>{
+public:
+	void execute(Context &_rctx){
+		
+		error_code		err;
+		size_t			rcvsz;
+		size_t			cnt = 16;
+		if(state == Relay){
+			if(hasCurrentSocketId()){
+				Stub	&rs1 = stubs[currentSocketId()];
+				Stub	&rs2 = stubs[otherSocketId(currentSocketId())];
+				if(rs1.s.doneRecv(rcvsz, err)){
+					if(!err){
+						switch(rs2.s.sendAll(rs1.b, rcvsz, err)){
+							case AsyncSuccess:
+								break;
+							case AsyncWait;
+								break;
+							case AsyncError:
+								_rctx.close();
+								break;
+						}
+					}else{
+						_rctx.close();
+						return;
+					}
+				}
+				if(rs1.s.doneSend(err)){
+					if(!err){
+						switch(rs2.s.asyncRead(rs2.b, 1024)){
+							case AsyncSuccess:
+								cassert(false);break;
+							case AsyncWait:
+								break;
+							case AsyncError:
+								_rctx.close();
+								return;
+						}
+					}else{
+						_rctx.close();
+						return;
+					}
+				}
+				while(cnt && !rs1.s.hasPendingRecv() && !rs2.s.hasPendingSend()){
+					--cnt;
+					switch(rs1.s.recvSome(rs1.b, 1024, rcvsz, err)){
+						case AsyncSuccess:
+							switch(rs2.s.sendAll(rs1.b, rcvsz, err)){
+								case AsyncSuccess:
+									break;
+								case AsyncWait;
+									break;
+								case AsyncError:
+									_rctx.close();
+									break;
+							}break;
+						case AsyncWait:
+							break;
+						case AsyncError:
+							_rctx.close();
+							return;
+					}
+				}
+				if(!rs1.s.hasPendingRecv() && !rs2.s.hasPendingSend()){
+					rs1.s.reschedule();
+				}
+			}
+		}else if(state == RelayStart){
+			switch(stubs[0].s.asyncRead(stubs[0].b, 1024)){
+				case AsyncSuccess:
+					cassert(false);break;
+				case AsyncWait:
+					break;
+				case AsyncError:
+					_rctx.close();
+					return;
+			}
+			switch(stubs[1].s.asyncRead(stubs[1].b, 1024)){
+				case AsyncSuccess:
+					cassert(false);break;
+				case AsyncWait:
+					break;
+				case AsyncError:
+					_rctx.close();
+					return;
+			}
+		}
+		
+	}
+private:
+	struct Stub{
+		frame::aio::StreamSocket	s;
+		char						b[1024];
+	};
+	Stub		stubs[2];
+};
 
 2) Multi socket object:
 class MyAioObject: public frame::aio::Object<>{
