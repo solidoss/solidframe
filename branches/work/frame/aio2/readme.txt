@@ -16,35 +16,27 @@ public:
 		switch(_rctx.event()){
 			case DoneRecvEvent:
 				s.doneRecv(recvsz, err);
-				switch(s.send(buf, recvs)){
-					case AsyncSuccess:
-						break;
-					case AsyncWait:
-						return;
-					case AsyncError:
-						_rctx.reschedule(KillEvent);
-						return;
+				if(s.send(buf, recvs)){
+					if(!err){
+					}else{
+						_rctx.reschedule(EnterEvent);
+					}
 				}//no break - we go forward
 			case EnterEvent:
-				switch(s.recv(buf, 1024, recvsz, err, DoneRecvEvent)){
-					case AsyncSuccess:
-						switch(s.send(buf, recvs)){
-							case AsyncSuccess:
+				if(s.recv(buf, 1024, recvsz, err, DoneRecvEvent)){
+					if(!err){
+						if(s.send(buf, recvs)){
+							if(!err){
 								_rctx.reschedule(EnterEvent);
 								break;
-							case AsyncWait:
-								break;
-							case AsyncError:
-								_rctx.reschedule(KillEvent);
-								break;
+							}
+						}else{
+							break;
 						}
-						break;
-					case AsyncWait:
-						break;
-					case AsyncError:
-						_rctx.reschedule(KillEvent);
-						break;
-				}break;
+					}
+				}else{
+					break;
+				}
 			case KillEvent:
 				_rctx.close();
 				break;
@@ -61,82 +53,61 @@ public:
 		size_t			rcvsz;
 		
 		if(!s.hasPendingRecv() && !s.hasPendingSend()){
-			switch(s.recv(buf, 1024)){
-				case AsyncSuccess:
-					break;
-				case AsyncWait:
-					return;
-				case AsyncError:
-					_rctx.close();
-					return;
-			}
+			s.recv(buf, 1024);
 		}
 		
 		if(s.doneRecv(rcvsz, err)){
-			switch(s.sendAll(buf, rcvsz)){
-				case AsyncSuccess:
-					s.reschedule();
-					break;
-				case AsyncWait:
-					return;
-				case AsyncError:
+			if(s.sendAll(buf, rcvsz, err)){
+				if(!err){
+					_rctx.reschedule();
+				}else{
 					_rctx.close();
-					return;
+				}
+			}else{
+				_rctx.close();
 			}
 		}
 	}
 	
-	//v2
+		//v0
 	void execute(Context &_rctx){
-		if(_rctx.eventClose()){
-			_rctx.close();
-			return;
-		}
 		error_code		err;
 		size_t			rcvsz;
-		size_t			cnt = 16;
 		
-		if(s.doneRecv(rcvsz, err)){
-			switch(s.sendAll(buf, rcvsz)){
-				case AsyncSuccess:
-					break;
-				case AsyncWait:
-					return;
-				case AsyncError:
-					_rctx.close();
-					return;
-			}
-		}
-		
-		if(s.hasPendingRecv() || s.hasPendingSend()){
-			return;
-		}
-		
-		do{
-			switch(s.recv(buf, 1024, rcvsz, err)){
-				case AsyncSuccess:
-					switch(s.sendAll(buf, rcvsz)){
-						case AsyncSuccess:
+		switch(_rctx.event()){
+			case DoneRecvEvent:
+				s.doneRecv(recvsz, err);
+				if(s.send(buf, recvs)){
+					if(!err){
+					}else{
+						_rctx.reschedule(EnterEvent);
+					}
+				}//no break - we go forward
+			case EnterEvent:
+				if(s.recv(buf, 1024, recvsz, err, DoneRecvEvent)){
+					if(!err){
+						if(s.send(buf, recvs)){
+							if(!err){
+								_rctx.reschedule(EnterEvent);
+								break;
+							}
+						}else{
 							break;
-						case AsyncWait:
-							return;
-						case AsyncError:
-							_rctx.close();
-							return;
-					}break;
-				case AsyncWait:
-					return;
-				case AsyncError:
-					_rctx.close();
-					return;
-			}
-		}while(--cnt);
-		
+						}
+					}
+				}else{
+					break;
+				}
+			case KillEvent:
+				_rctx.close();
+				break;
+		}
 	}
+
 	
 	//v3
 	void execute(Context &_rctx){
-		if(_rctx.eventClose()){
+		if(_rctx.event() == KillEvent){
 			_rctx.close();
 			return;
 		}
@@ -144,29 +115,33 @@ public:
 		size_t			rcvsz;
 		size_t			cnt = 16;
 		
-		if(s.hasPendingSend()){
+		if(s.hasPendingSend() || s.hasPendingRecv()){
 			//keep waiting
 			return;
 		}
+		
 		do{
-			switch(s.recv(buf, 1024, rcvsz, err)){
-				case AsyncSuccess:
-					switch(s.sendAll(buf, rcvsz)){
-						case AsyncSuccess:
-							break;
-						case AsyncWait:
-							return;
-						case AsyncError:
+			if(s.recv(buf, 1024, rcvsz, err)){
+				if(!err){
+					if(s.sendAll(buf, rcvsz, err)){
+						if(!err){
+						}else{
 							_rctx.close();
 							return;
-					}break;
-				case AsyncWait:
-					return;
-				case AsyncError:
+						}
+					}else{
+						break;
+					}
+				}else{
 					_rctx.close();
 					return;
+				}
+			}else{
+				break;
 			}
 		}while(--cnt);
+		
+		_rctx.reschedule();
 	}
 	
 private:
@@ -192,19 +167,17 @@ public:
 		}
 		
 		do{
-			switch(s.accept(sd, err)){
-				case AsyncSuccess:{
+			if(s.accept(sd, err)){
+				if(!err){
 					Connection *pcon = new Connection(sd);
 					//schedule pcon
 					//...
-				}	break;
-				case AsyncWait:
-					return;
-				case AsyncError:
-					_rctx.waintFor(10);
-					return;
-			}
+				}else{
+					_rctx.waitFor(10);
+				}
+			}else break;
 		}while(--cnt);
+		
 		if(!cnt){
 			s.reschedule();
 		}
