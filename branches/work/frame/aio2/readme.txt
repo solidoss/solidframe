@@ -14,10 +14,29 @@ public:
 		size_t			rcvsz;
 		
 		switch(_rctx.event()){
+			case DoneRecvEvent:
+				s.doneRecv(recvsz, err);
+				switch(s.send(buf, recvs)){
+					case AsyncSuccess:
+						break;
+					case AsyncWait:
+						return;
+					case AsyncError:
+						_rctx.reschedule(KillEvent);
+						return;
+				}//no break - we go forward
 			case EnterEvent:
 				switch(s.recv(buf, 1024, recvsz, err, DoneRecvEvent)){
 					case AsyncSuccess:
 						switch(s.send(buf, recvs)){
+							case AsyncSuccess:
+								_rctx.reschedule(EnterEvent);
+								break;
+							case AsyncWait:
+								break;
+							case AsyncError:
+								_rctx.reschedule(KillEvent);
+								break;
 						}
 						break;
 					case AsyncWait:
@@ -203,103 +222,69 @@ public:
 		error_code		err;
 		size_t			rcvsz;
 		size_t			cnt = 16;
-		if(state == Relay){
-			if(currentSocketId() == s1.id()){
-				if(s1.doneRead(rcvsz, err)){
-					if(!err){
-						switch(s2.asyncWrite(b1, rcvsz)){
-							case AsyncSuccess:
-								cassert(false);break;
-							case AsyncWait:
-								break;
-							case AsyncError:
-								_rctx.close();
-								return;
-						}
-					}else{
-						_rctx.close();
-						return;
-					}
-				}
-				if(s1.doneWrite(err)){
-					if(!err){
-						switch(s2.asyncRead(b2, 1024)){
-							case AsyncSuccess:
-								cassert(false);break;
-							case AsyncWait:
-								break;
-							case AsyncError:
-								_rctx.close();
-								return;
-						}
-					}else{
-						_rctx.close();
-						return;
-					}
-				}
+		switch(_rctx.event()){
+			case DoneRecv_0_Event:
+				sv[0].s.doneRecv(rcvsz, err);
+				if(!err){
+					
+				}else{
+					_rctx.reschedule(KillEvent);
+					break;
+				}break;
+			case DoneRecv_1_Event:
 				
-			}else if(currentSocketId() == s2.id()){
-				if(s2.doneRead(rcvsz, err)){
+			case StartRead_0_Event:
+				if(sv[0].s.recv(sv[0].b, 1024, rcvsz, cnt, err, DoneRecv_0_Event)){
 					if(!err){
-						switch(s2.asyncWrite(b2, rcvsz)){
-							case AsyncSuccess:
-								cassert(false);break;
-							case AsyncWait:
-								break;
-							case AsyncError:
-								_rctx.close();
-								return;
-						}
+						if(sv[1].s.sendAll(sv[0].b, rcvsz, cnt, err,StartRead_0_Event)){
+							if(!err){
+								_rctx.reschedule(StartRead_0_Event);
+							}else{
+								_rctx.reschedule(KillEvent);
+							}
+						}//else - wait
 					}else{
-						_rctx.close();
-						return;
+						_rctx.reschedule(KillEvent);
+						break;
 					}
-				}
-				if(s2.doneWrite(err)){
-					if(!err){
-						switch(s1.asyncRead(b1, 1024)){
+				}break;
+				
+			case StartRead_1_Event:
+				switch(sv[1].s.recv(sv[1].b, 1024, rcvsz, cnt, err, DoneRecv_1_Event)){
+					case AsyncSuccess:
+						switch(sv[0].s.send(sv[1].b, rcvsz, cnt, StartRead_1_Event)){
 							case AsyncSuccess:
-								cassert(false);break;
-							case AsyncWait:
+								_rctx.reschedule(StartRead_1_Event);
 								break;
+							case AsyncWait:
 							case AsyncError:
-								_rctx.close();
-								return;
+								_rctx.reschedule(KillEvent);
+								break;
 						}
-					}else{
-						_rctx.close();
-						return;
-					}
-				}
-			}
-			
-		}else if(state == RelayStart){
-			switch(s1.asyncRead(b11, 1024)){
-				case AsyncSuccess:
-					cassert(false);break;
-				case AsyncWait:
-					break;
-				case AsyncError:
-					_rctx.close();
-					return;
-			}
-			switch(s2.asycRead(b21, 1024)){
-				case AsyncSuccess:
-					cassert(false);break;
-				case AsyncWait:
-					break;
-				case AsyncError:
-					_rctx.close();
-					return;
-			}
+					case AsyncWait:
+						break;
+					case AsyncError:
+						
+						break;
+				}break;
+			case EnterEvent:
+				_rctx.reschedule(StartRead_0_Event);
+				_rctx.reschedule(StartRead_1_Event);
+				break;
+			case KillEvent:
+				_rctx.close();
+				break;
+			default:
+				//ignore any unknown event
+				break;
 		}
-		
 	}
 private:
-	frame::aio::StreamSocket	s1;
-	char						b1[1024];
-	frame::aio::StreamSocket	s2;
-	char						b2[1024];
+	struct Stub{
+		frame::aio::StreamSocket	s;
+		char						b[1024];
+	};
+	Stub		sv[2];
 };
 
 
