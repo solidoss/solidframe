@@ -20,10 +20,18 @@
 		
 	public:
 		session(boost::asio::io_service& io_service)
-			: socket_1(io_service), socket_2(io_service), pending(0)
+			: socket_1(io_service), socket_2(io_service)
 		{
+			rpos1 = wpos1 = wend1 = bbeg1;
+			rpos2 = wpos2 = wend2 = bbeg2;
+			pending_read1 = pending_read2 = false;
+			pending_write1 = pending_write2 = 0;
 		}
 		~session(){
+		}
+		
+		bool pending()const{
+			return pending_read1 || pending_read2 || pending_write1 != 0 || pending_write2 != 0;
 		}
 
 		tcp::socket& socketOne()
@@ -44,7 +52,7 @@
 			//very important - need to make the socket non blocking
 			tcp::socket::non_blocking_io non_blocking_io(true);
 			socketTwo().io_control(non_blocking_io);
-			++pending;
+			pending_read2 = true;
 			socket_2.async_connect(
 				*resolved_endpoint,
 				boost::bind(
@@ -57,15 +65,15 @@
 		
 		void handle_connect(const boost::system::error_code& error)
 		{
-			--pending;
+			pending_read2 = false;
 			if(!error)
 			{
 				//boost::asio::socket_base::send_buffer_size option(0);
 				//socketTwo().set_option(option);
-				pending+=2;
+				pending_read1 = true;
 				//issue async read on both sockets:
 				socket_1.async_read_some(
-					boost::asio::buffer(data_1, max_length),
+					boost::asio::buffer(bbeg1, max_length),
 					boost::bind(
 						&session::handle_read_one,
 						this,
@@ -73,8 +81,9 @@
 						boost::asio::placeholders::bytes_transferred
 					)
 				);
+				pending_read2 = true;
 				socket_2.async_read_some(
-					boost::asio::buffer(data_2, max_length),
+					boost::asio::buffer(bbeg2, max_length),
 					boost::bind(
 						&session::handle_read_two,
 						this,
@@ -89,35 +98,67 @@
 				delete this;
 			}
 		}
+		
 		void handle_read_one(
 			const boost::system::error_code& error,
 			size_t bytes_transferred
 		)
 		{
-			--pending;
+			pending_read1 = false;
 			if (!error)
 			{
-				++pending;
-				boost::asio::async_write(
-					socket_2,
-					boost::asio::buffer(data_1, bytes_transferred),
-					boost::bind(
-						&session::handle_write_two,
-						this,
-						boost::asio::placeholders::error
-					)
-				);
+				rpos1 += bytes_transferred;
+				
+				size_t rcap;
+				if(wpos1 <= rpos1){
+					rcap = (bbeg1 + max_length) - rpos1;
+					wend1 = rpos1;
+					if(rcap < read_min_capacity){
+						rpos1 = bbeg1;
+						rcap = wpos1 - rpos1;
+					}
+				}else{
+					rcap = wpos1 - rpos1;
+				}
+					
+				if(rcap >= read_min_capacity){
+					pending_read1 = true;
+					socket_1.async_read_some(
+						boost::asio::buffer(rpos1, rcap),
+						boost::bind(
+							&session::handle_read_one,
+							this,
+							boost::asio::placeholders::error,
+							boost::asio::placeholders::bytes_transferred
+						)
+					);
+				}
+				if(!pending_write2){
+					pending_write2 = wend1 - wpos1;
+				
+					if(pending_write2){
+						socket_2.async_write_some(
+							boost::asio::buffer(wpos1, pending_write2),
+							boost::bind(
+								&session::handle_write_two,
+								this,
+								boost::asio::placeholders::error,
+								boost::asio::placeholders::bytes_transferred
+							)
+						);
+					}
+				}
 			}
 			else
 			{
 				cout<<"error r1 v = "<<error.value()<<" n = "<<error.message()<<endl;
-			if(!pending){
-				cout<<"Delete socket read_one"<<endl;
-				delete this;
-			}else{
-				socket_1.close();
-				socket_2.close();
-			}
+				if(!pending()){
+					cout<<"Delete socket read_one"<<endl;
+					delete this;
+				}else{
+					socket_1.close();
+					socket_2.close();
+				}
 
 			}
 		}
@@ -125,101 +166,218 @@
 		void handle_read_two(
 			const boost::system::error_code& error,
 			size_t bytes_transferred
-		)
-		{
-			--pending;
+		){
+			pending_read2 = false;
 			if (!error)
 			{
-				++pending;
-				boost::asio::async_write(
-					socket_1,
-					boost::asio::buffer(data_2, bytes_transferred),
-					boost::bind(
-						&session::handle_write_one,
-						this,
-						boost::asio::placeholders::error
-					)
-				);
+				rpos2 += bytes_transferred;
+				
+				size_t rcap;
+				if(wpos2 <= rpos2){
+					rcap = (bbeg2 + max_length) - rpos2;
+					wend2 = rpos2;
+					if(rcap < read_min_capacity){
+						rpos2 = bbeg2;
+						rcap = wpos2 - rpos2;
+					}
+				}else{
+					rcap = wpos2 - rpos2;
+				}
+					
+				if(rcap >= read_min_capacity){
+					pending_read2 = true;
+					socket_2.async_read_some(
+						boost::asio::buffer(rpos2, rcap),
+						boost::bind(
+							&session::handle_read_two,
+							this,
+							boost::asio::placeholders::error,
+							boost::asio::placeholders::bytes_transferred
+						)
+					);
+				}
+				
+				if(!pending_write1){
+					pending_write1 = wend2 - wpos2;
+					
+					if(pending_write1){
+						socket_1.async_write_some(
+							boost::asio::buffer(wpos2, pending_write1),
+							boost::bind(
+								&session::handle_write_one,
+								this,
+								boost::asio::placeholders::error,
+								boost::asio::placeholders::bytes_transferred
+							)
+						);
+					}
+				}
 			}
 			else
 			{
-			cout<<"error r2 r = "<<error.value()<<" n = "<<error.message()<<endl;
-			if(!pending){
-				cout<<"Delete socket read_two"<<endl;
-				delete this;
-			}else{
-				socket_1.close();
-				socket_2.close();
-			}
+				cout<<"error r1 v = "<<error.value()<<" n = "<<error.message()<<endl;
+				if(!pending()){
+					cout<<"Delete socket read_one"<<endl;
+					delete this;
+				}else{
+					socket_1.close();
+					socket_2.close();
+				}
 
 			}
 		}
 		
-		void handle_write_one(const boost::system::error_code& error)
-		{
-			--pending;
+		void handle_write_one(
+			const boost::system::error_code& error,
+			size_t bytes_transferred
+		){
+			pending_write1 = 0;
 			if (!error)
 			{
-				++pending;
-				socket_2.async_read_some(
-					boost::asio::buffer(data_2, max_length),
-					boost::bind(
-						&session::handle_read_two, this,
-						boost::asio::placeholders::error,
-						boost::asio::placeholders::bytes_transferred
-					)
-				);
-			}
-			else
-			{
-				cout<<"error w1 v = "<<error.value()<<" n = "<<error.message()<<endl;
-			if(!pending){
-				cout<<"Delete socket write_one"<<endl;
-				delete this;
-			}else{
-				socket_1.close();
-				socket_2.close();
-			}
+				wpos2 += bytes_transferred;
 				
-			}
-		}
-
-		void handle_write_two(const boost::system::error_code& error)
-		{
-			--pending;
-			if (!error)
-			{
-				++pending;
-				socket_1.async_read_some(
-					boost::asio::buffer(data_1, max_length),
-					boost::bind(
-						&session::handle_read_one,
-						this,
-						boost::asio::placeholders::error,
-						boost::asio::placeholders::bytes_transferred
-					)
-				);
+				
+				if(wpos2 == wend2 && rpos2 < wend2){
+					wpos2 = bbeg2 + max_length;
+					wend2 = wpos2;
+				}
+				
+				if(!pending_read2){
+					//see if we've freed enought space to do a read
+					assert(wpos2 > rpos2);
+					size_t rcap = wpos2 - rpos2;
+					if(rcap >= read_min_capacity){
+						pending_read2 = true;
+						socket_2.async_read_some(
+							boost::asio::buffer(rpos2, rcap),
+							boost::bind(
+								&session::handle_read_two,
+								this,
+								boost::asio::placeholders::error,
+								boost::asio::placeholders::bytes_transferred
+							)
+						);
+					}
+				}
+				
+				if(wpos2 == (bbeg2 + max_length)){
+					wpos2 = bbeg2;
+					wend2 = rpos2;
+				}
+				
+				pending_write1 = wend2 - wpos2;
+				
+				if(pending_write1){
+					socket_1.async_write_some(
+						boost::asio::buffer(wpos2, pending_write1),
+						boost::bind(
+							&session::handle_write_one,
+							this,
+							boost::asio::placeholders::error,
+							boost::asio::placeholders::bytes_transferred
+						)
+					);
+				}
 			}
 			else
 			{
 				cout<<"error w2 v = "<<error.value()<<" n = "<<error.message()<<endl;
-			if(!pending){
-				cout<<"Delete socket write_two"<<endl;
-				delete this;
-			}else{
-				socket_1.close();
-				socket_2.close();
+				if(!pending()){
+					cout<<"Delete socket write_two"<<endl;
+					delete this;
+				}else{
+					socket_1.close();
+					socket_2.close();
+				}
+			
 			}
+		}
+
+		void handle_write_two(
+			const boost::system::error_code& error,
+			size_t bytes_transferred
+		){
+			pending_write2 = 0;
+			if (!error)
+			{
+				wpos1 += bytes_transferred;
+				
+				
+				if(wpos1 == wend1 && rpos1 < wend1){
+					wpos1 = bbeg1 + max_length;
+					wend1 = wpos1;
+				}
+				
+				if(!pending_read1){
+					//see if we've freed enought space to do a read
+					assert(wpos1 > rpos1);
+					size_t rcap = wpos1 - rpos1;
+					if(rcap >= read_min_capacity){
+						pending_read1 = true;
+						socket_1.async_read_some(
+							boost::asio::buffer(rpos1, rcap),
+							boost::bind(
+								&session::handle_read_one,
+								this,
+								boost::asio::placeholders::error,
+								boost::asio::placeholders::bytes_transferred
+							)
+						);
+					}
+				}
+				
+				if(wpos1 == (bbeg1 + max_length)){
+					wpos1 = bbeg1;
+					wend1 = rpos1;
+				}
+				
+				pending_write2 = wend1 - wpos1;
+				
+				if(pending_write2){
+					socket_2.async_write_some(
+						boost::asio::buffer(wpos1, pending_write2),
+						boost::bind(
+							&session::handle_write_two,
+							this,
+							boost::asio::placeholders::error,
+							boost::asio::placeholders::bytes_transferred
+						)
+					);
+				}
+			}
+			else
+			{
+				cout<<"error w2 v = "<<error.value()<<" n = "<<error.message()<<endl;
+				if(!pending()){
+					cout<<"Delete socket write_two"<<endl;
+					delete this;
+				}else{
+					socket_1.close();
+					socket_2.close();
+				}
 			
 			}
 		}
 	private:
-		tcp::socket socket_1;
-		tcp::socket socket_2;
-		enum { max_length = 2 * 1024 };
-		char data_1[max_length];
-		char data_2[max_length];
-		unsigned long pending;
+		enum {
+			max_length = 16 * 1024,
+			read_min_capacity = 1024
+		};
+		
+		tcp::socket		socket_1;
+		tcp::socket		socket_2;
+		bool			pending_read1;
+		uint16_t		pending_write1;
+		bool			pending_read2;
+		uint16_t		pending_write2;
+		char			bbeg1[max_length];
+		char			bbeg2[max_length];
+		char			*rpos1;
+		char			*wpos1;
+		char			*rpos2;
+		char			*wpos2;
+		char			*wend1;
+		char			*wend2;
 	};
 
 	class server
