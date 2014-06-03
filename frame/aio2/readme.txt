@@ -173,7 +173,7 @@ public:
 					//schedule pcon
 					//...
 				}else{
-					_rctx.waitFor(10);
+					t.waitFor(10);
 				}
 			}else break;
 		}while(--cnt);
@@ -183,7 +183,8 @@ public:
 		}
 	}
 private:
-	frame::aio::ListenSocket s;
+	frame::aio::ListenSocket	s;
+	frame::Timer				t;
 };
 
 2) Multi socket object:
