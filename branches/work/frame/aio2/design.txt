@@ -1,0 +1,94 @@
+//
+
+
+class frame::CompletionNotifier{
+protected:
+	Object		&robj;
+	size_t		objvecidx;
+	Action		
+};
+
+
+
+class frame::Object{
+public:
+	struct ExecuteContext{
+		size_t event()const{
+			return ev;
+		}
+		size_t index()const{
+			return idx;
+		}
+		DynamicPointer<Message>& message(){
+			return msgptr;
+		}
+		
+		const TimeSpec& time()const{
+			return rcrttm;
+		}
+		
+		void reschedule(size_t _event, size_t _index = 0);
+		void close();
+		
+	protected:
+		
+	};
+private:
+	void onRegisterToSelector(Selector &_rsel){
+		FOR_EACH(it, complvec.begin(), complvec.end()){
+			it->registerToSelector(_rsel);
+		}
+	}
+	void onUnregisterFromSelector(Selector &_rsel){
+		FOR_EACH(it, complvec.begin(), complvec.end()){
+			it->unregisterFromSelector(_rsel);
+		}
+	}
+	void registerNotifier(CompletionNotifier &_rnotif){
+		
+	}
+	void unregisterNotifier(CompletionNotifier &_rnotif){
+	}
+private:
+	struct NotificationStub{
+		size_t					event;
+		DynamicPointer<Message> msgptr;
+		size_t					index;
+	};
+	typedef std::vector<CompletionNotifier*>	CompletionVectorT;
+	typedef std::vector<NotificationStub>		NotificationVectorT;
+	
+	CompletionVectorT		complvec;
+	NotificationVectorT		notifvec;
+};
+
+class frame::Timer: public CompletionNotifier{
+public:
+	bool waitFor(TimeSpec &_rts, error_code &_rerr, size_t _event = EventTimer, size_t _index = 0){
+		
+	}
+	bool waitUntil(TimeSpec &_rts, error_code &_rerr, size_t _event = EventTimer, size_t _index = 0){
+		
+	}
+	void cancel(){
+	}
+};
+
+class frame::aio::ServerSocket: public frame::CompletionNotifier{
+public:
+	bool accept(SocketDevice &_raccdev, error_code &_rerr, size_t _event = EventAccept, size_t _index = 0){
+		
+	}
+	bool doneAccept(SocketDevice &_raccdev, error_code &_rerr){
+		
+	}
+private:
+	SocketDevice	dev;
+};
+
+class frame::aio::StreamSocket: public frame::CompletionNotifier{
+	
+};
+
+
+
