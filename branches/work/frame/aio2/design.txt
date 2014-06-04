@@ -1,11 +1,15 @@
 //
 
 
-class frame::CompletionNotifier{
+class frame::CompletionHandler{
+private:
+	
 protected:
 	Object		&robj;
-	size_t		objvecidx;
-	Action		
+	size_t		objidx;//index within object
+	size_t		selidx;//index within selector
+	Action		*preadacc;
+	Action		*pwriteacc;
 };
 
 
@@ -55,26 +59,30 @@ private:
 		DynamicPointer<Message> msgptr;
 		size_t					index;
 	};
-	typedef std::vector<CompletionNotifier*>	CompletionVectorT;
+	typedef std::vector<CompletionHandler*>		CompletionVectorT;
 	typedef std::vector<NotificationStub>		NotificationVectorT;
 	
 	CompletionVectorT		complvec;
 	NotificationVectorT		notifvec;
 };
 
-class frame::Timer: public CompletionNotifier{
+class frame::Timer: public CompletionHandler{
 public:
 	bool waitFor(TimeSpec &_rts, error_code &_rerr, size_t _event = EventTimer, size_t _index = 0){
 		
 	}
 	bool waitUntil(TimeSpec &_rts, error_code &_rerr, size_t _event = EventTimer, size_t _index = 0){
+		if(selector()->time() >= _rts){
+			return true;
+		}
 		
+		selector()->
 	}
 	void cancel(){
 	}
 };
 
-class frame::aio::ServerSocket: public frame::CompletionNotifier{
+class frame::aio::ServerSocket: public frame::CompletionHandler{
 public:
 	bool accept(SocketDevice &_raccdev, error_code &_rerr, size_t _event = EventAccept, size_t _index = 0){
 		
@@ -86,7 +94,7 @@ private:
 	SocketDevice	dev;
 };
 
-class frame::aio::StreamSocket: public frame::CompletionNotifier{
+class frame::aio::StreamSocket: public frame::CompletionHandler{
 	
 };
 
