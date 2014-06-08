@@ -68,6 +68,10 @@ public:
 	std::pair<bool, bool> isBlocking()const;
 	bool enableNoDelay();
 	bool disableNoDelay();
+	
+	bool enableLinger();
+	bool disableLinger();
+	
 	std::pair<bool, bool> hasNoDelay()const;
 	
 	bool enableCork();//TCP_CORK - only on linux, TCP_NOPUSH on FreeBSD

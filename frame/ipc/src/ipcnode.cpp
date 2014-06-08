@@ -19,7 +19,6 @@
 #include "ipcsession.hpp"
 
 #include "utility/timerqueue.hpp"
-#include <boost/concept_check.hpp>
 
 #ifdef HAS_CPP11
 #include <unordered_map>

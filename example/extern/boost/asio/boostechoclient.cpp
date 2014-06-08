@@ -2,7 +2,6 @@
 #include <iostream>
 #include <boost/bind.hpp>
 #include <boost/asio.hpp>
-#include <boost/concept_check.hpp>
 #include <queue>
 #include <sstream>
 #include "system/timespec.hpp"
