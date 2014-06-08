@@ -1019,6 +1019,15 @@ bool SocketDevice::disableNoDelay(){
 #endif
 }
 
+
+bool SocketDevice::enableLinger(){
+	
+}
+
+bool SocketDevice::disableLinger(){
+	
+}
+
 pair<bool, bool> SocketDevice::hasNoDelay()const{
 	specific_error_clear();
 #ifdef ON_WINDOWS

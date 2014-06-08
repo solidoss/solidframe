@@ -1,20 +1,71 @@
 //
 
+struct frame::ActionContext{
+	error_code	error;
+};
+
+struct frame::Action{
+	bool		done;
+	CbkPtrT		pcbk;
+};
 
 class frame::CompletionHandler{
 private:
-	
+	void handleCompletion(ActionContext &_rctx){
+		cassert(pacc);
+		(*pact->pcbk)(this, _rctx);
+	}
 protected:
-	Object		&robj;
-	size_t		objidx;//index within object
-	size_t		selidx;//index within selector
-	Action		*preadacc;
-	Action		*pwriteacc;
+	ObjectBase				&robj;
+	CompletionHandler		*pobjprev;
+	CompletionHandler		*pobjnext;//double linked list within the object
+	size_t					selidx;//index within selector
+	Action					*pact;
+};
+
+//for selector
+struct ObjectStub{
+	ObjectPointerT		objptr;
+	uint32				uid;
+	CompletionHandler	*pch;
 };
 
 
+class frame::ObjectBase{
+public:
+	
+private:
+	void onRegisterToSelector(Selector &_rsel){
+		FOR_EACH(it, complvec.begin(), complvec.end()){
+			it->registerToSelector(_rsel);
+		}
+	}
+	void onUnregisterFromSelector(Selector &_rsel){
+		FOR_EACH(it, complvec.begin(), complvec.end()){
+			it->unregisterFromSelector(_rsel);
+		}
+	}
+	void registerCompletionHandler(CompletionHandler &_rcplhnd){
+		
+	}
+	void unregisterCompletionHandler(CompletionHandler &_rcplhnd){
+	}
+private:
+	struct NotificationStub{
+		size_t					event;
+		DynamicPointer<Message> msgptr;
+		size_t					index;
+	};
+	typedef std::vector<NotificationStub>		NotificationVectorT;
+	
+	CompletionHandler			*pcmplst;
+	NotificationVectorT			ntfvec;
+	IndexT						fullid;
 
-class frame::Object{
+	ATOMIC_NS::atomic<IndexT>	thrid;
+};
+
+class frame::Object: public frame::ObjectBase{
 public:
 	struct ExecuteContext{
 		size_t event()const{
@@ -38,33 +89,43 @@ public:
 		
 	};
 private:
-	void onRegisterToSelector(Selector &_rsel){
-		FOR_EACH(it, complvec.begin(), complvec.end()){
-			it->registerToSelector(_rsel);
-		}
-	}
-	void onUnregisterFromSelector(Selector &_rsel){
-		FOR_EACH(it, complvec.begin(), complvec.end()){
-			it->unregisterFromSelector(_rsel);
-		}
-	}
-	void registerNotifier(CompletionNotifier &_rnotif){
-		
-	}
-	void unregisterNotifier(CompletionNotifier &_rnotif){
-	}
-private:
-	struct NotificationStub{
-		size_t					event;
-		DynamicPointer<Message> msgptr;
-		size_t					index;
-	};
-	typedef std::vector<CompletionHandler*>		CompletionVectorT;
-	typedef std::vector<NotificationStub>		NotificationVectorT;
-	
-	CompletionVectorT		complvec;
-	NotificationVectorT		notifvec;
+	virtual void execute(ExecuteContext &_rctx) = 0;
 };
+
+/*
+ * This way we can still have two separate selectors one 
+ * for frame::Objects and one for frame::aio::Objects
+ * and a frame::aio::Object cannot be pushed into
+ * a frame::Scheduler - but only into a frame::aio::Scheduler
+ */
+class frame::aio::Object: public frame::ObjectBase{
+public:
+	struct ExecuteContext{
+		size_t event()const{
+			return ev;
+		}
+		size_t index()const{
+			return idx;
+		}
+		DynamicPointer<Message>& message(){
+			return msgptr;
+		}
+		
+		const TimeSpec& time()const{
+			return rcrttm;
+		}
+		
+		void reschedule(size_t _event, size_t _index = 0);
+		void close();
+		
+	protected:
+		
+	};
+private:
+	virtual void execute(ExecuteContext &_rctx) = 0;
+};
+
+
 
 class frame::Timer: public CompletionHandler{
 public:
@@ -82,8 +143,18 @@ public:
 	}
 };
 
+struct frame::aio::ActionContext: frame::ActionContext{
+	const bool	hasread;
+	const bool	haswrite;
+	bool		wantread;
+	bool		wantwrite;
+};
+
 class frame::aio::ServerSocket: public frame::CompletionHandler{
 public:
+	bool hasPendingAccept()const{
+		
+	}
 	bool accept(SocketDevice &_raccdev, error_code &_rerr, size_t _event = EventAccept, size_t _index = 0){
 		
 	}
@@ -91,12 +162,174 @@ public:
 		
 	}
 private:
-	SocketDevice	dev;
+	static void completionCallback(frame::CompletionHandler *_pthis, frame::ActionContext &_rctx){
+		ServerSocket 		&rthis = *static_cast<ServerSocket*>(_pthis);
+		aio::ActionContext	&rctx = static_cast<aio::ActionContext&>(_rctx);
+		AcceptAction		*paccact = static_cast<AcceptAction*>(rthis.pact);
+		paccact->done = true;
+		if(!rctx.error){
+			cassert(rctx.hasread);
+			if(device.accept(paccact->device)){
+			}else{
+				paccact->error = last_system_error();
+			}
+		}else{
+			paccact->error = rctx.error;
+		}
+		aio::Selector::the().schedule(_pthis, paccact->event, paccact->index);
+	}
+private:
+	SocketDevice	device;
 };
 
+
+bool StreamAction::wantWrite()const{
+	return this->psndact && !this->psndact->done;
+}
+
 class frame::aio::StreamSocket: public frame::CompletionHandler{
+public:
+	
+	bool hasPendingRecv()const{
+		
+	}
+	
+	bool recvSome(char *_buf, size_t _bufcp, size_t &_rsz, error_code &_rerr, size_t _event = EventRecv, size_t _index = 0){
+		StreamAction		*pstract = static_cast<StreamAction*>(this->pact);
+		if(!pstract->prcvact){
+			int rv = dev.recv(_buf, _bufcp);
+			if(rv > 0){
+				_rsz = rv;
+				return true;
+			}else if(rv == 0){
+				_err = SocketClosedError;
+				return true;
+			}else if(errno == EAGAIN){
+				StreamRecvAction *prcvact = aio::Selector::the().popStreamRecvAction();
+				prcvact->done = false;
+				prcvact->buf = _buf;
+				prcvact->bufcp = _bufcp;
+				prcvact->event = _event;
+				prcvact->index = _index;
+				
+				pstract->prcvact = prcvact;
+				aio::Selector::the().waitIO(this, true/*wantread*/, pstract->wantWrite());
+			}else{
+				_err = errno;
+				return true;
+			}
+		}else{
+			_rerr = OpperationInProgressError;
+			return true;
+		}
+	}
+	
+	bool doneRecv(size_t &_rsz, error_code &_rerr){
+		
+	}
+	
+	bool sendAll(const char *_buf, size_t _bufsz, error_code &_rerr, size_t _event = EventAccept, size_t _index = 0){
+		if(!hasPendingSend()){
+			int rv = dev.send(_buf, _bufsz);
+			if(rv > 0){
+				_rsz = rv;
+				return true;
+			}else if(rv == 0){
+				_err = SocketClosedError;
+				return true;
+			}else if(errno == EAGAIN){
+				
+			}else{
+				_err = errno;
+				return true;
+			}
+		}else{
+			_rerr = OpperationInProgressError;
+			return true;
+		}
+	}
+private:
+	static void completionCallback(frame::CompletionHandler *_pthis, frame::ActionContext &_rctx){
+		ServerSocket 		&rthis = *static_cast<ServerSocket*>(_pthis);
+		aio::ActionContext	&rctx = static_cast<aio::ActionContext&>(_rctx);
+		StreamAction		*pstract = static_cast<StreamAction*>(_pthis->pact);
+		
+		if(!rctx.error){
+			if(rctx.hasread){
+				cassert(pstract->prcvact);
+				(*pstract->prcvact->pcbk)(_pthis, _rctx);
+			}
+			if(rctx.haswrite){
+				cassert(pstract->psndact);
+				(*pstract->psndact->pcbk)(_pthis, _rctx);
+			}
+		}else{
+			if(pstract->prcvact){
+				(*pstract->prcvact->pcbk)(_pthis, _rctx);
+			}
+			if(pstract->psndact){
+				(*pstract->psndact->pcbk)(_pthis, _rctx);
+			}
+		}
+	}
+	static void completionCallbackRecvSome(frame::CompletionHandler *_pthis, frame::ActionContext &_rctx){
+		ServerSocket 		&rthis = *static_cast<ServerSocket*>(_pthis);
+		aio::ActionContext	&rctx = static_cast<aio::ActionContext&>(_rctx);
+		StreamAction		*pstract = static_cast<StreamAction*>(_pthis->pact);
+		StreamRecvAction	*prcvact = static_cast<StreamRecvAction*>(pstract->prcvact);
+		
+		prcvact->done = true;
+		if(!rctx.error){
+			int rv = dev.recv(prcvact->buf, prcvact->bufcp);
+			if(rv > 0){
+				prcvact->rcvsz = rv;
+			}else if(rv == 0){
+				prcvact->error = SocketClosedError;
+			}else{
+				prcvact->error = last_system_error();
+			}
+		}else{
+			prcvact->error = rctx.error;
+		}
+		aio::Selector::the().schedule(_pthis, prcvact->event, prcvact->index);
+	}
+	
+	static void completionCallbackSendAll(frame::CompletionHandler *_pthis, frame::ActionContext &_rctx){
+		ServerSocket 		&rthis = *static_cast<ServerSocket*>(_pthis);
+		aio::ActionContext	&rctx = static_cast<aio::ActionContext&>(_rctx);
+		StreamAction		*pstract = static_cast<StreamAction*>(_pthis->pact);
+		StreamSendAction	*psndact = static_cast<StreamRecvAction*>(pstract->psndact);
+		
+		psndact->done = true;
+		
+		
+	}
+private:
+	SocketDevice	device;
 	
 };
+
+class frame::aio::DatagramSocket: public frame::CompletionHandler{
+	
+};
+
+class frame::aio::openssl::StreamSocket: public frame::CompletionHandler{
+private:
+	static void completionCallback(frame::CompletionHandler *_pthis, frame::ActionContext &_rctx){
+		ServerSocket 		&rthis = *static_cast<ServerSocket*>(_pthis);
+		aio::ActionContext	&rctx = static_cast<aio::ActionContext&>(_rctx);
+		StreamAction		*pstract = static_cast<StreamAction*>(_pthis->pact);
+		
+		if(pstract->wantRead()){
+			(*pstract->prcvact->pcbk)(_pthis, _rctx);
+		}
+		if(pstract->wantWrite()){
+			(*pstract->psndact->pcbk)(_pthis, _rctx);
+		}
+	}
+};
+
+
 
 
 

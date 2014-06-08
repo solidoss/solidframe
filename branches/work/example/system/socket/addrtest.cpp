@@ -27,7 +27,6 @@
 #include "system/socketdevice.hpp"
 #include "system/timespec.hpp"
 #include "system/cassert.hpp"
-#include <boost/concept_check.hpp>
 #include <fcntl.h>
 #include <cerrno>
 #include <iostream>

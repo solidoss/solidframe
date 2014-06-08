@@ -16,7 +16,6 @@
 
 #include "utility/dynamictype.hpp"
 #include "utility/dynamicpointer.hpp"
-#include <boost/concept_check.hpp>
 
 #ifdef HAS_STDATOMIC
 #include <atomic>
