@@ -36,9 +36,9 @@ public:
 	
 	~ObjectSelector();
 	
-	bool init(ulong _cp);
+	bool init(size_t _cp);
 	//signal a specific object
-	void raise(uint32 _pos);
+	void raise(size_t _pos);
 	void run();
 	ulong capacity()const;
 	ulong size() const;

@@ -12,6 +12,7 @@
 #include "system/thread.hpp"
 #include "system/debug.hpp"
 
+#include "frame/objectbase.hpp"
 #include "frame/object.hpp"
 #include "frame/message.hpp"
 #include "frame/manager.hpp"
@@ -28,16 +29,8 @@ static const unsigned specificPosition(){
 	static const unsigned	thrspecpos = Thread::specificId();
 	return thrspecpos;
 }
-static const uint currentTimeSpecificPosition(){
-	static const uint id(Thread::specificId());
-	return id;
-}
 #else
 const uint specificIdStub(){
-	static const uint id(Thread::specificId());
-	return id;
-}
-const uint timeSpecificIdStub(){
 	static const uint id(Thread::specificId());
 	return id;
 }
@@ -46,81 +39,53 @@ void once_stub(){
 	specificIdStub();
 }
 
-void once_time_stub(){
-	timeSpecificIdStub();
-}
-
 static const unsigned specificPosition(){
 	static boost::once_flag once = BOOST_ONCE_INIT;
 	boost::call_once(&once_stub, once);
 	return specificIdStub();
 }
-static const uint currentTimeSpecificPosition(){
-	static boost::once_flag once = BOOST_ONCE_INIT;
-	boost::call_once(&once_time_stub, once);
-	return timeSpecificIdStub();
-}
 #endif
 }
 
 namespace frame{
+
 //---------------------------------------------------------------------
-//----	Object	----
+//----	ObjectBase	----
 //---------------------------------------------------------------------
 
-#ifdef NINLINES
-#include "frame/object.ipp"
-#endif
-
-/*static*/ const TimeSpec& Object::currentTime(){
-	return *reinterpret_cast<const TimeSpec*>(Thread::specific(currentTimeSpecificPosition()));
-}
-/*static*/ void Object::doSetCurrentTime(const TimeSpec *_pcrtts){
-	Thread::specific(currentTimeSpecificPosition(), const_cast<TimeSpec *>(_pcrtts));
+ObjectBase::ObjectBase():
+	fullid(-1),	selidx(0), seluid(-1){
 }
 
-Object::Object():
-	fullid(-1), smask(0),
-	thrid(0){
-}
-
-void Object::unregister(){
+void ObjectBase::unregister(){
 	if(isRegistered()){
 		Manager::specific().unregisterObject(*this);
 		fullid = -1;
 	}
 }
 
-Object::~Object(){
+ObjectBase::~ObjectBase(){
 	unregister();
 }
 
-/*virtual*/void Object::doStop(){
+/*virtual*/void ObjectBase::doStop(){
 }
-void Object::stop(){
+void ObjectBase::stop(){
 	doStop();
 	unregister();
 }
 //--------------------------------------------------------------
-/*static*/ Object& Object::specific(){
+/*static*/ ObjectBase& ObjectBase::specific(){
 	return *reinterpret_cast<Object*>(Thread::specific(specificPosition()));
 }
 //--------------------------------------------------------------
-void Object::associateToCurrentThread(){
+void ObjectBase::associateToCurrentThread(){
 	Thread::specific(specificPosition(), this);
 }
+//---------------------------------------------------------------------
+//----	Object	----
+//---------------------------------------------------------------------
 
-bool Object::notify(DynamicPointer<Message> &_rmsgptr){
-	return false;//by default do not raise the object
-}
-
-
-/*virtual*/ void Object::execute(ExecuteContext &_rexectx){
-	_rexectx.close();
-}
-/*virtual*/ void Object::leave(DynamicPointer<Object> &_robjptr){
-	//TODO: unregister from the current Selector
-}
 //---------------------------------------------------------------------
 //----	Message	----
 //---------------------------------------------------------------------
