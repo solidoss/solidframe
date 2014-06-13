@@ -1,6 +1,6 @@
 // frame/object.hpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com) 
 //
 // This file is part of SolidFrame framework.
 //
@@ -12,163 +12,57 @@
 
 #include "system/timespec.hpp"
 
-#include "frame/common.hpp"
+#include "frame/objectbase.hpp"
 
 #include "utility/dynamictype.hpp"
 #include "utility/dynamicpointer.hpp"
-
-#ifdef HAS_STDATOMIC
-#include <atomic>
-#else
-#include "boost/atomic.hpp"
-#endif
+#include "system/atomic.hpp"
 
 namespace solid{
-
-class Mutex;
-
 namespace frame{
-
-class Manager;
-class Service;
-//class ObjectPointerBase;
-class Message;
-class SelectorBase;
-class Object;
-
-
-class Object: public Dynamic<Object, DynamicShared<> >{
-public:
+	
+class Object: public Dynamic<Object, DynamicShared<ObjectBase> >{
+public:	
 	struct ExecuteContext{
-		enum RetValE{
-			WaitRequest,
-			WaitUntilRequest,
-			RescheduleRequest,
-			CloseRequest,
-			LeaveRequest,
-		};
-		size_t eventMask()const{
-			return evsmsk;
+		~ExecuteContext();
+		size_t event()const{
+			return evn;
+		}
+		size_t index()const{
+			return idx;
+		}
+		MessagePointerT& message(){
+			return msgptr;
 		}
 		const TimeSpec& currentTime()const{
 			return rcrttm;
 		}
-		void reschedule();
+		void reschedule(size_t _evn, size_t _idx = 0);
 		void close();
-		void leave(Object &_robj, DynamicPointer<Object> &_robjptr);
-		void wait();
-		void waitUntil(const TimeSpec &_rtm);
-		void waitFor(const TimeSpec &_rtm);
 	protected:
 		ExecuteContext(
-			const size_t _evsmsk,
+			const size_t _evn,
+			const size_t _idx,
+			MessagePointerT &_rmsgptr,
 			const TimeSpec &_rcrttm
-		):	evsmsk(_evsmsk), rcrttm(_rcrttm), retval(WaitRequest){}
+		):	evn(_evn), idx(_idx), msgptr(_rmsgptr), rcrttm(_rcrttm){}
 		
-		size_t			evsmsk;
+		size_t			evn;
+		size_t			idx;
+		MessagePointerT	msgptr;
 		const TimeSpec	&rcrttm;
-		RetValE			retval;
-		TimeSpec		waittm;
 	};
 
-	struct ExecuteController: ExecuteContext{
-		ExecuteController(
-			const size_t _evsmsk,
-			const TimeSpec &_rcrttm
-		): ExecuteContext(_evsmsk, _rcrttm){}
-		
-		const RetValE returnValue()const{
-			return this->retval;
-		}
-		const TimeSpec& waitTime()const{
-			return this->waittm;
-		}
-	};
-
-	static const TimeSpec& currentTime();
-	
-	//!Get the object associated to the current thread
-	/*!
-	 \see Object::associateToCurrentThread
-	*/ 
-	static Object& specific();
-	
-	//! Returns true if the object is signaled
-	bool notified() const;
-	
-	bool notified(size_t _s) const;
-	
-	//! Get the id of the object
-	IndexT id() const;
-	
-	
-	/**
-	 * Returns true if the signal should raise the object ASAP
-	 * \param _smask The signal bitmask
-	 */
-	bool notify(size_t _smask);
-	
-	//! Signal the object with a signal
-	virtual bool notify(DynamicPointer<Message> &_rmsgptr);
-	
+	static Object& specific(){
+		return static_cast<Object&>(ObjectBase::specific());
+	}
 protected:
-	friend class Service;
-	friend class Manager;
-	friend class SelectorBase;
-	
 	//! Constructor
 	Object();
-	
-	
-	//! Grab the signal mask eventually leaving some bits set- CALL this inside lock!!
-	size_t grabSignalMask(size_t _leave = 0);
-	
-	//! Virtual destructor
-	virtual ~Object();//only objptr base can destroy an object
-	
-	void unregister();
-	bool isRegistered()const;
-	virtual void doStop();
 private:
-	friend struct ExecuteContext;
-	static void doSetCurrentTime(const TimeSpec *_pcrtts);
-	
-	//! Set the id
-	void id(const IndexT &_fullid);
-	//! Gets the id of the thread the object resides in
-	IndexT threadId()const;
-	//! Assigns the object to the current thread
-	/*!
-		This is usualy called by the pool's Selector.
-	*/
-	void associateToCurrentThread();
-	
-	//! Executes the objects
-	/*!
-		This method is calle by selectpools with support for
-		events and timeouts
-	*/
 	virtual void execute(ExecuteContext &_rexectx);
-	
-	virtual void leave(DynamicPointer<Object> &_robjptr);
-	void stop();
-	
-	//! Set the thread id
-	void threadId(const IndexT &_thrid);
 private:
-	IndexT						fullid;
-
-	ATOMIC_NS::atomic<size_t>	smask;
-	ATOMIC_NS::atomic<IndexT>	thrid;
 };
-
-inline IndexT Object::id()	const {
-	return fullid;
-}
-
-#ifndef NINLINES
-#include "frame/object.ipp"
-#endif
 
 }//namespace frame
 }//namespace solid

@@ -5,7 +5,6 @@ set(Sources
 	src/objectselector.cpp
 	src/requestuid.cpp
 	src/service.cpp
-	src/basicscheduler.cpp
 	src/schedulerbase.cpp
 	src/sharedstore.cpp
 )
@@ -14,7 +13,6 @@ set(Headers
 	schedulerbase.hpp
 	message.hpp
 	common.hpp
-	basicscheduler.hpp
 	manager.hpp
 	object.hpp
 	objectselector.hpp
