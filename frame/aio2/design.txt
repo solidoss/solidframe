@@ -329,7 +329,62 @@ private:
 	}
 };
 
+void aio::Selector::run(){
+	bool should_continue = true;
+	do{
+		const size_t	selcnt = d.selcnt;
+		for(size_t i = 0; i < selcnt; ++i){
+			CompletionHandlerStub	&rch = d.chstubvec[d.events[i].u64];
+			aio::ActionContext		ctx(d.events[i].events);
+			
+			if(rch.handler->handleCompletion(ctx)){
+				d.objevsq.push(ObjectEventStub(ctx));
+			}else{
+				
+			}
+		}
+		
+		while(timerq.size() && timerq.front().time >= crttime){
+			const size_t	chidx = timerq.front().idx;
+			const uint32	chuid = timerq.front().uid;
+			
+			timerq.pop();
+			cassert(chidx < d.chstubvec.size());
+			
+			if(d.chstubvec[chidx].uid == chuid){
+				CompletionHandlerStub	&rch = d.chstubvec[d.events[i].u64];
+				frame::ActionContext	ctx;
+			
+				rch.handler->handleCompletion(ctx);
+				
+				d.objevsq.push(ObjectEventStub(ctx));
+			}
+		}
+		
+		
+		const size_t cnt = d.objevsq.size();
+		for(size_t i(0); i < cnt; ++cnt, d.objevsq.pop()){
+			ObjectEventStub		&robjevs = d.objevsq.front();
+			if(robjevs.objidx < d.objvec.size() && robjevs.objuid == d.objvec[robjevs.objidx].uid){
+				ObjectStub 		&ros = d.objvec[robjevs.objidx];
+				ExecuteContext	ctx;
+				ctx.evt = robjevs.event;
+				ctx.msg = robjevs.msgptr;
+				ctx.idx = robjevs.index;
+				
+				ros.objptr->execute(ctx);
+			}
+		}
+	}while(should_continue);
+}
 
+void aio::Selector::run(){
+	bool should_continue = true;
+	do{
+		
+		
+	}while(should_continue);
+}
 
 
 
