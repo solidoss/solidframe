@@ -155,7 +155,7 @@ public:
 	bool hasPendingAccept()const{
 		
 	}
-	bool accept(SocketDevice &_raccdev, error_code &_rerr, size_t _event = EventAccept, size_t _index = 0){
+	bool accept(frame::aio::ExecuteContext &_rexectx, size_t _event = EventAccept, size_t _index = 0){
 		
 	}
 	bool doneAccept(SocketDevice &_raccdev, error_code &_rerr){
@@ -194,7 +194,7 @@ public:
 		
 	}
 	
-	bool recvSome(char *_buf, size_t _bufcp, size_t &_rsz, error_code &_rerr, size_t _event = EventRecv, size_t _index = 0){
+	bool recvSome(frame::aio::ExecuteContext &_rexectx, char *_buf, size_t _bufcp, size_t _event = EventRecv, size_t _index = 0){
 		StreamAction		*pstract = static_cast<StreamAction*>(this->pact);
 		if(!pstract->prcvact){
 			int rv = dev.recv(_buf, _bufcp);
@@ -228,7 +228,7 @@ public:
 		
 	}
 	
-	bool sendAll(const char *_buf, size_t _bufsz, error_code &_rerr, size_t _event = EventAccept, size_t _index = 0){
+	bool sendAll(frame::aio::ExecuteContext &_rexectx, const char *_buf, size_t _bufsz, size_t _event = EventAccept, size_t _index = 0){
 		if(!hasPendingSend()){
 			int rv = dev.send(_buf, _bufsz);
 			if(rv > 0){
@@ -247,6 +247,8 @@ public:
 			_rerr = OpperationInProgressError;
 			return true;
 		}
+	}
+	bool doneSend(size_t &_rsz, error_code &_rerr){
 	}
 private:
 	static void completionCallback(frame::CompletionHandler *_pthis, frame::ActionContext &_rctx){
@@ -330,18 +332,14 @@ private:
 };
 
 void aio::Selector::run(){
-	bool should_continue = true;
+	d.should_continue = true;
 	do{
 		const size_t	selcnt = d.selcnt;
 		for(size_t i = 0; i < selcnt; ++i){
 			CompletionHandlerStub	&rch = d.chstubvec[d.events[i].u64];
 			aio::ActionContext		ctx(d.events[i].events);
 			
-			if(rch.handler->handleCompletion(ctx)){
-				d.objevsq.push(ObjectEventStub(ctx));
-			}else{
-				
-			}
+			rch.handler->handleCompletion(ctx);
 		}
 		
 		while(timerq.size() && timerq.front().time >= crttime){
@@ -356,8 +354,6 @@ void aio::Selector::run(){
 				frame::ActionContext	ctx;
 			
 				rch.handler->handleCompletion(ctx);
-				
-				d.objevsq.push(ObjectEventStub(ctx));
 			}
 		}
 		
@@ -375,7 +371,7 @@ void aio::Selector::run(){
 				ros.objptr->execute(ctx);
 			}
 		}
-	}while(should_continue);
+	}while(d.should_continue);
 }
 
 void aio::Selector::run(){
