@@ -24,7 +24,6 @@ set(Headers
 )
 
 set(Inlines
-	object.ipp
 )
 
 add_library (solid_frame_core

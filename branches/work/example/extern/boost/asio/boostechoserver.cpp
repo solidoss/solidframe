@@ -2,8 +2,48 @@
 #include <iostream>
 #include <boost/bind.hpp>
 #include <boost/asio.hpp>
+#include <mcheck.h>
+#include <malloc.h>
 
 using boost::asio::ip::tcp;
+using namespace std;
+
+static void *(*old_malloc_hook)(size_t, const void *);
+
+static void *new_malloc_hook(size_t size, const void *caller) {
+    void *mem;
+
+    __malloc_hook = old_malloc_hook;
+    mem = malloc(size);
+    fprintf(stderr, "%p: malloc(%zu) = %p\n", caller, size, mem);
+    __malloc_hook = new_malloc_hook;
+
+    return mem;
+}
+
+static void init_my_hooks(void) {
+    old_malloc_hook = __malloc_hook;
+    __malloc_hook = new_malloc_hook;
+}
+
+void (*__MALLOC_HOOK_VOLATILE __malloc_initialize_hook)(void) = init_my_hooks;
+
+void* operator new(size_t sz) throw (std::bad_alloc)
+{
+    cerr << "allocating " << sz << " bytes\n";
+    void* mem = malloc(sz);
+    if (mem)
+        return mem;
+    else
+        throw std::bad_alloc();
+}
+
+
+void operator delete(void* ptr) throw()
+{
+    cerr << "deallocating at " << ptr << endl;
+    free(ptr);
+}
 
 class session
 {
@@ -103,6 +143,7 @@ private:
 
 int main(int argc, char* argv[])
 {
+	mtrace();
 	try
 	{
 		if (argc != 2)
