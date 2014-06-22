@@ -6,6 +6,7 @@ struct frame::ActionContext{
 
 struct frame::Action{
 	bool		done;
+	error_code	error;
 	CbkPtrT		pcbk;
 };
 
@@ -144,192 +145,9 @@ public:
 };
 
 struct frame::aio::ActionContext: frame::ActionContext{
-	const bool	hasread;
-	const bool	haswrite;
-	bool		wantread;
-	bool		wantwrite;
+	size_t	events;
 };
 
-class frame::aio::ServerSocket: public frame::CompletionHandler{
-public:
-	bool hasPendingAccept()const{
-		
-	}
-	bool accept(frame::aio::ExecuteContext &_rexectx, size_t _event = EventAccept, size_t _index = 0){
-		
-	}
-	bool doneAccept(SocketDevice &_raccdev, error_code &_rerr){
-		
-	}
-private:
-	static void completionCallback(frame::CompletionHandler *_pthis, frame::ActionContext &_rctx){
-		ServerSocket 		&rthis = *static_cast<ServerSocket*>(_pthis);
-		aio::ActionContext	&rctx = static_cast<aio::ActionContext&>(_rctx);
-		AcceptAction		*paccact = static_cast<AcceptAction*>(rthis.pact);
-		paccact->done = true;
-		if(!rctx.error){
-			cassert(rctx.hasread);
-			if(device.accept(paccact->device)){
-			}else{
-				paccact->error = last_system_error();
-			}
-		}else{
-			paccact->error = rctx.error;
-		}
-		aio::Selector::the().schedule(_pthis, paccact->event, paccact->index);
-	}
-private:
-	SocketDevice	device;
-};
-
-
-bool StreamAction::wantWrite()const{
-	return this->psndact && !this->psndact->done;
-}
-
-class frame::aio::StreamSocket: public frame::CompletionHandler{
-public:
-	
-	bool hasPendingRecv()const{
-		
-	}
-	
-	bool recvSome(frame::aio::ExecuteContext &_rexectx, char *_buf, size_t _bufcp, size_t _event = EventRecv, size_t _index = 0){
-		StreamAction		*pstract = static_cast<StreamAction*>(this->pact);
-		if(!pstract->prcvact){
-			int rv = dev.recv(_buf, _bufcp);
-			if(rv > 0){
-				_rsz = rv;
-				return true;
-			}else if(rv == 0){
-				_err = SocketClosedError;
-				return true;
-			}else if(errno == EAGAIN){
-				StreamRecvAction *prcvact = aio::Selector::the().popStreamRecvAction();
-				prcvact->done = false;
-				prcvact->buf = _buf;
-				prcvact->bufcp = _bufcp;
-				prcvact->event = _event;
-				prcvact->index = _index;
-				
-				pstract->prcvact = prcvact;
-				aio::Selector::the().waitIO(this, true/*wantread*/, pstract->wantWrite());
-			}else{
-				_err = errno;
-				return true;
-			}
-		}else{
-			_rerr = OpperationInProgressError;
-			return true;
-		}
-	}
-	
-	bool doneRecv(size_t &_rsz, error_code &_rerr){
-		
-	}
-	
-	bool sendAll(frame::aio::ExecuteContext &_rexectx, const char *_buf, size_t _bufsz, size_t _event = EventAccept, size_t _index = 0){
-		if(!hasPendingSend()){
-			int rv = dev.send(_buf, _bufsz);
-			if(rv > 0){
-				_rsz = rv;
-				return true;
-			}else if(rv == 0){
-				_err = SocketClosedError;
-				return true;
-			}else if(errno == EAGAIN){
-				
-			}else{
-				_err = errno;
-				return true;
-			}
-		}else{
-			_rerr = OpperationInProgressError;
-			return true;
-		}
-	}
-	bool doneSend(size_t &_rsz, error_code &_rerr){
-	}
-private:
-	static void completionCallback(frame::CompletionHandler *_pthis, frame::ActionContext &_rctx){
-		ServerSocket 		&rthis = *static_cast<ServerSocket*>(_pthis);
-		aio::ActionContext	&rctx = static_cast<aio::ActionContext&>(_rctx);
-		StreamAction		*pstract = static_cast<StreamAction*>(_pthis->pact);
-		
-		if(!rctx.error){
-			if(rctx.hasread){
-				cassert(pstract->prcvact);
-				(*pstract->prcvact->pcbk)(_pthis, _rctx);
-			}
-			if(rctx.haswrite){
-				cassert(pstract->psndact);
-				(*pstract->psndact->pcbk)(_pthis, _rctx);
-			}
-		}else{
-			if(pstract->prcvact){
-				(*pstract->prcvact->pcbk)(_pthis, _rctx);
-			}
-			if(pstract->psndact){
-				(*pstract->psndact->pcbk)(_pthis, _rctx);
-			}
-		}
-	}
-	static void completionCallbackRecvSome(frame::CompletionHandler *_pthis, frame::ActionContext &_rctx){
-		ServerSocket 		&rthis = *static_cast<ServerSocket*>(_pthis);
-		aio::ActionContext	&rctx = static_cast<aio::ActionContext&>(_rctx);
-		StreamAction		*pstract = static_cast<StreamAction*>(_pthis->pact);
-		StreamRecvAction	*prcvact = static_cast<StreamRecvAction*>(pstract->prcvact);
-		
-		prcvact->done = true;
-		if(!rctx.error){
-			int rv = dev.recv(prcvact->buf, prcvact->bufcp);
-			if(rv > 0){
-				prcvact->rcvsz = rv;
-			}else if(rv == 0){
-				prcvact->error = SocketClosedError;
-			}else{
-				prcvact->error = last_system_error();
-			}
-		}else{
-			prcvact->error = rctx.error;
-		}
-		aio::Selector::the().schedule(_pthis, prcvact->event, prcvact->index);
-	}
-	
-	static void completionCallbackSendAll(frame::CompletionHandler *_pthis, frame::ActionContext &_rctx){
-		ServerSocket 		&rthis = *static_cast<ServerSocket*>(_pthis);
-		aio::ActionContext	&rctx = static_cast<aio::ActionContext&>(_rctx);
-		StreamAction		*pstract = static_cast<StreamAction*>(_pthis->pact);
-		StreamSendAction	*psndact = static_cast<StreamRecvAction*>(pstract->psndact);
-		
-		psndact->done = true;
-		
-		
-	}
-private:
-	SocketDevice	device;
-	
-};
-
-class frame::aio::DatagramSocket: public frame::CompletionHandler{
-	
-};
-
-class frame::aio::openssl::StreamSocket: public frame::CompletionHandler{
-private:
-	static void completionCallback(frame::CompletionHandler *_pthis, frame::ActionContext &_rctx){
-		ServerSocket 		&rthis = *static_cast<ServerSocket*>(_pthis);
-		aio::ActionContext	&rctx = static_cast<aio::ActionContext&>(_rctx);
-		StreamAction		*pstract = static_cast<StreamAction*>(_pthis->pact);
-		
-		if(pstract->wantRead()){
-			(*pstract->prcvact->pcbk)(_pthis, _rctx);
-		}
-		if(pstract->wantWrite()){
-			(*pstract->psndact->pcbk)(_pthis, _rctx);
-		}
-	}
-};
 
 void aio::Selector::run(){
 	d.should_continue = true;
@@ -382,5 +200,136 @@ void aio::Selector::run(){
 	}while(should_continue);
 }
 
+
+//================================================================================
+class aio::Socket{
+public:
+	
+};
+
+class openssl::Socket{
+public:
+};
+
+template <class Sock>
+class Listener: public aio::CompletionHandler{
+public:
+	bool accept(
+		frame::aio::ExecuteContext &_rexectx,
+		error_code &_err, Device &_rdev,
+		frame::Event const &_evs = Event(EventAccept)
+	){
+		
+	}
+	
+	bool doneAccept(error_code &_rerr, Device &_rdev){
+		
+	}
+private:
+	Sock	s;
+};
+
+template <class Sock>
+class Datagram: public aio::CompletionHandler{
+public:
+private:
+	Sock	s;
+};
+
+template <class Sock>
+class Stream: public aio::CompletionHandler{
+public:
+	Stream(Device &_rd):s(_rd){}
+	
+	bool connect(SocketAddress &_rsa, error_code &_err){
+		
+	}
+	
+	bool doneConnect(error_code &_rerr){
+		
+	}
+	
+	bool recvSome(
+		frame::aio::ExecuteContext &_rctx,
+		char *_buf, size_t _bufcp,
+		error_code &_err, size_t &_rsz,
+		frame::Event const &_evs = Event(EventRecv)
+	){
+		StreamAction *psa = static_cast<StreamAction*>(this->pact);
+		
+		if(!psa->hasPendingRecv()){
+		
+			const WantE want = s.recvSome(0, _buf, _bufcp, _err, _rsz);
+			
+			if(want == WantDone){
+				return true;
+			}else{
+				psa->recvHandler(&ThisT::doRecvSome, _evs, _buf, _bufcp);
+				return aio::CompletionHandler::wait(_rctx.selector(), want, _err);
+			}
+		}else{
+			err = aio::already_in_progress_error;
+			return true;
+		}
+	}
+
+	bool recvAll(
+		frame::aio::ExecuteContext &_rexectx,
+		char *_buf, size_t _bufcp,
+		error_code &_err, size_t &_rsz,
+		frame::Event const &_evs = Event(EventRecv)
+	){
+		StreamAction *psa = static_cast<StreamAction*>(this->pact);
+		
+		if(!psa->hasPendingRecv()){
+		
+			const WantE want = s.recvSome(0, _buf, _bufcp, _err, _rsz);
+			
+			if(want == WantDone && (_rsz == _bufcp || _err)){
+				return true;
+			}else{
+				psa->recvHandler(&ThisT::doRecvAll, _evs, _buf, _bufcp, _rsz);
+				return aio::CompletionHandler::wait(_rctx.selector(), want, _err);
+			}
+		}else{
+			err = aio::already_in_progress_error;
+			return true;
+		}
+	}
+	bool doneRecv(frame::aio::ExecuteContext &_rexectx, error_code &_err, size_t &_rsz){
+	}
+	bool sendSome(frame::aio::ExecuteContext &_rexectx, const char *_buf, size_t _bufcp, Event const &_ev = Event(EventRecv)){
+	}
+	bool sendAll(frame::aio::ExecuteContext &_rexectx, const char *_buf, size_t _bufcp, Event const &_evs = Event(EventRecv)){
+	}
+	bool doneSend(frame::aio::ExecuteContext &_rexectx, error_code &_err, size_t &_rsz){
+	}
+private:
+	static void doRecvSome(ActionContext &_rctx, void *_ph, void *_pa){
+		ThisT				*pthis = reinterpret_cast<ThisT*>(_ph);
+		RecvAction			*pact = reinterpret_cast<BasicRecvAction*>(_pa);
+		aio::ActionContext	&rctx = static_cast<aio::ActionContext&>(_rctx);
+		
+		const WanttE 		want = pthis->s.recvSome(_rctx.events, pact->buf, pact->bufcp, pact->err, pact->sz);
+			
+		if(want == WantDone || aio::CompletionHandler::wait(rctx.selector(), want, pact->err)){
+			pthis->aio::CompletionHandler::complete(rctx.selector(), pact->event);
+		}
+	}
+	static void doRecvAll(ActionContext &_rctx, void *_ph, void *_pa){
+		ThisT				*pthis = reinterpret_cast<ThisT*>(_ph);
+		RecvAction			*pact = reinterpret_cast<BasicRecvAction*>(_pa);
+		aio::ActionContext	&rctx = static_cast<aio::ActionContext&>(_rctx);
+		
+		size_t				sz;
+		const WanttE 		want = pthis->s.recvSome(_rctx.events, pact->buf, pact->bufcp, pact->err, sz);
+			
+		if(want == WantDone || aio::CompletionHandler::wait(rctx.selector(), want, pact->err)){
+			pthis->aio::CompletionHandler::complete(rctx.selector(), pact->event);
+		}
+	}
+private:
+	Sock	s;
+};
 
 
