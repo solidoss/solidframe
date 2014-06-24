@@ -66,13 +66,9 @@ public://definition
 	*/
 	Scheduler(
 		Manager &_rm,
-		int16 _startthrcnt = 0,
-		uint16 _maxthrcnt = 2,
-		const IndexT &_selcap = 1024 * 64
-	):SchedulerBase(_rm, _startthrcnt >= 0 ? _startthrcnt : -_startthrcnt, _maxthrcnt, _selcap), wp(*this){
-		if(_startthrcnt >= 0){
-			start(_startthrcnt);
-		}
+		const IndexT &_selcap = 1024 * 64,
+		uint16 _maxthrcnt = 2
+	):SchedulerBase(_rm, _maxthrcnt, _selcap), wp(*this){
 	}
 	
 	~Scheduler(){
@@ -101,7 +97,7 @@ public://definition
 	 * NOTE: in future versions this might be made protected or private
 	 */
 	void start(ushort _startwkrcnt = 0){
-		wp.start(_startwkrcnt ? _startwkrcnt : startwkrcnt);
+		wp.start(_startwkrcnt < this->maxwkrcnt ? _startwkrcnt : this->maxwkrcnt);
 	}
 	
 	//! Starts the scheduler
@@ -126,6 +122,7 @@ private:
 			return false;
 		}return true;
 	}
+	
 	bool prepareWorker(Worker &_rw){
 		if(!prepareThread(&_rw.s)){
 			return false;
@@ -133,11 +130,13 @@ private:
 		_rw.s.prepare();
 		return _rw.s.init(selcap);
 	}
+	
 	void unprepareWorker(Worker &_rw){
 		unprepareThread(&_rw.s);
 		_rw.s.unprepare();
 		--crtwkrcnt;
 	}
+	
 	void onPush(WorkPoolT &_rwp){
 		if(_rwp.size() != 1) return;
 		if(tryRaiseOneSelector()) return;
@@ -147,10 +146,12 @@ private:
 			raiseOneSelector();
 		}
 	}
-	void onMultiPush(WorkPoolT &_rwp, ulong _cnt){
+	
+	void onMultiPush(WorkPoolT &_rwp, size_t _cnt){
 		//NOTE: not used right now
 	}
-	ulong onPopStart(WorkPoolT &_rwp, Worker &_rw, ulong){
+	
+	size_t onPopStart(WorkPoolT &_rwp, Worker &_rw, size_t){
 		if(_rw.s.full()){
 			markSelectorFull(_rw.s);
 			if(_rwp.size() && !tryRaiseOneSelector()){
@@ -166,6 +167,7 @@ private:
 		if(_rwp.empty() && !_rw.s.empty()) return 0;
 		return _rw.s.capacity() - _rw.s.size();
 	}
+	
 	void onPopDone(WorkPoolT &_rwp, Worker &_rw){
 		if(_rwp.size()){
 			if(_rw.s.full()){

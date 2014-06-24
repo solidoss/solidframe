@@ -40,7 +40,7 @@ Service::~Service(){
 	}
 }
 
-ObjectUidT Service::registerObject(Object &_robj){
+ObjectUidT Service::registerObject(ObjectBase &_robj){
 	if(isRegistered()){
 		return rm.registerServiceObject(*this, _robj);
 	}else{
@@ -50,46 +50,25 @@ ObjectUidT Service::registerObject(Object &_robj){
 
 namespace{
 
-struct SignalNotifier{
-	SignalNotifier(Manager &_rm, ulong _sm):rm(_rm), sm(_sm){}
-	Manager	&rm;
-	ulong	sm;
+struct EventNotifier{
+	EventNotifier(Manager &_rm, SharedEvent const &_revt):rm(_rm), evt(_revt){}
+	Manager			&rm;
+	SharedEvent		evt;
 	
-	void operator()(Object &_robj){
-		if(_robj.notify(sm)){
-			rm.raise(_robj);
+	void operator()(ObjectBase &_robj){
+		Event tmpevt(evt);
+		if(_robj.notify(tmpevt)){
+			rm.raise(_robj, tmpevt);
 		}
 	}
 };
-
-struct MessageNotifier{
-	MessageNotifier(Manager &_rm, MessageSharedPointerT &_rmsgptr):rm(_rm), rmsgptr(_rmsgptr){}
-	Manager					&rm;
-	MessageSharedPointerT	&rmsgptr;
-	
-	void operator()(Object &_robj){
-		MessagePointerT msgptr(rmsgptr);
-		if(_robj.notify(msgptr)){
-			rm.raise(_robj);
-		}
-	}
-};
-
 
 }//namespace
 
 
-bool Service::notifyAll(ulong _sm){
+bool Service::notifyAll(SharedEvent const & _revt){
 	if(isRegistered()){
-		SignalNotifier	notifier(rm, _sm);
-		return rm.forEachServiceObject(*this, notifier);
-	}else{
-		return false;
-	}
-}
-bool Service::notifyAll(MessageSharedPointerT &_rmsgptr){
-	if(isRegistered()){
-		MessageNotifier notifier(rm, _rmsgptr);
+		EventNotifier	notifier(rm, _revt);
 		return rm.forEachServiceObject(*this, notifier);
 	}else{
 		return false;
@@ -118,7 +97,7 @@ Object* Service::object(const IndexT &_rfullid)const{
 	return rm.unsafeObject(_rfullid);
 }
 
-ObjectUidT Service::unsafeRegisterObject(Object &_robj)const{
+ObjectUidT Service::unsafeRegisterObject(ObjectBase &_robj)const{
 	const size_t	svcidx = idx.load(/*ATOMIC_NS::memory_order_seq_cst*/);
 	return rm.doUnsafeRegisterServiceObject(svcidx, _robj);
 }

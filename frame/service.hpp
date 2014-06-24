@@ -1,6 +1,6 @@
 // frame/service.hpp
 //
-// Copyright (c) 2013 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2013, 2014 Valentin Palade (vipalade @ gmail . com) 
 //
 // This file is part of SolidFrame framework.
 //
@@ -11,6 +11,7 @@
 #define SOLID_FRAME_SERVICE_HPP
 
 #include "frame/common.hpp"
+#include "frame/event.hpp"
 #include "system/mutex.hpp"
 #include "utility/dynamictype.hpp"
 #include <vector>
@@ -20,18 +21,11 @@
 #include "boost/atomic.hpp"
 #endif
 
-#include "frame/manager.hpp"
-
-
 namespace solid{
 namespace frame{
 
 class	Manager;
-struct	Message;
-class	Object;
-
-typedef DynamicSharedPointer<Message>	MessageSharedPointerT;
-typedef DynamicPointer<Message>			MessagePointerT;
+class	ObjectBase;
 
 class Service: public Dynamic<Service>{
 public:
@@ -40,14 +34,12 @@ public:
 	);
 	~Service();
 	
-	ObjectUidT registerObject(Object &_robj);
+	ObjectUidT registerObject(ObjectBase &_robj);
 	
 	bool isRegistered()const;
 	
-	bool notifyAll(ulong _sm);
+	bool notifyAll(SharedEvent const &_e);
 
-	bool notifyAll(MessageSharedPointerT &_rmsgptr);
-	
 	template <class N>
 	bool forEachObject(N &_rn){
 		if(isRegistered()){
@@ -66,8 +58,8 @@ public:
 	Mutex& mutex()const;
 protected:
 	Mutex& mutex(const IndexT &_rfullid)const;
-	Object* object(const IndexT &_rfullid)const;
-	ObjectUidT unsafeRegisterObject(Object &_robj)const;
+	ObjectBase* object(const IndexT &_rfullid)const;
+	ObjectUidT unsafeRegisterObject(ObjectBase &_robj)const;
 	void unsafeStop(Locker<Mutex> &_rlock, bool _wait);
 	void unsafeReset(Locker<Mutex> &_rlock);
 private:

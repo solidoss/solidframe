@@ -38,9 +38,11 @@ SchedulerBase::SchedulerBase(
 ):rm(_rm), d(*(new Data)), startwkrcnt(_startwkrcnt), maxwkrcnt(_maxwkrcnt), crtwkrcnt(0), selcap(_selcap){
 	if(maxwkrcnt == 0) maxwkrcnt = 1;
 }
+
 /*virtual*/ SchedulerBase::~SchedulerBase(){
 	delete &d;
 }
+
 bool SchedulerBase::prepareThread(SelectorBase *_ps){
 	if(rm.prepareThread(_ps)){
 		if(_ps){
@@ -51,6 +53,7 @@ bool SchedulerBase::prepareThread(SelectorBase *_ps){
 		return false;
 	}
 }
+
 void SchedulerBase::unprepareThread(SelectorBase *_ps){
 	if(_ps){
 		d.selvec[_ps->id()].first = NULL;
@@ -58,6 +61,7 @@ void SchedulerBase::unprepareThread(SelectorBase *_ps){
 	}
 	rm.unprepareThread(_ps);
 }
+
 bool SchedulerBase::tryRaiseOneSelector()const{
 	if(d.idxlst.size()){
 		d.selvec[d.idxlst.back()].first->raise();
@@ -65,9 +69,10 @@ bool SchedulerBase::tryRaiseOneSelector()const{
 	}
 	return false;
 }
+
 void SchedulerBase::raiseOneSelector(){
 	if(d.selvec.empty()) return;
-	uint cnt(d.selvec.size());
+	size_t cnt(d.selvec.size());
 	while(cnt-- && !d.selvec[d.crtidx].first){
 		++d.crtidx;
 		d.crtidx %= d.selvec.size();
@@ -78,17 +83,20 @@ void SchedulerBase::raiseOneSelector(){
 		d.crtidx %= d.selvec.size();
 	}
 }
+
 void SchedulerBase::markSelectorFull(SelectorBase &_rs){
 	if(d.selvec[_rs.id()].second != d.idxlst.end()){
 		d.idxlst.erase(d.selvec[_rs.id()].second);
 		d.selvec[_rs.id()].second = d.idxlst.end();
 	}
 }
+
 void SchedulerBase::markSelectorNotFull(SelectorBase &_rs){
 	if(d.selvec[_rs.id()].second == d.idxlst.end()){
 		d.selvec[_rs.id()].second = d.idxlst.insert(d.idxlst.end(), _rs.id());
 	}
 }
+
 void SchedulerBase::doStop(){
 	for(Data::SelectorPairVectorT::const_iterator it(d.selvec.begin()); it != d.selvec.end(); ++it){
 		if(it->first){

@@ -13,6 +13,7 @@
 #include "system/timespec.hpp"
 
 #include "frame/objectbase.hpp"
+#include "frame/event.hpp"
 
 #include "utility/dynamictype.hpp"
 #include "utility/dynamicpointer.hpp"
@@ -25,31 +26,21 @@ class Object: public Dynamic<Object, DynamicShared<ObjectBase> >{
 public:	
 	struct ExecuteContext{
 		~ExecuteContext();
-		size_t event()const{
+		Event& event()const{
 			return evn;
-		}
-		size_t index()const{
-			return idx;
-		}
-		MessagePointerT& message(){
-			return msgptr;
 		}
 		const TimeSpec& currentTime()const{
 			return rcrttm;
 		}
-		void reschedule(size_t _evn, size_t _idx = 0);
+		void reschedule(Event const &_revn);
 		void close();
 	protected:
 		ExecuteContext(
-			const size_t _evn,
-			const size_t _idx,
-			MessagePointerT &_rmsgptr,
+			const Event &_evn,
 			const TimeSpec &_rcrttm
-		):	evn(_evn), idx(_idx), msgptr(_rmsgptr), rcrttm(_rcrttm){}
+		):	evn(_evn), rcrttm(_rcrttm){}
 		
-		size_t			evn;
-		size_t			idx;
-		MessagePointerT	msgptr;
+		Event			evn;
 		const TimeSpec	&rcrttm;
 	};
 

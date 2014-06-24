@@ -11,26 +11,47 @@
 #define SOLID_FRAME_COMPLETION_HPP
 
 #include "frame/common.hpp"
+#include "system/error.hpp"
+#include "system/cassert.hpp"
 
 namespace solid{
 namespace frame{
 
 class ObjectBase;
+class CompletionHandler;
 
 struct ActionContext{
-	error_code	error;
 };
 
 struct Action{
-	bool		done;
-	CbkPtrT		pcbk;
+	typedef void (*CallbackT)(CompletionHandler *, ActionContext &);
+	
+	Action(CallbackT _pcbk):pcbk(_pcbk){}
+	
+	void call(CompletionHandler *_ph, ActionContext &_rctx){
+		(*pcbk)(_ph, _rctx);
+	}
+	
+	ERROR_NS::error_code	error;
+	CallbackT				pcbk;
 };
 
 class CompletionHandler{
+	static Action	dummy_init_action;
+public:
+	CompletionHandler(ObjectBase &_robj):robj(_robj), pact(&dummy_init_action){
+		doRegister();
+	}
 private:
+	
 	void handleCompletion(ActionContext &_rctx){
 		cassert(pact);
-		(*pact->pcbk)(this, _rctx);
+		pact->call(this, _rctx);
+	}
+	void doRegister();
+private:
+	static void doInitComplete(CompletionHandler *_ph, ActionContext &){
+		_ph->pact = NULL;
 	}
 protected:
 	ObjectBase				&robj;
