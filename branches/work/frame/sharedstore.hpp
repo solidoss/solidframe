@@ -1,6 +1,6 @@
 // frame/sharedstore.hpp
 //
-// Copyright (c) 2013 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com) 
 //
 // This file is part of SolidFrame framework.
 //
@@ -43,7 +43,7 @@ public:
 		UidVectorT& consumeEraseVector()const{
 			return rs.consumeEraseVector();
 		}
-		void notify(ulong _sm);
+		void notify(size_t _evt);
 	private:
 		friend class StoreBase;
 		StoreBase	&rs;
@@ -113,18 +113,18 @@ struct PointerBase{
 		return uid;
 	}
 	bool empty()const{
-		return is_invalid_uid(id());
+		return id().isInvalid();
 	}
 	StoreBase* store()const{
 		return psb;
 	}
 	Mutex* mutex()const{
 		if(!empty()){
-			return &psb->mutex(uid.first);
+			return &psb->mutex(uid.index);
 		}else return NULL;
 	}
 protected:
-	PointerBase(StoreBase *_psb = NULL):uid(invalid_uid()), psb(_psb){}
+	PointerBase(StoreBase *_psb = NULL):psb(_psb){}
 	PointerBase(StoreBase *_psb, UidT const &_uid):uid(_uid), psb(_psb){}
 	PointerBase(PointerBase const &_rpb):uid(_rpb.uid), psb(_rpb.psb){}
 	
@@ -150,7 +150,7 @@ struct Pointer: PointerBase{
 	explicit Pointer(
 		T *_pt,
 		StoreBase *_psb  = NULL,
-		UidT const &_uid = invalid_uid()
+		UidT const &_uid = UidT()
 	): PointerBase(_psb, _uid), pt(_pt){}
 	
 	Pointer(PointerT const &_rptr):PointerBase(_rptr), pt(_rptr.release()){}
@@ -183,7 +183,7 @@ struct Pointer: PointerBase{
 	T* release()const{
 		T *p = pt;
 		pt = NULL;
-		doReset(NULL, invalid_uid());
+		doReset(NULL, UidT());
 		return p;
 	}
 	void clear(){
@@ -288,11 +288,11 @@ public:
 	//Try get an alive pointer for an intem
 	PointerT	alive(UidT const & _ruid, ERROR_NS::error_code &_rerr){
 		PointerT		ptr;
-		const size_t	idx = _ruid.first;
+		const size_t	idx = _ruid.index;
 		if(idx < this->atomicMaxCount()){
 			Locker<Mutex>	lock2(this->mutex(idx));
 			Stub			&rs = stubvec[idx];
-			if(rs.uid == _ruid.second){
+			if(rs.uid == _ruid.unique){
 				ptr = doTryGetAlive(idx);
 			}
 		}
@@ -302,11 +302,11 @@ public:
 	//Try get an unique pointer for an item
 	PointerT	unique(UidT const & _ruid, ERROR_NS::error_code &_rerr){
 		PointerT		ptr;
-		const size_t	idx = _ruid.first;
+		const size_t	idx = _ruid.index;
 		if(idx < this->atomicMaxCount()){
 			Locker<Mutex>	lock2(this->mutex(idx));
 			Stub			&rs = stubvec[idx];
-			if(rs.uid == _ruid.second){
+			if(rs.uid == _ruid.unique){
 				ptr = doTryGetUnique(idx);
 			}
 		}
@@ -316,11 +316,11 @@ public:
 	//Try get a shared pointer for an item
 	PointerT	shared(UidT const & _ruid, ERROR_NS::error_code &_rerr){
 		PointerT		ptr;
-		const size_t	idx = _ruid.first;
+		const size_t	idx = _ruid.index;
 		if(idx < this->atomicMaxCount()){
 			Locker<Mutex>	lock2(this->mutex(idx));
 			Stub			&rs = stubvec[idx];
-			if(rs.uid == _ruid.second){
+			if(rs.uid == _ruid.unique){
 				ptr = doTryGetShared(idx);
 			}
 		}
@@ -331,11 +331,11 @@ public:
 		bool rv = false;
 		bool do_notify = false;
 		if(!_rptr.empty()){
-			const size_t	idx = _rptr.id().first;
+			const size_t	idx = _rptr.id().index;
 			if(idx < this->atomicMaxCount()){
 				Locker<Mutex>	lock2(this->mutex(idx));
 				Stub			&rs = stubvec[idx];
-				if(rs.uid == _rptr.id().second){
+				if(rs.uid == _rptr.id().unique){
 					if(doSwitchUniqueToShared(idx)){
 						if(rs.pwaitfirst && rs.pwaitfirst->kind == StoreBase::SharedWaitE){
 							do_notify = true;
@@ -388,11 +388,11 @@ public:
 	bool requestShared(F _f, UidT const & _ruid, const size_t _flags = 0){
 		PointerT				ptr;
 		ERROR_NS::error_code	err;
-		const size_t			idx = _ruid.first;
+		const size_t			idx = _ruid.index;
 		if(idx < this->atomicMaxCount()){
 			Locker<Mutex>	lock2(this->mutex(idx));
 			Stub			&rs = stubvec[idx];
-			if(rs.uid == _ruid.second){
+			if(rs.uid == _ruid.unique){
 				ptr = doTryGetShared(idx);
 				if(ptr.empty()){
 					doPushWait(idx, _f, StoreBase::SharedWaitE);
@@ -414,11 +414,11 @@ public:
 	bool requestUnique(F _f, UidT const & _ruid, const size_t _flags = 0){
 		PointerT				ptr;
 		ERROR_NS::error_code	err;
-		const size_t			idx = _ruid.first;
+		const size_t			idx = _ruid.index;
 		if(idx < this->atomicMaxCount()){
 			Locker<Mutex>	lock2(this->mutex(idx));
 			Stub			&rs = stubvec[idx];
-			if(rs.uid == _ruid.second){
+			if(rs.uid == _ruid.unique){
 				ptr = doTryGetUnique(idx);
 				if(ptr.empty()){
 					doPushWait(idx, _f, StoreBase::UniqueWaitE);
@@ -441,11 +441,11 @@ public:
 	bool requestReinit(F _f, UidT const & _ruid, const size_t _flags = 0){
 		PointerT				ptr;
 		ERROR_NS::error_code	err;
-		const size_t			idx = _ruid.first;
+		const size_t			idx = _ruid.index;
 		if(idx < this->atomicMaxCount()){
 			Locker<Mutex>	lock2(this->mutex(idx));
 			Stub			&rs = stubvec[idx];
-			if(rs.uid == _ruid.second){
+			if(rs.uid == _ruid.unique){
 				ptr = doTryGetReinit(idx);
 				if(ptr.empty()){
 					doPushWait(idx, _f, StoreBase::ReinitWaitE);
@@ -570,8 +570,8 @@ private:
 	
 	/*virtual*/ bool doDecrementObjectUseCount(UidT const &_uid, const bool _isalive){
 		//the coresponding mutex is already locked
-		Stub &rs = stubvec[_uid.first];
-		if(rs.uid == _uid.second){
+		Stub &rs = stubvec[_uid.index];
+		if(rs.uid == _uid.unique){
 			if(_isalive){
 				--rs.alivecnt;
 				return rs.usecnt == 0 && rs.alivecnt == 0;
@@ -599,25 +599,25 @@ private:
 		if(reraseuidvec.empty()){
 			return must_reschedule;
 		}
-		Mutex						*pmtx = &this->mutex(reraseuidvec.front().first);
+		Mutex						*pmtx = &this->mutex(reraseuidvec.front().index);
 		pmtx->lock();
 		for(StoreBase::UidVectorT::const_iterator it(reraseuidvec.begin()); it != reraseuidvec.end(); ++it){
-			Mutex *ptmpmtx = &this->mutex(it->first);
+			Mutex *ptmpmtx = &this->mutex(it->index);
 			if(pmtx != ptmpmtx){
 				pmtx->unlock();
 				pmtx = ptmpmtx;
 				pmtx->lock();
 			}
-			Stub	&rs = stubvec[it->first];
-			if(it->second == rs.uid){
+			Stub	&rs = stubvec[it->index];
+			if(it->unique == rs.uid){
 				if((it - reraseuidvec.begin()) >= eraseuidvecsize){
 					//its an uid added by executeBeforeErase
 					--rs.usecnt;
 				}
 				if(rs.canClear()){
-					rcacheidxvec.push_back(it->first);
+					rcacheidxvec.push_back(it->index);
 				}else{
-					doExecuteErase(it->first);
+					doExecuteErase(it->index);
 				}
 			}
 		}

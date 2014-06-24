@@ -29,7 +29,6 @@ protected:
 	
 	SchedulerBase(
 		Manager &_rm,
-		uint16 _startwkrcnt,
 		uint16 _maxwkrcnt,
 		const IndexT &_selcap
 	);
@@ -48,7 +47,6 @@ protected:
 	Manager	&rm;
 	Data	&d;
 	IndexT	cap;//the total count of objects already in pool
-	uint16	startwkrcnt;
 	uint16	maxwkrcnt;
 	uint16	crtwkrcnt;
 	IndexT	selcap;

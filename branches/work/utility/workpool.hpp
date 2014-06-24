@@ -67,9 +67,9 @@ struct WorkPoolControllerBase{
 	}
 	void onPush(WorkPoolBase &){
 	}
-	void onMultiPush(WorkPoolBase &, ulong _cnd){
+	void onMultiPush(WorkPoolBase &, size_t _cnd){
 	}
-	ulong onPopStart(WorkPoolBase &, WorkerBase &, ulong _maxcnt){
+	size_t onPopStart(WorkPoolBase &, WorkerBase &, size_t _maxcnt){
 		return _maxcnt;
 	}
 	void onPopDone(WorkPoolBase &, WorkerBase &){
@@ -108,7 +108,7 @@ class WorkPool: public WorkPoolBase{
 		ThisT	&rw;
 	};
 	struct MultiWorker: W{
-		MultiWorker(ThisT &_rw, ulong _maxcnt):rw(_rw), maxcnt(_maxcnt){}
+		MultiWorker(ThisT &_rw, size_t _maxcnt):rw(_rw), maxcnt(_maxcnt){}
 		void run(){
 			if(!rw.enterWorker(*this)){
 				return;
@@ -122,7 +122,7 @@ class WorkPool: public WorkPoolBase{
 			rw.exitWorker(*this);
 		}
 		ThisT	&rw;
-		ulong	maxcnt;
+		size_t	maxcnt;
 	};
 	
 public:
@@ -159,7 +159,7 @@ public:
 	template <class I>
 	void push(I _i, const I &_end){
 		mtx.lock();
-		ulong cnt(_end - _i);
+		size_t cnt(_end - _i);
 		for(; _i != _end; ++_i){
 			jobq.push(*_i);
 		}
@@ -193,7 +193,7 @@ public:
 		Locker<Mutex>	lock(mtx);
 		doStop(lock, _wait);
 	}
-	ulong size()const{
+	size_t size()const{
 		return jobq.size();
 	}
 	bool empty()const{
@@ -211,7 +211,7 @@ public:
 	WorkerT* createSingleWorker(){
 		return new SingleWorker(*this);
 	}
-	WorkerT* createMultiWorker(ulong _maxcnt){
+	WorkerT* createMultiWorker(size_t _maxcnt){
 		return new MultiWorker(*this, _maxcnt);
 	}
 	
@@ -229,7 +229,7 @@ private:
 		}
 		state(Stopped);
 	}
-	bool pop(WorkerT &_rw, JobVectorT &_rjobvec, ulong _maxcnt){
+	bool pop(WorkerT &_rw, JobVectorT &_rjobvec, size_t _maxcnt){
 		Locker<Mutex> lock(mtx);
 		uint32 insertcount(ctrl.onPopStart(*this, _rw, _maxcnt));
 		if(!insertcount){
@@ -261,7 +261,7 @@ private:
 		return false;
 	}
 	
-	ulong doWaitJob(Locker<Mutex> &_lock){
+	size_t doWaitJob(Locker<Mutex> &_lock){
 		while(jobq.empty() && isRunning()){
 			sigcnd.wait(_lock);
 		}

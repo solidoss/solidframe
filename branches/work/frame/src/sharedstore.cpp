@@ -1,3 +1,12 @@
+// frame/src/sharedstore.cpp
+//
+// Copyright (c) 2014 Valentin Palade (vipalade @ gmail . com) 
+//
+// This file is part of SolidFrame framework.
+//
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
+//
 #include "frame/sharedstore.hpp"
 #include "frame/manager.hpp"
 #include "system/cassert.hpp"
@@ -47,7 +56,7 @@ struct StoreBase::Data{
 };
 
 
-void StoreBase::Accessor::notify(ulong _sm){
+void StoreBase::Accessor::notify(size_t _evt){
 	if(store().notify(_sm)){
 		store().manager().raise(store());
 	}
@@ -132,10 +141,10 @@ size_t StoreBase::doAllocateIndex(){
 	return rv;
 }
 void StoreBase::erasePointer(UidT const & _ruid, const bool _isalive){
-	if(_ruid.first < d.objmaxcnt.load()){
+	if(_ruid.index < d.objmaxcnt.load()){
 		bool	do_notify = true;
 		{
-			Locker<Mutex>	lock(mutex(_ruid.first));
+			Locker<Mutex>	lock(mutex(_ruid.index));
 			do_notify = doDecrementObjectUseCount(_ruid, _isalive);
 		}
 		notifyObject(_ruid);

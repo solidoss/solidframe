@@ -11,28 +11,18 @@
 #define SOLID_FRAME_MANAGER_HPP
 
 #include "frame/common.hpp"
+#include "frame/event.hpp"
 #include "system/mutex.hpp"
 #include "utility/dynamicpointer.hpp"
 #include "utility/functor.hpp"
-
-class  SpecificMapper;
-class  GlobalMapper;
-class  SelectorBase;
 
 namespace solid{
 namespace frame{
 
 class	Service;
-class	Object;
-struct	Message;
+class	ObjectBase;
 class	SchedulerBase;
 class	SelectorBase;
-
-typedef DynamicSharedPointer<Message>	MessageSharedPointerT;
-typedef DynamicPointer<Message>			MessagePointerT;
-
-typedef DynamicSharedPointer<Object>	ObjectSharedPointerT;
-typedef DynamicPointer<Object>			ObjectPointerT;
 
 class Manager{
 public:
@@ -56,41 +46,34 @@ public:
 	);
 	void unregisterService(Service &_rsvc);
 	
-	ObjectUidT	registerObject(Object &_robj);
+	ObjectUidT	registerObject(ObjectBase &_robj);
 	
-	bool notify(ulong _sm, const ObjectUidT &_ruid);
+	bool notify(ObjectUidT const &_ruid, Event const &_e);
 
-	bool notify(MessagePointerT &_rmsgptr, const ObjectUidT &_ruid);
+	bool notifyAll(SharedEvent const &_e);
 	
-	bool notifyAll(ulong _sm);
+	Mutex& mutex(const ObjectBase &_robj)const;
 	
-	bool notifyAll(MessageSharedPointerT &_rmsgptr);
+	Service& service(const ObjectBase &_robj)const;
 	
-	
-	void raise(const Object &_robj);
-	
-	Mutex& mutex(const Object &_robj)const;
-	
-	Service& service(const Object &_robj)const;
-	
-	ObjectUidT  id(const Object &_robj)const;
+	ObjectUidT  id(const ObjectBase &_robj)const;
 	
 protected:
 	size_t serviceCount()const;
 	
 private:
 	friend class Service;
-	friend class Object;
+	friend class ObjectBase;
 	
 	
-	typedef FunctorReference<void, Object&>	ObjectVisitFunctorT;
+	typedef FunctorReference<void, ObjectBase&>	ObjectVisitFunctorT;
 	
 	void unregisterObject(Object &_robj);
 	
 	ObjectUidT  unsafeId(const Object &_robj)const;
 	
 	Mutex& serviceMutex(const Service &_rsvc)const;
-	ObjectUidT registerServiceObject(const Service &_rsvc, Object &_robj);
+	ObjectUidT registerServiceObject(const Service &_rsvc, ObjectBase &_robj);
 	
 	template <typename F>
 	bool forEachServiceObject(const Service &_rsvc, F &_f){
@@ -102,7 +85,7 @@ private:
 	friend class SchedulerBase;
 	
 	Mutex& mutex(const IndexT &_rfullid)const;
-	Object* unsafeObject(const IndexT &_rfullid)const;
+	ObjectBase* unsafeObject(const IndexT &_rfullid)const;
 	
 	IndexT computeThreadId(const IndexT &_selidx, const IndexT &_objidx);
 	bool prepareThread(SelectorBase *_ps = NULL);
@@ -114,7 +97,7 @@ private:
 	virtual bool doPrepareThread();
 	virtual void doUnprepareThread();
 	//ObjectUidT doRegisterServiceObject(const IndexT _svcidx, Object &_robj);
-	ObjectUidT doUnsafeRegisterServiceObject(const IndexT _svcidx, Object &_robj);
+	ObjectUidT doUnsafeRegisterServiceObject(const IndexT _svcidx, ObjectBase &_robj);
 	bool doForEachServiceObject(const Service &_rsvc, ObjectVisitFunctorT &_fctor);
 	bool doForEachServiceObject(const size_t _svcidx, ObjectVisitFunctorT &_fctor);
 	void doWaitStopService(const size_t _svcidx, Locker<Mutex> &_rlock, bool _wait);

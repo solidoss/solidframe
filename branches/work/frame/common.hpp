@@ -1,6 +1,6 @@
 // frame/common.hpp
 //
-// Copyright (c) 2007, 2008, 2013 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008, 2013, 2014 Valentin Palade (vipalade @ gmail . com) 
 //
 // This file is part of SolidFrame framework.
 //
@@ -17,43 +17,6 @@
 namespace solid{
 namespace frame{
 
-//! Some return values
-// enum RetValEx {
-// 	LEAVE = CONTINUE + 1,
-// 	REGISTER, UNREGISTER, RTOUT, WTOUT, DONE
-// };
-
-//! Some signals
-enum SignalE{
-	//simple:
-	S_RAISE = 1,
-	S_UPDATE = 2,
-	S_SIG = 4,
-	S_KILL = 1<<8,
-	S_IDLE = 1<<9,
-	S_ERR  = 1<<10,
-	S_STOP = 1<<11,
-};
-
-//! Some events
-enum EventE{
-	EventNone = 0,
-	EventDoneSuccess = 1, //Successfull asynchrounous completion
-	EventDoneError = 2,//Unsuccessfull asynchrounous completion
-	EventDoneRecv = 4,//Successfull input asynchrounous completion
-	EventDoneSend = 8,//Successfull output asynchrounous completion
-	EventTimeout = 16,//Unsuccessfull asynchrounous completion due to timeout
-	EventSignal = 32,
-	EventDoneIO = EventDoneRecv | EventDoneSend,
-	EventReschedule = 128,
-	EventTimeoutRecv = 256,
-	EventTimeoutSend = 512,
-};
-
-enum ConstE{
-	MAXTIMEOUT = (0xffffffffUL>>1)/1000
-};
-
 #ifdef UINDEX32
 typedef uint32 IndexT;
 #elif defined(UINDEX64)
@@ -66,21 +29,33 @@ typedef size_t IndexT;
 
 #define INVALID_INDEX ID_MASK
 
-typedef std::pair<IndexT, uint32>	UidT;
-typedef UidT						ObjectUidT;
-typedef UidT						MessageUidT;
-typedef UidT						FileUidT;
-typedef UidT						RequestUidT;
+struct UniqueId{
+	IndexT		index;
+	uint32		unique;
+	
+	
+	static UniqueId invalid(){
+		return UniqueId;
+	}
+	
+	UniqueId(
+		IndexT const& _idx = -1,
+		uint32 _unq = -1
+	): index(_idx), unique(_unq){}
+	bool isInvalid()const{
+		return index == INVALID_INDEX;
+	}
+	bool isValid()const{
+		return !isInvalid();
+	}
+};
+
+typedef UniqueId		UidT;
+typedef UidT			ObjectUidT;
 
 enum{
 	IndexBitCount = sizeof(IndexT) * 8,
 };
-
-inline const UidT& invalid_uid(){
-	static const UidT u(INVALID_INDEX, 0xffffffff);
-	return u;
-}
-
 
 inline bool is_valid_index(const IndexT &_idx){
 	return _idx != INVALID_INDEX;
@@ -88,14 +63,6 @@ inline bool is_valid_index(const IndexT &_idx){
 
 inline bool is_invalid_index(const IndexT &_idx){
 	return _idx == INVALID_INDEX;
-}
-
-inline bool is_valid_uid(const UidT &_ruid){
-	return is_invalid_index(_ruid.first);
-}
-
-inline bool is_invalid_uid(const UidT &_ruid){
-	return is_invalid_index(_ruid.first);
 }
 
 template <typename T>

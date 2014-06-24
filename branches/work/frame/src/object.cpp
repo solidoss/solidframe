@@ -17,6 +17,7 @@
 #include "frame/message.hpp"
 #include "frame/manager.hpp"
 #include "frame/service.hpp"
+#include "frame/completion.hpp"
 
 #include "utility/memory.hpp"
 #include "utility/dynamicpointer.hpp"
@@ -97,7 +98,6 @@ Message::~Message(){
 	objectCheck<Message>(false, __FUNCTION__);
 	vdbgx(Debug::frame, "memsub "<<(void*)this);
 }
-
 }//namespace frame
 }//namespace solid
 
