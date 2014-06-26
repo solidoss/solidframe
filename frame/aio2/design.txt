@@ -130,10 +130,10 @@ private:
 
 class frame::Timer: public CompletionHandler{
 public:
-	bool waitFor(TimeSpec &_rts, error_code &_rerr, size_t _event = EventTimer, size_t _index = 0){
+	bool waitFor(TimeSpec const &_rts, error_code &_rerr, size_t _event = EventTimer, size_t _index = 0){
 		
 	}
-	bool waitUntil(TimeSpec &_rts, error_code &_rerr, size_t _event = EventTimer, size_t _index = 0){
+	bool waitUntil(TimeSpec const &_rts, error_code &_rerr, size_t _event = EventTimer, size_t _index = 0){
 		if(selector()->time() >= _rts){
 			return true;
 		}

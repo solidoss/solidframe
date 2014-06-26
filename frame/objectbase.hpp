@@ -57,23 +57,17 @@ protected:
 	virtual void doStop();
 	
 	bool notify(const size_t _smask);
-	bool notify(Event const &_revt);
 private:
 	void id(const IndexT &_fullid);
 	
 	void stop();
 private:
-	typedef std::vector<Event>		EventVectorT;
-	
 	IndexT						fullid;
 	CompletionHandler			*pcpllst;
 
 	ATOMIC_NS::atomic<IndexT>	selidx;
 	ATOMIC_NS::atomic<uint32>	seluid;
 	ATOMIC_NS::atomic<size_t>	smask;
-	
-	EventVectorT				eventvec;
-	
 };
 
 inline IndexT ObjectBase::id()	const {
@@ -95,15 +89,6 @@ inline size_t ObjectBase::grabSignalMask(const size_t _leave = 0){
 inline bool ObjectBase::notify(const size_t _smask){
 	const size_t osm = smask.fetch_or(_smask/*, ATOMIC_NS::memory_order_seq_cst*/);
 	return _smask != osm;; 
-}
-
-inline bool ObjectBase::notify(Event const &_revt){
-	if(is_valid_index(selidx.fetch(/*ATOMIC_NS::memory_order_seq_cst*/))){
-		return true;
-	}else{
-		eventvec.push_back(_revt);
-		return false;
-	}
 }
 
 }//namespace frame
