@@ -12,6 +12,7 @@
 
 #include "frame/common.hpp"
 #include "frame/event.hpp"
+#include "frame/manager.hpp"
 #include "system/mutex.hpp"
 #include "utility/dynamictype.hpp"
 #include <vector>
@@ -24,7 +25,6 @@
 namespace solid{
 namespace frame{
 
-class	Manager;
 class	ObjectBase;
 
 class Service: public Dynamic<Service>{
@@ -34,7 +34,16 @@ public:
 	);
 	~Service();
 	
-	ObjectUidT registerObject(ObjectBase &_robj);
+	template <class Obj, class Sch>
+	ObjectUidT	registerObject(DynamicPointer<Obj> &_robjptr, Sch &_rsch){
+		if(isRegistered()){
+			ScheduleObjectF<Obj, Sch>			fnc(_robjptr, _rsch);
+			Manager::ObjectScheduleFunctorT		fctor(fnc);
+			return rm.registerServiceObject(*this, *_robjptr, fctor);
+		}else{
+			return ObjectUidT();
+		}
+	}
 	
 	bool isRegistered()const;
 	

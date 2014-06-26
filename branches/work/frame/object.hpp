@@ -26,14 +26,14 @@ class Object: public Dynamic<Object, DynamicShared<ObjectBase> >{
 public:	
 	struct ExecuteContext{
 		~ExecuteContext();
-		Event& event()const{
+		Event const& event()const{
 			return evn;
 		}
 		const TimeSpec& currentTime()const{
 			return rcrttm;
 		}
 		void reschedule(Event const &_revn);
-		void close();
+		void die();
 	protected:
 		ExecuteContext(
 			const Event &_evn,

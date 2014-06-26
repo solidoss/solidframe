@@ -24,7 +24,19 @@ class	ObjectBase;
 class	SchedulerBase;
 class	SelectorBase;
 
+template <class Obj, class Sch>
+struct ScheduleObjectF{
+	ObjPtr	&robjptr;
+	Sch		&sch;
+	ScheduleObjectF(DynamicPointer<Obj> &_robjptr, Sch &_rsch):robjptr(_robjptr), rsch(_rsch){}
+	
+	bool operator()(){
+		return sch.schedule(robjptr);
+	}
+};
+
 class Manager{
+	typedef FunctorReference<bool>	ObjectScheduleFunctorT;
 public:
 	static Manager& specific();
 	
@@ -46,7 +58,12 @@ public:
 	);
 	void unregisterService(Service &_rsvc);
 	
-	ObjectUidT	registerObject(ObjectBase &_robj);
+	template <class Obj, class Sch>
+	ObjectUidT	registerObject(DynamicPointer<Obj> &_robjptr, Sch &_rsch){
+		ScheduleObjectF<Obj, Sch>	fnc(_robjptr, _rsch);
+		ObjectScheduleFunctorT		fctor(fnc);
+		return doRegisterObject(*_robjptr, fctor);
+	}
 	
 	bool notify(ObjectUidT const &_ruid, Event const &_e);
 
@@ -73,7 +90,9 @@ private:
 	ObjectUidT  unsafeId(const Object &_robj)const;
 	
 	Mutex& serviceMutex(const Service &_rsvc)const;
-	ObjectUidT registerServiceObject(const Service &_rsvc, ObjectBase &_robj);
+	
+	ObjectUidT registerServiceObject(const Service &_rsvc, ObjectBase &_robj, ObjectScheduleFunctorT &_rfct);
+	ObjectUidT doRegisterObject(ObjectBase &_robj, ObjectScheduleFunctorT &_rfct);
 	
 	template <typename F>
 	bool forEachServiceObject(const Service &_rsvc, F &_f){
@@ -83,6 +102,8 @@ private:
 	
 	friend class SelectorBase;
 	friend class SchedulerBase;
+	
+	bool raise(const ObjectBase &_robj, Event const &_re);
 	
 	Mutex& mutex(const IndexT &_rfullid)const;
 	ObjectBase* unsafeObject(const IndexT &_rfullid)const;
@@ -97,7 +118,8 @@ private:
 	virtual bool doPrepareThread();
 	virtual void doUnprepareThread();
 	//ObjectUidT doRegisterServiceObject(const IndexT _svcidx, Object &_robj);
-	ObjectUidT doUnsafeRegisterServiceObject(const IndexT _svcidx, ObjectBase &_robj);
+	ObjectUidT doUnsafeRegisterServiceObject(const IndexT _svcidx, ObjectBase &_robj, ObjectScheduleFunctorT &_rfct);
+	
 	bool doForEachServiceObject(const Service &_rsvc, ObjectVisitFunctorT &_fctor);
 	bool doForEachServiceObject(const size_t _svcidx, ObjectVisitFunctorT &_fctor);
 	void doWaitStopService(const size_t _svcidx, Locker<Mutex> &_rlock, bool _wait);
