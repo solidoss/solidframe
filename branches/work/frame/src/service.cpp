@@ -51,13 +51,18 @@ ObjectUidT Service::registerObject(ObjectBase &_robj){
 namespace{
 
 struct EventNotifier{
-	EventNotifier(Manager &_rm, SharedEvent const &_revt):rm(_rm), evt(_revt){}
+	EventNotifier(
+		Manager &_rm, SharedEvent const &_revt, const size_t _sigmsk = 0
+	):rm(_rm), evt(_revt), sigmsk(_sigmsk){}
+	
 	Manager			&rm;
 	SharedEvent		evt;
+	const size_t	sigmsk;
 	
 	void operator()(ObjectBase &_robj){
 		Event tmpevt(evt);
-		if(_robj.notify(tmpevt)){
+		
+		if(!sigmsk || _robj.notify(sigmsk)){
 			rm.raise(_robj, tmpevt);
 		}
 	}
@@ -66,9 +71,9 @@ struct EventNotifier{
 }//namespace
 
 
-bool Service::notifyAll(SharedEvent const & _revt){
+bool Service::notifyAll(SharedEvent const & _revt, const size_t _sigmsk = 0){
 	if(isRegistered()){
-		EventNotifier	notifier(rm, _revt);
+		EventNotifier	notifier(rm, _revt, _sigmsk);
 		return rm.forEachServiceObject(*this, notifier);
 	}else{
 		return false;

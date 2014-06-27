@@ -378,10 +378,10 @@ add_subdirectory (serialization)
 add_subdirectory (protocol)
 add_subdirectory (audit)
 add_subdirectory (test)
-add_subdirectory (example)
 add_subdirectory (library)
 add_subdirectory (application)
 add_subdirectory (consensus)
-add_subdirectory(frame)
+add_subdirectory (frame)
+add_subdirectory (example)
 #-----------------------------------------------------------------
 
