@@ -339,7 +339,7 @@ void Manager::unregisterObject(Object &_robj){
  *		prevented with memory_order_acquire
  * [x,b]/ 
 */
-bool Manager::notify(ObjectUidT const &_ruid, Event const &_re){
+bool Manager::notify(ObjectUidT const &_ruid, Event const &_re, const size_t _sigmsk/* = 0*/){
 	IndexT		svcidx;
 	IndexT		objidx;
 	
@@ -354,7 +354,10 @@ bool Manager::notify(ObjectUidT const &_ruid, Event const &_re){
 			Locker<Mutex>	lock(rss.mtxstore.at(objidx, objpermutbts));
 			
 			if(rss.objpermutbts.load(/*ATOMIC_NS::memory_order_seq_cst*/) == objpermutbts && rss.objvec[objidx].uid == _ruid.unique){
-				return this->raise(*rss.objvec[objidx].pobj, _re);
+				ObjectBase &robj = *rss.objvec[objidx].pobj;
+				if(!_sigmsk || robj.notify(_sigmsk)){
+					return this->raise(robj, _re);
+				}
 			}
 		}
 	}

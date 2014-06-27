@@ -59,14 +59,13 @@ protected:
 	bool notify(const size_t _smask);
 private:
 	void id(const IndexT &_fullid);
+	UidT const& runId()const;
+	void runId(UidT const& _runid);
 	
 	void stop();
 private:
 	IndexT						fullid;
-	CompletionHandler			*pcpllst;
-
-	ATOMIC_NS::atomic<IndexT>	selidx;
-	ATOMIC_NS::atomic<uint32>	seluid;
+	UidT						runid;
 	ATOMIC_NS::atomic<size_t>	smask;
 };
 
@@ -82,7 +81,15 @@ inline void ObjectBase::id(IndexT const &_fullid){
 	fullid = _fullid;
 }
 
-inline size_t ObjectBase::grabSignalMask(const size_t _leave = 0){
+inline UidT const& ObjectBase::runId()const{
+	return runid;
+}
+
+inline void ObjectBase::runId(UidT const& _runid){
+	runid = _runid;
+}
+
+inline size_t ObjectBase::grabSignalMask(const size_t _leave/* = 0*/){
 	return smask.fetch_and(_leave/*, ATOMIC_NS::memory_order_seq_cst*/);
 }
 
@@ -90,6 +97,7 @@ inline bool ObjectBase::notify(const size_t _smask){
 	const size_t osm = smask.fetch_or(_smask/*, ATOMIC_NS::memory_order_seq_cst*/);
 	return _smask != osm;; 
 }
+
 
 }//namespace frame
 }//namespace solid

@@ -26,12 +26,13 @@ class	SelectorBase;
 
 template <class Obj, class Sch>
 struct ScheduleObjectF{
-	ObjPtr	&robjptr;
-	Sch		&sch;
+	DynamicPointer<Obj>	&robjptr;
+	Sch					&rsch;
+	
 	ScheduleObjectF(DynamicPointer<Obj> &_robjptr, Sch &_rsch):robjptr(_robjptr), rsch(_rsch){}
 	
 	bool operator()(){
-		return sch.schedule(robjptr);
+		return rsch.schedule(robjptr);
 	}
 };
 
@@ -65,9 +66,9 @@ public:
 		return doRegisterObject(*_robjptr, fctor);
 	}
 	
-	bool notify(ObjectUidT const &_ruid, Event const &_e);
+	bool notify(ObjectUidT const &_ruid, Event const &_e, const size_t _sigmsk = 0);
 
-	bool notifyAll(SharedEvent const &_e);
+	bool notifyAll(SharedEvent const &_e, const size_t _sigmsk = 0);
 	
 	Mutex& mutex(const ObjectBase &_robj)const;
 	

@@ -35,7 +35,7 @@ struct UniqueId{
 	
 	
 	static UniqueId invalid(){
-		return UniqueId;
+		return UniqueId();
 	}
 	
 	UniqueId(
