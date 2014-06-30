@@ -37,15 +37,21 @@ int main(int argc, char *argv[]){
 		frame::Manager		m;
 		SchedulerT			s(m);
 		
-		m.registerObject(DynamicPointer<frame::Object>(new BasicObject(10)), s);
+		if(s.start(0)){
 		
-		{
-			Locker<Mutex>	lock(mtx);
-			while(running){
-				cnd.wait(lock);
+			m.registerObject(DynamicPointer<frame::Object>(new BasicObject(10)), s);
+			
+			{
+				Locker<Mutex>	lock(mtx);
+				while(running){
+					cnd.wait(lock);
+				}
 			}
+		}else{
+			cout<<"Error starting scheduler"<<endl;
 		}
 		m.stop();
+		
 	}
 	Thread::waitAll();
 	return 0;

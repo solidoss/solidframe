@@ -7,103 +7,108 @@
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
+#include <vector>
 #include "frame/schedulerbase.hpp"
 #include "frame/selectorbase.hpp"
 #include "frame/manager.hpp"
-#include "utility/list.hpp"
+#include "system/thread.hpp"
+#include "system/mutex.hpp"
+#include "system/condition.hpp"
 
 namespace solid{
 namespace frame{
 
+struct SelectorStub{
+	SelectorStub():psel(NULL), cnt(0){}
+	SelectorBase	*psel;
+	size_t			cnt;
+};
+
+typedef std::vector<SelectorStub>	SelectorVectorT;
+
+enum StateE{
+	StateStopped,
+	StateError,
+	StateStarting,
+	StateRunning,
+	StateStopping,
+	StateStoppingError,
+};
+
 struct SchedulerBase::Data{
-	Data():crtidx(0){}
-	typedef List<uint16>				UInt16ListT;
-	typedef std::pair<
-		SelectorBase*,
-		UInt16ListT::iterator
-		>								SelectorPairT;
-	typedef std::vector<SelectorPairT>	SelectorPairVectorT;
+	Data(Manager &_rm):rm(_rm), crtselidx(0), crtselfree(0), selcnt(0), state(StateStopped){}
 	
-	SelectorPairVectorT		selvec;
-	UInt16ListT				idxlst;
-	uint16					crtidx;
+	Manager				&rm;
+	size_t				crtselidx;
+	size_t				crtselfree;
+	size_t				selcnt;
+	StateE				state;
+	SelectorVectorT		selvec;
+	Mutex				mtx;
+	Condition			cnd;
 };
 
 
 SchedulerBase::SchedulerBase(
-	Manager &_rm,
-	uint16 _startwkrcnt,
-	uint16 _maxwkrcnt,
-	const IndexT &_selcap
-):rm(_rm), d(*(new Data)), startwkrcnt(_startwkrcnt), maxwkrcnt(_maxwkrcnt), crtwkrcnt(0), selcap(_selcap){
-	if(maxwkrcnt == 0) maxwkrcnt = 1;
+	Manager &_rm
+):d(*(new Data)){
 }
 
-/*virtual*/ SchedulerBase::~SchedulerBase(){
+SchedulerBase::~SchedulerBase(){
 	delete &d;
 }
 
-bool SchedulerBase::prepareThread(SelectorBase *_ps){
-	if(rm.prepareThread(_ps)){
-		if(_ps){
-			safe_at(d.selvec, _ps->id()) = Data::SelectorPairT(_ps, d.idxlst.insert(d.idxlst.end(), _ps->id()));
-		}
-		return true;
-	}else{
-		return false;
+bool SchedulerBase::doStart(CreateWorkerF _pf, size_t _selcnt/* = 1*/, size_t _selchunkcp/* = 1024*/){
+	if(_selcnt == 0){
+		_selcnt = Thread::processorCount();
 	}
+	Locker<Mutex>	lock(d.mtx);
+	
+	while(d.state == StateStarting || d.state == StateStopping || d.state == StateStoppingError){
+		d.cnd.wait(lock);
+	}
+	
+	if(d.state == StateRunning){
+		return true;
+	}
+	d.state = StateStarting;
+	
+	for(size_t i = 0; i < _selcnt; ++i){
+		if((*_pf)(*this)){
+			
+		}else{
+			d.state = StateStoppingError;
+			break;
+		}
+	}
+	if(d.state == StateStoppingError){
+		while(d.selcnt){
+			d.cnd.wait(lock);
+		}
+		d.state = StateError;
+		return false;
+	}else{
+		
+	}
+	
+}
+
+void SchedulerBase::doStop(bool _wait/* = true*/){
+	
+}
+
+void SchedulerBase::doSchedule(ScheduleFunctorT &_rfct){
+	
+}
+
+bool SchedulerBase::prepareThread(SelectorBase *_ps){
+	d.rm.prepareThread(_ps);
 }
 
 void SchedulerBase::unprepareThread(SelectorBase *_ps){
-	if(_ps){
-		d.selvec[_ps->id()].first = NULL;
-		d.selvec[_ps->id()].second = d.idxlst.end();
-	}
-	rm.unprepareThread(_ps);
+	d.rm.unprepareThread(_ps);
 }
 
-bool SchedulerBase::tryRaiseOneSelector()const{
-	if(d.idxlst.size()){
-		d.selvec[d.idxlst.back()].first->raise();
-		return true;
-	}
-	return false;
-}
-
-void SchedulerBase::raiseOneSelector(){
-	if(d.selvec.empty()) return;
-	size_t cnt(d.selvec.size());
-	while(cnt-- && !d.selvec[d.crtidx].first){
-		++d.crtidx;
-		d.crtidx %= d.selvec.size();
-	}
-	if(d.selvec[d.crtidx].first){
-		d.selvec[d.crtidx].first->raise();
-		++d.crtidx;//try use another selector
-		d.crtidx %= d.selvec.size();
-	}
-}
-
-void SchedulerBase::markSelectorFull(SelectorBase &_rs){
-	if(d.selvec[_rs.id()].second != d.idxlst.end()){
-		d.idxlst.erase(d.selvec[_rs.id()].second);
-		d.selvec[_rs.id()].second = d.idxlst.end();
-	}
-}
-
-void SchedulerBase::markSelectorNotFull(SelectorBase &_rs){
-	if(d.selvec[_rs.id()].second == d.idxlst.end()){
-		d.selvec[_rs.id()].second = d.idxlst.insert(d.idxlst.end(), _rs.id());
-	}
-}
-
-void SchedulerBase::doStop(){
-	for(Data::SelectorPairVectorT::const_iterator it(d.selvec.begin()); it != d.selvec.end(); ++it){
-		if(it->first){
-			it->first->raise();
-		}
-	}
-}
 
 }//namespace frame
 }//namespace solid

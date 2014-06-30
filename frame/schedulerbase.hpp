@@ -20,36 +20,26 @@ class SelectorBase;
 
 //! A base class for all schedulers
 class SchedulerBase{
-public:
-	virtual void start(uint16 _startwkrcnt = 0) = 0;
-	
-	virtual void stop(bool _wait = true) = 0;
-	virtual ~SchedulerBase();
 protected:
+	typedef bool (*CreateWorkerF)(SchedulerBase &_rsch);
 	
+	typedef FunctorReference<bool, SelectorBase*>	ScheduleFunctorT;
+	
+	bool doStart(CreateWorkerF _pf, size_t _selcnt = 1, size_t _selchunkcp = 1024);
+
+	void doStop(bool _wait = true);
+	
+	void doSchedule(ScheduleFunctorT &_rfct);
+protected:
 	SchedulerBase(
-		Manager &_rm,
-		uint16 _maxwkrcnt,
-		const IndexT &_selcap
+		Manager &_rm
 	);
-	
-	bool prepareThread(SelectorBase *_ps = NULL);
-	void unprepareThread(SelectorBase *_ps = NULL);
-	
-	bool tryRaiseOneSelector()const;
-	void raiseOneSelector();
-	
-	void markSelectorFull(SelectorBase &_rs);
-	void markSelectorNotFull(SelectorBase &_rs);
-	void doStop();
-protected:
+	SchedulerBase();
+	bool prepareThread(SelectorBase &_rsel);
+	void unprepareThread(SelectorBase &_rsel);
+private:
 	struct Data;
-	Manager	&rm;
 	Data	&d;
-	IndexT	cap;//the total count of objects already in pool
-	uint16	maxwkrcnt;
-	uint16	crtwkrcnt;
-	IndexT	selcap;
 };
 
 }//namespace frame

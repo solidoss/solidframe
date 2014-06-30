@@ -449,12 +449,14 @@ void Thread::dummySpecificDestroy(void*){
 /*static*/ unsigned Thread::processorCount(){
 #if		defined(ON_SOLARIS)
 	return 1;
-#elif	defined(ON_FREEBSD)
-	return 1;//pmc_ncpu();//sysconf(_SC_NPROCESSORS_ONLN)
-#elif	defined(ON_MACOS)
-    return 1;
+#elif	defined(ON_FREEBSD) || defined(ON_MACOS)
+	int count;
+    size_t size=sizeof(count);
+    return sysctlbyname("hw.ncpu",&count,&size,NULL,0)?0:count;
 #elif	defined(ON_WINDOWS)
-	return 1;
+	SYSTEM_INFO info={{0}};
+    GetSystemInfo(&info);
+    return info.dwNumberOfProcessors;
 #else
 	return get_nprocs();
 #endif
