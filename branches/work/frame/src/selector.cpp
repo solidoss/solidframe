@@ -22,7 +22,7 @@
 
 #include "frame/manager.hpp"
 #include "frame/object.hpp"
-#include "frame/objectselector.hpp"
+#include "frame/selector.hpp"
 
 namespace solid{
 namespace frame{
@@ -328,10 +328,15 @@ int ObjectSelector::doExecute(unsigned _i, ulong _evs, TimeSpec _crttout){
 }
 
 //=====================================================================
-bool SelectorBase::setObjectThread(Object &_robj, const IndexT &_objidx){
+bool SelectorBase::setObjectThread(ObjectBase &_robj, const UidT &_uid){
 	//we are sure that the method is called from within a Manager thread
-	_robj.threadId(Manager::specific().computeThreadId(selid, _objidx));
-	return _robj.threadId() != 0;
+	UidT	uid(Manager::specific().computeThreadId(mgridx, _uid.index), _uid.unique);
+	if(uid.isValid()){
+		_robj.runId(uid);
+		return true;
+	}else{
+		return false;
+	}
 }
 
 

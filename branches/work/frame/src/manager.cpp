@@ -686,7 +686,7 @@ IndexT Manager::computeThreadId(const IndexT &_selidx, const IndexT &_objidx){
 			if((selobjbts2 + 1 + selbts2) <= (sizeof(IndexT) * 8)){
 				d.selobjbts.fetch_add(1/*, ATOMIC_NS::memory_order_seq_cst*/);
 			}else{
-				return 0;
+				return INVALID_INDEX;
 			}
 		}
 	}
@@ -694,7 +694,7 @@ IndexT Manager::computeThreadId(const IndexT &_selidx, const IndexT &_objidx){
 	if(_objidx <= objmaxcnt && _selidx <= selmaxcnt){
 		return unite_index(_selidx, _objidx, selbts);
 	}else{
-		return 0;
+		return INVALID_INDEX;
 	}
 }
 
