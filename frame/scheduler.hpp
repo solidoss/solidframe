@@ -70,7 +70,7 @@ public:
 	bool schedule(ObjectPointerT const &_robjptr){
 		ScheduleFct			s(_robjptr);
 		ScheduleFunctorT	sfct(s);
-		return doSchedule(sfct);
+		return doSchedule(*_robjptr, sfct);
 	}
 };
 

@@ -163,7 +163,7 @@ void SchedulerBase::doStop(bool _wait/* = true*/){
 	}
 }
 
-bool SchedulerBase::doSchedule(ScheduleFunctorT &_rfct){
+bool SchedulerBase::doSchedule(ObjectBase &_robj, ScheduleFunctorT &_rfct){
 	Locker<Mutex>	lock(d.mtx);
 	if(d.state == StateRunning){
 		
@@ -199,6 +199,7 @@ bool SchedulerBase::doSchedule(ScheduleFunctorT &_rfct){
 		++rsel.crtidx;
 	}
 	if(uid.isValid()){
+		rsel.psel->setObjectThread(_robj, uid);
 		return _rfct(*rsel.psel, uid);
 	}else{
 		return false;
