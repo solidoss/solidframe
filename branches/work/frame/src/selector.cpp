@@ -328,7 +328,7 @@ int ObjectSelector::doExecute(unsigned _i, ulong _evs, TimeSpec _crttout){
 }
 
 //=====================================================================
-bool SelectorBase::setObjectThread(ObjectBase &_robj, const UidT &_uid){
+void SelectorBase::setObjectThread(ObjectBase &_robj, const UidT &_uid){
 	//we are sure that the method is called from within a Manager thread
 	UidT	uid(Manager::specific().computeThreadId(mgridx, _uid.index), _uid.unique);
 	if(uid.isValid()){

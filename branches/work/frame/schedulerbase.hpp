@@ -17,6 +17,7 @@ namespace frame{
 
 class Manager;
 class SelectorBase;
+class ObjectBase;
 
 //! A base class for all schedulers
 class SchedulerBase{
@@ -31,7 +32,7 @@ protected:
 
 	void doStop(bool _wait = true);
 	
-	bool doSchedule(ScheduleFunctorT &_rfct);
+	bool doSchedule(ObjectBase &_robj, ScheduleFunctorT &_rfct);
 protected:
 	SchedulerBase(
 		Manager &_rm
