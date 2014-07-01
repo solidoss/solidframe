@@ -38,8 +38,11 @@ int main(int argc, char *argv[]){
 		SchedulerT			s(m);
 		
 		if(s.start(0)){
-		
-			m.registerObject(DynamicPointer<frame::Object>(new BasicObject(10)), s);
+			const size_t	cnt = argc == 2 ? atoi(argv[1]) : 1;
+			
+			for(size_t i = 0; i < cnt; ++i){
+				m.registerObject(DynamicPointer<frame::Object>(new BasicObject(10)), s);
+			}
 			
 			{
 				Locker<Mutex>	lock(mtx);

@@ -49,8 +49,8 @@ class Scheduler: private SchedulerBase{
 		
 		ScheduleFct(ObjectPointerT const &_robjptr):robjptr(_robjptr){}
 		
-		bool operator()(SelectorBase &_rsel){
-			return static_cast<SelectorT&>(_rsel).push(robjptr);
+		bool operator()(SelectorBase &_rsel, const UidT &_ruid){
+			return static_cast<SelectorT&>(_rsel).push(robjptr, _ruid);
 		}
 	};
 public:

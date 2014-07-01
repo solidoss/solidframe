@@ -39,7 +39,7 @@ struct UniqueId{
 	}
 	
 	UniqueId(
-		IndexT const& _idx = -1,
+		IndexT const& _idx = INVALID_INDEX,
 		uint32 _unq = -1
 	): index(_idx), unique(_unq){}
 	bool isInvalid()const{

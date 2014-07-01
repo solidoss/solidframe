@@ -20,6 +20,8 @@ class SelectorBase;
 
 //! A base class for all schedulers
 class SchedulerBase{
+public:
+	bool update(SelectorBase &_rsel);
 protected:
 	typedef bool (*CreateWorkerF)(SchedulerBase &_rsch);
 	
@@ -29,7 +31,7 @@ protected:
 
 	void doStop(bool _wait = true);
 	
-	void doSchedule(ScheduleFunctorT &_rfct);
+	bool doSchedule(ScheduleFunctorT &_rfct);
 protected:
 	SchedulerBase(
 		Manager &_rm
