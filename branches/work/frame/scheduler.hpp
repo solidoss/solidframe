@@ -20,6 +20,10 @@ namespace frame{
 
 template <class S>
 class Scheduler: private SchedulerBase{
+public:
+	typedef typename S::ObjectT				ObjectT;
+	typedef DynamicPointer<ObjectT>	ObjectPointerT;
+private:
 	typedef S		SelectorT;
 	struct Worker: Thread{
 		SelectorT	sel;
@@ -37,25 +41,20 @@ class Scheduler: private SchedulerBase{
 		Worker(SchedulerBase &_rsched):sel(_rsched){}
 		
 		void run(){
-			if(sel.scheduler().prepareThread(sel)){
-				sel.run();
-				sel.scheduler().unprepareThread(sel);
-			}
+			sel.run();
 		}
 	};
 	
 	struct ScheduleFct{
-		ObjectPointerT const &robjptr;
+		ObjectPointerT &robjptr;
 		
-		ScheduleFct(ObjectPointerT const &_robjptr):robjptr(_robjptr){}
+		ScheduleFct(ObjectPointerT &_robjptr):robjptr(_robjptr){}
 		
-		bool operator()(SelectorBase &_rsel, const UidT &_ruid){
-			return static_cast<SelectorT&>(_rsel).push(robjptr, _ruid);
+		bool operator()(SelectorBase &_rsel){
+			return static_cast<SelectorT&>(_rsel).push(robjptr);
 		}
 	};
 public:
-	typedef S::Object				ObjectT;
-	typedef DynamicPointer<ObjectT>	ObjectPointerT;
 	
 	Scheduler(Manager &_rm):SchedulerBase(_rm){}
 	
@@ -67,7 +66,7 @@ public:
 		SchedulerBase::doStop(_wait);
 	}
 	
-	bool schedule(ObjectPointerT const &_robjptr){
+	bool schedule(ObjectPointerT &_robjptr){
 		ScheduleFct			s(_robjptr);
 		ScheduleFunctorT	sfct(s);
 		return doSchedule(*_robjptr, sfct);

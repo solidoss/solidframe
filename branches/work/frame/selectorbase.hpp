@@ -32,9 +32,16 @@ public:
 	virtual void raise(uint32 _objidx = 0) = 0;
 	virtual void stop() = 0;
 	virtual void update() = 0;
+	
 protected:
 	bool setObjectThread(ObjectBase &_robj, const UidT &_uid);
 	void stopObject(ObjectBase &_robj);
+	SchedulerBase& scheduler(){
+		static SchedulerBase	*ps;
+		return *ps;
+	}
+	bool prepareThread();
+	void unprepareThread();
 private:
 	friend	class Manager;
 	friend	class SchedulerBase;
@@ -43,7 +50,6 @@ private:
 private:
 	IndexT			mgridx;//
 	size_t			schidx;
-	ScheduleDequeT	scheddq[2];
 	UidVectorT		freeuidvec;
 };
 

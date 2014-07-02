@@ -23,7 +23,7 @@ namespace shared{
 void PointerBase::doClear(const bool _isalive){
 	if(psb){
 		psb->erasePointer(id(), _isalive);
-		uid = invalid_uid();
+		uid = UidT::invalid();
 		psb = NULL;
 	}
 }
@@ -57,7 +57,7 @@ struct StoreBase::Data{
 
 
 void StoreBase::Accessor::notify(size_t _evt){
-	if(store().notify(_sm)){
+	if(store().notify(_evt)){
 		store().manager().raise(store());
 	}
 }

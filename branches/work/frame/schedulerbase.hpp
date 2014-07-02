@@ -11,6 +11,7 @@
 #define SOLID_FRAME_SCHEDULER_BASE_HPP
 
 #include "frame/common.hpp"
+#include "utility/functor.hpp"
 
 namespace solid{
 namespace frame{
@@ -26,7 +27,7 @@ public:
 protected:
 	typedef bool (*CreateWorkerF)(SchedulerBase &_rsch);
 	
-	typedef FunctorReference<bool, SelectorBase*>	ScheduleFunctorT;
+	typedef FunctorReference<bool, SelectorBase&>	ScheduleFunctorT;
 	
 	bool doStart(CreateWorkerF _pf, size_t _selcnt = 1, size_t _selchunkcp = 1024);
 
@@ -34,10 +35,11 @@ protected:
 	
 	bool doSchedule(ObjectBase &_robj, ScheduleFunctorT &_rfct);
 protected:
+	friend class SelectorBase;
 	SchedulerBase(
 		Manager &_rm
 	);
-	SchedulerBase();
+	~SchedulerBase();
 	bool prepareThread(SelectorBase &_rsel);
 	void unprepareThread(SelectorBase &_rsel);
 private:

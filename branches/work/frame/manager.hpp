@@ -18,7 +18,7 @@
 
 namespace solid{
 namespace frame{
-
+class	Manager;
 class	Service;
 class	ObjectBase;
 class	SchedulerBase;
@@ -35,6 +35,19 @@ struct ScheduleObjectF{
 		return rsch.schedule(robjptr);
 	}
 };
+
+struct EventNotifier{
+	EventNotifier(
+		Manager &_rm, SharedEvent const &_revt, const size_t _sigmsk = 0
+	):rm(_rm), evt(_revt), sigmsk(_sigmsk){}
+	
+	Manager			&rm;
+	SharedEvent		evt;
+	const size_t	sigmsk;
+	
+	void operator()(ObjectBase &_robj);
+};
+
 
 class Manager{
 	typedef FunctorReference<bool>	ObjectScheduleFunctorT;
@@ -86,9 +99,9 @@ private:
 	
 	typedef FunctorReference<void, ObjectBase&>	ObjectVisitFunctorT;
 	
-	void unregisterObject(Object &_robj);
+	void unregisterObject(ObjectBase &_robj);
 	
-	ObjectUidT  unsafeId(const Object &_robj)const;
+	ObjectUidT  unsafeId(const ObjectBase &_robj)const;
 	
 	Mutex& serviceMutex(const Service &_rsvc)const;
 	
@@ -103,6 +116,7 @@ private:
 	
 	friend class SelectorBase;
 	friend class SchedulerBase;
+	friend struct EventNotifier;
 	
 	bool raise(const ObjectBase &_robj, Event const &_re);
 	

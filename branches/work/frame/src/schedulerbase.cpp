@@ -64,7 +64,7 @@ struct SchedulerBase::Data{
 
 SchedulerBase::SchedulerBase(
 	Manager &_rm
-):d(*(new Data)){
+):d(*(new Data(_rm))){
 }
 
 SchedulerBase::~SchedulerBase(){
@@ -85,6 +85,7 @@ bool SchedulerBase::update(SelectorBase &_rsel){
 		d.crtminchunkcp = chunkcp;
 	}
 	_rsel.update();
+	return true;
 }
 
 bool SchedulerBase::doStart(CreateWorkerF _pf, size_t _selcnt/* = 1*/, size_t _selchunkcp/* = 1024*/){
@@ -200,7 +201,7 @@ bool SchedulerBase::doSchedule(ObjectBase &_robj, ScheduleFunctorT &_rfct){
 	}
 	if(uid.isValid()){
 		rsel.psel->setObjectThread(_robj, uid);
-		return _rfct(*rsel.psel, uid);
+		return _rfct(*rsel.psel);
 	}else{
 		return false;
 	}

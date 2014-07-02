@@ -2,10 +2,12 @@
 set(Sources
 	src/manager.cpp
 	src/object.cpp
-	src/selector.cpp
 	src/service.cpp
 	src/schedulerbase.cpp
-	src/sharedstore.cpp
+	src/selector.cpp
+	src/timer.cpp
+	src/completion.cpp
+#	src/sharedstore.cpp
 )
 
 set(Headers
@@ -18,7 +20,9 @@ set(Headers
 	scheduler.hpp
 	service.hpp
 	selectorbase.hpp
-	sharedstore.hpp
+	timer.hpp
+	completion.hpp
+#	sharedstore.hpp
 )
 
 set(Inlines

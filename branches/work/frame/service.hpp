@@ -68,7 +68,7 @@ public:
 protected:
 	Mutex& mutex(const IndexT &_rfullid)const;
 	ObjectBase* object(const IndexT &_rfullid)const;
-	ObjectUidT unsafeRegisterObject(ObjectBase &_robj)const;
+	//ObjectUidT unsafeRegisterObject(ObjectBase &_robj)const;
 	void unsafeStop(Locker<Mutex> &_rlock, bool _wait);
 	void unsafeReset(Locker<Mutex> &_rlock);
 private:

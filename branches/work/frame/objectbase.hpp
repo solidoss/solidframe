@@ -28,6 +28,7 @@ class Message;
 class SelectorBase;
 class Object;
 class CompletionHandler;
+struct EventNotifier;
 
 typedef DynamicPointer<Message>	MessagePointerT;
 
@@ -45,6 +46,7 @@ protected:
 	friend class Service;
 	friend class Manager;
 	friend class SelectorBase;
+	friend struct EventNotifier;
 	
 	//! Constructor
 	ObjectBase();

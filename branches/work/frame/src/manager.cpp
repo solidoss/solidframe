@@ -24,6 +24,7 @@
 #include "frame/message.hpp"
 #include "frame/selectorbase.hpp"
 #include "frame/service.hpp"
+#include "frame/event.hpp"
 
 #include "utility/stack.hpp"
 #include "utility/queue.hpp"
@@ -37,13 +38,9 @@ typedef ATOMIC_NS::atomic<SelectorBase*>	AtomicSelectorBaseT;
 typedef ATOMIC_NS::atomic<IndexT>			AtomicIndexT;
 
 //---------------------------------------------------------
-struct DummySelector: SelectorBase{
-	void raise(uint32 _objidx){}
-};
-//---------------------------------------------------------
 struct ObjectStub{
 	ObjectStub(
-		Object *_pobj = NULL,
+		ObjectBase *_pobj = NULL,
 		uint32 _uid = 0
 	): pobj(_pobj), uid(_uid){}
 	
@@ -51,7 +48,7 @@ struct ObjectStub{
 		pobj = NULL;
 		++uid;
 	}
-	Object		*pobj;
+	ObjectBase	*pobj;
 	uint32		uid;
 	
 };
@@ -120,7 +117,6 @@ struct Manager::Data{
 	SizeStackT				svcfreestk;
 	AtomicSelectorBaseT		*pselarr;
 	SizeStackT				selfreestk;
-	DummySelector			dummysel;
 	Service					dummysvc;
 };
 
@@ -146,6 +142,15 @@ const unsigned specificPosition(){
 }
 #endif
 
+void EventNotifier::operator()(ObjectBase &_robj){
+	Event tmpevt(evt);
+	
+	if(!sigmsk || _robj.notify(sigmsk)){
+		rm.raise(_robj, tmpevt);
+	}
+}
+
+
 namespace{
 
 	void visit_lock(Mutex &_rm){
@@ -164,18 +169,7 @@ namespace{
 		_rms.visit(_sz, visit_unlock, _objpermutbts);
 	}
 	
-	struct EventNotifier{
-		EventNotifier(Manager &_rm, SharedEvent const &_revt):rm(_rm), evt(_revt){}
-		Manager			&rm;
-		SharedEvent		evt;
-		
-		void operator()(ObjectBase &_robj){
-			Event tmpevt(evt);
-			rm.raise(_robj, tmpevt);
-		}
-	};
 }//namespace
-
 
 Manager::Data::Data(
 	Manager &_rm,
@@ -215,8 +209,6 @@ Manager::Manager(
 	for(size_t i = d.selprovisioncp - 1; i > 0; --i){
 		d.selfreestk.push(i);
 	}
-	
-	d.pselarr[0].store(&d.dummysel/*, ATOMIC_NS::memory_order_seq_cst*/);
 	
 	doRegisterService(d.dummysvc);
 	Thread::specific(specificPosition(), this);
@@ -297,7 +289,7 @@ void Manager::unregisterService(Service &_rsvc){
 	--d.svccnt;
 }
 
-void Manager::unregisterObject(Object &_robj){
+void Manager::unregisterObject(ObjectBase &_robj){
 	IndexT		svcidx;
 	IndexT		objidx;
 	vdbgx(Debug::frame, (void*)&_robj);
@@ -369,9 +361,10 @@ bool Manager::raise(const ObjectBase &_robj, Event const &_re){
 	IndexT objidx;
 	//split_index(selidx, objidx, d.selbts.load(/*ATOMIC_NS::memory_order_seq_cst*/), _robj.thrid.load(/*ATOMIC_NS::memory_order_seq_cst*/));
 	//d.pselarr[selidx].load(/*ATOMIC_NS::memory_order_seq_cst*/)->raise(objidx);
+	return false;
 }
 
-Mutex& Manager::mutex(const Object &_robj)const{
+Mutex& Manager::mutex(const ObjectBase &_robj)const{
 	IndexT			svcidx;
 	IndexT			objidx;
 	
@@ -384,7 +377,7 @@ Mutex& Manager::mutex(const Object &_robj)const{
 	return rss.mtxstore.at(objidx, objpermutbts);
 }
 
-ObjectUidT  Manager::id(const Object &_robj)const{
+ObjectUidT  Manager::id(const ObjectBase &_robj)const{
 	IndexT			svcidx;
 	IndexT			objidx;
 	
@@ -398,7 +391,7 @@ ObjectUidT  Manager::id(const Object &_robj)const{
 	return ObjectUidT(_robj.fullid, rss.objvec[objidx].uid);
 }
 
-Service& Manager::service(const Object &_robj)const{
+Service& Manager::service(const ObjectBase &_robj)const{
 	IndexT			svcidx;
 	IndexT			objidx;
 	
@@ -409,7 +402,7 @@ Service& Manager::service(const Object &_robj)const{
 	return *rss.psvc;
 }
 
-ObjectUidT  Manager::unsafeId(const Object &_robj)const{
+ObjectUidT  Manager::unsafeId(const ObjectBase &_robj)const{
 	IndexT			svcidx;
 	IndexT			objidx;
 	
@@ -430,7 +423,7 @@ Mutex& Manager::serviceMutex(const Service &_rsvc)const{
 	return rss.mtx;
 }
 
-ObjectUidT Manager::registerServiceObject(const Service &_rsvc, Object &_robj, ObjectScheduleFunctorT &_rfct){
+ObjectUidT Manager::registerServiceObject(const Service &_rsvc, ObjectBase &_robj, ObjectScheduleFunctorT &_rfct){
 	cassert(_rsvc.idx < d.svcprovisioncp);
 	ServiceStub		&rss = d.psvcarr[_rsvc.idx];
 	cassert(!_rsvc.idx || rss.psvc != NULL);
@@ -505,7 +498,7 @@ bool Manager::doRegisterService(
 // 	return doUnsafeRegisterServiceObject(_svcidx, _robj);
 // }
 
-ObjectUidT Manager::doUnsafeRegisterServiceObject(const IndexT _svcidx, Object &_robj, ObjectScheduleFunctorT &_rfct){
+ObjectUidT Manager::doUnsafeRegisterServiceObject(const IndexT _svcidx, ObjectBase &_robj, ObjectScheduleFunctorT &_rfct){
 	ServiceStub		&rss = d.psvcarr[_svcidx];
 	vdbgx(Debug::frame, ""<<(void*)&_robj);
 	if(rss.state != ServiceStub::StateRunning){
@@ -648,7 +641,7 @@ Mutex& Manager::mutex(const IndexT &_rfullid)const{
 	return rss.mtxstore.at(objidx, objpermutbts);
 }
 
-Object* Manager::unsafeObject(const IndexT &_rfullid)const{
+ObjectBase* Manager::unsafeObject(const IndexT &_rfullid)const{
 	IndexT		svcidx;
 	IndexT		objidx;
 	
@@ -719,15 +712,15 @@ bool Manager::prepareThread(SelectorBase *_ps){
 		}
 		d.selfreestk.pop();
 		
-		_ps->selid = selidx;
-		d.pselarr[_ps->selid] = _ps;
+		_ps->mgridx = selidx;
+		d.pselarr[_ps->mgridx] = _ps;
 	}
 	if(!doPrepareThread()){
 		return false;
 	}
 	Thread::specific(specificPosition(), this);
 	Specific::prepareThread();
-	requestuidptr.prepareThread();
+	//requestuidptr.prepareThread();
 	return true;
 }
 
@@ -736,9 +729,9 @@ void Manager::unprepareThread(SelectorBase *_ps){
 	Thread::specific(specificPosition(), NULL);
 	if(_ps){
 		Locker<Mutex> lock(d.mtx);
-		d.pselarr[_ps->selid] = NULL;
-		d.selfreestk.push(_ps->selid);
-		_ps->selid = 0;
+		d.pselarr[_ps->mgridx] = NULL;
+		d.selfreestk.push(_ps->mgridx);
+		_ps->mgridx = -1;
 	}
 	//requestuidptr.unprepareThread();
 }
@@ -799,7 +792,7 @@ void Manager::doWaitStopService(const size_t _svcidx, Locker<Mutex> &_rlock, boo
 		}
 		if(rss.state == ServiceStub::StateRunning){
 			rss.state = Data::StateStopping;
-			SignalNotifier		notifier(*this, S_KILL | S_RAISE);
+			EventNotifier		notifier(*this, SharedEvent(EventDie));
 			ObjectVisitFunctorT fctor(notifier);
 			bool b = doForEachServiceObject(_svcidx, fctor);
 			if(!b){
