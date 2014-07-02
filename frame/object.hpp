@@ -21,29 +21,31 @@
 
 namespace solid{
 namespace frame{
-	
-class Object: public Dynamic<Object, DynamicShared<ObjectBase> >{
-public:	
-	struct ExecuteContext{
-		~ExecuteContext();
-		Event const& event()const{
-			return evn;
-		}
-		const TimeSpec& currentTime()const{
-			return rcrttm;
-		}
-		void reschedule(Event const &_revn);
-		void die();
-	protected:
-		ExecuteContext(
-			const Event &_evn,
-			const TimeSpec &_rcrttm
-		):	evn(_evn), rcrttm(_rcrttm){}
-		
-		Event			evn;
-		const TimeSpec	&rcrttm;
-	};
 
+struct ExecuteContext{
+	~ExecuteContext();
+	Event const& event()const{
+		return evn;
+	}
+	const TimeSpec& time()const{
+		return rcrttm;
+	}
+	void reschedule(Event const &_revn);
+	void die(){
+		
+	}
+protected:
+	ExecuteContext(
+		const Event &_evn,
+		const TimeSpec &_rcrttm
+	):	evn(_evn), rcrttm(_rcrttm){}
+	
+	Event			evn;
+	const TimeSpec	&rcrttm;
+};
+
+class Object: public Dynamic<Object, ObjectBase>{
+public:	
 	static Object& specific(){
 		return static_cast<Object&>(ObjectBase::specific());
 	}
@@ -51,7 +53,7 @@ protected:
 	//! Constructor
 	Object();
 private:
-	virtual void execute(ExecuteContext &_rexectx);
+	virtual void execute(ExecuteContext &_rexectx) = 0;
 private:
 };
 

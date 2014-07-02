@@ -11,15 +11,34 @@
 #define SOLID_FRAME_TIMER_HPP
 
 #include "system/timespec.hpp"
+#include "system/error.hpp"
 #include "frame/common.hpp"
 #include "frame/completion.hpp"
 
 namespace solid{
+
+class TimeSpec;
+
 namespace frame{
+class	Object;
+struct	ExecuteContext;
 
 class Timer: public CompletionHandler{
+public:
+	Timer(Object &_robj);
+	~Timer();
+	void cancel(ExecuteContext &_rexectx);
+	bool waitUntil(
+		ExecuteContext &_rexectx,
+		const TimeSpec &_rtimepos,
+		ERROR_NS::error_code &_rerr,
+		size_t _event,
+		size_t _index = 0
+	);
 
 };
 
 }//namespace frame
 }//namespace solid
+
+#endif

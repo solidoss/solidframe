@@ -1,6 +1,7 @@
 #include "frame/manager.hpp"
 #include "frame/scheduler.hpp"
 #include "frame/selector.hpp"
+#include "frame/object.hpp"
 #include "frame/timer.hpp"
 #include "system/condition.hpp"
 #include "system/mutex.hpp"
@@ -20,11 +21,11 @@ namespace {
 
 typedef frame::Scheduler<frame::Selector>	SchedulerT;
 
-class BasicObject: public Dynamic<BasicObjec, frame::Object>{
+class BasicObject: public Dynamic<BasicObject, frame::Object>{
 public:
 	BasicObject(size_t _repeat = 10):repeat(_repeat), t1(*this), t2(*this){}
 	
-	/*virtual*/ void execute(ExecuteContext &_rexectx);
+	/*virtual*/ void execute(frame::ExecuteContext &_rexectx);
 	
 private:
 	size_t			repeat;
@@ -41,7 +42,8 @@ int main(int argc, char *argv[]){
 			const size_t	cnt = argc == 2 ? atoi(argv[1]) : 1;
 			
 			for(size_t i = 0; i < cnt; ++i){
-				m.registerObject(DynamicPointer<frame::Object>(new BasicObject(10)), s);
+				DynamicPointer<frame::Object>	objptr(new BasicObject(10));
+				m.registerObject(objptr, s);
 			}
 			
 			{
@@ -61,24 +63,24 @@ int main(int argc, char *argv[]){
 }
 
 
-/*virtual*/ void BasicObject::execute(ExecuteContext &_rexectx){
+/*virtual*/ void BasicObject::execute(frame::ExecuteContext &_rexectx){
 	ERROR_NS::error_code	err;
 	switch(_rexectx.event().id){
 		case frame::EventInit:
-			cout<<"EventInit("<<_rexectx.event().index<<") at "<<_rexectx.currentTime()<<endl;
+			cout<<"EventInit("<<_rexectx.event().index<<") at "<<_rexectx.time()<<endl;
 			//t1 should fire first
 			t1.waitUntil(_rexectx, _rexectx.time() + 1000 * 5, err, frame::EventTimer, 1); 
 			t2.waitUntil(_rexectx, _rexectx.time() + 1000 * 10, err, frame::EventTimer, 2);
 			break;
 		case frame::EventTimer:
-			cout<<"EventTimer("<<_rexectx.event().index<<") at "<<_rexectx.currentTime()<<endl;
+			cout<<"EventTimer("<<_rexectx.event().index<<") at "<<_rexectx.time()<<endl;
 			if(_rexectx.event().index == 1){
 				if(repeat--){
-					t2.cancel();
+					t2.cancel(_rexectx);
 					t1.waitUntil(_rexectx, _rexectx.time() + 1000 * 5, err, frame::EventTimer, 1); 
 					t2.waitUntil(_rexectx, _rexectx.time() + 1000 * 10, err, frame::EventTimer, 2);
 				}else{
-					t2.cancel();
+					t2.cancel(_rexectx);
 					Locker<Mutex>	lock(mtx);
 					running = false;
 					cnd.signal();

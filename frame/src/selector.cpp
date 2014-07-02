@@ -23,13 +23,14 @@
 #include "frame/manager.hpp"
 #include "frame/object.hpp"
 #include "frame/selector.hpp"
+#include "frame/schedulerbase.hpp"
 
 namespace solid{
 namespace frame{
 
 enum {MAXTIMEPOS = 0xffffffff};
 
-struct ObjectSelector::Data{
+struct Selector::Data{
 	enum {EXIT_LOOP = 1, FULL_SCAN = 2, READ_PIPE = 4};
 	struct ObjectStub{
 		ObjectPointerT	objptr;
@@ -54,72 +55,27 @@ struct ObjectSelector::Data{
 
 
 
-ObjectSelector::ObjectSelector():d(*(new Data)){
+Selector::Selector(SchedulerBase &):d(*(new Data)){
 }
-ObjectSelector::~ObjectSelector(){
+Selector::~Selector(){
 	delete &d;
 }
 
-ulong ObjectSelector::capacity()const{
-	return d.sv.size();
+/*virtual*/ void Selector::raise(uint32 _objidx){
+	
 }
-ulong ObjectSelector::size() const{
-	return d.sz;
+/*virtual*/ void Selector::stop(){
+	
 }
-bool  ObjectSelector::empty()const{
-	return d.sz == 0;
-}
-bool  ObjectSelector::full()const{
-	return d.sz == d.sv.size();
+/*virtual*/ void Selector::update(){
+	
 }
 
-bool ObjectSelector::init(size_t _cp){
-	d.sv.resize(fast_padding_size(_cp, 2));
-	setCurrentTimeSpecific(d.ctimepos);
-	//objq.reserve(_cp);
-	for(ulong i = d.sv.size() - 1; i; --i){
-		d.fstk.push(i);//all but first pos (0)
+void Selector::run(){
+	if(!prepareThread()){
+		return;
 	}
-	d.ctimepos.set(0);
-	
-	d.ntimepos.set(MAXTIMEPOS);
-	d.sz = 0;
-	return true;
-}
-void ObjectSelector::prepare(){
-	setCurrentTimeSpecific(d.ctimepos);
-}
-void ObjectSelector::raise(size_t _pos){
-	Locker<Mutex> lock(d.mtx);
-	d.uiq.push(_pos);
-	d.cnd.signal();
-}
-
-/*
-NOTE: TODO:
-	See if this ideea will bring faster timeout scan (see it implemented in FileManager) 
-	- add a new deque<unsigned> toutv
-	- add to SelObject an toutidx int value 
-	
-	When an object waits for tout:
-		- add its index at the end of toutv.
-		- set toutidx to (toutv.size() - 1);
-	When an object doesnt have timeout (waits forever) toutidx = -1;
-	
-	When we have an event on an object:
-		- toutv[toutidx] = toutv.back();
-		- toutv.pop_back();
-		- toutidx = -1;
-		
-	When timeout:
-		for(it=toutv.begin(); it != toutv.end(); ++it){
-			if(timeout(sv[*it])){
-				...
-			}
-		}
-*/
-
-void ObjectSelector::run(){
+#if 0
 	//ulong		crttout;
 	int 		state;
 	int 		pollwait = 0;
@@ -154,14 +110,14 @@ void ObjectSelector::run(){
 			d.ntimepos.set(0xffffffff);
 			for(Data::ObjectStubVectorT::iterator it(d.sv.begin()); it != d.sv.end(); it += 4){
 				if(!it->objptr.empty()){
-					Data::ObjectStub &ro = *it;
-					evs = 0;
-					if(d.ctimepos >= ro.timepos) evs |= EventTimeout;
-					else if(d.ntimepos > ro.timepos) d.ntimepos = ro.timepos;
-					if(ro.objptr->notified(S_RAISE)) evs |= EventSignal;//should not be checked by objs
-					if(evs){
-						state |= doExecute(it - d.sv.begin(), evs, d.ctimepos);
-					}
+					//Data::ObjectStub &ro = *it;
+					//evs = 0;
+					//if(d.ctimepos >= ro.timepos) evs |= EventTimeout;
+					//else if(d.ntimepos > ro.timepos) d.ntimepos = ro.timepos;
+					//if(ro.objptr->notified(S_RAISE)) evs |= EventSignal;//should not be checked by objs
+					//if(evs){
+					//	state |= doExecute(it - d.sv.begin(), evs, d.ctimepos);
+					//}
 				}
 				if(!(it + 1)->objptr.empty()){
 					Data::ObjectStub &ro = *(it + 1);
@@ -211,9 +167,13 @@ void ObjectSelector::run(){
 		vdbgx(Debug::frame, "sz = "<<d.sz);
 		if(empty()) state |= Data::EXIT_LOOP;
 	}while(state != Data::EXIT_LOOP);
+
+#endif
+	unprepareThread();
 }
 
-bool ObjectSelector::push(ObjectPointerT &_robj){
+
+bool Selector::push(ObjectPointerT &_robj){
 	cassert(d.fstk.size());
 	uint pos = d.fstk.top();
 	if(!this->setObjectThread(*_robj, pos)){
@@ -228,7 +188,7 @@ bool ObjectSelector::push(ObjectPointerT &_robj){
 	return true;
 }
 
-int ObjectSelector::doWait(int _wt){
+int Selector::doWait(int _wt){
 	vdbgx(Debug::frame, "wt = "<<_wt);
 	int rv = 0;
 	Locker<Mutex> lock(d.mtx);
@@ -265,8 +225,10 @@ int ObjectSelector::doWait(int _wt){
 	if(d.uiq.size()){
 		//we have something in the queue
 		do{
+#if 0
 			ulong id = d.uiq.front(); d.uiq.pop();
 			if(id){
+
 				Data::ObjectStub *pobj;
 				if(id < d.sv.size() && !(pobj = &d.sv[id])->objptr.empty() && !pobj->state && pobj->objptr->notified(S_RAISE)){
 					vdbgx(Debug::frame, "signaling object id = "<<id);
@@ -274,14 +236,15 @@ int ObjectSelector::doWait(int _wt){
 					pobj->state = 1;
 				}
 			}else rv |= Data::EXIT_LOOP;
+#endif
 		}while(d.uiq.size());
 	}else{if(_wt) rv |= Data::FULL_SCAN;}
 	vdbgx(Debug::frame, "rv = "<<rv);
 	return rv;
 }
 
-int ObjectSelector::doExecute(unsigned _i, ulong _evs, TimeSpec _crttout){
-	
+int Selector::doExecute(unsigned _i, ulong _evs, TimeSpec _crttout){
+#if 0
 	this->associateObjectToCurrentThread(*d.sv[_i].objptr);
 	
 	int							rv = 0;
@@ -325,10 +288,12 @@ int ObjectSelector::doExecute(unsigned _i, ulong _evs, TimeSpec _crttout){
 		default: cassert(false);break;
 	}
 	return rv;
+#endif
+	return -1;
 }
 
 //=====================================================================
-void SelectorBase::setObjectThread(ObjectBase &_robj, const UidT &_uid){
+bool SelectorBase::setObjectThread(ObjectBase &_robj, const UidT &_uid){
 	//we are sure that the method is called from within a Manager thread
 	UidT	uid(Manager::specific().computeThreadId(mgridx, _uid.index), _uid.unique);
 	if(uid.isValid()){
@@ -338,7 +303,12 @@ void SelectorBase::setObjectThread(ObjectBase &_robj, const UidT &_uid){
 		return false;
 	}
 }
-
+bool SelectorBase::prepareThread(){
+	return scheduler().prepareThread(*this);
+}
+void SelectorBase::unprepareThread(){
+	scheduler().unprepareThread(*this);
+}
 
 }//namespace frame
 }//namespace solid

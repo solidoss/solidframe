@@ -26,31 +26,21 @@ typedef DynamicPointer<Object> ObjectPointerT;
 	A selector must export a certain interface requested by the SelectPool,
 	and the pool will have one for its every thread.
 */
-class ObjectSelector: public SelectorBase{
+class Selector: public SelectorBase{
 public:
-	
-	typedef ObjectPointerT	JobT;
 	typedef Object			ObjectT;
 	
-	ObjectSelector();
+	Selector(SchedulerBase &);
 	
-	~ObjectSelector();
-	
-	bool init(size_t _cp);
-	//signal a specific object
-	void raise(size_t _pos);
-	void run();
-	ulong capacity()const;
-	ulong size() const;
-	bool  empty()const;
-	bool  full()const;
-	void prepare();
-	void unprepare(){}
-	
+	~Selector();
 	bool push(ObjectPointerT &_rjob);
+	void run();
 private:
-	int doWait(int _wt);
+	/*virtual*/ void raise(uint32 _objidx = 0);
+	/*virtual*/ void stop();
+	/*virtual*/ void update();
 	int doExecute(unsigned _i, ulong _evs, TimeSpec _crttout);
+	int doWait(int _wt);
 private:
 	struct Data;
 	Data	&d;

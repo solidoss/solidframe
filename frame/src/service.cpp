@@ -40,38 +40,7 @@ Service::~Service(){
 	}
 }
 
-ObjectUidT Service::registerObject(ObjectBase &_robj){
-	if(isRegistered()){
-		return rm.registerServiceObject(*this, _robj);
-	}else{
-		return ObjectUidT();
-	}
-}
-
-namespace{
-
-struct EventNotifier{
-	EventNotifier(
-		Manager &_rm, SharedEvent const &_revt, const size_t _sigmsk = 0
-	):rm(_rm), evt(_revt), sigmsk(_sigmsk){}
-	
-	Manager			&rm;
-	SharedEvent		evt;
-	const size_t	sigmsk;
-	
-	void operator()(ObjectBase &_robj){
-		Event tmpevt(evt);
-		
-		if(!sigmsk || _robj.notify(sigmsk)){
-			rm.raise(_robj, tmpevt);
-		}
-	}
-};
-
-}//namespace
-
-
-bool Service::notifyAll(SharedEvent const & _revt, const size_t _sigmsk = 0){
+bool Service::notifyAll(SharedEvent const & _revt, const size_t _sigmsk/* = 0*/){
 	if(isRegistered()){
 		EventNotifier	notifier(rm, _revt, _sigmsk);
 		return rm.forEachServiceObject(*this, notifier);
@@ -98,14 +67,15 @@ Mutex& Service::mutex()const{
 Mutex& Service::mutex(const IndexT &_rfullid)const{
 	return rm.mutex(_rfullid);
 }
-Object* Service::object(const IndexT &_rfullid)const{
+
+ObjectBase* Service::object(const IndexT &_rfullid)const{
 	return rm.unsafeObject(_rfullid);
 }
 
-ObjectUidT Service::unsafeRegisterObject(ObjectBase &_robj)const{
-	const size_t	svcidx = idx.load(/*ATOMIC_NS::memory_order_seq_cst*/);
-	return rm.doUnsafeRegisterServiceObject(svcidx, _robj);
-}
+// ObjectUidT Service::unsafeRegisterObject(ObjectBase &_robj)const{
+// 	const size_t	svcidx = idx.load(/*ATOMIC_NS::memory_order_seq_cst*/);
+// 	return rm.doUnsafeRegisterServiceObject(svcidx, _robj);
+// }
 
 void Service::unsafeStop(Locker<Mutex> &_rlock, bool _wait){
 	const size_t	svcidx = idx.load(/*ATOMIC_NS::memory_order_seq_cst*/);

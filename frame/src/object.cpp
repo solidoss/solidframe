@@ -55,7 +55,7 @@ namespace frame{
 //---------------------------------------------------------------------
 
 ObjectBase::ObjectBase():
-	fullid(-1),	selidx(0), seluid(-1){
+	fullid(-1){
 }
 
 void ObjectBase::unregister(){
@@ -80,13 +80,13 @@ void ObjectBase::stop(){
 	return *reinterpret_cast<Object*>(Thread::specific(specificPosition()));
 }
 //--------------------------------------------------------------
-void ObjectBase::associateToCurrentThread(){
-	Thread::specific(specificPosition(), this);
-}
+// void ObjectBase::associateToCurrentThread(){
+// 	Thread::specific(specificPosition(), this);
+// }
 //---------------------------------------------------------------------
 //----	Object	----
 //---------------------------------------------------------------------
-
+Object::Object(){}
 //---------------------------------------------------------------------
 //----	Message	----
 //---------------------------------------------------------------------
