@@ -17,31 +17,31 @@ namespace solid{
 namespace frame{
 
 class Manager;
-class SelectorBase;
+class ReactorBase;
 class ObjectBase;
 
 //! A base class for all schedulers
 class SchedulerBase{
 public:
-	bool update(SelectorBase &_rsel);
+	bool update(ReactorBase &_rsel);
 protected:
 	typedef bool (*CreateWorkerF)(SchedulerBase &_rsch);
 	
-	typedef FunctorReference<bool, SelectorBase&>	ScheduleFunctorT;
+	typedef FunctorReference<bool, ReactorBase&>	ScheduleFunctorT;
 	
-	bool doStart(CreateWorkerF _pf, size_t _selcnt = 1, size_t _selchunkcp = 1024);
+	bool doStart(CreateWorkerF _pf, size_t _reactorcnt = 1, size_t _reactorchunkcp = 1024);
 
 	void doStop(bool _wait = true);
 	
 	bool doSchedule(ObjectBase &_robj, ScheduleFunctorT &_rfct);
 protected:
-	friend class SelectorBase;
+	friend class ReactorBase;
 	SchedulerBase(
 		Manager &_rm
 	);
 	~SchedulerBase();
-	bool prepareThread(SelectorBase &_rsel);
-	void unprepareThread(SelectorBase &_rsel);
+	bool prepareThread(ReactorBase &_rsel);
+	void unprepareThread(ReactorBase &_rsel);
 private:
 	struct Data;
 	Data	&d;

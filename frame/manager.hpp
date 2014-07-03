@@ -22,7 +22,7 @@ class	Manager;
 class	Service;
 class	ObjectBase;
 class	SchedulerBase;
-class	SelectorBase;
+class	ReactorBase;
 
 template <class Obj, class Sch>
 struct ScheduleObjectF{
@@ -114,7 +114,7 @@ private:
 		return doForEachServiceObject(_rsvc, fctor);
 	}
 	
-	friend class SelectorBase;
+	friend class ReactorBase;
 	friend class SchedulerBase;
 	friend struct EventNotifier;
 	
@@ -124,8 +124,8 @@ private:
 	ObjectBase* unsafeObject(const IndexT &_rfullid)const;
 	
 	IndexT computeThreadId(const IndexT &_selidx, const IndexT &_objidx);
-	bool prepareThread(SelectorBase *_ps = NULL);
-	void unprepareThread(SelectorBase *_ps = NULL);
+	bool prepareThread(ReactorBase *_ps = NULL);
+	void unprepareThread(ReactorBase *_ps = NULL);
 	
 	void resetService(Service &_rsvc);
 	void stopService(Service &_rsvc, bool _wait);

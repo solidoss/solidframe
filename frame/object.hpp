@@ -18,9 +18,12 @@
 #include "utility/dynamictype.hpp"
 #include "utility/dynamicpointer.hpp"
 #include "system/atomic.hpp"
+#include "system/error.hpp"
 
 namespace solid{
 namespace frame{
+
+class CompletionHandler;
 
 struct ExecuteContext{
 	~ExecuteContext();
@@ -34,14 +37,20 @@ struct ExecuteContext{
 	void die(){
 		
 	}
+	ERROR_NS::error_code const& error()const{
+		return err;
+	}
 protected:
+	friend class CompletionHandler;
+	
 	ExecuteContext(
 		const Event &_evn,
 		const TimeSpec &_rcrttm
 	):	evn(_evn), rcrttm(_rcrttm){}
 	
-	Event			evn;
-	const TimeSpec	&rcrttm;
+	Event					evn;
+	const TimeSpec			&rcrttm;
+	ERROR_NS::error_code	err;
 };
 
 class Object: public Dynamic<Object, ObjectBase>{
@@ -53,7 +62,9 @@ protected:
 	//! Constructor
 	Object();
 private:
+	
 	virtual void execute(ExecuteContext &_rexectx) = 0;
+
 private:
 };
 

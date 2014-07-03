@@ -11,7 +11,6 @@
 #define SOLID_FRAME_TIMER_HPP
 
 #include "system/timespec.hpp"
-#include "system/error.hpp"
 #include "frame/common.hpp"
 #include "frame/completion.hpp"
 
@@ -31,7 +30,6 @@ public:
 	bool waitUntil(
 		ExecuteContext &_rexectx,
 		const TimeSpec &_rtimepos,
-		ERROR_NS::error_code &_rerr,
 		size_t _event,
 		size_t _index = 0
 	);

@@ -1,6 +1,6 @@
-// frame/src/objectselector.cpp
+// frame/src/reactor.cpp
 //
-// Copyright (c) 2007, 2008 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008, 2014 Valentin Palade (vipalade @ gmail . com) 
 //
 // This file is part of SolidFrame framework.
 //
@@ -22,7 +22,7 @@
 
 #include "frame/manager.hpp"
 #include "frame/object.hpp"
-#include "frame/selector.hpp"
+#include "frame/reactor.hpp"
 #include "frame/schedulerbase.hpp"
 
 namespace solid{
@@ -30,7 +30,7 @@ namespace frame{
 
 enum {MAXTIMEPOS = 0xffffffff};
 
-struct Selector::Data{
+struct Reactor::Data{
 	enum {EXIT_LOOP = 1, FULL_SCAN = 2, READ_PIPE = 4};
 	struct ObjectStub{
 		ObjectPointerT	objptr;
@@ -55,23 +55,23 @@ struct Selector::Data{
 
 
 
-Selector::Selector(SchedulerBase &):d(*(new Data)){
+Reactor::Reactor(SchedulerBase &):d(*(new Data)){
 }
-Selector::~Selector(){
+Reactor::~Reactor(){
 	delete &d;
 }
 
-/*virtual*/ void Selector::raise(uint32 _objidx){
+/*virtual*/ void Reactor::raise(uint32 _objidx){
 	
 }
-/*virtual*/ void Selector::stop(){
+/*virtual*/ void Reactor::stop(){
 	
 }
-/*virtual*/ void Selector::update(){
+/*virtual*/ void Reactor::update(){
 	
 }
 
-void Selector::run(){
+void Reactor::run(){
 	if(!prepareThread()){
 		return;
 	}
@@ -173,7 +173,7 @@ void Selector::run(){
 }
 
 
-bool Selector::push(ObjectPointerT &_robj){
+bool Reactor::push(ObjectPointerT &_robj){
 	cassert(d.fstk.size());
 	uint pos = d.fstk.top();
 	if(!this->setObjectThread(*_robj, pos)){
@@ -188,7 +188,7 @@ bool Selector::push(ObjectPointerT &_robj){
 	return true;
 }
 
-int Selector::doWait(int _wt){
+int Reactor::doWait(int _wt){
 	vdbgx(Debug::frame, "wt = "<<_wt);
 	int rv = 0;
 	Locker<Mutex> lock(d.mtx);
@@ -243,7 +243,7 @@ int Selector::doWait(int _wt){
 	return rv;
 }
 
-int Selector::doExecute(unsigned _i, ulong _evs, TimeSpec _crttout){
+int Reactor::doExecute(unsigned _i, ulong _evs, TimeSpec _crttout){
 #if 0
 	this->associateObjectToCurrentThread(*d.sv[_i].objptr);
 	
@@ -293,7 +293,7 @@ int Selector::doExecute(unsigned _i, ulong _evs, TimeSpec _crttout){
 }
 
 //=====================================================================
-bool SelectorBase::setObjectThread(ObjectBase &_robj, const UidT &_uid){
+bool ReactorBase::setObjectThread(ObjectBase &_robj, const UidT &_uid){
 	//we are sure that the method is called from within a Manager thread
 	UidT	uid(Manager::specific().computeThreadId(mgridx, _uid.index), _uid.unique);
 	if(uid.isValid()){
@@ -303,10 +303,10 @@ bool SelectorBase::setObjectThread(ObjectBase &_robj, const UidT &_uid){
 		return false;
 	}
 }
-bool SelectorBase::prepareThread(){
+bool ReactorBase::prepareThread(){
 	return scheduler().prepareThread(*this);
 }
-void SelectorBase::unprepareThread(){
+void ReactorBase::unprepareThread(){
 	scheduler().unprepareThread(*this);
 }
 
