@@ -45,7 +45,7 @@ public:
 protected:
 	friend class Service;
 	friend class Manager;
-	friend class SelectorBase;
+	friend class ReactorBase;
 	friend struct EventNotifier;
 	
 	//! Constructor

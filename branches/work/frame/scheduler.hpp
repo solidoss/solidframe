@@ -18,15 +18,15 @@
 namespace solid{
 namespace frame{
 
-template <class S>
+template <class R>
 class Scheduler: private SchedulerBase{
 public:
-	typedef typename S::ObjectT				ObjectT;
-	typedef DynamicPointer<ObjectT>	ObjectPointerT;
+	typedef typename R::ObjectT			ObjectT;
+	typedef DynamicPointer<ObjectT>		ObjectPointerT;
 private:
-	typedef S		SelectorT;
+	typedef R		ReactorT;
 	struct Worker: Thread{
-		SelectorT	sel;
+		ReactorT	reactor;
 		
 		static bool createAndStart(SchedulerBase &_rsched){
 			Worker *pw = new Worker(_rsched);
@@ -38,10 +38,10 @@ private:
 			}
 		}
 		
-		Worker(SchedulerBase &_rsched):sel(_rsched){}
+		Worker(SchedulerBase &_rsched):reactor(_rsched){}
 		
 		void run(){
-			sel.run();
+			reactor.run();
 		}
 	};
 	
@@ -50,16 +50,16 @@ private:
 		
 		ScheduleFct(ObjectPointerT &_robjptr):robjptr(_robjptr){}
 		
-		bool operator()(SelectorBase &_rsel){
-			return static_cast<SelectorT&>(_rsel).push(robjptr);
+		bool operator()(ReactorBase &_rreactor){
+			return static_cast<ReactorT&>(_rreactor).push(robjptr);
 		}
 	};
 public:
 	
 	Scheduler(Manager &_rm):SchedulerBase(_rm){}
 	
-	bool start(size_t _selcnt = 1, size_t _selchunkcp = 1024){
-		return SchedulerBase::doStart(Worker::createAndStart, _selcnt, _selchunkcp);
+	bool start(size_t _reactorcnt = 1, size_t _reactorchunkcp = 1024){
+		return SchedulerBase::doStart(Worker::createAndStart, _reactorcnt, _reactorchunkcp);
 	}
 
 	void stop(bool _wait = true){

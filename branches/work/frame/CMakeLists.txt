@@ -4,7 +4,7 @@ set(Sources
 	src/object.cpp
 	src/service.cpp
 	src/schedulerbase.cpp
-	src/selector.cpp
+	src/reactor.cpp
 	src/timer.cpp
 	src/completion.cpp
 #	src/sharedstore.cpp
@@ -16,10 +16,10 @@ set(Headers
 	common.hpp
 	manager.hpp
 	object.hpp
-	selector.hpp
+	reactorbase.hpp
+	reactor.hpp
 	scheduler.hpp
 	service.hpp
-	selectorbase.hpp
 	timer.hpp
 	completion.hpp
 #	sharedstore.hpp

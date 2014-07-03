@@ -1,18 +1,18 @@
-// frame/objectselector.hpp
+// frame/reactor.hpp
 //
-// Copyright (c) 2007, 2008, 2013 Valentin Palade (vipalade @ gmail . com) 
+// Copyright (c) 2007, 2008, 2013,2014 Valentin Palade (vipalade @ gmail . com) 
 //
 // This file is part of SolidFrame framework.
 //
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.
 //
-#ifndef SOLID_FRAME_OBJECT_SELECTOR_HPP
-#define SOLID_FRAME_OBJECT_SELECTOR_HPP
+#ifndef SOLID_FRAME_REACTOR_HPP
+#define SOLID_FRAME_REACTOR_HPP
 
 #include "utility/dynamicpointer.hpp"
 #include "frame/common.hpp"
-#include "frame/selectorbase.hpp"
+#include "frame/reactorbase.hpp"
 
 
 namespace solid{
@@ -20,19 +20,17 @@ namespace frame{
 
 typedef DynamicPointer<Object> ObjectPointerT;
 
-//! An object selector to be used with the template SelectPool
+//! An object selector/reactor
 /*!
-	A selector will help SelectPool to actively hold objects.
-	A selector must export a certain interface requested by the SelectPool,
-	and the pool will have one for its every thread.
+	
 */
-class Selector: public SelectorBase{
+class Reactor: public ReactorBase{
 public:
 	typedef Object			ObjectT;
 	
-	Selector(SchedulerBase &);
+	Reactor(SchedulerBase &);
+	~Reactor();
 	
-	~Selector();
 	bool push(ObjectPointerT &_rjob);
 	void run();
 private:

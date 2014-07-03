@@ -22,7 +22,6 @@ void Timer::cancel(ExecuteContext &_rexectx){
 bool Timer::waitUntil(
 	ExecuteContext &_rexectx,
 	const TimeSpec &_rtimepos,
-	ERROR_NS::error_code &_rerr,
 	size_t _event,
 	size_t _index
 ){

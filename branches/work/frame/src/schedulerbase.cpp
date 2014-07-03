@@ -9,7 +9,7 @@
 //
 #include <vector>
 #include "frame/schedulerbase.hpp"
-#include "frame/selectorbase.hpp"
+#include "frame/reactorbase.hpp"
 #include "frame/manager.hpp"
 #include "system/thread.hpp"
 #include "system/mutex.hpp"
@@ -21,15 +21,15 @@ namespace frame{
 
 typedef Queue<UidT>		UidQueueT;
 
-struct SelectorStub{
-	SelectorStub(SelectorBase *_psel = NULL):psel(_psel), cnt(0){}
-	SelectorBase	*psel;
+struct ReactorStub{
+	ReactorStub(ReactorBase *_psel = NULL):psel(_psel), cnt(0){}
+	ReactorBase		*psel;
 	size_t			cnt;
 	size_t			crtidx;
 	UidQueueT		freeuidq;
 };
 
-typedef std::vector<SelectorStub>	SelectorVectorT;
+typedef std::vector<ReactorStub>	ReactorVectorT;
 
 enum StateE{
 	StateStopped,
@@ -56,7 +56,7 @@ struct SchedulerBase::Data{
 	size_t				crtminchunkcp;
 	size_t				selcnt;
 	StateE				state;
-	SelectorVectorT		selvec;
+	ReactorVectorT		reactvec;
 	Mutex				mtx;
 	Condition			cnd;
 };
@@ -71,15 +71,18 @@ SchedulerBase::~SchedulerBase(){
 	delete &d;
 }
 
-bool SchedulerBase::update(SelectorBase &_rsel){
+bool SchedulerBase::update(ReactorBase &_rsel){
 	Locker<Mutex>	lock(d.mtx);
-	SelectorStub	&rselstb = d.selvec[_rsel.schidx];
+	ReactorStub		&rselstb = d.reactvec[_rsel.schidx];
+	
 	for(UidVectorT::const_iterator it(_rsel.freeuidvec.begin()); it != _rsel.freeuidvec.end(); ++it){
 		rselstb.freeuidq.push(*it);
 	}
 	rselstb.cnt -= _rsel.freeuidvec.size();
 	_rsel.freeuidvec.clear();
-	const size_t chunkcp = ((rselstb.cnt / d.selchunkcp) + 1) * d.selchunkcp;
+	
+	const size_t	chunkcp = ((rselstb.cnt / d.selchunkcp) + 1) * d.selchunkcp;
+	
 	if(chunkcp < d.crtminchunkcp/* && rselstb.cnt < (chunkcp / 2)*/){
 		d.crtselidx = _rsel.schidx;
 		d.crtminchunkcp = chunkcp;
@@ -88,9 +91,9 @@ bool SchedulerBase::update(SelectorBase &_rsel){
 	return true;
 }
 
-bool SchedulerBase::doStart(CreateWorkerF _pf, size_t _selcnt/* = 1*/, size_t _selchunkcp/* = 1024*/){
-	if(_selcnt == 0){
-		_selcnt = Thread::processorCount();
+bool SchedulerBase::doStart(CreateWorkerF _pf, size_t _reactorcnt/* = 1*/, size_t _reactorchunkcp/* = 1024*/){
+	if(_reactorcnt == 0){
+		_reactorcnt = Thread::processorCount();
 	}
 	Locker<Mutex>	lock(d.mtx);
 	
@@ -102,9 +105,9 @@ bool SchedulerBase::doStart(CreateWorkerF _pf, size_t _selcnt/* = 1*/, size_t _s
 		return true;
 	}
 	d.state = StateStarting;
-	d.selchunkcp = _selchunkcp;
+	d.selchunkcp = _reactorchunkcp;
 	
-	for(size_t i = 0; i < _selcnt; ++i){
+	for(size_t i = 0; i < _reactorcnt; ++i){
 		if((*_pf)(*this)){
 			++d.selcnt;
 		}else{
@@ -118,11 +121,11 @@ bool SchedulerBase::doStart(CreateWorkerF _pf, size_t _selcnt/* = 1*/, size_t _s
 		}
 		d.state = StateError;
 	}else{
-		while(d.selvec.size() != d.selcnt && d.state == StateStarting){
+		while(d.reactvec.size() != d.selcnt && d.state == StateStarting){
 			d.cnd.wait(lock);
 		}
-		if(d.selvec.size() != d.selcnt){
-			for(SelectorVectorT::const_iterator it(d.selvec.begin()); it != d.selvec.end(); ++it){
+		if(d.reactvec.size() != d.selcnt){
+			for(ReactorVectorT::const_iterator it(d.reactvec.begin()); it != d.reactvec.end(); ++it){
 				if(it->psel){
 					it->psel->stop();
 				}
@@ -131,7 +134,7 @@ bool SchedulerBase::doStart(CreateWorkerF _pf, size_t _selcnt/* = 1*/, size_t _s
 				d.cnd.wait(lock);
 			}
 			d.state = StateError;
-		}else if(d.selvec.size() == d.selcnt){
+		}else if(d.reactvec.size() == d.selcnt){
 			d.state = StateRunning;
 			return true;
 		}
@@ -151,7 +154,7 @@ void SchedulerBase::doStop(bool _wait/* = true*/){
 		return;
 	}
 	d.state = StateStopping;
-	for(SelectorVectorT::const_iterator it(d.selvec.begin()); it != d.selvec.end(); ++it){
+	for(ReactorVectorT::const_iterator it(d.reactvec.begin()); it != d.reactvec.end(); ++it){
 		if(it->psel){
 			it->psel->stop();
 		}
@@ -176,21 +179,21 @@ bool SchedulerBase::doSchedule(ObjectBase &_robj, ScheduleFunctorT &_rfct){
 			return false;
 		}
 	}
-	if(d.selvec[d.crtselidx].cnt < d.crtminchunkcp){
+	if(d.reactvec[d.crtselidx].cnt < d.crtminchunkcp){
 		
 	}else{
 		size_t mincp = -1;
 		size_t idx = 0;
-		for(SelectorVectorT::const_iterator it(d.selvec.begin()); it != d.selvec.end(); ++it){
+		for(ReactorVectorT::const_iterator it(d.reactvec.begin()); it != d.reactvec.end(); ++it){
 			if(it->cnt < mincp){
-				idx = d.selvec.end() - it;
+				idx = d.reactvec.end() - it;
 				mincp = it->cnt;
 			}
 		}
 		d.crtminchunkcp = ((mincp / d.selchunkcp) + 1) * d.selchunkcp;
 		d.crtselidx = idx;
 	}
-	SelectorStub	&rsel = d.selvec[d.crtselidx];
+	ReactorStub	&rsel = d.reactvec[d.crtselidx];
 	UidT			uid(rsel.crtidx, 0);
 	if(rsel.freeuidq.size()){
 		uid = rsel.freeuidq.front();
@@ -201,13 +204,16 @@ bool SchedulerBase::doSchedule(ObjectBase &_robj, ScheduleFunctorT &_rfct){
 	}
 	if(uid.isValid()){
 		rsel.psel->setObjectThread(_robj, uid);
-		return _rfct(*rsel.psel);
-	}else{
-		return false;
+		bool rv = _rfct(*rsel.psel);
+		if(rv){
+			return true;
+		}
+		rsel.freeuidq.push(uid);
 	}
+	return false;
 }
 
-bool SchedulerBase::prepareThread(SelectorBase &_rs){
+bool SchedulerBase::prepareThread(ReactorBase &_rs){
 	Locker<Mutex>	lock(d.mtx);
 	if(d.state == StateStoppingError){
 		--d.selcnt;
@@ -216,9 +222,9 @@ bool SchedulerBase::prepareThread(SelectorBase &_rs){
 		}
 		return false;
 	}else if(d.rm.prepareThread(&_rs)){
-		_rs.idInScheduler(d.selvec.size());
-		d.selvec.push_back(SelectorStub(&_rs));
-		if(d.selvec.size() == d.selcnt){
+		_rs.idInScheduler(d.reactvec.size());
+		d.reactvec.push_back(ReactorStub(&_rs));
+		if(d.reactvec.size() == d.selcnt){
 			d.cnd.broadcast();
 		}
 		return true;
@@ -228,14 +234,14 @@ bool SchedulerBase::prepareThread(SelectorBase &_rs){
 	}
 }
 
-void SchedulerBase::unprepareThread(SelectorBase &_rs){
+void SchedulerBase::unprepareThread(ReactorBase &_rs){
 	Locker<Mutex>	lock(d.mtx);
 	d.rm.unprepareThread(&_rs);
 	--d.selcnt;
-	d.selvec[_rs.schidx].psel = NULL;
-	d.selvec[_rs.schidx].cnt = 0;
+	d.reactvec[_rs.idInScheduler()].psel = NULL;
+	d.reactvec[_rs.idInScheduler()].cnt = 0;
 	if(d.selcnt == 0){
-		d.selvec.clear();
+		d.reactvec.clear();
 		d.cnd.broadcast();
 	}
 }

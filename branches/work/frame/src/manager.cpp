@@ -22,7 +22,7 @@
 
 #include "frame/manager.hpp"
 #include "frame/message.hpp"
-#include "frame/selectorbase.hpp"
+#include "frame/reactorbase.hpp"
 #include "frame/service.hpp"
 #include "frame/event.hpp"
 
@@ -34,7 +34,7 @@ namespace frame{
 
 typedef ATOMIC_NS::atomic<size_t>			AtomicSizeT;
 typedef ATOMIC_NS::atomic<uint>				AtomicUintT;
-typedef ATOMIC_NS::atomic<SelectorBase*>	AtomicSelectorBaseT;
+typedef ATOMIC_NS::atomic<ReactorBase*>		AtomicReactorBaseT;
 typedef ATOMIC_NS::atomic<IndexT>			AtomicIndexT;
 
 //---------------------------------------------------------
@@ -115,7 +115,7 @@ struct Manager::Data{
 	Condition				cnd;
 	ServiceStub				*psvcarr;
 	SizeStackT				svcfreestk;
-	AtomicSelectorBaseT		*pselarr;
+	AtomicReactorBaseT		*preactarr;
 	SizeStackT				selfreestk;
 	Service					dummysvc;
 };
@@ -200,7 +200,7 @@ Manager::Manager(
 	cassert(d.selprovisioncp);
 	Locker<Mutex>		lock(d.mtx);
 	d.psvcarr = new ServiceStub[d.svcprovisioncp];
-	d.pselarr = new AtomicSelectorBaseT[d.selprovisioncp];
+	d.preactarr = new AtomicReactorBaseT[d.selprovisioncp];
 	
 	for(size_t i = d.svcprovisioncp - 1; i > 0; --i){
 		d.svcfreestk.push(i);
@@ -691,7 +691,7 @@ IndexT Manager::computeThreadId(const IndexT &_selidx, const IndexT &_objidx){
 	}
 }
 
-bool Manager::prepareThread(SelectorBase *_ps){
+bool Manager::prepareThread(ReactorBase *_ps){
 	if(_ps){
 		Locker<Mutex> lock(d.mtx);
 		if(d.selfreestk.empty()){
@@ -712,8 +712,8 @@ bool Manager::prepareThread(SelectorBase *_ps){
 		}
 		d.selfreestk.pop();
 		
-		_ps->mgridx = selidx;
-		d.pselarr[_ps->mgridx] = _ps;
+		_ps->idInManager(selidx);
+		d.preactarr[_ps->idInManager()] = _ps;
 	}
 	if(!doPrepareThread()){
 		return false;
@@ -724,14 +724,14 @@ bool Manager::prepareThread(SelectorBase *_ps){
 	return true;
 }
 
-void Manager::unprepareThread(SelectorBase *_ps){
+void Manager::unprepareThread(ReactorBase *_ps){
 	doUnprepareThread();
 	Thread::specific(specificPosition(), NULL);
 	if(_ps){
 		Locker<Mutex> lock(d.mtx);
-		d.pselarr[_ps->mgridx] = NULL;
-		d.selfreestk.push(_ps->mgridx);
-		_ps->mgridx = -1;
+		d.preactarr[_ps->idInManager()] = NULL;
+		d.selfreestk.push(_ps->idInManager());
+		_ps->idInManager(-1);
 	}
 	//requestuidptr.unprepareThread();
 }
