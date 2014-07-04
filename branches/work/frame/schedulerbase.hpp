@@ -22,8 +22,6 @@ class ObjectBase;
 
 //! A base class for all schedulers
 class SchedulerBase{
-public:
-	bool update(ReactorBase &_rsel);
 protected:
 	typedef bool (*CreateWorkerF)(SchedulerBase &_rsch);
 	
@@ -35,13 +33,15 @@ protected:
 	
 	bool doSchedule(ObjectBase &_robj, ScheduleFunctorT &_rfct);
 protected:
-	friend class ReactorBase;
 	SchedulerBase(
 		Manager &_rm
 	);
 	~SchedulerBase();
+private:
+	friend class ReactorBase;
 	bool prepareThread(ReactorBase &_rsel);
 	void unprepareThread(ReactorBase &_rsel);
+	bool update(ReactorBase &_rsel);
 private:
 	struct Data;
 	Data	&d;

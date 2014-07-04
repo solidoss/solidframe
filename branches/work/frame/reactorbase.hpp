@@ -29,7 +29,7 @@ typedef std::vector<UidT>			UidVectorT;
  */
 class ReactorBase{
 public:
-	//virtual void raise(uint32 _objidx = 0) = 0;
+	virtual bool raise(UidT const& _robjuid, Event const& _re) = 0;
 	virtual void stop() = 0;
 	virtual void update() = 0;
 	

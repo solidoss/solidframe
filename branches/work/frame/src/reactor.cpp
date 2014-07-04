@@ -176,9 +176,6 @@ void Reactor::run(){
 bool Reactor::push(ObjectPointerT &_robj){
 	cassert(d.fstk.size());
 	uint pos = d.fstk.top();
-	if(!this->setObjectThread(*_robj, pos)){
-		return false;
-	}
 	d.fstk.pop();
 	d.sv[pos].objptr = _robj;
 	d.sv[pos].timepos = 0;
