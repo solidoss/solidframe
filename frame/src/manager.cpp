@@ -90,7 +90,7 @@ struct Manager::Data{
 	Data(
 		Manager &_rm,
 		const size_t _svcprovisioncp,
-		const size_t _selprovisioncp,
+		const size_t _reactorprovisioncp,
 		uint _objpermutbts, uint _mutrowsbts, uint _mutcolsbts
 	);
 	
@@ -99,24 +99,24 @@ struct Manager::Data{
 	}
 	
 	const size_t			svcprovisioncp;
-	const size_t			selprovisioncp;
+	const size_t			reactorprovisioncp;
 	const uint				objpermutbts;
 	const uint				mutrowsbts;
 	const uint				mutcolsbts;
 	const size_t			mutcolscnt;
 	size_t					svccnt;
-	AtomicUintT				selbts;
+	AtomicUintT				reactorbts;
 	AtomicUintT				svcbts;
 	AtomicUintT				objbts;
-	AtomicUintT				selobjbts;
+	AtomicUintT				reactorobjbts;
 	uint					state;
 	Mutex					mtx;
 	Mutex					mtxobj;
 	Condition				cnd;
 	ServiceStub				*psvcarr;
 	SizeStackT				svcfreestk;
-	AtomicReactorBaseT		*preactarr;
-	SizeStackT				selfreestk;
+	AtomicReactorBaseT		*preactorarr;
+	SizeStackT				reactorfreestk;
 	Service					dummysvc;
 };
 
@@ -174,16 +174,16 @@ namespace{
 Manager::Data::Data(
 	Manager &_rm,
 	const size_t _svcprovisioncp,
-	const size_t _selprovisioncp,
+	const size_t _reactorprovisioncp,
 	uint _objpermutbts, uint _mutrowsbts, uint _mutcolsbts
-):	svcprovisioncp(_svcprovisioncp), selprovisioncp(_selprovisioncp),
+):	svcprovisioncp(_svcprovisioncp), reactorprovisioncp(_reactorprovisioncp),
 	objpermutbts(_objpermutbts),
 	mutrowsbts(_mutrowsbts),
 	mutcolsbts(_mutcolsbts),
 	mutcolscnt(bitsToCount(_mutcolsbts)),
 	svccnt(0),
-	selbts(ATOMIC_VAR_INIT(1)), svcbts(ATOMIC_VAR_INIT(0)),objbts(ATOMIC_VAR_INIT(0)),
-	selobjbts(ATOMIC_VAR_INIT(1)), state(StateRunning), dummysvc(_rm)
+	reactorbts(ATOMIC_VAR_INIT(1)), svcbts(ATOMIC_VAR_INIT(0)),objbts(ATOMIC_VAR_INIT(0)),
+	reactorobjbts(ATOMIC_VAR_INIT(1)), state(StateRunning), dummysvc(_rm)
 {
 }
 
@@ -193,21 +193,21 @@ Manager::Data::Data(
 	
 Manager::Manager(
 	const size_t _svcprovisioncp,
-	const size_t _selprovisioncp,
+	const size_t _reactorprovisioncp,
 	uint _objpermutbts, uint _mutrowsbts, uint _mutcolsbts
-):d(*(new Data(*this, _svcprovisioncp, _selprovisioncp, _objpermutbts, _mutrowsbts, _mutcolsbts))){
+):d(*(new Data(*this, _svcprovisioncp, _reactorprovisioncp, _objpermutbts, _mutrowsbts, _mutcolsbts))){
 	cassert(d.svcprovisioncp);
-	cassert(d.selprovisioncp);
+	cassert(d.reactorprovisioncp);
 	Locker<Mutex>		lock(d.mtx);
 	d.psvcarr = new ServiceStub[d.svcprovisioncp];
-	d.preactarr = new AtomicReactorBaseT[d.selprovisioncp];
+	d.preactorarr = new AtomicReactorBaseT[d.reactorprovisioncp];
 	
 	for(size_t i = d.svcprovisioncp - 1; i > 0; --i){
 		d.svcfreestk.push(i);
 	}
 	d.svcfreestk.push(0);
-	for(size_t i = d.selprovisioncp - 1; i > 0; --i){
-		d.selfreestk.push(i);
+	for(size_t i = d.reactorprovisioncp - 1; i > 0; --i){
+		d.reactorfreestk.push(i);
 	}
 	
 	doRegisterService(d.dummysvc);
@@ -358,10 +358,9 @@ bool Manager::notify(ObjectUidT const &_ruid, Event const &_re, const size_t _si
 
 bool Manager::raise(const ObjectBase &_robj, Event const &_re){
 	IndexT selidx;
-	IndexT objidx;
-	//split_index(selidx, objidx, d.selbts.load(/*ATOMIC_NS::memory_order_seq_cst*/), _robj.thrid.load(/*ATOMIC_NS::memory_order_seq_cst*/));
-	//d.pselarr[selidx].load(/*ATOMIC_NS::memory_order_seq_cst*/)->raise(objidx);
-	return false;
+	UidT	uid = _robj.runId();
+	split_index(selidx, uid.index, d.reactorbts.load(/*ATOMIC_NS::memory_order_seq_cst*/), uid.index);
+	return d.preactorarr[selidx].load(/*ATOMIC_NS::memory_order_seq_cst*/)->raise(uid, _re);
 }
 
 Mutex& Manager::mutex(const ObjectBase &_robj)const{
@@ -661,31 +660,31 @@ ObjectBase* Manager::unsafeObject(const IndexT &_rfullid)const{
 	return NULL;
 }
 
-IndexT Manager::computeThreadId(const IndexT &_selidx, const IndexT &_objidx){
-	const size_t selbts = d.selbts.load(/*ATOMIC_NS::memory_order_seq_cst*/);
-	const size_t crtmaxobjcnt = bitsToCount(d.selobjbts.load(/*ATOMIC_NS::memory_order_seq_cst*/));
-	const size_t objbts = (sizeof(IndexT) * 8) - selbts;
-	const IndexT selmaxcnt = bitsToCount(selbts);
+IndexT Manager::computeThreadId(const IndexT &_reactoridx, const IndexT &_objidx){
+	const size_t reactorbts = d.reactorbts.load(/*ATOMIC_NS::memory_order_seq_cst*/);
+	const size_t crtmaxobjcnt = bitsToCount(d.reactorobjbts.load(/*ATOMIC_NS::memory_order_seq_cst*/));
+	const size_t objbts = (sizeof(IndexT) * 8) - reactorbts;
+	const IndexT reactormaxcnt = bitsToCount(reactorbts);
 	const IndexT objmaxcnt = bitsToCount(objbts);
 
 	if(_objidx < crtmaxobjcnt){
 	}else{
 		Locker<Mutex>   lock(d.mtx);
-		const size_t	selobjbts2 = d.selobjbts.load(/*ATOMIC_NS::memory_order_seq_cst*/);
-		const size_t	selbts2 = d.selbts.load(/*ATOMIC_NS::memory_order_seq_cst*/);
-		const size_t	crtmaxobjcnt2 = (1 << selobjbts2) - 1;
+		const size_t	reactorobjbts2 = d.reactorobjbts.load(/*ATOMIC_NS::memory_order_seq_cst*/);
+		const size_t	reactorbts2 = d.reactorbts.load(/*ATOMIC_NS::memory_order_seq_cst*/);
+		const size_t	crtmaxobjcnt2 = (1 << reactorobjbts2) - 1;
 		if(_objidx < crtmaxobjcnt2){
 		}else{
-			if((selobjbts2 + 1 + selbts2) <= (sizeof(IndexT) * 8)){
-				d.selobjbts.fetch_add(1/*, ATOMIC_NS::memory_order_seq_cst*/);
+			if((reactorobjbts2 + 1 + reactorbts2) <= (sizeof(IndexT) * 8)){
+				d.reactorobjbts.fetch_add(1/*, ATOMIC_NS::memory_order_seq_cst*/);
 			}else{
 				return INVALID_INDEX;
 			}
 		}
 	}
 
-	if(_objidx <= objmaxcnt && _selidx <= selmaxcnt){
-		return unite_index(_selidx, _objidx, selbts);
+	if(_objidx <= objmaxcnt && _reactoridx <= reactormaxcnt){
+		return unite_index(_reactoridx, _objidx, reactorbts);
 	}else{
 		return INVALID_INDEX;
 	}
@@ -694,26 +693,26 @@ IndexT Manager::computeThreadId(const IndexT &_selidx, const IndexT &_objidx){
 bool Manager::prepareThread(ReactorBase *_ps){
 	if(_ps){
 		Locker<Mutex> lock(d.mtx);
-		if(d.selfreestk.empty()){
+		if(d.reactorfreestk.empty()){
 			return false;
 		}
-		const size_t	crtselbts = d.selbts.load(/*ATOMIC_NS::memory_order_seq_cst*/);
-		const size_t	crtmaxselcnt = bitsToCount(crtselbts);
-		const size_t	selidx = d.selfreestk.top();
+		const size_t	crtreactorbts = d.reactorbts.load(/*ATOMIC_NS::memory_order_seq_cst*/);
+		const size_t	crtmaxreactorcnt = bitsToCount(crtreactorbts);
+		const size_t	reactoridx = d.reactorfreestk.top();
 		
-		if(selidx < crtmaxselcnt){
+		if(reactoridx < crtmaxreactorcnt){
 		}else{
-			const size_t	selobjbts2 = d.selobjbts.load(/*ATOMIC_NS::memory_order_seq_cst*/);
-			if((selobjbts2 + crtselbts + 1) <= (sizeof(IndexT) * 8)){
-				d.selbts.fetch_add(1/*, ATOMIC_NS::memory_order_seq_cst*/);
+			const size_t	reactorobjbts2 = d.reactorobjbts.load(/*ATOMIC_NS::memory_order_seq_cst*/);
+			if((reactorobjbts2 + crtreactorbts + 1) <= (sizeof(IndexT) * 8)){
+				d.reactorbts.fetch_add(1/*, ATOMIC_NS::memory_order_seq_cst*/);
 			}else{
 				return false;
 			}
 		}
-		d.selfreestk.pop();
+		d.reactorfreestk.pop();
 		
-		_ps->idInManager(selidx);
-		d.preactarr[_ps->idInManager()] = _ps;
+		_ps->idInManager(reactoridx);
+		d.preactorarr[_ps->idInManager()] = _ps;
 	}
 	if(!doPrepareThread()){
 		return false;
@@ -729,8 +728,8 @@ void Manager::unprepareThread(ReactorBase *_ps){
 	Thread::specific(specificPosition(), NULL);
 	if(_ps){
 		Locker<Mutex> lock(d.mtx);
-		d.preactarr[_ps->idInManager()] = NULL;
-		d.selfreestk.push(_ps->idInManager());
+		d.preactorarr[_ps->idInManager()] = NULL;
+		d.reactorfreestk.push(_ps->idInManager());
 		_ps->idInManager(-1);
 	}
 	//requestuidptr.unprepareThread();

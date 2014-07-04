@@ -69,7 +69,7 @@ template <typename T>
 T unite_index(T _hi, const T &_lo, const int _hibitcnt);
 
 template <typename T>
-void split_index(T &_hi, T &_lo, const int _hibitcnt, const T &_v);
+void split_index(T &_hi, T &_lo, const int _hibitcnt, const T _v);
 
 template <>
 inline uint32 unite_index<uint32>(uint32 _hi, const uint32 &_lo, const int /*_hibitcnt*/){
@@ -82,14 +82,14 @@ inline uint64 unite_index<uint64>(uint64 _hi, const uint64 &_lo, const int /*_hi
 }
 
 template <>
-inline void split_index<uint32>(uint32 &_hi, uint32 &_lo, const int _hibitcnt, const uint32 &_v){
+inline void split_index<uint32>(uint32 &_hi, uint32 &_lo, const int _hibitcnt, const uint32 _v){
 	const uint32 lomsk = bitsToMask(32 - _hibitcnt);//(1 << (32 - _hibitcnt)) - 1;
 	_lo = _v & lomsk;
 	_hi = bit_revert(_v & (~lomsk));
 }
 
 template <>
-inline void split_index<uint64>(uint64 &_hi, uint64 &_lo, const int _hibitcnt, const uint64 &_v){
+inline void split_index<uint64>(uint64 &_hi, uint64 &_lo, const int _hibitcnt, const uint64 _v){
 	const uint64 lomsk = bitsToMask(64 - _hibitcnt);//(1ULL << (64 - _hibitcnt)) - 1;
 	_lo = _v & lomsk;
 	_hi = bit_revert(_v & (~lomsk));

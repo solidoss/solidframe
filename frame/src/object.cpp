@@ -80,9 +80,9 @@ void ObjectBase::stop(){
 	return *reinterpret_cast<Object*>(Thread::specific(specificPosition()));
 }
 //--------------------------------------------------------------
-// void ObjectBase::associateToCurrentThread(){
-// 	Thread::specific(specificPosition(), this);
-// }
+void ObjectBase::prepareSpecific(){
+	Thread::specific(specificPosition(), this);
+}
 //---------------------------------------------------------------------
 //----	Object	----
 //---------------------------------------------------------------------

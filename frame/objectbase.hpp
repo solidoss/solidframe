@@ -25,7 +25,7 @@ namespace frame{
 class Manager;
 class Service;
 class Message;
-class SelectorBase;
+class ReactorBase;
 class Object;
 class CompletionHandler;
 struct EventNotifier;
@@ -63,6 +63,7 @@ private:
 	void id(const IndexT &_fullid);
 	UidT const& runId()const;
 	void runId(UidT const& _runid);
+	void prepareSpecific();
 	
 	void stop();
 private:
