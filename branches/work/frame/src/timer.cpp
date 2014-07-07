@@ -14,7 +14,7 @@
 namespace solid{
 namespace frame{
 
-Timer::Timer(Object &_robj):CompletionHandler(_robj){}
+Timer::Timer(Object &_robj):CompletionHandler(&_robj){}
 Timer::~Timer(){}
 void Timer::cancel(ExecuteContext &_rexectx){
 	
