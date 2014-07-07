@@ -27,14 +27,16 @@ typedef DynamicPointer<Object> ObjectPointerT;
 class Reactor: public ReactorBase{
 public:
 	typedef Object			ObjectT;
-	
+	static Reactor& specific();
 	Reactor(SchedulerBase &);
 	~Reactor();
 	
 	bool push(ObjectPointerT &_rjob);
 	void run();
+	void registerCompletionHandler(CompletionHandler &_rch);
+	void unregisterCompletionHandler(CompletionHandler &_rch);
 private:
-	/*virtual*/ bool raise(UidT const& _robjuid, Event const& _re) = 0;
+	/*virtual*/ bool raise(UidT const& _robjuid, Event const& _re);
 	/*virtual*/ void stop();
 	/*virtual*/ void update();
 	int doExecute(unsigned _i, ulong _evs, TimeSpec _crttout);

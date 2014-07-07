@@ -98,7 +98,7 @@ inline size_t ObjectBase::grabSignalMask(const size_t _leave/* = 0*/){
 
 inline bool ObjectBase::notify(const size_t _smask){
 	const size_t osm = smask.fetch_or(_smask/*, ATOMIC_NS::memory_order_seq_cst*/);
-	return _smask != osm;; 
+	return (_smask | osm) != osm;
 }
 
 

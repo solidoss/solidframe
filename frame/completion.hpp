@@ -17,7 +17,7 @@
 namespace solid{
 namespace frame{
 
-class ObjectBase;
+class Object;
 class CompletionHandler;
 
 struct ActionContext{
@@ -39,8 +39,16 @@ struct Action{
 class CompletionHandler{
 	static Action	dummy_init_action;
 public:
-	CompletionHandler(ObjectBase &_robj):robj(_robj), pact(&dummy_init_action){
-		doRegister();
+	CompletionHandler(
+		Object *_pobj = NULL
+	):pobj(_pobj), pprev(NULL), pnext(NULL), selidx(-1), pact(&dummy_init_action){
+		doRegisterOnObject();
+	}
+	~CompletionHandler(){
+		doUnregisterFromObject();
+	}
+	bool isRegisteredOnObject()const{
+		return pobj != NULL;
 	}
 private:
 	
@@ -48,15 +56,18 @@ private:
 		cassert(pact);
 		pact->call(this, _rctx);
 	}
-	void doRegister();
+	void doRegisterOnObject();
+	void doUnregisterFromObject();
 private:
 	static void doInitComplete(CompletionHandler *_ph, ActionContext &){
 		_ph->pact = NULL;
 	}
 protected:
-	ObjectBase				&robj;
-	CompletionHandler		*pobjprev;
-	CompletionHandler		*pobjnext;//double linked list within the object
+	Object					*pobj;
+private:
+	friend class Object;
+	CompletionHandler		*pprev;
+	CompletionHandler		*pnext;//double linked list within the object
 	size_t					selidx;//index within selector
 	Action					*pact;
 };

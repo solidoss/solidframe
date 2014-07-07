@@ -62,10 +62,16 @@ protected:
 	//! Constructor
 	Object();
 private:
-	
+	friend class CompletionHandler;
 	virtual void execute(ExecuteContext &_rexectx) = 0;
+	
+	bool isRunning()const;
+	void enterRunning();
+	bool registerCompletionHandler(CompletionHandler &_rch);
+	bool unregisterCompletionHandler(CompletionHandler &_rch);
 
 private:
+	CompletionHandler *pchfirst;//A double linked list of completion handlers
 };
 
 }//namespace frame

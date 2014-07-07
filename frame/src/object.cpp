@@ -17,6 +17,7 @@
 #include "frame/message.hpp"
 #include "frame/manager.hpp"
 #include "frame/service.hpp"
+#include "frame/reactor.hpp"
 #include "frame/completion.hpp"
 
 #include "utility/memory.hpp"
@@ -86,7 +87,76 @@ void ObjectBase::prepareSpecific(){
 //---------------------------------------------------------------------
 //----	Object	----
 //---------------------------------------------------------------------
-Object::Object(){}
+static CompletionHandler	dummy_ch;//used for detecting object preparing / running state
+
+Object::Object():pchfirst(&dummy_ch){}
+
+bool Object::isRunning()const{
+	return pchfirst != &dummy_ch && (pchfirst == NULL || pchfirst->pprev != &dummy_ch);
+}
+
+void Object::enterRunning(){
+	cassert(!isRunning());
+	if(pchfirst == &dummy_ch){
+		pchfirst = NULL;
+	}else{
+		pchfirst->pprev = NULL;
+	}
+}
+
+bool Object::registerCompletionHandler(CompletionHandler &_rch){
+	const bool rv = isRunning();
+	if(rv){
+		CompletionHandler *poldfirst = pchfirst;
+		pchfirst = &_rch;
+		pchfirst->pprev = poldfirst;
+		pchfirst->pnext = NULL;
+		if(poldfirst){
+			poldfirst->pnext = pchfirst;
+		}
+	}else{
+		CompletionHandler *poldfirst = pchfirst;
+		pchfirst = &_rch;
+		pchfirst->pprev = poldfirst;
+		pchfirst->pnext = &dummy_ch;
+		if(poldfirst != &dummy_ch){
+			poldfirst->pnext = pchfirst;
+		}else{
+			pchfirst->pprev = NULL;
+		}
+	}
+	return rv;
+}
+
+bool Object::unregisterCompletionHandler(CompletionHandler &_rch){
+	cassert(_rch.isRegistered());
+	const bool rv = isRunning();
+	if(rv){
+		if(_rch.pprev){
+			_rch.pprev->pnext = _rch.pnext;
+		}
+		if(_rch.pnext){
+			_rch.pnext->pprev = _rch.pprev;
+		}
+		if(&_rch == pchfirst){
+			pchfirst = _rch.pprev;
+		}
+	}else{
+		if(_rch.pprev){
+			_rch.pprev->pnext = _rch.pnext;
+		}
+		if(_rch.pnext != &dummy_ch){
+			_rch.pnext->pprev = _rch.pprev;
+		}
+		if(&_rch == pchfirst){
+			pchfirst = _rch.pprev;
+		}
+	}
+	_rch.pobj = NULL;
+	_rch.pprev = NULL;
+	_rch.pnext = NULL;
+	return rv;
+}
 //---------------------------------------------------------------------
 //----	Message	----
 //---------------------------------------------------------------------

@@ -19,16 +19,42 @@
 
 
 #include "system/debug.hpp"
+#include "system/thread.hpp"
 
 #include "frame/manager.hpp"
 #include "frame/object.hpp"
 #include "frame/reactor.hpp"
+#include "frame/completion.hpp"
 #include "frame/schedulerbase.hpp"
 
 namespace solid{
 namespace frame{
 
-enum {MAXTIMEPOS = 0xffffffff};
+//--------------------------------------------------------------
+namespace{
+#ifdef HAS_SAFE_STATIC
+static const unsigned specificPosition(){
+	static const unsigned	thrspecpos = Thread::specificId();
+	return thrspecpos;
+}
+#else
+const uint specificIdStub(){
+	static const uint id(Thread::specificId());
+	return id;
+}
+
+void once_stub(){
+	specificIdStub();
+}
+
+static const unsigned specificPosition(){
+	static boost::once_flag once = BOOST_ONCE_INIT;
+	boost::call_once(&once_stub, once);
+	return specificIdStub();
+}
+#endif
+}
+//--------------------------------------------------------------
 
 struct Reactor::Data{
 	enum {EXIT_LOOP = 1, FULL_SCAN = 2, READ_PIPE = 4};
@@ -54,15 +80,17 @@ struct Reactor::Data{
 };
 
 
-
+/*static*/ Reactor& Reactor::specific(){
+	return *reinterpret_cast<Reactor*>(Thread::specific(specificPosition()));
+}
 Reactor::Reactor(SchedulerBase &):d(*(new Data)){
 }
 Reactor::~Reactor(){
 	delete &d;
 }
 
-/*virtual*/ void Reactor::raise(uint32 _objidx){
-	
+/*virtual*/ bool Reactor::raise(UidT const& _robjuid, Event const& _re){
+	return false;
 }
 /*virtual*/ void Reactor::stop(){
 	
@@ -72,7 +100,9 @@ Reactor::~Reactor(){
 }
 
 void Reactor::run(){
+	Thread::specific(specificPosition(), this);
 	if(!prepareThread()){
+		Thread::specific(specificPosition(), NULL);
 		return;
 	}
 #if 0
@@ -170,6 +200,7 @@ void Reactor::run(){
 
 #endif
 	unprepareThread();
+	Thread::specific(specificPosition(), NULL);
 }
 
 
@@ -287,6 +318,14 @@ int Reactor::doExecute(unsigned _i, ulong _evs, TimeSpec _crttout){
 	return rv;
 #endif
 	return -1;
+}
+
+void Reactor::registerCompletionHandler(CompletionHandler &_rch){
+	
+}
+
+void Reactor::unregisterCompletionHandler(CompletionHandler &_rch){
+	
 }
 
 //=====================================================================
