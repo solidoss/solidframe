@@ -1,4 +1,16 @@
-//
+//Proper CompletionHandler register onto Reactor.
+1) Prevent any CompletionHandler register onto Reactor before the object itself is registered onto reactor.
+2) Any CH registered onto an Object, should be registered onto Reactor whe the object itself is registered onto reactor.
+3) After an object is registered, a CH can be registered on and only on the same Reactor as the one of the object - from the same thread.
+
+Optimization:
+============
+*	Prevent checking if the CH is registered onto reactor on any CH's action.
+Solution:
+	Automatically schedule a Register action on any newly created CH. 
+
+
+//==================================================================
 
 struct frame::ActionContext{
 	error_code	error;
