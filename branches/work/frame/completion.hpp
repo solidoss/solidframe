@@ -19,6 +19,7 @@ namespace frame{
 
 class Object;
 class CompletionHandler;
+struct ExecuteContext;
 
 struct ActionContext{
 };
@@ -42,13 +43,14 @@ public:
 	CompletionHandler(
 		Object *_pobj = NULL
 	):pobj(_pobj), pprev(NULL), pnext(NULL), selidx(-1), pact(&dummy_init_action){
-		doRegisterOnObject();
+		doRegisterOntoObject();
 	}
 	~CompletionHandler(){
 		doUnregisterFromObject();
 	}
-	bool isRegisteredOnObject()const{
-		return pobj != NULL;
+	
+	bool isRegistered()const{
+		return pobj != NULL && selidx != static_cast<size_t>(-1);
 	}
 private:
 	
@@ -56,7 +58,7 @@ private:
 		cassert(pact);
 		pact->call(this, _rctx);
 	}
-	void doRegisterOnObject();
+	void doRegisterOntoObject();
 	void doUnregisterFromObject();
 private:
 	static void doInitComplete(CompletionHandler *_ph, ActionContext &){

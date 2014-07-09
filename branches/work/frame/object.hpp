@@ -37,7 +37,12 @@ struct ExecuteContext{
 	void die(){
 		
 	}
-	ERROR_NS::error_code const& error()const{
+	
+	ERROR_NS::error_code const& systemError()const{
+		return err;
+	}
+	
+	ERROR_NS::error_condition const& error()const{
 		return err;
 	}
 protected:
@@ -48,9 +53,10 @@ protected:
 		const TimeSpec &_rcrttm
 	):	evn(_evn), rcrttm(_rcrttm){}
 	
-	Event					evn;
-	const TimeSpec			&rcrttm;
-	ERROR_NS::error_code	err;
+	Event						evn;
+	const TimeSpec				&rcrttm;
+	ERROR_NS::error_code		syserr;
+	ERROR_NS::error_condition	err;
 };
 
 class Object: public Dynamic<Object, ObjectBase>{
@@ -61,15 +67,18 @@ public:
 protected:
 	//! Constructor
 	Object();
+	
+	bool registerCompletionHandler(CompletionHandler &_rch);
+	bool unregisterCompletionHandler(CompletionHandler &_rch);
+	
+	bool registerCompletionHandler(ExecuteContext &_rexectx, CompletionHandler &_rch);
+	bool unregisterCompletionHandler(ExecuteContext &_rexectx, CompletionHandler &_rch);
 private:
 	friend class CompletionHandler;
 	virtual void execute(ExecuteContext &_rexectx) = 0;
 	
 	bool isRunning()const;
 	void enterRunning();
-	bool registerCompletionHandler(CompletionHandler &_rch);
-	bool unregisterCompletionHandler(CompletionHandler &_rch);
-
 private:
 	CompletionHandler *pchfirst;//A double linked list of completion handlers
 };

@@ -129,7 +129,7 @@ bool Object::registerCompletionHandler(CompletionHandler &_rch){
 }
 
 bool Object::unregisterCompletionHandler(CompletionHandler &_rch){
-	cassert(_rch.isRegistered());
+	cassert(_rch.isRegisteredOnObject());
 	const bool rv = isRunning();
 	if(rv){
 		if(_rch.pprev){
