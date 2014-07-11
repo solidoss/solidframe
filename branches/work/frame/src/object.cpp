@@ -59,9 +59,9 @@ ObjectBase::ObjectBase():
 	fullid(-1){
 }
 
-void ObjectBase::unregister(){
+void ObjectBase::unregister(Manager &_rm){
 	if(isRegistered()){
-		Manager::specific().unregisterObject(*this);
+		_rm.unregisterObject(*this);
 		fullid = -1;
 	}
 }
@@ -70,11 +70,11 @@ ObjectBase::~ObjectBase(){
 	unregister();
 }
 
-/*virtual*/void ObjectBase::doStop(){
+/*virtual*/void ObjectBase::doStop(Manager &_rm){
 }
-void ObjectBase::stop(){
+void ObjectBase::stop(Manager &_rm){
 	doStop();
-	unregister();
+	unregister(_rm);
 }
 //--------------------------------------------------------------
 /*static*/ ObjectBase& ObjectBase::specific(){

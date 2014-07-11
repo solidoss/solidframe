@@ -5,7 +5,7 @@ Ideas of use:
 
 class Connection: public frame::aio::Object<>{
 public:
-	Connection(SocketDevice &_rsd): s(_rsd, *this){
+	Connection(SocketDevice &_rsd): s(_rsd, completionInitData()){
 		cassert(s.id() == 0);
 	}
 	//v0

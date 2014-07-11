@@ -54,9 +54,9 @@ protected:
 	//! Grab the signal mask eventually leaving some bits set- CALL this inside lock!!
 	size_t grabSignalMask(const size_t _leave = 0);
 	
-	void unregister();
+	void unregister(Manager &_rm);
 	bool isRegistered()const;
-	virtual void doStop();
+	virtual void doStop(Manager &_rm);
 	
 	bool notify(const size_t _smask);
 private:
@@ -65,7 +65,7 @@ private:
 	void runId(UidT const& _runid);
 	void prepareSpecific();
 	
-	void stop();
+	void stop(Manager &_rm);
 private:
 	IndexT						fullid;
 	UidT						runid;
