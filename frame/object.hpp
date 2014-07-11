@@ -68,19 +68,18 @@ protected:
 	//! Constructor
 	Object();
 	
-	bool registerCompletionHandler(CompletionHandler &_rch);
-	bool unregisterCompletionHandler(CompletionHandler &_rch);
-	
-	bool registerCompletionHandler(ExecuteContext &_rexectx, CompletionHandler &_rch);
-	bool unregisterCompletionHandler(ExecuteContext &_rexectx, CompletionHandler &_rch);
 private:
 	friend class CompletionHandler;
 	virtual void execute(ExecuteContext &_rexectx) = 0;
 	
+	bool registerCompletionHandler(CompletionHandler &_rch);
+	bool unregisterCompletionHandler(CompletionHandler &_rch);
+	
 	bool isRunning()const;
 	void enterRunning();
 private:
-	CompletionHandler *pchfirst;//A double linked list of completion handlers
+	CompletionHandler	*pchfirst;//A double linked list of completion handlers
+	Reactor				*preactor;
 };
 
 }//namespace frame

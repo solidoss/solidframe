@@ -37,37 +37,43 @@ struct Action{
 	CallbackT				pcbk;
 };
 
+
 class CompletionHandler{
 	static Action	dummy_init_action;
+	friend class Object;
 public:
+	
+	struct InitData{
+	private:
+		InitData(Object &_robj): robj(_robj){}
+		InitData(InitData const &_rd):robj(_rd.robj){}
+		InitData& operator=(InitData const&_rd);
+	private:
+		Object &robj;
+	};
+	
 	CompletionHandler(
-		Object *_pobj = NULL
-	):pobj(_pobj), pprev(NULL), pnext(NULL), selidx(-1), pact(&dummy_init_action){
-		doRegisterOntoObject();
-	}
-	~CompletionHandler(){
-		doUnregisterFromObject();
-	}
+		InitData const &_rid
+	);
+	
+	~CompletionHandler();
 	
 	bool isRegistered()const{
-		return pobj != NULL && selidx != static_cast<size_t>(-1);
+		return selidx != static_cast<size_t>(-1);
 	}
+	void init(InitData const &_rd);
 private:
 	
 	void handleCompletion(ActionContext &_rctx){
 		cassert(pact);
 		pact->call(this, _rctx);
 	}
-	void doRegisterOntoObject();
-	void doUnregisterFromObject();
 private:
 	static void doInitComplete(CompletionHandler *_ph, ActionContext &){
 		_ph->pact = NULL;
 	}
-protected:
-	Object					*pobj;
 private:
-	friend class Object;
+	Object					&robj;
 	CompletionHandler		*pprev;
 	CompletionHandler		*pnext;//double linked list within the object
 	size_t					selidx;//index within selector
